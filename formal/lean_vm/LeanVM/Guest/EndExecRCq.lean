@@ -128,7 +128,7 @@ theorem csQ_step (hr : r.Ok) :
   -- the caller is the terminal
   have hcal := List.all_eq_true.mp (Res.calls_sites (Res.termCallers_all fnI (List.mem_of_find?_eq_some hfI)) hw c hc)
     (Tables.lName "column_selector" κ, name% «check_opening_terminal»)
-    (List.mem_cons_of_mem _ (List.mem_map.mpr ⟨κ, List.mem_range.mpr hκ, rfl⟩))
+    (List.mem_cons_of_mem _ (List.mem_append_left _ (List.mem_map.mpr ⟨κ, List.mem_range.mpr hκ, rfl⟩)))
   have hnI := Da.fn_name_of_find hfI
   rw [hcf, hf] at hcal
   simp only [bne_self_eq_false, Bool.false_or, Bool.or_eq_true, Bool.and_eq_true, beq_iff_eq] at hcal

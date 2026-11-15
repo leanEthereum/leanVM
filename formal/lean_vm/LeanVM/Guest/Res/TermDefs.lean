@@ -117,11 +117,22 @@ noncomputable def dimB (j : ℕ) (w : Wit) : Mode.Res → Bool
 
 /-! ## The callers -/
 
-/-- **The terminal's callees and their callers**: `check_opening_terminal` called by `verify_sub`, each
-`column_selector__L{κ}` by `check_opening_terminal` (`Res.callersG`). -/
+/-- **The Keccak reduction's callees and their callers**: `verify_keccak` called by `verify_sub`, the
+two `keccak_layer` specializations by `verify_keccak`, and each one's two loops by it. -/
+def stCallers : List (String × String) :=
+  [(name% «verify_keccak», name% «verify_sub»), (name% «keccak_layer__L0», name% «verify_keccak»),
+    (name% «keccak_layer__L1», name% «verify_keccak»),
+    (name% «keccak_layer__L0_loop0», name% «keccak_layer__L0»),
+    (name% «keccak_layer__L0_loop1», name% «keccak_layer__L0»),
+    (name% «keccak_layer__L1_loop0», name% «keccak_layer__L1»),
+    (name% «keccak_layer__L1_loop1», name% «keccak_layer__L1»)]
+
+/-- **The callees whose facts are carried and their callers** (`Res.callersG`): `check_opening_terminal`
+called by `verify_sub`, each `column_selector__L{κ}` by `check_opening_terminal`, and `stCallers`. -/
 def termCallers : List (String × String) :=
   (name% «check_opening_terminal», name% «verify_sub») ::
-    (List.range 31).map fun κ ↦ (Tables.lName "column_selector" κ, name% «check_opening_terminal»)
+    ((List.range 31).map fun κ ↦ (Tables.lName "column_selector" κ, name% «check_opening_terminal»)) ++
+    stCallers
 
 /-! ## `column_selector`'s lowest digit -/
 
