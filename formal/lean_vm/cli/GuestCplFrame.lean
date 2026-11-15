@@ -1,5 +1,6 @@
 import LeanVM.Guest.Backend.Guest.Input
 import LeanVM.Guest.Backend.Complete.Scoped
+import LeanVM.Guest.Backend.Complete.Cells
 
 /-!
 # `guest-cplframe`: the placement-side completeness hypotheses on the guest
@@ -41,7 +42,11 @@ def main (args : List String) : IO UInt32 := do
     let mut fails := 0
     for (what, tf) in counterexamples do
       let placed := match placeFn {} (sigTable [tf]) {} tf with
-        | .ok _ => "placed"
+        | .ok (pf, _) =>
+          let cells := (List.range 4).filterMap fun k => match pf.locs[vv k]? with
+            | some (.cell c) => some s!"v{k}@{c}"
+            | _ => none
+          s!"placed (frame size {pf.fn.frameSize}, cells {cells})"
         | .error e => s!"not placed ({e})"
       let sc := scopedB tf
       IO.println s!"{what}: {placed}, scopedB {sc}"
@@ -58,4 +63,14 @@ def main (args : List String) : IO UInt32 := do
   let shown := if detail then bad else bad.extract 0 40
   for b in shown do IO.println s!"  {b}"
   if bad.size > shown.size then IO.println s!"  ... {bad.size - shown.size} more (--detail)"
-  return if bad.isEmpty then 0 else 1
+  let (pls, _) ← orThrow (placeProgram P)
+  let mut okT := 0
+  let mut badT : Array String := #[]
+  let mut ntmps := 0
+  for (pf, tf) in pls.zip P do
+    ntmps := ntmps + (LeanVM.Guest.Memory.Stmt.tmpsList tf.core.body).length
+    if tmpsApartB tf pf then okT := okT + 1
+    else badT := badT.push tf.core.name
+  IO.println s!"temporaries apart: {okT} of {pls.length} functions ({ntmps} temporaries)"
+  for b in (if detail then badT else badT.extract 0 40) do IO.println s!"  {b}"
+  return if bad.isEmpty && badT.isEmpty then 0 else 1
