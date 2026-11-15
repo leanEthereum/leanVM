@@ -335,26 +335,28 @@ def FrameCongr (tf : TracedFn) (pf : Placed) (FS : Val → FrameSpec) : Prop :=
 
 /-! ## The statements -/
 
-/-- **P5, frames**: every value placed in a cell is in the frame, past the header. -/
+/-- **P5, frames**: every value of a scoped function placed in a cell is in the frame, past the
+header. -/
 def PlaceInFrameStmt : Prop :=
   ∀ (loops : Loops) (sigs : SMap (ℕ × ℕ)) (t t' : Tables) (tf : TracedFn) (pf : Placed),
-    placeFn loops sigs t tf = .ok (pf, t') →
+    placeFn loops sigs t tf = .ok (pf, t') → Scoped tf →
     ∀ v n, cellP pf.locs v = some n → 2 ≤ n ∧ n < pf.fn.frameSize
 
 /-- **The frame of an instance is consistent** (the placement side): for a scoped function
 placed as `pf`, at a frame `fp` (`main`'s at `0`) whose frame addresses point into it, with callee
 frames `kfps` and header `hdr`, there is a frame family over the valuations, chosen before any
-memory (of any size) and blind to the temporaries' words, such that on every path its words hold
-the values the path reads, and on every memory holding the frame whose reads agree with the path's
-events, with the jump tables written and the callees' runs, the instructions of the path have
-their meaning. -/
+memory (of any size) and blind to the temporaries' words, such that on every path whose events
+hold on some reader its words hold the values the path reads, and on every memory holding the
+frame whose reads agree with the path's events, with the jump tables written and the callees'
+runs, the instructions of the path have their meaning. -/
 def FrameConsistentStmt (TmpsApart : TracedFn → Placed → Prop) : Prop :=
   ∀ {κ₀ : ℕ} (W : World κ₀), W.Compiled → ∀ tf ∈ W.p, Scoped tf → ∀ pf, World.PlacedAs W tf pf →
   ∀ (fp : ℕ), (tf.core.name = "main" → fp = 0) → ∀ (kfps : List ℕ) (hdr : E × E),
   ∃ FS : Val → FrameSpec, FrameCongr tf pf FS ∧
     ∀ (σ : Val) (es : List Ev) (vs : List V), walk σ tf.core.body = .ret es vs →
       (∀ q ∈ addrs es, σ q.1 = ofK (addressOfIndex (fp + (cellP pf.locs q.2).getD 0))) →
-      FrameClauses (loopTable W.p) TmpsApart tf pf fp σ es vs hdr (FS σ) ∧
+      (∀ rd : Reader, (∀ e ∈ es, e.Holds rd σ) →
+        FrameClauses (loopTable W.p) TmpsApart tf pf fp σ es vs hdr (FS σ)) ∧
       ∀ {κ : ℕ} (L : MemoryImage κ) (ck : List (Opcode → ℕ)),
         FrameOK L (loopTable W.p) tf pf.fn.frameSize fp (FS σ) σ es kfps hdr →
         (∀ e ∈ es, e.Holds L.read σ) → JTHolds L W.layout W.slots →
