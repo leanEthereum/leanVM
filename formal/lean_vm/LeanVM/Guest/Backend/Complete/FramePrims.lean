@@ -116,6 +116,20 @@ theorem fixed_ne {c x : ℕ} {a : E} (hs : ∃ Ψ, C Ψ) (hb : BlindAt C c)
   rw [Function.update_self] at h1
   exact one_ne_zero (by linear_combination h1 : (1 : E) = 0)
 
+/-- The cells below `n` the constraint `C` leaves free, `C'` leaves free. -/
+def KeepB (C C' : (ℕ → E) → Prop) (n : ℕ) : Prop := ∀ c, c < n → BlindAt C c → BlindAt C' c
+
+theorem KeepB.refl (C : (ℕ → E) → Prop) (n : ℕ) : KeepB C C n := fun _ _ h => h
+
+theorem KeepB.trans {C₁ C₂ : (ℕ → E) → Prop} {n n₁ : ℕ} (h₁ : KeepB C C₁ n)
+    (h₂ : KeepB C₁ C₂ n₁) (hn : n ≤ n₁) : KeepB C C₂ n :=
+  fun c hc hb => h₂ c (lt_of_lt_of_le hc hn) (h₁ c hc hb)
+
+/-- A word the constraint fixes stays when a cell it leaves free changes. -/
+theorem fixed_upd {c x : ℕ} {a : E} (hb : BlindAt C c) (hx : ∀ Ψ, C Ψ → Ψ x = a) {Ψ : ℕ → E}
+    (hΨ : C Ψ) (w : E) : Function.update Ψ c w x = Ψ x := by
+  rw [hx _ (hb Ψ w hΨ), hx Ψ hΨ]
+
 /-! ## Cells and instructions -/
 
 /-- **A fresh cell** gets the word `w`, computed from the cells below it. -/
@@ -155,7 +169,7 @@ theorem pooledCell_fat {find : Scope → Option Cell} {learn : Cell → Scope �
       ScopeGood (st.next + 1) (learn st.next st.scope)) :
     FAt ctx I C st (pooledCell find learn mk) (fun o C' st' => 2 ≤ o ∧ o < st'.next ∧
       st'.locs = st.locs ∧ st'.rest = st.rest ∧ (∀ Ψ, C' Ψ → Q o → Ψ o = w Ψ) ∧
-      ∀ c, c < st.next → BlindAt C c → (∀ Ψ x, w (Function.update Ψ c x) = w Ψ) →
+      ∀ c, c < st.next → BlindAt C c → (∀ Ψ x, C Ψ → w (Function.update Ψ c x) = w Ψ) →
         BlindAt C' c) := by
   unfold pooledCell
   refine FAt.get_bind ?_
@@ -173,7 +187,7 @@ theorem pooledCell_fat {find : Scope → Option Cell} {learn : Cell → Scope �
     subst hC₃ hst₃
     exact FAt.pure ⟨h2, Nat.lt_succ_self _, rfl, rfl, fun Ψ h _ => h.2,
       fun c hc hb hwc Ψ x h => ⟨hb Ψ x h.1, by
-        rw [Function.update_of_ne (Nat.ne_of_gt hc), hwc]
+        rw [Function.update_of_ne (Nat.ne_of_gt hc), hwc Ψ x h.1]
         exact h.2⟩⟩
 
 theorem mulCell_eq (a b : Cell) : mulCell a b = pooledCell (·.muls.get? (sorted a b))
@@ -194,7 +208,7 @@ theorem mulCell_fat {a b : Cell} (ha2 : 2 ≤ a) (ha : a < st.next) (hb2 : 2 ≤
     (fun Ψ _ h hp => hp.insertMul (by rw [h, mul_sorted]))
     (fun hs => { hs with muls := pmap_insert_imp hs.muls ⟨h2, Nat.lt_succ_self _⟩ }))
     fun o C' st' _ _ _ ⟨h1, h2, h3, h4, h5, h6⟩ => ⟨h1, h2, h3, h4, fun Ψ hΨ => h5 Ψ hΨ trivial,
-      fun c hc hca hcb hb => h6 c hc hb fun Ψ x => by
+      fun c hc hca hcb hb => h6 c hc hb fun Ψ x _ => by
         show Function.update Ψ c x a * Function.update Ψ c x b = Ψ a * Ψ b
         rw [Function.update_of_ne hca.symm, Function.update_of_ne hcb.symm]⟩
   show fw I Ψ st.next = fw I Ψ a * fw I Ψ b
@@ -217,7 +231,7 @@ theorem constCell_fatB (k : ℕ × ℕ) (hkw : I.kw (.const k.1 k.2) = Guest.wor
     (fun hs => { hs with consts := pmap_insert_imp hs.consts ⟨h2, Nat.lt_succ_self _⟩ }))
     fun o C' st' _ _ _ ⟨a, b, c, d, e, f⟩ => ⟨a, b, c, d, fun Ψ hΨ => e Ψ hΨ trivial,
       fun c' hc hb => f c' hc hb
-      fun _ _ => rfl⟩
+      fun _ _ _ => rfl⟩
   show fw I Ψ st.next = I.kw (.const k.1 k.2)
   rw [hkw, fw_of_two h2, h]
 
@@ -551,20 +565,20 @@ theorem emitDeref_fat {ptr off dst : Cell} (hp2 : 2 ≤ ptr) (hd2 : 2 ≤ dst) (
 buffer whose word is the address of that cell, `g^(fp + o)`. -/
 theorem selfFp_fat (hok : I.Ok) (hmain : ctx.isMain = true → I.fp = 0) (h2 : 2 ≤ st.next) :
     FAt ctx I C st selfFp (fun o C' st' => 2 ≤ o ∧ o < st'.next ∧ st'.locs = st.locs ∧
-      st'.rest = st.rest ∧ ∀ Ψ, C' Ψ → Ψ o = I.fpw) := by
+      st'.rest = st.rest ∧ (∀ Ψ, C' Ψ → Ψ o = I.fpw) ∧ KeepB C C' st.next) := by
   unfold selfFp
   refine FAt.read_bind ?_
   by_cases hm : ctx.isMain = true
   · simp only [hm, ↓reduceIte]
-    refine FAt.mono (constCell_fat (1, 0) (hok.kconst _ _) h2)
-      fun o C' st' _ _ _ ⟨ha, hb, hc, hd, he⟩ => ⟨ha, hb, hc, hd, fun Ψ h => ?_⟩
+    refine FAt.mono (constCell_fatB (1, 0) (hok.kconst _ _) h2)
+      fun o C' st' _ _ _ ⟨ha, hb, hc, hd, he, hf⟩ => ⟨ha, hb, hc, hd, fun Ψ h => ?_, hf⟩
     rw [he Ψ h, word_one, Inst.fpw, hmain hm, ofK_gpow_zero]
   · simp only [hm, Bool.false_eq_true, ↓reduceIte]
     refine FAt.get_bind ?_
     split
     · next o ho =>
       exact FAt.pureC fun hc => ⟨(hc.cells.selfFp o ho).1, (hc.cells.selfFp o ho).2, rfl, rfl,
-        fun Ψ hΨ => (hc.pools Ψ hΨ).selfFp o ho⟩
+        fun Ψ hΨ => (hc.pools Ψ hΨ).selfFp o ho, KeepB.refl C _⟩
     · intro hc
       simp only [fresh, pushHint, emitOp, takeHints, push, wp_bind, wp_modifyGet, wp_modify,
         wp_pure]
@@ -581,7 +595,9 @@ theorem selfFp_fat (hok : I.Ok) (hmain : ctx.isMain = true → I.fp = 0) (h2 : 2
       swap
       · refine ⟨le_trans h2 (Nat.le_succ _), Nat.lt_succ_self _, ?_⟩
         simp only [true_and]
-        exact fun Ψ h => h.2
+        exact ⟨fun Ψ h => h.2, fun c hc hb Ψ x h => ⟨⟨hb Ψ x h.1.1, by
+          rw [Function.update_of_ne (Nat.ne_of_gt hc)]; exact h.1.2⟩, by
+          rw [Function.update_of_ne (by omega)]; exact h.2⟩⟩
       have hsf : ¬ I.tc (st.next + 1) := fun ht => by
         obtain ⟨p, hp, hq⟩ := hok.tops _ ht _ (hops _ _ (List.mem_cons_of_mem _ List.mem_cons_self))
           (by simp [opCells])
