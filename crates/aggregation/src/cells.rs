@@ -1,6 +1,5 @@
 //! Field-element encodings shared by the host and the guest.
 
-use crate::protocol::g_pow;
 use verifier::E;
 
 pub(super) const ZERO: E = E::new(0, 0);
@@ -8,7 +7,7 @@ pub(super) const ONE: E = E::new(1, 0);
 
 /// A count as the guest carries it: in the exponent, `g^n`.
 pub(super) fn count(n: usize) -> E {
-    E::from(g_pow(n))
+    E::new(primitives::field::g_pow(n).0, 0)
 }
 
 /// Bytes, each in the exponent: how the guest bounds a value it rebuilds

@@ -34,7 +34,7 @@
 //! the root's is discharged natively, by [`AggregateProof::verify`].
 //!
 //! `gen_verify` derives the guest's whole witness for a child from the layout
-//! of the inner program (the crate's `protocol` module) and the summary the `verifier`
+//! of the inner program (the stable prover's `cpu::layout`) and the summary the `verifier`
 //! crate reads out of the child's proof.
 
 mod cells;
@@ -48,13 +48,11 @@ mod hints;
 mod node;
 mod placeholders;
 mod proof;
-mod protocol;
 #[cfg(any(test, feature = "signers-cache"))]
 pub mod signers_cache;
 mod statement;
 #[cfg(test)]
 mod tests;
-mod wire;
 
 pub use error::AggregateError;
 pub use guest::{Guest, unified_guest, warm_up};
@@ -74,13 +72,38 @@ pub type LeanSphincsClaim = (LeanSphincsPublicKey, lean_sphincs::Message);
 pub const MAX_RECURSIONS: usize = 16;
 
 /// The smallest `log_inv_rate` a proof can use, its code rate being `2^-log_inv_rate`.
-pub const MIN_LOG_INV_RATE: usize = 1;
+pub const MIN_LOG_INV_RATE: usize = pcs::whir::MIN_LOG_INV_RATE;
 /// The largest `log_inv_rate` a proof can use.
-pub const MAX_LOG_INV_RATE: usize = 4;
+pub const MAX_LOG_INV_RATE: usize = pcs::whir::MAX_LOG_INV_RATE;
 
 /// A proof of any program as the `verifier` crate takes it: the stacked bytecode it is about, and the proof's one
 /// encoding.
 pub mod vm {
-    pub use crate::protocol::bytecode_table;
-    pub use crate::wire::{from_bytes, to_bytes};
+    pub use crate::guest::bytecode_table;
+    use fiat_shamir::merkle::MerklePath;
+    use leanvm_core::cpu::{Proof, from_scalar, scalar_proof};
+    use primitives::field::F64;
+
+    /// The prover's encoding (`Proof::to_bytes`).
+    pub fn to_bytes(proof: &verifier::Proof) -> Vec<u8> {
+        let path = |path: &verifier::MerklePath| MerklePath {
+            leaf_index: path.leaf_index,
+            leaf: path.leaf.iter().map(|word| F64(word.0)).collect(),
+            siblings: path.siblings.clone(),
+        };
+        let proof = Proof {
+            stream: proof.stream.iter().copied().map(from_scalar).collect(),
+            merkle: proof
+                .merkle_openings
+                .iter()
+                .map(|phase| phase.iter().map(path).collect())
+                .collect(),
+        };
+        proof.to_bytes()
+    }
+
+    /// The prover's decoding (`Proof::from_bytes`), `None` for bytes no proof encodes to.
+    pub fn from_bytes(bytes: &[u8]) -> Option<verifier::Proof> {
+        Proof::from_bytes(bytes).map(|proof| scalar_proof(&proof))
+    }
 }

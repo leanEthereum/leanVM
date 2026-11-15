@@ -90,7 +90,7 @@ pub(crate) fn public_input_bytes(public_input: &[E; 2]) -> [u8; 32] {
 
 impl AggregateProof {
     pub fn to_bytes(&self) -> Vec<u8> {
-        encode(&self.bytecode_point, &crate::wire::to_bytes(&self.proof))
+        encode(&self.bytecode_point, &crate::vm::to_bytes(&self.proof))
     }
 
     /// Decode a proof, `None` if the bytes are not one. This does not verify: call [`Self::verify`].
@@ -99,7 +99,7 @@ impl AggregateProof {
         if bytecode_point.len() != bytecode_vars() {
             return None;
         }
-        let proof = crate::wire::from_bytes(proof)?;
+        let proof = crate::vm::from_bytes(proof)?;
         Some(Self { bytecode_point, proof })
     }
 

@@ -2,7 +2,8 @@
 
 use super::MAX_RECURSIONS;
 use super::cells::pack_16_bytes;
-use super::cells::{ONE, bits, hash_to_scalars};
+use super::cells::{ONE, bits, count, hash_to_scalars};
+use super::child::execution_layout;
 use super::child::{
     MU_CAP, QUERY_WINDOW_BITS, QUERY_WINDOWS_CAP, STREAM_CAP, block_groups, col_groups, merkle_cap_depth, whir_shape,
 };
@@ -12,17 +13,26 @@ use super::deferred::labeled_sponge;
 use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW};
 use super::statement::{BIG_GROUPS, CLAIM_GROUP, STATEMENT_HEADER};
 use super::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
-use crate::protocol::{
-    Block, Coord, KECCAK_DEPTH, KECCAK_MIN_SHAPE, KeccakLane, N_TUPLE_BITS, QKECCAK, ROUND_GRIND, block_kappa_sources,
-    bus_blocks, bus_grinding_bits, col_kappa_sources, g_pow, keccak_value, n_xi_powers, side_stack, slot_log,
-    table_logs, xi_form_base, xi_offsets, y_grind,
-};
 use lean_da::{CELLS_PER_ROW, DA_MAX_ROWS, LOG_BLOB_SYMBOLS, LOG_CELL_SYMBOLS};
+use leanvm_core::constraints::xi_offsets;
+use leanvm_core::cpu::{
+    KeccakLane, QKECCAK, block_kappa_sources, col_kappa_sources, keccak_value, n_xi_powers, xi_form_base,
+};
+use leanvm_core::gkr::{ROUND_GRIND, y_grind};
+use leanvm_core::keccak::{DEPTH as KECCAK_DEPTH, SLOT_LOG};
+use leanvm_core::leaf::{self, Block, Coord, N_TUPLE_BITS, bus_grinding_bits};
 use std::collections::BTreeMap;
 use std::ops::Range;
 use verifier::layout::{GLOBAL_COLUMN_BASES, N_TABLES, TABLE_LOG_FLOORS, TABLE_WIDTHS, tables};
 use verifier::{
-    BATCH_GRINDING_BITS, E, FOLD_GRINDING_BITS, K, OOD_GRINDING_BITS, QUERY_GRINDING_BITS, RATE_SCALARS, grinding_bits,
+    BATCH_GRINDING_BITS, E, FOLD_GRINDING_BITS, K, KeccakShape, OOD_GRINDING_BITS, QUERY_GRINDING_BITS, RATE_SCALARS,
+    grinding_bits,
+};
+
+/// The Keccak reduction's shape at its fewest steps.
+const KECCAK_MIN_SHAPE: KeccakShape = KeccakShape {
+    log_steps: verifier::layout::KECCAK_MIN_STEPS_LOG,
+    depth: KECCAK_DEPTH,
 };
 use zkdsl_compiler::f128_literal;
 
@@ -167,7 +177,8 @@ struct OpeningShape {
 pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     // Only block and coordinate structure is used here; stand-in sizes let us derive it before the guest's
     // bytecode exists.
-    let sides = bus_blocks(kbc, 20, &table_logs(&[1 << 10; N_TABLES]));
+    let layout = execution_layout(kbc, 20, [1 << 10; N_TABLES]);
+    let sides = [layout.push, layout.pull, layout.count];
 
     let mut rep = BTreeMap::new();
     let mut ps = |k: &str, v: String| {
@@ -188,8 +199,8 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     table_placeholders(&mut ps);
     keccak_placeholders(&mut ps);
     // The bus's least push depth over every execution of this bytecode: the least memory, every table at its floor.
-    let [least, ..] = bus_blocks(kbc, verifier::MIN_LOG_MEMORY, &table_logs(&[0; N_TABLES]));
-    grind_placeholders(side_stack(&least).1, &mut ps);
+    let least = execution_layout(kbc, verifier::MIN_LOG_MEMORY, [0; N_TABLES]).push;
+    grind_placeholders(leaf::layout(&least).mu, &mut ps);
     field_placeholders(&mut ps);
     opening_placeholders(kbc, &mut ps);
     bytecode_placeholders(kbc, nbcv, &mut ps);
@@ -421,7 +432,7 @@ fn claim_placeholders(sides: &[Vec<Block>; 3], kbc: usize, nclaims: usize, ps: &
     ps("CLAIM_COMMITTED_COL", literals(claims.iter().map(|c| c.column)));
     ps("CLAIM_KAPPA_SRC", literals(claims.iter().map(|c| c.source.0)));
     ps("CLAIM_KAPPA_ADJ", literals(claims.iter().map(|c| c.source.1)));
-    let slot_log = slot_log();
+    let slot_log = SLOT_LOG;
     let cpqbits: Vec<usize> = claims
         .iter()
         .flat_map(|c| (0..slot_log).map(move |k| (c.qkeccak_slot >> k) & 1))
@@ -628,7 +639,7 @@ fn field_placeholders(ps: &mut impl FnMut(&str, String)) {
         .map(|p| (0..(64 - 8 * p) % 64).fold(E::new(2, 0), |z, _| z.square()).inv())
         .collect();
     ps("RING_W", flds(&ring_w));
-    ps("QKECCAK_SLOT_LOG", slot_log().to_string());
+    ps("QKECCAK_SLOT_LOG", SLOT_LOG.to_string());
 }
 
 /// The stacked opening's candidate tables, one per committed size and rate: every size the native verifier accepts of
@@ -858,7 +869,7 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
     ps("VANISH_INVS_BY_COLS", flds(&inverses));
     ps("LIG_N_LOG_SIZES", n_log_sizes.to_string());
     ps("LIG_N_RATES", n_rates.to_string());
-    ps("LIG_MIN_SHIFT_INV", f128_literal(E::from(g_pow(minm).inv())));
+    ps("LIG_MIN_SHIFT_INV", f128_literal(count(minm).inv()));
 }
 
 /// The stacked bytecode's claim, the batch's seed, and the statement's layout.
@@ -896,13 +907,13 @@ fn bytecode_placeholders(kbc: usize, nbcv: usize, ps: &mut impl FnMut(&str, Stri
 /// the NTT's twiddles. `Vhat_j(β_j) = 1` and the bits below `j` vanish, so `Vhat_j` at point
 /// `i` is `bit_j(i)` plus this at `i >> (j + 1)`: the factors the guest builds `L` from.
 pub(super) fn subspace_above() -> impl Fn(usize, usize) -> K {
-    let subspace = verifier::Subspace::new(LOG_BLOB_SYMBOLS);
+    let ntt = pcs::ntt::AdditiveNttF64::standard(lean_da::LOG_CODEWORD_SYMBOLS);
     move |j, y| {
         assert!(
             j <= LOG_BLOB_SYMBOLS && y >> (LOG_BLOB_SYMBOLS - j) == 0,
             "bits above {j} only"
         );
-        subspace.at(K((y as u64) << (j + 1)))[j]
+        K(ntt.twiddle(LOG_BLOB_SYMBOLS - j, y).0)
     }
 }
 

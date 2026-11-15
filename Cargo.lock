@@ -12,8 +12,10 @@ dependencies = [
  "lean_sphincs",
  "lean_xmss",
  "rand",
+ "stable_fiat_shamir",
  "stable_leanvm_core",
  "stable_pcs",
+ "stable_primitives",
  "tracing",
  "verifier",
  "zkdsl_compiler",
@@ -345,8 +347,9 @@ version = "0.1.0"
 dependencies = [
  "keccak256",
  "rand",
+ "stable_pcs",
+ "stable_primitives",
  "tracing",
- "verifier",
 ]
 
 [[package]]

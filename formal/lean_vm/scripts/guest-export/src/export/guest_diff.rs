@@ -14,7 +14,7 @@ use super::*;
 use crate::aggregation::signers_cache::{get_lean_sphincs_signers, get_signers};
 use lean_da::BLOB_SYMBOLS;
 use isa::Prover;
-use stable_leanvm_core::StableProver;
+use leanvm_core::StableProver;
 use lean_sphincs::LeanSphincsSignature;
 use lean_xmss::LeanXmssSignature;
 use rand::rngs::StdRng;
@@ -283,7 +283,7 @@ fn export(
     (claims, node)
 }
 
-const LOG_INV_RATE: usize = stable_leanvm_core::pcs::TEST_LOG_INV_RATE;
+const LOG_INV_RATE: usize = leanvm_core::pcs::TEST_LOG_INV_RATE;
 
 /// The guest's log size.
 fn kbc() -> usize {

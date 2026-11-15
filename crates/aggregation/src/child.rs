@@ -4,11 +4,19 @@ use super::cells::{ONE, ZERO, count, hash_to_scalars};
 use super::deferred::DeferredSubproof;
 use super::error::AggregateError;
 use super::hints::SubHints;
-use crate::protocol::{
-    Block, block_kappa_sources, bus_blocks, col_kappa_sources, column_stack, side_stack, table_logs,
-};
 use keccak256::hash_pair;
+use leanvm_core::cpu::{Layout, block_kappa_sources, col_kappa_sources, from_scalar};
+use leanvm_core::leaf::{self, Block};
+use leanvm_core::tables::N_TABLES;
 use verifier::{E, K};
+
+/// The layout of an execution of a `2^kbc`-instruction program with `2^log_mem` cells of memory and `rows` rows in each
+/// table, as the prover builds it. It reads the program only through its public columns, which no coordinate the guest
+/// is given depends on, so a stand-in program of that size serves.
+pub(super) fn execution_layout(kbc: usize, log_mem: usize, rows: [usize; N_TABLES]) -> Layout {
+    let stand_in = vec![isa::Op::Xor { a: 0, b: 0, c: 0 }; 1 << kbc];
+    leanvm_core::cpu::layout(&stand_in, log_mem, rows, [from_scalar(ZERO); 2])
+}
 
 /// The stacked opening's shape at one committed size and rate, plus the query packing derived from it. The hint
 /// builder needs it for the real opening and the placeholder map for every candidate size, so it lives here: a
@@ -29,26 +37,15 @@ pub(super) struct WhirShape {
 }
 
 pub(super) fn whir_shape(mu: usize, log_inv_rate: usize) -> WhirShape {
-    let config = verifier::derive_config(mu, log_inv_rate).expect("stacked whir config");
-    let log_msg_cols: Vec<usize> = config
-        .folds
-        .iter()
-        .scan(mu, |cols, &fold| {
-            *cols -= fold;
-            Some(*cols)
-        })
-        .collect();
-    let depth: Vec<usize> = log_msg_cols
-        .iter()
-        .zip(&config.log_inv_rates)
-        .map(|(c, r)| c + r)
-        .collect();
+    let config = pcs::whir::config_for_rate(mu, log_inv_rate).expect("stacked whir config");
+    let levels = config.level_shapes(mu);
+    let depth: Vec<usize> = levels.block_len.iter().map(|b| b.trailing_zeros() as usize).collect();
     WhirShape {
-        queries: config.queries.to_vec(),
-        yr_log_n: *log_msg_cols.last().unwrap(),
+        queries: config.queries,
+        folds: levels.ks,
+        log_msg_cols: levels.log_msg_cols,
+        yr_log_n: levels.yr_log_n,
         per_squeeze: depth.iter().map(|&d| 128 / d).collect(),
-        folds: config.folds,
-        log_msg_cols,
         depth,
     }
 }
@@ -104,15 +101,18 @@ pub(super) fn gen_verify(
     summary: &verifier::Summary,
     bytecode_value: E,
 ) -> Result<(SubHints, DeferredSubproof), AggregateError> {
-    let taus = table_logs(&summary.table_rows);
-    let sides = bus_blocks(kbc, summary.log_memory, &taus);
+    let rows = std::array::from_fn(|t| summary.table_rows[t] as usize);
+    let layout = execution_layout(kbc, summary.log_memory, rows);
+    let taus = layout.taus;
+    let sides = [layout.push, layout.pull, layout.count];
     // The guest's buffers have fixed capacities, so its constants do not depend on a child's shape. A child that
     // verifies fits them.
-    let fits = sides.iter().all(|blocks| side_stack(blocks).1 <= MU_CAP) && proof.stream.len() <= STREAM_CAP;
+    let fits = sides.iter().all(|blocks| leaf::layout(blocks).mu <= MU_CAP) && proof.stream.len() <= STREAM_CAP;
     if !fits {
         return Err(AggregateError::InvalidChild);
     }
-    let (column_offsets, mu) = column_stack(kbc, summary.log_memory, &taus);
+    let column_offsets: Vec<usize> = layout.placements.iter().map(|p| p.offset).collect();
+    let mu = layout.shape.mu;
     let mut stream = proof.stream.clone();
     stream.resize(STREAM_CAP, ZERO);
 
@@ -155,7 +155,7 @@ fn col_group_order(kbc: usize, column_offsets: &[usize]) -> Vec<E> {
     order
 }
 
-/// Per bus side, its blocks in their stacking order (`side_stack`'s offsets), each run of a block group
+/// Per bus side, its blocks in their stacking order (`leaf::layout`'s offsets), each run of a block group
 /// ([`block_groups`]) named once. The guest certifies the native verifier's order (descending kappa, then index)
 /// before it derives offsets from it.
 fn block_group_order(kbc: usize, sides: &[Vec<Block>; 3]) -> Vec<E> {
@@ -166,7 +166,7 @@ fn block_group_order(kbc: usize, sides: &[Vec<Block>; 3]) -> Vec<E> {
     let groups = block_groups(&block_kappa_sources(kbc), &side_starts);
     let mut stacked = Vec::new();
     for (blocks, start) in sides.iter().zip(&side_starts) {
-        let offsets = side_stack(blocks).0;
+        let offsets = leaf::layout(blocks).offsets;
         let mut order: Vec<usize> = (0..blocks.len()).collect();
         order.sort_by_key(|&i| offsets[i]);
         stacked.extend(order.into_iter().map(|i| start + i));

@@ -7,7 +7,7 @@
 //! are hand-written in `tests/LeanVMTests/Spec/Node.lean`.
 
 use super::*;
-use stable_leanvm_core::StableProver;
+use leanvm_core::StableProver;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use std::fmt::Write as _;

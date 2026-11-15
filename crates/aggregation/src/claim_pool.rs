@@ -1,7 +1,8 @@
 //! The guest's claim pool and its coordinate terms.
 
 use super::cells::{ZERO, bits, count};
-use crate::protocol::{Block, Coord, MEM_HI, MEM_LO, block_kappa_sources, keccak_value};
+use leanvm_core::cpu::{MEM_HI, MEM_LO, block_kappa_sources, keccak_value};
+use leanvm_core::leaf::{Block, Coord};
 use std::collections::BTreeMap;
 use verifier::E;
 use verifier::layout::{GLOBAL_COLUMN_BASES, TABLE_WIDTHS};
@@ -39,7 +40,7 @@ pub(super) fn coord_kind(c: &Coord) -> usize {
 /// or the `g^k` a `GCol`/`Prod` scales by. Zero for every other kind.
 pub(super) fn coord_scale(c: &Coord) -> E {
     match c {
-        Coord::Const(v) => E::from(*v),
+        Coord::Const(v) => E::new(v.0, 0),
         Coord::GCol(_, k) | Coord::Prod(_, _, k) => count(*k as usize),
         _ => ZERO,
     }

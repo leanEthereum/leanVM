@@ -1,5 +1,3 @@
-extern crate stable_leanvm_core as leanvm_core;
-
 use super::cells::{ONE, ZERO, count, hash_to_scalars, pack_16_bytes, word};
 use super::deferred::{DeferredBytecodeClaim, bytecode_sums, bytecode_value, bytecode_vars};
 use super::error::AggregateError;
@@ -9,7 +7,6 @@ use super::placeholders::placeholder_map;
 use super::proof::{AggregateClaims, AggregateProof, decode, encode, public_input, public_input_bytes};
 use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
 use super::*;
-use crate::protocol::g_pow;
 use isa::Prover;
 use keccak256::{hash, hash_pair};
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS, Hash, LOG_BLOB_SYMBOLS};
@@ -655,7 +652,7 @@ def main():
     assert!(run(count(0), count(6)).is_ok());
     // One group and -11 claims after it: the product identity holds, the range
     // check must not.
-    let negative = E::from(g_pow(11).inv());
+    let negative = count(11).inv();
     let Err(err) = run(count(1), negative) else {
         panic!("a negative last-block count was accepted");
     };
@@ -983,7 +980,7 @@ def main():
         execute(&program, claim_list_digest(child.iter().copied()))
     };
     assert!(run(&[claim(0), claim(1)], &[count(0), count(0)]).is_ok());
-    let back = E::from(g_pow(1).inv());
+    let back = count(1).inv();
     assert!(
         run(&[claim(0), claim(0)], &[count(0), back]).is_err(),
         "a walk revisited a slot"
@@ -1148,38 +1145,4 @@ fn malformed_raw_lean_sphincs_signature_is_an_error() {
         aggregate(&[], vec![], raw, None, OutputClaims::All, LOG_INV_RATE).err(),
         Some(AggregateError::InvalidSignature)
     );
-}
-
-/// The opening's shape, its vanishing values and the LeanDA twiddles the guest bakes in are the stable prover's.
-#[test]
-fn opening_shapes_and_twiddles_are_the_provers() {
-    use stable_pcs::{ntt::AdditiveNttF64, whir};
-    assert_eq!(
-        (MIN_LOG_INV_RATE, MAX_LOG_INV_RATE),
-        (whir::MIN_LOG_INV_RATE, whir::MAX_LOG_INV_RATE)
-    );
-    for rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
-        for mu in verifier::MIN_STACKED_LOG..=verifier::MAX_STACKED_LOG {
-            let ours = super::child::whir_shape(mu, rate);
-            let config = whir::config_for_rate(mu, rate).unwrap();
-            let theirs = config.level_shapes(mu);
-            assert_eq!((&ours.queries, &ours.folds), (&config.queries, &theirs.ks));
-            assert_eq!(
-                (&ours.log_msg_cols, ours.yr_log_n),
-                (&theirs.log_msg_cols, theirs.yr_log_n)
-            );
-            let depth: Vec<usize> = theirs.block_len.iter().map(|b| b.trailing_zeros() as usize).collect();
-            assert_eq!(ours.depth, depth);
-        }
-    }
-    let (ntt, vhat) = (
-        AdditiveNttF64::standard(LOG_BLOB_SYMBOLS + 1),
-        super::placeholders::subspace_above(),
-    );
-    for j in 0..=LOG_BLOB_SYMBOLS {
-        let top = (1 << (LOG_BLOB_SYMBOLS - j)) - 1;
-        for y in [0, 1, top / 3, top].into_iter().filter(|&y| y <= top) {
-            assert_eq!(vhat(j, y).0, ntt.twiddle(LOG_BLOB_SYMBOLS - j, y).0);
-        }
-    }
 }

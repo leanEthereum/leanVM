@@ -3,8 +3,8 @@
 use super::cells::{ONE, ZERO, count};
 use super::guest::{scalar_bytecode, stacked_bytecode};
 use super::hints::SubHints;
-use crate::protocol::N_BYTECODE_SELECTORS;
 use isa::Prover;
+use leanvm_core::leaf::N_BYTECODE_SELECTORS;
 use std::ops::Range;
 use verifier::{Digest, E, K, RATE_SCALARS, Sponge, grinding_bits};
 

@@ -32,21 +32,12 @@ name = "keccak256"
 version = "0.1.0"
 
 [[package]]
-name = "zkdsl_compiler"
-version = "0.1.0"
-dependencies = [
- "isa",
- "keccak256",
- "verifier",
-]
-
-[[package]]
 name = "lean_da"
 version = "0.1.0"
 dependencies = [
- "isa",
  "keccak256",
  "tracing",
+ "verifier",
 ]
 
 [[package]]
@@ -69,15 +60,17 @@ version = "0.0.0"
 dependencies = [
  "isa",
  "keccak256",
- "zkdsl_compiler",
  "lean_da",
  "lean_sphincs",
  "lean_xmss",
  "rand",
+ "stable_fiat_shamir",
  "stable_leanvm_core",
  "stable_pcs",
+ "stable_primitives",
  "tracing",
  "verifier",
+ "zkdsl_compiler",
 ]
 
 [[package]]
@@ -177,6 +170,7 @@ dependencies = [
  "stable_pcs",
  "stable_primitives",
  "tracing",
+ "verifier",
 ]
 
 [[package]]
@@ -301,4 +295,13 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "zkdsl_compiler"
+version = "0.1.0"
+dependencies = [
+ "isa",
+ "keccak256",
+ "verifier",
 ]

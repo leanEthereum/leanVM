@@ -19,7 +19,7 @@ build = "build.rs"
 # The overlay's sources (`build.rs` copies `aggregation` into `OUT_DIR`) use these, which
 # cargo-machete, reading this crate's own sources, cannot see.
 [package.metadata.cargo-machete]
-ignored = ["isa", "keccak256", "stable_pcs", "tracing"]
+ignored = ["fiat_shamir", "isa", "keccak256", "pcs", "primitives", "tracing"]
 
 [workspace]
 
@@ -31,8 +31,7 @@ name = "guest-export"
 path = "src/main.rs"
 
 [dependencies]
-# aggregation's own dependencies (crates/aggregation/Cargo.toml), by path, and the stable prover its tests
-# and the guest-diff cases run.
+# aggregation's own dependencies (crates/aggregation/Cargo.toml), by path and under the same names.
 isa = { path = "../../../../crates/isa" }
 verifier = { path = "../../../../crates/verifier" }
 keccak256 = { path = "../../../../crates/keccak256" }
@@ -40,8 +39,10 @@ zkdsl_compiler = { path = "../../../../crates/zkdsl_compiler" }
 lean_xmss = { path = "../../../../crates/lean_xmss" }
 lean_sphincs = { path = "../../../../crates/lean_sphincs" }
 lean_da = { path = "../../../../crates/lean_da" }
-stable_leanvm_core = { path = "../../../../crates/stable-prover/leanvm_core" }
-stable_pcs = { path = "../../../../crates/stable-prover/pcs" }
+leanvm_core = { package = "stable_leanvm_core", path = "../../../../crates/stable-prover/leanvm_core" }
+fiat_shamir = { package = "stable_fiat_shamir", path = "../../../../crates/stable-prover/fiat_shamir" }
+pcs = { package = "stable_pcs", path = "../../../../crates/stable-prover/pcs" }
+primitives = { package = "stable_primitives", path = "../../../../crates/stable-prover/primitives" }
 rand = "0.9"
 tracing = "0.1.26"
 

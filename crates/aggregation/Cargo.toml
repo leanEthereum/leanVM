@@ -15,6 +15,11 @@ zkdsl_compiler.workspace = true
 lean_xmss.workspace = true
 lean_sphincs.workspace = true
 lean_da.workspace = true
+# The protocol's structure (bus blocks, stacking, grinds, the stacked bytecode), from the reference prover.
+leanvm_core = { package = "stable_leanvm_core", path = "../stable-prover/leanvm_core" }
+fiat_shamir = { package = "stable_fiat_shamir", path = "../stable-prover/fiat_shamir" }
+pcs = { package = "stable_pcs", path = "../stable-prover/pcs" }
+primitives = { package = "stable_primitives", path = "../stable-prover/primitives" }
 rand = { workspace = true, optional = true }
 tracing.workspace = true
 
@@ -24,6 +29,3 @@ signers-cache = ["dep:rand"]
 
 [dev-dependencies]
 rand.workspace = true
-# The prover the tests run, and the stable tree's own copies of what the crate restates, to pin it.
-stable_leanvm_core = { path = "../stable-prover/leanvm_core" }
-stable_pcs = { path = "../stable-prover/pcs" }

@@ -2,7 +2,6 @@
 
 use super::cells::hash_to_scalars;
 use super::placeholders::placeholder_map;
-use crate::protocol::bytecode_table;
 use isa::{CompiledProgram, Op, Prover};
 use std::any::{Any, TypeId};
 use std::sync::{Mutex, OnceLock};
@@ -41,6 +40,15 @@ pub fn warm_up<P: Prover>() {
     assembled::<P>();
     stacked_bytecode();
     scalar_bytecode();
+}
+
+/// The stacked bytecode multilinear of a program, as the prover lays it out: what a transcript's IV hashes and the
+/// deferred claims are about.
+pub fn bytecode_table(prog: &[Op]) -> Vec<u64> {
+    leanvm_core::cpu::layout::bytecode_table(prog)
+        .iter()
+        .map(|word| word.0)
+        .collect()
 }
 
 /// The aggregation bytecode, compiled to a fixed point on its own size.
