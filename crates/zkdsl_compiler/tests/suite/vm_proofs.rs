@@ -1,7 +1,7 @@
 //! Proof-level properties of the VM: that its channels carry everything, and that a malformed input is an error rather than a panic.
 
 use crate::common::compile;
-use fiat_shamir_prover::compress;
+use fiat_shamir_prover::merkle::hash_to_scalars;
 use lean_vm_core::cpu::{Proof, ProveError, prove, verify};
 use primitives::field::F128;
 use zkdsl_compiler::parse;
@@ -21,16 +21,19 @@ def main():
     return
 ";
 
-/// The public input `HASHING` publishes.
-fn hashing_pi() -> [F128; 2] {
-    let h = [5, 0, 7, 0];
-    let d = compress(h, h);
-    [F128::new(d[0], d[1]), F128::new(d[2], d[3])]
+/// The cells `[5, 7]` after `n` steps of `keccak(h, h, h)`: the public input of `n` chained hashes, `HASHING`'s for one.
+fn chained_digest(n: usize) -> [F128; 2] {
+    let mut h = [0; 32];
+    (h[0], h[16]) = (5, 7);
+    for _ in 0..n {
+        h = keccak256::hash_pair(&h, &h);
+    }
+    hash_to_scalars(&h)
 }
 
 fn hashing_proof() -> (lean_vm_core::cpu::Program, [F128; 2], Proof) {
     let program = compile(&parse(HASHING).expect("parse"));
-    let pi = hashing_pi();
+    let pi = chained_digest(1);
     let (proof, _) = prove(&program, pi, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &pi, &proof).expect("honest proof verifies");
     (program, pi, proof)
@@ -52,7 +55,7 @@ fn an_unsupported_rate_is_an_error() {
     let program = compile(&parse(HASHING).expect("parse"));
     let rate = lean_vm_core::pcs::MAX_LOG_INV_RATE + 1;
     assert_eq!(
-        prove(&program, hashing_pi(), rate).err(),
+        prove(&program, chained_digest(1), rate).err(),
         Some(ProveError::InvalidRate { log_inv_rate: rate })
     );
 }
@@ -67,11 +70,7 @@ fn any_number_of_steps_proves() {
             source += &format!("    h{} = StackBuf(2)\n    keccak(h{i}, h{i}, h{})\n", i + 1, i + 1);
         }
         source += &format!("    p = 1\n    p[1] = h{n}[0]\n    p[GEN] = h{n}[1]\n    return\n");
-        let mut h = [5, 0, 7, 0];
-        for _ in 0..n {
-            h = compress(h, h);
-        }
-        let pi = [F128::new(h[0], h[1]), F128::new(h[2], h[3])];
+        let pi = chained_digest(n);
         let program = compile(&parse(&source).expect("parse"));
         let (proof, stats) = prove(&program, pi, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         assert_eq!(stats.rows[5], n, "{n} steps");

@@ -18,7 +18,7 @@ pub mod merkle;
 mod transcript;
 
 pub use transcript::ProverState;
-pub use verifier::{MerklePath, Proof, RATE_SCALARS, SECURITY_BITS, grinding_bits};
+pub use verifier::{Proof, RATE_SCALARS, SECURITY_BITS, grinding_bits};
 
 use keccak256::STATE_LANES;
 
@@ -57,18 +57,6 @@ impl Search for Sequential {
 pub fn digest_words(digest: &[u8; 32]) -> [u64; 4] {
     let words = digest.as_chunks::<8>().0;
     std::array::from_fn(|index| u64::from_le_bytes(words[index]))
-}
-
-/// `f(a, b) = Keccak-256(a‖b)` on two 256-bit halves laid out little-endian into
-/// 64 bytes, *exactly* one VM `KECCAK` instruction from the zero state: 64 input
-/// bytes → 32-byte digest, split back into four words. The Merkle trees'
-/// node hash.
-pub fn compress(a: [u64; 4], b: [u64; 4]) -> [u64; 4] {
-    let mut input = [0u8; 64];
-    for (slot, w) in input.as_chunks_mut::<8>().0.iter_mut().zip(a.into_iter().chain(b)) {
-        *slot = w.to_le_bytes();
-    }
-    digest_words(&keccak256::hash(&input))
 }
 
 /// The rate's lanes, four per scalar.
