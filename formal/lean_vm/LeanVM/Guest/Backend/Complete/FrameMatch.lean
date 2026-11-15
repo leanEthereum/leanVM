@@ -81,6 +81,75 @@ theorem wArms_pick {xv : V} {kj : List (ℕ × ℕ) → E → E → Prop} {kret 
     have := hne (i + 1) (by omega)
     rwa [show j₀ + (i + 1) = j₀ + 1 + i by omega] at this
 
+variable (Γ fp hdr FS Ag) in
+/-- A `JUMP` to the instruction `t` of the function, the frame kept, whatever it falls into. -/
+def JumpTo (oc od of t : ℕ) : Prop :=
+  ∀ (fall : Prop) (taken : E → E → Prop), taken (Γ.tgt t) (ofK (addressOfIndex fp)) →
+    JW fp hdr FS Ag oc od of fall taken
+
+/-- **The words of a one-stage chain** (a `match` whose arms jump to the join): the join's `SET`,
+the table read at the selector and the jump into the picked arm `j`, whose words (`wL`) end by
+going on at the join with the statements after the `match`. -/
+theorem wS_chain1 {h : List LHint} {join lx entry one sfp first : ℕ}
+    {blocks : List (List PStmt)} {cs rest : List Stmt} {xv : V} {arms : List (List Stmt)}
+    {pos : ℕ} {ks : List (ℕ × ℕ)} {next : List Stmt → List (ℕ × ℕ) → Prop}
+    {kj : List (ℕ × ℕ) → E → E → Prop} {kret khalt : Prop}
+    (hcs : ctrlSplit cs = some (.match_ xv arms, rest))
+    (hset : HW Γ fp Ag (Γ.pc0 + pos) (.set join (.local (pos + 3 + armsSize blocks))))
+    (hslot : HW Γ fp Ag (Γ.pc0 + pos + 1) (.slot lx first entry))
+    (j : ℕ) (hj : j < blocks.length) (ha : j < arms.length)
+    (hx : σ xv = ofK (addressOfIndex j)) (hne : ∀ i < j, σ xv ≠ ofK (addressOfIndex i))
+    (hhead : JumpTo Γ fp hdr FS Ag one entry sfp (pos + 3 + armsSize (blocks.take j)))
+    (harm : wL Γ fp σ hdr FS Ag cl blocks[j] arms[j] (pos + 3 + armsSize (blocks.take j)) ks
+      (fun ks' => Γ.tgt (pos + 3 + armsSize (blocks.take j) + blockSize blocks[j]) =
+          Γ.tgt (pos + 3 + armsSize blocks) ∧ next rest ks')
+      (fun ks' d f => d = Γ.tgt (pos + 3 + armsSize blocks) ∧ f = ofK (addressOfIndex fp) ∧
+        next rest ks') kret khalt) :
+    wS Γ fp σ hdr FS Ag cl (.chain h join lx entry one sfp [first] [blocks]) cs pos ks next kj
+      kret khalt := by
+  simp only [wS, hcs, stagesSize, Nat.add_zero, List.headD_cons]
+  refine ⟨hset, hslot, hhead _ _ ?_⟩
+  simp only [List.length_singleton, List.take_succ_cons, List.take_zero, List.drop_succ_cons,
+    List.drop_zero, wStages]
+  refine wArms_pick blocks arms 0 (pos + 3) j hj ha (by simpa using hx)
+    (fun i hi => by simpa using hne i hi) rfl rfl ?_
+  simp only [true_and]
+  exact harm
+
+/-- **The words of the picked arm of a last stage**: its block's words given how its path ends,
+then the jump to the join (an arm but the last) or the fall into it (the last arm). -/
+theorem wL_arm_join {o : Out} {blk : List PStmt} {a : List Stmt} {p T j n join one sfp : ℕ}
+    {ks : List (ℕ × ℕ)} {N : List (ℕ × ℕ) → Prop} {K kret khalt : Prop}
+    (hblk : ∀ (next : List Stmt → List (ℕ × ℕ) → Prop) (kj : List (ℕ × ℕ) → E → E → Prop),
+      OutK o [] next K ks → wLc Γ fp σ hdr FS Ag cl blk a p ks next kj kret khalt)
+    (hout : OutK o [] (fun _ ks' => N ks') K ks)
+    (hlast : j + 1 = n → p + blockSize blk = T)
+    (hjump : j + 1 ≠ n → JumpTo Γ fp hdr FS Ag one join sfp T) :
+    wL Γ fp σ hdr FS Ag cl (blk ++ (if j + 1 != n then [PStmt.op [] (.jump one join sfp)] else []))
+      a p ks (fun ks' => Γ.tgt (p + blockSize (blk ++
+        (if j + 1 != n then [PStmt.op [] (.jump one join sfp)] else []))) = Γ.tgt T ∧ N ks')
+      (fun ks' d f => d = Γ.tgt T ∧ f = ofK (addressOfIndex fp) ∧ N ks') kret khalt := by
+  rw [wL_eq_wLc]
+  by_cases hl : j + 1 = n
+  · have e : (j + 1 != n) = false := by simp [hl]
+    simp only [e, Bool.false_eq_true, ite_false, List.append_nil]
+    refine hblk _ _ ?_
+    cases o with
+    | fall es => exact fun cs' hc => ⟨by rw [hlast hl], hout cs' hc⟩
+    | ret es vs => exact hout
+    | stuck => exact hout.elim
+  · have e : (j + 1 != n) = true := by simp [hl]
+    simp only [e, ite_true]
+    rw [wLc_append Γ fp σ hdr FS Ag cl _ _ (List.cons_ne_nil _ _)]
+    refine hblk _ _ ?_
+    cases o with
+    | fall es =>
+      intro cs' hc
+      simp only [wLc, wS, List.isEmpty_nil, ite_true]
+      exact hjump hl _ _ ⟨rfl, rfl, hout cs' hc⟩
+    | ret es vs => exact hout
+    | stuck => exact hout.elim
+
 end Words
 
 /-! ## Arms off the path -/
