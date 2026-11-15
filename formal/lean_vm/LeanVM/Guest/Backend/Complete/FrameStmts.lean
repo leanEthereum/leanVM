@@ -12,9 +12,9 @@ public import LeanVM.Guest.Backend.Complete.FrameAtoms
 /-!
 # Statements on the path, primitives discharged
 
-`stmtW_atom` and `stmtW_ret` with the flush (`flushSeg_lock`) and the chain flag
-(`chainKeep_atom'`, `chainKeep_ret'`) given; the atoms against the current `AtomFAt` and the pools
-kept off the temporaries (`PoolKeepStmt`) are the primitives' agent's, named until merged.
+`stmtW_atom` and `stmtW_ret` with the flush (`flushSeg_lock`), the atoms (`placeAtom_fat`) and
+the chain flag (`chainKeep_atom'`, `chainKeep_ret'`) given; the pools kept off the temporaries
+(`PoolKeepStmt`) are the primitives' agent's, named until merged.
 -/
 
 namespace LeanVM.Guest.Backend.Complete
@@ -27,15 +27,15 @@ variable {κ₀ : ℕ} {Γ : Site κ₀}
   {Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop} {cl : List Call}
   {ctx : Ctx} {I : Inst}
 
-/-- **An atom on the path**, the flush and chain flag given. -/
-theorem stmtW_atom' (hpk : PoolKeepStmt) (hat : ∀ a, AtomFAt a) (hok : OpOK Γ I Ag cl)
+/-- **An atom on the path**, the flush, the atoms and the chain flag given. -/
+theorem stmtW_atom' (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl)
     (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0)
     (hRd : ∀ rd, I.Rd rd → ∀ e ∈ I.es, evNT rd I.σ e) {a : Atom} {rest tl : List Stmt}
     (hu : ∀ v ∈ Memory.atomUses a, v ∉ I.tmps) (ht : ∀ t ∈ Memory.atomTmps a, t ∈ I.tmps)
     (hnm : ∀ v ∈ Memory.atomUses a, v ∈ I.named) (hfa : ∀ p run, a ≠ .frameAddr p run)
     (hsh : ∀ (v : V) (n : ℕ), I.locs[v]? ≠ some (Loc.shifted n 0)) :
     StmtW Γ Ag cl ctx I (.atom a) rest tl :=
-  stmtW_atom flushSeg_lock hpk hok hI hmain hRd (hat a) chainKeep_atom' hu ht hnm hfa hsh
+  stmtW_atom flushSeg_lock hpk hok hI hmain hRd (placeAtom_fat a) chainKeep_atom' hu ht hnm hfa hsh
 
 /-- **A return on the path**, the primitives' facts given. -/
 theorem stmtW_ret' (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0)
