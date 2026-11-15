@@ -237,6 +237,78 @@ theorem FillsIn.left {κ₀ : ℕ} {Γ : Site κ₀}
     {a b : List PStmt} (h : FillsIn Γ Ag p₀ (a ++ b)) : FillsIn Γ Ag p₀ a :=
   fun f k i hm => h f k i (by rw [blockFills_append]; exact List.mem_append_left _ hm)
 
+/-- A slot a block fills for the function `g` is filled for any other name at the same
+position (the names only tag the targets). -/
+def FillsAs (f g : String) (l : List Fill) (l' : List Fill) : Prop :=
+  ∀ x ∈ l', ∃ i, x.2 = .at g i ∧ (x.1, KVal.at f i) ∈ l
+
+mutual
+theorem stmtFills_as (f g : String) : ∀ (s : PStmt) (pos : ℕ),
+    FillsAs f g (stmtFills f s pos) (stmtFills g s pos)
+  | .ite _ _ _ _ zero hasElse _ _ nonzero, pos, x, hx => by
+      simp only [stmtFills, List.mem_append] at hx ⊢
+      rcases hx with hx | hx
+      · obtain ⟨i, h1, h2⟩ := blockFills_as f g zero _ x hx
+        exact ⟨i, h1, Or.inl h2⟩
+      · cases hasElse
+        · simp at hx
+        · obtain ⟨i, h1, h2⟩ := blockFills_as f g nonzero _ x (by simpa using hx)
+          exact ⟨i, h1, Or.inr (by simpa using h2)⟩
+  | .chain _ _ _ _ _ _ firsts stages, pos, x, hx => stagesFills_as f g firsts stages _ x hx
+  | .op _ _, _, x, hx => by simp [stmtFills] at hx
+  | .call _ _, _, x, hx => by simp [stmtFills] at hx
+  | .loopNext _ _ _ _ _ _ _, _, x, hx => by simp [stmtFills] at hx
+  | .dispatch _ _ _ _ _ _ _ _ _ _, _, x, hx => by simp [stmtFills] at hx
+  | .ret _ _, _, x, hx => by simp [stmtFills] at hx
+  | .halt _ _ _, _, x, hx => by simp [stmtFills] at hx
+
+theorem blockFills_as (f g : String) : ∀ (b : List PStmt) (pos : ℕ),
+    FillsAs f g (blockFills f b pos) (blockFills g b pos)
+  | [], _, x, hx => by simp [blockFills] at hx
+  | s :: ss, pos, x, hx => by
+      simp only [blockFills, List.mem_append] at hx ⊢
+      rcases hx with hx | hx
+      · obtain ⟨i, h1, h2⟩ := stmtFills_as f g s pos x hx
+        exact ⟨i, h1, Or.inl h2⟩
+      · obtain ⟨i, h1, h2⟩ := blockFills_as f g ss _ x hx
+        exact ⟨i, h1, Or.inr h2⟩
+
+theorem armsFills_as (f g : String) (first : ℕ) : ∀ (as : List (List PStmt)) (j pos : ℕ),
+    FillsAs f g (armsFills f first as j pos) (armsFills g first as j pos)
+  | [], _, _, x, hx => by simp [armsFills] at hx
+  | a :: as, j, pos, x, hx => by
+      simp only [armsFills, List.mem_cons, List.mem_append] at hx ⊢
+      rcases hx with rfl | hx | hx
+      · exact ⟨pos, rfl, Or.inl rfl⟩
+      · obtain ⟨i, h1, h2⟩ := blockFills_as f g a pos x hx
+        exact ⟨i, h1, Or.inr (Or.inl h2)⟩
+      · obtain ⟨i, h1, h2⟩ := armsFills_as f g first as _ _ x hx
+        exact ⟨i, h1, Or.inr (Or.inr h2)⟩
+
+theorem stagesFills_as (f g : String) : ∀ (firsts : List ℕ) (ss : List (List (List PStmt)))
+    (pos : ℕ), FillsAs f g (stagesFills f firsts ss pos) (stagesFills g firsts ss pos)
+  | _, [], _, x, hx => by simp [stagesFills] at hx
+  | firsts, s :: ss, pos, x, hx => by
+      simp only [stagesFills, List.mem_append] at hx ⊢
+      rcases hx with hx | hx
+      · obtain ⟨i, h1, h2⟩ := armsFills_as f g _ s 0 pos x hx
+        exact ⟨i, h1, Or.inl h2⟩
+      · obtain ⟨i, h1, h2⟩ := stagesFills_as f g firsts.tail ss _ x hx
+        exact ⟨i, h1, Or.inr h2⟩
+end
+
+/-- `FillsIn` from the slots filled for one name (the function's own, as the layout gives
+them). -/
+theorem FillsIn.of_name {κ₀ : ℕ} {Γ : Site κ₀}
+    {Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop} {p₀ : ℕ}
+    {blk : List PStmt} (name : String)
+    (h : ∀ k i, (k, KVal.at name i) ∈ blockFills name blk p₀ → ∀ σ' Ψ kh κ (L : MemoryImage κ),
+      Ag σ' Ψ kh κ L → L.read (addressOfIndex (Γ.l.tablesBase + k)) = some (Γ.tgt i)) :
+    FillsIn Γ Ag p₀ blk := fun f k i hm => by
+  obtain ⟨i', h1, h2⟩ := blockFills_as name f blk p₀ _ hm
+  cases h1
+  exact h k i h2
+
 /-- **A state the final placement extends**: its cells and places final, the current block's
 instructions so far (from the absolute position `p₀`) final and the slots they fill holding
 their targets, its shared tables in the layout. -/

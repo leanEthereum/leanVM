@@ -200,6 +200,16 @@ variable {κ₀ : ℕ} {Γ : Site κ₀}
   {Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop} {cl : List Call}
   {ctx : Backend.Ctx} {I : Inst}
 
+/-- Instructions at a position of the final placement end within it. -/
+theorem OpsIn.len {p : ℕ} {ops : List LOp} (h : OpsIn I p ops) (hne : ops ≠ []) :
+    p + ops.length ≤ I.ops.length := by
+  have hl : ops.length - 1 < ops.length := by
+    cases ops with
+    | nil => exact absurd rfl hne
+    | cons _ _ => simp
+  have h2 := (List.getElem?_eq_some_iff.mp (h _ hl)).1
+  omega
+
 /-- The word of the `SET` the final placement has at the absolute position `pos`. -/
 def setW (I : Inst) (pos : ℕ) : E :=
   match I.ops[pos]? with
@@ -300,7 +310,7 @@ theorem ite_fwd (hI : I.Ok) (hkw : ∀ k, I.kw k = kwOf Γ k) {C : (ℕ → E) �
 falling through into the `zero` block's words, then (with an `else` block) the exit's `SET` and
 `JUMP` past the `else` block. -/
 theorem blkW_iteZ (hI : I.Ok) (hAg : AgOwn I Ag) (hkw : ∀ k, I.kw k = kwOf Γ k)
-    (hloc : ∀ o q, LOp.set o (.local q) ∈ I.ops → kwOf Γ (.local q) = Γ.tgt q)
+    (hlocB : ∀ q, q ≤ I.ops.length → kwOf Γ (.local q) = Γ.tgt q)
     {C : (ℕ → E) → Prop} {c : V} {z nz rest tl : List Stmt} {i₀ pos : ℕ}
     {h : List LHint} {lc bdest sfp edest one : ℕ} {zb nb : List PStmt} {e : Bool}
     (hσ0 : I.σ c = 0) (hu : c ∉ I.tmps) (hcK : IsInK (I.σ c)) (hns : walk I.σ z ≠ .stuck)
@@ -323,7 +333,13 @@ theorem blkW_iteZ (hI : I.Ok) (hAg : AgOwn I Ag) (hkw : ∀ k, I.kw k = kwOf Γ 
   have hr : Rds (Ag σ' Ψ kh) I.fp I.size (fwd I.hdr ⟨patchT I Ψ σ', kh⟩) :=
     fun κ L hL n hn => hAg σ' Ψ kh κ L hL n hn
   obtain ⟨hfc, hfb, hfs⟩ := ite_fwd hI hkw hΨ σ' kh hjmp hset hlc hbd hsf
-  have hloc₀ := hloc _ _ (List.mem_of_getElem? hset)
+  have hlen : pos + stmtSize (.ite h lc bdest sfp zb e edest one nb) ≤ I.ops.length := by
+    have := hO.len (by simp [stmtOps])
+    rwa [stmtOps_length] at this
+  have hloc₀ := hlocB (elseAt pos zb e) (by
+    unfold elseAt
+    unfold stmtSize at hlen
+    cases e <;> simp at hlen ⊢ <;> omega)
   simp only [wLc, wS, hcs']
   refine ⟨set_hw hr hbd.2.1 hfb, jw_of hr hlc.2.1 hbd.2.1 hsf.2.1
     (by rw [hfc]; exact hcK) (by rw [hfb, hloc₀]; exact isInK_ofK _)
@@ -345,7 +361,11 @@ theorem blkW_iteZ (hI : I.Ok) (hAg : AgOwn I Ag) (hkw : ∀ k, I.kw k = kwOf Γ 
       have hfo : fwd I.hdr ⟨patchT I Ψ σ', kh⟩ one = 1 :=
         (fwd_patchT ho2 (not_tc_of hI hjmp' (by simp [opCells]) fun _ h => nomatch h)).trans
           (how Ψ hΨ)
-      have hloc' := hloc _ _ (List.mem_of_getElem? hset')
+      have hloc' := hlocB (elseAt pos zb true + blockSize nb) (by
+        unfold elseAt
+        unfold stmtSize at hlen
+        simp at hlen ⊢
+        omega)
       simp only [↓reduceIte]
       exact ⟨set_hw hr helt hfe, jw_of hr holt helt hsf.2.1
         (by rw [hfo]; exact (isInK_iff 1).mpr ⟨1, ofK_one.symm⟩)
@@ -356,7 +376,7 @@ theorem blkW_iteZ (hI : I.Ok) (hAg : AgOwn I Ag) (hkw : ∀ k, I.kw k = kwOf Γ 
 /-- **The words of a branch whose condition is not `0`**: the `SET` of the `else` target, the
 `JUMP` to it, the `else` block's words there (or the join, without one). -/
 theorem blkW_iteN (hI : I.Ok) (hAg : AgOwn I Ag) (hkw : ∀ k, I.kw k = kwOf Γ k)
-    (hloc : ∀ o q, LOp.set o (.local q) ∈ I.ops → kwOf Γ (.local q) = Γ.tgt q)
+    (hlocB : ∀ q, q ≤ I.ops.length → kwOf Γ (.local q) = Γ.tgt q)
     {C : (ℕ → E) → Prop} {c : V} {z nz rest tl : List Stmt} {i₀ pos : ℕ}
     {h : List LHint} {lc bdest sfp edest one : ℕ} {zb nb : List PStmt} {e : Bool}
     (hσ0 : I.σ c ≠ 0) (hu : c ∉ I.tmps) (hcK : IsInK (I.σ c)) (hns : walk I.σ nz ≠ .stuck)
@@ -370,7 +390,13 @@ theorem blkW_iteN (hI : I.Ok) (hAg : AgOwn I Ag) (hkw : ∀ k, I.kw k = kwOf Γ 
       ((walk I.σ nz).pre [.inK c]) i₀ pos := by
   obtain ⟨hset, hjmp, -, -⟩ := opsIn_ite hO
   have hcalls := calls_inK (c := c) hns
-  have hloc₀ := hloc _ _ (List.mem_of_getElem? hset)
+  have hlen : pos + stmtSize (.ite h lc bdest sfp zb e edest one nb) ≤ I.ops.length := by
+    have := hO.len (by simp [stmtOps])
+    rwa [stmtOps_length] at this
+  have hloc₀ := hlocB (elseAt pos zb e) (by
+    unfold elseAt
+    unfold stmtSize at hlen
+    cases e <;> simp at hlen ⊢ <;> omega)
   cases e with
   | true =>
     obtain ⟨hs, hl, hh, hW⟩ := hbn rfl
@@ -468,7 +494,7 @@ set_option maxHeartbeats 4000000 in
 theorem stmtW_ite (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0)
     (hRd : ∀ rd, I.Rd rd → ∀ e ∈ I.es, evNT rd I.σ e) (hAg : AgOwn I Ag)
     (hkw : ∀ k, I.kw k = kwOf Γ k)
-    (hloc : ∀ o q, LOp.set o (.local q) ∈ I.ops → kwOf Γ (.local q) = Γ.tgt q)
+    (hlocB : ∀ q, q ≤ I.ops.length → kwOf Γ (.local q) = Γ.tgt q)
     {c : V} {z nz rest tl : List Stmt} (hu : c ∉ I.tmps)
     (hz : InBlockW Γ Ag cl ctx I z) (hnz : InBlockW Γ Ag cl ctx I nz) :
     StmtW Γ Ag cl ctx I (.ite c z nz) rest tl := by
@@ -670,7 +696,7 @@ theorem stmtW_ite (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = true
         obtain ⟨hbz, hrz⟩ := hBz hFt₇ hOz hT₇ hFz
         have hsz : st₉.next ≤ I.size := hF.1.1
         have hs87 : Stronger C₈ C₇ := fun Ψ h => by rw [hC₈] at h; exact h.1
-        have hX := blkW_iteZ (rest := rest) (tl := tl) (nz := nz) hI hAg hkw hloc hσ0 hu hcK hnsz
+        have hX := blkW_iteZ (rest := rest) (tl := tl) (nz := nz) hI hAg hkw hlocB hσ0 hu hcK hnsz
           (hbz.mono hs87) hOX
           ⟨hlc6.1, by comega, fun Ψ h => hlc6.2.2 Ψ (hs86 Ψ h)⟩
           ⟨hbd6.1, by comega, fun Ψ h => hbd6.2.2 Ψ (hs86 Ψ h)⟩
@@ -738,7 +764,7 @@ theorem stmtW_ite (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = true
         obtain ⟨hbz, hrz⟩ := hBz hFt₇ hOz hT₇ hFz
         have hsz : st₇.next ≤ I.size := hF.1.1
         have hX := blkW_iteZ (rest := rest) (tl := tl) (nz := nz) (edest := 0) (one := 0)
-          (nb := []) hI hAg hkw hloc hσ0 hu hcK hnsz hbz hOX
+          (nb := []) hI hAg hkw hlocB hσ0 hu hcK hnsz hbz hOX
           ⟨hlc6.1, by comega, fun Ψ h => hlc6.2.2 Ψ (hs₇ Ψ h)⟩
           ⟨hbd6.1, by comega, fun Ψ h => hbd6.2.2 Ψ (hs₇ Ψ h)⟩
           ⟨hsf6.1, by comega, fun Ψ h => hsf6.2.2 Ψ (hs₇ Ψ h)⟩
@@ -833,7 +859,7 @@ theorem stmtW_ite (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = true
         obtain ⟨-, -, -, -, hBn⟩ := hW₉ hO8
         obtain ⟨hbn, hrn⟩ := hBn hFt₉ (hOe rfl).2.2 hT₉ (hFn rfl)
         have hsz : st₉.next ≤ I.size := hF.1.1
-        have hX := blkW_iteN (rest := rest) (tl := tl) (z := z) hI hAg hkw hloc hσ0 hu hcK hnsn
+        have hX := blkW_iteN (rest := rest) (tl := tl) (z := z) hI hAg hkw hlocB hσ0 hu hcK hnsn
           (fun _ => hbn) (fun h => nomatch h) hOX
           ⟨hlc6.1, by comega, fun Ψ h => hlc6.2.2 Ψ (hs96 Ψ h)⟩
           ⟨hbd6.1, by comega, fun Ψ h => hbd6.2.2 Ψ (hs96 Ψ h)⟩
@@ -882,7 +908,7 @@ theorem stmtW_ite (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = true
           fun _ hx => hx
         have hX := blkW_iteN (ctx := ctx) (cl := cl) (i₀ := i₀)
           (rest := rest) (tl := tl) (z := z) (nz := nz) (edest := 0) (one := 0)
-          (nb := []) hI hAg hkw hloc hσ0 hu hcK hnsn (fun h => absurd h Bool.false_ne_true)
+          (nb := []) hI hAg hkw hlocB hσ0 hu hcK hnsn (fun h => absurd h Bool.false_ne_true)
           (fun _ => hnz0) hOX
           ⟨hlc6.1, by comega, fun Ψ h => hlc6.2.2 Ψ h⟩
           ⟨hbd6.1, by comega, fun Ψ h => hbd6.2.2 Ψ h⟩
@@ -896,9 +922,9 @@ theorem stmtW_ite (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = true
 theorem iteStmt (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0)
     (hRd : ∀ rd, I.Rd rd → ∀ e ∈ I.es, evNT rd I.σ e) (hAg : AgOwn I Ag)
     (hkw : ∀ k, I.kw k = kwOf Γ k)
-    (hloc : ∀ o q, LOp.set o (.local q) ∈ I.ops → kwOf Γ (.local q) = Γ.tgt q) :
+    (hlocB : ∀ q, q ≤ I.ops.length → kwOf Γ (.local q) = Γ.tgt q) :
     IteStmt Γ Ag cl ctx I :=
-  fun _ _ _ _ _ hu hz hnz => stmtW_ite hok hI hmain hRd hAg hkw hloc hu hz hnz
+  fun _ _ _ _ _ hu hz hnz => stmtW_ite hok hI hmain hRd hAg hkw hlocB hu hz hnz
 
 end Main
 
