@@ -34,10 +34,9 @@ pub enum Coord {
     Prod(usize, usize, u32),
     /// The index column `g^z` (§sec:idxcol), free via the factored MLE.
     Index,
-    /// A public column (the bytecode program, §sec:e2e-bc): not committed; both parties form
-    /// its MLE directly, so it raises no claim. Shared rather than owned: push and
-    /// pull carry the same thirteen columns ([`isa::Program::columns`]), one `K` word a row.
-    Public(isa::Column),
+    /// Column `s` of the stacked bytecode (§sec:e2e-bc, [`isa::Program::stacked_bytecode`]): public, not committed,
+    /// both parties form its MLE.
+    Public(usize),
     /// A sum of `Const`/`Col`/`GCol`/`Prod` terms: any degree-2 form over the
     /// table's columns, which is all §sec:m3 asks of a coordinate. This is what
     /// carries a value a row DERIVES from its columns (an `XOR`/`MUL` result, a
@@ -163,7 +162,7 @@ enum Term<'a> {
 /// Flatten one coordinate into leaf terms at coefficient `w`. A [`Coord::Sum`]
 /// spreads its children over the SAME `w`: they are one coordinate, so they share
 /// its `α`-power.
-fn push_terms<'a>(c: &'a Coord, w: F128, terms: &mut Vec<Term<'a>>, constant: &mut F128) {
+fn push_terms<'a>(c: &Coord, w: F128, public: &[&'a [F64]], terms: &mut Vec<Term<'a>>, constant: &mut F128) {
     match c {
         Coord::Const(v) => *constant += w.mul_base(*v),
         Coord::Col(i) => terms.push(Term::Col(*i, w)),
@@ -177,10 +176,10 @@ fn push_terms<'a>(c: &'a Coord, w: F128, terms: &mut Vec<Term<'a>>, constant: &m
             }
         }
         Coord::Index => terms.push(Term::Index(w)),
-        Coord::Public(vals) => terms.push(Term::Public(cast_slice(vals), w)),
+        Coord::Public(s) => terms.push(Term::Public(public[*s], w)),
         Coord::Sum(cs) => {
             for c in cs {
-                push_terms(c, w, terms, constant);
+                push_terms(c, w, public, terms, constant);
             }
         }
     }
@@ -309,6 +308,7 @@ fn padded_products(src: &[F128], dst: &mut [F128]) {
 pub(crate) fn build_leaves(
     sides: [(&[Block], &Layout, &[F128], F128); N_BUS_TREES],
     cols: &[&[F64]],
+    public: &[&[F64]],
 ) -> [gkr::Leaves; N_BUS_TREES] {
     /// Rows staged at a time: one block's chunk stays in L1 while its products are formed.
     const CHUNK: usize = 1 << 11;
@@ -335,7 +335,7 @@ pub(crate) fn build_leaves(
             let mut const_part = beta;
             let mut terms: Vec<Term> = Vec::with_capacity(blk.coords.len());
             for (i, c) in blk.coords.iter().enumerate() {
-                push_terms(c, w[i], &mut terms, &mut const_part);
+                push_terms(c, w[i], public, &mut terms, &mut const_part);
             }
             blocks.push(LeafBlock {
                 side,
@@ -574,7 +574,7 @@ fn decompose_formula<F: FnMut(usize, &[F128]) -> F128>(
     owners: &[Option<(usize, usize)>],
     forms: &mut [BusForm],
     claims: &mut Vec<ColumnClaim>,
-    public: &mut PublicEvals,
+    public: &mut PublicColumns,
     mut fresh: F,
 ) -> F128 {
     assert_eq!(zeta.len(), lay.mu);
@@ -633,7 +633,7 @@ fn decompose_formula<F: FnMut(usize, &[F128]) -> F128>(
                 Coord::Prod(..) | Coord::Sum(..) => {
                     unreachable!("only a table's bus block carries a degree-2 coordinate")
                 }
-                Coord::Public(vals) => public_eval(vals, zeta_lo, public),
+                Coord::Public(s) => public.eval(*s, zeta_lo),
             };
             inner += w[i] * coord_val;
         }
@@ -653,13 +653,30 @@ fn known_claim(claims: &[ColumnClaim], col: usize, point: &[F128]) -> Option<F12
         .map(|c| c.value)
 }
 
-// One bus GKR point per cache; its prefixes are keyed by length and shared column identity.
-type PublicEvals = HashMap<(usize, usize), F128>;
+/// The columns [`Coord::Public`] names, and their evaluations at prefixes of the bus GKR's one point.
+struct PublicColumns<'a> {
+    columns: Vec<&'a [F64]>,
+    evals: HashMap<(usize, usize), F128>,
+}
 
-fn public_eval(vals: &[u64], point: &[F128], cache: &mut PublicEvals) -> F128 {
-    *cache
-        .entry((vals.as_ptr() as usize, point.len()))
-        .or_insert_with(|| primitives::multilinear::mle_eval_par(cast_slice(vals), point))
+impl<'a> PublicColumns<'a> {
+    fn new(stacked_bytecode: &'a [u64]) -> Self {
+        Self {
+            columns: cast_slice(stacked_bytecode)
+                .chunks_exact(stacked_bytecode.len() >> N_TUPLE_BITS)
+                .collect(),
+            evals: HashMap::new(),
+        }
+    }
+
+    /// Column `s` at `point`, a prefix of the bus GKR's point.
+    fn eval(&mut self, s: usize, point: &[F128]) -> F128 {
+        let column = self.columns[s];
+        *self
+            .evals
+            .entry((s, point.len()))
+            .or_insert_with(|| mle_eval_par(column, point))
+    }
 }
 
 /// Prover-side decomposition: reads the real columns, writing each FRESH
@@ -683,7 +700,7 @@ fn decompose_prove(
     owners: &[Option<(usize, usize)>],
     forms: &mut [BusForm],
     claims: &mut Vec<ColumnClaim>,
-    public: &mut PublicEvals,
+    public: &mut PublicColumns,
     ps: &mut ProverState,
 ) -> F128 {
     // Pass 1: enumerate the FRESH committed coords exactly as `decompose_formula`
@@ -757,7 +774,7 @@ fn sides<'a>(
 /// sumcheck of [`N_TUPLE_BITS`] degree-two rounds over `x`, the low bit bound first, ending at
 /// `r⃗`, then `P(ζ_lo, r⃗)`, whose product with `α̃(r⃗)` the verifier checks against the last round.
 /// Every value comes off the public columns' evaluations at `ζ_lo`, which the decomposition cached.
-fn prove_bytecode_share(push: &[Block], zeta: &[F128], w: &[F128], public: &mut PublicEvals, ps: &mut ProverState) {
+fn prove_bytecode_share(push: &[Block], zeta: &[F128], w: &[F128], public: &mut PublicColumns, ps: &mut ProverState) {
     let block = push
         .iter()
         .find(|blk| blk.coords.iter().any(|c| matches!(c, Coord::Public(_))))
@@ -765,7 +782,7 @@ fn prove_bytecode_share(push: &[Block], zeta: &[F128], w: &[F128], public: &mut 
     let zeta_lo = &zeta[..block.kappa];
     let mut slots: Vec<F128> = (0..1 << N_TUPLE_BITS)
         .map(|x| match block.coords.get(x) {
-            Some(Coord::Public(vals)) => public_eval(vals, zeta_lo, public),
+            Some(Coord::Public(s)) => public.eval(*s, zeta_lo),
             _ => F128::ZERO,
         })
         .collect();
@@ -812,10 +829,12 @@ pub(crate) fn prove_balance(
     pull: &[Block],
     count: &[Block],
     cols: &[&[F64]],
+    stacked_bytecode: &[u64],
     owners: &[Vec<Option<(usize, usize)>>; 3],
     tables: &[(usize, usize)],
     ps: &mut ProverState,
 ) -> BusProof {
+    let mut public = PublicColumns::new(stacked_bytecode);
     let push_lay = layout(push);
     let pull_lay = layout(pull);
     let mut count_lay = layout(count);
@@ -830,7 +849,7 @@ pub(crate) fn prove_balance(
     let blocks = [push, pull, count];
     let lays = [&push_lay, &pull_lay, &count_lay];
     let sides = sides(blocks, lays, &w, &count_w, beta);
-    let leaves = crate::stage!("Bus leaves", || build_leaves(sides, cols));
+    let leaves = crate::stage!("Bus leaves", || build_leaves(sides, cols, &public.columns));
     // All three trees run as ONE RLC-batched GKR (equal μ: push/pull match
     // block-for-block, count is padded), so every claim lands on ONE point ζ.
     let bus_gkr = crate::stage!("Bus GKR", || gkr::prove_products(leaves, ps));
@@ -846,7 +865,6 @@ pub(crate) fn prove_balance(
     // solved to satisfy, and would settle nothing.
     let mut forms = std::array::from_fn(|_| tables.iter().map(|&(_, n)| BusForm::new(n)).collect::<Vec<_>>());
     let mut frameworks = [F128::ZERO; N_BUS_TREES];
-    let mut public = PublicEvals::new();
     crate::stage!("Bus decompose", || {
         for (s, &(blocks, lay, a, g)) in sides.iter().enumerate() {
             frameworks[s] = decompose_prove(
@@ -993,20 +1011,27 @@ mod tests {
     use crate::gkr::{Leaves, prove_products};
 
     /// A coordinate's value at row `z`, from its definition.
-    fn coord_value(c: &Coord, cols: &[&[F64]], z: usize) -> F64 {
+    fn coord_value(c: &Coord, cols: &[&[F64]], public: &[&[F64]], z: usize) -> F64 {
         match c {
             Coord::Const(v) => *v,
             Coord::Col(i) => cols[*i][z],
             Coord::GCol(i, k) => g_pow(*k as usize) * cols[*i][z],
             Coord::Prod(i, j, k) => g_pow(*k as usize) * cols[*i][z] * cols[*j][z],
             Coord::Index => g_pow(z),
-            Coord::Public(vals) => F64(vals[z]),
-            Coord::Sum(cs) => cs.iter().map(|c| coord_value(c, cols, z)).sum(),
+            Coord::Public(s) => public[*s][z],
+            Coord::Sum(cs) => cs.iter().map(|c| coord_value(c, cols, public, z)).sum(),
         }
     }
 
     /// The leaves by their definition, every block at its offset.
-    fn naive_leaves(blocks: &[Block], lay: &Layout, cols: &[&[F64]], w: &[F128], beta: F128) -> Vec<F128> {
+    fn naive_leaves(
+        blocks: &[Block],
+        lay: &Layout,
+        cols: &[&[F64]],
+        public: &[&[F64]],
+        w: &[F128],
+        beta: F128,
+    ) -> Vec<F128> {
         let len = blocks.iter().map(|b| 1 << b.kappa).sum::<usize>().max(1);
         let mut leaves = vec![F128::ONE; len];
         for (b, blk) in blocks.iter().enumerate() {
@@ -1015,7 +1040,7 @@ mod tests {
                     .coords
                     .iter()
                     .zip(w)
-                    .fold(beta, |acc, (c, &wi)| acc + wi.mul_base(coord_value(c, cols, z)));
+                    .fold(beta, |acc, (c, &wi)| acc + wi.mul_base(coord_value(c, cols, public, z)));
             }
         }
         leaves
@@ -1034,7 +1059,8 @@ mod tests {
         };
         let columns: Vec<Vec<F64>> = (0..6).map(|_| (0..1 << 12).map(|_| F64(next())).collect()).collect();
         let cols: Vec<&[F64]> = columns.iter().map(Vec::as_slice).collect();
-        let public = isa::Column::from((0..1 << 11).map(|_| next()).collect::<Vec<_>>());
+        let bytecode: Vec<F64> = (0..1 << 11).map(|_| F64(next())).collect();
+        let public = [bytecode.as_slice()];
         let block = |kappa: usize, rows: usize, coords: Vec<Coord>| Block {
             kappa,
             rows,
@@ -1051,7 +1077,7 @@ mod tests {
                 Sum(vec![Col(4), GCol(5, 3)]),
             ]
         };
-        let narrow = |count: Coord| vec![Const(F64(7)), Col(3), count, Public(public.clone())];
+        let narrow = |count: Coord| vec![Const(F64(7)), Col(3), count, Public(0)];
         let push = vec![
             block(12, 3001, wide(GCol(1, 1))),
             block(11, 1 << 11, narrow(Col(2))),
@@ -1075,9 +1101,9 @@ mod tests {
             &count_w,
             beta,
         );
-        let want = sides.map(|(blocks, lay, w, beta)| naive_leaves(blocks, lay, &cols, w, beta));
+        let want = sides.map(|(blocks, lay, w, beta)| naive_leaves(blocks, lay, &cols, &public, w, beta));
 
-        let built = build_leaves(sides, &cols);
+        let built = build_leaves(sides, &cols, &public);
         for (got, want) in built.iter().zip(&want) {
             let reference = Leaves::new(want.clone());
             assert_eq!(

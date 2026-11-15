@@ -4,19 +4,9 @@ use super::cells::count;
 use super::error::AggregateError;
 use super::hints::SubHints;
 use fiat_shamir_prover::merkle::{hash_pair, hash_to_scalars, hash_words};
-use lean_vm_core::cpu::{Layout, block_kappa_sources, col_kappa_sources, from_scalar};
+use lean_vm_core::cpu::{block_kappa_sources, col_kappa_sources, from_scalar, layout_of};
 use lean_vm_core::leaf::{self, Block};
-use lean_vm_core::tables::N_TABLES;
 use primitives::field::F128;
-
-/// The layout of an execution of a `2^kbc`-instruction program with `2^log_mem` cells of memory and `rows` rows in each
-/// table, as the prover builds it. It reads the program only through its public columns, which no coordinate the guest
-/// is given depends on, so zero columns of that length serve, one shared by all.
-pub(super) fn execution_layout(kbc: usize, log_mem: usize, rows: [usize; N_TABLES]) -> Layout {
-    let zeros = isa::Column::from(vec![0; 1 << kbc]);
-    let columns = std::array::from_fn(|_| zeros.clone());
-    lean_vm_core::cpu::layout::layout_of(&columns, log_mem, rows)
-}
 
 /// The stacked WHIR opening of a `2^mu` stack at a rate: the verifier's config, then each level's message columns
 /// after its folds and its Merkle tree's depth. The hint builder needs it for the real opening and the placeholder map
@@ -90,7 +80,7 @@ pub(super) fn gen_verify(
     summary: &verifier::Summary,
 ) -> Result<SubHints, AggregateError> {
     let rows = std::array::from_fn(|t| summary.table_rows[t] as usize);
-    let layout = execution_layout(kbc, summary.log_memory, rows);
+    let layout = layout_of(kbc, summary.log_memory, rows);
     let taus = layout.taus;
     let sides = [layout.push, layout.pull, layout.count];
     // The guest's buffers have fixed capacities, so its constants do not depend on a child's shape. A child that

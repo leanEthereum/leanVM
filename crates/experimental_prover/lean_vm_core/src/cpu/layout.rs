@@ -272,20 +272,13 @@ fn col_kappas(log_mem: usize, log_bytecode: usize, taus: [usize; tables::N_TABLE
         .collect()
 }
 
-/// Build the public [`Layout`] from the program's columns, the memory log-size `log_mem`, the
-/// instruction tables' row counts `rows`, and the public input `pi`. The flush blocks
-/// reference columns only by INDEX and the program only through its public columns, so
-/// this needs no committed witness: both prover and verifier reconstruct exactly the
-/// same structure.
-pub(crate) fn layout_of(
-    prog_cols: &isa::BytecodeColumns,
-    log_mem: usize,
-    rows: [usize; tables::N_TABLES],
-    pi: [F128; 2],
-) -> Layout {
+/// Build the public [`Layout`] of a run of a `2^log_bytecode`-instruction program with `2^log_mem` cells of memory,
+/// `rows` rows in each table and the public input `pi`. The flush blocks reference columns only by INDEX and the
+/// program only through its public columns ([`Coord::Public`]), so this needs no committed witness: both prover and
+/// verifier reconstruct exactly the same structure.
+pub(crate) fn layout_of(log_bytecode: usize, log_mem: usize, rows: [usize; tables::N_TABLES], pi: [F128; 2]) -> Layout {
     let taus = table_logs(rows);
-    let bytecode_size = prog_cols[0].len();
-    let log_bytecode = crate::log2_strict_usize(bytecode_size);
+    let bytecode_size = 1 << log_bytecode;
 
     // Derived boundary: the run starts at (pc,fp) = (0,0) and, by convention, the
     // final pc is the bytecode's last cell g^{B-1} (the compiler emits a halt jump
@@ -320,13 +313,10 @@ pub(crate) fn layout_of(
     // bytecode seed + finalize (program columns are public; padding entries
     // self-cancel at count 1, so the whole 2^log_bytecode is "real").
     let bytecode_block = |count: Coord| {
-        Block::full(
-            log_bytecode,
-            [Const(SEP_BYTECODE), Index, count]
-                .into_iter()
-                .chain(prog_cols.iter().cloned().map(Public))
-                .collect(),
-        )
+        // Each later slot is the stacked bytecode's column of that slot.
+        let mut coords = vec![Const(SEP_BYTECODE), Index, count];
+        coords.extend((coords.len()..1 << leaf::N_TUPLE_BITS).map(Public));
+        Block::full(log_bytecode, coords)
     };
     push.push(bytecode_block(Const(one)));
     pull.push(bytecode_block(Col(BFCNT)));

@@ -149,7 +149,11 @@ pub fn prove(
     }
     // The layout follows from the run's sizes alone, so a run too large to commit is refused before its witness.
     let log_mem = crate::log2_strict_usize(exec.mem.len());
-    let layout = layout_of(&program.columns(), log_mem, exec.trace.row_counts());
+    let layout = layout_of(
+        crate::log2_strict_usize(program.prog.len()),
+        log_mem,
+        exec.trace.row_counts(),
+    );
     if layout.shape.mu > pcs::MAX_STACKED_LOG {
         return Err(ProveError::WitnessOutOfRange {
             log_committed: layout.shape.mu,
@@ -179,7 +183,7 @@ pub fn prove(
         let l = &w.layout;
         let cols = w.columns();
         let bus = crate::stage!("Prove bus", || {
-            leaf::prove_balance([&l.push, &l.pull, &l.count], &cols, &mut ps)
+            leaf::prove_balance([&l.push, &l.pull, &l.count], &cols, program.stacked_bytecode(), &mut ps)
         });
         let table_claims = crate::stage!("Prove constraints", || {
             ps.grind(fiat_shamir::grinding_bits(n_xi_powers() as u128 - 1));

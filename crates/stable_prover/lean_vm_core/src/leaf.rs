@@ -33,9 +33,9 @@ pub enum Coord {
     Prod(usize, usize, u32),
     /// The index column `g^z` (§sec:idxcol), free via the factored MLE.
     Index,
-    /// A public column (the bytecode program, §sec:e2e-bc): not committed, both parties form its MLE. Shared: push and
-    /// pull carry the same thirteen columns ([`isa::Program::columns`]), one `K` word a row.
-    Public(isa::Column),
+    /// Column `s` of the stacked bytecode (§sec:e2e-bc, [`isa::Program::stacked_bytecode`]): public, not committed,
+    /// both parties form its MLE.
+    Public(usize),
     /// A sum of `Const`/`Col`/`GCol`/`Prod` terms: a value a row derives from its columns (an `XOR`/`MUL` result, a
     /// `DEREF` store, a `JUMP` successor) without committing it. Only a table's blocks carry one, or a `Prod`: the
     /// table sumcheck settles them, while a boundary block's coordinates must be single columns.
@@ -136,7 +136,16 @@ struct Tree<'a> {
 /// The stream: the [`bus_grinding_bits`] grind and the fingerprint `(α⃗, β)`; the batched GKR
 /// ([`gkr::prove_products`]); the boundary blocks' fresh column values; the bytecode's share
 /// ([`prove_bytecode_share`]).
-pub(crate) fn prove_balance(blocks: [&[Block]; N_BUS_TREES], cols: &[&[F64]], ps: &mut ProverState) -> BusProof {
+pub(crate) fn prove_balance(
+    blocks: [&[Block]; N_BUS_TREES],
+    cols: &[&[F64]],
+    stacked_bytecode: &[u64],
+    ps: &mut ProverState,
+) -> BusProof {
+    // The columns [`Coord::Public`] names.
+    let public: Vec<&[F64]> = cast_slice(stacked_bytecode)
+        .chunks_exact(stacked_bytecode.len() >> N_TUPLE_BITS)
+        .collect();
     let mut layouts = blocks.map(layout);
     let mu = layouts[0].mu;
     assert_eq!(
@@ -167,7 +176,9 @@ pub(crate) fn prove_balance(blocks: [&[Block]; N_BUS_TREES], cols: &[&[F64]], ps
         beta: fingerprints[s].1,
     });
 
-    let leaves = crate::stage!("Bus leaves", || trees.each_ref().map(|tree| build_leaves(tree, cols)));
+    let leaves = crate::stage!("Bus leaves", || trees
+        .each_ref()
+        .map(|tree| build_leaves(tree, cols, &public)));
     let ones = trees.each_ref().map(padding_runs);
     let (zeta, leaf_values) = crate::stage!("Bus GKR", || gkr::prove_products(leaves, ones, ps));
 
@@ -175,8 +186,8 @@ pub(crate) fn prove_balance(blocks: [&[Block]; N_BUS_TREES], cols: &[&[F64]], ps
     let mut forms = std::array::from_fn(|_| TABLE_WIDTHS.map(Form::new).to_vec());
     let boundary = crate::stage!("Bus decompose", || {
         let boundary: [F128; N_BUS_TREES] =
-            std::array::from_fn(|s| decompose(&trees[s], cols, &zeta, &mut forms[s], &mut claims, ps));
-        prove_bytecode_share(blocks[0], &zeta, &alpha, ps);
+            std::array::from_fn(|s| decompose(&trees[s], cols, &public, &zeta, &mut forms[s], &mut claims, ps));
+        prove_bytecode_share(blocks[0], &public, &zeta, &alpha, ps);
         boundary
     });
     let sigmas = crate::stage!("Bus tables", || table_sums(cols, &forms, &zeta));
@@ -215,11 +226,11 @@ struct Formula<'a> {
 }
 
 impl<'a> Formula<'a> {
-    fn new(block: &'a Block, offset: usize, alpha: &[F128], beta: F128) -> Self {
+    fn new(block: &'a Block, offset: usize, alpha: &[F128], beta: F128, public: &[&'a [F64]]) -> Self {
         let mut constant = beta;
         let mut terms = Vec::with_capacity(block.coords.len());
         for (c, &w) in block.coords.iter().zip(alpha) {
-            Self::add(c, w, &mut terms, &mut constant);
+            Self::add(c, w, public, &mut terms, &mut constant);
         }
         Self {
             offset,
@@ -232,7 +243,7 @@ impl<'a> Formula<'a> {
 
     /// Add coordinate `c` at weight `w`. A [`Coord::Sum`]'s terms share its weight, and the products of one pair in
     /// a sum (a gated count's) one term.
-    fn add(c: &'a Coord, w: F128, terms: &mut Vec<(Term<'a>, F128)>, constant: &mut F128) {
+    fn add(c: &'a Coord, w: F128, public: &[&'a [F64]], terms: &mut Vec<(Term<'a>, F128)>, constant: &mut F128) {
         match c {
             Coord::Const(v) => *constant += w.mul_base(*v),
             Coord::Col(i) => terms.push((Term::Col(*i), w)),
@@ -245,10 +256,10 @@ impl<'a> Formula<'a> {
                 }
             }
             Coord::Index => terms.push((Term::Index, w)),
-            Coord::Public(vals) => terms.push((Term::Public(cast_slice(vals)), w)),
+            Coord::Public(s) => terms.push((Term::Public(public[*s]), w)),
             Coord::Sum(cs) => {
                 for c in cs {
-                    Self::add(c, w, terms, constant);
+                    Self::add(c, w, public, terms, constant);
                 }
             }
         }
@@ -289,9 +300,9 @@ const G_POWERS: [F64; 8] = {
 
 /// A tree's leaves, every block's rows at its offset, up to the last block: the identity past them is left out.
 /// Each leaf is written once, eight at a time.
-fn build_leaves(tree: &Tree, cols: &[&[F64]]) -> Vec<F128> {
+fn build_leaves(tree: &Tree, cols: &[&[F64]], public: &[&[F64]]) -> Vec<F128> {
     let mut formulas: Vec<Formula> = (tree.blocks.iter().zip(&tree.layout.offsets))
-        .map(|(block, &offset)| Formula::new(block, offset, tree.alpha, tree.beta))
+        .map(|(block, &offset)| Formula::new(block, offset, tree.alpha, tree.beta, public))
         .collect();
     formulas.sort_unstable_by_key(|f| f.offset);
     if formulas.is_empty() {
@@ -334,6 +345,7 @@ fn padding_runs(tree: &Tree) -> Ones {
 fn decompose(
     tree: &Tree,
     cols: &[&[F64]],
+    public: &[&[F64]],
     zeta: &[F128],
     forms: &mut [Form],
     claims: &mut Vec<ColumnClaim>,
@@ -374,10 +386,10 @@ fn decompose(
         fresh.sort_unstable();
         fresh.dedup();
         let terms: Vec<(&[F64], Option<&[F64]>)> = (fresh.iter().map(|&i| (cols[i], None)))
-            .chain(public_columns(block).map(|c| (c, None)))
+            .chain(public_columns(block, public).map(|c| (c, None)))
             .collect();
         let evals = crate::eq::eq_sums(zeta_lo, &terms);
-        let mut public = evals[fresh.len()..].iter().copied();
+        let mut public_evals = evals[fresh.len()..].iter().copied();
         let mut col_value = |i: usize| -> F128 {
             if let Some(v) = known_claim(claims, i, zeta_lo) {
                 return v;
@@ -395,7 +407,7 @@ fn decompose(
                 Coord::Index => index_mle(zeta_lo),
                 Coord::Col(i) => col_value(*i),
                 Coord::GCol(i, k) => col_value(*i).mul_base(g_pow(*k as usize)),
-                Coord::Public(_) => public.next().unwrap(),
+                Coord::Public(_) => public_evals.next().unwrap(),
                 Coord::Prod(..) | Coord::Sum(..) => unreachable!("only a table's block carries a degree-2 coordinate"),
             };
         }
@@ -441,9 +453,9 @@ fn known_claim(claims: &[ColumnClaim], col: usize, point: &[F128]) -> Option<F12
 }
 
 /// A block's public columns, in coordinate order.
-fn public_columns(block: &Block) -> impl Iterator<Item = &[F64]> {
+fn public_columns<'a>(block: &Block, public: &[&'a [F64]]) -> impl Iterator<Item = &'a [F64]> {
     block.coords.iter().filter_map(|c| match c {
-        Coord::Public(vals) => Some(cast_slice(vals)),
+        Coord::Public(s) => Some(public[*s]),
         _ => None,
     })
 }
@@ -452,13 +464,13 @@ fn public_columns(block: &Block) -> impl Iterator<Item = &[F64]> {
 /// (§sec:e2e-bc), reduced to one evaluation of `P`. The stream: `S`, a sumcheck of [`N_TUPLE_BITS`] degree-two rounds
 /// over `x`, the low bit bound first, ending at `r⃗`, then `P(ζ_lo, r⃗)`, whose product with `α̃(r⃗)` the verifier
 /// checks against the last round.
-fn prove_bytecode_share(push: &[Block], zeta: &[F128], alpha: &[F128], ps: &mut ProverState) {
+fn prove_bytecode_share(push: &[Block], public: &[&[F64]], zeta: &[F128], alpha: &[F128], ps: &mut ProverState) {
     let block = (push.iter())
-        .find(|block| public_columns(block).next().is_some())
+        .find(|block| public_columns(block, public).next().is_some())
         .expect("the push side seeds the bytecode");
     let zeta_lo = &zeta[..block.kappa];
-    let public: Vec<(&[F64], Option<&[F64]>)> = public_columns(block).map(|c| (c, None)).collect();
-    let mut evals = crate::eq::eq_sums(zeta_lo, &public).into_iter();
+    let columns: Vec<(&[F64], Option<&[F64]>)> = public_columns(block, public).map(|c| (c, None)).collect();
+    let mut evals = crate::eq::eq_sums(zeta_lo, &columns).into_iter();
     let mut slots: Vec<F128> = (0..1 << N_TUPLE_BITS)
         .map(|x| match block.coords.get(x) {
             Some(Coord::Public(_)) => evals.next().unwrap(),
@@ -515,26 +527,28 @@ mod tests {
     use primitives::test_rng::Rng;
 
     /// A coordinate's value at row `z`, from its definition.
-    fn coord_value(c: &Coord, cols: &[&[F64]], z: usize) -> F64 {
+    fn coord_value(c: &Coord, cols: &[&[F64]], public: &[&[F64]], z: usize) -> F64 {
         match c {
             Coord::Const(v) => *v,
             Coord::Col(i) => cols[*i][z],
             Coord::GCol(i, k) => g_pow(*k as usize) * cols[*i][z],
             Coord::Prod(i, j, k) => g_pow(*k as usize) * cols[*i][z] * cols[*j][z],
             Coord::Index => g_pow(z),
-            Coord::Public(vals) => F64(vals[z]),
-            Coord::Sum(cs) => cs.iter().map(|c| coord_value(c, cols, z)).sum(),
+            Coord::Public(s) => public[*s][z],
+            Coord::Sum(cs) => cs.iter().map(|c| coord_value(c, cols, public, z)).sum(),
         }
     }
 
     /// The leaves by their definition, every block at its offset.
-    fn naive_leaves(tree: &Tree, cols: &[&[F64]]) -> Vec<F128> {
+    fn naive_leaves(tree: &Tree, cols: &[&[F64]], public: &[&[F64]]) -> Vec<F128> {
         let len = tree.blocks.iter().map(|blk| 1 << blk.kappa).sum::<usize>().max(1);
         let mut leaves = vec![F128::ONE; len];
         for (b, blk) in tree.blocks.iter().enumerate() {
             for z in 0..blk.rows {
                 leaves[tree.layout.offsets[b] + z] = (blk.coords.iter().zip(tree.alpha))
-                    .fold(tree.beta, |acc, (c, &wi)| acc + wi.mul_base(coord_value(c, cols, z)));
+                    .fold(tree.beta, |acc, (c, &wi)| {
+                        acc + wi.mul_base(coord_value(c, cols, public, z))
+                    });
             }
         }
         leaves
@@ -548,7 +562,8 @@ mod tests {
             .map(|_| (0..1 << 12).map(|_| F64(rng.next_u64())).collect())
             .collect();
         let cols: Vec<&[F64]> = columns.iter().map(Vec::as_slice).collect();
-        let public = isa::Column::from((0..1 << 11).map(|_| rng.next_u64()).collect::<Vec<_>>());
+        let bytecode: Vec<F64> = (0..1 << 11).map(|_| F64(rng.next_u64())).collect();
+        let public = [bytecode.as_slice()];
         let block = |kappa: usize, rows: usize, coords: Vec<Coord>| Block {
             kappa,
             rows,
@@ -566,7 +581,7 @@ mod tests {
                 Sum(vec![Col(4), GCol(5, 3)]),
             ]
         };
-        let narrow = |count: Coord| vec![Const(F64(7)), Col(3), count, Public(public.clone())];
+        let narrow = |count: Coord| vec![Const(F64(7)), Col(3), count, Public(0)];
         let push = vec![
             block(12, 3001, wide(GCol(1, 1))),
             block(11, 1 << 11, narrow(Col(2))),
@@ -588,7 +603,7 @@ mod tests {
                 alpha: &alpha,
                 beta,
             };
-            assert_eq!(build_leaves(&tree, &cols), naive_leaves(&tree, &cols));
+            assert_eq!(build_leaves(&tree, &cols, &public), naive_leaves(&tree, &cols, &public));
         }
     }
 }

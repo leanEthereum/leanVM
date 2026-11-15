@@ -1,8 +1,8 @@
 //! A compiled program with its stacked bytecode, shared by both provers.
 
 use crate::{CompiledProgram, Op};
-use std::ops::{Deref, Range};
-use std::sync::{Arc, OnceLock};
+use std::ops::Deref;
+use std::sync::OnceLock;
 use verifier::K;
 use verifier::layout::{BUS_BITS, OP_DEREF, OP_JUMP, OP_KECCAK, OP_MUL, OP_SET, OP_XOR};
 
@@ -13,40 +13,12 @@ const BYTECODE_OPERANDS: usize = 12;
 const OPCODE_SLOT: usize = 3;
 const _: () = assert!(OPCODE_SLOT + 1 + BYTECODE_OPERANDS <= 1 << BUS_BITS);
 
-/// The public columns of a bytecode, one word an instruction: the opcode, then the operand slots.
-pub type BytecodeColumns = [Column; 1 + BYTECODE_OPERANDS];
-
-/// One column of [`Program::stacked_bytecode`], cheap to clone.
-#[derive(Clone, Debug)]
-pub struct Column {
-    words: Arc<[u64]>,
-    range: Range<usize>,
-}
-
-/// The whole of `words`.
-impl From<Vec<u64>> for Column {
-    fn from(words: Vec<u64>) -> Self {
-        Self {
-            range: 0..words.len(),
-            words: words.into(),
-        }
-    }
-}
-
-impl Deref for Column {
-    type Target = [u64];
-
-    fn deref(&self) -> &[u64] {
-        &self.words[self.range.clone()]
-    }
-}
-
 /// A compiled program and its stacked bytecode.
 #[derive(Debug)]
 pub struct Program {
     compiled: CompiledProgram,
     /// Bus coordinate `s` of every instruction at `s * prog.len()`, for `s < 2^BUS_BITS`.
-    stacked_bytecode: Arc<[u64]>,
+    stacked_bytecode: Vec<u64>,
     /// `stacked_bytecode` prepared for the verifier, with its Fiat-Shamir IV.
     bytecode: verifier::Bytecode,
 }
@@ -67,7 +39,7 @@ impl From<CompiledProgram> for Program {
         let bytecode = verifier::Bytecode::new(&stacked);
         Self {
             compiled,
-            stacked_bytecode: stacked.into(),
+            stacked_bytecode: stacked,
             bytecode,
         }
     }
@@ -82,15 +54,6 @@ impl Deref for Program {
 }
 
 impl Program {
-    /// The opcode and operand columns, which the bus reads.
-    pub fn columns(&self) -> BytecodeColumns {
-        let n = self.prog.len();
-        std::array::from_fn(|i| Column {
-            words: self.stacked_bytecode.clone(),
-            range: (OPCODE_SLOT + i) * n..(OPCODE_SLOT + i + 1) * n,
-        })
-    }
-
     /// The stacked bytecode (§sec:e2e-bc).
     pub fn stacked_bytecode(&self) -> &[u64] {
         &self.stacked_bytecode

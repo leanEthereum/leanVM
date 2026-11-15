@@ -2,7 +2,6 @@
 
 use super::MAX_RECURSIONS;
 use super::cells::pack_16_bytes;
-use super::child::execution_layout;
 use super::child::{
     MU_CAP, QUERY_WINDOW_BITS, QUERY_WINDOWS_CAP, STREAM_CAP, block_groups, col_groups, merkle_cap_depth, whir_levels,
 };
@@ -16,7 +15,8 @@ use fiat_shamir_prover::{FiatShamirState, RATE_SCALARS, grinding_bits};
 use lean_da::{CELLS_PER_ROW, DA_MAX_ROWS, LOG_BLOB_SYMBOLS, LOG_CELL_SYMBOLS, LOG_CODEWORD_SYMBOLS};
 use lean_vm_core::constraints::xi_offsets;
 use lean_vm_core::cpu::{
-    KeccakLane, QKECCAK, block_kappa_sources, col_kappa_sources, keccak_value, n_xi_powers, to_scalar, xi_form_base,
+    KeccakLane, QKECCAK, block_kappa_sources, col_kappa_sources, keccak_value, layout_of, n_xi_powers, to_scalar,
+    xi_form_base,
 };
 use lean_vm_core::gkr::{ROUND_GRIND, y_grind};
 use lean_vm_core::keccak::{MIN_SHAPE as KECCAK_MIN_SHAPE, SLOT_LOG};
@@ -190,7 +190,7 @@ fn poly_factors(mut p: u64) -> Vec<u64> {
 pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     // Only block and coordinate structure is used here; stand-in sizes let us derive it before the guest's
     // bytecode exists.
-    let layout = execution_layout(kbc, 20, [1 << 10; N_TABLES]);
+    let layout = layout_of(kbc, 20, [1 << 10; N_TABLES]);
     let sides = [layout.push, layout.pull, layout.count];
     let mut ph = Placeholders::default();
     constants(&mut ph);
@@ -201,7 +201,7 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     // The bus's least push depth over every execution of this bytecode: the least memory, every table at its floor.
     // The bus grind sends a nonce at every depth the guest admits, which it absorbs with the OOD sample's value, and
     // the root-most layer is binary and never the last.
-    let bus_min_mu = leaf::layout(&execution_layout(kbc, verifier::MIN_LOG_MEMORY, [0; N_TABLES]).push).mu;
+    let bus_min_mu = leaf::layout(&layout_of(kbc, verifier::MIN_LOG_MEMORY, [0; N_TABLES]).push).mu;
     assert!(bus_grinding_bits(bus_min_mu) > 0 && bus_min_mu > 2);
     ph.set("BUS_MIN_MU", bus_min_mu);
     field_placeholders(&mut ph);

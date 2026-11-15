@@ -218,7 +218,7 @@ pub fn prove(
     // The layout follows from the run's sizes alone: a run past the window is refused
     // before its witness is built.
     let layout = layout_of(
-        &program.columns(),
+        crate::log2_strict_usize(program.prog.len()),
         crate::log2_strict_usize(exec.mem.len()),
         exec.trace.row_counts(),
         public_input,
@@ -261,7 +261,16 @@ pub fn prove(
         let l = &w.layout;
         let cols = w.columns();
         let bus = crate::stage!("Prove bus", || {
-            leaf::prove_balance(&l.push, &l.pull, &l.count, &cols, &owners, &spans, &mut ps)
+            leaf::prove_balance(
+                &l.push,
+                &l.pull,
+                &l.count,
+                &cols,
+                program.stacked_bytecode(),
+                &owners,
+                &spans,
+                &mut ps,
+            )
         });
         let table_claims = crate::stage!("Prove constraints", || {
             // One sumcheck for all six tables (§constraints).
