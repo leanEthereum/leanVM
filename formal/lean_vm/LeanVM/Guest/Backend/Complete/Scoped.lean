@@ -25,9 +25,11 @@ places `v` and `w` in one cell, and on the path through the second arm the cell 
 statement names (`atomUses`, `atomTmps`, a branch condition, a selector, a call's arguments and
 returns, the returned values) was made by an `alloc` event of a block around the statement on
 its path, or is a parameter; every value a `use` or `shift` event names too; a path makes at
-most one return area (`Kind.ret`), of at most the function's return cells; and no value placement
+most one return area (`Kind.ret`), of at most the function's return cells; no value placement
 places lazily (`Kind.pooled`, `Kind.addr`) is made right before a block's start or end
-(`flushEdge`), where the next statement placed is in another block.
+(`flushEdge`), where the next statement placed is in another block; and the value of a frame
+address is made by the flush right before it (`badAddr`), so no value read before it or in scope
+around it is its value.
 
 `scopedE` is the walk, `scopedB` its decision and `Scoped` the proposition the proofs take. The
 walk is placement's own reading of the trace (`flushN`, `expect`, `inBlock`, `placeArms`) with the
@@ -137,13 +139,16 @@ def scopeInner (rc : Nat) (blk : SSt → Except String SSt) (s : SSt) : Except S
         | .error e => .error e
         | .ok s₄ => .ok { s₄ with live := s.live }
 
-/-- An address of no cells: placement binds it to a frame address no event ties to its value. -/
-def noCells : Stmt → Bool
-  | .atom (.frameAddr _ []) => true
+/-- An address placement cannot tie to the trace: of no cells (placement binds it to a frame
+address no event ties to its value), or whose value the flush before it does not make (`live₀`
+the values in scope before the flush, `live₁` after it), so that no value read before it, nor any
+value in scope at the start of a block around it, is its value. -/
+def badAddr (live₀ live₁ : VMap Unit) : Stmt → Bool
+  | .atom (.frameAddr p run) => run.isEmpty || live₀.contains p || !live₁.contains p
   | _ => false
 
 /-- A statement other than a branch or a `match`: its values in scope after the values made
-before it; not an address of no cells. -/
+before it; no address placement cannot tie to the trace. -/
 def scopeFlat (rc : Nat) (st : Stmt) (s : SSt) : Except String SSt :=
   match flushAt rc s with
   | .error e => .error e
@@ -153,7 +158,9 @@ def scopeFlat (rc : Nat) (st : Stmt) (s : SSt) : Except String SSt :=
     | .ok s₂ =>
       match needScope s₂.live (ownUses st) "a statement" with
       | .error e => .error e
-      | .ok () => if noCells st then .error "an address of no cells" else .ok s₂
+      | .ok () =>
+        if badAddr s.live s₂.live st then .error "an address of no cells or of a value made before"
+        else .ok s₂
 
 /-- A branch after its blocks were walked: the `else` block, if the trace enters it, then the
 branch's own event. `nz` walks the `else` block; `before` is whether the path had made its return
