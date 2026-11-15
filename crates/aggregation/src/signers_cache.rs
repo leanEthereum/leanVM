@@ -39,7 +39,7 @@ const MESSAGE_IDS: u32 = 16;
 const BOTTOM_TREE: LeafIndex = 3_000_000_000 >> LAYER_HEIGHT;
 
 /// The message [`get_signers`] signs in round 0.
-pub fn message() -> Message {
+pub(crate) fn message() -> Message {
     std::array::from_fn(|i| (i * 5 + 1) as u8)
 }
 

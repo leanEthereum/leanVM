@@ -11,7 +11,7 @@ use fiat_shamir_prover::merkle::hash_to_scalars;
 use isa::Prover;
 use keccak256::{hash, hash_pair};
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS, Hash};
-use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
+use lean_sphincs::LeanSphincsSignature;
 use lean_vm_core::StableProver;
 use lean_vm_core::cpu::{ExecError, Execution, Program, from_scalar, to_scalar};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
@@ -21,42 +21,39 @@ use rand::rngs::StdRng;
 use zkdsl_compiler::{compile, parse_with_replacements};
 
 use crate::signers_cache::{
-    LeanXmssSigner, get_lean_sphincs_signers, get_signers, get_signers_for, message, message_for,
+    LeanSphincsSigner, LeanXmssSigner, get_lean_sphincs_signers, get_signers, get_signers_for, message, message_for,
 };
 
 /// A second cached message, sorting after [`message`]; signer `i` holds the same
 /// pubkey under both, at another leaf index.
 const MESSAGE_B: u32 = 2;
 const SMALL_LEAF_SIZE: usize = 6;
-const LOG_INV_RATE: usize = lean_vm_core::pcs::TEST_LOG_INV_RATE;
 
 /// An aggregate's claims and proof.
 type Node = (AggregateClaims, AggregateProof);
-type RawSphincs = (LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature);
 
-/// [`aggregate`](super::aggregate) on the stable prover, without the statistics.
+/// [`aggregate`](super::aggregate) on the stable prover at the test rate, without the statistics.
 fn aggregate(
     children: &[Node],
     raw_lean_xmss: Vec<LeanXmssSigner>,
-    raw_lean_sphincs: Vec<RawSphincs>,
+    raw_lean_sphincs: Vec<LeanSphincsSigner>,
     blobs: Option<&lean_da::BlobMatrix>,
     output: OutputClaims,
-    log_inv_rate: usize,
 ) -> Result<Node, AggregateError> {
-    super::aggregate::<StableProver>(children, raw_lean_xmss, raw_lean_sphincs, blobs, output, log_inv_rate)
+    StableProver::init();
+    let rate = lean_vm_core::pcs::TEST_LOG_INV_RATE;
+    super::aggregate::<StableProver>(children, raw_lean_xmss, raw_lean_sphincs, blobs, output, rate)
         .map(|(claims, proof, _)| (claims, proof))
 }
 
 /// A node publishing every claim it covers, which must aggregate and verify.
-fn prove(children: &[Node], raw_lean_xmss: &[LeanXmssSigner], raw_lean_sphincs: &[RawSphincs]) -> Node {
-    StableProver::init();
+fn prove(children: &[Node], raw_lean_xmss: &[LeanXmssSigner], raw_lean_sphincs: &[LeanSphincsSigner]) -> Node {
     let node = aggregate(
         children,
         raw_lean_xmss.to_vec(),
         raw_lean_sphincs.to_vec(),
         None,
         OutputClaims::All,
-        LOG_INV_RATE,
     )
     .expect("aggregates");
     assert!(node.1.verify(&node.0), "verifies");
@@ -81,19 +78,11 @@ fn assert_forgery_rejected(
     forgery: Forgery,
     children: &[Node],
     raw: Vec<LeanXmssSigner>,
-    sphincs: Vec<RawSphincs>,
+    sphincs: Vec<LeanSphincsSigner>,
     blobs: &[lean_da::Blob],
 ) {
-    StableProver::init();
     FORGE.with(|forge| *forge.borrow_mut() = Some(forgery));
-    let result = aggregate(
-        children,
-        raw,
-        sphincs,
-        matrix(blobs).as_ref(),
-        OutputClaims::All,
-        LOG_INV_RATE,
-    );
+    let result = aggregate(children, raw, sphincs, matrix(blobs).as_ref(), OutputClaims::All);
     assert!(
         result.err() == Some(AggregateError::ProvingFailed),
         "a forged hint is rejected"
@@ -104,6 +93,7 @@ fn assert_forgery_rejected(
 fn guest_snippet(main: &str, kbc: usize) -> Program {
     let (helpers, _) = GUEST_SOURCE.split_once("\ndef main():").unwrap();
     let source = format!("{helpers}\ndef main():\n{main}");
+    StableProver::init();
     StableProver::assemble(compile(
         &parse_with_replacements(&source, &placeholder_map(kbc)).unwrap(),
     ))
@@ -242,14 +232,12 @@ fn forged_lean_xmss_hints_are_rejected() {
 /// node's blobs, or a membership challenge other than the root's fails the guest's run.
 #[test]
 fn forged_da_hints_are_rejected() {
-    StableProver::init();
     let child = aggregate(
         &[],
         get_signers(SMALL_LEAF_SIZE),
         vec![],
         matrix(&da_rows(1, 7)).as_ref(),
         OutputClaims::All,
-        LOG_INV_RATE,
     )
     .unwrap();
     let forgeries: [(Forgery, bool); 4] = [
@@ -291,7 +279,6 @@ fn forged_opening_hints_are_rejected() {
 
 #[test]
 fn guest_column_selectors_match_native_eq() {
-    StableProver::init();
     let kbc = 18;
     let guest = guest_snippet(
         r#"    # The selector tables read whole nibbles of coordinates, zero past the stack.
@@ -360,10 +347,9 @@ fn aggregate_two_to_one() {
 /// node has to reach the native committer's root, and the aggregate verifies against the receiver's claims only.
 #[test]
 fn aggregate_with_a_da_payload() {
-    StableProver::init();
     let rows = da_rows(DA_MAX_ROWS, 97);
     let matrix = lean_da::BlobMatrix::build(&rows).unwrap();
-    let node = aggregate(&[], vec![], vec![], Some(&matrix), OutputClaims::All, LOG_INV_RATE).expect("node aggregates");
+    let node = aggregate(&[], vec![], vec![], Some(&matrix), OutputClaims::All).expect("node aggregates");
     let expected = AggregateClaims {
         da_commitment: Some(matrix.top_root()),
         ..AggregateClaims::default()
@@ -400,7 +386,7 @@ fn invalid_da_selections_are_rejected_before_building_the_proof() {
     };
     let blobs = matrix(&da_rows(1, 3));
     let with = |blobs: Option<&lean_da::BlobMatrix>, declare: &AggregateClaims| {
-        aggregate(&[], vec![], vec![], blobs, OutputClaims::Only(declare), LOG_INV_RATE).unwrap_err()
+        aggregate(&[], vec![], vec![], blobs, OutputClaims::Only(declare)).unwrap_err()
     };
     assert_eq!(
         with(None, &select),
@@ -416,22 +402,11 @@ fn invalid_da_selections_are_rejected_before_building_the_proof() {
 /// publishes their matrix's, whatever its children hold.
 #[test]
 fn a_node_passes_on_one_childs_da_root() {
-    StableProver::init();
     let signers = get_signers(SMALL_LEAF_SIZE);
     let mut children = vec![prove(&[], &signers, &[])];
     for (n_rows, seed) in [(1, 509), (2, 510)] {
         let rows = da_rows(n_rows, seed);
-        children.push(
-            aggregate(
-                &[],
-                signers.clone(),
-                vec![],
-                matrix(&rows).as_ref(),
-                OutputClaims::All,
-                LOG_INV_RATE,
-            )
-            .unwrap(),
-        );
+        children.push(aggregate(&[], signers.clone(), vec![], matrix(&rows).as_ref(), OutputClaims::All).unwrap());
     }
     let (first, second) = (
         children[1].0.da_commitment.unwrap(),
@@ -450,7 +425,6 @@ fn a_node_passes_on_one_childs_da_root() {
             vec![],
             matrix(blobs).as_ref(),
             declare.as_ref().map_or(OutputClaims::All, OutputClaims::Only),
-            LOG_INV_RATE,
         )
         .unwrap();
         assert!(node.1.verify(&node.0));
@@ -532,7 +506,6 @@ fn grind_check_reads_the_low_bits() {
 /// one row flipped, in either limb, though its root and vector are that matrix's: the row is no codeword.
 #[test]
 fn da_guest_checks_codeword_membership() {
-    StableProver::init();
     let guest = guest_snippet(
         r#"    r0, r1, z = da_verify()
     digest = StackBuf(2)
@@ -605,7 +578,6 @@ fn a_node_may_publish_less_than_it_covers() {
             vec![],
             None,
             OutputClaims::Only(declare),
-            LOG_INV_RATE,
         )
     };
     let only = |lean_xmss: Vec<LeanXmssClaim>| AggregateClaims {
@@ -653,7 +625,6 @@ fn a_node_may_publish_less_than_it_covers() {
 /// A raw signature whose claim goes undeclared covers a duplicate slot.
 #[test]
 fn raw_signatures_may_go_undeclared() {
-    StableProver::init();
     let b = get_signers_for(1, MESSAGE_B);
     let claim_b = vec![(b[0].0, message_for(MESSAGE_B))];
     let declare = AggregateClaims {
@@ -661,8 +632,7 @@ fn raw_signatures_may_go_undeclared() {
         ..AggregateClaims::default()
     };
     let raw = [get_signers(1), b].concat();
-    let node = aggregate(&[], raw, vec![], None, OutputClaims::Only(&declare), LOG_INV_RATE)
-        .expect("the narrowing leaf aggregates");
+    let node = aggregate(&[], raw, vec![], None, OutputClaims::Only(&declare)).expect("the narrowing leaf aggregates");
     assert!(node.1.verify(&node.0), "it verifies");
     assert_eq!(node.0.lean_xmss, claim_b);
 }
@@ -768,7 +738,7 @@ fn aggregate_three_levels() {
     assert!(received.verify(&root.0), "the receiver's claims verify");
 }
 
-/// The all-zeros fast path in `DeferredBytecodeClaim::recompute_scalar` must agree with the
+/// The all-zeros fast path in `DeferredBytecodeClaim::recompute` must agree with the
 /// full pass it replaces, or every leaf would verify against the wrong
 /// statement.
 #[test]
@@ -834,7 +804,7 @@ fn malformed_raw_signatures_are_errors() {
 
     for (xmss, sphincs) in [(xmss, vec![]), (vec![], sphincs)] {
         assert_eq!(
-            aggregate(&[], xmss, sphincs, None, OutputClaims::All, LOG_INV_RATE).err(),
+            aggregate(&[], xmss, sphincs, None, OutputClaims::All).err(),
             Some(AggregateError::InvalidSignature)
         );
     }
