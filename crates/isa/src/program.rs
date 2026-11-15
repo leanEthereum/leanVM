@@ -2,6 +2,7 @@
 
 use crate::{CompiledProgram, Op};
 use std::ops::Deref;
+use std::sync::OnceLock;
 use verifier::layout::{BUS_BITS, OP_DEREF, OP_JUMP, OP_KECCAK, OP_MUL, OP_SET, OP_XOR};
 
 /// Operand slots of a bytecode tuple, after the opcode.
