@@ -41,13 +41,6 @@ def infoOf (j : ℕ) : Array Event × Nat × Bool × Option Nat := GuestData.gue
 /-- What a caller knows of compiled function `j` (`Guest.sigOf`, the certificate's signature). -/
 noncomputable abbrev csig (j : ℕ) : Check.Sig := LeanVM.Guest.sigOf j
 
-/-- `isLoopName`, as the kernel evaluates it on a literal. -/
-def loopB (s : String) : Bool := "__loop".toList.isPrefixOf s.toList
-
-theorem isLoopName_eq (s : String) : isLoopName s = loopB s := by
-  unfold isLoopName loopB
-  rw [Bool.eq_iff_iff, String.startsWith_string_iff, List.isPrefixOf_iff_prefix]
-
 /-- The entry environment is the self pointer past the arguments exactly for a registered loop
 helper. -/
 def envOk (env : List (ℕ × Sym)) (reg : Bool) (na : ℕ) : Bool :=
@@ -65,7 +58,7 @@ def postOk (cs : Check.Sig) (ts : Obl.Sig) : Bool :=
 noncomputable def dataOk (j : ℕ) : Bool :=
   sigOk (csig j) (guestTab.sig (coreOf j).name) (xSpecOf (coreOf j).name) &&
     (csig j).nret == (infoOf j).2.1 &&
-    envOk (csig j).env (loopB (coreOf j).name && (infoOf j).2.2.1) (csig j).nargs &&
+    envOk (csig j).env (isLoopName (coreOf j).name && (infoOf j).2.2.1) (csig j).nargs &&
     postOk (csig j) (guestTab.sig (coreOf j).name) &&
     decide (Data.f0.instructionCount ≤ (csig j).entry) && decide ((csig j).entry + 1 < 2 ^ 19)
 
@@ -73,7 +66,7 @@ noncomputable def dataOk (j : ℕ) : Bool :=
 theorem dataOk_spec {j : ℕ} (h : dataOk j = true) :
     sigOk (csig j) (guestTab.sig (coreOf j).name) (xSpecOf (coreOf j).name) = true ∧
       (csig j).nret = (infoOf j).2.1 ∧
-      envOk (csig j).env (loopB (coreOf j).name && (infoOf j).2.2.1) (csig j).nargs = true ∧
+      envOk (csig j).env (isLoopName (coreOf j).name && (infoOf j).2.2.1) (csig j).nargs = true ∧
       postOk (csig j) (guestTab.sig (coreOf j).name) = true ∧
       Data.f0.instructionCount ≤ (csig j).entry ∧ (csig j).entry + 1 < 2 ^ 19 := by
   simp only [dataOk, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h

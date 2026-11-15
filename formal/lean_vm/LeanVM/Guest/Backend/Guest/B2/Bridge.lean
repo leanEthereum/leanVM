@@ -84,7 +84,7 @@ theorem locsAgree_of (h : ∀ i < coreProgram.length, locsOkAt i (gLocs (coreOf 
     LocsAgree := by
   intro j h1 h2
   have := h (j - 1) (by have := coreProgram_length_succ; omega)
-  simp only [locsOkAt, Nat.sub_add_cancel h1] at this
+  rw [locsOkAt_eq, Nat.sub_add_cancel h1] at this
   exact this
 
 /-! ## Places to cells -/
@@ -170,11 +170,11 @@ noncomputable abbrev tfOf (j : ℕ) : TracedFn :=
   ⟨coreOf j, (infoOf j).1, (infoOf j).2.1, (infoOf j).2.2⟩
 
 theorem registered_tfOf (h : GuestCompiles fns slots) {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) :
-    (WG).registered (coreOf j).name ↔ (loopB (coreOf j).name && (infoOf j).2.2.1) = true := by
+    (WG).registered (coreOf j).name ↔ (isLoopName (coreOf j).name && (infoOf j).2.2.1) = true := by
   have := registered_iff (guestTraced_nodup L h) (getElem_mem_guestTraced h1 h2)
   dsimp only [tfOf] at this
   show ((loopTable guestTraced)[(coreOf j).name]?).any (·.registered) = true ↔ _
-  rw [this, isLoopName_eq]
+  rw [this]
 
 theorem tf_eq (L : MemoryImage κ) (h : GuestCompiles fns slots) {tf : TracedFn}
     (htf : tf ∈ guestTraced) {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns)
