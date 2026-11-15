@@ -8,11 +8,13 @@ module
 
 public import LeanVM.Guest.Budget.FinalP
 public import LeanVM.Guest.B1.Main.MainHonestE
+public import LeanVM.Guest.B1.Main.MainHeapHonest
 
 /-!
 # `main` within the budget, with its pops, every node exact
 
-`MainCompletePE`: `MainCompleteP`, the tree also `Every (ExactAt …)` on the memory; `MainCompletePE.toP`.
+`MainCompletePE`: `MainCompleteP`, the tree also `Every (ExactAt …)` on the memory and popping the honest advised
+sizes (`heap_sizes`); `MainCompletePE.toP`.
 `mainComplete_of_boundsPE`, `mainComplete_of_mainPE`, `mainComplete_budgetPE`: `mainComplete_of_boundsP`,
 `mainComplete_of_mainP`, `mainComplete_budgetP` with it, route R's callees with computed hints given in their E forms
 (`MainGoalsRE`, `aggregate_claims`'), `main`'s node exact by `main_every`.
@@ -46,13 +48,14 @@ def MainCompletePE (fs : String → ℕ) (cert : String → V → ℕ) (cnt : Tr
             (∀ op, cnt t op ≤ (b.instrs op).eval (work s w)) ∧
             SameStreams (t.pops coreProgram rd)
               ((Hints.honestPushes bytecode seed s w).filter (·.1 != Hints.heapSizeStream)) ∧
-            t.Every (ExactAt coreProgram rd)
+            t.Every (ExactAt coreProgram rd) ∧
+            t.heapPops heapSlots = ((Hints.honestPushes bytecode seed s w).filter (·.1 == Hints.heapSizeStream)).map (·.2)
 
 theorem MainCompletePE.toP {fs : String → ℕ} {cert : String → V → ℕ} {cnt : Tree → Opcode → ℕ}
     {b : Budget} (h : MainCompletePE fs cert cnt b) : MainCompleteP fs cert cnt b := fun seed s w h1 h2 h3 h4 =>
   let ⟨N, L, a1, a2, a3, a4, hr⟩ := h seed s w h1 h2 h3 h4
   ⟨N, L, a1, a2, a3, a4, fun rd hl hL h0 h1 =>
-    let ⟨t, b1, b2, b3, b4, b5, b6, b7, b8, _⟩ := hr rd hl hL h0 h1
+    let ⟨t, b1, b2, b3, b4, b5, b6, b7, b8, _, _⟩ := hr rd hl hL h0 h1
     ⟨t, b1, b2, b3, b4, b5, b6, b7, b8⟩⟩
 
 /-- **`MainCompletePE` from `main`'s completeness within a words bound, its tree's counts, pops and exactness.** -/
@@ -75,6 +78,9 @@ theorem mainComplete_of_boundsPE (fs : String → ℕ) (cert : String → V → 
         SameStreams (t.pops coreProgram rd) ((Hints.honestPushes bytecode seed s w).filter (·.1 != Hints.heapSizeStream)))
     (hexact : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w →
       ∀ (rd : Reader) (t : Tree), T seed s w rd t → t.Valid coreProgram rd [] [] → t.Every (ExactAt coreProgram rd))
+    (hheap : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w →
+      ∀ (rd : Reader) (t : Tree), T seed s w rd t → t.Valid coreProgram rd [] [] →
+        t.heapPops heapSlots = ((Hints.honestPushes bytecode seed s w).filter (·.1 == Hints.heapSizeStream)).map (·.2))
     (hwords : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w →
       Bm seed s w ≤ b.words.eval (work s w)) :
     MainCompletePE fs cert cnt b := by
@@ -91,7 +97,7 @@ theorem mainComplete_of_boundsPE (fs : String → ℕ) (cert : String → V → 
       hR rd (hl.mono (Memory.twentyThree_le_logMem n)) hL (loadHolds_one h0) (loadHolds_gen h1)
     rw [Nat.zero_add] at hp hli
     exact ⟨t, hn, hv, hb, hp, ht, hli, hcnt seed s w hrel hlim rd t hT hv hb, hpops seed s w hrel hlim rd t hT hv,
-      hexact seed s w hrel hlim rd t hT hv⟩
+      hexact seed s w hrel hlim rd t hT hv, hheap seed s w hrel hlim rd t hT hv⟩
 
 /-- **`main` is complete within the budget `b`, with its pops, every node exact**: `mainComplete_of_mainP`, route R's
 callees in `MainGoalsRR` and those with computed hints also in `MainGoalsRE`. -/
@@ -116,6 +122,7 @@ theorem mainComplete_of_mainPE (fs : String → ℕ) (cert : String → V → �
         (B1.Returns []) (mainPredsHP fs SB SK (childBv Bvf w) (Pvs w) s w (Q seed s w)).withExact.Pa
         (mainBsH fs SB SK (childBv Bvf w) s w).Ba)
     (hseg : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ∀ rd, MainSegs fs seed s w (Q seed s w) rd)
+    (hvh : ∀ w c t, Pvs w c t → t.heapPops heapSlots = B1.Main.vsHeapH bytecode w c)
     (hcnt : ∀ (rd : Reader) (t : Tree), t.Valid coreProgram rd [] [] → ∀ op,
       cnt t op ≤ t.weight (ω op) + jt op)
     (Kx Ks Kd K5 : Opcode → NodeStatement → NodeWitness → ℕ)
@@ -148,7 +155,7 @@ theorem mainComplete_of_mainPE (fs : String → ℕ) (cert : String → V → �
         ((fun _ => True) :: mTsR (hm fs 0 seed s w)
           (mainPredsHP fs SB SK (childBv Bvf w) (Pvs w) s w (Q seed s w)).withExact rd) ks ∧
       calls (B1.Main.mEvs σ) = B1.Main.mCalls σ (hm fs 0 seed s w) ∧ bufs = B1.Main.mSizes (hData seed s w))
-    (fun seed s w => Bmain fs SB SK (childBv Bvf w) 0 seed s w) hfs ?_ ?_ ?_ ?_ hwords
+    (fun seed s w => Bmain fs SB SK (childBv Bvf w) 0 seed s w) hfs ?_ ?_ ?_ ?_ ?_ hwords
   · intro seed s w hrel hlim hok
     obtain ⟨n, L, hn, hW, hab, hD, -, hR⟩ := main_honest_budgetBRE bytecode_length hrel hlim hxc hsc
       hS (hPS seed s w hrel hlim hok) ((hR seed s w hrel hlim hok).withExact (hRE seed s w hrel hlim hok) (hag seed s w hrel hlim))
@@ -172,6 +179,10 @@ theorem mainComplete_of_mainPE (fs : String → ℕ) (cert : String → V → �
   · intro seed s w hrel hlim rd t hTt hv
     obtain ⟨σ, bufs, ks, rfl, -, hT, hc, -⟩ := hTt
     exact B1.Main.main_every hv hT hc
+  · intro seed s w hrel hlim rd t hTt hv
+    obtain ⟨σ, bufs, ks, rfl, hMV, hT, hc, rfl⟩ := hTt
+    exact B1.Main.main_heap_honest hlim (hvh w) hv hMV
+      (kidsT_imp (B1.Main.kidsT_dropExact hT) (mTsR_imp _ _ _ rd)) hc
 
 /-- **`main` is complete within `mainBudget`, with its pops, every node exact.** -/
 theorem mainComplete_budgetPE (fs : String → ℕ) (cert : String → V → ℕ) (cnt : Tree → Opcode → ℕ)
@@ -195,6 +206,7 @@ theorem mainComplete_budgetPE (fs : String → ℕ) (cert : String → V → ℕ
         (B1.Returns []) (mainPredsHP fs SB SK (childBv Bvf w) (Pvs w) s w (Q seed s w)).withExact.Pa
         (mainBsH fs SB SK (childBv Bvf w) s w).Ba)
     (hseg : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ∀ rd, MainSegs fs seed s w (Q seed s w) rd)
+    (hvh : ∀ w c t, Pvs w c t → t.heapPops heapSlots = B1.Main.vsHeapH bytecode w c)
     (hcnt : ∀ (rd : Reader) (t : Tree), t.Valid coreProgram rd [] [] → ∀ op,
       cnt t op ≤ t.weight (ω op) + jt op) (c5 s5 : Opcode → ℕ) (v5 : Opcode → ℕ → ℕ → ℕ)
     (h5 : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ∀ op (rd : Reader)
@@ -202,7 +214,7 @@ theorem mainComplete_budgetPE (fs : String → ℕ) (cert : String → V → ℕ
       t.BufsOk coreProgram → (mainPredsH s w (hDvNH w) (Pvs w)).T5 t →
         t.weight (ω op) ≤ l5Lin (c5 op) (s5 op) (v5 op) (work s w)) :
     MainCompletePE fs cert cnt (mainBudget fs SB SK Bvf ω H c5 s5 v5 jt) :=
-  mainComplete_of_mainPE fs cert cnt _ ω jt H hfs hxc hsc hS hPS hR hRE hag hseg hcnt
+  mainComplete_of_mainPE fs cert cnt _ ω jt H hfs hxc hsc hS hPS hR hRE hag hseg hvh hcnt
     (fun op s _ => (H op).clA + (H op).clS * s.claims.xmss.length)
     (fun op s _ => (H op).clA + (H op).clS * s.claims.sphincs.length)
     (fun op s w => (H op).dvA + (H op).dvR * (work s w).rawDaRows +

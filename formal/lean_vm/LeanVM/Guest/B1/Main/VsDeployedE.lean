@@ -9,12 +9,14 @@ module
 
 public import LeanVM.Guest.Budget.ClosedP
 public import LeanVM.Guest.B1.Whir.CRecHosPE
+public import LeanVM.Guest.B1.Main.HeapPushes
 
 /-!
 # `verify_sub` at the deployed instance, every node exact
 
-`vs_completeRE`, `verifySubGoalsTBR_deployedE`: `vs_completeR`, `verifySubGoalsTBR_deployed` by trees also exact on
-the memory, given `VsKidsExact` (`verify_sub_completeBTSE`).
+`deployedVsH`: `Budget.deployedVsT`, the tree popping its child's advised sizes. `vs_completeRE`,
+`verifySubGoalsTBR_deployedE`: `vs_completeR`, `verifySubGoalsTBR_deployed` by trees also exact on the memory and
+popping their child's advised sizes, given `VsKidsExact` (`verify_sub_completeBTSE`).
 -/
 
 namespace LeanVM.Guest.B1.Main
@@ -29,6 +31,10 @@ open LeanVM.Guest.Budget (deployedVsT)
 
 @[expose] public section
 
+/-- **Child `c`'s `verify_sub` tree at the deployed instance, popping its advised sizes.** -/
+def deployedVsH (w : NodeWitness) (c : ℕ) (t : Tree) : Prop :=
+  deployedVsT w c t ∧ t.heapPops heapSlots = vsHeapH bytecode w c
+
 /-- **`vs_completeR`, every node exact**, given `VsKidsExact`. -/
 theorem vs_completeRE {bc : List K} (hbl : bc.length = 2 ^ 23) {fs : String → ℕ} {cert : String → V → ℕ}
     (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (W : VsWordsOs fs)
@@ -36,15 +42,16 @@ theorem vs_completeRE {bc : List K} (hbl : bc.length = 2 ^ 23) {fs : String → 
     (sqE outE : ℕ) (Lin : Layout) (hok : VsChildOk bc seed c) (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin)
     (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) :
     CompleteAtDTBR fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
-      (fun rd t ↦ ((20 ≤ (childShape bc c).1 ∧ (childShape bc c).1 ≤ 30 ∧
+      (fun rd t ↦ (((20 ≤ (childShape bc c).1 ∧ (childShape bc c).1 ≤ 30 ∧
         vsTsAny fs W Bvk (childShape bc c).1 (childShape bc c).2 t) ∧
+        t.heapPops heapSlots = B1.VerifySub.childHeapH bc c) ∧
         SameStreams (t.pops coreProgram rd) ((Hints.childHints bc seed c).drop 4)) ∧
         t.Every (ExactAt coreProgram rd))
       (vsBoundAt W Bvk (childShape bc c).1 (childShape bc c).2) := by
   obtain ⟨S, hS⟩ := B1.VerifySub.child_segments_steps hbl seed c hok.1 hok.2.2.1 hok.2.2.2
   rw [childShape_of S.hann]
   exact (B1.VerifySub.verify_sub_completeBTSE hbl hrf hcons W hκ hK S hS hok.2.2.1 sqE outE Lin hok.2.1 hexp
-    hout).mono le_rfl fun _ _ h ↦ ⟨⟨⟨S.hmu20, S.hmu30, h.1.1⟩, h.1.2⟩, h.2⟩
+    hout).mono le_rfl fun _ _ h ↦ ⟨⟨⟨⟨S.hmu20, S.hmu30, h.1.1.1⟩, h.1.1.2⟩, h.1.2⟩, h.2⟩
 
 /-- **Each child's `verify_sub` call at the deployed instance, exact at every node**: `verifySubGoalsTBR_deployed`,
 given `VsKidsExact` at `B2C.fs`. -/
@@ -52,7 +59,7 @@ theorem verifySubGoalsTBR_deployedE {seed : Digest} {s : NodeStatement} {w : Nod
     (hK : VsKidsExact LeanVM.Guest.B2C.fs LeanVM.Guest.B2C.cert 16 LeanVM.Guest.Count.vsWordsOs vkBound)
     (hr : NodeRelation bytecode seed s w) (hok : ChildrenOk bytecode seed w) :
     VerifySubGoalsTBR LeanVM.Guest.B2C.fs LeanVM.Guest.B2C.cert 0 seed s w
-      (fun rd c t ↦ (deployedVsT w c t ∧ SameStreams (t.pops coreProgram rd) (pvH bytecode seed w c)) ∧
+      (fun rd c t ↦ (deployedVsH w c t ∧ SameStreams (t.pops coreProgram rd) (pvH bytecode seed w c)) ∧
         t.Every (ExactAt coreProgram rd))
       (childBv (vsBoundAt LeanVM.Guest.Count.vsWordsOs vkBound) w) := by
   intro c hc
@@ -69,9 +76,10 @@ theorem verifySubGoalsTBR_deployedE {seed : Digest} {s : NodeStatement} {w : Nod
       (childShape bytecode w.children[c]).2 = childBv (vsBoundAt LeanVM.Guest.Count.vsWordsOs vkBound) w c := by
     simp [childBv, List.getD_eq_getElem?_getD, hc]
   rw [hB] at h
-  replace h := h.mono (T' := fun rd t ↦ (deployedVsT w c t ∧ SameStreams (t.pops coreProgram rd)
-      (pvH bytecode seed w c)) ∧ t.Every (ExactAt coreProgram rd)) le_rfl fun rd t ht ↦ ⟨⟨fun _ ↦ ⟨by
-        have := ht.1.1.1; have := ht.1.1.2.1; unfold B1.Whir.minOpenLog B1.Whir.openArms; omega, ht.1.1⟩, by
+  replace h := h.mono (T' := fun rd t ↦ (deployedVsH w c t ∧ SameStreams (t.pops coreProgram rd)
+      (pvH bytecode seed w c)) ∧ t.Every (ExactAt coreProgram rd)) le_rfl fun rd t ht ↦ ⟨⟨⟨fun _ ↦ ⟨by
+        have := ht.1.1.1.1; have := ht.1.1.1.2.1; unfold B1.Whir.minOpenLog B1.Whir.openArms; omega, ht.1.1.1⟩, by
+      rw [vsHeapH, List.getElem?_eq_getElem hc, Option.map_some, Option.getD_some]; exact ht.1.1.2⟩, by
       rw [pvH, List.getElem?_eq_getElem hc, Option.map_some, Option.getD_some]; exact ht.1.2⟩, ht.2⟩
   have hbc := bytecode_length
   have hlen : ∀ a ∈ w.children, (DeferredClaim.cells a.freshClaim).length = 24 := fun a ha => by

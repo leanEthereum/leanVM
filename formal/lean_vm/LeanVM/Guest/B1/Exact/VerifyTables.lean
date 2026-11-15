@@ -12,6 +12,7 @@ public import LeanVM.Guest.B1.Exact.Padding
 public import LeanVM.Guest.B1.Exact.SharedTables
 public import LeanVM.Guest.B1.Exact.GPower
 public import LeanVM.Guest.B1.Exact.VtOwn
+public import LeanVM.Guest.B1.VerifySub.HeapNoAdv
 
 /-!
 # `verify_tables`, every node exact
@@ -21,7 +22,8 @@ Every callee of `verify_tables` is in `ExactOk`: its 31 `padding_weight`s (`pw_e
 once its own events are (`everyKids_of_callees_ok`). `VtOwnExact`: its own computed hints (96 digit runs, three bit runs,
 the limbs and the inverses) exact at its honest valuation (`vtQn`) on a memory holding its caller's buffers, proved as
 `vtOwnExact` (`Tables.vt_own_exact`). `CompleteAtDTBR.monoVM`: `monoV` given the memory's low words and input
-buffers. `ChildSegs.vt_kidBWPE`: `vt_kidBWP` by a tree also exact, given it.
+buffers. `ChildSegs.vt_kidBWPE`: `vt_kidBWP` by a tree also exact, given it, popping its own advised sizes alone
+(`heapPops_own`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -88,17 +90,18 @@ namespace ChildSegs
 variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
 
 /-- **`verify_tables` on the honest child, within `vtMax` by a tree within its weights popping its group order and
-its round count, exact at every node**, given its own computed hints exact. -/
+its round count, exact at every node**, given its own computed hints exact, popping its own advised sizes alone. -/
 theorem vt_kidBWPE (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 14 ≤ κ) (W : VsWordsOs fs) (hV : VtOwnExact)
     (B : Tables.VtBases) :
     CompleteAtDTBR fs cert κ "verify_tables" (S.H.linL B) (S.H.args B) (Returns (S.H.retsH B))
       (fun rd t ↦ ((∀ op, Budget.WeighsLe coreProgram (W.ωv op) (vtWB W.toVsWords op) t) ∧
-        vsPvt S.logMem S.rowsN S.H.n rd t) ∧ t.Every (ExactAt coreProgram rd)) (vtMax fs W.Kf W.Ksh W.K10) :=
+        vsPvt S.logMem S.rowsN S.H.n rd t ∧ t.heapPops heapSlots = (heapSlots "verify_tables").map
+          (advEntry S.H.sizes)) ∧ t.Every (ExactAt coreProgram rd)) (vtMax fs W.Kf W.Ksh W.K10) :=
   CompleteAtDTBR.monoVM (Tables.verify_tables_completeAtTBWR' hκ (S.H_run hbl).1 (S.H_shape hbl) B W.Kf W.Ksh W.K10
     W.hKf W.hsh W.h10 W.ωv W.Kvw W.Wss W.Kw10 W.hKvw W.hssw W.h10w) (S.vt_bound_le hbl W)
     fun rd t _ hlow hlin hv ⟨hw, σ, ks, e, hq⟩ ↦ by
       subst e
-      exact ⟨⟨hw, vt_honest_vsPvt rfl rfl rfl hq hv⟩, Tree.every_node.mpr
+      exact ⟨⟨hw, vt_honest_vsPvt rfl rfl rfl hq hv, heapPops_own vt_noAdvBut vt_name hv⟩, Tree.every_node.mpr
         ⟨hV _ _ _ _ _ _ _ _ (S.H_run hbl).1 (S.H_shape hbl) hq (hlow.mono hκ) hlin hv,
           everyKids_of_callees_ok find_vt vt_callees_ok hv⟩⟩
 

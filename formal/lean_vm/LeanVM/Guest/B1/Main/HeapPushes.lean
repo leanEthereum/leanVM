@@ -9,8 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Main.MainPushes
 public import LeanVM.Guest.B1.Main.L5Segs
--- Private: `guest_const%` inserts literals.
-import LeanVM.Guest.Data.Source
+public import LeanVM.Guest.B1.VerifySub.ChildHeap
 
 /-!
 # The honest advised sizes
@@ -25,6 +24,7 @@ namespace LeanVM.Guest.B1.Main
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Node
+open LeanVM.Guest.B1.VerifySub (childHeapH)
 
 @[expose] public section
 
@@ -97,16 +97,6 @@ theorem merkleHints_noHeap : ∀ (first : Bool) (qs : List (ℕ × List ℕ)) (p
   | _, _ :: _, [] => by unfold Hints.merkleHints; exact fun _ h => by simp at h
 
 /-! ## A child's pushes -/
-
-/-- **A child's advised sizes** (`Hints.childHints`' first four entries): `verify_sub`'s `zeta` buffer of the bus
-depth and `verify_tables`' three round buffers, none without an announced layout. -/
-def childHeapH (bytecode : List K) (c : Child) : List (List E) :=
-  match announcedLayoutAndRate bytecode c.proof.stream with
-  | none => []
-  | some (layout, _) =>
-    let rounds := layout.tableLogHeights.foldl max 0
-    [(busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth,
-      (rounds + 1) * guest_const% ROUND_SLOTS, rounds + 1, rounds + 1].map fun n => [Hints.count n]
 
 /-- **Child `c`'s advised sizes**, none past the children. -/
 def vsHeapH (bytecode : List K) (w : NodeWitness) (c : ℕ) : List (List E) :=

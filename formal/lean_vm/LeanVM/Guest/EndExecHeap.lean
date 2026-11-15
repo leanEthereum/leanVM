@@ -14,7 +14,7 @@ public import LeanVM.Guest.EndExecHSlots
 
 `heapPops_of`: if every reference tree pops the honest `heap_sizes` entries under `heapSlots`, it does
 under `advSlots` (`HeapPops`): the tree re-chooses the temporaries of a valid one (`heapPops_retemp`),
-on which the two agree (`heapPops_advSlots`).
+on which the two agree (`heapPops_advSlots`); so `HeapPops` holds (`heapPops_ref`, from `Ref.Ok.heap`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -28,6 +28,9 @@ theorem heapPops_of (h : ∀ r : Ref, r.Ok → r.T.heapPops heapSlots = heapStre
   intro r hr
   obtain ⟨t, ν, hv, -, -, -, -, -, hT⟩ := hr.tree
   rw [← h r hr, hT, heapPops_retemp, heapPops_retemp, heapPops_advSlots hv]
+
+/-- **The honest pushes of `heap_sizes` are the reference tree's advised sizes.** -/
+theorem heapPops_ref : HeapPops := heapPops_of fun _ hr => hr.heap
 
 end
 

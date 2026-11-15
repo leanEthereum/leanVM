@@ -84,9 +84,8 @@ structure OpenGaps : Prop where
   /-- Mode walk track: the walks (`walk … = true`) of the 30 functions the kernel does not check
   and the hints (`HintsOk`) of `main_loop2` and `sp_wots`. False as stated: 12 of the walks fail. -/
   modeHyps : Mode.ModeHyps
-  /-- Allocation track: the allocation facts still open (`AllocOpen`: the `heap_sizes` pushes the
-  reference tree's advised sizes, the frame hint the sizes check skips: `verify_bus_gkr`'s loop, whose guard reloads
-  its end into another value). -/
+  /-- Allocation track: the allocation facts still open (`AllocOpen`: the frame hint the sizes check skips:
+  `verify_bus_gkr`'s loop, whose guard reloads its end into another value). -/
   alloc : AllocOpen
 
 /-! ## The assembly -/

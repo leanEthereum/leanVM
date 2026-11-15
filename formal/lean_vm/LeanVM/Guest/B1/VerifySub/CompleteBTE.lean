@@ -22,7 +22,8 @@ public import LeanVM.Guest.Exact.Kids
 squeeze's arms, `opening_message__L1_L1`, `verify_bus_gkr`, `ring_switch_target`) exact on every valid tree, the two
 `log2_ceil_in_the_exponent`s, the two `grind_check`s and the bus grind's arm by their E forms, `verify_tables`,
 `verify_keccak` (`VkCompleteAtBKE`), `open_stacked` and the terminal given. `verify_sub_completeBTGE`:
-`verify_sub_completeBTG` by a tree also exact (`flatShape_every`, `verify_sub`'s own body without a computed hint).
+`verify_sub_completeBTG` by a tree also exact (`flatShape_every`, `verify_sub`'s own body without a computed hint),
+its buffers `vsSizes` of its bus depth (`vs_allocs_events`, its validity's buffers by `CompleteAtDTBR.monoVB`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -246,6 +247,25 @@ theorem namedP_every {Q : Tree → Prop} : ∀ (ns : List String) (Bs : List ℕ
   | _ :: _, [], _, _, _, hT, _, _ => by simp [namedP] at hT
   | _ :: _, _ :: _, [], _, _, hT, _, _ => by simp [namedP] at hT
 
+/-- **A node's valid trees satisfy the predicate**, from their validity and buffers. -/
+theorem _root_.LeanVM.Guest.B1.CompleteAtDTBR.monoVB {k : ℕ} {f : String} {Lin : Main.Layout} {args : List E}
+    {Out : List E → Main.Layout → Prop} {T T' : Reader → Tree → Prop} {B B' : ℕ}
+    (h : CompleteAtDTBR fs cert k f Lin args Out T B) (hB : B ≤ B')
+    (hT : ∀ rd t rets, t.Valid coreProgram rd args rets → t.BufsOk coreProgram → T rd t → T' rd t) :
+    CompleteAtDTBR fs cert k f Lin args Out T' B' := fun fp =>
+  let ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, hn.trans hB, ho, hw, hd, fun rd hl hm =>
+    let ⟨t, ht, hT'⟩ := hr rd hl hm
+    ⟨t, ht, hT rd t rets ht.2.1 ht.2.2.1 hT'⟩⟩
+
+/-- **`verify_sub`'s path allocates `vsSizes d`** at a valuation dispatching and sized as the obligations say. -/
+theorem vs_allocs_events {σ : Val} {d : ℕ} (hdo : ∀ s ∈ vsCPre, DispOk σ s)
+    (hsz : (vsCPre.filterMap Main.Stmt.allocSz).map (fun x ↦ x.2.elim id fun s ↦ logG (σ s)) = vsSizes d) :
+    allocs σ ((Memory.Tree.node "verify_sub" σ [] []).events coreProgram) = vsSizes d := by
+  unfold Tree.events
+  simp only [Memory.Tree.name, Memory.Tree.val, find_vs, vs_body.trans vsT_splitPre, walk_flat σ _ _ vs_cflat hdo]
+  exact (flat_parts σ _ vs_cflat).2.1.trans hsz
+
 /-- **`verify_sub` is complete on an honest child within its own bound, exact at every node**, generic in what its
 `certify_placement`, `verify_tables` and `open_stacked` callees' trees satisfy: `verify_sub_completeBTG`, given
 `verify_tables`', `verify_keccak`'s, `open_stacked`'s and the terminal's trees exact. -/
@@ -272,7 +292,7 @@ theorem verify_sub_completeBTGE {bytecode : List K} (hbl : bytecode.length = 2 ^
           t.Every (ExactAt coreProgram rd))
         (termBound fs W.Beqc W.K15 W.Bcs W.Brs)) :
     CompleteAtDTBR fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
-      (fun rd t ↦ (vsTsAny fs W Bvk S.μs S.rate t ∧ ∃ σ bufs ks, t = .node "verify_sub" σ bufs ks ∧
+      (fun rd t ↦ (vsTsAny fs W Bvk S.μs S.rate t ∧ ∃ σ ks, t = .node "verify_sub" σ (vsSizes S.d) ks ∧
         vsQn S sqE outE rd σ ∧ ∀ k ∈ ks, (∃ a r, k.Valid coreProgram rd a r) → VsKidQ Pcp Pvt Pos rd k) ∧
         t.Every (ExactAt coreProgram rd))
       (vsBoundAt W Bvk S.μs S.rate) := by
@@ -282,20 +302,25 @@ theorem verify_sub_completeBTGE {bytecode : List K} (hbl : bytecode.length = 2 ^
     (vs_body.trans vsT_splitPre) vs_cflat vs_caddrs vs_notIte (vsSizes S.d) (fun _ ↦ S.ownW)
     (fun _ ↦ S.ownW_fits hbl hst)
     (fun fp ↦ S.kids (bases (fp + fs "verify_sub") (vsSizes S.d)) sqE)
-    (vsNames S.μs S.rate (S.d - 20)) (vsBsAt W Bvk S.μs S.rate) (vsPsRE W Pcp Pvt Pos) (vsQn S sqE outE)
+    (vsNames S.μs S.rate (S.d - 20)) (vsBsAt W Bvk S.μs S.rate) (vsPsRE W Pcp Pvt Pos)
+    (fun rd σ ↦ vsQn S sqE outE rd σ ∧ allocs σ ((Memory.Tree.node "verify_sub" σ [] []).events coreProgram) =
+      vsSizes S.d)
     (fun _ ↦ vs_names S _ sqE)
     (fun fp ↦ vs_kidsDepBPRE hbl S hκ W hvk _ sqE (hcp _ _) hvt (hos _) (hterm _))
     hkr hkm fun fp outs hlen ho rd hlow hB hL hLo =>
       let ⟨σ, e, h⟩ := hσ fp outs hlen ho rd hlow hB hL hLo
-      ⟨σ, ⟨_, outs, e, hB⟩, h⟩
-  refine CompleteAtDTBR.monoV h (by simp only [vsSizes, List.sum_cons, List.sum_nil, vsBoundAt, ChildSegs.μs]; omega)
-    fun rd t rets hv ⟨hF0, hn⟩ ↦ ?_
+      ⟨σ, ⟨⟨_, outs, e, hB⟩, vs_allocs_events h.2.1 h.2.2.2.1⟩, h⟩
+  refine CompleteAtDTBR.monoVB h (by simp only [vsSizes, List.sum_cons, List.sum_nil, vsBoundAt, ChildSegs.μs]; omega)
+    fun rd t rets hv hbo ⟨hF0, hn⟩ ↦ ?_
   have hE : t.Every (ExactAt coreProgram rd) := flatShape_every find_vs vs_pinned hF0 hv
     (namedP_every _ _ _ (vsPsRE_every W Pcp Pvt Pos rd))
   have hF := flatShape_mono hF0 (namedP_mono _ _ _ _ (vsPsRE_imp W Pcp Pvt Pos rd))
   refine ⟨⟨⟨S.d - 20, by omega, flatShape_mono hF (namedP_mono _ _ _ _ (vsPsR_imp W _ _ _ rd))⟩, ?_⟩, hE⟩
-  obtain ⟨σ, bufs, ks, rfl, hQn⟩ := hn
-  refine ⟨σ, bufs, ks, rfl, hQn, fun k hk hkv ↦ ?_⟩
+  obtain ⟨σ, bufs, ks, rfl, hQn, hal⟩ := hn
+  obtain rfl : bufs = vsSizes S.d := by
+    rw [hbo.1, ← hal]
+    simp only [Tree.events, Memory.Tree.name, Memory.Tree.val]
+  refine ⟨σ, ks, rfl, hQn, fun k hk hkv ↦ ?_⟩
   obtain ⟨σ', bufs', ks', e, hw⟩ := hF
   cases e
   obtain ⟨fn, hf, -, es, vs, hwk, -, -, hkk⟩ := hv

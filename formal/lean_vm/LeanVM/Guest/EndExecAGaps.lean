@@ -10,6 +10,7 @@ public import LeanVM.Guest.EndExecAFrSize
 public import LeanVM.Guest.EndExecADyn
 public import LeanVM.Guest.EndExecAWr
 public import LeanVM.Guest.EndExecAExcl
+public import LeanVM.Guest.EndExecHeap
 
 /-!
 # The allocation track's open facts
@@ -17,7 +18,7 @@ public import LeanVM.Guest.EndExecAExcl
 `AllocOpen.gaps : AllocOpen → AllocGaps`: `AllocGaps`' callee frame facts are proved,
 `framePtr_alignA` and `frameSize_alignA`, the latter but for the frame hints the sizes check skips
 (`FrSkip`), the dynamic sizes' powers, `dynPow_guest`, and the advised sizes, `advNext_alignA`, on the
-`heap_sizes` stream the reference tree's (`HeapPops`), the late hints, `lateReady_alignA`, and the
+`heap_sizes` stream the reference tree's (`heapPops_ref`), the late hints, `lateReady_alignA`, and the
 excluded function's buffer and late hint, `exclReady_alignA` and `lateExcl_guest`.
 -/
 
@@ -29,7 +30,6 @@ public section
 
 /-- **What the allocation track rests on and does not prove**, on the deployed alignment. -/
 structure AllocOpen : Prop where
-  heapPops : HeapPops
   frSkip : FrSkip
 
 theorem AllocOpen.gaps (G : AllocOpen) : AllocGaps :=
@@ -41,7 +41,7 @@ theorem AllocOpen.allocReady (G : AllocOpen) : AllocReady alignA := G.gaps.alloc
 theorem AllocOpen.sizesAt (G : AllocOpen) : SizesAt alignA := G.gaps.sizesAt
 
 /-- **Each step keeps `YAlloc alignA`.** -/
-theorem AllocOpen.keep (G : AllocOpen) : KeepY (YAlloc alignA) := keepY_allocA_of G.sizesAt G.heapPops
+theorem AllocOpen.keep (G : AllocOpen) : KeepY (YAlloc alignA) := keepY_allocA_of G.sizesAt heapPops_ref
 
 end
 

@@ -3,7 +3,7 @@
 
   A node's reference run, the one the executor is to follow: the honest memory of `main`'s honest
   tree, extended by its hints' heap words, a valid execution within `2^30` committed cells, its
-  tree exact and popping the honest pushes.
+  tree exact and popping the honest pushes, the advised sizes included.
 -/
 
 module
@@ -22,7 +22,7 @@ that tree exact on `rd0` (`ExactAt`), extended by the words its hints write to t
 (`honestX`, read off `rd0`) and by the values only hints read, at their cells (`refExtra`,
 `extraWrites`); a valid execution of the guest on the statement's digest within
 `2^30` committed cells; the tree's pops on `rd0` the honest pushes but the advised sizes, stream by
-stream. `ref_exists` is `End.refX_valid_of_main` and `Bridge.honest_of_mainP` on one tree, under
+stream, and its advised sizes (`Tree.heapPops heapSlots`) the honest ones. `ref_exists` is `End.refX_valid_of_main` and `Bridge.honest_of_mainP` on one tree, under
 `MainCompletePE` (`Budget.mainCompletePE_deployed`, given `Budget.MainExactHyp`).
 -/
 
@@ -96,6 +96,9 @@ structure Ref.Ok (r : Ref) : Prop where
   /-- The tree pops the honest pushes, but the advised sizes, stream by stream. -/
   pops : SameStreams (r.T.pops coreProgram r.rd0)
     ((Hints.honestPushes bytecode r.seed r.s r.w).filter (·.1 != Hints.heapSizeStream))
+  /-- The tree pops the honest advised sizes (`heap_sizes`), in order. -/
+  heap : r.T.heapPops heapSlots =
+    ((Hints.honestPushes bytecode r.seed r.s r.w).filter (·.1 == Hints.heapSizeStream)).map (·.2)
 
 section
 
@@ -119,7 +122,7 @@ theorem ref_exists (hE : Budget.MainExactHyp) :
   obtain ⟨hh0, hh1⟩ := B1.Main.imageOf_hdr h64 (le_trans (by decide) (twentyThree_le_logMem N)) L hdr
   have e0 : (1 : K) = Parameters.addressOfIndex 0 := by simp [Parameters.addressOfIndex]
   have e1 : Parameters.g = Parameters.addressOfIndex 1 := by simp [Parameters.addressOfIndex]
-  obtain ⟨t, hn, hv, hb, hp, ht, hl, hcntT, hss, hex⟩ := hrelL M.read hlow hL (by rw [e0]; exact hh0)
+  obtain ⟨t, hn, hv, hb, hp, ht, hl, hcntT, hss, hex, hheap⟩ := hrelL M.read hlow hL (by rw [e0]; exact hh0)
     (by rw [e1]; exact hh1)
   have hhint := B1.Main.main_hintsIn (logMem_le_maxLogMem hN) hn hv hb hp hl
   subst ht
@@ -172,7 +175,8 @@ theorem ref_exists (hE : Budget.MainExactHyp) :
       size := ?_
       hintWords := fun a ha => ?_
       extra := extra_read hd (extraFresh_guest hdr t) hX extraUses_guest
-      pops := by rw [Bridge.pops_retemp coreProgram_fresh]; exact hss }⟩
+      pops := by rw [Bridge.pops_retemp coreProgram_fresh]; exact hss
+      heap := by rw [heapPops_retemp]; exact hheap }⟩
   · show Execution.committedSize ⟨_, _, n⟩ ≤ 2 ^ 30
     rw [committedSize_eq_sizeOf]
     exact (sizeOf_mono hw fun op =>
