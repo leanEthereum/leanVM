@@ -35,16 +35,16 @@ reserve:
 The words each hint reserves (`SizesAt`) follow the same way: a buffer's from its atom, a late hint's
 none, a frame's from its size (`rsz_of_sizeOk`).
 
-What is named, not proved:
+What is named here, proved elsewhere: `DynPow`, every dynamic `HeapBuf`'s size is a power of `g`
+(what the path computes; `dynPow_guest`, `EndExecADyn.lean`), `FrameSize` and `FramePtr`
+(`EndExecAFrSize.lean`, `EndExecAFrame.lean`): a callee frame's hint reserves the next callee's
+block (`SizeOk`: a constant, a dispatch arm's by its selector, a loop chain's by its bound), its
+pointer cell the next callee's frame (the next call, reached by the straight code to the call site's
+jump, `FrameHolds.site`). Named, not proved:
 
-* `DynPow`: every dynamic `HeapBuf`'s size is a power of `g` (what the path computes);
 * `AdvNext`: an `allocAdvice` pops the `heap_sizes` entry of its buffer's size, empty when the path
   allocates none (the honest pushes of `heap_sizes` against the tree);
 * `LateReady`: a late hint finds its buffer reserved, its size cell a power;
-* `FrameSize`: a callee frame's hint reserves the next callee's block (`SizeOk`: a constant, a
-  dispatch arm's by its selector, a loop chain's by its bound);
-* `FramePtr`: its pointer cell holds the next callee's frame (the next call, reached by the straight
-  code to the call site's jump, `FrameHolds.site`);
 * `ExclReady`: the buffer hints of the function the allocation check excludes (`claim_list_digest`,
   its one buffer in a branch).
 -/
@@ -77,9 +77,11 @@ structure HintAt (A : String → FnAl) (r : Ref) (C : Ctx) (e : Ent) (s sx : St)
 noncomputable def bufIdx (A : String → FnAl) (e : Ent) (off i : ℕ) : ℕ :=
   nbAt (A e.I.t.name).X (A e.I.t.name).d off + ((hintsAtOff (A e.I.t.name) off).take i).countP (isBuf (A e.I.t.name).X)
 
-/-- **Every dynamic `HeapBuf`'s size is a power of `g`**, at each instance of every reference tree. -/
+/-- **Every dynamic `HeapBuf`'s size is a power of `g`**, at each entered instance of every reference
+tree. -/
 def DynPow : Prop :=
-  ∀ r : Ref, r.Ok → ∀ I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, ∀ d s,
+  ∀ r : Ref, r.Ok → ∀ I ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T, ∀ f σ bufs kids,
+    I.t = .node f σ bufs kids → ∀ d s,
     Ev.atom (.hint (.allocDyn d s)) ∈ I.t.events coreProgram → I.t.val s = ofK (addressOfIndex (logG (I.t.val s)))
 
 /-- **An `allocAdvice` pops its buffer's size**: the next entry of its stream is the size of the
@@ -463,7 +465,7 @@ theorem allocReady_alignA (hD : DynPow) (hA : AdvNext alignA) (hL : LateReady al
             subst hpp
             have hval := cellRef hr htr hj ⟨_, hev, by simp [atomUses, hintUses]⟩ hcn
             have hevs : e.I.t.events coreProgram = e.pre ++ e.es := by rw [hIt]; exact events_node hE.find hw
-            have hpow := hD r hr e.I hI d nv (by rw [hevs]; exact hev)
+            have hpow := hD r hr e.I hI _ _ _ _ hIt d nv (by rw [hevs]; exact hev)
             refine ⟨allocSizeOf e.σ (.allocDyn d nv), ⟨?_, hnlt⟩, ⟨by rw [hsxfp]; exact hfpp, hbound,
               by rw [hsxfp, hptr, hnfx]⟩⟩
             obtain ⟨v, hv⟩ := Mem.get_of_written (show sx.mem.written (sx.fp + (ctxOf (i0 + 1)).locAt nv.idx) = true from hin)
