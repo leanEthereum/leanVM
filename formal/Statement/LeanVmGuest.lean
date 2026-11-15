@@ -31,8 +31,8 @@ statement's digest (`StatementDigestBinds`), and the guest decoder a program com
 material, is `LeanVmGuestBatching.lean`'s; the completeness side is `LeanVmGuestCompleteness.lean`.
 
 Transcribed from leanVM: the modules of
-`crates/aggregation/src/aggregation/` (the statement, its digest, the batching) and
-`crates/aggregation/guests/lean_ethereum.py` (the guest program), cited by their items'
+`crates/aggregation/src/` (the statement, its digest, the batching) and
+`guests/lean_ethereum.py` (the guest program), cited by their items'
 names. The signature schemes are
 `LeanXmss.lean`'s and `LeanSphincs.lean`'s with Keccak-256 as their hash; LeanDA is
 `LeanDa.lean`'s.
@@ -63,10 +63,10 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 /-! ## The claims -/
 
 /-- A leanXMSS key and a message it signed, at a leaf index the claim does not record
-(`LeanXmssClaim`, `aggregation/mod.rs`). -/
+(`LeanXmssClaim`, `aggregation/src/lib.rs`). -/
 abbrev LeanXmssClaim : Type := HashSig.PublicKey × HashSig.Message
 
-/-- A leanSPHINCS key and a message it signed (`LeanSphincsClaim`, `aggregation/mod.rs`). -/
+/-- A leanSPHINCS key and a message it signed (`LeanSphincsClaim`, `aggregation/src/lib.rs`). -/
 abbrev LeanSphincsClaim : Type := Sphincs.PublicKey × HashSig.Message
 
 /-- **A DA claim**: a blob matrix's Merkle root (an aggregate's claims' `da_commitment`,
@@ -199,19 +199,19 @@ structure NodeWitness where
   batchingHints : BatchingHints
 
 /-- The deferred claim has the shape of the bytecode `bytecode`: a point of `log₂` of its length
-(`bytecode_vars`, `aggregation/deferred.rs`; `BYTECODE_VARS`, `lean_ethereum.py`). -/
+(`bytecode_vars`, `aggregation/src/deferred.rs`; `BYTECODE_VARS`, `lean_ethereum.py`). -/
 def DeferredBytecodeClaim.HasBytecodeShape (bytecode : List K) (claim : DeferredBytecodeClaim) : Prop :=
   claim.bytecodePoint.length = Nat.log2 bytecode.length
 
 /-- What a leaf defers: the bytecode at the all-zero point (`DeferredBytecodeClaim::leaf`,
-`aggregation/deferred.rs`; `main`'s leaf branch, `lean_ethereum.py`). The value is
+`aggregation/src/deferred.rs`; `main`'s leaf branch, `lean_ethereum.py`). The value is
 the outer verifier's to check. -/
 def DeferredBytecodeClaim.HasZeroPoint (bytecode : List K) (claim : DeferredBytecodeClaim) : Prop :=
   claim.bytecodePoint = List.replicate (Nat.log2 bytecode.length) 0
 
 /-- **The deferred claim is true** of the bytecode `bytecode`: it has the shape, and the value is
 the bytecode's multilinear extension at the point (`DeferredBytecodeClaim::recompute_scalar`,
-`aggregation/deferred.rs`). The length being `2 ^ len` is part of it: `HasBytecodeShape` reads
+`aggregation/src/deferred.rs`). The length being `2 ^ len` is part of it: `HasBytecodeShape` reads
 `Nat.log2` of the length, which a bytecode of other length shares, and the extension is of
 `2 ^ len` values. Stronger than `BytecodeClaim.Holds` (the value only). The deployed outer verifier
 checks it of the root's deferred claim (`AggregateProof::verify`, `aggregation/proof.rs`). -/

@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Fs.Templates
 # The templates of `opening_queries`
 
 `opening_queries(cap, flags, lam_inv, coefs, hs, positions, query_win_ptrs, n_iters_g)`
-(`crates/aggregation/guests/lean_ethereum.py`) has 73 specializations, one per level shape
+(`guests/lean_ethereum.py`) has 73 specializations, one per level shape
 (`Oq`). One query (`opening_query`, inline, with `walk_path` and `novel_eval`) from its first
 value `b`, at the point `x`, is `oqQueryT`:
 

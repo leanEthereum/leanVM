@@ -13,7 +13,7 @@ public import LeanVM.Guest.ExpTables
 /-!
 # Bits, logs and the exponent: meanings (TRIAGE G #16-21)
 
-For each function of the guest (`crates/aggregation/guests/lean_ethereum.py`, G below) its
+For each function of the guest (`guests/lean_ethereum.py`, G below) its
 meaning `Meaning…` on its argument and return words, and `…_SpecP P`, the statement that program
 `P`'s relation at the function's name is that meaning. The proof of `…_SpecP P` (`…_holdsP`)
 holds for every `P` that finds the function (`Finds`) and imports that function's core module

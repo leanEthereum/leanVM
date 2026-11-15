@@ -1,9 +1,9 @@
-//! The Lean data of the aggregation guest, written from leanVM's own sources. A child of
-//! `aggregation` (the overlay's appended line), so `super::*` is everything `aggregation.rs`
-//! defines, private items included, as the BLAKE2s-era in-tree tests had it.
+//! The Lean data of the aggregation guest, written from leanVM's own sources. A child of the
+//! `aggregation` crate's root (the overlay's appended line), so `super::*` is everything it
+//! defines, private items included.
 
 use super::*;
-// The module's pieces, since leanVM #670 split `aggregation.rs` (`build.rs` widens their items).
+// The crate's modules (`build.rs` widens their items).
 use super::{
     cells::*, child::*, claim_pool::*, coverage::*, deferred::*, error::*, guest::*, hints::*, node::*,
     placeholders::*, proof::*, statement::*,
@@ -34,7 +34,7 @@ pub fn placeholders() -> BTreeMap<String, String> {
     placeholder_map(guest().prog().len().trailing_zeros() as usize)
 }
 
-/// The guest's source text, as `aggregation.rs` includes it.
+/// The guest's source text, as the crate's `guest.rs` includes it.
 pub const GUEST_SOURCE: &str = include_str!(concat!(env!("OUT_DIR"), "/aggregation/guests/lean_ethereum.py"));
 
 /// Every file this crate writes.

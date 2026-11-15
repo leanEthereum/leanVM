@@ -15,7 +15,7 @@ import LeanVM.Guest.Data.Source
 /-!
 # LeanDA: meanings (TRIAGE G #90-93)
 
-For each function of the guest (`crates/aggregation/guests/lean_ethereum.py`, G
+For each function of the guest (`guests/lean_ethereum.py`, G
 below) its meaning on its argument and return words, and `…_sound_Spec`: its core
 IR relation (`coreProgram.Rel`) gives the meaning. A `…_Spec` is a definition (a `Prop`); its
 proof is the theorem `…_holds` of the family's modules. The functions building the dual codeword

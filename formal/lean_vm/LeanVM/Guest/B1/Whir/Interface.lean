@@ -17,7 +17,7 @@ public import LeanVM.Protocol.Compile.Prog
 # `open_stacked` (TRIAGE G #42): the interface
 
 `open_stacked(m_idx, rate_sel, fs0..fs4, target, commit_root_0, commit_root_1, cursor, tabs)`
-(`crates/aggregation/guests/lean_ethereum.py`, `open_stacked`) runs
+(`guests/lean_ethereum.py`, `open_stacked`) runs
 the stacked WHIR opening of one child's proof, `verifyWhir` (`Statement/LeanVmVerifier.lean`;
 `crates/verifier/src/whir.rs`) from `verifyStackedOpening`, up to its terminal: the
 fold rounds of CWYZ26's affine combiner (`foldRound`), each non-final level's commitment, high

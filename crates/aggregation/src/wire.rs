@@ -199,22 +199,15 @@ mod tests {
     use leanvm_core::StableProver;
     use leanvm_core::cpu::{from_scalar, prove, scalar_proof};
 
-    /// Both ways, the prover's encoding, on the proof of a compiler test program that hashes.
+    /// Both ways, the prover's encoding, on the proof of a program that hashes.
     #[test]
     fn matches_the_provers_encoding() {
-        let source = include_str!("../../zkdsl_compiler/tests/programs/hash_heap_chain.py");
-        let public_input: Vec<_> = source
-            .lines()
-            .find_map(|line| line.strip_prefix("# public_input:"))
-            .unwrap()
-            .split(',')
-            .map(|value| from_scalar(zkdsl_compiler::parse_const(value).unwrap()))
-            .collect();
+        let source = "def main():\n    a = StackBuf(2)\n    a[0] = 5\n    a[1] = 7\n    c = StackBuf(2)\n    keccak(a, a, c)\n    return\n";
         StableProver::init();
         let program = StableProver::assemble(zkdsl_compiler::compile(&zkdsl_compiler::parse(source).unwrap()));
         let (proof, _) = prove(
             &program,
-            public_input.try_into().unwrap(),
+            [from_scalar(verifier::E::new(0, 0)); 2],
             leanvm_core::pcs::TEST_LOG_INV_RATE,
         )
         .unwrap();

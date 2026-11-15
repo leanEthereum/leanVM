@@ -13,7 +13,7 @@ public import Statement.LeanVmGuestCompleteness
 /-!
 # The coverage plan
 
-The guest program (`crates/aggregation/guests/lean_ethereum.py`)
+The guest program (`guests/lean_ethereum.py`)
 writes every claim a node makes, its raw signatures' then its children's, into a slot of its
 scheme's region of the coverage table: the declared claims' slots, then duplicate slots
 . An honest run takes, for each claim in order, its declared

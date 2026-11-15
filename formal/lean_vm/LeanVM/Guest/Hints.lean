@@ -32,12 +32,12 @@ import LeanVM.Guest.Data.Source
 of entries in the order the guest pops them, for a run on the statement `s` under the seed
 `seed` held by the witness `w`; `publicInput seed s` is the initial memory, the statement's digest
 at cells `g^0` and `g^1`. They mirror the Rust producers of
-`crates/aggregation/src/aggregation/` (leanVM main `40f877dc`) push for push (`honestPushes`,
+`crates/aggregation/src/` (leanVM main `40f877dc`) push for push (`honestPushes`,
 grouped by stream as `Hints::push` does, `aggregation/hints.rs`): the node's streams
 (`aggregate_with_stats`, `aggregation/node.rs`), a raw signature's (`lean_xmss_hints`,
 `aggregation/hints.rs`; `lean_sphincs_hints`, `aggregation/hints.rs`), a child's
 (`gen_verify`, `aggregation/child.rs`), the batching's (`aggregate_deferred_claims`,
-`aggregation/deferred.rs`) and LeanDA's.
+`aggregation/src/deferred.rs`) and LeanDA's.
 
 Where the Rust reads a child's proof (`verifier::replay_unchecked`), this replays the Spec's
 deferring verifier (`verifyDeferredWith` over Keccak-f[1600], from

@@ -9,10 +9,10 @@ The batching program `LeanVmGuest.lean`'s `DeferredClaimBatched` runs, transcrib
 node defers on the guest program's bytecode (`DeferredBytecodeClaim`), what a node knows of each child
 (`ChildClaims`), and the batching of the children's deferred claims as a program of the verifier's
 language (`Batch.nodeBatchingProgram`). Reference material: a first reading takes the program as
-the batching of `aggregation/deferred.rs` and looks things up here.
+the batching of `aggregation/src/deferred.rs` and looks things up here.
 
 Transcribed from leanVM: the modules of
-`crates/aggregation/src/aggregation/` and `crates/aggregation/guests/lean_ethereum.py`,
+`crates/aggregation/src/` and `guests/lean_ethereum.py`,
 cited by their items' names.
 -/
 
@@ -26,11 +26,11 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 /-! ## The deferred claim -/
 
 /-- The claim a statement defers on the stacked bytecode: its value at a point (`DeferredBytecodeClaim`,
-`aggregation/deferred.rs`), the shape of a proof's claim (`BytecodeClaim`). -/
+`aggregation/src/deferred.rs`), the shape of a proof's claim (`BytecodeClaim`). -/
 abbrev DeferredBytecodeClaim : Type := BytecodeClaim
 
 /-- The cells a deferred claim is hashed and absorbed as, and a proof's claim on the bytecode
-exported as: the point, then the value (`DeferredBytecodeClaim::cells`, `aggregation/deferred.rs`; the
+exported as: the point, then the value (`DeferredBytecodeClaim::cells`, `aggregation/src/deferred.rs`; the
 guest program's `defer_stmt`, and `verify_sub`'s `defer_out`, `lean_ethereum.py`). -/
 def DeferredBytecodeClaim.cells (claim : DeferredBytecodeClaim) : List E :=
   claim.bytecodePoint ++ [claim.bytecodeValue]
@@ -38,7 +38,7 @@ def DeferredBytecodeClaim.cells (claim : DeferredBytecodeClaim) : List E :=
 /-! ## The batching program
 
 The batching of the children's deferred claims (`aggregate_claims`, `lean_ethereum.py`;
-`aggregate_deferred_claims`, `aggregation/deferred.rs`), as a program of the verifier's
+`aggregate_deferred_claims`, `aggregation/src/deferred.rs`), as a program of the verifier's
 language (`VerifierProgram`): the cells absorbed before the challenge (`cellsBeforeChallenge`: the
 count `n` as `g^n`, then each child's words, each padded with zeros to a whole rate), then a proof of
 work of `batchLambdaGrindBits` bits and one challenge, whose powers are the lambdas, the sumcheck's `log₂ |bytecode|` rounds
@@ -72,7 +72,7 @@ structure BatchingHints where
   /-- The bytecode's value at the sumcheck's final point. -/
   finalBytecodeValue : E
 
-/-- The batching transcript's label (`RECURSION_AGG_LABEL`, `aggregation/deferred.rs`). -/
+/-- The batching transcript's label (`RECURSION_AGG_LABEL`, `aggregation/src/deferred.rs`). -/
 def batchingLabel : List UInt8 := "leanvm/recursion-aggregation/v1".toUTF8.toList
 
 end LeanVM.Node
@@ -84,7 +84,7 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Node
 
 /-- The bits of the proof of work before the batching challenge, whose powers weigh at most
 `2 · MAX_RECURSIONS = 32` claims: `grinding_bits(31) = ⌈log₂ 31⌉ - 3` (`BATCH_LAM_GRIND_BITS`,
-`aggregation/deferred.rs`; `MAX_RECURSIONS`, `aggregation/mod.rs`). A round of the
+`aggregation/src/deferred.rs`; `MAX_RECURSIONS`, `aggregation/src/lib.rs`). A round of the
 sumcheck, of degree two, grinds `grinding_bits(2) = 0` bits: no proof of work. -/
 def batchLambdaGrindBits : ℕ := 2
 
@@ -92,12 +92,12 @@ def batchLambdaGrindBits : ℕ := 2
 def zerosToWholeRate (wordCount : ℕ) : ℕ := (rateScalars - wordCount % rateScalars) % rateScalars
 
 /-- Words padded with zeros to a whole rate, `rateScalars` words (`pad`,
-`aggregation/deferred.rs`; `AGG_CHILD_PAD`). -/
+`aggregation/src/deferred.rs`; `AGG_CHILD_PAD`). -/
 def _root_.LeanVM.Node.padToRate (words : List E) : List E :=
   words ++ List.replicate (zerosToWholeRate words.length) 0
 
 /-- **The lambdas of one challenge `λ`**: child `i`'s pair `(λ^(2i), λ^(2i+1))`, for its fresh
-claim and its carried one (`lean_ethereum.py`, `aggregation/deferred.rs`). -/
+claim and its carried one (`lean_ethereum.py`, `aggregation/src/deferred.rs`). -/
 def lambdaPowers (challenge : E) (childCount : ℕ) : List (E × E) :=
   (List.range childCount).map fun i ↦ (challenge ^ (2 * i), challenge ^ (2 * i + 1))
 

@@ -11,7 +11,7 @@
 //! list its length then its items; a section starts with its name, which the reader checks.
 
 use super::*;
-use crate::signers_cache::{get_lean_sphincs_signers, get_signers};
+use crate::aggregation::signers_cache::{get_lean_sphincs_signers, get_signers};
 use lean_da::BLOB_SYMBOLS;
 use isa::Prover;
 use stable_leanvm_core::StableProver;
