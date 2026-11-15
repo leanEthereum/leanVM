@@ -146,6 +146,60 @@ theorem iteW_of (hmono : PlaceMono ctx) (hnew : PlaceNew ctx)
     (ih rest hr ?_ tl)
   all_goals simp only [List.cons.sizeOf_spec, Stmt.ite.sizeOf_spec]; omega
 
+theorem expectS_ok {e : Event → Bool} {what : String} {s s' : SSt}
+    (h : expectS e what s = .ok s') :
+    ∃ ev, s.rest = ev :: s'.rest ∧ e ev = true ∧ s'.live = s.live ∧ s'.retDone = s.retDone := by
+  unfold expectS at h
+  split at h
+  · rename_i ev es hr
+    split at h
+    · cases h
+      exact ⟨ev, hr, by assumption, rfl, rfl⟩
+    · cases h
+  · cases h
+
+/-- **The invariant inside a block**: past its `enter`, with an output buffer of its own. -/
+theorem winv_enter {C : (ℕ → E) → Prop} {st : St} {sc s₁ : SSt} (hinv : WInv ctx I C st sc)
+    (h : expectS isEnter "a block" sc = .ok s₁) :
+    st.rest = .enter :: s₁.rest ∧ WInv ctx I C { st with rest := s₁.rest, out := {} } s₁ := by
+  obtain ⟨ev, hr, he, hl, hd⟩ := expectS_ok h
+  have hev : ev = .enter := by cases ev <;> simp_all [isEnter]
+  subst hev
+  have hst : st.rest = .enter :: s₁.rest := by rw [← hinv.rest, hr]
+  have hall : allocsOf st.rest = allocsOf s₁.rest := by
+    rw [hst, allocsOf_other (e := Event.enter) (fun _ _ h => nomatch h)]
+  refine ⟨hst, ⟨hinv.cok, rfl, by rw [hl]; exact hinv.vw, hinv.two, hinv.abi, ?_,
+    by rw [hd]; exact hinv.ret, by rw [← hall]; exact hinv.nodup, fun v hv => ?_, hinv.chain,
+    hinv.pnt, hinv.lazy⟩⟩
+  · have := hinv.fuel
+    rw [hst] at this
+    simp only [List.length_cons] at this
+    show s₁.rest.length ≤ ctx.fuel
+    omega
+  · rw [hl]
+    exact hinv.fresh v (by rw [hall]; exact hv)
+
+/-- The scope walk of an inner block, step by step. -/
+theorem scopeInner_inv {rc : ℕ} {blk : SSt → Except String SSt} {s s' : SSt}
+    (h : scopeInner rc blk s = .ok s') : ∃ s₁ s₂ s₃ s₄,
+      expectS isEnter "a block" s = .ok s₁ ∧ blk s₁ = .ok s₂ ∧ flushEdge rc s₂ = .ok s₃ ∧
+      expectS isLeave "the end of a block" s₃ = .ok s₄ ∧ s' = { s₄ with live := s.live } := by
+  unfold scopeInner at h
+  split at h
+  · cases h
+  next s₁ h₁ =>
+  split at h
+  · cases h
+  next s₂ h₂ =>
+  split at h
+  · cases h
+  next s₃ h₃ =>
+  split at h
+  · cases h
+  next s₄ h₄ =>
+  cases h
+  exact ⟨s₁, s₂, s₃, s₄, h₁, h₂, h₃, h₄, rfl⟩
+
 /-- The blocks of a body: the body, the suffixes of a block, the blocks of a branch and the arms
 of a `match`. -/
 inductive InBody (body : List Stmt) : List Stmt → Prop
