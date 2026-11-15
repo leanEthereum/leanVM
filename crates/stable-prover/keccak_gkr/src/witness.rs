@@ -85,7 +85,7 @@ pub struct Witness {
     /// The blocks holding inputs, then the padding block if any block follows them, which every later one equals:
     /// per block, every round's sliced state, round `r` at `r * BLOCK_LEN`, the input state being round 0.
     pub(crate) blocks: Vec<Vec<u64>>,
-    /// The blocks holding inputs.
+    /// The blocks holding inputs: every later one is the padding block, each instance of which is the all-zero input.
     pub(crate) written: usize,
 }
 
@@ -239,12 +239,6 @@ impl Witness {
             run_block(shape.depth, &inputs, true).1
         });
         Self { shape, blocks, written }
-    }
-
-    /// Blocks `written()..` of the batch are all the padding block, every instance of which is
-    /// the all-zero input.
-    pub fn written(&self) -> usize {
-        self.written
     }
 
     /// The blocks held: those written, then the padding block if any block follows them.

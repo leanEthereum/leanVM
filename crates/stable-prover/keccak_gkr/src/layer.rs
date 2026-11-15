@@ -94,7 +94,7 @@ impl<'a> Layer<'a> {
 
     /// The blocks holding inputs: every later one is the padding block.
     pub fn written(&self) -> usize {
-        self.witness.written()
+        self.witness.written
     }
 
     pub fn n_tasks(&self) -> usize {

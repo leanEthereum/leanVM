@@ -27,8 +27,7 @@
 //! every pass walks once, at their summed weight.
 
 use keccak::{LANE_VARS, LANES};
-use primitives::field::{F64, F128, F128Unreduced};
-use primitives::multilinear::eq_table;
+use primitives::field::{F64, F128};
 use primitives::transcript::ProverState;
 use protocol::first_claim;
 
@@ -58,39 +57,6 @@ pub use witness::{Shape, Witness};
 pub struct OutputClaim {
     pub instance: Vec<F128>,
     pub lanes: [F128; LANES],
-}
-
-impl OutputClaim {
-    /// The true claim at `instance` on the batch of `inputs`, padded with all-zero inputs, by running the
-    /// permutation: what a caller without a claim of its own (a test, a benchmark) binds and passes.
-    pub fn of_inputs(shape: Shape, inputs: &[[u64; LANES]], instance: Vec<F128>) -> Self {
-        let permute = |mut state: [u64; LANES]| {
-            primitives::hash::keccak_f(&mut state);
-            state
-        };
-        let padding = permute([0; LANES]);
-        let eq = eq_table(&instance);
-        let lanes = parallel::fold_reduce(
-            shape.n(),
-            || [F128Unreduced::ZERO; LANES],
-            |acc, i| {
-                let output = inputs.get(i).map_or(padding, |&x| permute(x));
-                for (acc, word) in acc.iter_mut().zip(output) {
-                    *acc ^= eq[i].mul_base_unreduced(F64(word));
-                }
-            },
-            |mut a, b| {
-                for (a, b) in a.iter_mut().zip(b) {
-                    *a ^= b;
-                }
-                a
-            },
-        );
-        Self {
-            instance,
-            lanes: lanes.map(F128Unreduced::reduce),
-        }
-    }
 }
 
 impl Witness {

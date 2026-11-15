@@ -1,11 +1,11 @@
 use fiat_shamir::Proof;
-use primitives::field::F128;
+use pcs::whir::MIN_LOG_INV_RATE;
+use primitives::field::{F64, F128};
 use primitives::test_rng::Rng;
 use primitives::transcript::ProverState;
-use verifier::PRODUCT_BITS;
-use verifier::VerifierError;
+use verifier::{PRODUCT_BITS, VerifierError};
 
-use crate::batch_bench::{batch_instance, batch_transcript, open_commitment};
+use crate::batch_bench::{batch_transcript, open_commitment, output_claim};
 use crate::keccak::{LANE_VARS, LANES, LOCAL_VARS};
 use crate::witness::{BLOCK, Shape, Witness, run_block};
 
@@ -13,19 +13,16 @@ const LABEL: &[u8] = b"keccak-gkr-test";
 
 fn verify(shape: Shape, proof: &Proof) -> Result<(), VerifierError> {
     let iv = primitives::hash::hash(LABEL);
-    let log_inv_rate = pcs::whir::MIN_LOG_INV_RATE;
-    verifier::verify_keccak_batch(&iv, shape.n_log(), shape.depth(), log_inv_rate, proof)
+    verifier::verify_keccak_batch(&iv, shape.n_log(), shape.depth(), MIN_LOG_INV_RATE, proof)
 }
 
 /// A proof of the batch `inputs`, its output claim offset by `lane_error` in one lane.
-fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::F64], lane_error: F128) -> Proof {
-    use pcs::whir::MIN_LOG_INV_RATE;
-
-    let mut honest = vec![primitives::field::F64(0); 1 << shape.stack_log()];
+fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[F64], lane_error: F128) -> Proof {
+    let mut honest = vec![F64(0); 1 << shape.stack_log()];
     let witness = Witness::generate(shape, inputs, &mut honest);
     let mut ps = batch_transcript(LABEL, shape, MIN_LOG_INV_RATE);
     let commitment = pcs::commit(&mut ps, committed, shape.stack_log(), MIN_LOG_INV_RATE);
-    let mut output = crate::OutputClaim::of_inputs(shape, inputs, batch_instance(&mut ps, shape));
+    let mut output = output_claim(&mut ps, shape, inputs);
     output.lanes[7] += lane_error;
     ps.add_scalars(&output.lanes);
     let openings = witness.prove(&mut ps, committed, &output);
@@ -75,14 +72,14 @@ fn end_to_end(n_instances: usize, depth: usize) {
         .map(|_| std::array::from_fn(|_| rng.next_u64()))
         .collect();
     let shape = Shape::new(n_instances, depth);
-    let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
+    let mut committed = vec![F64(0); 1 << shape.stack_log()];
     Witness::generate(shape, &inputs, &mut committed);
     // Other columns ride the slots the states leave free (`lean_vm_core::cpu::keccak_value`). The reduction weighs nothing
     // there, but its openings are claims on the whole committed block, so they have to fold
     // whatever sits in them: junk here, and the checks against the commitment below are what
     // say the fold did.
     for word in &mut committed[shape.slots() * shape.n()..] {
-        *word = primitives::field::F64(rng.next_u64());
+        *word = F64(rng.next_u64());
     }
     let proof = prove(shape, &inputs, &committed, F128::ZERO);
     verify(shape, &proof).expect("an honest proof verifies");
@@ -101,25 +98,23 @@ fn end_to_end(n_instances: usize, depth: usize) {
 /// is what lets other columns ride there at all.
 #[test]
 fn spare_slots_must_be_the_committed_ones() {
-    use pcs::whir::MIN_LOG_INV_RATE;
-
     let mut rng = Rng::new(81);
     let (n, depth) = (600, 12);
     let inputs: Vec<[u64; LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
     let shape = Shape::new(n, depth);
     let states = shape.slots() * shape.n();
-    let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
+    let mut committed = vec![F64(0); 1 << shape.stack_log()];
     let witness = Witness::generate(shape, &inputs, &mut committed[..states]);
     for word in &mut committed[states..] {
-        *word = primitives::field::F64(rng.next_u64());
+        *word = F64(rng.next_u64());
     }
     // One word of the spare slots apart from what the commitment holds.
     let mut folded = committed.clone();
-    folded[states] = primitives::field::F64(folded[states].0 ^ 1);
+    folded[states] = F64(folded[states].0 ^ 1);
 
     let mut ps = batch_transcript(LABEL, shape, MIN_LOG_INV_RATE);
     let commitment = pcs::commit(&mut ps, &committed, shape.stack_log(), MIN_LOG_INV_RATE);
-    let output = crate::OutputClaim::of_inputs(shape, &inputs, batch_instance(&mut ps, shape));
+    let output = output_claim(&mut ps, shape, &inputs);
     ps.add_scalars(&output.lanes);
     let openings = witness.prove(&mut ps, &folded, &output);
     open_commitment(&mut ps, commitment, committed, openings);
@@ -158,11 +153,11 @@ fn padding_proves_as_the_blocks_it_stands_for() {
     for (n, depth) in [(0, 12), (300, 24), (1100, 8), (2600, 12), (4700, 6)] {
         let inputs: Vec<[u64; LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
         let shape = Shape::new(n, depth);
-        let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
+        let mut committed = vec![F64(0); 1 << shape.stack_log()];
         let padded = Witness::generate(shape, &inputs, &mut committed);
         let stream = |witness: &Witness| {
             let mut ps = ProverState::from_label(LABEL);
-            let output = crate::OutputClaim::of_inputs(shape, &inputs, batch_instance(&mut ps, shape));
+            let output = output_claim(&mut ps, shape, &inputs);
             ps.add_scalars(&output.lanes);
             let openings = witness.prove(&mut ps, &committed, &output);
             (openings, ps.into_proof())
@@ -180,11 +175,10 @@ fn a_broken_committed_state_is_rejected() {
     let mut rng = Rng::new(78);
     let inputs: Vec<[u64; LANES]> = (0..600).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
     let shape = Shape::new(inputs.len(), 6);
-    let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
+    let mut committed = vec![F64(0); 1 << shape.stack_log()];
     Witness::generate(shape, &inputs, &mut committed);
-    let accepts = |committed: &[primitives::field::F64], lane_error: F128| {
-        verify(shape, &prove(shape, &inputs, committed, lane_error)).is_ok()
-    };
+    let accepts =
+        |committed: &[F64], lane_error: F128| verify(shape, &prove(shape, &inputs, committed, lane_error)).is_ok();
     assert!(accepts(&committed, F128::ZERO), "the honest column");
     // A lane of the input and of each state between.
     for slot in [3, 30, 60, 80, 99] {
