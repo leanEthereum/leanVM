@@ -99,7 +99,6 @@ fn guest_snippet(main: &str, kbc: usize) -> Program {
     ))
 }
 
-
 #[test]
 fn the_wire_layout_is_pinned() {
     let le = u64::to_le_bytes;
