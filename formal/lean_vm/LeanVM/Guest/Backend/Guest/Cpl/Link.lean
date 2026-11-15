@@ -38,11 +38,12 @@ theorem guest_complete_link (hFW : Complete.FrameWordsStmt) (hok : CplOkAll) :
   rw [← deployedBudgetB_eq]
   exact guest_complete_backend hFW hok
 
-/-- **The guest is complete within the deployed budget**, the frame side reduced to its two
-remaining construct statements (`FaBody`, `MatchBody`), given the per-function test. -/
-theorem guest_complete_of_frame (hfa : Complete.FaBody) (hmatch : Complete.MatchBody)
-    (hok : CplOkAll) : GuestCompleteWithin (deployedBudget (vsBoundAt Count.vsWordsOs vkBound)) :=
-  guest_complete_link (Complete.frameWords_of_fa_match hfa hmatch) hok
+/-- **The guest is complete within the deployed budget**, the frame side reduced to its remaining
+construct statements (`FaBody`, `AFaBody`, `ChainBody`), given the per-function test. -/
+theorem guest_complete_of_frame (hfa : Complete.FaBody) (hafa : Complete.AFaBody)
+    (hch : Complete.ChainBody) (hok : CplOkAll) :
+    GuestCompleteWithin (deployedBudget (vsBoundAt Count.vsWordsOs vkBound)) :=
+  guest_complete_link (Complete.frameWords_of_fa_chain hfa hafa hch) hok
 
 end
 end LeanVM.Guest.Backend.Cpl
