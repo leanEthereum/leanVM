@@ -1,12 +1,11 @@
-//! Batched Keccak-256 throughput across the thread pool, to 32-byte digests: 64-byte inputs (a Merkle node's two
-//! children) and 512-byte ones (a PCS leaf of 64 words, four permutations). The passes follow
+//! Batched Keccak-256 throughput across the stable prover's thread pool, to 32-byte digests: 64-byte inputs (a
+//! Merkle node's two children) and 512-byte ones (a PCS leaf of 64 words, four permutations). The passes follow
 //! [`bench::Plan::from_env`] (`BENCH_REPEAT`, `BENCH_COOLDOWN`).
 //!
 //! ```text
-//! BENCH_REPEAT=5 cargo bench -p stable_primitives --bench hash_throughput
+//! BENCH_REPEAT=5 cargo bench -p keccak256 --bench hash_throughput
 //! ```
 
-extern crate stable_primitives as primitives;
 fn run<const LEN: usize>() {
     const BYTES: usize = 64 << 10; // input bytes per call, cache-resident
     const ITERS: usize = 1 << 5; // rehash rounds per task per dispatch
@@ -19,7 +18,7 @@ fn run<const LEN: usize>() {
         parallel::chunks_mut(&mut out, k * 32, |i, sub| {
             let d = &data[i * BYTES..][..BYTES];
             for _ in 0..ITERS {
-                primitives::hash::hash_many(d, LEN, sub);
+                keccak256::hash_many(d, LEN, sub);
                 std::hint::black_box(&mut *sub);
             }
         });
@@ -27,7 +26,7 @@ fn run<const LEN: usize>() {
     println!(
         "{LEN}B -> 32B, {} threads, LANES={}: {:.2} Mhash/s{}",
         parallel::num_threads(),
-        primitives::hash::LANES,
+        keccak256::LANES,
         (TASKS * k * ITERS) as f64 / time.mean() / 1e6,
         time.spread(),
     );

@@ -9,3 +9,9 @@ workspace = true
 
 [dev-dependencies]
 sha3.workspace = true
+bench.workspace = true
+parallel = { package = "stable_parallel", path = "../stable_prover/parallel" }
+
+[[bench]]
+name = "hash_throughput"
+harness = false
