@@ -1485,7 +1485,7 @@ theorem stmtW_dispatch (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
       (hkb₄ c' (lt_of_lt_of_le hc' (le_trans hn₂ hn₃))
         (hkb₃ c' (lt_of_lt_of_le hc' hn₂) (hkb₂ c' hc' hb))) (Nat.ne_of_lt hc3))
       (Nat.ne_of_lt (Nat.lt_succ_of_lt hc3))) (Nat.ne_of_lt hc8)
-  obtain ⟨hF, hO, hT⟩ := hFA
+  obtain ⟨hF, hO, hT, -⟩ := hFA
   obtain ⟨ops, hops, hopsW⟩ := hE₉'
   have hF₉ : Fits I { st₈ with next := st₈.next + 1 } := ⟨hF.1, hF.2⟩
   have hO₉ : OutOps I { st₈ with next := st₈.next + 1 } := fun h o hm =>

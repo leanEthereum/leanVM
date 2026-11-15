@@ -118,11 +118,11 @@ def InBlockW (z : List Stmt) : Prop :=
     FBAt ctx I C st (inBlock (placeBlock z)) fun blk C' st' =>
       st'.out = st.out ∧ st'.scope = st.scope ∧ st'.chainIn = none ∧
       (∀ es, o = .fall es → Fits I st' → OpsIn I p₁ (blockOps blk p₁) → TabsW Γ Ag st' →
-        WInv ctx I C' st' sc') ∧
-      (Fits I st' → OpsIn I p₁ (blockOps blk p₁) → TabsW Γ Ag st' →
+        FillsIn Γ Ag p₁ blk → WInv ctx I C' st' sc') ∧
+      (Fits I st' → OpsIn I p₁ (blockOps blk p₁) → TabsW Γ Ag st' → FillsIn Γ Ag p₁ blk →
         BlkW Γ I ctx Ag cl C' blk z [] o i₀ p₁ ∧ RW I C' st' (pathVals I.σ z o))
 
-/-- **An inner block from its block lemma** (open: the block's flush, `leave` and anchor). -/
+/-- **An inner block from its block lemma** (`inBlockOf`, FrameInner.lean). -/
 def InBlockOf : Prop :=
   ∀ z, (∀ tl, BlockW Γ Ag cl ctx I (placeBlock z) z tl) → InBlockW Γ Ag cl ctx I z
 

@@ -429,12 +429,12 @@ theorem inBlockOf (hok : OpOK Γ I Ag cl) (hI : I.Ok) : InBlockOf Γ Ag cl ctx I
           ({ st₅ with out := st.out, scope := st.scope } : St).chainIn = none ∧
           (∀ es', Out.fall es = .fall es' → Fits I { st₅ with out := st.out, scope := st.scope } →
             OpsIn I p₁ (blockOps st₅.out.toList p₁) →
-            TabsW Γ Ag { st₅ with out := st.out, scope := st.scope } →
+            TabsW Γ Ag { st₅ with out := st.out, scope := st.scope } → FillsIn Γ Ag p₁ st₅.out.toList →
             WInv ctx I C' { st₅ with out := st.out, scope := st.scope }
               { s₄ with live := sc.live }) ∧
           (Fits I { st₅ with out := st.out, scope := st.scope } →
             OpsIn I p₁ (blockOps st₅.out.toList p₁) →
-            TabsW Γ Ag { st₅ with out := st.out, scope := st.scope } →
+            TabsW Γ Ag { st₅ with out := st.out, scope := st.scope } → FillsIn Γ Ag p₁ st₅.out.toList →
             BlkW Γ I ctx Ag cl C' st₅.out.toList z [] (.fall es) i₀ p₁ ∧
             RW I C' { st₅ with out := st.out, scope := st.scope } (pathVals I.σ z (.fall es))) := by
       intro C₅ st₅ hc₅ hs₅ hn₅ hl₅ hr₅ hz₅ hk₅ hbk₅ hE₅
@@ -444,7 +444,7 @@ theorem inBlockOf (hok : OpOK Γ I Ag cl) (hI : I.Ok) : InBlockOf Γ Ag cl ctx I
       have hch₅ : st₅.chainIn = none := by rw [hk₅, hk₃]; exact hch₂
       have hE := hE₃.step hE₅ hs₅ hn₅ (by rw [hl₅]; exact LocsLe.refl _)
       refine ⟨C₅, hc₅.sat, hc₅.blind, hsC, hnT, hlT, rfl, rfl, hch₅, ?_, ?_⟩
-      · intro _ _ _ _ _
+      · intro _ _ _ _ _ _
         refine ⟨⟨hc₅.sat, hc₅.blind, fun Ψ hΨ => (hc.pools Ψ (hsC Ψ hΨ)).grow hlT,
           hc.cells.mono hnT⟩, hr₅.symm,
           VW.step ((hFR₃.2).anti fun v hv => Or.inl (Or.inl (hsub₂ v hv))) hs₅ hn₅ hl₅,
@@ -482,7 +482,7 @@ theorem inBlockOf (hok : OpOK Γ I Ag cl) (hI : I.Ok) : InBlockOf Γ Ag cl ctx I
         · show st₅.lazy = none
           rw [hz₅, hz₃]
           exact hinv₂.lazy
-      · intro hFt hOps _
+      · intro hFt hOps _ _
         have hO₅ : OutOps I st₅ := fun _ _ hm => hOps.mem _ (op_mem_blockOps _ p₁ hm)
         obtain ⟨blk₂, hob₂, hbw₂, hrw₂⟩ := hb₂ hF₂
         have hob₂' : st₂.out.toList = blk₂ := hob₂
@@ -543,12 +543,12 @@ theorem inBlockOf (hok : OpOK Γ I Ag cl) (hI : I.Ok) : InBlockOf Γ Ag cl ctx I
           ({ st₅ with out := st.out, scope := st.scope } : St).chainIn = none ∧
           (∀ es', o = .fall es' → Fits I { st₅ with out := st.out, scope := st.scope } →
             OpsIn I p₁ (blockOps st₅.out.toList p₁) →
-            TabsW Γ Ag { st₅ with out := st.out, scope := st.scope } →
+            TabsW Γ Ag { st₅ with out := st.out, scope := st.scope } → FillsIn Γ Ag p₁ st₅.out.toList →
             WInv ctx I C' { st₅ with out := st.out, scope := st.scope }
               { s₄ with live := sc.live }) ∧
           (Fits I { st₅ with out := st.out, scope := st.scope } →
             OpsIn I p₁ (blockOps st₅.out.toList p₁) →
-            TabsW Γ Ag { st₅ with out := st.out, scope := st.scope } →
+            TabsW Γ Ag { st₅ with out := st.out, scope := st.scope } → FillsIn Γ Ag p₁ st₅.out.toList →
             BlkW Γ I ctx Ag cl C' st₅.out.toList z [] o i₀ p₁ ∧
             RW I C' { st₅ with out := st.out, scope := st.scope } (pathVals I.σ z o)) := by
       intro st₅ hn₅ hl₅ hr₅ hk₅ ht₅ hA₅
@@ -560,13 +560,14 @@ theorem inBlockOf (hok : OpOK Γ I Ag cl) (hI : I.Ok) : InBlockOf Γ Ag cl ctx I
         rw [hb₅, hb₃, List.append_assoc]
       have hfin : Fits I { st₅ with out := st.out, scope := st.scope } →
           OpsIn I p₁ (blockOps st₅.out.toList p₁) →
-          TabsW Γ Ag { st₅ with out := st.out, scope := st.scope } → FinAt Γ I Ag p₁ st₂ :=
-        fun hFt hOps hT => FinAt.back (st' := st₅) ⟨hFt, hOps, hT⟩ hnT hlT hob
+          TabsW Γ Ag { st₅ with out := st.out, scope := st.scope } →
+          FillsIn Γ Ag p₁ st₅.out.toList → FinAt Γ I Ag p₁ st₂ :=
+        fun hFt hOps hT hFl => FinAt.back (st' := st₅) ⟨hFt, hOps, hT, hFl⟩ hnT hlT hob
           fun x hx => by rw [ht₅]; exact hR₃.old.2.2 x hx
       refine ⟨C₂, hsat₂, hbl₂.mono hnT, hs₂, le_trans hn₂ hnT, hl₂.trans hlT, rfl, rfl,
-        by rw [hk₅, hk₃]; exact hch₂, fun es' he hFt hOps hT => (hP ⟨⟨es', he⟩,
-          hfin hFt hOps hT⟩).elim, fun hFt hOps hT => ?_⟩
-      have hF₂ := hfin hFt hOps hT
+        by rw [hk₅, hk₃]; exact hch₂, fun es' he hFt hOps hT hFl => (hP ⟨⟨es', he⟩,
+          hfin hFt hOps hT hFl⟩).elim, fun hFt hOps hT hFl => ?_⟩
+      have hF₂ := hfin hFt hOps hT hFl
       obtain ⟨blk₂, hob₂, hbw₂, hrw₂⟩ := hb₂ hF₂
       have hob₂' : st₂.out.toList = blk₂ := hob₂
       refine ⟨?_, ?_⟩
