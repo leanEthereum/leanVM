@@ -32,9 +32,10 @@ theorem stmtW_atom' (hpk : PoolKeepStmt) (hat : ∀ a, AtomFAt a) (hok : OpOK Γ
     (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0)
     (hRd : ∀ rd, I.Rd rd → ∀ e ∈ I.es, evNT rd I.σ e) {a : Atom} {rest tl : List Stmt}
     (hu : ∀ v ∈ Memory.atomUses a, v ∉ I.tmps) (ht : ∀ t ∈ Memory.atomTmps a, t ∈ I.tmps)
-    (hnm : ∀ v ∈ Memory.atomUses a, v ∈ I.named) (hfa : ∀ p run, a ≠ .frameAddr p run) :
+    (hnm : ∀ v ∈ Memory.atomUses a, v ∈ I.named) (hfa : ∀ p run, a ≠ .frameAddr p run)
+    (hsh : ∀ (v : V) (n : ℕ), I.locs[v]? ≠ some (Loc.shifted n 0)) :
     StmtW Γ Ag cl ctx I (.atom a) rest tl :=
-  stmtW_atom flushSeg_lock hpk hok hI hmain hRd (hat a) chainKeep_atom' hu ht hnm hfa
+  stmtW_atom flushSeg_lock hpk hok hI hmain hRd (hat a) chainKeep_atom' hu ht hnm hfa hsh
 
 /-- **A return on the path**, the primitives' facts given. -/
 theorem stmtW_ret' (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0)
