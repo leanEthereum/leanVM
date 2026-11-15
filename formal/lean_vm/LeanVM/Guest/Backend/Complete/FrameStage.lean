@@ -96,11 +96,44 @@ theorem matchCells_fatB (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0) {x 
     by rw [hlo₄, hlo₃, hlo₁], by rw [hr₄, hr₃, hr₁],
     (hkb₁.trans hkb₃ hn₁).trans hkb₄ (le_trans hn₁ hn₃)⟩
 
-/-- A chained `match` followed by no `match` fails to place. -/
+/-- **The cells of a `match` whose arms dispatch into the next one** (`x'`, whose cell holds its
+value), the cells the constraint left free kept. -/
+theorem matchCells_fatC (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0) {x x' : V}
+    {arms' : List (List Stmt)} {rest' : List Stmt} {ok : V → Prop} (hv : VW I C st ok) (hx : ok x)
+    (hx' : ok x') (h2 : 2 ≤ st.next) :
+    FAt ctx I C st (matchCells x (.match_ x' arms' :: rest') true) fun r C' st' =>
+      (∃ lx', r.2.1 = some (lx', arms'.length) ∧ 2 ≤ lx' ∧ lx' < st'.next ∧
+        ∀ Ψ, C' Ψ → Ψ lx' = I.σ x') ∧
+      2 ≤ r.1 ∧ r.1 < st'.next ∧ (∀ Ψ, C' Ψ → Ψ r.1 = I.σ x) ∧
+      2 ≤ r.2.2.1 ∧ r.2.2.1 < st'.next ∧ (∀ Ψ, C' Ψ → Ψ r.2.2.1 = I.fpw) ∧
+      2 ≤ r.2.2.2 ∧ r.2.2.2 < st'.next ∧ (∀ Ψ, C' Ψ → Ψ r.2.2.2 = 1) ∧
+      st'.locs = st.locs ∧ st'.rest = st.rest ∧ KeepB C C' st.next := by
+  unfold matchCells
+  simp only [ite_true]
+  refine FAt.bind (cellOf_fat x hI hv hx)
+    fun lx st₁ C₁ hs₁ hn₁ _ ⟨hx2, hxlt, hlo₁, hr₁, hxw, hkb₁⟩ => ?_
+  simp only [pure_bind]
+  refine FAt.bind (cellOf_fat x' hI (hv.step hs₁ hn₁ hlo₁) hx')
+    fun lx' st₂ C₂ hs₂ hn₂ _ ⟨hy2, hylt, hlo₂, hr₂, hyw, hkb₂⟩ => ?_
+  refine FAt.bind (selfFp_fat hI hmain (le_trans h2 (le_trans hn₁ hn₂)))
+    fun sfp st₃ C₃ hs₃ hn₃ _ ⟨hf2, hflt, hlo₃, hr₃, hfw, hkb₃⟩ => ?_
+  refine FAt.bind (constCell_fatB (1, 0) (hI.kconst 1 0)
+      (le_trans h2 (le_trans hn₁ (le_trans hn₂ hn₃))))
+    fun one st₄ C₄ hs₄ hn₄ _ ⟨ho2, holt, hlo₄, hr₄, how, hkb₄⟩ => ?_
+  refine FAt.pure ⟨⟨lx', rfl, hy2, lt_of_lt_of_le hylt (le_trans hn₃ hn₄),
+      fun Ψ hΨ => hyw Ψ (hs₃ Ψ (hs₄ Ψ hΨ))⟩, hx2,
+    lt_of_lt_of_le hxlt (le_trans hn₂ (le_trans hn₃ hn₄)),
+    fun Ψ hΨ => hxw Ψ (hs₂ Ψ (hs₃ Ψ (hs₄ Ψ hΨ))), hf2, lt_of_lt_of_le hflt hn₄,
+    fun Ψ hΨ => hfw Ψ (hs₄ Ψ hΨ), ho2, holt, fun Ψ hΨ => (how Ψ hΨ).trans word_one,
+    by rw [hlo₄, hlo₃, hlo₂, hlo₁], by rw [hr₄, hr₃, hr₂, hr₁],
+    ((hkb₁.trans hkb₂ hn₁).trans hkb₃ (le_trans hn₁ hn₂)).trans hkb₄
+      (le_trans hn₁ (le_trans hn₂ hn₃))⟩
+
+/-- A chained `match` followed by no `match` fails to place, whatever follows. -/
 theorem chained_fail {x : V} {n : ℕ} {rest : List Stmt} {e : Option (ℕ × Cell)}
-    {armsAt : Cell → ArmExit → P (List (List PStmt))} {Q : Unit → St → Prop}
+    {armsAt : Cell → ArmExit → P (List (List PStmt))} {Q : Unit → St → Prop} {g : Unit → P Unit}
     (hnc : ∀ x' arms' rest', rest ≠ .match_ x' arms' :: rest') :
-    wpP (placeMatch x n rest e true armsAt >>= fun _ => endStmt) ctx st Q := by
+    wpP (placeMatch x n rest e true armsAt >>= g) ctx st Q := by
   unfold placeMatch matchCells
   simp only [ite_true, bind_assoc]
   refine wp_bind.mpr fun _ _ _ => ?_
@@ -110,6 +143,22 @@ theorem chained_fail {x : V} {n : ℕ} {rest : List Stmt} {e : Option (ℕ × Ce
     cases s <;> first
       | exact absurd rfl (hnc _ _ _)
       | exact wp_bind.mpr wp_failP
+
+/-- **The next stage's selector is known to the stage before it**: in scope there, or made by
+the events its edge flush passes (then not yet placed). -/
+theorem nextSel_live {rc : ℕ} {x : V} {s₀ s₁ sc' s₀' : SSt} {arms : List (List Stmt)}
+    (hsa : scopeArms rc arms s₀ s₀.retDone = .ok s₁) (hem : expectS isEmit "a match" s₁ = .ok sc')
+    (h₀' : flushEdge rc sc' = .ok s₀') (hx : s₀'.live.contains x = true) :
+    s₀.live.contains x = true ∨ x ∈ allocsOf (flushSeg sc'.rest) := by
+  obtain ⟨-, hfl⟩ := flushEdge_ok h₀'
+  obtain ⟨-, hlive, -⟩ := flushS_seg _ _ _ _ _ (show flushS rc sc'.rest sc'.live sc'.retDone = .ok s₀'
+    from hfl)
+  obtain ⟨_, _, _, hl, _⟩ := expectS_ok hem
+  rcases hlive x hx with h | h
+  · left
+    rw [hl, scopeArms_live rc arms _ _ _ hsa] at h
+    exact h
+  · exact Or.inr h
 
 theorem armsOps_in : ∀ (bs : List (List PStmt)) (q j : ℕ) (hj : j < bs.length),
     OpsIn I q (armsOps bs q) →
@@ -667,6 +716,72 @@ theorem matchW_of {Good : List Stmt → Prop} (hmono : PlaceMono ctx) (hnew : Pl
     rwa [bind_assoc] at this
   · exact hch x arms rest tl hg ih C C₂ st st₂ sc s₀ s₁ sc' sc'' i₀ p₀ o hinv h₀ hx hsa hem hsc hw
       hns hes hcl hn₂ hc₂ hE₂ hpk₂ hr₂ hf₂ hvw₂ hrb₂ hloc₂ hch₂ hz₂
+
+/-! ## Chains: the statement for a block entered by an open chain -/
+
+/-- **The words of the stages a block adds to an open chain**, then the block after the chain:
+`stagesN` from the absolute position `q`, the first stage entered at its arm `T`, the block `blk`
+placed after the chain node, for the core statements `ss` (the stages' `match`es, then the rest)
+followed by `tl`, with path `o` and calls from `i₀`. -/
+def StagesW (C : (ℕ → E) → Prop) (stagesN : List (List (List PStmt))) (blk : List PStmt)
+    (ss tl : List Stmt) (o : Out) (i₀ q T : ℕ) : Prop :=
+  ∃ hs : List (E × E), hs.length = (calls (outEs o)).length ∧ HsOk I ctx (calls (outEs o)) hs ∧
+  (PremW I ctx → KLast I o i₀ → ∀ Ψ, C Ψ → ∀ σ', I.Same σ' → ∀ (kh : ℕ → E × E)
+    (ks : List (ℕ × ℕ)) (next : List Stmt → List (ℕ × ℕ) → Prop)
+    (kj : List (ℕ × ℕ) → E → E → Prop) (kret khalt : Prop),
+    (∀ o' ∈ stagesOps stagesN q ++ blockOps blk (q + stagesSize stagesN), o' ∈ I.ops) →
+    KsAt cl I.kf kh i₀ (calls (outEs o)) hs ks →
+    OutK o tl next (if ctx.isMain then khalt else kret) ks →
+    wStages Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl stagesN (ss.take stagesN.length) q
+      (fun ks' => wLc Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl blk
+        (ss.drop stagesN.length ++ tl) (q + stagesSize stagesN) ks' next kj kret khalt)
+      kret khalt ks (Γ.tgt T) (ofK (addressOfIndex I.fp)))
+
+/-- **What placing a block entered by an open chain gives**: the chain node (at index
+`O.length` of the output, its stages so far `stages` and their tables `firsts`) extended by the
+stages `stagesN` the block's leading `match`es make (the first in the table `first`), the block
+`blk` after it; no `match` chaining out; once the final placement extends the final state, the
+invariant if the path falls through, the first new stage's picked arm `j` (the first with
+`σ x = g^j`) and its absolute position `T`, which the slot `first + j` holds, the stages' and the
+rest's words (`StagesW`) and the words of the values the path read. -/
+def OpenOut (O : List PStmt) (h : List LHint) (join lx entry one sfp : ℕ) (firsts : List ℕ)
+    (stages : List (List (List PStmt))) (first : ℕ) (x : V) (s' : SSt) (ss tl : List Stmt) (o : Out)
+    (i₀ p₀ : ℕ) (C' : (ℕ → E) → Prop) (st' : St) : Prop :=
+  st'.chainIn = none ∧
+  (∀ es, o = .fall es → FinAt Γ I Ag p₀ st' → WInv ctx I C' st' s') ∧
+  (FinAt Γ I Ag p₀ st' → ∃ (firstsN : List ℕ) (stagesN : List (List (List PStmt)))
+      (blk : List PStmt) (j T : ℕ),
+    st'.out.toList = O ++ [.chain h join lx entry one sfp (firsts ++ firstsN) (stages ++ stagesN)] ++
+      blk ∧
+    firstsN.head? = some first ∧ firstsN.length = stagesN.length ∧ stagesN ≠ [] ∧
+    stagesN.length ≤ ss.length ∧
+    I.σ x = ofK (addressOfIndex j) ∧ (∀ i < j, I.σ x ≠ ofK (addressOfIndex i)) ∧
+    T = p₀ + blockSize O + 3 + stagesSize stages + armsSize ((stagesN.headD []).take j) ∧
+    (∀ σ' Ψ kh κ (L : MemoryImage κ), Ag σ' Ψ kh κ L →
+      L.read (addressOfIndex (Γ.l.tablesBase + (first + j))) = some (Γ.tgt T)) ∧
+    StagesW (Γ := Γ) (Ag := Ag) (cl := cl) (ctx := ctx) (I := I) C' stagesN blk ss tl o i₀
+      (p₀ + blockSize O + 3 + stagesSize stages) T ∧
+    RW I C' st' (pathVals I.σ ss o))
+
+/-- **A block entered by an open chain** (its first statement a `match` the `match` before it
+dispatches into: `chainIn = some (first, join)`, the output ending in the chain node so far),
+given the block lemma for the smaller good blocks: `OpenOut`. With the head stage whose arms
+dispatch into the next (`placeMatch … none true`), it gives `ChainHeadW`. -/
+def OpenW (Good : List Stmt → Prop) : Prop :=
+  ∀ x arms rest tl, Good (.match_ x arms :: rest) →
+    BlockIH Γ Ag cl ctx I Good (.match_ x arms :: rest) →
+  ∀ (C : (ℕ → E) → Prop) (st : St) (sc sc'' : SSt) (i₀ p₀ : ℕ) (o : Out) (O : List PStmt)
+    (h : List LHint) (join lx entry one sfp : ℕ) (firsts : List ℕ)
+    (stages : List (List (List PStmt))) (first : ℕ),
+    scopeBlock ctx.retCells (.match_ x arms :: rest) sc = .ok sc'' →
+    walk I.σ (.match_ x arms :: rest) = o → o ≠ .stuck → (∀ e ∈ outEs o, e ∈ I.es) →
+    (∀ k < (calls (outEs o)).length, cl[i₀ + k]? = (calls (outEs o))[k]?) →
+    WInv ctx I C { st with chainIn := none } sc → st.chainIn = some (first, join) →
+    st.out.toList = O ++ [.chain h join lx entry one sfp firsts stages] →
+    firsts.length = stages.length →
+    FBAt ctx I C st (placeBlock (.match_ x arms :: rest)) fun _ C' st' =>
+      OpenOut (Γ := Γ) (Ag := Ag) (cl := cl) (ctx := ctx) (I := I) O h join lx entry one sfp firsts
+        stages first x sc'' (.match_ x arms :: rest) tl o i₀ p₀ C' st'
 
 end Head
 
