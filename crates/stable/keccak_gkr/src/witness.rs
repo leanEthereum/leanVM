@@ -79,7 +79,7 @@ impl Shape {
     }
 }
 
-/// Every round's state before `chi`, sliced, block by block ([`Witness::layer`]).
+/// Every round's state before `chi`, sliced, block by block.
 pub struct Witness {
     pub shape: Shape,
     /// The blocks holding inputs, then the padding block if any block follows them, which every later one equals:
