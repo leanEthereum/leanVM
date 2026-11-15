@@ -118,11 +118,11 @@ def InBlockW (z : List Stmt) : Prop :=
     FBAt ctx I C st (inBlock (placeBlock z)) fun blk C' st' =>
       st'.out = st.out ∧ st'.scope = st.scope ∧ st'.chainIn = none ∧
       (∀ es, o = .fall es → Fits I st' → OpsIn I p₁ (blockOps blk p₁) → TabsW Γ Ag st' →
-        WInv ctx I C' st' sc') ∧
-      (Fits I st' → OpsIn I p₁ (blockOps blk p₁) → TabsW Γ Ag st' →
+        FillsIn Γ Ag p₁ blk → WInv ctx I C' st' sc') ∧
+      (Fits I st' → OpsIn I p₁ (blockOps blk p₁) → TabsW Γ Ag st' → FillsIn Γ Ag p₁ blk →
         BlkW Γ I ctx Ag cl C' blk z [] o i₀ p₁ ∧ RW I C' st' (pathVals I.σ z o))
 
-/-- **An inner block from its block lemma** (open: the block's flush, `leave` and anchor). -/
+/-- **An inner block from its block lemma** (`inBlockOf`, FrameInner.lean). -/
 def InBlockOf : Prop :=
   ∀ z, (∀ tl, BlockW Γ Ag cl ctx I (placeBlock z) z tl) → InBlockW Γ Ag cl ctx I z
 
@@ -182,7 +182,7 @@ theorem winv_enter {C : (ℕ → E) → Prop} {st : St} {sc s₁ : SSt} (hinv : 
 /-- The scope walk of an inner block, step by step. -/
 theorem scopeInner_inv {rc : ℕ} {blk : SSt → Except String SSt} {s s' : SSt}
     (h : scopeInner rc blk s = .ok s') : ∃ s₁ s₂ s₃ s₄,
-      expectS isEnter "a block" s = .ok s₁ ∧ blk s₁ = .ok s₂ ∧ flushAt rc s₂ = .ok s₃ ∧
+      expectS isEnter "a block" s = .ok s₁ ∧ blk s₁ = .ok s₂ ∧ flushEdge rc s₂ = .ok s₃ ∧
       expectS isLeave "the end of a block" s₃ = .ok s₄ ∧ s' = { s₄ with live := s.live } := by
   unfold scopeInner at h
   split at h
