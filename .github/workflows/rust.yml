@@ -34,6 +34,11 @@ jobs:
         run: cargo testall
       - name: Test (the API on the experimental prover)
         run: cargo test --release -p lean_vm --features experimental_prover --test api
+      # Without AVX2 the batched Keccak runs its scalar lanes, which no other job reaches.
+      - name: Test (Keccak's scalar lanes)
+        run: cargo test --release -p keccak256
+        env:
+          RUSTFLAGS: -C target-cpu=x86-64
 
   # The NEON kernels, as bench.yml's arm64 testbed builds them: the x86 job's haswell reaches none of them.
   test-arm64:
