@@ -221,16 +221,56 @@ theorem scope_end {rc : ℕ} {b : List Stmt} {k : ℕ} {S : SSt} (hk : b.length 
   rw [List.drop_eq_nil_of_le hk]
   rfl
 
-/-- **Scoped, from the walk by parts.** -/
-theorem scopedB_of {tf : TracedFn} {S : SSt}
+/-- `onceAfter`, the values seen at the end given. -/
+def onceRun (seen : VMap Unit) : List V → Option (VMap Unit)
+  | [] => some seen
+  | v :: vs => if seen.contains v then none else onceRun (seen.insert v ()) vs
+
+theorem onceAfter_of_run : ∀ {seen : VMap Unit} {l : List V} {M : VMap Unit},
+    onceRun seen l = some M → onceAfter seen l = true
+  | _, [], _, _ => rfl
+  | seen, v :: vs, M, h => by
+    unfold onceRun at h
+    unfold onceAfter
+    cases hc : seen.contains v with
+    | true => rw [hc] at h; cases h
+    | false =>
+      rw [hc] at h
+      simp only [Bool.false_eq_true, ↓reduceIte] at h
+      rw [Bool.not_false, Bool.true_and]
+      exact onceAfter_of_run h
+
+theorem onceRun_append : ∀ (seen : VMap Unit) (a b : List V),
+    onceRun seen (a ++ b) = (onceRun seen a).bind (onceRun · b)
+  | _, [], _ => rfl
+  | seen, v :: vs, b => by
+    simp only [List.cons_append, onceRun]
+    split
+    · rfl
+    · exact onceRun_append _ vs b
+
+theorem allocsOf_append (a b : List Event) : allocsOf (a ++ b) = allocsOf a ++ allocsOf b := by
+  simp [allocsOf, List.flatMap_append]
+
+/-- The values made once, by chunks of the trace: `R'` is `R` past its first `n` events. -/
+theorem once_part {M M' M'' : VMap Unit} {R R' : List Event} {n : ℕ}
+    (h₁ : onceRun M (allocsOf (R.take n)) = some M') (hR : R'= R.drop n)
+    (h₂ : onceRun M' (allocsOf R') = some M'') : onceRun M (allocsOf R) = some M'' := by
+  rw [← List.take_append_drop n R, allocsOf_append, onceRun_append, h₁, ← hR]
+  exact h₂
+
+/-- **Scoped, from the walk by parts** and the values made once. -/
+theorem scopedB_of {tf : TracedFn} {S : SSt} {M : VMap Unit}
+    (ho : onceRun (addLive {} tf.core.params) (allocsOf tf.trace.toList) = some M)
     (h : scopeBlock tf.rets (tf.core.body.drop 0)
       ⟨tf.trace.toList, addLive {} tf.core.params, false⟩ = .ok S)
     (hf : (match flushAt tf.rets S with
       | .ok s => s.rest.isEmpty
       | .error _ => false) = true) : scopedB tf = true := by
+  have hb : allocsOnceB tf = true := onceAfter_of_run ho
   rw [List.drop_zero] at h
   unfold scopedB scopedE
-  rw [h]
+  rw [hb, h]
   cases hS : flushAt tf.rets S with
   | error e => rw [hS] at hf; cases hf
   | ok s =>
@@ -452,6 +492,8 @@ theorem cplOk_big {j : ℕ} {pf : Placed} {TL : List V} {C : NMap ℕ} {S : SSt}
     (hcnt : ((blockOps pf.fn.body 0).drop 0).foldl (cntStep (tmpCellSet pf.locs TL)) {} = C)
     {F : NMap Unit} (hfp : ((blockOps pf.fn.body 0).drop 0).foldl fpStep {} = F)
     (hto : ((blockOps pf.fn.body 0).drop 0).all (tmpOpOk (tmpCellSet pf.locs TL) F) = true)
+    {M : VMap Unit} (ho : onceRun (addLive {} (guestTraced.getD j default).core.params)
+      (allocsOf (guestTraced.getD j default).trace.toList) = some M)
     (hscope : scopeBlock (guestTraced.getD j default).rets ((guestTraced.getD j default).core.body.drop 0)
       ⟨(guestTraced.getD j default).trace.toList, addLive {} (guestTraced.getD j default).core.params,
         false⟩ = .ok S)
@@ -459,7 +501,7 @@ theorem cplOk_big {j : ℕ} {pf : Placed} {TL : List V} {C : NMap ℕ} {S : SSt}
       | .ok s => s.rest.isEmpty
       | .error _ => false) = true)
     (hrest : partsOk [4, 5, 6, 7] j pf = true) : cplOkAt j = true := by
-  generalize htf : guestTraced.getD j default = tf at hseg hsmall hscope hfin
+  generalize htf : guestTraced.getD j default = tf at hseg hsmall ho hscope hfin
   have hrest' := hrest
   simp only [partsOk, cplParts, List.all_cons, List.all_nil, List.getD_cons_zero,
     List.getD_cons_succ, Bool.and_true, Bool.and_eq_true] at hrest'
@@ -480,7 +522,7 @@ theorem cplOk_big {j : ℕ} {pf : Placed} {TL : List V} {C : NMap ℕ} {S : SSt}
     tmpsApartB_of (T := c.T) (Ts := c.TA) (by rw [htl]; exact hidx) (by rw [htl]; exact hT)
       (by rw [List.drop_zero]; exact huses) hparU (by rw [htl]; rfl) hcnt (by rw [htl]; exact hsome)
       (by rw [htl]; exact hone) (by rw [htl]; exact hdc) hfp hto
-  have h1 : scopedB tf = true := scopedB_of hscope hfin
+  have h1 : scopedB tf = true := scopedB_of ho hscope hfin
   have h2 : noSelfCallB tf = true := by
     unfold noSelfCallB
     rw [hcalls]
