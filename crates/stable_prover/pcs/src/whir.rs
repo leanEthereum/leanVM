@@ -21,7 +21,7 @@
 use fiat_shamir::merkle::{Hash, MerklePath};
 use primitives::field::{Acc8, F64, F128, F128x8, dot, powers};
 use primitives::hash::OUT_LEN;
-use primitives::multilinear::eq_table;
+use primitives::multilinear::{eq_table, product_sumcheck};
 use primitives::transcript::ProverState;
 
 use crate::merkle::{LeafHasher, MerkleTree};
@@ -257,21 +257,6 @@ fn sample_queries(ps: &mut ProverState, block_len: usize, count: usize) -> Vec<u
     out
 }
 
-/// The tail sumcheck on `<f, w>`, low variable first. Each round sends `(u_0, u_2)` of its quadratic
-/// `q(X) = u_0 + u_1 X + u_2 X^2`, the running claim `q(0) + q(1)` fixing `u_1`, then grinds.
-fn tail_sumcheck(ps: &mut ProverState, mut f: Vec<F128>, mut w: Vec<F128>) {
-    while f.len() > 1 {
-        let (mut u_0, mut u_2) = (F128::ZERO, F128::ZERO);
-        for (&[f0, f1], &[w0, w1]) in f.as_chunks::<2>().0.iter().zip(w.as_chunks::<2>().0) {
-            u_0 += f0 * w0;
-            u_2 += (f0 + f1) * (w0 + w1);
-        }
-        ps.add_round_poly(&[u_0, F128::ZERO, u_2], false);
-        let r = ps.sample();
-        (f, w) = (fold_pairs(&f, r), fold_pairs(&w, r));
-    }
-}
-
 /// Prove the weighted claim `<W, f>` on the stack `f` committed in `committed`, `level0` holding its lanes and the
 /// weight `W` as terms. The caller has bound the commitment and every claim the weight batches.
 pub(crate) fn open(ps: &mut ProverState, config: &WhirConfig, mut level0: LaneRounds, committed: ProverData) {
@@ -300,7 +285,8 @@ pub(crate) fn open(ps: &mut ProverState, config: &WhirConfig, mut level0: LaneRo
             let queries = sample_queries(ps, block_len, config.queries[level]);
             ps.hint_merkle(oracle.open(&queries));
             p.truncate(1 << mu);
-            return tracing::info_span!("Tail").in_scope(|| tail_sumcheck(ps, p, w));
+            tracing::info_span!("Tail").in_scope(|| product_sumcheck(ps, p, w, 1, F128::ONE));
+            return;
         }
 
         // (commit) The low part is the next level's message, and the high part is sent.
@@ -341,7 +327,7 @@ mod tests {
     use crate::stack_open::{RingSwitchOpen, StackClaim, commit, open};
     use crate::whir_induce::novel_basis_at;
     use crate::whir_induce::tests::novel_sum_at;
-    use primitives::multilinear::interp;
+    use primitives::multilinear::fold;
     use primitives::test_rng::Rng;
     use verifier::Subspace;
 
@@ -429,13 +415,7 @@ mod tests {
                         .collect::<Vec<_>>(),
                 );
             }
-            let w_want: Vec<F128> = dense
-                .w
-                .as_chunks::<2>()
-                .0
-                .iter()
-                .map(|&[a, b]| interp(a, b, ch.alpha))
-                .collect();
+            let w_want = fold(&dense.w, 1, ch.alpha);
             assert_eq!(dense.table(), want, "table, stride {s}, mu {mu}, high {high}");
             dense.fold(&ch);
             let f_want: Vec<F128> = (0..(n_cols + 1) * s / 2)

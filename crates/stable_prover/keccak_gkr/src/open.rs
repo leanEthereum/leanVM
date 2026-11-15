@@ -11,7 +11,7 @@ use pcs::{RingSwitchOpen, StackClaim};
 use primitives::bit_fold::BitFold;
 use primitives::field::{F64, F128, dot};
 use primitives::hash::STATE_LANES;
-use primitives::multilinear::{eq_table, interp, mle_eval};
+use primitives::multilinear::{eq_table, mle_eval, product_sumcheck};
 use primitives::transcript::ProverState;
 use verifier::keccak::BITS;
 
@@ -89,49 +89,6 @@ fn slices(shape: Shape, committed: &[F64], point: &[F128]) -> Vec<F128> {
     slots.concat()
 }
 
-/// The sum over rows of the two tables' dot product: its round values at `0` and infinity.
-fn round_values(a: &[F128], b: &[F128], width: usize) -> (F128, F128) {
-    let mut zero = F128::ZERO;
-    let mut infinity = F128::ZERO;
-    for (a, b) in a.chunks_exact(2 * width).zip(b.chunks_exact(2 * width)) {
-        for j in 0..width {
-            zero += a[j] * b[j];
-            infinity += (a[j] + a[width + j]) * (b[j] + b[width + j]);
-        }
-    }
-    (zero, infinity)
-}
-
-/// `table`, rows of `width`, with the row index's lowest variable bound at `challenge`.
-pub(crate) fn fold(table: &[F128], width: usize, challenge: F128) -> Vec<F128> {
-    table
-        .chunks_exact(2 * width)
-        .flat_map(|pair| (0..width).map(move |j| interp(pair[j], pair[width + j], challenge)))
-        .collect()
-}
-
-/// The sumcheck of `scale * sum of a * b` over the row index, rows of `width`, its lowest variable first, down to one
-/// row of each: returns those rows and the point. A round sends its coefficients but the linear one, which the running
-/// claim fixes.
-fn prove_rounds(
-    ps: &mut ProverState,
-    mut a: Vec<F128>,
-    mut b: Vec<F128>,
-    width: usize,
-    scale: F128,
-) -> (Vec<F128>, Vec<F128>, Vec<F128>) {
-    let mut point = Vec::new();
-    while a.len() > width {
-        let (zero, infinity) = round_values(&a, &b, width);
-        ps.add_round_poly(&[scale * zero, F128::ZERO, scale * infinity], false);
-        let challenge = ps.sample();
-        point.push(challenge);
-        a = fold(&a, width, challenge);
-        b = fold(&b, width, challenge);
-    }
-    (a, b, point)
-}
-
 /// The weight a word-level claim puts on each slot of the committed segment outputs, every
 /// segment's but the last: what [`slot_weights`] gives its bit 0.
 fn word_weights(shape: Shape, claim: &Claim) -> Vec<F128> {
@@ -163,7 +120,7 @@ pub fn open_outputs(
     claim: &Claim,
     words: Vec<F128>,
 ) -> Vec<F128> {
-    let (word, _, slot) = prove_rounds(ps, words, word_weights(shape, claim), 1, F128::ONE);
+    let (word, _, slot) = product_sumcheck(ps, words, word_weights(shape, claim), 1, F128::ONE);
     ps.add_scalar(word[0]);
     [instance, &slot].concat()
 }
@@ -181,7 +138,7 @@ pub fn open_inputs(ps: &mut ProverState, shape: Shape, committed: &[F64], claim:
                 .sum()
         })
         .collect();
-    let (_, mu, low) = prove_rounds(ps, per_instance, claim.mu.to_vec(), 1, F128::ONE);
+    let (_, mu, low) = product_sumcheck(ps, per_instance, claim.mu.to_vec(), 1, F128::ONE);
     // The slots of the stack at that instance: entry `(i + 16 * slot) * 64 + z` folds over `i`.
     let mut at_instance = vec![F128::ZERO; 64 << shape.slot_log()];
     let low_eq = eq_table(&low);
@@ -192,7 +149,7 @@ pub fn open_inputs(ps: &mut ProverState, shape: Shape, committed: &[F64], claim:
             }
         }
     }
-    let (slices, _, slot) = prove_rounds(ps, at_instance, weights, 64, mu[0]);
+    let (slices, _, slot) = product_sumcheck(ps, at_instance, weights, 64, mu[0]);
     ps.add_scalars(&slices);
     [&low, pack, &slot].concat()
 }

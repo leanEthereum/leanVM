@@ -9,11 +9,10 @@
 //! 5. `beta`, which batches what that leaves into one claim, which the linear map takes to the round's input.
 
 use primitives::field::F128;
-use primitives::multilinear::poly_eval;
+use primitives::multilinear::{fold, poly_eval};
 use primitives::transcript::ProverState;
 use verifier::keccak::{BITS, LOCAL_BITS, PRODUCT_BITS, along};
 
-use crate::open::fold;
 use crate::protocol::{Claim, instance_weights, next_weights};
 use crate::table::{Summand, Tables};
 use crate::witness::Witness;

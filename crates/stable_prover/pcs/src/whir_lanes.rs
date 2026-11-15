@@ -16,7 +16,7 @@
 //! weight may reach past the committed lanes. A lane without a partner folds against zero.
 
 use primitives::field::{F64, F64x8, F128, F128x8, dot};
-use primitives::multilinear::interp;
+use primitives::multilinear::fold;
 
 use crate::stack_open::{LOW_VARS, Terms};
 use crate::whir::{FoldChallenges, FoldRounds, FoldTable};
@@ -193,14 +193,8 @@ impl FoldRounds for LaneRounds {
     fn fold(&mut self, ch: &FoldChallenges) {
         let (nt, n_pairs) = (self.terms.n_terms(), self.lanes.count().div_ceil(2));
         let FoldChallenges { alpha, beta } = *ch;
-        let (a, p) = (&self.a, &self.p);
-        self.a = a
-            .chunks_exact(2 * nt)
-            .flat_map(|rows| {
-                let (a0, a1) = rows.split_at(nt);
-                a0.iter().zip(a1).map(|(&a0, &a1)| interp(a0, a1, alpha))
-            })
-            .collect();
+        let p = &self.p;
+        self.a = fold(&self.a, nt, alpha);
         self.p = (0..n_pairs * nt)
             .map(|i| {
                 let (m, t) = (i / nt, i % nt);
