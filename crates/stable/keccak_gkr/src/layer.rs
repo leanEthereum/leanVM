@@ -6,7 +6,7 @@
 //! 3. a sumcheck over the pack and the segment: its first four rounds from one pass over the witness ([`skip`]),
 //!    the others on a table of field elements that each round folds ([`table`]);
 //! 4. a sumcheck over the bit position, on tables of 2048;
-//! 5. `beta`, which batches what that leaves into the next claim.
+//! 5. `beta`, which batches what that leaves into one claim, which the linear map takes to the round's input.
 
 use fiat_shamir::transcript::ProverState;
 use primitives::field::F128;
@@ -32,7 +32,7 @@ pub(crate) fn prove_layer(
     let layer = Layer::new(witness, step);
 
     // 1. The product polynomial.
-    let (product, per_pack) = tracing::info_span!("Product").in_scope(|| product::product(&layer, claim));
+    let (product, per_pack) = tracing::info_span!("Product").in_scope(|| product::polynomial(&layer, claim));
     ps.add_scalars(&product);
 
     // 2. `s`: the product polynomial has degree PRODUCT_BITS - 1.

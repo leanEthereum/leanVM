@@ -79,12 +79,13 @@ impl Shape {
     }
 }
 
+/// Every round's state before `chi`, sliced, block by block ([`Witness::layer`]).
 pub struct Witness {
     pub shape: Shape,
-    /// The blocks holding inputs, then, if blocks follow them, the padding block every later one
-    /// equals: each every round's sliced state, round `r` at `r * BLOCK_LEN`, the input state
-    /// being round 0.
+    /// The blocks holding inputs, then the padding block if any block follows them, which every later one equals:
+    /// per block, every round's sliced state, round `r` at `r * BLOCK_LEN`, the input state being round 0.
     pub(crate) blocks: Vec<Vec<u64>>,
+    /// The blocks holding inputs.
     pub(crate) written: usize,
 }
 

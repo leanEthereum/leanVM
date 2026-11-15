@@ -30,7 +30,7 @@ const SUMS: usize = 8 * RUN_WORDS;
 
 /// `U`, and the 32 packs' parts of it before their weights `eq(point[..5], pack)`, which the skip's binary points
 /// read.
-pub(crate) fn product(layer: &Layer, claim: &Claim) -> ([F128; PRODUCT_BITS], Vec<[F128; PRODUCT_BITS]>) {
+pub(crate) fn polynomial(layer: &Layer, claim: &Claim) -> ([F128; PRODUCT_BITS], Vec<[F128; PRODUCT_BITS]>) {
     let maps: Vec<FieldMap> = claim.weights.as_chunks::<8>().0.iter().map(field_map).collect();
     let tasks = layer.task_weights(&eq_table(&claim.point[PACKS_LOG..]));
     let sums = parallel::map_reduce_with_state(

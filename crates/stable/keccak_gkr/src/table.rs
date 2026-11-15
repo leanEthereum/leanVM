@@ -29,9 +29,9 @@ impl Tables {
     }
 }
 
-/// What the rounds over the half, block and segment sum per position: `weights[j] * (kappa T[j] + (kappa +
-/// T[j + 1]) T[j + 2])`, which is `B[j] * T[j + 2]` with `B[j] = weights[j] (kappa + T[j + 1]) + constant[j]` and
-/// `constant[j] = kappa * weights[j + 2]`.
+/// What the rounds over the half, block and segment sum over positions: `weights[j] * (kappa T[j] + (kappa +
+/// T[j + 1]) T[j + 2])`. Moving each `kappa T[j]` two columns along, the sum is that of `B[j] * T[j + 2]` with
+/// `B[j] = weights[j] (kappa + T[j + 1]) + constant[j]` and `constant[j] = kappa * weights[j + 2]`.
 pub(crate) struct Summand {
     weights: Vec<F128>,
     constant: Vec<F128>,
