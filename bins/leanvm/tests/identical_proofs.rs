@@ -60,18 +60,19 @@ fn stable_and_experimental_proofs_are_identical() {
     assert_eq!(stable_refusal, Some(AggregateError::ProvingFailed));
 }
 
-/// `program`'s proof at rate 1 on `public_input`, or why there is none.
+/// `program`'s proof at rate `2^-log_inv_rate` on `public_input`, or why there is none.
 fn prove<P: Prover>(
     program: &Program,
     public_input: [E; 2],
     witness: &[(String, Vec<Vec<E>>)],
+    log_inv_rate: usize,
 ) -> Result<verifier::Proof, String> {
     P::init();
-    P::prove(program, witness, public_input, 1).map(|(proof, _)| proof)
+    P::prove(program, witness, public_input, log_inv_rate).map(|(proof, _)| proof)
 }
 
 /// The compiler suite runs on stable alone; this runs its programs, with their annotated inputs (`# public_input:`,
-/// `# witness name:`) and with a wrong public input, through experimental's interpreter and hints too.
+/// `# witness name:`) and with a wrong public input, through experimental's interpreter and hints too, at every rate.
 #[test]
 fn compiler_programs_prove_identically() {
     let dir = concat!(
@@ -107,12 +108,18 @@ fn compiler_programs_prove_identically() {
             }
         }
         let wrong = [public_input[0] + E::new(1, 0), public_input[1]];
-        for (input, annotated) in [(public_input, true), (wrong, false)] {
+        let runs = (1..=4).map(|rate| (public_input, rate)).chain([(wrong, 1)]);
+        for (input, rate) in runs {
+            let annotated = input == public_input;
             let (experimental, stable) = (
-                prove::<ExperimentalProver>(&program, input, &witness),
-                prove::<StableProver>(&program, input, &witness),
+                prove::<ExperimentalProver>(&program, input, &witness, rate),
+                prove::<StableProver>(&program, input, &witness, rate),
             );
-            assert!(experimental == stable, "{}: the provers disagree", path.display());
+            assert!(
+                experimental == stable,
+                "{} at rate {rate}: the provers disagree",
+                path.display()
+            );
             assert!(!annotated || stable.is_ok(), "{}: {:?}", path.display(), stable.err());
         }
     }

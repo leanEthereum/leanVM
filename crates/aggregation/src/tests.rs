@@ -317,13 +317,22 @@ fn guest_column_selectors_match_native_eq() {
 /// The right leaf holds more claims than one loop frame of its list hashes
 /// ([`CLAIM_GROUP`]), so both that leaf and the parent rebuilding it run the
 /// list's group loop and then a partial last group, while the left leaf's list is
-/// a partial group alone.
+/// a partial group alone. The leaves share three signers, so the parent rebuilds the
+/// right list on the walk that allows repeated slots (`child_claim_list_any`).
 #[test]
 fn aggregate_two_to_one() {
     let big = 2 * CLAIM_GROUP + 3;
     let signers = get_signers(SMALL_LEAF_SIZE + big);
     let left = prove(&[], &signers[..SMALL_LEAF_SIZE], &[]);
-    let right = prove(&[], &signers[SMALL_LEAF_SIZE..], &[]);
+    let right = prove(&[], &signers[SMALL_LEAF_SIZE - 3..], &[]);
+    // A child whose claims are out of order, or whose proof the replay cannot walk, is refused before proving.
+    let node_of = |left: Node| aggregate(&[left, right.clone()], vec![], vec![], None, OutputClaims::All).err();
+    let mut unsorted = left.clone();
+    unsorted.0.lean_xmss.reverse();
+    assert_eq!(node_of(unsorted), Some(AggregateError::InvalidChild));
+    let mut cut = left.clone();
+    cut.1.proof.stream.truncate(cut.1.proof.stream.len() / 2);
+    assert_eq!(node_of(cut), Some(AggregateError::InvalidChild));
     let node = prove(&[left, right], &[], &[]);
     assert_eq!(node.0.lean_xmss.len(), SMALL_LEAF_SIZE + big);
 }
