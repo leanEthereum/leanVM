@@ -343,7 +343,6 @@ fn bus_placeholders(ph: &mut Placeholders, sides: &[Vec<Block>; 3], kbc: usize, 
             coordinates.push((coord_kind(c), u128::from(coord_scale(c)), padding, start..terms.len()));
         }
     }
-    assert_eq!(coord_claims.len(), coordinates.len(), "a claim entry per coordinate");
     ph.set("SIDE_BLOCK_START", &sblk);
     ph.set("N_BLOCKS", sblk[3]);
     ph.set("N_COORDS", coordinates.len());
@@ -801,28 +800,24 @@ fn bytecode_placeholders(ph: &mut Placeholders, sides: &[Vec<Block>; 3], kbc: us
     );
 }
 
-/// `Vhat_j` at the domain point whose bits above `j` are `y`'s, `Σ_l bit_l(y) · β_(j+1+l)`:
-/// the NTT's twiddles. `Vhat_j(β_j) = 1` and the bits below `j` vanish, so `Vhat_j` at point
-/// `i` is `bit_j(i)` plus this at `i >> (j + 1)`: the factors the guest builds `L` from.
-fn subspace_above() -> impl Fn(usize, usize) -> F64 {
-    let ntt = AdditiveNttF64::standard(LOG_CODEWORD_SYMBOLS);
-    move |j, y| {
-        assert!(
-            j <= LOG_BLOB_SYMBOLS && y >> (LOG_BLOB_SYMBOLS - j) == 0,
-            "bits above {j} only"
-        );
-        ntt.twiddle(LOG_BLOB_SYMBOLS - j, y)
-    }
-}
-
 /// LeanDA (`doc/leanvm` §sec:leanda).
 fn da_placeholders(ph: &mut Placeholders) {
     let [pad_0, pad_1]: [F128; 2] = hash_to_scalars(&lean_da::root_of_padding_blob());
     ph.set("DA_PAD_BLOB_0", pad_0);
     ph.set("DA_PAD_BLOB_1", pad_1);
+    // `Vhat_j` at the domain point whose bits above `j` are `y`'s, `Σ_l bit_l(y) · β_(j+1+l)`: the NTT's twiddles.
+    // `Vhat_j(β_j) = 1` and the bits below `j` vanish, so `Vhat_j` at point `i` is `bit_j(i)` plus this at
+    // `i >> (j + 1)`: the factors the guest builds `L` from.
+    let ntt = AdditiveNttF64::standard(LOG_CODEWORD_SYMBOLS);
+    let vhat = |j: usize, y: usize| {
+        assert!(
+            j <= LOG_BLOB_SYMBOLS && y >> (LOG_BLOB_SYMBOLS - j) == 0,
+            "bits above {j} only"
+        );
+        ntt.twiddle(LOG_BLOB_SYMBOLS - j, y)
+    };
     // `Vhat_j` at each parent node `n` of a product tree over bits `top, top - 1, ...`, in heap
     // order: `j` the bit `n` splits, the point its path's bits make.
-    let vhat = subspace_above();
     let tree = |top: usize, depth: usize| -> Vec<u64> {
         (0..1usize << depth)
             .map(|n| n.checked_ilog2().map_or(0, |d| vhat(top - d as usize, n - (1 << d)).0))

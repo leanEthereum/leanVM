@@ -178,20 +178,16 @@ fn merkle_hints(queries: &[usize], depth: &[usize], proof: &verifier::Proof) -> 
         let mut nodes = vec![[0u8; 32]; 2 << cap_depth];
         let mut active = vec![F128::ZERO; 1 << cap_depth];
         for opening in phase {
-            let leaf: Vec<F64> = opening.leaf.iter().map(|word| F64(word.0)).collect();
+            let leaf: Vec<u64> = opening.leaf.iter().map(|word| word.0).collect();
             // Level 0's rows are K lanes, a cell each; deeper ones E words, two lanes a cell.
             let row = if level == 0 {
-                leaf.iter().map(|&x| F128::from(x)).collect()
+                leaf.iter().map(|&x| F128::new(x, 0)).collect()
             } else {
-                leaf.as_chunks()
-                    .0
-                    .iter()
-                    .map(|&[c0, c1]| F128::new(c0.0, c1.0))
-                    .collect()
+                leaf.as_chunks().0.iter().map(|&[c0, c1]| F128::new(c0, c1)).collect()
             };
             hints.push(("merkle_leaf_rows", row));
             let mut path_children = Vec::with_capacity(4 * path_depth);
-            let mut node = hash_words(opening.leaf.iter().map(|word| word.0));
+            let mut node = hash_words(leaf);
             let mut index = (1 << depth) + opening.leaf_index as usize;
             for (height, sibling) in opening.siblings.iter().enumerate() {
                 let (left, right) = if index & 1 == 0 {

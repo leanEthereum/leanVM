@@ -7,11 +7,6 @@ use primitives::field::F128;
 use std::collections::{BTreeMap, HashMap};
 use verifier::layout::{GLOBAL_COLUMN_BASES, TABLE_WIDTHS};
 
-/// Why the guest reads every `q_keccak` slot claim's instance point off `chi`: a
-/// virtual value column is referenced only by its own table's bus blocks, which
-/// the table sumcheck settles, so no framework block can raise one at `zeta`.
-const VALCOL_FRAMEWORK: &str = "a framework block must not reference a virtual value column";
-
 /// One entry of the guest's claim pool.
 pub(super) enum ClaimSite {
     /// A committed column read by a framework bus block of kappa source `source`.
@@ -133,7 +128,12 @@ pub(super) fn claim_pool(sides: &[Vec<Block>; 3], kbc: usize) -> (Vec<ClaimSite>
             let key = (column, blk.kappa);
             let fresh = !slot_of.contains_key(&key);
             if fresh {
-                assert!(keccak_value(column).is_none(), "{VALCOL_FRAMEWORK}");
+                // Why the guest reads every `q_keccak` slot claim's instance point off `chi`: a virtual value column
+                // is referenced only by its own table's bus blocks, which the table sumcheck settles.
+                assert!(
+                    keccak_value(column).is_none(),
+                    "a framework block must not reference a virtual value column"
+                );
                 slot_of.insert(key, pool.len());
                 pool.push(ClaimSite::Framework { column, source });
             }
