@@ -19,44 +19,36 @@ open GuestPiece
 
 @[expose] public section
 
-/-- The places of entries 1382 to 1383 (`__loop391` to `__loop392`, 1098 instructions) agree with the cells. -/
-theorem locsOk_1382_1384 : (List.range' 1382 2).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 365 to 365 (`__loop17`, 2466 instructions) agree with the cells. -/
+theorem locsOk_365_366 : (List.range' 365 1).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1384 to 1385 (`__loop393` to `__loop394`, 1098 instructions) agree with the cells. -/
-theorem locsOk_1384_1386 : (List.range' 1384 2).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 366 to 378 (`__loop18` to `child_claim_list_last__L11`, 1814 instructions) agree with the cells. -/
+theorem locsOk_366_379 : (List.range' 366 13).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1386 to 1389 (`__loop395` to `__loop398`, 1987 instructions) agree with the cells. -/
-theorem locsOk_1386_1390 : (List.range' 1386 4).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 379 to 383 (`child_claim_list_last__L12` to `child_claim_list_last__L16`, 1368 instructions) agree with the cells. -/
+theorem locsOk_379_384 : (List.range' 379 5).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1390 to 1393 (`__loop399` to `__loop402`, 1778 instructions) agree with the cells. -/
-theorem locsOk_1390_1394 : (List.range' 1390 4).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 384 to 384 (`__loop19`, 2057 instructions) agree with the cells. -/
+theorem locsOk_384_385 : (List.range' 384 1).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1394 to 1396 (`__loop403` to `__loop405`, 1469 instructions) agree with the cells. -/
-theorem locsOk_1394_1397 : (List.range' 1394 3).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 385 to 398 (`__loop20` to `child_claim_list_mono_last__L12`, 1895 instructions) agree with the cells. -/
+theorem locsOk_385_399 : (List.range' 385 14).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1397 to 1401 (`__loop406` to `__loop410`, 1926 instructions) agree with the cells. -/
-theorem locsOk_1397_1402 : (List.range' 1397 5).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 399 to 417 (`child_claim_list_mono_last__L13` to `da_levels__L1024_L10`, 1709 instructions) agree with the cells. -/
+theorem locsOk_399_418 : (List.range' 399 19).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1402 to 1409 (`__loop411` to `__loop418`, 1980 instructions) agree with the cells. -/
-theorem locsOk_1402_1410 : (List.range' 1402 8).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 418 to 420 (`da_expand__L7_L8` to `da_factors__L14_L7_L0`, 1847 instructions) agree with the cells. -/
+theorem locsOk_418_421 : (List.range' 418 3).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1410 to 1428 (`__loop419` to `opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1`, 1567 instructions) agree with the cells. -/
-theorem locsOk_1410_1429 : (List.range' 1410 19).all (fun i => locsOkAt i (placedLocs i)) = true := by
-  decide +kernel
-
-/-- The places of entries 1429 to 1430 (`__loop431` to `__loop432`, 1138 instructions) agree with the cells. -/
-theorem locsOk_1429_1431 : (List.range' 1429 2).all (fun i => locsOkAt i (placedLocs i)) = true := by
-  decide +kernel
-
-/-- The places of entries 1431 to 1432 (`__loop433` to `__loop434`, 1138 instructions) agree with the cells. -/
-theorem locsOk_1431_1433 : (List.range' 1431 2).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 421 to 428 (`da_expand__L14_L7` to `__loop31`, 1986 instructions) agree with the cells. -/
+theorem locsOk_421_429 : (List.range' 421 8).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
 end
