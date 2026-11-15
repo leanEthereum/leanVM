@@ -286,7 +286,7 @@ jobs:
       - name: Check the axiom footprint
         working-directory: formal/quantum
         run: |
-          theorems="Quantum.qrpmEvalDist_apply_univ_of_lossless"
+          theorems="Quantum.qrpmEvalDist_apply_univ_of_lossless Quantum.qrpmEvalDistMap_eq_spongePerm"
           { echo 'import Quantum'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
           for t in $theorems; do
