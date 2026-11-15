@@ -447,6 +447,70 @@ theorem stagesW_next {C : (ℕ → E) → Prop} {blocks : List (List PStmt)}
 
 end SWords
 
+/-! ## An entered stage -/
+
+section Stage
+
+variable {ctx : Backend.Ctx} {I : Inst}
+
+/-- **`match_pre` for a `match` some chaining enters** (`chainIn = e`): the facts after its edge
+flush and the reset of the chaining flags, from the invariant of the state with no chaining. -/
+theorem match_preE (hI : I.Ok) {x : V} {arms : List (List Stmt)} {rest : List Stmt}
+    {C : (ℕ → E) → Prop} {st : St} {sc s₀ : SSt} {R : Unit → ((ℕ → E) → Prop) → St → Prop}
+    {g : Unit → P Unit}
+    {e : Option (ℕ × Cell)} (hinv : WInv ctx I C { st with chainIn := none } sc)
+    (hche : st.chainIn = e) (h₀ : flushEdge ctx.retCells sc = .ok s₀)
+    (hf : ∀ (b : Bool) (st₂ : St) (C₂ : (ℕ → E) → Prop), st.next ≤ st₂.next →
+      COk I C₂ st₂.next st₂.scope st₂.locs → EmitsW I C₂ st st₂ → PK st st₂ →
+      st₂.rest = s₀.rest → st₂.rest.length ≤ ctx.fuel →
+      VW I C₂ st₂ (fun v => s₀.live.contains v = true) →
+      (s₀.retDone = false → RetBlind ctx C₂) →
+      (∀ v, st₂.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf (flushSeg st.rest)) →
+      st₂.chainIn = none → st₂.lazy = none →
+      FBAt ctx I C₂ st₂ (placeMatch x arms.length rest e b
+        (fun base exit => placeArms arms 0 arms.length base exit) >>= g) R) :
+    FBAt ctx I C st (placeStmt (.match_ x arms) rest >>= g) R := by
+  obtain ⟨hlf, hfl₀⟩ := flushEdge_ok h₀
+  have hfl : flushS ctx.retCells st.rest sc.live sc.retDone = .ok s₀ := by
+    rw [← hinv.rest]; exact hfl₀
+  obtain ⟨hseg, hlive, huseS⟩ := flushS_seg _ _ _ _ _ hfl
+  have hsegA : ∀ v ∈ allocsOf (flushSeg st.rest), st.locs[v]? = none := fun v hv =>
+    (hinv.fresh v (by rw [hseg, allocsOf_append]; exact List.mem_append_left _ hv)).1
+  have hvw : VW I C st fun v => sc.live.contains v = true ∨ st.locs[v]? = none :=
+    fun v l hv hl => hv.elim (fun h => hinv.vw v l h hl) fun h => by rw [h] at hl; cases hl
+  have hokOf : ∀ v, s₀.live.contains v = true →
+      sc.live.contains v = true ∨ st.locs[v]? = none := fun v hv =>
+    (hlive v hv).elim Or.inl fun h => Or.inr (hsegA v h)
+  rw [placeStmt]
+  simp only [bind_assoc]
+  refine FBAt.fat_bind (FAt.and_wp (flushSeg_lock ctx I C st [] sc.live sc.retDone s₀
+      (fun v => sc.live.contains v = true ∨ st.locs[v]? = none) hI hfl hinv.fuel
+      (fun k _ _ _ hk => by simp at hk)
+      (fun v _ _ hv _ => (huseS v hv).elim Or.inl fun h => Or.inr (hsegA v h))
+      hinv.abi hinv.two hvw (fun hr k hk Ψ w hC => hinv.ret hr Ψ k w hk hC))
+    (wp_and flush_pk (wp_and (flushLazy [] st (hinv.rest ▸ hlf)) flush_keep)))
+    fun _ st₁ C₁ _ hn₁ _ _ hE₁ ⟨⟨hr₁, hFR₁, hrb₁, hloc₁⟩, hpk₁, hz₁, hk₁⟩ => ?_
+  have hvw₁ : VW I C₁ st₁ fun v => s₀.live.contains v = true :=
+    hFR₁.2.anti fun v hv => Or.inl (hokOf v hv)
+  have hch₁ : st₁.chainIn = e := (show st₁.chainIn = st.chainIn from hk₁).trans hche
+  have hf₁ : st₁.rest.length ≤ ctx.fuel := by
+    have h1 : st.rest.length ≤ ctx.fuel := hinv.fuel
+    have h2 := congrArg List.length hseg
+    rw [List.length_append] at h2
+    rw [hr₁]
+    omega
+  refine FBAt.get_bind ?_
+  rw [hch₁]
+  refine FBAt.fat_bind (FAt.ofSame (R := fun _ C' st' => C' = C₁ ∧
+      st' = { st₁ with chainIn := none, chain := false })
+    (wp_set.mpr ⟨rfl, rfl, rfl, LocsLe.refl _, rfl, rfl⟩))
+    fun _ st₂ C₂ _ hn₂ hl₂ hc₂ hE₂ ⟨hC₂, hst₂⟩ => ?_
+  subst hC₂ hst₂
+  exact hf st₁.chain _ _ hn₁ hc₂ (hE₁.step hE₂ (Stronger.refl _) hn₂ hl₂)
+    (hpk₁.trans (pk_same rfl rfl rfl)) hr₁ hf₁ hvw₁ hrb₁ hloc₁ rfl (by rw [hz₁]; exact hinv.lazy)
+
+end Stage
+
 end
 
 end LeanVM.Guest.Backend.Complete
