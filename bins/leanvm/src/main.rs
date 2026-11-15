@@ -55,9 +55,9 @@ fn run<P: isa::Prover>(cli: Cli) {
 /// Which of the two provers runs.
 #[derive(Clone, Copy, clap::ValueEnum)]
 enum Prover {
-    /// The reference prover, written to be read.
+    /// The stable prover.
     Stable,
-    /// The optimized prover.
+    /// The experimental prover.
     Experimental,
 }
 
