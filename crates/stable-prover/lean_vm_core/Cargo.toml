@@ -18,4 +18,5 @@ verifier.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
+primitives = { package = "stable_primitives", path = "../primitives", features = ["test-util"] }
 zkdsl_compiler.workspace = true

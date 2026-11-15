@@ -527,6 +527,7 @@ fn table_sums(cols: &[&[F64]], forms: &[Vec<Form>; N_BUS_TREES], zeta: &[F128]) 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use primitives::test_rng::Rng;
 
     /// A coordinate's value at row `z`, from its definition.
     fn coord_value(c: &Coord, cols: &[&[F64]], z: usize) -> F64 {
@@ -557,16 +558,12 @@ mod tests {
     /// The builder's leaves are their definitions.
     #[test]
     fn built_leaves_match_the_definition() {
-        let mut seed = 0x9E37_79B9_7F4A_7C15u64;
-        let mut next = move || {
-            seed ^= seed << 13;
-            seed ^= seed >> 7;
-            seed ^= seed << 17;
-            seed
-        };
-        let columns: Vec<Vec<F64>> = (0..6).map(|_| (0..1 << 12).map(|_| F64(next())).collect()).collect();
+        let mut rng = Rng::new(0x9E37_79B9_7F4A_7C15);
+        let columns: Vec<Vec<F64>> = (0..6)
+            .map(|_| (0..1 << 12).map(|_| F64(rng.next_u64())).collect())
+            .collect();
         let cols: Vec<&[F64]> = columns.iter().map(Vec::as_slice).collect();
-        let public = Arc::new((0..1 << 11).map(|_| F64(next())).collect::<Vec<_>>());
+        let public = Arc::new((0..1 << 11).map(|_| F64(rng.next_u64())).collect::<Vec<_>>());
         let block = |kappa: usize, rows: usize, coords: Vec<Coord>| Block {
             kappa,
             rows,
@@ -597,7 +594,7 @@ mod tests {
             block(1, 2, vec![Const(F64(3)), Col(0)]),
         ];
         let count = vec![block(12, 3001, vec![Col(1)]), block(11, 1 << 11, vec![Col(2)])];
-        let alpha: Vec<F128> = (0..1 << N_TUPLE_BITS).map(|_| F128::new(next(), next())).collect();
+        let alpha = rng.ext_vec(1 << N_TUPLE_BITS);
         let beta = F128::new(27, 18);
         for (blocks, beta) in [(&push, beta), (&pull, beta), (&count, F128::ZERO)] {
             let tree = Tree {

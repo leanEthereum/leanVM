@@ -431,6 +431,7 @@ fn fold_state(state: &mut State, r: F128, half: usize) {
 mod tests {
     use super::*;
     use primitives::multilinear::interp;
+    use primitives::test_rng::Rng;
 
     const COLS: usize = 6;
 
@@ -450,21 +451,9 @@ mod tests {
         form
     }
 
-    fn splitmix(state: &mut u64) -> u64 {
-        *state = state.wrapping_add(0x9e37_79b9_7f4a_7c15);
-        let mut z = *state;
-        z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
-        z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
-        z ^ (z >> 31)
-    }
-
-    fn random_e(state: &mut u64) -> F128 {
-        F128::new(splitmix(state), splitmix(state))
-    }
-
-    fn random_columns(state: &mut u64, rows: usize) -> Vec<Vec<F64>> {
+    fn random_columns(rng: &mut Rng, rows: usize) -> Vec<Vec<F64>> {
         (0..COLS)
-            .map(|_| (0..rows).map(|_| F64(splitmix(state))).collect())
+            .map(|_| (0..rows).map(|_| F64(rng.next_u64())).collect())
             .collect()
     }
 
@@ -486,10 +475,10 @@ mod tests {
     /// formulas.
     #[test]
     fn round_messages_match_naive_evaluation() {
-        let mut s = 7;
-        let pows: Vec<F128> = (0..3).map(|_| random_e(&mut s)).collect();
+        let mut rng = Rng::new(7);
+        let pows = rng.ext_vec(3);
         for m in [1usize, 3, 4, 11] {
-            let kcols = random_columns(&mut s, 2 << m);
+            let kcols = random_columns(&mut rng, 2 << m);
             let views: Vec<&[F64]> = kcols.iter().map(|c| &c[..]).collect();
             let mut naive_cols: Vec<Vec<F128>> = kcols
                 .iter()
@@ -503,7 +492,7 @@ mod tests {
                 cols: &views,
                 state: None,
             };
-            let mut eqr = eq_table(&(0..m).map(|_| random_e(&mut s)).collect::<Vec<_>>());
+            let mut eqr = eq_table(&rng.ext_vec(m));
             for var in (0..=m).rev() {
                 let half = 1 << var;
                 for at_one in [false, true] {
@@ -513,7 +502,7 @@ mod tests {
                         "m {m} half {half}"
                     );
                 }
-                let r = random_e(&mut s);
+                let r = rng.ext();
                 shrink_eq_high(&mut eqr);
                 table.bind(r, var);
                 for c in &mut naive_cols {
