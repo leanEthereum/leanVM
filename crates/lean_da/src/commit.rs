@@ -148,12 +148,9 @@ pub fn root_of_padding_blob() -> Hash {
 #[tracing::instrument(name = "Hashing blobs", skip_all)]
 fn blob_merkle_nodes(codewords: &[Codeword]) -> Vec<Hash> {
     let mut trees = vec![Hash::default(); codewords.len() * BLOB_MERKLE_NODES];
-    let mut bytes = Vec::with_capacity(CODEWORD_SYMBOLS * size_of::<Symbol>());
     for (codeword, tree) in codewords.iter().zip(trees.chunks_mut(BLOB_MERKLE_NODES)) {
-        bytes.clear();
-        bytes.extend(codeword.iter().flat_map(|symbol| symbol.to_le_bytes()));
         hash_many(
-            &bytes,
+            &as_bytes(codeword),
             CELL_SYMBOLS * size_of::<Symbol>(),
             tree[..CELLS_PER_ROW].as_flattened_mut(),
         );
