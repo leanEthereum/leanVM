@@ -39,9 +39,9 @@ its own inverse.
   signing requests and each signature costs at most `sc` calls; the game adds key generation and
   verification.
 
-That this game, restricted to adversaries whose permutation calls are classical, has the winning
-probability of the statement's `forgeryGame` under `runWithRandomPermutation` is not proved here:
-it needs the agreement of a uniformly sampled permutation with the lazily sampled one.
+For an adversary whose permutation calls are classical, this game has the winning probability of
+the statement's `forgeryGame` under `runWithRandomPermutation`
+(`Quantum.Xmss.winProb_classicalAdversary`).
 -/
 
 open IPFunctor OracleComp OracleSpec

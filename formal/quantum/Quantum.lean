@@ -13,6 +13,8 @@ import Quantum.Sponge.Target
 import Quantum.Xmss.Game
 import Quantum.Xmss.Keccak
 import Quantum.Xmss.HonestTable
+import Quantum.Classical
+import Quantum.Xmss.Classical
 
 /-! Security against quantum adversaries in the quantum random-permutation model (`Quantum.Model`),
 on VCVio's quantum oracle programs (`VCVio.Quantum`): the sponge's collision and preimage
@@ -46,3 +48,13 @@ theorems ever grows beyond Lean's three standard axioms. -/
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Quantum.Sponge.keccak256_qrpm_preimage_le
+
+/-- info: 'Quantum.qrpmEvalDistMap_toQuantumAt_qrpmImpl' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.qrpmEvalDistMap_toQuantumAt_qrpmImpl
+
+/-- info: 'Quantum.Xmss.winProb_classicalAdversary' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Xmss.winProb_classicalAdversary

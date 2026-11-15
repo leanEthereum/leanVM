@@ -15,8 +15,8 @@ port applies `U_φ |x, y⟩ = |x, y + φ x⟩` and the inverse port `U_{φ⁻¹}
 
 `qrpmEvalDistMap` averages complete runs over `φ`, each against one permutation, through VCVio's
 `Quantum.sampledEvalDistMap`, of which the QROM is another instance. The classical
-random-permutation model of `Statement/RandomPermutation.lean` samples `π` lazily instead; that
-the two agree on classical programs is not proved here.
+random-permutation model of `Statement/RandomPermutation.lean` samples `π` lazily instead; on
+classical programs the two agree (`Quantum.qrpmEvalDistMap_toQuantumAt_qrpmImpl`).
 -/
 
 open MeasureTheory
