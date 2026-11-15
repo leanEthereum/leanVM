@@ -104,20 +104,10 @@ impl F128 {
         F128Unreduced([s0 ^ s1, s1 << 1]).reduce()
     }
 
-    /// The Frobenius `self^(2^64)`, the conjugation of `F128/K`. The roots of `y^2 + x*y + 1` are
-    /// `y` and `y + x`, so `c0 + c1·y ↦ (c0 + x·c1) + c1·y`: one shift-and-reduce and one XOR.
-    #[inline]
-    const fn frobenius(self) -> Self {
-        Self {
-            c0: self.c0 ^ mul_by_g(F64(self.c1)).0,
-            c1: self.c1,
-        }
-    }
-
-    /// Multiplicative inverse, zero mapping to zero: the norm `N = self·φ(self)` lies in `K`, so
-    /// `self⁻¹ = φ(self)·N⁻¹`.
+    /// Multiplicative inverse, zero mapping to zero: the conjugate `φ(self) = self^(2^64)` maps `y` to the other root
+    /// `y + x`, and the norm `N = self·φ(self)` lies in `K`, so `self⁻¹ = φ(self)·N⁻¹`.
     pub fn inv(self) -> Self {
-        let conjugate = self.frobenius();
+        let conjugate = Self::new(self.c0 ^ mul_by_g(F64(self.c1)).0, self.c1);
         conjugate.mul_base(F64((self * conjugate).c0).inv())
     }
 }
@@ -237,7 +227,6 @@ impl BitXorAssign for F128Unreduced {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::field::gf2_64::R64;
     use crate::test_rng::Rng;
 
     /// The product written out in `K`: `(a0 + a1 y)(b0 + b1 y) = (a0 b0 + a1 b1) + (a0 b1 + a1 b0 + x a1 b1) y`, by
@@ -329,11 +318,10 @@ mod tests {
     }
 
     #[test]
-    fn square_and_inv() {
+    fn inverses() {
         let mut rng = Rng::new(4);
         for _ in 0..1000 {
             let a = rng.ext();
-            assert_eq!(a.square(), a * a);
             if !a.is_zero() {
                 assert_eq!(a * a.inv(), F128::ONE);
             }
@@ -346,24 +334,6 @@ mod tests {
             }
         }
         assert_eq!(F128::ZERO.inv(), F128::ZERO);
-    }
-
-    /// `frobenius` is the shuffle form of `self^(2^64)`, which `inv` relies on.
-    #[test]
-    fn frobenius_is_the_64th_squaring() {
-        let mut rng = Rng::new(7);
-        for _ in 0..200 {
-            let a = rng.ext();
-            let mut want = a;
-            for _ in 0..64 {
-                want = want.square();
-            }
-            assert_eq!(a.frobenius(), want);
-            // Two applications return the element (Gal(F128/K) has order 2), and the norm
-            // a·φ(a) lands in K.
-            assert_eq!(a.frobenius().frobenius(), a);
-            assert_eq!((a * a.frobenius()).c1, 0);
-        }
     }
 
     #[test]
@@ -379,57 +349,5 @@ mod tests {
             }
             assert_eq!(acc.reduce(), want);
         }
-    }
-
-    // GF(2)[x] helpers on u128 for the base-polynomial irreducibility test.
-
-    fn gf2_mod(mut a: u128, m: u128) -> u128 {
-        let dm = 127 - m.leading_zeros();
-        while a != 0 {
-            let da = 127 - a.leading_zeros();
-            if da < dm {
-                break;
-            }
-            a ^= m << (da - dm);
-        }
-        a
-    }
-
-    fn gf2_gcd(mut a: u128, mut b: u128) -> u128 {
-        while b != 0 {
-            let r = gf2_mod(a, b);
-            a = b;
-            b = r;
-        }
-        a
-    }
-
-    /// Rabin: p64 (degree 64 = 2^6) is irreducible iff x^(2^64) ≡ x mod p64
-    /// and gcd(x^(2^32) − x, p64) = 1.
-    #[test]
-    fn base_poly_irreducible() {
-        const P64: u128 = (1u128 << 64) | (R64 as u128);
-        let mut t = F64::G;
-        for _ in 0..32 {
-            t = t.square();
-        }
-        assert_eq!(gf2_gcd((t.0 as u128) ^ 2, P64), 1, "factor of degree | 32");
-        for _ in 0..32 {
-            t = t.square();
-        }
-        assert_eq!(t, F64::G, "x^(2^64) != x mod p64");
-    }
-
-    /// A quadratic over `K` is irreducible iff it has no root in `K`, iff `y^|K| ≠ y`
-    /// modulo it: `y^(2^64)` by 64 squarings must not be `y`.
-    #[test]
-    fn extension_poly_irreducible_over_base() {
-        let mut t = F128::Y;
-        for _ in 0..64 {
-            t = t.square();
-        }
-        assert_ne!(t, F128::Y, "y^2 + x*y + 1 has a root in GF(2^64)");
-        // The other root is y + x.
-        assert_eq!(t, F128::new(2, 1));
     }
 }

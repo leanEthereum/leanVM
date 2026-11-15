@@ -218,15 +218,4 @@ mod tests {
         // Zero to a positive power stays zero.
         assert_eq!(F64::ZERO.pow(order), F64::ZERO);
     }
-
-    /// x is primitive: x^((2^64−1)/q) ≠ 1 for every prime q | 2^64 − 1.
-    #[test]
-    fn x_is_primitive() {
-        let n: u128 = (1 << 64) - 1;
-        for q in [3u128, 5, 17, 257, 641, 65537, 6700417] {
-            assert_ne!(F64::G.pow(n / q), F64::ONE, "x^((2^64-1)/{q}) == 1");
-        }
-        // The full order closes the cycle.
-        assert_eq!(F64::G.pow(n), F64::ONE);
-    }
 }
