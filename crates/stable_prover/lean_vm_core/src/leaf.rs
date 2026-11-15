@@ -9,7 +9,6 @@
 //! whose values are sent; a table's blocks become one degree-two [`Form`] over its columns, `B^s_j`, which the table
 //! sumcheck proves ([`crate::constraints`]).
 
-
 use crate::constraints::Form;
 use crate::gkr::{self, Ones};
 use primitives::cast_slice;
