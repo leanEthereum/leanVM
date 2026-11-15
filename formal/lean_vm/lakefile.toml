@@ -192,3 +192,10 @@ srcDir = "cli"
 name = "guest-cplcheck"
 root = "GuestCplCheck"
 srcDir = "cli"
+
+# The placement-side completeness hypotheses on the guest (cli/GuestCplFrame.lean); not a default
+# target.
+[[lean_exe]]
+name = "guest-cplframe"
+root = "GuestCplFrame"
+srcDir = "cli"
