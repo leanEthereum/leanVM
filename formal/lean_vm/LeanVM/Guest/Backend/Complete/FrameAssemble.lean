@@ -176,5 +176,96 @@ theorem hlocB_K (hW : W.Compiled) (htf : tf ∈ W.p) (hpa : World.PlacedAs W tf 
 
 end Inst
 
+/-! ## The straight-line and call statements of a body -/
+
+section Flat
+
+variable {κ₀ : ℕ} {W : World κ₀} {tf : TracedFn} {pf : Placed} {fp : ℕ} {hdr : E × E} {σ : Val}
+  {es : List Ev} {vs : List V} {kfps : List ℕ}
+
+/-- **The straight-line and call statements of a scoped function's body, at the walk's
+instance**. -/
+theorem flatW_K (hW : W.Compiled) (htf : tf ∈ W.p) (hsc : Scoped tf) (hpa : World.PlacedAs W tf pf)
+    (hta : TmpsApart tf pf) (hns : NoSelfCall tf) (hfp : tf.core.name = "main" → fp = 0)
+    (hw : walk σ tf.core.body = .ret es vs)
+    (ha : ∀ q ∈ addrs es, σ q.1 = ofK (addressOfIndex (fp + (cellP pf.locs q.2).getD 0)))
+    (hrd : ∃ rd, (instOf W tf pf fp hdr σ es).Rd rd) :
+    FlatW (World.cplSite W tf.core.name)
+      (agK W tf pf fp hdr es kfps (instK W tf pf fp hdr σ es kfps)) (calls es)
+      (ctxOf (loopTable W.p) (sigTable W.p) tf) (instK W tf pf fp hdr σ es kfps)
+      (InBody tf.core.body) := by
+  have hI := instK_ok (kfps := kfps) hW htf hpa hta hrd
+  have hok := opOK_K (kfps := kfps) hW htf hpa hsc hta hw hrd
+  have hfresh := hta.fresh
+  have hmain : (ctxOf (loopTable W.p) (sigTable W.p) tf).isMain = true →
+      (instK W tf pf fp hdr σ es kfps).fp = 0 := fun h => hfp (by simpa [ctxOf] using h)
+  have hRd : ∀ rd, (instK W tf pf fp hdr σ es kfps).Rd rd →
+      ∀ e ∈ (instK W tf pf fp hdr σ es kfps).es, evNT rd (instK W tf pf fp hdr σ es kfps).σ e :=
+    fun _ h => h
+  have hnt : ∀ v ∈ Stmt.usesList tf.core.body, v ∉ (instK W tf pf fp hdr σ es kfps).tmps :=
+    fun v hv ht => (hfresh.2 v ht).1 hv
+  have hnoself : callsL tf.core.name tf.core.body = false := by
+    unfold NoSelfCall noSelfCallB at hns
+    simpa using hns
+  intro s rest tl hin hite hmatch hcif
+  have hus := inBody_uses hin
+  have hut := inBody_tmps hin
+  cases s with
+  | atom a =>
+      have hu : ∀ v ∈ atomUses a, v ∉ (instK W tf pf fp hdr σ es kfps).tmps :=
+        fun v hv => hnt v (hus v hv)
+      have ht : ∀ t ∈ atomTmps a, t ∈ (instK W tf pf fp hdr σ es kfps).tmps :=
+        fun t ht => hut t ht
+      have hnm : ∀ v ∈ atomUses a, v ∈ (instK W tf pf fp hdr σ es kfps).named :=
+        fun v hv => List.mem_append_left _ (hus v hv)
+      by_cases hfa : ∃ p run, a = .frameAddr p run
+      · obtain ⟨p, run, rfl⟩ := hfa
+        refine stmtW_frameAddr poolKeepStmt hok hI hmain hRd hu ht hnm ?_
+        intro q hq
+        replace hq : q ∈ addrs es := hq
+        have hwi := walk_within (σ := σ) tf.core.body
+        rw [hw] at hwi
+        obtain ⟨e, he, hq'⟩ : ∃ e ∈ es, Ev.addr? e = some q := by
+          simpa [addrs, List.mem_filterMap] using hq
+        have hu1 : q.1 ∈ e.uses := by
+          match e, hq' with
+          | .atom (.frameAddr p (r :: rs)), hq' =>
+            simp only [Ev.addr?, Option.some.injEq] at hq'
+            subst hq'
+            simp [Ev.uses, atomUses]
+        have hnq : q.1 ∉ Stmt.tmpsList tf.core.body := fun ht => (hfresh.2 _ ht).1 (hwi.1 e he _ hu1)
+        show zeroTmps (Stmt.tmpsList tf.core.body) σ q.1 = _
+        rw [zeroTmps_off hnq]
+        exact ha q hq
+      · exact stmtW_atom' poolKeepStmt hok hI hmain hRd hu ht hnm
+          (fun p run h => hfa ⟨p, run, h⟩) hI.hsh
+  | ite c z nz => exact absurd rfl (hite c z nz)
+  | match_ x arms => exact absurd rfl (hmatch x arms)
+  | call f args rets =>
+      refine stmtW_call poolKeepStmt hok hI agOwn_K agKids_K (fun _ => rfl) (hent_K hW) ?_
+        (fun v hv => hnt v (hus v (by simpa [Stmt.uses] using hv)))
+      intro hf
+      have := inBody_calls hin tf.core.name (by simp [callsS, hf, ctxOf])
+      rw [hnoself] at this
+      cases this
+  | callIf c f args =>
+      exact stmtW_callIf poolKeepStmt hok hI hRd agOwn_K agKids_K (fun _ => rfl) (hent_K hW)
+        (hcif c f args rfl) (fun v hv => hnt v (hus v (by simpa [Stmt.uses] using hv)))
+  | dispatch x fs args rets =>
+      refine stmtW_dispatch poolKeepStmt hok hI agOwn_K agKids_K (fun _ => rfl)
+        (fun q hq => hlocB_K hW htf hpa q hq) ?_
+        (fun v hv => hnt v (hus v (by simpa [Stmt.uses] using hv)))
+      intro g hg hgn
+      have := inBody_calls hin tf.core.name (by
+        simp only [callsS]
+        rw [List.contains_iff_mem]
+        rw [hgn] at hg
+        simpa [ctxOf] using hg)
+      rw [hnoself] at this
+      cases this
+  | ret rvs => exact stmtW_ret' hok hI hmain agOwn_K hI.kend
+
+end Flat
+
 end
 end LeanVM.Guest.Backend.Complete
