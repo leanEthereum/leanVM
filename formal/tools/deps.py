@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""What an edit rebuilds, from the import graph of the six projects and the recorded build times.
+"""What an edit rebuilds, from the import graph of the seven projects and the recorded build times.
 
   python3 -I tools/deps.py cone MODULE|FILE ...   what changing these modules' interface rebuilds
   python3 -I tools/deps.py slow [N]               the N slowest modules, and what rebuilds them
@@ -26,7 +26,7 @@ from collections import defaultdict
 from functools import lru_cache
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PROJECTS = ["Statement", "common", "lean_xmss", "lean_sphincs", "lean_da", "lean_vm"]
+PROJECTS = ["Statement", "common", "lean_xmss", "lean_sphincs", "lean_da", "lean_vm", "quantum"]
 IMPORT = re.compile(r"^(public\s+)?(meta\s+)?import\s+(all\s+)?(\S+)")
 
 

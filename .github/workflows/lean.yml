@@ -251,6 +251,56 @@ jobs:
           name: lean-da-axioms
           path: ${{ runner.temp }}/axioms.txt
 
+  # The quantum random-permutation model, on VCVio's quantum oracle programs: it imports neither the
+  # statement nor the other projects.
+  quantum-formalization:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Forbid proof escapes
+        run: |
+          python3 -I formal/tools/escape-scan.py formal/quantum
+      # As for sphincs: VCVio builds from source, so `main` saves the Lake build, without Mathlib's,
+      # which `lake exe cache get` fetches.
+      - name: Restore the Lake build
+        id: lake-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            formal/quantum/.lake
+            !formal/quantum/.lake/packages/mathlib/.lake
+          key: lake-quantum-${{ runner.os }}-${{ hashFiles('formal/quantum/lean-toolchain', 'formal/quantum/lake-manifest.json', 'formal/quantum/lakefile.toml') }}-${{ hashFiles('formal/quantum/**/*.lean') }}
+          restore-keys: lake-quantum-${{ runner.os }}-${{ hashFiles('formal/quantum/lean-toolchain', 'formal/quantum/lake-manifest.json', 'formal/quantum/lakefile.toml') }}-
+      # Builds the default target, whose root module checks the main theorems' axioms with
+      # `#guard_msgs`.
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: formal/quantum
+          use-github-cache: false
+      # Lake replays a cached module's warnings, so a second build lists every one.
+      - name: Forbid deprecated API
+        working-directory: formal/quantum
+        run: |
+          lake build 2>&1 | tee "$RUNNER_TEMP/build.log"
+          ! grep -E '^warning: Quantum.*has been deprecated' "$RUNNER_TEMP/build.log"
+      - name: Check the axiom footprint
+        working-directory: formal/quantum
+        run: |
+          theorems="Quantum.qrpmEvalDist_apply_univ_of_lossless"
+          { echo 'import Quantum'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
+          lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
+          for t in $theorems; do
+            grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$RUNNER_TEMP/axioms.txt"
+          done
+      - name: Save the Lake build
+        if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            formal/quantum/.lake
+            !formal/quantum/.lake/packages/mathlib/.lake
+          key: ${{ steps.lake-cache.outputs.cache-primary-key }}
+
   # `lean_vm` models the verifier and the prover's proofs of this repository, and imports the statement (`Statement/`), what is left of the two signature
   # schemes' and LeanDA's Scheme modules, and `common`, so a change to any of them re-checks it. It also holds the checks
   # against the Rust it transcribes (`guest-export --check`, the differentials), so a change to those

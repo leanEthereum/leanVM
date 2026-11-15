@@ -4,7 +4,7 @@
   python3 -I tools/docnames.py [FILE ...]     (default: statement.tex and every README.md)
 
 A backticked name that looks like a Lean declaration (`foo_bar`, `Foo.barBaz`, `fooBar`) and does not
-appear in any `.lean` file of the six projects is printed with its place: most are declarations
+appear in any `.lean` file of the seven projects is printed with its place: most are declarations
 renamed or removed since the prose was written. The prose also cites leanVM's Rust and Python, so
 some hits are not Lean names; read them, do not trust the list blindly.
 """
@@ -13,7 +13,7 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PROJECTS = ["Statement", "common", "lean_xmss", "lean_sphincs", "lean_da", "lean_vm"]
+PROJECTS = ["Statement", "common", "lean_xmss", "lean_sphincs", "lean_da", "lean_vm", "quantum"]
 CITED = re.compile(r"`([A-Za-z_][A-Za-z0-9_'.]*[A-Za-z0-9_'])`")
 LEANISH = re.compile(r"(_|[a-z][A-Z]|\.[A-Za-z])")
 NOT_LEAN = re.compile(r"\.(lean|md|py|rs|toml|sh|tex|json|txt|bin|yml)$|^(crates|scripts|tests)\b")
