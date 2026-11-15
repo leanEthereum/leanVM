@@ -21,8 +21,13 @@ pub type BytecodeColumns = [Arc<Vec<u64>>; 1 + BYTECODE_OPERANDS];
 #[derive(Debug)]
 pub struct Program {
     compiled: CompiledProgram,
+    /// One word per instruction for each of the opcode and the operand slots, which the provers' bus reads.
     columns: BytecodeColumns,
+    /// The stacked bytecode polynomial's evaluations: `2^BUS_BITS` slots of `prog.len()` words, slot `s` holding bus
+    /// tuple coordinate `s` of every instruction (the columns from [`OPCODE_SLOT`] on, zeros elsewhere). It is what
+    /// the Fiat-Shamir IV hashes and what a deferred bytecode claim evaluates.
     table: Vec<u64>,
+    /// The table prepared for the verifier, with the IV.
     bytecode: verifier::Bytecode,
 }
 
