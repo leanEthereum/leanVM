@@ -24,12 +24,12 @@ and writes the modules in which the kernel decides `Cpl.cplOkAt i` for every ent
 out is computed here natively; the kernel checks each step.
 -/
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.Backend
-  LeanVM.Guest.Backend.GuestInput
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+  LeanVM.Guest.Backend LeanVM.Guest.Backend.GuestInput
 
 namespace GuestCplEval
 
-def maxDecl : Nat := 1500
+def maxDecl : Nat := 1000
 def maxModule : Nat := 9000
 /-- Entries the pieces place in parts, tested on the last state of their walk. -/
 def cutEntries : List Nat := [11, 19, 20, 36]
@@ -61,6 +61,107 @@ def pList (items : List String) : String :=
   else s!"({" :: ".intercalate items} :: [])"
 
 def pVs (vs : List V) : String := pList (vs.map pV)
+
+/-! Printers of `guest-pieces` (cli/GuestPieces.lean). -/
+
+def pStrs (ss : List String) : String := pList (ss.map String.quote)
+
+def pPair (x : Nat × Nat) : String := s!"({x.1}, {x.2})"
+
+def pLoopInfo (li : LoopInfo) : String :=
+  s!"⟨{li.registered}, {match li.hi with | some h => s!"some {h}" | none => "none"}⟩"
+
+def pKVal : KVal → String
+  | .frameSize => "KVal.frameSize"
+  | .const a b => s!"(KVal.const {a} {b})"
+  | .entry f => s!"(KVal.entry {f.quote})"
+  | .endSentinel => "KVal.endSentinel"
+  | .local i => s!"(KVal.local {i})"
+  | .at f i => s!"(KVal.at {f.quote} {i})"
+
+def pMode : DerefMode → String
+  | .cell => ".cell" | .pc => ".pc" | .fp => ".fp"
+
+def pCells : KeccakOutputCells → String
+  | .one => ".one" | .two => ".two" | .all => ".all"
+
+def pOpt {α : Type} (pa : α → String) : Option α → String
+  | some a => s!"(some {pa a})"
+  | none => "none"
+
+def pLoc : Loc → String
+  | .cell n => s!"(Loc.cell {n})"
+  | .shifted n e => s!"(Loc.shifted {n} {e})"
+
+def pBits : BitsDest → String
+  | .stack b => s!"(BitsDest.stack {b})"
+  | .heap p => s!"(BitsDest.heap {p})"
+
+def pRHint : RHint → String
+  | .frameAddress n => s!"(RHint.frameAddress {n})"
+  | .allocFrames p sz b si t => s!"(RHint.allocFrames {p} {sz} {b} {si} {t})"
+  | .alloc p sz => s!"(RHint.alloc {p} {sz})"
+  | .allocDyn p sz => s!"(RHint.allocDyn {p} {sz})"
+  | .witnessStack s b n => s!"(RHint.witnessStack {s.quote} {b} {n})"
+  | .witnessHeap s p lo n => s!"(RHint.witnessHeap {s.quote} {p} {lo} {n})"
+  | .log2Ceil b d nb fl => s!"(RHint.log2Ceil {pBits b} {d} {nb} {fl})"
+  | .bitDecompose v b nb => s!"(RHint.bitDecompose {v} {pBits b} {nb})"
+  | .bitDecomposeExp v b nb => s!"(RHint.bitDecomposeExp {v} {pBits b} {nb})"
+  | .digitDecomposeExp v d nb nd db st sc =>
+      s!"(RHint.digitDecomposeExp {v} {pBits d} {nb} {nd} {db} {st} {pOpt toString sc})"
+  | .windowsExp v d sk st w c => s!"(RHint.windowsExp {v} {pBits d} {sk} {st} {w} {c})"
+  | .fieldLimbs v b n => s!"(RHint.fieldLimbs {v} {b} {n})"
+  | .inverse v d => s!"(RHint.inverse {v} {d})"
+
+def pCount : LoopCount → String
+  | .constant n => s!"(LoopCount.constant {n})"
+  | .bound c st => s!"(LoopCount.bound {c} {st})"
+
+def pLHint : LHint → String
+  | .nextFrameAddress => "LHint.nextFrameAddress"
+  | .allocLoopFrames p c n t => s!"(LHint.allocLoopFrames {p} {c.quote} {pCount n} {t})"
+  | .allocFrame p c => s!"(LHint.allocFrame {p} {c.quote})"
+  | .allocFrameMax p cs => s!"(LHint.allocFrameMax {p} {pStrs cs})"
+  | .resolved h => s!"(LHint.resolved {pRHint h})"
+
+def pHints (hs : List LHint) : String := pList (hs.map pLHint)
+
+def pLOp : LOp → String
+  | .mulNextFrame a b c => s!"(LOp.mulNextFrame {a} {b} {c})"
+  | .set o k => s!"(LOp.set {o} {pKVal k})"
+  | .xor a b c => s!"(LOp.xor {a} {b} {c})"
+  | .mul a b c => s!"(LOp.mul {a} {b} {c})"
+  | .deref a b c m => s!"(LOp.deref {a} {b} {c} {pMode m})"
+  | .jump a b c => s!"(LOp.jump {a} {b} {c})"
+  | .slot x f d => s!"(LOp.slot {x} {f} {d})"
+  | .keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd cells =>
+      s!"(LOp.keccak {m0} {m1} {m2} {m3} {tail} {b8} {cap} {out} {inOdd} {outOdd} {pCells cells})"
+
+def pNats (ns : List Nat) : String := pList (ns.map toString)
+
+partial def pPStmt : PStmt → String
+  | .op hs o => s!"(PStmt.op {pHints hs} {pLOp o})"
+  | .ite hs c bd sfp z he ed one nz =>
+      s!"(PStmt.ite {pHints hs} {c} {bd} {sfp} {pList (z.map pPStmt)} {he} {ed} {one} {pList (nz.map pPStmt)})"
+  | .chain hs join x entry one sfp firsts stages =>
+      s!"(PStmt.chain {pHints hs} {join} {x} {entry} {one} {sfp} {pNats firsts} " ++
+      s!"{pList (stages.map fun st => pList (st.map fun a => pList (a.map pPStmt)))})"
+  | .call hs c =>
+      s!"(PStmt.call {pHints hs} ⟨{c.callee.quote}, {c.nfp}, {c.entry}, {c.oc}, {pNats c.args}, " ++
+      s!"{pNats c.rets}, {pOpt pCount c.loop}, {c.tail}⟩)"
+  | .loopNext hs callee nfp entry oc one args =>
+      s!"(PStmt.loopNext {pHints hs} {callee.quote} {nfp} {entry} {oc} {one} {pNats args})"
+  | .dispatch hs callees nfp jc x entry one first args rets =>
+      s!"(PStmt.dispatch {pHints hs} {pStrs callees} {nfp} {jc} {x} {entry} {one} {first} {pNats args} {pNats rets})"
+  | .ret hs one => s!"(PStmt.ret {pHints hs} {one})"
+  | .halt hs one dest => s!"(PStmt.halt {pHints hs} {one} {dest})"
+
+
+/-- A trie's entries. -/
+partial def trieEntries {α : Type} (t : Trie α) : List α :=
+  match t with
+  | .nil => []
+  | .node v l r => v.toList ++ trieEntries l ++ trieEntries r
 
 /-- A list split into definitions of at most `maxDef` characters, `name` their concatenation. -/
 def chunkedDefs (doc name ty : String) (items : List String) : String := Id.run do
@@ -128,28 +229,77 @@ def bigFiles (j : Nat) (tf : TracedFn) (pf : Placed) : Except String (List (Stri
     ((∅ : Std.HashSet V), (#[] : Array V))).2.toList
   -- data: temporaries per run, states after each run, counts after each chunk
   let mut data := ""
-  let mut tls : Array String := #[]
-  let mut states : Array String := #[]
   let mut prev := S0
+  let mut items : Array (Nat × String) := #[]
+  let mut okItems := ""
   for (g, k) in segs.zipIdx do
     let seg := (body.drop g.a).take g.m
     let L := Stmt.tmpsList seg
     if !CplEval.segOk c seg L then throw s!"entry {j}: run {g.a}+{g.m} fails"
-    data := data ++ s!"\n/-- The temporaries of statements {g.a} to {g.a + g.m - 1} of entry {j}. -/\ndef tl{j}_{k} : List V := {pVs L}\n"
-    tls := tls.push s!"tl{j}_{k}"
-    let nxt ← Complete.scopeBlock rc seg prev
-    let ev := tf.trace.size - nxt.rest.length
-    let added := allVals.filter fun v => nxt.live.contains v && !(k > 0 && prev.live.contains v)
+    let segT := s!"(({tfs}.core.body.drop {g.a}).take {g.m})"
+    let Sexpr := if k = 0 then s!"⟨{tfs}.trace.toList, addLive \{} {tfs}.core.params, false⟩" else s!"sc{j}_{k}"
     let base := if k = 0 then "{}" else s!"sc{j}_{k}.live"
-    data := data ++ chunkedDefs s!"The values the scope walk of entry {j} puts in scope over statements {g.a} to {g.a + g.m - 1}." s!"sc{j}_{k + 1}_add" "(V × Unit)" (added.map fun v => s!"({pV v}, ())")
-    let entries := s!"sc{j}_{k + 1}_add"
-    data := data ++ s!"\n/-- The scope walk of entry {j} after statement {g.a + g.m - 1}. -/\nstate_lit sc{j}_{k + 1} : SSt :=\n  \{ rest := traceRest {tfs} {ev},\n    live := KMap.insertAll {base} {entries},\n    retDone := {nxt.retDone} }\n"
-    states := states.push s!"sc{j}_{k + 1}"
+    let nxt ← Complete.scopeBlock rc seg prev
+    let bigMatch : Option (List (List Stmt)) := match body[g.a]? with
+      | some (.match_ _ arms) => if g.m == 1 && g.w > maxSeg then some arms else none
+      | _ => none
+    match bigMatch with
+    | none =>
+      data := data ++ s!"\n/-- The temporaries of statements {g.a} to {g.a + g.m - 1} of entry {j}. -/\ndef tl{j}_{k} : List V := {pVs L}\n"
+      let ev := tf.trace.size - nxt.rest.length
+      let added := allVals.filter fun v => nxt.live.contains v && !(k > 0 && prev.live.contains v)
+      data := data ++ chunkedDefs s!"The values the scope walk of entry {j} puts in scope over statements {g.a} to {g.a + g.m - 1}." s!"sc{j}_{k + 1}_add" "(V × Unit)" (added.map fun v => s!"({pV v}, ())")
+      data := data ++ s!"\n/-- The scope walk of entry {j} after statement {g.a + g.m - 1}. -/\nstate_lit sc{j}_{k + 1} : SSt :=\n  \{ rest := traceRest {tfs} {ev},\n    live := KMap.insertAll {base} sc{j}_{k + 1}_add,\n    retDone := {nxt.retDone} }\n"
+      items := items.push (g.w, s!"\n/-- Statements {g.a} to {g.a + g.m - 1} of entry {j}. -/\ntheorem seg{j}_{k} : segOk big{j} {segT} tl{j}_{k} = true := by\n  decide +kernel\n\n/-- The scope walk of entry {j} over statements {g.a} to {g.a + g.m - 1}. -/\nkernel_rfl scope{j}_{k} :\n    scopeBlock {tfs}.rets {segT}\n      {Sexpr} = .ok sc{j}_{k + 1}\n")
+    | some arms =>
+      let S1 ← Complete.flushAt rc prev
+      let added := allVals.filter fun v => S1.live.contains v && !(k > 0 && prev.live.contains v)
+      data := data ++ chunkedDefs s!"The values made before statement {g.a} of entry {j}." s!"scm{j}_{k}_0_add" "(V × Unit)" (added.map fun v => s!"({pV v}, ())")
+      data := data ++ s!"\n/-- The scope walk of entry {j} at the `match` of statement {g.a}. -/\nstate_lit scm{j}_{k}_0 : SSt :=\n  \{ rest := traceRest {tfs} {tf.trace.size - S1.rest.length},\n    live := KMap.insertAll {base} scm{j}_{k}_0_add,\n    retDone := {S1.retDone} }\n"
+      let mut aw : Array Nat := #[]
+      let mut T := S1
+      for arm in arms do
+        let T1 ← Complete.scopeInner rc (fun s' => Complete.scopeBlock rc arm s') T
+        aw := aw.push (T.rest.length - T1.rest.length + (Stmt.usesList arm).length + (Lift.blockAtoms arm).length)
+        T := { T1 with retDone := T.retDone }
+      let runs := segsOf aw.toList
+      let armsAt := s!"(armsOf ({tfs}.core.body.getD {g.a} default))"
+      let mut Tc := S1
+      let mut acc := S1.retDone
+      let mut tlms : Array String := #[]
+      for (r, ri) in runs.zipIdx do
+        let rarms := (arms.drop r.a).take r.m
+        let Lr := Stmt.tmpsArms rarms
+        if !CplEval.armsOk c rarms Lr then throw s!"entry {j}: arms {r.a}+{r.m} of statement {g.a} fail"
+        data := data ++ s!"\n/-- The temporaries of arms {r.a} to {r.a + r.m - 1} of statement {g.a} of entry {j}. -/\ndef tlm{j}_{k}_{ri} : List V := {pVs Lr}\n"
+        tlms := tlms.push s!"tlm{j}_{k}_{ri}"
+        let (T', acc') ← CplEval.armsRun rc rarms Tc acc
+        data := data ++ s!"\n/-- The scope walk of entry {j} after arm {r.a + r.m - 1} of statement {g.a}. -/\nstate_lit scm{j}_{k}_{ri + 1} : SSt :=\n  \{ rest := traceRest {tfs} {tf.trace.size - T'.rest.length},\n    live := KMap.insertAll scm{j}_{k}_0.live [],\n    retDone := {T'.retDone} }\n"
+        let accS := if ri = 0 then s!"scm{j}_{k}_0.retDone" else toString acc
+        let armsT := s!"(({armsAt}.drop {r.a}).take {r.m})"
+        items := items.push (r.w, s!"\n/-- Arms {r.a} to {r.a + r.m - 1} of statement {g.a} of entry {j}. -/\ntheorem segm{j}_{k}_{ri} : armsOk big{j} {armsT} tlm{j}_{k}_{ri} = true := by\n  decide +kernel\n\n/-- The scope walk of entry {j} over arms {r.a} to {r.a + r.m - 1} of statement {g.a}. -/\nkernel_rfl scar{j}_{k}_{ri} :\n    armsRun {tfs}.rets {armsT}\n      scm{j}_{k}_{ri} {accS} = .ok (scm{j}_{k}_{ri + 1}, {acc'})\n")
+        Tc := T'
+        acc := acc'
+      let S2 ← Complete.expectS isEmit "a match" { Tc with retDone := acc }
+      if S2.rest.length != nxt.rest.length || S2.retDone != nxt.retDone then
+        throw s!"entry {j}: statement {g.a} by arms differs"
+      let tlDef := tlms.foldr (fun t a => s!"{t} ++ ({a})") "[]"
+      data := data ++ s!"\n/-- The temporaries of statement {g.a} of entry {j}. -/\ndef tl{j}_{k} : List V := {tlDef}\n"
+      let added2 := allVals.filter fun v => S2.live.contains v && !S1.live.contains v
+      data := data ++ chunkedDefs s!"The values the `match` of statement {g.a} of entry {j} puts in scope." s!"sc{j}_{k + 1}_add" "(V × Unit)" (added2.map fun v => s!"({pV v}, ())")
+      data := data ++ s!"\n/-- The scope walk of entry {j} after statement {g.a}. -/\nstate_lit sc{j}_{k + 1} : SSt :=\n  \{ rest := traceRest {tfs} {tf.trace.size - S2.rest.length},\n    live := KMap.insertAll scm{j}_{k}_0.live sc{j}_{k + 1}_add,\n    retDone := {S2.retDone} }\n"
+      let R := runs.length
+      let armsChain := runs.zipIdx.foldr (fun (_, ri) a => s!"(arms_part segm{j}_{k}_{ri} {a})")
+        s!"(arms_end (k := {arms.length}) (by decide +kernel))"
+      let scarChain := runs.zipIdx.foldr (fun (_, ri) a => s!"(armsRun_part scar{j}_{k}_{ri} {a})")
+        s!"(armsRun_end (k := {arms.length}) (by decide +kernel))"
+      items := items.push (1, s!"\ntheorem ism{j}_{k} : isMatchAt {tfs}.core.body {g.a} = true := by\n  decide +kernel\n\ntheorem selm{j}_{k} : useOk big{j} (selOf ({tfs}.core.body.getD {g.a} default)) = true := by\n  decide +kernel\n\nkernel_rfl scpre{j}_{k} :\n    flushAt {tfs}.rets {Sexpr} = .ok scm{j}_{k}_0\n\nkernel_rfl scx{j}_{k} :\n    needScope scm{j}_{k}_0.live [selOf ({tfs}.core.body.getD {g.a} default)] \"a match\" = .ok ()\n\nkernel_rfl scpo{j}_{k} :\n    expectS isEmit \"a match\" \{ scm{j}_{k}_{R} with retDone := {acc} } = .ok sc{j}_{k + 1}\n")
+      okItems := okItems ++ s!"\n/-- Statement {g.a} of entry {j}, by runs of arms. -/\ntheorem seg{j}_{k} : segOk big{j} {segT} tl{j}_{k} = true :=\n  seg_match ism{j}_{k} selm{j}_{k}\n    {armsChain}\n\n/-- The scope walk of entry {j} over statement {g.a}, by runs of arms. -/\ntheorem scope{j}_{k} : scopeBlock {tfs}.rets {segT} {Sexpr} = .ok sc{j}_{k + 1} :=\n  scope_match ism{j}_{k} scpre{j}_{k} scx{j}_{k}\n    {scarChain}\n    scpo{j}_{k}\n"
     prev := nxt
   match Complete.flushAt rc prev with
   | .ok fin => if !fin.rest.isEmpty then throw s!"entry {j}: trace left"
   | .error e => throw s!"entry {j}: {e}"
-  let tlDef := tls.foldr (fun t acc => s!"{t} ++ ({acc})") "[]"
+  let tlDef := segs.zipIdx.foldr (fun (_, k) acc => s!"tl{j}_{k} ++ ({acc})") "[]"
   data := data ++ s!"\n/-- The temporaries of entry {j}. -/\ndef TL{j} : List V := {tlDef}\n"
   data := data ++ s!"\n/-- The placed function of entry {j}. -/\nnoncomputable abbrev pf{j} : Placed := (placedOf {tfs} cut{j}_end).1\n"
   data := data ++ s!"\n/-- What the run checks of entry {j} read. -/\nnoncomputable abbrev big{j} : BigC :=\n  ⟨{tfs}.core.name, pf{j}.locs, TL{j}, fsWant {j}, {tfs}.core.params.length⟩\n"
@@ -185,17 +335,14 @@ def bigFiles (j : Nat) (tf : TracedFn) (pf : Placed) : Except String (List (Stri
   let flush (nmod : Nat) (cur : String) : String × String :=
     (s!"B{j}P{nmod}", header s!"B{j}P{nmod}" s!"The kernel's checks of entry {j}'s test, by parts." ++
       s!"public import {modBase}.B{j}\npublic import LeanVM.Guest.KernelLit\n" ++ opening ++ cur ++ closing)
-  for (g, i) in segs.zipIdx do
-    let seg := s!"(({tfs}.core.body.drop {g.a}).take {g.m})"
-    let S := if i = 0 then s!"⟨{tfs}.trace.toList, addLive \{} {tfs}.core.params, false⟩" else s!"sc{j}_{i}"
-    let thm := s!"\n/-- Statements {g.a} to {g.a + g.m - 1} of entry {j}. -/\ntheorem seg{j}_{i} : segOk big{j} {seg} tl{j}_{i} = true := by\n  decide +kernel\n\n/-- The scope walk of entry {j} over statements {g.a} to {g.a + g.m - 1}. -/\nkernel_rfl scope{j}_{i} :\n    scopeBlock {tfs}.rets {seg}\n      {S} = .ok sc{j}_{i + 1}\n"
-    if curW > 0 && curW + g.w > maxPartModule then
+  for (w, thm) in items do
+    if curW > 0 && curW + w > maxPartModule then
       files := files ++ [flush nmod cur]
       nmod := nmod + 1
       cur := ""
       curW := 0
     cur := cur ++ thm
-    curW := curW + g.w
+    curW := curW + w
   for ((k0, sz), i) in chunks.toList.zipIdx do
     let M0 := if i = 0 then "{}" else s!"cn{j}_{i}"
     let F0 := if i = 0 then "{}" else s!"fp{j}_{i}"
@@ -213,7 +360,7 @@ def bigFiles (j : Nat) (tf : TracedFn) (pf : Placed) : Except String (List (Stri
   let toChain := chunks.toList.zipIdx.foldr (fun (_, i) acc => s!"(opsAll_part tops{j}_{i} {acc})")
     s!"(opsAll_end (k := {ops.size}) (by decide +kernel))"
   let okMod := header s!"B{j}Ok" s!"Entry {j}'s test, from its parts." ++
-    String.join ((List.range nParts).map fun m => s!"public import {modBase}.B{j}P{m}\n") ++ opening ++
+    String.join ((List.range nParts).map fun m => s!"public import {modBase}.B{j}P{m}\n") ++ opening ++ okItems ++
     s!"\n/-- The checks of entry {j} on its temporaries, parameters and frame. -/\ntheorem small{j} : smallOk {j} pf{j} TL{j} cn{j}_{nC} = true := by\n  decide +kernel\n" ++
     s!"\n/-- The scope walk of entry {j} ends with its trace. -/\ntheorem fin{j} : (match flushAt {tfs}.rets sc{j}_{segs.length} with\n    | .ok s => s.rest.isEmpty\n    | .error _ => false) = true := by\n  decide +kernel\n" ++
     String.join ([4, 5, 6, 7].map fun k => s!"\ntheorem rest{j}_{k} : partsOk [{k}] {j} pf{j} = true := by\n  decide +kernel\n") ++
@@ -242,7 +389,7 @@ def runsOf (sizes : Array Nat) : List (Nat × Nat) := Id.run do
   if let some a' := a then out := out.push (a', sizes.size)
   return out.toList
 
-def runThm (sizes : Array Nat) (names : Array String) (a b : Nat) : String :=
+def runThm (pls : List Placed) (sizes : Array Nat) (names : Array String) (a b : Nat) : String :=
   let n := (List.range' a (b - a)).foldl (fun s i => s + sizes[i]!) 0
   let what := if b = a + 1 then s!"`{names[a]!}`" else s!"`{names[a]!}` to `{names[b - 1]!}`"
   let doc := s!"\n/-- The test of entries {a} to {b - 1} ({what}, {n} instructions). -/\n"
@@ -251,6 +398,15 @@ def runThm (sizes : Array Nat) (names : Array String) (a b : Nat) : String :=
     s!"\ntheorem cplOkC_{a}_0 : partsOk [0, 1, 2] {a} {pf} = true := by\n  decide +kernel\n\ntheorem cplOkC_{a}_1 : partsOk [3, 4, 5, 6, 7] {a} {pf} = true := by\n  decide +kernel\n" ++
       doc ++ s!"theorem cplOk_{a}_{b} : (List.range' {a} 1).all cplOkAt = true :=\n  range_one (f := cplOkAt) (cplOkAt_of_with_two (placedAt_cut cut{a}_walk cut{a}_tailOk cut{a}_head)\n    cplOkC_{a}_0 cplOkC_{a}_1)\n"
   else if b = a + 1 && n > maxDecl then
+    let pf := (pls[a]?).getD ⟨⟨"", [], 0⟩, {}⟩
+    let locs := (trieEntries pf.locs.t).flatten.map fun (v, l) => s!"({pV v}, {pLoc l})"
+    chunkedDefs s!"The placed body of entry {a}." s!"plb{a}" "PStmt" (pf.fn.body.map pPStmt) ++
+      chunkedDefs s!"The places of entry {a}." s!"pll{a}" "(V × Loc)" locs ++
+      s!"\n/-- Entry {a} placed. -/\nstate_lit plc{a} : Placed :=\n  \{ fn := \{ name := {tfOf a}.core.name, body := plb{a}, frameSize := {pf.fn.frameSize} },\n    locs := KMap.insertAll \{} pll{a} }\n" ++
+      s!"\n/-- The placement of entry {a}. -/\nkernel_rfl place{a} : placedAt {a} = some plc{a}\n" ++
+      s!"\ntheorem cplOkL_{a}_0 : partsOk [0, 1, 2] {a} plc{a} = true := by\n  decide +kernel\n\ntheorem cplOkL_{a}_1 : partsOk [3, 4, 5, 6, 7] {a} plc{a} = true := by\n  decide +kernel\n" ++
+      doc ++ s!"theorem cplOk_{a}_{b} : (List.range' {a} 1).all cplOkAt = true :=\n  range_one (f := cplOkAt) (cplOkAt_of_with_two place{a} cplOkL_{a}_0 cplOkL_{a}_1)\n"
+  else if false then
     s!"\ntheorem cplOkG_{a}_0 : (placedAt {a}).any (partsOk [0, 1, 2] {a}) = true := by\n  decide +kernel\n\ntheorem cplOkG_{a}_1 : (placedAt {a}).any (partsOk [3, 4, 5, 6, 7] {a}) = true := by\n  decide +kernel\n" ++
       doc ++ s!"theorem cplOk_{a}_{b} : (List.range' {a} 1).all cplOkAt = true :=\n  range_one (f := cplOkAt) (cplOkAt_of_two cplOkG_{a}_0 cplOkG_{a}_1)\n"
   else
@@ -298,9 +454,9 @@ def main (args : List String) : IO UInt32 := do
   if !cur.isEmpty then mods := mods.push cur
   for (ms, k) in mods.toList.zipIdx do
     let cut := ms.any (cutEntries.contains ·.1)
-    let imp := s!"public import {modBase}.Split\n" ++
+    let imp := s!"public import {modBase}.Split\npublic import LeanVM.Guest.Backend.StateLit\npublic import LeanVM.Guest.KernelLit\n" ++
       (if cut then "public import LeanVM.Guest.Backend.Guest.Compiled\n" else "")
-    let body := String.join (ms.map fun (a, b) => runThm sizes names a b)
+    let body := String.join (ms.map fun (a, b) => runThm pls sizes names a b)
     files := files ++ [(s!"R{k}", header s!"R{k}" "The kernel's per-function completeness test, by runs of entries." ++
       imp ++ opening ++ body ++ closing)]
   for j in bigEntries do
