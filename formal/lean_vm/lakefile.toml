@@ -184,3 +184,11 @@ srcDir = "cli"
 name = "guest-pieces"
 root = "GuestPieces"
 srcDir = "cli"
+
+# The completeness cross-check of the back end against the certificate tables
+# (cli/GuestCplCheck.lean): `scripts/cpl-crosscheck` reads the tables as text and runs it; not a
+# default target.
+[[lean_exe]]
+name = "guest-cplcheck"
+root = "GuestCplCheck"
+srcDir = "cli"
