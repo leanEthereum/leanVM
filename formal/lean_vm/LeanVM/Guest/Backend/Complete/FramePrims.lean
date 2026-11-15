@@ -303,6 +303,94 @@ theorem takeRun_fat (vs : List V) :
     fun _ h => h.1, Nat.le_add_right _ _, hg, ⟨[], by simp [ho], fun _ _ h => nomatch h⟩, rfl, hr, hs, hnew,
     fun k hk' => by simpa using hk k hk', fun Ψ h => h.2⟩
 
+/-! ## Shifted pointers -/
+
+theorem ofK_gpow_zero : ofK (addressOfIndex 0) = 1 := by
+  rw [addressOfIndex, pow_zero, ofK_one]
+
+/-- **A shifted pointer made a value**: its cell holds the pointer's word times `g^exp`. -/
+theorem materialize_fat (c : Cell) (exp : ℕ) (hok : I.Ok) (hc2 : 2 ≤ c) (hc : c < st.next) :
+    FAt ctx I C st (materialize c exp) (fun o C' st' => 2 ≤ o ∧ o < st'.next ∧
+      st'.locs = st.locs ∧ st'.rest = st.rest ∧
+      ∀ Ψ, C' Ψ → Ψ o = Ψ c * ofK (addressOfIndex exp)) := by
+  have h2 : 2 ≤ st.next := le_trans hc2 hc.le
+  unfold materialize
+  dsimp only
+  split
+  · next h0 =>
+    exact FAt.pureC fun _ => ⟨hc2, hc, rfl, rfl, fun Ψ _ => by rw [h0, ofK_gpow_zero, mul_one]⟩
+  · refine FAt.guard fun hlt => ?_
+    refine FAt.get_bind (FAt.withCOk fun hc0 => ?_)
+    have hmats : ∀ p ∈ (st.scope.mats.get? c).getD [], (2 ≤ p.2 ∧ p.2 < st.next) ∧
+        ∀ Ψ, C Ψ → Ψ p.2 = Ψ c * ofK (addressOfIndex p.1) := by
+      intro p hp
+      cases hm : st.scope.mats.get? c with
+      | none => rw [hm] at hp; simp at hp
+      | some l =>
+        rw [hm] at hp
+        exact ⟨hc0.cells.mats c l hm p hp, fun Ψ hΨ => (hc0.pools Ψ hΨ).mats c l hm p hp⟩
+    split
+    · next e o hfind =>
+      have hp := hmats (e, o) (List.mem_of_find?_eq_some hfind)
+      have he : e = exp := by simpa using List.find?_some hfind
+      subst he
+      exact FAt.pureC fun _ => ⟨hp.1.1, hp.1.2, rfl, rfl, hp.2⟩
+    · generalize hpair : matStart st.scope c exp ((st.scope.mats.get? c).getD []) = pr
+      obtain ⟨src, dist⟩ := pr
+      dsimp only
+      obtain ⟨e, hed, hsrc⟩ := matStart_spec hpair
+      have hsrc' : (2 ≤ src ∧ src < st.next) ∧
+          ∀ Ψ, C Ψ → Ψ src = Ψ c * ofK (addressOfIndex e) := by
+        rcases hsrc with h0 | hm
+        · cases h0
+          exact ⟨⟨hc2, hc⟩, fun Ψ _ => by rw [ofK_gpow_zero, mul_one]⟩
+        · exact hmats (e, src) hm
+      have hdist : dist < 2 ^ 128 := by omega
+      refine FAt.bind (constCell_fat (gpowLimbs dist) (hok.kconst _ _) h2)
+        fun k st₁ C₁ hs₁ hn₁ _ ⟨hk2, hk, hlo₁, hr₁, hkw⟩ => ?_
+      refine FAt.bind (mulCell_fat hsrc'.1.1 (lt_of_lt_of_le hsrc'.1.2 hn₁) hk2 hk)
+        fun o st₂ C₂ hs₂ _ _ ⟨ho2, ho, hlo₂, hr₂, how⟩ => ?_
+      have hw : ∀ Ψ, C₂ Ψ → Ψ o = Ψ c * ofK (addressOfIndex exp) := fun Ψ hΨ => by
+        rw [how Ψ hΨ, hsrc'.2 Ψ (hs₁ Ψ (hs₂ Ψ hΨ)), hkw Ψ (hs₂ Ψ hΨ), word_gpow hdist, mul_assoc,
+          ofK_gpow_add, hed]
+      refine FAt.bind (FAt.modify rfl rfl rfl fun hc' => hc'.withScope
+        (fun Ψ hΨ hp => hp.insertMats fun p hp' => ?_)
+        (fun hs => { hs with mats := nmap_insert_imp hs.mats fun p hp' => ?_ }))
+        fun _ st₃ C₃ _ _ _ ⟨hC₃, hst₃⟩ => ?_
+      · rcases List.mem_append.mp hp' with hp' | hp'
+        · exact (hmats p hp').2 Ψ (hs₁ Ψ (hs₂ Ψ hΨ))
+        · obtain rfl := List.mem_singleton.mp hp'
+          exact hw Ψ hΨ
+      · rcases List.mem_append.mp hp' with hp' | hp'
+        · exact ⟨(hmats p hp').1.1, lt_of_lt_of_le (hmats p hp').1.2 (le_trans hn₁ ‹_›)⟩
+        · obtain rfl := List.mem_singleton.mp hp'
+          exact ⟨ho2, ho⟩
+      · subst hC₃ hst₃
+        exact FAt.pure ⟨ho2, ho, hlo₂.trans hlo₁, hr₂.trans hr₁, hw⟩
+
+/-! ## Return areas -/
+
+/-- **A return area placed**: the cells from `base`, below the next free one and blind to the
+constraint, get the values' words. -/
+theorem bindRunAssign_fat (vs : List V) (base : Cell) (hb : base + vs.length ≤ st.next)
+    (hbl : ∀ Ψ k w, k < vs.length → C Ψ → C (Function.update Ψ (base + k) w)) :
+    FAt ctx I C st (bindRun vs base) (fun _ C' st' => st'.next = st.next ∧ st'.rest = st.rest ∧
+      st'.scope = st.scope ∧
+      (∀ v l, st'.locs[v]? = some l → st.locs[v]? = some l ∨ v ∈ vs) ∧
+      (∀ k (hk : k < vs.length), st'.locs[vs[k]]? = some (.cell (base + k))) ∧
+      ∀ Ψ, C' Ψ → ∀ k (hk : k < vs.length), Ψ (base + k) = I.σ vs[k]) := by
+  intro hc
+  unfold bindRun
+  refine wp_mono (bindRun_wp (ctx := ctx) base vs 0 st) fun _ st₁ ⟨he, hg, hnew, hk⟩ => ?_
+  have hs : st₁.scope = st.scope := (congrArg St.scope he).trans rfl
+  have hr : st₁.rest = st.rest := (congrArg St.rest he).trans rfl
+  have ho : st₁.out = st.out := (congrArg St.out he).trans rfl
+  have hn : st₁.next = st.next := (congrArg St.next he).trans rfl
+  refine ⟨RunC I C vs base, ⟨runC_sat hbl hc.sat, by rw [hn]; exact runC_blind hc.blind hb,
+    fun Ψ hΨ => by rw [hs]; exact hc.pools Ψ hΨ.1, by rw [hs, hn]; exact hc.cells⟩,
+    fun _ h => h.1, by rw [hn], hg, ⟨[], by simp [ho], fun _ _ h => nomatch h⟩, hn, hr, hs, hnew,
+    fun k hk' => by simpa using hk k hk', fun Ψ h => h.2⟩
+
 end Prims
 
 end
