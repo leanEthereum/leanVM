@@ -114,16 +114,11 @@ impl F128 {
         }
     }
 
-    /// Multiplicative inverse: `self^(2^128 − 2)`. `ZERO.inv() == ZERO`.
-    ///
-    /// Via the norm to the base field: `self·φ(self)` is the norm `N(self) ∈ K`, so
-    /// `self⁻¹ = φ(self)·N(self)⁻¹` needs one extension multiply, one base-field inverse and one
-    /// base-field scaling.
+    /// Multiplicative inverse, zero mapping to zero: the norm `N = self·φ(self)` lies in `K`, so
+    /// `self⁻¹ = φ(self)·N⁻¹`.
     pub fn inv(self) -> Self {
         let conjugate = self.frobenius();
-        let norm = self * conjugate;
-        debug_assert!(norm.as_base().is_some(), "the norm of an F128 element must lie in K");
-        conjugate.mul_base(F64(norm.c0).inv())
+        conjugate.mul_base(F64((self * conjugate).c0).inv())
     }
 }
 

@@ -15,8 +15,8 @@ use gf2_64::R64;
 pub use gf2_64x2::{F128, F128Unreduced};
 pub use lanes::{Acc8, F64x8, F128x8, clmul8_low};
 
-/// Multiply by `x = g` in `K`: a shift, and a fold of bit 64 by `x^64 = x^4 + x^3 + x + 1`.
-/// `const` so table constants (`g^k` separators, opcodes) evaluate at compile time.
+/// Multiply by `x = g` in `K`: a shift, and a fold of bit 64 by `x^64 = x^4 + x^3 + x + 1`. `const` for tables of
+/// `g^k` built at compile time.
 #[inline]
 pub const fn mul_by_g(a: F64) -> F64 {
     let carry = a.0 >> 63;
@@ -35,8 +35,7 @@ pub const fn div_by_g(a: F64) -> F64 {
     })
 }
 
-/// `[x^0, x^1, …, x^{n-1}]`: the weights of a random linear combination batched
-/// with the powers of one challenge, rather than `n` independent ones.
+/// `[x^0, x^1, …, x^{n-1}]`: the weights of a random linear combination batched with the powers of one challenge.
 pub fn powers(x: F128, n: usize) -> Vec<F128> {
     let mut out = Vec::with_capacity(n);
     let mut p = F128::ONE;
@@ -53,17 +52,15 @@ pub fn g_powers(n: usize) -> Vec<F64> {
     parallel::map_collect(n, |i| g_pow32_by_lookup(i as u32))
 }
 
-/// `g^i = x^i` in the monomial basis of `K` by square-and-multiply (`O(log i)`):
-/// domain separators, opcodes, and the g-power encoding of index `i` (§sec:vm).
+/// `g^i = x^i` in the monomial basis of `K` by square-and-multiply: domain separators, opcodes, and the g-power
+/// encoding of index `i` (§sec:vm).
 #[inline]
 pub fn g_pow(i: usize) -> F64 {
     F64::G.pow(i as u128)
 }
 
-/// `g^i` for a `u32` exponent, from two `2^16`-entry tables built once: `i` splits as
-/// `hi·2^16 + lo`, so a small exponent is one load and any other one more load and a
-/// product. Unlike a table grown to the exponent, the cost says nothing about `i`, which
-/// is what keeps an operand's magnitude out of the work its program costs.
+/// `g^i` for a `u32` exponent, from two `2^16`-entry tables built once: `i` splits as `hi·2^16 + lo`, so a small
+/// exponent is one load and any other one more load and a product, whatever its magnitude.
 pub fn g_pow32_by_lookup(i: u32) -> F64 {
     const LOG_SPLIT: u32 = 16;
     const SPAN: usize = 1 << LOG_SPLIT;
@@ -90,9 +87,8 @@ pub fn g_pow32_by_lookup(i: u32) -> F64 {
     }
 }
 
-/// MLE of the index column `[g^0, …, g^{2^n−1}]` over the `n`-variable cube,
-/// evaluated at an `E`-point: `∏_k (1 + ζ_k·(1 + g^{2^k}))` in `O(n)` (§sec:idxcol).
-/// The `g^{2^k}` factors are `K`-constants, so each term is one mixed product.
+/// MLE of the index column `[g^0, …, g^{2^n−1}]` over the `n`-variable cube, evaluated at an `E`-point:
+/// `∏_k (1 + ζ_k·(1 + g^{2^k}))` (§sec:idxcol), one mixed product per term.
 pub fn index_mle(zeta: &[F128]) -> F128 {
     let mut acc = F128::ONE;
     let mut g2k = F64::G; // g^{2^0} = g
@@ -107,8 +103,8 @@ pub fn index_mle(zeta: &[F128]) -> F128 {
 mod tests {
     use super::*;
 
-    /// The split table against the square-and-multiply it replaces, at both sides of the
-    /// `2^16` boundary and at the ends of the operand range.
+    /// The split table against square-and-multiply, at both sides of the `2^16` boundary and at the ends of the
+    /// operand range.
     #[test]
     fn g_pow32_matches_square_and_multiply() {
         const SPLIT: u32 = 1 << 16;

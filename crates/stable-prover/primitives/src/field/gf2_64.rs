@@ -1,7 +1,7 @@
 // CREDIT: https://github.com/binius-zk/binius64, Apache-2.0.
 //! The base field `K = GF(2)[x] / (x^64 + x^4 + x^3 + x + 1)`, in which `x` has order `2^64 - 1`.
 //!
-//! A product is one carry-less 64x64 multiplication ([`mul_wide`]) followed by a reduction ([`reduce`]).
+//! A product is one carry-less 64x64 multiplication ([`mul_wide`]) followed by a reduction (`reduce`).
 
 use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, Mul, MulAssign};
@@ -9,7 +9,7 @@ use core::ops::{Add, AddAssign, Mul, MulAssign};
 pub use super::lanes::mul_wide;
 
 /// Reduction constant of the base field: `x^64 = x^4 + x^3 + x + 1 = 0x1B`.
-pub const R64: u64 = 0x1B;
+pub(crate) const R64: u64 = 0x1B;
 
 /// A GF(2^64) element; bit i = coefficient of x^i.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -147,7 +147,7 @@ impl<'a> Product<&'a F64> for F64 {
 ///
 /// The two folds merge into one because the truncated map `f` is GF(2)-linear.
 #[inline]
-pub const fn reduce(p: u128) -> u64 {
+pub(crate) const fn reduce(p: u128) -> u64 {
     let (lo, hi) = (p as u64, (p >> 64) as u64);
     let spill = (hi >> 63) ^ (hi >> 61) ^ (hi >> 60);
     let v = hi ^ spill;

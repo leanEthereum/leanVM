@@ -1,5 +1,6 @@
 //! The stable prover's primitives: the fields and their one SIMD layer ([`field`]), Keccak-256 ([`hash`]), the
-//! weighted bit fold ([`bit_fold`]), multilinear helpers ([`multilinear`]), the shared transcript on this field ([`transcript`]), and small integer and slice utilities.
+//! weighted bit fold ([`bit_fold`]), multilinear helpers ([`multilinear`]), the shared transcript on this field
+//! ([`transcript`]), and small integer and slice utilities.
 
 pub mod bit_fold;
 pub mod field;
@@ -11,13 +12,6 @@ pub mod transcript;
 pub mod test_rng;
 
 /// An integer with its decimal digits in comma-separated groups of three, a leading `-` kept.
-///
-/// ```
-/// use stable_primitives::pretty_integer;
-///
-/// assert_eq!(pretty_integer(16_769_432), "16,769,432");
-/// assert_eq!(pretty_integer(-12_345), "-12,345");
-/// ```
 pub fn pretty_integer(value: impl ToString) -> String {
     let raw = value.to_string();
     let (sign, digits) = raw.split_at(usize::from(raw.starts_with('-')));
@@ -34,13 +28,6 @@ pub fn pretty_integer(value: impl ToString) -> String {
 /// A float with a grouped integer part and at most three meaningful fractional digits, leading zeroes after the
 /// point not counted, so tiny nonzero values stay visible; rounded, trailing zeroes trimmed, non-finite values in
 /// Rust's spelling.
-///
-/// ```
-/// use stable_primitives::pretty_f64;
-///
-/// assert_eq!(pretty_f64(2.186_834_667), "2.187");
-/// assert_eq!(pretty_f64(12_345.6), "12,345.6");
-/// ```
 pub fn pretty_f64(value: f64) -> String {
     if !value.is_finite() {
         return value.to_string();

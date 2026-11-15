@@ -17,10 +17,6 @@ impl Rng {
         self.0.next_u64()
     }
 
-    pub fn bits(&mut self, n: usize) -> Vec<bool> {
-        (0..n).map(|_| self.next_u64() & 1 != 0).collect()
-    }
-
     pub fn ext(&mut self) -> F128 {
         F128::new(self.next_u64(), self.next_u64())
     }

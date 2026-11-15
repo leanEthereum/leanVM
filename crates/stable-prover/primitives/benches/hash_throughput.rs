@@ -1,6 +1,6 @@
-//! Batched Keccak-256 throughput across the thread pool, to 32-byte digests: 64-byte inputs (a
-//! Merkle node's two children) and 512-byte ones (a PCS leaf of 64 words, four permutations).
-//! The passes follow [`bench::Plan::from_env`] (`BENCH_REPEAT`, `BENCH_COOLDOWN`).
+//! Batched Keccak-256 throughput across the thread pool, to 32-byte digests: 64-byte inputs (a Merkle node's two
+//! children) and 512-byte ones (a PCS leaf of 64 words, four permutations). The passes follow
+//! [`bench::Plan::from_env`] (`BENCH_REPEAT`, `BENCH_COOLDOWN`).
 //!
 //! ```text
 //! BENCH_REPEAT=5 cargo bench -p stable_primitives --bench hash_throughput
