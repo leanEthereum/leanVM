@@ -121,8 +121,8 @@ pub enum Fault {
     NotAGPower { what: &'static str, value: F64 },
     /// A `MUL` asked to solve `a·x = c` for `x` with `a = 0`.
     BackSolveThroughZero,
-    /// The advice does not fit the program: a witness stream is missing or
-    /// exhausted, or an entry has the wrong length.
+    /// The advice does not fit the program: a witness stream is missing, given
+    /// twice or exhausted, or an entry has the wrong length.
     Witness(String),
     /// The program allocates or accesses a cell past any memory a stack can hold (`MAX_CELLS`).
     OutOfMemory,
@@ -445,7 +445,8 @@ fn hint_name(h: &RHint) -> &'static str {
 
 /// Run the program in write-once *fill* mode to produce its [`Execution`]: the final memory image and the trace, or
 /// why it has none. The public input seeds the first two memory cells `m[0], m[1]` (§sec:e2e-pi), and `witness` names
-/// the streams of the program's `hint_witness` calls, each with one entry per call, in the order they are popped.
+/// the streams of the program's `hint_witness` calls, each with one entry per call, in the order they are popped, and
+/// no two with one name.
 pub fn execute(
     program: &Program,
     witness: &[(String, Vec<Vec<F128>>)],
@@ -454,6 +455,10 @@ pub fn execute(
     let ending_pc = (program.prog.len() - 1) as u32; // last bytecode slot, g^{B-1}
     if program.main_frame >= MAX_CELLS {
         return Err(ExecError::new(program, 0, Fault::OutOfMemory));
+    }
+    if let Some(i) = (1..witness.len()).find(|&i| witness[..i].iter().any(|(name, _)| *name == witness[i].0)) {
+        let fault = Fault::Witness(format!("witness stream `{}` given twice", witness[i].0));
+        return Err(ExecError::new(program, 0, fault));
     }
     // `g^j` for the pcs, the return targets and the main frame, grown as the run reaches further.
     let mut g = GPow::new((program.prog.len() + 2).max(program.main_frame as usize));

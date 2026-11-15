@@ -11,7 +11,7 @@ pub trait Prover: 'static {
 
     /// Prove an execution of `program` on `public_input` at the code rate `2^-log_inv_rate`, or say why there is none.
     /// `witness` names the streams of its `hint_witness` calls, each with one entry per call, in the order they are
-    /// popped.
+    /// popped, and no two with one name.
     fn prove(
         program: &Program,
         witness: &[(String, Vec<Vec<E>>)],
