@@ -14,8 +14,7 @@ fiat_shamir_prover.workspace = true
 rand = { workspace = true, optional = true }
 
 [features]
-# Test-only helpers (`test_rng`) used by this and other crates' tests.
-# Kept off the default build so `rand` stays out of the production graph.
+# `test_rng`, for the tests of this and other crates; off by default, keeping `rand` out of the build.
 test-util = ["dep:rand"]
 
 [dev-dependencies]
