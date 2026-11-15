@@ -168,6 +168,7 @@ theorem pathVals_match {σ : Val} {x : V} {arms : List (List Stmt)} {j : ℕ} (h
 placement of the `match` (`placeMatch`), with whether its arms dispatch into the next one. -/
 theorem match_pre (hI : I.Ok) {x : V} {arms : List (List Stmt)} {rest : List Stmt}
     {C : (ℕ → E) → Prop} {st : St} {sc s₀ : SSt} {R : Unit → ((ℕ → E) → Prop) → St → Prop}
+    {g : Unit → P Unit}
     (hinv : WInv ctx I C st sc) (h₀ : flushEdge ctx.retCells sc = .ok s₀)
     (hf : ∀ (b : Bool) (st₂ : St) (C₂ : (ℕ → E) → Prop), st.next ≤ st₂.next →
       COk I C₂ st₂.next st₂.scope st₂.locs → EmitsW I C₂ st st₂ → PK st st₂ →
@@ -177,8 +178,8 @@ theorem match_pre (hI : I.Ok) {x : V} {arms : List (List Stmt)} {rest : List Stm
       (∀ v, st₂.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf (flushSeg st.rest)) →
       st₂.chainIn = none → st₂.lazy = none →
       FBAt ctx I C₂ st₂ (placeMatch x arms.length rest none b
-        (fun base exit => placeArms arms 0 arms.length base exit) >>= fun _ => endStmt) R) :
-    FBAt ctx I C st (placeStmt (.match_ x arms) rest >>= fun _ => endStmt) R := by
+        (fun base exit => placeArms arms 0 arms.length base exit) >>= g) R) :
+    FBAt ctx I C st (placeStmt (.match_ x arms) rest >>= g) R := by
   obtain ⟨hlf, hfl₀⟩ := flushEdge_ok h₀
   have hfl : flushS ctx.retCells st.rest sc.live sc.retDone = .ok s₀ := by
     rw [← hinv.rest]; exact hfl₀
@@ -509,6 +510,163 @@ theorem head_join (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = true
           exact ⟨b1, by rw [hn']; exact lt_of_lt_of_le b2 (le_trans hn₂S hn₈),
             fun Ψ hΨ => b3 Ψ (hs₇ Ψ (hs₈ Ψ hΨ))⟩
       exact (hxrw.append hrw).anti fun v hv => by simpa using pathVals_match hj hsel v hv
+
+/-- **A statement, then the rest of its block**, the statement's outcome given for its own run
+(`BlockW.cons` with the statement's lemma at one state). -/
+theorem cons_at (hmono : PlaceMono ctx) (hnew : PlaceNew ctx) {s : Stmt} {rest tl : List Stmt}
+    (hfa : FaAfter I.σ s rest) (h₂ : BlockW Γ Ag cl ctx I (placeBlock rest) rest tl)
+    {C : (ℕ → E) → Prop} {st₀ st : St} {sc₁ sc'' : SSt} {i₀ p₀ : ℕ} {o : Out} {m : P Unit}
+    (hsc : scopeBlock ctx.retCells rest sc₁ = .ok sc'') (hw : walk I.σ (s :: rest) = o)
+    (hns : o ≠ .stuck) (hes : ∀ e ∈ outEs o, e ∈ I.es)
+    (hcl : ∀ j < (calls (outEs o)).length, cl[i₀ + j]? = (calls (outEs o))[j]?)
+    (h₁ : ∀ o₁, walk1 I.σ s = o₁ → o₁ ≠ .stuck → (∀ e ∈ outEs o₁, e ∈ I.es) →
+      (∀ j < (calls (outEs o₁)).length, cl[i₀ + j]? = (calls (outEs o₁))[j]?) →
+      FBAt ctx I C st (m >>= fun _ => endStmt) fun _ C' st' =>
+        BlockOut Γ Ag cl ctx I st₀ sc₁ [s] (rest ++ tl) o₁ i₀ p₀ C' st') :
+    FBAt ctx I C st ((m >>= fun _ => endStmt) >>= fun _ => placeBlock rest) fun _ C' st' =>
+      BlockOut Γ Ag cl ctx I st₀ sc'' (s :: rest) tl o i₀ p₀ C' st' := by
+  rw [walk] at hw
+  cases ho₁ : walk1 I.σ s with
+  | stuck =>
+    rw [ho₁] at hw
+    exact absurd hw.symm (by simpa [Out.seq] using hns)
+  | ret es₁ vs =>
+    rw [ho₁] at hw
+    simp only [Out.seq] at hw
+    subst hw
+    refine FBAt.mono (FBAt.bind_dead (Q := fun st₁ _ st₂ => (st₁.chainIn = none →
+        st₂.chainIn = none ∧ ∃ blk, st₂.out.toList = st₁.out.toList ++ blk) ∧
+        ((st₁.lazy = none → ∀ v, st₂.locs[v]? ≠ none → st₁.locs[v]? ≠ none ∨
+          v ∈ allocsOf st₁.rest ∨ ∃ run, Atom.frameAddr v run ∈ atomsIn rest) ∧
+          (∀ v ∈ allocsOf st₂.rest, v ∈ allocsOf st₁.rest) ∧
+          ∀ x ∈ st₁.tables.shared, x ∈ st₂.tables.shared))
+      (FBAt.and_wp (h₁ _ ho₁ (by simp) hes hcl) (end_lazy _ st)) fun _ st₁ a s h =>
+        let ⟨h1, h2, h3⟩ := hmono rest st₁ a s h
+        ⟨h1, h2, h3, hnew rest st₁ a s h⟩) ?_
+    rintro _ C' st₂ - - - ⟨_, st₁, ⟨⟨-, hc₁, hw₁⟩, hlz⟩, ⟨hq, hnw, hrr, htb⟩, hn₂, hl₂⟩
+    obtain ⟨hc₂, blk₂, ho₂⟩ := hq hc₁
+    refine ⟨(fun _ h => nomatch h), hc₂, fun hfin => ?_⟩
+    obtain ⟨blk₁, ho₁', hb₁, hrw⟩ := hw₁ (hfin.back hn₂ hl₂ ho₂ htb)
+    have hvs := placeNew_vs hfa (hnw hlz)
+    rw [ho₁] at hvs
+    refine ⟨blk₁ ++ blk₂, by rw [ho₂, ho₁', List.append_assoc], BlkW.append_ret hb₁, ?_⟩
+    rw [pathVals_ret ho₁]
+    exact hrw.grow (Stronger.refl _) hn₂ hl₂ hvs hrr
+  | fall es₁ =>
+    rw [ho₁] at hw
+    simp only [Out.seq] at hw
+    have hns₂ : walk I.σ rest ≠ .stuck := fun h => hns (by rw [← hw, h]; rfl)
+    have hes' : outEs o = es₁ ++ outEs (walk I.σ rest) := by rw [← hw, outEs_pre hns₂]
+    have hc' : calls (outEs o) = calls es₁ ++ calls (outEs (walk I.σ rest)) := by
+      rw [hes', calls_append']
+    refine FBAt.bind_if (FinAt Γ I Ag p₀)
+      (Q := fun st₁ _ st₂ => (st₁.chainIn = none →
+        st₂.chainIn = none ∧ ∃ blk, st₂.out.toList = st₁.out.toList ++ blk) ∧
+        ∀ x ∈ st₁.tables.shared, x ∈ st₂.tables.shared)
+      (h₁ _ ho₁ (by simp)
+      (fun e he => hes e (by rw [hes']; exact List.mem_append_left _ he))
+      (fun j hj => by
+        rw [hcl j (by rw [hc', List.length_append]; simp only [outEs] at hj; omega), hc']
+        simp only [outEs] at hj ⊢
+        exact List.getElem?_append_left hj))
+      (fun _ st₁ a s h =>
+        let ⟨h1, h2, h3⟩ := hmono rest st₁ a s h
+        ⟨h1, h2, h3, (hnew rest st₁ a s h).2.2⟩)
+      (fun _ _ _ hr hF => (hr.1 es₁ rfl hF).cok)
+      (fun _ st₁ C₁ hs₁ _ _ ⟨hw₁, _, hb₁⟩ hF => ?_)
+      (fun _ C₁ st₁ _ st₂ ⟨_, hc₁, _⟩ hF hn₂ hl₂ ⟨hq, htb⟩ => by
+        obtain ⟨hc₂, blk, ho⟩ := hq hc₁
+        exact ⟨fun _ _ hF₂ => absurd (hF₂.back hn₂ hl₂ ho htb) hF, hc₂,
+          fun hF₂ => absurd (hF₂.back hn₂ hl₂ ho htb) hF⟩)
+    have hW₁ := hw₁ es₁ rfl hF
+    refine FBAt.mono (FBAt.and_wp (h₂ C₁ st₁ sc₁ sc'' (i₀ + (calls es₁).length) p₀ _ hsc rfl hns₂
+      (fun e he => hes e (by rw [hes']; exact List.mem_append_right _ he))
+      (fun j hj => by
+        rw [Nat.add_assoc, hcl _ (by rw [hc', List.length_append]; omega), hc',
+          List.getElem?_append_right (by omega)]
+        simp) hW₁) (hnew rest st₁)) ?_
+    rintro _ C₂ st₂ hs₂ hn₂ hl₂ ⟨⟨hw₂, hc₂, hb₂⟩, hnw, hrr, htb⟩
+    refine ⟨fun es he hF₂ => ?_, hc₂, fun hfin => ?_⟩
+    · obtain ⟨es₂, h⟩ : ∃ es₂, walk I.σ rest = .fall es₂ := by
+        cases h : walk I.σ rest with
+        | fall es₂ => exact ⟨es₂, rfl⟩
+        | ret es₂ vs => rw [← hw, h] at he; nomatch he
+        | stuck => exact absurd h hns₂
+      exact hw₂ es₂ h hF₂
+    · obtain ⟨blk₂, ho₂, hb₂', hrw₂⟩ := hb₂ hfin
+      obtain ⟨blk₁, ho₁', hb₁', hrw₁⟩ := hb₁ (hfin.back hn₂ hl₂ ho₂ htb)
+      refine ⟨blk₁ ++ blk₂, by rw [ho₂, ho₁', List.append_assoc], ?_, ?_⟩
+      · rw [← hw]
+        rw [ho₁', bsize_append, ← Nat.add_assoc] at hb₂'
+        exact BlkW.append_fall (hb₁'.mono hs₂) hb₂'
+      · rw [← hw]
+        have hvs := placeNew_vs hfa (hnw hW₁.lazy)
+        rw [ho₁] at hvs
+        exact ((hrw₁.grow hs₂ hn₂ hl₂ hvs hrr).append hrw₂).anti (pathVals_fall ho₁ hns₂)
+
+/-- **A `match` whose arms dispatch into the next** (the head of a chain of two or more stages),
+from the state after its edge flush, with the rest of its block: the open statement `matchW_of`
+takes. -/
+def ChainHeadW (Good : List Stmt → Prop) : Prop :=
+  ∀ x arms rest tl, Good (.match_ x arms :: rest) →
+    BlockIH Γ Ag cl ctx I Good (.match_ x arms :: rest) →
+  ∀ (C C₂ : (ℕ → E) → Prop) (st st₂ : St) (sc s₀ s₁ sc' sc'' : SSt) (i₀ p₀ : ℕ) (o : Out),
+    WInv ctx I C st sc → flushEdge ctx.retCells sc = .ok s₀ → s₀.live.contains x = true →
+    scopeArms ctx.retCells arms s₀ s₀.retDone = .ok s₁ → expectS isEmit "a match" s₁ = .ok sc' →
+    scopeBlock ctx.retCells rest sc' = .ok sc'' →
+    walk I.σ (.match_ x arms :: rest) = o → o ≠ .stuck → (∀ e ∈ outEs o, e ∈ I.es) →
+    (∀ k < (calls (outEs o)).length, cl[i₀ + k]? = (calls (outEs o))[k]?) →
+    st.next ≤ st₂.next → COk I C₂ st₂.next st₂.scope st₂.locs → EmitsW I C₂ st st₂ →
+    PK st st₂ → st₂.rest = s₀.rest → st₂.rest.length ≤ ctx.fuel →
+    VW I C₂ st₂ (fun v => s₀.live.contains v = true) →
+    (s₀.retDone = false → RetBlind ctx C₂) →
+    (∀ v, st₂.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf (flushSeg st.rest)) →
+    st₂.chainIn = none → st₂.lazy = none →
+    FBAt ctx I C₂ st₂ (placeMatch x arms.length rest none true
+        (fun base exit => placeArms arms 0 arms.length base exit) >>= fun _ =>
+          endStmt >>= fun _ => placeBlock rest)
+      fun _ C' st' => BlockOut Γ Ag cl ctx I st sc'' (.match_ x arms :: rest) tl o i₀ p₀ C' st'
+
+theorem sizeOf_arm_lt {x : V} {arms : List (List Stmt)} {rest a : List Stmt} (h : a ∈ arms) :
+    sizeOf a < sizeOf (Stmt.match_ x arms :: rest) := by
+  have := List.sizeOf_lt_of_mem h
+  simp only [List.cons.sizeOf_spec, Stmt.match_.sizeOf_spec]
+  omega
+
+/-- **A `match` on the path** (`MatchW`): an unchained one by `head_join` and the block lemma of
+the rest (`cons_at`), a chained one by `ChainHeadW`. -/
+theorem matchW_of {Good : List Stmt → Prop} (hmono : PlaceMono ctx) (hnew : PlaceNew ctx)
+    (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0)
+    (hAg : AgOwn I Ag) (hkw : ∀ k, I.kw k = kwOf Γ k)
+    (hlocB : ∀ q, q ≤ I.ops.length → kwOf Γ (.local q) = Γ.tgt q)
+    (hsub : ∀ x arms rest, Good (.match_ x arms :: rest) → (∀ a ∈ arms, Good a) ∧ Good rest)
+    (hfa : ∀ s rest, Good (s :: rest) → FaAfter I.σ s rest)
+    (hu : ∀ x arms rest, Good (.match_ x arms :: rest) → x ∉ I.tmps)
+    (hafa : ∀ x arms rest, Good (.match_ x arms :: rest) → ∀ j (hj : j < arms.length),
+      ∀ v ∈ pathVals I.σ arms[j] (walk I.σ arms[j]), ∀ run,
+        Atom.frameAddr v run ∉ armsAtoms (arms.drop (j + 1)))
+    (hin : InBlockOf Γ Ag cl ctx I) (hch : ChainHeadW (Γ := Γ) (Ag := Ag) (cl := cl) (ctx := ctx) (I := I) Good) :
+    MatchW Γ Ag cl ctx I Good := by
+  intro x arms rest tl hg ih C st sc sc'' i₀ p₀ o hsc hw hns hes hcl hinv
+  rw [scopeBlock] at hsc
+  split at hsc
+  · cases hsc
+  next sc' hsc₁ =>
+  obtain ⟨s₀, s₁, h₀, hx, hsa, hem⟩ := scopeMatch_inv hsc₁
+  obtain ⟨harms, hrest⟩ := hsub x arms rest hg
+  have hin' : ∀ j (hj : j < arms.length), InBlockW Γ Ag cl ctx I arms[j] := fun j hj =>
+    hin _ fun tl' => ih _ (harms _ (List.getElem_mem hj)) (sizeOf_arm_lt (List.getElem_mem hj)) tl'
+  rw [placeBlock]
+  refine match_pre hI hinv h₀ fun b st₂ C₂ hn₂ hc₂ hE₂ hpk₂ hr₂ hf₂ hvw₂ hrb₂ hloc₂ hch₂ hz₂ => ?_
+  cases b
+  · have := cons_at (m := placeMatch x arms.length rest none false
+        (fun base exit => placeArms arms 0 arms.length base exit)) (st₀ := st) (p₀ := p₀) hmono hnew (hfa _ _ hg)
+      (ih rest hrest (by simp) tl) hsc hw hns hes hcl fun o₁ ho₁ hns₁ hes₁ hcl₁ =>
+        head_join hok hI hmain hAg hkw hlocB (hu x arms rest hg) hin' (hafa x arms rest hg) hinv h₀
+          hx hsa hem ho₁ hns₁ hes₁ hcl₁ hn₂ hE₂ hpk₂ hr₂ hf₂ hvw₂ hrb₂ hloc₂ hch₂ hz₂
+    rwa [bind_assoc] at this
+  · exact hch x arms rest tl hg ih C C₂ st st₂ sc s₀ s₁ sc' sc'' i₀ p₀ o hinv h₀ hx hsa hem hsc hw
+      hns hes hcl hn₂ hc₂ hE₂ hpk₂ hr₂ hf₂ hvw₂ hrb₂ hloc₂ hch₂ hz₂
 
 end Head
 
