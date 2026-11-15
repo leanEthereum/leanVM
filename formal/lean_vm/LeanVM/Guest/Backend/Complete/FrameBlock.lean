@@ -132,13 +132,14 @@ free cell and the places growing, the result under the new constraint and state.
 def FBAt {α : Type} (ctx : Ctx) (I : Inst) (C : (ℕ → E) → Prop) (st : St) (m : P α)
     (R : α → ((ℕ → E) → Prop) → St → Prop) : Prop :=
   COk I C st.next st.scope st.locs →
-  wpP m ctx st fun a st' => ∃ C', COk I C' st'.next st'.scope st'.locs ∧ Stronger C' C ∧
+  wpP m ctx st fun a st' => ∃ C', (∃ Ψ, C' Ψ) ∧ Blind C' st'.next ∧ Stronger C' C ∧
     st.next ≤ st'.next ∧ LocsLe st.locs st'.locs ∧ R a C' st'
 
 /-- **The block lemma's statement**: placing the core block `ss` (followed by `tl`) on the path
-of the instance, in lockstep with the scope walk from `s` to `s'`, keeps the invariant and lays
-statements whose words are `BlkW` (once the final placement extends the state reached and has
-their instructions). -/
+of the instance, in lockstep with the scope walk from `s` to `s'`, keeps the invariant if the
+path falls through it (after a return the rest is off the path: only the constraint's
+satisfiability and blindness are kept), and lays statements whose words are `BlkW` (once the
+final placement extends the state reached and has their instructions). -/
 def BlockW {κ₀ : ℕ} (Γ : Site κ₀) (Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) →
     MemoryImage κ → Prop) (cl : List Call) (ctx : Ctx) (I : Inst) (m : P Unit)
     (ss tl : List Stmt) : Prop :=
@@ -146,7 +147,7 @@ def BlockW {κ₀ : ℕ} (Γ : Site κ₀) (Ag : Val → (ℕ → E) → (ℕ �
     scopeBlock ctx.retCells ss s = .ok s' → walk I.σ ss = o → o ≠ .stuck →
     (∀ e ∈ outEs o, e ∈ I.es) → (∀ j < (calls (outEs o)).length, cl[i₀ + j]? = (calls (outEs o))[j]?) →
     WInv ctx I C st s →
-    FBAt ctx I C st m fun _ C' st' => WInv ctx I C' st' s' ∧
+    FBAt ctx I C st m fun _ C' st' => (∀ es, o = .fall es → WInv ctx I C' st' s') ∧
       ∃ blk, st'.out.toList = st.out.toList ++ blk ∧
         (Fits I st' → BlkW Γ I Ag cl C' blk ss tl o i₀)
 
@@ -308,11 +309,13 @@ theorem FAt.toBlk (hok : OpOK Γ I Ag cl) {ctx : Ctx} {C : (ℕ → E) → Prop}
     {m : P α} {R : α → ((ℕ → E) → Prop) → St → Prop} {ss tl : List Stmt} {es : List Ev}
     {i₀ : ℕ} (hss : ctrlSplit (ss ++ tl) = ctrlSplit tl) (hc : calls es = [])
     (h : FAt ctx I C st m R) :
-    FBAt ctx I C st m fun a C' st' => R a C' st' ∧ ∃ blk, st'.out.toList = st.out.toList ++ blk ∧
-      (Fits I st' → BlkW Γ I Ag cl C' blk ss tl (.fall es) i₀) := by
+    FBAt ctx I C st m fun a C' st' => COk I C' st'.next st'.scope st'.locs ∧ R a C' st' ∧
+      ∃ blk, st'.out.toList = st.out.toList ++ blk ∧
+        (Fits I st' → BlkW Γ I Ag cl C' blk ss tl (.fall es) i₀) := by
   intro hc0
   refine wp_mono (h hc0) fun a st' ⟨C', hcok, hs, hn, hl, ⟨ops, ho, hops⟩, hr⟩ =>
-    ⟨C', hcok, hs, hn, hl, hr, ops, ho, fun hfit => ⟨fun _ => [], fun _ => by simp [outEs, hc],
+    ⟨C', hcok.sat, hcok.blind, hs, hn, hl, hcok, hr, ops, ho, fun hfit => ⟨fun _ => [],
+      fun _ => by simp [outEs, hc],
       fun Ψ hΨ σ' hσ kh cs pos ks next kj kret khalt hbo hcs _ hk => ?_⟩⟩
   refine wLc_ops hok hΨ hσ kh ops (hops hfit fun _ o hm => hbo o (op_mem_blockOps ops pos hm))
     pos hbo cs ks next kj kret khalt ?_
@@ -327,29 +330,36 @@ section FB
 
 variable {ctx : Ctx} {I : Inst} {C : (ℕ → E) → Prop} {st : St}
 
+/-- An on-path action's spec, its final constraint's properties kept in the result. -/
 theorem FBAt.ofFAt {α : Type} {m : P α} {R : α → ((ℕ → E) → Prop) → St → Prop}
-    (h : FAt ctx I C st m R) : FBAt ctx I C st m R := fun hc =>
-  wp_mono (h hc) fun _ _ ⟨C', h1, h2, h3, h4, _, h6⟩ => ⟨C', h1, h2, h3, h4, h6⟩
+    (h : FAt ctx I C st m R) :
+    FBAt ctx I C st m fun a C' st' => COk I C' st'.next st'.scope st'.locs ∧ R a C' st' :=
+  fun hc => wp_mono (h hc) fun _ _ ⟨C', h1, h2, h3, h4, _, h6⟩ =>
+    ⟨C', h1.sat, h1.blind, h2, h3, h4, h1, h6⟩
 
 theorem FBAt.pure {α : Type} {a : α} {R : α → ((ℕ → E) → Prop) → St → Prop} (h : R a C st) :
     FBAt ctx I C st (Pure.pure a) R :=
-  fun hc => wp_pure.mpr ⟨C, hc, Stronger.refl C, le_rfl, LocsLe.refl _, h⟩
+  fun hc => wp_pure.mpr ⟨C, hc.sat, hc.blind, Stronger.refl C, le_rfl, LocsLe.refl _, h⟩
 
 theorem FBAt.mono {α : Type} {m : P α} {R R' : α → ((ℕ → E) → Prop) → St → Prop}
     (h : FBAt ctx I C st m R) (hr : ∀ a C' st', Stronger C' C → st.next ≤ st'.next →
       LocsLe st.locs st'.locs → R a C' st' → R' a C' st') : FBAt ctx I C st m R' := fun hc =>
-  wp_mono (h hc) fun a st' ⟨C', h1, h2, h3, h4, h6⟩ => ⟨C', h1, h2, h3, h4, hr a C' st' h2 h3 h4 h6⟩
+  wp_mono (h hc) fun a st' ⟨C', h0, h1, h2, h3, h4, h6⟩ =>
+    ⟨C', h0, h1, h2, h3, h4, hr a C' st' h2 h3 h4 h6⟩
 
+/-- Sequencing: the first action's result keeps the constraint's properties for the second. -/
 theorem FBAt.bind {α β : Type} {m : P α} {f : α → P β} {R₁ : α → ((ℕ → E) → Prop) → St → Prop}
     {R₂ : β → ((ℕ → E) → Prop) → St → Prop} (hm : FBAt ctx I C st m R₁)
+    (hR : ∀ a C' st', R₁ a C' st' → COk I C' st'.next st'.scope st'.locs)
     (hf : ∀ a st' C', Stronger C' C → st.next ≤ st'.next → LocsLe st.locs st'.locs →
       R₁ a C' st' → FBAt ctx I C' st' (f a) R₂) :
     FBAt ctx I C st (m >>= f) R₂ := by
   intro hc
   refine wp_bind.mpr fun a st₁ he b st₂ he' => ?_
-  obtain ⟨C₁, hc₁, hs₁, hn₁, hl₁, hr₁⟩ := hm hc a st₁ he
-  obtain ⟨C₂, hc₂, hs₂, hn₂, hl₂, hr₂⟩ := hf a st₁ C₁ hs₁ hn₁ hl₁ hr₁ hc₁ b st₂ he'
-  exact ⟨C₂, hc₂, hs₁.trans hs₂, le_trans hn₁ hn₂, hl₁.trans hl₂, hr₂⟩
+  obtain ⟨C₁, -, -, hs₁, hn₁, hl₁, hr₁⟩ := hm hc a st₁ he
+  obtain ⟨C₂, h0, hb, hs₂, hn₂, hl₂, hr₂⟩ :=
+    hf a st₁ C₁ hs₁ hn₁ hl₁ hr₁ (hR a C₁ st₁ hr₁) b st₂ he'
+  exact ⟨C₂, h0, hb, hs₁.trans hs₂, le_trans hn₁ hn₂, hl₁.trans hl₂, hr₂⟩
 
 theorem FBAt.get_bind {β : Type} {f : St → P β} {R : β → ((ℕ → E) → Prop) → St → Prop}
     (h : FBAt ctx I C st (f st) R) : FBAt ctx I C st (get >>= f) R :=
@@ -360,14 +370,23 @@ theorem FBAt.read_bind {β : Type} {f : Ctx → P β} {R : β → ((ℕ → E) �
   fun hc => wp_bind.mpr (wp_read.mpr (h hc))
 
 /-- **Off the path** (a branch or an arm not taken): an action that gives the scope back, moves
-the next free cell up and grows the places keeps the constraint as it is. -/
+the next free cell up and grows the places keeps the constraint as it is, pools included. -/
 theorem FBAt.offPath {α : Type} {m : P α} {Q : α → St → Prop}
     (h : wpP m ctx st fun a st' => st'.scope = st.scope ∧ st.next ≤ st'.next ∧
       LocsLe st.locs st'.locs ∧ Q a st') :
-    FBAt ctx I C st m fun a C' st' => C' = C ∧ Q a st' := fun hc =>
-  wp_mono h fun a st' ⟨hs, hn, hl, hq⟩ =>
-    ⟨C, ⟨hc.sat, hc.blind.mono hn, fun Ψ hΨ => by rw [hs]; exact (hc.pools Ψ hΨ).grow hl,
-      by rw [hs]; exact hc.cells.mono hn⟩, Stronger.refl C, hn, hl, rfl, hq⟩
+    FBAt ctx I C st m fun a C' st' => C' = C ∧ COk I C st'.next st'.scope st'.locs ∧ Q a st' :=
+  fun hc => wp_mono h fun a st' ⟨hs, hn, hl, hq⟩ =>
+    ⟨C, hc.sat, hc.blind.mono hn, Stronger.refl C, hn, hl, rfl,
+      ⟨hc.sat, hc.blind.mono hn, fun Ψ hΨ => by rw [hs]; exact (hc.pools Ψ hΨ).grow hl,
+        by rw [hs]; exact hc.cells.mono hn⟩, hq⟩
+
+/-- **After the path returned**: whatever the rest places, the constraint stays as it is
+(satisfiable, blind from the next free cell on). -/
+theorem FBAt.dead {α : Type} {m : P α} {Q : α → St → Prop}
+    (h : wpP m ctx st fun a st' => st.next ≤ st'.next ∧ LocsLe st.locs st'.locs ∧ Q a st') :
+    FBAt ctx I C st m fun a C' st' => C' = C ∧ Q a st' :=
+  fun hc => wp_mono h fun _ _ ⟨hn, hl, hq⟩ =>
+    ⟨C, hc.sat, hc.blind.mono hn, Stronger.refl C, hn, hl, rfl, hq⟩
 
 end FB
 
