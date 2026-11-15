@@ -18,19 +18,20 @@ impl isa::Prover for StableProver {
         cpu::Program::from(program)
     }
 
-    fn set_witness(program: &mut cpu::Program, name: &str, entries: Vec<Vec<E>>) {
-        let entries = entries
-            .into_iter()
-            .map(|entry| entry.into_iter().map(from_scalar).collect());
-        program.set_witness(name, entries.collect());
-    }
-
     fn prove(
         program: &cpu::Program,
+        witness: &[(String, Vec<Vec<E>>)],
         public_input: [E; 2],
         log_inv_rate: usize,
     ) -> Result<(verifier::Proof, isa::Stats), String> {
-        cpu::prove(program, public_input.map(from_scalar), log_inv_rate).map_err(|e| e.to_string())
+        let mut program = program.clone();
+        for (name, entries) in witness {
+            let entries = entries
+                .iter()
+                .map(|entry| entry.iter().copied().map(from_scalar).collect());
+            program.set_witness(name.as_str(), entries.collect());
+        }
+        cpu::prove(&program, public_input.map(from_scalar), log_inv_rate).map_err(|e| e.to_string())
     }
 
     fn map_collect<T: Send>(n: usize, f: impl Fn(usize) -> T + Sync) -> Vec<T> {

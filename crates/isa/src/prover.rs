@@ -6,7 +6,7 @@ use verifier::E;
 
 /// A prover of ISA programs, and the thread pool and field kernels it brings for the work around a proof.
 pub trait Prover: 'static {
-    /// A program assembled for this prover, with the witness streams it runs on.
+    /// A program assembled for this prover.
     type Program: Clone + Send + Sync + 'static;
 
     /// Start the prover's thread pool. Call it before anything below; a second call does nothing.
@@ -15,12 +15,12 @@ pub trait Prover: 'static {
     /// `program` as this prover runs it. Costly (it hashes the bytecode into the Fiat-Shamir IV): assemble once.
     fn assemble(program: CompiledProgram) -> Self::Program;
 
-    /// Supply the entries of the witness stream `name`, one per `hint_witness` call, in the order they are popped.
-    fn set_witness(program: &mut Self::Program, name: &str, entries: Vec<Vec<E>>);
-
     /// Prove an execution of `program` on `public_input` at the code rate `2^-log_inv_rate`, or say why there is none.
+    /// `witness` names the streams of its `hint_witness` calls, each with one entry per call, in the order they are
+    /// popped.
     fn prove(
         program: &Self::Program,
+        witness: &[(String, Vec<Vec<E>>)],
         public_input: [E; 2],
         log_inv_rate: usize,
     ) -> Result<(verifier::Proof, Stats), String>;

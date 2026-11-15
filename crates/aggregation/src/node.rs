@@ -262,13 +262,12 @@ pub fn aggregate<P: Prover>(
         da_commitment: da_root,
     };
     let pi = public_input(&claims, &defer);
-    let mut program = assembled::<P>().clone();
     #[cfg(test)]
     if let Some(forge) = FORGE.with(|forge| forge.borrow_mut().take()) {
         forge(&mut hints);
     }
-    hints.install::<P>(&mut program);
-    let (proof, stats) = P::prove(&program, pi.map(|x| to_scalar(&x)), log_inv_rate).map_err(|error| {
+    let public_input = pi.map(|x| to_scalar(&x));
+    let (proof, stats) = P::prove(assembled::<P>(), &hints.witness(), public_input, log_inv_rate).map_err(|error| {
         tracing::debug!(%error, "proving failed");
         AggregateError::ProvingFailed
     })?;

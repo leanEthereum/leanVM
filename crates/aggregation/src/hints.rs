@@ -2,7 +2,6 @@
 
 use super::cells::{count, exponent_bytes, pack_16_bytes};
 use super::error::AggregateError;
-use isa::Prover;
 use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use lean_vm_core::cpu::to_scalar;
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
@@ -89,11 +88,13 @@ impl Hints {
         &mut entries[i]
     }
 
-    pub(super) fn install<P: Prover>(self, program: &mut P::Program) {
-        for (name, entries) in self.0 {
-            let entries = entries.iter().map(|entry| entry.iter().map(to_scalar).collect());
-            P::set_witness(program, &name, entries.collect());
-        }
+    /// The streams as [`isa::Prover::prove`] takes them.
+    pub(super) fn witness(self) -> Vec<(String, Vec<Vec<verifier::E>>)> {
+        let scalars = |entry: Vec<F128>| entry.iter().map(to_scalar).collect();
+        let streams = self.0.into_iter();
+        streams
+            .map(|(name, entries)| (name, entries.into_iter().map(scalars).collect()))
+            .collect()
     }
 }
 

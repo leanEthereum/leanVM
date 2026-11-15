@@ -43,8 +43,15 @@ fn aggregate(
         .map(|(claims, proof, _)| (claims, proof))
 }
 
-/// Run a program assembled for the stable prover.
-fn execute(program: &lean_vm_core::cpu::Program, public_input: [F128; 2]) -> Result<Execution, ExecError> {
+/// Run `program` on `public_input` with the witness `hints`.
+fn run(program: &lean_vm_core::cpu::Program, hints: Hints, public_input: [F128; 2]) -> Result<Execution, ExecError> {
+    let mut program = program.clone();
+    for (name, entries) in hints.witness() {
+        let entries = entries
+            .into_iter()
+            .map(|entry| entry.into_iter().map(from_scalar).collect());
+        program.set_witness(name, entries.collect());
+    }
     program.execute(public_input)
 }
 
@@ -322,9 +329,7 @@ def main():
         hints.push("point", point.to_vec());
         hints.push("offset", vec![count(offset)]);
         hints.push("kappa", vec![count(kappa)]);
-        let mut program = guest.clone();
-        hints.install::<StableProver>(&mut program);
-        execute(&program, [expected, F128::ZERO])
+        run(&guest, hints, [expected, F128::ZERO])
     };
     let mut rng = StdRng::seed_from_u64(813);
     for mu in verifier::min_execution_stacked_log(kbc)..=verifier::MAX_STACKED_LOG {
@@ -647,9 +652,7 @@ def main():
         let mut hints = Hints::default();
         hints.push("n", vec![count(6)]);
         hints.push("signers_split", vec![count(0), body, rest]);
-        let mut program = guest.clone();
-        hints.install::<StableProver>(&mut program);
-        execute(&program, [body, rest])
+        run(&guest, hints, [body, rest])
     };
     // Six claims: no whole group, then six.
     assert!(run(count(0), count(6)).is_ok());
@@ -681,9 +684,7 @@ def main():
     let run = |lane: u64| {
         let mut hints = Hints::default();
         hints.push("w", vec![F128::new(lane, 0x0123_4567_89AB_CDEF)]);
-        let mut program = guest.clone();
-        hints.install::<StableProver>(&mut program);
-        execute(&program, [F128::ZERO, F128::ZERO])
+        run(&guest, hints, [F128::ZERO, F128::ZERO])
     };
     for lane in [0, 0b1000, 1 << 63, 0xFEDC_BA98_7654_3218] {
         assert!(run(lane).is_ok(), "{lane:#x} has its low 3 bits zero");
@@ -732,9 +733,7 @@ def main():
                 hints.push("da_symbols", cell.iter().map(|&w| F128::from(w)).collect());
             }
         }
-        let mut program = guest.clone();
-        hints.install::<StableProver>(&mut program);
-        execute(&program, hash_to_scalars(&verifier::da::digest(Some(commitment))))
+        run(&guest, hints, hash_to_scalars(&verifier::da::digest(Some(commitment))))
     };
     assert!(run(&rows).unwrap().unconstrained_reads.is_empty());
     for (position, flip) in [(0, 1), (BLOB_SYMBOLS + 5, 1 << 64)] {
@@ -981,9 +980,7 @@ def main():
         for &gap in gaps {
             hints.push("child_claim_gap", vec![gap]);
         }
-        let mut program = guest.clone();
-        hints.install::<StableProver>(&mut program);
-        execute(&program, claim_list_digest(child.iter().copied()))
+        run(&guest, hints, claim_list_digest(child.iter().copied()))
     };
     assert!(run(&[claim(0), claim(1)], &[count(0), count(0)]).is_ok());
     let back = count(1).inv();

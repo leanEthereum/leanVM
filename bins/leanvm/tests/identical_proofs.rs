@@ -67,11 +67,7 @@ fn prove<P: Prover>(
     witness: &[(String, Vec<Vec<E>>)],
 ) -> Result<verifier::Proof, String> {
     P::init();
-    let mut program = P::assemble(program.clone());
-    for (name, entries) in witness {
-        P::set_witness(&mut program, name, entries.clone());
-    }
-    P::prove(&program, public_input, 1).map(|(proof, _)| proof)
+    P::prove(&P::assemble(program.clone()), witness, public_input, 1).map(|(proof, _)| proof)
 }
 
 /// The compiler suite runs on stable alone; this runs its programs, with their annotated inputs (`# public_input:`,

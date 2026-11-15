@@ -27,7 +27,7 @@ pub fn run_fibonacci<P: Prover>(n: usize, log_inv_rate: usize, plan: Plan) {
     // Only the final measured pass of each stage is traced (see `run_aggregation`).
     let ((proof, stats), prove_time) = plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        P::prove(&program, pi, log_inv_rate).expect("the Fibonacci program proves")
+        P::prove(&program, &[], pi, log_inv_rate).expect("the Fibonacci program proves")
     });
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
