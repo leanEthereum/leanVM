@@ -112,8 +112,8 @@ impl Program {
     }
 
     /// The public [`Layout`] of a run of this program ([`layout_of`]).
-    pub fn layout(&self, log_mem: usize, rows: [usize; tables::N_TABLES], pi: [F128; 2]) -> Layout {
-        layout::layout_of(&self.bytecode_columns, log_mem, rows, pi)
+    pub fn layout(&self, log_mem: usize, rows: [usize; tables::N_TABLES]) -> Layout {
+        layout::layout_of(&self.bytecode_columns, log_mem, rows)
     }
 
     /// Where `pc` came from: `"verify_sub (line 2204)"` when the compiler left a
@@ -276,7 +276,7 @@ pub fn prove(program: &Program, public_input: [F128; 2], log_inv_rate: usize) ->
     }
     // The layout follows from the run's sizes alone, so a run too large to commit is refused before its witness.
     let log_mem = crate::log2_strict_usize(exec.mem.len());
-    let layout = program.layout(log_mem, exec.trace.row_counts(), public_input);
+    let layout = program.layout(log_mem, exec.trace.row_counts());
     if layout.shape.mu > pcs::MAX_STACKED_LOG {
         return Err(ProveError::WitnessOutOfRange {
             log_committed: layout.shape.mu,

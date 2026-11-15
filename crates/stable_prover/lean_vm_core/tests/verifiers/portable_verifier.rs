@@ -69,7 +69,6 @@ fn tampers_fail_their_check() {
         .layout(
             fixture.summary.log_memory,
             rows.try_into().expect("one row count a table"),
-            fixture.public_input,
         )
         .shape
         .mu;

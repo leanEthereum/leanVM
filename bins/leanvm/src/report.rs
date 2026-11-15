@@ -4,7 +4,7 @@
 //! renders its tree only when that span closes, so the complete trace has to be
 //! flushed above the report.
 
-pub use primitives::{pretty_f64, pretty_integer};
+use isa::pretty_f64;
 
 /// A count as a power of two, or a dash when the opcode never ran.
 pub fn pow(x: usize) -> String {

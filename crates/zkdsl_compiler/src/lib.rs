@@ -30,8 +30,8 @@ use std::fmt::Write;
 use std::sync::Arc;
 
 use field::{Base, Consts, F64, F128, as_base, g_pow};
+use isa::pretty_integer;
 use isa::{BitsDest, CompiledProgram, DerefMode, Op, OutCells, RHint};
-use primitives::pretty_integer;
 
 mod ast;
 mod field;

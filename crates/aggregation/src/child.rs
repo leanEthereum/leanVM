@@ -15,7 +15,7 @@ use primitives::field::{F64, F128};
 pub(super) fn execution_layout(kbc: usize, log_mem: usize, rows: [usize; N_TABLES]) -> Layout {
     let zeros = std::sync::Arc::new(vec![F64::ZERO; 1 << kbc]);
     let columns = std::array::from_fn(|_| zeros.clone());
-    lean_vm_core::cpu::layout::layout_of(&columns, log_mem, rows, [F128::ZERO; 2])
+    lean_vm_core::cpu::layout::layout_of(&columns, log_mem, rows)
 }
 
 /// The stacked WHIR opening of a `2^mu` stack at a rate: the verifier's config, then each level's message columns

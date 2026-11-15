@@ -1,6 +1,5 @@
-//! The public structure of a run, which the verifier rebuilds from the program, the announced sizes and the public
-//! input: the bus blocks and the stack's placements, over the verifier's column numbering. And the prover's witness
-//! build.
+//! The public structure of a run, which the verifier rebuilds from the program and the announced sizes: the bus blocks
+//! and the stack's placements, over the verifier's column numbering. And the prover's witness build.
 
 use super::*;
 use std::sync::Arc;
@@ -64,8 +63,8 @@ fn offset_coord(base: usize, c: Coord) -> Coord {
     }
 }
 
-/// The public proof structure: everything the verifier reconstructs from the program, the announced sizes, and the
-/// public input, with no witness values. The flush blocks reference columns by index ([`crate::leaf::Coord`]).
+/// The public proof structure: everything the verifier reconstructs from the program and the announced sizes, with no
+/// witness values. The flush blocks reference columns by index ([`crate::leaf::Coord`]).
 pub struct Layout {
     pub push: Vec<Block>,
     pub pull: Vec<Block>,
@@ -77,9 +76,6 @@ pub struct Layout {
     /// The stacked witness's shape: its announced `2^mu` size, plus how many lane
     /// blocks of it the prover actually commits (see [`witness::StackShape`]).
     pub shape: witness::StackShape,
-    /// Public input: the first two memory cells `m[0], m[1]` (each a 128-bit
-    /// word), bound to the committed memory at verification (§sec:e2e-pi).
-    pub pi: [F128; 2],
     pub taus: [usize; tables::N_TABLES],
     /// Rows per table the program executed, at most `2^taus[t]`: the rest are padding
     /// rows (§sec:e2e-pad).
@@ -299,15 +295,10 @@ pub(crate) fn stack_columns(columns: &BytecodeColumns) -> Vec<F64> {
 }
 
 /// The public [`Layout`] of a program's public columns `prog_cols`, the memory log-size `log_mem`, the instruction
-/// tables' row counts `rows`, and the public input `pi`. The flush blocks reference columns only by index and the
+/// tables' row counts `rows`. The flush blocks reference columns only by index and the
 /// program only through its public columns, so this needs no committed witness: prover and verifier reconstruct the
 /// same structure.
-pub fn layout_of(
-    prog_cols: &BytecodeColumns,
-    log_mem: usize,
-    rows: [usize; tables::N_TABLES],
-    pi: [F128; 2],
-) -> Layout {
+pub fn layout_of(prog_cols: &BytecodeColumns, log_mem: usize, rows: [usize; tables::N_TABLES]) -> Layout {
     let taus = table_logs(rows);
     let bytecode_size = prog_cols[0].len();
     let log_bytecode = crate::log2_strict_usize(bytecode_size);
@@ -383,7 +374,6 @@ pub fn layout_of(
         count: count_blocks,
         placements,
         shape,
-        pi,
         taus,
         rows,
     }

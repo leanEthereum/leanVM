@@ -5,10 +5,8 @@ use std::collections::HashMap;
 
 use super::hints::{BitsDest, GPow, MAX_CELLS, MAX_INDEX, QuickMap, RHint, bounded_dlog};
 use super::*;
-use primitives::{
-    field::{F64, F128},
-    pretty_f64, pretty_integer,
-};
+use isa::{pretty_f64, pretty_integer};
+use primitives::field::{F64, F128};
 
 /// A run of a program.
 pub struct Execution {

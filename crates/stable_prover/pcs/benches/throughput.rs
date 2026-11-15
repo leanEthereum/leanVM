@@ -19,9 +19,10 @@ use std::hint::black_box;
 use std::time::Instant;
 
 use bench::{Plan, Timing, env_usize};
+use isa::pretty_integer;
 use pcs::whir::MIN_LOG_INV_RATE;
 use pcs::{RingSwitchOpen, StackClaim, commit, open};
-use primitives::{field::F64, pretty_integer, test_rng::Rng};
+use primitives::{field::F64, test_rng::Rng};
 
 #[global_allocator]
 static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;

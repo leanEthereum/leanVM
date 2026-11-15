@@ -17,6 +17,7 @@ verifier.workspace = true
 [dev-dependencies]
 primitives = { package = "stable_primitives", path = "../primitives", features = ["test-util"] }
 bench.workspace = true
+isa.workspace = true
 
 [[bench]]
 name = "throughput"

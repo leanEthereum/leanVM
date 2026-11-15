@@ -1,10 +1,13 @@
 //! The leanVM instruction set, shared by the zkDSL compiler, which emits it, and both provers, which execute and prove
 //! it: the opcodes ([`Op`]), the hints a compiled program carries for its prover ([`RHint`]), and the program as the
 //! compiler hands it over ([`CompiledProgram`]). Machine words are the verifier's field elements. A prover of these
-//! programs is a [`Prover`], what the crates both provers share run on.
+//! programs is a [`Prover`], what the crates both provers share run on. And the counts they print, grouped by
+//! [`pretty_integer`] and [`pretty_f64`].
 
+mod pretty;
 mod prover;
 
+pub use pretty::{pretty_f64, pretty_integer};
 pub use prover::{Prover, Stats};
 use std::collections::HashMap;
 use verifier::{E, K};

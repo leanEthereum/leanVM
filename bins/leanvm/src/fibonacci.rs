@@ -1,9 +1,8 @@
 //! Fibonacci in the exponent: the demo benchmark (`buff[g^k] = g^{F(k)}`,
 //! recurrence `buff[i·g²] = buff[i·g] · buff[i]`).
 
-use crate::report::{pretty_f64, pretty_integer};
 use bench::Plan;
-use isa::Prover;
+use isa::{Prover, pretty_f64, pretty_integer};
 use verifier::{E, K};
 use zkdsl_compiler::{compile, parse};
 

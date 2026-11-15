@@ -3,7 +3,7 @@
 //! surfaces as a write-once conflict, and the pc is all you get).
 
 use crate::common::compile;
-use primitives::pretty_integer;
+use isa::pretty_integer;
 use zkdsl_compiler::{disassemble, parse};
 
 #[test]

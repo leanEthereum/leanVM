@@ -2,10 +2,11 @@
 //! opening of `n` random permutations, then verification. Where a pass's time goes is its span tree.
 
 use bench::{Metric, Plan, Timing, bencher_json};
+use isa::pretty_integer;
 use pcs::Committed;
 use primitives::field::{F64, F128Unreduced};
 use primitives::multilinear::eq_table;
-use primitives::{pretty_integer, test_rng::Rng, transcript::ProverState};
+use primitives::{test_rng::Rng, transcript::ProverState};
 
 use crate::keccak::LANES;
 use crate::{Openings, OutputClaim, Shape, Witness};

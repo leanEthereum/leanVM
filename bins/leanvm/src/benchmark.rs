@@ -2,10 +2,9 @@
 //! n→1 recursion step over leaves of that size (`recursion`). Aggregation accepts
 //! signature counts and a blob count; recursion accepts these counts per leaf.
 
-use crate::report::{pretty_f64, pretty_integer};
 use aggregation::{AggregateClaims, AggregateProof, OutputClaims, aggregate, signers_cache};
 use bench::{Plan, Timing};
-use isa::{Prover, Stats};
+use isa::{Prover, Stats, pretty_f64, pretty_integer};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use rand::{Rng, SeedableRng, rngs::StdRng};
 

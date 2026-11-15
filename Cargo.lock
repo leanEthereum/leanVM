@@ -13,7 +13,6 @@ dependencies = [
  "lean_sphincs",
  "lean_xmss",
  "rand",
- "stable_keccak_gkr",
  "stable_lean_vm_core",
  "stable_parallel",
  "stable_pcs",
@@ -95,6 +94,7 @@ dependencies = [
 name = "bench"
 version = "0.1.0"
 dependencies = [
+ "isa",
  "libc",
  "tikv-jemallocator",
  "tracing-forest",
@@ -334,7 +334,9 @@ dependencies = [
 name = "keccak256"
 version = "0.1.0"
 dependencies = [
+ "bench",
  "sha3",
+ "stable_parallel",
 ]
 
 [[package]]
@@ -396,7 +398,6 @@ dependencies = [
  "lean_xmss",
  "rand",
  "stable_lean_vm_core",
- "stable_primitives",
  "tracing",
  "verifier",
  "zkdsl_compiler",
@@ -572,6 +573,7 @@ version = "0.1.0"
 dependencies = [
  "bench",
  "fiat_shamir_prover",
+ "isa",
  "stable_keccak_gkr",
  "stable_parallel",
  "stable_pcs",
@@ -605,6 +607,7 @@ version = "0.1.0"
 dependencies = [
  "bench",
  "fiat_shamir_prover",
+ "isa",
  "stable_parallel",
  "stable_primitives",
  "tracing",
@@ -615,7 +618,6 @@ dependencies = [
 name = "stable_primitives"
 version = "0.1.0"
 dependencies = [
- "bench",
  "fiat_shamir_prover",
  "keccak256",
  "rand",

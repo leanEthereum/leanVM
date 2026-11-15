@@ -11,9 +11,9 @@ workspace = true
 isa.workspace = true
 keccak256.workspace = true
 verifier.workspace = true
-primitives = { package = "stable_primitives", path = "../stable_prover/primitives" }
 
 [dev-dependencies]
+primitives = { package = "stable_primitives", path = "../stable_prover/primitives" }
 fiat_shamir_prover.workspace = true
 lean_vm_core = { package = "stable_lean_vm_core", path = "../stable_prover/lean_vm_core" }
 parallel = { package = "stable_parallel", path = "../stable_prover/parallel" }
