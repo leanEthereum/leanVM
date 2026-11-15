@@ -1,7 +1,7 @@
 # The deployed WHIR fold rounds as Lean data: `lean_vm/LeanVM/Protocol/ToArkLib/Whir/AffineCombinerDeployedTable.lean`,
 # from the security search (`crates/experimental-prover/pcs/src/whir_config.rs`, `derive_config_with_log_inv_rate`) at every
-# admissible shape. The search is the parameters' derivation, not prover code: the stable prover reads the verifier's
-# table instead, so only the experimental tree keeps it, and this is the one script built against that tree.
+# admissible shape. Only the experimental tree keeps the search (the stable prover reads the verifier's table), so this
+# is the one script built against that tree.
 [package]
 name = "leanvm-whir-fold-table"
 version = "0.0.0"
