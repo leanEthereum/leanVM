@@ -51,14 +51,14 @@ def layerSt (first : ℕ) : List Atom :=
   [.load (.n (topV (weightEnd first (layOff first)) + 3)) (.n 12) 5]
 
 /-- The checker's count after the body. -/
-def layerN (first : ℕ) : ℕ := if first = 1 then 1838 else 2167
+def layerN (first : ℕ) : ℕ := if first = 1 then 1839 else 2168
 
 theorem layer_chk {first : ℕ} (hf : first < 2) :
-    Fwd.chk 15 (layerT first) = some (layerN first) := by
+    Fwd.chk 16 (layerT first) = some (layerN first) := by
   interval_cases first <;> decide +kernel
 
 theorem layer_stores {first : ℕ} (hf : first < 2) :
-    storesOf 15 (layerT first) = layerSt first := by
+    storesOf 16 (layerT first) = layerSt first := by
   interval_cases first <;> decide +kernel
 
 /-- **The honest valuation of a layer.** -/
@@ -68,14 +68,14 @@ noncomputable def layerσ (rd : Reader) (w : ℕ → E) (args : List E) (first :
 section
 variable {rd : Reader} {w : ℕ → E} {args : List E} {first : ℕ}
 
-theorem layer_good (hf : first < 2) (hl : args.length = 15) :
+theorem layer_good (hf : first < 2) (hl : args.length = 16) :
     ∀ s ∈ layerT first, GoodS rd (layerSt first) w (layerσ rd w args first) s := by
   have h := (ev_spec rd w (layerT first) args (by rw [hl]; exact layer_chk hf)).2.2
   rw [hl, layer_stores hf] at h
   exact h
 
-theorem layer_param (hf : first < 2) (hl : args.length = 15) {i : ℕ}
-    (hi : i < 15) : layerσ rd w args first (.n i) = args.getD i 0 :=
+theorem layer_param (hf : first < 2) (hl : args.length = 16) {i : ℕ}
+    (hi : i < 16) : layerσ rd w args first (.n i) = args.getD i 0 :=
   ev_params rd w (by rw [hl]; exact layer_chk hf) (by rw [hl]; exact hi)
 
 theorem layerσ_idx (v : V) : layerσ rd w args first v = layerσ rd w args first (.n v.idx) :=

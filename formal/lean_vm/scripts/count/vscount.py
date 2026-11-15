@@ -30,7 +30,7 @@ CCM = ['child_claim_list_mono_last__L%d' % k for k in range(17)]
 BIG, GROUP, GROUPS = 136, 17, 8
 # `verify_sub`'s callees with no static bound but `verify_tables` and the terminal, counted within a
 # ratio of these words.
-RB = [('verify_bus_gkr', 39767), ('verify_keccak', 56391)]
+RB = [('verify_bus_gkr', 39767), ('verify_keccak', 56404)]
 
 
 def vt_term(g):

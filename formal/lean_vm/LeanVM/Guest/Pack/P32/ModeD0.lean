@@ -25,7 +25,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `selector_tables`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨29565, 531, Fn.«selector_tables».modeSig, (.node (some [(.alloc 5 512)]) .nil .nil), .nil, .nil,
+  ⟨29577, 531, Fn.«selector_tables».modeSig, (.node (some [(.alloc 5 512)]) .nil .nil), .nil, .nil,
     false, .nil⟩
 
 end

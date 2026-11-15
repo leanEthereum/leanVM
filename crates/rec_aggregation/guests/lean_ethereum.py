@@ -2847,7 +2847,7 @@ def slice_weight(slices, top, top1, z: Const):
     return w
 
 
-def keccak_layer(fs0, fs1, fs2, fs3, fs4, p0, p1, cursor, y_g, step_g, rem_g, claim, out, iota, tabs, first: Const):
+def keccak_layer(fs0, fs1, fs2, fs3, fs4, p0, p1, cursor, y_g, step_g, rem_g, claim, out, iota, tabs, stream, first: Const):
     # One layer (verifier::keccak::verify_layer): the claim on the states after
     # a round becomes one on the states before it. A claim's position weights are
     # never written out: they are the transpose of the linear layer applied to a
@@ -3078,7 +3078,7 @@ def keccak_slot_lanes(slot, segment_point, out, first: Const, count: Const):
     return
 
 
-def verify_keccak(fs0, fs1, fs2, fs3, fs4, cursor, tau_g, chi, output_lanes, z_vals, slices, tabs):
+def verify_keccak(fs0, fs1, fs2, fs3, fs4, cursor, tau_g, chi, output_lanes, z_vals, slices, tabs, stream):
     # KECCAK validity (verifier::keccak::verify_keccak): a random claim on every segment's output,
     # KECCAK_DEPTH layers down to the committed inputs, every segment at once. The
     # last segment's output is the permutation's: the table's claims on its output
@@ -3188,9 +3188,9 @@ def verify_keccak(fs0, fs1, fs2, fs3, fs4, cursor, tau_g, chi, output_lanes, z_v
                 flipped += flips[KECCAK_IOTA_IDX[t]]
             iota += segment_tree[2 ** KECCAK_SEG_LOG - 2 + m] * flipped
         if step == 0:
-            fs0, fs1, fs2, fs3, fs4, cursor = keccak_layer(fs0, fs1, fs2, fs3, fs4, value_rate[0], value_rate[1], cursor, y_g, step_g, rem_g, claim, claim * GEN ** KC_SIZE, iota, tabs, 1)
+            fs0, fs1, fs2, fs3, fs4, cursor = keccak_layer(fs0, fs1, fs2, fs3, fs4, value_rate[0], value_rate[1], cursor, y_g, step_g, rem_g, claim, claim * GEN ** KC_SIZE, iota, tabs, stream, 1)
         else:
-            fs0, fs1, fs2, fs3, fs4, cursor = keccak_layer(fs0, fs1, fs2, fs3, fs4, 0, 0, cursor, y_g, step_g, rem_g, claim, claim * GEN ** KC_SIZE, iota, tabs, 0)
+            fs0, fs1, fs2, fs3, fs4, cursor = keccak_layer(fs0, fs1, fs2, fs3, fs4, 0, 0, cursor, y_g, step_g, rem_g, claim, claim * GEN ** KC_SIZE, iota, tabs, stream, 0)
 
     # ---- the outputs, whose instance weights are an eq already ----
     # Their position weights are a word's, so the 64 slices are only needed as
@@ -3524,6 +3524,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     stream = HeapBuf(STREAM_CAP)
     hint_witness(stream[0:STREAM_CAP], "stream")
     cursor = stream  # the proof stream, replayed word by word (advance = * g)
+    # verify_keccak and its layers take `stream` too, unread: it names, for formal/, the run their cursor reads stay in.
 
     # ---- announced layout and PCS rate (observed, then certified) ----
     # The stream announces the memory's log size and each table's row count as
@@ -3632,7 +3633,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     tau_keccak_g = dims_g[GEN ** (TABLE_KECCAK + 1)]  # the KECCAK table's certified tau
     z_vals = HeapBuf(2 * QKECCAK_VARS_CAP)
     slices = HeapBuf(BASE_FIELD_BITS)
-    fs0, fs1, fs2, fs3, fs4, cursor, keccak_word = verify_keccak(fs0, fs1, fs2, fs3, fs4, cursor, tau_keccak_g, chi, col_eval_words * GEN ** (KECCAK_OUT_POOL - N_BUS_CLAIMS), z_vals, slices, tabs)
+    fs0, fs1, fs2, fs3, fs4, cursor, keccak_word = verify_keccak(fs0, fs1, fs2, fs3, fs4, cursor, tau_keccak_g, chi, col_eval_words * GEN ** (KECCAK_OUT_POOL - N_BUS_CLAIMS), z_vals, slices, tabs, stream)
     sp = fs_cap(fs0, fs1, fs2, fs3, fs4)
 
     # ---- stacked mixed opening: ring-switch front + claim combination ----

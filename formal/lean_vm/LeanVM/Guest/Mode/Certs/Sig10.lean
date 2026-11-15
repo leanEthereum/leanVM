@@ -38,25 +38,25 @@ public section
 
 theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
   Mode.fa_cons (Mode.sigsIn_of Fn.«child_claim_list_mono».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_loop1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L10».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L11».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L9».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L8».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L14».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L13».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L14».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L8».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L12».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L16».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L15».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L11».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_loop1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L10».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L13».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_mono_last__L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil)))))))))))))))))))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«sel_partial_nibble__L3».modeSigs
     (Mode.fa_nil))
@@ -71,36 +71,36 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (Mode.sigsIn_of Fn.«opening_message__L6_L1».modeSigs
     (Mode.fa_nil))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L6_L16_L4».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L16_L4_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L16_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L16_L4_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«squeeze_point_from__L13».modeSigs
     (Mode.fa_nil))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L44_L14_L4_L2».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L14_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L14_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L14_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L73_L19_L6_L3».modeSigs
     (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L19_L6_L3_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L19_L6_L3_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».modeCert_in, rfl,
     rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L218_L21_L6_L3».modeSigs
     (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L21_L6_L3_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L21_L6_L3_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L109_L1_L6_L32_L25_L7_L0_L0_L0_L0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0».modeCert_in, rfl,
     rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L55_L24_L6_L3».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L24_L6_L3_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L24_L6_L3_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L24_L6_L3_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«da_levels__L4_L2_loop1».modeSigs
     (Mode.fa_cons (⟨_, Fn.«da_levels__L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
@@ -109,12 +109,12 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«da_levels__L512_L9_loop2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil)))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L5_L17_L5_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L17_L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L17_L5_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L17_L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L7_L16_L4_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L16_L4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L16_L4_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L16_L4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L28_L10_L4_L2_loop1».modeSigs
     (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L10_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
@@ -127,13 +127,13 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L18_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil)))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«walk_path__L24_L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0_loop0».modeCert_in,
     rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«walk_path__L24_L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L8_L25_L7_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L25_L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L25_L7_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L25_L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_nil))))))))))))))))))))))))
 
@@ -176,15 +176,15 @@ public section
 
 theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
   Mode.fa_cons (Mode.sigsIn_of Fn.«rs_eq_run».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«rs_eq_rows__L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«rs_eq_rows__L0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«rs_eq_rows__L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«rs_eq_run_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«rs_eq_rows__L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«rs_eq_rows__L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«rs_eq_rows__L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«rs_eq_rows__L6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«rs_eq_rows__L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«rs_eq_rows__L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«rs_eq_rows__L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«rs_eq_rows__L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«rs_eq_rows__L0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«rs_eq_rows__L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«rs_eq_run_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«rs_eq_rows__L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil)))))))))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«da_row_shape».modeSigs
     (Mode.fa_nil))
@@ -207,18 +207,18 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (Mode.sigsIn_of Fn.«grind_check__L23».modeSigs
     (Mode.fa_nil))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0».modeCert_in, rfl,
     rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0».modeCert_in, rfl,
     rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L7_L22_L4».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L22_L4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L22_L4_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L22_L4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1».modeSigs
     (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L6».modeCert_in, rfl, rfl, rfl⟩)
@@ -230,13 +230,13 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L16_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L16_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0».modeCert_in, rfl,
     rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L109_L24_L6_L3».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L24_L6_L3_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L24_L6_L3_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L24_L6_L3_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L55_L10_L4_L2_loop1».modeSigs
     (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L10_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
@@ -247,8 +247,8 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L4_L10_L20_L5_L1_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil)))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L3_L18_L6_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L18_L6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L18_L6_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L18_L6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L73_L17_L6_L3_loop1».modeSigs
     (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L17_L6_L3_loop1».modeCert_in, rfl, rfl, rfl⟩)
@@ -270,9 +270,9 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_nil)))
     (Mode.fa_cons (Mode.sigsIn_of
     Fn.«opening_queries__L1_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«walk_path__L12_L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L1_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0».modeCert_in,
     rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«walk_path__L12_L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«walk_path__L18_L7».modeSigs
     (Mode.fa_nil))
@@ -322,16 +322,16 @@ public section
 
 theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
   Mode.fa_cons (Mode.sigsIn_of Fn.«main».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«statement_digest».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«main_loop3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«aggregate_claims».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«main_loop4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«da_verify».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«exponent_tables».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«main_loop1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«main_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«claim_list_digest».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«main_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«main_loop2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«da_verify».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«statement_digest».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«exponent_tables».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«main_loop4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«aggregate_claims».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«main_loop3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))))))))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«eq_prefix_run__L4».modeSigs
     (Mode.fa_nil))
@@ -345,9 +345,9 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«verify_keccak_loop2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil)))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L1_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0».modeCert_in, rfl,
     rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L37_L13_L4_L2».modeSigs
     (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L13_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
@@ -362,18 +362,18 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«level_positions__L15_L23_L5_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L44_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0».modeCert_in, rfl,
     rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L8_L24_L6».modeSigs
     (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L24_L6_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L24_L6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L218_L1_L6_L32_L24_L6_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0».modeCert_in, rfl,
     rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«da_levels__L1024_L10_loop2».modeSigs
     (Mode.fa_cons (⟨_, Fn.«da_levels__L1024_L10_loop2».modeCert_in, rfl, rfl, rfl⟩)
@@ -386,12 +386,12 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L23_L5_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L14_L28_L4_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L14_L28_L4_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L28_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L14_L28_L4_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L10_L26_L2_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L26_L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L10_L26_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L26_L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of
     Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1».modeSigs
@@ -406,9 +406,9 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of
     Fn.«opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«walk_path__L18_L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».modeCert_in,
     rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«walk_path__L18_L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_nil)))))))))))))))))))))
 
@@ -470,30 +470,30 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«da_column_offsets_loop6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil)))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0».modeCert_in, rfl,
     rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L55_L14_L4_L2».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L14_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L14_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L14_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L3_L21_L3».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L21_L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L21_L3_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L21_L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L23_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».modeCert_in, rfl,
     rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L21_L11_L4_L2».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L21_L11_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L21_L11_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L21_L11_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L18_L11_L4_L2».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L18_L11_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L18_L11_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L18_L11_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«da_levels__L256_L8_loop4».modeSigs
     (Mode.fa_cons (⟨_, Fn.«da_levels__L256_L8_loop4».modeCert_in, rfl, rfl, rfl⟩)
@@ -507,9 +507,9 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L12_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil)))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«walk_path__L18_L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0».modeCert_in,
     rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«walk_path__L18_L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L73_L20_L6_L3_loop1».modeSigs
     (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L20_L6_L3_loop1».modeCert_in, rfl, rfl, rfl⟩)
@@ -518,8 +518,8 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L12_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil)))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L19_L26_L2_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L26_L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L19_L26_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L26_L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«walk_path__L12_L3».modeSigs
     (Mode.fa_nil))
@@ -565,28 +565,67 @@ public section
 
 theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
   Mode.fa_cons (Mode.sigsIn_of Fn.«open_stacked__L0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L29_L0_L4_L16_L14_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L14_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L0_L4_L16_L14_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L8_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L15_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«grind_check__L17».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L14_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L13_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L73_L1_L6_L32_L17_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L24_L0_L4_L16_L13_L7_L2_L8_L3_L1».modeCert_in, rfl, rfl,
     rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L219_L14_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L37_L0_L4_L16_L16_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L16_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L6_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L10_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L14_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L25_L0_L4_L16_L15_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«fold_final_msg__L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L15_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L10_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L10».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L6_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L13_L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L6_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L14_L16_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L13_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L14».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L15_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L17_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L73_L1_L6_L32_L17_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L10_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L33_L0_L4_L16_L13_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L14».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L15_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L17_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L13_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_round».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L15_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L17».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L14_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L29_L0_L4_L16_L14_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L8_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L10_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L27_L0_L4_L16_L12_L6_L2_L8_L3_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L11_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L14_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L33_L6_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L12_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L15».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L29_L6_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L1_L6_L32_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L28_L15_L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L14_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
@@ -596,45 +635,6 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«level_queries__L219_L1_L6_L32_L15_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L16_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L1_L6_L32_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L28_L15_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L29_L6_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L27_L0_L4_L16_L12_L6_L2_L8_L3_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L10_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L33_L6_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L12_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«grind_check__L15».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L14_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L11_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L10».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L6_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L10_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L25_L0_L4_L16_L15_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«fold_final_msg__L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_round».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L14_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L15_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L14_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L24_L0_L4_L16_L13_L7_L2_L8_L3_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L219_L14_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L0_L4_L16_L14_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L37_L0_L4_L16_L16_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L16_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L6_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L10_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))))))))))))))))))))))))))))))))))))))))))))))))))))))
     (Mode.fa_nil)
 
@@ -654,6 +654,46 @@ public section
 
 theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
   Mode.fa_cons (Mode.sigsIn_of Fn.«open_stacked__L1».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L7_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L15_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L16_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L11».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L10_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L11_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L12_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L15_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L28_L16_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L16_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L6_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L15_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L15_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L15_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L13_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_round».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L15_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L17».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L15».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
@@ -664,20 +704,19 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«opening_message__L8_L1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L15_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«grind_check__L17».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L13_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L15_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L7_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L16_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L15_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L7_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L14_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L15».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L15_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L14_L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«fold_final_msg__L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».modeCert_in, rfl, rfl,
@@ -686,45 +725,6 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L16_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L16_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L7_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«grind_check__L15».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L7_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L14_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L28_L16_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L16_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L6_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L12_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L15_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_round».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L11_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L7_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L15_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L16_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L11».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L10_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil)))))))))))))))))))))))))))))))))))))))))))))))))))))))))
     (Mode.fa_nil)
 
@@ -744,6 +744,70 @@ public section
 
 theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
   Mode.fa_cons (Mode.sigsIn_of Fn.«open_stacked__L10».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L26_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L44_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L20».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L28_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L20_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L24_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L16_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L11_L24_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L24_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L20_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L20_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«fold_final_msg__L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L27_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L19_L12_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L24».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L73_L1_L6_L32_L27_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L24_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L109_L1_L6_L32_L26_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L16_L8_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L24_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L26_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L6_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L17_L8_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L19_L27_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L24_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L16_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L16».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L12_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L15_L0_L4_L16_L21_L3_L4_L20_L5_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L20_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L218_L1_L6_L32_L25_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_round».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L17».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L25_L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L37_L0_L4_L16_L26_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
@@ -754,26 +818,26 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«level_positions__L44_L25_L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L15_L0_L4_L16_L22_L4_L4_L20_L5_L1».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«grind_check__L17».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L25_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L20_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L218_L1_L6_L32_L25_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L9_L25_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L19_L27_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L24_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L16_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L12».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L24_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L17_L8_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L14_L28_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L15».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L15_L0_L4_L16_L21_L3_L4_L20_L5_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L12_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L16».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L8».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L28_L26_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L16_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L27_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L16_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L18_L12_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L18_L8_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
@@ -781,70 +845,6 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L25_L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L20_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L16_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L27_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L16_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L18_L12_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L28_L26_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L8».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L12».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L9_L25_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L14_L28_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«grind_check__L15».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L24_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L109_L1_L6_L32_L26_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L16_L8_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L24_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L26_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L6_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L73_L1_L6_L32_L27_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L24_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L20_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«fold_final_msg__L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L27_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_round».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L24».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L17_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L19_L12_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L26_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L20_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L44_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L20».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L28_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L24_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L11_L24_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L24_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L16_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L20_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_nil))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
     (Mode.fa_nil)
@@ -865,25 +865,67 @@ public section
 
 theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
   Mode.fa_cons (Mode.sigsIn_of Fn.«open_stacked__L2».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L32_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L8_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L16_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L12_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L20_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«fold_final_msg__L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L12_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L8_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L16_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L16_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L6_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L13_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L8_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L8_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L16».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L12_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L15_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L16_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_round».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L15_L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«grind_check__L17».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L16_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L32_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L8_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L13_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L12_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L15_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L16».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L8_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L8_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L8_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L12».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L10_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L16_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L16_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L15».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L8».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L16_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L14_L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».modeCert_in, rfl, rfl,
     rfl⟩)
@@ -894,48 +936,6 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L12_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L16_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L8».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L12».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L8_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«grind_check__L15».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L16_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L10_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L16_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L16_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L16_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L6_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L8_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«fold_final_msg__L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L12_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_round».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L16_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L12_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L20_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
     (Mode.fa_nil)))))))))))))))))))))))))))))))))))))))))))))))))))))))))
     (Mode.fa_nil)
 
@@ -955,19 +955,67 @@ public section
 
 theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
   Mode.fa_cons (Mode.sigsIn_of Fn.«open_stacked__L3».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L8_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L9_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«grind_check__L17».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L19_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L9_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L17_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L17_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L10_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L13_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L16_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L13».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L36_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L19_L0_L4_L16_L17_L5_L5_L36_L6_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L17_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L13_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L13_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L44_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L32_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L16_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L6_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«fold_final_msg__L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L13_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L15_L3_L5_L36_L6_L1».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L15_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«fold_final_msg__L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L17_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_round».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L17».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L8_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L9_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L9_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L9».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L13_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L25_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L9_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L37_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L15».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L17».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
@@ -978,54 +1026,6 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L0_L4_L16_L17_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L17_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L9».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L13_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L25_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L9_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«grind_check__L15».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L9_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L37_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L16_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L6_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L32_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L44_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L13_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L17_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L19_L0_L4_L16_L17_L5_L5_L36_L6_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_round».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L13_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L9_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L19_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L17_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L10_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L13».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L36_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L13_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L16_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
     (Mode.fa_nil)))))))))))))))))))))))))))))))))))))))))))))))))))))))))
     (Mode.fa_nil)
 
@@ -1045,20 +1045,46 @@ public section
 
 theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
   Mode.fa_cons (Mode.sigsIn_of Fn.«open_stacked__L4».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L19_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L8_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«grind_check__L17».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L21_L0_L4_L16_L17_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L18_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L10_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L18_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L10_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L11_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L109_L1_L6_L32_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L73_L1_L6_L32_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L14_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L25_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L18_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L1_L6_L32_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«fold_final_msg__L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L14_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L19_L6_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L10».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L44_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L6_L1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L21_L6_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L6_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L11_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L14_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L18».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L19_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
@@ -1066,25 +1092,28 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L15_L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L17_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L14_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L18».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«opening_round».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L17».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L21_L0_L4_L16_L17_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L18_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L16_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L13_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L37_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L37_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L14_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L18_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L10_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L19_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L8_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L10_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L14_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L37_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L37_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L10_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
@@ -1092,43 +1121,14 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L18_L6_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«grind_check__L15».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L19_L6_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L10».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L44_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L13_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L28_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L6_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L14_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L1_L6_L32_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«fold_final_msg__L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_round».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L18_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L25_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L16_L4_L2_L8_L3_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L18_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L10_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L109_L1_L6_L32_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L14_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L73_L1_L6_L32_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L18_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L16_L4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
     (Mode.fa_nil)
 
@@ -1148,6 +1148,61 @@ public section
 
 theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
   Mode.fa_cons (Mode.sigsIn_of Fn.«open_stacked__L5».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L19_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L11_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L15_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L11».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L10_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L19_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L18_L7_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L25_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L21_L7_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L12_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L37_L20_L8».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L15_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L218_L1_L6_L32_L20_L8_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L15_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L19_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L6_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L1_L6_L32_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L19_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L19».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_round».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L17».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L21_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L15».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
@@ -1158,83 +1213,28 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L15_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«grind_check__L17».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L21_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L19».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L1_L6_L32_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L19_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L19_L7_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«fold_final_msg__L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L16_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L15_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L19_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«grind_check__L15».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L73_L1_L6_L32_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L19_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L73_L1_L6_L32_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L6_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L19_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L15».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L15_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L12_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L37_L20_L8».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_round».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L21_L7_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L25_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L218_L1_L6_L32_L20_L8_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L15_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L19_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L11_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L11».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L15_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L19_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L18_L7_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L10_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L15_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L19_L7_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«fold_final_msg__L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L16_L4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
     (Mode.fa_nil)
 
@@ -1254,93 +1254,93 @@ public section
 
 theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
   Mode.fa_cons (Mode.sigsIn_of Fn.«open_stacked__L6».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L16_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L8_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«grind_check__L17».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L21_L8_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L25_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L22_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L16_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L1_L6_L32_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L28_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L20».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L44_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L12_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L11_L24_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L19_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L12_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L20_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L16».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L12_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L20_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L20_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L12_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L19_L8_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«fold_final_msg__L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L16_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L18_L8_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L73_L1_L6_L32_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L109_L1_L6_L32_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L16_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L8».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L17_L0_L4_L16_L18_L6_L4_L20_L5_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L12».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L8_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L20_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«grind_check__L15».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L10_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L218_L1_L6_L32_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L6_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L15_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L37_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L20_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L16_L0_L4_L16_L19_L7_L4_L20_L5_L1».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L37_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L37_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«fold_final_msg__L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L218_L1_L6_L32_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L6_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L28_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L44_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L16».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L12_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L20_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L12_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L1_L6_L32_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_round».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L19_L8_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L15_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L17».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L21_L8_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L25_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L16_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L22_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L16_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L16_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L8_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L20_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L8_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L17_L0_L4_L16_L18_L6_L4_L20_L5_L1».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L12».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L10_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L17_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L15».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L20».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L8».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L109_L1_L6_L32_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L11_L24_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L20_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L12_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L20_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L19_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L16_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L12_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L18_L8_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L73_L1_L6_L32_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_nil))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
     (Mode.fa_nil)
@@ -1361,6 +1361,63 @@ public section
 
 theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
   Mode.fa_cons (Mode.sigsIn_of Fn.«open_stacked__L7».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L17_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L16_L0_L4_L16_L20_L2_L5_L36_L6_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L13_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L18_L9_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L21».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L10_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L21_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L13».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L36_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L73_L1_L6_L32_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L13_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L21_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L109_L1_L6_L32_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L17_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L19_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L21_L9_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L6_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L218_L1_L6_L32_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L15_L0_L4_L16_L21_L3_L5_L36_L6_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«fold_final_msg__L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L44_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L17_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L13_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L21_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_round».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L17».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L15_L24_L6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
@@ -1369,86 +1426,29 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«opening_message__L8_L1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L9_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«grind_check__L17».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L13_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L21_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L15_L0_L4_L16_L21_L3_L5_L36_L6_L1».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L22_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L218_L1_L6_L32_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L9».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L17_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L13_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L24_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L19_L9_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L28_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L44_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L17_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«fold_final_msg__L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L15».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L11_L25_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L17».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L9_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L21_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L11_L25_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L9».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L17_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L13_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L24_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L22_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L28_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«grind_check__L15».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L19_L9_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L21_L9_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L6_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L19_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L17_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L73_L1_L6_L32_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L13_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L21_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_round».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L109_L1_L6_L32_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L16_L0_L4_L16_L20_L2_L5_L36_L6_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L17_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L13_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L18_L9_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L21».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L10_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L13».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L36_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L21_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
     (Mode.fa_nil)
 
@@ -1468,6 +1468,69 @@ public section
 
 theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
   Mode.fa_cons (Mode.sigsIn_of Fn.«open_stacked__L8».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L14_L26_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L15_L6_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L22_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L9_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L16_L6_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L24_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L19_L10_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L22_L24_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L18_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L25_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L18_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L44_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L24_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«fold_final_msg__L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L25_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L17_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L15_L25_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L14_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L22_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L28_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L10».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L6_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L18_L10_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L1_L6_L32_L26_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L14_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L11_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L18_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L18».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L14».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L21_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_round».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L17».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L22_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L10_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L44_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
@@ -1478,36 +1541,17 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«opening_message__L8_L1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«grind_check__L17».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L22_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L10_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L21_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L11_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L14_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L1_L6_L32_L26_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L18_L10_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L14».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L18».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L18_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L18_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L21_L10_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L14_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L2_L8_L3_L1».modeCert_in, rfl, rfl,
     rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L109_L1_L6_L32_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L2_L8_L3_L1».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L22».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L17_L6_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L14_L0_L4_L16_L21_L3_L2_L8_L3_L1».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L14_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
@@ -1516,59 +1560,15 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L14_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«grind_check__L15».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L22_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L17_L6_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L14_L0_L4_L16_L21_L3_L2_L8_L3_L1».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L22».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L14_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L22_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L28_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L21_L10_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L10».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L6_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L18_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L18_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L15_L25_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L16_L0_L4_L16_L18_L6_L2_L8_L3_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L24_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«fold_final_msg__L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L25_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_round».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L44_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L18_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L17_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L15_L6_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L14_L26_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L16_L6_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L22_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L9_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L19_L10_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L24_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L18_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L25_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L22_L24_L6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
     (Mode.fa_nil)
 
@@ -1588,6 +1588,77 @@ public section
 
 theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
   Mode.fa_cons (Mode.sigsIn_of Fn.«open_stacked__L9».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L11_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L44_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L23_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L15_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L17_L7_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L19_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L15_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L24_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L11».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L21_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L18_L7_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L1_L6_L32_L27_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L19_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L23_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L12_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L26_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L73_L1_L6_L32_L26_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L19_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L24_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L18_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L16_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L15_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L109_L1_L6_L32_L25_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L6_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L19_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L23».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L3_L12_L4_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L19_L26_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L28_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L19_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L218_L1_L6_L32_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L19».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L16_L7_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_round».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L17».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L14_L0_L4_L16_L21_L3_L3_L12_L4_L1».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L23_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L25_L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L15».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L37_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
@@ -1598,97 +1669,26 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«opening_message__L8_L1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«grind_check__L17».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L14_L0_L4_L16_L21_L3_L3_L12_L4_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L23_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L19».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L16_L7_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L218_L1_L6_L32_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L15_L0_L4_L16_L20_L2_L3_L12_L4_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L19_L26_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L19_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L23».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L19_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L28_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L19_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«fold_final_msg__L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L25_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L26_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L22_L25_L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L9_L24_L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L17_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L14_L27_L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L23_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L15_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«grind_check__L15».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L17_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L22_L25_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L19_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L20_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L18_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L16_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L26_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
     rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L15_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L109_L1_L6_L32_L25_L7_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L6_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L73_L1_L6_L32_L26_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L19_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L24_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L12_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L32_L0_L4_L16_L26_L2_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_round».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L23_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L11_L23_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L17_L7_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L18_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L23_L6_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L15_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L44_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L11».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L21_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L21_L11_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L24_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L15_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L19_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L18_L7_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_queries__L55_L1_L6_L32_L27_L3_L0_L0_L0_L0».modeCert_in, rfl, rfl,
-    rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L19_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L19_L4_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«fold_final_msg__L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L25_L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
     (Mode.fa_nil)
 
@@ -1766,89 +1766,82 @@ public section
 
 theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
   Mode.fa_cons (Mode.sigsIn_of Fn.«verify_tables».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L18».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L25».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L11».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L8».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L20».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L27».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L21».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L24».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L11».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L12».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L13».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L9».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L19».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L27».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L32».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_tables_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L20».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L29».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L28».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L16».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L15».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L20».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L21».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L22».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L15».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L18».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L29».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L32».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L23».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L26».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L13».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L30».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L13».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L18».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L13».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L29».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L10».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L33».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L26».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L31».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L17».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L14».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L29».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L22».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L14».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L25».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L30».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L10».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L14».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L16».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L9».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L21».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L30».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L31».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L15».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L32».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L14».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«shared_selector_tables».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L25».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L16».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L9».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L32».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L17».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L31».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L26».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L13».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L15».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L29».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L23».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L21».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L17».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L11».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L27».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L9».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L19».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L12».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L25».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L8».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L8».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L12».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L20».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L24».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L28».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L12».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L27».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L23».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L17».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L16».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L18».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L31».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L8».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L8».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L30».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L24».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L15».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L33».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L11».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L10».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«eq_prefix_chain».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L16».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L33».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L30».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L14».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L22».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L33».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L18».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L10».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L23».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«padding_weight__L26».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L19».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L10».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L17».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L24».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L28».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L28».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L20».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector__L19».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L25».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«block_selector__L27».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«index_mle__L19».modeCert_in, rfl, rfl, rfl⟩)
@@ -1860,83 +1853,90 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L22».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«plus_one_run__L22».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«block_selector__L28».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«index_mle__L26».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«block_selector__L11».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L20».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L19».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L25».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L10».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L23».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L17».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L16».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L18».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L14».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L27».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L32».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L30».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L24».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L15».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L33».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L11».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L8».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L8».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L31».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L32».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L23».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L18».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L29».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L22».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L15».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L21».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L13».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L29».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L10».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L30».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L13».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L18».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L13».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L26».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L17».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L14».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L29».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L22».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L14».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L31».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L26».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L33».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L9».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L21».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L30».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L31».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L15».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L16».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L10».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L14».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«block_selector__L25».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«index_mle__L30».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«verify_tables_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L27».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L32».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L9».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L19».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L12».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_tail_round».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L13».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L16».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L28».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L20».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L29».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L24».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L11».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L27».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L21».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L18».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L25».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L11».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L8».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L20».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L19».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L10».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L33».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L30».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L14».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L22».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L33».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L18».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L10».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L23».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L26».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L8».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L8».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L12».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L20».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L24».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L28».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L12».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L16».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L28».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L24».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L28».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L17».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L25».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L12».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L9».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L19».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L17».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L11».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L27».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L13».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L15».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L29».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L23».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L21».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L9».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L32».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L17».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L31».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«block_selector_tab__L26».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L15».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«padding_weight__L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L20».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«index_mle__L25».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«plus_one_run__L16».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
     (Mode.fa_nil)
 

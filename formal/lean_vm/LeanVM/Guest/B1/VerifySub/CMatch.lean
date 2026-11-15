@@ -64,7 +64,7 @@ def vsCallSkL : List (Option V × (String ⊕ (V × List String)) × List V × L
       vsNs [562, 563, 564, 565, 566, 567, 568]),
     (none, .inl "verify_tables", vsNs [562, 563, 564, 565, 566, 567, 0, 1, 254, 253, 71, 26, 4,
       335, 559, 6, 569, 568, 572, 570], vsNs [573, 574, 575, 576, 577, 578, 579, 580, 581, 582]),
-    (none, .inl "verify_keccak", vsNs [573, 574, 575, 576, 577, 578, 583, 569, 587, 584, 585, 589],
+    (none, .inl "verify_keccak", vsNs [573, 574, 575, 576, 577, 578, 583, 569, 587, 584, 585, 589, 25],
       vsNs [590, 591, 592, 593, 594, 595, 596]),
     (none, .inl "grind_check__L13", vsNs [606, 619], []),
     (none, .inl "ring_switch_target", vsNs [585, 847], vsNs [1361]),
@@ -556,13 +556,13 @@ theorem vs_callsMatch {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
         rw [pr (j := 10) (k := k) (a := 573 + k) (by norm_num) (by simp [vsRetVars]; omega)
           (by interval_cases k <;> rfl), O.o10]
     show [σ (.n 573), σ (.n 574), σ (.n 575), σ (.n 576), σ (.n 577), σ (.n 578), σ (.n 583),
-      σ (.n 569), σ (.n 587), σ (.n 584), σ (.n 585), σ (.n 589)] =
+      σ (.n 569), σ (.n 587), σ (.n 584), σ (.n 585), σ (.n 589), σ (.n 25)] =
       S.H.s3.squeeze.2.cap ++ [ptr (S.cK bs), gen ^ S.τ, ptr (vb bs 9), ptr (S.cL bs),
-        ptr (vb bs 11), ptr (vb bs 12), ptr (sqE + winTabAt)]
+        ptr (vb bs 11), ptr (vb bs 12), ptr (sqE + winTabAt), ptr (vb bs 1)]
     rw [eK 0 (by norm_num), eK 1 (by norm_num), eK 2 (by norm_num), eK 3 (by norm_num),
       eK 4 (by norm_num), eK 5 (by norm_num), V.e583, pa (i := 9) (a := 569) (by norm_num) rfl,
       V.e587, pa (i := 11) (a := 584) (by norm_num) rfl, pa (i := 12) (a := 585) (by norm_num) rfl,
-      V.tabs 589 (by simp), ← vs_ptr_add sqE winTabAt]
+      V.tabs 589 (by simp), ← vs_ptr_add sqE winTabAt, pa (i := 1) (a := 25) (by norm_num) rfl]
     simp only [Tables.VtHonest.retsH, Fs.squeeze, capOf, List.cons_append, List.nil_append,
       List.getD_cons_succ, List.getD_cons_zero]
     rw [show ofK (addressOfIndex (S.vtB bs sqE (S.leavesB (outs.take 10))).cur) = ptr (S.cT bs)

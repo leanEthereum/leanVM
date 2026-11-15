@@ -26,7 +26,7 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `verify_sig_lean_sphincs`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(33503, Fn.«sp_wots».modeSig)]
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(33516, Fn.«sp_wots».modeSig)]
 
 end LeanVM.Guest.Fn.«verify_sig_lean_sphincs»
 

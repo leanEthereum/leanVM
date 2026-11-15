@@ -6382,7 +6382,7 @@ noncomputable def c0 : List Core.Stmt := (
   .atom (.mul (.n 587) (.n 582) (.n 586)) ::
   .atom (.const (.n 588) (word 133823759239872512 0)) ::
   .atom (.mul (.n 589) (.n 4) (.n 588)) ::
-  .call "verify_keccak" [.n 573, .n 574, .n 575, .n 576, .n 577, .n 578, .n 583, .n 569, .n 587, .n 584, .n 585, .n 589] [.n 590, .n 591, .n 592, .n 593, .n 594, .n 595, .n 596] ::
+  .call "verify_keccak" [.n 573, .n 574, .n 575, .n 576, .n 577, .n 578, .n 583, .n 569, .n 587, .n 584, .n 585, .n 589, .n 25] [.n 590, .n 591, .n 592, .n 593, .n 594, .n 595, .n 596] ::
   .atom (.copy (.n 597) (.n 590)) ::
   .atom (.copy (.n 598) (.n 591)) ::
   .atom (.copy (.n 599) (.n 592)) ::

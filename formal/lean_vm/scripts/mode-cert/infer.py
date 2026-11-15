@@ -370,6 +370,14 @@ class Infer:
         # shifted slot to the region's end
         if (i0 + 1) in f['tabs'] and k[0] == 0 and len(k[2]) == 1 and k[2][0][1] == 1 and JT_LO <= k[1] < JT_HI:
             st = max(t for t in REGION if t <= k[1])
+            # loaded at the region's start through a frame cell holding the product: that cell named
+            # (`Res.name`), so the bound is on the product's own exponent, and walked again (the bound
+            # then from the rule above)
+            op, a = f['ops'][i0]
+            if op == 'deref' and a[1] == st:
+                for r in (('name', a[0]), ('lt', ('ex', ('fr', a[0]), 0), ('num', REGION[st]))):
+                    if r not in self.res[i0]: self.res[i0].append(r)
+                f['tabs'][i0 + 1] = REGION[st]; self.new = True; return False
             n = st + REGION[st] - k[1]
             x = k[2][0][0]
             r = ('lt', ('ex', x, 0), ('num', n))
@@ -441,7 +449,20 @@ class Infer:
                         a = ((0, k[1], k[2]), ('num', 0), ('num', 1), 1, 0)
                         self.preR.add(r); A.r.add(r); self.addRes(i0, ('sub', a, [r])); A.r.add(a); return True
                     self.preR.add(r); self.new = True; A.r.add(r); return True
-        return self.permBlock(k, i0, A) or self.runPoint(k, i0, A)
+        return self.permBlock(k, i0, A) or self.runPoint(k, i0, A) or self.streamRead(k, i0, A)
+
+    def streamRead(self, k, i0, A):
+        """A cell past one pointer, in a function the proof stream is passed to: inside the stream (`Res.sub`),
+        the stream's run a precondition (held by a caller or, in a loop, by the function that runs it)."""
+        st = STREAMS.get(self.f['name'])
+        if st is None or k[0] != 0 or len(k[2]) != 1 or k[2][0][1] != 1 or k[2][0][0] == st: return False
+        b = ((0, 0, ((st, 1),)), ('num', 0), ('num', STREAM_CAP), 1, 0)
+        if st[0] == 'hp' or st[1] in params(self.f):
+            if b not in self.preR: self.preR.add(b); self.new = True
+            A.r.add(b)
+        elif b not in A.r: return False
+        a = ((0, k[1], k[2]), ('num', 0), ('num', 1), 1, 0)
+        self.addRes(i0, ('sub', a, [b])); A.r.add(a); return True
 
     def runPoint(self, k, i0, A):
         """A cell `Q·x·g^c`, `x` one base, inside a known run over `Q` from `0` of stride 1 up to an exponent
@@ -644,11 +665,41 @@ NARROW = collections.defaultdict(dict)
 DONE = set()
 # functions that pass with residuals outside the families `Res/SelDefs.lean` and `Res/SubDefs.lean` accept,
 # held as failing (their callees' narrowings undone) until those families take them
-HELD = {'check_opening_terminal'}
+HELD = {'check_opening_terminal', 'keccak_layer__L0', 'keccak_layer__L1', '__loop37', '__loop38', '__loop39', '__loop40'}
 
 
 # each function's last inference, its signature and residuals (a narrowed callee's replaced)
 LAST = {}
+
+
+def streams():
+    """The proof stream's base, per function: the cell `verify_sub`'s witness hint `stream` writes, passed
+    down as an argument, and in a loop of a function that holds it, the caller's cell (`hp 1 o`)."""
+    S = {}; cap = None
+    for f in fns.values():
+        for hs in f['hints'].values():
+            for h in hs:
+                if h[0] == 'wh' and h[1] == 'stream':
+                    assert h[3] == 0 and cap is None, h
+                    S[f['name']] = ('fr', h[2]); cap = h[4]
+    changed = True
+    while changed:
+        changed = False
+        for f in fns.values():
+            st = S.get(f['name'])
+            if st is None or st[0] != 'fr': continue
+            for g, args in callArgs(f):
+                if g == f['name']: continue
+                for o, x in args.items():
+                    if x == st[1] and g not in S: S[g] = ('fr', o); changed = True
+    for n in list(S):
+        if S[n][0] != 'fr': continue
+        for m in calls[n]:
+            if m in isloop and m not in S and m != n: S[m] = ('hp', 1, S[n][1])
+    return S, cap
+
+
+STREAMS, STREAM_CAP = streams()
 
 
 def infer(n):

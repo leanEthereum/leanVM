@@ -218,7 +218,7 @@ theorem vk_kidB (hbl : bytecode.length = 2 ^ 23) {κ Bvk : ℕ} (hvk : VkComplet
   obtain ⟨-, -, h5⟩ := S.H_spec hbl
   have hc : ∃ sp, (⟨S.H.s3.squeeze.2.cap, []⟩ : Fs).Carries sp := by rw [← h5]; exact S.c5
   exact hvk S.τ _ S.H.chiW S.outs S.xsK S.kOut.point S.kc.2.1 S.kc.2.2 S.kOut.value S.s6 (S.cK bs)
-    (vb bs 9) (S.cL bs) (vb bs 11) (vb bs 12) (sqE + winTabAt) h9 (by omega) hn ho hf hc hrun
+    (vb bs 9) (S.cL bs) (vb bs 11) (vb bs 12) (sqE + winTabAt) (vb bs 1) h9 (by omega) hn ho hf hc hrun
 
 end ChildSegs
 

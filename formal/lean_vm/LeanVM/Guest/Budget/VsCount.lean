@@ -34,7 +34,7 @@ arm's (arm `c`, stack log `20 + c`) from the `V` certificates, the two dispatche
 `kcTermW`: their trees within B1's `vtWB`, `termWB`), `verify_bus_gkr`'s and `verify_keccak`'s
 within their ratios of their words `Bs[9]`, `Bs[11]`. `vs_weight_le`: a `verify_sub` node of
 B1-d's shape (`vsTs` at `Count.vsWordsOs`) weighs at most its frame's weight and `vsWs`.
-`vs_weight_le_vsTs`: with `verify_bus_gkr` and `verify_keccak` within `39767` and `56391` words,
+`vs_weight_le_vsTs`: with `verify_bus_gkr` and `verify_keccak` within `39767` and `56404` words,
 at most `vsCountT op c`.
 -/
 
@@ -248,8 +248,8 @@ theorem vs_weight_le (op : Opcode) {μ r d : ℕ} (hμ1 : 20 ≤ μ) (hμ2 : μ 
     exact kcOs_weightLe op (by omega) rd' t' args' rets' hTi.1.1 hv' hb'
   · exact (hTi.2 op rd' args' rets' hv' hb').trans (termWB_eq op).le
 
-/-- The ratio-bounded callees' words at their deployed bounds, `39767` and `56391`. -/
-def vsBs0 : List ℕ := [0, 0, 0, 0, 0, 0, 0, 0, 0, 39767, 0, 56391, 0, 0, 0, 0]
+/-- The ratio-bounded callees' words at their deployed bounds, `39767` and `56404`. -/
+def vsBs0 : List ℕ := [0, 0, 0, 0, 0, 0, 0, 0, 0, 39767, 0, 56404, 0, 0, 0, 0]
 
 /-- `vsCountT` is the frame's weight and `vsWs` at the two ratio-bounded callees' words. -/
 theorem vsCountT_eq (op : Opcode) : ∀ c < 11, (omT op).getD 0 0 +
@@ -264,11 +264,11 @@ theorem vsWs_mono (op : Opcode) (c : ℕ) {Bs Bs' : List ℕ} (h9 : Bs.getD 9 0 
   omega
 
 /-- **`verify_sub`'s instructions of `op` on a tree of B1-d's shape** (`vsTs` at
-`Count.vsWordsOs`), `verify_bus_gkr`'s and `verify_keccak`'s bounds within `39767` and `56391`
+`Count.vsWordsOs`), `verify_bus_gkr`'s and `verify_keccak`'s bounds within `39767` and `56404`
 words: at most `vsCountT op` at the arm `μ - 20`. -/
 theorem vs_weight_le_vsTs (op : Opcode) {Bvk μ r d : ℕ} (hμ1 : 20 ≤ μ) (hμ2 : μ ≤ 30)
     (hd : d < 14)
-    (h5 : B1.VerifySub.vbgMax B2C.fs vsWords.K29 vsWords.R vsWords.K8 ≤ 39767) (h7 : Bvk ≤ 56391)
+    (h5 : B1.VerifySub.vbgMax B2C.fs vsWords.K29 vsWords.R vsWords.K8 ≤ 39767) (h7 : Bvk ≤ 56404)
     {rd : Reader} {t : Tree} {args rets : List E}
     (h : FlatShape coreProgram "verify_sub" (B1.VerifySub.vsTs B2C.fs vsWordsOs Bvk μ r d) t)
     (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) :

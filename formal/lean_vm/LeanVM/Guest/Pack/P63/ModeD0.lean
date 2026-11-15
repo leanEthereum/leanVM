@@ -38,74 +38,74 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `child_claim_list_mono`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
+  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none (.node none (.node
+    none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil
+    (.node (some Fn.«child_claim_list_mono_loop1».modeSig) .nil .nil))) .nil)))) .nil)) .nil) .nil)
+    .nil)) .nil) (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node (some Fn.«child_claim_list_mono_last__L10».modeSig)
+    .nil .nil))) .nil))))))) .nil) .nil)))) .nil) (.node none .nil (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
     none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node (some Fn.«child_claim_list_mono_last__L6».modeSig) .nil .nil)))
-    .nil))))) .nil) .nil)))) (.node none (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
-    .nil (.node none .nil (.node (some Fn.«child_claim_list_mono_last__L2».modeSig) .nil .nil)))
-    .nil)))) .nil)))) .nil) .nil))) (.node none (.node none (.node none (.node none (.node none
-    .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node none (.node none .nil (.node none .nil (.node (some
+    (.node none .nil (.node (some Fn.«child_claim_list_mono_last__L11».modeSig) .nil .nil)))
+    .nil)))))))))) .nil)))) (.node none (.node none (.node none (.node none .nil (.node none (.node
+    none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node (some
     Fn.«child_claim_list_mono_last__L9».modeSig) .nil .nil))) .nil)))))) .nil)) .nil) (.node none
     (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
     none .nil (.node none (.node none .nil (.node none .nil (.node (some
     Fn.«child_claim_list_mono_last__L4».modeSig) .nil .nil))) .nil))))) .nil) .nil) .nil) (.node
     none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node
     none .nil (.node none (.node none .nil (.node none .nil (.node (some
-    Fn.«child_claim_list_mono_last__L1».modeSig) .nil .nil))) .nil)))) .nil))) .nil))) .nil) (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    Fn.«child_claim_list_mono_last__L1».modeSig) .nil .nil))) .nil)))) .nil))) .nil)))) (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+    (some Fn.«child_claim_list_mono_last__L5».modeSig) .nil .nil))) .nil))))) .nil) .nil)) .nil)
+    (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none (.node none
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«child_claim_list_mono_last__L14».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil)) .nil)
+    .nil))) (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
     none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
     (.node none .nil (.node (some Fn.«child_claim_list_mono_last__L8».modeSig) .nil .nil)))
-    .nil))))) .nil))))) (.node none (.node none .nil (.node none (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node (some Fn.«child_claim_list_mono_last__L14».modeSig) .nil .nil)))) .nil) .nil) .nil)
-    .nil)) .nil) .nil)) (.node none .nil (.node none (.node none (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
-    .nil (.node (some Fn.«child_claim_list_mono_last__L5».modeSig) .nil .nil))) .nil))))) .nil)
-    .nil) .nil)))))) (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
-    none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node none (.node none .nil (.node none .nil (.node (some
-    Fn.«child_claim_list_mono_last__L7».modeSig) .nil .nil))) .nil))))) .nil)) .nil))) (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
+    .nil))))) .nil))))))) (.node none (.node none (.node none .nil (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node none .nil (.node none .nil (.node (some
+    Fn.«child_claim_list_mono_last__L2».modeSig) .nil .nil))) .nil)))) .nil)))) .nil)) (.node none
+    .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none
     .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node
-    (some Fn.«child_claim_list_mono_last__L3».modeSig) .nil .nil))) .nil)))) .nil))))) .nil))
-    (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node
-    none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node
-    (some Fn.«child_claim_list_mono_loop0».modeSig) .nil .nil))) .nil))) .nil) .nil)) .nil) .nil)
-    .nil) .nil) (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
-    none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node (some Fn.«child_claim_list_mono_last__L13».modeSig) .nil .nil)))) .nil) .nil) .nil)
-    .nil) .nil)) .nil))))) (.node none (.node none (.node none (.node none .nil (.node none (.node
+    (some Fn.«child_claim_list_mono_last__L6».modeSig) .nil .nil))) .nil))))) .nil) .nil)))))
+    .nil)) (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node
     none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil
     (.node none (.node none .nil (.node none .nil (.node (some
     Fn.«child_claim_list_mono_last__L0».modeSig) .nil .nil))) .nil)))) .nil))) .nil)) (.node none
     (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node none (.node
     none .nil (.node none .nil (.node none .nil (.node (some
     Fn.«child_claim_list_mono_last__L12».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil) .nil)
-    .nil)) .nil)) .nil) (.node none (.node none (.node none .nil (.node none (.node none (.node
+    .nil)) .nil))) (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
     none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil
     (.node none .nil (.node (some Fn.«child_claim_list_mono_last__L16».modeSig) .nil .nil)))) .nil)
     .nil) .nil)) .nil) (.node none .nil (.node none (.node none (.node none (.node none (.node none
     .nil (.node none .nil (.node none .nil (.node (some
     Fn.«child_claim_list_mono_last__L15».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil))) .nil))
-    .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node (some
-    Fn.«child_claim_list_mono_last__L11».modeSig) .nil .nil))) .nil)))))))))) .nil) .nil) .nil)
-    (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node none (.node
-    none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    none .nil (.node none .nil (.node (some Fn.«child_claim_list_mono_loop1».modeSig) .nil .nil)))
-    .nil)))) .nil)) .nil) .nil) .nil) .nil)) (.node none (.node none .nil (.node none (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node none (.node none .nil (.node none .nil (.node (some
-    Fn.«child_claim_list_mono_last__L10».modeSig) .nil .nil))) .nil))))))) .nil) .nil)) .nil))
-    .nil))), 524287⟩
+    .nil))) (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil
+    (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node (some Fn.«child_claim_list_mono_last__L13».modeSig) .nil .nil)))) .nil)
+    .nil) .nil) .nil) .nil))) .nil) .nil) (.node none (.node none (.node none (.node none (.node
+    none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none
+    .nil (.node none .nil (.node (some Fn.«child_claim_list_mono_loop0».modeSig) .nil .nil)))
+    .nil))) .nil) .nil)) .nil) .nil) .nil) .nil)) (.node none (.node none .nil (.node none .nil
+    (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node none .nil (.node none .nil (.node (some
+    Fn.«child_claim_list_mono_last__L7».modeSig) .nil .nil))) .nil))))) .nil)) .nil))) (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
+    .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+    (some Fn.«child_claim_list_mono_last__L3».modeSig) .nil .nil))) .nil)))) .nil))))) .nil)))))),
+    524287⟩
 
 /-- `child_claim_list_mono`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨61466, 74, Fn.«child_claim_list_mono».modeSig, (.node none (.node none .nil (.node none (.node
+  ⟨61479, 74, Fn.«child_claim_list_mono».modeSig, (.node none (.node none .nil (.node none (.node
     (some [(.allocDyn 20 19)]) .nil .nil) (.node none .nil (.node none (.node (some [(.allocFrames
     34 386 7 (LeanVM.Parameters.K.ofBits 0x1) 386)]) .nil .nil) .nil)))) (.node none (.node none
     .nil (.node none .nil (.node (some [(.allocFrames 24 2808 6 (LeanVM.Parameters.K.ofBits 0x1)

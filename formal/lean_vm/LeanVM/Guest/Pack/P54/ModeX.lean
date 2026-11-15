@@ -38,61 +38,61 @@ open LeanVM.Guest LeanVM.Guest.Exec
 /-- `da_verify`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none (.node none (.node
-    none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_vector».modeSig) .nil .nil)))) .nil))) .nil) .nil) .nil) .nil)) .nil) .nil) (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
-    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    (some Fn.«da_row_shape».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil)) .nil)))) (.node none
-    .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none
-    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node (some Fn.«da_verify_loop0».modeSig) .nil .nil)))) .nil) .nil) .nil)) .nil))
-    .nil)) (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_verify_loop1».modeSig) .nil .nil)))) .nil) .nil) .nil)) .nil)) .nil))))))) (.node none
-    (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node
-    none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node (some Fn.«da_levels__L16_L4».modeSig) .nil .nil)))) .nil) .nil)
-    .nil))) .nil) .nil) (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_levels__L512_L9».modeSig) .nil .nil)))) .nil) .nil) .nil)))) .nil))) .nil) (.node none
-    .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
+    none .nil (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none
     .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node (some Fn.«da_levels__L2_L1».modeSig) .nil .nil)))) .nil) .nil) .nil)) .nil)))) .nil)))
-    (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node (some Fn.«da_levels__L64_L6».modeSig) .nil .nil)))) .nil) .nil) .nil))) .nil)) (.node
+    none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«da_levels__L128_L7».modeSig) .nil .nil)))) .nil) .nil) .nil))) .nil))) .nil)) .nil) (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil
     (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node (some Fn.«da_levels__L1_L0».modeSig) .nil .nil)))) .nil) .nil)
-    .nil)) .nil)))) .nil)) (.node none (.node none (.node none (.node none (.node none .nil (.node
-    none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node (some Fn.«da_levels__L256_L8».modeSig) .nil .nil)))) .nil) .nil)
-    .nil)))) .nil) (.node none (.node none (.node none .nil (.node none .nil (.node none (.node
+    .nil (.node none .nil (.node (some Fn.«da_levels__L4_L2».modeSig) .nil .nil)))) .nil) .nil)
+    .nil)) .nil)))))) (.node none (.node none (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node (some Fn.«da_levels__L8_L3».modeSig) .nil .nil)))) .nil) .nil) .nil))) .nil)
+    .nil) (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
     none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_levels__L32_L5».modeSig) .nil .nil)))) .nil) .nil) .nil))) .nil) .nil)) .nil) (.node
-    none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_verify_loop2».modeSig) .nil .nil)))) .nil) .nil) .nil)) .nil))) .nil) (.node none (.node
-    none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node (some Fn.«da_verify_loop3».modeSig)
-    .nil .nil)))) .nil) .nil) .nil)) .nil))) .nil))))) (.node none (.node none (.node none (.node
-    none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_levels__L64_L6».modeSig) .nil .nil)))) .nil) .nil) .nil))) .nil)) (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none
-    .nil (.node none .nil (.node none .nil (.node (some Fn.«da_levels__L128_L7».modeSig) .nil
-    .nil)))) .nil) .nil) .nil))) .nil))) .nil) .nil) .nil) (.node none (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_levels__L4_L2».modeSig) .nil .nil)))) .nil) .nil) .nil)) .nil))))) .nil) (.node none
-    .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    Fn.«da_levels__L1024_L10».modeSig) .nil .nil)))) .nil) .nil) .nil)))))) .nil) .nil))) (.node
+    none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node (some Fn.«da_levels__L1_L0».modeSig) .nil .nil)))) .nil)
+    .nil) .nil)) .nil))))) .nil) (.node none (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node (some Fn.«da_verify_loop3».modeSig) .nil .nil))))
+    .nil) .nil) .nil)) .nil)))) (.node none (.node none .nil (.node none .nil (.node none (.node
     none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node (some Fn.«da_levels__L1024_L10».modeSig) .nil .nil)))) .nil) .nil) .nil))))) (.node
-    none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node (some Fn.«da_levels__L8_L3».modeSig)
-    .nil .nil)))) .nil) .nil) .nil)) .nil)))))))))), 524287⟩
+    .nil (.node (some Fn.«da_verify_loop2».modeSig) .nil .nil)))) .nil) .nil) .nil)) .nil))) .nil))
+    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«da_levels__L256_L8».modeSig) .nil .nil)))) .nil) .nil) .nil)))) .nil) (.node none (.node
+    none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node (some Fn.«da_levels__L32_L5».modeSig) .nil .nil))))
+    .nil) .nil) .nil))) .nil) .nil)) .nil))) (.node none (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«da_levels__L2_L1».modeSig) .nil .nil)))) .nil) .nil) .nil)) .nil))))) .nil) (.node none
+    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«da_levels__L16_L4».modeSig) .nil .nil)))) .nil) .nil) .nil))) .nil) .nil) (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node (some Fn.«da_levels__L512_L9».modeSig) .nil
+    .nil)))) .nil) .nil) .nil)))) .nil))) .nil)))) (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«da_vector».modeSig) .nil .nil)))) .nil))) .nil) .nil) .nil) .nil)))) (.node none (.node
+    none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
+    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node (some Fn.«da_verify_loop1».modeSig) .nil .nil)))) .nil) .nil) .nil)) .nil)))
+    .nil) (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«da_verify_loop0».modeSig) .nil .nil)))) .nil) .nil) .nil)) .nil)) .nil))) .nil)) (.node
+    none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
+    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«da_row_shape».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil))) .nil) .nil) .nil)))), 524287⟩
 
 /-- `da_verify`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨61540, 85, Fn.«da_verify».modeSig, (.node (some [(.witnessStack "da_shape" 6 2)]) (.node none
+  ⟨61553, 85, Fn.«da_verify».modeSig, (.node (some [(.witnessStack "da_shape" 6 2)]) (.node none
     (.node none (.node none .nil (.node none .nil (.node (some [(.allocFrames 41 24 6
     (LeanVM.Parameters.K.ofBits 0x1) 24)]) .nil .nil))) (.node (some [(.alloc 18 37)]) .nil .nil))
     (.node none (.node none (.node none (.node none (.node (some [(.allocFrames 44 20 9

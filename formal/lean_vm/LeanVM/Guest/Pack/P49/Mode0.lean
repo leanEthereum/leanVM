@@ -24,18 +24,18 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `da_verify_column`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none .nil (.node none .nil (.node none (.node none
-    .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none
-    (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node (some Fn.«da_verify_column_loop0».modeSig) .nil .nil)))) .nil) .nil)))
-    .nil)) .nil) .nil)))) (.node none (.node none (.node none .nil (.node none (.node none (.node
-    none (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node
-    none .nil (.node none .nil (.node (some Fn.«da_expand__L7_L8».modeSig) .nil .nil)))) .nil)
-    .nil)) .nil) .nil) .nil) .nil) .nil)) .nil) .nil)))), 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none (.node none .nil
+    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
+    .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node (some Fn.«da_verify_column_loop0».modeSig) .nil .nil)))) .nil) .nil))) .nil))
+    .nil)) .nil) .nil)) (.node none (.node none .nil (.node none .nil (.node none (.node none
+    (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node (some Fn.«da_expand__L7_L8».modeSig) .nil .nil))))
+    .nil) .nil)) .nil) .nil) .nil) .nil) .nil))) .nil)) .nil) .nil), 524287⟩
 
 /-- `da_verify_column`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨61654, 29, Fn.«da_verify_column».modeSig, (.node none .nil (.node none (.node none (.node (some
+  ⟨61667, 29, Fn.«da_verify_column».modeSig, (.node none .nil (.node none (.node none (.node (some
     [(.alloc 16 1306)]) .nil .nil) .nil) (.node none (.node none (.node (some [(.allocFrames 20 27
     3 (LeanVM.Parameters.K.ofBits 0x1) 27)]) .nil .nil) .nil) .nil))), .nil, .nil, false, .nil⟩
 
@@ -59,7 +59,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `padding_weight__L0`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨189111, 10, Fn.«padding_weight__L0».modeSig, (.node (some [(.bitDecompose 2 (.stack 7) 1)]) .nil
+  ⟨189124, 10, Fn.«padding_weight__L0».modeSig, (.node (some [(.bitDecompose 2 (.stack 7) 1)]) .nil
     .nil), .nil, .nil, false, .nil⟩
 
 /-- `padding_weight__L0`: its mode walk accepts its code. -/
@@ -82,7 +82,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `padding_weight__L15`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨190233, 140, Fn.«padding_weight__L15».modeSig, (.node none .nil (.node (some [(.bitDecompose 8
+  ⟨190246, 140, Fn.«padding_weight__L15».modeSig, (.node none .nil (.node (some [(.bitDecompose 8
     (.stack 9) 16)]) .nil .nil)), .nil, .nil, false, .nil⟩
 
 /-- `padding_weight__L15`: its mode walk accepts its code. -/
@@ -105,7 +105,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `block_selector_tab__L29`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨204998, 84, Fn.«block_selector_tab__L29».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨205011, 84, Fn.«block_selector_tab__L29».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `block_selector_tab__L29`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -127,7 +127,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `child_claim_list_mono_last__L5`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨244859, 108, Fn.«child_claim_list_mono_last__L5».modeSig, (.node none .nil (.node (some
+  ⟨244872, 108, Fn.«child_claim_list_mono_last__L5».modeSig, (.node none .nil (.node (some
     [(.witnessStack "child_claim_gap" 82 1)]) (.node none (.node none (.node none (.node (some
     [(.witnessStack "child_claim_gap" 100 1)]) .nil .nil) .nil) .nil) (.node (some [(.witnessStack
     "child_claim_gap" 88 1)]) .nil .nil)) (.node none (.node none .nil (.node none (.node (some

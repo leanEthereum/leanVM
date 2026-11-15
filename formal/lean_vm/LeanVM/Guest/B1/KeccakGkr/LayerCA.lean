@@ -108,50 +108,50 @@ theorem sqT_complete {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (ca
       ∀ {next : Prop} {kret : List E → Prop}, next →
         Stmt.HoldsList C rd σ (sqT first) next kret := by
   interval_cases first
-  · have g1 : ∀ st ∈ fsNonceT (.n 7) 47 528, GoodS rd S w σ st := fun st h ↦
+  · have g1 : ∀ st ∈ fsNonceT (.n 7) 47 529, GoodS rd S w σ st := fun st h ↦
       hg st (by simp [sqT, h])
-    have gk : Good rd S w σ (.keccak (sqIns 0) ((List.range 13).map fun k ↦ .n (531 + k))
-        false false) := hg (.atom (.keccak (sqIns 0) ((List.range 13).map fun k ↦ .n (531 + k))
+    have gk : Good rd S w σ (.keccak (sqIns 0) ((List.range 13).map fun k ↦ .n (532 + k))
+        false false) := hg (.atom (.keccak (sqIns 0) ((List.range 13).map fun k ↦ .n (532 + k))
         false false)) (by simp [sqT, keccakA])
-    have gc : ∀ st ∈ challengeT (.n 531) 544, GoodS rd S w σ st := fun st h ↦
+    have gc : ∀ st ∈ challengeT (.n 532) 545, GoodS rd S w σ st := fun st h ↦
       hg st (by simp [sqT, h])
-    have e528 : σ (.n 528) = n := load_val (w := w) (g1 _ (List.mem_cons_self ..)) (hS7 _ _) hn
-    have hp : FsPackOk σ (.n 528) (528 + 1) dsPowNonce :=
+    have e528 : σ (.n 529) = n := load_val (w := w) (g1 _ (List.mem_cons_self ..)) (hS7 _ _) hn
+    have hp : FsPackOk σ (.n 529) (529 + 1) dsPowNonce :=
       fsPack_vals_of_good fun st h ↦ g1 st (List.mem_cons_of_mem _ h)
     have hk := keccakA_complete gk
     obtain ⟨hch, -⟩ := challenge_complete (C := C) gc
     have hlen := pendOk_length hs.2
-    have hs' : SpOk σ (s.absorb (σ (.n 528)) dsPowNonce)
-        (capF 0, pendF 0 ++ [(.n 529, .n 530)]) := by
+    have hs' : SpOk σ (s.absorb (σ (.n 529)) dsPowNonce)
+        (capF 0, pendF 0 ++ [(.n 530, .n 531)]) := by
       have hne : s.pend.length ≠ rateScalars := by rw [hlen]; decide
       simp only [Fs.absorb, hne, ↓reduceIte]
       exact ⟨hs.1, pendOk_append hs.2 (fsPackT_cells hp)⟩
     obtain ⟨-, hout⟩ := spOk_perm hs' hk (zs := []) (by decide) rfl (by decide)
     rw [e528] at hout
-    have hpow := grind_cell (s := s) (b := 531) hout hok
-    obtain ⟨-, hsq⟩ := grind_sq (s := s) (n := n) (b := 531) hout hpow hch
+    have hpow := grind_cell (s := s) (b := 532) hout hok
+    obtain ⟨-, hsq⟩ := grind_sq (s := s) (n := n) (b := 532) hout hpow hch
     refine ⟨e528, grind_out1 hout, hsq, fun {next kret} hnx ↦ ?_⟩
     simp only [sqT, show (0 : ℕ) ≠ 1 by decide, ↓reduceIte, holdsList_append, holds_fsNonceT,
       holds_challengeT, keccakA, grindCallT, Stmt.HoldsList, Stmt.Holds, List.map_cons,
       List.map_nil]
     exact ⟨⟨by rw [e528]; exact hn, hp⟩, hk, hgr _ hpow, hch, hnx⟩
-  · have g1 : ∀ st ∈ fsNonceT (.n 7) 47 543, GoodS rd S w σ st := fun st h ↦
+  · have g1 : ∀ st ∈ fsNonceT (.n 7) 47 544, GoodS rd S w σ st := fun st h ↦
       hg st (by simp [sqT, h])
-    have gp : ∀ st ∈ padRunT 546, GoodS rd S w σ st := fun st h ↦
+    have gp : ∀ st ∈ padRunT 547, GoodS rd S w σ st := fun st h ↦
       hg st (by simp [sqT, h])
-    have gk1 : Good rd S w σ (.keccak (sqIns 1) ((List.range 13).map fun k ↦ .n (530 + k))
-        false false) := hg (.atom (.keccak (sqIns 1) ((List.range 13).map fun k ↦ .n (530 + k))
+    have gk1 : Good rd S w σ (.keccak (sqIns 1) ((List.range 13).map fun k ↦ .n (531 + k))
+        false false) := hg (.atom (.keccak (sqIns 1) ((List.range 13).map fun k ↦ .n (531 + k))
         false false)) (by simp [sqT, keccakA])
-    have gk2 : Good rd S w σ (.keccak (permIns 1 [.n 544, .n 545] 547 (cap5 538))
-        ((List.range 13).map fun k ↦ .n (551 + k)) false false) :=
-      hg (.atom (.keccak (permIns 1 [.n 544, .n 545] 547 (cap5 538))
-        ((List.range 13).map fun k ↦ .n (551 + k)) false false)) (by simp [sqT, keccakA])
-    have gc : ∀ st ∈ challengeT (.n 551) 564, GoodS rd S w σ st := fun st h ↦
+    have gk2 : Good rd S w σ (.keccak (permIns 1 [.n 545, .n 546] 548 (cap5 539))
+        ((List.range 13).map fun k ↦ .n (552 + k)) false false) :=
+      hg (.atom (.keccak (permIns 1 [.n 545, .n 546] 548 (cap5 539))
+        ((List.range 13).map fun k ↦ .n (552 + k)) false false)) (by simp [sqT, keccakA])
+    have gc : ∀ st ∈ challengeT (.n 552) 565, GoodS rd S w σ st := fun st h ↦
       hg st (by simp [sqT, h])
-    have e543 : σ (.n 543) = n := load_val (w := w) (g1 _ (List.mem_cons_self ..)) (hS7 _ _) hn
-    have hp : FsPackOk σ (.n 543) (543 + 1) dsPowNonce :=
+    have e543 : σ (.n 544) = n := load_val (w := w) (g1 _ (List.mem_cons_self ..)) (hS7 _ _) hn
+    have hp : FsPackOk σ (.n 544) (544 + 1) dsPowNonce :=
       fsPack_vals_of_good fun st h ↦ g1 st (List.mem_cons_of_mem _ h)
-    have hpad : PadRunOk σ 546 := by
+    have hpad : PadRunOk σ 547 := by
       simp only [padRunT, List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff,
         implies_true, and_true, GoodS, Good] at gp
       obtain ⟨z0, z1, z2, z3, z4⟩ := gp
@@ -164,15 +164,15 @@ theorem sqT_complete {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (ca
     obtain ⟨-, hout1⟩ := spOk_perm hs hk1 (zs := []) (by decide) rfl (by decide)
     have hcap1 := capOf_outs hout1
     have hfull : s.pend.length = rateScalars := by rw [hlen]; decide
-    have hs' : SpOk σ (s.absorb (σ (.n 543)) dsPowNonce) (cap5 538, [(.n 544, .n 545)]) := by
+    have hs' : SpOk σ (s.absorb (σ (.n 544)) dsPowNonce) (cap5 539, [(.n 545, .n 546)]) := by
       simp only [Fs.absorb, hfull, ↓reduceIte]
       exact ⟨hcap1, fsPackT_cells hp, trivial⟩
     obtain ⟨z0, z1, z2, z3, z4⟩ := hpad
-    obtain ⟨-, hout⟩ := spOk_perm hs' hk2 (zs := [.n 547, .n 547, .n 547, .n 548, .n 549, .n 550])
+    obtain ⟨-, hout⟩ := spOk_perm hs' hk2 (zs := [.n 548, .n 548, .n 548, .n 549, .n 550, .n 551])
       (by decide) (by simp [z1, z2, z3, z4]) (by decide)
     rw [e543] at hout
-    have hpow := grind_cell (s := s) (b := 551) hout hok
-    obtain ⟨-, hsq⟩ := grind_sq (s := s) (n := n) (b := 551) hout hpow hch
+    have hpow := grind_cell (s := s) (b := 552) hout hok
+    obtain ⟨-, hsq⟩ := grind_sq (s := s) (n := n) (b := 552) hout hpow hch
     refine ⟨e543, grind_out1 hout, hsq, fun {next kret} hnx ↦ ?_⟩
     simp only [sqT, ↓reduceIte, holdsList_append, holds_fsNonceT, holds_padRunT,
       holds_challengeT, keccakA, grindCallT, Stmt.HoldsList, Stmt.Holds, List.map_cons,
@@ -227,7 +227,7 @@ theorem layerA_complete {first : ℕ} (hf : first < 2) (hσ : ∀ v, σ v = σ (
   rw [secA1, holdsList_append] at hP
   obtain ⟨hcp, hmu, hR, hP⟩ := headT_holds hP
   have hs0 : SpOk σ (plainStart first [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] w0)
-      (cap5 15, pend0 first) := by
+      (cap5 16, pend0 first) := by
     refine ⟨?_, ?_⟩
     · simp only [plainStart, cap5, List.map_cons, List.map_nil]
       rw [hcp 0 (by omega), hcp 1 (by omega), hcp 2 (by omega), hcp 3 (by omega),

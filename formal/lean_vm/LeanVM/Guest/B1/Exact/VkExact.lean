@@ -40,7 +40,7 @@ theorem layer_pathExact {first : ℕ} (hf : first < 2) {fn : Fn} (hb : fn.body =
   pathExact_of_pinned (by rw [hb]; exact layer_pinned first hf)
 
 /-- `verify_keccak`'s one computed hint: the bits of `y = τ - 3`. -/
-def vkBitsA : Atom := .hint (.bitsExp (.n 20) 5 (.stack [.n 21, .n 22, .n 23, .n 24, .n 25]))
+def vkBitsA : Atom := .hint (.bitsExp (.n 21) 5 (.stack [.n 22, .n 23, .n 24, .n 25, .n 26]))
 
 theorem vk_pinned : Stmt.blockNextOk (fun a => isComputed a && !decide (a ∈ [vkBitsA])) pinsInverse
     (fn% «verify_keccak»).body = true := by
@@ -85,7 +85,7 @@ theorem vk_pathExact : PathExactFn (fn% «verify_keccak») := by
     forall_eq, Atom.Holds] at H
   obtain ⟨-, -, c18, m19, -, s0, s1, s2, s3, s4, c25, c26, m27, a28, c29, c30, m31, a32, m33, c34, c35, m36, a37,
     c38, c39, m40, a41, m42, c43, c44, m45, a46, m47, m48, m49, m50, m51, c52, m53, q⟩ := H
-  have hb : ∀ j < 5, σ (.n (21 + j)) * σ (.n (21 + j)) = σ (.n (21 + j)) := by
+  have hb : ∀ j < 5, σ (.n (22 + j)) * σ (.n (22 + j)) = σ (.n (22 + j)) := by
     intro j hj
     interval_cases j
     · exact s0.symm
@@ -93,11 +93,11 @@ theorem vk_pathExact : PathExactFn (fn% «verify_keccak») := by
     · exact s2.symm
     · exact s3.symm
     · exact s4.symm
-  refine bitsExp_exact_of_prod (fun j => σ (.n (21 + j))) rfl hb ?_
-  have h20 : σ (.n 20) = σ (.n 52) := by
+  refine bitsExp_exact_of_prod (fun j => σ (.n (22 + j))) rfl hb ?_
+  have h20 : σ (.n 21) = σ (.n 53) := by
     rw [m19, e_add_eq_zero_iff.mp q, m53, c18, c52]
   rw [h20, m51, m50, m49, m48]
-  exact vkBits_prod (b := fun j => σ (.n (21 + j))) s3.symm s4.symm
+  exact vkBits_prod (b := fun j => σ (.n (22 + j))) s3.symm s4.symm
     (by rw [m33, a28, a32, m27, m31, c25, c26, c29, c30, word_one, word3, word5])
     (by rw [m47, a46, m45, c44, c43, m42, a41, m40, c39, c38, a37, m36, c35, c34, word_one, word3, word5, word17])
 

@@ -27,7 +27,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `certify_placement`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨29096, 469, Fn.«certify_placement».modeSig, (.node none (.node none (.node none .nil (.node none
+  ⟨29108, 469, Fn.«certify_placement».modeSig, (.node none (.node none (.node none .nil (.node none
     (.node none .nil (.node none (.node none (.node none (.node (some [(.alloc 258 94)]) .nil .nil)
     .nil) .nil) .nil)) .nil)) (.node none .nil (.node none (.node none (.node none (.node none
     (.node (some [(.alloc 123 9), (.witnessHeap "col_group_order" 123 0 9), (.alloc 124 9)]) .nil
@@ -65,7 +65,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `block_selector__L30`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨199630, 302, Fn.«block_selector__L30».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨199643, 302, Fn.«block_selector__L30».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `block_selector__L30`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -87,7 +87,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `block_selector_tab__L5`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨203828, 24, Fn.«block_selector_tab__L5».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨203841, 24, Fn.«block_selector_tab__L5».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `block_selector_tab__L5`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -109,7 +109,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `block_selector_tab__L23`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨204576, 64, Fn.«block_selector_tab__L23».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨204589, 64, Fn.«block_selector_tab__L23».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `block_selector_tab__L23`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -131,7 +131,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `claim_list_last__L11`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨235678, 121, Fn.«claim_list_last__L11».modeSig, (.node (some [(.witnessHeap "claims" 3 0 4),
+  ⟨235691, 121, Fn.«claim_list_last__L11».modeSig, (.node (some [(.witnessHeap "claims" 3 0 4),
     (.witnessHeap "claims" 3 4 4), (.witnessHeap "claims" 3 8 4), (.witnessHeap "claims" 3 12 4),
     (.witnessHeap "claims" 3 16 4), (.witnessHeap "claims" 3 20 4), (.witnessHeap "claims" 3 24 4),
     (.witnessHeap "claims" 3 28 4), (.witnessHeap "claims" 3 32 4), (.witnessHeap "claims" 3 36 4),

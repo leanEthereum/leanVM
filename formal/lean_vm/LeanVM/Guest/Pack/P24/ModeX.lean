@@ -21,18 +21,18 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `__loop25`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none .nil (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_verify_cell».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil))))) .nil)) .nil) (.node none
-    .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
-    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
-    none .nil (.node none .nil (.node none .nil (.node (some Fn.«da_verify_column_loop0».modeSig)
-    .nil .nil)))) .nil) .nil))) .nil)) .nil) .nil)))) .nil))), 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none (.node none .nil
+    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
+    .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node (some Fn.«da_verify_column_loop0».modeSig) .nil .nil)))) .nil) .nil))) .nil))
+    .nil)) .nil) .nil)) .nil) .nil) (.node none (.node none (.node none (.node none (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node (some Fn.«da_verify_cell».modeSig) .nil .nil)))) .nil)
+    .nil) .nil)) .nil) .nil) .nil) .nil) .nil) .nil) .nil)), 524287⟩
 
 /-- `__loop25`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨249146, 35, Fn.«da_verify_column_loop0».modeSig, (.node none .nil (.node (some [(.alloc 12
+  ⟨249159, 35, Fn.«da_verify_column_loop0».modeSig, (.node none .nil (.node (some [(.alloc 12
     1619)]) .nil (.node none .nil (.node none (.node (some [(.frameAddress 27)]) .nil .nil)
     .nil)))), .nil, .nil, false, .nil⟩
 

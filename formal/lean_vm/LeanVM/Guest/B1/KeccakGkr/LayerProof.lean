@@ -65,7 +65,7 @@ theorem layer_sound {first : ℕ} (hf : first < 2) (hW : WeightOk first (layOff 
     {fn : Fn} (hfind : coreProgram.find? (layerName first) = some fn)
     (hbody : fn.body = layerT first)
     (hparams : fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10,
-      .n 11, .n 12, .n 13, .n 14])
+      .n 11, .n 12, .n 13, .n 14, .n 15])
     (rd : Reader)
     (hgr : ∀ w tabs : E, WinTabs rd tabs → coreProgram.Rel rd (grindCheckName 3) [w, tabs] [] →
       (w.limb 0).lane.toNat % 2 ^ 3 = 0)

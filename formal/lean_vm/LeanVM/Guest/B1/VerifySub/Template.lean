@@ -203,7 +203,7 @@ def vsCallsT : List Stmt :=
       569, 568, 572, 570] ((List.range 10).map (573 + ·)),
     vsLd 583 71 6, vsAlloc 584 78, vsAlloc 585 64, vsConst 586 (word 3710851743744 0),
     vsMul 587 582 586] ++ vsTabsT 588 589 ++
-  [vsCall "verify_keccak" [573, 574, 575, 576, 577, 578, 583, 569, 587, 584, 585, 589]
+  [vsCall "verify_keccak" [573, 574, 575, 576, 577, 578, 583, 569, 587, 584, 585, 589, 25]
       ((List.range 7).map (590 + ·))]
 
 /-- The value of the ring map's challenge `i`. -/

@@ -47,7 +47,7 @@ theorem layerT_pre (first : ℕ) : layerT first = layerPre first ++ [.ret (layer
 theorem layer_fn {first : ℕ} (hf : first < 2) :
     ∃ fn, coreProgram.find? (layerName first) = some fn ∧ fn.body = layerT first ∧
       fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9, .n 10, .n 11, .n 12,
-        .n 13, .n 14] := by
+        .n 13, .n 14, .n 15] := by
   interval_cases first
   · exact ⟨_, find_layer265, layer_body265, rfl⟩
   · exact ⟨_, find_layer264, layer_body264, rfl⟩

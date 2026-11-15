@@ -25,25 +25,25 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `shared_selector_tables`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil
+  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none (.node none (.node
+    none .nil (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    (some Fn.«sel_partial_nibble__L3».modeSig) .nil .nil) .nil)))) .nil) .nil) .nil)) .nil)) .nil)
+    .nil)) (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none .nil
     (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node (some Fn.«sel_partial_nibble__L1».modeSig) .nil .nil) .nil)))) .nil) .nil) .nil))
-    .nil) .nil)) .nil))))) (.node none (.node none (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none (.node none
+    none (.node (some Fn.«sel_partial_nibble__L0».modeSig) .nil .nil) .nil)))) .nil) .nil) .nil))
+    .nil) .nil))) .nil)) .nil) (.node none .nil (.node none (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none
     (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«sel_partial_nibble__L2».modeSig) .nil .nil) .nil)))) .nil) .nil) .nil)) .nil) .nil)))
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
+    Fn.«shared_selector_tables_loop0».modeSig) .nil .nil) .nil)))) .nil) .nil) .nil) .nil)))))
+    (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none (.node
     none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«shared_selector_tables_loop0».modeSig) .nil .nil) .nil)))) .nil) .nil) .nil) .nil))))
-    .nil))) .nil) (.node none (.node none (.node none (.node none (.node none (.node none .nil
-    (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node (some Fn.«sel_partial_nibble__L3».modeSig) .nil .nil)
-    .nil)))) .nil) .nil) .nil)) .nil)) .nil) .nil) .nil) (.node none .nil (.node none (.node none
+    Fn.«sel_partial_nibble__L2».modeSig) .nil .nil) .nil)))) .nil) .nil) .nil)) .nil) .nil))))
+    .nil))) (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none
     .nil (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node none
     .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«sel_partial_nibble__L0».modeSig) .nil .nil) .nil)))) .nil) .nil) .nil)) .nil) .nil))
-    .nil))) .nil))), 524287⟩
+    Fn.«sel_partial_nibble__L1».modeSig) .nil .nil) .nil)))) .nil) .nil) .nil)) .nil) .nil)))
+    .nil)) .nil))), 524287⟩
 
 /-- `shared_selector_tables`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=

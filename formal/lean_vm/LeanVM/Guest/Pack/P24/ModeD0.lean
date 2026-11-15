@@ -25,23 +25,23 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `da_vector`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none (.node none (.node
-    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
-    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node (some Fn.«da_factors__L7_L8_L128».modeSig) .nil .nil)))) .nil)) .nil) .nil)
-    .nil)))))) .nil) .nil) (.node none .nil (.node none (.node none .nil (.node none (.node none
-    .nil (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node (some Fn.«da_column_offsets».modeSig) .nil .nil))))
-    .nil))) .nil) .nil)) .nil)) (.node none .nil (.node none (.node none .nil (.node none (.node
-    none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none
-    .nil (.node none .nil (.node none .nil (.node (some Fn.«da_factors__L14_L7_L0».modeSig) .nil
-    .nil)))) .nil) .nil))) (.node none .nil (.node none .nil (.node none (.node none (.node none
-    .nil (.node none .nil (.node none .nil (.node (some Fn.«da_expand__L14_L7».modeSig) .nil
-    .nil)))) .nil) .nil))))) .nil)) .nil))))) .nil), 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none .nil (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node (some Fn.«da_factors__L7_L8_L128».modeSig) .nil .nil)))) .nil))
+    .nil) .nil) .nil)))))))) (.node none (.node none (.node none (.node none .nil (.node none .nil
+    (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node (some Fn.«da_column_offsets».modeSig) .nil .nil)))) .nil)))
+    .nil) .nil))) .nil) (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
+    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node (some Fn.«da_factors__L14_L7_L0».modeSig) .nil .nil)))) .nil)
+    .nil))) (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node (some Fn.«da_expand__L14_L7».modeSig) .nil .nil)))) .nil)
+    .nil))))) .nil))) .nil)) .nil))), 524287⟩
 
 /-- `da_vector`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨62991, 70, Fn.«da_vector».modeSig, (.node (some [(.alloc 7 15)]) (.node none (.node none (.node
+  ⟨63004, 70, Fn.«da_vector».modeSig, (.node (some [(.alloc 7 15)]) (.node none (.node none (.node
     none .nil (.node none (.node (some [(.alloc 25 388)]) .nil .nil) .nil)) .nil) (.node none .nil
     (.node none .nil (.node none (.node (some [(.alloc 29 920)]) .nil .nil) .nil)))) (.node none
     (.node none .nil (.node none .nil (.node none .nil (.node (some [(.alloc 35 161)]) .nil

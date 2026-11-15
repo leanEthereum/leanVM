@@ -31,15 +31,16 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `da_verify`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = (List.flatten [[(62991, Fn.«da_vector».modeSig),
-    (61625, Fn.«da_row_shape».modeSig), (247133, Fn.«da_verify_loop0».modeSig), (247165,
-    Fn.«da_verify_loop1».modeSig), (247328, Fn.«da_levels__L16_L4».modeSig), (247648,
-    Fn.«da_levels__L512_L9».modeSig), (247256, Fn.«da_levels__L2_L1».modeSig), (247252,
-    Fn.«da_levels__L1_L0».modeSig), (247564, Fn.«da_levels__L256_L8».modeSig), (247372,
-    Fn.«da_levels__L32_L5».modeSig), (247196, Fn.«da_verify_loop2».modeSig), (247228,
-    Fn.«da_verify_loop3».modeSig), (247426, Fn.«da_levels__L64_L6».modeSig), (247490,
-    Fn.«da_levels__L128_L7».modeSig), (247270, Fn.«da_levels__L4_L2».modeSig), (247742,
-    Fn.«da_levels__L1024_L10».modeSig)], [(247294, Fn.«da_levels__L8_L3».modeSig)]])
+kernel_rfl modeSigs : modeCert.E.sigs.entries = (List.flatten [[(247439,
+    Fn.«da_levels__L64_L6».modeSig), (247503, Fn.«da_levels__L128_L7».modeSig), (247283,
+    Fn.«da_levels__L4_L2».modeSig), (247307, Fn.«da_levels__L8_L3».modeSig), (247755,
+    Fn.«da_levels__L1024_L10».modeSig), (247265, Fn.«da_levels__L1_L0».modeSig), (247241,
+    Fn.«da_verify_loop3».modeSig), (247209, Fn.«da_verify_loop2».modeSig), (247577,
+    Fn.«da_levels__L256_L8».modeSig), (247385, Fn.«da_levels__L32_L5».modeSig), (247269,
+    Fn.«da_levels__L2_L1».modeSig), (247341, Fn.«da_levels__L16_L4».modeSig), (247661,
+    Fn.«da_levels__L512_L9».modeSig), (63004, Fn.«da_vector».modeSig), (247178,
+    Fn.«da_verify_loop1».modeSig), (247146, Fn.«da_verify_loop0».modeSig)], [(61638,
+    Fn.«da_row_shape».modeSig)]])
 
 end LeanVM.Guest.Fn.«da_verify»
 
@@ -183,7 +184,7 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `__loop36`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(254303, Fn.«verify_bus_gkr_loop0_loop0».modeSig)]
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(254316, Fn.«verify_bus_gkr_loop0_loop0».modeSig)]
 
 end LeanVM.Guest.Fn.«verify_bus_gkr_loop0_loop0»
 
@@ -199,9 +200,9 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `level_residual__L55_L16_L6_L3`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(304340,
-    Fn.«level_residual__L55_L16_L6_L3_loop0».modeSig), (305054,
-    Fn.«level_residual__L55_L16_L6_L3_loop1».modeSig)]
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(305067,
+    Fn.«level_residual__L55_L16_L6_L3_loop1».modeSig), (304353,
+    Fn.«level_residual__L55_L16_L6_L3_loop0».modeSig)]
 
 end LeanVM.Guest.Fn.«level_residual__L55_L16_L6_L3»
 
@@ -217,9 +218,9 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `level_residual__L55_L15_L4_L2`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(337812,
-    Fn.«level_residual__L55_L15_L4_L2_loop0».modeSig), (338450,
-    Fn.«level_residual__L55_L15_L4_L2_loop1».modeSig)]
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(338463,
+    Fn.«level_residual__L55_L15_L4_L2_loop1».modeSig), (337825,
+    Fn.«level_residual__L55_L15_L4_L2_loop0».modeSig)]
 
 end LeanVM.Guest.Fn.«level_residual__L55_L15_L4_L2»
 
@@ -235,9 +236,9 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `level_residual__L21_L10_L4_L2`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(379577,
-    Fn.«level_residual__L21_L10_L4_L2_loop1».modeSig), (379109,
-    Fn.«level_residual__L21_L10_L4_L2_loop0».modeSig)]
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(379122,
+    Fn.«level_residual__L21_L10_L4_L2_loop0».modeSig), (379590,
+    Fn.«level_residual__L21_L10_L4_L2_loop1».modeSig)]
 
 end LeanVM.Guest.Fn.«level_residual__L21_L10_L4_L2»
 
@@ -253,9 +254,9 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `level_residual__L18_L10_L4_L2`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(380247,
-    Fn.«level_residual__L18_L10_L4_L2_loop0».modeSig), (380715,
-    Fn.«level_residual__L18_L10_L4_L2_loop1».modeSig)]
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(380728,
+    Fn.«level_residual__L18_L10_L4_L2_loop1».modeSig), (380260,
+    Fn.«level_residual__L18_L10_L4_L2_loop0».modeSig)]
 
 end LeanVM.Guest.Fn.«level_residual__L18_L10_L4_L2»
 
@@ -271,8 +272,9 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `level_queries__L37_L0_L4_L16_L25_L7_L0_L0_L0_L0`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(283073, Fn.«verify_merkle_cap__L7».modeSig),
-    (368837, Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0».modeSig)]
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(368850,
+    Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0».modeSig), (283086,
+    Fn.«verify_merkle_cap__L7».modeSig)]
 
 end LeanVM.Guest.Fn.«level_queries__L37_L0_L4_L16_L25_L7_L0_L0_L0_L0»
 
@@ -288,9 +290,9 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `level_positions__L4_L25_L7`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(397227,
-    Fn.«level_positions__L4_L25_L7_loop0».modeSig), (355828,
-    Fn.«decode_query_windows__L25_L7».modeSig)]
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(355841,
+    Fn.«decode_query_windows__L25_L7».modeSig), (397240,
+    Fn.«level_positions__L4_L25_L7_loop0».modeSig)]
 
 end LeanVM.Guest.Fn.«level_positions__L4_L25_L7»
 
@@ -306,7 +308,7 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `__loop74`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(277323, Fn.«da_levels__L256_L8_loop5».modeSig)]
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(277336, Fn.«da_levels__L256_L8_loop5».modeSig)]
 
 end LeanVM.Guest.Fn.«da_levels__L256_L8_loop5»
 
@@ -322,7 +324,7 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(418618,
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(418631,
     Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0».modeSig)]
 
 end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0»
@@ -339,8 +341,8 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `__loop137`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(292107,
-    Fn.«level_positions__L11_L18_L6_loop0».modeSig), (279061,
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(292120,
+    Fn.«level_positions__L11_L18_L6_loop0».modeSig), (279074,
     Fn.«decode_query_windows__L18_L6».modeSig)]
 
 end LeanVM.Guest.Fn.«level_positions__L11_L18_L6_loop0»
@@ -357,7 +359,7 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `__loop156`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(297586,
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(297599,
     Fn.«level_residual__L44_L11_L4_L2_loop1».modeSig)]
 
 end LeanVM.Guest.Fn.«level_residual__L44_L11_L4_L2_loop1»
@@ -374,9 +376,9 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `__loop169`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(300619,
-    Fn.«level_positions__L13_L19_L7_loop0».modeSig), (292158,
-    Fn.«decode_query_windows__L19_L7».modeSig)]
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(292171,
+    Fn.«decode_query_windows__L19_L7».modeSig), (300632,
+    Fn.«level_positions__L13_L19_L7_loop0».modeSig)]
 
 end LeanVM.Guest.Fn.«level_positions__L13_L19_L7_loop0»
 
@@ -392,8 +394,8 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `__loop170`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(300951,
-    Fn.«level_positions__L10_L20_L2_loop0».modeSig), (300669,
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(300964,
+    Fn.«level_positions__L10_L20_L2_loop0».modeSig), (300682,
     Fn.«decode_query_windows__L20_L2».modeSig)]
 
 end LeanVM.Guest.Fn.«level_positions__L10_L20_L2_loop0»
@@ -410,7 +412,7 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `__loop189`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(306496,
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(306509,
     Fn.«level_residual__L37_L12_L4_L2_loop0».modeSig)]
 
 end LeanVM.Guest.Fn.«level_residual__L37_L12_L4_L2_loop0»
@@ -427,7 +429,7 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `__loop319`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(347135,
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(347148,
     Fn.«level_residual__L73_L20_L6_L3_loop0».modeSig)]
 
 end LeanVM.Guest.Fn.«level_residual__L73_L20_L6_L3_loop0»
@@ -444,7 +446,7 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `__loop333`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(353455,
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(353468,
     Fn.«level_residual__L25_L12_L4_L2_loop1».modeSig)]
 
 end LeanVM.Guest.Fn.«level_residual__L25_L12_L4_L2_loop1»
@@ -461,9 +463,8 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `__loop521`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(422145,
-    Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1_loop0».modeSig), (412864,
-    Fn.«walk_path__L12_L4».modeSig)]
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(412877, Fn.«walk_path__L12_L4».modeSig), (422158,
+    Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1_loop0».modeSig)]
 
 end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1_loop0»
 
@@ -479,9 +480,8 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `__loop537`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(432359,
-    Fn.«opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».modeSig), (430602,
-    Fn.«walk_path__L18_L4».modeSig)]
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(430615, Fn.«walk_path__L18_L4».modeSig), (432372,
+    Fn.«opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0».modeSig)]
 
 end LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0»
 
@@ -497,9 +497,8 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `__loop546`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(436656,
-    Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1_loop0».modeSig), (416428,
-    Fn.«walk_path__L12_L6».modeSig)]
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(416441, Fn.«walk_path__L12_L6».modeSig), (436669,
+    Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1_loop0».modeSig)]
 
 end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1_loop0»
 
@@ -515,8 +514,8 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `__loop562`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(447802,
-    Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».modeSig), (441126,
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(447815,
+    Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0».modeSig), (441139,
     Fn.«walk_path__L18_L7».modeSig)]
 
 end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0_loop0»

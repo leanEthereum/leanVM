@@ -45,7 +45,7 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 set_option maxRecDepth 20000 in
 /-- **`layer_completeAtFB` by a tree exact at every node.** -/
 theorem layer_completeAtFBE {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D : LayerData)
-    (CL : ClaimLay) (bcur bout tbE : ℕ) {p0 p1 iota : E} {KP KR : ℕ}
+    (CL : ClaimLay) (bcur bout tbE : ℕ) {p0 p1 iota st : E} {KP KR : ℕ}
     (hP : TotalLeOn coreProgram fs (packLoopName first) LoopPre
       fun a ↦ logG (a.getD 1 0) * KP + fs (packLoopName first))
     (hR : TotalLeOn coreProgram fs (remLoopName first) LoopPre
@@ -61,7 +61,7 @@ theorem layer_completeAtFBE {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 
     CompleteAtFBT fs cert κ (layerName first)
       (fun fp ↦ layerLin D first CL bcur bout tbE (fp + fs (layerName first)))
       (D.cap ++ [p0, p1, ptr bcur, gen ^ D.y, gen ^ (D.y / 8), gen ^ (D.y % 8), ptr CL.bclaim,
-        ptr bout, iota, ptr tbE])
+        ptr bout, iota, ptr tbE, st])
       (fun fp rets Lout ↦ rets = D.rets first (ptr bcur) ∧
         Lout = layerBufs D first (ptr bcur) (fp + fs (layerName first)))
       exT (layerWords fs first D.y KP KR) := by

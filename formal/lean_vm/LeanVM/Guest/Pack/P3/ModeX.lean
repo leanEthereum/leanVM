@@ -28,62 +28,63 @@ open LeanVM.Guest LeanVM.Guest.Exec
 /-- `verify_keccak`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none (.node none (.node
-    none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+    none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none
+    .nil (.node (some Fn.«keccak_plain_rounds__L6_L0».modeSig) .nil .nil)) .nil) .nil)) .nil)))))
+    .nil))) .nil) .nil) .nil) (.node none .nil (.node none .nil (.node none (.node none .nil (.node
+    none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    .nil (.node none (.node none (.node none .nil (.node (some Fn.«verify_keccak_loop2».modeSig)
+    .nil .nil)) .nil) .nil))) .nil) .nil) .nil) .nil) .nil) (.node none (.node none (.node none
+    (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none
+    .nil (.node (some Fn.«keccak_layer__L0».modeSig) .nil .nil)) .nil) .nil)) .nil)) .nil) .nil)
+    .nil) .nil))) .nil)))) (.node none (.node none (.node none (.node none .nil (.node none .nil
+    (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none
+    (.node none .nil (.node none (.node none (.node none .nil (.node (some
+    Fn.«verify_keccak_loop0».modeSig) .nil .nil)) .nil) .nil)) .nil) .nil) .nil)) .nil)) .nil)))
+    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
     (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
-    none .nil (.node (some Fn.«keccak_plain_rounds__L4_L1».modeSig) .nil .nil)) .nil) .nil))
-    .nil))))))) .nil)) (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
+    none .nil (.node (some Fn.«verify_keccak_loop1».modeSig) .nil .nil)) .nil) .nil)) .nil)))))))
+    .nil) .nil)) (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
     (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none (.node none
     (.node none .nil (.node (some Fn.«keccak_layer__L1».modeSig) .nil .nil)) .nil) .nil)) .nil)
-    .nil) .nil)) .nil)) .nil)))) (.node none (.node none (.node none .nil (.node none (.node none
-    .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
-    none (.node none (.node none .nil (.node (some Fn.«verify_keccak_loop0».modeSig) .nil .nil))
-    .nil) .nil)) .nil) .nil) .nil)) .nil)) .nil)) .nil) (.node none .nil (.node none .nil (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«verify_keccak_loop1».modeSig) .nil .nil)) .nil) .nil)) .nil)))))) .nil))))) .nil) (.node
-    none (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none
-    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none
-    (.node none .nil (.node (some Fn.«verify_keccak_loop2».modeSig) .nil .nil)) .nil) .nil))) .nil)
-    .nil) .nil) .nil) .nil) (.node none (.node none (.node none (.node none (.node none .nil (.node
-    none (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«keccak_layer__L0».modeSig) .nil .nil)) .nil) .nil)) .nil)) .nil) .nil) .nil) .nil))) .nil)
-    .nil) .nil) (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none
+    .nil) .nil)) .nil))) .nil) .nil) (.node none .nil (.node none (.node none .nil (.node none .nil
     (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
     .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«keccak_plain_rounds__L6_L0».modeSig) .nil .nil)) .nil) .nil)) .nil))))) .nil)) .nil)) .nil)
-    .nil))), 524287⟩
+    Fn.«keccak_plain_rounds__L4_L1».modeSig) .nil .nil)) .nil) .nil)) .nil))))))) .nil)))) .nil)),
+    524287⟩
 
 /-- `verify_keccak`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨25232, 3246, Fn.«verify_keccak».modeSig, (.node none (.node none (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node none .nil (.node (some [(.alloc 434
-    2241)]) .nil .nil)) .nil)))) (.node none (.node none (.node none (.node none (.node none .nil
-    (.node none .nil (.node (some [(.alloc 737 2241)]) .nil .nil))) .nil) .nil) .nil) .nil)) (.node
-    none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    [(.alloc 462 2241)]) .nil .nil)))) (.node none (.node none (.node none (.node none (.node (some
-    [(.alloc 493 2241)]) .nil .nil) .nil) .nil) .nil) .nil)) (.node none .nil (.node none (.node
-    none (.node none .nil (.node none (.node (some [(.alloc 582 2241)]) (.node (some [(.allocFrames
-    1000 17 37 (LeanVM.Parameters.K.ofBits 0x1) 17)]) .nil .nil) .nil) .nil)) .nil) .nil))) (.node
-    none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node (some
-    [(.alloc 707 2241)]) .nil .nil)) .nil)) (.node none .nil (.node none .nil (.node none (.node
-    (some [(.alloc 643 2241)]) .nil .nil) .nil))))) (.node none .nil (.node none (.node none (.node
-    none .nil (.node none .nil (.node (some [(.alloc 747 250)]) .nil .nil))) .nil) .nil))))) (.node
-    none (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none
-    (.node (some [(.alloc 524 2241)]) .nil .nil) .nil) .nil)) .nil) (.node (some [(.alloc 98 5),
-    (.alloc 195 286), (.alloc 196 30), (.alloc 229 62), (.alloc 297 2), (.alloc 1015 30),
-    (.allocFrames 73 17 37 (LeanVM.Parameters.K.ofBits 0x1) 17)]) .nil (.node none .nil (.node none
-    (.node none (.node (some [(.alloc 555 2241)]) .nil .nil) .nil) .nil)))) (.node none (.node none
-    (.node none .nil (.node none .nil (.node none (.node (some [(.alloc 613 2241)]) .nil .nil)
-    .nil))) .nil) .nil)) (.node none .nil (.node none (.node (some [(.allocDyn 69 44)]) (.node none
-    (.node none .nil (.node (some [(.alloc 405 1889)]) .nil .nil)) .nil) .nil) (.node none (.node
-    none (.node none .nil (.node none (.node none (.node none .nil (.node (some [(.allocFrames 3300
-    17 37 (LeanVM.Parameters.K.ofBits 0x1) 17)]) .nil .nil)) .nil) .nil)) .nil) .nil)))) (.node
-    none (.node (some [(.bitDecomposeExp 44 (.stack 38) 5)]) .nil .nil) (.node none (.node none
-    (.node none .nil (.node none (.node none (.node none .nil (.node (some [(.alloc 676 2241)])
-    .nil .nil)) (.node none (.node none (.node (some [(.alloc 1013 178)]) .nil .nil) .nil) .nil))
-    .nil)) .nil) (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
-    (.node (some [(.alloc 1107 250)]) .nil .nil) .nil)) .nil) .nil)) .nil))))), .nil, .nil, false,
-    .nil⟩
+  ⟨25232, 3258, Fn.«verify_keccak».modeSig, (.node none (.node none (.node none (.node none (.node
+    none (.node none .nil (.node none (.node none .nil (.node none (.node (some [(.alloc 583
+    2242)]) .nil .nil) .nil)) (.node none (.node none .nil (.node (some [(.alloc 708 2242)]) .nil
+    .nil)) .nil))) (.node none (.node none .nil (.node none .nil (.node none (.node (some [(.alloc
+    614 2242)]) .nil .nil) .nil))) (.node none (.node none (.node none .nil (.node (some [(.alloc
+    677 2242)]) .nil .nil)) .nil) .nil))) .nil) (.node none (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node (some [(.alloc 463 2242)]) .nil .nil)))) .nil) .nil)) (.node
+    none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none
+    .nil (.node (some [(.alloc 748 250)]) .nil .nil))) .nil)) .nil)) (.node none (.node none (.node
+    none .nil (.node none (.node none .nil (.node none (.node none (.node (some [(.allocFrames 1001
+    17 38 (LeanVM.Parameters.K.ofBits 0x1) 17)]) .nil .nil) .nil) .nil)) .nil)) (.node none .nil
+    (.node none .nil (.node none (.node none (.node (some [(.alloc 556 2242)]) .nil .nil) .nil)
+    .nil)))) (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    (some [(.alloc 644 2242)]) .nil .nil) .nil)))))))) (.node none (.node none (.node none (.node
+    none .nil (.node (some [(.alloc 99 5), (.alloc 196 286), (.alloc 197 30), (.alloc 230 62),
+    (.alloc 298 2), (.alloc 1016 30), (.allocFrames 74 17 38 (LeanVM.Parameters.K.ofBits 0x1) 17)])
+    .nil .nil)) (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
+    (.node none .nil (.node (some [(.allocFrames 3301 17 38 (LeanVM.Parameters.K.ofBits 0x1) 17)])
+    .nil .nil)) .nil) .nil)) .nil)) (.node none .nil (.node none (.node none .nil (.node (some
+    [(.alloc 435 2242)]) .nil .nil)) .nil)))) (.node none (.node none (.node none (.node none .nil
+    (.node none (.node none (.node (some [(.alloc 525 2242)]) .nil .nil) .nil) .nil)) .nil) (.node
+    none (.node none (.node none (.node none (.node (some [(.alloc 494 2242)]) .nil .nil) .nil)
+    .nil) .nil) .nil)) (.node none (.node (some [(.allocDyn 70 45)]) (.node none (.node none .nil
+    (.node (some [(.alloc 406 1890)]) .nil .nil)) .nil) .nil) .nil))) (.node none (.node (some
+    [(.bitDecomposeExp 45 (.stack 39) 5)]) (.node none .nil (.node none .nil (.node none (.node
+    none .nil (.node none (.node none (.node (some [(.alloc 1014 178)]) .nil .nil) .nil) .nil))
+    .nil))) (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none
+    (.node (some [(.alloc 1108 250)]) .nil .nil) .nil)) .nil) .nil)))) (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node (some [(.alloc 738 2242)])
+    .nil .nil))) .nil) .nil) .nil))))), .nil, .nil, false, .nil⟩
 
 end
 

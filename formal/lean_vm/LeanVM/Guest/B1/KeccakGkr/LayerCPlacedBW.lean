@@ -19,11 +19,11 @@ the eight-round pack loops `keccak_layer__L1_loop0`, `keccak_layer__L0_loop0` (c
 frame `374`) at most `374` words per iteration and the run's one phantom frame (its last, skipped
 call's), the remainder loops `keccak_layer__L1_loop1`, `keccak_layer__L0_loop1` (core `457`, `459`,
 frame `77`) at most `77` and their frame, and `grind_check__L3` (core `455`) its frame of `60`
-words. So `keccak_layer__L{first}` (core `265` for `first = 0`, frame `2241`; core `264` for `first
-= 1`, frame `1889`) is complete within `layerWords B2C.fs first y 374 77`
+words. So `keccak_layer__L{first}` (core `265` for `first = 0`, frame `2242`; core `264` for `first
+= 1`, frame `1890`) is complete within `layerWords B2C.fs first y 374 77`
 `= fs (layerName first) + (y + 171) + (374 + ⌊y/8⌋ * 374) + (77 + (y % 8) * 77) + 60`
-(`layer_completeAtFB_fs`), at most `2241 + (y + 171) + (374 + ⌊y/8⌋ * 374) + (77 + (y % 8) * 77)
-+ 60` (`layerWords_fs_le_y`): at most `4233` words for `y ≤ 25` (at `y = 23`), `4537` for
+(`layer_completeAtFB_fs`), at most `2242 + (y + 171) + (374 + ⌊y/8⌋ * 374) + (77 + (y % 8) * 77)
++ 60` (`layerWords_fs_le_y`): at most `4234` words for `y ≤ 25` (at `y = 23`), `4538` for
 `y ≤ 30` (`layerWords_fs_le`).
 -/
 
@@ -99,9 +99,9 @@ theorem grind3_fs : LeanVM.Guest.B2C.fs (grindCheckName 3) = 60 := by
   rw [fs_idx (j := idx% «grind_check__L3») (f := grindCheckName 3) (by decide +kernel)]
   decide +kernel
 
-/-- The layers' frames at `B2C.fs`: `2241` (`keccak_layer__L0`), `1889` (`keccak_layer__L1`). -/
+/-- The layers' frames at `B2C.fs`: `2242` (`keccak_layer__L0`), `1890` (`keccak_layer__L1`). -/
 theorem layerName_fs {first : ℕ} (hf : first < 2) :
-    LeanVM.Guest.B2C.fs (layerName first) ≤ 2241 := by
+    LeanVM.Guest.B2C.fs (layerName first) ≤ 2242 := by
   interval_cases first
   · rw [show layerName 0 = "keccak_layer__L0" from rfl,
       fs_idx (j := idx% «keccak_layer__L0») (f := "keccak_layer__L0") (by decide +kernel)]
@@ -110,19 +110,19 @@ theorem layerName_fs {first : ℕ} (hf : first < 2) :
       fs_idx (j := idx% «keccak_layer__L1») (f := "keccak_layer__L1") (by decide +kernel)]
     decide +kernel
 
-/-- **A layer's words at `B2C.fs`**, its frame at most `2241`. -/
+/-- **A layer's words at `B2C.fs`**, its frame at most `2242`. -/
 theorem layerWords_fs_le_y {first : ℕ} (hf : first < 2) (y : ℕ) :
     layerWords LeanVM.Guest.B2C.fs first y 374 77 ≤
-      2241 + (y + 171) + (374 + y / 8 * 374) + (77 + y % 8 * 77) + 60 := by
+      2242 + (y + 171) + (374 + y / 8 * 374) + (77 + y % 8 * 77) + 60 := by
   have := layerName_fs hf
   simp only [layerWords, packLoopName_fs hf, remLoopName_fs hf, grind3_fs]
   omega
 
-/-- **A layer's words at `B2C.fs`, in numbers**: at most `4233` for `y ≤ 25`, `4537` for
+/-- **A layer's words at `B2C.fs`, in numbers**: at most `4234` for `y ≤ 25`, `4538` for
 `y ≤ 30`. -/
 theorem layerWords_fs_le {first y : ℕ} (hf : first < 2) :
-    (y ≤ 25 → layerWords LeanVM.Guest.B2C.fs first y 374 77 ≤ 4233) ∧
-      (y ≤ 30 → layerWords LeanVM.Guest.B2C.fs first y 374 77 ≤ 4537) := by
+    (y ≤ 25 → layerWords LeanVM.Guest.B2C.fs first y 374 77 ≤ 4234) ∧
+      (y ≤ 30 → layerWords LeanVM.Guest.B2C.fs first y 374 77 ≤ 4538) := by
   have h := layerWords_fs_le_y hf y
   constructor <;> intro hy <;> refine h.trans ?_ <;> interval_cases y <;> norm_num
 
@@ -132,7 +132,7 @@ set_option maxRecDepth 20000 in
 /-- **`keccak_layer` is complete, placed, within `layerWords B2C.fs first D.y 374 77` words** at
 the deployed frame sizes. -/
 theorem layer_completeAtFB_fs {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D : LayerData)
-    (CL : ClaimLay) (bcur bout tbE : ℕ) {p0 p1 iota : E}
+    (CL : ClaimLay) (bcur bout tbE : ℕ) {p0 p1 iota st : E}
     (hcl : D.cap.length = 5)
     (hw : first = 1 → (p0, p1) = Keccak.scalarCells D.w0 dsObserve)
     (hy1 : 1 ≤ D.y) (hy30 : D.y ≤ 30) (hpl : D.product.length = 47)
@@ -144,7 +144,7 @@ theorem layer_completeAtFB_fs {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 1
     CompleteAtFB LeanVM.Guest.B2C.fs cert κ (layerName first)
       (fun fp ↦ layerLin D first CL bcur bout tbE (fp + LeanVM.Guest.B2C.fs (layerName first)))
       (D.cap ++ [p0, p1, ptr bcur, gen ^ D.y, gen ^ (D.y / 8), gen ^ (D.y % 8), ptr CL.bclaim,
-        ptr bout, iota, ptr tbE])
+        ptr bout, iota, ptr tbE, st])
       (fun fp rets Lout ↦ rets = D.rets first (ptr bcur) ∧
         Lout = layerBufs D first (ptr bcur) (fp + LeanVM.Guest.B2C.fs (layerName first)))
       (layerWords LeanVM.Guest.B2C.fs first D.y 374 77) :=

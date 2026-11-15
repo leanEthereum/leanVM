@@ -243,7 +243,7 @@ noncomputable def kids (sqE : ℕ) : List KidD :=
       S.H.linL (S.vtB bs sqE (S.leavesB pv)), Returns (S.H.retsH (S.vtB bs sqE (S.leavesB pv)))⟩,
     fun _ ↦ ⟨"verify_keccak", true,
       S.H.s3.squeeze.2.cap ++ [ptr (S.cK bs), gen ^ S.τ, ptr (vb bs 9), ptr (S.cL bs),
-        ptr (vb bs 11), ptr (vb bs 12), ptr (sqE + winTabAt)],
+        ptr (vb bs 11), ptr (vb bs 12), ptr (sqE + winTabAt), ptr (vb bs 1)],
       [(S.cK bs, S.xsK), (vb bs 9, S.H.chiW), (S.cL bs, S.outs), (vb bs 11, S.kOut.point),
         (vb bs 11 + qkeccakVarsCap, S.kc.2.1), (vb bs 12, S.kc.2.2),
         (sqE + winTabAt, winTabWords)],

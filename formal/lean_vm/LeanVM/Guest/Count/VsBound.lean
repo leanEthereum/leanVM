@@ -48,10 +48,10 @@ set_option maxRecDepth 100000 in
 `2022` and buffers `8710`, `g_power_of_word` (`49`, twice), the two `log2_ceil` placements (`205`,
 `206`), `certify_placement` (`486`), the grind checks (`53`, twice), the squeeze dispatch (`532`),
 the opening message (`58`), the bus grind dispatch (`61`), `verify_bus_gkr` (`39767`),
-`verify_tables` (`37833`), `verify_keccak` (`56391`), `ring_switch_target` (`3544`) and the
-terminal (`29266`), `179285` in all, and `open_stacked` at the arm (`osC`), whatever the rate. -/
+`verify_tables` (`37833`), `verify_keccak` (`56404`), `ring_switch_target` (`3544`) and the
+terminal (`29266`), `179298` in all, and `open_stacked` at the arm (`osC`), whatever the rate. -/
 theorem vsBoundAt_eq {μ r : ℕ} (h1 : 20 ≤ μ) (h2 : μ ≤ 30) :
-    B1.VerifySub.vsBoundAt vsWordsOs B1.VerifySub.vkBound μ r = 179285 + osC (μ - 20) := by
+    B1.VerifySub.vsBoundAt vsWordsOs B1.VerifySub.vkBound μ r = 179298 + osC (μ - 20) := by
   rewrite [B1.VerifySub.vsBoundAt.eq_1, B1.VerifySub.vsBsAt.eq_1, B1.VerifySub.vsBsWith.eq_1,
     show vsWordsOs.Bnd = wSB from rfl, osBosAt_eq h1 h2,
     show vsWordsOs.toVsWords = vsWords from rfl, vbgMax_eq, vtMax_eq, bg_eq,

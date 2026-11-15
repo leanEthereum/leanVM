@@ -498,7 +498,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `da_factors__L7_L8_L128`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨250351, 1016, Fn.«da_factors__L7_L8_L128».modeSig, (.node (some [(.alloc 4 256)]) .nil .nil),
+  ⟨250364, 1016, Fn.«da_factors__L7_L8_L128».modeSig, (.node (some [(.alloc 4 256)]) .nil .nil),
     .nil, .nil, false, (.node none .nil (.node none (.node none (.node none .nil (.node none .nil
     (.node none (.node none .nil (.node none (.node none (.node (some snap600) .nil .nil) .nil)
     .nil)) .nil))) .nil) .nil))⟩

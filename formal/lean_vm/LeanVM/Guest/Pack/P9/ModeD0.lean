@@ -38,7 +38,7 @@ noncomputable def snap83 : List Mode.Abs × Mode.Pend :=
     ()) (.node (some ()) .nil .nil) .nil) (.node none (.node (some ()) .nil .nil) .nil)) .nil)
     (.node none (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil) (.node none
     (.node none (.node (some ()) .nil .nil) .nil) .nil))), (List.flatten [[(⟨0, 0, [((.fr 15),
-    1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 18), 1)]⟩, (.m ⟨0, 28838, []⟩)), (⟨0, 1, [((.fr 15),
+    1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 18), 1)]⟩, (.m ⟨0, 28850, []⟩)), (⟨0, 1, [((.fr 15),
     1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 1, [((.fr 18), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 2, [((.fr 15), 1)]⟩,
     (.m ⟨0, 0, []⟩)), (⟨0, 2, [((.fr 18), 1)]⟩, (.m ⟨0, 0, [((.fr 15), 1)]⟩)), (⟨0, 3, [((.fr 15),
     1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 3, [((.fr 18), 1)]⟩, (.m ⟨0, 0, [((.fr 2), 1)]⟩)), (⟨0, 4, [((.fr
@@ -243,7 +243,7 @@ noncomputable def snap195 : List Mode.Abs × Mode.Pend :=
     (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node (some ()) (.node none (.node (some
     ()) .nil .nil) .nil) .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil))),
     (List.flatten [[(⟨0, 0, [((.fr 15), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 18), 1)]⟩, (.m ⟨0,
-    28838, []⟩)), (⟨0, 1, [((.fr 15), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 1, [((.fr 18), 1)]⟩, (.m ⟨1, 0,
+    28850, []⟩)), (⟨0, 1, [((.fr 15), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 1, [((.fr 18), 1)]⟩, (.m ⟨1, 0,
     []⟩)), (⟨0, 2, [((.fr 15), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 2, [((.fr 18), 1)]⟩, (.m ⟨0, 0, [((.fr
     15), 1)]⟩)), (⟨0, 3, [((.fr 15), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 3, [((.fr 18), 1)]⟩, (.m ⟨0, 0,
     [((.fr 2), 1)]⟩)), (⟨0, 4, [((.fr 15), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 4, [((.fr 18), 1)]⟩, (.m
@@ -385,7 +385,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `ring_switch_weight`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨28757, 339, Fn.«ring_switch_weight».modeSig, (.node none .nil (.node none (.node none (.node
+  ⟨28769, 339, Fn.«ring_switch_weight».modeSig, (.node none .nil (.node none (.node none (.node
     (some [(.allocDyn 15 14)]) .nil .nil) .nil) (.node none (.node none .nil (.node none (.node
     none (.node (some [(.alloc 18 50)]) .nil .nil) .nil) .nil)) .nil))), .nil, .nil, false, (.node
     none (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node

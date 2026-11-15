@@ -22,18 +22,19 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `__loop5`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none .nil (.node none .nil (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
-    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
-    none (.node (some Fn.«rs_eq_run_loop0».modeSig) .nil .nil) .nil))) .nil) .nil) .nil)))))) .nil)
-    .nil) .nil))) (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none
-    .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none
-    .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«rs_eq_rows__L8».modeSig) .nil .nil)))) .nil))) .nil)) .nil))) .nil)) .nil) .nil))), 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none (.node none (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node
+    none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node (some Fn.«rs_eq_rows__L8».modeSig) .nil .nil)))) .nil))) .nil)) .nil)))) .nil)
+    .nil) .nil) .nil) (.node none .nil (.node none (.node none (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«rs_eq_run_loop0».modeSig) .nil .nil) .nil))) .nil) .nil) .nil)))))) .nil)) .nil) .nil))),
+    524287⟩
 
 /-- `__loop5`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨182213, 34, Fn.«rs_eq_run_loop0».modeSig, (.node none (.node none (.node none .nil (.node (some
+  ⟨182226, 34, Fn.«rs_eq_run_loop0».modeSig, (.node none (.node none (.node none .nil (.node (some
     [(.alloc 18 1617)]) .nil .nil)) .nil) (.node none .nil (.node none .nil (.node none (.node
     (some [(.frameAddress 27)]) .nil .nil) .nil)))), .nil, .nil, false, .nil⟩
 

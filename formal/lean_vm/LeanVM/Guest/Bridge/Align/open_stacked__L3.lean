@@ -24,7 +24,7 @@ open LeanVM.Guest
 /-- `open_stacked__L3`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«open_stacked__L3».cert.locs [] Fn.«open_stacked__L3».code.entryPc false
-    Fn.«open_stacked__L3».plumb Data.powTree Data.jtTrie [("fold_final_msg__L5", 263259), ("grind_check__L15", 210797), ("grind_check__L17", 255623), ("opening_message__L36_L1", 262894), ("opening_message__L6_L1", 256624), ("opening_message__L8_L1", 256175), ("opening_round", 19476), ("opening_tail_round", 19536), ("squeeze_point_from__L13", 262286), ("squeeze_point_from__L17", 261889), ("squeeze_point_from__L9", 262661)] 524287 Fn.«open_stacked__L3».code.instructionCount
+    Fn.«open_stacked__L3».plumb Data.powTree Data.jtTrie [("fold_final_msg__L5", 263272), ("grind_check__L15", 210810), ("grind_check__L17", 255636), ("opening_message__L36_L1", 262907), ("opening_message__L6_L1", 256637), ("opening_message__L8_L1", 256188), ("opening_round", 19476), ("opening_tail_round", 19536), ("squeeze_point_from__L13", 262299), ("squeeze_point_from__L17", 261902), ("squeeze_point_from__L9", 262674)] 524287 Fn.«open_stacked__L3».code.instructionCount
 
 end
 

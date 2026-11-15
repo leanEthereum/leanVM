@@ -52,7 +52,7 @@ theorem vsCallsT_holds (h : Stmt.HoldsList C rd σ vsCallsT next kret) :
     LoadHolds rd (σ (.n 71)) 6 (σ (.n 583)) ∧ σ (.n 587) = σ (.n 582) * gen ^ 101 ∧
     σ (.n 589) = σ (.n 4) * gen ^ winTabAt ∧
     C "verify_keccak" [σ (.n 573), σ (.n 574), σ (.n 575), σ (.n 576), σ (.n 577), σ (.n 578),
-      σ (.n 583), σ (.n 569), σ (.n 587), σ (.n 584), σ (.n 585), σ (.n 589)]
+      σ (.n 583), σ (.n 569), σ (.n 587), σ (.n 584), σ (.n 585), σ (.n 589), σ (.n 25)]
       [σ (.n 590), σ (.n 591), σ (.n 592), σ (.n 593), σ (.n 594), σ (.n 595), σ (.n 596)] ∧
     next := by
   simp only [vsCallsT, vsTabsT, holdsList_append, Stmt.HoldsList, Stmt.Holds, vsCall, vsAlloc,

@@ -9386,7 +9386,7 @@ noncomputable def snap3600 : List Mode.Abs × Mode.Pend :=
     ⟨0, 1, [((.fr 1040), 1)]⟩)) (.node (some (.imm 0 0)) (.node (some (.imm 0 0)) .nil .nil) .nil)
     .nil) (.node (some (.imm 0 0)) (.node (some (.imm 0 0)) .nil .nil) .nil)) (.node (some (.m ⟨0,
     1, [((.fr 448), 1)]⟩)) (.node none (.node (some (.imm 0 0)) (.node (some (.imm 0 0)) .nil .nil)
-    .nil) .nil) (.node none (.node (some (.imm 0 0)) (.node (some (.m ⟨0, 33503, []⟩)) .nil .nil)
+    .nil) .nil) (.node none (.node (some (.imm 0 0)) (.node (some (.m ⟨0, 33516, []⟩)) .nil .nil)
     .nil) (.node (some (.imm 0 0)) .nil .nil)))) (.node none (.node (some (.m ⟨0, 4, []⟩)) (.node
     (some (.m ⟨0, 8, [((.fr 448), 1)]⟩)) (.node (some (.imm 0 0)) (.node (some (.imm 0 0)) .nil
     .nil) .nil) .nil) (.node none (.node (some (.imm 0 0)) .nil .nil) (.node (some (.m ⟨0, 0, []⟩))
@@ -10143,7 +10143,7 @@ noncomputable def snap3600 : List Mode.Abs × Mode.Pend :=
     (.node none (.node none (.node none (.node none (.node none .nil (.node (some ()) .nil .nil))
     .nil) .nil) (.node none (.node none .nil (.node (some ()) .nil .nil)) .nil)) (.node none (.node
     none (.node none (.node (some ()) .nil .nil) .nil) (.node none (.node none (.node (some ())
-    .nil .nil) .nil) .nil)) .nil)))))))), [(⟨0, 0, [((.fr 4924), 1)]⟩, (.m ⟨0, 60768, []⟩)), (⟨0,
+    .nil .nil) .nil) .nil)) .nil)))))))), [(⟨0, 0, [((.fr 4924), 1)]⟩, (.m ⟨0, 60781, []⟩)), (⟨0,
     1, [((.fr 4924), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 2, [((.fr 4924), 1)]⟩, (.m ⟨0, 0, [((.hp 2 0),
     1)]⟩)), (⟨0, 3, [((.fr 4924), 1)]⟩, (.m ⟨0, 0, [((.fr 1372), 1)]⟩)), (⟨0, 4, [((.fr 4924),
     1)]⟩, (.m ⟨0, 56, [((.fr 1020), 1)]⟩)), (⟨0, 5, [((.fr 4924), 1)]⟩, (.m ⟨0, 0, [((.fr 4915),
@@ -10844,14 +10844,14 @@ noncomputable def snap3600 : List Mode.Abs × Mode.Pend :=
 
 /-- `verify_sig_lean_sphincs`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none (.node none (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node
-    none (.node none (.node none (.node none (.node none (.node (some Fn.«sp_wots».modeSig) .nil
-    .nil) .nil) .nil) .nil) .nil) .nil)) .nil)))) .nil) .nil) .nil) .nil) .nil), 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none .nil (.node none (.node none .nil (.node none
+    .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
+    .nil (.node none (.node none (.node none (.node none (.node none (.node (some
+    Fn.«sp_wots».modeSig) .nil .nil) .nil) .nil) .nil) .nil) .nil)) .nil)))) .nil))) .nil)), 524287⟩
 
 /-- `verify_sig_lean_sphincs`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨57216, 3887, Fn.«verify_sig_lean_sphincs».modeSig, (.node none (.node none (.node none (.node
+  ⟨57229, 3887, Fn.«verify_sig_lean_sphincs».modeSig, (.node none (.node none (.node none (.node
     none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none
     .nil (.node (some [(.witnessStack "siblings" 4965 2)]) .nil .nil))) .nil) (.node none (.node
     none .nil (.node none (.node (some [(.witnessStack "sp_fors_nodes" 3672 2)]) .nil .nil) .nil))

@@ -34,7 +34,7 @@ variable {C : CallRel} {rd : Reader} {σ : Val}
 
 theorem headT_holds {first : ℕ} {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (headT first) next kret) :
-    (∀ i < 5 + 2 * first, σ (.n (15 + i)) = σ (.n i)) ∧
+    (∀ i < 5 + 2 * first, σ (.n (16 + i)) = σ (.n i)) ∧
       (∀ i < 16, LoadHolds rd (σ (.n 11)) (6 + i) (σ (.n (muB first + i)))) ∧
       (∀ t < 111, σ (.n (muB first + 16 + t)) =
         σ (.n (muB first + projA.getD t 0)) + σ (.n (muB first + projB.getD t 0))) ∧ next := by
@@ -123,22 +123,22 @@ theorem reader_proj {m : ℕ}
 
 /-- The waiting cells of a layer's start: the committed outputs' word's (`p0`, `p1`, copied to
 `20`, `21`) for the first. -/
-def pend0 (first : ℕ) : List (V × V) := if first = 1 then [(.n 20, .n 21)] else []
+def pend0 (first : ℕ) : List (V × V) := if first = 1 then [(.n 21, .n 22)] else []
 
 /-- The capacity cells the product leaves. -/
-def capF (first : ℕ) : List V := if first = 1 then cap5 502 else cap5 505
+def capF (first : ℕ) : List V := if first = 1 then cap5 503 else cap5 506
 
 /-- The waiting cells the product leaves. -/
 def pendF (first : ℕ) : List (V × V) :=
-  if first = 1 then [(.n 507, .n 508), (.n 512, .n 513), (.n 517, .n 518), (.n 522, .n 523)]
-  else [(.n 510, .n 511), (.n 515, .n 516), (.n 520, .n 521)]
+  if first = 1 then [(.n 508, .n 509), (.n 513, .n 514), (.n 518, .n 519), (.n 523, .n 524)]
+  else [(.n 511, .n 512), (.n 516, .n 517), (.n 521, .n 522)]
 
 /-- The value the grind's nonce is read into. -/
-def nonceV (first : ℕ) : ℕ := if first = 1 then 543 else 528
+def nonceV (first : ℕ) : ℕ := if first = 1 then 544 else 529
 
 theorem prodTab_facts (first : ℕ) (hf : first < 2) :
     (prodTab first).length = 47 ∧
-    spChain (cap5 15, pend0 first) (prodTab first) = some (capF first, pendF first) ∧
+    spChain (cap5 16, pend0 first) (prodTab first) = some (capF first, pendF first) ∧
     accOk projR none 0 (prodTab first) = true ∧ accLast none (prodTab first) = some (accL first) ∧
     (prodT (.n 7) (muB first) (prodTab first)).all isAtom = true := by
   interval_cases first
@@ -226,14 +226,14 @@ theorem sqT_holds {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (capF 
       holds_challengeT, keccakA, grindCallT, Stmt.HoldsList, Stmt.Holds] at h
     obtain ⟨⟨hl, hp⟩, hk, hg, hch, hn⟩ := h
     have hlen := pendOk_length hs.2
-    have hs' : SpOk σ (s.absorb (σ (.n 528)) dsPowNonce)
-        (capF 0, pendF 0 ++ [(.n 529, .n 530)]) := by
+    have hs' : SpOk σ (s.absorb (σ (.n 529)) dsPowNonce)
+        (capF 0, pendF 0 ++ [(.n 530, .n 531)]) := by
       have hne : s.pend.length ≠ rateScalars := by rw [hlen]; decide
       simp only [Fs.absorb, hne, ↓reduceIte]
       exact ⟨hs.1, pendOk_append hs.2 (fsPackT_cells hp)⟩
     obtain ⟨-, hout⟩ := spOk_perm hs' hk (zs := []) (by decide) rfl (by decide)
     have hg' := hG _ hg
-    obtain ⟨hok, hsq⟩ := grind_sq (s := s) (n := σ (.n 528)) (b := 531) hout hg' hch
+    obtain ⟨hok, hsq⟩ := grind_sq (s := s) (n := σ (.n 529)) (b := 532) hout hg' hch
     exact ⟨hl, hok, hsq, hn⟩
   · simp only [sqT, ↓reduceIte, holdsList_append, holds_fsNonceT, holds_padRunT,
       holds_challengeT, keccakA, grindCallT, Stmt.HoldsList, Stmt.Holds] at h
@@ -242,13 +242,13 @@ theorem sqT_holds {first : ℕ} (hf : first < 2) {s : Fs} (hs : SpOk σ s (capF 
     obtain ⟨-, hout1⟩ := spOk_perm hs hk1 (zs := []) (by decide) rfl (by decide)
     have hcap1 := capOf_outs hout1
     have hfull : s.pend.length = rateScalars := by rw [hlen]; decide
-    have hs' : SpOk σ (s.absorb (σ (.n 543)) dsPowNonce) (cap5 538, [(.n 544, .n 545)]) := by
+    have hs' : SpOk σ (s.absorb (σ (.n 544)) dsPowNonce) (cap5 539, [(.n 545, .n 546)]) := by
       simp only [Fs.absorb, hfull, ↓reduceIte]
       exact ⟨hcap1, fsPackT_cells hp, trivial⟩
-    obtain ⟨-, hout⟩ := spOk_perm hs' hk2 (zs := [.n 547, .n 547, .n 547, .n 548, .n 549, .n 550])
+    obtain ⟨-, hout⟩ := spOk_perm hs' hk2 (zs := [.n 548, .n 548, .n 548, .n 549, .n 550, .n 551])
       (by decide) (by simp [z1, z2, z3, z4]) (by decide)
     have hg' := hG _ hg
-    obtain ⟨hok, hsq⟩ := grind_sq (s := s) (n := σ (.n 543)) (b := 551) hout hg' hch
+    obtain ⟨hok, hsq⟩ := grind_sq (s := s) (n := σ (.n 544)) (b := 552) hout hg' hch
     exact ⟨hl, hok, hsq, hn⟩
 
 /-- **The product and `s`** (G:2644-2676 against V:1983-1997). -/
@@ -274,7 +274,7 @@ theorem layerA_holds {first : ℕ} (hf : first < 2) {y : ℕ} {c : KeccakClaim} 
   rw [holdsList_append, holdsList_append, holdsList_append] at h
   obtain ⟨hcp, hmu, hR, h⟩ := headT_holds h
   have hs : SpOk σ (plainStart first [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] w)
-      (cap5 15, pend0 first) := by
+      (cap5 16, pend0 first) := by
     refine ⟨?_, ?_⟩
     · simp only [plainStart, cap5, List.map_cons, List.map_nil]
       rw [hcp 0 (by omega), hcp 1 (by omega), hcp 2 (by omega), hcp 3 (by omega),

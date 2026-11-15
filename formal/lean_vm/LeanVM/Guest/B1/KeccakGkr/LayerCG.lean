@@ -80,7 +80,7 @@ theorem layOff_ok {first : ℕ} (hf : first < 2) : LayOff (layOff first) := by
 set_option maxRecDepth 20000 in
 /-- **A layer's body, completely.** -/
 theorem layer_body_complete {first : ℕ} (hf : first < 2) (D : LayerData)
-    {rd : Reader} {w : ℕ → E} {p0 p1 cur claim out iota tb : E} {cw : List E}
+    {rd : Reader} {w : ℕ → E} {p0 p1 cur claim out iota tb st : E} {cw : List E}
     (hcl : D.cap.length = 5)
     (hw : first = 1 → (p0, p1) = Keccak.scalarCells D.w0 dsObserve)
     (hy1 : 1 ≤ D.y) (hy30 : D.y ≤ 30) (hpl : D.product.length = 47)
@@ -108,7 +108,7 @@ theorem layer_body_complete {first : ℕ} (hf : first < 2) (D : LayerData)
         cw.getD 2 0 * (gen ^ (D.y / 8)) ^ 8, tb, w (layOff first + 719) * (gen ^ (D.y / 8)) ^ 8]
       []) :
     let σ := layerσ rd w (D.cap ++ [p0, p1, cur, gen ^ D.y, gen ^ (D.y / 8),
-      gen ^ (D.y % 8), claim, out, iota, tb]) first
+      gen ^ (D.y % 8), claim, out, iota, tb, st]) first
     (σ (.n (layOff first + 739)) = w (layOff first + 720) * gen ^ (D.y / 8) * gen ^ (D.y % 8) ∧
       σ (.n (layOff first + 532)) = cellsOfState (((D.s0 first).absorbAll D.product
         dsObserve).nonceState D.nonce) false ⟨1, by omega⟩ ∧
@@ -121,14 +121,14 @@ theorem layer_body_complete {first : ℕ} (hf : first < 2) (D : LayerData)
   intro σ'
   obtain ⟨f0, f1, f2, f3, f4, hcapE⟩ := five_of_length' hcl
   have hl : (D.cap ++ [p0, p1, cur, gen ^ D.y, gen ^ (D.y / 8), gen ^ (D.y % 8), claim,
-      out, iota, tb]).length = 15 := by simp [hcl]
+      out, iota, tb, st]).length = 16 := by simp [hcl]
   have hG := layer_good (rd := rd) (w := w) hf hl
-  have hpar := fun i (hi : i < 15) ↦ layer_param (rd := rd) (w := w) hf hl hi
+  have hpar := fun i (hi : i < 16) ↦ layer_param (rd := rd) (w := w) hf hl hi
   have hσ := fun v ↦ layerσ_idx (rd := rd) (w := w) (first := first)
     (args := D.cap ++ [p0, p1, cur, gen ^ D.y, gen ^ (D.y / 8), gen ^ (D.y % 8),
-    claim, out, iota, tb]) v
+    claim, out, iota, tb, st]) v
   generalize hσ' : layerσ rd w (D.cap ++ [p0, p1, cur, gen ^ D.y, gen ^ (D.y / 8),
-    gen ^ (D.y % 8), claim, out, iota, tb]) first = σ at hG hpar hσ
+    gen ^ (D.y % 8), claim, out, iota, tb, st]) first = σ at hG hpar hσ
   have eσ : σ' = σ := hσ'
   rw [eσ]
   clear eσ hσ'

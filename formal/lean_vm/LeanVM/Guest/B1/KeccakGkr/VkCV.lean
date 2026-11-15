@@ -38,7 +38,7 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 /-- **`verify_keccak`, placed** (fork c4's shape, with the carried capacity). -/
 def VkCompleteAtK (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) : Prop :=
   ∀ (τ : ℕ) (f chis outs xs op point slices : List E) (word : E) (s' : Fs)
-    (curE chiE olE zvE slE tbE : ℕ), 9 ≤ τ → τ ≤ 28 → τ ≤ chis.length → outs.length = 25 →
+    (curE chiE olE zvE slE tbE stE : ℕ), 9 ≤ τ → τ ≤ 28 → τ ≤ chis.length → outs.length = 25 →
     f.length = 5 → (∃ sp, (⟨f, []⟩ : Fs).Carries sp) →
     RunsTo (verifyKeccak τ (chis.take τ) outs) ⟨f, []⟩ xs ([⟨qkeccak, op, word⟩], point, slices) s' →
     CompleteAtD fs cert κ "verify_keccak"
@@ -46,7 +46,8 @@ def VkCompleteAtK (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
         (slE, slices), (tbE, winTabWords)]
       (f ++ [ofK (Parameters.addressOfIndex curE), gen ^ τ, ofK (Parameters.addressOfIndex chiE),
         ofK (Parameters.addressOfIndex olE), ofK (Parameters.addressOfIndex zvE),
-        ofK (Parameters.addressOfIndex slE), ofK (Parameters.addressOfIndex tbE)])
+        ofK (Parameters.addressOfIndex slE), ofK (Parameters.addressOfIndex tbE),
+        ofK (Parameters.addressOfIndex stE)])
       (Returns (capOf s'.perm ++ [ofK (Parameters.addressOfIndex curE) * gen ^ xs.length, word]))
 
 theorem vk_noLoadIte : vkPre.all noLoadIte = true := by decide +kernel
@@ -67,9 +68,9 @@ theorem own_fit (h : D.Ok) (B : ℕ) (ls : ℕ → ℕ) :
   simp only [own, sizes, List.forall₂_cons, List.Forall₂.nil, and_true]
   simp [c0_point_length h, rl_length, claims_length h, e1, e2, e3, eqKernel_length, seg_length]
 
-theorem kids_lay {fs : String → ℕ} {B curE chiE olE zvE slE tbE : ℕ} {s : ℕ} (hs : s < 12) :
-    (D.kids fs B curE chiE olE zvE slE tbE)[s + 1]'(by rw [kids_length]; omega) =
-      D.layKid fs B curE tbE s := by
+theorem kids_lay {fs : String → ℕ} {B curE chiE olE zvE slE tbE stE : ℕ} {s : ℕ} (hs : s < 12) :
+    (D.kids fs B curE chiE olE zvE slE tbE stE)[s + 1]'(by rw [kids_length]; omega) =
+      D.layKid fs B curE tbE stE s := by
   interval_cases s <;> rfl
 
 end VkData
@@ -79,22 +80,22 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 open VkData in
 set_option maxRecDepth 20000 in
 /-- **What `completeAt_flatG` asks of `verify_keccak`'s body**, on an honest run's data. -/
-theorem vk_obl {D : VkData} (h : D.Ok) (curE chiE olE zvE slE tbE fp : ℕ) (fps : List ℕ) (outs : List (List E × Main.Layout))
-    (hlen : fps.length = (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE tbE).length)
-    (hout : OutsOk (atAllG [] (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE tbE) fps) outs)
+theorem vk_obl {D : VkData} (h : D.Ok) (curE chiE olE zvE slE tbE stE fp : ℕ) (fps : List ℕ) (outs : List (List E × Main.Layout))
+    (hlen : fps.length = (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE tbE stE).length)
+    (hout : OutsOk (atAllG [] (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE tbE stE) fps) outs)
     (rd : Reader)
     (hB : MemL rd (bufL (fp + fs "verify_keccak") D.sizes
       (D.own (fp + fs "verify_keccak") (D.lsOf fs fps))))
     (hLin : MemL rd (D.lin curE chiE olE zvE slE tbE))
     (hto : MemL rd (takenOuts
-      (atAllG [] (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE tbE) fps) outs)) :
-    MemL rd (Kid.lins (atAllG [] (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE tbE) fps)) ∧
+      (atAllG [] (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE tbE stE) fps) outs)) :
+    MemL rd (Kid.lins (atAllG [] (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE tbE stE) fps)) ∧
     RegionsOk (fun i ↦ RegionL (D.lin curE chiE olE zvE slE tbE) i ∨
         RegionL (bufL (fp + fs "verify_keccak") D.sizes
           (D.own (fp + fs "verify_keccak") (D.lsOf fs fps))) i)
-      (fun _ ↦ False) (atAllG [] (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE tbE) fps)
+      (fun _ ↦ False) (atAllG [] (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE tbE stE) fps)
       outs ∧
-    ∃ σ : Val, (fn% «verify_keccak»).params.map σ = D.args curE chiE olE zvE slE tbE ∧
+    ∃ σ : Val, (fn% «verify_keccak»).params.map σ = D.args curE chiE olE zvE slE tbE stE ∧
       (∀ s ∈ vkPre, DispOk σ s) ∧
       Stmt.HoldsList (fun _ _ _ ↦ True) rd σ (fn% «verify_keccak»).body False
         (fun r ↦ r = capOf D.sF.perm ++ [ptr curE * gen ^ D.xs.length, D.word]) ∧
@@ -102,19 +103,19 @@ theorem vk_obl {D : VkData} (h : D.Ok) (curE chiE olE zvE slE tbE fp : ℕ) (fps
       ((vkPre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
         (bases (fp + fs "verify_keccak") D.sizes).map (fun b ↦ ofK (Parameters.addressOfIndex b)) ∧
       CallsMatch σ ((vkPre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ))
-        (atAllG [] (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE tbE) fps) outs ∧
+        (atAllG [] (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE tbE stE) fps) outs ∧
       ∀ q ∈ vkPre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * Parameters.addressOfIndex q.2 =
         Parameters.addressOfIndex i ∧
         (RegionL (D.lin curE chiE olE zvE slE tbE) i ∨
           RegionL (bufL (fp + fs "verify_keccak") D.sizes
             (D.own (fp + fs "verify_keccak") (D.lsOf fs fps))) i ∨
-          outRegion (atAllG [] (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE tbE) fps)
+          outRegion (atAllG [] (D.kids fs (fp + fs "verify_keccak") curE chiE olE zvE slE tbE stE) fps)
             outs i) := by
   generalize fp + fs "verify_keccak" = B at hB hout hto hlen ⊢
   have hk := kids_length (D := D) (fs := fs) (B := B) (curE := curE) (chiE := chiE) (olE := olE)
-    (zvE := zvE) (slE := slE) (tbE := tbE)
+    (zvE := zvE) (slE := slE) (tbE := tbE) (stE := stE)
   have hfl : fps.length = 18 := by rw [hlen, hk]
-  have hlenA : (atAllG [] (D.kids fs B curE chiE olE zvE slE tbE) fps).length = 18 := by
+  have hlenA : (atAllG [] (D.kids fs B curE chiE olE zvE slE tbE stE) fps).length = 18 := by
     rw [atAllG_length, hk, hfl]; rfl
   obtain ⟨hol, hoi⟩ := outsOk_getElem hout
   have hto' := memL_takenOuts hto
@@ -131,7 +132,7 @@ theorem vk_obl {D : VkData} (h : D.Ok) (curE chiE olE zvE slE tbE fp : ℕ) (fps
   have hm : D.Mem rd B curE chiE olE zvE slE tbE (D.lsOf fs fps) := ⟨hB, hLin, fun s hs ↦ by
     rw [← hlay s hs]
     exact hto' (s + 1) (by omega) (by omega) (by rw [atAllG_getElem]; simp [kids_lay hs, layKid])⟩
-  set σ := D.val rd B curE chiE olE zvE slE tbE with hσd
+  set σ := D.val rd B curE chiE olE zvE slE tbE stE with hσd
   obtain ⟨-, -, -, -, -, -, -, h17, -⟩ := head_first h hm hσd
   refine ⟨memL_lins_of fun i hi ↦ ?_, regionsOk_ofI fun i hi ht x hx ↦ ?_, σ, ?_,
     vkPre_disp σ, ?_, body_sizes h hσd h17, body_bases h hσd,
@@ -143,8 +144,8 @@ theorem vk_obl {D : VkData} (h : D.Ok) (curE chiE olE zvE slE tbE fp : ℕ) (fps
     simp only [List.nil_append] at hx
     refine kids_lin_region h hfl (T := fun i x ↦ (RegionL (D.lin curE chiE olE zvE slE tbE) x ∨
         RegionL (bufL B D.sizes (D.own B (D.lsOf fs fps))) x) ∨ False ∨
-        ∃ j, ∃ hjk : j < (atAllG [] (D.kids fs B curE chiE olE zvE slE tbE) fps).length,
-          ∃ hjo : j < outs.length, j < i ∧ (atAllG [] (D.kids fs B curE chiE olE zvE slE tbE) fps)[j].taken = true ∧
+        ∃ j, ∃ hjk : j < (atAllG [] (D.kids fs B curE chiE olE zvE slE tbE stE) fps).length,
+          ∃ hjo : j < outs.length, j < i ∧ (atAllG [] (D.kids fs B curE chiE olE zvE slE tbE stE) fps)[j].taken = true ∧
           RegionL (outs[j]).2 x)
       (fun j x hx ↦ Or.inl (Or.inl hx)) (fun j x hx ↦ Or.inl (Or.inr hx))
       (fun k hk j hkj x hx ↦ Or.inr (Or.inr ⟨k + 1, by omega, by omega, hkj,
@@ -152,9 +153,9 @@ theorem vk_obl {D : VkData} (h : D.Ok) (curE chiE olE zvE slE tbE fp : ℕ) (fps
       i (by rw [hlenA] at hi; rw [hk]; exact hi) x hx
   · rw [show (fn% «verify_keccak»).params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8,
       .n 9,
-      .n 10, .n 11] from rfl]
+      .n 10, .n 11, .n 12] from rfl]
     have hpar := (val_good (rd := rd) (B := B) (curE := curE) (chiE := chiE) (olE := olE)
-      (zvE := zvE) (slE := slE) (tbE := tbE) h).2.2
+      (zvE := zvE) (slE := slE) (tbE := tbE) (stE := stE) h).2.2
     apply List.ext_getElem (by simp [args_length h])
     intro i h1 h2
     simp only [List.length_map, List.length_cons, List.length_nil] at h1
@@ -163,7 +164,7 @@ theorem vk_obl {D : VkData} (h : D.Ok) (curE chiE olE zvE slE tbE fp : ℕ) (fps
   · exact vk_body ▸ body_holds h hm hσd
   · exact loads_in h hm hσd (T := fun i ↦ RegionL (D.lin curE chiE olE zvE slE tbE) i ∨
         RegionL (bufL B D.sizes (D.own B (D.lsOf fs fps))) i ∨
-        outRegion (atAllG [] (D.kids fs B curE chiE olE zvE slE tbE) fps) outs i)
+        outRegion (atAllG [] (D.kids fs B curE chiE olE zvE slE tbE stE) fps) outs i)
       (fun i hi ↦ Or.inl hi) (fun i hi ↦ Or.inr (Or.inl hi))
       (fun s hs i hi ↦ Or.inr (Or.inr (outRegion_ofI (s + 1) (by omega) (by omega)
         (by rw [atAllG_getElem]; simp [kids_lay hs, layKid]) (by rw [hlay s hs]; exact hi))))

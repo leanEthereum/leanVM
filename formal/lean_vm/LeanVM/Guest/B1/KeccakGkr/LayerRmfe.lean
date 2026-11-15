@@ -142,7 +142,7 @@ def rmfeStores : List ℕ :=
 def embedXor : ℕ := embedLit.foldl (· ^^^ ·) 0
 
 /-- The offsets of `keccak_layer`'s two specializations past `s`: `0` (`__L0`), `20` (`__L1`). -/
-def LayOff (o : ℕ) : Prop := o = 0 ∨ o = 20
+def LayOff (o : ℕ) : Prop := o = 1 ∨ o = 21
 
 /-- The block's masks, checked. -/
 def rmfeCheck (o : ℕ) : Bool :=

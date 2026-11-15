@@ -31,24 +31,24 @@ variable {C : CallRel} {rd : Reader} {w : ℕ → E} {σ : Val}
 
 /-- Where step `s` starts. -/
 def stepB (s : ℕ) : ℕ :=
-  [448, 489, 524, 558, 601, 642, 685, 718, 759, 797, 840, 881].getD s 0
+  [449, 490, 525, 559, 602, 643, 686, 719, 760, 798, 841, 882].getD s 0
 
 /-- The capacity step `s` passes. -/
 def stepCap (s : ℕ) : List ℕ :=
-  if s = 0 then [152, 153, 154, 155, 156] else (List.range 5).map fun j ↦ stepB s - 6 + j
+  if s = 0 then [153, 154, 155, 156, 157] else (List.range 5).map fun j ↦ stepB s - 6 + j
 
 /-- The cursor step `s ≥ 1` passes. -/
 def stepCur (s : ℕ) : ℕ := if s = 0 then 0 else stepB s - 1
 
 /-- The value step `s ≥ 1` reads its claim's pointer from (`cb`: `claims·g^(22 (s - 1))`). -/
-def stepCb (s : ℕ) : ℕ := if s ≤ 1 then 161 else stepB (s - 1) - 7
+def stepCb (s : ℕ) : ℕ := if s ≤ 1 then 162 else stepB (s - 1) - 7
 
 /-- The value step `s ≥ 1` reads the next claim's pointer from (`pn`: `claims·g^(22 s)`). -/
 def stepPn (s : ℕ) : ℕ := if s = 0 then 0 else stepB s - 7
 
 /-- Step `s` but its call. -/
 def stepCore (s b : ℕ) : List Stmt :=
-  [.atom (.load (.n b) (.n 161) (22 * s + 2)), .atom (.mul (.n (b + 1)) (.n b) (.n 18))] ++
+  [.atom (.load (.n b) (.n 162) (22 * s + 2)), .atom (.mul (.n (b + 1)) (.n b) (.n 19))] ++
   eqfLevel0T (.n (b + 1)) 0 (b + 2) ++ flipsT s (b + 6) ++
   iotaSegT s (b + 6) (b + 6 + flipSz s * (iotaUsed s).length) (b + 4) (b + 5)
 
@@ -61,13 +61,13 @@ theorem stepT_split (s b : ℕ) (cap : List ℕ) (cur cb pn : ℕ) :
 
 /-- The pointers the flips load through, and their ranges. -/
 def flipPs (s b : ℕ) : List (V × ℕ × ℕ) :=
-  if s = 0 then [(.n 234, 30, 31)]
-  else (.n 161, 22 * s + 5, 22 * s + 6) :: (List.range (iotaUsed s).length).map fun j ↦
+  if s = 0 then [(.n 235, 30, 31)]
+  else (.n 162, 22 * s + 5, 22 * s + 6) :: (List.range (iotaUsed s).length).map fun j ↦
     (.n (b + 6 + 2 * j), 0, 7)
 
 /-- What the kernel checks of step `s`'s core. -/
 def stepKer (s b : ℕ) : Prop :=
-  noneIn [.load (.n b) (.n 161) (22 * s + 2), .load (.n (b + 2)) (.n (b + 1)) 0] vkSt = true ∧
+  noneIn [.load (.n b) (.n 162) (22 * s + 2), .load (.n (b + 2)) (.n (b + 1)) 0] vkSt = true ∧
   (flipsT s (b + 6)).all isAtom = true ∧
   (resid (atomsL (flipsT s (b + 6)))).all (ldR (flipPs s b)) = true ∧
   noneIn (resid (atomsL (flipsT s (b + 6)))) vkSt = true ∧

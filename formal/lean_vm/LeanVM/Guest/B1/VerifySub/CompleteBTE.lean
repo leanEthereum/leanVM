@@ -77,7 +77,7 @@ theorem vs_pinned : Stmt.blockNextOk isComputed pinsInverse (fn% «verify_sub»)
 /-- **`verify_keccak`'s bounded completeness, exact at every node.** -/
 def VkCompleteAtBKE (fs : String → ℕ) (cert : String → V → ℕ) (κ Bvk : ℕ) : Prop :=
   ∀ (τ : ℕ) (f chis outs xs op point slices : List E) (word : E) (s' : Fs)
-    (curE chiE olE zvE slE tbE : ℕ), 9 ≤ τ → τ ≤ 28 → τ ≤ chis.length → outs.length = 25 →
+    (curE chiE olE zvE slE tbE stE : ℕ), 9 ≤ τ → τ ≤ 28 → τ ≤ chis.length → outs.length = 25 →
     f.length = 5 → (∃ sp, (⟨f, []⟩ : Fs).Carries sp) →
     RunsTo (verifyKeccak τ (chis.take τ) outs) ⟨f, []⟩ xs ([⟨qkeccak, op, word⟩], point, slices) s' →
     CompleteAtDTBR fs cert κ "verify_keccak"
@@ -85,7 +85,8 @@ def VkCompleteAtBKE (fs : String → ℕ) (cert : String → V → ℕ) (κ Bvk 
         (slE, slices), (tbE, winTabWords)]
       (f ++ [ofK (Parameters.addressOfIndex curE), gen ^ τ, ofK (Parameters.addressOfIndex chiE),
         ofK (Parameters.addressOfIndex olE), ofK (Parameters.addressOfIndex zvE),
-        ofK (Parameters.addressOfIndex slE), ofK (Parameters.addressOfIndex tbE)])
+        ofK (Parameters.addressOfIndex slE), ofK (Parameters.addressOfIndex tbE),
+        ofK (Parameters.addressOfIndex stE)])
       (Returns (capOf s'.perm ++ [ofK (Parameters.addressOfIndex curE) * gen ^ xs.length, word]))
       (fun rd t => t.Every (ExactAt coreProgram rd)) Bvk
 
@@ -124,7 +125,7 @@ theorem vk_kidBE (hbl : bytecode.length = 2 ^ 23) {κ Bvk : ℕ} (hvk : VkComple
   obtain ⟨-, -, h5⟩ := S.H_spec hbl
   have hc : ∃ sp, (⟨S.H.s3.squeeze.2.cap, []⟩ : Fs).Carries sp := by rw [← h5]; exact S.c5
   exact hvk S.τ _ S.H.chiW S.outs S.xsK S.kOut.point S.kc.2.1 S.kc.2.2 S.kOut.value S.s6 (S.cK bs)
-    (vb bs 9) (S.cL bs) (vb bs 11) (vb bs 12) (sqE + winTabAt) h9 (by omega) hn ho hf hc hrun
+    (vb bs 9) (S.cL bs) (vb bs 11) (vb bs 12) (sqE + winTabAt) (vb bs 1) h9 (by omega) hn ho hf hc hrun
 
 end ChildSegs
 
