@@ -5,7 +5,7 @@ use super::guest::{GUEST_SOURCE, compile_guest, unified_guest};
 use super::hints::{FORGE, Forgery, Hints};
 use super::placeholders::placeholder_map;
 use super::proof::{AggregateClaims, AggregateProof, decode, encode};
-use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
+use super::statement::{CLAIM_GROUP, claim_list_digest, list_split, statement_digest};
 use super::*;
 use fiat_shamir_prover::merkle::hash_to_scalars;
 use isa::Program;
@@ -14,7 +14,7 @@ use keccak256::{hash, hash_pair};
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS, Hash};
 use lean_sphincs::LeanSphincsSignature;
 use lean_vm_core::StableProver;
-use lean_vm_core::cpu::{execute, from_scalar, to_scalar};
+use lean_vm_core::cpu::{execute, from_scalar, public_input_bytes, to_scalar};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use primitives::field::F128;
 use rand::SeedableRng;
@@ -340,6 +340,44 @@ fn aggregate_two_to_one() {
     assert_eq!(node_of(cut), Some(AggregateError::InvalidChild));
     let node = prove(&[left, right], &[], &[]);
     assert_eq!(node.0.lean_xmss.len(), SMALL_LEAF_SIZE + big);
+}
+
+/// The guest never checks a leaf's deferred value, so a leaf proves under a false one and its VM proof verifies for
+/// that statement. Only [`AggregateProof::verify`] recomputing the value from the point rejects it; trusting the
+/// prover's value would accept a proof of any program of the guest's length, through a parent, for any claims.
+#[test]
+fn a_forged_deferred_value_is_rejected() {
+    let captured = std::rc::Rc::new(std::cell::RefCell::new(None));
+    let sink = captured.clone();
+    FORGE.with(|forge| {
+        *forge.borrow_mut() = Some(Box::new(move |hints: &mut Hints| {
+            *sink.borrow_mut() = Some(Hints(hints.0.clone()))
+        }))
+    });
+    let (claims, honest) = prove(&[], &get_signers(2), &[]);
+    let mut hints = captured.take().expect("the leaf's hints");
+    let leaf = DeferredBytecodeClaim::leaf();
+    let forged = DeferredBytecodeClaim {
+        bytecode_value: leaf.bytecode_value + F128::ONE,
+        ..leaf
+    };
+    *hints.entry_mut("leaf_defer", 0) = vec![forged.bytecode_value];
+    let public_input = statement_digest(&claims, &forged);
+    let rate = lean_vm_core::pcs::TEST_LOG_INV_RATE;
+    let (proof, _) = StableProver::prove(
+        unified_guest(),
+        &hints.witness(),
+        public_input.map(|x| to_scalar(&x)),
+        rate,
+    )
+    .expect("the guest takes any leaf value");
+    let pi = public_input_bytes(&public_input);
+    assert!(verifier::verify_execution(unified_guest().bytecode(), &pi, &proof).is_ok());
+    let forged = AggregateProof {
+        bytecode_point: honest.bytecode_point,
+        proof,
+    };
+    assert!(!forged.verify(&claims));
 }
 
 /// A LeanDA payload of the most blobs a node takes, proven without signatures and published in the statement. The
