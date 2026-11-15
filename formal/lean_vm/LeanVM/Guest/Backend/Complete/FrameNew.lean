@@ -40,38 +40,49 @@ section R
 
 variable {ctx : Ctx} {S : V → Prop} {α β : Type}
 
-/-- Every value placed from `st` to `st'` was placed, made by an event left at `st`, the value made
-lazily at `st`, or one `S` allows; the events left only shrink; a lazily made value is one made
-by an event left at `st` or the one there; the shared tables only grow. -/
+/-- Every value placed from `st` to `st'` was placed, made by an event the steps passed (`pre`, the
+trace `st` leaves ahead of the one `st'` leaves), the value made lazily at `st`, or one `S`
+allows; a lazily made value is one made by an event passed or the one there; the shared tables
+only grow. -/
 def RR (S : V → Prop) (st st' : St) : Prop :=
-  (∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest ∨
-    (∃ k, st.lazy = some (v, k)) ∨ S v) ∧
-  (∀ v ∈ allocsOf st'.rest, v ∈ allocsOf st.rest) ∧
-  (∀ v k, st'.lazy = some (v, k) → v ∈ allocsOf st.rest ∨ st.lazy = some (v, k)) ∧
-  ∀ x ∈ st.tables.shared, x ∈ st'.tables.shared
+  ∃ pre : List Event, st.rest = pre ++ st'.rest ∧
+    (∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf pre ∨
+      (∃ k, st.lazy = some (v, k)) ∨ S v) ∧
+    (∀ v k, st'.lazy = some (v, k) → v ∈ allocsOf pre ∨ st.lazy = some (v, k)) ∧
+    ∀ x ∈ st.tables.shared, x ∈ st'.tables.shared
+
+theorem allocsOf_app_rr (a b : List Event) : allocsOf (a ++ b) = allocsOf a ++ allocsOf b := by
+  unfold allocsOf
+  exact List.flatMap_append ..
 
 theorem RR.refl (st : St) : RR S st st :=
-  ⟨fun _ h => Or.inl h, fun _ h => h, fun _ _ h => Or.inr h, fun _ h => h⟩
+  ⟨[], rfl, fun _ h => Or.inl h, fun _ _ h => Or.inr h, fun _ h => h⟩
 
 theorem RR.trans {st₁ st₂ st₃ : St} (h₁ : RR S st₁ st₂) (h₂ : RR S st₂ st₃) : RR S st₁ st₃ := by
-  obtain ⟨a₁, b₁, c₁, d₁⟩ := h₁
-  obtain ⟨a₂, b₂, c₂, d₂⟩ := h₂
-  refine ⟨fun v h => ?_, fun v h => b₁ v (b₂ v h), fun v k h => ?_, fun x h => d₂ x (d₁ x h)⟩
+  obtain ⟨p₁, e₁, a₁, c₁, d₁⟩ := h₁
+  obtain ⟨p₂, e₂, a₂, c₂, d₂⟩ := h₂
+  have m₁ : ∀ v, v ∈ allocsOf p₁ → v ∈ allocsOf (p₁ ++ p₂) := fun v h => by
+    rw [allocsOf_app_rr]; exact List.mem_append_left _ h
+  have m₂ : ∀ v, v ∈ allocsOf p₂ → v ∈ allocsOf (p₁ ++ p₂) := fun v h => by
+    rw [allocsOf_app_rr]; exact List.mem_append_right _ h
+  refine ⟨p₁ ++ p₂, by rw [e₁, e₂, List.append_assoc], fun v h => ?_, fun v k h => ?_,
+    fun x h => d₂ x (d₁ x h)⟩
   · rcases a₂ v h with h | h | ⟨k, h⟩ | h
-    · exact a₁ v h
-    · exact Or.inr (Or.inl (b₁ v h))
+    · exact (a₁ v h).imp_right fun h => h.imp_left (m₁ v)
+    · exact Or.inr (Or.inl (m₂ v h))
     · rcases c₁ v k h with h | h
-      · exact Or.inr (Or.inl h)
+      · exact Or.inr (Or.inl (m₁ v h))
       · exact Or.inr (Or.inr (Or.inl ⟨k, h⟩))
     · exact Or.inr (Or.inr (Or.inr h))
   · rcases c₂ v k h with h | h
-    · exact Or.inl (b₁ v h)
-    · exact c₁ v k h
+    · exact Or.inl (m₂ v h)
+    · exact (c₁ v k h).imp_left (m₁ v)
 
 theorem RR.mono {S' : V → Prop} {st st' : St} (h : RR S st st') (hS : ∀ v, S v → S' v) :
-    RR S' st st' :=
-  ⟨fun v hv => (h.1 v hv).imp_right fun h' => h'.imp_right fun h'' => h''.imp_right (hS v),
-    h.2.1, h.2.2.1, h.2.2.2⟩
+    RR S' st st' := by
+  obtain ⟨pre, e, a, c, d⟩ := h
+  exact ⟨pre, e, fun v hv => (a v hv).imp_right fun h' => h'.imp_right fun h'' =>
+    h''.imp_right (hS v), c, d⟩
 
 /-- Every success of `m` from `st` is `RR S` of `st`. -/
 def RAt (S : V → Prop) (ctx : Ctx) (st : St) (m : P α) : Prop :=
@@ -132,12 +143,12 @@ theorem RAt.discard {m : P α} (h : RAt S ctx st m) : RAt S ctx st (Functor.disc
 
 theorem rR_same {s : St} (hl : s.locs = st.locs) (hr : s.rest = st.rest)
     (hz : s.lazy = st.lazy) (ht : s.tables.shared = st.tables.shared) : RR S st s :=
-  ⟨fun _ h => Or.inl (by rwa [hl] at h), fun _ h => by rwa [hr] at h,
+  ⟨[], by rw [hr, List.nil_append], fun _ h => Or.inl (by rwa [hl] at h),
     fun _ _ h => Or.inr (by rwa [hz] at h), fun _ h => by rw [ht]; exact h⟩
 
 theorem rR_none {s : St} (hl : s.locs = st.locs) (hr : s.rest = st.rest)
     (hz : s.lazy = none) (ht : s.tables.shared = st.tables.shared) : RR S st s :=
-  ⟨fun _ h => Or.inl (by rwa [hl] at h), fun _ h => by rwa [hr] at h,
+  ⟨[], by rw [hr, List.nil_append], fun _ h => Or.inl (by rwa [hl] at h),
     fun _ _ h => (by rw [hz] at h; cases h), fun _ h => by rw [ht]; exact h⟩
 
 theorem allocsOf_tail {v : V} : ∀ {l : List Event}, v ∈ allocsOf l.tail → v ∈ allocsOf l
@@ -149,8 +160,9 @@ theorem allocsOf_tail {v : V} : ∀ {l : List Event}, v ∈ allocsOf l.tail → 
 
 theorem rR_tail {s : St} (hl : s.locs = st.locs) (hr : s.rest = st.rest.tail)
     (hz : s.lazy = st.lazy) (ht : s.tables.shared = st.tables.shared) : RR S st s :=
-  ⟨fun _ h => Or.inl (by rwa [hl] at h), fun _ h => allocsOf_tail (by rwa [hr] at h),
-    fun _ _ h => Or.inr (by rwa [hz] at h), fun _ h => by rw [ht]; exact h⟩
+  ⟨st.rest.take 1, by rw [hr, ← List.drop_one, List.take_append_drop],
+    fun _ h => Or.inl (by rwa [hl] at h), fun _ _ h => Or.inr (by rwa [hz] at h),
+    fun _ h => by rw [ht]; exact h⟩
 
 theorem RAt.mono {S' : V → Prop} {α : Type} {m : P α} (h : RAt S ctx st m)
     (hS : ∀ v, S v → S' v) : RAt S' ctx st m := wp_mono h fun _ _ h' => h'.mono hS
@@ -476,13 +488,26 @@ theorem rR_alloc {vs : List V} {kind : Kind} {s : St}
     (heq : st.rest.head? = some (.alloc vs kind))
     (h : NewA vs { st with rest := st.rest.tail } s) : RR S st s := by
   obtain ⟨h1, h2, h3, h4⟩ := h
-  refine ⟨fun v hv => ?_, fun v hv => allocsOf_tail (by rwa [h2] at hv), fun v k hk => ?_,
+  have h2' : s.rest = st.rest.tail := h2
+  have hmem : ∀ v, v ∈ vs → v ∈ allocsOf [Event.alloc vs kind] := fun v hv => by
+    simp only [allocsOf, List.flatMap_cons, List.flatMap_nil, List.append_nil]
+    exact hv
+  have hpre : st.rest = [Event.alloc vs kind] ++ s.rest := by
+    rw [h2']
+    cases hst : st.rest with
+    | nil => rw [hst] at heq; cases heq
+    | cons e r =>
+      rw [hst] at heq
+      simp only [List.head?_cons, Option.some.injEq] at heq
+      subst heq
+      rfl
+  refine ⟨[Event.alloc vs kind], hpre, fun v hv => ?_, fun v k hk => ?_,
     fun x hx => by rw [h4]; exact hx⟩
   · rcases h1 v hv with h | h
     · exact Or.inl h
-    · exact Or.inr (Or.inl (mem_allocsOf_head heq h))
+    · exact Or.inr (Or.inl (hmem v h))
   · rcases h3 v k hk with h | h
-    · exact Or.inl (mem_allocsOf_head heq h)
+    · exact Or.inl (hmem v h)
     · exact Or.inr h
 
 /-- **A flush** places the values of the `alloc` events it passes, and makes lazy one of them. -/
@@ -526,7 +551,7 @@ theorem sharedTable_r {fs : List String} : RAt S ctx st (sharedTable fs) := by
   refine RAt.get_bind ?_
   split
   · exact RAt.pure
-  · exact RAt.setS_bind ⟨fun _ h => Or.inl h, fun _ h => h, fun _ _ h => Or.inr h,
+  · exact RAt.setS_bind ⟨[], rfl, fun _ h => Or.inl h, fun _ _ h => Or.inr h,
       fun _ h => List.mem_cons_of_mem _ h⟩ RAt.pure
 
 theorem loopCount_r {f : String} {args : List V} {cells : List Cell} :
@@ -589,8 +614,8 @@ theorem RAt.isLazy_bind {st : St} {v : V} {k : Kind} {f : Bool → P β}
 theorem RR.bindTo {st₀ s : St} {d : V} {l : Loc} (hs : RR S st₀ s)
     (hd : (∃ k, st₀.lazy = some (d, k)) ∨ S d) :
     RR S st₀ { s with locs := s.locs.insert d l } := by
-  obtain ⟨h1, h2, h3, h4⟩ := hs
-  refine ⟨fun v hv => ?_, h2, h3, h4⟩
+  obtain ⟨pre, h2, h1, h3, h4⟩ := hs
+  refine ⟨pre, h2, fun v hv => ?_, h3, h4⟩
   by_cases hvd : v = d
   · subst hvd
     rcases hd with hd | hd
@@ -883,12 +908,16 @@ theorem placeNew (ss : List Stmt) (st : St) : wpP (placeBlock ss) ctx st fun _ s
     (st.lazy = none → ∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest ∨
       ∃ run, Atom.frameAddr v run ∈ atomsIn ss) ∧
     (∀ v ∈ allocsOf st'.rest, v ∈ allocsOf st.rest) ∧ ∀ x ∈ st.tables.shared, x ∈ st'.tables.shared :=
-  wp_mono (placeBlock_r ss st) fun _ _ ⟨h1, h2, _, h4⟩ => ⟨fun hz v hv => by
+  wp_mono (placeBlock_r ss st) fun _ _ ⟨pre, h2, h1, _, h4⟩ => by
+    have hm : ∀ v, v ∈ allocsOf pre → v ∈ allocsOf st.rest := fun v h => by
+      rw [h2, allocsOf_app_rr]; exact List.mem_append_left _ h
+    refine ⟨fun hz v hv => ?_, fun v h => by
+      rw [h2, allocsOf_app_rr]; exact List.mem_append_right _ h, h4⟩
     rcases h1 v hv with h | h | ⟨k, h⟩ | h
     · exact Or.inl h
-    · exact Or.inr (Or.inl h)
+    · exact Or.inr (Or.inl (hm v h))
     · rw [hz] at h; cases h
-    · exact Or.inr (Or.inr h), h2, h4⟩
+    · exact Or.inr (Or.inr h)
 
 theorem placeNew_ok : PlaceNew ctx := placeNew
 
@@ -896,10 +925,10 @@ theorem placeNew_ok : PlaceNew ctx := placeNew
 theorem flushNew (up : List Stmt) (st : St) (hz : st.lazy = none) :
     wpP (flush up) ctx st fun _ st' =>
       ∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest :=
-  wp_mono (flush_r (S := fun _ => False) (st := st)) fun _ _ ⟨h1, _⟩ v hv => by
+  wp_mono (flush_r (S := fun _ => False) (st := st)) fun _ _ ⟨pre, h2, h1, _⟩ v hv => by
     rcases h1 v hv with h | h | ⟨k, h⟩ | h
     · exact Or.inl h
-    · exact Or.inr h
+    · exact Or.inr (by rw [h2, allocsOf_app_rr]; exact List.mem_append_left _ h)
     · rw [hz] at h; cases h
     · exact h.elim
 
