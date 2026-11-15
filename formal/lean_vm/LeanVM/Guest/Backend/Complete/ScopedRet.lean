@@ -134,7 +134,8 @@ theorem scopeInner_cons {rc : ℕ} {blk : SSt → Except String SSt}
         · next s₄ h₄ =>
           cases h
           exact (expectS_cons noAlloc_enter h₁).trans ((hb _ _ h₂).trans
-            ((flushAt_cons h₃).trans (expectS_cons (s' := s₄) noAlloc_leave h₄)))
+            ((flushAt_cons (flushEdge_ok h₃).2).trans
+              (expectS_cons (s' := s₄) noAlloc_leave h₄)))
 
 theorem scopeFlat_cons {rc : ℕ} {st : Stmt} {s s' : SSt} (h : scopeFlat rc st s = .ok s') :
     Cons rc s.rest s'.rest := by
@@ -191,8 +192,9 @@ theorem scopeStmt_cons (rc : ℕ) : ∀ (st : Stmt) (s s' : SSt), scopeStmt rc s
         · split at h
           · cases h
           · next s₁ h₁ =>
-            exact (flushAt_cons h₀).trans ((scopeInner_cons (scopeBlock_cons rc z) h₁).trans
-              (scopeIteTail_cons (fun _ _ h' => scopeInner_cons (scopeBlock_cons rc nz) h') h))
+            exact (flushAt_cons (flushEdge_ok h₀).2).trans
+              ((scopeInner_cons (scopeBlock_cons rc z) h₁).trans (scopeIteTail_cons
+                (fun _ _ h' => scopeInner_cons (scopeBlock_cons rc nz) h') h))
   | .match_ x arms, s, s', h => by
       simp only [scopeStmt] at h
       split at h
@@ -203,8 +205,8 @@ theorem scopeStmt_cons (rc : ℕ) : ∀ (st : Stmt) (s s' : SSt), scopeStmt rc s
         · split at h
           · cases h
           · next s₁ h₁ =>
-            exact (flushAt_cons h₀).trans ((scopeArms_cons rc arms _ _ s₁ h₁).trans
-              (expectS_cons noAlloc_emit h))
+            exact (flushAt_cons (flushEdge_ok h₀).2).trans
+              ((scopeArms_cons rc arms _ _ s₁ h₁).trans (expectS_cons noAlloc_emit h))
   | .atom _, s, s', h => scopeFlat_cons h
   | .call .., s, s', h => scopeFlat_cons h
   | .callIf .., s, s', h => scopeFlat_cons h

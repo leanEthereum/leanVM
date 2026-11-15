@@ -182,7 +182,7 @@ theorem winv_enter {C : (ℕ → E) → Prop} {st : St} {sc s₁ : SSt} (hinv : 
 /-- The scope walk of an inner block, step by step. -/
 theorem scopeInner_inv {rc : ℕ} {blk : SSt → Except String SSt} {s s' : SSt}
     (h : scopeInner rc blk s = .ok s') : ∃ s₁ s₂ s₃ s₄,
-      expectS isEnter "a block" s = .ok s₁ ∧ blk s₁ = .ok s₂ ∧ flushAt rc s₂ = .ok s₃ ∧
+      expectS isEnter "a block" s = .ok s₁ ∧ blk s₁ = .ok s₂ ∧ flushEdge rc s₂ = .ok s₃ ∧
       expectS isLeave "the end of a block" s₃ = .ok s₄ ∧ s' = { s₄ with live := s.live } := by
   unfold scopeInner at h
   split at h
