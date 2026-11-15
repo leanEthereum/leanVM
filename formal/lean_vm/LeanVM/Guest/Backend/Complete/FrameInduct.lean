@@ -129,7 +129,7 @@ def InBlockOf : Prop :=
 /-- **A branch statement** from its inner blocks (open: the condition's cell, the destinations,
 the untaken block off the path, the words of the `ite`). -/
 def IteStmt : Prop :=
-  ∀ c z nz rest tl, InBlockW Γ Ag cl ctx I z → InBlockW Γ Ag cl ctx I nz →
+  ∀ c z nz rest tl, c ∉ I.tmps → InBlockW Γ Ag cl ctx I z → InBlockW Γ Ag cl ctx I nz →
     StmtW Γ Ag cl ctx I (.ite c z nz) rest tl
 
 end Ite
@@ -138,11 +138,13 @@ end Ite
 theorem iteW_of (hmono : PlaceMono ctx) (hnew : PlaceNew ctx)
     (hsub : ∀ c z nz rest, Good (.ite c z nz :: rest) → Good z ∧ Good nz ∧ Good rest)
     (hfa : ∀ s rest, Good (s :: rest) → FaAfter I.σ s rest)
+    (hcu : ∀ c z nz rest, Good (.ite c z nz :: rest) → c ∉ I.tmps)
     (hin : InBlockOf Γ Ag cl ctx I) (hite : IteStmt Γ Ag cl ctx I) : IteW Γ Ag cl ctx I Good := by
   intro c z nz rest tl hg ih
   obtain ⟨hz, hn, hr⟩ := hsub c z nz rest hg
   refine BlockW.cons hmono hnew (hfa _ _ hg)
-    (hite c z nz rest tl (hin z fun tl' => ih z hz ?_ tl') (hin nz fun tl' => ih nz hn ?_ tl'))
+    (hite c z nz rest tl (hcu c z nz rest hg) (hin z fun tl' => ih z hz ?_ tl')
+      (hin nz fun tl' => ih nz hn ?_ tl'))
     (ih rest hr ?_ tl)
   all_goals simp only [List.cons.sizeOf_spec, Stmt.ite.sizeOf_spec]; omega
 
@@ -214,11 +216,12 @@ inductive InBody (body : List Stmt) : List Stmt → Prop
 theorem bodyW (body : List Stmt) (hmono : PlaceMono ctx) (hnew : PlaceNew ctx)
     (hfa : ∀ s rest, InBody body (s :: rest) → FaAfter I.σ s rest)
     (hflat : FlatW Γ Ag cl ctx I (InBody body)) (hself : SelfW Γ Ag cl ctx I (InBody body))
+    (hcu : ∀ c z nz rest, InBody body (.ite c z nz :: rest) → c ∉ I.tmps)
     (hin : InBlockOf Γ Ag cl ctx I) (hite : IteStmt Γ Ag cl ctx I)
     (hmatch : MatchW Γ Ag cl ctx I (InBody body)) (tl : List Stmt) :
     BlockW Γ Ag cl ctx I (placeBlock body) body tl :=
   blockW_good hmono hnew (fun _ _ h => .tail h) hfa hflat hself
-    (iteW_of hmono hnew (fun _ _ _ _ h => ⟨.iteZ h, .iteN h, .tail h⟩) hfa hin hite) hmatch body
+    (iteW_of hmono hnew (fun _ _ _ _ h => ⟨.iteZ h, .iteN h, .tail h⟩) hfa hcu hin hite) hmatch body
     .top tl
 
 end
