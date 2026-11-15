@@ -34,8 +34,10 @@ pub(crate) fn prove_layer(
     ps.add_scalars(&product);
 
     // 2. `s`: the product polynomial has degree PRODUCT_BITS - 1.
-    ps.grind(fiat_shamir::grinding_bits(PRODUCT_BITS as u128 - 1));
-    let s = ps.sample();
+    // Bad event, probability `2^-64`: `s` in `K` (which holds every proper subfield) has no power basis. A verifier
+    // accepts any passing nonce, so the prover grinds on.
+    let bits = fiat_shamir::grinding_bits(PRODUCT_BITS as u128 - 1);
+    let s = ps.grind_sample(bits, |s| s.to_limbs()[1] != 0);
     let mu = instance_weights(s);
     let kappa = mu.iter().sum();
     let mut sumcheck = Sumcheck {

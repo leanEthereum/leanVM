@@ -145,7 +145,7 @@ In the recursion program, the prover sends the verifier advice, called hints. Hi
 - **Comments only where necessary**, and concise. **Never put a measurement in a comment, a doc comment, or this file**: it goes stale and nothing rechecks it. Measurements belong in the commit message. A comment may say which way a result went and why, never by how much.
 - **Commit only tests useful against future regressions.** Simpler is better.
 - **No em-dashes or en-dashes** in prose anywhere a human reads it. **Never hard-wrap prose** in Markdown or LaTeX: one paragraph is one line.
-- Grinding chooses the smallest valid nonce, including in parallel. Randomized signature inputs can still make proofs differ between runs.
+- Grinding chooses the smallest valid nonce, including in parallel, but for a challenge the prover cannot use: the Keccak GKR's `s` in `K` (no power basis, a chance of `2^-64` per layer) takes the next valid nonce (`ProverState::grind_sample`), which the verifiers accept like any other. Randomized signature inputs can still make proofs differ between runs.
 
 ## Env knobs
 

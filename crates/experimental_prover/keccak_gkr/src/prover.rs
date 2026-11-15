@@ -725,11 +725,13 @@ pub fn prove_layer(
         std::array::from_fn(|c| (0..PACKS).map(|q| pack_weights[q] * per_pack[q][c]).sum());
     ps.add_scalars(&product);
     // `s`: the product polynomial has degree PRODUCT_BITS - 1.
-    ps.grind(fiat_shamir::grinding_bits(PRODUCT_BITS as u128 - 1));
-    let s = ps.sample();
+    // Bad event, probability `2^-64`: `s` in `K` (which holds every proper subfield) has no power basis. A verifier
+    // accepts any passing nonce, so the prover grinds on.
+    let bits = fiat_shamir::grinding_bits(PRODUCT_BITS as u128 - 1);
+    let s = ps.grind_sample(bits, |s| s.to_limbs()[1] != 0);
     let kappa = mu_at(s).iter().sum();
     let mut value = poly_eval(&product, s);
-    let field = PowerField::new(s).expect("the challenge lies in no proper subfield");
+    let field = PowerField::new(s).expect("an `s` outside `K` has a power basis");
 
     // The packs of a group, from sums of bit-level products. A pack's own sum is its product
     // polynomial at `s`, over both groups of the block.

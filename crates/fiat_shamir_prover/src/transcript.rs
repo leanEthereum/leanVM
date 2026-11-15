@@ -110,4 +110,21 @@ impl<F: Scalar, S: Search> ProverState<F, S> {
             self.stream.push(verifier::E::new(nonce, 0));
         }
     }
+
+    /// [`Self::grind`] of `bits > 0`, then [`Self::sample`], stepping past passing nonces whose challenge is not
+    /// `usable`: a verifier accepts any passing nonce.
+    pub fn grind_sample(&mut self, bits: u32, usable: impl Fn(F) -> bool) -> F {
+        let mut from = 0;
+        loop {
+            let mut fs = self.fs.clone();
+            let nonce = fs.grind_from::<S>(bits, from).expect("a grind of nonzero bits");
+            let challenge = fs.sample();
+            if usable(challenge) {
+                self.fs = fs;
+                self.stream.push(verifier::E::new(nonce, 0));
+                return challenge;
+            }
+            from = nonce + 1;
+        }
+    }
 }

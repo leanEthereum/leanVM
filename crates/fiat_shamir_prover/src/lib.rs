@@ -157,6 +157,11 @@ impl<F: Scalar> FiatShamirState<F> {
     /// re-checks it with one bit decomposition (`grind_check` in `guests/lean_ethereum.py`). A long search runs on
     /// `S`.
     pub fn grind<S: Search>(&mut self, bits: u32) -> Option<u64> {
+        self.grind_from::<S>(bits, 0)
+    }
+
+    /// [`Self::grind`] from the nonce `from` on: the smallest passing nonce at least `from`.
+    pub(crate) fn grind_from<S: Search>(&mut self, bits: u32, from: u64) -> Option<u64> {
         assert!(bits < 64, "the grinding window fits a lane");
         if bits == 0 {
             return None;
@@ -174,16 +179,17 @@ impl<F: Scalar> FiatShamirState<F> {
                 state[lane] = nonce;
             }
             keccak256::keccak_f_many(&mut states);
-            let pass = |(_, state): &(u64, &[u64; STATE_LANES])| state[2] & ((1 << bits) - 1) == 0;
+            let pass =
+                |&(nonce, state): &(u64, &[u64; STATE_LANES])| nonce >= from && state[2] & ((1 << bits) - 1) == 0;
             (b * BATCH..).zip(&states).find(pass).map(|(nonce, _)| nonce)
         };
         // A short search, a few batches, is not worth a dispatch to the pool.
         let nonce = if bits < 10 {
-            (0..).find_map(batch)
+            (from / BATCH..).find_map(batch)
         } else {
             // Windows of a quarter of the expected search; the first window holding a hit holds the smallest.
             let window = (1u64 << (bits.min(26) - 2)).div_ceil(BATCH);
-            (0..).step_by(window as usize).find_map(|w: u64| {
+            (from / BATCH..).step_by(window as usize).find_map(|w: u64| {
                 S::find_first(window as usize, &|i| batch(w + i as u64).is_some()).and_then(|i| batch(w + i as u64))
             })
         };
