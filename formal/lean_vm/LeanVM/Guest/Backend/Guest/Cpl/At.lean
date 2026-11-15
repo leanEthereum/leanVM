@@ -23,10 +23,11 @@ frame proper, without the jump tables), else `max 2 (fsAt (i + 1))`, `B2C.fs`'s.
 
 `cplOkWith i pf` is the per-function test of entry `i` placed as `pf`: the static test
 (`staticOk`) against `fsWant i`; the placement-side hypotheses (`Complete.scopedB`,
-`Complete.tmpsApartB`, `Complete.alL`); and the counts: `Complete.pmaxP` is the table's `pmax`
-(`B2C.plumbOf`) and `Complete.armsP` is `Data.cplArms`, keyed (counting arms apart) when
-`Data.cplArms` lists the function, the arms' selectors distinct. `cplOkAt i` runs the placement;
-the kernel decides it for runs of entries (`Eval/`).
+`Complete.noSelfCallB`, `Complete.tmpsApartB`, `Complete.alL`); and the counts: `Complete.pmaxP` is
+the table's `pmax` (`B2C.plumbOf`) and `Complete.armsP` is `Data.cplArms`, keyed (counting arms
+apart) when `Data.cplArms` lists the function, the arms' selectors distinct. `cplOkAt i` runs the
+placement; `CplOkAll` says the test passes for every entry, which the kernel decides for runs of
+entries (`Eval/`).
 -/
 
 namespace LeanVM.Guest.Backend.Cpl
@@ -55,6 +56,7 @@ def keyedOf (i : ℕ) : Bool := !(armsOf i).isEmpty
 noncomputable def cplOkWith (i : ℕ) (pf : Placed) : Bool :=
   staticOk loopsG (guestTraced.getD i default) pf (fsWant i) &&
     Complete.scopedB (guestTraced.getD i default) &&
+    Complete.noSelfCallB (guestTraced.getD i default) &&
     Complete.tmpsApartB (guestTraced.getD i default) pf &&
     Complete.alL pf.fn.body (guestTraced.getD i default).core.body &&
     natsDistinct ((Complete.armsP (keyedOf i) (guestTraced.getD i default) pf).map (·.1)) &&
@@ -85,10 +87,14 @@ theorem cplOkWith_of {i : ℕ} {pf : Placed} (hp : placedAt i = some pf) (h : cp
   rw [hp] at h
   exact h
 
+/-- **The per-function test passes for every entry** of the guest. -/
+def CplOkAll : Prop := ∀ i < 1601, cplOkAt i = true
+
 /-- **What the per-function test says.** -/
 structure CplFacts (i : ℕ) (pf : Placed) : Prop where
   sfacts : StaticFacts loopsG (guestTraced.getD i default) pf (fsWant i)
   isScoped : Complete.Scoped (guestTraced.getD i default)
+  noSelf : Complete.NoSelfCall (guestTraced.getD i default)
   apart : Complete.TmpsApart (guestTraced.getD i default) pf
   aligned : Complete.Aligned (guestTraced.getD i default) pf
   armsNodup : ((Complete.armsP (keyedOf i) (guestTraced.getD i default) pf).map (·.1)).Nodup
@@ -98,8 +104,8 @@ structure CplFacts (i : ℕ) (pf : Placed) : Prop where
 theorem cplOkWith_spec {i : ℕ} {pf : Placed} (h : cplOkWith i pf = true) : CplFacts i pf := by
   unfold cplOkWith at h
   simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-  obtain ⟨⟨⟨⟨⟨⟨hs, hsc⟩, hta⟩, hal⟩, hnd⟩, hpm⟩, har⟩ := h
-  exact ⟨staticOk_spec hs, hsc, hta, hal, natsDistinct_nodup hnd, hpm, har⟩
+  obtain ⟨⟨⟨⟨⟨⟨⟨hs, hsc⟩, hns⟩, hta⟩, hal⟩, hnd⟩, hpm⟩, har⟩ := h
+  exact ⟨staticOk_spec hs, hsc, hns, hta, hal, natsDistinct_nodup hnd, hpm, har⟩
 
 end
 end LeanVM.Guest.Backend.Cpl
