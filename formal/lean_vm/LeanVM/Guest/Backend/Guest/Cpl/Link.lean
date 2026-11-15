@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.Backend.Guest.Cpl.Complete
 public import LeanVM.Guest.Budget.DeployedBudget
+public import LeanVM.Guest.Backend.Complete.FrameAssemble
 
 /-!
 # The link to `Budget.guest_complete`'s statement
@@ -37,9 +38,19 @@ theorem guest_complete_link (hFW : Complete.FrameWordsStmt) (hok : CplOkAll) :
   rw [← deployedBudgetB_eq]
   exact guest_complete_backend hFW hok
 
+/-- **The guest is complete within the deployed budget**, the frame side reduced to its two
+remaining construct statements (`FaBody`, `MatchBody`), given the per-function test. -/
+theorem guest_complete_of_frame (hfa : Complete.FaBody) (hmatch : Complete.MatchBody)
+    (hok : CplOkAll) : GuestCompleteWithin (deployedBudget (vsBoundAt Count.vsWordsOs vkBound)) :=
+  guest_complete_link (Complete.frameWords_of_fa_match hfa hmatch) hok
+
 end
 end LeanVM.Guest.Backend.Cpl
 
 /-- info: 'LeanVM.Guest.Backend.Cpl.guest_complete_link' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.Backend.Cpl.guest_complete_link
+
+/-- info: 'LeanVM.Guest.Backend.Cpl.guest_complete_of_frame' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Backend.Cpl.guest_complete_of_frame

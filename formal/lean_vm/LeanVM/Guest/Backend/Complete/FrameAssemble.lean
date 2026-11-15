@@ -14,6 +14,7 @@ public import LeanVM.Guest.Backend.Complete.FrameAddr
 public import LeanVM.Guest.Backend.Complete.FramePool
 public import LeanVM.Guest.Backend.Complete.FrameIte
 public import LeanVM.Guest.Backend.Complete.FrameSelf
+public import LeanVM.Guest.Backend.Complete.FrameStage
 
 /-!
 # The frame side, assembled
@@ -344,6 +345,44 @@ theorem frameWords_of_fa_match (hfa : FaBody) (hmatch : MatchBody) : FrameWordsS
 
 /-- info: 'LeanVM.Guest.Backend.Complete.frameWords_of_fa_match' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms frameWords_of_fa_match
+
+/-! ## The `match`es of a body -/
+
+/-- **No value an arm's path reads is a later arm's frame address** (owed: from `Scoped`). -/
+def AFaBody : Prop := AtBody fun W tf pf fp hdr σ es kfps =>
+  ∀ x arms rest, InBody tf.core.body (.match_ x arms :: rest) → ∀ j (hj : j < arms.length),
+    ∀ v ∈ pathVals (instK W tf pf fp hdr σ es kfps).σ arms[j]
+      (walk (instK W tf pf fp hdr σ es kfps).σ arms[j]), ∀ run,
+      Atom.frameAddr v run ∉ armsAtoms (arms.drop (j + 1))
+
+/-- **A body's chains of `match`es** (owed: `ChainHeadW`). -/
+def ChainBody : Prop := AtBody fun W tf pf fp hdr σ es kfps =>
+  ChainHeadW (Γ := World.cplSite W tf.core.name)
+    (Ag := agK W tf pf fp hdr es kfps (instK W tf pf fp hdr σ es kfps)) (cl := calls es)
+    (ctx := ctxOf (loopTable W.p) (sigTable W.p) tf) (I := instK W tf pf fp hdr σ es kfps)
+    (InBody tf.core.body)
+
+/-- **A body's `match`es**, from the arms' frame address fact and the chains. -/
+theorem matchBody_of (hfa : FaBody) (hafa : AFaBody) (hch : ChainBody) : MatchBody := by
+  intro κ₀ W hW tf htf hsc pf hpa hta hns fp hfp kfps hdr σ es vs hw ha hrd
+  have hI := instK_ok (kfps := kfps) hW htf hpa hta hrd
+  have hok := opOK_K (kfps := kfps) hW htf hpa hsc hta hw hrd
+  have hfresh := hta.fresh
+  exact matchW_of placeMono placeNew_ok hok hI (fun h => hfp (by simpa [ctxOf] using h)) agOwn_K
+    (fun _ => rfl) (fun q hq => hlocB_K hW htf hpa q hq)
+    (fun x arms rest hg => ⟨fun a ha => .arm hg ha, .tail hg⟩)
+    (hfa W hW tf htf hsc pf hpa hta hns fp hfp kfps hdr σ es vs hw ha hrd)
+    (fun x arms rest hin ht => (hfresh.2 x ht).1 (inBody_uses hin x (by simp [Stmt.uses])))
+    (hafa W hW tf htf hsc pf hpa hta hns fp hfp kfps hdr σ es vs hw ha hrd)
+    (inBlockOf hok hI) (hch W hW tf htf hsc pf hpa hta hns fp hfp kfps hdr σ es vs hw ha hrd)
+
+/-- **The frame side's statement**, from the frame address facts and the chains. -/
+theorem frameWords_of_fa_chain (hfa : FaBody) (hafa : AFaBody) (hch : ChainBody) :
+    FrameWordsStmt :=
+  frameWords_of_fa_match hfa (matchBody_of hfa hafa hch)
+
+/-- info: 'LeanVM.Guest.Backend.Complete.frameWords_of_fa_chain' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms frameWords_of_fa_chain
 
 end
 end LeanVM.Guest.Backend.Complete
