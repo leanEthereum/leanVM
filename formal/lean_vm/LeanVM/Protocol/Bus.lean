@@ -70,7 +70,7 @@ The phase's side conditions (`Conditions`): the degree bound is at least one (a 
 form is its variable); a table with a constraint fits in the leaf stacks' depth, so that `ζ` has
 a point for it (the verifier reads `ζ` at every variable below the tallest table's height,
 `crates/verifier/src/bus.rs`; its explicit rejection of a shorter `ζ`,
-`crates/lean_vm/src/constraints.rs` at `a386121f`, is removed at `127510d1`); and the pull
+`crates/lean_vm/src/constraints.rs` at leanVM `a386121f`, is removed at `127510d1`); and the pull
 and count sides fit in `2 ^ μ_bus`, the push side's depth, which the deployed prover asserts of
 its layouts (`crates/lean_vm_core/src/leaf.rs`; the verifier's own call,
 `leaf.rs` at `a386121f`, is removed at `127510d1`).
