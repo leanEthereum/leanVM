@@ -326,5 +326,24 @@ theorem frameWords_assembled (hfa : FaBody) (hself : SelfBody) (hmatch : MatchBo
 /-- info: 'LeanVM.Guest.Backend.Complete.frameWords_assembled' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms frameWords_assembled
 
+/-- **A body's self `callIf`s** at the walk's instance. -/
+theorem selfBody : SelfBody := by
+  intro κ₀ W hW tf htf hsc pf hpa hta hns fp hfp kfps hdr σ es vs hw ha hrd
+  have hI := instK_ok (kfps := kfps) hW htf hpa hta hrd
+  have hok := opOK_K (kfps := kfps) hW htf hpa hsc hta hw hrd
+  have hfresh := hta.fresh
+  refine selfW_of placeNew_ok poolKeepStmt hok hI (fun h => hfp (by simpa [ctxOf] using h))
+    (fun _ h => h) agOwn_K agKids_K (fun _ => rfl) (hent_K hW) (fun h => by simpa [ctxOf] using h)
+    hI.kend (fun hreg => ⟨frame_of_loopH hW htf hpa hreg, hreg⟩) ?_
+  intro c f args rest hin v hv ht
+  exact (hfresh.2 v ht).1 (inBody_uses hin v (by simpa [Stmt.uses] using hv))
+
+/-- **The frame side's statement**, from the remaining construct lemmas. -/
+theorem frameWords_of_fa_match (hfa : FaBody) (hmatch : MatchBody) : FrameWordsStmt :=
+  frameWords_assembled hfa selfBody hmatch
+
+/-- info: 'LeanVM.Guest.Backend.Complete.frameWords_of_fa_match' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms frameWords_of_fa_match
+
 end
 end LeanVM.Guest.Backend.Complete
