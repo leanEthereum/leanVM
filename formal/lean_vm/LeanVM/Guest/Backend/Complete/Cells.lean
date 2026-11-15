@@ -128,6 +128,7 @@ def tmpsApartB (tf : TracedFn) (pf : Placed) : Bool :=
       nmapSeq (cellCounts set (blockOps pf.fn.body 0)) fun counts =>
         apartWith tf pf (Stmt.tmpsList tf.core.body) set counts &&
           distinctCells pf.locs (Stmt.tmpsList tf.core.body) {} &&
+          !set.contains (2 + tf.core.params.length + tf.rets) &&
           nmapSeq (fpPtrs (blockOps pf.fn.body 0)) fun fps =>
             tmpOpsB set fps (blockOps pf.fn.body 0)
 

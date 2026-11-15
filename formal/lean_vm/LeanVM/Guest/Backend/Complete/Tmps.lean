@@ -83,16 +83,26 @@ theorem TmpsApart.parts (h : TmpsApart tf pf) :
       (cellCounts (tmpCellSet pf.locs (Stmt.tmpsList tf.core.body)) (blockOps pf.fn.body 0)) =
       true ∧ distinctCells pf.locs (Stmt.tmpsList tf.core.body) {} = true ∧
     tmpOpsB (tmpCellSet pf.locs (Stmt.tmpsList tf.core.body)) (fpPtrs (blockOps pf.fn.body 0))
-      (blockOps pf.fn.body 0) = true := by
+      (blockOps pf.fn.body 0) = true ∧
+    (tmpCellSet pf.locs (Stmt.tmpsList tf.core.body)).contains
+      (2 + tf.core.params.length + tf.rets) = false := by
   unfold TmpsApart tmpsApartB at h
   rw [nmapSeq_eq, nmapSeq_eq, nmapSeq_eq, Bool.and_eq_true, Bool.and_eq_true,
-    Bool.and_eq_true] at h
-  exact ⟨h.2.1.1, h.2.1.2, h.2.2⟩
+    Bool.and_eq_true, Bool.and_eq_true, Bool.not_eq_true'] at h
+  exact ⟨h.2.1.1.1, h.2.1.1.2, h.2.2, h.2.1.2⟩
 
 theorem TmpsApart.with (h : TmpsApart tf pf) :
     apartWith tf pf (Stmt.tmpsList tf.core.body) (tmpCellSet pf.locs (Stmt.tmpsList tf.core.body))
       (cellCounts (tmpCellSet pf.locs (Stmt.tmpsList tf.core.body)) (blockOps pf.fn.body 0)) =
       true := h.parts.1
+
+/-- **No temporary is placed at the cell past the argument and return cells** (a registered
+loop helper's own frame pointer). -/
+theorem TmpsApart.self (h : TmpsApart tf pf) {t : V} (ht : t ∈ Stmt.tmpsList tf.core.body) :
+    cellP pf.locs t ≠ some (2 + tf.core.params.length + tf.rets) := fun he => by
+  have := (tmpCellSet_contains pf.locs _ _).mpr ⟨t, ht, he⟩
+  rw [h.parts.2.2.2] at this
+  cases this
 
 /-- **A temporary has a cell.** -/
 theorem TmpsApart.cell (h : TmpsApart tf pf) {t : V} (ht : t ∈ Stmt.tmpsList tf.core.body) :
@@ -216,7 +226,7 @@ theorem TmpsApart.ops (h : TmpsApart tf pf) {t : V} (ht : t ∈ Stmt.tmpsList tf
     (hco : c ∈ opCells o) :
     ∃ p, o = .deref p 0 c .cell ∧ (∀ t' ∈ Stmt.tmpsList tf.core.body, cellP pf.locs t' ≠ some p) ∧
       ∀ q off d, LOp.deref q off d .fp ∈ blockOps pf.fn.body 0 → q ≠ p := by
-  have hb := h.parts.2.2
+  have hb := h.parts.2.2.1
   simp only [tmpOpsB, List.all_eq_true] at hb
   have := hb o ho c hco
   have hs := (tmpCellSet_contains pf.locs (Stmt.tmpsList tf.core.body) c).mpr ⟨t, ht, hc⟩
