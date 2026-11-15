@@ -6,8 +6,8 @@ use super::hints::SubHints;
 use fiat_shamir_prover::{FiatShamirState, RATE_SCALARS, Sequential, grinding_bits};
 use isa::Prover;
 use lean_vm_core::cpu::{from_scalar, to_scalar};
-use lean_vm_core::leaf::N_TUPLE_BITS;
 use primitives::field::F128;
+use verifier::layout::BUS_BITS;
 // `eq` tables on the calling thread: the batch runs under either prover, some of it in its pool's tasks.
 use primitives::multilinear::{eq_table_serial as eq_table, interp};
 use std::ops::Range;
@@ -79,13 +79,13 @@ fn bytecode_rows() -> Range<usize> {
     static ROWS: std::sync::OnceLock<Range<usize>> = std::sync::OnceLock::new();
     ROWS.get_or_init(|| {
         let rows = unified_guest().stacked_bytecode().as_chunks::<BLOCK>().0;
-        let per_slot = rows.len() >> N_TUPLE_BITS;
+        let per_slot = rows.len() >> BUS_BITS;
         assert!(
             per_slot.is_multiple_of(8),
             "a slot is whole groups of rows, as `Prover::combine_rows` may require"
         );
         let live = |s: &usize| rows[s * per_slot..(s + 1) * per_slot].iter().flatten().any(|&v| v != 0);
-        let slots = || 0..1 << N_TUPLE_BITS;
+        let slots = || 0..1 << BUS_BITS;
         let start = slots().find(live).expect("the bytecode is not all zero");
         let end = slots().rfind(live).expect("the bytecode is not all zero") + 1;
         start * per_slot..end * per_slot

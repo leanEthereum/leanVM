@@ -15,8 +15,8 @@ use primitives::cast_slice;
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8, g_pow, index_mle, mul_by_g};
 use primitives::multilinear::{eq_eval, interp};
 use primitives::transcript::ProverState;
-pub use verifier::bus_grinding_bits;
-use verifier::layout::{GLOBAL_COLUMN_BASES, TABLE_WIDTHS};
+use verifier::N_BUS_TREES;
+use verifier::layout::{BUS_BITS, GLOBAL_COLUMN_BASES, TABLE_WIDTHS};
 
 /// One tuple coordinate as a function of the block's row `z`.
 #[derive(Clone, Debug)]
@@ -78,13 +78,6 @@ pub(crate) fn coord_at(c: &Coord, row: &[F64]) -> F64 {
     }
 }
 
-/// Bits indexing a bus tuple's coordinates: its `2^4` slots are those of the bytecode encoding (§sec:m3,
-/// §sec:e2e-bc). A tuple is fingerprinted as `Σ_x α_x·σ_x`, one independent weight per slot (§sec:gp).
-pub const N_TUPLE_BITS: usize = verifier::layout::BUS_BITS;
-
-/// The trees the bus GKR batches, in its order: push, pull, then the count tree.
-pub const N_BUS_TREES: usize = verifier::N_BUS_TREES;
-
 /// Placement of each block in the stacked leaf vector (input order).
 #[derive(Clone, Debug)]
 pub struct Layout {
@@ -132,7 +125,7 @@ struct Tree<'a> {
 
 /// Prove the bus balances (§sec:gp to §sec:leafstack).
 ///
-/// The stream: the [`bus_grinding_bits`] grind and the fingerprint `(α⃗, β)`; the batched GKR
+/// The stream: the [`verifier::bus_grinding_bits`] grind and the fingerprint `(α⃗, β)`; the batched GKR
 /// ([`gkr::prove_products`]); the boundary blocks' fresh column values; the bytecode's share
 /// ([`prove_bytecode_share`]).
 pub(crate) fn prove_balance(
@@ -143,7 +136,7 @@ pub(crate) fn prove_balance(
 ) -> BusProof {
     // The columns [`Coord::Public`] names.
     let public: Vec<&[F64]> = cast_slice(stacked_bytecode)
-        .chunks_exact(stacked_bytecode.len() >> N_TUPLE_BITS)
+        .chunks_exact(stacked_bytecode.len() >> BUS_BITS)
         .collect();
     let mut layouts = blocks.map(layout);
     let mu = layouts[0].mu;
@@ -154,17 +147,17 @@ pub(crate) fn prove_balance(
     assert!(layouts[2].mu <= mu, "the count tree is the shortest");
     let widest = blocks.iter().flat_map(|b| b.iter()).map(|b| b.coords.len()).max();
     assert!(
-        widest.unwrap_or(0) <= 1 << N_TUPLE_BITS,
+        widest.unwrap_or(0) <= 1 << BUS_BITS,
         "a tuple's coordinates index its slots"
     );
 
-    let bits = bus_grinding_bits(mu);
+    let bits = verifier::bus_grinding_bits(mu);
     tracing::info_span!("Bus grind", mu, bits).in_scope(|| ps.grind(bits));
-    let alpha = ps.sample_vec(1 << N_TUPLE_BITS);
+    let alpha = ps.sample_vec(1 << BUS_BITS);
     let beta = ps.sample();
     // The count tree's leaf is the count itself: weight one in slot 0, `β = 0`. Its leaves are a prefix of the push
     // tree's depth, at which `ζ` splits.
-    let mut count_alpha = vec![F128::ZERO; 1 << N_TUPLE_BITS];
+    let mut count_alpha = vec![F128::ZERO; 1 << BUS_BITS];
     count_alpha[0] = F128::ONE;
     let fingerprints = [(&alpha, beta), (&alpha, beta), (&count_alpha, F128::ZERO)];
     layouts[2].mu = mu;
@@ -460,7 +453,7 @@ fn public_columns<'a>(block: &Block, public: &[&'a [F64]]) -> impl Iterator<Item
 }
 
 /// The program's share of a bytecode leaf, `S = Σ_x α_x·P(ζ_lo, x)` over the slots `x` of the stacked bytecode `P`
-/// (§sec:e2e-bc), reduced to one evaluation of `P`. The stream: `S`, a sumcheck of [`N_TUPLE_BITS`] degree-two rounds
+/// (§sec:e2e-bc), reduced to one evaluation of `P`. The stream: `S`, a sumcheck of [`BUS_BITS`] degree-two rounds
 /// over `x`, the low bit bound first, ending at `r⃗`, then `P(ζ_lo, r⃗)`, whose product with `α̃(r⃗)` the verifier
 /// checks against the last round.
 fn prove_bytecode_share(push: &[Block], public: &[&[F64]], zeta: &[F128], alpha: &[F128], ps: &mut ProverState) {
@@ -470,7 +463,7 @@ fn prove_bytecode_share(push: &[Block], public: &[&[F64]], zeta: &[F128], alpha:
     let zeta_lo = &zeta[..block.kappa];
     let columns: Vec<(&[F64], Option<&[F64]>)> = public_columns(block, public).map(|c| (c, None)).collect();
     let mut evals = crate::eq::eq_sums(zeta_lo, &columns).into_iter();
-    let mut slots: Vec<F128> = (0..1 << N_TUPLE_BITS)
+    let mut slots: Vec<F128> = (0..1 << BUS_BITS)
         .map(|x| match block.coords.get(x) {
             Some(Coord::Public(_)) => evals.next().unwrap(),
             _ => F128::ZERO,
@@ -478,7 +471,7 @@ fn prove_bytecode_share(push: &[Block], public: &[&[F64]], zeta: &[F128], alpha:
         .collect();
     let mut weights = alpha.to_vec();
     ps.add_scalar(weights.iter().zip(&slots).map(|(&a, &p)| a * p).sum());
-    for _ in 0..N_TUPLE_BITS {
+    for _ in 0..BUS_BITS {
         let pairs = || weights.as_chunks::<2>().0.iter().zip(slots.as_chunks::<2>().0);
         let c0: F128 = pairs().map(|(a, p)| a[0] * p[0]).sum();
         let c2: F128 = pairs().map(|(a, p)| (a[0] + a[1]) * (p[0] + p[1])).sum();
@@ -593,7 +586,7 @@ mod tests {
             block(1, 2, vec![Const(F64(3)), Col(0)]),
         ];
         let count = vec![block(12, 3001, vec![Col(1)]), block(11, 1 << 11, vec![Col(2)])];
-        let alpha = rng.ext_vec(1 << N_TUPLE_BITS);
+        let alpha = rng.ext_vec(1 << BUS_BITS);
         let beta = F128::new(27, 18);
         for (blocks, beta) in [(&push, beta), (&pull, beta), (&count, F128::ZERO)] {
             let tree = Tree {

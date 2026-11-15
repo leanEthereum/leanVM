@@ -223,7 +223,7 @@ pub fn layout_of(log_bytecode: usize, log_mem: usize, rows: [usize; tables::N_TA
     let bytecode_block = |count: Coord| {
         // Each later slot is the stacked bytecode's column of that slot.
         let mut coords = vec![Const(SEP_BYTECODE), Index, count];
-        coords.extend((coords.len()..1 << leaf::N_TUPLE_BITS).map(Public));
+        coords.extend((coords.len()..1 << verifier::layout::BUS_BITS).map(Public));
         Block::full(log_bytecode, coords)
     };
     push.push(bytecode_block(Const(one)));

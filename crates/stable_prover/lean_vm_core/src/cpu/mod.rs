@@ -95,12 +95,14 @@ fn airs<'a>(
         .enumerate()
         .map(|(t, (&table, &tau))| {
             let identities = table.constraint(&pows[offsets[t]..][..table.n_constraints()]);
-            let bus_forms = (0..leaf::N_BUS_TREES).map(|s| bus.forms[s][t].scaled(pows[base + s]));
+            let bus_forms = (0..verifier::N_BUS_TREES).map(|s| bus.forms[s][t].scaled(pows[base + s]));
             constraints::Air {
                 tau,
                 cols: &cols[GLOBAL_COLUMN_BASES[t]..][..TABLE_WIDTHS[t]],
                 form: constraints::Form::sum(bus_forms.chain([identities])),
-                sigma: (0..leaf::N_BUS_TREES).map(|s| pows[base + s] * bus.sigmas[s][t]).sum(),
+                sigma: (0..verifier::N_BUS_TREES)
+                    .map(|s| pows[base + s] * bus.sigmas[s][t])
+                    .sum(),
             }
         })
         .collect()
@@ -115,7 +117,7 @@ pub fn xi_form_base() -> usize {
 
 /// The batch's `ξ`-powers: one per identity, then one per bus tree. Its error is their count less one over `|E|`.
 pub fn n_xi_powers() -> usize {
-    xi_form_base() + leaf::N_BUS_TREES
+    xi_form_base() + verifier::N_BUS_TREES
 }
 
 /// The KECCAK table's claims on its output lanes, which are the Keccak reduction's claim on the permutation's

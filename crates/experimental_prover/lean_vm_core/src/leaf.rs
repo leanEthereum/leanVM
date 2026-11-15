@@ -16,6 +16,8 @@ use primitives::field::{F64, F128, F128Unreduced, Weights8, dot_base, g_pow, ind
 use primitives::multilinear::{eq_eval, eq_table, interp, mle_eval, mle_eval_par};
 use std::collections::HashMap;
 use std::ops::Range;
+use verifier::N_BUS_TREES;
+use verifier::layout::BUS_BITS;
 
 /// One tuple coordinate as a function of the block's row `z`.
 #[derive(Clone, Debug)]
@@ -106,20 +108,12 @@ pub struct ColumnClaim {
     pub value: F128,
 }
 
-/// Bits indexing a bus tuple's coordinates: its `2^4` slots are those of the bytecode
-/// encoding (§sec:m3, §sec:e2e-bc). A tuple is fingerprinted as `Σ_x α_x·σ_x`, one
-/// independent weight per slot (§sec:gp), so a leaf factor is linear in the challenges.
-pub const N_TUPLE_BITS: usize = verifier::layout::BUS_BITS;
-
 /// The count tree's weights: the count alone, in slot `0` (`α⃗ = (1, 0, …, 0)`, `β = 0`).
 fn count_weights() -> Vec<F128> {
-    let mut w = vec![F128::ZERO; 1 << N_TUPLE_BITS];
+    let mut w = vec![F128::ZERO; 1 << BUS_BITS];
     w[0] = F128::ONE;
     w
 }
-
-/// The trees the bus GKR batches, in its order: push, pull, then the count tree, which weighs the count alone at `β = 0`.
-pub const N_BUS_TREES: usize = 3;
 
 /// Check the bus layout's shape. Push and pull have the same logical height, and the count
 /// product is checked by the same GKR rather than by a separate root-at-random test.
@@ -135,7 +129,7 @@ fn check_bus_shape(push_blocks: &[Block], pull_blocks: &[Block], push: &Layout, 
         .map(|block| block.coords.len())
         .max()
         .unwrap_or(0);
-    assert!(widest <= 1 << N_TUPLE_BITS, "a tuple's coordinates index its slots");
+    assert!(widest <= 1 << BUS_BITS, "a tuple's coordinates index its slots");
 }
 
 /// Stack blocks largest-first at aligned offsets; `μ = ⌈log2 Σ 2^{κ_b}⌉`.
@@ -662,7 +656,7 @@ impl<'a> PublicColumns<'a> {
     fn new(stacked_bytecode: &'a [u64]) -> Self {
         Self {
             columns: cast_slice(stacked_bytecode)
-                .chunks_exact(stacked_bytecode.len() >> N_TUPLE_BITS)
+                .chunks_exact(stacked_bytecode.len() >> BUS_BITS)
                 .collect(),
             evals: HashMap::new(),
         }
@@ -770,7 +764,7 @@ fn sides<'a>(
 
 /// The program's share of a bytecode leaf, `S = Σ_x α_x·P(ζ_lo, x)` over the slots `x` of the
 /// stacked bytecode `P` (§sec:e2e-bc), reduced to one evaluation of `P`. The stream: `S`, a
-/// sumcheck of [`N_TUPLE_BITS`] degree-two rounds over `x`, the low bit bound first, ending at
+/// sumcheck of [`BUS_BITS`] degree-two rounds over `x`, the low bit bound first, ending at
 /// `r⃗`, then `P(ζ_lo, r⃗)`, whose product with `α̃(r⃗)` the verifier checks against the last round.
 /// Every value comes off the public columns' evaluations at `ζ_lo`, which the decomposition cached.
 fn prove_bytecode_share(push: &[Block], zeta: &[F128], w: &[F128], public: &mut PublicColumns, ps: &mut ProverState) {
@@ -779,7 +773,7 @@ fn prove_bytecode_share(push: &[Block], zeta: &[F128], w: &[F128], public: &mut 
         .find(|blk| blk.coords.iter().any(|c| matches!(c, Coord::Public(_))))
         .expect("the push side seeds the bytecode");
     let zeta_lo = &zeta[..block.kappa];
-    let mut slots: Vec<F128> = (0..1 << N_TUPLE_BITS)
+    let mut slots: Vec<F128> = (0..1 << BUS_BITS)
         .map(|x| match block.coords.get(x) {
             Some(Coord::Public(s)) => public.eval(*s, zeta_lo),
             _ => F128::ZERO,
@@ -787,7 +781,7 @@ fn prove_bytecode_share(push: &[Block], zeta: &[F128], w: &[F128], public: &mut 
         .collect();
     let mut weights = w.to_vec();
     ps.add_scalar(weights.iter().zip(&slots).map(|(&a, &p)| a * p).sum());
-    for _ in 0..N_TUPLE_BITS {
+    for _ in 0..BUS_BITS {
         let pairs = || weights.as_chunks::<2>().0.iter().zip(slots.as_chunks::<2>().0);
         let c0: F128 = pairs().map(|(a, p)| a[0] * p[0]).sum();
         let c2: F128 = pairs().map(|(a, p)| (a[0] + a[1]) * (p[0] + p[1])).sum();
@@ -840,7 +834,7 @@ pub(crate) fn prove_balance(
     check_bus_shape(push, pull, &push_lay, &pull_lay, &count_lay);
     let bits = verifier::bus_grinding_bits(push_lay.mu);
     tracing::info_span!("Bus grind", mu = push_lay.mu, bits).in_scope(|| ps.grind(bits));
-    let w = ps.sample_vec(1 << N_TUPLE_BITS);
+    let w = ps.sample_vec(1 << BUS_BITS);
     let beta = ps.sample();
     let count_w = count_weights();
     // The leaves keep the all-one padding implicit; decomposition uses the full logical depth.
@@ -1090,7 +1084,7 @@ mod tests {
         ];
         let count = vec![block(12, 3001, vec![Col(1)]), block(11, 1 << 11, vec![Col(2)])];
         let lays = [&push, &pull, &count].map(|b| layout(b));
-        let w: Vec<F128> = (0..1 << N_TUPLE_BITS).map(|_| F128::new(next(), next())).collect();
+        let w: Vec<F128> = (0..1 << BUS_BITS).map(|_| F128::new(next(), next())).collect();
         let count_w = count_weights();
         let beta = F128::new(27, 18);
         let sides = sides(

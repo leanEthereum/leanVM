@@ -16,10 +16,10 @@
 use std::ops::Range;
 
 use crate::eq::SplitEq;
-use crate::leaf::N_BUS_TREES as TREES;
 use primitives::field::{Acc8, F128, F128x8};
 use primitives::multilinear::interp;
 use primitives::transcript::ProverState;
+use verifier::N_BUS_TREES;
 
 /// Runs of rows known to be the identity, sorted and disjoint.
 pub(crate) type Ones = Vec<Range<usize>>;
@@ -43,10 +43,10 @@ pub fn y_grind(step: usize, last: bool) -> u32 {
 ///
 /// Per layer: a grind and the combiner `λ`, the sumcheck rounds, the trees' children, then a grind and `(u_0, u_1)`.
 pub(crate) fn prove_products(
-    leaves: [Vec<F128>; TREES],
-    ones: [Ones; TREES],
+    leaves: [Vec<F128>; N_BUS_TREES],
+    ones: [Ones; N_BUS_TREES],
     ps: &mut ProverState,
-) -> (Vec<F128>, [F128; TREES]) {
+) -> (Vec<F128>, [F128; N_BUS_TREES]) {
     let mu = crate::log2_ceil_usize(leaves[0].len());
     assert!(
         leaves.iter().all(|tree| !tree.is_empty() && tree.len() <= 1 << mu),
@@ -55,7 +55,7 @@ pub(crate) fn prove_products(
     // Levels `0, 2, 4, …` of each tree, read as rows of four, up to the top, which has one node, or two when `μ` is
     // odd. A level's rows known to be the identity are the nodes two levels up made of identity leaves only.
     let mut trees = leaves.into_iter().zip(ones);
-    let mut levels: [Vec<(Vec<F128>, Ones)>; TREES] = std::array::from_fn(|_| {
+    let mut levels: [Vec<(Vec<F128>, Ones)>; N_BUS_TREES] = std::array::from_fn(|_| {
         let (leaves, ones) = trees.next().unwrap();
         let row_ones = |level: usize| coarsen(&ones, 4 << (2 * level));
         let mut levels = vec![(leaves, row_ones(0))];
@@ -71,7 +71,7 @@ pub(crate) fn prove_products(
         top.resize(1 << (mu % 2), F128::ONE);
         top
     });
-    let roots: [F128; TREES] = tops.each_ref().map(|top| top.iter().copied().product());
+    let roots: [F128; N_BUS_TREES] = tops.each_ref().map(|top| top.iter().copied().product());
     assert_eq!(roots[0], roots[1], "push and pull products must agree");
     ps.add_scalar(roots[0]);
     ps.add_scalar(roots[2]);
@@ -80,7 +80,7 @@ pub(crate) fn prove_products(
     if mu % 2 == 1 {
         // The root-most layer is binary, its two children the top level, with no sumcheck rounds.
         // Its `λ` is drawn as every layer's, though it batches nothing.
-        ps.grind(fiat_shamir::grinding_bits(TREES as u128 - 1));
+        ps.grind(fiat_shamir::grinding_bits(N_BUS_TREES as u128 - 1));
         let _: F128 = ps.sample();
         for top in &tops {
             ps.add_scalars(top);
@@ -92,7 +92,7 @@ pub(crate) fn prove_products(
     }
     while !levels[0].is_empty() {
         let layer = Layer::new(levels.each_mut().map(|levels| levels.pop().unwrap()));
-        ps.grind(fiat_shamir::grinding_bits(TREES as u128 - 1));
+        ps.grind(fiat_shamir::grinding_bits(N_BUS_TREES as u128 - 1));
         let lambda = ps.sample();
         let (chi, mut children) = layer.sumcheck(&point, lambda, ps);
         for children in &mut children {
@@ -161,7 +161,7 @@ fn padded<const N: usize>(values: &[F128], start: usize) -> [F128; N] {
 }
 
 /// A round's messages: per tree, `[q(0) + q(1), c2, c3, c4]` of its round polynomial `q`.
-type Messages = [[F128; 4]; TREES];
+type Messages = [[F128; 4]; N_BUS_TREES];
 
 fn add_messages(a: Messages, b: Messages) -> Messages {
     std::array::from_fn(|t| std::array::from_fn(|c| a[t][c] + b[t][c]))
@@ -171,11 +171,11 @@ fn add_messages(a: Messages, b: Messages) -> Messages {
 /// row `i` `interp(row 2i, row 2i + 1, χ)`, child by child.
 struct Layer {
     /// Each tree's held rows, four children a row.
-    rows: [Vec<F128>; TREES],
+    rows: [Vec<F128>; N_BUS_TREES],
     /// Each tree's rows known to be the identity.
-    ones: [Ones; TREES],
+    ones: [Ones; N_BUS_TREES],
     /// Each tree's buffer the next fold writes, reused round after round.
-    spare: [Vec<F128>; TREES],
+    spare: [Vec<F128>; N_BUS_TREES],
     /// The first round's challenge, which the rows are not yet folded by: the second round's fold applies both, so
     /// a layer is read three times and written once, at a quarter of its size, the second round's messages read
     /// through the pending fold.
@@ -186,7 +186,7 @@ struct Layer {
 const GROUP: usize = 16;
 
 impl Layer {
-    fn new(levels: [(Vec<F128>, Ones); TREES]) -> Self {
+    fn new(levels: [(Vec<F128>, Ones); N_BUS_TREES]) -> Self {
         let [a, b, c] = levels;
         Self {
             rows: [a.0, b.0, c.0],
@@ -198,13 +198,13 @@ impl Layer {
 
     /// The sumcheck rounds of the claim on `Ṽ_i(point)`, the trees batched by `λ`: their challenges `χ`, and each
     /// tree's children at the end, its rows folded to one.
-    fn sumcheck(mut self, point: &[F128], lambda: F128, ps: &mut ProverState) -> (Vec<F128>, [Vec<F128>; TREES]) {
+    fn sumcheck(mut self, point: &[F128], lambda: F128, ps: &mut ProverState) -> (Vec<F128>, [Vec<F128>; N_BUS_TREES]) {
         let rounds = point.len();
         let mut chi = Vec::with_capacity(rounds);
         // Round `j` binds `point[j]`'s variable and weights each pair of rows by `eq(point[j + 1..], ·)`; the
         // verifier multiplies in the line `eq(point[j], X)`.
         let mut messages = match rounds {
-            0 => [[F128::ZERO; 4]; TREES],
+            0 => [[F128::ZERO; 4]; N_BUS_TREES],
             _ => self.messages(&SplitEq::new(&point[1..])),
         };
         for j in 0..rounds {
@@ -241,12 +241,12 @@ impl Layer {
         let span = GROUP << folds.len();
         let groups = self.rows.each_ref().map(|rows| rows.len().div_ceil(4 * span));
         // The trees' groups end to end, tree `t`'s from `first[t]`, a task a chunk of them.
-        let first: [usize; TREES] = std::array::from_fn(|t| groups[..t].iter().sum());
+        let first: [usize; N_BUS_TREES] = std::array::from_fn(|t| groups[..t].iter().sum());
         let total = groups.iter().sum();
         let chunk = crate::chunk(total);
         parallel::map_reduce(
             total.div_ceil(chunk),
-            || [[F128::ZERO; 4]; TREES],
+            || [[F128::ZERO; 4]; N_BUS_TREES],
             |task| {
                 std::array::from_fn(|t| {
                     let mut acc = [Acc8::ZERO; 4];
@@ -284,8 +284,8 @@ impl Layer {
         let (rows, ones) = (&self.rows, &self.ones);
         let messages = parallel::map_reduce_chunks_mut(
             self.spare.each_mut().map(|spare| spare.as_mut_slice()),
-            [4 * GROUP * chunk; TREES],
-            || [[F128::ZERO; 4]; TREES],
+            [4 * GROUP * chunk; N_BUS_TREES],
+            || [[F128::ZERO; 4]; N_BUS_TREES],
             |messages, task, outs| {
                 for (t, out) in outs.into_iter().enumerate() {
                     let mut acc = [Acc8::ZERO; 4];

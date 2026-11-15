@@ -20,10 +20,12 @@ use lean_vm_core::cpu::{
 };
 use lean_vm_core::gkr::{ROUND_GRIND, y_grind};
 use lean_vm_core::keccak::{MIN_SHAPE as KECCAK_MIN_SHAPE, SLOT_LOG};
-use lean_vm_core::leaf::{self, Block, Coord, N_TUPLE_BITS, bus_grinding_bits};
+use lean_vm_core::leaf::{self, Block, Coord};
 use pcs::ntt::AdditiveNttF64;
 use primitives::field::{F64, F128, g_pow};
 use std::collections::BTreeMap;
+use verifier::bus_grinding_bits;
+use verifier::layout::BUS_BITS;
 use verifier::layout::{GLOBAL_COLUMN_BASES, N_TABLES, TABLE_LOG_FLOORS, TABLE_WIDTHS, tables};
 use verifier::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY_GRINDING_BITS};
 
@@ -291,7 +293,7 @@ fn constants(ph: &mut Placeholders) {
         ("N_COLUMN_LOGS", &(verifier::MAX_STACKED_LOG + 1)),
         ("PCS_MIN_MU", &verifier::MIN_STACKED_LOG),
         ("LIG_N_RATES", &(MAX_LOG_INV_RATE - MIN_LOG_INV_RATE + 1)),
-        ("LOG2_BYTECODE_COLS", &N_TUPLE_BITS),
+        ("LOG2_BYTECODE_COLS", &BUS_BITS),
         ("STMT_HEADER", &STATEMENT_HEADER),
         // LeanDA (`doc/leanvm` §sec:leanda).
         ("LOG_BLOB_SYMBOLS", &LOG_BLOB_SYMBOLS),
@@ -789,9 +791,9 @@ fn bytecode_placeholders(ph: &mut Placeholders, sides: &[Vec<Block>; 3], kbc: us
         .flat_map(|b| &b.coords)
         .filter(|c| matches!(c, Coord::Public(_)));
     ph.set("BYTECODE_COLS", public.count() / 2);
-    let defer_size = kbc + N_TUPLE_BITS + 1;
+    let defer_size = kbc + BUS_BITS + 1;
     ph.set("DEFER_SIZE", defer_size);
-    ph.set("BYTECODE_VARS", kbc + N_TUPLE_BITS);
+    ph.set("BYTECODE_VARS", kbc + BUS_BITS);
     let agg_seed = FiatShamirState::<F128>::from_label(RECURSION_AGG_LABEL).capacity_cells();
     for (c, cell) in agg_seed.iter().enumerate() {
         ph.set(&format!("AGG_SEED_{c}"), cell);
