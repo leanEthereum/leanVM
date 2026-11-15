@@ -294,7 +294,7 @@ impl<'a> Formula<'a> {
     }
 }
 
-/// `g^0..g^8`, which step a row's index to the next seven's.
+/// `g^0` to `g^7`, which step a row's index to the next seven's.
 const G_POWERS: [F64; 8] = {
     let mut powers = [F64::ONE; 8];
     let mut i = 1;

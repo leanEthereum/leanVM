@@ -1,13 +1,10 @@
 //! Per-opcode trace rows, emitted during execution and assembled into a [`Trace`].
 //!
-//! A row carries only what the witness fill cannot recover: the step's
-//! `(pc, fp)`, the access counts read at access time, and `DEREF`'s resolved
-//! store index. Everything else is a function of those:
-//! operands and immediates come from `prog[pc]`, addresses from `fp` plus those
-//! operands, and values from the final memory image, which is write-once and so
-//! still holds what each accessed cell held at the time it was accessed. The
-//! rows are the interpreter's largest write stream, so what they do not carry
-//! they do not pay for, twice: once writing them and once reading them back.
+//! A row carries only what the witness fill cannot recover: the step's `(pc, fp)` and the access counts read at access
+//! time. Everything else is a function of those: operands and immediates come from `prog[pc]`, addresses from `fp`
+//! plus those operands, and values from the final memory image, which is write-once and so still holds what each
+//! accessed cell held at the time it was accessed. The rows are the interpreter's largest write stream, so what they do
+//! not carry they do not pay for, twice: once writing them and once reading them back.
 //!
 //! An access count is held as its exponent: the column holds `g^k`, the row `k`,
 //! and the fill looks the power up.
