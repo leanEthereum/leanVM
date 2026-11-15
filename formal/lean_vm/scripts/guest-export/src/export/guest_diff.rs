@@ -307,8 +307,8 @@ fn blob(seed: u64) -> Vec<lean_da::Blob> {
 fn guest_diff() {
     StableProver::init();
     let wide = CLAIM_GROUP + 3;
-    let xmss = get_signers::<StableProver>(wide + 2);
-    let sphincs = get_lean_sphincs_signers::<StableProver>(3);
+    let xmss = get_signers(wide + 2);
+    let sphincs = get_lean_sphincs_signers(3);
     let left = export("left", vec![], xmss[..2].to_vec(), sphincs[..2].to_vec(), &blob(1));
     let right = export("right", vec![], xmss[1..wide + 1].to_vec(), sphincs[1..].to_vec(), &[]);
     let raw = vec![xmss[1].clone(), xmss[wide + 1].clone()];
@@ -321,5 +321,5 @@ fn guest_diff() {
 #[ignore]
 fn guest_diff_leaf() {
     StableProver::init();
-    export("leaf", vec![], get_signers::<StableProver>(1), vec![], &[]);
+    export("leaf", vec![], get_signers(1), vec![], &[]);
 }

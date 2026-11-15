@@ -15,6 +15,7 @@ dependencies = [
  "rand",
  "stable_keccak_gkr",
  "stable_lean_vm_core",
+ "stable_parallel",
  "stable_pcs",
  "stable_primitives",
  "tracing",

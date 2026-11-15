@@ -138,7 +138,7 @@ fn prove_lean_sphincs_leaf(signers: &[RawSphincs]) -> Node {
 #[test]
 fn aggregate_one_lean_sphincs_signer() {
     StableProver::init();
-    let aggregate = prove_lean_sphincs_leaf(&get_lean_sphincs_signers::<StableProver>(1));
+    let aggregate = prove_lean_sphincs_leaf(&get_lean_sphincs_signers(1));
     assert!(aggregate.verify(), "verifies");
     assert!(aggregate.0.lean_xmss.is_empty());
     assert_eq!(aggregate.0.lean_sphincs.len(), 1);
@@ -150,7 +150,7 @@ fn aggregate_one_lean_sphincs_signer() {
 #[test]
 fn forged_lean_sphincs_hints_are_rejected() {
     StableProver::init();
-    let signers = get_lean_sphincs_signers::<StableProver>(1);
+    let signers = get_lean_sphincs_signers(1);
     let forgeries: [Forgery; 3] = [
         Box::new(|hints: &mut Hints| {
             hints.entry_mut("sp_unused", 0)[0] *= count(1);
@@ -176,7 +176,7 @@ fn forged_lean_sphincs_hints_are_rejected() {
 #[test]
 fn forged_lean_xmss_hints_are_rejected() {
     StableProver::init();
-    let signers = get_signers::<StableProver>(1);
+    let signers = get_signers(1);
     let forgeries: [Forgery; 3] = [
         Box::new(|hints: &mut Hints| hints.entry_mut("lx_index", 0)[0] += F128::ONE),
         Box::new(|hints: &mut Hints| hints.entry_mut("lx_windows", 0)[0] *= count(1)),
@@ -197,7 +197,7 @@ fn forged_lean_xmss_hints_are_rejected() {
 #[test]
 fn aggregate_one_signer() {
     StableProver::init();
-    let aggregate = prove_leaf(&get_signers::<StableProver>(1));
+    let aggregate = prove_leaf(&get_signers(1));
     assert!(aggregate.verify(), "verifies");
     assert_eq!(aggregate.0.lean_xmss[0].1, message());
 }
@@ -208,8 +208,8 @@ fn aggregate_mixed_leaf() {
     StableProver::init();
     let aggregate = aggregate(
         &[],
-        get_signers::<StableProver>(3),
-        get_lean_sphincs_signers::<StableProver>(3),
+        get_signers(3),
+        get_lean_sphincs_signers(3),
         None,
         OutputClaims::All,
         LOG_INV_RATE,
@@ -225,8 +225,8 @@ fn aggregate_mixed_leaf() {
 #[test]
 fn aggregate_mixed_two_to_one() {
     StableProver::init();
-    let xmss = get_signers::<StableProver>(6);
-    let lean_sphincs = get_lean_sphincs_signers::<StableProver>(4);
+    let xmss = get_signers(6);
+    let lean_sphincs = get_lean_sphincs_signers(4);
     let leaf = |x: &[LeanXmssSigner], s: &[RawSphincs]| {
         aggregate(&[], x.to_vec(), s.to_vec(), None, OutputClaims::All, LOG_INV_RATE).expect("leaf aggregates")
     };
@@ -247,8 +247,8 @@ fn aggregate_mixed_two_to_one() {
 #[test]
 fn aggregate_one_scheme_per_child() {
     StableProver::init();
-    let lean_xmss_child = prove_leaf(&get_signers::<StableProver>(3));
-    let lean_sphincs_child = prove_lean_sphincs_leaf(&get_lean_sphincs_signers::<StableProver>(2));
+    let lean_xmss_child = prove_leaf(&get_signers(3));
+    let lean_sphincs_child = prove_lean_sphincs_leaf(&get_lean_sphincs_signers(2));
     let node = aggregate(
         &[lean_xmss_child, lean_sphincs_child],
         vec![],
@@ -361,7 +361,7 @@ def main():
 fn aggregate_two_to_one() {
     StableProver::init();
     let big = 2 * CLAIM_GROUP + 3;
-    let signers = get_signers::<StableProver>(SMALL_LEAF_SIZE + big);
+    let signers = get_signers(SMALL_LEAF_SIZE + big);
     let left = prove_leaf(&signers[..SMALL_LEAF_SIZE]);
     let right = prove_leaf(&signers[SMALL_LEAF_SIZE..]);
     let children = [left, right];
@@ -478,7 +478,7 @@ fn invalid_da_selections_are_rejected_before_building_the_proof() {
 #[test]
 fn a_node_passes_on_one_childs_da_root() {
     StableProver::init();
-    let signers = get_signers::<StableProver>(SMALL_LEAF_SIZE);
+    let signers = get_signers(SMALL_LEAF_SIZE);
     let mut children = vec![prove_leaf(&signers)];
     for (n_rows, seed) in [(1, 509), (2, 510)] {
         let rows = da_rows(n_rows, seed);
@@ -548,7 +548,7 @@ fn a_node_passes_on_one_childs_da_root() {
 #[test]
 fn forged_da_hints_are_rejected() {
     StableProver::init();
-    let signers = get_signers::<StableProver>(SMALL_LEAF_SIZE);
+    let signers = get_signers(SMALL_LEAF_SIZE);
     let child = aggregate(
         &[],
         signers.clone(),
@@ -598,7 +598,7 @@ fn forged_da_hints_are_rejected() {
 #[test]
 fn forged_opening_hints_are_rejected() {
     StableProver::init();
-    let signers = get_signers::<StableProver>(SMALL_LEAF_SIZE);
+    let signers = get_signers(SMALL_LEAF_SIZE);
     let child = aggregate(&[], signers.clone(), vec![], None, OutputClaims::All, LOG_INV_RATE).unwrap();
     let forgeries: [Forgery; 2] = [
         Box::new(|hints: &mut Hints| hints.entry_mut("merkle_leaf_rows", 0)[0] += F128::ONE),
@@ -766,7 +766,7 @@ fn da_root(rows: &[Codeword]) -> Hash {
 #[test]
 fn da_row_count_is_a_run_time_parameter() {
     StableProver::init();
-    let signers = get_signers::<StableProver>(SMALL_LEAF_SIZE);
+    let signers = get_signers(SMALL_LEAF_SIZE);
     for n_rows in [1usize, 3, DA_MAX_ROWS] {
         let rows = da_rows(n_rows, 200 + n_rows as u64);
         let node = aggregate(
@@ -788,7 +788,7 @@ fn da_row_count_is_a_run_time_parameter() {
 #[test]
 fn no_payload_publishes_no_root() {
     StableProver::init();
-    let signers = get_signers::<StableProver>(SMALL_LEAF_SIZE);
+    let signers = get_signers(SMALL_LEAF_SIZE);
     let node = prove_leaf(&signers);
     assert_eq!(node.0.da_commitment, None);
 }
@@ -798,8 +798,8 @@ fn no_payload_publishes_no_root() {
 #[test]
 fn a_node_may_publish_less_than_it_covers() {
     StableProver::init();
-    let at_a = get_signers::<StableProver>(3);
-    let at_b = get_signers_for::<StableProver>(2, MESSAGE_B);
+    let at_a = get_signers(3);
+    let at_b = get_signers_for(2, MESSAGE_B);
     let mut raw = at_a.clone();
     raw.extend_from_slice(&at_b);
     let wide = aggregate(&[], raw, vec![], None, OutputClaims::All, LOG_INV_RATE).expect("the wide leaf aggregates");
@@ -863,8 +863,8 @@ fn a_node_may_publish_less_than_it_covers() {
 #[test]
 fn raw_signatures_may_go_undeclared() {
     StableProver::init();
-    let a = get_signers::<StableProver>(1);
-    let b = get_signers_for::<StableProver>(1, MESSAGE_B);
+    let a = get_signers(1);
+    let b = get_signers_for(1, MESSAGE_B);
     let mut raw = a.clone();
     raw.extend_from_slice(&b);
     let claim_b = vec![(b[0].0, message_for(MESSAGE_B))];
@@ -891,8 +891,8 @@ fn raw_signatures_may_go_undeclared() {
 #[test]
 fn aggregate_two_messages() {
     StableProver::init();
-    let at_a = get_signers::<StableProver>(4);
-    let at_b = get_signers_for::<StableProver>(2, MESSAGE_B);
+    let at_a = get_signers(4);
+    let at_b = get_signers_for(2, MESSAGE_B);
     assert_eq!(at_a[0].0, at_b[0].0, "the cache reuses pubkeys across messages");
     assert_ne!(at_a[0].2.leaf_index(), at_b[0].2.leaf_index());
     let left = aggregate(&[], at_a[..3].to_vec(), vec![], None, OutputClaims::All, LOG_INV_RATE).expect("left");
@@ -935,7 +935,7 @@ fn aggregate_two_messages() {
 #[test]
 fn aggregate_overlapping_signers() {
     StableProver::init();
-    let signers = get_signers::<StableProver>(40);
+    let signers = get_signers(40);
     let left = prove_leaf(&signers[..25]);
     let right = prove_leaf(&signers[15..]);
     let node =
@@ -1000,8 +1000,8 @@ def main():
 #[test]
 fn aggregate_three_levels() {
     StableProver::init();
-    let signers = get_signers::<StableProver>(4 * SMALL_LEAF_SIZE);
-    let claims = get_lean_sphincs_signers::<StableProver>(5);
+    let signers = get_signers(4 * SMALL_LEAF_SIZE);
+    let claims = get_lean_sphincs_signers(5);
     let leaf = |index: usize, lean_sphincs: &[RawSphincs]| {
         aggregate(
             &[],
@@ -1023,7 +1023,7 @@ fn aggregate_three_levels() {
     let right = node(&[leaf(2, &claims[1..3]), leaf(3, &[])]);
     let root = aggregate(
         &[left, right],
-        get_signers_for::<StableProver>(2, MESSAGE_B),
+        get_signers_for(2, MESSAGE_B),
         claims[4..].to_vec(),
         None,
         OutputClaims::All,
@@ -1040,14 +1040,14 @@ fn aggregate_three_levels() {
 #[test]
 fn aggregate_round_trips_through_the_wire() {
     StableProver::init();
-    let signers = get_signers::<StableProver>(2 * SMALL_LEAF_SIZE);
+    let signers = get_signers(2 * SMALL_LEAF_SIZE);
     let left = prove_leaf(&signers[..SMALL_LEAF_SIZE]);
     let right = prove_leaf(&signers[SMALL_LEAF_SIZE..]);
     // Mixed, so both published lists are non-empty.
     let node = aggregate(
         &[left, right],
         vec![],
-        get_lean_sphincs_signers::<StableProver>(3),
+        get_lean_sphincs_signers(3),
         None,
         OutputClaims::All,
         LOG_INV_RATE,
@@ -1142,7 +1142,7 @@ fn malformed_raw_signature_is_an_error() {
 /// than a panic inside the prover.
 #[test]
 fn malformed_raw_lean_sphincs_signature_is_an_error() {
-    let (public_key, signed, signature) = get_lean_sphincs_signers::<StableProver>(1).pop().expect("one signer");
+    let (public_key, signed, signature) = get_lean_sphincs_signers(1).pop().expect("one signer");
     // The bottom layer's counter follows the randomizer and the FORS openings.
     let mut bytes = signature.to_bytes();
     bytes[lean_sphincs::internals::N
