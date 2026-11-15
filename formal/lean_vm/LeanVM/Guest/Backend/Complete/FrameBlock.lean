@@ -425,6 +425,87 @@ theorem BlockW.nil (tl : List Stmt) : BlockW Γ Ag cl ctx I (placeBlock []) [] t
   have := hk cs (by simpa using hcs)
   simpa [outEs, calls] using this
 
+
+/-- An action, then a rest off the path (after a return). -/
+theorem FBAt.bind_dead {C : (ℕ → E) → Prop} {st : St} {α β : Type} {m : P α} {f : α → P β}
+    {R₁ : α → ((ℕ → E) → Prop) → St → Prop} {Q : St → β → St → Prop}
+    (hm : FBAt ctx I C st m R₁)
+    (hf : ∀ a st₁, wpP (f a) ctx st₁ fun b st₂ => st₁.next ≤ st₂.next ∧
+      LocsLe st₁.locs st₂.locs ∧ Q st₁ b st₂) :
+    FBAt ctx I C st (m >>= f) fun b C' st₂ => ∃ a st₁, R₁ a C' st₁ ∧ Q st₁ b st₂ ∧
+      st₁.next ≤ st₂.next ∧ LocsLe st₁.locs st₂.locs := by
+  intro hc
+  refine wp_bind.mpr fun a st₁ he b st₂ he' => ?_
+  obtain ⟨C₁, hs₁, hb₁, hst₁, hn₁, hl₁, hr₁⟩ := hm hc a st₁ he
+  obtain ⟨hn₂, hl₂, hq⟩ := hf a st₁ b st₂ he'
+  exact ⟨C₁, hs₁, hb₁.mono hn₂, hst₁, le_trans hn₁ hn₂, hl₁.trans hl₂, a, st₁, hr₁, hq, hn₂, hl₂⟩
+
+/-- What every placement of a block does whatever the path: the next free cell up, the places
+grown, statements appended (`FrameLocs.lean`, from the primitives' agent). -/
+def PlaceMono (ctx : Ctx) : Prop :=
+  ∀ (ss : List Stmt) (st : St), wpP (placeBlock ss) ctx st fun _ st' => st.next ≤ st'.next ∧
+    LocsLe st.locs st'.locs ∧ ∃ blk, st'.out.toList = st.out.toList ++ blk
+
+theorem outEs_pre {o : Out} (h : o ≠ .stuck) (es : List Ev) :
+    outEs (o.pre es) = es ++ outEs o := by
+  cases o <;> simp_all [outEs, Out.pre]
+
+/-- **A block, statement by statement**: the first statement, then the rest on the path if the
+path falls through it, off it if it returns. -/
+theorem BlockW.cons (hmono : PlaceMono ctx) {s : Stmt} {rest tl : List Stmt}
+    (h₁ : StmtW Γ Ag cl ctx I s rest tl) (h₂ : BlockW Γ Ag cl ctx I (placeBlock rest) rest tl) :
+    BlockW Γ Ag cl ctx I (placeBlock (s :: rest)) (s :: rest) tl := by
+  intro C st sc sc'' i₀ o hsc hw hns hes hcl hinv
+  rw [scopeBlock] at hsc
+  split at hsc
+  · cases hsc
+  next sc₁ hsc₁ =>
+  rw [walk] at hw
+  rw [placeBlock, ← bind_assoc]
+  cases ho₁ : walk1 I.σ s with
+  | stuck =>
+    rw [ho₁] at hw
+    exact absurd hw.symm (by simpa [Out.seq] using hns)
+  | ret es₁ vs =>
+    rw [ho₁] at hw
+    simp only [Out.seq] at hw
+    subst hw
+    refine FBAt.mono (FBAt.bind_dead (h₁ C st sc sc₁ i₀ _ hsc₁ ho₁ (by simp) hes hcl hinv)
+      fun _ st₁ => hmono rest st₁) ?_
+    rintro _ C' st₂ - - - ⟨_, st₁, ⟨-, blk₁, ho₁', hw₁⟩, ⟨blk₂, ho₂⟩, hn₂, hl₂⟩
+    exact ⟨(fun _ h => nomatch h), blk₁ ++ blk₂, by rw [ho₂, ho₁', List.append_assoc],
+      fun hfit => BlkW.append_ret (hw₁ (hfit.back hn₂ hl₂))⟩
+  | fall es₁ =>
+    rw [ho₁] at hw
+    simp only [Out.seq] at hw
+    have hns₂ : walk I.σ rest ≠ .stuck := fun h => hns (by rw [← hw, h]; rfl)
+    have hes' : outEs o = es₁ ++ outEs (walk I.σ rest) := by rw [← hw, outEs_pre hns₂]
+    have hc' : calls (outEs o) = calls es₁ ++ calls (outEs (walk I.σ rest)) := by
+      rw [hes', calls_append']
+    refine FBAt.bind (h₁ C st sc sc₁ i₀ _ hsc₁ ho₁ (by simp)
+      (fun e he => hes e (by rw [hes']; exact List.mem_append_left _ he))
+      (fun j hj => by
+        rw [hcl j (by rw [hc', List.length_append]; simp only [outEs] at hj; omega), hc']
+        simp only [outEs] at hj ⊢
+        exact List.getElem?_append_left hj) hinv)
+      (fun _ _ _ hr => (hr.1 es₁ rfl).cok) fun _ st₁ C₁ hs₁ _ _ ⟨hw₁, blk₁, ho₁', hb₁⟩ => ?_
+    refine FBAt.mono (h₂ C₁ st₁ sc₁ sc'' (i₀ + (calls es₁).length) _ hsc rfl hns₂
+      (fun e he => hes e (by rw [hes']; exact List.mem_append_right _ he))
+      (fun j hj => by
+        rw [Nat.add_assoc, hcl _ (by rw [hc', List.length_append]; omega), hc',
+          List.getElem?_append_right (by omega)]
+        simp) (hw₁ es₁ rfl)) ?_
+    rintro _ C₂ st₂ hs₂ hn₂ hl₂ ⟨hw₂, blk₂, ho₂, hb₂⟩
+    refine ⟨fun es he => ?_, blk₁ ++ blk₂, by rw [ho₂, ho₁', List.append_assoc], fun hfit => ?_⟩
+    · obtain ⟨es₂, h⟩ : ∃ es₂, walk I.σ rest = .fall es₂ := by
+        cases h : walk I.σ rest with
+        | fall es₂ => exact ⟨es₂, rfl⟩
+        | ret es₂ vs => rw [← hw, h] at he; nomatch he
+        | stuck => exact absurd h hns₂
+      exact hw₂ es₂ h
+    · rw [← hw]
+      exact BlkW.append_fall ((hb₁ (hfit.back hn₂ hl₂)).mono hs₂) (hb₂ hfit)
+
 end BlockCons
 
 end
