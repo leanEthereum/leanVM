@@ -440,7 +440,6 @@ fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::SlotClaim> {
             pcs::SlotClaim {
                 offset,
                 low_point: c.point,
-                value: c.value,
             }
         })
         .collect()

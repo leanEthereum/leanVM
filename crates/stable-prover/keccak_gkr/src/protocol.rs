@@ -14,7 +14,6 @@ use crate::keccak::{BITS, along, linear_transpose};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Claim {
-    pub value: F128,
     /// The weight of each instance of a pack.
     pub mu: [F128; PACK],
     /// A pack index, then a segment index.
@@ -23,12 +22,11 @@ pub struct Claim {
     pub weights: Vec<F128>,
 }
 
-/// The first claim's weights, valued at zero: on the outputs at the caller's `instance` point, a random combination
+/// The first claim's weights: on the outputs at the caller's `instance` point, a random combination
 /// of the lanes as words, bit `z` of a word weighing `x^z`, at a random segment.
 pub fn first_claim(instance: &[F128], segment: &[F128], r_lane: &[F128]) -> Claim {
     let lanes = eq_table(r_lane);
     Claim {
-        value: F128::ZERO,
         mu: eq_table(&instance[..4]).try_into().expect("four low variables"),
         point: [&instance[4..], segment].concat(),
         weights: (0..BITS).map(|j| lanes[j / 64] * F128::new(1 << (j % 64), 0)).collect(),

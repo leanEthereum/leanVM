@@ -63,7 +63,6 @@ pub(crate) fn prove_layer(
     ps.grind(fiat_shamir::grinding_bits(2));
     let beta = ps.sample();
     Claim {
-        value: t[0] + beta * (t[1] + beta * t[2]),
         mu,
         point: sumcheck.point,
         weights: next_weights(&local, beta),

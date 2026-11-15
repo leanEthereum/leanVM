@@ -15,7 +15,7 @@
 //!    deeper levels in the clear (`Dense`);
 //! 2. below the last level, commits the folded lane's low part as the next level's message and sends its high part,
 //!    sends the message's value at an OOD point, draws the queries and `lambda`, opens its own oracle at the queries,
-//!    and adds the OOD and query claims to the running claim, the queries' weights by `induce_basis`;
+//!    and adds the OOD and query claims' weights to the weight, the queries' by `induce_basis`;
 //! 3. at the last level, sends the folded lane, opens its oracle at the queries, and closes with the tail sumcheck.
 
 use fiat_shamir::merkle::MerklePath;
@@ -31,7 +31,7 @@ pub use crate::whir_config::{
     INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, LevelShapes, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE, ProverConfig,
     QUERY_GRINDING_BITS, SECURITY_BITS, config_for_rate, validate_log_inv_rate,
 };
-use crate::whir_induce::{induce_basis, novel_basis_at, novel_sum_at};
+use crate::whir_induce::induce_basis;
 use crate::whir_lanes::LaneRounds;
 
 /// Elements a task of a parallel pass takes.
@@ -61,24 +61,6 @@ fn fold_pairs(x: &[F128], r: F128) -> Vec<F128> {
     })
 }
 
-/// `sum_i b[i] witness[i]`, `E` by `K`.
-pub fn inner_product_base_ext(witness: &[F64], b: &[F128]) -> F128 {
-    assert_eq!(witness.len(), b.len());
-    parallel::map_reduce(
-        witness.len().div_ceil(CHUNK),
-        || F128::ZERO,
-        |t| {
-            let at = t * CHUNK..((t + 1) * CHUNK).min(b.len());
-            witness[at.clone()]
-                .iter()
-                .zip(&b[at])
-                .map(|(&w, &e)| e.mul_base(w))
-                .sum()
-        },
-        |a, v| a + v,
-    )
-}
-
 /// `sum_i a[i] b[i]` over `E`.
 fn inner_product(a: &[F128], b: &[F128]) -> F128 {
     assert_eq!(a.len(), b.len());
@@ -103,9 +85,9 @@ pub struct Commitment {
 pub struct ProverData {
     codeword: Vec<F64>,
     row_words: usize,
-    /// At level 0, the leaf's width: `2^ell_0` `K` words, the last lane first, of which the row holds the committed
+    /// The leaf's width. At level 0, `2^ell_0` `K` words, the last lane first, of which the row holds the committed
     /// lanes and the rest are zero. A deeper level's row is its leaf: `E` lanes, lane 0 first, two words each.
-    level0_leaf: Option<usize>,
+    leaf_words: usize,
     tree: MerkleTree,
 }
 
@@ -118,28 +100,9 @@ impl ProverData {
         self.codeword.len() / self.row_words
     }
 
-    /// The rows at `queries`, each as its lanes in fold order, and their Merkle paths.
-    fn open(&self, queries: &[usize]) -> (Vec<F128>, Vec<MerklePath>) {
-        let mut rows = Vec::new();
-        for &q in queries {
-            match self.level0_leaf {
-                Some(leaf) => {
-                    rows.extend(self.row(q).iter().rev().map(|&k| F128::from(k)));
-                    rows.resize(rows.len() + leaf - self.row_words, F128::ZERO);
-                }
-                None => rows.extend(
-                    self.row(q)
-                        .as_chunks::<2>()
-                        .0
-                        .iter()
-                        .map(|&[lo, hi]| F128::new(lo.0, hi.0)),
-                ),
-            }
-        }
-        let paths = self
-            .tree
-            .open(queries, self.level0_leaf.unwrap_or(self.row_words), |q| self.row(q));
-        (rows, paths)
+    /// The Merkle paths of the rows at `queries`.
+    fn open(&self, queries: &[usize]) -> Vec<MerklePath> {
+        self.tree.open(queries, self.leaf_words, |q| self.row(q))
     }
 }
 
@@ -171,7 +134,7 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
     let oracle = ProverData {
         codeword,
         row_words: n_lanes,
-        level0_leaf: Some(1 << log_batch_size),
+        leaf_words: 1 << log_batch_size,
         tree,
     };
     (commitment, oracle)
@@ -198,7 +161,7 @@ fn commit_ext(message: &[F128], log_msg_cols: usize, log_lanes: usize, log_inv_r
     ProverData {
         codeword,
         row_words,
-        level0_leaf: None,
+        leaf_words: row_words,
         tree,
     }
 }
@@ -214,15 +177,6 @@ pub(crate) struct FoldChallenges {
 /// `[v_G, v_F, t_0, t_1] = [<W_0, G>, <W_0 + W_1, F>, <W_0, X F>, <W_1, X F>]`.
 pub(crate) type FoldTable = [F128; 4];
 
-impl FoldChallenges {
-    /// The claim after the round: `v_G + alpha (v_G + claim) + alpha^2 v_F + beta t_0 + alpha beta (t_0 + t_1)`.
-    fn next_claim(&self, claim: F128, table: &FoldTable) -> F128 {
-        let [v_g, v_f, t_0, t_1] = *table;
-        let (alpha, beta) = (self.alpha, self.beta);
-        v_g + beta * t_0 + alpha * (v_g + claim + alpha * v_f + beta * (t_0 + t_1))
-    }
-}
-
 /// A level's fold rounds: each pairs the lanes `F` (folded bit 0) and `G` (folded bit 1) and sends their
 /// [`FoldTable`]; after `(alpha, beta)` the lanes become `P = G + (alpha + beta X) F`, one coefficient longer, and the
 /// weight `W(alpha, .)`. The weight covers a lane's low `2^mu` coefficients only, and so do the inner products: the
@@ -232,43 +186,18 @@ pub(crate) trait FoldRounds {
     fn fold(&mut self, ch: &FoldChallenges);
 }
 
-/// Level `level`'s `k` fold rounds: each round's table, then `(alpha, beta)` after a grind. Returns the challenges.
-fn fold_rounds(
-    ps: &mut ProverState,
-    lanes: &mut impl FoldRounds,
-    level: usize,
-    k: usize,
-    claim: &mut F128,
-) -> Vec<FoldChallenges> {
-    (0..k)
-        .map(|round| {
-            let _span = tracing::info_span!("Fold round", level, round).entered();
-            let table = lanes.table();
-            ps.add_scalars(&table);
-            ps.grind(FOLD_GRINDING_BITS);
-            let ch = FoldChallenges {
-                alpha: ps.sample(),
-                beta: ps.sample(),
-            };
-            *claim = ch.next_claim(*claim, &table);
-            lanes.fold(&ch);
-            ch
-        })
-        .collect()
-}
-
-/// An opened row's lanes, in fold order, folded by the level's rounds at the row's domain point `x`.
-fn fold_row(row: &[F128], rounds: &[FoldChallenges], x: F64) -> F128 {
-    assert_eq!(row.len(), 1 << rounds.len(), "a row holds one value per lane");
-    let mut vals = row.to_vec();
-    for ch in rounds {
-        let half = vals.len() / 2;
-        for i in 0..half {
-            vals[i] = vals[2 * i + 1] + (ch.alpha + ch.beta.mul_base(x)) * vals[2 * i];
-        }
-        vals.truncate(half);
+/// Level `level`'s `k` fold rounds: each round's table, then `(alpha, beta)` after a grind.
+fn fold_rounds(ps: &mut ProverState, lanes: &mut impl FoldRounds, level: usize, k: usize) {
+    for round in 0..k {
+        let _span = tracing::info_span!("Fold round", level, round).entered();
+        ps.add_scalars(&lanes.table());
+        ps.grind(FOLD_GRINDING_BITS);
+        let ch = FoldChallenges {
+            alpha: ps.sample(),
+            beta: ps.sample(),
+        };
+        lanes.fold(&ch);
     }
-    vals[0]
 }
 
 /// A deeper level's lanes and weight in the clear: coefficient `c` of lane `l` at `c * stride + l`, the lanes' low
@@ -340,9 +269,9 @@ fn sample_queries(ps: &mut ProverState, block_len: usize, count: usize) -> Vec<u
     out
 }
 
-/// The tail sumcheck on `<f, w> = claim`, low variable first. Each round sends `(u_0, u_2)` of its quadratic
-/// `q(X) = u_0 + u_1 X + u_2 X^2`, `q(0) + q(1) = claim` fixing `u_1`, then grinds; the next claim is `q(r)`.
-fn tail_sumcheck(ps: &mut ProverState, mut f: Vec<F128>, mut w: Vec<F128>, mut claim: F128) {
+/// The tail sumcheck on `<f, w>`, low variable first. Each round sends `(u_0, u_2)` of its quadratic
+/// `q(X) = u_0 + u_1 X + u_2 X^2`, the running claim `q(0) + q(1)` fixing `u_1`, then grinds.
+fn tail_sumcheck(ps: &mut ProverState, mut f: Vec<F128>, mut w: Vec<F128>) {
     while f.len() > 1 {
         let (mut u_0, mut u_2) = (F128::ZERO, F128::ZERO);
         for (&[f0, f1], &[w0, w1]) in f.as_chunks::<2>().0.iter().zip(w.as_chunks::<2>().0) {
@@ -351,27 +280,15 @@ fn tail_sumcheck(ps: &mut ProverState, mut f: Vec<F128>, mut w: Vec<F128>, mut c
         }
         ps.add_round_poly(&[u_0, F128::ZERO, u_2], false);
         let r = ps.sample();
-        claim = u_0 + r * claim + (r + r * r) * u_2;
         (f, w) = (fold_pairs(&f, r), fold_pairs(&w, r));
-    }
-    if cfg!(test) {
-        assert_eq!(claim, f[0] * w[0], "the rounds keep the running claim");
     }
 }
 
-/// Prove `<W, f> = target` for the stack `f` committed in `committed`, `level0` holding its lanes and the weight `W`
-/// as terms. The caller has bound the commitment and every claim the target batches.
-pub(crate) fn open(
-    ps: &mut ProverState,
-    config: &ProverConfig,
-    mut level0: LaneRounds,
-    target: F128,
-    committed: ProverData,
-) {
+/// Prove the weighted claim `<W, f>` on the stack `f` committed in `committed`, `level0` holding its lanes and the
+/// weight `W` as terms. The caller has bound the commitment and every claim the weight batches.
+pub(crate) fn open(ps: &mut ProverState, config: &ProverConfig, mut level0: LaneRounds, committed: ProverData) {
     let levels = config.folds.len();
-    // The running claim: no message depends on it, and in tests every step checks that it holds.
-    let mut claim = target;
-    let mut rounds = fold_rounds(ps, &mut level0, 0, config.folds[0], &mut claim);
+    fold_rounds(ps, &mut level0, 0, config.folds[0]);
     // `p`: the folded lane `P`, its `2^mu` low coefficients then the high ones; `w`: the weight over the low ones.
     let (mut p, mut w) = level0.finish();
     let mut oracle = committed;
@@ -382,7 +299,7 @@ pub(crate) fn open(
                 w,
                 stride: 1 << config.folds[level],
             };
-            rounds = fold_rounds(ps, &mut dense, level, config.folds[level], &mut claim);
+            fold_rounds(ps, &mut dense, level, config.folds[level]);
             (p, w) = (dense.f, dense.w);
         }
         let mu = w.len().ilog2() as usize;
@@ -393,20 +310,9 @@ pub(crate) fn open(
             ps.add_scalars(&p);
             ps.grind(QUERY_GRINDING_BITS);
             let queries = sample_queries(ps, block_len, config.queries[level]);
-            let (rows, paths) = oracle.open(&queries);
-            ps.hint_merkle(paths);
-            if cfg!(test) {
-                for (row, &q) in rows.chunks_exact(1 << rounds.len()).zip(&queries) {
-                    let x = F64(q as u64);
-                    assert_eq!(
-                        fold_row(row, &rounds, x),
-                        novel_sum_at(&p, 0, &novel_basis_at(x, mu)),
-                        "row {q}"
-                    );
-                }
-            }
+            ps.hint_merkle(oracle.open(&queries));
             p.truncate(1 << mu);
-            return tracing::info_span!("Tail").in_scope(|| tail_sumcheck(ps, p, w, claim));
+            return tracing::info_span!("Tail").in_scope(|| tail_sumcheck(ps, p, w));
         }
 
         // (commit) The low part is the next level's message, and the high part is sent.
@@ -420,42 +326,24 @@ pub(crate) fn open(
         // (ood) The message's value at a point the next level's list is bound by.
         ps.grind(OOD_GRINDING_BITS);
         let eq = eq_table(&ps.sample_vec(mu));
-        let y = inner_product(&p, &eq);
-        ps.add_scalar(y);
+        ps.add_scalar(inner_product(&p, &eq));
 
         // (query) The queries and lambda, one message; then the oracle's rows there.
         ps.grind(QUERY_GRINDING_BITS);
         let queries = sample_queries(ps, block_len, config.queries[level]);
         let lambda = ps.sample();
-        let (rows, paths) = oracle.open(&queries);
-        ps.hint_merkle(paths);
+        ps.hint_merkle(oracle.open(&queries));
         oracle = next;
 
-        // (next level) `W += lambda eq(z, .) + sum_q lambda^(q+2) W_(x_q)`, the claim likewise. A row folds to `P(x)`,
-        // and less the high part's share, `W_mu(x) sum_j high_j X_j(x)`, to the message's codeword at `x`.
-        let span = tracing::info_span!("Induce", level).entered();
+        // (next level) `W += lambda eq(z, .) + sum_q lambda^(q+2) W_(x_q)`.
         let scalars = &powers(lambda, queries.len() + 2)[2..];
-        claim += lambda * y;
-        for ((row, &q), &scalar) in rows.chunks_exact(1 << rounds.len()).zip(&queries).zip(scalars) {
-            let x = F64(q as u64);
-            let what = novel_basis_at(x, mu);
-            let value = fold_row(row, &rounds, x) + novel_sum_at(&high, 1 << mu, &what);
-            if cfg!(test) {
-                assert_eq!(value, novel_sum_at(&p, 0, &what), "level {level}, row {q}");
-            }
-            claim += scalar * value;
-        }
-        let induced = induce_basis(mu, &queries, scalars);
-        drop(span);
+        let induced = tracing::info_span!("Induce", level).in_scope(|| induce_basis(mu, &queries, scalars));
         parallel::chunks_mut(&mut w, CHUNK, |i, w| {
             let at = i * CHUNK;
             for (j, w) in w.iter_mut().enumerate() {
                 *w += lambda * eq[at + j] + induced[at + j];
             }
         });
-        if cfg!(test) {
-            assert_eq!(claim, inner_product(&p, &w), "level {level} keeps the claim");
-        }
     }
 }
 
@@ -463,12 +351,13 @@ pub(crate) fn open(
 mod tests {
     use super::*;
     use crate::stack_open::{RingSwitchOpen, StackClaim, open_batch_mixed_whir_stacked};
+    use crate::whir_induce::novel_basis_at;
+    use crate::whir_induce::tests::novel_sum_at;
     use primitives::multilinear::interp;
     use primitives::test_rng::Rng;
 
     /// Committing only the lanes that carry data is indistinguishable from committing the whole `2^log_n` witness
-    /// with an explicit zero tail: same root and same proof. The prover's own checks run on the way: every query
-    /// value is the folded lane's, and every level keeps the running claim.
+    /// with an explicit zero tail: same root and same proof.
     #[test]
     fn truncated_lanes_match_an_explicit_zero_tail() {
         for (log_n, lanes) in [(16usize, &[1usize, 5, 64][..]), (18, &[5, 64][..])] {
@@ -483,20 +372,14 @@ mod tests {
                 // The first and the last committed lane, and the whole stack, whose weight reaches past them.
                 let claims: Vec<_> = [(0, lane_vars), (used - lane_block, lane_vars), (0, log_n)]
                     .into_iter()
-                    .map(|(offset, vars)| {
-                        let low_point = rng.ext_vec(vars);
-                        let value =
-                            inner_product_base_ext(&witness[offset..offset + (1 << vars)], &eq_table(&low_point));
-                        StackClaim {
-                            offset,
-                            low_point,
-                            value,
-                        }
+                    .map(|(offset, vars)| StackClaim {
+                        offset,
+                        low_point: rng.ext_vec(vars),
                     })
                     .collect();
                 let ring = RingSwitchOpen {
                     offset: 0,
-                    claims: Vec::new(),
+                    points: Vec::new(),
                 };
                 let prove = |msg: &[F64]| {
                     let (cm, pd) = commit(msg, log_n, INITIAL_FOLDING_FACTOR, pc.log_inv_rates[0]);
@@ -576,8 +459,8 @@ mod tests {
         }
     }
 
-    /// After a level's folds, the folded lane at a domain point is the opened codeword row there folded by the
-    /// level's challenges, and less its high part's share, its low part there.
+    /// After a level's folds, the folded lane at a domain point is the codeword's row there folded by the level's
+    /// challenges.
     #[test]
     fn folded_lane_matches_the_folded_codeword_rows() {
         let mut rng = Rng::new(0xC0DE);
@@ -595,15 +478,17 @@ mod tests {
             }
             let p = dense.f;
             assert_eq!(p.len(), (1 << mu) + k);
-            let queries: Vec<usize> = (0..20).map(|_| rng.next_u64() as usize % oracle.block_len()).collect();
-            let (rows, _) = oracle.open(&queries);
-            let eval_at = |p: &[F128], x: F64| novel_sum_at(p, 0, &novel_basis_at(x, mu + 1));
-            for (row, &q) in rows.chunks_exact(1 << k).zip(&queries) {
+            for q in (0..20).map(|_| rng.next_u64() as usize % oracle.block_len()) {
                 let x = F64(q as u64);
-                let folded = fold_row(row, &rounds, x);
-                assert_eq!(folded, eval_at(&p, x), "k {k}, mu {mu}, position {q}");
-                let low = folded + novel_sum_at(&p[1 << mu..], 1 << mu, &novel_basis_at(x, mu));
-                assert_eq!(low, eval_at(&p[..1 << mu], x), "low part, k {k}, mu {mu}, position {q}");
+                // The row's lanes, lane 0 first, two words each, folded pairwise round by round.
+                let lanes = oracle.row(q).as_chunks::<2>().0.iter();
+                let mut vals: Vec<F128> = lanes.map(|&[lo, hi]| F128::new(lo.0, hi.0)).collect();
+                for ch in &rounds {
+                    let pairs = vals.as_chunks::<2>().0.iter();
+                    vals = pairs.map(|&[f, g]| g + (ch.alpha + ch.beta.mul_base(x)) * f).collect();
+                }
+                let want = novel_sum_at(&p, &novel_basis_at(x, mu + 1));
+                assert_eq!(vals, [want], "k {k}, mu {mu}, position {q}");
             }
         }
     }

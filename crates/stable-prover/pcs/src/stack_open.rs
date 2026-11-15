@@ -10,16 +10,14 @@
 //!   reduced by [`crate::ring_switch`] to the claim `<q_keccak, Phi(eq(point, .))>`.
 //!
 //! After one grind, the prover samples the ring switch's map and then one batching challenge `lambda`, of which the
-//! ring claims take the first powers and the point claims the next: the running claim is
-//! `sum_k lambda^k c_k` against `W = sum_k lambda^k W_k` (the batching step of `thm:rbr`). The caller bound every
-//! claim's slices and value through the transcript already, so none is observed here. `W` stays factored
-//! (`basis`), and level 0's fold rounds run on its terms (`whir_lanes`).
+//! ring claims take the first powers and the point claims the next: the weight is `W = sum_k lambda^k W_k` (the
+//! batching step of `thm:rbr`). The caller bound every claim's slices and value through the transcript already, so
+//! none is observed here. `W` stays factored (`basis`), and level 0's fold rounds run on its terms (`whir_lanes`).
 
 use primitives::field::{F64, F128, powers};
-use primitives::multilinear::eq_table;
 use primitives::transcript::ProverState;
 
-use crate::ring_switch::{self, RingWeight, transpose_s_hat};
+use crate::ring_switch::{self, RingWeight};
 use crate::whir::{self, ProverConfig, ProverData};
 use crate::whir_config::{BATCH_GRINDING_BITS, MAX_STACKED_CLAIMS};
 use crate::whir_lanes::LaneRounds;
@@ -34,31 +32,22 @@ pub(crate) use basis::{LOW_VARS, Terms};
 pub struct StackClaim {
     pub offset: usize,
     pub low_point: Vec<F128>,
-    pub value: F128,
-}
-
-/// One ring-switched claim on `q_keccak`: its 64 bit slices at `suffix_point`, which has `qkeccak_vars` coordinates.
-///
-/// The caller sends and checks the slices itself (the Keccak reduction checks them against its last claim), so the
-/// opening only binds them to the commitment. `None` asks the prover to fold them from the witness.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct RingSwitchClaim {
-    pub suffix_point: Vec<F128>,
-    pub s_hat_v: Option<Vec<F128>>,
 }
 
 /// The ring-switched claims, all on the slice `q_keccak = stack[offset..offset + 2^qkeccak_vars]`, `offset` a multiple
-/// of its length.
+/// of its length: per claim, the point of its 64 bit slices, which has `qkeccak_vars` coordinates. The caller sends
+/// and checks the slices itself (the Keccak reduction checks them against its last claim), so the opening only binds
+/// them to the commitment.
 #[derive(Clone, Debug)]
 pub struct RingSwitchOpen {
     pub offset: usize,
-    pub claims: Vec<RingSwitchClaim>,
+    pub points: Vec<Vec<F128>>,
 }
 
 impl RingSwitchOpen {
     /// `log_2` of `q_keccak`'s length in words: its claims' point length.
     pub(crate) fn qkeccak_vars(&self) -> usize {
-        self.claims.first().map_or(0, |claim| claim.suffix_point.len())
+        self.points.first().map_or(0, Vec::len)
     }
 }
 
@@ -79,66 +68,36 @@ pub fn open_batch_mixed_whir_stacked(
     let qkeccak = 1usize << ring.qkeccak_vars();
     assert!(ring.offset.is_multiple_of(qkeccak), "q_keccak is aligned");
     assert!(ring.offset + qkeccak <= stack.len(), "q_keccak lies inside the stack");
-    for StackClaim { offset, low_point, .. } in point_claims {
+    assert!(
+        ring.points.iter().all(|point| point.len() == ring.qkeccak_vars()),
+        "every ring claim is on q_keccak"
+    );
+    for StackClaim { offset, low_point } in point_claims {
         assert!(
             offset + (1 << low_point.len()) <= 1 << log_n,
             "every claim lies inside the stack"
         );
     }
-    assert!(ring.claims.len() + point_claims.len() <= MAX_STACKED_CLAIMS);
-    let span = tracing::info_span!("Ring switch").entered();
-    let slices: Vec<[F128; 64]> = ring
-        .claims
-        .iter()
-        .map(|claim| {
-            assert_eq!(
-                claim.suffix_point.len(),
-                ring.qkeccak_vars(),
-                "every ring claim is on q_keccak"
-            );
-            match &claim.s_hat_v {
-                Some(slices) => slices.as_slice().try_into().expect("one slice per bit"),
-                None => {
-                    let q = &stack[ring.offset..ring.offset + qkeccak];
-                    ring_switch::fold_1b_rows(q, &eq_table(&claim.suffix_point))
-                }
-            }
-        })
-        .collect();
+    assert!(ring.points.len() + point_claims.len() <= MAX_STACKED_CLAIMS);
     // One grind covers the map's challenges and lambda: one verifier message.
     ps.grind(BATCH_GRINDING_BITS);
     let phi = ring_switch::coordinate_weights(&std::array::from_fn(|_| ps.sample()));
-    let lambdas = powers(ps.sample(), ring.claims.len() + point_claims.len());
-    let (ring_lambdas, point_lambdas) = lambdas.split_at(ring.claims.len());
-
-    // A ring claim's value is `sum_w Phi(b_w) t_w` over its transposed slices.
-    let mut target = F128::ZERO;
-    for (slices, &lambda) in slices.iter().zip(ring_lambdas) {
-        target += lambda
-            * transpose_s_hat(slices)
-                .iter()
-                .zip(phi)
-                .map(|(&t, w)| w.mul_base(t))
-                .sum::<F128>();
-    }
-    for (StackClaim { value, .. }, &lambda) in point_claims.iter().zip(point_lambdas) {
-        target += lambda * *value;
-    }
+    let lambdas = powers(ps.sample(), ring.points.len() + point_claims.len());
+    let (ring_lambdas, point_lambdas) = lambdas.split_at(ring.points.len());
     let rings: Vec<RingWeight> = ring
-        .claims
+        .points
         .iter()
         .zip(ring_lambdas)
-        .map(|(claim, &lambda)| RingWeight {
+        .map(|(point, &lambda)| RingWeight {
             phi: phi.map(|w| lambda * w),
-            point: claim.suffix_point.clone(),
+            point: point.clone(),
         })
         .collect();
-    drop(span);
 
     let lane_vars = log_n - config.folds[0];
     let (terms, a) = tracing::info_span!("Basis")
         .in_scope(|| basis::initial_basis(log_n, lane_vars, point_claims, point_lambdas, ring.offset, &rings));
-    whir::open(ps, config, LaneRounds::new(stack, terms, a), target, prover_data);
+    whir::open(ps, config, LaneRounds::new(stack, terms, a), prover_data);
 }
 
 #[cfg(test)]
@@ -215,7 +174,6 @@ mod tests {
                     .map(|(offset, vars, point)| StackClaim {
                         offset,
                         low_point: point.unwrap_or_else(|| rng.ext_vec(vars)),
-                        value: rng.ext(),
                     })
                     .collect();
                 let lambdas = rng.ext_vec(claims.len());
@@ -226,7 +184,7 @@ mod tests {
                     RingFold::new(ring.phi, &ring.point).add_chunk(0, &mut dense[offset..offset + qkeccak_len]);
                 }
                 for (claim, &lambda) in claims.iter().zip(&lambdas) {
-                    let StackClaim { offset, low_point, .. } = claim;
+                    let StackClaim { offset, low_point } = claim;
                     for j in 0..1usize << low_point.len() {
                         let w = low_point.iter().enumerate().fold(lambda, |w, (i, &p_i)| {
                             w * if (j >> i) & 1 == 1 { p_i } else { F128::ONE + p_i }

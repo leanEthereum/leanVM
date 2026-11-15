@@ -24,14 +24,9 @@ use std::time::Instant;
 
 use bench::{Plan, Timing, env_usize};
 use pcs::ood::ood_sample;
-use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim, open_batch_mixed_whir_stacked};
-use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate, inner_product_base_ext};
-use primitives::{
-    field::{F64, F128},
-    multilinear::eq_table_serial,
-    pretty_integer,
-    test_rng::Rng,
-};
+use pcs::stack_open::{RingSwitchOpen, StackClaim, open_batch_mixed_whir_stacked};
+use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
+use primitives::{field::F64, pretty_integer, test_rng::Rng};
 
 #[global_allocator]
 static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;
@@ -45,35 +40,25 @@ fn main() {
     let plan = Plan::from_env();
     let trace_span = tracing::info_span!("PCS throughput", log_n, log_inv_rate).entered();
 
-    // Random F64 witness (the committed polynomial) and a random E evaluation point.
+    // Random F64 witness (the committed polynomial).
     let mut rng = Rng::new(0x0192_0000 ^ log_n as u64);
     let n = 1usize << log_n;
     let witness: Vec<F64> = (0..n).map(|_| F64(rng.next_u64())).collect();
-    let point: Vec<F128> = rng.ext_vec(log_n);
-    let target = inner_product_base_ext(&witness, &eq_table_serial(&point));
     // One point claim over the whole witness, then smaller ones on its quarters, and ring claims on its first half.
     let mut claims = vec![StackClaim {
         offset: 0,
-        low_point: point,
-        value: target,
+        low_point: rng.ext_vec(log_n),
     }];
     for c in 1..env_usize("PCS_POINT_CLAIMS", 1) {
-        let offset = (c % 4) << (log_n - 2);
-        let low_point = rng.ext_vec(log_n - 2);
-        let value = inner_product_base_ext(&witness[offset..offset + (n >> 2)], &eq_table_serial(&low_point));
         claims.push(StackClaim {
-            offset,
-            low_point,
-            value,
+            offset: (c % 4) << (log_n - 2),
+            low_point: rng.ext_vec(log_n - 2),
         });
     }
     let ring = RingSwitchOpen {
         offset: 0,
-        claims: (0..env_usize("PCS_RING_CLAIMS", 0))
-            .map(|_| RingSwitchClaim {
-                suffix_point: rng.ext_vec(log_n - 1),
-                s_hat_v: None,
-            })
+        points: (0..env_usize("PCS_RING_CLAIMS", 0))
+            .map(|_| rng.ext_vec(log_n - 1))
             .collect(),
     };
 

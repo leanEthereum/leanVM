@@ -1,103 +1,13 @@
 use fiat_shamir::Proof;
 use primitives::field::F128;
-use primitives::multilinear::eq_table;
 use primitives::test_rng::Rng;
 use primitives::transcript::ProverState;
 use verifier::PRODUCT_BITS;
 use verifier::VerifierError;
 
 use crate::batch_bench::{batch_instance, batch_transcript, commit_stack, open_commitment};
-use crate::keccak::{BITS, LANE_VARS, LANES, LOCAL_VARS, along, iota_bit};
-use crate::layer::prove_layer;
-use crate::protocol::{Claim, first_claim};
-use crate::table::Tables;
-use crate::witness::{BLOCK, BLOCK_LEN, BLOCK_WORDS, Shape, Witness, run_block};
-
-/// The eight words of position `j` in block `g` of the state after `round` rounds.
-fn state_words(witness: &Witness, round: usize, g: usize, j: usize) -> [u64; BLOCK_WORDS] {
-    let block = witness.layer(round, g);
-    std::array::from_fn(|w| {
-        let word = |j: usize| block[j * BLOCK_WORDS + w];
-        if round == 0 {
-            return word(j);
-        }
-        let chi = word(j) ^ (!word(along(j, 1)) & word(along(j, 2)));
-        if j < 64 && iota_bit(round, j) { !chi } else { chi }
-    })
-}
-
-/// The sliced state after `round` rounds.
-fn state_after(witness: &Witness, round: usize) -> Vec<u64> {
-    (0..witness.shape.n_blocks())
-        .flat_map(|g| (0..BITS).flat_map(move |j| state_words(witness, round, g, j)))
-        .collect()
-}
-
-/// A claim's value, from its definition.
-fn evaluate(shape: Shape, states: &[Vec<u64>], claim: &Claim) -> F128 {
-    let eq = eq_table(&claim.point);
-    let mut acc = F128::ZERO;
-    for (segment, state) in states.iter().enumerate() {
-        for (g, block) in state.as_chunks::<BLOCK_LEN>().0.iter().enumerate() {
-            for j in 0..BITS {
-                let mut inner = F128::ZERO;
-                for w in 0..BLOCK_WORDS {
-                    let word = block[j * BLOCK_WORDS + w];
-                    for p in 0..4 {
-                        let pack = 4 * w + p + 32 * (g + shape.n_blocks() * segment);
-                        for i in 0..16 {
-                            if word >> (16 * p + i) & 1 == 1 {
-                                inner += eq[pack] * claim.mu[i];
-                            }
-                        }
-                    }
-                }
-                acc += inner * claim.weights[j];
-            }
-        }
-    }
-    acc
-}
-
-/// The prover's layers end on a claim the committed inputs satisfy.
-fn layers_round_trip(n_instances: usize, depth: usize) {
-    let mut rng = Rng::new(21 + depth as u64);
-    let inputs: Vec<[u64; LANES]> = (0..n_instances)
-        .map(|_| std::array::from_fn(|_| rng.next_u64()))
-        .collect();
-    let shape = Shape::new(n_instances, depth);
-    let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
-    let witness = Witness::generate(shape, &inputs, &mut committed);
-    let outputs: Vec<_> = (0..shape.segments())
-        .map(|m| state_after(&witness, depth * (m + 1)))
-        .collect();
-    let segment_inputs: Vec<_> = (0..shape.segments())
-        .map(|m| state_after(&witness, depth * m))
-        .collect();
-
-    let mut ps = ProverState::from_label(b"keccak-gkr-test");
-    let (instance, segment, r_lane) = (
-        ps.sample_vec(shape.n_log()),
-        ps.sample_vec(shape.seg_log()),
-        ps.sample_vec(5),
-    );
-    let mut claim = first_claim(&instance, &segment, &r_lane);
-    claim.value = evaluate(shape, &outputs, &claim);
-    let mut tables = Tables::new(shape);
-    for step in 0..depth {
-        claim = prove_layer(&mut ps, &witness, step, &claim, &mut tables);
-    }
-    assert_eq!(
-        claim.value,
-        evaluate(shape, &segment_inputs, &claim),
-        "the prover's last claim holds"
-    );
-}
-
-#[test]
-fn layers_reduce_outputs_to_inputs() {
-    layers_round_trip(700, 8);
-}
+use crate::keccak::{LANE_VARS, LANES, LOCAL_VARS};
+use crate::witness::{BLOCK, Shape, Witness, run_block};
 
 const LABEL: &[u8] = b"keccak-gkr-test";
 
@@ -120,22 +30,6 @@ fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::
     output.lanes[7] += lane_error;
     ps.add_scalars(&output.lanes);
     let openings = witness.prove(&mut ps, committed, &output);
-    // The states must be the honest ones; what rides the spare slots past them is free.
-    if lane_error == F128::ZERO && committed[..shape.slots() * shape.n()] == honest[..shape.slots() * shape.n()] {
-        // Each opening is what the commitment scheme means by it.
-        let mut stack = committed.to_vec();
-        stack.resize(1 << shape.stack_log(), primitives::field::F64(0));
-        assert_eq!(openings.outputs.is_some(), shape.segments() > 1);
-        if let Some(outputs) = &openings.outputs {
-            assert_eq!(
-                outputs.value,
-                primitives::multilinear::mle_eval(&stack, &outputs.point),
-                "outputs"
-            );
-        }
-        let slices = pcs::ring_switch::fold_1b_rows(&stack, &eq_table(&openings.inputs.point));
-        assert!(openings.inputs.slices == slices, "inputs");
-    }
     open_commitment(&mut ps, shape, committed.to_vec(), prover_data, &config, openings, ood);
     ps.into_proof()
 }

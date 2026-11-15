@@ -69,28 +69,25 @@ pub(crate) fn novel_basis_at(x: F64, mu: usize) -> Vec<F64> {
         .collect()
 }
 
-/// `X_c(x)` from `what = What_i(x)` for every bit `i` of `c`.
-fn novel_x_c(c: usize, what: &[F64]) -> F64 {
-    (0..usize::BITS as usize)
-        .filter(|&i| (c >> i) & 1 == 1)
-        .map(|i| what[i])
-        .product()
-}
-
-/// `sum_j p[j] X_(first + j)(x)`, from `what = What_i(x)` for every bit `i` of the indices: what the coefficients
-/// from `first` on add to a polynomial at `x`.
-pub(crate) fn novel_sum_at(p: &[F128], first: usize, what: &[F64]) -> F128 {
-    p.iter()
-        .enumerate()
-        .map(|(j, &v)| v.mul_base(novel_x_c(first + j, what)))
-        .sum()
-}
-
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use primitives::field::powers;
     use primitives::test_rng::Rng;
+
+    /// `X_c(x)` from `what = What_i(x)` for every bit `i` of `c`.
+    fn novel_x_c(c: usize, what: &[F64]) -> F64 {
+        (0..usize::BITS as usize)
+            .filter(|&i| (c >> i) & 1 == 1)
+            .map(|i| what[i])
+            .product()
+    }
+
+    /// `sum_j p[j] X_j(x)`, from `what = What_i(x)` for every bit `i` of the indices: the polynomial of novel-basis
+    /// coefficients `p` at `x`.
+    pub(crate) fn novel_sum_at(p: &[F128], what: &[F64]) -> F128 {
+        p.iter().enumerate().map(|(j, &v)| v.mul_base(novel_x_c(j, what))).sum()
+    }
 
     /// The induced basis is the query weights times each coefficient's basis polynomial at the query, written out,
     /// repeated positions included.

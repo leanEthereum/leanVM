@@ -90,27 +90,6 @@ fn apply_map(value: F128, challenges: &[F128; MAP_CHALLENGES]) -> F128 {
     phi
 }
 
-/// The 64 bit slices of `packed` at the weights `eq`: `s_hat_v[i] = sum_y bit_i(packed[y]) * eq[y]`, bit `i` being
-/// the polynomial-basis coordinate of the word.
-pub fn fold_1b_rows(packed: &[F64], eq: &[F128]) -> [F128; 64] {
-    assert_eq!(packed.len(), eq.len());
-    parallel::fold_reduce(
-        packed.len(),
-        || [F128::ZERO; 64],
-        |acc, y| {
-            let mut bits = packed[y].0;
-            while bits != 0 {
-                acc[bits.trailing_zeros() as usize] += eq[y];
-                bits &= bits - 1;
-            }
-        },
-        |mut a, b| {
-            a.iter_mut().zip(b).for_each(|(a, b)| *a += b);
-            a
-        },
-    )
-}
-
 /// The rectangular tensor-algebra transpose: the row view `s_hat_v` of a `K (x) E` element, 64 `E` elements, to its
 /// column view, 128 `K` elements: bit `i` of `s_hat_u[w]` is bit `w` of `s_hat_v[i]`.
 pub(crate) fn transpose_s_hat(s_hat_v: &[F128; 64]) -> [F64; DEGREE_E] {
@@ -273,24 +252,6 @@ mod tests {
                 frobenius = frobenius.square();
             }
             assert_eq!(apply_map(value, &challenges), expanded);
-        }
-    }
-
-    /// The slices are the bit columns of the packed witness weighed by `eq`, bit by bit.
-    #[test]
-    fn slices_match_the_bit_columns() {
-        let mut rng = Rng::new(1);
-        let packed: Vec<F64> = (0..1 << 7).map(|_| F64(rng.next_u64())).collect();
-        let eq = eq_table_serial(&rng.ext_vec(7));
-        let slices = fold_1b_rows(&packed, &eq);
-        for (i, &slice) in slices.iter().enumerate() {
-            let want: F128 = packed
-                .iter()
-                .zip(&eq)
-                .filter(|(w, _)| (w.0 >> i) & 1 == 1)
-                .map(|(_, &e)| e)
-                .sum();
-            assert_eq!(slice, want, "bit column {i}");
         }
     }
 }

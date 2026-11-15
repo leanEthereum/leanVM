@@ -7,9 +7,9 @@
 //! The first claim weighs the bits of a word as the word itself does, so its 64 evaluations
 //! are only ever needed as the one they add up to: the committed polynomial at that point.
 
-use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim};
+use pcs::stack_open::{RingSwitchOpen, StackClaim};
 use primitives::field::{F64, F128};
-use primitives::multilinear::{eq_table, interp, mle_eval, poly_eval};
+use primitives::multilinear::{eq_table, interp, mle_eval};
 use primitives::transcript::ProverState;
 
 use crate::keccak::{BITS, LANES};
@@ -17,26 +17,13 @@ use crate::kernels::byte_sums;
 use crate::protocol::{Claim, dot};
 use crate::witness::{Shape, transpose64};
 
-/// The 64 slices of the committed stack at `point`: bit `z` of every word, as a multilinear.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Opening {
-    pub point: Vec<F128>,
-    pub slices: Vec<F128>,
-}
-
-/// The committed stack at `point`, its words as field elements.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct WordOpening {
-    pub point: Vec<F128>,
-    pub value: F128,
-}
-
-/// What the reduction leaves for the commitment to answer: the committed segment outputs as
-/// words, if a segment's output is committed at all, and the inputs as slices.
+/// What the reduction leaves for the commitment to answer, both sent: the committed segment outputs as words at the
+/// point `outputs`, if a segment's output is committed at all, and the inputs' 64 slices (bit `z` of every word, as a
+/// multilinear) at the point `inputs`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Openings {
-    pub outputs: Option<WordOpening>,
-    pub inputs: Opening,
+    pub outputs: Option<Vec<F128>>,
+    pub inputs: Vec<F128>,
 }
 
 impl Openings {
@@ -45,16 +32,9 @@ impl Openings {
     pub fn into_pcs_claims(self, offset: usize) -> (RingSwitchOpen, Option<StackClaim>) {
         let ring = RingSwitchOpen {
             offset,
-            claims: vec![RingSwitchClaim {
-                suffix_point: self.inputs.point,
-                s_hat_v: Some(self.inputs.slices),
-            }],
+            points: vec![self.inputs],
         };
-        let outputs = self.outputs.map(|outputs| StackClaim {
-            offset,
-            low_point: outputs.point,
-            value: outputs.value,
-        });
+        let outputs = self.outputs.map(|low_point| StackClaim { offset, low_point });
         (ring, outputs)
     }
 }
@@ -133,23 +113,20 @@ pub(crate) fn fold(table: &[F128], width: usize, challenge: F128) -> Vec<F128> {
 }
 
 /// The sumcheck of `scale * sum of a * b` over the row index, rows of `width`, its lowest variable first, down to one
-/// row of each: returns those rows and the point.
+/// row of each: returns those rows and the point. A round sends its coefficients but the linear one, which the running
+/// claim fixes.
 fn prove_rounds(
     ps: &mut ProverState,
     mut a: Vec<F128>,
     mut b: Vec<F128>,
     width: usize,
     scale: F128,
-    value: &mut F128,
 ) -> (Vec<F128>, Vec<F128>, Vec<F128>) {
     let mut point = Vec::new();
     while a.len() > width {
         let (zero, infinity) = round_values(&a, &b, width);
-        let (zero, infinity) = (scale * zero, scale * infinity);
-        let coeffs = [zero, *value + infinity, infinity];
-        ps.add_round_poly(&coeffs, false);
+        ps.add_round_poly(&[scale * zero, F128::ZERO, scale * infinity], false);
         let challenge = ps.sample();
-        *value = poly_eval(&coeffs, challenge);
         point.push(challenge);
         a = fold(&a, width, challenge);
         b = fold(&b, width, challenge);
@@ -179,27 +156,22 @@ pub fn output_words(shape: Shape, committed: &[F64], instance: &[F128], claim: &
     (words, value)
 }
 
-/// Open `value`, the part of the first claim on the committed segment outputs, whose instance
-/// weights are `eq(instance, .)` and whose position weights are those of a word.
+/// Open the part of the first claim on the committed segment outputs, whose instance weights are `eq(instance, .)`
+/// and whose position weights are those of a word, from `words`, every slot at `instance`. Returns the opening's point.
 pub fn open_outputs(
     ps: &mut ProverState,
     shape: Shape,
     instance: &[F128],
     claim: &Claim,
-    mut value: F128,
     words: Vec<F128>,
-) -> WordOpening {
-    let (word, _, slot) = prove_rounds(ps, words, word_weights(shape, claim), 1, F128::ONE, &mut value);
-    let word = word[0];
-    ps.add_scalar(word);
-    WordOpening {
-        point: [instance, &slot].concat(),
-        value: word,
-    }
+) -> Vec<F128> {
+    let (word, _, slot) = prove_rounds(ps, words, word_weights(shape, claim), 1, F128::ONE);
+    ps.add_scalar(word[0]);
+    [instance, &slot].concat()
 }
 
-/// Open the claim on the inputs: the instances of a pack first, then the slot.
-pub fn open_inputs(ps: &mut ProverState, shape: Shape, committed: &[F64], claim: &Claim) -> Opening {
+/// Open the claim on the inputs: the instances of a pack first, then the slot. Returns the opening's point.
+pub fn open_inputs(ps: &mut ProverState, shape: Shape, committed: &[F64], claim: &Claim) -> Vec<F128> {
     let pack = &claim.point[..shape.pack_vars()];
     let folded = slices(shape, committed, pack);
     let weights = slot_weights(shape, claim, 0, shape.segments());
@@ -211,8 +183,7 @@ pub fn open_inputs(ps: &mut ProverState, shape: Shape, committed: &[F64], claim:
                 .sum()
         })
         .collect();
-    let mut value = claim.value;
-    let (_, mu, low) = prove_rounds(ps, per_instance, claim.mu.to_vec(), 1, F128::ONE, &mut value);
+    let (_, mu, low) = prove_rounds(ps, per_instance, claim.mu.to_vec(), 1, F128::ONE);
     // The slots of the stack at that instance: entry `(i + 16 * slot) * 64 + z` folds over `i`.
     let mut at_instance = vec![F128::ZERO; 64 << shape.slot_log()];
     let low_eq = eq_table(&low);
@@ -223,10 +194,7 @@ pub fn open_inputs(ps: &mut ProverState, shape: Shape, committed: &[F64], claim:
             }
         }
     }
-    let (slices, _, slot) = prove_rounds(ps, at_instance, weights, 64, mu[0], &mut value);
+    let (slices, _, slot) = prove_rounds(ps, at_instance, weights, 64, mu[0]);
     ps.add_scalars(&slices);
-    Opening {
-        point: [&low, pack, &slot].concat(),
-        slices,
-    }
+    [&low, pack, &slot].concat()
 }

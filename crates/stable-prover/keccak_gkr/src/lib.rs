@@ -80,7 +80,7 @@ use keccak::{LANE_VARS, LANES};
 use primitives::field::{F64, F128, F128Unreduced};
 use primitives::multilinear::eq_table;
 use primitives::transcript::ProverState;
-use protocol::{dot, first_claim};
+use protocol::first_claim;
 
 #[cfg(feature = "bench")]
 pub mod batch_bench;
@@ -98,7 +98,7 @@ pub mod witness;
 mod tests;
 
 pub use keccak::iota_bit;
-pub use open::{Opening, Openings, WordOpening};
+pub use open::Openings;
 pub use witness::{Shape, Witness};
 
 /// A claim on the permutation's output, from outside the reduction: `lanes[l]` is lane `l` of the output state, as
@@ -160,15 +160,13 @@ impl Witness {
         ps.grind(fiat_shamir::grinding_bits((shape.seg_log() + LANE_VARS) as u128));
         let segment = ps.sample_vec(shape.seg_log());
         let r_lane = ps.sample_vec(LANE_VARS);
-        let mut first = first_claim(&output.instance, &segment, &r_lane);
+        let first = first_claim(&output.instance, &segment, &r_lane);
         // The last segment's output is the caller's, and the prover sends the committed ones' part.
-        let last = eq_table(&segment)[shape.segments() - 1] * dot(&eq_table(&r_lane)[..LANES], &output.lanes);
         let (words, committed_value) =
             tracing::info_span!("Outputs").in_scope(|| open::output_words(shape, committed, &output.instance, &first));
         if shape.segments() > 1 {
             ps.add_scalar(committed_value);
         }
-        first.value = committed_value + last;
 
         let mut tables = table::Tables::new(shape);
         let mut claim = first.clone();
@@ -179,8 +177,7 @@ impl Witness {
         drop(tables);
 
         let _span = tracing::info_span!("Openings").entered();
-        let outputs = (shape.segments() > 1)
-            .then(|| open::open_outputs(ps, shape, &output.instance, &first, committed_value, words));
+        let outputs = (shape.segments() > 1).then(|| open::open_outputs(ps, shape, &output.instance, &first, words));
         let inputs = open::open_inputs(ps, shape, committed, &claim);
         Openings { outputs, inputs }
     }
