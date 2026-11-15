@@ -153,7 +153,7 @@ theorem blkW_ops_ctl' (hok : OpOK Γ I Ag cl) {C : (ℕ → E) → Prop} {ops : 
       wLc Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl [X] cs (pos + blockSize ops) ks next
         kj kret khalt) :
     BlkW Γ I bx Ag cl C (ops ++ [X]) ss tl o i₀ pos := by
-  refine ⟨hs, hlen, hHs, fun _ Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo hcs hks hk => ?_⟩
+  refine ⟨hs, hlen, hHs, fun _ _ Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo hcs hks hk => ?_⟩
   rw [wLc_append _ _ _ _ _ _ _ ops [X] (List.cons_ne_nil _ _)]
   have hbo₁ : ∀ o' ∈ blockOps ops pos, o' ∈ I.ops := fun o' ho =>
     hbo o' (by rw [bops_append]; exact List.mem_append_left _ ho)
@@ -612,7 +612,7 @@ def BlkWK (Γ : Site κ₀) (I : Inst) (bx : Backend.Ctx)
     (Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop) (cl : List Call)
     (C : (ℕ → E) → Prop) (blk : List PStmt) (ss tl : List Stmt) (o : Out) (i₀ pos : ℕ) : Prop :=
   ∃ hs : List (E × E), hs.length = (calls (outEs o)).length ∧ HsOk I bx (calls (outEs o)) hs ∧
-  (PremW I bx → ∀ Ψ, C Ψ → ∀ σ', I.Same σ' → ∀ (kh : ℕ → E × E) (cs : List Stmt)
+  (PremW I bx → i₀ + (calls (outEs o)).length = I.kf.length → ∀ Ψ, C Ψ → ∀ σ', I.Same σ' → ∀ (kh : ℕ → E × E) (cs : List Stmt)
     (ks : List (ℕ × ℕ)) (next : List Stmt → List (ℕ × ℕ) → Prop)
     (kj : List (ℕ × ℕ) → E → E → Prop) (kret khalt : Prop),
     (∀ o' ∈ blockOps blk pos, o' ∈ I.ops) →
@@ -624,7 +624,7 @@ theorem BlkWK.mono {C C' : (ℕ → E) → Prop} {bx : Backend.Ctx} {blk : List 
     {ss tl : List Stmt} {o : Out} {i₀ pos : ℕ} (h : BlkWK Γ I bx Ag cl C blk ss tl o i₀ pos)
     (hs : Stronger C' C) : BlkWK Γ I bx Ag cl C' blk ss tl o i₀ pos := by
   obtain ⟨hs', hl, hh, h⟩ := h
-  exact ⟨hs', hl, hh, fun hP Ψ hΨ => h hP Ψ (hs Ψ hΨ)⟩
+  exact ⟨hs', hl, hh, fun hP hL Ψ hΨ => h hP hL Ψ (hs Ψ hΨ)⟩
 
 /-- A block given the frame's return that falls through, then a block on the path that
 returns. -/
@@ -632,7 +632,7 @@ theorem BlkWK.append_ret {C : (ℕ → E) → Prop} {bx : Backend.Ctx} {blk₁ b
     {ss₁ ss₂ tl : List Stmt} {es₁ es₂ : List Ev} {vs : List V} {i₀ pos : ℕ}
     (h₁ : BlkWK Γ I bx Ag cl C blk₁ ss₁ (ss₂ ++ tl) (.fall es₁) i₀ pos)
     (h₂ : BlkW Γ I bx Ag cl C blk₂ ss₂ tl (.ret es₂ vs) (i₀ + (calls es₁).length)
-      (pos + blockSize blk₁)) :
+      (pos + blockSize blk₁)) (hc₂ : calls es₂ = []) :
     BlkW Γ I bx Ag cl C (blk₁ ++ blk₂) (ss₁ ++ ss₂) tl (.ret (es₁ ++ es₂) vs) i₀ pos := by
   obtain ⟨hs₁, hl₁, hh₁, h₁⟩ := h₁
   obtain ⟨hs₂, hl₂, hh₂, h₂⟩ := h₂
@@ -641,7 +641,17 @@ theorem BlkWK.append_ret {C : (ℕ → E) → Prop} {bx : Backend.Ctx} {blk₁ b
   simp only [outEs] at hl₁ hh₁
   refine ⟨hs₁ ++ hs₂, by rw [List.length_append, hl₁, hl₂, hc, List.length_append],
     by rw [hc]; exact HsOk.append hh₁ hh₂ hl₁, ?_⟩
-  intro hP Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops hcs hks hk'
+  intro hP hK Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops hcs hks hk'
+  have hK₀ := hK (es₁ ++ es₂) vs rfl
+  rw [calls_append', List.length_append] at hK₀
+  have hK₂ : KLast I (.ret es₂ vs) (i₀ + (calls es₁).length) := fun _ _ he => by
+    injection he with h1 h2
+    subst h1 h2
+    omega
+  have hK₁ : i₀ + (calls (outEs (.fall es₁))).length = I.kf.length := by
+    simp only [outEs]
+    rw [hc₂] at hK₀
+    simpa using hK₀
   obtain ⟨-, hks⟩ := hks
   rw [hc] at hks
   have hops₁ : ∀ o' ∈ blockOps blk₁ pos, o' ∈ I.ops := fun o' ho =>
@@ -660,7 +670,7 @@ theorem BlkWK.append_ret {C : (ℕ → E) → Prop} {bx : Backend.Ctx} {blk₁ b
       wLc Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl blk₂ cs' (pos + blockSize blk₁)
         (ks.drop (calls es₁).length) next kj kret khalt := by
     intro cs' hcs'
-    refine h₂ hP Ψ hΨ σ' hσ kh cs' _ next kj kret khalt hops₂ hcs' ⟨hl₂, fun j hj => ?_⟩ hk'
+    refine h₂ hP hK₂ Ψ hΨ σ' hσ kh cs' _ next kj kret khalt hops₂ hcs' ⟨hl₂, fun j hj => ?_⟩ hk'
     obtain ⟨⟨kfp, h1, h1'⟩, h2, h3⟩ := hks ((calls es₁).length + j)
       (by rw [List.length_append]; omega)
     refine ⟨⟨kfp, by rw [List.getElem?_drop, h1, Nat.add_assoc], by rw [Nat.add_assoc]; exact h1'⟩,
@@ -673,12 +683,12 @@ theorem BlkWK.append_ret {C : (ℕ → E) → Prop} {bx : Backend.Ctx} {blk₁ b
   cases blk₂ with
   | nil =>
     rw [List.append_nil]
-    refine h₁ hP Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops₁ hcs₁ hks₁ (fun cs' hcs' => ?_) hk'
+    refine h₁ hP hK₁ Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops₁ hcs₁ hks₁ (fun cs' hcs' => ?_) hk'
     have := hnext cs' hcs'
     rwa [wLc] at this
   | cons b bs =>
     rw [wLc_append _ _ _ _ _ _ _ blk₁ (b :: bs) (List.cons_ne_nil _ _)]
-    exact h₁ hP Ψ hΨ σ' hσ kh cs ks _ _ kret khalt hops₁ hcs₁ hks₁ hnext hk'
+    exact h₁ hP hK₁ Ψ hΨ σ' hσ kh cs ks _ _ kret khalt hops₁ hcs₁ hks₁ hnext hk'
 
 /-- `blkW_ops_ctl'` given the frame's return. -/
 theorem blkWK_ops_ctl (hok : OpOK Γ I Ag cl) {C : (ℕ → E) → Prop} {ops : List PStmt}
@@ -686,7 +696,8 @@ theorem blkWK_ops_ctl (hok : OpOK Γ I Ag cl) {C : (ℕ → E) → Prop} {ops : 
     (hs : List (E × E)) (hlen : hs.length = (calls (outEs o)).length)
     (hHs : HsOk I bx (calls (outEs o)) hs)
     (hW : ∀ s ∈ ops, ∃ h o, s = PStmt.op h o ∧ ∀ Ψ, C Ψ → OpW I Ψ o)
-    (hX : ∀ Ψ, C Ψ → ∀ σ', I.Same σ' → ∀ (kh : ℕ → E × E) (cs : List Stmt)
+    (hX : PremW I bx → i₀ + (calls (outEs o)).length = I.kf.length → ∀ Ψ, C Ψ → ∀ σ',
+      I.Same σ' → ∀ (kh : ℕ → E × E) (cs : List Stmt)
       (ks : List (ℕ × ℕ)) (next : List Stmt → List (ℕ × ℕ) → Prop)
       (kj : List (ℕ × ℕ) → E → E → Prop) (kret khalt : Prop),
       (∀ o' ∈ stmtOps X (pos + blockSize ops), o' ∈ I.ops) → ctrlSplit cs = ctrlSplit (ss ++ tl) →
@@ -695,12 +706,12 @@ theorem blkWK_ops_ctl (hok : OpOK Γ I Ag cl) {C : (ℕ → E) → Prop} {ops : 
       wLc Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl [X] cs (pos + blockSize ops) ks next
         kj kret khalt) :
     BlkWK Γ I bx Ag cl C (ops ++ [X]) ss tl o i₀ pos := by
-  refine ⟨hs, hlen, hHs, fun _ Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo hcs hks hk hK => ?_⟩
+  refine ⟨hs, hlen, hHs, fun hP hL Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo hcs hks hk hK => ?_⟩
   rw [wLc_append _ _ _ _ _ _ _ ops [X] (List.cons_ne_nil _ _)]
   have hbo₁ : ∀ o' ∈ blockOps ops pos, o' ∈ I.ops := fun o' ho =>
     hbo o' (by rw [bops_append]; exact List.mem_append_left _ ho)
   refine wLc_ops hok hΨ hσ kh ops hW pos hbo₁ cs ks _ _ kret khalt
-    (hX Ψ hΨ σ' hσ kh cs ks next kj kret khalt (fun o' ho => hbo o' (by
+    (hX hP hL Ψ hΨ σ' hσ kh cs ks next kj kret khalt (fun o' ho => hbo o' (by
       rw [bops_append]
       exact List.mem_append_right _ (by simpa [blockOps] using ho))) hcs hks hk hK)
 
@@ -850,7 +861,7 @@ theorem tailIf_fbat (hok : OpOK Γ I Ag cl) (hI : I.Ok)
       obtain rfl : j = 0 := by simp at hj; omega
       rfl⟩
     (hopsW hF₈ hO₈)
-    fun Ψ hΨ σ' hσ kh cs ks next kj kret khalt hXo hcs hks hk hKr => ?_
+    fun hP hKL Ψ hΨ σ' hσ kh cs ks next kj kret khalt hXo hcs hks hk hKr => ?_
   generalize p₀ + blockSize st.out.toList + blockSize ops = pos at hXo hks ⊢
   have hkr : kret := by simpa [hnm] using hKr
   obtain ⟨-, hks⟩ := hks
@@ -1010,7 +1021,7 @@ theorem blockW_selfIf (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = 
           (p₀ + blockSize st.out.toList + blockSize blk₁) := by
         rw [hc1, Nat.add_assoc, ← bsize_append, ← ho₁]
         exact hb₂
-      have := BlkWK.append_ret (hb₁.mono hs₂) hb₂'
+      have := BlkWK.append_ret (hb₁.mono hs₂) hb₂' rfl
       simpa only [List.singleton_append, List.append_nil] using this
     · exact (hrw₁.grow hs₂ hn₂ hl₂ (fun v _ hv => (hnw hW₁'.lazy v hv).elim Or.inl fun h =>
         h.elim Or.inr fun ⟨_, hr⟩ => by simp [atomsIn, atomsOf] at hr) hrs).anti fun v hv => by
@@ -1051,9 +1062,6 @@ theorem loopNext_fbat (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = 
     (hent : ∀ g, kwOf Γ (.entry g) = ofK (addressOfIndex (Γ.ent g)))
     (hmN : ctx.isMain = true → ctx.name = "main")
     (hframe : Γ.frame = I.size) (hlh : I.loopH = true)
-    (hselfK : ∀ (i : ℕ) (c : Call) (kfp : ℕ), cl[i]? = some c → c.f = ctx.name →
-      I.kf[i]? = some kfp →
-      kfp = I.fp + I.size)
     {c : V} {f : String} {args : List V} {tl : List Stmt}
     (hself : f = ctx.name) (hreg : ((ctx.loops[f]?).any (·.registered)) = true)
     (hu : ∀ v ∈ c :: args, v ∉ I.tmps)
@@ -1219,7 +1227,7 @@ theorem loopNext_fbat (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = 
       obtain rfl : j = 0 := by simp at hj; omega
       rfl⟩
     (hopsW hF₁₁ hO₁₁)
-    fun Ψ hΨ σ' hσ kh cs ks next kj kret khalt hXo hcs hks hk hKr => ?_
+    fun hP hKL Ψ hΨ σ' hσ kh cs ks next kj kret khalt hXo hcs hks hk hKr => ?_
   generalize p₀ + blockSize st.out.toList + blockSize ops = pos at hXo hks ⊢
   have hkr : kret := by simpa [hnm] using hKr
   obtain ⟨-, hks⟩ := hks
@@ -1235,7 +1243,14 @@ theorem loopNext_fbat (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = 
   have hcs' : ctrlSplit cs = some (.callIf c f args, [.ret []] ++ tl) := by rw [hcs]; rfl
   have hr : Rds (Ag σ' Ψ kh) I.fp I.size (fwd I.hdr ⟨patchT I Ψ σ', kh⟩) :=
     fun κ L hL n hn => hAg σ' Ψ kh κ L hL n hn
-  have hkfp : kfp = I.fp + I.size := hselfK i₀ _ kfp hcl hself hkf
+  have hkfp : kfp = I.fp + I.size := by
+    have h1 : (calls [Memory.Ev.inK c,
+        if I.σ c = 0 then .skip f args else .call f args []]).length = 1 := by
+      by_cases h : I.σ c = 0 <;> simp [calls, Ev.call?, h, List.filterMap_cons]
+    have hlen : i₀ + 1 = I.kf.length := by simpa only [outEs, h1] using hKL
+    refine hP.2 hlh kfp ?_
+    rw [List.getLast?_eq_getElem?, ← hlen, Nat.add_sub_cancel]
+    exact hkf
   have hΨ9 := hs₁₀ Ψ hΨ
   have hΨ5 := hs₈ Ψ hΨ9.1
   have hset : LOp.set st₈.next (.entry f) ∈ I.ops := hXo _ (by simp [stmtOps, loopPre])
@@ -1307,15 +1322,13 @@ theorem blockW_loopNext (hnew : PlaceNew ctx) (hpk : PoolKeepStmt) (hok : OpOK �
     (hmN : ctx.isMain = true → ctx.name = "main")
     (hkend : IsInK (I.kw .endSentinel))
     (hframe : Γ.frame = I.size) (hlh : I.loopH = true)
-    (hselfK : ∀ (i : ℕ) (c : Call) (kfp : ℕ), cl[i]? = some c → c.f = ctx.name →
-      I.kf[i]? = some kfp → kfp = I.fp + I.size)
     {c : V} {f : String} {args : List V} {tl : List Stmt}
     (hself : f = ctx.name) (hreg : ((ctx.loops[f]?).any (·.registered)) = true)
     (hu : ∀ v ∈ c :: args, v ∉ I.tmps) :
     BlockW Γ Ag cl ctx I (placeBlock [.callIf c f args, .ret []]) [.callIf c f args, .ret []]
       tl :=
   blockW_selfIf hok hI hmain hnew hAg hkend fun _ _ _ _ _ _ hsc hes hcl hinv =>
-    loopNext_fbat hok hI hmain hRd hpk hAg hK hkw hent hmN hframe hlh hselfK hself hreg hu hsc
+    loopNext_fbat hok hI hmain hRd hpk hAg hK hkw hent hmN hframe hlh hself hreg hu hsc
       hes hcl hinv
 
 /-! ## A fused `match` of calls -/

@@ -863,7 +863,7 @@ theorem blkW_chain1 {C : (ℕ → E) → Prop} {h : List LHint} {join lx entry o
     BlkW Γ I ctx Ag cl C [PStmt.chain h join lx entry one sfp [first] [blocks]] [.match_ x arms]
       tl o i₀ pos := by
   obtain ⟨hs, hl, hok, hW⟩ := hB
-  refine ⟨hs, hl, hok, fun hP Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops hcs hks hout => ?_⟩
+  refine ⟨hs, hl, hok, fun hP hK Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops hcs hks hout => ?_⟩
   obtain ⟨hset, hslot, hhd, hjn⟩ := hhead hP Ψ hΨ σ' hσ kh hops
   have hcs' : ctrlSplit cs = some (.match_ x arms, tl) := by rw [hcs]; rfl
   simp only [wLc, List.isEmpty_nil, ite_true]
@@ -871,7 +871,7 @@ theorem blkW_chain1 {C : (ℕ → E) → Prop} {h : List LHint} {join lx entry o
     (fun i hi => by rw [hxS σ' hσ]; exact hne i hi) hhd ?_
   rw [hbj]
   refine wL_arm_join (N := fun ks' => next tl ks')
-    (fun nx kx hk => hW hP Ψ hΨ σ' hσ kh arms[j] ks nx kx kret khalt (fun o' ho' => hops o' ?_)
+    (fun nx kx hk => hW hP hK Ψ hΨ σ' hσ kh arms[j] ks nx kx kret khalt (fun o' ho' => hops o' ?_)
       (by simp) hks hk) ?_ (fun hlast => ?_) hjn
   · have h1 : o' ∈ blockOps blocks[j] (pos + 3 + armsSize (blocks.take j)) := by
       rw [hbj, bops_append]
