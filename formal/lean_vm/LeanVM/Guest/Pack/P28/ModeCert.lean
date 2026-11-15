@@ -14,7 +14,7 @@ public import LeanVM.Guest.Pack.«P28».Mode2
 public import LeanVM.Guest.Pack.«P28».Mode3
 public import LeanVM.Guest.Pack.«P28».ModeH
 public import LeanVM.Guest.Pack.«P28».ModeL0
-public import LeanVM.Guest.Pack.«P28».ModeX
+public import LeanVM.Guest.Pack.«P28».ModeL1
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
@@ -752,9 +752,9 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     (Mode.fa_nil)))))))))))))))))))))))))))))
 
 /-- The certificates' walks and hints. -/
-theorem certs_walk («shared_selector_tables» : Mode.WalkHyp Fn.«shared_selector_tables».modeCert) :
+theorem certs_walk :
     ∀ K ∈ certs, Mode.CertWalk K :=
-  Mode.fa_cons (⟨«shared_selector_tables», Fn.«shared_selector_tables».modeHintsOk⟩)
+  Mode.fa_cons (⟨Fn.«shared_selector_tables».modeOk, Fn.«shared_selector_tables».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«eq_prefix_run__L39».modeOk, Fn.«eq_prefix_run__L39».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«rs_eq_rows__L3».modeOk, Fn.«rs_eq_rows__L3».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«index_mle__L11».modeOk, Fn.«index_mle__L11».modeHintsOk⟩)

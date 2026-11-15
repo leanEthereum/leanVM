@@ -9,17 +9,17 @@ module
 
 public import LeanVM.Guest.Pack.«P28».ModeD0W0
 
-namespace LeanVM.Guest.Fn.«da_levels__L512_L9»
+namespace LeanVM.Guest.Fn.«shared_selector_tables»
 
 open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `da_levels__L512_L9`: its mode walk accepts its code, window by window. -/
+/-- `shared_selector_tables`: its mode walk accepts its code, window by window. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=
-  Mode.walk_of_wins (n := 94) (by decide +kernel) []
+  Mode.walk_of_wins (n := 64) (by decide +kernel) []
     modeW0
 
 end
 
-end LeanVM.Guest.Fn.«da_levels__L512_L9»
+end LeanVM.Guest.Fn.«shared_selector_tables»

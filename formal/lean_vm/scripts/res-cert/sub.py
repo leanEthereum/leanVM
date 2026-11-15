@@ -1,7 +1,9 @@
 """Writes `Guest/Res/SubCerts*.lean`: every mode walk certificate's `sub` residuals are in the
 families (`Res.SubOk`: a split's, `anyLink`'s or the gap walk's reads, or a family read off the
-function's code, `Res.subFamB`, on the certificate's witness of that code, which `wit.py` finds),
-decided at the function's index by `Res.subOk_of`, but the certificates of `sel.EXC`; and
+function's code, `Res.subFamB`, on the certificate's witness of that code, which `wit.py` finds,
+or a read of the proof stream at a site of `Res.stSites` or a run a split cuts into blocks,
+`Res.blkB`, which need none), decided at the function's index by `Res.subOk_of`, but the
+certificates of `sel.EXC`; and
 `ResTop guestCerts` from the listed certificates' residuals (`EndExec.resOpen_subOk`) and the listed
 parameters' nonzero values but those of `PROVED`. The certificates, their packs, groups and function
 indices are those `term.py` reads.

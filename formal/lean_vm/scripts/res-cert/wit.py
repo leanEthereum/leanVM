@@ -2,7 +2,8 @@
 each residual a family takes, the top-level atoms and selectors of the function's body its check reads,
 mirroring `Res.shiftB`, `Res.sideB`, `Res.runB` (`cellLt`, `eqCells`, `mulBy`, `holdsBase`,
 `sideRead`, `mulConst`) and `Res.dimB` (`lowOk`). The kernel
-checks the witness (`Res.witOk`) and the family on it, so a witness found here is only a hint.
+checks the witness (`Res.witOk`) and the family on it, so a witness found here is only a hint. The proof
+stream's reads (`Res.stB`) need none.
 """
 import os, sys, importlib.util
 

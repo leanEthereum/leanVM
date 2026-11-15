@@ -9,6 +9,8 @@ module
 
 public import LeanVM.Guest.EndExecRCq
 public import LeanVM.Guest.Res.SubDefs
+public import LeanVM.Guest.EndExecRStB
+public import LeanVM.Guest.EndExecRBlk
 
 /-!
 # The families' residuals at the honest frames
@@ -18,7 +20,7 @@ frame, the facts there from `TermFront` (`termQ_all`, `expQ_of_termQ`). `resOpen
 certificate's `sub` residuals in the families (`Res.SubOk`) leave none open but the listed
 certificates': those read off the function's code (`subFam_top`), and `check_opening_terminal`'s
 (`dim_top`, its dimension facts from `TermFront`) and `column_selector`'s (`cs_top`, its arguments
-from the terminal's dispatch, `csQ_all`).
+from the terminal's dispatch, `csQ_all`), the proof stream's reads (`st_top`) and the runs a split cuts into blocks (`blk_top`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -67,9 +69,11 @@ theorem resOpen_subOk {Ks : List Mode.Cert} {A : String → Bridge.FnAl} (hok : 
     rw [hg, Option.getD_some] at hx
     have hf := List.all_eq_true.mp (allV_get hall hg) _ hx
     simp only [subB, hs, ha, hm, Bool.false_or, Bool.or_eq_true] at hf
-    rcases hf with hf | hf
+    rcases hf with ((hf | hf) | hf) | hf
     · exact subFam_top t hr hW hf
     · exact termFam_top t hr hW hf
+    · exact st_top t hr hf
+    · exact blk_top t hr hf
 
 end
 

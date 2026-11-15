@@ -18,9 +18,10 @@ public import LeanVM.Guest.Res.TermDefs
 # The `sub` residuals' families
 
 `subB j x`: residual `x` of function `j` is no `sub` residual, or one of the families
-(`splitB`, `anyResB anyLink`, `monoResB`, and those read off the function's code, `subFamB` and
-`termFamB`). `SubOk exc K`: certificate `K` is listed in `exc`, or
-each of its residuals passes `subB` at its function's index, decided per certificate (`subOk_of`).
+(`splitB`, `anyResB anyLink`, `monoResB`, those read off the function's code, `subFamB` and
+`termFamB`, the proof stream's reads, `stB`, and the runs a split cuts into blocks, `blkB`).
+`SubOk exc K`: certificate `K` is listed in `exc`, or each of its residuals passes `subB` at its
+function's index, decided per certificate (`subOk_of`).
 `EndExec.resOpen_subOk` (`EndExecRSub`): given `SubOk resExc` of every certificate and the listed
 certificates' residuals, no `sub` residual outside the families is left open.
 -/
@@ -28,13 +29,53 @@ certificates' residuals, no `sub` residual outside the families is left open.
 namespace LeanVM.Guest.Res
 
 open LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Guest.B2C (cellJ)
 
 @[expose] public section
+
+/-! ## The proof stream's reads -/
+
+/-- **The proof stream's readers**: function, its cursor's cell, the stream's base (the layer's
+parameter, the loops' through their header), the words read past the cursor. -/
+def stSites : List (String × ℕ × Mode.Base × ℕ) :=
+  [(name% «keccak_layer__L0», 765, .fr 17, 36), (name% «keccak_layer__L1», 792, .fr 17, 36),
+    (name% «keccak_layer__L0_loop0», 21, .hp 1 17, 16), (name% «keccak_layer__L1_loop0», 21, .hp 1 17, 16),
+    (name% «keccak_layer__L0_loop1», 18, .hp 1 17, 2), (name% «keccak_layer__L1_loop1», 18, .hp 1 17, 2)]
+
+/-- The read `c` words past the cursor in cell `o`, inside the stream `st·[0, 8192)`. -/
+def stRes (o : ℕ) (st : Mode.Base) (c : ℕ) : Mode.Res :=
+  .sub ⟨⟨0, c, [(.fr o, 1)]⟩, .num 0, .num 1, 1, 0⟩ [⟨⟨0, 0, [(st, 1)]⟩, .num 0, .num 8192, 1, 0⟩]
+
+/-- **A read of the proof stream** at function `j`: a site's, below its words. -/
+noncomputable def stB (j : ℕ) : Mode.Res → Bool
+  | .sub a bs => stSites.any fun s ↦ (coreOf j).name == s.1 && decide (a.q.k < s.2.2.2) &&
+      decide (Mode.Res.sub a bs = stRes s.2.1 s.2.2.1 a.q.k)
+  | _ => false
+
+/-! ## Runs cut into blocks by a split -/
+
+/-- The run of stride `S` from `d` up to `[n]`'s exponent over `T`, inside `K` runs of stride `K·S` up to
+`[s]`'s exponent, the `t`-th from `t·S + d`, and the run of stride `S` from `d` up to `[r]`'s exponent
+past `[s]^(K·S)`. -/
+def blkRes (T : Mode.Base) (s r n K S d : ℕ) : Mode.Res :=
+  .sub ⟨⟨0, 0, [(T, 1)]⟩, .num 0, .ex (.fr n) 0, S, d⟩
+    ((List.range K).map (fun t ↦ ⟨⟨0, 0, [(T, 1)]⟩, .num 0, .ex (.fr s) 0, K * S, t * S + d⟩) ++
+      [⟨⟨0, 0, [(T, 1), (.fr s, K * S)]⟩, .num 0, .ex (.fr r) 0, S, d⟩])
+
+/-- **A run cut into blocks** at function `j`: `[n] = [s]^K·[r]` a split of `j`'s (`splits`). -/
+noncomputable def blkB (j : ℕ) : Mode.Res → Bool
+  | .sub a bs => match a.q.bs with
+    | [(T, _)] => splits.any fun p ↦ p.1 == j &&
+        decide (Mode.Res.sub a bs =
+          blkRes T (cellJ j p.2.1) (cellJ j p.2.2.1) (cellJ j p.2.2.2.1) p.2.2.2.2 a.S a.d)
+    | _ => false
+  | _ => false
 
 /-- **The `sub` residuals' families**, the families read off the code from the witness `w`. -/
 noncomputable def subB (j : ℕ) (w : Wit) : Mode.Res → Bool
   | .sub a bs => splitB j (.sub a bs) || anyResB anyLink j (.sub a bs) || monoResB j (.sub a bs) ||
-      subFamB j w (.sub a bs) || termFamB j w (.sub a bs)
+      subFamB j w (.sub a bs) || termFamB j w (.sub a bs) || stB j (.sub a bs) ||
+      blkB j (.sub a bs)
   | _ => true
 
 /-- **A certificate's `sub` residuals in the families**: it is listed in `exc`, or each is at its

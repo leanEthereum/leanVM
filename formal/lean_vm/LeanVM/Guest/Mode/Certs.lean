@@ -62,7 +62,6 @@ structure ModeHyps : Prop where
   «open_stacked__L8» : WalkHyp Fn.«open_stacked__L8».modeCert
   «open_stacked__L9» : WalkHyp Fn.«open_stacked__L9».modeCert
   «rs_eq_run» : WalkHyp Fn.«rs_eq_run».modeCert
-  «shared_selector_tables» : WalkHyp Fn.«shared_selector_tables».modeCert
   «verify_bus_gkr» : WalkHyp Fn.«verify_bus_gkr».modeCert
   «verify_keccak» : WalkHyp Fn.«verify_keccak».modeCert
   «verify_sub» : WalkHyp Fn.«verify_sub».modeCert
@@ -95,7 +94,7 @@ theorem guestGroup_walk1 (h : ModeHyps) : ∀ l ∈ guestGroups[1]!, ∀ K ∈ l
     (Mode.fa_cons (ModePack.«P25».certs_walk)
     (Mode.fa_cons (ModePack.«P26».certs_walk h.«__loop38»)
     (Mode.fa_cons (ModePack.«P27».certs_walk)
-    (Mode.fa_cons (ModePack.«P28».certs_walk h.«shared_selector_tables»)
+    (Mode.fa_cons (ModePack.«P28».certs_walk)
     (Mode.fa_cons (ModePack.«P29».certs_walk h.«claim_list_digest»)
     (Mode.fa_cons (ModePack.«P3».certs_walk h.«verify_keccak»)
     (Mode.fa_cons (ModePack.«P30».certs_walk)

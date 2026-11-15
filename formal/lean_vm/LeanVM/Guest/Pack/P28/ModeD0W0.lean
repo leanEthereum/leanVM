@@ -11,13 +11,13 @@ public import LeanVM.Guest.Pack.«P28».ModeD0
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«da_levels__L512_L9»
+namespace LeanVM.Guest.Fn.«shared_selector_tables»
 
 open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `da_levels__L512_L9`: its walk from offset 0 goes through to its end. -/
+/-- `shared_selector_tables`: its walk from offset 0 goes through to its end. -/
 theorem modeW0 :
     Mode.runRest modeEnv modeFun (Mode.codeAt code.chunks 0) 0 ([Mode.entryAbs modeEnv
     modeFun.sig], []) = true := by
@@ -25,4 +25,4 @@ theorem modeW0 :
 
 end
 
-end LeanVM.Guest.Fn.«da_levels__L512_L9»
+end LeanVM.Guest.Fn.«shared_selector_tables»
