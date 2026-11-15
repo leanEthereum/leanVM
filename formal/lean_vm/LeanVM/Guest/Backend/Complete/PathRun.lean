@@ -42,7 +42,7 @@ variable {κ₀ κ : ℕ} (prog : LeanIsaProgram) (Γ₀ : Site κ₀) (L : Memo
 /-- What the run side needs of the memory and the callees: `Ag` admits it, its frame's header
 returns to `hdr`, and the calls' `(index, frame)` pairs and the kids are the same calls: each
 callee frame returns to its header `kh i`, and the path's entered call `i` of a callee runs. -/
-structure Ctx : Prop where
+structure RunCtx : Prop where
   ag : Ag κ L
   ret : retRegs L (addressOfIndex fp) = some ⟨hdr.1.limb 0, hdr.2.limb 0⟩
   kid : ∀ i kfp ks kids, KR ((i, kfp) :: ks) kids → ∃ ck kids', kids = (kfp, ck) :: kids' ∧
@@ -111,7 +111,7 @@ theorem jw_at (hA : Ag κ L) {oc od of : ℕ} {fall fall' : Prop} {taken taken' 
     simp only [onL, idx_mul] <;> exact hr κ L hA _ (by simp)
 
 /-- The registers a callee returns to, from the header its frame holds. -/
-theorem callee_ret (hx : Ctx prog Γ₀ L fp hdr FS Ag cl KR) {i kfp : ℕ} {ks : List (ℕ × ℕ)}
+theorem callee_ret (hx : RunCtx prog Γ₀ L fp hdr FS Ag cl KR) {i kfp : ℕ} {ks : List (ℕ × ℕ)}
     {kids : List Kid} {callee : String} {ret : E × E} {d f : E}
     (hK : KR ((i, kfp) :: ks) kids) (hc : CallW Γ₀ FS cl callee kfp i ret d f) :
     ∃ ck kids', kids = (kfp, ck) :: kids' ∧ KR ks kids' ∧
@@ -128,7 +128,7 @@ theorem callee_ret (hx : Ctx prog Γ₀ L fp hdr FS Ag cl KR) {i kfp : ℕ} {ks 
 /-! ## The constructs -/
 
 /-- **One instruction.** -/
-theorem op_w (hx : Ctx prog Γ₀ L fp hdr FS Ag cl KR) (h : List LHint) (o : LOp) :
+theorem op_w (hx : RunCtx prog Γ₀ L fp hdr FS Ag cl KR) (h : List LHint) (o : LOp) :
     SW prog Γ₀ L fp σ hdr FS Ag cl KR (.op h o) := by
   intro cs pos ks kids next next' kj kj' kret khalt hK hn hj hw
   cases o
@@ -160,7 +160,7 @@ theorem cons_w {s : PStmt} {ss : List PStmt} (hs : SW prog Γ₀ L fp σ hdr FS 
   | cons _ _ => exact h.elim
 
 /-- **An `ite`.** -/
-theorem ite_w (hx : Ctx prog Γ₀ L fp hdr FS Ag cl KR) {h : List LHint} {c bdest sfp : Cell}
+theorem ite_w (hx : RunCtx prog Γ₀ L fp hdr FS Ag cl KR) {h : List LHint} {c bdest sfp : Cell}
     {zero nonzero : List PStmt} {hasElse : Bool} {edest one : Cell}
     (hz : LW prog Γ₀ L fp σ hdr FS Ag cl KR zero) (hnz : LW prog Γ₀ L fp σ hdr FS Ag cl KR nonzero) :
     SW prog Γ₀ L fp σ hdr FS Ag cl KR (.ite h c bdest sfp zero hasElse edest one nonzero) := by
@@ -188,7 +188,7 @@ theorem ite_w (hx : Ctx prog Γ₀ L fp hdr FS Ag cl KR) {h : List LHint} {c bde
   all_goals simp [wS, hcs] at hw
 
 /-- **The return.** -/
-theorem ret_w (hx : Ctx prog Γ₀ L fp hdr FS Ag cl KR) (h : List LHint) (one : Cell) :
+theorem ret_w (hx : RunCtx prog Γ₀ L fp hdr FS Ag cl KR) (h : List LHint) (one : Cell) :
     SW prog Γ₀ L fp σ hdr FS Ag cl KR (.ret h one) := by
   intro cs pos ks kids next next' kj kj' kret khalt hK hn hj hw
   simp only [wS] at hw
@@ -196,7 +196,7 @@ theorem ret_w (hx : Ctx prog Γ₀ L fp hdr FS Ag cl KR) (h : List LHint) (one :
   exact jw_at hx.ag hw id (fun _ _ h => h)
 
 /-- **`main`'s closing jump.** -/
-theorem halt_w (hx : Ctx prog Γ₀ L fp hdr FS Ag cl KR) (h : List LHint) (one dest : Cell) :
+theorem halt_w (hx : RunCtx prog Γ₀ L fp hdr FS Ag cl KR) (h : List LHint) (one dest : Cell) :
     SW prog Γ₀ L fp σ hdr FS Ag cl KR (.halt h one dest) := by
   intro cs pos ks kids next next' kj kj' kret khalt hK hn hj hw
   simp only [wS] at hw
@@ -204,7 +204,7 @@ theorem halt_w (hx : Ctx prog Γ₀ L fp hdr FS Ag cl KR) (h : List LHint) (one 
   exact ⟨hw_at hx.ag hw.1, jw_at hx.ag hw.2 id (fun _ _ h => h)⟩
 
 /-- **A call.** -/
-theorem call_w (hx : Ctx prog Γ₀ L fp hdr FS Ag cl KR) (h : List LHint) (c : CallSite) :
+theorem call_w (hx : RunCtx prog Γ₀ L fp hdr FS Ag cl KR) (h : List LHint) (c : CallSite) :
     SW prog Γ₀ L fp σ hdr FS Ag cl KR (.call h c) := by
   intro cs pos ks kids next next' kj kj' kret khalt hK hn hj hw
   rcases hcs : ctrlSplit cs with _ | ⟨s, rest⟩
@@ -233,7 +233,7 @@ theorem call_w (hx : Ctx prog Γ₀ L fp hdr FS Ag cl KR) (h : List LHint) (c : 
     exact ⟨hd, hf, _, hrun, hx.ret, hk⟩
 
 /-- **A loop helper's closing call.** -/
-theorem loopNext_w (hx : Ctx prog Γ₀ L fp hdr FS Ag cl KR) (h : List LHint) (callee : String)
+theorem loopNext_w (hx : RunCtx prog Γ₀ L fp hdr FS Ag cl KR) (h : List LHint) (callee : String)
     (nfp entry oc one : Cell) (args : List Cell) :
     SW prog Γ₀ L fp σ hdr FS Ag cl KR (.loopNext h callee nfp entry oc one args) := by
   intro cs pos ks kids next next' kj kj' kret khalt hK hn hj hw
@@ -252,8 +252,8 @@ theorem loopNext_w (hx : Ctx prog Γ₀ L fp hdr FS Ag cl KR) (h : List LHint) (
   exact ⟨ht, hd, hf, _, hrun, hx.ret, hk⟩
 
 /-- **A fused `match` of calls.** -/
-theorem dispatch_w (hx : Ctx prog Γ₀ L fp hdr FS Ag cl KR) (h : List LHint) (callees : List String)
-    (nfp joinCell x entry one : Cell) (first : ℕ) (args rets : List Cell) :
+theorem dispatch_w (hx : RunCtx prog Γ₀ L fp hdr FS Ag cl KR) (h : List LHint)
+    (callees : List String) (nfp joinCell x entry one : Cell) (first : ℕ) (args rets : List Cell) :
     SW prog Γ₀ L fp σ hdr FS Ag cl KR
       (.dispatch h callees nfp joinCell x entry one first args rets) := by
   intro cs pos ks kids next next' kj kj' kret khalt hK hn hj hw
@@ -318,7 +318,7 @@ theorem stagesCons_w {st : List (List PStmt)} {sts : List (List (List PStmt))}
   all_goals simp [wStages] at hw
 
 /-- **A chain of `match`es.** -/
-theorem chain_w (hx : Ctx prog Γ₀ L fp hdr FS Ag cl KR) {h : List LHint}
+theorem chain_w (hx : RunCtx prog Γ₀ L fp hdr FS Ag cl KR) {h : List LHint}
     {join x entry one sfp : Cell} {firsts : List ℕ} {stages : List (List (List PStmt))}
     (hst : StW prog Γ₀ L fp σ hdr FS Ag cl KR stages) :
     SW prog Γ₀ L fp σ hdr FS Ag cl KR (.chain h join x entry one sfp firsts stages) := by
@@ -335,7 +335,7 @@ theorem chain_w (hx : Ctx prog Γ₀ L fp hdr FS Ag cl KR) {h : List LHint}
 
 mutual
 /-- **A placed statement's frame words give its instructions' meaning.** -/
-theorem stmt_w (hx : Ctx prog Γ₀ L fp hdr FS Ag cl KR) :
+theorem stmt_w (hx : RunCtx prog Γ₀ L fp hdr FS Ag cl KR) :
     ∀ s : PStmt, SW prog Γ₀ L fp σ hdr FS Ag cl KR s
   | .op h o => op_w hx h o
   | .ite _ _ _ _ zero _ _ _ nonzero => ite_w hx (block_w hx zero) (block_w hx nonzero)
@@ -348,19 +348,19 @@ theorem stmt_w (hx : Ctx prog Γ₀ L fp hdr FS Ag cl KR) :
   | .halt h one dest => halt_w hx h one dest
 
 /-- **A placed block's frame words give its instructions' meaning.** -/
-theorem block_w (hx : Ctx prog Γ₀ L fp hdr FS Ag cl KR) :
+theorem block_w (hx : RunCtx prog Γ₀ L fp hdr FS Ag cl KR) :
     ∀ ps : List PStmt, LW prog Γ₀ L fp σ hdr FS Ag cl KR ps
   | [] => nil_w
   | s :: ss => cons_w (stmt_w hx s) (block_w hx ss)
 
 /-- **A jump into a chain's stages.** -/
-theorem stages_w (hx : Ctx prog Γ₀ L fp hdr FS Ag cl KR) :
+theorem stages_w (hx : RunCtx prog Γ₀ L fp hdr FS Ag cl KR) :
     ∀ sts : List (List (List PStmt)), StW prog Γ₀ L fp σ hdr FS Ag cl KR sts
   | [] => stagesNil_w
   | st :: sts => stagesCons_w (fun xv => arms_w hx st xv) (stages_w hx sts)
 
 /-- **A jump into a stage's arms.** -/
-theorem arms_w (hx : Ctx prog Γ₀ L fp hdr FS Ag cl KR) :
+theorem arms_w (hx : RunCtx prog Γ₀ L fp hdr FS Ag cl KR) :
     ∀ (pas : List (List PStmt)) (xv : V), ArW prog Γ₀ L fp σ hdr FS Ag cl KR xv pas
   | [], xv => armsNil_w xv
   | pa :: pas, xv => armsCons_w (block_w hx pa) (arms_w hx pas xv)
@@ -390,7 +390,7 @@ theorem pathRunStmt : PathRunStmt := by
     · simpa [fwd] using hok.hdr0
     · simpa [fwd] using hok.hdr1
     · simpa [fwd] using hok.own (n + 2) (by omega) hn
-  have hx : Ctx (World.withL W L).prog (World.cplSite W tf.core.name) L fp hdr FS
+  have hx : RunCtx (World.withL W L).prog (World.cplSite W tf.core.name) L fp hdr FS
       (AgOf W tf fp σ es kfps hdr FS pf.fn.frameSize) (calls es) (KRof kfps ck) := by
     refine ⟨hA, retRegs_of hok.hdr0 hok.hdr1, ?_⟩
     rintro i kfp ks kids ⟨m, hks, rfl⟩
@@ -428,7 +428,7 @@ theorem frameConsistent_of (hW : FrameWordsStmt) (hR : PathRunStmt) : FrameConsi
   obtain ⟨FS, hcg, h⟩ := hW W hc tf htf hsc pf hpl hta hns fp hfp kfps hdr
   refine ⟨FS, hcg, fun σ es vs hw ha => ⟨(h σ es vs hw ha).1, fun L ck hok hev hjt hk => ?_⟩⟩
   exact hR W hc tf htf pf hpl fp σ es kfps hdr (FS σ)
-    ((h σ es vs hw ha).2 hok.len hok.tail ⟨L.read, hev⟩) L ck hok hev hjt hk
+    ((h σ es vs hw ha).2 hok.len hok.tail hok.hdrK ⟨L.read, hev⟩) L ck hok hev hjt hk
 
 /-- **The frame is consistent, given the frame side.** -/
 theorem frameConsistent_of_words (hW : FrameWordsStmt) : FrameConsistentStmt :=
