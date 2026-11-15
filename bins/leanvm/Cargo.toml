@@ -21,10 +21,10 @@ lean_da.workspace = true
 lean_compiler.workspace = true
 lean_xmss.workspace = true
 lean_sphincs.workspace = true
-stable_leanvm_core = { path = "../../crates/stable/leanvm_core" }
-experimental_leanvm_core = { path = "../../crates/experimental/leanvm_core" }
-stable_keccak_gkr = { path = "../../crates/stable/keccak_gkr", features = ["bench"] }
-experimental_keccak_gkr = { path = "../../crates/experimental/keccak_gkr", features = ["bench"] }
+stable_leanvm_core = { path = "../../crates/stable-prover/leanvm_core" }
+experimental_leanvm_core = { path = "../../crates/experimental-prover/leanvm_core" }
+stable_keccak_gkr = { path = "../../crates/stable-prover/keccak_gkr", features = ["bench"] }
+experimental_keccak_gkr = { path = "../../crates/experimental-prover/keccak_gkr", features = ["bench"] }
 bench.workspace = true
 rand.workspace = true
 tracing.workspace = true

@@ -119,7 +119,7 @@ fn public_api_end_to_end() {
     assert_eq!(dropped.0, without_blobs);
 }
 
-#[cfg(feature = "experimental")]
+#[cfg(feature = "experimental-prover")]
 #[test]
 fn experimental_prover_through_the_api() {
     setup::<Stable>();

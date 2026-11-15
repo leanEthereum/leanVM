@@ -14,4 +14,4 @@ tracing.workspace = true
 
 [dev-dependencies]
 rand.workspace = true
-stable_leanvm_core = { path = "../stable/leanvm_core" }
+stable_leanvm_core = { path = "../stable-prover/leanvm_core" }

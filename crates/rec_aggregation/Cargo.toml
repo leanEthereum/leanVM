@@ -25,5 +25,5 @@ signers-cache = ["dep:rand"]
 [dev-dependencies]
 rand.workspace = true
 # The prover the tests run, and the stable tree's own copies of what the crate restates, to pin it.
-stable_leanvm_core = { path = "../stable/leanvm_core" }
-stable_pcs = { path = "../stable/pcs" }
+stable_leanvm_core = { path = "../stable-prover/leanvm_core" }
+stable_pcs = { path = "../stable-prover/pcs" }

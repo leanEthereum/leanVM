@@ -1,6 +1,6 @@
 """Differential test of the Lean proof wire encoding against leanVM's Rust one.
 
-leanVM's proof travels as one byte string, `Proof::to_bytes` (`crates/stable/fiat_shamir/src/wire.rs`), which
+leanVM's proof travels as one byte string, `Proof::to_bytes` (`crates/stable-prover/fiat_shamir/src/wire.rs`), which
 prunes every Merkle phase, and is decoded by `Proof::from_bytes`, which unprunes it, hashing the
 nodes the paths share, and refuses anything but the one encoding of a proof within its bounds (the
 pruning is scaraven's idea, https://github.com/scaraven). lean_vm transcribes both (`Proof.fromBytes`, `Proof.toBytes`,

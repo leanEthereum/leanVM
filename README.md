@@ -60,10 +60,10 @@ leanVM is designed for security:
 
 The Rust prover exists twice, proving the same protocol with the same proof bytes:
 
- * `crates/stable`: plain, portable, safe code, as short as the protocol allows, slower
- * `crates/experimental`: the optimized prover (NEON, AVX2, AVX-512, cache-aware kernels), where performance work lands
+ * `crates/stable-prover`: plain, portable, safe code, as short as the protocol allows, slower
+ * `crates/experimental-prover`: the optimized prover (NEON, AVX2, AVX-512, cache-aware kernels), where performance work lands
 
-Both are verified by the one verifier in `crates/verifier`, and share the zkDSL compiler, the signature schemes, LeanDA, the public API (`crates/leanvm`, with the experimental prover behind its `experimental` feature) and the whole aggregation (`crates/rec_aggregation` and its guest), which is generic over the `isa::Prover` trait each prover implements. The benchmarks below are the experimental prover's; add `--prover stable` to any command for the other.
+Both are verified by the one verifier in `crates/verifier`, and share the zkDSL compiler, the signature schemes, LeanDA, the public API (`crates/leanvm`, with the experimental prover behind its `experimental-prover` feature) and the whole aggregation (`crates/rec_aggregation` and its guest), which is generic over the `isa::Prover` trait each prover implements. The benchmarks below are the experimental prover's; add `--prover stable` to any command for the other.
 
 ## benchmarks
 

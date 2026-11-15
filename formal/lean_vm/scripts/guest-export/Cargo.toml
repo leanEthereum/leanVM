@@ -40,8 +40,8 @@ lean_compiler = { path = "../../../../crates/lean_compiler" }
 lean_xmss = { path = "../../../../crates/lean_xmss" }
 lean_sphincs = { path = "../../../../crates/lean_sphincs" }
 lean_da = { path = "../../../../crates/lean_da" }
-stable_leanvm_core = { path = "../../../../crates/stable/leanvm_core" }
-stable_pcs = { path = "../../../../crates/stable/pcs" }
+stable_leanvm_core = { path = "../../../../crates/stable-prover/leanvm_core" }
+stable_pcs = { path = "../../../../crates/stable-prover/pcs" }
 rand = "0.9"
 tracing = "0.1.26"
 

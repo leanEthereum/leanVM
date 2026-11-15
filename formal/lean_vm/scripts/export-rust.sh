@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Prove small guest programs with the leanVM Rust prover and write each proof in the formats the
 # verifiers read (the Lean verifier, `cli/LeanvmVerify.lean`; `crates/verifier`'s `Proof`, as
-# `scripts/rust-verifier-cli` reads it; `crates/stable/fiat_shamir/src/wire.rs`, `Proof::to_bytes`).
+# `scripts/rust-verifier-cli` reads it; `crates/stable-prover/fiat_shamir/src/wire.rs`, `Proof::to_bytes`).
 #
 # Usage: scripts/export-rust.sh fixtures|traces <output dir> [--corpus]
 # (`export-verifier-fixtures-rust.sh` and `export-prover-traces-rust.sh` name the two modes.)
@@ -27,7 +27,7 @@
 #
 # The proof is the honest proof of the Rust `prove`, its Merkle paths unpruned
 # (`leanvm_core::cpu::scalar_proof`). The guests (`fixed`) are the program of
-# crates/stable/leanvm_core/tests/verifiers/fixture.rs at 4, 300 and 1000 loop steps,
+# crates/stable-prover/leanvm_core/tests/verifiers/fixture.rs at 4, 300 and 1000 loop steps,
 # crates/lean_compiler/tests/programs/fibonacci.py, and eight more programs of that suite, three
 # at each of the four rates, read from the source tree. Every proof is verified by the Rust
 # `cpu::verify` before it is written, and `Proof::from_bytes` must give it back from `proof.wire`.
@@ -67,11 +67,11 @@ edition = "2024"
 [workspace]
 
 [dependencies]
-leanvm_core = { package = "stable_leanvm_core", path = "$checkout/crates/stable/leanvm_core" }
+leanvm_core = { package = "stable_leanvm_core", path = "$checkout/crates/stable-prover/leanvm_core" }
 lean_compiler = { path = "$checkout/crates/lean_compiler" }
-primitives = { package = "stable_primitives", path = "$checkout/crates/stable/primitives" }
+primitives = { package = "stable_primitives", path = "$checkout/crates/stable-prover/primitives" }
 verifier = { path = "$checkout/crates/verifier" }
-fiat_shamir = { package = "stable_fiat_shamir", path = "$checkout/crates/stable/fiat_shamir" }
+fiat_shamir = { package = "stable_fiat_shamir", path = "$checkout/crates/stable-prover/fiat_shamir" }
 
 [profile.release]
 lto = "thin"
@@ -81,7 +81,7 @@ EOF
 # The chain program and the suite's header readers, from the tests that define them.
 cat > "$work/src/main.rs" <<EOF
 #[allow(dead_code)]
-#[path = "$checkout/crates/stable/leanvm_core/tests/verifiers/fixture.rs"]
+#[path = "$checkout/crates/stable-prover/leanvm_core/tests/verifiers/fixture.rs"]
 mod fixture;
 #[allow(dead_code, unused_imports)]
 #[path = "$checkout/crates/lean_compiler/tests/suite/py_source.rs"]

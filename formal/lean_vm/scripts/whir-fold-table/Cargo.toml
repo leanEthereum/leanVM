@@ -1,5 +1,5 @@
 # The deployed WHIR fold rounds as Lean data: `lean_vm/LeanVM/Protocol/ToArkLib/Whir/AffineCombinerDeployedTable.lean`,
-# from the security search (`crates/experimental/pcs/src/whir_config.rs`, `derive_config_with_log_inv_rate`) at every
+# from the security search (`crates/experimental-prover/pcs/src/whir_config.rs`, `derive_config_with_log_inv_rate`) at every
 # admissible shape. The search is the parameters' derivation, not prover code: the stable prover reads the verifier's
 # table instead, so only the experimental tree keeps it, and this is the one script built against that tree.
 [package]
@@ -12,7 +12,7 @@ publish = false
 [workspace]
 
 [dependencies]
-pcs = { package = "experimental_pcs", path = "../../../../crates/experimental/pcs" }
+pcs = { package = "experimental_pcs", path = "../../../../crates/experimental-prover/pcs" }
 
 [profile.release]
 codegen-units = 1
