@@ -7,7 +7,6 @@
 
 module
 
-public import LeanVM.Guest.Backend.Complete.Frame
 public import LeanVM.Guest.Backend.Complete.PathRun
 
 /-!
@@ -19,8 +18,9 @@ both follow from facts about words: `Rds Ag fp size w` says every memory `Ag` ad
 cell `n` of the frame `fp` below `size`; then a `SET` holds when its cell's word is the immediate's,
 an `XOR`/`MUL` when its words add or multiply, a `DEREF` when the memory reads the word at the
 address its pointer word gives (a load, a callee frame cell, a jump table slot), a copy into the
-next frame when the memory holds the product there, a `KECCAK` when its words are related. The
-frame side's per-instruction relation `OpW` gives `HW` at once (`opW_hw`, `opW_jw`).
+next frame when the memory holds the product there, a `KECCAK` when its words are related; the
+calls' segments when the callee frames hold their cells. The frame side's per-instruction relation
+`OpW` gives them for the walk's instance (`FrameOp.lean`, `opOK_instOf`).
 -/
 
 namespace LeanVM.Guest.Backend.Complete
@@ -110,16 +110,18 @@ theorem mulNextFrame_hw (h : Rds Ag fp size w) {pc a b c : ℕ} (ha : a < size) 
   rw [idx_mul]
   exact hr κ L hA
 
-/-- **A `KECCAK`**: its words are related. -/
+/-- **A `KECCAK`**: its input words and some output words, those it writes the cells' words, are
+related. -/
 theorem keccak_hw (h : Rds Ag fp size w) {pc m0 m1 m2 m3 tail b8 cap out : ℕ} {inOdd outOdd : Bool}
-    {oc : KeccakOutputCells}
+    {oc : KeccakOutputCells} {output : Fin 13 → E}
     (hin : ∀ c : Fin 13, keccakInOff m0 m1 m2 m3 tail b8 cap c.val < size)
-    (hout : ∀ c : Fin 13, c.val < oc.cellCount → out + c.val < size)
+    (hout : ∀ c : Fin 13, c.val < oc.cellCount → out + c.val < size ∧ output c = w (out + c.val))
     (hw : KeccakCellsRelation (fun c : Fin 13 => w (keccakInOff m0 m1 m2 m3 tail b8 cap c)) inOdd
-      (fun c : Fin 13 => w (out + c.val)) outOdd oc) :
+      output outOdd oc) :
     HW Γ fp Ag pc (.keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd oc) := by
   intro κ L hA
-  exact ⟨_, _, fun c => h.read hA (hin c), fun c hc => h.read hA (hout c hc), hw⟩
+  exact ⟨_, output, fun c => h.read hA (hin c), fun c hc => by
+    rw [(hout c hc).2]; exact h.read hA (hout c hc).1, hw⟩
 
 /-- **A `JUMP`** on words read from its cells. -/
 theorem jw_of {hdr : E × E} {FS : FrameSpec} (h : Rds Ag fp size (fwd hdr FS)) {oc od of : ℕ}
@@ -285,82 +287,27 @@ theorem dispatchPre_segW (hr : Rds Ag fp size w) {nfp joinCell x entry first pos
   exact segW_cons.mpr ⟨set_hw hr hjc hjw, segW_cons.mpr ⟨derefAt_hw hr hnfp hjc hkw
     fun κ L hA => (hhdr κ L hA).1, segW_cons.mpr ⟨slot_hw hr hx hen hj hslot, segW_nil rfl⟩⟩⟩
 
+/-! ## A `KECCAK`'s cells -/
+
+theorem keccakIn_mem {m0 m1 m2 m3 tail b8 cap out : ℕ} {inOdd outOdd : Bool}
+    {oc : KeccakOutputCells} (c : Fin 13) :
+    keccakInOff m0 m1 m2 m3 tail b8 cap c.val ∈
+      opCells (.keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd oc) := by
+  simp only [opCells, List.mem_append, List.mem_cons, List.mem_map, List.mem_range,
+    List.not_mem_nil, or_false, keccakInOff]
+  have := c.isLt
+  split_ifs <;> first
+    | (left; left; left; simp_all; done)
+    | (left; left; right; exact ⟨_, by omega, rfl⟩)
+    | (left; right; exact ⟨_, by omega, rfl⟩)
+
+theorem keccakOut_mem {m0 m1 m2 m3 tail b8 cap out : ℕ} {inOdd outOdd : Bool}
+    {oc : KeccakOutputCells} (c : Fin 13) (hc : c.val < oc.cellCount) :
+    out + c.val ∈ opCells (.keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd oc) := by
+  simp only [opCells, List.mem_append, List.mem_map, List.mem_range]
+  exact Or.inr ⟨_, hc, rfl⟩
+
 end Bridge
-
-/-! ## The frame side's relation -/
-
-section OpW
-
-variable {κ₀ : ℕ} {Γ : Site κ₀} {Ag : (κ : ℕ) → MemoryImage κ → Prop} {I : Inst} {Ψ : ℕ → E}
-
-/-- The memories `Ag` admits hold the frame words `Ψ` and are readers of the instance. -/
-def AgRd (Ag : (κ : ℕ) → MemoryImage κ → Prop) (I : Inst) (Ψ : ℕ → E) : Prop :=
-  ∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L → FrameRd I Ψ L.read ∧ I.Rd L.read
-
-/-- The instance's immediate words are the layout's. -/
-def KwOf (Γ : Site κ₀) (I : Inst) : Prop :=
-  ∀ k, I.kw k = OffsetInstruction.immediateWord (resolveK Γ.l Γ.pc0 Γ.frame k).1
-    (resolveK Γ.l Γ.pc0 Γ.frame k).2
-
-theorem AgRd.rds (h : AgRd Ag I Ψ) : Rds Ag I.fp I.size (fw I Ψ) := by
-  intro κ L hA n hn
-  obtain ⟨⟨h0, h1, h2⟩, -⟩ := h κ L hA
-  rcases n with _ | _ | n
-  · simpa [fw] using h0
-  · simpa [fw] using h1
-  · simpa [fw] using h2 (n + 2) (by omega) hn
-
-theorem fw_eq_fwd (I : Inst) (FS : FrameSpec) : fw I FS.Ψ = fwd I.hdr FS := rfl
-
-/-- **The frame side's relation of a straight-line instruction gives `HW`**, its own cells in the
-frame. -/
-theorem opW_hw (h : AgRd Ag I Ψ) (hkw : KwOf Γ I) {pc : ℕ} {o : LOp}
-    (hj : ∀ oc od of, o ≠ .jump oc od of) (hc : ∀ n ∈ opCells o, n < I.size) (hw : OpW I Ψ o) :
-    HW Γ I.fp Ag pc o := by
-  have hr := h.rds
-  cases o with
-  | set o k => exact set_hw hr (hc o (by simp [opCells])) (hw.trans (hkw k))
-  | xor a b c =>
-      exact xor_hw hr (hc a (by simp [opCells])) (hc b (by simp [opCells]))
-        (hc c (by simp [opCells])) hw
-  | mul a b c =>
-      exact mul_hw hr (hc a (by simp [opCells])) (hc b (by simp [opCells]))
-        (hc c (by simp [opCells])) hw
-  | deref p off d mode =>
-      cases mode with
-      | cell =>
-          exact deref_hw hr (hc p (by simp [opCells])) (hc d (by simp [opCells])) hw.1
-            fun κ L hA => hw.2 L.read (h κ L hA).1 (h κ L hA).2
-      | fp =>
-          exact deref_hw hr (hc p (by simp [opCells])) (hc d (by simp [opCells])) hw.1
-            fun κ L hA => hw.2 L.read (h κ L hA).1 (h κ L hA).2
-      | pc => exact hw.elim
-  | jump oc od of => exact absurd rfl (hj oc od of)
-  | keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd oc =>
-      refine keccak_hw hr (fun c => hc _ ?_) (fun c hc' => hc _ ?_) hw
-      · simp only [opCells, List.mem_append, List.mem_cons, List.mem_map, List.mem_range,
-          List.not_mem_nil, or_false, keccakInOff]
-        have := c.isLt
-        split_ifs <;> first
-          | (left; left; left; simp_all; done)
-          | (left; left; right; exact ⟨_, by omega, rfl⟩)
-          | (left; right; exact ⟨_, by omega, rfl⟩)
-      · simp only [opCells, List.mem_append, List.mem_map, List.mem_range]
-        exact Or.inr ⟨_, hc', rfl⟩
-  | slot => exact hw.elim
-  | mulNextFrame => exact hw.elim
-
-/-- **The frame side's relation of a straight-line `JUMP` gives `JW`**: it falls through. -/
-theorem opW_jw {FS : FrameSpec} (h : AgRd Ag I FS.Ψ) {oc od of : ℕ} {fall : Prop}
-    {taken : E → E → Prop} (hc : ∀ n ∈ opCells (.jump oc od of), n < I.size)
-    (hw : OpW I FS.Ψ (.jump oc od of)) (hf : fall) : JW I.fp I.hdr FS Ag oc od of fall taken := by
-  have hr : Rds Ag I.fp I.size (fwd I.hdr FS) := h.rds
-  obtain ⟨h0, hd, hf'⟩ := hw
-  exact jw_of hr (hc oc (by simp [opCells])) (hc od (by simp [opCells]))
-    (hc of (by simp [opCells])) (by rw [← fw_eq_fwd, h0]; exact (isInK_iff _).mpr ⟨0, by simp⟩)
-    hd hf' (fun _ => hf) (fun h' => absurd h0 h')
-
-end OpW
 
 end
 end LeanVM.Guest.Backend.Complete
