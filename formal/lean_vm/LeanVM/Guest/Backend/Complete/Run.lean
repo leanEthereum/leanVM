@@ -459,23 +459,26 @@ theorem call_runs (hL : Loaded prog Γ code) (h : List LHint) (c : CallSite) :
       pos + stmtSize (.call h c) := by
     simp only [stmtSize, callRets_length, hlen]; omega
   rcases jump_runC hL hj hjmp with ⟨⟨hnt, hsr, hn⟩, r1⟩ | ⟨d, f, ⟨ht, hd, hf, r, ⟨hrr, hrun⟩, hk⟩, r1⟩
-  · have r2 := seg_runC hL _ _ (callRets_noJump _ _ _) hrets' hsr
-    refine Outc.fall (runC_cast ((r0.trans r1).trans r2) (by rw [hend]) rfl) hn
-      (by simp [hnt]) (fun op => ?_)
+  · have hc' : ¬ (c.tail = true ∧ callTaken σ s) := fun h => hnt h.2
+    simp only [hc', ↓reduceIte]
+    have r2 := seg_runC hL _ _ (callRets_noJump _ _ _) hrets' hsr
+    refine Outc.fall (runC_cast ((r0.trans r1).trans r2) (by rw [hend]) rfl) hn rfl (fun op => ?_)
     simp only [Pi.add_apply, ksum_cons]
     omega
   · subst hd hf
     have r1' := runC_cast r1 (by rw [limb_ofK, limb_ofK]) rfl
     have rk := (r0.trans r1').trans hrun
     cases htl : c.tail
-    · simp only [htl, Bool.false_eq_true, ↓reduceIte] at hk
+    · simp only [Bool.false_eq_true, false_and, ↓reduceIte]
+      simp only [htl, Bool.false_eq_true, ↓reduceIte] at hk
       obtain ⟨rfl, hsr, hn⟩ := hk
       have r2 := seg_runC hL _ _ (callRets_noJump _ _ _) hrets' hsr
-      refine Outc.fall (runC_cast (rk.trans r2) (by rw [hend]) rfl) hn (by simp)
+      refine Outc.fall (runC_cast (rk.trans r2) (by rw [hend]) rfl) hn rfl
         (fun op => ?_)
       simp only [Pi.add_apply, ksum_cons]
       omega
-    · simp only [htl, ↓reduceIte] at hk
+    · simp only [ht, and_self, ↓reduceIte]
+      simp only [htl, ↓reduceIte] at hk
       obtain ⟨hrf, hk⟩ := hk
       refine ⟨_, ks', fun op => ?_, Or.inr (Or.inr (Or.inl ⟨r, rk, hrf, hk⟩))⟩
       simp only [Pi.add_apply, ksum_cons]
