@@ -116,10 +116,53 @@ theorem noAlloc_emit : NoAlloc isEmit := fun _ _ => rfl
 theorem noAlloc_enter : NoAlloc isEnter := fun _ _ => rfl
 theorem noAlloc_leave : NoAlloc isLeave := fun _ _ => rfl
 
-theorem needScope_ok {live : VMap Unit} {vs : List V} {what : String} {f : Unit → Except String SSt}
-    {s' : SSt} (h : (needScope live vs what >>= f) = .ok s') : f () = .ok s' := by
-  obtain ⟨u, _, hf⟩ := except_bind_inv h
-  exact hf
+theorem scopeInner_cons {rc : ℕ} {blk : SSt → Except String SSt}
+    (hb : ∀ s s', blk s = .ok s' → Cons rc s.rest s'.rest) {s s' : SSt}
+    (h : scopeInner rc blk s = .ok s') : Cons rc s.rest s'.rest := by
+  unfold scopeInner at h
+  split at h
+  · cases h
+  · next s₁ h₁ =>
+    split at h
+    · cases h
+    · next s₂ h₂ =>
+      split at h
+      · cases h
+      · next s₃ h₃ =>
+        split at h
+        · cases h
+        · next s₄ h₄ =>
+          cases h
+          exact (expectS_cons noAlloc_enter h₁).trans ((hb _ _ h₂).trans
+            ((flushAt_cons h₃).trans (expectS_cons (s' := s₄) noAlloc_leave h₄)))
+
+theorem scopeFlat_cons {rc : ℕ} {st : Stmt} {s s' : SSt} (h : scopeFlat rc st s = .ok s') :
+    Cons rc s.rest s'.rest := by
+  unfold scopeFlat at h
+  split at h
+  · cases h
+  · next s₁ h₁ =>
+    split at h
+    · cases h
+    · next s₂ h₂ =>
+      split at h
+      · cases h
+      · cases h
+        exact (flushAt_cons h₁).trans (expectS_cons noAlloc_emit h₂)
+
+theorem scopeIteTail_cons {rc : ℕ} {e : Bool} {nz : SSt → Except String SSt} {b : Bool}
+    (hnz : ∀ s s', nz s = .ok s' → Cons rc s.rest s'.rest) {s s' : SSt}
+    (h : scopeIteTail e nz b s = .ok s') : Cons rc s.rest s'.rest := by
+  unfold scopeIteTail at h
+  split at h
+  · split at h
+    · cases h
+    · next s₂ h₂ =>
+      exact (hnz _ _ h₂).trans (expectS_cons
+        (s := { s₂ with retDone := s.retDone || s₂.retDone }) noAlloc_emit h)
+  · split at h
+    · cases h
+    · exact expectS_cons noAlloc_emit h
 
 mutual
 theorem scopeBlock_cons (rc : ℕ) : ∀ (ss : List Stmt) (s s' : SSt), scopeBlock rc ss s = .ok s' →
@@ -130,53 +173,41 @@ theorem scopeBlock_cons (rc : ℕ) : ∀ (ss : List Stmt) (s s' : SSt), scopeBlo
       exact Cons.refl _ _
   | st :: rest, s, s', h => by
       simp only [scopeBlock] at h
-      obtain ⟨s₁, h₁, h₂⟩ := except_bind_inv h
-      exact (scopeStmt_cons rc st s s₁ h₁).trans (scopeBlock_cons rc rest s₁ s' h₂)
+      split at h
+      · cases h
+      · next s₁ h₁ => exact (scopeStmt_cons rc st s s₁ h₁).trans (scopeBlock_cons rc rest s₁ s' h)
 
 theorem scopeStmt_cons (rc : ℕ) : ∀ (st : Stmt) (s s' : SSt), scopeStmt rc st s = .ok s' →
     Cons rc s.rest s'.rest
   | .ite c z nz, s, s', h => by
       simp only [scopeStmt] at h
-      obtain ⟨s₁, h₁, h⟩ := except_bind_inv h
-      have h' := needScope_ok h
-      obtain ⟨s₂, h₂, h⟩ := except_bind_inv h'
-      have c₁ := flushAt_cons h₁
-      have c₂ := scopeInner_cons rc z s₁ s₂ h₂
       split at h
-      · obtain ⟨s₃, h₃, h₄⟩ := except_bind_inv h
-        have c₃ := scopeInner_cons rc nz _ s₃ h₃
-        exact c₁.trans (c₂.trans (c₃.trans (expectS_cons
-          (s := { s₃ with retDone := s₂.retDone || s₃.retDone }) noAlloc_emit h₄)))
-      · split at h
+      · cases h
+      · next s₀ h₀ =>
+        split at h
         · cases h
-        · exact c₁.trans (c₂.trans (expectS_cons noAlloc_emit h))
+        · split at h
+          · cases h
+          · next s₁ h₁ =>
+            exact (flushAt_cons h₀).trans ((scopeInner_cons (scopeBlock_cons rc z) h₁).trans
+              (scopeIteTail_cons (fun _ _ h' => scopeInner_cons (scopeBlock_cons rc nz) h') h))
   | .match_ x arms, s, s', h => by
       simp only [scopeStmt] at h
-      obtain ⟨s₁, h₁, h⟩ := except_bind_inv h
-      have h' := needScope_ok h
-      obtain ⟨s₂, h₂, h₃⟩ := except_bind_inv h'
-      exact (flushAt_cons h₁).trans ((scopeArms_cons rc arms s₁ _ s₂ h₂).trans
-        (expectS_cons noAlloc_emit h₃))
-  | .atom _, s, s', h | .call .., s, s', h | .callIf .., s, s', h | .dispatch .., s, s', h
-  | .ret _, s, s', h => by
-      simp only [scopeStmt] at h
-      obtain ⟨s₁, h₁, h⟩ := except_bind_inv h
-      obtain ⟨s₂, h₂, h⟩ := except_bind_inv h
-      have h' := needScope_ok h
-      cases h'
-      exact (flushAt_cons h₁).trans (expectS_cons noAlloc_emit h₂)
-
-theorem scopeInner_cons (rc : ℕ) : ∀ (ss : List Stmt) (s s' : SSt), scopeInner rc ss s = .ok s' →
-    Cons rc s.rest s'.rest
-  | ss, s, s', h => by
-      simp only [scopeInner] at h
-      obtain ⟨s₁, h₁, h⟩ := except_bind_inv h
-      obtain ⟨s₂, h₂, h⟩ := except_bind_inv h
-      obtain ⟨s₃, h₃, h⟩ := except_bind_inv h
-      obtain ⟨s₄, h₄, h⟩ := except_bind_inv h
-      cases h
-      exact (expectS_cons noAlloc_enter h₁).trans ((scopeBlock_cons rc ss s₁ s₂ h₂).trans
-        ((flushAt_cons h₃).trans (expectS_cons (s' := s₄) noAlloc_leave h₄)))
+      split at h
+      · cases h
+      · next s₀ h₀ =>
+        split at h
+        · cases h
+        · split at h
+          · cases h
+          · next s₁ h₁ =>
+            exact (flushAt_cons h₀).trans ((scopeArms_cons rc arms _ _ s₁ h₁).trans
+              (expectS_cons noAlloc_emit h))
+  | .atom _, s, s', h => scopeFlat_cons h
+  | .call .., s, s', h => scopeFlat_cons h
+  | .callIf .., s, s', h => scopeFlat_cons h
+  | .dispatch .., s, s', h => scopeFlat_cons h
+  | .ret _, s, s', h => scopeFlat_cons h
 
 theorem scopeArms_cons (rc : ℕ) : ∀ (arms : List (List Stmt)) (s : SSt) (acc : Bool) (s' : SSt),
     scopeArms rc arms s acc = .ok s' → Cons rc s.rest s'.rest
@@ -186,9 +217,11 @@ theorem scopeArms_cons (rc : ℕ) : ∀ (arms : List (List Stmt)) (s : SSt) (acc
       exact Cons.refl _ _
   | arm :: more, s, acc, s', h => by
       simp only [scopeArms] at h
-      obtain ⟨s₁, h₁, h₂⟩ := except_bind_inv h
-      exact (scopeInner_cons rc arm s s₁ h₁).trans
-        (scopeArms_cons rc more { s₁ with retDone := s.retDone } _ s' h₂)
+      split at h
+      · cases h
+      · next s₁ h₁ =>
+        exact (scopeInner_cons (scopeBlock_cons rc arm) h₁).trans
+          (scopeArms_cons rc more { s₁ with retDone := s.retDone } _ s' h)
 end
 
 /-- **A scoped function's return areas fit its return cells.** -/
@@ -198,16 +231,20 @@ theorem scoped_retShort {tf : TracedFn} (h : Scoped tf) :
   split at h
   · next he =>
     unfold scopedE at he
-    obtain ⟨s₁, h₁, he⟩ := except_bind_inv he
-    obtain ⟨s₂, h₂, he⟩ := except_bind_inv he
     split at he
-    · next hemp =>
-      obtain ⟨p, hp, hpp⟩ := (scopeBlock_cons _ _ _ _ h₁).trans (flushAt_cons h₂)
-      intro vs hm
-      have hr : s₂.rest = [] := by simpa using hemp
-      rw [hr, List.append_nil] at hp
-      exact hpp vs (hp ▸ hm)
     · cases he
+    · next s₁ h₁ =>
+      split at he
+      · cases he
+      · next s₂ h₂ =>
+        split at he
+        · next hemp =>
+          obtain ⟨p, hp, hpp⟩ := (scopeBlock_cons _ _ _ _ h₁).trans (flushAt_cons h₂)
+          intro vs hm
+          have hr : s₂.rest = [] := by simpa using hemp
+          rw [hr, List.append_nil] at hp
+          exact hpp vs (hp ▸ hm)
+        · cases he
   · cases h
 
 end
