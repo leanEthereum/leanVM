@@ -61,27 +61,34 @@ structure Inst where
 /-- The frame pointer's word. -/
 def Inst.fpw (I : Inst) : E := ofK (addressOfIndex I.fp)
 
-/-- A temporary's cell. -/
-def Inst.tc (I : Inst) (n : ℕ) : Prop := ∃ t ∈ I.tmps, cellP I.locs t = some n
+/-- The temporaries of the path. -/
+def Inst.ptmps (I : Inst) : List V := I.es.flatMap Memory.Ev.tmps
+
+/-- A cell of a temporary of the path. -/
+def Inst.tc (I : Inst) (n : ℕ) : Prop := ∃ t ∈ I.ptmps, cellP I.locs t = some n
+
+/-- A cell of a temporary of the body. -/
+def Inst.tcA (I : Inst) (n : ℕ) : Prop := ∃ t ∈ I.tmps, cellP I.locs t = some n
 
 /-- A valuation that agrees with the instance's off the temporaries. -/
 def Inst.Same (I : Inst) (σ' : Val) : Prop := ∀ v, v ∉ I.tmps → σ' v = I.σ v
 
 /-- **A temporary's load**: the `DEREF` through the pointer word `pw` at offset `off` into the
-temporary's cell `d` reads, on every reader of every valuation `Same` as the instance's, the
-temporary's word. -/
+cell `d` of a temporary of the path reads, on every reader of every valuation `Same` as the
+instance's, the temporary's word. -/
 def Inst.TL (I : Inst) (pw : E) (off d : ℕ) : Prop :=
-  ∃ t ∈ I.tmps, cellP I.locs t = some d ∧ off = 0 ∧ IsInK pw ∧ ∀ (σ' : Val) (rd : Reader),
+  ∃ t ∈ I.ptmps, cellP I.locs t = some d ∧ off = 0 ∧ IsInK pw ∧ ∀ (σ' : Val) (rd : Reader),
     I.Same σ' → (∀ e ∈ I.es, e.Holds rd σ') → rd (pw.limb 0 * addressOfIndex 0) = some (σ' t)
 
-/-- **The pools of a scope hold on the frame words `Ψ`** (a load into a temporary's cell is
-remembered with no word). -/
-structure PoolW (I : Inst) (Ψ : ℕ → E) (sc : Scope) : Prop where
+/-- **The pools of a scope hold on the frame words `Ψ`**, the places being `locs` (a load into a
+temporary's cell is remembered with no word). -/
+structure PoolW (I : Inst) (Ψ : ℕ → E) (locs : VMap Loc) (sc : Scope) : Prop where
   consts : ∀ k o, sc.consts.get? k = some o → Ψ o = Guest.word k.1 k.2
   xors : ∀ k o, sc.xors.get? k = some o → Ψ o = Ψ k.1 + Ψ k.2
   muls : ∀ k o, sc.muls.get? k = some o → Ψ o = Ψ k.1 * Ψ k.2
   loads : ∀ k o, sc.loads.get? k = some o → IsInK (Ψ k.1) ∧
-    (¬ I.tc o → ∀ rd, I.Rd rd → rd ((Ψ k.1).limb 0 * addressOfIndex k.2) = some (Ψ o))
+    ((∀ t ∈ I.tmps, cellP locs t ≠ some o) →
+      ∀ rd, I.Rd rd → rd ((Ψ k.1).limb 0 * addressOfIndex k.2) = some (Ψ o))
   mats : ∀ c l, sc.mats.get? c = some l → ∀ p ∈ l, Ψ p.2 = Ψ c * ofK (addressOfIndex p.1)
   selfFp : ∀ o, sc.selfFp = some o → Ψ o = I.fpw
 
@@ -131,11 +138,12 @@ theorem assign_sat {C : (ℕ → E) → Prop} {n o : ℕ} {w : (ℕ → E) → E
   rw [Function.update_self, hw Ψ o _ le_rfl]
 
 /-- A constraint the walk of a path keeps: satisfiable, blind from `n` on, every frame word it
-allows keeps the pools of `sc`, and the pools' cells are past the header and below `n`. -/
-structure COk (I : Inst) (C : (ℕ → E) → Prop) (n : ℕ) (sc : Scope) : Prop where
+allows keeps the pools of `sc` (the places being `locs`), and the pools' cells are past the
+header and below `n`. -/
+structure COk (I : Inst) (C : (ℕ → E) → Prop) (n : ℕ) (sc : Scope) (locs : VMap Loc) : Prop where
   sat : ∃ Ψ, C Ψ
   blind : Blind C n
-  pools : ∀ Ψ, C Ψ → PoolW I Ψ sc
+  pools : ∀ Ψ, C Ψ → PoolW I Ψ locs sc
   cells : ScopeGood n sc
 
 /-- The constraint `C'` is `C` or stronger. -/
@@ -150,65 +158,79 @@ theorem Stronger.trans {C₁ C₂ C₃ : (ℕ → E) → Prop} (h₁ : Stronger 
 
 section Inserts
 
-variable {I : Inst} {Ψ : ℕ → E} {sc : Scope}
+variable {I : Inst} {Ψ : ℕ → E} {locs : VMap Loc} {sc : Scope}
 
-theorem PoolW.insertConst (h : PoolW I Ψ sc) {k : ℕ × ℕ} {o : Cell}
+theorem cellP_mono {locs locs' : VMap Loc}
+    (hl : ∀ (v : V) (x : Loc), locs[v]? = some x → locs'[v]? = some x) {v : V} {n : ℕ}
+    (h : cellP locs v = some n) : cellP locs' v = some n := by
+  unfold cellP at h ⊢
+  split at h
+  · next n' he => rw [hl v _ he]; exact h
+  · exact nomatch h
+
+/-- The pools' facts with more places: a load's word is asked of fewer cells. -/
+theorem PoolW.grow (h : PoolW I Ψ locs sc) {locs' : VMap Loc}
+    (hl : ∀ (v : V) (x : Loc), locs[v]? = some x → locs'[v]? = some x) : PoolW I Ψ locs' sc :=
+  { h with loads := fun k o hk => ⟨(h.loads k o hk).1, fun ht => (h.loads k o hk).2
+      fun t htm he => ht t htm (cellP_mono hl he)⟩ }
+
+theorem PoolW.insertConst (h : PoolW I Ψ locs sc) {k : ℕ × ℕ} {o : Cell}
     (ho : Ψ o = Guest.word k.1 k.2) :
-    PoolW I Ψ { sc with consts := sc.consts.insert k o } := by
+    PoolW I Ψ locs { sc with consts := sc.consts.insert k o } := by
   refine { h with consts := fun k' o' hk => ?_ }
   rw [PMap.get?_insert] at hk
   split at hk
   · next he => cases hk; subst he; exact ho
   · exact h.consts k' o' hk
 
-theorem PoolW.insertConstIfNew (h : PoolW I Ψ sc) {k : ℕ × ℕ} {o : Cell}
+theorem PoolW.insertConstIfNew (h : PoolW I Ψ locs sc) {k : ℕ × ℕ} {o : Cell}
     (ho : Ψ o = Guest.word k.1 k.2) :
-    PoolW I Ψ { sc with consts := sc.consts.insertIfNew k o } := by
+    PoolW I Ψ locs { sc with consts := sc.consts.insertIfNew k o } := by
   refine { h with consts := fun k' o' hk => ?_ }
   rw [PMap.get?_insertIfNew] at hk
   split at hk
   · next he => cases hk; rw [he.1]; exact ho
   · exact h.consts k' o' hk
 
-theorem PoolW.insertXor (h : PoolW I Ψ sc) {k : ℕ × ℕ} {o : Cell}
+theorem PoolW.insertXor (h : PoolW I Ψ locs sc) {k : ℕ × ℕ} {o : Cell}
     (ho : Ψ o = Ψ k.1 + Ψ k.2) :
-    PoolW I Ψ { sc with xors := sc.xors.insert k o } := by
+    PoolW I Ψ locs { sc with xors := sc.xors.insert k o } := by
   refine { h with xors := fun k' o' hk => ?_ }
   rw [PMap.get?_insert] at hk
   split at hk
   · next he => cases hk; subst he; exact ho
   · exact h.xors k' o' hk
 
-theorem PoolW.insertMul (h : PoolW I Ψ sc) {k : ℕ × ℕ} {o : Cell}
+theorem PoolW.insertMul (h : PoolW I Ψ locs sc) {k : ℕ × ℕ} {o : Cell}
     (ho : Ψ o = Ψ k.1 * Ψ k.2) :
-    PoolW I Ψ { sc with muls := sc.muls.insert k o } := by
+    PoolW I Ψ locs { sc with muls := sc.muls.insert k o } := by
   refine { h with muls := fun k' o' hk => ?_ }
   rw [PMap.get?_insert] at hk
   split at hk
   · next he => cases hk; subst he; exact ho
   · exact h.muls k' o' hk
 
-theorem PoolW.insertLoad (h : PoolW I Ψ sc) {k : ℕ × ℕ} {o : Cell}
-    (ho : IsInK (Ψ k.1) ∧
-      (¬ I.tc o → ∀ rd, I.Rd rd → rd ((Ψ k.1).limb 0 * addressOfIndex k.2) = some (Ψ o))) :
-    PoolW I Ψ { sc with loads := sc.loads.insertIfNew k o } := by
+theorem PoolW.insertLoad (h : PoolW I Ψ locs sc) {k : ℕ × ℕ} {o : Cell}
+    (ho : IsInK (Ψ k.1) ∧ ((∀ t ∈ I.tmps, cellP locs t ≠ some o) →
+      ∀ rd, I.Rd rd → rd ((Ψ k.1).limb 0 * addressOfIndex k.2) = some (Ψ o))) :
+    PoolW I Ψ locs { sc with loads := sc.loads.insertIfNew k o } := by
   refine { h with loads := fun k' o' hk => ?_ }
   rw [PMap.get?_insertIfNew] at hk
   split at hk
   · next he => cases hk; rw [he.1]; exact ho
   · exact h.loads k' o' hk
 
-theorem PoolW.insertMats (h : PoolW I Ψ sc) {c : ℕ} {l : List (ℕ × Cell)}
+theorem PoolW.insertMats (h : PoolW I Ψ locs sc) {c : ℕ} {l : List (ℕ × Cell)}
     (hl : ∀ p ∈ l, Ψ p.2 = Ψ c * ofK (addressOfIndex p.1)) :
-    PoolW I Ψ { sc with mats := sc.mats.insert c l } := by
+    PoolW I Ψ locs { sc with mats := sc.mats.insert c l } := by
   refine { h with mats := fun c' l' hc p hp => ?_ }
   rw [NMap.get?_insert] at hc
   split at hc
   · next he => cases hc; subst he; exact hl p hp
   · exact h.mats c' l' hc p hp
 
-theorem PoolW.setSelfFp (h : PoolW I Ψ sc) {o : Cell} (ho : Ψ o = I.fpw) :
-    PoolW I Ψ { sc with selfFp := some o } := by
+theorem PoolW.setSelfFp (h : PoolW I Ψ locs sc) {o : Cell} (ho : Ψ o = I.fpw) :
+    PoolW I Ψ locs { sc with selfFp := some o } := by
   refine { h with selfFp := fun o' h' => ?_ }
   cases h'
   exact ho
@@ -277,8 +299,8 @@ instructions whose relations the new constraint gives; moves neither the next fr
 a place; and its result satisfies `R` under the new constraint and the final state. -/
 def FAt {α : Type} (ctx : Ctx) (I : Inst) (C : (ℕ → E) → Prop) (st : St) (m : P α)
     (R : α → ((ℕ → E) → Prop) → St → Prop) : Prop :=
-  COk I C st.next st.scope →
-  wpP m ctx st fun a st' => ∃ C', COk I C' st'.next st'.scope ∧ Stronger C' C ∧
+  COk I C st.next st.scope st.locs →
+  wpP m ctx st fun a st' => ∃ C', COk I C' st'.next st'.scope st'.locs ∧ Stronger C' C ∧
     st.next ≤ st'.next ∧ LocsLe st.locs st'.locs ∧ EmitsW I C' st st' ∧ R a C' st'
 
 /-- **The words of the values the walk knows on the path** (`ok`): each placed one is past the
@@ -294,7 +316,7 @@ structure Inst.Ok (I : Inst) : Prop where
   rd : ∃ rd, I.Rd rd
   kconst : ∀ x y, I.kw (.const x y) = Guest.word x y
   ksize : I.kw .frameSize = ofK (addressOfIndex I.size)
-  tsep : ∀ v n, cellP I.locs v = some n → I.tc n → v ∈ I.tmps
+  tsep : ∀ v n, cellP I.locs v = some n → I.tcA n → v ∈ I.tmps
 
 /-- An atom's relation with its temporaries' loads left out: what the readers `Rd` of an
 instance give. -/
@@ -371,7 +393,7 @@ theorem FAt.get_bind {β : Type} {f : St → P β} {R : β → ((ℕ → E) → 
 theorem FAt.quiet {g : St → St} {R : PUnit → ((ℕ → E) → Prop) → St → Prop}
     (hn : (g st).next = st.next) (hs : (g st).scope = st.scope) (ho : (g st).out = st.out)
     (hl : (g st).locs = st.locs) (hr : R ⟨⟩ C (g st)) : FAt ctx I C st (modify g) R := fun hc =>
-  wp_modify.mpr ⟨C, by rw [hn, hs]; exact hc, Stronger.refl C, le_of_eq hn.symm,
+  wp_modify.mpr ⟨C, by rw [hn, hs, hl]; exact hc, Stronger.refl C, le_of_eq hn.symm,
     by rw [hl]; exact LocsLe.refl _, ⟨[], by rw [ho]; simp, fun _ _ h => nomatch h⟩, hr⟩
 
 /-- **A pooled constant on the path**: its cell, a good cell, holds the constant; the values'
