@@ -204,7 +204,7 @@ fn main() {
         verify(&program, &public_input, &proof).expect("honest proof verifies");
         let wire = proof.to_bytes();
         assert!(verifier::Proof::from_bytes(&wire) == Some(proof.clone()), "the wire round trip");
-        let table: Vec<u8> = program.table().iter().flat_map(|w| w.to_le_bytes()).collect();
+        let table: Vec<u8> = program.stacked_bytecode().iter().flat_map(|w| w.to_le_bytes()).collect();
         std::fs::write(directory.join("bytecode.bin"), &table).expect("write bytecode");
         std::fs::write(directory.join("public_input.bin"), public_input_bytes(&public_input))
             .expect("write public input");

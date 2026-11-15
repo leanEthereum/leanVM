@@ -1,5 +1,4 @@
-//! A program as both provers prove it and every verifier checks it: the compiler's output, its bytecode encoded into
-//! the one public table, and that table prepared for the verifier.
+//! A compiled program with its stacked bytecode, shared by both provers.
 
 use crate::{CompiledProgram, Op};
 use std::ops::{Deref, Range};
@@ -17,19 +16,19 @@ const _: () = assert!(OPCODE_SLOT + 1 + BYTECODE_OPERANDS <= 1 << BUS_BITS);
 /// The public columns of a bytecode, one word an instruction: the opcode, then the operand slots.
 pub type BytecodeColumns = [Column; 1 + BYTECODE_OPERANDS];
 
-/// A run of words in a shared table, cheap to clone: a bytecode column, a slot of [`Program::table`].
+/// One column of [`Program::stacked_bytecode`], cheap to clone.
 #[derive(Clone, Debug)]
 pub struct Column {
-    table: Arc<[u64]>,
-    words: Range<usize>,
+    words: Arc<[u64]>,
+    range: Range<usize>,
 }
 
 /// The whole of `words`.
 impl From<Vec<u64>> for Column {
     fn from(words: Vec<u64>) -> Self {
         Self {
-            words: 0..words.len(),
-            table: words.into(),
+            range: 0..words.len(),
+            words: words.into(),
         }
     }
 }
@@ -38,19 +37,17 @@ impl Deref for Column {
     type Target = [u64];
 
     fn deref(&self) -> &[u64] {
-        &self.table[self.words.clone()]
+        &self.words[self.range.clone()]
     }
 }
 
-/// A compiled program with its bytecode table, computed once.
+/// A compiled program and its stacked bytecode.
 #[derive(Debug)]
 pub struct Program {
     compiled: CompiledProgram,
-    /// The stacked bytecode polynomial's evaluations: `2^BUS_BITS` slots of `prog.len()` words, slot `s` holding bus
-    /// tuple coordinate `s` of every instruction (the columns from [`OPCODE_SLOT`] on, zeros elsewhere). It is what
-    /// the Fiat-Shamir IV hashes and what a deferred bytecode claim evaluates.
-    table: Arc<[u64]>,
-    /// The table prepared for the verifier, with the IV.
+    /// Bus coordinate `s` of every instruction at `s * prog.len()`, for `s < 2^BUS_BITS`.
+    stacked_bytecode: Arc<[u64]>,
+    /// `stacked_bytecode` prepared for the verifier, with its Fiat-Shamir IV.
     bytecode: verifier::Bytecode,
 }
 
@@ -61,16 +58,16 @@ impl From<CompiledProgram> for Program {
     fn from(compiled: CompiledProgram) -> Self {
         let n = compiled.prog.len();
         assert!(n.is_power_of_two(), "the bytecode must be a power of two long, not {n}");
-        let mut table = vec![0; n << BUS_BITS];
+        let mut stacked = vec![0; n << BUS_BITS];
         for (pc, op) in compiled.prog.iter().enumerate() {
             for (i, word) in encode(op).into_iter().enumerate() {
-                table[(OPCODE_SLOT + i) * n + pc] = word;
+                stacked[(OPCODE_SLOT + i) * n + pc] = word;
             }
         }
-        let bytecode = verifier::Bytecode::new(&table);
+        let bytecode = verifier::Bytecode::new(&stacked);
         Self {
             compiled,
-            table: table.into(),
+            stacked_bytecode: stacked.into(),
             bytecode,
         }
     }
@@ -85,22 +82,21 @@ impl Deref for Program {
 }
 
 impl Program {
-    /// The bytecode's public columns, which ride the bus's bytecode blocks: the table's slots from [`OPCODE_SLOT`] on.
+    /// The opcode and operand columns, which the bus reads.
     pub fn columns(&self) -> BytecodeColumns {
         let n = self.prog.len();
         std::array::from_fn(|i| Column {
-            table: self.table.clone(),
-            words: (OPCODE_SLOT + i) * n..(OPCODE_SLOT + i + 1) * n,
+            words: self.stacked_bytecode.clone(),
+            range: (OPCODE_SLOT + i) * n..(OPCODE_SLOT + i + 1) * n,
         })
     }
 
-    /// The stacked bytecode polynomial (§sec:e2e-bc): the columns at their bus tuple coordinates, along `2^BUS_BITS`
-    /// slots. An outermost verifier is handed it in place of the program.
-    pub fn table(&self) -> &[u64] {
-        &self.table
+    /// The stacked bytecode (§sec:e2e-bc).
+    pub fn stacked_bytecode(&self) -> &[u64] {
+        &self.stacked_bytecode
     }
 
-    /// [`Self::table`] as the verifier takes it, and the Fiat-Shamir IV every proof of the program starts from.
+    /// [`Self::stacked_bytecode`] prepared for the verifier, with its Fiat-Shamir IV.
     pub fn bytecode(&self) -> &verifier::Bytecode {
         &self.bytecode
     }

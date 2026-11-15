@@ -49,7 +49,7 @@ impl DeferredBytecodeClaim {
         // Every leaf defers the all-zeros point, where the bytecode polynomial is just its table's first entry: a
         // leaf is the aggregate people verify most, and the general path is a pass over the whole table.
         let bytecode_value = if bytecode_point.iter().all(|x| *x == F128::ZERO) {
-            F128::new(unified_guest().table()[0], 0)
+            F128::new(unified_guest().stacked_bytecode()[0], 0)
         } else {
             let scalars: Vec<_> = bytecode_point.iter().map(to_scalar).collect();
             from_scalar(
@@ -78,7 +78,7 @@ impl DeferredBytecodeClaim {
 fn bytecode_rows() -> Range<usize> {
     static ROWS: std::sync::OnceLock<Range<usize>> = std::sync::OnceLock::new();
     ROWS.get_or_init(|| {
-        let rows = unified_guest().table().as_chunks::<BLOCK>().0;
+        let rows = unified_guest().stacked_bytecode().as_chunks::<BLOCK>().0;
         let per_slot = rows.len() >> N_TUPLE_BITS;
         assert!(
             per_slot.is_multiple_of(8),
@@ -103,7 +103,7 @@ const BLOCK: usize = 1 << BLOCK_VARS;
 /// on these, and a point's value is read off its own ([`bytecode_value`]).
 pub(super) fn bytecode_sums<P: Prover>(points: &[Vec<F128>]) -> Vec<Vec<F128>> {
     let _span = tracing::info_span!("Bytecode sums").entered();
-    let (table, live) = (unified_guest().table(), bytecode_rows());
+    let (table, live) = (unified_guest().stacked_bytecode(), bytecode_rows());
     points
         .iter()
         .map(|point| {
@@ -133,7 +133,7 @@ pub(super) fn bytecode_value(sums: &[F128], point: &[F128]) -> F128 {
 /// Variables of a bytecode claim's point: the log row count plus the stacking
 /// selectors.
 pub(super) fn bytecode_vars() -> usize {
-    unified_guest().table().len().trailing_zeros() as usize
+    unified_guest().stacked_bytecode().len().trailing_zeros() as usize
 }
 
 fn fold_lsb(table: &mut Vec<F128>, challenge: F128) {
@@ -255,7 +255,7 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
     }
     // The rest: every row against the low challenges, zero outside the populated ones, and each claim's `eq` on
     // the rows, scaled by what its low rows left.
-    let (table, live) = (unified_guest().table(), bytecode_rows());
+    let (table, live) = (unified_guest().stacked_bytecode(), bytecode_rows());
     let mut rows = vec![F128::ZERO; table.len() / BLOCK];
     let low_eq: Vec<_> = eq_table(&challenges).iter().map(to_scalar).collect();
     let dots = P::dot_rows(&table[live.start * BLOCK..live.end * BLOCK], &low_eq);
