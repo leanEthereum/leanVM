@@ -484,23 +484,23 @@ theorem takeHints_fat :
     exact wp_modifyGet.mpr ⟨C, hc, Stronger.refl C, le_rfl, LocsLe.refl _,
       ⟨[], by simp, fun _ _ _ h => nomatch h⟩, rfl, rfl⟩
 
-theorem cellAt_keep (v : V) : wpP (cellAt v) ctx st fun _ st' => st' = st := by
+theorem cellAt_same (v : V) : wpP (cellAt v) ctx st fun _ st' => st' = st := by
   unfold cellAt
   refine wp_bind.mpr (wp_get.mpr ?_)
   split
   · exact wp_pure.mpr rfl
   · exact wp_failP
 
-theorem mapM_cellAt_keep : ∀ (l : List V) (st : St),
+theorem mapM_cellAt_same : ∀ (l : List V) (st : St),
     wpP (l.mapM cellAt) ctx st fun _ st' => st' = st
   | [], st => by
     rw [List.mapM_nil]
     exact wp_pure.mpr rfl
   | v :: l, st => by
     rw [List.mapM_cons]
-    refine wp_bind.mpr (wp_mono (cellAt_keep v) fun _ st₁ h => ?_)
+    refine wp_bind.mpr (wp_mono (cellAt_same v) fun _ st₁ h => ?_)
     subst h
-    exact wp_bind.mpr (wp_mono (mapM_cellAt_keep l st₁) fun _ st₂ h => by
+    exact wp_bind.mpr (wp_mono (mapM_cellAt_same l st₁) fun _ st₂ h => by
       subst h
       exact wp_pure.mpr rfl)
 
@@ -589,7 +589,7 @@ theorem stmtW_ret (hflush : FlushSegStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
       fun _ st₁ C₁ hs₁ hn₁ hl₁ _ hE₁ _ => ?_
     refine FBAt.read_bind ?_
     refine FBAt.fat_bind (FAt.ofSame (R := fun _ _ st' => st' = st₁)
-      (wp_mono (mapM_cellAt_keep vs st₁) fun _ st' h => by
+      (wp_mono (mapM_cellAt_same vs st₁) fun _ st' h => by
         subst h
         exact ⟨rfl, rfl, rfl, LocsLe.refl _, rfl⟩))
       fun _ st₂ C₂ hs₂ hn₂ hl₂ _ hE₂ hst₂ => ?_
