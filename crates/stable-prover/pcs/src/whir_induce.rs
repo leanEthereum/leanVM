@@ -7,11 +7,7 @@
 //! message's coefficients.
 
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8};
-
-/// `s_k(v_k)` for `k = 0..=log_n`, `v_k = x^k`: the subspace polynomials' normalizers, the verifier's.
-pub(crate) fn subspace_roots(log_n: usize) -> Vec<F64> {
-    verifier::subspace_roots(log_n).into_iter().map(|k| F64(k.0)).collect()
-}
+use verifier::Subspace;
 
 /// `basis_poly[j] = sum_i w_i X_j(q_i)` over the `2^log_msg_cols` coefficients `j`: the queries' column weights,
 /// batched by `weights`.
@@ -21,8 +17,9 @@ pub(crate) fn subspace_roots(log_n: usize) -> Vec<F64> {
 pub(crate) fn induce_basis(log_msg_cols: usize, queries: &[usize], weights: &[F128]) -> Vec<F128> {
     assert_eq!(queries.len(), weights.len());
     let lo = log_msg_cols / 2;
+    let subspace = Subspace::new(log_msg_cols);
     let tables = parallel::map_collect(queries.len(), |i| {
-        let what = novel_basis_at(F64(queries[i] as u64), log_msg_cols);
+        let what = novel_basis_at(&subspace, queries[i]);
         let mut low = tensor(&what[..lo]);
         // Whole lanes of eight, zero past the table.
         low.resize(low.len().next_multiple_of(8), F64::ZERO);
@@ -55,17 +52,13 @@ fn tensor(s: &[F64]) -> Vec<F64> {
     t
 }
 
-/// `What_i(x) = s_i(x) / s_i(v_i)` for `i <= mu`.
-pub(crate) fn novel_basis_at(x: F64, mu: usize) -> Vec<F64> {
-    let roots = subspace_roots(mu);
-    let mut s = x;
-    roots
-        .iter()
-        .map(|&root| {
-            let what = s * root.inv();
-            s *= s + root;
-            what
-        })
+/// `What_i(x)` for `i <= mu`, `subspace` being `Subspace::new(mu)`, at the domain point `x`, the integer's `K`
+/// element.
+pub(crate) fn novel_basis_at(subspace: &Subspace, x: usize) -> Vec<F64> {
+    subspace
+        .at(verifier::K(x as u64))
+        .into_iter()
+        .map(|k| F64(k.0))
         .collect()
 }
 
@@ -101,7 +94,7 @@ pub(crate) mod tests {
             let weights = powers(rng.ext(), queries.len());
             let what: Vec<Vec<F64>> = queries
                 .iter()
-                .map(|&q| novel_basis_at(F64(q as u64), log_msg_cols))
+                .map(|&q| novel_basis_at(&Subspace::new(log_msg_cols), q))
                 .collect();
             let want: Vec<F128> = (0..1usize << log_msg_cols)
                 .map(|j| {

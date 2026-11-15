@@ -81,32 +81,36 @@ fn pairs8(v: &[F128], q: usize) -> (F128x8, F128x8) {
     (F128x8::from_array(&first), F128x8::from_array(&second))
 }
 
-/// `n` values written by the pool eight at a time, `eight(k)` giving values `8k..8k + 8`.
-pub(crate) fn collect8(n: usize, eight: impl Fn(usize) -> F128x8 + Sync) -> Vec<F128> {
-    let mut v = parallel::map_collect(n.div_ceil(8), |k| eight(k).to_array()).into_flattened();
-    v.truncate(n);
-    v
-}
-
 /// `interp(x[2q], x[2q + 1], r)` for every pair.
 fn fold_pairs(x: &[F128], r: F128) -> Vec<F128> {
     let r = F128x8::splat(r);
-    collect8(x.len() / 2, |k| {
+    crate::collect_chunks(x.len() / 2, |k| {
         let (lo, hi) = pairs8(x, 8 * k);
-        lo + r * (lo + hi)
+        (lo + r * (lo + hi)).to_array()
     })
 }
 
-/// `sum_i a[i] b[i]` over `E`.
-fn inner_product(a: &[F128], b: &[F128]) -> F128 {
+/// `sum_i a[i] b[i]` over `E`, reduced once; zero if either is empty.
+pub(crate) fn dot(a: &[F128], b: &[F128]) -> F128 {
+    if a.is_empty() || b.is_empty() {
+        return F128::ZERO;
+    }
     assert_eq!(a.len(), b.len());
+    let ((a8, a1), (b8, b1)) = (a.as_chunks::<8>(), b.as_chunks::<8>());
+    let acc = a8.iter().zip(b8).fold(Acc8::ZERO, |acc, (a, b)| {
+        acc + F128x8::from_array(a).mul_unreduced(F128x8::from_array(b))
+    });
+    a1.iter().zip(b1).fold(acc.sum(), |sum, (&a, &b)| sum + a * b)
+}
+
+/// [`dot`] with the pool.
+fn dot_par(a: &[F128], b: &[F128]) -> F128 {
+    assert_eq!(a.len(), b.len());
+    let chunk = |t: usize| t * CHUNK..((t + 1) * CHUNK).min(a.len());
     parallel::map_reduce(
         a.len().div_ceil(CHUNK),
         || F128::ZERO,
-        |t| {
-            let at = t * CHUNK..((t + 1) * CHUNK).min(a.len());
-            a[at.clone()].iter().zip(&b[at]).map(|(&x, &y)| x * y).sum()
-        },
+        |t| dot(&a[chunk(t)], &b[chunk(t)]),
         |a, v| a + v,
     )
 }
@@ -282,9 +286,9 @@ impl FoldRounds for Dense {
         let (alpha, beta) = (F128x8::splat(ch.alpha), F128x8::splat(ch.beta));
         // One column longer: `X F` reaches one coefficient past `F`.
         let pairs = (self.f.len() / self.stride + 1) * self.stride / 2;
-        let f = collect8(pairs, |k| {
+        let f = crate::collect_chunks(pairs, |k| {
             let (f, g) = pairs8(&self.f, 8 * k);
-            (alpha.mul_unreduced(f) + beta.mul_unreduced(self.xf8(8 * k))).reduce() + g
+            ((alpha.mul_unreduced(f) + beta.mul_unreduced(self.xf8(8 * k))).reduce() + g).to_array()
         });
         (self.f, self.w, self.stride) = (f, fold_pairs(&self.w, ch.alpha), self.stride / 2);
     }
@@ -362,7 +366,7 @@ pub(crate) fn open(ps: &mut ProverState, config: &WhirConfig, mut level0: LaneRo
         // (ood) The message's value at a point the next level's list is bound by.
         ps.grind(OOD_GRINDING_BITS);
         let eq = eq_table(&ps.sample_vec(mu));
-        ps.add_scalar(inner_product(&p, &eq));
+        ps.add_scalar(dot_par(&p, &eq));
 
         // (query) The queries and lambda, one message; then the oracle's rows there.
         ps.grind(QUERY_GRINDING_BITS);
@@ -391,6 +395,7 @@ mod tests {
     use crate::whir_induce::tests::novel_sum_at;
     use primitives::multilinear::interp;
     use primitives::test_rng::Rng;
+    use verifier::Subspace;
 
     /// Committing only the lanes that carry data is indistinguishable from committing the whole `2^log_n` witness
     /// with an explicit zero tail: same proof, root included.
@@ -522,7 +527,7 @@ mod tests {
                     let pairs = vals.as_chunks::<2>().0.iter();
                     vals = pairs.map(|&[f, g]| g + (ch.alpha + ch.beta.mul_base(x)) * f).collect();
                 }
-                let want = novel_sum_at(&p, &novel_basis_at(x, mu + 1));
+                let want = novel_sum_at(&p, &novel_basis_at(&Subspace::new(mu + 1), q));
                 assert_eq!(vals, [want], "k {k}, mu {mu}, position {q}");
             }
         }

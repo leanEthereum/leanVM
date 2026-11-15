@@ -81,14 +81,11 @@ fn copy_cyclic(msg: &[F64], at: usize, mut out: &mut [F64]) {
 /// A buffer of `len` words written once, by the pool, [`ITEM`] words at a time: `fill(w, out)` writes the words from
 /// `w`, and may run past `len`. It saves the zero fill of a buffer then overwritten.
 fn written(len: usize, fill: impl Fn(usize, &mut [F64]) + Sync) -> Vec<F64> {
-    let mut data = parallel::map_collect(len.div_ceil(ITEM), |i| {
+    crate::collect_chunks(len, |i| {
         let mut out = [F64::ZERO; ITEM];
         fill(i * ITEM, &mut out);
         out
     })
-    .into_flattened();
-    data.truncate(len);
-    data
 }
 
 /// Additive NTT over `K` on the standard polynomial-basis subspace `{1, x, x^2, ...}`: the integers under their

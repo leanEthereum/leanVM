@@ -45,15 +45,6 @@ fn dot_block(pi: &[F128x8; LANES], words: &[F64; BLOCK]) -> F128 {
     acc.sum()
 }
 
-/// `sum_i a[i] * b[i]`, reduced once.
-fn dot_ext(a: &[F128], b: &[F128]) -> F128 {
-    let ((a8, a1), (b8, b1)) = (a.as_chunks::<8>(), b.as_chunks::<8>());
-    let acc = a8.iter().zip(b8).fold(Acc8::ZERO, |acc, (a, b)| {
-        acc + F128x8::from_array(a).mul_unreduced(F128x8::from_array(b))
-    });
-    a1.iter().zip(b1).fold(acc.sum(), |sum, (&a, &b)| sum + a * b)
-}
-
 /// What a weight does to one bit of the stack index: its factor where the bit is 0, and where it is 1.
 type Factor = [F128; 2];
 
@@ -294,7 +285,7 @@ impl<'a> Projection<'a> {
                 let claim = &terms.claims[c];
                 let range = claim.range.start.max(blocks.start)..claim.range.end.min(blocks.end);
                 if !range.is_empty() {
-                    row[c] = dot_ext(
+                    row[c] = crate::whir::dot(
                         &claim.gamma[range.clone()],
                         &q[range.start - blocks.start..range.end - blocks.start],
                     );

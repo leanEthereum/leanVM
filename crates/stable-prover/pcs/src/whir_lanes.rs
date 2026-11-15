@@ -19,7 +19,7 @@ use primitives::field::{F64, F64x8, F128, F128x8};
 use primitives::multilinear::interp;
 
 use crate::stack_open::{LOW_VARS, Terms};
-use crate::whir::{FoldChallenges, FoldRounds, FoldTable};
+use crate::whir::{FoldChallenges, FoldRounds, FoldTable, dot};
 use crate::xmul::x_at;
 
 const BLOCK: usize = 1 << LOW_VARS;
@@ -27,11 +27,6 @@ const BLOCK: usize = 1 << LOW_VARS;
 /// Row `l` of a table of rows of `n` values, empty past the table: a lane without data.
 fn row(v: &[F128], n: usize, l: usize) -> &[F128] {
     v.get(l * n..(l + 1) * n).unwrap_or_default()
-}
-
-/// `sum_t a[t] * p[t]`, zero for an empty row.
-fn dot(a: &[F128], p: &[F128]) -> F128 {
-    a.iter().zip(p).map(|(&a, &p)| a * p).sum()
 }
 
 /// Eight coefficients of a lane from `c`, zero past it.

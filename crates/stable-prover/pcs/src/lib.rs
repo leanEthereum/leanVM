@@ -16,3 +16,10 @@ mod xmul;
 const _: () = assert!(cfg!(target_endian = "little"));
 
 pub use stack_open::{Committed, RingSwitchOpen, StackClaim, commit, open};
+
+/// `len` values written by the pool `N` at a time, `chunk(k)` giving values `N k..N k + N`, those past `len` dropped.
+fn collect_chunks<T: Send, const N: usize>(len: usize, chunk: impl Fn(usize) -> [T; N] + Sync) -> Vec<T> {
+    let mut v = parallel::map_collect(len.div_ceil(N), chunk).into_flattened();
+    v.truncate(len);
+    v
+}
