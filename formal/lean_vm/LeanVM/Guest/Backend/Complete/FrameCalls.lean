@@ -140,19 +140,20 @@ variable {κ₀ : ℕ} {Γ : Site κ₀}
 /-- **The words of straight-line instructions, then one control statement**, for any path
 outcome, at the absolute position `pos`: the headers `hs` of the control statement's calls. -/
 theorem blkW_ops_ctl' (hok : OpOK Γ I Ag cl) {C : (ℕ → E) → Prop} {ops : List PStmt}
-    {X : PStmt} {main : Bool} {ss tl : List Stmt} {o : Out} {i₀ pos : ℕ}
+    {X : PStmt} {bx : Backend.Ctx} {ss tl : List Stmt} {o : Out} {i₀ pos : ℕ}
     (hs : List (E × E)) (hlen : hs.length = (calls (outEs o)).length)
+    (hHs : HsOk I bx (calls (outEs o)) hs)
     (hW : ∀ s ∈ ops, ∃ h o, s = PStmt.op h o ∧ ∀ Ψ, C Ψ → OpW I Ψ o)
     (hX : ∀ Ψ, C Ψ → ∀ σ', I.Same σ' → ∀ (kh : ℕ → E × E) (cs : List Stmt)
       (ks : List (ℕ × ℕ)) (next : List Stmt → List (ℕ × ℕ) → Prop)
       (kj : List (ℕ × ℕ) → E → E → Prop) (kret khalt : Prop),
       (∀ o' ∈ stmtOps X (pos + blockSize ops), o' ∈ I.ops) → ctrlSplit cs = ctrlSplit (ss ++ tl) →
       KsAt cl I.kf kh i₀ (calls (outEs o)) hs ks →
-      OutK o tl next (if main then khalt else kret) ks →
+      OutK o tl next (if bx.isMain then khalt else kret) ks →
       wLc Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl [X] cs (pos + blockSize ops) ks next
         kj kret khalt) :
-    BlkW Γ I main Ag cl C (ops ++ [X]) ss tl o i₀ pos := by
-  refine ⟨hs, hlen, fun Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo hcs hks hk => ?_⟩
+    BlkW Γ I bx Ag cl C (ops ++ [X]) ss tl o i₀ pos := by
+  refine ⟨hs, hlen, hHs, fun _ Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo hcs hks hk => ?_⟩
   rw [wLc_append _ _ _ _ _ _ _ ops [X] (List.cons_ne_nil _ _)]
   have hbo₁ : ∀ o' ∈ blockOps ops pos, o' ∈ I.ops := fun o' ho =>
     hbo o' (by rw [bops_append]; exact List.mem_append_left _ ho)
@@ -178,19 +179,20 @@ theorem flat_out (hpk : PoolKeepStmt) (hI : I.Ok) {s : Stmt} {rest : List Stmt}
     {C : (ℕ → E) → Prop} {st : St} {sc sc' : SSt} {p₀ : ℕ} {vs : List V}
     {Wd : ((ℕ → E) → Prop) → List PStmt → Prop}
     (hsc : scopeFlat ctx.retCells s sc = .ok sc') (hinv : WInv ctx I C st sc)
-    (hck : ChainKeep ctx s rest)
+    (hck : ChainKeep ctx s rest) (hvs : ∀ v ∈ vs, sc'.live.contains v = true)
     (h : FBAt ctx I C st (placeStmt s rest >>= fun _ => endStmt) fun _ C' st' =>
       FlatOut ctx I st sc' p₀ Wd C' st' ∧ PW I C' st' vs) :
     FBAt ctx I C st (placeStmt s rest >>= fun _ => endStmt) fun _ C' st' =>
-      (Fits I st' → OpsAt I p₀ st' → WInv ctx I C' st' sc') ∧ st'.chainIn = none ∧
-      (Fits I st' → OpsAt I p₀ st' → ∃ blk, st'.out.toList = st.out.toList ++ blk ∧
+      (FinAt Γ I Ag p₀ st' → WInv ctx I C' st' sc') ∧ st'.chainIn = none ∧
+      (FinAt Γ I Ag p₀ st' → ∃ blk, st'.out.toList = st.out.toList ++ blk ∧
         Wd C' blk ∧ RW I C' st' vs) := by
   refine FBAt.mono (FBAt.and_wp (FBAt.and_wp h (hck st))
     ((hpk ctx I st [] s rest).2 hI hinv.pnt)) ?_
   rintro _ C' st' _ hn _ ⟨⟨⟨⟨h1, h2, h3, h4, hcok, hlz, h6⟩, hp⟩, hch⟩, hpn⟩
   have hch' : st'.chainIn = none := by rw [hch]; exact hinv.chain
-  exact ⟨fun _ hO => winv_flat hsc hinv hcok hn h2 h1 h3 h4 hch' (hpn hO.outOps) hlz, hch',
-    fun hF hO => let ⟨blk, a, b⟩ := h6 hF hO; ⟨blk, a, b, hp.rw hF⟩⟩
+  exact ⟨fun hF => winv_flat hsc hinv hcok hn h2 h1 h3 h4 hch' (hpn hF.2.1.outOps) hlz, hch',
+    fun hF => let ⟨blk, a, b⟩ := h6 hF.1 hF.2.1
+      ⟨blk, a, b, hp.rw fun v hv => by rw [h2]; exact scopeFlat_fresh hsc hinv v (hvs v hv)⟩⟩
 
 /-- The cursor at a control statement after a core statement that is not an atom. -/
 theorem ctrlSplit_ctl {s : Stmt} (hs : ∀ a, s ≠ .atom a) (cs : List Stmt) :
@@ -208,7 +210,7 @@ theorem stmtW_call (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hAg
     (hkw : ∀ g, I.kw (.entry g) = kwOf Γ (.entry g))
     (hent : ∀ g, kwOf Γ (.entry g) = ofK (addressOfIndex (Γ.ent g)))
     {f : String} {args rets : List V} {rest tl : List Stmt}
-    (hu : ∀ v ∈ args ++ rets, v ∉ I.tmps) :
+    (hns : f ≠ ctx.name) (hu : ∀ v ∈ args ++ rets, v ∉ I.tmps) :
     StmtW Γ Ag cl ctx I (.call f args rets) rest tl := by
   intro C st sc sc' i₀ p₀ o hsc _ hw _ _ hcl _ hinv
   simp only [walk1] at hw
@@ -230,9 +232,11 @@ theorem stmtW_call (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hAg
     simpa [outEs, calls, Ev.call?] using this
   have h1K : IsInK (1 : E) := (isInK_iff 1).mpr ⟨1, ofK_one.symm⟩
   refine FBAt.mono (flat_out (vs := pathVals I.σ [.call f args rets] (.fall [.call f args rets]))
-    (Wd := fun C' blk => BlkW Γ I ctx.isMain Ag cl C' blk [.call f args rets] (rest ++ tl)
+    (Wd := fun C' blk => BlkW Γ I ctx Ag cl C' blk [.call f args rets] (rest ++ tl)
       (.fall [.call f args rets]) i₀ (p₀ + blockSize st.out.toList))
-    hpk hI hsc hinv chainKeep_call' ?_) fun _ _ _ _ _ _ h => ⟨fun _ _ => h.1, h.2.1, h.2.2⟩
+    hpk hI hsc hinv chainKeep_call' (fun v hv => hown v (by
+      simpa [pathVals, outEs, retVals, pathSels, sels1, walk1, Memory.Ev.uses, ownUses] using hv))
+    ?_) fun _ _ _ _ _ _ h => ⟨fun _ _ => h.1, h.2.1, h.2.2⟩
   rw [placeStmt]
   simp only [bind_assoc]
   refine FBAt.fat_bind (begin_fat flushSeg_lock hI hsc hinv hcp)
@@ -307,7 +311,17 @@ theorem stmtW_call (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hAg
   refine blkW_ops_ctl' hok [(Γ.tgt (p₀ + blockSize st.out.toList + blockSize ops + (callPre
       ⟨f, st₃.next, st₃.next + 1, one, las, lrs, loop, false⟩).length + 1),
       ofK (addressOfIndex I.fp))]
-    (by simp [outEs, calls, Ev.call?]) (hopsW hF₈ hO₈)
+    (by simp [outEs, calls, Ev.call?])
+    ⟨fun _ h hm => by
+      simp only [List.mem_singleton] at hm
+      subst hm
+      exact ⟨isInK_ofK _, isInK_ofK _⟩,
+     fun j hj c hc hf => by
+      obtain rfl : j = 0 := by simp at hj; omega
+      simp [outEs, calls, Ev.call?] at hc
+      subst hc
+      exact absurd hf hns⟩
+    (hopsW hF₈ hO₈)
     fun Ψ hΨ σ' hσ kh cs ks next kj kret khalt hXo hcs hks hk => ?_
   generalize p₀ + blockSize st.out.toList + blockSize ops = pos at hXo hks ⊢
   obtain ⟨-, hks⟩ := hks
@@ -427,10 +441,13 @@ theorem stmtW_callIf (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
   have hself : (f == ctx.name) = false := by simp [hns]
   refine FBAt.mono (flat_out (vs := pathVals I.σ [.callIf c f args]
       (.fall [.inK c, if I.σ c = 0 then .skip f args else .call f args []]))
-    (Wd := fun C' blk => BlkW Γ I ctx.isMain Ag cl C' blk [.callIf c f args] (rest ++ tl)
+    (Wd := fun C' blk => BlkW Γ I ctx Ag cl C' blk [.callIf c f args] (rest ++ tl)
       (.fall [.inK c, if I.σ c = 0 then .skip f args else .call f args []]) i₀
       (p₀ + blockSize st.out.toList))
-    hpk hI hsc hinv chainKeep_callIf' ?_) fun _ _ _ _ _ _ h => ⟨fun _ _ => h.1, h.2.1, h.2.2⟩
+    hpk hI hsc hinv chainKeep_callIf' (fun v hv => hown v (by
+      by_cases h : I.σ c = 0 <;>
+        simpa [pathVals, outEs, retVals, pathSels, sels1, walk1, Memory.Ev.uses, ownUses, h]
+          using hv)) ?_) fun _ _ _ _ _ _ h => ⟨fun _ _ => h.1, h.2.1, h.2.2⟩
   rw [placeStmt]
   simp only [bind_assoc]
   refine FBAt.fat_bind (begin_fat flushSeg_lock hI hsc hinv hcp)
@@ -503,6 +520,14 @@ theorem stmtW_callIf (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
       ⟨f, st₃.next, st₃.next + 1, lc, las, [], loop, false⟩).length + 1),
       ofK (addressOfIndex I.fp))]
     (by by_cases h : I.σ c = 0 <;> simp [outEs, calls, Ev.call?, h, List.filterMap_cons])
+    ⟨fun _ h hm => by
+      simp only [List.mem_singleton] at hm
+      subst hm
+      exact ⟨isInK_ofK _, isInK_ofK _⟩,
+     fun j hj c' hc hf => by
+      obtain rfl : j = 0 := by simp at hj; omega
+      by_cases h : I.σ c = 0 <;> simp [outEs, calls, Ev.call?, h, List.filterMap_cons] at hc <;>
+        (subst hc; exact absurd hf hns)⟩
     (hopsW hF₈ hO₈)
     fun Ψ hΨ σ' hσ kh cs ks next kj kret khalt hXo hcs hks hk => ?_
   generalize p₀ + blockSize st.out.toList + blockSize ops = pos at hXo hks ⊢
@@ -581,39 +606,40 @@ theorem stmtW_callIf (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
 
 /-- **`BlkW` given the frame's return** (`main`'s closing jump for `main`): the words of a block
 whose path falls through into a return of its own block, as a tail call needs them. -/
-def BlkWK (Γ : Site κ₀) (I : Inst) (main : Bool)
+def BlkWK (Γ : Site κ₀) (I : Inst) (bx : Backend.Ctx)
     (Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop) (cl : List Call)
     (C : (ℕ → E) → Prop) (blk : List PStmt) (ss tl : List Stmt) (o : Out) (i₀ pos : ℕ) : Prop :=
-  ∃ hs : List (E × E), hs.length = (calls (outEs o)).length ∧
-  ∀ Ψ, C Ψ → ∀ σ', I.Same σ' → ∀ (kh : ℕ → E × E) (cs : List Stmt)
+  ∃ hs : List (E × E), hs.length = (calls (outEs o)).length ∧ HsOk I bx (calls (outEs o)) hs ∧
+  (PremW I bx → ∀ Ψ, C Ψ → ∀ σ', I.Same σ' → ∀ (kh : ℕ → E × E) (cs : List Stmt)
     (ks : List (ℕ × ℕ)) (next : List Stmt → List (ℕ × ℕ) → Prop)
     (kj : List (ℕ × ℕ) → E → E → Prop) (kret khalt : Prop),
     (∀ o' ∈ blockOps blk pos, o' ∈ I.ops) →
     ctrlSplit cs = ctrlSplit (ss ++ tl) → KsAt cl I.kf kh i₀ (calls (outEs o)) hs ks →
-    OutK o tl next (if main then khalt else kret) ks → (if main then khalt else kret) →
-    wLc Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl blk cs pos ks next kj kret khalt
+    OutK o tl next (if bx.isMain then khalt else kret) ks → (if bx.isMain then khalt else kret) →
+    wLc Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl blk cs pos ks next kj kret khalt)
 
-theorem BlkWK.mono {C C' : (ℕ → E) → Prop} {main : Bool} {blk : List PStmt} {ss tl : List Stmt}
-    {o : Out} {i₀ pos : ℕ} (h : BlkWK Γ I main Ag cl C blk ss tl o i₀ pos)
-    (hs : Stronger C' C) : BlkWK Γ I main Ag cl C' blk ss tl o i₀ pos := by
-  obtain ⟨hs', hl, h⟩ := h
-  exact ⟨hs', hl, fun Ψ hΨ => h Ψ (hs Ψ hΨ)⟩
+theorem BlkWK.mono {C C' : (ℕ → E) → Prop} {bx : Backend.Ctx} {blk : List PStmt}
+    {ss tl : List Stmt} {o : Out} {i₀ pos : ℕ} (h : BlkWK Γ I bx Ag cl C blk ss tl o i₀ pos)
+    (hs : Stronger C' C) : BlkWK Γ I bx Ag cl C' blk ss tl o i₀ pos := by
+  obtain ⟨hs', hl, hh, h⟩ := h
+  exact ⟨hs', hl, hh, fun hP Ψ hΨ => h hP Ψ (hs Ψ hΨ)⟩
 
 /-- A block given the frame's return that falls through, then a block on the path that
 returns. -/
-theorem BlkWK.append_ret {C : (ℕ → E) → Prop} {main : Bool} {blk₁ blk₂ : List PStmt}
+theorem BlkWK.append_ret {C : (ℕ → E) → Prop} {bx : Backend.Ctx} {blk₁ blk₂ : List PStmt}
     {ss₁ ss₂ tl : List Stmt} {es₁ es₂ : List Ev} {vs : List V} {i₀ pos : ℕ}
-    (h₁ : BlkWK Γ I main Ag cl C blk₁ ss₁ (ss₂ ++ tl) (.fall es₁) i₀ pos)
-    (h₂ : BlkW Γ I main Ag cl C blk₂ ss₂ tl (.ret es₂ vs) (i₀ + (calls es₁).length)
+    (h₁ : BlkWK Γ I bx Ag cl C blk₁ ss₁ (ss₂ ++ tl) (.fall es₁) i₀ pos)
+    (h₂ : BlkW Γ I bx Ag cl C blk₂ ss₂ tl (.ret es₂ vs) (i₀ + (calls es₁).length)
       (pos + blockSize blk₁)) :
-    BlkW Γ I main Ag cl C (blk₁ ++ blk₂) (ss₁ ++ ss₂) tl (.ret (es₁ ++ es₂) vs) i₀ pos := by
-  obtain ⟨hs₁, hl₁, h₁⟩ := h₁
-  obtain ⟨hs₂, hl₂, h₂⟩ := h₂
+    BlkW Γ I bx Ag cl C (blk₁ ++ blk₂) (ss₁ ++ ss₂) tl (.ret (es₁ ++ es₂) vs) i₀ pos := by
+  obtain ⟨hs₁, hl₁, hh₁, h₁⟩ := h₁
+  obtain ⟨hs₂, hl₂, hh₂, h₂⟩ := h₂
   have hc : calls (outEs (.ret (es₁ ++ es₂) vs)) = calls es₁ ++ calls (outEs (.ret es₂ vs)) := by
     simp [outEs, calls_append']
-  simp only [outEs] at hl₁
-  refine ⟨hs₁ ++ hs₂, by rw [List.length_append, hl₁, hl₂, hc, List.length_append], ?_⟩
-  intro Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops hcs hks hk'
+  simp only [outEs] at hl₁ hh₁
+  refine ⟨hs₁ ++ hs₂, by rw [List.length_append, hl₁, hl₂, hc, List.length_append],
+    by rw [hc]; exact HsOk.append hh₁ hh₂ hl₁, ?_⟩
+  intro hP Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops hcs hks hk'
   obtain ⟨-, hks⟩ := hks
   rw [hc] at hks
   have hops₁ : ∀ o' ∈ blockOps blk₁ pos, o' ∈ I.ops := fun o' ho =>
@@ -632,7 +658,7 @@ theorem BlkWK.append_ret {C : (ℕ → E) → Prop} {main : Bool} {blk₁ blk₂
       wLc Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl blk₂ cs' (pos + blockSize blk₁)
         (ks.drop (calls es₁).length) next kj kret khalt := by
     intro cs' hcs'
-    refine h₂ Ψ hΨ σ' hσ kh cs' _ next kj kret khalt hops₂ hcs' ⟨hl₂, fun j hj => ?_⟩ hk'
+    refine h₂ hP Ψ hΨ σ' hσ kh cs' _ next kj kret khalt hops₂ hcs' ⟨hl₂, fun j hj => ?_⟩ hk'
     obtain ⟨⟨kfp, h1, h1'⟩, h2, h3⟩ := hks ((calls es₁).length + j)
       (by rw [List.length_append]; omega)
     refine ⟨⟨kfp, by rw [List.getElem?_drop, h1, Nat.add_assoc], by rw [Nat.add_assoc]; exact h1'⟩,
@@ -645,28 +671,29 @@ theorem BlkWK.append_ret {C : (ℕ → E) → Prop} {main : Bool} {blk₁ blk₂
   cases blk₂ with
   | nil =>
     rw [List.append_nil]
-    refine h₁ Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops₁ hcs₁ hks₁ (fun cs' hcs' => ?_) hk'
+    refine h₁ hP Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops₁ hcs₁ hks₁ (fun cs' hcs' => ?_) hk'
     have := hnext cs' hcs'
     rwa [wLc] at this
   | cons b bs =>
     rw [wLc_append _ _ _ _ _ _ _ blk₁ (b :: bs) (List.cons_ne_nil _ _)]
-    exact h₁ Ψ hΨ σ' hσ kh cs ks _ _ kret khalt hops₁ hcs₁ hks₁ hnext hk'
+    exact h₁ hP Ψ hΨ σ' hσ kh cs ks _ _ kret khalt hops₁ hcs₁ hks₁ hnext hk'
 
 /-- `blkW_ops_ctl'` given the frame's return. -/
 theorem blkWK_ops_ctl (hok : OpOK Γ I Ag cl) {C : (ℕ → E) → Prop} {ops : List PStmt}
-    {X : PStmt} {main : Bool} {ss tl : List Stmt} {o : Out} {i₀ pos : ℕ}
+    {X : PStmt} {bx : Backend.Ctx} {ss tl : List Stmt} {o : Out} {i₀ pos : ℕ}
     (hs : List (E × E)) (hlen : hs.length = (calls (outEs o)).length)
+    (hHs : HsOk I bx (calls (outEs o)) hs)
     (hW : ∀ s ∈ ops, ∃ h o, s = PStmt.op h o ∧ ∀ Ψ, C Ψ → OpW I Ψ o)
     (hX : ∀ Ψ, C Ψ → ∀ σ', I.Same σ' → ∀ (kh : ℕ → E × E) (cs : List Stmt)
       (ks : List (ℕ × ℕ)) (next : List Stmt → List (ℕ × ℕ) → Prop)
       (kj : List (ℕ × ℕ) → E → E → Prop) (kret khalt : Prop),
       (∀ o' ∈ stmtOps X (pos + blockSize ops), o' ∈ I.ops) → ctrlSplit cs = ctrlSplit (ss ++ tl) →
       KsAt cl I.kf kh i₀ (calls (outEs o)) hs ks →
-      OutK o tl next (if main then khalt else kret) ks → (if main then khalt else kret) →
+      OutK o tl next (if bx.isMain then khalt else kret) ks → (if bx.isMain then khalt else kret) →
       wLc Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl [X] cs (pos + blockSize ops) ks next
         kj kret khalt) :
-    BlkWK Γ I main Ag cl C (ops ++ [X]) ss tl o i₀ pos := by
-  refine ⟨hs, hlen, fun Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo hcs hks hk hK => ?_⟩
+    BlkWK Γ I bx Ag cl C (ops ++ [X]) ss tl o i₀ pos := by
+  refine ⟨hs, hlen, hHs, fun _ Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo hcs hks hk hK => ?_⟩
   rw [wLc_append _ _ _ _ _ _ _ ops [X] (List.cons_ne_nil _ _)]
   have hbo₁ : ∀ o' ∈ blockOps ops pos, o' ∈ I.ops := fun o' ho =>
     hbo o' (by rw [bops_append]; exact List.mem_append_left _ ho)
@@ -695,10 +722,10 @@ theorem tailIf_fbat (hok : OpOK Γ I Ag cl) (hI : I.Ok)
     (hcl : cl[i₀]? = some ⟨f, args, [], decide (I.σ c ≠ 0)⟩)
     (hinv : WInv ctx I C st sc) :
     FBAt ctx I C st (placeStmt (.callIf c f args) [.ret []] >>= fun _ => endStmt)
-      fun _ C' st' => (Fits I st' → OpsAt I p₀ st' → WInv ctx I C' st' sc') ∧
+      fun _ C' st' => (FinAt Γ I Ag p₀ st' → WInv ctx I C' st' sc') ∧
         st'.chainIn = none ∧
-        (Fits I st' → OpsAt I p₀ st' → ∃ blk, st'.out.toList = st.out.toList ++ blk ∧
-          BlkWK Γ I ctx.isMain Ag cl C' blk [.callIf c f args] ([.ret []] ++ tl)
+        (FinAt Γ I Ag p₀ st' → ∃ blk, st'.out.toList = st.out.toList ++ blk ∧
+          BlkWK Γ I ctx Ag cl C' blk [.callIf c f args] ([.ret []] ++ tl)
             (.fall [.inK c, if I.σ c = 0 then .skip f args else .call f args []]) i₀
             (p₀ + blockSize st.out.toList) ∧
           RW I C' st' (pathVals I.σ [.callIf c f args]
@@ -723,10 +750,13 @@ theorem tailIf_fbat (hok : OpOK Γ I Ag cl) (hI : I.Ok)
   have hreg' : ((ctx.loops[ctx.name]?).any (·.registered)) = false := hself ▸ hreg
   refine flat_out (vs := pathVals I.σ [.callIf c f args]
       (.fall [.inK c, if I.σ c = 0 then .skip f args else .call f args []]))
-    (Wd := fun C' blk => BlkWK Γ I ctx.isMain Ag cl C' blk [.callIf c f args] ([.ret []] ++ tl)
+    (Wd := fun C' blk => BlkWK Γ I ctx Ag cl C' blk [.callIf c f args] ([.ret []] ++ tl)
       (.fall [.inK c, if I.σ c = 0 then .skip f args else .call f args []]) i₀
       (p₀ + blockSize st.out.toList))
-    hpk hI hsc hinv chainKeep_callIf' ?_
+    hpk hI hsc hinv chainKeep_callIf' (fun v hv => hown v (by
+      by_cases h : I.σ c = 0 <;>
+        simpa [pathVals, outEs, retVals, pathSels, sels1, walk1, Memory.Ev.uses, ownUses, h]
+          using hv)) ?_
   rw [placeStmt]
   simp only [bind_assoc]
   refine FBAt.fat_bind (begin_fat flushSeg_lock hI hsc hinv hcp)
@@ -809,6 +839,13 @@ theorem tailIf_fbat (hok : OpOK Γ I Ag cl) (hI : I.Ok)
        simp [hops'], ?_⟩
   refine blkWK_ops_ctl hok [I.hdr]
     (by by_cases h : I.σ c = 0 <;> simp [outEs, calls, Ev.call?, h, List.filterMap_cons])
+    ⟨fun hk h hm => by
+      simp only [List.mem_singleton] at hm
+      subst hm
+      exact hk hnm,
+     fun j hj _ _ _ => by
+      obtain rfl : j = 0 := by simp at hj; omega
+      rfl⟩
     (hopsW hF₈ hO₈)
     fun Ψ hΨ σ' hσ kh cs ks next kj kret khalt hXo hcs hks hk hKr => ?_
   generalize p₀ + blockSize st.out.toList + blockSize ops = pos at hXo hks ⊢
@@ -905,6 +942,7 @@ theorem FBAt.bind_end_if {C : (ℕ → E) → Prop} {st : St} {m : P Unit} {g : 
 `[callIf c f args, ret []]`, the call's placement keeping the invariant and laying words given the
 frame's return (`hst`). -/
 theorem blockW_selfIf (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0)
+    (hnew : PlaceNew ctx)
     (hAg : AgOwn I Ag) (hhdr : ctx.isMain = false → IsInK I.hdr.1 ∧ IsInK I.hdr.2)
     (hkend : IsInK (I.kw .endSentinel)) {c : V} {f : String} {args : List V} {tl : List Stmt}
     (hst : ∀ (C : (ℕ → E) → Prop) (st : St) (sc sc' : SSt) (i₀ p₀ : ℕ),
@@ -913,10 +951,10 @@ theorem blockW_selfIf (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = 
         e ∈ I.es) →
       cl[i₀]? = some ⟨f, args, [], decide (I.σ c ≠ 0)⟩ → WInv ctx I C st sc →
       FBAt ctx I C st (placeStmt (.callIf c f args) [.ret []] >>= fun _ => endStmt)
-        fun _ C' st' => (Fits I st' → OpsAt I p₀ st' → WInv ctx I C' st' sc') ∧
+        fun _ C' st' => (FinAt Γ I Ag p₀ st' → WInv ctx I C' st' sc') ∧
           st'.chainIn = none ∧
-          (Fits I st' → OpsAt I p₀ st' → ∃ blk, st'.out.toList = st.out.toList ++ blk ∧
-            BlkWK Γ I ctx.isMain Ag cl C' blk [.callIf c f args] ([.ret []] ++ tl)
+          (FinAt Γ I Ag p₀ st' → ∃ blk, st'.out.toList = st.out.toList ++ blk ∧
+            BlkWK Γ I ctx Ag cl C' blk [.callIf c f args] ([.ret []] ++ tl)
               (.fall [.inK c, if I.σ c = 0 then .skip f args else .call f args []]) i₀
               (p₀ + blockSize st.out.toList) ∧
             RW I C' st' (pathVals I.σ [.callIf c f args]
@@ -939,23 +977,29 @@ theorem blockW_selfIf (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = 
     have := hcl 0 (by simp only [outEs]; omega)
     by_cases h : I.σ c = 0 <;> simpa [outEs, calls, Ev.call?, h, List.filterMap_cons] using this
   rw [placeBlock.eq_2]
-  refine FBAt.bind_end_if (Q := fun st₁ _ st₂ => st₁.chainIn = none → st₂.chainIn = none ∧
-      ∃ blk, st₂.out.toList = st₁.out.toList ++ blk)
-    (fun st₁ => Fits I st₁ ∧ OpsAt I p₀ st₁)
+  refine FBAt.bind_end_if (Q := fun st₁ _ st₂ => (st₁.chainIn = none → st₂.chainIn = none ∧
+      ∃ blk, st₂.out.toList = st₁.out.toList ++ blk) ∧
+      (st₁.lazy = none → ∀ v, st₂.locs[v]? ≠ none → st₁.locs[v]? ≠ none ∨ v ∈ allocsOf st₁.rest) ∧
+      (∀ v ∈ allocsOf st₂.rest, v ∈ allocsOf st₁.rest) ∧
+      ∀ x ∈ st₁.tables.shared, x ∈ st₂.tables.shared)
+    (FinAt Γ I Ag p₀)
     (hst C st s sc₁ i₀ p₀ hsc₁ (fun e he => hes e he) hcl0 hinv)
-    (fun _ st₁ => placeMono [.ret []] st₁) (fun _ _ _ h hF => (h.1 hF.1 hF.2).cok)
+    (fun _ st₁ => wp_mono (wp_and (placeMono [.ret []] st₁) (hnew [.ret []] st₁))
+      fun _ _ ⟨⟨a, b, c⟩, d⟩ => ⟨a, b, c, d⟩)
+    (fun _ _ _ h hF => (h.1 hF).cok)
     (fun _ st₁ C₁ hs₁ hn₁ hl₁ ⟨hW₁, _, hB₁⟩ hF₁ => ?_)
     fun _ C₁ st₁ _ st₂ ⟨_, hch₁, _⟩ hnF hn₂ hl₂ hq => ?_
-  · refine FBAt.mono (BlockW.cons placeMono (stmtW_ret' (rest := []) (tl := tl) hok hI hmain hAg
-      hhdr hkend) (BlockW.nil tl) C₁ st₁ sc₁ s' (i₀ + 1) p₀ (.ret [] []) hsc
+  · have hW₁' := hW₁ hF₁
+    refine FBAt.mono (FBAt.and_wp (BlockW.cons placeMono hnew (stmtW_ret' (rest := []) (tl := tl)
+      hok hI hmain hAg hhdr hkend) (BlockW.nil tl) C₁ st₁ sc₁ s' (i₀ + 1) p₀ (.ret [] []) hsc
       (by simp [walk, walk1, Out.seq]) (fun h => nomatch h) (fun e he => by simp [outEs] at he)
-      (fun j hj => by simp [outEs, calls] at hj) (hW₁ hF₁.1 hF₁.2)) ?_
-    rintro _ C₂ st₂ hs₂ hn₂ hl₂ ⟨-, hch₂, hB₂⟩
-    refine ⟨(fun es h => nomatch h), hch₂, fun hF hO => ?_⟩
-    obtain ⟨blk₂, ho₂, hb₂, -⟩ := hB₂ hF hO
-    obtain ⟨blk₁, ho₁, hb₁, hrw₁⟩ := hB₁ (hF.back hn₂ hl₂) (hO.back ho₂)
+      (fun j hj => by simp [outEs, calls] at hj) hW₁') (hnew [.ret []] st₁)) ?_
+    rintro _ C₂ st₂ hs₂ hn₂ hl₂ ⟨⟨-, hch₂, hB₂⟩, hnw, hrs, hsh⟩
+    refine ⟨(fun es h => nomatch h), hch₂, fun hF => ?_⟩
+    obtain ⟨blk₂, ho₂, hb₂, -⟩ := hB₂ hF
+    obtain ⟨blk₁, ho₁, hb₁, hrw₁⟩ := hB₁ (hF.back hn₂ hl₂ ho₂ hsh)
     refine ⟨blk₁ ++ blk₂, by rw [ho₂, ho₁, List.append_assoc], ?_, ?_⟩
-    · have hb₂' : BlkW Γ I ctx.isMain Ag cl C₂ blk₂ [.ret []] tl (.ret [] [])
+    · have hb₂' : BlkW Γ I ctx Ag cl C₂ blk₂ [.ret []] tl (.ret [] [])
           (i₀ + (calls [Memory.Ev.inK c,
             if I.σ c = 0 then .skip f args else .call f args []]).length)
           (p₀ + blockSize st.out.toList + blockSize blk₁) := by
@@ -963,15 +1007,17 @@ theorem blockW_selfIf (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = 
         exact hb₂
       have := BlkWK.append_ret (hb₁.mono hs₂) hb₂'
       simpa only [List.singleton_append, List.append_nil] using this
-    · exact (hrw₁.grow hs₂ hn₂ hl₂).anti fun v hv => by
+    · exact (hrw₁.grow hs₂ hn₂ hl₂ (hnw hW₁'.lazy) hrs).anti fun v hv => by
         simpa [pathVals, outEs, retVals, pathSels, sels1, walk1] using hv
-  · obtain ⟨hch₂, blk, hb⟩ := hq hch₁
-    exact ⟨(fun es h => nomatch h), hch₂, fun hF hO =>
-      absurd ⟨hF.back hn₂ hl₂, hO.back hb⟩ hnF⟩
+  · obtain ⟨hq1, -, -, hsh⟩ := hq
+    obtain ⟨hch₂, blk, hb⟩ := hq1 hch₁
+    exact ⟨(fun es h => nomatch h), hch₂, fun hF =>
+      absurd (hF.back hn₂ hl₂ hb hsh) hnF⟩
 
 /-- **A loop's closing tail call and the return after it, on the path**: the block
 `[callIf c f args, ret []]` of the function `f` itself, which the layout does not register. -/
-theorem blockW_tailIf (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
+theorem blockW_tailIf (hnew : PlaceNew ctx) (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl)
+    (hI : I.Ok)
     (hmain : ctx.isMain = true → I.fp = 0)
     (hRd : ∀ rd, I.Rd rd → ∀ e ∈ I.es, evNT rd I.σ e)
     (hAg : AgOwn I Ag) (hK : AgKids ctx I Ag cl)
@@ -985,7 +1031,7 @@ theorem blockW_tailIf (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
     (hu : ∀ v ∈ c :: args, v ∉ I.tmps) :
     BlockW Γ Ag cl ctx I (placeBlock [.callIf c f args, .ret []]) [.callIf c f args, .ret []]
       tl :=
-  blockW_selfIf hok hI hmain hAg hhdr hkend fun _ _ _ _ _ _ hsc hes hcl hinv =>
+  blockW_selfIf hok hI hmain hnew hAg hhdr hkend fun _ _ _ _ _ _ hsc hes hcl hinv =>
     tailIf_fbat hok hI hRd hpk hAg hK hkw hent hmN hself hreg hu hsc hes hcl hinv
 
 /-- **A registered loop helper's closing call on the path** (`loopNext`), before the return that
@@ -1013,10 +1059,10 @@ theorem loopNext_fbat (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = 
     (hcl : cl[i₀]? = some ⟨f, args, [], decide (I.σ c ≠ 0)⟩)
     (hinv : WInv ctx I C st sc) :
     FBAt ctx I C st (placeStmt (.callIf c f args) [.ret []] >>= fun _ => endStmt)
-      fun _ C' st' => (Fits I st' → OpsAt I p₀ st' → WInv ctx I C' st' sc') ∧
+      fun _ C' st' => (FinAt Γ I Ag p₀ st' → WInv ctx I C' st' sc') ∧
         st'.chainIn = none ∧
-        (Fits I st' → OpsAt I p₀ st' → ∃ blk, st'.out.toList = st.out.toList ++ blk ∧
-          BlkWK Γ I ctx.isMain Ag cl C' blk [.callIf c f args] ([.ret []] ++ tl)
+        (FinAt Γ I Ag p₀ st' → ∃ blk, st'.out.toList = st.out.toList ++ blk ∧
+          BlkWK Γ I ctx Ag cl C' blk [.callIf c f args] ([.ret []] ++ tl)
             (.fall [.inK c, if I.σ c = 0 then .skip f args else .call f args []]) i₀
             (p₀ + blockSize st.out.toList) ∧
           RW I C' st' (pathVals I.σ [.callIf c f args]
@@ -1040,10 +1086,13 @@ theorem loopNext_fbat (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = 
   have hself' : (f == ctx.name) = true := by simp [hself]
   refine flat_out (vs := pathVals I.σ [.callIf c f args]
       (.fall [.inK c, if I.σ c = 0 then .skip f args else .call f args []]))
-    (Wd := fun C' blk => BlkWK Γ I ctx.isMain Ag cl C' blk [.callIf c f args] ([.ret []] ++ tl)
+    (Wd := fun C' blk => BlkWK Γ I ctx Ag cl C' blk [.callIf c f args] ([.ret []] ++ tl)
       (.fall [.inK c, if I.σ c = 0 then .skip f args else .call f args []]) i₀
       (p₀ + blockSize st.out.toList))
-    hpk hI hsc hinv chainKeep_callIf' ?_
+    hpk hI hsc hinv chainKeep_callIf' (fun v hv => hown v (by
+      by_cases h : I.σ c = 0 <;>
+        simpa [pathVals, outEs, retVals, pathSels, sels1, walk1, Memory.Ev.uses, ownUses, h]
+          using hv)) ?_
   rw [placeStmt]
   simp only [bind_assoc]
   refine FBAt.fat_bind (begin_fat flushSeg_lock hI hsc hinv hcp)
@@ -1156,6 +1205,13 @@ theorem loopNext_fbat (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = 
        simp [hops'], ?_⟩
   refine blkWK_ops_ctl hok [I.hdr]
     (by by_cases h : I.σ c = 0 <;> simp [outEs, calls, Ev.call?, h, List.filterMap_cons])
+    ⟨fun hk h hm => by
+      simp only [List.mem_singleton] at hm
+      subst hm
+      exact hk hnm,
+     fun j hj _ _ _ => by
+      obtain rfl : j = 0 := by simp at hj; omega
+      rfl⟩
     (hopsW hF₁₁ hO₁₁)
     fun Ψ hΨ σ' hσ kh cs ks next kj kret khalt hXo hcs hks hk hKr => ?_
   generalize p₀ + blockSize st.out.toList + blockSize ops = pos at hXo hks ⊢
@@ -1235,7 +1291,8 @@ theorem loopNext_fbat (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = 
 
 /-- **A registered loop helper's closing call and the return after it, on the path**: the block
 `[callIf c f args, ret []]` of the loop helper `f` itself. -/
-theorem blockW_loopNext (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
+theorem blockW_loopNext (hnew : PlaceNew ctx) (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl)
+    (hI : I.Ok)
     (hmain : ctx.isMain = true → I.fp = 0)
     (hRd : ∀ rd, I.Rd rd → ∀ e ∈ I.es, evNT rd I.σ e)
     (hAg : AgOwn I Ag) (hK : AgKids ctx I Ag cl)
@@ -1252,7 +1309,7 @@ theorem blockW_loopNext (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
     (hu : ∀ v ∈ c :: args, v ∉ I.tmps) :
     BlockW Γ Ag cl ctx I (placeBlock [.callIf c f args, .ret []]) [.callIf c f args, .ret []]
       tl :=
-  blockW_selfIf hok hI hmain hAg hhdr hkend fun _ _ _ _ _ _ hsc hes hcl hinv =>
+  blockW_selfIf hok hI hmain hnew hAg hhdr hkend fun _ _ _ _ _ _ hsc hes hcl hinv =>
     loopNext_fbat hok hI hmain hRd hpk hAg hK hkw hent hmN hframe hlh hselfK hself hreg hu hsc
       hes hcl hinv
 
