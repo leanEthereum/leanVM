@@ -306,5 +306,142 @@ theorem tmpsApartB_of {tf : TracedFn} {pf : Placed} {T Ts : NMap Unit} {C : NMap
     simp only [Bool.and_eq_true] at this
     exact this.2
 
+/-! ## The largest functions: one test per run of statements -/
+
+/-- What the test of a large function reads besides its body: its name, its places, its
+temporaries `TL` (written out), its frame size and its number of parameters. -/
+structure BigC where
+  name : String
+  locs : VMap Loc
+  TL : List V
+  n : ℕ
+  np : ℕ
+
+/-- The cells of the temporaries, as `staticOk` makes them. -/
+def BigC.Ts (c : BigC) : NMap Unit := cellSet c.locs c.TL
+
+/-- The cells of the temporaries, as `tmpsApartB` makes them. -/
+def BigC.TA (c : BigC) : NMap Unit := tmpCellSet c.locs c.TL
+
+/-- The temporaries' indices. -/
+def BigC.T (c : BigC) : NMap Unit := c.TL.foldl (fun m t => m.insert t.idx ()) {}
+
+/-- A value named by the body or a parameter is no temporary and not placed at a temporary's
+cell. -/
+def useOk (c : BigC) (v : V) : Bool :=
+  !c.T.contains v.idx && match c.locs[v]? with
+    | some l => !c.TA.contains (locBase l)
+    | none => true
+
+/-- **The test of a run of statements** `seg` of a large function, `L` its temporaries. -/
+def segOk (c : BigC) (seg : List Stmt) (L : List V) : Bool :=
+  decide (Stmt.tmpsList seg = L) && (Stmt.usesList seg).all (useOk c) &&
+    (runVals (Lift.blockAtoms seg)).isEmpty && (Lift.blockAtoms seg).all (runOk c.locs c.Ts c.n) &&
+    (retL seg).all (fun vs => consecFrom c.locs vs (2 + c.np)) && !callsL c.name seg
+
+theorem retL_append : ∀ (a b : List Stmt), retL (a ++ b) = retL a ++ retL b
+  | [], _ => by simp [retL]
+  | s :: ss, b => by simp [retL, retL_append ss b, List.append_assoc]
+
+theorem callsL_append (f : String) : ∀ (a b : List Stmt), callsL f (a ++ b) = (callsL f a || callsL f b)
+  | [], _ => by simp [callsL]
+  | s :: ss, b => by simp [callsL, callsL_append f ss b, Bool.or_assoc]
+
+theorem segOk_append {c : BigC} {a b : List Stmt} {La Lb : List V} (ha : segOk c a La = true)
+    (hb : segOk c b Lb = true) : segOk c (a ++ b) (La ++ Lb) = true := by
+  simp only [segOk, Bool.and_eq_true, decide_eq_true_eq, Bool.not_eq_eq_eq_not, Bool.not_true,
+    List.isEmpty_iff] at ha hb ⊢
+  obtain ⟨⟨⟨⟨⟨a1, a2⟩, a3⟩, a4⟩, a5⟩, a6⟩ := ha
+  obtain ⟨⟨⟨⟨⟨b1, b2⟩, b3⟩, b4⟩, b5⟩, b6⟩ := hb
+  rw [tmpsList_append, usesList_append, blockAtoms_append, runVals_append, retL_append,
+    callsL_append, List.all_append, List.all_append, List.all_append, a1, b1, a2, b2, a3, b3, a4, b4,
+    a5, b5, a6, b6]
+  simp
+
+theorem seg_part {c : BigC} {b : List Stmt} {a m : ℕ} {L₁ L₂ : List V}
+    (h₁ : segOk c ((b.drop a).take m) L₁ = true) (h₂ : segOk c (b.drop (a + m)) L₂ = true) :
+    segOk c (b.drop a) (L₁ ++ L₂) = true := by
+  rw [← List.take_append_drop m (b.drop a), drop_drop']
+  exact segOk_append h₁ h₂
+
+theorem seg_end {c : BigC} {b : List Stmt} {k : ℕ} (hk : b.length ≤ k) : segOk c (b.drop k) [] = true := by
+  rw [List.drop_eq_nil_of_le hk]
+  rfl
+
+theorem cnt_part {b : List PStmt} {set : NMap Unit} {k s : ℕ} {M M' M'' : NMap ℕ}
+    (h₁ : ((blockOpsFrom b 0 k).take s).foldl (cntStep set) M = M')
+    (h₂ : ((blockOps b 0).drop (k + s)).foldl (cntStep set) M' = M'') :
+    ((blockOps b 0).drop k).foldl (cntStep set) M = M'' := by
+  rw [blockOpsFrom_eq] at h₁
+  exact foldl_part h₁ h₂
+
+theorem cnt_end {b : List PStmt} {set : NMap Unit} {k : ℕ} {M : NMap ℕ} (hk : blockSize b ≤ k) :
+    ((blockOps b 0).drop k).foldl (cntStep set) M = M :=
+  foldl_end (List.drop_eq_nil_of_le (by rw [blockOps_length]; exact hk))
+
+/-- The checks of a large function on its temporaries, parameters and frame, `C` the counts of
+its temporaries' cells. -/
+noncomputable def smallOk (j : ℕ) (pf : Placed) (TL : List V) (C : NMap ℕ) : Bool :=
+  let tf := guestTraced.getD j default
+  let c : BigC := ⟨tf.core.name, pf.locs, TL, fsWant j, tf.core.params.length⟩
+  (pf.fn.frameSize == fsWant j && isLoopName tf.core.name == tf.core.loop &&
+      (!(loopsG[tf.core.name]?).any (·.registered) || Nat.blt (2 + tf.core.params.length) (fsWant j)) &&
+      Nat.ble (2 + tf.core.params.length) (fsWant j)) &&
+    consecFrom pf.locs tf.core.params 2 && cellsIn pf.locs TL (fsWant j) &&
+    natsDistinct (TL.map fun t => (cellP pf.locs t).getD 0) &&
+    (!(loopsG[tf.core.name]?).any (·.registered) || !c.Ts.contains (2 + tf.core.params.length)) &&
+    idxNodup TL 0 && TL.all (fun t => c.T.contains t.idx) && tf.core.params.all (useOk c) &&
+    TL.all (fun t => (cellP pf.locs t).isSome) &&
+    TL.all (fun t => match cellP pf.locs t with
+      | some n => C.get? n == some 1
+      | none => false)
+
+/-- **A large function's test from its parts**: the runs of statements (`hseg`), the checks on its
+temporaries and frame (`hsmall`), the counts of its temporaries' cells by chunks (`hcnt`), the
+scope walk by runs (`hscope`, `hfin`) and the remaining conjuncts on the placed body (`hrest`). -/
+theorem cplOk_big {j : ℕ} {pf : Placed} {TL : List V} {C : NMap ℕ} {S : SSt}
+    (hp : placedAt j = some pf)
+    (hseg : segOk ⟨(guestTraced.getD j default).core.name, pf.locs, TL, fsWant j,
+      (guestTraced.getD j default).core.params.length⟩ ((guestTraced.getD j default).core.body.drop 0) TL = true)
+    (hsmall : smallOk j pf TL C = true)
+    (hcnt : ((blockOps pf.fn.body 0).drop 0).foldl (cntStep (tmpCellSet pf.locs TL)) {} = C)
+    (hscope : scopeBlock (guestTraced.getD j default).rets ((guestTraced.getD j default).core.body.drop 0)
+      ⟨(guestTraced.getD j default).trace.toList, addLive {} (guestTraced.getD j default).core.params,
+        false⟩ = .ok S)
+    (hfin : (match flushAt (guestTraced.getD j default).rets S with
+      | .ok s => s.rest.isEmpty
+      | .error _ => false) = true)
+    (hrest : partsOk [4, 5, 6, 7] j pf = true) : cplOkAt j = true := by
+  generalize htf : guestTraced.getD j default = tf at hseg hsmall hscope hfin
+  have hrest' := hrest
+  simp only [partsOk, cplParts, List.all_cons, List.all_nil, List.getD_cons_zero,
+    List.getD_cons_succ, Bool.and_true, Bool.and_eq_true] at hrest'
+  obtain ⟨r4, r5, r6, r7⟩ := hrest'
+  rw [htf] at r4 r5 r7
+  set c : BigC := ⟨tf.core.name, pf.locs, TL, fsWant j, tf.core.params.length⟩ with hc
+  rw [List.drop_zero] at hseg
+  have hseg' := hseg
+  simp only [segOk, Bool.and_eq_true, decide_eq_true_eq, Bool.not_eq_eq_eq_not, Bool.not_true,
+    List.isEmpty_iff] at hseg'
+  obtain ⟨⟨⟨⟨⟨htl, huses⟩, hrv⟩, hruns⟩, hret⟩, hcalls⟩ := hseg'
+  simp only [smallOk, htf, Bool.and_eq_true] at hsmall
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hhead, hpar⟩, hin⟩, hnd⟩, hself⟩, hidx⟩, hT⟩, hparU⟩, hsome⟩, hone⟩ := hsmall
+  have h0 : staticOk loopsG tf pf (fsWant j) = true := by
+    refine staticOk_of (Ts := c.Ts) (by simp only [Bool.and_eq_true]; exact hhead) hpar hret (by rw [htl]; exact hin) (by rw [htl]; exact hnd)
+      (by rw [List.drop_zero, hrv]; rfl) (by rw [htl]; rfl) hself (by rw [List.drop_zero]; exact hruns)
+  have h3 : tmpsApartB tf pf = true :=
+    tmpsApartB_of (T := c.T) (Ts := c.TA) (by rw [htl]; exact hidx) (by rw [htl]; exact hT)
+      (by rw [List.drop_zero]; exact huses) hparU (by rw [htl]; rfl) hcnt (by rw [htl]; exact hsome)
+      (by rw [htl]; exact hone)
+  have h1 : scopedB tf = true := scopedB_of hscope hfin
+  have h2 : noSelfCallB tf = true := by
+    unfold noSelfCallB
+    rw [hcalls]
+    rfl
+  subst htf
+  exact cplOkAt_of hp (cplOkWith_of_parts (by
+    simp only [partsOk, cplParts, List.all_cons, List.all_nil, List.getD_cons_zero,
+      List.getD_cons_succ, h0, h1, h2, h3, r4, r5, r6, r7, Bool.and_self]))
+
 end
 end LeanVM.Guest.Backend.CplEval
