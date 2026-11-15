@@ -56,7 +56,3 @@ pub fn next_weights(local: &[F128], beta: F128) -> Vec<F128> {
     }
     linear_transpose(&w)
 }
-
-pub fn dot(a: &[F128], b: &[F128]) -> F128 {
-    a.iter().zip(b).map(|(&x, &y)| x * y).sum()
-}

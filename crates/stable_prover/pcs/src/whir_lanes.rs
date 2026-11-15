@@ -15,11 +15,11 @@
 //! The stack's absent lanes are zero, so they take no projection, but `A` keeps a row for every lane: a claim's
 //! weight may reach past the committed lanes. A lane without a partner folds against zero.
 
-use primitives::field::{F64, F64x8, F128, F128x8};
+use primitives::field::{F64, F64x8, F128, F128x8, dot};
 use primitives::multilinear::interp;
 
 use crate::stack_open::{LOW_VARS, Terms};
-use crate::whir::{FoldChallenges, FoldRounds, FoldTable, dot};
+use crate::whir::{FoldChallenges, FoldRounds, FoldTable};
 use crate::xmul::x_at;
 
 const BLOCK: usize = 1 << LOW_VARS;

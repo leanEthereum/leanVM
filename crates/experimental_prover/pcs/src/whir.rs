@@ -22,10 +22,10 @@
 //! Soundness note: [`WhirSecurityConfig`] analyzes the challenge field
 //! `E`; the committed alphabet remains `K = GF(2^64)`.
 
-use crate::merkle::{self, Hash};
+use crate::merkle;
 use crate::ntt::{AdditiveNttF64, Codeword, Keep};
 use crate::stack_open::Terms;
-use fiat_shamir::merkle::MerklePath;
+use fiat_shamir::merkle::{Hash, MerklePath};
 use primitives::field::{Acc8, F64, F128, F128Unreduced, F128x8, fold_pairs8_ext, msg_terms8_ext, powers};
 use primitives::multilinear::{eq_table, interp};
 use primitives::transcript::ProverState;

@@ -9,12 +9,12 @@
 
 use pcs::{RingSwitchOpen, StackClaim};
 use primitives::bit_fold::BitFold;
-use primitives::field::{F64, F128};
+use primitives::field::{F64, F128, dot};
 use primitives::multilinear::{eq_table, interp, mle_eval};
 use primitives::transcript::ProverState;
 
 use crate::keccak::{BITS, LANES};
-use crate::protocol::{Claim, dot};
+use crate::protocol::Claim;
 use crate::witness::{Shape, transpose64};
 
 /// What the reduction leaves for the commitment to answer, both sent: the committed segment outputs as words at the

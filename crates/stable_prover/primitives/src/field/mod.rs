@@ -87,6 +87,19 @@ pub fn g_pow32_by_lookup(i: u32) -> F64 {
     }
 }
 
+/// `sum_i a[i] b[i]` over `E`, reduced once; zero if either is empty.
+pub fn dot(a: &[F128], b: &[F128]) -> F128 {
+    if a.is_empty() || b.is_empty() {
+        return F128::ZERO;
+    }
+    assert_eq!(a.len(), b.len());
+    let ((a8, a1), (b8, b1)) = (a.as_chunks::<8>(), b.as_chunks::<8>());
+    let acc = a8.iter().zip(b8).fold(Acc8::ZERO, |acc, (a, b)| {
+        acc + F128x8::from_array(a).mul_unreduced(F128x8::from_array(b))
+    });
+    a1.iter().zip(b1).fold(acc.sum(), |sum, (&a, &b)| sum + a * b)
+}
+
 /// MLE of the index column `[g^0, …, g^{2^n−1}]` over the `n`-variable cube, evaluated at an `E`-point:
 /// `∏_k (1 + ζ_k·(1 + g^{2^k}))` (§sec:idxcol), one mixed product per term.
 pub fn index_mle(zeta: &[F128]) -> F128 {

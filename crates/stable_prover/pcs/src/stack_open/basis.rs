@@ -280,7 +280,7 @@ impl<'a> Projection<'a> {
                 let claim = &terms.claims[c];
                 let range = claim.range.start.max(blocks.start)..claim.range.end.min(blocks.end);
                 if !range.is_empty() {
-                    row[c] = crate::whir::dot(
+                    row[c] = primitives::field::dot(
                         &claim.gamma[range.clone()],
                         &q[range.start - blocks.start..range.end - blocks.start],
                     );

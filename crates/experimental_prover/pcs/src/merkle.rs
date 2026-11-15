@@ -24,7 +24,7 @@ use std::mem::MaybeUninit;
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
-pub use fiat_shamir::merkle::{Hash, MerklePath, hash_leaf, hash_pair};
+use fiat_shamir::merkle::{Hash, MerklePath};
 use parallel::SendPtr;
 use primitives::field::F64;
 use primitives::hash::{LANES, OUT_LEN, RATE, STATE_LANES, hash_many, hash_many_from_state, zero_prefix_state};
@@ -481,6 +481,7 @@ fn digests_as_bytes(out: &mut [MaybeUninit<Hash>]) -> &mut [u8] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use primitives::hash::{hash, hash_pair};
 
     /// The tree over `num_leaves` equal byte leaves, each hashed as [`primitives::hash::hash`] of its bytes.
     fn merkle_tree(data: &[u8], num_leaves: usize) -> Vec<Hash> {
@@ -536,7 +537,7 @@ mod tests {
             let data: Vec<u8> = (0..num_leaves * leaf_size)
                 .map(|i| (i.wrapping_mul(131) ^ 0x5a) as u8)
                 .collect();
-            let want = merkle_tree_sequential(data.chunks(leaf_size).map(hash_leaf), num_leaves);
+            let want = merkle_tree_sequential(data.chunks(leaf_size).map(hash), num_leaves);
             assert_eq!(
                 &merkle_tree(&data, num_leaves)[..],
                 &want[..],
@@ -573,7 +574,7 @@ mod tests {
                 data.chunks(row_words).map(|row| {
                     let mut image = vec![0u8; 8 * (leaf_words - row_words)];
                     image.extend_from_slice(cast_slice(row));
-                    hash_leaf(&image)
+                    hash(&image)
                 }),
                 num_leaves,
             );

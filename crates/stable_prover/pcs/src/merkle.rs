@@ -1,7 +1,7 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-core), MIT OR Apache-2.0.
 //! Binary Merkle tree with Keccak-256: the committer's half. What a proof carries lives in [`fiat_shamir::merkle`].
 
-pub use fiat_shamir::merkle::{Hash, MerklePath, hash_leaf, hash_pair};
+use fiat_shamir::merkle::{Hash, MerklePath};
 use primitives::field::F64;
 use primitives::hash::{OUT_LEN, RATE, STATE_LANES, hash_many, hash_many_from_state, zero_prefix_state};
 
@@ -84,6 +84,7 @@ impl MerkleTree {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use primitives::hash::{hash, hash_pair};
 
     /// Every level and every path agree with the tree hashed one leaf and one pair at a time, whether the leaf's
     /// zeros fill whole blocks, a block and a part, or less than a block.
@@ -107,7 +108,7 @@ mod tests {
                 .map(|q| {
                     let mut image = vec![0u8; 8 * (leaf_words - row_words)];
                     image.extend_from_slice(primitives::cast_slice(row(q)));
-                    hash_leaf(&image)
+                    hash(&image)
                 })
                 .collect();
             let mut leaves = vec![[0u8; OUT_LEN]; num_leaves];
@@ -122,7 +123,7 @@ mod tests {
             let positions = [0, num_leaves / 3, num_leaves - 1, 0];
             for path in tree.open(&positions, leaf_words, row) {
                 let image: Vec<u8> = path.leaf.iter().flat_map(|w| w.0.to_le_bytes()).collect();
-                let mut node = hash_leaf(&image);
+                let mut node = hash(&image);
                 for (level, sibling) in path.siblings.iter().enumerate() {
                     node = if (path.leaf_index >> level) & 1 == 0 {
                         hash_pair(&node, sibling)

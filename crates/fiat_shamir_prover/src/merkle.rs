@@ -16,15 +16,9 @@ pub fn hash_to_scalars<F: Scalar>(hash: &Hash) -> [F; 2] {
     [F::from_limbs([w0, w1]), F::from_limbs([w2, w3])]
 }
 
-/// Hash one leaf ([`keccak256::hash`]).
-#[inline]
-pub fn hash_leaf(data: &[u8]) -> Hash {
-    keccak256::hash(data)
-}
-
 /// Hash one leaf given as its words, little-endian on any host.
 pub fn hash_words(words: impl IntoIterator<Item = u64>) -> Hash {
-    hash_leaf(&words.into_iter().flat_map(u64::to_le_bytes).collect::<Vec<u8>>())
+    keccak256::hash(&words.into_iter().flat_map(u64::to_le_bytes).collect::<Vec<u8>>())
 }
 
 pub use keccak256::hash_pair;

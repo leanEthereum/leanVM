@@ -18,13 +18,13 @@
 //!    and adds the OOD and query claims' weights to the weight, the queries' by `induce_basis`;
 //! 3. at the last level, sends the folded lane, opens its oracle at the queries, and closes with the tail sumcheck.
 
-use fiat_shamir::merkle::MerklePath;
-use primitives::field::{Acc8, F64, F128, F128x8, powers};
+use fiat_shamir::merkle::{Hash, MerklePath};
+use primitives::field::{Acc8, F64, F128, F128x8, dot, powers};
 use primitives::hash::OUT_LEN;
 use primitives::multilinear::eq_table;
 use primitives::transcript::ProverState;
 
-use crate::merkle::{Hash, LeafHasher, MerkleTree};
+use crate::merkle::{LeafHasher, MerkleTree};
 use crate::ntt::AdditiveNttF64;
 use crate::whir_induce::induce_basis;
 use crate::whir_lanes::LaneRounds;
@@ -55,19 +55,6 @@ fn fold_pairs(x: &[F128], r: F128) -> Vec<F128> {
         let (lo, hi) = pairs8(x, 8 * k);
         (lo + r * (lo + hi)).to_array()
     })
-}
-
-/// `sum_i a[i] b[i]` over `E`, reduced once; zero if either is empty.
-pub(crate) fn dot(a: &[F128], b: &[F128]) -> F128 {
-    if a.is_empty() || b.is_empty() {
-        return F128::ZERO;
-    }
-    assert_eq!(a.len(), b.len());
-    let ((a8, a1), (b8, b1)) = (a.as_chunks::<8>(), b.as_chunks::<8>());
-    let acc = a8.iter().zip(b8).fold(Acc8::ZERO, |acc, (a, b)| {
-        acc + F128x8::from_array(a).mul_unreduced(F128x8::from_array(b))
-    });
-    a1.iter().zip(b1).fold(acc.sum(), |sum, (&a, &b)| sum + a * b)
 }
 
 /// [`dot`] with the pool.
