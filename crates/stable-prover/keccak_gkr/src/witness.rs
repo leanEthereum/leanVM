@@ -181,58 +181,45 @@ pub(crate) fn run_block(depth: usize, inputs: &[[u64; LANES]], keep: bool) -> (V
     (lanes, rounds)
 }
 
-/// One block's committed lanes alone: slot `s` at `s * BLOCK ..`, a word per instance.
-///
-/// Its rounds are not kept: the reduction rebuilds them from the committed column.
-pub fn block_lanes(depth: usize, inputs: &[[u64; LANES]]) -> Vec<u64> {
-    run_block(depth, inputs, false).0
+/// Run every instance of `inputs`, padding the batch with all-zero inputs, and write the committed states into
+/// `states`, the first `slots * n` words of the committed block: lane `l` of the state after `depth * m` rounds, for
+/// `m` below the segment count, is slot `25 * m + l`, one word per instance. The slots past them are the caller's: in
+/// the VM other columns ride them (`lean_vm_core::cpu::keccak_value`). The blocks after the last input are run once,
+/// as the padding block.
+pub fn commit_states(shape: Shape, inputs: &[[u64; LANES]], states: &mut [F64]) {
+    let n = shape.n();
+    assert!(inputs.len() <= n);
+    assert_eq!(
+        states.len(),
+        shape.slots() * n,
+        "the committed states are the wrong size"
+    );
+    let block_lanes = |inputs: &[[u64; LANES]]| run_block(shape.depth, inputs, false).0;
+    let lanes = parallel::map_collect(inputs.len().div_ceil(BLOCK), |g| {
+        block_lanes(&inputs[g * BLOCK..((g + 1) * BLOCK).min(inputs.len())])
+    });
+    let padding = (lanes.len() < shape.n_blocks()).then(|| block_lanes(&[]));
+    parallel::chunks_mut(states, n, |slot, column| {
+        for (g, out) in column.chunks_mut(BLOCK).enumerate() {
+            let lanes = lanes.get(g).or(padding.as_ref()).expect("a padding block");
+            for (out, &word) in out.iter_mut().zip(&lanes[slot * BLOCK..][..BLOCK]) {
+                *out = F64(word);
+            }
+        }
+    });
 }
 
 impl Witness {
-    /// Run every instance, padding the batch with all-zero inputs, and write the committed
-    /// lanes into `committed`: lane `l` of the state after `depth * m` rounds, for `m` below the
-    /// segment count, is slot `25 * m + l`, one word per instance. Whatever `committed` has past
-    /// the last slot is zeroed, so a caller whose spare slots carry other columns (§cpu) passes
-    /// the states' prefix alone. The blocks after the last input are run once, as the padding block.
+    /// [`commit_states`] over the first `slots * n` words of `committed`, then the witness rebuilt from them.
     pub fn generate(shape: Shape, inputs: &[[u64; LANES]], committed: &mut [F64]) -> Self {
-        assert!(inputs.len() <= shape.n());
-        let written = inputs.len().div_ceil(BLOCK);
-        let held = written + usize::from(written < shape.n_blocks());
-        let (lanes, blocks): (Vec<_>, Vec<_>) = parallel::map_collect(held, |g| {
-            let inputs = &inputs[(g * BLOCK).min(inputs.len())..((g + 1) * BLOCK).min(inputs.len())];
-            run_block(shape.depth, inputs, true)
-        })
-        .into_iter()
-        .unzip();
-        Self::write_committed(shape, &lanes[..written], committed);
-        Self { shape, blocks, written }
-    }
-
-    /// Write the committed lanes of every block into `committed`, laid out as `generate` does:
-    /// `committed` holds at least the states' `slots * n` words and at most the whole block, and
-    /// anything it has past the last slot is zeroed.
-    ///
-    /// - Block `g`'s lanes are `lanes[g]`.
-    /// - The blocks past them are the padding block.
-    pub fn write_committed(shape: Shape, lanes: &[Vec<u64>], committed: &mut [F64]) {
-        let (n, slots) = (shape.n(), shape.slots());
-        assert!(committed.len() >= slots * n && committed.len() <= 1 << shape.stack_log());
-        let padding = (lanes.len() < shape.n_blocks()).then(|| block_lanes(shape.depth, &[]));
-        let (states, spare) = committed.split_at_mut(slots * n);
-        spare.fill(F64(0));
-        parallel::chunks_mut(states, n, |slot, column| {
-            for (g, out) in column.chunks_mut(BLOCK).enumerate() {
-                let lanes = lanes.get(g).or(padding.as_ref()).expect("a padding block");
-                for (out, &word) in out.iter_mut().zip(&lanes[slot * BLOCK..][..BLOCK]) {
-                    *out = F64(word);
-                }
-            }
-        });
+        let states = &mut committed[..shape.slots() * shape.n()];
+        commit_states(shape, inputs, states);
+        Self::from_committed(shape, inputs.len(), states)
     }
 
     /// The witness of the first `instances` instances, rebuilt from their committed inputs.
     ///
-    /// - `committed` is laid out as `generate` writes it.
+    /// - `committed` is laid out as [`commit_states`] writes it.
     /// - The blocks past the last input are the padding block.
     pub fn from_committed(shape: Shape, instances: usize, committed: &[F64]) -> Self {
         let n = shape.n();
@@ -297,7 +284,7 @@ mod tests {
         let mut rng = Rng::new(9);
         let inputs: Vec<[u64; LANES]> = (0..1100).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
         let shape = Shape::new(inputs.len(), 8);
-        let mut committed = vec![F64(1); 1 << shape.stack_log()];
+        let mut committed = vec![F64(0); 1 << shape.stack_log()];
         Witness::generate(shape, &inputs, &mut committed);
         let n = shape.n();
         for x in (0..n).step_by(37) {
@@ -319,7 +306,6 @@ mod tests {
                 assert_eq!(committed[(2 * LANES + lane) * n + x].0, word, "instance {x}");
             }
         }
-        assert!(committed[shape.slots() * n..].iter().all(|w| w.0 == 0));
     }
 
     /// A shape whose committed block would not fit a `usize` is refused, rather than wrapping.

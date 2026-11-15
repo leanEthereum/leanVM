@@ -7,7 +7,6 @@
 //! claims on the output lanes are the reduction's claim on the permutation's output ([`keccak_gkr::OutputClaim`]).
 //! The reduction proves the rounds between, and its two claims on `q_keccak` join the one opening.
 
-use keccak_gkr::witness::{BLOCK, block_lanes};
 use keccak_gkr::{Openings, OutputClaim, Shape, Witness};
 use primitives::field::{F64, F128};
 use primitives::hash::STATE_LANES;
@@ -117,15 +116,7 @@ impl Reduction {
 /// slots, `states`: the spare slots past them are their columns' to fill.
 pub(crate) fn place(inputs: &[[u64; STATE_LANES]], states: &mut [F64]) -> Reduction {
     let shape = shape(inputs.len());
-    assert_eq!(
-        states.len(),
-        shape.slots() * shape.n(),
-        "the committed states are the wrong size"
-    );
-    let lanes = parallel::map_collect(inputs.len().div_ceil(BLOCK), |g| {
-        block_lanes(shape.depth(), &inputs[g * BLOCK..((g + 1) * BLOCK).min(inputs.len())])
-    });
-    Witness::write_committed(shape, &lanes, states);
+    keccak_gkr::witness::commit_states(shape, inputs, states);
     Reduction {
         shape,
         steps: inputs.len(),
@@ -136,47 +127,10 @@ pub(crate) fn place(inputs: &[[u64; STATE_LANES]], states: &mut [F64]) -> Reduct
 mod tests {
     use super::*;
 
-    fn f(x: u64) -> F64 {
-        F64(x)
-    }
-
-    /// The committed column for `instances`, padded with all-zero steps, and the reduction's
-    /// witness.
-    fn build_qkeccak(instances: &[[u64; STATE_LANES]]) -> (Vec<F64>, Witness) {
-        let mut q_keccak = vec![F64::ZERO; 1 << shape(instances.len()).stack_log()];
-        let states = SLOTS * (1 << n_steps_log(instances.len()));
-        let witness = Witness::generate(shape(instances.len()), instances, &mut q_keccak[..states]);
-        (q_keccak, witness)
-    }
-
     fn sample_instances(n: usize) -> Vec<[u64; STATE_LANES]> {
         (0..n as u64)
             .map(|i| std::array::from_fn(|l| 0x0101_0101_0101_0101u64.wrapping_mul(i + 1) ^ l as u64))
             .collect()
-    }
-
-    /// The witness the reduction rebuilds from the committed column proves as the one built in one pass, whether
-    /// the steps fill whole blocks, leave a partial one, or leave blocks of the batch with no step at all.
-    #[test]
-    fn rebuilt_witness_matches_one_pass() {
-        for n in [0, 1, 511, 512, 513, 1500, 4099] {
-            let instances = sample_instances(n);
-            let (expected, reference) = build_qkeccak(&instances);
-            let mut q_keccak = vec![f(0xdead_beef); expected.len()];
-            let states = SLOTS * (1 << n_steps_log(n));
-            let witness = place(&instances, &mut q_keccak[..states]);
-            assert_eq!(q_keccak[..states], expected[..states], "{n} steps");
-            // What the columns riding the spare slots left there is none of the reduction's
-            // business, but both openings fold it, so the two runs have to see the same.
-            q_keccak[states..].fill(f(0x5151_5151));
-            let point = (0..n_steps_log(n)).map(|i| F128::new(3 + i as u64, 5)).collect();
-            let output = OutputClaim::of_inputs(shape(n), &instances, point);
-            let mut ps = ProverState::from_label(b"blocks");
-            let deferred = (witness.prove(&mut ps, &q_keccak, &output), ps.into_proof());
-            let mut ps = ProverState::from_label(b"blocks");
-            let one_pass = (reference.prove(&mut ps, &q_keccak, &output), ps.into_proof());
-            assert!(deferred == one_pass, "{n} steps");
-        }
     }
 
     /// Both layouts round-trip, and a padded message laid out in cells, block `k`'s nine cells
@@ -226,11 +180,12 @@ mod tests {
     #[test]
     fn qkeccak_words_match_layout() {
         let instances = sample_instances(5);
-        let (q_keccak, _) = build_qkeccak(&instances);
         let n = 1usize << n_steps_log(instances.len());
+        let mut q_keccak = vec![F64::ZERO; SLOTS * n];
+        place(&instances, &mut q_keccak);
         for (j, input) in instances.iter().enumerate() {
             for i in 0..STATE_LANES {
-                assert_eq!(q_keccak[i * n + j], f(input[i]));
+                assert_eq!(q_keccak[i * n + j], F64(input[i]));
             }
         }
     }
