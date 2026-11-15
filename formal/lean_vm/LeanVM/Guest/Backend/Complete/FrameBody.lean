@@ -563,5 +563,151 @@ theorem tabsW_of (hW : W.Compiled) {Ag : Val → (ℕ → E) → (ℕ → E × E
 
 end Tabs
 
+/-! ## The function level -/
+
+/-- A scoped function's scope walk passes its body. -/
+theorem scoped_body {tf : TracedFn} (h : Scoped tf) : ∃ s', scopeBlock tf.rets tf.core.body
+    ⟨tf.trace.toList, addLive {} tf.core.params, false⟩ = .ok s' := by
+  unfold Scoped scopedB at h
+  split at h
+  · next he =>
+    unfold scopedE at he
+    split at he
+    · cases he
+    · split at he
+      · cases he
+      · next s hs => exact ⟨s, hs⟩
+  · cases h
+
+/-- **The walk's statement from the block lemma at the body**: the walk of the function's
+placement on the path gives the frame words (`Ψ` from the final constraint), the callee headers
+(from the body's words), the clauses and the path's words. -/
+theorem walkWords_of_body (hbody : BodyW) (hfn : FlushNew) : WalkWordsStmt := by
+  intro κ₀ W hc tf htf hsc pf hpl hta hns fp hfp kfps hdr σ es vs hw ha hrd
+  obtain ⟨pre, post, f, hat⟩ := fnAt_of_placedAs hc htf hpl
+  obtain ⟨ti, ti', hplace, hshared⟩ := hat.placed
+  obtain ⟨stf, hrun, hpfeq, htab, -, hreg0, -⟩ := placeFn_ok hplace
+  have hB := hbody W hc tf htf hsc pf hpl hta hns fp hfp kfps hdr σ es vs hw ha hrd
+  have hfresh := hta.fresh
+  have hwI : walk (instK W tf pf fp hdr σ es kfps).σ tf.core.body = .ret es vs := by
+    show walk (zeroTmps (Stmt.tmpsList tf.core.body) σ) tf.core.body = _
+    rw [← hw]
+    exact walk_congr _ fun v hv => zeroTmps_off fun ht => (hfresh.2 v ht).1 hv
+  obtain ⟨s', hscope⟩ := scoped_body hsc
+  suffices hQ : wpP (placeBody tf) (ctxOf (loopTable W.p) (sigTable W.p) tf)
+      (initSt (loopTable W.p) ti tf) (fun _ st' =>
+        pf.fn.body = st'.out.toList → pf.fn.frameSize = st'.next → pf.locs = st'.locs →
+        st'.tables = ti' →
+        ∃ (Ψ : ℕ → E) (kh : ℕ → E × E), ∀ σ', (instOf W tf pf fp hdr σ es).Same σ' →
+          (∀ rd : Reader, (∀ e ∈ es, e.Holds rd σ') →
+            FrameClauses (loopTable W.p) tf pf fp σ' es vs hdr
+              ⟨patchT (instOf W tf pf fp hdr σ es) Ψ σ', kh⟩) ∧
+          (kfps.length = (calls es).length →
+            (isLoopName tf.core.name = true → ∀ kfp, kfps.getLast? = some kfp →
+              kfp = fp + pf.fn.frameSize) →
+            (tf.core.name ≠ "main" → IsInK hdr.1 ∧ IsInK hdr.2) →
+            (∃ rd : Reader, ∀ e ∈ es, e.Holds rd σ') →
+            PathWords W tf pf fp σ' es kfps hdr ⟨patchT (instOf W tf pf fp hdr σ es) Ψ σ', kh⟩)) from
+    hQ () stf hrun (by rw [hpfeq]) (by rw [hpfeq]) (by rw [hpfeq]) htab.symm
+  unfold placeBody
+  refine wp_bind.mpr (wp_mono (forM_bindTo_st _ _) fun _ st₁ ⟨he₁, hle₁, hL₁, hP₁⟩ => ?_)
+  have hwinv := winv_init (loops := loopTable W.p) (sigs := sigTable W.p) (tables := ti)
+    (I := instK W tf pf fp hdr σ es kfps) (L₁ := st₁.locs) hsc
+    (fun v l h => (hL₁ v l h).resolve_left fun h' => by simp [initSt] at h')
+  rw [← he₁] at hwinv
+  refine wp_bind.mpr (wp_mono (hB _ st₁ _ s' 0 0 (.ret es vs) hscope hwI (by simp)
+    (fun e he => he) (fun j _ => by simp [outEs]) hwinv hwinv.cok) fun _ st₂ hst₂ => ?_)
+  obtain ⟨C', hsat, -, hstr, hn₂, hl₂, hout⟩ := hst₂
+  refine wp_bind.mpr fun _ st₃ he₃ => ?_
+  have hnew := hfn _ st₂ [] () st₃ he₃
+  obtain ⟨hn₃, hl₃⟩ := flush_mono (ctx := ctxOf (loopTable W.p) (sigTable W.p) tf) (st := st₂)
+    (up := []) () st₃ he₃
+  obtain ⟨ops, hops, -, -, hsame, -⟩ := flush_spec (Γ := World.cplSite W tf.core.name) (fp := 1)
+    (F := {}) (ctx := ctxOf (loopTable W.p) (sigTable W.p) tf) [] st₂ () st₃ he₃
+  refine wp_bind.mpr (wp_get.mpr ?_)
+  split
+  · exact wp_failP
+  refine wp_pure.mpr fun hbd hsz hlc htb => ?_
+  -- the state after the body is one the final placement extends
+  have hout₁ : st₁.out.toList = [] := by rw [he₁]; rfl
+  have hbody₂ : pf.fn.body = st₂.out.toList ++ ops := by rw [hbd, hops]
+  have hfin : FinAt (World.cplSite W tf.core.name) (instK W tf pf fp hdr σ es kfps)
+      (agK W tf pf fp hdr es kfps (instK W tf pf fp hdr σ es kfps)) 0 st₂ := by
+    refine ⟨⟨?_, ?_⟩, ?_, ?_⟩
+    · show st₂.next ≤ pf.fn.frameSize
+      rw [hsz]; exact hn₃
+    · show LocsLe st₂.locs pf.locs
+      rw [hlc]; exact hl₃
+    · intro i hi
+      show (blockOps pf.fn.body 0)[0 + i]? = _
+      rw [hbody₂, bops_append]
+      simp only [Nat.zero_add]
+      rw [List.getElem?_append_left hi, List.getElem?_eq_getElem hi]
+    · refine tabsW_of hc (fun _ _ _ _ _ hA => hA.2.2.2.2) hshared ?_
+      rw [← htb, hsame.tables]
+      exact TablesLe.refl _
+  obtain ⟨-, -, hblk⟩ := hout
+  obtain ⟨blk, hblk_out, ⟨hs, hlen, hhs, hW⟩, hrw⟩ := hblk hfin
+  rw [hout₁, List.nil_append] at hblk_out
+  rw [hout₁] at hW
+  obtain ⟨Ψ, hΨ⟩ := hsat
+  refine ⟨Ψ, fun i => hs.getD i (0, 0), fun σ' hS => ⟨fun _ _ => ?_, ?_⟩⟩
+  · -- the clauses
+    have hpar : ∀ k (hk : k < tf.core.params.length),
+        cellP pf.locs tf.core.params[k] = some (2 + k) := by
+      intro k hk
+      have h1 := hP₁ (tf.core.params[k], k) (List.mem_iff_getElem.mpr ⟨k, by simpa using hk,
+        by simp⟩)
+      have h2 := (hl₂.trans hl₃) _ _ h1
+      rw [← hlc] at h2
+      simp [cellP, h2]
+    exact frameClauses_of (I := instK W tf pf fp hdr σ es kfps) hsc hta ⟨ti, ti', hplace⟩
+      ⟨rfl, rfl, rfl, rfl⟩ hw hΨ hstr (fun _ h => h) (fun hreg => by
+        have hr0 : tf.rets = 0 := by simpa [sigOf] using hreg0 hreg
+        have hreg' : ((loopTable W.p)[tf.core.name]?).any (·.registered) = true := hreg
+        simp only [initSt, sigOf, hreg', ite_true, hr0, Nat.add_zero])
+      hpar (by rw [hlc]; exact hl₃) (fun v hv => hnew v (by rw [← hlc]; exact hv)) hrw hhs hlen
+      rfl σ' hS
+  · -- the path's words
+    intro hl htl hhk _
+    subst hblk_out
+    have hprem : PremW (instK W tf pf fp hdr σ es kfps) (ctxOf (loopTable W.p) (sigTable W.p) tf) :=
+      ⟨fun hm => hhk (by simpa [ctxOf] using hm),
+        fun hreg kfp hk => htl (isLoopName_of_registered hreg) kfp hk⟩
+    have hks : KsAt (calls es) kfps (fun i => hs.getD i (0, 0)) 0 (calls (outEs (.ret es vs))) hs
+        ((List.range kfps.length).zip kfps) := by
+      refine ⟨hlen, fun j hj => ⟨?_, by simp [outEs], by simp⟩⟩
+      have hj' : j < kfps.length := by rw [hl]; simpa [outEs] using hj
+      refine ⟨kfps[j], ?_, by simp [hj']⟩
+      rw [List.getElem?_eq_getElem (by simp [hj'])]
+      simp
+    have hk : OutK (.ret es vs) [] (fun _ _ => False)
+        (if (ctxOf (loopTable W.p) (sigTable W.p) tf).isMain then tf.core.name = "main"
+          else tf.core.name ≠ "main") ((List.range kfps.length).zip kfps) := by
+      by_cases h : tf.core.name = "main" <;> simp [OutK, ctxOf, h]
+    have hops₂ : ∀ o' ∈ blockOps st₂.out.toList (0 + blockSize []),
+        o' ∈ (instK W tf pf fp hdr σ es kfps).ops := by
+      intro o' ho'
+      show o' ∈ blockOps pf.fn.body 0
+      rw [hbody₂, bops_append]
+      exact List.mem_append_left _ ho'
+    have hcs : ctrlSplit tf.core.body = ctrlSplit (tf.core.body ++ []) := by rw [List.append_nil]
+    unfold PathWords
+    rw [wL_eq_wLc, hbody₂]
+    cases ops with
+    | nil =>
+      rw [List.append_nil]
+      exact hW hprem Ψ hΨ σ' hS _ _ _ _ _ _ _ hops₂ hcs hks hk
+    | cons o os =>
+      rw [wLc_append _ _ _ _ _ _ _ _ (o :: os) (List.cons_ne_nil _ _)]
+      exact hW hprem Ψ hΨ σ' hS _ _ _ _ _ _ _ hops₂ hcs hks hk
+
+/-- **The frame side's statement from the block lemma at the body.** -/
+theorem frameWords_of_body (hbody : BodyW) (hfn : FlushNew) : FrameWordsStmt :=
+  frameWords_of_walk (walkWords_of_body hbody hfn)
+
+/-- info: 'LeanVM.Guest.Backend.Complete.frameWords_of_body' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms frameWords_of_body
+
 end
 end LeanVM.Guest.Backend.Complete
