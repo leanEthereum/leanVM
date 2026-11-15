@@ -13,17 +13,6 @@ mod report;
 
 /// Run the CLI's command on prover `P`.
 fn run<P: isa::Prover>(cli: Cli) {
-    if let Command::Aggregate { blobs, .. }
-    | Command::Recursion {
-        blobs_per_leaf: blobs, ..
-    } = cli.command
-        && blobs > lean_da::DA_MAX_ROWS
-    {
-        usage_error(
-            clap::error::ErrorKind::ValueValidation,
-            format!("at most {} blobs", lean_da::DA_MAX_ROWS),
-        );
-    }
     P::init();
     let plan = bench::Plan::new(cli.repeat, cli.cooldown);
     if cli.tracing && !matches!(&cli.command, Command::Recursion { .. }) {
@@ -111,7 +100,11 @@ enum Command {
         #[arg(long, default_value = "0")]
         sphincs: usize,
         /// Blobs in one LeanDA commitment (128 KiB each).
-        #[arg(long, default_value_t = 0)]
+        #[arg(
+            long,
+            default_value_t = 0,
+            value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(0..=lean_da::DA_MAX_ROWS as u64)
+        )]
         blobs: usize,
     },
     /// Aggregate n child proofs into one proof.
@@ -127,7 +120,11 @@ enum Command {
         #[arg(long, default_value = "0")]
         sphincs_per_leaf: usize,
         /// Blobs in each child's LeanDA commitment. Use --xmss-per-leaf 0 for blobs alone.
-        #[arg(long, default_value_t = 0)]
+        #[arg(
+            long,
+            default_value_t = 0,
+            value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(0..=lean_da::DA_MAX_ROWS as u64)
+        )]
         blobs_per_leaf: usize,
         /// WHIR inverse-rate logarithm of the leaves (1 through 4)
         #[arg(
@@ -144,20 +141,17 @@ enum Command {
     },
 }
 
-/// Exit with a usage error of `kind`, as clap reports one.
-fn usage_error(kind: clap::error::ErrorKind, message: String) -> ! {
-    use clap::CommandFactory;
-    Cli::command().error(kind, message).exit()
-}
-
 fn main() {
     let cli = Cli::parse();
     match cli.prover {
         Some(Prover::Stable) => run::<StableProver>(cli),
         Some(Prover::Experimental) => run::<ExperimentalProver>(cli),
-        None => usage_error(
-            clap::error::ErrorKind::MissingRequiredArgument,
-            "--prover stable|experimental is required".into(),
-        ),
+        None => {
+            use clap::CommandFactory;
+            let message = "--prover stable|experimental is required";
+            Cli::command()
+                .error(clap::error::ErrorKind::MissingRequiredArgument, message)
+                .exit()
+        }
     }
 }
