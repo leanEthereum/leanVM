@@ -599,5 +599,473 @@ end
 
 end Blocks
 
+/-! ## The chaining of `match`es kept -/
+
+section Keep
+
+variable {ctx : Ctx} {α β : Type}
+
+/-- The chaining of `match`es as it was. -/
+def KeepR (st st' : St) : Prop := st'.chainIn = st.chainIn
+
+theorem KeepR.refl (st : St) : KeepR st st := rfl
+
+theorem KeepR.trans {st₁ st₂ st₃ : St} (h₁ : KeepR st₁ st₂) (h₂ : KeepR st₂ st₃) :
+    KeepR st₁ st₃ := Eq.trans h₂ h₁
+
+/-- Every success of `m` from `st` keeps the chaining. -/
+def KeepAt (ctx : Ctx) (st : St) (m : P α) : Prop := wpP m ctx st fun _ st' => KeepR st st'
+
+variable {st : St}
+
+theorem KeepAt.pure {a : α} : KeepAt ctx st (Pure.pure a) := wp_pure.mpr (KeepR.refl st)
+
+theorem KeepAt.fail {msg : String} : KeepAt ctx st (failP msg : P α) := wp_failP
+
+theorem KeepAt.fail_bind {msg : String} {f : α → P β} :
+    KeepAt ctx st ((failP msg : P α) >>= f) := wp_bind.mpr wp_failP
+
+theorem KeepAt.bind {m : P α} {f : α → P β} (hm : KeepAt ctx st m)
+    (hf : ∀ a st', KeepR st st' → KeepAt ctx st' (f a)) : KeepAt ctx st (m >>= f) :=
+  wp_bind.mpr (wp_mono hm fun a st' h => wp_mono (hf a st' h) fun _ _ h' => h.trans h')
+
+theorem KeepAt.get_bind {f : St → P β} (h : KeepAt ctx st (f st)) : KeepAt ctx st (get >>= f) :=
+  wp_bind.mpr (wp_get.mpr h)
+
+theorem KeepAt.read_bind {f : Ctx → P β} (h : KeepAt ctx st (f ctx)) :
+    KeepAt ctx st (read >>= f) := wp_bind.mpr (wp_read.mpr h)
+
+theorem KeepAt.peek_bind {f : Option Event → P β} (h : KeepAt ctx st (f st.rest.head?)) :
+    KeepAt ctx st (peek >>= f) := wp_bind.mpr (wp_peek.mpr h)
+
+theorem KeepAt.guard {c : Prop} [Decidable c] {msg : String} {f : PUnit → P β}
+    (h : ¬c → KeepAt ctx st (f PUnit.unit)) :
+    KeepAt ctx st (if c then failP msg >>= f else f PUnit.unit) := by
+  split
+  · exact KeepAt.fail_bind
+  · next hc => exact h hc
+
+theorem KeepAt.mod {g : St → St} (h : KeepR st (g st)) : KeepAt ctx st (modify g) :=
+  wp_modify.mpr h
+
+theorem KeepAt.mod_bind {g : St → St} {f : PUnit → P β} (h : KeepR st (g st))
+    (hf : KeepAt ctx (g st) (f ⟨⟩)) : KeepAt ctx st (modify g >>= f) :=
+  wp_bind.mpr (wp_modify.mpr (wp_mono hf fun _ _ h' => h.trans h'))
+
+theorem KeepAt.modG {g : St → α × St} (h : KeepR st (g st).2) :
+    KeepAt ctx st (modifyGet g) := wp_modifyGet.mpr h
+
+theorem KeepAt.modG_bind {g : St → α × St} {f : α → P β} (h : KeepR st (g st).2)
+    (hf : KeepAt ctx (g st).2 (f (g st).1)) : KeepAt ctx st (modifyGet g >>= f) :=
+  wp_bind.mpr (wp_modifyGet.mpr (wp_mono hf fun _ _ h' => h.trans h'))
+
+theorem KeepAt.setS {s : St} (h : KeepR st s) : KeepAt ctx st (set s : P PUnit) := wp_set.mpr h
+
+theorem KeepAt.setS_bind {s : St} {f : PUnit → P β} (h : KeepR st s) (hf : KeepAt ctx s (f ⟨⟩)) :
+    KeepAt ctx st (set s >>= f) :=
+  wp_bind.mpr (wp_set.mpr (wp_mono hf fun _ _ h' => h.trans h'))
+
+theorem KeepAt.discard {m : P α} (h : KeepAt ctx st m) : KeepAt ctx st (Functor.discard m) := by
+  rw [Functor.discard, map_const, Function.comp_apply, map_eq_pure_bind]
+  exact KeepAt.bind h fun _ _ _ => KeepAt.pure
+
+theorem keepR_same {s : St} (h : s.chainIn = st.chainIn) : KeepR st s := h
+
+theorem bindTo_keep (v : V) (l : Loc) : KeepAt ctx st (bindTo v l) := by
+  unfold bindTo
+  refine wp_bind.mpr (wp_get.mpr ?_)
+  split
+  · exact wp_bind.mpr wp_failP
+  · exact wp_modify.mpr rfl
+
+theorem forM_keep {γ : Type} {f : γ → P PUnit} (hf : ∀ b st, KeepAt ctx st (f b)) :
+    ∀ (l : List γ) (st : St), KeepAt ctx st (l.forM f)
+  | [], _ => KeepAt.pure
+  | b :: l, st => by
+      show KeepAt ctx st (f b >>= fun _ => l.forM f)
+      exact KeepAt.bind (hf b st) fun _ st' _ => forM_keep hf l st'
+
+theorem mapM_keep {γ δ : Type} {f : γ → P δ} (hf : ∀ b st, KeepAt ctx st (f b)) :
+    ∀ (l : List γ) (st : St), KeepAt ctx st (l.mapM f)
+  | [], _ => by rw [List.mapM_nil]; exact KeepAt.pure
+  | b :: l, st => by
+      rw [List.mapM_cons]
+      exact KeepAt.bind (hf b st) fun _ st' _ => KeepAt.bind (mapM_keep hf l st') fun _ _ _ =>
+        KeepAt.pure
+
+theorem optionMapM_keep {γ δ : Type} {f : γ → P δ} (hf : ∀ b st, KeepAt ctx st (f b))
+    (o : Option γ) (st : St) : KeepAt ctx st (o.mapM f) := by
+  cases o with
+  | none => exact KeepAt.pure
+  | some v =>
+    rw [Option.mapM, map_eq_pure_bind]
+    exact KeepAt.bind (hf v st) fun _ _ _ => KeepAt.pure
+
+end Keep
+
+/-- A primitive already shown to keep `KeepR` (extended after each primitive). -/
+syntax "keep_prim" : tactic
+
+set_option hygiene false in
+macro_rules | `(tactic| keep_prim) => `(tactic| first
+  | with_reducible refine KeepAt.bind fresh_keep fun _ _ _ => ?_
+  | with_reducible exact fresh_keep
+  | with_reducible refine KeepAt.bind pushHint_keep fun _ _ _ => ?_
+  | with_reducible exact pushHint_keep
+  | with_reducible refine KeepAt.bind takeHints_keep fun _ _ _ => ?_
+  | with_reducible exact takeHints_keep
+  | with_reducible refine KeepAt.bind push_keep fun _ _ _ => ?_
+  | with_reducible exact push_keep
+  | with_reducible refine KeepAt.bind emitOp_keep fun _ _ _ => ?_
+  | with_reducible exact emitOp_keep
+  | with_reducible refine KeepAt.bind constCell_keep fun _ _ _ => ?_
+  | with_reducible exact constCell_keep
+  | with_reducible refine KeepAt.bind oneCell_keep fun _ _ _ => ?_
+  | with_reducible exact oneCell_keep
+  | with_reducible refine KeepAt.bind zeroCell_keep fun _ _ _ => ?_
+  | with_reducible exact zeroCell_keep
+  | with_reducible refine KeepAt.bind mulCell_keep fun _ _ _ => ?_
+  | with_reducible exact mulCell_keep
+  | with_reducible refine KeepAt.bind emitDeref_keep fun _ _ _ => ?_
+  | with_reducible exact emitDeref_keep
+  | with_reducible refine KeepAt.bind selfFp_keep fun _ _ _ => ?_
+  | with_reducible exact selfFp_keep
+  | with_reducible refine KeepAt.bind materialize_keep fun _ _ _ => ?_
+  | with_reducible exact materialize_keep
+  | with_reducible refine KeepAt.bind cellAt_keep fun _ _ _ => ?_
+  | with_reducible exact cellAt_keep
+  | with_reducible refine KeepAt.bind cellOf_keep fun _ _ _ => ?_
+  | with_reducible exact cellOf_keep
+  | with_reducible refine KeepAt.bind factor_keep fun _ _ _ => ?_
+  | with_reducible exact factor_keep
+  | with_reducible refine KeepAt.bind pointer_keep fun _ _ _ => ?_
+  | with_reducible exact pointer_keep
+  | with_reducible refine KeepAt.bind pooledCell_keep fun _ _ _ => ?_
+  | with_reducible exact pooledCell_keep
+  | with_reducible refine KeepAt.bind pooled_keep fun _ _ _ => ?_
+  | with_reducible exact pooled_keep
+  | with_reducible refine KeepAt.bind isLazy_keep fun _ _ _ => ?_
+  | with_reducible exact isLazy_keep
+  | with_reducible refine KeepAt.bind isSelfFp_keep fun _ _ _ => ?_
+  | with_reducible exact isSelfFp_keep
+  | with_reducible refine KeepAt.bind advance_keep fun _ _ _ => ?_
+  | with_reducible exact advance_keep
+  | with_reducible refine KeepAt.bind expect_keep fun _ _ _ => ?_
+  | with_reducible exact expect_keep
+  | with_reducible refine KeepAt.bind endStmt_keep fun _ _ _ => ?_
+  | with_reducible exact endStmt_keep
+  | with_reducible refine KeepAt.bind bindRun_keep fun _ _ _ => ?_
+  | with_reducible exact bindRun_keep
+  | with_reducible refine KeepAt.bind takeRun_keep fun _ _ _ => ?_
+  | with_reducible exact takeRun_keep
+  | with_reducible refine KeepAt.bind spongeInPlace_keep fun _ _ _ => ?_
+  | with_reducible exact spongeInPlace_keep
+  | with_reducible refine KeepAt.bind onAlloc_keep fun _ _ _ => ?_
+  | with_reducible exact onAlloc_keep
+  | with_reducible refine KeepAt.bind flushN_keep fun _ _ _ => ?_
+  | with_reducible exact flushN_keep
+  | with_reducible refine KeepAt.bind flush_keep fun _ _ _ => ?_
+  | with_reducible exact flush_keep
+  | with_reducible refine KeepAt.bind beginStmt_keep fun _ _ _ => ?_
+  | with_reducible exact beginStmt_keep
+  | with_reducible refine KeepAt.bind destBits_keep fun _ _ _ => ?_
+  | with_reducible exact destBits_keep
+  | with_reducible refine KeepAt.bind placeHint_keep fun _ _ _ => ?_
+  | with_reducible exact placeHint_keep
+  | with_reducible refine KeepAt.bind placeAtom_keep fun _ _ _ => ?_
+  | with_reducible exact placeAtom_keep
+  | with_reducible refine KeepAt.bind allocTable_keep fun _ _ _ => ?_
+  | with_reducible exact allocTable_keep
+  | with_reducible refine KeepAt.bind sharedTable_keep fun _ _ _ => ?_
+  | with_reducible exact sharedTable_keep
+  | with_reducible refine KeepAt.bind loopCount_keep fun _ _ _ => ?_
+  | with_reducible exact loopCount_keep
+  | with_reducible refine KeepAt.bind placeCall_keep fun _ _ _ => ?_
+  | with_reducible exact placeCall_keep
+  | with_reducible refine KeepAt.bind matchCells_keep fun _ _ _ => ?_
+  | with_reducible exact matchCells_keep)
+
+/-- One step of a walk that moves neither the next free cell back nor a place. -/
+macro "keep_step" : tactic => `(tactic| first
+  | with_reducible exact KeepAt.pure
+  | with_reducible exact KeepAt.fail
+  | with_reducible exact KeepAt.fail_bind
+  | with_reducible refine KeepAt.get_bind ?_
+  | with_reducible refine KeepAt.read_bind ?_
+  | with_reducible refine KeepAt.peek_bind ?_
+  | with_reducible refine KeepAt.guard fun _ => ?_
+  | with_reducible refine KeepAt.mod_bind ?_ ?_
+  | with_reducible refine KeepAt.modG_bind ?_ ?_
+  | with_reducible refine KeepAt.setS_bind ?_ ?_
+  | with_reducible refine KeepAt.mod ?_
+  | with_reducible refine KeepAt.modG ?_
+  | with_reducible refine KeepAt.setS ?_
+  | exact keepR_same rfl
+  | exact KeepR.refl _
+  | with_reducible refine KeepAt.bind (bindTo_keep _ _) fun _ _ _ => ?_
+  | with_reducible exact bindTo_keep _ _
+  | with_reducible refine KeepAt.bind (forM_keep ‹_› _ _) fun _ _ _ => ?_
+  | with_reducible refine KeepAt.bind (mapM_keep ‹_› _ _) fun _ _ _ => ?_
+  | with_reducible refine KeepAt.bind (optionMapM_keep ‹_› _ _) fun _ _ _ => ?_
+  | with_reducible refine KeepAt.bind (‹∀ st, KeepAt _ st _› _) fun _ _ _ => ?_
+  | with_reducible exact ‹∀ st, KeepAt _ st _› _
+  | with_reducible refine KeepAt.discard ?_
+  | with_reducible refine KeepAt.bind (KeepAt.discard ?_) fun _ _ _ => ?_
+  | keep_prim
+  | dsimp only
+  | rw [pure_bind]
+  | split)
+
+macro "keep_straight" : tactic => `(tactic| repeat' keep_step)
+
+section KPrims
+
+variable {ctx : Ctx} {st : St}
+
+theorem fresh_keep : KeepAt ctx st fresh := by
+  unfold fresh
+  exact KeepAt.modG (keepR_same rfl)
+
+
+theorem pushHint_keep {h : LHint} : KeepAt ctx st (pushHint h) := by
+  unfold pushHint
+  keep_straight
+
+
+theorem takeHints_keep  : KeepAt ctx st (takeHints) := by
+  unfold takeHints
+  keep_straight
+
+
+theorem push_keep {s : PStmt} : KeepAt ctx st (push s) := by
+  unfold push
+  keep_straight
+
+
+theorem emitOp_keep {o : LOp} : KeepAt ctx st (emitOp o) := by
+  unfold emitOp
+  keep_straight
+
+
+theorem constCell_keep {k : ℕ × ℕ} : KeepAt ctx st (constCell k) := by
+  unfold constCell
+  keep_straight
+
+
+theorem oneCell_keep  : KeepAt ctx st (oneCell) := by
+  unfold oneCell
+  keep_straight
+
+
+theorem zeroCell_keep  : KeepAt ctx st (zeroCell) := by
+  unfold zeroCell
+  keep_straight
+
+
+theorem mulCell_keep {a b : Cell} : KeepAt ctx st (mulCell a b) := by
+  unfold mulCell
+  keep_straight
+
+
+theorem emitDeref_keep {p off d : Cell} : KeepAt ctx st (emitDeref p off d) := by
+  unfold emitDeref
+  keep_straight
+
+
+theorem selfFp_keep  : KeepAt ctx st (selfFp) := by
+  unfold selfFp
+  keep_straight
+
+
+theorem materialize_keep {c e : Cell} : KeepAt ctx st (materialize c e) := by
+  unfold materialize
+  keep_straight
+
+
+theorem cellAt_keep {v : V} : KeepAt ctx st (cellAt v) := by
+  unfold cellAt
+  keep_straight
+
+
+theorem cellOf_keep {v : V} : KeepAt ctx st (cellOf v) := by
+  unfold cellOf
+  keep_straight
+
+
+theorem factor_keep {v : V} : KeepAt ctx st (factor v) := by
+  unfold factor
+  keep_straight
+
+
+theorem pointer_keep {p : V} {off : ℕ} : KeepAt ctx st (pointer p off) := by
+  unfold pointer
+  keep_straight
+
+
+theorem pooledCell_keep {find : Scope → Option Cell} {learn : Cell → Scope → Scope} {mk : Cell → LOp} : KeepAt ctx st (pooledCell find learn mk) := by
+  unfold pooledCell
+  keep_straight
+
+
+theorem pooled_keep {d : V} {find : Scope → Option Cell} {learn : Cell → Scope → Scope} {mk : Cell → LOp} : KeepAt ctx st (pooled d find learn mk) := by
+  unfold pooled
+  keep_straight
+
+
+theorem isLazy_keep {v : V} {k : Kind} : KeepAt ctx st (isLazy v k) := by
+  unfold isLazy
+  keep_straight
+
+
+theorem isSelfFp_keep {n : Cell} : KeepAt ctx st (isSelfFp n) := by
+  unfold isSelfFp
+  keep_straight
+
+
+theorem advance_keep  : KeepAt ctx st (advance) := by
+  unfold advance
+  keep_straight
+
+
+theorem expect_keep {e : Event → Bool} {what : String} : KeepAt ctx st (expect e what) := by
+  unfold expect
+  keep_straight
+
+
+theorem endStmt_keep  : KeepAt ctx st (endStmt) := by
+  unfold endStmt
+  keep_straight
+
+
+theorem bindRun_keep {vs : List V} {base : Cell} : KeepAt ctx st (bindRun vs base) := by
+  unfold bindRun
+  exact forM_keep (fun _ _ => bindTo_keep _ _) _ _
+
+
+theorem takeRun_keep {vs : List V} : KeepAt ctx st (takeRun vs) := by
+  unfold takeRun
+  keep_straight
+
+theorem spongeInPlace_keep {vs : List V} {up : List Stmt} : KeepAt ctx st (spongeInPlace vs up) := by
+  unfold spongeInPlace
+  keep_straight
+
+
+theorem onAlloc_keep {vs : List V} {k : Kind} {up : List Stmt} : KeepAt ctx st (onAlloc vs k up) := by
+  unfold onAlloc
+  keep_straight
+
+
+theorem flushN_keep {up : List Stmt} : ∀ {fuel : ℕ} {st : St}, KeepAt ctx st (flushN up fuel)
+  | 0, _ => by unfold flushN; exact KeepAt.pure
+  | fuel + 1, st => by
+      have ih : ∀ st, KeepAt ctx st (flushN up fuel) := fun _ => flushN_keep
+      unfold flushN
+      repeat' (first | exact ih _ | keep_step)
+
+theorem flush_keep {up : List Stmt} : KeepAt ctx st (flush up) := by
+  unfold flush
+  keep_straight
+
+theorem beginStmt_keep {up : List Stmt} : KeepAt ctx st (beginStmt up) := by
+  unfold beginStmt
+  keep_straight
+
+theorem destBits_keep {d : Dest} : KeepAt ctx st (destBits d) := by
+  unfold destBits
+  keep_straight
+
+set_option maxHeartbeats 2000000 in
+theorem placeHint_keep {h : Hint} : KeepAt ctx st (placeHint h) := by
+  have hc : ∀ (b : V) st, KeepAt ctx st (cellOf b) := fun _ _ => cellOf_keep
+  have ha : ∀ (b : V) st, KeepAt ctx st (cellAt b) := fun _ _ => cellAt_keep
+  cases h <;> unfold placeHint <;> keep_straight
+
+set_option maxHeartbeats 2000000 in
+theorem placeAtom_keep {a : Atom} : KeepAt ctx st (placeAtom a) := by
+  have hc : ∀ (b : V) st, KeepAt ctx st (cellOf b) := fun _ _ => cellOf_keep
+  have ha : ∀ (b : V) st, KeepAt ctx st (cellAt b) := fun _ _ => cellAt_keep
+  cases a <;> unfold placeAtom <;> keep_straight
+
+theorem allocTable_keep {n : ℕ} : KeepAt ctx st (allocTable n) := by
+  unfold allocTable
+  keep_straight
+
+theorem sharedTable_keep {fs : List String} : KeepAt ctx st (sharedTable fs) := by
+  unfold sharedTable
+  keep_straight
+
+theorem loopCount_keep {f : String} {args : List V} {cells : List Cell} :
+    KeepAt ctx st (loopCount f args cells) := by
+  unfold loopCount
+  keep_straight
+
+theorem placeCall_keep {f : String} {argVs : List V} {args rets : List Cell} {cond : Option Cell}
+    {tail : Bool} : KeepAt ctx st (placeCall f argVs args rets cond tail) := by
+  unfold placeCall
+  keep_straight
+
+theorem matchCells_keep {x : V} {rest : List Stmt} {chained : Bool} :
+    KeepAt ctx st (matchCells x rest chained) := by
+  unfold matchCells
+  keep_straight
+
+end KPrims
+
+section ChainKeep
+
+variable {ctx : Ctx}
+
+theorem endStmt_bind_keep {s : Stmt} {rest : List Stmt} {st : St}
+    (h : KeepAt ctx st (placeStmt s rest)) :
+    wpP (placeStmt s rest >>= fun _ => endStmt) ctx st fun _ st' => st'.chainIn = st.chainIn :=
+  KeepAt.bind h fun _ _ _ => endStmt_keep
+
+theorem chainKeep_atom {a : Atom} {rest : List Stmt} (st : St) :
+    wpP (placeStmt (.atom a) rest >>= fun _ => endStmt) ctx st fun _ st' =>
+      st'.chainIn = st.chainIn := by
+  refine endStmt_bind_keep ?_
+  rw [placeStmt]
+  keep_straight
+
+set_option maxHeartbeats 2000000 in
+theorem chainKeep_call {f : String} {args rets : List V} {rest : List Stmt} (st : St) :
+    wpP (placeStmt (.call f args rets) rest >>= fun _ => endStmt) ctx st fun _ st' =>
+      st'.chainIn = st.chainIn := by
+  have hc : ∀ (b : V) st, KeepAt ctx st (cellOf b) := fun _ _ => cellOf_keep
+  have ha : ∀ (b : V) st, KeepAt ctx st (cellAt b) := fun _ _ => cellAt_keep
+  refine endStmt_bind_keep ?_
+  rw [placeStmt]
+  keep_straight
+
+set_option maxHeartbeats 2000000 in
+theorem chainKeep_callIf {c : V} {f : String} {args : List V} {rest : List Stmt} (st : St) :
+    wpP (placeStmt (.callIf c f args) rest >>= fun _ => endStmt) ctx st fun _ st' =>
+      st'.chainIn = st.chainIn := by
+  have hc : ∀ (b : V) st, KeepAt ctx st (cellOf b) := fun _ _ => cellOf_keep
+  refine endStmt_bind_keep ?_
+  rw [placeStmt]
+  keep_straight
+
+set_option maxHeartbeats 2000000 in
+theorem chainKeep_dispatch {x : V} {fs : List String} {args rets : List V} {rest : List Stmt}
+    (st : St) : wpP (placeStmt (.dispatch x fs args rets) rest >>= fun _ => endStmt) ctx st
+      fun _ st' => st'.chainIn = st.chainIn := by
+  have hc : ∀ (b : V) st, KeepAt ctx st (cellOf b) := fun _ _ => cellOf_keep
+  have ha : ∀ (b : V) st, KeepAt ctx st (cellAt b) := fun _ _ => cellAt_keep
+  refine endStmt_bind_keep ?_
+  rw [placeStmt]
+  keep_straight
+
+theorem chainKeep_ret {vs : List V} {rest : List Stmt} (st : St) :
+    wpP (placeStmt (.ret vs) rest >>= fun _ => endStmt) ctx st fun _ st' =>
+      st'.chainIn = st.chainIn := by
+  have ha : ∀ (b : V) st, KeepAt ctx st (cellAt b) := fun _ _ => cellAt_keep
+  refine endStmt_bind_keep ?_
+  rw [placeStmt]
+  keep_straight
+
+end ChainKeep
+
 end
 end LeanVM.Guest.Backend.Complete
