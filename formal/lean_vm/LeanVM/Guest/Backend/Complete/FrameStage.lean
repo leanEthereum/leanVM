@@ -96,6 +96,39 @@ theorem matchCells_fatB (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0) {x 
     by rw [hlo₄, hlo₃, hlo₁], by rw [hr₄, hr₃, hr₁],
     (hkb₁.trans hkb₃ hn₁).trans hkb₄ (le_trans hn₁ hn₃)⟩
 
+/-- **The cells of a `match` whose arms dispatch into the next one** (`x'`, whose cell holds its
+value), the cells the constraint left free kept. -/
+theorem matchCells_fatC (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0) {x x' : V}
+    {arms' : List (List Stmt)} {rest' : List Stmt} {ok : V → Prop} (hv : VW I C st ok) (hx : ok x)
+    (hx' : ok x') (h2 : 2 ≤ st.next) :
+    FAt ctx I C st (matchCells x (.match_ x' arms' :: rest') true) fun r C' st' =>
+      (∃ lx', r.2.1 = some (lx', arms'.length) ∧ 2 ≤ lx' ∧ lx' < st'.next ∧
+        ∀ Ψ, C' Ψ → Ψ lx' = I.σ x') ∧
+      2 ≤ r.1 ∧ r.1 < st'.next ∧ (∀ Ψ, C' Ψ → Ψ r.1 = I.σ x) ∧
+      2 ≤ r.2.2.1 ∧ r.2.2.1 < st'.next ∧ (∀ Ψ, C' Ψ → Ψ r.2.2.1 = I.fpw) ∧
+      2 ≤ r.2.2.2 ∧ r.2.2.2 < st'.next ∧ (∀ Ψ, C' Ψ → Ψ r.2.2.2 = 1) ∧
+      st'.locs = st.locs ∧ st'.rest = st.rest ∧ KeepB C C' st.next := by
+  unfold matchCells
+  simp only [ite_true]
+  refine FAt.bind (cellOf_fat x hI hv hx)
+    fun lx st₁ C₁ hs₁ hn₁ _ ⟨hx2, hxlt, hlo₁, hr₁, hxw, hkb₁⟩ => ?_
+  simp only [pure_bind]
+  refine FAt.bind (cellOf_fat x' hI (hv.step hs₁ hn₁ hlo₁) hx')
+    fun lx' st₂ C₂ hs₂ hn₂ _ ⟨hy2, hylt, hlo₂, hr₂, hyw, hkb₂⟩ => ?_
+  refine FAt.bind (selfFp_fat hI hmain (le_trans h2 (le_trans hn₁ hn₂)))
+    fun sfp st₃ C₃ hs₃ hn₃ _ ⟨hf2, hflt, hlo₃, hr₃, hfw, hkb₃⟩ => ?_
+  refine FAt.bind (constCell_fatB (1, 0) (hI.kconst 1 0)
+      (le_trans h2 (le_trans hn₁ (le_trans hn₂ hn₃))))
+    fun one st₄ C₄ hs₄ hn₄ _ ⟨ho2, holt, hlo₄, hr₄, how, hkb₄⟩ => ?_
+  refine FAt.pure ⟨⟨lx', rfl, hy2, lt_of_lt_of_le hylt (le_trans hn₃ hn₄),
+      fun Ψ hΨ => hyw Ψ (hs₃ Ψ (hs₄ Ψ hΨ))⟩, hx2,
+    lt_of_lt_of_le hxlt (le_trans hn₂ (le_trans hn₃ hn₄)),
+    fun Ψ hΨ => hxw Ψ (hs₂ Ψ (hs₃ Ψ (hs₄ Ψ hΨ))), hf2, lt_of_lt_of_le hflt hn₄,
+    fun Ψ hΨ => hfw Ψ (hs₄ Ψ hΨ), ho2, holt, fun Ψ hΨ => (how Ψ hΨ).trans word_one,
+    by rw [hlo₄, hlo₃, hlo₂, hlo₁], by rw [hr₄, hr₃, hr₂, hr₁],
+    ((hkb₁.trans hkb₂ hn₁).trans hkb₃ (le_trans hn₁ hn₂)).trans hkb₄
+      (le_trans hn₁ (le_trans hn₂ hn₃))⟩
+
 /-- A chained `match` followed by no `match` fails to place. -/
 theorem chained_fail {x : V} {n : ℕ} {rest : List Stmt} {e : Option (ℕ × Cell)}
     {armsAt : Cell → ArmExit → P (List (List PStmt))} {Q : Unit → St → Prop}
