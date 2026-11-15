@@ -70,7 +70,7 @@ theorem FAt.modify {g : St → St} (hn : (g st).next = st.next) (ho : (g st).out
     (hc : COk I C st.next st.scope st.locs → COk I C st.next (g st).scope st.locs) :
     FAt ctx I C st (modify g) (fun _ C' st' => C' = C ∧ st' = g st) := fun hc' =>
   wp_modify.mpr ⟨C, by rw [hn, hl]; exact hc hc', Stronger.refl C, le_of_eq hn.symm,
-    by rw [hl]; exact LocsLe.refl _, ⟨[], by rw [ho]; simp, fun _ _ h => nomatch h⟩, rfl, rfl⟩
+    by rw [hl]; exact LocsLe.refl _, ⟨[], by rw [ho]; simp, fun _ _ _ h => nomatch h⟩, rfl, rfl⟩
 
 /-- An action that keeps the next free cell, the pools, the output and grows the places. -/
 theorem FAt.ofSame {α : Type} {m : P α} {R : α → ((ℕ → E) → Prop) → St → Prop}
@@ -78,7 +78,7 @@ theorem FAt.ofSame {α : Type} {m : P α} {R : α → ((ℕ → E) → Prop) →
       st'.out = st.out ∧ LocsLe st.locs st'.locs ∧ R a C st') : FAt ctx I C st m R :=
   fun hc => wp_mono h fun a st' ⟨hn, hs, ho, hl, hr⟩ =>
     ⟨C, by rw [hn, hs]; exact ⟨hc.sat, hc.blind, fun Ψ hΨ => (hc.pools Ψ hΨ).grow hl, hc.cells⟩, Stronger.refl C, le_of_eq hn.symm, hl,
-      ⟨[], by rw [ho]; simp, fun _ _ h => nomatch h⟩, hr⟩
+      ⟨[], by rw [ho]; simp, fun _ _ _ h => nomatch h⟩, hr⟩
 
 theorem COk.withScope {n : ℕ} {sc sc' : Scope} {locs : VMap Loc} (h : COk I C n sc locs)
     (hp : ∀ Ψ, C Ψ → PoolW I Ψ locs sc → PoolW I Ψ locs sc')
@@ -111,21 +111,21 @@ theorem fresh_fat (w : (ℕ → E) → E) (hw : WBlind w st.next) :
     FAt ctx I C st fresh (fun o C' st' => o = st.next ∧ st' = { st with next := st.next + 1 } ∧
       C' = fun Ψ => C Ψ ∧ Ψ st.next = w Ψ) := fun hc =>
   wp_modifyGet.mpr ⟨_, hc.assign hw, fun _ h => h.1, Nat.le_succ _, LocsLe.refl _,
-    ⟨[], by simp, fun _ _ h => nomatch h⟩, rfl, rfl, rfl⟩
+    ⟨[], by simp, fun _ _ _ h => nomatch h⟩, rfl, rfl, rfl⟩
 
 /-- **An instruction emitted** holds on the frame words, once the final placement extends the
 state. -/
-theorem emitOp_fat (o : LOp) (h : Fits I st → ∀ Ψ, C Ψ → OpW I Ψ o) :
+theorem emitOp_fat (o : LOp) (h : Fits I st → o ∈ I.ops → ∀ Ψ, C Ψ → OpW I Ψ o) :
     FAt ctx I C st (emitOp o) (fun _ C' st' => C' = C ∧
       st' = { st with pending := #[], out := st.out.push (.op st.pending.toList o) }) := by
   intro hc
   unfold emitOp takeHints push
   refine wp_bind.mpr (wp_modifyGet.mpr (wp_modify.mpr ?_))
   refine ⟨C, hc, Stronger.refl C, le_rfl, LocsLe.refl _,
-    ⟨[.op st.pending.toList o], by simp, fun hz s hs => ?_⟩, rfl, rfl⟩
+    ⟨[.op st.pending.toList o], by simp, fun hz hops s hs => ?_⟩, rfl, rfl⟩
   rw [List.mem_singleton] at hs
   subst hs
-  exact ⟨_, _, rfl, h hz⟩
+  exact ⟨_, _, rfl, h hz (hops _ _ List.mem_cons_self)⟩
 
 /-- **A pooled result**: the pool's cell, or a fresh one, given the word `w`, which the
 instruction writes and the pool learns. -/
@@ -133,8 +133,8 @@ theorem pooledCell_fat {find : Scope → Option Cell} {learn : Cell → Scope �
     {mk : Cell → LOp} (w : (ℕ → E) → E) (hw : WBlind w st.next) (h2 : 2 ≤ st.next)
     (hfind : ∀ o, find st.scope = some o → ∀ Ψ, C Ψ → PoolW I Ψ st.locs st.scope → Ψ o = w Ψ)
     (hfc : ∀ o, find st.scope = some o → ScopeGood st.next st.scope → 2 ≤ o ∧ o < st.next)
-    (hmk : Fits I { st with next := st.next + 1 } → ∀ Ψ, C Ψ → Ψ st.next = w Ψ →
-      OpW I Ψ (mk st.next))
+    (hmk : Fits I { st with next := st.next + 1 } → mk st.next ∈ I.ops → ∀ Ψ, C Ψ →
+      Ψ st.next = w Ψ → OpW I Ψ (mk st.next))
     (hlearn : ∀ Ψ, C Ψ → Ψ st.next = w Ψ → PoolW I Ψ st.locs st.scope →
       PoolW I Ψ st.locs (learn st.next st.scope))
     (hcells : ScopeGood (st.next + 1) st.scope →
@@ -149,7 +149,7 @@ theorem pooledCell_fat {find : Scope → Option Cell} {learn : Cell → Scope �
       fun Ψ hΨ => hfind o ho Ψ hΨ (hc.pools Ψ hΨ)⟩
   · refine FAt.bind (fresh_fat w hw) fun o st₁ C₁ _ _ _ ⟨ho, hst₁, hC₁⟩ => ?_
     subst ho hst₁ hC₁
-    refine FAt.bind (emitOp_fat (mk st.next) fun hz Ψ hΨ => hmk hz Ψ hΨ.1 hΨ.2)
+    refine FAt.bind (emitOp_fat (mk st.next) fun hz hm Ψ hΨ => hmk hz hm Ψ hΨ.1 hΨ.2)
       fun _ st₂ C₂ _ _ _ ⟨hC₂, hst₂⟩ => ?_
     subst hC₂ hst₂
     refine FAt.bind (FAt.modify rfl rfl rfl fun hc => hc.withScope
@@ -169,7 +169,7 @@ theorem mulCell_fat {a b : Cell} (ha2 : 2 ≤ a) (ha : a < st.next) (hb2 : 2 ≤
   rw [mulCell_eq]
   refine pooledCell_fat (fun Ψ => Ψ a * Ψ b) (wblind_mul (wblind_cell ha) (wblind_cell hb))
     h2 (fun o ho Ψ _ hp => by rw [hp.muls _ o ho, mul_sorted])
-    (fun o ho hs => hs.muls _ o ho) (fun _ Ψ _ h => ?_)
+    (fun o ho hs => hs.muls _ o ho) (fun _ _ Ψ _ h => ?_)
     (fun Ψ _ h hp => hp.insertMul (by rw [h, mul_sorted]))
     (fun hs => { hs with muls := pmap_insert_imp hs.muls ⟨h2, Nat.lt_succ_self _⟩ })
   show fw I Ψ st.next = fw I Ψ a * fw I Ψ b
@@ -300,7 +300,7 @@ theorem takeRun_fat (vs : List V) :
   refine ⟨RunC I C vs st.next, ⟨runC_sat (fun Ψ k w _ h => hc.blind Ψ _ w (by omega) h) hc.sat,
     runC_blind (hc.blind.mono (Nat.le_add_right _ _)) le_rfl,
     fun Ψ hΨ => by rw [hs]; exact (hc.pools Ψ hΨ.1).grow hg, by rw [hs]; exact hc.cells.mono (Nat.le_add_right _ _)⟩,
-    fun _ h => h.1, Nat.le_add_right _ _, hg, ⟨[], by simp [ho], fun _ _ h => nomatch h⟩, rfl, hr, hs, hnew,
+    fun _ h => h.1, Nat.le_add_right _ _, hg, ⟨[], by simp [ho], fun _ _ _ h => nomatch h⟩, rfl, hr, hs, hnew,
     fun k hk' => by simpa using hk k hk', fun Ψ h => h.2⟩
 
 /-! ## Shifted pointers -/
@@ -388,7 +388,7 @@ theorem bindRunAssign_fat (vs : List V) (base : Cell) (hb : base + vs.length ≤
   have hn : st₁.next = st.next := (congrArg St.next he).trans rfl
   refine ⟨RunC I C vs base, ⟨runC_sat hbl hc.sat, by rw [hn]; exact runC_blind hc.blind hb,
     fun Ψ hΨ => by rw [hs]; exact (hc.pools Ψ hΨ.1).grow hg, by rw [hs, hn]; exact hc.cells⟩,
-    fun _ h => h.1, by rw [hn], hg, ⟨[], by simp [ho], fun _ _ h => nomatch h⟩, hn, hr, hs, hnew,
+    fun _ h => h.1, by rw [hn], hg, ⟨[], by simp [ho], fun _ _ _ h => nomatch h⟩, hn, hr, hs, hnew,
     fun k hk' => by simpa using hk k hk', fun Ψ h => h.2⟩
 
 /-! ## Message runs read in place -/
@@ -472,16 +472,17 @@ theorem emitDeref_fat {ptr off dst : Cell} (hp2 : 2 ≤ ptr) (hd2 : 2 ≤ dst) (
     (hk : ∀ Ψ, C Ψ → IsInK (Ψ ptr))
     (hrd : ∀ Ψ, C Ψ → ((Fits I st ∧ ¬ I.tc dst) ∨ ∀ t ∈ I.tmps, cellP st.locs t ≠ some dst) →
       ∀ rd, I.Rd rd → rd ((Ψ ptr).limb 0 * addressOfIndex off) = some (Ψ dst))
-    (htl : Fits I st → ∀ Ψ, C Ψ → I.tc dst → I.TL (Ψ ptr) off dst) :
+    (htl : Fits I st → LOp.deref ptr off dst .cell ∈ I.ops → ∀ Ψ, C Ψ → I.tc dst →
+      I.TL (Ψ ptr) off dst) :
     FAt ctx I C st (emitDeref ptr off dst) (fun _ C' st' => C' = C ∧ st'.next = st.next ∧
       st'.locs = st.locs ∧ st'.rest = st.rest) := by
   unfold emitDeref
-  refine FAt.bind (emitOp_fat _ fun hz Ψ hΨ => ?_) fun _ st₁ C₁ _ _ _ ⟨hC₁, hst₁⟩ => ?_
+  refine FAt.bind (emitOp_fat _ fun hz hm Ψ hΨ => ?_) fun _ st₁ C₁ _ _ _ ⟨hC₁, hst₁⟩ => ?_
   · show IsInK (fw I Ψ ptr) ∧ (I.tc dst → I.TL (fw I Ψ ptr) off dst) ∧
       (¬ I.tc dst → ∀ rd, FrameRd I Ψ rd → I.Rd rd →
         rd ((fw I Ψ ptr).limb 0 * addressOfIndex off) = some (fw I Ψ dst))
     rw [fw_of_two hp2, fw_of_two hd2]
-    exact ⟨hk Ψ hΨ, htl hz Ψ hΨ, fun ht rd _ hr => hrd Ψ hΨ (Or.inl ⟨hz, ht⟩) rd hr⟩
+    exact ⟨hk Ψ hΨ, htl hz hm Ψ hΨ, fun ht rd _ hr => hrd Ψ hΨ (Or.inl ⟨hz, ht⟩) rd hr⟩
   · subst hC₁ hst₁
     refine FAt.mono (FAt.modify rfl rfl rfl fun hc => hc.withScope
       (fun Ψ hΨ hp => hp.insertLoad ⟨hk Ψ hΨ, fun ht => hrd Ψ hΨ (Or.inr ht)⟩)
@@ -492,8 +493,7 @@ theorem emitDeref_fat {ptr off dst : Cell} (hp2 : 2 ≤ ptr) (hd2 : 2 ≤ dst) (
 
 /-- **The frame's own pointer**: in `main` the pooled `1`, else the cell read back from a one-cell
 buffer whose word is the address of that cell, `g^(fp + o)`. -/
-theorem selfFp_fat (hok : I.Ok) (hmain : ctx.isMain = true → I.fp = 0) (h2 : 2 ≤ st.next)
-    (hsf : ¬ I.tc (st.next + 1)) :
+theorem selfFp_fat (hok : I.Ok) (hmain : ctx.isMain = true → I.fp = 0) (h2 : 2 ≤ st.next) :
     FAt ctx I C st selfFp (fun o C' st' => 2 ≤ o ∧ o < st'.next ∧ st'.locs = st.locs ∧
       st'.rest = st.rest ∧ ∀ Ψ, C' Ψ → Ψ o = I.fpw) := by
   unfold selfFp
@@ -520,12 +520,17 @@ theorem selfFp_fat (hok : I.Ok) (hmain : ctx.isMain = true → I.fp = 0) (h2 : 2
       refine ⟨_, hc₂, fun _ h => h.1.1, ?_, LocsLe.refl _,
         ⟨[.op (st.pending.push (.resolved (.alloc st.next 1))).toList (.deref st.next 0 0 .fp),
           .op (#[] : Array LHint).toList (.deref st.next 0 (st.next + 1) .cell)], by simp,
-          fun hz s hs => ?_⟩, ?_⟩
+          fun hz hops s hs => ?_⟩, ?_⟩
       · exact le_trans (Nat.le_succ _) (Nat.le_succ _)
       swap
       · refine ⟨le_trans h2 (Nat.le_succ _), Nat.lt_succ_self _, ?_⟩
         simp only [true_and]
         exact fun Ψ h => h.2
+      have hsf : ¬ I.tc (st.next + 1) := fun ht => by
+        obtain ⟨p, hp, hq⟩ := hok.tops _ ht _ (hops _ _ (List.mem_cons_of_mem _ List.mem_cons_self))
+          (by simp [opCells])
+        cases hp
+        exact hq _ _ _ (hops _ _ List.mem_cons_self) rfl
       have hfr : ∀ Ψ, ((C Ψ ∧ Ψ st.next = ofK (addressOfIndex (I.fp + (st.next + 1)))) ∧
           Ψ (st.next + 1) = I.fpw) → IsInK (fw I Ψ st.next) ∧ ∀ rd, FrameRd I Ψ rd →
           rd ((fw I Ψ st.next).limb 0 * addressOfIndex 0) = some (fw I Ψ (st.next + 1)) := by
