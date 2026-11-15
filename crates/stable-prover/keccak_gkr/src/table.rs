@@ -174,50 +174,37 @@ pub(crate) fn prove_rounds(
     src.to_vec()
 }
 
-/// Tables of at most this many rows fold on the calling thread: waking the pool would cost more than the work.
-const SERIAL_ROWS: usize = 64;
-
 /// Bind the leading variable of `table`, rows of positions, at `challenge` into `out`, and sum the next round's
 /// values over the rows written while they are at hand, each pair of rows `p` weighted by `eq[p]`: zero once a
 /// single row is left.
 fn fold_rows(summand: &Summand, table: &[F128], out: &mut [F128], challenge: F128, eq: &[F128]) -> (F128, F128) {
     let challenge = F128x8::splat(challenge);
-    // Pair `p` of the rows written, from four rows of `table`.
-    let pair = |acc: &mut (F128Unreduced, F128Unreduced), p: usize, rows: &mut [F128]| {
-        let src = &table[4 * BITS * p..][..2 * rows.len()];
-        for (row, src) in rows
-            .as_chunks_mut::<BITS>()
-            .0
-            .iter_mut()
-            .zip(src.as_chunks::<{ 2 * BITS }>().0)
-        {
-            let (low, high) = src.split_at(BITS);
-            for (i, out) in row.as_chunks_mut::<8>().0.iter_mut().enumerate() {
-                let (l, h) = (F128x8::load(&low[8 * i..][..8]), F128x8::load(&high[8 * i..][..8]));
-                (l + challenge * (l + h)).store(out);
+    let values = parallel::map_reduce_chunks_mut(
+        [out],
+        [2 * BITS],
+        || (F128Unreduced::ZERO, F128Unreduced::ZERO),
+        |acc, p, [rows]| {
+            // Pair `p` of the rows written, from four rows of `table`.
+            let src = &table[4 * BITS * p..][..2 * rows.len()];
+            for (row, src) in rows
+                .as_chunks_mut::<BITS>()
+                .0
+                .iter_mut()
+                .zip(src.as_chunks::<{ 2 * BITS }>().0)
+            {
+                let (low, high) = src.split_at(BITS);
+                for (i, out) in row.as_chunks_mut::<8>().0.iter_mut().enumerate() {
+                    let (l, h) = (F128x8::load(&low[8 * i..][..8]), F128x8::load(&high[8 * i..][..8]));
+                    (l + challenge * (l + h)).store(out);
+                }
             }
-        }
-        if rows.len() == 2 * BITS {
-            let (zero, infinity) = summand.pair(&rows[..BITS], &rows[BITS..]);
-            acc.0 ^= zero.mul_unreduced(eq[p]);
-            acc.1 ^= infinity.mul_unreduced(eq[p]);
-        }
-    };
-    let zero = (F128Unreduced::ZERO, F128Unreduced::ZERO);
-    let values = if table.len() <= SERIAL_ROWS * BITS {
-        let mut values = zero;
-        for (p, rows) in out.chunks_mut(2 * BITS).enumerate() {
-            pair(&mut values, p, rows);
-        }
-        values
-    } else {
-        parallel::map_reduce_chunks_mut(
-            [out],
-            [2 * BITS],
-            || zero,
-            |acc, p, [rows]| pair(acc, p, rows),
-            |a, b| (a.0 ^ b.0, a.1 ^ b.1),
-        )
-    };
+            if rows.len() == 2 * BITS {
+                let (zero, infinity) = summand.pair(&rows[..BITS], &rows[BITS..]);
+                acc.0 ^= zero.mul_unreduced(eq[p]);
+                acc.1 ^= infinity.mul_unreduced(eq[p]);
+            }
+        },
+        |a, b| (a.0 ^ b.0, a.1 ^ b.1),
+    );
     (values.0.reduce(), values.1.reduce())
 }
