@@ -29,17 +29,14 @@
 
 mod affine_mca;
 
+pub use verifier::{INITIAL_FOLDING_FACTOR, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
+
 /// Round-by-round soundness target (bits): every verifier message's error, after its grind, is at most
 /// `2^-SECURITY_BITS` (`fiat_shamir::SECURITY_BITS`).
 pub const SECURITY_BITS: usize = fiat_shamir::SECURITY_BITS as usize;
 
 /// L0 code rate index: `rho_0 = 2^-LOG_INV_RATE_0` (rate 1/2).
 pub const LOG_INV_RATE_0: usize = 1;
-
-/// The smallest `log_inv_rate` a proof can use, its code rate being `2^-log_inv_rate`.
-pub const MIN_LOG_INV_RATE: usize = 1;
-/// The largest `log_inv_rate` a proof can use, its code rate being `2^-log_inv_rate`.
-pub const MAX_LOG_INV_RATE: usize = 4;
 
 /// Validate a production WHIR inverse-rate logarithm.
 pub fn validate_log_inv_rate(log_inv_rate: usize) -> Result<(), String> {
@@ -68,7 +65,6 @@ pub const BATCH_GRINDING_BITS: u32 = 13;
 /// grinding at the later levels, below the least grind for which their term never costs a query.
 pub const OOD_GRINDING_BITS: u32 = 15;
 
-pub const INITIAL_FOLDING_FACTOR: usize = 6;
 pub const SUBSEQUENT_FOLDING_FACTOR: usize = 4;
 
 /// Logarithmic reduction of the total Reed--Solomon domain after the initial

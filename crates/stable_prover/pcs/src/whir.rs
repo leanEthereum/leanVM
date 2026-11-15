@@ -29,13 +29,7 @@ use crate::ntt::AdditiveNttF64;
 use crate::whir_induce::induce_basis;
 use crate::whir_lanes::LaneRounds;
 use verifier::{FOLD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY_GRINDING_BITS, WhirConfig};
-
-/// The smallest `log_inv_rate` a proof can use, its code rate being `2^-log_inv_rate`.
-pub const MIN_LOG_INV_RATE: usize = 1;
-/// The largest `log_inv_rate` a proof can use, its code rate being `2^-log_inv_rate`.
-pub const MAX_LOG_INV_RATE: usize = 4;
-/// Level 0's fold count, which is also the number of lanes a level-0 leaf holds, `2^INITIAL_FOLDING_FACTOR`.
-pub const INITIAL_FOLDING_FACTOR: usize = 6;
+pub use verifier::{INITIAL_FOLDING_FACTOR, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 
 /// Elements a task of a parallel pass takes.
 const CHUNK: usize = 1 << 12;

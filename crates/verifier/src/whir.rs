@@ -7,7 +7,12 @@ use crate::multilinear::{log2_strict, multilinear_eval};
 use crate::transcript::{Transcript, sumcheck};
 use crate::{VerifierError, require};
 
-pub(crate) const INITIAL_FOLDING_FACTOR: usize = 6;
+/// The smallest `log_inv_rate` a proof can use, its code rate being `2^-log_inv_rate`.
+pub const MIN_LOG_INV_RATE: usize = 1;
+/// The largest `log_inv_rate` a proof can use.
+pub const MAX_LOG_INV_RATE: usize = 4;
+/// Level 0's fold count, which is also the number of lanes a level-0 leaf holds, `2^INITIAL_FOLDING_FACTOR`.
+pub const INITIAL_FOLDING_FACTOR: usize = 6;
 const SUBSEQUENT_FOLDING_FACTOR: usize = 4;
 const RS_DOMAIN_INITIAL_REDUCTION_FACTOR: usize = 3;
 const RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR: usize = 1;
@@ -22,7 +27,7 @@ pub const BATCH_GRINDING_BITS: u32 = 13;
 pub const OOD_GRINDING_BITS: u32 = 15;
 
 #[rustfmt::skip]
-const WHIR_QUERIES: [[&[usize]; MAX_STACKED_LOG - MIN_STACKED_LOG + 1]; 4] = [
+const WHIR_QUERIES: [[&[usize]; MAX_STACKED_LOG - MIN_STACKED_LOG + 1]; MAX_LOG_INV_RATE - MIN_LOG_INV_RATE + 1] = [
     [&[230,60,42], &[225,58,38], &[222,57,35], &[220,56,34], &[219,55,33,27], &[218,55,32,25], &[218,55,32,24], &[218,55,32,23], &[218,55,32,23,20], &[218,55,32,23,19], &[218,55,32,23,18], &[218,55,32,23,18], &[218,55,32,23,18,16], &[218,55,32,23,18,15], &[218,55,32,23,18,15]],
     [&[112,47,35], &[111,46,32], &[110,45,31], &[110,45,29], &[109,44,29,24], &[109,44,28,23], &[109,44,28,22], &[109,44,28,21], &[109,44,28,21,18], &[109,44,28,21,17], &[109,44,28,21,17], &[109,44,28,21,17], &[109,44,28,21,17,15], &[109,44,28,21,17,15], &[109,44,28,21,17,15]],
     [&[74,39,30], &[74,38,28], &[73,37,27], &[73,37,26], &[73,37,25,22], &[73,37,25,20], &[73,37,25,20], &[73,37,25,19], &[73,37,25,19,17], &[73,37,25,19,16], &[73,37,25,19,16], &[73,37,25,19,16], &[73,37,25,19,16,15], &[73,37,25,19,16,14], &[73,37,25,19,16,15]],
@@ -39,7 +44,7 @@ pub struct WhirConfig {
 #[doc(hidden)]
 pub fn whir_queries(log_n: usize, log_inv_rate: usize) -> Option<&'static [usize]> {
     WHIR_QUERIES
-        .get(log_inv_rate.checked_sub(1)?)?
+        .get(log_inv_rate.checked_sub(MIN_LOG_INV_RATE)?)?
         .get(log_n.checked_sub(MIN_STACKED_LOG)?)
         .copied()
 }

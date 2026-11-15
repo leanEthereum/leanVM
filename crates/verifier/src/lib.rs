@@ -30,7 +30,10 @@ pub use layout::{
 };
 pub use merkle::MerklePath;
 pub use transcript::{Proof, RATE_SCALARS, SECURITY_BITS, grinding_bits};
-pub use whir::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY_GRINDING_BITS, whir_queries};
+pub use whir::{
+    BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, INITIAL_FOLDING_FACTOR, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE,
+    OOD_GRINDING_BITS, QUERY_GRINDING_BITS, whir_queries,
+};
 pub use wire::{MAX_HEIGHT, MAX_LEAF_WORDS, MAX_PHASES, MAX_QUERIES};
 
 // What the provers and the aggregation's guest constants and witness read of the protocol.
@@ -261,7 +264,10 @@ fn walk(bytecode: &Bytecode, public_input: &[u8; 32], proof: &Proof, checked: bo
     let log_memory = announced[0].c0;
     let table_rows: Vec<u64> = announced[1..1 + N_TABLES].iter().map(|value| value.c0).collect();
     let log_inverse_rate = announced[1 + N_TABLES].c0;
-    require((1..=4).contains(&log_inverse_rate), VerifierError::PcsInverseRate)?;
+    require(
+        (MIN_LOG_INV_RATE as u64..=MAX_LOG_INV_RATE as u64).contains(&log_inverse_rate),
+        VerifierError::PcsInverseRate,
+    )?;
     let layout = build_layout(bytecode, log_memory, &table_rows)?;
     require(
         (MIN_STACKED_LOG..=MAX_STACKED_LOG).contains(&layout.stack_log),
