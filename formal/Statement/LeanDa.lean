@@ -384,7 +384,7 @@ def openCell (π : KeccakState → KeccakState) {r : ℕ} (cells : Fin (r * 128)
 /-! ### Membership (`verifier/src/da.rs`, the guest program's `da_vector`) -/
 
 /-- The normalized subspace polynomial `Ŵ_j`, vanishing on the span of `e_0 … e_(j-1)` and one
-at `e_j` (CompPoly's `normalizedW`; `subspace_above` tabulates it, the NTT's twiddles). -/
+at `e_j` (CompPoly's `normalizedW`; `vhat` in `aggregation`'s `placeholders.rs` tabulates it, the NTT's twiddles). -/
 noncomputable def normalizedSubspacePolynomial (j : Fin 13) : K[X] :=
   AdditiveNTT.normalizedW (ZMod 2) basis (Fin.castLE (by omega) j)
 

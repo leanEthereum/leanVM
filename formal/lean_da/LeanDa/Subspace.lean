@@ -7,7 +7,7 @@ public import LeanDa.ReedSolomon
 
 The facts about `Ŵ_j`, the normalized subspace polynomial of the span of `e_0 … e_(j-1)`
 (`normalizedSubspacePolynomial`, CompPoly's `normalizedW`), that the guest program's construction
-of the dual codeword rests on (`subspace_above` in `aggregation`'s `placeholders.rs`):
+of the dual codeword rests on (`vhat` in `aggregation`'s `placeholders.rs`):
 
 * **`Ŵ_j` at the basis.** `Ŵ_j(e_c) = 0` for `c < j` (`wHat_two_pow_of_lt`), `Ŵ_j(e_j) = 1`
   (`wHat_two_pow_self`), and `Ŵ_j` is additive (`wHat_add`), so at a point it is the sum of its
@@ -15,7 +15,7 @@ of the dual codeword rests on (`subspace_above` in `aggregation`'s `placeholders
 * **The table.** `subspaceRow i` tabulates `W_i`, the subspace polynomial of the span of
   `e_0 … e_(i-1)`, on `e_i … e_13` by `W_(i+1)(x) = W_i(x) (W_i(x) + W_i(e_i))`
   (`subspaceRow_eq`), so `subspaceEvaluations i` tabulates `Ŵ_i` (`subspaceEvaluations_eq`), and
-  its subset sums `subspaceAbove j y` (`subspace_above`, the NTT's twiddles) are `Ŵ_j` at the point
+  its subset sums `subspaceAbove j y` (`vhat`, the NTT's twiddles) are `Ŵ_j` at the point
   whose bits above `j` are `y`'s (`subspaceAbove_eq`).
 * **The dual codeword.** `subspaceAt j i`, bit `j` of `i` plus `subspaceAbove j (i >> (j + 1))`, is
   `Ŵ_j` at point `i` (`subspaceAt_eq`), so the guest's `dualCodeword z` is `dualCodewordAt z`

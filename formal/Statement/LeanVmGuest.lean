@@ -352,7 +352,7 @@ def StatementDigestBinds : Prop :=
       HasCollision (collisionCandidates seed statement seed' statement')
 
 /-- The guest program's deployed seed: its Fiat-Shamir IV (`fs_seed`,
-`crates/lean_vm_core/src/cpu/mod.rs`). -/
+`crates/aggregation/src/guest.rs`). -/
 abbrev deployedSeed (guest : LeanIsaProgram) : Digest := fiatShamirIv (bytecodeWords guest)
 
 end LeanVM.Node

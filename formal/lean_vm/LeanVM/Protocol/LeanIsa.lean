@@ -97,7 +97,7 @@ push side (each table pulls as often as it pushes, and the boundary blocks pair 
 side has no more (each count is a pull's), and `JUMP`, the one table with constraints, pushes.
 With `d = 2` it meets the table sumcheck's degree bound by definition.
 
-The layout, the boundary blocks and the sizes are transcribed from `crates/lean_vm_core/src` and
+The layout, the boundary blocks and the sizes are transcribed from `crates/leanvm_core/src` and
 `crates/verifier/src` at leanVM `40f877dc`; the instance's polynomials are Clean's, through
 `Component.toM3`.
 

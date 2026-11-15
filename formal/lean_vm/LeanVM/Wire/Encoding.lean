@@ -38,7 +38,7 @@ bytes. A phase travels pruned: the queries' positions, the height, the leaf widt
 the leaf at each distinct position as its last row-width words (the words before are zero in every
 leaf of the phase), and the siblings no other path of the phase gives, bottom level first and left
 to right; decoding recomputes the others by hashing, Keccak-256 over `π` as the verifier hashes
-(`hash_words`, `hash_pair`, `crates/fiat_shamir_prover/src/merkle.rs`). Decoding verifies nothing: it
+(`hash_leaf`, `hash_pair`, `crates/verifier/src/merkle.rs`). Decoding verifies nothing: it
 refuses everything but the one encoding of a proof within the bounds below.
 
 The Rust hashes a phase's shared nodes while it reads the phase's siblings; which siblings it reads
@@ -81,8 +81,8 @@ node of the level, in order (`wire.rs`, `wire.rs`). -/
 def carriedSiblings (nodes : List ℕ) : List ℕ :=
   nodes.filter fun node ↦ node ^^^ 1 ∉ nodes
 
-/-- The leaf of `leafWords` words whose words after the leading zeros are `row` (`padded`,
-`crates/fiat_shamir_prover/src/merkle.rs`). -/
+/-- The leaf of `leafWords` words whose words after the leading zeros are `row` (`decode`,
+`crates/verifier/src/wire.rs`). -/
 def paddedLeaf (row : List K) (leafWords : ℕ) : List K :=
   List.replicate (leafWords - row.length) 0 ++ row
 
@@ -232,7 +232,7 @@ def climbLevels : List (List (ℕ × Digest)) → List (ℕ × Digest) → m (Li
     let rest ← climbLevels above parents
     pure (siblings :: rest)
 
-/-- Unprune a phase back into its paths (`wire.rs`): hash the leaves (`hash_words`), in
+/-- Unprune a phase back into its paths (`wire.rs`): hash the leaves (`hash_leaf`), in
 order, climb the levels, and give each query the opening at its position: the leaf there and, at
 each level, the sibling of the node its position is under. -/
 def unprunePhase (phase : PrunedPhase) : m (List Opening) := do

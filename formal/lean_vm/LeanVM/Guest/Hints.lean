@@ -32,7 +32,7 @@ import LeanVM.Guest.Data.Source
 of entries in the order the guest pops them, for a run on the statement `s` under the seed
 `seed` held by the witness `w`; `publicInput seed s` is the initial memory, the statement's digest
 at cells `g^0` and `g^1`. They mirror the Rust producers of
-`crates/aggregation/src/` (leanVM main `40f877dc`) push for push (`honestPushes`,
+`crates/rec_aggregation/src/aggregation/` (leanVM main `40f877dc`) push for push (`honestPushes`,
 grouped by stream as `Hints::push` does, `crates/aggregation/src/hints.rs`): the node's streams
 (`aggregate`, `crates/aggregation/src/node.rs`), a raw signature's (`lean_xmss_hints`,
 `crates/aggregation/src/hints.rs`; `lean_sphincs_hints`, `crates/aggregation/src/hints.rs`), a

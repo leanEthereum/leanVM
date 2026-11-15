@@ -39,14 +39,14 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   from the root by leanVM's transcript (`membership_challenge`, `verifier/src/da.rs`), its
   sponge over Keccak-f[1600] seeded with the label's hash and the root, squeezed once; the
   security game models it as one random oracle on the root.
-* **The deployed algorithms** (`commit.rs`, `subspace_above` in `aggregation`'s `placeholders.rs`,
+* **The deployed algorithms** (`commit.rs`, `vhat` in `aggregation`'s `placeholders.rs`,
   `verifier/src/da.rs`, `verifier/src/transcript.rs`). The crate's computations,
   transcribed computably on lists, for `lean_vm` to state the aggregation node's DA claim with:
   `commitCodewords`, the tree of blob trees level by level, which is `commitCells` of the matrix
   (`commitCodewords_eq_commitCells`, `LeanDa.Commitment`); the challenge's sponge (`Sponge`,
   `membershipChallenge`); the table of the normalized subspace polynomials at the basis
-  (`subspaceEvaluations`, the NTT's `generate_evals_from_subspace`) and its subset sums
-  (`subspaceAbove`, `subspace_above`), from which the guest builds `L` (`dualCodeword`, the
+  (`subspaceEvaluations`, the NTT's `twiddle`) and its subset sums
+  (`subspaceAbove`, `vhat`), from which the guest builds `L` (`dualCodeword`, the
   crate's test `dual_codeword`), which `LeanDa.Subspace` proves are `Ŵ_j` and `dualCodewordAt`.
 
 The row count `r` is a parameter. The crate takes `1 ≤ r ≤ maxRows` (`BlobMatrix::build` rejects any other
@@ -88,10 +88,10 @@ variable (H : List UInt8 → Common.DigestBytes)
 def membershipChallenge (root : Common.DigestBytes) : Option E :=
   Id.run (membershipChallengeMWithHash (fun a ↦ pure (H a)) (fun L ↦ pure (P L)) root)
 
-/-! ## The dual codeword as the guest builds it (`subspace_above` in `aggregation`'s `placeholders.rs`) -/
+/-! ## The dual codeword as the guest builds it (`vhat` in `aggregation`'s `placeholders.rs`) -/
 
 /-- Row `i` of the subspace evaluations before scaling: `s_i` at the basis elements `x^j`,
-`j ≥ i` (`generate_evals_from_subspace`, `pcs/src/ntt/twiddles.rs`). -/
+`j ≥ i` (`AdditiveNttF64::twiddle`, the stable prover's `pcs/src/ntt.rs`). -/
 def subspaceRow : ℕ → List K
   | 0 => (List.range logM).map fun j ↦ K.ofBits (2 ^ j)
   | i + 1 =>
@@ -99,12 +99,12 @@ def subspaceRow : ℕ → List K
     (previous.drop 1).map fun value ↦ value * (value + previous.headD 0)
 
 /-- Row `i` of the subspace evaluations, scaled so that its first entry is one: `Ŵ_i` at
-`e_i … e_13` (`generate_evals_from_subspace`; `LeanDa.Subspace`'s `subspaceEvaluations_eq`). -/
+`e_i … e_13` (`twiddle`; `LeanDa.Subspace`'s `subspaceEvaluations_eq`). -/
 def subspaceEvaluations (i : ℕ) : List K :=
   (subspaceRow i).map (· * ((subspaceRow i).headD 0)⁻¹)
 
 /-- **`Ŵ_j` at the point whose bits above `j` are `y`'s**, `Σ_l bit_l(y) · Ŵ_j(e_(j+1+l))`
-(`subspace_above` in `aggregation`'s `placeholders.rs`: the NTT's twiddle of block `y` at layer `13 - j`, a
+(`vhat` in `aggregation`'s `placeholders.rs`: the NTT's twiddle of block `y` at layer `13 - j`, a
 subset sum of row `j`, `twiddle`, `pcs/src/ntt/twiddles.rs`). For `y < 2^(13 - j)` it is
 `Ŵ_j(point (y · 2^(j+1)))` (`LeanDa.Subspace`'s `subspaceAbove_eq`). -/
 def subspaceAbove (j y : ℕ) : K :=

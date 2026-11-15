@@ -174,8 +174,7 @@ noncomputable def LeanIsaProgram.fetch (program : LeanIsaProgram) (pc : K) : Opt
 
 How the 25 lanes of a Keccak state are held in thirteen memory words, two lanes to a word, in the
 words' limbs `0` and `1`, one lane per limb (specification §2, the `KECCAK` paragraph;
-`keccak_cell_lanes`, `layout.rs`; `cell_lanes`,
-`crates/lean_vm_core/src/keccak.rs`):
+`keccak_cell_lanes`, `crates/verifier/src/layout.rs`, which both provers import):
 
 * even layout: cell `c < 8` holds lanes `(2c, 2c + 1)`, cell `8` holds `(16, ·)`;
 * odd layout: cell `0` holds `(·, 0)`, cell `1 ≤ c ≤ 8` holds `(2c − 1, 2c)`;
