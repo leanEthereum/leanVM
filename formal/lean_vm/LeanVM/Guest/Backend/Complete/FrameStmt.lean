@@ -530,8 +530,8 @@ theorem stmtW_atom (hflush : FlushSegStmt) (hpk : PoolKeepStmt) (hok : OpOK Γ I
     ((hpk ctx I st (.atom a :: rest) (.atom a) rest).2 hI hinv.pnt)) ?_
   rintro _ C' st' _ hn _ ⟨⟨⟨hcok, ⟨⟨h1, h2, h3, h4⟩, hlz⟩, blk, hblk, hbw⟩, hch⟩, hpn⟩
   have hch' : st'.chainIn = none := by rw [hch]; exact hinv.chain
-  refine ⟨fun _ _ hF' hO' => winv_flat hsc hinv hcok hn h1 (h2 hF') h3 h4 hch'
-    (hpn hO'.outOps) hlz, hch', fun hF' hO' => ⟨blk, hblk, hbw hF' hO'.outOps _,
+  refine ⟨fun _ _ ⟨hF', hO', _⟩ => winv_flat hsc hinv hcok hn h1 (h2 hF') h3 h4 hch'
+    (hpn hO'.outOps) hlz, hch', fun ⟨hF', hO', _⟩ => ⟨blk, hblk, hbw hF' hO'.outOps _,
     fun v hv => ?_⟩⟩
   have hvu : v ∈ Memory.atomUses a := by
     simpa [pathVals, outEs, retVals, pathSels, sels1, walk1, Memory.Ev.uses] using hv
@@ -699,7 +699,7 @@ theorem stmtW_ret (hflush : FlushSegStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
       RW I C' st' (pathVals I.σ [.ret vs] (.ret [] vs))) ?_ (hck st)) ?_
   rotate_left
   · exact fun _ C' st' _ _ _ h =>
-      ⟨fun _ h' => (nomatch h'), by rw [h.2]; exact hinv.chain, h.1⟩
+      ⟨fun _ h' => (nomatch h'), by rw [h.2]; exact hinv.chain, fun hfin => h.1 hfin.1 hfin.2.1⟩
   · rw [placeStmt]
     simp only [bind_assoc]
     refine FBAt.fat_bind (begin_fat hflush hI hsc hinv hcp)
