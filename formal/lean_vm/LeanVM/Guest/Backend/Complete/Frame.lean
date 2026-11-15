@@ -58,6 +58,8 @@ structure Inst where
   locs : VMap Loc
   es : List Memory.Ev
   ops : List LOp
+  named : List V
+  loopH : Bool
 
 /-- The frame pointer's word. -/
 def Inst.fpw (I : Inst) : E := ofK (addressOfIndex I.fp)
@@ -309,15 +311,15 @@ def VW (I : Inst) (C : (ℕ → E) → Prop) (st : St) (ok : V → Prop) : Prop 
     2 ≤ locBase l ∧ locBase l < st.next ∧ ∀ Ψ, C Ψ → locW Ψ l = I.σ v
 
 /-- What the walk takes of an instance: some reader holds the path's events, the layout resolves
-a `SET` constant to its word and the frame size to `g^size`, no value but a temporary has a
-temporary's cell, and an instruction of the placement naming a temporary's cell is a `DEREF`
-into it at offset `0` through a pointer cell no `DEREF` of the frame pointer writes through
-(`TmpsApart`). -/
+a `SET` constant to its word and (in a registered loop helper, the only function that sets it)
+the frame size to `g^size`, no value the function names but a temporary has a temporary's cell,
+and an instruction of the placement naming a temporary's cell is a `DEREF` into it at offset `0`
+through a pointer cell no `DEREF` of the frame pointer writes through (`TmpsApart`). -/
 structure Inst.Ok (I : Inst) : Prop where
   rd : ∃ rd, I.Rd rd
   kconst : ∀ x y, I.kw (.const x y) = Guest.word x y
-  ksize : I.kw .frameSize = ofK (addressOfIndex I.size)
-  tsep : ∀ v n, cellP I.locs v = some n → I.tc n → v ∈ I.tmps
+  ksize : I.loopH = true → I.kw .frameSize = ofK (addressOfIndex I.size)
+  tsep : ∀ v n, v ∈ I.named → cellP I.locs v = some n → I.tc n → v ∈ I.tmps
   tops : ∀ c, I.tc c → ∀ o ∈ I.ops, c ∈ opCells o →
     ∃ p, o = .deref p 0 c .cell ∧ ∀ q off d, LOp.deref q off d .fp ∈ I.ops → q ≠ p
 
@@ -328,12 +330,27 @@ def holdsNT (rd : Reader) (σ : Val) : Atom → Prop
   | .touch _ p => IsInK (σ p)
   | a => a.Holds rd σ
 
+/-- The events a flush passes: those before the next statement, block or block end. -/
+def flushSeg : List Event → List Event
+  | [] => []
+  | e :: es =>
+      match e with
+      | .emit | .enter | .leave => []
+      | _ => e :: flushSeg es
+
+/-- The values the events make. -/
+def allocsOf (rs : List Event) : List V :=
+  rs.flatMap fun
+    | .alloc vs _ => vs
+    | _ => []
+
 /-- **The shape of an atom on the path** (`FrameAtoms.lean`): from a state whose known values
 include the atom's (a copy dropped into a sponge alias apart), the atom an event of the path, its
 relation without its temporaries on every reader `Rd`, its own values no temporaries and its
 temporaries the instance's, an address's word being the frame address of its run's first cell,
 placing the atom keeps the known values' words and knows the atom's values (once the final
-placement extends the state reached), and leaves the trace. -/
+placement extends the state reached), leaves the trace, places no value but the atom's, and leaves
+free every cell below the next free one the constraint left free. -/
 def AtomFAt (a : Atom) : Prop :=
   ∀ (ctx : Ctx) (I : Inst) (C : (ℕ → E) → Prop) (st : St) (ok : V → Prop),
     I.Ok → (ctx.isMain = true → I.fp = 0) → Memory.Ev.atom a ∈ I.es →
@@ -341,12 +358,17 @@ def AtomFAt (a : Atom) : Prop :=
     (∀ v ∈ Memory.atomUses a, v ∉ I.tmps) → (∀ t ∈ Memory.atomTmps a, t ∈ I.tmps) →
     (Fits I st → ∀ p run, a = .frameAddr p run → ∃ r0 base, run.head? = some r0 ∧
       st.locs[r0]? = some (.cell base) ∧ I.σ p = ofK (addressOfIndex (I.fp + base))) →
+    (∀ d p off, a = .load d p off → ∀ n e, st.locs[d]? ≠ some (.shifted n e)) →
     2 ≤ st.next → VW I C st ok →
     (∀ v ∈ Memory.atomUses a ++ Memory.atomTmps a, ok v ∨
-      ∃ s, a = .copy v s ∧ st.aliasRun.any (·.contains v) = true) →
+      ∃ s, s ≠ v ∧ a = .copy v s ∧ st.aliasRun.any (·.contains v) = true) →
     FAt ctx I C st (placeAtom a) fun _ C' st' =>
       (Fits I st' → VW I C' st' (fun v => ok v ∨ v ∈ Memory.atomUses a ++ Memory.atomTmps a)) ∧
-        st'.rest = st.rest
+        st'.rest = st.rest ∧
+        (∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨
+          v ∈ Memory.atomUses a ++ Memory.atomTmps a) ∧
+        (∀ c, c < st.next → (∀ Ψ w, C Ψ → C (Function.update Ψ c w)) →
+          ∀ Ψ w, C' Ψ → C' (Function.update Ψ c w))
 
 /-! ## Primitives on the path -/
 
