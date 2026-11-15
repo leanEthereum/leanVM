@@ -468,16 +468,6 @@ open GuestCplEval in
 def main (args : List String) : IO UInt32 := do
   let check := args.contains "--check"
   let P ← input
-  if let "kinds" :: j :: ks := args then
-    let tf := P[j.toNat!]!
-    for k in ks do
-      let st := tf.core.body[k.toNat!]!
-      let d := match st with
-        | .match_ _ arms => s!"match of {arms.length} arms, uses {arms.map fun a => (Stmt.usesList a).length}"
-        | .ite _ z n => s!"ite, uses {(Stmt.usesList z).length} and {(Stmt.usesList n).length}"
-        | _ => "other"
-      IO.println s!"{k}: {d}"
-    return 0
   let (pls, _) ← orThrow (placeProgram P)
   let sizes := (pls.map fun pf => blockSize pf.fn.body).toArray
   let names := (P.map (·.core.name)).toArray
