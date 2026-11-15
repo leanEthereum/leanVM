@@ -281,14 +281,14 @@ theorem FBAt.fat_bind2 {α β γ : Type} {C : (ℕ → E) → Prop} {st : St} {m
 theorem wp_eq {α : Type} {m : P α} {st : St} :
     wpP m ctx st fun a st' => m ctx st = .ok (a, st') := fun _ _ h => h
 
-/-- **A stage's arms**, the picked one on the path when the instructions so far are final (the
-invariant at their start then), all of them off it otherwise. -/
+/-- **A stage's arms**, the picked one on the path under `Q` (the invariant at their start then,
+e.g. when the instructions so far are final), all of them off it otherwise. -/
 theorem arms_fb (we : E) {arms : List (List Stmt)} {jp : ℕ} {exit : ArmExit}
-    {C : (ℕ → E) → Prop} {st : St} {s s' : SSt} {q i₀ : ℕ} {o : Out}
+    {C : (ℕ → E) → Prop} {st : St} {s s' : SSt} {q i₀ : ℕ} {o : Out} {Q : Prop}
     (hj : jp < arms.length) (hin : InBlockW Γ Ag cl ctx I arms[jp])
     (hsc : scopeArms ctx.retCells arms s s.retDone = .ok s')
     (hr : st.rest = s.rest) (hf : st.rest.length ≤ ctx.fuel)
-    (hinv : OutOps I st → WInv ctx I C st s)
+    (hinv : Q → WInv ctx I C st s)
     (hw : walk I.σ arms[jp] = o) (hns : o ≠ .stuck) (hes : ∀ e ∈ outEs o, e ∈ I.es)
     (hcl : ∀ k < (calls (outEs o)).length, cl[i₀ + k]? = (calls (outEs o))[k]?)
     (hfa : ∀ v ∈ pathVals I.σ arms[jp] o, ∀ run,
@@ -298,7 +298,7 @@ theorem arms_fb (we : E) {arms : List (List Stmt)} {jp : ℕ} {exit : ArmExit}
       st'.scope = st.scope ∧ st'.out = st.out ∧ (st.chainIn = none → st'.chainIn = none) ∧
       OffNew st st' (armsAtoms arms) ∧ (∀ v ∈ allocsOf st'.rest, v ∈ allocsOf st.rest) ∧
       (∀ x ∈ st.tables.shared, x ∈ st'.tables.shared) ∧
-      (OutOps I st → ∃ blk leave, bs[jp]? = some (blk ++ leave) ∧
+      (Q → ∃ blk leave, bs[jp]? = some (blk ++ leave) ∧
         LeaveOK exit jp arms.length leave C' we st.next st'.next ∧
         (∀ es, o = .fall es → Fits I st' →
           OpsIn I (q + armsSize (bs.take jp)) (blockOps blk (q + armsSize (bs.take jp))) →
@@ -308,7 +308,7 @@ theorem arms_fb (we : E) {arms : List (List Stmt)} {jp : ℕ} {exit : ArmExit}
           TabsW Γ Ag st' → FillsIn Γ Ag (q + armsSize (bs.take jp)) blk →
           BlkW Γ I ctx Ag cl C' blk arms[jp] [] o i₀ (q + armsSize (bs.take jp)) ∧
             RW I C' st' (pathVals I.σ arms[jp] o))) ∧
-      (¬ OutOps I st → C' = C) := by
+      (¬ Q → C' = C) := by
   intro hc a st' he
   obtain ⟨hb, hr₃, hs₃, ho₃, hc₃, hn₃, hl₃, -, -, hz, hsub, ht⟩ :=
     placeArms_off (n := arms.length) (base := st.next) (exit := exit) arms 0 st s s.retDone s'
@@ -317,7 +317,7 @@ theorem arms_fb (we : E) {arms : List (List Stmt)} {jp : ℕ} {exit : ArmExit}
       COk I C' st'.next st'.scope st'.locs := fun C' hs h0 hbl =>
     ⟨h0, hbl, fun Ψ hΨ => by rw [hs₃]; exact (hc.pools Ψ (hs Ψ hΨ)).grow hl₃,
       by rw [hs₃]; exact hc.cells.mono hn₃⟩
-  by_cases hO : OutOps I st
+  by_cases hO : Q
   · have hfl : ∀ v run, s.live.contains v = true → Atom.frameAddr v run ∉ armsAtoms arms :=
       fun v run hv hm => by
         have := scopeArms_fa _ arms s _ s' hsc v run hm
@@ -744,12 +744,12 @@ stages `stagesN` the block's leading `match`es make (the first in the table `fir
 invariant if the path falls through, the first new stage's picked arm `j` (the first with
 `σ x = g^j`) and its absolute position `T`, which the slot `first + j` holds, the stages' and the
 rest's words (`StagesW`) and the words of the values the path read. -/
-def OpenOut (O : List PStmt) (h : List LHint) (join lx entry one sfp : ℕ) (firsts : List ℕ)
-    (stages : List (List (List PStmt))) (first : ℕ) (x : V) (s' : SSt) (ss tl : List Stmt) (o : Out)
-    (i₀ p₀ : ℕ) (C' : (ℕ → E) → Prop) (st' : St) : Prop :=
+def OpenOut (Q : Prop) (O : List PStmt) (h : List LHint) (join lx entry one sfp : ℕ)
+    (firsts : List ℕ) (stages : List (List (List PStmt))) (first : ℕ) (x : V) (s' : SSt)
+    (ss tl : List Stmt) (o : Out) (i₀ p₀ : ℕ) (C' : (ℕ → E) → Prop) (st' : St) : Prop :=
   st'.chainIn = none ∧
-  (∀ es, o = .fall es → FinAt Γ I Ag p₀ st' → WInv ctx I C' st' s') ∧
-  (FinAt Γ I Ag p₀ st' → ∃ (firstsN : List ℕ) (stagesN : List (List (List PStmt)))
+  (∀ es, o = .fall es → FinAt Γ I Ag p₀ st' → Q → WInv ctx I C' st' s') ∧
+  (FinAt Γ I Ag p₀ st' → Q → ∃ (firstsN : List ℕ) (stagesN : List (List (List PStmt)))
       (blk : List PStmt) (j T : ℕ),
     st'.out.toList = O ++ [.chain h join lx entry one sfp (firsts ++ firstsN) (stages ++ stagesN)] ++
       blk ∧
@@ -765,22 +765,24 @@ def OpenOut (O : List PStmt) (h : List LHint) (join lx entry one sfp : ℕ) (fir
 
 /-- **A block entered by an open chain** (its first statement a `match` the `match` before it
 dispatches into: `chainIn = some (first, join)`, the output ending in the chain node so far),
-given the block lemma for the smaller good blocks: `OpenOut`. With the head stage whose arms
+given the block lemma for the smaller good blocks: `OpenOut`. The invariant at its start is had
+only under `Q` (the facts the chain node's final instructions give the stages before it, which
+the final state's `FinAt` gives the caller through `OpenOffW`), and so are its results. With the head stage whose arms
 dispatch into the next (`placeMatch … none true`), it gives `ChainHeadW`. -/
 def OpenW (Good : List Stmt → Prop) : Prop :=
   ∀ x arms rest tl, Good (.match_ x arms :: rest) →
     BlockIH Γ Ag cl ctx I Good (.match_ x arms :: rest) →
   ∀ (C : (ℕ → E) → Prop) (st : St) (sc sc'' : SSt) (i₀ p₀ : ℕ) (o : Out) (O : List PStmt)
     (h : List LHint) (join lx entry one sfp : ℕ) (firsts : List ℕ)
-    (stages : List (List (List PStmt))) (first : ℕ),
+    (stages : List (List (List PStmt))) (first : ℕ) (Q : Prop),
     scopeBlock ctx.retCells (.match_ x arms :: rest) sc = .ok sc'' →
     walk I.σ (.match_ x arms :: rest) = o → o ≠ .stuck → (∀ e ∈ outEs o, e ∈ I.es) →
     (∀ k < (calls (outEs o)).length, cl[i₀ + k]? = (calls (outEs o))[k]?) →
-    WInv ctx I C { st with chainIn := none } sc → st.chainIn = some (first, join) →
+    (Q → WInv ctx I C { st with chainIn := none } sc) → st.chainIn = some (first, join) →
     st.out.toList = O ++ [.chain h join lx entry one sfp firsts stages] →
     firsts.length = stages.length →
     FBAt ctx I C st (placeBlock (.match_ x arms :: rest)) fun _ C' st' =>
-      OpenOut (Γ := Γ) (Ag := Ag) (cl := cl) (ctx := ctx) (I := I) O h join lx entry one sfp firsts
+      OpenOut (Γ := Γ) (Ag := Ag) (cl := cl) (ctx := ctx) (I := I) Q O h join lx entry one sfp firsts
         stages first x sc'' (.match_ x arms :: rest) tl o i₀ p₀ C' st'
 
 /-- **The next stage's selector has its word at the stage before it**: in scope there, or not yet
