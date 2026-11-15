@@ -104,7 +104,8 @@ def FrameReady (A : String → FnAl) : Prop :=
     rsz C (refMem r.img) sx h =
         (((e.I.t.kidsC coreProgram.loop)[e.nc]?).map (Tree.block B2C.fs coreProgram.loop)).getD 0 ∧
       (Mode.HintIn sx h → sx.nextFree = cursorAt A e (s.pc - entOf A e.I.t.name) +
-          ((treeSizes A e (s.pc - entOf A e.I.t.name)).take i).sum → HintOk C (refMem r.img) sx h)
+          ((treeSizes A e (s.pc - entOf A e.I.t.name)).take i).sum →
+        HintOk C (refMem r.img) sx h ∧ AllocB (2 ^ r.κ) C sx h)
 
 /-- **A callee frame's hint reserves `B` words**, its size read off `M` at frame `fp`: a constant, a
 dispatch arm's by its selector, or a loop chain's by its bound. -/
@@ -134,7 +135,8 @@ def ExclReady (A : String → FnAl) : Prop :=
     isBuf (A e.I.t.name).X h = true →
     rsz C (refMem r.img) sx h = e.I.t.bufs.getD (bufIdx A e (s.pc - entOf A e.I.t.name) i) 0 ∧
     (sx.nextFree = cursorAt A e (s.pc - entOf A e.I.t.name) +
-        ((treeSizes A e (s.pc - entOf A e.I.t.name)).take i).sum → HintOk C (refMem r.img) sx h)
+        ((treeSizes A e (s.pc - entOf A e.I.t.name)).take i).sum →
+      HintOk C (refMem r.img) sx h ∧ AllocB (2 ^ r.κ) C sx h)
 
 end
 
@@ -370,7 +372,7 @@ theorem allocReady_alignA (hD : DynPow) (hA : AdvNext alignA) (hL : LateReady al
     (hX : ExclReady alignA) : AllocReady alignA := by
   intro r hr C hC done e st s htr hch hnc hha hfine hon i h sx hget hpre hm halloc hin hnf
   have hat : HintAt alignA r C e s sx i h :=
-    ⟨hr, hC, ⟨done, st, htr, hch, hha⟩, hnc, hfine, hon, hget, hpre, hm.fine.agree.get⟩
+    ⟨hr, hC, ⟨done, st, htr, hch, hha⟩, hnc, hfine, hon, hget, hpre, hm.2⟩
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   obtain ⟨rd, hHon, hHX⟩ := hr.honest
   obtain ⟨hI, j, bufs, kids, vs, hj, hIt, hfn, hw, hFH⟩ := (htr.frames hr.name hHon hHX.covers) e List.mem_cons_self
@@ -381,7 +383,7 @@ theorem allocReady_alignA (hD : DynPow) (hA : AdvNext alignA) (hL : LateReady al
   have hget' : (hintsAtD (alignA e.I.t.name).d (alignA e.I.t.name).X.entry off)[i]? = some h := by
     rw [← hintsAtOff_eq, ← hhs]; exact hget
   have hfpe : e.I.fp = s.fp := htr.linked.top.1
-  have hsxfp : sx.fp = e.I.fp := hm.fp.trans hfpe.symm
+  have hsxfp : sx.fp = e.I.fp := hm.1.trans hfpe.symm
   have hU := hintsUp_frame hE.find
   have hCF := curFacts_frame hj
   obtain ⟨i0, rfl, hi0, -, hfind, hcore, hfs, -, h1, h2⟩ := B2C.fn_of_idx hj
@@ -394,7 +396,7 @@ theorem allocReady_alignA (hD : DynPow) (hA : AdvNext alignA) (hL : LateReady al
         rename_i p b
         obtain ⟨hwr, hbo⟩ := hL r C e s sx i p b hat
         obtain ⟨n, hb⟩ := hbo hin
-        exact ⟨n, hb, Or.inl hwr⟩
+        exact ⟨⟨n, hb, Or.inl hwr⟩, allocB_late hwr⟩
       · have hb : isBuf (alignA e.I.t.name).X h = true := by
           unfold isBuf; simp only [hp, hfr, hlt, Bool.not_false, Bool.and_self]
         by_cases hex : i0 + 1 ∈ AllocChk.allocExcl
@@ -442,8 +444,10 @@ theorem allocReady_alignA (hD : DynPow) (hA : AdvNext alignA) (hL : LateReady al
             rw [List.take_add_one, List.sum_append, hbn]; simp
           have hle : (e.I.t.bufs.take (k + 1)).sum ≤ e.I.t.bufs.sum :=
             List.Sublist.sum_le_sum (List.take_sublist _ _) (fun _ _ ↦ Nat.zero_le _)
+          have hboundK : sx.nextFree + n ≤ 2 ^ r.κ := by
+            rw [hnfx]; unfold Ref.κ; omega
           have hbound : sx.nextFree + n ≤ maxCells := by
-            rw [hnfx]; unfold maxCells; unfold Ref.κ at he3 h2k; omega
+            unfold maxCells; omega
           have hnlt : n < maxCells := by
             rw [hnfx] at hbound; omega
           rw [hbk] at hbn
@@ -452,7 +456,7 @@ theorem allocReady_alignA (hD : DynPow) (hA : AdvNext alignA) (hL : LateReady al
             ⟨d, nv, rfl, rfl, hcn⟩ | ⟨d, nv, S, rfl, rfl⟩
           · simp only [allocPtr, Option.some.injEq] at hpp
             subst hpp
-            exact ⟨by rw [hsxfp]; exact hfpp, hbound, by rw [hsxfp, hptr, hnfx]⟩
+            exact ⟨⟨by rw [hsxfp]; exact hfpp, hbound, by rw [hsxfp, hptr, hnfx]⟩, hboundK⟩
           · simp only [allocPtr, Option.some.injEq] at hpp
             subst hpp
             have hval := cellRef hr htr hj ⟨_, hev, by simp [atomUses, hintUses]⟩ hcn
@@ -461,27 +465,36 @@ theorem allocReady_alignA (hD : DynPow) (hA : AdvNext alignA) (hL : LateReady al
             rw [hval.2] at hw'
             have hsz : allocSizeOf e.σ (.allocDyn d nv) = n' := by
               simp only [allocSizeOf]; rw [hw', logG_spec (by omega)]
-            rw [hsz] at hbound
-            exact ⟨by rw [hsxfp]; exact hfpp, hbound, by rw [hsxfp, hptr, hnfx]⟩
+            rw [hsz] at hbound hboundK
+            exact ⟨⟨by rw [hsxfp]; exact hfpp, hbound, by rw [hsxfp, hptr, hnfx]⟩, hboundK⟩
           · simp only [allocPtr, Option.some.injEq] at hpp
             subst hpp
             have hval := cellRef hr htr hj ⟨_, hev, by simp [atomUses, hintUses]⟩ hcn
             have hevs : e.I.t.events coreProgram = e.pre ++ e.es := by rw [hIt]; exact events_node hE.find hw
             have hpow := hD r hr e.I hI _ _ _ _ hIt d nv (by rw [hevs]; exact hev)
-            refine ⟨allocSizeOf e.σ (.allocDyn d nv), ⟨?_, hnlt⟩, ⟨by rw [hsxfp]; exact hfpp, hbound,
-              by rw [hsxfp, hptr, hnfx]⟩⟩
-            obtain ⟨v, hv⟩ := Mem.get_of_written (show sx.mem.written (sx.fp + (ctxOf (i0 + 1)).locAt nv.idx) = true from hin)
-            have hMv := hm.fine.agree.get _ _ hv
-            unfold Mem.peek
-            rw [hv, Option.getD_some, ← hMv, hsxfp, hval.2]
-            exact hpow
+            have hpt : PtrAt sx (sx.fp + (ctxOf (i0 + 1)).locAt nv.idx) (allocSizeOf e.σ (.allocDyn d nv)) := by
+              refine ⟨?_, hnlt⟩
+              obtain ⟨v, hv⟩ := Mem.get_of_written
+                (show sx.mem.written (sx.fp + (ctxOf (i0 + 1)).locAt nv.idx) = true from hin)
+              have hMv := hm.2 _ _ hv
+              unfold Mem.peek
+              rw [hv, Option.getD_some, ← hMv, hsxfp, hval.2]
+              exact hpow
+            exact ⟨⟨allocSizeOf e.σ (.allocDyn d nv), hpt, ⟨by rw [hsxfp]; exact hfpp, hbound,
+              by rw [hsxfp, hptr, hnfx]⟩⟩, allocB_dyn hpt hboundK⟩
           · simp only [allocPtr, Option.some.injEq] at hpp
             subst hpp
             have hnx := hA r C e s sx i _ S hat
             rw [hoff, ← hkdef, hbk] at hnx
-            exact Or.inr ⟨_, hnx, hnlt, by rw [hsxfp]; exact hfpp, hbound, by rw [hsxfp, hptr, hnfx]⟩
+            refine ⟨Or.inr ⟨_, hnx, hnlt, by rw [hsxfp]; exact hfpp, hbound, by rw [hsxfp, hptr, hnfx]⟩,
+              allocB_adv hnx fun n' hn' he ↦ ?_⟩
+            have hgn : (Parameters.g ^ allocSizeOf e.σ (.allocDyn d nv)) = Parameters.g ^ n' :=
+              ofK_injective (List.cons.inj he).1
+            obtain rfl := gpow_inj (by unfold maxCells at hnlt; omega) (by unfold maxCells at hn'; omega) hgn
+            exact hboundK
   · cases h <;> simp only [isAllocHint, allocPtr, Option.isSome_some, Option.isSome_none, Bool.false_eq_true,
       not_false_eq_true, not_true_eq_false] at halloc hp
+    all_goals refine ⟨?_, trivial⟩
     all_goals
       have hpos : ((alignA e.I.t.name).d.2.2.lookup ((alignA e.I.t.name).X.entry + off)).isSome = true := by
         unfold hintsAtD at hget'
@@ -786,8 +799,10 @@ theorem frameReady_of (hS : FrameSize alignA) (hP : FramePtr alignA) : FrameRead
   have he2 := endCur_chain (A := alignA) hr st e s.pc s.fp htr.track.ents htr.linked hch
   have he3 := le_two_pow_logMem (r.T.total B2C.fs)
   have h2k : 2 ^ r.κ ≤ 2 ^ 28 := Nat.pow_le_pow_right (by norm_num) hκ
+  have hboundK : sx.nextFree + B ≤ 2 ^ r.κ := by
+    rw [hnfx]; unfold Ref.κ; omega
   have hbound : sx.nextFree + B ≤ maxCells := by
-    rw [hnfx]; unfold maxCells; unfold Ref.κ at he3 h2k; omega
+    unfold maxCells; omega
   obtain ⟨p, hp⟩ := Option.isSome_iff_exists.mp (isFrame_ptr hfr)
   obtain ⟨hpl, hpv⟩ := hP r C e s sx i h p hat hfr hp
   have hA : AllocOk (refMem r.img) sx p B :=
@@ -795,11 +810,13 @@ theorem frameReady_of (hS : FrameSize alignA) (hP : FramePtr alignA) : FrameRead
   cases h <;> simp only [SizeOk] at hSz <;> simp only [allocPtr, Option.some.injEq] at hp
   · subst hp
     obtain ⟨v, n, h1, h2, h3, h4⟩ := hSz
-    exact ⟨v, n, by rw [peek_of_written hag hin, h1], h2, h3, h4 ▸ hA⟩
-  · subst hp hSz; exact hA
+    have hpk := (peek_of_written hag hin).trans h1
+    exact ⟨⟨v, n, hpk, h2, h3, h4 ▸ hA⟩, allocB_frames hpk h2 h3 (h4 ▸ hboundK)⟩
+  · subst hp hSz; exact ⟨hA, hboundK⟩
   · subst hp
     obtain ⟨k, hk, hk', hsz⟩ := hSz
-    exact ⟨k, B, ⟨by rw [peek_of_written hag hin, hk], hk'⟩, hsz, hA⟩
+    have hpt : PtrAt sx _ k := ⟨(peek_of_written hag hin).trans hk, hk'⟩
+    exact ⟨⟨k, B, hpt, hsz, hA⟩, allocB_arm hpt hsz hboundK⟩
 
 /-! ## Together -/
 

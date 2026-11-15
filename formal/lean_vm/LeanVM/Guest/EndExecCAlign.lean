@@ -80,8 +80,16 @@ theorem hintComputed_alignA {Y : Ref → St → Prop} (hXR : ExtraRef alignA) :
     ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s h, OnRun (XOf Y) r s →
       h ∈ (C.hints[s.pc]?).getD [] → isAllocHint h = false → isWitnessHint h = false → ∀ s1,
       Moves (refMem r.img) s s1 → Mode.HintIn s1 h → HintOk C (refMem r.img) s1 h :=
-  hintComputed_X Bridge.progAl Bridge.alignA_main jumpCells_at alLayout_alignA hintsAl_alignA pairOk_alignA
-    hXR
+  fun r hr C hC s h hon hmem hna hnw s1 hm hin ↦ (hintComputed_X Bridge.progAl Bridge.alignA_main jumpCells_at
+    alLayout_alignA hintsAl_alignA pairOk_alignA hXR r hr C hC s h hon hmem hna hnw s1 hm.w).2 hin
+
+/-- **The computed hints' runs from a buffer pointer are below `2^κ`**, on the deployed guest. -/
+theorem heapComputed_alignA {Y : Ref → St → Prop} (hXR : ExtraRef alignA) :
+    ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s h, OnRun (XOf Y) r s →
+      h ∈ (C.hints[s.pc]?).getD [] → isAllocHint h = false → isWitnessHint h = false → ∀ s1,
+      MovesW (refMem r.img) s s1 → HeapB (2 ^ r.κ) s1 h :=
+  fun r hr C hC s h hon hmem hna hnw s1 hm ↦ (hintComputed_X Bridge.progAl Bridge.alignA_main jumpCells_at
+    alLayout_alignA hintsAl_alignA pairOk_alignA hXR r hr C hC s h hon hmem hna hnw s1 hm).1
 
 /-- **`ExecGaps` on the deployed alignment**: `ExecGaps.ofX` with the alignment's premises proved,
 `hintComputed` from the hint-only cells' values on the reference, and

@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.EndExecX
+public import LeanVM.Guest.EndExecCUsed
 public import LeanVM.Guest.Bridge.Pair
 public import LeanVM.Guest.Bridge.PairEvery
 public import LeanVM.Guest.Bridge.FrameMap
@@ -108,7 +109,7 @@ theorem buf_ref {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePro
     {f : String} {σ : Core.Val} {bufs : List ℕ} {kids : List Memory.Tree} (hIt : I.t = .node f σ bufs kids) {p : V}
     {len : ℕ} (hlen : len < 2 ^ 30) (hlen0 : 0 < len) (hp : p ∈ allocDsts (I.t.events coreProgram)) {a : Atom}
     (ha : Ev.atom a ∈ I.t.events coreProgram) (had : atomHeapDest? a = some (p, 0, len)) :
-    ∃ b < maxCells, σ p = ofK (Parameters.g ^ b) ∧ ∀ k < len, b + k < maxCells ∧
+    ∃ b < maxCells, σ p = ofK (Parameters.g ^ b) ∧ ∀ k < len, b + k < 2 ^ r.κ ∧
       refMem r.img (b + k) = (r.rd0 ((σ p).limb 0 * addressOfIndex (0 + k))).getD 0 := by
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   obtain ⟨t, ν, hv, -, hpl, -, -, -, hTt⟩ := hr.tree
@@ -150,7 +151,7 @@ theorem buf_ref {r : Ref} (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts corePro
   have ha' : (σ p).limb 0 * addressOfIndex (0 + k) = Parameters.g ^ ((i0 : ℕ) + k) := by
     rw [hσp]; simp [addressOfIndex, pow_add]
   rw [ha'] at hv0 hvi
-  obtain ⟨h1, h2⟩ := refRd_img hκ r.img ((i0 : ℕ) + k) v (by omega) hvi
+  obtain ⟨h1, h2⟩ := refRd_imgK hκ r.img (c := (i0 : ℕ) + k) (by omega) hvi
   rw [ha', hv0]
   exact ⟨h1, h2⟩
 
@@ -162,8 +163,8 @@ theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : Pro
     (hPC : PairOk A) (hXR : ExtraRef A) :
     ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s h, OnRun (XOf Y) r s →
       h ∈ (C.hints[s.pc]?).getD [] → isAllocHint h = false → isWitnessHint h = false → ∀ s1,
-      Moves (refMem r.img) s s1 → HintIn s1 h → HintOk C (refMem r.img) s1 h := by
-  intro r hr C hC s h hon hmem hna hnw s1 hm hin
+      MovesW (refMem r.img) s s1 → HeapB (2 ^ r.κ) s1 h ∧ (HintIn s1 h → HintOk C (refMem r.img) s1 h) := by
+  intro r hr C hC s h hon hmem hna hnw s1 hm
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   have hge : proLen ≤ s.steps := by
     rcases hon.1.1 with ⟨hlt, hpc, -⟩ | ⟨hge, -⟩
@@ -199,12 +200,13 @@ theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : Pro
   obtain ⟨hchk, hlocAt⟩ := hPC _ _ j hE.find hj
   obtain ⟨hframe, hbuf⟩ := Bridge.pairChk_sound hchk hw hev (compHint_of hcomp hna hnw)
   set loc := (A e.I.t.name).X.locAt with hloc
-  have hfp1 : s1.fp = e.I.fp := hm.fp.trans hfp.symm
+  have hfp1 : s1.fp = e.I.fp := hm.1.trans hfp.symm
   obtain ⟨i, -, -, -, -, -, hfs, -⟩ := B2C.fn_of_idx hj
   have hwithin : e.I.fp + B2C.fs e.I.t.name ≤ r.T.total B2C.fs :=
     honest_within hI (by have := hHon.cells.two_le e.I hI; omega)
   have h28 : r.T.total B2C.fs ≤ 2 ^ 28 :=
     le_trans (le_two_pow_logMem _) (Nat.pow_le_pow_right (by norm_num) hκ)
+  have h2k : 2 ^ r.κ ≤ maxCells := Nat.pow_le_pow_right (by norm_num) hκ
   have hnamed : ∀ v ∈ hintUses hc, v ∈ B2C.namedOf (coreOf j).params (e.pre ++ e.es) vs := fun v hv ↦
     List.mem_append_left _ (List.mem_append_right _ (List.mem_flatMap.mpr ⟨_, hev, hv⟩))
   -- a value at its certificate cell
@@ -220,12 +222,12 @@ theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : Pro
   -- the executor reads the reference at its written cells
   have hRd : ∀ c v, s1.mem.written c = true → refMem r.img c = v → s1.mem.peek c = v := fun c v hwc hM ↦ by
     obtain ⟨w, hw'⟩ := Mem.get_of_written hwc
-    rw [Mem.peek_of_get hw', ← hm.fine.agree.get c w hw', hM]
+    rw [Mem.peek_of_get hw', ← hm.2 c w hw', hM]
   have hIn : ∀ v ∈ Bridge.hintFrame hc, s1.mem.written (s1.fp + loc v.idx) = true →
       s1.mem.peek (s1.fp + loc v.idx) = e.σ v := fun v hv hwv ↦ hRd _ _ hwv (hF v hv).2
   -- a buffer: its pointer and the reference's words over it
   have hB : ∀ p off len, Bridge.hintBuf hc = some (p, off, len) → s1.mem.written (s1.fp + loc p.idx) = true →
-      off = 0 ∧ ∃ b, PtrAt s1 (s1.fp + loc p.idx) b ∧ ∀ k < len, b + k < maxCells ∧
+      off = 0 ∧ ∃ b, PtrAt s1 (s1.fp + loc p.idx) b ∧ ∀ k < len, b + k < 2 ^ r.κ ∧
         refMem r.img (b + k) = ((Dest.heap p off len).words r.rd0 e.σ).getD k 0 := by
     intro p off len hb hwp
     obtain ⟨rfl, hl0, hl, hcl, hal, a, ha, had⟩ := hbuf p off len hb
@@ -260,8 +262,25 @@ theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : Pro
         refine ⟨b, hpt, fun k hk ↦ ?_⟩
         have hk' : k < len := by simpa [Dest.words] using hk
         obtain ⟨h1, h2⟩ := hrun k hk'
-        refine ⟨by simpa using h1, ?_⟩
+        refine ⟨by have := h2k; simp; omega, ?_⟩
         rw [Nat.add_zero, h2, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hk, Option.getD_some]
+  -- a buffer destination's run below `2^κ`
+  have hHeap : ∀ (d : Dest) (bd : BitsDest) (pos n : ℕ), destOk loc d bd pos n = true →
+      (∀ q, destHeap? d = some q → Bridge.hintBuf hc = some q) →
+      ∀ ptr, bd = .heap ptr → ∀ b, PtrAt s1 (s1.fp + ptr) b → ∀ k < n, b + pos + k < 2 ^ r.κ := by
+    intro d bd pos n hd hhb ptr hbd b hpt k hk
+    subst hbd
+    cases d with
+    | stack _ => simp [destOk] at hd
+    | heap p off len =>
+      simp only [destOk, Bool.and_eq_true, beq_iff_eq] at hd
+      obtain ⟨⟨hptr, rfl⟩, rfl⟩ := hd
+      rw [← hptr] at hpt
+      obtain ⟨v, hv, -⟩ := get_of_ptrAt hpt
+      obtain ⟨rfl, b0, hpt0, hrun⟩ := hB p off len (hhb _ rfl) (Mode.written_of_get hv)
+      obtain rfl := ptrAt_uniq hpt hpt0
+      have := (hrun k hk).1
+      omega
   have hsv : ∀ (d : Dest) (v : V) (l : List V), v ∈ Bridge.stackVals d → v ∈ l ++ Bridge.stackVals d :=
     fun _ _ _ hv ↦ List.mem_append_right _ hv
   cases hc with
@@ -273,7 +292,12 @@ theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : Pro
     rename_i x bd n
     have hc' := hcomp
     simp only [Bool.and_eq_true, beq_iff_eq] at hc'
-    obtain ⟨⟨⟨-, rfl⟩, -⟩, hd⟩ := hc'
+    obtain ⟨⟨⟨-, rfl⟩, hnb⟩, hd⟩ := hc'
+    refine ⟨?_, fun hin ↦ ?_⟩
+    · rw [← hnb]
+      cases bd with
+      | stack _ => trivial
+      | heap ptr => exact hHeap d _ 0 nbits hd (fun q hq ↦ by simp [Bridge.hintBuf, hintDest?, hq]) ptr rfl
     obtain ⟨hwv, hdi⟩ := hin
     exact Bridge.hintOkR_bits hcomp (hIn v (by simp [Bridge.hintFrame]) hwv)
       (hDest d bd 0 nbits hd (fun w hw ↦ by simp [Bridge.hintFrame, hw])
@@ -283,7 +307,12 @@ theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : Pro
     rename_i x bd n
     have hc' := hcomp
     simp only [Bool.and_eq_true, beq_iff_eq] at hc'
-    obtain ⟨⟨⟨rfl, -⟩, -⟩, hd⟩ := hc'
+    obtain ⟨⟨⟨rfl, hnb⟩, -⟩, hd⟩ := hc'
+    refine ⟨?_, fun hin ↦ ?_⟩
+    · rw [← hnb]
+      cases bd with
+      | stack _ => trivial
+      | heap ptr => exact hHeap d _ 0 nbits hd (fun q hq ↦ by simp [Bridge.hintBuf, hintDest?, hq]) ptr rfl
     obtain ⟨hwv, hdi⟩ := hin
     exact Bridge.hintOkR_bitsExp hcomp (hIn v (by simp [Bridge.hintFrame]) hwv)
       (hDest d bd 0 nbits hd (fun w hw ↦ by simp [Bridge.hintFrame, hw])
@@ -293,7 +322,12 @@ theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : Pro
     rename_i x bd nbits' ndigits' digitBits' start' sc'
     have hc' := hcomp
     simp only [Bool.and_eq_true, beq_iff_eq] at hc'
-    obtain ⟨⟨⟨⟨⟨⟨⟨rfl, -⟩, -⟩, -⟩, -⟩, -⟩, hsc⟩, hd⟩ := hc'
+    obtain ⟨⟨⟨⟨⟨⟨⟨rfl, -⟩, hnd⟩, -⟩, -⟩, -⟩, hsc⟩, hd⟩ := hc'
+    refine ⟨?_, fun hin ↦ ?_⟩
+    · rw [← hnd]
+      cases bd with
+      | stack _ => trivial
+      | heap ptr => exact hHeap d _ 0 ndigits hd (fun q hq ↦ by simp [Bridge.hintBuf, hintDest?, hq]) ptr rfl
     obtain ⟨hwv, hws, hdi⟩ := hin
     refine Bridge.hintOkR_digitsExp hcomp (hIn v (by simp [Bridge.hintFrame]) hwv) (fun c hcs ↦ ?_)
       (hDest d bd 0 ndigits hd (fun w hw ↦ by simp [Bridge.hintFrame, hw])
@@ -309,7 +343,12 @@ theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : Pro
     rename_i x bd pos start' width' count'
     have hc' := hcomp
     simp only [Bool.and_eq_true, beq_iff_eq] at hc'
-    obtain ⟨⟨⟨⟨rfl, -⟩, -⟩, -⟩, hd⟩ := hc'
+    obtain ⟨⟨⟨⟨rfl, -⟩, -⟩, hnc⟩, hd⟩ := hc'
+    refine ⟨?_, fun hin ↦ ?_⟩
+    · rw [← hnc]
+      cases bd with
+      | stack _ => trivial
+      | heap ptr => exact hHeap d _ pos count hd (fun q hq ↦ by simp [Bridge.hintBuf, hintDest?, hq]) ptr rfl
     obtain ⟨hwv, hdi⟩ := hin
     exact Bridge.hintOkR_windowsExp hcomp (hIn v (by simp [Bridge.hintFrame]) hwv)
       (hDest d bd pos count hd (fun w hw ↦ by simp [Bridge.hintFrame, hw])
@@ -320,6 +359,7 @@ theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : Pro
     have hc' := hcomp
     simp only [Bool.and_eq_true, beq_iff_eq] at hc'
     obtain ⟨⟨rfl, -⟩, -⟩ := hc'
+    refine ⟨trivial, fun hin ↦ ?_⟩
     exact Bridge.hintOkR_limbs hcomp (hIn v (by simp [Bridge.hintFrame]) hin)
       (fun w hw ↦ hF w (by simp [Bridge.hintFrame, hw])) hxc
   | log2Ceil b nbits floor dst =>
@@ -328,6 +368,7 @@ theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : Pro
     have hc' := hcomp
     simp only [Bool.and_eq_true, beq_iff_eq] at hc'
     obtain ⟨⟨⟨hd, -⟩, rfl⟩, -⟩ := hc'
+    refine ⟨trivial, fun hin ↦ ?_⟩
     have hdst := hF dst (by simp [Bridge.hintFrame])
     refine Bridge.hintOkR_log2Ceil hcomp ?_ hdst.1 hdst.2 hxc
     cases b with
@@ -355,7 +396,7 @@ theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : Pro
         obtain ⟨h1, h2⟩ := hrun k hk
         obtain ⟨w, hw'⟩ := Mem.get_of_written hwp
         have hwv : w = ofK (Parameters.g ^ b0) := (Mem.peek_of_get hw').symm.trans hpt.1
-        have hwk := hbits w b0 hw' ⟨by rw [hwv]; simp, hpt.2⟩ k hk h1
+        have hwk := hbits w b0 hw' ⟨by rw [hwv]; simp, hpt.2⟩ k hk (by omega)
         rw [Nat.add_zero]
         exact hRd _ _ hwk h2
   | inverse x d =>
@@ -364,6 +405,7 @@ theorem hintComputed_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : Pro
     have hc' := hcomp
     simp only [Bool.and_eq_true, beq_iff_eq] at hc'
     obtain ⟨rfl, -⟩ := hc'
+    refine ⟨trivial, fun hin ↦ ?_⟩
     have hd := hF d (by simp [Bridge.hintFrame])
     exact Bridge.hintOk_inverse hcomp (hIn x (by simp [Bridge.hintFrame]) hin) hd.2 hd.1 hxc
 

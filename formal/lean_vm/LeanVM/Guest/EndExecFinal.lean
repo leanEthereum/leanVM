@@ -16,6 +16,7 @@ import LeanVM.Guest.EndExecYShape
 import LeanVM.Guest.EndExecACur
 import LeanVM.Guest.EndExecAKeep
 import LeanVM.Guest.EndExecAGaps
+import LeanVM.Guest.EndExecAUsed
 import LeanVM.Guest.EndExecAExtra
 import LeanVM.Guest.EndExecCAlign
 import LeanVM.Guest.Budget.MainExact
@@ -36,7 +37,8 @@ cursor (`YCur`) and the bump pointer (`YAlloc`), each kept by a step given the o
 (`Budget.mainExactHyp`), the alignment and its jumps (`Bridge.progAl`, `Bridge.alignA_main`,
 `alLayout_alignA`, `jumpCells_at`), the `DEREF` pointers (`derefPow_all`), the computed hints
 (`hintComputed_alignA`, `extraRef_alignA`), the witness hints (`hintWitness_alignA`,
-`witCells_alignA`, `pushShape`), the allocation hints (`hintAlloc_alignA`), the tracks kept
+`witCells_alignA`, `pushShape`), the allocation hints (`hintAlloc_alignA`), the cells the hints use
+(`hintsUsed_alignA`), the tracks kept
 (`keepY_alignA`, `keepY_allocA_of`) and started (`initY_cur`, `initY_alloc`), the residuals
 (`resTop_guestF`) and the termination facts (`termNode_guest`). `guest_prover_complete_of` is
 `guest_prover_complete` from `OpenGaps`.
@@ -85,8 +87,6 @@ structure OpenGaps : Prop where
   /-- Allocation track: the allocation facts still open (`AllocOpen`: the `heap_sizes` pushes the
   reference tree's advised sizes, the frame hints the check skips). -/
   alloc : AllocOpen
-  /-- Allocation track: the hints at a pc keep the cells used within the reference's `2^κ`. -/
-  hintsUsed : HintsUsed YFin
 
 /-! ## The assembly -/
 
@@ -103,7 +103,8 @@ theorem execGaps_of (O : OpenGaps) :
       · exact resCld_alignA
       · exact resCp_alignA) nzVal_lce0 nzVal_lce16)
     termNode_guest Bridge.progAl Bridge.alignA_main alLayout_alignA jumpCells_at Mode.guestCerts_entry_ne
-    (derefPow_all _) O.hintsUsed
+    (derefPow_all _)
+    (hintsUsed_alignA O.alloc.sizesAt O.alloc.allocReady (witCells_alignA witPtrRes_guest) fun _ _ h ↦ h)
     (KeepY.and (keepY_alignA (derefPow_all _) fun _ _ h ↦ h) O.alloc.keep)
     (InitY.and (initY_cur alignA) (initY_alloc alignA))
 

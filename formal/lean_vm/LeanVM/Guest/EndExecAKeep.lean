@@ -12,6 +12,7 @@ public import LeanVM.Guest.EndExecYKeep
 public import LeanVM.Guest.EndExecYAl
 public import LeanVM.Guest.Memory.Bump
 public import LeanVM.Guest.Bridge.StepOff
+public import LeanVM.Guest.EndExecCUsed
 
 /-!
 # The bump pointer's track along the run
@@ -87,10 +88,10 @@ def AllocReady (A : String → FnAl) : Prop :=
     RefTrack A r s.pc s.fp (done, e :: st) → ChainA A (memOf r.img) (e :: st) →
     NcTop A e (s.pc - entOf A e.I.t.name) → HeapAt A r s e st → Fine (refMem r.img) s → OnRef guestProgram r.img r.n s →
     ∀ (i : ℕ) (h : Hint) (sx : St), ((C.hints[s.pc]?).getD [])[i]? = some h →
-      (((C.hints[s.pc]?).getD []).take i).foldlM (runHint C) s = .ok sx → Moves (refMem r.img) s sx →
+      (((C.hints[s.pc]?).getD []).take i).foldlM (runHint C) s = .ok sx → MovesW (refMem r.img) s sx →
       isAllocHint h = true → Mode.HintIn sx h →
       sx.nextFree = cursorAt A e (s.pc - entOf A e.I.t.name) + ((treeSizes A e (s.pc - entOf A e.I.t.name)).take i).sum →
-      HintOk C (refMem r.img) sx h
+      HintOk C (refMem r.img) sx h ∧ AllocB (2 ^ r.κ) C sx h
 
 /-- **The cursor follows each step of the tree track**: from a state of the track at `(pc, fp)`, its
 frames chained, no call before its buffers, the reference step to registers short of the final ones
@@ -469,11 +470,12 @@ theorem hints_len {A : String → FnAl} (hP : ProgAl guestProgram coreProgram A)
 
 /-- **`hintAlloc` from `YAlloc`**, `SizesAt` and `AllocReady`: the hints before an allocation hint
 move the bump pointer by the words they reserve on the tree. -/
-theorem hintAlloc_of {A : String → FnAl} (hP : ProgAl guestProgram coreProgram A) (hAd : AdvAl A)
+theorem hintAllocW_of {A : String → FnAl} (hP : ProgAl guestProgram coreProgram A) (hAd : AdvAl A)
     (hS : SizesAt A) (hR : AllocReady A) {Y : Ref → St → Prop} (hY : ∀ r s, Y r s → YAlloc A r s) :
     ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s, OnRun (XOf Y) r s → ∀ pre h post,
       (C.hints[s.pc]?).getD [] = pre ++ h :: post → ∀ s1, pre.foldlM (runHint C) s = .ok s1 →
-      Moves (refMem r.img) s s1 → isAllocHint h = true → Mode.HintIn s1 h → HintOk C (refMem r.img) s1 h := by
+      MovesW (refMem r.img) s s1 → isAllocHint h = true → Mode.HintIn s1 h →
+        HintOk C (refMem r.img) s1 h ∧ AllocB (2 ^ r.κ) C s1 h := by
   intro r hr C hC s hon pre h post hl s1 e1 hm ha hin
   have hYs := hY r s hon.1.2.2
   by_cases hpro : s.steps < proLen
@@ -492,9 +494,10 @@ theorem hintAlloc_of {A : String → FnAl} (hP : ProgAl guestProgram coreProgram
   have hlen := hints_len hP hAd hC htr hpcS
   have hi : ((C.hints[s.pc]?).getD [])[pre.length]? = some h := by rw [hl]; simp
   have htake : ((C.hints[s.pc]?).getD []).take pre.length = pre := by rw [hl]; simp
-  refine hR r hr C hC done e st s htr hch hnc hha hon.2.1 hon.2.2 pre.length h s1 hi (by rw [htake]; exact e1) hm ha hin ?_
+  refine hR r hr C hC done e st s htr hch hnc hha hon.2.1 hon.2.2 pre.length h s1 hi (by rw [htake]; exact e1) hm ha
+    hin ?_
   have hs1 := hints_nextFree pre ((treeSizes A e (s.pc - entOf A e.I.t.name)).take pre.length) s s1
-    ⟨hon.2.1.agree.wf, hon.2.1.dl⟩ e1 hm.fine.agree.get (by
+    ⟨hon.2.1.agree.wf, hon.2.1.dl⟩ e1 hm.2 (by
       rw [List.length_take]
       have : pre.length ≤ ((C.hints[s.pc]?).getD []).length := by rw [hl]; simp
       omega)
@@ -502,13 +505,22 @@ theorem hintAlloc_of {A : String → FnAl} (hP : ProgAl guestProgram coreProgram
       have hjl : j < pre.length := (List.getElem?_eq_some_iff.mp hj).1
       have h1 := hS r hr C hC done e st s htr hch hnc hha hon.2.1 hon.2.2 j h' sx (by rw [hl, List.getElem?_append_left hjl]; exact hj)
         (by rw [hl, List.take_append_of_le_length hjl.le]; exact hx) fun c v hv ↦
-        hm.fine.agree.get c v ((hints_follows _ sx s1 (hints_follows _ s sx ⟨hon.2.1.agree.wf, hon.2.1.dl⟩ hx).good
+        hm.2 c v ((hints_follows _ sx s1 (hints_follows _ s sx ⟨hon.2.1.agree.wf, hon.2.1.dl⟩ hx).good
           (by
             have := e1
             rw [← List.take_append_drop j pre, List.foldlM_append, hx, ok_bind] at this
             exact this)).le.get _ _ hv)
       rw [h1, List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_take_of_lt hjl]
   rw [hs1, hcur]
+
+/-- **`hintAlloc` from `YAlloc`**, `SizesAt` and `AllocReady`. -/
+theorem hintAlloc_of {A : String → FnAl} (hP : ProgAl guestProgram coreProgram A) (hAd : AdvAl A)
+    (hS : SizesAt A) (hR : AllocReady A) {Y : Ref → St → Prop} (hY : ∀ r s, Y r s → YAlloc A r s) :
+    ∀ r, r.Ok → ∀ C, Ctx.of guestProgram r.adv = .ok C → ∀ s, OnRun (XOf Y) r s → ∀ pre h post,
+      (C.hints[s.pc]?).getD [] = pre ++ h :: post → ∀ s1, pre.foldlM (runHint C) s = .ok s1 →
+      Moves (refMem r.img) s s1 → isAllocHint h = true → Mode.HintIn s1 h → HintOk C (refMem r.img) s1 h :=
+  fun r hr C hC s hon pre h post hl s1 e1 hm ha hin ↦
+    (hintAllocW_of hP hAd hS hR hY r hr C hC s hon pre h post hl s1 e1 hm.w ha hin).1
 
 /-! ## On the deployed alignment -/
 

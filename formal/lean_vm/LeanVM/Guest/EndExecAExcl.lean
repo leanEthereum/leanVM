@@ -188,7 +188,7 @@ theorem cld_frame {r : Ref} (hr : r.Ok) {pc fp : ℕ} {done : List Pop} {e : Ent
 frame's subtree, is below `maxCells` with the frame's cursor before it. -/
 theorem buf_bound {r : Ref} (hr : r.Ok) {pc fp : ℕ} {done : List Pop} {e : Ent} {st : List Ent}
     (hT : RefTrack alignA r pc fp (done, e :: st)) (hch : ChainA alignA (memOf r.img) (e :: st)) {n : ℕ}
-    (hn : n ∈ e.I.t.bufs) : 2 ≤ e.I.cur ∧ e.I.cur + n ≤ maxCells := by
+    (hn : n ∈ e.I.t.bufs) : 2 ≤ e.I.cur ∧ e.I.cur + n ≤ maxCells ∧ e.I.cur + n ≤ 2 ^ r.κ := by
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   obtain ⟨rd, hHon, hHX⟩ := hr.honest
   obtain ⟨hI, j, bufs, kids, vs, hj, hIt, -⟩ := (hT.frames hr.name hHon hHX.covers) e List.mem_cons_self
@@ -206,7 +206,7 @@ theorem buf_bound {r : Ref} (hr : r.Ok) {pc fp : ℕ} {done : List Pop} {e : Ent
     have := hIP.2.2
     omega
   have hle : n ≤ e.I.t.bufs.sum := List.le_sum_of_mem hn
-  refine ⟨hcur2, ?_⟩
+  refine ⟨hcur2, ?_, by unfold Ref.κ; omega⟩
   unfold maxCells; unfold Ref.κ at he3 h2k; omega
 
 theorem cld_atom {e : Ent} {σ3 : Core.Val} (hH : (e.pre ++ e.es).filterMap Ev.allocH? =
@@ -250,7 +250,7 @@ theorem exclReady_alignA : ExclReady alignA := by
   rw [hoff] at hnf hnc
   by_cases h3 : e.σ (.n 3) = 0
   · rw [hbufs, hH, ite_eq_left h3] at hnx
-    exact Or.inl hnx
+    exact ⟨Or.inl hnx, allocB_adv hnx fun _ _ he ↦ by simp at he⟩
   set n := allocSizeOf e.σ (.allocDyn (.n 23) (.n 22))
   have hb1 : e.I.t.bufs = [n] := by rw [hbufs, hH, ite_eq_right h3]; rfl
   rw [hb1] at hnx
@@ -271,7 +271,7 @@ theorem exclReady_alignA : ExclReady alignA := by
   rw [hk0, List.take_zero, List.sum_nil, Nat.add_zero] at hnfx
   have hfol := hints_follows _ s sx ⟨hfine.agree.wf, hfine.dl⟩ hpre
   have hsxfp : sx.fp = e.I.fp := hfol.fp.trans htr.linked.top.1.symm
-  obtain ⟨hcur2, hbound⟩ := buf_bound hr htr hch (n := n) (by rw [hb1]; exact List.mem_singleton_self _)
+  obtain ⟨hcur2, hbound, hboundK⟩ := buf_bound hr htr hch (n := n) (by rw [hb1]; exact List.mem_singleton_self _)
   -- the pointer: the path's first allocation, at the frame's cursor
   have hev := cld_atom hH h3
   have hdk : (allocDsts (e.pre ++ e.es))[0]? = some (.n 23) := by
@@ -291,9 +291,14 @@ theorem exclReady_alignA : ExclReady alignA := by
   obtain ⟨hc1, hc2⟩ := cellRef hr htr hj ⟨_, hev, by simp [atomUses, hintUses]⟩ cld_cells.2.1
   have h33 : (ctxOf 24).locAt (V.n 23).idx = 33 := cld_cells.1
   rw [h33] at hc1 hc2
-  refine Or.inr ⟨n, hnx, by unfold maxCells at hbound ⊢; omega, by rw [hsxfp]; exact hc1, by rw [hnfx]; exact hbound, ?_⟩
-  rw [hsxfp, hc2, hnfx]
-  exact hσ.trans (by simp)
+  have hnlt : n < maxCells := by unfold maxCells at hbound ⊢; omega
+  refine ⟨Or.inr ⟨n, hnx, hnlt, by rw [hsxfp]; exact hc1, by rw [hnfx]; exact hbound, ?_⟩,
+    allocB_adv hnx fun n' hn' he ↦ ?_⟩
+  · rw [hsxfp, hc2, hnfx]
+    exact hσ.trans (by simp)
+  · have hgn : Parameters.g ^ n = Parameters.g ^ n' := ofK_injective (List.cons.inj he).1
+    obtain rfl := gpow_inj (by unfold maxCells at hnlt; omega) (by unfold maxCells at hn'; omega) hgn
+    rw [hnfx]; exact hboundK
 
 /-- **`claim_list_digest`'s late hint** finds its buffer reserved: the path calls past its offset, so
 it took the branch, whose buffer the advice reserved; its size cell holds the buffer's size value, a
@@ -342,7 +347,7 @@ theorem lateExcl_guest : LateExcl := by
   -- the size cell holds the buffer's size value, a power
   have hin' : sx.mem.written (sx.fp + 32) = true := hin
   have hev := cld_atom hH h3
-  obtain ⟨hcur2, hbound⟩ := buf_bound hr htr hch (n := n) (by rw [hb1]; exact List.mem_singleton_self _)
+  obtain ⟨hcur2, hbound, -⟩ := buf_bound hr htr hch (n := n) (by rw [hb1]; exact List.mem_singleton_self _)
   obtain ⟨rd, hHon, hHX⟩ := hr.honest
   obtain ⟨hI, j', bufs, kids, vs', -, hIt, -, hw, -⟩ := (htr.frames hr.name hHon hHX.covers) e List.mem_cons_self
   have hevs : e.I.t.events coreProgram = e.pre ++ e.es := by rw [hIt]; exact events_node hE.find hw
