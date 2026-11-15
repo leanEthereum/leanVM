@@ -43,8 +43,8 @@ pub mod lean_sphincs {
     };
 }
 
-/// Call once before [`aggregate`] or [`AggregateProof::verify`]: it starts the prover's thread pool and builds the
-/// aggregation program.
+/// Call once before [`aggregate`]: it starts the prover's thread pool and builds the aggregation program, which
+/// [`AggregateProof::verify`] also reads (it builds it on first use otherwise, and needs no pool).
 pub fn setup() {
     P::init();
     aggregation::warm_up::<P>();
