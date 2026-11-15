@@ -75,4 +75,5 @@ pub fn aggregate(
     log_inv_rate: usize,
 ) -> Result<(AggregateClaims, AggregateProof), AggregateError> {
     aggregation::aggregate::<P>(children, raw_lean_xmss, raw_lean_sphincs, blobs, output, log_inv_rate)
+        .map(|(claims, proof, _)| (claims, proof))
 }

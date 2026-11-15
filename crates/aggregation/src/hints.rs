@@ -76,6 +76,12 @@ impl Hints {
         }
     }
 
+    pub(super) fn extend(&mut self, entries: SubHints) {
+        for (name, entry) in entries {
+            self.push(name, entry);
+        }
+    }
+
     /// Entry `i` of stream `name`, for a test to forge.
     #[cfg(test)]
     pub(super) fn entry_mut(&mut self, name: &str, i: usize) -> &mut Vec<F128> {

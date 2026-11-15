@@ -84,19 +84,11 @@ pub(super) fn statement_digest(
     da_digest: [u8; 32],
     defer: &DeferredBytecodeClaim,
 ) -> [F128; 2] {
-    let seed = fs_seed();
-    let xmss_digest = claim_list_digest(xmss_signers.iter().map(lean_xmss_claim_cells));
-    let lean_sphincs_digest = claim_list_digest(lean_sphincs_signers.iter().map(lean_sphincs_claim_cells));
-    let da_digest = hash_to_scalars(&da_digest);
-    let header: [F128; STATEMENT_HEADER] = [
-        seed[0],
-        seed[1],
-        xmss_digest[0],
-        xmss_digest[1],
-        lean_sphincs_digest[0],
-        lean_sphincs_digest[1],
-        da_digest[0],
-        da_digest[1],
+    let header: [[F128; 2]; STATEMENT_HEADER / 2] = [
+        fs_seed(),
+        claim_list_digest(xmss_signers.iter().map(lean_xmss_claim_cells)),
+        claim_list_digest(lean_sphincs_signers.iter().map(lean_sphincs_claim_cells)),
+        hash_to_scalars(&da_digest),
     ];
-    cell_hash(header.into_iter().chain(defer.cells()))
+    cell_hash(header.into_iter().flatten().chain(defer.cells()))
 }

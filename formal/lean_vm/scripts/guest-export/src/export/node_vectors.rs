@@ -103,32 +103,31 @@ pub fn file() -> File {
     let seed = fs_seed();
     let statement = statement_digest(&xmss_typed, &sphincs_typed, da, &defer);
 
-    // Two children with true claims on the stacked bytecode.
-    let subproofs: Vec<DeferredSubproof> = (0..2)
+    // Two children with true claims on the stacked bytecode: each one's public input and fresh claim.
+    let subproofs: Vec<([F128; 2], DeferredBytecodeClaim)> = (0..2)
         .map(|_| {
             let point = elements(&mut rng, kbcv);
             let scalars: Vec<_> = point.iter().map(to_scalar).collect();
             let value = from_scalar(scalar_bytecode().evaluate(&scalars).unwrap());
             let canonical = |rng: &mut StdRng| F128::new(rng.random(), rng.random());
-            DeferredSubproof {
-                public_input: [canonical(&mut rng), canonical(&mut rng)],
-                bytecode_point: point,
-                bytecode_value: value,
-            }
+            let public_input = [canonical(&mut rng), canonical(&mut rng)];
+            (public_input, DeferredBytecodeClaim { bytecode_point: point, bytecode_value: value })
         })
         .collect();
     let carried: Vec<DeferredBytecodeClaim> = (0..2)
         .map(|_| DeferredBytecodeClaim::recompute_scalar(elements(&mut rng, kbcv)).unwrap())
         .collect();
     // Each child's fresh claim, then its carried one: the batch's order, which its sums follow.
-    let points: Vec<Vec<F128>> = subproofs
+    let public_inputs: Vec<[F128; 2]> = subproofs.iter().map(|(public_input, _)| *public_input).collect();
+    let claims: Vec<DeferredBytecodeClaim> = subproofs
         .iter()
         .zip(&carried)
-        .flat_map(|(subproof, carried)| [subproof.bytecode_point.clone(), carried.bytecode_point.clone()])
+        .flat_map(|((_, fresh), carried)| [fresh.clone(), carried.clone()])
         .collect();
+    let points: Vec<Vec<F128>> = claims.iter().map(|claim| claim.bytecode_point.clone()).collect();
     <StableProver as isa::Prover>::init();
     let sums = bytecode_sums::<StableProver>(&points);
-    let (hints, batched) = aggregate_deferred_claims::<StableProver>(&subproofs, &carried, sums)
+    let (hints, batched) = aggregate_deferred_claims::<StableProver>(&public_inputs, &claims, sums)
         .expect("the honest children's deferred values are the bytecode's evaluations");
     let hint = |name: &str| &hints.iter().find(|(n, _)| *n == name).unwrap().1;
     let msgs = hint("bc_sumcheck_msgs");
@@ -189,12 +188,11 @@ pub fn file() -> File {
     let children: Vec<String> = subproofs
         .iter()
         .zip(&carried)
-        .map(|(s, c)| {
-            let fresh: Vec<F128> = s.bytecode_point.clone();
+        .map(|((public_input, s), c)| {
             format!(
                 "⟨{},\n   ⟨{},\n    {}⟩,\n   ⟨{},\n    {}⟩⟩",
-                cells_digest(&s.public_input),
-                es(&fresh),
+                cells_digest(public_input),
+                es(&s.bytecode_point),
                 e(s.bytecode_value),
                 es(&c.bytecode_point),
                 e(c.bytecode_value)

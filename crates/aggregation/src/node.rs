@@ -1,17 +1,17 @@
-//! The entry points that prove one node of an aggregation tree.
+//! The entry point that proves one node of an aggregation tree.
 
 use super::cells::count;
 use super::child::gen_verify;
 use super::coverage::plan_coverage;
-use super::deferred::{DeferredBytecodeClaim, aggregate_deferred_claims, bytecode_sums, bytecode_value};
+use super::deferred::{DeferredBytecodeClaim, aggregate_deferred_claims, bytecode_sums};
 use super::error::AggregateError;
 use super::guest::{assembled, fs_seed, scalar_bytecode, unified_guest};
 #[cfg(test)]
 use super::hints::FORGE;
 use super::hints::{Hints, lean_sphincs_hints, lean_xmss_hints};
 use super::proof::{AggregateClaims, AggregateProof, OutputClaims, is_sorted, public_input};
-use super::statement::{lean_sphincs_claim_cells, lean_xmss_claim_cells, list_split, statement_digest};
-use super::{LeanSphincsClaim, LeanXmssClaim, MAX_LOG_INV_RATE, MAX_RECURSIONS, MIN_LOG_INV_RATE};
+use super::statement::{lean_sphincs_claim_cells, lean_xmss_claim_cells, list_split};
+use super::{MAX_LOG_INV_RATE, MAX_RECURSIONS, MIN_LOG_INV_RATE};
 use fiat_shamir_prover::merkle::hash_to_scalars;
 use isa::{Prover, Stats};
 use lean_da::CELLS_PER_ROW;
@@ -20,7 +20,8 @@ use lean_vm_core::cpu::{from_scalar, public_input_bytes, to_scalar};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use primitives::field::F128;
 
-/// Aggregate leanXMSS and leanSPHINCS signatures, blobs and the claims of child proofs, on the prover `P`.
+/// Aggregate leanXMSS and leanSPHINCS signatures, blobs and the claims of child proofs, on the prover `P`, also
+/// returning the prover's statistics (what the CLI's benchmarks report).
 ///
 /// - `children`: at most [`MAX_RECURSIONS`], each with its claims.
 /// - `raw_lean_xmss`, `raw_lean_sphincs`: `(public_key, message, signature)`, in any order.
@@ -35,21 +36,8 @@ use primitives::field::F128;
 /// - Do not run two `aggregate` calls at once in one process, and call [`P::init`](Prover::init) once before the first.
 pub fn aggregate<P: Prover>(
     children: &[(AggregateClaims, AggregateProof)],
-    raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
-    raw_lean_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
-    blobs: Option<&lean_da::BlobMatrix>,
-    output: OutputClaims,
-    log_inv_rate: usize,
-) -> Result<(AggregateClaims, AggregateProof), AggregateError> {
-    aggregate_with_stats::<P>(children, raw_lean_xmss, raw_lean_sphincs, blobs, output, log_inv_rate)
-        .map(|(claims, proof, _)| (claims, proof))
-}
-
-/// [`aggregate`], under the same contract, also returning the prover's statistics (what the CLI's benchmarks report).
-pub fn aggregate_with_stats<P: Prover>(
-    children: &[(AggregateClaims, AggregateProof)],
-    raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
-    raw_lean_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
+    mut raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
+    mut raw_lean_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
     blobs: Option<&lean_da::BlobMatrix>,
     output: OutputClaims,
     log_inv_rate: usize,
@@ -58,7 +46,6 @@ pub fn aggregate_with_stats<P: Prover>(
         OutputClaims::All => None,
         OutputClaims::Only(claims) => Some(claims),
     };
-    let declared_root = declare.map(|claims| claims.da_commitment);
     // Proving checks the rate too, but only after the witness is built.
     if !(MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE).contains(&log_inv_rate) {
         return Err(AggregateError::InvalidInput("log_inv_rate out of range"));
@@ -66,58 +53,43 @@ pub fn aggregate_with_stats<P: Prover>(
     if children.len() > MAX_RECURSIONS {
         return Err(AggregateError::InvalidInput("more than MAX_RECURSIONS children"));
     }
-    let direct_root = blobs.map(lean_da::BlobMatrix::top_root);
-    if direct_root.is_some() && declared_root.is_some_and(|declared| declared != direct_root) {
-        return Err(AggregateError::InvalidInput("a node with blobs publishes their root"));
-    }
-    // The published root and the guest's slot for it: a child's, or `children.len()` for
-    // the node's own, its blobs' or none.
-    let (da_pick, da_root) = match declared_root {
-        _ if direct_root.is_some() => (children.len(), direct_root),
-        None => children
+    // The published root and the guest's slot for it: a child's, or `children.len()` for the node's own, its blobs'
+    // or none.
+    let own = children.len();
+    let (da_pick, da_root) = match (blobs, declare.map(|claims| claims.da_commitment)) {
+        (Some(matrix), declared) => {
+            let root = Some(matrix.top_root());
+            if declared.is_some_and(|declared| declared != root) {
+                return Err(AggregateError::InvalidInput("a node with blobs publishes their root"));
+            }
+            (own, root)
+        }
+        (None, None) => children
             .iter()
             .position(|(claims, _)| claims.da_commitment.is_some())
-            .map_or((children.len(), None), |i| (i, children[i].0.da_commitment)),
-        Some(None) => (children.len(), None),
-        Some(Some(root)) => {
-            let i = children
-                .iter()
-                .position(|(claims, _)| claims.da_commitment == Some(root))
-                .ok_or(AggregateError::InvalidInput("the requested DA root is not a child's"))?;
-            (i, Some(root))
-        }
+            .map_or((own, None), |i| (i, children[i].0.da_commitment)),
+        (None, Some(None)) => (own, None),
+        (None, Some(root)) => children
+            .iter()
+            .position(|(claims, _)| claims.da_commitment == root)
+            .map(|i| (i, root))
+            .ok_or(AggregateError::InvalidInput("the requested DA root is not a child's"))?,
     };
-
-    let kbc = unified_guest().prog.len().trailing_zeros() as usize;
-    // On the whole (pubkey, message) pair, so a signer may appear once per message. One
-    // claim needs one signature, whatever leaf index a leanXMSS one carries.
-    let mut raw_lean_xmss = raw_lean_xmss;
-    raw_lean_xmss.sort_by_key(|(pk, message, _)| (*pk, *message));
-    raw_lean_xmss.dedup_by(|(a, am, _), (b, bm, _)| (a, am) == (b, bm));
-    let mut raw_lean_sphincs = raw_lean_sphincs;
-    raw_lean_sphincs.sort_by_key(|(pk, message, _)| (*pk, *message));
-    raw_lean_sphincs.dedup_by(|(a, am, _), (b, bm, _)| (a, am) == (b, bm));
 
     // The request's checks, on the claim lists alone, before any costly work.
     if !children.iter().all(|(claims, _)| is_sorted(claims)) {
         return Err(AggregateError::InvalidChild);
     }
-    let raw_xmss_claims: Vec<LeanXmssClaim> = raw_lean_xmss.iter().map(|(pk, message, _)| (*pk, *message)).collect();
-    let raw_lean_sphincs_claims: Vec<LeanSphincsClaim> = raw_lean_sphincs
-        .iter()
-        .map(|(pk, message, _)| (*pk, *message))
-        .collect();
-    let cover = plan_coverage(&raw_xmss_claims, &raw_lean_sphincs_claims, children, declare)?;
+    let raw_lean_xmss_claims = sorted_claims(&mut raw_lean_xmss);
+    let raw_lean_sphincs_claims = sorted_claims(&mut raw_lean_sphincs);
+    let cover = plan_coverage(&raw_lean_xmss_claims, &raw_lean_sphincs_claims, children, declare)?;
     if cover.lean_xmss.signers.is_empty() && cover.lean_sphincs.signers.is_empty() && da_root.is_none() {
         return Err(AggregateError::InvalidInput("nothing to publish"));
     }
 
-    // The children are assumed checked. Nothing here verifies one: the replay only reads out of its proof the
-    // summary `gen_verify` derives the guest's witness from, pinning the Merkle paths it reads, and fails on a proof
-    // it cannot walk. A child that does not verify fails in the guest instead, which verifies every child in the VM,
-    // so `prove` below returns the error.
+    // Nothing here verifies a child (see `AGENTS.md`): the replay reads out of its proof the summary `gen_verify`
+    // builds the guest's witness from, and fails only on a proof it cannot walk.
     let _span = tracing::info_span!("Replay children").entered();
-    // Each child's carried claim, its value read off the sums the batch runs on.
     let carried_points: Vec<Vec<F128>> = children.iter().map(|(_, proof)| proof.bytecode_point.clone()).collect();
     let carried_sums = bytecode_sums::<P>(&carried_points);
     let carried: Vec<DeferredBytecodeClaim> = carried_points
@@ -125,30 +97,23 @@ pub fn aggregate_with_stats<P: Prover>(
         .zip(&carried_sums)
         .map(|(point, sums)| DeferredBytecodeClaim::from_sums(point, sums))
         .collect();
-    let child_da: Vec<[u8; 32]> = children
+    let public_inputs: Vec<[F128; 2]> = children
         .iter()
-        .map(|(claims, _)| verifier::da::digest(claims.da_commitment))
+        .zip(&carried)
+        .map(|((claims, _), defer)| public_input(claims, defer))
         .collect();
-    let mut public_inputs = Vec::with_capacity(children.len());
-    for ((claims, _), defer) in children.iter().zip(&carried) {
-        public_inputs.push(public_input(claims, defer));
-    }
     // One single-threaded replay per worker: nothing inside dispatches.
-    let bytecode = scalar_bytecode();
     let summaries = P::map_collect(children.len(), |i| {
         let pi = public_input_bytes(&public_inputs[i]);
-        verifier::replay_unchecked(bytecode, &pi, &children[i].1.proof)
+        verifier::replay_unchecked(scalar_bytecode(), &pi, &children[i].1.proof)
     });
-    let mut replayed = Vec::with_capacity(children.len());
-    for (pi, summary) in public_inputs.into_iter().zip(summaries) {
-        let summary = summary.map_err(|_| AggregateError::InvalidChild)?;
-        replayed.push((pi, summary));
-    }
-
+    let summaries: Vec<verifier::Summary> = summaries
+        .into_iter()
+        .collect::<Result<_, _>>()
+        .map_err(|_| AggregateError::InvalidChild)?;
     drop(_span);
 
     let _span = tracing::info_span!("Build witness").entered();
-
     let mut hints = Hints::default();
     hints.push(
         "meta",
@@ -163,10 +128,8 @@ pub fn aggregate_with_stats<P: Prover>(
             count(usize::from(blobs.is_some())),
         ],
     );
-    let fs_seed = fs_seed();
-    hints.push("fs_seed", vec![fs_seed[0], fs_seed[1]]);
-    // Both lists in the guest's order, leanXMSS first: each one's split, its declared
-    // claims, then its duplicates.
+    hints.push("fs_seed", fs_seed().to_vec());
+    // Both lists in the guest's order, leanXMSS first: each one's split, its declared claims, then its duplicates.
     let lean_xmss_cells: Vec<[F128; 4]> = cover.lean_xmss.signers.iter().map(lean_xmss_claim_cells).collect();
     let lean_sphincs_cells: Vec<[F128; 4]> = cover
         .lean_sphincs
@@ -186,42 +149,42 @@ pub fn aggregate_with_stats<P: Prover>(
     for claim in dups.chain(cover.lean_sphincs.dups.iter().map(lean_sphincs_claim_cells)) {
         hints.push("dup_claims", claim.to_vec());
     }
-    // Each slot is hinted as an offset into its scheme's region, which is how one
-    // range check keeps a scheme's writers off the other's claims.
-    let lean_xmss_hints = P::map_collect(raw_lean_xmss.len(), |i| {
-        let (pk, message, sig) = &raw_lean_xmss[i];
-        lean_xmss_hints(pk, sig, message)
-    });
-    for (&offset, sub) in cover.lean_xmss.raw.iter().zip(lean_xmss_hints) {
-        hints.push("raw_index", vec![count(offset)]);
-        for (name, entry) in sub? {
-            hints.push(name, entry);
-        }
-    }
-    let lean_sphincs_hints = P::map_collect(raw_lean_sphincs.len(), |i| {
-        let (pk, message, sig) = &raw_lean_sphincs[i];
-        lean_sphincs_hints(pk, sig, message)
-    });
-    for (&offset, sub) in cover.lean_sphincs.raw.iter().zip(lean_sphincs_hints) {
-        hints.push("sp_raw_index", vec![count(offset)]);
-        for (name, entry) in sub? {
-            hints.push(name, entry);
+    // Each slot is hinted as an offset into its scheme's region, which is how one range check keeps a scheme's
+    // writers off the other's claims.
+    let raw = [
+        (
+            "raw_index",
+            &cover.lean_xmss.raw,
+            P::map_collect(raw_lean_xmss.len(), |i| {
+                let (pk, message, sig) = &raw_lean_xmss[i];
+                lean_xmss_hints(pk, sig, message)
+            }),
+        ),
+        (
+            "sp_raw_index",
+            &cover.lean_sphincs.raw,
+            P::map_collect(raw_lean_sphincs.len(), |i| {
+                let (pk, message, sig) = &raw_lean_sphincs[i];
+                lean_sphincs_hints(pk, sig, message)
+            }),
+        ),
+    ];
+    for (name, offsets, signatures) in raw {
+        for (&offset, signature) in offsets.iter().zip(signatures) {
+            hints.push(name, vec![count(offset)]);
+            hints.extend(signature?);
         }
     }
 
-    // Each child's fresh claim, the one its verification raises, its value read off the sums the batch runs on.
-    let fresh_points: Vec<Vec<F128>> = replayed
+    // Each child's fresh claim, the one its verification raises.
+    let fresh_points: Vec<Vec<F128>> = summaries
         .iter()
-        .map(|(_, summary)| summary.bytecode_point.iter().copied().map(from_scalar).collect())
+        .map(|summary| summary.bytecode_point.iter().copied().map(from_scalar).collect())
         .collect();
     let fresh_sums = bytecode_sums::<P>(&fresh_points);
+    let kbc = unified_guest().prog.len().trailing_zeros() as usize;
     // Each child's witness is its own, one child per worker: nothing inside dispatches.
-    let verified = P::map_collect(children.len(), |i| {
-        let (pi, summary) = &replayed[i];
-        let value = bytecode_value(&fresh_sums[i], &fresh_points[i]);
-        gen_verify(kbc, *pi, &children[i].1.proof, summary, value)
-    });
-    let mut subs = Vec::with_capacity(children.len());
+    let verified = P::map_collect(children.len(), |i| gen_verify(kbc, &children[i].1.proof, &summaries[i]));
     for (i, ((claims, _), verified)) in children.iter().zip(verified).enumerate() {
         hints.push(
             "child_meta",
@@ -248,14 +211,10 @@ pub fn aggregate_with_stats<P: Prover>(
             }
         }
         hints.push("child_defer", carried[i].cells());
-        hints.push("child_da", hash_to_scalars(&child_da[i]).to_vec());
-        let (sub_hints, defer) = verified?;
-        for (name, entry) in sub_hints {
-            hints.push(name, entry);
-        }
-        subs.push(defer);
+        let child_da = verifier::da::digest(claims.da_commitment);
+        hints.push("child_da", hash_to_scalars(&child_da).to_vec());
+        hints.extend(verified?);
     }
-
     drop(_span);
 
     let defer = if children.is_empty() {
@@ -265,30 +224,30 @@ pub fn aggregate_with_stats<P: Prover>(
     } else {
         let _span = tracing::info_span!("Batch deferred claims").entered();
         // Each child's fresh claim, then its carried one: the batch's order.
+        let fresh = (fresh_points.into_iter().zip(&fresh_sums))
+            .map(|(point, sums)| DeferredBytecodeClaim::from_sums(point, sums));
+        let claims: Vec<_> = fresh
+            .zip(carried)
+            .flat_map(|(fresh, carried)| [fresh, carried])
+            .collect();
         let sums = fresh_sums
             .into_iter()
             .zip(carried_sums)
             .flat_map(|(fresh, carried)| [fresh, carried]);
-        let (agg_hints, reduced) =
-            aggregate_deferred_claims::<P>(&subs, &carried, sums.collect()).ok_or(AggregateError::ProvingFailed)?;
-        for (name, entry) in agg_hints {
-            hints.push(name, entry);
-        }
+        let (batch_hints, reduced) = aggregate_deferred_claims::<P>(&public_inputs, &claims, sums.collect())
+            .ok_or(AggregateError::ProvingFailed)?;
+        hints.extend(batch_hints);
         reduced
     };
 
-    let mut da_digest = child_da.get(da_pick).copied().unwrap_or_default();
     if let Some(matrix) = blobs {
         let commitment = matrix.top_root();
-        let n_rows = matrix.n_blobs();
-        da_digest = verifier::da::digest(Some(commitment));
         hints.push(
             "da_challenge",
             vec![from_scalar(verifier::da::membership_challenge(&commitment))],
         );
-        hints.push("da_n_blobs", vec![count(n_rows)]);
-        // Padding rows are constants the guest bakes, so only the real rows'
-        // symbols ride the stream.
+        hints.push("da_n_blobs", vec![count(matrix.n_blobs())]);
+        // Padding rows are constants the guest bakes, so only the real rows' symbols ride the stream.
         for j in 0..CELLS_PER_ROW {
             for cell in matrix.column(j).expect("a column below CELLS_PER_ROW") {
                 hints.push("da_symbols", cell.iter().map(|&w| F128::from(w)).collect());
@@ -297,25 +256,33 @@ pub fn aggregate_with_stats<P: Prover>(
     }
     hints.push("da_pick", vec![count(da_pick)]);
 
-    let public_input = statement_digest(&cover.lean_xmss.signers, &cover.lean_sphincs.signers, da_digest, &defer);
+    let claims = AggregateClaims {
+        lean_xmss: cover.lean_xmss.signers,
+        lean_sphincs: cover.lean_sphincs.signers,
+        da_commitment: da_root,
+    };
+    let pi = public_input(&claims, &defer);
     let mut program = assembled::<P>().clone();
     #[cfg(test)]
     if let Some(forge) = FORGE.with(|forge| forge.borrow_mut().take()) {
         forge(&mut hints);
     }
     hints.install::<P>(&mut program);
-    let (proof, stats) = P::prove(&program, public_input.map(|x| to_scalar(&x)), log_inv_rate).map_err(|error| {
+    let (proof, stats) = P::prove(&program, pi.map(|x| to_scalar(&x)), log_inv_rate).map_err(|error| {
         tracing::debug!(%error, "proving failed");
         AggregateError::ProvingFailed
     })?;
-    let claims = AggregateClaims {
-        lean_xmss: cover.lean_xmss.signers,
-        lean_sphincs: cover.lean_sphincs.signers,
-        da_commitment: da_root,
-    };
     let proof = AggregateProof {
         bytecode_point: defer.bytecode_point,
         proof,
     };
     Ok((claims, proof, stats))
+}
+
+/// Sort raw signatures on their claims and drop repeats: on the whole (pubkey, message) pair, so a signer may appear
+/// once per message, and one claim needs one signature, whatever leaf index a leanXMSS one carries. Returns the claims.
+fn sorted_claims<K: Ord + Copy, S>(raw: &mut Vec<(K, [u8; 32], S)>) -> Vec<(K, [u8; 32])> {
+    raw.sort_by_key(|(pk, message, _)| (*pk, *message));
+    raw.dedup_by_key(|(pk, message, _)| (*pk, *message));
+    raw.iter().map(|(pk, message, _)| (*pk, *message)).collect()
 }

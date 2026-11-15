@@ -1,7 +1,6 @@
 //! The guest's witness for one child proof, and the opening shapes it shares with the guest's constants.
 
 use super::cells::count;
-use super::deferred::DeferredSubproof;
 use super::error::AggregateError;
 use super::hints::SubHints;
 use fiat_shamir_prover::merkle::{hash_pair, hash_to_scalars, hash_words};
@@ -87,11 +86,9 @@ fn group_runs(groups: impl Iterator<Item = usize>) -> Vec<F128> {
 /// says the child verifies: the guest's run does.
 pub(super) fn gen_verify(
     kbc: usize,
-    public_input: [F128; 2],
     proof: &verifier::Proof,
     summary: &verifier::Summary,
-    bytecode_value: F128,
-) -> Result<(SubHints, DeferredSubproof), AggregateError> {
+) -> Result<SubHints, AggregateError> {
     let rows = std::array::from_fn(|t| summary.table_rows[t] as usize);
     let layout = execution_layout(kbc, summary.log_memory, rows);
     let taus = layout.taus;
@@ -120,12 +117,7 @@ pub(super) fn gen_verify(
     ];
     let (config, _, depth) = whir_levels(mu, summary.log_inv_rate);
     hints.extend(merkle_hints(config.queries, &depth, proof));
-    let deferred = DeferredSubproof {
-        public_input,
-        bytecode_point: summary.bytecode_point.iter().copied().map(from_scalar).collect(),
-        bytecode_value,
-    };
-    Ok((hints, deferred))
+    Ok(hints)
 }
 
 /// The committed columns in their stacking order (`column_offsets`, from `placements_of`: descending kappa, then

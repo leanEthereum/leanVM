@@ -160,7 +160,7 @@ fn export(
     let direct =
         (!blobs.is_empty()).then(|| lean_da::BlobMatrix::build(blobs).expect("1 to DA_MAX_ROWS blobs"));
     capture_next();
-    let (claims, node) = aggregate::<StableProver>(
+    let (claims, node, _) = aggregate::<StableProver>(
         &children,
         raw_xmss.clone(),
         raw_sphincs.clone(),
@@ -196,14 +196,13 @@ fn export(
         let scalar = child.proof.clone();
         let summary =
             verifier::replay_unchecked(bytecode, &public_input_bytes(&pi), &scalar).expect("the child replays");
-        // The fresh claim's value, which the caller evaluates (`aggregate_with_stats` off its batch's sums).
+        // The fresh claim's value, which the caller evaluates (`aggregate` off its batch's sums).
         let fresh_value = from_scalar(scalar_bytecode().evaluate(&summary.bytecode_point).unwrap());
-        let (_, fresh) =
-            gen_verify(kbc(), pi, &child.proof, &summary, fresh_value).expect("the child fits");
+        gen_verify(kbc(), &child.proof, &summary).expect("the child fits");
         out.tag("fresh");
-        let point: Vec<F128> = fresh.bytecode_point.clone();
+        let point: Vec<F128> = summary.bytecode_point.iter().copied().map(from_scalar).collect();
         out.es(&point);
-        out.e(fresh.bytecode_value);
+        out.e(fresh_value);
         out.tag("proof");
         out.es(&child.proof.stream.iter().copied().map(from_scalar).collect::<Vec<_>>());
         // Every phase's paths (`Proof::merkle_openings`), each its leaf index, leaf and siblings.

@@ -58,7 +58,7 @@ pub use error::AggregateError;
 pub use guest::{unified_guest, warm_up};
 use lean_sphincs::LeanSphincsPublicKey;
 use lean_xmss::LeanXmssPublicKey;
-pub use node::{aggregate, aggregate_with_stats};
+pub use node::aggregate;
 pub use proof::{AggregateClaims, AggregateProof, OutputClaims};
 
 /// One leanXMSS claim: a pubkey, and the message it signed at whatever leaf index its

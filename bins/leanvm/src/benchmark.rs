@@ -3,7 +3,7 @@
 //! signature counts and a blob count; recursion accepts these counts per leaf.
 
 use crate::report::{pretty_f64, pretty_integer};
-use aggregation::{AggregateClaims, AggregateProof, OutputClaims, aggregate, aggregate_with_stats, signers_cache};
+use aggregation::{AggregateClaims, AggregateProof, OutputClaims, aggregate, signers_cache};
 use bench::{Plan, Timing};
 use isa::{Prover, Stats};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
@@ -99,7 +99,7 @@ pub fn run_aggregation<P: Prover>(
     // proof the reported timings are about, instead of repeating itself per pass.
     let ((claims, sig, stats), prove_time) = plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        aggregate_with_stats::<P>(
+        aggregate::<P>(
             &[],
             raw_lean_xmss.clone(),
             raw_lean_sphincs.clone(),
@@ -187,8 +187,7 @@ pub fn run_recursion<P: Prover>(
     }
     let ((claims, sig, stats), prove_time) = plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        aggregate_with_stats::<P>(&children, vec![], vec![], None, OutputClaims::All, log_inv_rate)
-            .expect("node aggregates")
+        aggregate::<P>(&children, vec![], vec![], None, OutputClaims::All, log_inv_rate).expect("node aggregates")
     });
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
@@ -256,7 +255,7 @@ fn write_leaves<P: Prover>(
             log_inv_rate,
         )
         .expect("leaf aggregates");
-        let (claims, leaf) = leaf;
+        let (claims, leaf, _) = leaf;
         write_claims(&mut bytes, &claims);
         let proof = leaf.to_bytes();
         bytes.extend((proof.len() as u64).to_le_bytes());

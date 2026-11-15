@@ -40,6 +40,7 @@ fn aggregate(
     log_inv_rate: usize,
 ) -> Result<(AggregateClaims, AggregateProof), AggregateError> {
     super::aggregate::<StableProver>(children, raw_lean_xmss, raw_lean_sphincs, blobs, output, log_inv_rate)
+        .map(|(claims, proof, _)| (claims, proof))
 }
 
 /// Run a program assembled for the stable prover.

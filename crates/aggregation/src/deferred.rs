@@ -81,15 +81,6 @@ impl DeferredBytecodeClaim {
     }
 }
 
-/// The deferred-claim data the guest binds to the outer public input: the outer
-/// verifier checks each claim natively (`doc/leanvm/main.tex` §Deferred evaluation claims).
-/// A child's fresh claim is batched with its carried one at every child count, one included.
-pub(super) struct DeferredSubproof {
-    pub(super) public_input: [F128; 2],
-    pub(super) bytecode_point: Vec<F128>,
-    pub(super) bytecode_value: F128,
-}
-
 /// The rows of [`BLOCK`] entries of the stacked bytecode that hold its populated slots: every other row is
 /// structurally zero.
 fn bytecode_rows() -> Range<usize> {
@@ -201,16 +192,17 @@ fn absorb_round(
 /// Mirror the guest's `aggregate_claims` transcript and prove the batching
 /// sumcheck over the stacked bytecode.
 ///
-/// Each child brings two claims, the fresh one its verification raised and the one it deferred; `sums` holds their
-/// [`bytecode_sums`] in that order. Returns the guest hints and the single claim they reduce to, or `None` when a
-/// value is not the bytecode's evaluation.
+/// Each child brings its public input and two claims, the fresh one its verification raised and the one it deferred:
+/// `claims` holds them child by child in that order, and `sums` their [`bytecode_sums`]. A child's fresh claim is
+/// batched with its carried one at every child count, one included. Returns the guest hints and the single claim they
+/// reduce to, or `None` when a value is not the bytecode's evaluation.
 pub(super) fn aggregate_deferred_claims<P: Prover>(
-    subproofs: &[DeferredSubproof],
-    carried_claims: &[DeferredBytecodeClaim],
+    public_inputs: &[[F128; 2]],
+    claims: &[DeferredBytecodeClaim],
     mut sums: Vec<Vec<F128>>,
 ) -> Option<(SubHints, DeferredBytecodeClaim)> {
-    let child_count = subproofs.len();
-    assert_eq!(child_count, carried_claims.len(), "one carried claim per child");
+    assert_eq!(claims.len(), 2 * public_inputs.len(), "two claims per child");
+    assert_eq!(sums.len(), claims.len(), "sums for every claim");
     let kbcv = bytecode_vars();
 
     // The count and each child's words are padded with zeros to whole rates, so the
@@ -221,13 +213,14 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
             transcript.observe(F128::ZERO);
         }
     };
-    transcript.observe(count(child_count));
+    transcript.observe(count(public_inputs.len()));
     pad(&mut transcript, 1);
-    for (subproof, carried) in subproofs.iter().zip(carried_claims) {
-        let mut words = vec![subproof.public_input[0], subproof.public_input[1]];
-        words.extend(&subproof.bytecode_point);
-        words.push(subproof.bytecode_value);
-        words.extend(carried.cells());
+    for (public_input, pair) in public_inputs.iter().zip(claims.chunks(2)) {
+        let words: Vec<F128> = public_input
+            .iter()
+            .copied()
+            .chain(pair.iter().flat_map(|claim| claim.cells()))
+            .collect();
         for &value in &words {
             transcript.observe(value);
         }
@@ -240,29 +233,18 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
     let nonce = transcript.grind::<Sequential>(BATCH_LAM_GRIND_BITS);
     let lam = transcript.sample();
     let powers: Vec<F128> = std::iter::successors(Some(F128::ONE), |&power| Some(power * lam))
-        .take(2 * child_count)
-        .collect();
-    let points: Vec<Vec<F128>> = subproofs
-        .iter()
-        .zip(carried_claims)
-        .flat_map(|(subproof, carried)| [subproof.bytecode_point.clone(), carried.bytecode_point.clone()])
-        .collect();
-    let values: Vec<F128> = subproofs
-        .iter()
-        .zip(carried_claims)
-        .flat_map(|(subproof, carried)| [subproof.bytecode_value, carried.bytecode_value])
+        .take(claims.len())
         .collect();
     // The running claim: the claims' values weighed by their powers.
-    let mut claim: F128 = powers.iter().zip(&values).map(|(&g, &v)| g * v).sum();
+    let mut claim: F128 = powers.iter().zip(claims).map(|(&g, c)| g * c.bytecode_value).sum();
     let mut messages: Vec<F128> = nonce.map(|nonce| F128::new(nonce, 0)).into_iter().collect();
     let mut challenges = Vec::new();
     // The low rounds, on each claim's sums against its `eq` on the low rows, scaled by its power of `lam`.
-    assert_eq!(sums.len(), points.len(), "sums for every claim");
-    let mut low_weights: Vec<Vec<F128>> = points
+    let mut low_weights: Vec<Vec<F128>> = claims
         .iter()
         .zip(&powers)
-        .map(|(point, &power)| {
-            eq_table(&point[..BLOCK_VARS])
+        .map(|(c, &power)| {
+            eq_table(&c.bytecode_point[..BLOCK_VARS])
                 .into_iter()
                 .map(|eq| power * eq)
                 .collect()
@@ -291,8 +273,8 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
         *row = from_scalar(dot);
     }
     let mut weights = vec![F128::ZERO; rows.len()];
-    for (point, low_weight) in points.iter().zip(&low_weights) {
-        for (weight, eq) in weights.iter_mut().zip(eq_table(&point[BLOCK_VARS..])) {
+    for (c, low_weight) in claims.iter().zip(&low_weights) {
+        for (weight, eq) in weights.iter_mut().zip(eq_table(&c.bytecode_point[BLOCK_VARS..])) {
             *weight += low_weight[0] * eq;
         }
     }
