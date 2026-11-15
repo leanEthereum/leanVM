@@ -21,11 +21,12 @@ public import LeanVM.Guest.Memory.Alloc
 `staticOk loops tf pf n` tests the placed function `pf` of the traced function `tf` against the
 frame size `n`: `pf`'s frame size is `n`; `tf` is a loop helper by its name (`isLoopName`, which
 the back end reads) exactly when it is one by its body (`Fn.loop`, which the allocator reads); a
-registered loop helper's self pointer cell `2 + nargs` is in its frame; parameter `k` is at cell
-`2 + k`; the values of every `return` are at the return cells, `2 + nargs + k`; every range check
-temporary of the body is at a cell of `[2, n)`, the temporaries at distinct cells; every frame run
-`frameAddr p (r :: rs)` of the body is at consecutive cells from `r`'s, ending at most at `n`, at
-no temporary's cell. `staticOk_spec` turns a success into `StaticFacts`.
+registered loop helper's self pointer cell `2 + nargs` is in its frame and no temporary's cell; the
+parameters' cells are in the frame; parameter `k` is at cell `2 + k`; the values of every `return`
+are at the return cells, `2 + nargs + k`; every range check temporary of the body is at a cell of
+`[2, n)`, the temporaries at distinct cells; every frame run `frameAddr p (r :: rs)` of the body is
+at consecutive cells from `r`'s, ending at most at `n`, at no temporary's cell; two values of the
+frame runs at one cell are one value. `staticOk_spec` turns a success into `StaticFacts`.
 
 The kernel shares no evaluation between the copies of a term: the places' trie is evaluated once
 before the tests (`withLocs`), and the set of the temporaries' cells once before the runs' test
@@ -91,16 +92,44 @@ def runOk (locs : VMap Loc) (tset : NMap Unit) (n : ℕ) : Atom → Bool
     | none => false
   | _ => true
 
+/-- The values of the frame runs among the atoms. -/
+def runVals : List Atom → List V
+  | [] => []
+  | .frameAddr _ rs :: as => rs ++ runVals as
+  | _ :: as => runVals as
+
+theorem mem_runVals : ∀ {as : List Atom} {p : V} {rs : List V} {v : V}, Atom.frameAddr p rs ∈ as →
+    v ∈ rs → v ∈ runVals as
+  | [], _, _, _, h, _ => absurd h List.not_mem_nil
+  | a :: as, p, rs, v, h, hv => by
+    rcases List.mem_cons.mp h with rfl | h
+    · simp [runVals, hv]
+    · have := mem_runVals h hv
+      cases a <;> simp [runVals, this]
+
+/-- The values `vs` with a cell, at one cell each one value, `seen` the values met by cell. -/
+def cellFun (locs : VMap Loc) : List V → NMap V → Bool
+  | [], _ => true
+  | v :: vs, seen => match Complete.cellP locs v with
+    | some c => match seen.get? c with
+      | some w => w == v && cellFun locs vs seen
+      | none => cellFun locs vs (seen.insert c v)
+    | none => cellFun locs vs seen
+
 /-- **The static test of a placed function** against the frame size `n`. -/
 def staticOk (loops : Loops) (tf : TracedFn) (pf : Placed) (n : ℕ) : Bool :=
   pf.fn.frameSize == n && isLoopName tf.core.name == tf.core.loop &&
   (!(loops[tf.core.name]?).any (·.registered) || Nat.blt (2 + tf.core.params.length) n) &&
+  Nat.ble (2 + tf.core.params.length) n &&
   withLocs pf.locs fun m =>
     consecFrom m tf.core.params 2 &&
       (retL tf.core.body).all (fun vs => consecFrom m vs (2 + tf.core.params.length)) &&
       cellsIn m (Stmt.tmpsList tf.core.body) n &&
       natsDistinct ((Stmt.tmpsList tf.core.body).map fun t => (Complete.cellP m t).getD 0) &&
+      cellFun m (runVals (Lift.blockAtoms tf.core.body)) {} &&
       (cellSet m (Stmt.tmpsList tf.core.body)).t.seq fun tt =>
+        (!(loops[tf.core.name]?).any (·.registered) ||
+          !NMap.contains ⟨tt⟩ (2 + tf.core.params.length)) &&
         (Lift.blockAtoms tf.core.body).all (runOk m ⟨tt⟩ n)
 
 /-- **What the static test says.** -/
@@ -108,6 +137,9 @@ structure StaticFacts (loops : Loops) (tf : TracedFn) (pf : Placed) (n : ℕ) : 
   frame : pf.fn.frameSize = n
   loop : isLoopName tf.core.name = tf.core.loop
   self : Complete.registered loops tf.core.name → 2 + tf.core.params.length < n
+  selfTmp : Complete.registered loops tf.core.name → ∀ t ∈ Stmt.tmpsList tf.core.body,
+    Complete.cellP pf.locs t ≠ some (2 + tf.core.params.length)
+  paramsIn : 2 + tf.core.params.length ≤ n
   params : ∀ k (hk : k < tf.core.params.length), Complete.cellP pf.locs tf.core.params[k] = some (2 + k)
   rets : ∀ vs ∈ retL tf.core.body, ∀ k (hk : k < vs.length),
     Complete.cellP pf.locs vs[k] = some (2 + tf.core.params.length + k)
@@ -118,6 +150,8 @@ structure StaticFacts (loops : Loops) (tf : TracedFn) (pf : Placed) (n : ℕ) : 
     Complete.cellP pf.locs r = some c ∧ c + (rs.length + 1) ≤ n ∧ ∀ k (hk : k < (r :: rs).length),
       Complete.cellP pf.locs (r :: rs)[k] = some (c + k) ∧
         ∀ t ∈ Stmt.tmpsList tf.core.body, Complete.cellP pf.locs t ≠ some (c + k)
+  runsFun : ∀ v ∈ runVals (Lift.blockAtoms tf.core.body), ∀ v' ∈ runVals (Lift.blockAtoms tf.core.body),
+    ∀ c, Complete.cellP pf.locs v = some c → Complete.cellP pf.locs v' = some c → v = v'
 
 theorem consecFrom_spec {locs : VMap Loc} : ∀ {vs : List V} {c : ℕ}, consecFrom locs vs c = true →
     ∀ k (hk : k < vs.length), Complete.cellP locs vs[k] = some (c + k)
@@ -168,13 +202,82 @@ theorem cellSet_mem {locs : VMap Loc} : ∀ {ts : List V} (m : NMap Unit) {t : V
       simp [NMap.contains, NMap.get?_insert, hc]
     · exact cellSet_mem _ h hc
 
+theorem cellFun_spec {locs : VMap Loc} : ∀ {vs : List V} {seen : NMap V}, cellFun locs vs seen = true →
+    (∀ c w, seen.get? c = some w → Complete.cellP locs w = some c) →
+    ∀ v ∈ vs, ∀ c, Complete.cellP locs v = some c →
+      (∀ w, seen.get? c = some w → w = v) ∧ ∀ v' ∈ vs, Complete.cellP locs v' = some c → v' = v
+  | [], _, _, _, v, hv, _, _ => absurd hv List.not_mem_nil
+  | v0 :: vs, seen, h, hinv, v, hv, c, hc => by
+    unfold cellFun at h
+    cases hc0 : Complete.cellP locs v0 with
+    | none =>
+      simp only [hc0] at h
+      rcases List.mem_cons.mp hv with rfl | hv
+      · rw [hc0] at hc; cases hc
+      · obtain ⟨h1, h2⟩ := cellFun_spec h hinv v hv c hc
+        refine ⟨h1, fun v' hv' hc' => ?_⟩
+        rcases List.mem_cons.mp hv' with rfl | hv'
+        · rw [hc0] at hc'; cases hc'
+        · exact h2 v' hv' hc'
+    | some c0 =>
+      simp only [hc0] at h
+      cases hs : seen.get? c0 with
+      | some w =>
+        simp only [hs] at h
+        simp only [Bool.and_eq_true, beq_iff_eq] at h
+        obtain ⟨hw, h⟩ := h
+        have ih := cellFun_spec h hinv
+        rcases List.mem_cons.mp hv with rfl | hv
+        · have hcc : c0 = c := Option.some.inj (hc0.symm.trans hc)
+          subst hcc
+          refine ⟨fun w' hw' => ?_, fun v' hv' hc' => ?_⟩
+          · rw [hs] at hw'
+            exact (Option.some.inj hw').symm.trans hw
+          · rcases List.mem_cons.mp hv' with rfl | hv'
+            · rfl
+            · exact ((ih v' hv' c0 hc').1 w hs).symm.trans hw
+        · obtain ⟨h1, h2⟩ := ih v hv c hc
+          refine ⟨h1, fun v' hv' hc' => ?_⟩
+          rcases List.mem_cons.mp hv' with rfl | hv'
+          · have hcc : c0 = c := Option.some.inj (hc0.symm.trans hc')
+            subst hcc
+            exact hw.symm.trans (h1 w hs)
+          · exact h2 v' hv' hc'
+      | none =>
+        simp only [hs] at h
+        have hinv' : ∀ c w, (seen.insert c0 v0).get? c = some w → Complete.cellP locs w = some c := by
+          intro c' w hw
+          rw [NMap.get?_insert] at hw
+          split_ifs at hw with hcc
+          · cases hw; rw [hcc]; exact hc0
+          · exact hinv c' w hw
+        have ih := cellFun_spec h hinv'
+        rcases List.mem_cons.mp hv with rfl | hv
+        · have hcc : c0 = c := Option.some.inj (hc0.symm.trans hc)
+          subst hcc
+          refine ⟨fun w' hw' => (by rw [hs] at hw'; cases hw'), fun v' hv' hc' => ?_⟩
+          rcases List.mem_cons.mp hv' with rfl | hv'
+          · rfl
+          · exact ((ih v' hv' c0 hc').1 v (by simp [NMap.get?_insert])).symm
+        · obtain ⟨h1, h2⟩ := ih v hv c hc
+          refine ⟨fun w' hw' => h1 w' ?_, fun v' hv' hc' => ?_⟩
+          · rw [NMap.get?_insert]
+            split_ifs with hcc
+            · subst hcc; rw [hs] at hw'; cases hw'
+            · exact hw'
+          · rcases List.mem_cons.mp hv' with rfl | hv'
+            · have hcc : c0 = c := Option.some.inj (hc0.symm.trans hc')
+              subst hcc
+              exact h1 v' (by simp [NMap.get?_insert])
+            · exact h2 v' hv' hc'
+
 /-- **What a success of the static test says.** -/
 theorem staticOk_spec {loops : Loops} {tf : TracedFn} {pf : Placed} {n : ℕ}
     (h : staticOk loops tf pf n = true) : StaticFacts loops tf pf n := by
   unfold staticOk at h
   rw [withLocs_eq, Trie.seq_eq] at h
   simp only [Bool.and_eq_true] at h
-  obtain ⟨⟨⟨hfs, hlp⟩, hself⟩, ⟨⟨⟨hpar, hret⟩, hin⟩, hnd⟩, hrun⟩ := h
+  obtain ⟨⟨⟨⟨hfs, hlp⟩, hself⟩, hpin⟩, ⟨⟨⟨⟨⟨hpar, hret⟩, hin⟩, hnd⟩, hfun⟩, hselfT, hrun⟩⟩ := h
   have hfs : pf.fn.frameSize = n := beq_iff_eq.mp hfs
   have hlp : isLoopName tf.core.name = tf.core.loop := beq_iff_eq.mp hlp
   have hself : Complete.registered loops tf.core.name → 2 + tf.core.params.length < n := by
@@ -182,6 +285,15 @@ theorem staticOk_spec {loops : Loops} {tf : TracedFn} {pf : Placed} {n : ℕ}
     unfold Complete.registered at hr
     rw [hr] at hself
     simpa using hself
+  have hselfT : Complete.registered loops tf.core.name → ∀ t ∈ Stmt.tmpsList tf.core.body,
+      Complete.cellP pf.locs t ≠ some (2 + tf.core.params.length) := by
+    intro hr t ht he
+    unfold Complete.registered at hr
+    rw [hr] at hselfT
+    have h2 : NMap.contains ⟨(cellSet pf.locs (Stmt.tmpsList tf.core.body)).t⟩
+        (2 + tf.core.params.length) = false := by simpa using hselfT
+    have h3 : true = false := (cellSet_mem (locs := pf.locs) {} ht he).symm.trans h2
+    cases h3
   have hrun := List.all_eq_true.mp hrun
   have hin' : ∀ t ∈ Stmt.tmpsList tf.core.body, ∃ c, Complete.cellP pf.locs t = some c ∧ 2 ≤ c ∧ c < n := by
     intro t ht
@@ -192,8 +304,10 @@ theorem staticOk_spec {loops : Loops} {tf : TracedFn} {pf : Placed} {n : ℕ}
       rw [hc] at this
       simp only [Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq] at this
       exact ⟨c, rfl, this⟩
-  refine ⟨hfs, hlp, hself, fun k hk => by simpa [Nat.add_comm] using consecFrom_spec hpar k hk,
-    fun vs hvs k hk => consecFrom_spec (List.all_eq_true.mp hret vs hvs) k hk, hin', ?_, ?_⟩
+  refine ⟨hfs, hlp, hself, hselfT, Nat.ble_eq.mp hpin,
+    fun k hk => by simpa [Nat.add_comm] using consecFrom_spec hpar k hk,
+    fun vs hvs k hk => consecFrom_spec (List.all_eq_true.mp hret vs hvs) k hk, hin', ?_, ?_,
+    fun v hv v' hv' c hc hc' => ((cellFun_spec hfun (by simp) v hv c hc).2 v' hv' hc').symm⟩
   · intro t ht t' ht' he
     refine List.inj_on_of_nodup_map (natsDistinct_nodup hnd) ht ht' ?_
     show (Complete.cellP pf.locs t).getD 0 = (Complete.cellP pf.locs t').getD 0
