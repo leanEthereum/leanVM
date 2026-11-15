@@ -104,6 +104,18 @@ theorem add_sorted (Ψ : ℕ → E) (a b : ℕ) : Ψ (sorted a b).1 + Ψ (sorted
   · simp [sorted, min_eq_left h, max_eq_right h]
   · simp [sorted, min_eq_right h, max_eq_left h, add_comm]
 
+/-- A constraint that leaves the word of cell `c` free. -/
+def BlindAt (C : (ℕ → E) → Prop) (c : ℕ) : Prop := ∀ Ψ w, C Ψ → C (Function.update Ψ c w)
+
+/-- A cell whose word a satisfiable constraint fixes is none it leaves free. -/
+theorem fixed_ne {c x : ℕ} {a : E} (hs : ∃ Ψ, C Ψ) (hb : BlindAt C c)
+    (hx : ∀ Ψ, C Ψ → Ψ x = a) : x ≠ c := by
+  rintro rfl
+  obtain ⟨Ψ, h⟩ := hs
+  have h1 := hx _ (hb Ψ (a + 1) h)
+  rw [Function.update_self] at h1
+  exact one_ne_zero (by linear_combination h1 : (1 : E) = 0)
+
 /-! ## Cells and instructions -/
 
 /-- **A fresh cell** gets the word `w`, computed from the cells below it. -/
@@ -140,13 +152,15 @@ theorem pooledCell_fat {find : Scope → Option Cell} {learn : Cell → Scope �
     (hcells : ScopeGood (st.next + 1) st.scope →
       ScopeGood (st.next + 1) (learn st.next st.scope)) :
     FAt ctx I C st (pooledCell find learn mk) (fun o C' st' => 2 ≤ o ∧ o < st'.next ∧
-      st'.locs = st.locs ∧ st'.rest = st.rest ∧ ∀ Ψ, C' Ψ → Ψ o = w Ψ) := by
+      st'.locs = st.locs ∧ st'.rest = st.rest ∧ (∀ Ψ, C' Ψ → Ψ o = w Ψ) ∧
+      ∀ c, c < st.next → BlindAt C c → (∀ Ψ x, w (Function.update Ψ c x) = w Ψ) →
+        BlindAt C' c) := by
   unfold pooledCell
   refine FAt.get_bind ?_
   split
   · next o ho =>
     exact FAt.pureC fun hc => ⟨(hfc o ho hc.cells).1, (hfc o ho hc.cells).2, rfl, rfl,
-      fun Ψ hΨ => hfind o ho Ψ hΨ (hc.pools Ψ hΨ)⟩
+      fun Ψ hΨ => hfind o ho Ψ hΨ (hc.pools Ψ hΨ), fun _ _ hb _ => hb⟩
   · refine FAt.bind (fresh_fat w hw) fun o st₁ C₁ _ _ _ ⟨ho, hst₁, hC₁⟩ => ?_
     subst ho hst₁ hC₁
     refine FAt.bind (emitOp_fat (mk st.next) fun hz hm Ψ hΨ => hmk hz hm Ψ hΨ.1 hΨ.2)
@@ -155,7 +169,10 @@ theorem pooledCell_fat {find : Scope → Option Cell} {learn : Cell → Scope �
     refine FAt.bind (FAt.modify rfl rfl rfl fun hc => hc.withScope
       (fun Ψ hΨ hp => hlearn Ψ hΨ.1 hΨ.2 hp) hcells) fun _ st₃ C₃ _ _ _ ⟨hC₃, hst₃⟩ => ?_
     subst hC₃ hst₃
-    exact FAt.pure ⟨h2, Nat.lt_succ_self _, rfl, rfl, fun Ψ h => h.2⟩
+    exact FAt.pure ⟨h2, Nat.lt_succ_self _, rfl, rfl, fun Ψ h => h.2,
+      fun c hc hb hwc Ψ x h => ⟨hb Ψ x h.1, by
+        rw [Function.update_of_ne (Nat.ne_of_gt hc), hwc]
+        exact h.2⟩⟩
 
 theorem mulCell_eq (a b : Cell) : mulCell a b = pooledCell (·.muls.get? (sorted a b))
     (fun o sc => { sc with muls := sc.muls.insert (sorted a b) o }) (fun o => .mul a b o) := rfl
@@ -164,16 +181,41 @@ theorem mulCell_eq (a b : Cell) : mulCell a b = pooledCell (·.muls.get? (sorted
 theorem mulCell_fat {a b : Cell} (ha2 : 2 ≤ a) (ha : a < st.next) (hb2 : 2 ≤ b)
     (hb : b < st.next) :
     FAt ctx I C st (mulCell a b) (fun o C' st' => 2 ≤ o ∧ o < st'.next ∧ st'.locs = st.locs ∧
-      st'.rest = st.rest ∧ ∀ Ψ, C' Ψ → Ψ o = Ψ a * Ψ b) := by
+      st'.rest = st.rest ∧ (∀ Ψ, C' Ψ → Ψ o = Ψ a * Ψ b) ∧
+      ∀ c, c < st.next → c ≠ a → c ≠ b → BlindAt C c → BlindAt C' c) := by
   have h2 : 2 ≤ st.next := le_trans ha2 ha.le
   rw [mulCell_eq]
-  refine pooledCell_fat (fun Ψ => Ψ a * Ψ b) (wblind_mul (wblind_cell ha) (wblind_cell hb))
+  refine FAt.mono (pooledCell_fat (fun Ψ => Ψ a * Ψ b) (wblind_mul (wblind_cell ha) (wblind_cell hb))
     h2 (fun o ho Ψ _ hp => by rw [hp.muls _ o ho, mul_sorted])
     (fun o ho hs => hs.muls _ o ho) (fun _ _ Ψ _ h => ?_)
     (fun Ψ _ h hp => hp.insertMul (by rw [h, mul_sorted]))
-    (fun hs => { hs with muls := pmap_insert_imp hs.muls ⟨h2, Nat.lt_succ_self _⟩ })
+    (fun hs => { hs with muls := pmap_insert_imp hs.muls ⟨h2, Nat.lt_succ_self _⟩ }))
+    fun o C' st' _ _ _ ⟨h1, h2, h3, h4, h5, h6⟩ => ⟨h1, h2, h3, h4, h5,
+      fun c hc hca hcb hb => h6 c hc hb fun Ψ x => by
+        show Function.update Ψ c x a * Function.update Ψ c x b = Ψ a * Ψ b
+        rw [Function.update_of_ne hca.symm, Function.update_of_ne hcb.symm]⟩
   show fw I Ψ st.next = fw I Ψ a * fw I Ψ b
   rw [fw_of_two ha2, fw_of_two hb2, fw_of_two h2, h]
+
+theorem constCell_eq (k : ℕ × ℕ) : constCell k = pooledCell (·.consts.get? k)
+    (fun o sc => { sc with consts := sc.consts.insert k o }) (fun o => .set o (.const k.1 k.2)) :=
+  rfl
+
+/-- **A pooled constant**, keeping the cells the constraint leaves free. -/
+theorem constCell_fatB (k : ℕ × ℕ) (hkw : I.kw (.const k.1 k.2) = Guest.word k.1 k.2)
+    (h2 : 2 ≤ st.next) :
+    FAt ctx I C st (constCell k) (fun o C' st' => 2 ≤ o ∧ o < st'.next ∧ st'.locs = st.locs ∧
+      st'.rest = st.rest ∧ (∀ Ψ, C' Ψ → Ψ o = Guest.word k.1 k.2) ∧
+      ∀ c, c < st.next → BlindAt C c → BlindAt C' c) := by
+  rw [constCell_eq]
+  refine FAt.mono (pooledCell_fat (fun _ => Guest.word k.1 k.2) (wblind_const _ _) h2
+    (fun o ho Ψ _ hp => hp.consts k o ho) (fun o ho hs => hs.consts k o ho) (fun _ _ Ψ _ h => ?_)
+    (fun Ψ _ h hp => hp.insertConst h)
+    (fun hs => { hs with consts := pmap_insert_imp hs.consts ⟨h2, Nat.lt_succ_self _⟩ }))
+    fun o C' st' _ _ _ ⟨a, b, c, d, e, f⟩ => ⟨a, b, c, d, e, fun c' hc hb => f c' hc hb
+      fun _ _ => rfl⟩
+  show fw I Ψ st.next = I.kw (.const k.1 k.2)
+  rw [hkw, fw_of_two h2, h]
 
 /-! ## Places -/
 
@@ -289,7 +331,8 @@ theorem takeRun_fat (vs : List V) :
       st'.rest = st.rest ∧ st'.scope = st.scope ∧
       (∀ v l, st'.locs[v]? = some l → st.locs[v]? = some l ∨ v ∈ vs) ∧
       (∀ k (hk : k < vs.length), st'.locs[vs[k]]? = some (.cell (st.next + k))) ∧
-      ∀ Ψ, C' Ψ → ∀ k (hk : k < vs.length), Ψ (st.next + k) = I.σ vs[k]) := by
+      (∀ Ψ, C' Ψ → ∀ k (hk : k < vs.length), Ψ (st.next + k) = I.σ vs[k]) ∧
+      ∀ c, c < st.next → BlindAt C c → BlindAt C' c) := by
   intro hc
   unfold takeRun bindRun
   refine wp_bind.mpr (wp_get.mpr (wp_bind.mpr (wp_mono (bindRun_wp (ctx := ctx) st.next vs 0 st)
@@ -301,7 +344,10 @@ theorem takeRun_fat (vs : List V) :
     runC_blind (hc.blind.mono (Nat.le_add_right _ _)) le_rfl,
     fun Ψ hΨ => by rw [hs]; exact (hc.pools Ψ hΨ.1).grow hg, by rw [hs]; exact hc.cells.mono (Nat.le_add_right _ _)⟩,
     fun _ h => h.1, Nat.le_add_right _ _, hg, ⟨[], by simp [ho], fun _ _ _ h => nomatch h⟩, rfl, hr, hs, hnew,
-    fun k hk' => by simpa using hk k hk', fun Ψ h => h.2⟩
+    fun k hk' => by simpa using hk k hk', fun Ψ h => h.2,
+    fun c hc hb Ψ x h => ⟨hb Ψ x h.1, fun k hk => by
+      rw [Function.update_of_ne (Nat.ne_of_gt (Nat.lt_of_lt_of_le hc (Nat.le_add_right _ _)))]
+      exact h.2 k hk⟩⟩
 
 /-! ## Shifted pointers -/
 
@@ -312,13 +358,15 @@ theorem ofK_gpow_zero : ofK (addressOfIndex 0) = 1 := by
 theorem materialize_fat (c : Cell) (exp : ℕ) (hok : I.Ok) (hc2 : 2 ≤ c) (hc : c < st.next) :
     FAt ctx I C st (materialize c exp) (fun o C' st' => 2 ≤ o ∧ o < st'.next ∧
       st'.locs = st.locs ∧ st'.rest = st.rest ∧
-      ∀ Ψ, C' Ψ → Ψ o = Ψ c * ofK (addressOfIndex exp)) := by
+      (∀ Ψ, C' Ψ → Ψ o = Ψ c * ofK (addressOfIndex exp)) ∧
+      ((∃ a, ∀ Ψ, C Ψ → Ψ c = a) → ∀ c', c' < st.next → BlindAt C c' → BlindAt C' c')) := by
   have h2 : 2 ≤ st.next := le_trans hc2 hc.le
   unfold materialize
   dsimp only
   split
   · next h0 =>
-    exact FAt.pureC fun _ => ⟨hc2, hc, rfl, rfl, fun Ψ _ => by rw [h0, ofK_gpow_zero, mul_one]⟩
+    exact FAt.pureC fun _ => ⟨hc2, hc, rfl, rfl, fun Ψ _ => by rw [h0, ofK_gpow_zero, mul_one],
+      fun _ _ _ hb => hb⟩
   · refine FAt.guard fun hlt => ?_
     refine FAt.get_bind (FAt.withCOk fun hc0 => ?_)
     have hmats : ∀ p ∈ (st.scope.mats.get? c).getD [], (2 ≤ p.2 ∧ p.2 < st.next) ∧
@@ -334,7 +382,7 @@ theorem materialize_fat (c : Cell) (exp : ℕ) (hok : I.Ok) (hc2 : 2 ≤ c) (hc 
       have hp := hmats (e, o) (List.mem_of_find?_eq_some hfind)
       have he : e = exp := by simpa using List.find?_some hfind
       subst he
-      exact FAt.pureC fun _ => ⟨hp.1.1, hp.1.2, rfl, rfl, hp.2⟩
+      exact FAt.pureC fun _ => ⟨hp.1.1, hp.1.2, rfl, rfl, hp.2, fun _ _ _ hb => hb⟩
     · generalize hpair : matStart st.scope c exp ((st.scope.mats.get? c).getD []) = pr
       obtain ⟨src, dist⟩ := pr
       dsimp only
@@ -346,10 +394,10 @@ theorem materialize_fat (c : Cell) (exp : ℕ) (hok : I.Ok) (hc2 : 2 ≤ c) (hc 
           exact ⟨⟨hc2, hc⟩, fun Ψ _ => by rw [ofK_gpow_zero, mul_one]⟩
         · exact hmats (e, src) hm
       have hdist : dist < 2 ^ 128 := by omega
-      refine FAt.bind (constCell_fat (gpowLimbs dist) (hok.kconst _ _) h2)
-        fun k st₁ C₁ hs₁ hn₁ _ ⟨hk2, hk, hlo₁, hr₁, hkw⟩ => ?_
+      refine FAt.bind (constCell_fatB (gpowLimbs dist) (hok.kconst _ _) h2)
+        fun k st₁ C₁ hs₁ hn₁ _ ⟨hk2, hk, hlo₁, hr₁, hkw, hkb⟩ => FAt.withCOk fun hc1 => ?_
       refine FAt.bind (mulCell_fat hsrc'.1.1 (lt_of_lt_of_le hsrc'.1.2 hn₁) hk2 hk)
-        fun o st₂ C₂ hs₂ _ _ ⟨ho2, ho, hlo₂, hr₂, how⟩ => ?_
+        fun o st₂ C₂ hs₂ _ _ ⟨ho2, ho, hlo₂, hr₂, how, hmb⟩ => ?_
       have hw : ∀ Ψ, C₂ Ψ → Ψ o = Ψ c * ofK (addressOfIndex exp) := fun Ψ hΨ => by
         rw [how Ψ hΨ, hsrc'.2 Ψ (hs₁ Ψ (hs₂ Ψ hΨ)), hkw Ψ (hs₂ Ψ hΨ), word_gpow hdist, mul_assoc,
           ofK_gpow_add, hed]
@@ -366,7 +414,11 @@ theorem materialize_fat (c : Cell) (exp : ℕ) (hok : I.Ok) (hc2 : 2 ≤ c) (hc 
         · obtain rfl := List.mem_singleton.mp hp'
           exact ⟨ho2, ho⟩
       · subst hC₃ hst₃
-        exact FAt.pure ⟨ho2, ho, hlo₂.trans hlo₁, hr₂.trans hr₁, hw⟩
+        refine FAt.pure ⟨ho2, ho, hlo₂.trans hlo₁, hr₂.trans hr₁, hw, fun ⟨a, ha⟩ c' hc' hb =>
+          hmb c' (lt_of_lt_of_le hc' hn₁) ?_ ?_ (hkb c' hc' hb)⟩
+        · exact (fixed_ne hc0.sat hb (a := a * ofK (addressOfIndex e))
+            fun Ψ hΨ => by rw [hsrc'.2 Ψ hΨ, ha Ψ hΨ]).symm
+        · exact (fixed_ne hc1.sat (hkb c' hc' hb) hkw).symm
 
 /-! ## Return areas -/
 
@@ -649,37 +701,51 @@ theorem advance_fat :
     FAt ctx I C st advance (fun _ C' st' => C' = C ∧ st' = { st with rest := st.rest.tail }) :=
   FAt.modify rfl rfl rfl id
 
+/-- The return cells the constraint leaves free (before the path's return area). -/
+def RetBlind (ctx : Ctx) (C : (ℕ → E) → Prop) : Prop :=
+  ∀ k, k < ctx.retCells → BlindAt C (2 + ctx.argCells + k)
+
+theorem ofK_addr_ne_zero (e : ℕ) : ofK (addressOfIndex e) ≠ 0 := by
+  intro h0
+  have h1 : (algebraMap K E) (addressOfIndex e) = 0 := h0
+  have h2 := (map_eq_zero_iff (algebraMap K E) (algebraMap K E).injective).mp h1
+  rw [addressOfIndex] at h2
+  exact pow_ne_zero _ (by decide) h2
+
 /-- **A value made**: its run's cells and words (`.cell`, `.padRun`, a message run not read in
-place), a return area whose words the constraint gives already, a message run read in place whose
-copies' events give each alias its word, or nothing placed (`.pooled`, `.addr`, `.site`). -/
+place), a return area in return cells the constraint leaves free, a message run read in place
+whose copies' events give each alias its word, or nothing placed (`.pooled`, `.addr`, `.site`).
+Apart from a return area, the cells the constraint leaves free stay free. -/
 theorem onAlloc_fat (vs : List V) (kind : Kind) (up : List Stmt) {ok : V → Prop}
     (hcp : ∀ (k : ℕ) (d s : V), (∀ j < k, ∃ a, up[j]? = some (Stmt.atom a)) →
       up[k]? = some (Stmt.atom (.copy d s)) → ok s ∧ I.σ d = I.σ s)
     (hret : kind = .ret → 2 + ctx.argCells + vs.length ≤ st.next ∧
-      ∀ Ψ, C Ψ → ∀ k (hk : k < vs.length), Ψ (2 + ctx.argCells + k) = I.σ vs[k])
+      ∀ k, k < vs.length → BlindAt C (2 + ctx.argCells + k))
     (h2 : 2 ≤ st.next) (hv : VW I C st ok) :
     FAt ctx I C st (onAlloc vs kind up) (fun _ C' st' => st'.rest = st.rest ∧
-      FlushR I C' st st' ok) := by
+      FlushR I C' st st' ok ∧ (kind ≠ .ret → ∀ c, c < st.next → BlindAt C c → BlindAt C' c)) := by
   have hrun : FAt ctx I C st (takeRun vs) (fun _ C' st' => st'.rest = st.rest ∧
-      FlushR I C' st st' ok) :=
-    FAt.mono (takeRun_fat vs) fun _ C' st' hs hn hl ⟨hnx, hr, _, hnew, hk, hw⟩ =>
+      FlushR I C' st st' ok ∧ (kind ≠ .ret → ∀ c, c < st.next → BlindAt C c → BlindAt C' c)) :=
+    FAt.mono (takeRun_fat vs) fun _ C' st' hs hn hl ⟨hnx, hr, _, hnew, hk, hw, hwb⟩ =>
       ⟨hr, run_new (fun k hk => ⟨by simp only [Cell] at *; omega, by simp only [Cell] at *; omega⟩)
-        hnew hk hw hv hs hn hl⟩
+        hnew hk hw hv hs hn hl, fun _ => hwb⟩
   unfold onAlloc
   cases kind with
   | cell => exact hrun
-  | pooled => exact FAt.quiet rfl rfl rfl rfl ⟨rfl, FlushR.same hv rfl rfl⟩
-  | addr => exact FAt.quiet rfl rfl rfl rfl ⟨rfl, FlushR.same hv rfl rfl⟩
-  | site => exact FAt.pure ⟨rfl, FlushR.refl hv⟩
+  | pooled =>
+    exact FAt.quiet rfl rfl rfl rfl ⟨rfl, FlushR.same hv rfl rfl, fun _ _ _ hb => hb⟩
+  | addr =>
+    exact FAt.quiet rfl rfl rfl rfl ⟨rfl, FlushR.same hv rfl rfl, fun _ _ _ hb => hb⟩
+  | site => exact FAt.pure ⟨rfl, FlushR.refl hv, fun _ _ _ hb => hb⟩
   | ret =>
-    obtain ⟨hb, hw⟩ := hret rfl
-    refine FAt.read_bind (FAt.mono (bindRun_fat vs _)
-      fun _ C' st' hs hn hl ⟨hC, he, hnew, hk⟩ => ⟨(congrArg St.rest he).trans rfl, ?_⟩)
-    subst hC
+    obtain ⟨hb, hbl⟩ := hret rfl
+    refine FAt.read_bind (FAt.mono (bindRunAssign_fat vs _ hb fun Ψ k w hk h => hbl k hk Ψ w h)
+      fun _ C' st' hs hn hl ⟨_, hr, _, hnew, hk, hw⟩ => ⟨hr, ?_, fun h => absurd rfl h⟩)
     exact run_new (fun k hk => ⟨by simp only [Cell] at *; omega, by simp only [Cell] at *; omega⟩)
       hnew hk hw hv hs hn hl
   | padRun =>
-    exact FAt.bind hrun fun _ st₁ C₁ _ _ _ hr => FAt.quiet rfl rfl rfl rfl ⟨hr.1, hr.2.right rfl rfl⟩
+    exact FAt.bind hrun fun _ st₁ C₁ _ _ _ hr =>
+      FAt.quiet rfl rfl rfl rfl ⟨hr.1, hr.2.1.right rfl rfl, hr.2.2⟩
   | spongeRun =>
     refine FAt.bind (FAt.ofSame (R := fun r C' st' => C' = C ∧ st = st' ∧ ∀ base, r = some base →
         ∀ k (hk : k < vs.length), ∃ s, up[k]? = some (.atom (.copy vs[k] s)) ∧
@@ -693,7 +759,8 @@ theorem onAlloc_fat (vs : List V) (kind : Kind) (up : List Stmt) {ok : V → Pro
     | some base =>
       refine FAt.bind (bindRun_fat vs base) fun _ st₂ C₂ hs₂ hn₂ hl₂ ⟨hC, he, hnew, hk⟩ => ?_
       subst hC
-      refine FAt.quiet rfl rfl rfl rfl ⟨(congrArg St.rest he).trans rfl, ?_⟩
+      refine FAt.quiet rfl rfl rfl rfl ⟨(congrArg St.rest he).trans rfl, ?_,
+        fun _ _ _ hb => hb⟩
       have hal' := hal base rfl
       have hn₂' : st₂.next = st.next := (congrArg St.next he).trans rfl
       refine run_new (base := base) (vs := vs) (fun k hk => ?_) hnew hk
@@ -708,109 +775,185 @@ theorem onAlloc_fat (vs : List V) (kind : Kind) (up : List Stmt) {ok : V → Pro
         obtain ⟨_, _, c⟩ := hv s _ hok hs
         exact (c Ψ (hs₁ Ψ hΨ)).trans he'.symm
 
-theorem mem_of_head {l : List Event} {e : Event} (h : l.head? = some e) : e ∈ l := by
-  cases l with
-  | nil => cases h
-  | cons a l =>
-    cases h
-    exact List.mem_cons_self
+/-! ## A flush, in lockstep with the scope walk -/
 
-/-- **A flush**: the runs it places have their words, the shifted values it wants in cells are
-made, and the known values keep theirs. The leading copies' events give a message run read in place
-its words, a return area's words are the constraint's already. -/
-theorem flushN_fat (up : List Stmt) (hok : I.Ok) : ∀ (fuel : ℕ) (ok : V → Prop) (st : St)
-    (C : (ℕ → E) → Prop),
+theorem RetBlind.keep {C' : (ℕ → E) → Prop} (h : RetBlind ctx C)
+    (hab : 2 + ctx.argCells + ctx.retCells ≤ st.next)
+    (hk : ∀ c, c < st.next → BlindAt C c → BlindAt C' c) : RetBlind ctx C' :=
+  fun k hk' => hk _ (by simp only [Cell] at *; omega) (h k hk')
+
+/-- A cell whose word times a nonzero shift is fixed is fixed. -/
+theorem fixed_of_shift {x : ℕ} {e : ℕ} {a : E}
+    (h : ∀ Ψ, C Ψ → Ψ x * ofK (addressOfIndex e) = a) :
+    ∃ b, ∀ Ψ, C Ψ → Ψ x = b :=
+  ⟨a * (ofK (addressOfIndex e))⁻¹, fun Ψ hΨ => by
+    rw [← h Ψ hΨ, mul_assoc, mul_inv_cancel₀ (ofK_addr_ne_zero e), mul_one]⟩
+
+/-- **A flush, step by step with `flushS`**: its trace is the scope walk's, the runs it places
+have their words (`FlushR`), and the return cells stay free until the path's return area. -/
+theorem flushN_lock (up : List Stmt) (hok : I.Ok) : ∀ (fuel : ℕ) (rs : List Event)
+    (live : VMap Unit) (r : Bool) (s₁ : SSt) (ok : V → Prop) (st : St) (C : (ℕ → E) → Prop),
+    flushS ctx.retCells rs live r = .ok s₁ → st.rest = rs → rs.length ≤ fuel →
     (∀ (k : ℕ) (d s : V), (∀ j < k, ∃ a, up[j]? = some (Stmt.atom a)) →
       up[k]? = some (Stmt.atom (.copy d s)) → ok s ∧ I.σ d = I.σ s) →
-    (∀ v n e, Event.use v ∈ st.rest → st.locs[v]? = some (.shifted n e) → ok v) →
-    (∀ vs, Event.alloc vs .ret ∈ st.rest → 2 + ctx.argCells + vs.length ≤ st.next ∧
-      ∀ Ψ, C Ψ → ∀ k (hk : k < vs.length), Ψ (2 + ctx.argCells + k) = I.σ vs[k]) →
-    2 ≤ st.next → VW I C st ok →
-    FAt ctx I C st (flushN up fuel) (fun _ C' st' => FlushR I C' st st' ok)
-  | 0, _, _, _, _, _, _, _, hv => FAt.pure (FlushR.refl hv)
-  | fuel + 1, ok, st, C, hcp, huse, hret, h2, hv => by
+    (∀ v n e, Event.use v ∈ rs → st.locs[v]? = some (.shifted n e) → ok v) →
+    2 + ctx.argCells + ctx.retCells ≤ st.next → 2 ≤ st.next → VW I C st ok →
+    (r = false → RetBlind ctx C) →
+    FAt ctx I C st (flushN up fuel) (fun _ C' st' => st'.rest = s₁.rest ∧
+      FlushR I C' st st' ok ∧ (s₁.retDone = false → RetBlind ctx C'))
+  | fuel, [], live, r, s₁, ok, st, C, hfl, hst, _, _, _, _, _, hv, hb => by
+      simp only [flushS] at hfl
+      cases hfl
+      cases fuel with
+      | zero => exact FAt.pure ⟨hst, FlushR.refl hv, hb⟩
+      | succ fuel =>
+        unfold flushN
+        refine FAt.peek_bind ?_
+        rw [hst]
+        exact FAt.pure ⟨hst, FlushR.refl hv, hb⟩
+  | 0, e :: es, _, _, _, _, _, _, _, _, hlen, _, _, _, _, _, _ => absurd hlen (by simp)
+  | fuel + 1, e :: es, live, r, s₁, ok, st, C, hfl, hst, hlen, hcp, huse, hab, h2, hv, hb => by
+      have hlen' : es.length ≤ fuel := by simpa using hlen
       have hcp' : ∀ (k : ℕ) (d s : V), (∀ j < k, ∃ a, up[j]? = some (Stmt.atom a)) →
           up[k]? = some (Stmt.atom (.copy d s)) →
           (ok s ∨ st.locs[s]? = none) ∧ I.σ d = I.σ s :=
         fun k d s hl hu => let ⟨a, b⟩ := hcp k d s hl hu; ⟨Or.inl a, b⟩
-      -- The rest of the flush after a step that keeps the places.
-      have hkeep : ∀ (st₂ : St) (C₂ : (ℕ → E) → Prop), Stronger C₂ C → st.next ≤ st₂.next →
-          st₂.locs = st.locs → (∀ e ∈ st₂.rest, e ∈ st.rest) →
-          FAt ctx I C₂ st₂ (flushN up fuel) (fun _ C' st' => FlushR I C' st st' ok) :=
-        fun st₂ C₂ hs₂ hn₂ hlo₂ hr₂ => by
-          refine FAt.mono (flushN_fat up hok fuel ok st₂ C₂ hcp
-            (fun v n e hu hl => huse v n e (hr₂ _ hu) (by rw [← hlo₂]; exact hl))
-            (fun vs hm => let ⟨a, b⟩ := hret vs (hr₂ _ hm)
-              ⟨le_trans a hn₂, fun Ψ hΨ => b Ψ (hs₂ Ψ hΨ)⟩) (le_trans h2 hn₂)
+      -- The rest of the flush after a step that keeps the places and the trace's tail.
+      have hkeep : ∀ (r' : Bool) (st₂ : St) (C₂ : (ℕ → E) → Prop),
+          flushS ctx.retCells es live r' = .ok s₁ → (r' = false → RetBlind ctx C₂) →
+          Stronger C₂ C → st.next ≤ st₂.next → st₂.locs = st.locs → st₂.rest = st.rest.tail →
+          FAt ctx I C₂ st₂ (flushN up fuel) (fun _ C' st' => st'.rest = s₁.rest ∧
+            FlushR I C' st st' ok ∧ (s₁.retDone = false → RetBlind ctx C')) :=
+        fun r' st₂ C₂ hfl' hb' hs₂ hn₂ hlo₂ hr₂ => by
+          refine FAt.mono (flushN_lock up hok fuel es live r' s₁ ok st₂ C₂ hfl'
+            (by rw [hr₂, hst]; rfl) hlen' hcp
+            (fun v n e hu hl => huse v n e (List.mem_cons_of_mem _ hu) (by rw [← hlo₂]; exact hl))
+            (le_trans hab hn₂) (le_trans h2 hn₂)
             (hv.grow hs₂ hn₂ (by rw [hlo₂]; exact LocsLe.refl _) (fun _ _ h _ => h)
-              fun v l _ hl h0 => by rw [hlo₂, h0] at hl; cases hl))
-            fun _ C' st' _ _ _ h => h.of_locs hlo₂
+              fun v l _ hl h0 => by rw [hlo₂, h0] at hl; cases hl) hb')
+            fun _ C' st' _ _ _ ⟨h1, h2, h3⟩ => ⟨h1, h2.of_locs hlo₂, h3⟩
       unfold flushN
       refine FAt.peek_bind ?_
-      split
-      · next vs kind he =>
+      rw [hst]
+      cases e with
+      | alloc vs kind =>
+        show FAt ctx I C st (advance >>= fun _ => onAlloc vs kind up >>= fun _ => flushN up fuel) _
         refine FAt.bind advance_fat fun _ st₁ C₁ _ _ _ ⟨hC₁, hst₁⟩ => ?_
         subst C₁ st₁
-        refine FAt.bind (onAlloc_fat (st := { st with rest := st.rest.tail }) vs kind up hcp
-          (fun hk => by subst hk; exact hret vs (mem_of_head he)) h2 hv)
-          fun _ st₂ C₂ hs₂ hn₂ _ ⟨hr₂, hf₂⟩ => ?_
-        refine FAt.mono (flushN_fat up hok fuel (fun v => ok v ∨ st.locs[v]? = none) st₂ C₂ hcp'
-          (fun v n e hu hl => ?_) (fun vs' hm => ?_) (le_trans h2 hn₂) hf₂.2)
-          fun _ C' st' _ _ _ h => hf₂.trans h
-        · rw [hr₂] at hu
+        have hret : r = false → kind = .ret → vs.length ≤ ctx.retCells ∧
+            flushS ctx.retCells es (addLive live vs) true = .ok s₁ := by
+          intro hr hk
+          subst hr hk
+          simp only [flushS, beq_self_eq_true, ↓reduceIte, Bool.false_eq_true] at hfl
+          split at hfl
+          · cases hfl
+          · exact ⟨by omega, hfl⟩
+        have hnret : kind ≠ .ret → flushS ctx.retCells es (addLive live vs) r = .ok s₁ := by
+          intro hk
+          simp only [flushS] at hfl
+          split at hfl
+          · next h => exact absurd (by simpa using h) hk
+          · exact hfl
+        by_cases hk : kind = .ret
+        · cases r with
+          | true =>
+            subst hk
+            simp [flushS] at hfl
+          | false =>
+          obtain ⟨hlr, hfl'⟩ := hret rfl hk
+          refine FAt.bind (onAlloc_fat (st := { st with rest := st.rest.tail }) vs kind up hcp
+            (fun _ => ⟨by simp only [Cell] at *; omega, fun k hk' => hb rfl k (by omega)⟩) h2
+            hv)
+            fun _ st₂ C₂ hs₂ hn₂ _ ⟨hr₂, hf₂, _⟩ => ?_
+          refine FAt.mono (flushN_lock up hok fuel es (addLive live vs) true s₁
+            (fun v => ok v ∨ st.locs[v]? = none) st₂ C₂ hfl' (by rw [hr₂, hst]; rfl) hlen' hcp'
+            (fun v n e hu hl => ?_) (le_trans hab hn₂) (le_trans h2 hn₂) hf₂.2 (by simp))
+            fun _ C' st' _ _ _ ⟨h1, h3, h4⟩ => ⟨h1, hf₂.trans h3, h4⟩
           rcases hf₂.1 v _ hl with h | ⟨c, hc⟩
-          · exact Or.inl (huse v n e (List.mem_of_mem_tail hu) h)
+          · exact Or.inl (huse v n e (List.mem_cons_of_mem _ hu) h)
           · cases hc
-        · rw [hr₂] at hm
-          obtain ⟨a, b⟩ := hret vs' (List.mem_of_mem_tail hm)
-          exact ⟨le_trans a hn₂, fun Ψ hΨ => b Ψ (hs₂ Ψ hΨ)⟩
-      · next v he =>
+        · have hfl' := hnret hk
+          refine FAt.bind (onAlloc_fat (st := { st with rest := st.rest.tail }) vs kind up hcp
+            (fun h => absurd h hk) h2 hv)
+            fun _ st₂ C₂ hs₂ hn₂ _ ⟨hr₂, hf₂, hkb⟩ => ?_
+          refine FAt.mono (flushN_lock up hok fuel es (addLive live vs) r s₁
+            (fun v => ok v ∨ st.locs[v]? = none) st₂ C₂ hfl' (by rw [hr₂, hst]; rfl) hlen' hcp'
+            (fun v n e hu hl => ?_) (le_trans hab hn₂) (le_trans h2 hn₂) hf₂.2
+            fun hr => (hb hr).keep hab (hkb hk))
+            fun _ C' st' _ _ _ ⟨h1, h3, h4⟩ => ⟨h1, hf₂.trans h3, h4⟩
+          rcases hf₂.1 v _ hl with h | ⟨c, hc⟩
+          · exact Or.inl (huse v n e (List.mem_cons_of_mem _ hu) h)
+          · cases hc
+      | use v =>
+        have hfl' : flushS ctx.retCells es live r = .ok s₁ := by
+          simp only [flushS] at hfl
+          split at hfl
+          · exact hfl
+          · cases hfl
         refine FAt.bind advance_fat fun _ st₁ C₁ _ _ _ ⟨hC₁, hst₁⟩ => ?_
         subst C₁ st₁
         refine FAt.get_bind ?_
         split
         · next c e hc =>
-          obtain ⟨a, b, _⟩ := hv v _ (huse v c e (mem_of_head he) hc) hc
+          obtain ⟨a, b, hw⟩ := hv v _ (huse v c e List.mem_cons_self hc) hc
           refine FAt.bind (FAt.discard (materialize_fat (st := { st with rest := st.rest.tail })
-            c e hok a b)) fun _ st₂ C₂ hs₂ hn₂ _ ⟨_, _, _, hlo₂, hr₂, _⟩ => ?_
+            c e hok a b)) fun _ st₂ C₂ hs₂ hn₂ _ ⟨_, _, _, hlo₂, hr₂, _, hmb⟩ => ?_
           refine FAt.bind (FAt.modify rfl rfl rfl id) fun _ st₃ C₃ _ _ _ ⟨hC₃, hst₃⟩ => ?_
           subst C₃ st₃
-          exact hkeep _ C₂ hs₂ hn₂ hlo₂ fun e' h' => by
-            rw [show _ = _ from hr₂] at h'
-            exact List.mem_of_mem_tail h'
-        · exact FAt.bind (FAt.modify rfl rfl rfl id) fun _ st₃ C₃ hs₃ hn₃ _ ⟨hC₃, hst₃⟩ => by
+          exact hkeep r _ C₂ hfl' (fun hr => (hb hr).keep hab
+            (hmb (fixed_of_shift hw))) hs₂ hn₂ hlo₂ hr₂
+        · exact FAt.bind (FAt.modify rfl rfl rfl id) fun _ st₃ C₃ _ _ _ ⟨hC₃, hst₃⟩ => by
             subst C₃ st₃
-            exact hkeep _ C (Stronger.refl C) le_rfl rfl fun _ h' => List.mem_of_mem_tail h'
-      · next v e he =>
+            exact hkeep r _ C hfl' hb (Stronger.refl C) le_rfl rfl rfl
+      | shift v x =>
+        have hfl' : flushS ctx.retCells es live r = .ok s₁ := by
+          simp only [flushS] at hfl
+          split at hfl
+          · exact hfl
+          · cases hfl
         refine FAt.bind advance_fat fun _ st₁ C₁ _ _ _ ⟨hC₁, hst₁⟩ => ?_
         subst C₁ st₁
         exact FAt.bind (FAt.modify rfl rfl rfl id) fun _ st₃ C₃ _ _ _ ⟨hC₃, hst₃⟩ => by
           subst C₃ st₃
-          exact hkeep _ C (Stronger.refl C) le_rfl rfl fun _ h' => List.mem_of_mem_tail h'
-      · next he =>
+          exact hkeep r _ C hfl' hb (Stronger.refl C) le_rfl rfl rfl
+      | chain =>
         refine FAt.bind advance_fat fun _ st₁ C₁ _ _ _ ⟨hC₁, hst₁⟩ => ?_
         subst C₁ st₁
         exact FAt.bind (FAt.modify rfl rfl rfl id) fun _ st₃ C₃ _ _ _ ⟨hC₃, hst₃⟩ => by
           subst C₃ st₃
-          exact hkeep _ C (Stronger.refl C) le_rfl rfl fun _ h' => List.mem_of_mem_tail h'
-      · next n he =>
+          exact hkeep r _ C hfl hb (Stronger.refl C) le_rfl rfl rfl
+      | note n =>
         refine FAt.bind advance_fat fun _ st₁ C₁ _ _ _ ⟨hC₁, hst₁⟩ => ?_
         subst C₁ st₁
         exact FAt.bind (FAt.modify rfl rfl rfl id) fun _ st₃ C₃ _ _ _ ⟨hC₃, hst₃⟩ => by
           subst C₃ st₃
-          exact hkeep _ C (Stronger.refl C) le_rfl rfl fun _ h' => List.mem_of_mem_tail h'
-      · exact FAt.pure (FlushR.refl hv)
+          exact hkeep r _ C hfl hb (Stronger.refl C) le_rfl rfl rfl
+      | emit =>
+        simp only [flushS] at hfl
+        cases hfl
+        exact FAt.pure ⟨hst, FlushR.refl hv, hb⟩
+      | enter =>
+        simp only [flushS] at hfl
+        cases hfl
+        exact FAt.pure ⟨hst, FlushR.refl hv, hb⟩
+      | leave =>
+        simp only [flushS] at hfl
+        cases hfl
+        exact FAt.pure ⟨hst, FlushR.refl hv, hb⟩
 
-/-- `flushN` to the next statement. -/
-theorem flush_fat (up : List Stmt) (hok : I.Ok) {ok : V → Prop}
+/-- `flushN` to the next statement, in lockstep with `flushS`. -/
+theorem flush_lock (up : List Stmt) (hok : I.Ok) {live : VMap Unit} {r : Bool} {s₁ : SSt}
+    {ok : V → Prop} (hfl : flushS ctx.retCells st.rest live r = .ok s₁)
+    (hlen : st.rest.length ≤ ctx.fuel)
     (hcp : ∀ (k : ℕ) (d s : V), (∀ j < k, ∃ a, up[j]? = some (Stmt.atom a)) →
       up[k]? = some (Stmt.atom (.copy d s)) → ok s ∧ I.σ d = I.σ s)
     (huse : ∀ v n e, Event.use v ∈ st.rest → st.locs[v]? = some (.shifted n e) → ok v)
-    (hret : ∀ vs, Event.alloc vs .ret ∈ st.rest → 2 + ctx.argCells + vs.length ≤ st.next ∧
-      ∀ Ψ, C Ψ → ∀ k (hk : k < vs.length), Ψ (2 + ctx.argCells + k) = I.σ vs[k])
-    (h2 : 2 ≤ st.next) (hv : VW I C st ok) :
-    FAt ctx I C st (flush up) (fun _ C' st' => FlushR I C' st st' ok) :=
-  FAt.read_bind (flushN_fat up hok _ ok st C hcp huse hret h2 hv)
+    (hab : 2 + ctx.argCells + ctx.retCells ≤ st.next) (h2 : 2 ≤ st.next) (hv : VW I C st ok)
+    (hb : r = false → RetBlind ctx C) :
+    FAt ctx I C st (flush up) (fun _ C' st' => st'.rest = s₁.rest ∧
+      FlushR I C' st st' ok ∧ (s₁.retDone = false → RetBlind ctx C')) :=
+  FAt.read_bind (flushN_lock up hok ctx.fuel st.rest live r s₁ ok st C hfl rfl hlen hcp huse hab
+    h2 hv hb)
 
 end Prims
 
