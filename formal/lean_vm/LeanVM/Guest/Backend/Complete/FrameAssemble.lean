@@ -12,6 +12,8 @@ public import LeanVM.Guest.Backend.Complete.FrameInner
 public import LeanVM.Guest.Backend.Complete.FrameCalls
 public import LeanVM.Guest.Backend.Complete.FrameAddr
 public import LeanVM.Guest.Backend.Complete.FramePool
+public import LeanVM.Guest.Backend.Complete.FrameIte
+public import LeanVM.Guest.Backend.Complete.FrameSelf
 
 /-!
 # The frame side, assembled
@@ -266,6 +268,63 @@ theorem flatW_K (hW : W.Compiled) (htf : tf ∈ W.p) (hsc : Scoped tf) (hpa : Wo
   | ret rvs => exact stmtW_ret' hok hI hmain agOwn_K hI.kend
 
 end Flat
+
+/-! ## The block lemma at a body -/
+
+/-- The quantifiers of `BodyW`: a scoped function of a compiled program with temporaries apart and
+no direct self call, at a frame, callee frames and header, on a path of `σ` whose addresses are
+its frame's and whose events hold on some reader; `P` of its body at the walk's instance. -/
+def AtBody (P : ∀ {κ₀ : ℕ}, World κ₀ → TracedFn → Placed → ℕ → E × E → Val → List Ev →
+    List ℕ → Prop) : Prop :=
+  ∀ {κ₀ : ℕ} (W : World κ₀), W.Compiled → ∀ tf ∈ W.p, Scoped tf → ∀ pf, World.PlacedAs W tf pf →
+  TmpsApart tf pf → NoSelfCall tf →
+  ∀ (fp : ℕ), (tf.core.name = "main" → fp = 0) → ∀ (kfps : List ℕ) (hdr : E × E) (σ : Val)
+    (es : List Ev) (vs : List V), walk σ tf.core.body = .ret es vs →
+    (∀ q ∈ addrs es, σ q.1 = ofK (addressOfIndex (fp + (cellP pf.locs q.2).getD 0))) →
+    (∃ rd, (instOf W tf pf fp hdr σ es).Rd rd) → P W tf pf fp hdr σ es kfps
+
+/-- **No value a statement of a body reads is a later frame address's** (owed: from `Scoped`). -/
+def FaBody : Prop := AtBody fun W tf pf fp hdr σ es kfps =>
+  ∀ s rest, InBody tf.core.body (s :: rest) →
+    FaAfter (instK W tf pf fp hdr σ es kfps).σ s rest
+
+/-- **A body's self `callIf`s** (owed: `selfW_of`, once its loop premise is under `PremW`). -/
+def SelfBody : Prop := AtBody fun W tf pf fp hdr σ es kfps =>
+  SelfW (World.cplSite W tf.core.name) (agK W tf pf fp hdr es kfps (instK W tf pf fp hdr σ es kfps))
+    (calls es) (ctxOf (loopTable W.p) (sigTable W.p) tf) (instK W tf pf fp hdr σ es kfps)
+    (InBody tf.core.body)
+
+/-- **A body's `match`es and chains** (owed: `MatchW`). -/
+def MatchBody : Prop := AtBody fun W tf pf fp hdr σ es kfps =>
+  MatchW (World.cplSite W tf.core.name) (agK W tf pf fp hdr es kfps (instK W tf pf fp hdr σ es kfps))
+    (calls es) (ctxOf (loopTable W.p) (sigTable W.p) tf) (instK W tf pf fp hdr σ es kfps)
+    (InBody tf.core.body)
+
+/-- **The block lemma at a body**, from the constructs' lemmas. -/
+theorem bodyW_assembled (hfa : FaBody) (hself : SelfBody) (hmatch : MatchBody) : BodyW := by
+  intro κ₀ W hW tf htf hsc pf hpa hta hns fp hfp kfps hdr σ es vs hw ha hrd
+  have hI := instK_ok (kfps := kfps) hW htf hpa hta hrd
+  have hok := opOK_K (kfps := kfps) hW htf hpa hsc hta hw hrd
+  have hfresh := hta.fresh
+  have hmain : (ctxOf (loopTable W.p) (sigTable W.p) tf).isMain = true →
+      (instK W tf pf fp hdr σ es kfps).fp = 0 := fun h => hfp (by simpa [ctxOf] using h)
+  exact bodyW_of tf.core.body hok hI
+    (hfa W hW tf htf hsc pf hpa hta hns fp hfp kfps hdr σ es vs hw ha hrd)
+    (flatW_K hW htf hsc hpa hta hns hfp hw ha hrd)
+    (hself W hW tf htf hsc pf hpa hta hns fp hfp kfps hdr σ es vs hw ha hrd)
+    (fun c z nz rest hin ht => (hfresh.2 c ht).1
+      (inBody_uses hin c (by simp [Stmt.uses])))
+    (iteStmt hok hI hmain (fun _ h => h) agOwn_K (fun _ => rfl)
+      (fun q hq => hlocB_K hW htf hpa q hq))
+    (hmatch W hW tf htf hsc pf hpa hta hns fp hfp kfps hdr σ es vs hw ha hrd) []
+
+/-- **The frame side's statement**, from the remaining construct lemmas. -/
+theorem frameWords_assembled (hfa : FaBody) (hself : SelfBody) (hmatch : MatchBody) :
+    FrameWordsStmt :=
+  frameWords_of_body (bodyW_assembled hfa hself hmatch)
+
+/-- info: 'LeanVM.Guest.Backend.Complete.frameWords_assembled' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms frameWords_assembled
 
 end
 end LeanVM.Guest.Backend.Complete

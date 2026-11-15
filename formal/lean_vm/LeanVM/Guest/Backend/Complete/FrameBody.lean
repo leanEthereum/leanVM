@@ -802,15 +802,22 @@ theorem walkWords_of_body (hbody : BodyW) : WalkWordsStmt := by
       rw [hbody₂, bops_append]
       exact List.mem_append_left _ ho'
     have hcs : ctrlSplit tf.core.body = ctrlSplit (tf.core.body ++ []) := by rw [List.append_nil]
+    have hkl : KLast (instK W tf pf fp hdr σ es kfps) (.ret es vs) 0 := by
+      intro es' vs' he
+      simp only [Out.ret.injEq] at he
+      obtain ⟨rfl, rfl⟩ := he
+      show 0 + _ = kfps.length
+      rw [Nat.zero_add]
+      exact hl.symm
     unfold PathWords
     rw [wL_eq_wLc, hbody₂]
     cases ops with
     | nil =>
       rw [List.append_nil]
-      exact hW hprem Ψ hΨ σ' hS _ _ _ _ _ _ _ hops₂ hcs hks hk
+      exact hW hprem hkl Ψ hΨ σ' hS _ _ _ _ _ _ _ hops₂ hcs hks hk
     | cons o os =>
       rw [wLc_append _ _ _ _ _ _ _ _ (o :: os) (List.cons_ne_nil _ _)]
-      exact hW hprem Ψ hΨ σ' hS _ _ _ _ _ _ _ hops₂ hcs hks hk
+      exact hW hprem hkl Ψ hΨ σ' hS _ _ _ _ _ _ _ hops₂ hcs hks hk
 
 /-- **The frame side's statement from the block lemma at the body.** -/
 theorem frameWords_of_body (hbody : BodyW) : FrameWordsStmt :=
