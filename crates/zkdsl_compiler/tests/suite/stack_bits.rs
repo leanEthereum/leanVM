@@ -3,15 +3,11 @@
 //! pointer (at a runtime index, or from a callee).
 
 use crate::common::compile;
-use lean_vm_core::cpu::{Stats, execute, prove, verify};
+use lean_vm_core::cpu::{execute, prove, verify};
 use primitives::field::{F64, F128};
 use zkdsl_compiler::parse;
 
 const V: u64 = 0b1011_0110;
-
-fn deref_index() -> usize {
-    Stats::TABLES.iter().position(|&t| t == "DEREF").expect("a DEREF table")
-}
 
 /// The same eight-bit decomposition, once through a `HeapBuf` and once through a
 /// `StackBuf`. Every index is compile-time, so the frame run needs no `DEREF` at
@@ -38,7 +34,7 @@ def main():
         )
     };
     let want = [F128::from(F64(V)), F128::from(F64::ONE)];
-    let deref = |s: &str| crate::common::mix(s, want)[deref_index()];
+    let deref = |s: &str| crate::common::mix(s, want)[verifier::layout::OP_DEREF];
     assert_eq!(
         deref(&src("HeapBuf(GEN ** 8)", "GEN ** i")) - deref(&src("StackBuf(8)", "i")),
         16,

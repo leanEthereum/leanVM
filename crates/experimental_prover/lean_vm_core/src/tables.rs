@@ -365,9 +365,6 @@ pub fn tables() -> [&'static dyn Table; N_TABLES] {
     ]
 }
 
-/// Index of the KECCAK table in [`tables`].
-pub(crate) const KECCAK_TABLE: usize = 5;
-
 /// Each table's least log height: 0, but the Keccak reduction's block of steps for `KECCAK`.
 pub const TABLE_LOG_FLOORS: [usize; N_TABLES] = [0, 0, 0, 0, 0, crate::keccak::MIN_STEPS.ilog2() as usize];
 

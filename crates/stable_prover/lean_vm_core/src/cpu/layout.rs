@@ -28,7 +28,7 @@ pub fn keccak_value(col: usize) -> Option<KeccakLane> {
     if let Some(slot) = verifier::layout::qkeccak_slot(col) {
         return Some(KeccakLane::Slot(slot));
     }
-    let lane = col.checked_sub(GLOBAL_COLUMN_BASES[tables::KECCAK_TABLE] + tables::keccakt::V_OUT)?;
+    let lane = col.checked_sub(GLOBAL_COLUMN_BASES[verifier::layout::OP_KECCAK] + tables::keccakt::V_OUT)?;
     (lane < primitives::hash::STATE_LANES).then_some(KeccakLane::Output(lane))
 }
 // `q_keccak`'s slots as the verifier counts them: the committed states', then a spare one per riding column.
@@ -100,7 +100,7 @@ impl Witness {
     /// the private buffer for an output lane.
     pub(crate) fn columns(&self) -> Vec<&[F64]> {
         let q_keccak = self.layout.placements[QKECCAK].offset;
-        let steps = 1 << self.layout.taus[tables::KECCAK_TABLE];
+        let steps = 1 << self.layout.taus[verifier::layout::OP_KECCAK];
         let mut cols: Vec<&[F64]> = self
             .layout
             .placements
@@ -131,7 +131,7 @@ pub fn col_kappa_sources(log_bytecode: usize) -> Vec<Option<(usize, usize)>> {
     k[MEMORY_FINAL_COUNTERS] = Some((1, 0));
     k[BYTECODE_FINAL_COUNTERS] = Some((0, log_bytecode));
     // `q_keccak` is `2^(SLOT_LOG + n_steps_log)` words, and the KECCAK table is `2^n_steps_log` rows.
-    k[QKECCAK] = Some((2 + tables::KECCAK_TABLE, crate::keccak::SLOT_LOG));
+    k[QKECCAK] = Some((2 + verifier::layout::OP_KECCAK, crate::keccak::SLOT_LOG));
     for t in 0..tables::N_TABLES {
         let base = GLOBAL_COLUMN_BASES[t];
         k[base..base + TABLE_WIDTHS[t]].fill(Some((2 + t, 0)));
@@ -265,8 +265,8 @@ pub fn layout_of(log_bytecode: usize, log_mem: usize, rows: [usize; tables::N_TA
 pub(crate) fn table_logs(rows: [usize; tables::N_TABLES]) -> [usize; tables::N_TABLES] {
     let taus = std::array::from_fn(|t| crate::log2_ceil_usize(rows[t]).max(tables::TABLE_LOG_FLOORS[t]));
     debug_assert_eq!(
-        taus[tables::KECCAK_TABLE],
-        crate::keccak::n_steps_log(rows[tables::KECCAK_TABLE]),
+        taus[verifier::layout::OP_KECCAK],
+        crate::keccak::n_steps_log(rows[verifier::layout::OP_KECCAK]),
         "the KECCAK table is the Keccak reduction's batch"
     );
     taus
@@ -282,7 +282,7 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout) -> Witness {
     let mut q = parallel::filled(l.shape.committed_len(), F64::ZERO);
     let mut windows = witness::split_stack(&mut q, &l.placements);
     // An output lane is in neither the stack nor `q_keccak`, but the bus reads it: it has a buffer of its own.
-    let steps = 1 << l.taus[tables::KECCAK_TABLE];
+    let steps = 1 << l.taus[verifier::layout::OP_KECCAK];
     let mut virt: Vec<(usize, Vec<F64>)> = (0..N_COLUMNS)
         .filter(|&i| matches!(keccak_value(i), Some(KeccakLane::Output(_))))
         .map(|i| (i, vec![F64::ZERO; steps]))
@@ -294,7 +294,7 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout) -> Witness {
     let (states, spare) = std::mem::take(&mut windows[QKECCAK]).split_at_mut(crate::keccak::SLOTS * steps);
     windows[QKECCAK] = states;
     for (k, window) in spare.chunks_exact_mut(steps).enumerate() {
-        windows[GLOBAL_COLUMN_BASES[tables::KECCAK_TABLE] + verifier::layout::spare_local(k)] = window;
+        windows[GLOBAL_COLUMN_BASES[verifier::layout::OP_KECCAK] + verifier::layout::spare_local(k)] = window;
     }
 
     crate::stage!("Fill columns", || {

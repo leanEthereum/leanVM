@@ -123,7 +123,7 @@ pub fn n_xi_powers() -> usize {
 /// The KECCAK table's claims on its output lanes, which are the Keccak reduction's claim on the permutation's
 /// output: the table sumcheck claims every column of the table at one point.
 fn keccak_output_claim(table_claims: &[constraints::Claims]) -> keccak_gkr::OutputClaim {
-    let claims = &table_claims[tables::KECCAK_TABLE];
+    let claims = &table_claims[verifier::layout::OP_KECCAK];
     keccak_gkr::OutputClaim {
         instance: claims.chi.clone(),
         lanes: std::array::from_fn(|l| claims.evals[tables::keccakt::V_OUT + l]),

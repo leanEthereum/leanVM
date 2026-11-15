@@ -312,12 +312,9 @@ pub(crate) fn tables() -> [&'static dyn Table; N_TABLES] {
     ]
 }
 
-/// Index of the KECCAK table in [`tables`].
-pub(crate) const KECCAK_TABLE: usize = verifier::layout::OP_KECCAK;
-
 /// Each table's least log height: 0, but the Keccak reduction's block of steps for `KECCAK`.
 pub use verifier::layout::TABLE_LOG_FLOORS;
-const _: () = assert!(crate::keccak::MIN_STEPS == 1 << TABLE_LOG_FLOORS[KECCAK_TABLE]);
+const _: () = assert!(crate::keccak::MIN_STEPS == 1 << TABLE_LOG_FLOORS[verifier::layout::OP_KECCAK]);
 
 /// What each cell a `KECCAK` row touches is addressed by, in flush order (the four `m` cells, the
 /// four `tail` cells, `b8`, the four `cap` cells, then the thirteen output cells): the offset
@@ -918,7 +915,7 @@ const _: () = {
     use verifier::layout::{KECCAK_CNT, KECCAK_IN, KECCAK_OUT, OP_DEREF, OP_JUMP, OP_MUL, OP_SET, OP_XOR};
     assert!(arith::N == TABLE_WIDTHS[OP_XOR] && arith::N == TABLE_WIDTHS[OP_MUL]);
     assert!(set::N == TABLE_WIDTHS[OP_SET] && deref::N == TABLE_WIDTHS[OP_DEREF] && jump::N == TABLE_WIDTHS[OP_JUMP]);
-    assert!(keccakt::N == TABLE_WIDTHS[KECCAK_TABLE]);
+    assert!(keccakt::N == TABLE_WIDTHS[verifier::layout::OP_KECCAK]);
     assert!(keccakt::V_IN == KECCAK_IN && keccakt::V_OUT == KECCAK_OUT && keccakt::R0 == KECCAK_CNT);
 };
 
