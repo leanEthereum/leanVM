@@ -24,8 +24,7 @@ pub enum Coord {
     Const(F64),
     /// A committed column, value `col[z]`.
     Col(usize),
-    /// The free increment `g^k · col[z]` (a virtual column, §sec:vm): `k = 1` for the
-    /// count/state steps, `k ≤ 12` for a KECCAK state's consecutive cells.
+    /// `g^k · col[z]`, a virtual column (§sec:vm): a count's increment or the fall-through pc, `k = 1`.
     GCol(usize, u32),
     /// The product `g^k · col_a[z] · col_b[z]` of two committed columns. An address
     /// is `fp·g^o`, so this carries one on the bus without committing it: the

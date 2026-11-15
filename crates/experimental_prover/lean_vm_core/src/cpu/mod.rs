@@ -42,8 +42,6 @@ fn announce_public(ps: &mut ProverState, log_mem: usize, rows: [usize; tables::N
     ps.add_scalar(F128::new(log_inv_rate as u64, 0));
 }
 
-/// The whole proof is the transcript: a scalar stream plus the PCS hint
-/// channels.
 pub use verifier::Proof;
 
 /// Why [`prove`] produced no proof.

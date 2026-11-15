@@ -245,7 +245,7 @@ impl FoldRounds for Dense {
 
 /// `count` query positions in `0..block_len` in transcript order, duplicates kept: each challenge `c_0 + c_1 y`, as
 /// the integer `c_0 + 2^64 c_1`, gives `floor(128 / log_2(block_len))` of them, its runs of `log_2(block_len)` bits
-/// from the low end (Annex B, "Sampling the queries").
+/// from the low end, as `verifier`'s `whir.rs` reads them.
 fn sample_queries(ps: &mut ProverState, block_len: usize, count: usize) -> Vec<usize> {
     let d = block_len.trailing_zeros() as usize;
     let mut out = Vec::with_capacity(count);

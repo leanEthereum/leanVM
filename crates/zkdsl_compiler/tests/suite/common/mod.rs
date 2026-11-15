@@ -3,7 +3,7 @@
 use primitives::field::F128;
 use zkdsl_compiler::parse;
 
-/// The shared compiler's output, with its bytecode table.
+/// `ast` compiled into the `isa::Program` the provers take.
 pub fn compile(ast: &zkdsl_compiler::Ast) -> isa::Program {
     zkdsl_compiler::compile(ast).into()
 }

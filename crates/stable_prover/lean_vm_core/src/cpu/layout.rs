@@ -1,5 +1,5 @@
 //! The public structure of a run, which the verifier rebuilds from the program and the announced sizes: the bus blocks
-//! and the stack's placements, over the verifier's column numbering. And the prover's witness build.
+//! and the stack's placements, over the verifier's column numbering, and the prover's witness (`build`).
 
 use super::*;
 use verifier::layout::{GLOBAL_COLUMN_BASES, TABLE_WIDTHS};
@@ -303,8 +303,8 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout) -> Witness {
             let ctx = FillCtx::new(tr, &exec.mem, &gpow, &program.prog, 1 << l.taus[t], table.padding());
             table.fill(&ctx, &mut windows[base..base + n]);
         }
-        // The shared columns: the memory image's two limbs and each cell's final count `g^{A[i]}`, a cell read
-        // once for the three, and each pc's final count.
+        // The shared columns, from one pass over the image: each cell's two limbs and final count `g^{A[i]}`, then each
+        // pc's final count.
         const _: () = assert!(NUM_GLOBAL_COLUMNS == 5, "a new shared column needs a fill here");
         const CHUNK: usize = 1 << 12;
         let [lo, hi, count] = windows

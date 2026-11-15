@@ -1,5 +1,5 @@
 //! A compiler from a Python-like zkDSL (see `zkDSL.md`) to the ISA ([`isa::Op`]).
-//! Produces a [`CompiledProgram`]: bytecode plus the prover's allocation hints, which either prover assembles.
+//! Produces a [`CompiledProgram`]: bytecode plus the prover's allocation hints, which `isa::Program::from` prepares for either prover.
 //!
 //! ## Calling convention
 //!
