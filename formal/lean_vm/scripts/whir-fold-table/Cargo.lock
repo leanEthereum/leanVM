@@ -3,14 +3,6 @@
 version = 4
 
 [[package]]
-name = "experimental_fiat_shamir"
-version = "0.1.0"
-dependencies = [
- "experimental_parallel",
- "experimental_primitives",
-]
-
-[[package]]
 name = "experimental_parallel"
 version = "0.1.0"
 dependencies = [
@@ -21,9 +13,9 @@ dependencies = [
 name = "experimental_pcs"
 version = "0.1.0"
 dependencies = [
- "experimental_fiat_shamir",
  "experimental_parallel",
  "experimental_primitives",
+ "fiat_shamir_prover",
  "tracing",
 ]
 
@@ -32,7 +24,20 @@ name = "experimental_primitives"
 version = "0.1.0"
 dependencies = [
  "experimental_parallel",
+ "fiat_shamir_prover",
 ]
+
+[[package]]
+name = "fiat_shamir_prover"
+version = "0.1.0"
+dependencies = [
+ "keccak256",
+ "verifier",
+]
+
+[[package]]
+name = "keccak256"
+version = "0.1.0"
 
 [[package]]
 name = "leanvm-whir-fold-table"
@@ -124,3 +129,7 @@ name = "unicode-ident"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
+
+[[package]]
+name = "verifier"
+version = "0.1.0"
