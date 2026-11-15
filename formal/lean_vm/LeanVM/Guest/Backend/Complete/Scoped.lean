@@ -208,5 +208,36 @@ placement. -/
 def Scoped (tf : TracedFn) : Prop := scopedB tf = true
 
 
+/-! ## No direct self call -/
+
+mutual
+/-- Whether a statement calls `f` by a `call` or a `dispatch`, at any depth (a loop helper's
+closing `callIf` is not counted). -/
+def callsS (f : String) : Stmt → Bool
+  | .call g _ _ => g == f
+  | .dispatch _ gs _ _ => gs.contains f
+  | .ite _ z n => callsL f z || callsL f n
+  | .match_ _ arms => callsA f arms
+  | _ => false
+
+/-- `callsS` of a block. -/
+def callsL (f : String) : List Stmt → Bool
+  | [] => false
+  | s :: ss => callsS f s || callsL f ss
+
+/-- `callsS` of arms. -/
+def callsA (f : String) : List (List Stmt) → Bool
+  | [] => false
+  | a :: as => callsL f a || callsA f as
+end
+
+/-- **No direct self call, decided**: the function calls itself by no `call` and no `dispatch`. -/
+def noSelfCallB (tf : TracedFn) : Bool := !callsL tf.core.name tf.core.body
+
+/-- **No direct self call**: a call of the function itself, other than a loop helper's closing
+`callIf`, would write a return pc and this frame's pointer into a callee header that the frame
+side gives this frame's own header. -/
+def NoSelfCall (tf : TracedFn) : Prop := noSelfCallB tf = true
+
 end
 end LeanVM.Guest.Backend.Complete
