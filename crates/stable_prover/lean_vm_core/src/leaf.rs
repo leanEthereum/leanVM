@@ -11,9 +11,10 @@
 
 use crate::constraints::Form;
 use crate::gkr::{self, Ones};
+use pcs::sumcheck::product_sumcheck;
 use primitives::cast_slice;
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8, g_pow, index_mle, mul_by_g};
-use primitives::multilinear::{eq_eval, interp};
+use primitives::multilinear::eq_eval;
 use primitives::transcript::ProverState;
 use verifier::N_BUS_TREES;
 use verifier::layout::{BUS_BITS, GLOBAL_COLUMN_BASES, TABLE_WIDTHS};
@@ -463,24 +464,14 @@ fn prove_bytecode_share(push: &[Block], public: &[&[F64]], zeta: &[F128], alpha:
     let zeta_lo = &zeta[..block.kappa];
     let columns: Vec<(&[F64], Option<&[F64]>)> = public_columns(block, public).map(|c| (c, None)).collect();
     let mut evals = crate::eq::eq_sums(zeta_lo, &columns).into_iter();
-    let mut slots: Vec<F128> = (0..1 << BUS_BITS)
+    let slots: Vec<F128> = (0..1 << BUS_BITS)
         .map(|x| match block.coords.get(x) {
             Some(Coord::Public(_)) => evals.next().unwrap(),
             _ => F128::ZERO,
         })
         .collect();
-    let mut weights = alpha.to_vec();
-    ps.add_scalar(weights.iter().zip(&slots).map(|(&a, &p)| a * p).sum());
-    for _ in 0..BUS_BITS {
-        let pairs = || weights.as_chunks::<2>().0.iter().zip(slots.as_chunks::<2>().0);
-        let c0: F128 = pairs().map(|(a, p)| a[0] * p[0]).sum();
-        let c2: F128 = pairs().map(|(a, p)| (a[0] + a[1]) * (p[0] + p[1])).sum();
-        let c1: F128 = pairs().map(|(a, p)| a[0] * (p[0] + p[1]) + (a[0] + a[1]) * p[0]).sum();
-        ps.add_round_poly(&[c0, c1, c2], false);
-        let r = ps.sample();
-        let fold = |v: &[F128]| -> Vec<F128> { v.as_chunks::<2>().0.iter().map(|h| interp(h[0], h[1], r)).collect() };
-        (weights, slots) = (fold(&weights), fold(&slots));
-    }
+    ps.add_scalar(alpha.iter().zip(&slots).map(|(&a, &p)| a * p).sum());
+    let (_, slots, _) = product_sumcheck(ps, alpha.to_vec(), slots, 1, F128::ONE);
     ps.add_scalar(slots[0]);
 }
 
