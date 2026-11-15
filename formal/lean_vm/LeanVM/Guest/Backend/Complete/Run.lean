@@ -191,7 +191,7 @@ theorem jump_runC (hL : Loaded prog Γ code) {pos oc od of : ℕ} {fall : Prop}
 theorem seg_runC (hL : Loaded prog Γ code) : ∀ (ops : List LOp) (pos : ℕ),
     (∀ o ∈ ops, o.isJump = false) → CodeAt code pos ops → SegHolds Γ fp ops pos →
     RunC prog Γ.L ⟨addressOfIndex (Γ.pc0 + pos), fp⟩
-      ⟨addressOfIndex (Γ.pc0 + pos + ops.length), fp⟩ (opsCnt ops)
+      ⟨addressOfIndex (Γ.pc0 + (pos + ops.length)), fp⟩ (opsCnt ops)
   | [], pos, _, _, _ => by
       have h0 : opsCnt [] = 0 := by funext op; simp [opsCnt]
       rw [h0]
@@ -207,7 +207,7 @@ theorem seg_runC (hL : Loaded prog Γ code) : ∀ (ops : List LOp) (pos : ℕ),
       have e1 : Γ.pc0 + pos + 1 = Γ.pc0 + (pos + 1) := by omega
       rw [e1] at r1
       have := r1.trans r2
-      have e2 : Γ.pc0 + (pos + 1) + os.length = Γ.pc0 + pos + (o :: os).length := by
+      have e2 : Γ.pc0 + (pos + 1 + os.length) = Γ.pc0 + (pos + (o :: os).length) := by
         simp; omega
       rw [e2] at this
       convert this using 1
@@ -396,6 +396,316 @@ theorem ite_runs (hL : Loaded prog Γ code) {h : List LHint} {c bdest sfp : Cell
         simp [elseAt, stmtSize]
         omega
   all_goals simp [cplS, hcs] at hc
+
+/-- A `JUMP` that cannot fall through reads its target words from its cells. -/
+theorem jumpAt_reads {oc od of : ℕ} {fall : Prop} {taken : E → E → Prop}
+    (h : JumpAt Γ fp oc od of fall taken) :
+    JumpAt Γ fp oc od of fall (fun d f => taken d f ∧ Γ.L.read (fp * addressOfIndex od) = some d ∧
+      Γ.L.read (fp * addressOfIndex of) = some f) := by
+  obtain ⟨c, d, f, hc, hd, hf, hcK, hdK, hfK, hfall, htaken⟩ := h
+  exact ⟨c, d, f, hc, hd, hf, hcK, hdK, hfK, hfall, fun h0 => ⟨htaken h0, hd, hf⟩⟩
+
+/-- **The return.** -/
+theorem ret_runs (hL : Loaded prog Γ code) (h : List LHint) (one : Cell) :
+    SRuns prog Γ fp code σ (.ret h one) := by
+  intro cs pos ks next kj kret khalt hat hc
+  have h0 : code[pos]? = some (LOp.jump one 0 1) := (codeAt_cons.mp hat).1
+  simp only [cplS] at hc
+  simp only [opsS]
+  rcases jump_runC hL h0 (jumpAt_reads hc) with ⟨hfalse, -⟩ | ⟨d, f, ⟨hk, hd, hf⟩, r⟩
+  · exact hfalse.elim
+  · refine ⟨jumpCnt, ks, fun _ => le_rfl, Or.inr (Or.inr (Or.inl ⟨_, r, ?_, hk⟩))⟩
+    simp only [retRegs, hd, hf, Option.bind_some, Option.map_some]
+
+theorem set_slot_jump (o : Cell) (k : KVal) (x first e oc od of : Cell) :
+    lopCnt (.set o k) + lopCnt (.slot x first e) + lopCnt (.jump oc od of) = chainHead := by
+  funext op
+  cases op <;> rfl
+
+/-- **`main`'s end.** -/
+theorem halt_runs (hL : Loaded prog Γ code) (h : List LHint) (one dest : Cell) :
+    SRuns prog Γ fp code σ (.halt h one dest) := by
+  intro cs pos ks next kj kret khalt hat hc
+  simp only [stmtOps, codeAt_cons] at hat
+  obtain ⟨h0, h1, -⟩ := hat
+  simp only [cplS] at hc
+  obtain ⟨hs, hj⟩ := hc
+  simp only [opsS]
+  rcases setJump_runC hL h0 h1 hs (jumpAt_reads hj) with ⟨hfalse, -⟩ | ⟨d, f, ⟨⟨hf, hk⟩, hd, -⟩, r⟩
+  · exact hfalse.elim
+  · refine ⟨setJump, ks, fun _ => le_rfl, Or.inr (Or.inr (Or.inr ⟨d, f, r, ?_, hf, hk⟩))⟩
+    have hs' : Γ.L.read (fp * addressOfIndex dest) =
+        some (OffsetInstruction.immediateWord (Γ.l.pow Γ.l.sentinel) 0) := hs
+    exact Option.some.inj (hd.symm.trans hs')
+
+/-- **A call.** -/
+theorem call_runs (hL : Loaded prog Γ code) (h : List LHint) (c : CallSite) :
+    SRuns prog Γ fp code σ (.call h c) := by
+  intro cs pos ks next kj kret khalt hat hc
+  simp only [stmtOps, codeAt_append, codeAt_cons] at hat
+  obtain ⟨⟨hpre, hj, -⟩, hrets⟩ := hat
+  rcases hcs : ctrlSplit cs with _ | ⟨s, rest⟩
+  · simp [cplS, hcs] at hc
+  rcases ks with _ | ⟨⟨kfp, ck⟩, ks'⟩
+  · simp [cplS, hcs] at hc
+  simp only [cplS, hcs] at hc
+  obtain ⟨hseg, hjmp⟩ := hc
+  simp only [opsS, hcs]
+  have hlen := callPre_length c
+  have r0 := seg_runC hL (callPre c) pos (callPre_noJump c) hpre hseg
+  have hrets' : CodeAt code (pos + (callPre c).length + 1) (callRets c.nfp c.args.length c.rets) := by
+    simpa [List.length_append, Nat.add_assoc] using hrets
+  have hend : pos + (callPre c).length + 1 + (callRets c.nfp c.args.length c.rets).length =
+      pos + stmtSize (.call h c) := by
+    simp only [stmtSize, callRets_length, hlen]; omega
+  rcases jump_runC hL hj hjmp with ⟨⟨hnt, hsr, hn⟩, r1⟩ | ⟨d, f, ⟨ht, hd, hf, r, ⟨hrr, hrun⟩, hk⟩, r1⟩
+  · have r2 := seg_runC hL _ _ (callRets_noJump _ _ _) hrets' hsr
+    refine Outc.fall (runC_cast ((r0.trans r1).trans r2) (by rw [hend]) rfl) hn
+      (by simp [hnt]) (fun op => ?_)
+    simp only [Pi.add_apply, ksum_cons]
+    omega
+  · subst hd hf
+    have r1' := runC_cast r1 (by rw [limb_ofK, limb_ofK]) rfl
+    have rk := (r0.trans r1').trans hrun
+    cases htl : c.tail
+    · simp only [htl, Bool.false_eq_true, ↓reduceIte] at hk
+      obtain ⟨rfl, hsr, hn⟩ := hk
+      have r2 := seg_runC hL _ _ (callRets_noJump _ _ _) hrets' hsr
+      refine Outc.fall (runC_cast (rk.trans r2) (by rw [hend]) rfl) hn (by simp)
+        (fun op => ?_)
+      simp only [Pi.add_apply, ksum_cons]
+      omega
+    · simp only [htl, ↓reduceIte] at hk
+      obtain ⟨hrf, hk⟩ := hk
+      refine ⟨_, ks', fun op => ?_, Or.inr (Or.inr (Or.inl ⟨r, rk, hrf, hk⟩))⟩
+      simp only [Pi.add_apply, ksum_cons]
+      omega
+
+/-- **A loop helper's closing call.** -/
+theorem loopNext_runs (hL : Loaded prog Γ code) (h : List LHint) (callee : String)
+    (nfp entry oc one : Cell) (args : List Cell) :
+    SRuns prog Γ fp code σ (.loopNext h callee nfp entry oc one args) := by
+  intro cs pos ks next kj kret khalt hat hc
+  simp only [stmtOps, codeAt_append, codeAt_cons] at hat
+  obtain ⟨hpre, hj, -⟩ := hat
+  rcases hcs : ctrlSplit cs with _ | ⟨s, rest⟩
+  · simp [cplS, hcs] at hc
+  rcases ks with _ | ⟨⟨kfp, ck⟩, ks'⟩
+  · simp [cplS, hcs] at hc
+  simp only [cplS, hcs] at hc
+  obtain ⟨hseg, hjmp⟩ := hc
+  simp only [opsS, hcs]
+  have hlen := loopPre_length callee nfp entry one args
+  have r0 := seg_runC hL _ pos (loopPre_noJump callee nfp entry one args) hpre hseg
+  rcases jump_runC hL hj hjmp with ⟨⟨hnt, hn⟩, r1⟩ | ⟨d, f, ⟨ht, hd, hf, r, ⟨hrr, hrun⟩, hrf, hk⟩, r1⟩
+  · refine Outc.fall (runC_cast (r0.trans r1) ?_ rfl) hn (by simp [hnt]) (fun op => ?_)
+    · simp only [stmtSize, hlen]
+      congr 2
+    · simp only [Pi.add_apply, ksum_cons]
+      omega
+  · subst hd hf
+    have r1' := runC_cast r1 (by rw [limb_ofK, limb_ofK]) rfl
+    refine ⟨_, ks', fun op => ?_, Or.inr (Or.inr (Or.inl ⟨r, (r0.trans r1').trans hrun, hrf, hk⟩))⟩
+    simp only [Pi.add_apply, ksum_cons]
+    omega
+
+theorem opsCnt_dispatchPre (pos : ℕ) (nfp joinCell x entry : Cell) (first : ℕ) (args : List Cell) :
+    opsCnt (dispatchPre pos nfp joinCell x entry first args) =
+      opsCnt (dispatchPre 0 nfp joinCell x entry first args) := by
+  unfold opsCnt dispatchPre
+  funext op
+  simp only [List.map_append, List.map_cons, List.map_nil, List.sum_append, List.sum_cons]
+  rfl
+
+/-- **A fused dispatch.** -/
+theorem dispatch_runs (hL : Loaded prog Γ code) (h : List LHint) (callees : List String)
+    (nfp joinCell x entry one : Cell) (first : ℕ) (args rets : List Cell) :
+    SRuns prog Γ fp code σ (.dispatch h callees nfp joinCell x entry one first args rets) := by
+  intro cs pos ks next kj kret khalt hat hc
+  simp only [stmtOps, codeAt_append, codeAt_cons] at hat
+  obtain ⟨⟨hpre, hj, -⟩, hrets⟩ := hat
+  rcases hcs : ctrlSplit cs with _ | ⟨s, rest⟩
+  · simp [cplS, hcs] at hc
+  rcases ks with _ | ⟨⟨kfp, ck⟩, ks'⟩
+  · simp [cplS, hcs] at hc
+  simp only [cplS, hcs] at hc
+  obtain ⟨hseg, hjmp⟩ := hc
+  simp only [opsS, hcs]
+  have hlen := dispatchPre_length pos nfp joinCell x entry first args
+  have r0 := seg_runC hL _ pos (dispatchPre_noJump pos nfp joinCell x entry first args) hpre hseg
+  rcases jump_runC hL hj hjmp with ⟨hfalse, -⟩ | ⟨d, f, ⟨hf, g, -, hd, r, ⟨hrr, hrun⟩, rfl, hsr, hn⟩, r1⟩
+  · exact hfalse.elim
+  · subst hd hf
+    have r1' := runC_cast r1 (by rw [limb_ofK, limb_ofK]) rfl
+    have hrets' : CodeAt code (pos + args.length + 5) (callRets nfp args.length rets) := by
+      have e : pos + (dispatchPre pos nfp joinCell x entry first args ++
+          [LOp.jump one entry nfp]).length = pos + args.length + 5 := by
+        simp [hlen]; omega
+      rw [← e]
+      exact hrets
+    have r2 := seg_runC hL _ _ (callRets_noJump _ _ _) hrets' hsr
+    refine Outc.fall (runC_cast (((r0.trans r1').trans hrun).trans r2) ?_ rfl) hn rfl (fun op => ?_)
+    · simp only [stmtSize, callRets_length]
+      congr 2
+      omega
+    · simp only [Pi.add_apply, ksum_cons, opsCnt_dispatchPre pos]
+      omega
+
+/-- A block that falls off its end jumps to the next instruction. -/
+theorem Outc.fall_jump {s : Registers K} {e : ℕ} {o : (Opcode → ℕ) × Bool} {ks : List Kid}
+    {kj : List Kid → E → E → Prop} {kret khalt : Prop}
+    (h : Outc prog Γ fp s e o ks (fun ks' => kj ks' (Γ.tgt e) (ofK fp)) kj kret khalt) (e' : ℕ) :
+    Outc prog Γ fp s e' o ks (fun _ => False) kj kret khalt := by
+  obtain ⟨c, ks', hc, halt⟩ := h
+  refine ⟨c, ks', hc, ?_⟩
+  rcases halt with ⟨hb, hr, hn⟩ | ⟨hb, d, f, hr, hk⟩ | ⟨r, hr, hrr, hk⟩ | ⟨d, f, hr, hd, hf, hk⟩
+  · exact Or.inr (Or.inl ⟨hb, _, _, runC_cast hr (by rw [tgt_limb, limb_ofK]) rfl, hn⟩)
+  · exact Or.inr (Or.inl ⟨hb, d, f, hr, hk⟩)
+  · exact Or.inr (Or.inr (Or.inl ⟨r, hr, hrr, hk⟩))
+  · exact Or.inr (Or.inr (Or.inr ⟨d, f, hr, hd, hf, hk⟩))
+
+/-- **One piece, then another entered by its jump.** -/
+theorem Outc.bindJ {s : Registers K} {e₁ e₂ : ℕ} {o₁ o₂ : (Opcode → ℕ) × Bool} {ks : List Kid}
+    {next : List Kid → Prop} {kj₁ kj : List Kid → E → E → Prop} {kret khalt : Prop}
+    (h₁ : Outc prog Γ fp s e₁ o₁ ks (fun _ => False) kj₁ kret khalt)
+    (h₂ : ∀ ks' d f, kj₁ ks' d f →
+      Outc prog Γ fp ⟨d.limb 0, f.limb 0⟩ e₂ o₂ ks' next kj kret khalt) :
+    Outc prog Γ fp s e₂ (seqO o₁ o₂) ks next kj kret khalt := by
+  obtain ⟨c, ks', hc, halt⟩ := h₁
+  rcases halt with ⟨-, -, hn⟩ | ⟨hb, d, f, hr, hk⟩ | ⟨r, hr, hrr, hk⟩ | ⟨d, f, hr, hd, hf, hk⟩
+  · exact hn.elim
+  · obtain ⟨c₂, ks'', hc₂, halt₂⟩ := h₂ ks' d f hk
+    have hseq : seqO o₁ o₂ = (o₁.1 + o₂.1, o₂.2) := by simp [seqO, hb]
+    refine ⟨c + c₂, ks'', fun op => ?_, ?_⟩
+    · have := hc op
+      have := hc₂ op
+      rw [hseq]
+      simp only [Pi.add_apply]
+      omega
+    · rw [hseq]
+      rcases halt₂ with ⟨hb₂, hr₂, hn₂⟩ | ⟨hb₂, d, f, hr₂, hk⟩ | ⟨r, hr₂, hrr, hk⟩ |
+          ⟨d, f, hr₂, hd, hf, hk⟩
+      · exact Or.inl ⟨hb₂, hr.trans hr₂, hn₂⟩
+      · exact Or.inr (Or.inl ⟨hb₂, d, f, hr.trans hr₂, hk⟩)
+      · exact Or.inr (Or.inr (Or.inl ⟨r, hr.trans hr₂, hrr, hk⟩))
+      · exact Or.inr (Or.inr (Or.inr ⟨d, f, hr.trans hr₂, hd, hf, hk⟩))
+  · refine ⟨c, ks', fun op => (hc op).trans ?_, Or.inr (Or.inr (Or.inl ⟨r, hr, hrr, hk⟩))⟩
+    unfold seqO
+    split <;> simp
+  · refine ⟨c, ks', fun op => (hc op).trans ?_, Or.inr (Or.inr (Or.inr ⟨d, f, hr, hd, hf, hk⟩))⟩
+    unfold seqO
+    split <;> simp
+
+/-- **No arms.** -/
+theorem armsNil_runs (xv : V) : ArRuns prog Γ fp code σ xv [] := by
+  intro arms j pos kj kret khalt ks d f _ hc
+  simp [cplArms] at hc
+
+/-- **An arm, then the arms after it.** -/
+theorem armsCons_runs {xv : V} {pa : List PStmt} {pas : List (List PStmt)}
+    (hpa : LRuns prog Γ fp code σ pa) (hpas : ArRuns prog Γ fp code σ xv pas) :
+    ArRuns prog Γ fp code σ xv (pa :: pas) := by
+  intro arms j pos kj kret khalt ks d f hat hc
+  simp only [armsOps, codeAt_append, blockOps_length] at hat
+  rcases arms with _ | ⟨a, as⟩
+  · simp [cplArms] at hc
+  simp only [cplArms] at hc
+  simp only [opsArms]
+  by_cases hx : σ xv = ofK (addressOfIndex j)
+  · simp only [hx, ↓reduceIte] at hc ⊢
+    obtain ⟨rfl, rfl, hb⟩ := hc
+    rw [tgt_limb, limb_ofK]
+    exact (hpa a pos ks _ kj kret khalt hat.1 hb).fall_jump 0
+  · simp only [hx, ↓reduceIte] at hc ⊢
+    exact hpas as (j + 1) (pos + blockSize pa) kj kret khalt ks d f hat.2 hc
+
+/-- **Past the last stage: the join.** -/
+theorem stagesNil_runs : StRuns prog Γ fp code σ [] := by
+  intro cms pos next kret khalt ks d f _ hc
+  simp only [cplStages] at hc
+  obtain ⟨rfl, rfl, hn⟩ := hc
+  rw [tgt_limb, limb_ofK]
+  exact Outc.fall (c := 0) (by simpa [stagesSize] using RunC.refl (prog := prog) (L := Γ.L) _) hn
+    rfl (fun op => by simp [opsStages])
+
+/-- **A stage, then the stages after it.** -/
+theorem stagesCons_runs {st : List (List PStmt)} {sts : List (List (List PStmt))}
+    (har : ∀ xv, ArRuns prog Γ fp code σ xv st) (hsts : StRuns prog Γ fp code σ sts) :
+    StRuns prog Γ fp code σ (st :: sts) := by
+  intro cms pos next kret khalt ks d f hat hc
+  simp only [stagesOps, codeAt_append, armsOps_length] at hat
+  rcases cms with _ | ⟨m, cms'⟩
+  · simp [cplStages] at hc
+  cases m
+  case match_ xv arms =>
+    simp only [cplStages] at hc
+    simp only [opsStages]
+    have hA := har xv arms 0 pos _ kret khalt ks d f hat.1 hc
+    have hB := Outc.bindJ hA (fun ks' d' f' hk =>
+      hsts cms' (pos + armsSize st) next kret khalt ks' d' f' hat.2 hk)
+    refine (hB.mono (o' := seqO (opsArms σ xv st arms 0) (opsStages σ sts cms')) (fun _ => le_rfl)
+      id (fun _ h => h) (fun _ _ _ h => h) id id).cast_e (by simp [stagesSize]; omega) |>.mono
+      (fun _ => ?_) ?_ (fun _ h => h) (fun _ _ _ h => h) id id
+    · simp only [seqO]
+      split <;> simp_all
+    · simp only [seqO]
+      split <;> simp_all
+  all_goals simp [cplStages] at hc
+
+/-- **A chain of `match`es.** -/
+theorem chain_runs (hL : Loaded prog Γ code) {h : List LHint} {join x entry one sfp : Cell}
+    {firsts : List ℕ} {stages : List (List (List PStmt))} (hst : StRuns prog Γ fp code σ stages) :
+    SRuns prog Γ fp code σ (.chain h join x entry one sfp firsts stages) := by
+  intro cs pos ks next kj kret khalt hat hc
+  simp only [stmtOps, List.cons_append, List.nil_append, codeAt_cons] at hat
+  obtain ⟨h0, h1, h2, hsat⟩ := hat
+  rcases hcs : ctrlSplit cs with _ | ⟨s, rest⟩
+  · simp [cplS, hcs] at hc
+  simp only [cplS, hcs] at hc
+  obtain ⟨hset, hslot, hjmp⟩ := hc
+  simp only [opsS, hcs]
+  have r0 := op_runC hL h0 rfl hset
+  have r1 := op_runC hL h1 rfl hslot
+  rcases jump_runC hL h2 hjmp with ⟨hfalse, -⟩ | ⟨d, f, hk, r2⟩
+  · exact hfalse.elim
+  have r012 : RunC prog Γ.L ⟨addressOfIndex (Γ.pc0 + pos), fp⟩ ⟨d.limb 0, f.limb 0⟩ chainHead :=
+    runC_cast ((r0.trans r1).trans r2) rfl (set_slot_jump _ _ _ _ _ 0 0 0)
+  have hS := hst _ (pos + 3) _ kret khalt ks d f hsat hk
+  refine Outc.pre r012 ((hS.mono (fun _ => le_rfl) id (fun _ h => h) (fun _ _ _ h => h.elim) id
+    id).cast_e (by simp [stmtSize]; omega)) (fun op => by simp) id
+
+/-! ## Every statement -/
+
+mutual
+/-- **A placed statement's instructions run where they hold.** -/
+theorem stmt_runs (hL : Loaded prog Γ code) : ∀ s : PStmt, SRuns prog Γ fp code σ s
+  | .op h o => op_runs hL h o
+  | .ite _ _ _ _ zero _ _ _ nonzero => ite_runs hL (block_runs hL zero) (block_runs hL nonzero)
+  | .chain _ _ _ _ _ _ _ stages => chain_runs hL (stages_runs hL stages)
+  | .call h c => call_runs hL h c
+  | .loopNext h callee nfp entry oc one args => loopNext_runs hL h callee nfp entry oc one args
+  | .dispatch h callees nfp joinCell x entry one first args rets =>
+      dispatch_runs hL h callees nfp joinCell x entry one first args rets
+  | .ret h one => ret_runs hL h one
+  | .halt h one dest => halt_runs hL h one dest
+
+/-- **A placed block's instructions run where they hold.** -/
+theorem block_runs (hL : Loaded prog Γ code) : ∀ ps : List PStmt, LRuns prog Γ fp code σ ps
+  | [] => nil_runs
+  | s :: ss => cons_runs (stmt_runs hL s) (block_runs hL ss)
+
+/-- **A jump into a chain's stages runs where their instructions hold.** -/
+theorem stages_runs (hL : Loaded prog Γ code) :
+    ∀ sts : List (List (List PStmt)), StRuns prog Γ fp code σ sts
+  | [] => stagesNil_runs
+  | st :: sts => stagesCons_runs (fun xv => arms_runs hL st xv) (stages_runs hL sts)
+
+/-- **A jump into a stage's arms runs where their instructions hold.** -/
+theorem arms_runs (hL : Loaded prog Γ code) :
+    ∀ (pas : List (List PStmt)) (xv : V), ArRuns prog Γ fp code σ xv pas
+  | [], xv => armsNil_runs xv
+  | pa :: pas, xv => armsCons_runs (block_runs hL pa) (arms_runs hL pas xv)
+end
 
 end
 end LeanVM.Guest.Backend.Complete
