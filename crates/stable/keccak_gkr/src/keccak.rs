@@ -5,7 +5,9 @@
 
 use primitives::field::F128;
 pub use primitives::hash::STATE_LANES as LANES;
-use primitives::hash::{PI, RC, RHO, ROUNDS};
+use primitives::hash::{PI, RHO};
+#[cfg(test)]
+use primitives::hash::{RC, ROUNDS};
 
 pub const BITS: usize = 1600;
 /// Variables of the cube the positions embed in, low ones first: `z`, then the lane.
