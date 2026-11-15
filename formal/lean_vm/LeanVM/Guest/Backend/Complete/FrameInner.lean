@@ -11,6 +11,7 @@ public import LeanVM.Guest.Backend.Complete.FrameNew
 public import LeanVM.Guest.Backend.Complete.FrameLazy
 public import LeanVM.Guest.Backend.Complete.FrameSegs
 public import LeanVM.Guest.Backend.Complete.FrameOut
+public import LeanVM.Guest.Backend.Complete.FrameFresh
 
 /-!
 # Inner blocks
@@ -20,7 +21,7 @@ flush, its `leave`, the anchor of a hint still waiting, the outer output and poo
 scope walk's values in scope only grow through a block (`scopeBlock_live`), so the values in scope
 at the block's start keep their words after it; by `flushEdge` no value made lazily waits at its
 end (`flushLazy`). `InBlockOff` is the block off the path, the trace in lockstep with the scope
-walk's. `scopeBlock_fa`: no frame address in a block is of a value in scope at its start
+walk's (`inBlockOff_ok`). `scopeBlock_fa`: no frame address in a block is of a value in scope at its start
 (`badAddr`).
 -/
 
@@ -303,6 +304,22 @@ theorem emitOp_eq {o : LOp} {st : St} :
   unfold emitOp takeHints push
   exact wp_bind.mpr (wp_modifyGet.mpr (wp_modify.mpr rfl))
 
+/-- `RR` with the trace passed forgotten. -/
+theorem RR.old {S : V → Prop} {st st' : St} (h : RR S st st') :
+    (∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest ∨
+      (∃ k, st.lazy = some (v, k)) ∨ S v) ∧
+    (∀ v ∈ allocsOf st'.rest, v ∈ allocsOf st.rest) ∧
+    ∀ x ∈ st.tables.shared, x ∈ st'.tables.shared := by
+  obtain ⟨pre, hpre, h1, -, h4⟩ := h
+  refine ⟨fun v hv => ?_, fun v hv => by
+    rw [hpre, allocsOf_append]
+    exact List.mem_append_right _ hv, h4⟩
+  rcases h1 v hv with h | h | h | h
+  · exact Or.inl h
+  · exact Or.inr (Or.inl (by rw [hpre, allocsOf_append]; exact List.mem_append_left _ h))
+  · exact Or.inr (Or.inr (Or.inl h))
+  · exact Or.inr (Or.inr (Or.inr h))
+
 /-- A block's placement ends with no value waiting to be placed if none waited at its start. -/
 theorem placeBlock_lazy : ∀ (ss : List Stmt) (st : St), st.lazy = none →
     wpP (placeBlock ss) ctx st fun _ st' => st'.lazy = none
@@ -477,7 +494,7 @@ theorem inBlockOf (hok : OpOK Γ I Ag cl) (hI : I.Ok) : InBlockOf Γ Ag cl ctx I
         · refine hrw₂.grow (hs₃.trans hs₅) (le_trans hn₃ hn₅)
             (fun v x h => by rw [hl₅]; exact hl₃ v x h) ?_ ?_
           · intro v _ hv
-            rcases hR₃.1 v (by rw [← hl₅]; exact hv) with h | h | ⟨k, h⟩ | h
+            rcases hR₃.old.1 v (by rw [← hl₅]; exact hv) with h | h | ⟨k, h⟩ | h
             · exact Or.inl h
             · exact Or.inr h
             · rw [hlz₂] at h
@@ -545,7 +562,7 @@ theorem inBlockOf (hok : OpOK Γ I Ag cl) (hI : I.Ok) : InBlockOf Γ Ag cl ctx I
           OpsIn I p₁ (blockOps st₅.out.toList p₁) →
           TabsW Γ Ag { st₅ with out := st.out, scope := st.scope } → FinAt Γ I Ag p₁ st₂ :=
         fun hFt hOps hT => FinAt.back (st' := st₅) ⟨hFt, hOps, hT⟩ hnT hlT hob
-          fun x hx => by rw [ht₅]; exact hR₃.2.2.2 x hx
+          fun x hx => by rw [ht₅]; exact hR₃.old.2.2 x hx
       refine ⟨C₂, hsat₂, hbl₂.mono hnT, hs₂, le_trans hn₂ hnT, hl₂.trans hlT, rfl, rfl,
         by rw [hk₅, hk₃]; exact hch₂, fun es' he hFt hOps hT => (hP ⟨⟨es', he⟩,
           hfin hFt hOps hT⟩).elim, fun hFt hOps hT => ?_⟩
@@ -564,14 +581,14 @@ theorem inBlockOf (hok : OpOK Γ I Ag cl) (hI : I.Ok) : InBlockOf Γ Ag cl ctx I
           exact this
       · refine hrw₂.grow (Stronger.refl _) hnT hlT ?_ ?_
         · intro v _ hv
-          rcases hR₃.1 v (by rw [← hl₅]; exact hv) with h | h | ⟨k, h⟩ | h
+          rcases hR₃.old.1 v (by rw [← hl₅]; exact hv) with h | h | ⟨k, h⟩ | h
           · exact Or.inl h
           · exact Or.inr h
           · rw [hlz₂] at h
             cases h
           · exact h.elim
         · intro v hv
-          exact hR₃.2.1 v (allocsOf_tail (by rw [← hr₅]; exact hv))
+          exact hR₃.old.2.1 v (allocsOf_tail (by rw [← hr₅]; exact hv))
     dsimp only
     split
     · refine wp_bind.mpr (wp_mono fresh_eq fun o₅ st₅ ⟨_, hst₅⟩ => ?_)
@@ -588,33 +605,286 @@ end Inner
 
 /-! ## An inner block off the path -/
 
-/-- **A flush in lockstep with the scope walk's**, off the path (owed by the primitives' agent). -/
-def FlushRest : Prop :=
-  ∀ (ctx : Ctx) (up : List Stmt) (st : St) (s s' : SSt), flushAt ctx.retCells s = .ok s' →
-    st.rest = s.rest → st.rest.length ≤ ctx.fuel →
-    wpP (flush up) ctx st fun _ st' => st'.rest = s'.rest
-
-/-- **A block in lockstep with the scope walk's**, off the path (owed by the primitives'
-agent). -/
-def BlockRest : Prop :=
+/-- **Values the trace makes later stay unplaced** through a block in lockstep with the scope
+walk (owed by the primitives' agent). -/
+def BlockFresh : Prop :=
   ∀ (ctx : Ctx) (ss : List Stmt) (st : St) (s s' : SSt), scopeBlock ctx.retCells ss s = .ok s' →
-    st.rest = s.rest → st.rest.length ≤ ctx.fuel →
-    wpP (placeBlock ss) ctx st fun _ st' => st'.rest = s'.rest
+    st.rest = s.rest → st.rest.length ≤ ctx.fuel → (allocsOf st.rest).Nodup → st.lazy = none →
+    (∀ v run, Atom.frameAddr v run ∈ atomsIn ss → v ∉ allocsOf s'.rest) →
+    wpP (placeBlock ss) ctx st fun _ st' =>
+      ∀ v ∈ allocsOf st'.rest, st.locs[v]? = none → st'.locs[v]? = none
+
+/-- `BlockFresh` for a block of its own (owed by the primitives' agent). -/
+def InBlockFresh : Prop :=
+  ∀ (ctx : Ctx) (z : List Stmt) (st : St) (sc sc' : SSt),
+    scopeInner ctx.retCells (fun s' => scopeBlock ctx.retCells z s') sc = .ok sc' →
+    st.rest = sc.rest → st.rest.length ≤ ctx.fuel → (allocsOf st.rest).Nodup → st.lazy = none →
+    (∀ v run, Atom.frameAddr v run ∈ atomsIn z → v ∉ allocsOf sc'.rest) →
+    wpP (inBlock (placeBlock z)) ctx st fun _ st' =>
+      ∀ v ∈ allocsOf st'.rest, st.locs[v]? = none → st'.locs[v]? = none
 
 /-- **An inner block off the path** (a branch or an arm not taken): its trace in lockstep with
-the scope walk's, the outer output, pools and chaining given back, the next free cell up, the
-places grown, no value waiting after it if none waited before, and the places it adds of values
-the trace left makes or frame addresses of its atoms; the shared tables grow. -/
+the scope walk's, the outer output and pools given back, no `match` chaining out if none chained
+in, the next free cell up, the places grown; from a state with no value waiting: none waiting
+after it, the places it adds of values the trace left makes or frame addresses of its atoms, and
+(the trace making each value once) the values made later still unplaced; the trace left shrinks
+and the shared tables grow. -/
 def InBlockOff (ctx : Ctx) (z : List Stmt) : Prop :=
   ∀ (st : St) (sc sc' : SSt),
     scopeInner ctx.retCells (fun s' => scopeBlock ctx.retCells z s') sc = .ok sc' →
     st.rest = sc.rest → st.rest.length ≤ ctx.fuel →
     wpP (inBlock (placeBlock z)) ctx st fun _ st' => st'.rest = sc'.rest ∧
-      st'.scope = st.scope ∧ st'.out = st.out ∧ st'.chainIn = st.chainIn ∧
+      st'.scope = st.scope ∧ st'.out = st.out ∧ (st.chainIn = none → st'.chainIn = none) ∧
       st.next ≤ st'.next ∧ LocsLe st.locs st'.locs ∧
-      (st.lazy = none → st'.lazy = none ∧ ∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨
-        v ∈ allocsOf st.rest ∨ ∃ run, Atom.frameAddr v run ∈ atomsIn z) ∧
+      (st.lazy = none → st'.lazy = none ∧
+        (∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest ∨
+          ∃ run, Atom.frameAddr v run ∈ atomsIn z) ∧
+        ((allocsOf st.rest).Nodup →
+          ∀ v ∈ allocsOf st'.rest, st.locs[v]? = none → st'.locs[v]? = none)) ∧
+      (∀ v ∈ allocsOf st'.rest, v ∈ allocsOf st.rest) ∧
       ∀ x ∈ st.tables.shared, x ∈ st'.tables.shared
+
+/-! ## The value of a frame address is made inside the block -/
+
+section Made
+
+theorem Cons.suf {rc : ℕ} {r r' : List Event} (h : Cons rc r r') : ∃ q, r = q ++ r' :=
+  let ⟨q, hq, _⟩ := h
+  ⟨q, hq⟩
+
+theorem made_trans {p : V} {a b c d : List Event} (h₁ : ∃ q, a = q ++ b)
+    (h₂ : ∃ pre, b = pre ++ c ∧ p ∈ allocsOf pre) (h₃ : ∃ q, c = q ++ d) :
+    ∃ pre, a = pre ++ d ∧ p ∈ allocsOf pre := by
+  obtain ⟨q₁, rfl⟩ := h₁
+  obtain ⟨pre, rfl, hp⟩ := h₂
+  obtain ⟨q₃, rfl⟩ := h₃
+  exact ⟨q₁ ++ pre ++ q₃, by simp [List.append_assoc], by
+    rw [allocsOf_append, allocsOf_append]
+    exact List.mem_append_left _ (List.mem_append_right _ hp)⟩
+
+/-- A frame address statement's value is made by the flush right before it (`badAddr`). -/
+theorem scopeFlat_made {rc : ℕ} {p : V} {run : List V} {s s' : SSt}
+    (h : scopeFlat rc (.atom (.frameAddr p run)) s = .ok s') :
+    ∃ pre, s.rest = pre ++ s'.rest ∧ p ∈ allocsOf pre := by
+  obtain ⟨s₁, hfl, hr₁, hl₁, -, -⟩ := scopeFlat_inv h
+  have hb : s.live.contains p = false ∧ s'.live.contains p = true := by
+    unfold scopeFlat at h
+    split at h
+    · cases h
+    split at h
+    · cases h
+    split at h
+    · cases h
+    split at h
+    · cases h
+    · next hb =>
+      cases h
+      simp only [badAddr, Bool.or_eq_true, not_or] at hb
+      exact ⟨by simpa using hb.1.2, by simpa using hb.2⟩
+  obtain ⟨hseg, hlive, -⟩ := flushS_seg _ _ _ _ _ hfl
+  have hp : p ∈ allocsOf (flushSeg s.rest) :=
+    (hlive p (by rw [← hl₁]; exact hb.2)).resolve_left (by rw [hb.1]; simp)
+  refine ⟨flushSeg s.rest ++ [.emit], ?_, by
+    rw [allocsOf_append]
+    exact List.mem_append_left _ hp⟩
+  rw [List.append_assoc, List.singleton_append, ← hr₁]
+  exact hseg
+
+mutual
+/-- **The value of a frame address of a block is made by an event the block's walk passes.** -/
+theorem scopeBlock_made (rc : ℕ) : ∀ (ss : List Stmt) (s s' : SSt), scopeBlock rc ss s = .ok s' →
+    ∀ p run, Atom.frameAddr p run ∈ atomsIn ss →
+      ∃ pre, s.rest = pre ++ s'.rest ∧ p ∈ allocsOf pre
+  | [], _, _, _, _, _, hm => by simp [atomsIn] at hm
+  | st :: rest, s, s', h, p, run, hm => by
+    simp only [scopeBlock] at h
+    split at h
+    · cases h
+    · next s₁ h₁ =>
+      rw [atomsIn, List.mem_append] at hm
+      rcases hm with hm | hm
+      · exact made_trans ⟨[], rfl⟩ (scopeStmt_made rc st s s₁ h₁ p run hm)
+          (Cons.suf (scopeBlock_cons rc rest s₁ s' h))
+      · exact made_trans (Cons.suf (scopeStmt_cons rc st s s₁ h₁))
+          (scopeBlock_made rc rest s₁ s' h p run hm) ⟨[], rfl⟩
+
+theorem scopeStmt_made (rc : ℕ) : ∀ (st : Stmt) (s s' : SSt), scopeStmt rc st s = .ok s' →
+    ∀ p run, Atom.frameAddr p run ∈ atomsOf st →
+      ∃ pre, s.rest = pre ++ s'.rest ∧ p ∈ allocsOf pre
+  | .ite c z nz, s, s', h, p, run, hm => by
+    simp only [scopeStmt] at h
+    split at h
+    · cases h
+    · next s₀ h₀ =>
+      split at h
+      · cases h
+      · split at h
+        · cases h
+        · next s₁ h₁ =>
+          rw [atomsOf, List.mem_append] at hm
+          rcases hm with hm | hm
+          · obtain ⟨t₁, t₂, t₃, t₄, e₁, e₂, e₃, e₄, rfl⟩ := scopeInner_inv h₁
+            have cT := scopeIteTail_cons
+              (fun _ _ h' => scopeInner_cons (scopeBlock_cons rc nz) h') h
+            exact made_trans
+              (Cons.suf ((flushAt_cons (flushEdge_ok h₀).2).trans (expectS_cons noAlloc_enter e₁)))
+              (scopeBlock_made rc z t₁ t₂ e₂ p run hm)
+              (Cons.suf (((flushAt_cons (flushEdge_ok e₃).2).trans
+                (expectS_cons (s' := t₄) noAlloc_leave e₄)).trans cT))
+          · have c₁ := (flushAt_cons (flushEdge_ok h₀).2).trans
+              (scopeInner_cons (scopeBlock_cons rc z) h₁)
+            unfold scopeIteTail at h
+            split at h
+            · split at h
+              · cases h
+              · next s₂ h₂ =>
+                obtain ⟨t₁, t₂, t₃, t₄, e₁, e₂, e₃, e₄, rfl⟩ := scopeInner_inv h₂
+                have cE := expectS_cons (rc := rc) noAlloc_emit h
+                have cN := expectS_cons (rc := rc) noAlloc_enter e₁
+                exact made_trans (Cons.suf (c₁.trans cN))
+                  (scopeBlock_made rc nz t₁ t₂ e₂ p run hm)
+                  (Cons.suf (((flushAt_cons (flushEdge_ok e₃).2).trans
+                    (expectS_cons (s' := t₄) noAlloc_leave e₄)).trans cE))
+            · split at h
+              · cases h
+              · next hne =>
+                cases nz with
+                | nil => simp [atomsIn] at hm
+                | cons _ _ => simp at hne
+  | .match_ x arms, s, s', h, p, run, hm => by
+    simp only [scopeStmt] at h
+    split at h
+    · cases h
+    · next s₀ h₀ =>
+      split at h
+      · cases h
+      · split at h
+        · cases h
+        · next s₁ h₁ =>
+          exact made_trans (Cons.suf (flushAt_cons (flushEdge_ok h₀).2))
+            (scopeArms_made rc arms s₀ s₀.retDone s₁ h₁ p run hm)
+            (Cons.suf (rc := rc) (expectS_cons noAlloc_emit h))
+  | .atom a, s, s', h, p, run, hm => by
+    simp only [atomsOf, List.mem_singleton] at hm
+    subst hm
+    exact scopeFlat_made h
+  | .call .., _, _, _, _, _, hm => by simp [atomsOf] at hm
+  | .callIf .., _, _, _, _, _, hm => by simp [atomsOf] at hm
+  | .dispatch .., _, _, _, _, _, hm => by simp [atomsOf] at hm
+  | .ret _, _, _, _, _, _, hm => by simp [atomsOf] at hm
+
+theorem scopeArms_made (rc : ℕ) : ∀ (arms : List (List Stmt)) (s : SSt) (acc : Bool) (s' : SSt),
+    scopeArms rc arms s acc = .ok s' → ∀ p run, Atom.frameAddr p run ∈ armsAtoms arms →
+      ∃ pre, s.rest = pre ++ s'.rest ∧ p ∈ allocsOf pre
+  | [], _, _, _, _, _, _, hm => by simp [armsAtoms] at hm
+  | arm :: more, s, acc, s', h, p, run, hm => by
+    simp only [scopeArms] at h
+    split at h
+    · cases h
+    · next s₁ h₁ =>
+      rw [armsAtoms, List.mem_append] at hm
+      rcases hm with hm | hm
+      · obtain ⟨t₁, t₂, t₃, t₄, e₁, e₂, e₃, e₄, rfl⟩ := scopeInner_inv h₁
+        have cA := scopeArms_cons rc more _ _ s' h
+        exact made_trans (Cons.suf (rc := rc) (expectS_cons noAlloc_enter e₁))
+          (scopeBlock_made rc arm t₁ t₂ e₂ p run hm)
+          (Cons.suf (((flushAt_cons (flushEdge_ok e₃).2).trans
+            (expectS_cons (s' := t₄) noAlloc_leave e₄)).trans cA))
+      · exact made_trans (Cons.suf (scopeInner_cons (scopeBlock_cons rc arm) h₁))
+          (scopeArms_made rc more _ _ s' h p run hm) ⟨[], rfl⟩
+end
+
+/-- **No frame address of a block is of a value the trace makes after it.** -/
+theorem inner_fa_after {rc : ℕ} {z : List Stmt} {sc sc' : SSt}
+    (h : scopeInner rc (fun s' => scopeBlock rc z s') sc = .ok sc')
+    (hnd : (allocsOf sc.rest).Nodup) :
+    ∀ v run, Atom.frameAddr v run ∈ atomsIn z → v ∉ allocsOf sc'.rest := by
+  intro v run hm hv
+  obtain ⟨t₁, t₂, t₃, t₄, e₁, e₂, e₃, e₄, rfl⟩ := scopeInner_inv h
+  obtain ⟨pre, hpre, hp⟩ := made_trans (Cons.suf (rc := rc) (expectS_cons noAlloc_enter e₁))
+    (scopeBlock_made rc z t₁ t₂ e₂ v run hm)
+    (Cons.suf ((flushAt_cons (flushEdge_ok e₃).2).trans (expectS_cons (s' := t₄) noAlloc_leave e₄)))
+  rw [hpre, allocsOf_append] at hnd
+  exact List.disjoint_of_nodup_append hnd hp hv
+
+end Made
+
+/-! ## An inner block off the path, proved -/
+
+section Off
+
+variable {ctx : Ctx}
+
+theorem inBlock_lazyOff (z : List Stmt) {st : St} {sc sc' : SSt}
+    (hsc : scopeInner ctx.retCells (fun s' => scopeBlock ctx.retCells z s') sc = .ok sc')
+    (hr : st.rest = sc.rest) (hf : st.rest.length ≤ ctx.fuel) (hz : st.lazy = none) :
+    wpP (inBlock (placeBlock z)) ctx st fun _ st' => st'.lazy = none := by
+  obtain ⟨s₁, s₂, s₃, s₄, h₁, h₂, h₃e, h₄, rfl⟩ := scopeInner_inv hsc
+  obtain ⟨hlf, -⟩ := flushEdge_ok h₃e
+  obtain ⟨ev, hst, -, -, -⟩ := expectS_ok h₁
+  have ht : st.rest.tail = s₁.rest := by rw [hr, hst]; rfl
+  unfold inBlock
+  refine wp_bind.mpr (wp_mono (expect_rest (st := st)) fun _ stA hA => ?_)
+  subst hA
+  refine wp_bind.mpr (wp_get.mpr (wp_bind.mpr (wp_set.mpr ?_)))
+  refine wp_bind.mpr (wp_mono (wp_and (blockRest z _ s₁ s₂ h₂ ht (by
+      show st.rest.tail.length ≤ ctx.fuel
+      rw [List.length_tail]
+      omega)) (placeBlock_lazy z _ hz)) fun _ st₂ ⟨hr₂, hz₂⟩ => ?_)
+  refine wp_bind.mpr (wp_mono (flushLazy [] st₂ (by rw [hr₂]; exact hlf)) fun _ st₃ hz₃ => ?_)
+  refine wp_bind.mpr (wp_mono (expect_rest (st := st₃)) fun _ st₄ h₄' => ?_)
+  subst h₄'
+  refine wp_bind.mpr (wp_get.mpr ?_)
+  dsimp only
+  split
+  · refine wp_bind.mpr (wp_mono fresh_eq fun _ st₅ ⟨_, hst₅⟩ => ?_)
+    refine wp_bind.mpr (wp_mono emitOp_eq fun _ st₆ hst₆ => ?_)
+    exact wp_bind.mpr (wp_get.mpr (wp_bind.mpr (wp_set.mpr (wp_pure.mpr (by
+      rw [hst₆, hst₅]
+      exact hz₃.trans hz₂)))))
+  · exact wp_bind.mpr (wp_get.mpr (wp_bind.mpr (wp_set.mpr (wp_pure.mpr (hz₃.trans hz₂)))))
+
+/-- **An inner block off the path**, from `InBlockFresh`. -/
+theorem inBlockOff (hfr : InBlockFresh) (z : List Stmt) : InBlockOff ctx z := by
+  intro st sc sc' hsc hr hf
+  have hR : wpP (inBlock (placeBlock z)) ctx st fun _ st' => st'.rest = sc'.rest :=
+    inBlock_rs (fun s₁ s₂ st h hl => placeBlock_rs z s₁ s₂ st h hl)
+      (fun s₁ s₂ h => scopeBlock_cons _ z s₁ s₂ h) hsc (by rw [← hr]; exact hf) hr
+  have hC : wpP (inBlock (placeBlock z)) ctx st fun _ st' =>
+      st.chainIn = none → st'.chainIn = none := by
+    by_cases h : st.chainIn = none
+    · exact wp_mono (inBlock_chain (fun st h => wp_mono (placeMono z st) fun _ _ hq =>
+        (hq.2.2 h).1) st h) fun _ _ h' _ => h'
+    · exact fun _ _ _ h' => absurd h' h
+  have hL : wpP (inBlock (placeBlock z)) ctx st fun _ st' => st.lazy = none →
+      st'.lazy = none ∧ ((allocsOf st.rest).Nodup →
+        ∀ v ∈ allocsOf st'.rest, st.locs[v]? = none → st'.locs[v]? = none) := by
+    by_cases hz : st.lazy = none
+    · refine wp_mono (wp_and (inBlock_lazyOff z hsc hr hf hz) ?_) fun _ _ ⟨h1, h2⟩ _ => ⟨h1, h2⟩
+      by_cases hnd : (allocsOf st.rest).Nodup
+      · exact wp_mono (hfr ctx z st sc sc' hsc hr hf hnd hz
+          (inner_fa_after hsc (by rw [← hr]; exact hnd))) fun _ _ h _ => h
+      · exact fun _ _ _ h => absurd h hnd
+    · exact fun _ _ _ h => absurd h hz
+  refine wp_mono (wp_and hR (wp_and (inBlock_mono (fun st => placeBlock_mono z st) st)
+    (wp_and (inBlock_r (S := FA (atomsIn z)) (fun st => placeBlock_r z st) st) (wp_and hC hL))))
+    fun _ st' ⟨h1, ⟨hm, ho, hs⟩, hRR, hc, hl⟩ => ⟨h1, hs, ho, hc, hm.1, hm.2,
+      fun hz => ⟨(hl hz).1, fun v hv => ?_, (hl hz).2⟩, hRR.old.2.1, hRR.old.2.2⟩
+  rcases hRR.old.1 v hv with h | h | ⟨k, h⟩ | h
+  · exact Or.inl h
+  · exact Or.inr (Or.inl h)
+  · rw [hz] at h
+    cases h
+  · exact Or.inr (Or.inr h)
+
+theorem blockFresh_ok : BlockFresh := blockFresh
+
+theorem inBlockFresh_ok : InBlockFresh := inBlockFresh
+
+/-- **An inner block off the path.** -/
+theorem inBlockOff_ok (z : List Stmt) : InBlockOff ctx z := inBlockOff inBlockFresh_ok z
+
+end Off
 
 end
 end LeanVM.Guest.Backend.Complete
