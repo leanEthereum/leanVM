@@ -390,5 +390,42 @@ theorem FBAt.dead {α : Type} {m : P α} {Q : α → St → Prop}
 
 end FB
 
+/-! ## A block, statement by statement -/
+
+/-- **A statement's lemma's statement**: `BlockW` for `placeStmt s rest; endStmt` against the
+scope walk's `scopeStmt` and the path's `walk1`. -/
+def StmtW {κ₀ : ℕ} (Γ : Site κ₀) (Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) →
+    MemoryImage κ → Prop) (cl : List Call) (ctx : Ctx) (I : Inst) (s : Stmt)
+    (rest tl : List Stmt) : Prop :=
+  ∀ (C : (ℕ → E) → Prop) (st : St) (sc sc' : SSt) (i₀ : ℕ) (o : Out),
+    scopeStmt ctx.retCells s sc = .ok sc' → walk1 I.σ s = o → o ≠ .stuck →
+    (∀ e ∈ outEs o, e ∈ I.es) → (∀ j < (calls (outEs o)).length, cl[i₀ + j]? = (calls (outEs o))[j]?) →
+    WInv ctx I C st sc →
+    FBAt ctx I C st (placeStmt s rest >>= fun _ => endStmt) fun _ C' st' =>
+      (∀ es, o = .fall es → WInv ctx I C' st' sc') ∧
+      ∃ blk, st'.out.toList = st.out.toList ++ blk ∧
+        (Fits I st' → BlkW Γ I Ag cl C' blk [s] (rest ++ tl) o i₀)
+
+section BlockCons
+
+variable {κ₀ : ℕ} {Γ : Site κ₀}
+  {Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop} {cl : List Call}
+  {ctx : Ctx} {I : Inst}
+
+theorem BlockW.nil (tl : List Stmt) : BlockW Γ Ag cl ctx I (placeBlock []) [] tl := by
+  intro C st s s' i₀ o hsc hw _ _ _ hinv
+  rw [scopeBlock] at hsc
+  cases hsc
+  rw [walk] at hw
+  subst hw
+  rw [placeBlock]
+  refine FBAt.pure ⟨fun _ _ => hinv, [], by simp, fun _ => ⟨fun _ => [], fun _ => rfl,
+    fun Ψ _ σ' _ kh cs pos ks next kj kret khalt _ hcs _ hk => ?_⟩⟩
+  rw [wLc]
+  have := hk cs (by simpa using hcs)
+  simpa [outEs, calls] using this
+
+end BlockCons
+
 end
 end LeanVM.Guest.Backend.Complete
