@@ -46,7 +46,7 @@ theorem cellOf_fat (v : V) {ok : V → Prop} (hok : I.Ok) (hv : VW I C st ok) (h
     exact FAt.pure ⟨a, b, rfl, rfl, c⟩
   · next n e hn =>
     obtain ⟨a, b, c⟩ := hv v _ hkv hn
-    exact FAt.mono (materialize_fat n e hok a b) fun _ C' st' hs _ _ ⟨h1, h2, h3, h4, h5⟩ =>
+    exact FAt.mono (materialize_fat n e hok a b) fun _ C' st' hs _ _ ⟨h1, h2, h3, h4, h5, _⟩ =>
       ⟨h1, h2, h3, h4, fun Ψ hΨ => (h5 Ψ hΨ).trans (c Ψ (hs Ψ hΨ))⟩
   · exact FAt.fail
 
@@ -70,7 +70,7 @@ theorem factor_fat (v : V) {ok : V → Prop} (hok : I.Ok) (hv : VW I C st ok) (h
   · next n e hn =>
     obtain ⟨a, b, c⟩ := hv v _ hkv hn
     split
-    · exact FAt.bind (materialize_fat n e hok a b) fun o st₁ C₁ hs _ _ ⟨h1, h2, h3, h4, h5⟩ =>
+    · exact FAt.bind (materialize_fat n e hok a b) fun o st₁ C₁ hs _ _ ⟨h1, h2, h3, h4, h5, _⟩ =>
         FAt.pure ⟨h1, h2, h3, h4, fun Ψ hΨ => by
           rw [ofK_gpow_zero, mul_one, h5 Ψ hΨ]
           exact c Ψ (hs Ψ hΨ)⟩
