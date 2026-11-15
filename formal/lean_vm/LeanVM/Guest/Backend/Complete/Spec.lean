@@ -96,11 +96,12 @@ mutual
 the memory** on `σ`'s path, the core block from `s` on being `cs`: `next cs' ks'` after its last
 instruction (`cs'` the core statements after it, `ks'` the kids left), `kj ks' d f` after a taken
 straight-line jump to the words `d`, `f`, `kret` after the frame's return, `khalt` after `main`'s
-closing jump. -/
+closing jump. Only the last statement of a block may leave by `kj` (an arm's exit through the next
+table or to the join); a straight-line jump elsewhere, and in an `ite`'s blocks, falls through. -/
 def cplS : PStmt → List Stmt → ℕ → List Kid → (List Stmt → List Kid → Prop) →
     (List Kid → E → E → Prop) → Prop → Prop → Prop
   | .op _ o, cs, pos, ks, next, kj, _, _ => OpSem Γ fp o pos (next cs ks) (kj ks)
-  | .ite _ c bdest sfp zero hasElse edest one nonzero, cs, pos, ks, next, kj, kret, khalt =>
+  | .ite _ c bdest sfp zero hasElse edest one nonzero, cs, pos, ks, next, _, kret, khalt =>
       match ctrlSplit cs with
       | some (.ite cv z n, rest) =>
           Holds Γ.L (Γ.pc0 + pos) fp (Γ.R (.set bdest (.local (elseAt pos zero hasElse)))) ∧
@@ -112,9 +113,11 @@ def cplS : PStmt → List Stmt → ℕ → List Kid → (List Stmt → List Kid 
                   JumpAt Γ fp one edest sfp False (fun d f =>
                     d = Γ.tgt (elseAt pos zero hasElse + blockSize nonzero) ∧ f = ofK fp ∧
                       next rest ks')
-                else next rest ks') kj kret khalt)
+                else next rest ks') (fun _ _ _ => False) kret khalt)
             (fun d f => σ cv ≠ 0 ∧ d = Γ.tgt (elseAt pos zero hasElse) ∧ f = ofK fp ∧
-              if hasElse then cplL nonzero n (elseAt pos zero hasElse) ks (next rest) kj kret khalt
+              if hasElse then
+                cplL nonzero n (elseAt pos zero hasElse) ks (next rest) (fun _ _ _ => False) kret
+                  khalt
               else next rest ks)
       | _ => False
   | .chain _ join x entry one sfp firsts stages, cs, pos, ks, next, _, kret, khalt =>
@@ -170,8 +173,8 @@ def cplL : List PStmt → List Stmt → ℕ → List Kid → (List Kid → Prop)
     (List Kid → E → E → Prop) → Prop → Prop → Prop
   | [], _, _, ks, next, _, _, _ => next ks
   | s :: ss, cs, pos, ks, next, kj, kret, khalt =>
-      cplS s cs pos ks (fun cs' ks' => cplL ss cs' (pos + stmtSize s) ks' next kj kret khalt) kj
-        kret khalt
+      cplS s cs pos ks (fun cs' ks' => cplL ss cs' (pos + stmtSize s) ks' next kj kret khalt)
+        (if ss.isEmpty then kj else fun _ _ _ => False) kret khalt
 
 /-- A jump to `(d, f)` into the stages of a chain from instruction `pos`, the core `match`es of
 the stages being `cms`: into the arm of the first stage `σ` picks, or past the stages to the
@@ -211,8 +214,8 @@ namespace World
 
 variable {κ : ℕ} (W : World κ)
 
-/-- The program on another memory. -/
-def withL (L : MemoryImage κ) : World κ := { W with L }
+/-- The program on another memory, of any size. -/
+def withL {κ' : ℕ} (L : MemoryImage κ') : World κ' := ⟨W.p, W.fns, W.slots, W.logSize, W.hl, L, W.U⟩
 
 /-- Function `g`'s code in the program: its entry and frame in the layout. The contracts are not
 read by the completeness side. -/
@@ -341,17 +344,18 @@ def PlaceInFrameStmt : Prop :=
 /-- **The frame of an instance is consistent** (the placement side): for a scoped function
 placed as `pf`, at a frame `fp` (`main`'s at `0`) whose frame addresses point into it, with callee
 frames `kfps` and header `hdr`, there is a frame family over the valuations, chosen before any
-memory and blind to the temporaries' words, such that on every path its words hold the values the
-path reads, and on every memory holding the frame whose reads agree with the path's events, with
-the jump tables written and the callees' runs, the instructions of the path have their meaning. -/
+memory (of any size) and blind to the temporaries' words, such that on every path its words hold
+the values the path reads, and on every memory holding the frame whose reads agree with the path's
+events, with the jump tables written and the callees' runs, the instructions of the path have
+their meaning. -/
 def FrameConsistentStmt (TmpsApart : TracedFn → Placed → Prop) : Prop :=
-  ∀ {κ : ℕ} (W : World κ), W.Compiled → ∀ tf ∈ W.p, Scoped tf → ∀ pf, World.PlacedAs W tf pf →
+  ∀ {κ₀ : ℕ} (W : World κ₀), W.Compiled → ∀ tf ∈ W.p, Scoped tf → ∀ pf, World.PlacedAs W tf pf →
   ∀ (fp : ℕ), (tf.core.name = "main" → fp = 0) → ∀ (kfps : List ℕ) (hdr : E × E),
   ∃ FS : Val → FrameSpec, FrameCongr tf pf FS ∧
     ∀ (σ : Val) (es : List Ev) (vs : List V), walk σ tf.core.body = .ret es vs →
       (∀ q ∈ addrs es, σ q.1 = ofK (addressOfIndex (fp + (cellP pf.locs q.2).getD 0))) →
       FrameClauses (loopTable W.p) TmpsApart tf pf fp σ es vs hdr (FS σ) ∧
-      ∀ (L : MemoryImage κ) (ck : List (Opcode → ℕ)),
+      ∀ {κ : ℕ} (L : MemoryImage κ) (ck : List (Opcode → ℕ)),
         FrameOK L (loopTable W.p) tf pf.fn.frameSize fp (FS σ) σ es kfps hdr →
         (∀ e ∈ es, e.Holds L.read σ) → JTHolds L W.layout W.slots →
         World.KidsRunP (World.withL W L) σ es kfps ck →
