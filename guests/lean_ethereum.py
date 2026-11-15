@@ -1,5 +1,5 @@
 # The recursive aggregation guest: zkDSL, not runnable Python (see
-# crates/lean_compiler/zkDSL.md). One node of an aggregation tree verifies raw leanXMSS
+# crates/zkdsl_compiler/zkDSL.md). One node of an aggregation tree verifies raw leanXMSS
 # and leanSPHINCS signatures and sub-proofs OF THIS SAME BYTECODE, and publishes the
 # statement digest binding its signature claims and at most one LeanDA root: that of a
 # blob matrix it checks directly, or one of its children's, passed on.
@@ -8,7 +8,7 @@
 # `open_stacked` the WHIR opening it dispatches into.
 #
 # Every `*_PLACEHOLDER` below is filled by the host at compile time
-# (rec_aggregation::aggregation::placeholder_map), so one source serves every inner
+# (the `aggregation` crate's `placeholder_map`), so one source serves every inner
 # shape. Names follow doc/leanvm/preamble/macros.tex.
 from snark_lib import *
 

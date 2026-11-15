@@ -1,6 +1,6 @@
 {
     "extraPaths": [
-        "crates/lean_compiler"
+        "crates/zkdsl_compiler"
     ],
     "typeCheckingMode": "basic",
     "pythonVersion": "3.13"

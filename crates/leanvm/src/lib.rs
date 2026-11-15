@@ -10,11 +10,11 @@
 
 use ::lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use ::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
-use isa::Prover;
-pub use rec_aggregation::{
+pub use aggregation::{
     AggregateClaims, AggregateError, AggregateProof, LeanSphincsClaim, LeanXmssClaim, MAX_LOG_INV_RATE, MAX_RECURSIONS,
     MIN_LOG_INV_RATE, OutputClaims,
 };
+use isa::Prover;
 
 #[cfg(feature = "experimental-prover")]
 type P = experimental_leanvm_core::ExperimentalProver;
@@ -47,7 +47,7 @@ pub mod lean_sphincs {
 /// aggregation program.
 pub fn setup() {
     P::init();
-    rec_aggregation::warm_up::<P>();
+    aggregation::warm_up::<P>();
 }
 
 /// Aggregate leanXMSS and leanSPHINCS signatures, blobs and the claims of child proofs.
@@ -74,5 +74,5 @@ pub fn aggregate(
     output: OutputClaims,
     log_inv_rate: usize,
 ) -> Result<(AggregateClaims, AggregateProof), AggregateError> {
-    rec_aggregation::aggregate::<P>(children, raw_lean_xmss, raw_lean_sphincs, blobs, output, log_inv_rate)
+    aggregation::aggregate::<P>(children, raw_lean_xmss, raw_lean_sphincs, blobs, output, log_inv_rate)
 }

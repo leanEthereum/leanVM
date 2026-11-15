@@ -1,0 +1,1185 @@
+extern crate stable_leanvm_core as leanvm_core;
+
+use super::cells::{ONE, ZERO, count, hash_to_scalars, pack_16_bytes, word};
+use super::deferred::{DeferredBytecodeClaim, bytecode_sums, bytecode_value, bytecode_vars};
+use super::error::AggregateError;
+use super::guest::{compile_guest, scalar_bytecode};
+use super::hints::{FORGE, Forgery, Hints, lean_xmss_hints};
+use super::placeholders::placeholder_map;
+use super::proof::{AggregateClaims, AggregateProof, decode, encode, public_input, public_input_bytes};
+use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
+use super::*;
+use crate::protocol::g_pow;
+use isa::Prover;
+use keccak256::{hash, hash_pair};
+use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS, Hash, LOG_BLOB_SYMBOLS};
+use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
+use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
+use leanvm_core::StableProver;
+use leanvm_core::cpu::{ExecError, Execution, from_scalar};
+use rand::SeedableRng;
+use rand::rngs::StdRng;
+use verifier::E;
+use zkdsl_compiler::{compile, parse_with_replacements};
+
+use crate::signers_cache::{
+    LeanXmssSigner, get_lean_sphincs_signers, get_signers, get_signers_for, message, message_for,
+};
+
+/// A second cached message, sorting after [`message`]; signer `i` holds the same
+/// pubkey under both, at another leaf index.
+const MESSAGE_B: u32 = 2;
+const SMALL_LEAF_SIZE: usize = 6;
+const LOG_INV_RATE: usize = leanvm_core::pcs::TEST_LOG_INV_RATE;
+
+/// [`aggregate`](super::aggregate) on the stable prover, which the tests run.
+fn aggregate(
+    children: &[(AggregateClaims, AggregateProof)],
+    raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
+    raw_lean_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
+    blobs: Option<&lean_da::BlobMatrix>,
+    output: OutputClaims,
+    log_inv_rate: usize,
+) -> Result<(AggregateClaims, AggregateProof), AggregateError> {
+    super::aggregate::<StableProver>(children, raw_lean_xmss, raw_lean_sphincs, blobs, output, log_inv_rate)
+}
+
+/// Run a program assembled for the stable prover.
+fn execute(program: &leanvm_core::cpu::Program, public_input: [E; 2]) -> Result<Execution, ExecError> {
+    program.execute(public_input.map(from_scalar))
+}
+
+/// The blobs' matrix, `None` for no blobs.
+fn matrix(blobs: &[lean_da::Blob]) -> Option<lean_da::BlobMatrix> {
+    (!blobs.is_empty()).then(|| lean_da::BlobMatrix::build(blobs).unwrap())
+}
+
+/// An aggregate's claims and proof, as [`aggregate`] returns them.
+type Node = (AggregateClaims, AggregateProof);
+
+trait VerifyNode {
+    fn verify(&self) -> bool;
+}
+
+impl VerifyNode for Node {
+    fn verify(&self) -> bool {
+        self.1.verify(&self.0)
+    }
+}
+
+// The native verifier derives the DA challenge's grind from its own copy of the blob size.
+const _: () = assert!(verifier::da::LOG_BLOB_SYMBOLS == LOG_BLOB_SYMBOLS);
+
+#[test]
+fn the_wire_layout_is_pinned() {
+    let le = u64::to_le_bytes;
+    let (point, proof) = (vec![E::new(1, 2), E::new(4, 5)], vec![9, 8, 7]);
+    let bytes = encode(&point, &proof);
+    assert_eq!(bytes, [&le(2)[..], &le(1), &le(2), &le(4), &le(5), &proof].concat());
+    assert_eq!(decode(&bytes), Some((point, &proof[..])));
+    // A count beyond the input, or beyond any input, fails whatever it claims.
+    assert_eq!(decode(&[&le(3)[..], &bytes[8..]].concat()), None);
+    assert_eq!(decode(&le(u64::MAX)), None);
+}
+
+/// The guest compiles to one program, always.
+///
+/// `unified_guest` finds a fixed point by compiling repeatedly and comparing
+/// the result's log size, so a compiler that read a hash seed would not just
+/// produce two incompatible transcripts, it could fail to converge at all.
+/// The small programs in `zkdsl_compiler`'s `determinism` suite pin the
+/// digests; this pins the one program large enough to hit every path that
+/// walks a map. A fixed `kbc` is enough: reproducibility does not depend on
+/// the size being the fixed point.
+#[test]
+fn guest_compiles_reproducibly() {
+    let (one, two) = (compile_guest(20), compile_guest(20));
+    assert_eq!(
+        format!("{:?}", one.prog()),
+        format!("{:?}", two.prog()),
+        "two compilations of the guest produced different bytecode, \
+             so the compiler is reading a hash seed"
+    );
+}
+
+fn prove_leaf(signers: &[LeanXmssSigner]) -> Node {
+    aggregate(&[], signers.to_vec(), vec![], None, OutputClaims::All, LOG_INV_RATE).expect("leaf aggregates")
+}
+
+/// The guest builds a leanXMSS address as its type's cell plus `lo`,
+/// `hi · 2^32` and `step · 2^61` in the low lane, and the top layer's flag, which
+/// must be the native address's bytes.
+#[test]
+fn guest_addresses_are_the_native_ones() {
+    let cell = |tw| pack_16_bytes(&lean_xmss::internals::address(&tw));
+    let top = cell(lean_xmss::internals::tweak(0, lean_xmss::internals::TOP, 0));
+    for tag in [
+        lean_xmss::internals::TWEAK_CHAIN,
+        lean_xmss::internals::TWEAK_LEAF,
+        lean_xmss::internals::TWEAK_NODE,
+        lean_xmss::internals::TWEAK_MSG,
+    ] {
+        for layer in 0..2 {
+            for (hi, lo, step) in [(0u32, 0u32, 0usize), (5, 0x1234_5678, 2), (16, u32::MAX, 0)] {
+                let tw = lean_xmss::internals::tweak(tag, lean_xmss::internals::layer_hi(layer, hi), lo).step(step);
+                let fields = E::new(u64::from(lo) | u64::from(hi) << 32 | (step as u64) << 61, 0);
+                let guest = cell(lean_xmss::internals::tweak(tag, 0, 0)) + fields + if layer == 1 { top } else { ZERO };
+                assert_eq!(guest, cell(tw));
+            }
+        }
+    }
+}
+
+type RawSphincs = (LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature);
+
+fn prove_lean_sphincs_leaf(signers: &[RawSphincs]) -> Node {
+    aggregate(&[], vec![], signers.to_vec(), None, OutputClaims::All, LOG_INV_RATE).expect("leaf aggregates")
+}
+
+#[test]
+fn aggregate_one_lean_sphincs_signer() {
+    StableProver::init();
+    let aggregate = prove_lean_sphincs_leaf(&get_lean_sphincs_signers(1));
+    assert!(aggregate.verify(), "verifies");
+    assert!(aggregate.0.lean_xmss.is_empty());
+    assert_eq!(aggregate.0.lean_sphincs.len(), 1);
+}
+
+/// A leanSPHINCS signature's digest and openings are bound in-circuit: a node whose
+/// hints put the digest's unused bytes off by one, order a FORS node and its sibling
+/// the other way, or give a layer another counter fails the guest's run.
+#[test]
+fn forged_lean_sphincs_hints_are_rejected() {
+    StableProver::init();
+    let signers = get_lean_sphincs_signers(1);
+    let forgeries: [Forgery; 3] = [
+        Box::new(|hints: &mut Hints| {
+            hints.entry_mut("sp_unused", 0)[0] *= count(1);
+        }),
+        Box::new(|hints: &mut Hints| hints.entry_mut("sp_fors_nodes", 0).swap(0, 1)),
+        Box::new(|hints: &mut Hints| {
+            hints.entry_mut("sp_counter", 1)[0] *= count(1);
+        }),
+    ];
+    for forgery in forgeries {
+        FORGE.with(|forge| *forge.borrow_mut() = Some(forgery));
+        let result = aggregate(&[], vec![], signers.clone(), None, OutputClaims::All, LOG_INV_RATE);
+        assert!(
+            result.err() == Some(AggregateError::ProvingFailed),
+            "a forged hint is rejected"
+        );
+    }
+}
+
+/// A leanXMSS signature's leaf index and codeword are bound in-circuit: a node whose
+/// hints change the index, dispatch a path window other than the index's, or
+/// dispatch a digit group other than the digest's fails the guest's run.
+#[test]
+fn forged_lean_xmss_hints_are_rejected() {
+    StableProver::init();
+    let signers = get_signers(1);
+    let forgeries: [Forgery; 3] = [
+        Box::new(|hints: &mut Hints| hints.entry_mut("lx_index", 0)[0] += ONE),
+        Box::new(|hints: &mut Hints| hints.entry_mut("lx_windows", 0)[0] *= count(1)),
+        Box::new(|hints: &mut Hints| {
+            hints.entry_mut("lx_digits", 0)[0] *= count(1);
+        }),
+    ];
+    for forgery in forgeries {
+        FORGE.with(|forge| *forge.borrow_mut() = Some(forgery));
+        let result = aggregate(&[], signers.clone(), vec![], None, OutputClaims::All, LOG_INV_RATE);
+        assert!(
+            result.err() == Some(AggregateError::ProvingFailed),
+            "a forged hint is rejected"
+        );
+    }
+}
+
+#[test]
+fn aggregate_one_signer() {
+    StableProver::init();
+    let aggregate = prove_leaf(&get_signers(1));
+    assert!(aggregate.verify(), "verifies");
+    assert_eq!(aggregate.0.lean_xmss[0].1, message());
+}
+
+/// A leaf holding claims of both schemes, each list in its own region.
+#[test]
+fn aggregate_mixed_leaf() {
+    StableProver::init();
+    let aggregate = aggregate(
+        &[],
+        get_signers(3),
+        get_lean_sphincs_signers(3),
+        None,
+        OutputClaims::All,
+        LOG_INV_RATE,
+    )
+    .expect("leaf aggregates");
+    assert!(aggregate.verify(), "verifies");
+    assert_eq!((aggregate.0.lean_xmss.len(), aggregate.0.lean_sphincs.len()), (3, 3));
+}
+
+/// A node over children of both schemes, overlapping in one signer of each:
+/// the coverage table then needs a duplicate slot in both regions, and each
+/// child's two claim lists have to land in their own.
+#[test]
+fn aggregate_mixed_two_to_one() {
+    StableProver::init();
+    let xmss = get_signers(6);
+    let lean_sphincs = get_lean_sphincs_signers(4);
+    let leaf = |x: &[LeanXmssSigner], s: &[RawSphincs]| {
+        aggregate(&[], x.to_vec(), s.to_vec(), None, OutputClaims::All, LOG_INV_RATE).expect("leaf aggregates")
+    };
+    let left = leaf(&xmss[..4], &lean_sphincs[..3]);
+    let right = leaf(&xmss[3..], &lean_sphincs[2..]);
+    let node =
+        aggregate(&[left, right], vec![], vec![], None, OutputClaims::All, LOG_INV_RATE).expect("node aggregates");
+    assert!(node.verify(), "node verifies");
+    assert_eq!((node.0.lean_xmss.len(), node.0.lean_sphincs.len()), (6, 4));
+    assert!(node.0.lean_xmss.windows(2).all(|w| w[0] < w[1]));
+    assert!(node.0.lean_sphincs.windows(2).all(|w| w[0] < w[1]));
+}
+
+/// A node whose children are each of one scheme only: every claim list it
+/// rebuilds is empty on one side, which is the only way the guest's
+/// claim-absorbing loops run over an empty range and its bound `log(x) <
+/// log(g^0)` (unsatisfiable, so nothing may be written there) is reached.
+#[test]
+fn aggregate_one_scheme_per_child() {
+    StableProver::init();
+    let lean_xmss_child = prove_leaf(&get_signers(3));
+    let lean_sphincs_child = prove_lean_sphincs_leaf(&get_lean_sphincs_signers(2));
+    let node = aggregate(
+        &[lean_xmss_child, lean_sphincs_child],
+        vec![],
+        vec![],
+        None,
+        OutputClaims::All,
+        LOG_INV_RATE,
+    )
+    .expect("node aggregates");
+    assert!(node.verify(), "node verifies");
+    assert_eq!((node.0.lean_xmss.len(), node.0.lean_sphincs.len()), (3, 2));
+}
+
+/// The repeat the statement allows: one pubkey signing two messages is two
+/// claims, ordered by the pair, each needing its own signature. Generated
+/// here rather than cached, the cache holding one message per pubkey.
+#[test]
+fn aggregate_one_key_two_messages() {
+    StableProver::init();
+    let secret_key = [77; lean_sphincs::SECRET_KEY_LEN];
+    let public_key = lean_sphincs::key_gen(&secret_key);
+    let raw: Vec<RawSphincs> = [3u8, 9]
+        .into_iter()
+        .map(|tag| {
+            let signed: lean_sphincs::Message = std::array::from_fn(|i| tag.wrapping_mul(i as u8 + 1));
+            let signature = lean_sphincs::sign(&secret_key, &signed);
+            (public_key, signed, signature)
+        })
+        .collect();
+    let aggregate = prove_lean_sphincs_leaf(&raw);
+    assert!(aggregate.verify(), "verifies");
+    assert_eq!(aggregate.0.lean_sphincs.len(), 2);
+    let (first, second) = (aggregate.0.lean_sphincs[0], aggregate.0.lean_sphincs[1]);
+    assert_eq!(first.0, second.0, "the same pubkey, twice");
+    assert!(first.1 < second.1, "ordered by the message");
+}
+
+#[test]
+fn guest_column_selectors_match_native_eq() {
+    StableProver::init();
+    let (helpers, _) = super::guest::GUEST_SOURCE.split_once("\ndef main():").unwrap();
+    let source = format!(
+        r#"{helpers}
+def main():
+    # The selector tables read whole nibbles of coordinates, zero past the stack.
+    point = HeapBuf(4 * SEL_NIBBLES)
+    hint_witness(point[0:MAX_STACK_LOG], "point")
+    for k in unroll(MAX_STACK_LOG, 4 * SEL_NIBBLES):
+        point[GEN ** k] = 0
+    point1 = HeapBuf(4 * SEL_NIBBLES)
+    for k in unroll(0, 4 * SEL_NIBBLES):
+        point1[GEN ** k] = 1 + point[GEN ** k]
+    sel_eq = selector_tables(point, point1)
+    g_squares = exponent_tables()
+    sel_g = g_squares * GEN ** SIZE_BITS
+    offset = hint_witness("offset")
+    kappa_g = hint_witness("kappa")
+    weight = match(log(kappa_g), range(0, N_COLUMN_LOGS), lambda kappa: column_selector(offset, sel_eq, sel_g, kappa))
+    public = GEN ** 0
+    assert public[1] == weight
+    return
+"#
+    );
+    let kbc = 18;
+    let guest = StableProver::assemble(compile(
+        &parse_with_replacements(&source, &placeholder_map(kbc)).unwrap(),
+    ));
+    let run = |point: &[E], offset: usize, kappa: usize, expected: E| {
+        let mut hints = Hints::default();
+        hints.push("point", point.to_vec());
+        hints.push("offset", vec![count(offset)]);
+        hints.push("kappa", vec![count(kappa)]);
+        let mut program = guest.clone();
+        hints.install::<StableProver>(&mut program);
+        execute(&program, [expected, ZERO])
+    };
+    let mut rng = StdRng::seed_from_u64(813);
+    for mu in verifier::min_execution_stacked_log(kbc)..=verifier::MAX_STACKED_LOG {
+        let mut point: Vec<E> = (0..mu)
+            .map(|_| {
+                let (c0, c1) = rand::Rng::random(&mut rng);
+                E::new(c0, c1)
+            })
+            .collect();
+        point.resize(verifier::MAX_STACKED_LOG, ZERO);
+        for kappa in 0..=mu {
+            let mask = ((1usize << mu) - 1) & !((1usize << kappa) - 1);
+            for offset in [0, mask, 0x0555_5555 & mask] {
+                let selector: Vec<_> = (kappa..mu).map(|k| E::new(((offset >> k) & 1) as u64, 0)).collect();
+                let expected = selector
+                    .iter()
+                    .zip(&point[kappa..mu])
+                    .fold(ONE, |acc, (&s, &r)| acc * (ONE + s + r));
+                assert!(
+                    run(&point, offset, kappa, expected)
+                        .unwrap()
+                        .unconstrained_reads
+                        .is_empty()
+                );
+            }
+        }
+    }
+}
+
+/// The right leaf holds more claims than one loop frame of its list hashes
+/// ([`CLAIM_GROUP`]), so both that leaf and the parent rebuilding it run the
+/// list's group loop and then a partial last group, while the left leaf's list is
+/// a partial group alone.
+#[test]
+fn aggregate_two_to_one() {
+    StableProver::init();
+    let big = 2 * CLAIM_GROUP + 3;
+    let signers = get_signers(SMALL_LEAF_SIZE + big);
+    let left = prove_leaf(&signers[..SMALL_LEAF_SIZE]);
+    let right = prove_leaf(&signers[SMALL_LEAF_SIZE..]);
+    let children = [left, right];
+    let node = aggregate(&children, vec![], vec![], None, OutputClaims::All, LOG_INV_RATE).expect("node aggregates");
+    assert!(node.verify(), "node verifies");
+    // `cpu::verify` accepts the same proof of the same statement.
+    let defer = DeferredBytecodeClaim::recompute_scalar(node.1.bytecode_point.clone()).unwrap();
+    let pi = public_input_bytes(&public_input(&node.0, &defer));
+    verifier::verify_execution(scalar_bytecode(), &pi, &node.1.proof).expect("node verifies natively");
+    assert_eq!(node.0.lean_xmss.len(), SMALL_LEAF_SIZE + big);
+}
+
+fn da_rows(n_rows: usize, seed: u64) -> Vec<lean_da::Blob> {
+    let mut rng = <rand::rngs::StdRng as rand::SeedableRng>::seed_from_u64(seed);
+    let symbols: Vec<u128> = (0..n_rows * BLOB_SYMBOLS)
+        .map(|_| rand::Rng::random(&mut rng))
+        .collect();
+    symbols.as_chunks().0.to_vec()
+}
+
+/// A LeanDA payload, proven without signatures and published in the
+/// statement. The node has to reach the native committer's root, and the
+/// aggregate has to verify against a statement that carries it.
+#[test]
+fn aggregate_with_a_da_payload() {
+    StableProver::init();
+    let rows = da_rows(3, 97);
+
+    let node = aggregate(
+        &[],
+        vec![],
+        vec![],
+        matrix(&rows).as_ref(),
+        OutputClaims::All,
+        LOG_INV_RATE,
+    )
+    .expect("node aggregates");
+    assert!(node.verify(), "node verifies");
+    assert_eq!(node.0.num_signature_claims(), 0);
+
+    let commitment = lean_da::BlobMatrix::build(&rows).unwrap().top_root();
+    assert_eq!(
+        node.0.da_commitment,
+        Some(commitment),
+        "the guest committed to something else"
+    );
+    // The receiver's own claims verify, any others fail.
+    let bytes = node.1.to_bytes();
+    let received = AggregateProof::from_bytes(&bytes).unwrap();
+    let expected = AggregateClaims {
+        da_commitment: Some(commitment),
+        ..AggregateClaims::default()
+    };
+    assert!(received.verify(&expected));
+    let other = AggregateClaims {
+        da_commitment: Some([0; 32]),
+        ..AggregateClaims::default()
+    };
+    assert!(!received.verify(&other));
+    let claim = (
+        LeanXmssPublicKey::from_bytes(&[0; lean_xmss::PUB_KEY_SIZE]),
+        [0; lean_xmss::MESSAGE_LEN],
+    );
+    let unsorted = AggregateClaims {
+        lean_xmss: vec![claim, claim],
+        ..expected.clone()
+    };
+    assert!(!received.verify(&unsorted));
+    let trailing = AggregateProof::from_bytes(&[&bytes[..], &[0]].concat());
+    assert!(trailing.is_none());
+}
+
+/// A node publishes a root it holds, and with blobs only their matrix's.
+#[test]
+fn invalid_da_selections_are_rejected_before_building_the_proof() {
+    let select = AggregateClaims {
+        da_commitment: Some([0xa5; 32]),
+        ..AggregateClaims::default()
+    };
+    assert_eq!(
+        aggregate(&[], vec![], vec![], None, OutputClaims::Only(&select), LOG_INV_RATE).unwrap_err(),
+        AggregateError::InvalidInput("the requested DA root is not a child's")
+    );
+    assert_eq!(
+        aggregate(
+            &[],
+            vec![],
+            vec![],
+            matrix(&da_rows(1, 3)).as_ref(),
+            OutputClaims::Only(&select),
+            LOG_INV_RATE
+        )
+        .unwrap_err(),
+        AggregateError::InvalidInput("a node with blobs publishes their root")
+    );
+    let unpublished = AggregateClaims::default();
+    assert_eq!(
+        aggregate(
+            &[],
+            vec![],
+            vec![],
+            matrix(&da_rows(1, 3)).as_ref(),
+            OutputClaims::Only(&unpublished),
+            LOG_INV_RATE
+        )
+        .unwrap_err(),
+        AggregateError::InvalidInput("a node with blobs publishes their root")
+    );
+}
+
+/// A proof carries one blob matrix. A node without blobs passes on one child's
+/// root, the first's by default or the one it selects, or none; a node with blobs
+/// publishes their matrix's, whatever its children hold.
+#[test]
+fn a_node_passes_on_one_childs_da_root() {
+    StableProver::init();
+    let signers = get_signers(SMALL_LEAF_SIZE);
+    let mut children = vec![prove_leaf(&signers)];
+    for (n_rows, seed) in [(1, 509), (2, 510)] {
+        let rows = da_rows(n_rows, seed);
+        children.push(
+            aggregate(
+                &[],
+                signers.clone(),
+                vec![],
+                matrix(&rows).as_ref(),
+                OutputClaims::All,
+                LOG_INV_RATE,
+            )
+            .unwrap(),
+        );
+    }
+    let (first, second) = (
+        children[1].0.da_commitment.unwrap(),
+        children[2].0.da_commitment.unwrap(),
+    );
+    assert_ne!(first, second);
+    let pass_on = |selected: Option<Option<[u8; 32]>>, blobs: &[lean_da::Blob]| {
+        let declare = selected.map(|da_commitment| AggregateClaims {
+            lean_xmss: children[0].0.lean_xmss.clone(),
+            lean_sphincs: vec![],
+            da_commitment,
+        });
+        let node = aggregate(
+            &children,
+            vec![],
+            vec![],
+            matrix(blobs).as_ref(),
+            declare.as_ref().map_or(OutputClaims::All, OutputClaims::Only),
+            LOG_INV_RATE,
+        )
+        .unwrap();
+        assert!(node.verify());
+        node.0.da_commitment
+    };
+    assert_eq!(pass_on(None, &[]), Some(first));
+    assert_eq!(pass_on(Some(Some(second)), &[]), Some(second));
+    assert_eq!(pass_on(Some(None), &[]), None);
+    let rows = da_rows(1, 511);
+    assert_eq!(
+        pass_on(None, &rows),
+        Some(lean_da::BlobMatrix::build(&rows).unwrap().top_root())
+    );
+
+    // Passed on again, one level up.
+    let middle = aggregate(&children[1..], vec![], vec![], None, OutputClaims::All, LOG_INV_RATE).unwrap();
+    let top = aggregate(
+        &[children[0].clone(), middle],
+        vec![],
+        vec![],
+        None,
+        OutputClaims::All,
+        LOG_INV_RATE,
+    )
+    .unwrap();
+    assert!(top.verify());
+    assert_eq!(top.0.da_commitment, Some(first));
+}
+
+/// The guest reads each child's root off its statement and publishes the one the
+/// node picks, which must be its own with blobs: a child's root other than the one
+/// its proof carries, a pick past the children, a child's root picked over the
+/// node's blobs, or a membership challenge other than the root's fails the guest's run.
+#[test]
+fn forged_da_hints_are_rejected() {
+    StableProver::init();
+    let signers = get_signers(SMALL_LEAF_SIZE);
+    let child = aggregate(
+        &[],
+        signers.clone(),
+        vec![],
+        matrix(&da_rows(1, 7)).as_ref(),
+        OutputClaims::All,
+        LOG_INV_RATE,
+    )
+    .unwrap();
+    let forgeries: [(Forgery, bool); 4] = [
+        (
+            Box::new(|hints: &mut Hints| hints.entry_mut("child_da", 0)[0] += ONE),
+            false,
+        ),
+        (
+            Box::new(|hints: &mut Hints| hints.entry_mut("da_pick", 0)[0] *= count(2)),
+            false,
+        ),
+        (
+            Box::new(|hints: &mut Hints| hints.entry_mut("da_pick", 0)[0] = count(0)),
+            true,
+        ),
+        (
+            Box::new(|hints: &mut Hints| hints.entry_mut("da_challenge", 0)[0] += ONE),
+            true,
+        ),
+    ];
+    for (forgery, with_blobs) in forgeries {
+        FORGE.with(|forge| *forge.borrow_mut() = Some(forgery));
+        let blobs = if with_blobs { da_rows(1, 8) } else { vec![] };
+        let result = aggregate(
+            std::slice::from_ref(&child),
+            vec![],
+            vec![],
+            matrix(&blobs).as_ref(),
+            OutputClaims::All,
+            LOG_INV_RATE,
+        );
+        assert!(
+            result.err() == Some(AggregateError::ProvingFailed),
+            "a forged DA hint is rejected"
+        );
+    }
+}
+
+/// The child's opening rides in as hints: a forged opened row or cap node fails the guest's Merkle check.
+#[test]
+fn forged_opening_hints_are_rejected() {
+    StableProver::init();
+    let signers = get_signers(SMALL_LEAF_SIZE);
+    let child = aggregate(&[], signers.clone(), vec![], None, OutputClaims::All, LOG_INV_RATE).unwrap();
+    let forgeries: [Forgery; 2] = [
+        Box::new(|hints: &mut Hints| hints.entry_mut("merkle_leaf_rows", 0)[0] += ONE),
+        Box::new(|hints: &mut Hints| hints.entry_mut("merkle_caps", 0)[4] += ONE),
+    ];
+    for forgery in forgeries {
+        FORGE.with(|forge| *forge.borrow_mut() = Some(forgery));
+        let result = aggregate(
+            std::slice::from_ref(&child),
+            vec![],
+            vec![],
+            None,
+            OutputClaims::All,
+            LOG_INV_RATE,
+        );
+        assert!(
+            result.err() == Some(AggregateError::ProvingFailed),
+            "a forged opening hint is rejected"
+        );
+    }
+}
+
+/// A list hash's split is advice the guest then dispatches on, so the claim count
+/// after the last group has to be bounded before the `match`: a negative
+/// exponent that satisfies the product identity must fail the range check in
+/// `list_split` itself, not reach the dispatch as a wild jump.
+#[test]
+fn list_split_rejects_a_negative_rest() {
+    let (helpers, _) = super::guest::GUEST_SOURCE.split_once("\ndef main():").unwrap();
+    let source = format!(
+        r#"{helpers}
+def main():
+    n_g = hint_witness("n")
+    bigs, body, rest = list_split(n_g)
+    public = GEN ** 0
+    assert public[1] == body
+    assert public[GEN] == rest
+    return
+"#
+    );
+    let guest = StableProver::assemble(compile(
+        &parse_with_replacements(&source, &placeholder_map(20)).unwrap(),
+    ));
+    let run = |body: E, rest: E| {
+        let mut hints = Hints::default();
+        hints.push("n", vec![count(6)]);
+        hints.push("signers_split", vec![count(0), body, rest]);
+        let mut program = guest.clone();
+        hints.install::<StableProver>(&mut program);
+        execute(&program, [body, rest])
+    };
+    // Six claims: no whole group, then six.
+    assert!(run(count(0), count(6)).is_ok());
+    // One group and -11 claims after it: the product identity holds, the range
+    // check must not.
+    let negative = E::from(g_pow(11).inv());
+    let Err(err) = run(count(1), negative) else {
+        panic!("a negative last-block count was accepted");
+    };
+    assert!(err.to_string().contains("list_split"), "rejected elsewhere: {err}");
+}
+
+/// `grind_check` rebuilds a lane from bit windows: an honest run cannot show a proof of work
+/// is checked, so this pins that a set bit below the window fails and one at or above it passes.
+#[test]
+fn grind_check_reads_the_low_bits() {
+    let (helpers, _) = super::guest::GUEST_SOURCE.split_once("\ndef main():").unwrap();
+    let source = format!(
+        r#"{helpers}
+def main():
+    word = hint_witness("w")
+    grind_check(word, exponent_tables() * GEN ** WIN_TAB_AT, 3)
+    return
+"#
+    );
+    let guest = StableProver::assemble(compile(
+        &parse_with_replacements(&source, &placeholder_map(20)).unwrap(),
+    ));
+    let run = |lane: u64| {
+        let mut hints = Hints::default();
+        hints.push("w", vec![E::new(lane, 0x0123_4567_89AB_CDEF)]);
+        let mut program = guest.clone();
+        hints.install::<StableProver>(&mut program);
+        execute(&program, [ZERO, ZERO])
+    };
+    for lane in [0, 0b1000, 1 << 63, 0xFEDC_BA98_7654_3218] {
+        assert!(run(lane).is_ok(), "{lane:#x} has its low 3 bits zero");
+    }
+    for lane in [1, 0b100, 0xFEDC_BA98_7654_321A] {
+        assert!(run(lane).is_err(), "{lane:#x} has a low bit set");
+    }
+}
+
+/// The guest accepts committed codewords, and rejects a matrix with one symbol of
+/// one row flipped, in either limb, though its root and vector are that matrix's: the row is no codeword.
+#[test]
+fn da_guest_checks_codeword_membership() {
+    StableProver::init();
+    let (helpers, _) = super::guest::GUEST_SOURCE.split_once("\ndef main():").unwrap();
+    let source = format!(
+        r#"{helpers}
+def main():
+    r0, r1, z = da_verify()
+    digest = StackBuf(2)
+    keccak([r0, r1], [z, 0], digest)
+    public = GEN ** 0
+    assert public[1] == digest[0]
+    assert public[GEN] == digest[1]
+    return
+"#
+    );
+    let guest = StableProver::assemble(compile(
+        &parse_with_replacements(&source, &placeholder_map(20)).unwrap(),
+    ));
+    let blobs = da_rows(3, 101);
+    let witness = lean_da::BlobMatrix::build(&blobs).unwrap();
+    let rows: Vec<Codeword> = (0..blobs.len()).map(|i| *witness.row(i).unwrap()).collect();
+    assert_eq!(da_root(&rows), witness.top_root());
+    let run = |rows: &[Codeword]| {
+        let commitment = da_root(rows);
+        let mut hints = Hints::default();
+        hints.push("da_challenge", vec![verifier::da::membership_challenge(&commitment)]);
+        hints.push("da_n_blobs", vec![count(rows.len())]);
+        for j in 0..CELLS_PER_ROW {
+            for row in rows {
+                let cell = &row.as_chunks::<CELL_SYMBOLS>().0[j];
+                hints.push("da_symbols", cell.iter().map(|&w| word(w)).collect());
+            }
+        }
+        let mut program = guest.clone();
+        hints.install::<StableProver>(&mut program);
+        execute(&program, hash_to_scalars(&verifier::da::digest(Some(commitment))))
+    };
+    assert!(run(&rows).unwrap().unconstrained_reads.is_empty());
+    for (position, flip) in [(0, 1), (BLOB_SYMBOLS + 5, 1 << 64)] {
+        let mut corrupted = rows.clone();
+        corrupted[1][position] ^= flip;
+        assert!(run(&corrupted).is_err(), "a flip of {flip:#x} at {position} passed");
+    }
+}
+
+/// The commitment to rows that need not be codewords, rebuilt pairwise as `BlobMatrix::build` does it.
+fn da_root(rows: &[Codeword]) -> Hash {
+    fn root(mut level: Vec<Hash>) -> Hash {
+        while level.len() > 1 {
+            level = level.chunks(2).map(|pair| hash_pair(&pair[0], &pair[1])).collect();
+        }
+        level[0]
+    }
+    let cell_digest = |cell: &[u128]| hash(&cell.iter().flat_map(|w| w.to_le_bytes()).collect::<Vec<u8>>());
+    let mut blob_roots: Vec<Hash> = rows
+        .iter()
+        .map(|row| root(row.chunks(CELL_SYMBOLS).map(cell_digest).collect()))
+        .collect();
+    blob_roots.resize(DA_MAX_ROWS, lean_da::root_of_padding_blob());
+    root(blob_roots)
+}
+
+/// The blob count is a run-time parameter, so payloads of different heights
+/// must prove against the *same* bytecode and each reach its own committer's
+/// root, the padding gap empty or not.
+#[test]
+fn da_row_count_is_a_run_time_parameter() {
+    StableProver::init();
+    let signers = get_signers(SMALL_LEAF_SIZE);
+    for n_rows in [1usize, 3, DA_MAX_ROWS] {
+        let rows = da_rows(n_rows, 200 + n_rows as u64);
+        let node = aggregate(
+            &[],
+            signers.clone(),
+            vec![],
+            matrix(&rows).as_ref(),
+            OutputClaims::All,
+            LOG_INV_RATE,
+        )
+        .expect("node aggregates");
+        assert!(node.verify(), "node verifies");
+        let commitment = lean_da::BlobMatrix::build(&rows).unwrap().top_root();
+        assert_eq!(node.0.da_commitment, Some(commitment), "{n_rows} rows");
+    }
+}
+
+/// A leaf carrying no payload publishes zeros for its root.
+#[test]
+fn no_payload_publishes_no_root() {
+    StableProver::init();
+    let signers = get_signers(SMALL_LEAF_SIZE);
+    let node = prove_leaf(&signers);
+    assert_eq!(node.0.da_commitment, None);
+}
+
+/// Claims left undeclared take duplicate slots. The first narrowing drops every
+/// claim on one message, the second all but one claim.
+#[test]
+fn a_node_may_publish_less_than_it_covers() {
+    StableProver::init();
+    let at_a = get_signers(3);
+    let at_b = get_signers_for(2, MESSAGE_B);
+    let mut raw = at_a.clone();
+    raw.extend_from_slice(&at_b);
+    let wide = aggregate(&[], raw, vec![], None, OutputClaims::All, LOG_INV_RATE).expect("the wide leaf aggregates");
+    assert!(wide.verify(), "the wide leaf verifies");
+    assert_eq!(wide.0.lean_xmss.len(), 5);
+
+    let narrowed = |wide: &Node, declare: &AggregateClaims| {
+        aggregate(
+            std::slice::from_ref(wide),
+            vec![],
+            vec![],
+            None,
+            OutputClaims::Only(declare),
+            LOG_INV_RATE,
+        )
+    };
+    let only = |lean_xmss: Vec<LeanXmssClaim>| AggregateClaims {
+        lean_xmss,
+        ..AggregateClaims::default()
+    };
+    let on_b: Vec<LeanXmssClaim> = wide
+        .0
+        .lean_xmss
+        .iter()
+        .filter(|(_, message)| *message == message_for(MESSAGE_B))
+        .cloned()
+        .collect();
+    assert_eq!(on_b.len(), 2);
+
+    let narrow = narrowed(&wide, &only(on_b.clone())).expect("narrows to one message");
+    assert!(narrow.verify(), "the one-message narrowing verifies");
+    assert_eq!(narrow.0.lean_xmss, on_b);
+
+    let one = vec![(at_a[0].0, message())];
+    let part = narrowed(&wide, &only(one.clone())).expect("narrows to one claim");
+    assert!(part.verify(), "the one-claim narrowing verifies");
+    assert_eq!(part.0.lean_xmss, one);
+
+    assert_eq!(
+        narrowed(&wide, &AggregateClaims::default()).err(),
+        Some(AggregateError::InvalidInput("nothing to publish")),
+        "a declaration has to publish something"
+    );
+    // A pubkey that signed A only, declared on B: the cache reuses pubkeys.
+    assert_eq!(
+        narrowed(&wide, &only(vec![(at_a[2].0, message_for(MESSAGE_B))])).err(),
+        Some(AggregateError::InvalidInput(
+            "a requested claim is not covered by the inputs"
+        ))
+    );
+    // A covered pubkey, against a message nobody signed.
+    assert_eq!(
+        narrowed(&wide, &only(vec![(at_a[0].0, message_for(MESSAGE_B + 1))])).err(),
+        Some(AggregateError::InvalidInput(
+            "a requested claim is not covered by the inputs"
+        ))
+    );
+}
+
+/// A raw signature whose claim goes undeclared covers a duplicate slot.
+#[test]
+fn raw_signatures_may_go_undeclared() {
+    StableProver::init();
+    let a = get_signers(1);
+    let b = get_signers_for(1, MESSAGE_B);
+    let mut raw = a.clone();
+    raw.extend_from_slice(&b);
+    let claim_b = vec![(b[0].0, message_for(MESSAGE_B))];
+    let sig = aggregate(
+        &[],
+        raw,
+        vec![],
+        None,
+        OutputClaims::Only(&AggregateClaims {
+            lean_xmss: claim_b.clone(),
+            ..AggregateClaims::default()
+        }),
+        LOG_INV_RATE,
+    )
+    .expect("the narrowing leaf aggregates");
+    assert!(sig.verify(), "it verifies");
+    assert_eq!(sig.0.lean_xmss, claim_b);
+}
+
+/// Two messages in one tree. Signer `i` holds the same pubkey under both, at
+/// different leaf indices, so its claims on B are distinct from those on A; the
+/// left leaf holds one message, the right both, and the node needs a duplicate
+/// slot for the claim both leaves cover.
+#[test]
+fn aggregate_two_messages() {
+    StableProver::init();
+    let at_a = get_signers(4);
+    let at_b = get_signers_for(2, MESSAGE_B);
+    assert_eq!(at_a[0].0, at_b[0].0, "the cache reuses pubkeys across messages");
+    assert_ne!(at_a[0].2.leaf_index(), at_b[0].2.leaf_index());
+    let left = aggregate(&[], at_a[..3].to_vec(), vec![], None, OutputClaims::All, LOG_INV_RATE).expect("left");
+    let mut right_raw = at_a[2..].to_vec();
+    right_raw.extend_from_slice(&at_b);
+    let right = aggregate(&[], right_raw, vec![], None, OutputClaims::All, LOG_INV_RATE).expect("right");
+    assert!(right.verify(), "the two-message leaf verifies");
+    // A pubkey of `left` signing a second message is a second claim of that pubkey.
+    let crossed = aggregate(
+        std::slice::from_ref(&left),
+        at_b[..1].to_vec(),
+        vec![],
+        None,
+        OutputClaims::All,
+        LOG_INV_RATE,
+    )
+    .expect("one pubkey under two messages aggregates");
+    assert!(crossed.verify(), "the crossed node verifies");
+    let of_first: Vec<lean_xmss::Message> = crossed
+        .0
+        .lean_xmss
+        .iter()
+        .filter(|(pubkey, _)| *pubkey == at_a[0].0)
+        .map(|(_, message)| *message)
+        .collect();
+    assert_eq!(of_first, vec![message(), message_for(MESSAGE_B)]);
+    assert_eq!(crossed.0.lean_xmss.len(), 4);
+    let node = aggregate(&[left, right], vec![], vec![], None, OutputClaims::All, LOG_INV_RATE).expect("node");
+    assert!(node.verify(), "the two-message node verifies");
+    let mut expected = at_a.clone();
+    expected.extend_from_slice(&at_b);
+    let mut expected: Vec<LeanXmssClaim> = expected
+        .into_iter()
+        .map(|(pubkey, message, _)| (pubkey, message))
+        .collect();
+    expected.sort();
+    assert_eq!(node.0.lean_xmss, expected);
+}
+
+#[test]
+fn aggregate_overlapping_signers() {
+    StableProver::init();
+    let signers = get_signers(40);
+    let left = prove_leaf(&signers[..25]);
+    let right = prove_leaf(&signers[15..]);
+    let node =
+        aggregate(&[left, right], vec![], vec![], None, OutputClaims::All, LOG_INV_RATE).expect("node aggregates");
+    assert!(node.verify(), "node verifies");
+    assert_eq!(node.0.lean_xmss.len(), 40);
+    assert!(node.0.lean_xmss.windows(2).all(|w| w[0] < w[1]));
+}
+
+/// A child list walked by gaps (`child_claim_list_mono`) moves strictly forward. A
+/// child may declare a claim twice, and a gap of `g^-1` would walk the copy back onto
+/// the slot it just covered, with the same coverage mark, so write-once memory alone
+/// would not see it: only the gap's `assert_gpow` does.
+#[test]
+fn a_child_walk_cannot_step_back() {
+    let (helpers, _) = super::guest::GUEST_SOURCE.split_once("\ndef main():").unwrap();
+    let source = format!(
+        r#"{helpers}
+def main():
+    n_c = hint_witness("n")
+    table = HeapBuf(GEN ** 8)
+    hint_witness(table[0:8], "claims")
+    cover = HeapBuf(GEN ** 2)
+    d0, d1 = child_claim_list_digest(table, cover, GEN ** 3, GEN ** 2, n_c)
+    public = GEN ** 0
+    assert public[1] == d0
+    assert public[GEN] == d1
+    return
+"#
+    );
+    let guest = StableProver::assemble(compile(
+        &parse_with_replacements(&source, &placeholder_map(20)).unwrap(),
+    ));
+    let claim = |i: u64| [1, 2, 3, 4].map(|k| E::new(i * 7919 + k, k));
+    let table: Vec<E> = [claim(0), claim(1)].concat();
+    let run = |child: &[[E; 4]], gaps: &[E]| {
+        let mut hints = Hints::default();
+        hints.push("n", vec![count(child.len())]);
+        hints.push("claims", table.clone());
+        hints.push("signers_split", list_split(child.len()));
+        hints.push("child_mono", vec![count(1)]);
+        for &gap in gaps {
+            hints.push("child_claim_gap", vec![gap]);
+        }
+        let mut program = guest.clone();
+        hints.install::<StableProver>(&mut program);
+        execute(&program, claim_list_digest(child.iter().copied()))
+    };
+    assert!(run(&[claim(0), claim(1)], &[count(0), count(0)]).is_ok());
+    let back = E::from(g_pow(1).inv());
+    assert!(
+        run(&[claim(0), claim(0)], &[count(0), back]).is_err(),
+        "a walk revisited a slot"
+    );
+}
+
+/// Three levels, both schemes. The leanSPHINCS claims are rebuilt twice over, once
+/// into each node and again into the root, and the two nodes share one claim,
+/// so the root needs a leanSPHINCS duplicate slot for a claim it never saw
+/// directly. The root also adds a raw signature of each scheme alongside its
+/// children.
+#[test]
+fn aggregate_three_levels() {
+    StableProver::init();
+    let signers = get_signers(4 * SMALL_LEAF_SIZE);
+    let claims = get_lean_sphincs_signers(5);
+    let leaf = |index: usize, lean_sphincs: &[RawSphincs]| {
+        aggregate(
+            &[],
+            signers[index * SMALL_LEAF_SIZE..(index + 1) * SMALL_LEAF_SIZE].to_vec(),
+            lean_sphincs.to_vec(),
+            None,
+            OutputClaims::All,
+            LOG_INV_RATE,
+        )
+        .expect("leaf aggregates")
+    };
+    let node = |children: &[Node]| {
+        aggregate(children, vec![], vec![], None, OutputClaims::All, LOG_INV_RATE).expect("node aggregates")
+    };
+    // Claim 1 is under both nodes; claim 4 arrives raw at the root, and so
+    // do two leanXMSS signatures of a second message, claims its children never
+    // carried.
+    let left = node(&[leaf(0, &claims[..2]), leaf(1, &[])]);
+    let right = node(&[leaf(2, &claims[1..3]), leaf(3, &[])]);
+    let root = aggregate(
+        &[left, right],
+        get_signers_for(2, MESSAGE_B),
+        claims[4..].to_vec(),
+        None,
+        OutputClaims::All,
+        LOG_INV_RATE,
+    )
+    .expect("root aggregates");
+    assert!(root.verify(), "root verifies");
+    assert_eq!(root.0.lean_xmss.len(), 4 * SMALL_LEAF_SIZE + 2);
+    assert_eq!(root.0.lean_sphincs.len(), 4, "claims 0, 1, 2 and 4, the repeat merged");
+    assert!(root.0.lean_xmss.windows(2).all(|w| w[0] < w[1]));
+    assert!(root.0.lean_sphincs.windows(2).all(|w| w[0] < w[1]));
+}
+
+#[test]
+fn aggregate_round_trips_through_the_wire() {
+    StableProver::init();
+    let signers = get_signers(2 * SMALL_LEAF_SIZE);
+    let left = prove_leaf(&signers[..SMALL_LEAF_SIZE]);
+    let right = prove_leaf(&signers[SMALL_LEAF_SIZE..]);
+    // Mixed, so both published lists are non-empty.
+    let node = aggregate(
+        &[left, right],
+        vec![],
+        get_lean_sphincs_signers(3),
+        None,
+        OutputClaims::All,
+        LOG_INV_RATE,
+    )
+    .expect("node");
+    assert!(node.verify(), "the honest node verifies");
+
+    let received = AggregateProof::from_bytes(&node.1.to_bytes()).expect("round trip");
+    assert_eq!(
+        received.to_bytes(),
+        node.1.to_bytes(),
+        "the wire format round-trips, recomputed claim value included"
+    );
+    assert!(received.verify(&node.0), "the receiver's claims verify");
+}
+
+/// The all-zeros fast path in `DeferredBytecodeClaim::recompute_scalar` must agree with the
+/// full pass it replaces, or every leaf would verify against the wrong
+/// statement.
+#[test]
+fn leaf_claim_matches_the_general_path() {
+    let leaf = DeferredBytecodeClaim::leaf();
+    assert_eq!(
+        Some(leaf.bytecode_value),
+        scalar_bytecode().evaluate(&leaf.bytecode_point).ok()
+    );
+}
+
+/// Each claim's value read off its sums is the bytecode's evaluation, at a random point and a leaf's.
+#[test]
+fn bytecode_sums_give_the_bytecode_value() {
+    let mut rng = StdRng::seed_from_u64(11);
+    let limbs = (0..bytecode_vars()).map(|_| rand::Rng::random::<(u64, u64)>(&mut rng));
+    let points = [
+        limbs.map(|(c0, c1)| E::new(c0, c1)).collect(),
+        vec![ZERO; bytecode_vars()],
+    ];
+    StableProver::init();
+    for (sums, point) in bytecode_sums::<StableProver>(&points).iter().zip(&points) {
+        assert_eq!(
+            Some(bytecode_value::<StableProver>(sums, point)),
+            scalar_bytecode().evaluate(point).ok()
+        );
+    }
+}
+
+/// A randomizer whose digest is not a codeword used to panic the hint builder;
+/// it is a typed error now, and the abandoned builder leaves nothing behind.
+#[test]
+fn malformed_raw_signature_is_an_error() {
+    let message = message();
+    let pk = LeanXmssPublicKey::from_bytes(&[0; lean_xmss::PUB_KEY_SIZE]);
+    let randomizer = (0..=u8::MAX)
+        .map(|byte| [byte; lean_xmss::internals::RANDOMIZER_LEN])
+        .find(|r| {
+            let digest =
+                lean_xmss::internals::message_digest(lean_xmss::internals::pk_public_param(&pk), 0, 0, r, &message);
+            lean_xmss::internals::codeword(&digest).is_none()
+        })
+        .expect("some randomizer fails the codeword");
+    // Leaf index 0, then both layers: the randomizer, zero chain values, a zero path.
+    let mut bytes = [0; lean_xmss::SIG_SIZE];
+    let layer_size = (lean_xmss::SIG_SIZE - 4) / 2;
+    bytes[4..4 + lean_xmss::internals::RANDOMIZER_LEN].copy_from_slice(&randomizer);
+    bytes[4 + layer_size..][..lean_xmss::internals::RANDOMIZER_LEN].copy_from_slice(&randomizer);
+    let sig = LeanXmssSignature::from_bytes(&bytes);
+
+    assert_eq!(
+        lean_xmss_hints(&pk, &sig, &message).err(),
+        Some(AggregateError::InvalidSignature)
+    );
+    assert_eq!(
+        aggregate(
+            &[],
+            vec![(pk, message, sig)],
+            vec![],
+            None,
+            OutputClaims::All,
+            LOG_INV_RATE
+        )
+        .err(),
+        Some(AggregateError::InvalidSignature)
+    );
+}
+
+/// The same for a leanSPHINCS claim, whose witness walk is equally fallible: a
+/// counter that does not encode has no witness, and that is an error rather
+/// than a panic inside the prover.
+#[test]
+fn malformed_raw_lean_sphincs_signature_is_an_error() {
+    let (public_key, signed, signature) = get_lean_sphincs_signers(1).pop().expect("one signer");
+    // The bottom layer's counter follows the randomizer and the FORS openings.
+    let mut bytes = signature.to_bytes();
+    bytes[lean_sphincs::internals::N
+        + lean_sphincs::internals::FORS_TREES * lean_sphincs::internals::FORS_OPENING_SIZE] ^= 1;
+    let signature = LeanSphincsSignature::from_bytes(&bytes);
+    assert!(!lean_sphincs::verify(&public_key, &signed, &signature));
+    let raw = vec![(public_key, signed, signature)];
+    assert_eq!(
+        aggregate(&[], vec![], raw, None, OutputClaims::All, LOG_INV_RATE).err(),
+        Some(AggregateError::InvalidSignature)
+    );
+}
+
+/// The opening's shape, its vanishing values and the LeanDA twiddles the guest bakes in are the stable prover's.
+#[test]
+fn opening_shapes_and_twiddles_are_the_provers() {
+    use stable_pcs::{ntt::AdditiveNttF64, whir};
+    assert_eq!(
+        (MIN_LOG_INV_RATE, MAX_LOG_INV_RATE),
+        (whir::MIN_LOG_INV_RATE, whir::MAX_LOG_INV_RATE)
+    );
+    for rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
+        for mu in verifier::MIN_STACKED_LOG..=verifier::MAX_STACKED_LOG {
+            let ours = super::child::whir_shape(mu, rate);
+            let config = whir::config_for_rate(mu, rate).unwrap();
+            let theirs = config.level_shapes(mu);
+            assert_eq!((&ours.queries, &ours.folds), (&config.queries, &theirs.ks));
+            assert_eq!(
+                (&ours.log_msg_cols, ours.yr_log_n),
+                (&theirs.log_msg_cols, theirs.yr_log_n)
+            );
+            let depth: Vec<usize> = theirs.block_len.iter().map(|b| b.trailing_zeros() as usize).collect();
+            assert_eq!(ours.depth, depth);
+        }
+    }
+    let (ntt, vhat) = (
+        AdditiveNttF64::standard(LOG_BLOB_SYMBOLS + 1),
+        super::placeholders::subspace_above(),
+    );
+    for j in 0..=LOG_BLOB_SYMBOLS {
+        let top = (1 << (LOG_BLOB_SYMBOLS - j)) - 1;
+        for y in [0, 1, top / 3, top].into_iter().filter(|&y| y <= top) {
+            assert_eq!(vhat(j, y).0, ntt.twiddle(LOG_BLOB_SYMBOLS - j, y).0);
+        }
+    }
+}

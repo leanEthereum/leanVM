@@ -20,7 +20,7 @@ import CompPoly.Fields.Binary.BF64.Impl
 # The tower, as the guest reads it
 
 A word is one memory cell of two `K` limbs, `c0 + c1·y`. The guest
-(`crates/rec_aggregation/guests/lean_ethereum.py`, G below) never reads a limb directly: it hints
+(`crates/aggregation/guests/lean_ethereum.py`, G below) never reads a limb directly: it hints
 the low one, derives the high one by `y⁻¹` and proves both lie in `K` with `assert_in_k` (one
 untaken `JUMP` whose operands must be in `K`). The representation `c0 + c1·y` is unique, so those
 constraints pin the hint, for every word:
@@ -30,7 +30,7 @@ constraints pin the hint, for every word:
   word less its rebuilt low limb.
 
 The guest's constants are `Y_TOWER = y` and `Y_INV = y⁻¹ = x + y` (`y_inv`; `placeholder_map`,
-`crates/rec_aggregation/src/aggregation/placeholders.rs`). A zkDSL integer literal is a bit
+`crates/aggregation/src/aggregation/placeholders.rs`). A zkDSL integer literal is a bit
 pattern: `n < 2^64` is `E::new(n, 0)`, `eOfNat n`, and a wider one, up to `u128`, is
 `eOfNat128 n`. `COORD_BASIS[i]` (`placeholder_map`) is `eOfNat128 (2^i)`. Sums of integers are XORs
 (`eOfNat_xor`), so they add when their bits are disjoint (`two_pow_mul_xor`); and the product of

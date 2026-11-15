@@ -3,6 +3,23 @@
 version = 4
 
 [[package]]
+name = "aggregation"
+version = "0.1.0"
+dependencies = [
+ "isa",
+ "keccak256",
+ "lean_da",
+ "lean_sphincs",
+ "lean_xmss",
+ "rand",
+ "stable_leanvm_core",
+ "stable_pcs",
+ "tracing",
+ "verifier",
+ "zkdsl_compiler",
+]
+
+[[package]]
 name = "aho-corasick"
 version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -218,9 +235,9 @@ dependencies = [
  "experimental_pcs",
  "experimental_primitives",
  "isa",
- "lean_compiler",
  "tracing",
  "verifier",
+ "zkdsl_compiler",
 ]
 
 [[package]]
@@ -323,18 +340,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
-name = "lean_compiler"
-version = "0.1.0"
-dependencies = [
- "isa",
- "keccak256",
- "stable_leanvm_core",
- "stable_parallel",
- "stable_primitives",
- "verifier",
-]
-
-[[package]]
 name = "lean_da"
 version = "0.1.0"
 dependencies = [
@@ -363,12 +368,12 @@ dependencies = [
 name = "leanvm"
 version = "0.1.0"
 dependencies = [
+ "aggregation",
  "experimental_leanvm_core",
  "isa",
  "lean_da",
  "lean_sphincs",
  "lean_xmss",
- "rec_aggregation",
  "stable_leanvm_core",
 ]
 
@@ -376,21 +381,21 @@ dependencies = [
 name = "leanvm-cli"
 version = "0.1.0"
 dependencies = [
+ "aggregation",
  "bench",
  "clap",
  "experimental_keccak_gkr",
  "experimental_leanvm_core",
  "isa",
- "lean_compiler",
  "lean_da",
  "lean_sphincs",
  "lean_xmss",
  "rand",
- "rec_aggregation",
  "stable_keccak_gkr",
  "stable_leanvm_core",
  "tracing",
  "verifier",
+ "zkdsl_compiler",
 ]
 
 [[package]]
@@ -510,23 +515,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rec_aggregation"
-version = "0.1.0"
-dependencies = [
- "isa",
- "keccak256",
- "lean_compiler",
- "lean_da",
- "lean_sphincs",
- "lean_xmss",
- "rand",
- "stable_leanvm_core",
- "stable_pcs",
- "tracing",
- "verifier",
-]
-
-[[package]]
 name = "regex-automata"
 version = "0.4.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -601,7 +589,6 @@ name = "stable_leanvm_core"
 version = "0.1.0"
 dependencies = [
  "isa",
- "lean_compiler",
  "stable_fiat_shamir",
  "stable_keccak_gkr",
  "stable_parallel",
@@ -609,6 +596,7 @@ dependencies = [
  "stable_primitives",
  "tracing",
  "verifier",
+ "zkdsl_compiler",
 ]
 
 [[package]]
@@ -876,4 +864,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "zkdsl_compiler"
+version = "0.1.0"
+dependencies = [
+ "isa",
+ "keccak256",
+ "stable_leanvm_core",
+ "stable_parallel",
+ "stable_primitives",
+ "verifier",
 ]

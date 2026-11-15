@@ -4,11 +4,11 @@ members = [
     "crates/bench",
     "crates/keccak256",
     "crates/isa",
-    "crates/lean_compiler",
+    "crates/zkdsl_compiler",
     "crates/lean_xmss",
     "crates/lean_sphincs",
     "crates/lean_da",
-    "crates/rec_aggregation",
+    "crates/aggregation",
     "crates/leanvm",
     "crates/stable-prover/*",
     "crates/experimental-prover/*",
@@ -30,11 +30,11 @@ bench = { path = "crates/bench" }
 verifier = { path = "crates/verifier" }
 keccak256 = { path = "crates/keccak256" }
 isa = { path = "crates/isa" }
-lean_compiler = { path = "crates/lean_compiler" }
+zkdsl_compiler = { path = "crates/zkdsl_compiler" }
 lean_xmss = { path = "crates/lean_xmss" }
 lean_sphincs = { path = "crates/lean_sphincs" }
 lean_da = { path = "crates/lean_da" }
-rec_aggregation = { path = "crates/rec_aggregation" }
+aggregation = { path = "crates/aggregation" }
 libc = "0.2"
 rand = "0.9"
 sha3 = "0.11"

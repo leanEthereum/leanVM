@@ -1,7 +1,7 @@
 # The aggregation guest of leanVM as Lean data, for `Statement/Data/` (the bytecode) and
 # `lean_vm/LeanVM/Guest/Data/` (and the test programs, node vectors and guest-diff cases). leanVM no
 # longer carries the `LEANVM_WRITE_*` tests that wrote these, so this crate compiles leanVM's
-# `rec_aggregation` sources as its own (an overlay: `build.rs` copies them into `OUT_DIR` and
+# `aggregation` sources as its own (an overlay: `build.rs` copies them into `OUT_DIR` and
 # appends one line declaring `aggregation::lean_export`, this crate's `src/export/`), which lets the
 # exporters read the guest's private pieces (`placeholder_map`, `statement_digest`, the batching,
 # the hint streams) exactly as the in-tree tests did.
@@ -16,7 +16,7 @@ publish = false
 build = "build.rs"
 
 # Its own workspace, not a member of leanVM's; leanVM's crates still inherit that one's settings.
-# The overlay's sources (`build.rs` copies `rec_aggregation` into `OUT_DIR`) use these, which
+# The overlay's sources (`build.rs` copies `aggregation` into `OUT_DIR`) use these, which
 # cargo-machete, reading this crate's own sources, cannot see.
 [package.metadata.cargo-machete]
 ignored = ["isa", "keccak256", "stable_pcs", "tracing"]
@@ -31,12 +31,12 @@ name = "guest-export"
 path = "src/main.rs"
 
 [dependencies]
-# rec_aggregation's own dependencies (crates/rec_aggregation/Cargo.toml), by path, and the stable prover its tests
+# aggregation's own dependencies (crates/aggregation/Cargo.toml), by path, and the stable prover its tests
 # and the guest-diff cases run.
 isa = { path = "../../../../crates/isa" }
 verifier = { path = "../../../../crates/verifier" }
 keccak256 = { path = "../../../../crates/keccak256" }
-lean_compiler = { path = "../../../../crates/lean_compiler" }
+zkdsl_compiler = { path = "../../../../crates/zkdsl_compiler" }
 lean_xmss = { path = "../../../../crates/lean_xmss" }
 lean_sphincs = { path = "../../../../crates/lean_sphincs" }
 lean_da = { path = "../../../../crates/lean_da" }
@@ -47,7 +47,7 @@ tracing = "0.1.26"
 
 [features]
 default = ["signers-cache"]
-# rec_aggregation's feature: the cached benchmark signers, for the guest-diff cases.
+# aggregation's feature: the cached benchmark signers, for the guest-diff cases.
 signers-cache = []
 
 [profile.release]

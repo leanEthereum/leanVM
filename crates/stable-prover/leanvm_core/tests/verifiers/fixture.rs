@@ -1,12 +1,12 @@
 //! One honest proof of a small zkDSL program, shared by the verifier tests: a two-block Keccak and a
 //! loop of field arithmetic, long enough that every table and the Keccak reduction are exercised.
 
-use lean_compiler::{compile, parse_with_replacements};
 use leanvm_core::cpu::{Program, prove, public_input_bytes, verify};
 use primitives::field::{F128, g_pow};
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 use verifier::Bytecode;
+use zkdsl_compiler::{compile, parse_with_replacements};
 
 const SOURCE: &str = r#"
 from snark_lib import *

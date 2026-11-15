@@ -17,7 +17,7 @@ import LeanVM.Guest.Data.Source
 /-!
 # The Keccak GKR reduction (TRIAGE G #53-63): the interface
 
-`verify_keccak` (`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `010cfb18`, G
+`verify_keccak` (`crates/aggregation/guests/lean_ethereum.py` at leanVM `010cfb18`, G
 below) runs the specification's `verifyKeccak`, then permutes the last four slices
 waiting, the full queue the next grind's nonce finds (`absorb`). Its callees:
 

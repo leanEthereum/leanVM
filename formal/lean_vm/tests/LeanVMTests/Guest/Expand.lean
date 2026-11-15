@@ -41,7 +41,7 @@ def isOk {α : Type} : Except String α → Bool
 
 /-! ## The compiler's test programs
 
-Every `crates/lean_compiler/tests/programs/*.py`, which the Rust prover proves and verifies on its
+Every `crates/zkdsl_compiler/tests/programs/*.py`, which the Rust prover proves and verifies on its
 annotated public input, expands and runs on it; changing the first public word makes every
 program that publishes one fail. -/
 

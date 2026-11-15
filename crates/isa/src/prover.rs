@@ -1,4 +1,4 @@
-//! What the crates both provers share (`rec_aggregation`, `lean_da`, `leanvm`) need of a prover. Each prover tree
+//! What the crates both provers share (`aggregation`, `lean_da`, `leanvm`) need of a prover. Each prover tree
 //! implements [`Prover`] once, beside its `cpu::prove`.
 
 use crate::CompiledProgram;
@@ -28,7 +28,7 @@ pub trait Prover: 'static {
     /// `f(i)` for every `i < n`, on the thread pool. `f` must not dispatch to the pool itself.
     fn map_collect<T: Send>(n: usize, f: impl Fn(usize) -> T + Sync) -> Vec<T>;
 
-    // The field kernels: the deferred claims' batching (`rec_aggregation`) runs on the first three, LeanDA's
+    // The field kernels: the deferred claims' batching (`aggregation`) runs on the first three, LeanDA's
     // encoding on the last.
 
     /// `a * b`, faster than the verifier's portable product.

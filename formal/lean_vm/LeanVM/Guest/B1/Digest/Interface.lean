@@ -26,7 +26,7 @@ import LeanVM.Guest.Data.Source
 /-!
 # The digests: meanings (TRIAGE G #86-89, #94, #95)
 
-For each function of the guest (`crates/rec_aggregation/guests/lean_ethereum.py`, G
+For each function of the guest (`crates/aggregation/guests/lean_ethereum.py`, G
 below) its meaning `Meaning…` on its argument and return words, and two
 statements on its core IR relation (`coreProgram.Rel`): `…_sound_Spec`, the relation gives the
 meaning, and `…_complete_Spec`, the meaning (with what memory an honest run holds) gives the

@@ -18,4 +18,4 @@ verifier.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
-lean_compiler.workspace = true
+zkdsl_compiler.workspace = true

@@ -32,7 +32,7 @@ pub use transcript::Proof;
 pub use transcript::SECURITY_BITS;
 pub use whir::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY_GRINDING_BITS, whir_queries};
 
-// What the aggregation's guest constants and witness read of the protocol (`rec_aggregation`).
+// What the aggregation's guest constants and witness read of the protocol (`aggregation`).
 pub use bus::N_TREES as N_BUS_TREES;
 pub use hash::Digest;
 pub use keccak::{EMBED_BITS, KeccakShape, PACK, PRODUCT_BITS, RMFE_EMBED, RMFE_PROJECT};

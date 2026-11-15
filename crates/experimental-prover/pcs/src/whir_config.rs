@@ -91,7 +91,7 @@ pub const RESIDUAL_MAX_LOG: usize = 5;
 // The recursion guest rotates the terminal point left by the lane fold to index it
 // by witness coordinate, and the residual segment is what the last lane challenges
 // rotate past, so the residual may never be longer than that fold
-// (`rec_aggregation`'s placeholder emitter re-checks this per derived candidate).
+// (`aggregation`'s placeholder emitter re-checks this per derived candidate).
 const _: () = assert!(RESIDUAL_MAX_LOG <= INITIAL_FOLDING_FACTOR);
 
 /// Shape plus per-level soundness parameters for one WHIR opening. Prover

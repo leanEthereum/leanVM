@@ -16,9 +16,9 @@ workspace = true
 [dependencies]
 isa.workspace = true
 verifier.workspace = true
-rec_aggregation = { workspace = true, features = ["signers-cache"] }
+aggregation = { workspace = true, features = ["signers-cache"] }
 lean_da.workspace = true
-lean_compiler.workspace = true
+zkdsl_compiler.workspace = true
 lean_xmss.workspace = true
 lean_sphincs.workspace = true
 stable_leanvm_core = { path = "../../crates/stable-prover/leanvm_core" }

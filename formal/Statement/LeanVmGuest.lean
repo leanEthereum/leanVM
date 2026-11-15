@@ -31,8 +31,8 @@ statement's digest (`StatementDigestBinds`), and the guest decoder a program com
 material, is `LeanVmGuestBatching.lean`'s; the completeness side is `LeanVmGuestCompleteness.lean`.
 
 Transcribed from leanVM: the modules of
-`crates/rec_aggregation/src/aggregation/` (the statement, its digest, the batching) and
-`crates/rec_aggregation/guests/lean_ethereum.py` (the guest program), cited by their items'
+`crates/aggregation/src/aggregation/` (the statement, its digest, the batching) and
+`crates/aggregation/guests/lean_ethereum.py` (the guest program), cited by their items'
 names. The signature schemes are
 `LeanXmss.lean`'s and `LeanSphincs.lean`'s with Keccak-256 as their hash; LeanDA is
 `LeanDa.lean`'s.

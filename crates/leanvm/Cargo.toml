@@ -8,7 +8,7 @@ workspace = true
 
 [dependencies]
 isa.workspace = true
-rec_aggregation.workspace = true
+aggregation.workspace = true
 lean_da.workspace = true
 lean_xmss.workspace = true
 lean_sphincs.workspace = true

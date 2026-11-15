@@ -7,7 +7,7 @@ public import LeanDa.ReedSolomon
 
 The facts about `Ŵ_j`, the normalized subspace polynomial of the span of `e_0 … e_(j-1)`
 (`normalizedSubspacePolynomial`, CompPoly's `normalizedW`), that the guest program's construction
-of the dual codeword rests on (`subspace_above` in `rec_aggregation`'s `placeholders.rs`):
+of the dual codeword rests on (`subspace_above` in `aggregation`'s `placeholders.rs`):
 
 * **`Ŵ_j` at the basis.** `Ŵ_j(e_c) = 0` for `c < j` (`wHat_two_pow_of_lt`), `Ŵ_j(e_j) = 1`
   (`wHat_two_pow_self`), and `Ŵ_j` is additive (`wHat_add`), so at a point it is the sum of its

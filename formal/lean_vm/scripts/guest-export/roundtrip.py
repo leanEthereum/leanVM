@@ -4,7 +4,7 @@ Usage: python3 -I roundtrip.py <lean_vm dir> <disasm.txt>, the dump from
 `DBG_DISASM=<disasm.txt> guest-export <lean_vm dir> --check`.
 
 Parses `Statement/Data/Bytecode*.lean` (the function table and every chunk), reassembles the
-padded program, renders it in `lean_compiler::disassemble`'s format (g-powers of `K`,
+padded program, renders it in `zkdsl_compiler::disassemble`'s format (g-powers of `K`,
 `x^64 = x^4 + x^3 + x + 1`) and compares line by line with the `DBG_DISASM` dump the Rust
 `compile_guest` wrote, function boundaries included. Independent of the exporter's own code.
 """

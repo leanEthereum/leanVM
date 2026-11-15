@@ -12,7 +12,7 @@ language (`Batch.nodeBatchingProgram`). Reference material: a first reading take
 the batching of `aggregation/deferred.rs` and looks things up here.
 
 Transcribed from leanVM: the modules of
-`crates/rec_aggregation/src/aggregation/` and `crates/rec_aggregation/guests/lean_ethereum.py`,
+`crates/aggregation/src/aggregation/` and `crates/aggregation/guests/lean_ethereum.py`,
 cited by their items' names.
 -/
 

@@ -13,7 +13,7 @@ pub(crate) fn encode_rows(blobs: &[Blob]) -> Vec<u128> {
     let twiddles = twiddles();
     let mut codewords = vec![0u128; blobs.len() * CODEWORD_SYMBOLS];
     let mut limb = vec![K(0); CODEWORD_SYMBOLS];
-    for (blob, codeword) in blobs.iter().zip(codewords.chunks_exact_mut(CODEWORD_SYMBOLS)) {
+    for (blob, codeword) in blobs.iter().zip(codewords.as_chunks_mut::<CODEWORD_SYMBOLS>().0) {
         for shift in [0, 64] {
             for (x, &symbol) in limb.iter_mut().zip(blob) {
                 *x = K((symbol >> shift) as u64);

@@ -2,11 +2,11 @@
 //! recurrence `buff[i·g²] = buff[i·g] · buff[i]`).
 
 use crate::report::{pretty_f64, pretty_integer};
+use aggregation::vm;
 use bench::Plan;
 use isa::Prover;
-use lean_compiler::{compile, parse};
-use rec_aggregation::vm;
 use verifier::{E, K};
+use zkdsl_compiler::{compile, parse};
 
 /// Prove and verify Fibonacci-in-the-exponent over a `HeapBuf` (an unrolled
 /// `mul_range` recurrence), binding `g^{F(n)}` as the public input. Prints the

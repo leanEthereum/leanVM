@@ -12,7 +12,7 @@ public import LeanVM.Guest.Value.KeccakLayout
 /-!
 # The sponge over message cells
 
-The compiler's `emit_keccak_message` (`crates/lean_compiler/src/lower/builtins.rs` at leanVM
+The compiler's `emit_keccak_message` (`crates/zkdsl_compiler/src/lower/builtins.rs` at leanVM
 `40f877dc`, with `padded` false) absorbs a message held in cells `P` in `B` blocks of `136` bytes,
 one `KECCAK` each: block `k` reads the nine cells from `P[17k/2]` in the layout of `k`'s parity,
 XORed into the previous output (the zero state, or the `state=` run, for the first), and writes its

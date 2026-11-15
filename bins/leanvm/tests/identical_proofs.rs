@@ -3,9 +3,9 @@
 //! rates; and every compiler test program, or the same refusal. Both trees' thread pools run in this one process, each
 //! idle while the other proves.
 
+use aggregation::{OutputClaims, aggregate, signers_cache};
 use experimental_leanvm_core::ExperimentalProver;
 use isa::{CompiledProgram, Prover};
-use rec_aggregation::{OutputClaims, aggregate, signers_cache};
 use stable_leanvm_core::StableProver;
 use verifier::E;
 
@@ -65,7 +65,10 @@ fn prove<P: Prover>(
 /// `# witness name:`) and with a wrong public input, through experimental's interpreter and hints too.
 #[test]
 fn compiler_programs_prove_identically() {
-    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../../crates/lean_compiler/tests/programs");
+    let dir = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../crates/zkdsl_compiler/tests/programs"
+    );
     let mut paths: Vec<_> = std::fs::read_dir(dir)
         .unwrap()
         .map(|entry| entry.unwrap().path())
@@ -76,12 +79,12 @@ fn compiler_programs_prove_identically() {
     let constants = |values: &str| -> Vec<E> {
         values
             .split(',')
-            .map(|v| lean_compiler::parse_const(v).unwrap())
+            .map(|v| zkdsl_compiler::parse_const(v).unwrap())
             .collect()
     };
     for path in paths {
         let src = std::fs::read_to_string(&path).unwrap();
-        let program = lean_compiler::compile(&lean_compiler::parse(&src).unwrap());
+        let program = zkdsl_compiler::compile(&zkdsl_compiler::parse(&src).unwrap());
         let annotation = |tag: &'static str| src.lines().filter_map(move |line| line.trim().strip_prefix(tag));
         let public_input = annotation("# public_input:")
             .next()

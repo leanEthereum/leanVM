@@ -14,7 +14,7 @@ public import LeanVM.Guest.B1.Bits.MeaningP
 /-!
 # Messages and challenge runs (TRIAGE G, `opening_message`, `squeeze_point_from`)
 
-The functions of `crates/rec_aggregation/guests/lean_ethereum.py` (G below) that WHIR's levels and
+The functions of `crates/aggregation/guests/lean_ethereum.py` (G below) that WHIR's levels and
 the level-0 OOD sample call:
 
 | function | meaning |

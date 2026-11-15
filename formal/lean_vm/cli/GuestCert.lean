@@ -845,7 +845,7 @@ def knownOf (body : List Core.Stmt) (memOf : String → List (ℕ × ℕ × ℕ)
 def vsName : String := "verify_sub"
 
 /-- `opening_queries__L{odd}_L{base}_L{folds}_L{leaf_cells}_L{depth}_L{cap_depth}_L{mu}_L{vanish}_L{n_hs}_L{hs_bits}_L{final}`'s
-`(odd, base, depth, cap_depth)` (`opening_queries`, `crates/rec_aggregation/guests/lean_ethereum.py`). -/
+`(odd, base, depth, cap_depth)` (`opening_queries`, `crates/aggregation/guests/lean_ethereum.py`). -/
 def oqParams (name : String) : Option (ℕ × ℕ × ℕ × ℕ) :=
   if name.startsWith "opening_queries__L" then
     match (((name.drop 18).toString).splitOn "_L").map String.toNat? with

@@ -3,11 +3,11 @@
 //! signature counts and a blob count; recursion accepts these counts per leaf.
 
 use crate::report::{pretty_f64, pretty_integer};
+use aggregation::{AggregateClaims, AggregateProof, OutputClaims, aggregate, aggregate_with_stats, signers_cache};
 use bench::{Plan, Timing};
 use isa::{Prover, Stats};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use rand::{Rng, SeedableRng, rngs::StdRng};
-use rec_aggregation::{AggregateClaims, AggregateProof, OutputClaims, aggregate, aggregate_with_stats, signers_cache};
 
 fn blobs(n: usize, seed: u64) -> Vec<lean_da::Blob> {
     let mut rng = StdRng::seed_from_u64(seed);
@@ -91,7 +91,7 @@ pub fn run_aggregation<P: Prover>(
         "a leaf needs signatures or blobs"
     );
     let trace_span = tracing::info_span!("aggregation", n_lean_xmss, n_lean_sphincs, n_blobs, log_inv_rate).entered();
-    rec_aggregation::warm_up::<P>();
+    aggregation::warm_up::<P>();
     let raw_lean_xmss = signers(0, n_lean_xmss);
     let raw_lean_sphincs = lean_sphincs_signers(0, n_lean_sphincs);
     let blobs = blobs(n_blobs, 0);
@@ -161,18 +161,15 @@ pub fn run_recursion<P: Prover>(
     enable_tracing: bool,
     plan: Plan,
 ) {
-    assert!(
-        (1..=rec_aggregation::MAX_RECURSIONS).contains(&n),
-        "invalid child count"
-    );
+    assert!((1..=aggregation::MAX_RECURSIONS).contains(&n), "invalid child count");
     assert!(
         per_leaf > 0 || lean_sphincs_per_leaf > 0 || blobs_per_leaf > 0,
         "a leaf needs signatures or blobs"
     );
     let started = std::time::Instant::now();
-    let guest_instructions = rec_aggregation::aggregation::unified_guest().code_len();
+    let guest_instructions = aggregation::unified_guest().code_len();
     let compile_time = started.elapsed();
-    rec_aggregation::warm_up::<P>();
+    aggregation::warm_up::<P>();
     if let Some(out) = std::env::var_os(LEAVES_OUT) {
         return write_leaves::<P>(
             n,
@@ -201,10 +198,7 @@ pub fn run_recursion<P: Prover>(
     println!(
         "aggregation bytecode: {} instructions (2^{} padded), compiled in {} s",
         pretty_integer(guest_instructions),
-        rec_aggregation::aggregation::unified_guest()
-            .prog()
-            .len()
-            .trailing_zeros(),
+        aggregation::unified_guest().prog().len().trailing_zeros(),
         pretty_f64(compile_time.as_secs_f64())
     );
     let mut inputs = Vec::new();

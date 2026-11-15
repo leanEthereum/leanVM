@@ -21,7 +21,7 @@ extension) at a point the bus phase derives; the verifier checks that claim with
 polynomial (`computedBytecodeValue`). The deferring verifier (`verifyDeferred`), which the Rust
 verifier does not have, instead holds the point and the value to a claim it hands on, as an
 aggregate's in-circuit verifier of its children does
-(`crates/rec_aggregation/guests/lean_ethereum.py`, `verify_sub`).
+(`crates/aggregation/guests/lean_ethereum.py`, `verify_sub`).
 -/
 
 @[expose] public section

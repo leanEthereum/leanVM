@@ -1,4 +1,4 @@
-//! The overlay: leanVM's `rec_aggregation` sources, copied verbatim into `OUT_DIR` (the guest
+//! The overlay: leanVM's `aggregation` sources, copied verbatim into `OUT_DIR` (the guest
 //! with them, its `include_str!` pointed at the copy), with one
 //! line appended to `aggregation.rs` that declares this crate's `src/export/` as its child
 //! module `lean_export`. Nothing under `crates/` is written.
@@ -89,8 +89,8 @@ fn main() {
     let leanvm = leanvm
         .canonicalize()
         .unwrap_or_else(|e| panic!("leanVM's tree {}: {e}", leanvm.display()));
-    let crate_dir = leanvm.join("crates/rec_aggregation");
-    let out = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("rec_aggregation");
+    let crate_dir = leanvm.join("crates/aggregation");
+    let out = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("aggregation");
     // A fresh copy: a file leanVM moved or removed must not linger from an earlier pin.
     let _ = std::fs::remove_dir_all(&out);
     copy_dir(&crate_dir.join("src"), &out.join("src"));
@@ -107,7 +107,7 @@ fn main() {
     let aggregation = [out.join("src/aggregation/mod.rs"), out.join("src/aggregation.rs")]
         .into_iter()
         .find(|p| p.is_file())
-        .expect("rec_aggregation has an aggregation module");
+        .expect("aggregation has an aggregation module");
     // Since #670 the module's private items live in its submodules: the exporters, a child of
     // `aggregation`, read them as they read `aggregation.rs`'s, so every top-level item there is
     // made crate-visible, and so is every field of a struct declared there (a tuple struct's on
@@ -147,12 +147,12 @@ fn main() {
     ));
     std::fs::write(&aggregation, text).unwrap();
 
-    // leanVM's `lean_compiler` as this crate's module `compiler_overlay`, for the exporters that
+    // leanVM's `zkdsl_compiler` as this crate's module `compiler_overlay`, for the exporters that
     // read the parsed guest (`Ast`'s functions are crate-private since leanVM #669): its sources
     // copied, `lib.rs` as the module's `mod.rs`, and `crate::` paths pointed at the module.
     let compiler = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("compiler_overlay");
     let _ = std::fs::remove_dir_all(&compiler);
-    copy_dir(&leanvm.join("crates/lean_compiler/src"), &compiler);
+    copy_dir(&leanvm.join("crates/zkdsl_compiler/src"), &compiler);
     std::fs::rename(compiler.join("lib.rs"), compiler.join("mod.rs")).unwrap();
     let mut files = Vec::new();
     rust_files(&compiler, &mut files);

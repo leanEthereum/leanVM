@@ -35,7 +35,7 @@ pub fn placeholders() -> BTreeMap<String, String> {
 }
 
 /// The guest's source text, as `aggregation.rs` includes it.
-pub const GUEST_SOURCE: &str = include_str!(concat!(env!("OUT_DIR"), "/rec_aggregation/guests/lean_ethereum.py"));
+pub const GUEST_SOURCE: &str = include_str!(concat!(env!("OUT_DIR"), "/aggregation/guests/lean_ethereum.py"));
 
 /// Every file this crate writes.
 pub fn all_files() -> Vec<File> {

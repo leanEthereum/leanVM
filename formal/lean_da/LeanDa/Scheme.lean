@@ -39,7 +39,7 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   from the root by leanVM's transcript (`membership_challenge`, `verifier/src/da.rs`), its
   sponge over Keccak-f[1600] seeded with the label's hash and the root, squeezed once; the
   security game models it as one random oracle on the root.
-* **The deployed algorithms** (`commit.rs`, `subspace_above` in `rec_aggregation`'s `placeholders.rs`,
+* **The deployed algorithms** (`commit.rs`, `subspace_above` in `aggregation`'s `placeholders.rs`,
   `verifier/src/da.rs`, `verifier/src/transcript.rs`). The crate's computations,
   transcribed computably on lists, for `lean_vm` to state the aggregation node's DA claim with:
   `commitCodewords`, the tree of blob trees level by level, which is `commitCells` of the matrix
@@ -88,7 +88,7 @@ variable (H : List UInt8 → Common.DigestBytes)
 def membershipChallenge (root : Common.DigestBytes) : Option E :=
   Id.run (membershipChallengeMWithHash (fun a ↦ pure (H a)) (fun L ↦ pure (P L)) root)
 
-/-! ## The dual codeword as the guest builds it (`subspace_above` in `rec_aggregation`'s `placeholders.rs`) -/
+/-! ## The dual codeword as the guest builds it (`subspace_above` in `aggregation`'s `placeholders.rs`) -/
 
 /-- Row `i` of the subspace evaluations before scaling: `s_i` at the basis elements `x^j`,
 `j ≥ i` (`generate_evals_from_subspace`, `pcs/src/ntt/twiddles.rs`). -/
@@ -104,7 +104,7 @@ def subspaceEvaluations (i : ℕ) : List K :=
   (subspaceRow i).map (· * ((subspaceRow i).headD 0)⁻¹)
 
 /-- **`Ŵ_j` at the point whose bits above `j` are `y`'s**, `Σ_l bit_l(y) · Ŵ_j(e_(j+1+l))`
-(`subspace_above` in `rec_aggregation`'s `placeholders.rs`: the NTT's twiddle of block `y` at layer `13 - j`, a
+(`subspace_above` in `aggregation`'s `placeholders.rs`: the NTT's twiddle of block `y` at layer `13 - j`, a
 subset sum of row `j`, `twiddle`, `pcs/src/ntt/twiddles.rs`). For `y < 2^(13 - j)` it is
 `Ŵ_j(point (y · 2^(j+1)))` (`LeanDa.Subspace`'s `subspaceAbove_eq`). -/
 def subspaceAbove (j y : ℕ) : K :=

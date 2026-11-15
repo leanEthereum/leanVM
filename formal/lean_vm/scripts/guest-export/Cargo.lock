@@ -32,7 +32,7 @@ name = "keccak256"
 version = "0.1.0"
 
 [[package]]
-name = "lean_compiler"
+name = "zkdsl_compiler"
 version = "0.1.0"
 dependencies = [
  "isa",
@@ -69,7 +69,7 @@ version = "0.0.0"
 dependencies = [
  "isa",
  "keccak256",
- "lean_compiler",
+ "zkdsl_compiler",
  "lean_da",
  "lean_sphincs",
  "lean_xmss",
