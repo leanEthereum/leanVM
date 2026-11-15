@@ -96,61 +96,106 @@ def ownUses : Stmt → List V
   | .dispatch x _ args rets => x :: (args ++ rets)
   | .ret vs => vs
 
+/-- A block of its own (`inBlock`), its statements walked by `blk`: its values leave scope at its
+end. -/
+def scopeInner (rc : Nat) (blk : SSt → Except String SSt) (s : SSt) : Except String SSt :=
+  match expectS isEnter "a block" s with
+  | .error e => .error e
+  | .ok s₁ =>
+    match blk s₁ with
+    | .error e => .error e
+    | .ok s₂ =>
+      match flushAt rc s₂ with
+      | .error e => .error e
+      | .ok s₃ =>
+        match expectS isLeave "the end of a block" s₃ with
+        | .error e => .error e
+        | .ok s₄ => .ok { s₄ with live := s.live }
+
+/-- A statement other than a branch or a `match`: its values in scope after the values made
+before it. -/
+def scopeFlat (rc : Nat) (st : Stmt) (s : SSt) : Except String SSt :=
+  match flushAt rc s with
+  | .error e => .error e
+  | .ok s₁ =>
+    match expectS isEmit "a statement" s₁ with
+    | .error e => .error e
+    | .ok s₂ =>
+      match needScope s₂.live (ownUses st) "a statement" with
+      | .error e => .error e
+      | .ok () => .ok s₂
+
+/-- A branch after its blocks were walked: the `else` block, if the trace enters it, then the
+branch's own event. `nz` walks the `else` block; `before` is whether the path had made its return
+area before the branch. -/
+def scopeIteTail (nzEmpty : Bool) (nz : SSt → Except String SSt) (before : Bool) (s₁ : SSt) :
+    Except String SSt :=
+  match s₁.rest with
+  | .enter :: _ =>
+    match nz { s₁ with retDone := before } with
+    | .error e => .error e
+    | .ok s₂ => expectS isEmit "a branch" { s₂ with retDone := s₁.retDone || s₂.retDone }
+  | _ =>
+    if !nzEmpty then .error "an else block the trace does not enter"
+    else expectS isEmit "a branch" s₁
+
 mutual
 /-- A block. -/
 def scopeBlock (rc : Nat) : List Stmt → SSt → Except String SSt
   | [], s => .ok s
-  | st :: rest, s => do
-      let s' ← scopeStmt rc st s
-      scopeBlock rc rest s'
+  | st :: rest, s =>
+    match scopeStmt rc st s with
+    | .error e => .error e
+    | .ok s' => scopeBlock rc rest s'
 
 /-- A statement: its values in scope after the values made before it. -/
 def scopeStmt (rc : Nat) : Stmt → SSt → Except String SSt
-  | .ite c z nz, s => do
-      let s ← flushAt rc s
-      needScope s.live [c] "a branch"
-      let s₁ ← scopeInner rc z s
-      match s₁.rest with
-      | .enter :: _ =>
-          let s₂ ← scopeInner rc nz { s₁ with retDone := s.retDone }
-          expectS isEmit "a branch" { s₂ with retDone := s₁.retDone || s₂.retDone }
-      | _ =>
-          if !nz.isEmpty then .error "an else block the trace does not enter"
-          else expectS isEmit "a branch" s₁
-  | .match_ x arms, s => do
-      let s ← flushAt rc s
-      needScope s.live [x] "a match"
-      let s' ← scopeArms rc arms s s.retDone
-      expectS isEmit "a match" s'
-  | st, s => do
-      let s ← flushAt rc s
-      let s ← expectS isEmit "a statement" s
-      needScope s.live (ownUses st) "a statement"
-      pure s
-
-/-- A block of its own (`inBlock`): its values leave scope at its end. -/
-def scopeInner (rc : Nat) (ss : List Stmt) (s : SSt) : Except String SSt := do
-  let s₁ ← expectS isEnter "a block" s
-  let s₂ ← scopeBlock rc ss s₁
-  let s₃ ← flushAt rc s₂
-  let s₄ ← expectS isLeave "the end of a block" s₃
-  pure { s₄ with live := s.live }
+  | .ite c z nz, s =>
+    match flushAt rc s with
+    | .error e => .error e
+    | .ok s =>
+      match needScope s.live [c] "a branch" with
+      | .error e => .error e
+      | .ok () =>
+        match scopeInner rc (fun s' => scopeBlock rc z s') s with
+        | .error e => .error e
+        | .ok s₁ => scopeIteTail nz.isEmpty (scopeInner rc (fun s' => scopeBlock rc nz s'))
+            s.retDone s₁
+  | .match_ x arms, s =>
+    match flushAt rc s with
+    | .error e => .error e
+    | .ok s =>
+      match needScope s.live [x] "a match" with
+      | .error e => .error e
+      | .ok () =>
+        match scopeArms rc arms s s.retDone with
+        | .error e => .error e
+        | .ok s' => expectS isEmit "a match" s'
+  | .atom a, s => scopeFlat rc (.atom a) s
+  | .call f args rets, s => scopeFlat rc (.call f args rets) s
+  | .callIf c f args, s => scopeFlat rc (.callIf c f args) s
+  | .dispatch x fs args rets, s => scopeFlat rc (.dispatch x fs args rets) s
+  | .ret vs, s => scopeFlat rc (.ret vs) s
 
 /-- The arms of a `match`, each from the scope before it; `acc` is whether some arm walked so far
 made the return area. -/
 def scopeArms (rc : Nat) : List (List Stmt) → SSt → Bool → Except String SSt
   | [], s, acc => .ok { s with retDone := acc }
-  | arm :: more, s, acc => do
-      let s₁ ← scopeInner rc arm s
-      scopeArms rc more { s₁ with retDone := s.retDone } (acc || s₁.retDone)
+  | arm :: more, s, acc =>
+    match scopeInner rc (fun s' => scopeBlock rc arm s') s with
+    | .error e => .error e
+    | .ok s₁ => scopeArms rc more { s₁ with retDone := s.retDone } (acc || s₁.retDone)
 end
 
 /-- The walk of a traced function: its parameters in scope, its body, the values made after its
 last statement, and nothing left of the trace. -/
-def scopedE (tf : TracedFn) : Except String Unit := do
-  let s ← scopeBlock tf.rets tf.core.body ⟨tf.trace.toList, addLive {} tf.core.params, false⟩
-  let s ← flushAt tf.rets s
-  if s.rest.isEmpty then .ok () else .error "the trace goes on past the function"
+def scopedE (tf : TracedFn) : Except String Unit :=
+  match scopeBlock tf.rets tf.core.body ⟨tf.trace.toList, addLive {} tf.core.params, false⟩ with
+  | .error e => .error e
+  | .ok s =>
+    match flushAt tf.rets s with
+    | .error e => .error e
+    | .ok s => if s.rest.isEmpty then .ok () else .error "the trace goes on past the function"
 
 /-- **Scoped, decided.** -/
 def scopedB (tf : TracedFn) : Bool :=
@@ -161,6 +206,38 @@ def scopedB (tf : TracedFn) : Bool :=
 /-- **A scoped traced function**: what the completeness proof asks of each function beyond its
 placement. -/
 def Scoped (tf : TracedFn) : Prop := scopedB tf = true
+
+
+/-! ## No direct self call -/
+
+mutual
+/-- Whether a statement calls `f` by a `call` or a `dispatch`, at any depth (a loop helper's
+closing `callIf` is not counted). -/
+def callsS (f : String) : Stmt → Bool
+  | .call g _ _ => g == f
+  | .dispatch _ gs _ _ => gs.contains f
+  | .ite _ z n => callsL f z || callsL f n
+  | .match_ _ arms => callsA f arms
+  | _ => false
+
+/-- `callsS` of a block. -/
+def callsL (f : String) : List Stmt → Bool
+  | [] => false
+  | s :: ss => callsS f s || callsL f ss
+
+/-- `callsS` of arms. -/
+def callsA (f : String) : List (List Stmt) → Bool
+  | [] => false
+  | a :: as => callsL f a || callsA f as
+end
+
+/-- **No direct self call, decided**: the function calls itself by no `call` and no `dispatch`. -/
+def noSelfCallB (tf : TracedFn) : Bool := !callsL tf.core.name tf.core.body
+
+/-- **No direct self call**: a call of the function itself, other than a loop helper's closing
+`callIf`, would write a return pc and this frame's pointer into a callee header that the frame
+side gives this frame's own header. -/
+def NoSelfCall (tf : TracedFn) : Prop := noSelfCallB tf = true
 
 end
 end LeanVM.Guest.Backend.Complete

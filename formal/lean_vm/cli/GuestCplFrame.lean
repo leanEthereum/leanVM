@@ -34,7 +34,22 @@ def counterexamples : List (String × TracedFn) :=
       [.alloc [vv 1] .ret, .emit, .alloc [vv 2] .ret, .emit, .emit] 1),
    ("a return area past the return cells", mk "cx3"
       [.atom (.const (vv 1) 0), .atom (.const (vv 2) 1), .ret []]
-      [.alloc [vv 1, vv 2] .ret, .emit, .emit, .emit] 0)]
+      [.alloc [vv 1, vv 2] .ret, .emit, .emit, .emit] 0),
+   ("a range check temporary as a selector (scoped; frame words depend on it)", mk "cx4"
+      [.atom (.rangeCheck x x (vv 1) (vv 2) x),
+       .match_ (vv 1) [[.atom (.const (vv 3) 1)], [.atom (.const (vv 4) 2)]], .ret []]
+      [.alloc [vv 1] .cell, .alloc [vv 2] .cell, .emit, .enter, .alloc [vv 3] .pooled, .emit, .leave,
+       .enter, .alloc [vv 4] .pooled, .emit, .leave, .emit, .emit] 0)]
+
+/-- Whether a body calls the function `f` by a `call` or a `dispatch`, at any depth. -/
+partial def callsSelf (f : String) : List Stmt → Bool
+  | [] => false
+  | s :: ss => (match s with
+      | .call g _ _ => g == f
+      | .dispatch _ gs _ _ => gs.contains f
+      | .ite _ z n => callsSelf f z || callsSelf f n
+      | .match_ _ arms => arms.any (callsSelf f)
+      | _ => false) || callsSelf f ss
 
 def main (args : List String) : IO UInt32 := do
   let detail := args.contains "--detail"
@@ -49,8 +64,11 @@ def main (args : List String) : IO UInt32 := do
           s!"placed (frame size {pf.fn.frameSize}, cells {cells})"
         | .error e => s!"not placed ({e})"
       let sc := scopedB tf
-      IO.println s!"{what}: {placed}, scopedB {sc}"
-      if sc then fails := fails + 1
+      let ta := match placeFn {} (sigTable [tf]) {} tf with
+        | .ok (pf, _) => tmpsApartB tf pf
+        | .error _ => false
+      IO.println s!"{what}: {placed}, scopedB {sc}, tmpsApartB {ta}"
+      if sc && ta then fails := fails + 1
     return if fails == 0 then 0 else 1
   let P ← input
   let mut ok := 0
@@ -72,5 +90,9 @@ def main (args : List String) : IO UInt32 := do
     if tmpsApartB tf pf then okT := okT + 1
     else badT := badT.push tf.core.name
   IO.println s!"temporaries apart: {okT} of {pls.length} functions ({ntmps} temporaries)"
+  let selfCallers := P.filter fun tf => callsSelf tf.core.name tf.core.body
+  IO.println s!"functions calling themselves by call or dispatch: {selfCallers.length}"
+  let nsc := (P.filter noSelfCallB).length
+  IO.println s!"noSelfCallB: {nsc} of {P.length} functions"
   for b in (if detail then badT else badT.extract 0 40) do IO.println s!"  {b}"
   return if bad.isEmpty && badT.isEmpty then 0 else 1
