@@ -11,7 +11,7 @@ equal the degree.
 
 The six opcode tables and the two blocks of leanISA are translated with leanISA's separators,
 directions and counted channels (the memory and bytecode pulls), and the result is checked
-against the pinned Rust (`crates/leanvm_core/src/tables.rs` at
+against the pinned Rust (`crates/lean_vm_core/src/tables.rs` at
 `127510d14c98ade4e8a97646c44fa7f1ff5e752d`): the widths are the committed column counts `N` of
 the tables' implementations (`XOR` and `MUL` share `arith`), the count columns are
 `count_columns()`, and only `JUMP` has constraints,

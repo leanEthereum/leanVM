@@ -4,7 +4,7 @@
 
 use crate::fixture::fixture;
 use fiat_shamir::grinding_bits;
-use leanvm_core::cpu::{prove, scalar_proof};
+use lean_vm_core::cpu::{prove, scalar_proof};
 use verifier::{E, VerifierError, replay_unchecked, verify_execution};
 
 /// The replay reads out of an honest proof what verifying it leaves.
@@ -69,7 +69,7 @@ fn tampers_fail_their_check() {
     // `2^mu + k` coefficients of the folded lane, the query nonce, then the tail rounds. The level before ends on its
     // high part, the OOD nonce, the OOD value and the query nonce.
     let rows: Vec<usize> = fixture.summary.table_rows.iter().map(|&rows| rows as usize).collect();
-    let stack_log = leanvm_core::cpu::layout::layout(
+    let stack_log = lean_vm_core::cpu::layout::layout(
         fixture.program.prog(),
         fixture.summary.log_memory,
         rows.try_into().expect("one row count a table"),

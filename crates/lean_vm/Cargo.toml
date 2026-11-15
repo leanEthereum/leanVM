@@ -12,9 +12,9 @@ aggregation.workspace = true
 lean_da.workspace = true
 lean_xmss.workspace = true
 lean_sphincs.workspace = true
-stable_leanvm_core = { path = "../stable-prover/leanvm_core" }
-experimental_leanvm_core = { path = "../experimental-prover/leanvm_core", optional = true }
+stable_lean_vm_core = { path = "../stable-prover/lean_vm_core" }
+experimental_lean_vm_core = { path = "../experimental-prover/lean_vm_core", optional = true }
 
 [features]
 # Prove with the experimental tree rather than the stable one.
-experimental-prover = ["dep:experimental_leanvm_core"]
+experimental-prover = ["dep:experimental_lean_vm_core"]

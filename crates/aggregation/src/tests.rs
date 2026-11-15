@@ -11,9 +11,9 @@ use isa::Prover;
 use keccak256::{hash, hash_pair};
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS, Hash, LOG_BLOB_SYMBOLS};
 use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
+use lean_vm_core::StableProver;
+use lean_vm_core::cpu::{ExecError, Execution, from_scalar};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
-use leanvm_core::StableProver;
-use leanvm_core::cpu::{ExecError, Execution, from_scalar};
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use verifier::E;
@@ -27,7 +27,7 @@ use crate::signers_cache::{
 /// pubkey under both, at another leaf index.
 const MESSAGE_B: u32 = 2;
 const SMALL_LEAF_SIZE: usize = 6;
-const LOG_INV_RATE: usize = leanvm_core::pcs::TEST_LOG_INV_RATE;
+const LOG_INV_RATE: usize = lean_vm_core::pcs::TEST_LOG_INV_RATE;
 
 /// [`aggregate`](super::aggregate) on the stable prover, which the tests run.
 fn aggregate(
@@ -42,7 +42,7 @@ fn aggregate(
 }
 
 /// Run a program assembled for the stable prover.
-fn execute(program: &leanvm_core::cpu::Program, public_input: [E; 2]) -> Result<Execution, ExecError> {
+fn execute(program: &lean_vm_core::cpu::Program, public_input: [E; 2]) -> Result<Execution, ExecError> {
     program.execute(public_input.map(from_scalar))
 }
 

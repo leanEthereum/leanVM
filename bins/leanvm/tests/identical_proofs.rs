@@ -4,9 +4,9 @@
 //! idle while the other proves.
 
 use aggregation::{OutputClaims, aggregate, signers_cache};
-use experimental_leanvm_core::ExperimentalProver;
+use experimental_lean_vm_core::ExperimentalProver;
 use isa::{CompiledProgram, Prover};
-use stable_leanvm_core::StableProver;
+use stable_lean_vm_core::StableProver;
 use verifier::E;
 
 /// The proofs `P` gives: the three leaves', then the node's.

@@ -3,7 +3,7 @@
 //! pointer (at a runtime index, or from a callee).
 
 use crate::common::compile;
-use leanvm_core::cpu::{Stats, prove, verify};
+use lean_vm_core::cpu::{Stats, prove, verify};
 use primitives::field::{F64, F128};
 use zkdsl_compiler::parse;
 
@@ -120,7 +120,7 @@ def probe(v):
     let mut program = compile(&parse(src).expect("parse"));
     program.set_witness("v", vec![vec![F128::from(F64(V))]]);
     let want = [F128::from(F64(V)), F128::from(F64::ONE)];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("the pointer reads the frame run");
 }
 

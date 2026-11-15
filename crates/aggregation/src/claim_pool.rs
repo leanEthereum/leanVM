@@ -1,8 +1,8 @@
 //! The guest's claim pool and its coordinate terms.
 
 use super::cells::{ZERO, bits, count};
-use leanvm_core::cpu::{MEM_HI, MEM_LO, block_kappa_sources, keccak_value};
-use leanvm_core::leaf::{Block, Coord};
+use lean_vm_core::cpu::{MEM_HI, MEM_LO, block_kappa_sources, keccak_value};
+use lean_vm_core::leaf::{Block, Coord};
 use std::collections::BTreeMap;
 use verifier::E;
 use verifier::layout::{GLOBAL_COLUMN_BASES, TABLE_WIDTHS};

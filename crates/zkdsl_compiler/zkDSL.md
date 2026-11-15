@@ -4,7 +4,7 @@ The zkDSL is a Python-syntax language that compiles to the leanVM ISA: six instr
 
 Source files use the `.py` extension and are **Python-shaped**: they import the [`snark_lib`](snark_lib.py) stub, which defines `GEN`, `log`, `mul_range`, `HeapBuf`, `StackBuf`, `assert_in_k`, `keccak` and `keccak_cells`, so editors and linters resolve the intrinsic names. The compiler skips the import. Ordinary helpers such as `pack64x2` are defined in the single-file guest. A program that uses placeholders is not a runnable Python file: its `*_PLACEHOLDER` identifiers are undefined until the host fills them in, so importing it raises `NameError`.
 
-Entry points: `zkdsl_compiler::parse` / `parse_with_replacements` → `zkdsl_compiler::compile`, a `CompiledProgram` (crate `isa`) → `leanvm_core::cpu::Program::from` in either prover tree → `cpu::prove` / `verify`.
+Entry points: `zkdsl_compiler::parse` / `parse_with_replacements` → `zkdsl_compiler::compile`, a `CompiledProgram` (crate `isa`) → `lean_vm_core::cpu::Program::from` in either prover tree → `cpu::prove` / `verify`.
 
 ## Dev experience
 

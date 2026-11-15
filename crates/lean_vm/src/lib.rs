@@ -17,9 +17,9 @@ pub use aggregation::{
 use isa::Prover;
 
 #[cfg(feature = "experimental-prover")]
-type P = experimental_leanvm_core::ExperimentalProver;
+type P = experimental_lean_vm_core::ExperimentalProver;
 #[cfg(not(feature = "experimental-prover"))]
-type P = stable_leanvm_core::StableProver;
+type P = stable_lean_vm_core::StableProver;
 
 pub mod lean_da {
     pub use ::lean_da::{

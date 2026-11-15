@@ -16,7 +16,7 @@ lean_xmss.workspace = true
 lean_sphincs.workspace = true
 lean_da.workspace = true
 # The protocol's structure (bus blocks, stacking, grinds, the stacked bytecode), from the reference prover.
-leanvm_core = { package = "stable_leanvm_core", path = "../stable-prover/leanvm_core" }
+lean_vm_core = { package = "stable_lean_vm_core", path = "../stable-prover/lean_vm_core" }
 fiat_shamir = { package = "stable_fiat_shamir", path = "../stable-prover/fiat_shamir" }
 pcs = { package = "stable_pcs", path = "../stable-prover/pcs" }
 primitives = { package = "stable_primitives", path = "../stable-prover/primitives" }

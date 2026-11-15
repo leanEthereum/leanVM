@@ -5,7 +5,7 @@
 //! not to where it happens.
 
 use crate::common::compile;
-use leanvm_core::cpu::{prove, verify};
+use lean_vm_core::cpu::{prove, verify};
 use primitives::field::{F64, F128, g_pow};
 use zkdsl_compiler::parse;
 
@@ -32,7 +32,7 @@ def main():
 ";
     let program = compile(&parse(src).expect("parse"));
     let want = [F128::from(g_pow(3)) * F128::from(F64(7)), F128::from(F64(7))];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("returned duplicate constant is preserved");
 }
 
@@ -57,7 +57,7 @@ def main():
     let program = compile(&parse(src).expect("parse"));
     // (k + k) + (k + k) == 0 in characteristic two.
     let want = [F128::ZERO, F128::ZERO];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("duplicated call arguments are preserved");
 }
 
@@ -89,7 +89,7 @@ def main():
 ";
     let run = |pi: [F128; 2]| -> bool {
         let program = compile(&parse(src).expect("parse"));
-        prove(&program, pi, leanvm_core::pcs::TEST_LOG_INV_RATE)
+        prove(&program, pi, lean_vm_core::pcs::TEST_LOG_INV_RATE)
             .is_ok_and(|(proof, _)| verify(&program, &pi, &proof).is_ok())
     };
     assert!(
@@ -132,7 +132,7 @@ def main():
 fn assert_survives_a_duplicated_comparison() {
     let program = compile(&parse(&duplicated_comparison(9)).expect("parse"));
     let want = [F128::ZERO, F128::from(g_pow(9))];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("passing assert still verifies");
 }
 
@@ -158,7 +158,7 @@ def main():
     let mut program = compile(&parse(src).expect("parse"));
     program.set_witness("flag", vec![vec![F128::ZERO]]);
     let want = [F128::ZERO, F128::ZERO];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("untaken branch must not consume its witness");
 }
 
@@ -201,7 +201,7 @@ def main():
 ";
     let program = compile(&parse(src).expect("parse"));
     let want = [F128::from(g_pow(11)), F128::from(g_pow(22))];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("each hash absorbs into its own state");
 }
 
@@ -258,7 +258,7 @@ def main():
             let mut program = compile(&parse(&source).unwrap());
             program.set_witness("value", vec![vec![value]]);
             assert!(program.execute(public).unwrap().unconstrained_reads.is_empty());
-            let (proof, _) = prove(&program, public, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+            let (proof, _) = prove(&program, public, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
             verify(&program, &public, &proof).unwrap();
         }
     }
@@ -280,7 +280,7 @@ def main():
 ";
     let program = compile(&parse(source).unwrap());
     let public = [F128::from(g_pow(4)), F128::ZERO];
-    let (proof, _) = prove(&program, public, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, public, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &public, &proof).unwrap();
 }
 
@@ -331,7 +331,7 @@ def main():
         let mut program = compile(&parse(&source).unwrap());
         program.set_witness("value", vec![vec![value]]);
         assert!(program.execute(public).unwrap().unconstrained_reads.is_empty());
-        let (proof, _) = prove(&program, public, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        let (proof, _) = prove(&program, public, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &public, &proof).unwrap();
     }
 }

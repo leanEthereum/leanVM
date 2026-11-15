@@ -21,7 +21,7 @@ public import Mathlib.Algebra.CharP.Two
 
 At Clean pin `b41c196b`. The
 columns are `keccak_columns` (`crates/verifier/src/layout.rs`;
-`crates/leanvm_core/src/tables.rs`, `keccakt`) and the flushes `flushes_keccak`
+`crates/lean_vm_core/src/tables.rs`, `keccakt`) and the flushes `flushes_keccak`
 (`layout.rs`; `tables.rs`),
 matching specification §7.6 (`doc/leanvm/body/07-instruction-tables.tex`). There is no table constraint: the permutation is
 proved by the Keccak reduction (`verify_keccak`) on the input lanes committed to `q_keccak` and

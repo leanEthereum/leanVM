@@ -16,7 +16,7 @@
 
 use std::fs;
 
-use leanvm_core::cpu::{Program, from_scalar, prove, verify};
+use lean_vm_core::cpu::{Program, from_scalar, prove, verify};
 use primitives::field::F128;
 use zkdsl_compiler::{compile, parse, parse_const};
 
@@ -74,7 +74,7 @@ fn all_py_programs() {
         for (stream, entries) in witness(&src) {
             program.set_witness(stream, entries);
         }
-        let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &want, &proof).unwrap_or_else(|e| panic!("{name}: verify: {e:?}"));
         println!("{name}: ok");
     }

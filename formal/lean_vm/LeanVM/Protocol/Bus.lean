@@ -72,7 +72,7 @@ a point for it (the verifier reads `ζ` at every variable below the tallest tabl
 `crates/verifier/src/bus.rs`; its explicit rejection of a shorter `ζ`,
 `crates/lean_vm/src/constraints.rs` at `a386121f`, is removed at `127510d1`); and the pull
 and count sides fit in `2 ^ μ_bus`, the push side's depth, which the deployed prover asserts of
-its layouts (`crates/leanvm_core/src/leaf.rs`; the verifier's own call,
+its layouts (`crates/lean_vm_core/src/leaf.rs`; the verifier's own call,
 `leaf.rs` at `a386121f`, is removed at `127510d1`).
 
 Perfect completeness (`busComplete`), from `Seam.commitHonest` to `Seam.bus`: on a stack
@@ -82,10 +82,10 @@ are nonzero), every rider is zero (constraints vanish, lines and Keccak predicat
 the end the honest values make every claim true and the forms sum to the totals.
 
 Written from the specification; the layout and its tie order, the count blocks and the order of
-the messages are transcribed from `crates/leanvm_core/src/leaf.rs` (the layout,
+the messages are transcribed from `crates/lean_vm_core/src/leaf.rs` (the layout,
 the leaves, the decomposition), the verifier
 `crates/verifier/src/bus.rs` (`verify_bus_balance`), the prover's grand product
-`crates/leanvm_core/src/gkr.rs` and its verifier `crates/verifier/src/bus.rs`.
+`crates/lean_vm_core/src/gkr.rs` and its verifier `crates/verifier/src/bus.rs`.
 -/
 
 namespace LeanVM.Protocol

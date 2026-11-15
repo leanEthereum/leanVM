@@ -5,22 +5,22 @@ use primitives::field::F128;
 use zkdsl_compiler::parse;
 
 /// The shared compiler's output, assembled for the stable prover.
-pub fn compile(ast: &zkdsl_compiler::Ast) -> leanvm_core::cpu::Program {
+pub fn compile(ast: &zkdsl_compiler::Ast) -> lean_vm_core::cpu::Program {
     zkdsl_compiler::compile(ast).into()
 }
 
 /// [`zkdsl_compiler::f128_literal`] of a prover word.
 pub fn f128_literal(x: F128) -> String {
-    zkdsl_compiler::f128_literal(leanvm_core::cpu::to_scalar(&x))
+    zkdsl_compiler::f128_literal(lean_vm_core::cpu::to_scalar(&x))
 }
 
 /// [`zkdsl_compiler::parse_const`], as a prover word.
 pub fn parse_const(s: &str) -> Result<F128, String> {
-    zkdsl_compiler::parse_const(s).map(leanvm_core::cpu::from_scalar)
+    zkdsl_compiler::parse_const(s).map(lean_vm_core::cpu::from_scalar)
 }
 
 /// The program's own instruction mix: executed but not proven.
-pub fn mix(src: &str, pi: [F128; 2]) -> [usize; leanvm_core::cpu::Stats::TABLES.len()] {
+pub fn mix(src: &str, pi: [F128; 2]) -> [usize; lean_vm_core::cpu::Stats::TABLES.len()] {
     compile(&parse(src).expect("parse")).execute(pi).unwrap().rows()
 }
 

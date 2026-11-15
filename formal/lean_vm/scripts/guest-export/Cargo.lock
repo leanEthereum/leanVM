@@ -36,8 +36,9 @@ name = "lean_da"
 version = "0.1.0"
 dependencies = [
  "keccak256",
+ "stable_pcs",
+ "stable_primitives",
  "tracing",
- "verifier",
 ]
 
 [[package]]
@@ -65,7 +66,7 @@ dependencies = [
  "lean_xmss",
  "rand",
  "stable_fiat_shamir",
- "stable_leanvm_core",
+ "stable_lean_vm_core",
  "stable_pcs",
  "stable_primitives",
  "tracing",
@@ -174,7 +175,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "stable_leanvm_core"
+name = "stable_lean_vm_core"
 version = "0.1.0"
 dependencies = [
  "isa",

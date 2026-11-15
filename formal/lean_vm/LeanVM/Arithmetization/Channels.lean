@@ -23,7 +23,7 @@ At leanVM pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d` and Clean pin `b41c196b
 
 **The tuples.** Every bus tuple is sixteen `K` slots: a domain separator, then the
 interaction's coordinates, then zeros (specification §5.1,
-`doc/leanvm/body/05-arithmetization.tex`; `crates/leanvm_core/src/tables.rs`,
+`doc/leanvm/body/05-arithmetization.tex`; `crates/lean_vm_core/src/tables.rs`,
 `SEP_STATE`, `SEP_MEM`, `SEP_BYTECODE`). The three interactions and their coordinate orders:
 
 * state, separator `g^0`: `(pc, fp)` (§6.1, `06-bus-interactions.tex`; `tables.rs`);

@@ -21,8 +21,8 @@ lean_da.workspace = true
 zkdsl_compiler.workspace = true
 lean_xmss.workspace = true
 lean_sphincs.workspace = true
-stable_leanvm_core = { path = "../../crates/stable-prover/leanvm_core" }
-experimental_leanvm_core = { path = "../../crates/experimental-prover/leanvm_core" }
+stable_lean_vm_core = { path = "../../crates/stable-prover/lean_vm_core" }
+experimental_lean_vm_core = { path = "../../crates/experimental-prover/lean_vm_core" }
 stable_keccak_gkr = { path = "../../crates/stable-prover/keccak_gkr", features = ["bench"] }
 experimental_keccak_gkr = { path = "../../crates/experimental-prover/keccak_gkr", features = ["bench"] }
 bench.workspace = true

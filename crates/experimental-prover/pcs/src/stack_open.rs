@@ -187,7 +187,7 @@ pub fn open_batch_mixed_whir_stacked(
 
     // 2. The ONE batching challenge both families take disjoint power ranges of. Nothing is
     //    observed first: every claim value reached the caller through a binding stream read, so
-    //    the challenge already depends on all of them (`leanvm_core::pcs::open`).
+    //    the challenge already depends on all of them (`lean_vm_core::pcs::open`).
     let lambdas = powers(ps.sample(), ring.claims.len() + point_claims.len());
     let (lambdas_rs, lambdas_pd) = lambdas.split_at(ring.claims.len());
 

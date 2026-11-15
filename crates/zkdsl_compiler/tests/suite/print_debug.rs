@@ -2,7 +2,7 @@
 //! witness generation, and leave proving/verification untouched.
 
 use crate::common::compile;
-use leanvm_core::cpu::{prove, verify};
+use lean_vm_core::cpu::{prove, verify};
 use primitives::field::{F64, F128};
 use zkdsl_compiler::parse;
 
@@ -24,6 +24,6 @@ def main():
 ";
     let program = compile(&parse(src).expect("parse"));
     let want = [F128::from(F64(5) * primitives::field::g_pow(1)), F128::from(F64(3))];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("prints must not disturb proving");
 }

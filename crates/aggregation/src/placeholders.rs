@@ -14,13 +14,13 @@ use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW};
 use super::statement::{BIG_GROUPS, CLAIM_GROUP, STATEMENT_HEADER};
 use super::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 use lean_da::{CELLS_PER_ROW, DA_MAX_ROWS, LOG_BLOB_SYMBOLS, LOG_CELL_SYMBOLS};
-use leanvm_core::constraints::xi_offsets;
-use leanvm_core::cpu::{
+use lean_vm_core::constraints::xi_offsets;
+use lean_vm_core::cpu::{
     KeccakLane, QKECCAK, block_kappa_sources, col_kappa_sources, keccak_value, n_xi_powers, xi_form_base,
 };
-use leanvm_core::gkr::{ROUND_GRIND, y_grind};
-use leanvm_core::keccak::{DEPTH as KECCAK_DEPTH, SLOT_LOG};
-use leanvm_core::leaf::{self, Block, Coord, N_TUPLE_BITS, bus_grinding_bits};
+use lean_vm_core::gkr::{ROUND_GRIND, y_grind};
+use lean_vm_core::keccak::{DEPTH as KECCAK_DEPTH, SLOT_LOG};
+use lean_vm_core::leaf::{self, Block, Coord, N_TUPLE_BITS, bus_grinding_bits};
 use std::collections::BTreeMap;
 use std::ops::Range;
 use verifier::layout::{GLOBAL_COLUMN_BASES, N_TABLES, TABLE_LOG_FLOORS, TABLE_WIDTHS, tables};

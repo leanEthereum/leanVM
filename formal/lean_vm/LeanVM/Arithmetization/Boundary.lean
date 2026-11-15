@@ -21,7 +21,7 @@ public import Clean.Utils.Tactics.CircuitProofStart
 # The boundary blocks
 
 At leanVM pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d` and Clean pin `b41c196b`. The three
-blocks are `crates/leanvm_core/src/cpu/layout.rs` (the "shared blocks" of `layout`),
+blocks are `crates/lean_vm_core/src/cpu/layout.rs` (the "shared blocks" of `layout`),
 matching specification §6.1 (`doc/leanvm/body/06-bus-interactions.tex`, the state boundary),
 §6.2 "Flush rules" (seed and finalize), §6.4 (the bytecode array), §6.5 (the
 index column), and §8.6 (`08-end-to-end-protocol.tex`: "three blocks per side belong to no

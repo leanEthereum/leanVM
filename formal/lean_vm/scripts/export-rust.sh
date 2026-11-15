@@ -26,8 +26,8 @@
 #   rust.txt              the Rust prover's wall time in seconds.
 #
 # The proof is the honest proof of the Rust `prove`, its Merkle paths unpruned
-# (`leanvm_core::cpu::scalar_proof`). The guests (`fixed`) are the program of
-# crates/stable-prover/leanvm_core/tests/verifiers/fixture.rs at 4, 300 and 1000 loop steps,
+# (`lean_vm_core::cpu::scalar_proof`). The guests (`fixed`) are the program of
+# crates/stable-prover/lean_vm_core/tests/verifiers/fixture.rs at 4, 300 and 1000 loop steps,
 # crates/zkdsl_compiler/tests/programs/fibonacci.py, and eight more programs of that suite, three
 # at each of the four rates, read from the source tree. Every proof is verified by the Rust
 # `cpu::verify` before it is written, and `Proof::from_bytes` must give it back from `proof.wire`.
@@ -67,7 +67,7 @@ edition = "2024"
 [workspace]
 
 [dependencies]
-leanvm_core = { package = "stable_leanvm_core", path = "$checkout/crates/stable-prover/leanvm_core" }
+lean_vm_core = { package = "stable_lean_vm_core", path = "$checkout/crates/stable-prover/lean_vm_core" }
 zkdsl_compiler = { path = "$checkout/crates/zkdsl_compiler" }
 primitives = { package = "stable_primitives", path = "$checkout/crates/stable-prover/primitives" }
 verifier = { path = "$checkout/crates/verifier" }
@@ -81,7 +81,7 @@ EOF
 # The chain program and the suite's header readers, from the tests that define them.
 cat > "$work/src/main.rs" <<EOF
 #[allow(dead_code)]
-#[path = "$checkout/crates/stable-prover/leanvm_core/tests/verifiers/fixture.rs"]
+#[path = "$checkout/crates/stable-prover/lean_vm_core/tests/verifiers/fixture.rs"]
 mod fixture;
 #[allow(dead_code, unused_imports)]
 #[path = "$checkout/crates/zkdsl_compiler/tests/suite/py_source.rs"]
@@ -91,7 +91,7 @@ EOF
 cat >> "$work/src/main.rs" <<'EOF'
 use fixture::chain;
 use zkdsl_compiler::{compile, parse};
-use leanvm_core::cpu::{Program, prove, public_input_bytes, scalar_proof, verify};
+use lean_vm_core::cpu::{Program, prove, public_input_bytes, scalar_proof, verify};
 use primitives::field::F128;
 use std::path::Path;
 
@@ -198,7 +198,7 @@ fn main() {
         let wire = proof.to_bytes();
         assert!(fiat_shamir::transcript::Proof::from_bytes(&wire) == Some(proof.clone()), "the wire round trip");
         let scalar = scalar_proof(&proof);
-        let table: Vec<u8> = leanvm_core::cpu::layout::bytecode_table(&program.prog())
+        let table: Vec<u8> = lean_vm_core::cpu::layout::bytecode_table(&program.prog())
             .iter()
             .flat_map(|w| w.0.to_le_bytes())
             .collect();

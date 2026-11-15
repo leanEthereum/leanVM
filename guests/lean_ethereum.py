@@ -2521,7 +2521,7 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
     claim_idx = N_BUS_CLAIMS  # the table and public-input claims follow the deduped bus claims
 
     # ---- ONE table sumcheck for all six tables ----
-    # Mirrors leanvm_core::constraints::verify. zc_xi ONCE, each table folding its own
+    # Mirrors lean_vm_core::constraints::verify. zc_xi ONCE, each table folding its own
     # identities with a DISJOINT range of its powers (ETA_OFFSET[t]); one shared
     # point zeta (the bus GKR's); n = max_t tau_t rounds. Rounds bind the HIGHEST
     # variable first, so a 2^tau table sits out the first n - tau and joins carrying

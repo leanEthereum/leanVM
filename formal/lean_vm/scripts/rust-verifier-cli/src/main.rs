@@ -62,7 +62,7 @@ fn stream(bytes: &[u8]) -> Result<Vec<verifier::E>, String> {
     Ok(scalars.into_iter().map(|[c0, c1]| verifier::E { c0, c1 }).collect())
 }
 
-/// `Proof::from_bytes`, then the `verifier` crate's form of the proof (`leanvm_core::cpu::scalar_proof`).
+/// `Proof::from_bytes`, then the `verifier` crate's form of the proof (`lean_vm_core::cpu::scalar_proof`).
 fn wire(bytes: &[u8]) -> Result<verifier::Proof, String> {
     let proof = fiat_shamir::transcript::Proof::from_bytes(bytes).ok_or("wire decoding failed")?;
     let path = |path: &fiat_shamir::merkle::MerklePath| verifier::MerklePath {

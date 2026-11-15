@@ -19,7 +19,7 @@ public import Mathlib.Algebra.CharP.Two
 # The `DEREF` table
 
 At Clean pin `b41c196b`. The columns
-are `crates/leanvm_core/src/tables.rs` (`mod deref`, in that order), the store coordinates
+are `crates/lean_vm_core/src/tables.rs` (`mod deref`, in that order), the store coordinates
 `tables.rs` (`deref_store`), the flushes `tables.rs` (`DerefTable::flushes`),
 matching specification §7.4 (`doc/leanvm/body/07-instruction-tables.tex`). There is no
 constraint enforcing Boolean flags. Local soundness instead requires the bytecode pull's

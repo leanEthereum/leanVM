@@ -4,8 +4,8 @@
 static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;
 
 use clap::{Parser, Subcommand};
-use experimental_leanvm_core::ExperimentalProver;
-use stable_leanvm_core::StableProver;
+use experimental_lean_vm_core::ExperimentalProver;
+use stable_lean_vm_core::StableProver;
 
 mod benchmark;
 mod fibonacci;
@@ -19,7 +19,7 @@ trait CliProver: isa::Prover {
 
 impl CliProver for StableProver {
     fn hash(log_n: usize, log_inv_rate: usize, plan: bench::Plan) {
-        use stable_leanvm_core::{keccak, pcs};
+        use stable_lean_vm_core::{keccak, pcs};
         let least = (pcs::MIN_STACKED_LOG - keccak::SLOT_LOG).max(keccak::MIN_STEPS.ilog2() as usize);
         check_log_n(log_n, least, pcs::MAX_STACKED_LOG - keccak::SLOT_LOG);
         stable_keccak_gkr::batch_bench::run(1 << log_n, keccak::DEPTH, log_inv_rate, plan).print();
@@ -28,7 +28,7 @@ impl CliProver for StableProver {
 
 impl CliProver for ExperimentalProver {
     fn hash(log_n: usize, log_inv_rate: usize, plan: bench::Plan) {
-        use experimental_leanvm_core::{keccak, pcs};
+        use experimental_lean_vm_core::{keccak, pcs};
         let least = (pcs::MIN_STACKED_LOG - keccak::SLOT_LOG).max(keccak::MIN_STEPS.ilog2() as usize);
         check_log_n(log_n, least, pcs::MAX_STACKED_LOG - keccak::SLOT_LOG);
         experimental_keccak_gkr::batch_bench::run(1 << log_n, keccak::DEPTH, log_inv_rate, plan).print();

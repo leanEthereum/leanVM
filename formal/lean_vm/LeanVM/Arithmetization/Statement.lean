@@ -84,7 +84,7 @@ stacks the read-count columns of the six tables and nothing else, so the finaliz
 the two blocks are outside it, as §6.2 "Nothing checks the finalize counts" says). `Caps w` is
 the M3 part of the announcement checks (`read_public` at `a386121f`; `walk` and
 `build_layout`, `verifier/src/lib.rs` and `verifier/src/layout.rs`, behind the
-wrapper `crates/leanvm_core/src/cpu/mod.rs`), which make eight checks: (1) the
+wrapper `crates/lean_vm_core/src/cpu/mod.rs`), which make eight checks: (1) the
 announced sizes have zero upper limbs (`verifier/src/lib.rs`, the transcript format) and
 (2) the two public words are two-limb words (`cpu/mod.rs`, `[F128; 2]`), both by type here
 (`PublicInput.word0`, `word1`); (3) the bytecode length is a power of two at most `2^32`

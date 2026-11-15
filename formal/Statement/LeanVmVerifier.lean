@@ -33,7 +33,7 @@ aggregate's in-circuit verifier of its children does
 The Rust verifier carries its WHIR constants, the ladder geometry (`derive_config`) and the query
 counts (`WHIR_QUERIES`) itself (`crates/verifier/src/whir.rs`); they are the prover's
 (`crates/pcs/src/whir_config.rs`, its ladder `derive_ladder` and `derive_ladder_shape`), as the tests `whir_query_table_matches_the_search` and
-`grinding_constants_match_the_prover` (`crates/leanvm_core/tests/verifiers/whir_query_table.rs`)
+`grinding_constants_match_the_prover` (`crates/lean_vm_core/tests/verifiers/whir_query_table.rs`)
 check, the latter on this file's constants too. The stacking window is `MIN_STACKED_LOG` and
 `MAX_STACKED_LOG` (`crates/verifier/src/layout.rs`). The specification describes the protocol these
 parameters instantiate (Annex B, `fig:protocol`, `doc/leanvm/body/b-polynomial-commitment-scheme.tex`)

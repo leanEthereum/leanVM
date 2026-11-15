@@ -69,7 +69,7 @@ had a true claim and a true invariant before it, or a challenge among the round 
 agreements with the honest one or the zero test's one root.
 
 Written from the specification; the order of the powers, the shared side powers, the weights and
-the order of the final values are checked against `crates/leanvm_core/src/cpu/mod.rs`,
+the order of the final values are checked against `crates/lean_vm_core/src/cpu/mod.rs`,
 `crates/verifier/src/lib.rs` and `crates/verifier/src/bus.rs`.
 -/
 

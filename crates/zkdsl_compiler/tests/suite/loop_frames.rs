@@ -1,5 +1,5 @@
 use crate::common::compile;
-use leanvm_core::cpu::{prove, verify};
+use lean_vm_core::cpu::{prove, verify};
 use primitives::field::{F64, F128, g_pow};
 use zkdsl_compiler::parse;
 
@@ -52,7 +52,7 @@ def main():
         let public = [F128::from(sum), F128::from(g_pow(end))];
         assert!(program.execute(public).unwrap().unconstrained_reads.is_empty());
         if end == 9 {
-            let (proof, _) = prove(&program, public, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+            let (proof, _) = prove(&program, public, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
             verify(&program, &public, &proof).unwrap();
         }
     }
@@ -125,7 +125,7 @@ def main():
     for bound in ["GEN ** 2", "public[GEN]"] {
         let program = compile(&parse(&source.replace("STOP", bound)).unwrap());
         assert!(program.execute(public).unwrap().unconstrained_reads.is_empty());
-        let (proof, _) = prove(&program, public, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        let (proof, _) = prove(&program, public, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &public, &proof).unwrap();
     }
 }

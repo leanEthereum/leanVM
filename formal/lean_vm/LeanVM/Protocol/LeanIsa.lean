@@ -33,7 +33,7 @@ size `leanIsaμ prog s ≤ maxMu` (`MAX_STACKED_LOG`; its floor holds by constru
 announcement and used by the commitment, not by the instance.
 
 **The tables.** Nine, in the order of the Rust's global columns
-(`crates/leanvm_core/src/cpu/layout.rs`): the memory columns `MEMORY_0, MEMORY_1, MFCNT`
+(`crates/lean_vm_core/src/cpu/layout.rs`): the memory columns `MEMORY_0, MEMORY_1, MFCNT`
 at height `2^logMem`; the bytecode finalize count `BFCNT` at `2^prog.logSize`; the Keccak
 reduction's column `QKECCAK` at `2^(τ_KECCAK + 6)` (`layout.rs`, `SLOT_LOG = 6`); then the six
 opcode tables at their log-heights, each `Component.toM3` of its Clean component with leanISA's
@@ -49,7 +49,7 @@ the program's entries (`bytecodeTable`, with the program's thirteen entry column
 parties, `Coord.known`; `bytecode_columns`, `layout.rs`). The index column is the verifier's
 (`idxColumn`), as the Rust's `Coord::Index` is.
 
-**The stack** (`crates/leanvm_core/src/witness.rs`). Every committed column has a
+**The stack** (`crates/lean_vm_core/src/witness.rs`). Every committed column has a
 log-size, its table's; the `KECCAK` table's columns `0 … 64` but `14` have none (`IsVirtual`: the
 fifty value lanes and the fourteen columns riding `QKECCAK`'s spare slots; `Placement::VIRTUAL`,
 `witness.rs`; `layout.rs`), so `94` of the `158` columns are committed. The committed
@@ -97,7 +97,7 @@ push side (each table pulls as often as it pushes, and the boundary blocks pair 
 side has no more (each count is a pull's), and `JUMP`, the one table with constraints, pushes.
 With `d = 2` it meets the table sumcheck's degree bound by definition.
 
-The layout, the boundary blocks and the sizes are transcribed from `crates/leanvm_core/src` and
+The layout, the boundary blocks and the sizes are transcribed from `crates/lean_vm_core/src` and
 `crates/verifier/src` at leanVM `40f877dc`; the instance's polynomials are Clean's, through
 `Component.toM3`.
 
@@ -290,7 +290,7 @@ def outCol (l : Fin 25) : Col := ⟨opIdx 5, ⟨40 + l, by rw [width_keccak]; om
 
 /-- The column is a `KECCAK` value lane, input or output: not committed in a block of its own
 (`KECCAK_IN … KECCAK_CNT`, `crates/verifier/src/layout.rs`; `KeccakLane::Input`/`Output`,
-`crates/leanvm_core/src/cpu/layout.rs`). -/
+`crates/lean_vm_core/src/cpu/layout.rs`). -/
 def IsLane (c : Col) : Prop := c.1 = opIdx 5 ∧ 15 ≤ c.2.val ∧ c.2.val < 65
 
 instance (c : Col) : Decidable (IsLane c) := inferInstanceAs (Decidable (_ ∧ _))
@@ -299,14 +299,14 @@ instance (c : Col) : Decidable (IsLane c) := inferInstanceAs (Decidable (_ ∧ _
 `0 … 13`: `pc`, `fp`, the operands, the layout flags and the output flags `out_two`, `out_all`),
 which ride the spare slots `50 … 63` of `QKECCAK` (`qkeccak_slot`,
 `crates/verifier/src/layout.rs`;
-`KeccakLane::Slot`, `crates/leanvm_core/src/cpu/layout.rs`). -/
+`KeccakLane::Slot`, `crates/lean_vm_core/src/cpu/layout.rs`). -/
 def IsSpare (c : Col) : Prop := c.1 = opIdx 5 ∧ c.2.val < 14
 
 instance (c : Col) : Decidable (IsSpare c) := inferInstanceAs (Decidable (_ ∧ _))
 
 /-- The column has no block of its own: a `KECCAK` value lane or a column riding a spare slot of
 `QKECCAK`, the `KECCAK` table's columns `0 … 64` but `14` (`free`, committed in a block of its
-own) (the Rust's virtual columns, `keccak_value`, `crates/leanvm_core/src/cpu/layout.rs`). -/
+own) (the Rust's virtual columns, `keccak_value`, `crates/lean_vm_core/src/cpu/layout.rs`). -/
 def IsVirtual (c : Col) : Prop := c.1 = opIdx 5 ∧ c.2.val < 65 ∧ c.2.val ≠ 14
 
 instance (c : Col) : Decidable (IsVirtual c) := inferInstanceAs (Decidable (_ ∧ _))
@@ -916,7 +916,7 @@ theorem qSlot_spare {c : Col} (h : IsSpare c) :
   split_ifs
   omega
 
-/-- `QKECCAK` of a witness (`crates/leanvm_core/src/keccak.rs`, `cpu/layout.rs`): slot
+/-- `QKECCAK` of a witness (`crates/lean_vm_core/src/keccak.rs`, `cpu/layout.rs`): slot
 `l < 25` of step `x` is input lane `l` of row `x`, slot `25 + l` lane `l` of its state after
 twelve rounds, and slot `50 + k` the row's cell of the `KECCAK` column `spareColumn k`. -/
 def keccakWitness (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Vector K (2 ^ (s.τ 5 + 6)) :=

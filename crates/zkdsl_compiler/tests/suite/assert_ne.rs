@@ -4,7 +4,7 @@
 //! `p = 0`, which cannot then be set to `1`. Three rows and no `JUMP`.
 
 use crate::common::compile;
-use leanvm_core::cpu::{Op, prove, verify};
+use lean_vm_core::cpu::{Op, prove, verify};
 use primitives::field::{F64, F128, g_pow};
 use zkdsl_compiler::parse;
 
@@ -25,7 +25,7 @@ def main():
 ";
     let program = compile(&parse(src).expect("parse"));
     let want = [F128::from(g_pow(12)), F128::from(g_pow(5))];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("inequality program verifies");
 }
 
@@ -46,7 +46,7 @@ def main():
 ";
     let program = compile(&parse(src).expect("parse"));
     let want = [F128::from(F64(5)), F128::from(F64(7))];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("loop inequality verifies");
 }
 

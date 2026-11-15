@@ -5,6 +5,6 @@
 //! depends on this crate. Cargo allows that cycle through dev-dependencies,
 //! but only for a target that links the ordinary library.
 
-extern crate stable_leanvm_core as leanvm_core;
+extern crate stable_lean_vm_core as lean_vm_core;
 mod fixture;
 mod portable_verifier;

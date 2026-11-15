@@ -1,5 +1,5 @@
 [package]
-name = "experimental_leanvm_core"
+name = "experimental_lean_vm_core"
 version.workspace = true
 edition.workspace = true
 publish = false

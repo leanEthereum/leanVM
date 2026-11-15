@@ -8,7 +8,7 @@ A classic test for kernel evaluation: the fixture decides `K` and `E` arithmetic
 Keccak-f[1600] permutation, and the bus permutations in the kernel.
 
 **The fixture** is one hand-built witness of `SatisfiedBy` for the program of the execution
-tests, the executor's `mul_128bit_word` (`crates/leanvm_core/src/cpu/mod.rs` at leanVM
+tests, the executor's `mul_128bit_word` (`crates/lean_vm_core/src/cpu/mod.rs` at leanVM
 `4af2cddd`, `tests/LeanVMTests/Semantics/Execution.lean`), extended with closed walks: a `JUMP` to
 the sentinel after the three instructions, and three blocks run in frames disjoint from the
 program's own, each a loop ending in a `JUMP` back to its first instruction: one `XOR`, one

@@ -11,7 +11,7 @@
 use std::collections::BTreeMap;
 
 use crate::common::compile;
-use leanvm_core::cpu::{prove, verify};
+use lean_vm_core::cpu::{prove, verify};
 use primitives::field::g_pow;
 use zkdsl_compiler::{parse, parse_with_replacements};
 
@@ -97,7 +97,7 @@ def main():
         );
         let program = compile(&parse(&src).unwrap_or_else(|e| panic!("`{decl}`: {e}")));
         let want = [g_pow(exp).into(), g_pow(0).into()];
-        let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &want, &proof).unwrap_or_else(|e| panic!("`{decl}` is not g^{exp}: {e:?}"));
     }
 }

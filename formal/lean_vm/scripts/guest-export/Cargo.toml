@@ -39,7 +39,7 @@ zkdsl_compiler = { path = "../../../../crates/zkdsl_compiler" }
 lean_xmss = { path = "../../../../crates/lean_xmss" }
 lean_sphincs = { path = "../../../../crates/lean_sphincs" }
 lean_da = { path = "../../../../crates/lean_da" }
-leanvm_core = { package = "stable_leanvm_core", path = "../../../../crates/stable-prover/leanvm_core" }
+lean_vm_core = { package = "stable_lean_vm_core", path = "../../../../crates/stable-prover/lean_vm_core" }
 fiat_shamir = { package = "stable_fiat_shamir", path = "../../../../crates/stable-prover/fiat_shamir" }
 pcs = { package = "stable_pcs", path = "../../../../crates/stable-prover/pcs" }
 primitives = { package = "stable_primitives", path = "../../../../crates/stable-prover/primitives" }

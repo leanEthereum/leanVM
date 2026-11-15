@@ -1,7 +1,7 @@
 //! One honest proof of a small zkDSL program, shared by the verifier tests: a two-block Keccak and a
 //! loop of field arithmetic, long enough that every table and the Keccak reduction are exercised.
 
-use leanvm_core::cpu::{Program, prove, public_input_bytes, verify};
+use lean_vm_core::cpu::{Program, prove, public_input_bytes, verify};
 use primitives::field::{F128, g_pow};
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
@@ -75,7 +75,7 @@ fn public_input(loop_steps: usize) -> [F128; 2] {
 pub(crate) struct Fixture {
     pub program: Program,
     pub public_input: [F128; 2],
-    pub proof: leanvm_core::cpu::Proof,
+    pub proof: lean_vm_core::cpu::Proof,
     /// What verifying it leaves.
     pub summary: verifier::Summary,
     /// The statement the verifiers take, not a structured program: the bytecode multilinear and the public input's
@@ -90,7 +90,7 @@ pub(crate) fn fixture() -> &'static Fixture {
         let (program, public_input) = chain(LOOP_STEPS);
         let (proof, _) = prove(&program, public_input, 1).unwrap();
         let summary = verify(&program, &public_input, &proof).expect("honest proof verifies");
-        let table = leanvm_core::cpu::layout::bytecode_table(program.prog());
+        let table = lean_vm_core::cpu::layout::bytecode_table(program.prog());
         let bytecode = Bytecode::new(&table.iter().map(|word| word.0).collect::<Vec<_>>());
         Fixture {
             public_input_bytes: public_input_bytes(&public_input),

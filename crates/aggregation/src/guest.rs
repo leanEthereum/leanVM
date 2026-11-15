@@ -45,7 +45,7 @@ pub fn warm_up<P: Prover>() {
 /// The stacked bytecode multilinear of a program, as the prover lays it out: what a transcript's IV hashes and the
 /// deferred claims are about.
 pub fn bytecode_table(prog: &[Op]) -> Vec<u64> {
-    leanvm_core::cpu::layout::bytecode_table(prog)
+    lean_vm_core::cpu::layout::bytecode_table(prog)
         .iter()
         .map(|word| word.0)
         .collect()

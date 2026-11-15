@@ -24,7 +24,7 @@ use std::collections::BTreeMap;
 use std::fs;
 
 use crate::common::compile;
-use leanvm_core::cpu::Program;
+use lean_vm_core::cpu::Program;
 use zkdsl_compiler::parse;
 
 /// `tests/programs/<name>.py` against the digest of the bytecode it compiles to.

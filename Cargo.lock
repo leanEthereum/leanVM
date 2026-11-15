@@ -13,7 +13,7 @@ dependencies = [
  "lean_xmss",
  "rand",
  "stable_fiat_shamir",
- "stable_leanvm_core",
+ "stable_lean_vm_core",
  "stable_pcs",
  "stable_primitives",
  "tracing",
@@ -228,7 +228,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "experimental_leanvm_core"
+name = "experimental_lean_vm_core"
 version = "0.1.0"
 dependencies = [
  "experimental_fiat_shamir",
@@ -364,12 +364,12 @@ name = "lean_vm"
 version = "0.1.0"
 dependencies = [
  "aggregation",
- "experimental_leanvm_core",
+ "experimental_lean_vm_core",
  "isa",
  "lean_da",
  "lean_sphincs",
  "lean_xmss",
- "stable_leanvm_core",
+ "stable_lean_vm_core",
 ]
 
 [[package]]
@@ -388,14 +388,14 @@ dependencies = [
  "bench",
  "clap",
  "experimental_keccak_gkr",
- "experimental_leanvm_core",
+ "experimental_lean_vm_core",
  "isa",
  "lean_da",
  "lean_sphincs",
  "lean_xmss",
  "rand",
  "stable_keccak_gkr",
- "stable_leanvm_core",
+ "stable_lean_vm_core",
  "tracing",
  "verifier",
  "zkdsl_compiler",
@@ -588,7 +588,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "stable_leanvm_core"
+name = "stable_lean_vm_core"
 version = "0.1.0"
 dependencies = [
  "isa",
@@ -875,7 +875,7 @@ version = "0.1.0"
 dependencies = [
  "isa",
  "keccak256",
- "stable_leanvm_core",
+ "stable_lean_vm_core",
  "stable_parallel",
  "stable_primitives",
  "verifier",

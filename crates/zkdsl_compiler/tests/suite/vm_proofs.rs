@@ -1,8 +1,8 @@
 //! Proof-level properties of the VM: that its channels carry everything, and that a malformed input is an error rather than a panic.
 
 use crate::common::compile;
-use leanvm_core::cpu::{Proof, ProveError, prove, verify};
-use leanvm_core::vmhash::compress;
+use lean_vm_core::cpu::{Proof, ProveError, prove, verify};
+use lean_vm_core::vmhash::compress;
 use primitives::field::{F64, F128};
 use zkdsl_compiler::parse;
 
@@ -28,10 +28,10 @@ fn hashing_pi() -> [F128; 2] {
     [F128::new(d[0].0, d[1].0), F128::new(d[2].0, d[3].0)]
 }
 
-fn hashing_proof() -> (leanvm_core::cpu::Program, [F128; 2], Proof) {
+fn hashing_proof() -> (lean_vm_core::cpu::Program, [F128; 2], Proof) {
     let program = compile(&parse(HASHING).expect("parse"));
     let pi = hashing_pi();
-    let (proof, _) = prove(&program, pi, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, pi, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &pi, &proof).expect("honest proof verifies");
     (program, pi, proof)
 }
@@ -50,7 +50,7 @@ fn a_proof_roundtrips_through_bytes() {
 #[test]
 fn an_unsupported_rate_is_an_error() {
     let program = compile(&parse(HASHING).expect("parse"));
-    let rate = leanvm_core::pcs::MAX_LOG_INV_RATE + 1;
+    let rate = lean_vm_core::pcs::MAX_LOG_INV_RATE + 1;
     assert_eq!(
         prove(&program, hashing_pi(), rate).err(),
         Some(ProveError::InvalidRate { log_inv_rate: rate })
@@ -73,7 +73,7 @@ fn any_number_of_steps_proves() {
         }
         let pi = [F128::new(h[0].0, h[1].0), F128::new(h[2].0, h[3].0)];
         let program = compile(&parse(&source).expect("parse"));
-        let (proof, stats) = prove(&program, pi, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        let (proof, stats) = prove(&program, pi, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         assert_eq!(stats.rows[5], n, "{n} steps");
         verify(&program, &pi, &proof).unwrap_or_else(|e| panic!("{n} steps: {e:?}"));
     }
@@ -86,7 +86,7 @@ fn any_number_of_steps_proves() {
 fn a_tiny_memory_proves() {
     let program = compile(&parse("def main():\n    return\n").expect("parse"));
     let pi = [F128::ZERO; 2];
-    let (proof, stats) = prove(&program, pi, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, stats) = prove(&program, pi, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     assert!(stats.log_mem < 3, "memory of 2^{} cells", stats.log_mem);
     verify(&program, &pi, &proof).expect("honest proof verifies");
 }

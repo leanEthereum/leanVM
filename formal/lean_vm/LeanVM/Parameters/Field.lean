@@ -180,7 +180,7 @@ theorem add_limbs (a0 a1 b0 b1 : K) :
 
 /-- The product of two words, limb by limb: the four limb products, `a₁b₁·y^2` folded by
 `y^2 = x·y + 1` into both lanes (the `MUL_NATIVE` table's result coordinates, specification §7.2;
-`TOWER_LANES`, `crates/leanvm_core/src/tables.rs`). -/
+`TOWER_LANES`, `crates/lean_vm_core/src/tables.rs`). -/
 theorem mul_limbs (a0 a1 b0 b1 : K) :
     E.ofLimbs a0 a1 * E.ofLimbs b0 b1 =
       E.ofLimbs (a0 * b0 + a1 * b1) (a0 * b1 + a1 * b0 + g * (a1 * b1)) := by

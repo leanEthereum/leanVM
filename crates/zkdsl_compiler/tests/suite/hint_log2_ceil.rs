@@ -5,7 +5,7 @@
 //! so this test checks only that the advice computes the right value.
 
 use crate::common::compile;
-use leanvm_core::cpu::{prove, verify};
+use lean_vm_core::cpu::{prove, verify};
 use primitives::field::{F64, F128, g_pow};
 use zkdsl_compiler::parse;
 
@@ -34,7 +34,7 @@ def main():
         let bits: Vec<F128> = (0..8).map(|j| F128::from(F64(((v >> j) & 1) as u64))).collect();
         program.set_witness("bits", vec![bits]);
         let want = [F128::from(g_pow(log2_ceil_of(v))), F128::from(F64::ONE)];
-        let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &want, &proof).unwrap_or_else(|_| panic!("v={v}: log2_ceil advice must verify"));
     }
 }
@@ -58,7 +58,7 @@ def main():
         let bits: Vec<F128> = (0..8).map(|j| F128::from(F64(((v >> j) & 1) as u64))).collect();
         program.set_witness("bits", vec![bits]);
         let want = [F128::from(g_pow(mu)), F128::from(F64::ONE)];
-        let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &want, &proof).unwrap_or_else(|_| panic!("v={v}: floored log2_ceil must verify"));
     }
 }

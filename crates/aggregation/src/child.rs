@@ -5,9 +5,9 @@ use super::deferred::DeferredSubproof;
 use super::error::AggregateError;
 use super::hints::SubHints;
 use keccak256::hash_pair;
-use leanvm_core::cpu::{Layout, block_kappa_sources, col_kappa_sources, from_scalar};
-use leanvm_core::leaf::{self, Block};
-use leanvm_core::tables::N_TABLES;
+use lean_vm_core::cpu::{Layout, block_kappa_sources, col_kappa_sources, from_scalar};
+use lean_vm_core::leaf::{self, Block};
+use lean_vm_core::tables::N_TABLES;
 use verifier::{E, K};
 
 /// The layout of an execution of a `2^kbc`-instruction program with `2^log_mem` cells of memory and `rows` rows in each
@@ -15,7 +15,7 @@ use verifier::{E, K};
 /// is given depends on, so a stand-in program of that size serves.
 pub(super) fn execution_layout(kbc: usize, log_mem: usize, rows: [usize; N_TABLES]) -> Layout {
     let stand_in = vec![isa::Op::Xor { a: 0, b: 0, c: 0 }; 1 << kbc];
-    leanvm_core::cpu::layout(&stand_in, log_mem, rows, [from_scalar(ZERO); 2])
+    lean_vm_core::cpu::layout(&stand_in, log_mem, rows, [from_scalar(ZERO); 2])
 }
 
 /// The stacked opening's shape at one committed size and rate, plus the query packing derived from it. The hint

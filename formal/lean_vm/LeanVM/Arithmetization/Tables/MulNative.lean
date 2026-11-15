@@ -18,7 +18,7 @@ public import Clean.Utils.Tactics.CircuitProofStart
 # The `MUL_NATIVE` table
 
 At Clean pin `b41c196b`. The columns
-are `crates/leanvm_core/src/tables.rs` (`mod arith`, shared with `XOR`, in that order), the
+are `crates/lean_vm_core/src/tables.rs` (`mod arith`, shared with `XOR`, in that order), the
 flushes `tables.rs` (`Arith::flushes` with `is_xor = false`), the result coordinates
 `tables.rs` (`TOWER_LANES`, `arith_result`; the verifier's
 `crates/verifier/src/layout.rs`), all matching specification §7.2

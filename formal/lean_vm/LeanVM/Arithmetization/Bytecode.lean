@@ -17,14 +17,14 @@ Transcribed from:
 * specification §8.1 (`doc/leanvm/body/08-end-to-end-protocol.tex`): instruction `z` is sixteen
   `K` slots, the opcode in slot 3, the operands, immediate lanes and flags after it, zero
   elsewhere;
-* `crates/leanvm_core/src/cpu/layout.rs` (`bytecode_columns`): the thirteen public program
+* `crates/lean_vm_core/src/cpu/layout.rs` (`bytecode_columns`): the thirteen public program
   columns, the opcode then twelve operand slots (`BYTECODE_OPERANDS = 12`), offsets as
   g-powers, a `SET` immediate as its two limbs, the `DEREF` store-mode flags and `KECCAK`'s
   layout and output flags as `0` or `1`, unused slots zero; `stack_columns` stacks them at slots
   `3..16` (`BYTECODE_PUBLIC_SLOT = 3`);
-* `crates/leanvm_core/src/cpu/isa.rs`: the `DEREF` store mode as the flag pair
+* `crates/lean_vm_core/src/cpu/isa.rs`: the `DEREF` store mode as the flag pair
   `(f_pc, f_fp)`, `cell = (0, 0)`, `pc = (1, 0)`, `fp = (0, 1)`;
-* `crates/leanvm_core/src/cpu/isa.rs`: `KECCAK`'s output cells as the flag pair
+* `crates/lean_vm_core/src/cpu/isa.rs`: `KECCAK`'s output cells as the flag pair
   `(out_two, out_all)`, `one = (0, 0)`, `two = (1, 0)`, `all = (1, 1)`.
 
 `entry i` is the bus entry of an instruction, the row of `bytecode_columns`; `instructionSlots i` is

@@ -10,7 +10,7 @@
 
 use crate::common::compile;
 use crate::common::f128_literal;
-use leanvm_core::cpu::{prove, verify};
+use lean_vm_core::cpu::{prove, verify};
 use primitives::field::{F64, F128, g_pow};
 use zkdsl_compiler::parse;
 
@@ -35,7 +35,7 @@ fn scalar_cells(values: impl IntoIterator<Item = u64>) -> Vec<u8> {
 /// Prove and verify `src` against the public input `want`.
 fn proves(src: &str, want: [F128; 2]) {
     let program = compile(&parse(src).expect("parse"));
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("verifies");
 }
 
@@ -62,7 +62,7 @@ def main():
     // Each cell holds one scalar in its low lane.
     let want = hash_cells(&scalar_cells([5, 7, 5, 7]));
 
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     assert_eq!(mix(src, want)[5], 1, "one KECCAK instruction");
     verify(&program, &want, &proof).expect("StackBuf self-hash verifies");
 }
@@ -235,7 +235,7 @@ def main():
     for flag in [0, 1] {
         let mut program = compile(&parse(src).expect("parse"));
         program.set_witness("flag", vec![vec![F128::new(flag, 0)]]);
-        let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &want, &proof).expect("post-join padding run is initialized on both paths");
     }
 }
@@ -263,7 +263,7 @@ def main():
     for flag in [0, 1] {
         let mut program = compile(&parse(src).expect("parse"));
         program.set_witness("flag", vec![vec![F128::new(flag, 0)]]);
-        let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &want, &proof).expect("each branch initializes its padding run");
     }
 }
@@ -344,7 +344,7 @@ def main():
     let program = compile(&parse(src).expect("parse"));
     // `+` is XOR: 3 ^ 4 = 7. Published: (sa[2], sa[1]) = (7, 4).
     let want = [F128::from(F64(7)), F128::from(F64(4))];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     assert_eq!(mix(src, want)[5], 0, "no KECCAK here");
     verify(&program, &want, &proof).expect("StackBuf indexing verifies");
 }
@@ -438,7 +438,7 @@ fn stack_buf_rebind_to_scalar() {
     let src = "def main():\n    x = StackBuf(2)\n    x = 5\n    p = 1\n    p[1] = x\n    p[GEN] = x\n    return\n";
     let program = compile(&parse(src).expect("parse"));
     let want = [F128::from(F64(5)), F128::from(F64(5))];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("rebound-scalar program verifies");
 }
 
@@ -488,7 +488,7 @@ def step(state, v):
     second.extend(scalar_cells([9, 3]));
     let want = hash_cells(&second);
 
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     assert_eq!(mix(src, want)[5], 2, "two KECCAK instructions (one per inlined step)");
     verify(&program, &want, &proof).expect("inline StackBuf+scalar tuple return verifies");
 }
@@ -571,7 +571,7 @@ def step(state, cursor):
     // a = hb[0] = 10, b = hb[1] = 20, v = hb[2] = 30 read through the cursor
     // returned twice-advanced. a + b is XOR: 10 ^ 20 = 30.
     let want = [F128::from(F64(30)), F128::from(F64(30))];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("inline advanced-cursor return verifies");
 }
 
@@ -597,7 +597,7 @@ def main():
     let program = compile(&parse(src).expect("parse"));
     // s = [7, 5] after the swap → words [7,0,5,0]; t = [7 ^ 5, 3] = [2, 3] → [2,0,3,0].
     let want = hash_cells(&scalar_cells([7, 5, 2, 3]));
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     assert_eq!(mix(src, want)[5], 1, "one KECCAK instruction");
     verify(&program, &want, &proof).expect("list-literal StackBuf verifies");
 }
@@ -703,7 +703,7 @@ fn heap_index_boundary_ok() {
     let src = "def main():\n    hb = HeapBuf(8)\n    hb[GEN ** 7] = 5\n    row = hb * GEN ** 4\n    y = row[GEN ** 3]\n    assert y == 5\n    return\n";
     let program = compile(&parse(src).expect("parse"));
     let pi = [F128::from(F64(3)), F128::from(F64(4))];
-    let (proof, _) = prove(&program, pi, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, pi, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &pi, &proof).expect("boundary access verifies");
 }
 
@@ -736,7 +736,7 @@ def main():
     let mut program = compile(&ast);
     program.set_witness("adv", vec![vec![g_pow(5).into(), g_pow(6).into()]]);
     let want = [g_pow(5).into(), g_pow(6).into()];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("the honest hint matches the pin");
 }
 
@@ -768,7 +768,7 @@ def main():
 ";
     let program = compile(&parse(src).expect("parse"));
     let want = [g_pow(2).into(), g_pow(1).into()];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("the run went in and the swapped run came back");
 
     // The shape is checked at the call, in both directions of mismatch.
@@ -809,7 +809,7 @@ def main():
 ";
     let program = compile(&parse(src).expect("parse"));
     let want = [F128::from(g_pow(5)); 2];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("three spellings of cell 2 agree");
 }
 

@@ -81,7 +81,7 @@ pub const MAX_LOG_INV_RATE: usize = pcs::whir::MAX_LOG_INV_RATE;
 pub mod vm {
     pub use crate::guest::bytecode_table;
     use fiat_shamir::merkle::MerklePath;
-    use leanvm_core::cpu::{Proof, from_scalar, scalar_proof};
+    use lean_vm_core::cpu::{Proof, from_scalar, scalar_proof};
     use primitives::field::F64;
 
     /// The prover's encoding (`Proof::to_bytes`).

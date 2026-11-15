@@ -3,7 +3,7 @@
 //! rather than repeat that search, which would make cross-language float identity part of the protocol.
 
 use fiat_shamir::{MAX_HEIGHT, MAX_LEAF_WORDS, MAX_PHASES, MAX_QUERIES};
-use leanvm_core::pcs::{MAX_LOG_INV_RATE, MAX_STACKED_LOG, MIN_LOG_INV_RATE, MIN_STACKED_LOG};
+use lean_vm_core::pcs::{MAX_LOG_INV_RATE, MAX_STACKED_LOG, MIN_LOG_INV_RATE, MIN_STACKED_LOG};
 use pcs::LOG_PACKING;
 use pcs::whir_config::{ProverConfig, WhirSecurityConfig};
 
@@ -109,7 +109,7 @@ fn whir_query_table_matches_the_search() {
 
 /// Regenerates the literals the pins above check: the rows go over `WHIR_QUERIES` in `crates/verifier/src/whir.rs`,
 /// the last line over `queryTable` in `formal/Statement/LeanVmVerifier.lean`.
-/// `cargo test --release -p experimental_leanvm_core --test verifiers print_whir_query_table -- --ignored --nocapture`
+/// `cargo test --release -p experimental_lean_vm_core --test verifiers print_whir_query_table -- --ignored --nocapture`
 #[test]
 #[ignore = "manual table regeneration"]
 fn print_whir_query_table() {
@@ -134,7 +134,7 @@ fn grinding_constants_match_the_prover() {
         verifier::OOD_GRINDING_BITS,
     ];
     let expected = [
-        leanvm_core::SECURITY_BITS,
+        lean_vm_core::SECURITY_BITS,
         prover::QUERY_GRINDING_BITS,
         prover::FOLD_GRINDING_BITS,
         prover::BATCH_GRINDING_BITS,
@@ -145,7 +145,7 @@ fn grinding_constants_match_the_prover() {
     assert_lean_constants(
         &lean_verifier(),
         &[
-            ("securityBits", leanvm_core::SECURITY_BITS as usize),
+            ("securityBits", lean_vm_core::SECURITY_BITS as usize),
             ("queryGrindingBits", prover::QUERY_GRINDING_BITS as usize),
             ("foldGrindingBits", prover::FOLD_GRINDING_BITS as usize),
             ("batchGrindingBits", prover::BATCH_GRINDING_BITS as usize),

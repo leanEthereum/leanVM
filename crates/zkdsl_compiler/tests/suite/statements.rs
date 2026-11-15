@@ -3,7 +3,7 @@
 //! diagnostic is the whole fix.
 
 use crate::common::compile;
-use leanvm_core::cpu::{prove, verify};
+use lean_vm_core::cpu::{prove, verify};
 use primitives::field::{F128, g_pow};
 use zkdsl_compiler::parse;
 
@@ -186,7 +186,7 @@ def main():
     // the other, from the outer `w`.
     let program = compile(&parse(src).expect("parse"));
     let want = [F128::from(g_pow(1)), F128::from(g_pow(3))];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("the else arm reads the outer binding");
 }
 
@@ -214,7 +214,7 @@ def main():
     let program = compile(&parse(src).expect("parse"));
     // y·x, i.e. the tower coefficient shifted, NOT g^65.
     let want = [F128::new(0, 2); 2];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("2^64 is the tower element y, not g^64");
 }
 
@@ -260,7 +260,7 @@ fn one_hinted_value_needs_no_buffer() {
         let mut program = compile(&parse(src).expect("parse"));
         program.set_witness("m", vec![vec![g_pow(5).into()]]);
         let want = [g_pow(5).into(), g_pow(0).into()];
-        let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &want, &proof).expect("verifies");
         program.execute(want).unwrap().cycles
     };
@@ -284,7 +284,7 @@ def main():
         vec![vec![g_pow(1).into()], vec![g_pow(2).into()], vec![g_pow(3).into()]],
     );
     let want = [g_pow(2).into(), g_pow(0).into()];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     // `mul_range(1, 8)` is g^0..g^3, so THREE iterations and all three entries
     // are popped. With `mul_range(1, 4)` the third would sit unread and mask an
     // off-by-one in that direction.
@@ -335,7 +335,7 @@ fn the_scalar_hint_binds_like_any_other_binder() {
     let mut program = compile(&parse(&inlined).expect("an @inline body may bind a hint"));
     program.set_witness("m", vec![vec![g_pow(5).into()]]);
     let want = [g_pow(5).into(), g_pow(0).into()];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("the inlined binding fires");
 
     // A `for` body that shadows an enclosing StackBuf's name from inside an arm
@@ -358,7 +358,7 @@ def main():
     let mut program = compile(&parse(shadowed).expect("shadowing is not capturing"));
     program.set_witness("w", vec![vec![g_pow(7).into()], vec![g_pow(8).into()]]);
     let want = [g_pow(1).into(), g_pow(0).into()];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("the outer StackBuf is untouched");
 
     // Return-shape inference, the third walker: rebinding a `StackBuf` name to a
@@ -371,7 +371,7 @@ def main():
     let mut program = compile(&parse(&rebound).expect("a hint may rebind a StackBuf name"));
     program.set_witness("m", vec![vec![g_pow(6).into()]]);
     let want = [g_pow(6).into(), g_pow(0).into()];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("the rebound name returns as a scalar");
 }
 
@@ -451,7 +451,7 @@ def main():
 ";
     let program = compile(&parse(captured).expect("a constant may be captured"));
     let want = [F128::new(5, 0), g_pow(0).into()];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("the captured constant reaches the body");
 }
 
@@ -519,7 +519,7 @@ def main():
     let mut program = compile(&parse(ok).expect("parse"));
     program.set_witness("w", vec![vec![F128::new(1234, 0), F128::new(5678, 0)]]);
     let want = [F128::new(1234, 0), g_pow(0).into()];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("an in-bounds runtime-start slice still works");
 }
 
@@ -580,7 +580,7 @@ fn a_match_target_binds_and_every_field_is_walked() {
     let want = [F128::ZERO, g_pow(0).into()];
     let verifies = |src: &str, why: &str| {
         let program = compile(&parse(src).unwrap_or_else(|e| panic!("{why}: {e}")));
-        let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &want, &proof).unwrap_or_else(|e| panic!("{why}: {e:?}"));
     };
 
@@ -729,7 +729,7 @@ fn an_ambiguous_compile_time_branch_must_be_declared() {
     let fold = |cond: &str| {
         let program = compile(&parse(&prog(cond)).unwrap_or_else(|e| panic!("{cond}: {e}")));
         let want = [F128::new(5, 0), g_pow(0).into()];
-        let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &want, &proof).unwrap_or_else(|e| panic!("`{cond}` did not take the then arm: {e:?}"));
     };
     // Declared, so it folds with integer arithmetic and the arm runs.
@@ -779,7 +779,7 @@ fn an_ambiguous_compile_time_branch_must_be_declared() {
     let plain = "def main():\n    const = 4\n    hb = HeapBuf(4)\n    if const == 4:\n        hb[GEN ** 0] = 5\n    else:\n        hb[GEN ** 0] = 7\n    p = GEN ** 0\n    p[1] = hb[GEN ** 0]\n    p[GEN] = GEN ** 0\n    return\n";
     let program = compile(&parse(plain).expect("a name beginning with `const` is an ordinary name"));
     let want = [F128::new(5, 0), g_pow(0).into()];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("`const == 4` is a comparison, not a wrapper");
 
     // Declared, but not actually decidable while compiling.
@@ -814,7 +814,7 @@ def main():
     let mut program = compile(&parse(src).expect("a `,`, `#` or `]` inside a string is part of the name"));
     program.set_witness("x,y#z]w", vec![vec![F128::new(7, 0)]]);
     let want = [F128::new(7, 0), g_pow(0).into()];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("the stream name survived parsing intact");
 }
 
@@ -852,7 +852,7 @@ def main():
     // `r` is 1, so the index is `K` itself: cell 1, holding 11. Reading the
     // integer view instead would name cell 2, holding 12.
     let want = [F128::new(11, 0), g_pow(0).into()];
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("the index means what the value means");
 }
 
@@ -1055,7 +1055,7 @@ fn chained_matches_run_in_order() {
     // g^1 · (g^0 · g^2) · (g^1 · g^4) · (g^2 · g^1)
     let want = [F128::from(g_pow(11)), F128::ZERO];
     let program = compile(&parse(&chained).expect("parse"));
-    let (proof, _) = prove(&program, want, leanvm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("chained matches verify");
     assert!(program.execute([F128::from(g_pow(10)), F128::ZERO]).is_err());
     let unchained = compile(&parse(&unchained).expect("parse"));
