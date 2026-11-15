@@ -174,5 +174,68 @@ separately counted. -/
 def armsP (keyed : Bool) (tf : TracedFn) (pf : Placed) : List (ℕ × List (List ℕ)) :=
   if keyed then armsGo keyed pf.fn.body tf.core.body else []
 
+/-! ## Alignment of the placed body with the core body -/
+
+mutual
+/-- Whether the placed statement `p` stands for the core statements from the start of `cs` (an
+instruction for none, a control statement for the next control statement of `cs`), and `k` holds
+of the core statements after it. -/
+def alS : PStmt → List Stmt → (List Stmt → Bool) → Bool
+  | .op _ _, cs, k => k cs
+  | .ite _ _ _ _ zero hasElse _ _ nonzero, cs, k =>
+      match ctrlSplit cs with
+      | some (.ite _ z n, rest) =>
+          alL zero z && (if hasElse then alL nonzero n else (ctrlSplit n).isNone) && k rest
+      | _ => false
+  | .chain _ _ _ _ _ _ _ stages, cs, k =>
+      match ctrlSplit cs with
+      | some (s, rest) =>
+          decide (stages.length ≤ (s :: rest).length) &&
+            alStages stages ((s :: rest).take stages.length) && k ((s :: rest).drop stages.length)
+      | none => false
+  | .call _ _, cs, k =>
+      match ctrlSplit cs with
+      | some (.call _ _ _, rest) => k rest
+      | some (.callIf _ _ _, rest) => k rest
+      | _ => false
+  | .loopNext _ _ _ _ _ _ _, cs, k =>
+      match ctrlSplit cs with
+      | some (.callIf _ _ _, rest) => k rest
+      | _ => false
+  | .dispatch _ _ _ _ _ _ _ _ _ _, cs, k =>
+      match ctrlSplit cs with
+      | some (.dispatch _ _ _ _, rest) => k rest
+      | _ => false
+  | .ret _ _, cs, k =>
+      match ctrlSplit cs with
+      | some (.ret _, rest) => k rest
+      | _ => false
+  | .halt _ _ _, cs, k =>
+      match ctrlSplit cs with
+      | some (.ret _, rest) => k rest
+      | _ => false
+
+/-- **Whether a placed block and a core block pair up**: a run of atoms with a run of `PStmt.op`,
+each control statement with one control `PStmt`, a run of `k + 1` `match`es with one `chain` of
+`k + 1` stages, arm with arm. -/
+def alL : List PStmt → List Stmt → Bool
+  | [], cs => (ctrlSplit cs).isNone
+  | s :: ss, cs => alS s cs (fun cs' => alL ss cs')
+
+/-- A chain's stages and the core `match`es, arm with arm. -/
+def alStages : List (List (List PStmt)) → List Stmt → Bool
+  | [], _ => true
+  | st :: sts, .match_ _ arms :: cms => alArms st arms && alStages sts cms
+  | _, _ => false
+
+/-- A stage's arms and the core arms. -/
+def alArms : List (List PStmt) → List (List Stmt) → Bool
+  | [], [] => true
+  | pa :: pas, a :: as => alL pa a && alArms pas as
+  | _, _ => false
+end
+
+/-- **A placed function pairs up with its core body.** -/
+def Aligned (tf : TracedFn) (pf : Placed) : Prop := alL pf.fn.body tf.core.body = true
 end
 end LeanVM.Guest.Backend.Complete

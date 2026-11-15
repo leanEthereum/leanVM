@@ -1261,6 +1261,8 @@ def main (args : List String) : IO UInt32 := do
   let mut pmaxPDiffs : Array String := #[]
   let mut armsPAgree := 0
   let mut armsPDiffs : Array String := #[]
+  let mut alignedN := 0
+  let mut alignedDiffs : Array String := #[]
   let mut stats : Std.HashMap String Nat := {}
   let mut finds : Array Finding := #[]
   let mut armSharedTotal := 0
@@ -1515,6 +1517,11 @@ def main (args : List String) : IO UInt32 := do
     let ourArms := LeanVM.Guest.Backend.Complete.armsP kd tf pf
     if ourArms == theirArmCosts then armsPAgree := armsPAgree + 1
     else armsPDiffs := armsPDiffs.push s!"{name}: armsP {ourArms.length} stages, table {theirArmCosts.length}"
+    let keys := ourArms.map (·.1)
+    if keys.eraseDups.length != keys.length then
+      armsPDiffs := armsPDiffs.push s!"{name}: armsP has two stages on one selector"
+    if LeanVM.Guest.Backend.Complete.alL pf.fn.body tf.core.body then alignedN := alignedN + 1
+    else alignedDiffs := alignedDiffs.push name
   -- (1) the literals
   let mut pinOk := 0
   let mut pinDiffs : Array String := #[]
@@ -1562,6 +1569,8 @@ def main (args : List String) : IO UInt32 := do
   if !detail && pmaxDiffs.size > 12 then o := o.say s!"  … {pmaxDiffs.size - 12} more pmax differences"
   o := o.say s!"(4') Complete.pmaxP {pmaxPAgree} of {n} functions equal Plumb.pmax; Complete.armsP {armsPAgree} of {n} equal Data.cplArms"
   for d in (if detail then pmaxPDiffs else pmaxPDiffs.extract 0 12) ++ (if detail then armsPDiffs else armsPDiffs.extract 0 12) do o := o.say s!"  differs: {d}"
+  o := o.say s!"(4'') Complete.Aligned (alL): {alignedN} of {n} functions"
+  for d in alignedDiffs.extract 0 12 do o := o.say s!"  not aligned: {d}"
   o := o.say s!"(5) path walk: cells written in two arms of one match: {armSharedTotal} in {armSharedFns} functions"
   for (k, c) in stats.toList.mergeSort (fun a b => a.1 ≤ b.1) do o := o.say s!"  {k}: {c}"
   let mut fk : Std.HashMap String (Array Finding) := {}
