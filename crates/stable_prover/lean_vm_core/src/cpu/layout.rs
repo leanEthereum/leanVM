@@ -4,20 +4,10 @@
 use super::*;
 use verifier::layout::{GLOBAL_COLUMN_BASES, TABLE_WIDTHS};
 
-// The shared committed columns, `0..N_SHARED`, the verifier's global columns. The program is public: it rides the
-// bytecode blocks as `Coord::Public`, and only its execution counts are committed.
-/// The memory image's low limbs, a word a cell.
-pub const MEM_LO: usize = verifier::layout::MEMORY_0;
-/// The memory image's high limbs.
-pub const MEM_HI: usize = verifier::layout::MEMORY_1;
-/// Each cell's final access count, `g^{A[i]}`.
-pub(crate) const MFCNT: usize = verifier::layout::MEMORY_FINAL_COUNTERS;
-/// Each pc's execution count, `g^{A[pc]}`.
-pub(crate) const BFCNT: usize = verifier::layout::BYTECODE_FINAL_COUNTERS;
+// The program is public: it rides the bytecode blocks as `Coord::Public`, and only its execution counts are committed.
 /// The Keccak reduction's committed states `q_keccak`, `2^(SLOT_LOG + τ)` words for `2^τ` steps: the one copy of the
 /// `KECCAK` input lanes, whose columns are virtual ([`keccak_value`]).
 pub use verifier::layout::QKECCAK;
-pub(crate) const N_SHARED: usize = verifier::layout::NUM_GLOBAL_COLUMNS;
 
 /// Every column, the shared ones then each table's, at [`GLOBAL_COLUMN_BASES`].
 pub(crate) const N_COLUMNS: usize = GLOBAL_COLUMN_BASES[tables::N_TABLES - 1] + TABLE_WIDTHS[tables::N_TABLES - 1];
@@ -136,10 +126,10 @@ impl Witness {
 /// committed. `col_kappas` is derived from this, so the two cannot drift apart.
 pub fn col_kappa_sources(log_bytecode: usize) -> Vec<Option<(usize, usize)>> {
     let mut k = vec![Some((0usize, 0usize)); N_COLUMNS];
-    k[MEM_LO] = Some((1, 0));
-    k[MEM_HI] = Some((1, 0));
-    k[MFCNT] = Some((1, 0));
-    k[BFCNT] = Some((0, log_bytecode));
+    k[MEMORY_0] = Some((1, 0));
+    k[MEMORY_1] = Some((1, 0));
+    k[MEMORY_FINAL_COUNTERS] = Some((1, 0));
+    k[BYTECODE_FINAL_COUNTERS] = Some((0, log_bytecode));
     // `q_keccak` is `2^(SLOT_LOG + n_steps_log)` words, and the KECCAK table is `2^n_steps_log` rows.
     k[QKECCAK] = Some((2 + tables::KECCAK_TABLE, crate::keccak::SLOT_LOG));
     for t in 0..tables::N_TABLES {
@@ -216,11 +206,17 @@ pub fn layout_of(log_bytecode: usize, log_mem: usize, rows: [usize; tables::N_TA
     // full two-limb 128-bit word.
     push.push(Block::full(
         log_mem,
-        vec![Const(SEP_MEM), Index, Const(one), Col(MEM_LO), Col(MEM_HI)],
+        vec![Const(SEP_MEM), Index, Const(one), Col(MEMORY_0), Col(MEMORY_1)],
     ));
     pull.push(Block::full(
         log_mem,
-        vec![Const(SEP_MEM), Index, Col(MFCNT), Col(MEM_LO), Col(MEM_HI)],
+        vec![
+            Const(SEP_MEM),
+            Index,
+            Col(MEMORY_FINAL_COUNTERS),
+            Col(MEMORY_0),
+            Col(MEMORY_1),
+        ],
     ));
     // bytecode seed + finalize (program columns are public; padding entries
     // self-cancel at count 1, so the whole 2^log_bytecode is "real").
@@ -231,7 +227,7 @@ pub fn layout_of(log_bytecode: usize, log_mem: usize, rows: [usize; tables::N_TA
         Block::full(log_bytecode, coords)
     };
     push.push(bytecode_block(Const(one)));
-    pull.push(bytecode_block(Col(BFCNT)));
+    pull.push(bytecode_block(Col(BYTECODE_FINAL_COUNTERS)));
 
     // Per-table blocks: each table declares its flushes and read-count columns in
     // local indices; offset them to the table's global columns.
@@ -309,9 +305,11 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout) -> Witness {
         }
         // The shared columns: the memory image's two limbs and each cell's final count `g^{A[i]}`, a cell read
         // once for the three, and each pc's final count.
-        const _: () = assert!(N_SHARED == 5, "a new shared column needs a fill here");
+        const _: () = assert!(NUM_GLOBAL_COLUMNS == 5, "a new shared column needs a fill here");
         const CHUNK: usize = 1 << 12;
-        let [lo, hi, count] = windows.get_disjoint_mut([MEM_LO, MEM_HI, MFCNT]).unwrap();
+        let [lo, hi, count] = windows
+            .get_disjoint_mut([MEMORY_0, MEMORY_1, MEMORY_FINAL_COUNTERS])
+            .unwrap();
         assert!(
             [&lo, &hi, &count].iter().all(|w| w.len() == cells),
             "a memory column spans the image"
@@ -328,7 +326,9 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout) -> Witness {
             },
             |_, _| (),
         );
-        parallel::fill(windows[BFCNT], |i| gpow[tr.bytecode_count[i] as usize]);
+        parallel::fill(windows[BYTECODE_FINAL_COUNTERS], |i| {
+            gpow[tr.bytecode_count[i] as usize]
+        });
     });
     // The committed Keccak states, step `j` the `j`-th KECCAK row, its input read back from the final memory
     // image, which is write-once.

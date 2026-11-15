@@ -9,7 +9,10 @@ use crate::tables::{self, FillCtx, FlushBuilder, SEP_BYTECODE, SEP_MEM, SEP_STAT
 use crate::witness;
 use primitives::field::{F64, F128, g_pow};
 use primitives::transcript::ProverState;
-use verifier::layout::{GLOBAL_COLUMN_BASES, TABLE_WIDTHS};
+use verifier::layout::{
+    BYTECODE_FINAL_COUNTERS, GLOBAL_COLUMN_BASES, MEMORY_0, MEMORY_1, MEMORY_FINAL_COUNTERS, NUM_GLOBAL_COLUMNS,
+    TABLE_WIDTHS,
+};
 
 mod execute;
 mod hints;
@@ -233,7 +236,7 @@ fn finish_claims(
             .map(move |col| (col, table_claims[t].chi.clone()))
     });
     let pi = pi_point(r_pi, l);
-    let pi = [MEM_LO, MEM_HI].map(|col| (col, pi.clone()));
+    let pi = [MEMORY_0, MEMORY_1].map(|col| (col, pi.clone()));
     (bus.chain(tables).chain(pi))
         .map(|(col, point)| slot_claim(l, col, point))
         .collect()
@@ -244,7 +247,7 @@ fn finish_claims(
 /// The public input is the statement, so the verifier evaluates the lines itself;
 /// the prover sends nothing.
 fn pi_point(r: F128, l: &Layout) -> Vec<F128> {
-    let mut point = vec![F128::ZERO; l.placements[MEM_LO].n_vars];
+    let mut point = vec![F128::ZERO; l.placements[MEMORY_0].n_vars];
     point[0] = r;
     point
 }

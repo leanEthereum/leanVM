@@ -6,26 +6,12 @@ use super::*;
 
 // ---- column schema -----------------------------------------------------------
 
-// Shared committed columns (indices `0..N_SHARED`). The program (opcode +
-// operands) is PUBLIC, not committed: it rides the bytecode seed/finalize blocks
-// as `Coord::Public`; only the witness-dependent finalize counts are committed.
-// The data-memory image, a 128-bit word per cell committed as two K-lane columns.
-pub const MEM_LO: usize = 0;
-pub const MEM_HI: usize = 1;
-pub(crate) const MFCNT: usize = 2; // per-cell memory access count, g^{A[i]}
-pub(crate) const BFCNT: usize = 3; // per-pc bytecode execution count, g^{A[pc]}
-// The Keccak reduction's committed states `q_keccak`, in the SAME stack as every
-// other column (single PCS). Size `2^(SLOT_LOG + tau)` F64 words for `2^tau`
-// KECCAK steps, never fewer than `MIN_STEPS`. It is the
-// SOLE copy of the input words: the VM's KECCAK value columns are virtual, the
-// input lanes' memory-bus claims routing to `q_keccak` slots (§keccak) and the
-// output lanes' becoming the reduction's claim on the output, which is not
-// committed. The reduction's two claims are discharged by the single stacked
-// WHIR opening over this commitment.
-pub const QKECCAK: usize = 4;
-pub(crate) const N_SHARED: usize = 5;
+// The program is public: it rides the bytecode blocks as `Coord::Public`, and only its execution counts are committed.
+/// The Keccak reduction's committed states `q_keccak`, `2^(SLOT_LOG + τ)` words for `2^τ` steps: the one copy of the
+/// `KECCAK` input lanes, whose columns are virtual ([`keccak_value`]).
+pub use verifier::layout::QKECCAK;
 
-/// Global column indexing: the shared columns occupy `0..N_SHARED`, then each
+/// Global column indexing: the shared columns occupy `0..NUM_GLOBAL_COLUMNS`, then each
 /// table `t` (in [`tables::tables`] order) owns the contiguous block `[base[t],
 /// base[t] + n_committed_columns_t)`. Both prover and verifier derive this identically
 /// from the table set, so every column claim lines up.
@@ -39,7 +25,7 @@ pub fn schema() -> &'static Schema {
     static SCHEMA: std::sync::OnceLock<Schema> = std::sync::OnceLock::new();
     SCHEMA.get_or_init(|| {
         let mut base = [0usize; tables::N_TABLES];
-        let mut next = N_SHARED;
+        let mut next = NUM_GLOBAL_COLUMNS;
         for (t, table) in tables::tables().iter().enumerate() {
             base[t] = next;
             next += table.n_committed_columns();
@@ -210,10 +196,10 @@ impl Witness {
 pub fn col_kappa_sources(log_bytecode: usize) -> Vec<Option<(usize, usize)>> {
     let sch = schema();
     let mut k = vec![Some((0usize, 0usize)); sch.n];
-    k[MEM_LO] = Some((1, 0));
-    k[MEM_HI] = Some((1, 0));
-    k[MFCNT] = Some((1, 0));
-    k[BFCNT] = Some((0, log_bytecode));
+    k[MEMORY_0] = Some((1, 0));
+    k[MEMORY_1] = Some((1, 0));
+    k[MEMORY_FINAL_COUNTERS] = Some((1, 0));
+    k[BYTECODE_FINAL_COUNTERS] = Some((0, log_bytecode));
     // q_keccak is `2^(SLOT_LOG + n_steps_log)` F64 words, and tau_5 IS
     // n_steps_log (the announced-size certification uses the same floor), so this
     // reproduces `qkeccak_kappa`.
@@ -304,11 +290,17 @@ pub(crate) fn layout_of(log_bytecode: usize, log_mem: usize, rows: [usize; table
     // full two-limb 128-bit word.
     push.push(Block::full(
         log_mem,
-        vec![Const(SEP_MEM), Index, Const(one), Col(MEM_LO), Col(MEM_HI)],
+        vec![Const(SEP_MEM), Index, Const(one), Col(MEMORY_0), Col(MEMORY_1)],
     ));
     pull.push(Block::full(
         log_mem,
-        vec![Const(SEP_MEM), Index, Col(MFCNT), Col(MEM_LO), Col(MEM_HI)],
+        vec![
+            Const(SEP_MEM),
+            Index,
+            Col(MEMORY_FINAL_COUNTERS),
+            Col(MEMORY_0),
+            Col(MEMORY_1),
+        ],
     ));
     // bytecode seed + finalize (program columns are public; padding entries
     // self-cancel at count 1, so the whole 2^log_bytecode is "real").
@@ -319,7 +311,7 @@ pub(crate) fn layout_of(log_bytecode: usize, log_mem: usize, rows: [usize; table
         Block::full(log_bytecode, coords)
     };
     push.push(bytecode_block(Const(one)));
-    pull.push(bytecode_block(Col(BFCNT)));
+    pull.push(bytecode_block(Col(BYTECODE_FINAL_COUNTERS)));
 
     // Per-table blocks: each table declares its flushes and read-count columns in
     // local indices; offset them to the table's global columns.
@@ -434,13 +426,13 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout, keccak_block
         // These four plus `QKECCAK` below are every shared column, and each has to
         // be written: the stack is uninitialized, so one left out would be read
         // as indeterminate bytes rather than caught by a length mismatch.
-        const _: () = assert!(N_SHARED == 5, "a new shared column needs a fill here");
+        const _: () = assert!(NUM_GLOBAL_COLUMNS == 5, "a new shared column needs a fill here");
         // One pass over the image fills all three of its columns, streamed out a
         // cache line of each at a time: nothing reads them before the commitment.
         const LINE: usize = 8;
         const BLOCK: usize = 1 << 10;
         let page_log = Memory::page_log();
-        let image = [MEM_LO, MEM_HI, MFCNT].map(|c| {
+        let image = [MEMORY_0, MEMORY_1, MEMORY_FINAL_COUNTERS].map(|c| {
             assert_eq!(windows[c].len(), cells, "a memory column spans the image");
             parallel::SendPtr(windows[c].as_mut_ptr())
         });
@@ -482,7 +474,9 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout, keccak_block
                 }
             });
         }
-        parallel::fill(windows[BFCNT], |i| gpow[tr.bytecode_count[i] as usize]); // … at g^{A[pc]}
+        parallel::fill(windows[BYTECODE_FINAL_COUNTERS], |i| {
+            gpow[tr.bytecode_count[i] as usize]
+        }); // … at g^{A[pc]}
     });
     // The committed Keccak states q_keccak, ALWAYS in this same stack: built from
     // the executed KECCAK rows in order (row j = step j).

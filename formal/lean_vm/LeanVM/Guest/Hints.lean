@@ -417,7 +417,7 @@ def committedColumns (layout : Layout) : List ℕ :=
     (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns
 
 /-- A global column's kappa source, as a key (`col_kappa_sources`, `layout.rs`): the
-memory's two columns and `MFCNT` `(1, 0)`, `BFCNT` `(0, log_bytecode)`, `QKECCAK` its own, a
+memory's two columns and `MEMORY_FINAL_COUNTERS` `(1, 0)`, `BYTECODE_FINAL_COUNTERS` `(0, log_bytecode)`, `QKECCAK` its own, a
 table's columns their table. -/
 def colKey (c : ℕ) : ℕ :=
   if c < 3 then 0 else if c < 5 then c - 2 else 3 + (globalColumnBases.filter (· ≤ c)).length

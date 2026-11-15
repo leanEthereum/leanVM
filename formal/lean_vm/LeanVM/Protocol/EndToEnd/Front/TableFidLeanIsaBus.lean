@@ -147,7 +147,7 @@ theorem sumcheckB_leanIsa : (leanIsaWith prog s fl).B = 2 := by
   change ∑ t : Fin 6, (LeanIsa.constraints (opIdx t)).length = 2
   simp [constraints_opIdx_length]
 
-/-- **The boundary columns**: the memory columns, then `BFCNT`. -/
+/-- **The boundary columns**: the memory columns, then `BYTECODE_FINAL_COUNTERS`. -/
 theorem boundaryColumns_leanIsa : (leanIsaWith prog s fl).boundaryColumns =
     [memCol 0, memCol 1, memCol 2, bfcntCol] := by
   simp [M3Instance.boundaryColumns, LeanIsa.boundary, LeanIsa.coords, Vector.toList_ofFn,
@@ -975,7 +975,7 @@ theorem dot_take_map_append {X : Type} (W : List E) (a b : List X) (f : X → E)
   simp only [List.length_map, ← List.map_append, List.length_append] at this ⊢
   exact this
 
-/-- The values sent for the boundary columns: the memory limbs, `MFCNT`, `BFCNT`. -/
+/-- The values sent for the boundary columns: the memory limbs, `MEMORY_FINAL_COUNTERS`, `BYTECODE_FINAL_COUNTERS`. -/
 theorem valueOf_leanIsa (w : BusWit) (hm : w.memory.length = 2) :
     Bus.valueOf (w.vals (leanIsaWith prog s fl)) (memCol 0) = w.memory.getD 0 0 ∧
       Bus.valueOf (w.vals (leanIsaWith prog s fl)) (memCol 1) = w.memory.getD 1 0 ∧

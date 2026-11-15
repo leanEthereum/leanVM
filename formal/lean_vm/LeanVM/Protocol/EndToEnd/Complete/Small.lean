@@ -35,7 +35,7 @@ its table's height (`blocks_total_eq`):
 
   `3·2^logMem + 2^logSize + 2^(τ₅ + 6) + 13·2^τ₀ + 13·2^τ₁ + 7·2^τ₂ + 14·2^τ₃ + 14·2^τ₄ + 28·2^τ₅`
 
-(the three memory columns, `BFCNT`, `q_keccak` of `2^6` rows per `KECCAK` row, and the committed
+(the three memory columns, `BYTECODE_FINAL_COUNTERS`, `q_keccak` of `2^6` rows per `KECCAK` row, and the committed
 columns of `XOR`, `MUL_NATIVE`, `SET_CONSTANT`, `DEREF`, `JUMP`, `KECCAK`, the last without its
 fifty value lanes and the fourteen columns riding `q_keccak`'s spare slots), `τ_j = ⌈log₂ rows_j⌉`, and `τ₅` at least `9` (`TABLE_LOG_FLOORS`). At the
 witness's sizes it is the execution's committed size (`Execution.committedSize`), so it is within the
@@ -61,7 +61,7 @@ open Air.Flat (EnsembleWitness)
 
 /-! ## The stacked size -/
 
-/-- The committed columns, by table: three of the memory, `BFCNT`, `QKECCAK`, then those of the
+/-- The committed columns, by table: three of the memory, `BYTECODE_FINAL_COUNTERS`, `QKECCAK`, then those of the
 six opcode tables (`13, 13, 7, 14, 14` and `28` for `KECCAK`, whose fifty value lanes are
 `q_keccak`'s or derived and whose columns `0 … 13` ride `q_keccak`'s spare slots). -/
 theorem committedColumns_tables : committedColumns.map (fun c ↦ c.1) =

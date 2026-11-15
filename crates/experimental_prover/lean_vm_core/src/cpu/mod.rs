@@ -15,6 +15,7 @@ use crate::tables::{self, FillCtx, FlushBuilder, SEP_BYTECODE, SEP_MEM, SEP_STAT
 use crate::transcript::ProverState;
 use crate::witness;
 use primitives::field::{F64, F128, g_pow};
+use verifier::layout::{BYTECODE_FINAL_COUNTERS, MEMORY_0, MEMORY_1, MEMORY_FINAL_COUNTERS, NUM_GLOBAL_COLUMNS};
 
 mod execute;
 pub mod hints;
@@ -329,7 +330,7 @@ fn finish_claims(
 ) -> Vec<pcs::SlotClaim> {
     let mut claims = bus_claims;
     let sch = schema();
-    claims.reserve(sch.n - N_SHARED);
+    claims.reserve(sch.n - NUM_GLOBAL_COLUMNS);
     for (t, table) in tables::tables().iter().enumerate() {
         for c in 0..table.n_committed_columns() {
             let col = sch.base[t] + c;
@@ -355,10 +356,10 @@ fn finish_claims(
 fn bind_pi_claim(r: F128, l: &Layout) -> [ColumnClaim; 2] {
     let [a, b] = l.pi;
     let limbs = [(a.c0, b.c0), (a.c1, b.c1)];
-    let mut point = vec![F128::ZERO; l.placements[MEM_LO].n_vars];
+    let mut point = vec![F128::ZERO; l.placements[MEMORY_0].n_vars];
     point[0] = r;
-    [MEM_LO, MEM_HI].map(|col| {
-        let (x, y) = limbs[col - MEM_LO];
+    [MEMORY_0, MEMORY_1].map(|col| {
+        let (x, y) = limbs[col - MEMORY_0];
         ColumnClaim {
             col,
             point: point.clone(),

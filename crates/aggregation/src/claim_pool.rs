@@ -1,11 +1,12 @@
 //! The guest's claim pool and its coordinate terms.
 
 use super::cells::count;
-use lean_vm_core::cpu::{MEM_HI, MEM_LO, block_kappa_sources, keccak_value};
+use lean_vm_core::cpu::{block_kappa_sources, keccak_value};
 use lean_vm_core::leaf::{Block, Coord};
 use primitives::field::F128;
 use std::collections::{BTreeMap, HashMap};
 use verifier::layout::{GLOBAL_COLUMN_BASES, TABLE_WIDTHS};
+use verifier::layout::{MEMORY_0, MEMORY_1};
 
 /// One entry of the guest's claim pool.
 pub(super) enum ClaimSite {
@@ -13,7 +14,7 @@ pub(super) enum ClaimSite {
     Framework { column: usize, source: (usize, usize) },
     /// A table column, a KECCAK value lane's ([`keccak_value`]) included.
     TableColumn { column: usize, table: usize },
-    /// One of the two PI memory limbs (MEM_LO, MEM_HI).
+    /// One of the two PI memory limbs (MEMORY_0, MEMORY_1).
     MemoryLimb { column: usize },
 }
 
@@ -143,7 +144,7 @@ pub(super) fn claim_pool(sides: &[Vec<Block>; 3], kbc: usize) -> (Vec<ClaimSite>
     for (t, (&base, &width)) in GLOBAL_COLUMN_BASES.iter().zip(&TABLE_WIDTHS).enumerate() {
         pool.extend((base..base + width).map(|column| ClaimSite::TableColumn { column, table: t }));
     }
-    pool.extend([MEM_LO, MEM_HI].map(|column| ClaimSite::MemoryLimb { column }));
+    pool.extend([MEMORY_0, MEMORY_1].map(|column| ClaimSite::MemoryLimb { column }));
     (pool, coords)
 }
 

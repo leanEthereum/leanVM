@@ -160,7 +160,7 @@ variable (prog : LeanIsaProgram) (s : Sizes)
 /-- Every opcode table has a column. -/
 theorem width_opIdx_pos : ∀ j : Fin 6, 0 < width (opIdx j) := by decide +kernel
 
-/-- A committed column of each table the cap counts: `MEM_LO`, `BFCNT`, and the last column of
+/-- A committed column of each table the cap counts: `MEMORY_0`, `BYTECODE_FINAL_COUNTERS`, and the last column of
 each opcode table. -/
 def capCol : Fin 8 → Col
   | ⟨0, _⟩ => memCol 0
