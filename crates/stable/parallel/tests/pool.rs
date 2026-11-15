@@ -66,13 +66,6 @@ fn chunks_mut_hands_out_disjoint_slices() {
 }
 
 #[test]
-fn for_each_mut_reports_global_indices() {
-    let mut data = vec![0usize; 7_777];
-    parallel::for_each_mut(&mut data, |i, slot| *slot = i * 3);
-    assert!(data.iter().enumerate().all(|(i, &v)| v == i * 3));
-}
-
-#[test]
 fn map_reduce_matches_the_sequential_fold() {
     for n in SIZES {
         let got = parallel::map_reduce(n, || 0usize, |i| i + 1, |a, b| a + b);

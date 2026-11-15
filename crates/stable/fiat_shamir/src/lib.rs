@@ -17,8 +17,6 @@ pub mod merkle;
 pub mod transcript;
 mod wire;
 
-pub use wire::{MAX_HEIGHT, MAX_LEAF_WORDS, MAX_PHASES, MAX_QUERIES};
-
 use primitives::field::{F64, F128};
 use primitives::hash::STATE_LANES;
 
@@ -105,17 +103,11 @@ impl FiatShamirState {
 
     /// Permute, taking the waiting scalars, and return the output's first two lanes.
     fn duplex(&mut self) -> F128 {
-        self.duplex_with_pow().0
-    }
-
-    /// [`Self::duplex`], also returning the output's third lane, where a grind's proof of work sits.
-    fn duplex_with_pow(&mut self) -> (F128, u64) {
         primitives::hash::keccak_f(&mut self.state);
         let out = F128::new(self.state[0], self.state[1]);
-        let pow = self.state[2];
         self.state[..RATE_LANES].fill(0);
         self.n_pending = 0;
-        (out, pow)
+        out
     }
 
     fn absorb(&mut self, x: F128, tag: u64) {
@@ -126,20 +118,6 @@ impl FiatShamirState {
         let i = 4 * self.n_pending;
         self.state[i..i + 4].copy_from_slice(&[x.c0, x.c1, 0, tag]);
         self.n_pending += 1;
-    }
-
-    /// The capacity as the five VM cells a permutation reads it from: lane 16 alone, then
-    /// lanes 17 to 24 two to a cell. With nothing waiting, it is all a later
-    /// permutation keeps, so it is what a guest needs of a seeded state.
-    pub fn capacity_cells(&self) -> [F128; 5] {
-        assert_eq!(
-            self.n_pending, 0,
-            "the capacity is the whole state only with nothing waiting"
-        );
-        std::array::from_fn(|c| match c {
-            0 => F128::new(self.state[16], 0),
-            _ => F128::new(self.state[15 + 2 * c], self.state[16 + 2 * c]),
-        })
     }
 
     /// Absorb one scalar.
@@ -185,6 +163,7 @@ impl FiatShamirState {
             let pass = |(_, state): &(u64, &[u64; STATE_LANES])| state[2] & ((1 << bits) - 1) == 0;
             (b * BATCH..).zip(&states).find(pass).map(|(nonce, _)| nonce)
         };
+        // A short search, a few batches, is not worth a dispatch to the pool.
         let nonce = if bits < 10 {
             (0..).find_map(batch)
         } else {
@@ -266,7 +245,8 @@ mod tests {
     fn pow_bits_ok(state: &FiatShamirState, nonce: u64, bits: u32) -> bool {
         let mut probe = state.clone();
         probe.absorb(F128::new(nonce, 0), DS_POW_NONCE);
-        probe.duplex_with_pow().1 & ((1u64 << bits) - 1) == 0
+        primitives::hash::keccak_f(&mut probe.state);
+        probe.state[2] & ((1u64 << bits) - 1) == 0
     }
 
     #[test]
