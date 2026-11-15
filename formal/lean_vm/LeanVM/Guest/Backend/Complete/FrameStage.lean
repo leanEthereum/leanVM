@@ -129,11 +129,11 @@ theorem matchCells_fatC (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0) {x 
     ((hkb₁.trans hkb₂ hn₁).trans hkb₃ (le_trans hn₁ hn₂)).trans hkb₄
       (le_trans hn₁ (le_trans hn₂ hn₃))⟩
 
-/-- A chained `match` followed by no `match` fails to place. -/
+/-- A chained `match` followed by no `match` fails to place, whatever follows. -/
 theorem chained_fail {x : V} {n : ℕ} {rest : List Stmt} {e : Option (ℕ × Cell)}
-    {armsAt : Cell → ArmExit → P (List (List PStmt))} {Q : Unit → St → Prop}
+    {armsAt : Cell → ArmExit → P (List (List PStmt))} {Q : Unit → St → Prop} {g : Unit → P Unit}
     (hnc : ∀ x' arms' rest', rest ≠ .match_ x' arms' :: rest') :
-    wpP (placeMatch x n rest e true armsAt >>= fun _ => endStmt) ctx st Q := by
+    wpP (placeMatch x n rest e true armsAt >>= g) ctx st Q := by
   unfold placeMatch matchCells
   simp only [ite_true, bind_assoc]
   refine wp_bind.mpr fun _ _ _ => ?_
@@ -143,6 +143,22 @@ theorem chained_fail {x : V} {n : ℕ} {rest : List Stmt} {e : Option (ℕ × Ce
     cases s <;> first
       | exact absurd rfl (hnc _ _ _)
       | exact wp_bind.mpr wp_failP
+
+/-- **The next stage's selector is known to the stage before it**: in scope there, or made by
+the events its edge flush passes (then not yet placed). -/
+theorem nextSel_live {rc : ℕ} {x : V} {s₀ s₁ sc' s₀' : SSt} {arms : List (List Stmt)}
+    (hsa : scopeArms rc arms s₀ s₀.retDone = .ok s₁) (hem : expectS isEmit "a match" s₁ = .ok sc')
+    (h₀' : flushEdge rc sc' = .ok s₀') (hx : s₀'.live.contains x = true) :
+    s₀.live.contains x = true ∨ x ∈ allocsOf (flushSeg sc'.rest) := by
+  obtain ⟨-, hfl⟩ := flushEdge_ok h₀'
+  obtain ⟨-, hlive, -⟩ := flushS_seg _ _ _ _ _ (show flushS rc sc'.rest sc'.live sc'.retDone = .ok s₀'
+    from hfl)
+  obtain ⟨_, _, _, hl, _⟩ := expectS_ok hem
+  rcases hlive x hx with h | h
+  · left
+    rw [hl, scopeArms_live rc arms _ _ _ hsa] at h
+    exact h
+  · exact Or.inr h
 
 theorem armsOps_in : ∀ (bs : List (List PStmt)) (q j : ℕ) (hj : j < bs.length),
     OpsIn I q (armsOps bs q) →
