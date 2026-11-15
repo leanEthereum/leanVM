@@ -74,21 +74,20 @@ fn map_reduce_matches_the_sequential_fold() {
 }
 
 #[test]
-fn map_reduce_with_state_reuses_worker_scratch() {
+fn fold_reduce_matches_the_sequential_fold() {
     for n in SIZES {
-        // The scratch is a per-worker counter of how many items it folded; the
-        // accumulator is the running sum. Both must survive across claims.
-        let got = parallel::map_reduce_with_state(
+        // A buffer accumulator, allocated once per worker and kept across its claims.
+        let got = parallel::fold_reduce(
             n,
-            || 0usize,
-            || 0usize,
-            |folded, acc, i| {
-                *folded += 1;
-                *acc += i;
+            || vec![0usize; 3],
+            |acc, i| acc[i % 3] += i,
+            |mut a, b| {
+                a.iter_mut().zip(b).for_each(|(a, b)| *a += b);
+                a
             },
-            |a, b| a + b,
         );
-        assert_eq!(got, (0..n).sum::<usize>(), "n = {n}");
+        let want: Vec<usize> = (0..3).map(|k| (0..n).filter(|i| i % 3 == k).sum()).collect();
+        assert_eq!(got, want, "n = {n}");
     }
 }
 

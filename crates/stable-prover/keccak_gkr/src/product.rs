@@ -33,22 +33,23 @@ const SUMS: usize = 8 * RUN_WORDS;
 pub(crate) fn polynomial(layer: &Layer, claim: &Claim) -> ([F128; PRODUCT_BITS], Vec<[F128; PRODUCT_BITS]>) {
     let maps: Vec<FieldMap> = claim.weights.as_chunks::<8>().0.iter().map(field_map).collect();
     let tasks = layer.task_weights(&eq_table(&claim.point[PACKS_LOG..]));
-    let sums = parallel::map_reduce_with_state(
+    // Each worker's scratch rides beside its sums.
+    let scratch = || (vec![[0; RUN_WORDS]; BITS / 8], Box::new([0; SUMS]));
+    let (_, sums) = parallel::fold_reduce(
         layer.n_tasks(),
-        || (vec![[0; RUN_WORDS]; BITS / 8], Box::new([0; SUMS])),
-        || vec![Acc8::ZERO; SUMS / 8],
-        |(bits, block), sums, task| {
+        || (scratch(), vec![Acc8::ZERO; SUMS / 8]),
+        |((bits, block), sums), task| {
             block_sums(&maps, layer.task(task), bits, block);
             let weight = F128x8::splat(tasks[task]);
             for (sum, block) in sums.iter_mut().zip(block.as_chunks::<8>().0) {
                 *sum += F128x8::from_array(&block.map(F128::from)).mul_unreduced(weight);
             }
         },
-        |mut a, b| {
+        |(kept, mut a), (_, b)| {
             for (a, b) in a.iter_mut().zip(b) {
                 *a += b;
             }
-            a
+            (kept, a)
         },
     );
     let sums: Vec<F128> = sums.into_iter().flat_map(|s| s.reduce().to_array()).collect();

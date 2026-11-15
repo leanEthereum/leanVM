@@ -527,8 +527,7 @@ impl Program {
                 [&mut **lo, &mut **hi, &mut **count],
                 [CHUNK; 3],
                 || (),
-                || (),
-                |_, _, task, [lo, hi, count]| {
+                |_, task, [lo, hi, count]| {
                     for (j, ((lo, hi), count)) in lo.iter_mut().zip(hi.iter_mut()).zip(count.iter_mut()).enumerate() {
                         let cell = exec.mem.cell(task * CHUNK + j);
                         (*lo, *hi, *count) = (F64(cell.word.c0), F64(cell.word.c1), gpow[cell.count as usize]);

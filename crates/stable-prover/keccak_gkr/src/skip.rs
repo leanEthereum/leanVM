@@ -72,11 +72,12 @@ pub(crate) fn sums(layer: &Layer, claim: &Claim, s: F128, per_pack: &[[F128; PRO
     // Each task's weight, for each half: the groups of a block alternate.
     let eq = eq_table(&claim.point[SKIP..]);
     let groups = [0, 1].map(|half| layer.task_weights(&eq.iter().skip(half).step_by(2).copied().collect::<Vec<_>>()));
-    let mixed = parallel::map_reduce_with_state(
+    // Each worker's scratch rides beside its sums.
+    let scratch = || (vec![[[0; 8]; SLOTS]; 5], vec![[Wide8::ZERO; 2]; SLOTS]);
+    let (_, mixed) = parallel::fold_reduce(
         layer.n_tasks(),
-        || (vec![[[0; 8]; SLOTS]; 5], vec![[Wide8::ZERO; 2]; SLOTS]),
-        || [F128Unreduced::ZERO; TERNARY],
-        |(extended, block), sums, task| {
+        || (scratch(), [F128Unreduced::ZERO; TERNARY]),
+        |((extended, block), sums), task| {
             block_sums(layer.task(task), &words, extended, block);
             for (half, groups) in groups.iter().enumerate() {
                 for (i, &[t, ..]) in MIXED_POINTS.iter().enumerate() {
@@ -85,11 +86,11 @@ pub(crate) fn sums(layer: &Layer, claim: &Claim, s: F128, per_pack: &[[F128; PRO
                 }
             }
         },
-        |mut a, b| {
+        |(kept, mut a), (_, b)| {
             for (a, b) in a.iter_mut().zip(b) {
                 *a ^= b;
             }
-            a
+            (kept, a)
         },
     );
     let mut sums: Vec<F128> = mixed.iter().map(|s| s.reduce()).collect();

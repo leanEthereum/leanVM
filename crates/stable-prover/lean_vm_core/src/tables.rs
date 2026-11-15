@@ -254,8 +254,7 @@ impl<'a> FillCtx<'a> {
             columns,
             [CHUNK; N],
             || (),
-            || (),
-            |_, _, task, mut chunks| {
+            |_, task, mut chunks| {
                 for start in (0..chunks[0].len()).step_by(STAGE) {
                     let len = STAGE.min(chunks[0].len() - start);
                     let mut staged = [[F64::ZERO; N]; STAGE];

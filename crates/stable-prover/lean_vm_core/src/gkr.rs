@@ -287,9 +287,8 @@ impl Layer {
         let messages = parallel::map_reduce_chunks_mut(
             self.spare.each_mut().map(|spare| spare.as_mut_slice()),
             [4 * GROUP * chunk; TREES],
-            || (),
             || [[F128::ZERO; 4]; TREES],
-            |_, messages, task, outs| {
+            |messages, task, outs| {
                 for (t, out) in outs.into_iter().enumerate() {
                     let mut acc = [Acc8::ZERO; 4];
                     for (j, group) in out.as_chunks_mut().0.iter_mut().enumerate() {

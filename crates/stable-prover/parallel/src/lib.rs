@@ -11,8 +11,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Condvar, Mutex, Once, OnceLock};
 
 /// Worker count including the dispatcher: `LEANVM_NUM_THREADS` when set, `1` being strictly sequential, else one per
-/// physical core, as experimental's: the logical CPUs the platform reports, halved where Linux says SMT is active (a
-/// core's second hardware thread slows a proof on a many-core machine).
+/// physical core: the logical CPUs the platform reports, halved where Linux says SMT is active (a core's second
+/// hardware thread slows a proof on a many-core machine).
 #[must_use]
 #[inline]
 pub fn num_threads() -> usize {
@@ -265,9 +265,7 @@ pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
     }
 }
 
-/// `f(i)` for every `i` in `0..n_tasks`, in parallel. `#[inline]` folds the
-/// range-to-index adapter into the monomorphized [`for_each_chunk`].
-#[inline]
+/// `f(i)` for every `i` in `0..n_tasks`, in parallel.
 pub fn for_each<F: Fn(usize) + Sync>(n_tasks: usize, f: F) {
     for_each_chunk(n_tasks, |start, end| {
         for i in start..end {
@@ -279,16 +277,7 @@ pub fn for_each<F: Fn(usize) + Sync>(n_tasks: usize, f: F) {
 /// A base `*mut` that can cross into the task closures. Sound only because
 /// callers partition the allocation by item index; every dereference site
 /// restates that.
-#[derive(Debug)]
 struct SendPtr<T>(*mut T);
-
-// By hand: the derives would demand `T: Clone` and `T: Copy`.
-impl<T> Clone for SendPtr<T> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-impl<T> Copy for SendPtr<T> {}
 
 // SAFETY: `SendPtr` grants no access by itself; every dereference is inside an
 // `unsafe` block whose comment establishes that the range being touched belongs
@@ -330,20 +319,11 @@ where
 }
 
 /// A `chunks_mut` view that can be handed to tasks: `get(i)` is item `i`'s slice.
-#[derive(Debug)]
 struct Chunks<T> {
     base: SendPtr<T>,
     width: usize,
     len: usize,
 }
-
-// By hand: the derives would demand `T: Clone` and `T: Copy`.
-impl<T> Clone for Chunks<T> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-impl<T> Copy for Chunks<T> {}
 
 impl<T> Chunks<T> {
     /// View `data` as `len.div_ceil(width)` chunks of `width` (the last shorter).
@@ -377,37 +357,33 @@ impl<T> Chunks<T> {
     }
 }
 
-/// [`map_reduce_with_state`] over the chunks of `N` buffers: task `i` gets chunk `i` of each, so a kernel
-/// writing several tables takes its slices of all of them.
+/// [`fold_reduce`] over the chunks of `N` buffers: task `i` gets chunk `i` of each, so a kernel writing several
+/// tables takes its slices of all of them.
 ///
 /// Buffer `k` is cut into chunks of `widths[k]`, the last shorter. There are as many tasks as the
 /// buffer with the most chunks has, and a buffer with fewer gives an empty slice to the tasks past its end.
-pub fn map_reduce_chunks_mut<T, const N: usize, S, A, IS, IA, F, C>(
+pub fn map_reduce_chunks_mut<T, const N: usize, A, I, F, C>(
     bufs: [&mut [T]; N],
     widths: [usize; N],
-    init_state: IS,
-    init_acc: IA,
+    init: I,
     fold: F,
     combine: C,
 ) -> A
 where
     T: Send,
-    S: Send,
     A: Send,
-    IS: Fn() -> S + Sync,
-    IA: Fn() -> A + Sync,
-    F: Fn(&mut S, &mut A, usize, [&mut [T]; N]) + Sync,
+    I: Fn() -> A + Sync,
+    F: Fn(&mut A, usize, [&mut [T]; N]) + Sync,
     C: Fn(A, A) -> A,
 {
     let views = chunk_views(bufs, widths);
     let n_tasks = views.iter().map(Chunks::count).max().unwrap_or(0);
-    map_reduce_with_state(
+    fold_reduce(
         n_tasks,
-        init_state,
-        init_acc,
-        |state, acc, i| {
+        init,
+        |acc, i| {
             // SAFETY: the dispatch runs each task `i` once, and `bufs` stays borrowed until it returns.
-            fold(state, acc, i, unsafe { task_chunks(&views, i) });
+            fold(acc, i, unsafe { task_chunks(&views, i) });
         },
         combine,
     )
@@ -490,45 +466,20 @@ pub fn find_first<P: Fn(usize) -> bool + Sync>(n_tasks: usize, pred: P) -> Optio
 /// per-item path, so a dense array would false-share the boundary lines. 128
 /// rather than 64 because that is the line on Apple silicon.
 #[repr(align(128))]
-struct Slot<S>(Option<S>);
+struct Slot<S>(Mutex<Option<S>>);
 
 /// Give each worker its own persistent `Option<S>` while it drains `0..n_tasks`:
 /// `run(slot, start, end)` fires once per claim with that worker's slot, so state
 /// accumulates across its claims. Returns the slots (the rest `None`) for the
 /// caller to combine.
-fn drain_into_slots<S: Send>(n_tasks: usize, run: impl Fn(&mut Option<S>, usize, usize) + Sync) -> Vec<Slot<S>> {
-    let mut slots: Vec<Slot<S>> = (0..num_threads()).map(|_| Slot(None)).collect();
-    let view = Chunks::new(&mut slots, 1);
+fn drain_into_slots<S: Send>(n_tasks: usize, run: impl Fn(&mut Option<S>, usize, usize) + Sync) -> Vec<Option<S>> {
+    let slots: Vec<Slot<S>> = (0..num_threads()).map(|_| Slot(Mutex::new(None))).collect();
+    // A worker's id is unique among the live workers, so its lock is never contended.
     for_each_chunk(n_tasks, |start, end| {
-        // SAFETY: `WORKER_ID.get() < num_threads()` is unique per live worker, so no other live borrow
-        // covers its slot; `slots` outlives the dispatch.
-        let slot = unsafe { view.get(WORKER_ID.get()) };
-        run(&mut slot[0].0, start, end);
+        run(&mut slots[WORKER_ID.get()].0.lock().unwrap(), start, end)
     });
-    slots
-}
-
-/// Parallel map-reduce over `0..n_tasks`, i.e. `(0..n).map(map).reduce(identity,
-/// reduce)`. Each worker folds its claimed indices into one local partial; the
-/// partials combine on the dispatcher. Which indices a worker claims varies, so
-/// `reduce` must be associative and commutative, with `identity()` neutral.
-pub fn map_reduce<T, ID, M, R>(n_tasks: usize, identity: ID, map: M, reduce: R) -> T
-where
-    T: Send,
-    ID: Fn() -> T,
-    M: Fn(usize) -> T + Sync,
-    R: Fn(T, T) -> T + Sync,
-{
-    let slots = drain_into_slots(n_tasks, |slot, start, end| {
-        // Fold the claim into the worker's partial, seeded by the first `map` so
-        // `identity` stays off the per-item path; touch the slot once per claim.
-        *slot = (start..end).fold(slot.take(), |acc, i| {
-            Some(acc.map_or_else(|| map(i), |partial| reduce(partial, map(i))))
-        });
-    });
-    // `identity()` seeds the combine as a left identity, which makes the empty
-    // and single-worker cases fall out without a special path.
-    slots.into_iter().filter_map(|s| s.0).fold(identity(), &reduce)
+    // A task panic was re-raised above, so no lock is poisoned here.
+    slots.into_iter().map(|slot| slot.0.into_inner().unwrap()).collect()
 }
 
 /// Parallel fold-then-reduce: each worker builds one accumulator with `init`,
@@ -538,7 +489,8 @@ where
 ///
 /// This is the shape for a reduction whose accumulator is itself a buffer (a
 /// 64-slot bit-fold, say): the buffer is allocated once per worker rather than
-/// once per item, and no two workers share a cache line.
+/// once per item, and no two workers share a cache line. Scratch a worker reuses
+/// across items rides in the accumulator too, `combine` keeping either side's.
 pub fn fold_reduce<A, I, F, C>(n_tasks: usize, init: I, fold: F, combine: C) -> A
 where
     A: Send,
@@ -546,32 +498,39 @@ where
     F: Fn(&mut A, usize) + Sync,
     C: Fn(A, A) -> A,
 {
-    map_reduce_with_state(n_tasks, || (), &init, |_, acc, i| fold(acc, i), combine)
-}
-
-/// Parallel reduce where each worker keeps reusable scratch beside its
-/// accumulator, so the per-item body need not allocate. `(scratch, acc)` are
-/// created once per worker and threaded through its claims; the accumulators
-/// combine on the dispatcher. Which indices a worker claims varies, so `combine`
-/// must be associative and commutative, with `init_acc()` neutral.
-pub fn map_reduce_with_state<S, A, IS, IA, F, C>(n_tasks: usize, init_state: IS, init_acc: IA, fold: F, combine: C) -> A
-where
-    S: Send,
-    A: Send,
-    IS: Fn() -> S + Sync,
-    IA: Fn() -> A + Sync,
-    F: Fn(&mut S, &mut A, usize) + Sync,
-    C: Fn(A, A) -> A,
-{
     let slots = drain_into_slots(n_tasks, |slot, start, end| {
-        let (state, acc) = slot.get_or_insert_with(|| (init_state(), init_acc()));
+        let acc = slot.get_or_insert_with(&init);
         for i in start..end {
-            fold(state, acc, i);
+            fold(acc, i);
         }
     });
-    slots
-        .into_iter()
-        .filter_map(|s| s.0)
-        .map(|(_, acc)| acc)
-        .fold(init_acc(), &combine)
+    slots.into_iter().flatten().fold(init(), combine)
+}
+
+/// Parallel map-reduce over `0..n_tasks`, i.e. `(0..n).map(map).reduce(identity,
+/// reduce)`. Each worker folds its claimed indices into one local partial; the
+/// partials combine on the dispatcher. Which indices a worker claims varies, so
+/// `reduce` must be associative and commutative, with `identity()` neutral.
+pub fn map_reduce<T, ID, M, R>(n_tasks: usize, identity: ID, map: M, reduce: R) -> T
+where
+    T: Send,
+    ID: FnOnce() -> T,
+    M: Fn(usize) -> T + Sync,
+    R: Fn(T, T) -> T + Sync,
+{
+    // A worker's partial starts at its first `map`, keeping `identity` off the per-item path.
+    let merge = |a: Option<T>, b: T| match a {
+        Some(a) => reduce(a, b),
+        None => b,
+    };
+    fold_reduce(
+        n_tasks,
+        || None,
+        |partial, i| *partial = Some(merge(partial.take(), map(i))),
+        |a, b| match b {
+            Some(b) => Some(merge(a, b)),
+            None => a,
+        },
+    )
+    .unwrap_or_else(identity)
 }

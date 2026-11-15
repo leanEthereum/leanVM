@@ -131,9 +131,8 @@ pub(crate) fn fill(
     let values = parallel::map_reduce_chunks_mut(
         [&mut tables.0[0][..]],
         [2 * BITS],
-        || (),
         || (F128Unreduced::ZERO, F128Unreduced::ZERO),
-        |_, acc, p, [out]| {
+        |acc, p, [out]| {
             let (segment, g) = (p / n_blocks, p % n_blocks);
             if segment >= layer.segments() {
                 out.fill(F128::ZERO);
@@ -215,9 +214,8 @@ fn fold_rows(summand: &Summand, table: &[F128], out: &mut [F128], challenge: F12
         parallel::map_reduce_chunks_mut(
             [out],
             [2 * BITS],
-            || (),
             || zero,
-            |_, acc, p, [rows]| pair(acc, p, rows),
+            |acc, p, [rows]| pair(acc, p, rows),
             |a, b| (a.0 ^ b.0, a.1 ^ b.1),
         )
     };
