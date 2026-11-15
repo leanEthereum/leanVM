@@ -191,6 +191,39 @@ theorem wS_chain {h : List LHint} {join lx entry one sfp : ℕ} {firsts : List �
   simp only [wS, hcs]
   exact ⟨hset, hslot, hhead _ _ hst⟩
 
+/-- **A `JumpTo` from its cells' words**: the condition `1`, the destination the pc word of `t`,
+the frame pointer this frame's. -/
+theorem jumpTo_of {size : ℕ} (hr : Rds Ag fp size (fwd hdr FS)) {oc od of t : ℕ} (hc : oc < size)
+    (hd : od < size) (hf : of < size) (hoc : fwd hdr FS oc = 1) (hod : fwd hdr FS od = Γ.tgt t)
+    (hof : fwd hdr FS of = ofK (addressOfIndex fp)) : JumpTo Γ fp hdr FS Ag oc od of t :=
+  fun _ _ ht => jw_of hr hc hd hf (by rw [hoc]; exact (isInK_iff 1).mpr ⟨1, ofK_one.symm⟩)
+    (by rw [hod]; exact isInK_ofK _) (by rw [hof]; exact isInK_ofK _)
+    (fun h0 => absurd (hoc ▸ h0) one_ne_zero) fun _ => by rw [hod, hof]; exact ht
+
+theorem armsFills_mem (f : String) (first : ℕ) : ∀ (blocks : List (List PStmt)) (j₀ q i : ℕ),
+    i < blocks.length →
+    (first + (j₀ + i), KVal.at f (q + armsSize (blocks.take i))) ∈ armsFills f first blocks j₀ q
+  | [], _, _, _, hi => absurd hi (Nat.not_lt_zero _)
+  | b :: bs, j₀, q, 0, _ => by simp [armsFills, armsSize]
+  | b :: bs, j₀, q, i + 1, hi => by
+    have := armsFills_mem f first bs (j₀ + 1) (q + blockSize b) i (by simpa using hi)
+    simp only [armsFills, List.mem_cons, List.mem_append]
+    refine Or.inr (Or.inr ?_)
+    simpa [armsSize, List.take_succ_cons, Nat.add_assoc, Nat.add_comm 1 i] using this
+
+/-- **A one-stage chain's table holds its arms' targets**, from the jump table fills of the chain
+node at its position. -/
+theorem slot_chain1 {Ag' : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop}
+    {h : List LHint} {join lx entry one sfp first pos j : ℕ} {blocks : List (List PStmt)}
+    (hF : FillsIn Γ Ag' pos [PStmt.chain h join lx entry one sfp [first] [blocks]])
+    (hj : j < blocks.length) : ∀ σ' Ψ kh κ (L : MemoryImage κ), Ag' σ' Ψ kh κ L →
+      L.read (addressOfIndex (Γ.l.tablesBase + (first + j))) =
+        some (Γ.tgt (pos + 3 + armsSize (blocks.take j))) :=
+  hF "" _ _ (by
+    have := armsFills_mem "" first blocks 0 (pos + 3) j hj
+    simp only [Nat.zero_add] at this
+    simpa [blockFills, stmtFills, stagesFills] using this)
+
 end Words
 
 /-! ## Arms off the path -/
