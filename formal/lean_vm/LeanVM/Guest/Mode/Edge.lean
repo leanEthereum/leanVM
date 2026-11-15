@@ -274,6 +274,33 @@ theorem armPtrs_sound {s : St} {M : Abs} {Bs : List Abs} {X : Abs} (hm : X ∈ B
     refine ⟨x, ?_, hpx⟩
     simpa using hx
 
+/-- **A run every arm knows up to its index**: the run up to the selector's exponent `armRuns` keeps holds
+where the arm that ran does. -/
+theorem armRuns_sound {s : St} {x : Base} {Bs : List Abs} {j : ℕ} {X : Abs} (hj : Bs[j]? = some X)
+    (hX : Holds s X) (hi : IdxVal s (.ex x 0) j) (hwf : s.mem.WF) (hu : s.mem.used ≤ maxCells) {r : Rng}
+    (hr : r ∈ armRuns x Bs) : RW s r := by
+  unfold armRuns at hr
+  split_ifs at hr
+  · simp at hr
+  split at hr
+  · obtain ⟨r0, -, hr0⟩ := List.mem_filterMap.mp hr
+    unfold armRun1 at hr0
+    split at hr0
+    · rename_i a b _ _
+      split_ifs at hr0 with hc
+      cases hr0
+      simp only [Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true, List.mem_range] at hc
+      have hjl : j < Bs.length := (List.getElem?_eq_some_iff.mp hj).1
+      have hcj := hc.2 j hjl
+      rw [hj] at hcj
+      obtain ⟨vq, xlo, xhi, hq, hlo, hhi, hw⟩ := Abs.coveredR_sound hX hwf hu hcj
+      obtain ⟨v, e, hv, hve, he, hje⟩ := hi
+      refine ⟨vq, xlo, xhi, hq, hlo, ⟨v, e, hv, hve, he, ?_⟩, hw⟩
+      simp only [IdxVal] at hhi
+      omega
+    · simp at hr0
+  · simp at hr
+
 /-- **The arms met**: the arm that ran holds, at its index under the selector. -/
 theorem armsMeet_sound {s : St} {sel : Option Base} {Bs : List Abs} {j : ℕ} {X : Abs}
     (hj : Bs[j]? = some X) (hX : Holds s X) (hsel : ∀ x, sel = some x → IdxVal s (.ex x 0) j)
@@ -298,6 +325,10 @@ theorem armsMeet_sound {s : St} {sel : Option Base} {Bs : List Abs} {j : ℕ} {X
     · exact hM
     · rename_i x
       have hi := hsel x rfl
+      have hM : Holds s { foldlA Abs.interS B Bs with
+          p := armPtrs (foldlA Abs.interS B Bs) (B :: Bs) ++ (foldlA Abs.interS B Bs).p,
+          r := armRuns x (B :: Bs) ++ (foldlA Abs.interS B Bs).r } :=
+        { hM with r := fun r hr ↦ (List.mem_append.mp hr).elim (armRuns_sound hj hX hi hwf hu) (hM.r r) }
       refine { hM with c := fun d hd ↦ ?_ }
       rcases List.mem_append.mp hd with hd | hd
       · obtain ⟨⟨Y, j'⟩, hY, hd⟩ := List.mem_filterMap.mp hd

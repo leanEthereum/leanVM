@@ -377,7 +377,7 @@ noncomputable def modeFun : Mode.Fun :=
     59], [50, 50, 50, 50, 41, 41, 41, 41, 32, 32, 32, 32, 23, 23, 23]]))]) .nil .nil))))))))),
     .nil, (.node none (.node none (.node none (.node none (.node none (.node none (.node (some 31)
     (.node (some 31) (.node none .nil (.node (some 31) .nil .nil)) .nil) (.node none .nil (.node
-    (some 31) .nil .nil))) (.node (some 31) (.node none (.node (some 31) .nil .nil) (.node none
+    (some 31) .nil .nil))) (.node (some 12) (.node none (.node (some 31) .nil .nil) (.node none
     .nil (.node (some 31) .nil .nil))) (.node none (.node none (.node (some 31) .nil .nil) .nil)
     .nil))) (.node none (.node none (.node none (.node none (.node (some 31) .nil .nil) .nil) .nil)
     (.node (some 31) (.node none .nil (.node (some 31) .nil .nil)) .nil)) (.node none (.node none
@@ -397,7 +397,7 @@ noncomputable def modeFun : Mode.Fun :=
     .nil (.node (some 31) .nil .nil))) (.node none (.node none (.node (some 31) .nil .nil) .nil)
     .nil)))) (.node none (.node none (.node none (.node none (.node (some 31) .nil .nil) (.node
     none .nil (.node (some 31) .nil .nil))) (.node none (.node none (.node (some 31) .nil .nil)
-    .nil) .nil)) (.node (some 31) (.node none .nil (.node (some 31) .nil .nil)) (.node none .nil
+    .nil) .nil)) (.node (some 25) (.node none .nil (.node (some 31) .nil .nil)) (.node none .nil
     (.node none (.node (some 31) .nil .nil) .nil)))) (.node none (.node none (.node none .nil
     (.node none (.node (some 31) .nil .nil) .nil)) (.node none (.node (some 31) .nil .nil) (.node
     none .nil (.node (some 31) .nil .nil)))) (.node none (.node (some 31) (.node none .nil (.node

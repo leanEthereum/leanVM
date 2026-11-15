@@ -1140,6 +1140,24 @@ noncomputable def armPtrs (M : Abs) : List Abs → List (Rng × List ℕ)
       if os.isEmpty then none else some (⟨p.1, .num 0, .num 1, 1, 0⟩, os)
   | _ => []
 
+/-- One run of the last of a table call's arms on base `x` (`n + 1` arms), up to a constant `b ≥ n`, that
+every arm `j` knows up to `j + (b - n)`: the run up to `x`'s exponent plus `b - n`. -/
+noncomputable def armRun1 (x : Base) (Bs : List Abs) (r : Rng) : Option Rng :=
+  match r.lo, r.hi with
+  | .num a, .num b =>
+    if decide (Bs.length - 1 ≤ b) && (List.range Bs.length).all (fun j ↦ match Bs[j]? with
+        | some X => X.coveredR ⟨r.q, .num a, .num (j + (b - (Bs.length - 1))), r.S, r.d⟩
+        | none => false) then some ⟨r.q, .num a, .ex x (b - (Bs.length - 1)), r.S, r.d⟩ else none
+  | _, _ => none
+
+/-- Two or more arms of a table call on base `x` met: each run the last knows that every arm `j` knows up
+to its index plus a constant, as a run up to the selector's exponent plus it (`armRun1`). -/
+noncomputable def armRuns (x : Base) (Bs : List Abs) : List Rng :=
+  if Bs.length < 2 then [] else
+  match Bs.getLast? with
+  | some L => L.r.filterMap (armRun1 x Bs)
+  | none => []
+
 /-- The facts of `X` not in `B`, under base `x`'s exponent `j`, if any. -/
 def condDiff (B X : Abs) (x : Base) (j : ℕ) : Option Cnd :=
   let d : Cnd := ⟨x, j, X.h.filter (fun k ↦ !(B.h.any (Mono.beq k))), X.r.filter (fun r ↦ !(B.r.any (Rng.beq r))),
@@ -1157,6 +1175,7 @@ noncomputable def armsMeet (sel : Option Base) : List Abs → Abs
     match sel with
     | none => M
     | some x =>
+      let M := { M with r := armRuns x (B :: Bs) ++ M.r }
       { M with
         c := ((B :: Bs).zipIdx.filterMap fun p ↦ condDiff M p.1 x p.2) ++
           M.c.filter (fun c ↦ !(c.x.beq x && decide (c.j < Bs.length + 1))) }

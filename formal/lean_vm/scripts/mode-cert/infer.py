@@ -127,6 +127,8 @@ class Infer:
         self.f = f; self.pre = set(); self.preR = set(); self.res = collections.defaultdict(list)
         self.preP = {}
         self.new = False; self.unres = []; self.w = None
+        # residuals read off the state of one pass, kept only if the final walk needs them
+        self.prunable = []
 
     def demand(self, kind, i, *rest):
         f = self.f
@@ -141,8 +143,9 @@ class Infer:
             if isinstance(name, tuple) and name[0] == 'tail':
                 return False
             if k is None: return False
+            if self.armRun(('pt', k), A): return True
             if self.key(k, i, A): return True
-            if self.armSub(k, i, A): return True
+            if self.armSub(k, i, A, m): return True
             # a heap cell linked to frame cells loaded from unknown cells: those loads' cells
             for c in self.w.lnks.get(k, []):
                 if c in self.w.lnk and c not in A.w and self.key(self.w.lnk[c][0], self.w.lnk[c][1], A): return True
@@ -156,9 +159,10 @@ class Infer:
         if kind == 'preR':
             name, r, r2, A = rest
             if isinstance(name, tuple) and name[0] == 'tail': return False
+            if r2 is not None and self.armRun(('run', r2), A): return True
             if r2 is not None and ifaceMono(f, r2[0]) and ifaceIdx(f, r2[1]) and ifaceIdx(f, r2[2]) and r2[0][2]:
                 self.preR.add(r2); self.new = True; A.r.add(r2); return True
-            return r2 is not None and self.linSub(r2, i, A)
+            return r2 is not None and (self.linSub(r2, i, A) or self.narrow(name, r, r2, A))
         if kind == 'entry':
             name, o, A, cs, lnk = rest
             for c in cs:
@@ -176,7 +180,7 @@ class Infer:
             self.res[i].append(r); self.new = True; A.lt.add((r[1], r[2])); return True
         return False
 
-    def armSub(self, k, i, A):
+    def armSub(self, k, i, A, m=None):
         """A table call's arm reading `q·g^c`, inside a run the function holds over part of `q`: the run
         over `q` below the selector's exponent is inside it (`Res.sub`), and `c` below the arm's index."""
         x = self.w.cursel if self.w is not None else None
@@ -187,10 +191,61 @@ class Infer:
             if lo != ('num', 0) or S != 1 or d != 0 or not Q[2] or Q[1] != 0 or Q[2] == k[2]: continue
             rest = dict(k[2])
             if not all(rest.get(b, 0) >= e for b, e in Q[2]): continue
-            if not ifaceMono(self.f, Q): continue
             a = (q, ('num', 0), ('ex', x, 0), 1, 0)
             self.addRes(i, ('sub', a, [R])); A.r.add(a); return True
+        # the arm's `m`-th point of its parameter's run `o·g^j` (`o = k / g^m`), `m` below the arm's index:
+        # that run below the selector's exponent inside a known run over `o`'s bases (`Res.sub`)
+        off = m[1] if m is not None and m[0] == 0 and len(m[2]) == 1 and m[2][0][1] == 1 else k[1]
+        if off > k[1] or not A.ltI(('num', off), ('ex', x, 0)): return False
+        o = (0, k[1] - off, k[2])
+        for R in sorted(A.r, key=str):
+            Q, lo, hi, S, d = R
+            if lo == ('num', 0) and S == 1 and d == 0 and Q[1] == 0 and Q[2] and \
+                    all(dict(o[2]).get(b, 0) >= e for b, e in Q[2]):
+                a = (o, ('num', 0), ('ex', x, 0), 1, 0)
+                self.addRes(i, ('sub', a, [R])); A.r.add(a); return True
         return False
+
+    def armRun(self, d, A):
+        """A table call's arm needing a point `Q·g^c` or a run `Q·[0, c)` over the interface, `c` within the
+        selector's exponent `e(x)` plus `t < 3` on this arm: the run `Q·[0, e(x) + t)` a precondition."""
+        x = self.w.cursel if self.w is not None else None
+        f = self.f
+        if x is None or x[0] != 'fr' or x[1] not in params(f): return False
+        if d[0] == 'pt':
+            k = d[1]
+            if k[0] != 0 or not k[2] or not ifaceMono(f, k): return False
+            q, S, off, ok = (0, 0, k[2]), 1, 0, lambda t: A.ltI(('num', k[1]), ('ex', x, t))
+        else:
+            q, lo, hi, S, off = d[1]
+            if lo != ('num', 0) or hi[0] != 'num' or not q[2] or not ifaceMono(f, q): return False
+            ok = lambda t: A.le(hi, ('ex', x, t))
+        for t in range(3):
+            if ok(t):
+                r = (q, ('num', 0), ('ex', x, t), S, off)
+                self.preR.add(r); self.new = True; A.r.add(r); return True
+        return False
+
+    def narrow(self, pc, r, r2, A):
+        """A callee's run of `n` consecutive cells it reads at a bounded index, of which the caller holds
+        only every `S`-th, the least such `S`: the callee needs that strided part, its read inside it a
+        residual (`key`), and is inferred again."""
+        q, lo, hi, S1, d = r2
+        if r[1] != ('num', 0) or r[2][0] != 'num' or lo != ('num', 0) or hi != r[2] or S1 != r[3]: return False
+        n = hi[1]; S = 2
+        while S <= n and not (n % S == 0 and A.coveredR((q, lo, ('num', n // S), S1 * S, d))): S *= 2
+        g = byentry.get(pc)
+        if S > n or g is None or NARROW[g['name']].get(r) == S: return False
+        # its other callers walked against its signature already
+        if any(g['name'] in calls[m] for m in DONE if m != self.f['name']): return False
+        NARROW[g['name']][r] = S
+        try:
+            infer(g['name'])
+        except Fail:
+            del NARROW[g['name']][r]
+            infer(g['name'])
+            return False
+        self.new = True; A.r.add(r2); return True
 
     def addRes(self, i, r):
         if r not in self.res[i]:
@@ -202,6 +257,7 @@ class Infer:
         bound's times `g^k` (`n / g`). A residual (`Res.sub`) and the parameter's run a precondition."""
         f = self.f
         q, lo, hi, S, d = r2
+        if self.shiftSub(r2, i, A): return True
         if not (q[2] and ifaceMono(f, q) and ifaceIdx(f, lo) and hi[0] == 'ex'): return False
         hb, t = hi[1], hi[2]
         if hb[0] == 'fr': mh = A.mono(hb[1])
@@ -226,6 +282,38 @@ class Infer:
             self.preR.add(b); self.new = True; A.r.add(b)
             self.addRes(i, ('sub', r2, [b])); A.r.add(r2)
             return True
+        return False
+
+    def shiftSub(self, r2, i, A):
+        """A run `Q·x·[0, [c])` of stride 1, `x` a word `[b]` the code multiplies by `[c]` into `[p]`: inside
+        `Q·[0, [p])` (`Res.sub`), that run known or, `Q` over the interface and `p` a parameter, a
+        precondition."""
+        f = self.f
+        q, lo, hi, S, d = r2
+        if q[0] != 0: return False
+        # a part of `Q·x`'s cells inside a known run over `Q` from `0`, of stride 1
+        for B, e in q[2]:
+            Q = (0, q[1], tuple(x for x in q[2] if x[0] != B))
+            if e != 1 or not Q[2] or lo[0] != 'num' or hi[0] != 'num': continue
+            for b in sorted(A.r, key=str):
+                if b[0] == Q and b[1] == ('num', 0) and b[3] == 1 and b[2][0] == 'ex' and b[4] == 0:
+                    self.addRes(i, ('sub', r2, [b])); A.r.add(r2)
+                    return True
+        if lo != ('num', 0) or S != 1 or hi[0] != 'ex' or hi[2] != 0 or hi[1][0] != 'fr': return False
+        c = hi[1][1]
+        for B, e in q[2]:
+            Q = (0, q[1], tuple(x for x in q[2] if x[0] != B))
+            if e != 1 or not Q[2]: continue
+            for op, a in f['ops']:
+                if op != 'mul' or c not in a[:2]: continue
+                o = a[1] if a[0] == c else a[0]
+                if A.mono(o) != (0, 0, ((B, 1),)): continue
+                b = (Q, ('num', 0), ('ex', ('fr', a[2]), 0), 1, d)
+                if not A.coveredR(b):
+                    if a[2] not in params(f) or not ifaceMono(f, Q): continue
+                    self.preR.add(b); self.new = True; A.r.add(b)
+                self.addRes(i, ('sub', r2, [b])); A.r.add(r2)
+                return True
         return False
 
     def addP(self, r, os, A):
@@ -265,6 +353,17 @@ class Infer:
             if r not in self.res[i0]:
                 self.res[i0].append(r); self.new = True
             A.lt.add((r[1], r[2])); return True
+        # the same, the key shifted into its region (an adjusted selector, `x·g^a`): the arms from the
+        # shifted slot to the region's end
+        if (i0 + 1) in f['tabs'] and k[0] == 0 and len(k[2]) == 1 and k[2][0][1] == 1 and JT_LO <= k[1] < JT_HI:
+            st = max(t for t in REGION if t <= k[1])
+            n = st + REGION[st] - k[1]
+            x = k[2][0][0]
+            r = ('lt', ('ex', x, 0), ('num', n))
+            if f['tabs'][i0 + 1] != n: f['tabs'][i0 + 1] = n; self.new = True
+            if r not in self.res[i0]:
+                self.res[i0].append(r); self.new = True
+            A.lt.add((r[1], r[2])); return True
         if k[0] == 0 and k[2] and ifaceMono(f, k):
             self.pre.add(k); self.new = True; A.h.add(k); return True
         # a table read at a loaded offset, inside a table the caller holds
@@ -279,14 +378,28 @@ class Infer:
             a = ((0, k[1] - k[1] % S, k[2]), ('num', 0), ('num', S), 1, 0)
             if not any(('sub', a, bs) in rs for rs in self.res.values()): self.addRes(i0, ('sub', a, bs))
             A.r.add(a); return True
-        # a table written at the loaded words of a permutation: every cell
+        # a table written at the loaded words of a permutation: every cell of a block, once the table is
+        # written at the words of the hinted run's cells `[q]·[lo, hi)`, the permutation mapping each
+        # block of its cells onto the same block (the read's offset in it)
         if k[0] == 0 and len(k[2]) == 1 and k[2][0][1] == 1 and depth == 0:
             b = k[2][0][0]
-            P = sorted(m for m in A.h if m[0] == 0 and m[1] == 0 and len(m[2]) == 2 and (b, 1) in m[2]
-                       and all(e == 1 for _, e in m[2]))
-            if len(P) > max(1, k[1]):
-                a = ((0, 0, ((b, 1),)), ('num', 0), ('num', len(P)), 1, 0)
-                self.addRes(i0, ('sub', a, [(m, ('num', 0), ('num', 1), 1, 0) for m in P])); A.r.add(a); return True
+            byq = collections.defaultdict(set)
+            for m in A.h:
+                if m[0] == 0 and m[1] == 0 and len(m[2]) == 2 and (b, 1) in m[2] and all(e == 1 for _, e in m[2]):
+                    x = next(y for y, _ in m[2] if y != b)
+                    if x[0] == 'hp': byq[x[1]].add(x[2])
+            for q, js in sorted(byq.items()):
+                if k[1] not in js: continue
+                lo, hi = k[1], k[1] + 1
+                while lo - 1 in js: lo -= 1
+                while hi in js: hi += 1
+                if hi - lo < 2 or not any(r[0] == root(q) and r[1][0] == 'num' and r[1][1] <= lo and
+                                          r[2][0] == 'num' and r[2][1] >= hi and r[3:] == (1, 0) for r in A.r):
+                    continue
+                P = [(0, 0, tuple(sorted(((b, 1), (('hp', q, j), 1))))) for j in range(lo, hi)]
+                a = ((0, 0, ((b, 1),)), ('num', lo), ('num', hi), 1, 0)
+                r = ('sub', a, [(m, ('num', 0), ('num', 1), 1, 0) for m in P])
+                self.addRes(i0, r); self.prunable.append((i0, r)); A.r.add(a); return True
         # a bounded table read: the loads its uncovered cells were linked to
         if self.w is not None and k[0] == 0 and depth < 4:
             got = False
@@ -308,8 +421,32 @@ class Infer:
             for (p, hi) in sorted(A.lt, key=lambda t: (t[1][0] != 'num', t[1][1] if t[1][0] == 'num' else 0)):
                 if p == ('ex', x, 0) and ifaceIdx(f, hi) and hi != ('num', MAXCELLS):
                     r = ((0, 0, Q), ('num', 0), hi, e, k[1])
+                    S = NARROW[f['name']].get(r)
+                    if S:
+                        # its callers hold every `S`-th cell: that part, the read inside it (`narrow`)
+                        r = ((0, 0, Q), ('num', 0), ('num', hi[1] // S), e * S, k[1])
+                        a = ((0, k[1], k[2]), ('num', 0), ('num', 1), 1, 0)
+                        self.preR.add(r); A.r.add(r); self.addRes(i0, ('sub', a, [r])); A.r.add(a); return True
                     self.preR.add(r); self.new = True; A.r.add(r); return True
-        return False
+        return self.permBlock(k, i0, A)
+
+    def permBlock(self, k, i0, A):
+        """A table `[T]` read at the word a permutation's cell `r` holds (`[q]·g^r`, loaded), `[T]·g^c` known
+        written at the block of consecutive offsets `[lo, hi)` around `r`: the read inside it (`Res.sub`),
+        the permutation mapping each block of its cells onto the same block of the table's."""
+        if k[0] != 0 or len(k[2]) != 2 or any(e != 1 for _, e in k[2]): return False
+        ts = [b for b, _ in k[2] if b[0] == 'fr']; ps = [b for b, _ in k[2] if b[0] == 'hp']
+        if len(ts) != 1 or len(ps) != 1: return False
+        T, r, c = ts[0], ps[0][2], k[1]
+        q = (0, 0, ((T, 1),))
+        if not A.covered(shift(q, c + r)): return False
+        lo, hi = r, r + 1
+        while lo > 0 and A.covered(shift(q, c + lo - 1)): lo -= 1
+        while hi - lo < 4096 and A.covered(shift(q, c + hi)): hi += 1
+        if hi - lo < 2: return False
+        a = ((0, c, k[2]), ('num', 0), ('num', 1), 1, 0)
+        r = ('sub', a, [(q, ('num', lo), ('num', hi), 1, c)])
+        self.addRes(i0, r); self.prunable.append((i0, r)); A.r.add(a); return True
 
 
 def statMono(f):
@@ -472,11 +609,34 @@ TABLES = {(n,): (('hp', 1, b), ('ex', ('hp', 1, l), 0), S) for n, ts in tables()
           if len([t for t in ts if t[2] > 1]) == 1 for b, l, S in ts if S > 1}
 
 
+# runs a function reads at a bounded index, of which its callers hold every `S`-th cell: function -> {run: S}
+NARROW = collections.defaultdict(dict)
+# the functions inferred so far
+DONE = set()
+
+
+# each function's last inference, its signature and residuals (a narrowed callee's replaced)
+LAST = {}
+
+
 def infer(n):
-    try: return infer1(n, False)
-    except Fail as e:
-        try: return infer1(n, True)
-        except Fail: raise e
+    DONE.add(n)
+    LAST.pop(n, None)
+    mark = {g: dict(v) for g, v in NARROW.items()}
+    try:
+        try: LAST[n] = infer1(n, False)
+        except Fail as e:
+            try: LAST[n] = infer1(n, True)
+            except Fail: raise e
+        return LAST[n]
+    except Fail:
+        # a failing caller's narrowings undone, its callees inferred again
+        for g in [g for g in NARROW if NARROW[g] != mark.get(g, {})]:
+            NARROW[g] = dict(mark.get(g, {}))
+            try: infer(g)
+            except Fail: E.sigs[fns[g]['entry']] = mkSig(fns[g], [], [], list(range(
+                2 + fns[g].get('nargs', 0), 2 + fns[g].get('nargs', 0) + fns[g].get('nret', 0))))
+        raise
 
 
 def infer1(n, named):
@@ -608,6 +768,12 @@ def infer1(n, named):
         sig = mkSig(f, I.pre, I.preR, ret, set(), set(), set(), I.preP, retV=retV)
         E.sigs[f['entry']] = sig
         Walk(E, f['entry'], f['count'], sig, f['hints'], I.res, f['tabs'], main=main).run(f['ops'])
+    # a block read off an earlier pass's state may be a part of the true one: dropped unless needed
+    for i, r in sorted(I.prunable, key=str):
+        if r not in I.res.get(i, []): continue
+        j = I.res[i].index(r); I.res[i].remove(r)
+        try: Walk(E, f['entry'], f['count'], sig, f['hints'], I.res, f['tabs'], main=main).run(f['ops'])
+        except Fail: I.res[i].insert(j, r)
     return sig, dict(I.res)
 
 
@@ -621,6 +787,7 @@ if __name__ == '__main__':
             fails[n] = e.args[0]
             sig = mkSig(f, [], [], list(range(2 + f.get('nargs', 0), 2 + f.get('nargs', 0) + f.get('nret', 0))))
             E.sigs[f['entry']] = sig; sigs[n] = sig
+    for n, (s, r) in LAST.items(): sigs[n], res[n] = s, r
     print('fail', len(fails), collections.Counter(v[0] for v in fails.values()).most_common())
     rk = collections.Counter(r[0] for n in res for rs in res[n].values() for r in rs)
     print('resid kinds', rk, 'fns with resid', sum(1 for n in res if any(res[n].values())))

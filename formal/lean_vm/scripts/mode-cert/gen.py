@@ -622,6 +622,8 @@ def main(argv):
                 fails[n] = e.args[0]
                 s = I.mkSig(f, [], [], list(range(2 + f.get('nargs', 0), 2 + f.get('nargs', 0) + f.get('nret', 0))))
                 I.E.sigs[f['entry']] = s; sigs[n] = s
+        # a callee inferred again for a caller (`infer.narrow`): its last inference
+        for n, (s, r) in I.LAST.items(): sigs[n], R[n] = s, r
         cost = {n: profile(n, sigs[n], R.get(n, {}))[1][-1] for n in I.fns if n not in fails}
         if cache:
             import pickle

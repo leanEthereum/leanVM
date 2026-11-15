@@ -404,6 +404,15 @@ class Walk:
             return
         raise Fail(('W', i, o))
 
+    def lnkW(self, A, o, i):
+        """Inference only: a linked cell a residual reads, its load demanded covered (as `needW`)."""
+        if o in self.lnk and self.demand('lnk', i, o, self.lnk[o], A):
+            A.w.add(o)
+            x = self.loadVal(A, self.lnk[o][0])
+            if x is not None: A.addV(o, x)
+            return True
+        return False
+
     def valOfImm(self, k0, k1):
         if k1 == 0:
             if k0 == 1: return ('m', ONE)
@@ -613,11 +622,11 @@ class Walk:
                     if not self.idxOk(A, x): raise Fail(('resW', i, r))
                 A.lt.add((r[1], r[2]))
             elif r[0] == 'nz':
-                if r[1] not in A.w: raise Fail(('resW', i, r))
+                if r[1] not in A.w and not self.lnkW(A, r[1], i): raise Fail(('resW', i, r))
                 A.nz.add(r[1])
             elif r[0] == 'name':
                 # a frame cell's word named by its cell, its product forgotten (`Res.name`)
-                if r[1] not in A.w: raise Fail(('resW', i, r))
+                if r[1] not in A.w and not self.lnkW(A, r[1], i): raise Fail(('resW', i, r))
                 A.v[r[1]] = ('m', root(r[1]))
             elif r[0] == 'sub':
                 # a run whose cells lie in known runs' (`Res.sub`)
@@ -851,9 +860,11 @@ class Walk:
                     self.atCall(Aj, mq, G)
                     self.entryOk(Aj, mq, G, i, G.pc)
                     Bs.append(self.afterCall(Aj, mq, G))
+                self.cursel = None
                 B = Bs[0]
                 for X in Bs[1:]: B = inter(B, X)
                 retPtrs(B, Bs)
+                if x is not None: armRuns(B, Bs, x)
                 for j, X in enumerate(Bs):
                     if x is None: break
                     F = condOf(B, X, x, j)
@@ -927,6 +938,20 @@ class Walk:
                 if k is not True: cur.append(learn0(A, c))
         if pend: raise Fail(('pend', [g[0][:3] for g in pend]))
         if cur: raise Fail(('end', len(code)))
+
+
+def armRuns(M, Bs, x):
+    """The arms of a table call on `x` met: each run the last arm knows up to a constant `b >= n` (`n + 1`
+    arms) that every arm `j` knows up to `j + b - n`, a run up to the selector's exponent plus `b - n`
+    (`armRuns`)."""
+    if len(Bs) < 2: return
+    n = len(Bs) - 1
+    for r in list(Bs[n].r):
+        q, lo, hi, S, d = r
+        if hi[0] != 'num' or lo[0] != 'num' or hi[1] < n: continue
+        t = hi[1] - n
+        if all(X.coveredR((q, lo, ('num', j + t), S, d)) for j, X in enumerate(Bs)):
+            M.r.add((q, lo, ('ex', x, t), S, d))
 
 
 def retPtrs(M, Bs):
