@@ -354,7 +354,7 @@ mod tests {
     #[test]
     fn keccak_f_many_matches_keccak_f() {
         let states: Vec<[u64; STATE_LANES]> = (0..2 * LANES as u64 + 1)
-            .map(|l| std::array::from_fn(|i| (l << 32) ^ (i as u64 * 0x9E37_79B9_7F4A_7C15)))
+            .map(|l| std::array::from_fn(|i| (l << 32) ^ (i as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15)))
             .collect();
         let mut got = states.clone();
         keccak_f_many(&mut got);

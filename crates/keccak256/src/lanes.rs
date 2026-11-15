@@ -91,26 +91,11 @@ impl Lane for u64 {
     }
     #[inline(always)]
     fn rotl<const N: i32>(self) -> Self {
-        opaque(self.rotate_left(N as u32))
+        self.rotate_left(N as u32)
     }
     #[inline(always)]
     fn chi(a: Self, b: Self, c: Self) -> Self {
         a ^ (!b & c)
-    }
-}
-
-/// `x`, through an empty assembly block LLVM cannot see into. On AVX-512 targets its SLP vectorizer otherwise packs
-/// the scalar permutation's lanes into vector registers, which loses to plain scalar code.
-#[inline(always)]
-fn opaque(x: u64) -> u64 {
-    cfg_select! {
-        all(target_arch = "x86_64", target_feature = "avx512f") => {
-            let mut x = x;
-            // SAFETY: an empty block that reads and writes only `x`'s register.
-            unsafe { core::arch::asm!("/* {x} */", x = inout(reg) x, options(pure, nomem, nostack, preserves_flags)) };
-            x
-        }
-        _ => x,
     }
 }
 
