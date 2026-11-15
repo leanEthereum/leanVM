@@ -16,6 +16,7 @@ use crate::gkr::{self, Ones};
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8, g_pow, g_pow32_by_lookup, index_mle, mul_by_g};
 use primitives::multilinear::{eq_eval, interp};
 use primitives::transcript::ProverState;
+pub use verifier::bus_grinding_bits;
 use verifier::layout::{GLOBAL_COLUMN_BASES, TABLE_WIDTHS};
 
 /// One tuple coordinate as a function of the block's row `z`.
@@ -94,12 +95,6 @@ pub const N_BYTECODE_SELECTORS: usize = N_TUPLE_BITS;
 /// count).
 pub(crate) const BYTECODE_PUBLIC_SLOT: usize = 3;
 
-/// The grind before the fingerprint `(α⃗, β)`: unequal push and pull multisets pass the product check with
-/// probability at most `2^μ/|E|` (Theorem th:product_check), `μ` the push depth.
-pub fn bus_grinding_bits(mu: usize) -> u32 {
-    fiat_shamir::grinding_bits(1 << mu)
-}
-
 /// Placement of each block in the stacked leaf vector (input order).
 #[derive(Clone, Debug)]
 pub struct Layout {
@@ -109,11 +104,11 @@ pub struct Layout {
 
 /// Stack blocks largest-first at aligned offsets; `μ = ⌈log2 Σ 2^{κ_b}⌉`.
 pub fn layout(blocks: &[Block]) -> Layout {
-    let kappas: Vec<Option<usize>> = blocks.iter().map(|b| Some(b.kappa)).collect();
-    let (offsets, placed) = crate::witness::stack_offsets(&kappas);
+    let kappas: Vec<usize> = blocks.iter().map(|b| b.kappa).collect();
+    let (offsets, mu) = verifier::stack_offsets(&kappas);
     Layout {
-        mu: crate::log2_ceil_usize(placed.max(1)),
-        offsets,
+        mu,
+        offsets: offsets.into_iter().map(|offset| offset as usize).collect(),
     }
 }
 
@@ -311,7 +306,7 @@ fn build_leaves(tree: &Tree, cols: &[&[F64]]) -> Vec<F128> {
     if formulas.is_empty() {
         return vec![F128::ONE];
     }
-    // The blocks tile the leaves from zero, largest first ([`crate::witness::stack_offsets`]).
+    // The blocks tile the leaves from zero, largest first ([`verifier::stack_offsets`]).
     let len = formulas.iter().map(|f| f.size).sum::<usize>();
     let at = |i: usize| &formulas[formulas.partition_point(|f| f.offset <= i) - 1];
     let mut leaves = parallel::map_collect(len.div_ceil(8), |k| {

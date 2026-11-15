@@ -301,13 +301,19 @@ fn jump_constraints(columns: &[E]) -> Vec<E> {
 /// The lanes each of a sponge state's thirteen cells holds, `(lo, hi)`, in the even layout or the odd one, `None`
 /// marking a limb that holds no lane: nine rate cells, lanes 0..16 two to a cell then lane 16 in a low limb (even), or
 /// lane 0 in a high limb then lanes 1..17 two to a cell (odd), then the capacity lanes 17..25.
-fn keccak_cell_lanes(odd: bool) -> [(Option<usize>, Option<usize>); KECCAK_CELLS] {
-    std::array::from_fn(|cell| match (odd, cell) {
-        (_, 9..) | (true, 1..) => (Some(2 * cell - 1), Some(2 * cell)),
-        (true, _) => (None, Some(0)),
-        (false, 8) => (Some(16), None),
-        (false, _) => (Some(2 * cell), Some(2 * cell + 1)),
-    })
+pub const fn keccak_cell_lanes(odd: bool) -> [(Option<usize>, Option<usize>); KECCAK_CELLS] {
+    let mut lanes = [(None, None); KECCAK_CELLS];
+    let mut cell = 0;
+    while cell < KECCAK_CELLS {
+        lanes[cell] = match (odd, cell) {
+            (_, 9..) | (true, 1..) => (Some(2 * cell - 1), Some(2 * cell)),
+            (true, _) => (None, Some(0)),
+            (false, 8) => (Some(16), None),
+            (false, _) => (Some(2 * cell), Some(2 * cell + 1)),
+        };
+        cell += 1;
+    }
+    lanes
 }
 
 /// A cell limb holding lane `even` in the even layout and `odd` in the odd one, as `flag` selects: `a + flag·(a + b)`,

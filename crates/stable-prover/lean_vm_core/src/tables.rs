@@ -388,7 +388,7 @@ impl KeccakOp {
 const FREE_LIMB: [(usize, bool); 2] = [free_limb(false), free_limb(true)];
 
 const fn free_limb(odd: bool) -> (usize, bool) {
-    let lanes = crate::keccak::cell_lanes(odd);
+    let lanes = verifier::layout::keccak_cell_lanes(odd);
     let mut c = 0;
     loop {
         match lanes[c] {
@@ -769,7 +769,7 @@ impl Table for JumpTable {
 /// `q_keccak` (§annex:keccak), which leaves this table with no identity of its own.
 ///
 /// The cells read and written hold the lanes in the layout their flag names
-/// ([`crate::keccak::cell_lanes`]), the flags bound by the bytecode read, so a cell's limb is the
+/// ([`verifier::layout::keccak_cell_lanes`]), the flags bound by the bytecode read, so a cell's limb is the
 /// form `a + flag·(a + b)` of its lane in either layout, of degree two. The one limb of a read
 /// cell that holds no lane is the column `FREE`; written, it is zero. The fifty lanes are
 /// value columns, listed in `n_committed_columns` (they need a local index for the flushes), but
@@ -832,14 +832,15 @@ impl Table for KeccakTable {
         row
     }
     fn flushes(&self, f: &mut FlushBuilder) {
-        use crate::keccak::{STATE_CELLS, cell_lanes};
+        use crate::keccak::STATE_CELLS;
         use keccakt::*;
+        use verifier::layout::keccak_cell_lanes;
         f.state_step(PC, FP);
         let operands: Vec<Coord> = (O_M0..=OUT_ALL).map(Col).collect();
         f.bytecode(PC, RBC, OP_KECCAK, &operands);
         // Thirteen cells read, then up to thirteen written: output cell 0 always, cell 1 as `OUT_TWO` says, the
         // rest as `OUT_ALL` says. A consecutive cell is a free ×g on the product's g-power.
-        let (even, odd) = (cell_lanes(false), cell_lanes(true));
+        let (even, odd) = (keccak_cell_lanes(false), keccak_cell_lanes(true));
         for (c, &(operand, step)) in KECCAK_CELLS.iter().enumerate() {
             let (s, values, flag, free) = if c < STATE_CELLS {
                 (c, V_IN, IN_ODD, Some(FREE))
