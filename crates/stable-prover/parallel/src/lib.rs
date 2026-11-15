@@ -289,21 +289,10 @@ impl<T> SendPtr<T> {
     /// Offset the base by `n` elements.
     ///
     /// # Safety
-    /// `n` stays inside the allocation, and any write targets a slot no
-    /// concurrent task touches.
+    /// `n` stays inside the allocation, and any write targets a slot no concurrent task touches.
     #[inline]
     unsafe fn add(&self, n: usize) -> *mut T {
         unsafe { self.0.add(n) }
-    }
-
-    /// Rebuild the `len`-element slice at element offset `off`.
-    ///
-    /// # Safety
-    /// `off`/`len` are in bounds and disjoint from every other concurrent task's
-    /// slice, and the underlying buffer outlives `'a`.
-    #[inline]
-    unsafe fn slice<'a>(&self, off: usize, len: usize) -> &'a mut [T] {
-        unsafe { std::slice::from_raw_parts_mut(self.0.add(off), len) }
     }
 }
 
@@ -353,7 +342,7 @@ impl<T> Chunks<T> {
     unsafe fn get<'a>(&self, i: usize) -> &'a mut [T] {
         let start = i * self.width;
         debug_assert!(start < self.len);
-        unsafe { self.base.slice(start, self.width.min(self.len - start)) }
+        unsafe { std::slice::from_raw_parts_mut(self.base.add(start), self.width.min(self.len - start)) }
     }
 }
 
@@ -376,38 +365,26 @@ where
     F: Fn(&mut A, usize, [&mut [T]; N]) + Sync,
     C: Fn(A, A) -> A,
 {
-    let views = chunk_views(bufs, widths);
+    let mut widths = widths.into_iter();
+    let views = bufs.map(|buf| Chunks::new(buf, widths.next().expect("one width per buffer")));
     let n_tasks = views.iter().map(Chunks::count).max().unwrap_or(0);
     fold_reduce(
         n_tasks,
         init,
         |acc, i| {
-            // SAFETY: the dispatch runs each task `i` once, and `bufs` stays borrowed until it returns.
-            fold(acc, i, unsafe { task_chunks(&views, i) });
+            // SAFETY: the dispatch runs each task `i` once, and `bufs` stays borrowed until it returns, so chunk `i`
+            // of each buffer is taken once and the slices are disjoint.
+            let chunks = views.each_ref().map(|view| {
+                if i < view.count() {
+                    unsafe { view.get(i) }
+                } else {
+                    &mut []
+                }
+            });
+            fold(acc, i, chunks);
         },
         combine,
     )
-}
-
-fn chunk_views<T, const N: usize>(bufs: [&mut [T]; N], widths: [usize; N]) -> [Chunks<T>; N] {
-    let mut widths = widths.into_iter();
-    bufs.map(|buf| Chunks::new(buf, widths.next().expect("one width per buffer")))
-}
-
-/// Task `i`'s chunk of each view, or an empty slice for a view with fewer chunks.
-///
-/// # Safety
-/// Each `i` is taken once per dispatch, inside a [`for_each`] body, and the buffers behind the views
-/// stay borrowed until it returns.
-unsafe fn task_chunks<'a, T, const N: usize>(views: &[Chunks<T>; N], i: usize) -> [&'a mut [T]; N] {
-    // SAFETY: by the caller's contract, chunk `i` of each buffer is taken once, so the slices are disjoint.
-    views.each_ref().map(|view| {
-        if i < view.count() {
-            unsafe { view.get(i) }
-        } else {
-            &mut []
-        }
-    })
 }
 
 /// Parallel `for (i, slot) in dst.iter_mut().enumerate() { *slot = build(i) }`.
@@ -468,20 +445,6 @@ pub fn find_first<P: Fn(usize) -> bool + Sync>(n_tasks: usize, pred: P) -> Optio
 #[repr(align(128))]
 struct Slot<S>(Mutex<Option<S>>);
 
-/// Give each worker its own persistent `Option<S>` while it drains `0..n_tasks`:
-/// `run(slot, start, end)` fires once per claim with that worker's slot, so state
-/// accumulates across its claims. Returns the slots (the rest `None`) for the
-/// caller to combine.
-fn drain_into_slots<S: Send>(n_tasks: usize, run: impl Fn(&mut Option<S>, usize, usize) + Sync) -> Vec<Option<S>> {
-    let slots: Vec<Slot<S>> = (0..num_threads()).map(|_| Slot(Mutex::new(None))).collect();
-    // A worker's id is unique among the live workers, so its lock is never contended.
-    for_each_chunk(n_tasks, |start, end| {
-        run(&mut slots[WORKER_ID.get()].0.lock().unwrap(), start, end)
-    });
-    // A task panic was re-raised above, so no lock is poisoned here.
-    slots.into_iter().map(|slot| slot.0.into_inner().unwrap()).collect()
-}
-
 /// Parallel fold-then-reduce: each worker builds one accumulator with `init`,
 /// folds every index it claims into it, and the accumulators `combine` on the
 /// dispatcher. Which indices a worker claims varies, so `combine` must be
@@ -498,13 +461,19 @@ where
     F: Fn(&mut A, usize) + Sync,
     C: Fn(A, A) -> A,
 {
-    let slots = drain_into_slots(n_tasks, |slot, start, end| {
+    // Each worker's accumulator persists across its claims. A worker's id is unique among the live workers, so its
+    // lock is never contended.
+    let slots: Vec<Slot<A>> = (0..num_threads()).map(|_| Slot(Mutex::new(None))).collect();
+    for_each_chunk(n_tasks, |start, end| {
+        let mut slot = slots[WORKER_ID.get()].0.lock().unwrap();
         let acc = slot.get_or_insert_with(&init);
         for i in start..end {
             fold(acc, i);
         }
     });
-    slots.into_iter().flatten().fold(init(), combine)
+    // A task panic was re-raised above, so no lock is poisoned here.
+    let accs = slots.into_iter().filter_map(|slot| slot.0.into_inner().unwrap());
+    accs.fold(init(), combine)
 }
 
 /// Parallel map-reduce over `0..n_tasks`, i.e. `(0..n).map(map).reduce(identity,
