@@ -98,8 +98,10 @@ structure LoopInfo where
 /-- The program's loop helpers. -/
 abbrev Loops := SMap LoopInfo
 
-/-- Whether a function is a loop helper, by the compiler's name for it. -/
-def isLoopName (f : String) : Bool := f.startsWith "__loop"
+/-- Whether a function is a loop helper, by the compiler's name for it: it starts with `__loop`,
+compared byte by byte (`String.startsWith` is no definition the kernel unfolds in a module). -/
+def isLoopName (f : String) : Bool :=
+  f.toByteArray.data.toList.take 6 == "__loop".toByteArray.data.toList
 
 /-- The program's loop helpers (`loop_bounds`). -/
 def loopTable (fns : List TracedFn) : Loops :=
