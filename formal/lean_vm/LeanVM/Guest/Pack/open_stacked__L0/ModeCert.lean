@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.Mode.CertDefs
 public import LeanVM.Guest.Pack.«open_stacked__L0».ModeH
-public import LeanVM.Guest.Pack.«open_stacked__L0».ModeX
+public import LeanVM.Guest.Pack.«open_stacked__L0».ModeL0
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
@@ -93,9 +93,9 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     (Mode.fa_nil)
 
 /-- The certificates' walks and hints. -/
-theorem certs_walk («open_stacked__L0» : Mode.WalkHyp Fn.«open_stacked__L0».modeCert) :
+theorem certs_walk :
     ∀ K ∈ certs, Mode.CertWalk K :=
-  Mode.fa_cons (⟨«open_stacked__L0», Fn.«open_stacked__L0».modeHintsOk⟩)
+  Mode.fa_cons (⟨Fn.«open_stacked__L0».modeOk, Fn.«open_stacked__L0».modeHintsOk⟩)
     (Mode.fa_nil)
 
 end

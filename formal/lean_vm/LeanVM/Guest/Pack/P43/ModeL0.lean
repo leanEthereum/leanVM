@@ -60,6 +60,25 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
+/-- `__loop2`: its windows from offset 81646 go through. -/
+theorem modeC32 :
+    Mode.WinsOk modeEnv modeFun code.chunks 114219 81646 (Mode.cutOf modeFun 81646) [84267, 86887,
+    89507, 92129, 94750, 97367, 98728, 100575, 103168, 105758, 108348, 110965, 113575] :=
+  ⟨by decide, by decide, by decide +kernel, modeW32,
+    ⟨by decide, by decide, by decide +kernel, modeW33,
+    ⟨by decide, by decide, by decide +kernel, modeW34,
+    ⟨by decide, by decide, by decide +kernel, modeW35,
+    ⟨by decide, by decide, by decide +kernel, modeW36,
+    ⟨by decide, by decide, by decide +kernel, modeW37,
+    ⟨by decide, by decide, by decide +kernel, modeW38,
+    ⟨by decide, by decide, by decide +kernel, modeW39,
+    ⟨by decide, by decide, by decide +kernel, modeW40,
+    ⟨by decide, by decide, by decide +kernel, modeW41,
+    ⟨by decide, by decide, by decide +kernel, modeW42,
+    ⟨by decide, by decide, by decide +kernel, modeW43,
+    ⟨by decide, by decide, by decide +kernel, modeW44,
+    modeW45⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
+
 /-- `__loop2`: its mode walk accepts its code, window by window. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=
   Mode.walk_of_wins (n := 114219) (by decide +kernel) (List.flatten [[2671, 5338, 8006, 10674,
@@ -99,20 +118,7 @@ theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=
     ⟨by decide, by decide, by decide +kernel, modeW29,
     ⟨by decide, by decide, by decide +kernel, modeW30,
     ⟨by decide, by decide, by decide +kernel, modeW31,
-    ⟨by decide, by decide, by decide +kernel, modeW32,
-    ⟨by decide, by decide, by decide +kernel, modeW33,
-    ⟨by decide, by decide, by decide +kernel, modeW34,
-    ⟨by decide, by decide, by decide +kernel, modeW35,
-    ⟨by decide, by decide, by decide +kernel, modeW36,
-    ⟨by decide, by decide, by decide +kernel, modeW37,
-    ⟨by decide, by decide, by decide +kernel, modeW38,
-    ⟨by decide, by decide, by decide +kernel, modeW39,
-    ⟨by decide, by decide, by decide +kernel, modeW40,
-    ⟨by decide, by decide, by decide +kernel, modeW41,
-    ⟨by decide, by decide, by decide +kernel, modeW42,
-    ⟨by decide, by decide, by decide +kernel, modeW43,
-    ⟨by decide, by decide, by decide +kernel, modeW44,
-    modeW45⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
+    modeC32⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
 
 end
 

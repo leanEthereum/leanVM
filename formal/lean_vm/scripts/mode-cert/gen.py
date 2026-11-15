@@ -24,16 +24,20 @@ LONG = 16
 # instruction, `KRUN` a run a lookup tries (`Abs.inRuns`) per base of the cell, `KARM` a fact of a
 # call's arm (its state after the callee, met with the others), `KSIZE` a fact
 # of the snapshot a window ends at (its cut's check). A module is sized to at most `KBUDGET`; a function
-# one of whose instructions alone needs more than `KHARD` is not checked (`HEAVY`).
+# one of whose instructions alone needs more than `KHARD` is not checked (`HEAVY`). The model overcounts
+# a table call's arms (`KARM`, `KRUN`), so `KHARD` is set from the kernel's measured peak on such calls, a
+# margin below the 8 GB a check may take.
 KBASE = 400
 KINS = 1.5
 KRUN = 0.01
 KARM = 0.15
 KSIZE = 0.75
 KBUDGET = 4500
-KHARD = 6000
+KHARD = 12500
 # a module's snapshots hold at most this many facts in all (the elaborator's memory)
 SNAPMAX = 20000
+# a long function's windows are chained in links of this many
+LINK = 32
 # a function's hints are checked in parts of at most this many offsets
 HPART = 25000
 
@@ -411,9 +415,15 @@ def winFiles(p, k, n, sigs, res, cuts):
     out = [header(mod, "A long compiled function's mode walk, from its windows' checks.")]
     out.append(''.join('public import %sW%d\n' % (base_, m) for m in range(len(starts))))
     out.append(nsOpen(n, False))
+    # the chain in links of `LINK` windows, each from the windows after it (a deeper term exceeds the
+    # elaborator's recursion depth)
     proof = 'modeW%d' % len(bs)
     for m in range(len(bs) - 1, -1, -1):
         proof = '⟨by decide, by decide, by decide +kernel, modeW%d,\n    %s⟩' % (m, proof)
+        if m and m % LINK == 0:
+            out.append('/-- `%s`: its windows from offset %d go through. -/\ntheorem modeC%d :\n    Mode.WinsOk modeEnv modeFun code.chunks %d %d (Mode.cutOf modeFun %d) %s :=\n  %s\n\n' % (
+                n, starts[m], m, f['count'], starts[m], starts[m], lst(bs[m:], nat), proof))
+            proof = 'modeC%d' % m
     out.append('/-- `%s`: its mode walk accepts its code, window by window. -/\ntheorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=\n  Mode.walk_of_wins (n := %d) (by decide +kernel) %s\n    %s\n\n' % (
         n, f['count'], lst(bs, nat), proof))
     out.append(nsClose(n))

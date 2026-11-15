@@ -107,24 +107,24 @@ theorem pair_beq_eq {α β : Type} {ea : α → α → Bool} {eb : β → β →
 theorem mem_interR {A B : Abs} {r : Rng} (h : r ∈ interR A B) : r ∈ A.r ∨ A.entR r = true := by
   unfold interR at h
   simp only [List.mem_append, List.mem_filter, Bool.and_eq_true, Bool.not_eq_true'] at h
-  rcases h with (⟨h, -⟩ | h) | ⟨-, -, h⟩
+  rcases h with (⟨h, -⟩ | ⟨-, -, h⟩) | h
   · exact Or.inl (List.mem_of_mem_take h)
-  · exact Or.inl (List.mem_of_mem_drop h)
   · exact Or.inr h
+  · exact Or.inl (List.mem_of_mem_drop h)
 
 theorem mem_interR_right {A B : Abs} {r : Rng} (h : r ∈ interR A B) : r ∈ B.r ∨ B.entR r = true := by
   unfold interR at h
   simp only [List.mem_append, List.mem_filter, Bool.and_eq_true, Bool.not_eq_true',
     Bool.or_eq_true] at h
-  rcases h with (⟨-, h | h⟩ | h) | ⟨h, -⟩
+  rcases h with (⟨-, h | h⟩ | ⟨h, -⟩) | h
   · exact Or.inl (mem_of_anyB (fun _ _ h ↦ Rng.beq_eq h) h)
   · exact Or.inr h
+  · exact Or.inl (List.mem_of_mem_take h)
   · have hx : r ∈ A.r.reverse.take (agree Rng.beq A.r.reverse B.r.reverse) := by
       rw [List.take_reverse]; exact List.mem_reverse.mpr h
     obtain ⟨y, hy, he⟩ := forall₂_mem agree_forall₂ hx
     rw [Rng.beq_eq he]
     exact Or.inl (List.mem_reverse.mp (List.mem_of_mem_take hy))
-  · exact Or.inl (List.mem_of_mem_take h)
 
 /-- Facts under a condition, each among another's under the same condition. -/
 def CndLe (d c : Cnd) : Prop :=
@@ -147,25 +147,25 @@ theorem ptrBeq_eq (p q : Rng × List ℕ) (h : ptrBeq p q = true) : p = q := by
 theorem mem_interP {A B : Abs} {q : Rng × List ℕ} (h : q ∈ interP A B) : q ∈ A.p ∨ A.entP q.1 = true := by
   unfold interP at h
   simp only [List.mem_append, List.mem_filter, Bool.and_eq_true, Bool.not_eq_true'] at h
-  rcases h with (⟨h, -⟩ | h) | ⟨-, -, h⟩
+  rcases h with (⟨h, -⟩ | ⟨-, -, h⟩) | h
   · exact Or.inl (List.mem_of_mem_take h)
-  · exact Or.inl (List.mem_of_mem_drop h)
   · exact Or.inr h
+  · exact Or.inl (List.mem_of_mem_drop h)
 
 theorem mem_interP_right {A B : Abs} {q : Rng × List ℕ} (h : q ∈ interP A B) :
     q ∈ B.p ∨ B.entP q.1 = true := by
   unfold interP at h
   simp only [List.mem_append, List.mem_filter, Bool.and_eq_true, Bool.not_eq_true',
     Bool.or_eq_true] at h
-  rcases h with (⟨-, h | h⟩ | h) | ⟨h, -⟩
+  rcases h with (⟨-, h | h⟩ | ⟨h, -⟩) | h
   · exact Or.inl (mem_of_anyB ptrBeq_eq h)
   · exact Or.inr h
+  · exact Or.inl (List.mem_of_mem_take h)
   · have hx : q ∈ A.p.reverse.take (agree ptrBeq A.p.reverse B.p.reverse) := by
       rw [List.take_reverse]; exact List.mem_reverse.mpr h
     obtain ⟨y, hy, he⟩ := forall₂_mem agree_forall₂ hx
     rw [ptrBeq_eq _ _ he]
     exact Or.inl (List.mem_reverse.mp (List.mem_of_mem_take hy))
-  · exact Or.inl (List.mem_of_mem_take h)
 
 theorem ltBeq_eq (p q : Idx × Idx) (h : ltBeq p q = true) : p = q := by
   simp only [ltBeq, Bool.and_eq_true] at h
@@ -184,7 +184,7 @@ theorem mem_interC {a b : List Cnd} {d : Cnd} (h : d ∈ interC a b) :
     dsimp only at hd
     split_ifs at hd
     cases hd
-    have hm' := List.mem_of_find?_eq_some hc'
+    have hm' := mem_buckets (List.mem_of_find?_eq_some hc')
     have hk := List.find?_some hc'
     simp only [Bool.and_eq_true, beq_iff_eq] at hk
     obtain ⟨hx, hj⟩ := hk

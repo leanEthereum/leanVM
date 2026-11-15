@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.Mode.HintsData
-public import LeanVM.Guest.Pack.«open_stacked__L7».ModeX
+public import LeanVM.Guest.Pack.«open_stacked__L7».ModeD0
 
 set_option Elab.async false
 

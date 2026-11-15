@@ -332,30 +332,44 @@ def idxKind : Idx → ℕ
   | .ex _ 0 => 1
   | .ex _ _ => 2
 
-/-- `a ≤ b`, directly, or through a known `p < q` with `b = q + t` and `a ≤ p + 1 + t`. -/
+/-- An inequality's key by its exponents' bases. -/
+def leKey (p : Idx × Idx) : ℕ := (idxKey p.1 + 67 * idxKey p.2) % 4096
+
+/-- `1` for an inequality `p < q` with `q` a constant at most `p`'s: the only kind through which
+`Abs.le` can find `a ≤ b` for constants `a > b`. -/
+def bigKey (p : Idx × Idx) : ℕ :=
+  match p with
+  | (.num c, .num m) | (.ex _ c, .num m) => if m ≤ c then 1 else 0
+  | _ => 0
+
+/-- `a ≤ b`, directly, or through a known `p < q` with `b = q + t` and `a ≤ p + 1 + t` (only a `p` of
+`a`'s base serves when `a` is a base's exponent, only a `q` of `b`'s base). -/
 def Abs.le (A : Abs) (a b : Idx) : Bool :=
-  a.sle b || match b with
-    | .num n => A.lt.any fun p ↦ match p.2.off (.num n) with
-        | some t => a.sle (p.1.succ.shift t)
-        | none => false
-    | .ex x c => anyB (buckets (idxKey ·.2) A.lt) (fun p ↦ match p.2.off (.ex x c) with
-        | some t => a.sle (p.1.succ.shift t)
-        | none => false) (idxKey (.ex x c))
+  a.sle b ||
+    let f := fun (p : Idx × Idx) ↦ match p.2.off b with
+      | some t => a.sle (p.1.succ.shift t)
+      | none => false
+    match a, b with
+    | .ex _ _, _ => anyB (buckets leKey A.lt) f (leKey (a, b))
+    | .num _, .ex _ _ => anyB (buckets (idxKey ·.2) A.lt) f (idxKey b)
+    | .num _, .num _ => anyB (buckets bigKey A.lt) f 1
+
+/-- An inequality's key by its lower exponent's kind and its upper exponent's base. -/
+def ltKey (p : Idx × Idx) : ℕ := idxKind p.1 + 3 * idxKey p.2
 
 /-- `a < b`, directly, or through a known `p < q` with `a = p + t` and `q + t ≤ b`, or with
-`a + 1 ≤ p` and `q ≤ b + 1`. -/
+`a + 1 ≤ p` and `q ≤ b + 1` (only a `q` that is a constant or of `b`'s base serves). -/
 def Abs.ltI (A : Abs) (a b : Idx) : Bool :=
-  a.succ.sle b || match a, b with
-    | .ex y e, b => anyB (buckets (idxKey ·.1) A.lt) (fun p ↦ (match p.1.off (.ex y e) with
-        | some t => (p.2.shift t).sle b
-        | none => false) || ((Idx.ex y e).succ.sle p.1 && p.2.sle b.succ)) (idxKey (.ex y e))
-    | .num n, b =>
-      anyB (buckets (idxKind ·.1) A.lt) (fun p ↦ (match p.1.off (.num n) with
-        | some t => (p.2.shift t).sle b
-        | none => false) || ((Idx.num n).succ.sle p.1 && p.2.sle b.succ)) 0 ||
-      anyB (buckets (idxKind ·.1) A.lt) (fun p ↦ (match p.1.off (.num n) with
-        | some t => (p.2.shift t).sle b
-        | none => false) || ((Idx.num n).succ.sle p.1 && p.2.sle b.succ)) 2
+  a.succ.sle b ||
+    let f := fun (p : Idx × Idx) ↦ (match p.1.off a with
+      | some t => (p.2.shift t).sle b
+      | none => false) || (a.succ.sle p.1 && p.2.sle b.succ)
+    match a, b with
+    | .ex _ _, .ex _ _ => anyB (buckets leKey A.lt) f (leKey (a, .num 0)) || anyB (buckets leKey A.lt) f (leKey (a, b))
+    | .ex _ _, .num _ => anyB (buckets leKey A.lt) f (leKey (a, .num 0))
+    | .num _, .ex _ _ => anyB (buckets ltKey A.lt) f 0 || anyB (buckets ltKey A.lt) f 2 ||
+        anyB (buckets ltKey A.lt) f (3 * idxKey b) || anyB (buckets ltKey A.lt) f (3 * idxKey b + 2)
+    | .num _, .num _ => anyB (buckets ltKey A.lt) f 0 || anyB (buckets ltKey A.lt) f 2
 
 /-- The exponent `k` names in run `r`, when `k = r.q · x^S · g^(S·c + d)` (`x + c`) or
 `k = r.q · g^(S·c + d)` (`c`). -/
@@ -418,12 +432,17 @@ def Abs.bound (A : Abs) (hi : Idx) : Option ℕ :=
       | .num q, some t => minO acc (q + t - 1)
       | _, _ => acc) none
 
-/-- Every cell of run `r`, from a constant to a known bound at most 64 further, is known by
-`coveredHR`: a run another state entails at a join. -/
+/-- Every cell of run `r`, from a constant to a known bound at most 64 further, is known: a known run
+of constant bounds holds them all, or each is known by `coveredHR` (its last tried first): a run
+another state entails at a join. -/
 def Abs.entR (A : Abs) (r : Rng) : Bool :=
   match r.lo, A.bound r.hi with
   | .num a, some b => decide (b - a ≤ 64) && A.knownH r.q &&
-      (List.range (b - a)).all fun j ↦ A.coveredHR (r.q.shift (r.S * (a + j) + r.d))
+      (anyB (buckets rngKey A.r) (fun r' ↦ r'.q.beq r.q && r'.S == r.S && r'.d == r.d && match r'.lo, r'.hi with
+          | .num a', .num b' => decide (a' ≤ a) && decide (b ≤ b')
+          | _, _ => false) (rngKey r) ||
+        (decide (b ≤ a) || A.coveredHR (r.q.shift (r.S * (b - 1) + r.d))) &&
+        (List.range (b - a)).all fun j ↦ A.coveredHR (r.q.shift (r.S * (a + j) + r.d)))
   | _, _ => false
 
 /-- Run `r` is empty, from a constant to a known bound at most it: a run of pointers another state
@@ -566,9 +585,9 @@ other entails (`entR`). -/
 def interR (A B : Abs) : List Rng :=
   let t := agree Rng.beq A.r.reverse B.r.reverse
   (A.r.take (A.r.length - t)).filter (fun r ↦ anyB (buckets rngKey B.r) (Rng.beq r) (rngKey r) || B.entR r) ++
-    A.r.drop (A.r.length - t) ++
     (B.r.take (B.r.length - t)).filter (fun r ↦
-      !(anyB (buckets rngKey A.r) (Rng.beq r) (rngKey r)) && A.entR r)
+      !(anyB (buckets rngKey A.r) (Rng.beq r) (rngKey r)) && A.entR r) ++
+    A.r.drop (A.r.length - t)
 
 /-- Equality of pairs of exponents, as a `Bool`. -/
 def ltBeq (p q : Idx × Idx) : Bool := p.1.beq q.1 && p.2.beq q.2
@@ -585,13 +604,16 @@ def interP (A B : Abs) : List (Rng × List ℕ) :=
   let t := agree ptrBeq A.p.reverse B.p.reverse
   (A.p.take (A.p.length - t)).filter (fun q ↦
     anyB (buckets (rngKey ·.1) B.p) (ptrBeq q) (rngKey q.1) || B.entP q.1) ++
-    A.p.drop (A.p.length - t) ++
     (B.p.take (B.p.length - t)).filter (fun q ↦
-      !(anyB (buckets (rngKey ·.1) A.p) (ptrBeq q) (rngKey q.1)) && A.entP q.1)
+      !(anyB (buckets (rngKey ·.1) A.p) (ptrBeq q) (rngKey q.1)) && A.entP q.1) ++
+    A.p.drop (A.p.length - t)
+
+/-- A condition's key: conditions on one base's exponent being one value have equal keys. -/
+def cndKey (c : Cnd) : ℕ := (baseKey c.x + 7 * c.j) % 4096
 
 /-- The conditional facts both lists hold, under the same condition. -/
 def interC (a b : List Cnd) : List Cnd :=
-  a.filterMap fun c ↦ match b.find? (fun c' ↦ c'.x.beq c.x && c'.j == c.j) with
+  a.filterMap fun c ↦ match (((buckets cndKey b).get (cndKey c)).getD []).find? (fun c' ↦ c'.x.beq c.x && c'.j == c.j) with
     | some c' =>
       let d : Cnd := ⟨c.x, c.j, interL Mono.beq c.h c'.h, interL Rng.beq c.r c'.r, interL ptrBeq c.p c'.p,
         interL ltBeq c.lt c'.lt, interL hvBeq c.hv c'.hv⟩

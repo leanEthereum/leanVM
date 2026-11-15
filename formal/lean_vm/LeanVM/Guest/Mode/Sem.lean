@@ -466,9 +466,7 @@ theorem Abs.le_sound {s : St} {A : Abs} (hA : Holds s A) {a b : Idx} (h : A.le a
   · replace h : A.lt.any (fun p ↦ match p.2.off b with
         | some t => a.sle (p.1.succ.shift t)
         | none => false) = true := by
-      cases b with
-      | num n => exact h
-      | ex x c => exact any_of_anyB h
+      cases a <;> cases b <;> exact any_of_anyB h
     obtain ⟨⟨p, q⟩, hm, hh⟩ := List.any_eq_true.mp h
     dsimp only at hh
     split at hh
@@ -490,9 +488,8 @@ theorem Abs.ltI_sound {s : St} {A : Abs} (hA : Holds s A) {a b : Idx} (h : A.ltI
   · replace h : A.lt.any (fun (p : Idx × Idx) ↦ (match p.1.off a with
         | some t => (p.2.shift t).sle b
         | none => false) || (a.succ.sle p.1 && p.2.sle b.succ)) = true := by
-      cases a with
-      | ex y e => exact any_of_anyB h
-      | num n => rcases Bool.or_eq_true_iff.mp h with h | h <;> exact any_of_anyB h
+      cases a <;> cases b <;> dsimp only at h <;>
+        repeat' (first | exact any_of_anyB h | obtain h | h := Bool.or_eq_true_iff.mp h)
     obtain ⟨⟨p, q⟩, hm, hh⟩ := List.any_eq_true.mp h
     dsimp only at hh
     obtain ⟨xp, xq, hp, hq, hlt⟩ := hA.lt _ hm
@@ -928,14 +925,26 @@ theorem Abs.entR_sound {s : St} {A : Abs} (hA : Holds s A) {r : Rng} (h : A.entR
   unfold Abs.entR at h
   split at h
   · rename_i a b hlo hb
-    simp only [Bool.and_eq_true, decide_eq_true_eq] at h
-    obtain ⟨⟨hn, hq⟩, hall⟩ := h
-    obtain ⟨vq, hvq⟩ := Abs.knownH_val hA hq
+    simp only [Bool.and_eq_true, Bool.or_eq_true, decide_eq_true_eq] at h
+    obtain ⟨⟨hn, hq⟩, hc⟩ := h
     obtain ⟨xhi, hxhi, hle⟩ := Abs.bound_sound hA hb
-    refine ⟨vq, a, xhi, hvq, by rw [hlo]; rfl, hxhi, fun j hj1 hj2 ↦ ?_⟩
-    have hc := List.all_eq_true.mp hall (j - a) (List.mem_range.mpr (by omega))
-    have := Abs.coveredHR_ex hA hc (hvq.shift _)
-    rwa [show r.S * (a + (j - a)) + r.d = r.S * j + r.d by congr 2; omega] at this
+    rcases hc with hc | ⟨-, hall⟩
+    · obtain ⟨r', hm, hh⟩ := List.any_eq_true.mp (any_of_anyB hc)
+      obtain ⟨vq, xlo', xhi', hvq, hlo', hhi', hw⟩ := hA.r r' hm
+      revert hh
+      rcases r' with ⟨q', lo', hi', S', d'⟩
+      cases lo' <;> cases hi' <;> simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq, Bool.false_eq_true,
+        and_false, IsEmpty.forall_iff]
+      rintro ⟨⟨⟨hqe, rfl⟩, rfl⟩, ha', hb'⟩
+      obtain rfl := Mono.beq_eq hqe
+      change xlo' = _ at hlo'; change xhi' = _ at hhi'
+      subst hlo' hhi'
+      exact ⟨vq, a, xhi, hvq, by rw [hlo]; rfl, hxhi, fun j hj1 hj2 ↦ hw j (by omega) (by omega)⟩
+    · obtain ⟨vq, hvq⟩ := Abs.knownH_val hA hq
+      refine ⟨vq, a, xhi, hvq, by rw [hlo]; rfl, hxhi, fun j hj1 hj2 ↦ ?_⟩
+      have hc := List.all_eq_true.mp hall (j - a) (List.mem_range.mpr (by omega))
+      have := Abs.coveredHR_ex hA hc (hvq.shift _)
+      rwa [show r.S * (a + (j - a)) + r.d = r.S * j + r.d by congr 2; omega] at this
   · cases h
 
 /-- **An empty run of pointers another state entails** holds. -/

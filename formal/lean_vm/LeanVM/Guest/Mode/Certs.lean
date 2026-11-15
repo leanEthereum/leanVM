@@ -36,17 +36,6 @@ structure ModeHyps : Prop where
   «check_opening_terminal» : WalkHyp Fn.«check_opening_terminal».modeCert
   «da_weights» : WalkHyp Fn.«da_weights».modeCert
   «main» : WalkHyp Fn.«main».modeCert
-  «open_stacked__L0» : WalkHyp Fn.«open_stacked__L0».modeCert
-  «open_stacked__L1» : WalkHyp Fn.«open_stacked__L1».modeCert
-  «open_stacked__L10» : WalkHyp Fn.«open_stacked__L10».modeCert
-  «open_stacked__L2» : WalkHyp Fn.«open_stacked__L2».modeCert
-  «open_stacked__L3» : WalkHyp Fn.«open_stacked__L3».modeCert
-  «open_stacked__L4» : WalkHyp Fn.«open_stacked__L4».modeCert
-  «open_stacked__L5» : WalkHyp Fn.«open_stacked__L5».modeCert
-  «open_stacked__L6» : WalkHyp Fn.«open_stacked__L6».modeCert
-  «open_stacked__L7» : WalkHyp Fn.«open_stacked__L7».modeCert
-  «open_stacked__L8» : WalkHyp Fn.«open_stacked__L8».modeCert
-  «open_stacked__L9» : WalkHyp Fn.«open_stacked__L9».modeCert
   «verify_bus_gkr» : WalkHyp Fn.«verify_bus_gkr».modeCert
   «verify_sub» : WalkHyp Fn.«verify_sub».modeCert
   «verify_tables» : WalkHyp Fn.«verify_tables».modeCert
@@ -128,17 +117,17 @@ theorem guestGroup_walk3 (h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ l
     (Mode.fa_nil))))))))))))))))
 
 theorem guestGroup_walk4 (h : ModeHyps) : ∀ l ∈ guestGroups[4]!, ∀ K ∈ l, CertWalk K :=
-  Mode.fa_cons (ModePack.«open_stacked__L0».certs_walk h.«open_stacked__L0»)
-    (Mode.fa_cons (ModePack.«open_stacked__L1».certs_walk h.«open_stacked__L1»)
-    (Mode.fa_cons (ModePack.«open_stacked__L10».certs_walk h.«open_stacked__L10»)
-    (Mode.fa_cons (ModePack.«open_stacked__L2».certs_walk h.«open_stacked__L2»)
-    (Mode.fa_cons (ModePack.«open_stacked__L3».certs_walk h.«open_stacked__L3»)
-    (Mode.fa_cons (ModePack.«open_stacked__L4».certs_walk h.«open_stacked__L4»)
-    (Mode.fa_cons (ModePack.«open_stacked__L5».certs_walk h.«open_stacked__L5»)
-    (Mode.fa_cons (ModePack.«open_stacked__L6».certs_walk h.«open_stacked__L6»)
-    (Mode.fa_cons (ModePack.«open_stacked__L7».certs_walk h.«open_stacked__L7»)
-    (Mode.fa_cons (ModePack.«open_stacked__L8».certs_walk h.«open_stacked__L8»)
-    (Mode.fa_cons (ModePack.«open_stacked__L9».certs_walk h.«open_stacked__L9»)
+  Mode.fa_cons (ModePack.«open_stacked__L0».certs_walk)
+    (Mode.fa_cons (ModePack.«open_stacked__L1».certs_walk)
+    (Mode.fa_cons (ModePack.«open_stacked__L10».certs_walk)
+    (Mode.fa_cons (ModePack.«open_stacked__L2».certs_walk)
+    (Mode.fa_cons (ModePack.«open_stacked__L3».certs_walk)
+    (Mode.fa_cons (ModePack.«open_stacked__L4».certs_walk)
+    (Mode.fa_cons (ModePack.«open_stacked__L5».certs_walk)
+    (Mode.fa_cons (ModePack.«open_stacked__L6».certs_walk)
+    (Mode.fa_cons (ModePack.«open_stacked__L7».certs_walk)
+    (Mode.fa_cons (ModePack.«open_stacked__L8».certs_walk)
+    (Mode.fa_cons (ModePack.«open_stacked__L9».certs_walk)
     (Mode.fa_cons (ModePack.«sp_wots».certs_walk)
     (Mode.fa_cons (ModePack.«verify_merkle_cap__L8».certs_walk)
     (Mode.fa_cons (ModePack.«verify_sig_lean_sphincs».certs_walk)
