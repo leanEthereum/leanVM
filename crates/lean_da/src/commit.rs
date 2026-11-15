@@ -1,17 +1,10 @@
 use isa::Prover;
-use keccak256::{OUT_LEN, hash, hash_many};
+use keccak256::{OUT_LEN, hash, hash_many, hash_pair};
 
 use crate::{Blob, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, Codeword, DA_MAX_ROWS, LOG_BLOB_SYMBOLS, Symbol};
 
 /// A Merkle node.
 pub type Hash = [u8; 32];
-
-fn hash_pair(left: &Hash, right: &Hash) -> Hash {
-    let mut pair = [0; 2 * OUT_LEN];
-    pair[..OUT_LEN].copy_from_slice(left);
-    pair[OUT_LEN..].copy_from_slice(right);
-    hash(&pair)
-}
 
 /// Nodes in one blob's flat Merkle tree.
 const BLOB_MERKLE_NODES: usize = 2 * CELLS_PER_ROW - 1;

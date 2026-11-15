@@ -6,11 +6,11 @@ use super::statement::statement_digest;
 use super::{LeanSphincsClaim, LeanXmssClaim};
 use verifier::E;
 
-/// What an  [`AggregateProof`] proves: a list of `(pubkey, message)` leanXMSS claims and a list of `(pubkey, message)`
-/// leanSphincs claims had a valid signature, and (optional) some digest represent a correct matrix of blobs (see
+/// What an [`AggregateProof`] proves: every `(pubkey, message)` claim of two lists, one of leanXMSS and one of
+/// leanSPHINCS, had a valid signature, and, optionally, a commitment is the root of a well-formed matrix of blobs (see
 /// [`lean_da::BlobMatrix`]).
 ///
-/// Each of the first 2 list must be strictly sorted (so without duplicates), potentially empty.
+/// Each list is strictly sorted (so without duplicates), and may be empty.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct AggregateClaims {
     pub lean_xmss: Vec<LeanXmssClaim>,
@@ -33,7 +33,7 @@ pub enum OutputClaims<'a> {
 /// the claims the receiver expects.
 #[derive(Clone, Debug)]
 pub struct AggregateProof {
-    /// The point of the deferred bytecode claim; its value is computed from it.
+    /// The point of the deferred bytecode claim, `bytecode_vars()` long; its value is computed from it.
     pub(super) bytecode_point: Vec<E>,
     pub(super) proof: verifier::Proof,
 }
