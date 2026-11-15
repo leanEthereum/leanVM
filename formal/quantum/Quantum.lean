@@ -17,6 +17,7 @@ import Quantum.Classical
 import Quantum.Xmss.Classical
 import Quantum.Sponge.Oracle.Hardwired
 import Quantum.Xmss.Classify
+import Quantum.Xmss.TableLaw
 
 /-! Security against quantum adversaries in the quantum random-permutation model (`Quantum.Model`),
 on VCVio's quantum oracle programs (`VCVio.Quantum`): the sponge's collision and preimage
