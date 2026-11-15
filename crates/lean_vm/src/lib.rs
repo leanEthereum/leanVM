@@ -3,7 +3,7 @@
 //! - leanSPHINCS (stateless, for the execution layer)
 //! - leanDA (PQ blobs)
 //!
-//! Proving runs the stable prover, or with the `experimental-prover` feature the experimental one.
+//! Proving runs the stable prover, or with the `experimental_prover` feature the experimental one.
 //! Both give the same proofs, byte for byte, and verifying needs neither.
 //!
 //! Example: [`crates/lean_vm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/lean_vm/tests/api.rs).
@@ -16,9 +16,9 @@ pub use aggregation::{
 };
 use isa::Prover;
 
-#[cfg(feature = "experimental-prover")]
+#[cfg(feature = "experimental_prover")]
 type P = experimental_lean_vm_core::ExperimentalProver;
-#[cfg(not(feature = "experimental-prover"))]
+#[cfg(not(feature = "experimental_prover"))]
 type P = stable_lean_vm_core::StableProver;
 
 pub mod lean_da {

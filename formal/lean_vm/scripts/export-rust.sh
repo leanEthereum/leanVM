@@ -27,7 +27,7 @@
 #
 # The proof is the honest proof of the Rust `prove`, a `verifier::Proof`, its Merkle paths
 # unpruned. The guests (`fixed`) are the program of
-# crates/stable-prover/lean_vm_core/tests/verifiers/fixture.rs at 4, 300 and 1000 loop steps,
+# crates/stable_prover/lean_vm_core/tests/verifiers/fixture.rs at 4, 300 and 1000 loop steps,
 # crates/zkdsl_compiler/tests/programs/fibonacci.py, and eight more programs of that suite, three
 # at each of the four rates, read from the source tree. Every proof is verified by the Rust
 # `cpu::verify` before it is written, and `Proof::from_bytes` must give it back from `proof.wire`.
@@ -67,9 +67,9 @@ edition = "2024"
 [workspace]
 
 [dependencies]
-lean_vm_core = { package = "stable_lean_vm_core", path = "$checkout/crates/stable-prover/lean_vm_core" }
+lean_vm_core = { package = "stable_lean_vm_core", path = "$checkout/crates/stable_prover/lean_vm_core" }
 zkdsl_compiler = { path = "$checkout/crates/zkdsl_compiler" }
-primitives = { package = "stable_primitives", path = "$checkout/crates/stable-prover/primitives" }
+primitives = { package = "stable_primitives", path = "$checkout/crates/stable_prover/primitives" }
 verifier = { path = "$checkout/crates/verifier" }
 
 [profile.release]
@@ -80,7 +80,7 @@ EOF
 # The chain program and the suite's header readers, from the tests that define them.
 cat > "$work/src/main.rs" <<EOF
 #[allow(dead_code)]
-#[path = "$checkout/crates/stable-prover/lean_vm_core/tests/verifiers/fixture.rs"]
+#[path = "$checkout/crates/stable_prover/lean_vm_core/tests/verifiers/fixture.rs"]
 mod fixture;
 #[allow(dead_code, unused_imports)]
 #[path = "$checkout/crates/zkdsl_compiler/tests/suite/py_source.rs"]

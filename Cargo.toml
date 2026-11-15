@@ -11,8 +11,8 @@ members = [
     "crates/lean_da",
     "crates/aggregation",
     "crates/lean_vm",
-    "crates/stable-prover/*",
-    "crates/experimental-prover/*",
+    "crates/stable_prover/*",
+    "crates/experimental_prover/*",
     "bins/*",
 ]
 resolver = "3"

@@ -21,9 +21,9 @@ lean_da.workspace = true
 zkdsl_compiler.workspace = true
 lean_xmss.workspace = true
 lean_sphincs.workspace = true
-stable_lean_vm_core = { path = "../../crates/stable-prover/lean_vm_core" }
-experimental_lean_vm_core = { path = "../../crates/experimental-prover/lean_vm_core" }
-primitives = { package = "stable_primitives", path = "../../crates/stable-prover/primitives" }
+stable_lean_vm_core = { path = "../../crates/stable_prover/lean_vm_core" }
+experimental_lean_vm_core = { path = "../../crates/experimental_prover/lean_vm_core" }
+primitives = { package = "stable_primitives", path = "../../crates/stable_prover/primitives" }
 bench.workspace = true
 rand.workspace = true
 tracing.workspace = true

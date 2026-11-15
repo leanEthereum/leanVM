@@ -25,6 +25,7 @@ version = "0.1.0"
 dependencies = [
  "experimental_parallel",
  "fiat_shamir_prover",
+ "keccak256",
 ]
 
 [[package]]

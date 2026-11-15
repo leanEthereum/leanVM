@@ -265,7 +265,7 @@ each tail round (degree two) & $0$\\
 \end{tabular}
 \end{center}
 
-\paragraph{Queries.} Table~\ref{tab:whir-queries} gives $\nq_0,\dots,\nq_{\nlev-1}$ at each $(\nv,\rexp_0)$. It is normative: the verifier reads it rather than deriving it. It is the output of the search in the experimental prover's \texttt{pcs::whir\_config}, which takes at each level the least agreement $\agr^{(i)}_{\ell_i}$ for which every row of Theorem~\ref{thm:rbr} but the query term clears $2^{-125}$ after the grinds above ($J_0\le512$, $L_0\le166$), then the fewest queries for which the query term does. The test \texttt{print\_whir\_query\_table} (\texttt{crates/experimental-prover/lean\_vm\_core/tests/verifiers/whir\_query\_table.rs}) regenerates the table, and \texttt{whir\_query\_table\_matches\_the\_search} pins it.
+\paragraph{Queries.} Table~\ref{tab:whir-queries} gives $\nq_0,\dots,\nq_{\nlev-1}$ at each $(\nv,\rexp_0)$. It is normative: the verifier reads it rather than deriving it. It is the output of the search in the experimental prover's \texttt{pcs::whir\_config}, which takes at each level the least agreement $\agr^{(i)}_{\ell_i}$ for which every row of Theorem~\ref{thm:rbr} but the query term clears $2^{-125}$ after the grinds above ($J_0\le512$, $L_0\le166$), then the fewest queries for which the query term does. The test \texttt{print\_whir\_query\_table} (\texttt{crates/experimental\_prover/lean\_vm\_core/tests/verifiers/whir\_query\_table.rs}) regenerates the table, and \texttt{whir\_query\_table\_matches\_the\_search} pins it.
 \begin{table}[htbp]
 \centering
 \footnotesize

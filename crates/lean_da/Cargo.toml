@@ -10,8 +10,8 @@ workspace = true
 [dependencies]
 keccak256.workspace = true
 # The stable prover's additive NTT, the blobs' Reed-Solomon encoder.
-pcs = { package = "stable_pcs", path = "../stable-prover/pcs" }
-primitives = { package = "stable_primitives", path = "../stable-prover/primitives" }
+pcs = { package = "stable_pcs", path = "../stable_prover/pcs" }
+primitives = { package = "stable_primitives", path = "../stable_prover/primitives" }
 tracing.workspace = true
 
 [dev-dependencies]
