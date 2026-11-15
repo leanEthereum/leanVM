@@ -142,8 +142,10 @@ theorem emitOp_fat (o : LOp) (h : Fits I st → o ∈ I.ops → ∀ Ψ, C Ψ →
 /-- **A pooled result**: the pool's cell, or a fresh one, given the word `w`, which the
 instruction writes and the pool learns. -/
 theorem pooledCell_fat {find : Scope → Option Cell} {learn : Cell → Scope → Scope}
-    {mk : Cell → LOp} (w : (ℕ → E) → E) (hw : WBlind w st.next) (h2 : 2 ≤ st.next)
-    (hfind : ∀ o, find st.scope = some o → ∀ Ψ, C Ψ → PoolW I Ψ st.locs st.scope → Ψ o = w Ψ)
+    {mk : Cell → LOp} (Q : Cell → Prop) (w : (ℕ → E) → E) (hw : WBlind w st.next)
+    (h2 : 2 ≤ st.next)
+    (hfind : ∀ o, find st.scope = some o → ∀ Ψ, C Ψ → PoolW I Ψ st.locs st.scope → Q o →
+      Ψ o = w Ψ)
     (hfc : ∀ o, find st.scope = some o → ScopeGood st.next st.scope → 2 ≤ o ∧ o < st.next)
     (hmk : Fits I { st with next := st.next + 1 } → mk st.next ∈ I.ops → ∀ Ψ, C Ψ →
       Ψ st.next = w Ψ → OpW I Ψ (mk st.next))
@@ -152,7 +154,7 @@ theorem pooledCell_fat {find : Scope → Option Cell} {learn : Cell → Scope �
     (hcells : ScopeGood (st.next + 1) st.scope →
       ScopeGood (st.next + 1) (learn st.next st.scope)) :
     FAt ctx I C st (pooledCell find learn mk) (fun o C' st' => 2 ≤ o ∧ o < st'.next ∧
-      st'.locs = st.locs ∧ st'.rest = st.rest ∧ (∀ Ψ, C' Ψ → Ψ o = w Ψ) ∧
+      st'.locs = st.locs ∧ st'.rest = st.rest ∧ (∀ Ψ, C' Ψ → Q o → Ψ o = w Ψ) ∧
       ∀ c, c < st.next → BlindAt C c → (∀ Ψ x, w (Function.update Ψ c x) = w Ψ) →
         BlindAt C' c) := by
   unfold pooledCell
@@ -169,7 +171,7 @@ theorem pooledCell_fat {find : Scope → Option Cell} {learn : Cell → Scope �
     refine FAt.bind (FAt.modify rfl rfl rfl fun hc => hc.withScope
       (fun Ψ hΨ hp => hlearn Ψ hΨ.1 hΨ.2 hp) hcells) fun _ st₃ C₃ _ _ _ ⟨hC₃, hst₃⟩ => ?_
     subst hC₃ hst₃
-    exact FAt.pure ⟨h2, Nat.lt_succ_self _, rfl, rfl, fun Ψ h => h.2,
+    exact FAt.pure ⟨h2, Nat.lt_succ_self _, rfl, rfl, fun Ψ h _ => h.2,
       fun c hc hb hwc Ψ x h => ⟨hb Ψ x h.1, by
         rw [Function.update_of_ne (Nat.ne_of_gt hc), hwc]
         exact h.2⟩⟩
@@ -185,12 +187,13 @@ theorem mulCell_fat {a b : Cell} (ha2 : 2 ≤ a) (ha : a < st.next) (hb2 : 2 ≤
       ∀ c, c < st.next → c ≠ a → c ≠ b → BlindAt C c → BlindAt C' c) := by
   have h2 : 2 ≤ st.next := le_trans ha2 ha.le
   rw [mulCell_eq]
-  refine FAt.mono (pooledCell_fat (fun Ψ => Ψ a * Ψ b) (wblind_mul (wblind_cell ha) (wblind_cell hb))
-    h2 (fun o ho Ψ _ hp => by rw [hp.muls _ o ho, mul_sorted])
+  refine FAt.mono (pooledCell_fat (fun _ => True) (fun Ψ => Ψ a * Ψ b)
+    (wblind_mul (wblind_cell ha) (wblind_cell hb))
+    h2 (fun o ho Ψ _ hp _ => by rw [hp.muls _ o ho, mul_sorted])
     (fun o ho hs => hs.muls _ o ho) (fun _ _ Ψ _ h => ?_)
     (fun Ψ _ h hp => hp.insertMul (by rw [h, mul_sorted]))
     (fun hs => { hs with muls := pmap_insert_imp hs.muls ⟨h2, Nat.lt_succ_self _⟩ }))
-    fun o C' st' _ _ _ ⟨h1, h2, h3, h4, h5, h6⟩ => ⟨h1, h2, h3, h4, h5,
+    fun o C' st' _ _ _ ⟨h1, h2, h3, h4, h5, h6⟩ => ⟨h1, h2, h3, h4, fun Ψ hΨ => h5 Ψ hΨ trivial,
       fun c hc hca hcb hb => h6 c hc hb fun Ψ x => by
         show Function.update Ψ c x a * Function.update Ψ c x b = Ψ a * Ψ b
         rw [Function.update_of_ne hca.symm, Function.update_of_ne hcb.symm]⟩
@@ -208,11 +211,12 @@ theorem constCell_fatB (k : ℕ × ℕ) (hkw : I.kw (.const k.1 k.2) = Guest.wor
       st'.rest = st.rest ∧ (∀ Ψ, C' Ψ → Ψ o = Guest.word k.1 k.2) ∧
       ∀ c, c < st.next → BlindAt C c → BlindAt C' c) := by
   rw [constCell_eq]
-  refine FAt.mono (pooledCell_fat (fun _ => Guest.word k.1 k.2) (wblind_const _ _) h2
-    (fun o ho Ψ _ hp => hp.consts k o ho) (fun o ho hs => hs.consts k o ho) (fun _ _ Ψ _ h => ?_)
+  refine FAt.mono (pooledCell_fat (fun _ => True) (fun _ => Guest.word k.1 k.2)
+    (wblind_const _ _) h2 (fun o ho Ψ _ hp _ => hp.consts k o ho) (fun o ho hs => hs.consts k o ho) (fun _ _ Ψ _ h => ?_)
     (fun Ψ _ h hp => hp.insertConst h)
     (fun hs => { hs with consts := pmap_insert_imp hs.consts ⟨h2, Nat.lt_succ_self _⟩ }))
-    fun o C' st' _ _ _ ⟨a, b, c, d, e, f⟩ => ⟨a, b, c, d, e, fun c' hc hb => f c' hc hb
+    fun o C' st' _ _ _ ⟨a, b, c, d, e, f⟩ => ⟨a, b, c, d, fun Ψ hΨ => e Ψ hΨ trivial,
+      fun c' hc hb => f c' hc hb
       fun _ _ => rfl⟩
   show fw I Ψ st.next = I.kw (.const k.1 k.2)
   rw [hkw, fw_of_two h2, h]
