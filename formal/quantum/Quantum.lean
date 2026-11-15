@@ -1,5 +1,8 @@
 import Quantum.Model
 import Quantum.Decomposition
+import Quantum.Sponge.PermTail
+import Quantum.Sponge.Outputs
+import Quantum.Sponge.Hash
 
 /-! Security against quantum adversaries in the quantum random-permutation model (`Quantum.Model`),
 on VCVio's quantum oracle programs (`VCVio.Quantum`). The build fails if the axiom footprint of
