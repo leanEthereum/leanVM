@@ -752,6 +752,109 @@ theorem place_load_fat (d p : V) (off : ℕ) (ctx : Ctx) (I : Inst) (C : (ℕ �
     subst C'
     exact ⟨fun _ => vw_same hv₂ hL (Stronger.refl _) (le_of_eq hn.symm) hl, hr.trans hr₂⟩
 
+/-! ## Hints: reads only -/
+
+/-- An action that only reads known values' cells: it keeps the known values' words, the places
+and the trace. -/
+def RO (ctx : Ctx) (I : Inst) (ok : V → Prop) {α : Type} (m : P α) : Prop :=
+  ∀ (C : (ℕ → E) → Prop) (st : St), VW I C st ok →
+    FAt ctx I C st m (fun _ _ st' => st'.locs = st.locs ∧ st'.rest = st.rest)
+
+section RO
+
+variable {ok : V → Prop} {α β : Type}
+
+theorem RO.pure {a : α} : RO ctx I ok (Pure.pure a : P α) := fun _ _ _ => FAt.pure ⟨rfl, rfl⟩
+
+theorem RO.fail {msg : String} : RO ctx I ok (failP msg : P α) := fun _ _ _ => FAt.fail
+
+theorem RO.fail_bind {msg : String} {f : α → P β} : RO ctx I ok ((failP msg : P α) >>= f) :=
+  fun _ _ _ => FAt.fail_bind
+
+theorem RO.bind {m : P α} {f : α → P β} (hm : RO ctx I ok m) (hf : ∀ a, RO ctx I ok (f a)) :
+    RO ctx I ok (m >>= f) := fun C st hv =>
+  FAt.bind (hm C st hv) fun a st' C' hs hn _ ⟨hlo, hr⟩ =>
+    FAt.mono (hf a C' st' (hv.step hs hn hlo)) fun _ _ _ _ _ _ ⟨h1, h2⟩ => ⟨h1.trans hlo, h2.trans hr⟩
+
+theorem RO.get_bind {f : St → P β} (h : ∀ s, RO ctx I ok (f s)) : RO ctx I ok (get >>= f) :=
+  fun C st hv => FAt.get_bind (h st C st hv)
+
+theorem RO.read_bind {f : Ctx → P β} (h : RO ctx I ok (f ctx)) : RO ctx I ok (read >>= f) :=
+  fun C st hv => FAt.read_bind (h C st hv)
+
+theorem RO.guard {c : Prop} [Decidable c] {msg : String} {f : PUnit → P β}
+    (h : ¬c → RO ctx I ok (f PUnit.unit)) :
+    RO ctx I ok (if c then failP msg >>= f else f PUnit.unit) := fun C st hv =>
+  FAt.guard fun hc => h hc C st hv
+
+theorem ro_pushHint {h : LHint} : RO ctx I ok (pushHint h) := fun _ _ _ =>
+  FAt.quiet rfl rfl rfl rfl ⟨rfl, rfl⟩
+
+theorem ro_cellOf {v : V} (hok : I.Ok) (hk : ok v) : RO ctx I ok (cellOf v) := fun _ _ hv =>
+  FAt.mono (cellOf_fat v hok hv hk) fun _ _ _ _ _ _ ⟨_, _, h1, h2, _⟩ => ⟨h1, h2⟩
+
+theorem ro_cellAt {v : V} : RO ctx I ok (cellAt v) := fun _ _ _ =>
+  FAt.mono (cellAt_fat v) fun _ _ _ _ _ _ ⟨_, h, _⟩ => by subst h; exact ⟨rfl, rfl⟩
+
+theorem ro_pointer {p : V} {off : ℕ} (hok : I.Ok) (hk : ok p) : RO ctx I ok (pointer p off) :=
+  fun _ _ hv => FAt.mono (pointer_fat p off hok hv hk) fun _ _ _ _ _ _ ⟨_, _, h1, h2, _⟩ =>
+    ⟨h1, h2⟩
+
+theorem ro_destBits {d : Dest} (hok : I.Ok) (hk : ∀ v ∈ Memory.destUses d, ok v) :
+    RO ctx I ok (destBits d) := by
+  unfold destBits
+  split
+  · split
+    · exact RO.bind ro_cellAt fun _ => RO.pure
+    · exact RO.fail
+  · exact RO.bind (ro_cellOf hok (hk _ (by simp [Memory.destUses]))) fun _ => RO.pure
+
+theorem ro_optionMapM {o : Option V} (hok : I.Ok) (hk : ∀ v, o = some v → ok v) :
+    RO ctx I ok (o.mapM cellOf) := by
+  cases o with
+  | none => exact RO.pure
+  | some v =>
+    rw [Option.mapM, map_eq_pure_bind]
+    exact RO.bind (ro_cellOf hok (hk v rfl)) fun _ => RO.pure
+
+end RO
+
+/-- One step of a walk that only reads. -/
+macro "ro_step" : tactic => `(tactic| first
+  | with_reducible exact RO.fail
+  | with_reducible exact RO.fail_bind
+  | with_reducible exact RO.pure
+  | with_reducible exact ro_pushHint
+  | with_reducible refine RO.get_bind fun _ => ?_
+  | with_reducible refine RO.read_bind ?_
+  | with_reducible refine RO.guard fun _ => ?_
+  | dsimp only
+  | rw [pure_bind]
+  | with_reducible refine RO.bind (ro_cellOf ‹_› ?_) fun _ => ?_
+  | with_reducible refine RO.bind ro_cellAt fun _ => ?_
+  | with_reducible refine RO.bind (ro_pointer ‹_› ?_) fun _ => ?_
+  | with_reducible refine RO.bind ro_pushHint fun _ => ?_
+  | with_reducible refine RO.bind (ro_destBits ‹_› ?_) fun _ => ?_
+  | with_reducible refine RO.bind (ro_optionMapM ‹_› ?_) fun _ => ?_
+  | with_reducible exact ro_cellOf ‹_› ?_
+  | split)
+
+/-- **A hint** reads its values' cells and queues the hint: nothing is emitted. -/
+theorem placeHint_ro (h : Hint) (hok : I.Ok) {ok : V → Prop}
+    (hk : ∀ v ∈ Memory.hintUses h, ok v) : RO ctx I ok (placeHint h) := by
+  unfold placeHint
+  repeat' ro_step
+  all_goals first
+    | (intro v hv; apply hk; subst_vars; simp_all [Memory.hintUses, Memory.destUses])
+    | (apply hk; simp_all [Memory.hintUses, Memory.destUses])
+
+theorem place_hint_fat (h : Hint) : AtomFAt (.hint h) := by
+  intro ctx I C st ok hok _ _ _ _ _ _ _ hv hops
+  have hL := atom_ok hops fun _ _ h => by cases h
+  unfold placeAtom
+  exact FAt.mono (placeHint_ro h hok (fun v hv' => hL v (by simp [Memory.atomUses, hv'])) C st hv)
+    fun _ C' st' hs hn _ ⟨hlo, hr⟩ => ⟨fun _ => vw_same hv hL hs hn hlo, hr⟩
+
 end Atoms
 
 end
