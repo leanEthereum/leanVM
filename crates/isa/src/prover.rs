@@ -2,12 +2,12 @@
 //! [`Prover`] once, beside its `cpu::prove`.
 
 use crate::CompiledProgram;
-use verifier::E;
+use verifier::{E, layout::N_TABLES};
 
 /// A prover of ISA programs, and the thread pool and field kernels it brings for the work around a proof.
 pub trait Prover: 'static {
     /// A program assembled for this prover.
-    type Program: Clone + Send + Sync + 'static;
+    type Program: Send + Sync + 'static;
 
     /// Start the prover's thread pool. Call it before anything below; a second call does nothing.
     fn init();
@@ -46,7 +46,7 @@ pub struct Stats {
     /// Executed instructions.
     pub cycles: usize,
     /// Rows per table the program executed, in the order of [`Self::TABLES`].
-    pub rows: [usize; 6],
+    pub rows: [usize; N_TABLES],
     /// Committed words: the columns' lengths, before the stack's pad to a power of two.
     pub committed: usize,
     /// Data memory is `2^log_mem` cells.
@@ -59,5 +59,5 @@ pub struct Stats {
 
 impl Stats {
     /// Table names in `rows` order.
-    pub const TABLES: [&'static str; 6] = ["XOR", "MUL", "SET", "DEREF", "JUMP", "KECCAK"];
+    pub const TABLES: [&'static str; N_TABLES] = ["XOR", "MUL", "SET", "DEREF", "JUMP", "KECCAK"];
 }
