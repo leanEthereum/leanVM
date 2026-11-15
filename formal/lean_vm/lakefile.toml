@@ -176,3 +176,11 @@ srcDir = "cli"
 name = "guest-traced"
 root = "GuestTraced"
 srcDir = "cli"
+
+# The kernel-checked pieces of the guest's compilation by the back end (cli/GuestPieces.lean):
+# writes `LeanVM/Guest/Backend/Guest/Piece/` and `Compiled.lean`, or checks them; not a default
+# target.
+[[lean_exe]]
+name = "guest-pieces"
+root = "GuestPieces"
+srcDir = "cli"

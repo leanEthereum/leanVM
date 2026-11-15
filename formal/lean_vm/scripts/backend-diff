@@ -11,7 +11,9 @@
 # 3. `lake exe guest-backend export programs … --check`: the test programs' checked-in exports
 #    (`crates/lean_compiler/tests/suite/lean_backend/`) are current; `lake exe guest-traced --check`:
 #    the guest's traced input (`Backend/Guest/`) is current, and the back end compiles it to the
-#    statement's program.
+#    statement's program; `lake exe guest-pieces --check` and `test --check`: the kernel's checks of
+#    the guest's compilation (`Backend/Guest/Piece/`, `Compiled.lean`) and of a test program are
+#    current, each evaluated natively.
 # 4. `cargo test -p lean_compiler --test suite lean_backend`: each is the Rust compiler's program,
 #    hints included, and runs on the Rust VM.
 # 5. `lake exe guest-backend export guest DIR/guest.txt`, then `rec_aggregation`'s ignored test
@@ -30,6 +32,9 @@ lake exe guest-backend check
 lake exe guest-backend export programs ../../crates/lean_compiler/tests/suite/lean_backend --check
 lake build guest-traced
 lake exe guest-traced --check
+lake build guest-pieces
+lake exe guest-pieces --check
+lake exe guest-pieces test --check
 lake exe guest-backend export guest "$dir/guest.txt"
 cd ../..
 cargo test --release -p lean_compiler --test suite lean_backend

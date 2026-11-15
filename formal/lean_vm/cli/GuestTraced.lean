@@ -1,7 +1,5 @@
-import LeanVM.Guest.Data.Source
 import Statement.Data.Bytecode
-import LeanVM.Guest.Backend.Compile
-import LeanVM.Guest.Renumber
+import LeanVM.Guest.Backend.Guest.Input
 
 /-!
 # `guest-traced`: the guest as the back end's input, with `coreProgram`'s functions
@@ -27,6 +25,7 @@ slot of `assemble Data.functions 19`. `lake exe guest-traced identity` runs the 
 -/
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Backend
+  LeanVM.Guest.Backend.GuestInput
 
 namespace GuestTraced
 
@@ -37,39 +36,6 @@ def maxDef : Nat := 24000
 def maxFile : Nat := 750000
 
 def outDir : System.FilePath := "LeanVM/Guest/Backend/Guest"
-
-/-! ## Renaming -/
-
-/-- The renaming of function `f`'s values: its core values by `Fn.renumber`'s numbering, the
-values only its trace names past them, in the trace's order. -/
-def renamingOf (f : Fn) (trace : Array Event) : Std.HashMap V Nat := Id.run do
-  let (m, t) := f.numbering
-  let mut m := m
-  let mut next := t.size
-  for e in trace do
-    let vs := match e with
-      | .alloc vs _ => vs
-      | .use v => [v]
-      | .shift v _ => [v]
-      | _ => []
-    for v in vs do
-      unless m.contains v do
-        m := m.insert v next
-        next := next + 1
-  return m
-
-def renameEvent (r : V → V) : Event → Event
-  | .alloc vs k => .alloc (vs.map r) k
-  | .use v => .use (r v)
-  | .shift v e => .shift (r v) e
-  | e => e
-
-/-- The guest's traced functions, renamed: the input `Backend/Guest/Traced.lean` denotes. -/
-def renamed (P : List TracedFn) : List TracedFn :=
-  P.map fun tf =>
-    let m := renamingOf tf.core tf.trace
-    let r : V → V := fun v => V.n (m.getD v 0)
-    { tf with core := tf.core.renumber, trace := tf.trace.map (renameEvent r) }
 
 /-! ## Text -/
 
@@ -177,10 +143,6 @@ def files (P : List TracedFn) : List (String × String) := Id.run do
 
 /-! ## The comparison with the statement's program -/
 
-def orThrow {α : Type} : Except String α → IO α
-  | .ok a => pure a
-  | .error e => throw (IO.userError e)
-
 /-- Whether the compiled functions are the statement's, value for value: names, entries, lengths
 and chunks. -/
 def sameFunctions (ours : Assembled) : Bool :=
@@ -209,15 +171,6 @@ def identity (P : List TracedFn) : IO Bool := do
     IO.eprintln s!"the back end on the renamed guest differs from the statement's program \
       (functions {same}, slots {slotsSame})"
   return same && slotsSame
-
-/-- The traced input: the traced expansion renamed, after checking that its core functions are
-`Expand`'s, renumbered as `guest-core` writes them. -/
-def input : IO (List TracedFn) := do
-  let P ← orThrow (ExpandTrace.expandProgram Data.guest)
-  let core ← orThrow (Expand.expandProgram Data.guest)
-  unless P.map (·.core) == core do
-    throw (IO.userError "the traced expansion's core functions are not Expand's")
-  return renamed P
 
 end GuestTraced
 
