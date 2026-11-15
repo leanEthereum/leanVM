@@ -158,7 +158,9 @@ quantum() {
   no_escapes quantum
   cache_get quantum
   build quantum 'Quantum'
-  axioms quantum Quantum Quantum.qrpmEvalDist_apply_univ_of_lossless Quantum.qrpmEvalDistMap_eq_spongePerm
+  axioms quantum Quantum Quantum.qrpmEvalDistMap_eq_spongePerm Quantum.Sponge.qrpm_sponge_collision_le \
+    Quantum.Sponge.qrpm_sponge_preimage_le Quantum.Sponge.keccak256_qrpm_collision_le \
+    Quantum.Sponge.keccak256_qrpm_preimage_le
 }
 
 # Every lean_vm executable, in one build.
