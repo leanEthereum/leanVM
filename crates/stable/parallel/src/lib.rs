@@ -10,8 +10,9 @@ use std::ptr::NonNull;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Condvar, Mutex, Once, OnceLock};
 
-/// Worker count including the dispatcher: `LEANVM_NUM_THREADS` when set, `1` being strictly sequential, else the
-/// parallelism the platform reports.
+/// Worker count including the dispatcher: `LEANVM_NUM_THREADS` when set, `1` being strictly sequential, else one per
+/// physical core, as experimental's: the logical CPUs the platform reports, halved where Linux says SMT is active (a
+/// core's second hardware thread slows a proof on a many-core machine).
 #[must_use]
 #[inline]
 pub fn num_threads() -> usize {
@@ -21,7 +22,11 @@ pub fn num_threads() -> usize {
             .ok()
             .and_then(|v| v.parse::<usize>().ok())
             .filter(|&n| n > 0)
-            .unwrap_or_else(|| std::thread::available_parallelism().map_or(1, |n| n.get()))
+            .unwrap_or_else(|| {
+                let logical = std::thread::available_parallelism().map_or(1, |n| n.get());
+                let smt = std::fs::read_to_string("/sys/devices/system/cpu/smt/active").is_ok_and(|s| s.trim() == "1");
+                if smt { (logical / 2).max(1) } else { logical }
+            })
     })
 }
 

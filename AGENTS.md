@@ -106,7 +106,7 @@ No rayon. Every parallel site is "N independent items, each writing its own disj
 
 - Nested dispatch panics, because it would deadlock the dispatch lock.
 - One experimental site runs beside the pool: `keccak::while_executing` spawns half the pool's count of plain threads while a program executes, gone before the next dispatch. Stable builds the Keccak witness after execution, in the pool.
-- `LEANVM_NUM_THREADS=1` is strictly sequential. In experimental it sets the performance-worker count, and the default is one worker per logical CPU (on Linux, per physical core the process may use), holding back one performance worker when efficiency workers exist. In stable it sets the worker count, and the default is `available_parallelism()`.
+- `LEANVM_NUM_THREADS=1` is strictly sequential. In experimental it sets the performance-worker count, and the default is one worker per logical CPU (on Linux, per physical core the process may use), holding back one performance worker when efficiency workers exist. In stable it sets the worker count, and the default is `available_parallelism()`, halved where Linux reports SMT active.
 
 ## Three verifiers, one protocol
 
