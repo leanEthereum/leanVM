@@ -7,7 +7,7 @@
 //!
 //! ```text
 //! PCS_LOG_N          number of variables = log2(witness length)   [default 22]
-//! PCS_LOG_INV_RATE   log2 of the inverse RS rate (rate = 1/2^r)    [default: profile]
+//! PCS_LOG_INV_RATE   log2 of the inverse RS rate (rate = 1/2^r)    [default: LOG_INV_RATE_0]
 //! PCS_POINT_CLAIMS   point claims, each on its own quarter of the witness after the first [default 1]
 //! PCS_RING_CLAIMS    ring-switched claims on the witness's first half [default 0]
 //! BENCH_TRACING      print the final pass's trace tree (`RUST_LOG` adjusts it)

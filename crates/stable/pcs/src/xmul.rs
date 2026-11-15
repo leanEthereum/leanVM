@@ -35,7 +35,7 @@ impl Coef for F128 {
 fn constants() -> &'static [F64; 64] {
     static A: OnceLock<[F64; 64]> = OnceLock::new();
     A.get_or_init(|| {
-        let roots = crate::whir_induce::eval_sk_at_vks(63);
+        let roots = crate::whir_induce::subspace_roots(63);
         let mut a = [F64::ONE; 64];
         for t in 1..64 {
             a[t] = a[t - 1] * roots[t] * roots[t - 1].square().inv();

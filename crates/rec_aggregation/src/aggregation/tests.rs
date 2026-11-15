@@ -1172,13 +1172,6 @@ fn opening_shapes_and_twiddles_are_the_provers() {
             assert_eq!(ours.depth, depth);
         }
     }
-    for cols in 0..24 {
-        let theirs: Vec<u64> = whir::eval_sk_at_vks(cols).iter().map(|v| v.0).collect();
-        assert_eq!(
-            verifier::subspace_roots(cols).iter().map(|v| v.0).collect::<Vec<_>>(),
-            theirs
-        );
-    }
     let (ntt, vhat) = (
         AdditiveNttF64::standard(LOG_BLOB_SYMBOLS + 1),
         super::placeholders::subspace_above(),

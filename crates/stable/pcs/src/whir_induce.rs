@@ -8,18 +8,9 @@
 
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8};
 
-/// `s_k(v_k)` for `k = 0..=log_n`, `v_k = x^k`, the subspace polynomials `s_0(v) = v`,
-/// `s_(k+1)(v) = s_k(v) (s_k(v) + s_k(v_k))` unnormalized. Public for the recursion harness, which bakes them into the
-/// guest.
-pub fn eval_sk_at_vks(log_n: usize) -> Vec<F64> {
-    // `s` holds `s_k(v_j)` for every `j >= k`.
-    let mut s: Vec<F64> = (0..=log_n).map(|j| F64(1 << j)).collect();
-    let mut roots = Vec::with_capacity(log_n + 1);
-    while let Some((&first, rest)) = s.split_first() {
-        roots.push(first);
-        s = rest.iter().map(|&v| v * (v + first)).collect();
-    }
-    roots
+/// `s_k(v_k)` for `k = 0..=log_n`, `v_k = x^k`: the subspace polynomials' normalizers, the verifier's.
+pub(crate) fn subspace_roots(log_n: usize) -> Vec<F64> {
+    verifier::subspace_roots(log_n).into_iter().map(|k| F64(k.0)).collect()
 }
 
 /// `basis_poly[j] = sum_i w_i X_j(q_i)` over the `2^log_msg_cols` coefficients `j`: the queries' column weights,
@@ -66,7 +57,7 @@ fn tensor(s: &[F64]) -> Vec<F64> {
 
 /// `What_i(x) = s_i(x) / s_i(v_i)` for `i <= mu`.
 pub(crate) fn novel_basis_at(x: F64, mu: usize) -> Vec<F64> {
-    let roots = eval_sk_at_vks(mu);
+    let roots = subspace_roots(mu);
     let mut s = x;
     roots
         .iter()

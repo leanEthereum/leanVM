@@ -31,7 +31,6 @@ pub use crate::whir_config::{
     INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, LevelShapes, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE, ProverConfig,
     QUERY_GRINDING_BITS, SECURITY_BITS, config_for_rate, validate_log_inv_rate,
 };
-pub use crate::whir_induce::eval_sk_at_vks;
 use crate::whir_induce::{induce_basis, novel_basis_at, novel_sum_at};
 use crate::whir_lanes::LaneRounds;
 
