@@ -121,6 +121,17 @@ def tmpOpsB (set fps : NMap Unit) (ops : List LOp) : Bool :=
     | .deref p 0 d .cell => d == c && !set.contains p && !fps.contains p
     | _ => false
 
+/-- The values of a trie. -/
+def trieVals {α : Type} : Trie α → List α
+  | .nil => []
+  | .node v l r => v.toList ++ trieVals l ++ trieVals r
+
+/-- No place is a shift by `g^0` (a frame address of the frame's own pointer cell). -/
+def noShift0 (locs : VMap Loc) : Bool :=
+  (trieVals locs.t).all fun b => b.all fun p => match p.2 with
+    | .shifted _ 0 => false
+    | _ => true
+
 /-- **Temporaries apart, decided**, each intermediate evaluated once. -/
 def tmpsApartB (tf : TracedFn) (pf : Placed) : Bool :=
   freshOnce tf (Stmt.tmpsList tf.core.body) &&
@@ -129,6 +140,7 @@ def tmpsApartB (tf : TracedFn) (pf : Placed) : Bool :=
         apartWith tf pf (Stmt.tmpsList tf.core.body) set counts &&
           distinctCells pf.locs (Stmt.tmpsList tf.core.body) {} &&
           !set.contains (2 + tf.core.params.length + tf.rets) &&
+          noShift0 pf.locs &&
           nmapSeq (fpPtrs (blockOps pf.fn.body 0)) fun fps =>
             tmpOpsB set fps (blockOps pf.fn.body 0)
 

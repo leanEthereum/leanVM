@@ -85,11 +85,41 @@ theorem TmpsApart.parts (h : TmpsApart tf pf) :
     tmpOpsB (tmpCellSet pf.locs (Stmt.tmpsList tf.core.body)) (fpPtrs (blockOps pf.fn.body 0))
       (blockOps pf.fn.body 0) = true ∧
     (tmpCellSet pf.locs (Stmt.tmpsList tf.core.body)).contains
-      (2 + tf.core.params.length + tf.rets) = false := by
+      (2 + tf.core.params.length + tf.rets) = false ∧ noShift0 pf.locs = true := by
   unfold TmpsApart tmpsApartB at h
   rw [nmapSeq_eq, nmapSeq_eq, nmapSeq_eq, Bool.and_eq_true, Bool.and_eq_true,
-    Bool.and_eq_true, Bool.and_eq_true, Bool.not_eq_true'] at h
-  exact ⟨h.2.1.1.1, h.2.1.1.2, h.2.2, h.2.1.2⟩
+    Bool.and_eq_true, Bool.and_eq_true, Bool.and_eq_true, Bool.not_eq_true'] at h
+  exact ⟨h.2.1.1.1.1, h.2.1.1.1.2, h.2.2, h.2.1.1.2, h.2.1.2⟩
+
+theorem trieVals_get {α : Type} : ∀ (t : Trie α) (n : ℕ) (a : α), t.get n = some a → a ∈ trieVals t
+  | .nil, _, _, h => by simp at h
+  | .node v l r, n, a, h => by
+      rw [Trie.get_eq_getC] at h
+      simp only [Trie.getC] at h
+      simp only [trieVals, List.mem_append]
+      split at h
+      · subst h; simp
+      · split at h
+        · exact Or.inl (Or.inr (trieVals_get l _ a (by rw [Trie.get_eq_getC]; exact h)))
+        · exact Or.inr (trieVals_get r _ a (by rw [Trie.get_eq_getC]; exact h))
+
+/-- **No place is a shift by `g^0`.** -/
+theorem TmpsApart.noShift0 (h : TmpsApart tf pf) (v : V) (n : ℕ) :
+    pf.locs[v]? ≠ some (.shifted n 0) := fun he => by
+  have hb := h.parts.2.2.2.2
+  unfold Complete.noShift0 at hb
+  rw [KMap.getElem?_eq] at he
+  unfold KMap.get? at he
+  cases hg : pf.locs.t.get (Keyed.key v) with
+  | none => rw [hg] at he; simp at he
+  | some bucket =>
+    rw [hg, Option.getD_some] at he
+    have hmb := trieVals_get _ _ _ hg
+    have hp : (v, Loc.shifted n 0) ∈ bucket := by
+      obtain ⟨l₁, l₂, rfl, -⟩ := List.lookup_eq_some_iff.mp he
+      simp
+    have := List.all_eq_true.mp (List.all_eq_true.mp hb bucket hmb) _ hp
+    simp at this
 
 theorem TmpsApart.with (h : TmpsApart tf pf) :
     apartWith tf pf (Stmt.tmpsList tf.core.body) (tmpCellSet pf.locs (Stmt.tmpsList tf.core.body))
@@ -101,7 +131,7 @@ loop helper's own frame pointer). -/
 theorem TmpsApart.self (h : TmpsApart tf pf) {t : V} (ht : t ∈ Stmt.tmpsList tf.core.body) :
     cellP pf.locs t ≠ some (2 + tf.core.params.length + tf.rets) := fun he => by
   have := (tmpCellSet_contains pf.locs _ _).mpr ⟨t, ht, he⟩
-  rw [h.parts.2.2.2] at this
+  rw [h.parts.2.2.2.1] at this
   cases this
 
 /-- **A temporary has a cell.** -/
