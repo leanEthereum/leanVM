@@ -159,6 +159,7 @@ theorem instOf_ok (hW : W.Compiled) (htf : tf ∈ W.p) (hpa : World.PlacedAs W t
     show IsInK (OffsetInstruction.immediateWord (W.layout.pow W.layout.sentinel) 0)
     rw [hsize, Layout.immediateWord_pow hp hlt]
     exact (isInK_iff _).mpr ⟨_, rfl⟩
+  hsh := hta.noShift0
 
 /-- **The placement of a function of a compiled program**, scoped: every cell past the header,
 the instructions' cells in the frame. -/
