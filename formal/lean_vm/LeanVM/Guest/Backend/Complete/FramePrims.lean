@@ -464,6 +464,89 @@ theorem spongeInPlace_spec {vs : List V} {up : List Stmt} :
       · cases hfull
     · cases hb
 
+/-! ## Loads and the frame's own pointer -/
+
+/-- **A load emitted** into a good cell below the next free one: the `DEREF` holds and the pool
+learns the load, given the pointer in `K` and the word read (a temporary's load in its cell). -/
+theorem emitDeref_fat {ptr off dst : Cell} (hp2 : 2 ≤ ptr) (hd2 : 2 ≤ dst) (hd : dst < st.next)
+    (hk : ∀ Ψ, C Ψ → IsInK (Ψ ptr))
+    (hrd : ∀ Ψ, C Ψ → ((Fits I st ∧ ¬ I.tc dst) ∨ ∀ t ∈ I.tmps, cellP st.locs t ≠ some dst) →
+      ∀ rd, I.Rd rd → rd ((Ψ ptr).limb 0 * addressOfIndex off) = some (Ψ dst))
+    (htl : Fits I st → ∀ Ψ, C Ψ → I.tc dst → I.TL (Ψ ptr) off dst) :
+    FAt ctx I C st (emitDeref ptr off dst) (fun _ C' st' => C' = C ∧ st'.next = st.next ∧
+      st'.locs = st.locs ∧ st'.rest = st.rest) := by
+  unfold emitDeref
+  refine FAt.bind (emitOp_fat _ fun hz Ψ hΨ => ?_) fun _ st₁ C₁ _ _ _ ⟨hC₁, hst₁⟩ => ?_
+  · show IsInK (fw I Ψ ptr) ∧ (I.tc dst → I.TL (fw I Ψ ptr) off dst) ∧
+      (¬ I.tc dst → ∀ rd, FrameRd I Ψ rd → I.Rd rd →
+        rd ((fw I Ψ ptr).limb 0 * addressOfIndex off) = some (fw I Ψ dst))
+    rw [fw_of_two hp2, fw_of_two hd2]
+    exact ⟨hk Ψ hΨ, htl hz Ψ hΨ, fun ht rd _ hr => hrd Ψ hΨ (Or.inl ⟨hz, ht⟩) rd hr⟩
+  · subst hC₁ hst₁
+    refine FAt.mono (FAt.modify rfl rfl rfl fun hc => hc.withScope
+      (fun Ψ hΨ hp => hp.insertLoad ⟨hk Ψ hΨ, fun ht => hrd Ψ hΨ (Or.inr ht)⟩)
+      (fun hs => { hs with loads := pmap_insertIfNew_imp hs.loads ⟨hd2, hd⟩ }))
+      fun _ C' st' _ _ _ ⟨h1, h2⟩ => ?_
+    subst h1 h2
+    exact ⟨rfl, rfl, rfl, rfl⟩
+
+/-- **The frame's own pointer**: in `main` the pooled `1`, else the cell read back from a one-cell
+buffer whose word is the address of that cell, `g^(fp + o)`. -/
+theorem selfFp_fat (hok : I.Ok) (hmain : ctx.isMain = true → I.fp = 0) (h2 : 2 ≤ st.next)
+    (hsf : ¬ I.tc (st.next + 1)) :
+    FAt ctx I C st selfFp (fun o C' st' => 2 ≤ o ∧ o < st'.next ∧ st'.locs = st.locs ∧
+      st'.rest = st.rest ∧ ∀ Ψ, C' Ψ → Ψ o = I.fpw) := by
+  unfold selfFp
+  refine FAt.read_bind ?_
+  by_cases hm : ctx.isMain = true
+  · simp only [hm, ↓reduceIte]
+    refine FAt.mono (constCell_fat (1, 0) (hok.kconst _ _) h2)
+      fun o C' st' _ _ _ ⟨ha, hb, hc, hd, he⟩ => ⟨ha, hb, hc, hd, fun Ψ h => ?_⟩
+    rw [he Ψ h, word_one, Inst.fpw, hmain hm, ofK_gpow_zero]
+  · simp only [hm, Bool.false_eq_true, ↓reduceIte]
+    refine FAt.get_bind ?_
+    split
+    · next o ho =>
+      exact FAt.pureC fun hc => ⟨(hc.cells.selfFp o ho).1, (hc.cells.selfFp o ho).2, rfl, rfl,
+        fun Ψ hΨ => (hc.pools Ψ hΨ).selfFp o ho⟩
+    · intro hc
+      simp only [fresh, pushHint, emitOp, takeHints, push, wp_bind, wp_modifyGet, wp_modify,
+        wp_pure]
+      have hq : WBlind (fun _ => ofK (addressOfIndex (I.fp + (st.next + 1)))) st.next :=
+        wblind_const _ _
+      have hc₂ := ((hc.assign hq).assign (wblind_const I.fpw _)).withScope
+        (fun Ψ hΨ hp => hp.setSelfFp (o := st.next + 1) hΨ.2)
+        (fun hs => { hs with selfFp := fun o' h => by cases h; exact ⟨le_trans h2 (Nat.le_succ _), Nat.lt_succ_self _⟩ })
+      refine ⟨_, hc₂, fun _ h => h.1.1, ?_, LocsLe.refl _,
+        ⟨[.op (st.pending.push (.resolved (.alloc st.next 1))).toList (.deref st.next 0 0 .fp),
+          .op (#[] : Array LHint).toList (.deref st.next 0 (st.next + 1) .cell)], by simp,
+          fun hz s hs => ?_⟩, ?_⟩
+      · exact le_trans (Nat.le_succ _) (Nat.le_succ _)
+      swap
+      · refine ⟨le_trans h2 (Nat.le_succ _), Nat.lt_succ_self _, ?_⟩
+        simp only [true_and]
+        exact fun Ψ h => h.2
+      have hfr : ∀ Ψ, ((C Ψ ∧ Ψ st.next = ofK (addressOfIndex (I.fp + (st.next + 1)))) ∧
+          Ψ (st.next + 1) = I.fpw) → IsInK (fw I Ψ st.next) ∧ ∀ rd, FrameRd I Ψ rd →
+          rd ((fw I Ψ st.next).limb 0 * addressOfIndex 0) = some (fw I Ψ (st.next + 1)) := by
+        intro Ψ hΨ
+        rw [fw_of_two h2, fw_of_two (le_trans h2 (Nat.le_succ _)), hΨ.1.2]
+        refine ⟨isInK_ofK _, fun rd hr => ?_⟩
+        have hlimb : (ofK (addressOfIndex (I.fp + (st.next + 1)))).limb 0 * addressOfIndex 0 =
+            addressOfIndex (I.fp + (st.next + 1)) := by simp [addressOfIndex]
+        rw [hlimb]
+        have hsz : st.next + 1 + 1 ≤ I.size := hz.1
+        exact hr.2.2 _ (le_trans h2 (Nat.le_succ _)) hsz hsf
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
+      rcases hs with rfl | rfl
+      · refine ⟨_, _, rfl, fun Ψ hΨ => ?_⟩
+        obtain ⟨hk, hr⟩ := hfr Ψ hΨ
+        refine ⟨hk, fun rd hrd _ => ?_⟩
+        rw [hr rd hrd, fw_of_two (le_trans h2 (Nat.le_succ _)), hΨ.2]
+      · refine ⟨_, _, rfl, fun Ψ hΨ => ?_⟩
+        obtain ⟨hk, hr⟩ := hfr Ψ hΨ
+        exact ⟨hk, fun h => absurd h hsf, fun _ rd hrd _ => hr rd hrd⟩
+
 end Prims
 
 end
