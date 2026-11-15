@@ -577,6 +577,181 @@ theorem place_copy_fat (d s : V) (hds : d ≠ s) : AtomFAt (.copy d s) := by
     · subst C' st'
       exact ⟨fun _ => vw_same hv₂ hL (Stronger.refl _) le_rfl rfl, hr₂.trans hr₁⟩
 
+theorem cellOf_cell {v : V} {n : Cell} (h : st.locs[v]? = some (.cell n)) :
+    FAt ctx I C st (cellOf v) (fun c C' st' => c = n ∧ C' = C ∧ st' = st) := by
+  unfold cellOf
+  refine FAt.get_bind ?_
+  rw [h]
+  exact FAt.pure ⟨rfl, rfl, rfl⟩
+
+theorem cellOf_none {v : V} (h : st.locs[v]? = none) :
+    FAt ctx I C st (cellOf v) (fun _ _ _ => False) := by
+  unfold cellOf
+  refine FAt.get_bind ?_
+  rw [h]
+  exact FAt.fail
+
+theorem COk.grow {n : ℕ} {sc : Scope} {l l' : VMap Loc} (h : COk I C n sc l) (hl : LocsLe l l') :
+    COk I C n sc l' :=
+  ⟨h.sat, h.blind, fun Ψ hΨ => (h.pools Ψ hΨ).grow hl, h.cells⟩
+
+theorem pooledCell_hit {find : Scope → Option Cell} {learn : Cell → Scope → Scope}
+    {mk : Cell → LOp} {o : Cell} (hf : find st.scope = some o) :
+    FAt ctx I C st (pooledCell find learn mk) (fun o' C' st' => o' = o ∧ C' = C ∧ st' = st) := by
+  unfold pooledCell
+  refine FAt.get_bind ?_
+  rw [hf]
+  exact FAt.pure ⟨rfl, rfl, rfl⟩
+
+/-- **A pooled value placed**: the pool's cell, or a fresh one whose instruction holds once the
+final places put the value there. -/
+theorem pooled_fat {d : V} {find : Scope → Option Cell} {learn : Cell → Scope → Scope}
+    {mk : Cell → LOp} (Q : Cell → Prop) (w : (ℕ → E) → E) (hw : WBlind w st.next)
+    (h2 : 2 ≤ st.next)
+    (hfind : ∀ o, find st.scope = some o → ∀ Ψ, C Ψ → PoolW I Ψ st.locs st.scope → Q o →
+      Ψ o = w Ψ)
+    (hfc : ∀ o, find st.scope = some o → ScopeGood st.next st.scope → 2 ≤ o ∧ o < st.next)
+    (hmk : I.locs[d]? = some (.cell st.next) → st.next + 1 ≤ I.size → mk st.next ∈ I.ops →
+      ∀ Ψ, C Ψ → Ψ st.next = w Ψ → OpW I Ψ (mk st.next))
+    (hlearn : ∀ Ψ, C Ψ → Ψ st.next = w Ψ → PoolW I Ψ st.locs st.scope →
+      PoolW I Ψ st.locs (learn st.next st.scope))
+    (hcells : ScopeGood (st.next + 1) st.scope →
+      ScopeGood (st.next + 1) (learn st.next st.scope)) :
+    FAt ctx I C st (pooled d find learn mk) (fun _ C' st' => ∃ o, 2 ≤ o ∧ o < st'.next ∧
+      st'.locs = st.locs.insert d (.cell o) ∧ st.locs[d]? = none ∧ st'.rest = st.rest ∧
+      st.next ≤ st'.next ∧ ∀ Ψ, C' Ψ → Q o → Ψ o = w Ψ) := by
+  cases hf : find st.scope with
+  | some o =>
+    unfold pooled
+    refine FAt.bind (pooledCell_hit hf) fun o' st₁ C₁ _ _ _ ⟨ho, hC, hst⟩ => ?_
+    subst o' C₁ st₁
+    refine FAt.withCOk fun hc => FAt.mono (bindTo_fat d (.cell o))
+      fun _ C' st' _ _ _ ⟨hC', hst', hd0⟩ => ?_
+    subst C' st'
+    exact ⟨o, (hfc o hf hc.cells).1, (hfc o hf hc.cells).2, rfl, hd0, rfl, le_rfl,
+      fun Ψ hΨ hq => hfind o hf Ψ hΨ (hc.pools Ψ hΨ) hq⟩
+  | none =>
+    intro hc
+    unfold pooled pooledCell fresh emitOp takeHints push bindTo
+    simp only [wp_bind, wp_get, hf, wp_modifyGet, wp_modify, wp_pure]
+    split
+    · exact wp_bind.mpr wp_failP
+    · next hcont =>
+      have hd0 : st.locs[d]? = none :=
+        KMap.getElem?_eq_none_of_contains_eq_false (by simpa using hcont)
+      have hle : LocsLe st.locs (st.locs.insert d (.cell st.next)) := fun v x hx => by
+        rw [KMap.getElem?_insert]
+        split
+        · next he =>
+          subst he
+          rw [hd0] at hx
+          cases hx
+        · exact hx
+      refine wp_modify.mpr ⟨fun Ψ => C Ψ ∧ Ψ st.next = w Ψ, (((hc.assign hw).withScope
+        (fun Ψ hΨ hp => hlearn Ψ hΨ.1 hΨ.2 hp) hcells).grow hle), fun _ h => h.1,
+        Nat.le_succ _, hle, ⟨[.op st.pending.toList (mk st.next)], by simp,
+          fun hz hops s hs => ?_⟩,
+        st.next, h2, Nat.lt_succ_self _, rfl, hd0, rfl, Nat.le_succ _, fun Ψ h _ => h.2⟩
+      rw [List.mem_singleton] at hs
+      subst hs
+      refine ⟨_, _, rfl, fun Ψ hΨ => hmk ?_ hz.1 (hops _ _ List.mem_cons_self) Ψ hΨ.1 hΨ.2⟩
+      exact hz.2 d _ (by simp)
+
+/-- **A load**: a pooled load's cell (the pool's, or fresh with the `DEREF`), or a `DEREF` into
+the value's cell (a read, or a store of the value). The value is in a cell: a store of a shifted
+value is open (STATUS finding 2). -/
+theorem place_load_fat (d p : V) (off : ℕ) (ctx : Ctx) (I : Inst) (C : (ℕ → E) → Prop) (st : St)
+    (ok : V → Prop) (hok : I.Ok) (hh : ∀ rd, I.Rd rd → holdsNT rd I.σ (.load d p off))
+    (hus : ∀ v ∈ Memory.atomUses (.load d p off), v ∉ I.tmps) (h2 : 2 ≤ st.next)
+    (hv : VW I C st ok)
+    (hops : ∀ v ∈ Memory.atomUses (.load d p off) ++ Memory.atomTmps (.load d p off), ok v ∨
+      ∃ s, Atom.load d p off = .copy v s ∧ st.aliasRun.any (·.contains v) = true)
+    (hds : ∀ n e, st.locs[d]? ≠ some (.shifted n e)) :
+    FAt ctx I C st (placeAtom (.load d p off)) fun _ C' st' =>
+      (Fits I st' → VW I C' st' (fun v => ok v ∨
+        v ∈ Memory.atomUses (.load d p off) ++ Memory.atomTmps (.load d p off))) ∧
+        st'.rest = st.rest := by
+  have hL := atom_ok hops fun _ _ h => by cases h
+  have hkd : ok d := hL d (by simp [Memory.atomUses])
+  have hdt : d ∉ I.tmps := hus d (by simp [Memory.atomUses])
+  unfold placeAtom
+  dsimp only
+  refine FAt.bind (isLazy_fat d .pooled) fun z st₀ C₀ _ _ _ ⟨hC₀, hst₀⟩ => ?_
+  subst C₀ st₀
+  split
+  · refine FAt.bind (pointer_fat p off hok hv (hL p (by simp [Memory.atomUses])))
+      fun r st₁ C₁ hs₁ hn₁ _ ⟨r2, r1, hlo₁, hr₁, e, he, hwp⟩ => ?_
+    obtain ⟨ptr, o2⟩ := r
+    dsimp only at *
+    subst he
+    have hv₁ := hv.step hs₁ hn₁ hlo₁
+    have hload : ∀ Ψ, C₁ Ψ → ∀ rd, I.Rd rd →
+        IsInK (Ψ ptr) ∧ rd ((Ψ ptr).limb 0 * addressOfIndex (e + off)) = some (I.σ d) :=
+      fun Ψ hΨ rd hrd => load_shift (by rw [hwp Ψ hΨ]; exact hh rd hrd)
+    obtain ⟨rd₀, hrd₀⟩ := hok.rd
+    have h2' : 2 ≤ st₁.next := le_trans h2 hn₁
+    refine FAt.mono (pooled_fat (d := d) (fun o => ∀ t ∈ I.tmps, cellP st₁.locs t ≠ some o)
+      (fun _ => I.σ d) (wblind_const _ _) h2'
+      (fun o ho Ψ hΨ hp hq => by
+        have := (hp.loads _ o ho).2 hq rd₀ hrd₀
+        rw [(hload Ψ hΨ rd₀ hrd₀).2] at this
+        exact (Option.some.inj this).symm)
+      (fun o ho hs => hs.loads _ o ho) (fun hdl _ _ Ψ hΨ hw' => ?_)
+      (fun Ψ hΨ hw' hp => hp.insertLoad ⟨(hload Ψ hΨ rd₀ hrd₀).1, fun _ rd hrd => by
+        rw [hw']
+        exact (hload Ψ hΨ rd hrd).2⟩)
+      (fun hs => { hs with loads := pmap_insertIfNew_imp hs.loads ⟨h2', Nat.lt_succ_self _⟩ }))
+      fun _ C' st' hs' hn' _ ⟨o, o2', o1, hlo, hd0, hr, _, how⟩ => ⟨fun hz => ?_, hr.trans hr₁⟩
+    · show IsInK (fw I Ψ ptr) ∧ (I.tc st₁.next → I.TL (fw I Ψ ptr) (e + off) st₁.next) ∧
+        (¬ I.tc st₁.next → ∀ rd, FrameRd I Ψ rd → I.Rd rd →
+          rd ((fw I Ψ ptr).limb 0 * addressOfIndex (e + off)) = some (fw I Ψ st₁.next))
+      rw [fw_of_two r2, fw_of_two h2', hw']
+      refine ⟨(hload Ψ hΨ rd₀ hrd₀).1, fun ⟨t, ht, htc⟩ => ?_, fun _ rd _ hrd =>
+        (hload Ψ hΨ rd hrd).2⟩
+      exact absurd (hok.tsep d _ (by unfold cellP; rw [hdl]) ⟨t, ht, htc⟩) hdt
+    · refine vw_bind hv₁ (fun v hv' _ => hL v hv') hs' hn' hlo hd0 ⟨o2', o1, fun Ψ hΨ => ?_⟩
+      refine how Ψ hΨ fun t ht htc => ?_
+      have hI : I.locs[d]? = some (.cell o) := hz.2 d _ (by rw [hlo]; simp)
+      have hle : LocsLe st₁.locs st'.locs := fun v x hx => by
+        rw [hlo, KMap.getElem?_insert]
+        split
+        · next he' =>
+          subst he'
+          rw [hd0] at hx
+          cases hx
+        · exact hx
+      have htI : cellP I.locs t = some o := cellP_mono hz.2 (cellP_mono hle htc)
+      exact hdt (hok.tsep d o (by unfold cellP; rw [hI]) ⟨t, ht, htI⟩)
+  · cases hld : st.locs[d]? with
+    | none => exact FAt.bind (cellOf_none hld) fun _ _ _ _ _ _ h => h.elim
+    | some l =>
+    cases l with
+    | shifted n e => exact absurd hld (hds n e)
+    | cell o =>
+    obtain ⟨o2, o1, hwo⟩ := hv d _ hkd hld
+    refine FAt.bind (cellOf_cell hld) fun o' st₁ C₁ _ _ _ ⟨ho', hC₁, hst₁⟩ => ?_
+    subst o' C₁ st₁
+    refine FAt.bind (pointer_fat p off hok hv (hL p (by simp [Memory.atomUses])))
+      fun r st₂ C₂ hs₂ hn₂ _ ⟨r2, r1, hlo₂, hr₂, e, he, hwp⟩ => ?_
+    obtain ⟨ptr, o3⟩ := r
+    dsimp only at *
+    subst he
+    have hv₂ := hv.step hs₂ hn₂ hlo₂
+    have hload : ∀ Ψ, C₂ Ψ → ∀ rd, I.Rd rd →
+        IsInK (Ψ ptr) ∧ rd ((Ψ ptr).limb 0 * addressOfIndex (e + off)) = some (I.σ d) :=
+      fun Ψ hΨ rd hrd => load_shift (by rw [hwp Ψ hΨ]; exact hh rd hrd)
+    obtain ⟨rd₀, hrd₀⟩ := hok.rd
+    have hco : cellP st₂.locs d = some o := by unfold cellP; rw [hlo₂, hld]
+    refine FAt.mono (emitDeref_fat r2 o2 (lt_of_lt_of_le o1 hn₂)
+      (fun Ψ hΨ => (hload Ψ hΨ rd₀ hrd₀).1)
+      (fun Ψ hΨ _ rd hrd => by
+        rw [show Ψ o = I.σ d from hwo Ψ (hs₂ Ψ hΨ)]
+        exact (hload Ψ hΨ rd hrd).2)
+      (fun hz _ Ψ _ ⟨t, ht, htc⟩ => absurd (hok.tsep d o (cellP_mono hz.2 hco) ⟨t, ht, htc⟩) hdt))
+      fun _ C' st' _ _ _ ⟨hC, hn, hl, hr⟩ => ?_
+    subst C'
+    exact ⟨fun _ => vw_same hv₂ hL (Stronger.refl _) (le_of_eq hn.symm) hl, hr.trans hr₂⟩
+
 end Atoms
 
 end
