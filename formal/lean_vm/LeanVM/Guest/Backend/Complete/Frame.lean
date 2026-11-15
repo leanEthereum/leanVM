@@ -44,9 +44,11 @@ def locW (Ψ : ℕ → E) : Loc → E
 
 /-- One instance of a function: the valuation, the frame index, the readers the path's events hold
 on, the frame size and header, the words of the `SET` immediates of its straight-line
-instructions (as the layout resolves them), the temporaries, the final places and the path's
-events. The walk takes `σ` with the temporaries zeroed and `Rd` the readers of the events' parts
-that name no temporary, so the instance depends on the valuation off the temporaries only. -/
+instructions (as the layout resolves them), the temporaries, the final places, the path's events,
+the final instructions, the values the function names, whether it is a registered loop helper, and
+the callee frames of the path's calls (`kf`, which the walk sets). The walk takes `σ` with the
+temporaries zeroed and `Rd` the readers of the events' parts that name no temporary, so the
+instance depends on the valuation off the temporaries only. -/
 structure Inst where
   σ : Val
   fp : ℕ
@@ -60,6 +62,7 @@ structure Inst where
   ops : List LOp
   named : List V
   loopH : Bool
+  kf : List ℕ
 
 /-- The frame pointer's word. -/
 def Inst.fpw (I : Inst) : E := ofK (addressOfIndex I.fp)
@@ -337,12 +340,6 @@ def flushSeg : List Event → List Event
       match e with
       | .emit | .enter | .leave => []
       | _ => e :: flushSeg es
-
-/-- The values the events make. -/
-def allocsOf (rs : List Event) : List V :=
-  rs.flatMap fun
-    | .alloc vs _ => vs
-    | _ => []
 
 /-- **The shape of an atom on the path** (`FrameAtoms.lean`): from a state whose known values
 include the atom's (a copy dropped into a sponge alias apart), the atom an event of the path, its
