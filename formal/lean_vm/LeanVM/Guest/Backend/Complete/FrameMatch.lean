@@ -678,6 +678,58 @@ theorem matchCells_fat (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0)
     fun Ψ hΨ => hfw Ψ (hs₄ Ψ hΨ), ho2, holt, how, by rw [hlo₄, hlo₃, hlo₁],
     by rw [hr₄, hr₃, hr₁]⟩
 
+/-- **The words a chain's head gives its fresh cells**, fixed when the cells are made though they
+name positions placed later: the join's is what the final instructions `SET` at the chain's
+position `pos`, the entry's the target of the arm `j` the selector picks, read off the arms'
+placement from the state `st'` they start in (placement is a function of its state). -/
+def joinW (I : Inst) (pos : ℕ) : E :=
+  match I.ops[pos]? with
+  | some (.set _ k) => I.kw k
+  | _ => 0
+
+def entryW {κ₀ : ℕ} (Γ : Site κ₀) (ctx : Backend.Ctx) (arms : List (List Stmt)) (exit : ArmExit)
+    (j pos : ℕ) (st' : St) : E :=
+  match placeArms arms 0 arms.length st'.next exit ctx st' with
+  | .ok (bs, _) => Γ.tgt (pos + 3 + armsSize (bs.take j))
+  | .error _ => 0
+
+theorem joinW_eq {I : Inst} {pos join : ℕ} {k : KVal} (h : I.ops[pos]? = some (.set join k)) :
+    joinW I pos = I.kw k := by
+  simp [joinW, h]
+
+theorem entryW_eq {κ₀ : ℕ} {Γ : Site κ₀} {arms : List (List Stmt)} {exit : ArmExit}
+    {j pos : ℕ} {st' st'' : St} {bs : List (List PStmt)}
+    (h : placeArms arms 0 arms.length st'.next exit ctx st' = .ok (bs, st'')) :
+    entryW Γ ctx arms exit j pos st' = Γ.tgt (pos + 3 + armsSize (bs.take j)) := by
+  simp [entryW, h]
+
+/-- **A chain's head cells**: the join and the entry, fresh with the words `wj` and `we`, the hints
+taken, the first stage's table. -/
+theorem headCells_fat (wj we : E) (n : ℕ) :
+    FAt ctx I C st (do
+      let join ← fresh
+      let hints ← takeHints
+      let first ← allocTable n
+      let entry ← fresh
+      pure (join, first, some (hints, entry))) fun r C' st' =>
+      r.1 = st.next ∧ r.2.1 = st.tables.len ∧ (r.2.2.map Prod.snd) = some (st.next + 1) ∧
+      st' = { st with next := st.next + 2, tables.len := st.tables.len + n, pending := #[] } ∧
+      C' = fun Ψ => (C Ψ ∧ Ψ st.next = wj) ∧ Ψ (st.next + 1) = we := by
+  refine FAt.bind (fresh_fat (fun _ => wj) (wblind_const wj _))
+    fun join st₁ C₁ _ _ _ ⟨hj, hst₁, hC₁⟩ => ?_
+  subst hj hst₁ hC₁
+  refine FAt.bind takeHints_fat fun hints st₂ C₂ _ _ _ ⟨hC₂, hst₂⟩ => ?_
+  subst hC₂ hst₂
+  refine FAt.bind (FAt.ofSame (R := fun a C' st' => a = st.tables.len ∧ C' = _ ∧
+      st' = { st with next := st.next + 1, tables.len := st.tables.len + n, pending := #[] })
+    (wp_modifyGet.mpr ⟨rfl, rfl, rfl, LocsLe.refl _, rfl, rfl, rfl⟩))
+    fun first st₃ C₃ _ _ _ ⟨hf, hC₃, hst₃⟩ => ?_
+  subst hf hC₃ hst₃
+  refine FAt.bind (fresh_fat (fun _ => we) (wblind_const we _))
+    fun entry st₄ C₄ _ _ _ ⟨he, hst₄, hC₄⟩ => ?_
+  subst he hst₄ hC₄
+  exact FAt.pure ⟨rfl, rfl, rfl, rfl, rfl⟩
+
 end Cells
 
 end
