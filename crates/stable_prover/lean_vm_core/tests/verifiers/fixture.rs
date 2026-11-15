@@ -52,9 +52,7 @@ fn public_input(loop_steps: usize) -> [F128; 2] {
         .flat_map(|v| [v, 0])
         .flat_map(u64::to_le_bytes)
         .collect();
-    let digest = primitives::hash::hash(&message);
-    let word = |i: usize| u64::from_le_bytes(digest[8 * i..8 * i + 8].try_into().unwrap());
-    let digest = [F128::new(word(0), word(1)), F128::new(word(2), word(3))];
+    let digest: [F128; 2] = fiat_shamir::merkle::hash_to_scalars(&primitives::hash::hash(&message));
     let mut value = digest[0];
     let mut index = F128::ONE;
     let generator = F128::from(g_pow(1));

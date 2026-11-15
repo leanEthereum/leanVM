@@ -173,8 +173,8 @@ pub fn prove(
     // The statement, the program's IV and the public input, seeds the transcript; the sizes and the commitment come
     // before any challenge.
     let mut ps = ProverState::new(
-        fiat_shamir::digest_words(&program.bytecode().fiat_shamir_iv()),
-        fiat_shamir::digest_words(&public_input_bytes(&public_input)),
+        verifier::Digest(program.bytecode().fiat_shamir_iv()).words(),
+        verifier::Digest(public_input_bytes(&public_input)).words(),
     );
     announce_public(&mut ps, log_mem, w.layout.rows, log_inv_rate);
     let committed = crate::stage!("Commit", || pcs::commit(&mut ps, &w.q, w.layout.shape, log_inv_rate));
@@ -261,12 +261,7 @@ pub fn from_scalar(value: verifier::E) -> F128 {
 
 /// The statement as the 32 bytes the `verifier` crate takes: the two limbs of each half.
 pub fn public_input_bytes(public_input: &[F128; 2]) -> [u8; 32] {
-    let mut bytes = [0; 32];
-    let limbs = public_input.iter().flat_map(|half| [half.c0, half.c1]);
-    for (chunk, limb) in bytes.as_chunks_mut().0.iter_mut().zip(limbs) {
-        *chunk = limb.to_le_bytes();
-    }
-    bytes
+    verifier::Digest::from_halves(to_scalar(&public_input[0]), to_scalar(&public_input[1])).0
 }
 
 /// Verify a proof against the public statement (program + public input). The `verifier` crate does it: this only

@@ -20,6 +20,8 @@ mod transcript;
 pub use transcript::ProverState;
 pub use verifier::{Proof, RATE_SCALARS, SECURITY_BITS, grinding_bits};
 
+use verifier::Digest;
+
 use keccak256::STATE_LANES;
 
 /// A field element of the challenge field `E`, as its two `K` limbs: what each prover's field implements to run on
@@ -51,12 +53,6 @@ impl Search for Sequential {
     fn find_first(n: usize, f: &(dyn Fn(usize) -> bool + Sync)) -> Option<usize> {
         (0..n).find(|&i| f(i))
     }
-}
-
-/// A 32-byte digest as four little-endian words.
-pub fn digest_words(digest: &[u8; 32]) -> [u64; 4] {
-    let words = digest.as_chunks::<8>().0;
-    std::array::from_fn(|index| u64::from_le_bytes(words[index]))
 }
 
 /// The rate's lanes, four per scalar.
@@ -100,7 +96,7 @@ impl<F: Scalar> FiatShamirState<F> {
     /// Seed a protocol that has no public input of its own from `label`, whose hash
     /// is all a domain separator has to be.
     pub fn from_label(label: &[u8]) -> Self {
-        Self::new(digest_words(&keccak256::hash(label)), [0; 4])
+        Self::new(Digest(keccak256::hash(label)).words(), [0; 4])
     }
 
     /// Permute, taking the waiting scalars, and return the output's first two lanes.
@@ -215,7 +211,7 @@ mod tests {
 
     #[test]
     fn fs_binds_the_public_input() {
-        let iv = digest_words(&keccak256::hash(b"t"));
+        let iv = Digest(keccak256::hash(b"t")).words();
         let mut a = State::new(iv, pi(1));
         let mut b = State::new(iv, pi(2));
         assert_ne!(a.sample(), b.sample());
@@ -223,8 +219,8 @@ mod tests {
 
     #[test]
     fn fs_binds_the_iv() {
-        let mut a = State::new(digest_words(&keccak256::hash(b"t")), pi(1));
-        let mut b = State::new(digest_words(&keccak256::hash(b"u")), pi(1));
+        let mut a = State::new(Digest(keccak256::hash(b"t")).words(), pi(1));
+        let mut b = State::new(Digest(keccak256::hash(b"u")).words(), pi(1));
         assert_ne!(a.sample(), b.sample());
     }
 
@@ -272,7 +268,7 @@ mod tests {
 
     #[test]
     fn pow_predicate() {
-        let mut sp = State::new(digest_words(&keccak256::hash(b"t")), pi(1));
+        let mut sp = State::new(Digest(keccak256::hash(b"t")).words(), pi(1));
         sp.observe(f(7));
         for bits in [2, 8, 13, 17] {
             let mut clone = sp.clone();

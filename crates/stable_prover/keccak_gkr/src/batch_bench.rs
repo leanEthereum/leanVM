@@ -102,7 +102,7 @@ impl Report {
 /// The transcript of a batch proved alone, as `verifier::verify_keccak_batch` reads it: seeded
 /// from `label` and, as its public input, the shape and the PCS rate.
 pub(crate) fn batch_transcript(label: &[u8], shape: Shape, log_inv_rate: usize) -> ProverState {
-    let iv = fiat_shamir::digest_words(&primitives::hash::hash(label));
+    let iv = verifier::Digest(primitives::hash::hash(label)).words();
     let statement = [shape.n_log(), shape.depth(), log_inv_rate, 0].map(|w| w as u64);
     ProverState::new(iv, statement)
 }

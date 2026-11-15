@@ -1,19 +1,16 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-core), MIT OR Apache-2.0.
 //! Digest encoding and the Merkle openings a proof carries ([`MerklePath`]), prover side.
 
-use crate::{Scalar, digest_words};
+use crate::Scalar;
+use verifier::Digest;
 pub use verifier::MerklePath;
 
 pub type Hash = [u8; 32];
 
-/// Encode a Merkle hash as the two field words transcripts carry it in: two
-/// 128-bit halves, each a K pair. Every digest in the
-/// protocol uses this one split (the commitment root, the public input, the
-/// guest's MD state), so the VM sees one shape everywhere.
-#[inline]
+/// A digest as the two scalars it travels in, its halves ([`Digest::halves`]) in the prover's field.
 pub fn hash_to_scalars<F: Scalar>(hash: &Hash) -> [F; 2] {
-    let [w0, w1, w2, w3] = digest_words(hash);
-    [F::from_limbs([w0, w1]), F::from_limbs([w2, w3])]
+    let (low, high) = Digest(*hash).halves();
+    [low, high].map(|half| F::from_limbs([half.c0, half.c1]))
 }
 
 /// Hash one leaf given as its words, little-endian on any host.
