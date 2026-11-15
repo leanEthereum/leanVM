@@ -1,10 +1,11 @@
 //! The stable prover's primitives: the fields and their one SIMD layer ([`field`]), Keccak-256 ([`hash`]), the
-//! weighted bit fold ([`bit_fold`]), multilinear helpers ([`multilinear`]), and small integer and slice utilities.
+//! weighted bit fold ([`bit_fold`]), multilinear helpers ([`multilinear`]), the shared transcript on this field ([`transcript`]), and small integer and slice utilities.
 
 pub mod bit_fold;
 pub mod field;
 pub mod hash;
 pub mod multilinear;
+pub mod transcript;
 
 #[cfg(feature = "test-util")]
 pub mod test_rng;

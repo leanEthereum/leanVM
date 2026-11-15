@@ -26,9 +26,9 @@ use crate::merkle::{self, Hash};
 use crate::ntt::{AdditiveNttF64, Codeword, Keep};
 use crate::stack_open::Terms;
 use fiat_shamir::merkle::MerklePath;
-use fiat_shamir::transcript::ProverState;
 use primitives::field::{Acc8, F64, F128, F128Unreduced, F128x8, fold_pairs8_ext, msg_terms8_ext, powers};
 use primitives::multilinear::{eq_table, interp};
+use primitives::transcript::ProverState;
 
 use super::whir_config::{FOLD_GRINDING_BITS, OOD_GRINDING_BITS};
 pub use super::whir_config::{
@@ -1007,7 +1007,7 @@ mod tests {
 
                 let prove = |msg: &[F64]| {
                     let (cm, pd) = commit(msg, log_n, pc.initial_k, pc.log_inv_rates[0]);
-                    let mut ps = fiat_shamir::transcript::ProverState::from_label(b"whir-test");
+                    let mut ps = primitives::transcript::ProverState::from_label(b"whir-test");
                     open_batch_mixed_whir_stacked(&mut ps, log_n, msg.to_vec(), pd, &pc, &claims, &ring);
                     (cm.root, ps.into_proof())
                 };

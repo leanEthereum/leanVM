@@ -76,6 +76,7 @@ impl MerkleTree {
         row: impl Fn(usize) -> &'a [F64],
     ) -> Vec<MerklePath> {
         let node = |level: usize, i: usize| self.levels[level][i];
+        let row = |q| row(q).iter().map(|word| word.0);
         fiat_shamir::merkle::open(self.levels[0].len(), positions, leaf_words, node, row)
     }
 }

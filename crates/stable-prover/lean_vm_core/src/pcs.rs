@@ -10,8 +10,8 @@
 //! Every supported rate uses Johnson list decoding with OOD binding ([`::pcs::whir::SECURITY_BITS`]). Level 0 takes
 //! its OOD sample right after its root ([`::pcs::ood`]), each deeper commitment one inside the opening.
 
-use fiat_shamir::transcript::ProverState;
 use primitives::field::F64;
+use primitives::transcript::ProverState;
 
 use ::pcs::ood::ood_sample;
 use ::pcs::stack_open::open_batch_mixed_whir_stacked;

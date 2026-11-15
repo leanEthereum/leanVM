@@ -76,10 +76,10 @@
 //! Step 4 runs on tables of the 1600 positions. The blocks past the last input all equal the padding block, which
 //! every pass walks once, at their summed weight.
 
-use fiat_shamir::transcript::ProverState;
 use keccak::{LANE_VARS, LANES};
 use primitives::field::{F64, F128, F128Unreduced};
 use primitives::multilinear::eq_table;
+use primitives::transcript::ProverState;
 use protocol::{dot, first_claim};
 
 #[cfg(feature = "bench")]

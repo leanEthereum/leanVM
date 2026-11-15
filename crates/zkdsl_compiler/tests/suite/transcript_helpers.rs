@@ -1,6 +1,6 @@
 //! The recursion guest's Fiat-Shamir step, written as it is there: a scalar packed into
 //! the rate, a `keccak(.., cap=)` duplex step, and a challenge read off the output,
-//! against the duplex sponge of `fiat_shamir::FiatShamirState`.
+//! against the duplex sponge of `fiat_shamir_prover::FiatShamirState`.
 
 use crate::common::compile;
 use crate::common::f128_literal;

@@ -9,6 +9,7 @@ workspace = true
 
 [dependencies]
 parallel = { package = "experimental_parallel", path = "../parallel" }
+fiat_shamir_prover.workspace = true
 rand = { workspace = true, optional = true }
 
 [features]

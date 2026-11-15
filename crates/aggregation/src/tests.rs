@@ -7,7 +7,7 @@ use super::placeholders::placeholder_map;
 use super::proof::{AggregateClaims, AggregateProof, decode, encode, public_input};
 use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
 use super::*;
-use fiat_shamir::merkle::hash_to_scalars;
+use fiat_shamir_prover::merkle::hash_to_scalars;
 use isa::Prover;
 use keccak256::{hash, hash_pair};
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS, Hash, LOG_BLOB_SYMBOLS};

@@ -11,8 +11,8 @@ use super::deferred::RECURSION_AGG_LABEL;
 use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW};
 use super::statement::{BIG_GROUPS, CLAIM_GROUP, STATEMENT_HEADER};
 use super::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
-use fiat_shamir::merkle::hash_to_scalars;
-use fiat_shamir::{FiatShamirState, RATE_SCALARS, grinding_bits};
+use fiat_shamir_prover::merkle::hash_to_scalars;
+use fiat_shamir_prover::{FiatShamirState, RATE_SCALARS, grinding_bits};
 use lean_da::{CELLS_PER_ROW, DA_MAX_ROWS, LOG_BLOB_SYMBOLS, LOG_CELL_SYMBOLS, LOG_CODEWORD_SYMBOLS};
 use lean_vm_core::constraints::xi_offsets;
 use lean_vm_core::cpu::{
@@ -874,7 +874,7 @@ fn bytecode_placeholders(kbc: usize, nbcv: usize, ps: &mut impl FnMut(&str, Stri
     ps("LOG2_BYTECODE_COLS", log2_bc_cols.to_string());
     ps("DEFER_SIZE", (kbc + log2_bc_cols + 1).to_string());
     ps("BYTECODE_VARS", (kbc + log2_bc_cols).to_string());
-    let agg_seed = FiatShamirState::from_label(RECURSION_AGG_LABEL).capacity_cells();
+    let agg_seed = FiatShamirState::<F128>::from_label(RECURSION_AGG_LABEL).capacity_cells();
     for (c, cell) in agg_seed.iter().enumerate() {
         ps(&format!("AGG_SEED_{c}"), f128_literal(*cell));
     }

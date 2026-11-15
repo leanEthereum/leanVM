@@ -17,9 +17,9 @@ use std::ops::Range;
 
 use crate::eq::SplitEq;
 use crate::leaf::N_BUS_TREES as TREES;
-use fiat_shamir::transcript::ProverState;
 use primitives::field::{Acc8, F128, F128x8};
 use primitives::multilinear::interp;
+use primitives::transcript::ProverState;
 
 /// The leaf claims a batched grand-product proof ends on: every tree's at one shared point.
 pub(crate) struct Products {
@@ -379,6 +379,7 @@ fn add_message(group: &[F128; 4 * GROUP], eq: F128x8, acc: &mut [Acc8; 4]) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cpu::to_scalar;
     use primitives::multilinear::eq_table;
 
     fn mle_eval_e(table: &[F128], point: &[F128]) -> F128 {
@@ -446,7 +447,10 @@ mod tests {
             let mut ps = ProverState::from_label(b"radix-four-gkr-test");
             let proved = prove_products(leaves.clone(), Default::default(), &mut ps);
             let stream = ps.into_proof().stream;
-            assert_eq!(stream[..2], [product(&leaves[0]), product(&leaves[2])]);
+            assert_eq!(
+                stream[..2],
+                [product(&leaves[0]), product(&leaves[2])].map(|x| to_scalar(&x))
+            );
             for lane in 0..3 {
                 assert_eq!(proved.values[lane], mle_eval_e(&leaves[lane], &proved.point));
             }
@@ -474,7 +478,10 @@ mod tests {
                 assert_eq!(proved.values[lane], mle_eval_e(&dense[lane], &proved.point));
             }
             let proof = sparse_ps.into_proof();
-            assert_eq!(proof.stream[..2], [product(&dense[0]), product(&dense[2])]);
+            assert_eq!(
+                proof.stream[..2],
+                [product(&dense[0]), product(&dense[2])].map(|x| to_scalar(&x))
+            );
             let mut dense_ps = ProverState::from_label(b"sparse-radix-four-gkr-test");
             let dense_proved = prove_products(dense, Default::default(), &mut dense_ps);
             assert_eq!(dense_proved.point, proved.point);

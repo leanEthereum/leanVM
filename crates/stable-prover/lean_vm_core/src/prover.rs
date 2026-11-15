@@ -30,9 +30,7 @@ impl isa::Prover for StableProver {
         public_input: [E; 2],
         log_inv_rate: usize,
     ) -> Result<(verifier::Proof, isa::Stats), String> {
-        let (proof, stats) =
-            cpu::prove(program, public_input.map(from_scalar), log_inv_rate).map_err(|e| e.to_string())?;
-        Ok((cpu::scalar_proof(&proof), stats))
+        cpu::prove(program, public_input.map(from_scalar), log_inv_rate).map_err(|e| e.to_string())
     }
 
     fn map_collect<T: Send>(n: usize, f: impl Fn(usize) -> T + Sync) -> Vec<T> {

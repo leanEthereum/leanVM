@@ -1,7 +1,7 @@
 //! Compiling the guest to a fixed point on its own size, and what every prover and verifier derives from it once.
 
 use super::placeholders::placeholder_map;
-use fiat_shamir::merkle::hash_to_scalars;
+use fiat_shamir_prover::merkle::hash_to_scalars;
 use isa::{CompiledProgram, Op, Prover};
 use primitives::field::F128;
 use std::any::{Any, TypeId};

@@ -48,8 +48,8 @@
 //! sumcheck's xi ranges do, so every claim carries a distinct power (the
 //! batching step of `thm:rbr`).
 
-use fiat_shamir::transcript::ProverState;
 use primitives::field::{F64, F128, powers};
+use primitives::transcript::ProverState;
 
 use super::ring_switch;
 use super::whir::{ProverConfig, ProverData};

@@ -919,6 +919,7 @@ pub(crate) fn prove_products(leaves: [Leaves; TREES], ps: &mut ProverState) -> P
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cpu::to_scalar;
 
     fn mle_eval_e(table: &[F128], point: &[F128]) -> F128 {
         assert_eq!(table.len(), 1 << point.len());
@@ -1034,7 +1035,10 @@ mod tests {
             let mut ps = ProverState::from_label(b"radix-four-gkr-test");
             let proved = prove_products(leaves.each_ref().map(|l| Leaves::new(l.to_vec())), &mut ps);
             let stream = ps.into_proof().stream;
-            assert_eq!(stream[..2], [product(&leaves[0]), product(&leaves[2])]);
+            assert_eq!(
+                stream[..2],
+                [product(&leaves[0]), product(&leaves[2])].map(|x| to_scalar(&x))
+            );
             for lane in 0..3 {
                 assert_eq!(proved.values[lane], mle_eval_e(&leaves[lane], &proved.point));
             }
@@ -1062,7 +1066,10 @@ mod tests {
                 assert_eq!(proved.values[lane], mle_eval_e(&dense[lane], &proved.point));
             }
             let proof = sparse_ps.into_proof();
-            assert_eq!(proof.stream[..2], [product(&dense[0]), product(&dense[2])]);
+            assert_eq!(
+                proof.stream[..2],
+                [product(&dense[0]), product(&dense[2])].map(|x| to_scalar(&x))
+            );
             let mut dense_ps = ProverState::from_label(b"sparse-radix-four-gkr-test");
             let dense_proved = prove_products(dense.each_ref().map(|l| Leaves::new(l.to_vec())), &mut dense_ps);
             assert_eq!(dense_proved.point, proved.point);

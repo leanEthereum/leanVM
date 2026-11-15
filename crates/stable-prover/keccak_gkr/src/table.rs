@@ -5,10 +5,10 @@
 //! ([`PackFold`]). The table holds a row of positions per group, block and segment, and each round folds it in
 //! half while summing the next round's values over the rows it writes ([`Summand::pair`]).
 
-use fiat_shamir::transcript::ProverState;
 use primitives::field::lanes::transpose_bytes;
 use primitives::field::{Acc8, F128, F128Unreduced, F128x8};
 use primitives::multilinear::eq_table;
+use primitives::transcript::ProverState;
 use verifier::PACK;
 
 use crate::keccak::{BITS, along};

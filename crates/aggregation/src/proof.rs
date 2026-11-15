@@ -81,7 +81,7 @@ pub(super) fn public_input(claims: &AggregateClaims, defer: &DeferredBytecodeCla
 
 impl AggregateProof {
     pub fn to_bytes(&self) -> Vec<u8> {
-        encode(&self.bytecode_point, &crate::vm::to_bytes(&self.proof))
+        encode(&self.bytecode_point, &self.proof.to_bytes())
     }
 
     /// Decode a proof, `None` if the bytes are not one. This does not verify: call [`Self::verify`].
@@ -90,7 +90,7 @@ impl AggregateProof {
         if bytecode_point.len() != bytecode_vars() {
             return None;
         }
-        let proof = crate::vm::from_bytes(proof)?;
+        let proof = verifier::Proof::from_bytes(proof)?;
         Some(Self { bytecode_point, proof })
     }
 

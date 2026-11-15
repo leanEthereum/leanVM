@@ -16,10 +16,10 @@
 //! polynomial in `s` ([`AtS`]), the weight multiplies it in two more, so a block's sums are binary polynomials,
 //! evaluated at `s` once per point.
 
-use fiat_shamir::transcript::ProverState;
 use primitives::field::lanes::Wide8;
 use primitives::field::{F128, F128Unreduced, clmul8_low, powers};
 use primitives::multilinear::{eq_table, poly_eval};
+use primitives::transcript::ProverState;
 use verifier::PRODUCT_BITS;
 
 use crate::keccak::row_positions;

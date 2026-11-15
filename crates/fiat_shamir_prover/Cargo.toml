@@ -1,0 +1,12 @@
+[package]
+name = "fiat_shamir_prover"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+verifier.workspace = true
+keccak256.workspace = true

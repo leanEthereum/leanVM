@@ -16,9 +16,9 @@
 //! parts, folded as `E` columns (`Grouped`), rather than as its columns folded one by one.
 
 use crate::{load_e, load_k};
-use fiat_shamir::transcript::ProverState;
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8};
 use primitives::multilinear::{eq_table, poly_eval, shrink_eq_high};
+use primitives::transcript::ProverState;
 
 /// A degree-two form over one table's columns: `constant + Σ_c coeffs[c]·col_c + Σ q·col_a·col_b` over `prods`.
 #[derive(Clone, Debug)]

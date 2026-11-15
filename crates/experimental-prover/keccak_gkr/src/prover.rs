@@ -9,9 +9,9 @@
 //! From `s` on, everything stays in the power basis of `s` ([`crate::power`]) until the tables
 //! are down to one row.
 
-use fiat_shamir::transcript::ProverState;
 use primitives::field::{F128, F128Unreduced};
 use primitives::multilinear::{eq_table, poly_eval};
+use primitives::transcript::ProverState;
 
 use crate::basis::{PolyEval, add_mul, carry};
 use crate::keccak::{BITS, LOCAL_VARS, along, linear_transpose, row_positions};

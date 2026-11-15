@@ -1,10 +1,11 @@
-use fiat_shamir::transcript::{Proof, ProverState};
+use fiat_shamir::Proof;
 use primitives::field::F128;
 use primitives::multilinear::eq_table;
 use primitives::test_rng::Rng;
+use primitives::transcript::ProverState;
 use verifier::VerifierError;
 
-use crate::batch_bench::{batch_instance, batch_transcript, commit_stack, open_commitment, scalar_proof};
+use crate::batch_bench::{batch_instance, batch_transcript, commit_stack, open_commitment};
 use crate::keccak::{BITS, LANE_VARS, LANES, LOCAL_VARS};
 use crate::open::state_words;
 use crate::protocol::{Claim, first_claim};
@@ -86,7 +87,7 @@ const LABEL: &[u8] = b"keccak-gkr-test";
 fn verify(shape: Shape, proof: &Proof) -> Result<(), VerifierError> {
     let iv = primitives::hash::hash(LABEL);
     let log_inv_rate = pcs::whir::LOG_INV_RATE_0;
-    verifier::verify_keccak_batch(&iv, shape.n_log(), shape.depth(), log_inv_rate, &scalar_proof(proof))
+    verifier::verify_keccak_batch(&iv, shape.n_log(), shape.depth(), log_inv_rate, proof)
 }
 
 /// A proof of the batch `inputs`, its output claim offset by `lane_error` in one lane.
@@ -172,7 +173,7 @@ fn end_to_end(n_instances: usize, depth: usize) {
     verify(shape, &proof).expect("an honest proof verifies");
     for at in (2..proof.stream.len()).step_by(proof.stream.len() / 31 + 1) {
         let mut bad = proof.clone();
-        bad.stream[at] += F128::ONE;
+        bad.stream[at] += verifier::E::new(1, 0);
         let err = verify(shape, &bad).expect_err("a changed scalar is rejected");
         if let Some(check) = keccak_check(shape, at) {
             assert_eq!(err, check, "scalar {at}");

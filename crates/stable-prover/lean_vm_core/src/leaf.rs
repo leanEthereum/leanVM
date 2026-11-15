@@ -13,9 +13,9 @@ use std::sync::Arc;
 
 use crate::constraints::Form;
 use crate::gkr::{self, Ones};
-use fiat_shamir::transcript::ProverState;
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8, g_pow, g_pow32_by_lookup, index_mle, mul_by_g};
 use primitives::multilinear::{eq_eval, interp};
+use primitives::transcript::ProverState;
 use verifier::layout::{GLOBAL_COLUMN_BASES, TABLE_WIDTHS};
 
 /// One tuple coordinate as a function of the block's row `z`.

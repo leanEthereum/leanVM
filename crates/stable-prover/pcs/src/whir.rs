@@ -19,10 +19,10 @@
 //! 3. at the last level, sends the folded lane, opens its oracle at the queries, and closes with the tail sumcheck.
 
 use fiat_shamir::merkle::MerklePath;
-use fiat_shamir::transcript::ProverState;
 use primitives::field::{Acc8, F64, F128, F128x8, powers};
 use primitives::hash::OUT_LEN;
 use primitives::multilinear::eq_table;
+use primitives::transcript::ProverState;
 
 use crate::merkle::{Hash, LeafHasher, MerkleTree};
 use crate::ntt::AdditiveNttF64;

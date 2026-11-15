@@ -1,26 +1,22 @@
 //! Fiat-Shamir proof transport, prover side. `add_scalar` transmits and binds together, which is the only way anything enters the state: a transmitted value needs no separate absorb, a value derived from transmitted ones needs none either, and the statement rides the seed the state starts from. So there is no absorb-only method at all. Merkle hints are authenticated by their trees and are not absorbed separately. The reading side is the `verifier` crate's transcript.
 
-use crate::FiatShamirState;
+use std::marker::PhantomData;
+
 use crate::merkle::{Hash, MerklePath, hash_to_scalars};
-use primitives::field::{F64, F128};
+use crate::{FiatShamirState, Proof, Scalar, Search, grinding_bits};
 
-/// A scalar stream and its Merkle opening phases, each query's path in the order the verifier samples them.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Proof {
-    pub stream: Vec<F128>,
-    pub merkle: Vec<Vec<MerklePath>>,
-}
-
-/// Writes scalars into the stream and opening phases to the side.
-pub struct ProverState {
-    fs: FiatShamirState,
-    stream: Vec<F128>,
+/// Writes scalars into the stream and opening phases to the side, the stream in the verifier's field. A long grind
+/// searches on `S`.
+pub struct ProverState<F, S> {
+    fs: FiatShamirState<F>,
+    stream: Vec<verifier::E>,
     merkle: Vec<Vec<MerklePath>>,
+    search: PhantomData<S>,
 }
 
-impl ProverState {
+impl<F: Scalar, S: Search> ProverState<F, S> {
     /// `iv` and `public_input` seed the Fiat-Shamir state (see [`FiatShamirState::new`]).
-    pub fn new(iv: [F64; 4], public_input: [F64; 4]) -> Self {
+    pub fn new(iv: [u64; 4], public_input: [u64; 4]) -> Self {
         Self::from_fs(FiatShamirState::new(iv, public_input))
     }
 
@@ -29,26 +25,27 @@ impl ProverState {
         Self::from_fs(FiatShamirState::from_label(label))
     }
 
-    fn from_fs(fs: FiatShamirState) -> Self {
+    fn from_fs(fs: FiatShamirState<F>) -> Self {
         Self {
             fs,
             stream: Vec::new(),
             merkle: Vec::new(),
+            search: PhantomData,
         }
     }
 
     pub fn into_proof(self) -> Proof {
         Proof {
             stream: self.stream,
-            merkle: self.merkle,
+            merkle_openings: self.merkle,
         }
     }
 
-    pub fn sample(&mut self) -> F128 {
+    pub fn sample(&mut self) -> F {
         self.fs.sample()
     }
 
-    pub fn sample_vec(&mut self, n: usize) -> Vec<F128> {
+    pub fn sample_vec(&mut self, n: usize) -> Vec<F> {
         self.fs.sample_vec(n)
     }
 
@@ -61,12 +58,13 @@ impl ProverState {
     /// Transmit a scalar into the proof AND bind it into the state (the two are
     /// inseparable: you cannot send without binding).
     #[inline]
-    pub fn add_scalar(&mut self, x: F128) {
+    pub fn add_scalar(&mut self, x: F) {
         self.fs.observe(x);
-        self.stream.push(x);
+        let [c0, c1] = x.to_limbs();
+        self.stream.push(verifier::E::new(c0, c1));
     }
 
-    pub fn add_scalars(&mut self, xs: &[F128]) {
+    pub fn add_scalars(&mut self, xs: &[F]) {
         for &x in xs {
             self.add_scalar(x);
         }
@@ -92,7 +90,7 @@ impl ProverState {
     ///
     /// Then the round's grind: the round's error is its degree over `|E|`, the degree of the whole round
     /// polynomial, eq factor included.
-    pub fn add_round_poly(&mut self, coeffs: &[F128], eq: bool) {
+    pub fn add_round_poly(&mut self, coeffs: &[F], eq: bool) {
         assert!(coeffs.len() >= 2, "a round polynomial has at least two coefficients");
         let fixed = usize::from(!eq);
         for (i, &c) in coeffs.iter().enumerate() {
@@ -100,7 +98,7 @@ impl ProverState {
                 self.add_scalar(c);
             }
         }
-        self.grind(crate::grinding_bits((coeffs.len() - 1 + usize::from(eq)) as u128));
+        self.grind(grinding_bits((coeffs.len() - 1 + usize::from(eq)) as u128));
     }
 
     /// Proof-of-work grind of `bits` before the next challenge, which divides that verifier message's
@@ -108,8 +106,8 @@ impl ProverState {
     /// transmits it on the stream as raw transport (already bound, so NOT re-absorbed). A grind of zero bits
     /// is nothing: no nonce, no permutation.
     pub fn grind(&mut self, bits: u32) {
-        if let Some(nonce) = self.fs.grind(bits) {
-            self.stream.push(F128::new(nonce, 0));
+        if let Some(nonce) = self.fs.grind::<S>(bits) {
+            self.stream.push(verifier::E::new(nonce, 0));
         }
     }
 }

@@ -85,7 +85,7 @@ fn main() {
         let (cm, pd) = tracing::info_span!("Commit").in_scope(|| commit(&witness, log_n, pc.initial_k, log_inv_rate));
         commit_t.push(t.elapsed().as_secs_f64());
 
-        let mut ch = fiat_shamir::transcript::ProverState::from_label(b"pcs-throughput");
+        let mut ch = primitives::transcript::ProverState::from_label(b"pcs-throughput");
         let stack = witness.clone();
         let t = Instant::now();
         tracing::info_span!("PCS open").in_scope(|| {

@@ -10,6 +10,7 @@ workspace = true
 [dependencies]
 keccak256.workspace = true
 parallel = { package = "stable_parallel", path = "../parallel" }
+fiat_shamir_prover.workspace = true
 rand = { workspace = true, optional = true }
 
 [features]

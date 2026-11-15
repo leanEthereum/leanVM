@@ -37,13 +37,8 @@ pub use verifier::{MAX_LOG_MEMORY, MIN_LOG_MEMORY};
 
 /// The two 128-bit halves a digest travels in, as the four words the
 /// Fiat-Shamir sponge absorbs.
-fn digest_words(halves: &[F128; 2]) -> [F64; 4] {
-    [
-        F64(halves[0].c0),
-        F64(halves[0].c1),
-        F64(halves[1].c0),
-        F64(halves[1].c1),
-    ]
+fn digest_words(halves: &[F128; 2]) -> [u64; 4] {
+    [halves[0].c0, halves[0].c1, halves[1].c0, halves[1].c1]
 }
 
 /// Announce the prover's sizes (`log_mem`, every table's row count, the PCS rate) by
@@ -208,8 +203,8 @@ impl Program {
 }
 
 /// The whole proof is the transcript: a scalar stream plus the PCS hint
-/// channels (see [`crate::transcript::Proof`]).
-pub use crate::transcript::Proof;
+/// channels.
+pub use verifier::Proof;
 
 /// Why [`prove`] produced no proof.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -528,20 +523,6 @@ pub fn from_scalar(value: verifier::E) -> F128 {
     F128::new(value.c0, value.c1)
 }
 
-/// The proof in the `verifier` crate's types: the same limbs, digests and leaf words.
-pub fn scalar_proof(proof: &Proof) -> verifier::Proof {
-    let path = |path: &fiat_shamir::merkle::MerklePath| verifier::MerklePath {
-        leaf_index: path.leaf_index,
-        leaf: path.leaf.iter().map(|word| verifier::K(word.0)).collect(),
-        siblings: path.siblings.clone(),
-    };
-    let openings = proof.merkle.iter().map(|phase| phase.iter().map(path).collect());
-    verifier::Proof {
-        stream: proof.stream.iter().map(to_scalar).collect(),
-        merkle_openings: openings.collect(),
-    }
-}
-
 /// The statement as the 32 bytes the `verifier` crate takes: the two limbs of each half.
 pub fn public_input_bytes(public_input: &[F128; 2]) -> [u8; 32] {
     let mut bytes = [0; 32];
@@ -566,7 +547,7 @@ pub fn verify(
         .map(|word| word.0)
         .collect();
     let bytecode = verifier::Bytecode::new(&table);
-    verifier::verify_execution(&bytecode, &public_input_bytes(public_input), &scalar_proof(proof))
+    verifier::verify_execution(&bytecode, &public_input_bytes(public_input), proof)
 }
 
 /// Lift `ColumnClaim`s to located PCS claims: a claim on column `c` lives in

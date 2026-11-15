@@ -86,10 +86,10 @@
 //! of eight positions' weights applied to bit-transposed products (`products_gfni`); elsewhere,
 //! the positions grouped by each byte of their weight (`prover`'s digit buckets).
 
-use fiat_shamir::transcript::ProverState;
 use keccak::LANE_VARS;
 use primitives::field::{F64, F128, F128Unreduced};
 use primitives::multilinear::eq_table;
+use primitives::transcript::ProverState;
 use protocol::{Claim, dot, first_claim};
 
 mod basis;

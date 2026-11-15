@@ -378,6 +378,7 @@ impl CutTree {
                 .expect("a sibling is in an opened group");
             local[Self::start(n, level) + group * width + i % width]
         };
+        let row = |q| row(q).iter().map(|word| word.0);
         fiat_shamir::merkle::open(self.num_leaves, positions, leaf_words, node, row)
     }
 }
@@ -609,7 +610,9 @@ mod tests {
                 let node = |level: usize, i: usize| full[level_start(level) + i];
                 assert_eq!(
                     got,
-                    fiat_shamir::merkle::open(num_leaves, &positions, leaf_words, node, row)
+                    fiat_shamir::merkle::open(num_leaves, &positions, leaf_words, node, |q| row(q)
+                        .iter()
+                        .map(|word| word.0))
                 );
             }
         }

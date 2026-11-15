@@ -11,8 +11,8 @@ use crate::tables::{
     self, FillCtx, FlushBuilder, OP_DEREF, OP_JUMP, OP_KECCAK, OP_MUL, OP_SET, OP_XOR, SEP_BYTECODE, SEP_MEM, SEP_STATE,
 };
 use crate::witness;
-use fiat_shamir::transcript::ProverState;
 use primitives::field::{F64, F128, g_pow};
+use primitives::transcript::ProverState;
 use verifier::layout::{GLOBAL_COLUMN_BASES, TABLE_WIDTHS};
 
 mod execute;
@@ -167,7 +167,7 @@ impl Program {
 
 /// The whole proof is the transcript: a scalar stream plus the PCS hint
 /// channels.
-pub use fiat_shamir::transcript::Proof;
+pub use verifier::Proof;
 
 /// Why [`prove`] produced no proof.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -396,20 +396,6 @@ pub fn from_scalar(value: verifier::E) -> F128 {
     F128::new(value.c0, value.c1)
 }
 
-/// The proof in the `verifier` crate's types: the same limbs, digests and leaf words.
-pub fn scalar_proof(proof: &Proof) -> verifier::Proof {
-    let path = |path: &fiat_shamir::merkle::MerklePath| verifier::MerklePath {
-        leaf_index: path.leaf_index,
-        leaf: path.leaf.iter().map(|word| verifier::K(word.0)).collect(),
-        siblings: path.siblings.clone(),
-    };
-    let openings = proof.merkle.iter().map(|phase| phase.iter().map(path).collect());
-    verifier::Proof {
-        stream: proof.stream.iter().map(to_scalar).collect(),
-        merkle_openings: openings.collect(),
-    }
-}
-
 /// The statement as the 32 bytes the `verifier` crate takes: the two limbs of each half.
 pub fn public_input_bytes(public_input: &[F128; 2]) -> [u8; 32] {
     let mut bytes = [0; 32];
@@ -434,7 +420,7 @@ pub fn verify(
         .map(|word| word.0)
         .collect();
     let bytecode = verifier::Bytecode::new(&table);
-    verifier::verify_execution(&bytecode, &public_input_bytes(public_input), &scalar_proof(proof))
+    verifier::verify_execution(&bytecode, &public_input_bytes(public_input), proof)
 }
 
 /// Lift `ColumnClaim`s to located PCS claims: a claim on column `c` lives in

@@ -1,9 +1,9 @@
 //! Proof-level properties of the VM: that its channels carry everything, and that a malformed input is an error rather than a panic.
 
 use crate::common::compile;
-use fiat_shamir::compress;
+use fiat_shamir_prover::compress;
 use lean_vm_core::cpu::{Proof, ProveError, prove, verify};
-use primitives::field::{F64, F128};
+use primitives::field::F128;
 use zkdsl_compiler::parse;
 
 /// A program that hashes one block and publishes the digest, so its proof carries
@@ -23,9 +23,9 @@ def main():
 
 /// The public input `HASHING` publishes.
 fn hashing_pi() -> [F128; 2] {
-    let h = [F64(5), F64(0), F64(7), F64(0)];
+    let h = [5, 0, 7, 0];
     let d = compress(h, h);
-    [F128::new(d[0].0, d[1].0), F128::new(d[2].0, d[3].0)]
+    [F128::new(d[0], d[1]), F128::new(d[2], d[3])]
 }
 
 fn hashing_proof() -> (lean_vm_core::cpu::Program, [F128; 2], Proof) {
@@ -67,11 +67,11 @@ fn any_number_of_steps_proves() {
             source += &format!("    h{} = StackBuf(2)\n    keccak(h{i}, h{i}, h{})\n", i + 1, i + 1);
         }
         source += &format!("    p = 1\n    p[1] = h{n}[0]\n    p[GEN] = h{n}[1]\n    return\n");
-        let mut h = [F64(5), F64(0), F64(7), F64(0)];
+        let mut h = [5, 0, 7, 0];
         for _ in 0..n {
             h = compress(h, h);
         }
-        let pi = [F128::new(h[0].0, h[1].0), F128::new(h[2].0, h[3].0)];
+        let pi = [F128::new(h[0], h[1]), F128::new(h[2], h[3])];
         let program = compile(&parse(&source).expect("parse"));
         let (proof, stats) = prove(&program, pi, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         assert_eq!(stats.rows[5], n, "{n} steps");

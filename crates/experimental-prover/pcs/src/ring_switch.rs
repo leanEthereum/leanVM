@@ -61,10 +61,10 @@
 //! builds the vector at all: it evaluates its MLE at the WHIR final point from
 //! `Phi`'s challenges.
 
-use fiat_shamir::transcript::ProverState;
 use primitives::bit_fold::{BLOCK, BitFold};
 use primitives::field::xor_into8;
 use primitives::field::{F64, F128, mul4};
+use primitives::transcript::ProverState;
 
 use super::pack::PACKING_WIDTH;
 use super::tensor_algebra::{DEGREE_E, transpose_s_hat};

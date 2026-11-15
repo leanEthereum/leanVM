@@ -6,13 +6,13 @@ version = 4
 name = "aggregation"
 version = "0.1.0"
 dependencies = [
+ "fiat_shamir_prover",
  "isa",
  "keccak256",
  "lean_da",
  "lean_sphincs",
  "lean_xmss",
  "rand",
- "stable_fiat_shamir",
  "stable_keccak_gkr",
  "stable_lean_vm_core",
  "stable_pcs",
@@ -207,23 +207,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "experimental_fiat_shamir"
-version = "0.1.0"
-dependencies = [
- "experimental_parallel",
- "experimental_primitives",
-]
-
-[[package]]
 name = "experimental_keccak_gkr"
 version = "0.1.0"
 dependencies = [
  "bench",
- "experimental_fiat_shamir",
  "experimental_keccak_gkr",
  "experimental_parallel",
  "experimental_pcs",
  "experimental_primitives",
+ "fiat_shamir_prover",
  "tracing",
  "verifier",
 ]
@@ -232,11 +224,11 @@ dependencies = [
 name = "experimental_lean_vm_core"
 version = "0.1.0"
 dependencies = [
- "experimental_fiat_shamir",
  "experimental_keccak_gkr",
  "experimental_parallel",
  "experimental_pcs",
  "experimental_primitives",
+ "fiat_shamir_prover",
  "isa",
  "tracing",
  "verifier",
@@ -254,9 +246,9 @@ name = "experimental_pcs"
 version = "0.1.0"
 dependencies = [
  "bench",
- "experimental_fiat_shamir",
  "experimental_parallel",
  "experimental_primitives",
+ "fiat_shamir_prover",
  "tracing",
  "verifier",
 ]
@@ -268,8 +260,17 @@ dependencies = [
  "bench",
  "experimental_parallel",
  "experimental_primitives",
+ "fiat_shamir_prover",
  "rand",
  "sha3",
+]
+
+[[package]]
+name = "fiat_shamir_prover"
+version = "0.1.0"
+dependencies = [
+ "keccak256",
+ "verifier",
 ]
 
 [[package]]
@@ -565,19 +566,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ed6a63f02c8539c91a8685a86f4099661ba3da017932f6ebbea6de3f0fa7c90"
 
 [[package]]
-name = "stable_fiat_shamir"
-version = "0.1.0"
-dependencies = [
- "stable_parallel",
- "stable_primitives",
-]
-
-[[package]]
 name = "stable_keccak_gkr"
 version = "0.1.0"
 dependencies = [
  "bench",
- "stable_fiat_shamir",
+ "fiat_shamir_prover",
  "stable_keccak_gkr",
  "stable_parallel",
  "stable_pcs",
@@ -590,8 +583,8 @@ dependencies = [
 name = "stable_lean_vm_core"
 version = "0.1.0"
 dependencies = [
+ "fiat_shamir_prover",
  "isa",
- "stable_fiat_shamir",
  "stable_keccak_gkr",
  "stable_parallel",
  "stable_pcs",
@@ -610,7 +603,7 @@ name = "stable_pcs"
 version = "0.1.0"
 dependencies = [
  "bench",
- "stable_fiat_shamir",
+ "fiat_shamir_prover",
  "stable_parallel",
  "stable_primitives",
  "tracing",
@@ -622,6 +615,7 @@ name = "stable_primitives"
 version = "0.1.0"
 dependencies = [
  "bench",
+ "fiat_shamir_prover",
  "keccak256",
  "rand",
  "stable_parallel",
@@ -872,9 +866,9 @@ dependencies = [
 name = "zkdsl_compiler"
 version = "0.1.0"
 dependencies = [
+ "fiat_shamir_prover",
  "isa",
  "keccak256",
- "stable_fiat_shamir",
  "stable_lean_vm_core",
  "stable_parallel",
  "stable_primitives",

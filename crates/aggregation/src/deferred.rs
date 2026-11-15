@@ -3,7 +3,7 @@
 use super::cells::count;
 use super::guest::{scalar_bytecode, stacked_bytecode};
 use super::hints::SubHints;
-use fiat_shamir::{FiatShamirState, RATE_SCALARS, grinding_bits};
+use fiat_shamir_prover::{FiatShamirState, RATE_SCALARS, Sequential, grinding_bits};
 use isa::Prover;
 use lean_vm_core::cpu::{from_scalar, to_scalar};
 use lean_vm_core::leaf::{N_BYTECODE_SELECTORS, N_TUPLE_BITS};
@@ -179,7 +179,7 @@ pub(super) const BATCH_LAM_GRIND_BITS: u32 = grinding_bits(2 * super::MAX_RECURS
 /// the two words and the nonce, if the grind sends one, and advance the running claim through the compressed round polynomial.
 /// Returns the challenge, which the caller folds its tables with.
 fn absorb_round(
-    transcript: &mut FiatShamirState,
+    transcript: &mut FiatShamirState<F128>,
     messages: &mut Vec<F128>,
     challenges: &mut Vec<F128>,
     claim: &mut F128,
@@ -187,7 +187,7 @@ fn absorb_round(
 ) -> F128 {
     transcript.observe(g1);
     transcript.observe(gi);
-    let nonce = transcript.grind(grinding_bits(2));
+    let nonce = transcript.grind::<Sequential>(grinding_bits(2));
     let challenge = transcript.sample();
     messages.extend([g1, gi]);
     messages.extend(nonce.map(|nonce| F128::new(nonce, 0)));
@@ -216,7 +216,7 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
     // The count and each child's words are padded with zeros to whole rates, so the
     // guest's loop over the children finds every child starting the same way.
     let mut transcript = FiatShamirState::from_label(RECURSION_AGG_LABEL);
-    let pad = |transcript: &mut FiatShamirState, n: usize| {
+    let pad = |transcript: &mut FiatShamirState<F128>, n: usize| {
         for _ in 0..n.next_multiple_of(RATE_SCALARS) - n {
             transcript.observe(F128::ZERO);
         }
@@ -235,8 +235,9 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
     }
 
     let _span = tracing::info_span!("Bytecode batch", vars = kbcv).entered();
-    // Powers of one challenge: child i's fresh claim takes lam^(2i), its carried one lam^(2i+1).
-    let nonce = transcript.grind(BATCH_LAM_GRIND_BITS);
+    // Powers of one challenge: child i's fresh claim takes lam^(2i), its carried one lam^(2i+1). The batch's grinds
+    // are short, so they search on the calling thread, under either prover.
+    let nonce = transcript.grind::<Sequential>(BATCH_LAM_GRIND_BITS);
     let lam = transcript.sample();
     let powers: Vec<F128> = std::iter::successors(Some(F128::ONE), |&power| Some(power * lam))
         .take(2 * child_count)

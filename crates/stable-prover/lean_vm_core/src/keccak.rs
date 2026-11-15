@@ -7,11 +7,11 @@
 //! claims on the output lanes are the reduction's claim on the permutation's output ([`keccak_gkr::OutputClaim`]).
 //! The reduction proves the rounds between, and its two claims on `q_keccak` join the one opening.
 
-use fiat_shamir::transcript::ProverState;
 use keccak_gkr::witness::{BLOCK, block_lanes};
 use keccak_gkr::{Openings, OutputClaim, Shape, Witness};
 use primitives::field::{F64, F128};
 use primitives::hash::STATE_LANES;
+use primitives::transcript::ProverState;
 
 pub use isa::STATE_CELLS;
 

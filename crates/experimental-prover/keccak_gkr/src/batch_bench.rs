@@ -4,13 +4,13 @@
 use std::time::Instant;
 
 use bench::{Metric, Plan, Timing, bencher_json};
-use fiat_shamir::transcript::{Proof, ProverState};
 use pcs::stack_open::StackClaim;
 use pcs::whir::{INITIAL_FOLDING_FACTOR, ProverConfig, ProverData, commit, config_for_rate};
 use primitives::{
     field::{F64, F128},
     pretty_integer,
     test_rng::Rng,
+    transcript::ProverState,
 };
 
 use crate::{Openings, OutputClaim, Shape, Witness};
@@ -80,7 +80,7 @@ pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
 
     let mut stages: [Timing; 6] = std::array::from_fn(|_| Timing::default());
     let mut warm = true;
-    let (transcript, _) = plan.warm_then_measure(|final_pass| {
+    let (proof, _) = plan.warm_then_measure(|final_pass| {
         let _quiet = (!final_pass).then(bench::suppress_tracing);
         let (proof, secs) = prove_pass();
         if !std::mem::take(&mut warm) {
@@ -91,19 +91,18 @@ pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
         proof
     });
 
-    let proof = scalar_proof(&transcript);
     let iv = primitives::hash::hash(LABEL);
     let (_, verify) = Plan::new(plan.repeat, 0).measure_quiet(|_| {
         verifier::verify_keccak_batch(&iv, shape.n_log(), shape.depth(), log_inv_rate, &proof)
             .expect("the batch proof verifies");
     });
 
-    let merkle_bytes = transcript.to_bytes().len() - 16 * transcript.stream.len();
+    let merkle_bytes = proof.to_bytes().len() - 16 * proof.stream.len();
     Report {
         shape,
         stages,
         verify,
-        stream_len: transcript.stream.len(),
+        stream_len: proof.stream.len(),
         merkle_bytes,
     }
 }
@@ -166,7 +165,7 @@ impl Report {
 /// from `label` and, as its public input, the shape and the PCS rate.
 pub(crate) fn batch_transcript(label: &[u8], shape: Shape, log_inv_rate: usize) -> ProverState {
     let iv = fiat_shamir::digest_words(&primitives::hash::hash(label));
-    let statement = [shape.n_log(), shape.depth(), log_inv_rate, 0].map(|w| F64(w as u64));
+    let statement = [shape.n_log(), shape.depth(), log_inv_rate, 0].map(|w| w as u64);
     ProverState::new(iv, statement)
 }
 
@@ -204,18 +203,4 @@ pub(crate) fn open_commitment(
     let (ring, outputs) = openings.into_pcs_claims(0);
     let points: Vec<_> = outputs.into_iter().chain([ood]).collect();
     pcs::stack_open::open_batch_mixed_whir_stacked(ps, shape.stack_log(), stack, prover_data, config, &points, &ring);
-}
-
-/// The proof in the `verifier` crate's types: the same limbs, digests and leaf words.
-pub(crate) fn scalar_proof(proof: &Proof) -> verifier::Proof {
-    let path = |path: &fiat_shamir::merkle::MerklePath| verifier::MerklePath {
-        leaf_index: path.leaf_index,
-        leaf: path.leaf.iter().map(|word| verifier::K(word.0)).collect(),
-        siblings: path.siblings.clone(),
-    };
-    let openings = proof.merkle.iter().map(|phase| phase.iter().map(path).collect());
-    verifier::Proof {
-        stream: proof.stream.iter().map(|x| verifier::E::new(x.c0, x.c1)).collect(),
-        merkle_openings: openings.collect(),
-    }
 }

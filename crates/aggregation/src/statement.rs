@@ -4,7 +4,7 @@ use super::cells::{cell_bytes, count, pack_16_bytes};
 use super::deferred::DeferredBytecodeClaim;
 use super::guest::fs_seed;
 use super::{LeanSphincsClaim, LeanXmssClaim};
-use fiat_shamir::merkle::hash_to_scalars;
+use fiat_shamir_prover::merkle::hash_to_scalars;
 use primitives::field::F128;
 
 /// Claims the guest hashes a loop frame: 68 cells, four whole block pairs.

@@ -4,7 +4,7 @@
 
 use crate::fixture::fixture;
 use fiat_shamir::grinding_bits;
-use lean_vm_core::cpu::{prove, scalar_proof};
+use lean_vm_core::cpu::prove;
 use verifier::{E, VerifierError, replay_unchecked, verify_execution};
 
 /// The replay reads out of an honest proof what verifying it leaves.
@@ -12,12 +12,7 @@ use verifier::{E, VerifierError, replay_unchecked, verify_execution};
 fn replay_reads_the_summary_unchecked() {
     let fixture = fixture();
     assert_eq!(
-        replay_unchecked(
-            &fixture.bytecode,
-            &fixture.public_input_bytes,
-            &scalar_proof(&fixture.proof)
-        )
-        .as_ref(),
+        replay_unchecked(&fixture.bytecode, &fixture.public_input_bytes, &fixture.proof).as_ref(),
         Ok(&fixture.summary)
     );
 }
@@ -29,8 +24,8 @@ fn verifies_at_every_rate() {
     let fixture = fixture();
     for log_inv_rate in 1..=4 {
         let proof = match log_inv_rate {
-            1 => scalar_proof(&fixture.proof),
-            _ => scalar_proof(&prove(&fixture.program, fixture.public_input, log_inv_rate).unwrap().0),
+            1 => fixture.proof.clone(),
+            _ => prove(&fixture.program, fixture.public_input, log_inv_rate).unwrap().0,
         };
         assert_eq!(
             verify_execution(&fixture.bytecode, &fixture.public_input_bytes, &proof).map(|_| ()),
@@ -83,7 +78,7 @@ fn tampers_fail_their_check() {
         k = mu.min(4);
         mu -= k;
     }
-    let stream = scalar_proof(&fixture.proof).stream;
+    let stream = &fixture.proof.stream;
     let end = stream.len();
     let tail = round * mu;
     let final_coefficients = (1 << mu) + k;
@@ -117,7 +112,7 @@ fn tampers_fail_their_check() {
         // A tamper that a few-bit grind after it lets through moves every later challenge and fails elsewhere: each
         // case takes the first tamper that reaches its check.
         let found = (1..=64).any(|delta| {
-            let mut proof = scalar_proof(&fixture.proof);
+            let mut proof = fixture.proof.clone();
             proof.stream[position] += E::new(0, delta);
             verify_execution(&fixture.bytecode, &fixture.public_input_bytes, &proof) == Err(error)
         });

@@ -2,10 +2,10 @@
 //! against the prover's query search, and both verifiers' grinding constants against the prover's. They tabulate
 //! rather than repeat that search, which would make cross-language float identity part of the protocol.
 
-use fiat_shamir::{MAX_HEIGHT, MAX_LEAF_WORDS, MAX_PHASES, MAX_QUERIES};
 use lean_vm_core::pcs::{MAX_LOG_INV_RATE, MAX_STACKED_LOG, MIN_LOG_INV_RATE, MIN_STACKED_LOG};
 use pcs::LOG_PACKING;
 use pcs::whir_config::{ProverConfig, WhirSecurityConfig};
+use verifier::{MAX_HEIGHT, MAX_LEAF_WORDS, MAX_PHASES, MAX_QUERIES};
 
 /// The prover's query search at a packed size and rate.
 fn search(log_n: usize, rate: usize) -> ProverConfig {

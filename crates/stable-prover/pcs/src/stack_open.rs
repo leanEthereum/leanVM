@@ -15,9 +15,9 @@
 //! claim's slices and value through the transcript already, so none is observed here. `W` stays factored
 //! (`basis`), and level 0's fold rounds run on its terms (`whir_lanes`).
 
-use fiat_shamir::transcript::ProverState;
 use primitives::field::{F64, F128, powers};
 use primitives::multilinear::eq_table;
+use primitives::transcript::ProverState;
 
 use crate::ring_switch::{self, RingWeight, transpose_s_hat};
 use crate::whir::{self, ProverConfig, ProverData};

@@ -3,6 +3,7 @@ members = [
     "crates/verifier",
     "crates/bench",
     "crates/keccak256",
+    "crates/fiat_shamir_prover",
     "crates/isa",
     "crates/zkdsl_compiler",
     "crates/lean_xmss",
@@ -29,6 +30,7 @@ too_many_arguments = "allow"
 bench = { path = "crates/bench" }
 verifier = { path = "crates/verifier" }
 keccak256 = { path = "crates/keccak256" }
+fiat_shamir_prover = { path = "crates/fiat_shamir_prover" }
 isa = { path = "crates/isa" }
 zkdsl_compiler = { path = "crates/zkdsl_compiler" }
 lean_xmss = { path = "crates/lean_xmss" }

@@ -7,10 +7,10 @@
 //! The first claim weighs the bits of a word as the word itself does, so its 64 evaluations
 //! are only ever needed as the one they add up to: the committed polynomial at that point.
 
-use fiat_shamir::transcript::ProverState;
 use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim};
 use primitives::field::{F64, F128};
 use primitives::multilinear::{eq_table, interp, mle_eval, poly_eval};
+use primitives::transcript::ProverState;
 
 use crate::keccak::{BITS, LANES};
 use crate::kernels::byte_sums;

@@ -8,9 +8,9 @@
 //! 4. a sumcheck over the bit position, on tables of 2048;
 //! 5. `beta`, which batches what that leaves into one claim, which the linear map takes to the round's input.
 
-use fiat_shamir::transcript::ProverState;
 use primitives::field::F128;
 use primitives::multilinear::poly_eval;
+use primitives::transcript::ProverState;
 use verifier::PRODUCT_BITS;
 
 use crate::keccak::{BITS, LOCAL_VARS, along};

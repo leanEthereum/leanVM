@@ -10,7 +10,7 @@ workspace = true
 [dependencies]
 parallel = { package = "experimental_parallel", path = "../parallel" }
 primitives = { package = "experimental_primitives", path = "../primitives" }
-fiat_shamir = { package = "experimental_fiat_shamir", path = "../fiat_shamir" }
+fiat_shamir = { package = "fiat_shamir_prover", path = "../../fiat_shamir_prover" }
 pcs = { package = "experimental_pcs", path = "../pcs" }
 tracing.workspace = true
 bench = { workspace = true, optional = true }

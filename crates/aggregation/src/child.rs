@@ -4,7 +4,7 @@ use super::cells::count;
 use super::deferred::DeferredSubproof;
 use super::error::AggregateError;
 use super::hints::SubHints;
-use fiat_shamir::merkle::{hash_pair, hash_to_scalars, hash_words};
+use fiat_shamir_prover::merkle::{hash_pair, hash_to_scalars, hash_words};
 use lean_vm_core::cpu::{Layout, block_kappa_sources, col_kappa_sources, from_scalar};
 use lean_vm_core::leaf::{self, Block};
 use lean_vm_core::tables::N_TABLES;
@@ -213,7 +213,7 @@ fn merkle_hints(stack: &WhirShape, proof: &verifier::Proof) -> SubHints {
             };
             hints.push(("merkle_leaf_rows", row));
             let mut path_children = Vec::with_capacity(4 * path_depth);
-            let mut node = hash_words(&leaf);
+            let mut node = hash_words(opening.leaf.iter().map(|word| word.0));
             let mut index = (1 << depth) + opening.leaf_index as usize;
             for (height, sibling) in opening.siblings.iter().enumerate() {
                 let (left, right) = if index & 1 == 0 {
@@ -222,8 +222,8 @@ fn merkle_hints(stack: &WhirShape, proof: &verifier::Proof) -> SubHints {
                     (sibling, &node)
                 };
                 if height < path_depth {
-                    path_children.extend(hash_to_scalars(left));
-                    path_children.extend(hash_to_scalars(right));
+                    path_children.extend(hash_to_scalars::<F128>(left));
+                    path_children.extend(hash_to_scalars::<F128>(right));
                 } else {
                     nodes[index] = node;
                     nodes[index ^ 1] = *sibling;

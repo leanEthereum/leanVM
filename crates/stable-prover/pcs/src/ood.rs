@@ -8,9 +8,9 @@
 //!
 //! The value becomes a [`StackClaim::Point`] over the whole stack, which joins the stacked opening's claims last.
 
-use fiat_shamir::transcript::ProverState;
 use primitives::field::F64;
 use primitives::multilinear::mle_eval_par;
+use primitives::transcript::ProverState;
 
 use crate::stack_open::StackClaim;
 use crate::whir_config::OOD_GRINDING_BITS;
@@ -41,7 +41,7 @@ mod tests {
         let mut rng = Rng::new(0x919);
         let (log_n, lane_vars) = (16, 10);
         let stack: Vec<F64> = (0..13 << lane_vars).map(|_| F64(rng.next_u64())).collect();
-        let mut ps = ProverState::new([F64(1); 4], [F64(2); 4]);
+        let mut ps = ProverState::new([1; 4], [2; 4]);
         let StackClaim::Point {
             offset,
             low_point,

@@ -9,6 +9,7 @@ pub mod multilinear;
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
 pub mod simd;
 pub mod stream;
+pub mod transcript;
 
 #[cfg(feature = "test-util")]
 pub mod test_rng;
