@@ -946,7 +946,7 @@ theorem FBAt.bind_end_if {C : (ℕ → E) → Prop} {st : St} {m : P Unit} {g : 
 frame's return (`hst`). -/
 theorem blockW_selfIf (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0)
     (hnew : PlaceNew ctx)
-    (hAg : AgOwn I Ag) (hhdr : ctx.isMain = false → IsInK I.hdr.1 ∧ IsInK I.hdr.2)
+    (hAg : AgOwn I Ag)
     (hkend : IsInK (I.kw .endSentinel)) {c : V} {f : String} {args : List V} {tl : List Stmt}
     (hst : ∀ (C : (ℕ → E) → Prop) (st : St) (sc sc' : SSt) (i₀ p₀ : ℕ),
       scopeStmt ctx.retCells (.callIf c f args) sc = .ok sc' →
@@ -982,7 +982,8 @@ theorem blockW_selfIf (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = 
   rw [placeBlock.eq_2]
   refine FBAt.bind_end_if (Q := fun st₁ _ st₂ => (st₁.chainIn = none → st₂.chainIn = none ∧
       ∃ blk, st₂.out.toList = st₁.out.toList ++ blk) ∧
-      (st₁.lazy = none → ∀ v, st₂.locs[v]? ≠ none → st₁.locs[v]? ≠ none ∨ v ∈ allocsOf st₁.rest) ∧
+      (st₁.lazy = none → ∀ v, st₂.locs[v]? ≠ none → st₁.locs[v]? ≠ none ∨ v ∈ allocsOf st₁.rest ∨
+        ∃ run, Atom.frameAddr v run ∈ atomsIn [.ret []]) ∧
       (∀ v ∈ allocsOf st₂.rest, v ∈ allocsOf st₁.rest) ∧
       ∀ x ∈ st₁.tables.shared, x ∈ st₂.tables.shared)
     (FinAt Γ I Ag p₀)
@@ -993,8 +994,9 @@ theorem blockW_selfIf (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = 
     (fun _ st₁ C₁ hs₁ hn₁ hl₁ ⟨hW₁, _, hB₁⟩ hF₁ => ?_)
     fun _ C₁ st₁ _ st₂ ⟨_, hch₁, _⟩ hnF hn₂ hl₂ hq => ?_
   · have hW₁' := hW₁ hF₁
-    refine FBAt.mono (FBAt.and_wp (BlockW.cons placeMono hnew (stmtW_ret' (rest := []) (tl := tl)
-      hok hI hmain hAg hhdr hkend) (BlockW.nil tl) C₁ st₁ sc₁ s' (i₀ + 1) p₀ (.ret [] []) hsc
+    refine FBAt.mono (FBAt.and_wp (BlockW.cons placeMono hnew
+      (fun _ _ _ h => by simp [atomsIn] at h) (stmtW_ret' (rest := []) (tl := tl)
+      hok hI hmain hAg hkend) (BlockW.nil tl) C₁ st₁ sc₁ s' (i₀ + 1) p₀ (.ret [] []) hsc
       (by simp [walk, walk1, Out.seq]) (fun h => nomatch h) (fun e he => by simp [outEs] at he)
       (fun j hj => by simp [outEs, calls] at hj) hW₁') (hnew [.ret []] st₁)) ?_
     rintro _ C₂ st₂ hs₂ hn₂ hl₂ ⟨⟨-, hch₂, hB₂⟩, hnw, hrs, hsh⟩
@@ -1010,7 +1012,8 @@ theorem blockW_selfIf (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = 
         exact hb₂
       have := BlkWK.append_ret (hb₁.mono hs₂) hb₂'
       simpa only [List.singleton_append, List.append_nil] using this
-    · exact (hrw₁.grow hs₂ hn₂ hl₂ (hnw hW₁'.lazy) hrs).anti fun v hv => by
+    · exact (hrw₁.grow hs₂ hn₂ hl₂ (fun v _ hv => (hnw hW₁'.lazy v hv).elim Or.inl fun h =>
+        h.elim Or.inr fun ⟨_, hr⟩ => by simp [atomsIn, atomsOf] at hr) hrs).anti fun v hv => by
         simpa [pathVals, outEs, retVals, pathSels, sels1, walk1] using hv
   · obtain ⟨hq1, -, -, hsh⟩ := hq
     obtain ⟨hch₂, blk, hb⟩ := hq1 hch₁
@@ -1027,14 +1030,13 @@ theorem blockW_tailIf (hnew : PlaceNew ctx) (hpk : PoolKeepStmt) (hok : OpOK Γ 
     (hkw : ∀ g, I.kw (.entry g) = kwOf Γ (.entry g))
     (hent : ∀ g, kwOf Γ (.entry g) = ofK (addressOfIndex (Γ.ent g)))
     (hmN : ctx.isMain = true → ctx.name = "main")
-    (hhdr : ctx.isMain = false → IsInK I.hdr.1 ∧ IsInK I.hdr.2)
     (hkend : IsInK (I.kw .endSentinel))
     {c : V} {f : String} {args : List V} {tl : List Stmt}
     (hself : f = ctx.name) (hreg : ((ctx.loops[f]?).any (·.registered)) = false)
     (hu : ∀ v ∈ c :: args, v ∉ I.tmps) :
     BlockW Γ Ag cl ctx I (placeBlock [.callIf c f args, .ret []]) [.callIf c f args, .ret []]
       tl :=
-  blockW_selfIf hok hI hmain hnew hAg hhdr hkend fun _ _ _ _ _ _ hsc hes hcl hinv =>
+  blockW_selfIf hok hI hmain hnew hAg hkend fun _ _ _ _ _ _ hsc hes hcl hinv =>
     tailIf_fbat hok hI hRd hpk hAg hK hkw hent hmN hself hreg hu hsc hes hcl hinv
 
 /-- **A registered loop helper's closing call on the path** (`loopNext`), before the return that
@@ -1303,7 +1305,6 @@ theorem blockW_loopNext (hnew : PlaceNew ctx) (hpk : PoolKeepStmt) (hok : OpOK �
     (hkw : ∀ g, I.kw (.entry g) = kwOf Γ (.entry g))
     (hent : ∀ g, kwOf Γ (.entry g) = ofK (addressOfIndex (Γ.ent g)))
     (hmN : ctx.isMain = true → ctx.name = "main")
-    (hhdr : ctx.isMain = false → IsInK I.hdr.1 ∧ IsInK I.hdr.2)
     (hkend : IsInK (I.kw .endSentinel))
     (hframe : Γ.frame = I.size) (hlh : I.loopH = true)
     (hselfK : ∀ (i : ℕ) (c : Call) (kfp : ℕ), cl[i]? = some c → c.f = ctx.name →
@@ -1313,7 +1314,7 @@ theorem blockW_loopNext (hnew : PlaceNew ctx) (hpk : PoolKeepStmt) (hok : OpOK �
     (hu : ∀ v ∈ c :: args, v ∉ I.tmps) :
     BlockW Γ Ag cl ctx I (placeBlock [.callIf c f args, .ret []]) [.callIf c f args, .ret []]
       tl :=
-  blockW_selfIf hok hI hmain hnew hAg hhdr hkend fun _ _ _ _ _ _ hsc hes hcl hinv =>
+  blockW_selfIf hok hI hmain hnew hAg hkend fun _ _ _ _ _ _ hsc hes hcl hinv =>
     loopNext_fbat hok hI hmain hRd hpk hAg hK hkw hent hmN hframe hlh hselfK hself hreg hu hsc
       hes hcl hinv
 
