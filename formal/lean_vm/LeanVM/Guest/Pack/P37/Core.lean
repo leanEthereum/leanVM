@@ -3225,12 +3225,28 @@ noncomputable def body : List Core.Stmt := [
   .atom (.load (.n 6) (.n 2) 0),
   .atom (.load (.n 5) (.n 0) 0),
   .atom (.load (.n 6) (.n 0) 1),
-  .atom (.const (.n 7) (word 1 0)),
-  .atom (.load (.n 8) (.n 4) 0),
-  .atom (.load (.n 7) (.n 1) 0),
-  .atom (.load (.n 8) (.n 1) 1),
+  .atom (.const (.n 7) (word 0 0)),
+  .atom (.load (.n 7) (.n 0) 2),
+  .atom (.const (.n 8) (word 0 0)),
+  .atom (.load (.n 8) (.n 0) 3),
   .atom (.const (.n 9) (word 0 0)),
-  .ret [.n 9]]
+  .atom (.load (.n 9) (.n 0) 4),
+  .atom (.const (.n 10) (word 0 0)),
+  .atom (.load (.n 10) (.n 0) 5),
+  .atom (.const (.n 11) (word 0 0)),
+  .atom (.load (.n 11) (.n 0) 6),
+  .atom (.const (.n 12) (word 0 0)),
+  .atom (.load (.n 12) (.n 0) 7),
+  .atom (.const (.n 13) (word 1 0)),
+  .atom (.load (.n 14) (.n 4) 0),
+  .atom (.load (.n 13) (.n 1) 0),
+  .atom (.load (.n 14) (.n 1) 1),
+  .atom (.const (.n 15) (word 0 0)),
+  .atom (.load (.n 15) (.n 1) 2),
+  .atom (.const (.n 16) (word 0 0)),
+  .atom (.load (.n 16) (.n 1) 3),
+  .atom (.const (.n 17) (word 0 0)),
+  .ret [.n 17]]
 
 end core
 
@@ -3327,49 +3343,53 @@ noncomputable def body : List Core.Stmt := (
   .atom (.load (.n 46) (.n 12) 27) ::
   .atom (.load (.n 48) (.n 12) 28) ::
   .atom (.load (.n 50) (.n 12) 29) ::
-  .atom (.mul (.n 51) (.n 5) (.n 10)) ::
-  .atom (.mul (.n 52) (.n 6) (.n 8)) ::
-  .atom (.const (.n 53) (word 1 0)) ::
-  .atom (.load (.n 54) (.n 52) 0) ::
-  .atom (.load (.n 55) (.n 52) 1) ::
-  .atom (.mul (.n 56) (.n 53) (.n 55)) ::
-  .atom (.mul (.n 57) (.n 54) (.n 55)) ::
-  .atom (.load (.n 58) (.n 52) 2) ::
-  .atom (.mul (.n 59) (.n 53) (.n 58)) ::
-  .atom (.mul (.n 60) (.n 54) (.n 58)) ::
-  .atom (.mul (.n 61) (.n 56) (.n 58)) ::
-  .atom (.mul (.n 62) (.n 57) (.n 58)) ::
-  .atom (.load (.n 63) (.n 52) 3) ::
-  .atom (.mul (.n 64) (.n 53) (.n 63)) ::
-  .atom (.mul (.n 65) (.n 54) (.n 63)) ::
-  .atom (.mul (.n 66) (.n 56) (.n 63)) ::
-  .atom (.mul (.n 67) (.n 57) (.n 63)) ::
-  .atom (.mul (.n 68) (.n 59) (.n 63)) ::
-  .atom (.mul (.n 69) (.n 60) (.n 63)) ::
-  .atom (.mul (.n 70) (.n 61) (.n 63)) ::
-  .atom (.mul (.n 71) (.n 62) (.n 63)) ::
-  .atom (.load (.n 53) (.n 51) 0) ::
-  .atom (.load (.n 54) (.n 51) 1) ::
-  .atom (.load (.n 56) (.n 51) 2) ::
-  .atom (.load (.n 57) (.n 51) 3) ::
-  .atom (.load (.n 59) (.n 51) 4) ::
-  .atom (.load (.n 60) (.n 51) 5) ::
-  .atom (.load (.n 61) (.n 51) 6) ::
-  .atom (.load (.n 62) (.n 51) 7) ::
-  .atom (.load (.n 64) (.n 51) 8) ::
-  .atom (.load (.n 65) (.n 51) 9) ::
-  .atom (.load (.n 66) (.n 51) 10) ::
-  .atom (.load (.n 67) (.n 51) 11) ::
-  .atom (.load (.n 68) (.n 51) 12) ::
-  .atom (.load (.n 69) (.n 51) 13) ::
-  .atom (.load (.n 70) (.n 51) 14) ::
-  .atom (.load (.n 71) (.n 51) 15) ::
-  .atom (.const (.n 72) (word 2 0)) ::
-  .atom (.mul (.n 73) (.n 0) (.n 72)) ::
-  .atom (.add (.n 74) (.n 73) (.n 1)) ::
-  .atom (.const (.n 75) (word 2 0)) ::
-  .atom (.mul (.n 76) (.n 0) (.n 75)) ::
-  .callIf (.n 74) "__loop8" [.n 76, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
+  .atom (.const (.n 51) (word 0 0)) ::
+  .atom (.load (.n 51) (.n 12) 30) ::
+  .atom (.const (.n 52) (word 0 0)) ::
+  .atom (.load (.n 52) (.n 12) 31) ::
+  .atom (.mul (.n 53) (.n 5) (.n 10)) ::
+  .atom (.mul (.n 54) (.n 6) (.n 8)) ::
+  .atom (.const (.n 55) (word 1 0)) ::
+  .atom (.load (.n 56) (.n 54) 0) ::
+  .atom (.load (.n 57) (.n 54) 1) ::
+  .atom (.mul (.n 58) (.n 55) (.n 57)) ::
+  .atom (.mul (.n 59) (.n 56) (.n 57)) ::
+  .atom (.load (.n 60) (.n 54) 2) ::
+  .atom (.mul (.n 61) (.n 55) (.n 60)) ::
+  .atom (.mul (.n 62) (.n 56) (.n 60)) ::
+  .atom (.mul (.n 63) (.n 58) (.n 60)) ::
+  .atom (.mul (.n 64) (.n 59) (.n 60)) ::
+  .atom (.load (.n 65) (.n 54) 3) ::
+  .atom (.mul (.n 66) (.n 55) (.n 65)) ::
+  .atom (.mul (.n 67) (.n 56) (.n 65)) ::
+  .atom (.mul (.n 68) (.n 58) (.n 65)) ::
+  .atom (.mul (.n 69) (.n 59) (.n 65)) ::
+  .atom (.mul (.n 70) (.n 61) (.n 65)) ::
+  .atom (.mul (.n 71) (.n 62) (.n 65)) ::
+  .atom (.mul (.n 72) (.n 63) (.n 65)) ::
+  .atom (.mul (.n 73) (.n 64) (.n 65)) ::
+  .atom (.load (.n 55) (.n 53) 0) ::
+  .atom (.load (.n 56) (.n 53) 1) ::
+  .atom (.load (.n 58) (.n 53) 2) ::
+  .atom (.load (.n 59) (.n 53) 3) ::
+  .atom (.load (.n 61) (.n 53) 4) ::
+  .atom (.load (.n 62) (.n 53) 5) ::
+  .atom (.load (.n 63) (.n 53) 6) ::
+  .atom (.load (.n 64) (.n 53) 7) ::
+  .atom (.load (.n 66) (.n 53) 8) ::
+  .atom (.load (.n 67) (.n 53) 9) ::
+  .atom (.load (.n 68) (.n 53) 10) ::
+  .atom (.load (.n 69) (.n 53) 11) ::
+  .atom (.load (.n 70) (.n 53) 12) ::
+  .atom (.load (.n 71) (.n 53) 13) ::
+  .atom (.load (.n 72) (.n 53) 14) ::
+  .atom (.load (.n 73) (.n 53) 15) ::
+  .atom (.const (.n 74) (word 2 0)) ::
+  .atom (.mul (.n 75) (.n 0) (.n 74)) ::
+  .atom (.add (.n 76) (.n 75) (.n 1)) ::
+  .atom (.const (.n 77) (word 2 0)) ::
+  .atom (.mul (.n 78) (.n 0) (.n 77)) ::
+  .callIf (.n 76) "__loop8" [.n 78, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
   .ret [] ::
   [])
 

@@ -50,7 +50,7 @@ def lpEq (zz zz1 : List E) (o : ℕ) : E :=
     else if (o - 20) % 2 = 0 then spLvV zz zz1 3 ((o - 20) / 2)
     else spLvV zz zz1 3 (8 + (o - 20) / 2)
 
-/-- Value `o` of the `g` table's block (value `53 + o`) of nibble shares `gl`. -/
+/-- Value `o` of the `g` table's block (value `55 + o`) of nibble shares `gl`. -/
 def lpG (gl : List E) (o : ℕ) : E :=
   if o < 2 then spGV 4 gl o
   else if o = 2 then gl.getD 1 0 else if o < 5 then spGV 4 gl (o - 1)
@@ -69,11 +69,12 @@ def lpVal (j : ℕ) (N eqt z z1 gt gsq : E) (zs zs1 gs : List E) (x : ℕ) : E :
       z * (gen ^ j * gen ^ j * (gen ^ j * gen ^ j)),
       z1 * (gen ^ j * gen ^ j * (gen ^ j * gen ^ j))].getD (x - 7) 0
   else if x < 51 then lpEq (nib zs j) (nib zs1 j) (x - 15)
-  else if x = 51 then gt * gen ^ (16 * j)
-  else if x = 52 then gsq * (gen ^ j * gen ^ j * (gen ^ j * gen ^ j))
-  else if x < 72 then lpG (nib gs j) (x - 53)
+  else if x < 53 then 0
+  else if x = 53 then gt * gen ^ (16 * j)
+  else if x = 54 then gsq * (gen ^ j * gen ^ j * (gen ^ j * gen ^ j))
+  else if x < 74 then lpG (nib gs j) (x - 55)
   else [word 2 0, gen ^ j * word 2 0, gen ^ j * word 2 0 + N, word 2 0,
-    gen ^ j * word 2 0].getD (x - 72) 0
+    gen ^ j * word 2 0].getD (x - 74) 0
 
 theorem lp_pow4 (j : ℕ) : gen ^ j * gen ^ j * (gen ^ j * gen ^ j) = gen ^ (4 * j) := by ring
 
@@ -96,7 +97,7 @@ theorem lpVal_z1 {t : ℕ} (ht : t < 4) :
   interval_cases t <;> simp [lpVal, lpEq, nbZ1, nbM, spLvV, bitPick]
 
 theorem lpVal_g {u : ℕ} (hu : u < 16) :
-    lpVal j N eqt z z1 gt gsq zs zs1 gs (nbGV 53 u) = spGV 4 (nib gs j) u := by
+    lpVal j N eqt z z1 gt gsq zs zs1 gs (nbGV 55 u) = spGV 4 (nib gs j) u := by
   have l2 : Nat.log2 2 = 1 ∧ Nat.log2 3 = 1 ∧ Nat.log2 4 = 2 ∧ Nat.log2 5 = 2 ∧
       Nat.log2 6 = 2 ∧ Nat.log2 7 = 2 := sp_log2
   have l8 : ∀ v < 8, Nat.log2 (8 + v) = 3 := fun v hv ↦
@@ -108,11 +109,11 @@ theorem lpVal_g {u : ℕ} (hu : u < 16) :
       l8 6 (by norm_num), l8 7 (by norm_num)]
 
 theorem lpVal_gl {t : ℕ} (ht1 : 1 ≤ t) (ht : t < 4) :
-    lpVal j N eqt z z1 gt gsq zs zs1 gs (53 + 2 ^ t + t - 1) = (nib gs j).getD t 0 := by
+    lpVal j N eqt z z1 gt gsq zs zs1 gs (55 + 2 ^ t + t - 1) = (nib gs j).getD t 0 := by
   interval_cases t <;> simp [lpVal, lpG]
 
 theorem lpVal_gstep {t i : ℕ} (ht1 : 1 ≤ t) (ht : t < 4) (hi : i < 2 ^ t) :
-    lpVal j N eqt z z1 gt gsq zs zs1 gs (53 + 2 ^ t + t + i) = spGV 4 (nib gs j) (2 ^ t + i) := by
+    lpVal j N eqt z z1 gt gsq zs zs1 gs (55 + 2 ^ t + t + i) = spGV 4 (nib gs j) (2 ^ t + i) := by
   interval_cases t <;> interval_cases i <;> simp [lpVal, lpG]
 
 end Roles
@@ -148,6 +149,7 @@ theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
     (hg : TbReadsAt rd gsq gs)
     (htab : TbReadsAt rd (eqt * gen ^ (32 * j)) (eqLevels (nib zs j) (nib zs1 j)) ∧
       TbReadsAt rd (gt * gen ^ (16 * j)) (gTable (nib gs j)))
+    (hpad : NibPads rd (eqt * gen ^ (32 * j)) (gt * gen ^ (16 * j)) 4)
     (hnext : j + 1 < q → coreProgram.Rel rd name% «shared_selector_tables_loop0»
       [gen ^ (j + 1), gen ^ q, eqt, z, z1, gt, gsq] []) :
     coreProgram.Rel rd name% «shared_selector_tables_loop0» [gen ^ j, gen ^ q, eqt, z, z1, gt,
@@ -178,13 +180,13 @@ theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
   have f14 : F 14 = z1 * gen ^ (4 * j) := by
     rw [hF]; sv
     rw [lp_pow4]
-  have f51 : F 51 = gt * gen ^ (16 * j) := by rw [hF]; sv
-  have f52 : F 52 = gsq * gen ^ (4 * j) := by
+  have f53 : F 53 = gt * gen ^ (16 * j) := by rw [hF]; sv
+  have f54 : F 54 = gsq * gen ^ (4 * j) := by
     rw [hF]; sv
     rw [lp_pow4]
   have lv : ∀ t i, t < 4 → i < 2 ^ (t + 1) → F (nbLv 15 t i) = spLvV (nib zs j) (nib zs1 j) t i :=
     fun t i ht hi ↦ lpVal_lv j (gen ^ q) eqt z z1 gt gsq zs zs1 gs ht hi
-  have gv : ∀ u, u < 16 → F (nbGV 53 u) = spGV 4 (nib gs j) u :=
+  have gv : ∀ u, u < 16 → F (nbGV 55 u) = spGV 4 (nib gs j) u :=
     fun u hu ↦ lpVal_g j (gen ^ q) eqt z z1 gt gsq zs zs1 gs hu
   refine (tb_rel_iff_sem hf _ _).mpr ⟨fun x ↦ F x.idx, by rw [hp]; simp [hF, lpVal], ?_⟩
   rw [hb, lpBody, holdsList_append, holdsList_noRet _ lpPre_noRet]
@@ -201,8 +203,9 @@ theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
         simp only [tb_noRetList_append, nbEq_noRet, nbG_noRet]; rfl),
       tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nbEq_noRet]; rfl),
       tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nbEq_noRet]; rfl),
+      tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nbEq_noRet]; rfl),
       tb_holdsList_append_noRet (n0 _ (by simp))]
-    refine ⟨⟨⟨⟨?_, ?_⟩, ?_⟩, ?_⟩, ?_⟩
+    refine ⟨⟨⟨⟨⟨?_, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩
     · -- the powers and pointers
       simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
       refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> (rw [hF]; sv) <;> ring
@@ -256,24 +259,30 @@ theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
           rw [hei, eqLevels_getD (hzz.trans hzz1.symm) (by omega) (by omega) hi, spLvV]
         rw [← hv]
         exact tbReadsAt_getD htab.1 (by rw [eqLevels_length hzz hzz1]; simpa using he)
+    · -- the eq levels' padding
+      simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
+      have p51 : F 51 = 0 := by rw [hF]; sv
+      have p52 : F 52 = 0 := by rw [hF]; sv
+      rw [p51, p52, f12, tb_word_zero]
+      exact ⟨rfl, hpad.1 30 (by norm_num) (by norm_num), rfl, hpad.1 31 (by norm_num) (by norm_num)⟩
     · -- the `g` table's pointers
       simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
       refine ⟨?_, ?_⟩ <;> (rw [hF]; sv)
       ring
     · -- the `g` table
-      have nG := tb_noRetList_flatten_range (4 - 1) _ (fun t => nbGStep_noRet 53 (.n 52) (t + 1))
-      have nn : Stmt.noRetList [Stmt.atom (.const (.n 53) (word 1 0)),
-        Stmt.atom (.load (.n (53 + 1)) (.n 52) 0)] = true := rfl
+      have nG := tb_noRetList_flatten_range (4 - 1) _ (fun t => nbGStep_noRet 55 (.n 54) (t + 1))
+      have nn : Stmt.noRetList [Stmt.atom (.const (.n 55) (word 1 0)),
+        Stmt.atom (.load (.n (55 + 1)) (.n 54) 0)] = true := rfl
       rw [nbG, tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nG, nn,
           Bool.and_self]),
         tb_holdsList_append_noRet nn, tb_holdsList_mapAtoms,
-        tb_holdsList_flatten_range _ _ (fun t => nbGStep_noRet 53 (.n 52) (t + 1))]
-      have g0 : F 53 = word 1 0 := by
+        tb_holdsList_flatten_range _ _ (fun t => nbGStep_noRet 55 (.n 54) (t + 1))]
+      have g0 : F 55 = word 1 0 := by
         have := gv 0 (by norm_num)
         simp only [nbGV, ↓reduceIte] at this
         rw [this, tb_word_one, spGV]
         exact prod_eq_one fun s _ ↦ by simp [bitPick]
-      have g1 : F 54 = (nib gs j).getD 0 0 := by
+      have g1 : F 56 = (nib gs j).getD 0 0 := by
         have := gv 1 (by norm_num)
         simp only [nbGV, one_ne_zero, ↓reduceIte] at this
         rw [this]
@@ -283,26 +292,26 @@ theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
           one_mul]
       refine ⟨⟨?_, fun t ht ↦ ?_⟩, fun u hu ↦ ?_⟩
       · simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
-        rw [g0, g1, f52]
+        rw [g0, g1, f54]
         exact ⟨rfl, lg 0 (by norm_num)⟩
       · rw [nbGStep, show ∀ (a : Stmt) (l : List Stmt), a :: l = [a] ++ l from fun _ _ => rfl,
           tb_holdsList_append_noRet rfl, tb_holdsList_mapAtoms]
         have hT : t + 1 < 4 := by omega
-        have eg : F (53 + 2 ^ (t + 1) + (t + 1) - 1) = (nib gs j).getD (t + 1) 0 :=
+        have eg : F (55 + 2 ^ (t + 1) + (t + 1) - 1) = (nib gs j).getD (t + 1) 0 :=
           lpVal_gl j (gen ^ q) eqt z z1 gt gsq zs zs1 gs (by omega) hT
         refine ⟨?_, fun i hi ↦ ?_⟩
         · simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
-          rw [f52, eg]
+          rw [f54, eg]
           exact lg _ hT
-        · show F (53 + 2 ^ (t + 1) + (t + 1) + i) =
-            F (nbGV 53 i) * F (53 + 2 ^ (t + 1) + (t + 1) - 1)
-          have gs' : F (53 + 2 ^ (t + 1) + (t + 1) + i) = spGV 4 (nib gs j) (2 ^ (t + 1) + i) :=
+        · show F (55 + 2 ^ (t + 1) + (t + 1) + i) =
+            F (nbGV 55 i) * F (55 + 2 ^ (t + 1) + (t + 1) - 1)
+          have gs' : F (55 + 2 ^ (t + 1) + (t + 1) + i) = spGV 4 (nib gs j) (2 ^ (t + 1) + i) :=
             lpVal_gstep j (gen ^ q) eqt z z1 gt gsq zs zs1 gs (by omega) hT hi
           rw [eg, gs', gv i (by have : 2 ^ (t + 1) ≤ 2 ^ 4 := Nat.pow_le_pow_right (by norm_num) (by omega); omega),
             spGV_step 4 _ hT hi]
-      · show LoadHolds rd (F 51) u (F (nbGV 53 u))
+      · show LoadHolds rd (F 53) u (F (nbGV 55 u))
         have hu16 : u < 16 := by simpa using hu
-        rw [gv u hu16, f51]
+        rw [gv u hu16, f53]
         have hv : (gTable (nib gs j)).getD u 0 = spGV 4 (nib gs j) u := by
           rw [gTable_getD hgl hu16, spGV]
         rw [← hv]
@@ -312,9 +321,9 @@ theorem lp_iter {rd : Reader} {eqt z z1 gt gsq : E} {q j : ℕ} (hj : j < q)
       refine ⟨?_, ?_, ?_, ?_, ?_⟩ <;> simp [hF, lpVal]
   · -- the call
     simp only [Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil]
-    have e74 : F 74 = gen ^ (j + 1) + gen ^ q := by
+    have e74 : F 76 = gen ^ (j + 1) + gen ^ q := by
       simp [hF, lpVal, tb_word_gen, pow_succ]
-    have e76 : F 76 = gen ^ (j + 1) := by simp [hF, lpVal, tb_word_gen, pow_succ]
+    have e76 : F 78 = gen ^ (j + 1) := by simp [hF, lpVal, tb_word_gen, pow_succ]
     refine ⟨by rw [e74]; exact lp_isInK_add_pow _ _, fun hne ↦ ?_, trivial⟩
     have hjq : j + 1 < q := by
       rcases Nat.lt_or_ge (j + 1) q with h | h
@@ -329,16 +338,18 @@ theorem lp_chain {rd : Reader} {eqt z z1 gt gsq : E} {q : ℕ} {zs zs1 gs : List
     (hlz : 4 * q ≤ zs.length) (hlz1 : 4 * q ≤ zs1.length) (hlg : 4 * q ≤ gs.length)
     (hz : TbReadsAt rd z zs) (hz1 : TbReadsAt rd z1 zs1) (hg : TbReadsAt rd gsq gs)
     (htab : ∀ j < q, TbReadsAt rd (eqt * gen ^ (32 * j)) (eqLevels (nib zs j) (nib zs1 j)) ∧
-      TbReadsAt rd (gt * gen ^ (16 * j)) (gTable (nib gs j))) :
+      TbReadsAt rd (gt * gen ^ (16 * j)) (gTable (nib gs j)))
+    (hpad : ∀ j < q, NibPads rd (eqt * gen ^ (32 * j)) (gt * gen ^ (16 * j)) 4) :
     ∀ j < q, coreProgram.Rel rd name% «shared_selector_tables_loop0» [gen ^ j, gen ^ q, eqt, z, z1,
         gt, gsq] [] := by
   intro j hj
   obtain ⟨m, hm⟩ : ∃ m, q = j + 1 + m := ⟨q - j - 1, by omega⟩
   induction m generalizing j with
   | zero =>
-    exact lp_iter hj hlz hlz1 hlg hz hz1 hg (htab j hj) (fun h ↦ absurd h (by omega))
+    exact lp_iter hj hlz hlz1 hlg hz hz1 hg (htab j hj) (hpad j hj) (fun h ↦ absurd h (by omega))
   | succ m ih =>
-    exact lp_iter hj hlz hlz1 hlg hz hz1 hg (htab j hj) (fun _ ↦ ih (j + 1) (by omega) (by omega))
+    exact lp_iter hj hlz hlz1 hlg hz hz1 hg (htab j hj) (hpad j hj)
+      (fun _ ↦ ih (j + 1) (by omega) (by omega))
 
 /-! ## The function -/
 
@@ -389,7 +400,7 @@ theorem ssB_mul_self (n k : ℕ) : ssB n k = ssB n k * ssB n k := by rw [ssB, bi
 
 /-- **`shared_selector_tables` is complete.** -/
 theorem shared_selector_tables_complete_holds : shared_selector_tables_complete_Spec := by
-  intro rd eqt gt z z1 gsq n zs zs1 gs hn hzl hz1l hgl hz hz1 hg hrt
+  intro rd eqt gt z z1 gsq n zs zs1 gs hn hzl hz1l hgl hz hz1 hg hrt hrp
   obtain ⟨fn, hf, hp, hb⟩ := ssFound
   obtain ⟨hr, hq⟩ := ss_bits hn
   have v20 : ssF n 0 0 * ssF n 1 1 = gen ^ (n % 4) := by
@@ -425,7 +436,10 @@ theorem shared_selector_tables_complete_holds : shared_selector_tables_complete_
       · exfalso; apply hne; rw [h0, tb_word_one, pow_zero]; exact e_add_self 1
       · exact h0
     rw [tb_word_one, ← pow_zero gen]
-    exact lp_chain hlz hlz1 hlg hz hz1 hg (fun j hj ↦ hrt j (by omega)) 0 hq0
+    exact lp_chain hlz hlz1 hlg hz hz1 hg (fun j hj ↦ hrt j (by omega))
+      (fun j hj ↦ by
+        have h4 : (nib zs j).length = 4 := by simp [nib]; omega
+        exact h4 ▸ hrp j (by omega)) 0 hq0
   · -- the partial nibble
     have hr4 : n % 4 < 4 := by omega
     refine ⟨n % 4, by simpa using hr4, gen_pow_eq_ofK _, ?_⟩
@@ -434,7 +448,7 @@ theorem shared_selector_tables_complete_holds : shared_selector_tables_complete_
       simp [nib, hl]; omega
     refine sel_partial_nibble_complete_holds (n % 4) hr4 rd _ _
       ⟨rfl, nib zs q, nib zs1 q, nib gs q, hlen zs hzl, hlen zs1 hz1l, hlen gs hgl,
-        tbReadsAt_nib hz q, tbReadsAt_nib hz1 q, tbReadsAt_nib hg q, ?_, ?_⟩
+        tbReadsAt_nib hz q, tbReadsAt_nib hz1 q, tbReadsAt_nib hg q, ?_, ?_⟩ ?_
     · rcases Nat.eq_zero_or_pos (n % 4) with h0 | h0
       · have e0 : nib zs q = [] := List.length_eq_zero_iff.mp ((hlen zs hzl).trans h0)
         have e1 : nib zs1 q = [] := List.length_eq_zero_iff.mp ((hlen zs1 hz1l).trans h0)
@@ -444,6 +458,10 @@ theorem shared_selector_tables_complete_holds : shared_selector_tables_complete_
     · rcases Nat.eq_zero_or_pos (n % 4) with h0 | h0
       · rw [h0]; exact tbReadsAt_nil _ _
       · rw [tb_ite_neg'' (show ¬ n % 4 = 0 by omega)]; exact (hrt q (by omega)).2
+    · show NibPads rd _ _ (n % 4)
+      rcases Nat.eq_zero_or_pos (n % 4) with h0 | h0
+      · rw [h0]; exact ⟨fun e _ he ↦ absurd he (by omega), fun u _ hu ↦ absurd hu (by omega)⟩
+      · exact hlen zs hzl ▸ hrp q (by omega)
 
 end
 end LeanVM.Guest.B1.Tables

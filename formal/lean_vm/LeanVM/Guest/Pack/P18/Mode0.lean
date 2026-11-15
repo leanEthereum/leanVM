@@ -12,8 +12,6 @@ public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P18».Bundle
 public import LeanVM.Guest.Pack.«P18».ModeSig
-public import LeanVM.Guest.Pack.«P42».ModeSig
-public import LeanVM.Guest.Pack.«P50».ModeSig
 
 set_option Elab.async false
 
@@ -29,7 +27,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `sel_partial_nibble__L0`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨189031, 3, Fn.«sel_partial_nibble__L0».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨189034, 3, Fn.«sel_partial_nibble__L0».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `sel_partial_nibble__L0`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -51,7 +49,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `padding_weight__L18`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨190690, 164, Fn.«padding_weight__L18».modeSig, (.node none .nil (.node (some [(.bitDecompose 8
+  ⟨190732, 164, Fn.«padding_weight__L18».modeSig, (.node none .nil (.node (some [(.bitDecompose 8
     (.stack 9) 19)]) .nil .nil)), .nil, .nil, false, .nil⟩
 
 /-- `padding_weight__L18`: its mode walk accepts its code. -/
@@ -74,7 +72,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `block_selector_tab__L2`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨203802, 13, Fn.«block_selector_tab__L2».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨203844, 13, Fn.«block_selector_tab__L2».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `block_selector_tab__L2`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -96,7 +94,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `block_selector_tab__L24`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨204653, 63, Fn.«block_selector_tab__L24».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨204695, 63, Fn.«block_selector_tab__L24».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `block_selector_tab__L24`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -118,7 +116,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `claim_list_last__L16`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨236384, 166, Fn.«claim_list_last__L16».modeSig, (.node (some [(.witnessHeap "claims" 3 0 4),
+  ⟨236426, 166, Fn.«claim_list_last__L16».modeSig, (.node (some [(.witnessHeap "claims" 3 0 4),
     (.witnessHeap "claims" 3 4 4), (.witnessHeap "claims" 3 8 4), (.witnessHeap "claims" 3 12 4),
     (.witnessHeap "claims" 3 16 4), (.witnessHeap "claims" 3 20 4), (.witnessHeap "claims" 3 24 4),
     (.witnessHeap "claims" 3 28 4), (.witnessHeap "claims" 3 32 4), (.witnessHeap "claims" 3 36 4),
@@ -146,7 +144,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `child_claim_list_last__L13`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨241068, 255, Fn.«child_claim_list_last__L13».modeSig, (.node (some [(.witnessStack
+  ⟨241110, 255, Fn.«child_claim_list_last__L13».modeSig, (.node (some [(.witnessStack
     "child_claim_index" 79 1)]) (.node none (.node none (.node none (.node none .nil (.node none
     (.node none (.node (some [(.witnessStack "child_claim_index" 178 1)]) .nil .nil) .nil) .nil))
     (.node none (.node (some [(.witnessStack "child_claim_index" 106 1)]) .nil .nil) .nil)) (.node
@@ -239,7 +237,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `child_claim_list_mono_last__L8`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨245240, 152, Fn.«child_claim_list_mono_last__L8».modeSig, (.node none .nil (.node (some
+  ⟨245282, 152, Fn.«child_claim_list_mono_last__L8».modeSig, (.node none .nil (.node (some
     [(.witnessStack "child_claim_gap" 82 1)]) (.node none (.node none (.node none (.node (some
     [(.witnessStack "child_claim_gap" 100 1)]) .nil .nil) .nil) (.node none (.node none (.node
     (some [(.witnessStack "child_claim_gap" 124 1)]) .nil .nil) .nil) .nil)) (.node (some
@@ -307,7 +305,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `squeeze_point_from__L10`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨256685, 50, Fn.«squeeze_point_from__L10».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨256727, 50, Fn.«squeeze_point_from__L10».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `squeeze_point_from__L10`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -316,38 +314,3 @@ theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
 end
 
 end LeanVM.Guest.Fn.«squeeze_point_from__L10»
-
-namespace LeanVM.Guest.Fn.«level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none .nil (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
-    none .nil (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node
-    none (.node (some Fn.«verify_merkle_cap__L4».modeSig) .nil .nil) .nil) .nil) .nil)) .nil) .nil)
-    .nil)) .nil) .nil)))) .nil))) .nil) (.node none .nil (.node none (.node none .nil (.node none
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none (.node
-    none (.node (some Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0».modeSig) .nil .nil)
-    .nil) .nil) .nil)) .nil) .nil))))))) .nil) .nil)) .nil))), 524287⟩
-
-/-- `level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0`: its hints, residuals, table sizes and cuts.
-    -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨257365, 37, Fn.«level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0».modeSig, (.node none (.node
-    (some [(.allocDyn 13 12), (.witnessHeap "merkle_caps" 13 0 64)]) .nil (.node none .nil (.node
-    (some [(.alloc 23 21)]) .nil .nil))) (.node (some [(.allocDyn 15 14), (.witnessHeap
-    "merkle_cap_active" 15 0 16)]) (.node (some [(.alloc 18 118)]) .nil .nil) .nil)), .nil, .nil,
-    false, .nil⟩
-
-/-- `level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«level_queries__L23_L0_L4_L16_L16_L4_L0_L0_L0_L0»

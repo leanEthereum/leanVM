@@ -22,13 +22,13 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `__loop5`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none (.node none (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node
-    none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node (some Fn.«rs_eq_rows__L8».modeSig) .nil .nil)))) .nil))) .nil)) .nil)))) .nil)
-    .nil) .nil) .nil) (.node none .nil (.node none (.node none (.node none .nil (.node none (.node
-    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none (.node (some
+  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none .nil (.node none (.node none .nil
+    (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node (some Fn.«rs_eq_rows__L8».modeSig) .nil .nil)))) .nil))) .nil))) .nil) .nil) .nil)
+    .nil)) .nil)) (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none
+    .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    none (.node none (.node none .nil (.node none .nil (.node none (.node (some
     Fn.«rs_eq_run_loop0».modeSig) .nil .nil) .nil))) .nil) .nil) .nil)))))) .nil)) .nil) .nil))),
     524287⟩
 

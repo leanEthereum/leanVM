@@ -82,11 +82,12 @@ theorem sh_call {μ τ : ℕ} {point : List E} (hμ : point.length = μ) (hμ33 
     (hzv : TbReadsAt rd z (point.drop τ)) (hz1v : TbReadsAt rd z1 ((point.map (1 + ·)).drop τ))
     (hsqv : TbReadsAt rd gsq ((gSquaresList.drop τ).take (μ - τ)))
     (hrun : RunTables rd eqt gt (μ - τ) (point.drop τ) ((point.map (1 + ·)).drop τ)
-      ((gSquaresList.drop τ).take (μ - τ))) :
+      ((gSquaresList.drop τ).take (μ - τ)))
+    (hpad : RunPads rd eqt gt (μ - τ) (point.drop τ)) :
     coreProgram.Rel rd "shared_selector_tables" [eqt, gt, z, z1, gsq, gen ^ (μ - τ)] [] := by
   have hsql : gSquaresList.length = 34 := by simp [gSquaresList]
   exact shared_selector_tables_complete_holds rd eqt gt z z1 gsq (μ - τ) _ _ _ (by omega)
-    (by simp; omega) (by simp; omega) (by simp [hsql]; omega) hzv hz1v hsqv hrun
+    (by simp; omega) (by simp; omega) (by simp [hsql]; omega) hzv hz1v hsqv hrun hpad
 
 end
 end LeanVM.Guest.B1.Tables

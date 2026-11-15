@@ -2075,6 +2075,9 @@ def sel_eq_nibble(out, z, z1, width: Const):
             levels[2 ** (t + 1) - 2 + 2 ** t + i] = levels[2 ** t - 2 + i] * r
     for i in unroll(0, 2 ** (width + 1) - 2):
         out[GEN ** i] = levels[i]
+    # padded to 8·width cells, so the tables of n coordinates fill [0, 8n)
+    for i in unroll(2 ** (width + 1) - 2, 8 * width):
+        out[GEN ** i] = 0
     return
 
 
@@ -2090,6 +2093,9 @@ def sel_g_nibble(out, gs, width: Const):
             vals[2 ** t + i] = vals[i] * g_t
     for i in unroll(0, 2 ** width):
         out[GEN ** i] = vals[i]
+    # padded to 4·width cells, so the tables of n coordinates fill [0, 4n)
+    for i in unroll(2 ** width, 4 * width):
+        out[GEN ** i] = 0
     return
 
 

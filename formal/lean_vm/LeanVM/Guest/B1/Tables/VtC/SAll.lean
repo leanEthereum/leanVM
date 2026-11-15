@@ -53,6 +53,8 @@ theorem vtS_complete (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} (
     (hrun : ∀ t < 6, RunTables rd (w 701 * gen ^ (288 * t)) (w 702 * gen ^ (144 * t))
       (point.length - τ t) (point.drop (τ t)) ((point.map (1 + ·)).drop (τ t))
       ((gSquaresList.drop (τ t)).take (point.length - τ t)))
+    (hpad : ∀ t < 6, RunPads rd (w 701 * gen ^ (288 * t)) (w 702 * gen ^ (144 * t))
+      (point.length - τ t) (point.drop (τ t)))
     -- the callees' returns
     (hwp : ∀ t < 6, w (vtPadV t) = paddingWeight (point.take (τ t)) (n t) ∧
       w (vtPadV t + 1) = PadLead (τ t) (n t) ∧ w (vtPadV t + 2) = PadRest (τ t) (n t))
@@ -81,7 +83,7 @@ theorem vtS_complete (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} (
     simp only [List.cons_append, List.nil_append, List.getD_cons_succ]
     rw [vtTauList_getD ht]
   obtain ⟨h2, hpw, hsl, e668, e703, e705, e706⟩ := vtS_p2 hl hlow point hμ33 τ n hτ hτ31
-    hτμ hkbt hz h9 hrows hE.1 hwp hidxc hz1 hw704 hrun
+    hτμ hkbt hz h9 hrows hE.1 hwp hidxc hz1 hw704 hrun hpad
   exact ⟨forall_slice_join (a := 0) (l1 := 563) (l2 := 202) h1 h2, hcp, hkb, hal, hP, hC,
     hpw, hsl, e668, e703, e705, e706⟩
 

@@ -129,7 +129,7 @@ def gen():
                   f'    rw [show vtGV {t} = {call_args[t][1]} from rfl] at pg\n'
                   f'    rw [pe, pg, ez, ez1, esq, ec]\n'
                   f'    exact sh_call hμ hμ33 hτμ (tbReadsAt_drop hz τ)\n'
-                  f'      (tbReadsAt_drop hz1 τ) (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun')
+                  f'      (tbReadsAt_drop hz1 τ) (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun hpad')
         head = (f'set_option maxRecDepth 100000 in\n'
                 f'/-- **Table `{t}`\'s shared selector tables** (`{p} ..< {q + 1}`). -/\n'
                 f'theorem vtc_sh{t} (hl : args.length = 20) (hlow : LowDefB 14 rd) {{μ τ : ℕ}} {{point : List E}}\n'
@@ -138,7 +138,9 @@ def gen():
                 f'    (hz1 : TbReadsAt rd (σv (.n 699)) (point.map (1 + ·)))\n'
                 f'    (hsq : TbReadsAt rd (σv (.n 12)) gSquaresList)\n'
                 f'    (hrun : RunTables rd (σv (.n 701) * gen ^ (288 * {t})) (σv (.n 702) * gen ^ (144 * {t})) (μ - τ)\n'
-                f'      (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take (μ - τ))) :\n'
+                f'      (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take (μ - τ)))\n'
+                f'    (hpad : RunPads rd (σv (.n 701) * gen ^ (288 * {t})) (σv (.n 702) * gen ^ (144 * {t})) (μ - τ)\n'
+                f'      (point.drop τ)) :\n'
                 f'    (∀ s ∈ (vtPre.drop {p}).take {q + 1 - p}, VSH (coreProgram.Rel rd) rd σv s) ∧\n'
                 f'      σv (.n (vtShLen {t})) = gen ^ (μ - τ) := by')
         L.append(head + '\n' + '\n'.join(Lt))
@@ -162,7 +164,7 @@ public import LeanVM.Guest.B1.Tables.VtC.SShared
 `vtc_shptr`: table `t`'s nibble tables' pointers, `shared_eq·g^(288 t)` and `shared_g·g^(144 t)`.
 `vtc_sh{t}`: with `kappa_base[2 + t] = g^τ`, `g_bus_mu = g^μ`, the bus point at `zeta`, `1 + ζ` at
 `zeta1`, the squares at `g_squares`, and the table's nibble tables holding their words
-(`RunTables`), its statements hold and `shared_len[t] = g^(μ - τ)`.
+(`RunTables`) and their padding (`RunPads`), its statements hold and `shared_len[t] = g^(μ - τ)`.
 -/
 
 namespace LeanVM.Guest.B1.Tables

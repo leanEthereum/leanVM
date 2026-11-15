@@ -17,7 +17,7 @@ public import LeanVM.Guest.Data.NameStrings
 
 `loop9_relIn`: iteration `k < K` of `shared_selector_tables_loop0` (`x = g^k`, the end `g^K`) reads
 the coordinates, complements and shares at `z·x^4`, `z1·x^4`, `gsq·x^4` (four each) and writes the
-eq levels at `eqt·x^32` (`30`) and the `g` table at `gt·x^16` (`16`); by induction on the
+eq levels at `eqt·x^32`, padded (`32`), and the `g` table at `gt·x^16` (`16`); by induction on the
 derivation's depth, every iteration loads from `R` when the runs `z`, `z1`, `gsq` (`4K`), `eqt`
 (`32K`), `gt` (`16K`) lie in `R`.
 
@@ -54,7 +54,7 @@ theorem filterMap_callSF {σ : Val} {pre : List Stmt} (h : pre.all noDispB = tru
   List.filterMap_congr fun s hs ↦ callSF_of_noDisp (List.all_eq_true.mp h s hs)
 
 /-- `shared_selector_tables_loop0`'s statements before its `ret`. -/
-def lpPreC : List Stmt := lpPre ++ [.callIf (.n 74) name% «shared_selector_tables_loop0» [.n 76,
+def lpPreC : List Stmt := lpPre ++ [.callIf (.n 76) name% «shared_selector_tables_loop0» [.n 78,
     .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]]
 
 theorem lpBody_eq : lpBody = lpPreC ++ [.ret []] := by simp [lpBody, lpPreC]
@@ -64,12 +64,12 @@ theorem lp_flat : lpPreC.all Stmt.flat = true := by decide +kernel
 theorem lp_noDisp : lpPreC.all noDispB = true := by decide +kernel
 
 /-- The pointers `shared_selector_tables_loop0` loads through, and their runs. -/
-def lpTbl : List (ℕ × ℕ) := [(12, 30), (13, 4), (14, 4), (51, 16), (52, 4)]
+def lpTbl : List (ℕ × ℕ) := [(12, 32), (13, 4), (14, 4), (53, 16), (54, 4)]
 
 theorem lp_loads : lpPreC.all (loadsViaB lpTbl) = true := by decide +kernel
 
 theorem lp_calls : lpPreC.filterMap Main.Stmt.callS =
-    [(some (.n 74), name% «shared_selector_tables_loop0», [.n 76, .n 1, .n 2, .n 3, .n 4, .n 5,
+    [(some (.n 76), name% «shared_selector_tables_loop0», [.n 78, .n 1, .n 2, .n 3, .n 4, .n 5,
         .n 6], [])] := by
   decide +kernel
 
@@ -101,12 +101,13 @@ theorem loop9_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ} {eqt z z1 gt gsq 
         simp only [tb_noRetList_append, nbEq_noRet, nbG_noRet]; rfl),
       tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nbEq_noRet]; rfl),
       tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nbEq_noRet]; rfl),
+      tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nbEq_noRet]; rfl),
       tb_holdsList_append_noRet rfl] at hpre
-    obtain ⟨⟨⟨⟨hh, -⟩, hm⟩, -⟩, ht⟩ := hpre
+    obtain ⟨⟨⟨⟨⟨hh, -⟩, -⟩, hm⟩, -⟩, ht⟩ := hpre
     simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hh hm ht
     obtain ⟨h7, h8, h9, h10, h11, h12, h13, h14⟩ := hh
-    obtain ⟨h51, h52⟩ := hm
-    obtain ⟨h72, h73, h74, h75, h76⟩ := ht
+    obtain ⟨h53, h54⟩ := hm
+    obtain ⟨h74, h75, h76, h77, h78⟩ := ht
     have ex4 : σ (.n 8) = gen ^ (4 * k) := by rw [h8, h7, p0]; ring
     have ex16 : σ (.n 10) = gen ^ (16 * k) := by rw [h10, h9, h8, h7, p0]; ring
     refine ⟨fun s hs ↦ dispOk_of_noDisp (List.all_eq_true.mp lp_noDisp s hs),
@@ -117,15 +118,15 @@ theorem loop9_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ} {eqt z z1 gt gsq 
         exact ptrIn_mul (ptrIn_mono he (by omega))
       · rw [h13, ex4, p3]; exact ptrIn_mul (ptrIn_mono hz (by omega))
       · rw [h14, ex4, p4]; exact ptrIn_mul (ptrIn_mono hz1 (by omega))
-      · rw [h51, ex16, p5]; exact ptrIn_mul (ptrIn_mono hgt (by omega))
-      · rw [h52, ex4, p6]; exact ptrIn_mul (ptrIn_mono hgs (by omega))
+      · rw [h53, ex16, p5]; exact ptrIn_mul (ptrIn_mono hgt (by omega))
+      · rw [h54, ex4, p6]; exact ptrIn_mul (ptrIn_mono hgs (by omega))
     · rw [filterMap_callSF lp_noDisp, lp_calls] at hc
       simp only [List.map_cons, List.map_nil, List.mem_singleton] at hc
       subst hc
       simp only [Main.mkCall, decide_eq_true_eq] at ht ⊢
-      have e76 : σ (.n 76) = gen ^ (k + 1) := by rw [h76, h75, tb_word_gen, p0, pow_succ]
-      have e74 : σ (.n 74) = gen ^ (k + 1) + gen ^ K := by
-        rw [h74, h73, h72, tb_word_gen, p0, p1, pow_succ]
+      have e76 : σ (.n 78) = gen ^ (k + 1) := by rw [h78, h77, tb_word_gen, p0, pow_succ]
+      have e74 : σ (.n 76) = gen ^ (k + 1) + gen ^ K := by
+        rw [h76, h75, h74, tb_word_gen, p0, p1, pow_succ]
       have hk1 : k + 1 < K := by
         rcases Nat.lt_or_ge (k + 1) K with h' | h'
         · exact h'

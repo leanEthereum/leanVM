@@ -26,14 +26,14 @@ noncomputable def modeEnv : Mode.Env :=
     (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
     none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
     Fn.«da_verify_column».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil)))) .nil) .nil)) .nil)
-    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none
-    .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node
-    none .nil (.node none .nil (.node none .nil (.node (some Fn.«da_verify_loop1».modeSig) .nil
-    .nil)))) .nil) .nil) .nil)) .nil))) .nil) .nil) .nil)) .nil))), 524287⟩
+    (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node (some Fn.«da_verify_loop1».modeSig)
+    .nil .nil)))) .nil) .nil) .nil)) .nil))) .nil))) .nil)) .nil)), 524287⟩
 
 /-- `__loop22`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨247178, 31, Fn.«da_verify_loop1».modeSig, (.node none (.node none .nil (.node none (.node none
+  ⟨247220, 31, Fn.«da_verify_loop1».modeSig, (.node none (.node none .nil (.node none (.node none
     (.node (some [(.frameAddress 20)]) .nil .nil) .nil) .nil)) (.node (some [(.alloc 10 22)]) .nil
     .nil)), .nil, .nil, false, .nil⟩
 

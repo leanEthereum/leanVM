@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Tables.VtC.SShared
 `vtc_shptr`: table `t`'s nibble tables' pointers, `shared_eq·g^(288 t)` and `shared_g·g^(144 t)`.
 `vtc_sh{t}`: with `kappa_base[2 + t] = g^τ`, `g_bus_mu = g^μ`, the bus point at `zeta`, `1 + ζ` at
 `zeta1`, the squares at `g_squares`, and the table's nibble tables holding their words
-(`RunTables`), its statements hold and `shared_len[t] = g^(μ - τ)`.
+(`RunTables`) and their padding (`RunPads`), its statements hold and `shared_len[t] = g^(μ - τ)`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -158,7 +158,9 @@ theorem vtc_sh0 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
     (hz1 : TbReadsAt rd (σv (.n 699)) (point.map (1 + ·)))
     (hsq : TbReadsAt rd (σv (.n 12)) gSquaresList)
     (hrun : RunTables rd (σv (.n 701) * gen ^ (288 * 0)) (σv (.n 702) * gen ^ (144 * 0)) (μ - τ)
-      (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take (μ - τ))) :
+      (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take (μ - τ)))
+    (hpad : RunPads rd (σv (.n 701) * gen ^ (288 * 0)) (σv (.n 702) * gen ^ (144 * 0)) (μ - τ)
+      (point.drop τ)) :
     (∀ s ∈ (vtPre.drop 697).take 8, VSH (coreProgram.Rel rd) rd σv s) ∧
       σv (.n (vtShLen 0)) = gen ^ (μ - τ) := by
   have qd : σv (.n 703) = σv (.n 9) * (σv (.n 27))⁻¹ := by
@@ -192,7 +194,7 @@ theorem vtc_sh0 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
     rw [show vtGV 0 = 702 from rfl] at pg
     rw [pe, pg, ez, ez1, esq, ec]
     exact sh_call hμ hμ33 hτμ (tbReadsAt_drop hz τ)
-      (tbReadsAt_drop hz1 τ) (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun
+      (tbReadsAt_drop hz1 τ) (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun hpad
 
 set_option maxRecDepth 100000 in
 /-- **Table `1`'s shared selector tables** (`705 ..< 717`). -/
@@ -202,7 +204,9 @@ theorem vtc_sh1 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
     (hz1 : TbReadsAt rd (σv (.n 699)) (point.map (1 + ·)))
     (hsq : TbReadsAt rd (σv (.n 12)) gSquaresList)
     (hrun : RunTables rd (σv (.n 701) * gen ^ (288 * 1)) (σv (.n 702) * gen ^ (144 * 1)) (μ - τ)
-      (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take (μ - τ))) :
+      (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take (μ - τ)))
+    (hpad : RunPads rd (σv (.n 701) * gen ^ (288 * 1)) (σv (.n 702) * gen ^ (144 * 1)) (μ - τ)
+      (point.drop τ)) :
     (∀ s ∈ (vtPre.drop 705).take 12, VSH (coreProgram.Rel rd) rd σv s) ∧
       σv (.n (vtShLen 1)) = gen ^ (μ - τ) := by
   have qd : σv (.n 712) = σv (.n 9) * (σv (.n 28))⁻¹ := by
@@ -236,7 +240,7 @@ theorem vtc_sh1 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
     rw [show vtGV 1 = 721 from rfl] at pg
     rw [pe, pg, ez, ez1, esq, ec]
     exact sh_call hμ hμ33 hτμ (tbReadsAt_drop hz τ)
-      (tbReadsAt_drop hz1 τ) (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun
+      (tbReadsAt_drop hz1 τ) (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun hpad
 
 set_option maxRecDepth 100000 in
 /-- **Table `2`'s shared selector tables** (`717 ..< 729`). -/
@@ -246,7 +250,9 @@ theorem vtc_sh2 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
     (hz1 : TbReadsAt rd (σv (.n 699)) (point.map (1 + ·)))
     (hsq : TbReadsAt rd (σv (.n 12)) gSquaresList)
     (hrun : RunTables rd (σv (.n 701) * gen ^ (288 * 2)) (σv (.n 702) * gen ^ (144 * 2)) (μ - τ)
-      (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take (μ - τ))) :
+      (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take (μ - τ)))
+    (hpad : RunPads rd (σv (.n 701) * gen ^ (288 * 2)) (σv (.n 702) * gen ^ (144 * 2)) (μ - τ)
+      (point.drop τ)) :
     (∀ s ∈ (vtPre.drop 717).take 12, VSH (coreProgram.Rel rd) rd σv s) ∧
       σv (.n (vtShLen 2)) = gen ^ (μ - τ) := by
   have qd : σv (.n 725) = σv (.n 9) * (σv (.n 29))⁻¹ := by
@@ -280,7 +286,7 @@ theorem vtc_sh2 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
     rw [show vtGV 2 = 734 from rfl] at pg
     rw [pe, pg, ez, ez1, esq, ec]
     exact sh_call hμ hμ33 hτμ (tbReadsAt_drop hz τ)
-      (tbReadsAt_drop hz1 τ) (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun
+      (tbReadsAt_drop hz1 τ) (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun hpad
 
 set_option maxRecDepth 100000 in
 /-- **Table `3`'s shared selector tables** (`729 ..< 741`). -/
@@ -290,7 +296,9 @@ theorem vtc_sh3 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
     (hz1 : TbReadsAt rd (σv (.n 699)) (point.map (1 + ·)))
     (hsq : TbReadsAt rd (σv (.n 12)) gSquaresList)
     (hrun : RunTables rd (σv (.n 701) * gen ^ (288 * 3)) (σv (.n 702) * gen ^ (144 * 3)) (μ - τ)
-      (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take (μ - τ))) :
+      (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take (μ - τ)))
+    (hpad : RunPads rd (σv (.n 701) * gen ^ (288 * 3)) (σv (.n 702) * gen ^ (144 * 3)) (μ - τ)
+      (point.drop τ)) :
     (∀ s ∈ (vtPre.drop 729).take 12, VSH (coreProgram.Rel rd) rd σv s) ∧
       σv (.n (vtShLen 3)) = gen ^ (μ - τ) := by
   have qd : σv (.n 738) = σv (.n 9) * (σv (.n 30))⁻¹ := by
@@ -324,7 +332,7 @@ theorem vtc_sh3 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
     rw [show vtGV 3 = 747 from rfl] at pg
     rw [pe, pg, ez, ez1, esq, ec]
     exact sh_call hμ hμ33 hτμ (tbReadsAt_drop hz τ)
-      (tbReadsAt_drop hz1 τ) (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun
+      (tbReadsAt_drop hz1 τ) (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun hpad
 
 set_option maxRecDepth 100000 in
 /-- **Table `4`'s shared selector tables** (`741 ..< 753`). -/
@@ -334,7 +342,9 @@ theorem vtc_sh4 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
     (hz1 : TbReadsAt rd (σv (.n 699)) (point.map (1 + ·)))
     (hsq : TbReadsAt rd (σv (.n 12)) gSquaresList)
     (hrun : RunTables rd (σv (.n 701) * gen ^ (288 * 4)) (σv (.n 702) * gen ^ (144 * 4)) (μ - τ)
-      (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take (μ - τ))) :
+      (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take (μ - τ)))
+    (hpad : RunPads rd (σv (.n 701) * gen ^ (288 * 4)) (σv (.n 702) * gen ^ (144 * 4)) (μ - τ)
+      (point.drop τ)) :
     (∀ s ∈ (vtPre.drop 741).take 12, VSH (coreProgram.Rel rd) rd σv s) ∧
       σv (.n (vtShLen 4)) = gen ^ (μ - τ) := by
   have qd : σv (.n 751) = σv (.n 9) * (σv (.n 31))⁻¹ := by
@@ -368,7 +378,7 @@ theorem vtc_sh4 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
     rw [show vtGV 4 = 760 from rfl] at pg
     rw [pe, pg, ez, ez1, esq, ec]
     exact sh_call hμ hμ33 hτμ (tbReadsAt_drop hz τ)
-      (tbReadsAt_drop hz1 τ) (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun
+      (tbReadsAt_drop hz1 τ) (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun hpad
 
 set_option maxRecDepth 100000 in
 /-- **Table `5`'s shared selector tables** (`753 ..< 765`). -/
@@ -378,7 +388,9 @@ theorem vtc_sh5 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
     (hz1 : TbReadsAt rd (σv (.n 699)) (point.map (1 + ·)))
     (hsq : TbReadsAt rd (σv (.n 12)) gSquaresList)
     (hrun : RunTables rd (σv (.n 701) * gen ^ (288 * 5)) (σv (.n 702) * gen ^ (144 * 5)) (μ - τ)
-      (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take (μ - τ))) :
+      (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take (μ - τ)))
+    (hpad : RunPads rd (σv (.n 701) * gen ^ (288 * 5)) (σv (.n 702) * gen ^ (144 * 5)) (μ - τ)
+      (point.drop τ)) :
     (∀ s ∈ (vtPre.drop 753).take 12, VSH (coreProgram.Rel rd) rd σv s) ∧
       σv (.n (vtShLen 5)) = gen ^ (μ - τ) := by
   have qd : σv (.n 764) = σv (.n 9) * (σv (.n 32))⁻¹ := by
@@ -412,7 +424,7 @@ theorem vtc_sh5 (hl : args.length = 20) (hlow : LowDefB 14 rd) {μ τ : ℕ} {po
     rw [show vtGV 5 = 773 from rfl] at pg
     rw [pe, pg, ez, ez1, esq, ec]
     exact sh_call hμ hμ33 hτμ (tbReadsAt_drop hz τ)
-      (tbReadsAt_drop hz1 τ) (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun
+      (tbReadsAt_drop hz1 τ) (tbReadsAt_take (tbReadsAt_drop hsq τ) _) hrun hpad
 
 end
 

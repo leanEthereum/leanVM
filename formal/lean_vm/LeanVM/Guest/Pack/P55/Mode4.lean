@@ -27,7 +27,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `decode_query_windows__L28_L4`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨396343, 239, Fn.«decode_query_windows__L28_L4».modeSig, (.node (some [(.cellAddress 42 43)])
+  ⟨396385, 239, Fn.«decode_query_windows__L28_L4».modeSig, (.node (some [(.cellAddress 42 43)])
     (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node (some
     [(.windowsExp 2 (.stack 6) 22 108 1 1)]) .nil .nil)) .nil) (.node none (.node (some
     [(.windowsExp 2 (.stack 6) 10 52 1 1)]) .nil .nil) .nil)) .nil) (.node none (.node none (.node

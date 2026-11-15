@@ -4191,32 +4191,61 @@ open LeanVM.Guest
 namespace core
 
 /-- `sel_partial_nibble__L2`: the body. -/
-noncomputable def body : List Core.Stmt := [
-  .atom (.load (.n 5) (.n 3) 0),
-  .atom (.load (.n 6) (.n 2) 0),
-  .atom (.load (.n 7) (.n 2) 1),
-  .atom (.load (.n 8) (.n 3) 1),
-  .atom (.mul (.n 9) (.n 5) (.n 8)),
-  .atom (.mul (.n 10) (.n 5) (.n 7)),
-  .atom (.mul (.n 11) (.n 6) (.n 8)),
-  .atom (.mul (.n 12) (.n 6) (.n 7)),
-  .atom (.load (.n 5) (.n 0) 0),
-  .atom (.load (.n 6) (.n 0) 1),
-  .atom (.load (.n 9) (.n 0) 2),
-  .atom (.load (.n 11) (.n 0) 3),
-  .atom (.load (.n 10) (.n 0) 4),
-  .atom (.load (.n 12) (.n 0) 5),
-  .atom (.const (.n 13) (word 1 0)),
-  .atom (.load (.n 14) (.n 4) 0),
-  .atom (.load (.n 15) (.n 4) 1),
-  .atom (.mul (.n 16) (.n 13) (.n 15)),
-  .atom (.mul (.n 17) (.n 14) (.n 15)),
-  .atom (.load (.n 13) (.n 1) 0),
-  .atom (.load (.n 14) (.n 1) 1),
-  .atom (.load (.n 16) (.n 1) 2),
-  .atom (.load (.n 17) (.n 1) 3),
-  .atom (.const (.n 18) (word 0 0)),
-  .ret [.n 18]]
+noncomputable def body : List Core.Stmt := (
+  .atom (.load (.n 5) (.n 3) 0) ::
+  .atom (.load (.n 6) (.n 2) 0) ::
+  .atom (.load (.n 7) (.n 2) 1) ::
+  .atom (.load (.n 8) (.n 3) 1) ::
+  .atom (.mul (.n 9) (.n 5) (.n 8)) ::
+  .atom (.mul (.n 10) (.n 5) (.n 7)) ::
+  .atom (.mul (.n 11) (.n 6) (.n 8)) ::
+  .atom (.mul (.n 12) (.n 6) (.n 7)) ::
+  .atom (.load (.n 5) (.n 0) 0) ::
+  .atom (.load (.n 6) (.n 0) 1) ::
+  .atom (.load (.n 9) (.n 0) 2) ::
+  .atom (.load (.n 11) (.n 0) 3) ::
+  .atom (.load (.n 10) (.n 0) 4) ::
+  .atom (.load (.n 12) (.n 0) 5) ::
+  .atom (.const (.n 13) (word 0 0)) ::
+  .atom (.load (.n 13) (.n 0) 6) ::
+  .atom (.const (.n 14) (word 0 0)) ::
+  .atom (.load (.n 14) (.n 0) 7) ::
+  .atom (.const (.n 15) (word 0 0)) ::
+  .atom (.load (.n 15) (.n 0) 8) ::
+  .atom (.const (.n 16) (word 0 0)) ::
+  .atom (.load (.n 16) (.n 0) 9) ::
+  .atom (.const (.n 17) (word 0 0)) ::
+  .atom (.load (.n 17) (.n 0) 10) ::
+  .atom (.const (.n 18) (word 0 0)) ::
+  .atom (.load (.n 18) (.n 0) 11) ::
+  .atom (.const (.n 19) (word 0 0)) ::
+  .atom (.load (.n 19) (.n 0) 12) ::
+  .atom (.const (.n 20) (word 0 0)) ::
+  .atom (.load (.n 20) (.n 0) 13) ::
+  .atom (.const (.n 21) (word 0 0)) ::
+  .atom (.load (.n 21) (.n 0) 14) ::
+  .atom (.const (.n 22) (word 0 0)) ::
+  .atom (.load (.n 22) (.n 0) 15) ::
+  .atom (.const (.n 23) (word 1 0)) ::
+  .atom (.load (.n 24) (.n 4) 0) ::
+  .atom (.load (.n 25) (.n 4) 1) ::
+  .atom (.mul (.n 26) (.n 23) (.n 25)) ::
+  .atom (.mul (.n 27) (.n 24) (.n 25)) ::
+  .atom (.load (.n 23) (.n 1) 0) ::
+  .atom (.load (.n 24) (.n 1) 1) ::
+  .atom (.load (.n 26) (.n 1) 2) ::
+  .atom (.load (.n 27) (.n 1) 3) ::
+  .atom (.const (.n 28) (word 0 0)) ::
+  .atom (.load (.n 28) (.n 1) 4) ::
+  .atom (.const (.n 29) (word 0 0)) ::
+  .atom (.load (.n 29) (.n 1) 5) ::
+  .atom (.const (.n 30) (word 0 0)) ::
+  .atom (.load (.n 30) (.n 1) 6) ::
+  .atom (.const (.n 31) (word 0 0)) ::
+  .atom (.load (.n 31) (.n 1) 7) ::
+  .atom (.const (.n 32) (word 0 0)) ::
+  .ret [.n 32] ::
+  [])
 
 end core
 

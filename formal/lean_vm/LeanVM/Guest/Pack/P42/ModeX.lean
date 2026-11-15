@@ -46,30 +46,30 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `da_column_offsets`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none .nil (.node none (.node none (.node none
-    (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none .nil (.node
-    none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node (some Fn.«da_column_offsets_loop3».modeSig) .nil .nil)))) .nil)) .nil)))
-    .nil)) .nil) .nil)) (.node none (.node none .nil (.node none (.node none (.node none (.node
-    none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node
-    none .nil (.node none .nil (.node (some Fn.«da_column_offsets_loop1».modeSig) .nil .nil))))
-    .nil)) .nil))) .nil) .nil) .nil)) (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none
-    .nil (.node none .nil (.node none .nil (.node (some Fn.«da_column_offsets_loop5».modeSig) .nil
-    .nil)))) .nil)) .nil))) .nil)))))) (.node none (.node none (.node none (.node none .nil (.node
-    none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_column_offsets_loop4».modeSig) .nil .nil)))) .nil)) .nil))) .nil))) .nil) (.node none
-    .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node
-    none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    (some Fn.«da_column_offsets_loop0».modeSig) .nil .nil)))) .nil)) .nil)) .nil)))))) (.node none
-    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node (some Fn.«da_column_offsets_loop6».modeSig) .nil .nil)))) .nil)) .nil)))) .nil) .nil))
+  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none .nil (.node none .nil (.node none (.node none
     (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node
-    none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    (some Fn.«da_column_offsets_loop2».modeSig) .nil .nil)))) .nil)) .nil))) .nil) .nil)) .nil))))
-    .nil)), 524287⟩
+    none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node (some Fn.«da_column_offsets_loop5».modeSig) .nil .nil)))) .nil)) .nil))))
+    .nil) .nil)) (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
+    .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node (some Fn.«da_column_offsets_loop1».modeSig) .nil .nil)))) .nil)) .nil))) .nil)
+    .nil)) .nil)) (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node (some Fn.«da_column_offsets_loop3».modeSig) .nil .nil))))
+    .nil)) .nil))) .nil)) .nil)))) (.node none (.node none (.node none (.node none (.node none .nil
+    (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node (some Fn.«da_column_offsets_loop2».modeSig)
+    .nil .nil)))) .nil)) .nil))) .nil)) .nil) .nil) (.node none (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node (some Fn.«da_column_offsets_loop6».modeSig)
+    .nil .nil)))) .nil)) .nil)))) .nil)) .nil)) (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«da_column_offsets_loop4».modeSig) .nil .nil)))) .nil)) .nil))) .nil)))) (.node none (.node
+    none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«da_column_offsets_loop0».modeSig) .nil .nil)))) .nil)) .nil))) .nil) .nil) .nil)
+    .nil)))))), 524287⟩
 
 /-- `da_column_offsets`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
@@ -2226,15 +2226,15 @@ noncomputable def modeRes3 : Exec.Trie (List Mode.Res) :=
 
 /-- `__loop19`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node
-    none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
-    .nil (.node (some Fn.«child_claim_list_mono_loop0».modeSig) .nil .nil))) .nil))) .nil) .nil))
-    .nil) .nil) .nil) .nil)) .nil)))), 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none .nil (.node none (.node none (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
+    (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil
+    (.node (some Fn.«child_claim_list_mono_loop0».modeSig) .nil .nil))) .nil))) .nil) .nil)) .nil)
+    .nil)) .nil) .nil) .nil) .nil) .nil)), 524287⟩
 
 /-- `__loop19`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨242198, 2057, Fn.«child_claim_list_mono_loop0».modeSig, (.node none (.node none (.node none
+  ⟨242240, 2057, Fn.«child_claim_list_mono_loop0».modeSig, (.node none (.node none (.node none
     (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node
     (some [(.witnessStack "child_claim_gap" 1324 1)]) .nil .nil) .nil)) (.node none (.node (some
     [(.witnessStack "child_claim_gap" 940 1)]) .nil .nil) .nil)) (.node none (.node (some

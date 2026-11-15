@@ -40,15 +40,17 @@ def lpPre : List Stmt :=
     .atom (.mul (.n 11) (.n 2) (.n 10)), .atom (.mul (.n 12) (.n 11) (.n 10)),
     .atom (.mul (.n 13) (.n 3) (.n 8)), .atom (.mul (.n 14) (.n 4) (.n 8))] ++
   nbEq 15 (.n 13) (.n 14) (.n 12) 4 ++
-  [.atom (.mul (.n 51) (.n 5) (.n 10)), .atom (.mul (.n 52) (.n 6) (.n 8))] ++
-  nbG 53 (.n 52) (.n 51) 4 ++
-  [.atom (.const (.n 72) (word 2 0)), .atom (.mul (.n 73) (.n 0) (.n 72)),
-    .atom (.add (.n 74) (.n 73) (.n 1)), .atom (.const (.n 75) (word 2 0)),
-    .atom (.mul (.n 76) (.n 0) (.n 75))]
+  [.atom (.const (.n 51) (word 0 0)), .atom (.load (.n 51) (.n 12) 30),
+    .atom (.const (.n 52) (word 0 0)), .atom (.load (.n 52) (.n 12) 31)] ++
+  [.atom (.mul (.n 53) (.n 5) (.n 10)), .atom (.mul (.n 54) (.n 6) (.n 8))] ++
+  nbG 55 (.n 54) (.n 53) 4 ++
+  [.atom (.const (.n 74) (word 2 0)), .atom (.mul (.n 75) (.n 0) (.n 74)),
+    .atom (.add (.n 76) (.n 75) (.n 1)), .atom (.const (.n 77) (word 2 0)),
+    .atom (.mul (.n 78) (.n 0) (.n 77))]
 
 /-- `shared_selector_tables_loop0`'s body. -/
 def lpBody : List Stmt :=
-  lpPre ++ [.callIf (.n 74) name% «shared_selector_tables_loop0» [.n 76, .n 1, .n 2, .n 3, .n 4,
+  lpPre ++ [.callIf (.n 76) name% «shared_selector_tables_loop0» [.n 78, .n 1, .n 2, .n 3, .n 4,
       .n 5, .n 6], .ret []]
 
 noncomputable def lpCheck : Bool :=
@@ -167,12 +169,13 @@ theorem lp_step {rd : Reader} {N eqt z z1 gt gsq : E} (d : ℕ) (x : E)
       simp only [tb_noRetList_append, nbEq_noRet, nbG_noRet]; rfl),
     tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nbEq_noRet]; rfl),
     tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nbEq_noRet]; rfl),
+    tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nbEq_noRet]; rfl),
     tb_holdsList_append_noRet (n0 _ (by simp))] at hpre
-  obtain ⟨⟨⟨⟨hh, hEq⟩, hm⟩, hG⟩, ht⟩ := hpre
+  obtain ⟨⟨⟨⟨⟨hh, hEq⟩, -⟩, hm⟩, hG⟩, ht⟩ := hpre
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hh hm ht
   obtain ⟨h7, h8, h9, h10, h11, h12, h13, h14⟩ := hh
-  obtain ⟨h51, h52⟩ := hm
-  obtain ⟨h72, h73, h74, h75, h76⟩ := ht
+  obtain ⟨h53, h54⟩ := hm
+  obtain ⟨h74, h75, h76, h77, h78⟩ := ht
   have ex4 : σ (.n 8) = σ (.n 0) ^ 4 := by rw [h8, h7]; ring
   have ex16 : σ (.n 10) = σ (.n 0) ^ 16 := by rw [h10, h9, ex4]; ring
   refine ⟨fun zs zs1 gs hz hz1 hg rz rz1 rg => ?_, fun hne => ?_⟩
@@ -180,14 +183,14 @@ theorem lp_step {rd : Reader} {N eqt z z1 gt gsq : E} (d : ℕ) (x : E)
     obtain ⟨gl', hlg', rg', rgs⟩ := holds_nbG (by norm_num) hG
     rw [h13, ex4] at rz'
     rw [h14, ex4] at rz1'
-    rw [h52, ex4] at rg'
+    rw [h54, ex4] at rg'
     rw [h12, h11, ex16, mul_assoc, ← pow_add] at reqs
-    rw [h51, ex16] at rgs
+    rw [h53, ex16] at rgs
     rw [tbReadsAt_unique rz rz' (by rw [hz, hl']), tbReadsAt_unique rz1 rz1' (by rw [hz1, hl1']),
       tbReadsAt_unique rg rg' (by rw [hg, hlg'])]
     exact ⟨reqs, rgs⟩
-  · have := hcall.2 (by rw [h74, h73, h72, tb_word_gen]; exact hne)
-    rw [h76, h75, tb_word_gen] at this
+  · have := hcall.2 (by rw [h76, h75, h74, tb_word_gen]; exact hne)
+    rw [h78, h77, tb_word_gen] at this
     exact this
 
 theorem tbReadsAt_nib {rd : Reader} {p : E} {l : List E} (h : TbReadsAt rd p l) (j : ℕ) :

@@ -385,7 +385,7 @@ class Walk:
         self.demand = demand or (lambda *a: False)
         self.lnk = {}  # inference metadata: frame cell -> heap key it was linked to
         self.lnks = {}  # heap key -> frame cells linked to it
-        self.rets = []; self.tails = []
+        self.rets = []; self.retAt = []; self.tails = []
         self.ld = {}  # inference metadata: frame cell -> heap key it was loaded from
         self.cursel = None  # inference metadata: the selector of the table call being checked
         self.states = None
@@ -803,7 +803,7 @@ class Walk:
 
     def jumpI(self, i, A, d, f):
         if d == 0 and f == 1:
-            self.retOk(A, i); self.rets.append(A.copy()); return ('out', A)
+            self.retOk(A, i); self.rets.append(A.copy()); self.retAt.append(i); return ('out', A)
         mf = A.mono(f)
         selfp = mf == own(0) or (mf == ONE and self.main)
         if selfp:

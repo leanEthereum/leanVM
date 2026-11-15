@@ -39,8 +39,9 @@ def spGV (w : ℕ) (gl : List E) (u : ℕ) : E := ∏ s ∈ range w, bitPick u s
 /-- Value `k` of `sel_partial_nibble__L{w}` (`w ≤ 3`). -/
 def spVal (w : ℕ) (P zs zs1 gl : List E) (k : ℕ) : E :=
   if k < 5 then P.getD k 0
-  else if k = spC w + 2 ^ w + w - 1 then 0
-  else if k < spC w then
+  else if spC w + 2 ^ w + w - 1 ≤ k then 0
+  else if spP w ≤ k ∧ k < spC w then 0
+  else if k < spP w then
     if k < 7 then spLvV zs zs1 0 (k - 5)
     else
       let t := if k < 13 then 1 else 2
@@ -56,16 +57,16 @@ def spVal (w : ℕ) (P zs zs1 gl : List E) (k : ℕ) : E :=
 
 theorem spVal_lv {w : ℕ} (hw : w ≤ 3) (P zs zs1 gl : List E) {t i : ℕ} (ht : t < w)
     (hi : i < 2 ^ (t + 1)) : spVal w P zs zs1 gl (spLv t i) = spLvV zs zs1 t i := by
-  interval_cases w <;> interval_cases t <;> interval_cases i <;> simp [spVal, spLv, spM, spC]
+  interval_cases w <;> interval_cases t <;> interval_cases i <;> simp [spVal, spLv, spM, spC, spP]
 
 theorem spVal_z {w : ℕ} (hw : w ≤ 3) (P zs zs1 gl : List E) {t : ℕ} (ht1 : 1 ≤ t) (ht : t < w) :
     spVal w P zs zs1 gl (spM t - 2) = zs.getD t 0 ∧
       spVal w P zs zs1 gl (spM t - 1) = zs1.getD t 0 := by
-  interval_cases w <;> interval_cases t <;> simp [spVal, spM, spC]
+  interval_cases w <;> interval_cases t <;> simp [spVal, spM, spC, spP]
 
 theorem spVal_gl {w : ℕ} (hw : w ≤ 3) (P zs zs1 gl : List E) {t : ℕ} (ht1 : 1 ≤ t)
     (ht : t < w) : spVal w P zs zs1 gl (spC w + 2 ^ t + t - 1) = gl.getD t 0 := by
-  interval_cases w <;> interval_cases t <;> simp [spVal, spC]
+  interval_cases w <;> interval_cases t <;> simp [spVal, spC, spP]
 
 theorem sp_log2 : Nat.log2 2 = 1 ∧ Nat.log2 3 = 1 ∧ Nat.log2 4 = 2 ∧ Nat.log2 5 = 2 ∧
     Nat.log2 6 = 2 ∧ Nat.log2 7 = 2 := by
@@ -75,18 +76,24 @@ theorem sp_log2 : Nat.log2 2 = 1 ∧ Nat.log2 3 = 1 ∧ Nat.log2 4 = 2 ∧ Nat.l
 theorem spVal_G {w : ℕ} (hw1 : 1 ≤ w) (hw : w ≤ 3) (P zs zs1 gl : List E) {u : ℕ}
     (hu : u < 2 ^ w) : spVal w P zs zs1 gl (spG w u) = spGV w gl u := by
   obtain ⟨l2, l3, l4, l5, l6, l7⟩ := sp_log2
-  interval_cases w <;> interval_cases u <;> simp [spVal, spG, spC, l2, l3, l4, l5, l6, l7]
+  interval_cases w <;> interval_cases u <;> simp [spVal, spG, spC, spP, l2, l3, l4, l5, l6, l7]
 
 theorem spVal_Gstep {w : ℕ} (hw : w ≤ 3) (P zs zs1 gl : List E) {t i : ℕ} (ht1 : 1 ≤ t)
     (ht : t < w) (hi : i < 2 ^ t) :
     spVal w P zs zs1 gl (spC w + 2 ^ t + t + i) = spGV w gl (2 ^ t + i) := by
-  interval_cases w <;> interval_cases t <;> interval_cases i <;> simp [spVal, spC]
+  interval_cases w <;> interval_cases t <;> interval_cases i <;> simp [spVal, spC, spP]
 
-theorem spVal_last {w : ℕ} (P zs zs1 gl : List E) :
-    spVal w P zs zs1 gl (spC w + 2 ^ w + w - 1) = 0 := by
+/-- The padding's values and the returned one: `0`. -/
+theorem spVal_zero {w : ℕ} (P zs zs1 gl : List E) {k : ℕ}
+    (hk : (spP w ≤ k ∧ k < spC w) ∨ spC w + 2 ^ w + w - 1 ≤ k) : spVal w P zs zs1 gl k = 0 := by
   have := Nat.one_le_two_pow (n := w)
-  have : ¬ spC w + 2 ^ w + w - 1 < 5 := by simp only [spC]; omega
-  simp [spVal, this]
+  have h5 : ¬ k < 5 := by rcases hk with h | h <;> simp only [spC, spP] at h <;> omega
+  unfold spVal
+  simp only [h5, ↓reduceIte]
+  split_ifs <;> first | rfl | omega
+
+theorem spVal_last {w : ℕ} (P zs zs1 gl : List E) : spVal w P zs zs1 gl (spR w) = 0 :=
+  spVal_zero P zs zs1 gl (Or.inr (by simp only [spR]; omega))
 
 theorem spVal_param {w : ℕ} (P zs zs1 gl : List E) {k : ℕ} (hk : k < 5) :
     spVal w P zs zs1 gl k = P.getD k 0 := by
@@ -153,15 +160,25 @@ theorem holds_spGStep_iff {w t : ℕ} :
     tb_holdsList_append_noRet rfl, tb_holdsList_mapAtoms]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
 
+theorem holds_spPad_iff {v0 : ℕ} {p : V} {e0 n : ℕ} :
+    Stmt.HoldsList C rd σ (spPad v0 p e0 n) True kret ↔
+      ∀ k < n, σ (.n (v0 + k)) = word 0 0 ∧ LoadHolds rd (σ p) (e0 + k) (σ (.n (v0 + k))) := by
+  rw [spPad, tb_holdsList_flatten_range _ _ (fun _ => rfl)]
+  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
+
 theorem holds_spPre_iff {w : ℕ} :
     Stmt.HoldsList C rd σ (spPre w) True kret ↔
-    ((((((LoadHolds rd (σ (.n 3)) 0 (σ (.n 5)) ∧ LoadHolds rd (σ (.n 2)) 0 (σ (.n 6))) ∧
+    ((((((((LoadHolds rd (σ (.n 3)) 0 (σ (.n 5)) ∧ LoadHolds rd (σ (.n 2)) 0 (σ (.n 6))) ∧
     (∀ t < w - 1, Stmt.HoldsList C rd σ (spLevel (t + 1)) True kret)) ∧
     (∀ e < 2 ^ (w + 1) - 2, LoadHolds rd (σ (.n 0)) e (σ (.n (spEq e))))) ∧
+    (∀ k < 8 * w - (2 ^ (w + 1) - 2), σ (.n (spP w + k)) = word 0 0 ∧
+      LoadHolds rd (σ (.n 0)) (2 ^ (w + 1) - 2 + k) (σ (.n (spP w + k))))) ∧
     (σ (.n (spC w)) = word 1 0 ∧ LoadHolds rd (σ (.n 4)) 0 (σ (.n (spC w + 1))))) ∧
     (∀ t < w - 1, Stmt.HoldsList C rd σ (spGStep w (t + 1)) True kret)) ∧
     (∀ u < 2 ^ w, LoadHolds rd (σ (.n 1)) u (σ (.n (spG w u))))) ∧
-    σ (.n (spC w + 2 ^ w + w - 1)) = word 0 0 := by
+    (∀ k < 4 * w - 2 ^ w, σ (.n (spC w + 2 ^ w + w - 1 + k)) = word 0 0 ∧
+      LoadHolds rd (σ (.n 1)) (2 ^ w + k) (σ (.n (spC w + 2 ^ w + w - 1 + k))))) ∧
+    σ (.n (spR w)) = word 0 0 := by
   have nL := tb_noRetList_flatten_range (w - 1) _ (fun t => spLevel_noRet (t + 1))
   have nG := tb_noRetList_flatten_range (w - 1) _ (fun t => spGStep_noRet w (t + 1))
   have nA := tb_noRetList_mapAtoms (2 ^ (w + 1) - 2) (fun e ↦ .load (.n (spEq e)) (.n 0) e)
@@ -170,26 +187,33 @@ theorem holds_spPre_iff {w : ℕ} :
     true := rfl
   have n1 : Stmt.noRetList [Stmt.atom (.const (.n (spC w)) (word 1 0)),
     Stmt.atom (.load (.n (spC w + 1)) (.n 4) 0)] = true := rfl
+  have nP := spPad_noRet (spP w) (.n 0) (2 ^ (w + 1) - 2) (8 * w - (2 ^ (w + 1) - 2))
+  have nQ := spPad_noRet (spC w + 2 ^ w + w - 1) (.n 1) (2 ^ w) (4 * w - 2 ^ w)
   rw [spPre]
-  rw [tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nL, nG, nA, nB, n0, n1,
+  rw [tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nL, nG, nA, nB, nP, nQ, n0, n1,
       Bool.and_self]),
-    tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nL, nG, nA, n0, n1,
+    tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nL, nG, nA, nB, nP, n0, n1,
       Bool.and_self]),
-    tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nL, nA, n0, n1, Bool.and_self]),
+    tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nL, nG, nA, nP, n0, n1,
+      Bool.and_self]),
+    tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nL, nA, nP, n0, n1,
+      Bool.and_self]),
+    tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nL, nA, nP, n0, Bool.and_self]),
     tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nL, nA, n0, Bool.and_self]),
     tb_holdsList_append_noRet (by simp only [tb_noRetList_append, nL, n0, Bool.and_self]),
     tb_holdsList_append_noRet n0, tb_holdsList_mapAtoms, tb_holdsList_mapAtoms,
     tb_holdsList_flatten_range _ _ (fun t => spLevel_noRet (t + 1)),
-    tb_holdsList_flatten_range _ _ (fun t => spGStep_noRet w (t + 1))]
+    tb_holdsList_flatten_range _ _ (fun t => spGStep_noRet w (t + 1)), holds_spPad_iff,
+    holds_spPad_iff]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true]
 
 end Sem
 
 /-- **`sel_partial_nibble` is complete** at its four specializations. -/
 theorem sel_partial_nibble_complete_holds : sel_partial_nibble_complete_Spec := by
-  intro w hw rd args rets h
-  match args, rets, h with
-  | [eqo, go, z, z1, gs], [r], ⟨hr, zs, zs1, gl, hzl, hz1l, hgl, hzr, hz1r, hglr, heqr, hgr⟩ =>
+  intro w hw rd args rets h hpad
+  match args, rets, h, hpad with
+  | [eqo, go, z, z1, gs], [r], ⟨hr, zs, zs1, gl, hzl, hz1l, hgl, hzr, hz1r, hglr, heqr, hgr⟩, hpe =>
     obtain ⟨fn, hf, hp, hb⟩ := spFound hw
     set P : List E := [eqo, go, z, z1, gs]
     set F := spVal w P zs zs1 gl with hF
@@ -215,7 +239,7 @@ theorem sel_partial_nibble_complete_holds : sel_partial_nibble_complete_Spec := 
     refine ⟨holds_spPre_iff.mpr ?_, ?_⟩
     swap
     · simp only [Stmt.HoldsList, Stmt.Holds, List.map_cons, List.map_nil]
-      show [F (spC w + 2 ^ w + w - 1)] = [r]
+      show [F (spR w)] = [r]
       rw [hF, hlast, hr]
     have lz : ∀ t < w, LoadHolds rd z t (zs.getD t 0) := fun t ht ↦ by
       have := hzr t (by omega); rwa [← List.getD_eq_getElem _ 0] at this
@@ -225,7 +249,8 @@ theorem sel_partial_nibble_complete_holds : sel_partial_nibble_complete_Spec := 
       have := hglr t (by omega); rwa [← List.getD_eq_getElem _ 0] at this
     have lv0 : ∀ i < 2, spLvV zs zs1 0 i = bitPick i 0 (zs.getD 0 0) (zs1.getD 0 0) := by
       intro i _; simp [spLvV]
-    refine ⟨⟨⟨⟨⟨⟨?_, ?_⟩, ?_⟩, ?_, ?_⟩, ?_⟩, ?_⟩, ?_⟩
+    have hpe' : NibPads rd eqo go w := hpe
+    refine ⟨⟨⟨⟨⟨⟨⟨⟨?_, ?_⟩, ?_⟩, ?_⟩, ?_, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩
     · -- the first coordinate and complement
       show LoadHolds rd (F 3) 0 (F 5) ∧ LoadHolds rd (F 2) 0 (F 6)
       have e5 : F 5 = spLvV zs zs1 0 0 := spVal_lv hw3 P zs zs1 gl (t := 0) (i := 0)
@@ -285,6 +310,11 @@ theorem sel_partial_nibble_complete_holds : sel_partial_nibble_complete_Spec := 
         rw [hei, eqLevels_getD (hzl.trans hz1l.symm) (by omega) (by omega) hi, spLvV]
       have := heqr e (by rw [hlen]; exact he)
       rwa [← List.getD_eq_getElem _ 0, hv] at this
+    · -- the eq levels' padding
+      intro k hk
+      show F (spP w + k) = word 0 0 ∧ LoadHolds rd (F 0) (2 ^ (w + 1) - 2 + k) (F (spP w + k))
+      rw [hF, spVal_zero P zs zs1 gl (Or.inl ⟨by omega, by simp only [spC]; omega⟩), l0, tb_word_zero]
+      exact ⟨rfl, hpe'.1 _ (by omega) (by omega)⟩
     · -- the one
       show F (spC w) = word 1 0
       have := spVal_G (by omega) hw3 P zs zs1 gl (u := 0) (by positivity)
@@ -323,17 +353,23 @@ theorem sel_partial_nibble_complete_holds : sel_partial_nibble_complete_Spec := 
       simp only [hw0, ↓reduceIte] at this
       have h2 := this u (by rw [hlen]; exact hu)
       rwa [← List.getD_eq_getElem _ 0, gTable_getD hgl hu] at h2
+    · -- the `g` table's padding
+      intro k hk
+      show F (spC w + 2 ^ w + w - 1 + k) = word 0 0 ∧
+        LoadHolds rd (F 1) (2 ^ w + k) (F (spC w + 2 ^ w + w - 1 + k))
+      rw [hF, spVal_zero P zs zs1 gl (Or.inr (by omega)), l1, tb_word_zero]
+      exact ⟨rfl, hpe'.2 _ (by omega) (by omega)⟩
     · -- the return
-      show F (spC w + 2 ^ w + w - 1) = word 0 0
+      show F (spR w) = word 0 0
       rw [hF, hlast, tb_word_zero]
-  | [], _, h => simp [SelPartialOut] at h
-  | [_], _, h => simp [SelPartialOut] at h
-  | [_, _], _, h => simp [SelPartialOut] at h
-  | [_, _, _], _, h => simp [SelPartialOut] at h
-  | [_, _, _, _], _, h => simp [SelPartialOut] at h
-  | _ :: _ :: _ :: _ :: _ :: _ :: _, _, h => simp [SelPartialOut] at h
-  | [_, _, _, _, _], [], h => simp [SelPartialOut] at h
-  | [_, _, _, _, _], _ :: _ :: _, h => simp [SelPartialOut] at h
+  | [], _, h, _ => simp [SelPartialOut] at h
+  | [_], _, h, _ => simp [SelPartialOut] at h
+  | [_, _], _, h, _ => simp [SelPartialOut] at h
+  | [_, _, _], _, h, _ => simp [SelPartialOut] at h
+  | [_, _, _, _], _, h, _ => simp [SelPartialOut] at h
+  | _ :: _ :: _ :: _ :: _ :: _ :: _, _, h, _ => simp [SelPartialOut] at h
+  | [_, _, _, _, _], [], h, _ => simp [SelPartialOut] at h
+  | [_, _, _, _, _], _ :: _ :: _, h, _ => simp [SelPartialOut] at h
 
 end
 end LeanVM.Guest.B1.Tables

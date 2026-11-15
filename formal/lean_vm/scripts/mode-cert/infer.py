@@ -55,6 +55,16 @@ for f in fns.values():
             for j in range(REGION[a[1][1]]):
                 g = byentry.get(JT.get(a[1][1] + j))
                 if g: calls[f['name']].add(g['name'])
+# each function a table call's arms reach, with its arm indices
+ARMIDX = collections.defaultdict(set)
+for f in fns.values():
+    c = f['ops']
+    for i in range(1, len(c)):
+        a, b = c[i - 1], c[i]
+        if a[0] == 'deref' and b[0] == 'jump' and a[1][3] == '.cell' and a[1][2] == b[1][1]:
+            for j in range(REGION[a[1][1]]):
+                g = byentry.get(JT.get(a[1][1] + j))
+                if g: ARMIDX[g['name']].add(j)
 order = []; seen = set()
 
 
@@ -143,6 +153,8 @@ class Infer:
             if isinstance(name, tuple) and name[0] == 'tail':
                 return False
             if k is None: return False
+            # the callee's bounded reads as runs, and this function walked again
+            if self.runPre(name, m): return False
             if self.armRun(('pt', k), A): return True
             if self.key(k, i, A): return True
             if self.armSub(k, i, A, m): return True
@@ -180,6 +192,74 @@ class Infer:
             r = ('lt', ('ex', x, 0), ('num', n))
             self.res[i].append(r); self.new = True; A.lt.add((r[1], r[2])); return True
         return False
+
+    def runPre(self, pc, m):
+        """A callee's point at a product with a base this function cannot bound: the callee inferred again,
+        needing every cell its own bound on that index lets it name (`RUNPRE`), and this function walked again."""
+        g = byentry.get(pc)
+        if g is None or g['name'] in RUNPRE or not any(b[0] == 'hp' for b, e in m[2]): return False
+        # with the other arms of its table call
+        gs = {g['name']}
+        for t, n in REGION.items():
+            if any(JT.get(t + j) == pc for j in range(n)):
+                gs |= {byentry[JT[t + j]]['name'] for j in range(n) if JT.get(t + j) in byentry}
+        # their other callers walked against their signatures already
+        if any(x in calls[y] for x in gs for y in DONE if y != self.f['name']): return False
+        for x in sorted(gs, key=lambda x: fns[x]['entry']):
+            RUNPRE.add(x)
+            try: infer(x)
+            except Fail:
+                RUNPRE.discard(x); infer(x)
+        self.new = True
+        return True
+
+    def armCopies(self, w):
+        """An arm `armStrides` asks for: storing at a cell over the interface a word it loads from a cell its
+        sibling arms need already, not known written: that cell a precondition, so that its guarantees hold
+        the stored one."""
+        f = self.f; got = False
+        ok = COPYPRE.get(f['name'])
+        if not ok: return False
+        for k, cs in sorted(w.lnks.items(), key=str):
+            if not ifaceMono(f, k): continue
+            for c in cs:
+                src = w.lnk.get(c, (None,))[0]
+                if src is not None and src != k and src in ok and src not in self.pre:
+                    self.pre.add(src); got = True
+        if got: self.new = True
+        return got
+
+    def splitRes(self, w):
+        """A parameter whose word at a return is `[s]^K·[r]`: a table written over `T` in blocks of `S1 = K·S2`
+        cells up to `[s]`'s exponent, then past `[s]^S1` in blocks of `S2` up to `[r]`'s, is written in blocks of
+        `S2` up to the parameter's exponent (`Res.sub`, a split's)."""
+        f = self.f; got = False
+        for A, i in zip(w.rets, w.retAt):
+            for p in sorted(params(f)):
+                m = A.mono(p)
+                if m is None or m[0] != 0 or m[1] != 0 or len(m[2]) != 2: continue
+                for (bs, K), (br, er) in (tuple(m[2]), tuple(reversed(m[2]))):
+                    if er != 1 or K < 2: continue
+                    for R in sorted(A.r, key=str):
+                        T, lo, hi, S1, o = R
+                        if o != 0 or lo != ('num', 0) or hi != ('ex', bs, 0) or S1 % K or T[1] != 0 or not ifaceMono(f, T):
+                            continue
+                        S2 = S1 // K
+                        Tq = mul(T, (0, 0, ((bs, S1),)))
+                        if not all((T, lo, hi, S1, x) in A.r for x in range(S1)): continue
+                        if not all((Tq, ('num', 0), ('ex', br, 0), S2, d) in A.r for d in range(S2)):
+                            # the part past `[s]^S1` from a table call's arms, walked again
+                            if f['name'] not in STRIDES: STRIDES.add(f['name']); got = True
+                            continue
+                        if A.coveredR((T, ('num', 0), ('ex', ('fr', p), 0), S2, 0)): continue
+                        # the parameter named by its cell, so a guarantee over its exponent translates
+                        if ('name', p) not in self.res[i]: self.res[i].insert(0, ('name', p)); got = True
+                        for d in range(S2):
+                            a = (T, ('num', 0), ('ex', ('fr', p), 0), S2, d)
+                            r = ('sub', a, [(T, lo, hi, S1, t * S2 + d) for t in range(K)] + [(Tq, ('num', 0), ('ex', br, 0), S2, d)])
+                            if r not in self.res[i]: self.res[i].append(r); got = True
+        if got: self.new = True
+        return got
 
     def smallIdx(self, idxs, i, A):
         """A callee's exponent bound translated to `e(x) + c`, `c > 0`, `x`'s exponent not known small: its
@@ -385,6 +465,15 @@ class Infer:
             if r not in self.res[i0]:
                 self.res[i0].append(r); self.new = True
             A.lt.add((r[1], r[2])); return True
+        # a table read at an index of small known bound, over the interface, its callers holding the table but
+        # not the index's bound (`runPre`): every cell the index can name
+        if k[0] == 0 and depth == 0 and f['name'] in RUNPRE:
+            for b, e in k[2]:
+                Q = (0, 0, tuple(x for x in k[2] if x[0] != b))
+                nb = A.bound(('ex', b, 1))
+                if nb is not None and 0 < nb <= 64 and Q[2] and ifaceMono(f, Q):
+                    r = (Q, ('num', 0), ('num', nb), e, k[1])
+                    self.preR.add(r); self.new = True; A.r.add(r); return True
         if k[0] == 0 and k[2] and ifaceMono(f, k):
             self.pre.add(k); self.new = True; A.h.add(k); return True
         # a table read at a loaded offset, inside a table the caller holds
@@ -663,9 +752,15 @@ SMALL = 2 ** 32
 NARROW = collections.defaultdict(dict)
 # the functions inferred so far
 DONE = set()
+# functions whose bounded table reads over the interface are runs, not points (`Infer.runPre`)
+RUNPRE = set()
+# arms storing copies of cells their siblings need, with those cells (`armStrides`)
+COPYPRE = {}
+# functions whose table calls' arms guarantee their blocks as strided runs (`armStrides`, `Infer.splitRes`)
+STRIDES = set()
 # functions that pass with residuals outside the families `Res/SelDefs.lean` and `Res/SubDefs.lean` accept,
 # held as failing (their callees' narrowings undone) until those families take them
-HELD = {'keccak_layer__L0', 'keccak_layer__L1', '__loop37', '__loop38', '__loop39', '__loop40'}
+HELD = {'shared_selector_tables', 'keccak_layer__L0', 'keccak_layer__L1', '__loop37', '__loop38', '__loop39', '__loop40'}
 
 
 # each function's last inference, its signature and residuals (a narrowed callee's replaced)
@@ -725,6 +820,59 @@ def infer(n):
         raise
 
 
+def tableArms(f):
+    """Each table call's arms, in order, every slot a known function."""
+    out = []
+    for i in sorted(f['tabs']):
+        op, a = f['ops'][i - 1]
+        gs = [byentry.get(JT.get(a[1] + j)) for j in range(f['tabs'][i])]
+        if gs and all(gs): out.append([g['name'] for g in gs])
+    return out
+
+
+def block(G, Q):
+    """How many cells from `Q`'s start a signature guarantees, consecutively."""
+    ks = {m[1] for m in G.post if (0, 0, m[2]) == Q}
+    for q, lo, hi, S, d in G.postR:
+        if q[1] == 0 and (0, 0, q[2]) == Q and S == 1 and lo[0] == 'num' and hi[0] == 'num':
+            ks |= {d + j for j in range(lo[1], hi[1])}
+    M = 0
+    while M in ks: M += 1
+    return M
+
+
+def armStrides(f):
+    """A table call's arms, arm `j` guaranteeing `S·j` cells from the start of one product over their
+    parameters, `S ≥ 2` and three or more arms: each arm's block also as `S` runs of stride `S`, `j` points
+    each, which the arms met take up to the selector (`armRuns`). An arm short of its block because it stores
+    copies of cells its siblings need is inferred again needing those cells (`COPYPRE`). Asked for by
+    `Infer.splitRes` (`STRIDES`)."""
+    for arms in tableArms(f):
+        if len(arms) < 3 or any(a in isloop for a in arms): continue
+        sigs = lambda: [E.sigs.get(fns[a]['entry']) for a in arms]
+        Gs = sigs()
+        if not all(Gs): continue
+        nn = len(arms) - 1
+        for Q in sorted({(0, 0, m[2]) for m in Gs[-1].post if m[0] == 0 and m[2]} |
+                        {(0, 0, q[2]) for q, lo, hi, S, d in Gs[-1].postR if q[0] == 0 and q[1] == 0 and q[2]}):
+            S = block(Gs[-1], Q) // nn
+            if S < 2: continue
+            short = [a for j, (a, G) in enumerate(zip(arms, Gs)) if block(G, Q) < S * j]
+            if short and not any(a in calls[y] for a in short for y in DONE if y != f['name']):
+                need = set().union(*[set(G.pre) for G in Gs])
+                for a in short:
+                    if a in COPYPRE: continue
+                    COPYPRE[a] = need
+                    try: infer(a)
+                    except Fail: del COPYPRE[a]; infer(a)
+                Gs = sigs()
+            if any(block(G, Q) < S * j for j, G in enumerate(Gs)): continue
+            for j, G in enumerate(Gs):
+                for d in range(S if j else 0):
+                    r = (Q, ('num', 0), ('num', j), S, d)
+                    if r not in G.postR: G.postR.append(r)
+
+
 def infer1(n, named):
     f = fns[n]
     I = Infer(f)
@@ -732,6 +880,7 @@ def infer1(n, named):
         for i, rs in names(f).items(): I.res[i] = list(rs)
     main = n == 'main'
     for it in range(200):
+        if n in STRIDES: armStrides(f)
         sig = mkSig(f, I.pre, I.preR, preP=I.preP)
         E.sigs[f['entry']] = sig
         I.new = False
@@ -758,7 +907,7 @@ def infer1(n, named):
                         continue
                 raise
             continue
-        if not I.new: break
+        if not I.new and not I.splitRes(w) and not I.armCopies(w): break
     else:
         raise Fail(('nofix',))
     # posts

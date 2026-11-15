@@ -126,10 +126,23 @@ def sel_partial_nibble_SpecP (P : Program) : Prop :=
   ∀ n < 4, ∀ rd args rets,
     P.Rel rd (lName "sel_partial_nibble" n) args rets → SelPartialOut n rd args rets
 
-/-- The converse, for completeness: every outcome is a relation's. -/
+/-- The zeros the tables of a nibble of `w` coordinates are padded with: its eq levels to `8w` cells
+at `eq_out`, its `g`-power table to `4w` at `g_out` (so the tables of `n` coordinates fill `8n` and
+`4n` cells). -/
+def NibPads (rd : Reader) (eqo go : E) (w : ℕ) : Prop :=
+  (∀ e, 2 ^ (w + 1) - 2 ≤ e → e < 8 * w → LoadHolds rd eqo e 0) ∧
+    ∀ u, 2 ^ w ≤ u → u < 4 * w → LoadHolds rd go u 0
+
+/-- `sel_partial_nibble__L{w}`'s padding in memory, at its `eq_out` and `g_out`. -/
+def SelPartialPads (w : ℕ) (rd : Reader) : List E → Prop
+  | eqo :: go :: _ => NibPads rd eqo go w
+  | _ => True
+
+/-- The converse, for completeness: every outcome, its padding in memory, is a relation's. -/
 def sel_partial_nibble_complete_SpecP (P : Program) : Prop :=
   ∀ n < 4, ∀ rd args rets,
-    SelPartialOut n rd args rets → P.Rel rd (lName "sel_partial_nibble" n) args rets
+    SelPartialOut n rd args rets → SelPartialPads n rd args →
+      P.Rel rd (lName "sel_partial_nibble" n) args rets
 
 /-- The nibble tables of a run of `n` coordinates `zs` (complements `zs1`, shares `gs`): nibble
 `j`'s eq levels at `eq_tab·g^(32j)` and its `g`-power table at `g_tab·g^(16j)`
@@ -152,13 +165,19 @@ def SharedSelOut (rd : Reader) : List E → List E → Prop
 def shared_selector_tables_SpecP (P : Program) : Prop :=
   ∀ rd args rets, P.Rel rd "shared_selector_tables" args rets → SharedSelOut rd args rets
 
+/-- The padding of the nibble tables of a run of `n` coordinates `zs` (`NibPads`, nibble `j` at
+`eq_tab·g^(32j)` and `g_tab·g^(16j)`). -/
+def RunPads (rd : Reader) (eqt gt : E) (n : ℕ) (zs : List E) : Prop :=
+  ∀ j < (n + 3) / 4, NibPads rd (eqt * gen ^ (32 * j)) (gt * gen ^ (16 * j)) (nib zs j).length
+
 /-- The converse, for completeness: `n < 64` coordinates, complements and shares at `zeta_hi`,
-`zeta1_hi`, `gsq_hi`, with their nibble tables at `eq_tab`, `g_tab`, give the relation. -/
+`zeta1_hi`, `gsq_hi`, with their nibble tables at `eq_tab`, `g_tab` and their padding, give the
+relation. -/
 def shared_selector_tables_complete_SpecP (P : Program) : Prop :=
   ∀ (rd : Reader) (eqt gt z z1 gsq : E) (n : ℕ) (zs zs1 gs : List E), n < 64 →
     zs.length = n → zs1.length = n → gs.length = n →
     TbReadsAt rd z zs → TbReadsAt rd z1 zs1 → TbReadsAt rd gsq gs →
-    RunTables rd eqt gt n zs zs1 gs →
+    RunTables rd eqt gt n zs zs1 gs → RunPads rd eqt gt n zs →
     P.Rel rd "shared_selector_tables" [eqt, gt, z, z1, gsq, gen ^ n] []
 
 /-! ## The bus blocks' selectors -/

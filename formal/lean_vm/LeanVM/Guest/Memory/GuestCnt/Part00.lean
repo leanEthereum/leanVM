@@ -29,7 +29,7 @@ theorem cntRange_20 : RangeOk (chkV Data.cntJ Data.cntOmJ) 20 16 := by
   unfold RangeOk; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem cntRange_37 : RangeOk (chkV Data.cntJ Data.cntOmJ) 37 85 := by
+theorem cntRange_37 : RangeOk (chkV Data.cntJ Data.cntOmJ) 37 84 := by
   unfold RangeOk; decide +kernel
 
 end

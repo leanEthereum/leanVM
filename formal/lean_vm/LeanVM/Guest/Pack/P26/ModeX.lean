@@ -20,15 +20,15 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `__loop38`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none .nil (.node none .nil (.node none
-    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
-    .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
-    .nil (.node (some Fn.«keccak_layer__L1_loop1».modeSig) .nil .nil))))) .nil) .nil)) .nil))
-    .nil)) .nil) .nil) .nil))) .nil), 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
+    none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none .nil (.node (some Fn.«keccak_layer__L1_loop1».modeSig) .nil .nil))))) .nil) .nil)) .nil))
+    .nil)))) .nil) .nil) .nil) .nil), 524287⟩
 
 /-- `__loop38`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨255301, 64, Fn.«keccak_layer__L1_loop1».modeSig, (.node none (.node none (.node none .nil (.node
+  ⟨255343, 64, Fn.«keccak_layer__L1_loop1».modeSig, (.node none (.node none (.node none .nil (.node
     none (.node none .nil (.node (some [(.frameAddress 77)]) .nil .nil)) .nil)) .nil) .nil), .nil,
     .nil, false, .nil⟩
 

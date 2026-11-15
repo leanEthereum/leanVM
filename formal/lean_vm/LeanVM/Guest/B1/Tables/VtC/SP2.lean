@@ -72,7 +72,9 @@ theorem vtS_p2 (hl : args.length = 20) (hlow : LowDefB 14 rd) (point : List E)
     (hw704 : w 700 = 0)
     (hrun : ∀ t < 6, RunTables rd (w 701 * gen ^ (288 * t)) (w 702 * gen ^ (144 * t))
       (point.length - τ t) (point.drop (τ t)) ((point.map (1 + ·)).drop (τ t))
-      ((gSquaresList.drop (τ t)).take (point.length - τ t))) :
+      ((gSquaresList.drop (τ t)).take (point.length - τ t)))
+    (hrpad : ∀ t < 6, RunPads rd (w 701 * gen ^ (288 * t)) (w 702 * gen ^ (144 * t))
+      (point.length - τ t) (point.drop (τ t))) :
     (∀ s ∈ (vtPre.drop 563).take 202, VSH (coreProgram.Rel rd) rd σv s) ∧
       (∀ t < 6, σv (.n (vtPadV t)) = paddingWeight (point.take (τ t)) (n t)) ∧
       (∀ t < 6, σv (.n (vtShLen t)) = gen ^ (point.length - τ t)) ∧
@@ -119,13 +121,15 @@ theorem vtS_p2 (hl : args.length = 20) (hlow : LowDefB 14 rd) (point : List E)
     intro t ht
     have hr := hrun t ht
     rw [← e705, ← e706] at hr
+    have hp := hrpad t ht
+    rw [← e705, ← e706] at hp
     interval_cases t
-    · exact vtc_sh0 hl hlow (hkb 0 (by norm_num)) h9 rfl hμ33 (hτμ 0 (by norm_num)) hz hz1' hsq hr
-    · exact vtc_sh1 hl hlow (hkb 1 (by norm_num)) h9 rfl hμ33 (hτμ 1 (by norm_num)) hz hz1' hsq hr
-    · exact vtc_sh2 hl hlow (hkb 2 (by norm_num)) h9 rfl hμ33 (hτμ 2 (by norm_num)) hz hz1' hsq hr
-    · exact vtc_sh3 hl hlow (hkb 3 (by norm_num)) h9 rfl hμ33 (hτμ 3 (by norm_num)) hz hz1' hsq hr
-    · exact vtc_sh4 hl hlow (hkb 4 (by norm_num)) h9 rfl hμ33 (hτμ 4 (by norm_num)) hz hz1' hsq hr
-    · exact vtc_sh5 hl hlow (hkb 5 (by norm_num)) h9 rfl hμ33 (hτμ 5 (by norm_num)) hz hz1' hsq hr
+    · exact vtc_sh0 hl hlow (hkb 0 (by norm_num)) h9 rfl hμ33 (hτμ 0 (by norm_num)) hz hz1' hsq hr hp
+    · exact vtc_sh1 hl hlow (hkb 1 (by norm_num)) h9 rfl hμ33 (hτμ 1 (by norm_num)) hz hz1' hsq hr hp
+    · exact vtc_sh2 hl hlow (hkb 2 (by norm_num)) h9 rfl hμ33 (hτμ 2 (by norm_num)) hz hz1' hsq hr hp
+    · exact vtc_sh3 hl hlow (hkb 3 (by norm_num)) h9 rfl hμ33 (hτμ 3 (by norm_num)) hz hz1' hsq hr hp
+    · exact vtc_sh4 hl hlow (hkb 4 (by norm_num)) h9 rfl hμ33 (hτμ 4 (by norm_num)) hz hz1' hsq hr hp
+    · exact vtc_sh5 hl hlow (hkb 5 (by norm_num)) h9 rfl hμ33 (hτμ 5 (by norm_num)) hz hz1' hsq hr hp
   refine ⟨?_, ?_, fun t ht ↦ (hsh t ht).2, e668, e703, e705, e706⟩
   · have s2 : ∀ s ∈ (vtPre.drop 563).take 50, VSH (coreProgram.Rel rd) rd σv s := by
       have := forall_slices (fun t ↦ 563 + 10 * t) (fun _ ↦ 10) 5 (by decide)

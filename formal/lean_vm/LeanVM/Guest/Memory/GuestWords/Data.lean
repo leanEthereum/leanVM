@@ -171,16 +171,16 @@ def wcertTTlll : NTree (Cert) :=
     .leaf))))
     (.node 104 (.stat [] ⟨100, []⟩ [])
     (.node 98 (.stat [] ⟨52, []⟩ [])
-    (.node 95 (.stat [] ⟨92, []⟩ [])
+    (.node 95 (.stat [] ⟨93, []⟩ [])
     (.node 93 (.stat [] ⟨9, []⟩ [])
-    (.node 92 (.loop none [] ⟨116, []⟩ [])
+    (.node 92 (.loop none [] ⟨117, []⟩ [])
     .leaf
     .leaf)
-    (.node 94 (.stat [] ⟨89, []⟩ [])
+    (.node 94 (.stat [] ⟨90, []⟩ [])
     .leaf
     .leaf))
     (.node 97 (.stat [] ⟨41, []⟩ [])
-    (.node 96 (.stat [] ⟨95, []⟩ [])
+    (.node 96 (.stat [] ⟨96, []⟩ [])
     .leaf
     .leaf)
     .leaf))
@@ -3401,7 +3401,7 @@ def womegaTTlll : NTree (ℕ) :=
     .leaf
     .leaf)
     .leaf)))
-    (.node 94 (89)
+    (.node 94 (90)
     (.node 91 (17)
     (.node 90 (303)
     (.node 89 (60)
@@ -3409,13 +3409,13 @@ def womegaTTlll : NTree (ℕ) :=
     .leaf)
     .leaf)
     (.node 93 (9)
-    (.node 92 (116)
+    (.node 92 (117)
     .leaf
     .leaf)
     .leaf))
     (.node 97 (41)
-    (.node 96 (95)
-    (.node 95 (92)
+    (.node 96 (96)
+    (.node 95 (93)
     .leaf
     .leaf)
     .leaf)

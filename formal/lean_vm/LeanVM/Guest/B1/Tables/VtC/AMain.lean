@@ -462,12 +462,15 @@ theorem vt_rel_completeF {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases
       (H.point.length - H.τ t) (H.point.drop (H.τ t)) ((H.point.map (1 + ·)).drop (H.τ t))
       ((gSquaresList.drop (H.τ t)).take (H.point.length - H.τ t)) :=
     fun t ht ↦ vt_runTables hμ33 o701 o702 ht
+  have hpad : ∀ t < 6, RunPads rd (w 701 * gen ^ (288 * t)) (w 702 * gen ^ (144 * t))
+      (H.point.length - H.τ t) (H.point.drop (H.τ t)) :=
+    fun t ht ↦ vt_runPads hμ33 o701 o702 ht
   -- statements `0 ..< 765`
   obtain ⟨sV, -, skb, s33, sP, sC, sPad, sSh, s664, s699, s701, s702⟩ :=
     vtS_complete (rd := rd) (w := w) (args := H.args B) hl hlow hlm H.point hμ33 H.τ (vtRw H.rows)
       (fun t ht ↦ vtHt_eq hr ht) hτ31 hτμ (by rw [p 8 (by norm_num)]; exact mZeta)
       (p 9 (by norm_num)) (by rw [p 10 (by norm_num)]; exact mDims) hrows
-      (by rw [p 12 (by norm_num)]; exact vt_expTablesAt mSq) o33 o34 o35 o36 o664 o699 hrun
+      (by rw [p 12 (by norm_num)]; exact vt_expTablesAt mSq) o33 o34 o35 o36 o664 o699 hrun hpad
       hw.pads hw.w700
   rw [vt_sizesP_eq] at sP
   rw [vt_sizesC_eq] at sC
