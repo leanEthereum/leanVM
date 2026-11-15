@@ -19,7 +19,7 @@ build = "build.rs"
 # The overlay's sources (`build.rs` copies `aggregation` into `OUT_DIR`) use these, which
 # cargo-machete, reading this crate's own sources, cannot see.
 [package.metadata.cargo-machete]
-ignored = ["fiat_shamir_prover", "isa", "keccak256", "keccak_gkr", "parallel", "pcs", "primitives", "tracing"]
+ignored = ["fiat_shamir_prover", "isa", "keccak256", "parallel", "pcs", "primitives", "tracing"]
 
 [workspace]
 
@@ -43,7 +43,6 @@ lean_da = { path = "../../../../crates/lean_da" }
 lean_vm_core = { package = "stable_lean_vm_core", path = "../../../../crates/stable_prover/lean_vm_core" }
 parallel = { package = "stable_parallel", path = "../../../../crates/stable_prover/parallel" }
 pcs = { package = "stable_pcs", path = "../../../../crates/stable_prover/pcs" }
-keccak_gkr = { package = "stable_keccak_gkr", path = "../../../../crates/stable_prover/keccak_gkr" }
 primitives = { package = "stable_primitives", path = "../../../../crates/stable_prover/primitives" }
 rand = "0.9"
 tracing = "0.1.26"

@@ -111,7 +111,7 @@ pub struct ColumnClaim {
 /// Bits indexing a bus tuple's coordinates: its `2^4` slots are those of the bytecode
 /// encoding (§sec:m3, §sec:e2e-bc). A tuple is fingerprinted as `Σ_x α_x·σ_x`, one
 /// independent weight per slot (§sec:gp), so a leaf factor is linear in the challenges.
-pub const N_TUPLE_BITS: usize = 4;
+pub const N_TUPLE_BITS: usize = verifier::layout::BUS_BITS;
 
 /// The count tree's weights: the count alone, in slot `0` (`α⃗ = (1, 0, …, 0)`, `β = 0`).
 fn count_weights() -> Vec<F128> {
@@ -734,12 +734,6 @@ fn decompose_prove(
         },
     )
 }
-
-/// Selector bits of the stacked bytecode polynomial: the public encoding
-/// columns (opcode + twelve operand/immediate slots = thirteen) stack along
-/// `2^N_BYTECODE_SELECTORS` slots. A column's slot is its bus tuple coordinate,
-/// which is what fixes the width at sixteen rather than at the column count.
-pub const N_BYTECODE_SELECTORS: usize = 4;
 
 /// Slot of the first public column: the bytecode block leads with three
 /// non-public coordinates (tag, index, read count), and a column's slot IS its

@@ -5,10 +5,10 @@
 //! as lanes.
 
 use primitives::field::F64;
-use primitives::hash::{RC, ROUNDS};
+use primitives::hash::ROUNDS;
 use verifier::along;
 
-use crate::keccak::{BITS, LANES, linear};
+use crate::keccak::{BITS, LANES, iota_bit, linear};
 use crate::kernels::xor;
 
 /// Instances a block holds, and the words one position of a block takes.
@@ -172,7 +172,7 @@ pub(crate) fn run_block(depth: usize, inputs: &[[u64; LANES]], keep: bool) -> (V
                 *s = ua[k] ^ (!ub[k] & uc[k]);
             }
         }
-        for z in (0..64).filter(|z| RC[round - 1] >> z & 1 == 1) {
+        for z in (0..64).filter(|&z| iota_bit(round, z)) {
             state[z] = state[z].map(|w| !w);
         }
         if round.is_multiple_of(depth) && round < ROUNDS {
@@ -258,7 +258,6 @@ impl Witness {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::keccak::iota_bit;
     use primitives::test_rng::Rng;
 
     #[test]

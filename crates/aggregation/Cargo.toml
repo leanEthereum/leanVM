@@ -20,7 +20,6 @@ lean_da.workspace = true
 lean_vm_core = { package = "stable_lean_vm_core", path = "../stable_prover/lean_vm_core" }
 parallel = { package = "stable_parallel", path = "../stable_prover/parallel" }
 pcs = { package = "stable_pcs", path = "../stable_prover/pcs" }
-keccak_gkr = { package = "stable_keccak_gkr", path = "../stable_prover/keccak_gkr" }
 primitives = { package = "stable_primitives", path = "../stable_prover/primitives" }
 rand = { workspace = true, optional = true }
 tracing.workspace = true

@@ -46,7 +46,6 @@ pub mod witness;
 #[cfg(test)]
 mod tests;
 
-pub use keccak::iota_bit;
 pub use open::Openings;
 pub use witness::{Shape, Witness};
 

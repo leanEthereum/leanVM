@@ -87,10 +87,6 @@ pub const N_TUPLE_BITS: usize = verifier::layout::BUS_BITS;
 /// The trees the bus GKR batches, in its order: push, pull, then the count tree.
 pub const N_BUS_TREES: usize = verifier::N_BUS_TREES;
 
-/// Selector bits of the stacked bytecode polynomial: the thirteen public encoding columns (opcode and twelve operand
-/// slots) stack along `2^N_BYTECODE_SELECTORS` slots, a column's slot being its bus tuple coordinate.
-pub const N_BYTECODE_SELECTORS: usize = N_TUPLE_BITS;
-
 /// Slot of the first public column: the bytecode block leads with three non-public coordinates (tag, index, read
 /// count).
 pub(crate) const BYTECODE_PUBLIC_SLOT: usize = 3;

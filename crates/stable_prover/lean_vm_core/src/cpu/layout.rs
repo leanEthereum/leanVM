@@ -287,10 +287,10 @@ pub fn bytecode_table(prog: &[Op]) -> Vec<F64> {
 
 /// [`bytecode_table`] of a program's columns.
 pub(crate) fn stack_columns(columns: &BytecodeColumns) -> Vec<F64> {
-    use crate::leaf::{BYTECODE_PUBLIC_SLOT, N_BYTECODE_SELECTORS};
-    const { assert!(BYTECODE_PUBLIC_SLOT + 1 + BYTECODE_OPERANDS <= 1 << N_BYTECODE_SELECTORS) };
+    use crate::leaf::{BYTECODE_PUBLIC_SLOT, N_TUPLE_BITS};
+    const { assert!(BYTECODE_PUBLIC_SLOT + 1 + BYTECODE_OPERANDS <= 1 << N_TUPLE_BITS) };
     let kbc = crate::log2_strict_usize(columns[0].len());
-    let mut table = vec![F64::ZERO; 1 << (N_BYTECODE_SELECTORS + kbc)];
+    let mut table = vec![F64::ZERO; 1 << (N_TUPLE_BITS + kbc)];
     for (i, column) in columns.iter().enumerate() {
         let slot = BYTECODE_PUBLIC_SLOT + i;
         table[slot << kbc..(slot + 1) << kbc].copy_from_slice(column);

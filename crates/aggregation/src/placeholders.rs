@@ -514,7 +514,9 @@ fn keccak_placeholders(ph: &mut Placeholders) {
         (0..depth * segments)
             .map(|at| {
                 let round = shape.round(at % segments, at / segments);
-                (0..7).filter(|i| keccak_gkr::iota_bit(round, (1 << i) - 1)).collect()
+                (0..7)
+                    .filter(|i| keccak256::RC[round - 1] >> ((1 << i) - 1) & 1 == 1)
+                    .collect()
             })
             .collect(),
     );
