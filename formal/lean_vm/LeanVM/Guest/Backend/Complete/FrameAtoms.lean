@@ -985,6 +985,140 @@ theorem place_frameAddr_fat (p : V) (run : List V) : AtomFAt (.frameAddr p run) 
       · exact FAt.fail
     · exact FAt.fail
 
+/-! ## `KECCAK` -/
+
+/-- The cells of known values, each holding its word. -/
+theorem mapM_cellOf_fat (hok : I.Ok) {ok : V → Prop} : ∀ (l : List V) (st : St)
+    (C : (ℕ → E) → Prop), VW I C st ok → (∀ v ∈ l, ok v) →
+    FAt ctx I C st (l.mapM cellOf) (fun cs C' st' => st'.locs = st.locs ∧ st'.rest = st.rest ∧
+      cs.length = l.length ∧ ∀ i (hi : i < cs.length) (hl : i < l.length),
+        2 ≤ cs[i] ∧ ∀ Ψ, C' Ψ → Ψ cs[i] = I.σ l[i])
+  | [], _, _, _, _ => by
+      rw [List.mapM_nil]
+      exact FAt.pure ⟨rfl, rfl, rfl, fun i hi => absurd hi (by simp)⟩
+  | v :: l, st, C, hv, hk => by
+      rw [List.mapM_cons]
+      refine FAt.bind (cellOf_fat v hok hv (hk v List.mem_cons_self))
+        fun c st₁ C₁ hs₁ hn₁ _ ⟨c2, _, hlo₁, hr₁, hwc⟩ => ?_
+      refine FAt.bind (mapM_cellOf_fat hok l st₁ C₁ (hv.step hs₁ hn₁ hlo₁)
+        fun v hv' => hk v (List.mem_cons_of_mem _ hv'))
+        fun cs st₂ C₂ hs₂ _ _ ⟨hlo₂, hr₂, hlen, hcs⟩ => ?_
+      refine FAt.pure ⟨hlo₂.trans hlo₁, hr₂.trans hr₁, by simp [hlen], fun i hi hl => ?_⟩
+      cases i with
+      | zero => exact ⟨c2, fun Ψ hΨ => hwc Ψ (hs₂ Ψ hΨ)⟩
+      | succ i => exact hcs i (by simpa using hi) (by simpa using hl)
+
+/-- The cells of a run of values, each the value's. -/
+theorem mapM_cellAt_all : ∀ (l : List V) (st : St), wpP (l.mapM cellAt) ctx st fun cs st' =>
+    st' = st ∧ cs.length = l.length ∧
+      ∀ i (hi : i < cs.length) (hl : i < l.length), st.locs[l[i]]? = some (.cell cs[i])
+  | [], st => by
+      rw [List.mapM_nil]
+      exact wp_pure.mpr ⟨rfl, rfl, fun i hi => absurd hi (by simp)⟩
+  | v :: l, st => by
+      rw [List.mapM_cons]
+      unfold cellAt
+      refine wp_bind.mpr (wp_bind.mpr (wp_get.mpr ?_))
+      split
+      · next c hc =>
+        refine wp_pure.mpr (wp_bind.mpr (wp_mono (mapM_cellAt_all l st)
+          fun cs st' ⟨he, hlen, hcs⟩ => wp_pure.mpr ⟨he, by simp [hlen], fun i hi hl => ?_⟩))
+        cases i with
+        | zero => exact hc
+        | succ i => exact hcs i (by simpa using hi) (by simpa using hl)
+      · exact wp_failP
+
+theorem getD_of_lt {α : Type} {l : List α} {i : ℕ} (d : α) (hi : i < l.length) :
+    l.getD i d = l[i] := by
+  simp [List.getD_eq_getElem?_getD, hi]
+
+theorem mapM_cellAt_all_fat (l : List V) :
+    FAt ctx I C st (l.mapM cellAt) (fun cs C' st' => C' = C ∧ st' = st ∧ cs.length = l.length ∧
+      ∀ i (hi : i < cs.length) (hl : i < l.length), st.locs[l[i]]? = some (.cell cs[i])) :=
+  fun hc => wp_mono (mapM_cellAt_all l st) fun _ st' ⟨he, hlen, h⟩ => by
+    subst he
+    exact ⟨C, hc, Stronger.refl C, le_rfl, LocsLe.refl _, EmitsW.refl _, rfl, rfl, hlen, h⟩
+
+theorem cells13_eq {l : List V} {cs : List Cell} {Ψ : ℕ → E} (hlen : cs.length = l.length)
+    (h : ∀ i (hi : i < cs.length) (hl : i < l.length), Ψ cs[i] = I.σ l[i]) (i : ℕ)
+    (hi : i < cs.length) : Ψ (cs.getD i 0) = (l.map I.σ).getD i 0 := by
+  rw [getD_of_lt _ hi, getD_of_lt _ (by simp; omega), List.getElem_map]
+  exact h i hi (by omega)
+
+/-- **`KECCAK`**: one instruction on the runs of its operands' cells. -/
+theorem place_keccak_fat (ins outs : List V) (inOdd outOdd : Bool) :
+    AtomFAt (.keccak ins outs inOdd outOdd) := by
+  intro ctx I C st ok hok _ _ hh _ _ _ h2 hv hops
+  have hL := atom_ok hops fun _ _ h => by cases h
+  obtain ⟨_, oc', hoc', hrel⟩ : ins.length = 13 ∧ ∃ outCells : KeccakOutputCells,
+      outs.length = outCells.cellCount ∧ KeccakCellsRelation (cells13 (ins.map I.σ)) inOdd
+        (cells13 (outs.map I.σ)) outOdd outCells := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
+  unfold placeAtom
+  dsimp only
+  refine FAt.bind (mapM_cellOf_fat hok ins st C hv fun v hv' => hL v (by
+    simp [Memory.atomUses, hv'])) fun cs st₁ C₁ hs₁ hn₁ _ ⟨hlo₁, hr₁, hlen₁, hcs⟩ => ?_
+  have hv₁ := hv.step hs₁ hn₁ hlo₁
+  refine FAt.bind (mapM_cellAt_all_fat outs) fun los st₂ C₂ _ _ _ ⟨hC₂, hst₂, hlen₂, hlos₂⟩ => ?_
+  subst C₂ st₂
+  split
+  · next out hout =>
+    refine FAt.guard fun hcond => ?_
+    simp only [Bool.not_eq_true, Bool.not_eq_false', Bool.and_eq_true, Bool.or_eq_true,
+      beq_iff_eq] at hcond
+    obtain ⟨⟨⟨⟨h13, ht⟩, hcp⟩, ho⟩, hl⟩ := hcond
+    have hout : ∀ k (hk : k < los.length), los[k] = out + k := fun k hk => by
+      have h0 : out = los[0]'(by omega) := by
+        cases los with
+        | nil => cases hout
+        | cons a _ => cases hout; rfl
+      rw [consecutiveFrom_getElem ho k hk]
+    have hwo : ∀ k (hk : k < los.length) (hk' : k < outs.length), 2 ≤ los[k] ∧
+        ∀ Ψ, C₁ Ψ → Ψ los[k] = I.σ outs[k] := fun k hk hk' => by
+      obtain ⟨a, _, c⟩ := hv₁ outs[k] _ (hL _ (by simp [Memory.atomUses])) (hlos₂ k hk hk')
+      exact ⟨a, c⟩
+    refine FAt.mono (emitOp_fat _ fun _ _ Ψ hΨ => ?_) fun _ C' st' _ _ _ ⟨hC, hst⟩ => ?_
+    · show KeccakCellsRelation _ inOdd _ outOdd _
+      have hin : (fun c : Fin 13 => fw I Ψ (keccakInOff (cs.getD 0 0) (cs.getD 1 0) (cs.getD 2 0)
+          (cs.getD 3 0) (cs.getD 4 0) (cs.getD 8 0) (cs.getD 9 0) c)) =
+          cells13 (ins.map I.σ) := by
+        funext c
+        rw [keccakInOff_cells h13 ht hcp c.val c.isLt, cells13]
+        have hc13 : c.val < cs.length := by rw [h13]; exact c.isLt
+        rw [getD_of_lt _ hc13, fw_of_two (hcs c.val hc13 (by omega)).1, ← getD_of_lt 0 hc13]
+        exact cells13_eq hlen₁ (fun i hi hl => (hcs i hi hl).2 Ψ hΨ) c.val hc13
+      rw [hin]
+      intro c hc
+      have hcl : c.val < los.length := by
+        revert hc
+        rcases hl with (h | h) | h <;> simp [h, KeccakOutputCells.cellCount]
+      rw [← hrel c (by rw [← hoc', ← hlen₂]; exact hcl)]
+      show fw I Ψ (out + c.val) = cells13 (outs.map I.σ) c
+      rw [cells13, ← hout c.val hcl,
+        fw_of_two (hwo c.val hcl (by omega)).1, getD_of_lt _ (by simp; omega), List.getElem_map]
+      exact (hwo c.val hcl (by omega)).2 Ψ hΨ
+    · subst C' st'
+      exact ⟨fun _ => vw_same hv₁ hL (Stronger.refl _) le_rfl rfl, hr₁⟩
+  · exact FAt.fail
+
+/-- **Every atom but a load and a self copy** on the path (`place_load_fat` covers a load of a
+value in a cell; STATUS findings 1 and 2). -/
+theorem placeAtom_fat (a : Atom) (hc : ∀ d, a ≠ .copy d d) (hl : ∀ d p off, a ≠ .load d p off) :
+    AtomFAt a := by
+  cases a with
+  | const d c => exact place_const_fat d c
+  | add d x y => exact place_add_fat d x y
+  | mul d x y => exact place_mul_fat d x y
+  | copy d s => exact place_copy_fat d s fun h => hc d (by rw [← h])
+  | load d p off => exact absurd rfl (hl d p off)
+  | assertEq x y => exact place_assertEq_fat x y
+  | assertNe x i p => exact place_assertNe_fat x i p
+  | rangeCheck x y t1 t2 k => exact place_rangeCheck_fat x y t1 t2 k
+  | assertInK x y => exact place_assertInK_fat x y
+  | keccak ins outs i o => exact place_keccak_fat ins outs i o
+  | frameAddr p run => exact place_frameAddr_fat p run
+  | hint h => exact place_hint_fat h
+  | touch t p => exact place_touch_fat t p
+
 end Atoms
 
 end
