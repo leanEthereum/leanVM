@@ -9,9 +9,10 @@ pub trait Prover: 'static {
     /// A program assembled for this prover, with the witness streams it runs on.
     type Program: Clone + Send + Sync + 'static;
 
-    /// Start the prover's thread pool, before anything below; again, it does nothing.
+    /// Start the prover's thread pool. Call it before anything below; a second call does nothing.
     fn init();
 
+    /// `program` as this prover runs it. Costly (it hashes the bytecode into the Fiat-Shamir IV): assemble once.
     fn assemble(program: CompiledProgram) -> Self::Program;
 
     /// Supply the entries of the witness stream `name`, one per `hint_witness` call, in the order they are popped.
@@ -27,7 +28,10 @@ pub trait Prover: 'static {
     /// `f(i)` for every `i < n`, on the thread pool. `f` must not dispatch to the pool itself.
     fn map_collect<T: Send>(n: usize, f: impl Fn(usize) -> T + Sync) -> Vec<T>;
 
-    /// `a * b`, on the prover's field kernels.
+    // The field kernels: the deferred claims' batching (`rec_aggregation`) runs on the first three, LeanDA's
+    // encoding on the last.
+
+    /// `a * b`, faster than the verifier's portable product.
     fn mul(a: E, b: E) -> E;
 
     /// `Σ_r weights[r] · rows[r]`, over the `weights.len()` rows of `K` words that `rows` holds end to end.
