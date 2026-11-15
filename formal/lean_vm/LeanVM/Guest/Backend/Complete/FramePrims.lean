@@ -39,11 +39,11 @@ theorem FAt.mono {α : Type} {m : P α} {R R' : α → ((ℕ → E) → Prop) �
 
 /-- The invariant at the start, for the proof of an action. -/
 theorem FAt.withCOk {α : Type} {m : P α} {R : α → ((ℕ → E) → Prop) → St → Prop}
-    (h : COk I C st.next st.scope → FAt ctx I C st m R) : FAt ctx I C st m R :=
+    (h : COk I C st.next st.scope st.locs → FAt ctx I C st m R) : FAt ctx I C st m R :=
   fun hc => h hc hc
 
 theorem FAt.pureC {α : Type} {a : α} {R : α → ((ℕ → E) → Prop) → St → Prop}
-    (h : COk I C st.next st.scope → R a C st) : FAt ctx I C st (Pure.pure a) R :=
+    (h : COk I C st.next st.scope st.locs → R a C st) : FAt ctx I C st (Pure.pure a) R :=
   fun hc => wp_pure.mpr ⟨C, hc, Stronger.refl C, le_rfl, LocsLe.refl _, EmitsW.refl st, h hc⟩
 
 theorem FAt.fail {α : Type} {msg : String} {R : α → ((ℕ → E) → Prop) → St → Prop} :
@@ -67,9 +67,9 @@ theorem FAt.read_bind {β : Type} {f : Ctx → P β} {R : β → ((ℕ → E) �
 /-- A step that keeps the next free cell, the output and the places, the pools kept. -/
 theorem FAt.modify {g : St → St} (hn : (g st).next = st.next) (ho : (g st).out = st.out)
     (hl : (g st).locs = st.locs)
-    (hc : COk I C st.next st.scope → COk I C st.next (g st).scope) :
+    (hc : COk I C st.next st.scope st.locs → COk I C st.next (g st).scope st.locs) :
     FAt ctx I C st (modify g) (fun _ C' st' => C' = C ∧ st' = g st) := fun hc' =>
-  wp_modify.mpr ⟨C, by rw [hn]; exact hc hc', Stronger.refl C, le_of_eq hn.symm,
+  wp_modify.mpr ⟨C, by rw [hn, hl]; exact hc hc', Stronger.refl C, le_of_eq hn.symm,
     by rw [hl]; exact LocsLe.refl _, ⟨[], by rw [ho]; simp, fun _ _ h => nomatch h⟩, rfl, rfl⟩
 
 /-- An action that keeps the next free cell, the pools, the output and grows the places. -/
@@ -77,17 +77,17 @@ theorem FAt.ofSame {α : Type} {m : P α} {R : α → ((ℕ → E) → Prop) →
     (h : wpP m ctx st fun a st' => st'.next = st.next ∧ st'.scope = st.scope ∧
       st'.out = st.out ∧ LocsLe st.locs st'.locs ∧ R a C st') : FAt ctx I C st m R :=
   fun hc => wp_mono h fun a st' ⟨hn, hs, ho, hl, hr⟩ =>
-    ⟨C, by rw [hn, hs]; exact hc, Stronger.refl C, le_of_eq hn.symm, hl,
+    ⟨C, by rw [hn, hs]; exact ⟨hc.sat, hc.blind, fun Ψ hΨ => (hc.pools Ψ hΨ).grow hl, hc.cells⟩, Stronger.refl C, le_of_eq hn.symm, hl,
       ⟨[], by rw [ho]; simp, fun _ _ h => nomatch h⟩, hr⟩
 
-theorem COk.withScope {n : ℕ} {sc sc' : Scope} (h : COk I C n sc)
-    (hp : ∀ Ψ, C Ψ → PoolW I Ψ sc → PoolW I Ψ sc') (hs : ScopeGood n sc → ScopeGood n sc') :
-    COk I C n sc' :=
+theorem COk.withScope {n : ℕ} {sc sc' : Scope} {locs : VMap Loc} (h : COk I C n sc locs)
+    (hp : ∀ Ψ, C Ψ → PoolW I Ψ locs sc → PoolW I Ψ locs sc')
+    (hs : ScopeGood n sc → ScopeGood n sc') : COk I C n sc' locs :=
   ⟨h.sat, h.blind, fun Ψ hΨ => hp Ψ hΨ (h.pools Ψ hΨ), hs h.cells⟩
 
 /-- A fresh cell gets a word computed from the cells below it. -/
-theorem COk.assign {n : ℕ} {sc : Scope} {w : (ℕ → E) → E} (h : COk I C n sc) (hw : WBlind w n) :
-    COk I (fun Ψ => C Ψ ∧ Ψ n = w Ψ) (n + 1) sc :=
+theorem COk.assign {n : ℕ} {sc : Scope} {locs : VMap Loc} {w : (ℕ → E) → E}
+    (h : COk I C n sc locs) (hw : WBlind w n) : COk I (fun Ψ => C Ψ ∧ Ψ n = w Ψ) (n + 1) sc locs :=
   ⟨assign_sat h.blind hw le_rfl h.sat, assign_blind h.blind hw le_rfl,
     fun Ψ hΨ => h.pools Ψ hΨ.1, h.cells.mono (Nat.le_succ n)⟩
 
@@ -131,12 +131,12 @@ theorem emitOp_fat (o : LOp) (h : Fits I st → ∀ Ψ, C Ψ → OpW I Ψ o) :
 instruction writes and the pool learns. -/
 theorem pooledCell_fat {find : Scope → Option Cell} {learn : Cell → Scope → Scope}
     {mk : Cell → LOp} (w : (ℕ → E) → E) (hw : WBlind w st.next) (h2 : 2 ≤ st.next)
-    (hfind : ∀ o, find st.scope = some o → ∀ Ψ, C Ψ → PoolW I Ψ st.scope → Ψ o = w Ψ)
+    (hfind : ∀ o, find st.scope = some o → ∀ Ψ, C Ψ → PoolW I Ψ st.locs st.scope → Ψ o = w Ψ)
     (hfc : ∀ o, find st.scope = some o → ScopeGood st.next st.scope → 2 ≤ o ∧ o < st.next)
     (hmk : Fits I { st with next := st.next + 1 } → ∀ Ψ, C Ψ → Ψ st.next = w Ψ →
       OpW I Ψ (mk st.next))
-    (hlearn : ∀ Ψ, C Ψ → Ψ st.next = w Ψ → PoolW I Ψ st.scope →
-      PoolW I Ψ (learn st.next st.scope))
+    (hlearn : ∀ Ψ, C Ψ → Ψ st.next = w Ψ → PoolW I Ψ st.locs st.scope →
+      PoolW I Ψ st.locs (learn st.next st.scope))
     (hcells : ScopeGood (st.next + 1) st.scope →
       ScopeGood (st.next + 1) (learn st.next st.scope)) :
     FAt ctx I C st (pooledCell find learn mk) (fun o C' st' => 2 ≤ o ∧ o < st'.next ∧
@@ -299,7 +299,7 @@ theorem takeRun_fat (vs : List V) :
   have ho : st₁.out = st.out := (congrArg St.out he).trans rfl
   refine ⟨RunC I C vs st.next, ⟨runC_sat (fun Ψ k w _ h => hc.blind Ψ _ w (by omega) h) hc.sat,
     runC_blind (hc.blind.mono (Nat.le_add_right _ _)) le_rfl,
-    fun Ψ hΨ => by rw [hs]; exact hc.pools Ψ hΨ.1, by rw [hs]; exact hc.cells.mono (Nat.le_add_right _ _)⟩,
+    fun Ψ hΨ => by rw [hs]; exact (hc.pools Ψ hΨ.1).grow hg, by rw [hs]; exact hc.cells.mono (Nat.le_add_right _ _)⟩,
     fun _ h => h.1, Nat.le_add_right _ _, hg, ⟨[], by simp [ho], fun _ _ h => nomatch h⟩, rfl, hr, hs, hnew,
     fun k hk' => by simpa using hk k hk', fun Ψ h => h.2⟩
 
@@ -387,9 +387,82 @@ theorem bindRunAssign_fat (vs : List V) (base : Cell) (hb : base + vs.length ≤
   have ho : st₁.out = st.out := (congrArg St.out he).trans rfl
   have hn : st₁.next = st.next := (congrArg St.next he).trans rfl
   refine ⟨RunC I C vs base, ⟨runC_sat hbl hc.sat, by rw [hn]; exact runC_blind hc.blind hb,
-    fun Ψ hΨ => by rw [hs]; exact hc.pools Ψ hΨ.1, by rw [hs, hn]; exact hc.cells⟩,
+    fun Ψ hΨ => by rw [hs]; exact (hc.pools Ψ hΨ.1).grow hg, by rw [hs, hn]; exact hc.cells⟩,
     fun _ h => h.1, by rw [hn], hg, ⟨[], by simp [ho], fun _ _ h => nomatch h⟩, hn, hr, hs, hnew,
     fun k hk' => by simpa using hk k hk', fun Ψ h => h.2⟩
+
+/-! ## Message runs read in place -/
+
+theorem filterMap_full {α β : Type} (f : α → Option β) : ∀ (l : List α),
+    (l.filterMap f).length = l.length → ∀ k (hk : k < l.length), f l[k] = (l.filterMap f)[k]?
+  | [], _, _, hk => absurd hk (Nat.not_lt_zero _)
+  | a :: l, h, k, hk => by
+      cases ha : f a with
+      | none =>
+        simp only [List.filterMap_cons, ha, List.length_cons] at h
+        have := List.length_filterMap_le f l
+        omega
+      | some b =>
+        simp only [List.filterMap_cons, ha, List.length_cons, Nat.add_right_cancel_iff] at h
+        cases k with
+        | zero => simp [ha]
+        | succ k =>
+          simp only [List.filterMap_cons, ha, List.getElem_cons_succ,
+            List.getElem?_cons_succ]
+          exact filterMap_full f l h k (by simpa using hk)
+
+/-- **A message run read in place**: each value of the run is the destination of the copy at its
+index among the next statements, whose source is in the cell `base + k`. -/
+theorem spongeInPlace_spec {vs : List V} {up : List Stmt} :
+    wpP (spongeInPlace vs up) ctx st fun r st' => st' = st ∧ ∀ base, r = some base →
+      ∀ k (hk : k < vs.length), ∃ s, up[k]? = some (.atom (.copy vs[k] s)) ∧
+        st.locs[s]? = some (.cell (base + k)) := by
+  unfold spongeInPlace
+  refine wp_bind.mpr (wp_get.mpr ?_)
+  dsimp only
+  split
+  · exact wp_pure.mpr ⟨rfl, fun _ h => nomatch h⟩
+  · next base rest hsrcs =>
+    refine wp_pure.mpr ⟨rfl, fun b hb k hk => ?_⟩
+    split at hb
+    · next hc =>
+      cases hb
+      rw [hsrcs] at hc
+      simp only [Bool.and_eq_true, bne_iff_ne, ne_eq, beq_iff_eq] at hc
+      obtain ⟨⟨_, hlen⟩, hcons⟩ := hc
+      have hlen' := hlen
+      rw [← hsrcs] at hlen'
+      have hl : ((up.take vs.length).zipIdx).length = vs.length := by
+        have := hlen'.symm.trans_le (List.length_filterMap_le _ _)
+        simp only [List.length_zipIdx, List.length_take] at this ⊢
+        omega
+      have hfull := filterMap_full _ _ (hlen'.trans hl.symm) k (by rw [hl]; exact hk)
+      rw [hsrcs] at hfull
+      have hk' : k < (base :: rest).length := by rw [hlen]; exact hk
+      rw [List.getElem?_eq_getElem hk', consecutiveFrom_getElem hcons k hk'] at hfull
+      have hku : k < up.length := by
+        simp only [List.length_zipIdx, List.length_take] at hl
+        omega
+      simp only [List.getElem_zipIdx, List.getElem_take, Nat.zero_add] at hfull
+      split at hfull
+      · next d s k' heq =>
+        simp only [Prod.mk.injEq] at heq
+        obtain ⟨hst, rfl⟩ := heq
+        split at hfull
+        · next hd =>
+          split at hfull
+          · next n hn =>
+            cases hfull
+            refine ⟨s, ?_, hn⟩
+            rw [List.getElem?_eq_getElem hku, hst]
+            have : vs[k]? = some d := by simpa using hd
+            rw [List.getElem?_eq_getElem hk] at this
+            cases this
+            rfl
+          · cases hfull
+        · cases hfull
+      · cases hfull
+    · cases hb
 
 end Prims
 
