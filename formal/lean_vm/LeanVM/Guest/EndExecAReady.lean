@@ -42,11 +42,10 @@ block (`SizeOk`: a constant, a dispatch arm's by its selector, a loop chain's by
 pointer cell the next callee's frame (the next call, reached by the straight code to the call site's
 jump, `FrameHolds.site`); `AdvNext`, an `allocAdvice` pops the `heap_sizes` entry of its buffer's
 size, empty when the path allocates none (`advNext_alignA`, `EndExecAHeap.lean`, from the advised
-sizes' track `HeapAt`). Named, not proved:
-
-* `LateReady`: a late hint finds its buffer reserved, its size cell a power;
-* `ExclReady`: the buffer hints of the function the allocation check excludes (`claim_list_digest`,
-  its one buffer in a branch).
+sizes' track `HeapAt`); `LateReady`, a late hint finds its buffer reserved, its size cell a power
+(`lateReady_alignA`, `EndExecALate.lean`); `ExclReady`, the buffer hints of the function the
+allocation check excludes (`claim_list_digest`, its one buffer in a branch; `exclReady_alignA`,
+`EndExecAExcl.lean`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -92,9 +91,11 @@ def AdvNext (A : String → FnAl) : Prop :=
       | some n => [ofK (addressOfIndex n)]
       | none => [])
 
-/-- **A late hint finds its buffer reserved**, its size a power below `maxCells`. -/
+/-- **A late hint finds its buffer reserved**, and its size a power below `maxCells` once its size cell
+is written. -/
 def LateReady (A : String → FnAl) : Prop :=
-  ∀ r C e s sx i p b, HintAt A r C e s sx i (.allocLate p b) → sx.mem.written (sx.fp + p) = true ∧ ∃ n, BufOk sx b n
+  ∀ r C e s sx i p b, HintAt A r C e s sx i (.allocLate p b) → sx.mem.written (sx.fp + p) = true ∧
+    (Mode.HintIn sx (.allocLate p b) → ∃ n, BufOk sx b n)
 
 /-- **A callee frame's hint reserves the next callee's block**, and has what it needs where the tree
 puts the bump pointer, the cells it reads written. -/
@@ -391,7 +392,8 @@ theorem allocReady_alignA (hD : DynPow) (hA : AdvNext alignA) (hL : LateReady al
     · by_cases hlt : isLate h = true
       · cases h <;> simp only [isLate, Bool.false_eq_true] at hlt
         rename_i p b
-        obtain ⟨hwr, n, hb⟩ := hL r C e s sx i p b hat
+        obtain ⟨hwr, hbo⟩ := hL r C e s sx i p b hat
+        obtain ⟨n, hb⟩ := hbo hin
         exact ⟨n, hb, Or.inl hwr⟩
       · have hb : isBuf (alignA e.I.t.name).X h = true := by
           unfold isBuf; simp only [hp, hfr, hlt, Bool.not_false, Bool.and_self]
@@ -560,6 +562,32 @@ theorem treeSizes_getD (A : String → FnAl) (e : Ent) {off i : ℕ} {h : Hint}
   rw [List.getD_eq_getElem?_getD, treeSizes, List.getElem?_map, List.getElem?_range hlt]
   simp only [Option.map_some, Option.getD_some, hi, bufIdx, List.countP_eq_length_filter]
 
+/-- **An `allocAdvice` reserves its buffer's size**: the stream's next entry, read as a power. -/
+theorem rsz_adv (hA : AdvNext alignA) {r : Ref} {C : Ctx} {e : Ent} {s sx : St} {i p : ℕ} {S : String}
+    (hat : HintAt alignA r C e s sx i (.allocAdvice p S)) :
+    rsz C (refMem r.img) sx (.allocAdvice p S) =
+      e.I.t.bufs.getD (bufIdx alignA e (s.pc - entOf alignA e.I.t.name) i) 0 := by
+  have hnx := hA r C e s sx i p S hat
+  obtain ⟨hr, -, ⟨done, st, htr, hch, -⟩, -⟩ := hat
+  obtain ⟨rd, hHon, hHX⟩ := hr.honest
+  obtain ⟨-, j, bufs, kids, vs, -, hIt, -⟩ := (htr.frames hr.name hHon hHX.covers) e List.mem_cons_self
+  simp only [rsz, advSize]
+  rw [List.getD_eq_getElem?_getD]
+  obtain ⟨es, h1', h2'⟩ := hnx
+  rw [h1', Option.bind_some, h2']
+  rcases hbk : e.I.t.bufs[bufIdx alignA e (s.pc - entOf alignA e.I.t.name) i]? with _ | n
+  · rfl
+  · have hn : n ≤ r.T.total B2C.fs := by
+      have hle : n ≤ e.I.t.bufs.sum := List.le_sum_of_mem (List.mem_of_getElem? hbk)
+      have hn : ∃ f σ bufs kids, e.I.t = .node f σ bufs kids := ⟨_, _, _, _, hIt⟩
+      have he1 := curAt_le_endCur (fs := B2C.fs) (lp := coreProgram.loop) hn e.I.t.bufs.length 0
+      simp only [Inst.curAt, List.take_length, List.take_zero, List.map_nil, List.sum_nil, Nat.add_zero] at he1
+      have he2 := endCur_chain (A := alignA) hr st e s.pc s.fp htr.track.ents htr.linked hch
+      omega
+    have := hHon.size
+    simp only [Option.getD_some]
+    exact logG_spec (by omega)
+
 /-- **Each hint reserves its `treeSizes` entry**, on the deployed alignment, given the facts named. -/
 theorem sizesAt_alignA (hA : AdvNext alignA) (hL : LateReady alignA) (hF : FrameReady alignA) (hX : ExclReady alignA) :
     SizesAt alignA := by
@@ -600,24 +628,8 @@ theorem sizesAt_alignA (hA : AdvNext alignA) (hL : LateReady alignA) (hF : Frame
       have hadv : ∀ p S, h = .allocAdvice p S →
           rsz C (refMem r.img) sx h = e.I.t.bufs.getD (bufIdx alignA e off i) 0 := by
         rintro p S rfl
-        have hnx := hA r C e s sx i p S hat
-        rw [hoff] at hnx
-        simp only [rsz, advSize]
-        rw [List.getD_eq_getElem?_getD]
-        obtain ⟨es, h1', h2'⟩ := hnx
-        rw [h1', Option.bind_some, h2']
-        rcases hbk : e.I.t.bufs[bufIdx alignA e off i]? with _ | n
-        · rfl
-        · have hn : n ≤ r.T.total B2C.fs := by
-            have hle : n ≤ e.I.t.bufs.sum := List.le_sum_of_mem (List.mem_of_getElem? hbk)
-            have hn : ∃ f σ bufs kids, e.I.t = .node f σ bufs kids := ⟨_, _, _, _, hIt⟩
-            have he1 := curAt_le_endCur (fs := B2C.fs) (lp := coreProgram.loop) hn e.I.t.bufs.length 0
-            simp only [Inst.curAt, List.take_length, List.take_zero, List.map_nil, List.sum_nil, Nat.add_zero] at he1
-            have he2 := endCur_chain (A := alignA) hr st e s.pc s.fp htr.track.ents htr.linked hch
-            omega
-          have := hHon.size
-          simp only [Option.getD_some]
-          exact logG_spec (by omega)
+        have := rsz_adv hA hat
+        rwa [hoff] at this
       by_cases hex : i0 + 1 ∈ AllocChk.allocExcl
       · have := (hX r C e s sx i h (i0 + 1) hat hj hex hb).1
         rw [hoff] at this

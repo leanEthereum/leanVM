@@ -159,6 +159,7 @@ class Infer:
         if kind == 'preR':
             name, r, r2, A = rest
             if isinstance(name, tuple) and name[0] == 'tail': return False
+            if r2 is None: return self.smallIdx([r[1], r[2]], i, A)
             if r2 is not None and self.armRun(('run', r2), A): return True
             if r2 is not None and ifaceMono(f, r2[0]) and ifaceIdx(f, r2[1]) and ifaceIdx(f, r2[2]) and r2[0][2]:
                 self.preR.add(r2); self.new = True; A.r.add(r2); return True
@@ -179,6 +180,18 @@ class Infer:
             r = ('lt', ('ex', x, 0), ('num', n))
             self.res[i].append(r); self.new = True; A.lt.add((r[1], r[2])); return True
         return False
+
+    def smallIdx(self, idxs, i, A):
+        """A callee's exponent bound translated to `e(x) + c`, `c > 0`, `x`'s exponent not known small: its
+        bound below `2^32` (`Res.lt`), so that it translates (`idxDown`)."""
+        mq = getattr(self.w, 'curMq', None)
+        if mq is None: return False
+        got = False
+        for j in idxs:
+            t = self.w.trIdxK(A, mq, j)
+            if t is None or t[1] == 0 or A.small(t[0]) or not self.w.idxOk(A, t[0]): continue
+            self.addRes(i, ('lt', t[0], ('num', SMALL))); A.lt.add((t[0], ('num', SMALL))); got = True
+        return got
 
     def armSub(self, k, i, A, m=None):
         """A table call's arm reading `q·g^c`, inside a run the function holds over part of `q`: the run
@@ -428,7 +441,20 @@ class Infer:
                         a = ((0, k[1], k[2]), ('num', 0), ('num', 1), 1, 0)
                         self.preR.add(r); A.r.add(r); self.addRes(i0, ('sub', a, [r])); A.r.add(a); return True
                     self.preR.add(r); self.new = True; A.r.add(r); return True
-        return self.permBlock(k, i0, A)
+        return self.permBlock(k, i0, A) or self.runPoint(k, i0, A)
+
+    def runPoint(self, k, i0, A):
+        """A cell `Q·x·g^c`, `x` one base, inside a known run over `Q` from `0` of stride 1 up to an exponent
+        (`Res.sub`: `x`'s exponent plus `c` below the run's bound)."""
+        if k[0] != 0 or len(k[2]) < 2: return False
+        for B, e in k[2]:
+            Q = (0, 0, tuple(y for y in k[2] if y[0] != B))
+            if e != 1: continue
+            for R in sorted(A.r, key=str):
+                if R[0] == Q and R[1] == ('num', 0) and R[3] == 1 and R[4] == 0 and R[2][0] == 'ex':
+                    a = ((0, k[1], k[2]), ('num', 0), ('num', 1), 1, 0)
+                    self.addRes(i0, ('sub', a, [R])); A.r.add(a); return True
+        return False
 
     def permBlock(self, k, i0, A):
         """A table `[T]` read at the word a permutation's cell `r` holds (`[q]·g^r`, loaded), `[T]·g^c` known
@@ -609,10 +635,16 @@ TABLES = {(n,): (('hp', 1, b), ('ex', ('hp', 1, l), 0), S) for n, ts in tables()
           if len([t for t in ts if t[2] > 1]) == 1 for b, l, S in ts if S > 1}
 
 
+# an exponent's bound for `smallIdx`, far above any the guest computes and below `2^62`
+SMALL = 2 ** 32
+
 # runs a function reads at a bounded index, of which its callers hold every `S`-th cell: function -> {run: S}
 NARROW = collections.defaultdict(dict)
 # the functions inferred so far
 DONE = set()
+# functions that pass with residuals outside the families `Res/SelDefs.lean` and `Res/SubDefs.lean` accept,
+# held as failing (their callees' narrowings undone) until those families take them
+HELD = {'check_opening_terminal'}
 
 
 # each function's last inference, its signature and residuals (a narrowed callee's replaced)
@@ -628,6 +660,9 @@ def infer(n):
         except Fail as e:
             try: LAST[n] = infer1(n, True)
             except Fail: raise e
+        if n in HELD:
+            del LAST[n]
+            raise Fail(('held', n))
         return LAST[n]
     except Fail:
         # a failing caller's narrowings undone, its callees inferred again

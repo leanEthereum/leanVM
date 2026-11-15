@@ -24,7 +24,6 @@ frame pops its advised sizes before any call, and at a jump has popped them all.
 * `advNext_alignA : AdvNext alignA`: at an `allocAdvice`, the stream past the cursor is the frame's
   own entries past those its hints before it popped (`HeapAt`), whose head is the size of its buffer
   (`slot_at`, `Bridge.bufsOf_idx`).
-* `keepY_allocA_of`: each step keeps `YAlloc alignA`, from `SizesAt` and `HeapPops`.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -441,14 +440,6 @@ theorem heapArith_alignA : HeapArith alignA := by
       restH_cons, advBefore_all (advChk_alignA _) hle, List.drop_eq_nil_of_le (by rw [List.length_map]), List.nil_append]
 
 end
-
-end
-
-public section
-
-/-- **Each step keeps `YAlloc alignA`**, from `SizesAt` and the advised sizes' stream the tree's. -/
-theorem keepY_allocA_of (hS : SizesAt alignA) (hHP : HeapPops) : KeepY (YAlloc alignA) :=
-  keepY_allocA hS curArith_alignA heapArith_alignA fun r hr ↦ hHP r hr
 
 end
 

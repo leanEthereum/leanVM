@@ -647,7 +647,7 @@ open LeanVM.Guest
 public section
 
 /-- The compiled functions the allocation check does not admit. -/
-def allocExcl : List ℕ := {exl}
+@[expose] def allocExcl : List ℕ := {exl}
 
 {thms}/-- **Every compiled function's allocation hints pass the check**, but the excluded ones. -/
 theorem allocJ_all : ∀ j, 1 ≤ j → j < {n} → j ∉ allocExcl → Bridge.AllocJ j := fun j h1 h2 ↦

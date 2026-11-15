@@ -702,6 +702,7 @@ class Walk:
             self.need(o < 2 ** 30 and A.covered(shift(mq, o)), 'entry', i, name, o, A, self.lnks.get(shift(mq, o), []), self.lnk)
 
     def entryOk(self, A, mq, G, i, name):
+        self.curMq = mq  # inference metadata: the callee frame's product
         for o in G.entry:
             self.need(o < 2 ** 30 and A.covered(shift(mq, o)), 'entry', i, name, o, A, self.lnks.get(shift(mq, o), []), self.lnk)
         if G.self_ is not None:
