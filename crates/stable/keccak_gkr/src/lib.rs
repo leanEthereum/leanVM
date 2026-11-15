@@ -97,7 +97,6 @@ pub mod witness;
 #[cfg(test)]
 mod tests;
 
-pub use keccak::iota_bit;
 pub use open::{Opening, Openings, WordOpening};
 pub use witness::{Shape, Witness};
 

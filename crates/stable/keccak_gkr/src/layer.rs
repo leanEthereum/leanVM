@@ -136,13 +136,17 @@ pub(crate) struct Sumcheck {
 }
 
 impl Sumcheck {
-    /// Send the next round, whose polynomial before `scale` and the `eq` factor on its variable has the values `zero`
-    /// and `infinity` at `0` and infinity, and bind its variable, the claim's coordinate on which is `r`. Returns
-    /// the challenge.
-    pub fn round(&mut self, ps: &mut ProverState, zero: F128, infinity: F128, r: F128) -> F128 {
-        // `value = (1 + r) h(0) + r h(1) = c0 + r (c1 + c2)` gives the coefficient the values do not.
+    /// Send the next round, whose polynomial before `scale` and the `eq` factor on its variable has the values `zero`,
+    /// `one` and `infinity` at `0`, `1` and infinity, and bind its variable, the claim's coordinate on which is `r`.
+    /// Returns the challenge. Without `one`, `value = (1 + r) h(0) + r h(1) = c0 + r (c1 + c2)` gives the coefficient
+    /// the other values do not, which needs `r` nonzero, as experimental's tail rounds do too.
+    pub fn round(&mut self, ps: &mut ProverState, zero: F128, one: Option<F128>, infinity: F128, r: F128) -> F128 {
         let (c0, c2) = (self.scale * zero, self.scale * infinity);
-        let coeffs = [c0, (self.value + c0) * r.inv() + c2, c2];
+        let c1 = match one {
+            Some(one) => self.scale * (zero + one + infinity),
+            None => (self.value + c0) * r.inv() + c2,
+        };
+        let coeffs = [c0, c1, c2];
         ps.add_round_poly(&coeffs, true);
         let challenge = ps.sample();
         let eq = F128::ONE + r + challenge;

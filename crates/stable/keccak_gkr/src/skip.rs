@@ -148,7 +148,7 @@ fn extend(packs: &[Run; PACKS], out: &mut [Run; SLOTS]) {
 /// Send the skip's rounds from the summand at every point they read.
 pub(crate) fn prove_rounds(ps: &mut ProverState, claim: &Claim, mut sums: Vec<F128>, sumcheck: &mut Sumcheck) {
     for i in 0..SKIP {
-        // The round's values at `0` and infinity, summed over the later variables' binary points.
+        // The round's values at `0`, `1` and infinity, summed over the later variables' binary points.
         let later = eq_table(&claim.point[i + 1..SKIP]);
         let at = |d: usize| -> F128 {
             later
@@ -157,7 +157,7 @@ pub(crate) fn prove_rounds(ps: &mut ProverState, claim: &Claim, mut sums: Vec<F1
                 .map(|(b, &eq)| eq * sums[d + 3 * ternary(b)])
                 .sum()
         };
-        let c = sumcheck.round(ps, at(0), at(2), claim.point[i]);
+        let c = sumcheck.round(ps, at(0), Some(at(1)), at(2), claim.point[i]);
         // At `c`, a value along the variable is `v0 + c (v0 + v1) + (c^2 + c) v_infinity`.
         sums = sums
             .as_chunks::<3>()

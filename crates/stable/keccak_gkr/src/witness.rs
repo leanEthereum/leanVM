@@ -267,7 +267,7 @@ impl Witness {
 
     /// Block `g` of the state round `round` applies `chi` to, rounds counted from 1, or of the
     /// input state for `round` 0, sliced.
-    pub fn layer(&self, round: usize, g: usize) -> &[u64] {
+    pub(crate) fn layer(&self, round: usize, g: usize) -> &[u64] {
         assert!(g < self.shape.n_blocks(), "a block of the batch");
         &self.blocks[g.min(self.written)][round * BLOCK_LEN..][..BLOCK_LEN]
     }

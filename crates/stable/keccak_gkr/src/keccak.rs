@@ -26,9 +26,9 @@ pub fn row_positions(row: usize, z: usize) -> [usize; 5] {
     std::array::from_fn(|x| 64 * (x + 5 * row) + z)
 }
 
-/// Whether `iota` flips position `z` of lane 0 in round `round`, counted from 1.
-#[inline]
-pub fn iota_bit(round: usize, z: usize) -> bool {
+/// Whether `iota` flips position `z` of lane 0 in round `round`, counted from 1: the tests' reference round.
+#[cfg(test)]
+pub(crate) fn iota_bit(round: usize, z: usize) -> bool {
     debug_assert!((1..=ROUNDS).contains(&round));
     RC[round - 1] >> z & 1 == 1
 }

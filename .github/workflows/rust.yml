@@ -73,11 +73,16 @@ jobs:
             target: x86_64-unknown-linux-gnu
             runner: ubuntu-latest
             rustflags: -C target-cpu=x86-64
-          # AVX2 and VPCLMULQDQ, no AVX-512.
+          # AVX2, VPCLMULQDQ and GFNI, no AVX-512.
           - name: alderlake
             target: x86_64-unknown-linux-gnu
             runner: ubuntu-latest
             rustflags: -C target-cpu=alderlake
+          # AVX2 and VPCLMULQDQ without GFNI: the stable lanes' nibble-table byte maps.
+          - name: znver3
+            target: x86_64-unknown-linux-gnu
+            runner: ubuntu-latest
+            rustflags: -C target-cpu=znver3
           # AVX-512 without VPCLMULQDQ or GFNI.
           - name: x86-64-v4
             target: x86_64-unknown-linux-gnu

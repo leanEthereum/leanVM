@@ -166,7 +166,7 @@ pub(crate) fn prove_rounds(
     let [table, half] = &mut tables.0;
     let (mut src, mut dst) = (&mut table[..], &mut half[..]);
     for i in SKIP..claim.point.len() {
-        let challenge = sumcheck.round(ps, values.0, values.1, claim.point[i]);
+        let challenge = sumcheck.round(ps, values.0, None, values.1, claim.point[i]);
         let eq = eq_table(claim.point.get(i + 2..).unwrap_or(&[]));
         let len = src.len() / 2;
         values = fold_rows(summand, src, &mut dst[..len], challenge, &eq);
