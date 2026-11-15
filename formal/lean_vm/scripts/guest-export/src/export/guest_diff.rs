@@ -15,6 +15,8 @@ use crate::aggregation::signers_cache::{get_lean_sphincs_signers, get_signers};
 use lean_da::BLOB_SYMBOLS;
 use isa::Prover;
 use lean_vm_core::StableProver;
+use lean_vm_core::cpu::{from_scalar, public_input_bytes};
+use primitives::field::F128;
 use lean_sphincs::LeanSphincsSignature;
 use lean_xmss::LeanXmssSignature;
 use rand::rngs::StdRng;
@@ -23,7 +25,7 @@ use std::fmt::Write as _;
 
 thread_local! {
     /// The streams of the last node this thread aggregated, as the `FORGE` hook saw them.
-    static INSTALLED: std::cell::RefCell<Vec<(String, Vec<Vec<E>>)>> = const { std::cell::RefCell::new(Vec::new()) };
+    static INSTALLED: std::cell::RefCell<Vec<(String, Vec<Vec<F128>>)>> = const { std::cell::RefCell::new(Vec::new()) };
 }
 
 /// Have the next node this thread aggregates record its streams in `INSTALLED`, unchanged.
@@ -46,11 +48,11 @@ impl Out {
         write!(self.0, "{n} ").unwrap();
     }
 
-    fn e(&mut self, x: E) {
+    fn e(&mut self, x: F128) {
         write!(self.0, "{:x} {:x} ", x.c0, x.c1).unwrap();
     }
 
-    fn es(&mut self, xs: &[E]) {
+    fn es(&mut self, xs: &[F128]) {
         self.n(xs.len());
         for &x in xs {
             self.e(x);
@@ -195,16 +197,15 @@ fn export(
         let summary =
             verifier::replay_unchecked(bytecode, &public_input_bytes(&pi), &scalar).expect("the child replays");
         // The fresh claim's value, which the caller evaluates (`aggregate_with_stats` off its batch's sums).
-        let fresh_point: Vec<E> = summary.bytecode_point.clone();
-        let fresh_value = scalar_bytecode().evaluate(&fresh_point).unwrap();
+        let fresh_value = from_scalar(scalar_bytecode().evaluate(&summary.bytecode_point).unwrap());
         let (_, fresh) =
             gen_verify(kbc(), pi, &child.proof, &summary, fresh_value).expect("the child fits");
         out.tag("fresh");
-        let point: Vec<E> = fresh.bytecode_point.clone();
+        let point: Vec<F128> = fresh.bytecode_point.clone();
         out.es(&point);
         out.e(fresh.bytecode_value);
         out.tag("proof");
-        out.es(&child.proof.stream);
+        out.es(&child.proof.stream.iter().copied().map(from_scalar).collect::<Vec<_>>());
         // Every phase's paths (`Proof::merkle_openings`), each its leaf index, leaf and siblings.
         out.n(scalar.merkle_openings.len());
         for phase in &scalar.merkle_openings {
@@ -249,12 +250,12 @@ fn export(
             let root = &matrix.top_root();
             out.0.push_str("direct ");
             out.bytes(root);
-            out.e(verifier::da::membership_challenge(root));
+            out.e(from_scalar(verifier::da::membership_challenge(root)));
             out.n(matrix.n_blobs());
             for row in (0..matrix.n_blobs()).filter_map(|i| matrix.row(i)) {
                 out.n(row.len());
                 for &w in row {
-                    out.e(E::new(w as u64, (w >> 64) as u64));
+                    out.e(F128::from(w));
                 }
             }
         }
@@ -263,7 +264,7 @@ fn export(
     out.tag("batch");
     let rounds = |name: &str| stream(name).map_or(vec![], |e| e[0].clone());
     out.es(&rounds("bc_sumcheck_msgs"));
-    out.es(&stream("bc_star_hint").map_or(vec![E::new(0, 0)], |e| e[0].clone()));
+    out.es(&stream("bc_star_hint").map_or(vec![F128::ZERO], |e| e[0].clone()));
 
     out.tag("streams");
     out.n(streams.len());

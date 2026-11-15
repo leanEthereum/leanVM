@@ -5,9 +5,7 @@
 
 use primitives::field::F128;
 pub use primitives::hash::STATE_LANES as LANES;
-use primitives::hash::{PI, RHO};
-#[cfg(test)]
-use primitives::hash::{RC, ROUNDS};
+use primitives::hash::{PI, RC, RHO, ROUNDS};
 
 pub const BITS: usize = 1600;
 /// Variables of the cube the positions embed in, low ones first: `z`, then the lane.
@@ -28,9 +26,8 @@ pub fn row_positions(row: usize, z: usize) -> [usize; 5] {
     std::array::from_fn(|x| 64 * (x + 5 * row) + z)
 }
 
-/// Whether `iota` flips position `z` of lane 0 in round `round`, counted from 1: the tests' reference round.
-#[cfg(test)]
-pub(crate) fn iota_bit(round: usize, z: usize) -> bool {
+/// Whether `iota` flips position `z` of lane 0 in round `round`, counted from 1.
+pub fn iota_bit(round: usize, z: usize) -> bool {
     debug_assert!((1..=ROUNDS).contains(&round));
     RC[round - 1] >> z & 1 == 1
 }

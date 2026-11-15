@@ -19,6 +19,7 @@ lean_da.workspace = true
 lean_vm_core = { package = "stable_lean_vm_core", path = "../stable-prover/lean_vm_core" }
 fiat_shamir = { package = "stable_fiat_shamir", path = "../stable-prover/fiat_shamir" }
 pcs = { package = "stable_pcs", path = "../stable-prover/pcs" }
+keccak_gkr = { package = "stable_keccak_gkr", path = "../stable-prover/keccak_gkr" }
 primitives = { package = "stable_primitives", path = "../stable-prover/primitives" }
 rand = { workspace = true, optional = true }
 tracing.workspace = true

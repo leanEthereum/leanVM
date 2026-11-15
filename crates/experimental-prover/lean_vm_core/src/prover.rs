@@ -1,4 +1,4 @@
-//! This tree as the [`isa::Prover`] the shared crates (`aggregation`, `lean_da`, `lean_vm`) run on.
+//! This tree as the [`isa::Prover`] the shared crates (`aggregation`, `lean_vm`) run on.
 
 use crate::cpu::{self, from_scalar, to_scalar};
 use primitives::cast_slice;
@@ -36,24 +36,11 @@ impl isa::Prover for ExperimentalProver {
     ) -> Result<(verifier::Proof, isa::Stats), String> {
         let (proof, stats) =
             cpu::prove(program, public_input.map(from_scalar), log_inv_rate).map_err(|e| e.to_string())?;
-        let stats = isa::Stats {
-            cycles: stats.cycles,
-            rows: stats.rows,
-            committed: stats.committed,
-            log_mem: stats.log_mem,
-            mem_used: stats.mem_used,
-            bytecode: stats.bytecode,
-        };
         Ok((cpu::scalar_proof(&proof), stats))
     }
 
     fn map_collect<T: Send>(n: usize, f: impl Fn(usize) -> T + Sync) -> Vec<T> {
         parallel::map_collect(n, f)
-    }
-
-    #[inline(always)]
-    fn mul(a: E, b: E) -> E {
-        to_scalar(&(from_scalar(a) * from_scalar(b)))
     }
 
     fn combine_rows(rows: &[u64], weights: &[E]) -> Vec<E> {

@@ -8,23 +8,25 @@
 
 use super::*;
 use lean_vm_core::StableProver;
+use lean_vm_core::cpu::{from_scalar, to_scalar};
+use primitives::field::F128;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use std::fmt::Write as _;
 
-fn element(rng: &mut StdRng) -> E {
-    E::new(rng.random(), rng.random())
+fn element(rng: &mut StdRng) -> F128 {
+    F128::new(rng.random(), rng.random())
 }
 
-fn elements(rng: &mut StdRng, len: usize) -> Vec<E> {
+fn elements(rng: &mut StdRng, len: usize) -> Vec<F128> {
     (0..len).map(|_| element(rng)).collect()
 }
 
-fn e(x: E) -> String {
+fn e(x: F128) -> String {
     format!("e 0x{:x} 0x{:x}", x.c0, x.c1)
 }
 
-fn es(xs: &[E]) -> String {
+fn es(xs: &[F128]) -> String {
     format!("[{}]", xs.iter().map(|&x| e(x)).collect::<Vec<_>>().join(",\n    "))
 }
 
@@ -37,7 +39,7 @@ fn digest(d: &[u8; 32]) -> String {
 }
 
 /// Two cells as a digest (`digestHalves`' inverse).
-fn cells_digest(c: &[E; 2]) -> String {
+fn cells_digest(c: &[F128; 2]) -> String {
     format!("#v[0x{:016x}, 0x{:016x}, 0x{:016x}, 0x{:016x}]", c[0].c0, c[0].c1, c[1].c0, c[1].c1)
 }
 
@@ -90,7 +92,7 @@ pub fn file() -> File {
     let xmss_digest = claim_list_digest(xmss_typed.iter().map(lean_xmss_claim_cells));
     let sphincs_digest = claim_list_digest(sphincs_typed.iter().map(lean_sphincs_claim_cells));
     let root = bytes32(&mut rng);
-    let challenge = verifier::da::membership_challenge(&root);
+    let challenge = from_scalar(verifier::da::membership_challenge(&root));
     let da = verifier::da::digest(Some(root));
 
     // A deferred claim of the guest's shape, its value arbitrary (the digest does not care).
@@ -105,8 +107,9 @@ pub fn file() -> File {
     let subproofs: Vec<DeferredSubproof> = (0..2)
         .map(|_| {
             let point = elements(&mut rng, kbcv);
-            let value = scalar_bytecode().evaluate(&point).unwrap();
-            let canonical = |rng: &mut StdRng| E::new(rng.random(), rng.random());
+            let scalars: Vec<_> = point.iter().map(to_scalar).collect();
+            let value = from_scalar(scalar_bytecode().evaluate(&scalars).unwrap());
+            let canonical = |rng: &mut StdRng| F128::new(rng.random(), rng.random());
             DeferredSubproof {
                 public_input: [canonical(&mut rng), canonical(&mut rng)],
                 bytecode_point: point,
@@ -118,7 +121,7 @@ pub fn file() -> File {
         .map(|_| DeferredBytecodeClaim::recompute_scalar(elements(&mut rng, kbcv)).unwrap())
         .collect();
     // Each child's fresh claim, then its carried one: the batch's order, which its sums follow.
-    let points: Vec<Vec<E>> = subproofs
+    let points: Vec<Vec<F128>> = subproofs
         .iter()
         .zip(&carried)
         .flat_map(|(subproof, carried)| [subproof.bytecode_point.clone(), carried.bytecode_point.clone()])
@@ -132,7 +135,7 @@ pub fn file() -> File {
     let star = hint("bc_star_hint");
     assert_eq!(star.len(), 1);
     // The batching challenge's grind nonce, then each round's `(g1, g_inf)`: a degree-two round grinds nothing.
-    assert!(BATCH_LAM_GRIND_BITS > 0 && verifier::grinding_bits(2) == 0);
+    assert!(BATCH_LAM_GRIND_BITS > 0 && fiat_shamir::grinding_bits(2) == 0);
     assert_eq!(msgs.len(), 1 + 2 * kbcv);
     let (nonce, msgs) = (msgs[0], &msgs[1..]);
 
@@ -187,7 +190,7 @@ pub fn file() -> File {
         .iter()
         .zip(&carried)
         .map(|(s, c)| {
-            let fresh: Vec<E> = s.bytecode_point.clone();
+            let fresh: Vec<F128> = s.bytecode_point.clone();
             format!(
                 "⟨{},\n   ⟨{},\n    {}⟩,\n   ⟨{},\n    {}⟩⟩",
                 cells_digest(&s.public_input),

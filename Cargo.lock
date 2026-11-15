@@ -13,6 +13,7 @@ dependencies = [
  "lean_xmss",
  "rand",
  "stable_fiat_shamir",
+ "stable_keccak_gkr",
  "stable_lean_vm_core",
  "stable_pcs",
  "stable_primitives",

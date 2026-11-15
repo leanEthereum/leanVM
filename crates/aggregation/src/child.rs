@@ -1,22 +1,22 @@
 //! The guest's witness for one child proof, and the opening shapes it shares with the guest's constants.
 
-use super::cells::{ONE, ZERO, count, hash_to_scalars};
+use super::cells::count;
 use super::deferred::DeferredSubproof;
 use super::error::AggregateError;
 use super::hints::SubHints;
-use keccak256::hash_pair;
+use fiat_shamir::merkle::{hash_pair, hash_to_scalars, hash_words};
 use lean_vm_core::cpu::{Layout, block_kappa_sources, col_kappa_sources, from_scalar};
 use lean_vm_core::leaf::{self, Block};
 use lean_vm_core::tables::N_TABLES;
-use verifier::{E, K};
+use primitives::field::{F64, F128};
 
 /// The layout of an execution of a `2^kbc`-instruction program with `2^log_mem` cells of memory and `rows` rows in each
 /// table, as the prover builds it. It reads the program only through its public columns, which no coordinate the guest
 /// is given depends on, so zero columns of that length serve, one shared by all.
 pub(super) fn execution_layout(kbc: usize, log_mem: usize, rows: [usize; N_TABLES]) -> Layout {
-    let zeros = std::sync::Arc::new(vec![primitives::field::F64::ZERO; 1 << kbc]);
+    let zeros = std::sync::Arc::new(vec![F64::ZERO; 1 << kbc]);
     let columns = std::array::from_fn(|_| zeros.clone());
-    lean_vm_core::cpu::layout::layout_of(&columns, log_mem, rows, [from_scalar(ZERO); 2])
+    lean_vm_core::cpu::layout::layout_of(&columns, log_mem, rows, [F128::ZERO; 2])
 }
 
 /// The stacked opening's shape at one committed size and rate, plus the query packing derived from it. The hint
@@ -40,6 +40,11 @@ pub(super) struct WhirShape {
 pub(super) fn whir_shape(mu: usize, log_inv_rate: usize) -> WhirShape {
     let config = pcs::whir::config_for_rate(mu, log_inv_rate).expect("stacked whir config");
     let levels = config.level_shapes(mu);
+    // Every level, the final one included, is committed and queried: each cap root the guest reaches is bound.
+    assert!(
+        config.queries.len() == levels.ks.len() && levels.block_len.len() == levels.ks.len(),
+        "the yr level must be the last one"
+    );
     let depth: Vec<usize> = levels.block_len.iter().map(|b| b.trailing_zeros() as usize).collect();
     WhirShape {
         queries: config.queries,
@@ -85,7 +90,7 @@ pub(super) fn block_groups(sources: &[(usize, usize)], side_starts: &[usize]) ->
 
 /// `count(g)` for each run of one group `g` in `groups`, in order. A group that came back after another would be
 /// named twice, which the caller's count of runs catches.
-fn group_runs(groups: impl Iterator<Item = usize>) -> Vec<E> {
+fn group_runs(groups: impl Iterator<Item = usize>) -> Vec<F128> {
     let mut runs: Vec<usize> = groups.collect();
     runs.dedup();
     runs.into_iter().map(count).collect()
@@ -97,10 +102,10 @@ fn group_runs(groups: impl Iterator<Item = usize>) -> Vec<E> {
 /// says the child verifies: the guest's run does.
 pub(super) fn gen_verify(
     kbc: usize,
-    public_input: [E; 2],
+    public_input: [F128; 2],
     proof: &verifier::Proof,
     summary: &verifier::Summary,
-    bytecode_value: E,
+    bytecode_value: F128,
 ) -> Result<(SubHints, DeferredSubproof), AggregateError> {
     let rows = std::array::from_fn(|t| summary.table_rows[t] as usize);
     let layout = execution_layout(kbc, summary.log_memory, rows);
@@ -114,8 +119,8 @@ pub(super) fn gen_verify(
     }
     let column_offsets: Vec<usize> = layout.placements.iter().map(|p| p.offset).collect();
     let mu = layout.shape.mu;
-    let mut stream = proof.stream.clone();
-    stream.resize(STREAM_CAP, ZERO);
+    let mut stream: Vec<F128> = proof.stream.iter().copied().map(from_scalar).collect();
+    stream.resize(STREAM_CAP, F128::ZERO);
 
     // The guest replays the proof off the same stream the native verifier reads: every transmitted scalar is already
     // there in protocol order.
@@ -131,7 +136,7 @@ pub(super) fn gen_verify(
     hints.extend(merkle_hints(&whir_shape(mu, summary.log_inv_rate), proof));
     let deferred = DeferredSubproof {
         public_input,
-        bytecode_point: summary.bytecode_point.clone(),
+        bytecode_point: summary.bytecode_point.iter().copied().map(from_scalar).collect(),
         bytecode_value,
     };
     Ok((hints, deferred))
@@ -140,7 +145,7 @@ pub(super) fn gen_verify(
 /// The committed columns in their stacking order (`column_offsets`, from `placements_of`: descending kappa, then
 /// index), each run of a column group ([`col_groups`]) named once. The guest certifies the order before it reads
 /// claims by it.
-fn col_group_order(kbc: usize, column_offsets: &[usize]) -> Vec<E> {
+fn col_group_order(kbc: usize, column_offsets: &[usize]) -> Vec<F128> {
     let sources = col_kappa_sources(kbc);
     // Compact index to global column.
     let committed: Vec<usize> = (0..sources.len()).filter(|&c| sources[c].is_some()).collect();
@@ -159,7 +164,7 @@ fn col_group_order(kbc: usize, column_offsets: &[usize]) -> Vec<E> {
 /// Per bus side, its blocks in their stacking order (`leaf::layout`'s offsets), each run of a block group
 /// ([`block_groups`]) named once. The guest certifies the native verifier's order (descending kappa, then index)
 /// before it derives offsets from it.
-fn block_group_order(kbc: usize, sides: &[Vec<Block>; 3]) -> Vec<E> {
+fn block_group_order(kbc: usize, sides: &[Vec<Block>; 3]) -> Vec<F128> {
     let mut side_starts = vec![0];
     for blocks in sides {
         side_starts.push(side_starts.last().unwrap() + blocks.len());
@@ -193,19 +198,22 @@ fn merkle_hints(stack: &WhirShape, proof: &verifier::Proof) -> SubHints {
         let cap_depth = merkle_cap_depth(queries, depth);
         let path_depth = depth - cap_depth;
         let mut nodes = vec![[0u8; 32]; 2 << cap_depth];
-        let mut active = vec![ZERO; 1 << cap_depth];
+        let mut active = vec![F128::ZERO; 1 << cap_depth];
         for opening in phase {
+            let leaf: Vec<F64> = opening.leaf.iter().map(|word| F64(word.0)).collect();
             // Level 0's rows are K lanes, a cell each; deeper ones E words, two lanes a cell.
             let row = if level == 0 {
-                opening.leaf.iter().map(|&x| E::from(x)).collect()
+                leaf.iter().map(|&x| F128::from(x)).collect()
             } else {
-                let pairs = opening.leaf.as_chunks().0.iter();
-                pairs.map(|&[c0, c1]: &[K; 2]| E::new(c0.0, c1.0)).collect()
+                leaf.as_chunks()
+                    .0
+                    .iter()
+                    .map(|&[c0, c1]| F128::new(c0.0, c1.0))
+                    .collect()
             };
             hints.push(("merkle_leaf_rows", row));
             let mut path_children = Vec::with_capacity(4 * path_depth);
-            let leaf: Vec<u8> = opening.leaf.iter().flat_map(|word| word.to_bytes()).collect();
-            let mut node = keccak256::hash(&leaf);
+            let mut node = hash_words(&leaf);
             let mut index = (1 << depth) + opening.leaf_index as usize;
             for (height, sibling) in opening.siblings.iter().enumerate() {
                 let (left, right) = if index & 1 == 0 {
@@ -219,7 +227,7 @@ fn merkle_hints(stack: &WhirShape, proof: &verifier::Proof) -> SubHints {
                 } else {
                     nodes[index] = node;
                     nodes[index ^ 1] = *sibling;
-                    active[index >> 1] = ONE;
+                    active[index >> 1] = F128::ONE;
                 }
                 node = hash_pair(left, right);
                 index >>= 1;

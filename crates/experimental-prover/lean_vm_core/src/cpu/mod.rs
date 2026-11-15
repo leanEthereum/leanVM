@@ -25,6 +25,7 @@ pub mod hints;
 mod isa;
 pub mod layout;
 mod trace;
+pub use ::isa::Stats;
 pub(crate) use execute::Cell;
 pub use execute::{ExecError, Execution, Fault, Memory};
 pub use isa::{DerefMode, Op, OutCells};
@@ -358,59 +359,6 @@ fn keccak_output_claim(table_claims: &[constraints::Claims]) -> keccak_gkr::Outp
     keccak_gkr::OutputClaim {
         instance: claims.chi.clone(),
         lanes: std::array::from_fn(|l| claims.evals[tables::keccakt::V_OUT + l]),
-    }
-}
-
-/// Run statistics returned alongside the proof: the cycle count (total executed
-/// instructions), the per-opcode row counts `[XOR, MUL, SET, DEREF, JUMP, KECCAK]`,
-/// and the committed witness size, the sum of the column lengths, i.e. the real data
-/// before the stacked witness is zero-padded to a power of two `2^m`.
-pub struct Stats {
-    pub cycles: usize,
-    /// Rows per table the program executed.
-    pub rows: [usize; tables::N_TABLES],
-    pub committed: usize,
-    /// Data memory is `2^log_mem` cells (the padded write-once image).
-    pub log_mem: usize,
-    /// Cells actually touched, before the pad to `2^log_mem`, i.e. the real memory
-    /// footprint (`log2` is fractional).
-    pub mem_used: usize,
-    /// Bytecode instructions, before the pad to a power of two ([`Program::code_len`]).
-    pub bytecode: usize,
-}
-
-impl Stats {
-    /// Table names in `rows` order.
-    pub const TABLES: [&'static str; tables::N_TABLES] = ["XOR", "MUL", "SET", "DEREF", "JUMP", "KECCAK"];
-
-    /// One line of per-table instruction counts and shares, largest first, followed by memory, bytecode and committed-witness sizes.
-    ///
-    /// `log_mem` holds the padded memory size the commitment covers. Zero-count
-    /// tables are omitted.
-    #[must_use]
-    pub fn details(&self) -> String {
-        if self.cycles == 0 {
-            return "-".to_string();
-        }
-        let mut shares: Vec<(&str, usize)> = Self::TABLES
-            .iter()
-            .zip(&self.rows)
-            .filter(|&(_, &c)| c > 0)
-            .map(|(&name, &c)| (name, c))
-            .collect();
-        shares.sort_unstable_by_key(|&(_, c)| std::cmp::Reverse(c));
-        let mut parts: Vec<String> = shares
-            .iter()
-            .map(|&(name, c)| {
-                let pct = 100.0 * c as f64 / self.cycles as f64;
-                format!("{name} 2^{} ({pct:.1}%)", primitives::pretty_f64((c as f64).log2()))
-            })
-            .collect();
-        let log2 = |n: usize| primitives::pretty_f64((n.max(1) as f64).log2());
-        parts.push(format!("MEMORY 2^{}", log2(self.mem_used)));
-        parts.push(format!("BYTECODE 2^{}", log2(self.bytecode)));
-        parts.push(format!("TOTAL_COMMITTED 2^{}", log2(self.committed)));
-        parts.join("  ")
     }
 }
 

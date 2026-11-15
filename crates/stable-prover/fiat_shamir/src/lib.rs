@@ -120,6 +120,20 @@ impl FiatShamirState {
         self.n_pending += 1;
     }
 
+    /// The capacity as the five VM cells a permutation reads it from: lane 16 alone, then
+    /// lanes 17 to 24 two to a cell. With nothing waiting, it is all a later
+    /// permutation keeps, so it is what a guest needs of a seeded state.
+    pub fn capacity_cells(&self) -> [F128; 5] {
+        assert_eq!(
+            self.n_pending, 0,
+            "the capacity is the whole state only with nothing waiting"
+        );
+        std::array::from_fn(|c| match c {
+            0 => F128::new(self.state[16], 0),
+            _ => F128::new(self.state[15 + 2 * c], self.state[16 + 2 * c]),
+        })
+    }
+
     /// Absorb one scalar.
     pub fn observe(&mut self, x: F128) {
         self.absorb(x, DS_OBSERVE);

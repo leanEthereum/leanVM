@@ -1,22 +1,23 @@
-use super::cells::{ONE, ZERO, count, hash_to_scalars, pack_16_bytes, word};
+use super::cells::{count, pack_16_bytes};
 use super::deferred::{DeferredBytecodeClaim, bytecode_sums, bytecode_value, bytecode_vars};
 use super::error::AggregateError;
 use super::guest::{compile_guest, scalar_bytecode};
 use super::hints::{FORGE, Forgery, Hints, lean_xmss_hints};
 use super::placeholders::placeholder_map;
-use super::proof::{AggregateClaims, AggregateProof, decode, encode, public_input, public_input_bytes};
+use super::proof::{AggregateClaims, AggregateProof, decode, encode, public_input};
 use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
 use super::*;
+use fiat_shamir::merkle::hash_to_scalars;
 use isa::Prover;
 use keccak256::{hash, hash_pair};
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS, Hash, LOG_BLOB_SYMBOLS};
 use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use lean_vm_core::StableProver;
-use lean_vm_core::cpu::{ExecError, Execution, from_scalar};
+use lean_vm_core::cpu::{ExecError, Execution, from_scalar, public_input_bytes, to_scalar};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
+use primitives::field::F128;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
-use verifier::E;
 use zkdsl_compiler::{compile, parse_with_replacements};
 
 use crate::signers_cache::{
@@ -42,8 +43,8 @@ fn aggregate(
 }
 
 /// Run a program assembled for the stable prover.
-fn execute(program: &lean_vm_core::cpu::Program, public_input: [E; 2]) -> Result<Execution, ExecError> {
-    program.execute(public_input.map(from_scalar))
+fn execute(program: &lean_vm_core::cpu::Program, public_input: [F128; 2]) -> Result<Execution, ExecError> {
+    program.execute(public_input)
 }
 
 /// The blobs' matrix, `None` for no blobs.
@@ -70,7 +71,7 @@ const _: () = assert!(verifier::da::LOG_BLOB_SYMBOLS == LOG_BLOB_SYMBOLS);
 #[test]
 fn the_wire_layout_is_pinned() {
     let le = u64::to_le_bytes;
-    let (point, proof) = (vec![E::new(1, 2), E::new(4, 5)], vec![9, 8, 7]);
+    let (point, proof) = (vec![F128::new(1, 2), F128::new(4, 5)], vec![9, 8, 7]);
     let bytes = encode(&point, &proof);
     assert_eq!(bytes, [&le(2)[..], &le(1), &le(2), &le(4), &le(5), &proof].concat());
     assert_eq!(decode(&bytes), Some((point, &proof[..])));
@@ -119,8 +120,9 @@ fn guest_addresses_are_the_native_ones() {
         for layer in 0..2 {
             for (hi, lo, step) in [(0u32, 0u32, 0usize), (5, 0x1234_5678, 2), (16, u32::MAX, 0)] {
                 let tw = lean_xmss::internals::tweak(tag, lean_xmss::internals::layer_hi(layer, hi), lo).step(step);
-                let fields = E::new(u64::from(lo) | u64::from(hi) << 32 | (step as u64) << 61, 0);
-                let guest = cell(lean_xmss::internals::tweak(tag, 0, 0)) + fields + if layer == 1 { top } else { ZERO };
+                let fields = F128::new(u64::from(lo) | u64::from(hi) << 32 | (step as u64) << 61, 0);
+                let guest =
+                    cell(lean_xmss::internals::tweak(tag, 0, 0)) + fields + if layer == 1 { top } else { F128::ZERO };
                 assert_eq!(guest, cell(tw));
             }
         }
@@ -176,7 +178,7 @@ fn forged_lean_xmss_hints_are_rejected() {
     StableProver::init();
     let signers = get_signers(1);
     let forgeries: [Forgery; 3] = [
-        Box::new(|hints: &mut Hints| hints.entry_mut("lx_index", 0)[0] += ONE),
+        Box::new(|hints: &mut Hints| hints.entry_mut("lx_index", 0)[0] += F128::ONE),
         Box::new(|hints: &mut Hints| hints.entry_mut("lx_windows", 0)[0] *= count(1)),
         Box::new(|hints: &mut Hints| {
             hints.entry_mut("lx_digits", 0)[0] *= count(1);
@@ -314,32 +316,32 @@ def main():
     let guest = StableProver::assemble(compile(
         &parse_with_replacements(&source, &placeholder_map(kbc)).unwrap(),
     ));
-    let run = |point: &[E], offset: usize, kappa: usize, expected: E| {
+    let run = |point: &[F128], offset: usize, kappa: usize, expected: F128| {
         let mut hints = Hints::default();
         hints.push("point", point.to_vec());
         hints.push("offset", vec![count(offset)]);
         hints.push("kappa", vec![count(kappa)]);
         let mut program = guest.clone();
         hints.install::<StableProver>(&mut program);
-        execute(&program, [expected, ZERO])
+        execute(&program, [expected, F128::ZERO])
     };
     let mut rng = StdRng::seed_from_u64(813);
     for mu in verifier::min_execution_stacked_log(kbc)..=verifier::MAX_STACKED_LOG {
-        let mut point: Vec<E> = (0..mu)
+        let mut point: Vec<F128> = (0..mu)
             .map(|_| {
                 let (c0, c1) = rand::Rng::random(&mut rng);
-                E::new(c0, c1)
+                F128::new(c0, c1)
             })
             .collect();
-        point.resize(verifier::MAX_STACKED_LOG, ZERO);
+        point.resize(verifier::MAX_STACKED_LOG, F128::ZERO);
         for kappa in 0..=mu {
             let mask = ((1usize << mu) - 1) & !((1usize << kappa) - 1);
             for offset in [0, mask, 0x0555_5555 & mask] {
-                let selector: Vec<_> = (kappa..mu).map(|k| E::new(((offset >> k) & 1) as u64, 0)).collect();
+                let selector: Vec<_> = (kappa..mu).map(|k| F128::new(((offset >> k) & 1) as u64, 0)).collect();
                 let expected = selector
                     .iter()
                     .zip(&point[kappa..mu])
-                    .fold(ONE, |acc, (&s, &r)| acc * (ONE + s + r));
+                    .fold(F128::ONE, |acc, (&s, &r)| acc * (F128::ONE + s + r));
                 assert!(
                     run(&point, offset, kappa, expected)
                         .unwrap()
@@ -558,7 +560,7 @@ fn forged_da_hints_are_rejected() {
     .unwrap();
     let forgeries: [(Forgery, bool); 4] = [
         (
-            Box::new(|hints: &mut Hints| hints.entry_mut("child_da", 0)[0] += ONE),
+            Box::new(|hints: &mut Hints| hints.entry_mut("child_da", 0)[0] += F128::ONE),
             false,
         ),
         (
@@ -570,7 +572,7 @@ fn forged_da_hints_are_rejected() {
             true,
         ),
         (
-            Box::new(|hints: &mut Hints| hints.entry_mut("da_challenge", 0)[0] += ONE),
+            Box::new(|hints: &mut Hints| hints.entry_mut("da_challenge", 0)[0] += F128::ONE),
             true,
         ),
     ];
@@ -599,8 +601,8 @@ fn forged_opening_hints_are_rejected() {
     let signers = get_signers(SMALL_LEAF_SIZE);
     let child = aggregate(&[], signers.clone(), vec![], None, OutputClaims::All, LOG_INV_RATE).unwrap();
     let forgeries: [Forgery; 2] = [
-        Box::new(|hints: &mut Hints| hints.entry_mut("merkle_leaf_rows", 0)[0] += ONE),
-        Box::new(|hints: &mut Hints| hints.entry_mut("merkle_caps", 0)[4] += ONE),
+        Box::new(|hints: &mut Hints| hints.entry_mut("merkle_leaf_rows", 0)[0] += F128::ONE),
+        Box::new(|hints: &mut Hints| hints.entry_mut("merkle_caps", 0)[4] += F128::ONE),
     ];
     for forgery in forgeries {
         FORGE.with(|forge| *forge.borrow_mut() = Some(forgery));
@@ -640,7 +642,7 @@ def main():
     let guest = StableProver::assemble(compile(
         &parse_with_replacements(&source, &placeholder_map(20)).unwrap(),
     ));
-    let run = |body: E, rest: E| {
+    let run = |body: F128, rest: F128| {
         let mut hints = Hints::default();
         hints.push("n", vec![count(6)]);
         hints.push("signers_split", vec![count(0), body, rest]);
@@ -677,10 +679,10 @@ def main():
     ));
     let run = |lane: u64| {
         let mut hints = Hints::default();
-        hints.push("w", vec![E::new(lane, 0x0123_4567_89AB_CDEF)]);
+        hints.push("w", vec![F128::new(lane, 0x0123_4567_89AB_CDEF)]);
         let mut program = guest.clone();
         hints.install::<StableProver>(&mut program);
-        execute(&program, [ZERO, ZERO])
+        execute(&program, [F128::ZERO, F128::ZERO])
     };
     for lane in [0, 0b1000, 1 << 63, 0xFEDC_BA98_7654_3218] {
         assert!(run(lane).is_ok(), "{lane:#x} has its low 3 bits zero");
@@ -718,12 +720,15 @@ def main():
     let run = |rows: &[Codeword]| {
         let commitment = da_root(rows);
         let mut hints = Hints::default();
-        hints.push("da_challenge", vec![verifier::da::membership_challenge(&commitment)]);
+        hints.push(
+            "da_challenge",
+            vec![from_scalar(verifier::da::membership_challenge(&commitment))],
+        );
         hints.push("da_n_blobs", vec![count(rows.len())]);
         for j in 0..CELLS_PER_ROW {
             for row in rows {
                 let cell = &row.as_chunks::<CELL_SYMBOLS>().0[j];
-                hints.push("da_symbols", cell.iter().map(|&w| word(w)).collect());
+                hints.push("da_symbols", cell.iter().map(|&w| F128::from(w)).collect());
             }
         }
         let mut program = guest.clone();
@@ -964,9 +969,9 @@ def main():
     let guest = StableProver::assemble(compile(
         &parse_with_replacements(&source, &placeholder_map(20)).unwrap(),
     ));
-    let claim = |i: u64| [1, 2, 3, 4].map(|k| E::new(i * 7919 + k, k));
-    let table: Vec<E> = [claim(0), claim(1)].concat();
-    let run = |child: &[[E; 4]], gaps: &[E]| {
+    let claim = |i: u64| [1, 2, 3, 4].map(|k| F128::new(i * 7919 + k, k));
+    let table: Vec<F128> = [claim(0), claim(1)].concat();
+    let run = |child: &[[F128; 4]], gaps: &[F128]| {
         let mut hints = Hints::default();
         hints.push("n", vec![count(child.len())]);
         hints.push("claims", table.clone());
@@ -1067,7 +1072,10 @@ fn leaf_claim_matches_the_general_path() {
     let leaf = DeferredBytecodeClaim::leaf();
     assert_eq!(
         Some(leaf.bytecode_value),
-        scalar_bytecode().evaluate(&leaf.bytecode_point).ok()
+        scalar_bytecode()
+            .evaluate(&leaf.bytecode_point.iter().map(to_scalar).collect::<Vec<_>>())
+            .ok()
+            .map(from_scalar)
     );
 }
 
@@ -1077,14 +1085,15 @@ fn bytecode_sums_give_the_bytecode_value() {
     let mut rng = StdRng::seed_from_u64(11);
     let limbs = (0..bytecode_vars()).map(|_| rand::Rng::random::<(u64, u64)>(&mut rng));
     let points = [
-        limbs.map(|(c0, c1)| E::new(c0, c1)).collect(),
-        vec![ZERO; bytecode_vars()],
+        limbs.map(|(c0, c1)| F128::new(c0, c1)).collect(),
+        vec![F128::ZERO; bytecode_vars()],
     ];
     StableProver::init();
     for (sums, point) in bytecode_sums::<StableProver>(&points).iter().zip(&points) {
+        let scalars: Vec<_> = point.iter().map(to_scalar).collect();
         assert_eq!(
-            Some(bytecode_value::<StableProver>(sums, point)),
-            scalar_bytecode().evaluate(point).ok()
+            Some(bytecode_value(sums, point)),
+            scalar_bytecode().evaluate(&scalars).ok().map(from_scalar)
         );
     }
 }

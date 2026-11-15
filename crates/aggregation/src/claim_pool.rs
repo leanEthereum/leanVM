@@ -1,10 +1,10 @@
 //! The guest's claim pool and its coordinate terms.
 
-use super::cells::{ZERO, bits, count};
+use super::cells::count;
 use lean_vm_core::cpu::{MEM_HI, MEM_LO, block_kappa_sources, keccak_value};
 use lean_vm_core::leaf::{Block, Coord};
+use primitives::field::F128;
 use std::collections::BTreeMap;
-use verifier::E;
 use verifier::layout::{GLOBAL_COLUMN_BASES, TABLE_WIDTHS};
 
 /// Why the guest reads every `q_keccak` slot claim's instance point off `chi`: a
@@ -38,11 +38,11 @@ pub(super) fn coord_kind(c: &Coord) -> usize {
 
 /// The `K` scalar a coordinate carries beside its columns: the constant itself,
 /// or the `g^k` a `GCol`/`Prod` scales by. Zero for every other kind.
-pub(super) fn coord_scale(c: &Coord) -> E {
+pub(super) fn coord_scale(c: &Coord) -> F128 {
     match c {
-        Coord::Const(v) => E::new(v.0, 0),
+        Coord::Const(v) => F128::from(*v),
         Coord::GCol(_, k) | Coord::Prod(_, _, k) => count(*k as usize),
-        _ => ZERO,
+        _ => F128::ZERO,
     }
 }
 
@@ -64,7 +64,7 @@ pub(super) fn push_coord_terms(c: &Coord, base: usize, terms: &mut Vec<Term>) {
     };
     terms.push(Term {
         kind: coord_kind(c),
-        constant: bits(coord_scale(c)),
+        constant: u128::from(coord_scale(c)),
         column_a,
         column_b,
     });
@@ -74,7 +74,7 @@ pub(super) fn push_coord_terms(c: &Coord, base: usize, terms: &mut Vec<Term>) {
 /// one column or one column product summed, and whatever sums to zero dropped.
 pub(super) fn coord_difference(a: &[Term], b: &[Term]) -> Vec<Term> {
     let (konst, col, gcol) = (0, 1, 2); // coord_kind of Const, Col, GCol
-    let one = 1;
+    let one = u128::from(F128::ONE);
     let mut constant = 0u128;
     let mut scaled: BTreeMap<(usize, usize, usize), u128> = BTreeMap::new();
     for t in a.iter().chain(b) {

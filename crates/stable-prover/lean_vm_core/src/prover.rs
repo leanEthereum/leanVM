@@ -1,4 +1,4 @@
-//! This tree as the [`isa::Prover`] the shared crates (`aggregation`, `lean_da`, `lean_vm`) run on.
+//! This tree as the [`isa::Prover`] the shared crates (`aggregation`, `lean_vm`) run on.
 
 use crate::cpu::{self, from_scalar, to_scalar};
 use primitives::field::{F64, F128, F128Unreduced};
@@ -6,9 +6,6 @@ use verifier::E;
 
 /// The stable prover.
 pub struct StableProver;
-
-/// Rows [`StableProver::combine_rows`] adds into its accumulators between two reads of them.
-const GROUP: usize = 8;
 
 impl isa::Prover for StableProver {
     type Program = cpu::Program;
@@ -35,14 +32,6 @@ impl isa::Prover for StableProver {
     ) -> Result<(verifier::Proof, isa::Stats), String> {
         let (proof, stats) =
             cpu::prove(program, public_input.map(from_scalar), log_inv_rate).map_err(|e| e.to_string())?;
-        let stats = isa::Stats {
-            cycles: stats.cycles,
-            rows: stats.rows,
-            committed: stats.committed,
-            log_mem: stats.log_mem,
-            mem_used: stats.mem_used,
-            bytecode: stats.bytecode,
-        };
         Ok((cpu::scalar_proof(&proof), stats))
     }
 
@@ -50,23 +39,16 @@ impl isa::Prover for StableProver {
         parallel::map_collect(n, f)
     }
 
-    fn mul(a: E, b: E) -> E {
-        to_scalar(&(from_scalar(a) * from_scalar(b)))
-    }
-
     fn combine_rows(rows: &[u64], weights: &[E]) -> Vec<E> {
         let width = rows.len() / weights.len();
         let weights: Vec<F128> = weights.iter().copied().map(from_scalar).collect();
-        let (groups, weights) = (rows.chunks(GROUP * width), weights.chunks(GROUP));
-        let (groups, weights): (Vec<_>, Vec<_>) = (groups.collect(), weights.collect());
+        let rows: Vec<&[u64]> = rows.chunks(width).collect();
         let partial = parallel::fold_reduce(
-            groups.len(),
+            rows.len(),
             || vec![F128Unreduced::ZERO; width],
-            |acc: &mut Vec<F128Unreduced>, g| {
-                for (&weight, row) in weights[g].iter().zip(groups[g].chunks(width)) {
-                    for (acc, &word) in acc.iter_mut().zip(row) {
-                        *acc ^= weight.mul_base_unreduced(F64(word));
-                    }
+            |acc: &mut Vec<F128Unreduced>, r| {
+                for (acc, &word) in acc.iter_mut().zip(rows[r]) {
+                    *acc ^= weights[r].mul_base_unreduced(F64(word));
                 }
             },
             |mut a, b| {

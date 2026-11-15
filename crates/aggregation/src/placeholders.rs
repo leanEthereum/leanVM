@@ -2,39 +2,36 @@
 
 use super::MAX_RECURSIONS;
 use super::cells::pack_16_bytes;
-use super::cells::{ONE, bits, count, hash_to_scalars};
 use super::child::execution_layout;
 use super::child::{
     MU_CAP, QUERY_WINDOW_BITS, QUERY_WINDOWS_CAP, STREAM_CAP, block_groups, col_groups, merkle_cap_depth, whir_shape,
 };
 use super::claim_pool::{ClaimSite, coord_difference, coord_kind, coord_scale, push_coord_terms, walk_claims};
 use super::deferred::RECURSION_AGG_LABEL;
-use super::deferred::labeled_sponge;
 use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW};
 use super::statement::{BIG_GROUPS, CLAIM_GROUP, STATEMENT_HEADER};
 use super::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
-use lean_da::{CELLS_PER_ROW, DA_MAX_ROWS, LOG_BLOB_SYMBOLS, LOG_CELL_SYMBOLS};
+use fiat_shamir::merkle::hash_to_scalars;
+use fiat_shamir::{FiatShamirState, RATE_SCALARS, grinding_bits};
+use lean_da::{CELLS_PER_ROW, DA_MAX_ROWS, LOG_BLOB_SYMBOLS, LOG_CELL_SYMBOLS, LOG_CODEWORD_SYMBOLS};
 use lean_vm_core::constraints::xi_offsets;
 use lean_vm_core::cpu::{
-    KeccakLane, QKECCAK, block_kappa_sources, col_kappa_sources, keccak_value, n_xi_powers, xi_form_base,
+    KeccakLane, QKECCAK, block_kappa_sources, col_kappa_sources, keccak_value, n_xi_powers, to_scalar, xi_form_base,
 };
 use lean_vm_core::gkr::{ROUND_GRIND, y_grind};
-use lean_vm_core::keccak::{DEPTH as KECCAK_DEPTH, SLOT_LOG};
+use lean_vm_core::keccak::{MIN_SHAPE as KECCAK_MIN_SHAPE, SLOT_LOG};
 use lean_vm_core::leaf::{self, Block, Coord, N_TUPLE_BITS, bus_grinding_bits};
+use pcs::ntt::AdditiveNttF64;
+use primitives::field::{F64, F128, g_pow};
 use std::collections::BTreeMap;
 use std::ops::Range;
 use verifier::layout::{GLOBAL_COLUMN_BASES, N_TABLES, TABLE_LOG_FLOORS, TABLE_WIDTHS, tables};
-use verifier::{
-    BATCH_GRINDING_BITS, E, FOLD_GRINDING_BITS, K, KeccakShape, OOD_GRINDING_BITS, QUERY_GRINDING_BITS, RATE_SCALARS,
-    grinding_bits,
-};
+use verifier::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY_GRINDING_BITS};
 
-/// The Keccak reduction's shape at its fewest steps.
-const KECCAK_MIN_SHAPE: KeccakShape = KeccakShape {
-    log_steps: verifier::layout::KECCAK_MIN_STEPS_LOG,
-    depth: KECCAK_DEPTH,
-};
-use zkdsl_compiler::f128_literal;
+/// `v` as the guest's literal for it.
+fn f128_literal(v: F128) -> String {
+    zkdsl_compiler::f128_literal(to_scalar(&v))
+}
 
 struct CoordinateDescriptor {
     kind: usize,
@@ -71,7 +68,7 @@ fn literals(values: impl IntoIterator<Item = impl std::fmt::Display>) -> String 
     )
 }
 
-fn flds(v: &[E]) -> String {
+fn flds(v: &[F128]) -> String {
     format!(
         "[{}]",
         v.iter().map(|&x| f128_literal(x)).collect::<Vec<_>>().join(", ")
@@ -189,7 +186,7 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
     ps("QUERY_WINDOWS_CAP", QUERY_WINDOWS_CAP.to_string());
     ps("MIN_LOG_MEM", verifier::MIN_LOG_MEMORY.to_string());
     ps("MAX_LOG_MEM", verifier::MAX_LOG_MEMORY.to_string());
-    ps("INV_GEN", f128_literal(E::from(K(2).inv())));
+    ps("INV_GEN", f128_literal(F128::from(F64::G.inv())));
     ps("MU_CAP", MU_CAP.to_string());
     ps("NO_TABLE", N_TABLES.to_string());
     ps("GKR_ROUNDS_CAP", (MU_CAP * (MU_CAP + 1) / 2 + MU_CAP + 2).to_string());
@@ -256,7 +253,7 @@ fn bus_placeholders(sides: &[Vec<Block>; 3], kbc: usize, ps: &mut impl FnMut(&st
                 nbcv += usize::from(matches!(c, Coord::Public(_)));
                 coordinates.push(CoordinateDescriptor {
                     kind: coord_kind(c),
-                    constant: bits(coord_scale(c)),
+                    constant: u128::from(coord_scale(c)),
                     padding: blk.padding.get(i).map_or(0, |v| v.0),
                     fresh,
                     claim_slot: slot,
@@ -351,13 +348,13 @@ fn bus_placeholders(sides: &[Vec<Block>; 3], kbc: usize, ps: &mut impl FnMut(&st
     ps("TERM_COL_A", literals(terms.iter().map(|t| t.column_a)));
     ps("TERM_COL_B", literals(terms.iter().map(|t| t.column_b)));
     ps("N_BUS_CLAIMS", nclaims.to_string());
-    let idxc: Vec<E> = (0..34)
+    let idxc: Vec<F128> = (0..34)
         .map(|i| {
-            let mut g2k = E::new(2, 0);
+            let mut g2k = F128::from(F64::G);
             for _ in 0..i {
                 g2k = g2k * g2k;
             }
-            ONE + g2k
+            F128::ONE + g2k
         })
         .collect();
     ps("INDEX_MLE_FACTORS", flds(&idxc));
@@ -503,7 +500,7 @@ fn grind_placeholders(bus_min_mu: usize, ps: &mut impl FnMut(&str, String)) {
     // The segment then the lane, 25 lanes in five coordinates.
     ps(
         "KECCAK_SEG_GRIND_BITS",
-        grinding_bits((seg_log() + 5) as u128).to_string(),
+        grinding_bits((KECCAK_MIN_SHAPE.seg_log() + 5) as u128).to_string(),
     );
     ps(
         "KECCAK_S_GRIND_BITS",
@@ -523,15 +520,11 @@ fn grind_placeholders(bus_min_mu: usize, ps: &mut impl FnMut(&str, String)) {
     ps("BC_ROUND_WORDS", (2 + nonces(grinding_bits(2))).to_string());
 }
 
-/// Bits of a segment index of the Keccak reduction.
-fn seg_log() -> usize {
-    KECCAK_MIN_SHAPE.segments().next_power_of_two().ilog2() as usize
-}
-
 /// The Keccak reduction (`keccak_gkr`), as index lists the guest unrolls.
 fn keccak_placeholders(ps: &mut impl FnMut(&str, String)) {
     use verifier::{EMBED_BITS, PACK, PRODUCT_BITS as PROD_BITS, RMFE_EMBED, RMFE_PROJECT};
-    let (depth, segments) = (KECCAK_DEPTH, KECCAK_MIN_SHAPE.segments());
+    let shape = KECCAK_MIN_SHAPE;
+    let (depth, segments) = (shape.depth(), shape.segments());
     // `starts[i]..starts[i + 1]` indexes row `i`'s entries of the flat list: each row's
     // offset, then the end.
     let lists = |rows: Vec<Vec<usize>>| {
@@ -542,7 +535,7 @@ fn keccak_placeholders(ps: &mut impl FnMut(&str, String)) {
     assert!(segments > 1, "the guest opens a committed segment output");
     ps("KECCAK_DEPTH", depth.to_string());
     ps("KECCAK_SEGMENTS", segments.to_string());
-    ps("KECCAK_SEG_LOG", seg_log().to_string());
+    ps("KECCAK_SEG_LOG", shape.seg_log().to_string());
     ps("KECCAK_PACK", PACK.to_string());
     ps("KECCAK_EMBED_BITS", EMBED_BITS.to_string());
     ps("KECCAK_PROD_BITS", PROD_BITS.to_string());
@@ -595,11 +588,8 @@ fn keccak_placeholders(ps: &mut impl FnMut(&str, String)) {
     let (starts, idx) = lists(
         (0..depth * segments)
             .map(|at| {
-                // The round whose output segment `at % segments` claims after `at / segments` layers.
-                let round = depth * (at % segments + 1) - at / segments;
-                (0..7)
-                    .filter(|i| keccak256::RC[round - 1] >> ((1 << i) - 1) & 1 == 1)
-                    .collect()
+                let round = shape.round(at % segments, at / segments);
+                (0..7).filter(|i| keccak_gkr::iota_bit(round, (1 << i) - 1)).collect()
             })
             .collect(),
     );
@@ -621,22 +611,22 @@ fn keccak_placeholders(ps: &mut impl FnMut(&str, String)) {
 fn field_placeholders(ps: &mut impl FnMut(&str, String)) {
     // Tower F128 = F64[Y]/(Y^2 + xY + 1). Y_TOWER embeds Y for AIR lane reassembly;
     // Y_INV = Y + x splits a word into its two K limbs.
-    let y_tower = E::new(0, 1);
+    let y_tower = F128::new(0, 1);
     ps("Y_TOWER", f128_literal(y_tower));
     ps("Y_INV", f128_literal(y_tower.inv()));
     // Coordinate basis e_i of F128 over F2 (spans the whole field): the 64 binary
     // basis vectors in each of the two tower limbs. The guest uses these vectors to
     // reconstruct a word from its 128 coordinate bits.
-    let coord_basis: Vec<E> = (0..128)
+    let coord_basis: Vec<F128> = (0..128)
         .map(|i| match i / 64 {
-            0 => E::new(1u64 << i, 0),
-            _ => E::new(0, 1u64 << (i - 64)),
+            0 => F128::new(1u64 << i, 0),
+            _ => F128::new(0, 1u64 << (i - 64)),
         })
         .collect();
     ps("COORD_BASIS", flds(&coord_basis));
     // The ring-switch target's Horner points, inverted: w_p = 1 / z_p, z_p = x^(2^(64 - 8p)) in K.
-    let ring_w: Vec<E> = (0..8)
-        .map(|p| (0..(64 - 8 * p) % 64).fold(E::new(2, 0), |z, _| z.square()).inv())
+    let ring_w: Vec<F128> = (0..8)
+        .map(|p| (0..(64 - 8 * p) % 64).fold(F128::new(2, 0), |z, _| z.square()).inv())
         .collect();
     ps("RING_W", flds(&ring_w));
     ps("QKECCAK_SLOT_LOG", SLOT_LOG.to_string());
@@ -647,7 +637,7 @@ fn field_placeholders(ps: &mut impl FnMut(&str, String)) {
 fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
     let oshape = |m: usize, log_inv_rate: usize| {
         let shape = whir_shape(m, log_inv_rate);
-        // Every cap root must match a transcript-bound root, including the final level: the yr level is the last.
+        // The yr level is the last, as `whir_shape` checks.
         let (cn, cr) = (shape.folds.len(), shape.folds.len() - 1);
         let (ck, cyr) = (&shape.folds, shape.yr_log_n);
         let cq = &shape.queries;
@@ -854,22 +844,22 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
         .copied()
         .max()
         .unwrap();
-    let by_cols: Vec<K> = (0..=max_cols)
+    let by_cols: Vec<F64> = (0..=max_cols)
         .flat_map(|cols| {
             let values = verifier::subspace_roots(cols);
             assert_eq!(values.len(), cols + 1);
-            values
+            values.into_iter().map(|v| F64(v.0))
         })
         .collect();
-    let inverses: Vec<E> = by_cols.iter().map(|v| E::from(v.inv())).collect();
+    let inverses: Vec<F128> = by_cols.iter().map(|v| F128::from(v.inv())).collect();
     ps(
         "VANISH_BY_COLS",
-        flds(&by_cols.into_iter().map(E::from).collect::<Vec<_>>()),
+        flds(&by_cols.into_iter().map(F128::from).collect::<Vec<_>>()),
     );
     ps("VANISH_INVS_BY_COLS", flds(&inverses));
     ps("LIG_N_LOG_SIZES", n_log_sizes.to_string());
     ps("LIG_N_RATES", n_rates.to_string());
-    ps("LIG_MIN_SHIFT_INV", f128_literal(count(minm).inv()));
+    ps("LIG_MIN_SHIFT_INV", f128_literal(F128::from(g_pow(minm).inv())));
 }
 
 /// The stacked bytecode's claim, the batch's seed, and the statement's layout.
@@ -884,15 +874,9 @@ fn bytecode_placeholders(kbc: usize, nbcv: usize, ps: &mut impl FnMut(&str, Stri
     ps("LOG2_BYTECODE_COLS", log2_bc_cols.to_string());
     ps("DEFER_SIZE", (kbc + log2_bc_cols + 1).to_string());
     ps("BYTECODE_VARS", (kbc + log2_bc_cols).to_string());
-    // The seeded sponge's capacity as the five cells a permutation reads it from: lane 16 alone, then two to a cell.
-    let sponge = labeled_sponge(RECURSION_AGG_LABEL);
-    let capacity = sponge.capacity();
-    for c in 0..5 {
-        let cell = match c {
-            0 => E::new(capacity[0], 0),
-            _ => E::new(capacity[2 * c - 1], capacity[2 * c]),
-        };
-        ps(&format!("AGG_SEED_{c}"), f128_literal(cell));
+    let agg_seed = FiatShamirState::from_label(RECURSION_AGG_LABEL).capacity_cells();
+    for (c, cell) in agg_seed.iter().enumerate() {
+        ps(&format!("AGG_SEED_{c}"), f128_literal(*cell));
     }
     // A child's words: its statement's two, its fresh claim, and its carried claim's cells.
     let child_words = 2 + (kbc + log2_bc_cols + 1) + (kbc + log2_bc_cols + 1);
@@ -906,14 +890,14 @@ fn bytecode_placeholders(kbc: usize, nbcv: usize, ps: &mut impl FnMut(&str, Stri
 /// `Vhat_j` at the domain point whose bits above `j` are `y`'s, `Σ_l bit_l(y) · β_(j+1+l)`:
 /// the NTT's twiddles. `Vhat_j(β_j) = 1` and the bits below `j` vanish, so `Vhat_j` at point
 /// `i` is `bit_j(i)` plus this at `i >> (j + 1)`: the factors the guest builds `L` from.
-pub(super) fn subspace_above() -> impl Fn(usize, usize) -> K {
-    let ntt = pcs::ntt::AdditiveNttF64::standard(lean_da::LOG_CODEWORD_SYMBOLS);
+fn subspace_above() -> impl Fn(usize, usize) -> F64 {
+    let ntt = AdditiveNttF64::standard(LOG_CODEWORD_SYMBOLS);
     move |j, y| {
         assert!(
             j <= LOG_BLOB_SYMBOLS && y >> (LOG_BLOB_SYMBOLS - j) == 0,
             "bits above {j} only"
         );
-        K(ntt.twiddle(LOG_BLOB_SYMBOLS - j, y).0)
+        ntt.twiddle(LOG_BLOB_SYMBOLS - j, y)
     }
 }
 

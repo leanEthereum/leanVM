@@ -18,7 +18,7 @@ pub use isa::STATE_CELLS;
 /// Rounds between two committed states.
 pub const DEPTH: usize = 12;
 /// The reduction's shape at its fewest steps.
-const MIN_SHAPE: Shape = shape(0);
+pub const MIN_SHAPE: Shape = shape(0);
 /// `log2` of `q_keccak`'s slots a step: one per lane of each committed state, rounded up to a power of two.
 pub const SLOT_LOG: usize = MIN_SHAPE.slot_log();
 /// Slots a step's committed states occupy: the ones from here to `2^SLOT_LOG` carry the KECCAK table's own columns

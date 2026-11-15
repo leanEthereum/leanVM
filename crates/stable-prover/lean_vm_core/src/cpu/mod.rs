@@ -19,7 +19,7 @@ mod execute;
 mod hints;
 pub mod layout;
 mod trace;
-pub use ::isa::{DerefMode, Op, OutCells};
+pub use ::isa::{DerefMode, Op, OutCells, Stats};
 pub use execute::{ExecError, Execution, Fault, Memory};
 pub use layout::*;
 pub(crate) use trace::{Drow, Jrow, Krow, Srow, Trace, Xrow};
@@ -258,26 +258,6 @@ fn keccak_output_claim(table_claims: &[constraints::Claims]) -> keccak_gkr::Outp
         instance: claims.chi.clone(),
         lanes: std::array::from_fn(|l| claims.evals[tables::keccakt::V_OUT + l]),
     }
-}
-
-/// What a run took: its cycles, its rows per table, its committed words (before the stack's pad to a power of
-/// two), its memory and bytecode.
-pub struct Stats {
-    pub cycles: usize,
-    /// Rows per table the program executed.
-    pub rows: [usize; tables::N_TABLES],
-    pub committed: usize,
-    /// Data memory is `2^log_mem` cells (the padded write-once image).
-    pub log_mem: usize,
-    /// Cells the run touched, before the pad to `2^log_mem`.
-    pub mem_used: usize,
-    /// Bytecode instructions, before the pad to a power of two ([`Program::code_len`]).
-    pub bytecode: usize,
-}
-
-impl Stats {
-    /// Table names in `rows` order.
-    pub const TABLES: [&'static str; tables::N_TABLES] = ["XOR", "MUL", "SET", "DEREF", "JUMP", "KECCAK"];
 }
 
 /// Prove the program on `public_input` at the PCS rate `2^-log_inv_rate`: run it, commit its witness, and prove, in

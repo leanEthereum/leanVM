@@ -1,11 +1,11 @@
 //! Compiling the guest to a fixed point on its own size, and what every prover and verifier derives from it once.
 
-use super::cells::hash_to_scalars;
 use super::placeholders::placeholder_map;
+use fiat_shamir::merkle::hash_to_scalars;
 use isa::{CompiledProgram, Op, Prover};
+use primitives::field::F128;
 use std::any::{Any, TypeId};
 use std::sync::{Mutex, OnceLock};
-use verifier::E;
 use zkdsl_compiler::{compile, parse_with_replacements};
 
 /// The aggregation guest's zkDSL source.
@@ -105,7 +105,7 @@ pub(crate) fn scalar_bytecode() -> &'static verifier::Bytecode {
 }
 
 /// The guest's Fiat-Shamir IV as the two words a statement carries it in.
-pub(crate) fn fs_seed() -> [E; 2] {
+pub(crate) fn fs_seed() -> [F128; 2] {
     hash_to_scalars(&scalar_bytecode().fiat_shamir_iv())
 }
 

@@ -1,5 +1,5 @@
-//! What the crates both provers share (`aggregation`, `lean_da`, `lean_vm`) need of a prover. Each prover tree
-//! implements [`Prover`] once, beside its `cpu::prove`.
+//! What the crates both provers share (`aggregation`, `lean_vm`) need of a prover. Each prover tree implements
+//! [`Prover`] once, beside its `cpu::prove`.
 
 use crate::CompiledProgram;
 use verifier::E;
@@ -28,10 +28,8 @@ pub trait Prover: 'static {
     /// `f(i)` for every `i < n`, on the thread pool. `f` must not dispatch to the pool itself.
     fn map_collect<T: Send>(n: usize, f: impl Fn(usize) -> T + Sync) -> Vec<T>;
 
-    // The field kernels the deferred claims' batching (`aggregation`) runs on.
-
-    /// `a * b`, faster than the verifier's portable product.
-    fn mul(a: E, b: E) -> E;
+    // The deferred claims' batching (`aggregation`): its two passes over the stacked bytecode, in the prover's
+    // fastest form.
 
     /// `Σ_r weights[r] · rows[r]`, over the `weights.len()` rows of `K` words that `rows` holds end to end. A prover
     /// may require the row count and the row width to be multiples of 8.

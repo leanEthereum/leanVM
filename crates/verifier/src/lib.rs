@@ -36,7 +36,6 @@ pub use whir::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY
 pub use bus::N_TREES as N_BUS_TREES;
 pub use hash::Digest;
 pub use keccak::{EMBED_BITS, KeccakShape, PACK, PRODUCT_BITS, RMFE_EMBED, RMFE_PROJECT};
-pub use transcript::{RATE_SCALARS, Sponge, grinding_bits};
 pub use whir::{Subspace, WhirConfig, derive_config, subspace_roots};
 
 use bus::{ColumnClaim, N_TREES, table_sumcheck, verify_bus_balance};
@@ -47,7 +46,7 @@ use layout::{GLOBAL_COLUMN_BASES, KECCAK_OUT, MEMORY_0, MEMORY_1, N_TABLES, OP_K
 use multilinear::{dot, eq_eval, multilinear_eval};
 use ring_switch::ring_switch;
 use std::ops::Range;
-use transcript::Transcript;
+use transcript::{Transcript, grinding_bits};
 use whir::verify_whir;
 
 /// Why a proof was rejected.
