@@ -190,6 +190,80 @@ theorem BlkW.append_ret {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt} 
     rw [wLc_append _ _ _ _ _ _ _ blk₁ (b :: bs) (List.cons_ne_nil _ _)]
     exact h Ψ hΨ σ' hσ kh cs pos ks _ _ kret khalt hops₁ hcs₁ hks hk
 
+theorem calls_append' (a b : List Ev) : calls (a ++ b) = calls a ++ calls b := by
+  simp [calls, List.filterMap_append]
+
+theorem BlkW.append_core {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt} {ss₁ ss₂ tl : List Stmt}
+    {es₁ : List Ev} {o o₂ : Out} {i₀ : ℕ}
+    (hc : calls (outEs o) = calls es₁ ++ calls (outEs o₂))
+    (hk : ∀ next kret ks, OutK o tl next kret ks →
+      OutK o₂ tl next kret (ks.drop (calls es₁).length))
+    (h₁ : BlkW Γ I Ag cl C blk₁ ss₁ (ss₂ ++ tl) (.fall es₁) i₀)
+    (h₂ : BlkW Γ I Ag cl C blk₂ ss₂ tl o₂ (i₀ + (calls es₁).length)) :
+    BlkW Γ I Ag cl C (blk₁ ++ blk₂) (ss₁ ++ ss₂) tl o i₀ := by
+  obtain ⟨hs₁, hl₁, h₁⟩ := h₁
+  obtain ⟨hs₂, hl₂, h₂⟩ := h₂
+  simp only [outEs] at hl₁
+  refine ⟨fun pos => hs₁ pos ++ hs₂ (pos + blockSize blk₁), fun pos => by
+    rw [List.length_append, hl₁, hl₂, hc, List.length_append], ?_⟩
+  intro Ψ hΨ σ' hσ kh cs pos ks next kj kret khalt hops hcs hks hk'
+  obtain ⟨-, hks⟩ := hks
+  rw [hc] at hks
+  have hn₁ := hl₁ pos
+  have hops₁ : ∀ o' ∈ blockOps blk₁ pos, o' ∈ I.ops := fun o' ho =>
+    hops o' (by rw [bops_append]; exact List.mem_append_left _ ho)
+  have hops₂ : ∀ o' ∈ blockOps blk₂ (pos + blockSize blk₁), o' ∈ I.ops := fun o' ho =>
+    hops o' (by rw [bops_append]; exact List.mem_append_right _ ho)
+  have hcs₁ : ctrlSplit cs = ctrlSplit (ss₁ ++ (ss₂ ++ tl)) := by rwa [← List.append_assoc]
+  have hks₁ : KsAt cl kh i₀ (calls (outEs (.fall es₁))) (hs₁ pos) ks := by
+    refine ⟨hn₁, fun j hj => ?_⟩
+    obtain ⟨h1, h2, h3⟩ := hks j (by rw [List.length_append]; simp only [outEs] at hj; omega)
+    simp only [outEs] at hj ⊢
+    refine ⟨h1, by rw [h2, List.getElem?_append_left hj], ?_⟩
+    rw [h3, List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD,
+      List.getElem?_append_left (by rw [hn₁]; exact hj)]
+  have hnext : ∀ cs', ctrlSplit cs' = ctrlSplit (ss₂ ++ tl) →
+      wLc Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl blk₂ cs' (pos + blockSize blk₁)
+        (ks.drop (calls es₁).length) next kj kret khalt := by
+    intro cs' hcs'
+    refine h₂ Ψ hΨ σ' hσ kh cs' _ _ next kj kret khalt hops₂ hcs' ⟨hl₂ _, fun j hj => ?_⟩
+      (hk next kret ks hk')
+    obtain ⟨⟨kfp, h1⟩, h2, h3⟩ := hks ((calls es₁).length + j)
+      (by rw [List.length_append]; omega)
+    refine ⟨⟨kfp, by rw [List.getElem?_drop, h1, Nat.add_assoc]⟩, ?_, ?_⟩
+    · rw [Nat.add_assoc, h2, List.getElem?_append_right (by omega)]
+      simp
+    · rw [Nat.add_assoc, h3, List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD,
+        List.getElem?_append_right (by omega), hn₁]
+      simp
+  cases blk₂ with
+  | nil =>
+    rw [List.append_nil]
+    refine h₁ Ψ hΨ σ' hσ kh cs pos ks next kj kret khalt hops₁ hcs₁ hks₁ fun cs' hcs' => ?_
+    have := hnext cs' hcs'
+    rwa [wLc] at this
+  | cons b bs =>
+    rw [wLc_append _ _ _ _ _ _ _ blk₁ (b :: bs) (List.cons_ne_nil _ _)]
+    exact h₁ Ψ hΨ σ' hσ kh cs pos ks _ _ kret khalt hops₁ hcs₁ hks₁ hnext
+
+/-- A block whose path falls through, then a block on the path. -/
+theorem BlkW.append_fall {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt} {ss₁ ss₂ tl : List Stmt}
+    {es₁ : List Ev} {o₂ : Out} {i₀ : ℕ}
+    (h₁ : BlkW Γ I Ag cl C blk₁ ss₁ (ss₂ ++ tl) (.fall es₁) i₀)
+    (h₂ : BlkW Γ I Ag cl C blk₂ ss₂ tl o₂ (i₀ + (calls es₁).length)) :
+    BlkW Γ I Ag cl C (blk₁ ++ blk₂) (ss₁ ++ ss₂) tl (o₂.pre es₁) i₀ := by
+  cases o₂ with
+  | stuck =>
+    exact ⟨fun _ => [], fun _ => rfl, fun _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hk => hk.elim⟩
+  | fall es₂ =>
+    refine BlkW.append_core (by simp [outEs, Out.pre, calls_append']) (fun next kret ks hk => ?_)
+      h₁ h₂
+    intro cs' hcs'
+    have := hk cs' hcs'
+    rwa [calls_append', List.length_append, ← List.drop_drop] at this
+  | ret es₂ vs =>
+    exact BlkW.append_core (by simp [outEs, Out.pre, calls_append']) (fun _ _ _ hk => hk) h₁ h₂
+
 end Compose
 
 end
