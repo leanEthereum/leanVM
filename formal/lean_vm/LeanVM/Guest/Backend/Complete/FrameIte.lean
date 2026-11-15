@@ -31,43 +31,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 
 section Scope
 
-theorem scopeIte_inv {rc : ℕ} {c : V} {z nz : List Stmt} {s s' : SSt}
-    (h : scopeStmt rc (.ite c z nz) s = .ok s') : ∃ s₀ s₁, flushEdge rc s = .ok s₀ ∧
-      s₀.live.contains c = true ∧ scopeInner rc (fun s' => scopeBlock rc z s') s₀ = .ok s₁ ∧
-      scopeIteTail nz.isEmpty (scopeInner rc (fun s' => scopeBlock rc nz s')) s₀.retDone s₁ =
-        .ok s' := by
-  simp only [scopeStmt] at h
-  split at h
-  · cases h
-  next s₀ h₀ =>
-  split at h
-  · cases h
-  next hn =>
-  split at h
-  · cases h
-  next s₁ h₁ =>
-  refine ⟨s₀, s₁, h₀, ?_, h₁, h⟩
-  unfold needScope at hn
-  split at hn
-  · next hc => simpa [inScope] using hc
-  · cases hn
-
-theorem scopeIteTail_inv {e : Bool} {nz : SSt → Except String SSt} {b : Bool} {s₁ s' : SSt}
-    (h : scopeIteTail e nz b s₁ = .ok s') :
-    (∃ r s₂, s₁.rest = .enter :: r ∧ nz { s₁ with retDone := b } = .ok s₂ ∧
-      expectS isEmit "a branch" { s₂ with retDone := s₁.retDone || s₂.retDone } = .ok s') ∨
-    ((∀ r, s₁.rest ≠ .enter :: r) ∧ e = true ∧ expectS isEmit "a branch" s₁ = .ok s') := by
-  unfold scopeIteTail at h
-  split at h
-  · next r hr =>
-    split at h
-    · cases h
-    · next s₂ h₂ => exact Or.inl ⟨r, s₂, hr, h₂, h⟩
-  · next hne =>
-    split at h
-    · cases h
-    · next he => exact Or.inr ⟨fun r hr => hne r hr, by simpa using he, h⟩
-
 theorem flushS_retDone (rc : ℕ) : ∀ (rs : List Event) (live : VMap Unit) (r : Bool) (s₁ : SSt),
     flushS rc rs live r = .ok s₁ → r = true → s₁.retDone = true
   | [], _, _, s₁, h, hr => by
@@ -276,6 +239,13 @@ theorem outK_ite {ob : Out} {c : V} {tl : List Stmt} {next : List Stmt → List 
   | ret es vs => exact h
   | stuck => exact absurd rfl hns
 
+/-- A branch's events past its condition's end where the picked block's do. -/
+theorem klast_inK {ob : Out} {c : V} {i₀ : ℕ} (h : KLast I (ob.pre [.inK c]) i₀) :
+    KLast I ob i₀ := fun es vs he => by
+  subst he
+  have := h (.inK c :: es) vs rfl
+  rwa [show calls (Ev.inK c :: es) = calls es from rfl] at this
+
 /-- The values a branch's path reads: its condition and the picked block's. -/
 theorem pathVals_ite {σ : Val} {c : V} {z nz : List Stmt} {ob : Out} (hns : ob ≠ .stuck) :
     ∀ v ∈ pathVals σ [.ite c z nz] (ob.pre [.inK c]),
@@ -328,7 +298,7 @@ theorem blkW_iteZ (hI : I.Ok) (hAg : AgOwn I Ag) (hkw : ∀ k, I.kw k = kwOf Γ 
   obtain ⟨hs, hl, hh, hW⟩ := hbz
   have hcalls := calls_inK (c := c) hns
   refine ⟨hs, by rw [hcalls]; exact hl, by rw [hcalls]; exact hh,
-    fun hp Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo hcs hks hk => ?_⟩
+    fun hp hK Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo hcs hks hk => ?_⟩
   have hcs' : ctrlSplit cs = some (.ite c z nz, rest ++ tl) := by rw [hcs]; rfl
   have hr : Rds (Ag σ' Ψ kh) I.fp I.size (fwd I.hdr ⟨patchT I Ψ σ', kh⟩) :=
     fun κ L hL n hn => hAg σ' Ψ kh κ L hL n hn
@@ -346,7 +316,7 @@ theorem blkW_iteZ (hI : I.Ok) (hAg : AgOwn I Ag) (hkw : ∀ k, I.kw k = kwOf Γ 
     (by rw [hfs]; exact isInK_ofK _) (fun _ => ⟨by rw [hσ c hu, hσ0], ?_⟩)
     (fun h0 => absurd (hfc.trans hσ0) h0)⟩
   rw [wL_eq_wLc]
-  refine hW hp Ψ hΨ σ' hσ kh z ks _ _ kret khalt (fun o' ho => hbo o' ?_)
+  refine hW hp (klast_inK hK) Ψ hΨ σ' hσ kh z ks _ _ kret khalt (fun o' ho => hbo o' ?_)
     (by rw [List.append_nil]) (by rw [hcalls] at hks; exact hks) (outK_ite hns hk fun ks' hn => ?_)
   · simp [blockOps, stmtOps, ho]
   · cases e with
@@ -401,7 +371,7 @@ theorem blkW_iteN (hI : I.Ok) (hAg : AgOwn I Ag) (hkw : ∀ k, I.kw k = kwOf Γ 
   | true =>
     obtain ⟨hs, hl, hh, hW⟩ := hbn rfl
     refine ⟨hs, by rw [hcalls]; exact hl, by rw [hcalls]; exact hh,
-      fun hp Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo hcs hks hk => ?_⟩
+      fun hp hK Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo hcs hks hk => ?_⟩
     have hcs' : ctrlSplit cs = some (.ite c z nz, rest ++ tl) := by rw [hcs]; rfl
     have hr : Rds (Ag σ' Ψ kh) I.fp I.size (fwd I.hdr ⟨patchT I Ψ σ', kh⟩) :=
       fun κ L hL n hn => hAg σ' Ψ kh κ L hL n hn
@@ -413,13 +383,13 @@ theorem blkW_iteN (hI : I.Ok) (hAg : AgOwn I Ag) (hkw : ∀ k, I.kw k = kwOf Γ 
       fun _ => ⟨by rw [hσ c hu]; exact hσ0, by rw [hfb, hloc₀], hfs, ?_⟩⟩
     simp only [↓reduceIte]
     rw [wL_eq_wLc]
-    exact hW hp Ψ hΨ σ' hσ kh nz ks _ _ kret khalt
+    exact hW hp (klast_inK hK) Ψ hΨ σ' hσ kh nz ks _ _ kret khalt
       (fun o' ho => hbo o' (by simp [blockOps, stmtOps, ho])) (by rw [List.append_nil])
       (by rw [hcalls] at hks; exact hks) (outK_ite hns hk fun ks' hn => hn)
   | false =>
     obtain rfl := hne rfl
     refine ⟨[], by rw [hcalls]; rfl, HsOk.nil _ _ _,
-      fun hp Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo hcs hks hk => ?_⟩
+      fun hp hK Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo hcs hks hk => ?_⟩
     have hcs' : ctrlSplit cs = some (.ite c z [], rest ++ tl) := by rw [hcs]; rfl
     have hr : Rds (Ag σ' Ψ kh) I.fp I.size (fwd I.hdr ⟨patchT I Ψ σ', kh⟩) :=
       fun κ L hL n hn => hAg σ' Ψ kh κ L hL n hn

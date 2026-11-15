@@ -21,6 +21,45 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 
 @[expose] public section
 
+/-! ## The scope walk of a branch -/
+
+theorem scopeIte_inv {rc : ℕ} {c : V} {z nz : List Stmt} {s s' : SSt}
+    (h : scopeStmt rc (.ite c z nz) s = .ok s') : ∃ s₀ s₁, flushEdge rc s = .ok s₀ ∧
+      s₀.live.contains c = true ∧ scopeInner rc (fun s' => scopeBlock rc z s') s₀ = .ok s₁ ∧
+      scopeIteTail nz.isEmpty (scopeInner rc (fun s' => scopeBlock rc nz s')) s₀.retDone s₁ =
+        .ok s' := by
+  simp only [scopeStmt] at h
+  split at h
+  · cases h
+  next s₀ h₀ =>
+  split at h
+  · cases h
+  next hn =>
+  split at h
+  · cases h
+  next s₁ h₁ =>
+  refine ⟨s₀, s₁, h₀, ?_, h₁, h⟩
+  unfold needScope at hn
+  split at hn
+  · next hc => simpa [inScope] using hc
+  · cases hn
+
+theorem scopeIteTail_inv {e : Bool} {nz : SSt → Except String SSt} {b : Bool} {s₁ s' : SSt}
+    (h : scopeIteTail e nz b s₁ = .ok s') :
+    (∃ r s₂, s₁.rest = .enter :: r ∧ nz { s₁ with retDone := b } = .ok s₂ ∧
+      expectS isEmit "a branch" { s₂ with retDone := s₁.retDone || s₂.retDone } = .ok s') ∨
+    ((∀ r, s₁.rest ≠ .enter :: r) ∧ e = true ∧ expectS isEmit "a branch" s₁ = .ok s') := by
+  unfold scopeIteTail at h
+  split at h
+  · next r hr =>
+    split at h
+    · cases h
+    · next s₂ h₂ => exact Or.inl ⟨r, s₂, hr, h₂, h⟩
+  · next hne =>
+    split at h
+    · cases h
+    · next he => exact Or.inr ⟨fun r hr => hne r hr, by simpa using he, h⟩
+
 /-! ## The invariant at a branch's edges -/
 
 section Inv
@@ -212,11 +251,11 @@ theorem blkW_ops_X (hok : OpOK Γ I Ag cl) {C : (ℕ → E) → Prop} {ops : Lis
     (hX : BlkW Γ I bx Ag cl C [X] ss tl o i₀ (pos + blockSize ops)) :
     BlkW Γ I bx Ag cl C (ops ++ [X]) ss tl o i₀ pos := by
   obtain ⟨hs, hl, hh, h⟩ := hX
-  refine ⟨hs, hl, hh, fun hp Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo hcs hks hk => ?_⟩
+  refine ⟨hs, hl, hh, fun hp hK Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo hcs hks hk => ?_⟩
   rw [wLc_append _ _ _ _ _ _ _ ops [X] (List.cons_ne_nil _ _)]
   refine wLc_ops hok hΨ hσ kh ops hW pos
     (fun o' ho => hbo o' (by rw [bops_append]; exact List.mem_append_left _ ho)) cs ks _ _ kret
-    khalt (h hp Ψ hΨ σ' hσ kh cs ks next kj kret khalt
+    khalt (h hp hK Ψ hΨ σ' hσ kh cs ks next kj kret khalt
       (fun o' ho => hbo o' (by rw [bops_append]; exact List.mem_append_right _ ho)) hcs hks hk)
 
 /-- A state the final placement extends, past a branch whose statement ends its output: the
