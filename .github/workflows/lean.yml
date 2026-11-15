@@ -252,7 +252,7 @@ jobs:
           path: ${{ runner.temp }}/axioms.txt
 
   # The quantum random-permutation model, on VCVio's quantum oracle programs, the statement's scheme
-  # definitions and leanXMSS's deterministic forgery classification.
+  # definitions and leanXMSS's codeword lemmas.
   quantum-formalization:
     runs-on: ubuntu-latest
     steps:
