@@ -11,9 +11,9 @@
 use primitives::field::F128;
 use primitives::multilinear::poly_eval;
 use primitives::transcript::ProverState;
-use verifier::PRODUCT_BITS;
+use verifier::{PRODUCT_BITS, along};
 
-use crate::keccak::{BITS, LOCAL_VARS, along};
+use crate::keccak::{BITS, LOCAL_VARS};
 use crate::open::fold;
 use crate::protocol::{Claim, instance_weights, next_weights};
 use crate::table::{Summand, Tables};

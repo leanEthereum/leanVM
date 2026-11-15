@@ -3,7 +3,6 @@
 //! Position `j = z + 64 * (x + 5 * y)` is bit `z` of lane `x + 5 * y`. A round is the linear map
 //! `theta, rho, pi`, then `chi`, then `iota`.
 
-use primitives::field::F128;
 pub use primitives::hash::STATE_LANES as LANES;
 use primitives::hash::{PI, RC, RHO, ROUNDS};
 
@@ -12,13 +11,6 @@ pub const BITS: usize = 1600;
 pub const LOCAL_VARS: usize = 11;
 /// Variables of the lane alone.
 pub const LANE_VARS: usize = 5;
-
-/// The position `k` columns along from `j`, in the same row and slice.
-#[inline(always)]
-pub const fn along(j: usize, k: usize) -> usize {
-    let (lane, z) = (j / 64, j % 64);
-    64 * ((lane % 5 + k) % 5 + 5 * (lane / 5)) + z
-}
 
 /// The five positions of a row and slice, which `chi` mixes.
 #[inline(always)]
@@ -54,37 +46,12 @@ pub fn linear<T: Copy + Default>(a: &[T], out: &mut [T], xor: impl Fn(T, T) -> T
     }
 }
 
-/// The transpose of [`linear`] on weight vectors: `<w, linear(a)> = <linear_transpose(w), a>`.
-pub fn linear_transpose(w: &[F128]) -> Vec<F128> {
-    assert_eq!(w.len(), BITS);
-    // The weight each position of `theta`'s output carries.
-    let mut g = vec![F128::ZERO; BITS];
-    for lane in 0..LANES {
-        let rot = RHO[lane] as usize;
-        for z in 0..64 {
-            g[64 * lane + z] = w[64 * PI[lane] + (z + rot) % 64];
-        }
-    }
-    let mut columns = vec![F128::ZERO; 320];
-    for lane in 0..LANES {
-        for z in 0..64 {
-            columns[64 * (lane % 5) + z] += g[64 * lane + z];
-        }
-    }
-    let mut out = g;
-    for lane in 0..LANES {
-        let x = lane % 5;
-        for z in 0..64 {
-            out[64 * lane + z] += columns[64 * ((x + 1) % 5) + z] + columns[64 * ((x + 4) % 5) + (z + 1) % 64];
-        }
-    }
-    out
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use primitives::field::F128;
     use primitives::test_rng::Rng;
+    use verifier::{along, linear_transpose};
 
     #[test]
     fn a_round_matches_the_permutation() {

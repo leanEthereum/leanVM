@@ -36,7 +36,7 @@ pub use wire::{MAX_HEIGHT, MAX_LEAF_WORDS, MAX_PHASES, MAX_QUERIES};
 // What the provers and the aggregation's guest constants and witness read of the protocol.
 pub use bus::{N_TREES as N_BUS_TREES, bus_grinding_bits};
 pub use hash::Digest;
-pub use keccak::{EMBED_BITS, PACK, PRODUCT_BITS, RMFE_EMBED, RMFE_PROJECT};
+pub use keccak::{EMBED_BITS, PACK, PRODUCT_BITS, RMFE_EMBED, RMFE_PROJECT, along, linear_transpose};
 pub use multilinear::stack_offsets;
 pub use whir::{Subspace, WhirConfig, derive_config, subspace_roots};
 

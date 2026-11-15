@@ -4,6 +4,8 @@
 //! A claim is a weighted sum of the bits of one state per segment: the weight of bit `j` of instance `i` of pack `y`
 //! in segment `m` is `eq(point, (y, m)) * weights[j] * mu[i]`. A pack is sixteen consecutive steps.
 
+use std::ops::{Add, AddAssign};
+
 use crate::field::{E, K, ONE, ZERO};
 use crate::hash::{KECCAK_PI, KECCAK_RC, KECCAK_RHO, ROUNDS, STATE_LANES};
 use crate::layout::K_BITS;
@@ -75,20 +77,21 @@ struct Claim {
 }
 
 /// The position `k` columns along from `j`, in the same row and slice.
-fn along(j: usize, k: usize) -> usize {
+#[inline]
+pub fn along(j: usize, k: usize) -> usize {
     let (lane, z) = (j / 64, j % 64);
     64 * ((lane % 5 + k) % 5 + 5 * (lane / 5)) + z
 }
 
 /// The transpose of theta, rho, pi on weight vectors: `<w, L(a)> = <L^T(w), a>`.
-fn linear_transpose(w: &[E]) -> Vec<E> {
-    let mut g = vec![ZERO; BITS]; // the weight each position of theta's output carries
+pub fn linear_transpose<T: Copy + Default + Add<Output = T> + AddAssign>(w: &[T]) -> Vec<T> {
+    let mut g = [T::default(); BITS]; // the weight each position of theta's output carries
     for lane in 0..STATE_LANES {
         for z in 0..64 {
             g[64 * lane + z] = w[64 * KECCAK_PI[lane] + (z + KECCAK_RHO[lane] as usize) % 64];
         }
     }
-    let mut columns = vec![ZERO; 5 * 64];
+    let mut columns = [T::default(); 5 * 64];
     for (j, &weight) in g.iter().enumerate() {
         columns[64 * (j / 64 % 5) + j % 64] += weight;
     }

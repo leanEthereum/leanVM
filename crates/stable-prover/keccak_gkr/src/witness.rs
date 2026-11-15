@@ -6,8 +6,9 @@
 
 use primitives::field::F64;
 use primitives::hash::{RC, ROUNDS};
+use verifier::along;
 
-use crate::keccak::{BITS, LANES, along, linear};
+use crate::keccak::{BITS, LANES, linear};
 use crate::kernels::xor;
 
 /// Instances a block holds, and the words one position of a block takes.
@@ -257,7 +258,7 @@ impl Witness {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::keccak::{along, iota_bit};
+    use crate::keccak::iota_bit;
     use primitives::test_rng::Rng;
 
     #[test]
