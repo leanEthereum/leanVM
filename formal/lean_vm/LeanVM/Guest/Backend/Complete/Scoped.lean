@@ -24,8 +24,10 @@ places `v` and `w` in one cell, and on the path through the second arm the cell 
 **scoped**: walking its body and its trace in the order placement reads them, every value a
 statement names (`atomUses`, `atomTmps`, a branch condition, a selector, a call's arguments and
 returns, the returned values) was made by an `alloc` event of a block around the statement on
-its path, or is a parameter; every value a `use` or `shift` event names too; and a path makes at
-most one return area (`Kind.ret`), of at most the function's return cells.
+its path, or is a parameter; every value a `use` or `shift` event names too; a path makes at
+most one return area (`Kind.ret`), of at most the function's return cells; and no value placement
+places lazily (`Kind.pooled`, `Kind.addr`) is made right before a block's start or end
+(`flushEdge`), where the next statement placed is in another block.
 
 `scopedE` is the walk, `scopedB` its decision and `Scoped` the proposition the proofs take. The
 walk is placement's own reading of the trace (`flushN`, `expect`, `inBlock`, `placeArms`) with the
@@ -72,6 +74,29 @@ def flushS (rc : Nat) : List Event → VMap Unit → Bool → Except String SSt
 /-- `flushS` at a state. -/
 def flushAt (rc : Nat) (s : SSt) : Except String SSt := flushS rc s.rest s.live s.retDone
 
+/-- Whether the events a flush passes (`flushS`) make no value placement places lazily, for the
+statement after them (`Kind.pooled`, `Kind.addr`). -/
+def lazyFree : List Event → Bool
+  | [] => true
+  | e :: es =>
+      match e with
+      | .alloc _ .pooled => false
+      | .alloc _ .addr => false
+      | .alloc _ _ | .use _ | .shift _ _ | .chain | .note _ => lazyFree es
+      | _ => true
+
+/-- `flushAt` before a block's start or end: no value made lazily waits past it, since the next
+statement placed is in another block. -/
+def flushEdge (rc : Nat) (s : SSt) : Except String SSt :=
+  if lazyFree s.rest then flushAt rc s else .error "a value made lazily before a block's edge"
+
+theorem flushEdge_ok {rc : Nat} {s s' : SSt} (h : flushEdge rc s = .ok s') :
+    lazyFree s.rest = true ∧ flushAt rc s = .ok s' := by
+  unfold flushEdge at h
+  split at h
+  · exact ⟨by assumption, h⟩
+  · cases h
+
 /-- Pass the event `e`, which the walk must be at (`expect`). -/
 def expectS (e : Event → Bool) (what : String) (s : SSt) : Except String SSt :=
   match s.rest with
@@ -105,7 +130,7 @@ def scopeInner (rc : Nat) (blk : SSt → Except String SSt) (s : SSt) : Except S
     match blk s₁ with
     | .error e => .error e
     | .ok s₂ =>
-      match flushAt rc s₂ with
+      match flushEdge rc s₂ with
       | .error e => .error e
       | .ok s₃ =>
         match expectS isLeave "the end of a block" s₃ with
@@ -156,7 +181,7 @@ def scopeBlock (rc : Nat) : List Stmt → SSt → Except String SSt
 /-- A statement: its values in scope after the values made before it. -/
 def scopeStmt (rc : Nat) : Stmt → SSt → Except String SSt
   | .ite c z nz, s =>
-    match flushAt rc s with
+    match flushEdge rc s with
     | .error e => .error e
     | .ok s =>
       match needScope s.live [c] "a branch" with
@@ -167,7 +192,7 @@ def scopeStmt (rc : Nat) : Stmt → SSt → Except String SSt
         | .ok s₁ => scopeIteTail nz.isEmpty (scopeInner rc (fun s' => scopeBlock rc nz s'))
             s.retDone s₁
   | .match_ x arms, s =>
-    match flushAt rc s with
+    match flushEdge rc s with
     | .error e => .error e
     | .ok s =>
       match needScope s.live [x] "a match" with
