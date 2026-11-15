@@ -7,6 +7,7 @@ pub mod merkle;
 pub mod ntt;
 mod ring_switch;
 mod stack_open;
+pub mod sumcheck;
 pub mod whir;
 mod whir_induce;
 mod whir_lanes;

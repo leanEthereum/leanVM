@@ -7,11 +7,12 @@
 //! The first claim weighs the bits of a word as the word itself does, so its 64 evaluations
 //! are only ever needed as the one they add up to: the committed polynomial at that point.
 
+use pcs::sumcheck::product_sumcheck;
 use pcs::{RingSwitchOpen, StackClaim};
 use primitives::bit_fold::BitFold;
 use primitives::field::{F64, F128, dot};
 use primitives::hash::STATE_LANES;
-use primitives::multilinear::{eq_table, mle_eval, product_sumcheck};
+use primitives::multilinear::{eq_table, mle_eval};
 use primitives::transcript::ProverState;
 use verifier::keccak::BITS;
 

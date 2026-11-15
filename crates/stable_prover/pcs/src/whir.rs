@@ -18,10 +18,11 @@
 //!    and adds the OOD and query claims' weights to the weight, the queries' by `induce_basis`;
 //! 3. at the last level, sends the folded lane, opens its oracle at the queries, and closes with the tail sumcheck.
 
+use crate::sumcheck::product_sumcheck;
 use fiat_shamir::merkle::{Hash, MerklePath};
 use primitives::field::{Acc8, F64, F128, F128x8, dot, powers};
 use primitives::hash::OUT_LEN;
-use primitives::multilinear::{eq_table, product_sumcheck};
+use primitives::multilinear::eq_table;
 use primitives::transcript::ProverState;
 
 use crate::merkle::{LeafHasher, MerkleTree};
