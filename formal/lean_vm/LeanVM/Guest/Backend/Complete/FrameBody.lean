@@ -352,3 +352,162 @@ theorem isLoopName_of_registered {fns : List TracedFn} {g : String}
     rcases loopTable_go_name fns {} g x hx with h' | h'
     · simp at h'
     · exact h'
+
+/-! ## The clauses from the words of the values read -/
+
+section Clauses
+
+variable {κ₀ : ℕ} {W : World κ₀} {tf : TracedFn} {pf : Placed} {fp : ℕ} {hdr : E × E}
+  {σ : Val} {es : List Ev} {vs : List V} {I : Inst}
+
+/-- **The clauses of the frame**, from the words the walk gives: the values the path read (`RW`
+at the body's end, whose places stay, `FlushNew`), the parameters (the initial constraint), the
+temporaries (patched), a registered loop helper's own pointer cell, and the callee headers. -/
+theorem frameClauses_of (hsc : Scoped tf) (hta : TmpsApart tf pf)
+    (hpf : ∃ t t', placeFn (loopTable W.p) (sigTable W.p) t tf = .ok (pf, t'))
+    (hI : I.tmps = Stmt.tmpsList tf.core.body ∧ I.locs = pf.locs ∧
+      I.σ = zeroTmps (Stmt.tmpsList tf.core.body) σ ∧ I.fpw = ofK (addressOfIndex fp))
+    (hw : walk σ tf.core.body = .ret es vs)
+    {C₀ C' : (ℕ → E) → Prop} {Ψ : ℕ → E} (hΨ : C' Ψ) (hs : Stronger C' C₀)
+    {self : Option ℕ} (hC₀ : ∀ Ψ, C₀ Ψ → initC I tf.core.params self Ψ)
+    (hself : registered (loopTable W.p) tf.core.name → self = some (2 + tf.core.params.length))
+    (hpar : ∀ k (hk : k < tf.core.params.length), cellP pf.locs tf.core.params[k] = some (2 + k))
+    {st₂ : St} (hle : LocsLe st₂.locs pf.locs)
+    (hnew : ∀ v, pf.locs[v]? ≠ none → st₂.locs[v]? ≠ none ∨ v ∈ allocsOf st₂.rest)
+    (hrw : RW I C' st₂ (pathVals I.σ tf.core.body (.ret es vs)))
+    {hs' : List (E × E)} (hhs : HsOk I (ctxOf (loopTable W.p) (sigTable W.p) tf) (calls es) hs')
+    (hlen : hs'.length = (calls es).length) (hhdr : I.hdr = hdr)
+    (σ' : Val) (hS : I.Same σ') :
+    FrameClauses (loopTable W.p) tf pf fp σ' es vs hdr
+      ⟨patchT I Ψ σ', fun i => hs'.getD i (0, 0)⟩ := by
+  obtain ⟨hT, hL, hσ, hfpw⟩ := hI
+  obtain ⟨t, t', hplace⟩ := hpf
+  have hfresh := hta.fresh
+  have hwi := walk_within (σ := σ) tf.core.body
+  rw [hw] at hwi
+  have hin : ∀ v n, cellP pf.locs v = some n → 2 ≤ n ∧ n < pf.fn.frameSize :=
+    placeFn_inFrame _ _ _ _ _ _ hplace hsc
+  -- the words of the values off the temporaries, at the frame words `Ψ`
+  have hSv : ∀ v, v ∉ Stmt.tmpsList tf.core.body → σ' v = I.σ v := fun v hv => hS v (hT ▸ hv)
+  have hpatch_off : ∀ n, ¬ I.tc n → patchT I Ψ σ' n = Ψ n := fun n hn => by simp [patchT, hn]
+  have hpatch_tmp : ∀ t n, t ∈ Stmt.tmpsList tf.core.body → cellP pf.locs t = some n →
+      patchT I Ψ σ' n = σ' t := by
+    intro t n ht hc
+    have htc : I.tc n := ⟨t, hT ▸ ht, hL ▸ hc⟩
+    have hch := Classical.choose_spec htc
+    have heq : Classical.choose htc = t := hta.inj _ (hT ▸ hch.1) t ht n (hL ▸ hch.2) hc
+    simp [patchT, htc, heq]
+  have hsels : pathSels σ' tf.core.body = pathSels I.σ tf.core.body :=
+    pathSels_congr _ fun v hv => hSv v fun ht => (hfresh.2 v ht).1 hv
+  -- a value the path read and the body names is placed by the body's end, with its word
+  have hread : ∀ v ∈ pathVals I.σ tf.core.body (.ret es vs), v ∉ Stmt.tmpsList tf.core.body →
+      ∀ l, pf.locs[v]? = some l → locW Ψ l = σ' v := by
+    intro v hv hvt l hl
+    obtain ⟨hna, hwd⟩ := hrw v hv
+    have hl2 : st₂.locs[v]? = some l := by
+      rcases hnew v (by rw [hl]; simp) with h | h
+      · obtain ⟨l', hl'⟩ := Option.ne_none_iff_exists'.mp h
+        rw [hle v l' hl'] at hl
+        cases hl
+        exact hl'
+      · exact absurd h hna
+    rw [(hwd (hT ▸ hvt) l hl2).2.2 Ψ hΨ, hSv v hvt]
+  have hnamed : ∀ v ∈ readsP tf.core.params tf.core.body σ' es vs,
+      v ∈ tf.core.params ∨ v ∈ Stmt.tmpsList tf.core.body ∨
+        (v ∈ Stmt.usesList tf.core.body ∧ v ∈ pathVals I.σ tf.core.body (.ret es vs)) := by
+    intro v hv
+    simp only [readsP, List.mem_append, List.mem_flatMap] at hv
+    rcases hv with (((hv | ⟨e, he, hv⟩) | hv) | ⟨e, he, hv⟩) | hv
+    · exact Or.inl hv
+    · exact Or.inr (Or.inr ⟨hwi.1 e he v hv, by
+        simp only [pathVals, outEs, List.mem_append, List.mem_flatMap]
+        exact Or.inl (Or.inl ⟨e, he, hv⟩)⟩)
+    · exact Or.inr (Or.inr ⟨hwi.2.2 v hv, by
+        simp only [pathVals, retVals, List.mem_append]
+        exact Or.inl (Or.inr hv)⟩)
+    · exact Or.inr (Or.inl (hwi.2.1.subset (List.mem_flatMap.mpr ⟨e, he, hv⟩)))
+    · rw [hsels] at hv
+      exact Or.inr (Or.inr ⟨pathSels_sub _ v hv, by
+        simp only [pathVals, List.mem_append]
+        exact Or.inr hv⟩)
+  have hparamW : ∀ k (hk : k < tf.core.params.length), Ψ (2 + k) = σ' tf.core.params[k] := by
+    intro k hk
+    rw [(hC₀ Ψ (hs Ψ hΨ)).1 k hk, hSv _ fun ht => (hfresh.2 _ ht).2 (List.getElem_mem hk)]
+  have hntc : ∀ v l, v ∈ Stmt.usesList tf.core.body ++ tf.core.params → pf.locs[v]? = some l →
+      ¬ I.tc (locBase l) := fun v l hv hl ⟨t, ht, hc⟩ =>
+    hta.apart hv hl (hT ▸ ht) (hL ▸ hc)
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  · intro v hv n hn
+    obtain ⟨h2, hlt⟩ := hin v n hn
+    refine ⟨h2, hlt, ?_⟩
+    have hl : pf.locs[v]? = some (.cell n) := by
+      unfold cellP at hn
+      split at hn
+      · next m hm => cases hn; exact hm
+      · cases hn
+    rcases hnamed v hv with hp | ht | ⟨hu, hpv⟩
+    · obtain ⟨k, hk, rfl⟩ := List.mem_iff_getElem.mp hp
+      have := hpar k hk
+      rw [hn] at this
+      cases this
+      have hn' := hntc _ _ (List.mem_append_right _ (List.getElem_mem hk)) hl
+      simp only [locBase] at hn'
+      show patchT I Ψ σ' (2 + k) = _
+      rw [hpatch_off _ hn']
+      exact hparamW k hk
+    · exact hpatch_tmp v n ht hn
+    · have hvt : v ∉ Stmt.tmpsList tf.core.body := fun ht => (hfresh.2 v ht).1 hu
+      have hn' := hntc _ _ (List.mem_append_left _ hu) hl
+      simp only [locBase] at hn'
+      show patchT I Ψ σ' n = _
+      rw [hpatch_off _ hn']
+      exact hread v hpv hvt _ hl
+  · intro v hv n e hl
+    rcases hnamed v hv with hp | ht | ⟨hu, hpv⟩
+    · obtain ⟨k, hk, rfl⟩ := List.mem_iff_getElem.mp hp
+      have := hpar k hk
+      unfold cellP at this
+      rw [hl] at this
+      cases this
+    · obtain ⟨m, hm⟩ := hta.cell ht
+      unfold cellP at hm
+      rw [hl] at hm
+      cases hm
+    · have hvt : v ∉ Stmt.tmpsList tf.core.body := fun ht => (hfresh.2 v ht).1 hu
+      have := hread v hpv hvt _ hl
+      simp only [locW] at this
+      show σ' v = patchT I Ψ σ' n * _
+      have hn' := hntc _ _ (List.mem_append_left _ hu) hl
+      simp only [locBase] at hn'
+      rw [hpatch_off _ hn']
+      exact this.symm
+  · intro _ t ht n hn
+    obtain ⟨h2, hlt⟩ := hin t n hn
+    exact ⟨h2, hlt, hpatch_tmp t n ht hn⟩
+  · intro hreg
+    obtain ⟨-, -, -, -, -, hr, -⟩ := placeFn_ok hplace
+    have hr0 : tf.rets = 0 := by simpa [sigOf] using hr hreg
+    have hnt : ¬ I.tc (2 + tf.core.params.length) := fun ⟨t, ht, hc⟩ =>
+      hta.self (hT ▸ ht) (by rw [hr0, Nat.add_zero, ← hL]; exact hc)
+    show patchT I Ψ σ' (2 + tf.core.params.length) = _
+    rw [hpatch_off _ hnt, (hC₀ Ψ (hs Ψ hΨ)).2 _ (hself hreg), hfpw]
+  · intro i c hc hk
+    have hi : i < hs'.length := by
+      rw [hlen]
+      exact (List.getElem?_eq_some_iff.mp hc).1
+    show IsInK (hs'.getD i (0, 0)).1 ∧ IsInK (hs'.getD i (0, 0)).2
+    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi, Option.getD_some]
+    exact hhs.1 (fun hm => by rw [hhdr]; exact hk (by simpa [ctxOf] using hm)) _
+      (List.getElem_mem hi)
+  · intro i c hc hf
+    have hi : i < hs'.length := by
+      rw [hlen]
+      exact (List.getElem?_eq_some_iff.mp hc).1
+    show hs'.getD i (0, 0) = hdr
+    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi, Option.getD_some,
+      hhs.2 i hi c hc (by simpa [ctxOf] using hf), hhdr]
+
+end Clauses
+
+end
+end LeanVM.Guest.Backend.Complete
