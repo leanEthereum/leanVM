@@ -21,6 +21,7 @@ import LeanVM.Guest.EndExecCAlign
 import LeanVM.Guest.Budget.MainExact
 import LeanVM.Guest.EndExecW
 import LeanVM.Guest.EndExecRCld
+import LeanVM.Guest.EndExecRCp
 
 /-!
 # The end theorem modulo the open facts
@@ -87,8 +88,6 @@ structure OpenGaps : Prop where
   alloc : AllocOpen
   /-- Allocation track: the hints at a pc keep the cells used within the reference's `2^κ`. -/
   hintsUsed : HintsUsed YFin
-  /-- Residuals track: `certify_placement`'s residuals hold at its honest frames. -/
-  resCp : ResCert alignA Fn.«certify_placement».modeCert
 
 /-! ## The assembly -/
 
@@ -103,7 +102,7 @@ theorem execGaps_of (O : OpenGaps) :
       simp only [Res.resExc, List.mem_cons, List.not_mem_nil, or_false] at hK
       rcases hK with rfl | rfl
       · exact resCld_alignA
-      · exact O.resCp) nzVal_lce0 nzVal_lce16)
+      · exact resCp_alignA) nzVal_lce0 nzVal_lce16)
     termNode_guest Bridge.progAl Bridge.alignA_main alLayout_alignA jumpCells_at Mode.guestCerts_entry_ne
     (derefPow_all _) O.hintsUsed
     (KeepY.and (keepY_alignA (derefPow_all _) fun _ _ h ↦ h) O.alloc.keep)

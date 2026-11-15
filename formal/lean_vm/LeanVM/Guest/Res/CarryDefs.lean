@@ -57,7 +57,7 @@ def carried : List (String × ℕ × Kd) :=
     (name% «main_loop1», 2, .inK), (name% «main_loop1», 3, .inK),
     (name% «main_loop4», 9, .inK), (name% «main_loop4», 14, .tab), (name% «verify_sub», 4, .tab),
     (name% «log2_ceil_in_the_exponent__L0_L34», 1, .tab),
-    (name% «log2_ceil_in_the_exponent__L16_L34», 1, .tab)]
+    (name% «log2_ceil_in_the_exponent__L16_L34», 1, .tab), (name% «certify_placement», 1, .tab)]
 
 /-- A function's carried values of a fact, and its loop counter for `K`. -/
 def cvars (fn : Fn) (kd : Kd) : List V :=
