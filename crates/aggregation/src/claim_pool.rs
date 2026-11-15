@@ -4,7 +4,7 @@ use super::cells::count;
 use lean_vm_core::cpu::{MEM_HI, MEM_LO, block_kappa_sources, keccak_value};
 use lean_vm_core::leaf::{Block, Coord};
 use primitives::field::F128;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use verifier::layout::{GLOBAL_COLUMN_BASES, TABLE_WIDTHS};
 
 /// Why the guest reads every `q_keccak` slot claim's instance point off `chi`: a
@@ -111,45 +111,40 @@ pub(super) fn coord_difference(a: &[Term], b: &[Term]) -> Vec<Term> {
     out
 }
 
-/// Visit the claim pool in the exact order the guest indexes it: the framework
-/// bus claims (deduped by `(column, kappa)`, as `leaf.rs` pools them), then every
-/// table's committed columns, then the PI memory triple. The placeholder map's
-/// claim descriptors follow this order.
-pub(super) fn walk_claims(sides: &[Vec<Block>; 3], kbc: usize, mut visit: impl FnMut(ClaimSite)) {
-    // Only the framework blocks raise claims: a table's coords are settled inside
-    // the table sumcheck.
-    let sources = block_kappa_sources(kbc);
-    let mut seen: std::collections::HashSet<(usize, usize)> = Default::default();
-    let mut bi = 0usize;
-    for blocks in sides.iter() {
-        for blk in blocks.iter() {
-            let source = sources[bi];
-            bi += 1;
-            if source.0 >= 2 {
-                continue;
-            }
-            for c in &blk.coords {
-                if let Coord::Col(i) | Coord::GCol(i, _) = c {
-                    if !seen.insert((*i, blk.kappa)) {
-                        continue; // deduped: pooled once at its first occurrence
-                    }
-                    assert!(keccak_value(*i).is_none(), "{VALCOL_FRAMEWORK}");
-                    visit(ClaimSite::Framework { column: *i, source });
+/// The claim pool in the exact order the guest indexes it: the framework bus
+/// claims (deduped by `(column, kappa)`, as `leaf.rs` pools them), then every
+/// table's committed columns, then the PI memory limbs. With it, for every
+/// coordinate of every block in order, `(fresh, slot)`: whether it raises its
+/// framework claim first, and that claim's slot; zero for one that raises none.
+pub(super) fn claim_pool(sides: &[Vec<Block>; 3], kbc: usize) -> (Vec<ClaimSite>, Vec<(usize, usize)>) {
+    let (mut pool, mut coords) = (Vec::new(), Vec::new());
+    let mut slot_of: HashMap<(usize, usize), usize> = HashMap::new();
+    for (blk, &source) in sides.iter().flatten().zip(&block_kappa_sources(kbc)) {
+        for c in &blk.coords {
+            // Only the framework blocks raise claims: a table's coords are settled inside
+            // the table sumcheck.
+            let column = match c {
+                Coord::Col(i) | Coord::GCol(i, _) if source.0 < 2 => *i,
+                _ => {
+                    coords.push((0, 0));
+                    continue;
                 }
+            };
+            let key = (column, blk.kappa);
+            let fresh = !slot_of.contains_key(&key);
+            if fresh {
+                assert!(keccak_value(column).is_none(), "{VALCOL_FRAMEWORK}");
+                slot_of.insert(key, pool.len());
+                pool.push(ClaimSite::Framework { column, source });
             }
+            coords.push((usize::from(fresh), slot_of[&key]));
         }
     }
     for (t, (&base, &width)) in GLOBAL_COLUMN_BASES.iter().zip(&TABLE_WIDTHS).enumerate() {
-        for c in 0..width {
-            visit(ClaimSite::TableColumn {
-                column: base + c,
-                table: t,
-            });
-        }
+        pool.extend((base..base + width).map(|column| ClaimSite::TableColumn { column, table: t }));
     }
-    for &column in &[MEM_LO, MEM_HI] {
-        visit(ClaimSite::MemoryLimb { column });
-    }
+    pool.extend([MEM_LO, MEM_HI].map(|column| ClaimSite::MemoryLimb { column }));
+    (pool, coords)
 }
 
 pub(super) struct Term {
