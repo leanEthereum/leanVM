@@ -647,5 +647,38 @@ theorem placeArms_pick (we : E) : ∀ (arms : List (List Stmt)) (jp j : ℕ) (st
 
 end Pick
 
+/-! ## A stage's cells -/
+
+section Cells
+
+variable {ctx : Backend.Ctx} {I : Inst} {C : (ℕ → E) → Prop} {st : St}
+
+/-- **The cells an unchained `match` jumps with**: its selector's (holding its value), the frame
+pointer's and the pooled `1`. -/
+theorem matchCells_fat (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0)
+    (hk1 : I.kw (.const 1 0) = Guest.word 1 0) {x : V} {rest : List Stmt} {ok : V → Prop}
+    (hv : VW I C st ok) (hx : ok x) (h2 : 2 ≤ st.next) :
+    FAt ctx I C st (matchCells x rest false) fun r C' st' => r.2.1 = none ∧
+      2 ≤ r.1 ∧ r.1 < st'.next ∧ (∀ Ψ, C' Ψ → Ψ r.1 = I.σ x) ∧
+      2 ≤ r.2.2.1 ∧ r.2.2.1 < st'.next ∧ (∀ Ψ, C' Ψ → Ψ r.2.2.1 = I.fpw) ∧
+      2 ≤ r.2.2.2 ∧ r.2.2.2 < st'.next ∧ (∀ Ψ, C' Ψ → Ψ r.2.2.2 = Guest.word 1 0) ∧
+      st'.locs = st.locs ∧ st'.rest = st.rest := by
+  unfold matchCells
+  simp only [Bool.false_eq_true, ite_false]
+  refine FAt.bind (cellOf_fat x hI hv hx) fun lx st₁ C₁ _ hn₁ _ ⟨hx2, hxlt, hlo₁, hr₁, hxw, _⟩ => ?_
+  refine FAt.bind (FAt.pure (R := fun a C' st' => a = (none : Option (Cell × ℕ)) ∧ C' = C₁ ∧
+    st' = st₁) ⟨rfl, rfl, rfl⟩) fun ns st₂ C₂ _ _ _ ⟨hns, hC₂, hst₂⟩ => ?_
+  subst hC₂ hst₂
+  refine FAt.bind (selfFp_fat hI hmain (le_trans h2 hn₁))
+    fun sfp st₃ C₃ hs₃ hn₃ _ ⟨hf2, hflt, hlo₃, hr₃, hfw, _⟩ => ?_
+  refine FAt.bind (constCell_fat (1, 0) hk1 (le_trans h2 (le_trans hn₁ hn₃)))
+    fun one st₄ C₄ hs₄ hn₄ _ ⟨ho2, holt, hlo₄, hr₄, how⟩ => ?_
+  refine FAt.pure ⟨hns, hx2, lt_of_lt_of_le hxlt (le_trans hn₃ hn₄),
+    fun Ψ hΨ => hxw Ψ (hs₃ Ψ (hs₄ Ψ hΨ)), hf2, lt_of_lt_of_le hflt hn₄,
+    fun Ψ hΨ => hfw Ψ (hs₄ Ψ hΨ), ho2, holt, how, by rw [hlo₄, hlo₃, hlo₁],
+    by rw [hr₄, hr₃, hr₁]⟩
+
+end Cells
+
 end
 end LeanVM.Guest.Backend.Complete
