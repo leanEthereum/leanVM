@@ -51,6 +51,36 @@ partial def callsSelf (f : String) : List Stmt → Bool
       | .match_ _ arms => arms.any (callsSelf f)
       | _ => false) || callsSelf f ss
 
+/-- The values the trace's events make, in order (`Complete.allocsOf`). -/
+def traceAllocs (tf : TracedFn) : List V :=
+  tf.trace.toList.flatMap fun
+    | .alloc vs _ => vs
+    | _ => []
+
+/-- Whether the values made by the trace are made once and none is a parameter. -/
+def allocsOnce (tf : TracedFn) : Bool :=
+  let step : Option (VMap Unit) → V → Option (VMap Unit) := fun m v => m.bind fun m =>
+    if m.contains v then none else some (m.insert v ())
+  ((traceAllocs tf).foldl step (some (tf.core.params.foldl (fun m v => m.insert v ()) {}))).isSome
+
+/-- The atoms of a body, at any depth. -/
+partial def atomsOf : List Stmt → List LeanVM.Guest.Core.Atom
+  | [] => []
+  | s :: ss => (match s with
+      | .atom a => [a]
+      | .ite _ z n => atomsOf z ++ atomsOf n
+      | .match_ _ arms => arms.flatMap atomsOf
+      | _ => []) ++ atomsOf ss
+
+/-- The stores of a value placed as a shifted pointer, and the frame addresses, of a placed body. -/
+def storesShifted (tf : TracedFn) (pf : Placed) : Nat × Nat :=
+  (atomsOf tf.core.body).foldl (fun (n, m) a => match a with
+    | .load d _ _ => match pf.locs[d]? with
+      | some (.shifted _ _) => (n + 1, m)
+      | _ => (n, m)
+    | .frameAddr _ _ => (n, m + 1)
+    | _ => (n, m)) (0, 0)
+
 def main (args : List String) : IO UInt32 := do
   let detail := args.contains "--detail"
   if args.contains "--selftest" then
@@ -95,4 +125,11 @@ def main (args : List String) : IO UInt32 := do
   let nsc := (P.filter noSelfCallB).length
   IO.println s!"noSelfCallB: {nsc} of {P.length} functions"
   for b in (if detail then badT else badT.extract 0 40) do IO.println s!"  {b}"
+  let nonce := P.filter fun tf => !allocsOnce tf
+  IO.println s!"allocations once, none a parameter: {P.length - nonce.length} of {P.length} functions"
+  for tf in (if detail then nonce else nonce.take 40) do IO.println s!"  {tf.core.name}"
+  let (nst, nfa) := (pls.zip P).foldl (fun (a, b) (pf, tf) =>
+    let (x, y) := storesShifted tf pf
+    (a + x, b + y)) (0, 0)
+  IO.println s!"stores of a shifted value: {nst}; frame addresses: {nfa}"
   return if bad.isEmpty && badT.isEmpty then 0 else 1
