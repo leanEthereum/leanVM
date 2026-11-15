@@ -21,35 +21,27 @@ pub struct PowerBasis {
 impl PowerBasis {
     /// `None` when `s` lies in a proper subfield, where its powers do not span the field.
     pub fn new(s: F128) -> Option<Self> {
-        // Row `r` holds bit `r` of every power, beside the identity.
-        let mut rows = vec![([0u64; 2], [0u64; 2]); 128];
+        // Column `b` holds a combination of powers, as its bits beside its coefficients. Column
+        // operations keep that so, and bring the bits to the identity: column `r` then holds the
+        // coefficients of the element whose only bit is `r`.
+        let mut columns = vec![([0u64; 2], [0u64; 2]); 128];
         let mut power = F128::ONE;
-        for b in 0..128 {
-            let p = power.to_limbs();
-            for (r, row) in rows.iter_mut().enumerate() {
-                row.0[b / 64] |= (p[r / 64] >> (r % 64) & 1) << (b % 64);
-            }
+        for (b, column) in columns.iter_mut().enumerate() {
+            *column = (power.to_limbs(), [0; 2]);
+            column.1[b / 64] = 1 << (b % 64);
             power *= s;
         }
-        for (r, row) in rows.iter_mut().enumerate() {
-            row.1[r / 64] = 1 << (r % 64);
-        }
-        for b in 0..128 {
-            let pivot = (b..128).find(|&r| rows[r].0[b / 64] >> (b % 64) & 1 == 1)?;
-            rows.swap(b, pivot);
-            let (pa, pi) = rows[b];
-            for (r, row) in rows.iter_mut().enumerate() {
-                if r != b && row.0[b / 64] >> (b % 64) & 1 == 1 {
-                    xor2(&mut row.0, &pa);
-                    xor2(&mut row.1, &pi);
+        for r in 0..128 {
+            let pivot = (r..128).find(|&b| columns[b].0[r / 64] >> (r % 64) & 1 == 1)?;
+            columns.swap(r, pivot);
+            let (pa, pi) = columns[r];
+            // Masked rather than branched on: whether a column has the bit is a coin flip.
+            for (b, column) in columns.iter_mut().enumerate() {
+                let mask = 0u64.wrapping_sub(column.0[r / 64] >> (r % 64) & u64::from(b != r));
+                for k in 0..2 {
+                    column.0[k] ^= pa[k] & mask;
+                    column.1[k] ^= pi[k] & mask;
                 }
-            }
-        }
-        // Row `b` of the inverse is coefficient `b` as a function of the element's bits.
-        let mut columns = [[0u64; 2]; 128];
-        for (b, row) in rows.iter().enumerate() {
-            for (r, column) in columns.iter_mut().enumerate() {
-                column[b / 64] |= (row.1[r / 64] >> (r % 64) & 1) << (b % 64);
             }
         }
         let tables = (0..16)
@@ -58,7 +50,7 @@ impl PowerBasis {
                 for byte in 1..256usize {
                     let low = byte.trailing_zeros() as usize;
                     t[byte] = t[byte & (byte - 1)];
-                    xor2(&mut t[byte], &columns[8 * k + low]);
+                    xor2(&mut t[byte], &columns[8 * k + low].1);
                 }
                 t
             })

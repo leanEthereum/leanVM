@@ -170,7 +170,7 @@ fn round_values(a: &[F128], b: &[F128], width: usize) -> (F128, F128) {
     (zero, infinity)
 }
 
-pub(crate) fn fold(table: &[F128], width: usize, challenge: F128) -> Vec<F128> {
+fn fold(table: &[F128], width: usize, challenge: F128) -> Vec<F128> {
     table
         .chunks_exact(2 * width)
         .flat_map(|pair| (0..width).map(move |j| interp(pair[j], pair[width + j], challenge)))

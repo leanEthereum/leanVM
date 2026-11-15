@@ -14,8 +14,8 @@ use crate::basis::{PolyEval, PowerBasis, add_mul};
 
 pub type Element = [u64; 2];
 
-/// A row kernel's vector form, where one is compiled and `width` is whole vectors of it, else
-/// `portable`. The caller bounds every row.
+/// A row kernel's vector form, where one is compiled and its first argument (a row's or a run's width) is whole
+/// vectors of it, else `portable`. The caller bounds every row.
 macro_rules! row_kernel {
     ($width:expr, $kernel:ident($($arg:expr),*), $portable:expr) => {
         cfg_select! {
@@ -77,8 +77,12 @@ impl PowerField {
                     barrett[shift / 64] |= 1 << (shift % 64);
                 }
                 dividend[bit / 64] ^= 1 << (bit % 64);
-                for b in (0..128).filter(|b| modulus[b / 64] >> (b % 64) & 1 == 1) {
-                    dividend[(b + shift) / 64] ^= 1 << ((b + shift) % 64);
+                let (words, bits) = (shift / 64, shift % 64);
+                for (i, &m) in modulus.iter().enumerate() {
+                    dividend[words + i] ^= m << bits;
+                    if bits > 0 {
+                        dividend[words + i + 1] ^= m >> (64 - bits);
+                    }
                 }
             }
         }
@@ -114,11 +118,48 @@ impl PowerField {
         self.reduce(&mul_wide2(a, b))
     }
 
-    /// `sum of a[j] * b[j]` and `sum of (a[j] + a'[j]) * (b[j] + b'[j])` over two pairs of rows,
-    /// unreduced.
-    pub fn dot_pair(&self, a: [&[u64]; 2], b: [&[u64]; 2], width: usize) -> ([u64; 4], [u64; 4]) {
-        assert!(a.iter().chain(&b).all(|row| row.len() >= 2 * width));
-        row_kernel!(width, dot_pair(a, b, width), dot_pair_portable(a, b, width))
+    /// `sum of B[j] * T2[j]` and `sum of (B[j] + B'[j]) * (T2[j] + T2'[j])` over a pair of rows
+    /// `t` and `t'`, unreduced, where `B[j] = a[j] * T1[j] + c[j]`, reduced. `T1` and `T2` read
+    /// their row a run of `run` entries at a time: `T1[r + o] = t[s1 + o]` and `T2[r + o] = t[s2 + o]`,
+    /// `(s1, s2)` the `r / run`-th of `sources`.
+    pub fn pair_sums(
+        &self,
+        a: &[u64],
+        c: &[u64],
+        t: [&[u64]; 2],
+        width: usize,
+        run: usize,
+        sources: &[(usize, usize)],
+    ) -> ([u64; 4], [u64; 4]) {
+        assert!([a, c, t[0], t[1]].iter().all(|row| row.len() >= 2 * width) && width.is_multiple_of(run));
+        assert!(sources.len() == width / run && sources.iter().all(|&(s1, s2)| s1.max(s2) + run <= width));
+        row_kernel!(
+            run,
+            pair_sums(self, a, c, t, width, run, sources),
+            self.pair_sums_portable(a, c, t, width, run, sources)
+        )
+    }
+
+    pub fn pair_sums_portable(
+        &self,
+        a: &[u64],
+        c: &[u64],
+        t: [&[u64]; 2],
+        width: usize,
+        run: usize,
+        sources: &[(usize, usize)],
+    ) -> ([u64; 4], [u64; 4]) {
+        let (mut zero, mut infinity) = ([0u64; 4], [0u64; 4]);
+        for (r, &(s1, s2)) in (0..width).step_by(run).zip(sources) {
+            for o in 0..run {
+                let (w, c) = (get(a, width, r + o), get(c, width, r + o));
+                let [b0, b1] = t.map(|t| add(&self.mul(&w, &get(t, width, s1 + o)), &c));
+                let [y0, y1] = t.map(|t| get(t, width, s2 + o));
+                add_mul(&mut zero, &b0, &y0);
+                add_mul(&mut infinity, &add(&b0, &b1), &add(&y0, &y1));
+            }
+        }
+        (zero, infinity)
     }
 
     /// `dst[j] = lo[j] + challenge * (lo[j] + hi[j])`.
@@ -148,33 +189,18 @@ impl PowerField {
         }
     }
 
-    /// `dst[j] = a[j] * b[j] + c[j]`.
-    pub fn mul_row(&self, dst: &mut [u64], a: &[u64], b: &[u64], c: &[u64], width: usize) {
-        assert!(dst.len() >= 2 * width && [a, b, c].iter().all(|row| row.len() >= 2 * width));
-        row_kernel!(
-            width,
-            mul_row(self, dst, a, b, c, width),
-            self.mul_row_portable(dst, a, b, c, width)
-        )
-    }
-
-    pub fn mul_row_portable(&self, dst: &mut [u64], a: &[u64], b: &[u64], c: &[u64], width: usize) {
-        for j in 0..width {
-            let (p, c) = (self.mul(&get(a, width, j), &get(b, width, j)), get(c, width, j));
-            set(dst, width, j, &[p[0] ^ c[0], p[1] ^ c[1]]);
-        }
-    }
-
     pub fn fold_row_portable(&self, dst: &mut [u64], lo: &[u64], hi: &[u64], challenge: &Element, width: usize) {
         for j in 0..width {
-            let (l, h) = (get(lo, width, j), get(hi, width, j));
-            let delta = [l[0] ^ h[0], l[1] ^ h[1]];
-            let folded = self.mul(challenge, &delta);
-            for k in 0..2 {
-                dst[k * width + j] = l[k] ^ folded[k];
-            }
+            let l = get(lo, width, j);
+            let folded = self.mul(challenge, &add(&l, &get(hi, width, j)));
+            set(dst, width, j, &add(&l, &folded));
         }
     }
+}
+
+#[inline(always)]
+fn add(a: &Element, b: &Element) -> Element {
+    [a[0] ^ b[0], a[1] ^ b[1]]
 }
 
 /// Entry `j` of a row.
@@ -188,26 +214,6 @@ pub fn set(row: &mut [u64], width: usize, j: usize, value: &Element) {
     for k in 0..2 {
         row[k * width + j] = value[k];
     }
-}
-
-pub fn dot_pair_portable(a: [&[u64]; 2], b: [&[u64]; 2], width: usize) -> ([u64; 4], [u64; 4]) {
-    let (mut zero, mut infinity) = ([0u64; 4], [0u64; 4]);
-    for j in 0..width {
-        let (a0, a1, b0, b1) = (
-            get(a[0], width, j),
-            get(a[1], width, j),
-            get(b[0], width, j),
-            get(b[1], width, j),
-        );
-        let da = [a0[0] ^ a1[0], a0[1] ^ a1[1]];
-        let db = [b0[0] ^ b1[0], b0[1] ^ b1[1]];
-        for (acc, p) in [(&mut zero, mul_wide2(&a0, &b0)), (&mut infinity, mul_wide2(&da, &db))] {
-            for (x, y) in acc.iter_mut().zip(p) {
-                *x ^= y;
-            }
-        }
-    }
-    (zero, infinity)
 }
 
 /// The x86 kernels on a register of [`Vector`](crate::clmul::Vector) lanes, two entries to a lane.
@@ -295,23 +301,40 @@ mod x86 {
         std::array::from_fn(|k| even[k].unpacklo(odd[k]))
     }
 
-    pub unsafe fn dot_pair(a: [&[u64]; 2], b: [&[u64]; 2], width: usize) -> ([u64; 4], [u64; 4]) {
+    pub unsafe fn pair_sums(
+        field: &PowerField,
+        a: &[u64],
+        c: &[u64],
+        t: [&[u64]; 2],
+        width: usize,
+        run: usize,
+        sources: &[(usize, usize)],
+    ) -> ([u64; 4], [u64; 4]) {
         let mut acc = [[V::zero(); 3]; 2];
-        for j in (0..width).step_by(STEP) {
-            let (a0, a1, b0, b1) = unsafe {
-                (
-                    load2(a[0], width, j),
-                    load2(a[1], width, j),
-                    load2(b[0], width, j),
-                    load2(b[1], width, j),
-                )
-            };
-            for (acc, p) in acc
-                .iter_mut()
-                .zip([partial(&a0, &b0), partial(&xor2(&a0, &a1), &xor2(&b0, &b1))])
-            {
-                for s in 0..3 {
-                    acc[s] = acc[s].xor(p[0][s].xor(p[1][s]));
+        for (r, &(s1, s2)) in (0..width).step_by(run).zip(sources) {
+            for o in (0..run).step_by(STEP) {
+                // SAFETY: the caller bounds every row and run.
+                let (w, c, x0, x1, y0, y1) = unsafe {
+                    (
+                        load2(a, width, r + o),
+                        load2(c, width, r + o),
+                        load2(t[0], width, s1 + o),
+                        load2(t[1], width, s1 + o),
+                        load2(t[0], width, s2 + o),
+                        load2(t[1], width, s2 + o),
+                    )
+                };
+                // `B` in registers, where it is read: `c` is in both rows' `B`, so not in their sum.
+                let sw = w[0].xor(w[1]);
+                let product = |x: &[V; 2]| reduce_pair(field, &karatsuba(&w, sw, x, x[0].xor(x[1])));
+                let (b0, b1) = (product(&x0), product(&x1));
+                for (acc, p) in acc
+                    .iter_mut()
+                    .zip([partial(&xor2(&b0, &c), &y0), partial(&xor2(&b0, &b1), &xor2(&y0, &y1))])
+                {
+                    for s in 0..3 {
+                        acc[s] = acc[s].xor(p[0][s].xor(p[1][s]));
+                    }
                 }
             }
         }
@@ -335,14 +358,6 @@ mod x86 {
                 reduce3(field, &w.map(at))
             });
             unsafe { store2(dst, width, j, std::array::from_fn(|k| even[k].unpacklo(odd[k]))) };
-        }
-    }
-
-    pub unsafe fn mul_row(field: &PowerField, dst: &mut [u64], a: &[u64], b: &[u64], c: &[u64], width: usize) {
-        for j in (0..width).step_by(STEP) {
-            let (a, b, c) = unsafe { (load2(a, width, j), load2(b, width, j), load2(c, width, j)) };
-            let product = reduce_pair(field, &partial(&a, &b));
-            unsafe { store2(dst, width, j, xor2(&c, &product)) };
         }
     }
 
@@ -450,22 +465,40 @@ mod neon {
         }
     }
 
-    pub unsafe fn dot_pair(a: [&[u64]; 2], b: [&[u64]; 2], width: usize) -> ([u64; 4], [u64; 4]) {
+    /// The reduced products of two pairs of entries, a lane each.
+    #[inline(always)]
+    unsafe fn mul(field: &PowerField, a: &[uint64x2_t; 2], b: &[uint64x2_t; 2]) -> [uint64x2_t; 2] {
+        unsafe {
+            let sums = partial(a, b, ALL);
+            reduce(field, &std::array::from_fn(|w| word(&sums, w)))
+        }
+    }
+
+    pub unsafe fn pair_sums(
+        field: &PowerField,
+        a: &[u64],
+        c: &[u64],
+        t: [&[u64]; 2],
+        width: usize,
+        run: usize,
+        sources: &[(usize, usize)],
+    ) -> ([u64; 4], [u64; 4]) {
         unsafe {
             let mut acc = [[vdupq_n_u64(0); 3]; 2];
-            for j in (0..width).step_by(2) {
-                let (a0, a1, b0, b1) = (
-                    load2(a[0], width, j),
-                    load2(a[1], width, j),
-                    load2(b[0], width, j),
-                    load2(b[1], width, j),
-                );
-                for (acc, p) in acc
-                    .iter_mut()
-                    .zip([partial(&a0, &b0, ALL), partial(&xor2(&a0, &a1), &xor2(&b0, &b1), ALL)])
-                {
-                    for s in 0..3 {
-                        acc[s] = veorq_u64(acc[s], veorq_u64(p[0][s], p[1][s]));
+            for (r, &(s1, s2)) in (0..width).step_by(run).zip(sources) {
+                for o in (0..run).step_by(2) {
+                    let (w, c) = (load2(a, width, r + o), load2(c, width, r + o));
+                    let (y0, y1) = (load2(t[0], width, s2 + o), load2(t[1], width, s2 + o));
+                    // `B` in registers, where it is read: `c` is in both rows' `B`, so not in their sum.
+                    let b0 = mul(field, &w, &load2(t[0], width, s1 + o));
+                    let b1 = mul(field, &w, &load2(t[1], width, s1 + o));
+                    for (acc, p) in acc.iter_mut().zip([
+                        partial(&xor2(&b0, &c), &y0, ALL),
+                        partial(&xor2(&b0, &b1), &xor2(&y0, &y1), ALL),
+                    ]) {
+                        for s in 0..3 {
+                            acc[s] = veorq_u64(acc[s], veorq_u64(p[0][s], p[1][s]));
+                        }
                     }
                 }
             }
@@ -491,16 +524,6 @@ mod neon {
         }
     }
 
-    pub unsafe fn mul_row(field: &PowerField, dst: &mut [u64], a: &[u64], b: &[u64], c: &[u64], width: usize) {
-        unsafe {
-            for j in (0..width).step_by(2) {
-                let sums = partial(&load2(a, width, j), &load2(b, width, j), ALL);
-                let product = reduce(field, &std::array::from_fn(|w| word(&sums, w)));
-                store2(dst, width, j, &xor2(&product, &load2(c, width, j)));
-            }
-        }
-    }
-
     pub unsafe fn fold_row(
         field: &PowerField,
         dst: &mut [u64],
@@ -513,8 +536,7 @@ mod neon {
             let challenge: [uint64x2_t; 2] = std::array::from_fn(|k| vdupq_n_u64(challenge[k]));
             for j in (0..width).step_by(2) {
                 let l = load2(lo, width, j);
-                let sums = partial(&xor2(&l, &load2(hi, width, j)), &challenge, ALL);
-                let folded = reduce(field, &std::array::from_fn(|w| word(&sums, w)));
+                let folded = mul(field, &xor2(&l, &load2(hi, width, j)), &challenge);
                 store2(dst, width, j, &xor2(&l, &folded));
             }
         }
@@ -551,11 +573,19 @@ mod tests {
             a0[3] * b0[5]
         );
 
-        let (zero, infinity) = field.dot_pair([&ra0, &ra1], [&rb0, &rb1], width);
-        assert_eq!((zero, infinity), dot_pair_portable([&ra0, &ra1], [&rb0, &rb1], width));
-        let expected = (0..width).map(|j| a0[j] * b0[j]).sum();
+        // Runs of eight, `T1` read from the other run and `T2` from its own.
+        let sources: Vec<_> = (0..width).step_by(8).map(|r| ((r + 8) % width, r)).collect();
+        let (zero, infinity) = field.pair_sums(&ra0, &ra1, [&rb0, &rb1], width, 8, &sources);
+        assert_eq!(
+            (zero, infinity),
+            field.pair_sums_portable(&ra0, &ra1, [&rb0, &rb1], width, 8, &sources)
+        );
+        let big_b = |t: &[F128], j: usize| a0[j] * t[(j + 8) % width] + a1[j];
+        let expected = (0..width).map(|j| big_b(&b0, j) * b0[j]).sum();
         assert_eq!(field.to_field(&field.reduce(&zero)), expected);
-        let expected = (0..width).map(|j| (a0[j] + a1[j]) * (b0[j] + b1[j])).sum();
+        let expected = (0..width)
+            .map(|j| (big_b(&b0, j) + big_b(&b1, j)) * (b0[j] + b1[j]))
+            .sum();
         assert_eq!(field.to_field(&field.reduce(&infinity)), expected);
 
         let challenge = rng.ext();
@@ -577,12 +607,6 @@ mod tests {
         for j in 0..width {
             let p = [wide[j], wide[width + j], wide[2 * width + j]];
             assert_eq!(field.to_field(&get(&fast, width, j)), eval.eval(&p));
-        }
-        field.mul_row(&mut fast, &ra0, &rb0, &rb1, width);
-        field.mul_row_portable(&mut slow, &ra0, &rb0, &rb1, width);
-        assert_eq!(fast, slow);
-        for j in 0..width {
-            assert_eq!(field.to_field(&get(&fast, width, j)), a0[j] * b0[j] + b1[j]);
         }
     }
 }
