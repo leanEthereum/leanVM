@@ -165,12 +165,16 @@ fn write_cache(path: &Path, bytes: &[u8]) {
 }
 
 /// `f` over `start..end` on plain threads, gone before it returns, with a progress line naming `what`. The cache is
-/// prover-independent, so it uses no prover's pool.
+/// prover-independent, so it uses no prover's pool; it takes the pool's thread count, `LEANVM_NUM_THREADS` if set.
 fn generate<T: Send>(start: usize, end: usize, what: &str, f: impl Fn(usize) -> T + Sync) -> Vec<T> {
     let total = end - start;
     let started = Instant::now();
     let (next, done) = (AtomicUsize::new(0), AtomicUsize::new(0));
-    let threads = std::thread::available_parallelism().map_or(1, usize::from);
+    let threads = std::env::var("LEANVM_NUM_THREADS")
+        .ok()
+        .and_then(|n| n.parse().ok())
+        .filter(|&n| n > 0)
+        .unwrap_or_else(|| std::thread::available_parallelism().map_or(1, usize::from));
     let mut generated: Vec<(usize, T)> = std::thread::scope(|scope| {
         let worker = || {
             let mut mine = Vec::new();
