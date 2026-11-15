@@ -331,6 +331,11 @@ def PlaceInFrameStmt : Prop :=
     placeFn loops sigs t tf = .ok (pf, t') → Scoped tf →
     ∀ v n, cellP pf.locs v = some n → 2 ≤ n ∧ n < pf.fn.frameSize
 
+/-- **Placement pairs the placed body with the core body**, for a scoped function. -/
+def PlaceAlignedStmt : Prop :=
+  ∀ (loops : Loops) (sigs : SMap (ℕ × ℕ)) (t t' : Tables) (tf : TracedFn) (pf : Placed),
+    placeFn loops sigs t tf = .ok (pf, t') → Scoped tf → Aligned tf pf
+
 /-- **The frame of an instance is consistent** (the placement side): for a scoped function
 placed as `pf`, at a frame `fp` (`main`'s at `0`) whose frame addresses point into it, with callee
 frames `kfps` and header `hdr`, there is a frame family over the valuations, chosen before any
@@ -482,13 +487,14 @@ def World.FnComplete {κ : ℕ} (W : World κ) (tf : TracedFn) : Prop :=
 def FnCompleteStmt : Prop :=
   ∀ {κ : ℕ} (W : World κ), W.Compiled → ∀ tf ∈ W.p, World.FnComplete W tf
 
-/-- **(The counts)** A path to a return runs at most the placed body's path maxima and the
-separately counted arms it passes. -/
+/-- **(The counts)** On a placed function that pairs up with its core body, a path to a return
+runs at most the placed body's path maxima and the separately counted arms it passes, the
+separately counted stages on distinct selectors. -/
 def PathOpsStmt : Prop :=
-  ∀ (loops : Loops) (sigs : SMap (ℕ × ℕ)) (t t' : Tables) (tf : TracedFn) (pf : Placed),
-    placeFn loops sigs t tf = .ok (pf, t') → Scoped tf →
+  ∀ (tf : TracedFn) (pf : Placed), Aligned tf pf → ∀ (keyed : Bool),
+    ((armsP keyed tf pf).map (·.1)).Nodup →
     ∀ (σ : Val) (es : List Ev) (vs : List V), walk σ tf.core.body = .ret es vs →
-    ∀ (keyed : Bool) (op : Opcode),
+    ∀ op : Opcode,
       pathOps σ tf pf op ≤ pmaxP keyed pf op + armsCost (armsP keyed tf pf) σ tf.core.body op
 
 end
