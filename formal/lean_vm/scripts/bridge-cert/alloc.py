@@ -299,15 +299,34 @@ def fr_spine(ss):
     return out
 
 
-def fr_stmts(ss):
+def fr_spine_named(ss):
+    """`Bridge.spineNamed`: the returns of the calls on a block's spine."""
+    out = []
     for s in ss:
-        yield s
+        if s[0] == 'atom' or s[0] in ('callIf', 'dispatch'):
+            pass
+        elif s[0] == 'call':
+            out += s[3]
+        elif s[0] == 'ite' and fr_noret(s[2]) and fr_noret(s[3]):
+            pass
+        elif s[0] == 'match' and all(fr_noret(a) for a in s[2]):
+            pass
+        else:
+            break
+    return out
+
+
+def fr_stmts(ss, sp, nm):
+    """`Bridge.callsSpL`: each statement with the atoms and values on every path through it, each enclosing
+    block's spine (`Bridge.spine`, `Bridge.spineNamed`)."""
+    for s in ss:
+        yield s, sp, nm
         if s[0] == 'ite':
-            yield from fr_stmts(s[2])
-            yield from fr_stmts(s[3])
+            yield from fr_stmts(s[2], sp + fr_spine(s[2]), nm + fr_spine_named(s[2]))
+            yield from fr_stmts(s[3], sp + fr_spine(s[3]), nm + fr_spine_named(s[3]))
         elif s[0] == 'match':
             for a in s[2]:
-                yield from fr_stmts(a)
+                yield from fr_stmts(a, sp + fr_spine(a), nm + fr_spine_named(a))
 
 
 def fr_uses(a):
@@ -318,15 +337,47 @@ def fr_uses(a):
         return [a[1], a[2], a[3]]
     if a[0] == 'other':
         return a[2]
+    if a[0] == 'hint':
+        h = a[1]
+        if h[0] == 'witness':
+            d = h[2]
+            return list(d[1]) if d[0] == 'stack' else [d[1]]
+        if h[0] == 'alloc':
+            return [h[1]]
+        if h[0] == 'allocDyn':
+            return [h[1], h[2]]
     return []
 
 
+def fr_gpow(e):
+    """`g^e` in `K`, `g = x` modulo `x^64 + x^4 + x^3 + x + 1`."""
+    r, a = 1, 2
+    while e:
+        if e & 1:
+            r = fr_kmul(r, a)
+        a, e = fr_kmul(a, a), e >> 1
+    return r
+
+
+def fr_kmul(a, b):
+    r = 0
+    while b:
+        if b & 1:
+            r ^= a
+        b >>= 1
+        a <<= 1
+        if a >> 64:
+            a ^= (1 << 64) | 0b11011
+    return r
+
+
 def fr_const_ok(w, e):
-    return w == (2 ** e, 0)
+    """`Memory.constOk`."""
+    return e < 2 ** 20 and w == (fr_gpow(e), 0)
 
 
-def fr_loop_tail(body, name, np):
-    """`(loopTail fn none).isSome`."""
+def fr_loop_tail(body, name, np, endc=None):
+    """`(loopTail fn endc).isSome`."""
     if len(body) < 2 or body[-1] != ('ret', []) or body[-2][0] != 'callIf' or np < 1:
         return False
     _, c, g, args = body[-2]
@@ -349,8 +400,18 @@ def fr_loop_tail(body, name, np):
     a = defatom(c)
     if not is_step(args[0]) or not a or a[0] != 'add':
         return False
-    is_end = lambda y: np >= 2 and y == 1
+    if endc is None:
+        is_end = lambda y: np >= 2 and y == 1
+    else:
+        is_end = lambda y: (lambda b: b is not None and b[0] == 'const' and fr_const_ok(b[2], endc))(defatom(y))
     return (is_step(a[2]) and is_end(a[3])) or (is_step(a[3]) and is_end(a[2]))
+
+
+def fr_end_of(body, name, np):
+    """`Res.endOfFn`: `'param'` when the loop helper ends at its second parameter, else its constant end's exponent."""
+    if fr_loop_tail(body, name, np):
+        return 'param'
+    return next((e for e in range(256) if fr_loop_tail(body, name, np, e)), None)
 
 
 def fr_data(F, A, fb, np, locs, extra, fs, cal):
@@ -360,8 +421,6 @@ def fr_data(F, A, fb, np, locs, extra, fs, cal):
     frames = [(pc - A['entry'], h) for pc, l in A['hints'] for h in l if h[0] in ALLOC and h[1] in F['sites']]
     if not frames:
         return [], []
-    sp = fr_spine(fb)
-
     def sp_const(v, e):
         return any(a[0] == 'const' and a[1] == v and fr_const_ok(a[2], e) for a in sp)
 
@@ -379,7 +438,7 @@ def fr_data(F, A, fb, np, locs, extra, fs, cal):
                     return True
         return False
     cs, skip = set(), set()
-    for st in fr_stmts(fb):
+    for st, sp, nm in fr_stmts(fb, fr_spine(fb), fr_spine_named(fb)):
         if st[0] not in ('call', 'callIf', 'dispatch'):
             continue
         args = st[2] if st[0] == 'call' else st[3]
@@ -391,12 +450,15 @@ def fr_data(F, A, fb, np, locs, extra, fs, cal):
             ok = False
             if h[0] == 'alloc' and st[0] == 'call':
                 c = cal(st[1])
-                ok = c is not None and c[1] == h[2] and not c[2]
+                a0 = st[2][0] if st[2] else None
+                ok = c is not None and ((c[1] == h[2] and not c[2]) or (c[2] and isinstance(c[4], int) and a0 is not None and (
+                    (sp_const(a0, 0) and 0 < c[4] and (c[4] + 1) * c[1] == h[2]) or
+                    (sp_const(a0, 1) and 1 < c[4] and c[4] * c[1] == h[2]))))
                 if c:
                     cs.add(c[0])
             elif h[0] == 'allocArm' and st[0] == 'dispatch':
                 x, sel, sizes = st[1], h[2], h[3]
-                ok = loc(x) == sel and cell(x) and ((x < np and x not in extra) or any(x in fr_uses(a) for a in sp)) and len(sizes) < 2 ** 28
+                ok = loc(x) == sel and cell(x) and ((x < np and x not in extra) or any(x in fr_uses(a) for a in sp) or x in nm) and len(sizes) < 2 ** 28
                 for i, f in enumerate(st[2]):
                     c = cal(f)
                     ok = ok and c is not None and i < len(sizes) and sizes[i] == c[1] and not c[2]
@@ -433,7 +495,7 @@ def run(check):
         np_ = len(re.findall(r'\.n \d+', re.search(r'params := ([^\n]*)', cores[k]).group(1)))
         nps[k] = np_
         lpn = name.startswith('__loop')
-        byname[name] = (j, fss[k], lpn, lpn and fr_loop_tail(fbs[k], name, np_))
+        byname[name] = (j, fss[k], lpn, lpn and fr_loop_tail(fbs[k], name, np_), lpn and fr_end_of(fbs[k], name, np_))
     frd = {}
     for j, (k, _, _) in sorted(lk.items()):
         F = dict(fns[k], main=(j == 1))

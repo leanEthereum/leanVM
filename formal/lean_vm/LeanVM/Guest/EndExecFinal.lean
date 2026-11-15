@@ -85,7 +85,8 @@ structure OpenGaps : Prop where
   and the hints (`HintsOk`) of `main_loop2` and `sp_wots`. False as stated: 12 of the walks fail. -/
   modeHyps : Mode.ModeHyps
   /-- Allocation track: the allocation facts still open (`AllocOpen`: the `heap_sizes` pushes the
-  reference tree's advised sizes, the frame hints the check skips). -/
+  reference tree's advised sizes, the frame hint the sizes check skips: `verify_bus_gkr`'s loop, whose guard reloads
+  its end into another value). -/
   alloc : AllocOpen
 
 /-! ## The assembly -/

@@ -15,9 +15,6 @@ namespace LeanVM.Guest.Bridge.AllocChk
 /-- **The frame hints the frame sizes check skips**, by compiled function: their offsets. -/
 def frSkipAt : Nat → List Nat
   | 10 => [321]
-  | 14 => [11]
-  | 24 => [47, 73, 94]
-  | 28 => [41, 73]
   | _ => []
 
 end
