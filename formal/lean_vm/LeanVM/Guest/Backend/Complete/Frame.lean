@@ -245,6 +245,34 @@ def FAt {α : Type} (ctx : Ctx) (I : Inst) (C : (ℕ → E) → Prop) (st : St) 
   wpP m ctx st fun a st' => ∃ C', COk I C' st'.next st'.scope ∧ Stronger C' C ∧
     st.next ≤ st'.next ∧ EmitsW I C' st st' ∧ R a C' st'
 
+/-- **The words of the values the walk knows on the path** (`ok`): each placed one is past the
+header and below the next free cell, and its place holds its word under the constraint. -/
+def VW (I : Inst) (C : (ℕ → E) → Prop) (st : St) (ok : V → Prop) : Prop :=
+  ∀ v l, ok v → st.locs[v]? = some l →
+    2 ≤ locBase l ∧ locBase l < st.next ∧ ∀ Ψ, C Ψ → locW Ψ l = I.σ v
+
+/-- What the walk takes of an instance: some reader holds the path's events, and the layout
+resolves a `SET` constant to its word and the frame size to `g^size`. -/
+structure Inst.Ok (I : Inst) : Prop where
+  rd : ∃ rd, I.Rd rd
+  kconst : ∀ x y, I.kw (.const x y) = Guest.word x y
+  ksize : I.kw .frameSize = ofK (addressOfIndex I.size)
+
+/-- **The shape of an atom on the path** (`FrameAtoms.lean`): from a state whose known values
+include the atom's (a copy dropped into a sponge alias apart), its event on every reader of the
+path, an address's word being the frame address of its run's first cell, placing the atom keeps
+the known values' words, knows the atom's values, keeps the places and leaves the trace. -/
+def AtomFAt (a : Atom) : Prop :=
+  ∀ (ctx : Ctx) (I : Inst) (C : (ℕ → E) → Prop) (st : St) (ok : V → Prop),
+    I.Ok → (ctx.isMain = true → I.fp = 0) → (∀ rd, I.Rd rd → a.Holds rd I.σ) →
+    (∀ p run r0 base, a = .frameAddr p run → run.head? = some r0 →
+      st.locs[r0]? = some (.cell base) → I.σ p = ofK (addressOfIndex (I.fp + base))) →
+    2 ≤ st.next → VW I C st ok →
+    (∀ v ∈ Memory.atomUses a ++ Memory.atomTmps a, ok v ∨ ∃ s, a = .copy v s) →
+    FAt ctx I C st (placeAtom a) fun _ C' st' =>
+      VW I C' st' (fun v => ok v ∨ v ∈ Memory.atomUses a ++ Memory.atomTmps a) ∧
+        st'.rest = st.rest ∧ ∀ (v : V) (l : Loc), st.locs[v]? = some l → st'.locs[v]? = some l
+
 /-! ## Primitives on the path -/
 
 section Prims
