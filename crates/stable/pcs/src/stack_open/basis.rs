@@ -14,7 +14,7 @@
 //! place in level 0's fold rounds. Claims with the same `pi` share its dot with each block.
 
 use primitives::bit_fold::BitFold;
-use primitives::bits::bit_transpose_64bytes;
+use primitives::field::lanes::transpose_bits;
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8};
 
 use super::{RingSwitchOpen, StackClaim};
@@ -252,11 +252,11 @@ impl Terms {
                     run.masses[r] += ring.e_hi[h];
                     if run.folds[r].is_none() {
                         let cols = run.cols.get_or_insert_with(|| {
-                            let mut cols = [[0u8; BLOCK]; BLOCK / 8];
-                            for (col, group) in cols.iter_mut().zip(primitives::cast_slice::<F64, [u8; 64]>(words)) {
-                                bit_transpose_64bytes(group, col);
-                            }
-                            cols
+                            let rows = primitives::cast_slice::<F64, [u64; 8]>(words);
+                            std::array::from_fn(|c| {
+                                let column = transpose_bits(rows[c]).map(u64::to_le_bytes);
+                                column.as_flattened().try_into().expect("a column of 64 bytes")
+                            })
                         });
                         let mut folded = [F128::ZERO; BLOCK];
                         ring.fold.fold_columns(cols, &mut folded);
