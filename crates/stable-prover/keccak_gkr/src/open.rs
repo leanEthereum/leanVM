@@ -50,7 +50,7 @@ impl Openings {
                 s_hat_v: Some(self.inputs.slices),
             }],
         };
-        let outputs = self.outputs.map(|outputs| StackClaim::Point {
+        let outputs = self.outputs.map(|outputs| StackClaim {
             offset,
             low_point: outputs.point,
             value: outputs.value,

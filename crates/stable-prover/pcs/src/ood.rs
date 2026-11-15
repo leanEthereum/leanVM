@@ -6,7 +6,7 @@
 //! probability at most `m / q`: the sample fails to bind with at most `C(L_0, 2) m / q`, and every later challenge
 //! faces one candidate.
 //!
-//! The value becomes a [`StackClaim::Point`] over the whole stack, which joins the stacked opening's claims last.
+//! The value becomes a [`StackClaim`] over the whole stack, which joins the stacked opening's claims last.
 
 use primitives::field::F64;
 use primitives::multilinear::mle_eval_par;
@@ -22,7 +22,7 @@ pub fn ood_sample(ps: &mut ProverState, stack: &[F64], log_n: usize) -> StackCla
     let low_point = ps.sample_vec(log_n);
     let value = tracing::info_span!("OOD").in_scope(|| mle_eval_par(stack, &low_point));
     ps.add_scalar(value);
-    StackClaim::Point {
+    StackClaim {
         offset: 0,
         low_point,
         value,
@@ -42,7 +42,7 @@ mod tests {
         let (log_n, lane_vars) = (16, 10);
         let stack: Vec<F64> = (0..13 << lane_vars).map(|_| F64(rng.next_u64())).collect();
         let mut ps = ProverState::new([1; 4], [2; 4]);
-        let StackClaim::Point {
+        let StackClaim {
             offset,
             low_point,
             value,

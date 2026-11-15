@@ -52,7 +52,7 @@ fn main() {
     let point: Vec<F128> = rng.ext_vec(log_n);
     let target = inner_product_base_ext(&witness, &eq_table_serial(&point));
     // One point claim over the whole witness, then smaller ones on its quarters, and ring claims on its first half.
-    let mut claims = vec![StackClaim::Point {
+    let mut claims = vec![StackClaim {
         offset: 0,
         low_point: point,
         value: target,
@@ -61,7 +61,7 @@ fn main() {
         let offset = (c % 4) << (log_n - 2);
         let low_point = rng.ext_vec(log_n - 2);
         let value = inner_product_base_ext(&witness[offset..offset + (n >> 2)], &eq_table_serial(&low_point));
-        claims.push(StackClaim::Point {
+        claims.push(StackClaim {
             offset,
             low_point,
             value,

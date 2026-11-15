@@ -437,7 +437,7 @@ fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::SlotClaim> {
                 Some(KeccakLane::Slot(slot)) => l.placements[QKECCAK].offset + (slot << c.point.len()),
                 _ => l.placements[c.col].offset,
             };
-            pcs::SlotClaim::Point {
+            pcs::SlotClaim {
                 offset,
                 low_point: c.point,
                 value: c.value,

@@ -28,16 +28,13 @@ mod basis;
 
 pub(crate) use basis::{LOW_VARS, Terms};
 
-/// A point claim on the stack.
+/// A point claim on the stack: `eq(low_point, .)` on the aligned slice `[offset, offset + 2^|low_point|)`; `offset`
+/// must be a multiple of `2^|low_point|`.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum StackClaim {
-    /// `eq(low_point, .)` on the aligned slice `[offset, offset + 2^|low_point|)`; `offset` must be a multiple of
-    /// `2^|low_point|`.
-    Point {
-        offset: usize,
-        low_point: Vec<F128>,
-        value: F128,
-    },
+pub struct StackClaim {
+    pub offset: usize,
+    pub low_point: Vec<F128>,
+    pub value: F128,
 }
 
 /// One ring-switched claim on `q_keccak`: its 64 bit slices at `suffix_point`, which has `qkeccak_vars` coordinates.
@@ -82,7 +79,7 @@ pub fn open_batch_mixed_whir_stacked(
     let qkeccak = 1usize << ring.qkeccak_vars();
     assert!(ring.offset.is_multiple_of(qkeccak), "q_keccak is aligned");
     assert!(ring.offset + qkeccak <= stack.len(), "q_keccak lies inside the stack");
-    for StackClaim::Point { offset, low_point, .. } in point_claims {
+    for StackClaim { offset, low_point, .. } in point_claims {
         assert!(
             offset + (1 << low_point.len()) <= 1 << log_n,
             "every claim lies inside the stack"
@@ -124,7 +121,7 @@ pub fn open_batch_mixed_whir_stacked(
                 .map(|(&t, w)| w.mul_base(t))
                 .sum::<F128>();
     }
-    for (StackClaim::Point { value, .. }, &lambda) in point_claims.iter().zip(point_lambdas) {
+    for (StackClaim { value, .. }, &lambda) in point_claims.iter().zip(point_lambdas) {
         target += lambda * *value;
     }
     let rings: Vec<RingWeight> = ring
@@ -215,7 +212,7 @@ mod tests {
                 shapes.push((0, lane_vars + LANE_ROUNDS, None));
                 let claims: Vec<_> = shapes
                     .into_iter()
-                    .map(|(offset, vars, point)| StackClaim::Point {
+                    .map(|(offset, vars, point)| StackClaim {
                         offset,
                         low_point: point.unwrap_or_else(|| rng.ext_vec(vars)),
                         value: rng.ext(),
@@ -229,7 +226,7 @@ mod tests {
                     RingFold::new(ring.phi, &ring.point).add_chunk(0, &mut dense[offset..offset + qkeccak_len]);
                 }
                 for (claim, &lambda) in claims.iter().zip(&lambdas) {
-                    let StackClaim::Point { offset, low_point, .. } = claim;
+                    let StackClaim { offset, low_point, .. } = claim;
                     for j in 0..1usize << low_point.len() {
                         let w = low_point.iter().enumerate().fold(lambda, |w, (i, &p_i)| {
                             w * if (j >> i) & 1 == 1 { p_i } else { F128::ONE + p_i }

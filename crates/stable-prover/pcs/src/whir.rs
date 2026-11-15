@@ -487,7 +487,7 @@ mod tests {
                         let low_point = rng.ext_vec(vars);
                         let value =
                             inner_product_base_ext(&witness[offset..offset + (1 << vars)], &eq_table(&low_point));
-                        StackClaim::Point {
+                        StackClaim {
                             offset,
                             low_point,
                             value,
