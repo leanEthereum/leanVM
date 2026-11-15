@@ -61,8 +61,7 @@ theorem selfW_of (hnew : PlaceNew ctx) (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag 
     (hmN : ctx.isMain = true → ctx.name = "main")
     (hkend : IsInK (I.kw .endSentinel))
     (hloop : ((ctx.loops[ctx.name]?).any (·.registered)) = true →
-      Γ.frame = I.size ∧ I.loopH = true ∧ ∀ (i : ℕ) (c : Call) (kfp : ℕ), cl[i]? = some c →
-        c.f = ctx.name → I.kf[i]? = some kfp → kfp = I.fp + I.size)
+      Γ.frame = I.size ∧ I.loopH = true)
     (hu : ∀ c f args rest, Good (.callIf c f args :: rest) → ∀ v ∈ c :: args, v ∉ I.tmps) :
     SelfW Γ Ag cl ctx I Good := by
   intro c f args rest tl hf hg
@@ -71,8 +70,8 @@ theorem selfW_of (hnew : PlaceNew ctx) (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag 
     cases hreg : (ctx.loops[f]?).any (·.registered)
     · exact blockW_tailIf hnew hpk hok hI hmain hRd hAg hK hkw hent hmN hkend hf hreg
         (hu c f args _ hg)
-    · obtain ⟨hframe, hlh, hselfK⟩ := hloop (hf ▸ hreg)
-      exact blockW_loopNext hnew hpk hok hI hmain hRd hAg hK hkw hent hmN hkend hframe hlh hselfK
+    · obtain ⟨hframe, hlh⟩ := hloop (hf ▸ hreg)
+      exact blockW_loopNext hnew hpk hok hI hmain hRd hAg hK hkw hent hmN hkend hframe hlh
         hf hreg (hu c f args _ hg)
   · intro C st _ _ _ _ _ _ _ _ _ _ _ _
     rw [placeBlock.eq_2]

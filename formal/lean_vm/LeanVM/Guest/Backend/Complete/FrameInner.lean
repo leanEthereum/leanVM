@@ -350,9 +350,9 @@ theorem BlkW.append_ops (hok : OpOK Γ I Ag cl) {C : (ℕ → E) → Prop} {blk 
   | nil => rwa [List.append_nil]
   | cons x xs =>
     obtain ⟨hs, hl, hh, h⟩ := h
-    refine ⟨hs, hl, hh, fun hp Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops hcs hks hk => ?_⟩
+    refine ⟨hs, hl, hh, fun hp hK Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops hcs hks hk => ?_⟩
     rw [wLc_append _ _ _ _ _ _ _ blk (x :: xs) (List.cons_ne_nil _ _)]
-    refine h hp Ψ hΨ σ' hσ kh cs ks _ _ kret khalt
+    refine h hp hK Ψ hΨ σ' hσ kh cs ks _ _ kret khalt
       (fun o' ho => hops o' (by rw [bops_append]; exact List.mem_append_left _ ho)) hcs hks ?_
     intro cs' hcs'
     exact wLc_ops hok hΨ hσ kh (x :: xs) hW _
