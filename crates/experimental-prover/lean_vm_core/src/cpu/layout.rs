@@ -242,7 +242,7 @@ pub fn col_kappa_sources(log_bytecode: usize) -> Vec<Option<(usize, usize)>> {
 /// `(source, adj)` with kappa = value(source) + adj, source 0 = the constant
 /// 0, 1 = log_mem, 2 + t = tau_t. For the recursion guest's in-circuit pin
 /// of every hinted block kappa. Keep in lockstep with the block
-/// construction in [`fn@layout`].
+/// construction in `layout_of`.
 pub fn block_kappa_sources(log_bytecode: usize) -> Vec<(usize, usize)> {
     let mut push = vec![(0, 0), (1, 0), (0, log_bytecode)];
     let mut pull = vec![(0, 0), (1, 0), (0, log_bytecode)];

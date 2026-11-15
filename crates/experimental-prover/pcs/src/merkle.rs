@@ -609,7 +609,10 @@ mod tests {
                 let level_start = |level: usize| 2 * num_leaves - ((2 * num_leaves) >> level);
                 let node = |level: usize, i: usize| full[level_start(level) + i];
                 let row = |q| row(q).iter().map(|word| word.0);
-                assert_eq!(got, fiat_shamir::merkle::open(num_leaves, &positions, leaf_words, node, row));
+                assert_eq!(
+                    got,
+                    fiat_shamir::merkle::open(num_leaves, &positions, leaf_words, node, row)
+                );
             }
         }
     }
