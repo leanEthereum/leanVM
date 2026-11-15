@@ -57,16 +57,117 @@ public import LeanVM.Guest.Backend.Guest.Piece.C19P11
 public import LeanVM.Guest.Backend.Guest.Piece.C19P12
 public import LeanVM.Guest.Backend.Guest.Piece.C19P13
 public import LeanVM.Guest.Backend.Guest.Piece.C19P14
+public import LeanVM.Guest.Backend.Guest.Piece.C19P15
+public import LeanVM.Guest.Backend.Guest.Piece.C19P16
+public import LeanVM.Guest.Backend.Guest.Piece.C19P17
+public import LeanVM.Guest.Backend.Guest.Piece.C19P18
+public import LeanVM.Guest.Backend.Guest.Piece.C19P19
+public import LeanVM.Guest.Backend.Guest.Piece.C19P20
+public import LeanVM.Guest.Backend.Guest.Piece.C19P21
+public import LeanVM.Guest.Backend.Guest.Piece.C19P22
+public import LeanVM.Guest.Backend.Guest.Piece.C19P23
+public import LeanVM.Guest.Backend.Guest.Piece.C19P24
 public import LeanVM.Guest.Backend.Guest.Piece.C20P0
 public import LeanVM.Guest.Backend.Guest.Piece.C20P1
 public import LeanVM.Guest.Backend.Guest.Piece.C20P2
+public import LeanVM.Guest.Backend.Guest.Piece.C36P0
+public import LeanVM.Guest.Backend.Guest.Piece.C36P1
+public import LeanVM.Guest.Backend.Guest.Piece.C36P2
+public import LeanVM.Guest.Backend.Guest.Piece.C36P3
+public import LeanVM.Guest.Backend.Guest.Piece.C36P4
+public import LeanVM.Guest.Backend.Guest.Piece.C36P5
+public import LeanVM.Guest.Backend.Guest.Piece.C36P6
+public import LeanVM.Guest.Backend.Guest.Piece.C36P7
+public import LeanVM.Guest.Backend.Guest.Piece.C36P8
+public import LeanVM.Guest.Backend.Guest.Piece.C36P9
+public import LeanVM.Guest.Backend.Guest.Piece.C36P10
+public import LeanVM.Guest.Backend.Guest.Piece.C36P11
+public import LeanVM.Guest.Backend.Guest.Piece.C36P12
+public import LeanVM.Guest.Backend.Guest.Piece.C36P13
+public import LeanVM.Guest.Backend.Guest.Piece.C36P14
+public import LeanVM.Guest.Backend.Guest.Piece.C36P15
+public import LeanVM.Guest.Backend.Guest.Piece.C36P16
+public import LeanVM.Guest.Backend.Guest.Piece.C36P17
+public import LeanVM.Guest.Backend.Guest.Piece.C36P18
+public import LeanVM.Guest.Backend.Guest.Piece.C36P19
+public import LeanVM.Guest.Backend.Guest.Piece.C36P20
+public import LeanVM.Guest.Backend.Guest.Piece.C36P21
+public import LeanVM.Guest.Backend.Guest.Piece.C36P22
+public import LeanVM.Guest.Backend.Guest.Piece.C36P23
+public import LeanVM.Guest.Backend.Guest.Piece.C36P24
+public import LeanVM.Guest.Backend.Guest.Piece.C36P25
+public import LeanVM.Guest.Backend.Guest.Piece.C36P26
+public import LeanVM.Guest.Backend.Guest.Piece.C36P27
+public import LeanVM.Guest.Backend.Guest.Piece.C36P28
+public import LeanVM.Guest.Backend.Guest.Piece.C36P29
+public import LeanVM.Guest.Backend.Guest.Piece.C36P30
+public import LeanVM.Guest.Backend.Guest.Piece.C36P31
+public import LeanVM.Guest.Backend.Guest.Piece.C36P32
+public import LeanVM.Guest.Backend.Guest.Piece.C36P33
+public import LeanVM.Guest.Backend.Guest.Piece.C36P34
+public import LeanVM.Guest.Backend.Guest.Piece.C36P35
+public import LeanVM.Guest.Backend.Guest.Piece.C36P36
+public import LeanVM.Guest.Backend.Guest.Piece.C36P37
+public import LeanVM.Guest.Backend.Guest.Piece.C36P38
+public import LeanVM.Guest.Backend.Guest.Piece.C36P39
+public import LeanVM.Guest.Backend.Guest.Piece.C36P40
+public import LeanVM.Guest.Backend.Guest.Piece.C36P41
+public import LeanVM.Guest.Backend.Guest.Piece.C36P42
+public import LeanVM.Guest.Backend.Guest.Piece.C36P43
+public import LeanVM.Guest.Backend.Guest.Piece.C36P44
+public import LeanVM.Guest.Backend.Guest.Piece.C36P45
+public import LeanVM.Guest.Backend.Guest.Piece.C36P46
+public import LeanVM.Guest.Backend.Guest.Piece.C36P47
+public import LeanVM.Guest.Backend.Guest.Piece.C36P48
+public import LeanVM.Guest.Backend.Guest.Piece.C36P49
+public import LeanVM.Guest.Backend.Guest.Piece.C36P50
+public import LeanVM.Guest.Backend.Guest.Piece.C36P51
+public import LeanVM.Guest.Backend.Guest.Piece.C36P52
+public import LeanVM.Guest.Backend.Guest.Piece.C36P53
+public import LeanVM.Guest.Backend.Guest.Piece.C36P54
+public import LeanVM.Guest.Backend.Guest.Piece.C36P55
+public import LeanVM.Guest.Backend.Guest.Piece.C36P56
+public import LeanVM.Guest.Backend.Guest.Piece.C36P57
+public import LeanVM.Guest.Backend.Guest.Piece.C36P58
+public import LeanVM.Guest.Backend.Guest.Piece.C36P59
+public import LeanVM.Guest.Backend.Guest.Piece.C36P60
+public import LeanVM.Guest.Backend.Guest.Piece.C36P61
+public import LeanVM.Guest.Backend.Guest.Piece.C36P62
+public import LeanVM.Guest.Backend.Guest.Piece.C36P63
+public import LeanVM.Guest.Backend.Guest.Piece.C36P64
+public import LeanVM.Guest.Backend.Guest.Piece.C36P65
+public import LeanVM.Guest.Backend.Guest.Piece.C36P66
+public import LeanVM.Guest.Backend.Guest.Piece.C36P67
+public import LeanVM.Guest.Backend.Guest.Piece.C36P68
+public import LeanVM.Guest.Backend.Guest.Piece.C36P69
+public import LeanVM.Guest.Backend.Guest.Piece.C36P70
+public import LeanVM.Guest.Backend.Guest.Piece.C36P71
+public import LeanVM.Guest.Backend.Guest.Piece.C36P72
+public import LeanVM.Guest.Backend.Guest.Piece.C36P73
+public import LeanVM.Guest.Backend.Guest.Piece.C36P74
+public import LeanVM.Guest.Backend.Guest.Piece.C36P75
+public import LeanVM.Guest.Backend.Guest.Piece.C36P76
+public import LeanVM.Guest.Backend.Guest.Piece.C36P77
+public import LeanVM.Guest.Backend.Guest.Piece.C36P78
+public import LeanVM.Guest.Backend.Guest.Piece.C36P79
+public import LeanVM.Guest.Backend.Guest.Piece.C36P80
+public import LeanVM.Guest.Backend.Guest.Piece.C36P81
+public import LeanVM.Guest.Backend.Guest.Piece.C36P82
+public import LeanVM.Guest.Backend.Guest.Piece.C36P83
+public import LeanVM.Guest.Backend.Guest.Piece.C36P84
+public import LeanVM.Guest.Backend.Guest.Piece.C36P85
+public import LeanVM.Guest.Backend.Guest.Piece.C36P86
+public import LeanVM.Guest.Backend.Guest.Piece.C36P87
+public import LeanVM.Guest.Backend.Guest.Piece.C36P88
+public import LeanVM.Guest.Backend.Guest.Piece.C36P89
+public import LeanVM.Guest.Backend.Guest.Piece.C36P90
 public import LeanVM.Guest.Backend.Sound.Cut
 
 /-!
 # The guest compiled
 
 `guest_compiles`: `GuestCompiles guestFns guestSlots`, by `compiles_of_pieces` from the pieces of
-`Guest/Piece/` and the checks of `Guest/Piece/Checks.lean`; the 1 functions too large for one piece (`BigPieces`) are a hypothesis.
+`Guest/Piece/` and the checks of `Guest/Piece/Checks.lean`; every function's piece is checked here, so `guest_compiles` has no hypothesis.
 `guest_program_sound_compiled` is `guest_program_sound` without `GuestCompiles`, and
 `guestWorld_locs` says function `j`'s places in the guest's world are `placedLocs j`, which the
 kernel evaluates; for a function checked in parts, `placedLocs_j` gives them as its walk's last state's.
@@ -80,20 +181,16 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core GuestPiec
 
 @[expose] public section
 
-/-- The pieces of the guest's functions too large for one piece, not checked here. -/
-def BigPieces : Prop :=
-  ∀ j ∈ ([36] : List Nat), pieceAt loopsG sigsG layG guestTraced outsG Data.functions.tail j = true
-
 /-- The walk of function 11 (`verify_tables`) to its last cut, from its parts. -/
 theorem cut11_walk :
-    placeHead (guestTraced.getD 11 default) 4996 (ctxOf loopsG sigsG (guestTraced.getD 11 default)) (initSt loopsG (tablesAt outsG 11) (guestTraced.getD 11 default)) = .ok ((), cut11_2) := by
+    placeHead (guestTraced.getD 11 default) 4001 (ctxOf loopsG sigsG (guestTraced.getD 11 default)) (initSt loopsG (tablesAt outsG 11) (guestTraced.getD 11 default)) = .ok ((), cut11_2) := by
   rw [cut11_ctx]
   have h := (placeHead_add cut11_p0
       cut11_p1)
   exact h
 
 theorem cut11_tailOk :
-    placeTail (guestTraced.getD 11 default) 4996 (ctxOf loopsG sigsG (guestTraced.getD 11 default)) cut11_2 = .ok ((), cut11_end) := by
+    placeTail (guestTraced.getD 11 default) 4001 (ctxOf loopsG sigsG (guestTraced.getD 11 default)) cut11_2 = .ok ((), cut11_end) := by
   rw [cut11_ctx]
   exact cut11_p2
 
@@ -111,9 +208,9 @@ theorem placedLocs_11 : placedLocs 11 = cut11_end.locs :=
 
 /-- The walk of function 19 (`sp_wots`) to its last cut, from its parts. -/
 theorem cut19_walk :
-    placeHead (guestTraced.getD 19 default) 121 (ctxOf loopsG sigsG (guestTraced.getD 19 default)) (initSt loopsG (tablesAt outsG 19) (guestTraced.getD 19 default)) = .ok ((), cut19_10) := by
+    placeHead (guestTraced.getD 19 default) 121 (ctxOf loopsG sigsG (guestTraced.getD 19 default)) (initSt loopsG (tablesAt outsG 19) (guestTraced.getD 19 default)) = .ok ((), cut19_20) := by
   rw [cut19_ctx]
-  have h := (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add cut19_p0
+  have h := (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add cut19_p0
       cut19_p1)
       cut19_p2)
       cut19_p3)
@@ -123,12 +220,22 @@ theorem cut19_walk :
       cut19_p7)
       cut19_p8)
       cut19_p9)
+      cut19_p10)
+      cut19_p11)
+      cut19_p12)
+      cut19_p13)
+      cut19_p14)
+      cut19_p15)
+      cut19_p16)
+      cut19_p17)
+      cut19_p18)
+      cut19_p19)
   exact h
 
 theorem cut19_tailOk :
-    placeTail (guestTraced.getD 19 default) 121 (ctxOf loopsG sigsG (guestTraced.getD 19 default)) cut19_10 = .ok ((), cut19_end) := by
+    placeTail (guestTraced.getD 19 default) 121 (ctxOf loopsG sigsG (guestTraced.getD 19 default)) cut19_20 = .ok ((), cut19_end) := by
   rw [cut19_ctx]
-  exact cut19_p10
+  exact cut19_p20
 
 /-- **The piece of function 19** (`sp_wots`), from its parts. -/
 theorem piece_19 : pieceAt loopsG sigsG layG guestTraced outsG Data.functions.tail 19 = true :=
@@ -144,13 +251,13 @@ theorem placedLocs_19 : placedLocs 19 = cut19_end.locs :=
 
 /-- The walk of function 20 (`verify_sig_lean_sphincs`) to its last cut, from its parts. -/
 theorem cut20_walk :
-    placeHead (guestTraced.getD 20 default) 3432 (ctxOf loopsG sigsG (guestTraced.getD 20 default)) (initSt loopsG (tablesAt outsG 20) (guestTraced.getD 20 default)) = .ok ((), cut20_1) := by
+    placeHead (guestTraced.getD 20 default) 2792 (ctxOf loopsG sigsG (guestTraced.getD 20 default)) (initSt loopsG (tablesAt outsG 20) (guestTraced.getD 20 default)) = .ok ((), cut20_1) := by
   rw [cut20_ctx]
   have h := cut20_p0
   exact h
 
 theorem cut20_tailOk :
-    placeTail (guestTraced.getD 20 default) 3432 (ctxOf loopsG sigsG (guestTraced.getD 20 default)) cut20_1 = .ok ((), cut20_end) := by
+    placeTail (guestTraced.getD 20 default) 2792 (ctxOf loopsG sigsG (guestTraced.getD 20 default)) cut20_1 = .ok ((), cut20_end) := by
   rw [cut20_ctx]
   exact cut20_p1
 
@@ -166,8 +273,215 @@ theorem piece_20 : pieceAt loopsG sigsG layG guestTraced outsG Data.functions.ta
 theorem placedLocs_20 : placedLocs 20 = cut20_end.locs :=
   placedLocsAt_of_cutWalk cut20_walk cut20_tailOk cut20_head
 
+/-- The walk of function 36 (`__loop2`) to its last cut, from its parts. -/
+theorem cut36_walk :
+    placeHead (guestTraced.getD 36 default) 320 (ctxOf loopsG sigsG (guestTraced.getD 36 default)) (initSt loopsG (tablesAt outsG 36) (guestTraced.getD 36 default)) = .ok ((), cut36_150) := by
+  rw [cut36_ctx]
+  have h := (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add cut36_p0
+      (placeBlockN_match_at cut36_is79 cut36_p1
+        (armsRun_drop_zero (armsRun_cut (t := 360) rfl (by decide) cut36_p2
+        (armsRun_cut (t := 360) rfl (by decide) cut36_p3
+        (armsRun_end cut36_len79))))
+        cut36_p4))
+      (placeBlockN_match_at cut36_is80 cut36_p5
+        (armsRun_drop_zero (armsRun_cut (t := 368) rfl (by decide) cut36_p6
+        (armsRun_cut (t := 368) rfl (by decide) cut36_p7
+        (armsRun_end cut36_len80))))
+        cut36_p8))
+      (placeBlockN_match_at cut36_is81 cut36_p9
+        (armsRun_drop_zero (armsRun_cut (t := 376) rfl (by decide) cut36_p10
+        (armsRun_cut (t := 376) rfl (by decide) cut36_p11
+        (armsRun_end cut36_len81))))
+        cut36_p12))
+      (placeBlockN_match_at cut36_is82 cut36_p13
+        (armsRun_drop_zero (armsRun_cut (t := 384) rfl (by decide) cut36_p14
+        (armsRun_cut (t := 384) rfl (by decide) cut36_p15
+        (armsRun_end cut36_len82))))
+        cut36_p16))
+      (placeBlockN_match_at cut36_is83 cut36_p17
+        (armsRun_drop_zero (armsRun_cut (t := 392) rfl (by decide) cut36_p18
+        (armsRun_cut (t := 392) rfl (by decide) cut36_p19
+        (armsRun_end cut36_len83))))
+        cut36_p20))
+      (placeBlockN_match_at cut36_is84 cut36_p21
+        (armsRun_drop_zero (armsRun_cut (t := 400) rfl (by decide) cut36_p22
+        (armsRun_cut (t := 400) rfl (by decide) cut36_p23
+        (armsRun_end cut36_len84))))
+        cut36_p24))
+      (placeBlockN_match_at cut36_is85 cut36_p25
+        (armsRun_drop_zero (armsRun_cut (t := 408) rfl (by decide) cut36_p26
+        (armsRun_cut (t := 408) rfl (by decide) cut36_p27
+        (armsRun_end cut36_len85))))
+        cut36_p28))
+      (placeBlockN_match_at cut36_is86 cut36_p29
+        (armsRun_drop_zero (armsRun_cut (t := 416) rfl (by decide) cut36_p30
+        (armsRun_cut (t := 416) rfl (by decide) cut36_p31
+        (armsRun_end cut36_len86))))
+        cut36_p32))
+      (placeBlockN_match_at cut36_is87 cut36_p33
+        (armsRun_drop_zero (armsRun_cut (t := 424) rfl (by decide) cut36_p34
+        (armsRun_cut (t := 424) rfl (by decide) cut36_p35
+        (armsRun_end cut36_len87))))
+        cut36_p36))
+      (placeBlockN_match_at cut36_is88 cut36_p37
+        (armsRun_drop_zero (armsRun_cut (t := 432) rfl (by decide) cut36_p38
+        (armsRun_cut (t := 432) rfl (by decide) cut36_p39
+        (armsRun_end cut36_len88))))
+        cut36_p40))
+      (placeBlockN_match_at cut36_is89 cut36_p41
+        (armsRun_drop_zero (armsRun_cut (t := 440) rfl (by decide) cut36_p42
+        (armsRun_cut (t := 440) rfl (by decide) cut36_p43
+        (armsRun_end cut36_len89))))
+        cut36_p44))
+      (placeBlockN_match_at cut36_is90 cut36_p45
+        (armsRun_drop_zero (armsRun_cut (t := 448) rfl (by decide) cut36_p46
+        (armsRun_cut (t := 448) rfl (by decide) cut36_p47
+        (armsRun_end cut36_len90))))
+        cut36_p48))
+      (placeBlockN_match_at cut36_is91 cut36_p49
+        (armsRun_drop_zero (armsRun_cut (t := 456) rfl (by decide) cut36_p50
+        (armsRun_cut (t := 456) rfl (by decide) cut36_p51
+        (armsRun_end cut36_len91))))
+        cut36_p52))
+      (placeBlockN_match_at cut36_is92 cut36_p53
+        (armsRun_drop_zero (armsRun_cut (t := 464) rfl (by decide) cut36_p54
+        (armsRun_cut (t := 464) rfl (by decide) cut36_p55
+        (armsRun_end cut36_len92))))
+        cut36_p56))
+      (placeBlockN_match_at cut36_is93 cut36_p57
+        (armsRun_drop_zero (armsRun_cut (t := 469) rfl (by decide) cut36_p58
+        (armsRun_end cut36_len93)))
+        cut36_p59))
+      cut36_p60)
+      (placeBlockN_match_at cut36_is172 cut36_p61
+        (armsRun_drop_zero (armsRun_cut (t := 790) rfl (by decide) cut36_p62
+        (armsRun_cut (t := 790) rfl (by decide) cut36_p63
+        (armsRun_cut (t := 790) rfl (by decide) cut36_p64
+        (armsRun_cut (t := 790) rfl (by decide) cut36_p65
+        (armsRun_cut (t := 790) rfl (by decide) cut36_p66
+        (armsRun_end cut36_len172)))))))
+        cut36_p67))
+      cut36_p68)
+      (placeBlockN_match_at cut36_is176 cut36_p69
+        (armsRun_drop_zero (armsRun_cut (t := 836) rfl (by decide) cut36_p70
+        (armsRun_cut (t := 836) rfl (by decide) cut36_p71
+        (armsRun_cut (t := 836) rfl (by decide) cut36_p72
+        (armsRun_cut (t := 836) rfl (by decide) cut36_p73
+        (armsRun_cut (t := 836) rfl (by decide) cut36_p74
+        (armsRun_end cut36_len176)))))))
+        cut36_p75))
+      cut36_p76)
+      (placeBlockN_match_at cut36_is222 cut36_p77
+        (armsRun_drop_zero (armsRun_cut (t := 1088) rfl (by decide) cut36_p78
+        (armsRun_cut (t := 1088) rfl (by decide) cut36_p79
+        (armsRun_end cut36_len222))))
+        cut36_p80))
+      (placeBlockN_match_at cut36_is223 cut36_p81
+        (armsRun_drop_zero (armsRun_cut (t := 1096) rfl (by decide) cut36_p82
+        (armsRun_cut (t := 1096) rfl (by decide) cut36_p83
+        (armsRun_end cut36_len223))))
+        cut36_p84))
+      (placeBlockN_match_at cut36_is224 cut36_p85
+        (armsRun_drop_zero (armsRun_cut (t := 1104) rfl (by decide) cut36_p86
+        (armsRun_cut (t := 1104) rfl (by decide) cut36_p87
+        (armsRun_end cut36_len224))))
+        cut36_p88))
+      (placeBlockN_match_at cut36_is225 cut36_p89
+        (armsRun_drop_zero (armsRun_cut (t := 1112) rfl (by decide) cut36_p90
+        (armsRun_cut (t := 1112) rfl (by decide) cut36_p91
+        (armsRun_end cut36_len225))))
+        cut36_p92))
+      (placeBlockN_match_at cut36_is226 cut36_p93
+        (armsRun_drop_zero (armsRun_cut (t := 1120) rfl (by decide) cut36_p94
+        (armsRun_cut (t := 1120) rfl (by decide) cut36_p95
+        (armsRun_end cut36_len226))))
+        cut36_p96))
+      (placeBlockN_match_at cut36_is227 cut36_p97
+        (armsRun_drop_zero (armsRun_cut (t := 1128) rfl (by decide) cut36_p98
+        (armsRun_cut (t := 1128) rfl (by decide) cut36_p99
+        (armsRun_end cut36_len227))))
+        cut36_p100))
+      (placeBlockN_match_at cut36_is228 cut36_p101
+        (armsRun_drop_zero (armsRun_cut (t := 1136) rfl (by decide) cut36_p102
+        (armsRun_cut (t := 1136) rfl (by decide) cut36_p103
+        (armsRun_end cut36_len228))))
+        cut36_p104))
+      (placeBlockN_match_at cut36_is229 cut36_p105
+        (armsRun_drop_zero (armsRun_cut (t := 1144) rfl (by decide) cut36_p106
+        (armsRun_cut (t := 1144) rfl (by decide) cut36_p107
+        (armsRun_end cut36_len229))))
+        cut36_p108))
+      (placeBlockN_match_at cut36_is230 cut36_p109
+        (armsRun_drop_zero (armsRun_cut (t := 1152) rfl (by decide) cut36_p110
+        (armsRun_cut (t := 1152) rfl (by decide) cut36_p111
+        (armsRun_end cut36_len230))))
+        cut36_p112))
+      (placeBlockN_match_at cut36_is231 cut36_p113
+        (armsRun_drop_zero (armsRun_cut (t := 1160) rfl (by decide) cut36_p114
+        (armsRun_cut (t := 1160) rfl (by decide) cut36_p115
+        (armsRun_end cut36_len231))))
+        cut36_p116))
+      (placeBlockN_match_at cut36_is232 cut36_p117
+        (armsRun_drop_zero (armsRun_cut (t := 1168) rfl (by decide) cut36_p118
+        (armsRun_cut (t := 1168) rfl (by decide) cut36_p119
+        (armsRun_end cut36_len232))))
+        cut36_p120))
+      (placeBlockN_match_at cut36_is233 cut36_p121
+        (armsRun_drop_zero (armsRun_cut (t := 1176) rfl (by decide) cut36_p122
+        (armsRun_cut (t := 1176) rfl (by decide) cut36_p123
+        (armsRun_end cut36_len233))))
+        cut36_p124))
+      (placeBlockN_match_at cut36_is234 cut36_p125
+        (armsRun_drop_zero (armsRun_cut (t := 1184) rfl (by decide) cut36_p126
+        (armsRun_cut (t := 1184) rfl (by decide) cut36_p127
+        (armsRun_end cut36_len234))))
+        cut36_p128))
+      (placeBlockN_match_at cut36_is235 cut36_p129
+        (armsRun_drop_zero (armsRun_cut (t := 1192) rfl (by decide) cut36_p130
+        (armsRun_cut (t := 1192) rfl (by decide) cut36_p131
+        (armsRun_end cut36_len235))))
+        cut36_p132))
+      (placeBlockN_match_at cut36_is236 cut36_p133
+        (armsRun_drop_zero (armsRun_cut (t := 1197) rfl (by decide) cut36_p134
+        (armsRun_end cut36_len236)))
+        cut36_p135))
+      cut36_p136)
+      (placeBlockN_match_at cut36_is315 cut36_p137
+        (armsRun_drop_zero (armsRun_cut (t := 1515) rfl (by decide) cut36_p138
+        (armsRun_cut (t := 1515) rfl (by decide) cut36_p139
+        (armsRun_cut (t := 1515) rfl (by decide) cut36_p140
+        (armsRun_cut (t := 1515) rfl (by decide) cut36_p141
+        (armsRun_cut (t := 1515) rfl (by decide) cut36_p142
+        (armsRun_end cut36_len315)))))))
+        cut36_p143))
+      cut36_p144)
+      (placeBlockN_match_at cut36_is319 cut36_p145
+        (armsRun_drop_zero (armsRun_cut (t := 1544) rfl (by decide) cut36_p146
+        (armsRun_cut (t := 1544) rfl (by decide) cut36_p147
+        (armsRun_cut (t := 1544) rfl (by decide) cut36_p148
+        (armsRun_end cut36_len319)))))
+        cut36_p149))
+  exact h
+
+theorem cut36_tailOk :
+    placeTail (guestTraced.getD 36 default) 320 (ctxOf loopsG sigsG (guestTraced.getD 36 default)) cut36_150 = .ok ((), cut36_end) := by
+  rw [cut36_ctx]
+  exact cut36_p150
+
+/-- **The piece of function 36** (`__loop2`), from its parts. -/
+theorem piece_36 : pieceAt loopsG sigsG layG guestTraced outsG Data.functions.tail 36 = true :=
+  pieceAt_of_cut cut36_walk cut36_tailOk cut36_head fun c hc => by
+      have hn : (Data.functions.tail.getD 36 noFunction).chunks.length = 56 := rfl
+      rw [hn] at hc
+      rcases c with _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | c
+      exacts [cut36_chunk0, cut36_chunk1, cut36_chunk2, cut36_chunk3, cut36_chunk4, cut36_chunk5, cut36_chunk6, cut36_chunk7, cut36_chunk8, cut36_chunk9, cut36_chunk10, cut36_chunk11, cut36_chunk12, cut36_chunk13, cut36_chunk14, cut36_chunk15, cut36_chunk16, cut36_chunk17, cut36_chunk18, cut36_chunk19, cut36_chunk20, cut36_chunk21, cut36_chunk22, cut36_chunk23, cut36_chunk24, cut36_chunk25, cut36_chunk26, cut36_chunk27, cut36_chunk28, cut36_chunk29, cut36_chunk30, cut36_chunk31, cut36_chunk32, cut36_chunk33, cut36_chunk34, cut36_chunk35, cut36_chunk36, cut36_chunk37, cut36_chunk38, cut36_chunk39, cut36_chunk40, cut36_chunk41, cut36_chunk42, cut36_chunk43, cut36_chunk44, cut36_chunk45, cut36_chunk46, cut36_chunk47, cut36_chunk48, cut36_chunk49, cut36_chunk50, cut36_chunk51, cut36_chunk52, cut36_chunk53, cut36_chunk54, cut36_chunk55, absurd hc (by omega)]
+
+/-- **Function 36's places** (`__loop2`): its walk's last state's. -/
+theorem placedLocs_36 : placedLocs 36 = cut36_end.locs :=
+  placedLocsAt_of_cutWalk cut36_walk cut36_tailOk cut36_head
+
 /-- **Every function's piece.** -/
-theorem guest_pieces (hbig : BigPieces) :
+theorem guest_pieces :
     ∀ j < guestTraced.length, pieceAt loopsG sigsG layG guestTraced outsG Data.functions.tail j = true := by
   rw [guestTraced_length]
   exact fun j hj => piecesIn_spec (a := 0) (b := 1601)
@@ -183,7 +497,7 @@ theorem guest_pieces (hbig : BigPieces) :
       (piecesIn_single piece_20) (by decide) (by decide))
       pieces_21_32 (by decide) (by decide))
       pieces_32_36 (by decide) (by decide))
-      (piecesIn_single (hbig 36 (by decide))) (by decide) (by decide))
+      (piecesIn_single piece_36) (by decide) (by decide))
       pieces_37_66 (by decide) (by decide))
       pieces_66_78 (by decide) (by decide))
       pieces_78_85 (by decide) (by decide))
@@ -378,9 +692,9 @@ theorem guest_jt :
   · exact absurd hc (by omega)
 
 /-- **The back end compiles the guest to the statement's bytecode.** -/
-theorem guest_compiles (hbig : BigPieces) : GuestCompiles guestFns guestSlots := by
+theorem guest_compiles : GuestCompiles guestFns guestSlots := by
   obtain ⟨fns, hlow, hfun, hsize⟩ := compiles_of_pieces (cfJt := Data.f0) (k := 19) loopsG_eq sigsG_eq
-    layG_eq checks_ok outs_length cfs_length (guest_pieces hbig) slots_ok slots_ne guest_jt size_ok
+    layG_eq checks_ok outs_length cfs_length (guest_pieces) slots_ok slots_ne guest_jt size_ok
     (by norm_num)
   have hf : guestFns = fns := by rw [guestFns, hlow]; rfl
   rw [slotsOfOuts_eq] at hlow hfun hsize
@@ -394,17 +708,17 @@ variable {κ : ℕ} {L : MemoryImage κ} {U : String → List E → Prop}
 /-- **At the guest**, `guest_program_sound` with the guest compiled: given every function's
 obligations, a halting run of the statement's `guestProgram` from `(g^0, 1)` makes `main`'s core body
 hold at frame `1`. -/
-theorem guest_program_sound_compiled (hbig : BigPieces) (hκ : κ < 64)
+theorem guest_program_sound_compiled (hκ : κ < 64)
     (hobl : ∀ tf ∈ guestTraced, (guestWorld guestFns guestSlots L U).Obligations tf)
     (hU : ∀ tf ∈ guestTraced, tf.core.name = "main" → U "main" (frameWords L 1 2 (sigOf tf).1))
     {k : ℕ} (hs : Safe guestProgram L k ⟨addressOfIndex 0, 1⟩) :
     (guestWorld guestFns guestSlots L U).MainHolds :=
-  guest_program_sound (guest_compiles hbig) hκ hobl hU hs
+  guest_program_sound (guest_compiles) hκ hobl hU hs
 
 /-- **Function `j`'s places in the guest's world** are `placedLocs j`. -/
-theorem guestWorld_locs (hbig : BigPieces) {j : ℕ} (hj : j < guestTraced.length) :
+theorem guestWorld_locs {j : ℕ} (hj : j < guestTraced.length) :
     (guestWorld guestFns guestSlots L U).locs (guestTraced.getD j default).core.name = placedLocs j :=
-  world_locs_of_pieces _ guestWorld_p loopsG_eq sigsG_eq checks_ok outs_length cfs_length (guest_pieces hbig) hj
+  world_locs_of_pieces _ guestWorld_p loopsG_eq sigsG_eq checks_ok outs_length cfs_length (guest_pieces) hj
 
 end
 end LeanVM.Guest.Backend
@@ -432,3 +746,7 @@ end LeanVM.Guest.Backend
 /-- info: 'LeanVM.Guest.Backend.placedLocs_20' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.Backend.placedLocs_20
+
+/-- info: 'LeanVM.Guest.Backend.placedLocs_36' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Backend.placedLocs_36

@@ -30,7 +30,7 @@ theorem cut11_ctx : ctxOf loopsG sigsG (guestTraced.getD 11 default) = ctx11 := 
   decide +kernel
 
 kernel_rfl cut11_p0 :
-    placeHead (guestTraced.getD 11 default) 1960 ctx11 (initSt loopsG (tablesAt outsG 11) (guestTraced.getD 11 default)) = .ok ((), cut11_1)
+    placeHead (guestTraced.getD 11 default) 1688 ctx11 (initSt loopsG (tablesAt outsG 11) (guestTraced.getD 11 default)) = .ok ((), cut11_1)
 
 end
 end LeanVM.Guest.Backend.GuestPiece

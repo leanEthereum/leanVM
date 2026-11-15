@@ -30,7 +30,7 @@ theorem cut20_ctx : ctxOf loopsG sigsG (guestTraced.getD 20 default) = ctx20 := 
   decide +kernel
 
 kernel_rfl cut20_p0 :
-    placeHead (guestTraced.getD 20 default) 3432 ctx20 (initSt loopsG (tablesAt outsG 20) (guestTraced.getD 20 default)) = .ok ((), cut20_1)
+    placeHead (guestTraced.getD 20 default) 2792 ctx20 (initSt loopsG (tablesAt outsG 20) (guestTraced.getD 20 default)) = .ok ((), cut20_1)
 
 end
 end LeanVM.Guest.Backend.GuestPiece

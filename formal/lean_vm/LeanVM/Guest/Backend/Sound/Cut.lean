@@ -280,6 +280,70 @@ theorem armsRun_drop_zero {arms : List (List Stmt)} {n : ℕ} {base : Cell} {exi
     armsRun arms 0 n base exit ctx st = .ok (r, st') := by
   rwa [List.drop_zero] at h
 
+/-! ## A function's code from an instruction on -/
+
+theorem drop_append_of_le {α : Type} {l₁ : List α} {k : ℕ} (l₂ : List α) (h : l₁.length ≤ k) :
+    (l₁ ++ l₂).drop k = l₂.drop (k - l₁.length) := by
+  rw [List.drop_append, List.drop_eq_nil_of_le h, List.nil_append]
+
+theorem drop_append_of_lt {α : Type} {l₁ : List α} {k : ℕ} (l₂ : List α) (h : k < l₁.length) :
+    (l₁ ++ l₂).drop k = l₁.drop k ++ l₂ := by
+  rw [List.drop_append, Nat.sub_eq_zero_of_le (Nat.le_of_lt h), List.drop_zero]
+
+mutual
+theorem stmtOpsFrom_eq : ∀ (s : PStmt) (pos k : ℕ), stmtOpsFrom s pos k = (stmtOps s pos).drop k
+  | .chain h join x entry one sfp firsts stages, pos, k => by
+      rw [stmtOpsFrom, stmtOps]
+      split
+      · next hk => rw [drop_append_of_lt _ (by simpa using hk)]
+      · next hk =>
+        rw [drop_append_of_le _ (by simp; omega), stagesOpsFrom_eq]
+        simp
+  | .op _ _, _, _ => by simp [stmtOpsFrom]
+  | .ite .., _, _ => by simp [stmtOpsFrom]
+  | .call _ _, _, _ => by simp [stmtOpsFrom]
+  | .loopNext .., _, _ => by simp [stmtOpsFrom]
+  | .dispatch .., _, _ => by simp [stmtOpsFrom]
+  | .ret _ _, _, _ => by simp [stmtOpsFrom]
+  | .halt _ _ _, _, _ => by simp [stmtOpsFrom]
+
+theorem blockOpsFrom_eq : ∀ (b : List PStmt) (pos k : ℕ),
+    blockOpsFrom b pos k = (blockOps b pos).drop k
+  | [], _, _ => by rw [blockOpsFrom, blockOps, List.drop_nil]
+  | s :: ss, pos, k => by
+      rw [blockOpsFrom, blockOps]
+      split
+      · next hk =>
+        rw [drop_append_of_le _ (by rw [stmtOps_length]; exact hk), stmtOps_length,
+          blockOpsFrom_eq ss]
+      · next hk =>
+        rw [drop_append_of_lt _ (by rw [stmtOps_length]; omega), stmtOpsFrom_eq s]
+
+theorem armsOpsFrom_eq : ∀ (as : List (List PStmt)) (pos k : ℕ),
+    armsOpsFrom as pos k = (armsOps as pos).drop k
+  | [], _, _ => by rw [armsOpsFrom, armsOps, List.drop_nil]
+  | a :: as, pos, k => by
+      rw [armsOpsFrom, armsOps]
+      split
+      · next hk =>
+        rw [drop_append_of_le _ (by rw [blockOps_length]; exact hk), blockOps_length,
+          armsOpsFrom_eq as]
+      · next hk =>
+        rw [drop_append_of_lt _ (by rw [blockOps_length]; omega), blockOpsFrom_eq a]
+
+theorem stagesOpsFrom_eq : ∀ (ss : List (List (List PStmt))) (pos k : ℕ),
+    stagesOpsFrom ss pos k = (stagesOps ss pos).drop k
+  | [], _, _ => by rw [stagesOpsFrom, stagesOps, List.drop_nil]
+  | s :: ss, pos, k => by
+      rw [stagesOpsFrom, stagesOps]
+      split
+      · next hk =>
+        rw [drop_append_of_le _ (by rw [armsOps_length]; exact hk), armsOps_length,
+          stagesOpsFrom_eq ss]
+      · next hk =>
+        rw [drop_append_of_lt _ (by rw [armsOps_length]; omega), armsOpsFrom_eq s]
+end
+
 /-! ## The piece from its parts -/
 
 /-- `placeFn` from its walk and its other checks. -/
@@ -335,7 +399,7 @@ theorem pieceOk_of_cut {loops : Loops} {sigs : SMap (ℕ × ℕ)} {l : Layout} {
   · simp [h10]
   · intro i _ h2'
     have := hchunks i h2'
-    simp only [cutChunkOk, decide_eq_true_eq, List.getD_eq_getElem?_getD,
+    simp only [cutChunkOk, blockOpsFrom_eq, decide_eq_true_eq, List.getD_eq_getElem?_getD,
       List.getElem?_eq_getElem h2', Option.getD_some] at this
     simp [← this, List.map_drop, List.map_take]
 
