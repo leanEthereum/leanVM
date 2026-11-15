@@ -46,10 +46,10 @@ pub fn powers(x: F128, n: usize) -> Vec<F128> {
     out
 }
 
-/// `[g^0, g^1, …, g^{n-1}]`, built in parallel by [`verifier::layout::gpow_u32`].
+/// `[g^0, g^1, …, g^{n-1}]`, built in parallel by [`isa::g_pow`].
 pub fn g_powers(n: usize) -> Vec<F64> {
     assert!(n <= 1 << 32, "a g-power index fits in 32 bits");
-    parallel::map_collect(n, |i| F64(verifier::layout::gpow_u32(i as u32).0))
+    parallel::map_collect(n, |i| F64(isa::g_pow(i as u32)))
 }
 
 /// `g^i = x^i` in the monomial basis of `K` by square-and-multiply: domain separators, opcodes, and the g-power

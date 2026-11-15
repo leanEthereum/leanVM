@@ -1,14 +1,13 @@
 //! The instruction tables, their bus flushes, and where every committed column sits in the stack.
 
 use crate::bytecode::Bytecode;
-use crate::field::{E, GEN, K, ONE, ZERO};
+use crate::field::{E, GEN, ONE, ZERO};
 use crate::hash::{STATE_LANES, keccak_f};
 use crate::keccak::KeccakShape;
 use crate::multilinear::{Placement, log2_ceil, log2_strict, stack_offsets};
 use crate::{VerifierError, require};
 use std::collections::BTreeMap;
 use std::ops::Add;
-use std::sync::OnceLock;
 
 pub const BUS_BITS: usize = 4; // bus communicates tuples of 2^BUS_BITS field elements
 
@@ -120,25 +119,6 @@ fn cols<const N: usize>(columns: &[&str], names: [&str; N]) -> [usize; N] {
 
 pub fn gpow(index: u64) -> E {
     GEN.pow(index)
-}
-
-/// `g^e` in `K` from two tables of `2^16` powers built once, `e = hi 2^16 + lo`: one load, or two and a product.
-pub fn gpow_u32(e: u32) -> K {
-    static TABLES: OnceLock<[Vec<K>; 2]> = OnceLock::new();
-    let [low, high] = TABLES.get_or_init(|| {
-        let powers = |step: K| -> Vec<K> {
-            std::iter::successors(Some(K(1)), |&power| Some(power * step))
-                .take(1 << 16)
-                .collect()
-        };
-        let low = powers(K(2));
-        let high = powers(low[(1 << 16) - 1] * K(2));
-        [low, high]
-    });
-    match e >> 16 {
-        0 => low[e as usize],
-        hi => low[e as usize & 0xFFFF] * high[hi as usize],
-    }
 }
 
 pub fn constant(value: E) -> Form {
@@ -634,17 +614,4 @@ pub fn build_layout<'a>(
         table_log_heights,
         keccak,
     })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// The split tables against square-and-multiply, on both sides of the `2^16` boundary and at the ends of the range.
-    #[test]
-    fn gpow_u32_matches_square_and_multiply() {
-        for e in [0, 1, 63, 64, (1 << 16) - 1, 1 << 16, (1 << 16) + 1, 1 << 28, u32::MAX] {
-            assert_eq!(E::from(gpow_u32(e)), gpow(u64::from(e)), "g^{e}");
-        }
-    }
 }

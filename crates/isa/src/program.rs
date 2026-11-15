@@ -3,6 +3,7 @@
 use crate::{CompiledProgram, Op};
 use std::ops::Deref;
 use std::sync::OnceLock;
+use verifier::K;
 use verifier::layout::{BUS_BITS, OP_DEREF, OP_JUMP, OP_KECCAK, OP_MUL, OP_SET, OP_XOR};
 
 /// Operand slots of a bytecode tuple, after the opcode.
@@ -102,7 +103,37 @@ fn encode(op: &Op) -> [u64; 1 + BYTECODE_OPERANDS] {
     tuple
 }
 
-/// An offset's operand: `g^e`.
-fn g_pow(e: u32) -> u64 {
-    verifier::layout::gpow_u32(e).0
+/// `g^e`, the word of `K`, from two tables of `2^16` powers built once, `e = hi 2^16 + lo`: one load, or two and a
+/// product.
+pub fn g_pow(e: u32) -> u64 {
+    static TABLES: OnceLock<[Vec<K>; 2]> = OnceLock::new();
+    let [low, high] = TABLES.get_or_init(|| {
+        let powers = |step: K| -> Vec<K> {
+            std::iter::successors(Some(K(1)), |&power| Some(power * step))
+                .take(1 << 16)
+                .collect()
+        };
+        let low = powers(K(2));
+        let high = powers(low[(1 << 16) - 1] * K(2));
+        [low, high]
+    });
+    match e >> 16 {
+        0 => low[e as usize].0,
+        hi => (low[e as usize & 0xFFFF] * high[hi as usize]).0,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use verifier::E;
+    use verifier::layout::gpow;
+
+    /// The split tables against square-and-multiply, on both sides of the `2^16` boundary and at the ends of the range.
+    #[test]
+    fn g_pow_matches_square_and_multiply() {
+        for e in [0, 1, 63, 64, (1 << 16) - 1, 1 << 16, (1 << 16) + 1, 1 << 28, u32::MAX] {
+            assert_eq!(E::from(K(g_pow(e))), gpow(u64::from(e)), "g^{e}");
+        }
+    }
 }

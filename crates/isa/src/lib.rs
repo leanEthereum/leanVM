@@ -1,7 +1,7 @@
 //! The leanVM instruction set, shared by the zkDSL compiler, which emits it, and both provers, which execute and prove
 //! it: the opcodes ([`Op`]), the hints a compiled program carries for its prover ([`RHint`]), the program as the
 //! compiler hands it over ([`CompiledProgram`]) and as the provers prove it ([`Program`]). Machine words are the
-//! verifier's field elements. Each prover tree implements [`Prover`]. [`pretty_integer`] and [`pretty_f64`] format the
+//! verifier's field elements; [`g_pow`] is the g-power a bytecode operand or index holds. Each prover tree implements [`Prover`]. [`pretty_integer`] and [`pretty_f64`] format the
 //! counts the compiler, provers and benchmarks print.
 
 mod pretty;
@@ -9,7 +9,7 @@ mod program;
 mod prover;
 
 pub use pretty::{pretty_f64, pretty_integer};
-pub use program::Program;
+pub use program::{Program, g_pow};
 pub use prover::{Prover, Stats};
 use std::collections::HashMap;
 use verifier::{E, K};

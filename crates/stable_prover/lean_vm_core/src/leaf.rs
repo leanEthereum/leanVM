@@ -269,7 +269,7 @@ impl<'a> Formula<'a> {
             acc + w.mul_base_unreduced(match *term {
                 Term::Col(i) => load(cols[i]),
                 Term::Prod(i, j) => load(cols[i]) * load(cols[j]),
-                Term::Index => F64x8::splat(F64(verifier::layout::gpow_u32(z as u32).0)) * F64x8::from_array(&G_POWERS),
+                Term::Index => F64x8::splat(F64(isa::g_pow(z as u32))) * F64x8::from_array(&G_POWERS),
                 Term::Public(vals) => load(vals),
             })
         });

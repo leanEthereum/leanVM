@@ -622,6 +622,7 @@ name = "stable_primitives"
 version = "0.1.0"
 dependencies = [
  "fiat_shamir_prover",
+ "isa",
  "keccak256",
  "rand",
  "stable_parallel",
