@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.Backend.Complete.FrameSelf
 public import LeanVM.Guest.Backend.Complete.ScopedRet
+public import LeanVM.Guest.Backend.Complete.FrameInner
 
 /-!
 # A `match` on the path
@@ -154,20 +155,14 @@ end Words
 
 /-! ## Arms off the path -/
 
-/-- **An inner block off the path** (`CplFrameSide5`'s `InBlockOff`, with the values the rest of
-the trace makes left unplaced): its placement passes the events the scope walk passes, gives the
-scope, the statements and the chaining back, moves the next free cell up, grows the places by
-values the passed events make or its frame addresses only, and the shared tables. -/
-def ArmOff (ctx : Backend.Ctx) (z : List Stmt) : Prop :=
-  ∀ (st : St) (sc sc' : SSt),
-    scopeInner ctx.retCells (fun s' => scopeBlock ctx.retCells z s') sc = .ok sc' →
-    st.rest = sc.rest → st.rest.length ≤ ctx.fuel →
-    wpP (inBlock (placeBlock z)) ctx st fun _ st' => st'.rest = sc'.rest ∧
-      st'.scope = st.scope ∧ st'.out = st.out ∧ st'.chainIn = st.chainIn ∧ st.next ≤ st'.next ∧
-      LocsLe st.locs st'.locs ∧ (st.lazy = none → st'.lazy = none ∧ ∀ v, st'.locs[v]? ≠ none →
-        st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest ∨ ∃ run, Atom.frameAddr v run ∈ atomsIn z) ∧
-      (∀ x ∈ st.tables.shared, x ∈ st'.tables.shared) ∧
-      ((∀ v ∈ allocsOf st.rest, st.locs[v]? = none) → ∀ v ∈ allocsOf st'.rest, st'.locs[v]? = none)
+/-- What off-path placements (`InBlockOff`'s clause) do to the places: with no value waiting to
+be placed before, none after, new places only of values the passed events make or of frame
+addresses among the atoms `A`, and the values the later trace makes left unplaced. -/
+def OffNew (st st' : St) (A : List Atom) : Prop :=
+  st.lazy = none → st'.lazy = none ∧
+    (∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest ∨
+      ∃ run, Atom.frameAddr v run ∈ A) ∧
+    ((allocsOf st.rest).Nodup → ∀ v ∈ allocsOf st'.rest, st.locs[v]? = none → st'.locs[v]? = none)
 
 section Inv
 
@@ -189,25 +184,23 @@ address among the atoms `A` they place. -/
 theorem winv_past {A : List Atom} {st st' : St} {s s₁ : SSt} (hinv : WInv ctx I C st s)
     (hlv : s₁.live = s.live) (hpre : ∃ pre, s.rest = pre ++ s₁.rest)
     (hfl : ∀ v run, s.live.contains v = true → Atom.frameAddr v run ∉ A)
-    (hr : st'.rest = s₁.rest) (hs : st'.scope = st.scope) (hch : st'.chainIn = st.chainIn)
-    (hn : st.next ≤ st'.next) (hl : LocsLe st.locs st'.locs)
-    (hnew : st.lazy = none → st'.lazy = none ∧ ∀ v, st'.locs[v]? ≠ none →
-      st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest ∨ ∃ run, Atom.frameAddr v run ∈ A)
-    (hfr : (∀ v ∈ allocsOf st.rest, st.locs[v]? = none) →
-      ∀ v ∈ allocsOf st'.rest, st'.locs[v]? = none) :
+    (hr : st'.rest = s₁.rest) (hs : st'.scope = st.scope)
+    (hch : st.chainIn = none → st'.chainIn = none)
+    (hn : st.next ≤ st'.next) (hl : LocsLe st.locs st'.locs) (hnew : OffNew st st' A) :
     WInv ctx I C st' { s₁ with retDone := s.retDone } := by
   obtain ⟨pre, hpre⟩ := hpre
   have hrest : st.rest = pre ++ st'.rest := by rw [← hinv.rest, hpre, hr]
   have hall : allocsOf st.rest = allocsOf pre ++ allocsOf st'.rest := by
     rw [hrest, allocsOf_append]
-  obtain ⟨hlz, hnw⟩ := hnew hinv.lazy
+  obtain ⟨hlz, hnw, hfr⟩ := hnew hinv.lazy
   refine ⟨⟨hinv.cok.sat, hinv.cok.blind.mono hn, fun Ψ hΨ => by
       rw [hs]; exact (hinv.cok.pools Ψ hΨ).grow hl, by rw [hs]; exact hinv.cok.cells.mono hn⟩,
     hr.symm, fun v l hv hvl => ?_, le_trans hinv.two hn, le_trans hinv.abi hn, ?_,
-    fun hd => hinv.ret hd, ?_, fun v hv => ⟨hfr (fun v hv => (hinv.fresh v hv).1) v hv,
+    fun hd => hinv.ret hd, ?_, fun v hv => ⟨hfr hinv.nodup v hv
+        (hinv.fresh v (by rw [hall]; exact List.mem_append_right _ hv)).1,
       show s₁.live.contains v = false from hlv ▸
         (hinv.fresh v (by rw [hall]; exact List.mem_append_right _ hv)).2⟩,
-    by rw [hch]; exact hinv.chain, by rw [hs]; exact hinv.pnt, hlz⟩
+    hch hinv.chain, by rw [hs]; exact hinv.pnt, hlz⟩
   · have hv' : s.live.contains v = true := by rw [← hlv]; exact hv
     cases h0 : st.locs[v]? with
     | none =>
@@ -275,6 +268,22 @@ theorem armLeave_wp {ctx : Backend.Ctx} {st : St} (exit : ArmExit) (j n : ℕ) :
     exact wp_bind.mpr (wp_modifyGet.mpr (wp_pure.mpr ⟨1, rfl⟩))
   | join join one sfp => exact wp_pure.mpr ⟨0, rfl⟩
 
+theorem OffNew.trans {st st₁ st₂ : St} {A B : List Atom} (h₁ : OffNew st st₁ A)
+    (h₂ : OffNew st₁ st₂ B) (hsub₁ : ∀ v ∈ allocsOf st₁.rest, v ∈ allocsOf st.rest)
+    (hsub₂ : ∀ v ∈ allocsOf st₂.rest, v ∈ allocsOf st₁.rest)
+    (hnd : (allocsOf st.rest).Nodup → (allocsOf st₁.rest).Nodup) : OffNew st st₂ (A ++ B) := by
+  intro hz
+  obtain ⟨z₁, n₁, f₁⟩ := h₁ hz
+  obtain ⟨z₂, n₂, f₂⟩ := h₂ z₁
+  refine ⟨z₂, fun v hv => ?_, fun hnd₀ v hv h0 => f₂ (hnd hnd₀) v hv (f₁ hnd₀ v (hsub₂ v hv) h0)⟩
+  rcases n₂ v hv with h | h | ⟨run, h⟩
+  · rcases n₁ v h with h' | h' | ⟨run, h'⟩
+    · exact Or.inl h'
+    · exact Or.inr (Or.inl h')
+    · exact Or.inr (Or.inr ⟨run, List.mem_append_left _ h'⟩)
+  · exact Or.inr (Or.inl (hsub₁ v h))
+  · exact Or.inr (Or.inr ⟨run, List.mem_append_right _ h⟩)
+
 section Arms
 
 variable {ctx : Backend.Ctx} {exit : ArmExit} {n base : ℕ}
@@ -283,24 +292,22 @@ variable {ctx : Backend.Ctx} {exit : ArmExit} {n base : ℕ}
 and the chaining back, in lockstep with the scope walk, the next free cell ending past `base`, the
 places grown by the passed events' values and the arms' frame addresses only. -/
 theorem placeArms_off : ∀ (arms : List (List Stmt)) (j : ℕ) (st : St) (s : SSt) (acc : Bool)
-    (s' : SSt), (∀ a ∈ arms, ArmOff ctx a) → scopeArms ctx.retCells arms s acc = .ok s' →
+    (s' : SSt), scopeArms ctx.retCells arms s acc = .ok s' →
     st.rest = s.rest → st.rest.length ≤ ctx.fuel →
     wpP (placeArms arms j n base exit) ctx st fun bs st' => bs.length = arms.length ∧
       st'.rest = s'.rest ∧ st'.scope = st.scope ∧ st'.out = st.out ∧
-      st'.chainIn = st.chainIn ∧ base ≤ st'.next ∧ LocsLe st.locs st'.locs ∧
-      s'.live = s.live ∧ (∃ pre, s.rest = pre ++ s'.rest) ∧
-      (st.lazy = none → st'.lazy = none ∧ ∀ v, st'.locs[v]? ≠ none →
-        st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest ∨ ∃ run, Atom.frameAddr v run ∈ armsAtoms arms) ∧
-      (∀ x ∈ st.tables.shared, x ∈ st'.tables.shared) ∧
-      ((∀ v ∈ allocsOf st.rest, st.locs[v]? = none) → ∀ v ∈ allocsOf st'.rest, st'.locs[v]? = none)
-  | [], j, st, s, acc, s', _, hsc, hr, _ => by
+      (st.chainIn = none → st'.chainIn = none) ∧ base ≤ st'.next ∧ LocsLe st.locs st'.locs ∧
+      s'.live = s.live ∧ (∃ pre, s.rest = pre ++ s'.rest) ∧ OffNew st st' (armsAtoms arms) ∧
+      (∀ v ∈ allocsOf st'.rest, v ∈ allocsOf st.rest) ∧
+      (∀ x ∈ st.tables.shared, x ∈ st'.tables.shared)
+  | [], j, st, s, acc, s', hsc, hr, _ => by
     simp only [scopeArms] at hsc
     cases hsc
     rw [placeArms]
     refine wp_bind.mpr (wp_modify.mpr (wp_pure.mpr ?_))
-    exact ⟨rfl, hr, rfl, rfl, rfl, le_rfl, LocsLe.refl _, rfl, ⟨[], rfl⟩,
-      fun h => ⟨h, fun v hv => Or.inl hv⟩, fun _ h => h, fun h => h⟩
-  | arm :: more, j, st, s, acc, s', hoff, hsc, hr, hf => by
+    exact ⟨rfl, hr, rfl, rfl, fun h => h, le_rfl, LocsLe.refl _, rfl, ⟨[], rfl⟩,
+      fun h => ⟨h, fun v hv => Or.inl hv, fun _ _ _ h => h⟩, fun _ h => h, fun _ h => h⟩
+  | arm :: more, j, st, s, acc, s', hsc, hr, hf => by
     simp only [scopeArms] at hsc
     split at hsc
     · cases hsc
@@ -309,38 +316,29 @@ theorem placeArms_off : ∀ (arms : List (List Stmt)) (j : ℕ) (st : St) (s : S
     rw [placeArms_cons]
     refine wp_bind.mpr (wp_modify.mpr ?_)
     refine wp_bind.mpr fun blk st₁ he₁ => ?_
-    obtain ⟨hr₁, hs₁, ho₁, hc₁, hn₁, hl₁, hz₁, ht₁, hf₁⟩ :=
-      hoff arm List.mem_cons_self { st with next := base } s s₁ h₁ hr hf blk st₁ he₁
+    obtain ⟨hr₁, hs₁, ho₁, hc₁, hn₁, hl₁, hz₁, hsub₁, ht₁⟩ :=
+      inBlockOff_ok arm { st with next := base } s s₁ h₁ hr hf blk st₁ he₁
     refine wp_bind.mpr fun leave st₂ he₂ => ?_
     obtain ⟨k, rfl⟩ := armLeave_wp exit j n leave st₂ he₂
     refine wp_bind.mpr (wp_get.mpr ?_)
     refine wp_bind.mpr fun bs st₃ he₃ => ?_
-    have hlen₁ : st₁.rest.length ≤ ctx.fuel := by
-      rw [hr₁]
-      have := congrArg List.length hpre₁
-      rw [List.length_append] at this
-      rw [← hr] at this
-      omega
-    obtain ⟨hb₃, hr₃, hs₃, ho₃, hc₃, hn₃, hl₃, hlv₃, ⟨pre₃, hpre₃⟩, hz₃, ht₃, hf₃⟩ :=
-      placeArms_off more (j + 1) { st₁ with next := st₁.next + k } { s₁ with retDone := s.retDone }
-        _ s' (fun a ha => hoff a (List.mem_cons_of_mem _ ha)) hsc hr₁ hlen₁ bs st₃ he₃
-    refine wp_bind.mpr (wp_modify.mpr (wp_pure.mpr ?_))
     have hrest : st.rest = pre₁ ++ st₁.rest := by rw [hr, hpre₁, hr₁]
+    have hlen₁ : st₁.rest.length ≤ ctx.fuel := by
+      have := congrArg List.length hrest
+      rw [List.length_append] at this
+      omega
+    obtain ⟨hb₃, hr₃, hs₃, ho₃, hc₃, hn₃, hl₃, hlv₃, ⟨pre₃, hpre₃⟩, hz₃, hsub₃, ht₃⟩ :=
+      placeArms_off more (j + 1) { st₁ with next := st₁.next + k } { s₁ with retDone := s.retDone }
+        _ s' hsc hr₁ hlen₁ bs st₃ he₃
+    refine wp_bind.mpr (wp_modify.mpr (wp_pure.mpr ?_))
     refine ⟨by simp [hb₃], hr₃, by rw [hs₃]; exact hs₁, by rw [ho₃]; exact ho₁,
-      by rw [hc₃]; exact hc₁, le_trans hn₃ (Nat.le_max_left _ _),
+      fun h => hc₃ (hc₁ h), le_trans hn₃ (Nat.le_max_left _ _),
       fun v x h => hl₃ v x (hl₁ v x h), by rw [hlv₃]; exact hlv₁,
       ⟨pre₁ ++ pre₃, by rw [hpre₁, List.append_assoc]; exact congrArg (pre₁ ++ ·) hpre₃⟩,
-      fun hz => ?_, fun x hx => ht₃ x (ht₁ x hx), fun hfr => hf₃ (hf₁ hfr)⟩
-    obtain ⟨hz₁', hn₁'⟩ := hz₁ hz
-    obtain ⟨hz₃', hn₃'⟩ := hz₃ hz₁'
-    refine ⟨hz₃', fun v hv => ?_⟩
-    rcases hn₃' v hv with h | h | ⟨run, h⟩
-    · rcases hn₁' v h with h' | h' | ⟨run, h'⟩
-      · exact Or.inl h'
-      · exact Or.inr (Or.inl h')
-      · exact Or.inr (Or.inr ⟨run, by simp only [armsAtoms]; exact List.mem_append_left _ h'⟩)
-    · exact Or.inr (Or.inl (by rw [hrest, allocsOf_append]; exact List.mem_append_right _ h))
-    · exact Or.inr (Or.inr ⟨run, by simp only [armsAtoms]; exact List.mem_append_right _ h⟩)
+      ?_, fun v hv => hsub₁ v (hsub₃ v hv), fun x hx => ht₃ x (ht₁ x hx)⟩
+    have := OffNew.trans (st₁ := { st₁ with next := st₁.next + k }) (st₂ := st₃) hz₁ hz₃ hsub₁
+      hsub₃ fun hnd => by rw [hrest, allocsOf_append] at hnd; exact hnd.of_append_right
+    exact this
 
 end Arms
 
@@ -416,13 +414,12 @@ theorem WInv.setRet {st : St} {s : SSt} (hinv : WInv ctx I C st s) {b : Bool}
 theorem live_locs_keep {A : List Atom} {st st' : St} {s : SSt} (hinv : WInv ctx I C st s)
     (hfl : ∀ v run, s.live.contains v = true → Atom.frameAddr v run ∉ A)
     (hl : LocsLe st.locs st'.locs)
-    (hnew : st.lazy = none → st'.lazy = none ∧ ∀ v, st'.locs[v]? ≠ none →
-      st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest ∨ ∃ run, Atom.frameAddr v run ∈ A) :
+    (hnew : OffNew st st' A) :
     ∀ v l, s.live.contains v = true → st'.locs[v]? = some l → st.locs[v]? = some l := by
   intro v l hv hvl
   cases h0 : st.locs[v]? with
   | none =>
-    rcases (hnew hinv.lazy).2 v (by rw [hvl]; simp) with h | h | ⟨run, h⟩
+    rcases (hnew hinv.lazy).2.1 v (by rw [hvl]; simp) with h | h | ⟨run, h⟩
     · exact absurd h0 h
     · rw [(hinv.fresh v h).2] at hv
       cases hv
@@ -447,7 +444,7 @@ next free cell rewound for each), arm `jp` runs as `InBlockW` has it at the abso
 dead. -/
 theorem placeArms_pick (we : E) : ∀ (arms : List (List Stmt)) (jp j : ℕ) (st : St) (s : SSt)
     (acc : Bool) (s' : SSt) (q i₀ : ℕ) (o : Out) (C : (ℕ → E) → Prop) (hj : jp < arms.length),
-    (∀ a ∈ arms, ArmOff ctx a) → InBlockW Γ Ag cl ctx I arms[jp] →
+    InBlockW Γ Ag cl ctx I arms[jp] →
     scopeArms ctx.retCells arms s acc = .ok s' → WInv ctx I C { st with next := base } s →
     (∀ v run, s.live.contains v = true → Atom.frameAddr v run ∉ armsAtoms arms) →
     walk I.σ arms[jp] = o → o ≠ .stuck → (∀ e ∈ outEs o, e ∈ I.es) →
@@ -462,14 +459,15 @@ theorem placeArms_pick (we : E) : ∀ (arms : List (List Stmt)) (jp j : ℕ) (st
         LeaveOK exit (j + jp) n leave C' we base st'.next ∧
         (∀ es, o = .fall es → Fits I st' →
           OpsIn I (q + armsSize (bs.take jp)) (blockOps blk (q + armsSize (bs.take jp))) →
-          TabsW Γ Ag st' → WInv ctx I C' st' s') ∧
+          TabsW Γ Ag st' → FillsIn Γ Ag (q + armsSize (bs.take jp)) blk → WInv ctx I C' st' s') ∧
         (Fits I st' →
           OpsIn I (q + armsSize (bs.take jp)) (blockOps blk (q + armsSize (bs.take jp))) →
-          TabsW Γ Ag st' → BlkW Γ I ctx Ag cl C' blk arms[jp] [] o i₀ (q + armsSize (bs.take jp)) ∧
+          TabsW Γ Ag st' → FillsIn Γ Ag (q + armsSize (bs.take jp)) blk →
+          BlkW Γ I ctx Ag cl C' blk arms[jp] [] o i₀ (q + armsSize (bs.take jp)) ∧
             RW I C' st' (pathVals I.σ arms[jp] o))
-  | [], _, _, _, _, _, _, _, _, _, _, hj, _, _, _, _, _, _, _, _, _, _ =>
+  | [], _, _, _, _, _, _, _, _, _, _, hj, _, _, _, _, _, _, _, _, _ =>
     absurd hj (Nat.not_lt_zero _)
-  | arm :: more, 0, j, st, s, acc, s', q, i₀, o, C, _, hoff, hin, hsc, hW, hfl, hw, hns, hes,
+  | arm :: more, 0, j, st, s, acc, s', q, i₀, o, C, _, hin, hsc, hW, hfl, hw, hns, hes,
       hcl, hfa => by
     simp only [scopeArms] at hsc
     split at hsc
@@ -479,8 +477,8 @@ theorem placeArms_pick (we : E) : ∀ (arms : List (List Stmt)) (jp j : ℕ) (st
     rw [placeArms_cons]
     refine wp_bind.mpr (wp_modify.mpr ?_)
     refine wp_bind.mpr fun blk st₁ he₁ => ?_
-    obtain ⟨hr₁, hs₁, ho₁, hc₁, hn₁, hl₁, hz₁, ht₁, hf₁⟩ :=
-      hoff arm List.mem_cons_self { st with next := base } s s₁ h₁ hW.rest.symm hW.fuel blk st₁ he₁
+    obtain ⟨hr₁, hs₁, ho₁, hc₁, hn₁, hl₁, hz₁, hsub₁, ht₁⟩ :=
+      inBlockOff_ok arm { st with next := base } s s₁ h₁ hW.rest.symm hW.fuel blk st₁ he₁
     obtain ⟨C₁, hsat₁, hb₁, hst₁, -, -, hout₁, hsc₁, hch₁, hW₁, hB₁⟩ :=
       hin C { st with next := base } s s₁ i₀ q o h₁ hw hns hes hcl hW hW.cok blk st₁ he₁
     refine wp_bind.mpr fun leave st₂ he₂ => ?_
@@ -516,26 +514,27 @@ theorem placeArms_pick (we : E) : ∀ (arms : List (List Stmt)) (jp j : ℕ) (st
       have h' := congrArg List.length hpre₁
       rw [List.length_append, hrs, ← hr₁] at h'
       omega
-    obtain ⟨hb₃, hr₃, hs₃, ho₃, hc₃, hn₃, hl₃, hlv₃, ⟨pre₃, hpre₃⟩, hz₃, ht₃, hf₃⟩ :=
+    obtain ⟨hb₃, hr₃, hs₃, ho₃, hc₃, hn₃, hl₃, hlv₃, ⟨pre₃, hpre₃⟩, hz₃, hsub₃, ht₃⟩ :=
       placeArms_off more (j + 1) { st₁ with next := st₁.next + k } { s₁ with retDone := s.retDone }
-        _ s' (fun a ha => hoff a (List.mem_cons_of_mem _ ha)) hsc hr₁ hlen₁ bs st₃ he₃
+        _ s' hsc hr₁ hlen₁ bs st₃ he₃
     refine wp_bind.mpr (wp_modify.mpr (wp_pure.mpr ?_))
     have hnm : st₁.next + k ≤ max st₃.next (st₁.next + k) := Nat.le_max_right _ _
     have hl₁₃ : LocsLe st₁.locs st₃.locs := hl₃
     have hfl' : ∀ v run, s₁.live.contains v = true → Atom.frameAddr v run ∉ armsAtoms more :=
       fun v run hv h => hfl v run (by rw [← hlv₁]; exact hv)
         (by simp only [armsAtoms]; exact List.mem_append_right _ h)
-    have hnew₃ := fun h => hz₃ (hz₁ h).1
+    have hnew₃ := hz₃ (hz₁ (by simpa using hW.lazy)).1
     refine ⟨C₂, hst₁.trans hst₂, hsat₂, hb₂.mono hnm, le_trans (le_trans hn₁ (Nat.le_add_right _ _))
       hnm, fun v x h => hl₃ v x (hl₁ v x h), by simp [hb₃], by rw [ho₃]; exact ho₁,
-      by rw [hs₃]; exact hs₁, by rw [hc₃]; exact hch₁, hr₃, fun x hx => ht₃ x (ht₁ x hx),
-      blk, leave, rfl, hlv₂.mono (Stronger.refl _) hnm, fun es hes' hF hO hT => ?_,
-      fun hF hO hT => ?_⟩
+      by rw [hs₃]; exact hs₁, hc₃ hch₁, hr₃, fun x hx => ht₃ x (ht₁ x hx),
+      blk, leave, rfl, hlv₂.mono (Stronger.refl _) hnm, fun es hes' hF hO hT hFl => ?_,
+      fun hF hO hT hFl => ?_⟩
     · have hF₁ : Fits I st₁ := hF.back (le_trans (Nat.le_add_right _ _) hnm) hl₁₃
-      have hW₂' := hW₂ (hW₁ es hes' hF₁ (by simpa [armsSize] using hO) (hT.back ht₃))
+      have hW₂' := hW₂ (hW₁ es hes' hF₁ (by simpa [armsSize] using hO) (hT.back ht₃)
+        (by simpa [armsSize] using hFl))
       have := winv_past (A := armsAtoms more)
         (st' := { st₃ with next := max st₃.next (st₁.next + k) }) hW₂' (by rw [hlv₃]) ⟨pre₃, hpre₃⟩
-        hfl' hr₃ hs₃ hc₃ hnm hl₃ (fun h => hz₃ h) hf₃
+        hfl' hr₃ hs₃ hc₃ hnm hl₃ hz₃
       refine (this.setRet fun hb => ?_ : WInv ctx I C₂ _ { s' with retDone := s'.retDone })
       cases h1 : s₁.retDone
       · rfl
@@ -543,18 +542,15 @@ theorem placeArms_pick (we : E) : ∀ (arms : List (List Stmt)) (jp j : ℕ) (st
         cases hb
     · have hF₁ : Fits I st₁ := hF.back (le_trans (Nat.le_add_right _ _) hnm) hl₁₃
       obtain ⟨hB, hR⟩ := hB₁ hF₁ (by simpa [armsSize] using hO) (hT.back ht₃)
+        (by simpa [armsSize] using hFl)
       refine ⟨by simpa [armsSize] using hB.mono hst₂,
         hR.grow (st' := { st₃ with next := max st₃.next (st₁.next + k) }) hst₂
-          (le_trans (Nat.le_add_right _ _) hnm) hl₁₃ (fun v hv hvl => ?_) (fun v hv => ?_)⟩
-      · rcases (hnew₃ (by simpa using hW.lazy)).2 v hvl with h | h | ⟨run, h⟩
-        · exact Or.inl h
-        · exact Or.inr h
-        · exact absurd h (hfa v (by simpa using hv) run)
-      · show v ∈ allocsOf st₁.rest
-        rw [hr₁, show s₁.rest = ({ s₁ with retDone := s.retDone } : SSt).rest from rfl, hpre₃,
-          allocsOf_append]
-        exact List.mem_append_right _ (by rw [← hr₃]; exact hv)
-  | arm :: more, jp + 1, j, st, s, acc, s', q, i₀, o, C, hj, hoff, hin, hsc, hW, hfl, hw, hns,
+          (le_trans (Nat.le_add_right _ _) hnm) hl₁₃ (fun v hv hvl => ?_) (fun v hv => hsub₃ v hv)⟩
+      rcases hnew₃.2.1 v hvl with h | h | ⟨run, h⟩
+      · exact Or.inl h
+      · exact Or.inr h
+      · exact absurd h (hfa v (by simpa using hv) run)
+  | arm :: more, jp + 1, j, st, s, acc, s', q, i₀, o, C, hj, hin, hsc, hW, hfl, hw, hns,
       hes, hcl, hfa => by
     simp only [scopeArms] at hsc
     split at hsc
@@ -564,8 +560,8 @@ theorem placeArms_pick (we : E) : ∀ (arms : List (List Stmt)) (jp j : ℕ) (st
     rw [placeArms_cons]
     refine wp_bind.mpr (wp_modify.mpr ?_)
     refine wp_bind.mpr fun blk st₁ he₁ => ?_
-    obtain ⟨hr₁, hs₁, ho₁, hc₁, hn₁, hl₁, hz₁, ht₁, hf₁⟩ :=
-      hoff arm List.mem_cons_self { st with next := base } s s₁ h₁ hW.rest.symm hW.fuel blk st₁ he₁
+    obtain ⟨hr₁, hs₁, ho₁, hc₁, hn₁, hl₁, hz₁, hsub₁, ht₁⟩ :=
+      inBlockOff_ok arm { st with next := base } s s₁ h₁ hW.rest.symm hW.fuel blk st₁ he₁
     refine wp_bind.mpr fun leave st₂ he₂ => ?_
     obtain ⟨k, rfl⟩ := armLeave_wp exit j n leave st₂ he₂
     refine wp_bind.mpr (wp_get.mpr ?_)
@@ -573,7 +569,7 @@ theorem placeArms_pick (we : E) : ∀ (arms : List (List Stmt)) (jp j : ℕ) (st
     have hfl₀ : ∀ v run, s.live.contains v = true → Atom.frameAddr v run ∉ atomsIn arm :=
       fun v run hv h => hfl v run hv (by simp only [armsAtoms]; exact List.mem_append_left _ h)
     have hW₂ := winv_past (A := atomsIn arm) (st' := { st₁ with next := st₁.next + k }) hW hlv₁
-      ⟨pre₁, hpre₁⟩ hfl₀ hr₁ hs₁ hc₁ (le_trans hn₁ (Nat.le_add_right _ _)) hl₁ hz₁ hf₁
+      ⟨pre₁, hpre₁⟩ hfl₀ hr₁ hs₁ hc₁ (le_trans hn₁ (Nat.le_add_right _ _)) hl₁ hz₁
     have hkeep := live_locs_keep (A := atomsIn arm) (st' := { st₁ with next := st₁.next + k }) hW
       hfl₀ hl₁ hz₁
     have hWb : WInv ctx I C { { st₁ with next := st₁.next + k } with next := base }
@@ -585,7 +581,7 @@ theorem placeArms_pick (we : E) : ∀ (arms : List (List Stmt)) (jp j : ℕ) (st
         hlv', hW', hB'⟩ :=
       placeArms_pick we more jp (j + 1) { st₁ with next := st₁.next + k }
         { s₁ with retDone := s.retDone } _ s' (q + blockSize (blk ++ leave)) i₀ o C
-        (by simpa using hj) (fun a ha => hoff a (List.mem_cons_of_mem _ ha)) (by simpa using hin)
+        (by simpa using hj) (by simpa using hin)
         hsc hWb (fun v run hv h => hfl v run (by rw [← hlv₁]; exact hv)
           (by simp only [armsAtoms]; exact List.mem_append_right _ h)) (by simpa using hw) hns
         hes hcl (by simpa using hfa) bs st₃ he₃
@@ -601,11 +597,11 @@ theorem placeArms_pick (we : E) : ∀ (arms : List (List Stmt)) (jp j : ℕ) (st
     refine ⟨C', hst', hsat', hb'.mono hnm, le_trans hn' hnm,
       fun v x h => hl' v x (hl₁ v x h), by simp [hb₃], by rw [ho₃]; exact ho₁,
       by rw [hs₃]; exact hs₁, hc₃, hr₃, fun x hx => ht₃ x (ht₁ x hx), blk', leave',
-      by simpa using hbs, hlvk, fun es hes' hF hO hT => ?_, fun hF hO hT => ?_⟩
-    · rw [hpos] at hO
-      exact (hW' es hes' (hF.back hnm (LocsLe.refl _)) hO hT).raise hnm
-    · rw [hpos] at hO ⊢
-      obtain ⟨hB, hR⟩ := hB' (hF.back hnm (LocsLe.refl _)) hO hT
+      by simpa using hbs, hlvk, fun es hes' hF hO hT hFl => ?_, fun hF hO hT hFl => ?_⟩
+    · rw [hpos] at hO hFl
+      exact (hW' es hes' (hF.back hnm (LocsLe.refl _)) hO hT hFl).raise hnm
+    · rw [hpos] at hO hFl ⊢
+      obtain ⟨hB, hR⟩ := hB' (hF.back hnm (LocsLe.refl _)) hO hT hFl
       exact ⟨(by simpa using hB), hR.grow (Stronger.refl _) hnm (LocsLe.refl _)
         (fun v _ h => Or.inl h) (fun v hv => hv)⟩
 
