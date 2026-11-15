@@ -625,7 +625,6 @@ dependencies = [
  "keccak256",
  "rand",
  "stable_parallel",
- "stable_primitives",
  "verifier",
 ]
 

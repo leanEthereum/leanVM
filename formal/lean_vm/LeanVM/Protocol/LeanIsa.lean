@@ -487,8 +487,8 @@ def derived (c : Col) : Option (Column (leanIsaμ prog s) → Column (kappa prog
 def coords {S : Shape} {κ : ℕ} (cs : List (Coord S κ)) : Vector (Coord S κ) 16 :=
   Vector.ofFn fun k ↦ cs.getD k (.const 0)
 
-/-- Column `k` of the program's entries, `Program::stacked_bytecode` (`crates/isa/src/program.rs`): the
-entry's coordinate `k` at every slot, coordinate `3 + k` of the bytecode tuple. -/
+/-- Column `k` of the program's entries, slot `3 + k` of `Program::stacked_bytecode` (`crates/isa/src/program.rs`):
+the entry's coordinate `k` at every slot, coordinate `3 + k` of the bytecode tuple. -/
 def entryColumn (k : Fin 13) : Column prog.logSize :=
   ⟨Vector.ofFn fun i ↦ (busEntry (prog.instructions i))[k]⟩
 
