@@ -77,9 +77,9 @@ impl std::fmt::Display for ProveError {
 
 impl std::error::Error for ProveError {}
 
-/// The tables' entries in the table sumcheck, in table order: each table's committed columns, its summand (its
+/// The tables' entries in the table sumcheck, in table order: each table's committed columns and its summand (its
 /// identities weighted by its own range of `ξ`-powers, each tree's bus form by the tree's power at
-/// [`xi_form_base`]), and what the summand sums to, its bus forms' share, as its identities vanish.
+/// [`xi_form_base`]).
 fn airs<'a>(
     taus: &[usize; tables::N_TABLES],
     bus: &leaf::BusProof,
@@ -100,9 +100,6 @@ fn airs<'a>(
                 tau,
                 cols: &cols[GLOBAL_COLUMN_BASES[t]..][..TABLE_WIDTHS[t]],
                 form: constraints::Form::sum(bus_forms.chain([identities])),
-                sigma: (0..verifier::N_BUS_TREES)
-                    .map(|s| pows[base + s] * bus.sigmas[s][t])
-                    .sum(),
             }
         })
         .collect()

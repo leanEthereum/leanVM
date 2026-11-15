@@ -319,11 +319,9 @@ pub(crate) fn layout_of(log_bytecode: usize, log_mem: usize, rows: [usize; table
     let mut count_blocks: Vec<Block> = Vec::new();
     for (t, table) in tables::tables().iter().enumerate() {
         let base = sch.base[t];
-        let padding = table.padding();
         let table_block = |coords: Vec<Coord>| Block {
             kappa: taus[t],
             rows: rows[t],
-            padding: coords.iter().map(|c| crate::leaf::coord_at(c, &padding)).collect(),
             coords: offset_coords(base, coords),
         };
         let mut fb = FlushBuilder::new();

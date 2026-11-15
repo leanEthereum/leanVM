@@ -10,7 +10,8 @@
 //! joins ("back-loaded"). Binding `X_m` to `Y`, a waiting table adds `Y·k·σ_j` (`k` the challenges so far, `σ_j` its
 //! sum) and a joined one `eq(ζ_m, Y)·p_j(Y)`, its summand's restriction, of degree two. The round polynomial is the
 //! cubic `h(Y) = Σ_j (…)`: the claim fixes its linear coefficient and the other three travel. Each table's columns end
-//! on the nested point `χ_{<τ_j}`.
+//! on the nested point `χ_{<τ_j}`. The prover takes `σ_j` from the first round table `j` is active in, which reads no
+//! challenge: `eq` factors, so `σ_j = (1 + ζ_m)·p_j(0) + ζ_m·p_j(1)` at `m = τ_j - 1`.
 //!
 //! A table's rows are read from its `K` columns until it joins. From then on it is held as its summand's few linear
 //! parts, folded as `E` columns (`Grouped`), rather than as its columns folded one by one.
@@ -64,7 +65,8 @@ impl Form {
     }
 
     /// `constant + Σ coeffs[c]·evals[c]`.
-    pub(crate) fn linear(&self, evals: &[F128]) -> F128 {
+    #[cfg(test)]
+    fn linear(&self, evals: &[F128]) -> F128 {
         self.coeffs
             .iter()
             .zip(evals)
@@ -95,9 +97,6 @@ pub(crate) struct Air<'a> {
     pub cols: &'a [&'a [F64]],
     /// Its summand.
     pub form: Form,
-    /// What the summand sums to against `eq(ζ_{<τ}, ·)`: what the table contributes while it waits. Prover-side
-    /// only, the verifier derives the total.
-    pub sigma: F128,
 }
 
 /// Where each table's range of `ξ`-powers starts, given each one's identity count.
@@ -111,8 +110,8 @@ pub fn xi_offsets(n_constraints: impl Iterator<Item = usize>) -> Vec<usize> {
         .collect()
 }
 
-/// Prove that every table's summand sums to its `sigma`, as one sumcheck over `τ_max` variables, the `eq` point
-/// `zeta` (the bus GKR's `ζ`). Returns each table's column claims, in input order.
+/// Prove what every table's summand sums to against `eq(ζ_{<τ}, ·)`, as one sumcheck over `τ_max` variables, the `eq`
+/// point `zeta` (the bus GKR's `ζ`). Returns each table's column claims, in input order.
 pub(crate) fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Vec<Claims> {
     let n = airs.iter().map(|a| a.tau).max().unwrap_or(0);
     debug_assert!(zeta.len() >= n, "the eq point must cover the tallest table");
@@ -120,7 +119,6 @@ pub(crate) fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Ve
         .iter()
         .map(|air| Table {
             tau: air.tau,
-            sigma: air.sigma,
             weight: F128::ONE,
             form: Grouped::new(&air.form),
             cols: air.cols,
@@ -130,24 +128,23 @@ pub(crate) fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Ve
     // One eq table over the variables still free serves every joined table.
     let mut eqr = eq_table(&zeta[..n.saturating_sub(1)]);
     let mut chi = vec![F128::ZERO; n];
-    let mut claim = airs.iter().map(|a| a.sigma).sum();
+    // `claim` and the waiting tables' slope `u = k·Σσ` start at zero, not at the target `Σσ` over every table: both
+    // then sit `k·target` off, and only `claim + u` reaches a sent coefficient (the linear one is not sent), so the
+    // offset cancels. A joining table's `σ` leaves `u`.
+    let (mut claim, mut u) = (F128::ZERO, F128::ZERO);
     for m in (0..n).rev() {
-        // The joined tables' `p(Y)` (an endpoint and its quadratic coefficient), and the waiting tables' slope `u`.
-        let at_one = zeta[m].is_zero();
-        let (mut p, mut u) = ([F128::ZERO; 2], F128::ZERO);
-        for t in &tables {
-            if t.tau > m {
-                let [end, quadratic] = t.message(&eqr, m, at_one);
-                p = [p[0] + t.weight * end, p[1] + t.weight * quadratic];
-            } else {
-                u += t.weight * t.sigma;
-            }
+        // The joined tables' `p(Y)`: an endpoint and its quadratic coefficient.
+        let mut p = [F128::ZERO; 2];
+        for t in tables.iter().filter(|t| t.tau > m) {
+            let [end, quadratic] = t.message(&eqr, m, zeta[m], &mut u);
+            p = [p[0] + t.weight * end, p[1] + t.weight * quadratic];
         }
         shrink_eq_high(&mut eqr);
         let h = round_polynomial(p, zeta[m], claim, u);
         ps.add_round_poly(&h, false);
         let r = ps.sample();
         claim = poly_eval(&h, r);
+        u *= r;
         chi[m] = r;
         for t in &mut tables {
             if t.tau > m {
@@ -194,7 +191,6 @@ fn round_polynomial([end, quadratic]: [F128; 2], zeta: F128, claim: F128, u: F12
 /// One table of the batch, and what the rounds have made of it.
 struct Table<'a> {
     tau: usize,
-    sigma: F128,
     /// Its factor in `F`: the challenges it waited, then `eq(ζ_m, χ_m)` of each round since it joined.
     weight: F128,
     form: Grouped,
@@ -206,13 +202,18 @@ struct Table<'a> {
 impl Table<'_> {
     /// `[Σ_i eqr[i]·P(end_i), Σ_i eqr[i]·Q(lo_i + hi_i)]` for the round binding variable `m` (of weight `half`): `P`
     /// the summand, `Q` its quadratic part, `lo` and `hi` the rows `i` and `i + half`, `end` the upper ones when
-    /// `at_one`. `eqr` sums to one, so the form's constant is added once.
-    fn message(&self, eqr: &[F128], m: usize, at_one: bool) -> [F128; 2] {
-        let [end, quadratic] = match &self.state {
-            Some(state) => message_joined(&self.form, state, eqr, 1 << m, at_one),
-            None => message_waiting(&self.form, self.cols, eqr, 1 << m, at_one),
+    /// `ζ_m = 0`. `eqr` sums to one, so the form's constant is added once. The first, from both endpoints, adds the
+    /// table's `weight·σ` to `u`.
+    fn message(&self, eqr: &[F128], m: usize, zeta: F128, u: &mut F128) -> [F128; 2] {
+        let c = self.form.constant;
+        let Some(state) = &self.state else {
+            let [p0, p1, quadratic] = message_waiting(&self.form, self.cols, eqr, 1 << m);
+            let (p0, p1) = (p0 + c, p1 + c);
+            *u += self.weight * ((F128::ONE + zeta) * p0 + zeta * p1);
+            return [if zeta.is_zero() { p1 } else { p0 }, quadratic];
         };
-        [end + self.form.constant, quadratic]
+        let [end, quadratic] = message_joined(&self.form, state, eqr, 1 << m, zeta.is_zero());
+        [end + c, quadratic]
     }
 
     /// Bind variable `m` to `r`: the join of a table that has not joined, the fold of one that has.
@@ -291,40 +292,42 @@ fn splat(terms: &Lin) -> Vec<(usize, F128x8)> {
 }
 
 /// `Σ_b f(b)` over the vectors of eight rows `0..vectors`, reduced once per task.
-fn sum_vectors(vectors: usize, f: impl Fn(usize, &mut [Acc8; 2]) + Sync) -> [F128; 2] {
+fn sum_vectors<const N: usize>(vectors: usize, f: impl Fn(usize, &mut [Acc8; N]) + Sync) -> [F128; N] {
     let chunk = crate::chunk(vectors);
     parallel::map_reduce(
         vectors.div_ceil(chunk),
-        || [F128::ZERO; 2],
+        || [F128::ZERO; N],
         |task| {
-            let mut acc = [Acc8::ZERO; 2];
+            let mut acc = [Acc8::ZERO; N];
             for b in task * chunk..vectors.min((task + 1) * chunk) {
                 f(b, &mut acc);
             }
             acc.map(Acc8::sum)
         },
-        |a, b| [a[0] + b[0], a[1] + b[1]],
+        |a, b| std::array::from_fn(|k| a[k] + b[k]),
     )
 }
 
-/// [`Table::message`] of a table that has not joined, from its `K` columns, less the constant.
-fn message_waiting(form: &Grouped, cols: &[&[F64]], eqr: &[F128], half: usize, at_one: bool) -> [F128; 2] {
+/// The message of a table that has not joined, from its `K` columns, less the constant, with both endpoints:
+/// `[Σ_i eqr[i]·P(lo_i), Σ_i eqr[i]·P(hi_i), Σ_i eqr[i]·Q(lo_i + hi_i)]`.
+fn message_waiting(form: &Grouped, cols: &[&[F64]], eqr: &[F128], half: usize) -> [F128; 3] {
     let lin = splat(&form.lin);
     let rights: Vec<_> = form.groups.iter().map(|(_, right)| splat(right)).collect();
     sum_vectors(half.div_ceil(8), |b, acc| {
         let (i, n) = (8 * b, (half - 8 * b).min(8));
         let lo = |c: usize| load_k(cols[c], i, n);
         let hi = |c: usize| load_k(cols[c], i + half, n);
-        let end = |c: usize| if at_one { hi(c) } else { lo(c) };
         let sum = |c: usize| lo(c) + hi(c);
-        let (mut end_value, mut quadratic) = (dot(&lin, end), Acc8::ZERO);
+        let (mut at_zero, mut at_one, mut quadratic) = (dot(&lin, lo), dot(&lin, hi), Acc8::ZERO);
         for ((left, _), right) in form.groups.iter().zip(&rights) {
-            end_value += dot(right, end).reduce().mul_base_unreduced(end(*left));
+            at_zero += dot(right, lo).reduce().mul_base_unreduced(lo(*left));
+            at_one += dot(right, hi).reduce().mul_base_unreduced(hi(*left));
             quadratic += dot(right, sum).reduce().mul_base_unreduced(sum(*left));
         }
         let eq = load_e(eqr, i, n);
-        acc[0] += end_value.reduce().mul_unreduced(eq);
-        acc[1] += quadratic.reduce().mul_unreduced(eq);
+        acc[0] += at_zero.reduce().mul_unreduced(eq);
+        acc[1] += at_one.reduce().mul_unreduced(eq);
+        acc[2] += quadratic.reduce().mul_unreduced(eq);
     })
 }
 
@@ -486,7 +489,6 @@ mod tests {
                 .collect();
             let mut table = Table {
                 tau: m + 1,
-                sigma: F128::ZERO,
                 weight: F128::ONE,
                 form: Grouped::new(&synth(&pows)),
                 cols: &views,
@@ -495,12 +497,19 @@ mod tests {
             let mut eqr = eq_table(&rng.ext_vec(m));
             for var in (0..=m).rev() {
                 let half = 1 << var;
-                for at_one in [false, true] {
-                    assert_eq!(
-                        table.message(&eqr, var, at_one),
-                        naive_message(&pows, &naive_cols, &eqr, half, at_one),
-                        "m {m} half {half}"
-                    );
+                let naive = [false, true].map(|at_one| naive_message(&pows, &naive_cols, &eqr, half, at_one));
+                // The first message also adds `σ = (1 + ζ)·p(0) + ζ·p(1)`, affine in `ζ`, so its ends pin it.
+                let first = table.state.is_none();
+                for (zeta, at_one) in [(F128::ONE, false), (F128::ZERO, true)] {
+                    let mut u = F128::ZERO;
+                    let message = table.message(&eqr, var, zeta, &mut u);
+                    assert_eq!(message, naive[usize::from(at_one)], "m {m} half {half}");
+                    let sigma = if first {
+                        naive[usize::from(!at_one)][0]
+                    } else {
+                        F128::ZERO
+                    };
+                    assert_eq!(u, sigma, "m {m} half {half}");
                 }
                 let r = rng.ext();
                 shrink_eq_high(&mut eqr);

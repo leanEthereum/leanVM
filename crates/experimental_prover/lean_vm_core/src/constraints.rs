@@ -26,6 +26,11 @@
 //! it at the challenge. Heights and `ζ` enter only the per-table `weights`, which
 //! may be accumulated along the way or deferred to the end, as the recursion guest does.
 //!
+//! A waiting table adds `Y·k·σ`, `k` the challenges so far and `σ` its sum, so `u = k·Σσ`. The
+//! prover takes `σ` from the message of the round the table joins: `eq` factors, so
+//! `σ = (1 + ζ_m)·p(0) + ζ_m·p(1)` at `m = τ − 1`. It never needs the target: it keeps the running
+//! claim and `Σσ` relative to it.
+//!
 //! The eq point is the caller's, not a fresh one (the bus's GKR point `ζ`), which
 //! is what lets the forms' sums settle the bus. Batching derived in `doc/leanvm/main.tex`
 //! §sec:air. Both sides take `n = max τ_t` from the tables' heights; a recursive
@@ -51,9 +56,6 @@ pub struct Air<'a> {
     pub cols: &'a [&'a [F64]],
     /// Its summand, a degree-2 form over `cols`.
     pub form: BusForm,
-    /// What the summand sums to against `eq(ζ, ·)`: prover-side only, for the line the table
-    /// contributes while it waits. The verifier derives the total.
-    pub sigma: F128,
 }
 
 /// Start of each table's disjoint range of `ξ`-powers.
@@ -173,8 +175,8 @@ fn task_blocks(t: usize, n: usize, per: usize) -> std::ops::Range<usize> {
     t * per..((t + 1) * per).min(n)
 }
 
-fn xor2(a: [Prod8; 2], b: [Prod8; 2]) -> [Prod8; 2] {
-    [a[0] ^ b[0], a[1] ^ b[1]]
+fn xor<const N: usize>(a: [Prod8; N], b: [Prod8; N]) -> [Prod8; N] {
+    std::array::from_fn(|i| a[i] ^ b[i])
 }
 
 /// A table's message from its accumulated terms: the eq weights sum to one, so the form's constant
@@ -183,10 +185,11 @@ fn finish([endpoint, slope]: [Prod8; 2], constant: F128) -> [F128; 2] {
     [endpoint.reduce() + constant, slope.reduce()]
 }
 
-/// The first round a table is active: its message, and its state over all its rows, unfolded, in one
-/// pass over the `K` columns, which no later round reads. The linear forms are `E x K` mixed dots, and
-/// every product of the summand is one mixed product against a reduced `right_g`.
-fn expand(form: &Form, cols: &[&[F64]], eqr: &[F128], half: usize, at_one: bool) -> (State, [F128; 2]) {
+/// The first round a table is active: its state over all its rows, unfolded, and its message with both
+/// endpoints, `[p(0), p(1), quadratic]`, in one pass over the `K` columns, which no later round reads.
+/// The linear forms are `E x K` mixed dots, and every product of the summand is one mixed product
+/// against a reduced `right_g`.
+fn expand(form: &Form, cols: &[&[F64]], eqr: &[F128], half: usize) -> (State, [F128; 3]) {
     let lin = splat(&form.lin);
     let rights: Vec<_> = form.groups.iter().map(|(_, right)| splat(right)).collect();
     let dot = |terms: &[(usize, F128x8)], vals: &[F64x8]| {
@@ -208,12 +211,13 @@ fn expand(form: &Form, cols: &[&[F64]], eqr: &[F128], half: usize, at_one: bool)
         let vals: Vec<F64x8> = cols.iter().map(|&col| pad(col)).collect();
         let mut state = vec![F128x8::splat(F128::ZERO); width];
         entries(&vals, &mut state);
-        let message = message_small(form, &state, eqr, half, at_one);
-        return (state, message);
+        let [p0, quadratic] = message_small(form, &state, eqr, half, false);
+        let p1 = message_small(form, &state, eqr, half, true)[0];
+        return (state, [p0, p1, quadratic]);
     }
     let blocks = half / 8;
     let zero = F64x8::from_array(&[F64::ZERO; 8]);
-    let mut acc = [Prod8::ZERO; 2];
+    let mut acc = [Prod8::ZERO; 3];
     // SAFETY: every task writes all `width` entries of each of its blocks in both halves.
     let state = unsafe {
         primitives::filled_vec(2 * blocks * width, |state| {
@@ -222,7 +226,7 @@ fn expand(form: &Form, cols: &[&[F64]], eqr: &[F128], half: usize, at_one: bool)
                 [lows, highs],
                 [TASK_BLOCKS * width; 2],
                 || (vec![zero; cols.len()], vec![zero; cols.len()]),
-                || [Prod8::ZERO; 2],
+                || [Prod8::ZERO; 3],
                 |(lo_k, hi_k), acc, t, [lows, highs]| {
                     let outs = lows.chunks_exact_mut(width).zip(highs.chunks_exact_mut(width));
                     for (b, (lo, hi)) in task_blocks(t, blocks, TASK_BLOCKS).zip(outs) {
@@ -232,22 +236,24 @@ fn expand(form: &Form, cols: &[&[F64]], eqr: &[F128], half: usize, at_one: bool)
                         }
                         entries(lo_k, lo);
                         entries(hi_k, hi);
-                        let (end, end_k) = if at_one { (&*hi, &*hi_k) } else { (&*lo, &*lo_k) };
-                        let (mut endpoint, mut slope) = (Prod8::ZERO, Prod8::ZERO);
+                        let (mut p0, mut p1, mut slope) = (Prod8::ZERO, Prod8::ZERO, Prod8::ZERO);
                         for (g, (left, _)) in form.groups.iter().enumerate() {
-                            endpoint ^= end[2 + 2 * g].mul_base_unreduced(end_k[*left]);
+                            p0 ^= lo[2 + 2 * g].mul_base_unreduced(lo_k[*left]);
+                            p1 ^= hi[2 + 2 * g].mul_base_unreduced(hi_k[*left]);
                             slope ^= (lo[2 + 2 * g] + hi[2 + 2 * g]).mul_base_unreduced(lo_k[*left] + hi_k[*left]);
                         }
                         let eq = load_e(eqr, i);
-                        acc[0] ^= (endpoint.reduce_lanes() + end[0]).mul_unreduced(eq);
-                        acc[1] ^= slope.reduce_lanes().mul_unreduced(eq);
+                        acc[0] ^= (p0.reduce_lanes() + lo[0]).mul_unreduced(eq);
+                        acc[1] ^= (p1.reduce_lanes() + hi[0]).mul_unreduced(eq);
+                        acc[2] ^= slope.reduce_lanes().mul_unreduced(eq);
                     }
                 },
-                xor2,
+                xor,
             );
         })
     };
-    (state, finish(acc, form.constant))
+    let [p0, p1, quadratic] = acc.map(Prod8::reduce);
+    (state, [p0 + form.constant, p1 + form.constant, quadratic])
 }
 
 /// A table's message below eight rows per half, where one vector per column holds both halves: each
@@ -307,7 +313,7 @@ fn fold_and_message(form: &Form, state: &mut State, r: F128, half: usize, eqr: &
                 block_message(lo, hi, load_e(eqr, 8 * k), at_one, acc);
             }
         },
-        xor2,
+        xor,
     );
     state.truncate(2 * blocks * width);
     finish(acc, form.constant)
@@ -333,7 +339,6 @@ fn fold_small(state: &mut State, r: F128, half: usize) {
 /// One table of the batch, and what the rounds have made of it.
 struct Table<'a> {
     tau: usize,
-    sigma: F128,
     /// Its summand's factor: the challenges it sat out, then the eq factors of the rounds it was active.
     weight: F128,
     form: Form,
@@ -346,14 +351,16 @@ struct Table<'a> {
 
 impl Table<'_> {
     /// The message of the round that binds variable `m`, while the table is active: the first such
-    /// round expands the table's state, every later one was built by the fold before it.
-    fn message(&mut self, eqr: &[F128], m: usize, at_one: bool) -> [F128; 2] {
+    /// round expands the table's state and takes its sum `σ` out of `waiting`, every later one was
+    /// built by the fold before it.
+    fn message(&mut self, eqr: &[F128], m: usize, zeta: F128, waiting: &mut F128) -> [F128; 2] {
         if let Some(p) = self.next_message.take() {
             return p;
         }
-        let (state, p) = expand(&self.form, self.cols, eqr, 1 << m, at_one);
+        let (state, [p0, p1, quadratic]) = expand(&self.form, self.cols, eqr, 1 << m);
         self.state = Some(state);
-        p
+        *waiting += (F128::ONE + zeta) * p0 + zeta * p1;
+        [if zeta.is_zero() { p1 } else { p0 }, quadratic]
     }
 
     /// Binds variable `m > 0` to `r`, folding the state, and builds the next round's message on the
@@ -364,13 +371,13 @@ impl Table<'_> {
     }
 }
 
-fn round_polynomial([endpoint, quadratic]: [F128; 2], zeta: F128, claim: F128, waiting: F128) -> [F128; 4] {
+fn round_polynomial([endpoint, quadratic]: [F128; 2], zeta: F128, claim: F128, u: F128) -> [F128; 4] {
     let eq_z = F128::ONE + zeta;
-    // claim = (1 + zeta) p(0) + zeta p(1) + waiting.
+    // claim = (1 + zeta) p(0) + zeta p(1) + u.
     let (p0, p1) = if zeta.is_zero() {
-        (claim + waiting, endpoint)
+        (claim + u, endpoint)
     } else {
-        (endpoint, (claim + waiting + eq_z * endpoint) * zeta.inv())
+        (endpoint, (claim + u + eq_z * endpoint) * zeta.inv())
     };
     let h2 = eq_z * quadratic + p0 + p1 + quadratic;
     [eq_z * p0, claim + h2 + quadratic, h2, quadratic]
@@ -386,7 +393,6 @@ pub fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Vec<Claim
         .iter()
         .map(|air| Table {
             tau: air.tau,
-            sigma: air.sigma,
             weight: F128::ONE,
             form: Form::new(&air.form),
             cols: air.cols,
@@ -399,22 +405,25 @@ pub fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Vec<Claim
     let mut chi = vec![F128::ZERO; n];
     // `k`, the challenges drawn so far, common to every table that is still waiting.
     let mut k = F128::ONE;
-    let mut claim = airs.iter().map(|a| a.sigma).sum();
+    // `claim` and `waiting` (`Σσ` over the waiting tables) start at zero, not at the target: `claim`
+    // then sits `k·target` off, as does `u = k·waiting`, and only `claim + u` reaches a sent
+    // coefficient (the linear one is not sent), so the offset cancels.
+    let mut claim = F128::ZERO;
+    let mut waiting = F128::ZERO;
     for j in 0..n {
         let m = n - 1 - j; // the variable this round binds
-        let at_one = zeta[m].is_zero();
-        // The waiting tables contribute the line `Y·k·Σσ`, whose slope `u` is all there
-        // is to it. It is NOT sent on its own: it folds into `h` below, and only `h`
-        // travels. `msg` is the active tables' degree-2 cofactor, `h`'s multiplicand.
-        let waiting = tables.iter().filter(|t| t.tau <= m).map(|t| t.sigma).sum();
-        let u = k * waiting;
+        // `msg` is the active tables' degree-2 cofactor, `h`'s multiplicand.
         let mut msg = [F128::ZERO; 2];
         for t in tables.iter_mut().filter(|t| t.tau > m) {
-            let p = t.message(&eqr, m, at_one);
+            let p = t.message(&eqr, m, zeta[m], &mut waiting);
             msg[0] += t.weight * p[0];
             msg[1] += t.weight * p[1];
         }
         shrink_eq_high(&mut eqr);
+        // The waiting tables contribute the line `Y·k·Σσ`, whose slope `u` is all there
+        // is to it. It is NOT sent on its own: it folds into `h` below, and only `h`
+        // travels.
+        let u = k * waiting;
         // The running claim recovers the missing endpoint of the quadratic cofactor.
         // The fold waits for this message to be bound, since its challenge depends on it;
         // the next round's message rides along with the fold.
@@ -544,15 +553,12 @@ mod tests {
                 .collect();
             let mut eqr = eq_table(&(0..m).map(|_| random_e(&mut s)).collect::<Vec<_>>());
             let mut half = 1usize << m;
-            let mut states = [false, true].map(|at_one| {
-                let (state, p) = expand(&form, &views, &eqr, half, at_one);
-                assert_eq!(
-                    p,
-                    naive_message(&pows, &naive_cols, &eqr, half, at_one),
-                    "expand, m {m}"
-                );
-                state
-            });
+            let (state, [p0, p1, quadratic]) = expand(&form, &views, &eqr, half);
+            for (at_one, end) in [(false, p0), (true, p1)] {
+                let want = naive_message(&pows, &naive_cols, &eqr, half, at_one);
+                assert_eq!([end, quadratic], want, "expand, m {m}");
+            }
+            let mut states = [state.clone(), state];
             while half > 1 {
                 let r = random_e(&mut s);
                 shrink_eq_high(&mut eqr);

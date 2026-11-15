@@ -13,7 +13,7 @@ use crate::constraints::Form;
 use crate::gkr::{self, Ones};
 use pcs::sumcheck::product_sumcheck;
 use primitives::cast_slice;
-use primitives::field::{Acc8, F64, F64x8, F128, F128x8, g_pow, index_mle, mul_by_g};
+use primitives::field::{Acc8, F64, F64x8, F128, F128x8, g_pow, mul_by_g};
 use primitives::multilinear::eq_eval;
 use primitives::transcript::ProverState;
 use verifier::N_BUS_TREES;
@@ -43,7 +43,8 @@ pub enum Coord {
 }
 
 /// A flushing rule: `2^kappa` rows, each a tuple of coordinates. The first `rows` flush; the rest are a table's
-/// padding rows (§sec:e2e-pad), whose leaves are `1`, and `padding` is the tuple at the table's padding row.
+/// padding rows (§sec:e2e-pad), whose leaves are `1`, and `padding` is the tuple at the table's padding row, which the
+/// guest's padding term reads.
 #[derive(Clone, Debug)]
 pub struct Block {
     pub kappa: usize,
@@ -105,15 +106,12 @@ pub(crate) struct ColumnClaim {
 }
 
 /// What the bus hands on: the boundary blocks' column claims, the GKR's point `ζ` (the table sumcheck's eq point),
-/// and per tree each table's form `B^s_j` and what it sums to against `eq(ζ_{<τ_j}, ·)`, which nothing sends: the
-/// verifier derives each tree's total.
+/// and per tree each table's form `B^s_j`. What the forms sum to is never sent: the verifier derives each tree's total.
 pub(crate) struct BusProof {
     pub claims: Vec<ColumnClaim>,
     pub point: Vec<F128>,
     /// `forms[tree][table]`.
     pub forms: [Vec<Form>; N_BUS_TREES],
-    /// `sigmas[tree][table]`.
-    pub sigmas: [Vec<F128>; N_BUS_TREES],
 }
 
 /// One bus tree: its blocks, where they sit, and its fingerprint weights `α⃗` and `β`.
@@ -173,30 +171,20 @@ pub(crate) fn prove_balance(
         .each_ref()
         .map(|tree| build_leaves(tree, cols, &public)));
     let ones = trees.each_ref().map(padding_runs);
-    let (zeta, leaf_values) = crate::stage!("Bus GKR", || gkr::prove_products(leaves, ones, ps));
+    let (zeta, _) = crate::stage!("Bus GKR", || gkr::prove_products(leaves, ones, ps));
 
     let mut claims = Vec::new();
     let mut forms = std::array::from_fn(|_| TABLE_WIDTHS.map(Form::new).to_vec());
-    let boundary = crate::stage!("Bus decompose", || {
-        let boundary: [F128; N_BUS_TREES] =
-            std::array::from_fn(|s| decompose(&trees[s], cols, &public, &zeta, &mut forms[s], &mut claims, ps));
+    crate::stage!("Bus decompose", || {
+        for (tree, forms) in trees.iter().zip(&mut forms) {
+            decompose(tree, cols, &zeta, forms, &mut claims, ps);
+        }
         prove_bytecode_share(blocks[0], &public, &zeta, &alpha, ps);
-        boundary
     });
-    let sigmas = crate::stage!("Bus tables", || table_sums(cols, &forms, &zeta));
-    for s in 0..N_BUS_TREES {
-        // Completeness only: the verifier derives the tables' share rather than checking it.
-        debug_assert_eq!(
-            sigmas[s].iter().fold(boundary[s], |acc, &b| acc + b),
-            leaf_values[s],
-            "tree {s} must decompose into its leaf value"
-        );
-    }
     BusProof {
         claims,
         point: zeta,
         forms,
-        sigmas,
     }
 }
 
@@ -333,90 +321,50 @@ fn padding_runs(tree: &Tree) -> Ones {
 
 /// Split a tree's leaf claim by block (eq:gkr_leaves). A table's blocks accumulate into its form, `forms[t]`; a
 /// boundary block's committed columns are claimed at `ζ_{<κ}`, each value not already in `claims` sent and recorded,
-/// in coordinate order. Returns the boundary blocks' share of the leaf claim, the unused leaves', and the tables'
-/// public padding term (eq:pad_leaf): all of it but the forms' sums.
+/// in coordinate order. The rest of the claim is public, and the verifier derives the forms' share from it.
 fn decompose(
     tree: &Tree,
     cols: &[&[F64]],
-    public: &[&[F64]],
     zeta: &[F128],
     forms: &mut [Form],
     claims: &mut Vec<ColumnClaim>,
     ps: &mut ProverState,
-) -> F128 {
+) {
     let (alpha, beta) = (tree.alpha, tree.beta);
     assert_eq!(zeta.len(), tree.layout.mu);
-    let mut share = F128::ZERO;
-    let mut used = F128::ZERO;
     for (block, &offset) in tree.blocks.iter().zip(&tree.layout.offsets) {
         let (zeta_lo, zeta_hi) = zeta.split_at(block.kappa);
-        let sel = offset >> block.kappa;
-        let sel_bits: Vec<F128> = (0..zeta_hi.len())
-            .map(|k| F128::new(((sel >> k) & 1) as u64, 0))
-            .collect();
-        let eq_sel = eq_eval(&sel_bits, zeta_hi);
-        used += eq_sel;
-
         if let Some(t) = block.owner {
+            let sel = offset >> block.kappa;
+            let sel_bits: Vec<F128> = (0..zeta_hi.len())
+                .map(|k| F128::new(((sel >> k) & 1) as u64, 0))
+                .collect();
+            let eq_sel = eq_eval(&sel_bits, zeta_hi);
             let (form, base) = (&mut forms[t], GLOBAL_COLUMN_BASES[t]);
             form.constant += eq_sel * beta;
             for (c, &w) in block.coords.iter().zip(alpha) {
                 add_to_form(c, eq_sel * w, base, form);
             }
-            // The form sums over the padding rows too, where the leaf is `1` rather than `φ(padding)`.
-            let phi_padding = (block.padding.iter().zip(alpha)).fold(beta, |acc, (&v, &w)| acc + w.mul_base(v));
-            share += eq_sel * padding_weight(zeta_lo, block.rows) * (F128::ONE + phi_padding);
             continue;
         }
 
-        // The block's columns not yet claimed at `ζ_lo`, and its public columns, at `ζ_lo` in one pass.
-        let mut fresh: Vec<usize> = (block.coords.iter())
-            .filter_map(|c| match c {
-                Coord::Col(i) | Coord::GCol(i, _) if known_claim(claims, *i, zeta_lo).is_none() => Some(*i),
-                _ => None,
-            })
-            .collect();
-        fresh.sort_unstable();
-        fresh.dedup();
-        let terms: Vec<(&[F64], Option<&[F64]>)> = (fresh.iter().map(|&i| (cols[i], None)))
-            .chain(public_columns(block, public).map(|c| (c, None)))
-            .collect();
-        let evals = crate::eq::eq_sums(zeta_lo, &terms);
-        let mut public_evals = evals[fresh.len()..].iter().copied();
-        let mut col_value = |i: usize| -> F128 {
-            if let Some(v) = known_claim(claims, i, zeta_lo) {
-                return v;
+        // The block's columns not yet claimed at `ζ_lo`, in coordinate order, at `ζ_lo` in one pass.
+        let mut fresh: Vec<usize> = Vec::new();
+        for c in &block.coords {
+            if let Coord::Col(i) | Coord::GCol(i, _) = c
+                && !known_claim(claims, *i, zeta_lo)
+                && !fresh.contains(i)
+            {
+                fresh.push(*i);
             }
-            let value = evals[fresh.binary_search(&i).unwrap()];
+        }
+        let terms: Vec<(&[F64], Option<&[F64]>)> = fresh.iter().map(|&i| (cols[i], None)).collect();
+        for (&col, value) in fresh.iter().zip(crate::eq::eq_sums(zeta_lo, &terms)) {
             ps.add_scalar(value);
             let point = zeta_lo.to_vec();
-            claims.push(ColumnClaim { col: i, point, value });
-            value
-        };
-        let mut fingerprint = beta;
-        for (c, &w) in block.coords.iter().zip(alpha) {
-            fingerprint += w * match c {
-                Coord::Const(v) => F128::from(*v),
-                Coord::Index => index_mle(zeta_lo),
-                Coord::Col(i) => col_value(*i),
-                Coord::GCol(i, k) => col_value(*i).mul_base(g_pow(*k as usize)),
-                Coord::Public(_) => public_evals.next().unwrap(),
-                Coord::Prod(..) | Coord::Sum(..) => unreachable!("only a table's block carries a degree-2 coordinate"),
-            };
+            claims.push(ColumnClaim { col, point, value });
         }
-        share += eq_sel * fingerprint;
     }
-    // The unused leaves past the blocks are `1`.
-    share + F128::ONE + used
-}
-
-/// `pad_n(point)`, the multilinear extension of `[z ≥ n]`, `n ≤ 2^|point|` (lemma lem:suffix).
-fn padding_weight(point: &[F128], n: usize) -> F128 {
-    let bit = |k: usize| F128::new(((n >> k) & 1) as u64, 0);
-    let low = point.iter().enumerate().fold(F128::ONE, |pad, (k, &r)| {
-        (F128::ONE + bit(k)) * r + (F128::ONE + bit(k) + r) * pad
-    });
-    (F128::ONE + bit(point.len())) * low
 }
 
 /// Add coordinate `c` of a table's block to that table's form at weight `w`, global column `i` its local `i - base`.
@@ -436,13 +384,10 @@ fn add_to_form(c: &Coord, w: F128, base: usize, form: &mut Form) {
     }
 }
 
-/// The value already claimed for `(col, point)`: push and pull share their point, so a column read by both, or by
-/// two blocks of one height, is sent and opened once.
-fn known_claim(claims: &[ColumnClaim], col: usize, point: &[F128]) -> Option<F128> {
-    claims
-        .iter()
-        .find(|c| c.col == col && c.point == point)
-        .map(|c| c.value)
+/// Whether `(col, point)` is already claimed: push and pull share their point, so a column read by both, or by two
+/// blocks of one height, is sent and opened once.
+fn known_claim(claims: &[ColumnClaim], col: usize, point: &[F128]) -> bool {
+    claims.iter().any(|c| c.col == col && c.point == point)
 }
 
 /// A block's public columns, in coordinate order.
@@ -473,35 +418,6 @@ fn prove_bytecode_share(push: &[Block], public: &[&[F64]], zeta: &[F128], alpha:
     ps.add_scalar(alpha.iter().zip(&slots).map(|(&a, &p)| a * p).sum());
     let (_, slots, _) = product_sumcheck(ps, alpha.to_vec(), slots, 1, F128::ONE);
     ps.add_scalar(slots[0]);
-}
-
-/// What each tree's form of each table sums to against `eq(ζ_{<τ}, ·)`. A form's linear part needs the table's
-/// columns at `ζ_{<τ}`, its products `Σ_z eq·col_a·col_b` for each pair, all of a table's in one pass, a pair named
-/// by several forms (an address flushed by both sides) once.
-fn table_sums(cols: &[&[F64]], forms: &[Vec<Form>; N_BUS_TREES], zeta: &[F128]) -> [Vec<F128>; N_BUS_TREES] {
-    let per_table: Vec<[F128; N_BUS_TREES]> = (0..verifier::layout::N_TABLES)
-        .map(|t| {
-            let n_cols = TABLE_WIDTHS[t];
-            let columns = &cols[GLOBAL_COLUMN_BASES[t]..][..n_cols];
-            let mut pairs: Vec<(usize, usize)> = (forms.iter())
-                .flat_map(|tree| tree[t].prods.iter().map(|&(a, b, _)| (a, b)))
-                .collect();
-            pairs.sort_unstable();
-            pairs.dedup();
-            let terms: Vec<(&[F64], Option<&[F64]>)> = (columns.iter().map(|&c| (c, None)))
-                .chain(pairs.iter().map(|&(a, b)| (columns[a], Some(columns[b]))))
-                .collect();
-            let sums = crate::eq::eq_sums(&zeta[..crate::log2_strict_usize(columns[0].len())], &terms);
-            let (evals, pair_sums) = sums.split_at(n_cols);
-            forms.each_ref().map(|tree| {
-                let form = &tree[t];
-                form.prods.iter().fold(form.linear(evals), |acc, &(a, b, q)| {
-                    acc + q * pair_sums[pairs.binary_search(&(a, b)).unwrap()]
-                })
-            })
-        })
-        .collect();
-    std::array::from_fn(|s| per_table.iter().map(|sums| sums[s]).collect())
 }
 
 #[cfg(test)]

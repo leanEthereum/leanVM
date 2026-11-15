@@ -123,10 +123,9 @@ fn table_spans() -> TableSpans {
 }
 
 /// The per-table inputs to the table sumcheck (§constraints), in schema order: each
-/// table's committed columns, its summand as one form over them (its identities
+/// table's committed columns and its summand as one form over them (its identities
 /// weighted by its own `ξ`-range, its bus forms, one per tree, by the shared powers at
-/// [`xi_form_base`]), and what that summand sums to, its bus forms' `ξ`-weighted
-/// shares, since its identities vanish.
+/// [`xi_form_base`]).
 fn airs<'a>(
     taus: &[usize; tables::N_TABLES],
     bus: &leaf::BusProof,
@@ -148,9 +147,6 @@ fn airs<'a>(
                 tau,
                 cols: &cols[start..start + n],
                 form: leaf::BusForm::sum(bus_forms.chain([identities])),
-                sigma: (0..verifier::N_BUS_TREES)
-                    .map(|s| pows[base + s] * bus.sigmas[s][t])
-                    .sum(),
             }
         })
         .collect()
