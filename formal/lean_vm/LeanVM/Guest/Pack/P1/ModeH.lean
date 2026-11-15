@@ -10,7 +10,6 @@ module
 public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P1».Mode0
 public import LeanVM.Guest.Pack.«P1».Mode1
-public import LeanVM.Guest.Pack.«P1».ModeX
 
 set_option Elab.async false
 
@@ -58,6 +57,21 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«block_selector__L10»
+
+namespace LeanVM.Guest.Fn.«verify_tables_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `__loop9`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 265) (d := Data.adviceFn265) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«verify_tables_loop0»
 
 namespace LeanVM.Guest.Fn.«verify_keccak_loop1»
 
@@ -328,18 +342,3 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0_loop0»
-
-namespace LeanVM.Guest.Fn.«verify_tables_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop9`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 265) (d := Data.adviceFn265) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«verify_tables_loop0»

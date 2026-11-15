@@ -92,6 +92,35 @@ end
 
 end LeanVM.Guest.Fn.«block_selector__L11»
 
+namespace LeanVM.Guest.Fn.«verify_tables_loop1»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `__loop10`: the program its walk shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none .nil (.node none (.node none (.node none
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
+    (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil
+    (.node (some Fn.«verify_tables_loop1».modeSig) .nil .nil)) .nil) .nil)) .nil) .nil) .nil))
+    .nil)))) .nil) .nil) .nil) .nil)), 524287⟩
+
+/-- `__loop10`: its hints, residuals, table sizes and cuts. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨205536, 24, Fn.«verify_tables_loop1».modeSig, (.node none (.node none (.node none .nil (.node
+    (some [(.frameAddress 21)]) .nil .nil)) .nil) .nil), (.node none .nil (.node (some [(.nz 2)])
+    (.node (some [(.sub ⟨⟨0, 0, [((.fr 5), 1), ((.fr 10), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0,
+    [((.fr 5), 1)]⟩, (.num 0), (.ex (.fr 3) 0), 1, 0⟩])]) .nil .nil) .nil)), .nil, false, .nil⟩
+
+/-- `__loop10`: its mode walk accepts its code. -/
+theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«verify_tables_loop1»
+
 namespace LeanVM.Guest.Fn.«verify_keccak_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Exec

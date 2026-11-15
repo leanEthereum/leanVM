@@ -17,6 +17,7 @@ public import LeanVM.Guest.Pack.«P25».ModeSig
 public import LeanVM.Guest.Pack.«P3».ModeSig
 public import LeanVM.Guest.Pack.«P43».ModeSig
 public import LeanVM.Guest.Pack.«P51».ModeSig
+public import LeanVM.Guest.Pack.«P53».ModeSig
 public import LeanVM.Guest.Pack.«P55».ModeSig
 public import LeanVM.Guest.Pack.«P56».ModeSig
 public import LeanVM.Guest.Pack.«P57».ModeSig
@@ -90,6 +91,46 @@ theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
 end
 
 end LeanVM.Guest.Fn.«block_selector__L10»
+
+namespace LeanVM.Guest.Fn.«verify_tables_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `__loop9`: the program its walk shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none .nil (.node none (.node none (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
+    none .nil (.node none (.node none .nil (.node none (.node none (.node (some
+    Fn.«sumcheck_round4».modeSig) .nil .nil) .nil) .nil)) .nil))))))) .nil) (.node none (.node none
+    .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node (some
+    Fn.«verify_tables_loop0».modeSig) .nil .nil)) .nil) .nil)) .nil) .nil) .nil)) .nil)) .nil)))
+    .nil)) .nil)), 524287⟩
+
+/-- `__loop9`: its hints, residuals, table sizes and cuts. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨205492, 44, Fn.«verify_tables_loop0».modeSig, (.node none (.node none (.node none (.node none
+    (.node none (.node (some [(.frameAddress 32)]) .nil .nil) .nil) .nil) .nil) (.node none (.node
+    (some [(.alloc 19 58)]) .nil .nil) .nil)) .nil), (.node none (.node none (.node none (.node
+    none (.node (some [(.sub ⟨⟨0, 0, [((.hp 19 3), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.hp
+    1 22), 1)]⟩, (.num 0), (.num 8192), 1, 0⟩]), (.sub ⟨⟨0, 1, [((.hp 19 3), 1)]⟩, (.num 0), (.num
+    1), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 22), 1)]⟩, (.num 0), (.num 8192), 1, 0⟩]), (.sub ⟨⟨0, 2, [((.hp 19
+    3), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 22), 1)]⟩, (.num 0), (.num 8192), 1,
+    0⟩]), (.sub ⟨⟨0, 0, [((.fr 17), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 22), 1)]⟩,
+    (.num 0), (.num 8192), 1, 0⟩]), (.sub ⟨⟨0, 1, [((.fr 17), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0,
+    0, [((.hp 1 22), 1)]⟩, (.num 0), (.num 8192), 1, 0⟩]), (.sub ⟨⟨0, 2, [((.fr 17), 1)]⟩, (.num
+    0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 22), 1)]⟩, (.num 0), (.num 8192), 1, 0⟩])]) .nil .nil)
+    .nil) .nil) .nil) .nil), .nil, false, .nil⟩
+
+/-- `__loop9`: its mode walk accepts its code. -/
+theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«verify_tables_loop0»
 
 namespace LeanVM.Guest.Fn.«verify_keccak_loop1»
 

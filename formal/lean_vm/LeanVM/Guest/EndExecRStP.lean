@@ -138,7 +138,7 @@ variable {r : Ref}
 theorem loop_ctr_lt (hr : r.Ok) {J : Inst} (hJ : J ∈ honestInsts coreProgram B2C.fs B2C.H r.hdr r.T)
     {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree} (hJt : J.t = .node f σ bufs kids)
     {fn : Fn} (hf : coreProgram.find? f = some fn) (hl : fn.loop = true) (he : Res.endOfFn fn = some none)
-    (hps : fn.params = loopParams) {n : ℕ} (h1 : σ (.n 1) = gen ^ n) (hn : n < 32) :
+    {rest : List V} (hps : fn.params = .n 0 :: .n 1 :: rest) {n : ℕ} (h1 : σ (.n 1) = gen ^ n) (hn : n < 34) :
     ∃ j < n, σ (.n 0) = gen ^ j := by
   obtain ⟨rd, hH, -⟩ := hr.honest
   have hκ := logMemorySize_le_28 (e := r.exec) hr.size
@@ -161,7 +161,7 @@ theorem loop_ctr_lt (hr : r.Ok) {J : Inst} (hJ : J ∈ honestInsts coreProgram B
   rw [hps] at hps' hps''
   obtain ⟨rfl, rfl⟩ := List.cons.inj hps'
   obtain ⟨rfl, rfl⟩ := List.cons.inj hps''
-  simp only [Res.endVal, hps, loopParams, h1] at hm
+  simp only [Res.endVal, hps, h1] at hm
   rw [hσ0, Res.ofK_gpow_add, ← Value.gen_pow_eq_ofK] at hm
   have hT : r.T.total B2C.fs ≤ 2 ^ 28 := (le_two_pow_logMem _).trans (Nat.pow_le_pow_right (by norm_num) hκ)
   rw [hJt] at hb
@@ -241,7 +241,7 @@ theorem loopQ_step (hr : r.Ok) :
       LoadHolds r.img.read (σ (.n 2) * σ (.n 0)) 80 (refMem r.img (a + 17) * gen ^ q) ∧
       q + stStep rem * (n - j) ≤ 8192 by
     obtain ⟨a, j, n, q, h1, h2, h3, h4, h5, h6, h7, h8⟩ := H
-    obtain ⟨j', hj', h0'⟩ := loop_ctr_lt hr hJS hJt (hfL ▸ hfl) hll hel hpl h4 h6
+    obtain ⟨j', hj', h0'⟩ := loop_ctr_lt hr hJS hJt (hfL ▸ hfl) hll hel hpl h4 (by omega)
     obtain rfl : j = j' := Value.gen_pow_inj (by omega) (by omega) (h3.symm.trans h0')
     exact ⟨a, j, n, q, h1, h2, h3, h4, hj', h6, h7, h8⟩
   -- the caller: the layer, or the loop's tail

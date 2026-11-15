@@ -86,8 +86,9 @@ namespace LeanVM.Guest.Fn.«verify_tables_loop1»
 
 /-- `__loop10`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨205536, [0, 1, 2, 3, 4, 5, 6], (some 7), [], [], [((.ex (.fr 2) 0), (.ex (.fr 3) 0))], [], [],
-    [], [], [], [], [], []⟩
+  ⟨205536, [0, 1, 2, 3, 4, 5, 6], (some 7), [], [⟨⟨0, 0, [((.fr 5), 1)]⟩, (.num 0), (.ex (.fr 3)
+    0), 1, 0⟩], [((.ex (.fr 2) 0), (.ex (.fr 3) 0))], [], [], [], [⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex
+    (.fr 2) 0), (.ex (.fr 3) 0), 1, 0⟩], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 

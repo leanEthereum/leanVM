@@ -2,7 +2,7 @@
   LeanVM.Guest.Res.SubDefs
 
   The `sub` residuals' families, checked per certificate: a run inside a split, a read inside
-  `child_claim_list_any`'s table, a read of the gap walk.
+  `child_claim_list_any`'s table, a read of the gap walk, the proof stream's reads.
 -/
 
 module
@@ -19,7 +19,8 @@ public import LeanVM.Guest.Res.TermDefs
 
 `subB j x`: residual `x` of function `j` is no `sub` residual, or one of the families
 (`splitB`, `anyResB anyLink`, `monoResB`, those read off the function's code, `subFamB` and
-`termFamB`, the proof stream's reads, `stB`, and the runs a split cuts into blocks, `blkB`).
+`termFamB`, the proof stream's reads, `stB`, the runs a split cuts into blocks, `blkB`, and
+`verify_tables`' table sumcheck's reads, `vtB`).
 `SubOk exc K`: certificate `K` is listed in `exc`, or each of its residuals passes `subB` at its
 function's index, decided per certificate (`subOk_of`).
 `EndExec.resOpen_subOk` (`EndExecRSub`): given `SubOk resExc` of every certificate and the listed
@@ -52,6 +53,27 @@ noncomputable def stB (j : ℕ) : Mode.Res → Bool
       decide (Mode.Res.sub a bs = stRes s.2.1 s.2.2.1 a.q.k)
   | _ => false
 
+/-! ## `verify_tables`' table sumcheck -/
+
+/-- The read `c` words past the cursor base `cur`, inside the stream `st·[0, 8192)`. -/
+def stResB (cur st : Mode.Base) (c : ℕ) : Mode.Res :=
+  .sub ⟨⟨0, c, [(cur, 1)]⟩, .num 0, .num 1, 1, 0⟩ [⟨⟨0, 0, [(st, 1)]⟩, .num 0, .num 8192, 1, 0⟩]
+
+/-- The copy loop's read `[5]·[10]` inside the challenges `[5]·[0, e([3]))`. -/
+def vtcRes : Mode.Res :=
+  .sub ⟨⟨0, 0, [(.fr 5, 1), (.fr 10, 1)]⟩, .num 0, .num 1, 1, 0⟩
+    [⟨⟨0, 0, [(.fr 5, 1)]⟩, .num 0, .ex (.fr 3) 0, 1, 0⟩]
+
+/-- **`verify_tables`' table sumcheck's reads** at function `j`: the rounds loop's reads of the stream
+`[[1]·g^22]` past its record's cursor (cell `17`) and past `sumcheck_round4`'s (`[[19]·g^3]`), below
+three words, and the copy loop's read of the challenges. -/
+noncomputable def vtB (j : ℕ) : Mode.Res → Bool
+  | .sub a bs => ((coreOf j).name == name% «verify_tables_loop0» && decide (a.q.k < 3) &&
+        (decide (Mode.Res.sub a bs = stResB (.fr 17) (.hp 1 22) a.q.k) ||
+          decide (Mode.Res.sub a bs = stResB (.hp 19 3) (.hp 1 22) a.q.k))) ||
+      ((coreOf j).name == name% «verify_tables_loop1» && decide (Mode.Res.sub a bs = vtcRes))
+  | _ => false
+
 /-! ## Runs cut into blocks by a split -/
 
 /-- The run of stride `S` from `d` up to `[n]`'s exponent over `T`, inside `K` runs of stride `K·S` up to
@@ -75,7 +97,7 @@ noncomputable def blkB (j : ℕ) : Mode.Res → Bool
 noncomputable def subB (j : ℕ) (w : Wit) : Mode.Res → Bool
   | .sub a bs => splitB j (.sub a bs) || anyResB anyLink j (.sub a bs) || monoResB j (.sub a bs) ||
       subFamB j w (.sub a bs) || termFamB j w (.sub a bs) || stB j (.sub a bs) ||
-      blkB j (.sub a bs)
+      blkB j (.sub a bs) || vtB j (.sub a bs)
   | _ => true
 
 /-- **A certificate's `sub` residuals in the families**: it is listed in `exc`, or each is at its
