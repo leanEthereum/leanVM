@@ -67,17 +67,21 @@ impl Program {
 /// `SET` immediate as its two limbs and the flags as 0 or 1. Unused slots are zero.
 fn encode(op: &Op) -> [u64; 1 + BYTECODE_OPERANDS] {
     let flag = u64::from;
-    let (opcode, operands): (usize, Vec<u64>) = match *op {
-        Op::Xor { a, b, c } => (OP_XOR, vec![g_pow(a), g_pow(b), g_pow(c)]),
-        Op::Mul { a, b, c } => (OP_MUL, vec![g_pow(a), g_pow(b), g_pow(c)]),
-        Op::Set { o, k } => (OP_SET, vec![g_pow(o), k.c0, k.c1]),
-        Op::Deref { o1, o2, o3, mode } => (
-            OP_DEREF,
-            vec![g_pow(o1), g_pow(o2), g_pow(o3), flag(mode.f_pc()), flag(mode.f_fp())],
-        ),
-        Op::Jump { oc, od, of } => (OP_JUMP, vec![g_pow(oc), g_pow(od), g_pow(of)]),
+    let mut tuple = [0; 1 + BYTECODE_OPERANDS];
+    let mut put = |opcode: usize, offsets: &[u32], words: &[u64]| {
+        let operands = std::iter::once(opcode as u32).chain(offsets.iter().copied()).map(g_pow);
+        for (slot, word) in tuple.iter_mut().zip(operands.chain(words.iter().copied())) {
+            *slot = word;
+        }
+    };
+    match *op {
+        Op::Xor { a, b, c } => put(OP_XOR, &[a, b, c], &[]),
+        Op::Mul { a, b, c } => put(OP_MUL, &[a, b, c], &[]),
+        Op::Set { o, k } => put(OP_SET, &[o], &[k.c0, k.c1]),
+        Op::Deref { o1, o2, o3, mode } => put(OP_DEREF, &[o1, o2, o3], &[flag(mode.f_pc()), flag(mode.f_fp())]),
+        Op::Jump { oc, od, of } => put(OP_JUMP, &[oc, od, of], &[]),
         Op::Keccak {
-            m,
+            m: [m0, m1, m2, m3],
             tail,
             b8,
             cap,
@@ -87,14 +91,13 @@ fn encode(op: &Op) -> [u64; 1 + BYTECODE_OPERANDS] {
             out_cells,
         } => {
             let (out_two, out_all) = out_cells.flags();
-            let mut operands: Vec<u64> = m.into_iter().chain([tail, b8, cap, out]).map(g_pow).collect();
-            operands.extend([in_odd, out_odd, out_two, out_all].map(flag));
-            (OP_KECCAK, operands)
+            put(
+                OP_KECCAK,
+                &[m0, m1, m2, m3, tail, b8, cap, out],
+                &[in_odd, out_odd, out_two, out_all].map(flag),
+            )
         }
-    };
-    let mut tuple = [0; 1 + BYTECODE_OPERANDS];
-    tuple[0] = g_pow(opcode as u32);
-    tuple[1..=operands.len()].copy_from_slice(&operands);
+    }
     tuple
 }
 
