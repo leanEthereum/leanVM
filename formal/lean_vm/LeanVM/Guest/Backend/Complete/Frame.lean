@@ -314,10 +314,11 @@ def AtomFAt (a : Atom) : Prop :=
     I.Ok → (ctx.isMain = true → I.fp = 0) → Memory.Ev.atom a ∈ I.es →
     (∀ rd, I.Rd rd → holdsNT rd I.σ a) →
     (∀ v ∈ Memory.atomUses a, v ∉ I.tmps) → (∀ t ∈ Memory.atomTmps a, t ∈ I.tmps) →
-    (∀ p run r0 base, a = .frameAddr p run → run.head? = some r0 →
-      st.locs[r0]? = some (.cell base) → I.σ p = ofK (addressOfIndex (I.fp + base))) →
+    (∀ p run, a = .frameAddr p run → ∃ r0 base, run.head? = some r0 ∧
+      st.locs[r0]? = some (.cell base) ∧ I.σ p = ofK (addressOfIndex (I.fp + base))) →
     2 ≤ st.next → VW I C st ok →
-    (∀ v ∈ Memory.atomUses a ++ Memory.atomTmps a, ok v ∨ ∃ s, a = .copy v s) →
+    (∀ v ∈ Memory.atomUses a ++ Memory.atomTmps a, ok v ∨
+      ∃ s, a = .copy v s ∧ st.aliasRun.any (·.contains v) = true) →
     FAt ctx I C st (placeAtom a) fun _ C' st' =>
       (Fits I st' → VW I C' st' (fun v => ok v ∨ v ∈ Memory.atomUses a ++ Memory.atomTmps a)) ∧
         st'.rest = st.rest
