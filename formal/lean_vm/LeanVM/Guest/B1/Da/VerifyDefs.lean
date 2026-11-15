@@ -16,13 +16,14 @@ import LeanVM.Guest.Data.Source
 /-!
 # `da_verify`, checked
 
-`da_verify()`: the blob count and the padding rows' (`da_padding`), the hinted challenge `z`, the
+`da_verify(byte_bits)`: the blob count and the padding rows' (`da_padding`), the hinted challenge `z`, the
 dual codeword's builders (`da_vector`), the blobs' regions
 (`da_verify_loop0`: `rowbase[x] = blobs·x^641`, the running sum's first word `0`), the columns
 (`da_verify_loop1`: `da_verify_column` on columns `0 … 127`), each blob's sum checked and its tree's
 root (`da_verify_loop2`: word `640` of the region is `0`, `da_levels__L128_L7`, the root at
-`roots·x²`), the padding blobs (`da_verify_loop3`: `DA_PAD_BLOB` at `roots·n_blob²·x²`), and the
-tree over the `DA_MAX_ROWS` blob roots (`dlTop`).
+`roots·x²`), the padding blobs (`da_verify_loop3`: `DA_PAD_BLOB` at `roots·n_blob²·x²`), the
+tree over the `DA_MAX_ROWS` blob roots (`dlTop`), and its root hashed with the count's word, read at
+`byte_bits·n_blob` (`pairHashVOk`).
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -91,6 +92,24 @@ def l20Ok (fn : Fn) : Bool :=
   hasAtom A (.const (.n 9) (word 12830724869163462953 1721925254677230945)) &&
   A.any (isLoadAt (.n 9) (.n 7) 1)
 
+/-- `keccak([a, b], [c, d])`, its digest's two cells `o0`, `o1`. -/
+def pairHashVOk (atoms : List Atom) (a b c d o0 o1 : V) : Bool :=
+  (pairSpec a b c d atoms).check atoms &&
+    decide ((pairSpec a b c d atoms).outV ((pairSpec a b c d atoms).nb - 1) 0 = o0) &&
+    decide ((pairSpec a b c d atoms).outV ((pairSpec a b c d atoms).nb - 1) 1 = o1)
+
+theorem pairHashV_sound {rd : Reader} {σ : Val} {atoms : List Atom} {a b c d o0 o1 : V}
+    (h : pairHashVOk atoms a b c d o0 o1 = true) (hat : ∀ x ∈ atoms, x.Holds rd σ) :
+    (σ o0, σ o1) = digestHalves (keccak256 (cellsBytes [σ a, σ b, σ c, σ d])) := by
+  simp only [pairHashVOk, Bool.and_eq_true, decide_eq_true_eq] at h
+  obtain ⟨⟨hc, rfl⟩, rfl⟩ := h
+  have hd := chain_final hc rfl hat (pre := []) (n := 0) rfl
+    (fun c => (cellsOfState_zero false c).symm)
+  have hv : ((pairSpec a b c d atoms).vals σ).take ((pairSpec a b c d atoms).len / 16) =
+      [σ a, σ b, σ c, σ d] := by simp [pairSpec, ChainSpec.vals, srcVal]
+  rw [hv, List.nil_append] at hd
+  exact hd
+
 /-! ## The body -/
 
 /-- `da_verify`'s block (its body but the final `ret`). -/
@@ -100,19 +119,21 @@ noncomputable def dvP : List Stmt := (Fn.body fn% «da_verify»).dropLast
 noncomputable def dvOk : Bool :=
   let P := dvP
   let A := atomsIn P
-  decide ((fn% «da_verify»).params = []) &&
-  stmtsEqb (Fn.body fn% «da_verify») (P ++ [.ret [.n 34, .n 35, .n 36]]) &&
+  decide ((fn% «da_verify»).params = [.n 0]) &&
+  stmtsEqb (Fn.body fn% «da_verify») (P ++ [.ret [.n 45, .n 46, .n 47]]) &&
   P.all Stmt.flat &&
-  hasCall P "da_padding" [.n 0] [.n 1] &&
-  hasCall P "da_vector" [.n 2] [.n 3, .n 4, .n 5, .n 6] &&
-  guardOk P (.n 21) name% «da_verify_loop0» (.n 22) (.n 0) [.n 18, .n 19] &&
-  A.any (isConstAt (.n 23) 1 0) &&
-  hasCall P name% «da_verify_loop1» [.n 23, .n 0, .n 19, .n 3, .n 4, .n 5, .n 6] [] &&
-  guardOk P (.n 27) name% «da_verify_loop2» (.n 28) (.n 0) [.n 19, .n 25] &&
-  guardOk P (.n 30) name% «da_verify_loop3» (.n 31) (.n 1) [.n 25, .n 0] &&
-  hasCall P dlTop [.n 25] [.n 32, .n 33] &&
-  A.any (isCopyAt (.n 34) (.n 32)) && A.any (isCopyAt (.n 35) (.n 33)) &&
-  A.any (isCopyAt (.n 36) (.n 2))
+  hasCall P "da_padding" [.n 1] [.n 2] &&
+  hasCall P "da_vector" [.n 3] [.n 4, .n 5, .n 6, .n 7] &&
+  guardOk P (.n 22) name% «da_verify_loop0» (.n 23) (.n 1) [.n 19, .n 20] &&
+  A.any (isConstAt (.n 24) 1 0) &&
+  hasCall P name% «da_verify_loop1» [.n 24, .n 1, .n 20, .n 4, .n 5, .n 6, .n 7] [] &&
+  guardOk P (.n 28) name% «da_verify_loop2» (.n 29) (.n 1) [.n 20, .n 26] &&
+  guardOk P (.n 31) name% «da_verify_loop3» (.n 32) (.n 2) [.n 26, .n 1] &&
+  hasCall P dlTop [.n 26] [.n 33, .n 34] &&
+  isMul A (.n 35) (.n 0) (.n 1) && A.any (isLoadAt (.n 36) (.n 35) 0) &&
+  A.any (isConstAt (.n 38) 0 0) && pairHashVOk A (.n 33) (.n 34) (.n 36) (.n 38) (.n 43) (.n 44) &&
+  A.any (isCopyAt (.n 45) (.n 43)) && A.any (isCopyAt (.n 46) (.n 44)) &&
+  A.any (isCopyAt (.n 47) (.n 3))
 
 end
 end LeanVM.Guest.B1.Da

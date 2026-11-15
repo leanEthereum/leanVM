@@ -246,7 +246,7 @@ fn export(
     out.tag("da_witness");
     match &direct {
         Some(matrix) => {
-            let root = &matrix.top_root();
+            let root = &matrix.commitment();
             out.0.push_str("direct ");
             out.bytes(root);
             out.e(from_scalar(verifier::da::membership_challenge(root)));

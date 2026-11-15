@@ -39,7 +39,7 @@ fn public_api_end_to_end() {
     // 3. Two leaves, then a root over both. Both leaves hold claims on the second message; the root's claims are the union.
     let blobs: Vec<lean_da::Blob> = vec![std::array::from_fn(|i| i as u128)];
     let matrix = lean_da::BlobMatrix::build(&blobs).unwrap();
-    let commitment = matrix.top_root();
+    let commitment = matrix.commitment();
     let left = aggregate(
         &[],
         lean_xmss_input[..4].to_vec(),
@@ -53,7 +53,7 @@ fn public_api_end_to_end() {
     assert_eq!(left.0.da_commitment, Some(commitment));
     let other_blobs: Vec<lean_da::Blob> = blobs.iter().map(|blob| blob.map(|x| x ^ 42)).collect();
     let other_matrix = lean_da::BlobMatrix::build(&other_blobs).unwrap();
-    let other_commitment = other_matrix.top_root();
+    let other_commitment = other_matrix.commitment();
     let right = aggregate(
         &[],
         lean_xmss_input[4..7].to_vec(),

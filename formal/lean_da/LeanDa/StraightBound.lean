@@ -195,7 +195,7 @@ theorem isWeightBound_verifyCellM {ι : Type} {spec : OracleSpec.{0, 0} ι}
     (com : Common.DigestBytes) (p : Fin (r * 128)) (x : Cell) (τ : CellOpening) :
     QueryCostAtMost (verifyCellMWithHash H r com p x τ) w (τ.path.length + 2) :=
   ((hH _).bind fun _ ↦ (isWeightBound_walkM H w hH _ _ _).bind fun _ ↦
-    isWeightBound_pure _ _ 0).mono (by omega)
+    isWeightBound_pure _ _ 0).mono (by simp only [List.length_append, List.length_singleton]; omega)
 
 set_option maxRecDepth 4000 in
 theorem isWeightBound_tailH (crs : Crs) (out : CbOut r Proof) (l : MembershipChallenge) :
@@ -287,8 +287,9 @@ theorem prob_world_not_good_le (hr : r ≤ maxRows) (A : CodeBindingAdvB r Crs P
   have hf0 : GFin ∅ := ⟨by simp [domH], by simp [domG]⟩
   have hs0 : gSize ∅ = 0 := by simp [gSize, domH, domG]
   rw [simulateQ_bind, StateT.run_bind]
+  have hadv := prob_run_not_good_le r hr _ ∅ (good_empty r) hf0 N Q₁ Q₂ ha hg (by omega)
   refine (prEvent_bind_le_of_good _ _ (fun p ↦ ¬ Good r p.2) _ _ fun p hp hgp ↦ ?_).trans
-    (add_le_add (prob_run_not_good_le r hr _ ∅ (good_empty r) hf0 N Q₁ Q₂ ha hg (by omega)) le_rfl)
+    (add_le_add hadv le_rfl)
   simp only [not_not] at hgp
   obtain ⟨hfp, hsp⟩ := run_gFin_gSize _ Q₁ ha ∅ hf0 p hp
   rw [tailL, simulateQ_bind, StateT.run_bind]
@@ -296,8 +297,9 @@ theorem prob_world_not_good_le (hr : r ≤ maxRows) (A : CodeBindingAdvB r Crs P
     (add_le_add (hread _ _ hgp) le_rfl)
   simp only [not_not] at hgq
   obtain ⟨hfq, hsq⟩ := readL_gFin_gSize L _ p.2 hfp hq
-  refine (prob_run_not_good_le r hr _ q.2 hgq hfq N Q₃ 0 (ht p.1 q.1)
-    (isWeightBound_embG_g _) (by omega)).trans (le_of_eq ?_)
+  have htail := prob_run_not_good_le r hr _ q.2 hgq hfq N Q₃ 0 (ht p.1 q.1)
+    (isWeightBound_embG_g _) (by omega)
+  refine htail.trans (le_of_eq ?_)
   simp
 
 theorem finRange_getElem_val (n : ℕ) : ∀ i (hi : i < (List.finRange n).length),

@@ -335,10 +335,12 @@ $\mathbb{K}$ (\texttt{leanDaErasureCode r}), so each of a row's two limbs is a c
 $128\,r$ positions.
 
 \paragraph{The commitment.} The committer hashes each row's $128$ cells into a Merkle tree, the
-row's \emph{blob root} (\lean{blobRootWith}), and publishes the root of the Merkle tree over the
-blob roots, the rows padded to \lean{maxRows} with zero codewords (\lean{commitCells}), so every path has $7 + \mbox{\lean{logMaxRows}}$ siblings. To
-\emph{open} a position, it gives the cell and its path, in its blob's tree and then in the tree over
-the blob roots; the opening verifies if they hash back to the root (\lean{verifyCellWith}).
+row's \emph{blob root} (\lean{blobRootWith}), builds the Merkle tree over the blob roots, the rows
+padded to \lean{maxRows} with zero codewords, so every path has $7 + \mbox{\lean{logMaxRows}}$
+siblings, and publishes the hash of its root with the row count $r$ (\lean{commitCells},
+\lean{countBytes}). To \emph{open} a position, it gives the cell and its path, in its blob's tree
+and then in the tree over the blob roots; the opening verifies if they and the row count hash back
+to the root (\lean{verifyCellWith}).
 
 \paragraph{The proof that the rows are codewords.} A Merkle root alone does not show that the rows
 are codewords. So the committer also gives a proof, from some \emph{argument} (\lean{OracleArgument}: a
@@ -642,9 +644,9 @@ $(\mathit{pc}, \mathit{fp})$, and a repeated state would loop without halting
 \lean{lean_vm} proves fewer than $2^{128}$, \lean{steps_lt_replayFuel}).
 
 \paragraph{The decoder's size bound.} The bound (\lean{guestWitnessDecoderSizeBound}, $569815$)
-limits any program; it is the compiled decoder's size, $569385$ (proved
-at most that, measured exactly; the guest's frame-cell table is $517343$ of it), and a slack of
-$430$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no useful
+limits any program; it is the compiled decoder's size, $569405$ (proved
+at most that, measured exactly; the guest's frame-cell table is $517354$ of it), and a slack of
+$410$: room for one leanXMSS signature's encoding ($309$) beside its code but not two, so no useful
 table of witnesses (hard-coded signatures that would mask a bug of $G$ on finitely many statements)
 fits there. It does not bound what a program written differently could hold: the frame-cell table
 (cells below $2^{20}$) packs to about a third, three cells to a limb, and a program may compute its

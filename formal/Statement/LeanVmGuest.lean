@@ -70,11 +70,11 @@ abbrev LeanXmssClaim : Type := HashSig.PublicKey × HashSig.Message
 `crates/aggregation/src/lib.rs`). -/
 abbrev LeanSphincsClaim : Type := Sphincs.PublicKey × HashSig.Message
 
-/-- **A DA claim**: a blob matrix's Merkle root (an aggregate's claims' `da_commitment`,
+/-- **A DA claim**: a blob matrix's commitment (an aggregate's claims' `da_commitment`,
 `crates/aggregation/src/proof.rs`) and the membership challenge whose dual codeword its rows are
 orthogonal to. A statement carries the claim's digest (`daClaimDigest`). -/
 structure DaClaim where
-  /-- The matrix's Merkle root: the commitment to its codewords. -/
+  /-- The commitment to the matrix's codewords. -/
   daRoot : Digest
   /-- The membership challenge `z`, which the guest program reads as a hint (`da_challenge`,
   `lean_ethereum.py`); the deployed outer verifier derives it from the root
@@ -261,8 +261,8 @@ def DaDigestHeld (statement : NodeStatement) (witness : NodeWitness) : Prop :=
       ∃ child ∈ witness.children, child.statement.claims.daDigest = statement.claims.daDigest
 
 /-- **The matrix opens the DA claim `⟨root, z⟩`** (`da_verify`, `lean_ethereum.py`):
-`1` to `LeanDa.maxRows` codewords of `2^14` symbols commit to `root` (the root of the matrix they form,
-`LeanDa.commitCells`, over Keccak-f[1600] with LeanDA's digests as 32 bytes), and each is
+`1` to `LeanDa.maxRows` codewords of `2^14` symbols commit to `root` (the commitment to the matrix they
+form, `LeanDa.commitCells`, over Keccak-f[1600] with LeanDA's digests as 32 bytes), and each is
 orthogonal to the dual codeword of `z`, `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` (`LeanDa.dualCodewordAt`,
 which the guest program builds from `z`: `da_vector`, `lean_ethereum.py`). Only where
 `z` is the root's membership challenge, as the deployed outer verifier derives it (no end statement
@@ -458,8 +458,8 @@ open LeanVM.Parameters LeanVM.Semantics
 limits. -/
 
 /-- **The bound on the guest decoder program's size** (`MachineProgram.size`): `569815`, the
-compiled decoder's size (`569385`: `lean_vm`'s `Cost/DecoderSize.lean` proves it at most that) and a
-slack of `430`, room for one leanXMSS signature's encoding (`309`) but not two, so no useful table
+compiled decoder's size (`569405`: `lean_vm`'s `Cost/DecoderSize.lean` proves it at most that) and a
+slack of `410`, room for one leanXMSS signature's encoding (`309`) but not two, so no useful table
 of witnesses (hard-coded signatures, matrices or proofs that would mask a bug of the guest program
 on finitely many statements) fits beside the compiled decoder's code. The size counts in full the
 guest program's per-function tables, literals of the compiled decoder; a program written differently

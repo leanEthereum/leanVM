@@ -23,7 +23,7 @@ proof is the theorem `…_holds` of the family's modules. The functions building
 
 | function | meaning |
 | --- | --- |
-| `da_verify` | `Da.MatrixWitness.Opens` (`Statement/LeanVmGuest.lean`): a matrix of `1..LeanDa.maxRows` codewords committed to the returned root (`LeanDa.commitCells` of the matrix, `LeanDa.commitCodewords` level by level), orthogonal to the dual codeword of the returned challenge |
+| `da_verify` | on the count table (`CountWords`), `Da.MatrixWitness.Opens` (`Statement/LeanVmGuest.lean`): a matrix of `1..LeanDa.maxRows` codewords committed to the returned root (`LeanDa.commitCells` of the matrix, `LeanDa.commitCodewords` level by level), orthogonal to the dual codeword of the returned challenge |
 | `da_padding` | `n_blob = g^r`, `1 ≤ r ≤ LeanDa.maxRows`, and `g^(LeanDa.maxRows - r)` padding rows |
 | `da_verify_cell` | one cell's digest (`LeanDa.listCellDigestWithHash`) and its dot product with the column's weights |
 | `da_levels__L{n}_L{k}` | the Merkle root over `n = 2^k` leaves of two cells (`LeanDa.treeRootWithHash`) |
@@ -63,11 +63,15 @@ def pairCells (nodes : List (E × E)) : List E := nodes.flatMap fun p ↦ [p.1, 
 
 /-! ## `da_verify` (TRIAGE #90) -/
 
-/-- **`da_verify()`**: a witness opens the claim of the returned root and challenge `z`
-(`Da.MatrixWitness.Opens`), the three returned words the root's cells and `z`. -/
-def MeaningDaVerify (_rd : Reader) : List E → List E → Prop
-  | [], rets => ∃ (w : LeanVM.Da.MatrixWitness) (root : Digest) (z : E), w.Opens root z ∧
-      rets = digestCells root ++ [z]
+/-- **The count table** at `bb`: `bb[g^v] = v` for every count `v ≤ LeanDa.maxRows`, the words
+`da_verify` reads its count's off (`main`'s `byte_bits`). -/
+def CountWords (rd : Reader) (bb : E) : Prop := ∀ v ≤ LeanDa.maxRows, LoadHolds rd bb v (word v 0)
+
+/-- **`da_verify(byte_bits)`**: on the count table, a witness opens the claim of the returned root
+and challenge `z` (`Da.MatrixWitness.Opens`), the three returned words the root's cells and `z`. -/
+def MeaningDaVerify (rd : Reader) : List E → List E → Prop
+  | [bb], rets => CountWords rd bb → ∃ (w : LeanVM.Da.MatrixWitness) (root : Digest) (z : E),
+      w.Opens root z ∧ rets = digestCells root ++ [z]
   | _, _ => False
 
 /-- `da_verify`'s core IR gives its meaning, on a memory image. -/

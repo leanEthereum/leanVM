@@ -2188,7 +2188,7 @@ noncomputable def c0 : List Core.Stmt := (
   .atom (.const (.n 367) (word 2 0)) ::
   .atom (.add (.n 368) (.n 7) (.n 367)) ::
   .ite (.n 368) [
-    .call "da_verify" [] [.n 369, .n 370, .n 371],
+    .call "da_verify" [.n 47] [.n 369, .n 370, .n 371],
     .atom (.const (.n 372) (word 1 0)),
     .atom (.const (.n 373) (word 0 0)),
     .atom (.const (.n 374) (word 0 0)),

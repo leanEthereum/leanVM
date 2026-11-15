@@ -4504,8 +4504,8 @@ def child_claim_list_last(state, entries_ptr, region, marks, last_g, k: Const):
 # recursion preserves both.
 
 
-def da_verify():
-    # Returns the commitment root, two cells, and the membership challenge, one.
+def da_verify(byte_bits):
+    # Returns the commitment H(tree root, n), two cells, and the membership challenge, one.
     # The matrix always has DA_MAX_ROWS rows: a padding row's root is a constant, which
     # the gap loop writes without hashing anything.
     n_blob_g = hint_witness("da_n_blobs")
@@ -4539,7 +4539,9 @@ def da_verify():
         pad[1] = DA_PAD_BLOB_0
         pad[GEN] = DA_PAD_BLOB_1
     r0, r1 = da_levels(roots, DA_MAX_ROWS, DA_LOG_MAX_ROWS)
-    return r0, r1, z
+    commitment = StackBuf(2)
+    keccak([r0, r1], [byte_bits[n_blob_g], 0], commitment)
+    return commitment[0], commitment[1], z
 
 
 def da_padding(n_blob_g):
@@ -4741,7 +4743,7 @@ def main():
     # child. Each writer is confined to its own region.
     cover = HeapBuf(n_total_g)
     sp_cover = cover * lx_slots_g  # the leanSPHINCS region
-    # byte_bits[g^v] = v, read at a hinted byte's exponent (sp_from_bytes).
+    # byte_bits[g^v] = v, read at a hinted byte's exponent (sp_from_bytes, da_verify).
     byte_bits = HeapBuf(SP_BYTE_VALUES)
     for v in unroll(0, SP_BYTE_VALUES):
         byte_bits[GEN ** v] = v
@@ -4772,7 +4774,7 @@ def main():
     da_digests = HeapBuf((n_children_g * GEN) ** 2)
     own_da = da_digests * n_children_g ** 2
     if n_direct_da_g == GEN:
-        root_0, root_1, z = da_verify()
+        root_0, root_1, z = da_verify(byte_bits)
         keccak([root_0, root_1], [z, 0], own_da[0:2])
     else:
         own_da[1] = 0

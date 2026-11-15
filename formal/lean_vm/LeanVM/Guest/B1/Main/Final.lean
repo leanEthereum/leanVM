@@ -202,7 +202,8 @@ theorem main_sound_w (bytecode : List K) :
     main_sound_Spec bytecode := by
   intro hbl rd hm wX wS wD wV wA cw D σ hp0 hp1 hb
   exact main_sound_C hbl hm (unfolds_rel rd) (fun _ _ _ h => h)
-    ⟨cw.xmss, fun p h hb => cw.sphincs p _ h hb, cw.da, cw.sub, cw.agg⟩ hp0 hp1 hb
+    ⟨cw.xmss, fun p h hb => cw.sphincs p _ h hb, fun rets h hcw => cw.da _ rets h hcw, cw.sub, cw.agg⟩
+      hp0 hp1 hb
 
 end
 end LeanVM.Guest.B1.Main

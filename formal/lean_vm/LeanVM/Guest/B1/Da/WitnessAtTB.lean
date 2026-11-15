@@ -23,7 +23,8 @@ import LeanVM.Guest.Data.Source
 `dvBs_le`: `da_verify`'s callees' bounds at the frame sizes within `dvKB`, on the static bounds
 (`DvStaticB`). `da_verify_completeAtTB`: for a witness opening `(root, z)`, `da_verify` is complete,
 placed at `g_squares = g^s` reading `g^(2^L)` at `g^(s + L)` (`L = wLog w`), by a tree of
-`dvNH r L` within `dvB fs SB SK r L` (`r` its rows), returning the root's cells and `z`.
+`dvNH r L` within `dvB fs SB SK r L` (`r` its rows), its count table at `g^tb` in the layout it
+reads, returning the root's cells and `z`.
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -33,6 +34,7 @@ open LeanVM.Guest.Value.Keccak
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 open LeanVM.Guest.B1.Digest
 open LeanVM.Guest.B1 (CompleteAtDTB Returns)
+open LeanVM.Guest.B1.Main (MemL RegionL)
 
 @[expose] public section
 
@@ -58,8 +60,10 @@ variable (fs) (cert : String → V → ℕ)
 /-- **`da_verify` is complete, placed, on a witness, by a tree of its honest shape, within
 `dvB`.** -/
 theorem da_verify_completeAtTB (hrf : Lift.RunsFit fs cert) {w : LeanVM.Da.MatrixWitness}
-    {root : Digest} {z : E} (hw : w.Opens root z) (hS : DvStaticB fs SB SK) :
-    CompleteAtDTB fs cert 16 "da_verify" [] []
+    {root : Digest} {z : E} (hw : w.Opens root z) (hS : DvStaticB fs SB SK) {Lin : B1.Main.Layout} {tb : ℕ}
+    (hbt : ∀ rd, MemL rd Lin → CountWords rd (gen ^ tb))
+    (hbr : ∀ v ≤ LeanDa.maxRows, RegionL Lin (tb + v)) :
+    CompleteAtDTB fs cert 16 "da_verify" Lin [gen ^ tb]
       (Returns (digestCells root ++ [z]))
       (dvNH w.rows.length (wLog w)) (dvB fs SB SK w.rows.length (wLog w)) := by
   have hr1 := hw.1
@@ -67,7 +71,7 @@ theorem da_verify_completeAtTB (hrf : Lift.RunsFit fs cert) {w : LeanVM.Da.Matri
   have hL : 2 ^ wLog w = LeanDa.maxRows := rfl
   rw [opens_eq hw]
   refine (dv_completeAtB fs cert hrf hS.off hS.l17 hS.l19 hS.l20 hS.l21 hS.dl hr1 hr hL
-    (wSyms_len hw) (wDot hw)).mono ?_ fun _ h => h
+    (wSyms_len hw) (wDot hw) hbt hbr).mono ?_ fun _ h => h
   have := dvBs_le hS (r := w.rows.length) (L := 5)
   simp only [dvB, wLog, LeanDa.logMaxRows]
   omega

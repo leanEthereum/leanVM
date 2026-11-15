@@ -146,12 +146,20 @@ theorem verifyCell_openCell {r : ℕ} (hr : r ≤ maxRows) (c : Fin (r * 128) �
   simp only [verifyCell, Bool.and_eq_true, decide_eq_true_eq]
   have hrow : (positionRow p : ℕ) < maxRows :=
     lt_of_lt_of_le (positionRow p).isLt hr
+  have hp : (p : ℕ) / 2 ^ (7 + logMaxRows) = 0 := by
+    have h1 := p.isLt
+    have h2 : r ≤ 32 := hr
+    exact Nat.div_eq_of_lt (by rw [show 2 ^ (7 + logMaxRows) = 4096 from rfl]; omega)
   refine ⟨by simp only [openCellWithHash, List.length_append, length_merklePath], ?_⟩
   simp only [openCellWithHash]
-  rw [walk_append, length_merklePath, walk_mod H (merklePathWithHash H 7 _ _) (p : ℕ), length_merklePath,
+  rw [walk_append, List.length_append, length_merklePath, length_merklePath, hp, walk_append,
+    length_merklePath, walk_mod H (merklePathWithHash H 7 _ _) (p : ℕ), length_merklePath,
     show (p : ℕ) % 2 ^ 7 = positionCell p from rfl, ← cellLeaves_position H c p,
-    walk_merklePath H _ _ _ (positionCell p).isLt, show (p : ℕ) / 2 ^ 7 = positionRow p from rfl]
-  exact walk_merklePath H _ (blobRootWithHash H c) _ hrow
+    walk_merklePath H _ _ _ (positionCell p).isLt, show (p : ℕ) / 2 ^ 7 = positionRow p from rfl,
+    show merkleRootWithHash H 7 (cellLeavesWithHash H c (positionRow p)) =
+      blobRootWithHash H c (positionRow p) from rfl,
+    walk_merklePath H _ (blobRootWithHash H c) _ hrow]
+  rfl
 
 /-! ## Collisions from two openings -/
 
@@ -191,7 +199,7 @@ theorem openingsCollision_spec {r : ℕ} {com : Common.DigestBytes} {p : Fin (r 
     (openingsCollision H r p x τ x' τ').1 ≠ (openingsCollision H r p x τ x' τ').2 ∧
       H (openingsCollision H r p x τ x' τ').1 = H (openingsCollision H r p x τ x' τ').2 := by
   simp only [verifyCell, Bool.and_eq_true, decide_eq_true_eq] at hτ hτ'
-  exact findCollision_spec H _ _ _ _ _ (hτ.1.trans hτ'.1.symm)
+  exact findCollision_spec H _ _ _ _ _ (by simp only [List.length_append, hτ.1, hτ'.1])
     (fun h ↦ hx (cellBytes_injective h)) (hτ.2.trans hτ'.2.symm)
 
 end LeanDa

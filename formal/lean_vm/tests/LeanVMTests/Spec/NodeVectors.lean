@@ -24,7 +24,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Verifier
 def e (c0 c1 : ℕ) : E := E.ofLimbs (K.ofBits c0) (K.ofBits c1)
 
 /-- The deployed seed (`fs_seed`). -/
-def seed : Digest := #v[0x2e033dab8f6316c3, 0x130dc34c51317961, 0x52e138cf7e75dd7a, 0x8fd17360fff73428]
+def seed : Digest := #v[0xf2c522074d0e717c, 0xde927bc03d21583c, 0x998c5f1a38768f76, 0x5f6d18b5b2a5a44b]
 
 /-- leanXMSS claims. -/
 def xmss : List LeanXmssClaim :=
@@ -78,7 +78,7 @@ def defer : DeferredBytecodeClaim :=
    e 0xc49c036f701a5e8d 0x9bafba8a14261538⟩
 
 /-- `statement_digest` of the claims and `defer` under `seed`. -/
-def statementDigest : Digest := #v[0x505eb09eebdacd1d, 0x2baa92e381993295, 0xdfa00d373d9386dd, 0xcf884b02bfd82a8e]
+def statementDigest : Digest := #v[0xf5b2b9f7b3e0a511, 0x8526706a8b356c00, 0x4092297e256f84cb, 0x2591a14abf697d0f]
 
 /-- Two children, true claims on the guest's stacked bytecode. -/
 def children : List ChildClaims :=
@@ -106,7 +106,7 @@ def children : List ChildClaims :=
     e 0x25879f5ef46552a7 0xba8122b8f0d8730a,
     e 0xa33a4bd9ed755da8 0x607049dd2fb8c479,
     e 0x73b3b37b8d7f925d 0xadcf67b013741822],
-    e 0x32831640715bf944 0xfc7f5235191a336e⟩,
+    e 0x73f7089fe502e130 0x9b0d6b88ce45ea7f⟩,
    ⟨[e 0x9386d58a2d5c5d18 0xd5b5baf5e5d7f9de,
     e 0x7ece744739fda473 0x343f5fcab482dc6a,
     e 0x5fd51b6b97e1bd8f 0x7f203511f70537b1,
@@ -130,7 +130,7 @@ def children : List ChildClaims :=
     e 0xeae90676ed9f9ebe 0xdbec643551b07a39,
     e 0x4cf3d34fe8786de1 0x700e20611be2ffcd,
     e 0xd53a5fbb7e7e88ed 0xdd317fcb53c35034],
-    e 0xaa793cef69122812 0x944885f4216b52ec⟩⟩,
+    e 0x7980773966db0df4 0x3cb3953b6073679d⟩⟩,
   ⟨#v[0xde4c8c3fd6b13078, 0xd1ee68164b985306, 0x7a204175fb0687c9, 0xc126e01b1d0bd008],
    ⟨[e 0x18598650598500b7 0x88c36f371b0dba6f,
     e 0x14051729d59caa5c 0x51cc24886d228ca4,
@@ -155,7 +155,7 @@ def children : List ChildClaims :=
     e 0x75e6fe117e42fcef 0x2635cbb69fe55e60,
     e 0x3387007b21ed2f8f 0x509e75106d711e14,
     e 0x9055c6606b1a27b3 0x1e46def11a795550],
-    e 0x24fe907d971b6eae 0x42f0afc8dd8d2558⟩,
+    e 0x2b43318cbedd6053 0xd87c5de5e36e0c0c⟩,
    ⟨[e 0x11d10f6a8b53172 0x1b6996934d81db91,
     e 0xfedc17f76347426a 0x89ca10570a9e8fe9,
     e 0xd68966b86587bc1e 0xfc7edb3cd80ed584,
@@ -179,62 +179,62 @@ def children : List ChildClaims :=
     e 0xa4b8ebd547413b97 0xca43158443d23dab,
     e 0x16e4fdfbebc9c078 0x64d40b13c2bea67e,
     e 0x33e7a4ade5f1511 0x4b108e3d9d98d5f0],
-    e 0x2e26beb3b62690d7 0xcbb00a9d99a77e77⟩⟩]
+    e 0xdbc3afa20f06db02 0xb4e9dfa6b490bf77⟩⟩]
 
 /-- The Rust's batching hints (`bc_sumcheck_msgs`, `bc_star_hint`). -/
 def hints : BatchingHints where
   lambdaGrindNonce := e 0x0 0x0
   sumcheckMessages :=
-  [(e 0x86a0c6004a5b5ff7 0x6eec346a55a4e349, e 0xe8b910391d342c1b 0x2d1a605ab84b9599),
-  (e 0x30140a8188c4f18c 0xd1ec9395406c75e8, e 0x3107ae2f517dc797 0x3b94db5b0310b485),
-  (e 0xbb0fc2e61774f645 0x72bc2fc853e1e535, e 0xbd1f9084fdeffb66 0xfdfee5b098c839c5),
-  (e 0xf852337a2e455454 0x72c686172c3009aa, e 0x46575d0283f74cd 0x21b030aa5a71f248),
-  (e 0xd70e30d028fecf65 0xa8b951696c34410a, e 0x5f1603f358d403c8 0xa1650b210e3933af),
-  (e 0xf51be9274f501074 0xcc3d3bedd2eef0a2, e 0x82fd8952e1dba97d 0xd4d7529e4facbaae),
-  (e 0x60a27c5c0a53fa94 0xfefe32dd14305673, e 0xe901be8cb9d85ea2 0x6541ab847ac1ad1),
-  (e 0x7f4bf5cc727840d0 0xc61416081184e8e, e 0x65930b515e82c9e9 0xd504650707427e1f),
-  (e 0x7480fbe6a49979d6 0x98f19961bb990bf9, e 0xa2edd83e30f5ec7d 0x5872f15f278b890c),
-  (e 0xec50727e4e05d499 0x3ebaeadb4b2b33df, e 0xeb25750c7e0f9691 0xa703ddb807c9cc12),
-  (e 0x5c74195d7225fb4b 0x8d2f532334f4636a, e 0xc0e006fc226b14db 0x637f5797f3361d84),
-  (e 0x4f7d7dfa914590c9 0xc34c5e2f9d5c6b53, e 0x927e1499353de1a4 0xdf2030d84f7c0b7),
-  (e 0xe6d1ffe0200d46d9 0x46e6542a66e21880, e 0x290109bf9a960b36 0xf84b4a71a0c78d4b),
-  (e 0xaed98be24c30518b 0xf13ff88617d56d36, e 0x85e3d5fd02abc20b 0x1240e14cde139304),
-  (e 0x802ac1e54a050756 0x9b22e3db9cd5490f, e 0xc890ccf659874cd0 0xe7b62a132addb44b),
-  (e 0x27901771e597c231 0x14e9af3fd4366698, e 0xa4c51e22b491a27f 0x38e00e2bc3195e86),
-  (e 0x22f7566914463cbb 0x395a482d7bf1718c, e 0x5e9e58dcfead1bba 0x7b8e9e8443fe1ac0),
-  (e 0x170515c446eeaa67 0xece42b83123bf233, e 0x532ec81f22f2069f 0xc8cc06dbcb77f1f5),
-  (e 0x3e34c1e3e6f1b08c 0x77d723c46afe0181, e 0x517ba7cc705fc0e1 0x931b37b5ca2ce670),
-  (e 0x7c6433f74e71d9da 0xf0a7b216c226befd, e 0x3573025a56c9e3a4 0xe967c2621bef7801),
-  (e 0x7014499740fa1d39 0x335502e9615b0cd1, e 0x8eb1ba9ec676f444 0xd6a7dd44fb66e412),
-  (e 0x8374f35b49ce310e 0xe1615e8b7b30cb62, e 0xca3391acd618b6b7 0xbbe81e767ff75736),
-  (e 0x40de532f092df181 0x9881a2c91933cc2d, e 0x6b91ba538127f048 0x7c29bea5a2553e57)]
-  finalBytecodeValue := e 0xb10379338acf65ba 0x19c8f536ed9afdca
+  [(e 0x743f243918e93c0f 0xee218d73e2ac574e, e 0x4281c5ec33c8649e 0x5a4addcbd6d13909),
+  (e 0xe417c1fdc55ab5de 0xbe951e2505e72a52, e 0x8abdc7d38d5cde62 0x1291fad4ed671a64),
+  (e 0x19895bb0b7dad989 0x90fbb2b53ef65824, e 0xc9f9c355031f880a 0x4f0f6da923119c1b),
+  (e 0x15e2c178fb088991 0xbc5f783118583f01, e 0xc2882a0a48d6cfc8 0x7e1afb5061a7fc8b),
+  (e 0xa264b26e6e7e7b53 0xec2aab0e9097f0ca, e 0x4b8be59f892cbdfe 0x95e93a483e75a922),
+  (e 0xc71d217b71cb0bff 0x4afc3e88a2510f2e, e 0xbfae79f9515b01fd 0xc57077bc9f737237),
+  (e 0x766a20cb30feb4f5 0xce399f0e342761f9, e 0xce943ddbc1770831 0x73b83d11a3c3ca5b),
+  (e 0xd39151292f29a246 0xa8a70be14e722013, e 0x28aef6521f5fa46 0x3dfb269d13d04c96),
+  (e 0xc327565c39fee382 0x4184fbaec787d14f, e 0x18cf0e6fa3c431bd 0xc17edfa6334874e6),
+  (e 0x75addcb80734948b 0xcbb07884b5d8d68, e 0x7bd3d822de1f52fa 0xf6bc4432fe7a5535),
+  (e 0x2b78e2cc4772819 0xb2648df1c3a71a8b, e 0x4146857b25f7219d 0xcce809d0fc27732),
+  (e 0x10cf73281130ea62 0xb0797e7b555123e4, e 0xf52dc293aaf5d96e 0xb665d7e6b6dc8d28),
+  (e 0x6451aa6c334d731f 0x1add6c28a48498df, e 0xaac927665f3c8db7 0x66d983717f7b6b41),
+  (e 0x3624d97768ed2c36 0xa8c44075546767ea, e 0xbcc5f5fb17ee3a4d 0x3729bac0d3dc0401),
+  (e 0xb3e57a5bae891f1d 0xae083bd2cfce820, e 0x28a6590dba9b03b3 0x127f613e605859e4),
+  (e 0xb756bef128ca88c7 0xbf0e2bf5b704ea9d, e 0xcd56b56a79e9c38d 0xefd9db0256813f5f),
+  (e 0x736d9d8191c2269e 0x80b739fce78330ec, e 0xd2593224f4f4914 0xb8f40b9c3ef5be97),
+  (e 0x8b9fd520948b190f 0xd8e117a8daf816ac, e 0xbd26aa37c90462b8 0x3c7aa9dbc7690f48),
+  (e 0x5ee6e7a2fa312772 0x7f38b94ea481d7ce, e 0x58a3786fc2f9ee9c 0xb5d3d3cf05cff4bd),
+  (e 0x5eebf774373637f2 0xa1f5baff45991862, e 0xecf9c4804ac96d69 0x431501f85059e632),
+  (e 0x9e4a71cbdf090e1 0xa13446c6ba2ac95c, e 0x1195f4005699f262 0x625a80f8a40ed15d),
+  (e 0xc09d0fb57ac7099d 0xf8b3fb0d160a5622, e 0xf24389fad39fb778 0x995c7204cc3cfb1c),
+  (e 0xe60c95b0bb75faaf 0xed07bf77a13b536b, e 0x33a35b06b530bd82 0x7d4e7740303f2347)]
+  finalBytecodeValue := e 0x6ff30e54649145d 0x1047a6eb6dddfa6b
 
 /-- The claim the batching defers. -/
 def batched : DeferredBytecodeClaim :=
-  ⟨[e 0x38a4294a4426623e 0x5180c06a4b998c0a,
-    e 0xeb242c45ddf5b0fc 0x7e27001c4699089f,
-    e 0x49635e8fa1347dd4 0x55db88e522344aaa,
-    e 0x38131931bdb90063 0xc1fbb9fd74e9dae1,
-    e 0xe45a7f38ee3329ed 0xac40ebaf155ca0bb,
-    e 0xbdb6063ed8e8a632 0xf786d24dc9556225,
-    e 0xb7a63aca2a2aa533 0x9b49c0e9d8311328,
-    e 0xa51b41104059ebcc 0xd0111f17172d4a1,
-    e 0x2deded18dd6c7584 0xe1c35fbbb1ea50ce,
-    e 0x3713ce0652f3d3d2 0xb3f54ab510a348b,
-    e 0x9cd3ed022ae92828 0x3fb3e07735f27624,
-    e 0x88ae8336291b3a62 0xd0e4d30cecb078dc,
-    e 0x5de7cc5059cbb3ef 0x9ab8ed9362e4ecb5,
-    e 0x9bec35e4dc7fba85 0xfd4376e90e787ed2,
-    e 0xe83cd7ecfc5218f0 0x5aeb95bc1eaade97,
-    e 0xf2f98c32781dcc38 0x696f1f0dd7063428,
-    e 0x3c2c171f3c984b4d 0x7e3b85e67c39d6d2,
-    e 0x5b7ffb82fb07fe16 0x9eb77314b92b056,
-    e 0x2186b1122d9de4b6 0x1f4e8c5880985b64,
-    e 0x5a7c79a40a8c6202 0x4a02a5b6ffd02280,
-    e 0xed01302b6ee0748a 0x5dcee32f4d89fe26,
-    e 0x9ea21522c0cb9cd5 0x25f99899ead7bef4,
-    e 0x1e959b8ab2a80f2e 0x6a986284d8700bb3],
-   e 0xb10379338acf65ba 0x19c8f536ed9afdca⟩
+  ⟨[e 0x3529e1956ecfc33b 0xe9a8d3266a88653b,
+    e 0x23776742f535dd9f 0x397d1452dc2aceff,
+    e 0x355de47ca567540 0x54e5c695c82773b1,
+    e 0x96302eef21ea422f 0xba5ee0dfdb73bbc1,
+    e 0x4dfec98ee3615c78 0x478dd0cf07c00985,
+    e 0x9dfffc4ef07ecfb 0x5bcacb8aa341f280,
+    e 0x45238ccdd8977210 0x8bf08ab0753e04f9,
+    e 0x14c1876ecfc4e700 0x8263c88127ba72a4,
+    e 0x28db06e70374eb56 0x9328f1fbe51150ca,
+    e 0xfc6c9a6ce2a1e55d 0xa41c8d24d39aabb0,
+    e 0xb290abdc760f5605 0x4b1b9a1ed640db36,
+    e 0xc05487e32d4ddca7 0x797cb680a8e1b55e,
+    e 0x93af632fa246d797 0x50a93dfa10bb2a42,
+    e 0xf25f1ca4ac39de34 0x74c05151fd6ffe17,
+    e 0x1d54d0eee4b85283 0x3467766b79a6147f,
+    e 0x2b5e98017ae08361 0x9f5dfc8db5fa7c65,
+    e 0x56721575673b8833 0x69d4788d7d07264c,
+    e 0x934a5f4631fe024 0xeeb1a325ad8acd6c,
+    e 0x4a1489983e6898db 0x9a5e576714b3340e,
+    e 0xdd8c30a870bd246f 0x5d81072c82e5e773,
+    e 0xc9de88a7ea4a6ce3 0xbcbe99a426fc5cc4,
+    e 0xcf8cb44c7b86d2b6 0xab78b1dc5e40c7de,
+    e 0x98b13a22745c0b13 0x92fd5e79a1238275],
+   e 0x6ff30e54649145d 0x1047a6eb6dddfa6b⟩
 
 end LeanVMTests.Spec.NodeVectors

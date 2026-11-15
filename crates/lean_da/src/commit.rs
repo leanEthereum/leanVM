@@ -69,9 +69,9 @@ impl BlobMatrix {
         self.row(blob_idx)?.as_chunks().0.get(col_idx)
     }
 
-    /// The commitment: the root of the tree over the blob roots.
-    pub fn top_root(&self) -> Hash {
-        self.root_merkle_nodes[2 * DA_MAX_ROWS - 2]
+    /// The commitment: the root of the tree over the blob roots, hashed with the blob count.
+    pub fn commitment(&self) -> Hash {
+        mix_in_count(&self.root_merkle_nodes[2 * DA_MAX_ROWS - 2], self.n_blobs())
     }
 
     /// The Merkle path of cell `col_idx` of blob `blob_idx`, which [`verify_cell`] checks (`None` out
@@ -97,15 +97,16 @@ fn siblings(tree: &[Hash], mut leaf: usize) -> impl Iterator<Item = Hash> {
     })
 }
 
-/// Whether `path` proves `cell` is cell `col_idx` of blob `blob_idx` under the commitment `root`.
+/// Whether `path` proves `cell` is cell `col_idx` of blob `blob_idx` under the commitment `root` to `n_blobs` blobs.
 pub fn verify_cell(
     root: &Hash,
+    n_blobs: usize,
     blob_idx: usize,
     col_idx: usize,
     cell: &[Symbol; CELL_SYMBOLS],
     path: &[Hash; MERKLE_PATH_LEN],
 ) -> bool {
-    if blob_idx >= DA_MAX_ROWS || col_idx >= CELLS_PER_ROW {
+    if n_blobs > DA_MAX_ROWS || blob_idx >= n_blobs || col_idx >= CELLS_PER_ROW {
         return false;
     }
     let mut position = CELLS_PER_ROW * blob_idx + col_idx;
@@ -118,7 +119,14 @@ pub fn verify_cell(
         };
         position /= 2;
     }
-    node == *root
+    mix_in_count(&node, n_blobs) == *root
+}
+
+/// `H(tree_root ‖ n_blobs)`, the count a 32-byte little-endian word.
+fn mix_in_count(tree_root: &Hash, n_blobs: usize) -> Hash {
+    let mut count = [0; OUT_LEN];
+    count[0] = n_blobs as u8;
+    hash_pair(tree_root, &count)
 }
 
 /// The number of blobs is not 1 to [`DA_MAX_ROWS`].
@@ -208,12 +216,12 @@ mod tests {
         let blobs: Vec<Symbol> = (0..3 * BLOB_SYMBOLS as u128)
             .map(|i| 0x9E37_79B9_7F4A_7C15_F39C_C060_5CED_C835u128.wrapping_mul(i + 1))
             .collect();
-        let root: String = build(&blobs).top_root().iter().map(|b| format!("{b:02x}")).collect();
-        assert_eq!(root, "f0a743ba64bc65d80777a758215e34f10f3abee5d60b4afe0f991b5e74ed9bc4");
+        let root: String = build(&blobs).commitment().iter().map(|b| format!("{b:02x}")).collect();
+        assert_eq!(root, "ffd0a16698606ff2ce06149af0eb9fbcf06166abb7ffd23ba50b2b618ed231fd");
     }
 
     /// Each blob root is the root over its cells, and the commitment the root over the blob roots,
-    /// padded to `DA_MAX_ROWS` with the zero codeword's.
+    /// padded to `DA_MAX_ROWS` with the zero codeword's, then hashed with the blob count.
     #[test]
     fn commitment_is_the_tree_of_blob_trees() {
         fn root(mut level: Vec<Hash>) -> Hash {
@@ -256,7 +264,7 @@ mod tests {
             assert_eq!(column, cells);
         }
         assert!(matrix.column(CELLS_PER_ROW).is_none());
-        assert_eq!(matrix.top_root(), root(blob_roots));
+        assert_eq!(matrix.commitment(), mix_in_count(&root(blob_roots), n_rows));
     }
 
     /// Encoding commutes with XOR of payloads.
@@ -271,30 +279,29 @@ mod tests {
         }
     }
 
-    /// A trailing zero blob commits like padding.
+    /// A trailing zero blob changes the commitment.
     #[test]
-    fn padding_rows_are_the_zero_codeword() {
-        let n_rows = 3usize;
-        let rows = payload(n_rows, 3);
+    fn commitment_binds_the_blob_count() {
+        let rows = payload(3, 3);
         let mut extended = rows.clone();
         extended.extend(std::iter::repeat_n(0, BLOB_SYMBOLS));
-
-        assert_eq!(build(&rows).top_root(), build(&extended).top_root());
+        assert_ne!(build(&rows).commitment(), build(&extended).commitment());
     }
 
-    /// A path proves its cell, and not another cell or position.
+    /// A path proves its cell, and not another cell, position or blob count.
     #[test]
     fn openings_verify() {
         let matrix = build(&payload(3, 5));
-        let root = matrix.top_root();
+        let root = matrix.commitment();
         for (i, j) in [(0, 0), (1, 77), (2, CELLS_PER_ROW - 1)] {
             let cell = *matrix.cell(i, j).unwrap();
             let path = matrix.merkle_path_for_cell(i, j).unwrap();
-            assert!(verify_cell(&root, i, j, &cell, &path));
+            assert!(verify_cell(&root, 3, i, j, &cell, &path));
             let mut other = cell;
             other[0] ^= 1;
-            assert!(!verify_cell(&root, i, j, &other, &path));
-            assert!(!verify_cell(&root, i, (j + 1) % CELLS_PER_ROW, &cell, &path));
+            assert!(!verify_cell(&root, 3, i, j, &other, &path));
+            assert!(!verify_cell(&root, 3, i, (j + 1) % CELLS_PER_ROW, &cell, &path));
+            assert!(!verify_cell(&root, 4, i, j, &cell, &path));
         }
         assert!(matrix.merkle_path_for_cell(3, 0).is_none());
     }

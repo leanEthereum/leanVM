@@ -3172,7 +3172,7 @@ def womegaTTlll : NTree (ℕ) :=
     .leaf))))
     (.node 36 (1551)
     (.node 30 (849)
-    (.node 27 (46)
+    (.node 27 (57)
     (.node 26 (48)
     (.node 25 (59)
     .leaf

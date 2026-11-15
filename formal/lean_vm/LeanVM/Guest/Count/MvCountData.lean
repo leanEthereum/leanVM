@@ -97,20 +97,20 @@ def kcClLpT : Opcode → List ℕ
 /-- The frame weights of `mvOmNames`. -/
 def mvOmT : Opcode → List ℕ
   | .xor => [2, 1, 1, 3]
-  | .mulNative => [14, 12, 6, 40]
-  | .setConstant => [9, 6, 3, 9]
-  | .deref => [47, 9, 17, 42]
+  | .mulNative => [15, 12, 6, 40]
+  | .setConstant => [15, 6, 3, 9]
+  | .deref => [48, 9, 17, 42]
   | .jump => [8, 3, 3, 6]
-  | .keccak => [0, 0, 0, 1]
+  | .keccak => [1, 0, 0, 1]
 
 /-- `da_verify`'s instructions on `r` rows padded to `DA_MAX_ROWS` within `kcDvA + kcDvR · r + kcDvP · DA_MAX_ROWS`: the constant. -/
 def kcDvA : Opcode → ℕ
   | .xor => 34302
-  | .mulNative => 37576
-  | .setConstant => 2365
-  | .deref => 24911
+  | .mulNative => 37577
+  | .setConstant => 2371
+  | .deref => 24912
   | .jump => 1175
-  | .keccak => 0
+  | .keccak => 1
 
 /-- `da_verify`'s instructions: per row. -/
 def kcDvR : Opcode → ℕ

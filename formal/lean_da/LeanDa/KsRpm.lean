@@ -66,7 +66,8 @@ theorem commitCellsM_congr {r : ℕ} (c : Fin (r * 128) → Cell) :
     commitCellsMWithHash H₁ c = commitCellsMWithHash H₂ c := by
   have hblob : ∀ i, blobRootMWithHash H₁ c i = blobRootMWithHash H₂ c i := fun i ↦
     merkleRootM_congr hH 7 fun j ↦ hH (cellBytes (paddedCell c i j)) (by simp [shortP, length_cellBytes])
-  exact merkleRootM_congr hH _ hblob
+  rw [commitCellsMWithHash, commitCellsMWithHash, merkleRootM_congr hH _ hblob]
+  exact bind_congr fun t ↦ hH _ (by simp [shortP, length_pairBytes])
 
 end Congr
 

@@ -72,14 +72,19 @@ theorem callees_exist [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signature]
       exact ⟨sig, fun _ _ _ => hsig⟩
     · exact ⟨Classical.ofNonempty, fun bb hr hbb => absurd ⟨bb, hr, hbb⟩ h⟩
   -- the matrix
-  have edd : ∀ args rets : List E, ∃ w : LeanVM.Da.MatrixWitness, args = [] →
-      coreProgram.Rel L.read "da_verify" [] rets →
+  have edd : ∀ args rets : List E, ∃ w : LeanVM.Da.MatrixWitness, ∀ bb, args = [bb] →
+      coreProgram.Rel L.read "da_verify" [bb] rets → Da.CountWords L.read bb →
       ∃ (root : Digest) (z : E), w.Opens root z ∧ rets = digestCells root ++ [z] := by
     intro args rets
-    by_cases h : args = [] ∧ coreProgram.Rel L.read "da_verify" [] rets
-    · obtain ⟨w, root, z, hop, hrets⟩ := hd L.read hm' [] rets h.2
-      exact ⟨w, fun _ _ => ⟨root, z, hop, hrets⟩⟩
-    · exact ⟨⟨[]⟩, fun ha hr => absurd ⟨ha, hr⟩ h⟩
+    by_cases h : ∃ bb, args = [bb] ∧ coreProgram.Rel L.read "da_verify" [bb] rets ∧
+        Da.CountWords L.read bb
+    · obtain ⟨bb, rfl, hr, hcw⟩ := h
+      obtain ⟨w, root, z, hop, hrets⟩ := hd L.read hm' [bb] rets hr hcw
+      refine ⟨w, fun bb' hargs _ _ => ?_⟩
+      simp only [List.cons.injEq, and_true] at hargs
+      subst hargs
+      exact ⟨root, z, hop, hrets⟩
+    · exact ⟨⟨[]⟩, fun bb ha hr hcw => absurd ⟨bb, ha, hr, hcw⟩ h⟩
   -- the proofs
   have ev : ∀ args : List E, ∃ π : Proof, ∀ pi0 pi1 s0 s1 gsq out,
       args = [pi0, pi1, s0, s1, gsq, out] →
@@ -123,7 +128,7 @@ theorem callees_exist [Nonempty LeanXmss.Signature] [Nonempty Sphincs.Signature]
   choose wV hwV using ev
   choose wA hwA using ea
   exact ⟨wX, wS, wD, wV, wA, fun args hr => hwX args hr, fun p bb hr hbb => hwS p bb hr hbb,
-    fun rets hr => hwD [] rets rfl hr,
+    fun bb rets hr hcw => hwD [bb] rets bb rfl hr hcw,
     fun pi0 pi1 s0 s1 gsq out hr he => hwV _ _ _ _ _ _ _ rfl hr he,
     fun ncg cpi cfresh ccarried dst tabs hr hw m h1 h16 hn =>
       hwA _ _ _ _ _ _ _ rfl hr hw m h1 h16 hn⟩

@@ -60,8 +60,12 @@ theorem blobRootWith_pureIn {r : ℕ} (c : Fin (r * 128) → Cell) :
 
 theorem commitCells_eq_withHash {r : ℕ} (c : Fin (r * 128) → Cell) :
     commitCells π c = commitCellsWithHash (hashOver π) c := by
-  show Id.run (merkleRootWith (pureIn π) logMaxRows (blobRootWith (pureIn π) c)) = _
-  rw [blobRootWith_pureIn, merkleRootWith_id]
+  have h : merkleRootWith (pureIn π) logMaxRows (blobRootWith (pureIn π) c) =
+      pure (merkleRootWithHash (hashOver π) logMaxRows (blobRootWithHash (hashOver π) c)) := by
+    rw [blobRootWith_pureIn]
+    exact merkleRootWith_id π _ _
+  simp only [commitCells, commitCellsWith, commitCellsWithHash]
+  rw [h, pure_bind]
   rfl
 
 theorem openCell_eq_withHash {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :

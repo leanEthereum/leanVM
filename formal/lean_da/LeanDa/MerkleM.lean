@@ -111,8 +111,10 @@ theorem blobRootM_eval {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) :
   merkleRootM_eval φ hpure hbind H H' hH _ _ _ (cellLeavesM_eval φ hpure hbind H H' hH c i)
 
 theorem commitCellsM_eval {r : ℕ} (c : Fin (r * 128) → Cell) :
-    φ (commitCellsMWithHash H c) = pure (commitCellsWithHash H' c) :=
-  merkleRootM_eval φ hpure hbind H H' hH _ _ _ (blobRootM_eval φ hpure hbind H H' hH c)
+    φ (commitCellsMWithHash H c) = pure (commitCellsWithHash H' c) := by
+  simp only [commitCellsMWithHash, hbind,
+    merkleRootM_eval φ hpure hbind H H' hH _ _ _ (blobRootM_eval φ hpure hbind H H' hH c), pure_bind, hH,
+    commitCellsWithHash]
 
 theorem openCellM_eval {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
     φ (openCellM H c p) = pure (openCellWithHash H' c p) := by
@@ -239,13 +241,13 @@ theorem isWeightBound_blobRootM {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ)
   exact (isWeightBound_merkleRootM H w cP hP 7 _ cC fun _ ↦ hC _).mono (by norm_num)
 
 include hP hC in
-/-- The commitment's hash calls: `128` cells and `127` pairs per blob tree, and `maxRows - 1`
-pairs over the blob roots, at most `maxRows · 128 (cC + cP)`. -/
+/-- The commitment's hash calls: `128` cells and `127` pairs per blob tree, `maxRows - 1` pairs
+over the blob roots and the count's pair, `maxRows · 128 (cC + cP)`. -/
 theorem isWeightBound_commitCellsM {r : ℕ} (c : Fin (r * 128) → Cell) :
     QueryCostAtMost (commitCellsMWithHash H c) w (maxRows * (128 * cC + 128 * cP)) := by
   unfold commitCellsMWithHash
-  refine (isWeightBound_merkleRootM H w cP hP _ _ _
-    (isWeightBound_blobRootM H w cP cC hP hC c)).mono ?_
+  refine ((isWeightBound_merkleRootM H w cP hP _ _ _
+    (isWeightBound_blobRootM H w cP cC hP hC c)).bind fun _ ↦ hP _ _).mono ?_
   unfold maxRows
   have h1 : 1 ≤ 2 ^ logMaxRows := Nat.one_le_two_pow
   generalize 2 ^ logMaxRows = n at h1 ⊢

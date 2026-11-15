@@ -58,7 +58,7 @@ pub fn aggregate<P: Prover>(
     let own = children.len();
     let (da_pick, da_root) = match (blobs, declare.map(|claims| claims.da_commitment)) {
         (Some(matrix), declared) => {
-            let root = Some(matrix.top_root());
+            let root = Some(matrix.commitment());
             if declared.is_some_and(|declared| declared != root) {
                 return Err(AggregateError::InvalidInput("a node with blobs publishes their root"));
             }
@@ -240,7 +240,7 @@ pub fn aggregate<P: Prover>(
     };
 
     if let Some(matrix) = blobs {
-        let commitment = matrix.top_root();
+        let commitment = matrix.commitment();
         hints.push(
             "da_challenge",
             vec![from_scalar(verifier::da::membership_challenge(&commitment))],

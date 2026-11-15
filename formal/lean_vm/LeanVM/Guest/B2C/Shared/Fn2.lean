@@ -47,7 +47,7 @@ import LeanVM.Guest.Pack.«P53».Shared0
 import LeanVM.Guest.Pack.«P34».Shared0
 import LeanVM.Guest.Pack.«P27».Shared0
 import LeanVM.Guest.Pack.«P8».Shared0
-import LeanVM.Guest.Pack.«P8».SharedOk
+import LeanVM.Guest.Pack.«P8».Shared1
 
 namespace LeanVM.Guest.B2C.Shared
 

@@ -24,13 +24,14 @@ specified in `doc/leanvm/body/10-ethereum.tex`
   opens.
 * **The commitment** (`commit.rs`). The rows are padded to `maxRows` with zero
   codewords. A cell's digest is the hash of its symbols' little-endian bytes. Each padded row, a
-  blob, has the Merkle root of its `128` cell digests (`blob_merkle_nodes`), and the commitment is the
-  Merkle root of the padded rows' blob roots (`BlobMatrix::build`); a padding row's blob root is
-  the zero codeword's (`root_of_padding_blob`). A tree hashes neighbours in pairs, level by level
-  (`fill_levels`).
+  blob, has the Merkle root of its `128` cell digests (`blob_merkle_nodes`), and the commitment hashes
+  the Merkle root of the padded rows' blob roots with the row count (`BlobMatrix::commitment`,
+  `mix_in_count`); a padding row's blob root is the zero codeword's (`root_of_padding_blob`). A tree
+  hashes neighbours in pairs, level by level (`fill_levels`).
 * **Openings.** A cell is opened by its path in its blob's tree, then its blob root's in the tree
   over the blob roots: the path of leaf `128 i + j` in the one tree of depth `7 + logMaxRows` the
-  two make (`BlobMatrix::merkle_path_for_cell`), checked by `verify_cell`.
+  two make (`BlobMatrix::merkle_path_for_cell`), checked by `verify_cell`, which hashes the row count
+  in last.
 * **Membership** (`verifier/src/da.rs`, the guest program's `da_vector`). One challenge `z ∈ E` gives
   the dual codeword `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` on the domain (Annex D, eq. dual-product,
   at the challenges `z^(2^j)`), with `Ŵ_j` the normalized subspace polynomial of the span of

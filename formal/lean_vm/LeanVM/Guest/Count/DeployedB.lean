@@ -18,7 +18,7 @@ open LeanVM.Guest.B1.Main (nameSum dlK clC clS ccC ccS dvC dvS dvP l5A0 l5A1 l5A
 @[expose] public section
 
 /-- **`da_verify`'s constant words.** -/
-theorem dvC_eq : dvC B2C.fs wSB = 102586 := by
+theorem dvC_eq : dvC B2C.fs wSB = 102597 := by
   unfold dvC
   rw [fs_idx (j := 27) (f := "da_verify") (by decide +kernel),
     fs_idx (j := 28) (f := "da_padding") (by decide +kernel),

@@ -11,6 +11,7 @@ module
 
 public import LeanVM.Guest.B1.Main.MainGoalsDvT
 public import LeanVM.Guest.B1.Da.WitnessAtTB
+public import LeanVM.Guest.B1.Main.MainCoverLemmas
 public import LeanVM.Guest.AcceptableChild
 
 /-!
@@ -51,7 +52,7 @@ def hDvB (fs : String → ℕ) (SB SK : String → ℕ) (w : NodeWitness) : ℕ 
 def MainGoalDvTB (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
     (s : NodeStatement) (w : NodeWitness) (SB SK : String → ℕ) : Prop :=
   (hm fs fp seed s w).nd = 1 →
-    CompleteAtDTB fs cert 20 "da_verify" (hLmain fs fp seed s w) []
+    CompleteAtDTB fs cert 20 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).a119]
       (Returns (hm fs fp seed s w).daR) (hDvNH w) (hDvB fs SB SK w)
 
 theorem MainGoalDvTB.goal {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : Digest}
@@ -71,11 +72,10 @@ theorem mainGoalDvTB (hn : NodeRelation bytecode seed s w) (hrf : Lift.RunsFit f
   obtain ⟨p, hp, hR, hw⟩ := checked_da fs fp hn h1
   rw [hR, hDvNH, hDvB, hp]
   simp only [Option.map_some, Option.getD_some]
-  have h := Da.da_verify_completeAtTB fs cert hrf hw hS
-  refine completeAtDTB_lin_mono (fun _ _ q hq => by simp at hq) (fun i hi => ?_)
-    (h.lowMono (by norm_num))
-  obtain ⟨q, hq, -⟩ := hi
-  simp at hq
+  have hN : LeanDa.maxRows = 32 := rfl
+  exact (Da.da_verify_completeAtTB fs cert hrf hw hS (Lin := hLmain fs fp seed s w)
+    (tb := hPos seed s w fs fp 3) (fun _ hM v hv => bytes_hold hM v (by omega))
+    (fun v hv => bytes_region (by omega))).lowMono (by norm_num)
 
 end
 end LeanVM.Guest.B1.Main

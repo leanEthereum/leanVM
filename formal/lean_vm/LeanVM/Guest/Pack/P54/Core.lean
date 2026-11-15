@@ -252,44 +252,53 @@ namespace core
 
 /-- `da_verify`: the body. -/
 noncomputable def body : List Core.Stmt := (
-  .atom (.hint (.witness "da_n_blobs" (.stack [.n 0]))) ::
-  .call "da_padding" [.n 0] [.n 1] ::
-  .atom (.hint (.witness "da_challenge" (.stack [.n 2]))) ::
-  .call "da_vector" [.n 2] [.n 3, .n 4, .n 5, .n 6] ::
-  .atom (.mul (.n 7) (.n 0) (.n 0)) ::
-  .atom (.mul (.n 8) (.n 7) (.n 7)) ::
-  .atom (.mul (.n 9) (.n 8) (.n 0)) ::
-  .atom (.mul (.n 10) (.n 9) (.n 9)) ::
+  .atom (.hint (.witness "da_n_blobs" (.stack [.n 1]))) ::
+  .call "da_padding" [.n 1] [.n 2] ::
+  .atom (.hint (.witness "da_challenge" (.stack [.n 3]))) ::
+  .call "da_vector" [.n 3] [.n 4, .n 5, .n 6, .n 7] ::
+  .atom (.mul (.n 8) (.n 1) (.n 1)) ::
+  .atom (.mul (.n 9) (.n 8) (.n 8)) ::
+  .atom (.mul (.n 10) (.n 9) (.n 1)) ::
   .atom (.mul (.n 11) (.n 10) (.n 10)) ::
   .atom (.mul (.n 12) (.n 11) (.n 11)) ::
   .atom (.mul (.n 13) (.n 12) (.n 12)) ::
   .atom (.mul (.n 14) (.n 13) (.n 13)) ::
   .atom (.mul (.n 15) (.n 14) (.n 14)) ::
   .atom (.mul (.n 16) (.n 15) (.n 15)) ::
-  .atom (.mul (.n 17) (.n 16) (.n 0)) ::
-  .atom (.hint (.allocDyn (.n 18) (.n 17))) ::
-  .atom (.hint (.allocDyn (.n 19) (.n 0))) ::
-  .atom (.const (.n 20) (word 1 0)) ::
-  .atom (.add (.n 21) (.n 20) (.n 0)) ::
-  .atom (.const (.n 22) (word 1 0)) ::
-  .callIf (.n 21) "__loop21" [.n 22, .n 0, .n 18, .n 19] ::
+  .atom (.mul (.n 17) (.n 16) (.n 16)) ::
+  .atom (.mul (.n 18) (.n 17) (.n 1)) ::
+  .atom (.hint (.allocDyn (.n 19) (.n 18))) ::
+  .atom (.hint (.allocDyn (.n 20) (.n 1))) ::
+  .atom (.const (.n 21) (word 1 0)) ::
+  .atom (.add (.n 22) (.n 21) (.n 1)) ::
   .atom (.const (.n 23) (word 1 0)) ::
-  .call "__loop22" [.n 23, .n 0, .n 19, .n 3, .n 4, .n 5, .n 6] [] ::
-  .atom (.const (.n 24) (word 325 0)) ::
-  .atom (.hint (.allocDyn (.n 25) (.n 24))) ::
-  .atom (.const (.n 26) (word 1 0)) ::
-  .atom (.add (.n 27) (.n 26) (.n 0)) ::
-  .atom (.const (.n 28) (word 1 0)) ::
-  .callIf (.n 27) "__loop23" [.n 28, .n 0, .n 19, .n 25] ::
+  .callIf (.n 22) "__loop21" [.n 23, .n 1, .n 19, .n 20] ::
+  .atom (.const (.n 24) (word 1 0)) ::
+  .call "__loop22" [.n 24, .n 1, .n 20, .n 4, .n 5, .n 6, .n 7] [] ::
+  .atom (.const (.n 25) (word 325 0)) ::
+  .atom (.hint (.allocDyn (.n 26) (.n 25))) ::
+  .atom (.const (.n 27) (word 1 0)) ::
+  .atom (.add (.n 28) (.n 27) (.n 1)) ::
   .atom (.const (.n 29) (word 1 0)) ::
-  .atom (.add (.n 30) (.n 29) (.n 1)) ::
-  .atom (.const (.n 31) (word 1 0)) ::
-  .callIf (.n 30) "__loop24" [.n 31, .n 1, .n 25, .n 0] ::
-  .call "da_levels__L32_L5" [.n 25] [.n 32, .n 33] ::
-  .atom (.copy (.n 34) (.n 32)) ::
-  .atom (.copy (.n 35) (.n 33)) ::
-  .atom (.copy (.n 36) (.n 2)) ::
-  .ret [.n 34, .n 35, .n 36] ::
+  .callIf (.n 28) "__loop23" [.n 29, .n 1, .n 20, .n 26] ::
+  .atom (.const (.n 30) (word 1 0)) ::
+  .atom (.add (.n 31) (.n 30) (.n 2)) ::
+  .atom (.const (.n 32) (word 1 0)) ::
+  .callIf (.n 31) "__loop24" [.n 32, .n 2, .n 26, .n 1] ::
+  .call "da_levels__L32_L5" [.n 26] [.n 33, .n 34] ::
+  .atom (.mul (.n 35) (.n 0) (.n 1)) ::
+  .atom (.load (.n 36) (.n 35) 0) ::
+  .atom (.const (.n 37) (word 1 0)) ::
+  .atom (.const (.n 38) (word 0 0)) ::
+  .atom (.const (.n 39) (word 0 0)) ::
+  .atom (.const (.n 40) (word 0 0)) ::
+  .atom (.const (.n 41) (word 0 0)) ::
+  .atom (.const (.n 42) (word 9223372036854775808 0)) ::
+  .atom (.keccak [.n 33, .n 34, .n 36, .n 38, .n 37, .n 38, .n 39, .n 40, .n 42, .n 38, .n 39, .n 40, .n 41] [.n 43, .n 44] false false) ::
+  .atom (.copy (.n 45) (.n 43)) ::
+  .atom (.copy (.n 46) (.n 44)) ::
+  .atom (.copy (.n 47) (.n 3)) ::
+  .ret [.n 45, .n 46, .n 47] ::
   [])
 
 end core
@@ -297,7 +306,7 @@ end core
 /-- `da_verify`. -/
 noncomputable def core : Core.Fn where
   name := "da_verify"
-  params := []
+  params := [.n 0]
   body := core.body
 
 end

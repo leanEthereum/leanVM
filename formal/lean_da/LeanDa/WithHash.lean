@@ -151,9 +151,10 @@ def cellLeavesWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (i j : ℕ) : Dige
 def blobRootWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : DigestBytes :=
   merkleRootWithHash H 7 (cellLeavesWithHash H c i)
 
-/-- **The root of a matrix** (`BlobMatrix::build`): the Merkle root of the padded rows' blob roots. -/
+/-- **The commitment to a matrix** (`BlobMatrix::commitment`): the Merkle root of the padded rows'
+blob roots, hashed with the row count. -/
 def commitCellsWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : DigestBytes :=
-  merkleRootWithHash H logMaxRows (blobRootWithHash H c)
+  H (pairBytes (merkleRootWithHash H logMaxRows (blobRootWithHash H c)) (countBytes r))
 
 /-- The honest opening of a position: the cell's path in its blob's tree, then its blob root's in
 the tree over the blob roots. -/
@@ -189,15 +190,16 @@ def paddingCellWithHash : DigestBytes := H ((List.replicate cellSymbols 0).flatM
 def paddingBlobRootWithHash : DigestBytes :=
   treeRootWithHash H (List.replicate cellsPerRow (paddingCellWithHash H))
 
-/-- **The root of a matrix of codewords, as the crate computes it** (`BlobMatrix::build`): the
-rows padded to `maxRows` with zero codewords, the tree over their blob roots. -/
+/-- **The commitment to a matrix of codewords, as the crate computes it** (`BlobMatrix::commitment`):
+the rows padded to `maxRows` with zero codewords, the tree over their blob roots, hashed with the
+row count. -/
 def commitCodewordsWithHash (rows : List (List E)) : DigestBytes :=
-  treeRootWithHash H (rows.map (listBlobRootWithHash H) ++
-    List.replicate (maxRows - rows.length) (paddingBlobRootWithHash H))
+  H (pairBytes (treeRootWithHash H (rows.map (listBlobRootWithHash H) ++
+    List.replicate (maxRows - rows.length) (paddingBlobRootWithHash H))) (countBytes rows.length))
 
 end Pure
 
-/-- **The root of a matrix of codewords, as the crate computes it** (`BlobMatrix::build`,
+/-- **The commitment to a matrix of codewords, as the crate computes it** (`BlobMatrix::commitment`,
 `commit.rs`), over a permutation `π`: on codewords of `2^14` symbols it is the statement's
 `commitCells π (cellsOfRows rows)` (`commitCodewords_eq_commitCells`, `LeanDa.Commitment`). The
 blob roots in the crate's order, each tree built level by level, as compiled code computes it
@@ -225,12 +227,12 @@ def walkMWithHash : ℕ → DigestBytes → List DigestBytes → m DigestBytes
     let d ← H (if idx % 2 = 0 then pairBytes node s else pairBytes s node)
     walkMWithHash (idx / 2) d rest
 
-/-- **Verification of a cell opening**: a path of `7 + logMaxRows` siblings that climbs from the
-cell's digest, at index `128 i + j` (the position), to the commitment. -/
+/-- **Verification of a cell opening**: a path of `7 + logMaxRows` siblings, then the row count's
+word, that climbs from the cell's digest, at index `128 i + j` (the position), to the commitment. -/
 def verifyCellMWithHash (r : ℕ) (com : DigestBytes) (p : Fin (r * 128)) (x : Cell)
     (τ : CellOpening) : m Bool := do
   let d ← H (cellBytes x)
-  let root ← walkMWithHash H (p : ℕ) d τ.path
+  let root ← walkMWithHash H (p : ℕ) d (τ.path ++ [countBytes r])
   pure (decide (τ.path.length = 7 + logMaxRows) && decide (root = com))
 
 /-- One level up a Merkle tree over an oracle (`up`). -/
@@ -252,9 +254,11 @@ def cellLeavesMWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (i j : ℕ) : m D
 def blobRootMWithHash {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) : m DigestBytes :=
   merkleRootMWithHash H 7 (cellLeavesMWithHash H c i)
 
-/-- **The root of a matrix over an oracle** (`commitCells`): the tree over the blob roots. -/
-def commitCellsMWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : m DigestBytes :=
-  merkleRootMWithHash H logMaxRows (blobRootMWithHash H c)
+/-- **The commitment to a matrix over an oracle** (`commitCells`): the tree over the blob roots,
+hashed with the row count. -/
+def commitCellsMWithHash {r : ℕ} (c : Fin (r * 128) → Cell) : m DigestBytes := do
+  let t ← merkleRootMWithHash H logMaxRows (blobRootMWithHash H c)
+  H (pairBytes t (countBytes r))
 
 end Monadic
 

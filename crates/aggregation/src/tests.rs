@@ -350,7 +350,7 @@ fn aggregate_with_a_da_payload() {
     let matrix = lean_da::BlobMatrix::build(&rows).unwrap();
     let node = aggregate(&[], vec![], vec![], Some(&matrix), OutputClaims::All).expect("node aggregates");
     let expected = AggregateClaims {
-        da_commitment: Some(matrix.top_root()),
+        da_commitment: Some(matrix.commitment()),
         ..AggregateClaims::default()
     };
     assert_eq!(node.0, expected, "the guest committed to something else");
@@ -435,7 +435,7 @@ fn a_node_passes_on_one_childs_da_root() {
     let rows = da_rows(1, 511);
     assert_eq!(
         pass_on(None, &rows),
-        Some(lean_da::BlobMatrix::build(&rows).unwrap().top_root())
+        Some(lean_da::BlobMatrix::build(&rows).unwrap().commitment())
     );
 
     // Passed on again, one level up.
@@ -506,7 +506,10 @@ fn grind_check_reads_the_low_bits() {
 #[test]
 fn da_guest_checks_codeword_membership() {
     let guest = guest_snippet(
-        r#"    r0, r1, z = da_verify()
+        r#"    byte_bits = HeapBuf(SP_BYTE_VALUES)
+    for v in unroll(0, SP_BYTE_VALUES):
+        byte_bits[GEN ** v] = v
+    r0, r1, z = da_verify(byte_bits)
     digest = StackBuf(2)
     keccak([r0, r1], [z, 0], digest)
     public = GEN ** 0
@@ -519,7 +522,7 @@ fn da_guest_checks_codeword_membership() {
     let blobs = da_rows(3, 101);
     let witness = lean_da::BlobMatrix::build(&blobs).unwrap();
     let rows: Vec<Codeword> = (0..blobs.len()).map(|i| *witness.row(i).unwrap()).collect();
-    assert_eq!(da_root(&rows), witness.top_root());
+    assert_eq!(da_root(&rows), witness.commitment());
     let verify = |rows: &[Codeword]| {
         let commitment = da_root(rows);
         let mut hints = Hints::default();
@@ -548,7 +551,7 @@ fn da_guest_checks_codeword_membership() {
     }
 }
 
-/// The commitment to rows that need not be codewords, rebuilt pairwise as `BlobMatrix::build` does it.
+/// The commitment to rows that need not be codewords, rebuilt as `BlobMatrix::build` does it.
 fn da_root(rows: &[Codeword]) -> Hash {
     fn root(mut level: Vec<Hash>) -> Hash {
         while level.len() > 1 {
@@ -562,7 +565,9 @@ fn da_root(rows: &[Codeword]) -> Hash {
         .map(|row| root(row.chunks(CELL_SYMBOLS).map(cell_digest).collect()))
         .collect();
     blob_roots.resize(DA_MAX_ROWS, lean_da::root_of_padding_blob());
-    root(blob_roots)
+    let mut count = [0; 32];
+    count[0] = rows.len() as u8;
+    hash_pair(&root(blob_roots), &count)
 }
 
 /// Claims left undeclared take duplicate slots. The first narrowing drops every

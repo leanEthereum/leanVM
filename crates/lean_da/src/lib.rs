@@ -3,8 +3,8 @@
 //!
 //! Each payload row contains `k` symbols of `E`, a VM word each, systematically encoded to
 //! `m = 2k` evaluations on an additive domain inside `K = GF(2^64)`. Each encoded row, a blob,
-//! has a Merkle root over its cell digests, and the commitment is the Merkle root over the blob
-//! roots. A row belongs to the code iff it is orthogonal to a membership vector the
+//! has a Merkle root over its cell digests, and the commitment hashes the Merkle root over the blob
+//! roots with the blob count. A row belongs to the code iff it is orthogonal to a membership vector the
 //! root's challenge determines, with high probability over that challenge. The
 //! aggregation guest proves this check together with the commitment.
 //!

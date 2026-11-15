@@ -18,8 +18,9 @@ public import LeanVM.Guest.Value.KeccakConst
 Given `r` rows (`1 ≤ r ≤ LeanDa.maxRows`, padded to `2^L = LeanDa.maxRows`) and the symbols of
 cell `(i, h)` (`syms i h`, `128` symbols of `E`), with every row orthogonal to the dual codeword
 of `z` (`Σ_h Σ_e dualAt z (128 h + e) · sym i h e = 0`), `opens_of` builds the witness: the rows the
-cells concatenate (`daRows`). It opens the root `daRoot`, the tree over the blob roots
-(`blobLeaf`: a row's tree over its cell digests `cellD`, or the padding blob root), and `z`:
+cells concatenate (`daRows`). It opens the root `daRoot`, the root of the tree over the blob roots
+(`daTree`; `blobLeaf`: a row's tree over its cell digests `cellD`, or the padding blob root) hashed
+with the row count (`countCells_bytes`), and `z`:
 LeanDA's commitment (`LeanDa.commitCodewords`, Benedikt Wagner's LeanDA as `lean_da` transcribes
 the crate) is computed level by level (`treeRoot_range`), and `dualAt` is LeanDA's dual codeword
 (`dualAt_eq`).
@@ -99,8 +100,11 @@ def cellD (i h : ℕ) : Digest := keccak256 ((syms i h).flatMap E.toBytes)
 /-- Blob `i`'s root among the padded rows: its tree over its cell digests, or the padding blob's. -/
 def blobLeaf (i : ℕ) : Digest := if i < r then mRoot 7 (cellD syms i) else daPadBlobDigest
 
-/-- The root: the tree over the blob roots. -/
-def daRoot : Digest := mRoot L (blobLeaf r syms)
+/-- The tree over the blob roots. -/
+def daTree : Digest := mRoot L (blobLeaf r syms)
+
+/-- The root: the tree's, hashed with the row count (`mix_in_count`). -/
+def daRoot : Digest := keccak256 (digestBytes (daTree r L syms) ++ (LeanDa.countBytes r).toList)
 
 /-- The rows: each the concatenation of its `128` cells. -/
 def daRows : List (List E) := (List.range r).map fun i => (List.range 128).flatMap (syms i)
@@ -111,6 +115,25 @@ end
 
 theorem keccak_eq (l : List UInt8) :
     LeanVM.Da.keccak256Bytes l = LeanVM.Protocol.Digest.toBytes (keccak256 l) := rfl
+
+theorem countCells_bytes_all :
+    (List.range (LeanDa.maxRows + 1)).all
+      (fun r => decide (cellsBytes [word r 0, 0] = (LeanDa.countBytes r).toList)) = true := by
+  decide +kernel
+
+/-- **The count's cells are its word**: the cell holding `r` and a zero cell, for `r ≤ maxRows`. -/
+theorem countCells_bytes {r : ℕ} (hr : r ≤ LeanDa.maxRows) :
+    cellsBytes [word r 0, 0] = (LeanDa.countBytes r).toList := by
+  have h := List.all_eq_true.mp countCells_bytes_all r (List.mem_range.mpr (by omega))
+  simpa using h
+
+/-- **The root's digest from the tree's cells and the count's**: the hash of the cells `da_verify`
+hashes last. -/
+theorem daRoot_cells {r L : ℕ} {syms : ℕ → ℕ → List E} (hr : r ≤ LeanDa.maxRows) :
+    keccak256 (cellsBytes [(digestHalves (daTree r L syms)).1, (digestHalves (daTree r L syms)).2,
+      word r 0, 0]) = daRoot r L syms := by
+  rw [daRoot, ← countCells_bytes hr, LeanVM.Guest.B1.Main.digestBytes_eq_cells]
+  simp [cellsBytes]
 
 /-- **The witness opens the claim.** -/
 theorem opens_of {r L : ℕ} {syms : ℕ → ℕ → List E} {z : E} (hr1 : 1 ≤ r)
@@ -153,7 +176,8 @@ theorem opens_of {r L : ℕ} {syms : ℕ → ℕ → List E} {z : E} (hr1 : 1 �
         simp [daRows]
       · rw [List.getElem_append_right (by simp [hlen]; omega), List.getElem_replicate, ite_neg' hi,
           paddingBlobRoot_eq]
-    rw [hlist, treeRoot_range, daRoot, toBytes_mRoot]
+    rw [hlist, treeRoot_range, daRoot, keccak_eq, LeanDa.pairBytes, ← toBytes_mRoot, toList_toBytes]
+    rfl
   · -- orthogonality
     intro row hrow'
     obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hrow'

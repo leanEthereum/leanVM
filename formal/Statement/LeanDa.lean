@@ -121,14 +121,15 @@ specified in `doc/leanvm/body/10-ethereum.tex`
 * **The commitment** (`commit.rs`). The rows are padded to `maxRows` with zero codewords. A
   cell's digest is the hash of its symbols' bytes, each symbol its two limbs' little-endian bytes,
   `y^0` first (`blob_merkle_nodes`). Each
-  padded row, a blob, has the Merkle root of its `128` cell digests (`blobRootWith`), and the
-  commitment is the Merkle root of the padded rows' blob roots (`BlobMatrix::build`). A tree hashes
-  neighbours in pairs, level by level (`fill_levels`). A padding row's blob root is that of the
-  zero codeword (`root_of_padding_blob`), so the root is the commitment to the padded matrix.
+  padded row, a blob, has the Merkle root of its `128` cell digests (`blobRootWith`), a padding
+  row's that of the zero codeword (`root_of_padding_blob`). A tree hashes neighbours in pairs, level
+  by level (`fill_levels`). The commitment hashes the root of the tree over the padded rows' blob
+  roots with the row count, a 32-byte little-endian word (`BlobMatrix::commitment`, `mix_in_count`,
+  `countBytes`).
 * **Openings.** A cell is opened by its authentication path in its blob's tree, then its blob
   root's in the tree over the blob roots: the path of leaf `128 i + j` in the one tree of depth
   `7 + logMaxRows` that the two make (`BlobMatrix::merkle_path_for_cell`, `openCellWith`), checked
-  by `verify_cell` (`verifyCellWith`).
+  by `verify_cell` (`verifyCellWith`), which climbs it and then hashes in the row count.
 * **Membership** (`verifier/src/da.rs`, the guest program's `da_vector`). One challenge `z ∈ E` gives
   the dual codeword `L(x) = ∏_j (1 + z^(2^j) Ŵ_j(x))` on the domain (Annex D, eq. dual-product,
   at the challenges `z^(2^j)`), with `Ŵ_j` the normalized subspace polynomial of the span of
@@ -238,6 +239,9 @@ def cellBytes (cell : Cell) : List UInt8 := (List.ofFn cell).flatMap E.toBytes
 /-- The 64 bytes of a pair of digests (`hash_pair`, `fill_levels`). -/
 def pairBytes (a b : DigestBytes) : List UInt8 := a.toList ++ b.toList
 
+/-- The row count as the commitment hashes it: a 32-byte little-endian word (`mix_in_count`). -/
+def countBytes (r : ℕ) : DigestBytes := Vector.ofFn fun i : Fin 32 ↦ UInt8.ofNat (r / 256 ^ (i : ℕ))
+
 /-- Cell `j` of row `i` of the matrix padded to `maxRows` rows: zero below the `r` rows. -/
 def paddedCell {r : ℕ} (cells : Fin (r * 128) → Cell) (i j : ℕ) : Cell :=
   if h : i < r ∧ j < 128 then cells (cellPosition ⟨i, h.1⟩ ⟨j, h.2⟩) else 0
@@ -293,10 +297,11 @@ padding row's is `root_of_padding_blob`). -/
 def blobRootWith {r : ℕ} (cells : Fin (r * 128) → Cell) (i : ℕ) : m DigestBytes :=
   merkleRootWith π 7 (cellLeavesWith π cells i)
 
-/-- **The root of a matrix** (`BlobMatrix::build`): the Merkle root of the padded rows' blob
-roots. -/
-def commitCellsWith {r : ℕ} (cells : Fin (r * 128) → Cell) : m DigestBytes :=
-  merkleRootWith π logMaxRows (blobRootWith π cells)
+/-- **The commitment to a matrix** (`BlobMatrix::commitment`): the Merkle root of the padded rows'
+blob roots, hashed with the row count (`mix_in_count`). -/
+def commitCellsWith {r : ℕ} (cells : Fin (r * 128) → Cell) : m DigestBytes := do
+  let tree ← merkleRootWith π logMaxRows (blobRootWith π cells)
+  keccakDigestBytes π (pairBytes tree (countBytes r))
 
 /-- The honest opening of a position (`BlobMatrix::merkle_path_for_cell`): the cell's path in its blob's tree, then
 its blob root's in the tree over the blob roots. -/
@@ -312,14 +317,14 @@ def climbWith : ℕ → DigestBytes → List DigestBytes → m DigestBytes
     let d ← keccakDigestBytes π (if index % 2 = 0 then pairBytes node s else pairBytes s node)
     climbWith (index / 2) d rest
 
-/-- **Verification of a cell opening** (`verify_cell`): a path of `7 + logMaxRows` siblings that climbs from the
-cell's digest, at index `128 i + j` (the position: `j` in its blob's tree, then `i` in the tree
-over the blob roots), to the commitment. The crate also refuses `i ≥ maxRows`, which no position of
-`r ≤ maxRows` rows has. -/
+/-- **Verification of a cell opening** (`verify_cell`): a path of `7 + logMaxRows` siblings, then
+the row count's word, climbs from the cell's digest, at index `128 i + j` (the position: `j` in its
+blob's tree, then `i` in the tree over the blob roots), to the commitment. For `r ≤ maxRows` rows the
+last step is at index `0`, the crate's `mix_in_count`. The crate also refuses `r > maxRows` rows. -/
 def verifyCellWith (r : ℕ) (commitment : DigestBytes) (position : Fin (r * 128)) (cell : Cell)
     (opening : CellOpening) : m Bool := do
   let d ← keccakDigestBytes π (cellBytes cell)
-  let root ← climbWith π position d opening.path
+  let root ← climbWith π position d (opening.path ++ [countBytes r])
   pure (decide (opening.path.length = 7 + logMaxRows) && decide (root = commitment))
 
 /-! ### The membership challenge (`verifier/src/da.rs`)
@@ -371,7 +376,7 @@ def membershipChallengeWith (root : DigestBytes) : m (Option E) := do
 
 end Monadic
 
-/-- **The root of a matrix** over a permutation `π` (`commitCellsWith` over `Id`). -/
+/-- **The commitment to a matrix** over a permutation `π` (`commitCellsWith` over `Id`). -/
 def commitCells (π : KeccakState → KeccakState) {r : ℕ} (cells : Fin (r * 128) → Cell) :
     DigestBytes :=
   Id.run (commitCellsWith (fun x ↦ pure (π x)) cells)
@@ -538,7 +543,7 @@ noncomputable def knowledgeSoundnessGame (adversary : KnowledgeSoundnessAdversar
 
 /-- **The completeness experiment for a permutation `π`** (Wagner's, Foundations Definition 8,
 with the hash and the oracles answered by `π`): the argument's setup; the honest commitment to the
-message `message`, the root of its encoding's cells hashed with Keccak-256 over `π`; the argument's
+message `message`, the commitment to its encoding's cells with Keccak-256 over `π`; the argument's
 honest proof for the root and its verification, both with the oracles answered by `π`; and the
 verification of the encoding's cell at `position` with its honest opening. -/
 noncomputable def completenessExperiment (π : Equiv.Perm KeccakState)

@@ -24,7 +24,7 @@ namespace LeanVM.Cost.Decoder
 
 set_option maxRecDepth 100000 in
 /-- **The rows' sizes**, summed. -/
-theorem guestLocsList_rowSize : (guestLocsList.map rowSize).sum = 517341 := by
+theorem guestLocsList_rowSize : (guestLocsList.map rowSize).sum = 517352 := by
   have hl : guestLocsList.length = 1550 := by decide +kernel
   have hn : guestLocsRow37.length = 41 := by decide +kernel
   rw [sum_rowSize_eq_rowsSize, hl]

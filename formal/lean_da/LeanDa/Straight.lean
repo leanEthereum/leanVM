@@ -209,7 +209,8 @@ theorem noCoins_merkleRootM (d : ℕ) :
     exact ih _ fun i ↦ noCoins_bind (hL _) fun _ ↦ noCoins_bind (hL _) fun _ ↦ hHc _
 
 theorem noCoins_commitCellsM {r : ℕ} (c : Fin (r * 128) → Cell) : NoCoins (commitCellsMWithHash H c) :=
-  noCoins_merkleRootM H hHc _ _ fun _ ↦ noCoins_merkleRootM H hHc _ _ fun _ ↦ hHc _
+  noCoins_bind (noCoins_merkleRootM H hHc _ _ fun _ ↦ noCoins_merkleRootM H hHc _ _ fun _ ↦ hHc _)
+    fun _ ↦ hHc _
 
 theorem noCoins_walkM (path : List Common.DigestBytes) :
     ∀ (idx : ℕ) (node : Common.DigestBytes), NoCoins (walkMWithHash H idx node path) := by

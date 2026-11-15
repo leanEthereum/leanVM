@@ -159,9 +159,9 @@ def colPairAt (r : ℕ) (c c' : Fin (r * 128) → Cell) (i : Fin (r * 128)) :
     OracleComp (unifSpec + XS) (List UInt8 × List UInt8) := do
   let τ ← openCellM hS c i
   let τ' ← openCellM hS c' i
-  let l₁ ← hashInputsM hS i (cellBytes (c i)) (τ.path.take (7 + logMaxRows))
-  let l₂ ← hashInputsM hS i (cellBytes (c' i)) (τ'.path.take (7 + logMaxRows))
-  findCollisionM hS l₁ (l₂.take (8 + logMaxRows))
+  let l₁ ← hashInputsM hS i (cellBytes (c i)) (τ.path.take (7 + logMaxRows) ++ [countBytes r])
+  let l₂ ← hashInputsM hS i (cellBytes (c' i)) (τ'.path.take (7 + logMaxRows) ++ [countBytes r])
+  findCollisionM hS l₁ (l₂.take (9 + logMaxRows))
 
 /-- The same with `H` as queries. -/
 def colPairX (r : ℕ) [NeZero r] (vv : (Fin (r * 128) → Cell) × (Fin (r * 128) → Cell)) :
@@ -231,7 +231,10 @@ theorem colPairX_eval (r : ℕ) [NeZero r] (h : HTab)
         (openCellWithHash (Hh h) c i).path.take (7 + logMaxRows) = (openCellWithHash (Hh h) c i).path := fun c i ↦
       List.take_of_length_le (by simp [openCellWithHash, length_merklePath])
     simp only [openingsCollision, e1]
-    rw [List.take_of_length_le (by rw [length_hashInputs]; simp [openCellWithHash, length_merklePath])]
+    rw [List.take_of_length_le (by
+      rw [length_hashInputs]
+      simp only [openCellWithHash, List.length_append, length_merklePath, List.length_singleton]
+      omega)]
 
 section Fork2
 
@@ -347,12 +350,13 @@ theorem isWeightBound_colPairAt (c c' : Fin (r * 128) → Cell) (i : Fin (r * 12
     QueryCostAtMost (colPairAt r c c' i) xCalls
       (2 * openCalls r + 2 * (7 + logMaxRows + 1) + 2 * (9 + logMaxRows)) := by
   have hI : ∀ idx a (path : List Common.DigestBytes), QueryCostAtMost
-      (hashInputsM (hS (Ψ := unifSpec)) idx a (path.take (7 + logMaxRows))) xCalls
+      (hashInputsM (hS (Ψ := unifSpec)) idx a (path.take (7 + logMaxRows) ++ [countBytes r])) xCalls
         (7 + logMaxRows + 1) :=
     fun idx a path ↦ (isWeightBound_hashInputsM (hS (Ψ := unifSpec)) xCalls
-      (fun _ ↦ isWeightBound_hS _) _ idx a).mono (by simp only [List.length_take]; omega)
+      (fun _ ↦ isWeightBound_hS _) _ idx a).mono
+        (by simp only [List.length_append, List.length_take, List.length_singleton]; omega)
   have hF : ∀ l₁ (l₂ : List (List UInt8)), QueryCostAtMost
-      (findCollisionM (hS (Ψ := unifSpec)) l₁ (l₂.take (8 + logMaxRows)))
+      (findCollisionM (hS (Ψ := unifSpec)) l₁ (l₂.take (9 + logMaxRows)))
         xCalls (2 * (9 + logMaxRows)) :=
     fun l₁ l₂ ↦ (isWeightBound_findCollisionM (hS (Ψ := unifSpec)) xCalls
       (fun _ ↦ isWeightBound_hS _) l₁ _).mono (by simp only [List.length_take]; omega)

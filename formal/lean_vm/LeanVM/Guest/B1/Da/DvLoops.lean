@@ -25,7 +25,7 @@ import LeanVM.Guest.Data.Source
 On a memory holding the regions at `g^bb` (`blobsCells`), their bases at `g^bR` (`rowbaseCells`)
 and the roots' tree at `g^bT` (`rootsCells`): `l17_rel`, `l19_rel`, `l20_rel` run each loop to its
 end, `l21_rel` column `h`'s run over the blobs, its weights at `g^lv`; `dl_rel` the tree over the
-roots, returning `daRoot`'s cells. `hreg`: a region's words.
+roots, returning `daTree`'s cells. `hreg`: a region's words.
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -162,9 +162,9 @@ theorem l20_rel (hrL : r < 2 ^ L) (hT : ReadsAt rd (gen ^ bT) (rootsCells r L sy
   · rw [hp, loadHolds_mul_gen_pow]
     exact loadHolds_of_reads hT (by rw [length_rootsCells]; omega) hl2
 
-/-- **The tree over the roots** returns `daRoot`'s cells. -/
+/-- **The tree over the roots** returns `daTree`'s cells. -/
 theorem dl_rel (hL : L = guest_const% DA_LOG_MAX_ROWS) (hT : ReadsAt rd (gen ^ bT) (rootsCells r L syms)) :
-    coreProgram.Rel rd (daLevelsName L) [gen ^ bT] (digestCells (daRoot r L syms)) := by
+    coreProgram.Rel rd (daLevelsName L) [gen ^ bT] (digestCells (daTree r L syms)) := by
   rw [rootsCells, readsAt_append] at hT
   have hc := da_levels_complete L (Or.inl hL) rd (gen ^ bT) (rootLeaves r L syms) (length_rootLeaves r L syms)
     (treeMem_of_reads (length_rootLeaves r L syms) hT.1)
