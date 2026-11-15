@@ -506,17 +506,18 @@ family exists / the code runs": proving `CplBody` needs, for each instruction, t
 family put in each cell it reads and which memory each `DEREF` reads, which only the construction
 of the family knows. `PathWords` says it: by recursion with `cplL`'s cursor, for every placed
 statement on `σ`'s path, its straight-line instructions hold on every memory `Ag` admits (own frame
-the frame words, the path's events, the jump tables), and its jumps read frame words of `K` that go
-the way the core path goes: conditions and selectors are `σ`'s, targets are the pcs meant, frame
-pointer cells hold `g^fp`, a call of index `i` jumps to its callee's entry at the callee frame
-`kfps[i]` and gives it the header `kh i` (the return pc and this frame, or this frame's header for a
-tail call). The frame side proves `FrameWordsStmt`, the run side `PathRunStmt`; together they give
-`FrameConsistentStmt`. -/
+the frame words, the frame and the callees' frames as `FrameOK` has them, the entered callees'
+returns, the path's events, the jump tables), and its jumps read, on every such memory, frame words
+of `K` that go the way the core path goes: conditions and selectors are `σ`'s, targets are the pcs
+meant, frame pointer cells hold `g^fp`, a call of index `i` is the path's call `i`, entered, of
+that callee, and jumps to the callee's entry at the callee frame `kfps[i]` and gives it the header
+`kh i` (the return pc and this frame, or this frame's header for a tail call). The frame side
+proves `FrameWordsStmt`, the run side `PathRunStmt`; together they give `FrameConsistentStmt`. -/
 
 section Words
 
 variable {κ₀ : ℕ} (Γ : Site κ₀) (fp : ℕ) (σ : Val) (hdr : E × E) (FS : FrameSpec)
-  (Ag : (κ : ℕ) → MemoryImage κ → Prop)
+  (Ag : (κ : ℕ) → MemoryImage κ → Prop) (cl : List Call)
 
 /-- The frame words: the header, then `Ψ`. -/
 def fwd (n : ℕ) : E := if n = 0 then hdr.1 else if n = 1 then hdr.2 else FS.Ψ n
@@ -529,14 +530,18 @@ def HW (pc : ℕ) (o : LOp) : Prop :=
 def SegW (ops : List LOp) (pos : ℕ) : Prop :=
   ∀ i (h : i < ops.length), HW Γ fp Ag (Γ.pc0 + pos + i) ops[i]
 
-/-- A `JUMP` on frame words. -/
+/-- A `JUMP` on frame words: its three cells hold their frame words on every memory `Ag` admits. -/
 def JW (oc od of : ℕ) (fall : Prop) (taken : E → E → Prop) : Prop :=
+  (∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L → ∀ n ∈ [oc, od, of],
+    L.read (addressOfIndex (fp + n)) = some (fwd hdr FS n)) ∧
   IsInK (fwd hdr FS oc) ∧ IsInK (fwd hdr FS od) ∧ IsInK (fwd hdr FS of) ∧
     (fwd hdr FS oc = 0 → fall) ∧ (fwd hdr FS oc ≠ 0 → taken (fwd hdr FS od) (fwd hdr FS of))
 
-/-- A taken call into frame `kfp`, index `i`, callee header `ret`. -/
+/-- A taken call into frame `kfp`, index `i` (the entered call `cl[i]` of `callee`), callee
+header `ret`. -/
 def CallW (callee : String) (kfp i : ℕ) (ret : E × E) (d f : E) : Prop :=
-  d = ofK (addressOfIndex (Γ.ent callee)) ∧ f = ofK (addressOfIndex kfp) ∧ FS.kh i = ret
+  (∃ c, cl[i]? = some c ∧ c.f = callee ∧ c.taken = true) ∧
+    d = ofK (addressOfIndex (Γ.ent callee)) ∧ f = ofK (addressOfIndex kfp) ∧ FS.kh i = ret
 
 mutual
 /-- **The frame words of a placed statement on `σ`'s path**, the core block from it being `cs`,
@@ -545,18 +550,18 @@ def wS : PStmt → List Stmt → ℕ → List (ℕ × ℕ) → (List Stmt → Li
     (List (ℕ × ℕ) → E → E → Prop) → Prop → Prop → Prop
   | .op _ o, cs, pos, ks, next, kj, _, _ =>
       match o with
-      | .jump oc od of => JW hdr FS oc od of (next cs ks) (kj ks)
+      | .jump oc od of => JW fp hdr FS Ag oc od of (next cs ks) (kj ks)
       | o => HW Γ fp Ag (Γ.pc0 + pos) o ∧ next cs ks
   | .ite _ c bdest sfp zero hasElse edest one nonzero, cs, pos, ks, next, _, kret, khalt =>
       match ctrlSplit cs with
       | some (.ite cv z n, rest) =>
           HW Γ fp Ag (Γ.pc0 + pos) (.set bdest (.local (elseAt pos zero hasElse))) ∧
-          JW hdr FS c bdest sfp
+          JW fp hdr FS Ag c bdest sfp
             (σ cv = 0 ∧ wL zero z (pos + 2) ks
               (fun ks' => if hasElse then
                   HW Γ fp Ag (Γ.pc0 + (pos + 2 + blockSize zero))
                     (.set edest (.local (elseAt pos zero hasElse + blockSize nonzero))) ∧
-                  JW hdr FS one edest sfp False (fun d f =>
+                  JW fp hdr FS Ag one edest sfp False (fun d f =>
                     d = Γ.tgt (elseAt pos zero hasElse + blockSize nonzero) ∧
                       f = ofK (addressOfIndex fp) ∧ next rest ks')
                 else next rest ks') (fun _ _ _ => False) kret khalt)
@@ -571,7 +576,7 @@ def wS : PStmt → List Stmt → ℕ → List (ℕ × ℕ) → (List Stmt → Li
       | some (s, rest) =>
           HW Γ fp Ag (Γ.pc0 + pos) (.set join (.local (pos + 3 + stagesSize stages))) ∧
           HW Γ fp Ag (Γ.pc0 + pos + 1) (.slot x (firsts.headD 0) entry) ∧
-          JW hdr FS one entry sfp False (fun d f =>
+          JW fp hdr FS Ag one entry sfp False (fun d f =>
             wStages stages ((s :: rest).take stages.length) (pos + 3)
               (next ((s :: rest).drop stages.length)) kret khalt ks d f)
       | none => False
@@ -579,13 +584,13 @@ def wS : PStmt → List Stmt → ℕ → List (ℕ × ℕ) → (List Stmt → Li
       match ctrlSplit cs, ks with
       | some (s, rest), (i, kfp) :: ks' =>
           SegW Γ fp Ag (callPre c) pos ∧
-          JW hdr FS c.oc c.entry c.nfp
+          JW fp hdr FS Ag c.oc c.entry c.nfp
             (¬ callTaken σ s ∧
               SegW Γ fp Ag (callRets c.nfp c.args.length c.rets) (pos + (callPre c).length + 1) ∧
               next rest ks')
             (fun d f => callTaken σ s ∧
-              if c.tail then CallW Γ FS c.callee kfp i hdr d f ∧ kret
-              else CallW Γ FS c.callee kfp i
+              if c.tail then CallW Γ FS cl c.callee kfp i hdr d f ∧ kret
+              else CallW Γ FS cl c.callee kfp i
                   (Γ.tgt (pos + (callPre c).length + 1), ofK (addressOfIndex fp)) d f ∧
                 SegW Γ fp Ag (callRets c.nfp c.args.length c.rets) (pos + (callPre c).length + 1) ∧
                 next rest ks')
@@ -594,21 +599,21 @@ def wS : PStmt → List Stmt → ℕ → List (ℕ × ℕ) → (List Stmt → Li
       match ctrlSplit cs, ks with
       | some (s, rest), (i, kfp) :: ks' =>
           SegW Γ fp Ag (loopPre callee nfp entry one args) pos ∧
-          JW hdr FS oc entry nfp (¬ callTaken σ s ∧ next rest ks')
-            (fun d f => callTaken σ s ∧ CallW Γ FS callee kfp i hdr d f ∧ kret)
+          JW fp hdr FS Ag oc entry nfp (¬ callTaken σ s ∧ next rest ks')
+            (fun d f => callTaken σ s ∧ CallW Γ FS cl callee kfp i hdr d f ∧ kret)
       | _, _ => False
   | .dispatch _ callees nfp joinCell x entry one first args rets, cs, pos, ks, next, _, _, _ =>
       match ctrlSplit cs, ks with
       | some (_, rest), (i, kfp) :: ks' =>
           SegW Γ fp Ag (dispatchPre pos nfp joinCell x entry first args) pos ∧
-          JW hdr FS one entry nfp False (fun d f => ∃ g ∈ callees,
-            CallW Γ FS g kfp i (Γ.tgt (pos + args.length + 5), ofK (addressOfIndex fp)) d f ∧
+          JW fp hdr FS Ag one entry nfp False (fun d f => ∃ g ∈ callees,
+            CallW Γ FS cl g kfp i (Γ.tgt (pos + args.length + 5), ofK (addressOfIndex fp)) d f ∧
             SegW Γ fp Ag (callRets nfp args.length rets) (pos + args.length + 5) ∧ next rest ks')
       | _, _ => False
-  | .ret _ one, _, _, _, _, _, kret, _ => JW hdr FS one 0 1 False (fun _ _ => kret)
+  | .ret _ one, _, _, _, _, _, kret, _ => JW fp hdr FS Ag one 0 1 False (fun _ _ => kret)
   | .halt _ one dest, _, pos, _, _, _, _, khalt =>
       HW Γ fp Ag (Γ.pc0 + pos) (.set dest .endSentinel) ∧
-      JW hdr FS one dest one False (fun _ f => f = ofK (addressOfIndex fp) ∧ khalt)
+      JW fp hdr FS Ag one dest one False (fun _ f => f = ofK (addressOfIndex fp) ∧ khalt)
 
 /-- The frame words of a placed block on `σ`'s path. -/
 def wL : List PStmt → List Stmt → ℕ → List (ℕ × ℕ) → (List (ℕ × ℕ) → Prop) →
@@ -646,21 +651,29 @@ end
 
 end Words
 
-/-- The memories the frame words describe: own frame `fwd`, the path's events, the jump tables. -/
-def AgOf {κ₀ : ℕ} (W : World κ₀) (fp : ℕ) (σ : Val) (es : List Ev) (hdr : E × E) (FS : FrameSpec)
-    (size : ℕ) (κ : ℕ) (L : MemoryImage κ) : Prop :=
+/-- The memories the frame words describe: own frame `fwd`, the frame with its callees' frames
+(`FrameOK`), the entered callees' returns, the path's events, the jump tables. -/
+def AgOf {κ₀ : ℕ} (W : World κ₀) (tf : TracedFn) (fp : ℕ) (σ : Val) (es : List Ev)
+    (kfps : List ℕ) (hdr : E × E) (FS : FrameSpec) (size : ℕ) (κ : ℕ) (L : MemoryImage κ) :
+    Prop :=
   (∀ n, n < size → L.read (addressOfIndex (fp + n)) = some (fwd hdr FS n)) ∧
+    FrameOK L (loopTable W.p) tf size fp FS σ es kfps hdr ∧
+    (∀ (i : ℕ) (c : Call) (kfp : ℕ), (calls es)[i]? = some c → kfps[i]? = some kfp →
+      c.taken = true → ∀ k (hk : k < c.rets.length),
+        L.read (addressOfIndex (kfp + (2 + c.args.length + k))) = some (σ c.rets[k])) ∧
     (∀ e ∈ es, e.Holds L.read σ) ∧ JTHolds L W.layout W.slots
 
 /-- **`PathWords`**: the frame words of an instance's whole path; `main` ends at its closing
 jump, a function at its return. -/
 def PathWords {κ₀ : ℕ} (W : World κ₀) (tf : TracedFn) (pf : Placed) (fp : ℕ) (σ : Val)
     (es : List Ev) (kfps : List ℕ) (hdr : E × E) (FS : FrameSpec) : Prop :=
-  wL (World.cplSite W tf.core.name) fp σ hdr FS (AgOf W fp σ es hdr FS pf.fn.frameSize)
+  wL (World.cplSite W tf.core.name) fp σ hdr FS
+    (AgOf W tf fp σ es kfps hdr FS pf.fn.frameSize) (calls es)
     pf.fn.body tf.core.body 0 ((List.range kfps.length).zip kfps) (fun _ => False)
     (fun _ _ _ => False) (tf.core.name ≠ "main") (tf.core.name = "main")
 
-/-- **(Frame side)** The frame family's words describe every path. -/
+/-- **(Frame side)** The frame family's words describe every path whose events hold on some
+reader. -/
 def FrameWordsStmt : Prop :=
   ∀ {κ₀ : ℕ} (W : World κ₀), W.Compiled → ∀ tf ∈ W.p, Scoped tf → ∀ pf, World.PlacedAs W tf pf →
   TmpsApart tf pf → NoSelfCall tf →
@@ -670,7 +683,8 @@ def FrameWordsStmt : Prop :=
       (∀ q ∈ addrs es, σ q.1 = ofK (addressOfIndex (fp + (cellP pf.locs q.2).getD 0))) →
       (∀ rd : Reader, (∀ e ∈ es, e.Holds rd σ) →
         FrameClauses (loopTable W.p) tf pf fp σ es vs hdr (FS σ)) ∧
-      (kfps.length = (calls es).length → PathWords W tf pf fp σ es kfps hdr (FS σ))
+      (kfps.length = (calls es).length → (∃ rd : Reader, ∀ e ∈ es, e.Holds rd σ) →
+        PathWords W tf pf fp σ es kfps hdr (FS σ))
 
 /-- **(Run side)** The path's frame words, on a memory holding the frame, give the instructions'
 meaning. -/
