@@ -251,8 +251,8 @@ theorem stmtW_call (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hAg : AgOwn I Ag) (hK : 
   refine ⟨ops ++ [.call hints ⟨f, st₃.next, st₃.next + 1, one, las, lrs, loop, false⟩],
     by have hops' : st₆.out.toList = st.out.toList ++ ops := hops
        simp [hops'], ?_⟩
-  refine blkW_ops_ctl' hok (fun pos => [(Γ.tgt (pos + (callPre ⟨f, st₃.next, st₃.next + 1, one, las, lrs, loop,
-      false⟩).length + 1), ofK (addressOfIndex I.fp))])
+  refine blkW_ops_ctl' hok (fun pos => [(Γ.tgt (pos + (callPre
+      ⟨f, st₃.next, st₃.next + 1, one, las, lrs, loop, false⟩).length + 1), ofK (addressOfIndex I.fp))])
     (fun _ => by simp [outEs, calls, Ev.call?]) (hopsW hF₈)
     fun Ψ hΨ σ' hσ kh cs pos ks next kj kret khalt hXo hcs hks hk => ?_
   obtain ⟨-, hks⟩ := hks
@@ -333,6 +333,183 @@ theorem stmtW_call (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hAg : AgOwn I Ag) (hK : 
     simpa [argBase, hlen₂] using this
   · have := hk (rest ++ tl) rfl
     simpa [outEs, calls, Ev.call?] using this
+
+/-- **A conditional call into another function on the path**: the statement's flush and `emit`,
+the condition's and the arguments' cells, the next frame pointer (word `g^kf[i₀]`), the entry;
+its words: the entry, the arguments and the header written into the callee frame (entered or
+not), the jump on the condition. -/
+theorem stmtW_callIf (hok : OpOK Γ I Ag cl) (hI : I.Ok)
+    (hRd : ∀ rd, I.Rd rd → ∀ e ∈ I.es, evNT rd I.σ e)
+    (hAg : AgOwn I Ag) (hK : AgKids ctx I Ag cl)
+    (hkw : ∀ g, I.kw (.entry g) = kwOf Γ (.entry g))
+    (hent : ∀ g, kwOf Γ (.entry g) = ofK (addressOfIndex (Γ.ent g)))
+    {c : V} {f : String} {args : List V} {rest tl : List Stmt}
+    (hns : f ≠ ctx.name) (hu : ∀ v ∈ c :: args, v ∉ I.tmps) :
+    StmtW Γ Ag cl ctx I (.callIf c f args) rest tl := by
+  intro C st sc sc' i₀ o hsc _ hw _ hes hcl _ hinv
+  simp only [walk1] at hw
+  subst hw
+  simp only [scopeStmt] at hsc
+  have hown := (scopeFlat_inv hsc).choose_spec.2.2.2.2
+  have hcp : ∀ (k : ℕ) (d x : V),
+      (∀ j < k, ∃ b, (Stmt.callIf c f args :: rest)[j]? = some (Stmt.atom b)) →
+      (Stmt.callIf c f args :: rest)[k]? = some (Stmt.atom (.copy d x)) →
+      (sc.live.contains x = true ∨ st.locs[x]? = none) ∧ I.σ d = I.σ x := by
+    intro k d x hj hk
+    cases k with
+    | zero => simp at hk
+    | succ k =>
+      obtain ⟨b, hb⟩ := hj 0 (Nat.succ_pos _)
+      simp at hb
+  have hcl0 : cl[i₀]? = some ⟨f, args, [], decide (I.σ c ≠ 0)⟩ := by
+    have := hcl 0 (by
+      by_cases h : I.σ c = 0 <;> simp [outEs, calls, Ev.call?, h, List.filterMap_cons])
+    by_cases h : I.σ c = 0 <;> simpa [outEs, calls, Ev.call?, h, List.filterMap_cons] using this
+  have hInK : IsInK (I.σ c) := by
+    obtain ⟨rd, hrd⟩ := hI.rd
+    have := hRd rd hrd (.inK c) (hes _ (by simp [outEs]))
+    simpa [evNT, Ev.Holds] using this
+  have hself : (f == ctx.name) = false := by simp [hns]
+  refine FBAt.mono (FBAt.and_wp (R := fun _ C' st' =>
+    VW I C' st' (fun v => sc'.live.contains v = true) ∧ st'.rest = sc'.rest ∧
+    (sc'.retDone = false → RetBlind ctx C') ∧
+    (∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf (flushSeg st.rest) ∨
+      sc'.live.contains v = true) ∧ COk I C' st'.next st'.scope st'.locs ∧
+    (Fits I st' → ∃ blk, st'.out.toList = st.out.toList ++ blk ∧
+      BlkW Γ I ctx.isMain Ag cl C' blk [.callIf c f args] (rest ++ tl)
+        (.fall [.inK c, if I.σ c = 0 then .skip f args else .call f args []]) i₀)) ?_
+    (chainKeep_callIf' st)) ?_
+  rotate_left
+  · rintro _ C' st' _ hn _ ⟨⟨h1, h2, h3, h4, hcok, h6⟩, hch⟩
+    have hch' : st'.chainIn = none := by rw [hch]; exact hinv.chain
+    exact ⟨fun _ _ _ => winv_flat hsc hinv hcok hn h2 h1 h3 h4 hch', hch', h6⟩
+  rw [placeStmt]
+  simp only [bind_assoc]
+  refine FBAt.fat_bind (begin_fat flushSeg_lock hI hsc hinv hcp)
+    fun _ st₁ C₁ hs₁ hn₁ hl₁ _ hE₁ ⟨hr₁, hvw₁, hrb₁, hloc₁⟩ => ?_
+  refine FBAt.read_bind ?_
+  split
+  · simp only [bind_assoc]
+    exact fun _ => wp_bind.mpr wp_failP
+  simp only [bind_assoc]
+  refine FBAt.fat_bind (cellOf_fat c hI hvw₁ (hown c List.mem_cons_self))
+    fun lc st₂ C₂ hs₂ hn₂ hl₂ _ hE₂ ⟨hc2, hclt, hlo₂, hr₂, hcw, hkb₂⟩ => ?_
+  have hE₂' := hE₁.step hE₂ hs₂ hn₂ hl₂
+  refine FBAt.fat_bind (mapM_cellOf_lt hI args st₂ C₂ (hvw₁.step hs₂ hn₂ hlo₂)
+    fun v hv => hown v (List.mem_cons_of_mem _ hv))
+    fun las st₃ C₃ hs₃ hn₃ hl₃ _ hE₃ ⟨hlo₃, hr₃, hlen₃, hlas, hkb₃⟩ => ?_
+  have hE₃' := hE₂'.step hE₃ hs₃ hn₃ hl₃
+  refine FBAt.read_bind ?_
+  simp only [hself, Bool.false_eq_true, ↓reduceIte, Bool.false_and]
+  unfold placeCall
+  simp only [bind_assoc]
+  refine FBAt.fat_bind (fresh_fat (fun _ => ofK (addressOfIndex (I.kf.getD i₀ 0)))
+    (wblind_const _ _)) fun nfp st₄ C₄ hs₄ hn₄ hl₄ _ hE₄ ⟨hnfp, hst₄, hC₄⟩ => ?_
+  have hE₄' := hE₃'.step hE₄ hs₄ hn₄ hl₄
+  refine FBAt.fat_bind (fresh_fat (fun _ => I.kw (.entry f)) (wblind_const _ _))
+    fun entry st₅ C₅ hs₅ hn₅ hl₅ _ hE₅ ⟨hentry, hst₅, hC₅⟩ => ?_
+  have hE₅' := hE₄'.step hE₅ hs₅ hn₅ hl₅
+  subst hnfp hst₄ hC₄ hentry hst₅ hC₅
+  simp only [pure_bind]
+  refine FBAt.fat_bind takeHints_fat fun hints st₇ C₇ hs₇ hn₇ hl₇ _ hE₇ ⟨hC₇, hst₇⟩ => ?_
+  have hE₇' := hE₅'.step hE₇ hs₇ hn₇ hl₇
+  subst hC₇ hst₇
+  refine FBAt.fat_bind (loopCount_fat f args las)
+    fun loop st₈ C₈ hs₈ hn₈ hl₈ hcok₈ hE₈ ⟨hC₈, hst₈, hloop⟩ => ?_
+  have hE₈' := hE₇'.step hE₈ hs₈ hn₈ hl₈
+  subst hC₈ hst₈
+  refine push_end' fun hc => ?_
+  have hlo : st₃.locs = st₁.locs := hlo₃.trans hlo₂
+  have hn13 : st₁.next ≤ st₃.next + 1 + 1 :=
+    le_trans hn₂ (le_trans hn₃ (le_trans (Nat.le_succ _) (Nat.le_succ _)))
+  refine ⟨hvw₁.step (fun Ψ h => hs₂ Ψ (hs₃ Ψ h.1.1)) hn13 hlo, hr₃.trans (hr₂.trans hr₁),
+    fun hr => RetBlind.keep (hrb₁ hr) (le_trans hinv.abi hn₁) fun c' hc' hb => ?_,
+    fun v hv => (hloc₁ v (by rw [← hlo]; exact hv)).elim Or.inl fun h => Or.inr (Or.inl h),
+    hc, fun hF => ?_⟩
+  · have hc3 : c' < st₃.next := lt_of_lt_of_le hc' (le_trans hn₂ hn₃)
+    exact blindAt_assign (blindAt_assign (hkb₃ c' (lt_of_lt_of_le hc' hn₂) (hkb₂ c' hc' hb))
+      (Nat.ne_of_lt hc3)) (Nat.ne_of_lt (Nat.lt_succ_of_lt hc3))
+  obtain ⟨ops, hops, hopsW⟩ := hE₈'
+  have hF₈ : Fits I { st₃ with next := st₃.next + 1 + 1, pending := #[] } := ⟨hF.1, hF.2⟩
+  have hsz : st₃.next + 1 + 1 ≤ I.size := hF.1
+  refine ⟨ops ++ [.call hints ⟨f, st₃.next, st₃.next + 1, lc, las, [], loop, false⟩],
+    by have hops' : st₃.out.toList = st.out.toList ++ ops := hops
+       simp [hops'], ?_⟩
+  refine blkW_ops_ctl' hok (fun pos => [(Γ.tgt (pos + (callPre
+      ⟨f, st₃.next, st₃.next + 1, lc, las, [], loop, false⟩).length + 1), ofK (addressOfIndex I.fp))])
+    (fun _ => by by_cases h : I.σ c = 0 <;> simp [outEs, calls, Ev.call?, h, List.filterMap_cons])
+    (hopsW hF₈)
+    fun Ψ hΨ σ' hσ kh cs pos ks next kj kret khalt hXo hcs hks hk => ?_
+  obtain ⟨-, hks⟩ := hks
+  obtain ⟨⟨kfp, hks0, hkf⟩, -, hkh⟩ := hks 0 (by
+    by_cases h : I.σ c = 0 <;> simp [outEs, calls, Ev.call?, h, List.filterMap_cons])
+  simp only [Nat.add_zero, List.getD_cons_zero] at hks0 hkf hkh
+  obtain ⟨ks', rfl⟩ : ∃ ks', ks = (i₀, kfp) :: ks' := by
+    cases ks with
+    | nil => simp at hks0
+    | cons p ks' =>
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at hks0
+      exact ⟨ks', by rw [hks0]⟩
+  have hcs' : ctrlSplit cs = some (.callIf c f args, rest ++ tl) := by rw [hcs]; rfl
+  have hr : Rds (Ag σ' Ψ kh) I.fp I.size (fwd I.hdr ⟨patchT I Ψ σ', kh⟩) :=
+    fun κ L hL n hn => hAg σ' Ψ kh κ L hL n hn
+  have hkfp : I.kf.getD i₀ 0 = kfp := by simp [List.getD_eq_getElem?_getD, hkf]
+  have hset : LOp.set (st₃.next + 1) (.entry f) ∈ I.ops := hXo _ (by simp [stmtOps, callPre])
+  have hjmp : LOp.jump lc (st₃.next + 1) st₃.next ∈ I.ops := hXo _ (by simp [stmtOps])
+  have hfpo : LOp.deref st₃.next 1 0 .fp ∈ I.ops := hXo _ (by simp [stmtOps, callPre])
+  have hnfp2 : 2 ≤ st₃.next := le_trans hinv.two (le_trans hn₁ (le_trans hn₂ hn₃))
+  have hetc : ¬ I.tc (st₃.next + 1) := not_tc_of hI hset (by simp [opCells]) fun _ h => nomatch h
+  have hntc : ¬ I.tc st₃.next := not_tc_of hI hfpo (by simp [opCells]) fun _ h => nomatch h
+  have hctc : ¬ I.tc lc := not_tc_of hI hjmp (by simp [opCells]) fun _ h => nomatch h
+  have hσc : σ' c = I.σ c := hσ c (hu c List.mem_cons_self)
+  have hfc : fwd I.hdr ⟨patchT I Ψ σ', kh⟩ lc = I.σ c :=
+    (fwd_patchT hc2 hctc).trans (hcw Ψ (hs₃ Ψ hΨ.1.1))
+  have hfe : fwd I.hdr ⟨patchT I Ψ σ', kh⟩ (st₃.next + 1) = ofK (addressOfIndex (Γ.ent f)) :=
+    (fwd_patchT (by comega) hetc).trans (hΨ.2.trans ((hkw f).trans (hent f)))
+  have hfn : fwd I.hdr ⟨patchT I Ψ σ', kh⟩ st₃.next = ofK (addressOfIndex kfp) :=
+    (fwd_patchT hnfp2 hntc).trans (hΨ.1.2.trans (by rw [hkfp]))
+  have hlas' : ∀ k (hk : k < las.length) (hk' : k < args.length), las[k] < I.size ∧
+      fwd I.hdr ⟨patchT I Ψ σ', kh⟩ las[k] = σ' args[k] := by
+    intro k hk hk'
+    obtain ⟨h2, hlt, hw⟩ := hlas k hk hk'
+    have ho : LOp.deref st₃.next (argBase + k) las[k] .cell ∈ I.ops := hXo _ (by
+      simp only [stmtOps, callPre, List.mem_append, List.mem_map]
+      exact Or.inl (Or.inl (Or.inr (Or.inl (Or.inl ⟨(las[k], k),
+        List.mk_mem_zipIdx_iff_getElem?.mpr (by simp), rfl⟩)))))
+    have htc : ¬ I.tc las[k] := not_tc_of hI ho (by simp [opCells]) fun p h => by
+      have := (LOp.deref.inj h).2.1
+      simp [argBase] at this
+    refine ⟨by comega, (fwd_patchT h2 htc).trans ((hw Ψ hΨ.1.1).trans ?_)⟩
+    exact (hσ _ (hu _ (List.mem_cons_of_mem _ (List.getElem_mem _)))).symm
+  have hnext : next (rest ++ tl) ks' := by
+    have := hk (rest ++ tl) rfl
+    by_cases h : I.σ c = 0 <;> simpa [outEs, calls, Ev.call?, h, List.filterMap_cons] using this
+  have hrets : SegW Γ I.fp (Ag σ' Ψ kh) (callRets st₃.next las.length [])
+      (pos + (callPre ⟨f, st₃.next, st₃.next + 1, lc, las, [], loop, false⟩).length + 1) :=
+    callRets_segW hr (by comega) hfn fun k hk => absurd hk (by simp)
+  simp only [wLc, wS, hcs']
+  refine ⟨callPre_segW hr (by comega) (by comega) (by comega)
+    ((fwd_patchT (by comega) hetc).trans (hΨ.2.trans (hkw f))) hfn
+    (fun k hk => ⟨(hlas' k hk (hlen₃ ▸ hk)).1, fun κ L hL => by
+      rw [(hlas' k hk (hlen₃ ▸ hk)).2]
+      exact (hK σ' Ψ kh κ L hL i₀ _ kfp hcl0 hkf).2.2.1 k (hlen₃ ▸ hk)⟩)
+    (fun hl κ L hL => by
+      rw [hfn]
+      have := (hK σ' Ψ kh κ L hL i₀ _ kfp hcl0 hkf).2.2.2.1 (hloop hl)
+      simpa [hlen₃, argBase] using this)
+    (fun κ L hL => by
+      have := hK σ' Ψ kh κ L hL i₀ _ kfp hcl0 hkf
+      rw [hkh] at this
+      exact ⟨this.1, this.2.1⟩) (by simp),
+    jw_of hr (by comega) (by comega) (by comega) (by rw [hfc]; exact hInK)
+      (by rw [hfe]; exact (isInK_iff _).mpr ⟨_, rfl⟩)
+      (by rw [hfn]; exact (isInK_iff _).mpr ⟨_, rfl⟩)
+      (fun h0 => ⟨fun ht => ht (by rw [hσc, ← hfc]; exact h0), hrets, hnext⟩)
+      fun h0 => ?_⟩
+  have hc0 : I.σ c ≠ 0 := fun h => h0 (hfc.trans h)
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  exact ⟨show σ' c ≠ 0 by rw [hσc]; exact hc0,
+    ⟨⟨_, hcl0, rfl, by simp [hc0]⟩, hfe, hfn, hkh⟩, hrets, hnext⟩
 
 end Words
 
