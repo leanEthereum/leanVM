@@ -9,7 +9,7 @@ members = [
     "crates/lean_sphincs",
     "crates/lean_da",
     "crates/aggregation",
-    "crates/leanvm",
+    "crates/lean_vm",
     "crates/stable-prover/*",
     "crates/experimental-prover/*",
     "bins/*",

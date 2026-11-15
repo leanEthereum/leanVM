@@ -360,15 +360,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "lean_xmss"
-version = "0.1.0"
-dependencies = [
- "keccak256",
- "rand",
-]
-
-[[package]]
-name = "leanvm"
+name = "lean_vm"
 version = "0.1.0"
 dependencies = [
  "aggregation",
@@ -378,6 +370,14 @@ dependencies = [
  "lean_sphincs",
  "lean_xmss",
  "stable_leanvm_core",
+]
+
+[[package]]
+name = "lean_xmss"
+version = "0.1.0"
+dependencies = [
+ "keccak256",
+ "rand",
 ]
 
 [[package]]

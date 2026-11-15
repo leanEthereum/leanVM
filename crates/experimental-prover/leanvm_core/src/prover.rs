@@ -1,4 +1,4 @@
-//! This tree as the [`isa::Prover`] the shared crates (`aggregation`, `lean_da`, `leanvm`) run on.
+//! This tree as the [`isa::Prover`] the shared crates (`aggregation`, `lean_da`, `lean_vm`) run on.
 
 use crate::cpu::{self, from_scalar, to_scalar};
 use primitives::cast_slice;

@@ -1,5 +1,5 @@
 [package]
-name = "leanvm"
+name = "lean_vm"
 version.workspace = true
 edition.workspace = true
 

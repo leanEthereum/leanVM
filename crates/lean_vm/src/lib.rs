@@ -6,7 +6,7 @@
 //! Proving runs the stable prover, plain portable code, or with the `experimental-prover` feature the optimized one.
 //! Both give the same proofs, byte for byte, and verifying needs neither.
 //!
-//! Example: [`crates/leanvm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/leanvm/tests/api.rs).
+//! Example: [`crates/lean_vm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/lean_vm/tests/api.rs).
 
 use ::lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use ::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};

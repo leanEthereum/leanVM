@@ -7,7 +7,7 @@ publish = false
 [[bin]]
 name = "leanvm"
 path = "src/main.rs"
-# Its rustdoc would overwrite the `leanvm` library's (cargo#6313).
+# A binary, nothing to document.
 doc = false
 
 [lints]

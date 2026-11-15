@@ -1,4 +1,4 @@
-//! What the crates both provers share (`aggregation`, `lean_da`, `leanvm`) need of a prover. Each prover tree
+//! What the crates both provers share (`aggregation`, `lean_da`, `lean_vm`) need of a prover. Each prover tree
 //! implements [`Prover`] once, beside its `cpu::prove`.
 
 use crate::CompiledProgram;
