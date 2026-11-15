@@ -147,8 +147,10 @@ theorem scopeFlat_cons {rc : ℕ} {st : Stmt} {s s' : SSt} (h : scopeFlat rc st 
     · next s₂ h₂ =>
       split at h
       · cases h
-      · cases h
-        exact (flushAt_cons h₁).trans (expectS_cons noAlloc_emit h₂)
+      · split at h
+        · cases h
+        · cases h
+          exact (flushAt_cons h₁).trans (expectS_cons noAlloc_emit h₂)
 
 theorem scopeIteTail_cons {rc : ℕ} {e : Bool} {nz : SSt → Except String SSt} {b : Bool}
     (hnz : ∀ s s', nz s = .ok s' → Cons rc s.rest s'.rest) {s s' : SSt}
