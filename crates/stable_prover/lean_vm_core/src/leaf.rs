@@ -12,7 +12,7 @@
 use crate::constraints::Form;
 use crate::gkr::{self, Ones};
 use primitives::cast_slice;
-use primitives::field::{Acc8, F64, F64x8, F128, F128x8, g_pow, g_pow32_by_lookup, index_mle, mul_by_g};
+use primitives::field::{Acc8, F64, F64x8, F128, F128x8, g_pow, index_mle, mul_by_g};
 use primitives::multilinear::{eq_eval, interp};
 use primitives::transcript::ProverState;
 pub use verifier::bus_grinding_bits;
@@ -277,7 +277,7 @@ impl<'a> Formula<'a> {
             acc + w.mul_base_unreduced(match *term {
                 Term::Col(i) => load(cols[i]),
                 Term::Prod(i, j) => load(cols[i]) * load(cols[j]),
-                Term::Index => F64x8::splat(g_pow32_by_lookup(z as u32)) * F64x8::from_array(&G_POWERS),
+                Term::Index => F64x8::splat(F64(verifier::layout::gpow_u32(z as u32).0)) * F64x8::from_array(&G_POWERS),
                 Term::Public(vals) => load(vals),
             })
         });

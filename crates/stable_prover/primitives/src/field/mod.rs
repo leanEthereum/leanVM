@@ -46,10 +46,10 @@ pub fn powers(x: F128, n: usize) -> Vec<F128> {
     out
 }
 
-/// `[g^0, g^1, …, g^{n-1}]`, built in parallel by [`g_pow32_by_lookup`].
+/// `[g^0, g^1, …, g^{n-1}]`, built in parallel by [`verifier::layout::gpow_u32`].
 pub fn g_powers(n: usize) -> Vec<F64> {
     assert!(n <= 1 << 32, "a g-power index fits in 32 bits");
-    parallel::map_collect(n, |i| g_pow32_by_lookup(i as u32))
+    parallel::map_collect(n, |i| F64(verifier::layout::gpow_u32(i as u32).0))
 }
 
 /// `g^i = x^i` in the monomial basis of `K` by square-and-multiply: domain separators, opcodes, and the g-power
@@ -57,34 +57,6 @@ pub fn g_powers(n: usize) -> Vec<F64> {
 #[inline]
 pub fn g_pow(i: usize) -> F64 {
     F64::G.pow(i as u128)
-}
-
-/// `g^i` for a `u32` exponent, from two `2^16`-entry tables built once: `i` splits as `hi·2^16 + lo`, so a small
-/// exponent is one load and any other one more load and a product, whatever its magnitude.
-pub fn g_pow32_by_lookup(i: u32) -> F64 {
-    const LOG_SPLIT: u32 = 16;
-    const SPAN: usize = 1 << LOG_SPLIT;
-    static TABLES: std::sync::OnceLock<[Vec<F64>; 2]> = std::sync::OnceLock::new();
-    let [baby, giant] = TABLES.get_or_init(|| {
-        let mut baby = Vec::with_capacity(SPAN);
-        let mut acc = F64::ONE;
-        for _ in 0..SPAN {
-            baby.push(acc);
-            acc = mul_by_g(acc);
-        }
-        // `acc` is `g^{2^16}` now, one past the baby table: the step between giant entries.
-        let (step, mut giant) = (acc, Vec::with_capacity(SPAN));
-        acc = F64::ONE;
-        for _ in 0..SPAN {
-            giant.push(acc);
-            acc *= step;
-        }
-        [baby, giant]
-    });
-    match i >> LOG_SPLIT {
-        0 => baby[i as usize],
-        hi => baby[i as usize & (SPAN - 1)] * giant[hi as usize],
-    }
 }
 
 /// `sum_i a[i] b[i]` over `E`, reduced once; zero if either is empty.
@@ -110,30 +82,4 @@ pub fn index_mle(zeta: &[F128]) -> F128 {
         g2k = g2k * g2k;
     }
     acc
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// The split table against square-and-multiply, at both sides of the `2^16` boundary and at the ends of the
-    /// operand range.
-    #[test]
-    fn g_pow32_matches_square_and_multiply() {
-        const SPLIT: u32 = 1 << 16;
-        for i in [
-            0,
-            1,
-            63,
-            64,
-            SPLIT - 1,
-            SPLIT,
-            SPLIT + 1,
-            1 << 28,
-            u32::MAX - 1,
-            u32::MAX,
-        ] {
-            assert_eq!(g_pow32_by_lookup(i), g_pow(i as usize), "g^{i}");
-        }
-    }
 }

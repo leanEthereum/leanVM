@@ -626,6 +626,7 @@ dependencies = [
  "rand",
  "stable_parallel",
  "stable_primitives",
+ "verifier",
 ]
 
 [[package]]
