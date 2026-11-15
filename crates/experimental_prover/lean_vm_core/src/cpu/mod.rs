@@ -218,7 +218,7 @@ pub fn prove(
     // The layout follows from the run's sizes alone: a run past the window is refused
     // before its witness is built.
     let layout = layout_of(
-        &program.derived(bytecode_columns),
+        program.columns(),
         crate::log2_strict_usize(exec.mem.len()),
         exec.trace.row_counts(),
         public_input,

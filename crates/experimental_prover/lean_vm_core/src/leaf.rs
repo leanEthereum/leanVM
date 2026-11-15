@@ -11,6 +11,7 @@
 
 use crate::gkr;
 use crate::transcript::ProverState;
+use primitives::cast_slice;
 use primitives::field::{F64, F128, F128Unreduced, Weights8, dot_base, g_pow, index_mle, mul_by_g};
 use primitives::multilinear::{eq_eval, eq_table, interp, mle_eval, mle_eval_par};
 use std::collections::HashMap;
@@ -36,8 +37,8 @@ pub enum Coord {
     Index,
     /// A public column (the bytecode program, §sec:e2e-bc): not committed; both parties form
     /// its MLE directly, so it raises no claim. Shared rather than owned: push and
-    /// pull carry the same thirteen columns.
-    Public(Arc<Vec<F64>>),
+    /// pull carry the same thirteen columns ([`isa::Program::columns`]), one `K` word a row.
+    Public(Arc<Vec<u64>>),
     /// A sum of `Const`/`Col`/`GCol`/`Prod` terms: any degree-2 form over the
     /// table's columns, which is all §sec:m3 asks of a coordinate. This is what
     /// carries a value a row DERIVES from its columns (an `XOR`/`MUL` result, a
@@ -177,7 +178,7 @@ fn push_terms<'a>(c: &'a Coord, w: F128, terms: &mut Vec<Term<'a>>, constant: &m
             }
         }
         Coord::Index => terms.push(Term::Index(w)),
-        Coord::Public(vals) => terms.push(Term::Public(vals.as_slice(), w)),
+        Coord::Public(vals) => terms.push(Term::Public(cast_slice(vals), w)),
         Coord::Sum(cs) => {
             for c in cs {
                 push_terms(c, w, terms, constant);
@@ -656,10 +657,10 @@ fn known_claim(claims: &[ColumnClaim], col: usize, point: &[F128]) -> Option<F12
 // One bus GKR point per cache; its prefixes are keyed by length and shared column identity.
 type PublicEvals = HashMap<(usize, usize), F128>;
 
-fn public_eval(vals: &Arc<Vec<F64>>, point: &[F128], cache: &mut PublicEvals) -> F128 {
+fn public_eval(vals: &Arc<Vec<u64>>, point: &[F128], cache: &mut PublicEvals) -> F128 {
     *cache
         .entry((Arc::as_ptr(vals) as usize, point.len()))
-        .or_insert_with(|| primitives::multilinear::mle_eval_par(vals, point))
+        .or_insert_with(|| primitives::multilinear::mle_eval_par(cast_slice(vals), point))
 }
 
 /// Prover-side decomposition: reads the real columns, writing each FRESH
@@ -1000,7 +1001,7 @@ mod tests {
             Coord::GCol(i, k) => g_pow(*k as usize) * cols[*i][z],
             Coord::Prod(i, j, k) => g_pow(*k as usize) * cols[*i][z] * cols[*j][z],
             Coord::Index => g_pow(z),
-            Coord::Public(vals) => vals[z],
+            Coord::Public(vals) => F64(vals[z]),
             Coord::Sum(cs) => cs.iter().map(|c| coord_value(c, cols, z)).sum(),
         }
     }
@@ -1034,7 +1035,7 @@ mod tests {
         };
         let columns: Vec<Vec<F64>> = (0..6).map(|_| (0..1 << 12).map(|_| F64(next())).collect()).collect();
         let cols: Vec<&[F64]> = columns.iter().map(Vec::as_slice).collect();
-        let public = Arc::new((0..1 << 11).map(|_| F64(next())).collect::<Vec<_>>());
+        let public = Arc::new((0..1 << 11).map(|_| next()).collect::<Vec<_>>());
         let block = |kappa: usize, rows: usize, coords: Vec<Coord>| Block {
             kappa,
             rows,

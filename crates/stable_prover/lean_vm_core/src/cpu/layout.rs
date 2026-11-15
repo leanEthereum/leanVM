@@ -2,7 +2,6 @@
 //! and the stack's placements, over the verifier's column numbering. And the prover's witness build.
 
 use super::*;
-use std::sync::Arc;
 use verifier::layout::{GLOBAL_COLUMN_BASES, TABLE_WIDTHS};
 
 // The shared committed columns, `0..N_SHARED`, the verifier's global columns. The program is public: it rides the
@@ -186,22 +185,11 @@ fn col_kappas(log_mem: usize, log_bytecode: usize, taus: [usize; tables::N_TABLE
         .collect()
 }
 
-/// The public bytecode columns of a program.
-pub type BytecodeColumns = [Arc<Vec<F64>>; 1 + isa::BYTECODE_OPERANDS];
-
-/// The program's public columns ([`isa::Program::column`]), which ride the bytecode blocks as `Coord::Public`.
-pub fn bytecode_columns(program: &Program) -> BytecodeColumns {
-    std::array::from_fn(|i| {
-        let column = program.column(i);
-        Arc::new(parallel::map_collect(column.len(), |pc| F64(column[pc])))
-    })
-}
-
 /// The public [`Layout`] of a program's public columns `prog_cols`, the memory log-size `log_mem`, the instruction
 /// tables' row counts `rows`. The flush blocks reference columns only by index and the
 /// program only through its public columns, so this needs no committed witness: prover and verifier reconstruct the
 /// same structure.
-pub fn layout_of(prog_cols: &BytecodeColumns, log_mem: usize, rows: [usize; tables::N_TABLES]) -> Layout {
+pub fn layout_of(prog_cols: &isa::BytecodeColumns, log_mem: usize, rows: [usize; tables::N_TABLES]) -> Layout {
     let taus = table_logs(rows);
     let bytecode_size = prog_cols[0].len();
     let log_bytecode = crate::log2_strict_usize(bytecode_size);

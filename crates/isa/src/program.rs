@@ -2,27 +2,28 @@
 //! the one public table, and that table prepared for the verifier.
 
 use crate::{CompiledProgram, Op};
-use std::any::Any;
 use std::ops::Deref;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, OnceLock};
 use verifier::K;
 use verifier::layout::{BUS_BITS, OP_DEREF, OP_JUMP, OP_KECCAK, OP_MUL, OP_SET, OP_XOR};
 
 /// Operand slots of a bytecode tuple, after the opcode.
-pub const BYTECODE_OPERANDS: usize = 12;
+const BYTECODE_OPERANDS: usize = 12;
 
 /// The bus tuple coordinate of the opcode: a bytecode tuple leads with its tag, pc and read count.
 const OPCODE_SLOT: usize = 3;
 const _: () = assert!(OPCODE_SLOT + 1 + BYTECODE_OPERANDS <= 1 << BUS_BITS);
 
-/// A compiled program with its bytecode table, computed once.
+/// The public columns of a bytecode, one word an instruction: the opcode, then the operand slots.
+pub type BytecodeColumns = [Arc<Vec<u64>>; 1 + BYTECODE_OPERANDS];
+
+/// A compiled program with its bytecode columns and table, computed once.
 #[derive(Debug)]
 pub struct Program {
     compiled: CompiledProgram,
+    columns: BytecodeColumns,
     table: Vec<u64>,
     bytecode: verifier::Bytecode,
-    /// What provers derived from it ([`Program::derived`]), one value a type.
-    derived: Mutex<Vec<Arc<dyn Any + Send + Sync>>>,
 }
 
 /// # Panics
@@ -30,13 +31,24 @@ pub struct Program {
 /// If the bytecode is not a power of two long.
 impl From<CompiledProgram> for Program {
     fn from(compiled: CompiledProgram) -> Self {
-        let table = stacked_table(&compiled.prog);
+        let n = compiled.prog.len();
+        assert!(n.is_power_of_two(), "the bytecode must be a power of two long, not {n}");
+        let mut columns: [Vec<u64>; 1 + BYTECODE_OPERANDS] = std::array::from_fn(|_| Vec::with_capacity(n));
+        for op in &compiled.prog {
+            for (column, word) in columns.iter_mut().zip(encode(op)) {
+                column.push(word);
+            }
+        }
+        let mut table = vec![0; n << BUS_BITS];
+        for (slot, column) in table.chunks_exact_mut(n).skip(OPCODE_SLOT).zip(&columns) {
+            slot.copy_from_slice(column);
+        }
         let bytecode = verifier::Bytecode::new(&table);
         Self {
             compiled,
+            columns: columns.map(Arc::new),
             table,
             bytecode,
-            derived: Mutex::default(),
         }
     }
 }
@@ -50,8 +62,13 @@ impl Deref for Program {
 }
 
 impl Program {
-    /// The stacked bytecode polynomial (§sec:e2e-bc): the opcode and operand columns at their bus tuple coordinates,
-    /// along `2^BUS_BITS` slots. An outermost verifier is handed it in place of the program.
+    /// The bytecode's public columns, which ride the bus's bytecode blocks.
+    pub fn columns(&self) -> &BytecodeColumns {
+        &self.columns
+    }
+
+    /// The stacked bytecode polynomial (§sec:e2e-bc): the columns at their bus tuple coordinates, along `2^BUS_BITS`
+    /// slots. An outermost verifier is handed it in place of the program.
     pub fn table(&self) -> &[u64] {
         &self.table
     }
@@ -60,37 +77,6 @@ impl Program {
     pub fn bytecode(&self) -> &verifier::Bytecode {
         &self.bytecode
     }
-
-    /// Column `i` of the bytecode: the opcode for `i = 0`, operand slot `i` after it.
-    pub fn column(&self, i: usize) -> &[u64] {
-        let n = self.prog.len();
-        &self.table[(OPCODE_SLOT + i) * n..][..n]
-    }
-
-    /// `derive(self)`, computed on the first call for its type and kept: what a prover would otherwise rebuild for
-    /// every proof of the program, such as the columns in its own field type.
-    pub fn derived<T: Any + Send + Sync>(&self, derive: impl FnOnce(&Self) -> T) -> Arc<T> {
-        let mut derived = self.derived.lock().unwrap();
-        if let Some(value) = derived.iter().find_map(|value| value.clone().downcast().ok()) {
-            return value;
-        }
-        let value = Arc::new(derive(self));
-        derived.push(value.clone());
-        value
-    }
-}
-
-/// [`Program::table`] of `prog`.
-fn stacked_table(prog: &[Op]) -> Vec<u64> {
-    let n = prog.len();
-    assert!(n.is_power_of_two(), "the bytecode must be a power of two long, not {n}");
-    let mut table = vec![0; n << BUS_BITS];
-    for (pc, op) in prog.iter().enumerate() {
-        for (i, word) in encode(op).into_iter().enumerate() {
-            table[(OPCODE_SLOT + i) * n + pc] = word;
-        }
-    }
-    table
 }
 
 /// An instruction's bytecode tuple after its pc: the opcode `g^op`, then the operand slots, offsets as g-powers, a

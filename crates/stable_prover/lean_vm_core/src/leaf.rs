@@ -13,6 +13,7 @@ use std::sync::Arc;
 
 use crate::constraints::Form;
 use crate::gkr::{self, Ones};
+use primitives::cast_slice;
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8, g_pow, g_pow32_by_lookup, index_mle, mul_by_g};
 use primitives::multilinear::{eq_eval, interp};
 use primitives::transcript::ProverState;
@@ -35,8 +36,8 @@ pub enum Coord {
     /// The index column `g^z` (§sec:idxcol), free via the factored MLE.
     Index,
     /// A public column (the bytecode program, §sec:e2e-bc): not committed, both parties form its MLE. Shared: push and
-    /// pull carry the same thirteen columns.
-    Public(Arc<Vec<F64>>),
+    /// pull carry the same thirteen columns ([`isa::Program::columns`]), one `K` word a row.
+    Public(Arc<Vec<u64>>),
     /// A sum of `Const`/`Col`/`GCol`/`Prod` terms: a value a row derives from its columns (an `XOR`/`MUL` result, a
     /// `DEREF` store, a `JUMP` successor) without committing it. Only a table's blocks carry one, or a `Prod`: the
     /// table sumcheck settles them, while a boundary block's coordinates must be single columns.
@@ -246,7 +247,7 @@ impl<'a> Formula<'a> {
                 }
             }
             Coord::Index => terms.push((Term::Index, w)),
-            Coord::Public(vals) => terms.push((Term::Public(vals.as_slice()), w)),
+            Coord::Public(vals) => terms.push((Term::Public(cast_slice(vals)), w)),
             Coord::Sum(cs) => {
                 for c in cs {
                     Self::add(c, w, terms, constant);
@@ -444,7 +445,7 @@ fn known_claim(claims: &[ColumnClaim], col: usize, point: &[F128]) -> Option<F12
 /// A block's public columns, in coordinate order.
 fn public_columns(block: &Block) -> impl Iterator<Item = &[F64]> {
     block.coords.iter().filter_map(|c| match c {
-        Coord::Public(vals) => Some(vals.as_slice()),
+        Coord::Public(vals) => Some(cast_slice(vals)),
         _ => None,
     })
 }
@@ -523,7 +524,7 @@ mod tests {
             Coord::GCol(i, k) => g_pow(*k as usize) * cols[*i][z],
             Coord::Prod(i, j, k) => g_pow(*k as usize) * cols[*i][z] * cols[*j][z],
             Coord::Index => g_pow(z),
-            Coord::Public(vals) => vals[z],
+            Coord::Public(vals) => F64(vals[z]),
             Coord::Sum(cs) => cs.iter().map(|c| coord_value(c, cols, z)).sum(),
         }
     }
@@ -549,7 +550,7 @@ mod tests {
             .map(|_| (0..1 << 12).map(|_| F64(rng.next_u64())).collect())
             .collect();
         let cols: Vec<&[F64]> = columns.iter().map(Vec::as_slice).collect();
-        let public = Arc::new((0..1 << 11).map(|_| F64(rng.next_u64())).collect::<Vec<_>>());
+        let public = Arc::new((0..1 << 11).map(|_| rng.next_u64()).collect::<Vec<_>>());
         let block = |kappa: usize, rows: usize, coords: Vec<Coord>| Block {
             kappa,
             rows,

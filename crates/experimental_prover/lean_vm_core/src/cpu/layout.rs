@@ -3,7 +3,6 @@
 //! sizes and public input. Plus the prover-side witness build.
 
 use super::*;
-use std::sync::Arc;
 
 // ---- column schema -----------------------------------------------------------
 
@@ -273,24 +272,13 @@ fn col_kappas(log_mem: usize, log_bytecode: usize, taus: [usize; tables::N_TABLE
         .collect()
 }
 
-/// The PUBLIC bytecode columns of a program.
-pub(crate) type BytecodeColumns = [Arc<Vec<F64>>; 1 + isa::BYTECODE_OPERANDS];
-
-/// The program's public columns ([`isa::Program::column`]), which ride the seed/finalize blocks as `Coord::Public`.
-pub(crate) fn bytecode_columns(program: &Program) -> BytecodeColumns {
-    std::array::from_fn(|i| {
-        let column = program.column(i);
-        Arc::new(parallel::map_collect(column.len(), |pc| F64(column[pc])))
-    })
-}
-
 /// Build the public [`Layout`] from the program's columns, the memory log-size `log_mem`, the
 /// instruction tables' row counts `rows`, and the public input `pi`. The flush blocks
 /// reference columns only by INDEX and the program only through its public columns, so
 /// this needs no committed witness: both prover and verifier reconstruct exactly the
 /// same structure.
 pub(crate) fn layout_of(
-    prog_cols: &BytecodeColumns,
+    prog_cols: &isa::BytecodeColumns,
     log_mem: usize,
     rows: [usize; tables::N_TABLES],
     pi: [F128; 2],

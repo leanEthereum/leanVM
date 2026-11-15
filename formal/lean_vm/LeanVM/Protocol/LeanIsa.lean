@@ -46,7 +46,7 @@ leanISA's three remaining components: the verifier's state push `(1, 1)` and pul
 `(g^(N - 1), 1)` (`leanIsaVerifier`), the memory block's seed push `(g^i, 1, m_i)` and finalize
 pull `(g^i, MFCNT_i, m_i)` (`memTable`), and the bytecode block's seed push and finalize pull of
 the program's entries (`bytecodeTable`, with the program's thirteen entry columns known to both
-parties, `Coord.known`; `Program::column`, `crates/isa/src/program.rs`). The index column is the
+parties, `Coord.known`; `Program::columns`, `crates/isa/src/program.rs`). The index column is the
 verifier's (`idxColumn`), as the Rust's `Coord::Index` is.
 
 **The stack** (`crates/lean_vm_core/src/witness.rs`). Every committed column has a
@@ -487,7 +487,7 @@ def derived (c : Col) : Option (Column (leanIsaμ prog s) → Column (kappa prog
 def coords {S : Shape} {κ : ℕ} (cs : List (Coord S κ)) : Vector (Coord S κ) 16 :=
   Vector.ofFn fun k ↦ cs.getD k (.const 0)
 
-/-- Column `k` of the program's entries, `Program::column` (`crates/isa/src/program.rs`): the
+/-- Column `k` of the program's entries, `Program::columns` (`crates/isa/src/program.rs`): the
 entry's coordinate `k` at every slot, coordinate `3 + k` of the bytecode tuple. -/
 def entryColumn (k : Fin 13) : Column prog.logSize :=
   ⟨Vector.ofFn fun i ↦ (busEntry (prog.instructions i))[k]⟩

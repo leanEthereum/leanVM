@@ -30,7 +30,7 @@ Both prove the same protocol and give the same proof bytes, pinned by `bins/lean
 | `verifier`        | the one native verifier (below), the field `E`/`K` the others take their words from, and the proof (`Proof`) and its one byte encoding (`Proof::to_bytes`, `from_bytes`) |
 | `keccak256`       | Keccak-256 and its multi-way permutation (AVX-512, AVX2, NEON backends), for the crates below and both provers |
 | `fiat_shamir_prover` | the prover's duplex sponge transcript, writing a `verifier::Proof`, for both trees: generic over the field (`Scalar`) and over where a long grind searches (`Search`, each tree's pool) |
-| `isa`             | the instruction set: `Op`, the hints, `CompiledProgram`, and `Program`, a compiled program with its stacked bytecode table and the verifier's preparation of it (the Fiat-Shamir IV), which both provers prove; the `KECCAK` cell counts; the `Prover` trait |
+| `isa`             | the instruction set: `Op`, the hints, `CompiledProgram`, and `Program`, a compiled program with its bytecode columns (`u64` words, which each tree reads as its own `F64`), their stacked table and the verifier's preparation of it (the Fiat-Shamir IV), which both provers prove; the `KECCAK` cell counts; the `Prover` trait |
 | `zkdsl_compiler`  | zkDSL → ISA; its tests run the stable prover                           |
 | `lean_xmss`       | leanXMSS over Keccak-256                                               |
 | `lean_sphincs`    | leanSPHINCS over Keccak-256                                            |

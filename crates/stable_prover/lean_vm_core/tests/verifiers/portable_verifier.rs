@@ -4,7 +4,7 @@
 
 use crate::fixture::fixture;
 use fiat_shamir::grinding_bits;
-use lean_vm_core::cpu::{bytecode_columns, layout_of, prove};
+use lean_vm_core::cpu::{layout_of, prove};
 use verifier::{E, VerifierError, replay_unchecked, verify_execution};
 
 /// The replay reads out of an honest proof what verifying it leaves.
@@ -69,7 +69,7 @@ fn tampers_fail_their_check() {
     // high part, the OOD nonce, the OOD value and the query nonce.
     let rows: Vec<usize> = fixture.summary.table_rows.iter().map(|&rows| rows as usize).collect();
     let stack_log = layout_of(
-        &bytecode_columns(&fixture.program),
+        fixture.program.columns(),
         fixture.summary.log_memory,
         rows.try_into().expect("one row count a table"),
     )

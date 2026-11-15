@@ -20,7 +20,7 @@ Transcribed from:
 * `crates/isa/src/program.rs` (`encode`): the thirteen public program columns, the opcode then
   twelve operand slots (`BYTECODE_OPERANDS = 12`), offsets as g-powers, a `SET` immediate as its
   two limbs, the `DEREF` store-mode flags and `KECCAK`'s layout and output flags as `0` or `1`,
-  unused slots zero; `stacked_table` stacks them at slots `3..16` (`OPCODE_SLOT = 3`);
+  unused slots zero; `Program::from` stacks them at slots `3..16` (`OPCODE_SLOT = 3`);
 * `crates/isa/src/lib.rs`: the `DEREF` store mode as the flag pair
   `(f_pc, f_fp)`, `cell = (0, 0)`, `pc = (1, 0)`, `fp = (0, 1)`;
 * `crates/isa/src/lib.rs`: `KECCAK`'s output cells as the flag pair

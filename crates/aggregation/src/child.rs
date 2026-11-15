@@ -7,13 +7,13 @@ use fiat_shamir_prover::merkle::{hash_pair, hash_to_scalars, hash_words};
 use lean_vm_core::cpu::{Layout, block_kappa_sources, col_kappa_sources, from_scalar};
 use lean_vm_core::leaf::{self, Block};
 use lean_vm_core::tables::N_TABLES;
-use primitives::field::{F64, F128};
+use primitives::field::F128;
 
 /// The layout of an execution of a `2^kbc`-instruction program with `2^log_mem` cells of memory and `rows` rows in each
 /// table, as the prover builds it. It reads the program only through its public columns, which no coordinate the guest
 /// is given depends on, so zero columns of that length serve, one shared by all.
 pub(super) fn execution_layout(kbc: usize, log_mem: usize, rows: [usize; N_TABLES]) -> Layout {
-    let zeros = std::sync::Arc::new(vec![F64::ZERO; 1 << kbc]);
+    let zeros = std::sync::Arc::new(vec![0; 1 << kbc]);
     let columns = std::array::from_fn(|_| zeros.clone());
     lean_vm_core::cpu::layout::layout_of(&columns, log_mem, rows)
 }
