@@ -767,8 +767,9 @@ def OpenOut (Q : Prop) (O : List PStmt) (h : List LHint) (join lx entry one sfp 
 dispatches into: `chainIn = some (first, join)`, the output ending in the chain node so far),
 given the block lemma for the smaller good blocks: `OpenOut`. The invariant at its start is had
 only under `Q` (the facts the chain node's final instructions give the stages before it, which
-the final state's `FinAt` gives the caller through `OpenOffW`), and so are its results. With the head stage whose arms
-dispatch into the next (`placeMatch … none true`), it gives `ChainHeadW`. -/
+the final state's `FinAt` gives the caller through `OpenOffW`), and so are its results. The join
+cell holds the word of the chain node's `SET` (its last stage's arms jump to it). With the head
+stage whose arms dispatch into the next (`placeMatch … none true`), it gives `ChainHeadW`. -/
 def OpenW (Good : List Stmt → Prop) : Prop :=
   ∀ x arms rest tl, Good (.match_ x arms :: rest) →
     BlockIH Γ Ag cl ctx I Good (.match_ x arms :: rest) →
@@ -779,6 +780,7 @@ def OpenW (Good : List Stmt → Prop) : Prop :=
     walk I.σ (.match_ x arms :: rest) = o → o ≠ .stuck → (∀ e ∈ outEs o, e ∈ I.es) →
     (∀ k < (calls (outEs o)).length, cl[i₀ + k]? = (calls (outEs o))[k]?) →
     (Q → WInv ctx I C { st with chainIn := none } sc) → st.chainIn = some (first, join) →
+    (2 ≤ join ∧ join < st.next ∧ ∀ Ψ, C Ψ → Ψ join = joinW I (p₀ + blockSize O)) →
     st.out.toList = O ++ [.chain h join lx entry one sfp firsts stages] →
     firsts.length = stages.length →
     FBAt ctx I C st (placeBlock (.match_ x arms :: rest)) fun _ C' st' =>
@@ -829,6 +831,30 @@ def OpenOffW : Prop :=
       ∃ (firstsN : List ℕ) (stagesN : List (List (List PStmt))) (blk : List PStmt),
         st'.out.toList = O ++ [.chain h join lx entry one sfp (firsts ++ firstsN)
           (stages ++ stagesN)] ++ blk ∧ firstsN.head? = some first
+
+/-- The invariant of a state whose chaining is reset, whatever it was set to. -/
+theorem winv_reset {C : (ℕ → E) → Prop} {st : St} {s : SSt} (h : WInv ctx I C st s)
+    (c : Option (ℕ × Cell)) : WInv ctx I C { { st with chainIn := c } with chainIn := none } s :=
+  ⟨h.cok, h.rest, h.vw, h.two, h.abi, h.fuel, h.ret, h.nodup, h.fresh, rfl, h.pnt, h.lazy⟩
+
+/-- **A stage's end whose arms dispatch into the next**: its `emit`, the chain node pushed, the
+chaining set, the statement's end, then the rest from the state reached. -/
+theorem stageEndNext_fbat {C : (ℕ → E) → Prop} {st : St} {X : PStmt} {ev : Event}
+    {es : List Event} {what : String} {c : ℕ × Cell} {β : Type} {g : Unit → P β}
+    {R : β → ((ℕ → E) → Prop) → St → Prop} (hr : st.rest = ev :: es)
+    (hg : FBAt ctx I C
+      { st with rest := es, out := st.out.push X, chainIn := some c, lazy := none, used := [], shift := none }
+      (g ()) R) :
+    FBAt ctx I C st (expect isEmit what >>= fun _ => push X >>= fun _ =>
+      modify (fun s => { s with chainIn := some c }) >>= fun _ => endStmt >>= g) R := by
+  intro hc
+  refine wp_bind.mpr (wp_mono expect_rest fun _ s₁ h₁ => ?_)
+  subst h₁
+  unfold push endStmt
+  rw [wp_bind, wp_modify, wp_bind, wp_modify, wp_bind, wp_modify]
+  have h' := hg hc
+  rw [hr] at *
+  exact h'
 
 end Head
 
