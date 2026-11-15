@@ -518,7 +518,7 @@ theorem not_tc_of (hI : I.Ok) {o : LOp} (ho : o ∈ I.ops) {c : ℕ} (hc : c ∈
   let ⟨p, hp, _⟩ := hI.tops c ht o ho hc
   hnd p hp
 
-theorem fwd_patch {Ψ : ℕ → E} {σ' : Val} {kh : ℕ → E × E} {n : ℕ} (h2 : 2 ≤ n) (ht : ¬ I.tc n) :
+theorem fwd_patchT {Ψ : ℕ → E} {σ' : Val} {kh : ℕ → E × E} {n : ℕ} (h2 : 2 ≤ n) (ht : ¬ I.tc n) :
     fwd I.hdr ⟨patchT I Ψ σ', kh⟩ n = Ψ n := by
   simp [fwd, patchT, show n ≠ 0 by omega, show n ≠ 1 by omega, ht]
 
@@ -631,9 +631,9 @@ theorem stmtW_ret (hflush : FlushSegStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
         have hΨo : Ψ one = 1 := (hoΨ Ψ hΨ.1).trans word_one
         have hkh : khalt := by simpa [hm] using hk
         have honsz : one < I.size := by have := hon; simp only [Cell] at *; omega
-        have hfo : fwd I.hdr ⟨patchT I Ψ σ', kh⟩ one = 1 := (fwd_patch ho2 hotc).trans hΨo
+        have hfo : fwd I.hdr ⟨patchT I Ψ σ', kh⟩ one = 1 := (fwd_patchT ho2 hotc).trans hΨo
         have hfd : fwd I.hdr ⟨patchT I Ψ σ', kh⟩ st₃.next = I.kw .endSentinel :=
-          (fwd_patch hd2 hdtc).trans hΨ.2
+          (fwd_patchT hd2 hdtc).trans hΨ.2
         have hHW := And.left (hok Ψ σ' hσ kh [] (.set st₃.next .endSentinel) pos cs ks
           (fun _ _ => True) kj kret khalt hset (by
             show fw I Ψ st₃.next = I.kw .endSentinel
@@ -662,7 +662,7 @@ theorem stmtW_ret (hflush : FlushSegStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
         have hm' : ctx.isMain = false := by simpa using hm
         have hkr : kret := by simpa [hm'] using hk
         have hfo : fwd I.hdr ⟨patchT I Ψ σ', kh⟩ one = 1 :=
-          (fwd_patch ho2 hotc).trans ((hoΨ Ψ hΨ).trans word_one)
+          (fwd_patchT ho2 hotc).trans ((hoΨ Ψ hΨ).trans word_one)
         have hsz : st₃.next ≤ I.size := hF₅.1
         dsimp only [wLc, wS, JW]
         refine ⟨fun κ L hL n hn => ?_, by rw [hfo]; exact h1K, by simpa [fwd] using (hhdr hm').1,
