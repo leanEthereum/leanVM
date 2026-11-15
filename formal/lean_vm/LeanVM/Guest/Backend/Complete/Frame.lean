@@ -358,7 +358,7 @@ def AtomFAt (a : Atom) : Prop :=
     (∀ v ∈ Memory.atomUses a, v ∉ I.tmps) → (∀ t ∈ Memory.atomTmps a, t ∈ I.tmps) →
     (Fits I st → ∀ p run, a = .frameAddr p run → ∃ r0 base, run.head? = some r0 ∧
       st.locs[r0]? = some (.cell base) ∧ I.σ p = ofK (addressOfIndex (I.fp + base))) →
-    (∀ d p off, a = .load d p off → ∀ n e, st.locs[d]? ≠ some (.shifted n e)) →
+    (Fits I st → ∀ d p off, a = .load d p off → ∀ n e, st.locs[d]? ≠ some (.shifted n e)) →
     2 ≤ st.next → VW I C st ok →
     (∀ v ∈ Memory.atomUses a ++ Memory.atomTmps a, ok v ∨
       ∃ s, s ≠ v ∧ a = .copy v s ∧ st.aliasRun.any (·.contains v) = true) →
