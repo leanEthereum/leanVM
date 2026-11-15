@@ -14,11 +14,11 @@ fiat_shamir = { package = "fiat_shamir_prover", path = "../../fiat_shamir_prover
 pcs = { package = "experimental_pcs", path = "../pcs" }
 tracing.workspace = true
 bench = { workspace = true, optional = true }
-verifier = { workspace = true, optional = true }
+verifier.workspace = true
 
 [features]
 # The standalone batch benchmark (`batch_bench`), for the `hash_batch` target.
-bench = ["dep:bench", "dep:verifier", "primitives/test-util"]
+bench = ["dep:bench", "primitives/test-util"]
 
 [dev-dependencies]
 keccak_gkr = { package = "experimental_keccak_gkr", path = ".", features = ["bench"] }

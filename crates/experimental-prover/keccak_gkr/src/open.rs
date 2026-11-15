@@ -11,9 +11,10 @@ use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim};
 use primitives::field::{F64, F128, F128Unreduced};
 use primitives::multilinear::{eq_table, interp, mle_eval, poly_eval};
 use primitives::transcript::ProverState;
+use verifier::along;
 
 use crate::basis::byte_sums;
-use crate::keccak::{BITS, LANES, along, iota_bit};
+use crate::keccak::{BITS, LANES, iota_bit};
 use crate::protocol::{Claim, dot};
 use crate::witness::{BLOCK_WORDS, Shape, Witness, words};
 

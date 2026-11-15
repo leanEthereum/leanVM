@@ -11,7 +11,9 @@ use primitives::field::F64;
 use primitives::hash::{RC, ROUNDS};
 use primitives::stream::Stream;
 
-use crate::keccak::{BITS, LANES, along, linear};
+use verifier::along;
+
+use crate::keccak::{BITS, LANES, linear};
 
 /// Instances a block holds, and the words one position of a block takes.
 pub const BLOCK: usize = 512;
@@ -655,7 +657,7 @@ mod neon {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::keccak::{along, iota_bit};
+    use crate::keccak::iota_bit;
     use primitives::test_rng::Rng;
 
     #[test]

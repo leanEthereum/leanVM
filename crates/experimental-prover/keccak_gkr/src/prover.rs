@@ -12,9 +12,10 @@
 use primitives::field::{F128, F128Unreduced};
 use primitives::multilinear::{eq_table, poly_eval};
 use primitives::transcript::ProverState;
+use verifier::{along, linear_transpose};
 
 use crate::basis::{PolyEval, add_mul, carry};
-use crate::keccak::{BITS, LOCAL_VARS, along, linear_transpose, row_positions};
+use crate::keccak::{BITS, LOCAL_VARS, row_positions};
 use crate::kernels::{GROUP, MIXED, PACKS, SKIP, SkipBlock, TERNARY, embed, mixed_points, products, slot};
 use crate::open::fold;
 use crate::power::{Element, PowerField, get, set};
