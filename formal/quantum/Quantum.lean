@@ -7,6 +7,7 @@ import Quantum.Sponge.Simulate
 import Quantum.Sponge.Reads.Log
 import Quantum.Sponge.Assembly.Prep
 import Quantum.Sponge.Reads.Single
+import Quantum.Sponge.Keccak
 
 /-! Security against quantum adversaries in the quantum random-permutation model (`Quantum.Model`),
 on VCVio's quantum oracle programs (`VCVio.Quantum`). The build fails if the axiom footprint of
