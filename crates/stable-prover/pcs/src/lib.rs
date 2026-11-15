@@ -9,7 +9,6 @@ pub mod ood;
 pub mod ring_switch;
 pub mod stack_open;
 pub mod whir;
-pub mod whir_config;
 mod whir_induce;
 mod whir_lanes;
 mod xmul;

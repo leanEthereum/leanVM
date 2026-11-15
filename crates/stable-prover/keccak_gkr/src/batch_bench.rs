@@ -5,13 +5,14 @@ use std::time::Instant;
 
 use bench::{Metric, Plan, Timing, bencher_json};
 use pcs::stack_open::StackClaim;
-use pcs::whir::{INITIAL_FOLDING_FACTOR, ProverConfig, ProverData, commit, config_for_rate};
+use pcs::whir::{INITIAL_FOLDING_FACTOR, ProverData, commit};
 use primitives::{
     field::{F64, F128},
     pretty_integer,
     test_rng::Rng,
     transcript::ProverState,
 };
+use verifier::WhirConfig;
 
 use crate::{Openings, OutputClaim, Shape, Witness};
 
@@ -35,7 +36,7 @@ pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
     let mu = shape.stack_log();
     let mut rng = Rng::new(0x9E37_79B9_7F4A_7C15 ^ n as u64);
     let inputs: Vec<[u64; 25]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
-    let config = config_for_rate(mu, log_inv_rate).expect("WHIR configuration");
+    let config = verifier::derive_config(mu, log_inv_rate).expect("WHIR configuration");
 
     let prove_pass = || {
         let _span = tracing::info_span!("Keccak GKR prove", n).entered();
@@ -195,7 +196,7 @@ pub(crate) fn open_commitment(
     shape: Shape,
     stack: Vec<F64>,
     prover_data: ProverData,
-    config: &ProverConfig,
+    config: &WhirConfig,
     openings: Openings,
     ood: StackClaim,
 ) {

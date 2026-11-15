@@ -38,17 +38,17 @@ pub(super) struct WhirShape {
 }
 
 pub(super) fn whir_shape(mu: usize, log_inv_rate: usize) -> WhirShape {
-    let config = pcs::whir::config_for_rate(mu, log_inv_rate).expect("stacked whir config");
-    let levels = config.level_shapes(mu);
+    let config = verifier::derive_config(mu, log_inv_rate).expect("stacked whir config");
+    let levels = pcs::whir::level_shapes(&config, mu);
     // Every level, the final one included, is committed and queried: each cap root the guest reaches is bound.
     assert!(
-        config.queries.len() == levels.ks.len() && levels.block_len.len() == levels.ks.len(),
+        config.queries.len() == config.folds.len() && levels.block_len.len() == config.folds.len(),
         "the yr level must be the last one"
     );
     let depth: Vec<usize> = levels.block_len.iter().map(|b| b.trailing_zeros() as usize).collect();
     WhirShape {
-        queries: config.queries,
-        folds: levels.ks,
+        queries: config.queries.to_vec(),
+        folds: config.folds,
         log_msg_cols: levels.log_msg_cols,
         yr_log_n: levels.yr_log_n,
         per_squeeze: depth.iter().map(|&d| 128 / d).collect(),

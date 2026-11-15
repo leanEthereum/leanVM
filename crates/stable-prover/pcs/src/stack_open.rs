@@ -18,9 +18,9 @@ use primitives::field::{F64, F128, powers};
 use primitives::transcript::ProverState;
 
 use crate::ring_switch::{self, RingWeight};
-use crate::whir::{self, ProverConfig, ProverData};
-use crate::whir_config::{BATCH_GRINDING_BITS, MAX_STACKED_CLAIMS};
+use crate::whir::{self, INITIAL_FOLDING_FACTOR, ProverData};
 use crate::whir_lanes::LaneRounds;
+use verifier::{BATCH_GRINDING_BITS, MAX_STACKED_CLAIMS, WhirConfig};
 
 mod basis;
 
@@ -61,7 +61,7 @@ pub fn open_batch_mixed_whir_stacked(
     log_n: usize,
     stack: Vec<F64>,
     prover_data: ProverData,
-    config: &ProverConfig,
+    config: &WhirConfig,
     point_claims: &[StackClaim],
     ring: &RingSwitchOpen,
 ) {
@@ -94,7 +94,11 @@ pub fn open_batch_mixed_whir_stacked(
         })
         .collect();
 
-    let lane_vars = log_n - config.folds[0];
+    assert_eq!(
+        config.folds[0], INITIAL_FOLDING_FACTOR,
+        "level 0 folds the leaf's lanes"
+    );
+    let lane_vars = log_n - INITIAL_FOLDING_FACTOR;
     let (terms, a) = tracing::info_span!("Basis")
         .in_scope(|| basis::initial_basis(log_n, lane_vars, point_claims, point_lambdas, ring.offset, &rings));
     whir::open(ps, config, LaneRounds::new(stack, terms, a), prover_data);

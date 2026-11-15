@@ -26,13 +26,49 @@ use primitives::transcript::ProverState;
 
 use crate::merkle::{Hash, LeafHasher, MerkleTree};
 use crate::ntt::AdditiveNttF64;
-use crate::whir_config::{FOLD_GRINDING_BITS, OOD_GRINDING_BITS};
-pub use crate::whir_config::{
-    INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, LevelShapes, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE, ProverConfig,
-    QUERY_GRINDING_BITS, SECURITY_BITS, config_for_rate, validate_log_inv_rate,
-};
 use crate::whir_induce::induce_basis;
 use crate::whir_lanes::LaneRounds;
+use verifier::{FOLD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY_GRINDING_BITS, WhirConfig};
+
+/// The smallest `log_inv_rate` a proof can use, its code rate being `2^-log_inv_rate`.
+pub const MIN_LOG_INV_RATE: usize = 1;
+/// The largest `log_inv_rate` a proof can use, its code rate being `2^-log_inv_rate`.
+pub const MAX_LOG_INV_RATE: usize = 4;
+/// Level 0's fold count, which is also the number of lanes a level-0 leaf holds, `2^INITIAL_FOLDING_FACTOR`.
+pub const INITIAL_FOLDING_FACTOR: usize = 6;
+
+/// The per-level sizes a [`WhirConfig`] (`verifier::derive_config`) implies for a `log_n`-variable opening.
+#[derive(Clone, Debug)]
+pub struct LevelShapes {
+    /// Log message columns after each level's folds.
+    pub log_msg_cols: Vec<usize>,
+    /// Each level's block length: its message columns times its inverse rate.
+    pub block_len: Vec<usize>,
+    /// The variables left after every fold, which the tail sumcheck takes.
+    pub yr_log_n: usize,
+}
+
+/// See [`LevelShapes`].
+pub fn level_shapes(config: &WhirConfig, log_n: usize) -> LevelShapes {
+    let log_msg_cols: Vec<usize> = config
+        .folds
+        .iter()
+        .scan(log_n, |vars, &k| {
+            *vars -= k;
+            Some(*vars)
+        })
+        .collect();
+    let block_len = log_msg_cols
+        .iter()
+        .zip(&config.log_inv_rates)
+        .map(|(&c, &r)| 1 << (c + r))
+        .collect();
+    LevelShapes {
+        yr_log_n: *log_msg_cols.last().expect("at least one level"),
+        log_msg_cols,
+        block_len,
+    }
+}
 
 /// Elements a task of a parallel pass takes.
 const CHUNK: usize = 1 << 12;
@@ -286,7 +322,7 @@ fn tail_sumcheck(ps: &mut ProverState, mut f: Vec<F128>, mut w: Vec<F128>) {
 
 /// Prove the weighted claim `<W, f>` on the stack `f` committed in `committed`, `level0` holding its lanes and the
 /// weight `W` as terms. The caller has bound the commitment and every claim the weight batches.
-pub(crate) fn open(ps: &mut ProverState, config: &ProverConfig, mut level0: LaneRounds, committed: ProverData) {
+pub(crate) fn open(ps: &mut ProverState, config: &WhirConfig, mut level0: LaneRounds, committed: ProverData) {
     let levels = config.folds.len();
     fold_rounds(ps, &mut level0, 0, config.folds[0]);
     // `p`: the folded lane `P`, its `2^mu` low coefficients then the high ones; `w`: the weight over the low ones.
@@ -361,7 +397,7 @@ mod tests {
     #[test]
     fn truncated_lanes_match_an_explicit_zero_tail() {
         for (log_n, lanes) in [(16usize, &[1usize, 5, 64][..]), (18, &[5, 64][..])] {
-            let pc = config_for_rate(log_n, LOG_INV_RATE_0).unwrap();
+            let pc = verifier::derive_config(log_n, MIN_LOG_INV_RATE).unwrap();
             let lane_vars = log_n - INITIAL_FOLDING_FACTOR;
             let lane_block = 1usize << lane_vars;
             for &n_lanes in lanes {

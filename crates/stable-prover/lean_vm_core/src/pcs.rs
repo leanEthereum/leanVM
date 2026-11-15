@@ -7,7 +7,7 @@
 //! contiguous block `q[l·2^(μ-LOG_BATCH)..]`: only [`crate::witness::StackShape::n_lanes`] lanes are encoded, and the
 //! absent ones lead every leaf image, one sponge state every leaf shares.
 //!
-//! Every supported rate uses Johnson list decoding with OOD binding ([`::pcs::whir::SECURITY_BITS`]). Level 0 takes
+//! Every supported rate uses Johnson list decoding with OOD binding ([`verifier::SECURITY_BITS`]). Level 0 takes
 //! its OOD sample right after its root ([`::pcs::ood`]), each deeper commitment one inside the opening.
 
 use primitives::field::F64;
@@ -16,13 +16,13 @@ use primitives::transcript::ProverState;
 use ::pcs::ood::ood_sample;
 use ::pcs::stack_open::open_batch_mixed_whir_stacked;
 pub use ::pcs::stack_open::{RingSwitchOpen, StackClaim as SlotClaim};
-use ::pcs::whir::{ProverData, commit as whir_commit, config_for_rate};
+use ::pcs::whir::{ProverData, commit as whir_commit};
 
 /// `log2` of the lanes a Merkle leaf holds, which is also WHIR's initial folding factor: the level-0 commitment is
 /// reused by the opening, so the two are one knob.
 pub(crate) const LOG_BATCH: usize = ::pcs::whir::INITIAL_FOLDING_FACTOR;
 /// The rate the test suite and the benchmarks prove at. Not a default: every entry point takes `log_inv_rate`.
-pub const TEST_LOG_INV_RATE: usize = ::pcs::whir::LOG_INV_RATE_0;
+pub const TEST_LOG_INV_RATE: usize = 1;
 /// The `log_inv_rate` values a WHIR configuration can be derived for.
 pub use ::pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 /// The committed stack's log-size bounds, the protocol's.
@@ -77,7 +77,7 @@ pub fn open(ps: &mut ProverState, c: Committed, q: Vec<F64>, points: &[SlotClaim
         "the witness is whole committed lanes"
     );
     assert!(q.len() <= 1 << c.mu, "the witness fits the announced size");
-    let cfg = config_for_rate(c.mu, c.log_inv_rate)
+    let cfg = verifier::derive_config(c.mu, c.log_inv_rate)
         .unwrap_or_else(|e| panic!("whir config for mu={}, log_inv_rate={}: {e}", c.mu, c.log_inv_rate));
     let points = [points, &[c.ood]].concat();
     open_batch_mixed_whir_stacked(ps, c.mu, q, c.prover_data, &cfg, &points, ring)
@@ -93,7 +93,7 @@ mod tests {
     fn supported_window_is_configurable() {
         for rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
             for mu in MIN_STACKED_LOG..=MAX_STACKED_LOG {
-                assert!(config_for_rate(mu, rate).is_ok(), "mu={mu} rate={rate}");
+                assert!(verifier::derive_config(mu, rate).is_ok(), "mu={mu} rate={rate}");
             }
         }
     }

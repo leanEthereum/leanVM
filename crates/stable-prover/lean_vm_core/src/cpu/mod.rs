@@ -265,7 +265,7 @@ fn keccak_output_claim(table_claims: &[constraints::Claims]) -> keccak_gkr::Outp
 /// Returns the proof and the run's [`Stats`], or why no proof was made.
 #[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate))]
 pub fn prove(program: &Program, public_input: [F128; 2], log_inv_rate: usize) -> Result<(Proof, Stats), ProveError> {
-    if ::pcs::whir::validate_log_inv_rate(log_inv_rate).is_err() {
+    if !(pcs::MIN_LOG_INV_RATE..=pcs::MAX_LOG_INV_RATE).contains(&log_inv_rate) {
         return Err(ProveError::InvalidRate { log_inv_rate });
     }
     let exec = crate::stage!("Execute program", || program.execute(public_input)).map_err(ProveError::Execution)?;

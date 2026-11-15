@@ -13,19 +13,19 @@ const LABEL: &[u8] = b"keccak-gkr-test";
 
 fn verify(shape: Shape, proof: &Proof) -> Result<(), VerifierError> {
     let iv = primitives::hash::hash(LABEL);
-    let log_inv_rate = pcs::whir::LOG_INV_RATE_0;
+    let log_inv_rate = pcs::whir::MIN_LOG_INV_RATE;
     verifier::verify_keccak_batch(&iv, shape.n_log(), shape.depth(), log_inv_rate, proof)
 }
 
 /// A proof of the batch `inputs`, its output claim offset by `lane_error` in one lane.
 fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::F64], lane_error: F128) -> Proof {
-    use pcs::whir::{LOG_INV_RATE_0, config_for_rate};
+    use pcs::whir::MIN_LOG_INV_RATE;
 
     let mut honest = vec![primitives::field::F64(0); 1 << shape.stack_log()];
     let witness = Witness::generate(shape, inputs, &mut honest);
-    let config = config_for_rate(shape.stack_log(), LOG_INV_RATE_0).expect("WHIR configuration");
-    let mut ps = batch_transcript(LABEL, shape, LOG_INV_RATE_0);
-    let (prover_data, ood) = commit_stack(&mut ps, shape, committed, LOG_INV_RATE_0);
+    let config = verifier::derive_config(shape.stack_log(), MIN_LOG_INV_RATE).expect("WHIR configuration");
+    let mut ps = batch_transcript(LABEL, shape, MIN_LOG_INV_RATE);
+    let (prover_data, ood) = commit_stack(&mut ps, shape, committed, MIN_LOG_INV_RATE);
     let mut output = crate::OutputClaim::of_inputs(shape, inputs, batch_instance(&mut ps, shape));
     output.lanes[7] += lane_error;
     ps.add_scalars(&output.lanes);
@@ -50,7 +50,7 @@ fn keccak_check(shape: Shape, at: usize) -> Option<VerifierError> {
         + (round3 + 1) * LOCAL_VARS
         + 3
         + nonce(2);
-    let ood = usize::from(pcs::whir_config::OOD_GRINDING_BITS > 0);
+    let ood = usize::from(verifier::OOD_GRINDING_BITS > 0);
     let first = 2 + ood + 1 + nonce(shape.n_log()) + LANES + nonce(shape.seg_log() + LANE_VARS);
     let layers = first + committed;
     let outputs = layers + shape.depth() * layer;
@@ -102,7 +102,7 @@ fn end_to_end(n_instances: usize, depth: usize) {
 /// is what lets other columns ride there at all.
 #[test]
 fn spare_slots_must_be_the_committed_ones() {
-    use pcs::whir::{LOG_INV_RATE_0, config_for_rate};
+    use pcs::whir::MIN_LOG_INV_RATE;
 
     let mut rng = Rng::new(81);
     let (n, depth) = (600, 12);
@@ -118,9 +118,9 @@ fn spare_slots_must_be_the_committed_ones() {
     let mut folded = committed.clone();
     folded[states] = primitives::field::F64(folded[states].0 ^ 1);
 
-    let config = config_for_rate(shape.stack_log(), LOG_INV_RATE_0).expect("WHIR configuration");
-    let mut ps = batch_transcript(LABEL, shape, LOG_INV_RATE_0);
-    let (prover_data, ood) = commit_stack(&mut ps, shape, &committed, LOG_INV_RATE_0);
+    let config = verifier::derive_config(shape.stack_log(), MIN_LOG_INV_RATE).expect("WHIR configuration");
+    let mut ps = batch_transcript(LABEL, shape, MIN_LOG_INV_RATE);
+    let (prover_data, ood) = commit_stack(&mut ps, shape, &committed, MIN_LOG_INV_RATE);
     let output = crate::OutputClaim::of_inputs(shape, &inputs, batch_instance(&mut ps, shape));
     ps.add_scalars(&output.lanes);
     let openings = witness.prove(&mut ps, &folded, &output);

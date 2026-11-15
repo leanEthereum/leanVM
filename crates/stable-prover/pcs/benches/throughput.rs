@@ -7,7 +7,7 @@
 //!
 //! ```text
 //! PCS_LOG_N          number of variables = log2(witness length)   [default 22]
-//! PCS_LOG_INV_RATE   log2 of the inverse RS rate (rate = 1/2^r)    [default: LOG_INV_RATE_0]
+//! PCS_LOG_INV_RATE   log2 of the inverse RS rate (rate = 1/2^r)    [default: MIN_LOG_INV_RATE]
 //! PCS_POINT_CLAIMS   point claims, each on its own quarter of the witness after the first [default 1]
 //! PCS_RING_CLAIMS    ring-switched claims on the witness's first half [default 0]
 //! BENCH_TRACING      print the final pass's trace tree (`RUST_LOG` adjusts it)
@@ -25,7 +25,7 @@ use std::time::Instant;
 use bench::{Plan, Timing, env_usize};
 use pcs::ood::ood_sample;
 use pcs::stack_open::{RingSwitchOpen, StackClaim, open_batch_mixed_whir_stacked};
-use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate};
+use pcs::whir::{INITIAL_FOLDING_FACTOR, MIN_LOG_INV_RATE, commit};
 use primitives::{field::F64, pretty_integer, test_rng::Rng};
 
 #[global_allocator]
@@ -35,8 +35,9 @@ fn main() {
     bench::init_tracing_from_env();
 
     let log_n = env_usize("PCS_LOG_N", 22);
-    let log_inv_rate = env_usize("PCS_LOG_INV_RATE", LOG_INV_RATE_0);
-    let pc = config_for_rate(log_n, log_inv_rate).expect("WHIR config feasible (try a larger PCS_LOG_N, e.g. >= 16)");
+    let log_inv_rate = env_usize("PCS_LOG_INV_RATE", MIN_LOG_INV_RATE);
+    let pc = verifier::derive_config(log_n, log_inv_rate)
+        .expect("WHIR config feasible (try a larger PCS_LOG_N, e.g. >= 16)");
     let plan = Plan::from_env();
     let trace_span = tracing::info_span!("PCS throughput", log_n, log_inv_rate).entered();
 
