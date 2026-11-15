@@ -8,17 +8,17 @@ A classic test for kernel evaluation: the fixture decides `K` and `E` arithmetic
 Keccak-f[1600] permutation, and the bus permutations in the kernel.
 
 **The fixture** is one hand-built witness of `SatisfiedBy` for the program of the execution
-tests, the executor's `mul_128bit_word` (`crates/leanvm_core/src/cpu/mod.rs:888-903` at leanVM
+tests, the executor's `mul_128bit_word` (`crates/leanvm_core/src/cpu/mod.rs` at leanVM
 `4af2cddd`, `tests/LeanVMTests/Semantics/Execution.lean`), extended with closed walks: a `JUMP` to
 the sentinel after the three instructions, and three blocks run in frames disjoint from the
 program's own, each a loop ending in a `JUMP` back to its first instruction: one `XOR`, one
 `DEREF`, one `KECCAK`. The `KECCAK` row is the first permutation of the executor test
-`keccak_permutes_in_both_layouts` (`cpu/mod.rs:842-875` at leanVM `4af2cddd`): the input cells
+`keccak_permutes_in_both_layouts` (`cpu/mod.rs` at leanVM `4af2cddd`): the input cells
 `a, b, a, b` (the two `m` pairs aliasing one another), the padding's first byte `0x01` in the
 tail's first cell, `b8 = (0x8000000000000000, 0x5555, 0)` whose high limb holds no lane in the
 even layout (the row's free limb), a zero capacity, and the thirteen output cells in the odd
 layout, the output lanes the pinned verifier's `keccak_f` computes
-(`crates/verifier/src/hash.rs:50-69`, computed outside Lean, as in the table and execution tests).
+(`crates/verifier/src/hash.rs`, computed outside Lean, as in the table and execution tests).
 The statement accepts rows that are not steps of the run as long as the state pair balances (Prop.
 6.1: one walk from the initial to the final registers, and closed walks), and the fixture exercises
 that. The thirty-two-slot program `walkProg` runs four steps from `(1, 1)` to `(g^31, 1)`
@@ -59,8 +59,7 @@ open Air.Flat (Component EnsembleWitness)
 
 /-! ## The fixture: `mul_128bit_word` with closed walks -/
 
--- The operands and product of the executor test `mul_128bit_word` (`cpu/mod.rs:853-869` at
--- `leanvm-rev`).
+-- The operands and product of the executor test `mul_128bit_word` (`cpu/mod.rs`).
 def mulX : E :=
   E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfeedfacedeadbeef)
 def mulY : E :=
@@ -73,7 +72,7 @@ def mulXY : E :=
 -- input cells, the words `a, b` (each read twice through the aliased `m` pairs), the padding's
 -- first byte in the tail, its last bit in `b8` (whose free high limb `0x5555` holds no lane), and
 -- a zero capacity; the input lanes they hold in the even layout, and their image under `keccak_f`
--- (`hash.rs:50-69`, computed outside Lean).
+-- (`hash.rs`, computed outside Lean).
 def kA : E := E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfedcba9876543210)
 def kB : E := E.ofLimbs (K.ofBits 0xdeadbeefcafebabe) (K.ofBits 0x0badf00d0badf00d)
 def kPad : E := E.ofLimbs (K.ofBits 0x01) 0

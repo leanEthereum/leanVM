@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Sumcheck.MeaningP
 /-!
 # The batching's sponge
 
-* `batch_fs`: `Node.batch` (N:268) on the carried sponge (`Fs`): the seed's capacity absorbs the
+* `batch_fs`: `Node.batch` on the carried sponge (`Fs`): the seed's capacity absorbs the
   batching's words (`aggAbs`), the hinted nonce's permutation (`aggN`, `Fs.nonceState`) passes the
   proof of work and draws `λ`, whose powers are the lambdas (`aggLam`), and `bsRun` runs the
   sumcheck (`aggRun`); from G4's `Batch.batch_eq` and the carried sponge's operations

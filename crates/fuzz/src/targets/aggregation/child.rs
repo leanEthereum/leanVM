@@ -9,9 +9,9 @@ use crate::mutate_proof::{mutate, perturb};
 use crate::{Ctx, Finding, Outcome, Source};
 use primitives::field::F128;
 use rec_aggregation::fuzzing::{Parts, leaf_deferred, true_deferred_value};
-use rec_aggregation::{EthereumClaims, EthereumProof};
-use signatures::lean_sphincs::LeanSphincsPublicKey;
-use signatures::lean_xmss::LeanXmssPublicKey;
+use rec_aggregation::fuzzing::{EthereumClaims, EthereumProof};
+use lean_sphincs::LeanSphincsPublicKey;
+use lean_xmss::LeanXmssPublicKey;
 
 pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
     let f = fixtures(ctx)?;
@@ -153,27 +153,36 @@ pub fn forge(parts: &mut Parts, src: &mut Source, f: &Fixtures, i: usize) -> Str
     let j = (i + 1 + src.below(f.children.len() - 1)) % f.children.len();
     let other = f.proof(j);
     match src.weighted(&[6, 2, 1, 2, 2, 1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 2, 6]) {
-        0 => format!("proof {}", mutate(&mut parts.proof, src, Some(other.vm_proof()))),
-        16 => opened_content(&mut parts.proof, src),
+        0 => format!("proof {}", mutate(&mut parts.proof.proof, src, Some(other.vm_proof()))),
+        16 => opened_content(&mut parts.proof.proof, src),
         1 => {
             let n = src.range(2, 4);
             for _ in 0..n {
-                mutate(&mut parts.proof, src, Some(other.vm_proof()));
+                mutate(&mut parts.proof.proof, src, Some(other.vm_proof()));
             }
             "proof many".into()
         }
         2 => {
-            parts.proof = other.vm_proof().clone();
+            parts.proof.proof = other.vm_proof().clone();
             format!("proof of `{}`", f.children[j].name)
         }
         3 => {
-            parts.defer_value = perturb(parts.defer_value, src);
+            {
+                let v = parts.defer_value;
+                parts.defer_value = {
+                    let e = perturb(verifier::E::new(v.c0, v.c1), src);
+                    primitives::field::F128::new(e.c0, e.c1)
+                };
+            }
             "defer value".into()
         }
         4 => {
             let k = src.below(parts.defer_point.len().max(1));
             if let Some(x) = parts.defer_point.get_mut(k) {
-                *x = perturb(*x, src);
+                { let v = *x; *x = {
+                    let e = perturb(verifier::E::new(v.c0, v.c1), src);
+                    primitives::field::F128::new(e.c0, e.c1)
+                }; }
             }
             if src.bool() {
                 if let Some(v) = true_deferred_value(&parts.defer_point) {
@@ -313,14 +322,14 @@ pub fn forge(parts: &mut Parts, src: &mut Source, f: &Fixtures, i: usize) -> Str
 
 /// An opened leaf's word or a sibling changed, the query positions kept: the Fiat-Shamir transcript does not see
 /// it, so the replay walks the proof and only the guest's Merkle check can refuse it.
-fn opened_content(proof: &mut leanvm_core::cpu::Proof, src: &mut Source) -> String {
-    let phases: Vec<usize> = (0..proof.merkle.len())
-        .filter(|&p| !proof.merkle[p].is_empty())
+fn opened_content(proof: &mut verifier::Proof, src: &mut Source) -> String {
+    let phases: Vec<usize> = (0..proof.merkle_openings.len())
+        .filter(|&p| !proof.merkle_openings[p].is_empty())
         .collect();
     let Some(&phase) = phases.get(src.below(phases.len().max(1))) else {
         return "opened none".into();
     };
-    let paths = &mut proof.merkle[phase];
+    let paths = &mut proof.merkle_openings[phase];
     let q = src.below(paths.len());
     let path = &mut paths[q];
     if src.bool() && !path.leaf.is_empty() {

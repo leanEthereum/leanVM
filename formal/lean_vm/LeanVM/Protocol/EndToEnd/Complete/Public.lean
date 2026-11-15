@@ -22,8 +22,8 @@ public import LeanVM.Semantics.Lemmas
 /-!
 # The public input
 
-Step 5 of `verify_execution` (`publicInputPhase`, `crates/verifier/src/lib.rs:301-314` at
-leanVM at `leanvm-rev`): sample `r`, and claim of memory column `ℓ` at
+Step 5 of `verify_execution` (`publicInputPhase`, `crates/verifier/src/lib.rs` at
+leanVM): sample `r`, and claim of memory column `ℓ` at
 `(r, 0, …, 0)` the line through limb `ℓ` of the halves `(h₀, h₁)` of the public-input digest,
 `(1 + r)·h₀,ℓ + r·h₁,ℓ`. The prover sends nothing.
 
@@ -34,8 +34,8 @@ leanVM at `leanvm-rev`): sample `r`, and claim of memory column `ℓ` at
 * `hPub`: the honest prover receives `r` and sends nothing; it returns the claims at the
   extensions of the two memory limbs at `(r, 0, …, 0)`, the lines through their cells `0, 1`
   (`PublicInput.eval₂Mle_linePoint`).
-* `follows_publicInputPhase`: on a stack satisfying `M3Holds`, its public lines (`MEM_LO` holds
-  `input₀, input₂`, `MEM_HI` holds `input₁, input₃`) make the verifier's
+* `follows_publicInputPhase`: on a stack satisfying `M3Holds`, its public lines (`MEMORY_0` holds
+  `input₀, input₂`, `MEMORY_1` holds `input₁, input₃`) make the verifier's
   claims those values, so they are true claims (`TrueClaim`).
 -/
 

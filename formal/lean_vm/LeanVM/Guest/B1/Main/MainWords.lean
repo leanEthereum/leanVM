@@ -12,6 +12,9 @@ public import LeanVM.Guest.B1.Main.MainHonestBudgetB
 public import LeanVM.Guest.Complete
 public import LeanVM.Guest.AcceptableChild
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # `main`'s words, linear in the work
@@ -42,9 +45,9 @@ variable (fs SB SK : String → ℕ)
 
 /-! ## `da_verify` -/
 
-/-- The selected DA level's words per padded row, at most: the largest over the `11` levels of
-`⌈SB (da_levels at j) / 2^j⌉`. -/
-def dlK : ℕ := (Finset.range 11).sup fun j => (SB Da.dlNames[j]! + 2 ^ j - 1) / 2 ^ j
+/-- The words of the tree over the blob roots per row of the padded matrix, at most:
+`⌈SB dlTop / DA_MAX_ROWS⌉`. -/
+def dlK : ℕ := (SB Da.dlTop + guest_const% DA_MAX_ROWS - 1) / guest_const% DA_MAX_ROWS
 
 theorem le_cdiv_mul (a d : ℕ) (hd : 0 < d) : a ≤ (a + d - 1) / d * d := by
   have h1 := Nat.div_add_mod (a + d - 1) d
@@ -52,13 +55,9 @@ theorem le_cdiv_mul (a d : ℕ) (hd : 0 < d) : a ≤ (a + d - 1) / d * d := by
   have h3 : d * ((a + d - 1) / d) = (a + d - 1) / d * d := Nat.mul_comm _ _
   omega
 
-/-- **The selected DA level within `dlK` words per padded row.** -/
-theorem dl_le {L : ℕ} (hL : L < 11) : SB Da.dlNames[L]! ≤ dlK SB * 2 ^ L := by
-  have h1 := le_cdiv_mul (SB Da.dlNames[L]!) (2 ^ L) (Nat.two_pow_pos L)
-  have h2 : (SB Da.dlNames[L]! + 2 ^ L - 1) / 2 ^ L ≤ dlK SB :=
-    Finset.le_sup (f := fun j => (SB Da.dlNames[j]! + 2 ^ j - 1) / 2 ^ j)
-      (Finset.mem_range.mpr hL)
-  exact le_trans h1 (Nat.mul_le_mul_right _ h2)
+/-- **The tree over the blob roots within `dlK` words per row of the padded matrix.** -/
+theorem dl_le : SB Da.dlTop ≤ dlK SB * guest_const% DA_MAX_ROWS :=
+  le_cdiv_mul (SB Da.dlTop) _ (by norm_num)
 
 /-- **`r` rows of a loop and `P - r` of another within `r · (a - b) + P · b`**, with equality when
 `b ≤ a`: the row and padding loops share the padded height. -/
@@ -73,14 +72,14 @@ theorem rows_gap_le {a b r P : ℕ} (h : r ≤ P) : r * a + (P - r) * b ≤ r * 
     rw [Nat.sub_eq_zero_of_le hab, Nat.mul_zero, Nat.zero_add]
     omega
 
-/-- `da_verify`'s constant words: its frame, `da_row_shape`'s, `da_vector`'s, the column loop's
+/-- `da_verify`'s constant words: its frame, `da_padding`'s, `da_vector`'s, the column loop's
 `128` iterations (each its frame, the column's, the weights' expansion's and the row loop's
 phantom frame) and its untaken tail call's frame, the regions' and the trees' loops' phantom
 frames, the padding loop's (or its frame when it does not run): a static loop helper's run is
 charged its phantom frame once, here, and `iterK fs SK g` per iteration. -/
 def dvC : ℕ :=
-  fs "da_verify" + fs "da_row_shape" + SB "da_vector" + fs name% «da_verify_loop0» +
-    128 * (fs name% «da_verify_loop1» + fs "da_verify_column" + SB "da_expand__L7_L8" + fs
+  fs "da_verify" + fs "da_padding" + SB "da_vector" + fs name% «da_verify_loop0» +
+    128 * (fs name% «da_verify_loop1» + fs "da_verify_column" + SB "da_expand__L6_L7" + fs
         name% «da_verify_column_loop0») +
     fs name% «da_verify_loop1» + fs name% «da_verify_loop2» + fs name% «da_verify_loop3»
 
@@ -95,7 +94,7 @@ def dvS : ℕ :=
 levels. -/
 def dvP : ℕ := 4 + iterK fs SK name% «da_verify_loop3» + dlK SB
 
-theorem dvB_le {r L : ℕ} (hr : r ≤ 2 ^ L) (hL : L < 11) :
+theorem dvB_le {r L : ℕ} (hr : r ≤ 2 ^ L) (hL : L = guest_const% DA_LOG_MAX_ROWS) :
     Da.dvB fs SB SK r L ≤ dvC fs SB + r * dvS fs SK + 2 ^ L * dvP fs SB SK := by
   unfold Da.dvB Da.dvKB Da.clB Da.colB dvC dvS dvP Da.dvSizes
   generalize iterK fs SK name% «da_verify_loop0» = k21
@@ -107,15 +106,15 @@ theorem dvB_le {r L : ℕ} (hr : r ≤ 2 ^ L) (hL : L < 11) :
       (2 ^ L - r) * k24 + fs name% «da_verify_loop3» := by
     split <;> omega
   have hg := rows_gap_le (a := k23) (b := k24) hr
-  have hd := dl_le SB hL
+  have hd : SB (Da.daLevelsName L) ≤ dlK SB * 2 ^ L := by subst hL; exact dl_le SB
   simp only [List.sum_cons, List.sum_nil]
   have e : r * (642 + k21 + 128 * k25 + (k23 - k24)) =
       642 * r + r * k21 + 128 * (r * k25) + r * (k23 - k24) := by ring
   have e' : 2 ^ L * (4 + k24 + dlK SB) = 4 * 2 ^ L + 2 ^ L * k24 + dlK SB * 2 ^ L := by ring
-  have e'' : 128 * (fs name% «da_verify_loop1» + (fs "da_verify_column" + SB "da_expand__L7_L8" +
+  have e'' : 128 * (fs name% «da_verify_loop1» + (fs "da_verify_column" + SB "da_expand__L6_L7" +
       (r * k25 + fs name% «da_verify_column_loop0»))) = 128 * (fs name% «da_verify_loop1» + fs
           "da_verify_column" +
-      SB "da_expand__L7_L8" + fs name% «da_verify_column_loop0») + 128 * (r * k25) := by ring
+      SB "da_expand__L6_L7" + fs name% «da_verify_column_loop0») + 128 * (r * k25) := by ring
   omega
 
 /-! ## The claim lists
@@ -326,18 +325,10 @@ theorem hDvB_le {bytecode : List K} {seed : Digest} {s : NodeStatement} {w : Nod
   | some p =>
     rw [DaDigestHeld, hw] at hda
     have hw' : p.2.Opens p.1.daRoot p.1.membershipChallenge := hda.2
-    have hb := Da.nPad_bounds hw'.1
     have hm := hw'.2.1
-    unfold LeanDa.maxRows at hm
-    unfold LeanDa.paddedRowCount at hb
-    have hL : Da.wLog p.2 < 11 := by
-      unfold Da.wLog
-      have : 2 ^ LeanDa.logPaddedRowCount p.2.rows.length < 2 ^ 11 := by omega
-      exact (Nat.pow_lt_pow_iff_right (by norm_num)).mp this
     simp only [Option.map_some, Option.getD_some, Nat.one_mul]
-    refine (dvB_le fs SB SK (r := p.2.rows.length) (by unfold Da.wLog; omega) hL).trans
-      (le_of_eq ?_)
-    unfold Da.wLog LeanDa.paddedRowCount
+    refine (dvB_le fs SB SK (r := p.2.rows.length) (L := Da.wLog p.2) hm rfl).trans (le_of_eq ?_)
+    unfold Da.wLog LeanDa.maxRows
     ring
 
 /-- `aggregate_claims`' constant words. -/

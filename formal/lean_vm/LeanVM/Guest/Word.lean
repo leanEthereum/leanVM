@@ -15,7 +15,7 @@ public import LeanVM.Parameters.Generator
 /-!
 # Compile-time words
 
-What the compiler computes in `F128` while folding (`crates/lean_compiler/src/lib.rs`,
+What the compiler computes in `F128` while folding (`crates/zkdsl_compiler/src/lib.rs`,
 `lower/eval.rs`), on the Spec's fields:
 
 * `word c0 c1`, the element `c0 + c1·y` from two 64-bit limbs; `litField n`, the word whose
@@ -26,7 +26,7 @@ What the compiler computes in `F128` while folding (`crates/lean_compiler/src/li
 * the shape of a `KECCAK` state in cells (`stateCells`, `blockCells`) and the padding's words:
   `byteWord pos v`, the byte `v` at byte `pos` of a message cell (`xor_byte`), and
   `keccakPadValue`, the padding's first byte at the start of a cell (`keccak_pad_value`,
-  `crates/lean_compiler/src/lower/builtins.rs`); the bytes themselves are the Spec's
+  `crates/zkdsl_compiler/src/lower/builtins.rs`); the bytes themselves are the Spec's
   (`Protocol.KeccakHash.padFirst`, `padLast`, `rate`).
 -/
 
@@ -105,11 +105,11 @@ def wordBit (x : E) (i : Nat) : Bool :=
   let l := if i / 64 = 0 then c0 else if i / 64 = 1 then c1 else 0
   (l / 2 ^ (i % 64)) % 2 = 1
 
-/-- The cells of a Keccak state (`STATE_CELLS`, `crates/leanvm_core/src/keccak.rs:54`). -/
+/-- The cells of a Keccak state (`STATE_CELLS`, `crates/lean_vm_core/src/keccak.rs`). -/
 def stateCells : Nat := 13
 
 /-- The rate cells a block of `136` bytes covers (`RATE_CELLS`,
-`crates/leanvm_core/src/keccak.rs:56`). -/
+`crates/lean_vm_core/src/keccak.rs`). -/
 def blockCells : Nat := 9
 
 /-- The byte `v < 256` at byte `pos % 16` of a message cell, little-endian in limb `0` then limb

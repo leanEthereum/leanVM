@@ -8,8 +8,8 @@ use crate::{Finding, Source};
 use leanvm_core::cpu::ProveError;
 use primitives::field::{F64, F128, g_pow};
 use rec_aggregation::fuzzing::{NodeRun, execute_node};
-use rec_aggregation::{AggregateVerifyError, AggregationError, EthereumClaims, EthereumProof};
-use signatures::{lean_sphincs, lean_xmss};
+use rec_aggregation::fuzzing::{AggregateVerifyError, AggregationError, EthereumClaims, EthereumProof, OutputClaims};
+
 use std::collections::{BTreeSet, HashMap};
 use std::sync::OnceLock;
 
@@ -39,14 +39,65 @@ impl Inputs {
         self.names.push(name.to_string());
     }
 
+    /// The children as `execute_node` takes them: each proof with the claims it attests.
+    pub fn child_pairs(&self) -> Vec<(rec_aggregation::AggregateClaims, rec_aggregation::AggregateProof)> {
+        self.children.iter().map(rec_aggregation::fuzzing::child_of).collect()
+    }
+
+    /// Build and run the node's guest on the prover `src` picks, publishing everything covered
+    /// (`OutputClaims::All`), a leaf's default.
+    pub fn execute_pick(&self, src: &mut Source) -> Result<NodeRun, AggregationError> {
+        let children = self.child_pairs();
+        let blobs = self.blob_matrix();
+        if src.prover() {
+            execute_node::<crate::pick::ExperimentalProver>(
+                &children,
+                self.lean_xmss.clone(),
+                self.sphincs.clone(),
+                blobs.as_ref(),
+                OutputClaims::All,
+            )
+        } else {
+            execute_node::<crate::pick::StableProver>(
+                &children,
+                self.lean_xmss.clone(),
+                self.sphincs.clone(),
+                blobs.as_ref(),
+                OutputClaims::All,
+            )
+        }
+    }
+
     pub fn execute(&self) -> Result<NodeRun, AggregationError> {
-        execute_node(
-            &self.children,
+        let children = self.child_pairs();
+        let blobs = self.blob_matrix();
+        execute_node::<crate::pick::StableProver>(
+            &children,
             self.lean_xmss.clone(),
             self.sphincs.clone(),
-            &self.blobs,
-            self.declare.as_ref(),
+            blobs.as_ref(),
+            OutputClaims::All,
         )
+    }
+
+    pub fn blob_matrix(&self) -> Option<lean_da::BlobMatrix> {
+        (!self.blobs.is_empty())
+            .then(|| {
+                lean_da::BlobMatrix::build(
+                    &self
+                        .blobs
+                        .chunks(lean_da::BLOB_SYMBOLS)
+                        .map(|chunk| {
+                            let mut blob = [0; lean_da::BLOB_SYMBOLS];
+                            for (word, symbol) in blob.iter_mut().zip(chunk) {
+                                *word = *symbol as u128;
+                            }
+                            blob
+                        })
+                        .collect::<Vec<_>>(),
+                )
+                .expect("a whole number of blobs below DA_MAX_ROWS")
+            })
     }
 
     pub fn describe(&self) -> String {
@@ -129,19 +180,30 @@ impl Backing {
             roots: BTreeSet::new(),
         };
         for (pk, m, sig) in lean_xmss {
-            if lean_xmss::verify(pk, m, sig).is_ok() {
+            if lean_xmss::verify(pk, m, sig) {
                 b.lean_xmss.insert((pk.to_bytes(), *m));
             }
         }
         for (pk, m, sig) in sphincs {
-            if lean_sphincs::verify(pk, m, sig).is_ok() {
+            if lean_sphincs::verify(pk, m, sig) {
                 b.sphincs.insert((pk.to_bytes(), *m));
             }
         }
         if !blobs.is_empty()
-            && let Ok((root, _)) = lean_da::commit(blobs)
+            && let Ok(matrix) = lean_da::BlobMatrix::build(
+                &blobs
+                    .chunks(lean_da::BLOB_SYMBOLS)
+                    .map(|chunk| {
+                        let mut blob = [0; lean_da::BLOB_SYMBOLS];
+                        for (word, symbol) in blob.iter_mut().zip(chunk) {
+                            *word = *symbol as u128;
+                        }
+                        blob
+                    })
+                    .collect::<Vec<_>>(),
+            )
         {
-            b.roots.insert(root);
+            b.roots.insert(matrix.top_root());
         }
         for child in children {
             if child.verify().is_ok() {
@@ -190,17 +252,10 @@ impl Backing {
 /// A stable name for why a node was not built.
 pub fn error_kind(e: &AggregationError) -> String {
     match e {
-        AggregationError::InvalidChild(v) => format!("InvalidChild/{}", verify_kind(v)),
-        AggregationError::Empty => "Empty".into(),
-        AggregationError::NotCovered => "NotCovered".into(),
-        AggregationError::MalformedRawSignature => "MalformedRawSignature".into(),
-        AggregationError::TooLarge => "TooLarge".into(),
-        AggregationError::InvalidBlobSize { .. } => "InvalidBlobSize".into(),
-        AggregationError::BlobNotCovered => "BlobNotCovered".into(),
-        AggregationError::BlobsUnpublished => "BlobsUnpublished".into(),
-        AggregationError::InvalidRate { .. } => "InvalidRate".into(),
-        AggregationError::ChildOutOfRange { .. } => "ChildOutOfRange".into(),
-        AggregationError::ProofError(_) => "ProofError".into(),
+        AggregationError::InvalidChild => "InvalidChild".into(),
+        AggregationError::InvalidInput(reason) => format!("InvalidInput/{reason}"),
+        AggregationError::InvalidSignature => "InvalidSignature".into(),
+        AggregationError::ProvingFailed => "ProvingFailed".into(),
     }
 }
 
@@ -364,10 +419,10 @@ fn kept<T: Clone, K: PartialEq>(raw: &[T], key: impl Fn(&T) -> K) -> Vec<T> {
 pub fn expect_for(inputs: &Inputs) -> Expect {
     let xmss_ok = kept(&inputs.lean_xmss, |(pk, m, _)| (pk.to_bytes(), *m))
         .iter()
-        .all(|(pk, m, s)| lean_xmss::verify(pk, m, s).is_ok());
+        .all(|(pk, m, s)| lean_xmss::verify(pk, m, s));
     let sphincs_ok = kept(&inputs.sphincs, |(pk, m, _)| (pk.to_bytes(), *m))
         .iter()
-        .all(|(pk, m, s)| lean_sphincs::verify(pk, m, s).is_ok());
+        .all(|(pk, m, s)| lean_sphincs::verify(pk, m, s));
     if xmss_ok && sphincs_ok {
         Expect::Exactly(inputs.expected_claims())
     } else {
@@ -514,7 +569,9 @@ pub fn prove_and_check(
     want: &EthereumClaims,
 ) -> Result<(), Finding> {
     let rate = src.range(leanvm_core::pcs::MIN_LOG_INV_RATE, leanvm_core::pcs::MAX_LOG_INV_RATE);
-    let proof = rec_aggregation::aggregate(
+    let experimental = src.prover();
+    let proof = super::super::super::pick::aggregate_pick(
+        experimental,
         &inputs.children,
         inputs.lean_xmss.clone(),
         inputs.sphincs.clone(),
@@ -577,7 +634,7 @@ pub fn prove_and_check(
         3 if !other.lean_xmss.is_empty() => {
             let (pk, m) = other.lean_xmss.remove(0);
             other.lean_sphincs.push((
-                signatures::lean_sphincs::LeanSphincsPublicKey::from_bytes(&pk.to_bytes()),
+                lean_sphincs::LeanSphincsPublicKey::from_bytes(&pk.to_bytes()),
                 m,
             ));
             other.lean_sphincs.sort();
@@ -588,7 +645,7 @@ pub fn prove_and_check(
             src.rng().fill(&mut pk);
             other
                 .lean_xmss
-                .push((signatures::lean_xmss::LeanXmssPublicKey::from_bytes(&pk), [3; 32]));
+                .push((lean_xmss::LeanXmssPublicKey::from_bytes(&pk), [3; 32]));
             other.lean_xmss.sort();
             "one leanXMSS claim more"
         }
@@ -617,13 +674,15 @@ pub fn witness_of(inputs: &Inputs) -> Option<Streams> {
     rec_aggregation::fuzzing::arm_forgery(Box::new(move |hints| {
         *sink.borrow_mut() = Some(hints.streams_mut().clone())
     }));
+    let children = inputs.child_pairs();
+    let blobs = inputs.blob_matrix();
     let built = crate::catch(|| {
-        rec_aggregation::fuzzing::prepare_node(
-            &inputs.children,
+        rec_aggregation::fuzzing::prepare_node::<crate::pick::StableProver>(
+            &children,
             inputs.lean_xmss.clone(),
             inputs.sphincs.clone(),
-            &inputs.blobs,
-            inputs.declare.as_ref(),
+            blobs.as_ref(),
+            OutputClaims::All,
         )
         .is_ok()
     });

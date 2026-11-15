@@ -10,48 +10,52 @@ module
 public import LeanVM.Guest.B2C.Share
 import LeanVM.Guest.Checked.Fn20
 import LeanVM.Guest.Checked.Link10
-import LeanVM.Guest.Pack.«P6».SharedOk
-import LeanVM.Guest.Pack.«P36».Shared5
-import LeanVM.Guest.Pack.«P0».Shared3
-import LeanVM.Guest.Pack.«P31».Shared3
-import LeanVM.Guest.Pack.«P14».Shared3
-import LeanVM.Guest.Pack.«P44».Shared4
-import LeanVM.Guest.Pack.«P28».Shared4
-import LeanVM.Guest.Pack.«P60».Shared2
-import LeanVM.Guest.Pack.«P11».Shared3
-import LeanVM.Guest.Pack.«P50».Shared3
-import LeanVM.Guest.Pack.«P42».Shared9
-import LeanVM.Guest.Pack.«P61».Shared4
-import LeanVM.Guest.Pack.«P22».SharedOk
-import LeanVM.Guest.Pack.«P4».SharedOk
-import LeanVM.Guest.Pack.«P20».Shared4
-import LeanVM.Guest.Pack.«P51».Shared3
-import LeanVM.Guest.Pack.«P12».SharedOk
-import LeanVM.Guest.Pack.«P21».Shared6
-import LeanVM.Guest.Pack.«P63».Shared4
-import LeanVM.Guest.Pack.«P56».Shared3
-import LeanVM.Guest.Pack.«P58».SharedOk
-import LeanVM.Guest.Pack.«P56».SharedOk
-import LeanVM.Guest.Pack.«P50».Shared4
-import LeanVM.Guest.Pack.«P20».SharedOk
-import LeanVM.Guest.Pack.«P60».SharedOk
-import LeanVM.Guest.Pack.«P24».Shared5
-import LeanVM.Guest.Pack.«P34».Shared4
-import LeanVM.Guest.Pack.«P43».SharedOk
-import LeanVM.Guest.Pack.«P23».SharedOk
-import LeanVM.Guest.Pack.«P54».SharedOk
 import LeanVM.Guest.Pack.«P26».Shared4
-import LeanVM.Guest.Pack.«P29».Shared4
-import LeanVM.Guest.Pack.«P27».Shared2
-import LeanVM.Guest.Pack.«P23».Shared5
-import LeanVM.Guest.Pack.«P5».Shared3
-import LeanVM.Guest.Pack.«P39».Shared3
-import LeanVM.Guest.Pack.«P43».Shared4
-import LeanVM.Guest.Pack.«P21».SharedOk
-import LeanVM.Guest.Pack.«P53».Shared3
-import LeanVM.Guest.Pack.«P13».Shared3
-import LeanVM.Guest.Pack.«P58».Shared4
 import LeanVM.Guest.Pack.«P45».Shared6
+import LeanVM.Guest.Pack.«P30».Shared2
+import LeanVM.Guest.Pack.«P49».Shared3
+import LeanVM.Guest.Pack.«P60».Shared3
+import LeanVM.Guest.Pack.«P15».Shared3
+import LeanVM.Guest.Pack.«P34».Shared5
+import LeanVM.Guest.Pack.«P31».Shared3
+import LeanVM.Guest.Pack.«P54».SharedOk
+import LeanVM.Guest.Pack.«P62».Shared4
+import LeanVM.Guest.Pack.«P13».SharedOk
+import LeanVM.Guest.Pack.«P23».Shared5
+import LeanVM.Guest.Pack.«P2».Shared4
+import LeanVM.Guest.Pack.«P25».Shared3
+import LeanVM.Guest.Pack.«P42».Shared9
+import LeanVM.Guest.Pack.«P0».Shared3
+import LeanVM.Guest.Pack.«P25».SharedOk
+import LeanVM.Guest.Pack.«P50».SharedOk
+import LeanVM.Guest.Pack.«P32».Shared4
+import LeanVM.Guest.Pack.«P22».Shared5
+import LeanVM.Guest.Pack.«P39».Shared4
+import LeanVM.Guest.Pack.«P3».Shared5
+import LeanVM.Guest.Pack.«P1».Shared3
+import LeanVM.Guest.Pack.«P11».SharedOk
+import LeanVM.Guest.Pack.«P1».SharedOk
+import LeanVM.Guest.Pack.«P46».Shared4
+import LeanVM.Guest.Pack.«P41».Shared3
+import LeanVM.Guest.Pack.«P46».SharedOk
+import LeanVM.Guest.Pack.«P1».Shared4
+import LeanVM.Guest.Pack.«P14».Shared3
+import LeanVM.Guest.Pack.«P33».Shared6
+import LeanVM.Guest.Pack.«P47».Shared4
+import LeanVM.Guest.Pack.«P28».Shared4
+import LeanVM.Guest.Pack.«P9».Shared4
+import LeanVM.Guest.Pack.«P54».Shared5
+import LeanVM.Guest.Pack.«P31».Shared4
+import LeanVM.Guest.Pack.«P12».SharedOk
+import LeanVM.Guest.Pack.«P44».Shared4
+import LeanVM.Guest.Pack.«P19».Shared4
+import LeanVM.Guest.Pack.«P57».SharedOk
+import LeanVM.Guest.Pack.«P38».Shared4
+import LeanVM.Guest.Pack.«P55».SharedOk
+import LeanVM.Guest.Pack.«P36».Shared6
+import LeanVM.Guest.Pack.«P61».Shared4
+import LeanVM.Guest.Pack.«P57».Shared3
+import LeanVM.Guest.Pack.«P9».SharedOk
 
 namespace LeanVM.Guest.B2C.Shared
 
@@ -60,154 +64,154 @@ open LeanVM.Guest.Checked
 @[expose] public section
 
 theorem ok1001 : ShareOk 1001 :=
-  shareOk_of_link link1001 plumbEq1001 fsEq1001 snapsEq1001 rfl (fun h ↦ nomatch h) Fn.«decode_query_windows__L15_L3».shareOk
+  shareOk_of_link link1001 plumbEq1001 fsEq1001 snapsEq1001 rfl (fun h ↦ nomatch h) Fn.«level_residual__L29_L6_L4_L2_loop0».shareOk
 
 theorem ok1002 : ShareOk 1002 :=
-  shareOk_of_link link1002 plumbEq1002 fsEq1002 snapsEq1002 rfl (fun h ↦ nomatch h) Fn.«level_positions__L28_L15_L3_loop0».shareOk
+  shareOk_of_link link1002 plumbEq1002 fsEq1002 snapsEq1002 rfl (fun h ↦ nomatch h) Fn.«level_residual__L29_L6_L4_L2_loop1».shareOk
 
 theorem ok1003 : ShareOk 1003 :=
-  shareOk_of_link link1003 plumbEq1003 fsEq1003 snapsEq1003 rfl (fun h ↦ nomatch h) Fn.«decode_query_windows__L16_L4».shareOk
+  shareOk_of_link link1003 plumbEq1003 fsEq1003 snapsEq1003 rfl (fun h ↦ nomatch h) Fn.«level_residual__L25_L6_L4_L2_loop0».shareOk
 
 theorem ok1004 : ShareOk 1004 :=
-  shareOk_of_link link1004 plumbEq1004 fsEq1004 snapsEq1004 rfl (fun h ↦ nomatch h) Fn.«level_positions__L14_L16_L4_loop0».shareOk
+  shareOk_of_link link1004 plumbEq1004 fsEq1004 snapsEq1004 rfl (fun h ↦ nomatch h) Fn.«level_residual__L25_L6_L4_L2_loop1».shareOk
 
 theorem ok1005 : ShareOk 1005 :=
-  shareOk_of_link link1005 plumbEq1005 fsEq1005 snapsEq1005 rfl (fun h ↦ nomatch h) Fn.«decode_query_windows__L17_L5».shareOk
+  shareOk_of_link link1005 plumbEq1005 fsEq1005 snapsEq1005 rfl (fun h ↦ nomatch h) Fn.«level_residual__L23_L6_L4_L2_loop0».shareOk
 
 theorem ok1006 : ShareOk 1006 :=
-  shareOk_of_link link1006 plumbEq1006 fsEq1006 snapsEq1006 rfl (fun h ↦ nomatch h) Fn.«level_positions__L11_L17_L5_loop0».shareOk
+  shareOk_of_link link1006 plumbEq1006 fsEq1006 snapsEq1006 rfl (fun h ↦ nomatch h) Fn.«level_residual__L23_L6_L4_L2_loop1».shareOk
 
 theorem ok1007 : ShareOk 1007 :=
-  shareOk_of_link link1007 plumbEq1007 fsEq1007 snapsEq1007 rfl (fun h ↦ nomatch h) Fn.«decode_query_windows__L18_L6».shareOk
+  shareOk_of_link link1007 plumbEq1007 fsEq1007 snapsEq1007 rfl (fun h ↦ nomatch h) Fn.«level_positions__L28_L16_L4_loop0».shareOk
 
 theorem ok1008 : ShareOk 1008 :=
-  shareOk_of_link link1008 plumbEq1008 fsEq1008 snapsEq1008 rfl (fun h ↦ nomatch h) Fn.«level_positions__L8_L18_L6_loop0».shareOk
+  shareOk_of_link link1008 plumbEq1008 fsEq1008 snapsEq1008 rfl (fun h ↦ nomatch h) Fn.«level_positions__L16_L17_L5_loop0».shareOk
 
 theorem ok1009 : ShareOk 1009 :=
-  shareOk_of_link link1009 plumbEq1009 fsEq1009 snapsEq1009 rfl (fun h ↦ nomatch h) Fn.«verify_merkle_cap__L3».shareOk
+  shareOk_of_link link1009 plumbEq1009 fsEq1009 snapsEq1009 rfl (fun h ↦ nomatch h) Fn.«level_positions__L11_L18_L6_loop0».shareOk
 
 theorem ok1010 : ShareOk 1010 :=
-  shareOk_of_link link1010 plumbEq1010 fsEq1010 snapsEq1010 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0».shareOk
+  shareOk_of_link link1010 plumbEq1010 fsEq1010 snapsEq1010 rfl (fun h ↦ nomatch h) Fn.«decode_query_windows__L19_L7».shareOk
 
 theorem ok1011 : ShareOk 1011 :=
-  shareOk_of_link link1011 plumbEq1011 fsEq1011 snapsEq1011 rfl (fun h ↦ nomatch h) Fn.«verify_merkle_cap__L4».shareOk
+  shareOk_of_link link1011 plumbEq1011 fsEq1011 snapsEq1011 rfl (fun h ↦ nomatch h) Fn.«level_positions__L10_L19_L7_loop0».shareOk
 
 theorem ok1012 : ShareOk 1012 :=
-  shareOk_of_link link1012 plumbEq1012 fsEq1012 snapsEq1012 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0».shareOk
+  shareOk_of_link link1012 plumbEq1012 fsEq1012 snapsEq1012 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0».shareOk
 
 theorem ok1013 : ShareOk 1013 :=
-  shareOk_of_link link1013 plumbEq1013 fsEq1013 snapsEq1013 rfl (fun h ↦ nomatch h) Fn.«verify_merkle_cap__L5».shareOk
+  shareOk_of_link link1013 plumbEq1013 fsEq1013 snapsEq1013 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L1_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0».shareOk
 
 theorem ok1014 : ShareOk 1014 :=
-  shareOk_of_link link1014 plumbEq1014 fsEq1014 snapsEq1014 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».shareOk
+  shareOk_of_link link1014 plumbEq1014 fsEq1014 snapsEq1014 rfl (fun h ↦ nomatch h) Fn.«level_positions__L7_L15_L3_loop0».shareOk
 
 theorem ok1015 : ShareOk 1015 :=
-  shareOk_of_link link1015 plumbEq1015 fsEq1015 snapsEq1015 rfl (fun h ↦ nomatch h) Fn.«verify_merkle_cap__L6».shareOk
+  shareOk_of_link link1015 plumbEq1015 fsEq1015 snapsEq1015 rfl (fun h ↦ nomatch h) Fn.«level_positions__L6_L16_L4_loop0».shareOk
 
 theorem ok1016 : ShareOk 1016 :=
-  shareOk_of_link link1016 plumbEq1016 fsEq1016 snapsEq1016 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».shareOk
+  shareOk_of_link link1016 plumbEq1016 fsEq1016 snapsEq1016 rfl (fun h ↦ nomatch h) Fn.«level_positions__L6_L17_L5_loop0».shareOk
 
 theorem ok1017 : ShareOk 1017 :=
-  shareOk_of_link link1017 plumbEq1017 fsEq1017 snapsEq1017 rfl (fun h ↦ nomatch h) Fn.«decode_query_windows__L14_L2».shareOk
+  shareOk_of_link link1017 plumbEq1017 fsEq1017 snapsEq1017 rfl (fun h ↦ nomatch h) Fn.«level_positions__L5_L18_L6_loop0».shareOk
 
 theorem ok1018 : ShareOk 1018 :=
-  shareOk_of_link link1018 plumbEq1018 fsEq1018 snapsEq1018 rfl (fun h ↦ nomatch h) Fn.«level_positions__L7_L14_L2_loop0».shareOk
+  shareOk_of_link link1018 plumbEq1018 fsEq1018 snapsEq1018 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0».shareOk
 
 theorem ok1019 : ShareOk 1019 :=
-  shareOk_of_link link1019 plumbEq1019 fsEq1019 snapsEq1019 rfl (fun h ↦ nomatch h) Fn.«level_positions__L6_L15_L3_loop0».shareOk
+  shareOk_of_link link1019 plumbEq1019 fsEq1019 snapsEq1019 rfl (fun h ↦ nomatch h) Fn.«level_positions__L4_L16_L4_loop0».shareOk
 
 theorem ok1020 : ShareOk 1020 :=
-  shareOk_of_link link1020 plumbEq1020 fsEq1020 snapsEq1020 rfl (fun h ↦ nomatch h) Fn.«level_positions__L5_L16_L4_loop0».shareOk
+  shareOk_of_link link1020 plumbEq1020 fsEq1020 snapsEq1020 rfl (fun h ↦ nomatch h) Fn.«level_positions__L4_L17_L5_loop0».shareOk
 
 theorem ok1021 : ShareOk 1021 :=
-  shareOk_of_link link1021 plumbEq1021 fsEq1021 snapsEq1021 rfl (fun h ↦ nomatch h) Fn.«level_positions__L5_L17_L5_loop0».shareOk
+  shareOk_of_link link1021 plumbEq1021 fsEq1021 snapsEq1021 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L3_L6_L12_L4_L1».shareOk
 
 theorem ok1022 : ShareOk 1022 :=
-  shareOk_of_link link1022 plumbEq1022 fsEq1022 snapsEq1022 rfl (fun h ↦ nomatch h) Fn.«verify_merkle_cap__L2».shareOk
+  shareOk_of_link link1022 plumbEq1022 fsEq1022 snapsEq1022 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1».shareOk
 
 theorem ok1023 : ShareOk 1023 :=
-  shareOk_of_link link1023 plumbEq1023 fsEq1023 snapsEq1023 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0».shareOk
+  shareOk_of_link link1023 plumbEq1023 fsEq1023 snapsEq1023 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1».shareOk
 
 theorem ok1024 : ShareOk 1024 :=
-  shareOk_of_link link1024 plumbEq1024 fsEq1024 snapsEq1024 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0».shareOk
+  shareOk_of_link link1024 plumbEq1024 fsEq1024 snapsEq1024 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1».shareOk
 
 theorem ok1025 : ShareOk 1025 :=
-  shareOk_of_link link1025 plumbEq1025 fsEq1025 snapsEq1025 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0».shareOk
+  shareOk_of_link link1025 plumbEq1025 fsEq1025 snapsEq1025 rfl (fun h ↦ nomatch h) Fn.«level_residual__L218_L15_L6_L3_loop0».shareOk
 
 theorem ok1026 : ShareOk 1026 :=
-  shareOk_of_link link1026 plumbEq1026 fsEq1026 snapsEq1026 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0».shareOk
+  shareOk_of_link link1026 plumbEq1026 fsEq1026 snapsEq1026 rfl (fun h ↦ nomatch h) Fn.«level_residual__L218_L15_L6_L3_loop1».shareOk
 
 theorem ok1027 : ShareOk 1027 :=
-  shareOk_of_link link1027 plumbEq1027 fsEq1027 snapsEq1027 rfl (fun h ↦ nomatch h) Fn.«decode_query_windows__L13_L7».shareOk
+  shareOk_of_link link1027 plumbEq1027 fsEq1027 snapsEq1027 rfl (fun h ↦ nomatch h) Fn.«level_residual__L109_L15_L6_L3_loop0».shareOk
 
 theorem ok1028 : ShareOk 1028 :=
-  shareOk_of_link link1028 plumbEq1028 fsEq1028 snapsEq1028 rfl (fun h ↦ nomatch h) Fn.«level_positions__L4_L13_L7_loop0».shareOk
+  shareOk_of_link link1028 plumbEq1028 fsEq1028 snapsEq1028 rfl (fun h ↦ nomatch h) Fn.«level_residual__L109_L15_L6_L3_loop1».shareOk
 
 theorem ok1029 : ShareOk 1029 :=
-  shareOk_of_link link1029 plumbEq1029 fsEq1029 snapsEq1029 rfl (fun h ↦ nomatch h) Fn.«level_positions__L4_L14_L2_loop0».shareOk
+  shareOk_of_link link1029 plumbEq1029 fsEq1029 snapsEq1029 rfl (fun h ↦ nomatch h) Fn.«level_residual__L73_L15_L6_L3_loop0».shareOk
 
 theorem ok1030 : ShareOk 1030 :=
-  shareOk_of_link link1030 plumbEq1030 fsEq1030 snapsEq1030 rfl (fun h ↦ nomatch h) Fn.«level_positions__L4_L15_L3_loop0».shareOk
+  shareOk_of_link link1030 plumbEq1030 fsEq1030 snapsEq1030 rfl (fun h ↦ nomatch h) Fn.«level_residual__L73_L15_L6_L3_loop1».shareOk
 
 theorem ok1031 : ShareOk 1031 :=
-  shareOk_of_link link1031 plumbEq1031 fsEq1031 snapsEq1031 rfl (fun h ↦ nomatch h) Fn.«level_positions__L3_L16_L4_loop0».shareOk
+  shareOk_of_link link1031 plumbEq1031 fsEq1031 snapsEq1031 rfl (fun h ↦ nomatch h) Fn.«level_residual__L55_L15_L6_L3_loop0».shareOk
 
 theorem ok1032 : ShareOk 1032 :=
-  shareOk_of_link link1032 plumbEq1032 fsEq1032 snapsEq1032 rfl (fun h ↦ nomatch h) Fn.«verify_merkle_cap__L7».shareOk
+  shareOk_of_link link1032 plumbEq1032 fsEq1032 snapsEq1032 rfl (fun h ↦ nomatch h) Fn.«level_residual__L55_L15_L6_L3_loop1».shareOk
 
 theorem ok1033 : ShareOk 1033 :=
-  shareOk_of_link link1033 plumbEq1033 fsEq1033 snapsEq1033 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0».shareOk
+  shareOk_of_link link1033 plumbEq1033 fsEq1033 snapsEq1033 rfl (fun h ↦ nomatch h) Fn.«level_residual__L55_L11_L4_L2_loop0».shareOk
 
 theorem ok1034 : ShareOk 1034 :=
-  shareOk_of_link link1034 plumbEq1034 fsEq1034 snapsEq1034 rfl (fun h ↦ nomatch h) Fn.«decode_query_windows__L12_L6».shareOk
+  shareOk_of_link link1034 plumbEq1034 fsEq1034 snapsEq1034 rfl (fun h ↦ nomatch h) Fn.«level_residual__L55_L11_L4_L2_loop1».shareOk
 
 theorem ok1035 : ShareOk 1035 :=
-  shareOk_of_link link1035 plumbEq1035 fsEq1035 snapsEq1035 rfl (fun h ↦ nomatch h) Fn.«level_positions__L3_L12_L6_loop0».shareOk
+  shareOk_of_link link1035 plumbEq1035 fsEq1035 snapsEq1035 rfl (fun h ↦ nomatch h) Fn.«level_residual__L44_L11_L4_L2_loop0».shareOk
 
 theorem ok1036 : ShareOk 1036 :=
-  shareOk_of_link link1036 plumbEq1036 fsEq1036 snapsEq1036 rfl (fun h ↦ nomatch h) Fn.«level_positions__L3_L13_L7_loop0».shareOk
+  shareOk_of_link link1036 plumbEq1036 fsEq1036 snapsEq1036 rfl (fun h ↦ nomatch h) Fn.«level_residual__L44_L11_L4_L2_loop1».shareOk
 
 theorem ok1037 : ShareOk 1037 :=
-  shareOk_of_link link1037 plumbEq1037 fsEq1037 snapsEq1037 rfl (fun h ↦ nomatch h) Fn.«level_positions__L3_L14_L2_loop0».shareOk
+  shareOk_of_link link1037 plumbEq1037 fsEq1037 snapsEq1037 rfl (fun h ↦ nomatch h) Fn.«level_residual__L37_L11_L4_L2_loop0».shareOk
 
 theorem ok1038 : ShareOk 1038 :=
-  shareOk_of_link link1038 plumbEq1038 fsEq1038 snapsEq1038 rfl (fun h ↦ nomatch h) Fn.«level_positions__L3_L15_L3_loop0».shareOk
+  shareOk_of_link link1038 plumbEq1038 fsEq1038 snapsEq1038 rfl (fun h ↦ nomatch h) Fn.«level_residual__L37_L11_L4_L2_loop1».shareOk
 
 theorem ok1039 : ShareOk 1039 :=
-  shareOk_of_link link1039 plumbEq1039 fsEq1039 snapsEq1039 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1».shareOk
+  shareOk_of_link link1039 plumbEq1039 fsEq1039 snapsEq1039 rfl (fun h ↦ nomatch h) Fn.«level_residual__L32_L11_L4_L2_loop0».shareOk
 
 theorem ok1040 : ShareOk 1040 :=
-  shareOk_of_link link1040 plumbEq1040 fsEq1040 snapsEq1040 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L2_L3_L8_L3_L1».shareOk
+  shareOk_of_link link1040 plumbEq1040 fsEq1040 snapsEq1040 rfl (fun h ↦ nomatch h) Fn.«level_residual__L32_L7_L4_L2_loop0».shareOk
 
 theorem ok1041 : ShareOk 1041 :=
-  shareOk_of_link link1041 plumbEq1041 fsEq1041 snapsEq1041 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1».shareOk
+  shareOk_of_link link1041 plumbEq1041 fsEq1041 snapsEq1041 rfl (fun h ↦ nomatch h) Fn.«level_residual__L28_L7_L4_L2_loop0».shareOk
 
 theorem ok1042 : ShareOk 1042 :=
-  shareOk_of_link link1042 plumbEq1042 fsEq1042 snapsEq1042 rfl (fun h ↦ nomatch h) Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1».shareOk
+  shareOk_of_link link1042 plumbEq1042 fsEq1042 snapsEq1042 rfl (fun h ↦ nomatch h) Fn.«level_residual__L28_L7_L4_L2_loop1».shareOk
 
 theorem ok1043 : ShareOk 1043 :=
-  shareOk_of_link link1043 plumbEq1043 fsEq1043 snapsEq1043 rfl (fun h ↦ nomatch h) Fn.«level_residual__L219_L14_L6_L3_loop0».shareOk
+  shareOk_of_link link1043 plumbEq1043 fsEq1043 snapsEq1043 rfl (fun h ↦ nomatch h) Fn.«level_residual__L25_L7_L4_L2_loop0».shareOk
 
 theorem ok1044 : ShareOk 1044 :=
-  shareOk_of_link link1044 plumbEq1044 fsEq1044 snapsEq1044 rfl (fun h ↦ nomatch h) Fn.«level_residual__L219_L14_L6_L3_loop1».shareOk
+  shareOk_of_link link1044 plumbEq1044 fsEq1044 snapsEq1044 rfl (fun h ↦ nomatch h) Fn.«level_residual__L25_L7_L4_L2_loop1».shareOk
 
 theorem ok1045 : ShareOk 1045 :=
-  shareOk_of_link link1045 plumbEq1045 fsEq1045 snapsEq1045 rfl (fun h ↦ nomatch h) Fn.«level_residual__L109_L14_L6_L3_loop0».shareOk
+  shareOk_of_link link1045 plumbEq1045 fsEq1045 snapsEq1045 rfl (fun h ↦ nomatch h) Fn.«level_residual__L23_L7_L4_L2_loop0».shareOk
 
 theorem ok1046 : ShareOk 1046 :=
-  shareOk_of_link link1046 plumbEq1046 fsEq1046 snapsEq1046 rfl (fun h ↦ nomatch h) Fn.«level_residual__L109_L14_L6_L3_loop1».shareOk
+  shareOk_of_link link1046 plumbEq1046 fsEq1046 snapsEq1046 rfl (fun h ↦ nomatch h) Fn.«level_residual__L23_L7_L4_L2_loop1».shareOk
 
 theorem ok1047 : ShareOk 1047 :=
-  shareOk_of_link link1047 plumbEq1047 fsEq1047 snapsEq1047 rfl (fun h ↦ nomatch h) Fn.«level_residual__L73_L14_L6_L3_loop0».shareOk
+  shareOk_of_link link1047 plumbEq1047 fsEq1047 snapsEq1047 rfl (fun h ↦ nomatch h) Fn.«level_positions__L32_L17_L5_loop0».shareOk
 
 theorem ok1048 : ShareOk 1048 :=
-  shareOk_of_link link1048 plumbEq1048 fsEq1048 snapsEq1048 rfl (fun h ↦ nomatch h) Fn.«level_residual__L73_L14_L6_L3_loop1».shareOk
+  shareOk_of_link link1048 plumbEq1048 fsEq1048 snapsEq1048 rfl (fun h ↦ nomatch h) Fn.«level_positions__L16_L18_L6_loop0».shareOk
 
 theorem ok1049 : ShareOk 1049 :=
-  shareOk_of_link link1049 plumbEq1049 fsEq1049 snapsEq1049 rfl (fun h ↦ nomatch h) Fn.«level_residual__L55_L14_L6_L3_loop0».shareOk
+  shareOk_of_link link1049 plumbEq1049 fsEq1049 snapsEq1049 rfl (fun h ↦ nomatch h) Fn.«level_positions__L13_L19_L7_loop0».shareOk
 
 theorem ok1050 : ShareOk 1050 :=
-  shareOk_of_link link1050 plumbEq1050 fsEq1050 snapsEq1050 rfl (fun h ↦ nomatch h) Fn.«level_residual__L55_L14_L6_L3_loop1».shareOk
+  shareOk_of_link link1050 plumbEq1050 fsEq1050 snapsEq1050 rfl (fun h ↦ nomatch h) Fn.«decode_query_windows__L20_L2».shareOk
 
 end
 end LeanVM.Guest.B2C.Shared

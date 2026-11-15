@@ -10,7 +10,7 @@ use crate::mutate_proof::{ANNOUNCED, perturb};
 use crate::{Ctx, Outcome, Source, catch};
 use leanvm_core::cpu::tamper::transcript;
 use leanvm_core::tables::{N_TABLES, TABLE_LOG_FLOORS, tables};
-use primitives::field::F128;
+use verifier::E;
 use std::cell::Cell;
 use std::collections::BTreeMap;
 use std::ops::Range;
@@ -86,12 +86,12 @@ impl Stages {
 /// What the forger does to the scalar at one position: add a difference, or send a value outright.
 #[derive(Clone, Copy, Debug)]
 enum Forge {
-    Add(F128),
-    Set(F128),
+    Add(E),
+    Set(E),
 }
 
 impl Forge {
-    fn apply(self, x: F128) -> F128 {
+    fn apply(self, x: E) -> E {
         match self {
             Forge::Add(d) => x + d,
             Forge::Set(v) => v,
@@ -100,7 +100,7 @@ impl Forge {
 }
 
 /// A lie about announced size `j` (`log_mem`, a table's rows, the rate), the prover committing its real witness.
-fn announced_lie(j: usize, honest: &F128, src: &mut Source) -> F128 {
+fn announced_lie(j: usize, honest: &E, src: &mut Source) -> E {
     let v = honest.c0;
     let lie = match src.below(6) {
         0 => v.wrapping_add(1),
@@ -111,7 +111,7 @@ fn announced_lie(j: usize, honest: &F128, src: &mut Source) -> F128 {
         4 => v.wrapping_add(src.range(2, 1 << 12) as u64),
         _ => v ^ (1 << src.below(40)),
     };
-    F128::new(lie, 0)
+    E::new(lie, 0)
 }
 
 pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
@@ -190,7 +190,7 @@ fn forge_and_verify(
         }
         None => x,
     }));
-    let proved = catch(|| leanvm_core::cpu::prove(&fixture.program, fixture.public_input, rate));
+    let proved = catch(|| leanvm_core::cpu::prove(&fixture.program, &fixture.witness, fixture.public_input, rate));
     transcript::disarm();
     let proof = match proved {
         Err(_) => {

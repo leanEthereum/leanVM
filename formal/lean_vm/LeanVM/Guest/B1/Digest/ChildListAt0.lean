@@ -16,7 +16,7 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # The walk by hinted indices, the parts
 
-* The path: `child_claim_list_any`'s body is flat (G:4395-4415): a straight run `anyP1` (the chain
+* The path: `child_claim_list_any`'s body is flat: a straight run `anyP1` (the chain
   buffer's `HeapBuf`, the zero state, `child_claim_list_any_loop0` over the big frames,
   `child_claim_list_any_loop1` over the groups), the dispatch on the rest, two copies, the `ret`
   (`anyFlat_split`).

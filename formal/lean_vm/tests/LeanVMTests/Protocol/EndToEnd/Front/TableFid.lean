@@ -8,7 +8,7 @@ import LeanVM.Protocol.EndToEnd.Front.TableFidLeanIsa
   (`refFlush_evalE`), `KECCAK`'s twenty-eight flushes of a side included; `JUMP`'s constraints
   likewise (`jumpConstraints_evalE`).
 * **The instance's shape.** The sumcheck tables are the six opcode tables, `B = 2`, and the
-  boundary columns are the memory columns and `BFCNT`.
+  boundary columns are the memory columns and `BYTECODE_FINAL_COUNTERS`.
 * **The weights.** The verifier's sixteen slot weights are the protocol's fingerprint weights.
 * **The boundary blocks, and the mutation that makes the share load-bearing.** At a read whose
   share is the bytecode's the protocol's push boundary values are the verifier's framework

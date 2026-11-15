@@ -89,7 +89,7 @@ def mOrcStmts : List Stmt :=
     .call "claim_list_digest" [.n 34, .n 3] [.n 37, .n 38],
     .atom (.hint (.allocDyn (.n 45) (.n 24))), .atom (.hint (.alloc (.n 47) 256)),
     .atom (.hint (.allocDyn (.n 364) (.n 363))),
-    .call "da_verify" [.n 28] [.n 369, .n 370, .n 371],
+    .call "da_verify" [] [.n 369, .n 370, .n 371],
     .atom (.hint (.allocDyn (.n 383) (.n 382))), .atom (.hint (.allocDyn (.n 389) (.n 388))),
     .atom (.hint (.allocDyn (.n 395) (.n 394))), .atom (.hint (.allocDyn (.n 398) (.n 397))),
     .atom (.hint (.witness "da_pick" (.stack [.n 405]))),

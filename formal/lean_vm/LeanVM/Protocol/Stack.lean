@@ -34,7 +34,7 @@ point of `E` (specification §4.1).
   `1 + Σ_b eq(sel_b, ζ_hi)` (§5.4, equation (2)).
 
 Written from the specification, except the strided slots, whose shape is the
-Rust's (`crates/pcs/src/stack_open.rs:74-87`, `crates/leanvm_core/src/cpu/mod.rs:718-724` at
+Rust's (`crates/pcs/src/stack_open.rs`, `crates/leanvm_core/src/cpu/mod.rs` at
 `127510d14c98ade4e8a97646c44fa7f1ff5e752d`). Which columns the blocks are, and in which order
 equal sizes come, is the instance's to say, not this module's.
 
@@ -205,7 +205,7 @@ private theorem readWith_slice (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (k : ℕ
 frozen to the bits of the column's slot, and a point `z` of the column lifts to the stack's
 point `(z, slot bits, selector bits of b)`. The column is the block's cells
 `offset_b + slot · 2 ^ κ + x`: for leanVM, a lane of `q_keccak`
-(`crates/verifier/src/layout.rs:559-563`). -/
+(`crates/verifier/src/layout.rs`). -/
 def sliceLayout (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (k : ℕ) {ι : Type} {κ : ι → ℕ}
     (slot : ι → Fin (2 ^ k)) (h : ∀ c, B.size b = κ c + k) : Layout μ ι κ where
   extend := fun c z ↦

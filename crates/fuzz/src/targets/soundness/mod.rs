@@ -4,7 +4,7 @@
 //! any of them is Critical.
 
 use crate::{Cost, Ctx, Finding, Target, catch};
-use leanvm_core::cpu::Proof;
+use verifier::Proof;
 use verifier::VerifierError as CpuError;
 
 pub mod determinism;
@@ -83,14 +83,9 @@ pub fn replay_caught(
     proof: &Proof,
     context: &str,
 ) -> Result<Result<verifier::Summary, verifier::VerifierError>, Finding> {
-    let table: Vec<u64> = leanvm_core::cpu::bytecode_table(fixture.program.prog())
-        .iter()
-        .map(|w| w.0)
-        .collect();
-    let bytecode = verifier::Bytecode::new(&table);
+    let bytecode = fixture.program.bytecode();
     let pi = leanvm_core::cpu::public_input_bytes(&fixture.public_input);
-    let proof = leanvm_core::cpu::scalar_proof(proof);
-    catch(|| verifier::replay_unchecked(&bytecode, &pi, &proof))
+    catch(|| verifier::replay_unchecked(&bytecode, &pi, proof))
         .map_err(|(m, l)| Finding::panic(&m, &l).in_context(context))
 }
 

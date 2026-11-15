@@ -1,0 +1,91 @@
+//! Proof-level properties of the VM: that its channels carry everything, and that a malformed input is an error rather than a panic.
+
+use crate::common::compile;
+use fiat_shamir_prover::merkle::hash_to_scalars;
+use lean_vm_core::cpu::{Proof, ProveError, prove, verify};
+use primitives::field::F128;
+use zkdsl_compiler::parse;
+
+/// A program that hashes one block and publishes the digest, so its proof carries
+/// the Keccak reduction over a real compression.
+const HASHING: &str = "\
+def main():
+    a = StackBuf(2)
+    a[0] = 5
+    a[1] = 7
+    c = StackBuf(2)
+    keccak(a, a, c)
+    p = 1
+    p[1] = c[0]
+    p[GEN] = c[1]
+    return
+";
+
+/// The cells `[5, 7]` after `n` steps of `keccak(h, h, h)`: the public input of `n` chained hashes, `HASHING`'s for one.
+fn chained_digest(n: usize) -> [F128; 2] {
+    let mut h = [0; 32];
+    (h[0], h[16]) = (5, 7);
+    for _ in 0..n {
+        h = keccak256::hash_pair(&h, &h);
+    }
+    hash_to_scalars(&h)
+}
+
+fn hashing_proof() -> (isa::Program, [F128; 2], Proof) {
+    let program = compile(&parse(HASHING).expect("parse"));
+    let pi = chained_digest(1);
+    let (proof, _) = prove(&program, &[], pi, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    verify(&program, &pi, &proof).expect("honest proof verifies");
+    (program, pi, proof)
+}
+
+/// Out-of-process verification: everything travels in the two channels, so a proof
+/// serializes, crosses a process boundary and verifies.
+#[test]
+fn a_proof_roundtrips_through_bytes() {
+    let (program, pi, proof) = hashing_proof();
+    let decoded = Proof::from_bytes(&proof.to_bytes()).expect("proof deserializes");
+    assert_eq!(decoded, proof);
+    verify(&program, &pi, &decoded).expect("a deserialized proof verifies");
+}
+
+/// An unsupported rate is an error, not a panic.
+#[test]
+fn an_unsupported_rate_is_an_error() {
+    let program = compile(&parse(HASHING).expect("parse"));
+    let rate = lean_vm_core::pcs::MAX_LOG_INV_RATE + 1;
+    assert_eq!(
+        prove(&program, &[], chained_digest(1), rate).err(),
+        Some(ProveError::InvalidRate { log_inv_rate: rate })
+    );
+}
+
+/// A KECCAK table of any height proves and verifies: below the Keccak reduction's
+/// block of 512 steps, where padding fills the floor, at it, and one step past it.
+#[test]
+fn any_number_of_steps_proves() {
+    for n in [0usize, 1, 3, 512, 513] {
+        let mut source = String::from("def main():\n    h0 = StackBuf(2)\n    h0[0] = 5\n    h0[1] = 7\n");
+        for i in 0..n {
+            source += &format!("    h{} = StackBuf(2)\n    keccak(h{i}, h{i}, h{})\n", i + 1, i + 1);
+        }
+        source += &format!("    p = 1\n    p[1] = h{n}[0]\n    p[GEN] = h{n}[1]\n    return\n");
+        let pi = chained_digest(n);
+        let program = compile(&parse(&source).expect("parse"));
+        let (proof, stats) = prove(&program, &[], pi, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        assert_eq!(stats.rows[5], n, "{n} steps");
+        verify(&program, &pi, &proof).unwrap_or_else(|e| panic!("{n} steps: {e:?}"));
+    }
+}
+
+/// The memory announced is the least power of two covering the cells a run touches,
+/// with no floor but the protocol's: the empty program proves on a memory of a few
+/// cells, smaller than a line of the memory columns' fill.
+#[test]
+fn a_tiny_memory_proves() {
+    let program = compile(&parse("def main():\n    return\n").expect("parse"));
+    let pi = [F128::ZERO; 2];
+    let (proof, stats) = prove(&program, &[], pi, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    assert!(stats.log_mem < 3, "memory of 2^{} cells", stats.log_mem);
+    verify(&program, &pi, &proof).expect("honest proof verifies");
+}

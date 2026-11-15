@@ -6,8 +6,8 @@ public import Statement.Prover.Columns
 /-!
 # The bus phase, executable
 
-The prover of `verifyBusBalance` (`crates/verifier/src/bus.rs:130-247`; the Rust's
-`prove_balance`, `crates/leanvm_core/src/leaf.rs`) from the instance's columns `cols` (by global
+The prover of `verifyBusBalance` (`crates/verifier/src/bus.rs`; the Rust's
+`prove_balance`, `crates/lean_vm_core/src/leaf.rs`) from the instance's columns `cols` (by global
 column number): the grind and the fingerprint, sixteen slot weights and `β`; the three sides'
 leaves filled straight into arrays, each side's blocks end to end in `stack_offsets`' order
 (`stackA`) and padded with ones; the batched GKR over the three trees (`gkrA`); the framework
@@ -24,7 +24,7 @@ open LeanVM.Parameters LeanVM.Protocol.Verifier LeanVM.Protocol.Compile
 /-! ## Stacking -/
 
 /-- `stack_offsets`' order of blocks of the given log-sizes
-(`crates/verifier/src/multilinear.rs:134-144`): the stable sort of the indices by size, larger
+(`crates/verifier/src/multilinear.rs`): the stable sort of the indices by size, larger
 first. -/
 def blockOrder (sizes : List ℕ) : List ℕ :=
   (List.range sizes.length).mergeSort fun i j ↦ decide (sizes.getD j 0 ≤ sizes.getD i 0)
@@ -111,7 +111,7 @@ def countTabA (cols : Array (Array K)) (layout : Layout) (b : ℕ) : Array E :=
 /-! ## The bytecode's share -/
 
 /-- The stacked bytecode's slots at `low`: slot `x`'s `2^logBc` words' extension at `low`, `P(low, x)`
-(`public_eval` of the bytecode block's public coordinates, `crates/leanvm_core/src/leaf.rs`; the
+(`public_eval` of the bytecode block's public coordinates, `crates/lean_vm_core/src/leaf.rs`; the
 three slots before them hold zeros). -/
 def bytecodeSlotsA (bc : Array K) (logBc : ℕ) (low : List E) : Array E :=
   Array.ofFn (n := 2 ^ busBits) fun x ↦
@@ -130,7 +130,7 @@ def shareRound (st : Array E × Array E) : List E :=
 def shareFold (st : Array E × Array E) (r : E) : Array E × Array E :=
   (foldPairsA r st.1, foldPairsA r st.2)
 
-/-- **The bytecode's share** (`prove_bytecode_share`, `crates/leanvm_core/src/leaf.rs`): the share
+/-- **The bytecode's share** (`prove_bytecode_share`, `crates/lean_vm_core/src/leaf.rs`): the share
 `Σ_x w_x·P(low, x)`, the sumcheck over the slot `x`, then `P(low, r⃗)` at its challenges. -/
 def bytecodeShareA (w : List E) (slots : Array E) : Script Unit :=
   (Script.sendE (dot w slots.toList)).bind fun _ ↦

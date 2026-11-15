@@ -16,14 +16,11 @@ use crate::mutate_proof::perturb;
 use crate::{Ctx, Finding, Outcome, Source};
 use primitives::field::F128;
 use rec_aggregation::fuzzing::{
-    NodeRun, Parts, arm_forgery, disarm_forgery, leaf_deferred, prepare_node, run_guest, statement_of,
-    true_deferred_value,
+    AggregateVerifyError, AggregationError, EthereumClaims, EthereumProof, MAX_RECURSIONS, NodeRun, OutputClaims, Parts,
+    arm_forgery, disarm_forgery, leaf_deferred, prepare_node, run_guest, statement_of, true_deferred_value,
 };
-use rec_aggregation::{
-    AggregateVerifyError, AggregationError, EthereumClaims, EthereumProof, MAX_RECURSIONS,
-};
-use signatures::lean_sphincs::LeanSphincsPublicKey;
-use signatures::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
+use lean_sphincs::LeanSphincsPublicKey;
+use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 
 type Scenario = fn(&Fixtures, &mut Source, &Ctx) -> Outcome;
 
@@ -139,18 +136,19 @@ fn statement_refused(
     claims: impl FnOnce(&EthereumClaims) -> EthereumClaims,
 ) -> Outcome {
     arm_forgery(Box::new(move |hints| edit(hints.streams_mut())));
-    let node = prepare_node(
-        &inputs.children,
+    let children = inputs.child_pairs();
+    let node = prepare_node::<crate::pick::StableProver>(
+        &children,
         inputs.lean_xmss.clone(),
         inputs.sphincs.clone(),
-        &inputs.blobs,
-        inputs.declare.as_ref(),
+        inputs.blob_matrix().as_ref(),
+        OutputClaims::All,
     );
     disarm_forgery();
     let node = node.map_err(|e| Finding::high(format!("{what}: the honest node is not built"), format!("{e:?}")))?;
     let forged = claims(&node.claims);
     let pi = statement_of(&forged, &node.defer_point, node.defer_value);
-    match run_guest(&node.program, pi) {
+    match run_guest(&node.witness, pi) {
         Err(e) => {
             ctx.note(format!("{what}: {}", refusal_kind(&e)));
             Ok(())
@@ -271,7 +269,11 @@ fn leaf_child_forged_deferred_value(f: &Fixtures, src: &mut Source, ctx: &Ctx) -
         p.defer_value = if src.bool() {
             p.defer_value + F128::ONE
         } else {
-            perturb(p.defer_value, src)
+            {
+                let v = p.defer_value;
+                let e = perturb(verifier::E::new(v.c0, v.c1), src);
+                primitives::field::F128::new(e.c0, e.c1)
+            }
         };
     });
     if forged.deferred() == f.proof(leaf).deferred() {
@@ -460,10 +462,20 @@ fn root_forged_deferred_value(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outc
     }
     let forged = edited(f, i, |p| {
         if src.bool() {
-            p.defer_value = perturb(p.defer_value, src);
+            {
+                    let v = p.defer_value;
+                    {
+                        let e = perturb(verifier::E::new(v.c0, v.c1), src);
+                        p.defer_value = primitives::field::F128::new(e.c0, e.c1);
+                    }
+                }
         } else {
             let k = src.below(p.defer_point.len());
-            p.defer_point[k] = perturb(p.defer_point[k], src);
+            {
+                        let v = p.defer_point[k];
+                        let e = perturb(verifier::E::new(v.c0, v.c1), src);
+                        p.defer_point[k] = primitives::field::F128::new(e.c0, e.c1);
+                    }
             if let Some(v) = true_deferred_value(&p.defer_point) {
                 p.defer_value = v;
             }
@@ -579,7 +591,7 @@ fn invalid_undeclared_raw_signature(f: &Fixtures, src: &mut Source, ctx: &Ctx) -
     let at = src.below(bytes.len());
     bytes[at] ^= 1 << src.below(8);
     let bad = LeanXmssSignature::from_bytes(&bytes);
-    if signatures::lean_xmss::verify(&pk, &m, &bad).is_ok() {
+    if lean_xmss::verify(&pk, &m, &bad) {
         return Ok(());
     }
     inputs.lean_xmss.push((pk, m, bad));
@@ -832,28 +844,30 @@ fn leaf_lies_about_deferred_value(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> 
             s[i].1[0][0] = lie;
         }
     }));
-    let node = prepare_node(
-        &inputs.children,
+    let children = inputs.child_pairs();
+    let blobs = inputs.blob_matrix();
+    let node = prepare_node::<crate::pick::StableProver>(
+        &children,
         inputs.lean_xmss.clone(),
         inputs.sphincs.clone(),
-        &inputs.blobs,
-        None,
+        blobs.as_ref(),
+        OutputClaims::All,
     );
     disarm_forgery();
     let node = node.map_err(|e| Finding::high("a one-signature leaf is not built", format!("{e:?}")))?;
     let pi = statement_of(&node.claims, &point, lie);
-    if let Err(e) = run_guest(&node.program, pi) {
+    if let Err(e) = run_guest(&node.witness, pi) {
         ctx.note(format!("lying leaf refused {}", refusal_kind(&e)));
         return Ok(());
     }
     let rate = src.range(1, 2);
-    let (proof, _) = leanvm_core::cpu::prove(&node.program, pi, rate)
+    let (proof, _) = leanvm_core::cpu::prove(node.program, &node.witness, pi, rate)
         .map_err(|e| Finding::high("an accepted run is not proven", format!("{e:?}")))?;
     let evil = EthereumProof::from_parts(Parts {
         claims: node.claims.clone(),
         defer_point: point,
         defer_value: lie,
-        proof,
+        proof: rec_aggregation::AggregateProof { bytecode_point: node.defer_point.clone(), proof },
     });
     match evil.verify() {
         Err(AggregateVerifyError::MalformedClaim) => {}

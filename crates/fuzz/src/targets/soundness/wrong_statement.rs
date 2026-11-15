@@ -5,9 +5,11 @@
 //! is announced inside the proof, not passed to `verify`: lies about it are `soundness-transcript-tamper`'s.
 
 use super::fixtures::{self, Fixture};
-use crate::mutate_proof::perturb;
+use crate::mutate_proof::perturb_f128;
+use crate::Source as _Source_unused;
 use crate::{Ctx, Finding, Outcome, Source, catch};
-use leanvm_core::cpu::{DerefMode, Op, OutCells, Program};
+use leanvm_core::cpu::{DerefMode, OutCells};
+use isa::{CompiledProgram, Op, Program};
 
 pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
     let Some((fixture, rate, honest)) = fixtures::draw(src)? else {
@@ -19,7 +21,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
         0 => {
             let mut other = fixture.public_input;
             let i = src.below(2);
-            other[i] = perturb(other[i], src);
+            other[i] = { let e = perturb_e(verifier::E::new(other[i].c0, other[i].c1), src); primitives::field::F128::new(e.c0, e.c1) };
             if src.chance(1, 4) {
                 other.swap(0, 1);
             }
@@ -56,7 +58,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
             let Some((stale, what)) = edited(fixture, src, true) else {
                 return Ok(());
             };
-            let proved = catch(|| leanvm_core::cpu::prove(&stale, fixture.public_input, rate));
+            let proved = catch(|| leanvm_core::cpu::prove(&stale, &fixture.witness, fixture.public_input, rate));
             let proof = match proved {
                 Ok(Ok((proof, _))) => proof,
                 Ok(Err(e)) => {
@@ -94,7 +96,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
 /// of change. The IV and the public columns stay the assembled program's ([`tamper::replace_bytecode`]), as a
 /// malicious prover's would.
 fn edited(fixture: &Fixture, src: &mut Source, executed: bool) -> Option<(Program, String)> {
-    let mut prog = fixture.program.prog().to_vec();
+    let mut prog = fixture.program.prog.to_vec();
     let prog = &mut prog;
     let pcs: Vec<usize> = if executed {
         fixture.executed().to_vec()
@@ -113,10 +115,22 @@ fn edited(fixture: &Fixture, src: &mut Source, executed: bool) -> Option<(Progra
         let what = edit_op(&mut prog[pc], src);
         format!("{}/{what}", op_name(&prog[pc]))
     };
-    let changed = format!("{:?}", prog) != format!("{:?}", fixture.program.prog());
-    let mut program = fixture.program.clone();
-    leanvm_core::cpu::tamper::replace_bytecode(&mut program, std::mem::take(prog));
+    let changed = format!("{:?}", prog) != format!("{:?}", fixture.program.prog);
+    let _ = &changed;
+    let program = isa::Program::from(CompiledProgram {
+        prog: prog.clone(),
+        hints: Default::default(),
+        main_frame: fixture.program.main_frame,
+        fn_ranges: Vec::new(),
+        src_lines: Vec::new(),
+    });
     changed.then_some((program, what))
+}
+
+/// [`crate::mutate_proof::perturb`] for the shared `E` scalar.
+fn perturb_e(x: verifier::E, src: &mut Source) -> verifier::E {
+    let f = perturb_f128(primitives::field::F128::new(x.c0, x.c1), src);
+    verifier::E::new(f.c0, f.c1)
 }
 
 fn op_name(op: &Op) -> &'static str {
@@ -175,7 +189,7 @@ fn edit_op(op: &mut Op, src: &mut Source) -> &'static str {
                 *o = offset(*o, src);
                 "o"
             } else {
-                *k = perturb(*k, src);
+                *k = perturb_e(*k, src);
                 "k"
             }
         }

@@ -13,7 +13,7 @@ public import LeanVM.Guest.Data.NameStrings
 public import LeanVM.Guest.CoreData
 
 /-!
-# `verify_bus_gkr_loop1`, completely (G:1888-1889)
+# `verify_bus_gkr_loop1`, completely
 
 `l8_complete`: when the memory holds the same `m ≥ 1` words at `row` and at `zeta`,
 `verify_bus_gkr_loop1` holds from `1` below `g^m` (`loop_iff`, each iteration's atoms on the evident

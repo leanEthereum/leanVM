@@ -21,13 +21,13 @@ set_option maxRecDepth 100000
 
 /-- Indices of the functions `verify_bus_gkr` reaches, part 0. -/
 def krVbgJ0 : List ℕ := [9, 90,
-    91, 436, 437, 438, 439, 440, 441]
+    91, 426, 427, 428, 429, 430, 431]
 /-- The core indices of the functions `verify_bus_gkr`'s paths reach. -/
 def krVbgJ : List ℕ := krVbgJ0
 
 /-- Their calls, by index, part 0. -/
 def krVbgCL0 : List (ℕ × List ℕ) := [(9, [90, 91]),
-    (90, [436, 437, 438, 439, 440, 441, 90]), (91, [91]), (436, [436])]
+    (90, [426, 427, 428, 429, 430, 431, 90]), (91, [91]), (426, [426])]
 /-- Their calls, by index. -/
 def krVbgCL : List (ℕ × List ℕ) := krVbgCL0
 
@@ -47,15 +47,15 @@ def krVbgA : Opcode → ℕ
 
 /-- Indices of the functions `verify_keccak` reaches, part 0. -/
 def krVkJ0 : List ℕ := [12, 265,
-    266, 267, 268, 269, 270, 271, 442, 443, 444, 445, 446]
+    266, 267, 268, 269, 270, 271, 432, 433, 434, 435, 436]
 /-- The core indices of the functions `verify_keccak`'s paths reach. -/
 def krVkJ : List ℕ := krVkJ0
 
 /-- Their calls, by index, part 0. -/
 def krVkCL0 : List (ℕ × List ℕ) := [
     (12, [265, 266, 267, 267, 267, 267, 267, 267, 267, 267, 267, 267, 267, 268, 269, 270, 268, 271]),
-    (265, [265]), (266, [442, 443, 444]), (267, [442, 445, 446]), (269, [269]), (271, [271]),
-    (443, [443]), (444, [444]), (445, [445]), (446, [446])]
+    (265, [265]), (266, [432, 433, 434]), (267, [432, 435, 436]), (269, [269]), (271, [271]),
+    (433, [433]), (434, [434]), (435, [435]), (436, [436])]
 /-- Their calls, by index. -/
 def krVkCL : List (ℕ × List ℕ) := krVkCL0
 
@@ -99,13 +99,13 @@ def krVl15A : Opcode → ℕ
 
 /-- Indices of the functions `ring_switch_weight` reaches, part 0. -/
 def krVrswJ0 : List ℕ := [5,
-    14, 80, 81, 82, 83, 84, 85, 86, 87, 88, 435]
+    14, 80, 81, 82, 83, 84, 85, 86, 87, 88, 425]
 /-- The core indices of the functions `ring_switch_weight`'s paths reach. -/
 def krVrswJ : List ℕ := krVrswJ0
 
 /-- Their calls, by index, part 0. -/
 def krVrswCL0 : List (ℕ × List ℕ) := [
-    (5, [80, 81, 82, 83, 84, 85, 86, 87, 88]), (14, [5]), (80, [435, 80])]
+    (5, [80, 81, 82, 83, 84, 85, 86, 87, 88]), (14, [5]), (80, [425, 80])]
 /-- Their calls, by index. -/
 def krVrswCL : List (ℕ × List ℕ) := krVrswCL0
 

@@ -35,7 +35,7 @@ upstream as [ArkLib #900](https://github.com/Verified-zkEVM/ArkLib/issues/900). 
 transcribes a source.
 
 Derived from Verified-zkEVM/leanth at 23929f8c922cd4461ab22dbfaa6520f3ad23a3b2,
-`Leanth/LeanVM/Protocol.lean:9818-9850` (`eval_MLE_stack_ambient`), by Aristotle (Harmonic),
+`Leanth/LeanVM/Protocol.lean` (`eval_MLE_stack_ambient`), by Aristotle (Harmonic),
 Stefano Rocca and Elias Judin. The source statement, for pad zero, is extended to any pad and
 to a point of another ring.
 -/

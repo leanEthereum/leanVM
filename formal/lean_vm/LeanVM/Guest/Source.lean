@@ -2,7 +2,7 @@
   LeanVM.Guest.Source
 
   The zkDSL source AST of a program after placeholder substitution, as the Rust parser builds it
-  (`crates/lean_compiler/src/ast.rs`), and the syntactic passes the compiler runs on it before
+  (`crates/zkdsl_compiler/src/ast.rs`), and the syntactic passes the compiler runs on it before
   lowering: substitution, free variables, the inline-safety test.
 -/
 
@@ -13,8 +13,8 @@ public import Init
 /-!
 # The zkDSL source AST
 
-A transcription of `crates/lean_compiler/src/ast.rs` (leanVM at `leanvm-rev`): what
-`lean_compiler::parse_with_replacements` returns. Placeholders and scalar global constants are
+A transcription of `crates/zkdsl_compiler/src/ast.rs`: what
+`zkdsl_compiler::parse_with_replacements` returns. Placeholders and scalar global constants are
 already substituted textually, `match` arms are already expanded per integer, and `x OP= e` is
 already `x = x OP (e)`; constant arrays stay named (`Program.constArrays`). A keyword argument
 `key=value` is the call `__kw_key(value)`, as the parser writes it. The guest's AST is generated data

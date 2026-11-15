@@ -1,6 +1,6 @@
 """Differential test of the Lean proof wire encoding against leanVM's Rust one.
 
-leanVM's proof travels as one byte string, `Proof::to_bytes` (`crates/fiat_shamir/src/wire.rs`), which
+leanVM's proof travels as one byte string, `Proof::to_bytes` (`crates/verifier/src/wire.rs`), which
 prunes every Merkle phase, and is decoded by `Proof::from_bytes`, which unprunes it, hashing the
 nodes the paths share, and refuses anything but the one encoding of a proof within its bounds (the
 pruning is scaraven's idea, https://github.com/scaraven). lean_vm transcribes both (`Proof.fromBytes`, `Proof.toBytes`,
@@ -8,7 +8,7 @@ lean_vm/LeanVM/Wire/Encoding.lean). This driver runs, on the same bytes,
 
   * the Lean transcription, `lake exe wire-diff` (cli/WireDiff.lean), compiled, Keccak-f[1600] in
     `Id` for the permutation;
-  * the Rust, scripts/wire-diff (`leanvm-rust-wire`, leanVM's `fiat_shamir` crate), in one
+  * the Rust, scripts/wire-diff (`leanvm-rust-wire`, leanVM's `verifier` crate), in one
     `--batch` process;
 
 and requires, on every case, the same verdict (`none`, or `some` and the proof decoded, compared as

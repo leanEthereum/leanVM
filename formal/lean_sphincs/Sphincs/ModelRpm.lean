@@ -17,7 +17,7 @@ public import Sphincs.Queries
 Upstream's model of the scheme (`FORS.Seeded.keygen`, `FORS.Seeded.sign`: a landing call, sibling
 subtrees, the verifier's recomputation of each layer's root) is the generic SUF-CMA game of `common`
 (`modelScheme`, `experiment_eq`). The statement's key generation and signer are the crate's
-(`sign_with`: the key expanded again, the top tree rebuilt, every tree built level by level), not the
+(`sign`: the key expanded, the top tree rebuilt, every tree built level by level), not the
 model's call for call; their copy in the model's hash monad is `FORS.Crate.keygen` /
 `FORS.Crate.sign` (`crateScheme`, the seed as the secret key). On every answer function the crate's
 copy gives the model's public key and signatures (`FORS.Crate.eval_keygen`, `eval_sign`), and both query only

@@ -12,22 +12,24 @@ use super::honest;
 use crate::source::{Rng, mutate};
 use crate::{Ctx, Finding, Outcome, Source, catch};
 use primitives::field::{F64, F128};
-use rec_aggregation::aggregation::unified_guest;
+use rec_aggregation::unified_guest;
 use crate::MAX_KEYS;
-use rec_aggregation::{AggregateVerifyError, EthereumClaims, EthereumProof, fuzzing};
-use signatures::{lean_sphincs, lean_xmss};
+use rec_aggregation::fuzzing::{
+    AggregateVerifyError, EthereumClaims, EthereumProof, OutputClaims, leaf_deferred, true_deferred_value,
+};
+
 use std::sync::OnceLock;
 
 /// The deferred point's length, which compiling the guest fixes.
 fn vars() -> usize {
     static VARS: OnceLock<usize> = OnceLock::new();
-    *VARS.get_or_init(|| fuzzing::leaf_deferred().0.len())
+    *VARS.get_or_init(|| leaf_deferred().0.len())
 }
 
 /// The guest's stacked bytecode, as the prover's kernels read it.
 fn stacked() -> &'static [F64] {
     static TABLE: OnceLock<Vec<F64>> = OnceLock::new();
-    TABLE.get_or_init(|| leanvm_core::cpu::layout::bytecode_table(unified_guest().prog()))
+    TABLE.get_or_init(|| unified_guest().stacked_bytecode().iter().map(|w| F64(*w)).collect())
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -81,8 +83,8 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
         }
         3 => Vec::new(),
         _ => leanvm_core::cpu::Proof {
-            stream: (0..src.below(16)).map(|_| src.f128()).collect(),
-            merkle: Vec::new(),
+            stream: (0..src.below(16)).map(|_| src.scalar()).collect(),
+            merkle_openings: Vec::new(),
         }
         .to_bytes(),
     };
@@ -258,7 +260,7 @@ fn deferred_agree(src: &mut Source, ctx: &Ctx, n: usize) -> Outcome {
         1 => (0..n).map(|_| F128::new(src.below(2) as u64, 0)).collect(),
         _ => (0..n).map(|_| *src.pick(&[F128::ZERO, F128::ONE, F128::Y])).collect(),
     };
-    let scalar = fuzzing::true_deferred_value(&point);
+    let scalar = true_deferred_value(&point);
     let pooled = primitives::multilinear::mle_eval_par(stacked(), &point);
     if scalar != Some(pooled) {
         return Err(Finding::high(

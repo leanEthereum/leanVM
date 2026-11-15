@@ -266,7 +266,7 @@ theorem x_mul_novelAt' (d : ℕ) (hd : d + 1 ≤ 2 ^ 62) (x : K) :
   nth_rewrite 1 [hd']
   exact x_mul_novelAt s o hs x
 
-/-- `(X h)[c]`, the prover's rule (`mul_x`, `crates/pcs/src/xmul.rs:73-94`). -/
+/-- `(X h)[c]`, the prover's rule (`mul_x`, `crates/pcs/src/xmul.rs`). -/
 noncomputable def mxE (h : ℕ → E) (c : ℕ) : E :=
   if c = 0 then 0 else ofK (AK (trailingZeros c)) * (h (c - 1) + h (c + 2 ^ trailingZeros c - 1))
 

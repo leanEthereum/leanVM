@@ -7,21 +7,22 @@ publish = false
 [[bin]]
 name = "leanvm"
 path = "src/main.rs"
-# Its rustdoc would overwrite the `leanvm` library's (cargo#6313).
+# A binary, nothing to document.
 doc = false
 
 [lints]
 workspace = true
 
 [dependencies]
-rec_aggregation = { workspace = true, features = ["signers-cache"] }
-leanvm_core.workspace = true
-parallel.workspace = true
-lean_compiler.workspace = true
+isa.workspace = true
+verifier.workspace = true
+aggregation = { workspace = true, features = ["signers-cache"] }
 lean_da.workspace = true
-keccak_gkr = { workspace = true, features = ["bench"] }
-signatures.workspace = true
-primitives.workspace = true
+zkdsl_compiler.workspace = true
+lean_xmss.workspace = true
+lean_sphincs.workspace = true
+stable_lean_vm_core = { path = "../../crates/stable_prover/lean_vm_core" }
+experimental_lean_vm_core = { path = "../../crates/experimental_prover/lean_vm_core" }
 bench.workspace = true
 rand.workspace = true
 tracing.workspace = true

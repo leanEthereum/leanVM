@@ -3,8 +3,9 @@
 use super::program::{Builder, Exit, garbage};
 use super::random::public_input;
 use crate::{Ctx, Finding, Outcome, Source, catch};
-use leanvm_core::cpu::{DerefMode, Op, OutCells, Program};
-use primitives::field::{F128, g_pow};
+use isa::{CompiledProgram, DerefMode, Op, OutCells, Program};
+use primitives::field::{F64, F128};
+use isa::g_pow;
 use std::collections::HashMap;
 
 pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
@@ -53,7 +54,7 @@ fn table_rows(src: &mut Source, ctx: &Ctx) -> Outcome {
     ctx.note(format!("rows table {table} 2^{}", k.min(10)));
     let pi = public_input(src);
     let w = |x: u64| F128::new(x, 0);
-    let mut prog = vec![Op::Set { o: 2, k: w(3) }, Op::Set { o: 3, k: w(5) }];
+    let mut prog = vec![Op::Set { o: 2, k: { let f = w(3); verifier::E::new(f.c0, f.c1) } }, Op::Set { o: 3, k: { let f = w(5); verifier::E::new(f.c0, f.c1) } }];
     let mut next = 4u32;
     let mut fresh = |n: u32| {
         let c = next;
@@ -76,7 +77,7 @@ fn table_rows(src: &mut Source, ctx: &Ctx) -> Outcome {
             for _ in 0..n {
                 prog.push(Op::Set {
                     o: fresh(1),
-                    k: src.f128(),
+                    k: { let f = src.f128(); verifier::E::new(f.c0, f.c1) },
                 });
             }
         }
@@ -84,7 +85,7 @@ fn table_rows(src: &mut Source, ctx: &Ctx) -> Outcome {
             // DEREF copies through one pointer to cell 0: a2 = 2 + j reads cells 2 and 3, a3 fresh.
             prog.push(Op::Set {
                 o: 1000,
-                k: F128::from(g_pow(0)),
+                k: verifier::E::new(g_pow(0), 0),
             });
             for _ in 0..n {
                 let mode = *src.pick(&[DerefMode::Cell, DerefMode::Cell, DerefMode::Fp]);
@@ -97,13 +98,13 @@ fn table_rows(src: &mut Source, ctx: &Ctx) -> Outcome {
                 prog.push(Op::Deref { o1: 1000, o2, o3, mode });
                 if mode == DerefMode::Fp {
                     // `o3` is only counted, never written: give it a value so nothing reads it unwritten later.
-                    prog.push(Op::Set { o: o3, k: F128::ZERO });
+                    prog.push(Op::Set { o: o3, k: verifier::E::new(0, 0) });
                 }
             }
         }
         4 => {
             // Untaken jumps over the same three cells.
-            prog.push(Op::Set { o: 1000, k: F128::ZERO });
+            prog.push(Op::Set { o: 1000, k: verifier::E::new(0, 0) });
             for _ in 0..n {
                 prog.push(Op::Jump { oc: 1000, od: 2, of: 3 });
             }
@@ -115,7 +116,7 @@ fn table_rows(src: &mut Source, ctx: &Ctx) -> Outcome {
             for c in 0..13 {
                 prog.push(Op::Set {
                     o: block + c,
-                    k: F128::new(src.u64(), src.u64()),
+                    k: verifier::E::new(src.u64(), src.u64()),
                 });
             }
             for _ in 0..n {
@@ -137,11 +138,11 @@ fn table_rows(src: &mut Source, ctx: &Ctx) -> Outcome {
     while prog.len() < len - 1 {
         prog.push(Op::Set {
             o: fresh(1),
-            k: F128::ONE,
+            k: verifier::E::new(1, 0),
         });
     }
     prog.push(Op::Xor { a: 0, b: 0, c: 0 });
-    let program = Program::assemble(prog, HashMap::new(), 64);
+    let program = Program::from(CompiledProgram { prog: prog, hints: HashMap::new(), main_frame: 64, fn_ranges: Vec::new(), src_lines: Vec::new() });
     super::check(&program, pi, None, src, ctx, "isa-edge rows")
 }
 
@@ -171,12 +172,12 @@ fn self_loop(src: &mut Source, ctx: &Ctx) -> Outcome {
     ctx.note("self loop");
     let w = |x: u64| F128::new(x, 0);
     let prog = vec![
-        Op::Set { o: 2, k: w(1) },
+        Op::Set { o: 2, k: { let f = w(1); verifier::E::new(f.c0, f.c1) } },
         Op::Set {
             o: 3,
-            k: F128::from(g_pow(3)),
+            k: { let f = F128::from(F64(g_pow(3))); verifier::E::new(f.c0, f.c1) },
         },
-        Op::Set { o: 4, k: w(1) },
+        Op::Set { o: 4, k: { let f = w(1); verifier::E::new(f.c0, f.c1) } },
         Op::Jump { oc: 2, od: 3, of: 4 },
     ];
     let mut prog = prog;
@@ -184,8 +185,8 @@ fn self_loop(src: &mut Source, ctx: &Ctx) -> Outcome {
     while !prog.len().is_power_of_two() {
         prog.insert(prog.len() - 1, garbage(src));
     }
-    let program = Program::assemble(prog, HashMap::new(), 8);
-    let run = catch(|| program.execute([F128::ZERO; 2]))
+    let program = Program::from(CompiledProgram { prog: prog, hints: HashMap::new(), main_frame: 8, fn_ranges: Vec::new(), src_lines: Vec::new() });
+    let run = catch(|| leanvm_core::cpu::execute(&program, &[], [F128::ZERO; 2]))
         .map_err(|(m, l)| Finding::panic(&m, &l).in_context("isa-edge loop"))?;
     match run {
         Err(e) if matches!(e.fault, leanvm_core::cpu::Fault::StepLimit) => Ok(()),
@@ -223,7 +224,7 @@ fn big_operands(src: &mut Source, ctx: &Ctx) -> Outcome {
             // A base of at least 20, so base + offset always passes u32::MAX.
             b.main.code.push(Op::Set {
                 o: p,
-                k: F128::from(g_pow(src.range(20, 100))),
+                k: { let f = F128::from(F64(g_pow(src.range(20, 100) as u32))); verifier::E::new(f.c0, f.c1) },
             });
             Op::Deref {
                 o1: p,
@@ -237,14 +238,14 @@ fn big_operands(src: &mut Source, ctx: &Ctx) -> Outcome {
             let base = 1 << 12;
             let (cond, target, ptr) = (b.main.fresh(1), b.main.fresh(1), b.main.fresh(1));
             let at = b.main.code.len() + 4;
-            b.main.code.push(Op::Set { o: cond, k: w(1) });
+            b.main.code.push(Op::Set { o: cond, k: { let f = w(1); verifier::E::new(f.c0, f.c1) } });
             b.main.code.push(Op::Set {
                 o: target,
-                k: F128::from(g_pow(at)),
+                k: { let f = F128::from(F64(g_pow(at as u32))); verifier::E::new(f.c0, f.c1) },
             });
             b.main.code.push(Op::Set {
                 o: ptr,
-                k: F128::from(g_pow(base)),
+                k: { let f = F128::from(F64(g_pow(base))); verifier::E::new(f.c0, f.c1) },
             });
             b.main.code.push(Op::Jump {
                 oc: cond,
@@ -253,7 +254,7 @@ fn big_operands(src: &mut Source, ctx: &Ctx) -> Outcome {
             });
             // Now at `at`, in frame `base`.
             match what {
-                2 => Op::Set { o: near(src), k: w(7) },
+                2 => Op::Set { o: near(src), k: { let f = w(7); verifier::E::new(f.c0, f.c1) } },
                 3 => Op::Xor {
                     a: near(src),
                     b: 0,
@@ -272,7 +273,7 @@ fn big_operands(src: &mut Source, ctx: &Ctx) -> Outcome {
     b.main.broken = true;
     let built = b.finish(src, 1, Op::Xor { a: 0, b: 0, c: 0 });
     let program = built.program(64);
-    let run = catch(|| program.execute(pi)).map_err(|(m, l)| Finding::panic(&m, &l).in_context("isa-edge operands"))?;
+    let run = catch(|| leanvm_core::cpu::execute(&program, &[], pi)).map_err(|(m, l)| Finding::panic(&m, &l).in_context("isa-edge operands"))?;
     if let Ok(exec) = run {
         return Err(Finding::medium(
             "isa-edge operands: an address past u32::MAX did not fail the run",
@@ -307,13 +308,13 @@ fn odd_lengths(src: &mut Source, ctx: &Ctx) -> Outcome {
     let mut prog: Vec<Op> = (1..len)
         .map(|i| Op::Set {
             o: 2 + i as u32,
-            k: F128::ONE,
+            k: verifier::E::new(1, 0),
         })
         .collect();
     if len > 0 {
         prog.push(Op::Xor { a: 0, b: 0, c: 0 });
     }
-    match catch(|| Program::assemble(prog, HashMap::new(), 8)) {
+    match catch(|| Program::from(CompiledProgram { prog: prog, hints: HashMap::new(), main_frame: 8, fn_ranges: Vec::new(), src_lines: Vec::new() })) {
         Err((message, _)) if message.contains("must be a power of two long") => Ok(()),
         Err((message, location)) => {
             Err(Finding::panic(&message, &location).in_context("Program::assemble of a non-power-of-two bytecode"))

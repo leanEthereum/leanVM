@@ -31,9 +31,9 @@ chosen.
 
 Derived from the zero-based scalar-batching results in Verified-zkEVM/leanth at
 23929f8c922cd4461ab22dbfaa6520f3ad23a3b2, by Aristotle (Harmonic), Stefano Rocca and
-Elias Judin: `Leanth/ProofSystem/ZeroCheck.lean:670-697`, `scalarBatch_rejection` and
+Elias Judin: `Leanth/ProofSystem/ZeroCheck.lean`, `scalarBatch_rejection` and
 `scalarBatch_eq_zero`. The current API takes separate actual and claimed values, exposes the
-difference polynomial, and includes the empty case. `Leanth/ProofSystem/Stacking.lean:779-804`
+difference polynomial, and includes the empty case. `Leanth/ProofSystem/Stacking.lean`
 uses positive powers in `BatchedAccepts` and `batchPoly`; that distinct convention has an
 additional automatic root at zero and a `J` bound.
 

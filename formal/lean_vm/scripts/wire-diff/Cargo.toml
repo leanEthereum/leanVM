@@ -1,4 +1,4 @@
-# leanVM's proof wire encoding (`crates/fiat_shamir/src/wire.rs`, `Proof::to_bytes` and
+# leanVM's proof wire encoding (`crates/verifier/src/wire.rs`, `Proof::to_bytes` and
 # `Proof::from_bytes`) on byte files, so that `scripts/wire-diff.py` can set its results beside the
 # Lean transcription's (`lake exe wire-diff`, `Proof.fromBytes` and `Proof.toBytes`).
 #
@@ -13,8 +13,8 @@ publish = false
 [workspace]
 
 [dependencies]
-fiat_shamir = { path = "../../../../crates/fiat_shamir" }
-primitives = { path = "../../../../crates/primitives" }
+verifier = { path = "../../../../crates/verifier" }
+fiat_shamir_prover = { path = "../../../../crates/fiat_shamir_prover" }
 
 [profile.release]
 codegen-units = 1

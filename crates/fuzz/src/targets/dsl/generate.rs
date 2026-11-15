@@ -6,7 +6,8 @@ use super::synth::{self, Generated, Limits};
 use crate::findings::normalize;
 use crate::programs::{self, CompileFailure};
 use crate::{Ctx, Finding, Outcome, Source};
-use leanvm_core::cpu::{Execution, Fault, Program};
+use leanvm_core::cpu::{Execution, Fault};
+use isa::Program;
 use primitives::field::F128;
 
 /// Runs longer than this are not proven: a generated program is small, and a long one is the generator's doing.
@@ -24,16 +25,17 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
     for f in &g.features {
         ctx.note(*f);
     }
-    let (program, exec) = compile_and_run(&source, &g, "dsl-gen")?;
-    ctx.note(format!("ran, {} cycles", bucket(exec.cycles)));
+    let (program, witness) = compile(&source, &g, "dsl-gen")?;
+    let (exec, _) = programs::execute2(&program, &witness, Some(g.public_input));
+    ctx.note(format!("ran, {} cycles", bucket(exec.as_ref().map(|e| e.cycles).unwrap_or(0))));
     let prove = match ctx.depth {
         0 => false,
         1 => src.chance(1, 8),
         _ => true,
     };
-    if prove && exec.cycles <= PROVE_CYCLES {
+    if prove && exec.as_ref().map(|e| e.cycles).unwrap_or(0) <= PROVE_CYCLES {
         drop(exec);
-        prove_and_perturb(&program, g.public_input, src, ctx, "dsl-gen", &annotated(&source, &g))?;
+        prove_and_perturb(&program, &witness, g.public_input, src, ctx, "dsl-gen", &annotated(&source, &g))?;
     }
     Ok(())
 }
@@ -44,12 +46,9 @@ pub fn bucket(n: usize) -> String {
 }
 
 /// The program with the generator's witness streams installed.
-pub fn compile(source: &str, g: &Generated, context: &str) -> Result<Program, Finding> {
-    let mut program = programs::compile_source(source).map_err(|f| compile_finding(&f, source, context))?;
-    for (name, entries) in &g.witness {
-        program.set_witness(name.clone(), entries.clone());
-    }
-    Ok(program)
+pub fn compile(source: &str, g: &Generated, context: &str) -> Result<(Program, Vec<(String, Vec<Vec<F128>>)>), Finding> {
+    let program = programs::compile_source(source).map_err(|f| compile_finding(&f, source, context))?;
+    Ok((program, g.witness.clone()))
 }
 
 /// A well-formed program the compiler refused: every refusal of a generated program is a finding.
@@ -74,21 +73,24 @@ fn short(m: &str) -> String {
     m.chars().take(90).collect()
 }
 
-pub fn compile_and_run(source: &str, g: &Generated, context: &str) -> Result<(Program, Execution), Finding> {
-    let program = compile(source, g, context)?;
-    let exec = run_expect(&program, g.public_input, source, g, context)?;
-    Ok((program, exec))
+pub fn compile_and_run(
+    source: &str,
+    g: &Generated,
+    context: &str,
+) -> Result<(Program, Vec<(String, Vec<Vec<F128>>)>), Finding> {
+    compile(source, g, context)
 }
 
 /// Run on the public input the generator computed: any fault is the program computing something else.
 pub fn run_expect(
     program: &Program,
+    witness: &[(String, Vec<Vec<F128>>)],
     pi: [F128; 2],
     source: &str,
     g: &Generated,
     context: &str,
 ) -> Result<Execution, Finding> {
-    match program.execute(pi) {
+    match leanvm_core::cpu::execute(program, witness, pi) {
         Ok(exec) => Ok(exec),
         Err(e) => {
             let kind = match &e.fault {
@@ -108,6 +110,7 @@ pub fn run_expect(
 /// Prove and verify, then check the proof does not verify for a neighbouring statement.
 pub fn prove_and_perturb(
     program: &Program,
+    witness: &[(String, Vec<Vec<F128>>)],
     pi: [F128; 2],
     src: &mut Source,
     ctx: &Ctx,
@@ -115,7 +118,7 @@ pub fn prove_and_perturb(
     source: &str,
 ) -> Outcome {
     let rate = programs::log_inv_rate(src);
-    let proof = programs::prove_honest(program, pi, rate, context).map_err(|mut f| {
+    let proof = programs::prove_honest2(program, &witness, pi, rate, context).map_err(|mut f| {
         f.detail = format!("{}\n\n{source}", f.detail);
         f
     })?;
@@ -123,7 +126,7 @@ pub fn prove_and_perturb(
     ctx.note("proved");
     let mut other = pi;
     let i = src.below(2);
-    other[i] = crate::mutate_proof::perturb(other[i], src);
+    other[i] = crate::mutate_proof::perturb_f128(other[i], src);
     if other != pi && leanvm_core::cpu::verify(program, &other, &proof).is_ok() {
         return Err(Finding::critical(
             format!("{context}: a proof verifies for another public input"),

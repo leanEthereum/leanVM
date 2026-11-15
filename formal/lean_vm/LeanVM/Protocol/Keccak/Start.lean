@@ -12,7 +12,7 @@ public import LeanVM.Protocol.Keccak.SlotWeights
 /-!
 # The first claim
 
-`verify_keccak` (`crates/verifier/src/keccak.rs:247-263`) draws the segment challenge `r_seg` and
+`verify_keccak` (`crates/verifier/src/keccak.rs`) draws the segment challenge `r_seg` and
 five lane challenges, reads `committed` and forms the first claim at the point `(r_pack, r_seg)`
 with instance weights `eq(r_low, ·)` and position weights `eq(r_lane, ℓ)·x^z` (`firstClaim`). On a
 candidate (`firstClaim_true`), the claim's sum is
@@ -69,11 +69,11 @@ theorem sum_split {P : ℕ} {a b seg : List E} (ha : a.length = 4) (hb : b.lengt
 
 /-! ## The first claim -/
 
-/-- The first claim's position weights: `eq(r_lane, ℓ)·x^z` (`keccak.rs:250-251`). -/
+/-- The first claim's position weights: `eq(r_lane, ℓ)·x^z` (`keccak.rs`). -/
 def firstWeights (lanesPt : List E) : List E :=
   (List.range keccakBits).map fun j ↦ (eqKernel lanesPt).getD (j / 64) 0 * eOfNat (2 ^ (j % 64))
 
-/-- The first claim (`keccak.rs:252-263`). -/
+/-- The first claim (`keccak.rs`). -/
 def firstClaim (inst segment lanesPt output : List E) (committed : E) : KeccakClaim :=
   ⟨committed + (eqKernel segment).getD (keccakSegments - 1) 0 *
       dot ((eqKernel lanesPt).take 25) output,

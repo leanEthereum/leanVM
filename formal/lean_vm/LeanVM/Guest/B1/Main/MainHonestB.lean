@@ -80,7 +80,7 @@ structure MainGoalsTB (p : MainPreds) (b : MainBs) : Prop where
     [(hm fs fp seed s w).a80, gen ^ (hm fs fp seed s w).nls]
     (Returns (B1.Digest.digestCells (hm fs fp seed s w).sd)) p.Ps b.Bs
   dv : (hm fs fp seed s w).nd = 1 →
-    CompleteAtDTB fs cert 20 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et]
+    CompleteAtDTB fs cert 20 "da_verify" (hLmain fs fp seed s w) []
       (Returns (hm fs fp seed s w).daR) p.Pd b.Bd
   ag : (hm fs fp seed s w).nc ≠ 0 →
     CompleteAtDTB fs cert 20 "aggregate_claims" (hLmain fs fp seed s w)

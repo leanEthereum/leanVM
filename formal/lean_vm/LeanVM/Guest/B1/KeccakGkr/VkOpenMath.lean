@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.VkOpenMath
 
-  The openings of `q_keccak` in `verifyKeccak` (V:2043-2053): the folded slot weights through the
+  The openings of `q_keccak` in `verifyKeccak`: the folded slot weights through the
   slots' lane weights.
 -/
 
@@ -57,7 +57,7 @@ theorem slotW_sum (segs w slot : List E) {first count : ℕ}
       show 25 * (0 + 0) + lane = lane by omega, show 25 * (0 + 1) + lane = 25 + lane by omega]
     ring
 
-/-- **An opening's weight at slice `z`** (V:2043-2053). -/
+/-- **An opening's weight at slice `z`**. -/
 theorem openWeights_getD (τ : ℕ) (c : KeccakClaim) {first count : ℕ}
     (hc : (first = 1 ∧ count = 1) ∨ (first = 0 ∧ count = 2)) (slot : List E)
     (hs : slot.length = 6) {z : ℕ} (hz : z < 64) :

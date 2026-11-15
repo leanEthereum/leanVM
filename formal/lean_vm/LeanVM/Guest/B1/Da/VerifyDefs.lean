@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.VerifyDefs
 
-  The checks of `da_verify`'s body and of its loops (G:4509-4547).
+  The checks of `da_verify`'s body and of its loops.
 -/
 
 module
@@ -9,17 +9,20 @@ module
 public import LeanVM.Guest.B1.Da.ColumnDefs
 public import LeanVM.Guest.B1.Main.Body
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
-# `da_verify` (G:4509-4547), checked
+# `da_verify`, checked
 
-`da_verify(g_squares)`: the shape (`da_row_shape`), the hinted challenge `z`, the dual
-codeword's builders (`da_vector`), the blobs' regions
+`da_verify()`: the blob count and the padding rows' (`da_padding`), the hinted challenge `z`, the
+dual codeword's builders (`da_vector`), the blobs' regions
 (`da_verify_loop0`: `rowbase[x] = blobs·x^641`, the running sum's first word `0`), the columns
 (`da_verify_loop1`: `da_verify_column` on columns `0 … 127`), each blob's sum checked and its tree's
 root (`da_verify_loop2`: word `640` of the region is `0`, `da_levels__L128_L7`, the root at
 `roots·x²`), the padding blobs (`da_verify_loop3`: `DA_PAD_BLOB` at `roots·n_blob²·x²`), and the
-tree over the blob roots (`da_levels` dispatched on `g_log_pad`).
+tree over the `DA_MAX_ROWS` blob roots (`dlTop`).
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -39,8 +42,8 @@ theorem hasAtom_sound {rd : Reader} {σ : Val} {A : List Atom} {a : Atom} (h : h
   rw [← atomEqb_sound he]
   exact hat b hb
 
-/-- `da_levels`' specializations, by `k`. -/
-def dlNames : List String := (List.range 11).map daLevelsName
+/-- `da_levels`' specialization at the tree over the `DA_MAX_ROWS` blob roots. -/
+def dlTop : String := daLevelsName (guest_const% DA_LOG_MAX_ROWS)
 
 /-! ## The loops -/
 
@@ -97,20 +100,19 @@ noncomputable def dvP : List Stmt := (Fn.body fn% «da_verify»).dropLast
 noncomputable def dvOk : Bool :=
   let P := dvP
   let A := atomsIn P
-  decide ((fn% «da_verify»).params = [.n 0]) &&
-  stmtsEqb (Fn.body fn% «da_verify») (P ++ [.ret [.n 38, .n 39, .n 40]]) &&
+  decide ((fn% «da_verify»).params = []) &&
+  stmtsEqb (Fn.body fn% «da_verify») (P ++ [.ret [.n 34, .n 35, .n 36]]) &&
   P.all Stmt.flat &&
-  hasCall P "da_row_shape" [.n 1, .n 2, .n 0] [.n 3, .n 4] &&
-  hasCall P "da_vector" [.n 5] [.n 6, .n 7, .n 8, .n 9] &&
-  guardOk P (.n 24) name% «da_verify_loop0» (.n 25) (.n 1) [.n 21, .n 22] &&
-  A.any (isConstAt (.n 26) 1 0) &&
-  hasCall P name% «da_verify_loop1» [.n 26, .n 1, .n 22, .n 6, .n 7, .n 8, .n 9] [] &&
-  monoIs A (.n 28) (.n 3) (.n 3) 3 &&
-  guardOk P (.n 31) name% «da_verify_loop2» (.n 32) (.n 1) [.n 22, .n 29] &&
-  guardOk P (.n 34) name% «da_verify_loop3» (.n 35) (.n 4) [.n 29, .n 1] &&
-  P.any (stmtEqb · (.dispatch (.n 2) dlNames [.n 29] [.n 36, .n 37])) &&
-  A.any (isCopyAt (.n 38) (.n 36)) && A.any (isCopyAt (.n 39) (.n 37)) &&
-  A.any (isCopyAt (.n 40) (.n 5))
+  hasCall P "da_padding" [.n 0] [.n 1] &&
+  hasCall P "da_vector" [.n 2] [.n 3, .n 4, .n 5, .n 6] &&
+  guardOk P (.n 21) name% «da_verify_loop0» (.n 22) (.n 0) [.n 18, .n 19] &&
+  A.any (isConstAt (.n 23) 1 0) &&
+  hasCall P name% «da_verify_loop1» [.n 23, .n 0, .n 19, .n 3, .n 4, .n 5, .n 6] [] &&
+  guardOk P (.n 27) name% «da_verify_loop2» (.n 28) (.n 0) [.n 19, .n 25] &&
+  guardOk P (.n 30) name% «da_verify_loop3» (.n 31) (.n 1) [.n 25, .n 0] &&
+  hasCall P dlTop [.n 25] [.n 32, .n 33] &&
+  A.any (isCopyAt (.n 34) (.n 32)) && A.any (isCopyAt (.n 35) (.n 33)) &&
+  A.any (isCopyAt (.n 36) (.n 2))
 
 end
 end LeanVM.Guest.B1.Da

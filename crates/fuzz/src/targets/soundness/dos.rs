@@ -10,7 +10,7 @@
 use super::fixtures::{self, Fixture};
 use crate::resources::{measure, within};
 use crate::{Ctx, Finding, Outcome, Source};
-use leanvm_core::cpu::{bytecode_table, public_input_bytes, scalar_proof};
+use leanvm_core::cpu::public_input_bytes;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
@@ -30,7 +30,7 @@ fn bytecode(fixture: &'static Fixture) -> Arc<Bytecode> {
     cache
         .entry(fixture as *const Fixture as usize)
         .or_insert_with(|| {
-            let table: Vec<u64> = bytecode_table(fixture.program.prog()).iter().map(|w| w.0).collect();
+            let table: Vec<u64> = fixture.program.stacked_bytecode().to_vec();
             Arc::new(Bytecode::new(&table))
         })
         .clone()
@@ -58,7 +58,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
     };
     let bytecode = bytecode(fixture);
     let public_input = public_input_bytes(&fixture.public_input);
-    let honest_proof = scalar_proof(&honest.proof);
+    let honest_proof = &honest.proof;
     let mut proof = honest_proof.clone();
 
     // The announcement: log memory, six row counts, the rate.
@@ -121,7 +121,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
         within("replay_unchecked of an adversarial proof", usage, budget, MAX_TIME)?;
         let (verified, usage) = measure(|| verifier::verify_execution(&bytecode, &public_input, &proof));
         within("verify_execution of an adversarial proof", usage, budget, MAX_TIME)?;
-        if verified.is_ok() && proof != honest_proof {
+        if verified.is_ok() && proof != *honest_proof {
             return Err(Finding::critical(
                 "soundness-verifier-dos: a garbage proof verifies",
                 format!("round {round}, announced {:?}", &proof.stream[..8]),

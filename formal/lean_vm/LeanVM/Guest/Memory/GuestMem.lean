@@ -44,19 +44,18 @@ theorem memAll : RangeOk (memF Data.takesT) 0 coreProgram.length := by
   have h9 : RangeOk (memF Data.takesT) 0 684 := h8.append (m := 150) memRange_534
   have h10 : RangeOk (memF Data.takesT) 0 834 := h9.append (m := 150) memRange_684
   have h11 : RangeOk (memF Data.takesT) 0 984 := h10.append (m := 150) memRange_834
-  have h12 : RangeOk (memF Data.takesT) 0 1099 := h11.append (m := 115) memRange_984
-  have h13 : RangeOk (memF Data.takesT) 0 1197 := h12.append (m := 98) memRange_1099
-  have h14 : RangeOk (memF Data.takesT) 0 1265 := h13.append (m := 68) memRange_1197
-  have h15 : RangeOk (memF Data.takesT) 0 1345 := h14.append (m := 80) memRange_1265
-  have h16 : RangeOk (memF Data.takesT) 0 1419 := h15.append (m := 74) memRange_1345
-  have h17 : RangeOk (memF Data.takesT) 0 1487 := h16.append (m := 68) memRange_1419
-  have h18 : RangeOk (memF Data.takesT) 0 1513 := h17.append (m := 26) memRange_1487
-  have h19 : RangeOk (memF Data.takesT) 0 1541 := h18.append (m := 28) memRange_1513
-  have h20 : RangeOk (memF Data.takesT) 0 1563 := h19.append (m := 22) memRange_1541
-  have h21 : RangeOk (memF Data.takesT) 0 1584 := h20.append (m := 21) memRange_1563
-  have h22 : RangeOk (memF Data.takesT) 0 1599 := h21.append (m := 15) memRange_1584
-  have h23 : RangeOk (memF Data.takesT) 0 1601 := h22.append (m := 2) memRange_1599
-  rw [coreProgram_length]; exact h23
+  have h12 : RangeOk (memF Data.takesT) 0 1076 := h11.append (m := 92) memRange_984
+  have h13 : RangeOk (memF Data.takesT) 0 1160 := h12.append (m := 84) memRange_1076
+  have h14 : RangeOk (memF Data.takesT) 0 1239 := h13.append (m := 79) memRange_1160
+  have h15 : RangeOk (memF Data.takesT) 0 1317 := h14.append (m := 78) memRange_1239
+  have h16 : RangeOk (memF Data.takesT) 0 1382 := h15.append (m := 65) memRange_1317
+  have h17 : RangeOk (memF Data.takesT) 0 1445 := h16.append (m := 63) memRange_1382
+  have h18 : RangeOk (memF Data.takesT) 0 1474 := h17.append (m := 29) memRange_1445
+  have h19 : RangeOk (memF Data.takesT) 0 1503 := h18.append (m := 29) memRange_1474
+  have h20 : RangeOk (memF Data.takesT) 0 1525 := h19.append (m := 22) memRange_1503
+  have h21 : RangeOk (memF Data.takesT) 0 1539 := h20.append (m := 14) memRange_1525
+  have h22 : RangeOk (memF Data.takesT) 0 1549 := h21.append (m := 10) memRange_1539
+  rw [coreProgram_length]; exact h22
 
 set_option maxRecDepth 100000 in
 /-- **The large functions' temporaries**: those `Data.bigTemps` lists. -/

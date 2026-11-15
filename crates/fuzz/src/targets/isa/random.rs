@@ -4,8 +4,10 @@
 
 use super::program::{Builder, Exit, garbage};
 use crate::{Ctx, Outcome, Source};
-use leanvm_core::cpu::Op;
+use isa::Op;
+use leanvm_core::cpu::{DerefMode, OutCells};
 use primitives::field::F128;
+pub use primitives::field::F128 as ExpF128;
 
 /// Where callee frames start: above every cell main uses.
 const FRAMES: u32 = 1 << 13;

@@ -89,66 +89,33 @@ theorem shareOk : ShareOkD Fn.«level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0�
 end
 end LeanVM.Guest.Fn.«level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0»
 
-namespace LeanVM.Guest.Fn.«da_levels__L256_L8_loop6»
+namespace LeanVM.Guest.Fn.«level_residual__L109_L16_L6_L3_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop75`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«da_levels__L256_L8_loop6».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«da_levels__L256_L8_loop6»
-
-namespace LeanVM.Guest.Fn.«level_positions__L22_L23_L5_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-/-- `__loop343`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«level_positions__L22_L23_L5_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«level_positions__L22_L23_L5_loop0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L25_L14_L4_L2_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-/-- `__loop406`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«level_residual__L25_L14_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 1 := by decide +kernel
+/-- `__loop129`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«level_residual__L109_L16_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 2 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · exact sw0
   · exact sw1
+  · exact sw2
 ⟩
 
 end
-end LeanVM.Guest.Fn.«level_residual__L25_L14_L4_L2_loop0»
+end LeanVM.Guest.Fn.«level_residual__L109_L16_L6_L3_loop0»
 
-namespace LeanVM.Guest.Fn.«level_residual__L21_L11_L4_L2_loop1»
+namespace LeanVM.Guest.Fn.«level_positions__L15_L24_L6_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop453`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«level_residual__L21_L11_L4_L2_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+/-- `__loop294`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«level_positions__L15_L24_L6_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
@@ -156,5 +123,22 @@ theorem shareOk : ShareOkD Fn.«level_residual__L21_L11_L4_L2_loop1».core (cert
 ⟩
 
 end
-end LeanVM.Guest.Fn.«level_residual__L21_L11_L4_L2_loop1»
+end LeanVM.Guest.Fn.«level_positions__L15_L24_L6_loop0»
+
+namespace LeanVM.Guest.Fn.«level_residual__L18_L11_L4_L2_loop1»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+/-- `__loop407`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«level_residual__L18_L11_L4_L2_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«level_residual__L18_L11_L4_L2_loop1»
 

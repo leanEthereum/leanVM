@@ -8,10 +8,10 @@ meta import LeanVM.Arithmetization.Bytecode
 
 One instruction per constructor, `DEREF` in each of its three modes, laid out by `entry` and read
 back by `decode` under compiled evaluation. The slot positions are
-pinned against the table of specification §8.1 (`08-end-to-end-protocol.tex:12-23`):
+pinned against the table of specification §8.1 (`08-end-to-end-protocol.tex`):
 `SET_CONSTANT`'s `k₁` at slot 6, slot 7 spare, and `KECCAK`'s ten operands at slots 4 to 13 (`o_{m₀..m₃}, o_tail,
 o_b8, o_cap, o_out` and the two layout flags). The flag pairs and the opcode words are pinned
-against `cpu/isa.rs` and `tables.rs:99-104` (leanVM `4af2cddd`).
+against `cpu/isa.rs` and `tables.rs` (leanVM `4af2cddd`).
 The mutations at the end reject the flag pair `(1, 1)`, a non-Boolean flag (`DEREF`'s and
 `KECCAK`'s), an unknown opcode, and a nonzero spare slot; the first is also derived from
 `decode_eq_none_iff`, so the rejection is a theorem and not only an evaluation.
@@ -41,7 +41,7 @@ def keccakI : LeanIsaInstruction := .keccak ![addressOfIndex 6, addressOfIndex 7
 
 /-! ## The flags and the codes -/
 
--- `Cell = (0, 0)`, `Pc = (1, 0)`, `Fp = (0, 1)` (`isa.rs:68-75`).
+-- `Cell = (0, 0)`, `Pc = (1, 0)`, `Fp = (0, 1)` (`isa.rs`).
 #guard derefFlags .cell = (0, 0)
 #guard derefFlags .pc = (1, 0)
 #guard derefFlags .fp = (0, 1)
@@ -150,7 +150,7 @@ example : derefPcI ≠ derefFpI := fun h ↦ by cases h
   0, g, 1, 0] = none
 
 -- `KECCAK`'s output flags `(out_two, out_all)`: `one = (0, 0)`, `two = (1, 0)`, `all = (1, 1)`
--- (`OutCells::flags`, `isa.rs:79-82` at leanVM main `40f877dc`); `(0, 1)` and a non-bit
+-- (`OutCells::flags`, `isa.rs` at leanVM main `40f877dc`); `(0, 1)` and a non-bit
 -- are none.
 #guard keccakOutputFlags .one = (0, 0)
 #guard keccakOutputFlags .two = (1, 0)

@@ -261,7 +261,7 @@ theorem cellNat_eOfNat128 {n : Nat} (h : n < 2 ^ 128) : cellNat (eOfNat128 n) = 
 theorem cellBytes_eOfNat128 {n : Nat} (h : n < 2 ^ 128) : cellBytes (eOfNat128 n) = leBytes n 16 := by
   rw [cellBytes_eq_leBytes, cellNat_eOfNat128 h]
 
-/-- The number a leanXMSS address packs into (`address`, `lean_xmss/hash.rs:73-81`): `lo`, `hi`
+/-- The number a leanXMSS address packs into (`address`, `lean_xmss/hash.rs`): `lo`, `hi`
 from bit 32, the type and step byte from bit 56; its high eight bytes are zero. -/
 def tweakNat (f : LeanXmss.TweakFields) : Nat :=
   f.lo.toNat + 2 ^ 32 * f.hi.toNat + 2 ^ 56 * (f.step ++ f.tag).toNat

@@ -1,4 +1,4 @@
-//! `kernel-merkle`: `pcs::whir::commit` (the lane-major encode, the cut Merkle builder, the shared zero-prefix leaf
+//! `kernel-merkle`: `exp_pcs::whir::commit` (the lane-major encode, the cut Merkle builder, the shared zero-prefix leaf
 //! hashing) against encoding each lane and hashing each leaf image here; openings from `fiat_shamir::merkle::open`
 //! authenticated the way `verifier`'s `MerklePath::root` does, and refused once mutated; and the proof wire format
 //! round-tripping those openings.
@@ -7,9 +7,9 @@ use super::reference as r;
 use super::{bulk_k, check};
 use crate::{Ctx, Finding, Outcome, Source};
 use fiat_shamir::merkle::{MerklePath, hash_pair, hash_words, open};
-use fiat_shamir::transcript::Proof;
-use pcs::ntt::AdditiveNttF64;
-use primitives::field::{F64, F128};
+use verifier::Proof;
+use exp_pcs::ntt::AdditiveNttF64;
+use exp_primitives::field::{F64, F128};
 
 pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
     if src.chance(1, 2) {
@@ -77,7 +77,7 @@ fn commit(src: &mut Source, ctx: &Ctx) -> Outcome {
         log_rows + rate >= 12
     ));
     let message = bulk_k(src, lanes << log_rows);
-    let (commitment, _) = pcs::whir::commit(&message, log_n, log_batch, rate);
+    let (commitment, _) = exp_pcs::whir::commit(&message, log_n, log_batch, rate);
 
     // Each lane encoded alone, the leaf image its lanes in reverse, the absent ones leading as zeros.
     let k_code = log_rows + rate;
@@ -104,7 +104,7 @@ fn commit(src: &mut Source, ctx: &Ctx) -> Outcome {
     let want = r::merkle_root(leaves);
     check!(
         commitment.root == want,
-        "pcs::whir::commit",
+        "exp_pcs::whir::commit",
         "2^{log_rows} rows, {lanes} of 2^{log_batch} lanes, rate {rate}: root {:02x?}, want {want:02x?}",
         commitment.root
     );
@@ -131,7 +131,7 @@ fn openings(src: &mut Source, ctx: &Ctx) -> Outcome {
         .iter()
         .map(|row| [vec![F64::ZERO; leaf_words - row_words], row.clone()].concat())
         .collect();
-    let tree = levels(images.iter().map(|img| hash_words(img)).collect());
+    let tree = levels(images.iter().map(|img| hash_words(img.iter().map(|w| w.0))).collect());
     let root = tree[height][0];
     // The same leaf digests from the fiat_shamir helpers and from sha3.
     for (q, img) in images.iter().enumerate().take(4) {
@@ -148,10 +148,16 @@ fn openings(src: &mut Source, ctx: &Ctx) -> Outcome {
     let count = src.range(1, 40);
     let queries: Vec<usize> = (0..count).map(|_| src.below(n)).collect();
     ctx.note(format!("open height {} queries {}", height.min(4), count.min(8)));
-    let paths = open(n, &queries, leaf_words, |level, i| tree[level][i], |q| &rows[q]);
+    let paths = open(
+        n,
+        &queries,
+        leaf_words,
+        |level, i| tree[level][i],
+        |q| rows[q].iter().map(|w| w.0),
+    );
     for (path, &q) in paths.iter().zip(&queries) {
         check!(path.leaf_index == q as u64, "fiat_shamir::merkle::open", "position {q}");
-        check!(path.leaf == images[q], "fiat_shamir::merkle::open", "leaf image at {q}");
+        check!(path.leaf == images[q].iter().map(|w| verifier::K(w.0)).collect::<Vec<_>>(), "fiat_shamir::merkle::open", "leaf image at {q}");
         check!(path.siblings.len() == height, "fiat_shamir::merkle::open", "height");
         check!(
             verifier_root(path) == root,
@@ -165,7 +171,7 @@ fn openings(src: &mut Source, ctx: &Ctx) -> Outcome {
     let what = match src.below(4) {
         0 if !bad.leaf.is_empty() => {
             let i = src.below(bad.leaf.len());
-            bad.leaf[i] = F64(bad.leaf[i].0 ^ 1 << src.below(64));
+            bad.leaf[i] = verifier::K(bad.leaf[i].0 ^ 1 << src.below(64));
             "leaf"
         }
         1 if height > 0 => {
@@ -178,12 +184,12 @@ fn openings(src: &mut Source, ctx: &Ctx) -> Outcome {
             "index"
         }
         _ => {
-            bad.leaf.push(F64(src.u64()));
+            bad.leaf.push(verifier::K(src.u64()));
             "leaf length"
         }
     };
     if verifier_root(&bad) == root && bad.leaf_index < n as u64 {
-        let same_image = images.get(bad.leaf_index as usize) == Some(&bad.leaf);
+        let same_image = images.get(bad.leaf_index as usize).is_some_and(|img| img.iter().map(|w| verifier::K(w.0)).collect::<Vec<_>>() == bad.leaf);
         if !same_image {
             return Err(Finding::critical(
                 format!("kernel-merkle: a mutated {what} still authenticates"),
@@ -194,10 +200,10 @@ fn openings(src: &mut Source, ctx: &Ctx) -> Outcome {
 
     // The proof's wire format: one encoding, which decodes back to the same paths.
     if leaf_words <= 64 && count <= 256 {
-        let stream: Vec<F128> = (0..src.below(5)).map(|_| src.f128()).collect();
+        let stream: Vec<F128> = (0..src.below(5)).map(|_| src.f128_exp()).collect();
         let proof = Proof {
-            stream,
-            merkle: vec![paths.clone(); src.range(1, 3)],
+            stream: stream.iter().map(|w| verifier::E::new(w.c0, w.c1)).collect(),
+            merkle_openings: vec![paths.clone(); src.range(1, 3)],
         };
         let bytes = proof.to_bytes();
         let back = Proof::from_bytes(&bytes);

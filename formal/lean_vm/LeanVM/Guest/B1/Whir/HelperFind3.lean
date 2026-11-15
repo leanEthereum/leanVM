@@ -24,528 +24,528 @@ open LeanVM.Guest.Core LeanVM.Guest
 
 set_option maxRecDepth 100000 in
 /-- `level_residual__L44_L10_L4_L2`. -/
-theorem fnIs_level_residual_L44_L10_L4_L2_core : FnIs "level_residual__L44_L10_L4_L2" (osParams 4) (lrBody 44 "__loop122" "__loop123") :=
-  @fnIs_level_residual_L44_L10_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 504) rfl⟩
+theorem fnIs_level_residual_L44_L10_L4_L2_core : FnIs "level_residual__L44_L10_L4_L2" (osParams 4) (lrBody 44 "__loop72" "__loop73") :=
+  @fnIs_level_residual_L44_L10_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 494) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0`. -/
 theorem fnIs_level_queries_L55_L0_L4_L16_L15_L3_L0_L0_L0_L0_core : FnIs "level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0" (osParams 6) (lqBody 55 0 4 16 15 3 0 0 0 0) :=
-  @fnIs_level_queries_L55_L0_L4_L16_L15_L3_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 525) rfl⟩
+  @fnIs_level_queries_L55_L0_L4_L16_L15_L3_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 515) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0`. -/
 theorem fnIs_level_queries_L37_L0_L4_L16_L17_L5_L0_L0_L0_L0_core : FnIs "level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0" (osParams 6) (lqBody 37 0 4 16 17 5 0 0 0 0) :=
-  @fnIs_level_queries_L37_L0_L4_L16_L17_L5_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 527) rfl⟩
+  @fnIs_level_queries_L37_L0_L4_L16_L17_L5_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 517) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_residual__L73_L15_L6_L3`. -/
-theorem fnIs_level_residual_L73_L15_L6_L3_core : FnIs "level_residual__L73_L15_L6_L3" (osParams 4) (lrBody 73 "__loop149" "__loop150") :=
-  @fnIs_level_residual_L73_L15_L6_L3 coreProgram ⟨coreProgram_find?_at (j := 544) rfl⟩
+theorem fnIs_level_residual_L73_L15_L6_L3_core : FnIs "level_residual__L73_L15_L6_L3" (osParams 4) (lrBody 73 "__loop99" "__loop100") :=
+  @fnIs_level_residual_L73_L15_L6_L3 coreProgram ⟨coreProgram_find?_at (j := 534) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop264`. -/
-theorem fnIs_level_residual_L19_L6_L4_L2_loop0_core : FnIs "__loop264" (osParams 7) (lrLoop1Body 6 4 2 "__loop264") :=
-  @fnIs_level_residual_L19_L6_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1225) rfl⟩
+/-- `__loop214`. -/
+theorem fnIs_level_residual_L19_L6_L4_L2_loop0_core : FnIs "__loop214" (osParams 7) (lrLoop1Body 6 4 2 "__loop214") :=
+  @fnIs_level_residual_L19_L6_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1166) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L55_L1_L6_L32_L24_L6_L0_L0_L0_L0`. -/
 theorem fnIs_level_queries_L55_L1_L6_L32_L24_L6_L0_L0_L0_L0_core : FnIs "level_queries__L55_L1_L6_L32_L24_L6_L0_L0_L0_L0" (osParams 6) (lqBody 55 1 6 32 24 6 0 0 0 0) :=
-  @fnIs_level_queries_L55_L1_L6_L32_L24_L6_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 731) rfl⟩
+  @fnIs_level_queries_L55_L1_L6_L32_L24_L6_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 721) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_residual__L25_L13_L4_L2`. -/
-theorem fnIs_level_residual_L25_L13_L4_L2_core : FnIs "level_residual__L25_L13_L4_L2" (osParams 4) (lrBody 25 "__loop368" "__loop369") :=
-  @fnIs_level_residual_L25_L13_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 800) rfl⟩
+theorem fnIs_level_residual_L25_L13_L4_L2_core : FnIs "level_residual__L25_L13_L4_L2" (osParams 4) (lrBody 25 "__loop318" "__loop319") :=
+  @fnIs_level_residual_L25_L13_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 790) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_positions__L9_L23_L5`. -/
-theorem fnIs_level_positions_L9_L23_L5_core : FnIs "level_positions__L9_L23_L5" (osParams 9) (lpBody 9 23 5 "__loop382") :=
-  @fnIs_level_positions_L9_L23_L5 coreProgram ⟨coreProgram_find?_at (j := 813) rfl⟩
+theorem fnIs_level_positions_L9_L23_L5_core : FnIs "level_positions__L9_L23_L5" (osParams 9) (lpBody 9 23 5 "__loop332") :=
+  @fnIs_level_positions_L9_L23_L5 coreProgram ⟨coreProgram_find?_at (j := 803) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_positions__L14_L27_L3`. -/
-theorem fnIs_level_positions_L14_L27_L3_core : FnIs "level_positions__L14_L27_L3" (osParams 9) (lpBody 14 27 3 "__loop424") :=
-  @fnIs_level_positions_L14_L27_L3 coreProgram ⟨coreProgram_find?_at (j := 856) rfl⟩
+theorem fnIs_level_positions_L14_L27_L3_core : FnIs "level_positions__L14_L27_L3" (osParams 9) (lpBody 14 27 3 "__loop374") :=
+  @fnIs_level_positions_L14_L27_L3 coreProgram ⟨coreProgram_find?_at (j := 846) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop435`. -/
-theorem fnIs_level_residual_L73_L23_L6_L3_loop0_core : FnIs "__loop435" (osParams 7) (lrLoop1Body 23 6 3 "__loop435") :=
-  @fnIs_level_residual_L73_L23_L6_L3_loop0 coreProgram ⟨coreProgram_find?_at (j := 1433) rfl⟩
+/-- `__loop385`. -/
+theorem fnIs_level_residual_L73_L23_L6_L3_loop0_core : FnIs "__loop385" (osParams 7) (lrLoop1Body 23 6 3 "__loop385") :=
+  @fnIs_level_residual_L73_L23_L6_L3_loop0 coreProgram ⟨coreProgram_find?_at (j := 1374) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop468`. -/
-theorem fnIs_level_positions_L6_L24_L6_loop0_core : FnIs "__loop468" (osParams 6) (lpLoopBody 24 6 "__loop468") :=
-  @fnIs_level_positions_L6_L24_L6_loop0 coreProgram ⟨coreProgram_find?_at (j := 1470) rfl⟩
+/-- `__loop418`. -/
+theorem fnIs_level_positions_L6_L24_L6_loop0_core : FnIs "__loop418" (osParams 6) (lpLoopBody 24 6 "__loop418") :=
+  @fnIs_level_positions_L6_L24_L6_loop0 coreProgram ⟨coreProgram_find?_at (j := 1411) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0`. -/
 theorem fnIs_level_queries_L25_L0_L4_L16_L25_L7_L0_L0_L0_L0_core : FnIs "level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0" (osParams 6) (lqBody 25 0 4 16 25 7 0 0 0 0) :=
-  @fnIs_level_queries_L25_L0_L4_L16_L25_L7_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 917) rfl⟩
+  @fnIs_level_queries_L25_L0_L4_L16_L25_L7_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 907) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop480`. -/
-theorem fnIs_level_residual_L55_L20_L4_L2_loop0_core : FnIs "__loop480" (osParams 7) (lrLoop1Body 20 4 2 "__loop480") :=
-  @fnIs_level_residual_L55_L20_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1485) rfl⟩
+/-- `__loop430`. -/
+theorem fnIs_level_residual_L55_L20_L4_L2_loop0_core : FnIs "__loop430" (osParams 7) (lrLoop1Body 20 4 2 "__loop430") :=
+  @fnIs_level_residual_L55_L20_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1426) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_positions__L11_L18_L6`. -/
-theorem fnIs_level_positions_L11_L18_L6_core : FnIs "level_positions__L11_L18_L6" (osParams 9) (lpBody 11 18 6 "__loop137") :=
-  @fnIs_level_positions_L11_L18_L6 coreProgram ⟨coreProgram_find?_at (j := 514) rfl⟩
+theorem fnIs_level_positions_L11_L18_L6_core : FnIs "level_positions__L11_L18_L6" (osParams 9) (lpBody 11 18 6 "__loop87") :=
+  @fnIs_level_positions_L11_L18_L6 coreProgram ⟨coreProgram_find?_at (j := 504) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_positions__L13_L19_L7`. -/
-theorem fnIs_level_positions_L13_L19_L7_core : FnIs "level_positions__L13_L19_L7" (osParams 9) (lpBody 13 19 7 "__loop169") :=
-  @fnIs_level_positions_L13_L19_L7 coreProgram ⟨coreProgram_find?_at (j := 557) rfl⟩
+theorem fnIs_level_positions_L13_L19_L7_core : FnIs "level_positions__L13_L19_L7" (osParams 9) (lpBody 13 19 7 "__loop119") :=
+  @fnIs_level_positions_L13_L19_L7 coreProgram ⟨coreProgram_find?_at (j := 547) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_positions__L10_L20_L2`. -/
-theorem fnIs_level_positions_L10_L20_L2_core : FnIs "level_positions__L10_L20_L2" (osParams 9) (lpBody 10 20 2 "__loop170") :=
-  @fnIs_level_positions_L10_L20_L2 coreProgram ⟨coreProgram_find?_at (j := 558) rfl⟩
+theorem fnIs_level_positions_L10_L20_L2_core : FnIs "level_positions__L10_L20_L2" (osParams 9) (lpBody 10 20 2 "__loop120") :=
+  @fnIs_level_positions_L10_L20_L2 coreProgram ⟨coreProgram_find?_at (j := 548) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_residual__L37_L12_L4_L2`. -/
-theorem fnIs_level_residual_L37_L12_L4_L2_core : FnIs "level_residual__L37_L12_L4_L2" (osParams 4) (lrBody 37 "__loop189" "__loop190") :=
-  @fnIs_level_residual_L37_L12_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 591) rfl⟩
+theorem fnIs_level_residual_L37_L12_L4_L2_core : FnIs "level_residual__L37_L12_L4_L2" (osParams 4) (lrBody 37 "__loop139" "__loop140") :=
+  @fnIs_level_residual_L37_L12_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 581) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L23_L0_L4_L16_L15_L3_L5_L36_L6_L1`. -/
 theorem fnIs_level_queries_L23_L0_L4_L16_L15_L3_L5_L36_L6_L1_core : FnIs "level_queries__L23_L0_L4_L16_L15_L3_L5_L36_L6_L1" (osParams 6) (lqBody 23 0 4 16 15 3 5 36 6 1) :=
-  @fnIs_level_queries_L23_L0_L4_L16_L15_L3_L5_L36_L6_L1 coreProgram ⟨coreProgram_find?_at (j := 623) rfl⟩
+  @fnIs_level_queries_L23_L0_L4_L16_L15_L3_L5_L36_L6_L1 coreProgram ⟨coreProgram_find?_at (j := 613) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0`. -/
 theorem fnIs_level_queries_L32_L0_L4_L16_L21_L3_L0_L0_L0_L0_core : FnIs "level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0" (osParams 6) (lqBody 32 0 4 16 21 3 0 0 0 0) :=
-  @fnIs_level_queries_L32_L0_L4_L16_L21_L3_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 655) rfl⟩
+  @fnIs_level_queries_L32_L0_L4_L16_L21_L3_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 645) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop276`. -/
-theorem fnIs_level_positions_L4_L21_L3_loop0_core : FnIs "__loop276" (osParams 6) (lpLoopBody 21 3 "__loop276") :=
-  @fnIs_level_positions_L4_L21_L3_loop0 coreProgram ⟨coreProgram_find?_at (j := 1243) rfl⟩
+/-- `__loop226`. -/
+theorem fnIs_level_positions_L4_L21_L3_loop0_core : FnIs "__loop226" (osParams 6) (lpLoopBody 21 3 "__loop226") :=
+  @fnIs_level_positions_L4_L21_L3_loop0 coreProgram ⟨coreProgram_find?_at (j := 1184) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_residual__L73_L20_L6_L3`. -/
-theorem fnIs_level_residual_L73_L20_L6_L3_core : FnIs "level_residual__L73_L20_L6_L3" (osParams 4) (lrBody 73 "__loop319" "__loop320") :=
-  @fnIs_level_residual_L73_L20_L6_L3 coreProgram ⟨coreProgram_find?_at (j := 753) rfl⟩
+theorem fnIs_level_residual_L73_L20_L6_L3_core : FnIs "level_residual__L73_L20_L6_L3" (osParams 4) (lrBody 73 "__loop269" "__loop270") :=
+  @fnIs_level_residual_L73_L20_L6_L3 coreProgram ⟨coreProgram_find?_at (j := 743) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop326`. -/
-theorem fnIs_level_residual_L44_L16_L4_L2_loop1_core : FnIs "__loop326" (osParams 7) (lrLoop2Body 16 4 2 "__loop326") :=
-  @fnIs_level_residual_L44_L16_L4_L2_loop1 coreProgram ⟨coreProgram_find?_at (j := 1303) rfl⟩
+/-- `__loop276`. -/
+theorem fnIs_level_residual_L44_L16_L4_L2_loop1_core : FnIs "__loop276" (osParams 7) (lrLoop2Body 16 4 2 "__loop276") :=
+  @fnIs_level_residual_L44_L16_L4_L2_loop1 coreProgram ⟨coreProgram_find?_at (j := 1244) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop422`. -/
-theorem fnIs_level_positions_L22_L25_L7_loop0_core : FnIs "__loop422" (osParams 6) (lpLoopBody 25 7 "__loop422") :=
-  @fnIs_level_positions_L22_L25_L7_loop0 coreProgram ⟨coreProgram_find?_at (j := 1413) rfl⟩
+/-- `__loop372`. -/
+theorem fnIs_level_positions_L22_L25_L7_loop0_core : FnIs "__loop372" (osParams 6) (lpLoopBody 25 7 "__loop372") :=
+  @fnIs_level_positions_L22_L25_L7_loop0 coreProgram ⟨coreProgram_find?_at (j := 1354) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop433`. -/
-theorem fnIs_level_residual_L109_L23_L6_L3_loop0_core : FnIs "__loop433" (osParams 7) (lrLoop1Body 23 6 3 "__loop433") :=
-  @fnIs_level_residual_L109_L23_L6_L3_loop0 coreProgram ⟨coreProgram_find?_at (j := 1431) rfl⟩
+/-- `__loop383`. -/
+theorem fnIs_level_residual_L109_L23_L6_L3_loop0_core : FnIs "__loop383" (osParams 7) (lrLoop1Body 23 6 3 "__loop383") :=
+  @fnIs_level_residual_L109_L23_L6_L3_loop0 coreProgram ⟨coreProgram_find?_at (j := 1372) rfl⟩
+
+set_option maxRecDepth 100000 in
+/-- `__loop399`. -/
+theorem fnIs_level_residual_L25_L15_L4_L2_loop1_core : FnIs "__loop399" (osParams 7) (lrLoop2Body 15 4 2 "__loop399") :=
+  @fnIs_level_residual_L25_L15_L4_L2_loop1 coreProgram ⟨coreProgram_find?_at (j := 1388) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `__loop449`. -/
-theorem fnIs_level_residual_L25_L15_L4_L2_loop1_core : FnIs "__loop449" (osParams 7) (lrLoop2Body 15 4 2 "__loop449") :=
-  @fnIs_level_residual_L25_L15_L4_L2_loop1 coreProgram ⟨coreProgram_find?_at (j := 1447) rfl⟩
-
-set_option maxRecDepth 100000 in
-/-- `__loop499`. -/
-theorem fnIs_level_residual_L17_L8_L4_L2_loop0_core : FnIs "__loop499" (osParams 7) (lrLoop1Body 8 4 2 "__loop499") :=
-  @fnIs_level_residual_L17_L8_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1504) rfl⟩
+theorem fnIs_level_residual_L17_L8_L4_L2_loop0_core : FnIs "__loop449" (osParams 7) (lrLoop1Body 8 4 2 "__loop449") :=
+  @fnIs_level_residual_L17_L8_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1445) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_residual__L25_L6_L4_L2`. -/
-theorem fnIs_level_residual_L25_L6_L4_L2_core : FnIs "level_residual__L25_L6_L4_L2" (osParams 4) (lrBody 25 "__loop131" "__loop132") :=
-  @fnIs_level_residual_L25_L6_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 509) rfl⟩
+theorem fnIs_level_residual_L25_L6_L4_L2_core : FnIs "level_residual__L25_L6_L4_L2" (osParams 4) (lrBody 25 "__loop81" "__loop82") :=
+  @fnIs_level_residual_L25_L6_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 499) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop162`. -/
-theorem fnIs_level_residual_L28_L7_L4_L2_loop1_core : FnIs "__loop162" (osParams 7) (lrLoop2Body 7 4 2 "__loop162") :=
-  @fnIs_level_residual_L28_L7_L4_L2_loop1 coreProgram ⟨coreProgram_find?_at (j := 1100) rfl⟩
+/-- `__loop112`. -/
+theorem fnIs_level_residual_L28_L7_L4_L2_loop1_core : FnIs "__loop112" (osParams 7) (lrLoop2Body 7 4 2 "__loop112") :=
+  @fnIs_level_residual_L28_L7_L4_L2_loop1 coreProgram ⟨coreProgram_find?_at (j := 1041) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop196`. -/
-theorem fnIs_level_residual_L25_L8_L4_L2_loop1_core : FnIs "__loop196" (osParams 7) (lrLoop2Body 8 4 2 "__loop196") :=
-  @fnIs_level_residual_L25_L8_L4_L2_loop1 coreProgram ⟨coreProgram_find?_at (j := 1142) rfl⟩
+/-- `__loop146`. -/
+theorem fnIs_level_residual_L25_L8_L4_L2_loop1_core : FnIs "__loop146" (osParams 7) (lrLoop2Body 8 4 2 "__loop146") :=
+  @fnIs_level_residual_L25_L8_L4_L2_loop1 coreProgram ⟨coreProgram_find?_at (j := 1083) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop204`. -/
-theorem fnIs_level_positions_L7_L18_L6_loop0_core : FnIs "__loop204" (osParams 6) (lpLoopBody 18 6 "__loop204") :=
-  @fnIs_level_positions_L7_L18_L6_loop0 coreProgram ⟨coreProgram_find?_at (j := 1153) rfl⟩
+/-- `__loop154`. -/
+theorem fnIs_level_positions_L7_L18_L6_loop0_core : FnIs "__loop154" (osParams 6) (lpLoopBody 18 6 "__loop154") :=
+  @fnIs_level_positions_L7_L18_L6_loop0 coreProgram ⟨coreProgram_find?_at (j := 1094) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_residual__L32_L13_L4_L2`. -/
-theorem fnIs_level_residual_L32_L13_L4_L2_core : FnIs "level_residual__L32_L13_L4_L2" (osParams 4) (lrBody 32 "__loop223" "") :=
-  @fnIs_level_residual_L32_L13_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 635) rfl⟩
+theorem fnIs_level_residual_L32_L13_L4_L2_core : FnIs "level_residual__L32_L13_L4_L2" (osParams 4) (lrBody 32 "__loop173" "") :=
+  @fnIs_level_residual_L32_L13_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 625) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_residual__L28_L9_L4_L2`. -/
-theorem fnIs_level_residual_L28_L9_L4_L2_core : FnIs "level_residual__L28_L9_L4_L2" (osParams 4) (lrBody 28 "__loop225" "__loop226") :=
-  @fnIs_level_residual_L28_L9_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 637) rfl⟩
+theorem fnIs_level_residual_L28_L9_L4_L2_core : FnIs "level_residual__L28_L9_L4_L2" (osParams 4) (lrBody 28 "__loop175" "__loop176") :=
+  @fnIs_level_residual_L28_L9_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 627) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L218_L1_L6_L32_L19_L7_L0_L0_L0_L0`. -/
 theorem fnIs_level_queries_L218_L1_L6_L32_L19_L7_L0_L0_L0_L0_core : FnIs "level_queries__L218_L1_L6_L32_L19_L7_L0_L0_L0_L0" (osParams 6) (lqBody 218 1 6 32 19 7 0 0 0 0) :=
-  @fnIs_level_queries_L218_L1_L6_L32_L19_L7_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 645) rfl⟩
+  @fnIs_level_queries_L218_L1_L6_L32_L19_L7_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 635) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L55_L1_L6_L32_L22_L4_L0_L0_L0_L0`. -/
 theorem fnIs_level_queries_L55_L1_L6_L32_L22_L4_L0_L0_L0_L0_core : FnIs "level_queries__L55_L1_L6_L32_L22_L4_L0_L0_L0_L0" (osParams 6) (lqBody 55 1 6 32 22 4 0 0 0 0) :=
-  @fnIs_level_queries_L55_L1_L6_L32_L22_L4_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 648) rfl⟩
+  @fnIs_level_queries_L55_L1_L6_L32_L22_L4_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 638) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop254`. -/
-theorem fnIs_level_residual_L37_L14_L4_L2_loop1_core : FnIs "__loop254" (osParams 7) (lrLoop2Body 14 4 2 "__loop254") :=
-  @fnIs_level_residual_L37_L14_L4_L2_loop1 coreProgram ⟨coreProgram_find?_at (j := 1215) rfl⟩
+/-- `__loop204`. -/
+theorem fnIs_level_residual_L37_L14_L4_L2_loop1_core : FnIs "__loop204" (osParams 7) (lrLoop2Body 14 4 2 "__loop204") :=
+  @fnIs_level_residual_L37_L14_L4_L2_loop1 coreProgram ⟨coreProgram_find?_at (j := 1156) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop255`. -/
-theorem fnIs_level_residual_L32_L14_L4_L2_loop0_core : FnIs "__loop255" (osParams 7) (lrLoop1Body 14 4 2 "__loop255") :=
-  @fnIs_level_residual_L32_L14_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1216) rfl⟩
+/-- `__loop205`. -/
+theorem fnIs_level_residual_L32_L14_L4_L2_loop0_core : FnIs "__loop205" (osParams 7) (lrLoop1Body 14 4 2 "__loop205") :=
+  @fnIs_level_residual_L32_L14_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1157) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_residual__L109_L20_L6_L3`. -/
-theorem fnIs_level_residual_L109_L20_L6_L3_core : FnIs "level_residual__L109_L20_L6_L3" (osParams 4) (lrBody 109 "__loop317" "__loop318") :=
-  @fnIs_level_residual_L109_L20_L6_L3 coreProgram ⟨coreProgram_find?_at (j := 752) rfl⟩
+theorem fnIs_level_residual_L109_L20_L6_L3_core : FnIs "level_residual__L109_L20_L6_L3" (osParams 4) (lrBody 109 "__loop267" "__loop268") :=
+  @fnIs_level_residual_L109_L20_L6_L3 coreProgram ⟨coreProgram_find?_at (j := 742) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_residual__L28_L12_L4_L2`. -/
-theorem fnIs_level_residual_L28_L12_L4_L2_core : FnIs "level_residual__L28_L12_L4_L2" (osParams 4) (lrBody 28 "__loop330" "__loop331") :=
-  @fnIs_level_residual_L28_L12_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 759) rfl⟩
+theorem fnIs_level_residual_L28_L12_L4_L2_core : FnIs "level_residual__L28_L12_L4_L2" (osParams 4) (lrBody 28 "__loop280" "__loop281") :=
+  @fnIs_level_residual_L28_L12_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 749) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop334`. -/
-theorem fnIs_level_residual_L23_L12_L4_L2_loop0_core : FnIs "__loop334" (osParams 7) (lrLoop1Body 12 4 2 "__loop334") :=
-  @fnIs_level_residual_L23_L12_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1311) rfl⟩
+/-- `__loop284`. -/
+theorem fnIs_level_residual_L23_L12_L4_L2_loop0_core : FnIs "__loop284" (osParams 7) (lrLoop1Body 12 4 2 "__loop284") :=
+  @fnIs_level_residual_L23_L12_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1252) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L109_L1_L6_L32_L23_L5_L0_L0_L0_L0`. -/
 theorem fnIs_level_queries_L109_L1_L6_L32_L23_L5_L0_L0_L0_L0_core : FnIs "level_queries__L109_L1_L6_L32_L23_L5_L0_L0_L0_L0" (osParams 6) (lqBody 109 1 6 32 23 5 0 0 0 0) :=
-  @fnIs_level_queries_L109_L1_L6_L32_L23_L5_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 770) rfl⟩
+  @fnIs_level_queries_L109_L1_L6_L32_L23_L5_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 760) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop387`. -/
-theorem fnIs_level_positions_L4_L23_L5_loop0_core : FnIs "__loop387" (osParams 6) (lpLoopBody 23 5 "__loop387") :=
-  @fnIs_level_positions_L4_L23_L5_loop0 coreProgram ⟨coreProgram_find?_at (j := 1375) rfl⟩
+/-- `__loop337`. -/
+theorem fnIs_level_positions_L4_L23_L5_loop0_core : FnIs "__loop337" (osParams 6) (lpLoopBody 23 5 "__loop337") :=
+  @fnIs_level_positions_L4_L23_L5_loop0 coreProgram ⟨coreProgram_find?_at (j := 1316) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop432`. -/
-theorem fnIs_level_residual_L218_L23_L6_L3_loop1_core : FnIs "__loop432" (osParams 7) (lrLoop2Body 23 6 3 "__loop432") :=
-  @fnIs_level_residual_L218_L23_L6_L3_loop1 coreProgram ⟨coreProgram_find?_at (j := 1430) rfl⟩
+/-- `__loop382`. -/
+theorem fnIs_level_residual_L218_L23_L6_L3_loop1_core : FnIs "__loop382" (osParams 7) (lrLoop2Body 23 6 3 "__loop382") :=
+  @fnIs_level_residual_L218_L23_L6_L3_loop1 coreProgram ⟨coreProgram_find?_at (j := 1371) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop446`. -/
-theorem fnIs_level_residual_L28_L15_L4_L2_loop0_core : FnIs "__loop446" (osParams 7) (lrLoop1Body 15 4 2 "__loop446") :=
-  @fnIs_level_residual_L28_L15_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1444) rfl⟩
+/-- `__loop396`. -/
+theorem fnIs_level_residual_L28_L15_L4_L2_loop0_core : FnIs "__loop396" (osParams 7) (lrLoop1Body 15 4 2 "__loop396") :=
+  @fnIs_level_residual_L28_L15_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1385) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_residual__L23_L15_L4_L2`. -/
-theorem fnIs_level_residual_L23_L15_L4_L2_core : FnIs "level_residual__L23_L15_L4_L2" (osParams 4) (lrBody 23 "__loop450" "__loop451") :=
-  @fnIs_level_residual_L23_L15_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 893) rfl⟩
+theorem fnIs_level_residual_L23_L15_L4_L2_core : FnIs "level_residual__L23_L15_L4_L2" (osParams 4) (lrBody 23 "__loop400" "__loop401") :=
+  @fnIs_level_residual_L23_L15_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 883) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L109_L1_L6_L32_L26_L2_L0_L0_L0_L0`. -/
 theorem fnIs_level_queries_L109_L1_L6_L32_L26_L2_L0_L0_L0_L0_core : FnIs "level_queries__L109_L1_L6_L32_L26_L2_L0_L0_L0_L0" (osParams 6) (lqBody 109 1 6 32 26 2 0 0 0 0) :=
-  @fnIs_level_queries_L109_L1_L6_L32_L26_L2_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 904) rfl⟩
+  @fnIs_level_queries_L109_L1_L6_L32_L26_L2_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 894) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L73_L1_L6_L32_L27_L3_L0_L0_L0_L0`. -/
 theorem fnIs_level_queries_L73_L1_L6_L32_L27_L3_L0_L0_L0_L0_core : FnIs "level_queries__L73_L1_L6_L32_L27_L3_L0_L0_L0_L0" (osParams 6) (lqBody 73 1 6 32 27 3 0 0 0 0) :=
-  @fnIs_level_queries_L73_L1_L6_L32_L27_L3_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 905) rfl⟩
+  @fnIs_level_queries_L73_L1_L6_L32_L27_L3_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 895) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop109`. -/
-theorem fnIs_level_positions_L3_L13_L7_loop0_core : FnIs "__loop109" (osParams 6) (lpLoopBody 13 7 "__loop109") :=
-  @fnIs_level_positions_L3_L13_L7_loop0 coreProgram ⟨coreProgram_find?_at (j := 1035) rfl⟩
+/-- `__loop59`. -/
+theorem fnIs_level_positions_L3_L13_L7_loop0_core : FnIs "__loop59" (osParams 6) (lpLoopBody 13 7 "__loop59") :=
+  @fnIs_level_positions_L3_L13_L7_loop0 coreProgram ⟨coreProgram_find?_at (j := 976) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop181`. -/
-theorem fnIs_level_residual_L73_L16_L6_L3_loop0_core : FnIs "__loop181" (osParams 7) (lrLoop1Body 16 6 3 "__loop181") :=
-  @fnIs_level_residual_L73_L16_L6_L3_loop0 coreProgram ⟨coreProgram_find?_at (j := 1127) rfl⟩
+/-- `__loop131`. -/
+theorem fnIs_level_residual_L73_L16_L6_L3_loop0_core : FnIs "__loop131" (osParams 7) (lrLoop1Body 16 6 3 "__loop131") :=
+  @fnIs_level_residual_L73_L16_L6_L3_loop0 coreProgram ⟨coreProgram_find?_at (j := 1068) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop224`. -/
-theorem fnIs_level_residual_L32_L9_L4_L2_loop0_core : FnIs "__loop224" (osParams 7) (lrLoop1Body 9 4 2 "__loop224") :=
-  @fnIs_level_residual_L32_L9_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1178) rfl⟩
+/-- `__loop174`. -/
+theorem fnIs_level_residual_L32_L9_L4_L2_loop0_core : FnIs "__loop174" (osParams 7) (lrLoop1Body 9 4 2 "__loop174") :=
+  @fnIs_level_residual_L32_L9_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1119) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop234`. -/
-theorem fnIs_level_positions_L11_L22_L4_loop0_core : FnIs "__loop234" (osParams 6) (lpLoopBody 22 4 "__loop234") :=
-  @fnIs_level_positions_L11_L22_L4_loop0 coreProgram ⟨coreProgram_find?_at (j := 1189) rfl⟩
+/-- `__loop184`. -/
+theorem fnIs_level_positions_L11_L22_L4_loop0_core : FnIs "__loop184" (osParams 6) (lpLoopBody 22 4 "__loop184") :=
+  @fnIs_level_positions_L11_L22_L4_loop0 coreProgram ⟨coreProgram_find?_at (j := 1130) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L25_L0_L4_L16_L21_L3_L0_L0_L0_L0`. -/
 theorem fnIs_level_queries_L25_L0_L4_L16_L21_L3_L0_L0_L0_L0_core : FnIs "level_queries__L25_L0_L4_L16_L21_L3_L0_L0_L0_L0" (osParams 6) (lqBody 25 0 4 16 21 3 0 0 0 0) :=
-  @fnIs_level_queries_L25_L0_L4_L16_L21_L3_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 742) rfl⟩
+  @fnIs_level_queries_L25_L0_L4_L16_L21_L3_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 732) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_residual__L19_L9_L4_L2`. -/
-theorem fnIs_level_residual_L19_L9_L4_L2_core : FnIs "level_residual__L19_L9_L4_L2" (osParams 4) (lrBody 19 "__loop374" "__loop375") :=
-  @fnIs_level_residual_L19_L9_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 803) rfl⟩
+theorem fnIs_level_residual_L19_L9_L4_L2_core : FnIs "level_residual__L19_L9_L4_L2" (osParams 4) (lrBody 19 "__loop324" "__loop325") :=
+  @fnIs_level_residual_L19_L9_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 793) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop460`. -/
-theorem fnIs_level_residual_L16_L7_L4_L2_loop0_core : FnIs "__loop460" (osParams 7) (lrLoop1Body 7 4 2 "__loop460") :=
-  @fnIs_level_residual_L16_L7_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1458) rfl⟩
+/-- `__loop410`. -/
+theorem fnIs_level_residual_L16_L7_L4_L2_loop0_core : FnIs "__loop410" (osParams 7) (lrLoop1Body 7 4 2 "__loop410") :=
+  @fnIs_level_residual_L16_L7_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1399) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_residual__L55_L15_L6_L3`. -/
-theorem fnIs_level_residual_L55_L15_L6_L3_core : FnIs "level_residual__L55_L15_L6_L3" (osParams 4) (lrBody 55 "__loop151" "__loop152") :=
-  @fnIs_level_residual_L55_L15_L6_L3 coreProgram ⟨coreProgram_find?_at (j := 545) rfl⟩
+theorem fnIs_level_residual_L55_L15_L6_L3_core : FnIs "level_residual__L55_L15_L6_L3" (osParams 4) (lrBody 55 "__loop101" "__loop102") :=
+  @fnIs_level_residual_L55_L15_L6_L3 coreProgram ⟨coreProgram_find?_at (j := 535) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop179`. -/
-theorem fnIs_level_residual_L109_L16_L6_L3_loop0_core : FnIs "__loop179" (osParams 7) (lrLoop1Body 16 6 3 "__loop179") :=
-  @fnIs_level_residual_L109_L16_L6_L3_loop0 coreProgram ⟨coreProgram_find?_at (j := 1125) rfl⟩
+/-- `__loop129`. -/
+theorem fnIs_level_residual_L109_L16_L6_L3_loop0_core : FnIs "__loop129" (osParams 7) (lrLoop1Body 16 6 3 "__loop129") :=
+  @fnIs_level_residual_L109_L16_L6_L3_loop0 coreProgram ⟨coreProgram_find?_at (j := 1066) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_positions__L8_L19_L7`. -/
-theorem fnIs_level_positions_L8_L19_L7_core : FnIs "level_positions__L8_L19_L7" (osParams 9) (lpBody 8 19 7 "__loop235") :=
-  @fnIs_level_positions_L8_L19_L7 coreProgram ⟨coreProgram_find?_at (j := 649) rfl⟩
+theorem fnIs_level_positions_L8_L19_L7_core : FnIs "level_positions__L8_L19_L7" (osParams 9) (lpBody 8 19 7 "__loop185") :=
+  @fnIs_level_positions_L8_L19_L7 coreProgram ⟨coreProgram_find?_at (j := 639) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop250`. -/
-theorem fnIs_level_residual_L55_L14_L4_L2_loop1_core : FnIs "__loop250" (osParams 7) (lrLoop2Body 14 4 2 "__loop250") :=
-  @fnIs_level_residual_L55_L14_L4_L2_loop1 coreProgram ⟨coreProgram_find?_at (j := 1211) rfl⟩
+/-- `__loop200`. -/
+theorem fnIs_level_residual_L55_L14_L4_L2_loop1_core : FnIs "__loop200" (osParams 7) (lrLoop2Body 14 4 2 "__loop200") :=
+  @fnIs_level_residual_L55_L14_L4_L2_loop1 coreProgram ⟨coreProgram_find?_at (j := 1152) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L55_L0_L4_L16_L19_L7_L0_L0_L0_L0`. -/
 theorem fnIs_level_queries_L55_L0_L4_L16_L19_L7_L0_L0_L0_L0_core : FnIs "level_queries__L55_L0_L4_L16_L19_L7_L0_L0_L0_L0" (osParams 6) (lqBody 55 0 4 16 19 7 0 0 0 0) :=
-  @fnIs_level_queries_L55_L0_L4_L16_L19_L7_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 694) rfl⟩
+  @fnIs_level_queries_L55_L0_L4_L16_L19_L7_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 684) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0`. -/
 theorem fnIs_level_queries_L19_L0_L4_L16_L19_L7_L0_L0_L0_L0_core : FnIs "level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0" (osParams 6) (lqBody 19 0 4 16 19 7 0 0 0 0) :=
-  @fnIs_level_queries_L19_L0_L4_L16_L19_L7_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 705) rfl⟩
+  @fnIs_level_queries_L19_L0_L4_L16_L19_L7_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 695) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop343`. -/
-theorem fnIs_level_positions_L22_L23_L5_loop0_core : FnIs "__loop343" (osParams 6) (lpLoopBody 23 5 "__loop343") :=
-  @fnIs_level_positions_L22_L23_L5_loop0 coreProgram ⟨coreProgram_find?_at (j := 1320) rfl⟩
+/-- `__loop293`. -/
+theorem fnIs_level_positions_L22_L23_L5_loop0_core : FnIs "__loop293" (osParams 6) (lpLoopBody 23 5 "__loop293") :=
+  @fnIs_level_positions_L22_L23_L5_loop0 coreProgram ⟨coreProgram_find?_at (j := 1261) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop344`. -/
-theorem fnIs_level_positions_L15_L24_L6_loop0_core : FnIs "__loop344" (osParams 6) (lpLoopBody 24 6 "__loop344") :=
-  @fnIs_level_positions_L15_L24_L6_loop0 coreProgram ⟨coreProgram_find?_at (j := 1321) rfl⟩
+/-- `__loop294`. -/
+theorem fnIs_level_positions_L15_L24_L6_loop0_core : FnIs "__loop294" (osParams 6) (lpLoopBody 24 6 "__loop294") :=
+  @fnIs_level_positions_L15_L24_L6_loop0 coreProgram ⟨coreProgram_find?_at (j := 1262) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop361`. -/
-theorem fnIs_level_residual_L44_L17_L4_L2_loop0_core : FnIs "__loop361" (osParams 7) (lrLoop1Body 17 4 2 "__loop361") :=
-  @fnIs_level_residual_L44_L17_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1345) rfl⟩
+/-- `__loop311`. -/
+theorem fnIs_level_residual_L44_L17_L4_L2_loop0_core : FnIs "__loop311" (osParams 7) (lrLoop1Body 17 4 2 "__loop311") :=
+  @fnIs_level_residual_L44_L17_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1286) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop406`. -/
-theorem fnIs_level_residual_L25_L14_L4_L2_loop0_core : FnIs "__loop406" (osParams 7) (lrLoop1Body 14 4 2 "__loop406") :=
-  @fnIs_level_residual_L25_L14_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1397) rfl⟩
+/-- `__loop356`. -/
+theorem fnIs_level_residual_L25_L14_L4_L2_loop0_core : FnIs "__loop356" (osParams 7) (lrLoop1Body 14 4 2 "__loop356") :=
+  @fnIs_level_residual_L25_L14_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1338) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_positions__L5_L25_L7`. -/
-theorem fnIs_level_positions_L5_L25_L7_core : FnIs "level_positions__L5_L25_L7" (osParams 9) (lpBody 5 25 7 "__loop429") :=
-  @fnIs_level_positions_L5_L25_L7 coreProgram ⟨coreProgram_find?_at (j := 869) rfl⟩
+theorem fnIs_level_positions_L5_L25_L7_core : FnIs "level_positions__L5_L25_L7" (osParams 9) (lpBody 5 25 7 "__loop379") :=
+  @fnIs_level_positions_L5_L25_L7 coreProgram ⟨coreProgram_find?_at (j := 859) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop437`. -/
-theorem fnIs_level_residual_L55_L23_L6_L3_loop0_core : FnIs "__loop437" (osParams 7) (lrLoop1Body 23 6 3 "__loop437") :=
-  @fnIs_level_residual_L55_L23_L6_L3_loop0 coreProgram ⟨coreProgram_find?_at (j := 1435) rfl⟩
+/-- `__loop387`. -/
+theorem fnIs_level_residual_L55_L23_L6_L3_loop0_core : FnIs "__loop387" (osParams 7) (lrLoop1Body 23 6 3 "__loop387") :=
+  @fnIs_level_residual_L55_L23_L6_L3_loop0 coreProgram ⟨coreProgram_find?_at (j := 1376) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop453`. -/
-theorem fnIs_level_residual_L21_L11_L4_L2_loop1_core : FnIs "__loop453" (osParams 7) (lrLoop2Body 11 4 2 "__loop453") :=
-  @fnIs_level_residual_L21_L11_L4_L2_loop1 coreProgram ⟨coreProgram_find?_at (j := 1451) rfl⟩
+/-- `__loop403`. -/
+theorem fnIs_level_residual_L21_L11_L4_L2_loop1_core : FnIs "__loop403" (osParams 7) (lrLoop2Body 11 4 2 "__loop403") :=
+  @fnIs_level_residual_L21_L11_L4_L2_loop1 coreProgram ⟨coreProgram_find?_at (j := 1392) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop457`. -/
-theorem fnIs_level_residual_L18_L11_L4_L2_loop1_core : FnIs "__loop457" (osParams 7) (lrLoop2Body 11 4 2 "__loop457") :=
-  @fnIs_level_residual_L18_L11_L4_L2_loop1 coreProgram ⟨coreProgram_find?_at (j := 1455) rfl⟩
+/-- `__loop407`. -/
+theorem fnIs_level_residual_L18_L11_L4_L2_loop1_core : FnIs "__loop407" (osParams 7) (lrLoop2Body 11 4 2 "__loop407") :=
+  @fnIs_level_residual_L18_L11_L4_L2_loop1 coreProgram ⟨coreProgram_find?_at (j := 1396) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0`. -/
 theorem fnIs_level_queries_L21_L0_L4_L16_L23_L5_L0_L0_L0_L0_core : FnIs "level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0" (osParams 6) (lqBody 21 0 4 16 23 5 0 0 0 0) :=
-  @fnIs_level_queries_L21_L0_L4_L16_L23_L5_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 920) rfl⟩
+  @fnIs_level_queries_L21_L0_L4_L16_L23_L5_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 910) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0`. -/
 theorem fnIs_level_queries_L18_L0_L4_L16_L25_L7_L0_L0_L0_L0_core : FnIs "level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0" (osParams 6) (lqBody 18 0 4 16 25 7 0 0 0 0) :=
-  @fnIs_level_queries_L18_L0_L4_L16_L25_L7_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 922) rfl⟩
+  @fnIs_level_queries_L18_L0_L4_L16_L25_L7_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 912) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_residual__L16_L8_L4_L2`. -/
-theorem fnIs_level_residual_L16_L8_L4_L2_core : FnIs "level_residual__L16_L8_L4_L2" (osParams 4) (lrBody 16 "__loop501" "") :=
-  @fnIs_level_residual_L16_L8_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 944) rfl⟩
+theorem fnIs_level_residual_L16_L8_L4_L2_core : FnIs "level_residual__L16_L8_L4_L2" (osParams 4) (lrBody 16 "__loop451" "") :=
+  @fnIs_level_residual_L16_L8_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 934) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop107`. -/
-theorem fnIs_level_positions_L3_L16_L4_loop0_core : FnIs "__loop107" (osParams 6) (lpLoopBody 16 4 "__loop107") :=
-  @fnIs_level_positions_L3_L16_L4_loop0 coreProgram ⟨coreProgram_find?_at (j := 1030) rfl⟩
+/-- `__loop57`. -/
+theorem fnIs_level_positions_L3_L16_L4_loop0_core : FnIs "__loop57" (osParams 6) (lpLoopBody 16 4 "__loop57") :=
+  @fnIs_level_positions_L3_L16_L4_loop0 coreProgram ⟨coreProgram_find?_at (j := 971) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_positions__L4_L17_L5`. -/
-theorem fnIs_level_positions_L4_L17_L5_core : FnIs "level_positions__L4_L17_L5" (osParams 9) (lpBody 4 17 5 "__loop144") :=
-  @fnIs_level_positions_L4_L17_L5 coreProgram ⟨coreProgram_find?_at (j := 531) rfl⟩
+theorem fnIs_level_positions_L4_L17_L5_core : FnIs "level_positions__L4_L17_L5" (osParams 9) (lpBody 4 17 5 "__loop94") :=
+  @fnIs_level_positions_L4_L17_L5 coreProgram ⟨coreProgram_find?_at (j := 521) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_residual__L109_L15_L6_L3`. -/
-theorem fnIs_level_residual_L109_L15_L6_L3_core : FnIs "level_residual__L109_L15_L6_L3" (osParams 4) (lrBody 109 "__loop147" "__loop148") :=
-  @fnIs_level_residual_L109_L15_L6_L3 coreProgram ⟨coreProgram_find?_at (j := 543) rfl⟩
+theorem fnIs_level_residual_L109_L15_L6_L3_core : FnIs "level_residual__L109_L15_L6_L3" (osParams 4) (lrBody 109 "__loop97" "__loop98") :=
+  @fnIs_level_residual_L109_L15_L6_L3 coreProgram ⟨coreProgram_find?_at (j := 533) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop206`. -/
-theorem fnIs_level_positions_L6_L20_L2_loop0_core : FnIs "__loop206" (osParams 6) (lpLoopBody 20 2 "__loop206") :=
-  @fnIs_level_positions_L6_L20_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1155) rfl⟩
+/-- `__loop156`. -/
+theorem fnIs_level_positions_L6_L20_L2_loop0_core : FnIs "__loop156" (osParams 6) (lpLoopBody 20 2 "__loop156") :=
+  @fnIs_level_positions_L6_L20_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1096) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1`. -/
 theorem fnIs_level_queries_L18_L0_L4_L16_L18_L6_L5_L36_L6_L1_core : FnIs "level_queries__L18_L0_L4_L16_L18_L6_L5_L36_L6_L1" (osParams 6) (lqBody 18 0 4 16 18 6 5 36 6 1) :=
-  @fnIs_level_queries_L18_L0_L4_L16_L18_L6_L5_L36_L6_L1 coreProgram ⟨coreProgram_find?_at (j := 626) rfl⟩
+  @fnIs_level_queries_L18_L0_L4_L16_L18_L6_L5_L36_L6_L1 coreProgram ⟨coreProgram_find?_at (j := 616) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop227`. -/
-theorem fnIs_level_residual_L25_L9_L4_L2_loop0_core : FnIs "__loop227" (osParams 7) (lrLoop1Body 9 4 2 "__loop227") :=
-  @fnIs_level_residual_L25_L9_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1181) rfl⟩
+/-- `__loop177`. -/
+theorem fnIs_level_residual_L25_L9_L4_L2_loop0_core : FnIs "__loop177" (osParams 7) (lrLoop1Body 9 4 2 "__loop177") :=
+  @fnIs_level_residual_L25_L9_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1122) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_positions__L3_L20_L2`. -/
-theorem fnIs_level_positions_L3_L20_L2_core : FnIs "level_positions__L3_L20_L2" (osParams 9) (lpBody 3 20 2 "__loop277") :=
-  @fnIs_level_positions_L3_L20_L2 coreProgram ⟨coreProgram_find?_at (j := 703) rfl⟩
+theorem fnIs_level_positions_L3_L20_L2_core : FnIs "level_positions__L3_L20_L2" (osParams 9) (lpBody 3 20 2 "__loop227") :=
+  @fnIs_level_positions_L3_L20_L2 coreProgram ⟨coreProgram_find?_at (j := 693) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop290`. -/
-theorem fnIs_level_residual_L37_L15_L4_L2_loop0_core : FnIs "__loop290" (osParams 7) (lrLoop1Body 15 4 2 "__loop290") :=
-  @fnIs_level_residual_L37_L15_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1260) rfl⟩
+/-- `__loop240`. -/
+theorem fnIs_level_residual_L37_L15_L4_L2_loop0_core : FnIs "__loop240" (osParams 7) (lrLoop1Body 15 4 2 "__loop240") :=
+  @fnIs_level_residual_L37_L15_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1201) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop302`. -/
-theorem fnIs_level_residual_L19_L7_L4_L2_loop1_core : FnIs "__loop302" (osParams 7) (lrLoop2Body 7 4 2 "__loop302") :=
-  @fnIs_level_residual_L19_L7_L4_L2_loop1 coreProgram ⟨coreProgram_find?_at (j := 1272) rfl⟩
+/-- `__loop252`. -/
+theorem fnIs_level_residual_L19_L7_L4_L2_loop1_core : FnIs "__loop252" (osParams 7) (lrLoop2Body 7 4 2 "__loop252") :=
+  @fnIs_level_residual_L19_L7_L4_L2_loop1 coreProgram ⟨coreProgram_find?_at (j := 1213) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_positions__L5_L21_L3`. -/
-theorem fnIs_level_positions_L5_L21_L3_core : FnIs "level_positions__L5_L21_L3" (osParams 9) (lpBody 5 21 3 "__loop312") :=
-  @fnIs_level_positions_L5_L21_L3 coreProgram ⟨coreProgram_find?_at (j := 739) rfl⟩
+theorem fnIs_level_positions_L5_L21_L3_core : FnIs "level_positions__L5_L21_L3" (osParams 9) (lpBody 5 21 3 "__loop262") :=
+  @fnIs_level_positions_L5_L21_L3 coreProgram ⟨coreProgram_find?_at (j := 729) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_residual__L55_L20_L6_L3`. -/
-theorem fnIs_level_residual_L55_L20_L6_L3_core : FnIs "level_residual__L55_L20_L6_L3" (osParams 4) (lrBody 55 "__loop321" "__loop322") :=
-  @fnIs_level_residual_L55_L20_L6_L3 coreProgram ⟨coreProgram_find?_at (j := 754) rfl⟩
+theorem fnIs_level_residual_L55_L20_L6_L3_core : FnIs "level_residual__L55_L20_L6_L3" (osParams 4) (lrBody 55 "__loop271" "__loop272") :=
+  @fnIs_level_residual_L55_L20_L6_L3 coreProgram ⟨coreProgram_find?_at (j := 744) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_positions__L3_L22_L4`. -/
-theorem fnIs_level_positions_L3_L22_L4_core : FnIs "level_positions__L3_L22_L4" (osParams 9) (lpBody 3 22 4 "__loop388") :=
-  @fnIs_level_positions_L3_L22_L4 coreProgram ⟨coreProgram_find?_at (j := 829) rfl⟩
+theorem fnIs_level_positions_L3_L22_L4_core : FnIs "level_positions__L3_L22_L4" (osParams 9) (lpBody 3 22 4 "__loop338") :=
+  @fnIs_level_positions_L3_L22_L4 coreProgram ⟨coreProgram_find?_at (j := 819) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop100`. -/
-theorem fnIs_level_positions_L7_L14_L2_loop0_core : FnIs "__loop100" (osParams 6) (lpLoopBody 14 2 "__loop100") :=
-  @fnIs_level_positions_L7_L14_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1017) rfl⟩
+/-- `__loop50`. -/
+theorem fnIs_level_positions_L7_L14_L2_loop0_core : FnIs "__loop50" (osParams 6) (lpLoopBody 14 2 "__loop50") :=
+  @fnIs_level_positions_L7_L14_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 958) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1`. -/
 theorem fnIs_level_queries_L22_L0_L4_L16_L15_L3_L4_L20_L5_L1_core : FnIs "level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1" (osParams 6) (lqBody 22 0 4 16 15 3 4 20 5 1) :=
-  @fnIs_level_queries_L22_L0_L4_L16_L15_L3_L4_L20_L5_L1 coreProgram ⟨coreProgram_find?_at (j := 581) rfl⟩
+  @fnIs_level_queries_L22_L0_L4_L16_L15_L3_L4_L20_L5_L1 coreProgram ⟨coreProgram_find?_at (j := 571) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1`. -/
 theorem fnIs_level_queries_L17_L0_L4_L16_L17_L5_L2_L8_L3_L1_core : FnIs "level_queries__L17_L0_L4_L16_L17_L5_L2_L8_L3_L1" (osParams 6) (lqBody 17 0 4 16 17 5 2 8 3 1) :=
-  @fnIs_level_queries_L17_L0_L4_L16_L17_L5_L2_L8_L3_L1 coreProgram ⟨coreProgram_find?_at (j := 666) rfl⟩
+  @fnIs_level_queries_L17_L0_L4_L16_L17_L5_L2_L8_L3_L1 coreProgram ⟨coreProgram_find?_at (j := 656) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0`. -/
 theorem fnIs_level_queries_L32_L0_L4_L16_L25_L7_L0_L0_L0_L0_core : FnIs "level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0" (osParams 6) (lqBody 32 0 4 16 25 7 0 0 0 0) :=
-  @fnIs_level_queries_L32_L0_L4_L16_L25_L7_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 819) rfl⟩
+  @fnIs_level_queries_L32_L0_L4_L16_L25_L7_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 809) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_residual__L17_L7_L4_L2`. -/
-theorem fnIs_level_residual_L17_L7_L4_L2_core : FnIs "level_residual__L17_L7_L4_L2" (osParams 4) (lrBody 17 "__loop458" "__loop459") :=
-  @fnIs_level_residual_L17_L7_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 897) rfl⟩
+theorem fnIs_level_residual_L17_L7_L4_L2_core : FnIs "level_residual__L17_L7_L4_L2" (osParams 4) (lrBody 17 "__loop408" "__loop409") :=
+  @fnIs_level_residual_L17_L7_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 887) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop484`. -/
-theorem fnIs_level_residual_L37_L20_L4_L2_loop0_core : FnIs "__loop484" (osParams 7) (lrLoop1Body 20 4 2 "__loop484") :=
-  @fnIs_level_residual_L37_L20_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1489) rfl⟩
+/-- `__loop434`. -/
+theorem fnIs_level_residual_L37_L20_L4_L2_loop0_core : FnIs "__loop434" (osParams 7) (lrLoop1Body 20 4 2 "__loop434") :=
+  @fnIs_level_residual_L37_L20_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1430) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0`. -/
 theorem fnIs_level_queries_L55_L1_L6_L32_L20_L2_L0_L0_L0_L0_core : FnIs "level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0" (osParams 6) (lqBody 55 1 6 32 20 2 0 0 0 0) :=
-  @fnIs_level_queries_L55_L1_L6_L32_L20_L2_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 562) rfl⟩
+  @fnIs_level_queries_L55_L1_L6_L32_L20_L2_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 552) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1`. -/
 theorem fnIs_level_queries_L20_L0_L4_L16_L16_L4_L4_L20_L5_L1_core : FnIs "level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1" (osParams 6) (lqBody 20 0 4 16 16 4 4 20 5 1) :=
-  @fnIs_level_queries_L20_L0_L4_L16_L16_L4_L4_L20_L5_L1 coreProgram ⟨coreProgram_find?_at (j := 582) rfl⟩
+  @fnIs_level_queries_L20_L0_L4_L16_L16_L4_L4_L20_L5_L1 coreProgram ⟨coreProgram_find?_at (j := 572) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop178`. -/
-theorem fnIs_level_residual_L218_L16_L6_L3_loop1_core : FnIs "__loop178" (osParams 7) (lrLoop2Body 16 6 3 "__loop178") :=
-  @fnIs_level_residual_L218_L16_L6_L3_loop1 coreProgram ⟨coreProgram_find?_at (j := 1124) rfl⟩
+/-- `__loop128`. -/
+theorem fnIs_level_residual_L218_L16_L6_L3_loop1_core : FnIs "__loop128" (osParams 7) (lrLoop2Body 16 6 3 "__loop128") :=
+  @fnIs_level_residual_L218_L16_L6_L3_loop1 coreProgram ⟨coreProgram_find?_at (j := 1065) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop183`. -/
-theorem fnIs_level_residual_L55_L16_L6_L3_loop0_core : FnIs "__loop183" (osParams 7) (lrLoop1Body 16 6 3 "__loop183") :=
-  @fnIs_level_residual_L55_L16_L6_L3_loop0 coreProgram ⟨coreProgram_find?_at (j := 1129) rfl⟩
+/-- `__loop133`. -/
+theorem fnIs_level_residual_L55_L16_L6_L3_loop0_core : FnIs "__loop133" (osParams 7) (lrLoop1Body 16 6 3 "__loop133") :=
+  @fnIs_level_residual_L55_L16_L6_L3_loop0 coreProgram ⟨coreProgram_find?_at (j := 1070) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_residual__L55_L12_L4_L2`. -/
-theorem fnIs_level_residual_L55_L12_L4_L2_core : FnIs "level_residual__L55_L12_L4_L2" (osParams 4) (lrBody 55 "__loop185" "__loop186") :=
-  @fnIs_level_residual_L55_L12_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 589) rfl⟩
+theorem fnIs_level_residual_L55_L12_L4_L2_core : FnIs "level_residual__L55_L12_L4_L2" (osParams 4) (lrBody 55 "__loop135" "__loop136") :=
+  @fnIs_level_residual_L55_L12_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 579) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0`. -/
 theorem fnIs_level_queries_L28_L0_L4_L16_L17_L5_L0_L0_L0_L0_core : FnIs "level_queries__L28_L0_L4_L16_L17_L5_L0_L0_L0_L0" (osParams 6) (lqBody 28 0 4 16 17 5 0 0 0 0) :=
-  @fnIs_level_queries_L28_L0_L4_L16_L17_L5_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 618) rfl⟩
+  @fnIs_level_queries_L28_L0_L4_L16_L17_L5_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 608) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1`. -/
 theorem fnIs_level_queries_L21_L0_L4_L16_L16_L4_L5_L36_L6_L1_core : FnIs "level_queries__L21_L0_L4_L16_L16_L4_L5_L36_L6_L1" (osParams 6) (lqBody 21 0 4 16 16 4 5 36 6 1) :=
-  @fnIs_level_queries_L21_L0_L4_L16_L16_L4_L5_L36_L6_L1 coreProgram ⟨coreProgram_find?_at (j := 624) rfl⟩
+  @fnIs_level_queries_L21_L0_L4_L16_L16_L4_L5_L36_L6_L1 coreProgram ⟨coreProgram_find?_at (j := 614) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_residual__L218_L18_L6_L3`. -/
-theorem fnIs_level_residual_L218_L18_L6_L3_core : FnIs "level_residual__L218_L18_L6_L3" (osParams 4) (lrBody 218 "__loop241" "__loop242") :=
-  @fnIs_level_residual_L218_L18_L6_L3 coreProgram ⟨coreProgram_find?_at (j := 668) rfl⟩
+theorem fnIs_level_residual_L218_L18_L6_L3_core : FnIs "level_residual__L218_L18_L6_L3" (osParams 4) (lrBody 218 "__loop191" "__loop192") :=
+  @fnIs_level_residual_L218_L18_L6_L3 coreProgram ⟨coreProgram_find?_at (j := 658) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop286`. -/
-theorem fnIs_level_residual_L55_L15_L4_L2_loop0_core : FnIs "__loop286" (osParams 7) (lrLoop1Body 15 4 2 "__loop286") :=
-  @fnIs_level_residual_L55_L15_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1256) rfl⟩
+/-- `__loop236`. -/
+theorem fnIs_level_residual_L55_L15_L4_L2_loop0_core : FnIs "__loop236" (osParams 7) (lrLoop1Body 15 4 2 "__loop236") :=
+  @fnIs_level_residual_L55_L15_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1197) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0`. -/
 theorem fnIs_level_queries_L18_L0_L4_L16_L21_L3_L0_L0_L0_L0_core : FnIs "level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0" (osParams 6) (lqBody 18 0 4 16 21 3 0 0 0 0) :=
-  @fnIs_level_queries_L18_L0_L4_L16_L21_L3_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 747) rfl⟩
+  @fnIs_level_queries_L18_L0_L4_L16_L21_L3_L0_L0_L0_L0 coreProgram ⟨coreProgram_find?_at (j := 737) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop371`. -/
-theorem fnIs_level_residual_L23_L13_L4_L2_loop1_core : FnIs "__loop371" (osParams 7) (lrLoop2Body 13 4 2 "__loop371") :=
-  @fnIs_level_residual_L23_L13_L4_L2_loop1 coreProgram ⟨coreProgram_find?_at (j := 1355) rfl⟩
+/-- `__loop321`. -/
+theorem fnIs_level_residual_L23_L13_L4_L2_loop1_core : FnIs "__loop321" (osParams 7) (lrLoop2Body 13 4 2 "__loop321") :=
+  @fnIs_level_residual_L23_L13_L4_L2_loop1 coreProgram ⟨coreProgram_find?_at (j := 1296) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_residual__L44_L18_L4_L2`. -/
-theorem fnIs_level_residual_L44_L18_L4_L2_core : FnIs "level_residual__L44_L18_L4_L2" (osParams 4) (lrBody 44 "__loop399" "__loop400") :=
-  @fnIs_level_residual_L44_L18_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 841) rfl⟩
+theorem fnIs_level_residual_L44_L18_L4_L2_core : FnIs "level_residual__L44_L18_L4_L2" (osParams 4) (lrBody 44 "__loop349" "__loop350") :=
+  @fnIs_level_residual_L44_L18_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 831) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop405`. -/
-theorem fnIs_level_residual_L28_L14_L4_L2_loop1_core : FnIs "__loop405" (osParams 7) (lrLoop2Body 14 4 2 "__loop405") :=
-  @fnIs_level_residual_L28_L14_L4_L2_loop1 coreProgram ⟨coreProgram_find?_at (j := 1396) rfl⟩
+/-- `__loop355`. -/
+theorem fnIs_level_residual_L28_L14_L4_L2_loop1_core : FnIs "__loop355" (osParams 7) (lrLoop2Body 14 4 2 "__loop355") :=
+  @fnIs_level_residual_L28_L14_L4_L2_loop1 coreProgram ⟨coreProgram_find?_at (j := 1337) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop410`. -/
-theorem fnIs_level_residual_L21_L10_L4_L2_loop0_core : FnIs "__loop410" (osParams 7) (lrLoop1Body 10 4 2 "__loop410") :=
-  @fnIs_level_residual_L21_L10_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1401) rfl⟩
+/-- `__loop360`. -/
+theorem fnIs_level_residual_L21_L10_L4_L2_loop0_core : FnIs "__loop360" (osParams 7) (lrLoop1Body 10 4 2 "__loop360") :=
+  @fnIs_level_residual_L21_L10_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1342) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop414`. -/
-theorem fnIs_level_residual_L18_L10_L4_L2_loop0_core : FnIs "__loop414" (osParams 7) (lrLoop1Body 10 4 2 "__loop414") :=
-  @fnIs_level_residual_L18_L10_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1405) rfl⟩
+/-- `__loop364`. -/
+theorem fnIs_level_residual_L18_L10_L4_L2_loop0_core : FnIs "__loop364" (osParams 7) (lrLoop1Body 10 4 2 "__loop364") :=
+  @fnIs_level_residual_L18_L10_L4_L2_loop0 coreProgram ⟨coreProgram_find?_at (j := 1346) rfl⟩
 
 set_option maxRecDepth 100000 in
-/-- `__loop470`. -/
-theorem fnIs_level_positions_L4_L25_L7_loop0_core : FnIs "__loop470" (osParams 6) (lpLoopBody 25 7 "__loop470") :=
-  @fnIs_level_positions_L4_L25_L7_loop0 coreProgram ⟨coreProgram_find?_at (j := 1472) rfl⟩
+/-- `__loop420`. -/
+theorem fnIs_level_positions_L4_L25_L7_loop0_core : FnIs "__loop420" (osParams 6) (lpLoopBody 25 7 "__loop420") :=
+  @fnIs_level_positions_L4_L25_L7_loop0 coreProgram ⟨coreProgram_find?_at (j := 1413) rfl⟩
 
 set_option maxRecDepth 100000 in
 /-- `level_residual__L19_L12_L4_L2`. -/
-theorem fnIs_level_residual_L19_L12_L4_L2_core : FnIs "level_residual__L19_L12_L4_L2" (osParams 4) (lrBody 19 "__loop495" "__loop496") :=
-  @fnIs_level_residual_L19_L12_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 941) rfl⟩
+theorem fnIs_level_residual_L19_L12_L4_L2_core : FnIs "level_residual__L19_L12_L4_L2" (osParams 4) (lrBody 19 "__loop445" "__loop446") :=
+  @fnIs_level_residual_L19_L12_L4_L2 coreProgram ⟨coreProgram_find?_at (j := 931) rfl⟩
 
 end
 end LeanVM.Guest.B1.Whir

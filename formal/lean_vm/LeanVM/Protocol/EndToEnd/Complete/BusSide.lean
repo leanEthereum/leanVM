@@ -16,8 +16,8 @@ public import LeanVM.Protocol.Verifier
 /-!
 # One side of the leaf decomposition
 
-`accumulateSide` (`crates/verifier/src/bus.rs:181-204` at leanVM `40f877dc`) takes a side's GKR
-value and its layout (`bus_layout`, `bus.rs:61-79`) and returns the forms with the side's table
+`accumulateSide` (`crates/verifier/src/bus.rs` at leanVM `40f877dc`) takes a side's GKR
+value and its layout (`bus_layout`, `bus.rs`) and returns the forms with the side's table
 blocks added and the side's total. This module states what it computes:
 
 * `busLayout_framework`, `busLayout_tables`, `busLayout_depth`: the layout's selectors at a point
@@ -216,7 +216,7 @@ theorem deg2_foldl_coords' (w : List E) :
     exact deg2_foldl_coords' w l _ (deg2_addScaled h (hl cs (by simp)) _)
       fun cs' h' ↦ hl cs' (by simp [h'])
 
-/-- A block's form (`blockForm`, `bus.rs:192-195`) evaluates to its fingerprint with the
+/-- A block's form (`blockForm`, `bus.rs`) evaluates to its fingerprint with the
 side's challenge. -/
 theorem evaluate_blockForm (b : BusBlock) (w : List E) (β : E) (col : ℕ → E) :
     (blockForm b w β).evaluate col = blockVal β w b col :=
@@ -237,7 +237,7 @@ def accFold (side : ℕ) (sideWeights : List E) (sideBeta : E) (l : List (E × B
     forms.modify block.owner fun row ↦ row.modify side fun f ↦
       f.addScaled (blockForm block sideWeights sideBeta) selector) forms
 
-/-- The padding term of `accumulateSide` (`padding_rows`, `bus.rs:189-200`): each block's
+/-- The padding term of `accumulateSide` (`padding_rows`, `bus.rs`): each block's
 selector, times the padding weight of its owner's rows, times its form at the padding row plus
 one. -/
 def padSum (sideWeights : List E) (sideBeta : E) (point : List E) (l : List (E × BusBlock)) : E :=

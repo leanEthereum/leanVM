@@ -23,40 +23,40 @@ theorem fnIs_level_queries_L25_L0_L4_L16_L15_L3_L0_L0_L0_L0 (P : Program) [Finds
   fnIsP_of P "level_queries__L25_L0_L4_L16_L15_L3_L0_L0_L0_L0" Fn.«level_queries__L25_L0_L4_L16_L15_L3_L0_L0_L0_L0».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
 
 set_option maxRecDepth 100000 in
-/-- `__loop203`. -/
-theorem fnIs_level_positions_L8_L17_L5_loop0 (P : Program) [Finds P "__loop203" Fn.«level_positions__L8_L17_L5_loop0».core] :
-    FnIsP P "__loop203" (osParams 6) (lpLoopBody 17 5 "__loop203") :=
-  fnIsP_of P "__loop203" Fn.«level_positions__L8_L17_L5_loop0».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
+/-- `__loop153`. -/
+theorem fnIs_level_positions_L8_L17_L5_loop0 (P : Program) [Finds P "__loop153" Fn.«level_positions__L8_L17_L5_loop0».core] :
+    FnIsP P "__loop153" (osParams 6) (lpLoopBody 17 5 "__loop153") :=
+  fnIsP_of P "__loop153" Fn.«level_positions__L8_L17_L5_loop0».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
 
 set_option maxRecDepth 100000 in
 /-- `level_residual__L218_L17_L6_L3`. -/
 theorem fnIs_level_residual_L218_L17_L6_L3 (P : Program) [Finds P "level_residual__L218_L17_L6_L3" Fn.«level_residual__L218_L17_L6_L3».core] :
-    FnIsP P "level_residual__L218_L17_L6_L3" (osParams 4) (lrBody 218 "__loop209" "__loop210") :=
+    FnIsP P "level_residual__L218_L17_L6_L3" (osParams 4) (lrBody 218 "__loop159" "__loop160") :=
   fnIsP_of P "level_residual__L218_L17_L6_L3" Fn.«level_residual__L218_L17_L6_L3».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
 
 set_option maxRecDepth 100000 in
-/-- `__loop284`. -/
-theorem fnIs_level_residual_L55_L19_L6_L3_loop0 (P : Program) [Finds P "__loop284" Fn.«level_residual__L55_L19_L6_L3_loop0».core] :
-    FnIsP P "__loop284" (osParams 7) (lrLoop1Body 19 6 3 "__loop284") :=
-  fnIsP_of P "__loop284" Fn.«level_residual__L55_L19_L6_L3_loop0».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
+/-- `__loop234`. -/
+theorem fnIs_level_residual_L55_L19_L6_L3_loop0 (P : Program) [Finds P "__loop234" Fn.«level_residual__L55_L19_L6_L3_loop0».core] :
+    FnIsP P "__loop234" (osParams 7) (lrLoop1Body 19 6 3 "__loop234") :=
+  fnIsP_of P "__loop234" Fn.«level_residual__L55_L19_L6_L3_loop0».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
 
 set_option maxRecDepth 100000 in
 /-- `level_positions__L8_L21_L3`. -/
 theorem fnIs_level_positions_L8_L21_L3 (P : Program) [Finds P "level_positions__L8_L21_L3" Fn.«level_positions__L8_L21_L3».core] :
-    FnIsP P "level_positions__L8_L21_L3" (osParams 9) (lpBody 8 21 3 "__loop309") :=
+    FnIsP P "level_positions__L8_L21_L3" (osParams 9) (lpBody 8 21 3 "__loop259") :=
   fnIsP_of P "level_positions__L8_L21_L3" Fn.«level_positions__L8_L21_L3».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
 
 set_option maxRecDepth 100000 in
 /-- `level_positions__L8_L23_L5`. -/
 theorem fnIs_level_positions_L8_L23_L5 (P : Program) [Finds P "level_positions__L8_L23_L5" Fn.«level_positions__L8_L23_L5».core] :
-    FnIsP P "level_positions__L8_L23_L5" (osParams 9) (lpBody 8 23 5 "__loop347") :=
+    FnIsP P "level_positions__L8_L23_L5" (osParams 9) (lpBody 8 23 5 "__loop297") :=
   fnIsP_of P "level_positions__L8_L23_L5" Fn.«level_positions__L8_L23_L5».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
 
 set_option maxRecDepth 100000 in
-/-- `__loop476`. -/
-theorem fnIs_level_residual_L73_L24_L6_L3_loop0 (P : Program) [Finds P "__loop476" Fn.«level_residual__L73_L24_L6_L3_loop0».core] :
-    FnIsP P "__loop476" (osParams 7) (lrLoop1Body 24 6 3 "__loop476") :=
-  fnIsP_of P "__loop476" Fn.«level_residual__L73_L24_L6_L3_loop0».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
+/-- `__loop426`. -/
+theorem fnIs_level_residual_L73_L24_L6_L3_loop0 (P : Program) [Finds P "__loop426" Fn.«level_residual__L73_L24_L6_L3_loop0».core] :
+    FnIsP P "__loop426" (osParams 7) (lrLoop1Body 24 6 3 "__loop426") :=
+  fnIsP_of P "__loop426" Fn.«level_residual__L73_L24_L6_L3_loop0».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
 
 end
 end LeanVM.Guest.B1.Whir

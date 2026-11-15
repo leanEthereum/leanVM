@@ -1,0 +1,20 @@
+[package]
+name = "lean_vm"
+version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+isa.workspace = true
+aggregation.workspace = true
+lean_da.workspace = true
+lean_xmss.workspace = true
+lean_sphincs.workspace = true
+stable_lean_vm_core = { path = "../stable_prover/lean_vm_core" }
+experimental_lean_vm_core = { path = "../experimental_prover/lean_vm_core", optional = true }
+
+[features]
+# Prove with the experimental tree rather than the stable one.
+experimental_prover = ["dep:experimental_lean_vm_core"]

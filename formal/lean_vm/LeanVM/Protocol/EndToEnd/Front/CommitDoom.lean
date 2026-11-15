@@ -17,7 +17,7 @@ public import LeanVM.Protocol.EndToEnd.Front.OodBind
 # The commitment's doom
 
 Steps 1 and 2 of the verifier program (`readAnnouncedSizes`, `commitStack`; `verify_execution`,
-`crates/verifier/src/lib.rs:219-237` at leanVM `40f877dc`) read
+`crates/verifier/src/lib.rs` at leanVM `40f877dc`) read
 the announced sizes and the stack's root. Before the root, nothing is at stake: the doom is
 false, so no group of challenges is charged. The root creates the doom `CommitDoom`: for the sizes
 `s` the layout was built from, no candidate of the committed word `W₀` (`Candidates`, at the

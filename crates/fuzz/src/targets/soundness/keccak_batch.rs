@@ -6,11 +6,13 @@
 
 use crate::mutate_proof::perturb;
 use crate::{Ctx, Finding, Outcome, Source, catch};
-use fiat_shamir::transcript::{Proof, ProverState};
-use keccak_gkr::{OutputClaim, Shape, Witness};
+use exp_primitives::transcript::ProverState;
+use verifier::Proof;
+use exp_keccak_gkr::{OutputClaim, Shape, Witness};
 use leanvm_core::cpu::tamper::transcript;
-use pcs::whir::{INITIAL_FOLDING_FACTOR, commit, config_for_rate};
-use primitives::field::F64;
+use exp_pcs::whir::{commit, config_for_rate};
+use verifier::INITIAL_FOLDING_FACTOR;
+use exp_primitives::field::F64;
 use std::cell::Cell;
 use std::rc::Rc;
 
@@ -48,7 +50,7 @@ fn prove(batch: &Batch, lie: Lie, src: &mut Source) -> Option<Proof> {
     let mu = shape.stack_log();
     let config = config_for_rate(mu, batch.rate).ok()?;
     let mut committed = vec![F64::ZERO; 1 << mu];
-    let mut witness = Witness::generate(shape, &batch.inputs, &mut committed);
+    let mut witness = Witness::generate(shape, &batch.inputs, committed.as_mut_slice());
     let states = shape.slots() * shape.n();
     match lie {
         Lie::State | Lie::StateRebuilt => {
@@ -60,7 +62,7 @@ fn prove(batch: &Batch, lie: Lie, src: &mut Source) -> Option<Proof> {
             };
             committed[slot * shape.n() + step] += F64(1 << src.below(64));
             if lie == Lie::StateRebuilt {
-                witness = Witness::from_committed(shape, batch.inputs.len(), &committed);
+                witness = Witness::from_committed(shape, batch.inputs.len(), committed.as_slice());
             }
         }
         Lie::Spare if states < committed.len() => {
@@ -69,15 +71,20 @@ fn prove(batch: &Batch, lie: Lie, src: &mut Source) -> Option<Proof> {
         }
         _ => {}
     }
-    let statement = [shape.n_log(), shape.depth(), batch.rate, 0].map(|w| F64(w as u64));
-    let mut ps = ProverState::new(fiat_shamir::digest_words(&primitives::hash::hash(LABEL)), statement);
-    let (commitment, prover_data) = commit(&committed, mu, INITIAL_FOLDING_FACTOR, batch.rate);
+    let statement = [shape.n_log(), shape.depth(), batch.rate, 0].map(|w| w as u64);
+    let iv = {
+            let digest = verifier::Digest(*&primitives::hash::hash(LABEL));
+            let [a, b, c, d] = digest.words();
+            [a, b, c, d]
+        };
+    let mut ps = ProverState::new(iv, statement);
+    let (commitment, prover_data) = commit(committed.as_slice(), mu, INITIAL_FOLDING_FACTOR, batch.rate);
     ps.add_root(&commitment.root);
     // The batch's transcript, as `batch_bench` builds it and `verifier::verify_keccak_batch` reads it:
     // the root, then the commitment's OOD sample (grind, point, value), then the instance grind,
     // then the instance point. Skipping any of these moves the verifier's OOD nonce onto another
     // scalar and the honest proof dies at `GrindingNonce`.
-    let ood = pcs::ood::ood_sample(&mut ps, &committed, mu);
+    let ood = exp_pcs::ood::ood_sample(&mut ps, committed.as_slice(), mu);
     ps.grind(fiat_shamir::grinding_bits(shape.n_log() as u128));
     let instance = ps.sample_vec(shape.n_log());
     let output = if lie == Lie::Claim {
@@ -92,7 +99,7 @@ fn prove(batch: &Batch, lie: Lie, src: &mut Source) -> Option<Proof> {
     let openings = witness.prove(&mut ps, &committed, &output);
     let (ring, outputs) = openings.into_pcs_claims(0);
     let points: Vec<_> = outputs.into_iter().chain([ood]).collect();
-    pcs::stack_open::open_batch_mixed_whir_stacked(&mut ps, mu, committed, prover_data, &config, &points, &ring);
+    exp_pcs::stack_open::open_batch_mixed_whir_stacked(&mut ps, mu, committed, prover_data, &config, &points, &ring);
     Some(ps.into_proof())
 }
 
@@ -163,7 +170,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
     if !changed.get() {
         return Ok(());
     }
-    let proof = leanvm_core::cpu::scalar_proof(&proof);
+    
     let iv = primitives::hash::hash(LABEL);
     let (log_steps, mut depth_v, mut rate_v, mut log_v) = (shape.n_log(), depth, rate, shape.n_log());
     if lie == Lie::Statement {
@@ -242,7 +249,7 @@ mod tests {
                 else {
                     continue;
                 };
-                let proof = leanvm_core::cpu::scalar_proof(&proof);
+                
                 let verdict = verifier::verify_keccak_batch(&iv, 9, depth, rate, &proof);
                 assert!(verdict.is_ok(), "depth {depth}, rate {rate}: {verdict:?}");
             }

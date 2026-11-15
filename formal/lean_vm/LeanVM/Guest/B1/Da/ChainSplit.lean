@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Da.RowShape
+public import LeanVM.Guest.B1.Da.Padding
 
 /-!
 # Checking a long chain in parts

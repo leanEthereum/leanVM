@@ -16,7 +16,7 @@ public import LeanVM.Protocol.EndToEnd.Front.TableTerms
 /-!
 # The table sumcheck on doom
 
-`tablePhase layout bus` (`crates/verifier/src/lib.rs:272-291` and `bus.rs:249-297`) is the oracle
+`tablePhase layout bus` (`crates/verifier/src/lib.rs` and `bus.rs`) is the oracle
 protocol's `tableSumcheck` (`LeanVM.Protocol.TableSumcheck`) on the wire: a grind for the batch's
 degree, which the protocol does not have, the batching challenge `ξ`, the plain sumcheck of four coefficients per round (one left out on the wire), the evaluations
 of every table's columns, and the final check. Its doom is stated on the protocol's relations at the
@@ -139,7 +139,7 @@ theorem rowsLead_eq_zero {rows : List (Table × ℕ × List Form × E)} (h : row
   | nil => exact absurd rfl h
   | cons _ _ => rfl
 
-/-- **The table sumcheck's rounds and final values** (`table_sumcheck`, `bus.rs:218-259`),
+/-- **The table sumcheck's rounds and final values** (`table_sumcheck`, `bus.rs`),
 from doom on the sumcheck's input relation after `ξ`: the plain sumcheck, each round charged
 `L₀ · 3 / |E|`, then the evaluations and the final check. The evaluations are read after the last round, so
 the last round's group does not carry the follower's lead `T`. -/
@@ -188,10 +188,10 @@ noncomputable def tableSumcheckSpec (colOf : I.ColumnId → ℕ) (w : BusWit)
 
 open Classical in
 /-- The grind before `ξ`: for the batch's degree in `ξ`, its `n_constraints + N_TREES` powers less
-one (`lib.rs:279-282`). -/
+one (`lib.rs`). -/
 def xiGrindBits : ℕ := grindingBits (nCons + nTrees - 1)
 
-/-- **The table sumcheck** (`tablePhase`, `lib.rs:272-291`, `bus.rs:249-297`) after the bus phase
+/-- **The table sumcheck** (`tablePhase`, `lib.rs`, `bus.rs`) after the bus phase
 read `w`: from the bus seam at `w` to the table seam on the wire. `ξ`, after a grind of
 `xiGrindBits` bits (`hxi`, the discounted bound), is charged `L₀ · (B + 2) / |E|`, each round
 `L₀ · 3 / |E|`. -/

@@ -7,16 +7,17 @@
 //! consistent with, which is the stronger attack.
 
 use crate::Source;
-use fiat_shamir::merkle::MerklePath;
-use leanvm_core::cpu::Proof;
-use primitives::field::{F64, F128};
+use verifier::MerklePath;
+use verifier::Proof;
+use primitives::field::F128;
+use verifier::{E, K};
 
 /// The scalars every execution proof starts with: `log_memory`, six table row counts, `log_inv_rate`.
 pub const ANNOUNCED: usize = 8;
 
 /// One edit of `proof`, its name returned for the case's notes. `other` is another honest proof to splice from.
 pub fn mutate(proof: &mut Proof, src: &mut Source, other: Option<&Proof>) -> &'static str {
-    let in_stream = proof.merkle.is_empty() || src.chance(2, 3);
+    let in_stream = proof.merkle_openings.is_empty() || src.chance(2, 3);
     if in_stream {
         mutate_stream(proof, src, other)
     } else {
@@ -37,9 +38,16 @@ pub fn stream_position(len: usize, src: &mut Source) -> usize {
     }
 }
 
+/// [`perturb`] in the prover's `F128`.
+pub fn perturb_f128(x: F128, src: &mut Source) -> F128 {
+    let e = perturb(E::new(x.c0, x.c1), src);
+    F128::new(e.c0, e.c1)
+}
+
 /// Replace `x` by a value close to it or on an edge.
-pub fn perturb(x: F128, src: &mut Source) -> F128 {
-    match src.below(9) {
+pub fn perturb(x: E, src: &mut Source) -> E {
+    let x = F128::new(x.c0, x.c1);
+    let x = match src.below(9) {
         0 => {
             let limb = src.below(2);
             let bit = 1u64 << src.below(64);
@@ -55,13 +63,14 @@ pub fn perturb(x: F128, src: &mut Source) -> F128 {
         6 => src.f128(),
         7 => F128::new(x.c0.wrapping_add(1), x.c1),
         _ => F128::new(src.edgy_u64(), 0),
-    }
+    };
+    E::new(x.c0, x.c1)
 }
 
 fn mutate_stream(proof: &mut Proof, src: &mut Source, other: Option<&Proof>) -> &'static str {
     let len = proof.stream.len();
     if len == 0 {
-        proof.stream.push(src.f128());
+        proof.stream.push(src.scalar());
         return "stream/fill-empty";
     }
     let i = stream_position(len, src);
@@ -84,7 +93,7 @@ fn mutate_stream(proof: &mut Proof, src: &mut Source, other: Option<&Proof>) -> 
                 3 => src.below(70) as u64,
                 _ => (1u64 << src.below(40)) + 1,
             };
-            proof.stream[j] = F128::new(v, if src.chance(1, 4) { 1 } else { 0 });
+            proof.stream[j] = E::new(v, if src.chance(1, 4) { 1 } else { 0 });
             "stream/announced-edge"
         }
         5 => {
@@ -93,7 +102,7 @@ fn mutate_stream(proof: &mut Proof, src: &mut Source, other: Option<&Proof>) -> 
             "stream/swap"
         }
         6 => {
-            proof.stream.insert(i, src.f128());
+            proof.stream.insert(i, src.scalar());
             "stream/insert"
         }
         7 => {
@@ -106,7 +115,7 @@ fn mutate_stream(proof: &mut Proof, src: &mut Source, other: Option<&Proof>) -> 
         }
         9 => {
             for _ in 0..src.range(1, 64) {
-                proof.stream.push(src.f128());
+                proof.stream.push(src.scalar());
             }
             "stream/append"
         }
@@ -118,7 +127,7 @@ fn mutate_stream(proof: &mut Proof, src: &mut Source, other: Option<&Proof>) -> 
                 "stream/splice-other"
             }
             None => {
-                proof.stream[i] += F128::new(2, 0);
+                proof.stream[i] += E::new(2, 0);
                 "stream/perturb"
             }
         },
@@ -134,11 +143,11 @@ fn mutate_stream(proof: &mut Proof, src: &mut Source, other: Option<&Proof>) -> 
 }
 
 fn path_mut<'a>(proof: &'a mut Proof, src: &mut Source) -> Option<&'a mut MerklePath> {
-    let phases: Vec<usize> = (0..proof.merkle.len())
-        .filter(|&p| !proof.merkle[p].is_empty())
+    let phases: Vec<usize> = (0..proof.merkle_openings.len())
+        .filter(|&p| !proof.merkle_openings[p].is_empty())
         .collect();
     let &phase = phases.get(src.below(phases.len().max(1)))?;
-    let paths = &mut proof.merkle[phase];
+    let paths = &mut proof.merkle_openings[phase];
     let i = src.below(paths.len());
     Some(&mut paths[i])
 }
@@ -162,11 +171,11 @@ fn mutate_merkle(proof: &mut Proof, src: &mut Source, other: Option<&Proof>) -> 
                 return "merkle/none";
             };
             if path.leaf.is_empty() {
-                path.leaf.push(src.f64());
+                path.leaf.push(src.k());
                 return "merkle/leaf-grow";
             }
             let i = src.below(path.leaf.len());
-            path.leaf[i] = F64(path.leaf[i].0 ^ (1 << src.below(64)));
+            path.leaf[i] = K(path.leaf[i].0 ^ (1 << src.below(64)));
             "merkle/leaf-word"
         }
         3 => {
@@ -174,7 +183,7 @@ fn mutate_merkle(proof: &mut Proof, src: &mut Source, other: Option<&Proof>) -> 
                 return "merkle/none";
             };
             if src.bool() {
-                path.leaf.push(src.f64());
+                path.leaf.push(src.k());
                 "merkle/leaf-grow"
             } else {
                 path.leaf.pop();
@@ -215,7 +224,7 @@ fn mutate_merkle(proof: &mut Proof, src: &mut Source, other: Option<&Proof>) -> 
             }
         }
         7 => {
-            let Some(phase) = proof.merkle.iter_mut().filter(|p| p.len() > 1).nth(src.below(4)) else {
+            let Some(phase) = proof.merkle_openings.iter_mut().filter(|p| p.len() > 1).nth(src.below(4)) else {
                 return "merkle/none";
             };
             let n = phase.len();
@@ -223,7 +232,7 @@ fn mutate_merkle(proof: &mut Proof, src: &mut Source, other: Option<&Proof>) -> 
             "merkle/path-swap"
         }
         8 => {
-            let Some(phase) = proof.merkle.iter_mut().find(|p| !p.is_empty()) else {
+            let Some(phase) = proof.merkle_openings.iter_mut().find(|p| !p.is_empty()) else {
                 return "merkle/none";
             };
             let i = src.below(phase.len());
@@ -237,19 +246,19 @@ fn mutate_merkle(proof: &mut Proof, src: &mut Source, other: Option<&Proof>) -> 
             }
         }
         9 => {
-            let i = src.below(proof.merkle.len() + 1);
+            let i = src.below(proof.merkle_openings.len() + 1);
             match src.below(3) {
-                0 if !proof.merkle.is_empty() => {
-                    proof.merkle.remove(i.min(proof.merkle.len() - 1));
+                0 if !proof.merkle_openings.is_empty() => {
+                    proof.merkle_openings.remove(i.min(proof.merkle_openings.len() - 1));
                     "merkle/phase-remove"
                 }
                 1 => {
-                    proof.merkle.insert(i, Vec::new());
+                    proof.merkle_openings.insert(i, Vec::new());
                     "merkle/phase-empty"
                 }
-                _ if proof.merkle.len() > 1 => {
-                    let n = proof.merkle.len();
-                    proof.merkle.swap(src.below(n), src.below(n));
+                _ if proof.merkle_openings.len() > 1 => {
+                    let n = proof.merkle_openings.len();
+                    proof.merkle_openings.swap(src.below(n), src.below(n));
                     "merkle/phase-swap"
                 }
                 _ => "merkle/none",
@@ -257,7 +266,7 @@ fn mutate_merkle(proof: &mut Proof, src: &mut Source, other: Option<&Proof>) -> 
         }
         10 => {
             // One path at another's position: the leaf a verifier did not ask for, authenticated.
-            let Some(phase) = proof.merkle.iter_mut().find(|p| p.len() > 1) else {
+            let Some(phase) = proof.merkle_openings.iter_mut().find(|p| p.len() > 1) else {
                 return "merkle/none";
             };
             let n = phase.len();
@@ -266,9 +275,9 @@ fn mutate_merkle(proof: &mut Proof, src: &mut Source, other: Option<&Proof>) -> 
             "merkle/path-copy"
         }
         11 => match other {
-            Some(other) if !other.merkle.is_empty() => {
-                let p = src.below(other.merkle.len().min(proof.merkle.len()).max(1));
-                if let (Some(dst), Some(from)) = (proof.merkle.get_mut(p), other.merkle.get(p))
+            Some(other) if !other.merkle_openings.is_empty() => {
+                let p = src.below(other.merkle_openings.len().min(proof.merkle_openings.len()).max(1));
+                if let (Some(dst), Some(from)) = (proof.merkle_openings.get_mut(p), other.merkle_openings.get(p))
                     && !dst.is_empty()
                     && !from.is_empty()
                 {
@@ -286,7 +295,7 @@ fn mutate_merkle(proof: &mut Proof, src: &mut Source, other: Option<&Proof>) -> 
             let Some(path) = path_mut(proof, src) else {
                 return "merkle/none";
             };
-            path.leaf.iter_mut().for_each(|w| *w = F64(0));
+            path.leaf.iter_mut().for_each(|w| *w = K(0));
             "merkle/leaf-zero"
         }
         _ => {

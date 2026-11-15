@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.FacAt
 
-  `da_factors` placed (G:4627-4635): its `HeapBuf` of node factors, returned, within its frame and
+  `da_factors` placed: its `HeapBuf` of node factors, returned, within its frame and
   its buffer, by its evaluated valuation.
 -/
 
@@ -19,8 +19,8 @@ public import LeanVM.Guest.B1.Tables.FlatAtT
 The honest valuation is the body evaluated (`Fwd.ev`) from the powers' pointer `g^c`, the
 `HeapBuf` the oracle's `g^b` at `b = fp + fs f`. Each depth loads its power `Z (top - d)`; each node
 computes `Z (top - d) · Ŵ + 1 = factorAt Z top n` (`fac_node_good`), which its store finds in the
-buffer holding `facCells Z top D`. `fac_completeAtB`: complete, placed, within `fs f + 256`,
-returning the buffer (`facOut`); `fac14_completeAtB`, `fac7_completeAtB`: the two
+buffer holding `facCells Z top D`. `fac_completeAtB`: complete, placed, within `fs f + 128`,
+returning the buffer (`facOut`); `facTop_completeAtB`, `facCell_completeAtB`: the two
 specializations.
 -/
 
@@ -36,7 +36,7 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 /-- The atoms of `facT`: the `HeapBuf`, the returned copy, a depth's power, a node's atoms. -/
 theorem mem_facT {top D : ℕ} {a : Atom} (h : a ∈ facT top D) :
-    a = .hint (.alloc (.n 1) 256) ∨ a = .copy (.n (facB D)) (.n 1) ∨
+    a = .hint (.alloc (.n 1) 128) ∨ a = .copy (.n (facB D)) (.n 1) ∨
     (∃ d < D, a = .load (.n (facB d)) (.n 0) (top - d)) ∨
     ∃ d < D, ∃ y < 2 ^ d, a ∈ facNodeA top d y := by
   simp only [facT, facDepthA, List.cons_append, List.mem_cons, List.mem_append, List.mem_flatMap,
@@ -65,7 +65,7 @@ theorem fac_store_not_mem {D d : ℕ} {top : ℕ} :
     Atom.load (.n (facB d)) (.n 0) (top - d) ∉ facStores D := by
   simp [facStores]
 
-theorem facCells_get {Z : ℕ → E} {top D n : ℕ} (h1 : 1 ≤ n) (h2 : n < 2 ^ D) (hD : 2 ^ D ≤ 256) :
+theorem facCells_get {Z : ℕ → E} {top D n : ℕ} (h1 : 1 ≤ n) (h2 : n < 2 ^ D) (hD : 2 ^ D ≤ 128) :
     (facCells Z top D)[n]'(by simp [facCells]; omega) = factorAt Z top n := by
   simp [facCells, h1, h2]
 
@@ -75,11 +75,11 @@ variable (fs : String → ℕ) (cert : String → V → ℕ)
 of its nodes' factors, the powers `Z` read at `g^c`. -/
 theorem fac_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) {top D : ℕ} (hok : facOk fn top D = true)
-    (hcok : facCOk fn top D = true) (hD : D ≤ 8) {Lin : Layout} {c : ℕ} {Z : ℕ → E}
+    (hcok : facCOk fn top D = true) (hD : D ≤ 7) {Lin : Layout} {c : ℕ} {Z : ℕ → E}
     (hzs : ∀ rd, MemL rd Lin → ∀ d < D, LoadHolds rd (gen ^ c) (top - d) (Z (top - d)))
     (hzr : ∀ d < D, RegionL Lin (c + (top - d))) :
-    CompleteAtDTB fs cert 16 f Lin [gen ^ c] (facOut Z top D) (fun _ => True) (fs f + 256) := by
-  have h2D : 2 ^ D ≤ 256 :=
+    CompleteAtDTB fs cert 16 f Lin [gen ^ c] (facOut Z top D) (fun _ => True) (fs f + 128) := by
+  have h2D : 2 ^ D ≤ 128 :=
     le_trans (Nat.pow_le_pow_right (by norm_num) hD) (by norm_num)
   unfold facOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
@@ -98,7 +98,7 @@ theorem fac_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
     have hflat : ((facT top D).map Stmt.atom).all Core.Stmt.flat = true :=
       List.all_eq_true.mpr fun s hs => by obtain ⟨a, -, rfl⟩ := List.mem_map.mp hs; rfl
     refine (completeAt_flatOutDTB (fs := fs) (cert := cert) hf hl 16 Lin [gen ^ c]
-      (fun fp ↦ [ofK (addressOfIndex (fp + fs f))]) (facOut Z top D) hb hflat haddr [256]
+      (fun fp ↦ [ofK (addressOfIndex (fp + fs f))]) (facOut Z top D) hb hflat haddr [128]
       (fun _ ↦ [facCells Z top D]) (fun _ ↦ by simp [facCells])
       (fun fp ↦ ⟨fp + fs f, by rw [gen_pow_eq_ofK], by simp [bufL, bases]⟩) (fun _ ↦ [])
       (fun _ ↦ True) [] [] 0 (fun _ ↦ trivial) (fun _ ↦ le_rfl) (fun _ ↦ le_rfl)
@@ -131,7 +131,7 @@ theorem fac_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
         unfold rdAt
         rw [(hzs rd hLin d hd).2]
         rfl
-    have hmemb : (b, facCells Z top D) ∈ bufL b [256] [facCells Z top D] := List.mem_singleton_self _
+    have hmemb : (b, facCells Z top D) ∈ bufL b [128] [facCells Z top D] := List.mem_singleton_self _
     have hbuf : ReadsAt rd (gen ^ b) (facCells Z top D) := reads_of_memL hB hmemb
     have hat : ∀ a ∈ facT top D, a.Holds rd σ := by
       refine atoms_holds hg fun a ha hns => ?_
@@ -197,33 +197,33 @@ theorem fac_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
         rcases ha' with rfl | rfl | rfl | rfl | rfl
         all_goals simp only [Stmt.loadS, reduceCtorEq, Option.some.injEq] at hq
         subst hq
-        have hn2 : 2 ^ d + y < 256 := by
+        have hn2 : 2 ^ d + y < 128 := by
           calc 2 ^ d + y < 2 ^ d + 2 ^ d := by omega
             _ = 2 ^ (d + 1) := by rw [pow_succ]; ring
             _ ≤ 2 ^ D := Nat.pow_le_pow_right (by norm_num) hd
-            _ ≤ 256 := h2D
+            _ ≤ 128 := h2D
         exact ⟨b + (2 ^ d + y), by rw [e1, limb0_gen_pow_mul], Or.inr
           (regionL_of_mem hmemb (by simpa [facCells] using hn2))⟩
   · exact absurd hok (by simp)
 
-/-- **`da_factors__L14_L7_L0`**, placed: the tree over the cell index, the bits `14, 13, …, 8`. -/
-theorem fac14_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
-    (hzs : ∀ rd, MemL rd Lin → ∀ d < 7, LoadHolds rd (gen ^ c) (14 - d) (Z (14 - d)))
-    (hzr : ∀ d < 7, RegionL Lin (c + (14 - d))) :
-    CompleteAtDTB fs cert 16 "da_factors__L14_L7_L0" Lin [gen ^ c] (facOut Z 14 7) (fun _ => True)
-      (fs "da_factors__L14_L7_L0" + 256) :=
-  fac_completeAtB fs cert find_da_factors_L14_L7_L0
-    (by rw [Program.loop_of_find? find_da_factors_L14_L7_L0]; decide +kernel) fac14_ok fac14_cok
+/-- **`da_factors__L13_L7_L0`**, placed: the tree over the cell index, the bits `13, 12, …, 7`. -/
+theorem facTop_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
+    (hzs : ∀ rd, MemL rd Lin → ∀ d < 7, LoadHolds rd (gen ^ c) (13 - d) (Z (13 - d)))
+    (hzr : ∀ d < 7, RegionL Lin (c + (13 - d))) :
+    CompleteAtDTB fs cert 16 "da_factors__L13_L7_L0" Lin [gen ^ c] (facOut Z 13 7) (fun _ => True)
+      (fs "da_factors__L13_L7_L0" + 128) :=
+  fac_completeAtB fs cert find_da_factors_L13_L7_L0
+    (by rw [Program.loop_of_find? find_da_factors_L13_L7_L0]; decide +kernel) facTop_ok facTop_cok
     (by norm_num) hzs hzr
 
-/-- **`da_factors__L7_L8_L128`**, placed: the tree inside a cell, the bits `7, 6, …, 0`. -/
-theorem fac7_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
-    (hzs : ∀ rd, MemL rd Lin → ∀ d < 8, LoadHolds rd (gen ^ c) (7 - d) (Z (7 - d)))
-    (hzr : ∀ d < 8, RegionL Lin (c + (7 - d))) :
-    CompleteAtDTB fs cert 16 "da_factors__L7_L8_L128" Lin [gen ^ c] (facOut Z 7 8)
-      (fun _ => True) (fs "da_factors__L7_L8_L128" + 256) :=
-  fac_completeAtB fs cert find_da_factors_L7_L8_L128
-    (by rw [Program.loop_of_find? find_da_factors_L7_L8_L128]; decide +kernel) fac7_ok fac7_cok
+/-- **`da_factors__L6_L7_L128`**, placed: the tree inside a cell, the bits `6, 5, …, 0`. -/
+theorem facCell_completeAtB {Lin : Layout} {c : ℕ} {Z : ℕ → E}
+    (hzs : ∀ rd, MemL rd Lin → ∀ d < 7, LoadHolds rd (gen ^ c) (6 - d) (Z (6 - d)))
+    (hzr : ∀ d < 7, RegionL Lin (c + (6 - d))) :
+    CompleteAtDTB fs cert 16 "da_factors__L6_L7_L128" Lin [gen ^ c] (facOut Z 6 7)
+      (fun _ => True) (fs "da_factors__L6_L7_L128" + 128) :=
+  fac_completeAtB fs cert find_da_factors_L6_L7_L128
+    (by rw [Program.loop_of_find? find_da_factors_L6_L7_L128]; decide +kernel) facCell_ok facCell_cok
     (by norm_num) hzs hzr
 
 end

@@ -11,12 +11,12 @@ compares them with the Rust verifier (`scripts/rust-verifier-cli`, its two forms
 proofs.
 
 * `lake exe leanvm-verify <bytecode> <public input> <stream> <merkle phases>`: the proof in its
-  structured form, the Rust `Proof` (`crates/verifier/src/transcript.rs:9-15`): the scalars
+  structured form, the Rust `Proof` (`crates/verifier/src/transcript.rs`): the scalars
   (`stream.bin`) and the phases of unpruned Merkle paths (`merkle_phases.bin`, `readPhasesFile`);
   runs `Verifier.verify` (`LeanVM/Facts/Verifier.lean`, the statement's verifier compiled, on the
   program's bytecode words) on it.
 * `lake exe leanvm-verify <bytecode> <public input> <proof wire>`: the proof's one wire encoding
-  (`Proof::to_bytes`, `crates/fiat_shamir/src/wire.rs`, `proof.wire`), decoded with
+  (`Proof::to_bytes`, `crates/verifier/src/wire.rs`, `proof.wire`), decoded with
   `Proof.fromBytes` (`LeanVM/Wire/Encoding.lean`) over Keccak-f[1600], a proof that does not
   decode rejected, as the deployed verifier does, then
   `Verifier.verify` on the decoded proof.

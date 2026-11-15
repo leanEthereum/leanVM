@@ -5,9 +5,11 @@
 use crate::programs::{self, CompileFailure};
 use crate::{Ctx, Finding, Outcome, Severity, Source, catch};
 use lean_compiler::{compile, parse_with_replacements};
+use isa::Program;
+pub use crate::programs::Spec;
 use std::collections::BTreeMap;
 
-const GUEST: &str = include_str!("../../../../rec_aggregation/guests/lean_ethereum.py");
+const GUEST: &str = include_str!("../../../../../guests/lean_ethereum.py");
 
 /// Mutants that run longer than this are not proven.
 const PROVE_CYCLES: usize = 1 << 16;
@@ -101,13 +103,10 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
         Err(f) => return triage(&f, ctx, context, &detail),
     };
     ctx.note("mutant compiled");
-    let mut program = program;
-    if let Some(spec) = spec {
-        for (stream, entries) in &spec.witness {
-            program.set_witness(stream.clone(), entries.clone());
-        }
-    }
-    let (result, pi) = programs::execute(&program, None);
+    let program = program;
+    let witness: Vec<(String, Vec<Vec<primitives::field::F128>>)> =
+        spec.map(|s| s.witness.clone()).unwrap_or_default();
+    let (result, pi) = programs::execute2(&program, &witness, None);
     let exec = match result {
         Ok(exec) => exec,
         Err(e) => {
@@ -121,7 +120,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
     }
     drop(exec);
     let rate = programs::log_inv_rate(src);
-    match programs::prove_honest(&program, pi, rate, context) {
+    match programs::prove_honest2(&program, &witness, pi, rate, context) {
         Ok(Some(_)) => {
             ctx.note("mutant proved");
             Ok(())

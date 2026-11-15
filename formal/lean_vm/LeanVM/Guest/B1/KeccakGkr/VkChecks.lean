@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.KeccakGkr.VkChecks
 
-  `verifyKeccak`'s two opening checks (V:2079, 2086) from the guest's.
+  `verifyKeccak`'s two opening checks from the guest's.
 -/
 
 module
@@ -32,7 +32,7 @@ theorem point_drop (p : List E) {τ : ℕ} (hτ : 4 ≤ τ) (hp : p.length = τ 
 theorem eqKernel_one (r : E) {m : ℕ} (hm : m < 2) : (eqKernel [r]).getD m 0 = eqAt [r] m := by
   rw [eqKernel_getD]; simp [hm]
 
-/-- **The committed outputs' check** (V:2079): the guest's lanes sum times the word. -/
+/-- **The committed outputs' check**: the guest's lanes sum times the word. -/
 theorem vk_out_check {τ : ℕ} (inst outs : List E) (comm : E) (r0 : E) (rl : List E)
     (hinst : (inst.drop 4).length = τ - 4) {slotO : List E} (hs : slotO.length = 6) {word v : E}
     (h : (∑ lane ∈ range 25, (∑ m ∈ range 1, eqAt [r0] m * eqAt slotO (25 * (1 + m) + lane)) *
@@ -51,7 +51,7 @@ theorem vk_out_check {τ : ℕ} (inst outs : List E) (comm : E) (r0 : E) (rl : L
   refine congrArg (· * _) (Finset.sum_congr rfl fun m hm ↦ ?_)
   rw [eqKernel_one r0 (by have := Finset.mem_range.1 hm; omega)]
 
-/-- **The inputs' check** (V:2086): the guest's `μ(low)·keccak_form(...)`. -/
+/-- **The inputs' check**: the guest's `μ(low)·keccak_form(...)`. -/
 theorem vk_in_check {τ : ℕ} (hτ : 4 ≤ τ) {c : KeccakClaim} (hpt : c.point.length = τ - 3)
     {lanes loc : List E} (hlocL : loc.length = 11)
     (hw : c.weights = laterWeights lanes (eqKernel (loc.take 6))) {slotI : List E}

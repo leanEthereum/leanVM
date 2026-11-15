@@ -8,7 +8,7 @@ public import VCVio.OracleComp.QueryTracking.WriterCost
 /-!
 # leanXMSS
 
-The leanXMSS scheme at leanVM `leanvm-rev` (key generation, signing, verification, hashing with
+The leanXMSS scheme (key generation, signing, verification, hashing with
 Keccak-256 over a permutation `π`), on what it shares with leanSPHINCS
 (`Statement/HashSignatures.lean`, namespace `HashSig`), the SUF-CMA game of `Statement/SufCma.lean`
 instantiated with it, and the end statement
@@ -23,7 +23,7 @@ open OracleComp OracleSpec ENNReal
 /-!
 ## leanXMSS
 
-The scheme of `crates/signatures/src/lean_xmss`, specified in `doc/lean_xmss`: two layers of XMSS of
+The scheme of `crates/lean_xmss/src`, specified in `doc/lean_xmss`: two layers of XMSS of
 height 16 over WOTS+C one-time keys. Key `b` of the top tree signs the root of bottom tree `b`; a
 leaf index `idx < 2^32` signs with bottom key `idx`, in bottom tree `idx / 2^16`.
 
@@ -75,7 +75,7 @@ abbrev ChainPairIndex := Fin (chainCount / 2)
 /-- The `v` digits a codeword assigns to the chains: how far each chain is opened. -/
 abbrev Encoding := ChainIndex → WinternitzDigit
 
-/-- The secret key (`LeanXmssSecretKey`, `scheme.rs:120-128`): the key's seed `S_0`, which the
+/-- The secret key (`SecretKey`, `lib.rs`; expanded, `LeanXmssExpandedSecretKey`, `scheme.rs`): the key's seed `S_0`, which the
 crate's key serializes and from which it derives every secret, and the public parameter `P`, which
 key generation derived from it. The crate's key also holds the top tree and the bottom tree it
 last signed in, hashes that this signer computes again. -/
@@ -117,7 +117,7 @@ deriving DecidableEq
 /-- `hi` on layer `l`: the top layer sets bit 23 (`layer_hi`). -/
 def layerHi (layer : Layer) (field : Nat) : Nat := field + 2 ^ 23 * layer.val
 
-/-- The address of a hash call (`Tweak`, `crates/signatures/src/lean_xmss/hash.rs:47-55`): its
+/-- The address of a hash call (`Tweak`, `crates/lean_xmss/src/hash.rs`): its
 type `tag < 32`, a chain step `step < 8`, and two fields `hi < 2^24` and `lo < 2^32`. -/
 structure TweakFields where
   /-- The hash call's type. -/
@@ -130,18 +130,18 @@ structure TweakFields where
   lo : BitVec 32
 deriving DecidableEq
 
-/-- The 16 address bytes `lo || hi || (tag + 32 * step) || 0^64` (`address`, `hash.rs:73-81`). -/
+/-- The 16 address bytes `lo || hi || (tag + 32 * step) || 0^64` (`address`, `hash.rs`). -/
 def addressBytes (fields : TweakFields) : HashInput :=
   littleEndianBytes 4 fields.lo ++ littleEndianBytes 3 fields.hi ++
     littleEndianBytes 1 (fields.step ++ fields.tag) ++ littleEndianBytes 8 0
 
-/-- Convert the four integer fields to their fixed widths (`tweak`, `hash.rs:57-60`, with the step
-of `Tweak::step`, `hash.rs:62-71`). -/
+/-- Convert the four integer fields to their fixed widths (`tweak`, `hash.rs`, with the step
+of `Tweak::step`, `hash.rs`). -/
 def tweakFields (tag step hi lo : Nat) : TweakFields :=
   ⟨BitVec.ofNat 5 tag, BitVec.ofNat 3 step, BitVec.ofNat 24 hi, BitVec.ofNat 32 lo⟩
 
 /-- `P || A || payload`, the input of every tweakable hash call at the address `fields`
-(`hasher`, `hash.rs:89-92`, on the shared `hasher` of `lib.rs:16-23`). -/
+(`hasher`, `hash.rs`, on the shared `hasher` of `lib.rs`). -/
 def thInput (parameter : PublicParameter) (fields : TweakFields) (payload : HashInput) :
     HashInput :=
   hasherInput parameter (addressBytes fields) payload
@@ -203,17 +203,17 @@ open HashSig.OverPermutation
 
 variable {m : Type → Type} [Monad m] (π : KeccakState → m KeccakState)
 
-/-- `Th(P, A, M) = Truncate_16(H(P || A || M))` (`th`, `hash.rs:94-97`, with `truncate` of
-`lib.rs:46-49`). -/
+/-- `Th(P, A, M) = Truncate_16(H(P || A || M))` (`th`, `hash.rs`, with `truncate` of
+`lib.rs`). -/
 def th (parameter : PublicParameter) (fields : TweakFields) (payload : HashInput) : m Digest := do
   return truncateHash (← keccakHash π (thInput parameter fields payload))
 
-/-- `H(P || A || M)`, untruncated: two secrets for one hash (`th_pair`, `hash.rs:104-108`). -/
+/-- `H(P || A || M)`, untruncated: two secrets for one hash (`th_pair`, `hash.rs`). -/
 def thPair (parameter : PublicParameter) (fields : TweakFields) (payload : HashInput) :
     m HashOutput :=
   keccakHash π (thInput parameter fields payload)
 
-/-- `S = H("leanXMSS" || S_0)`, all 32 bytes (`scheme_seed`, `hash.rs:121-125`): the seed the
+/-- `S = H("leanXMSS" || S_0)`, all 32 bytes (`scheme_seed`, `hash.rs`): the seed the
 scheme derives every secret from. -/
 def schemeSeedOf (masterSeed : MasterSeed) : m MasterSeed :=
   keccakHash π (seedTag ++ littleEndianBytes 32 masterSeed)
@@ -292,14 +292,14 @@ def otsLeaf (parameter : PublicParameter) (layer : Layer) (key : KeyIndex) (mess
 
 /-! #### The trees -/
 
-/-- `Tree.fold`: fold a key's leaf and path into its tree's root (`path_fold`, `lib.rs:25-44`). -/
+/-- `Tree.fold`: fold a key's leaf and path into its tree's root (`path_fold`, `lib.rs`). -/
 def treeFold (parameter : PublicParameter) (layer : Layer) (key : KeyIndex)
     (path : Fin layerHeight → Digest) : Nat → Digest → m Digest :=
   foldPath (fun level nodeIndex ↦ tweakableHash π parameter (.node layer (level + 1) nodeIndex))
     key.val fun level ↦ if h : level < layerHeight then path ⟨level, h⟩ else 0
 
 /-- The root a layer's signature by key `e` reaches from `message`, or nothing (`layer_root`,
-`scheme.rs:318-334`). -/
+`scheme.rs`). -/
 def layerRoot (parameter : PublicParameter) (layer : Layer) (key : KeyIndex) (message : HashInput)
     (layerSignature : LayerSignature) : m (Option Digest) := do
   let some leaf ← otsLeaf π parameter layer key message layerSignature.randomizer
@@ -391,12 +391,12 @@ def treePath (parameter : PublicParameter) (layer : Layer) (seed : MasterSeed) (
   sequenceFin fun level =>
     treeNode π parameter layer seed level.val (Nat.xor (key.val / 2 ^ level.val) 1)
 
-/-- The public parameter of the scheme seed `S` (`public_param`, `hash.rs:127-130`). -/
+/-- The public parameter of the scheme seed `S` (`public_param`, `hash.rs`). -/
 def publicParameterOf (seed : MasterSeed) : m PublicParameter :=
   th π 0 (keygenDomainFields .parameter) (littleEndianBytes 32 seed)
 
-/-- `Gen` (`key_gen_from_seed`, `generate`, `scheme.rs:171-189`): hash the seed `S_0` into `S`
-(`scheme_seed`, `hash.rs:121-125`), derive the public parameter and build the top tree; the secret
+/-- `Gen` (`key_gen`, `generate`, `scheme.rs`): hash the seed `S_0` into `S`
+(`scheme_seed`, `hash.rs`), derive the public parameter and build the top tree; the secret
 key is `S_0` and the public parameter. -/
 def keygenFromSeed (masterSeed : MasterSeed) : m (PublicKey × SecretKey) := do
   let seed ← schemeSeedOf π masterSeed
@@ -424,8 +424,8 @@ def signWithSchemeSeed (seed : MasterSeed) (parameter : PublicParameter) (leafIn
     | return none
   return some ⟨leafIndex, fun layer => if layer = bottomLayer then bottom else top⟩
 
-/-- `Sign` at leaf index `idx` (`sign`, `sign_over`, `scheme.rs:194-246`): the scheme seed
-`S = H(leanXMSS || S_0)` of the key's seed (`scheme_seed`, `hash.rs:121-125`, `scheme.rs:234`), then
+/-- `Sign` at leaf index `idx` (`sign`, `sign_over`, `scheme.rs`): the scheme seed
+`S = H(leanXMSS || S_0)` of the key's seed (`scheme_seed`, `hash.rs`, `scheme.rs`), then
 the two layers' signatures with `S` and the key's public parameter. -/
 def sign (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message) :
     m (Option Signature) := do

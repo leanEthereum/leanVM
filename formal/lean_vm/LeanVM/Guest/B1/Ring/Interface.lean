@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Eq.Meaning
 /-!
 # The ring switch (TRIAGE G #64-66): the interface
 
-The ring switch (`ringSwitch`, `ring_switch.rs:70-87`) turns the 64 claims on `q_keccak`'s bit
+The ring switch (`ringSwitch`, `ring_switch.rs`) turns the 64 claims on `q_keccak`'s bit
 slices into one claim on the committed column: the target `ringTarget s f g` and the weight
 `W(r') = ringWeight point r' (ringCoefficients f g)`, over the sixteen challenges, `f` then `g`.
 

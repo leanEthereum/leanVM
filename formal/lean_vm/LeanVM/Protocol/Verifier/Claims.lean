@@ -14,7 +14,7 @@ public import LeanVM.Protocol.Verifier.Phases
 # The claim-list form of `verify_execution`
 
 `Statement/LeanVmVerifier.lean` transcribes steps 4 to 7 of `verify_execution` as the Rust
-writes them (`crates/verifier/src/lib.rs:240-318`): `tableSumcheck` returns each table's point and
+writes them (`crates/verifier/src/lib.rs`): `tableSumcheck` returns each table's point and
 evaluations, step 6 reads the `KECCAK` row's output lanes off them, and the opening drops the
 claims `ColumnClaim.onStack` finds no placement for, the output lanes'. The proofs reason on the
 claim-list form `verifyExecutionClaims`: the table sumcheck returns the tables' column claims, the

@@ -1,0 +1,22 @@
+[package]
+name = "stable_primitives"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+isa.workspace = true
+keccak256.workspace = true
+parallel = { package = "stable_parallel", path = "../parallel" }
+fiat_shamir_prover.workspace = true
+rand = { workspace = true, optional = true }
+
+[features]
+# `test_rng`, for the tests of this and other crates; off by default, keeping `rand` out of the build.
+test-util = ["dep:rand"]
+
+[dev-dependencies]
+rand.workspace = true

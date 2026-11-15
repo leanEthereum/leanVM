@@ -4,7 +4,7 @@ import LeanVM.Cli.Common
 /-!
 # `wire-diff`: the proof's wire encoding on byte files
 
-lean_vm's transcription of leanVM's one encoding of a proof (`crates/fiat_shamir/src/wire.rs`,
+lean_vm's transcription of leanVM's one encoding of a proof (`crates/verifier/src/wire.rs`,
 each Merkle phase pruned to the siblings no other path gives, scaraven's idea,
 https://github.com/scaraven):
 `Proof.fromBytes` (`LeanVM.Wire.Encoding`), over Keccak-f[1600] in `Id`, and

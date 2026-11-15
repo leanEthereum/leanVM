@@ -35,8 +35,8 @@ challenge. It is composed from the four steps' halves, at the same intermediate 
 * **The roots** (`rootsSecurity`), at no error: a root that passes the check `R_c ≠ 0` and is
   the product of its leaves makes the count product nonzero, and one root for push and pull makes
   their products agree. This is where the check is load-bearing: a zero count is otherwise
-  balanced on the bus (§6.2, `06-bus-interactions.tex:78`; the deployed verifier's check is
-  `crates/verifier/src/bus.rs:117-119`).
+  balanced on the bus (§6.2, `06-bus-interactions.tex`; the deployed verifier's check is
+  `crates/verifier/src/bus.rs`).
 * **The grand-product argument** (`gkrSecurity`), at `Typed.gkrErrors` from the unit `1/|E|`. Its riders
   carry the constraints and the public lines with the Keccak predicate, so its state function
   carries the zerocheck: a constraint that does not vanish on the cube has a nonzero extension

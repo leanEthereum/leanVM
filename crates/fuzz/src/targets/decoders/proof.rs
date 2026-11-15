@@ -9,7 +9,8 @@ use super::honest;
 use crate::source::{Rng, mutate};
 use crate::{Ctx, Finding, Outcome, Source, catch};
 use fiat_shamir::merkle::{hash_pair, hash_words, open};
-use leanvm_core::cpu::Proof;
+use verifier::Proof;
+use isa::Program;
 use primitives::field::{F64, F128};
 
 pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
@@ -59,7 +60,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
 
 pub fn check(
     bytes: &[u8],
-    origin: Option<(&str, &leanvm_core::cpu::Program, &[F128; 2], &Proof)>,
+    origin: Option<(&str, &isa::Program, &[F128; 2], &Proof)>,
     ctx: &Ctx,
 ) -> Outcome {
     let decoded =
@@ -238,7 +239,7 @@ fn synthetic(src: &mut Source) -> Vec<u8> {
                 .iter()
                 .map(|r| [vec![F64::ZERO; leaf_words - row_words], r.clone()].concat())
                 .collect();
-            let mut levels = vec![images.iter().map(|i| hash_words(i)).collect::<Vec<_>>()];
+            let mut levels = vec![images.iter().map(|i| hash_words(i.iter().map(|w| w.0))).collect::<Vec<_>>()];
             while levels.last().unwrap().len() > 1 {
                 let up = levels
                     .last()
@@ -250,10 +251,10 @@ fn synthetic(src: &mut Source) -> Vec<u8> {
             }
             let count = src.range(1, 12);
             let queries: Vec<usize> = (0..count).map(|_| src.below(n)).collect();
-            open(n, &queries, leaf_words, |l, i| levels[l][i], |q| &rows[q])
+            open(n, &queries, leaf_words, |l, i| levels[l][i], |q| rows[q].iter().map(|w| w.0))
         })
         .collect();
-    Proof { stream, merkle: phases }.to_bytes()
+    Proof { stream: stream.iter().map(|x| verifier::E::new(x.c0, x.c1)).collect(), merkle_openings: phases }.to_bytes()
 }
 
 fn garbage(src: &mut Source, ctx: &Ctx) -> Vec<u8> {

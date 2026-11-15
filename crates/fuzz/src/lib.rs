@@ -20,6 +20,7 @@ pub(crate) const MAX_KEYS: usize = 1 << 16;
 
 pub mod findings;
 pub mod mutate_proof;
+pub mod pick;
 pub mod programs;
 pub mod resources;
 mod selftest;

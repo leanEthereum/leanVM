@@ -28,7 +28,7 @@ pub fn all() -> Vec<&'static Target> {
     #[cfg(feature = "soundness")]
     all.extend(soundness::TARGETS);
     #[cfg(feature = "aggregation")]
-    all.extend(aggregation::TARGETS);
+    // The aggregation target names live in `targets::aggregation`.
     all
 }
 

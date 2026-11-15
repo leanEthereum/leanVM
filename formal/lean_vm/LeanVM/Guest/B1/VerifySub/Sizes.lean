@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Common.Run
 * `stackLog_eq`, `logBytecode_eq`: the layout's stack log-size and bytecode log-size, for the
   guest's bytecode of `2^23` words.
 * `pushDepth_eq`: the push side's bus cube is `log2Ceil` of the sum of `2^κ` over the guest's
-  `54` push blocks (`BLOCK_KAPPA_SRC`, `BLOCK_KAPPA_ADJ`, G:126-127, 3326-3338).
+  `54` push blocks (`BLOCK_KAPPA_SRC`, `BLOCK_KAPPA_ADJ`).
 * `readSizes_runsTo`: on the words `logMem`, the six row counts, `lir`, `readAnnouncedSizes` returns
   the layout `layoutOf` and `lir`.
 -/
@@ -87,7 +87,7 @@ theorem stackLog_eq {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (logMem
 
 /-! ## The push side's cube -/
 
-/-- Push block `b`'s log-height (G:3327-3331, 3338): source `BLOCK_KAPPA_SRC[b]` of
+/-- Push block `b`'s log-height: source `BLOCK_KAPPA_SRC[b]` of
 `[0, log_mem, τ_0, …, τ_5]`, plus `BLOCK_KAPPA_ADJ[b]`. -/
 def pushKappa (logMem : ℕ) (hs : List ℕ) (b : ℕ) : ℕ :=
   ([0, logMem] ++ hs).getD (Tables.blockKappaSrc.getD b 0) 0 + Tables.blockKappaAdj b
@@ -123,7 +123,7 @@ theorem pushKappas_eq (logMem h0 h1 h2 h3 h4 h5 : ℕ) :
       [0, logMem, 19] ++ (List.replicate 5 h0 ++ List.replicate 5 h1 ++ List.replicate 3 h2 ++
         List.replicate 5 h3 ++ List.replicate 5 h4 ++ List.replicate 28 h5) := rfl
 
-/-- **The push side's cube** (G:3151-3154): its log-size is `log2Ceil` of the sum of `2^κ` over
+/-- **The push side's cube**: its log-size is `log2Ceil` of the sum of `2^κ` over
 the guest's `54` push blocks. -/
 theorem pushDepth_eq {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (logMem : ℕ)
     (rowsN : List ℕ) (hlen : rowsN.length = 6) :

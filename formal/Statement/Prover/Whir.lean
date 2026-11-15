@@ -7,10 +7,10 @@ public import Statement.Prover.Mle
 # Ring switching and the WHIR opening
 
 The honest prover of ring switching (`ringSwitch`: `ring_switch`,
-`crates/verifier/src/ring_switch.rs:70-87`) and of the stacked opening (`verifyStackedOpening`:
-`verify_stacked_opening`, `crates/verifier/src/lib.rs:133-154`, then `verify_whir`,
-`crates/verifier/src/whir.rs:215-329`), the prover's side being `recursive_prover_with_prepared_basis`
-(`crates/pcs/src/whir.rs:739-935`), on arrays.
+`crates/verifier/src/ring_switch.rs`) and of the stacked opening (`verifyStackedOpening`:
+`verify_stacked_opening`, `crates/verifier/src/lib.rs`, then `verify_whir`,
+`crates/verifier/src/whir.rs`), the prover's side being `recursive_prover_with_prepared_basis`
+(`crates/pcs/src/whir.rs`), on arrays.
 
 The claims are descriptions (`ClaimDesc`) whose denotations are the verifier's stack claims; their
 weights are closures the prover does not evaluate on the cube: the starting weight table is built
@@ -41,8 +41,8 @@ structure RingOut where
   g : List E
 
 /-- **The honest prover of ring switching** (`ring_switch`,
-`crates/verifier/src/ring_switch.rs:70-87`; the prover's `sample_map_challenges`,
-`crates/pcs/src/ring_switch.rs:149-151`): it sends nothing; a grind, then the sixteen challenges,
+`crates/verifier/src/ring_switch.rs`; the prover's `sample_map_challenges`,
+`crates/pcs/src/ring_switch.rs`): it sends nothing; a grind, then the sixteen challenges,
 `f` then `g`; the target with the point and the challenges. -/
 def ringFast (point slices : List E) : Script RingOut := do
   Script.grindBits Whir.batchGrindingBits
@@ -52,7 +52,7 @@ def ringFast (point slices : List E) : Script RingOut := do
   return ⟨ringTarget slices f g, point, f, g⟩
 
 /-- `Φ(value) = Σ_p f_p Ψ(value)^(2^(8p))`, `Ψ(v) = Σ_b g_b v^(2^b)`, stage by stage, by squarings
-(`apply_map`, `crates/pcs/src/ring_switch.rs:129-145`). -/
+(`apply_map`, `crates/pcs/src/ring_switch.rs`). -/
 def ringPhi (f g : List E) (value : E) : E :=
   (f.foldl (fun (acc : E × E) fP ↦
     (acc.1 + fP * acc.2, Nat.repeat (fun v ↦ v * v) ringMapWidth acc.2)) (0, ringPsi value g)).1
@@ -183,7 +183,7 @@ def subspaceRoot (t : ℕ) : K := (vanRow t).getD t 0
 
 /-- `A_t = a_0 ⋯ a_(t-1)`, `a_i = W_(i+1)(β_(i+1)) / W_i(β_i)^2`, for `t < 64`: `X_c` times `X` has the
 coefficient `A_t` on the two basis elements it reaches, `t` the trailing zeros of `c`
-(`constants`, `crates/pcs/src/xmul.rs:52-63`). -/
+(`constants`, `crates/pcs/src/xmul.rs`). -/
 def xmulConsts : Array K :=
   (List.range 63).foldl (fun a t ↦
     a.push (a.getD t 1 * subspaceRoot (t + 1) * (subspaceRoot t * subspaceRoot t)⁻¹)) #[1]
@@ -194,7 +194,7 @@ def trailingZeros (c : ℕ) : ℕ := Nat.log2 (c ^^^ (c - 1))
 /-- **`X` times every lane** of a table of `stride` lanes, coefficient `c` of lane `l` at
 `c·stride + l`, one coefficient longer: `(X h)[0] = 0`,
 `(X h)[c] = A_t (h[c - 1] + h[c + 2^t - 1])`, `t` the trailing zeros of `c`, zero past `h`
-(`mul_x`, `crates/pcs/src/xmul.rs:71-92`; Annex D, Lemma `lem:mulx`). -/
+(`mul_x`, `crates/pcs/src/xmul.rs`; Annex D, Lemma `lem:mulx`). -/
 def mulXA (h : Array E) (stride : ℕ) : Array E :=
   Array.ofFn (n := (h.size / stride + 1) * stride) fun i ↦
     let c := i.val / stride
@@ -211,7 +211,7 @@ def mulXA (h : Array E) (stride : ℕ) : Array E :=
 def dotA (a b : Array E) : E := sumRange (min a.size b.size) fun i ↦ a.getD i 0 * b.getD i 0
 
 /-- The half `F` of a table `f` of `s` lanes, coefficient by coefficient (`Dense::table`,
-`crates/pcs/src/whir.rs:573-607`): `F`, `G` the lanes `2m`, `2m + 1`. -/
+`crates/pcs/src/whir.rs`): `F`, `G` the lanes `2m`, `2m + 1`. -/
 def halfA (f : Array E) (s : ℕ) : Array E :=
   Array.ofFn (n := f.size / s * (s / 2)) fun i ↦
     f.getD (i.val / (s / 2) * s + 2 * (i.val % (s / 2))) 0
@@ -228,14 +228,14 @@ def roundTableA (f w : Array E) (s : ℕ) (H XH : Array E) : List E :=
    sumRange n fun i ↦ w.getD (at_ i + 1) 0 * XH.getD i 0]
 
 /-- The folded lanes `P = G + α F + β X F`, one coefficient longer (`Dense::fold`,
-`crates/pcs/src/whir.rs:610-647`). -/
+`crates/pcs/src/whir.rs`). -/
 def foldLanesA (f : Array E) (s : ℕ) (H XH : Array E) (α β : E) : Array E :=
   Array.ofFn (n := XH.size) fun i ↦
     let c := i.val / (s / 2)
     let m := i.val % (s / 2)
     f.getD (c * s + 2 * m + 1) 0 + α * H.getD i.val 0 + β * XH.getD i.val 0
 
-/-- **One fold round** (`fold_round`, `crates/pcs/src/whir.rs:533-539`): the table, a grind and
+/-- **One fold round** (`fold_round`, `crates/pcs/src/whir.rs`): the table, a grind and
 `(α, β)`; the folded lanes and the weight folded by `α`. -/
 def foldRoundA (f w : Array E) (s : ℕ) : Script (Array E × Array E) := do
   let H := halfA f s
@@ -269,13 +269,13 @@ def sampleQueriesS (depth : ℕ) : ℕ → ℕ → Script (List ℕ)
 
 /-- The tail sumcheck on the final level's low part: per round the constant and quadratic
 coefficients, then the challenge, both tables folded (`tail_sumcheck`,
-`crates/pcs/src/whir.rs:704-719`). -/
+`crates/pcs/src/whir.rs`). -/
 def tailA (mu : ℕ) (w g : Array E) : Script Unit :=
   (sumcheckBy (fun st : Array E × Array E ↦ [roundC0A st.1 st.2, 0, roundC2A st.1 st.2])
     (fun st r ↦ (foldPairsA r st.1, foldPairsA r st.2)) (List.replicate mu none) (w, g)).bind
     fun _ ↦ .ret ()
 
-/-- **The WHIR levels** (`recursive_prover_with_prepared_basis`, `crates/pcs/src/whir.rs:739-935`)
+/-- **The WHIR levels** (`recursive_prover_with_prepared_basis`, `crates/pcs/src/whir.rs`)
 from a level whose lanes and weight are the tables `f` and `w`, `mu` the variables before its
 folds: its fold rounds; then on the final level the folded lane, the queries and the tail; on
 another the next level's commitment to the folded lane's low part, its high part, a grind, the

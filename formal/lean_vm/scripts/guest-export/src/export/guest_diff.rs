@@ -11,11 +11,14 @@
 //! list its length then its items; a section starts with its name, which the reader checks.
 
 use super::*;
-use crate::signers_cache::{get_lean_sphincs_signers, get_signers};
-use lean_da::{BLOB_SYMBOLS, CODEWORD_SYMBOLS};
-use leanvm_core::cpu::{public_input_bytes, scalar_proof};
-use signatures::lean_sphincs::LeanSphincsSignature;
-use signatures::lean_xmss::LeanXmssSignature;
+use crate::aggregation::signers_cache::{get_lean_sphincs_signers, get_signers};
+use lean_da::BLOB_SYMBOLS;
+use isa::Prover;
+use lean_vm_core::StableProver;
+use lean_vm_core::cpu::{from_scalar, public_input_bytes};
+use primitives::field::F128;
+use lean_sphincs::LeanSphincsSignature;
+use lean_xmss::LeanXmssSignature;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use std::fmt::Write as _;
@@ -70,35 +73,36 @@ impl Out {
         }
     }
 
-    fn deferred(&mut self, c: &DeferredClaim) {
+    fn deferred(&mut self, c: &DeferredBytecodeClaim) {
         self.tag("defer");
         self.es(&c.bytecode_point);
         self.e(c.bytecode_value);
     }
 
     /// `NodeStatement`: the claims, the DA digest (`verifier::da::digest`), and the deferred claim.
-    fn statement(&mut self, p: &EthereumProof) {
+    fn statement(&mut self, claims: &AggregateClaims, defer: &DeferredBytecodeClaim) {
         self.tag("xmss");
-        self.n(p.claims.lean_xmss.len());
-        for (pk, m) in &p.claims.lean_xmss {
+        self.n(claims.lean_xmss.len());
+        for (pk, m) in &claims.lean_xmss {
             self.bytes(&pk.to_bytes());
             self.bytes(m);
         }
         self.tag("sphincs");
-        self.n(p.claims.lean_sphincs.len());
-        for (pk, m) in &p.claims.lean_sphincs {
+        self.n(claims.lean_sphincs.len());
+        for (pk, m) in &claims.lean_sphincs {
             self.bytes(&pk.to_bytes());
             self.bytes(m);
         }
         self.tag("da");
-        self.bytes(&verifier::da::digest(p.claims.da_commitment));
-        self.deferred(&p.defer);
+        self.bytes(&verifier::da::digest(claims.da_commitment));
+        self.deferred(defer);
     }
 
     /// The leaf index, then each layer, bottom first, its randomizer, chain values and path: read off the
     /// signature's bytes (`to_bytes`, in that order), the crate keeping its fields private.
     fn xmss_signature(&mut self, sig: &LeanXmssSignature) {
-        use lean_xmss::{LAYER_HEIGHT, LeafIndex, N, RANDOMIZER_LEN, V};
+        use lean_xmss::LeafIndex;
+        use lean_xmss::internals::{LAYER_HEIGHT, N, RANDOMIZER_LEN, V};
         const LEAF_INDEX_SIZE: usize = size_of::<LeafIndex>();
         let bytes = sig.to_bytes();
         let mut at = Cursor(&bytes[..]);
@@ -115,7 +119,7 @@ impl Out {
     /// The randomizer, each FORS tree's secret and path, then each layer, bottom first, its counter (big endian in
     /// the bytes), chain values and path: read off the signature's bytes (`to_bytes`, in that order).
     fn sphincs_signature(&mut self, sig: &LeanSphincsSignature) {
-        use lean_sphincs::{COUNTER_LEN, FORS_HEIGHT, FORS_TREES, LAYER_HEIGHTS, N, V};
+        use lean_sphincs::internals::{COUNTER_LEN, FORS_HEIGHT, FORS_TREES, LAYER_HEIGHTS, N, V};
         let bytes = sig.to_bytes();
         let mut at = Cursor(&bytes[..]);
         self.bytes(at.take(N));
@@ -125,7 +129,7 @@ impl Out {
         }
         for (layer, height) in LAYER_HEIGHTS.into_iter().enumerate() {
             let counter = u32::from_be_bytes(at.take(COUNTER_LEN).try_into().unwrap());
-            assert_eq!(counter, sig.__layers()[layer].counter());
+            assert_eq!(counter, lean_sphincs::internals::sig_layers(sig)[layer].counter());
             self.n(counter as usize);
             self.digests(at.take(V * N).as_chunks::<N>().0);
             self.digests(at.take(height * N).as_chunks::<N>().0);
@@ -148,57 +152,59 @@ impl<'a> Cursor<'a> {
 /// Aggregate, and write the case: the statement, the witness, the installed streams.
 fn export(
     name: &str,
-    children: Vec<EthereumProof>,
+    children: Vec<(AggregateClaims, AggregateProof)>,
     raw_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
     raw_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
-    blobs: &[u64],
-) -> EthereumProof {
+    blobs: &[lean_da::Blob],
+) -> (AggregateClaims, AggregateProof) {
+    let direct =
+        (!blobs.is_empty()).then(|| lean_da::BlobMatrix::build(blobs).expect("1 to DA_MAX_ROWS blobs"));
     capture_next();
-    let node = aggregate(
+    let (claims, node, _) = aggregate::<StableProver>(
         &children,
         raw_xmss.clone(),
         raw_sphincs.clone(),
-        blobs,
-        None,
+        direct.as_ref(),
+        OutputClaims::All,
         LOG_INV_RATE,
     )
     .expect("node aggregates");
-    node.verify().expect("node verifies");
+    assert!(node.verify(&claims), "node verifies");
     let streams = INSTALLED.with(|i| i.take());
     let stream = |name: &str| streams.iter().find(|(n, _)| n == name).map(|(_, e)| e.as_slice());
 
-    let mut out = Out(format!("leanvm-guest-diff 4\ncase {name}"));
+    let mut out = Out(format!("leanvm-guest-diff 5\ncase {name}"));
     out.tag("seed");
-    let seed = leanvm_core::cpu::fs_seed(unified_guest());
+    let seed = fs_seed();
     out.bytes(&cell_bytes(seed));
     out.tag("log_memory");
     out.n(node.proof.stream[0].c0 as usize);
     out.tag("public_input");
-    out.es(&node.vm_public_input());
+    let defer = DeferredBytecodeClaim::recompute(node.bytecode_point.clone());
+    out.es(&statement_digest(&claims, &defer));
     out.tag("statement");
-    out.statement(&node);
+    out.statement(&claims, &defer);
 
     out.tag("children");
     out.n(children.len());
-    let bytecode = scalar_bytecode();
-    for child in &children {
+    let bytecode = unified_guest().bytecode();
+    for (child_claims, child) in &children {
         out.tag("child");
-        out.statement(child);
-        let pi = child.vm_public_input();
-        let scalar = scalar_proof(&child.proof);
+        let defer = DeferredBytecodeClaim::recompute(child.bytecode_point.clone());
+        out.statement(child_claims, &defer);
+        let pi = statement_digest(child_claims, &defer);
+        let scalar = child.proof.clone();
         let summary =
             verifier::replay_unchecked(bytecode, &public_input_bytes(&pi), &scalar).expect("the child replays");
-        // The fresh claim's value, which the caller evaluates (`aggregate_with_stats` off its batch's sums).
-        let fresh_point: Vec<F128> = summary.bytecode_point.iter().copied().map(from_scalar).collect();
-        let fresh_value = mle_eval_par(stacked_bytecode(), &fresh_point);
-        let (_, fresh) =
-            gen_verify(unified_guest(), pi, &child.proof, &summary, fresh_value).expect("the child fits");
+        // The fresh claim's value, which the caller evaluates (`aggregate` off its batch's sums).
+        let fresh_value = from_scalar(unified_guest().bytecode().evaluate(&summary.bytecode_point).unwrap());
+        gen_verify(kbc(), &child.proof, &summary).expect("the child fits");
         out.tag("fresh");
-        let point: Vec<F128> = fresh.bytecode_point.clone();
+        let point: Vec<F128> = summary.bytecode_point.iter().copied().map(from_scalar).collect();
         out.es(&point);
-        out.e(fresh.bytecode_value);
+        out.e(fresh_value);
         out.tag("proof");
-        out.es(&child.proof.stream);
+        out.es(&child.proof.stream.iter().copied().map(from_scalar).collect::<Vec<_>>());
         // Every phase's paths (`Proof::merkle_openings`), each its leaf index, leaf and siblings.
         out.n(scalar.merkle_openings.len());
         for phase in &scalar.merkle_openings {
@@ -215,7 +221,7 @@ fn export(
     }
 
     // The raw signatures with their claims, as `aggregate` uses them: sorted on the claim,
-    // deduplicated (`aggregation/node.rs:109-113`).
+    // deduplicated (`aggregation/node.rs`).
     let mut raw_xmss = raw_xmss;
     raw_xmss.sort_by_key(|(pk, message, _)| (*pk, *message));
     raw_xmss.dedup_by(|(a, am, _), (b, bm, _)| (a, am) == (b, bm));
@@ -237,19 +243,18 @@ fn export(
         out.sphincs_signature(sig);
     }
     // The directly held matrix: its root, its membership challenge and its rows.
-    let direct = (!blobs.is_empty()).then(|| lean_da::commit(blobs).expect("a whole number of blob rows"));
     out.tag("da_witness");
     match &direct {
-        Some((root, witness)) => {
+        Some(matrix) => {
+            let root = &matrix.top_root();
             out.0.push_str("direct ");
             out.bytes(root);
             out.e(from_scalar(verifier::da::membership_challenge(root)));
-            let rows: Vec<&[u64]> = witness.codewords.chunks(CODEWORD_SYMBOLS).collect();
-            out.n(rows.len());
-            for row in rows {
+            out.n(matrix.n_blobs());
+            for row in (0..matrix.n_blobs()).filter_map(|i| matrix.row(i)) {
                 out.n(row.len());
-                for w in row {
-                    write!(out.0, "{w:x} ").unwrap();
+                for &w in row {
+                    out.e(F128::from(w));
                 }
             }
         }
@@ -275,14 +280,20 @@ fn export(
     let dir = std::path::Path::new(&dir);
     std::fs::create_dir_all(dir).unwrap();
     std::fs::write(dir.join(format!("{name}.txt")), out.0).unwrap();
-    node
+    (claims, node)
 }
 
-const LOG_INV_RATE: usize = leanvm_core::pcs::TEST_LOG_INV_RATE;
+const LOG_INV_RATE: usize = lean_vm_core::pcs::TEST_LOG_INV_RATE;
 
-fn blob(seed: u64) -> Vec<u64> {
+/// The guest's log size.
+fn kbc() -> usize {
+    unified_guest().prog.len().trailing_zeros() as usize
+}
+
+fn blob(seed: u64) -> Vec<lean_da::Blob> {
     let mut rng = StdRng::seed_from_u64(seed);
-    (0..BLOB_SYMBOLS).map(|_| rng.random()).collect()
+    let symbols: Vec<u128> = (0..BLOB_SYMBOLS).map(|_| rng.random()).collect();
+    symbols.as_chunks().0.to_vec()
 }
 
 /// Two leaves, one of both schemes with a blob, one whose leanXMSS list is longer than a group of its digest
@@ -293,7 +304,7 @@ fn blob(seed: u64) -> Vec<u64> {
 #[test]
 #[ignore]
 fn guest_diff() {
-    parallel::init();
+    StableProver::init();
     let wide = CLAIM_GROUP + 3;
     let xmss = get_signers(wide + 2);
     let sphincs = get_lean_sphincs_signers(3);
@@ -308,6 +319,6 @@ fn guest_diff() {
 #[test]
 #[ignore]
 fn guest_diff_leaf() {
-    parallel::init();
+    StableProver::init();
     export("leaf", vec![], get_signers(1), vec![], &[]);
 }

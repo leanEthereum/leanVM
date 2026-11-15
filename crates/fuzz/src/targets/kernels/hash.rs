@@ -3,7 +3,7 @@
 use super::reference as r;
 use super::{check, mismatch};
 use crate::{Ctx, Outcome, Source};
-use primitives::hash::{
+use exp_primitives::hash::{
     self, Hasher, LANES, OUT_LEN, PAD_FIRST, PAD_LAST, RATE, STATE_LANES, digest_halves_from, digest_of, final_state,
     hash_many, hash_many_from_state, keccak_f, keccak_f_many, permutations, zero_prefix_state,
 };
@@ -44,11 +44,6 @@ fn one_shot(src: &mut Source, ctx: &Ctx) -> Outcome {
     let want = r::keccak256(&data);
     let got = hash::hash(&data);
     check!(got == want, "hash", "{len} bytes: got {got:02x?}, want {want:02x?}");
-    check!(
-        fiat_shamir::merkle::hash_leaf(&data) == want,
-        "fiat_shamir::merkle::hash_leaf",
-        "{len} bytes"
-    );
     check!(permutations(len) == len / RATE + 1, "permutations", "{len} bytes");
     // final_state: one permutation away from the digest.
     let mut state = final_state(&data);

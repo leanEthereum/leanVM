@@ -4,8 +4,8 @@
 use super::reference as r;
 use super::{bulk_e, bulk_k, check, edge_e};
 use crate::{Ctx, Outcome, Source};
-use primitives::field::{F64, F128, Weights8, dot_base};
-use primitives::multilinear::{
+use exp_primitives::field::{F64, F128, Weights8, dot_base};
+use exp_primitives::multilinear::{
     eq_eval, eq_table, eq_table_serial, fill_eq_table, interp, interp_k, mle_eval, mle_eval_par, packed_eq, poly_eval,
     shrink_eq_high,
 };

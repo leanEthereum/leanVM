@@ -5,8 +5,8 @@
 use super::reference as r;
 use super::{bulk_k, check};
 use crate::{Ctx, Outcome, Source};
-use pcs::ntt::AdditiveNttF64;
-use primitives::field::F64;
+use exp_pcs::ntt::AdditiveNttF64;
+use exp_primitives::field::F64;
 
 pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
     match src.below(4) {
@@ -94,7 +94,7 @@ fn naive(src: &mut Source, ctx: &Ctx) -> Outcome {
     let msg = bulk_k(src, lanes << log_msg);
     let mut data = vec![F64::ZERO; lanes << log_d];
     data[..msg.len()].copy_from_slice(&msg);
-    ntt.encode_interleaved_in_place(&mut data, lanes, rate);
+    ntt.encode_interleaved_in_place(data.as_mut_slice(), lanes, rate);
     let what: Vec<Vec<u64>> = (0..1usize << log_d)
         .map(|q| (0..log_msg).map(|k| normalized(k, q as u64)).collect())
         .collect();
@@ -169,7 +169,7 @@ fn planned(src: &mut Source, ctx: &Ctx) -> Outcome {
         got.copy_from_slice(&bulk_k(src, n));
     }
     got[..msg.len()].copy_from_slice(&msg);
-    ntt.encode_interleaved_in_place(&mut got, lanes, rate);
+    ntt.encode_interleaved_in_place(got.as_mut_slice(), lanes, rate);
     if got != want {
         let i = got.iter().zip(&want).position(|(a, b)| a != b).unwrap();
         return Err(super::mismatch(
@@ -196,7 +196,7 @@ fn round_trip(src: &mut Source, ctx: &Ctx) -> Outcome {
     let mut data = vec![F64::ZERO; 1 << log_d];
     data[..msg.len()].copy_from_slice(&msg);
     if dim == log_d {
-        ntt.encode_interleaved_in_place(&mut data, 1, rate);
+        ntt.encode_interleaved_in_place(data.as_mut_slice(), 1, rate);
     } else {
         for replica in data.chunks_mut(msg.len()) {
             replica.copy_from_slice(&msg);

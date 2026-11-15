@@ -15,7 +15,7 @@ public import LeanVM.Protocol.Keccak.Multilinear
 # The bytecode's share
 
 `bytecodeShare weights bytecodeLow` (`crates/verifier/src/bus.rs`; the
-prover's `prove_bytecode_share`, `crates/leanvm_core/src/leaf.rs`) reads the share
+prover's `prove_bytecode_share`, `crates/lean_vm_core/src/leaf.rs`) reads the share
 `S = Σ_x w_x P(z, x)` of the stacked bytecode `P` at the instructions' point `z`, runs a plain
 sumcheck of three coefficients over the slot `x`, four rounds, the low bit first, and reads
 `P(z, r)` at its challenges `r`, checking the last claim against `w̃(r) · P(z, r)`; the deployed

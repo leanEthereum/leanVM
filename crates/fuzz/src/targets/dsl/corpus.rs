@@ -15,7 +15,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
 pub fn check(spec: &programs::Spec, src: &mut Source, ctx: &Ctx) -> Outcome {
     ctx.note(format!("program {}", spec.name));
     let context = format!("dsl-corpus {}", spec.name);
-    let program = match spec.compile() {
+    let (program, witness) = match spec.compile() {
         Ok(program) => program,
         Err(failure) => {
             if let Some(finding) = failure.as_finding(&context)
@@ -43,7 +43,7 @@ pub fn check(spec: &programs::Spec, src: &mut Source, ctx: &Ctx) -> Outcome {
             String::new(),
         ));
     }
-    let (run, pi) = programs::execute(&program, spec.public_input);
+    let (run, pi) = programs::execute2(&program, &witness, spec.public_input);
     let exec = match (run, &spec.expect) {
         (Err(e), Expect::ExecFail(want)) if e.to_string().contains(want.as_str()) => {
             ctx.note(format!("exec-fail {}", programs::fault_kind(&e.fault)));
@@ -75,7 +75,7 @@ pub fn check(spec: &programs::Spec, src: &mut Source, ctx: &Ctx) -> Outcome {
     }
     let rate = programs::log_inv_rate(src);
     match &spec.expect {
-        Expect::ProveFail(want) => match leanvm_core::cpu::prove(&program, pi, rate) {
+        Expect::ProveFail(want) => match leanvm_core::cpu::prove(&program, &witness, pi, rate) {
             Err(e) if e.to_string().contains(want.as_str()) => Ok(()),
             Err(e) => Err(Finding::high(
                 format!("{context}: prove refused, but not with `{want}`"),
@@ -88,7 +88,7 @@ pub fn check(spec: &programs::Spec, src: &mut Source, ctx: &Ctx) -> Outcome {
         },
         Expect::Ok | Expect::Any => {
             if unconstrained {
-                return match leanvm_core::cpu::prove(&program, pi, rate) {
+                return match leanvm_core::cpu::prove(&program, &witness, pi, rate) {
                     Err(ProveError::UnconstrainedReads(_)) if spec.expect == Expect::Any => Ok(()),
                     Err(ProveError::UnconstrainedReads(cells)) => Err(Finding::high(
                         format!("{context}: reads unwritten cells, expected ok"),
@@ -100,14 +100,14 @@ pub fn check(spec: &programs::Spec, src: &mut Source, ctx: &Ctx) -> Outcome {
                     )),
                 };
             }
-            let Some(proof) = programs::prove_honest(&program, pi, rate, &context)? else {
+            let Some(proof) = programs::prove_honest2(&program, &witness, pi, rate, &context)? else {
                 return Ok(());
             };
             ctx.note(format!("proved {}", spec.name));
             // The proof is of this statement only.
             let mut other = pi;
             let i = src.below(2);
-            other[i] = crate::mutate_proof::perturb(other[i], src);
+            other[i] = crate::mutate_proof::perturb_f128(other[i], src);
                     if other != pi && leanvm_core::cpu::verify(&program, &other, &proof).is_ok() {
                 return Err(Finding::critical(
                     format!("{context}: a proof verifies for another public input"),

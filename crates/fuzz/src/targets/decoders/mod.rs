@@ -4,7 +4,8 @@
 
 use crate::programs::{self, Spec};
 use crate::{Cost, Target, catch};
-use leanvm_core::cpu::{Program, Proof};
+use leanvm_core::cpu::Proof;
+use isa::Program;
 use primitives::field::F128;
 use std::sync::OnceLock;
 
@@ -62,13 +63,13 @@ pub fn honest() -> &'static [Honest] {
             .enumerate()
             .filter_map(|(i, spec)| {
                 catch(|| {
-                    let program = spec.compile().ok()?;
-                    let (run, pi) = programs::execute(&program, spec.public_input);
+                    let (program, witness) = spec.compile().ok()?;
+                    let (run, pi) = programs::execute2(&program, &witness, spec.public_input);
                     if !run.ok()?.unconstrained_reads.is_empty() {
                         return None;
                     }
                     let rate = leanvm_core::pcs::MIN_LOG_INV_RATE + i % 2;
-                    let (proof, _) = leanvm_core::cpu::prove(&program, pi, rate).ok()?;
+                    let (proof, _) = leanvm_core::cpu::prove(&program, &[], pi, rate).ok()?;
                     let bytes = proof.to_bytes();
                     Some(Honest {
                         name: spec.name,

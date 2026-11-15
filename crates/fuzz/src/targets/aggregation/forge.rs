@@ -13,10 +13,10 @@ use crate::mutate_proof::{perturb, stream_position};
 use crate::{Ctx, Finding, Outcome, Source};
 use fiat_shamir::merkle::{hash_pair, hash_to_scalars, hash_words};
 use primitives::field::{F64, F128};
-use rec_aggregation::EthereumClaims;
-use rec_aggregation::fuzzing::{Hints, arm_forgery, disarm_forgery, prepare_node, run_guest, statement_of};
-use signatures::lean_sphincs::LeanSphincsPublicKey;
-use signatures::lean_xmss::LeanXmssPublicKey;
+use rec_aggregation::fuzzing::EthereumClaims;
+use rec_aggregation::fuzzing::{Hints, OutputClaims, arm_forgery, disarm_forgery, prepare_node, run_guest, statement_of};
+use lean_sphincs::LeanSphincsPublicKey;
+use lean_xmss::LeanXmssPublicKey;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -313,7 +313,11 @@ fn edit_witness(streams: &mut Streams, s: &mut Source, lens: &[usize]) -> Edit {
         let k = pick_cell(&stream, &entries[i], i, s, lens);
         let before = entries[i][k];
         let (kind, after) = match how {
-            0 => ("cell-perturb", perturb(before, s)),
+            0 => {
+                let b = before;
+                let e = perturb(verifier::E::new(b.c0, b.c1), s);
+                ("cell-perturb", primitives::field::F128::new(e.c0, e.c1))
+            }
             1 => {
                 let shift = s.range(1, 3);
                 (
@@ -330,7 +334,11 @@ fn edit_witness(streams: &mut Streams, s: &mut Source, lens: &[usize]) -> Edit {
                 let j = s.below(n);
                 let from = &entries[j];
                 if from.is_empty() {
-                    ("cell-perturb", perturb(before, s))
+                    {
+                            let b = before;
+                            let e = perturb(verifier::E::new(b.c0, b.c1), s);
+                            ("cell-perturb", primitives::field::F128::new(e.c0, e.c1))
+                        }
                 } else {
                     ("cell-copy", from[s.below(from.len())])
                 }
@@ -590,7 +598,7 @@ fn own_half(honest: &Streams, e: usize, k: usize) -> bool {
     if k / 4 == 0 {
         let one: Vec<F64> = row.iter().map(|c| F64(c.c0)).collect();
         let two: Vec<F64> = row.iter().flat_map(|c| [F64(c.c0), F64(c.c1)]).collect();
-        return *h == hash_to_scalars(&hash_words(&one)) || *h == hash_to_scalars(&hash_words(&two));
+        return *h == hash_to_scalars(&hash_words(one.iter().map(|w| w.0))) || *h == hash_to_scalars(&hash_words(two.iter().map(|w| w.0)));
     }
     let level = k / 4;
     let (Some(l), Some(r)) = (
@@ -709,12 +717,13 @@ fn statement_forgery(src: &mut Source, inputs: &Inputs, ctx: &Ctx) -> Outcome {
         let mut s = Source::from_bytes(&choice);
         *sink.borrow_mut() = forge_claims(hints.streams_mut(), &mut s, foreign_root);
     }));
-    let prepared = prepare_node(
-        &inputs.children,
+    let children = inputs.child_pairs();
+    let prepared = prepare_node::<crate::pick::StableProver>(
+        &children,
         inputs.lean_xmss.clone(),
         inputs.sphincs.clone(),
-        &inputs.blobs,
-        inputs.declare.as_ref(),
+        inputs.blob_matrix().as_ref(),
+        OutputClaims::All,
     );
     disarm_forgery();
     let prepared = match prepared {
@@ -751,7 +760,7 @@ fn statement_forgery(src: &mut Source, inputs: &Inputs, ctx: &Ctx) -> Outcome {
         da_commitment: claimed.da.unwrap_or(prepared.claims.da_commitment),
     };
     let pi = statement_of(&forged, &prepared.defer_point, prepared.defer_value);
-    match run_guest(&prepared.program, pi) {
+    match run_guest(&prepared.witness, pi) {
         Err(e) => {
             ctx.note(format!(
                 "statement {} refused {}",

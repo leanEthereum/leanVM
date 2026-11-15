@@ -30,7 +30,7 @@ that the two words are equal (`LeanVM.Prover.Enc.stackWordFast_eq`).
   leaf stores their `K`-valued codeword entries in reverse lane order. `stackWord_agrees`: it is
   the encoding of the stack in the sense of `Agrees`, on every column.
 * `levelWord κ k R g`: a deeper level's word, each `E` entry written as its two limbs, the layout
-  `ext_row` regroups (`crates/verifier/src/whir.rs:72-75`).
+  `ext_row` regroups (`crates/verifier/src/whir.rs`).
 * `stackTable μ q`: the stack as a table in the WHIR variable order: the six lane variables
   first, then the block offset (`f(u, x) = q(x, u)`), i.e. the stack's index rotated by six
   bits.

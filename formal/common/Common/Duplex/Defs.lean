@@ -15,7 +15,7 @@ A protocol derives the challenges of a root (`chalP`) by a duplex over a random 
 states: `y₀ = F (first r iv)` from the label's hash `iv = H label`, then the branches
 `y_j = F (next j y₀)`, `j = 1 … n - 1`, the challenges being `out y₀, …, out y_(n-1)`. LeanDA's
 challenge over Keccak-f[1600] is read off the branches, its grind's nonces
-(`membership_challenge` at `../../leanvm-rev`), whose `first`, `next`, `out` read and write lanes
+(`membership_challenge`), whose `first`, `next`, `out` read and write lanes
 of the state.
 
 The **simulator** (`simImpl`) answers `F` for an adversary from a random oracle `G` of the roots

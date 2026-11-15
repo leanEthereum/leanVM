@@ -24,7 +24,7 @@ them for the whole proof:
 
 * `NoZeroChallenge μ r target S xs os root`: the same run passes `whirOpen` refusing a zero
   challenge (`VerifierProgram.refusingZeroChallenge`). The guest divides by the fold challenges,
-  the closing rounds' challenges and each non-final level's `λ` (G:1624, 1757, 1763; G =
+  the closing rounds' challenges and each non-final level's `λ` (G =
   `lean_ethereum.py` at leanVM `010cfb18`).
 * `CapsAgree μ r target S xs os root`: at every query step of the run (`Limits.queryStepsOf`),
   two openings giving one node of the tree a digest give it the same (`Limits.OpeningsAgree`).

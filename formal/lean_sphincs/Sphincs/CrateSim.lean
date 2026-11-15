@@ -8,8 +8,8 @@ public import FORS.Crate
 /-!
 # The crate's key generation and signer: FORS's copy is the statement's
 
-`FORS/Crate.lean` writes the crate's `key_gen_from_seed` and `sign` (leanVM main `40f877dc`,
-`crates/signatures/src/lean_sphincs/scheme.rs`) in FORS's primitives and types, function for
+`FORS/Crate.lean` writes the crate's `key_gen` and `sign` (leanVM main `40f877dc`,
+`crates/lean_sphincs/src/scheme.rs`) in FORS's primitives and types, function for
 function as `Statement/LeanSphincs.lean` transcribes them (`KeyGenerationAndSigning`). Here, their
 queries answered by Keccak-256 over `π` (`schemeHashOverPermutation`), they are the statement's
 (`simulateQ_keygen`, `simulateQ_sign`), through the maps of the keys and signatures of
@@ -530,7 +530,7 @@ attribute [local instance] params
 
 local notation "σ" => schemeHashOverPermutation
 
-/-- **The crate's key generation** (`key_gen_from_seed`, FORS's copy `FORS.Crate.keygen`), its
+/-- **The crate's key generation** (`key_gen`, FORS's copy `FORS.Crate.keygen`), its
 queries answered by Keccak-256 over `π`, is the statement's, through the map of public keys. -/
 theorem simulateQ_crateKeygen (seed : FORS.MasterSeed) :
     (fun keys ↦ (ofModelPublicKey keys.1, keys.2)) <$>

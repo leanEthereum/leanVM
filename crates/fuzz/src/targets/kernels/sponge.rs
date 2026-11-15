@@ -4,9 +4,9 @@
 use super::check;
 use super::reference as r;
 use crate::{Ctx, Outcome, Source};
-use fiat_shamir::transcript::ProverState;
-use fiat_shamir::{FiatShamirState, compress, digest_words, merkle::hash_to_scalars};
-use primitives::field::{F64, F128};
+use fiat_shamir::{ProverState, Sequential};
+use fiat_shamir::{FiatShamirState, merkle::hash_to_scalars};
+use verifier::{E, K};
 
 /// The duplex as `fiat_shamir`'s module docs state it.
 #[derive(Clone)]
@@ -31,19 +31,19 @@ impl RefSponge {
     }
 
     /// The permutation's first two lanes as a challenge, its third as the grind's proof of work.
-    fn duplex(&mut self) -> (F128, u64) {
+    fn duplex(&mut self) -> (E, u64) {
         r::keccak_f(&mut self.state);
-        let out = (F128::new(self.state[0], self.state[1]), self.state[2]);
+        let out = (E::new(self.state[0], self.state[1]), self.state[2]);
         self.state[..16].fill(0);
         self.pending = 0;
         out
     }
 
-    fn sample(&mut self) -> F128 {
+    fn sample(&mut self) -> E {
         self.duplex().0
     }
 
-    fn absorb(&mut self, x: F128, tag: u64) {
+    fn absorb(&mut self, x: E, tag: u64) {
         if self.pending == 4 {
             self.duplex();
         }
@@ -55,7 +55,7 @@ impl RefSponge {
     /// The nonce's permutation clears `bits` low bits of its proof-of-work lane.
     fn grind_ok(&self, nonce: u64, bits: u32) -> bool {
         let mut probe = self.clone();
-        probe.absorb(F128::new(nonce, 0), NONCE);
+        probe.absorb(E::new(nonce, 0), NONCE);
         probe.duplex().1 & ((1u64 << bits) - 1) == 0
     }
 }
@@ -81,19 +81,20 @@ fn duplex(src: &mut Source, ctx: &Ctx) -> Outcome {
         let label = src.bulk(n);
         want = RefSponge::new(words(&r::keccak256(&label)), [0; 4]);
         fs = FiatShamirState::from_label(&label);
-        ps = ProverState::from_label(&label);
+        ps = ProverState::<E, Sequential>::from_label(&label);
         ctx.note("from_label");
     } else {
         ctx.note("duplex");
         want = RefSponge::new(iv, pi);
-        fs = FiatShamirState::new(iv.map(F64), pi.map(F64));
-        ps = ProverState::new(iv.map(F64), pi.map(F64));
+        fs = FiatShamirState::<E>::new(iv, pi);
+        ps = ProverState::<E, Sequential>::new(iv, pi);
     }
     let mut stream = Vec::new();
     for step in 0..src.below(40) {
         match src.below(6) {
             0..=2 => {
-                let x = src.f128();
+                let f = src.f128();
+        let x = E::new(f.c0, f.c1);
                 want.absorb(x, OBSERVE);
                 fs.observe(x);
                 ps.add_scalar(x);
@@ -118,11 +119,11 @@ fn duplex(src: &mut Source, ctx: &Ctx) -> Outcome {
                 let halves = hash_to_scalars(&root);
                 let w = words(&root);
                 check!(
-                    halves == [F128::new(w[0], w[1]), F128::new(w[2], w[3])],
+                    halves == [E::new(w[0], w[1]), E::new(w[2], w[3])],
                     "hash_to_scalars",
                     "{root:02x?}"
                 );
-                check!(digest_words(&root) == w.map(F64), "digest_words", "{root:02x?}");
+                check!(verifier::Digest(*&root).words() == w, "digest_words", "{root:02x?}");
                 ps.add_root(&root);
                 for h in halves {
                     want.absorb(h, OBSERVE);
@@ -132,7 +133,7 @@ fn duplex(src: &mut Source, ctx: &Ctx) -> Outcome {
             }
             _ => {
                 let n = src.range(2, 6);
-                let coeffs: Vec<F128> = (0..n).map(|_| src.f128()).collect();
+                let coeffs: Vec<E> = (0..n).map(|_| { let f = src.f128(); E::new(f.c0, f.c1) }).collect();
                 let eq = src.bool();
                 ps.add_round_poly(&coeffs, eq);
                 for (i, &c) in coeffs.iter().enumerate() {
@@ -148,11 +149,11 @@ fn duplex(src: &mut Source, ctx: &Ctx) -> Outcome {
             let cells = fs.capacity_cells();
             let s = want.state;
             let expect = [
-                F128::new(s[16], 0),
-                F128::new(s[17], s[18]),
-                F128::new(s[19], s[20]),
-                F128::new(s[21], s[22]),
-                F128::new(s[23], s[24]),
+                E::new(s[16], 0),
+                E::new(s[17], s[18]),
+                E::new(s[19], s[20]),
+                E::new(s[21], s[22]),
+                E::new(s[23], s[24]),
             ];
             check!(cells == expect, "capacity_cells", "step {step}");
         }
@@ -179,10 +180,11 @@ fn grinding(src: &mut Source, ctx: &Ctx) -> Outcome {
     ctx.note(format!("grind {}", if bits >= 13 { "parallel" } else { "serial" }));
     let iv: [u64; 4] = src.bulk_u64(4).try_into().unwrap();
     let mut want = RefSponge::new(iv, [0; 4]);
-    let mut ps = ProverState::new(iv.map(F64), [F64::ZERO; 4]);
+    let mut ps = ProverState::<E, Sequential>::new(iv, [0; 4]);
     let before = src.below(6);
     for _ in 0..before {
-        let x = src.f128();
+        let f = src.f128();
+        let x = E::new(f.c0, f.c1);
         want.absorb(x, OBSERVE);
         ps.add_scalar(x);
     }
@@ -220,8 +222,8 @@ fn grinding(src: &mut Source, ctx: &Ctx) -> Outcome {
     }
     // After the grind the state has absorbed the nonce; the permutation it forces is what
     // `ground` hands to the next sample, so the ref duplexes once, on the check itself.
-    want.absorb(F128::new(n, 0), NONCE);
-    let mut after = ProverState::new(iv.map(F64), [F64::ZERO; 4]);
+    want.absorb(E::new(n, 0), NONCE);
+    let mut after = ProverState::<E, Sequential>::new(iv, [0; 4]);
     for &x in &proof.stream[..proof.stream.len() - 1] {
         after.add_scalar(x);
     }
@@ -238,12 +240,12 @@ fn compression(src: &mut Source, ctx: &Ctx) -> Outcome {
     ctx.note("compress");
     let (a, b): ([u64; 4], [u64; 4]) = (src.bulk_u64(4).try_into().unwrap(), src.bulk_u64(4).try_into().unwrap());
     let a = if src.chance(1, 8) { [u64::MAX; 4] } else { a };
-    let got = compress(a.map(F64), b.map(F64));
-    let got_vm = leanvm_core::vmhash::compress(a.map(F64), b.map(F64));
+    let pair: [u8; 64] = r::words_le(&[a, b].concat()).try_into().unwrap();
+    let got: [u8; 32] = keccak256::hash_pair(pair[..32].try_into().unwrap(), pair[32..].try_into().unwrap());
     let bytes = r::words_le(&[a, b].concat());
-    let want = words(&r::keccak256(&bytes)).map(F64);
-    check!(got == want, "fiat_shamir::compress", "{a:x?} {b:x?}");
-    check!(got_vm == want, "vmhash::compress", "{a:x?} {b:x?}");
+    let want = words(&r::keccak256(&bytes));
+    let want_bytes: [u8; 32] = want.map(u64::to_le_bytes).concat().try_into().unwrap();
+    check!(got == want_bytes, "keccak256::hash_pair", "{a:?} {b:?}");
     // One VM KECCAK from the zero state: the 64 bytes, the padding, one permutation.
     let mut state = [0u64; 25];
     state[..8].copy_from_slice(&[a, b].concat());
@@ -251,8 +253,8 @@ fn compression(src: &mut Source, ctx: &Ctx) -> Outcome {
     state[16] ^= 0x80 << 56;
     r::keccak_f(&mut state);
     check!(
-        got.map(|w| w.0) == state[..4],
-        "fiat_shamir::compress",
+        got == <[u8; 32]>::try_from(state[..4].iter().flat_map(|w| w.to_le_bytes().to_vec()).collect::<Vec<u8>>()[..32].to_vec()).unwrap(),
+        "keccak256::hash_pair",
         "not one permutation of the padded halves"
     );
     Ok(())
@@ -270,9 +272,9 @@ fn da_challenge(src: &mut Source, ctx: &Ctx) -> Outcome {
     let mut want = RefSponge::new(words(&r::keccak256(b"leanDA/rs-membership/v1")), words(&root));
     // The challenge's derivation grinds: the smallest nonce whose permutation clears `bits` low bits of the
     // proof-of-work lane, for a blob's `k - 1` bad values of `z`.
-    let bits = fiat_shamir::grinding_bits((1u128 << verifier::da::DA_LOG_K) - 1) as u32;
+    let bits = fiat_shamir::grinding_bits((1u128 << verifier::da::LOG_BLOB_SYMBOLS) - 1) as u32;
     let n = (0..).find(|&n| want.grind_ok(n, bits)).expect("a nonce exists");
-    want.absorb(F128::new(n, 0), NONCE);
+    want.absorb(E::new(n, 0), NONCE);
     let z = want.sample();
     let got = verifier::da::membership_challenge(&root);
     check!(
@@ -280,12 +282,12 @@ fn da_challenge(src: &mut Source, ctx: &Ctx) -> Outcome {
         "verifier::da::membership_challenge",
         "root {root:02x?}"
     );
-    let mut fs = FiatShamirState::new(
-        digest_words(&r::keccak256(b"leanDA/rs-membership/v1")),
-        digest_words(&root),
+    let mut fs = FiatShamirState::<E>::new(
+        words(&r::keccak256(b"leanDA/rs-membership/v1")),
+        words(&root),
     );
     check!(
-        fs.grind(bits) == Some(n) && fs.sample() == z,
+        fs.grind::<Sequential>(bits) == Some(n) && fs.sample() == z,
         "FiatShamirState",
         "the prover's grind does not give the DA challenge of the verifier's sponge"
     );

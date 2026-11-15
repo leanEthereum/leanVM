@@ -5,9 +5,11 @@
 //! for no program with one instruction changed (Critical); and when the generator built the program, the run's memory
 //! holds the values the generator computed by itself.
 
-use crate::programs::{self, fault_kind, prove_honest};
+use crate::programs::{self, fault_kind, prove_honest, prove_honest2};
 use crate::{Cost, Ctx, Finding, Outcome, Source, Target, catch};
-use leanvm_core::cpu::{DerefMode, Op, OutCells, Program, ProveError};
+use isa::{CompiledProgram, DerefMode, Op, OutCells, Program};
+use leanvm_core::cpu::ProveError;
+use isa::g_pow;
 use primitives::field::F128;
 
 mod edge;
@@ -42,7 +44,7 @@ pub fn check(
     ctx: &Ctx,
     context: &str,
 ) -> Outcome {
-    let run = catch(|| program.execute(public_input)).map_err(|(m, l)| Finding::panic(&m, &l).in_context(context))?;
+    let run = catch(|| leanvm_core::cpu::execute(program, &[], public_input)).map_err(|(m, l)| Finding::panic(&m, &l).in_context(context))?;
     let exec = match run {
         Err(e) => {
             ctx.note(format!("fault {}", fault_kind(&e.fault)));
@@ -72,7 +74,7 @@ pub fn check(
     let rate = programs::log_inv_rate(src);
     if !exec.unconstrained_reads.is_empty() {
         drop(exec);
-        let refused = catch(|| leanvm_core::cpu::prove(program, public_input, rate))
+        let refused = catch(|| leanvm_core::cpu::prove(program, &[], public_input, rate))
             .map_err(|(m, l)| Finding::panic(&m, &l).in_context(context))?;
         return match refused {
             Err(ProveError::UnconstrainedReads(_)) => {
@@ -86,7 +88,7 @@ pub fn check(
         };
     }
     drop(exec);
-    let proof = catch(|| prove_honest(program, public_input, rate, context))
+    let proof = catch(|| prove_honest2(program, &[], public_input, rate, context))
         .map_err(|(m, l)| Finding::panic(&m, &l).in_context(context))??;
     let Some(proof) = proof else {
         ctx.note("witness out of range");
@@ -97,7 +99,10 @@ pub fn check(
     // Another public input.
     let mut other = public_input;
     let i = src.below(2);
-    other[i] = crate::mutate_proof::perturb(other[i], src);
+    {
+                let v = other[i];
+                other[i] = crate::mutate_proof::perturb_f128(v, src);
+            }
     if other != public_input && leanvm_core::cpu::verify(program, &other, &proof).is_ok() {
         return Err(Finding::critical(
             format!("{context}: a proof verifies for another public input"),
@@ -106,16 +111,16 @@ pub fn check(
     }
 
     // Another program: one instruction changed, the halt slot included.
-    let mut prog = program.prog().to_vec();
+    let mut prog = program.prog.to_vec();
     let at = if src.chance(1, 4) {
         prog.len() - 1
     } else {
         src.below(prog.len())
     };
     prog[at] = change(prog[at], src);
-    let before = leanvm_core::cpu::layout::bytecode_table(program.prog());
-    if leanvm_core::cpu::layout::bytecode_table(&prog) != before {
-        let changed = Program::assemble(prog, Default::default(), 0);
+    let before = &program.prog;
+    if prog != *before {
+        let changed = Program::from(CompiledProgram { prog: prog, hints: Default::default(), main_frame: 0, fn_ranges: Vec::new(), src_lines: Vec::new() });
         let verdict = catch(|| leanvm_core::cpu::verify(&changed, &public_input, &proof))
             .map_err(|(m, l)| Finding::panic(&m, &l).in_context(context))?;
         if verdict.is_ok() {
@@ -123,9 +128,9 @@ pub fn check(
                 format!("{context}: a proof verifies for a program with one instruction changed"),
                 format!(
                     "slot {at} of {}: {:?} became {:?}",
-                    program.prog().len(),
-                    program.prog()[at],
-                    changed.prog()[at]
+                    program.prog.len(),
+                    program.prog[at],
+                    changed.prog[at]
                 ),
             ));
         }

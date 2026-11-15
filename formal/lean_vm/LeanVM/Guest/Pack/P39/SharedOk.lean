@@ -13,9 +13,9 @@ public import LeanVM.Guest.Pack.«P39».Shared0
 public import LeanVM.Guest.Pack.«P39».Shared1
 public import LeanVM.Guest.Pack.«P39».Shared2
 public import LeanVM.Guest.Pack.«P39».Shared3
+public import LeanVM.Guest.Pack.«P39».Shared4
 public import LeanVM.Guest.Pack.«P39».Shared5
 public import LeanVM.Guest.Pack.«P39».Shared6
-public import LeanVM.Guest.Pack.«P39».Shared7
 
 namespace LeanVM.Guest.Fn.«child_claim_list_any_loop0»
 
@@ -59,6 +59,24 @@ theorem shareOk : ShareOkD Fn.«level_residual__L21_L6_L4_L2».core (cert.withPo
 end
 end LeanVM.Guest.Fn.«level_residual__L21_L6_L4_L2»
 
+namespace LeanVM.Guest.Fn.«level_residual__L32_L10_L4_L2_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+/-- `__loop76`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«level_residual__L32_L10_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 1 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+  · exact sw1
+⟩
+
+end
+end LeanVM.Guest.Fn.«level_residual__L32_L10_L4_L2_loop0»
+
 namespace LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -77,23 +95,4 @@ theorem shareOk : ShareOkD Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0
 
 end
 end LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0»
-
-namespace LeanVM.Guest.Fn.«level_residual__L37_L19_L4_L2_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-/-- `__loop443`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«level_residual__L37_L19_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 2 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-  · exact sw1
-  · exact sw2
-⟩
-
-end
-end LeanVM.Guest.Fn.«level_residual__L37_L19_L4_L2_loop0»
 

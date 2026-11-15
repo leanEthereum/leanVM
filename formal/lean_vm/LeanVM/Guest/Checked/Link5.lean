@@ -11,36 +11,6 @@ public import LeanVM.Guest.CheckWinC
 public import LeanVM.Guest.B2C.Cpl
 public import LeanVM.Guest.B2C.Share
 meta import LeanVM.Guest.KernelLit
-public import LeanVM.Guest.Pack.«P12».Bundle
-public import LeanVM.Guest.Pack.«P12».Sig
-public import LeanVM.Guest.Pack.«P12».Core
-public import LeanVM.Guest.Pack.«P4».Bundle
-public import LeanVM.Guest.Pack.«P4».Sig
-public import LeanVM.Guest.Pack.«P4».Core
-public import LeanVM.Guest.Pack.«P36».Bundle
-public import LeanVM.Guest.Pack.«P36».Sig
-public import LeanVM.Guest.Pack.«P36».Core
-public import LeanVM.Guest.Pack.«P45».Bundle
-public import LeanVM.Guest.Pack.«P45».Sig
-public import LeanVM.Guest.Pack.«P45».Core
-public import LeanVM.Guest.Pack.«P3».Bundle
-public import LeanVM.Guest.Pack.«P3».Sig
-public import LeanVM.Guest.Pack.«P3».Core
-public import LeanVM.Guest.Pack.«P61».Bundle
-public import LeanVM.Guest.Pack.«P61».Sig
-public import LeanVM.Guest.Pack.«P61».Core
-public import LeanVM.Guest.Pack.«P34».Bundle
-public import LeanVM.Guest.Pack.«P34».Sig
-public import LeanVM.Guest.Pack.«P34».Core
-public import LeanVM.Guest.Pack.«P42».Bundle
-public import LeanVM.Guest.Pack.«P42».Sig
-public import LeanVM.Guest.Pack.«P42».Core
-public import LeanVM.Guest.Pack.«P15».Bundle
-public import LeanVM.Guest.Pack.«P15».Sig
-public import LeanVM.Guest.Pack.«P15».Core
-public import LeanVM.Guest.Pack.«P19».Bundle
-public import LeanVM.Guest.Pack.«P19».Sig
-public import LeanVM.Guest.Pack.«P19».Core
 public import LeanVM.Guest.Pack.«P21».Bundle
 public import LeanVM.Guest.Pack.«P21».Sig
 public import LeanVM.Guest.Pack.«P21».Core
@@ -56,6 +26,9 @@ public import LeanVM.Guest.Pack.«P58».Core
 public import LeanVM.Guest.Pack.«P11».Bundle
 public import LeanVM.Guest.Pack.«P11».Sig
 public import LeanVM.Guest.Pack.«P11».Core
+public import LeanVM.Guest.Pack.«P4».Bundle
+public import LeanVM.Guest.Pack.«P4».Sig
+public import LeanVM.Guest.Pack.«P4».Core
 public import LeanVM.Guest.Pack.«P46».Bundle
 public import LeanVM.Guest.Pack.«P46».Sig
 public import LeanVM.Guest.Pack.«P46».Core
@@ -74,6 +47,9 @@ public import LeanVM.Guest.Pack.«P48».Core
 public import LeanVM.Guest.Pack.«P63».Bundle
 public import LeanVM.Guest.Pack.«P63».Sig
 public import LeanVM.Guest.Pack.«P63».Core
+public import LeanVM.Guest.Pack.«P3».Bundle
+public import LeanVM.Guest.Pack.«P3».Sig
+public import LeanVM.Guest.Pack.«P3».Core
 public import LeanVM.Guest.Pack.«P7».Bundle
 public import LeanVM.Guest.Pack.«P7».Sig
 public import LeanVM.Guest.Pack.«P7».Core
@@ -92,6 +68,12 @@ public import LeanVM.Guest.Pack.«P43».Core
 public import LeanVM.Guest.Pack.«P32».Bundle
 public import LeanVM.Guest.Pack.«P32».Sig
 public import LeanVM.Guest.Pack.«P32».Core
+public import LeanVM.Guest.Pack.«P15».Bundle
+public import LeanVM.Guest.Pack.«P15».Sig
+public import LeanVM.Guest.Pack.«P15».Core
+public import LeanVM.Guest.Pack.«P36».Bundle
+public import LeanVM.Guest.Pack.«P36».Sig
+public import LeanVM.Guest.Pack.«P36».Core
 public import LeanVM.Guest.Pack.«P24».Bundle
 public import LeanVM.Guest.Pack.«P24».Sig
 public import LeanVM.Guest.Pack.«P24».Core
@@ -107,9 +89,15 @@ public import LeanVM.Guest.Pack.«P31».Core
 public import LeanVM.Guest.Pack.«P56».Bundle
 public import LeanVM.Guest.Pack.«P56».Sig
 public import LeanVM.Guest.Pack.«P56».Core
+public import LeanVM.Guest.Pack.«P34».Bundle
+public import LeanVM.Guest.Pack.«P34».Sig
+public import LeanVM.Guest.Pack.«P34».Core
 public import LeanVM.Guest.Pack.«P35».Bundle
 public import LeanVM.Guest.Pack.«P35».Sig
 public import LeanVM.Guest.Pack.«P35».Core
+public import LeanVM.Guest.Pack.«P42».Bundle
+public import LeanVM.Guest.Pack.«P42».Sig
+public import LeanVM.Guest.Pack.«P42».Core
 public import LeanVM.Guest.Pack.«P0».Bundle
 public import LeanVM.Guest.Pack.«P0».Sig
 public import LeanVM.Guest.Pack.«P0».Core
@@ -164,6 +152,12 @@ public import LeanVM.Guest.Pack.«P22».Core
 public import LeanVM.Guest.Pack.«P54».Bundle
 public import LeanVM.Guest.Pack.«P54».Sig
 public import LeanVM.Guest.Pack.«P54».Core
+public import LeanVM.Guest.Pack.«P40».Bundle
+public import LeanVM.Guest.Pack.«P40».Sig
+public import LeanVM.Guest.Pack.«P40».Core
+public import LeanVM.Guest.Pack.«P23».Bundle
+public import LeanVM.Guest.Pack.«P23».Sig
+public import LeanVM.Guest.Pack.«P23».Core
 
 namespace LeanVM.Guest.Checked
 
@@ -171,2005 +165,2005 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-kernel_rfl code501 : fnOf 501 = Fn.«level_residual__L109_L14_L6_L3».code
+kernel_rfl code501 : fnOf 501 = Fn.«level_residual__L23_L6_L4_L2».code
 
-kernel_rfl core501 : coreOf 501 = Fn.«level_residual__L109_L14_L6_L3».core
+kernel_rfl core501 : coreOf 501 = Fn.«level_residual__L23_L6_L4_L2».core
 
-kernel_rfl cert501 : certOf 501 = (Fn.«level_residual__L109_L14_L6_L3».cert.withPows Data.powTree)
+kernel_rfl cert501 : certOf 501 = (Fn.«level_residual__L23_L6_L4_L2».cert.withPows Data.powTree)
 
-kernel_rfl sigBody501 : sigFrom Fn.«level_residual__L109_L14_L6_L3».code Fn.«level_residual__L109_L14_L6_L3».core (Fn.«level_residual__L109_L14_L6_L3».cert.withPows Data.powTree) = Fn.«level_residual__L109_L14_L6_L3».sig
+kernel_rfl sigBody501 : sigFrom Fn.«level_residual__L23_L6_L4_L2».code Fn.«level_residual__L23_L6_L4_L2».core (Fn.«level_residual__L23_L6_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L23_L6_L4_L2».sig
 
-theorem sig501 : glob.sig 501 = Fn.«level_residual__L109_L14_L6_L3».sig := sig_of_link code501 core501 cert501 sigBody501
+theorem sig501 : glob.sig 501 = Fn.«level_residual__L23_L6_L4_L2».sig := sig_of_link code501 core501 cert501 sigBody501
 
-kernel_rfl plumbEq501 : B2C.plumbOf 501 = Fn.«level_residual__L109_L14_L6_L3».plumb
+kernel_rfl plumbEq501 : B2C.plumbOf 501 = Fn.«level_residual__L23_L6_L4_L2».plumb
 
-kernel_rfl fsEq501 : B2C.fsN 501 = Fn.«level_residual__L109_L14_L6_L3».fs
+kernel_rfl fsEq501 : B2C.fsN 501 = Fn.«level_residual__L23_L6_L4_L2».fs
 
-kernel_rfl partsEq501 : B2C.cplPartsOf 501 = Fn.«level_residual__L109_L14_L6_L3».parts
+kernel_rfl partsEq501 : B2C.cplPartsOf 501 = Fn.«level_residual__L23_L6_L4_L2».parts
 
-kernel_rfl armsEq501 : listElementOrDefault Data.cplArms 501 [] = Fn.«level_residual__L109_L14_L6_L3».arms
+kernel_rfl armsEq501 : listElementOrDefault Data.cplArms 501 [] = Fn.«level_residual__L23_L6_L4_L2».arms
 
-kernel_rfl snapsEq501 : B2C.snapsOf 501 = Fn.«level_residual__L109_L14_L6_L3».snaps
+kernel_rfl snapsEq501 : B2C.snapsOf 501 = Fn.«level_residual__L23_L6_L4_L2».snaps
 
-kernel_rfl code502 : fnOf 502 = Fn.«level_residual__L73_L14_L6_L3».code
+kernel_rfl code502 : fnOf 502 = Fn.«squeeze_point_from__L15».code
 
-kernel_rfl core502 : coreOf 502 = Fn.«level_residual__L73_L14_L6_L3».core
+kernel_rfl core502 : coreOf 502 = Fn.«squeeze_point_from__L15».core
 
-kernel_rfl cert502 : certOf 502 = (Fn.«level_residual__L73_L14_L6_L3».cert.withPows Data.powTree)
+kernel_rfl cert502 : certOf 502 = (Fn.«squeeze_point_from__L15».cert.withPows Data.powTree)
 
-kernel_rfl sigBody502 : sigFrom Fn.«level_residual__L73_L14_L6_L3».code Fn.«level_residual__L73_L14_L6_L3».core (Fn.«level_residual__L73_L14_L6_L3».cert.withPows Data.powTree) = Fn.«level_residual__L73_L14_L6_L3».sig
+kernel_rfl sigBody502 : sigFrom Fn.«squeeze_point_from__L15».code Fn.«squeeze_point_from__L15».core (Fn.«squeeze_point_from__L15».cert.withPows Data.powTree) = Fn.«squeeze_point_from__L15».sig
 
-theorem sig502 : glob.sig 502 = Fn.«level_residual__L73_L14_L6_L3».sig := sig_of_link code502 core502 cert502 sigBody502
+theorem sig502 : glob.sig 502 = Fn.«squeeze_point_from__L15».sig := sig_of_link code502 core502 cert502 sigBody502
 
-kernel_rfl plumbEq502 : B2C.plumbOf 502 = Fn.«level_residual__L73_L14_L6_L3».plumb
+kernel_rfl plumbEq502 : B2C.plumbOf 502 = Fn.«squeeze_point_from__L15».plumb
 
-kernel_rfl fsEq502 : B2C.fsN 502 = Fn.«level_residual__L73_L14_L6_L3».fs
+kernel_rfl fsEq502 : B2C.fsN 502 = Fn.«squeeze_point_from__L15».fs
 
-kernel_rfl partsEq502 : B2C.cplPartsOf 502 = Fn.«level_residual__L73_L14_L6_L3».parts
+kernel_rfl partsEq502 : B2C.cplPartsOf 502 = Fn.«squeeze_point_from__L15».parts
 
-kernel_rfl armsEq502 : listElementOrDefault Data.cplArms 502 [] = Fn.«level_residual__L73_L14_L6_L3».arms
+kernel_rfl armsEq502 : listElementOrDefault Data.cplArms 502 [] = Fn.«squeeze_point_from__L15».arms
 
-kernel_rfl snapsEq502 : B2C.snapsOf 502 = Fn.«level_residual__L73_L14_L6_L3».snaps
+kernel_rfl snapsEq502 : B2C.snapsOf 502 = Fn.«squeeze_point_from__L15».snaps
 
-kernel_rfl code503 : fnOf 503 = Fn.«level_residual__L55_L14_L6_L3».code
+kernel_rfl code503 : fnOf 503 = Fn.«level_positions__L28_L16_L4».code
 
-kernel_rfl core503 : coreOf 503 = Fn.«level_residual__L55_L14_L6_L3».core
+kernel_rfl core503 : coreOf 503 = Fn.«level_positions__L28_L16_L4».core
 
-kernel_rfl cert503 : certOf 503 = (Fn.«level_residual__L55_L14_L6_L3».cert.withPows Data.powTree)
+kernel_rfl cert503 : certOf 503 = (Fn.«level_positions__L28_L16_L4».cert.withPows Data.powTree)
 
-kernel_rfl sigBody503 : sigFrom Fn.«level_residual__L55_L14_L6_L3».code Fn.«level_residual__L55_L14_L6_L3».core (Fn.«level_residual__L55_L14_L6_L3».cert.withPows Data.powTree) = Fn.«level_residual__L55_L14_L6_L3».sig
+kernel_rfl sigBody503 : sigFrom Fn.«level_positions__L28_L16_L4».code Fn.«level_positions__L28_L16_L4».core (Fn.«level_positions__L28_L16_L4».cert.withPows Data.powTree) = Fn.«level_positions__L28_L16_L4».sig
 
-theorem sig503 : glob.sig 503 = Fn.«level_residual__L55_L14_L6_L3».sig := sig_of_link code503 core503 cert503 sigBody503
+theorem sig503 : glob.sig 503 = Fn.«level_positions__L28_L16_L4».sig := sig_of_link code503 core503 cert503 sigBody503
 
-kernel_rfl plumbEq503 : B2C.plumbOf 503 = Fn.«level_residual__L55_L14_L6_L3».plumb
+kernel_rfl plumbEq503 : B2C.plumbOf 503 = Fn.«level_positions__L28_L16_L4».plumb
 
-kernel_rfl fsEq503 : B2C.fsN 503 = Fn.«level_residual__L55_L14_L6_L3».fs
+kernel_rfl fsEq503 : B2C.fsN 503 = Fn.«level_positions__L28_L16_L4».fs
 
-kernel_rfl partsEq503 : B2C.cplPartsOf 503 = Fn.«level_residual__L55_L14_L6_L3».parts
+kernel_rfl partsEq503 : B2C.cplPartsOf 503 = Fn.«level_positions__L28_L16_L4».parts
 
-kernel_rfl armsEq503 : listElementOrDefault Data.cplArms 503 [] = Fn.«level_residual__L55_L14_L6_L3».arms
+kernel_rfl armsEq503 : listElementOrDefault Data.cplArms 503 [] = Fn.«level_positions__L28_L16_L4».arms
 
-kernel_rfl snapsEq503 : B2C.snapsOf 503 = Fn.«level_residual__L55_L14_L6_L3».snaps
+kernel_rfl snapsEq503 : B2C.snapsOf 503 = Fn.«level_positions__L28_L16_L4».snaps
 
-kernel_rfl code504 : fnOf 504 = Fn.«level_residual__L55_L10_L4_L2».code
+kernel_rfl code504 : fnOf 504 = Fn.«level_positions__L16_L17_L5».code
 
-kernel_rfl core504 : coreOf 504 = Fn.«level_residual__L55_L10_L4_L2».core
+kernel_rfl core504 : coreOf 504 = Fn.«level_positions__L16_L17_L5».core
 
-kernel_rfl cert504 : certOf 504 = (Fn.«level_residual__L55_L10_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert504 : certOf 504 = (Fn.«level_positions__L16_L17_L5».cert.withPows Data.powTree)
 
-kernel_rfl sigBody504 : sigFrom Fn.«level_residual__L55_L10_L4_L2».code Fn.«level_residual__L55_L10_L4_L2».core (Fn.«level_residual__L55_L10_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L55_L10_L4_L2».sig
+kernel_rfl sigBody504 : sigFrom Fn.«level_positions__L16_L17_L5».code Fn.«level_positions__L16_L17_L5».core (Fn.«level_positions__L16_L17_L5».cert.withPows Data.powTree) = Fn.«level_positions__L16_L17_L5».sig
 
-theorem sig504 : glob.sig 504 = Fn.«level_residual__L55_L10_L4_L2».sig := sig_of_link code504 core504 cert504 sigBody504
+theorem sig504 : glob.sig 504 = Fn.«level_positions__L16_L17_L5».sig := sig_of_link code504 core504 cert504 sigBody504
 
-kernel_rfl plumbEq504 : B2C.plumbOf 504 = Fn.«level_residual__L55_L10_L4_L2».plumb
+kernel_rfl plumbEq504 : B2C.plumbOf 504 = Fn.«level_positions__L16_L17_L5».plumb
 
-kernel_rfl fsEq504 : B2C.fsN 504 = Fn.«level_residual__L55_L10_L4_L2».fs
+kernel_rfl fsEq504 : B2C.fsN 504 = Fn.«level_positions__L16_L17_L5».fs
 
-kernel_rfl partsEq504 : B2C.cplPartsOf 504 = Fn.«level_residual__L55_L10_L4_L2».parts
+kernel_rfl partsEq504 : B2C.cplPartsOf 504 = Fn.«level_positions__L16_L17_L5».parts
 
-kernel_rfl armsEq504 : listElementOrDefault Data.cplArms 504 [] = Fn.«level_residual__L55_L10_L4_L2».arms
+kernel_rfl armsEq504 : listElementOrDefault Data.cplArms 504 [] = Fn.«level_positions__L16_L17_L5».arms
 
-kernel_rfl snapsEq504 : B2C.snapsOf 504 = Fn.«level_residual__L55_L10_L4_L2».snaps
+kernel_rfl snapsEq504 : B2C.snapsOf 504 = Fn.«level_positions__L16_L17_L5».snaps
 
-kernel_rfl code505 : fnOf 505 = Fn.«level_residual__L44_L10_L4_L2».code
+kernel_rfl code505 : fnOf 505 = Fn.«level_positions__L11_L18_L6».code
 
-kernel_rfl core505 : coreOf 505 = Fn.«level_residual__L44_L10_L4_L2».core
+kernel_rfl core505 : coreOf 505 = Fn.«level_positions__L11_L18_L6».core
 
-kernel_rfl cert505 : certOf 505 = (Fn.«level_residual__L44_L10_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert505 : certOf 505 = (Fn.«level_positions__L11_L18_L6».cert.withPows Data.powTree)
 
-kernel_rfl sigBody505 : sigFrom Fn.«level_residual__L44_L10_L4_L2».code Fn.«level_residual__L44_L10_L4_L2».core (Fn.«level_residual__L44_L10_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L44_L10_L4_L2».sig
+kernel_rfl sigBody505 : sigFrom Fn.«level_positions__L11_L18_L6».code Fn.«level_positions__L11_L18_L6».core (Fn.«level_positions__L11_L18_L6».cert.withPows Data.powTree) = Fn.«level_positions__L11_L18_L6».sig
 
-theorem sig505 : glob.sig 505 = Fn.«level_residual__L44_L10_L4_L2».sig := sig_of_link code505 core505 cert505 sigBody505
+theorem sig505 : glob.sig 505 = Fn.«level_positions__L11_L18_L6».sig := sig_of_link code505 core505 cert505 sigBody505
 
-kernel_rfl plumbEq505 : B2C.plumbOf 505 = Fn.«level_residual__L44_L10_L4_L2».plumb
+kernel_rfl plumbEq505 : B2C.plumbOf 505 = Fn.«level_positions__L11_L18_L6».plumb
 
-kernel_rfl fsEq505 : B2C.fsN 505 = Fn.«level_residual__L44_L10_L4_L2».fs
+kernel_rfl fsEq505 : B2C.fsN 505 = Fn.«level_positions__L11_L18_L6».fs
 
-kernel_rfl partsEq505 : B2C.cplPartsOf 505 = Fn.«level_residual__L44_L10_L4_L2».parts
+kernel_rfl partsEq505 : B2C.cplPartsOf 505 = Fn.«level_positions__L11_L18_L6».parts
 
-kernel_rfl armsEq505 : listElementOrDefault Data.cplArms 505 [] = Fn.«level_residual__L44_L10_L4_L2».arms
+kernel_rfl armsEq505 : listElementOrDefault Data.cplArms 505 [] = Fn.«level_positions__L11_L18_L6».arms
 
-kernel_rfl snapsEq505 : B2C.snapsOf 505 = Fn.«level_residual__L44_L10_L4_L2».snaps
+kernel_rfl snapsEq505 : B2C.snapsOf 505 = Fn.«level_positions__L11_L18_L6».snaps
 
-kernel_rfl code506 : fnOf 506 = Fn.«level_residual__L37_L10_L4_L2».code
+kernel_rfl code506 : fnOf 506 = Fn.«level_positions__L10_L19_L7».code
 
-kernel_rfl core506 : coreOf 506 = Fn.«level_residual__L37_L10_L4_L2».core
+kernel_rfl core506 : coreOf 506 = Fn.«level_positions__L10_L19_L7».core
 
-kernel_rfl cert506 : certOf 506 = (Fn.«level_residual__L37_L10_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert506 : certOf 506 = (Fn.«level_positions__L10_L19_L7».cert.withPows Data.powTree)
 
-kernel_rfl sigBody506 : sigFrom Fn.«level_residual__L37_L10_L4_L2».code Fn.«level_residual__L37_L10_L4_L2».core (Fn.«level_residual__L37_L10_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L37_L10_L4_L2».sig
+kernel_rfl sigBody506 : sigFrom Fn.«level_positions__L10_L19_L7».code Fn.«level_positions__L10_L19_L7».core (Fn.«level_positions__L10_L19_L7».cert.withPows Data.powTree) = Fn.«level_positions__L10_L19_L7».sig
 
-theorem sig506 : glob.sig 506 = Fn.«level_residual__L37_L10_L4_L2».sig := sig_of_link code506 core506 cert506 sigBody506
+theorem sig506 : glob.sig 506 = Fn.«level_positions__L10_L19_L7».sig := sig_of_link code506 core506 cert506 sigBody506
 
-kernel_rfl plumbEq506 : B2C.plumbOf 506 = Fn.«level_residual__L37_L10_L4_L2».plumb
+kernel_rfl plumbEq506 : B2C.plumbOf 506 = Fn.«level_positions__L10_L19_L7».plumb
 
-kernel_rfl fsEq506 : B2C.fsN 506 = Fn.«level_residual__L37_L10_L4_L2».fs
+kernel_rfl fsEq506 : B2C.fsN 506 = Fn.«level_positions__L10_L19_L7».fs
 
-kernel_rfl partsEq506 : B2C.cplPartsOf 506 = Fn.«level_residual__L37_L10_L4_L2».parts
+kernel_rfl partsEq506 : B2C.cplPartsOf 506 = Fn.«level_positions__L10_L19_L7».parts
 
-kernel_rfl armsEq506 : listElementOrDefault Data.cplArms 506 [] = Fn.«level_residual__L37_L10_L4_L2».arms
+kernel_rfl armsEq506 : listElementOrDefault Data.cplArms 506 [] = Fn.«level_positions__L10_L19_L7».arms
 
-kernel_rfl snapsEq506 : B2C.snapsOf 506 = Fn.«level_residual__L37_L10_L4_L2».snaps
+kernel_rfl snapsEq506 : B2C.snapsOf 506 = Fn.«level_positions__L10_L19_L7».snaps
 
-kernel_rfl code507 : fnOf 507 = Fn.«level_residual__L32_L10_L4_L2».code
+kernel_rfl code507 : fnOf 507 = Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».code
 
-kernel_rfl core507 : coreOf 507 = Fn.«level_residual__L32_L10_L4_L2».core
+kernel_rfl core507 : coreOf 507 = Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».core
 
-kernel_rfl cert507 : certOf 507 = (Fn.«level_residual__L32_L10_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert507 : certOf 507 = (Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody507 : sigFrom Fn.«level_residual__L32_L10_L4_L2».code Fn.«level_residual__L32_L10_L4_L2».core (Fn.«level_residual__L32_L10_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L32_L10_L4_L2».sig
+kernel_rfl sigBody507 : sigFrom Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».code Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».core (Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».sig
 
-theorem sig507 : glob.sig 507 = Fn.«level_residual__L32_L10_L4_L2».sig := sig_of_link code507 core507 cert507 sigBody507
+theorem sig507 : glob.sig 507 = Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».sig := sig_of_link code507 core507 cert507 sigBody507
 
-kernel_rfl plumbEq507 : B2C.plumbOf 507 = Fn.«level_residual__L32_L10_L4_L2».plumb
+kernel_rfl plumbEq507 : B2C.plumbOf 507 = Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq507 : B2C.fsN 507 = Fn.«level_residual__L32_L10_L4_L2».fs
+kernel_rfl fsEq507 : B2C.fsN 507 = Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq507 : B2C.cplPartsOf 507 = Fn.«level_residual__L32_L10_L4_L2».parts
+kernel_rfl partsEq507 : B2C.cplPartsOf 507 = Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq507 : listElementOrDefault Data.cplArms 507 [] = Fn.«level_residual__L32_L10_L4_L2».arms
+kernel_rfl armsEq507 : listElementOrDefault Data.cplArms 507 [] = Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq507 : B2C.snapsOf 507 = Fn.«level_residual__L32_L10_L4_L2».snaps
+kernel_rfl snapsEq507 : B2C.snapsOf 507 = Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».snaps
 
-kernel_rfl code508 : fnOf 508 = Fn.«level_residual__L33_L6_L4_L2».code
+kernel_rfl code508 : fnOf 508 = Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».code
 
-kernel_rfl core508 : coreOf 508 = Fn.«level_residual__L33_L6_L4_L2».core
+kernel_rfl core508 : coreOf 508 = Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».core
 
-kernel_rfl cert508 : certOf 508 = (Fn.«level_residual__L33_L6_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert508 : certOf 508 = (Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody508 : sigFrom Fn.«level_residual__L33_L6_L4_L2».code Fn.«level_residual__L33_L6_L4_L2».core (Fn.«level_residual__L33_L6_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L33_L6_L4_L2».sig
+kernel_rfl sigBody508 : sigFrom Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».code Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».core (Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».sig
 
-theorem sig508 : glob.sig 508 = Fn.«level_residual__L33_L6_L4_L2».sig := sig_of_link code508 core508 cert508 sigBody508
+theorem sig508 : glob.sig 508 = Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».sig := sig_of_link code508 core508 cert508 sigBody508
 
-kernel_rfl plumbEq508 : B2C.plumbOf 508 = Fn.«level_residual__L33_L6_L4_L2».plumb
+kernel_rfl plumbEq508 : B2C.plumbOf 508 = Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq508 : B2C.fsN 508 = Fn.«level_residual__L33_L6_L4_L2».fs
+kernel_rfl fsEq508 : B2C.fsN 508 = Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq508 : B2C.cplPartsOf 508 = Fn.«level_residual__L33_L6_L4_L2».parts
+kernel_rfl partsEq508 : B2C.cplPartsOf 508 = Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq508 : listElementOrDefault Data.cplArms 508 [] = Fn.«level_residual__L33_L6_L4_L2».arms
+kernel_rfl armsEq508 : listElementOrDefault Data.cplArms 508 [] = Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq508 : B2C.snapsOf 508 = Fn.«level_residual__L33_L6_L4_L2».snaps
+kernel_rfl snapsEq508 : B2C.snapsOf 508 = Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».snaps
 
-kernel_rfl code509 : fnOf 509 = Fn.«level_residual__L29_L6_L4_L2».code
+kernel_rfl code509 : fnOf 509 = Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».code
 
-kernel_rfl core509 : coreOf 509 = Fn.«level_residual__L29_L6_L4_L2».core
+kernel_rfl core509 : coreOf 509 = Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».core
 
-kernel_rfl cert509 : certOf 509 = (Fn.«level_residual__L29_L6_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert509 : certOf 509 = (Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody509 : sigFrom Fn.«level_residual__L29_L6_L4_L2».code Fn.«level_residual__L29_L6_L4_L2».core (Fn.«level_residual__L29_L6_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L29_L6_L4_L2».sig
+kernel_rfl sigBody509 : sigFrom Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».code Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».core (Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig
 
-theorem sig509 : glob.sig 509 = Fn.«level_residual__L29_L6_L4_L2».sig := sig_of_link code509 core509 cert509 sigBody509
+theorem sig509 : glob.sig 509 = Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig := sig_of_link code509 core509 cert509 sigBody509
 
-kernel_rfl plumbEq509 : B2C.plumbOf 509 = Fn.«level_residual__L29_L6_L4_L2».plumb
+kernel_rfl plumbEq509 : B2C.plumbOf 509 = Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq509 : B2C.fsN 509 = Fn.«level_residual__L29_L6_L4_L2».fs
+kernel_rfl fsEq509 : B2C.fsN 509 = Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq509 : B2C.cplPartsOf 509 = Fn.«level_residual__L29_L6_L4_L2».parts
+kernel_rfl partsEq509 : B2C.cplPartsOf 509 = Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq509 : listElementOrDefault Data.cplArms 509 [] = Fn.«level_residual__L29_L6_L4_L2».arms
+kernel_rfl armsEq509 : listElementOrDefault Data.cplArms 509 [] = Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq509 : B2C.snapsOf 509 = Fn.«level_residual__L29_L6_L4_L2».snaps
+kernel_rfl snapsEq509 : B2C.snapsOf 509 = Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».snaps
 
-kernel_rfl code510 : fnOf 510 = Fn.«level_residual__L25_L6_L4_L2».code
+kernel_rfl code510 : fnOf 510 = Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».code
 
-kernel_rfl core510 : coreOf 510 = Fn.«level_residual__L25_L6_L4_L2».core
+kernel_rfl core510 : coreOf 510 = Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».core
 
-kernel_rfl cert510 : certOf 510 = (Fn.«level_residual__L25_L6_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert510 : certOf 510 = (Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody510 : sigFrom Fn.«level_residual__L25_L6_L4_L2».code Fn.«level_residual__L25_L6_L4_L2».core (Fn.«level_residual__L25_L6_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L25_L6_L4_L2».sig
+kernel_rfl sigBody510 : sigFrom Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».code Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».core (Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig
 
-theorem sig510 : glob.sig 510 = Fn.«level_residual__L25_L6_L4_L2».sig := sig_of_link code510 core510 cert510 sigBody510
+theorem sig510 : glob.sig 510 = Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig := sig_of_link code510 core510 cert510 sigBody510
 
-kernel_rfl plumbEq510 : B2C.plumbOf 510 = Fn.«level_residual__L25_L6_L4_L2».plumb
+kernel_rfl plumbEq510 : B2C.plumbOf 510 = Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq510 : B2C.fsN 510 = Fn.«level_residual__L25_L6_L4_L2».fs
+kernel_rfl fsEq510 : B2C.fsN 510 = Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq510 : B2C.cplPartsOf 510 = Fn.«level_residual__L25_L6_L4_L2».parts
+kernel_rfl partsEq510 : B2C.cplPartsOf 510 = Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq510 : listElementOrDefault Data.cplArms 510 [] = Fn.«level_residual__L25_L6_L4_L2».arms
+kernel_rfl armsEq510 : listElementOrDefault Data.cplArms 510 [] = Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq510 : B2C.snapsOf 510 = Fn.«level_residual__L25_L6_L4_L2».snaps
+kernel_rfl snapsEq510 : B2C.snapsOf 510 = Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».snaps
 
-kernel_rfl code511 : fnOf 511 = Fn.«level_residual__L23_L6_L4_L2».code
+kernel_rfl code511 : fnOf 511 = Fn.«squeeze_point_from__L11».code
 
-kernel_rfl core511 : coreOf 511 = Fn.«level_residual__L23_L6_L4_L2».core
+kernel_rfl core511 : coreOf 511 = Fn.«squeeze_point_from__L11».core
 
-kernel_rfl cert511 : certOf 511 = (Fn.«level_residual__L23_L6_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert511 : certOf 511 = (Fn.«squeeze_point_from__L11».cert.withPows Data.powTree)
 
-kernel_rfl sigBody511 : sigFrom Fn.«level_residual__L23_L6_L4_L2».code Fn.«level_residual__L23_L6_L4_L2».core (Fn.«level_residual__L23_L6_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L23_L6_L4_L2».sig
+kernel_rfl sigBody511 : sigFrom Fn.«squeeze_point_from__L11».code Fn.«squeeze_point_from__L11».core (Fn.«squeeze_point_from__L11».cert.withPows Data.powTree) = Fn.«squeeze_point_from__L11».sig
 
-theorem sig511 : glob.sig 511 = Fn.«level_residual__L23_L6_L4_L2».sig := sig_of_link code511 core511 cert511 sigBody511
+theorem sig511 : glob.sig 511 = Fn.«squeeze_point_from__L11».sig := sig_of_link code511 core511 cert511 sigBody511
 
-kernel_rfl plumbEq511 : B2C.plumbOf 511 = Fn.«level_residual__L23_L6_L4_L2».plumb
+kernel_rfl plumbEq511 : B2C.plumbOf 511 = Fn.«squeeze_point_from__L11».plumb
 
-kernel_rfl fsEq511 : B2C.fsN 511 = Fn.«level_residual__L23_L6_L4_L2».fs
+kernel_rfl fsEq511 : B2C.fsN 511 = Fn.«squeeze_point_from__L11».fs
 
-kernel_rfl partsEq511 : B2C.cplPartsOf 511 = Fn.«level_residual__L23_L6_L4_L2».parts
+kernel_rfl partsEq511 : B2C.cplPartsOf 511 = Fn.«squeeze_point_from__L11».parts
 
-kernel_rfl armsEq511 : listElementOrDefault Data.cplArms 511 [] = Fn.«level_residual__L23_L6_L4_L2».arms
+kernel_rfl armsEq511 : listElementOrDefault Data.cplArms 511 [] = Fn.«squeeze_point_from__L11».arms
 
-kernel_rfl snapsEq511 : B2C.snapsOf 511 = Fn.«level_residual__L23_L6_L4_L2».snaps
+kernel_rfl snapsEq511 : B2C.snapsOf 511 = Fn.«squeeze_point_from__L11».snaps
 
-kernel_rfl code512 : fnOf 512 = Fn.«squeeze_point_from__L15».code
+kernel_rfl code512 : fnOf 512 = Fn.«level_positions__L7_L15_L3».code
 
-kernel_rfl core512 : coreOf 512 = Fn.«squeeze_point_from__L15».core
+kernel_rfl core512 : coreOf 512 = Fn.«level_positions__L7_L15_L3».core
 
-kernel_rfl cert512 : certOf 512 = (Fn.«squeeze_point_from__L15».cert.withPows Data.powTree)
+kernel_rfl cert512 : certOf 512 = (Fn.«level_positions__L7_L15_L3».cert.withPows Data.powTree)
 
-kernel_rfl sigBody512 : sigFrom Fn.«squeeze_point_from__L15».code Fn.«squeeze_point_from__L15».core (Fn.«squeeze_point_from__L15».cert.withPows Data.powTree) = Fn.«squeeze_point_from__L15».sig
+kernel_rfl sigBody512 : sigFrom Fn.«level_positions__L7_L15_L3».code Fn.«level_positions__L7_L15_L3».core (Fn.«level_positions__L7_L15_L3».cert.withPows Data.powTree) = Fn.«level_positions__L7_L15_L3».sig
 
-theorem sig512 : glob.sig 512 = Fn.«squeeze_point_from__L15».sig := sig_of_link code512 core512 cert512 sigBody512
+theorem sig512 : glob.sig 512 = Fn.«level_positions__L7_L15_L3».sig := sig_of_link code512 core512 cert512 sigBody512
 
-kernel_rfl plumbEq512 : B2C.plumbOf 512 = Fn.«squeeze_point_from__L15».plumb
+kernel_rfl plumbEq512 : B2C.plumbOf 512 = Fn.«level_positions__L7_L15_L3».plumb
 
-kernel_rfl fsEq512 : B2C.fsN 512 = Fn.«squeeze_point_from__L15».fs
+kernel_rfl fsEq512 : B2C.fsN 512 = Fn.«level_positions__L7_L15_L3».fs
 
-kernel_rfl partsEq512 : B2C.cplPartsOf 512 = Fn.«squeeze_point_from__L15».parts
+kernel_rfl partsEq512 : B2C.cplPartsOf 512 = Fn.«level_positions__L7_L15_L3».parts
 
-kernel_rfl armsEq512 : listElementOrDefault Data.cplArms 512 [] = Fn.«squeeze_point_from__L15».arms
+kernel_rfl armsEq512 : listElementOrDefault Data.cplArms 512 [] = Fn.«level_positions__L7_L15_L3».arms
 
-kernel_rfl snapsEq512 : B2C.snapsOf 512 = Fn.«squeeze_point_from__L15».snaps
+kernel_rfl snapsEq512 : B2C.snapsOf 512 = Fn.«level_positions__L7_L15_L3».snaps
 
-kernel_rfl code513 : fnOf 513 = Fn.«level_positions__L28_L16_L4».code
+kernel_rfl code513 : fnOf 513 = Fn.«level_positions__L6_L16_L4».code
 
-kernel_rfl core513 : coreOf 513 = Fn.«level_positions__L28_L16_L4».core
+kernel_rfl core513 : coreOf 513 = Fn.«level_positions__L6_L16_L4».core
 
-kernel_rfl cert513 : certOf 513 = (Fn.«level_positions__L28_L16_L4».cert.withPows Data.powTree)
+kernel_rfl cert513 : certOf 513 = (Fn.«level_positions__L6_L16_L4».cert.withPows Data.powTree)
 
-kernel_rfl sigBody513 : sigFrom Fn.«level_positions__L28_L16_L4».code Fn.«level_positions__L28_L16_L4».core (Fn.«level_positions__L28_L16_L4».cert.withPows Data.powTree) = Fn.«level_positions__L28_L16_L4».sig
+kernel_rfl sigBody513 : sigFrom Fn.«level_positions__L6_L16_L4».code Fn.«level_positions__L6_L16_L4».core (Fn.«level_positions__L6_L16_L4».cert.withPows Data.powTree) = Fn.«level_positions__L6_L16_L4».sig
 
-theorem sig513 : glob.sig 513 = Fn.«level_positions__L28_L16_L4».sig := sig_of_link code513 core513 cert513 sigBody513
+theorem sig513 : glob.sig 513 = Fn.«level_positions__L6_L16_L4».sig := sig_of_link code513 core513 cert513 sigBody513
 
-kernel_rfl plumbEq513 : B2C.plumbOf 513 = Fn.«level_positions__L28_L16_L4».plumb
+kernel_rfl plumbEq513 : B2C.plumbOf 513 = Fn.«level_positions__L6_L16_L4».plumb
 
-kernel_rfl fsEq513 : B2C.fsN 513 = Fn.«level_positions__L28_L16_L4».fs
+kernel_rfl fsEq513 : B2C.fsN 513 = Fn.«level_positions__L6_L16_L4».fs
 
-kernel_rfl partsEq513 : B2C.cplPartsOf 513 = Fn.«level_positions__L28_L16_L4».parts
+kernel_rfl partsEq513 : B2C.cplPartsOf 513 = Fn.«level_positions__L6_L16_L4».parts
 
-kernel_rfl armsEq513 : listElementOrDefault Data.cplArms 513 [] = Fn.«level_positions__L28_L16_L4».arms
+kernel_rfl armsEq513 : listElementOrDefault Data.cplArms 513 [] = Fn.«level_positions__L6_L16_L4».arms
 
-kernel_rfl snapsEq513 : B2C.snapsOf 513 = Fn.«level_positions__L28_L16_L4».snaps
+kernel_rfl snapsEq513 : B2C.snapsOf 513 = Fn.«level_positions__L6_L16_L4».snaps
 
-kernel_rfl code514 : fnOf 514 = Fn.«level_positions__L16_L17_L5».code
+kernel_rfl code514 : fnOf 514 = Fn.«level_positions__L6_L17_L5».code
 
-kernel_rfl core514 : coreOf 514 = Fn.«level_positions__L16_L17_L5».core
+kernel_rfl core514 : coreOf 514 = Fn.«level_positions__L6_L17_L5».core
 
-kernel_rfl cert514 : certOf 514 = (Fn.«level_positions__L16_L17_L5».cert.withPows Data.powTree)
+kernel_rfl cert514 : certOf 514 = (Fn.«level_positions__L6_L17_L5».cert.withPows Data.powTree)
 
-kernel_rfl sigBody514 : sigFrom Fn.«level_positions__L16_L17_L5».code Fn.«level_positions__L16_L17_L5».core (Fn.«level_positions__L16_L17_L5».cert.withPows Data.powTree) = Fn.«level_positions__L16_L17_L5».sig
+kernel_rfl sigBody514 : sigFrom Fn.«level_positions__L6_L17_L5».code Fn.«level_positions__L6_L17_L5».core (Fn.«level_positions__L6_L17_L5».cert.withPows Data.powTree) = Fn.«level_positions__L6_L17_L5».sig
 
-theorem sig514 : glob.sig 514 = Fn.«level_positions__L16_L17_L5».sig := sig_of_link code514 core514 cert514 sigBody514
+theorem sig514 : glob.sig 514 = Fn.«level_positions__L6_L17_L5».sig := sig_of_link code514 core514 cert514 sigBody514
 
-kernel_rfl plumbEq514 : B2C.plumbOf 514 = Fn.«level_positions__L16_L17_L5».plumb
+kernel_rfl plumbEq514 : B2C.plumbOf 514 = Fn.«level_positions__L6_L17_L5».plumb
 
-kernel_rfl fsEq514 : B2C.fsN 514 = Fn.«level_positions__L16_L17_L5».fs
+kernel_rfl fsEq514 : B2C.fsN 514 = Fn.«level_positions__L6_L17_L5».fs
 
-kernel_rfl partsEq514 : B2C.cplPartsOf 514 = Fn.«level_positions__L16_L17_L5».parts
+kernel_rfl partsEq514 : B2C.cplPartsOf 514 = Fn.«level_positions__L6_L17_L5».parts
 
-kernel_rfl armsEq514 : listElementOrDefault Data.cplArms 514 [] = Fn.«level_positions__L16_L17_L5».arms
+kernel_rfl armsEq514 : listElementOrDefault Data.cplArms 514 [] = Fn.«level_positions__L6_L17_L5».arms
 
-kernel_rfl snapsEq514 : B2C.snapsOf 514 = Fn.«level_positions__L16_L17_L5».snaps
+kernel_rfl snapsEq514 : B2C.snapsOf 514 = Fn.«level_positions__L6_L17_L5».snaps
 
-kernel_rfl code515 : fnOf 515 = Fn.«level_positions__L11_L18_L6».code
+kernel_rfl code515 : fnOf 515 = Fn.«level_positions__L5_L18_L6».code
 
-kernel_rfl core515 : coreOf 515 = Fn.«level_positions__L11_L18_L6».core
+kernel_rfl core515 : coreOf 515 = Fn.«level_positions__L5_L18_L6».core
 
-kernel_rfl cert515 : certOf 515 = (Fn.«level_positions__L11_L18_L6».cert.withPows Data.powTree)
+kernel_rfl cert515 : certOf 515 = (Fn.«level_positions__L5_L18_L6».cert.withPows Data.powTree)
 
-kernel_rfl sigBody515 : sigFrom Fn.«level_positions__L11_L18_L6».code Fn.«level_positions__L11_L18_L6».core (Fn.«level_positions__L11_L18_L6».cert.withPows Data.powTree) = Fn.«level_positions__L11_L18_L6».sig
+kernel_rfl sigBody515 : sigFrom Fn.«level_positions__L5_L18_L6».code Fn.«level_positions__L5_L18_L6».core (Fn.«level_positions__L5_L18_L6».cert.withPows Data.powTree) = Fn.«level_positions__L5_L18_L6».sig
 
-theorem sig515 : glob.sig 515 = Fn.«level_positions__L11_L18_L6».sig := sig_of_link code515 core515 cert515 sigBody515
+theorem sig515 : glob.sig 515 = Fn.«level_positions__L5_L18_L6».sig := sig_of_link code515 core515 cert515 sigBody515
 
-kernel_rfl plumbEq515 : B2C.plumbOf 515 = Fn.«level_positions__L11_L18_L6».plumb
+kernel_rfl plumbEq515 : B2C.plumbOf 515 = Fn.«level_positions__L5_L18_L6».plumb
 
-kernel_rfl fsEq515 : B2C.fsN 515 = Fn.«level_positions__L11_L18_L6».fs
+kernel_rfl fsEq515 : B2C.fsN 515 = Fn.«level_positions__L5_L18_L6».fs
 
-kernel_rfl partsEq515 : B2C.cplPartsOf 515 = Fn.«level_positions__L11_L18_L6».parts
+kernel_rfl partsEq515 : B2C.cplPartsOf 515 = Fn.«level_positions__L5_L18_L6».parts
 
-kernel_rfl armsEq515 : listElementOrDefault Data.cplArms 515 [] = Fn.«level_positions__L11_L18_L6».arms
+kernel_rfl armsEq515 : listElementOrDefault Data.cplArms 515 [] = Fn.«level_positions__L5_L18_L6».arms
 
-kernel_rfl snapsEq515 : B2C.snapsOf 515 = Fn.«level_positions__L11_L18_L6».snaps
+kernel_rfl snapsEq515 : B2C.snapsOf 515 = Fn.«level_positions__L5_L18_L6».snaps
 
-kernel_rfl code516 : fnOf 516 = Fn.«level_positions__L10_L19_L7».code
+kernel_rfl code516 : fnOf 516 = Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».code
 
-kernel_rfl core516 : coreOf 516 = Fn.«level_positions__L10_L19_L7».core
+kernel_rfl core516 : coreOf 516 = Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».core
 
-kernel_rfl cert516 : certOf 516 = (Fn.«level_positions__L10_L19_L7».cert.withPows Data.powTree)
+kernel_rfl cert516 : certOf 516 = (Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody516 : sigFrom Fn.«level_positions__L10_L19_L7».code Fn.«level_positions__L10_L19_L7».core (Fn.«level_positions__L10_L19_L7».cert.withPows Data.powTree) = Fn.«level_positions__L10_L19_L7».sig
+kernel_rfl sigBody516 : sigFrom Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».code Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».core (Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig
 
-theorem sig516 : glob.sig 516 = Fn.«level_positions__L10_L19_L7».sig := sig_of_link code516 core516 cert516 sigBody516
+theorem sig516 : glob.sig 516 = Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig := sig_of_link code516 core516 cert516 sigBody516
 
-kernel_rfl plumbEq516 : B2C.plumbOf 516 = Fn.«level_positions__L10_L19_L7».plumb
+kernel_rfl plumbEq516 : B2C.plumbOf 516 = Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq516 : B2C.fsN 516 = Fn.«level_positions__L10_L19_L7».fs
+kernel_rfl fsEq516 : B2C.fsN 516 = Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq516 : B2C.cplPartsOf 516 = Fn.«level_positions__L10_L19_L7».parts
+kernel_rfl partsEq516 : B2C.cplPartsOf 516 = Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq516 : listElementOrDefault Data.cplArms 516 [] = Fn.«level_positions__L10_L19_L7».arms
+kernel_rfl armsEq516 : listElementOrDefault Data.cplArms 516 [] = Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq516 : B2C.snapsOf 516 = Fn.«level_positions__L10_L19_L7».snaps
+kernel_rfl snapsEq516 : B2C.snapsOf 516 = Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».snaps
 
-kernel_rfl code517 : fnOf 517 = Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».code
+kernel_rfl code517 : fnOf 517 = Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».code
 
-kernel_rfl core517 : coreOf 517 = Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».core
+kernel_rfl core517 : coreOf 517 = Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».core
 
-kernel_rfl cert517 : certOf 517 = (Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert517 : certOf 517 = (Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody517 : sigFrom Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».code Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».core (Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».sig
+kernel_rfl sigBody517 : sigFrom Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».code Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».core (Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig
 
-theorem sig517 : glob.sig 517 = Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».sig := sig_of_link code517 core517 cert517 sigBody517
+theorem sig517 : glob.sig 517 = Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig := sig_of_link code517 core517 cert517 sigBody517
 
-kernel_rfl plumbEq517 : B2C.plumbOf 517 = Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq517 : B2C.plumbOf 517 = Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq517 : B2C.fsN 517 = Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».fs
+kernel_rfl fsEq517 : B2C.fsN 517 = Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq517 : B2C.cplPartsOf 517 = Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».parts
+kernel_rfl partsEq517 : B2C.cplPartsOf 517 = Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq517 : listElementOrDefault Data.cplArms 517 [] = Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».arms
+kernel_rfl armsEq517 : listElementOrDefault Data.cplArms 517 [] = Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq517 : B2C.snapsOf 517 = Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq517 : B2C.snapsOf 517 = Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».snaps
 
-kernel_rfl code518 : fnOf 518 = Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».code
+kernel_rfl code518 : fnOf 518 = Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».code
 
-kernel_rfl core518 : coreOf 518 = Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».core
+kernel_rfl core518 : coreOf 518 = Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».core
 
-kernel_rfl cert518 : certOf 518 = (Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert518 : certOf 518 = (Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody518 : sigFrom Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».code Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».core (Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».sig
+kernel_rfl sigBody518 : sigFrom Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».code Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».core (Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig
 
-theorem sig518 : glob.sig 518 = Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».sig := sig_of_link code518 core518 cert518 sigBody518
+theorem sig518 : glob.sig 518 = Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig := sig_of_link code518 core518 cert518 sigBody518
 
-kernel_rfl plumbEq518 : B2C.plumbOf 518 = Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq518 : B2C.plumbOf 518 = Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq518 : B2C.fsN 518 = Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».fs
+kernel_rfl fsEq518 : B2C.fsN 518 = Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq518 : B2C.cplPartsOf 518 = Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».parts
+kernel_rfl partsEq518 : B2C.cplPartsOf 518 = Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq518 : listElementOrDefault Data.cplArms 518 [] = Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».arms
+kernel_rfl armsEq518 : listElementOrDefault Data.cplArms 518 [] = Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq518 : B2C.snapsOf 518 = Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq518 : B2C.snapsOf 518 = Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».snaps
 
-kernel_rfl code519 : fnOf 519 = Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».code
+kernel_rfl code519 : fnOf 519 = Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».code
 
-kernel_rfl core519 : coreOf 519 = Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».core
+kernel_rfl core519 : coreOf 519 = Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».core
 
-kernel_rfl cert519 : certOf 519 = (Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert519 : certOf 519 = (Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody519 : sigFrom Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».code Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».core (Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig
+kernel_rfl sigBody519 : sigFrom Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».code Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».core (Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig
 
-theorem sig519 : glob.sig 519 = Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig := sig_of_link code519 core519 cert519 sigBody519
+theorem sig519 : glob.sig 519 = Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig := sig_of_link code519 core519 cert519 sigBody519
 
-kernel_rfl plumbEq519 : B2C.plumbOf 519 = Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq519 : B2C.plumbOf 519 = Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq519 : B2C.fsN 519 = Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».fs
+kernel_rfl fsEq519 : B2C.fsN 519 = Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq519 : B2C.cplPartsOf 519 = Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».parts
+kernel_rfl partsEq519 : B2C.cplPartsOf 519 = Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq519 : listElementOrDefault Data.cplArms 519 [] = Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».arms
+kernel_rfl armsEq519 : listElementOrDefault Data.cplArms 519 [] = Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq519 : B2C.snapsOf 519 = Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq519 : B2C.snapsOf 519 = Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».snaps
 
-kernel_rfl code520 : fnOf 520 = Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».code
+kernel_rfl code520 : fnOf 520 = Fn.«squeeze_point_from__L7».code
 
-kernel_rfl core520 : coreOf 520 = Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».core
+kernel_rfl core520 : coreOf 520 = Fn.«squeeze_point_from__L7».core
 
-kernel_rfl cert520 : certOf 520 = (Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert520 : certOf 520 = (Fn.«squeeze_point_from__L7».cert.withPows Data.powTree)
 
-kernel_rfl sigBody520 : sigFrom Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».code Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».core (Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig
+kernel_rfl sigBody520 : sigFrom Fn.«squeeze_point_from__L7».code Fn.«squeeze_point_from__L7».core (Fn.«squeeze_point_from__L7».cert.withPows Data.powTree) = Fn.«squeeze_point_from__L7».sig
 
-theorem sig520 : glob.sig 520 = Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig := sig_of_link code520 core520 cert520 sigBody520
+theorem sig520 : glob.sig 520 = Fn.«squeeze_point_from__L7».sig := sig_of_link code520 core520 cert520 sigBody520
 
-kernel_rfl plumbEq520 : B2C.plumbOf 520 = Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq520 : B2C.plumbOf 520 = Fn.«squeeze_point_from__L7».plumb
 
-kernel_rfl fsEq520 : B2C.fsN 520 = Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».fs
+kernel_rfl fsEq520 : B2C.fsN 520 = Fn.«squeeze_point_from__L7».fs
 
-kernel_rfl partsEq520 : B2C.cplPartsOf 520 = Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».parts
+kernel_rfl partsEq520 : B2C.cplPartsOf 520 = Fn.«squeeze_point_from__L7».parts
 
-kernel_rfl armsEq520 : listElementOrDefault Data.cplArms 520 [] = Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».arms
+kernel_rfl armsEq520 : listElementOrDefault Data.cplArms 520 [] = Fn.«squeeze_point_from__L7».arms
 
-kernel_rfl snapsEq520 : B2C.snapsOf 520 = Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq520 : B2C.snapsOf 520 = Fn.«squeeze_point_from__L7».snaps
 
-kernel_rfl code521 : fnOf 521 = Fn.«squeeze_point_from__L11».code
+kernel_rfl code521 : fnOf 521 = Fn.«level_positions__L4_L16_L4».code
 
-kernel_rfl core521 : coreOf 521 = Fn.«squeeze_point_from__L11».core
+kernel_rfl core521 : coreOf 521 = Fn.«level_positions__L4_L16_L4».core
 
-kernel_rfl cert521 : certOf 521 = (Fn.«squeeze_point_from__L11».cert.withPows Data.powTree)
+kernel_rfl cert521 : certOf 521 = (Fn.«level_positions__L4_L16_L4».cert.withPows Data.powTree)
 
-kernel_rfl sigBody521 : sigFrom Fn.«squeeze_point_from__L11».code Fn.«squeeze_point_from__L11».core (Fn.«squeeze_point_from__L11».cert.withPows Data.powTree) = Fn.«squeeze_point_from__L11».sig
+kernel_rfl sigBody521 : sigFrom Fn.«level_positions__L4_L16_L4».code Fn.«level_positions__L4_L16_L4».core (Fn.«level_positions__L4_L16_L4».cert.withPows Data.powTree) = Fn.«level_positions__L4_L16_L4».sig
 
-theorem sig521 : glob.sig 521 = Fn.«squeeze_point_from__L11».sig := sig_of_link code521 core521 cert521 sigBody521
+theorem sig521 : glob.sig 521 = Fn.«level_positions__L4_L16_L4».sig := sig_of_link code521 core521 cert521 sigBody521
 
-kernel_rfl plumbEq521 : B2C.plumbOf 521 = Fn.«squeeze_point_from__L11».plumb
+kernel_rfl plumbEq521 : B2C.plumbOf 521 = Fn.«level_positions__L4_L16_L4».plumb
 
-kernel_rfl fsEq521 : B2C.fsN 521 = Fn.«squeeze_point_from__L11».fs
+kernel_rfl fsEq521 : B2C.fsN 521 = Fn.«level_positions__L4_L16_L4».fs
 
-kernel_rfl partsEq521 : B2C.cplPartsOf 521 = Fn.«squeeze_point_from__L11».parts
+kernel_rfl partsEq521 : B2C.cplPartsOf 521 = Fn.«level_positions__L4_L16_L4».parts
 
-kernel_rfl armsEq521 : listElementOrDefault Data.cplArms 521 [] = Fn.«squeeze_point_from__L11».arms
+kernel_rfl armsEq521 : listElementOrDefault Data.cplArms 521 [] = Fn.«level_positions__L4_L16_L4».arms
 
-kernel_rfl snapsEq521 : B2C.snapsOf 521 = Fn.«squeeze_point_from__L11».snaps
+kernel_rfl snapsEq521 : B2C.snapsOf 521 = Fn.«level_positions__L4_L16_L4».snaps
 
-kernel_rfl code522 : fnOf 522 = Fn.«level_positions__L7_L15_L3».code
+kernel_rfl code522 : fnOf 522 = Fn.«level_positions__L4_L17_L5».code
 
-kernel_rfl core522 : coreOf 522 = Fn.«level_positions__L7_L15_L3».core
+kernel_rfl core522 : coreOf 522 = Fn.«level_positions__L4_L17_L5».core
 
-kernel_rfl cert522 : certOf 522 = (Fn.«level_positions__L7_L15_L3».cert.withPows Data.powTree)
+kernel_rfl cert522 : certOf 522 = (Fn.«level_positions__L4_L17_L5».cert.withPows Data.powTree)
 
-kernel_rfl sigBody522 : sigFrom Fn.«level_positions__L7_L15_L3».code Fn.«level_positions__L7_L15_L3».core (Fn.«level_positions__L7_L15_L3».cert.withPows Data.powTree) = Fn.«level_positions__L7_L15_L3».sig
+kernel_rfl sigBody522 : sigFrom Fn.«level_positions__L4_L17_L5».code Fn.«level_positions__L4_L17_L5».core (Fn.«level_positions__L4_L17_L5».cert.withPows Data.powTree) = Fn.«level_positions__L4_L17_L5».sig
 
-theorem sig522 : glob.sig 522 = Fn.«level_positions__L7_L15_L3».sig := sig_of_link code522 core522 cert522 sigBody522
+theorem sig522 : glob.sig 522 = Fn.«level_positions__L4_L17_L5».sig := sig_of_link code522 core522 cert522 sigBody522
 
-kernel_rfl plumbEq522 : B2C.plumbOf 522 = Fn.«level_positions__L7_L15_L3».plumb
+kernel_rfl plumbEq522 : B2C.plumbOf 522 = Fn.«level_positions__L4_L17_L5».plumb
 
-kernel_rfl fsEq522 : B2C.fsN 522 = Fn.«level_positions__L7_L15_L3».fs
+kernel_rfl fsEq522 : B2C.fsN 522 = Fn.«level_positions__L4_L17_L5».fs
 
-kernel_rfl partsEq522 : B2C.cplPartsOf 522 = Fn.«level_positions__L7_L15_L3».parts
+kernel_rfl partsEq522 : B2C.cplPartsOf 522 = Fn.«level_positions__L4_L17_L5».parts
 
-kernel_rfl armsEq522 : listElementOrDefault Data.cplArms 522 [] = Fn.«level_positions__L7_L15_L3».arms
+kernel_rfl armsEq522 : listElementOrDefault Data.cplArms 522 [] = Fn.«level_positions__L4_L17_L5».arms
 
-kernel_rfl snapsEq522 : B2C.snapsOf 522 = Fn.«level_positions__L7_L15_L3».snaps
+kernel_rfl snapsEq522 : B2C.snapsOf 522 = Fn.«level_positions__L4_L17_L5».snaps
 
-kernel_rfl code523 : fnOf 523 = Fn.«level_positions__L6_L16_L4».code
+kernel_rfl code523 : fnOf 523 = Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».code
 
-kernel_rfl core523 : coreOf 523 = Fn.«level_positions__L6_L16_L4».core
+kernel_rfl core523 : coreOf 523 = Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».core
 
-kernel_rfl cert523 : certOf 523 = (Fn.«level_positions__L6_L16_L4».cert.withPows Data.powTree)
+kernel_rfl cert523 : certOf 523 = (Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody523 : sigFrom Fn.«level_positions__L6_L16_L4».code Fn.«level_positions__L6_L16_L4».core (Fn.«level_positions__L6_L16_L4».cert.withPows Data.powTree) = Fn.«level_positions__L6_L16_L4».sig
+kernel_rfl sigBody523 : sigFrom Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».code Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».core (Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».sig
 
-theorem sig523 : glob.sig 523 = Fn.«level_positions__L6_L16_L4».sig := sig_of_link code523 core523 cert523 sigBody523
+theorem sig523 : glob.sig 523 = Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».sig := sig_of_link code523 core523 cert523 sigBody523
 
-kernel_rfl plumbEq523 : B2C.plumbOf 523 = Fn.«level_positions__L6_L16_L4».plumb
+kernel_rfl plumbEq523 : B2C.plumbOf 523 = Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq523 : B2C.fsN 523 = Fn.«level_positions__L6_L16_L4».fs
+kernel_rfl fsEq523 : B2C.fsN 523 = Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq523 : B2C.cplPartsOf 523 = Fn.«level_positions__L6_L16_L4».parts
+kernel_rfl partsEq523 : B2C.cplPartsOf 523 = Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq523 : listElementOrDefault Data.cplArms 523 [] = Fn.«level_positions__L6_L16_L4».arms
+kernel_rfl armsEq523 : listElementOrDefault Data.cplArms 523 [] = Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq523 : B2C.snapsOf 523 = Fn.«level_positions__L6_L16_L4».snaps
+kernel_rfl snapsEq523 : B2C.snapsOf 523 = Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».snaps
 
-kernel_rfl code524 : fnOf 524 = Fn.«level_positions__L6_L17_L5».code
+kernel_rfl code524 : fnOf 524 = Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».code
 
-kernel_rfl core524 : coreOf 524 = Fn.«level_positions__L6_L17_L5».core
+kernel_rfl core524 : coreOf 524 = Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».core
 
-kernel_rfl cert524 : certOf 524 = (Fn.«level_positions__L6_L17_L5».cert.withPows Data.powTree)
+kernel_rfl cert524 : certOf 524 = (Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody524 : sigFrom Fn.«level_positions__L6_L17_L5».code Fn.«level_positions__L6_L17_L5».core (Fn.«level_positions__L6_L17_L5».cert.withPows Data.powTree) = Fn.«level_positions__L6_L17_L5».sig
+kernel_rfl sigBody524 : sigFrom Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».code Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».core (Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig
 
-theorem sig524 : glob.sig 524 = Fn.«level_positions__L6_L17_L5».sig := sig_of_link code524 core524 cert524 sigBody524
+theorem sig524 : glob.sig 524 = Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig := sig_of_link code524 core524 cert524 sigBody524
 
-kernel_rfl plumbEq524 : B2C.plumbOf 524 = Fn.«level_positions__L6_L17_L5».plumb
+kernel_rfl plumbEq524 : B2C.plumbOf 524 = Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq524 : B2C.fsN 524 = Fn.«level_positions__L6_L17_L5».fs
+kernel_rfl fsEq524 : B2C.fsN 524 = Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq524 : B2C.cplPartsOf 524 = Fn.«level_positions__L6_L17_L5».parts
+kernel_rfl partsEq524 : B2C.cplPartsOf 524 = Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq524 : listElementOrDefault Data.cplArms 524 [] = Fn.«level_positions__L6_L17_L5».arms
+kernel_rfl armsEq524 : listElementOrDefault Data.cplArms 524 [] = Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq524 : B2C.snapsOf 524 = Fn.«level_positions__L6_L17_L5».snaps
+kernel_rfl snapsEq524 : B2C.snapsOf 524 = Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».snaps
 
-kernel_rfl code525 : fnOf 525 = Fn.«level_positions__L5_L18_L6».code
+kernel_rfl code525 : fnOf 525 = Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».code
 
-kernel_rfl core525 : coreOf 525 = Fn.«level_positions__L5_L18_L6».core
+kernel_rfl core525 : coreOf 525 = Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».core
 
-kernel_rfl cert525 : certOf 525 = (Fn.«level_positions__L5_L18_L6».cert.withPows Data.powTree)
+kernel_rfl cert525 : certOf 525 = (Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody525 : sigFrom Fn.«level_positions__L5_L18_L6».code Fn.«level_positions__L5_L18_L6».core (Fn.«level_positions__L5_L18_L6».cert.withPows Data.powTree) = Fn.«level_positions__L5_L18_L6».sig
+kernel_rfl sigBody525 : sigFrom Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».code Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».core (Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig
 
-theorem sig525 : glob.sig 525 = Fn.«level_positions__L5_L18_L6».sig := sig_of_link code525 core525 cert525 sigBody525
+theorem sig525 : glob.sig 525 = Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig := sig_of_link code525 core525 cert525 sigBody525
 
-kernel_rfl plumbEq525 : B2C.plumbOf 525 = Fn.«level_positions__L5_L18_L6».plumb
+kernel_rfl plumbEq525 : B2C.plumbOf 525 = Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq525 : B2C.fsN 525 = Fn.«level_positions__L5_L18_L6».fs
+kernel_rfl fsEq525 : B2C.fsN 525 = Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq525 : B2C.cplPartsOf 525 = Fn.«level_positions__L5_L18_L6».parts
+kernel_rfl partsEq525 : B2C.cplPartsOf 525 = Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq525 : listElementOrDefault Data.cplArms 525 [] = Fn.«level_positions__L5_L18_L6».arms
+kernel_rfl armsEq525 : listElementOrDefault Data.cplArms 525 [] = Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq525 : B2C.snapsOf 525 = Fn.«level_positions__L5_L18_L6».snaps
+kernel_rfl snapsEq525 : B2C.snapsOf 525 = Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».snaps
 
-kernel_rfl code526 : fnOf 526 = Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».code
+kernel_rfl code526 : fnOf 526 = Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».code
 
-kernel_rfl core526 : coreOf 526 = Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».core
+kernel_rfl core526 : coreOf 526 = Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».core
 
-kernel_rfl cert526 : certOf 526 = (Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert526 : certOf 526 = (Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody526 : sigFrom Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».code Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».core (Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig
+kernel_rfl sigBody526 : sigFrom Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».code Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».core (Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig
 
-theorem sig526 : glob.sig 526 = Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig := sig_of_link code526 core526 cert526 sigBody526
+theorem sig526 : glob.sig 526 = Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig := sig_of_link code526 core526 cert526 sigBody526
 
-kernel_rfl plumbEq526 : B2C.plumbOf 526 = Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq526 : B2C.plumbOf 526 = Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq526 : B2C.fsN 526 = Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».fs
+kernel_rfl fsEq526 : B2C.fsN 526 = Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq526 : B2C.cplPartsOf 526 = Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».parts
+kernel_rfl partsEq526 : B2C.cplPartsOf 526 = Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq526 : listElementOrDefault Data.cplArms 526 [] = Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».arms
+kernel_rfl armsEq526 : listElementOrDefault Data.cplArms 526 [] = Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq526 : B2C.snapsOf 526 = Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq526 : B2C.snapsOf 526 = Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».snaps
 
-kernel_rfl code527 : fnOf 527 = Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».code
+kernel_rfl code527 : fnOf 527 = Fn.«opening_message__L12_L1».code
 
-kernel_rfl core527 : coreOf 527 = Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».core
+kernel_rfl core527 : coreOf 527 = Fn.«opening_message__L12_L1».core
 
-kernel_rfl cert527 : certOf 527 = (Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert527 : certOf 527 = (Fn.«opening_message__L12_L1».cert.withPows Data.powTree)
 
-kernel_rfl sigBody527 : sigFrom Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».code Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».core (Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig
+kernel_rfl sigBody527 : sigFrom Fn.«opening_message__L12_L1».code Fn.«opening_message__L12_L1».core (Fn.«opening_message__L12_L1».cert.withPows Data.powTree) = Fn.«opening_message__L12_L1».sig
 
-theorem sig527 : glob.sig 527 = Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig := sig_of_link code527 core527 cert527 sigBody527
+theorem sig527 : glob.sig 527 = Fn.«opening_message__L12_L1».sig := sig_of_link code527 core527 cert527 sigBody527
 
-kernel_rfl plumbEq527 : B2C.plumbOf 527 = Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq527 : B2C.plumbOf 527 = Fn.«opening_message__L12_L1».plumb
 
-kernel_rfl fsEq527 : B2C.fsN 527 = Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».fs
+kernel_rfl fsEq527 : B2C.fsN 527 = Fn.«opening_message__L12_L1».fs
 
-kernel_rfl partsEq527 : B2C.cplPartsOf 527 = Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».parts
+kernel_rfl partsEq527 : B2C.cplPartsOf 527 = Fn.«opening_message__L12_L1».parts
 
-kernel_rfl armsEq527 : listElementOrDefault Data.cplArms 527 [] = Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».arms
+kernel_rfl armsEq527 : listElementOrDefault Data.cplArms 527 [] = Fn.«opening_message__L12_L1».arms
 
-kernel_rfl snapsEq527 : B2C.snapsOf 527 = Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq527 : B2C.snapsOf 527 = Fn.«opening_message__L12_L1».snaps
 
-kernel_rfl code528 : fnOf 528 = Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».code
+kernel_rfl code528 : fnOf 528 = Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».code
 
-kernel_rfl core528 : coreOf 528 = Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».core
+kernel_rfl core528 : coreOf 528 = Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».core
 
-kernel_rfl cert528 : certOf 528 = (Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert528 : certOf 528 = (Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».cert.withPows Data.powTree)
 
-kernel_rfl sigBody528 : sigFrom Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».code Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».core (Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig
+kernel_rfl sigBody528 : sigFrom Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».code Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».core (Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».cert.withPows Data.powTree) = Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».sig
 
-theorem sig528 : glob.sig 528 = Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig := sig_of_link code528 core528 cert528 sigBody528
+theorem sig528 : glob.sig 528 = Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».sig := sig_of_link code528 core528 cert528 sigBody528
 
-kernel_rfl plumbEq528 : B2C.plumbOf 528 = Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq528 : B2C.plumbOf 528 = Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».plumb
 
-kernel_rfl fsEq528 : B2C.fsN 528 = Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».fs
+kernel_rfl fsEq528 : B2C.fsN 528 = Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».fs
 
-kernel_rfl partsEq528 : B2C.cplPartsOf 528 = Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».parts
+kernel_rfl partsEq528 : B2C.cplPartsOf 528 = Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».parts
 
-kernel_rfl armsEq528 : listElementOrDefault Data.cplArms 528 [] = Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».arms
+kernel_rfl armsEq528 : listElementOrDefault Data.cplArms 528 [] = Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».arms
 
-kernel_rfl snapsEq528 : B2C.snapsOf 528 = Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq528 : B2C.snapsOf 528 = Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».snaps
 
-kernel_rfl code529 : fnOf 529 = Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».code
+kernel_rfl code529 : fnOf 529 = Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».code
 
-kernel_rfl core529 : coreOf 529 = Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».core
+kernel_rfl core529 : coreOf 529 = Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».core
 
-kernel_rfl cert529 : certOf 529 = (Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert529 : certOf 529 = (Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».cert.withPows Data.powTree)
 
-kernel_rfl sigBody529 : sigFrom Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».code Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».core (Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig
+kernel_rfl sigBody529 : sigFrom Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».code Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».core (Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».cert.withPows Data.powTree) = Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».sig
 
-theorem sig529 : glob.sig 529 = Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig := sig_of_link code529 core529 cert529 sigBody529
+theorem sig529 : glob.sig 529 = Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».sig := sig_of_link code529 core529 cert529 sigBody529
 
-kernel_rfl plumbEq529 : B2C.plumbOf 529 = Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq529 : B2C.plumbOf 529 = Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».plumb
 
-kernel_rfl fsEq529 : B2C.fsN 529 = Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».fs
+kernel_rfl fsEq529 : B2C.fsN 529 = Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».fs
 
-kernel_rfl partsEq529 : B2C.cplPartsOf 529 = Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».parts
+kernel_rfl partsEq529 : B2C.cplPartsOf 529 = Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».parts
 
-kernel_rfl armsEq529 : listElementOrDefault Data.cplArms 529 [] = Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».arms
+kernel_rfl armsEq529 : listElementOrDefault Data.cplArms 529 [] = Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».arms
 
-kernel_rfl snapsEq529 : B2C.snapsOf 529 = Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq529 : B2C.snapsOf 529 = Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».snaps
 
-kernel_rfl code530 : fnOf 530 = Fn.«squeeze_point_from__L7».code
+kernel_rfl code530 : fnOf 530 = Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».code
 
-kernel_rfl core530 : coreOf 530 = Fn.«squeeze_point_from__L7».core
+kernel_rfl core530 : coreOf 530 = Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».core
 
-kernel_rfl cert530 : certOf 530 = (Fn.«squeeze_point_from__L7».cert.withPows Data.powTree)
+kernel_rfl cert530 : certOf 530 = (Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».cert.withPows Data.powTree)
 
-kernel_rfl sigBody530 : sigFrom Fn.«squeeze_point_from__L7».code Fn.«squeeze_point_from__L7».core (Fn.«squeeze_point_from__L7».cert.withPows Data.powTree) = Fn.«squeeze_point_from__L7».sig
+kernel_rfl sigBody530 : sigFrom Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».code Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».core (Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».cert.withPows Data.powTree) = Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».sig
 
-theorem sig530 : glob.sig 530 = Fn.«squeeze_point_from__L7».sig := sig_of_link code530 core530 cert530 sigBody530
+theorem sig530 : glob.sig 530 = Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».sig := sig_of_link code530 core530 cert530 sigBody530
 
-kernel_rfl plumbEq530 : B2C.plumbOf 530 = Fn.«squeeze_point_from__L7».plumb
+kernel_rfl plumbEq530 : B2C.plumbOf 530 = Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».plumb
 
-kernel_rfl fsEq530 : B2C.fsN 530 = Fn.«squeeze_point_from__L7».fs
+kernel_rfl fsEq530 : B2C.fsN 530 = Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».fs
 
-kernel_rfl partsEq530 : B2C.cplPartsOf 530 = Fn.«squeeze_point_from__L7».parts
+kernel_rfl partsEq530 : B2C.cplPartsOf 530 = Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».parts
 
-kernel_rfl armsEq530 : listElementOrDefault Data.cplArms 530 [] = Fn.«squeeze_point_from__L7».arms
+kernel_rfl armsEq530 : listElementOrDefault Data.cplArms 530 [] = Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».arms
 
-kernel_rfl snapsEq530 : B2C.snapsOf 530 = Fn.«squeeze_point_from__L7».snaps
+kernel_rfl snapsEq530 : B2C.snapsOf 530 = Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».snaps
 
-kernel_rfl code531 : fnOf 531 = Fn.«level_positions__L4_L16_L4».code
+kernel_rfl code531 : fnOf 531 = Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».code
 
-kernel_rfl core531 : coreOf 531 = Fn.«level_positions__L4_L16_L4».core
+kernel_rfl core531 : coreOf 531 = Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».core
 
-kernel_rfl cert531 : certOf 531 = (Fn.«level_positions__L4_L16_L4».cert.withPows Data.powTree)
+kernel_rfl cert531 : certOf 531 = (Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».cert.withPows Data.powTree)
 
-kernel_rfl sigBody531 : sigFrom Fn.«level_positions__L4_L16_L4».code Fn.«level_positions__L4_L16_L4».core (Fn.«level_positions__L4_L16_L4».cert.withPows Data.powTree) = Fn.«level_positions__L4_L16_L4».sig
+kernel_rfl sigBody531 : sigFrom Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».code Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».core (Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».cert.withPows Data.powTree) = Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».sig
 
-theorem sig531 : glob.sig 531 = Fn.«level_positions__L4_L16_L4».sig := sig_of_link code531 core531 cert531 sigBody531
+theorem sig531 : glob.sig 531 = Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».sig := sig_of_link code531 core531 cert531 sigBody531
 
-kernel_rfl plumbEq531 : B2C.plumbOf 531 = Fn.«level_positions__L4_L16_L4».plumb
+kernel_rfl plumbEq531 : B2C.plumbOf 531 = Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».plumb
 
-kernel_rfl fsEq531 : B2C.fsN 531 = Fn.«level_positions__L4_L16_L4».fs
+kernel_rfl fsEq531 : B2C.fsN 531 = Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».fs
 
-kernel_rfl partsEq531 : B2C.cplPartsOf 531 = Fn.«level_positions__L4_L16_L4».parts
+kernel_rfl partsEq531 : B2C.cplPartsOf 531 = Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».parts
 
-kernel_rfl armsEq531 : listElementOrDefault Data.cplArms 531 [] = Fn.«level_positions__L4_L16_L4».arms
+kernel_rfl armsEq531 : listElementOrDefault Data.cplArms 531 [] = Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».arms
 
-kernel_rfl snapsEq531 : B2C.snapsOf 531 = Fn.«level_positions__L4_L16_L4».snaps
+kernel_rfl snapsEq531 : B2C.snapsOf 531 = Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».snaps
 
-kernel_rfl code532 : fnOf 532 = Fn.«level_positions__L4_L17_L5».code
+kernel_rfl code532 : fnOf 532 = Fn.«fold_final_msg__L3».code
 
-kernel_rfl core532 : coreOf 532 = Fn.«level_positions__L4_L17_L5».core
+kernel_rfl core532 : coreOf 532 = Fn.«fold_final_msg__L3».core
 
-kernel_rfl cert532 : certOf 532 = (Fn.«level_positions__L4_L17_L5».cert.withPows Data.powTree)
+kernel_rfl cert532 : certOf 532 = (Fn.«fold_final_msg__L3».cert.withPows Data.powTree)
 
-kernel_rfl sigBody532 : sigFrom Fn.«level_positions__L4_L17_L5».code Fn.«level_positions__L4_L17_L5».core (Fn.«level_positions__L4_L17_L5».cert.withPows Data.powTree) = Fn.«level_positions__L4_L17_L5».sig
+kernel_rfl sigBody532 : sigFrom Fn.«fold_final_msg__L3».code Fn.«fold_final_msg__L3».core (Fn.«fold_final_msg__L3».cert.withPows Data.powTree) = Fn.«fold_final_msg__L3».sig
 
-theorem sig532 : glob.sig 532 = Fn.«level_positions__L4_L17_L5».sig := sig_of_link code532 core532 cert532 sigBody532
+theorem sig532 : glob.sig 532 = Fn.«fold_final_msg__L3».sig := sig_of_link code532 core532 cert532 sigBody532
 
-kernel_rfl plumbEq532 : B2C.plumbOf 532 = Fn.«level_positions__L4_L17_L5».plumb
+kernel_rfl plumbEq532 : B2C.plumbOf 532 = Fn.«fold_final_msg__L3».plumb
 
-kernel_rfl fsEq532 : B2C.fsN 532 = Fn.«level_positions__L4_L17_L5».fs
+kernel_rfl fsEq532 : B2C.fsN 532 = Fn.«fold_final_msg__L3».fs
 
-kernel_rfl partsEq532 : B2C.cplPartsOf 532 = Fn.«level_positions__L4_L17_L5».parts
+kernel_rfl partsEq532 : B2C.cplPartsOf 532 = Fn.«fold_final_msg__L3».parts
 
-kernel_rfl armsEq532 : listElementOrDefault Data.cplArms 532 [] = Fn.«level_positions__L4_L17_L5».arms
+kernel_rfl armsEq532 : listElementOrDefault Data.cplArms 532 [] = Fn.«fold_final_msg__L3».arms
 
-kernel_rfl snapsEq532 : B2C.snapsOf 532 = Fn.«level_positions__L4_L17_L5».snaps
+kernel_rfl snapsEq532 : B2C.snapsOf 532 = Fn.«fold_final_msg__L3».snaps
 
-kernel_rfl code533 : fnOf 533 = Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».code
+kernel_rfl code533 : fnOf 533 = Fn.«level_residual__L218_L15_L6_L3».code
 
-kernel_rfl core533 : coreOf 533 = Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».core
+kernel_rfl core533 : coreOf 533 = Fn.«level_residual__L218_L15_L6_L3».core
 
-kernel_rfl cert533 : certOf 533 = (Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert533 : certOf 533 = (Fn.«level_residual__L218_L15_L6_L3».cert.withPows Data.powTree)
 
-kernel_rfl sigBody533 : sigFrom Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».code Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».core (Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».sig
+kernel_rfl sigBody533 : sigFrom Fn.«level_residual__L218_L15_L6_L3».code Fn.«level_residual__L218_L15_L6_L3».core (Fn.«level_residual__L218_L15_L6_L3».cert.withPows Data.powTree) = Fn.«level_residual__L218_L15_L6_L3».sig
 
-theorem sig533 : glob.sig 533 = Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».sig := sig_of_link code533 core533 cert533 sigBody533
+theorem sig533 : glob.sig 533 = Fn.«level_residual__L218_L15_L6_L3».sig := sig_of_link code533 core533 cert533 sigBody533
 
-kernel_rfl plumbEq533 : B2C.plumbOf 533 = Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq533 : B2C.plumbOf 533 = Fn.«level_residual__L218_L15_L6_L3».plumb
 
-kernel_rfl fsEq533 : B2C.fsN 533 = Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».fs
+kernel_rfl fsEq533 : B2C.fsN 533 = Fn.«level_residual__L218_L15_L6_L3».fs
 
-kernel_rfl partsEq533 : B2C.cplPartsOf 533 = Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».parts
+kernel_rfl partsEq533 : B2C.cplPartsOf 533 = Fn.«level_residual__L218_L15_L6_L3».parts
 
-kernel_rfl armsEq533 : listElementOrDefault Data.cplArms 533 [] = Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».arms
+kernel_rfl armsEq533 : listElementOrDefault Data.cplArms 533 [] = Fn.«level_residual__L218_L15_L6_L3».arms
 
-kernel_rfl snapsEq533 : B2C.snapsOf 533 = Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq533 : B2C.snapsOf 533 = Fn.«level_residual__L218_L15_L6_L3».snaps
 
-kernel_rfl code534 : fnOf 534 = Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».code
+kernel_rfl code534 : fnOf 534 = Fn.«level_residual__L109_L15_L6_L3».code
 
-kernel_rfl core534 : coreOf 534 = Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».core
+kernel_rfl core534 : coreOf 534 = Fn.«level_residual__L109_L15_L6_L3».core
 
-kernel_rfl cert534 : certOf 534 = (Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert534 : certOf 534 = (Fn.«level_residual__L109_L15_L6_L3».cert.withPows Data.powTree)
 
-kernel_rfl sigBody534 : sigFrom Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».code Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».core (Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig
+kernel_rfl sigBody534 : sigFrom Fn.«level_residual__L109_L15_L6_L3».code Fn.«level_residual__L109_L15_L6_L3».core (Fn.«level_residual__L109_L15_L6_L3».cert.withPows Data.powTree) = Fn.«level_residual__L109_L15_L6_L3».sig
 
-theorem sig534 : glob.sig 534 = Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig := sig_of_link code534 core534 cert534 sigBody534
+theorem sig534 : glob.sig 534 = Fn.«level_residual__L109_L15_L6_L3».sig := sig_of_link code534 core534 cert534 sigBody534
 
-kernel_rfl plumbEq534 : B2C.plumbOf 534 = Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq534 : B2C.plumbOf 534 = Fn.«level_residual__L109_L15_L6_L3».plumb
 
-kernel_rfl fsEq534 : B2C.fsN 534 = Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».fs
+kernel_rfl fsEq534 : B2C.fsN 534 = Fn.«level_residual__L109_L15_L6_L3».fs
 
-kernel_rfl partsEq534 : B2C.cplPartsOf 534 = Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».parts
+kernel_rfl partsEq534 : B2C.cplPartsOf 534 = Fn.«level_residual__L109_L15_L6_L3».parts
 
-kernel_rfl armsEq534 : listElementOrDefault Data.cplArms 534 [] = Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».arms
+kernel_rfl armsEq534 : listElementOrDefault Data.cplArms 534 [] = Fn.«level_residual__L109_L15_L6_L3».arms
 
-kernel_rfl snapsEq534 : B2C.snapsOf 534 = Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq534 : B2C.snapsOf 534 = Fn.«level_residual__L109_L15_L6_L3».snaps
 
-kernel_rfl code535 : fnOf 535 = Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».code
+kernel_rfl code535 : fnOf 535 = Fn.«level_residual__L73_L15_L6_L3».code
 
-kernel_rfl core535 : coreOf 535 = Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».core
+kernel_rfl core535 : coreOf 535 = Fn.«level_residual__L73_L15_L6_L3».core
 
-kernel_rfl cert535 : certOf 535 = (Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert535 : certOf 535 = (Fn.«level_residual__L73_L15_L6_L3».cert.withPows Data.powTree)
 
-kernel_rfl sigBody535 : sigFrom Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».code Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».core (Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig
+kernel_rfl sigBody535 : sigFrom Fn.«level_residual__L73_L15_L6_L3».code Fn.«level_residual__L73_L15_L6_L3».core (Fn.«level_residual__L73_L15_L6_L3».cert.withPows Data.powTree) = Fn.«level_residual__L73_L15_L6_L3».sig
 
-theorem sig535 : glob.sig 535 = Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig := sig_of_link code535 core535 cert535 sigBody535
+theorem sig535 : glob.sig 535 = Fn.«level_residual__L73_L15_L6_L3».sig := sig_of_link code535 core535 cert535 sigBody535
 
-kernel_rfl plumbEq535 : B2C.plumbOf 535 = Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq535 : B2C.plumbOf 535 = Fn.«level_residual__L73_L15_L6_L3».plumb
 
-kernel_rfl fsEq535 : B2C.fsN 535 = Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».fs
+kernel_rfl fsEq535 : B2C.fsN 535 = Fn.«level_residual__L73_L15_L6_L3».fs
 
-kernel_rfl partsEq535 : B2C.cplPartsOf 535 = Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».parts
+kernel_rfl partsEq535 : B2C.cplPartsOf 535 = Fn.«level_residual__L73_L15_L6_L3».parts
 
-kernel_rfl armsEq535 : listElementOrDefault Data.cplArms 535 [] = Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».arms
+kernel_rfl armsEq535 : listElementOrDefault Data.cplArms 535 [] = Fn.«level_residual__L73_L15_L6_L3».arms
 
-kernel_rfl snapsEq535 : B2C.snapsOf 535 = Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq535 : B2C.snapsOf 535 = Fn.«level_residual__L73_L15_L6_L3».snaps
 
-kernel_rfl code536 : fnOf 536 = Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».code
+kernel_rfl code536 : fnOf 536 = Fn.«level_residual__L55_L15_L6_L3».code
 
-kernel_rfl core536 : coreOf 536 = Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».core
+kernel_rfl core536 : coreOf 536 = Fn.«level_residual__L55_L15_L6_L3».core
 
-kernel_rfl cert536 : certOf 536 = (Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert536 : certOf 536 = (Fn.«level_residual__L55_L15_L6_L3».cert.withPows Data.powTree)
 
-kernel_rfl sigBody536 : sigFrom Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».code Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».core (Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig
+kernel_rfl sigBody536 : sigFrom Fn.«level_residual__L55_L15_L6_L3».code Fn.«level_residual__L55_L15_L6_L3».core (Fn.«level_residual__L55_L15_L6_L3».cert.withPows Data.powTree) = Fn.«level_residual__L55_L15_L6_L3».sig
 
-theorem sig536 : glob.sig 536 = Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig := sig_of_link code536 core536 cert536 sigBody536
+theorem sig536 : glob.sig 536 = Fn.«level_residual__L55_L15_L6_L3».sig := sig_of_link code536 core536 cert536 sigBody536
 
-kernel_rfl plumbEq536 : B2C.plumbOf 536 = Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq536 : B2C.plumbOf 536 = Fn.«level_residual__L55_L15_L6_L3».plumb
 
-kernel_rfl fsEq536 : B2C.fsN 536 = Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».fs
+kernel_rfl fsEq536 : B2C.fsN 536 = Fn.«level_residual__L55_L15_L6_L3».fs
 
-kernel_rfl partsEq536 : B2C.cplPartsOf 536 = Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».parts
+kernel_rfl partsEq536 : B2C.cplPartsOf 536 = Fn.«level_residual__L55_L15_L6_L3».parts
 
-kernel_rfl armsEq536 : listElementOrDefault Data.cplArms 536 [] = Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».arms
+kernel_rfl armsEq536 : listElementOrDefault Data.cplArms 536 [] = Fn.«level_residual__L55_L15_L6_L3».arms
 
-kernel_rfl snapsEq536 : B2C.snapsOf 536 = Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq536 : B2C.snapsOf 536 = Fn.«level_residual__L55_L15_L6_L3».snaps
 
-kernel_rfl code537 : fnOf 537 = Fn.«opening_message__L12_L1».code
+kernel_rfl code537 : fnOf 537 = Fn.«level_residual__L55_L11_L4_L2».code
 
-kernel_rfl core537 : coreOf 537 = Fn.«opening_message__L12_L1».core
+kernel_rfl core537 : coreOf 537 = Fn.«level_residual__L55_L11_L4_L2».core
 
-kernel_rfl cert537 : certOf 537 = (Fn.«opening_message__L12_L1».cert.withPows Data.powTree)
+kernel_rfl cert537 : certOf 537 = (Fn.«level_residual__L55_L11_L4_L2».cert.withPows Data.powTree)
 
-kernel_rfl sigBody537 : sigFrom Fn.«opening_message__L12_L1».code Fn.«opening_message__L12_L1».core (Fn.«opening_message__L12_L1».cert.withPows Data.powTree) = Fn.«opening_message__L12_L1».sig
+kernel_rfl sigBody537 : sigFrom Fn.«level_residual__L55_L11_L4_L2».code Fn.«level_residual__L55_L11_L4_L2».core (Fn.«level_residual__L55_L11_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L55_L11_L4_L2».sig
 
-theorem sig537 : glob.sig 537 = Fn.«opening_message__L12_L1».sig := sig_of_link code537 core537 cert537 sigBody537
+theorem sig537 : glob.sig 537 = Fn.«level_residual__L55_L11_L4_L2».sig := sig_of_link code537 core537 cert537 sigBody537
 
-kernel_rfl plumbEq537 : B2C.plumbOf 537 = Fn.«opening_message__L12_L1».plumb
+kernel_rfl plumbEq537 : B2C.plumbOf 537 = Fn.«level_residual__L55_L11_L4_L2».plumb
 
-kernel_rfl fsEq537 : B2C.fsN 537 = Fn.«opening_message__L12_L1».fs
+kernel_rfl fsEq537 : B2C.fsN 537 = Fn.«level_residual__L55_L11_L4_L2».fs
 
-kernel_rfl partsEq537 : B2C.cplPartsOf 537 = Fn.«opening_message__L12_L1».parts
+kernel_rfl partsEq537 : B2C.cplPartsOf 537 = Fn.«level_residual__L55_L11_L4_L2».parts
 
-kernel_rfl armsEq537 : listElementOrDefault Data.cplArms 537 [] = Fn.«opening_message__L12_L1».arms
+kernel_rfl armsEq537 : listElementOrDefault Data.cplArms 537 [] = Fn.«level_residual__L55_L11_L4_L2».arms
 
-kernel_rfl snapsEq537 : B2C.snapsOf 537 = Fn.«opening_message__L12_L1».snaps
+kernel_rfl snapsEq537 : B2C.snapsOf 537 = Fn.«level_residual__L55_L11_L4_L2».snaps
 
-kernel_rfl code538 : fnOf 538 = Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».code
+kernel_rfl code538 : fnOf 538 = Fn.«level_residual__L44_L11_L4_L2».code
 
-kernel_rfl core538 : coreOf 538 = Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».core
+kernel_rfl core538 : coreOf 538 = Fn.«level_residual__L44_L11_L4_L2».core
 
-kernel_rfl cert538 : certOf 538 = (Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».cert.withPows Data.powTree)
+kernel_rfl cert538 : certOf 538 = (Fn.«level_residual__L44_L11_L4_L2».cert.withPows Data.powTree)
 
-kernel_rfl sigBody538 : sigFrom Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».code Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».core (Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».cert.withPows Data.powTree) = Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».sig
+kernel_rfl sigBody538 : sigFrom Fn.«level_residual__L44_L11_L4_L2».code Fn.«level_residual__L44_L11_L4_L2».core (Fn.«level_residual__L44_L11_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L44_L11_L4_L2».sig
 
-theorem sig538 : glob.sig 538 = Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».sig := sig_of_link code538 core538 cert538 sigBody538
+theorem sig538 : glob.sig 538 = Fn.«level_residual__L44_L11_L4_L2».sig := sig_of_link code538 core538 cert538 sigBody538
 
-kernel_rfl plumbEq538 : B2C.plumbOf 538 = Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».plumb
+kernel_rfl plumbEq538 : B2C.plumbOf 538 = Fn.«level_residual__L44_L11_L4_L2».plumb
 
-kernel_rfl fsEq538 : B2C.fsN 538 = Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».fs
+kernel_rfl fsEq538 : B2C.fsN 538 = Fn.«level_residual__L44_L11_L4_L2».fs
 
-kernel_rfl partsEq538 : B2C.cplPartsOf 538 = Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».parts
+kernel_rfl partsEq538 : B2C.cplPartsOf 538 = Fn.«level_residual__L44_L11_L4_L2».parts
 
-kernel_rfl armsEq538 : listElementOrDefault Data.cplArms 538 [] = Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».arms
+kernel_rfl armsEq538 : listElementOrDefault Data.cplArms 538 [] = Fn.«level_residual__L44_L11_L4_L2».arms
 
-kernel_rfl snapsEq538 : B2C.snapsOf 538 = Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».snaps
+kernel_rfl snapsEq538 : B2C.snapsOf 538 = Fn.«level_residual__L44_L11_L4_L2».snaps
 
-kernel_rfl code539 : fnOf 539 = Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».code
+kernel_rfl code539 : fnOf 539 = Fn.«level_residual__L37_L11_L4_L2».code
 
-kernel_rfl core539 : coreOf 539 = Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».core
+kernel_rfl core539 : coreOf 539 = Fn.«level_residual__L37_L11_L4_L2».core
 
-kernel_rfl cert539 : certOf 539 = (Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».cert.withPows Data.powTree)
+kernel_rfl cert539 : certOf 539 = (Fn.«level_residual__L37_L11_L4_L2».cert.withPows Data.powTree)
 
-kernel_rfl sigBody539 : sigFrom Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».code Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».core (Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».cert.withPows Data.powTree) = Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».sig
+kernel_rfl sigBody539 : sigFrom Fn.«level_residual__L37_L11_L4_L2».code Fn.«level_residual__L37_L11_L4_L2».core (Fn.«level_residual__L37_L11_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L37_L11_L4_L2».sig
 
-theorem sig539 : glob.sig 539 = Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».sig := sig_of_link code539 core539 cert539 sigBody539
+theorem sig539 : glob.sig 539 = Fn.«level_residual__L37_L11_L4_L2».sig := sig_of_link code539 core539 cert539 sigBody539
 
-kernel_rfl plumbEq539 : B2C.plumbOf 539 = Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».plumb
+kernel_rfl plumbEq539 : B2C.plumbOf 539 = Fn.«level_residual__L37_L11_L4_L2».plumb
 
-kernel_rfl fsEq539 : B2C.fsN 539 = Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».fs
+kernel_rfl fsEq539 : B2C.fsN 539 = Fn.«level_residual__L37_L11_L4_L2».fs
 
-kernel_rfl partsEq539 : B2C.cplPartsOf 539 = Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».parts
+kernel_rfl partsEq539 : B2C.cplPartsOf 539 = Fn.«level_residual__L37_L11_L4_L2».parts
 
-kernel_rfl armsEq539 : listElementOrDefault Data.cplArms 539 [] = Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».arms
+kernel_rfl armsEq539 : listElementOrDefault Data.cplArms 539 [] = Fn.«level_residual__L37_L11_L4_L2».arms
 
-kernel_rfl snapsEq539 : B2C.snapsOf 539 = Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».snaps
+kernel_rfl snapsEq539 : B2C.snapsOf 539 = Fn.«level_residual__L37_L11_L4_L2».snaps
 
-kernel_rfl code540 : fnOf 540 = Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».code
+kernel_rfl code540 : fnOf 540 = Fn.«level_residual__L32_L11_L4_L2».code
 
-kernel_rfl core540 : coreOf 540 = Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».core
+kernel_rfl core540 : coreOf 540 = Fn.«level_residual__L32_L11_L4_L2».core
 
-kernel_rfl cert540 : certOf 540 = (Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».cert.withPows Data.powTree)
+kernel_rfl cert540 : certOf 540 = (Fn.«level_residual__L32_L11_L4_L2».cert.withPows Data.powTree)
 
-kernel_rfl sigBody540 : sigFrom Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».code Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».core (Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».cert.withPows Data.powTree) = Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».sig
+kernel_rfl sigBody540 : sigFrom Fn.«level_residual__L32_L11_L4_L2».code Fn.«level_residual__L32_L11_L4_L2».core (Fn.«level_residual__L32_L11_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L32_L11_L4_L2».sig
 
-theorem sig540 : glob.sig 540 = Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».sig := sig_of_link code540 core540 cert540 sigBody540
+theorem sig540 : glob.sig 540 = Fn.«level_residual__L32_L11_L4_L2».sig := sig_of_link code540 core540 cert540 sigBody540
 
-kernel_rfl plumbEq540 : B2C.plumbOf 540 = Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».plumb
+kernel_rfl plumbEq540 : B2C.plumbOf 540 = Fn.«level_residual__L32_L11_L4_L2».plumb
 
-kernel_rfl fsEq540 : B2C.fsN 540 = Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».fs
+kernel_rfl fsEq540 : B2C.fsN 540 = Fn.«level_residual__L32_L11_L4_L2».fs
 
-kernel_rfl partsEq540 : B2C.cplPartsOf 540 = Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».parts
+kernel_rfl partsEq540 : B2C.cplPartsOf 540 = Fn.«level_residual__L32_L11_L4_L2».parts
 
-kernel_rfl armsEq540 : listElementOrDefault Data.cplArms 540 [] = Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».arms
+kernel_rfl armsEq540 : listElementOrDefault Data.cplArms 540 [] = Fn.«level_residual__L32_L11_L4_L2».arms
 
-kernel_rfl snapsEq540 : B2C.snapsOf 540 = Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».snaps
+kernel_rfl snapsEq540 : B2C.snapsOf 540 = Fn.«level_residual__L32_L11_L4_L2».snaps
 
-kernel_rfl code541 : fnOf 541 = Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».code
+kernel_rfl code541 : fnOf 541 = Fn.«level_residual__L32_L7_L4_L2».code
 
-kernel_rfl core541 : coreOf 541 = Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».core
+kernel_rfl core541 : coreOf 541 = Fn.«level_residual__L32_L7_L4_L2».core
 
-kernel_rfl cert541 : certOf 541 = (Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».cert.withPows Data.powTree)
+kernel_rfl cert541 : certOf 541 = (Fn.«level_residual__L32_L7_L4_L2».cert.withPows Data.powTree)
 
-kernel_rfl sigBody541 : sigFrom Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».code Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».core (Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».cert.withPows Data.powTree) = Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».sig
+kernel_rfl sigBody541 : sigFrom Fn.«level_residual__L32_L7_L4_L2».code Fn.«level_residual__L32_L7_L4_L2».core (Fn.«level_residual__L32_L7_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L32_L7_L4_L2».sig
 
-theorem sig541 : glob.sig 541 = Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».sig := sig_of_link code541 core541 cert541 sigBody541
+theorem sig541 : glob.sig 541 = Fn.«level_residual__L32_L7_L4_L2».sig := sig_of_link code541 core541 cert541 sigBody541
 
-kernel_rfl plumbEq541 : B2C.plumbOf 541 = Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».plumb
+kernel_rfl plumbEq541 : B2C.plumbOf 541 = Fn.«level_residual__L32_L7_L4_L2».plumb
 
-kernel_rfl fsEq541 : B2C.fsN 541 = Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».fs
+kernel_rfl fsEq541 : B2C.fsN 541 = Fn.«level_residual__L32_L7_L4_L2».fs
 
-kernel_rfl partsEq541 : B2C.cplPartsOf 541 = Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».parts
+kernel_rfl partsEq541 : B2C.cplPartsOf 541 = Fn.«level_residual__L32_L7_L4_L2».parts
 
-kernel_rfl armsEq541 : listElementOrDefault Data.cplArms 541 [] = Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».arms
+kernel_rfl armsEq541 : listElementOrDefault Data.cplArms 541 [] = Fn.«level_residual__L32_L7_L4_L2».arms
 
-kernel_rfl snapsEq541 : B2C.snapsOf 541 = Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».snaps
+kernel_rfl snapsEq541 : B2C.snapsOf 541 = Fn.«level_residual__L32_L7_L4_L2».snaps
 
-kernel_rfl code542 : fnOf 542 = Fn.«fold_final_msg__L3».code
+kernel_rfl code542 : fnOf 542 = Fn.«level_residual__L28_L7_L4_L2».code
 
-kernel_rfl core542 : coreOf 542 = Fn.«fold_final_msg__L3».core
+kernel_rfl core542 : coreOf 542 = Fn.«level_residual__L28_L7_L4_L2».core
 
-kernel_rfl cert542 : certOf 542 = (Fn.«fold_final_msg__L3».cert.withPows Data.powTree)
+kernel_rfl cert542 : certOf 542 = (Fn.«level_residual__L28_L7_L4_L2».cert.withPows Data.powTree)
 
-kernel_rfl sigBody542 : sigFrom Fn.«fold_final_msg__L3».code Fn.«fold_final_msg__L3».core (Fn.«fold_final_msg__L3».cert.withPows Data.powTree) = Fn.«fold_final_msg__L3».sig
+kernel_rfl sigBody542 : sigFrom Fn.«level_residual__L28_L7_L4_L2».code Fn.«level_residual__L28_L7_L4_L2».core (Fn.«level_residual__L28_L7_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L28_L7_L4_L2».sig
 
-theorem sig542 : glob.sig 542 = Fn.«fold_final_msg__L3».sig := sig_of_link code542 core542 cert542 sigBody542
+theorem sig542 : glob.sig 542 = Fn.«level_residual__L28_L7_L4_L2».sig := sig_of_link code542 core542 cert542 sigBody542
 
-kernel_rfl plumbEq542 : B2C.plumbOf 542 = Fn.«fold_final_msg__L3».plumb
+kernel_rfl plumbEq542 : B2C.plumbOf 542 = Fn.«level_residual__L28_L7_L4_L2».plumb
 
-kernel_rfl fsEq542 : B2C.fsN 542 = Fn.«fold_final_msg__L3».fs
+kernel_rfl fsEq542 : B2C.fsN 542 = Fn.«level_residual__L28_L7_L4_L2».fs
 
-kernel_rfl partsEq542 : B2C.cplPartsOf 542 = Fn.«fold_final_msg__L3».parts
+kernel_rfl partsEq542 : B2C.cplPartsOf 542 = Fn.«level_residual__L28_L7_L4_L2».parts
 
-kernel_rfl armsEq542 : listElementOrDefault Data.cplArms 542 [] = Fn.«fold_final_msg__L3».arms
+kernel_rfl armsEq542 : listElementOrDefault Data.cplArms 542 [] = Fn.«level_residual__L28_L7_L4_L2».arms
 
-kernel_rfl snapsEq542 : B2C.snapsOf 542 = Fn.«fold_final_msg__L3».snaps
+kernel_rfl snapsEq542 : B2C.snapsOf 542 = Fn.«level_residual__L28_L7_L4_L2».snaps
 
-kernel_rfl code543 : fnOf 543 = Fn.«level_residual__L218_L15_L6_L3».code
+kernel_rfl code543 : fnOf 543 = Fn.«level_residual__L25_L7_L4_L2».code
 
-kernel_rfl core543 : coreOf 543 = Fn.«level_residual__L218_L15_L6_L3».core
+kernel_rfl core543 : coreOf 543 = Fn.«level_residual__L25_L7_L4_L2».core
 
-kernel_rfl cert543 : certOf 543 = (Fn.«level_residual__L218_L15_L6_L3».cert.withPows Data.powTree)
+kernel_rfl cert543 : certOf 543 = (Fn.«level_residual__L25_L7_L4_L2».cert.withPows Data.powTree)
 
-kernel_rfl sigBody543 : sigFrom Fn.«level_residual__L218_L15_L6_L3».code Fn.«level_residual__L218_L15_L6_L3».core (Fn.«level_residual__L218_L15_L6_L3».cert.withPows Data.powTree) = Fn.«level_residual__L218_L15_L6_L3».sig
+kernel_rfl sigBody543 : sigFrom Fn.«level_residual__L25_L7_L4_L2».code Fn.«level_residual__L25_L7_L4_L2».core (Fn.«level_residual__L25_L7_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L25_L7_L4_L2».sig
 
-theorem sig543 : glob.sig 543 = Fn.«level_residual__L218_L15_L6_L3».sig := sig_of_link code543 core543 cert543 sigBody543
+theorem sig543 : glob.sig 543 = Fn.«level_residual__L25_L7_L4_L2».sig := sig_of_link code543 core543 cert543 sigBody543
 
-kernel_rfl plumbEq543 : B2C.plumbOf 543 = Fn.«level_residual__L218_L15_L6_L3».plumb
+kernel_rfl plumbEq543 : B2C.plumbOf 543 = Fn.«level_residual__L25_L7_L4_L2».plumb
 
-kernel_rfl fsEq543 : B2C.fsN 543 = Fn.«level_residual__L218_L15_L6_L3».fs
+kernel_rfl fsEq543 : B2C.fsN 543 = Fn.«level_residual__L25_L7_L4_L2».fs
 
-kernel_rfl partsEq543 : B2C.cplPartsOf 543 = Fn.«level_residual__L218_L15_L6_L3».parts
+kernel_rfl partsEq543 : B2C.cplPartsOf 543 = Fn.«level_residual__L25_L7_L4_L2».parts
 
-kernel_rfl armsEq543 : listElementOrDefault Data.cplArms 543 [] = Fn.«level_residual__L218_L15_L6_L3».arms
+kernel_rfl armsEq543 : listElementOrDefault Data.cplArms 543 [] = Fn.«level_residual__L25_L7_L4_L2».arms
 
-kernel_rfl snapsEq543 : B2C.snapsOf 543 = Fn.«level_residual__L218_L15_L6_L3».snaps
+kernel_rfl snapsEq543 : B2C.snapsOf 543 = Fn.«level_residual__L25_L7_L4_L2».snaps
 
-kernel_rfl code544 : fnOf 544 = Fn.«level_residual__L109_L15_L6_L3».code
+kernel_rfl code544 : fnOf 544 = Fn.«level_residual__L23_L7_L4_L2».code
 
-kernel_rfl core544 : coreOf 544 = Fn.«level_residual__L109_L15_L6_L3».core
+kernel_rfl core544 : coreOf 544 = Fn.«level_residual__L23_L7_L4_L2».core
 
-kernel_rfl cert544 : certOf 544 = (Fn.«level_residual__L109_L15_L6_L3».cert.withPows Data.powTree)
+kernel_rfl cert544 : certOf 544 = (Fn.«level_residual__L23_L7_L4_L2».cert.withPows Data.powTree)
 
-kernel_rfl sigBody544 : sigFrom Fn.«level_residual__L109_L15_L6_L3».code Fn.«level_residual__L109_L15_L6_L3».core (Fn.«level_residual__L109_L15_L6_L3».cert.withPows Data.powTree) = Fn.«level_residual__L109_L15_L6_L3».sig
+kernel_rfl sigBody544 : sigFrom Fn.«level_residual__L23_L7_L4_L2».code Fn.«level_residual__L23_L7_L4_L2».core (Fn.«level_residual__L23_L7_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L23_L7_L4_L2».sig
 
-theorem sig544 : glob.sig 544 = Fn.«level_residual__L109_L15_L6_L3».sig := sig_of_link code544 core544 cert544 sigBody544
+theorem sig544 : glob.sig 544 = Fn.«level_residual__L23_L7_L4_L2».sig := sig_of_link code544 core544 cert544 sigBody544
 
-kernel_rfl plumbEq544 : B2C.plumbOf 544 = Fn.«level_residual__L109_L15_L6_L3».plumb
+kernel_rfl plumbEq544 : B2C.plumbOf 544 = Fn.«level_residual__L23_L7_L4_L2».plumb
 
-kernel_rfl fsEq544 : B2C.fsN 544 = Fn.«level_residual__L109_L15_L6_L3».fs
+kernel_rfl fsEq544 : B2C.fsN 544 = Fn.«level_residual__L23_L7_L4_L2».fs
 
-kernel_rfl partsEq544 : B2C.cplPartsOf 544 = Fn.«level_residual__L109_L15_L6_L3».parts
+kernel_rfl partsEq544 : B2C.cplPartsOf 544 = Fn.«level_residual__L23_L7_L4_L2».parts
 
-kernel_rfl armsEq544 : listElementOrDefault Data.cplArms 544 [] = Fn.«level_residual__L109_L15_L6_L3».arms
+kernel_rfl armsEq544 : listElementOrDefault Data.cplArms 544 [] = Fn.«level_residual__L23_L7_L4_L2».arms
 
-kernel_rfl snapsEq544 : B2C.snapsOf 544 = Fn.«level_residual__L109_L15_L6_L3».snaps
+kernel_rfl snapsEq544 : B2C.snapsOf 544 = Fn.«level_residual__L23_L7_L4_L2».snaps
 
-kernel_rfl code545 : fnOf 545 = Fn.«level_residual__L73_L15_L6_L3».code
+kernel_rfl code545 : fnOf 545 = Fn.«squeeze_point_from__L16».code
 
-kernel_rfl core545 : coreOf 545 = Fn.«level_residual__L73_L15_L6_L3».core
+kernel_rfl core545 : coreOf 545 = Fn.«squeeze_point_from__L16».core
 
-kernel_rfl cert545 : certOf 545 = (Fn.«level_residual__L73_L15_L6_L3».cert.withPows Data.powTree)
+kernel_rfl cert545 : certOf 545 = (Fn.«squeeze_point_from__L16».cert.withPows Data.powTree)
 
-kernel_rfl sigBody545 : sigFrom Fn.«level_residual__L73_L15_L6_L3».code Fn.«level_residual__L73_L15_L6_L3».core (Fn.«level_residual__L73_L15_L6_L3».cert.withPows Data.powTree) = Fn.«level_residual__L73_L15_L6_L3».sig
+kernel_rfl sigBody545 : sigFrom Fn.«squeeze_point_from__L16».code Fn.«squeeze_point_from__L16».core (Fn.«squeeze_point_from__L16».cert.withPows Data.powTree) = Fn.«squeeze_point_from__L16».sig
 
-theorem sig545 : glob.sig 545 = Fn.«level_residual__L73_L15_L6_L3».sig := sig_of_link code545 core545 cert545 sigBody545
+theorem sig545 : glob.sig 545 = Fn.«squeeze_point_from__L16».sig := sig_of_link code545 core545 cert545 sigBody545
 
-kernel_rfl plumbEq545 : B2C.plumbOf 545 = Fn.«level_residual__L73_L15_L6_L3».plumb
+kernel_rfl plumbEq545 : B2C.plumbOf 545 = Fn.«squeeze_point_from__L16».plumb
 
-kernel_rfl fsEq545 : B2C.fsN 545 = Fn.«level_residual__L73_L15_L6_L3».fs
+kernel_rfl fsEq545 : B2C.fsN 545 = Fn.«squeeze_point_from__L16».fs
 
-kernel_rfl partsEq545 : B2C.cplPartsOf 545 = Fn.«level_residual__L73_L15_L6_L3».parts
+kernel_rfl partsEq545 : B2C.cplPartsOf 545 = Fn.«squeeze_point_from__L16».parts
 
-kernel_rfl armsEq545 : listElementOrDefault Data.cplArms 545 [] = Fn.«level_residual__L73_L15_L6_L3».arms
+kernel_rfl armsEq545 : listElementOrDefault Data.cplArms 545 [] = Fn.«squeeze_point_from__L16».arms
 
-kernel_rfl snapsEq545 : B2C.snapsOf 545 = Fn.«level_residual__L73_L15_L6_L3».snaps
+kernel_rfl snapsEq545 : B2C.snapsOf 545 = Fn.«squeeze_point_from__L16».snaps
 
-kernel_rfl code546 : fnOf 546 = Fn.«level_residual__L55_L15_L6_L3».code
+kernel_rfl code546 : fnOf 546 = Fn.«level_positions__L32_L17_L5».code
 
-kernel_rfl core546 : coreOf 546 = Fn.«level_residual__L55_L15_L6_L3».core
+kernel_rfl core546 : coreOf 546 = Fn.«level_positions__L32_L17_L5».core
 
-kernel_rfl cert546 : certOf 546 = (Fn.«level_residual__L55_L15_L6_L3».cert.withPows Data.powTree)
+kernel_rfl cert546 : certOf 546 = (Fn.«level_positions__L32_L17_L5».cert.withPows Data.powTree)
 
-kernel_rfl sigBody546 : sigFrom Fn.«level_residual__L55_L15_L6_L3».code Fn.«level_residual__L55_L15_L6_L3».core (Fn.«level_residual__L55_L15_L6_L3».cert.withPows Data.powTree) = Fn.«level_residual__L55_L15_L6_L3».sig
+kernel_rfl sigBody546 : sigFrom Fn.«level_positions__L32_L17_L5».code Fn.«level_positions__L32_L17_L5».core (Fn.«level_positions__L32_L17_L5».cert.withPows Data.powTree) = Fn.«level_positions__L32_L17_L5».sig
 
-theorem sig546 : glob.sig 546 = Fn.«level_residual__L55_L15_L6_L3».sig := sig_of_link code546 core546 cert546 sigBody546
+theorem sig546 : glob.sig 546 = Fn.«level_positions__L32_L17_L5».sig := sig_of_link code546 core546 cert546 sigBody546
 
-kernel_rfl plumbEq546 : B2C.plumbOf 546 = Fn.«level_residual__L55_L15_L6_L3».plumb
+kernel_rfl plumbEq546 : B2C.plumbOf 546 = Fn.«level_positions__L32_L17_L5».plumb
 
-kernel_rfl fsEq546 : B2C.fsN 546 = Fn.«level_residual__L55_L15_L6_L3».fs
+kernel_rfl fsEq546 : B2C.fsN 546 = Fn.«level_positions__L32_L17_L5».fs
 
-kernel_rfl partsEq546 : B2C.cplPartsOf 546 = Fn.«level_residual__L55_L15_L6_L3».parts
+kernel_rfl partsEq546 : B2C.cplPartsOf 546 = Fn.«level_positions__L32_L17_L5».parts
 
-kernel_rfl armsEq546 : listElementOrDefault Data.cplArms 546 [] = Fn.«level_residual__L55_L15_L6_L3».arms
+kernel_rfl armsEq546 : listElementOrDefault Data.cplArms 546 [] = Fn.«level_positions__L32_L17_L5».arms
 
-kernel_rfl snapsEq546 : B2C.snapsOf 546 = Fn.«level_residual__L55_L15_L6_L3».snaps
+kernel_rfl snapsEq546 : B2C.snapsOf 546 = Fn.«level_positions__L32_L17_L5».snaps
 
-kernel_rfl code547 : fnOf 547 = Fn.«level_residual__L55_L11_L4_L2».code
+kernel_rfl code547 : fnOf 547 = Fn.«level_positions__L16_L18_L6».code
 
-kernel_rfl core547 : coreOf 547 = Fn.«level_residual__L55_L11_L4_L2».core
+kernel_rfl core547 : coreOf 547 = Fn.«level_positions__L16_L18_L6».core
 
-kernel_rfl cert547 : certOf 547 = (Fn.«level_residual__L55_L11_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert547 : certOf 547 = (Fn.«level_positions__L16_L18_L6».cert.withPows Data.powTree)
 
-kernel_rfl sigBody547 : sigFrom Fn.«level_residual__L55_L11_L4_L2».code Fn.«level_residual__L55_L11_L4_L2».core (Fn.«level_residual__L55_L11_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L55_L11_L4_L2».sig
+kernel_rfl sigBody547 : sigFrom Fn.«level_positions__L16_L18_L6».code Fn.«level_positions__L16_L18_L6».core (Fn.«level_positions__L16_L18_L6».cert.withPows Data.powTree) = Fn.«level_positions__L16_L18_L6».sig
 
-theorem sig547 : glob.sig 547 = Fn.«level_residual__L55_L11_L4_L2».sig := sig_of_link code547 core547 cert547 sigBody547
+theorem sig547 : glob.sig 547 = Fn.«level_positions__L16_L18_L6».sig := sig_of_link code547 core547 cert547 sigBody547
 
-kernel_rfl plumbEq547 : B2C.plumbOf 547 = Fn.«level_residual__L55_L11_L4_L2».plumb
+kernel_rfl plumbEq547 : B2C.plumbOf 547 = Fn.«level_positions__L16_L18_L6».plumb
 
-kernel_rfl fsEq547 : B2C.fsN 547 = Fn.«level_residual__L55_L11_L4_L2».fs
+kernel_rfl fsEq547 : B2C.fsN 547 = Fn.«level_positions__L16_L18_L6».fs
 
-kernel_rfl partsEq547 : B2C.cplPartsOf 547 = Fn.«level_residual__L55_L11_L4_L2».parts
+kernel_rfl partsEq547 : B2C.cplPartsOf 547 = Fn.«level_positions__L16_L18_L6».parts
 
-kernel_rfl armsEq547 : listElementOrDefault Data.cplArms 547 [] = Fn.«level_residual__L55_L11_L4_L2».arms
+kernel_rfl armsEq547 : listElementOrDefault Data.cplArms 547 [] = Fn.«level_positions__L16_L18_L6».arms
 
-kernel_rfl snapsEq547 : B2C.snapsOf 547 = Fn.«level_residual__L55_L11_L4_L2».snaps
+kernel_rfl snapsEq547 : B2C.snapsOf 547 = Fn.«level_positions__L16_L18_L6».snaps
 
-kernel_rfl code548 : fnOf 548 = Fn.«level_residual__L44_L11_L4_L2».code
+kernel_rfl code548 : fnOf 548 = Fn.«level_positions__L13_L19_L7».code
 
-kernel_rfl core548 : coreOf 548 = Fn.«level_residual__L44_L11_L4_L2».core
+kernel_rfl core548 : coreOf 548 = Fn.«level_positions__L13_L19_L7».core
 
-kernel_rfl cert548 : certOf 548 = (Fn.«level_residual__L44_L11_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert548 : certOf 548 = (Fn.«level_positions__L13_L19_L7».cert.withPows Data.powTree)
 
-kernel_rfl sigBody548 : sigFrom Fn.«level_residual__L44_L11_L4_L2».code Fn.«level_residual__L44_L11_L4_L2».core (Fn.«level_residual__L44_L11_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L44_L11_L4_L2».sig
+kernel_rfl sigBody548 : sigFrom Fn.«level_positions__L13_L19_L7».code Fn.«level_positions__L13_L19_L7».core (Fn.«level_positions__L13_L19_L7».cert.withPows Data.powTree) = Fn.«level_positions__L13_L19_L7».sig
 
-theorem sig548 : glob.sig 548 = Fn.«level_residual__L44_L11_L4_L2».sig := sig_of_link code548 core548 cert548 sigBody548
+theorem sig548 : glob.sig 548 = Fn.«level_positions__L13_L19_L7».sig := sig_of_link code548 core548 cert548 sigBody548
 
-kernel_rfl plumbEq548 : B2C.plumbOf 548 = Fn.«level_residual__L44_L11_L4_L2».plumb
+kernel_rfl plumbEq548 : B2C.plumbOf 548 = Fn.«level_positions__L13_L19_L7».plumb
 
-kernel_rfl fsEq548 : B2C.fsN 548 = Fn.«level_residual__L44_L11_L4_L2».fs
+kernel_rfl fsEq548 : B2C.fsN 548 = Fn.«level_positions__L13_L19_L7».fs
 
-kernel_rfl partsEq548 : B2C.cplPartsOf 548 = Fn.«level_residual__L44_L11_L4_L2».parts
+kernel_rfl partsEq548 : B2C.cplPartsOf 548 = Fn.«level_positions__L13_L19_L7».parts
 
-kernel_rfl armsEq548 : listElementOrDefault Data.cplArms 548 [] = Fn.«level_residual__L44_L11_L4_L2».arms
+kernel_rfl armsEq548 : listElementOrDefault Data.cplArms 548 [] = Fn.«level_positions__L13_L19_L7».arms
 
-kernel_rfl snapsEq548 : B2C.snapsOf 548 = Fn.«level_residual__L44_L11_L4_L2».snaps
+kernel_rfl snapsEq548 : B2C.snapsOf 548 = Fn.«level_positions__L13_L19_L7».snaps
 
-kernel_rfl code549 : fnOf 549 = Fn.«level_residual__L37_L11_L4_L2».code
+kernel_rfl code549 : fnOf 549 = Fn.«level_positions__L10_L20_L2».code
 
-kernel_rfl core549 : coreOf 549 = Fn.«level_residual__L37_L11_L4_L2».core
+kernel_rfl core549 : coreOf 549 = Fn.«level_positions__L10_L20_L2».core
 
-kernel_rfl cert549 : certOf 549 = (Fn.«level_residual__L37_L11_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert549 : certOf 549 = (Fn.«level_positions__L10_L20_L2».cert.withPows Data.powTree)
 
-kernel_rfl sigBody549 : sigFrom Fn.«level_residual__L37_L11_L4_L2».code Fn.«level_residual__L37_L11_L4_L2».core (Fn.«level_residual__L37_L11_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L37_L11_L4_L2».sig
+kernel_rfl sigBody549 : sigFrom Fn.«level_positions__L10_L20_L2».code Fn.«level_positions__L10_L20_L2».core (Fn.«level_positions__L10_L20_L2».cert.withPows Data.powTree) = Fn.«level_positions__L10_L20_L2».sig
 
-theorem sig549 : glob.sig 549 = Fn.«level_residual__L37_L11_L4_L2».sig := sig_of_link code549 core549 cert549 sigBody549
+theorem sig549 : glob.sig 549 = Fn.«level_positions__L10_L20_L2».sig := sig_of_link code549 core549 cert549 sigBody549
 
-kernel_rfl plumbEq549 : B2C.plumbOf 549 = Fn.«level_residual__L37_L11_L4_L2».plumb
+kernel_rfl plumbEq549 : B2C.plumbOf 549 = Fn.«level_positions__L10_L20_L2».plumb
 
-kernel_rfl fsEq549 : B2C.fsN 549 = Fn.«level_residual__L37_L11_L4_L2».fs
+kernel_rfl fsEq549 : B2C.fsN 549 = Fn.«level_positions__L10_L20_L2».fs
 
-kernel_rfl partsEq549 : B2C.cplPartsOf 549 = Fn.«level_residual__L37_L11_L4_L2».parts
+kernel_rfl partsEq549 : B2C.cplPartsOf 549 = Fn.«level_positions__L10_L20_L2».parts
 
-kernel_rfl armsEq549 : listElementOrDefault Data.cplArms 549 [] = Fn.«level_residual__L37_L11_L4_L2».arms
+kernel_rfl armsEq549 : listElementOrDefault Data.cplArms 549 [] = Fn.«level_positions__L10_L20_L2».arms
 
-kernel_rfl snapsEq549 : B2C.snapsOf 549 = Fn.«level_residual__L37_L11_L4_L2».snaps
+kernel_rfl snapsEq549 : B2C.snapsOf 549 = Fn.«level_positions__L10_L20_L2».snaps
 
-kernel_rfl code550 : fnOf 550 = Fn.«level_residual__L32_L11_L4_L2».code
+kernel_rfl code550 : fnOf 550 = Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».code
 
-kernel_rfl core550 : coreOf 550 = Fn.«level_residual__L32_L11_L4_L2».core
+kernel_rfl core550 : coreOf 550 = Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».core
 
-kernel_rfl cert550 : certOf 550 = (Fn.«level_residual__L32_L11_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert550 : certOf 550 = (Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody550 : sigFrom Fn.«level_residual__L32_L11_L4_L2».code Fn.«level_residual__L32_L11_L4_L2».core (Fn.«level_residual__L32_L11_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L32_L11_L4_L2».sig
+kernel_rfl sigBody550 : sigFrom Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».code Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».core (Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».sig
 
-theorem sig550 : glob.sig 550 = Fn.«level_residual__L32_L11_L4_L2».sig := sig_of_link code550 core550 cert550 sigBody550
+theorem sig550 : glob.sig 550 = Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».sig := sig_of_link code550 core550 cert550 sigBody550
 
-kernel_rfl plumbEq550 : B2C.plumbOf 550 = Fn.«level_residual__L32_L11_L4_L2».plumb
+kernel_rfl plumbEq550 : B2C.plumbOf 550 = Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq550 : B2C.fsN 550 = Fn.«level_residual__L32_L11_L4_L2».fs
+kernel_rfl fsEq550 : B2C.fsN 550 = Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq550 : B2C.cplPartsOf 550 = Fn.«level_residual__L32_L11_L4_L2».parts
+kernel_rfl partsEq550 : B2C.cplPartsOf 550 = Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq550 : listElementOrDefault Data.cplArms 550 [] = Fn.«level_residual__L32_L11_L4_L2».arms
+kernel_rfl armsEq550 : listElementOrDefault Data.cplArms 550 [] = Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq550 : B2C.snapsOf 550 = Fn.«level_residual__L32_L11_L4_L2».snaps
+kernel_rfl snapsEq550 : B2C.snapsOf 550 = Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».snaps
 
-kernel_rfl code551 : fnOf 551 = Fn.«level_residual__L32_L7_L4_L2».code
+kernel_rfl code551 : fnOf 551 = Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».code
 
-kernel_rfl core551 : coreOf 551 = Fn.«level_residual__L32_L7_L4_L2».core
+kernel_rfl core551 : coreOf 551 = Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».core
 
-kernel_rfl cert551 : certOf 551 = (Fn.«level_residual__L32_L7_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert551 : certOf 551 = (Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody551 : sigFrom Fn.«level_residual__L32_L7_L4_L2».code Fn.«level_residual__L32_L7_L4_L2».core (Fn.«level_residual__L32_L7_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L32_L7_L4_L2».sig
+kernel_rfl sigBody551 : sigFrom Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».code Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».core (Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig
 
-theorem sig551 : glob.sig 551 = Fn.«level_residual__L32_L7_L4_L2».sig := sig_of_link code551 core551 cert551 sigBody551
+theorem sig551 : glob.sig 551 = Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig := sig_of_link code551 core551 cert551 sigBody551
 
-kernel_rfl plumbEq551 : B2C.plumbOf 551 = Fn.«level_residual__L32_L7_L4_L2».plumb
+kernel_rfl plumbEq551 : B2C.plumbOf 551 = Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq551 : B2C.fsN 551 = Fn.«level_residual__L32_L7_L4_L2».fs
+kernel_rfl fsEq551 : B2C.fsN 551 = Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq551 : B2C.cplPartsOf 551 = Fn.«level_residual__L32_L7_L4_L2».parts
+kernel_rfl partsEq551 : B2C.cplPartsOf 551 = Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq551 : listElementOrDefault Data.cplArms 551 [] = Fn.«level_residual__L32_L7_L4_L2».arms
+kernel_rfl armsEq551 : listElementOrDefault Data.cplArms 551 [] = Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq551 : B2C.snapsOf 551 = Fn.«level_residual__L32_L7_L4_L2».snaps
+kernel_rfl snapsEq551 : B2C.snapsOf 551 = Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».snaps
 
-kernel_rfl code552 : fnOf 552 = Fn.«level_residual__L28_L7_L4_L2».code
+kernel_rfl code552 : fnOf 552 = Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».code
 
-kernel_rfl core552 : coreOf 552 = Fn.«level_residual__L28_L7_L4_L2».core
+kernel_rfl core552 : coreOf 552 = Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».core
 
-kernel_rfl cert552 : certOf 552 = (Fn.«level_residual__L28_L7_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert552 : certOf 552 = (Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody552 : sigFrom Fn.«level_residual__L28_L7_L4_L2».code Fn.«level_residual__L28_L7_L4_L2».core (Fn.«level_residual__L28_L7_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L28_L7_L4_L2».sig
+kernel_rfl sigBody552 : sigFrom Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».code Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».core (Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig
 
-theorem sig552 : glob.sig 552 = Fn.«level_residual__L28_L7_L4_L2».sig := sig_of_link code552 core552 cert552 sigBody552
+theorem sig552 : glob.sig 552 = Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig := sig_of_link code552 core552 cert552 sigBody552
 
-kernel_rfl plumbEq552 : B2C.plumbOf 552 = Fn.«level_residual__L28_L7_L4_L2».plumb
+kernel_rfl plumbEq552 : B2C.plumbOf 552 = Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq552 : B2C.fsN 552 = Fn.«level_residual__L28_L7_L4_L2».fs
+kernel_rfl fsEq552 : B2C.fsN 552 = Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq552 : B2C.cplPartsOf 552 = Fn.«level_residual__L28_L7_L4_L2».parts
+kernel_rfl partsEq552 : B2C.cplPartsOf 552 = Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq552 : listElementOrDefault Data.cplArms 552 [] = Fn.«level_residual__L28_L7_L4_L2».arms
+kernel_rfl armsEq552 : listElementOrDefault Data.cplArms 552 [] = Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq552 : B2C.snapsOf 552 = Fn.«level_residual__L28_L7_L4_L2».snaps
+kernel_rfl snapsEq552 : B2C.snapsOf 552 = Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».snaps
 
-kernel_rfl code553 : fnOf 553 = Fn.«level_residual__L25_L7_L4_L2».code
+kernel_rfl code553 : fnOf 553 = Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».code
 
-kernel_rfl core553 : coreOf 553 = Fn.«level_residual__L25_L7_L4_L2».core
+kernel_rfl core553 : coreOf 553 = Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».core
 
-kernel_rfl cert553 : certOf 553 = (Fn.«level_residual__L25_L7_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert553 : certOf 553 = (Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody553 : sigFrom Fn.«level_residual__L25_L7_L4_L2».code Fn.«level_residual__L25_L7_L4_L2».core (Fn.«level_residual__L25_L7_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L25_L7_L4_L2».sig
+kernel_rfl sigBody553 : sigFrom Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».code Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».core (Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».sig
 
-theorem sig553 : glob.sig 553 = Fn.«level_residual__L25_L7_L4_L2».sig := sig_of_link code553 core553 cert553 sigBody553
+theorem sig553 : glob.sig 553 = Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».sig := sig_of_link code553 core553 cert553 sigBody553
 
-kernel_rfl plumbEq553 : B2C.plumbOf 553 = Fn.«level_residual__L25_L7_L4_L2».plumb
+kernel_rfl plumbEq553 : B2C.plumbOf 553 = Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq553 : B2C.fsN 553 = Fn.«level_residual__L25_L7_L4_L2».fs
+kernel_rfl fsEq553 : B2C.fsN 553 = Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq553 : B2C.cplPartsOf 553 = Fn.«level_residual__L25_L7_L4_L2».parts
+kernel_rfl partsEq553 : B2C.cplPartsOf 553 = Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq553 : listElementOrDefault Data.cplArms 553 [] = Fn.«level_residual__L25_L7_L4_L2».arms
+kernel_rfl armsEq553 : listElementOrDefault Data.cplArms 553 [] = Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq553 : B2C.snapsOf 553 = Fn.«level_residual__L25_L7_L4_L2».snaps
+kernel_rfl snapsEq553 : B2C.snapsOf 553 = Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».snaps
 
-kernel_rfl code554 : fnOf 554 = Fn.«level_residual__L23_L7_L4_L2».code
+kernel_rfl code554 : fnOf 554 = Fn.«squeeze_point_from__L12».code
 
-kernel_rfl core554 : coreOf 554 = Fn.«level_residual__L23_L7_L4_L2».core
+kernel_rfl core554 : coreOf 554 = Fn.«squeeze_point_from__L12».core
 
-kernel_rfl cert554 : certOf 554 = (Fn.«level_residual__L23_L7_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert554 : certOf 554 = (Fn.«squeeze_point_from__L12».cert.withPows Data.powTree)
 
-kernel_rfl sigBody554 : sigFrom Fn.«level_residual__L23_L7_L4_L2».code Fn.«level_residual__L23_L7_L4_L2».core (Fn.«level_residual__L23_L7_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L23_L7_L4_L2».sig
+kernel_rfl sigBody554 : sigFrom Fn.«squeeze_point_from__L12».code Fn.«squeeze_point_from__L12».core (Fn.«squeeze_point_from__L12».cert.withPows Data.powTree) = Fn.«squeeze_point_from__L12».sig
 
-theorem sig554 : glob.sig 554 = Fn.«level_residual__L23_L7_L4_L2».sig := sig_of_link code554 core554 cert554 sigBody554
+theorem sig554 : glob.sig 554 = Fn.«squeeze_point_from__L12».sig := sig_of_link code554 core554 cert554 sigBody554
 
-kernel_rfl plumbEq554 : B2C.plumbOf 554 = Fn.«level_residual__L23_L7_L4_L2».plumb
+kernel_rfl plumbEq554 : B2C.plumbOf 554 = Fn.«squeeze_point_from__L12».plumb
 
-kernel_rfl fsEq554 : B2C.fsN 554 = Fn.«level_residual__L23_L7_L4_L2».fs
+kernel_rfl fsEq554 : B2C.fsN 554 = Fn.«squeeze_point_from__L12».fs
 
-kernel_rfl partsEq554 : B2C.cplPartsOf 554 = Fn.«level_residual__L23_L7_L4_L2».parts
+kernel_rfl partsEq554 : B2C.cplPartsOf 554 = Fn.«squeeze_point_from__L12».parts
 
-kernel_rfl armsEq554 : listElementOrDefault Data.cplArms 554 [] = Fn.«level_residual__L23_L7_L4_L2».arms
+kernel_rfl armsEq554 : listElementOrDefault Data.cplArms 554 [] = Fn.«squeeze_point_from__L12».arms
 
-kernel_rfl snapsEq554 : B2C.snapsOf 554 = Fn.«level_residual__L23_L7_L4_L2».snaps
+kernel_rfl snapsEq554 : B2C.snapsOf 554 = Fn.«squeeze_point_from__L12».snaps
 
-kernel_rfl code555 : fnOf 555 = Fn.«squeeze_point_from__L16».code
+kernel_rfl code555 : fnOf 555 = Fn.«level_positions__L7_L16_L4».code
 
-kernel_rfl core555 : coreOf 555 = Fn.«squeeze_point_from__L16».core
+kernel_rfl core555 : coreOf 555 = Fn.«level_positions__L7_L16_L4».core
 
-kernel_rfl cert555 : certOf 555 = (Fn.«squeeze_point_from__L16».cert.withPows Data.powTree)
+kernel_rfl cert555 : certOf 555 = (Fn.«level_positions__L7_L16_L4».cert.withPows Data.powTree)
 
-kernel_rfl sigBody555 : sigFrom Fn.«squeeze_point_from__L16».code Fn.«squeeze_point_from__L16».core (Fn.«squeeze_point_from__L16».cert.withPows Data.powTree) = Fn.«squeeze_point_from__L16».sig
+kernel_rfl sigBody555 : sigFrom Fn.«level_positions__L7_L16_L4».code Fn.«level_positions__L7_L16_L4».core (Fn.«level_positions__L7_L16_L4».cert.withPows Data.powTree) = Fn.«level_positions__L7_L16_L4».sig
 
-theorem sig555 : glob.sig 555 = Fn.«squeeze_point_from__L16».sig := sig_of_link code555 core555 cert555 sigBody555
+theorem sig555 : glob.sig 555 = Fn.«level_positions__L7_L16_L4».sig := sig_of_link code555 core555 cert555 sigBody555
 
-kernel_rfl plumbEq555 : B2C.plumbOf 555 = Fn.«squeeze_point_from__L16».plumb
+kernel_rfl plumbEq555 : B2C.plumbOf 555 = Fn.«level_positions__L7_L16_L4».plumb
 
-kernel_rfl fsEq555 : B2C.fsN 555 = Fn.«squeeze_point_from__L16».fs
+kernel_rfl fsEq555 : B2C.fsN 555 = Fn.«level_positions__L7_L16_L4».fs
 
-kernel_rfl partsEq555 : B2C.cplPartsOf 555 = Fn.«squeeze_point_from__L16».parts
+kernel_rfl partsEq555 : B2C.cplPartsOf 555 = Fn.«level_positions__L7_L16_L4».parts
 
-kernel_rfl armsEq555 : listElementOrDefault Data.cplArms 555 [] = Fn.«squeeze_point_from__L16».arms
+kernel_rfl armsEq555 : listElementOrDefault Data.cplArms 555 [] = Fn.«level_positions__L7_L16_L4».arms
 
-kernel_rfl snapsEq555 : B2C.snapsOf 555 = Fn.«squeeze_point_from__L16».snaps
+kernel_rfl snapsEq555 : B2C.snapsOf 555 = Fn.«level_positions__L7_L16_L4».snaps
 
-kernel_rfl code556 : fnOf 556 = Fn.«level_positions__L32_L17_L5».code
+kernel_rfl code556 : fnOf 556 = Fn.«level_positions__L7_L17_L5».code
 
-kernel_rfl core556 : coreOf 556 = Fn.«level_positions__L32_L17_L5».core
+kernel_rfl core556 : coreOf 556 = Fn.«level_positions__L7_L17_L5».core
 
-kernel_rfl cert556 : certOf 556 = (Fn.«level_positions__L32_L17_L5».cert.withPows Data.powTree)
+kernel_rfl cert556 : certOf 556 = (Fn.«level_positions__L7_L17_L5».cert.withPows Data.powTree)
 
-kernel_rfl sigBody556 : sigFrom Fn.«level_positions__L32_L17_L5».code Fn.«level_positions__L32_L17_L5».core (Fn.«level_positions__L32_L17_L5».cert.withPows Data.powTree) = Fn.«level_positions__L32_L17_L5».sig
+kernel_rfl sigBody556 : sigFrom Fn.«level_positions__L7_L17_L5».code Fn.«level_positions__L7_L17_L5».core (Fn.«level_positions__L7_L17_L5».cert.withPows Data.powTree) = Fn.«level_positions__L7_L17_L5».sig
 
-theorem sig556 : glob.sig 556 = Fn.«level_positions__L32_L17_L5».sig := sig_of_link code556 core556 cert556 sigBody556
+theorem sig556 : glob.sig 556 = Fn.«level_positions__L7_L17_L5».sig := sig_of_link code556 core556 cert556 sigBody556
 
-kernel_rfl plumbEq556 : B2C.plumbOf 556 = Fn.«level_positions__L32_L17_L5».plumb
+kernel_rfl plumbEq556 : B2C.plumbOf 556 = Fn.«level_positions__L7_L17_L5».plumb
 
-kernel_rfl fsEq556 : B2C.fsN 556 = Fn.«level_positions__L32_L17_L5».fs
+kernel_rfl fsEq556 : B2C.fsN 556 = Fn.«level_positions__L7_L17_L5».fs
 
-kernel_rfl partsEq556 : B2C.cplPartsOf 556 = Fn.«level_positions__L32_L17_L5».parts
+kernel_rfl partsEq556 : B2C.cplPartsOf 556 = Fn.«level_positions__L7_L17_L5».parts
 
-kernel_rfl armsEq556 : listElementOrDefault Data.cplArms 556 [] = Fn.«level_positions__L32_L17_L5».arms
+kernel_rfl armsEq556 : listElementOrDefault Data.cplArms 556 [] = Fn.«level_positions__L7_L17_L5».arms
 
-kernel_rfl snapsEq556 : B2C.snapsOf 556 = Fn.«level_positions__L32_L17_L5».snaps
+kernel_rfl snapsEq556 : B2C.snapsOf 556 = Fn.«level_positions__L7_L17_L5».snaps
 
-kernel_rfl code557 : fnOf 557 = Fn.«level_positions__L16_L18_L6».code
+kernel_rfl code557 : fnOf 557 = Fn.«level_positions__L6_L18_L6».code
 
-kernel_rfl core557 : coreOf 557 = Fn.«level_positions__L16_L18_L6».core
+kernel_rfl core557 : coreOf 557 = Fn.«level_positions__L6_L18_L6».core
 
-kernel_rfl cert557 : certOf 557 = (Fn.«level_positions__L16_L18_L6».cert.withPows Data.powTree)
+kernel_rfl cert557 : certOf 557 = (Fn.«level_positions__L6_L18_L6».cert.withPows Data.powTree)
 
-kernel_rfl sigBody557 : sigFrom Fn.«level_positions__L16_L18_L6».code Fn.«level_positions__L16_L18_L6».core (Fn.«level_positions__L16_L18_L6».cert.withPows Data.powTree) = Fn.«level_positions__L16_L18_L6».sig
+kernel_rfl sigBody557 : sigFrom Fn.«level_positions__L6_L18_L6».code Fn.«level_positions__L6_L18_L6».core (Fn.«level_positions__L6_L18_L6».cert.withPows Data.powTree) = Fn.«level_positions__L6_L18_L6».sig
 
-theorem sig557 : glob.sig 557 = Fn.«level_positions__L16_L18_L6».sig := sig_of_link code557 core557 cert557 sigBody557
+theorem sig557 : glob.sig 557 = Fn.«level_positions__L6_L18_L6».sig := sig_of_link code557 core557 cert557 sigBody557
 
-kernel_rfl plumbEq557 : B2C.plumbOf 557 = Fn.«level_positions__L16_L18_L6».plumb
+kernel_rfl plumbEq557 : B2C.plumbOf 557 = Fn.«level_positions__L6_L18_L6».plumb
 
-kernel_rfl fsEq557 : B2C.fsN 557 = Fn.«level_positions__L16_L18_L6».fs
+kernel_rfl fsEq557 : B2C.fsN 557 = Fn.«level_positions__L6_L18_L6».fs
 
-kernel_rfl partsEq557 : B2C.cplPartsOf 557 = Fn.«level_positions__L16_L18_L6».parts
+kernel_rfl partsEq557 : B2C.cplPartsOf 557 = Fn.«level_positions__L6_L18_L6».parts
 
-kernel_rfl armsEq557 : listElementOrDefault Data.cplArms 557 [] = Fn.«level_positions__L16_L18_L6».arms
+kernel_rfl armsEq557 : listElementOrDefault Data.cplArms 557 [] = Fn.«level_positions__L6_L18_L6».arms
 
-kernel_rfl snapsEq557 : B2C.snapsOf 557 = Fn.«level_positions__L16_L18_L6».snaps
+kernel_rfl snapsEq557 : B2C.snapsOf 557 = Fn.«level_positions__L6_L18_L6».snaps
 
-kernel_rfl code558 : fnOf 558 = Fn.«level_positions__L13_L19_L7».code
+kernel_rfl code558 : fnOf 558 = Fn.«level_positions__L6_L19_L7».code
 
-kernel_rfl core558 : coreOf 558 = Fn.«level_positions__L13_L19_L7».core
+kernel_rfl core558 : coreOf 558 = Fn.«level_positions__L6_L19_L7».core
 
-kernel_rfl cert558 : certOf 558 = (Fn.«level_positions__L13_L19_L7».cert.withPows Data.powTree)
+kernel_rfl cert558 : certOf 558 = (Fn.«level_positions__L6_L19_L7».cert.withPows Data.powTree)
 
-kernel_rfl sigBody558 : sigFrom Fn.«level_positions__L13_L19_L7».code Fn.«level_positions__L13_L19_L7».core (Fn.«level_positions__L13_L19_L7».cert.withPows Data.powTree) = Fn.«level_positions__L13_L19_L7».sig
+kernel_rfl sigBody558 : sigFrom Fn.«level_positions__L6_L19_L7».code Fn.«level_positions__L6_L19_L7».core (Fn.«level_positions__L6_L19_L7».cert.withPows Data.powTree) = Fn.«level_positions__L6_L19_L7».sig
 
-theorem sig558 : glob.sig 558 = Fn.«level_positions__L13_L19_L7».sig := sig_of_link code558 core558 cert558 sigBody558
+theorem sig558 : glob.sig 558 = Fn.«level_positions__L6_L19_L7».sig := sig_of_link code558 core558 cert558 sigBody558
 
-kernel_rfl plumbEq558 : B2C.plumbOf 558 = Fn.«level_positions__L13_L19_L7».plumb
+kernel_rfl plumbEq558 : B2C.plumbOf 558 = Fn.«level_positions__L6_L19_L7».plumb
 
-kernel_rfl fsEq558 : B2C.fsN 558 = Fn.«level_positions__L13_L19_L7».fs
+kernel_rfl fsEq558 : B2C.fsN 558 = Fn.«level_positions__L6_L19_L7».fs
 
-kernel_rfl partsEq558 : B2C.cplPartsOf 558 = Fn.«level_positions__L13_L19_L7».parts
+kernel_rfl partsEq558 : B2C.cplPartsOf 558 = Fn.«level_positions__L6_L19_L7».parts
 
-kernel_rfl armsEq558 : listElementOrDefault Data.cplArms 558 [] = Fn.«level_positions__L13_L19_L7».arms
+kernel_rfl armsEq558 : listElementOrDefault Data.cplArms 558 [] = Fn.«level_positions__L6_L19_L7».arms
 
-kernel_rfl snapsEq558 : B2C.snapsOf 558 = Fn.«level_positions__L13_L19_L7».snaps
+kernel_rfl snapsEq558 : B2C.snapsOf 558 = Fn.«level_positions__L6_L19_L7».snaps
 
-kernel_rfl code559 : fnOf 559 = Fn.«level_positions__L10_L20_L2».code
+kernel_rfl code559 : fnOf 559 = Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».code
 
-kernel_rfl core559 : coreOf 559 = Fn.«level_positions__L10_L20_L2».core
+kernel_rfl core559 : coreOf 559 = Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».core
 
-kernel_rfl cert559 : certOf 559 = (Fn.«level_positions__L10_L20_L2».cert.withPows Data.powTree)
+kernel_rfl cert559 : certOf 559 = (Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody559 : sigFrom Fn.«level_positions__L10_L20_L2».code Fn.«level_positions__L10_L20_L2».core (Fn.«level_positions__L10_L20_L2».cert.withPows Data.powTree) = Fn.«level_positions__L10_L20_L2».sig
+kernel_rfl sigBody559 : sigFrom Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».code Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».core (Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig
 
-theorem sig559 : glob.sig 559 = Fn.«level_positions__L10_L20_L2».sig := sig_of_link code559 core559 cert559 sigBody559
+theorem sig559 : glob.sig 559 = Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig := sig_of_link code559 core559 cert559 sigBody559
 
-kernel_rfl plumbEq559 : B2C.plumbOf 559 = Fn.«level_positions__L10_L20_L2».plumb
+kernel_rfl plumbEq559 : B2C.plumbOf 559 = Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq559 : B2C.fsN 559 = Fn.«level_positions__L10_L20_L2».fs
+kernel_rfl fsEq559 : B2C.fsN 559 = Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq559 : B2C.cplPartsOf 559 = Fn.«level_positions__L10_L20_L2».parts
+kernel_rfl partsEq559 : B2C.cplPartsOf 559 = Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq559 : listElementOrDefault Data.cplArms 559 [] = Fn.«level_positions__L10_L20_L2».arms
+kernel_rfl armsEq559 : listElementOrDefault Data.cplArms 559 [] = Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq559 : B2C.snapsOf 559 = Fn.«level_positions__L10_L20_L2».snaps
+kernel_rfl snapsEq559 : B2C.snapsOf 559 = Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».snaps
 
-kernel_rfl code560 : fnOf 560 = Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».code
+kernel_rfl code560 : fnOf 560 = Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».code
 
-kernel_rfl core560 : coreOf 560 = Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».core
+kernel_rfl core560 : coreOf 560 = Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».core
 
-kernel_rfl cert560 : certOf 560 = (Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert560 : certOf 560 = (Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody560 : sigFrom Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».code Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».core (Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».sig
+kernel_rfl sigBody560 : sigFrom Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».code Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».core (Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig
 
-theorem sig560 : glob.sig 560 = Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».sig := sig_of_link code560 core560 cert560 sigBody560
+theorem sig560 : glob.sig 560 = Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig := sig_of_link code560 core560 cert560 sigBody560
 
-kernel_rfl plumbEq560 : B2C.plumbOf 560 = Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq560 : B2C.plumbOf 560 = Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq560 : B2C.fsN 560 = Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».fs
+kernel_rfl fsEq560 : B2C.fsN 560 = Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq560 : B2C.cplPartsOf 560 = Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».parts
+kernel_rfl partsEq560 : B2C.cplPartsOf 560 = Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq560 : listElementOrDefault Data.cplArms 560 [] = Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».arms
+kernel_rfl armsEq560 : listElementOrDefault Data.cplArms 560 [] = Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq560 : B2C.snapsOf 560 = Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq560 : B2C.snapsOf 560 = Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».snaps
 
-kernel_rfl code561 : fnOf 561 = Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».code
+kernel_rfl code561 : fnOf 561 = Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».code
 
-kernel_rfl core561 : coreOf 561 = Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».core
+kernel_rfl core561 : coreOf 561 = Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».core
 
-kernel_rfl cert561 : certOf 561 = (Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert561 : certOf 561 = (Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody561 : sigFrom Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».code Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».core (Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig
+kernel_rfl sigBody561 : sigFrom Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».code Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».core (Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig
 
-theorem sig561 : glob.sig 561 = Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig := sig_of_link code561 core561 cert561 sigBody561
+theorem sig561 : glob.sig 561 = Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig := sig_of_link code561 core561 cert561 sigBody561
 
-kernel_rfl plumbEq561 : B2C.plumbOf 561 = Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq561 : B2C.plumbOf 561 = Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq561 : B2C.fsN 561 = Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».fs
+kernel_rfl fsEq561 : B2C.fsN 561 = Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq561 : B2C.cplPartsOf 561 = Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».parts
+kernel_rfl partsEq561 : B2C.cplPartsOf 561 = Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq561 : listElementOrDefault Data.cplArms 561 [] = Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».arms
+kernel_rfl armsEq561 : listElementOrDefault Data.cplArms 561 [] = Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq561 : B2C.snapsOf 561 = Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq561 : B2C.snapsOf 561 = Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».snaps
 
-kernel_rfl code562 : fnOf 562 = Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».code
+kernel_rfl code562 : fnOf 562 = Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».code
 
-kernel_rfl core562 : coreOf 562 = Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».core
+kernel_rfl core562 : coreOf 562 = Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».core
 
-kernel_rfl cert562 : certOf 562 = (Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert562 : certOf 562 = (Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody562 : sigFrom Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».code Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».core (Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig
+kernel_rfl sigBody562 : sigFrom Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».code Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».core (Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig
 
-theorem sig562 : glob.sig 562 = Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig := sig_of_link code562 core562 cert562 sigBody562
+theorem sig562 : glob.sig 562 = Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig := sig_of_link code562 core562 cert562 sigBody562
 
-kernel_rfl plumbEq562 : B2C.plumbOf 562 = Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq562 : B2C.plumbOf 562 = Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq562 : B2C.fsN 562 = Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».fs
+kernel_rfl fsEq562 : B2C.fsN 562 = Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq562 : B2C.cplPartsOf 562 = Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».parts
+kernel_rfl partsEq562 : B2C.cplPartsOf 562 = Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq562 : listElementOrDefault Data.cplArms 562 [] = Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».arms
+kernel_rfl armsEq562 : listElementOrDefault Data.cplArms 562 [] = Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq562 : B2C.snapsOf 562 = Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq562 : B2C.snapsOf 562 = Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».snaps
 
-kernel_rfl code563 : fnOf 563 = Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».code
+kernel_rfl code563 : fnOf 563 = Fn.«squeeze_point_from__L8».code
 
-kernel_rfl core563 : coreOf 563 = Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».core
+kernel_rfl core563 : coreOf 563 = Fn.«squeeze_point_from__L8».core
 
-kernel_rfl cert563 : certOf 563 = (Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert563 : certOf 563 = (Fn.«squeeze_point_from__L8».cert.withPows Data.powTree)
 
-kernel_rfl sigBody563 : sigFrom Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».code Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».core (Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».sig
+kernel_rfl sigBody563 : sigFrom Fn.«squeeze_point_from__L8».code Fn.«squeeze_point_from__L8».core (Fn.«squeeze_point_from__L8».cert.withPows Data.powTree) = Fn.«squeeze_point_from__L8».sig
 
-theorem sig563 : glob.sig 563 = Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».sig := sig_of_link code563 core563 cert563 sigBody563
+theorem sig563 : glob.sig 563 = Fn.«squeeze_point_from__L8».sig := sig_of_link code563 core563 cert563 sigBody563
 
-kernel_rfl plumbEq563 : B2C.plumbOf 563 = Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq563 : B2C.plumbOf 563 = Fn.«squeeze_point_from__L8».plumb
 
-kernel_rfl fsEq563 : B2C.fsN 563 = Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».fs
+kernel_rfl fsEq563 : B2C.fsN 563 = Fn.«squeeze_point_from__L8».fs
 
-kernel_rfl partsEq563 : B2C.cplPartsOf 563 = Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».parts
+kernel_rfl partsEq563 : B2C.cplPartsOf 563 = Fn.«squeeze_point_from__L8».parts
 
-kernel_rfl armsEq563 : listElementOrDefault Data.cplArms 563 [] = Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».arms
+kernel_rfl armsEq563 : listElementOrDefault Data.cplArms 563 [] = Fn.«squeeze_point_from__L8».arms
 
-kernel_rfl snapsEq563 : B2C.snapsOf 563 = Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq563 : B2C.snapsOf 563 = Fn.«squeeze_point_from__L8».snaps
 
-kernel_rfl code564 : fnOf 564 = Fn.«squeeze_point_from__L12».code
+kernel_rfl code564 : fnOf 564 = Fn.«level_positions__L4_L18_L6».code
 
-kernel_rfl core564 : coreOf 564 = Fn.«squeeze_point_from__L12».core
+kernel_rfl core564 : coreOf 564 = Fn.«level_positions__L4_L18_L6».core
 
-kernel_rfl cert564 : certOf 564 = (Fn.«squeeze_point_from__L12».cert.withPows Data.powTree)
+kernel_rfl cert564 : certOf 564 = (Fn.«level_positions__L4_L18_L6».cert.withPows Data.powTree)
 
-kernel_rfl sigBody564 : sigFrom Fn.«squeeze_point_from__L12».code Fn.«squeeze_point_from__L12».core (Fn.«squeeze_point_from__L12».cert.withPows Data.powTree) = Fn.«squeeze_point_from__L12».sig
+kernel_rfl sigBody564 : sigFrom Fn.«level_positions__L4_L18_L6».code Fn.«level_positions__L4_L18_L6».core (Fn.«level_positions__L4_L18_L6».cert.withPows Data.powTree) = Fn.«level_positions__L4_L18_L6».sig
 
-theorem sig564 : glob.sig 564 = Fn.«squeeze_point_from__L12».sig := sig_of_link code564 core564 cert564 sigBody564
+theorem sig564 : glob.sig 564 = Fn.«level_positions__L4_L18_L6».sig := sig_of_link code564 core564 cert564 sigBody564
 
-kernel_rfl plumbEq564 : B2C.plumbOf 564 = Fn.«squeeze_point_from__L12».plumb
+kernel_rfl plumbEq564 : B2C.plumbOf 564 = Fn.«level_positions__L4_L18_L6».plumb
 
-kernel_rfl fsEq564 : B2C.fsN 564 = Fn.«squeeze_point_from__L12».fs
+kernel_rfl fsEq564 : B2C.fsN 564 = Fn.«level_positions__L4_L18_L6».fs
 
-kernel_rfl partsEq564 : B2C.cplPartsOf 564 = Fn.«squeeze_point_from__L12».parts
+kernel_rfl partsEq564 : B2C.cplPartsOf 564 = Fn.«level_positions__L4_L18_L6».parts
 
-kernel_rfl armsEq564 : listElementOrDefault Data.cplArms 564 [] = Fn.«squeeze_point_from__L12».arms
+kernel_rfl armsEq564 : listElementOrDefault Data.cplArms 564 [] = Fn.«level_positions__L4_L18_L6».arms
 
-kernel_rfl snapsEq564 : B2C.snapsOf 564 = Fn.«squeeze_point_from__L12».snaps
+kernel_rfl snapsEq564 : B2C.snapsOf 564 = Fn.«level_positions__L4_L18_L6».snaps
 
-kernel_rfl code565 : fnOf 565 = Fn.«level_positions__L7_L16_L4».code
+kernel_rfl code565 : fnOf 565 = Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».code
 
-kernel_rfl core565 : coreOf 565 = Fn.«level_positions__L7_L16_L4».core
+kernel_rfl core565 : coreOf 565 = Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».core
 
-kernel_rfl cert565 : certOf 565 = (Fn.«level_positions__L7_L16_L4».cert.withPows Data.powTree)
+kernel_rfl cert565 : certOf 565 = (Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody565 : sigFrom Fn.«level_positions__L7_L16_L4».code Fn.«level_positions__L7_L16_L4».core (Fn.«level_positions__L7_L16_L4».cert.withPows Data.powTree) = Fn.«level_positions__L7_L16_L4».sig
+kernel_rfl sigBody565 : sigFrom Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».code Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».core (Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig
 
-theorem sig565 : glob.sig 565 = Fn.«level_positions__L7_L16_L4».sig := sig_of_link code565 core565 cert565 sigBody565
+theorem sig565 : glob.sig 565 = Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig := sig_of_link code565 core565 cert565 sigBody565
 
-kernel_rfl plumbEq565 : B2C.plumbOf 565 = Fn.«level_positions__L7_L16_L4».plumb
+kernel_rfl plumbEq565 : B2C.plumbOf 565 = Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq565 : B2C.fsN 565 = Fn.«level_positions__L7_L16_L4».fs
+kernel_rfl fsEq565 : B2C.fsN 565 = Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq565 : B2C.cplPartsOf 565 = Fn.«level_positions__L7_L16_L4».parts
+kernel_rfl partsEq565 : B2C.cplPartsOf 565 = Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq565 : listElementOrDefault Data.cplArms 565 [] = Fn.«level_positions__L7_L16_L4».arms
+kernel_rfl armsEq565 : listElementOrDefault Data.cplArms 565 [] = Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq565 : B2C.snapsOf 565 = Fn.«level_positions__L7_L16_L4».snaps
+kernel_rfl snapsEq565 : B2C.snapsOf 565 = Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».snaps
 
-kernel_rfl code566 : fnOf 566 = Fn.«level_positions__L7_L17_L5».code
+kernel_rfl code566 : fnOf 566 = Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».code
 
-kernel_rfl core566 : coreOf 566 = Fn.«level_positions__L7_L17_L5».core
+kernel_rfl core566 : coreOf 566 = Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».core
 
-kernel_rfl cert566 : certOf 566 = (Fn.«level_positions__L7_L17_L5».cert.withPows Data.powTree)
+kernel_rfl cert566 : certOf 566 = (Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody566 : sigFrom Fn.«level_positions__L7_L17_L5».code Fn.«level_positions__L7_L17_L5».core (Fn.«level_positions__L7_L17_L5».cert.withPows Data.powTree) = Fn.«level_positions__L7_L17_L5».sig
+kernel_rfl sigBody566 : sigFrom Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».code Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».core (Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig
 
-theorem sig566 : glob.sig 566 = Fn.«level_positions__L7_L17_L5».sig := sig_of_link code566 core566 cert566 sigBody566
+theorem sig566 : glob.sig 566 = Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig := sig_of_link code566 core566 cert566 sigBody566
 
-kernel_rfl plumbEq566 : B2C.plumbOf 566 = Fn.«level_positions__L7_L17_L5».plumb
+kernel_rfl plumbEq566 : B2C.plumbOf 566 = Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq566 : B2C.fsN 566 = Fn.«level_positions__L7_L17_L5».fs
+kernel_rfl fsEq566 : B2C.fsN 566 = Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq566 : B2C.cplPartsOf 566 = Fn.«level_positions__L7_L17_L5».parts
+kernel_rfl partsEq566 : B2C.cplPartsOf 566 = Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq566 : listElementOrDefault Data.cplArms 566 [] = Fn.«level_positions__L7_L17_L5».arms
+kernel_rfl armsEq566 : listElementOrDefault Data.cplArms 566 [] = Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq566 : B2C.snapsOf 566 = Fn.«level_positions__L7_L17_L5».snaps
+kernel_rfl snapsEq566 : B2C.snapsOf 566 = Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».snaps
 
-kernel_rfl code567 : fnOf 567 = Fn.«level_positions__L6_L18_L6».code
+kernel_rfl code567 : fnOf 567 = Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».code
 
-kernel_rfl core567 : coreOf 567 = Fn.«level_positions__L6_L18_L6».core
+kernel_rfl core567 : coreOf 567 = Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».core
 
-kernel_rfl cert567 : certOf 567 = (Fn.«level_positions__L6_L18_L6».cert.withPows Data.powTree)
+kernel_rfl cert567 : certOf 567 = (Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody567 : sigFrom Fn.«level_positions__L6_L18_L6».code Fn.«level_positions__L6_L18_L6».core (Fn.«level_positions__L6_L18_L6».cert.withPows Data.powTree) = Fn.«level_positions__L6_L18_L6».sig
+kernel_rfl sigBody567 : sigFrom Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».code Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».core (Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig
 
-theorem sig567 : glob.sig 567 = Fn.«level_positions__L6_L18_L6».sig := sig_of_link code567 core567 cert567 sigBody567
+theorem sig567 : glob.sig 567 = Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig := sig_of_link code567 core567 cert567 sigBody567
 
-kernel_rfl plumbEq567 : B2C.plumbOf 567 = Fn.«level_positions__L6_L18_L6».plumb
+kernel_rfl plumbEq567 : B2C.plumbOf 567 = Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq567 : B2C.fsN 567 = Fn.«level_positions__L6_L18_L6».fs
+kernel_rfl fsEq567 : B2C.fsN 567 = Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq567 : B2C.cplPartsOf 567 = Fn.«level_positions__L6_L18_L6».parts
+kernel_rfl partsEq567 : B2C.cplPartsOf 567 = Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq567 : listElementOrDefault Data.cplArms 567 [] = Fn.«level_positions__L6_L18_L6».arms
+kernel_rfl armsEq567 : listElementOrDefault Data.cplArms 567 [] = Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq567 : B2C.snapsOf 567 = Fn.«level_positions__L6_L18_L6».snaps
+kernel_rfl snapsEq567 : B2C.snapsOf 567 = Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».snaps
 
-kernel_rfl code568 : fnOf 568 = Fn.«level_positions__L6_L19_L7».code
+kernel_rfl code568 : fnOf 568 = Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».code
 
-kernel_rfl core568 : coreOf 568 = Fn.«level_positions__L6_L19_L7».core
+kernel_rfl core568 : coreOf 568 = Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».core
 
-kernel_rfl cert568 : certOf 568 = (Fn.«level_positions__L6_L19_L7».cert.withPows Data.powTree)
+kernel_rfl cert568 : certOf 568 = (Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody568 : sigFrom Fn.«level_positions__L6_L19_L7».code Fn.«level_positions__L6_L19_L7».core (Fn.«level_positions__L6_L19_L7».cert.withPows Data.powTree) = Fn.«level_positions__L6_L19_L7».sig
+kernel_rfl sigBody568 : sigFrom Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».code Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».core (Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig
 
-theorem sig568 : glob.sig 568 = Fn.«level_positions__L6_L19_L7».sig := sig_of_link code568 core568 cert568 sigBody568
+theorem sig568 : glob.sig 568 = Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig := sig_of_link code568 core568 cert568 sigBody568
 
-kernel_rfl plumbEq568 : B2C.plumbOf 568 = Fn.«level_positions__L6_L19_L7».plumb
+kernel_rfl plumbEq568 : B2C.plumbOf 568 = Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq568 : B2C.fsN 568 = Fn.«level_positions__L6_L19_L7».fs
+kernel_rfl fsEq568 : B2C.fsN 568 = Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq568 : B2C.cplPartsOf 568 = Fn.«level_positions__L6_L19_L7».parts
+kernel_rfl partsEq568 : B2C.cplPartsOf 568 = Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq568 : listElementOrDefault Data.cplArms 568 [] = Fn.«level_positions__L6_L19_L7».arms
+kernel_rfl armsEq568 : listElementOrDefault Data.cplArms 568 [] = Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq568 : B2C.snapsOf 568 = Fn.«level_positions__L6_L19_L7».snaps
+kernel_rfl snapsEq568 : B2C.snapsOf 568 = Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».snaps
 
-kernel_rfl code569 : fnOf 569 = Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».code
+kernel_rfl code569 : fnOf 569 = Fn.«opening_message__L20_L1».code
 
-kernel_rfl core569 : coreOf 569 = Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».core
+kernel_rfl core569 : coreOf 569 = Fn.«opening_message__L20_L1».core
 
-kernel_rfl cert569 : certOf 569 = (Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert569 : certOf 569 = (Fn.«opening_message__L20_L1».cert.withPows Data.powTree)
 
-kernel_rfl sigBody569 : sigFrom Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».code Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».core (Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig
+kernel_rfl sigBody569 : sigFrom Fn.«opening_message__L20_L1».code Fn.«opening_message__L20_L1».core (Fn.«opening_message__L20_L1».cert.withPows Data.powTree) = Fn.«opening_message__L20_L1».sig
 
-theorem sig569 : glob.sig 569 = Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig := sig_of_link code569 core569 cert569 sigBody569
+theorem sig569 : glob.sig 569 = Fn.«opening_message__L20_L1».sig := sig_of_link code569 core569 cert569 sigBody569
 
-kernel_rfl plumbEq569 : B2C.plumbOf 569 = Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq569 : B2C.plumbOf 569 = Fn.«opening_message__L20_L1».plumb
 
-kernel_rfl fsEq569 : B2C.fsN 569 = Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».fs
+kernel_rfl fsEq569 : B2C.fsN 569 = Fn.«opening_message__L20_L1».fs
 
-kernel_rfl partsEq569 : B2C.cplPartsOf 569 = Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».parts
+kernel_rfl partsEq569 : B2C.cplPartsOf 569 = Fn.«opening_message__L20_L1».parts
 
-kernel_rfl armsEq569 : listElementOrDefault Data.cplArms 569 [] = Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».arms
+kernel_rfl armsEq569 : listElementOrDefault Data.cplArms 569 [] = Fn.«opening_message__L20_L1».arms
 
-kernel_rfl snapsEq569 : B2C.snapsOf 569 = Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq569 : B2C.snapsOf 569 = Fn.«opening_message__L20_L1».snaps
 
-kernel_rfl code570 : fnOf 570 = Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».code
+kernel_rfl code570 : fnOf 570 = Fn.«level_positions__L3_L17_L5».code
 
-kernel_rfl core570 : coreOf 570 = Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».core
+kernel_rfl core570 : coreOf 570 = Fn.«level_positions__L3_L17_L5».core
 
-kernel_rfl cert570 : certOf 570 = (Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert570 : certOf 570 = (Fn.«level_positions__L3_L17_L5».cert.withPows Data.powTree)
 
-kernel_rfl sigBody570 : sigFrom Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».code Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».core (Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig
+kernel_rfl sigBody570 : sigFrom Fn.«level_positions__L3_L17_L5».code Fn.«level_positions__L3_L17_L5».core (Fn.«level_positions__L3_L17_L5».cert.withPows Data.powTree) = Fn.«level_positions__L3_L17_L5».sig
 
-theorem sig570 : glob.sig 570 = Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig := sig_of_link code570 core570 cert570 sigBody570
+theorem sig570 : glob.sig 570 = Fn.«level_positions__L3_L17_L5».sig := sig_of_link code570 core570 cert570 sigBody570
 
-kernel_rfl plumbEq570 : B2C.plumbOf 570 = Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq570 : B2C.plumbOf 570 = Fn.«level_positions__L3_L17_L5».plumb
 
-kernel_rfl fsEq570 : B2C.fsN 570 = Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».fs
+kernel_rfl fsEq570 : B2C.fsN 570 = Fn.«level_positions__L3_L17_L5».fs
 
-kernel_rfl partsEq570 : B2C.cplPartsOf 570 = Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».parts
+kernel_rfl partsEq570 : B2C.cplPartsOf 570 = Fn.«level_positions__L3_L17_L5».parts
 
-kernel_rfl armsEq570 : listElementOrDefault Data.cplArms 570 [] = Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».arms
+kernel_rfl armsEq570 : listElementOrDefault Data.cplArms 570 [] = Fn.«level_positions__L3_L17_L5».arms
 
-kernel_rfl snapsEq570 : B2C.snapsOf 570 = Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq570 : B2C.snapsOf 570 = Fn.«level_positions__L3_L17_L5».snaps
 
-kernel_rfl code571 : fnOf 571 = Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».code
+kernel_rfl code571 : fnOf 571 = Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».code
 
-kernel_rfl core571 : coreOf 571 = Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».core
+kernel_rfl core571 : coreOf 571 = Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».core
 
-kernel_rfl cert571 : certOf 571 = (Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert571 : certOf 571 = (Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».cert.withPows Data.powTree)
 
-kernel_rfl sigBody571 : sigFrom Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».code Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».core (Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig
+kernel_rfl sigBody571 : sigFrom Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».code Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».core (Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».cert.withPows Data.powTree) = Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».sig
 
-theorem sig571 : glob.sig 571 = Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig := sig_of_link code571 core571 cert571 sigBody571
+theorem sig571 : glob.sig 571 = Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».sig := sig_of_link code571 core571 cert571 sigBody571
 
-kernel_rfl plumbEq571 : B2C.plumbOf 571 = Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq571 : B2C.plumbOf 571 = Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».plumb
 
-kernel_rfl fsEq571 : B2C.fsN 571 = Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».fs
+kernel_rfl fsEq571 : B2C.fsN 571 = Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».fs
 
-kernel_rfl partsEq571 : B2C.cplPartsOf 571 = Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».parts
+kernel_rfl partsEq571 : B2C.cplPartsOf 571 = Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».parts
 
-kernel_rfl armsEq571 : listElementOrDefault Data.cplArms 571 [] = Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».arms
+kernel_rfl armsEq571 : listElementOrDefault Data.cplArms 571 [] = Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».arms
 
-kernel_rfl snapsEq571 : B2C.snapsOf 571 = Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq571 : B2C.snapsOf 571 = Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».snaps
 
-kernel_rfl code572 : fnOf 572 = Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».code
+kernel_rfl code572 : fnOf 572 = Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».code
 
-kernel_rfl core572 : coreOf 572 = Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».core
+kernel_rfl core572 : coreOf 572 = Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».core
 
-kernel_rfl cert572 : certOf 572 = (Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert572 : certOf 572 = (Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».cert.withPows Data.powTree)
 
-kernel_rfl sigBody572 : sigFrom Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».code Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».core (Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig
+kernel_rfl sigBody572 : sigFrom Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».code Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».core (Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».cert.withPows Data.powTree) = Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».sig
 
-theorem sig572 : glob.sig 572 = Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».sig := sig_of_link code572 core572 cert572 sigBody572
+theorem sig572 : glob.sig 572 = Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».sig := sig_of_link code572 core572 cert572 sigBody572
 
-kernel_rfl plumbEq572 : B2C.plumbOf 572 = Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq572 : B2C.plumbOf 572 = Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».plumb
 
-kernel_rfl fsEq572 : B2C.fsN 572 = Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».fs
+kernel_rfl fsEq572 : B2C.fsN 572 = Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».fs
 
-kernel_rfl partsEq572 : B2C.cplPartsOf 572 = Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».parts
+kernel_rfl partsEq572 : B2C.cplPartsOf 572 = Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».parts
 
-kernel_rfl armsEq572 : listElementOrDefault Data.cplArms 572 [] = Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».arms
+kernel_rfl armsEq572 : listElementOrDefault Data.cplArms 572 [] = Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».arms
 
-kernel_rfl snapsEq572 : B2C.snapsOf 572 = Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq572 : B2C.snapsOf 572 = Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».snaps
 
-kernel_rfl code573 : fnOf 573 = Fn.«squeeze_point_from__L8».code
+kernel_rfl code573 : fnOf 573 = Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».code
 
-kernel_rfl core573 : coreOf 573 = Fn.«squeeze_point_from__L8».core
+kernel_rfl core573 : coreOf 573 = Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».core
 
-kernel_rfl cert573 : certOf 573 = (Fn.«squeeze_point_from__L8».cert.withPows Data.powTree)
+kernel_rfl cert573 : certOf 573 = (Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».cert.withPows Data.powTree)
 
-kernel_rfl sigBody573 : sigFrom Fn.«squeeze_point_from__L8».code Fn.«squeeze_point_from__L8».core (Fn.«squeeze_point_from__L8».cert.withPows Data.powTree) = Fn.«squeeze_point_from__L8».sig
+kernel_rfl sigBody573 : sigFrom Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».code Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».core (Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».cert.withPows Data.powTree) = Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».sig
 
-theorem sig573 : glob.sig 573 = Fn.«squeeze_point_from__L8».sig := sig_of_link code573 core573 cert573 sigBody573
+theorem sig573 : glob.sig 573 = Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».sig := sig_of_link code573 core573 cert573 sigBody573
 
-kernel_rfl plumbEq573 : B2C.plumbOf 573 = Fn.«squeeze_point_from__L8».plumb
+kernel_rfl plumbEq573 : B2C.plumbOf 573 = Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».plumb
 
-kernel_rfl fsEq573 : B2C.fsN 573 = Fn.«squeeze_point_from__L8».fs
+kernel_rfl fsEq573 : B2C.fsN 573 = Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».fs
 
-kernel_rfl partsEq573 : B2C.cplPartsOf 573 = Fn.«squeeze_point_from__L8».parts
+kernel_rfl partsEq573 : B2C.cplPartsOf 573 = Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».parts
 
-kernel_rfl armsEq573 : listElementOrDefault Data.cplArms 573 [] = Fn.«squeeze_point_from__L8».arms
+kernel_rfl armsEq573 : listElementOrDefault Data.cplArms 573 [] = Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».arms
 
-kernel_rfl snapsEq573 : B2C.snapsOf 573 = Fn.«squeeze_point_from__L8».snaps
+kernel_rfl snapsEq573 : B2C.snapsOf 573 = Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».snaps
 
-kernel_rfl code574 : fnOf 574 = Fn.«level_positions__L4_L18_L6».code
+kernel_rfl code574 : fnOf 574 = Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».code
 
-kernel_rfl core574 : coreOf 574 = Fn.«level_positions__L4_L18_L6».core
+kernel_rfl core574 : coreOf 574 = Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».core
 
-kernel_rfl cert574 : certOf 574 = (Fn.«level_positions__L4_L18_L6».cert.withPows Data.powTree)
+kernel_rfl cert574 : certOf 574 = (Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».cert.withPows Data.powTree)
 
-kernel_rfl sigBody574 : sigFrom Fn.«level_positions__L4_L18_L6».code Fn.«level_positions__L4_L18_L6».core (Fn.«level_positions__L4_L18_L6».cert.withPows Data.powTree) = Fn.«level_positions__L4_L18_L6».sig
+kernel_rfl sigBody574 : sigFrom Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».code Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».core (Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».cert.withPows Data.powTree) = Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».sig
 
-theorem sig574 : glob.sig 574 = Fn.«level_positions__L4_L18_L6».sig := sig_of_link code574 core574 cert574 sigBody574
+theorem sig574 : glob.sig 574 = Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».sig := sig_of_link code574 core574 cert574 sigBody574
 
-kernel_rfl plumbEq574 : B2C.plumbOf 574 = Fn.«level_positions__L4_L18_L6».plumb
+kernel_rfl plumbEq574 : B2C.plumbOf 574 = Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».plumb
 
-kernel_rfl fsEq574 : B2C.fsN 574 = Fn.«level_positions__L4_L18_L6».fs
+kernel_rfl fsEq574 : B2C.fsN 574 = Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».fs
 
-kernel_rfl partsEq574 : B2C.cplPartsOf 574 = Fn.«level_positions__L4_L18_L6».parts
+kernel_rfl partsEq574 : B2C.cplPartsOf 574 = Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».parts
 
-kernel_rfl armsEq574 : listElementOrDefault Data.cplArms 574 [] = Fn.«level_positions__L4_L18_L6».arms
+kernel_rfl armsEq574 : listElementOrDefault Data.cplArms 574 [] = Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».arms
 
-kernel_rfl snapsEq574 : B2C.snapsOf 574 = Fn.«level_positions__L4_L18_L6».snaps
+kernel_rfl snapsEq574 : B2C.snapsOf 574 = Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».snaps
 
-kernel_rfl code575 : fnOf 575 = Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».code
+kernel_rfl code575 : fnOf 575 = Fn.«fold_final_msg__L4».code
 
-kernel_rfl core575 : coreOf 575 = Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».core
+kernel_rfl core575 : coreOf 575 = Fn.«fold_final_msg__L4».core
 
-kernel_rfl cert575 : certOf 575 = (Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert575 : certOf 575 = (Fn.«fold_final_msg__L4».cert.withPows Data.powTree)
 
-kernel_rfl sigBody575 : sigFrom Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».code Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».core (Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig
+kernel_rfl sigBody575 : sigFrom Fn.«fold_final_msg__L4».code Fn.«fold_final_msg__L4».core (Fn.«fold_final_msg__L4».cert.withPows Data.powTree) = Fn.«fold_final_msg__L4».sig
 
-theorem sig575 : glob.sig 575 = Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».sig := sig_of_link code575 core575 cert575 sigBody575
+theorem sig575 : glob.sig 575 = Fn.«fold_final_msg__L4».sig := sig_of_link code575 core575 cert575 sigBody575
 
-kernel_rfl plumbEq575 : B2C.plumbOf 575 = Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq575 : B2C.plumbOf 575 = Fn.«fold_final_msg__L4».plumb
 
-kernel_rfl fsEq575 : B2C.fsN 575 = Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».fs
+kernel_rfl fsEq575 : B2C.fsN 575 = Fn.«fold_final_msg__L4».fs
 
-kernel_rfl partsEq575 : B2C.cplPartsOf 575 = Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».parts
+kernel_rfl partsEq575 : B2C.cplPartsOf 575 = Fn.«fold_final_msg__L4».parts
 
-kernel_rfl armsEq575 : listElementOrDefault Data.cplArms 575 [] = Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».arms
+kernel_rfl armsEq575 : listElementOrDefault Data.cplArms 575 [] = Fn.«fold_final_msg__L4».arms
 
-kernel_rfl snapsEq575 : B2C.snapsOf 575 = Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq575 : B2C.snapsOf 575 = Fn.«fold_final_msg__L4».snaps
 
-kernel_rfl code576 : fnOf 576 = Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».code
+kernel_rfl code576 : fnOf 576 = Fn.«level_residual__L218_L16_L6_L3».code
 
-kernel_rfl core576 : coreOf 576 = Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».core
+kernel_rfl core576 : coreOf 576 = Fn.«level_residual__L218_L16_L6_L3».core
 
-kernel_rfl cert576 : certOf 576 = (Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert576 : certOf 576 = (Fn.«level_residual__L218_L16_L6_L3».cert.withPows Data.powTree)
 
-kernel_rfl sigBody576 : sigFrom Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».code Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».core (Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig
+kernel_rfl sigBody576 : sigFrom Fn.«level_residual__L218_L16_L6_L3».code Fn.«level_residual__L218_L16_L6_L3».core (Fn.«level_residual__L218_L16_L6_L3».cert.withPows Data.powTree) = Fn.«level_residual__L218_L16_L6_L3».sig
 
-theorem sig576 : glob.sig 576 = Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».sig := sig_of_link code576 core576 cert576 sigBody576
+theorem sig576 : glob.sig 576 = Fn.«level_residual__L218_L16_L6_L3».sig := sig_of_link code576 core576 cert576 sigBody576
 
-kernel_rfl plumbEq576 : B2C.plumbOf 576 = Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq576 : B2C.plumbOf 576 = Fn.«level_residual__L218_L16_L6_L3».plumb
 
-kernel_rfl fsEq576 : B2C.fsN 576 = Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».fs
+kernel_rfl fsEq576 : B2C.fsN 576 = Fn.«level_residual__L218_L16_L6_L3».fs
 
-kernel_rfl partsEq576 : B2C.cplPartsOf 576 = Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».parts
+kernel_rfl partsEq576 : B2C.cplPartsOf 576 = Fn.«level_residual__L218_L16_L6_L3».parts
 
-kernel_rfl armsEq576 : listElementOrDefault Data.cplArms 576 [] = Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».arms
+kernel_rfl armsEq576 : listElementOrDefault Data.cplArms 576 [] = Fn.«level_residual__L218_L16_L6_L3».arms
 
-kernel_rfl snapsEq576 : B2C.snapsOf 576 = Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq576 : B2C.snapsOf 576 = Fn.«level_residual__L218_L16_L6_L3».snaps
 
-kernel_rfl code577 : fnOf 577 = Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».code
+kernel_rfl code577 : fnOf 577 = Fn.«level_residual__L109_L16_L6_L3».code
 
-kernel_rfl core577 : coreOf 577 = Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».core
+kernel_rfl core577 : coreOf 577 = Fn.«level_residual__L109_L16_L6_L3».core
 
-kernel_rfl cert577 : certOf 577 = (Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert577 : certOf 577 = (Fn.«level_residual__L109_L16_L6_L3».cert.withPows Data.powTree)
 
-kernel_rfl sigBody577 : sigFrom Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».code Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».core (Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig
+kernel_rfl sigBody577 : sigFrom Fn.«level_residual__L109_L16_L6_L3».code Fn.«level_residual__L109_L16_L6_L3».core (Fn.«level_residual__L109_L16_L6_L3».cert.withPows Data.powTree) = Fn.«level_residual__L109_L16_L6_L3».sig
 
-theorem sig577 : glob.sig 577 = Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».sig := sig_of_link code577 core577 cert577 sigBody577
+theorem sig577 : glob.sig 577 = Fn.«level_residual__L109_L16_L6_L3».sig := sig_of_link code577 core577 cert577 sigBody577
 
-kernel_rfl plumbEq577 : B2C.plumbOf 577 = Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq577 : B2C.plumbOf 577 = Fn.«level_residual__L109_L16_L6_L3».plumb
 
-kernel_rfl fsEq577 : B2C.fsN 577 = Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».fs
+kernel_rfl fsEq577 : B2C.fsN 577 = Fn.«level_residual__L109_L16_L6_L3».fs
 
-kernel_rfl partsEq577 : B2C.cplPartsOf 577 = Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».parts
+kernel_rfl partsEq577 : B2C.cplPartsOf 577 = Fn.«level_residual__L109_L16_L6_L3».parts
 
-kernel_rfl armsEq577 : listElementOrDefault Data.cplArms 577 [] = Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».arms
+kernel_rfl armsEq577 : listElementOrDefault Data.cplArms 577 [] = Fn.«level_residual__L109_L16_L6_L3».arms
 
-kernel_rfl snapsEq577 : B2C.snapsOf 577 = Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq577 : B2C.snapsOf 577 = Fn.«level_residual__L109_L16_L6_L3».snaps
 
-kernel_rfl code578 : fnOf 578 = Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».code
+kernel_rfl code578 : fnOf 578 = Fn.«level_residual__L73_L16_L6_L3».code
 
-kernel_rfl core578 : coreOf 578 = Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».core
+kernel_rfl core578 : coreOf 578 = Fn.«level_residual__L73_L16_L6_L3».core
 
-kernel_rfl cert578 : certOf 578 = (Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».cert.withPows Data.powTree)
+kernel_rfl cert578 : certOf 578 = (Fn.«level_residual__L73_L16_L6_L3».cert.withPows Data.powTree)
 
-kernel_rfl sigBody578 : sigFrom Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».code Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».core (Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig
+kernel_rfl sigBody578 : sigFrom Fn.«level_residual__L73_L16_L6_L3».code Fn.«level_residual__L73_L16_L6_L3».core (Fn.«level_residual__L73_L16_L6_L3».cert.withPows Data.powTree) = Fn.«level_residual__L73_L16_L6_L3».sig
 
-theorem sig578 : glob.sig 578 = Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».sig := sig_of_link code578 core578 cert578 sigBody578
+theorem sig578 : glob.sig 578 = Fn.«level_residual__L73_L16_L6_L3».sig := sig_of_link code578 core578 cert578 sigBody578
 
-kernel_rfl plumbEq578 : B2C.plumbOf 578 = Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».plumb
+kernel_rfl plumbEq578 : B2C.plumbOf 578 = Fn.«level_residual__L73_L16_L6_L3».plumb
 
-kernel_rfl fsEq578 : B2C.fsN 578 = Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».fs
+kernel_rfl fsEq578 : B2C.fsN 578 = Fn.«level_residual__L73_L16_L6_L3».fs
 
-kernel_rfl partsEq578 : B2C.cplPartsOf 578 = Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».parts
+kernel_rfl partsEq578 : B2C.cplPartsOf 578 = Fn.«level_residual__L73_L16_L6_L3».parts
 
-kernel_rfl armsEq578 : listElementOrDefault Data.cplArms 578 [] = Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».arms
+kernel_rfl armsEq578 : listElementOrDefault Data.cplArms 578 [] = Fn.«level_residual__L73_L16_L6_L3».arms
 
-kernel_rfl snapsEq578 : B2C.snapsOf 578 = Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».snaps
+kernel_rfl snapsEq578 : B2C.snapsOf 578 = Fn.«level_residual__L73_L16_L6_L3».snaps
 
-kernel_rfl code579 : fnOf 579 = Fn.«opening_message__L20_L1».code
+kernel_rfl code579 : fnOf 579 = Fn.«level_residual__L55_L16_L6_L3».code
 
-kernel_rfl core579 : coreOf 579 = Fn.«opening_message__L20_L1».core
+kernel_rfl core579 : coreOf 579 = Fn.«level_residual__L55_L16_L6_L3».core
 
-kernel_rfl cert579 : certOf 579 = (Fn.«opening_message__L20_L1».cert.withPows Data.powTree)
+kernel_rfl cert579 : certOf 579 = (Fn.«level_residual__L55_L16_L6_L3».cert.withPows Data.powTree)
 
-kernel_rfl sigBody579 : sigFrom Fn.«opening_message__L20_L1».code Fn.«opening_message__L20_L1».core (Fn.«opening_message__L20_L1».cert.withPows Data.powTree) = Fn.«opening_message__L20_L1».sig
+kernel_rfl sigBody579 : sigFrom Fn.«level_residual__L55_L16_L6_L3».code Fn.«level_residual__L55_L16_L6_L3».core (Fn.«level_residual__L55_L16_L6_L3».cert.withPows Data.powTree) = Fn.«level_residual__L55_L16_L6_L3».sig
 
-theorem sig579 : glob.sig 579 = Fn.«opening_message__L20_L1».sig := sig_of_link code579 core579 cert579 sigBody579
+theorem sig579 : glob.sig 579 = Fn.«level_residual__L55_L16_L6_L3».sig := sig_of_link code579 core579 cert579 sigBody579
 
-kernel_rfl plumbEq579 : B2C.plumbOf 579 = Fn.«opening_message__L20_L1».plumb
+kernel_rfl plumbEq579 : B2C.plumbOf 579 = Fn.«level_residual__L55_L16_L6_L3».plumb
 
-kernel_rfl fsEq579 : B2C.fsN 579 = Fn.«opening_message__L20_L1».fs
+kernel_rfl fsEq579 : B2C.fsN 579 = Fn.«level_residual__L55_L16_L6_L3».fs
 
-kernel_rfl partsEq579 : B2C.cplPartsOf 579 = Fn.«opening_message__L20_L1».parts
+kernel_rfl partsEq579 : B2C.cplPartsOf 579 = Fn.«level_residual__L55_L16_L6_L3».parts
 
-kernel_rfl armsEq579 : listElementOrDefault Data.cplArms 579 [] = Fn.«opening_message__L20_L1».arms
+kernel_rfl armsEq579 : listElementOrDefault Data.cplArms 579 [] = Fn.«level_residual__L55_L16_L6_L3».arms
 
-kernel_rfl snapsEq579 : B2C.snapsOf 579 = Fn.«opening_message__L20_L1».snaps
+kernel_rfl snapsEq579 : B2C.snapsOf 579 = Fn.«level_residual__L55_L16_L6_L3».snaps
 
-kernel_rfl code580 : fnOf 580 = Fn.«level_positions__L3_L17_L5».code
+kernel_rfl code580 : fnOf 580 = Fn.«level_residual__L55_L12_L4_L2».code
 
-kernel_rfl core580 : coreOf 580 = Fn.«level_positions__L3_L17_L5».core
+kernel_rfl core580 : coreOf 580 = Fn.«level_residual__L55_L12_L4_L2».core
 
-kernel_rfl cert580 : certOf 580 = (Fn.«level_positions__L3_L17_L5».cert.withPows Data.powTree)
+kernel_rfl cert580 : certOf 580 = (Fn.«level_residual__L55_L12_L4_L2».cert.withPows Data.powTree)
 
-kernel_rfl sigBody580 : sigFrom Fn.«level_positions__L3_L17_L5».code Fn.«level_positions__L3_L17_L5».core (Fn.«level_positions__L3_L17_L5».cert.withPows Data.powTree) = Fn.«level_positions__L3_L17_L5».sig
+kernel_rfl sigBody580 : sigFrom Fn.«level_residual__L55_L12_L4_L2».code Fn.«level_residual__L55_L12_L4_L2».core (Fn.«level_residual__L55_L12_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L55_L12_L4_L2».sig
 
-theorem sig580 : glob.sig 580 = Fn.«level_positions__L3_L17_L5».sig := sig_of_link code580 core580 cert580 sigBody580
+theorem sig580 : glob.sig 580 = Fn.«level_residual__L55_L12_L4_L2».sig := sig_of_link code580 core580 cert580 sigBody580
 
-kernel_rfl plumbEq580 : B2C.plumbOf 580 = Fn.«level_positions__L3_L17_L5».plumb
+kernel_rfl plumbEq580 : B2C.plumbOf 580 = Fn.«level_residual__L55_L12_L4_L2».plumb
 
-kernel_rfl fsEq580 : B2C.fsN 580 = Fn.«level_positions__L3_L17_L5».fs
+kernel_rfl fsEq580 : B2C.fsN 580 = Fn.«level_residual__L55_L12_L4_L2».fs
 
-kernel_rfl partsEq580 : B2C.cplPartsOf 580 = Fn.«level_positions__L3_L17_L5».parts
+kernel_rfl partsEq580 : B2C.cplPartsOf 580 = Fn.«level_residual__L55_L12_L4_L2».parts
 
-kernel_rfl armsEq580 : listElementOrDefault Data.cplArms 580 [] = Fn.«level_positions__L3_L17_L5».arms
+kernel_rfl armsEq580 : listElementOrDefault Data.cplArms 580 [] = Fn.«level_residual__L55_L12_L4_L2».arms
 
-kernel_rfl snapsEq580 : B2C.snapsOf 580 = Fn.«level_positions__L3_L17_L5».snaps
+kernel_rfl snapsEq580 : B2C.snapsOf 580 = Fn.«level_residual__L55_L12_L4_L2».snaps
 
-kernel_rfl code581 : fnOf 581 = Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».code
+kernel_rfl code581 : fnOf 581 = Fn.«level_residual__L44_L12_L4_L2».code
 
-kernel_rfl core581 : coreOf 581 = Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».core
+kernel_rfl core581 : coreOf 581 = Fn.«level_residual__L44_L12_L4_L2».core
 
-kernel_rfl cert581 : certOf 581 = (Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».cert.withPows Data.powTree)
+kernel_rfl cert581 : certOf 581 = (Fn.«level_residual__L44_L12_L4_L2».cert.withPows Data.powTree)
 
-kernel_rfl sigBody581 : sigFrom Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».code Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».core (Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».cert.withPows Data.powTree) = Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».sig
+kernel_rfl sigBody581 : sigFrom Fn.«level_residual__L44_L12_L4_L2».code Fn.«level_residual__L44_L12_L4_L2».core (Fn.«level_residual__L44_L12_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L44_L12_L4_L2».sig
 
-theorem sig581 : glob.sig 581 = Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».sig := sig_of_link code581 core581 cert581 sigBody581
+theorem sig581 : glob.sig 581 = Fn.«level_residual__L44_L12_L4_L2».sig := sig_of_link code581 core581 cert581 sigBody581
 
-kernel_rfl plumbEq581 : B2C.plumbOf 581 = Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».plumb
+kernel_rfl plumbEq581 : B2C.plumbOf 581 = Fn.«level_residual__L44_L12_L4_L2».plumb
 
-kernel_rfl fsEq581 : B2C.fsN 581 = Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».fs
+kernel_rfl fsEq581 : B2C.fsN 581 = Fn.«level_residual__L44_L12_L4_L2».fs
 
-kernel_rfl partsEq581 : B2C.cplPartsOf 581 = Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».parts
+kernel_rfl partsEq581 : B2C.cplPartsOf 581 = Fn.«level_residual__L44_L12_L4_L2».parts
 
-kernel_rfl armsEq581 : listElementOrDefault Data.cplArms 581 [] = Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».arms
+kernel_rfl armsEq581 : listElementOrDefault Data.cplArms 581 [] = Fn.«level_residual__L44_L12_L4_L2».arms
 
-kernel_rfl snapsEq581 : B2C.snapsOf 581 = Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».snaps
+kernel_rfl snapsEq581 : B2C.snapsOf 581 = Fn.«level_residual__L44_L12_L4_L2».snaps
 
-kernel_rfl code582 : fnOf 582 = Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».code
+kernel_rfl code582 : fnOf 582 = Fn.«level_residual__L37_L12_L4_L2».code
 
-kernel_rfl core582 : coreOf 582 = Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».core
+kernel_rfl core582 : coreOf 582 = Fn.«level_residual__L37_L12_L4_L2».core
 
-kernel_rfl cert582 : certOf 582 = (Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».cert.withPows Data.powTree)
+kernel_rfl cert582 : certOf 582 = (Fn.«level_residual__L37_L12_L4_L2».cert.withPows Data.powTree)
 
-kernel_rfl sigBody582 : sigFrom Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».code Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».core (Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».cert.withPows Data.powTree) = Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».sig
+kernel_rfl sigBody582 : sigFrom Fn.«level_residual__L37_L12_L4_L2».code Fn.«level_residual__L37_L12_L4_L2».core (Fn.«level_residual__L37_L12_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L37_L12_L4_L2».sig
 
-theorem sig582 : glob.sig 582 = Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».sig := sig_of_link code582 core582 cert582 sigBody582
+theorem sig582 : glob.sig 582 = Fn.«level_residual__L37_L12_L4_L2».sig := sig_of_link code582 core582 cert582 sigBody582
 
-kernel_rfl plumbEq582 : B2C.plumbOf 582 = Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».plumb
+kernel_rfl plumbEq582 : B2C.plumbOf 582 = Fn.«level_residual__L37_L12_L4_L2».plumb
 
-kernel_rfl fsEq582 : B2C.fsN 582 = Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».fs
+kernel_rfl fsEq582 : B2C.fsN 582 = Fn.«level_residual__L37_L12_L4_L2».fs
 
-kernel_rfl partsEq582 : B2C.cplPartsOf 582 = Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».parts
+kernel_rfl partsEq582 : B2C.cplPartsOf 582 = Fn.«level_residual__L37_L12_L4_L2».parts
 
-kernel_rfl armsEq582 : listElementOrDefault Data.cplArms 582 [] = Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».arms
+kernel_rfl armsEq582 : listElementOrDefault Data.cplArms 582 [] = Fn.«level_residual__L37_L12_L4_L2».arms
 
-kernel_rfl snapsEq582 : B2C.snapsOf 582 = Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».snaps
+kernel_rfl snapsEq582 : B2C.snapsOf 582 = Fn.«level_residual__L37_L12_L4_L2».snaps
 
-kernel_rfl code583 : fnOf 583 = Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».code
+kernel_rfl code583 : fnOf 583 = Fn.«level_residual__L32_L12_L4_L2».code
 
-kernel_rfl core583 : coreOf 583 = Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».core
+kernel_rfl core583 : coreOf 583 = Fn.«level_residual__L32_L12_L4_L2».core
 
-kernel_rfl cert583 : certOf 583 = (Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».cert.withPows Data.powTree)
+kernel_rfl cert583 : certOf 583 = (Fn.«level_residual__L32_L12_L4_L2».cert.withPows Data.powTree)
 
-kernel_rfl sigBody583 : sigFrom Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».code Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».core (Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».cert.withPows Data.powTree) = Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».sig
+kernel_rfl sigBody583 : sigFrom Fn.«level_residual__L32_L12_L4_L2».code Fn.«level_residual__L32_L12_L4_L2».core (Fn.«level_residual__L32_L12_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L32_L12_L4_L2».sig
 
-theorem sig583 : glob.sig 583 = Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».sig := sig_of_link code583 core583 cert583 sigBody583
+theorem sig583 : glob.sig 583 = Fn.«level_residual__L32_L12_L4_L2».sig := sig_of_link code583 core583 cert583 sigBody583
 
-kernel_rfl plumbEq583 : B2C.plumbOf 583 = Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».plumb
+kernel_rfl plumbEq583 : B2C.plumbOf 583 = Fn.«level_residual__L32_L12_L4_L2».plumb
 
-kernel_rfl fsEq583 : B2C.fsN 583 = Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».fs
+kernel_rfl fsEq583 : B2C.fsN 583 = Fn.«level_residual__L32_L12_L4_L2».fs
 
-kernel_rfl partsEq583 : B2C.cplPartsOf 583 = Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».parts
+kernel_rfl partsEq583 : B2C.cplPartsOf 583 = Fn.«level_residual__L32_L12_L4_L2».parts
 
-kernel_rfl armsEq583 : listElementOrDefault Data.cplArms 583 [] = Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».arms
+kernel_rfl armsEq583 : listElementOrDefault Data.cplArms 583 [] = Fn.«level_residual__L32_L12_L4_L2».arms
 
-kernel_rfl snapsEq583 : B2C.snapsOf 583 = Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».snaps
+kernel_rfl snapsEq583 : B2C.snapsOf 583 = Fn.«level_residual__L32_L12_L4_L2».snaps
 
-kernel_rfl code584 : fnOf 584 = Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».code
+kernel_rfl code584 : fnOf 584 = Fn.«level_residual__L32_L8_L4_L2».code
 
-kernel_rfl core584 : coreOf 584 = Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».core
+kernel_rfl core584 : coreOf 584 = Fn.«level_residual__L32_L8_L4_L2».core
 
-kernel_rfl cert584 : certOf 584 = (Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».cert.withPows Data.powTree)
+kernel_rfl cert584 : certOf 584 = (Fn.«level_residual__L32_L8_L4_L2».cert.withPows Data.powTree)
 
-kernel_rfl sigBody584 : sigFrom Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».code Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».core (Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».cert.withPows Data.powTree) = Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».sig
+kernel_rfl sigBody584 : sigFrom Fn.«level_residual__L32_L8_L4_L2».code Fn.«level_residual__L32_L8_L4_L2».core (Fn.«level_residual__L32_L8_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L32_L8_L4_L2».sig
 
-theorem sig584 : glob.sig 584 = Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».sig := sig_of_link code584 core584 cert584 sigBody584
+theorem sig584 : glob.sig 584 = Fn.«level_residual__L32_L8_L4_L2».sig := sig_of_link code584 core584 cert584 sigBody584
 
-kernel_rfl plumbEq584 : B2C.plumbOf 584 = Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».plumb
+kernel_rfl plumbEq584 : B2C.plumbOf 584 = Fn.«level_residual__L32_L8_L4_L2».plumb
 
-kernel_rfl fsEq584 : B2C.fsN 584 = Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».fs
+kernel_rfl fsEq584 : B2C.fsN 584 = Fn.«level_residual__L32_L8_L4_L2».fs
 
-kernel_rfl partsEq584 : B2C.cplPartsOf 584 = Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».parts
+kernel_rfl partsEq584 : B2C.cplPartsOf 584 = Fn.«level_residual__L32_L8_L4_L2».parts
 
-kernel_rfl armsEq584 : listElementOrDefault Data.cplArms 584 [] = Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».arms
+kernel_rfl armsEq584 : listElementOrDefault Data.cplArms 584 [] = Fn.«level_residual__L32_L8_L4_L2».arms
 
-kernel_rfl snapsEq584 : B2C.snapsOf 584 = Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».snaps
+kernel_rfl snapsEq584 : B2C.snapsOf 584 = Fn.«level_residual__L32_L8_L4_L2».snaps
 
-kernel_rfl code585 : fnOf 585 = Fn.«fold_final_msg__L4».code
+kernel_rfl code585 : fnOf 585 = Fn.«level_residual__L28_L8_L4_L2».code
 
-kernel_rfl core585 : coreOf 585 = Fn.«fold_final_msg__L4».core
+kernel_rfl core585 : coreOf 585 = Fn.«level_residual__L28_L8_L4_L2».core
 
-kernel_rfl cert585 : certOf 585 = (Fn.«fold_final_msg__L4».cert.withPows Data.powTree)
+kernel_rfl cert585 : certOf 585 = (Fn.«level_residual__L28_L8_L4_L2».cert.withPows Data.powTree)
 
-kernel_rfl sigBody585 : sigFrom Fn.«fold_final_msg__L4».code Fn.«fold_final_msg__L4».core (Fn.«fold_final_msg__L4».cert.withPows Data.powTree) = Fn.«fold_final_msg__L4».sig
+kernel_rfl sigBody585 : sigFrom Fn.«level_residual__L28_L8_L4_L2».code Fn.«level_residual__L28_L8_L4_L2».core (Fn.«level_residual__L28_L8_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L28_L8_L4_L2».sig
 
-theorem sig585 : glob.sig 585 = Fn.«fold_final_msg__L4».sig := sig_of_link code585 core585 cert585 sigBody585
+theorem sig585 : glob.sig 585 = Fn.«level_residual__L28_L8_L4_L2».sig := sig_of_link code585 core585 cert585 sigBody585
 
-kernel_rfl plumbEq585 : B2C.plumbOf 585 = Fn.«fold_final_msg__L4».plumb
+kernel_rfl plumbEq585 : B2C.plumbOf 585 = Fn.«level_residual__L28_L8_L4_L2».plumb
 
-kernel_rfl fsEq585 : B2C.fsN 585 = Fn.«fold_final_msg__L4».fs
+kernel_rfl fsEq585 : B2C.fsN 585 = Fn.«level_residual__L28_L8_L4_L2».fs
 
-kernel_rfl partsEq585 : B2C.cplPartsOf 585 = Fn.«fold_final_msg__L4».parts
+kernel_rfl partsEq585 : B2C.cplPartsOf 585 = Fn.«level_residual__L28_L8_L4_L2».parts
 
-kernel_rfl armsEq585 : listElementOrDefault Data.cplArms 585 [] = Fn.«fold_final_msg__L4».arms
+kernel_rfl armsEq585 : listElementOrDefault Data.cplArms 585 [] = Fn.«level_residual__L28_L8_L4_L2».arms
 
-kernel_rfl snapsEq585 : B2C.snapsOf 585 = Fn.«fold_final_msg__L4».snaps
+kernel_rfl snapsEq585 : B2C.snapsOf 585 = Fn.«level_residual__L28_L8_L4_L2».snaps
 
-kernel_rfl code586 : fnOf 586 = Fn.«level_residual__L218_L16_L6_L3».code
+kernel_rfl code586 : fnOf 586 = Fn.«level_residual__L25_L8_L4_L2».code
 
-kernel_rfl core586 : coreOf 586 = Fn.«level_residual__L218_L16_L6_L3».core
+kernel_rfl core586 : coreOf 586 = Fn.«level_residual__L25_L8_L4_L2».core
 
-kernel_rfl cert586 : certOf 586 = (Fn.«level_residual__L218_L16_L6_L3».cert.withPows Data.powTree)
+kernel_rfl cert586 : certOf 586 = (Fn.«level_residual__L25_L8_L4_L2».cert.withPows Data.powTree)
 
-kernel_rfl sigBody586 : sigFrom Fn.«level_residual__L218_L16_L6_L3».code Fn.«level_residual__L218_L16_L6_L3».core (Fn.«level_residual__L218_L16_L6_L3».cert.withPows Data.powTree) = Fn.«level_residual__L218_L16_L6_L3».sig
+kernel_rfl sigBody586 : sigFrom Fn.«level_residual__L25_L8_L4_L2».code Fn.«level_residual__L25_L8_L4_L2».core (Fn.«level_residual__L25_L8_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L25_L8_L4_L2».sig
 
-theorem sig586 : glob.sig 586 = Fn.«level_residual__L218_L16_L6_L3».sig := sig_of_link code586 core586 cert586 sigBody586
+theorem sig586 : glob.sig 586 = Fn.«level_residual__L25_L8_L4_L2».sig := sig_of_link code586 core586 cert586 sigBody586
 
-kernel_rfl plumbEq586 : B2C.plumbOf 586 = Fn.«level_residual__L218_L16_L6_L3».plumb
+kernel_rfl plumbEq586 : B2C.plumbOf 586 = Fn.«level_residual__L25_L8_L4_L2».plumb
 
-kernel_rfl fsEq586 : B2C.fsN 586 = Fn.«level_residual__L218_L16_L6_L3».fs
+kernel_rfl fsEq586 : B2C.fsN 586 = Fn.«level_residual__L25_L8_L4_L2».fs
 
-kernel_rfl partsEq586 : B2C.cplPartsOf 586 = Fn.«level_residual__L218_L16_L6_L3».parts
+kernel_rfl partsEq586 : B2C.cplPartsOf 586 = Fn.«level_residual__L25_L8_L4_L2».parts
 
-kernel_rfl armsEq586 : listElementOrDefault Data.cplArms 586 [] = Fn.«level_residual__L218_L16_L6_L3».arms
+kernel_rfl armsEq586 : listElementOrDefault Data.cplArms 586 [] = Fn.«level_residual__L25_L8_L4_L2».arms
 
-kernel_rfl snapsEq586 : B2C.snapsOf 586 = Fn.«level_residual__L218_L16_L6_L3».snaps
+kernel_rfl snapsEq586 : B2C.snapsOf 586 = Fn.«level_residual__L25_L8_L4_L2».snaps
 
-kernel_rfl code587 : fnOf 587 = Fn.«level_residual__L109_L16_L6_L3».code
+kernel_rfl code587 : fnOf 587 = Fn.«level_residual__L23_L8_L4_L2».code
 
-kernel_rfl core587 : coreOf 587 = Fn.«level_residual__L109_L16_L6_L3».core
+kernel_rfl core587 : coreOf 587 = Fn.«level_residual__L23_L8_L4_L2».core
 
-kernel_rfl cert587 : certOf 587 = (Fn.«level_residual__L109_L16_L6_L3».cert.withPows Data.powTree)
+kernel_rfl cert587 : certOf 587 = (Fn.«level_residual__L23_L8_L4_L2».cert.withPows Data.powTree)
 
-kernel_rfl sigBody587 : sigFrom Fn.«level_residual__L109_L16_L6_L3».code Fn.«level_residual__L109_L16_L6_L3».core (Fn.«level_residual__L109_L16_L6_L3».cert.withPows Data.powTree) = Fn.«level_residual__L109_L16_L6_L3».sig
+kernel_rfl sigBody587 : sigFrom Fn.«level_residual__L23_L8_L4_L2».code Fn.«level_residual__L23_L8_L4_L2».core (Fn.«level_residual__L23_L8_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L23_L8_L4_L2».sig
 
-theorem sig587 : glob.sig 587 = Fn.«level_residual__L109_L16_L6_L3».sig := sig_of_link code587 core587 cert587 sigBody587
+theorem sig587 : glob.sig 587 = Fn.«level_residual__L23_L8_L4_L2».sig := sig_of_link code587 core587 cert587 sigBody587
 
-kernel_rfl plumbEq587 : B2C.plumbOf 587 = Fn.«level_residual__L109_L16_L6_L3».plumb
+kernel_rfl plumbEq587 : B2C.plumbOf 587 = Fn.«level_residual__L23_L8_L4_L2».plumb
 
-kernel_rfl fsEq587 : B2C.fsN 587 = Fn.«level_residual__L109_L16_L6_L3».fs
+kernel_rfl fsEq587 : B2C.fsN 587 = Fn.«level_residual__L23_L8_L4_L2».fs
 
-kernel_rfl partsEq587 : B2C.cplPartsOf 587 = Fn.«level_residual__L109_L16_L6_L3».parts
+kernel_rfl partsEq587 : B2C.cplPartsOf 587 = Fn.«level_residual__L23_L8_L4_L2».parts
 
-kernel_rfl armsEq587 : listElementOrDefault Data.cplArms 587 [] = Fn.«level_residual__L109_L16_L6_L3».arms
+kernel_rfl armsEq587 : listElementOrDefault Data.cplArms 587 [] = Fn.«level_residual__L23_L8_L4_L2».arms
 
-kernel_rfl snapsEq587 : B2C.snapsOf 587 = Fn.«level_residual__L109_L16_L6_L3».snaps
+kernel_rfl snapsEq587 : B2C.snapsOf 587 = Fn.«level_residual__L23_L8_L4_L2».snaps
 
-kernel_rfl code588 : fnOf 588 = Fn.«level_residual__L73_L16_L6_L3».code
+kernel_rfl code588 : fnOf 588 = Fn.«squeeze_point_from__L17».code
 
-kernel_rfl core588 : coreOf 588 = Fn.«level_residual__L73_L16_L6_L3».core
+kernel_rfl core588 : coreOf 588 = Fn.«squeeze_point_from__L17».core
 
-kernel_rfl cert588 : certOf 588 = (Fn.«level_residual__L73_L16_L6_L3».cert.withPows Data.powTree)
+kernel_rfl cert588 : certOf 588 = (Fn.«squeeze_point_from__L17».cert.withPows Data.powTree)
 
-kernel_rfl sigBody588 : sigFrom Fn.«level_residual__L73_L16_L6_L3».code Fn.«level_residual__L73_L16_L6_L3».core (Fn.«level_residual__L73_L16_L6_L3».cert.withPows Data.powTree) = Fn.«level_residual__L73_L16_L6_L3».sig
+kernel_rfl sigBody588 : sigFrom Fn.«squeeze_point_from__L17».code Fn.«squeeze_point_from__L17».core (Fn.«squeeze_point_from__L17».cert.withPows Data.powTree) = Fn.«squeeze_point_from__L17».sig
 
-theorem sig588 : glob.sig 588 = Fn.«level_residual__L73_L16_L6_L3».sig := sig_of_link code588 core588 cert588 sigBody588
+theorem sig588 : glob.sig 588 = Fn.«squeeze_point_from__L17».sig := sig_of_link code588 core588 cert588 sigBody588
 
-kernel_rfl plumbEq588 : B2C.plumbOf 588 = Fn.«level_residual__L73_L16_L6_L3».plumb
+kernel_rfl plumbEq588 : B2C.plumbOf 588 = Fn.«squeeze_point_from__L17».plumb
 
-kernel_rfl fsEq588 : B2C.fsN 588 = Fn.«level_residual__L73_L16_L6_L3».fs
+kernel_rfl fsEq588 : B2C.fsN 588 = Fn.«squeeze_point_from__L17».fs
 
-kernel_rfl partsEq588 : B2C.cplPartsOf 588 = Fn.«level_residual__L73_L16_L6_L3».parts
+kernel_rfl partsEq588 : B2C.cplPartsOf 588 = Fn.«squeeze_point_from__L17».parts
 
-kernel_rfl armsEq588 : listElementOrDefault Data.cplArms 588 [] = Fn.«level_residual__L73_L16_L6_L3».arms
+kernel_rfl armsEq588 : listElementOrDefault Data.cplArms 588 [] = Fn.«squeeze_point_from__L17».arms
 
-kernel_rfl snapsEq588 : B2C.snapsOf 588 = Fn.«level_residual__L73_L16_L6_L3».snaps
+kernel_rfl snapsEq588 : B2C.snapsOf 588 = Fn.«squeeze_point_from__L17».snaps
 
-kernel_rfl code589 : fnOf 589 = Fn.«level_residual__L55_L16_L6_L3».code
+kernel_rfl code589 : fnOf 589 = Fn.«level_positions__L32_L18_L6».code
 
-kernel_rfl core589 : coreOf 589 = Fn.«level_residual__L55_L16_L6_L3».core
+kernel_rfl core589 : coreOf 589 = Fn.«level_positions__L32_L18_L6».core
 
-kernel_rfl cert589 : certOf 589 = (Fn.«level_residual__L55_L16_L6_L3».cert.withPows Data.powTree)
+kernel_rfl cert589 : certOf 589 = (Fn.«level_positions__L32_L18_L6».cert.withPows Data.powTree)
 
-kernel_rfl sigBody589 : sigFrom Fn.«level_residual__L55_L16_L6_L3».code Fn.«level_residual__L55_L16_L6_L3».core (Fn.«level_residual__L55_L16_L6_L3».cert.withPows Data.powTree) = Fn.«level_residual__L55_L16_L6_L3».sig
+kernel_rfl sigBody589 : sigFrom Fn.«level_positions__L32_L18_L6».code Fn.«level_positions__L32_L18_L6».core (Fn.«level_positions__L32_L18_L6».cert.withPows Data.powTree) = Fn.«level_positions__L32_L18_L6».sig
 
-theorem sig589 : glob.sig 589 = Fn.«level_residual__L55_L16_L6_L3».sig := sig_of_link code589 core589 cert589 sigBody589
+theorem sig589 : glob.sig 589 = Fn.«level_positions__L32_L18_L6».sig := sig_of_link code589 core589 cert589 sigBody589
 
-kernel_rfl plumbEq589 : B2C.plumbOf 589 = Fn.«level_residual__L55_L16_L6_L3».plumb
+kernel_rfl plumbEq589 : B2C.plumbOf 589 = Fn.«level_positions__L32_L18_L6».plumb
 
-kernel_rfl fsEq589 : B2C.fsN 589 = Fn.«level_residual__L55_L16_L6_L3».fs
+kernel_rfl fsEq589 : B2C.fsN 589 = Fn.«level_positions__L32_L18_L6».fs
 
-kernel_rfl partsEq589 : B2C.cplPartsOf 589 = Fn.«level_residual__L55_L16_L6_L3».parts
+kernel_rfl partsEq589 : B2C.cplPartsOf 589 = Fn.«level_positions__L32_L18_L6».parts
 
-kernel_rfl armsEq589 : listElementOrDefault Data.cplArms 589 [] = Fn.«level_residual__L55_L16_L6_L3».arms
+kernel_rfl armsEq589 : listElementOrDefault Data.cplArms 589 [] = Fn.«level_positions__L32_L18_L6».arms
 
-kernel_rfl snapsEq589 : B2C.snapsOf 589 = Fn.«level_residual__L55_L16_L6_L3».snaps
+kernel_rfl snapsEq589 : B2C.snapsOf 589 = Fn.«level_positions__L32_L18_L6».snaps
 
-kernel_rfl code590 : fnOf 590 = Fn.«level_residual__L55_L12_L4_L2».code
+kernel_rfl code590 : fnOf 590 = Fn.«level_positions__L19_L19_L7».code
 
-kernel_rfl core590 : coreOf 590 = Fn.«level_residual__L55_L12_L4_L2».core
+kernel_rfl core590 : coreOf 590 = Fn.«level_positions__L19_L19_L7».core
 
-kernel_rfl cert590 : certOf 590 = (Fn.«level_residual__L55_L12_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert590 : certOf 590 = (Fn.«level_positions__L19_L19_L7».cert.withPows Data.powTree)
 
-kernel_rfl sigBody590 : sigFrom Fn.«level_residual__L55_L12_L4_L2».code Fn.«level_residual__L55_L12_L4_L2».core (Fn.«level_residual__L55_L12_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L55_L12_L4_L2».sig
+kernel_rfl sigBody590 : sigFrom Fn.«level_positions__L19_L19_L7».code Fn.«level_positions__L19_L19_L7».core (Fn.«level_positions__L19_L19_L7».cert.withPows Data.powTree) = Fn.«level_positions__L19_L19_L7».sig
 
-theorem sig590 : glob.sig 590 = Fn.«level_residual__L55_L12_L4_L2».sig := sig_of_link code590 core590 cert590 sigBody590
+theorem sig590 : glob.sig 590 = Fn.«level_positions__L19_L19_L7».sig := sig_of_link code590 core590 cert590 sigBody590
 
-kernel_rfl plumbEq590 : B2C.plumbOf 590 = Fn.«level_residual__L55_L12_L4_L2».plumb
+kernel_rfl plumbEq590 : B2C.plumbOf 590 = Fn.«level_positions__L19_L19_L7».plumb
 
-kernel_rfl fsEq590 : B2C.fsN 590 = Fn.«level_residual__L55_L12_L4_L2».fs
+kernel_rfl fsEq590 : B2C.fsN 590 = Fn.«level_positions__L19_L19_L7».fs
 
-kernel_rfl partsEq590 : B2C.cplPartsOf 590 = Fn.«level_residual__L55_L12_L4_L2».parts
+kernel_rfl partsEq590 : B2C.cplPartsOf 590 = Fn.«level_positions__L19_L19_L7».parts
 
-kernel_rfl armsEq590 : listElementOrDefault Data.cplArms 590 [] = Fn.«level_residual__L55_L12_L4_L2».arms
+kernel_rfl armsEq590 : listElementOrDefault Data.cplArms 590 [] = Fn.«level_positions__L19_L19_L7».arms
 
-kernel_rfl snapsEq590 : B2C.snapsOf 590 = Fn.«level_residual__L55_L12_L4_L2».snaps
+kernel_rfl snapsEq590 : B2C.snapsOf 590 = Fn.«level_positions__L19_L19_L7».snaps
 
-kernel_rfl code591 : fnOf 591 = Fn.«level_residual__L44_L12_L4_L2».code
+kernel_rfl code591 : fnOf 591 = Fn.«level_positions__L13_L20_L2».code
 
-kernel_rfl core591 : coreOf 591 = Fn.«level_residual__L44_L12_L4_L2».core
+kernel_rfl core591 : coreOf 591 = Fn.«level_positions__L13_L20_L2».core
 
-kernel_rfl cert591 : certOf 591 = (Fn.«level_residual__L44_L12_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert591 : certOf 591 = (Fn.«level_positions__L13_L20_L2».cert.withPows Data.powTree)
 
-kernel_rfl sigBody591 : sigFrom Fn.«level_residual__L44_L12_L4_L2».code Fn.«level_residual__L44_L12_L4_L2».core (Fn.«level_residual__L44_L12_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L44_L12_L4_L2».sig
+kernel_rfl sigBody591 : sigFrom Fn.«level_positions__L13_L20_L2».code Fn.«level_positions__L13_L20_L2».core (Fn.«level_positions__L13_L20_L2».cert.withPows Data.powTree) = Fn.«level_positions__L13_L20_L2».sig
 
-theorem sig591 : glob.sig 591 = Fn.«level_residual__L44_L12_L4_L2».sig := sig_of_link code591 core591 cert591 sigBody591
+theorem sig591 : glob.sig 591 = Fn.«level_positions__L13_L20_L2».sig := sig_of_link code591 core591 cert591 sigBody591
 
-kernel_rfl plumbEq591 : B2C.plumbOf 591 = Fn.«level_residual__L44_L12_L4_L2».plumb
+kernel_rfl plumbEq591 : B2C.plumbOf 591 = Fn.«level_positions__L13_L20_L2».plumb
 
-kernel_rfl fsEq591 : B2C.fsN 591 = Fn.«level_residual__L44_L12_L4_L2».fs
+kernel_rfl fsEq591 : B2C.fsN 591 = Fn.«level_positions__L13_L20_L2».fs
 
-kernel_rfl partsEq591 : B2C.cplPartsOf 591 = Fn.«level_residual__L44_L12_L4_L2».parts
+kernel_rfl partsEq591 : B2C.cplPartsOf 591 = Fn.«level_positions__L13_L20_L2».parts
 
-kernel_rfl armsEq591 : listElementOrDefault Data.cplArms 591 [] = Fn.«level_residual__L44_L12_L4_L2».arms
+kernel_rfl armsEq591 : listElementOrDefault Data.cplArms 591 [] = Fn.«level_positions__L13_L20_L2».arms
 
-kernel_rfl snapsEq591 : B2C.snapsOf 591 = Fn.«level_residual__L44_L12_L4_L2».snaps
+kernel_rfl snapsEq591 : B2C.snapsOf 591 = Fn.«level_positions__L13_L20_L2».snaps
 
-kernel_rfl code592 : fnOf 592 = Fn.«level_residual__L37_L12_L4_L2».code
+kernel_rfl code592 : fnOf 592 = Fn.«level_positions__L10_L21_L3».code
 
-kernel_rfl core592 : coreOf 592 = Fn.«level_residual__L37_L12_L4_L2».core
+kernel_rfl core592 : coreOf 592 = Fn.«level_positions__L10_L21_L3».core
 
-kernel_rfl cert592 : certOf 592 = (Fn.«level_residual__L37_L12_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert592 : certOf 592 = (Fn.«level_positions__L10_L21_L3».cert.withPows Data.powTree)
 
-kernel_rfl sigBody592 : sigFrom Fn.«level_residual__L37_L12_L4_L2».code Fn.«level_residual__L37_L12_L4_L2».core (Fn.«level_residual__L37_L12_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L37_L12_L4_L2».sig
+kernel_rfl sigBody592 : sigFrom Fn.«level_positions__L10_L21_L3».code Fn.«level_positions__L10_L21_L3».core (Fn.«level_positions__L10_L21_L3».cert.withPows Data.powTree) = Fn.«level_positions__L10_L21_L3».sig
 
-theorem sig592 : glob.sig 592 = Fn.«level_residual__L37_L12_L4_L2».sig := sig_of_link code592 core592 cert592 sigBody592
+theorem sig592 : glob.sig 592 = Fn.«level_positions__L10_L21_L3».sig := sig_of_link code592 core592 cert592 sigBody592
 
-kernel_rfl plumbEq592 : B2C.plumbOf 592 = Fn.«level_residual__L37_L12_L4_L2».plumb
+kernel_rfl plumbEq592 : B2C.plumbOf 592 = Fn.«level_positions__L10_L21_L3».plumb
 
-kernel_rfl fsEq592 : B2C.fsN 592 = Fn.«level_residual__L37_L12_L4_L2».fs
+kernel_rfl fsEq592 : B2C.fsN 592 = Fn.«level_positions__L10_L21_L3».fs
 
-kernel_rfl partsEq592 : B2C.cplPartsOf 592 = Fn.«level_residual__L37_L12_L4_L2».parts
+kernel_rfl partsEq592 : B2C.cplPartsOf 592 = Fn.«level_positions__L10_L21_L3».parts
 
-kernel_rfl armsEq592 : listElementOrDefault Data.cplArms 592 [] = Fn.«level_residual__L37_L12_L4_L2».arms
+kernel_rfl armsEq592 : listElementOrDefault Data.cplArms 592 [] = Fn.«level_positions__L10_L21_L3».arms
 
-kernel_rfl snapsEq592 : B2C.snapsOf 592 = Fn.«level_residual__L37_L12_L4_L2».snaps
+kernel_rfl snapsEq592 : B2C.snapsOf 592 = Fn.«level_positions__L10_L21_L3».snaps
 
-kernel_rfl code593 : fnOf 593 = Fn.«level_residual__L32_L12_L4_L2».code
+kernel_rfl code593 : fnOf 593 = Fn.«level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0».code
 
-kernel_rfl core593 : coreOf 593 = Fn.«level_residual__L32_L12_L4_L2».core
+kernel_rfl core593 : coreOf 593 = Fn.«level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0».core
 
-kernel_rfl cert593 : certOf 593 = (Fn.«level_residual__L32_L12_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert593 : certOf 593 = (Fn.«level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody593 : sigFrom Fn.«level_residual__L32_L12_L4_L2».code Fn.«level_residual__L32_L12_L4_L2».core (Fn.«level_residual__L32_L12_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L32_L12_L4_L2».sig
+kernel_rfl sigBody593 : sigFrom Fn.«level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0».code Fn.«level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0».core (Fn.«level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig
 
-theorem sig593 : glob.sig 593 = Fn.«level_residual__L32_L12_L4_L2».sig := sig_of_link code593 core593 cert593 sigBody593
+theorem sig593 : glob.sig 593 = Fn.«level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0».sig := sig_of_link code593 core593 cert593 sigBody593
 
-kernel_rfl plumbEq593 : B2C.plumbOf 593 = Fn.«level_residual__L32_L12_L4_L2».plumb
+kernel_rfl plumbEq593 : B2C.plumbOf 593 = Fn.«level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq593 : B2C.fsN 593 = Fn.«level_residual__L32_L12_L4_L2».fs
+kernel_rfl fsEq593 : B2C.fsN 593 = Fn.«level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq593 : B2C.cplPartsOf 593 = Fn.«level_residual__L32_L12_L4_L2».parts
+kernel_rfl partsEq593 : B2C.cplPartsOf 593 = Fn.«level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq593 : listElementOrDefault Data.cplArms 593 [] = Fn.«level_residual__L32_L12_L4_L2».arms
+kernel_rfl armsEq593 : listElementOrDefault Data.cplArms 593 [] = Fn.«level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq593 : B2C.snapsOf 593 = Fn.«level_residual__L32_L12_L4_L2».snaps
+kernel_rfl snapsEq593 : B2C.snapsOf 593 = Fn.«level_queries__L218_L1_L6_L32_L18_L6_L0_L0_L0_L0».snaps
 
-kernel_rfl code594 : fnOf 594 = Fn.«level_residual__L32_L8_L4_L2».code
+kernel_rfl code594 : fnOf 594 = Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».code
 
-kernel_rfl core594 : coreOf 594 = Fn.«level_residual__L32_L8_L4_L2».core
+kernel_rfl core594 : coreOf 594 = Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».core
 
-kernel_rfl cert594 : certOf 594 = (Fn.«level_residual__L32_L8_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert594 : certOf 594 = (Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody594 : sigFrom Fn.«level_residual__L32_L8_L4_L2».code Fn.«level_residual__L32_L8_L4_L2».core (Fn.«level_residual__L32_L8_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L32_L8_L4_L2».sig
+kernel_rfl sigBody594 : sigFrom Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».code Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».core (Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig
 
-theorem sig594 : glob.sig 594 = Fn.«level_residual__L32_L8_L4_L2».sig := sig_of_link code594 core594 cert594 sigBody594
+theorem sig594 : glob.sig 594 = Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».sig := sig_of_link code594 core594 cert594 sigBody594
 
-kernel_rfl plumbEq594 : B2C.plumbOf 594 = Fn.«level_residual__L32_L8_L4_L2».plumb
+kernel_rfl plumbEq594 : B2C.plumbOf 594 = Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq594 : B2C.fsN 594 = Fn.«level_residual__L32_L8_L4_L2».fs
+kernel_rfl fsEq594 : B2C.fsN 594 = Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq594 : B2C.cplPartsOf 594 = Fn.«level_residual__L32_L8_L4_L2».parts
+kernel_rfl partsEq594 : B2C.cplPartsOf 594 = Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq594 : listElementOrDefault Data.cplArms 594 [] = Fn.«level_residual__L32_L8_L4_L2».arms
+kernel_rfl armsEq594 : listElementOrDefault Data.cplArms 594 [] = Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq594 : B2C.snapsOf 594 = Fn.«level_residual__L32_L8_L4_L2».snaps
+kernel_rfl snapsEq594 : B2C.snapsOf 594 = Fn.«level_queries__L109_L1_L6_L32_L19_L7_L0_L0_L0_L0».snaps
 
-kernel_rfl code595 : fnOf 595 = Fn.«level_residual__L28_L8_L4_L2».code
+kernel_rfl code595 : fnOf 595 = Fn.«level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0».code
 
-kernel_rfl core595 : coreOf 595 = Fn.«level_residual__L28_L8_L4_L2».core
+kernel_rfl core595 : coreOf 595 = Fn.«level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0».core
 
-kernel_rfl cert595 : certOf 595 = (Fn.«level_residual__L28_L8_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert595 : certOf 595 = (Fn.«level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody595 : sigFrom Fn.«level_residual__L28_L8_L4_L2».code Fn.«level_residual__L28_L8_L4_L2».core (Fn.«level_residual__L28_L8_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L28_L8_L4_L2».sig
+kernel_rfl sigBody595 : sigFrom Fn.«level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0».code Fn.«level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0».core (Fn.«level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0».sig
 
-theorem sig595 : glob.sig 595 = Fn.«level_residual__L28_L8_L4_L2».sig := sig_of_link code595 core595 cert595 sigBody595
+theorem sig595 : glob.sig 595 = Fn.«level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0».sig := sig_of_link code595 core595 cert595 sigBody595
 
-kernel_rfl plumbEq595 : B2C.plumbOf 595 = Fn.«level_residual__L28_L8_L4_L2».plumb
+kernel_rfl plumbEq595 : B2C.plumbOf 595 = Fn.«level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq595 : B2C.fsN 595 = Fn.«level_residual__L28_L8_L4_L2».fs
+kernel_rfl fsEq595 : B2C.fsN 595 = Fn.«level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq595 : B2C.cplPartsOf 595 = Fn.«level_residual__L28_L8_L4_L2».parts
+kernel_rfl partsEq595 : B2C.cplPartsOf 595 = Fn.«level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq595 : listElementOrDefault Data.cplArms 595 [] = Fn.«level_residual__L28_L8_L4_L2».arms
+kernel_rfl armsEq595 : listElementOrDefault Data.cplArms 595 [] = Fn.«level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq595 : B2C.snapsOf 595 = Fn.«level_residual__L28_L8_L4_L2».snaps
+kernel_rfl snapsEq595 : B2C.snapsOf 595 = Fn.«level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0».snaps
 
-kernel_rfl code596 : fnOf 596 = Fn.«level_residual__L25_L8_L4_L2».code
+kernel_rfl code596 : fnOf 596 = Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».code
 
-kernel_rfl core596 : coreOf 596 = Fn.«level_residual__L25_L8_L4_L2».core
+kernel_rfl core596 : coreOf 596 = Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».core
 
-kernel_rfl cert596 : certOf 596 = (Fn.«level_residual__L25_L8_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert596 : certOf 596 = (Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody596 : sigFrom Fn.«level_residual__L25_L8_L4_L2».code Fn.«level_residual__L25_L8_L4_L2».core (Fn.«level_residual__L25_L8_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L25_L8_L4_L2».sig
+kernel_rfl sigBody596 : sigFrom Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».code Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».core (Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».cert.withPows Data.powTree) = Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».sig
 
-theorem sig596 : glob.sig 596 = Fn.«level_residual__L25_L8_L4_L2».sig := sig_of_link code596 core596 cert596 sigBody596
+theorem sig596 : glob.sig 596 = Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».sig := sig_of_link code596 core596 cert596 sigBody596
 
-kernel_rfl plumbEq596 : B2C.plumbOf 596 = Fn.«level_residual__L25_L8_L4_L2».plumb
+kernel_rfl plumbEq596 : B2C.plumbOf 596 = Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».plumb
 
-kernel_rfl fsEq596 : B2C.fsN 596 = Fn.«level_residual__L25_L8_L4_L2».fs
+kernel_rfl fsEq596 : B2C.fsN 596 = Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».fs
 
-kernel_rfl partsEq596 : B2C.cplPartsOf 596 = Fn.«level_residual__L25_L8_L4_L2».parts
+kernel_rfl partsEq596 : B2C.cplPartsOf 596 = Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».parts
 
-kernel_rfl armsEq596 : listElementOrDefault Data.cplArms 596 [] = Fn.«level_residual__L25_L8_L4_L2».arms
+kernel_rfl armsEq596 : listElementOrDefault Data.cplArms 596 [] = Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».arms
 
-kernel_rfl snapsEq596 : B2C.snapsOf 596 = Fn.«level_residual__L25_L8_L4_L2».snaps
+kernel_rfl snapsEq596 : B2C.snapsOf 596 = Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».snaps
 
-kernel_rfl code597 : fnOf 597 = Fn.«level_residual__L23_L8_L4_L2».code
+kernel_rfl code597 : fnOf 597 = Fn.«squeeze_point_from__L13».code
 
-kernel_rfl core597 : coreOf 597 = Fn.«level_residual__L23_L8_L4_L2».core
+kernel_rfl core597 : coreOf 597 = Fn.«squeeze_point_from__L13».core
 
-kernel_rfl cert597 : certOf 597 = (Fn.«level_residual__L23_L8_L4_L2».cert.withPows Data.powTree)
+kernel_rfl cert597 : certOf 597 = (Fn.«squeeze_point_from__L13».cert.withPows Data.powTree)
 
-kernel_rfl sigBody597 : sigFrom Fn.«level_residual__L23_L8_L4_L2».code Fn.«level_residual__L23_L8_L4_L2».core (Fn.«level_residual__L23_L8_L4_L2».cert.withPows Data.powTree) = Fn.«level_residual__L23_L8_L4_L2».sig
+kernel_rfl sigBody597 : sigFrom Fn.«squeeze_point_from__L13».code Fn.«squeeze_point_from__L13».core (Fn.«squeeze_point_from__L13».cert.withPows Data.powTree) = Fn.«squeeze_point_from__L13».sig
 
-theorem sig597 : glob.sig 597 = Fn.«level_residual__L23_L8_L4_L2».sig := sig_of_link code597 core597 cert597 sigBody597
+theorem sig597 : glob.sig 597 = Fn.«squeeze_point_from__L13».sig := sig_of_link code597 core597 cert597 sigBody597
 
-kernel_rfl plumbEq597 : B2C.plumbOf 597 = Fn.«level_residual__L23_L8_L4_L2».plumb
+kernel_rfl plumbEq597 : B2C.plumbOf 597 = Fn.«squeeze_point_from__L13».plumb
 
-kernel_rfl fsEq597 : B2C.fsN 597 = Fn.«level_residual__L23_L8_L4_L2».fs
+kernel_rfl fsEq597 : B2C.fsN 597 = Fn.«squeeze_point_from__L13».fs
 
-kernel_rfl partsEq597 : B2C.cplPartsOf 597 = Fn.«level_residual__L23_L8_L4_L2».parts
+kernel_rfl partsEq597 : B2C.cplPartsOf 597 = Fn.«squeeze_point_from__L13».parts
 
-kernel_rfl armsEq597 : listElementOrDefault Data.cplArms 597 [] = Fn.«level_residual__L23_L8_L4_L2».arms
+kernel_rfl armsEq597 : listElementOrDefault Data.cplArms 597 [] = Fn.«squeeze_point_from__L13».arms
 
-kernel_rfl snapsEq597 : B2C.snapsOf 597 = Fn.«level_residual__L23_L8_L4_L2».snaps
+kernel_rfl snapsEq597 : B2C.snapsOf 597 = Fn.«squeeze_point_from__L13».snaps
 
-kernel_rfl code598 : fnOf 598 = Fn.«squeeze_point_from__L17».code
+kernel_rfl code598 : fnOf 598 = Fn.«level_positions__L8_L17_L5».code
 
-kernel_rfl core598 : coreOf 598 = Fn.«squeeze_point_from__L17».core
+kernel_rfl core598 : coreOf 598 = Fn.«level_positions__L8_L17_L5».core
 
-kernel_rfl cert598 : certOf 598 = (Fn.«squeeze_point_from__L17».cert.withPows Data.powTree)
+kernel_rfl cert598 : certOf 598 = (Fn.«level_positions__L8_L17_L5».cert.withPows Data.powTree)
 
-kernel_rfl sigBody598 : sigFrom Fn.«squeeze_point_from__L17».code Fn.«squeeze_point_from__L17».core (Fn.«squeeze_point_from__L17».cert.withPows Data.powTree) = Fn.«squeeze_point_from__L17».sig
+kernel_rfl sigBody598 : sigFrom Fn.«level_positions__L8_L17_L5».code Fn.«level_positions__L8_L17_L5».core (Fn.«level_positions__L8_L17_L5».cert.withPows Data.powTree) = Fn.«level_positions__L8_L17_L5».sig
 
-theorem sig598 : glob.sig 598 = Fn.«squeeze_point_from__L17».sig := sig_of_link code598 core598 cert598 sigBody598
+theorem sig598 : glob.sig 598 = Fn.«level_positions__L8_L17_L5».sig := sig_of_link code598 core598 cert598 sigBody598
 
-kernel_rfl plumbEq598 : B2C.plumbOf 598 = Fn.«squeeze_point_from__L17».plumb
+kernel_rfl plumbEq598 : B2C.plumbOf 598 = Fn.«level_positions__L8_L17_L5».plumb
 
-kernel_rfl fsEq598 : B2C.fsN 598 = Fn.«squeeze_point_from__L17».fs
+kernel_rfl fsEq598 : B2C.fsN 598 = Fn.«level_positions__L8_L17_L5».fs
 
-kernel_rfl partsEq598 : B2C.cplPartsOf 598 = Fn.«squeeze_point_from__L17».parts
+kernel_rfl partsEq598 : B2C.cplPartsOf 598 = Fn.«level_positions__L8_L17_L5».parts
 
-kernel_rfl armsEq598 : listElementOrDefault Data.cplArms 598 [] = Fn.«squeeze_point_from__L17».arms
+kernel_rfl armsEq598 : listElementOrDefault Data.cplArms 598 [] = Fn.«level_positions__L8_L17_L5».arms
 
-kernel_rfl snapsEq598 : B2C.snapsOf 598 = Fn.«squeeze_point_from__L17».snaps
+kernel_rfl snapsEq598 : B2C.snapsOf 598 = Fn.«level_positions__L8_L17_L5».snaps
 
-kernel_rfl code599 : fnOf 599 = Fn.«level_positions__L32_L18_L6».code
+kernel_rfl code599 : fnOf 599 = Fn.«level_positions__L7_L18_L6».code
 
-kernel_rfl core599 : coreOf 599 = Fn.«level_positions__L32_L18_L6».core
+kernel_rfl core599 : coreOf 599 = Fn.«level_positions__L7_L18_L6».core
 
-kernel_rfl cert599 : certOf 599 = (Fn.«level_positions__L32_L18_L6».cert.withPows Data.powTree)
+kernel_rfl cert599 : certOf 599 = (Fn.«level_positions__L7_L18_L6».cert.withPows Data.powTree)
 
-kernel_rfl sigBody599 : sigFrom Fn.«level_positions__L32_L18_L6».code Fn.«level_positions__L32_L18_L6».core (Fn.«level_positions__L32_L18_L6».cert.withPows Data.powTree) = Fn.«level_positions__L32_L18_L6».sig
+kernel_rfl sigBody599 : sigFrom Fn.«level_positions__L7_L18_L6».code Fn.«level_positions__L7_L18_L6».core (Fn.«level_positions__L7_L18_L6».cert.withPows Data.powTree) = Fn.«level_positions__L7_L18_L6».sig
 
-theorem sig599 : glob.sig 599 = Fn.«level_positions__L32_L18_L6».sig := sig_of_link code599 core599 cert599 sigBody599
+theorem sig599 : glob.sig 599 = Fn.«level_positions__L7_L18_L6».sig := sig_of_link code599 core599 cert599 sigBody599
 
-kernel_rfl plumbEq599 : B2C.plumbOf 599 = Fn.«level_positions__L32_L18_L6».plumb
+kernel_rfl plumbEq599 : B2C.plumbOf 599 = Fn.«level_positions__L7_L18_L6».plumb
 
-kernel_rfl fsEq599 : B2C.fsN 599 = Fn.«level_positions__L32_L18_L6».fs
+kernel_rfl fsEq599 : B2C.fsN 599 = Fn.«level_positions__L7_L18_L6».fs
 
-kernel_rfl partsEq599 : B2C.cplPartsOf 599 = Fn.«level_positions__L32_L18_L6».parts
+kernel_rfl partsEq599 : B2C.cplPartsOf 599 = Fn.«level_positions__L7_L18_L6».parts
 
-kernel_rfl armsEq599 : listElementOrDefault Data.cplArms 599 [] = Fn.«level_positions__L32_L18_L6».arms
+kernel_rfl armsEq599 : listElementOrDefault Data.cplArms 599 [] = Fn.«level_positions__L7_L18_L6».arms
 
-kernel_rfl snapsEq599 : B2C.snapsOf 599 = Fn.«level_positions__L32_L18_L6».snaps
+kernel_rfl snapsEq599 : B2C.snapsOf 599 = Fn.«level_positions__L7_L18_L6».snaps
 
-kernel_rfl code600 : fnOf 600 = Fn.«level_positions__L19_L19_L7».code
+kernel_rfl code600 : fnOf 600 = Fn.«level_positions__L7_L19_L7».code
 
-kernel_rfl core600 : coreOf 600 = Fn.«level_positions__L19_L19_L7».core
+kernel_rfl core600 : coreOf 600 = Fn.«level_positions__L7_L19_L7».core
 
-kernel_rfl cert600 : certOf 600 = (Fn.«level_positions__L19_L19_L7».cert.withPows Data.powTree)
+kernel_rfl cert600 : certOf 600 = (Fn.«level_positions__L7_L19_L7».cert.withPows Data.powTree)
 
-kernel_rfl sigBody600 : sigFrom Fn.«level_positions__L19_L19_L7».code Fn.«level_positions__L19_L19_L7».core (Fn.«level_positions__L19_L19_L7».cert.withPows Data.powTree) = Fn.«level_positions__L19_L19_L7».sig
+kernel_rfl sigBody600 : sigFrom Fn.«level_positions__L7_L19_L7».code Fn.«level_positions__L7_L19_L7».core (Fn.«level_positions__L7_L19_L7».cert.withPows Data.powTree) = Fn.«level_positions__L7_L19_L7».sig
 
-theorem sig600 : glob.sig 600 = Fn.«level_positions__L19_L19_L7».sig := sig_of_link code600 core600 cert600 sigBody600
+theorem sig600 : glob.sig 600 = Fn.«level_positions__L7_L19_L7».sig := sig_of_link code600 core600 cert600 sigBody600
 
-kernel_rfl plumbEq600 : B2C.plumbOf 600 = Fn.«level_positions__L19_L19_L7».plumb
+kernel_rfl plumbEq600 : B2C.plumbOf 600 = Fn.«level_positions__L7_L19_L7».plumb
 
-kernel_rfl fsEq600 : B2C.fsN 600 = Fn.«level_positions__L19_L19_L7».fs
+kernel_rfl fsEq600 : B2C.fsN 600 = Fn.«level_positions__L7_L19_L7».fs
 
-kernel_rfl partsEq600 : B2C.cplPartsOf 600 = Fn.«level_positions__L19_L19_L7».parts
+kernel_rfl partsEq600 : B2C.cplPartsOf 600 = Fn.«level_positions__L7_L19_L7».parts
 
-kernel_rfl armsEq600 : listElementOrDefault Data.cplArms 600 [] = Fn.«level_positions__L19_L19_L7».arms
+kernel_rfl armsEq600 : listElementOrDefault Data.cplArms 600 [] = Fn.«level_positions__L7_L19_L7».arms
 
-kernel_rfl snapsEq600 : B2C.snapsOf 600 = Fn.«level_positions__L19_L19_L7».snaps
+kernel_rfl snapsEq600 : B2C.snapsOf 600 = Fn.«level_positions__L7_L19_L7».snaps
 
 end
 end LeanVM.Guest.Checked

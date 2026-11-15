@@ -38,7 +38,7 @@ theorem vs_ringCoefficients_length (f g : List E) (hf : f.length = 8) (hg : g.le
 /-- **Every load reads the caller's words or the own buffers.** -/
 theorem vs_loads {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Digest}
     {c : Child} (S : ChildSegs bytecode seed c) (b sqE outE : ℕ) {Lin : Main.Layout}
-    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin)
+    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin)
     {outs : List (List E × Main.Layout)} (O : VsOuts S (bases b (vsSizes S.d)) sqE outs)
     {rd : Reader} (hB : Main.MemL rd (bufL b (vsSizes S.d) S.ownW)) :
     ∀ q ∈ vsCPre.filterMap Stmt.loadS, ∃ i,
@@ -110,9 +110,9 @@ theorem vs_loads {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Di
     rw [show ofK (addressOfIndex (S.vtB bs sqE (S.leavesB (outs.take 10))).cur) = ptr (S.cT bs)
       from rfl, mul_assoc, mul_assoc, ← pow_succ', ← pow_add]
     rfl
-  have hcl : (DeferredClaim.cells c.freshClaim).length = 24 := by
+  have hcl : (DeferredBytecodeClaim.cells c.freshClaim).length = 24 := by
     rw [S.fresh_eq hbl]
-    simp [DeferredClaim.cells, S.slots_length, hzl]
+    simp [DeferredBytecodeClaim.cells, S.slots_length, hzl]
     omega
   have hcT : S.cT bs = bs.getD 1 0 + (13 + S.xsG.length) := by
     simp only [ChildSegs.cT, ChildSegs.cG, vb]; omega

@@ -35,7 +35,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
     let Some(cached) = fixtures::honest(fixture, rate)? else {
         return Ok(());
     };
-    let Ok((fresh, _)) = leanvm_core::cpu::prove(&fixture.program, fixture.public_input, rate) else {
+    let Ok((fresh, _)) = leanvm_core::cpu::prove(&fixture.program, &fixture.witness, fixture.public_input, rate) else {
         return Err(Finding::high(
             format!("{context}: a proof that succeeded once is refused"),
             format!("rate {rate}"),

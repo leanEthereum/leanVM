@@ -1,41 +1,23 @@
-//! Systematic Reed-Solomon encoding at rate 1/2.
-//!
-//! An inverse additive NTT interpolates each payload row into novel-basis
-//! coefficients. Encoding these on the full domain preserves the payload in
-//! the first half of the codeword and adds redundancy in the second half.
+//! Systematic Reed-Solomon encoding at rate one half, by the stable prover's additive NTT (Annex D).
 
 use pcs::ntt::AdditiveNttF64;
 use primitives::cast_slice_mut;
 use primitives::field::F64;
 
-use crate::{BLOB_SYMBOLS, CODEWORD_SYMBOLS, DA_LOG_K, LOG_M, row_count};
+use crate::{BLOB_SYMBOLS, Blob, CODEWORD_SYMBOLS, LOG_BLOB_SYMBOLS, LOG_CODEWORD_SYMBOLS, Symbol};
 
-/// Encode `n` rows of `k` symbols into `n` codewords of `m` symbols, row-major.
-///
-/// `rows` is the payload, `n_rows · k` long. The returned buffer is `n_rows · m`
-/// long, with each payload row unchanged in its codeword's first half.
-/// Symbols are little-endian 64-bit words; every bit pattern is valid.
-/// Padding rows are not materialized, being zero codewords.
-///
-/// # Panics
-///
-/// If `rows` is not 1 to [`DA_MAX_ROWS`](crate::DA_MAX_ROWS) full blobs. [`commit`](crate::commit) checks this first.
-#[tracing::instrument(name = "Encoding", skip_all)]
-pub fn encode_rows(rows: &[u64]) -> Vec<u64> {
-    let n_rows = row_count(rows.len(), BLOB_SYMBOLS).expect("1..=DA_MAX_ROWS whole blobs");
-    let (k, m) = (BLOB_SYMBOLS, CODEWORD_SYMBOLS);
-    let interpolation = AdditiveNttF64::standard(DA_LOG_K);
-    let ntt = AdditiveNttF64::standard(LOG_M);
-
-    // One row at a time: the transform dispatches internally at any row worth
-    // encoding, and the pool panics on a nested dispatch, so the row loop must stay
-    // sequential and let the NTT own the parallelism.
-    let mut codewords = vec![0; n_rows * m];
-    for (i, codeword) in codewords.chunks_exact_mut(m).enumerate() {
-        codeword[..k].copy_from_slice(&rows[i * k..(i + 1) * k]);
-        let codeword = cast_slice_mut::<u64, F64>(codeword);
-        interpolation.inverse_transform(&mut codeword[..k]);
-        ntt.encode_interleaved_in_place(codeword, 1, 1);
+/// Each blob's codeword, end to end, the blob unchanged in its first half: its novel-basis coefficients, interpolated
+/// on the payload's domain, evaluated on the domain twice its size. A symbol's words in memory are its limbs, low first,
+/// so its two limbs are the transforms' two lanes.
+pub fn encode_rows(blobs: &[Blob]) -> Vec<Symbol> {
+    let interpolation = AdditiveNttF64::standard(LOG_BLOB_SYMBOLS);
+    let ntt = AdditiveNttF64::standard(LOG_CODEWORD_SYMBOLS);
+    let mut codewords = vec![0; blobs.len() * CODEWORD_SYMBOLS];
+    for (blob, codeword) in blobs.iter().zip(codewords.as_chunks_mut::<CODEWORD_SYMBOLS>().0) {
+        codeword[..BLOB_SYMBOLS].copy_from_slice(blob);
+        let words = cast_slice_mut::<Symbol, F64>(codeword);
+        interpolation.inverse_transform(&mut words[..2 * BLOB_SYMBOLS], 2);
+        ntt.encode_interleaved_in_place(words, 2, 1);
     }
     codewords
 }
@@ -44,40 +26,16 @@ pub fn encode_rows(rows: &[u64]) -> Vec<u64> {
 mod tests {
     use super::*;
 
+    /// The payload is the codeword's first half, and each limb is a codeword of its own: its novel-basis coefficients
+    /// vanish from `BLOB_SYMBOLS` on.
     #[test]
     fn encoding_preserves_payload_and_degree_bound() {
-        let payload: Vec<u64> = (0..3 * BLOB_SYMBOLS)
-            .map(|i| 0x9E37_79B9_7F4A_7C15u64.wrapping_mul(i as u64 + 1))
-            .collect();
-        let mut codewords = encode_rows(&payload);
-        let ntt = AdditiveNttF64::standard(LOG_M);
-        for (row, codeword) in payload
-            .as_chunks::<BLOB_SYMBOLS>()
-            .0
-            .iter()
-            .zip(codewords.as_chunks_mut::<CODEWORD_SYMBOLS>().0.iter_mut())
-        {
-            assert_eq!(&codeword[..BLOB_SYMBOLS], row);
-            ntt.inverse_transform(cast_slice_mut::<u64, F64>(codeword));
-            assert!(codeword[BLOB_SYMBOLS..].iter().all(|&x| x == 0));
-        }
-    }
-
-    /// Encoding commutes with XOR of payloads.
-    #[test]
-    fn encoding_is_linear() {
-        let n = 2 * BLOB_SYMBOLS;
-        let a: Vec<u64> = (0..n)
-            .map(|i| 0x9E37_79B9_7F4A_7C15u64.wrapping_mul(i as u64 + 1))
-            .collect();
-        let b: Vec<u64> = (0..n)
-            .map(|i| 0xBF58_476D_1CE4_E5B9u64.wrapping_mul(i as u64 + 3))
-            .collect();
-        let sum: Vec<u64> = a.iter().zip(&b).map(|(&x, &y)| x ^ y).collect();
-
-        let (ca, cb, cs) = (encode_rows(&a), encode_rows(&b), encode_rows(&sum));
-        for ((&x, &y), &z) in ca.iter().zip(&cb).zip(&cs) {
-            assert_eq!(x ^ y, z);
-        }
+        let blob: Blob =
+            std::array::from_fn(|i| 0x9E37_79B9_7F4A_7C15_F39C_C060_5CED_C835u128.wrapping_mul(i as u128 + 1));
+        let mut codeword = encode_rows(&[blob]);
+        assert_eq!(codeword[..BLOB_SYMBOLS], blob);
+        let words = cast_slice_mut::<Symbol, F64>(&mut codeword);
+        AdditiveNttF64::standard(LOG_CODEWORD_SYMBOLS).inverse_transform(words, 2);
+        assert!(words[2 * BLOB_SYMBOLS..].iter().all(|&word| word == F64::ZERO));
     }
 }

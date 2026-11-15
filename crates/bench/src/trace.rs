@@ -1,7 +1,5 @@
 //! The hierarchical trace tree the benchmark binaries print with `--tracing`.
 
-use primitives::pretty_f64;
-
 fn format_trace_tree(tree: &tracing_forest::tree::Tree) -> Result<String, std::fmt::Error> {
     use tracing_forest::Formatter;
 
@@ -59,7 +57,7 @@ fn rewrite_trace_percentages(rendered: &str, percentages: &[f64]) -> String {
                 .next()
                 .expect("trace formatter found more spans than trace-tree timings");
             output.push_str(&line[..value_start]);
-            output.push_str(&pretty_f64(*percentage));
+            output.push_str(&isa::pretty_f64(*percentage));
             output.push_str(&line[percent_end..]);
         } else {
             output.push_str(line);

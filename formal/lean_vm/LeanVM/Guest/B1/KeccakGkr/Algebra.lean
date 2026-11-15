@@ -19,10 +19,9 @@ coordinates, `b` the five lane coordinates):
 
 * `eqAt_lz`: `eq(loc, 64l + z) = eq(a, z) · eq(b, l)`;
 * `sum_eqAt_pow`: `Σ_z eq(a, z)·x^z = Π_t (1 + a_t (1 + x^(2^t)))`;
-* `firstWeight_eq`: the first claim's weight at `loc` (`dot (eq.take 1600) (firstWeights lanes)`,
-  V:2012) is `(Σ_l eq(b, l)·lanes_l) · Π_t (1 + a_t (1 + g^(2^t)))` (G:2775-2781);
-* `batch_factor`: a layer's batched weights (V:2016-2018) are `lanesOut ⊗ eqKernel a`, so the next
-  claim's weights are `laterWeights (lanesOut loc β) (eqKernel a)` (G:2792-2802).
+* `firstWeight_eq`: the first claim's weight at `loc` (`dot (eq.take 1600) (firstWeights lanes)`) is `(Σ_l eq(b, l)·lanes_l) · Π_t (1 + a_t (1 + g^(2^t)))`;
+* `batch_factor`: a layer's batched weights are `lanesOut ⊗ eqKernel a`, so the next
+  claim's weights are `laterWeights (lanesOut loc β) (eqKernel a)`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -87,7 +86,7 @@ theorem eqKernel11_getD (loc : List E) (hl : loc.length = 11) {j : ℕ} (hj : j 
   conv_lhs => rw [← List.take_append_drop 6 loc, show j = 64 * (j / 64) + j % 64 by omega]
   exact eqAt_lz _ _ (by simp [hl]) (by omega) _
 
-/-- **The first claim's weight** at the local point (V:2012, G:2775-2781). -/
+/-- **The first claim's weight** at the local point. -/
 theorem firstWeight_eq (loc lanes : List E) (hl : loc.length = 11) :
     dot ((eqKernel loc).take keccakBits) (firstWeights lanes) =
       (∑ l ∈ range 25, eqAt (loc.drop 6) l * lanes.getD l 0) *
@@ -110,13 +109,13 @@ theorem firstWeight_eq (loc lanes : List E) (hl : loc.length = 11) :
   rw [eqAt_lz _ _ h6 hz64]
   ring
 
-/-- The lane table a layer writes (G:2792-2802): `eq(b, l) + β(eq(b, l + 4) + β eq(b, l + 3))`, the
+/-- The lane table a layer writes: `eq(b, l) + β(eq(b, l + 4) + β eq(b, l + 3))`, the
 column moved within the row. -/
 def lanesOut (loc : List E) (beta : E) : List E :=
   (List.range 25).map fun l ↦ eqAt (loc.drop 6) l + beta * (eqAt (loc.drop 6)
     ((l % 5 + 4) % 5 + 5 * (l / 5)) + beta * eqAt (loc.drop 6) ((l % 5 + 3) % 5 + 5 * (l / 5)))
 
-/-- **A layer's batched weights factor** (V:2016-2018): lane table times slice table. -/
+/-- **A layer's batched weights factor**: lane table times slice table. -/
 theorem batch_factor (loc : List E) (hl : loc.length = 11) (beta : E) :
     ((List.range keccakBits).map fun j ↦ (eqKernel loc).getD j 0 + beta *
       ((eqKernel loc).getD (keccakAlong j 4) 0 + beta * (eqKernel loc).getD (keccakAlong j 3) 0)) =

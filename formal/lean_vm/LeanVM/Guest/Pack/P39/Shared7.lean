@@ -15,25 +15,6 @@ public import LeanVM.Guest.Pack.«P39».Bundle
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«level_residual__L37_L19_L4_L2_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `__loop443`, window 1. -/
-theorem sw1 : shareWinD Fn.«level_residual__L37_L19_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop443`, window 2. -/
-theorem sw2 : shareWinD Fn.«level_residual__L37_L19_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 2 = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«level_residual__L37_L19_L4_L2_loop0»
-
 namespace LeanVM.Guest.Fn.«level_residual__L23_L16_L4_L2_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -41,21 +22,21 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop491`, once. -/
+/-- `__loop441`, once. -/
 theorem st : shareStaticD Fn.«level_residual__L23_L16_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop491`, window 0. -/
+/-- `__loop441`, window 0. -/
 theorem sw0 : shareWinD Fn.«level_residual__L23_L16_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop491`, window 1. -/
+/-- `__loop441`, window 1. -/
 theorem sw1 : shareWinD Fn.«level_residual__L23_L16_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
   decide +kernel
 
-/-- `__loop491`: its static sharing check and every window's. -/
+/-- `__loop441`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_residual__L23_L16_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 1 := by decide +kernel
   rw [hc] at hi

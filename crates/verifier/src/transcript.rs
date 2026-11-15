@@ -17,7 +17,7 @@ pub struct Proof {
 const DS_OBSERVE: u64 = 1;
 pub(crate) const DS_POW_NONCE: u64 = 4;
 /// Scalars that wait to be absorbed: four, a scalar taking four rate lanes, its two limbs, a zero lane and a tag.
-const RATE_SCALARS: usize = 4;
+pub const RATE_SCALARS: usize = 4;
 
 /// A duplex sponge over Keccak-f\[1600\], in overwrite mode. The rate is lanes 0..16 and the capacity lanes
 /// 16..25. A permutation writes waiting scalar `i` over lanes `4i..4i+4`, zeroes the rest of the rate and keeps the
@@ -93,7 +93,7 @@ impl Sponge {
 pub const SECURITY_BITS: u32 = 125;
 
 /// The grind before a verifier message whose round-by-round error is `numerator / |E|`, `|E| = 2^128`: the fewest
-/// bits that bring it to `2^-SECURITY_BITS` (`fiat_shamir::grinding_bits`).
+/// bits that bring it to `2^-SECURITY_BITS`. A message of degree `d` in its challenges has numerator `d`.
 pub const fn grinding_bits(numerator: u128) -> u32 {
     let log = if numerator <= 1 {
         0

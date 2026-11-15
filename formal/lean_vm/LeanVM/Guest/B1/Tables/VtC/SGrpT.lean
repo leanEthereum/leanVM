@@ -12,7 +12,7 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.SBase
 
 /-!
-# The block groups' keys and sizes, honestly (G:2251-2258)
+# The block groups' keys and sizes, honestly
 
 `vtc_grp{gi}`: with `kappa_g = g^κ` (the group's `kappa_base` variable, times `g^19` for the
 bytecode's group `2`), the exponent tables' rank key `g^(247 κ)` and square `g^(2^κ)` at `κ`, and

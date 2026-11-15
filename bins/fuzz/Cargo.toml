@@ -14,8 +14,12 @@ workspace = true
 
 [dependencies]
 fuzz = { path = "../../crates/fuzz", default-features = false }
-leanvm_core.workspace = true
-primitives.workspace = true
+verifier.workspace = true
+isa.workspace = true
+keccak256.workspace = true
+primitives = { package = "stable_primitives", path = "../../crates/stable_prover/primitives" }
+leanvm_core = { package = "stable_lean_vm_core", path = "../../crates/stable_prover/lean_vm_core" }
+exp_leanvm_core = { package = "experimental_lean_vm_core", path = "../../crates/experimental_prover/lean_vm_core" }
 clap = { version = "4", features = ["derive"] }
 
 # The target groups, all by default: `--no-default-features --features <group>` builds one alone.

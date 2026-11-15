@@ -254,7 +254,7 @@ jobs:
   # `lean_vm` models the verifier and the prover's proofs of this repository, and imports the statement (`Statement/`), what is left of the two signature
   # schemes' and LeanDA's Scheme modules, and `common`, so a change to any of them re-checks it. It also holds the checks
   # against the Rust it transcribes (`guest-export --check`, the differentials), so a change to those
-  # (`crates`, the Cargo manifests) re-runs it too: otherwise `Statement/Data` and the transcriptions
+  # (`crates`, `guests`, the Cargo manifests) re-runs it too: otherwise `Statement/Data` and the transcriptions
   # could go stale with green CI. A skipped job counts as passed for branch protection.
   lean-vm-changes:
     runs-on: ubuntu-latest
@@ -270,7 +270,7 @@ jobs:
             echo changed=true >> "$GITHUB_OUTPUT"
           # `LeanVM.lean` proves `Statement.Theorems` with the other projects' end theorems, so it
           # builds all of them.
-          elif git diff --name-only "$BASE" HEAD -- formal crates Cargo.toml Cargo.lock \
+          elif git diff --name-only "$BASE" HEAD -- formal crates guests Cargo.toml Cargo.lock .cargo/config.toml \
               .github/workflows/lean.yml | grep -q .; then
             echo changed=true >> "$GITHUB_OUTPUT"
           else

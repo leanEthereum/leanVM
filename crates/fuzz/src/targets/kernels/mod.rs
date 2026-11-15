@@ -3,7 +3,9 @@
 //! one function differ, and a proof built on the wrong one fails (or, worse, verifies something else).
 
 use crate::{Cost, Source, Target};
-use primitives::field::{F64, F128};
+use exp_primitives::field::{F64, F128};
+use primitives::field::F64 as SF64;
+use primitives::field::F128 as SF128;
 
 mod bits;
 mod field;
@@ -104,8 +106,14 @@ pub mod reference {
         acc
     }
 
-    /// Schoolbook over `K[y]/(y² + xy + 1)`: three coefficients, then `y² = xy + 1`, so the
-    /// high-limb product lands on the constant and, times `x`, on the `y` coefficient.
+    /// [`mul_e`] over the stable tree's `F128`.
+    pub fn mul_e_stable(a: SF128, b: SF128) -> SF128 {
+        let (a0, a1) = (a.c0, a.c1);
+        let (b0, b1) = (b.c0, b.c1);
+        let p = mul_k(a1, b1);
+        SF128::new(mul_k(a0, b0) ^ p, mul_k(a0, b1) ^ mul_k(a1, b0) ^ mul_k(2, p))
+    }
+
     pub fn mul_e(a: F128, b: F128) -> F128 {
         let (a0, a1) = (a.c0, a.c1);
         let (b0, b1) = (b.c0, b.c1);
@@ -209,24 +217,35 @@ pub mod reference {
 }
 
 /// A `K` element biased to the edges a carry-less kernel gets wrong: high bits, single bits, all ones.
-pub fn edge_k(src: &mut Source) -> F64 {
-    match src.below(10) {
-        0 => F64(u64::MAX),
-        1 => F64(1 << 63),
-        2 => F64(u64::MAX << src.below(64)),
-        3 => F64(u64::MAX >> src.below(64)),
-        4 => F64(0x1B),
-        _ => src.f64(),
-    }
+pub fn edge_k(src: &mut Source) -> SF64 {
+    SF64(match src.below(10) {
+        0 => u64::MAX,
+        1 => 1 << 63,
+        2 => u64::MAX << src.below(64),
+        3 => u64::MAX >> src.below(64),
+        4 => 0x1B,
+        _ => src.f64().0,
+    })
+}
+
+pub fn edge_k_exp(src: &mut Source) -> F64 {
+    F64(match src.below(10) {
+        0 => u64::MAX,
+        1 => 1 << 63,
+        2 => u64::MAX << src.below(64),
+        3 => u64::MAX >> src.below(64),
+        4 => 0x1B,
+        _ => src.f64().0,
+    })
 }
 
 /// An `E` element biased like [`edge_k`], limb by limb.
 pub fn edge_e(src: &mut Source) -> F128 {
     match src.below(6) {
-        0 => F128::new(edge_k(src).0, edge_k(src).0),
-        1 => F128::new(0, edge_k(src).0),
-        2 => F128::new(edge_k(src).0, 0),
-        _ => src.f128(),
+        0 => F128::new(edge_k_exp(src).0, edge_k_exp(src).0),
+        1 => F128::new(0, edge_k_exp(src).0),
+        2 => F128::new(edge_k_exp(src).0, 0),
+        _ => src.f128_exp(),
     }
 }
 
@@ -254,7 +273,7 @@ pub fn bulk_k(src: &mut Source, n: usize) -> Vec<F64> {
     for _ in 0..src.below(4) {
         if n > 0 {
             let i = src.below(n);
-            out[i] = edge_k(src);
+            out[i] = edge_k_exp(src);
         }
     }
     out

@@ -13,8 +13,8 @@ public import Mathlib.Tactic.IntervalCases
 public import LeanVM.Guest.Pack.«P37».Core
 public import LeanVM.Guest.Pack.«P37».Bundle
 public import LeanVM.Guest.Pack.«P37».Sig
+public import LeanVM.Guest.Pack.«P14».Sig
 public import LeanVM.Guest.Pack.«P44».Sig
-public import LeanVM.Guest.Pack.«P63».Sig
 
 set_option Elab.async false
 
@@ -186,18 +186,18 @@ theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«child_clai
 end
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L9»
 
-namespace LeanVM.Guest.Fn.«da_levels__L4_L2»
+namespace LeanVM.Guest.Fn.«level_positions__L11_L17_L5»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `da_levels__L4_L2`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(947, Fn.«da_levels__L4_L2_loop0».sig), (948, Fn.«da_levels__L4_L2_loop1».sig)]) Data.jtTrie globSem) code Fn.«da_levels__L4_L2».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+/-- `level_positions__L11_L17_L5`, window 0, part 0. -/
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(946, Fn.«decode_query_windows__L17_L5».sig), (947, Fn.«level_positions__L11_L17_L5_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_positions__L11_L17_L5».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
-/-- `da_levels__L4_L2`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(947, Fn.«da_levels__L4_L2_loop0».sig), (948, Fn.«da_levels__L4_L2_loop1».sig)]) Data.jtTrie globSem) code Fn.«da_levels__L4_L2».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+/-- `level_positions__L11_L17_L5`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs ([(946, Fn.«decode_query_windows__L17_L5».sig), (947, Fn.«level_positions__L11_L17_L5_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_positions__L11_L17_L5».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -208,5 +208,5 @@ theorem cplOk : CplOkD (Glob.ofSigs ([(947, Fn.«da_levels__L4_L2_loop0».sig), 
     · exact cw0_0
 
 end
-end LeanVM.Guest.Fn.«da_levels__L4_L2»
+end LeanVM.Guest.Fn.«level_positions__L11_L17_L5»
 

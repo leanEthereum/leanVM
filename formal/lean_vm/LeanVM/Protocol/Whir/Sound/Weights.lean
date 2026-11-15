@@ -18,7 +18,7 @@ public import LeanVM.Protocol.Whir.SubspaceAt
 # The verifier's weights
 
 The deployed verifier (`LeanVM.Protocol.Verifier`, transcribing `verify_whir` at leanVM
-`40f877dc`, `crates/verifier/src/whir.rs:92-265`) evaluates
+`40f877dc`, `crates/verifier/src/whir.rs`) evaluates
 three kinds of weights at the terminal point and computes one kind of value from opened rows.
 This module proves what the round-by-round analysis needs of each:
 

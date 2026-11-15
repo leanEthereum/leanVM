@@ -17,7 +17,7 @@ import LeanVMTests.Spec.NodeVectors
 * `claimedBytecodeValue` answers with the claimed value at the claimed point and rejects
   elsewhere, and the deferring verifier's seed is the deployed verifier's.
 * The deferring verifier rejects garbage, and so does the deployed one on the same proof.
-* `DeferredClaim.HasBytecodeShape` rejects a bytecode point one coordinate short (whose cells, hashed
+* `DeferredBytecodeClaim.HasBytecodeShape` rejects a bytecode point one coordinate short (whose cells, hashed
   unpadded, also change the digest).
 * Known answers for the claim lists' digests (`claimListDigest` of each scheme's claims) and the
   batching transcript's seed (`batchSeed`), computed by an independent transcription of
@@ -27,7 +27,7 @@ import LeanVMTests.Spec.NodeVectors
 * `batch` on no children is inhabited; the outer verifier's membership challenge
   (`membershipChallengeOf`) of a root is not zero.
 * The Rust vectors (`NodeVectors.lean`, written by `scripts/guest-export` from the deployed
-  `crates/rec_aggregation/src/aggregation/` at the guest's shape, `bytecode_vars = 23`): the
+  `crates/aggregation/src/` at the guest's shape, `bytecode_vars = 23`): the
   statement's encodings and the batching of two children's true claims on the guest's stacked
   bytecode are the Spec's, with the permutation as a parameter too (`batchWith`); a batching hint off
   by one, the children swapped, and another seed or no DA claim in the statement change the
@@ -74,13 +74,13 @@ def bytecode : List K := (List.range 32).map K.ofBits
 /-! ## The deferred claim's shape -/
 
 /-- A deferred claim of the bytecode's shape, at zero. -/
-def zeroClaim : DeferredClaim := ⟨List.replicate 5 0, 0⟩
+def zeroClaim : DeferredBytecodeClaim := ⟨List.replicate 5 0, 0⟩
 
 /-- A deferred claim one coordinate short. -/
-def shortClaim : DeferredClaim := ⟨List.replicate 4 0, 0⟩
+def shortClaim : DeferredBytecodeClaim := ⟨List.replicate 4 0, 0⟩
 
 example : zeroClaim.HasBytecodeShape bytecode ∧ zeroClaim.HasZeroPoint bytecode := by
-  simp [DeferredClaim.HasBytecodeShape, DeferredClaim.HasZeroPoint, zeroClaim, bytecode]
+  simp [DeferredBytecodeClaim.HasBytecodeShape, DeferredBytecodeClaim.HasZeroPoint, zeroClaim, bytecode]
 
 /-- No claims. -/
 def noClaims : NodeClaims := ⟨[], [], zeroDigest⟩
@@ -90,7 +90,7 @@ def noClaims : NodeClaims := ⟨[], [], zeroDigest⟩
 #guard statementDigest default ⟨noClaims, zeroClaim⟩ ≠ statementDigest default ⟨noClaims, shortClaim⟩
 
 example : ¬ shortClaim.HasBytecodeShape bytecode := by
-  simp [DeferredClaim.HasBytecodeShape, shortClaim, bytecode]
+  simp [DeferredBytecodeClaim.HasBytecodeShape, shortClaim, bytecode]
 
 /-- The digest is Keccak-256 of the preimage the collision candidates name. -/
 example (seed : Digest) (s : NodeStatement) :

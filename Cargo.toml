@@ -1,5 +1,21 @@
 [workspace]
-members = ["crates/*", "bins/*"]
+members = [
+    "crates/verifier",
+    "crates/bench",
+    "crates/keccak256",
+    "crates/fiat_shamir_prover",
+    "crates/isa",
+    "crates/zkdsl_compiler",
+    "crates/lean_xmss",
+    "crates/lean_sphincs",
+    "crates/lean_da",
+    "crates/aggregation",
+    "crates/lean_vm",
+    "crates/fuzz",
+    "crates/stable_prover/*",
+    "crates/experimental_prover/*",
+    "bins/*",
+]
 # The libFuzzer harness is a workspace of its own, on nightly.
 exclude = ["fuzz"]
 resolver = "3"
@@ -15,17 +31,26 @@ too_many_arguments = "allow"
 
 [workspace.dependencies]
 bench = { path = "crates/bench" }
-primitives = { path = "crates/primitives" }
-fiat_shamir = { path = "crates/fiat_shamir" }
-pcs = { path = "crates/pcs" }
-keccak_gkr = { path = "crates/keccak_gkr" }
-leanvm_core = { path = "crates/leanvm_core" }
-lean_compiler = { path = "crates/lean_compiler" }
-lean_da = { path = "crates/lean_da" }
-rec_aggregation = { path = "crates/rec_aggregation" }
-signatures = { path = "crates/signatures" }
-parallel = { path = "crates/parallel" }
 verifier = { path = "crates/verifier" }
+keccak256 = { path = "crates/keccak256" }
+fiat_shamir_prover = { path = "crates/fiat_shamir_prover" }
+isa = { path = "crates/isa" }
+zkdsl_compiler = { path = "crates/zkdsl_compiler" }
+lean_xmss = { path = "crates/lean_xmss" }
+lean_sphincs = { path = "crates/lean_sphincs" }
+lean_da = { path = "crates/lean_da" }
+aggregation = { path = "crates/aggregation" }
+lean_vm = { path = "crates/lean_vm" }
+stable_primitives = { path = "crates/stable_prover/primitives" }
+stable_parallel = { path = "crates/stable_prover/parallel" }
+stable_pcs = { path = "crates/stable_prover/pcs" }
+stable_keccak_gkr = { path = "crates/stable_prover/keccak_gkr" }
+stable_lean_vm_core = { path = "crates/stable_prover/lean_vm_core" }
+experimental_primitives = { path = "crates/experimental_prover/primitives" }
+experimental_parallel = { path = "crates/experimental_prover/parallel" }
+experimental_pcs = { path = "crates/experimental_prover/pcs" }
+experimental_keccak_gkr = { path = "crates/experimental_prover/keccak_gkr" }
+experimental_lean_vm_core = { path = "crates/experimental_prover/lean_vm_core" }
 libc = "0.2"
 rand = "0.9"
 sha3 = "0.11"

@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.ExpAt
 
-  `da_expand` placed (G:4638-4651): its product tree in its frame run, the run returned at its
+  `da_expand` placed: its product tree in its frame run, the run returned at its
   leaves, within its frame, by its evaluated valuation.
 -/
 
@@ -22,8 +22,8 @@ The computing atoms are evaluated (`Fwd.ev`) from the four arguments; the run's 
 at `rb = fp + cert f (.n (expB D + 1))`, its fresh words zero, then the leaves' pointer
 `g^(rb + 2^D)`. Node `2^d + y` is `expandLeaf … d y` (`exp_node`), which the run's words hold
 (`expRunVals`, `expRun_get`), so the `frameAddr` holds. `exp_completeAtB`: complete, placed, within
-its frame, returning the run at its leaves (`expOut`); `exp7_completeAtB`,
-`exp8_completeAtB`: the two specializations.
+its frame, returning the run at its leaves (`expOut`); `expTop_completeAtB`,
+`expCell_completeAtB`: the two specializations.
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -57,11 +57,11 @@ theorem nodesBelow_get : ∀ (D : ℕ) {d y : ℕ}, d < D → y < 2 ^ d →
       simp [hy]
 
 /-- **The run's words**: a fresh word, node `k` at word `k`, fresh words. -/
-theorem expRun_get {D k : ℕ} (hD : D ≤ 8) (hk : k < 512) :
+theorem expRun_get {D k : ℕ} (hD : D ≤ 7) (hk : k < 256) :
     (expRun D)[k]? = some (if k = 0 then .n (expB D + 1) else if k < 2 ^ (D + 1) then
       .n (nodeAt (Nat.log 2 k) (k - 2 ^ Nat.log 2 k)) else .n (expB D + 2 + (k - 2 ^ (D + 1)))) := by
-  have h9 : 2 ^ (D + 1) ≤ 512 :=
-    le_trans (Nat.pow_le_pow_right (by norm_num) (by omega)) (by norm_num : 2 ^ 9 ≤ 512)
+  have h9 : 2 ^ (D + 1) ≤ 256 :=
+    le_trans (Nat.pow_le_pow_right (by norm_num) (by omega)) (by norm_num : 2 ^ 8 ≤ 256)
   have hl := length_nodesBelow (D + 1)
   have hp := Nat.one_le_two_pow (n := D + 1)
   rcases Nat.eq_zero_or_pos k with rfl | hk0
@@ -82,7 +82,7 @@ theorem expRun_get {D k : ℕ} (hD : D ≤ 8) (hk : k < 512) :
       exact this
     · rw [ite_neg' hkD, List.getElem?_append_right (by omega),
         show j - (nodesBelow (D + 1)).length = j + 1 - 2 ^ (D + 1) by omega]
-      simp only [List.getElem?_map, List.getElem?_range (show j + 1 - 2 ^ (D + 1) < 512 - 2 ^ (D + 1) by
+      simp only [List.getElem?_map, List.getElem?_range (show j + 1 - 2 ^ (D + 1) < 256 - 2 ^ (D + 1) by
         omega), Option.map_some]
 
 /-- The loads of `da_expand`'s computing atoms: a power, a shift, a node's factor. -/
@@ -96,7 +96,7 @@ theorem expBodyA_load {top D : ℕ} {d' p : V} {off : ℕ} (h : Atom.load d' p o
   · exact Or.inr (Or.inl ⟨d, hd, rfl, rfl⟩)
   · exact Or.inr (Or.inr ⟨d, hd, y, hy, rfl, rfl⟩)
 
-theorem expRunVals_get {root : E} {F Z S : ℕ → E} {top D k : ℕ} (hk : k < 512) :
+theorem expRunVals_get {root : E} {F Z S : ℕ → E} {top D k : ℕ} (hk : k < 256) :
     (expRunVals root F Z S top D)[k]'(by simp [expRunVals]; exact hk) =
       if 1 ≤ k ∧ k < 2 ^ (D + 1) then expandLeaf root F Z S top (Nat.log 2 k) (k - 2 ^ Nat.log 2 k)
       else 0 := by
@@ -124,8 +124,8 @@ set_option maxRecDepth 4000 in
 its leaves, the factors `F`, powers `Z` and shifts `S` read at `g^cf`, `g^cz`, `g^cs`. -/
 theorem exp_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
     (hl : coreProgram.loop f = false) {top D W : ℕ} (hok : expOk fn top D W = true)
-    (hcok : expCOk top D W = true) (hD : D ≤ 8) (hDt : D ≤ top + 1)
-    (hfit : cert f (.n (expB D + 1)) + 512 ≤ fs f) {Lin : Layout} {root : E} {cf cz cs : ℕ}
+    (hcok : expCOk top D W = true) (hD : D ≤ 7) (hDt : D ≤ top + 1)
+    (hfit : cert f (.n (expB D + 1)) + 256 ≤ fs f) {Lin : Layout} {root : E} {cf cz cs : ℕ}
     {F Z S : ℕ → E}
     (hF : ∀ rd, MemL rd Lin → ∀ n, 1 ≤ n → n < 2 ^ D → LoadHolds rd (gen ^ cf) n (F n))
     (hZ : ∀ rd, MemL rd Lin → ∀ d < D, LoadHolds rd (gen ^ cz) (top - d) (Z (top - d)))
@@ -134,8 +134,8 @@ theorem exp_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
     (hZr : ∀ d < D, RegionL Lin (cz + (top - d))) (hSr : ∀ d < D, RegionL Lin (cs + (top - d))) :
     CompleteAtDTB fs cert 16 f Lin [root, gen ^ cf, gen ^ cz, gen ^ cs]
       (expOut root F Z S top D) (fun _ => True) (fs f) := by
-  have h9 : 2 ^ (D + 1) ≤ 512 :=
-    le_trans (Nat.pow_le_pow_right (by norm_num) (by omega)) (by norm_num : 2 ^ 9 ≤ 512)
+  have h9 : 2 ^ (D + 1) ≤ 256 :=
+    le_trans (Nat.pow_le_pow_right (by norm_num) (by omega)) (by norm_num : 2 ^ 8 ≤ 256)
   unfold expOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨hparams, hW⟩, hok⟩ := hok
@@ -151,7 +151,7 @@ theorem exp_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
     obtain ⟨⟨⟨⟨⟨⟨hchk, hst⟩, hside⟩, hvals⟩, hna⟩, haddr⟩, hrun⟩ := hcok
     intro fp
     set rb := fp + cert f (.n (expB D + 1)) with hrb
-    have hlenR : (expRunVals root F Z S top D).length = 512 := by simp [expRunVals]
+    have hlenR : (expRunVals root F Z S top D).length = 256 := by simp [expRunVals]
     refine ⟨fs f, [], [gen ^ (rb + 2 ^ D)], [(rb, expRunVals root F Z S top D)], le_rfl,
       ⟨rb, rfl, List.mem_singleton_self _⟩, ?_, List.pairwise_singleton _ _,
       fun rd _ hm => RelAtIn.relAtInT ?_⟩
@@ -193,7 +193,7 @@ theorem exp_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
     have e3 : σ (.n 3) = gen ^ cs := hpar 3 (by norm_num)
     have htl_at : ∀ j, σ (.n (expB D + j)) = tl.getD j 0 := fun j => by
       rw [hσ, ← hlen]; exact ofArgs_new evl tl j
-    have hmC : expC D - expB D - 1 = 1 + (512 - 2 ^ (D + 1)) := by unfold expC; omega
+    have hmC : expC D - expB D - 1 = 1 + (256 - 2 ^ (D + 1)) := by unfold expC; omega
     -- the computing atoms
     have hatB : ∀ a ∈ expBodyA top D, a.Holds rd σ := by
       refine atoms_holds hg fun a ha hns => Or.inr ?_
@@ -240,7 +240,7 @@ theorem exp_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
       · rw [show top - (top - d') = d' by omega]
         exact hSv d' (by omega)
     -- the run
-    have hrv : ∀ k < 512, σ ((expRun D)[k]?.getD (.n 0)) =
+    have hrv : ∀ k < 256, σ ((expRun D)[k]?.getD (.n 0)) =
         (expRunVals root F Z S top D).getD k 0 := by
       intro k hk
       rw [expRun_get hD hk, Option.getD_some, List.getD_eq_getElem _ _ (by rw [hlenR]; exact hk),
@@ -267,7 +267,7 @@ theorem exp_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
             have h2 : 2 ^ (D + 1) ≤ k := by omega
             omega
           exact tl_mid rbE (word W 0) (rbE * word W 0) (by omega) hjm
-    have hrunLen : (expRun D).length = 512 := by
+    have hrunLen : (expRun D).length = 256 := by
       simp only [expRun, List.length_cons, List.length_append, List.length_map, List.length_range,
         length_nodesBelow]
       have := Nat.one_le_two_pow (n := D + 1)
@@ -327,7 +327,7 @@ theorem exp_completeAtB {f : String} {fn : Fn} (hf : coreProgram.find? f = some 
       obtain ⟨q, hq, h1, h2⟩ := hi
       rw [List.mem_singleton] at hq
       subst hq
-      refine ⟨(.n (expB D + 1), 512), by rw [hrun]; exact List.mem_singleton_self _, ?_, ?_⟩
+      refine ⟨(.n (expB D + 1), 256), by rw [hrun]; exact List.mem_singleton_self _, ?_, ?_⟩
       · exact h1
       · simpa [hlenR] using h2
   · exact absurd hok (by simp)
@@ -342,7 +342,7 @@ theorem blockAtoms_atoms : ∀ (as : List Atom) (vs : List V),
 /-- `da_expand`'s run fits its frame, when every run fits its frame. -/
 theorem exp_fit {fs : String → ℕ} {cert : String → V → ℕ} (hrf : Lift.RunsFit fs cert)
     {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn) {top D W : ℕ}
-    (hok : expOk fn top D W = true) (hD : D ≤ 8) : cert f (.n (expB D + 1)) + 512 ≤ fs f := by
+    (hok : expOk fn top D W = true) (hD : D ≤ 7) : cert f (.n (expB D + 1)) + 256 ≤ fs f := by
   unfold expOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨-, hok⟩ := hok
@@ -353,46 +353,46 @@ theorem exp_fit {fs : String → ℕ} {cert : String → V → ℕ} (hrf : Lift.
     have hb := splitBody_eq hsp
     rw [atomsEqb_sound htm] at hb
     have hmem : Atom.frameAddr (.n (expB D)) (.n (expB D + 1) :: (nodesBelow (D + 1) ++
-        (List.range (512 - 2 ^ (D + 1))).map fun i ↦ .n (expB D + 2 + i))) ∈
+        (List.range (256 - 2 ^ (D + 1))).map fun i ↦ .n (expB D + 2 + i))) ∈
         Lift.blockAtoms fn.body := by
       rw [hb, blockAtoms_atoms]
       exact List.mem_append_right _ (List.mem_cons_self ..)
     have h := hrf f fn hf _ _ _ hmem
-    have h9 : 2 ^ (D + 1) ≤ 512 :=
-      le_trans (Nat.pow_le_pow_right (by norm_num) (by omega)) (by norm_num : 2 ^ 9 ≤ 512)
+    have h9 : 2 ^ (D + 1) ≤ 256 :=
+      le_trans (Nat.pow_le_pow_right (by norm_num) (by omega)) (by norm_num : 2 ^ 8 ≤ 256)
     have := Nat.one_le_two_pow (n := D + 1)
     simp only [List.length_append, List.length_map, List.length_range, length_nodesBelow] at h
     omega
   · exact absurd hok (by simp)
 
-/-- **`da_expand__L14_L7`**, placed: the tree over the cell index (bits `14 … 8`). -/
-theorem exp7_completeAtB (hrf : Lift.RunsFit fs cert) {Lin : Layout} {root : E} {cf cz cs : ℕ}
+/-- **`da_expand__L13_L7`**, placed: the tree over the cell index (bits `13 … 7`). -/
+theorem expTop_completeAtB (hrf : Lift.RunsFit fs cert) {Lin : Layout} {root : E} {cf cz cs : ℕ}
     {F Z S : ℕ → E}
     (hF : ∀ rd, MemL rd Lin → ∀ n, 1 ≤ n → n < 2 ^ 7 → LoadHolds rd (gen ^ cf) n (F n))
-    (hZ : ∀ rd, MemL rd Lin → ∀ d < 7, LoadHolds rd (gen ^ cz) (14 - d) (Z (14 - d)))
-    (hS : ∀ rd, MemL rd Lin → ∀ d < 7, LoadHolds rd (gen ^ cs) (14 - d) (S (14 - d)))
+    (hZ : ∀ rd, MemL rd Lin → ∀ d < 7, LoadHolds rd (gen ^ cz) (13 - d) (Z (13 - d)))
+    (hS : ∀ rd, MemL rd Lin → ∀ d < 7, LoadHolds rd (gen ^ cs) (13 - d) (S (13 - d)))
     (hFr : ∀ n, 1 ≤ n → n < 2 ^ 7 → RegionL Lin (cf + n))
-    (hZr : ∀ d < 7, RegionL Lin (cz + (14 - d))) (hSr : ∀ d < 7, RegionL Lin (cs + (14 - d))) :
-    CompleteAtDTB fs cert 16 "da_expand__L14_L7" Lin [root, gen ^ cf, gen ^ cz, gen ^ cs]
-      (expOut root F Z S 14 7) (fun _ => True) (fs "da_expand__L14_L7") :=
-  exp_completeAtB fs cert find_da_expand_L14_L7
-    (by rw [Program.loop_of_find? find_da_expand_L14_L7]; decide +kernel) exp7_ok exp7_cok
-    (by norm_num) (by norm_num) (exp_fit hrf find_da_expand_L14_L7 exp7_ok (by norm_num))
+    (hZr : ∀ d < 7, RegionL Lin (cz + (13 - d))) (hSr : ∀ d < 7, RegionL Lin (cs + (13 - d))) :
+    CompleteAtDTB fs cert 16 "da_expand__L13_L7" Lin [root, gen ^ cf, gen ^ cz, gen ^ cs]
+      (expOut root F Z S 13 7) (fun _ => True) (fs "da_expand__L13_L7") :=
+  exp_completeAtB fs cert find_da_expand_L13_L7
+    (by rw [Program.loop_of_find? find_da_expand_L13_L7]; decide +kernel) expTop_ok expTop_cok
+    (by norm_num) (by norm_num) (exp_fit hrf find_da_expand_L13_L7 expTop_ok (by norm_num))
     hF hZ hS hFr hZr hSr
 
-/-- **`da_expand__L7_L8`**, placed: the tree inside a cell (bits `7 … 0`). -/
-theorem exp8_completeAtB (hrf : Lift.RunsFit fs cert) {Lin : Layout} {root : E} {cf cz cs : ℕ}
+/-- **`da_expand__L6_L7`**, placed: the tree inside a cell (bits `6 … 0`). -/
+theorem expCell_completeAtB (hrf : Lift.RunsFit fs cert) {Lin : Layout} {root : E} {cf cz cs : ℕ}
     {F Z S : ℕ → E}
-    (hF : ∀ rd, MemL rd Lin → ∀ n, 1 ≤ n → n < 2 ^ 8 → LoadHolds rd (gen ^ cf) n (F n))
-    (hZ : ∀ rd, MemL rd Lin → ∀ d < 8, LoadHolds rd (gen ^ cz) (7 - d) (Z (7 - d)))
-    (hS : ∀ rd, MemL rd Lin → ∀ d < 8, LoadHolds rd (gen ^ cs) (7 - d) (S (7 - d)))
-    (hFr : ∀ n, 1 ≤ n → n < 2 ^ 8 → RegionL Lin (cf + n))
-    (hZr : ∀ d < 8, RegionL Lin (cz + (7 - d))) (hSr : ∀ d < 8, RegionL Lin (cs + (7 - d))) :
-    CompleteAtDTB fs cert 16 "da_expand__L7_L8" Lin [root, gen ^ cf, gen ^ cz, gen ^ cs]
-      (expOut root F Z S 7 8) (fun _ => True) (fs "da_expand__L7_L8") :=
-  exp_completeAtB fs cert find_da_expand_L7_L8
-    (by rw [Program.loop_of_find? find_da_expand_L7_L8]; decide +kernel) exp8_ok exp8_cok
-    (by norm_num) (by norm_num) (exp_fit hrf find_da_expand_L7_L8 exp8_ok (by norm_num))
+    (hF : ∀ rd, MemL rd Lin → ∀ n, 1 ≤ n → n < 2 ^ 7 → LoadHolds rd (gen ^ cf) n (F n))
+    (hZ : ∀ rd, MemL rd Lin → ∀ d < 7, LoadHolds rd (gen ^ cz) (6 - d) (Z (6 - d)))
+    (hS : ∀ rd, MemL rd Lin → ∀ d < 7, LoadHolds rd (gen ^ cs) (6 - d) (S (6 - d)))
+    (hFr : ∀ n, 1 ≤ n → n < 2 ^ 7 → RegionL Lin (cf + n))
+    (hZr : ∀ d < 7, RegionL Lin (cz + (6 - d))) (hSr : ∀ d < 7, RegionL Lin (cs + (6 - d))) :
+    CompleteAtDTB fs cert 16 "da_expand__L6_L7" Lin [root, gen ^ cf, gen ^ cz, gen ^ cs]
+      (expOut root F Z S 6 7) (fun _ => True) (fs "da_expand__L6_L7") :=
+  exp_completeAtB fs cert find_da_expand_L6_L7
+    (by rw [Program.loop_of_find? find_da_expand_L6_L7]; decide +kernel) expCell_ok expCell_cok
+    (by norm_num) (by norm_num) (exp_fit hrf find_da_expand_L6_L7 expCell_ok (by norm_num))
     hF hZ hS hFr hZr hSr
 
 end

@@ -71,16 +71,20 @@ jobs:
       - name: Build the PR and its base
         id: build
         run: |
+          # The experimental prover's Keccak GKR, named `keccak_gkr` before the provers split.
+          package() {
+            cargo metadata --no-deps --format-version 1 \
+              | jq -r '[.packages[] | select(.name == "experimental_keccak_gkr" or .name == "keccak_gkr") | select(any(.targets[]; .name == "hash_batch")) | .name] | first // empty'
+          }
           build() {
             mkdir -p "ab/$1"
-            exe=$(cargo bench -p keccak_gkr --bench hash_batch --no-run --message-format=json \
+            exe=$(cargo bench -p "$(package)" --bench hash_batch --no-run --message-format=json \
               | jq -r 'select(.reason == "compiler-artifact" and .target.name == "hash_batch") | .executable')
             cp "$exe" "ab/$1/bench"
           }
           build head
           git checkout --quiet --detach HEAD^1
-          meta=$(cargo metadata --no-deps --format-version 1)
-          if jq -e 'any(.packages[] | select(.name == "keccak_gkr") | .targets[]; .name == "hash_batch")' <<< "$meta" > /dev/null; then
+          if [ -n "$(package)" ]; then
             build base
             echo "compare=true" >> "$GITHUB_OUTPUT"
           else

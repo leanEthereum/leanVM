@@ -9,9 +9,9 @@ use super::forge::random_inputs;
 use crate::{Ctx, Finding, Outcome, Source};
 use rec_aggregation::fuzzing::Parts;
 use crate::MAX_KEYS;
-use rec_aggregation::{EthereumClaims, EthereumProof, MAX_RECURSIONS};
-use signatures::lean_sphincs::{self, LeanSphincsPublicKey, LeanSphincsSignature};
-use signatures::lean_xmss::{self, LeanXmssPublicKey, LeanXmssSignature};
+use rec_aggregation::fuzzing::{EthereumClaims, EthereumProof, MAX_RECURSIONS};
+use lean_sphincs::{self, LeanSphincsPublicKey, LeanSphincsSignature};
+use lean_xmss::{self, LeanXmssPublicKey, LeanXmssSignature};
 
 type Case = fn(&Fixtures, &mut Source, &Ctx) -> Outcome;
 
@@ -416,7 +416,8 @@ fn invalid_rate(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     let inputs = random_inputs(src, f);
     let rate = [0, 5, 6, 64, usize::MAX][src.below(5)];
     let result = crate::catch(|| {
-        rec_aggregation::aggregate(
+        crate::pick::aggregate_pick(
+            false,
             &inputs.children,
             inputs.lean_xmss.clone(),
             inputs.sphincs.clone(),
@@ -427,7 +428,7 @@ fn invalid_rate(f: &Fixtures, src: &mut Source, ctx: &Ctx) -> Outcome {
     })
     .map_err(|(m, l)| Finding::panic(&m, &l).in_context("aggregate panics"))?;
     match result {
-        Err(rec_aggregation::AggregationError::InvalidRate { .. }) => {
+        Err(rec_aggregation::fuzzing::AggregationError::InvalidInput(_)) => {
             ctx.note("invalid-rate refused");
             Ok(())
         }

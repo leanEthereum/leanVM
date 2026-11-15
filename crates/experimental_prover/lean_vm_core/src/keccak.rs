@@ -1,0 +1,305 @@
+//! Bridge to the Keccak prover ([`keccak_gkr`]), single-PCS.
+//!
+//! The committed states of every `KECCAK` step are one column of leanVM's ONE stacked `F64`
+//! witness (§sec:stacking), a lane per slot and a word per step, with no separate commitment:
+//! the input and the state after every `DEPTH` rounds before the output. The output is not
+//! committed. The VM's `KECCAK` table commits no value column of its own: a claim on an input lane is
+//! a claim on its slot of that column, and the claims on the output lanes are the reduction's
+//! claim on the permutation's output ([`keccak_gkr::OutputClaim`]). The GKR reduction proves the
+//! rounds between, and its openings join the batch-mixed opening ([`::pcs::stack_open`]): the
+//! column's bit slices as the ring-switched claim, the committed states after the input as a
+//! point claim.
+//!
+//! ## The mapping
+//!
+//! The VM's `KECCAK` is Keccak-f\[1600\] of the 25 lanes thirteen cells hold, written to one, two
+//! or all thirteen cells, each side in one of two layouts ([`keccak_cell_lanes`]). The committed input is
+//! the lanes the VM reads, and the output is the permutation's, written as it is.
+
+use crate::transcript::ProverState;
+use keccak_gkr::witness::{BLOCK, block_lanes};
+use keccak_gkr::{Openings, OutputClaim, Shape, Witness};
+use primitives::field::{F64, F128};
+use primitives::hash::STATE_LANES;
+use verifier::layout::keccak_cell_lanes;
+
+/// Rounds between two committed states.
+pub const DEPTH: usize = 12;
+/// The reduction's shape at its fewest steps.
+const MIN_SHAPE: Shape = shape(0);
+/// `log2` of the slots the committed column holds per step: one per lane of each state but the
+/// output, rounded up to a power of two.
+pub const SLOT_LOG: usize = MIN_SHAPE.slot_log();
+/// Slots of a step the committed states occupy, one per lane of each: the ones from here to
+/// `2^SLOT_LOG` carry no state, and the KECCAK table's own columns ride them
+/// (`cpu::keccak_value`).
+pub const SLOTS: usize = MIN_SHAPE.slots();
+/// The fewest steps the reduction is sized for, one of its blocks.
+pub const MIN_STEPS: usize = MIN_SHAPE.n();
+
+/// `log2` of the steps the reduction proves for `n` executed ones.
+pub(crate) fn n_steps_log(n: usize) -> usize {
+    shape(n).n_log()
+}
+
+const fn shape(n_steps: usize) -> Shape {
+    Shape::new(n_steps, DEPTH)
+}
+
+/// `log2` of the committed column, in words.
+pub fn qkeccak_kappa(n_steps: usize) -> usize {
+    shape(n_steps).stack_log()
+}
+
+pub use isa::STATE_CELLS;
+/// Cells one `KECCAK` row flushes: thirteen read, thirteen written or, past what it writes, cancelled.
+pub(crate) const ROW_CELLS: usize = 2 * STATE_CELLS;
+
+/// The 25 lanes the thirteen state cells `cell(0..13)` hold in a layout.
+pub(crate) fn state_of_cells(odd: bool, cell: impl Fn(usize) -> F128) -> [u64; STATE_LANES] {
+    // The layout is a constant, so the loop compiles to straight-line moves.
+    fn read<const ODD: bool>(cell: impl Fn(usize) -> F128) -> [u64; STATE_LANES] {
+        let mut s = [0; STATE_LANES];
+        for c in 0..STATE_CELLS {
+            let (lo, hi) = const { keccak_cell_lanes(ODD) }[c];
+            let w = cell(c);
+            if let Some(l) = lo {
+                s[l] = w.c0;
+            }
+            if let Some(h) = hi {
+                s[h] = w.c1;
+            }
+        }
+        s
+    }
+    if odd { read::<true>(cell) } else { read::<false>(cell) }
+}
+
+/// The thirteen state cells holding 25 lanes in a layout, a free lane zero.
+pub(crate) fn cells_of_state(s: &[u64; STATE_LANES], odd: bool) -> [F128; STATE_CELLS] {
+    let lanes = keccak_cell_lanes(odd);
+    std::array::from_fn(|c| {
+        let (lo, hi) = lanes[c];
+        F128::new(lo.map_or(0, |l| s[l]), hi.map_or(0, |h| s[h]))
+    })
+}
+
+/// What a `KECCAK` instruction writes, given the cells it reads.
+#[cfg(test)]
+pub(crate) fn permute_cells(cells: &[F128; STATE_CELLS], in_odd: bool, out_odd: bool) -> [F128; STATE_CELLS] {
+    let mut s = state_of_cells(in_odd, |c| cells[c]);
+    primitives::hash::keccak_f(&mut s);
+    cells_of_state(&s, out_odd)
+}
+
+/// What the reduction needs beside the committed column.
+///
+/// Its witness, every round's state of every step, is rebuilt from the column's input states.
+/// Held from the run instead, it would sit beside the bus's trees, at the prover's peak.
+pub(crate) struct Reduction {
+    shape: Shape,
+    steps: usize,
+}
+
+impl Reduction {
+    /// Rebuild the witness from `q_keccak`, the whole committed block, and run the reduction.
+    pub(crate) fn prove(self, ps: &mut ProverState, q_keccak: &[F64], output: &OutputClaim) -> Openings {
+        let witness =
+            tracing::info_span!("Witness").in_scope(|| Witness::from_committed(self.shape, self.steps, q_keccak));
+        witness.prove(ps, q_keccak, output)
+    }
+}
+
+/// The committed lanes of the steps a program ran, built while it ran: every block of steps,
+/// slot after slot.
+pub(crate) struct Blocks {
+    lanes: Vec<Vec<u64>>,
+    steps: usize,
+}
+
+/// Run `run`, which reports the lanes of each step it executes, and compute the committed lanes
+/// behind it: executing is one thread's work, so the others take each block of steps as it
+/// completes instead of waiting for the last.
+pub(crate) fn while_executing<R>(run: impl FnOnce(&mut dyn FnMut(&[u64; STATE_LANES])) -> R) -> (R, Blocks) {
+    type Job = (usize, Vec<[u64; STATE_LANES]>);
+    let (jobs, queue) = std::sync::mpsc::channel::<Job>();
+    let queue = std::sync::Mutex::new(queue);
+    // More workers than this slow the executing thread by more than they finish early.
+    let workers = parallel::num_threads() / 2;
+    let (result, lanes, steps) = std::thread::scope(|scope| {
+        let handles: Vec<_> = (0..workers)
+            .map(|_| {
+                scope.spawn(|| {
+                    let mut done = Vec::new();
+                    loop {
+                        let job = queue.lock().expect("a worker panicked").recv();
+                        let Ok((g, steps)) = job else { break };
+                        done.push((g, block_lanes(DEPTH, &steps)));
+                    }
+                    done
+                })
+            })
+            .collect();
+
+        let mut inline = Vec::new();
+        let mut pending = Vec::with_capacity(BLOCK);
+        let mut blocks = 0;
+        let mut steps = 0;
+        let mut dispatch = |pending: &mut Vec<[u64; STATE_LANES]>, last: bool| {
+            let block = std::mem::replace(pending, Vec::with_capacity(BLOCK));
+            if workers == 0 || last {
+                inline.push((blocks, block_lanes(DEPTH, &block)));
+            } else {
+                jobs.send((blocks, block)).expect("the workers outlive the run");
+            }
+            blocks += 1;
+        };
+        let result = run(&mut |state| {
+            pending.push(*state);
+            steps += 1;
+            if pending.len() == BLOCK {
+                dispatch(&mut pending, false);
+            }
+        });
+        if !pending.is_empty() {
+            dispatch(&mut pending, true);
+        }
+        drop(jobs);
+        let mut lanes = inline;
+        for handle in handles {
+            lanes.extend(handle.join().expect("a witness worker panicked"));
+        }
+        lanes.sort_unstable_by_key(|&(g, _)| g);
+        let lanes = lanes.into_iter().map(|(_, lanes)| lanes).collect();
+        (result, lanes, steps)
+    });
+    (result, Blocks { lanes, steps })
+}
+
+impl Blocks {
+    /// Write the committed states of the `steps` steps these blocks hold, padded with
+    /// all-zero steps. `q_keccak` is the states' part of the committed block, its first [`SLOTS`]
+    /// slots: the spare slots past them belong to the columns that ride there and are written by
+    /// their own fill.
+    pub(crate) fn place(self, steps: usize, q_keccak: &mut [F64]) -> Reduction {
+        assert_eq!(self.steps, steps, "the blocks are of another run");
+        let shape = shape(self.steps);
+        assert_eq!(
+            q_keccak.len(),
+            shape.slots() * shape.n(),
+            "the committed states are the wrong size"
+        );
+        Witness::write_committed(shape, &self.lanes, q_keccak);
+        Reduction { shape, steps }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn f(x: u64) -> F64 {
+        F64(x)
+    }
+
+    /// The committed column for `instances`, padded with all-zero steps, and the reduction's
+    /// witness.
+    fn build_qkeccak(instances: &[[u64; STATE_LANES]]) -> (Vec<F64>, Witness) {
+        let mut q_keccak = vec![F64::ZERO; 1 << qkeccak_kappa(instances.len())];
+        let states = SLOTS * (1 << n_steps_log(instances.len()));
+        let witness = Witness::generate(shape(instances.len()), instances, &mut q_keccak[..states]);
+        (q_keccak, witness)
+    }
+
+    fn sample_instances(n: usize) -> Vec<[u64; STATE_LANES]> {
+        (0..n as u64)
+            .map(|i| std::array::from_fn(|l| 0x0101_0101_0101_0101u64.wrapping_mul(i + 1) ^ l as u64))
+            .collect()
+    }
+
+    /// The lanes committed behind a run, and the witness rebuilt from them, are what a single
+    /// pass over its steps builds: the same committed column and the same reduction, whether the steps fill whole blocks, leave a
+    /// partial one, or leave blocks of the batch with no step at all.
+    #[test]
+    fn blocks_built_while_executing_match_one_pass() {
+        for n in [0, 1, 511, 512, 513, 1500, 4099] {
+            let instances = sample_instances(n);
+            let (expected, reference) = build_qkeccak(&instances);
+            let ((), blocks) = while_executing(|step| {
+                for state in &instances {
+                    step(state);
+                }
+            });
+            let mut q_keccak = vec![f(0xdead_beef); expected.len()];
+            let states = SLOTS * (1 << n_steps_log(n));
+            let witness = blocks.place(n, &mut q_keccak[..states]);
+            assert_eq!(q_keccak[..states], expected[..states], "{n} steps");
+            // What the columns riding the spare slots left there is none of the reduction's
+            // business, but both openings fold it, so the two runs have to see the same.
+            q_keccak[states..].fill(f(0x5151_5151));
+            let point = (0..n_steps_log(n)).map(|i| F128::new(3 + i as u64, 5)).collect();
+            let output = OutputClaim::of_inputs(shape(n), &instances, point);
+            let mut ps = ProverState::from_label(b"blocks");
+            let deferred = (witness.prove(&mut ps, &q_keccak, &output), ps.into_proof());
+            let mut ps = ProverState::from_label(b"blocks");
+            let one_pass = (reference.prove(&mut ps, &q_keccak, &output), ps.into_proof());
+            assert!(deferred == one_pass, "{n} steps");
+        }
+    }
+
+    /// Both layouts round-trip, and a padded message laid out in cells, block `k`'s nine cells
+    /// from cell `17k / 2` XORed into the previous output, read and written in the layout of each
+    /// block's parity, the last written even, hashes to its Keccak-256.
+    #[test]
+    fn layouts_absorb_a_message() {
+        use primitives::hash::{PAD_FIRST, PAD_LAST, RATE, permutations};
+        let s: [u64; STATE_LANES] = std::array::from_fn(|i| 0x1111 * (i as u64 + 1));
+        for odd in [false, true] {
+            let cells = cells_of_state(&s, odd);
+            assert_eq!(state_of_cells(odd, |c| cells[c]), s);
+        }
+        for n in [0, 1, 64, 127, 135, 136, 137, 200, 271, 272, 300, 543, 1000] {
+            let msg: Vec<u8> = (0..n).map(|i| (i * 7 + 3) as u8).collect();
+            let blocks = permutations(n);
+            let mut padded = msg.clone();
+            padded.resize(blocks * RATE + 8, 0);
+            padded[n] ^= PAD_FIRST;
+            padded[blocks * RATE - 1] ^= PAD_LAST;
+            let cells: Vec<F128> = padded
+                .as_chunks::<16>()
+                .0
+                .iter()
+                .map(|c| {
+                    let w = |k: usize| u64::from_le_bytes(c[8 * k..8 * k + 8].try_into().unwrap());
+                    F128::new(w(0), w(1))
+                })
+                .collect();
+            let mut state = [F128::ZERO; STATE_CELLS];
+            for k in 0..blocks {
+                for (j, cell) in state.iter_mut().take(9).enumerate() {
+                    *cell += cells[17 * k / 2 + j];
+                }
+                state = permute_cells(&state, k % 2 == 1, k + 1 < blocks && k % 2 == 0);
+            }
+            let digest: Vec<u8> = [state[0].c0, state[0].c1, state[1].c0, state[1].c1]
+                .iter()
+                .flat_map(|w| w.to_le_bytes())
+                .collect();
+            assert_eq!(digest, primitives::hash::hash(&msg), "{n} bytes");
+        }
+    }
+
+    /// The committed column holds every step's input lanes, a word per step. The output lanes
+    /// have no slot.
+    #[test]
+    fn qkeccak_words_match_layout() {
+        let instances = sample_instances(5);
+        let (q_keccak, _) = build_qkeccak(&instances);
+        let n = 1usize << n_steps_log(instances.len());
+        for (j, input) in instances.iter().enumerate() {
+            for i in 0..STATE_LANES {
+                assert_eq!(q_keccak[i * n + j], f(input[i]));
+            }
+        }
+    }
+}

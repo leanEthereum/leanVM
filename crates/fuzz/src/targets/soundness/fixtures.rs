@@ -4,7 +4,9 @@
 
 use crate::programs;
 use crate::{Finding, Source};
-use leanvm_core::cpu::{self, Program, Proof};
+use leanvm_core::cpu::{self};
+use isa::Program;
+use verifier::Proof;
 use verifier::VerifierError as CpuError;
 use primitives::field::{F64, F128};
 use std::collections::HashMap;
@@ -105,6 +107,7 @@ def main():
 pub struct Fixture {
     pub name: String,
     pub program: Program,
+    pub witness: Vec<(String, Vec<Vec<F128>>)>,
     pub public_input: [F128; 2],
     /// The pcs the honest run executed, recorded the first time it is proven.
     executed: OnceLock<Vec<usize>>,
@@ -145,11 +148,11 @@ pub fn fixtures() -> &'static [Fixture] {
                     Err(_) => continue,
                 },
             };
-            let Ok(program) = parsed.compile() else { continue };
-            if !program.prog().len().is_power_of_two() {
+            let Ok((program, witness)) = parsed.compile() else { continue };
+            if !program.prog.len().is_power_of_two() {
                 continue;
             }
-            let (run, public_input) = programs::execute(&program, parsed.public_input);
+            let (run, public_input) = programs::execute2(&program, &witness, parsed.public_input);
             let Ok(exec) = run else { continue };
             if std::env::var_os("LEANVM_FUZZ_VERBOSE").is_some() {
                 eprintln!(
@@ -170,6 +173,7 @@ pub fn fixtures() -> &'static [Fixture] {
             out.push(Fixture {
                 name,
                 program,
+                witness,
                 public_input,
                 executed: OnceLock::new(),
             });
@@ -231,7 +235,7 @@ pub fn honest(fixture: &'static Fixture, rate: usize) -> Result<Option<Arc<Hones
     let context = format!("soundness {}", fixture.name);
     // A corpus program that does not prove honestly (a known completeness bug) is `dsl-corpus`'s finding, not a
     // fixture: it is skipped, but an inline program here has to prove.
-    let proof = match programs::prove_honest(&fixture.program, fixture.public_input, rate, &context) {
+    let proof = match programs::prove_honest2(&fixture.program, &fixture.witness, fixture.public_input, rate, &context) {
         Ok(proof) => proof,
         Err(finding) if fixture.name.starts_with("inline/") => return Err(finding),
         Err(_) => None,

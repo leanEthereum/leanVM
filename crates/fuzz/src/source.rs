@@ -7,6 +7,7 @@
 //! mutator's edits.
 
 use primitives::field::{F64, F128, g_pow};
+use exp_primitives::field::F64 as XF64;
 
 /// The most tail bytes a case records. A case that draws more replays from its seed, not from its recording.
 const RECORD_CAP: usize = 1 << 20;
@@ -56,6 +57,8 @@ impl Rng {
 /// A case's input.
 #[derive(Clone, Debug)]
 pub struct Source {
+    /// Picking the prover a target runs: `0` stable, `1` experimental.
+    prover: u8,
     prefix: Vec<u8>,
     pos: usize,
     /// `None` reads zeros past the prefix: libFuzzer's convention, where the input is all there is.
@@ -66,6 +69,7 @@ pub struct Source {
 impl Source {
     pub fn new(prefix: Vec<u8>, tail_seed: Option<u64>) -> Self {
         Self {
+            prover: 0,
             prefix,
             pos: 0,
             tail: tail_seed.map(Rng::new),
@@ -81,6 +85,14 @@ impl Source {
     /// Exactly `bytes`, then zeros.
     pub fn from_bytes(bytes: &[u8]) -> Self {
         Self::new(bytes.to_vec(), None)
+    }
+
+    /// Picking the prover a target runs: `false` stable, `true` experimental. Recorded like every
+    /// other draw, so a case's verdict names the prover it proved on.
+    pub fn prover(&mut self) -> bool {
+        let pick = self.byte() % 2 == 1;
+        self.prover = u8::from(pick);
+        pick
     }
 
     /// The bytes this case consumed: replayed by [`Self::from_bytes`] when the case drew less than the cap.
@@ -238,6 +250,23 @@ impl Source {
             5 => F128::new(0, self.edgy_u64()),
             _ => F128::new(self.u64(), self.u64()),
         }
+    }
+
+    /// A `K` element, from [`Self::f64`]'s distribution.
+    pub fn k(&mut self) -> verifier::K {
+        verifier::K(self.f64().0)
+    }
+
+    /// A machine word in the experimental tree's field, from [`Self::f128`]'s distribution.
+    pub fn f128_exp(&mut self) -> exp_primitives::field::F128 {
+        let x = self.f128();
+        exp_primitives::field::F128::new(x.c0, x.c1)
+    }
+
+    /// A machine word in the verifier's scalar type, from [`Self::f128`]'s distribution.
+    pub fn scalar(&mut self) -> verifier::E {
+        let x = self.f128();
+        verifier::E::new(x.c0, x.c1)
     }
 
     /// `len` bytes expanded from one drawn word: bulk data that costs the recording eight bytes.

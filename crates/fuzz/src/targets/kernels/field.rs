@@ -2,14 +2,16 @@
 //! schoolbook reference and the verifier's field.
 
 use super::reference as r;
+use super::edge_k_exp;
 use super::{bulk_e, bulk_k, check, edge_e, edge_k};
 use crate::{Ctx, Outcome, Source};
-use primitives::field::{
+use exp_primitives::field::{
     self, F64, F64x8, F128, F128Unreduced, F128x8, Prod8, Weights8, dot_base, fold_lones8_ext, fold_pairs8_ext, g_pow,
-    g_pow32_by_lookup, g_powers, gf2_64, msg_lone8_ext, msg_terms8_ext, mul_base_splat8, mul_unreduced4, mul2, mul4,
+    g_powers, gf2_64, msg_lone8_ext, msg_terms8_ext, mul_base_splat8, mul_unreduced4, mul2, mul4,
     powers, xor_into8,
 };
 use verifier::{E, K};
+
 
 pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
     match src.below(8) {
@@ -26,7 +28,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
 
 fn base(src: &mut Source, ctx: &Ctx) -> Outcome {
     ctx.note("base");
-    let (a, b) = (edge_k(src), edge_k(src));
+    let (a, b) = (edge_k_exp(src), edge_k_exp(src));
     let want = r::mul_k(a.0, b.0);
     check!(
         (a * b).0 == want,
@@ -111,7 +113,7 @@ fn base(src: &mut Source, ctx: &Ctx) -> Outcome {
 
 fn extension(src: &mut Source, ctx: &Ctx) -> Outcome {
     ctx.note("extension");
-    let (a, b, k) = (edge_e(src), edge_e(src), edge_k(src));
+    let (a, b, k) = (edge_e(src), edge_e(src), edge_k_exp(src));
     let want = r::mul_e(a, b);
     check!(
         a * b == want,
@@ -145,11 +147,11 @@ fn extension(src: &mut Source, ctx: &Ctx) -> Outcome {
         "{a:?} * {k:?}"
     );
     check!(
-        a.mul_base_unreduced(k) == a.mul_unreduced(F128::from(k)),
+        a.mul_base_unreduced(k) == a.mul_unreduced(F128::new(k.0, 0)),
         "F128 mul_base_unreduced coefficients",
         "{a:?} * {k:?}"
     );
-    check!(a * F128::from(k) == base, "F128 mul by an embedded K", "{a:?} * {k:?}");
+    check!(a * F128::new(k.0, 0) == base, "F128 mul by an embedded K", "{a:?} * {k:?}");
     check!(a.square() == r::mul_e(a, a), "F128 square", "{a:?}");
     check!(
         a.frobenius() == r::pow_e(a, 1 << 64),
@@ -369,7 +371,7 @@ fn wide8(src: &mut Source, ctx: &Ctx) -> Outcome {
 /// The AVX-512 coefficient-major lanes, `primitives::field::x8`.
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
 fn x8(src: &mut Source, ctx: &Ctx, x0: &[F128; 8], x1: &[F128; 8], k0: &[F64; 8]) -> Outcome {
-    use primitives::field::x8::{F64x8 as K8, F128x8 as E8, Mixed8, Sum8};
+    use exp_primitives::field::x8::{F64x8 as K8, F128x8 as E8, Mixed8, Sum8};
     ctx.note("x8");
     let (a, b) = (E8::load(x0), E8::load(x1));
     check!(a.to_array() == *x0, "x8::F128x8 load/store", "");
@@ -451,7 +453,7 @@ fn g_powers_case(src: &mut Source, ctx: &Ctx) -> Outcome {
     };
     let want = r::pow_k(2, i as u128);
     check!(g_pow(i).0 == want, "g_pow", "g^{i}");
-    check!(g_pow32_by_lookup(i as u32).0 == want, "g_pow32_by_lookup", "g^{i}");
+    check!(isa::g_pow(i as u32) == want, "g_pow32_by_lookup", "g^{i}");
     // `ord(g) = 2^64 - 1`: the exponent wraps there and nowhere before.
     let e = src.u64() as u128;
     check!(
@@ -476,7 +478,7 @@ fn g_powers_case(src: &mut Source, ctx: &Ctx) -> Outcome {
 
 fn inverses(src: &mut Source, ctx: &Ctx) -> Outcome {
     ctx.note("inverses");
-    let a = edge_k(src);
+    let a = edge_k_exp(src);
     let inv = a.inv();
     if a.0 == 0 {
         check!(inv.0 == 0, "F64 inv", "inv(0) = {inv:?}");
@@ -507,7 +509,7 @@ fn inverses(src: &mut Source, ctx: &Ctx) -> Outcome {
 
 fn verifier_field(src: &mut Source, ctx: &Ctx) -> Outcome {
     ctx.note("verifier");
-    let (a, b, k) = (edge_e(src), edge_e(src), edge_k(src));
+    let (a, b, k) = (edge_e(src), edge_e(src), edge_k_exp(src));
     let (va, vb) = (E::new(a.c0, a.c1), E::new(b.c0, b.c1));
     let lift = |e: E| F128::new(e.c0, e.c1);
     check!(lift(va * vb) == r::mul_e(a, b), "verifier E mul", "{a:?} * {b:?}");
@@ -527,7 +529,7 @@ fn verifier_field(src: &mut Source, ctx: &Ctx) -> Outcome {
         "verifier E mul K",
         "{a:?} * {k:?}"
     );
-    check!(lift(E::from(K(k.0))) == F128::from(k), "verifier E from K", "{k:?}");
+    check!(lift(E::from(K(k.0))) == F128::new(k.0, 0), "verifier E from K", "{k:?}");
     check!(
         (K(a.c0) * K(k.0)).0 == r::mul_k(a.c0, k.0),
         "verifier K mul",

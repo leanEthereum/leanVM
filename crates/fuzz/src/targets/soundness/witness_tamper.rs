@@ -14,7 +14,8 @@ use super::fixtures;
 use crate::source::Rng;
 use crate::{Ctx, Finding, Outcome, Source, catch};
 use leanvm_core::cpu::tamper::{self, Access, Owner, WitnessView};
-use leanvm_core::cpu::{KeccakLane, MEM_HI, MEM_LO, Stats, keccak_value, schema};
+use verifier::layout::{GLOBAL_COLUMN_BASES as BASES, MEMORY_0 as MEM_LO, MEMORY_1 as MEM_HI};
+use leanvm_core::cpu::{KeccakLane, Stats, keccak_value};
 use primitives::field::{F64, F128};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -96,7 +97,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
         }
     }));
     let context = format!("soundness-witness-tamper {}", fixture.name);
-    let proved = catch(|| leanvm_core::cpu::prove(&fixture.program, fixture.public_input, rate));
+    let proved = catch(|| leanvm_core::cpu::prove(&fixture.program, &fixture.witness, fixture.public_input, rate));
     tamper::disarm();
     let report = report.take();
     if let Some(Err(e)) = &report.honest {
@@ -215,7 +216,7 @@ fn edit(kind: &str, view: &mut WitnessView, rng: &mut Rng) -> Option<(String, bo
         "padding-row" => word(view, rng, true),
         "set-destination-lie" => {
             let accesses = view.accesses();
-            let sets: Vec<&Access> = accesses.iter().filter(|a| a.table == SET && a.cell.is_some()).collect();
+            let sets: Vec<&Access> = accesses.iter().filter(|a| a.owner == SET && a.cell.is_some()).collect();
             let a = pick(rng, &sets)?;
             let delta = word_delta(rng);
             let also_immediate = rng.below(2) == 0;
@@ -240,12 +241,12 @@ fn edit(kind: &str, view: &mut WitnessView, rng: &mut Rng) -> Option<(String, bo
             let accesses = view.accesses();
             let rows: Vec<&Access> = accesses
                 .iter()
-                .filter(|a| matches!(a.table, XOR | MUL) && a.values[0].is_some())
+                .filter(|a| matches!(a.owner, XOR | MUL) && a.values[0].is_some())
                 .collect();
             let a = pick(rng, &rows)?;
             let row_accesses: Vec<&Access> = accesses
                 .iter()
-                .filter(|b| b.table == a.table && b.row == a.row)
+                .filter(|b| b.owner == a.owner && b.row == a.row)
                 .collect();
             let result = row_accesses.iter().find(|b| b.values.iter().all(Option::is_none))?;
             let other = row_accesses
@@ -255,19 +256,19 @@ fn edit(kind: &str, view: &mut WitnessView, rng: &mut Rng) -> Option<(String, bo
             let other_word = read_word(view, &other.values, other.row);
             add_word(view, &a.values, a.row, delta);
             // The result cell follows the edited operand: `+ delta` for XOR, `+ delta·b` for MUL.
-            let result_delta = if a.table == XOR { delta } else { delta * other_word };
+            let result_delta = if a.owner == XOR { delta } else { delta * other_word };
             if let Some(cell) = result.cell {
                 shift_cell(view, &accesses, cell, result_delta, None);
             }
             let also_cell = rng.below(2) == 0;
             if also_cell && let Some(cell) = a.cell {
                 // The operand's cell and its other readers too: the lie is then only in where the operand came from.
-                shift_cell_except(view, &accesses, cell, delta, (a.table, a.row));
+                shift_cell_except(view, &accesses, cell, delta, (a.owner, a.row));
             }
             Some((
                 format!(
                     "operand-and-result {}{} @ row {}",
-                    Stats::TABLES[a.table],
+                    Stats::TABLES[a.owner],
                     if also_cell { " with cell" } else { "" },
                     a.row
                 ),
@@ -278,7 +279,7 @@ fn edit(kind: &str, view: &mut WitnessView, rng: &mut Rng) -> Option<(String, bo
             let accesses = view.accesses();
             let pointers: Vec<&Access> = accesses
                 .iter()
-                .filter(|a| a.table == DEREF && a.values[1].is_none() && a.values[0].is_some())
+                .filter(|a| a.owner == DEREF && a.values[1].is_none() && a.values[0].is_some())
                 .collect();
             let a = pick(rng, &pointers)?;
             let p = a.values[0]?;
@@ -288,7 +289,7 @@ fn edit(kind: &str, view: &mut WitnessView, rng: &mut Rng) -> Option<(String, bo
             if rng.below(2) == 0
                 && let Some(cell) = a.cell
             {
-                shift_cell_except(view, &accesses, cell, F128::new((old + new).0, 0), (a.table, a.row));
+                shift_cell_except(view, &accesses, cell, F128::new((old + new).0, 0), (a.owner, a.row));
             }
             Some((format!("deref-pointer @ row {}", a.row), false))
         }
@@ -315,7 +316,7 @@ fn edit(kind: &str, view: &mut WitnessView, rng: &mut Rng) -> Option<(String, bo
             let peers: Vec<&Access> = accesses
                 .iter()
                 .filter(|b| {
-                    b.cell == a.cell && b.count.is_some() && (b.table, b.row, b.count) != (a.table, a.row, a.count)
+                    b.cell == a.cell && b.count.is_some() && (b.owner, b.row, b.count) != (a.owner, a.row, a.count)
                 })
                 .collect();
             let b = pick(rng, &peers)?;
@@ -336,7 +337,7 @@ fn edit(kind: &str, view: &mut WitnessView, rng: &mut Rng) -> Option<(String, bo
             if r1 == r2 {
                 return None;
             }
-            let base = schema().base[t];
+            let base = BASES[t];
             let n = leanvm_core::tables::tables()[t].n_committed_columns();
             let skip = partial.then(|| base + rng.below(n as u64) as usize);
             for c in base..base + n {
@@ -401,7 +402,7 @@ fn edit(kind: &str, view: &mut WitnessView, rng: &mut Rng) -> Option<(String, bo
             drop(keccak_gkr::Witness::generate(shape, &inputs, states));
             let mut output = inputs[step];
             primitives::hash::keccak_f(&mut output);
-            let base = schema().base[KECCAK];
+            let base = BASES[KECCAK];
             for c in base..base + leanvm_core::tables::tables()[KECCAK].n_committed_columns() {
                 if let Some(KeccakLane::Output(l)) = keccak_value(c) {
                     view.column_mut(c)[step] = F64(output[l]);
@@ -415,7 +416,7 @@ fn edit(kind: &str, view: &mut WitnessView, rng: &mut Rng) -> Option<(String, bo
                 return None;
             }
             let row = rng.below(real as u64) as usize;
-            let base = schema().base[JUMP];
+            let base = BASES[JUMP];
             let cond = view.column(base + JUMP_COND)[row];
             let b = view.column(base + JUMP_B)[row];
             let flipped = if b == F64::ZERO { F64::ONE } else { F64::ZERO };
@@ -434,7 +435,7 @@ fn edit(kind: &str, view: &mut WitnessView, rng: &mut Rng) -> Option<(String, bo
         "jump-inverse" => {
             // The inverse hint of a taken branch, which no flush carries: only `b = cond·w` pins it.
             let real = view.layout.rows[JUMP];
-            let base = schema().base[JUMP];
+            let base = BASES[JUMP];
             let taken: Vec<usize> = (0..real)
                 .filter(|&r| view.column(base + JUMP_COND)[r] != F64::ZERO)
                 .collect();
@@ -524,7 +525,7 @@ fn shift_cell(view: &mut WitnessView, accesses: &[Access], cell: usize, delta: F
     }
     for a in accesses
         .iter()
-        .filter(|a| a.cell == Some(cell) && Some(a.table) != keep)
+        .filter(|a| a.cell == Some(cell) && Some(a.owner) != keep)
     {
         add_word(view, &a.values, a.row, delta);
     }
@@ -536,7 +537,7 @@ fn shift_cell_except(view: &mut WitnessView, accesses: &[Access], cell: usize, d
     }
     for a in accesses
         .iter()
-        .filter(|a| a.cell == Some(cell) && (a.table, a.row) != skip)
+        .filter(|a| a.cell == Some(cell) && (a.owner, a.row) != skip)
     {
         add_word(view, &a.values, a.row, delta);
     }
@@ -579,9 +580,9 @@ fn zero_count(view: &mut WitnessView, rng: &mut Rng) -> Option<(String, bool)> {
     if rng.below(4) != 0 {
         let row: Vec<&Access> = accesses
             .iter()
-            .filter(|b| b.table == a.table && b.row == a.row)
+            .filter(|b| b.owner == a.owner && b.row == a.row)
             .collect();
-        match a.table {
+        match a.owner {
             XOR | MUL if a.values[0].is_some() => {
                 let other = row.iter().find(|b| b.values[0].is_some() && b.values[0] != a.values[0]);
                 let result = row.iter().find(|b| b.values.iter().all(Option::is_none));
@@ -594,7 +595,7 @@ fn zero_count(view: &mut WitnessView, rng: &mut Rng) -> Option<(String, bool)> {
                     let delta = word_delta(rng);
                     let other_word = read_word(view, &other.values, other.row);
                     add_word(view, &a.values, a.row, delta);
-                    let follows = if a.table == XOR { delta } else { delta * other_word };
+                    let follows = if a.owner == XOR { delta } else { delta * other_word };
                     for (col, d) in [MEM_LO, MEM_HI].into_iter().zip(follows.to_limbs()) {
                         view.column_mut(col)[c] += F64(d);
                     }
@@ -602,7 +603,7 @@ fn zero_count(view: &mut WitnessView, rng: &mut Rng) -> Option<(String, bool)> {
                 }
             }
             JUMP => {
-                let base = schema().base[JUMP];
+                let base = BASES[JUMP];
                 let taken = view.column(base + JUMP_B)[a.row] != F64::ZERO;
                 let v = a.values[0].unwrap_or(usize::MAX);
                 if !taken && (v == base + JUMP_COND + 1 || v == base + JUMP_COND + 2) {
@@ -619,7 +620,7 @@ fn zero_count(view: &mut WitnessView, rng: &mut Rng) -> Option<(String, bool)> {
         }
     }
     Some((
-        format!("zero-count {}{lied} @ row {}", Stats::TABLES[a.table], a.row),
+        format!("zero-count {}{lied} @ row {}", Stats::TABLES[a.owner], a.row),
         false,
     ))
 }

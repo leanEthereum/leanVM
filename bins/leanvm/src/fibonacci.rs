@@ -2,31 +2,29 @@
 //! recurrence `buff[i·g²] = buff[i·g] · buff[i]`).
 
 use bench::Plan;
-use lean_compiler::{compile, parse};
-use leanvm_core::cpu::{prove, verify};
-use primitives::{
-    field::{F64, F128, g_pow},
-    pretty_f64, pretty_integer,
-};
+use isa::{Prover, pretty_f64, pretty_integer};
+use verifier::{E, K};
+use zkdsl_compiler::{compile, parse};
 
 /// Prove and verify Fibonacci-in-the-exponent over a `HeapBuf` (an unrolled
 /// `mul_range` recurrence), binding `g^{F(n)}` as the public input. Prints the
 /// benchmark report. Proving runs one discarded warmup pass followed by
 /// `plan.repeat` measured passes (see [`bench`]).
-pub fn run_fibonacci(n: usize, log_inv_rate: usize, plan: Plan) {
+pub fn run_fibonacci<P: Prover>(n: usize, log_inv_rate: usize, plan: Plan) {
     let trace_span = tracing::info_span!("Fibonacci", n, log_inv_rate).entered();
 
     let (src, pi) = fibonacci_program(n);
-    let program = compile(&parse(&src).unwrap());
+    let program = isa::Program::from(compile(&parse(&src).unwrap()));
+    let public_input = verifier::Digest::from_halves(pi[0], pi[1]).0;
 
     // Only the final measured pass of each stage is traced (see `run_aggregation`).
     let ((proof, stats), prove_time) = plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        prove(&program, pi, log_inv_rate).expect("the Fibonacci program proves")
+        P::prove(&program, &[], pi, log_inv_rate).expect("the Fibonacci program proves")
     });
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        verify(&program, &pi, &proof).unwrap()
+        verifier::verify_execution(program.bytecode(), &public_input, &proof).unwrap()
     });
 
     drop(trace_span);
@@ -36,7 +34,10 @@ pub fn run_fibonacci(n: usize, log_inv_rate: usize, plan: Plan) {
         pretty_integer(n)
     );
     println!("  cycles (VM steps)           : {}", pretty_integer(stats.cycles));
-    println!("    details                   : {}", stats.details());
+    println!(
+        "    details                   : {}",
+        crate::report::details(&stats, program.code_len())
+    );
     crate::report::print_proof_size(proof.to_bytes().len());
     let cycles_per_second = (stats.cycles as f64 / prove_time.mean()).round() as u64;
     println!(
@@ -56,7 +57,7 @@ pub fn run_fibonacci(n: usize, log_inv_rate: usize, plan: Plan) {
 /// unrolled `mul_range` loop over a `HeapBuf`), with the result `g^{F(N)}`
 /// published into cell `m[0]`. Returns the zkDSL source and the public input
 /// `[g^{F(N)}, 0]`.
-fn fibonacci_program(fib_n: usize) -> (String, [F128; 2]) {
+fn fibonacci_program(fib_n: usize) -> (String, [E; 2]) {
     const UNROLL: usize = 1000;
     assert!(
         fib_n >= UNROLL && fib_n.is_multiple_of(UNROLL),
@@ -64,13 +65,13 @@ fn fibonacci_program(fib_n: usize) -> (String, [F128; 2]) {
     );
     let blocks = fib_n / UNROLL;
 
-    let (mut previous, mut current) = (F64::ONE, g_pow(1));
+    let (mut previous, mut current) = (K(1), K(2));
     for _ in 1..=fib_n {
         let next = previous * current;
         previous = current;
         current = next;
     }
-    let public_input = [F128::from(previous), F128::ZERO];
+    let public_input = [E::from(previous), E::new(0, 0)];
 
     // `K` blocks: each reads its boundary pair into locals, runs `UNROLL`
     // Fibonacci `MUL`s in registers, and writes the next pair (4 DEREFs per
@@ -107,6 +108,10 @@ fn fibonacci_program(fib_n: usize) -> (String, [F128; 2]) {
 mod tests {
     #[test]
     fn fibonacci() {
-        super::run_fibonacci(200_000, leanvm_core::pcs::TEST_LOG_INV_RATE, bench::Plan::default());
+        super::run_fibonacci::<stable_lean_vm_core::StableProver>(
+            200_000,
+            stable_lean_vm_core::pcs::TEST_LOG_INV_RATE,
+            bench::Plan::default(),
+        );
     }
 }

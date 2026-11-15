@@ -51,7 +51,7 @@ def hDvB (fs : String → ℕ) (SB SK : String → ℕ) (w : NodeWitness) : ℕ 
 def MainGoalDvTB (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (seed : Digest)
     (s : NodeStatement) (w : NodeWitness) (SB SK : String → ℕ) : Prop :=
   (hm fs fp seed s w).nd = 1 →
-    CompleteAtDTB fs cert 20 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et]
+    CompleteAtDTB fs cert 20 "da_verify" (hLmain fs fp seed s w) []
       (Returns (hm fs fp seed s w).daR) (hDvNH w) (hDvB fs SB SK w)
 
 theorem MainGoalDvTB.goal {fs : String → ℕ} {cert : String → V → ℕ} {fp : ℕ} {seed : Digest}
@@ -71,30 +71,11 @@ theorem mainGoalDvTB (hn : NodeRelation bytecode seed s w) (hrf : Lift.RunsFit f
   obtain ⟨p, hp, hR, hw⟩ := checked_da fs fp hn h1
   rw [hR, hDvNH, hDvB, hp]
   simp only [Option.map_some, Option.getD_some]
-  have hL := wLog_lt hw
-  have h := Da.da_verify_completeAtTB fs cert hrf hw (etB fs (mK0 (hData seed s w) fs fp)) hS
-  have hq : (etB fs (mK0 (hData seed s w) fs fp), expTabAllWords) ∈ hLmain fs fp seed s w :=
-    List.mem_append_right _ (by simp [etL])
-  have hlen : expTabAllWords.length = 2284 := length_expTabAllWords
-  refine completeAtDTB_lin_mono (fun rd hM => ?_) (fun i hi => ?_) (h.lowMono (by norm_num))
-  · have hr := reads_of_memL hM hq (wLog p.2) (by omega)
-    rw [expTabAllWords_sq (by omega)] at hr
-    intro q hq'
-    rw [List.mem_singleton] at hq'
-    subst hq'
-    intro k hk
-    simp only [List.length_singleton, Nat.lt_one_iff] at hk
-    subst hk
-    rw [← gen_pow_eq_ofK, pow_add, loadHolds_mul_gen_pow, Nat.add_zero]
-    exact hr
-  · obtain ⟨q, hq', h1, h2⟩ := hi
-    rw [List.mem_singleton] at hq'
-    subst hq'
-    simp only [List.length_singleton] at h1 h2
-    refine ⟨_, hq, by dsimp only; omega, ?_⟩
-    dsimp only
-    rw [hlen]
-    omega
+  have h := Da.da_verify_completeAtTB fs cert hrf hw hS
+  refine completeAtDTB_lin_mono (fun _ _ q hq => by simp at hq) (fun i hi => ?_)
+    (h.lowMono (by norm_num))
+  obtain ⟨q, hq, -⟩ := hi
+  simp at hq
 
 end
 end LeanVM.Guest.B1.Main

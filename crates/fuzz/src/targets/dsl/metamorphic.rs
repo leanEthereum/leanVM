@@ -7,7 +7,7 @@ use super::generate::{bucket, compile};
 use super::print::{self, Style};
 use super::synth::{self, Limits};
 use crate::{Ctx, Finding, Outcome, Source};
-use leanvm_core::cpu::Program;
+use isa::Program;
 
 pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
     let mut lim = Limits::for_depth(src, ctx.depth.min(1));
@@ -23,20 +23,21 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
     let b = print::print(&g.prog, &b_style, src.u64());
     ctx.note(format!("spelling {}", b_style.knobs()));
     let context = "dsl-metamorphic";
-    let pa = compile(&a, &g, context)?;
-    let pb = compile(&b, &g, context)?;
+    let (pa, wa) = compile(&a, &g, context)?;
+    let (pb, wb) = compile(&b, &g, context)?;
     // The bytecode digest leads the transcript: a source must compile to one program.
-    for (source, program) in [(&a, &pa), (&b, &pb)] {
-        let again = compile(source, &g, context)?;
-        if fingerprint(program) != fingerprint(&again) {
+    for source in [&a, &b] {
+        let (again, _) = compile(source, &g, context)?;
+        let first = compile(source, &g, context)?;
+        if fingerprint(&first.0) != fingerprint(&again) {
             return Err(Finding::high(
                 format!("{context}: one source compiles to two programs"),
                 source.to_string(),
             ));
         }
     }
-    let ra = pa.execute(g.public_input);
-    let rb = pb.execute(g.public_input);
+    let ra = leanvm_core::cpu::execute(&pa, &wa, g.public_input);
+    let rb = leanvm_core::cpu::execute(&pb, &wb, g.public_input);
     match (ra, rb) {
         (Ok(ea), Ok(eb)) => {
             ctx.note(format!(
@@ -47,7 +48,7 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
             Ok(())
         }
         (Ok(_), Err(e)) | (Err(e), Ok(_)) => {
-            let (good, bad) = if pa.execute(g.public_input).is_ok() {
+            let (good, bad) = if leanvm_core::cpu::execute(&pa, &wa, g.public_input).is_ok() {
                 (&a, &b)
             } else {
                 (&b, &a)
@@ -72,5 +73,5 @@ pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
 
 /// What a compilation produced that a proof depends on: the bytecode, its layout and its source map.
 fn fingerprint(p: &Program) -> String {
-    format!("{:?}|{:?}|{:?}", p.prog(), p.fn_ranges, p.src_lines)
+    format!("{:?}|{:?}|{:?}", p.prog, p.fn_ranges, p.src_lines)
 }

@@ -16,7 +16,8 @@
 
 use crate::{Finding, catch};
 use lean_compiler::{compile, parse, parse_const};
-use leanvm_core::cpu::{ExecError, Execution, Fault, Program, ProveError};
+use isa::Program;
+use leanvm_core::cpu::{ExecError, Execution, Fault, ProveError};
 use primitives::field::F128;
 
 include!(concat!(env!("OUT_DIR"), "/programs.rs"));
@@ -50,7 +51,10 @@ impl Spec {
             expect: Expect::Ok,
             slow: false,
         };
-        let elt = |s: &str| parse_const(s.trim()).map_err(|e| format!("{name}: bad constant `{s}`: {e}"));
+        let elt = |s: &str| -> Result<F128, String> {
+                let e = parse_const(s.trim()).map_err(|err| format!("{name}: bad constant `{s}`: {err}"))?;
+                Ok(F128::new(e.c0, e.c1))
+            };
         for line in source.lines().map(str::trim) {
             if let Some(rest) = line.strip_prefix("# public_input:") {
                 let parts: Vec<&str> = rest.split(',').collect();
@@ -90,13 +94,10 @@ impl Spec {
         Ok(spec)
     }
 
-    /// The program with its witness streams installed.
-    pub fn compile(&self) -> Result<Program, CompileFailure> {
-        let mut program = compile_source(self.source)?;
-        for (stream, entries) in &self.witness {
-            program.set_witness(stream.clone(), entries.clone());
-        }
-        Ok(program)
+    /// The program and its witness streams.
+    pub fn compile(&self) -> Result<(Program, Vec<(String, Vec<Vec<F128>>)>), CompileFailure> {
+        let program = compile_source(self.source)?;
+        Ok((program, self.witness.clone()))
     }
 }
 
@@ -156,7 +157,7 @@ impl CompileFailure {
                 let finding = Finding::panic(message, location).in_context(context);
                 // `expect`/`assert!` messages in the compiler are its documented rejections; anything else (an
                 // index out of bounds, an overflow, an `unwrap` on `None`) is a crash.
-                let documented = location.contains("lean_compiler/")
+                let documented = location.contains("zkdsl_compiler/")
                     && !message.contains("index out of bounds")
                     && !(message.starts_with("attempt to ") && message.ends_with("with overflow"))
                     && !message.contains("called `Option::unwrap()`")
@@ -178,16 +179,25 @@ pub fn compile_source(source: &str) -> Result<Program, CompileFailure> {
         Ok(Err(e)) => return Err(CompileFailure::Parse(e)),
         Err((message, location)) => return Err(CompileFailure::ParsePanic { message, location }),
     };
-    catch(|| compile(&ast)).map_err(|(message, location)| CompileFailure::CompilePanic { message, location })
+    catch(|| isa::Program::from(compile(&ast))).map_err(|(message, location)| CompileFailure::CompilePanic { message, location })
 }
 
 /// Run `program`, learning the public input it publishes when `public_input` is `None`. A run on zeros that publishes
 /// `x` conflicts on the pair `{0, x}`, at the public cell or at the cell the store copies from, so `x` is tried in each
 /// zero slot, keeping the first that moves the run past that conflict.
 pub fn execute(program: &Program, public_input: Option<[F128; 2]>) -> (Result<Execution, ExecError>, [F128; 2]) {
+    execute2(program, &[], public_input)
+}
+
+/// [`execute`] with the program's witness streams installed.
+pub fn execute2(
+    program: &Program,
+    witness: &[(String, Vec<Vec<F128>>)],
+    public_input: Option<[F128; 2]>,
+) -> (Result<Execution, ExecError>, [F128; 2]) {
     match public_input {
-        Some(pi) => (program.execute(pi), pi),
-        None => discover(program),
+        Some(pi) => (leanvm_core::cpu::execute(program, witness, pi), pi),
+        None => discover2(program, witness),
     }
 }
 
@@ -205,13 +215,17 @@ fn published(result: &Result<Execution, ExecError>) -> Option<F128> {
 }
 
 fn discover(program: &Program) -> (Result<Execution, ExecError>, [F128; 2]) {
+    discover2(program, &[])
+}
+
+fn discover2(program: &Program, witness: &[(String, Vec<Vec<F128>>)]) -> (Result<Execution, ExecError>, [F128; 2]) {
     let mut pi = [F128::ZERO; 2];
-    let mut result = program.execute(pi);
+    let mut result = leanvm_core::cpu::execute(program, witness, pi);
     while let Some(x) = published(&result) {
         let next = (0..2).filter(|&slot| pi[slot] == F128::ZERO).find_map(|slot| {
             let mut candidate = pi;
             candidate[slot] = x;
-            let run = program.execute(candidate);
+            let run = leanvm_core::cpu::execute(program, witness, candidate);
             (published(&run) != Some(x)).then_some((candidate, run))
         });
         match next {
@@ -259,7 +273,18 @@ pub fn prove_honest(
     log_inv_rate: usize,
     context: &str,
 ) -> Result<Option<leanvm_core::cpu::Proof>, Finding> {
-    match leanvm_core::cpu::prove(program, public_input, log_inv_rate) {
+    prove_honest2(program, &[], public_input, log_inv_rate, context)
+}
+
+/// [] with the program's witness streams installed.
+pub fn prove_honest2(
+    program: &Program,
+    witness: &[(String, Vec<Vec<F128>>)],
+    public_input: [F128; 2],
+    log_inv_rate: usize,
+    context: &str,
+) -> Result<Option<leanvm_core::cpu::Proof>, Finding> {
+    match leanvm_core::cpu::prove(program, witness, public_input, log_inv_rate) {
         Ok((proof, _)) => match leanvm_core::cpu::verify(program, &public_input, &proof) {
             Ok(_) => Ok(Some(proof)),
             Err(e) => Err(Finding::high(

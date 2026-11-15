@@ -16,7 +16,7 @@ public import Std.Data.HashMap
 # The core IR interpreter
 
 `run` evaluates a core function and returns its words, or the first constraint that fails. It
-is the witness generation of `leanvm_core::cpu::execute` on the core IR: an atom whose inputs are
+is the witness generation of `lean_vm_core::cpu::execute` on the core IR: an atom whose inputs are
 known computes its output, and one whose output is known back-solves its single unknown input
 (`a / b` as `mul a q b`, the range check's complement, `a + b` with the sum known), and a
 `KECCAK` computes Keccak-f[1600] of its input cells (`Statement/Fast/Keccak`'s `@[csimp]`

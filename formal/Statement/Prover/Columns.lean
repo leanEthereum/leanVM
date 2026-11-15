@@ -53,7 +53,7 @@ def outStates (R : Array (Array K)) (mids : Array KeccakState) : Array KeccakSta
 /-- `QKECCAK` of the `KECCAK` table at the height `2^h`: slot `l < 25` of step `x` is input lane
 `l` of row `x`, slot `25 + l` lane `l` of its state after twelve rounds, slot `50 + k` its cell of
 the column `k`, `pc` through `out_all` (`spare_local` and `qkeccak_slot`,
-`crates/verifier/src/layout.rs:390-430`). -/
+`crates/verifier/src/layout.rs`). -/
 def qkeccakColumn (R : Array (Array K)) (h : ℕ) (mids : Array KeccakState) : Array K :=
   let p := 2 ^ h
   Array.ofFn (n := 2 ^ (h + 6)) fun i ↦
@@ -68,7 +68,7 @@ def tableIndexOf (c : ℕ) : ℕ :=
   if c < 18 then 0 else if c < 31 then 1 else if c < 38 then 2 else if c < 52 then 3
   else if c < 66 then 4 else 5
 
-/-- The column of global number `c`: the memory's two limbs and finalize counts `0 … 2`, `BFCNT`
+/-- The column of global number `c`: the memory's two limbs and finalize counts `0 … 2`, `BYTECODE_FINAL_COUNTERS`
 `3`, `QKECCAK` `4`, then column `c - base` of the opcode table `c` falls in, the `KECCAK` output lanes
 (its columns `40 … 64`) derived from the twelve-round states `mids`, through the twenty-four-round
 states `outs`. -/

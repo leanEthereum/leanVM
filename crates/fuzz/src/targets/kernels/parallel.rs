@@ -4,6 +4,7 @@
 
 use super::check;
 use crate::{Ctx, Outcome, Source, catch};
+use exp_parallel as parallel;
 use std::sync::atomic::{AtomicU32, AtomicU64, AtomicUsize, Ordering};
 
 pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {

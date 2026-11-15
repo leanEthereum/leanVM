@@ -13,7 +13,7 @@ default = ["kernels", "decoders", "dsl", "isa", "soundness", "aggregation"]
 # Differential tests of the field, hash, NTT, Merkle and multilinear kernels against plain references.
 kernels = []
 # Every byte string a peer can send: proofs, aggregates, signatures, keys.
-decoders = ["dep:rec_aggregation"]
+decoders = []
 # The zkDSL front end and compiler: generated self-checking programs, mutated sources, the hand-written corpus.
 dsl = []
 # Hand-assembled bytecode straight into the VM, bypassing the compiler.
@@ -21,18 +21,29 @@ isa = ["kernels"]
 # A malicious prover: mutated proofs, forged transcript messages, tampered witnesses, wrong statements.
 soundness = []
 # The recursion guest and the public aggregation API: forged hints, invalid children, adversarial inputs.
-aggregation = ["dep:rec_aggregation"]
+aggregation = []
 
 [dependencies]
-primitives.workspace = true
-fiat_shamir = { workspace = true, features = ["fuzzing"] }
-pcs.workspace = true
-keccak_gkr.workspace = true
-leanvm_core = { workspace = true, features = ["fuzzing"] }
-lean_compiler.workspace = true
-lean_da.workspace = true
-signatures.workspace = true
-parallel.workspace = true
+# The stable tree, the reference prover: the production target the aggregation and decoders derive from.
+primitives = { package = "stable_primitives", path = "../stable_prover/primitives" }
+parallel = { package = "stable_parallel", path = "../stable_prover/parallel" }
+pcs = { package = "stable_pcs", path = "../stable_prover/pcs" }
+keccak_gkr = { package = "stable_keccak_gkr", path = "../stable_prover/keccak_gkr" }
+leanvm_core = { package = "stable_lean_vm_core", path = "../stable_prover/lean_vm_core", features = ["fuzzing"] }
+# The experimental tree, the optimized prover: its kernels are the differential targets' subject.
+exp_primitives = { package = "experimental_primitives", path = "../experimental_prover/primitives" }
+exp_parallel = { package = "experimental_parallel", path = "../experimental_prover/parallel" }
+exp_pcs = { package = "experimental_pcs", path = "../experimental_prover/pcs" }
+exp_keccak_gkr = { package = "experimental_keccak_gkr", path = "../experimental_prover/keccak_gkr" }
+exp_leanvm_core = { package = "experimental_lean_vm_core", path = "../experimental_prover/lean_vm_core", features = ["fuzzing"] }
+# The shared crates.
+fiat_shamir = { package = "fiat_shamir_prover", path = "../fiat_shamir_prover", features = ["fuzzing"] }
 verifier.workspace = true
-rec_aggregation = { workspace = true, features = ["fuzzing", "signers-cache"], optional = true }
+isa.workspace = true
+keccak256.workspace = true
+lean_compiler = { package = "zkdsl_compiler", path = "../zkdsl_compiler" }
+lean_da.workspace = true
+lean_xmss.workspace = true
+lean_sphincs.workspace = true
+rec_aggregation = { package = "aggregation", path = "../aggregation", features = ["fuzzing", "signers-cache"] }
 sha3.workspace = true

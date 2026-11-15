@@ -2,9 +2,10 @@
 //! set of real aggregates, proven once per campaign and shared on disk by every worker, behind a lock.
 
 use crate::{Ctx, Finding, Rng};
-use rec_aggregation::{EthereumClaims, EthereumProof, LeanSphincsClaim, LeanXmssClaim, aggregate};
-use signatures::lean_sphincs::{self, LeanSphincsPublicKey, LeanSphincsSignature};
-use signatures::lean_xmss::{self, LeanXmssPublicKey, LeanXmssSignature};
+use rec_aggregation::fuzzing::{EthereumClaims, EthereumProof, aggregate_compat as aggregate};
+use rec_aggregation::{LeanSphincsClaim, LeanXmssClaim};
+use lean_sphincs::{self, LeanSphincsPublicKey, LeanSphincsSignature};
+use lean_xmss::{self, LeanXmssPublicKey, LeanXmssSignature};
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use std::time::{Duration, SystemTime};
@@ -79,7 +80,20 @@ pub fn blob_row(seed: u64) -> Vec<u64> {
 }
 
 pub fn root_of(blobs: &[u64]) -> [u8; 32] {
-    lean_da::commit(blobs).expect("a whole row").0
+    lean_da::BlobMatrix::build(
+            &blobs
+                .chunks(lean_da::BLOB_SYMBOLS)
+                .map(|chunk| {
+                    let mut blob = [0; lean_da::BLOB_SYMBOLS];
+                    for (word, symbol) in blob.iter_mut().zip(chunk) {
+                        *word = *symbol as u128;
+                    }
+                    blob
+                })
+                .collect::<Vec<_>>(),
+        )
+        .expect("a whole row")
+        .top_root()
 }
 
 fn signers() -> Signers {
@@ -89,9 +103,9 @@ fn signers() -> Signers {
     // from the signers cache (one key at three leaves of its own), so a campaign pays one key
     // generation and three signs, once, before its fixtures are read from disk.
     const FIRST: lean_xmss::LeafIndex = 3_000_000_100;
-    let (sk, pk) = lean_xmss::key_gen_from_seed([0xA7; 32]);
+    let (sk, pk) = lean_xmss::key_gen(&[0xA7; 32]);
     let sign = |message: lean_xmss::Message, leaf| {
-        let sig = lean_xmss::sign(&sk, &message, leaf).expect("signs in range");
+        let sig = lean_xmss::sign(&sk, &message, leaf);
         (pk, message, sig)
     };
     let xmss_two = [
@@ -99,9 +113,10 @@ fn signers() -> Signers {
         sign(message_b(), FIRST + 1),
         sign(message_a(), FIRST + 2),
     ];
-    let (sk, pk) = lean_sphincs::key_gen_from_seed([0x5B; lean_sphincs::SEED_LEN]);
+    let sk = [0x5B; lean_sphincs::SECRET_KEY_LEN];
+    let pk = lean_sphincs::key_gen(&sk);
     let sphincs_two = [message_a(), message_b()].map(|message| {
-        let sig = lean_sphincs::sign(&sk, &message).expect("signs");
+        let sig = lean_sphincs::sign(&sk, &message);
         (pk, message, sig)
     });
     Signers {
@@ -118,8 +133,9 @@ pub fn fixtures(ctx: &Ctx) -> Result<&'static Fixtures, Finding> {
     if let Some(f) = FIXTURES.get() {
         return Ok(f);
     }
-    leanvm_core::init_prover();
-    rec_aggregation::warm_up();
+    use isa::Prover as _;
+    crate::pick::StableProver::init();
+    crate::pick::ExperimentalProver::init();
     let signers = signers();
     let blobs = [blob_row(0xDA_0001), blob_row(0xDA_0002), blob_row(0xDA_0003)];
     let dir = ctx.path(&format!("aggregation/fixtures-{:016x}/x", version_hash()));
@@ -193,7 +209,7 @@ fn prove(
     declare: Option<&EthereumClaims>,
     rate: usize,
 ) -> Result<EthereumProof, Finding> {
-    let proof = aggregate(children, lean_xmss.to_vec(), sphincs.to_vec(), blobs, declare, rate).map_err(|e| {
+    let proof = rec_aggregation::fuzzing::aggregate_compat::<crate::pick::StableProver>(children, lean_xmss.to_vec(), sphincs.to_vec(), blobs, declare, rate).map_err(|e| {
         Finding::high(
             format!("aggregation fixtures: honest aggregate `{name}` refused"),
             format!("{e:?}"),

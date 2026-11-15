@@ -22,7 +22,7 @@ product of two tables' extensions.
 * **What is rejected.** A round polynomial with one coefficient changed, a wrong claim, and
   values that are not the tables' at the final point.
 * **The wire.** The Rust verifier's decoding of a round (`sumcheck_round_poly`,
-  `crates/verifier/src/transcript.rs:186-202` at leanVM `127510d1`): the plain round drops
+  `crates/verifier/src/transcript.rs` at leanVM `127510d1`): the plain round drops
   `c_1`, recomputed as `claim + c_2 + … + c_d`; the normalized round drops `c_0`, recomputed as
   `claim + r · (c_1 + … + c_d)`. `decodeWire` agrees with both on honest messages of degree two
   and three, and returns the honest message from the wire of `d` values; a round read on the wire

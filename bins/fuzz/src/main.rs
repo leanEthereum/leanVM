@@ -576,16 +576,16 @@ fn fingerprint(filter: &str, rates: &[usize]) -> Vec<String> {
         .into_iter()
         .filter(|s| !s.slow && s.name.contains(filter))
     {
-        let Ok(program) = spec.compile() else { continue };
-        let (Ok(exec), public_input) = fuzz::programs::execute(&program, spec.public_input) else {
+        let Ok((program, witness)) = spec.compile() else { continue };
+        let (Ok(exec), public_input) = fuzz::programs::execute2(&program, &witness, spec.public_input) else {
             continue;
         };
         if exec.cycles > 1 << 16 || !exec.unconstrained_reads.is_empty() {
             continue;
         }
-        let bytecode = hex(format!("{:?}", program.prog()).as_bytes());
+        let bytecode = hex(format!("{:?}", program.prog).as_bytes());
         for &rate in rates {
-            if let Ok((proof, _)) = leanvm_core::cpu::prove(&program, public_input, rate) {
+            if let Ok((proof, _)) = leanvm_core::cpu::prove(&program, &witness, public_input, rate) {
                 lines.push(format!(
                     "{}\trate {rate}\tcycles {}\tbytecode {bytecode}\tproof {}",
                     spec.name,
@@ -599,7 +599,7 @@ fn fingerprint(filter: &str, rates: &[usize]) -> Vec<String> {
 }
 
 /// The recursion guest's source, whose lines the guest's kill notes name.
-const GUEST: &str = include_str!("../../../crates/rec_aggregation/guests/lean_ethereum.py");
+const GUEST: &str = include_str!("../../../guests/lean_ethereum.py");
 
 fn guest_coverage(store: &Store, all: bool) {
     // `guest check <function> (line N)`, from every target that runs the guest.

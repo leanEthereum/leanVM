@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Gkr.Loop7Complete
 public import LeanVM.Guest.B1.Gkr.Holds
 
 /-!
-# The root-most layer, completely (G:1935-1994)
+# The root-most layer, completely
 
 `vbgEvL`: `verify_bus_gkr`'s body as the forward evaluator walks it (its `ite`'s arms in order,
 the checked inverse as its product, `fixNe`); `vb_good`, `rt_goodB`: the statements of the body

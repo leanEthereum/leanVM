@@ -286,7 +286,7 @@ def digestFieldsValue (bytes : List UInt8) : Nat :=
 def truncateMessageDigest (outputs : DigestCall → HashOutput) : MessageDigest :=
   BitVec.ofNat messageDigestBits (digestFieldsValue (digestOutputBytes outputs))
 
-/-- FIPS 205's address `ADRS` (`Adrs` in `crates/signatures`): the layer, counted from the bottom, the
+/-- FIPS 205's address `ADRS` (`Adrs` in `crates/lean_sphincs`): the layer, counted from the bottom, the
 tree, the type `tag`, the key pair, the chain or height, and the hash address or tree index. -/
 structure TweakFields where
   layer : BitVec 32
@@ -380,7 +380,7 @@ def keygenDomainFields : KeygenDomain → TweakFields
 def seedTag : HashInput := [0x6c, 0x65, 0x61, 0x6e, 0x53, 0x50, 0x48, 0x49, 0x4e, 0x43, 0x53]
 
 /-- `leanSPHINCS || SK.seed || domain`, 44 bytes: domain `0` gives `PK.seed`, its first 16 bytes, and
-domain `1` gives `SK.prf`, all 32 (`expand_key`). It has no parameter and no address. -/
+domain `1` gives `SK.prf`, all 32 (`ExpandedKey::new`). It has no parameter and no address. -/
 def keySeedInput (seed : MasterSeed) (domain : Nat) : HashInput :=
   seedTag ++ bytesLE 32 seed ++ [UInt8.ofNat domain]
 
@@ -933,7 +933,7 @@ def keygenFromSeed (seed : MasterSeed) : OracleComp HashSpec (PublicKey × Secre
   let root ← treeRoot parameter topLayer rootTree seed
   return (⟨root, parameter⟩, ⟨seed, prf, parameter, root⟩)
 
-/-- `Gen` (`key_gen_from_seed`): the key's seed is `SK.seed`. -/
+/-- `Gen` (`key_gen`): the key's seed is `SK.seed`. -/
 def keygen (seed : MasterSeed) : OracleComp HashSpec (PublicKey × SecretKey) :=
   keygenFromSeed seed
 

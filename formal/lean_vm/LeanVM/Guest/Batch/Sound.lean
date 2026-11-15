@@ -17,7 +17,7 @@ public import LeanVM.Guest.AcceptableChild
 lambdas (`λ^(2i)`, `λ^(2i+1)` for child `i`), and runs one sumcheck on the bytecode, deferring one
 claim. `batch_sound`: if the batching accepts and its deferred claim holds, then every child's
 claims hold (its proof's, `BytecodeClaim.Holds`, and its
-statement's, `DeferredClaim.HoldsShaped`), or a challenge is bad (`BatchBad`):
+statement's, `DeferredBytecodeClaim.HoldsShaped`), or a challenge is bad (`BatchBad`):
 
 * **the challenge `λ`**: the children's claims leave nonzero gaps (claimed less true values), and
   the lambdas' combination of them vanishes: `λ` is a root of the nonzero polynomial whose
@@ -142,7 +142,7 @@ theorem holds_of_gaps {bytecode : List K} {cs : List ChildClaims}
 holds, of children whose claims have the bytecode's shape, makes every child's claims true, or
 one of its challenges is bad. -/
 theorem batch_sound {bytecode : List K} {cs : List ChildClaims} {h : BatchingHints}
-    {d : DeferredClaim} (hb : batch cs h = some d) (hd : d.HoldsWithShape bytecode)
+    {d : DeferredBytecodeClaim} (hb : batch cs h = some d) (hd : d.HoldsWithShape bytecode)
     (hf : ∀ c ∈ cs, c.freshClaim.bytecodePoint.length = Nat.log2 bytecode.length)
     (hc : ∀ c ∈ cs, c.carriedClaim.HasBytecodeShape bytecode) :
     (∀ c ∈ cs, c.freshClaim.Holds bytecode ∧ c.carriedClaim.HoldsWithShape bytecode) ∨ BatchBad bytecode cs h := by
@@ -151,7 +151,7 @@ theorem batch_sound {bytecode : List K} {cs : List ChildClaims} {h : BatchingHin
   injection hb with hd'
   subst hd'
   obtain ⟨hlog, hpow, hval⟩ := hd
-  simp only [DeferredClaim.HasBytecodeShape] at hlog hpow hval
+  simp only [DeferredBytecodeClaim.HasBytecodeShape] at hlog hpow hval
   rw [length_rsRun] at hlog hpow
   set n := h.sumcheckMessages.length
   have hlog' : Nat.log2 bytecode.length = n := by rw [← hpow, Nat.log2_two_pow]

@@ -111,7 +111,7 @@ noncomputable def oodValue {μ : ℕ} (q : Column μ) (z : List E) : E :=
   ∑ x : Fin (2 ^ μ), eqEval z (boolPoint μ x) * ofK (q.values.getD x 0)
 
 /-- **The honest prover of the commitment's out-of-domain sample** (`readOod`; `ood_sample`,
-`crates/pcs/src/ood.rs:20-31`): pass the grind, receive the point `z` of the stack's variables,
+`crates/pcs/src/ood.rs`): pass the grind, receive the point `z` of the stack's variables,
 send the stack's extension there; return the program's claim. -/
 noncomputable def hOod {μ : ℕ} (q : Column μ) : Script StackClaim :=
   (Script.grindBits Whir.oodGrindingBits).bind fun _ ↦

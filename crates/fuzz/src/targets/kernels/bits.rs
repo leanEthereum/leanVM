@@ -4,10 +4,10 @@
 use super::reference as r;
 use super::{bulk_e, check};
 use crate::{Ctx, Outcome, Source};
-use primitives::bit_fold::{BLOCK, BitFold};
-use primitives::bits::bit_transpose_64bytes;
-use primitives::field::{F64, F128};
-use primitives::stream::Stream;
+use exp_primitives::bit_fold::{BLOCK, BitFold};
+use exp_primitives::bits::bit_transpose_64bytes;
+use exp_primitives::field::{F64, F128};
+use exp_primitives::stream::Stream;
 
 pub fn run(src: &mut Source, ctx: &Ctx) -> Outcome {
     match src.below(4) {
