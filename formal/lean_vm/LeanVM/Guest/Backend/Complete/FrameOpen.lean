@@ -54,7 +54,8 @@ theorem openOff_out (hmono : PlaceMono ctx) : ∀ (ss : List Stmt) (st : St) (O 
     wpP (placeBlock ss) ctx st fun _ st' => st'.chainIn = none ∧
       ∃ (firstsN : List ℕ) (stagesN : List (List (List PStmt))) (blk : List PStmt),
         st'.out.toList = O ++ [.chain h join lx entry one sfp (firsts ++ firstsN)
-          (stages ++ stagesN)] ++ blk ∧ firstsN.head? = some first
+          (stages ++ stagesN)] ++ blk ∧ firstsN.head? = some first ∧
+        firstsN.length = stagesN.length ∧ stagesN.length ≤ ss.length
   | [], _, _, _, _, _, _, _, _, _, _, _, _, ⟨_, _, _, hs⟩, _, _ => nomatch hs
   | s :: rest, st, O, h, join, lx, entry, one, sfp, first, firsts, stages, join',
       ⟨x, arms, tl, hs⟩, hc, ho => by
@@ -112,7 +113,7 @@ theorem openOff_out (hmono : PlaceMono ctx) : ∀ (ss : List Stmt) (st : St) (O 
       have hc₈ : st₈.chainIn = none := (show st₈.chainIn = _ from hk₈).trans hc₆
       refine wp_mono (hmono rest st₈) fun _ st₉ ⟨_, _, hch⟩ => ?_
       obtain ⟨hc₉, blk, hblk⟩ := hch hc₈
-      refine ⟨hc₉, [first], [blocks], ops ++ blk, ?_, rfl⟩
+      refine ⟨hc₉, [first], [blocks], ops ++ blk, ?_, rfl, rfl, by simp⟩
       rw [hblk, hops]
       erw [ho₇]
       simp
@@ -153,8 +154,8 @@ theorem openOff_out (hmono : PlaceMono ctx) : ∀ (ss : List Stmt) (st : St) (O 
       refine wp_bind.mpr (wp_modify.mpr ?_)
       refine wp_mono (openOff_out hmono rest _ O h join lx entry one sfp st₃.tables.len
         (firsts ++ [first]) (stages ++ [blocks]) join' ⟨x'', arms'', tl', htl⟩ rfl ho₇)
-        fun _ st₉ ⟨hc₉, firstsN, stagesN, blk, hout, _⟩ => ?_
-      refine ⟨hc₉, first :: firstsN, blocks :: stagesN, blk, ?_, rfl⟩
+        fun _ st₉ ⟨hc₉, firstsN, stagesN, blk, hout, _, hl₁, hl₂⟩ => ?_
+      refine ⟨hc₉, first :: firstsN, blocks :: stagesN, blk, ?_, rfl, by simp [hl₁], by simp; omega⟩
       rw [hout]
       simp
 
@@ -177,7 +178,7 @@ theorem openOff (hmono : PlaceMono ctx) : ∀ (x : V) (arms : List (List Stmt)) 
   exact wp_mono (wp_and (placeBlock_mono _ st) (wp_and (placeBlock_r _ st)
     (openOff_out hmono _ st O h join lx entry one sfp first firsts stages join'
       ⟨x, arms, rest, rfl⟩ hc ho)))
-    fun _ _ ⟨⟨hn, hl⟩, ⟨_, _, _, _, ht⟩, hc', hout⟩ => ⟨hc', hn, hl, ht, hout⟩
+    fun _ _ ⟨⟨hn, hl⟩, ⟨_, _, _, _, ht⟩, hc', fN, sN, b, hout, hh, _, _⟩ => ⟨hc', hn, hl, ht, fN, sN, b, hout, hh⟩
 
 /-- **`OpenOffW`.** -/
 theorem openOffW (hmono : PlaceMono ctx) : OpenOffW (ctx := ctx) := openOff hmono
