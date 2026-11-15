@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.Backend.Guest.B2.Locs
-public import LeanVM.Guest.Backend.Guest.Piece.Layout
+public import LeanVM.Guest.Backend.Guest.Compiled
 
 set_option Elab.async false
 set_option maxRecDepth 100000
@@ -19,40 +19,11 @@ open GuestPiece
 
 @[expose] public section
 
-/-- The places of entries 117 to 125 (`padding_weight__L20` to `padding_weight__L28`, 1908 instructions) agree with the cells. -/
-theorem locsOk_117_126 : (List.range' 117 9).all (fun i => locsOkAt i (placedLocs i)) = true := by
-  decide +kernel
-
-/-- The places of entries 126 to 158 (`padding_weight__L29` to `plus_one_run__L30`, 2000 instructions) agree with the cells. -/
-theorem locsOk_126_159 : (List.range' 126 33).all (fun i => locsOkAt i (placedLocs i)) = true := by
-  decide +kernel
-
-/-- The places of entries 159 to 179 (`plus_one_run__L31` to `block_selector__L17`, 1865 instructions) agree with the cells. -/
-theorem locsOk_159_180 : (List.range' 159 21).all (fun i => locsOkAt i (placedLocs i)) = true := by
-  decide +kernel
-
-/-- The places of entries 180 to 188 (`block_selector__L18` to `block_selector__L26`, 1998 instructions) agree with the cells. -/
-theorem locsOk_180_189 : (List.range' 180 9).all (fun i => locsOkAt i (placedLocs i)) = true := by
-  decide +kernel
-
-/-- The places of entries 189 to 194 (`block_selector__L27` to `block_selector__L32`, 1782 instructions) agree with the cells. -/
-theorem locsOk_189_195 : (List.range' 189 6).all (fun i => locsOkAt i (placedLocs i)) = true := by
-  decide +kernel
-
-/-- The places of entries 195 to 220 (`block_selector__L33` to `index_mle__L24`, 1883 instructions) agree with the cells. -/
-theorem locsOk_195_221 : (List.range' 195 26).all (fun i => locsOkAt i (placedLocs i)) = true := by
-  decide +kernel
-
-/-- The places of entries 221 to 250 (`index_mle__L25` to `block_selector_tab__L20`, 1999 instructions) agree with the cells. -/
-theorem locsOk_221_251 : (List.range' 221 30).all (fun i => locsOkAt i (placedLocs i)) = true := by
-  decide +kernel
-
-/-- The places of entries 251 to 265 (`block_selector_tab__L21` to `__loop10`, 1047 instructions) agree with the cells. -/
-theorem locsOk_251_266 : (List.range' 251 15).all (fun i => locsOkAt i (placedLocs i)) = true := by
-  decide +kernel
-
-/-- The places of entries 266 to 266 (`keccak_layer__L1`, 1449 instructions) agree with the cells. -/
-theorem locsOk_266_267 : (List.range' 266 1).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 20 to 20 (`verify_sig_lean_sphincs`, 3887 instructions) agree with the cells. -/
+theorem locsOk_20_21 : (List.range' 20 1).all (fun i => locsOkAt i (placedLocs i)) = true := by
+  refine range_one (f := fun i => locsOkAt i (placedLocs i)) ?_
+  show locsOkAt 20 (placedLocs 20) = true
+  rw [placedLocs_20]
   decide +kernel
 
 end

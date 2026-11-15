@@ -19,44 +19,44 @@ open GuestPiece
 
 @[expose] public section
 
-/-- The places of entries 1513 to 1516 (`walk_path__L12_L6` to `__loop507`, 1986 instructions) agree with the cells. -/
-theorem locsOk_1513_1517 : (List.range' 1513 4).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 1433 to 1434 (`__loop435` to `__loop436`, 1138 instructions) agree with the cells. -/
+theorem locsOk_1433_1435 : (List.range' 1433 2).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1517 to 1524 (`__loop508` to `__loop515`, 1418 instructions) agree with the cells. -/
-theorem locsOk_1517_1525 : (List.range' 1517 8).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 1435 to 1437 (`__loop437` to `__loop439`, 1912 instructions) agree with the cells. -/
+theorem locsOk_1435_1438 : (List.range' 1435 3).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1525 to 1527 (`walk_path__L12_L7` to `__loop517`, 1884 instructions) agree with the cells. -/
-theorem locsOk_1525_1528 : (List.range' 1525 3).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 1438 to 1441 (`__loop440` to `__loop443`, 1858 instructions) agree with the cells. -/
+theorem locsOk_1438_1442 : (List.range' 1438 4).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1528 to 1532 (`__loop518` to `__loop522`, 1176 instructions) agree with the cells. -/
-theorem locsOk_1528_1533 : (List.range' 1528 5).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 1442 to 1445 (`__loop444` to `__loop447`, 1698 instructions) agree with the cells. -/
+theorem locsOk_1442_1446 : (List.range' 1442 4).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1533 to 1533 (`walk_path__L18_L2`, 1757 instructions) agree with the cells. -/
-theorem locsOk_1533_1534 : (List.range' 1533 1).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 1446 to 1449 (`__loop448` to `__loop451`, 1538 instructions) agree with the cells. -/
+theorem locsOk_1446_1450 : (List.range' 1446 4).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1534 to 1540 (`__loop523` to `__loop529`, 1994 instructions) agree with the cells. -/
-theorem locsOk_1534_1541 : (List.range' 1534 7).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 1450 to 1455 (`__loop452` to `__loop457`, 1827 instructions) agree with the cells. -/
+theorem locsOk_1450_1456 : (List.range' 1450 6).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1541 to 1541 (`walk_path__L18_L3`, 1757 instructions) agree with the cells. -/
-theorem locsOk_1541_1542 : (List.range' 1541 1).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 1456 to 1475 (`__loop458` to `opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1`, 1998 instructions) agree with the cells. -/
+theorem locsOk_1456_1476 : (List.range' 1456 20).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1542 to 1547 (`__loop530` to `__loop535`, 1598 instructions) agree with the cells. -/
-theorem locsOk_1542_1548 : (List.range' 1542 6).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 1476 to 1478 (`opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1` to `__loop473`, 1201 instructions) agree with the cells. -/
+theorem locsOk_1476_1479 : (List.range' 1476 3).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1548 to 1548 (`__loop536`, 604 instructions) agree with the cells. -/
-theorem locsOk_1548_1549 : (List.range' 1548 1).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 1479 to 1480 (`__loop474` to `__loop475`, 1178 instructions) agree with the cells. -/
+theorem locsOk_1479_1481 : (List.range' 1479 2).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1549 to 1549 (`walk_path__L18_L4`, 1757 instructions) agree with the cells. -/
-theorem locsOk_1549_1550 : (List.range' 1549 1).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 1481 to 1482 (`__loop476` to `__loop477`, 1178 instructions) agree with the cells. -/
+theorem locsOk_1481_1483 : (List.range' 1481 2).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
 end

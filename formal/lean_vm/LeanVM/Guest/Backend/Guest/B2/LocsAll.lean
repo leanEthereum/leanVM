@@ -30,6 +30,8 @@ public import LeanVM.Guest.Backend.Guest.B2.Eval.L19
 public import LeanVM.Guest.Backend.Guest.B2.Eval.L20
 public import LeanVM.Guest.Backend.Guest.B2.Eval.L21
 public import LeanVM.Guest.Backend.Guest.B2.Eval.L22
+public import LeanVM.Guest.Backend.Guest.B2.Eval.L23
+public import LeanVM.Guest.Backend.Guest.B2.Eval.L24
 
 namespace LeanVM.Guest.Backend.B2
 
@@ -37,8 +39,8 @@ open GuestPiece
 
 @[expose] public section
 
-/-- **The checks of the entries whose placement one module cannot run** (`sp_wots`, `__loop2`). -/
-def BigLocs : Prop := locsOkAt 19 (placedLocs 19) = true ∧ locsOkAt 36 (placedLocs 36) = true
+/-- **The checks of the entries whose placement one module cannot run** (`__loop2`). -/
+def BigLocs : Prop := locsOkAt 36 (placedLocs 36) = true
 
 /-- **Every entry's places agree with its certificate's cells**, given `BigLocs`. -/
 theorem locsOk_all (hb : BigLocs) : (List.range' 0 1601).all (fun i => locsOkAt i (placedLocs i)) = true := by
@@ -204,11 +206,11 @@ theorem locsOk_all (hb : BigLocs) : (List.range' 0 1601).all (fun i => locsOkAt 
   have h := range_step locsOk_78_85 (rfl : 78 + 7 = 85) h (rfl : 7 + 1516 = 1523)
   have h := range_step locsOk_66_78 (rfl : 66 + 12 = 78) h (rfl : 12 + 1523 = 1535)
   have h := range_step locsOk_37_66 (rfl : 37 + 29 = 66) h (rfl : 29 + 1535 = 1564)
-  have h := range_step (range_one (f := fun i => locsOkAt i (placedLocs i)) hb.2) (rfl : 36 + 1 = 37) h (rfl : 1 + 1564 = 1565)
+  have h := range_step (range_one (f := fun i => locsOkAt i (placedLocs i)) hb) (rfl : 36 + 1 = 37) h (rfl : 1 + 1564 = 1565)
   have h := range_step locsOk_32_36 (rfl : 32 + 4 = 36) h (rfl : 4 + 1565 = 1569)
   have h := range_step locsOk_21_32 (rfl : 21 + 11 = 32) h (rfl : 11 + 1569 = 1580)
   have h := range_step locsOk_20_21 (rfl : 20 + 1 = 21) h (rfl : 1 + 1580 = 1581)
-  have h := range_step (range_one (f := fun i => locsOkAt i (placedLocs i)) hb.1) (rfl : 19 + 1 = 20) h (rfl : 1 + 1581 = 1582)
+  have h := range_step locsOk_19_20 (rfl : 19 + 1 = 20) h (rfl : 1 + 1581 = 1582)
   have h := range_step locsOk_18_19 (rfl : 18 + 1 = 19) h (rfl : 1 + 1582 = 1583)
   have h := range_step locsOk_17_18 (rfl : 17 + 1 = 18) h (rfl : 1 + 1583 = 1584)
   have h := range_step locsOk_13_17 (rfl : 13 + 4 = 17) h (rfl : 4 + 1584 = 1588)

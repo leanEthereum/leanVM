@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.Backend.Guest.B2.Final
 
-  `B2SoundL` from the back end's compilation of the guest, given only the pieces and agreement
-  checks of the two functions too large for one module.
+  `B2SoundL` from the back end's compilation of the guest, given only the piece and the agreement
+  check of `__loop2`, not yet cut.
 -/
 
 module
@@ -17,8 +17,8 @@ public import LeanVM.Guest.Backend.Guest.B2.LocsAll
 `b2SoundL_compiled`: `End.B2SoundL` from `b2SoundL_backend` with `GuestCompiles guestFns
 guestSlots` (`guest_compiles`, the kernel-checked pieces) and `LocsAgree` (`locsOk_all`, the
 kernel-checked agreement of every function's places with its certificate's cells, through
-`guestWorld_locs`). What remains are the pieces (`BigPieces`) and the agreement checks
-(`BigLocs`) of `sp_wots` and `__loop2`.
+`guestWorld_locs`). What remains is `__loop2`'s piece (`BigPieces`) and agreement check
+(`BigLocs`).
 -/
 
 namespace LeanVM.Guest.Backend.B2
@@ -43,8 +43,8 @@ theorem locsAgree_compiled (hbig : BigPieces) (hlocs : BigLocs) : LocsAgree :=
     exact List.all_eq_true.mp (locsOk_all hlocs) i
       (List.mem_range'_1.mpr ⟨Nat.zero_le _, by rw [coreProgram_length] at hi; exact hi⟩)
 
-/-- **B2 from the back end, compiled**: `End.B2SoundL`, given the pieces and the agreement checks
-of `sp_wots` and `__loop2`. -/
+/-- **B2 from the back end, compiled**: `End.B2SoundL`, given the piece and the agreement check of
+`__loop2`. -/
 theorem b2SoundL_compiled (hbig : BigPieces) (hlocs : BigLocs) : End.B2SoundL :=
   b2SoundL_backend (guest_compiles hbig) (locsAgree_compiled hbig hlocs)
 

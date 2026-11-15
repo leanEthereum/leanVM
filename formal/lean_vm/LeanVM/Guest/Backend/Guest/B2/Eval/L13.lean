@@ -19,36 +19,40 @@ open GuestPiece
 
 @[expose] public section
 
-/-- The places of entries 1163 to 1166 (`__loop209` to `__loop212`, 1796 instructions) agree with the cells. -/
-theorem locsOk_1163_1167 : (List.range' 1163 4).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 1015 to 1030 (`opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0` to `__loop107`, 1445 instructions) agree with the cells. -/
+theorem locsOk_1015_1031 : (List.range' 1015 16).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1167 to 1170 (`__loop213` to `__loop216`, 1796 instructions) agree with the cells. -/
-theorem locsOk_1167_1171 : (List.range' 1167 4).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 1031 to 1040 (`verify_merkle_cap__L7` to `opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1`, 1988 instructions) agree with the cells. -/
+theorem locsOk_1031_1041 : (List.range' 1031 10).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1171 to 1175 (`__loop217` to `__loop221`, 1948 instructions) agree with the cells. -/
-theorem locsOk_1171_1176 : (List.range' 1171 5).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 1041 to 1045 (`opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1` to `__loop115`, 1579 instructions) agree with the cells. -/
+theorem locsOk_1041_1046 : (List.range' 1041 5).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1176 to 1180 (`__loop222` to `__loop226`, 1652 instructions) agree with the cells. -/
-theorem locsOk_1176_1181 : (List.range' 1176 5).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 1046 to 1049 (`__loop116` to `__loop119`, 1556 instructions) agree with the cells. -/
+theorem locsOk_1046_1050 : (List.range' 1046 4).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1181 to 1194 (`__loop227` to `__loop237`, 1998 instructions) agree with the cells. -/
-theorem locsOk_1181_1195 : (List.range' 1181 14).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 1050 to 1055 (`__loop120` to `__loop125`, 1707 instructions) agree with the cells. -/
+theorem locsOk_1050_1056 : (List.range' 1050 6).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1195 to 1204 (`opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0` to `__loop243`, 1964 instructions) agree with the cells. -/
-theorem locsOk_1195_1205 : (List.range' 1195 10).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 1056 to 1062 (`__loop126` to `__loop132`, 1695 instructions) agree with the cells. -/
+theorem locsOk_1056_1063 : (List.range' 1056 7).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1205 to 1208 (`__loop244` to `__loop247`, 1876 instructions) agree with the cells. -/
-theorem locsOk_1205_1209 : (List.range' 1205 4).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 1063 to 1082 (`__loop133` to `opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1`, 1605 instructions) agree with the cells. -/
+theorem locsOk_1063_1083 : (List.range' 1063 20).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 1209 to 1213 (`__loop248` to `__loop252`, 1614 instructions) agree with the cells. -/
-theorem locsOk_1209_1214 : (List.range' 1209 5).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 1083 to 1086 (`__loop145` to `__loop148`, 1636 instructions) agree with the cells. -/
+theorem locsOk_1083_1087 : (List.range' 1083 4).all (fun i => locsOkAt i (placedLocs i)) = true := by
+  decide +kernel
+
+/-- The places of entries 1087 to 1090 (`__loop149` to `__loop152`, 1636 instructions) agree with the cells. -/
+theorem locsOk_1087_1091 : (List.range' 1087 4).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
 end

@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.Backend.Guest.B2.Locs
-public import LeanVM.Guest.Backend.Guest.B2.Cuts
+public import LeanVM.Guest.Backend.Guest.Compiled
 
 set_option Elab.async false
 set_option maxRecDepth 100000
