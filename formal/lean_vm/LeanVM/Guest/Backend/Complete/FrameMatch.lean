@@ -104,21 +104,30 @@ section Inv
 
 variable {ctx : Backend.Ctx} {I : Inst} {C : (ℕ → E) → Prop}
 
-/-- **The invariant past an arm off the path**: the constraint kept, in lockstep with the scope
-walk past the arm (whose values in scope and return area are the ones before it), given that no
-value in scope is the target of a frame address of the arm. -/
-theorem winv_off {z : List Stmt} {st st' : St} {s s₁ : SSt} (hinv : WInv ctx I C st s)
-    (hsc : scopeInner ctx.retCells (fun s' => scopeBlock ctx.retCells z s') s = .ok s₁)
-    (hfl : ∀ v run, s.live.contains v = true → Atom.frameAddr v run ∉ atomsIn z)
+/-- The scope walk of an inner block gives the values in scope back and passes a prefix of the
+trace. -/
+theorem scopeInner_live_rest {rc : ℕ} {z : List Stmt} {s s₁ : SSt}
+    (hsc : scopeInner rc (fun s' => scopeBlock rc z s') s = .ok s₁) :
+    s₁.live = s.live ∧ ∃ pre, s.rest = pre ++ s₁.rest := by
+  obtain ⟨_, _, _, s₄, -, -, -, -, rfl⟩ := scopeInner_inv hsc
+  obtain ⟨pre, hpre, -⟩ := scopeInner_cons (scopeBlock_cons rc z) hsc
+  exact ⟨rfl, pre, hpre⟩
+
+/-- **The invariant past placements off the path** (arms not taken): the constraint kept, in
+lockstep with the scope walk past them (which gives the values in scope back and passes a prefix
+of the trace), the return area as before, given that no value in scope is the target of a frame
+address among the atoms `A` they place. -/
+theorem winv_past {A : List Atom} {st st' : St} {s s₁ : SSt} (hinv : WInv ctx I C st s)
+    (hlv : s₁.live = s.live) (hpre : ∃ pre, s.rest = pre ++ s₁.rest)
+    (hfl : ∀ v run, s.live.contains v = true → Atom.frameAddr v run ∉ A)
     (hr : st'.rest = s₁.rest) (hs : st'.scope = st.scope) (hch : st'.chainIn = st.chainIn)
     (hn : st.next ≤ st'.next) (hl : LocsLe st.locs st'.locs)
     (hnew : st.lazy = none → st'.lazy = none ∧ ∀ v, st'.locs[v]? ≠ none →
-      st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest ∨ ∃ run, Atom.frameAddr v run ∈ atomsIn z)
+      st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest ∨ ∃ run, Atom.frameAddr v run ∈ A)
     (hfr : (∀ v ∈ allocsOf st.rest, st.locs[v]? = none) →
       ∀ v ∈ allocsOf st'.rest, st'.locs[v]? = none) :
     WInv ctx I C st' { s₁ with retDone := s.retDone } := by
-  obtain ⟨_, _, _, s₄, -, -, -, -, rfl⟩ := scopeInner_inv hsc
-  obtain ⟨pre, hpre, -⟩ := scopeInner_cons (scopeBlock_cons ctx.retCells z) hsc
+  obtain ⟨pre, hpre⟩ := hpre
   have hrest : st.rest = pre ++ st'.rest := by rw [← hinv.rest, hpre, hr]
   have hall : allocsOf st.rest = allocsOf pre ++ allocsOf st'.rest := by
     rw [hrest, allocsOf_append]
@@ -127,9 +136,10 @@ theorem winv_off {z : List Stmt} {st st' : St} {s s₁ : SSt} (hinv : WInv ctx I
       rw [hs]; exact (hinv.cok.pools Ψ hΨ).grow hl, by rw [hs]; exact hinv.cok.cells.mono hn⟩,
     hr.symm, fun v l hv hvl => ?_, le_trans hinv.two hn, le_trans hinv.abi hn, ?_,
     fun hd => hinv.ret hd, ?_, fun v hv => ⟨hfr (fun v hv => (hinv.fresh v hv).1) v hv,
-      (hinv.fresh v (by rw [hall]; exact List.mem_append_right _ hv)).2⟩,
+      show s₁.live.contains v = false from hlv ▸
+        (hinv.fresh v (by rw [hall]; exact List.mem_append_right _ hv)).2⟩,
     by rw [hch]; exact hinv.chain, by rw [hs]; exact hinv.pnt, hlz⟩
-  · have hv' : s.live.contains v = true := hv
+  · have hv' : s.live.contains v = true := by rw [← hlv]; exact hv
     cases h0 : st.locs[v]? with
     | none =>
       rcases hnw v (by rw [hvl]; simp) with h | h | ⟨run, h⟩
@@ -164,6 +174,106 @@ theorem WInv.rewind {st : St} {s : SSt} {base : ℕ} (hinv : WInv ctx I C st s)
     hinv.ret, hinv.nodup, hinv.fresh, hinv.chain, hinv.pnt, hinv.lazy⟩
 
 end Inv
+
+/-! ## The arms of a stage -/
+
+/-- How an arm of a `match` leaves (`placeArms`): through the next stage's table, or to the join
+(the last arm falling through into it). -/
+def armLeave (exit : ArmExit) (j n : ℕ) : P (List PStmt) :=
+  match exit with
+  | .next x first one sfp => do
+      let e ← fresh
+      pure [PStmt.op [] (.slot x first e), .op [] (.jump one e sfp)]
+  | .join join one sfp => pure (if j + 1 != n then [PStmt.op [] (.jump one join sfp)] else [])
+
+theorem placeArms_cons (arm : List Stmt) (more : List (List Stmt)) (j n base : ℕ)
+    (exit : ArmExit) : placeArms (arm :: more) j n base exit = (do
+      modify fun s => { s with next := base }
+      let blk ← inBlock (placeBlock arm)
+      let leave ← armLeave exit j n
+      let top := (← get).next
+      let blocks ← placeArms more (j + 1) n base exit
+      modify fun s => { s with next := max s.next top }
+      pure ((blk ++ leave) :: blocks)) := by
+  rw [placeArms]
+  cases exit <;> simp only [armLeave, bind_assoc, pure_bind]
+
+/-- An arm's way out moves the next free cell only. -/
+theorem armLeave_wp {ctx : Backend.Ctx} {st : St} (exit : ArmExit) (j n : ℕ) :
+    wpP (armLeave exit j n) ctx st fun _ st' => ∃ k, st' = { st with next := st.next + k } := by
+  cases exit with
+  | next x first one sfp =>
+    exact wp_bind.mpr (wp_modifyGet.mpr (wp_pure.mpr ⟨1, rfl⟩))
+  | join join one sfp => exact wp_pure.mpr ⟨0, rfl⟩
+
+section Arms
+
+variable {ctx : Backend.Ctx} {exit : ArmExit} {n base : ℕ}
+
+/-- **Arms off the path** from the next free cell `base` on: each gives the scope, the statements
+and the chaining back, in lockstep with the scope walk, the next free cell ending past `base`, the
+places grown by the passed events' values and the arms' frame addresses only. -/
+theorem placeArms_off : ∀ (arms : List (List Stmt)) (j : ℕ) (st : St) (s : SSt) (acc : Bool)
+    (s' : SSt), (∀ a ∈ arms, ArmOff ctx a) → scopeArms ctx.retCells arms s acc = .ok s' →
+    st.rest = s.rest → st.rest.length ≤ ctx.fuel →
+    wpP (placeArms arms j n base exit) ctx st fun bs st' => bs.length = arms.length ∧
+      st'.rest = s'.rest ∧ st'.scope = st.scope ∧ st'.out = st.out ∧
+      st'.chainIn = st.chainIn ∧ base ≤ st'.next ∧ LocsLe st.locs st'.locs ∧
+      s'.live = s.live ∧ (∃ pre, s.rest = pre ++ s'.rest) ∧
+      (st.lazy = none → st'.lazy = none ∧ ∀ v, st'.locs[v]? ≠ none →
+        st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest ∨ ∃ run, Atom.frameAddr v run ∈ armsAtoms arms) ∧
+      (∀ x ∈ st.tables.shared, x ∈ st'.tables.shared) ∧
+      ((∀ v ∈ allocsOf st.rest, st.locs[v]? = none) → ∀ v ∈ allocsOf st'.rest, st'.locs[v]? = none)
+  | [], j, st, s, acc, s', _, hsc, hr, _ => by
+    simp only [scopeArms] at hsc
+    cases hsc
+    rw [placeArms]
+    refine wp_bind.mpr (wp_modify.mpr (wp_pure.mpr ?_))
+    exact ⟨rfl, hr, rfl, rfl, rfl, le_rfl, LocsLe.refl _, rfl, ⟨[], rfl⟩,
+      fun h => ⟨h, fun v hv => Or.inl hv⟩, fun _ h => h, fun h => h⟩
+  | arm :: more, j, st, s, acc, s', hoff, hsc, hr, hf => by
+    simp only [scopeArms] at hsc
+    split at hsc
+    · cases hsc
+    next s₁ h₁ =>
+    obtain ⟨hlv₁, pre₁, hpre₁⟩ := scopeInner_live_rest h₁
+    rw [placeArms_cons]
+    refine wp_bind.mpr (wp_modify.mpr ?_)
+    refine wp_bind.mpr fun blk st₁ he₁ => ?_
+    obtain ⟨hr₁, hs₁, ho₁, hc₁, hn₁, hl₁, hz₁, ht₁, hf₁⟩ :=
+      hoff arm List.mem_cons_self { st with next := base } s s₁ h₁ hr hf blk st₁ he₁
+    refine wp_bind.mpr fun leave st₂ he₂ => ?_
+    obtain ⟨k, rfl⟩ := armLeave_wp exit j n leave st₂ he₂
+    refine wp_bind.mpr (wp_get.mpr ?_)
+    refine wp_bind.mpr fun bs st₃ he₃ => ?_
+    have hlen₁ : st₁.rest.length ≤ ctx.fuel := by
+      rw [hr₁]
+      have := congrArg List.length hpre₁
+      rw [List.length_append] at this
+      rw [← hr] at this
+      omega
+    obtain ⟨hb₃, hr₃, hs₃, ho₃, hc₃, hn₃, hl₃, hlv₃, ⟨pre₃, hpre₃⟩, hz₃, ht₃, hf₃⟩ :=
+      placeArms_off more (j + 1) { st₁ with next := st₁.next + k } { s₁ with retDone := s.retDone }
+        _ s' (fun a ha => hoff a (List.mem_cons_of_mem _ ha)) hsc hr₁ hlen₁ bs st₃ he₃
+    refine wp_bind.mpr (wp_modify.mpr (wp_pure.mpr ?_))
+    have hrest : st.rest = pre₁ ++ st₁.rest := by rw [hr, hpre₁, hr₁]
+    refine ⟨by simp [hb₃], hr₃, by rw [hs₃]; exact hs₁, by rw [ho₃]; exact ho₁,
+      by rw [hc₃]; exact hc₁, le_trans hn₃ (Nat.le_max_left _ _),
+      fun v x h => hl₃ v x (hl₁ v x h), by rw [hlv₃]; exact hlv₁,
+      ⟨pre₁ ++ pre₃, by rw [hpre₁, List.append_assoc]; exact congrArg (pre₁ ++ ·) hpre₃⟩,
+      fun hz => ?_, fun x hx => ht₃ x (ht₁ x hx), fun hfr => hf₃ (hf₁ hfr)⟩
+    obtain ⟨hz₁', hn₁'⟩ := hz₁ hz
+    obtain ⟨hz₃', hn₃'⟩ := hz₃ hz₁'
+    refine ⟨hz₃', fun v hv => ?_⟩
+    rcases hn₃' v hv with h | h | ⟨run, h⟩
+    · rcases hn₁' v h with h' | h' | ⟨run, h'⟩
+      · exact Or.inl h'
+      · exact Or.inr (Or.inl h')
+      · exact Or.inr (Or.inr ⟨run, by simp only [armsAtoms]; exact List.mem_append_left _ h'⟩)
+    · exact Or.inr (Or.inl (by rw [hrest, allocsOf_append]; exact List.mem_append_right _ h))
+    · exact Or.inr (Or.inr ⟨run, by simp only [armsAtoms]; exact List.mem_append_right _ h⟩)
+
+end Arms
 
 end
 end LeanVM.Guest.Backend.Complete
