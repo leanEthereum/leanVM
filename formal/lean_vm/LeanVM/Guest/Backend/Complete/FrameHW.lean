@@ -176,6 +176,115 @@ theorem segW_zipIdx {l : List ℕ} {f : ℕ × ℕ → LOp} {pos : ℕ}
   simp only [List.length_map, List.length_zipIdx] at hi
   simpa using h i hi
 
+/-! ## The calls' instructions -/
+
+/-- **A call's instructions before its jump**: the entry; the arguments and (a registered loop
+helper's) self pointer copied into the callee frame `kfp`; its header `kh` there: this frame's
+header for a tail call, else the return pc and this frame. -/
+theorem callPre_segW (hr : Rds Ag fp size w) {c : CallSite} {pos kfp : ℕ} {kh : E × E}
+    (hs : 2 ≤ size) (hen : c.entry < size) (hnfp : c.nfp < size)
+    (hent : w c.entry = OffsetInstruction.immediateWord
+      (resolveK Γ.l Γ.pc0 Γ.frame (.entry c.callee)).1
+      (resolveK Γ.l Γ.pc0 Γ.frame (.entry c.callee)).2)
+    (hkw : w c.nfp = ofK (addressOfIndex kfp))
+    (hargs : ∀ k (hk : k < c.args.length), c.args[k] < size ∧
+      ∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →
+        L.read (addressOfIndex (kfp + (argBase + k))) = some (w c.args[k]))
+    (hloop : c.loop.isSome → ∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →
+      L.read (addressOfIndex (kfp + (argBase + c.args.length))) = some (w c.nfp))
+    (hhdr : ∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →
+      L.read (addressOfIndex (kfp + 0)) = some kh.1 ∧ L.read (addressOfIndex (kfp + 1)) = some kh.2)
+    (hkh : kh = if c.tail then (w 0, w 1) else
+      (Γ.tgt (pos + (callPre c).length + 1), ofK (addressOfIndex fp))) :
+    SegW Γ fp Ag (callPre c) pos := by
+  have hlen : (callPre c).length = c.args.length + (if c.loop.isSome then 1 else 0) + 3 := by
+    simp only [callPre]
+    split <;> split <;> simp
+  rw [hlen] at hkh
+  unfold callPre
+  refine segW_append.mpr ⟨segW_cons.mpr ⟨set_hw hr hen hent, segW_nil rfl⟩,
+    segW_append.mpr ⟨segW_append.mpr ⟨segW_zipIdx fun k hk => ?_, ?_⟩, ?_⟩⟩
+  · exact derefAt_hw hr hnfp (hargs k hk).1 hkw (hargs k hk).2
+  · split
+    · next hl => exact segW_cons.mpr ⟨derefAt_hw hr hnfp hnfp hkw (hloop hl), segW_nil rfl⟩
+    · exact segW_nil rfl
+  · cases ht : c.tail
+    · simp only [ht, Bool.false_eq_true, ↓reduceIte] at hkh ⊢
+      subst hkh
+      refine segW_cons.mpr ⟨derefAt_hw hr hnfp (by omega) hkw fun κ L hA => (hhdr κ L hA).2,
+        segW_cons.mpr ⟨derefAt_hw hr hnfp (by omega) hkw fun κ L hA => ?_, segW_nil rfl⟩⟩
+      rw [(hhdr κ L hA).1, derefSource_pc, Site.tgt]
+      show some (ofK (addressOfIndex _)) = some (ofK (addressOfIndex _))
+      congr 3
+      by_cases hl : c.loop.isSome = true <;> simp [hl] <;> omega
+    · simp only [ht, ↓reduceIte] at hkh ⊢
+      subst hkh
+      exact segW_cons.mpr ⟨derefAt_hw hr hnfp (by omega) hkw fun κ L hA => (hhdr κ L hA).2,
+        segW_cons.mpr ⟨derefAt_hw hr hnfp (by omega) hkw fun κ L hA => (hhdr κ L hA).1,
+          segW_nil rfl⟩⟩
+
+/-- **A call's instructions after its jump**: the returned words read back from the callee frame
+`kfp`. -/
+theorem callRets_segW (hr : Rds Ag fp size w) {nfp nargs pos kfp : ℕ} {rets : List Cell}
+    (hnfp : nfp < size) (hkw : w nfp = ofK (addressOfIndex kfp))
+    (hrets : ∀ k (hk : k < rets.length), rets[k] < size ∧
+      ∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →
+        L.read (addressOfIndex (kfp + (argBase + nargs + k))) = some (w rets[k])) :
+    SegW Γ fp Ag (callRets nfp nargs rets) pos :=
+  segW_zipIdx fun k hk => derefAt_hw hr hnfp (hrets k hk).1 hkw (hrets k hk).2
+
+/-- **A loop helper's closing call before its jump**: the entry; the arguments, the next frame's
+self pointer and this frame's header copied into the next frame. -/
+theorem loopPre_segW (hr : Rds Ag fp size w) {callee : String} {nfp entry one pos : ℕ}
+    {args : List Cell} (hs : 2 ≤ size) (hen : entry < size) (hnfp : nfp < size) (hone : one < size)
+    (h1 : w one = 1)
+    (hent : w entry = OffsetInstruction.immediateWord
+      (resolveK Γ.l Γ.pc0 Γ.frame (.entry callee)).1 (resolveK Γ.l Γ.pc0 Γ.frame (.entry callee)).2)
+    (hargs : ∀ k (hk : k < args.length), args[k] < size ∧
+      ∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →
+        L.read (addressOfIndex (fp + (Γ.frame + (argBase + k)))) = some (w args[k]))
+    (hself : ∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →
+      L.read (addressOfIndex (fp + (Γ.frame + (argBase + args.length)))) = some (w nfp))
+    (hhdr : ∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →
+      L.read (addressOfIndex (fp + (Γ.frame + 1))) = some (w 1) ∧
+        L.read (addressOfIndex (fp + (Γ.frame + 0))) = some (w 0)) :
+    SegW Γ fp Ag (loopPre callee nfp entry one args) pos := by
+  have hm : ∀ a c, a < size → (∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →
+      L.read (addressOfIndex (fp + (Γ.frame + c))) = some (w a)) → ∀ pc,
+      HW Γ fp Ag pc (.mulNextFrame a one c) := fun a c ha h pc =>
+    mulNextFrame_hw hr ha hone fun κ L hA => by rw [h1, mul_one]; exact h κ L hA
+  unfold loopPre
+  refine segW_append.mpr ⟨segW_append.mpr ⟨segW_cons.mpr ⟨set_hw hr hen hent, segW_nil rfl⟩,
+    segW_zipIdx fun k hk => hm _ _ (hargs k hk).1 (hargs k hk).2 _⟩, ?_⟩
+  exact segW_cons.mpr ⟨hm _ _ hnfp hself _, segW_cons.mpr ⟨hm _ _ (by omega)
+    (fun κ L hA => (hhdr κ L hA).1) _, segW_cons.mpr ⟨hm _ _ (by omega)
+    (fun κ L hA => (hhdr κ L hA).2) _, segW_nil rfl⟩⟩⟩
+
+/-- **A fused `match` of calls before its jump**: the arguments and the header (the join and this
+frame) written into the callee frame `kfp`, the entry read from the table at the selector. -/
+theorem dispatchPre_segW (hr : Rds Ag fp size w) {nfp joinCell x entry first pos kfp j : ℕ}
+    {args : List Cell} (hs : 1 ≤ size) (hnfp : nfp < size) (hjc : joinCell < size) (hx : x < size)
+    (hen : entry < size) (hkw : w nfp = ofK (addressOfIndex kfp))
+    (hargs : ∀ k (hk : k < args.length), args[k] < size ∧
+      ∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →
+        L.read (addressOfIndex (kfp + (argBase + k))) = some (w args[k]))
+    (hjw : w joinCell = OffsetInstruction.immediateWord
+      (resolveK Γ.l Γ.pc0 Γ.frame (.local (pos + args.length + 5))).1
+      (resolveK Γ.l Γ.pc0 Γ.frame (.local (pos + args.length + 5))).2)
+    (hhdr : ∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →
+      L.read (addressOfIndex (kfp + 0)) = some (w joinCell) ∧
+        L.read (addressOfIndex (kfp + 1)) = some (ofK (addressOfIndex fp)))
+    (hj : w x = ofK (addressOfIndex j))
+    (hslot : ∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →
+      L.read (addressOfIndex (Γ.l.tablesBase + (first + j))) = some (w entry)) :
+    SegW Γ fp Ag (dispatchPre pos nfp joinCell x entry first args) pos := by
+  unfold dispatchPre
+  refine segW_append.mpr ⟨segW_append.mpr ⟨segW_zipIdx fun k hk =>
+    derefAt_hw hr hnfp (hargs k hk).1 hkw (hargs k hk).2, segW_cons.mpr
+    ⟨derefAt_hw hr hnfp (by omega) hkw fun κ L hA => (hhdr κ L hA).2, segW_nil rfl⟩⟩, ?_⟩
+  exact segW_cons.mpr ⟨set_hw hr hjc hjw, segW_cons.mpr ⟨derefAt_hw hr hnfp hjc hkw
+    fun κ L hA => (hhdr κ L hA).1, segW_cons.mpr ⟨slot_hw hr hx hen hj hslot, segW_nil rfl⟩⟩⟩
+
 end Bridge
 
 /-! ## The frame side's relation -/
