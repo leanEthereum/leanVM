@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Backend.Complete.FrameWalk
+public import LeanVM.Guest.Backend.Sound.Fills
 
 /-!
 # Blocks of frame words
@@ -223,11 +224,25 @@ def TabsW {κ₀ : ℕ} (Γ : Site κ₀) (Ag : Val → (ℕ → E) → (ℕ →
     ∀ j (hj : j < fs.length), L.read (addressOfIndex (Γ.l.tablesBase + (first + j))) =
       some (ofK (addressOfIndex (Γ.ent fs[j])))
 
+/-- **The jump table slots a placed block fills hold their targets** on every memory `Ag`
+admits (a `match`'s arm entries, `blockFills`), the block's first instruction at the absolute
+position `p₀` (CplFrameMatch's finding: the chain's `SLOT` reads them). -/
+def FillsIn {κ₀ : ℕ} (Γ : Site κ₀) (Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) →
+    MemoryImage κ → Prop) (p₀ : ℕ) (blk : List PStmt) : Prop :=
+  ∀ f k i, (k, KVal.at f i) ∈ blockFills f blk p₀ → ∀ σ' Ψ kh κ (L : MemoryImage κ),
+    Ag σ' Ψ kh κ L → L.read (addressOfIndex (Γ.l.tablesBase + k)) = some (Γ.tgt i)
+
+theorem FillsIn.left {κ₀ : ℕ} {Γ : Site κ₀}
+    {Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop} {p₀ : ℕ}
+    {a b : List PStmt} (h : FillsIn Γ Ag p₀ (a ++ b)) : FillsIn Γ Ag p₀ a :=
+  fun f k i hm => h f k i (by rw [blockFills_append]; exact List.mem_append_left _ hm)
+
 /-- **A state the final placement extends**: its cells and places final, the current block's
-instructions so far (from the absolute position `p₀`) final, its shared tables in the layout. -/
+instructions so far (from the absolute position `p₀`) final and the slots they fill holding
+their targets, its shared tables in the layout. -/
 def FinAt {κ₀ : ℕ} (Γ : Site κ₀) (I : Inst) (Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) →
     MemoryImage κ → Prop) (p₀ : ℕ) (st : St) : Prop :=
-  Fits I st ∧ OpsAt I p₀ st ∧ TabsW Γ Ag st
+  Fits I st ∧ OpsAt I p₀ st ∧ TabsW Γ Ag st ∧ FillsIn Γ Ag p₀ st.out.toList
 
 /-- **What a block's placement on the path gives**, from `st` to `st'` for the core statements
 `ss` (followed by `tl`) with path `o`, calls from `i₀`, the current block's placed statements
@@ -566,7 +581,8 @@ theorem FinAt.back {κ₀ : ℕ} {Γ : Site κ₀}
     {blk : List PStmt} (h : FinAt Γ I Ag p₀ st') (hn : st.next ≤ st'.next)
     (hl : LocsLe st.locs st'.locs) (ho : st'.out.toList = st.out.toList ++ blk)
     (ht : ∀ x ∈ st.tables.shared, x ∈ st'.tables.shared) : FinAt Γ I Ag p₀ st :=
-  ⟨h.1.back hn hl, h.2.1.back ho, fun fs first hm => h.2.2 fs first (ht _ hm)⟩
+  ⟨h.1.back hn hl, h.2.1.back ho, fun fs first hm => h.2.2.1 fs first (ht _ hm),
+    FillsIn.left (by rw [← ho]; exact h.2.2.2)⟩
 
 /-- The values `vs` but temporaries placed, in the frame below the next free cell, their places
 holding their words under the constraint. -/
