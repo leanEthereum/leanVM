@@ -203,7 +203,7 @@ mod tests {
         let path = |q: usize| MerklePath {
             leaf_index: q as u64,
             leaf: rows[q].to_vec(),
-            siblings: vec![leaves[q ^ 1], parents[q / 2 ^ 1]],
+            siblings: vec![leaves[q ^ 1], parents[(q / 2) ^ 1]],
         };
         let proof = Proof {
             stream: vec![E::new(1, 2)],
