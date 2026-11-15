@@ -260,12 +260,11 @@ pub fn aggregate<P: Prover>(
         lean_sphincs: cover.lean_sphincs.signers,
         da_commitment: da_root,
     };
-    let pi = statement_digest(&claims, &defer);
     #[cfg(test)]
     if let Some(forge) = FORGE.with(|forge| forge.borrow_mut().take()) {
         forge(&mut hints);
     }
-    let public_input = pi.map(|x| to_scalar(&x));
+    let public_input = statement_digest(&claims, &defer).map(|x| to_scalar(&x));
     let (proof, stats) = P::prove(assembled::<P>(), &hints.witness(), public_input, log_inv_rate).map_err(|error| {
         tracing::debug!(%error, "proving failed");
         AggregateError::ProvingFailed

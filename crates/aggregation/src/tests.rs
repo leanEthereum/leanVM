@@ -738,37 +738,22 @@ fn aggregate_three_levels() {
     assert!(received.verify(&root.0), "the receiver's claims verify");
 }
 
-/// The all-zeros fast path in `DeferredBytecodeClaim::recompute` must agree with the
-/// full pass it replaces, or every leaf would verify against the wrong
-/// statement.
+/// A claim's value, read off its sums or recomputed, is the bytecode's evaluation, at a random point and at a leaf's,
+/// where both take a fast path.
 #[test]
-fn leaf_claim_matches_the_general_path() {
-    let leaf = DeferredBytecodeClaim::leaf();
-    assert_eq!(
-        Some(leaf.bytecode_value),
-        scalar_bytecode()
-            .evaluate(&leaf.bytecode_point.iter().map(to_scalar).collect::<Vec<_>>())
-            .ok()
-            .map(from_scalar)
-    );
-}
-
-/// Each claim's value read off its sums is the bytecode's evaluation, at a random point and a leaf's.
-#[test]
-fn bytecode_sums_give_the_bytecode_value() {
+fn bytecode_values_are_the_bytecode_evaluation() {
     let mut rng = StdRng::seed_from_u64(11);
     let limbs = (0..bytecode_vars()).map(|_| rand::Rng::random::<(u64, u64)>(&mut rng));
     let points = [
         limbs.map(|(c0, c1)| F128::new(c0, c1)).collect(),
-        vec![F128::ZERO; bytecode_vars()],
+        DeferredBytecodeClaim::leaf().bytecode_point,
     ];
     StableProver::init();
     for (sums, point) in bytecode_sums::<StableProver>(&points).iter().zip(&points) {
         let scalars: Vec<_> = point.iter().map(to_scalar).collect();
-        assert_eq!(
-            Some(bytecode_value(sums, point)),
-            scalar_bytecode().evaluate(&scalars).ok().map(from_scalar)
-        );
+        let value = from_scalar(scalar_bytecode().evaluate(&scalars).unwrap());
+        assert_eq!(bytecode_value(sums, point), value);
+        assert_eq!(DeferredBytecodeClaim::recompute(point.clone()).bytecode_value, value);
     }
 }
 
