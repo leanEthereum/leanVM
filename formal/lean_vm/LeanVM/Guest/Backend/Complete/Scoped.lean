@@ -192,9 +192,26 @@ def scopeArms (rc : Nat) : List (List Stmt) → SSt → Bool → Except String S
     | .ok s₁ => scopeArms rc more { s₁ with retDone := s.retDone } (acc || s₁.retDone)
 end
 
-/-- The walk of a traced function: its parameters in scope, its body, the values made after its
-last statement, and nothing left of the trace. -/
+/-- The values the events make. -/
+def allocsOf (rs : List Event) : List V :=
+  rs.flatMap fun
+    | .alloc vs _ => vs
+    | _ => []
+
+/-- Whether the values `vs` are distinct and none is in `seen`. -/
+def onceAfter : VMap Unit → List V → Bool
+  | _, [] => true
+  | seen, v :: vs => !seen.contains v && onceAfter (seen.insert v ()) vs
+
+/-- Whether the trace makes each value once and makes no parameter (placement places a value
+once). -/
+def allocsOnceB (tf : TracedFn) : Bool :=
+  onceAfter (addLive {} tf.core.params) (allocsOf tf.trace.toList)
+
+/-- The walk of a traced function: its values made once, its parameters in scope, its body, the
+values made after its last statement, and nothing left of the trace. -/
 def scopedE (tf : TracedFn) : Except String Unit :=
+  if !allocsOnceB tf then .error "a value made twice, or a parameter made" else
   match scopeBlock tf.rets tf.core.body ⟨tf.trace.toList, addLive {} tf.core.params, false⟩ with
   | .error e => .error e
   | .ok s =>

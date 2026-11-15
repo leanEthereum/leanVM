@@ -55,6 +55,9 @@ noncomputable def instOf {κ₀ : ℕ} (W : World κ₀) (tf : TracedFn) (pf : P
   locs := pf.locs
   es := es
   ops := blockOps pf.fn.body 0
+  named := Stmt.usesList tf.core.body ++ tf.core.params
+  loopH := ((loopTable W.p)[tf.core.name]?).any (·.registered)
+  kf := []
 
 open Classical in
 /-- The frame words `Ψ` with each temporary's cell holding the temporary's word under `σ`. -/
