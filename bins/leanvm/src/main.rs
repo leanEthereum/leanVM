@@ -54,6 +54,7 @@ enum Prover {
 }
 
 #[derive(Parser)]
+#[command(name = "leanvm")]
 struct Cli {
     /// WHIR inverse-rate logarithm (1 through 4).
     #[arg(

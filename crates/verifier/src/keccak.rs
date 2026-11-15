@@ -85,6 +85,7 @@ pub fn along(j: usize, k: usize) -> usize {
 
 /// The transpose of theta, rho, pi on weight vectors: `<w, L(a)> = <L^T(w), a>`.
 pub fn linear_transpose<T: Copy + Default + Add<Output = T> + AddAssign>(w: &[T]) -> Vec<T> {
+    assert_eq!(w.len(), BITS);
     let mut g = [T::default(); BITS]; // the weight each position of theta's output carries
     for lane in 0..STATE_LANES {
         for z in 0..64 {

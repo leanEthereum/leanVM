@@ -1,5 +1,5 @@
 //! Ethereum's Keccak-256 (FIPS 202's 256-bit sponge with Keccak's original padding): what the signature schemes
-//! hash with, what the zkDSL compiler lays its sponge out by, and the stable prover's Keccak. Depends on no prover
+//! hash with, what the zkDSL compiler lays its sponge out by, and both provers' Keccak. Depends on no prover
 //! tree.
 //!
 //! - [`keccak_f`], the Keccak-f\[1600\] permutation, which the VM's `KECCAK` opcode computes and `keccak_gkr`

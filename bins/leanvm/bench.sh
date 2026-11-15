@@ -4,7 +4,8 @@
 # Usage: [BENCH_THREADS="4 8 full"] bins/leanvm/bench.sh stable|experimental [log file]   (default: .build/bench-<timestamp>.log)
 set -uo pipefail
 
-PROVER=${1:?usage: bins/leanvm/bench.sh stable|experimental [log file]}
+PROVER=${1:-}
+case $PROVER in stable | experimental) ;; *) echo "usage: bins/leanvm/bench.sh stable|experimental [log file]" >&2; exit 2 ;; esac
 
 cd "$(dirname "$0")/../.."
 mkdir -p .build

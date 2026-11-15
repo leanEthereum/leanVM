@@ -225,7 +225,7 @@ fn wait_for_dispatch(pool: &Pool, id: usize, last_generation: usize) -> usize {
 }
 
 /// Claim and run item ranges until the counter is exhausted. Each claim takes
-/// `remaining / (2·workers)`, clamped to `1..=`[`MAX_CLAIM_BATCH`]: big early
+/// `remaining / (`[`CLAIM_DIVISOR`]`·workers)`, clamped to `1..=`[`MAX_CLAIM_BATCH`]: big early
 /// claims cut counter contention, and the proportional shrink keeps the tail
 /// balanced across cores of different speeds.
 fn drain(pool: &Pool) {
