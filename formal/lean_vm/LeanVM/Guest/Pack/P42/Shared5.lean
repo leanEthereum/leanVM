@@ -22,7 +22,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop19`, window 8. -/
+/-- `__loop20`, window 8. -/
 theorem sw8 : shareWinD Fn.«child_claim_list_mono_loop0».core (cert.withPows Data.powTree) plumb fs snaps 8 = true := by
   decide +kernel
 

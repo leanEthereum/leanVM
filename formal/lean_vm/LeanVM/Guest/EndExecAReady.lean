@@ -401,7 +401,7 @@ theorem allocReady_alignA (hD : DynPow) (hA : AdvNext alignA) (hL : LateReady al
           unfold isBuf; simp only [hp, hfr, hlt, Bool.not_false, Bool.and_self]
         by_cases hex : i0 + 1 ∈ AllocChk.allocExcl
         · exact (hX r C e s sx i h (i0 + 1) hat hj hex hb).2 (by rw [hoff]; exact hnf)
-        · have hAJ : AllocJ (i0 + 1) := AllocChk.allocJ_all _ h1 (by have : nFns = 1602 := rfl; omega) hex
+        · have hAJ : AllocJ (i0 + 1) := AllocChk.allocJ_all _ h1 (by have : nFns = fn_count% := rfl; omega) hex
           have hidx := bufsOf_idx hU hget' hb
           have hbo : bufsOf (alignA e.I.t.name).X (alignA e.I.t.name).d =
               (allocHints (adviceOf (i0 + 1))).filter fun q ↦ isBuf (ctxOf (i0 + 1)) q.2 := by rw [hA2]; rfl
@@ -517,7 +517,7 @@ theorem allocReady_alignA (hD : DynPow) (hA : AdvNext alignA) (hL : LateReady al
       simp only [addrOk, Bool.and_eq_true, Nat.beq_eq] at haddr
       obtain ⟨rfl, hloop⟩ := haddr
       show sx.fp + B2C.fsN (i0 + 1) < maxCells
-      have hd := JumpCells.jcData_all _ h1 (by have : nFns = 1602 := rfl; omega)
+      have hd := JumpCells.jcData_all _ h1 (by have : nFns = fn_count% := rfl; omega)
       unfold jcData jcDataD at hd
       simp only [Bool.and_eq_true] at hd
       obtain ⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, -⟩, -⟩, hlc⟩, -⟩ := hd
@@ -548,7 +548,7 @@ theorem allocReady_alignA (hD : DynPow) (hA : AdvNext alignA) (hL : LateReady al
       · rename_i o' hso
         simp only [Nat.beq_eq] at hst
         subst hst
-        have hd := JumpCells.jcData_all _ h1 (by have : nFns = 1602 := rfl; omega)
+        have hd := JumpCells.jcData_all _ h1 (by have : nFns = fn_count% := rfl; omega)
         unfold jcData jcDataD at hd
         simp only [Bool.and_eq_true] at hd
         obtain ⟨⟨⟨⟨⟨⟨⟨hstat, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩ := hd
@@ -647,7 +647,7 @@ theorem sizesAt_alignA (hA : AdvNext alignA) (hL : LateReady alignA) (hF : Frame
       · have := (hX r C e s sx i h (i0 + 1) hat hj hex hb).1
         rw [hoff] at this
         exact this
-      · have hAJ : AllocJ (i0 + 1) := AllocChk.allocJ_all _ h1 (by have : nFns = 1602 := rfl; omega) hex
+      · have hAJ : AllocJ (i0 + 1) := AllocChk.allocJ_all _ h1 (by have : nFns = fn_count% := rfl; omega) hex
         have hbo : bufsOf (alignA e.I.t.name).X (alignA e.I.t.name).d =
             (allocHints (adviceOf (i0 + 1))).filter fun q ↦ isBuf (ctxOf (i0 + 1)) q.2 := by rw [hA2]; rfl
         have hk : (((allocHints (adviceOf (i0 + 1))).filter fun q ↦ isBuf (ctxOf (i0 + 1)) q.2).map (·.2))[

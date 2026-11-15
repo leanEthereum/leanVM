@@ -58,7 +58,8 @@ def vt_term(g):
         t = om[k]['verify_tables']
         for st in g.fns[g.by['verify_tables']]['body']:
             if st[0] == 'call': t += wss if st[1] == 'shared_selector_tables' else stat(k, st[1])
-            elif st[0] == 'callIf': assert st[2] == L('verify_tables_loop0'); t += 32 * loop(k, L('verify_tables_loop0'))
+            elif st[0] == 'callIf':
+                assert st[2] in (L('verify_tables_loop0'), L('verify_tables_loop1')); t += 32 * loop(k, st[2])
             elif st[0] == 'dispatch': t += max(stat(k, f) for f in st[2])
             else: assert st[0] in ('atom', 'ret') or (st[0] == 'ite' and not blk_callees([st])), st[0]
         vtW.append(t)

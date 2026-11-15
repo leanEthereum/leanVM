@@ -32,25 +32,25 @@ open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 /-- `idxc_tab`'s stores. -/
 def vtIdxcT : List Stmt :=
-  ((List.range 34).map fun t ↦ [.atom (.const (.n (665 + t))
-    (word (tbGSquaresBits.getD t 0 ^^^ 1) 0)), .atom (.load (.n (665 + t)) (.n 664) t)]).flatten
+  ((List.range 34).map fun t ↦ [.atom (.const (.n (666 + t))
+    (word (tbGSquaresBits.getD t 0 ^^^ 1) 0)), .atom (.load (.n (666 + t)) (.n 665) t)]).flatten
 
 theorem vtIdxc_check : tbStmtsEqb vtIdxcT ((vtAt 625).take vtIdxcT.length) = true := by
   decide +kernel
 
-theorem vtZeta1_check : tbStmtsEqb [.dispatch (.n 9) plusOneRunNames [.n 699, .n 8] [.n 700]]
+theorem vtZeta1_check : tbStmtsEqb [.dispatch (.n 9) plusOneRunNames [.n 700, .n 8] [.n 701]]
     ((vtAt 694).take 1) = true := by
   decide +kernel
 
 /-- Table `t`'s `shared_len` value. -/
-def vtShLen (t : ℕ) : ℕ := [704, 713, 726, 739, 752, 765].getD t 0
+def vtShLen (t : ℕ) : ℕ := [705, 714, 727, 740, 753, 766].getD t 0
 
 theorem vt_word_g33 : vtW33 = ofK (Parameters.addressOfIndex 33) := by
   rw [vtW33, show (8589934592 : ℕ) = 2 ^ 33 by norm_num, tb_word_two_pow (by norm_num),
     gen_pow_eq_ofK]
 
 theorem vt_idxc {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    ∀ t < 34, LoadHolds rd (σ (.n 664)) t (1 + gen ^ 2 ^ t) := by
+    ∀ t < 34, LoadHolds rd (σ (.n 665)) t (1 + gen ^ 2 ^ t) := by
   obtain ⟨k, hs⟩ := h.sliceAt 625 vtIdxcT vtIdxc_check
   rw [vtIdxcT, tb_holdsList_flatten_range _ _ (fun _ => rfl)] at hs
   intro t ht
@@ -65,7 +65,7 @@ theorem vt_idxc {rd : Reader} {σ : Val} (h : VtH rd σ) :
 
 theorem vt_zeta1 {rd : Reader} {σ : Val} (h : VtH rd σ) {point : List E}
     (hz : TbReadsAt rd (σ (.n 8)) point) (hmu : σ (.n 9) = gen ^ point.length)
-    (hml : point.length < 34) : TbReadsAt rd (σ (.n 699)) (point.map (1 + ·)) := by
+    (hml : point.length < 34) : TbReadsAt rd (σ (.n 700)) (point.map (1 + ·)) := by
   obtain ⟨j, hj, hjv, hrel⟩ := h.dispatchAt 694 _ _ _ _ vtZeta1_check
   have hj34 : j ≤ 33 := by simp [plusOneRunNames] at hj; omega
   rw [hmu, ← gen_pow_eq_ofK] at hjv
@@ -90,10 +90,10 @@ theorem tbReadsAt_take {rd : Reader} {p : E} {l : List E} (h : TbReadsAt rd p l)
 
 theorem vt_shared_raw {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {σ : Val} (h : VtH Lm.read σ)
     {t : ℕ} (ht : t < 6) :
-    σ (.n 9) = σ (.n (vtShLen t)) * σ (.n (27 + t)) ∧ (∃ d < 34, σ (.n (vtShLen t)) = gen ^ d) ∧
+    σ (.n 9) = σ (.n (vtShLen t)) * σ (.n (28 + t)) ∧ (∃ d < 34, σ (.n (vtShLen t)) = gen ^ d) ∧
       coreProgram.Rel Lm.read "shared_selector_tables"
-        [σ (.n 701) * gen ^ (288 * t), σ (.n 702) * gen ^ (144 * t), σ (.n 8) * σ (.n (27 + t)),
-          σ (.n 699) * σ (.n (27 + t)), σ (.n 12) * σ (.n (27 + t)), σ (.n (vtShLen t))] [] := by
+        [σ (.n 702) * gen ^ (288 * t), σ (.n 703) * gen ^ (144 * t), σ (.n 8) * σ (.n (28 + t)),
+          σ (.n 700) * σ (.n (28 + t)), σ (.n 12) * σ (.n (28 + t)), σ (.n (vtShLen t))] [] := by
   have rc : ∀ {x y t1 t2 k : V}, σ k = vtW33 → (Atom.rangeCheck x y t1 t2 k).Holds Lm.read σ →
       ∃ d < 34, σ x = gen ^ d := fun hk hr =>
     vt_rc hμ Lm (K := 34) (by omega) (by norm_num) (by rw [hk]; exact vt_word_g33) hr
@@ -106,12 +106,12 @@ theorem vt_shared_raw {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {σ : V
   · obtain ⟨a, b, c, d, -⟩ := vt_sh5 h; exact ⟨a, rc c b, d⟩
 
 /-- Table `t`'s shared tables' pointers, as the shared tables' statements step them. -/
-def vtEqV (t : ℕ) : ℕ := [701, 719, 732, 745, 758, 771].getD t 0
-def vtGV (t : ℕ) : ℕ := [702, 721, 734, 747, 760, 773].getD t 0
+def vtEqV (t : ℕ) : ℕ := [702, 720, 733, 746, 759, 772].getD t 0
+def vtGV (t : ℕ) : ℕ := [703, 722, 735, 748, 761, 774].getD t 0
 
 theorem vt_ptrs {rd : Reader} {σ : Val} (h : VtH rd σ) : ∀ t < 6,
-    σ (.n (vtEqV t)) = σ (.n 701) * gen ^ (288 * t) ∧
-      σ (.n (vtGV t)) = σ (.n 702) * gen ^ (144 * t) := by
+    σ (.n (vtEqV t)) = σ (.n 702) * gen ^ (288 * t) ∧
+      σ (.n (vtGV t)) = σ (.n 703) * gen ^ (144 * t) := by
   intro t ht
   interval_cases t
   · exact (vt_sh0 h).2.2.2.2
@@ -125,11 +125,11 @@ theorem vt_ptrs {rd : Reader} {σ : Val} (h : VtH rd σ) : ∀ t < 6,
 theorem vt_shared {μ : ℕ} (hμ : μ ≤ 32) (Lm : MemoryImage μ) {σ : Val} (h : VtH Lm.read σ)
     {point : List E} (hz : TbReadsAt Lm.read (σ (.n 8)) point)
     (hmu : σ (.n 9) = gen ^ point.length) (hml : point.length < 33)
-    (hz1 : TbReadsAt Lm.read (σ (.n 699)) (point.map (1 + ·)))
+    (hz1 : TbReadsAt Lm.read (σ (.n 700)) (point.map (1 + ·)))
     (hsq : TbReadsAt Lm.read (σ (.n 12)) gSquaresList)
-    {t τ : ℕ} (ht : t < 6) (hτ : τ < 33) (hkbt : σ (.n (27 + t)) = gen ^ τ) :
+    {t τ : ℕ} (ht : t < 6) (hτ : τ < 33) (hkbt : σ (.n (28 + t)) = gen ^ τ) :
     ∃ d, σ (.n (vtShLen t)) = gen ^ d ∧ point.length = d + τ ∧
-      RunTables Lm.read (σ (.n 701) * gen ^ (288 * t)) (σ (.n 702) * gen ^ (144 * t)) d
+      RunTables Lm.read (σ (.n 702) * gen ^ (288 * t)) (σ (.n 703) * gen ^ (144 * t)) d
         (point.drop τ) ((point.map (1 + ·)).drop τ) ((gSquaresList.drop τ).take d) := by
   obtain ⟨m1, ⟨d, hd, hdv⟩, hcall⟩ := vt_shared_raw hμ Lm h ht
   have ev := hkbt

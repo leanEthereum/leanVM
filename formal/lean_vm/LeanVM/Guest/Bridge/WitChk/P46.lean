@@ -54,6 +54,20 @@ end
 
 end LeanVM.Guest.Fn.«block_selector__L11»
 
+namespace LeanVM.Guest.Fn.«verify_tables_loop1»
+
+open LeanVM.Guest
+
+public section
+
+/-- `verify_tables_loop1`'s witness hints pass the data check. -/
+theorem witOk : Bridge.witChk alignCtx Fn.«verify_tables_loop1».fs Fn.«verify_tables_loop1».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«verify_tables_loop1»
+
 namespace LeanVM.Guest.Fn.«verify_keccak_loop0»
 
 open LeanVM.Guest

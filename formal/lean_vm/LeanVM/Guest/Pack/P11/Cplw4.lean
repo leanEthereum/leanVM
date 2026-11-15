@@ -22,12 +22,12 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop449`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(1448, Fn.«level_residual__L25_L15_L4_L2_loop1».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L25_L15_L4_L2_loop1».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+/-- `__loop450`, window 0, part 0. -/
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(1449, Fn.«level_residual__L25_L15_L4_L2_loop1».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L25_L15_L4_L2_loop1».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
-/-- `__loop449`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(1448, Fn.«level_residual__L25_L15_L4_L2_loop1».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L25_L15_L4_L2_loop1».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+/-- `__loop450`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs ([(1449, Fn.«level_residual__L25_L15_L4_L2_loop1».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L25_L15_L4_L2_loop1».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -46,12 +46,12 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop499`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(1505, Fn.«level_residual__L17_L8_L4_L2_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L17_L8_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+/-- `__loop500`, window 0, part 0. -/
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(1506, Fn.«level_residual__L17_L8_L4_L2_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L17_L8_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
-/-- `__loop499`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(1505, Fn.«level_residual__L17_L8_L4_L2_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L17_L8_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+/-- `__loop500`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs ([(1506, Fn.«level_residual__L17_L8_L4_L2_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L17_L8_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi

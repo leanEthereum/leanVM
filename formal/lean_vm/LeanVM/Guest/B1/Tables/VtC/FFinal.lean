@@ -36,12 +36,12 @@ open LeanVM.Protocol.EndToEnd.Complete (accFold_spec accumulateSide_fst blockSel
 
 /-- The pull blocks' selectors are their push twins' (`vtPullSels0 .. 5`). -/
 def VtPullSelsH (σ : Val) : Prop :=
-  ([σ (.n 1334), σ (.n 1336), σ (.n 1338), σ (.n 1340), σ (.n 1342)] = [σ (.n 857), σ (.n 862), σ (.n 867), σ (.n 872), σ (.n 877)]) ∧
-  ([σ (.n 1344), σ (.n 1346), σ (.n 1348), σ (.n 1350), σ (.n 1352)] = [σ (.n 886), σ (.n 895), σ (.n 904), σ (.n 913), σ (.n 922)]) ∧
-  ([σ (.n 1354), σ (.n 1356), σ (.n 1358)] = [σ (.n 931), σ (.n 940), σ (.n 949)]) ∧
-  ([σ (.n 1360), σ (.n 1362), σ (.n 1364), σ (.n 1366), σ (.n 1368)] = [σ (.n 958), σ (.n 967), σ (.n 976), σ (.n 985), σ (.n 994)]) ∧
-  ([σ (.n 1370), σ (.n 1372), σ (.n 1374), σ (.n 1376), σ (.n 1378)] = [σ (.n 1003), σ (.n 1012), σ (.n 1021), σ (.n 1030), σ (.n 1039)]) ∧
-  ([σ (.n 1380), σ (.n 1382), σ (.n 1384), σ (.n 1386), σ (.n 1388), σ (.n 1390), σ (.n 1392), σ (.n 1394), σ (.n 1396), σ (.n 1398), σ (.n 1400), σ (.n 1402), σ (.n 1404), σ (.n 1406), σ (.n 1408), σ (.n 1410), σ (.n 1412), σ (.n 1414), σ (.n 1416), σ (.n 1418), σ (.n 1420), σ (.n 1422), σ (.n 1424), σ (.n 1426), σ (.n 1428), σ (.n 1430), σ (.n 1432), σ (.n 1434)] = [σ (.n 1048), σ (.n 1057), σ (.n 1066), σ (.n 1075), σ (.n 1084), σ (.n 1093), σ (.n 1102), σ (.n 1111), σ (.n 1120), σ (.n 1129), σ (.n 1138), σ (.n 1147), σ (.n 1156), σ (.n 1165), σ (.n 1174), σ (.n 1183), σ (.n 1192), σ (.n 1201), σ (.n 1210), σ (.n 1219), σ (.n 1228), σ (.n 1237), σ (.n 1246), σ (.n 1255), σ (.n 1264), σ (.n 1273), σ (.n 1282), σ (.n 1291)])
+  ([σ (.n 1335), σ (.n 1337), σ (.n 1339), σ (.n 1341), σ (.n 1343)] = [σ (.n 858), σ (.n 863), σ (.n 868), σ (.n 873), σ (.n 878)]) ∧
+  ([σ (.n 1345), σ (.n 1347), σ (.n 1349), σ (.n 1351), σ (.n 1353)] = [σ (.n 887), σ (.n 896), σ (.n 905), σ (.n 914), σ (.n 923)]) ∧
+  ([σ (.n 1355), σ (.n 1357), σ (.n 1359)] = [σ (.n 932), σ (.n 941), σ (.n 950)]) ∧
+  ([σ (.n 1361), σ (.n 1363), σ (.n 1365), σ (.n 1367), σ (.n 1369)] = [σ (.n 959), σ (.n 968), σ (.n 977), σ (.n 986), σ (.n 995)]) ∧
+  ([σ (.n 1371), σ (.n 1373), σ (.n 1375), σ (.n 1377), σ (.n 1379)] = [σ (.n 1004), σ (.n 1013), σ (.n 1022), σ (.n 1031), σ (.n 1040)]) ∧
+  ([σ (.n 1381), σ (.n 1383), σ (.n 1385), σ (.n 1387), σ (.n 1389), σ (.n 1391), σ (.n 1393), σ (.n 1395), σ (.n 1397), σ (.n 1399), σ (.n 1401), σ (.n 1403), σ (.n 1405), σ (.n 1407), σ (.n 1409), σ (.n 1411), σ (.n 1413), σ (.n 1415), σ (.n 1417), σ (.n 1419), σ (.n 1421), σ (.n 1423), σ (.n 1425), σ (.n 1427), σ (.n 1429), σ (.n 1431), σ (.n 1433), σ (.n 1435)] = [σ (.n 1049), σ (.n 1058), σ (.n 1067), σ (.n 1076), σ (.n 1085), σ (.n 1094), σ (.n 1103), σ (.n 1112), σ (.n 1121), σ (.n 1130), σ (.n 1139), σ (.n 1148), σ (.n 1157), σ (.n 1166), σ (.n 1175), σ (.n 1184), σ (.n 1193), σ (.n 1202), σ (.n 1211), σ (.n 1220), σ (.n 1229), σ (.n 1238), σ (.n 1247), σ (.n 1256), σ (.n 1265), σ (.n 1274), σ (.n 1283), σ (.n 1292)])
 
 /-- **The forms' values.** -/
 theorem vt_forms_valF {rd : Reader} {σ : Val} (hF : VtF rd σ) (bc : List K)
@@ -53,8 +53,8 @@ theorem vt_forms_valF {rd : Reader} {σ : Val} (hF : VtF rd σ) (bc : List K)
     (hpull : VtPullSelsH σ) {weights : List E} (hwl : weights.length = 16)
     (hW : TbReadsAt rd (σ (.n 13)) weights) {t : ℕ} (ht : t < 6) :
     ((vtAcc2 (layoutOf bc lm rows) weights (σ (.n 14)) point
-        [σ (.n 812), σ (.n 816)] (σ (.n 1302)) (σ (.n 1316)) (σ (.n 1840))
-        (σ (.n 2441)) (σ (.n 2487)) (σ (.n 2542))).1.getD t []).map
+        [σ (.n 813), σ (.n 817)] (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841))
+        (σ (.n 2442)) (σ (.n 2488)) (σ (.n 2543))).1.getD t []).map
         (·.evaluate ((vtEvT σ t).getD · 0)) =
       (vtFV.getD t []).map fun v ↦ σ (.n v) := by
   obtain ⟨q0, q1, q2, q3, q4, q5⟩ := hpull
@@ -63,8 +63,8 @@ theorem vt_forms_valF {rd : Reader} {σ : Val} (hF : VtF rd σ) (bc : List K)
       have := hW i (by omega)
       rwa [← List.getD_eq_getElem _ 0] at this
   obtain ⟨e0, e1, e2⟩ := vt_forms hbc weights (σ (.n 14)) point
-    [σ (.n 812), σ (.n 816)] (σ (.n 1302)) (σ (.n 1316)) (σ (.n 1840))
-        (σ (.n 2441)) (σ (.n 2487)) (σ (.n 2542)) (fun c ↦ σ (.n c)) hP hC hr ⟨t, ht⟩ ((vtEvT σ t).getD · 0)
+    [σ (.n 813), σ (.n 817)] (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841))
+        (σ (.n 2442)) (σ (.n 2488)) (σ (.n 2543)) (fun c ↦ σ (.n c)) hP hC hr ⟨t, ht⟩ ((vtEvT σ t).getD · 0)
   simp only at e0 e1 e2
   rw [vt_three _ ((vt_forms3_shape bc lm hr _ _ _ _ _ _ _ _ _ _).2 t ht) {}]
   simp only [List.map_cons, List.map_nil, e0, e1, e2]
@@ -94,44 +94,44 @@ theorem vt_forms_valF {rd : Reader} {σ : Val} (hF : VtF rd σ) (bc : List K)
 `air_acc`. -/
 theorem vt_asm_finalF {rd : Reader} {σ : Val} (hV : VtF rd σ) (bc : List K)
     (hbc : bc.length = 2 ^ 23) {point : List E} {lm : ℕ} {rows : List ℕ} (hr : rows.length = 6)
-    (hkbt : ∀ t < 6, σ (.n (27 + t)) = gen ^ vtHt rows t)
+    (hkbt : ∀ t < 6, σ (.n (28 + t)) = gen ^ vtHt rows t)
     (hP : ∀ i < 51, σ (.n (vtPushPadData.getD i default).2.2.1) =
       blockSel (vtSizesP lm (vtHt rows)) point.length (3 + i) point)
     (hC : ∀ i < 45, σ (.n (vtCountPadData.getD i default).2.2.1) =
       blockSel (vtSizesC (vtHt rows)) point.length i point)
     (hpull : VtPullSelsH σ)
-    (hz1 : TbReadsAt rd (σ (.n 699)) (point.map (1 + ·)))
-    (hxi : σ (.n 2611) = 1 ∧ σ (.n 2612) = σ (.n 2610) ∧ σ (.n 2613) = σ (.n 2610) ^ 2 ∧
-      σ (.n 2614) = σ (.n 2610) ^ 3 ∧ σ (.n 2615) = σ (.n 2610) ^ 4)
+    (hz1 : TbReadsAt rd (σ (.n 700)) (point.map (1 + ·)))
+    (hxi : σ (.n 2612) = 1 ∧ σ (.n 2613) = σ (.n 2611) ∧ σ (.n 2614) = σ (.n 2611) ^ 2 ∧
+      σ (.n 2615) = σ (.n 2611) ^ 3 ∧ σ (.n 2616) = σ (.n 2611) ^ 4)
     {weights : List E} (hwl : weights.length = 16)
     (hW : TbReadsAt rd (σ (.n 13)) weights) {n : ℕ}
-    (hgn : σ (.n 2544) = gen ^ n) (hhn : ∀ t < 6, vtHt rows t ≤ n) (hnp : n ≤ point.length)
+    (hgn : σ (.n 2545) = gen ^ n) (hhn : ∀ t < 6, vtHt rows t ≤ n) (hnp : n ≤ point.length)
     {pts : List E} (hpl : pts.length = n)
-    (hcp : ∀ j ≤ n, LoadHolds rd (σ (.n 2630)) j (pts.take j).prod)
-    (hpe : EqPrefix rd (σ (.n 2651)) 1 (σ (.n 16)) (σ (.n 699)) n)
+    (hcp : ∀ j ≤ n, LoadHolds rd (σ (.n 2631)) j (pts.take j).prod)
+    (hpe : EqPrefix rd (σ (.n 2656)) 1 (σ (.n 16)) (σ (.n 700)) n)
     (hchi : ∀ i < n, LoadHolds rd (σ (.n 16)) (n - 1 - i) (pts.getD i 0)) :
-    (termsPure ((powers (σ (.n 2610)) 5).take 2) ((powers (σ (.n 2610)) 5).drop 2) pts.reverse
+    (termsPure ((powers (σ (.n 2611)) 5).take 2) ((powers (σ (.n 2611)) 5).drop 2) pts.reverse
       (List.zip (vtRows (tableHeightsOf rows)
         (vtAcc2 (layoutOf bc lm rows) weights (σ (.n 14)) point
-          [σ (.n 812), σ (.n 816)] (σ (.n 1302)) (σ (.n 1316)) (σ (.n 1840))
-        (σ (.n 2441)) (σ (.n 2487)) (σ (.n 2542))).1 point pts) (vtEvsT σ)) 0 0 []).1 =
-      σ (.n 5947) := by
+          [σ (.n 813), σ (.n 817)] (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841))
+        (σ (.n 2442)) (σ (.n 2488)) (σ (.n 2543))).1 point pts) (vtEvsT σ)) 0 0 []).1 =
+      σ (.n 5952) := by
   set F := (vtAcc2 (layoutOf bc lm rows) weights (σ (.n 14)) point
-    [σ (.n 812), σ (.n 816)] (σ (.n 1302)) (σ (.n 1316)) (σ (.n 1840))
-        (σ (.n 2441)) (σ (.n 2487)) (σ (.n 2542))).1 with hF
+    [σ (.n 813), σ (.n 817)] (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841))
+        (σ (.n 2442)) (σ (.n 2488)) (σ (.n 2543))).1 with hF
   have hFv : ∀ t < 6, (F.getD t []).map (·.evaluate ((vtEvT σ t).getD · 0)) =
       (vtFV.getD t []).map fun v ↦ σ (.n v) := fun t ht ↦
     vt_forms_valF hV bc hbc hr hP hC hpull hwl hW ht
   have hF6 := (vt_forms3_shape bc lm hr weights (σ (.n 14)) point
-    [σ (.n 812), σ (.n 816)] (σ (.n 1302)) (σ (.n 1316)) (σ (.n 1840))
-        (σ (.n 2441)) (σ (.n 2487)) (σ (.n 2542))).1
+    [σ (.n 813), σ (.n 817)] (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841))
+        (σ (.n 2442)) (σ (.n 2488)) (σ (.n 2543))).1
   have hH6 : (tableHeightsOf rows).length = 6 := vt_tableHeightsOf_length hr
   set Wt := tableWeights (tableHeightsOf rows) point pts.reverse with hWt
   have hW6 : Wt.length = 6 := by rw [hWt, length_tableWeights, hH6]
   -- the weights
-  have hwt : ∀ t < 6, ∀ {x cp pe : E}, σ (.n 2544) = x * σ (.n (27 + t)) →
-      LoadHolds rd (σ (.n 2630) * x) 0 cp →
-      LoadHolds rd (σ (.n 2651) * σ (.n (27 + t))) 0 pe → Wt.getD t 0 = cp * pe := by
+  have hwt : ∀ t < 6, ∀ {x cp pe : E}, σ (.n 2545) = x * σ (.n (28 + t)) →
+      LoadHolds rd (σ (.n 2631) * x) 0 cp →
+      LoadHolds rd (σ (.n 2656) * σ (.n (28 + t))) 0 pe → Wt.getD t 0 = cp * pe := by
     intro t ht x cp pe hx hcpL hpeL
     exact vt_weight_guest hpl hnp hcp hpe hchi hz1 hgn (by rw [hH6]; exact ht) (hhn t ht) hx
       (hkbt t ht) hcpL hpeL

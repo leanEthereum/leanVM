@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.Bridge.JumpCells.P_P29
 public import LeanVM.Guest.Bridge.JumpCells.P_P40
 public import LeanVM.Guest.Bridge.JumpCellsIdx
 public import LeanVM.Guest.Bridge.ProgAl.Link16
@@ -22,6 +23,11 @@ public section
 theorem jc1601 : Bridge.jcData 1601 = true := by
   have hx : Bridge.extraOf 1601 = [] := congrArg Prod.fst ProgAl.tab1601
   rw [Bridge.jcData, Checked.code1601, Checked.core1601, Checked.cert1601, Checked.plumbEq1601, Checked.fsEq1601, hx]
+  exact Fn.«walk_path__L6_L6».jcOk
+
+theorem jc1602 : Bridge.jcData 1602 = true := by
+  have hx : Bridge.extraOf 1602 = [] := congrArg Prod.fst ProgAl.tab1602
+  rw [Bridge.jcData, Checked.code1602, Checked.core1602, Checked.cert1602, Checked.plumbEq1602, Checked.fsEq1602, hx]
   exact Fn.«walk_path__L12_L8».jcOk
 
 end

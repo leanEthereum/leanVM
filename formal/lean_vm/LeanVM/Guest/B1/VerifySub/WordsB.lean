@@ -82,11 +82,11 @@ theorem le_armMax (K : String → ℕ) {names : List String} {f : String} (h : f
 
 /-- **`verify_sub`'s callees' words facts**, at the frame sizes `fs`: `g_power_of_word`'s (`Bg`),
 the statically bounded callees' (`Kst`), `verify_bus_gkr`'s loops and rounds (`K29`, `R`, `K8`),
-`verify_tables`' callees (`Kf`, `Ksh`, `K10`), `ring_switch_target`'s loop (`B14`),
+`verify_tables`' callees (`Kf`, `Ksh`, `K10`, `K11`), `ring_switch_target`'s loop (`B14`),
 the terminal's pure callees (`Beqc`,
 `K15`, `Bcs`, `Brs`) — a loop's words per iteration, its run's one phantom frame charged once by the
 `TotalLeOn … LoopPre` fact; and, at the weights `ωv op` (an opcode's instructions per frame), the
-weights of `verify_tables`' callees (`Kvw`, `Wss`, `Kw10`) and of the terminal's (`Weqc`, `W15`,
+weights of `verify_tables`' callees (`Kvw`, `Wss`, `Kw10`, `Kw11`) and of the terminal's (`Weqc`, `W15`,
 `Wst`, `Wcs`, `Wrsw`), which bound those two callees' trees (`vtWB`, `termWB`). -/
 structure VsWords (fs : String → ℕ) : Type where
   Bg : ℕ
@@ -104,13 +104,16 @@ structure VsWords (fs : String → ℕ) : Type where
   Kf : String → ℕ
   Ksh : ℕ
   K10 : ℕ
-  hKf : ∀ g ∈ Tables.vtKidS, g ≠ name% «verify_tables_loop0» → g ≠
-      name% «shared_selector_tables_loop0» → g ≠ "shared_selector_tables" →
+  K11 : ℕ
+  hKf : ∀ g ∈ Tables.vtKidS, g ≠ name% «verify_tables_loop0» → g ≠ name% «verify_tables_loop1» →
+      g ≠ name% «shared_selector_tables_loop0» → g ≠ "shared_selector_tables" →
     TotalLe coreProgram fs g (fun _ ↦ Kf g)
   hsh : TotalLeOn coreProgram fs "shared_selector_tables"
     (fun a ↦ ∃ n < 64, a.getD 5 0 = gen ^ n) (fun _ ↦ Ksh)
   h10 : TotalLeOn coreProgram fs name% «verify_tables_loop0» LoopPre (fun a ↦ logG (a.getD 1 0) *
       K10 + fs name% «verify_tables_loop0»)
+  h11 : TotalLeOn coreProgram fs name% «verify_tables_loop1» LoopPre (fun a ↦ logG (a.getD 1 0) *
+      K11 + fs name% «verify_tables_loop1»)
   B14 : ℕ
   hl14 : TotalLeOn coreProgram fs name% «ring_switch_target_loop0» (fun a ↦ a.getD 0 0 = 1) fun _ ↦
       B14
@@ -128,13 +131,15 @@ structure VsWords (fs : String → ℕ) : Type where
   Kvw : Opcode → String → ℕ
   Wss : Opcode → ℕ
   Kw10 : Opcode → ℕ
-  hKvw : ∀ op, ∀ g ∈ Tables.vtKidS, g ≠ name% «verify_tables_loop0» → g ≠
-      name% «shared_selector_tables_loop0» → g ≠ "shared_selector_tables" →
+  Kw11 : Opcode → ℕ
+  hKvw : ∀ op, ∀ g ∈ Tables.vtKidS, g ≠ name% «verify_tables_loop0» → g ≠ name% «verify_tables_loop1» →
+      g ≠ name% «shared_selector_tables_loop0» → g ≠ "shared_selector_tables" →
     WeightLe coreProgram (ωv op) g (fun _ ↦ Kvw op g)
   hssw : ∀ op (rd : Reader) (t : Tree) (args rets : List E), t.name = "shared_selector_tables" →
     (∃ n < 64, args.getD 5 0 = gen ^ n) → t.Valid coreProgram rd args rets →
     t.BufsOk coreProgram → t.weight (ωv op) ≤ Wss op
   h10w : ∀ op, Budget.LoopW (ωv op) name% «verify_tables_loop0» (Kw10 op)
+  h11w : ∀ op, Budget.LoopW (ωv op) name% «verify_tables_loop1» (Kw11 op)
   Weqc : Opcode → ℕ
   W15 : Opcode → ℕ
   Wst : Opcode → ℕ
@@ -156,7 +161,7 @@ structure VsWords (fs : String → ℕ) : Type where
 
 /-- **`verify_tables`' weight bound** at `W.ωv op`: its frame's and its calls' (`vtBs`). -/
 noncomputable def vtWB {fs : String → ℕ} (W : VsWords fs) (op : Opcode) : ℕ :=
-  W.ωv op "verify_tables" + (Tables.vtBs (W.Kvw op) (W.Wss op) (32 * W.Kw10 op)).sum
+  W.ωv op "verify_tables" + (Tables.vtBs (W.Kvw op) (W.Wss op) (32 * W.Kw10 op) (32 * W.Kw11 op)).sum
 
 /-- **The terminal's weight bound** at `W.ωv op`: its frame's and its calls' (`termWs`). -/
 noncomputable def termWB {fs : String → ℕ} (W : VsWords fs) (op : Opcode) : ℕ :=

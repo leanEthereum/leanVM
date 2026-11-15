@@ -62,17 +62,17 @@ open LeanVM.Guest LeanVM.Guest.Check
 @[expose] public section
 
 /-- `check_opening_terminal`, window 0. -/
-theorem w0 : checkWinCF (Glob.ofSigs ([(5, Fn.«eq_prefix_chain».sig), (15, Fn.«ring_switch_weight».sig), (17, Fn.«selector_tables».sig), (274, Fn.«check_opening_terminal_loop0».sig), (275, Fn.«column_selector__L0».sig), (276, Fn.«column_selector__L1».sig), (277, Fn.«column_selector__L2».sig), (278, Fn.«column_selector__L3».sig), (279, Fn.«column_selector__L4».sig), (280, Fn.«column_selector__L5».sig), (281, Fn.«column_selector__L6».sig), (282, Fn.«column_selector__L7».sig), (283, Fn.«column_selector__L8».sig), (284, Fn.«column_selector__L9».sig), (285, Fn.«column_selector__L10».sig), (286, Fn.«column_selector__L11».sig)] ++ [(287, Fn.«column_selector__L12».sig), (288, Fn.«column_selector__L13».sig), (289, Fn.«column_selector__L14».sig), (290, Fn.«column_selector__L15».sig), (291, Fn.«column_selector__L16».sig), (292, Fn.«column_selector__L17».sig), (293, Fn.«column_selector__L18».sig), (294, Fn.«column_selector__L19».sig), (295, Fn.«column_selector__L20».sig), (296, Fn.«column_selector__L21».sig), (297, Fn.«column_selector__L22».sig), (298, Fn.«column_selector__L23».sig), (299, Fn.«column_selector__L24».sig), (300, Fn.«column_selector__L25».sig), (301, Fn.«column_selector__L26».sig), (302, Fn.«column_selector__L27».sig)] ++ [(303, Fn.«column_selector__L28».sig), (304, Fn.«column_selector__L29».sig), (305, Fn.«column_selector__L30».sig)]) Data.jtTrie globSem) code
+theorem w0 : checkWinCF (Glob.ofSigs ([(5, Fn.«eq_prefix_chain».sig), (15, Fn.«ring_switch_weight».sig), (17, Fn.«selector_tables».sig), (275, Fn.«check_opening_terminal_loop0».sig), (276, Fn.«column_selector__L0».sig), (277, Fn.«column_selector__L1».sig), (278, Fn.«column_selector__L2».sig), (279, Fn.«column_selector__L3».sig), (280, Fn.«column_selector__L4».sig), (281, Fn.«column_selector__L5».sig), (282, Fn.«column_selector__L6».sig), (283, Fn.«column_selector__L7».sig), (284, Fn.«column_selector__L8».sig), (285, Fn.«column_selector__L9».sig), (286, Fn.«column_selector__L10».sig), (287, Fn.«column_selector__L11».sig)] ++ [(288, Fn.«column_selector__L12».sig), (289, Fn.«column_selector__L13».sig), (290, Fn.«column_selector__L14».sig), (291, Fn.«column_selector__L15».sig), (292, Fn.«column_selector__L16».sig), (293, Fn.«column_selector__L17».sig), (294, Fn.«column_selector__L18».sig), (295, Fn.«column_selector__L19».sig), (296, Fn.«column_selector__L20».sig), (297, Fn.«column_selector__L21».sig), (298, Fn.«column_selector__L22».sig), (299, Fn.«column_selector__L23».sig), (300, Fn.«column_selector__L24».sig), (301, Fn.«column_selector__L25».sig), (302, Fn.«column_selector__L26».sig), (303, Fn.«column_selector__L27».sig)] ++ [(304, Fn.«column_selector__L28».sig), (305, Fn.«column_selector__L29».sig), (306, Fn.«column_selector__L30».sig)]) Data.jtTrie globSem) code
     Fn.«check_opening_terminal».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 
 /-- `check_opening_terminal`, window 1. -/
-theorem w1 : checkWinCF (Glob.ofSigs ([(5, Fn.«eq_prefix_chain».sig), (15, Fn.«ring_switch_weight».sig), (17, Fn.«selector_tables».sig), (274, Fn.«check_opening_terminal_loop0».sig), (275, Fn.«column_selector__L0».sig), (276, Fn.«column_selector__L1».sig), (277, Fn.«column_selector__L2».sig), (278, Fn.«column_selector__L3».sig), (279, Fn.«column_selector__L4».sig), (280, Fn.«column_selector__L5».sig), (281, Fn.«column_selector__L6».sig), (282, Fn.«column_selector__L7».sig), (283, Fn.«column_selector__L8».sig), (284, Fn.«column_selector__L9».sig), (285, Fn.«column_selector__L10».sig), (286, Fn.«column_selector__L11».sig)] ++ [(287, Fn.«column_selector__L12».sig), (288, Fn.«column_selector__L13».sig), (289, Fn.«column_selector__L14».sig), (290, Fn.«column_selector__L15».sig), (291, Fn.«column_selector__L16».sig), (292, Fn.«column_selector__L17».sig), (293, Fn.«column_selector__L18».sig), (294, Fn.«column_selector__L19».sig), (295, Fn.«column_selector__L20».sig), (296, Fn.«column_selector__L21».sig), (297, Fn.«column_selector__L22».sig), (298, Fn.«column_selector__L23».sig), (299, Fn.«column_selector__L24».sig), (300, Fn.«column_selector__L25».sig), (301, Fn.«column_selector__L26».sig), (302, Fn.«column_selector__L27».sig)] ++ [(303, Fn.«column_selector__L28».sig), (304, Fn.«column_selector__L29».sig), (305, Fn.«column_selector__L30».sig)]) Data.jtTrie globSem) code
+theorem w1 : checkWinCF (Glob.ofSigs ([(5, Fn.«eq_prefix_chain».sig), (15, Fn.«ring_switch_weight».sig), (17, Fn.«selector_tables».sig), (275, Fn.«check_opening_terminal_loop0».sig), (276, Fn.«column_selector__L0».sig), (277, Fn.«column_selector__L1».sig), (278, Fn.«column_selector__L2».sig), (279, Fn.«column_selector__L3».sig), (280, Fn.«column_selector__L4».sig), (281, Fn.«column_selector__L5».sig), (282, Fn.«column_selector__L6».sig), (283, Fn.«column_selector__L7».sig), (284, Fn.«column_selector__L8».sig), (285, Fn.«column_selector__L9».sig), (286, Fn.«column_selector__L10».sig), (287, Fn.«column_selector__L11».sig)] ++ [(288, Fn.«column_selector__L12».sig), (289, Fn.«column_selector__L13».sig), (290, Fn.«column_selector__L14».sig), (291, Fn.«column_selector__L15».sig), (292, Fn.«column_selector__L16».sig), (293, Fn.«column_selector__L17».sig), (294, Fn.«column_selector__L18».sig), (295, Fn.«column_selector__L19».sig), (296, Fn.«column_selector__L20».sig), (297, Fn.«column_selector__L21».sig), (298, Fn.«column_selector__L22».sig), (299, Fn.«column_selector__L23».sig), (300, Fn.«column_selector__L24».sig), (301, Fn.«column_selector__L25».sig), (302, Fn.«column_selector__L26».sig), (303, Fn.«column_selector__L27».sig)] ++ [(304, Fn.«column_selector__L28».sig), (305, Fn.«column_selector__L29».sig), (306, Fn.«column_selector__L30».sig)]) Data.jtTrie globSem) code
     Fn.«check_opening_terminal».core (cert.withPows Data.powTree) false 1 = true := by
   decide +kernel
 
 /-- `check_opening_terminal`, window 2. -/
-theorem w2 : checkWinCF (Glob.ofSigs ([(5, Fn.«eq_prefix_chain».sig), (15, Fn.«ring_switch_weight».sig), (17, Fn.«selector_tables».sig), (274, Fn.«check_opening_terminal_loop0».sig), (275, Fn.«column_selector__L0».sig), (276, Fn.«column_selector__L1».sig), (277, Fn.«column_selector__L2».sig), (278, Fn.«column_selector__L3».sig), (279, Fn.«column_selector__L4».sig), (280, Fn.«column_selector__L5».sig), (281, Fn.«column_selector__L6».sig), (282, Fn.«column_selector__L7».sig), (283, Fn.«column_selector__L8».sig), (284, Fn.«column_selector__L9».sig), (285, Fn.«column_selector__L10».sig), (286, Fn.«column_selector__L11».sig)] ++ [(287, Fn.«column_selector__L12».sig), (288, Fn.«column_selector__L13».sig), (289, Fn.«column_selector__L14».sig), (290, Fn.«column_selector__L15».sig), (291, Fn.«column_selector__L16».sig), (292, Fn.«column_selector__L17».sig), (293, Fn.«column_selector__L18».sig), (294, Fn.«column_selector__L19».sig), (295, Fn.«column_selector__L20».sig), (296, Fn.«column_selector__L21».sig), (297, Fn.«column_selector__L22».sig), (298, Fn.«column_selector__L23».sig), (299, Fn.«column_selector__L24».sig), (300, Fn.«column_selector__L25».sig), (301, Fn.«column_selector__L26».sig), (302, Fn.«column_selector__L27».sig)] ++ [(303, Fn.«column_selector__L28».sig), (304, Fn.«column_selector__L29».sig), (305, Fn.«column_selector__L30».sig)]) Data.jtTrie globSem) code
+theorem w2 : checkWinCF (Glob.ofSigs ([(5, Fn.«eq_prefix_chain».sig), (15, Fn.«ring_switch_weight».sig), (17, Fn.«selector_tables».sig), (275, Fn.«check_opening_terminal_loop0».sig), (276, Fn.«column_selector__L0».sig), (277, Fn.«column_selector__L1».sig), (278, Fn.«column_selector__L2».sig), (279, Fn.«column_selector__L3».sig), (280, Fn.«column_selector__L4».sig), (281, Fn.«column_selector__L5».sig), (282, Fn.«column_selector__L6».sig), (283, Fn.«column_selector__L7».sig), (284, Fn.«column_selector__L8».sig), (285, Fn.«column_selector__L9».sig), (286, Fn.«column_selector__L10».sig), (287, Fn.«column_selector__L11».sig)] ++ [(288, Fn.«column_selector__L12».sig), (289, Fn.«column_selector__L13».sig), (290, Fn.«column_selector__L14».sig), (291, Fn.«column_selector__L15».sig), (292, Fn.«column_selector__L16».sig), (293, Fn.«column_selector__L17».sig), (294, Fn.«column_selector__L18».sig), (295, Fn.«column_selector__L19».sig), (296, Fn.«column_selector__L20».sig), (297, Fn.«column_selector__L21».sig), (298, Fn.«column_selector__L22».sig), (299, Fn.«column_selector__L23».sig), (300, Fn.«column_selector__L24».sig), (301, Fn.«column_selector__L25».sig), (302, Fn.«column_selector__L26».sig), (303, Fn.«column_selector__L27».sig)] ++ [(304, Fn.«column_selector__L28».sig), (305, Fn.«column_selector__L29».sig), (306, Fn.«column_selector__L30».sig)]) Data.jtTrie globSem) code
     Fn.«check_opening_terminal».core (cert.withPows Data.powTree) false 2 = true := by
   decide +kernel
 
@@ -170,7 +170,7 @@ open LeanVM.Guest LeanVM.Guest.Check
 @[expose] public section
 
 /-- `bus_grind_check__L0`, window 0. -/
-theorem w0 : checkWinCF (Glob.ofSigs ([(448, Fn.«grind_check__L17».sig)]) Data.jtTrie globSem) code
+theorem w0 : checkWinCF (Glob.ofSigs ([(449, Fn.«grind_check__L17».sig)]) Data.jtTrie globSem) code
     Fn.«bus_grind_check__L0».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 
@@ -198,7 +198,7 @@ open LeanVM.Guest LeanVM.Guest.Check
 @[expose] public section
 
 /-- `da_levels__L128_L7`, window 0. -/
-theorem w0 : checkWinCF (Glob.ofSigs ([(967, Fn.«da_levels__L128_L7_loop0».sig), (968, Fn.«da_levels__L128_L7_loop1».sig), (969, Fn.«da_levels__L128_L7_loop2».sig), (970, Fn.«da_levels__L128_L7_loop3».sig), (971, Fn.«da_levels__L128_L7_loop4».sig), (972, Fn.«da_levels__L128_L7_loop5».sig), (973, Fn.«da_levels__L128_L7_loop6».sig)]) Data.jtTrie globSem) code
+theorem w0 : checkWinCF (Glob.ofSigs ([(968, Fn.«da_levels__L128_L7_loop0».sig), (969, Fn.«da_levels__L128_L7_loop1».sig), (970, Fn.«da_levels__L128_L7_loop2».sig), (971, Fn.«da_levels__L128_L7_loop3».sig), (972, Fn.«da_levels__L128_L7_loop4».sig), (973, Fn.«da_levels__L128_L7_loop5».sig), (974, Fn.«da_levels__L128_L7_loop6».sig)]) Data.jtTrie globSem) code
     Fn.«da_levels__L128_L7».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 
@@ -212,12 +212,12 @@ open LeanVM.Guest LeanVM.Guest.Check
 @[expose] public section
 
 /-- `level_queries__L37_L0_L4_L16_L16_L4_L0_L0_L0_L0`, window 0. -/
-theorem w0 : checkWinCF (Glob.ofSigs ([(1011, Fn.«verify_merkle_cap__L4».sig), (1025, Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code
+theorem w0 : checkWinCF (Glob.ofSigs ([(1012, Fn.«verify_merkle_cap__L4».sig), (1026, Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code
     Fn.«level_queries__L37_L0_L4_L16_L16_L4_L0_L0_L0_L0».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 
 /-- `level_queries__L37_L0_L4_L16_L16_L4_L0_L0_L0_L0`, window 1. -/
-theorem w1 : checkWinCF (Glob.ofSigs ([(1011, Fn.«verify_merkle_cap__L4».sig), (1025, Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code
+theorem w1 : checkWinCF (Glob.ofSigs ([(1012, Fn.«verify_merkle_cap__L4».sig), (1026, Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code
     Fn.«level_queries__L37_L0_L4_L16_L16_L4_L0_L0_L0_L0».core (cert.withPows Data.powTree) false 1 = true := by
   decide +kernel
 
@@ -231,12 +231,12 @@ open LeanVM.Guest LeanVM.Guest.Check
 @[expose] public section
 
 /-- `level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0`, window 0. -/
-theorem w0 : checkWinCF (Glob.ofSigs ([(1013, Fn.«verify_merkle_cap__L5».sig), (1026, Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code
+theorem w0 : checkWinCF (Glob.ofSigs ([(1014, Fn.«verify_merkle_cap__L5».sig), (1027, Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code
     Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 
 /-- `level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0`, window 1. -/
-theorem w1 : checkWinCF (Glob.ofSigs ([(1013, Fn.«verify_merkle_cap__L5».sig), (1026, Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code
+theorem w1 : checkWinCF (Glob.ofSigs ([(1014, Fn.«verify_merkle_cap__L5».sig), (1027, Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code
     Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».core (cert.withPows Data.powTree) false 1 = true := by
   decide +kernel
 
@@ -250,7 +250,7 @@ open LeanVM.Guest LeanVM.Guest.Check
 @[expose] public section
 
 /-- `level_residual__L44_L16_L4_L2`, window 0. -/
-theorem w0 : checkWinCF (Glob.ofSigs ([(1303, Fn.«level_residual__L44_L16_L4_L2_loop0».sig), (1304, Fn.«level_residual__L44_L16_L4_L2_loop1».sig)]) Data.jtTrie globSem) code
+theorem w0 : checkWinCF (Glob.ofSigs ([(1304, Fn.«level_residual__L44_L16_L4_L2_loop0».sig), (1305, Fn.«level_residual__L44_L16_L4_L2_loop1».sig)]) Data.jtTrie globSem) code
     Fn.«level_residual__L44_L16_L4_L2».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 
@@ -264,7 +264,7 @@ open LeanVM.Guest LeanVM.Guest.Check
 @[expose] public section
 
 /-- `level_positions__L9_L22_L4`, window 0. -/
-theorem w0 : checkWinCF (Glob.ofSigs ([(1189, Fn.«decode_query_windows__L22_L4».sig), (1327, Fn.«level_positions__L9_L22_L4_loop0».sig)]) Data.jtTrie globSem) code
+theorem w0 : checkWinCF (Glob.ofSigs ([(1190, Fn.«decode_query_windows__L22_L4».sig), (1328, Fn.«level_positions__L9_L22_L4_loop0».sig)]) Data.jtTrie globSem) code
     Fn.«level_positions__L9_L22_L4».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 
@@ -278,12 +278,12 @@ open LeanVM.Guest LeanVM.Guest.Check
 @[expose] public section
 
 /-- `level_queries__L109_L1_L6_L32_L24_L6_L0_L0_L0_L0`, window 0. -/
-theorem w0 : checkWinCF (Glob.ofSigs ([(1015, Fn.«verify_merkle_cap__L6».sig), (1282, Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code
+theorem w0 : checkWinCF (Glob.ofSigs ([(1016, Fn.«verify_merkle_cap__L6».sig), (1283, Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code
     Fn.«level_queries__L109_L1_L6_L32_L24_L6_L0_L0_L0_L0».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 
 /-- `level_queries__L109_L1_L6_L32_L24_L6_L0_L0_L0_L0`, window 1. -/
-theorem w1 : checkWinCF (Glob.ofSigs ([(1015, Fn.«verify_merkle_cap__L6».sig), (1282, Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code
+theorem w1 : checkWinCF (Glob.ofSigs ([(1016, Fn.«verify_merkle_cap__L6».sig), (1283, Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code
     Fn.«level_queries__L109_L1_L6_L32_L24_L6_L0_L0_L0_L0».core (cert.withPows Data.powTree) false 1 = true := by
   decide +kernel
 
@@ -297,12 +297,12 @@ open LeanVM.Guest LeanVM.Guest.Check
 @[expose] public section
 
 /-- `level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0`, window 0. -/
-theorem w0 : checkWinCF (Glob.ofSigs ([(1013, Fn.«verify_merkle_cap__L5».sig), (1286, Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code
+theorem w0 : checkWinCF (Glob.ofSigs ([(1014, Fn.«verify_merkle_cap__L5».sig), (1287, Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code
     Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 
 /-- `level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0`, window 1. -/
-theorem w1 : checkWinCF (Glob.ofSigs ([(1013, Fn.«verify_merkle_cap__L5».sig), (1286, Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code
+theorem w1 : checkWinCF (Glob.ofSigs ([(1014, Fn.«verify_merkle_cap__L5».sig), (1287, Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code
     Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».core (cert.withPows Data.powTree) false 1 = true := by
   decide +kernel
 
@@ -316,7 +316,7 @@ open LeanVM.Guest LeanVM.Guest.Check
 @[expose] public section
 
 /-- `level_residual__L25_L15_L4_L2`, window 0. -/
-theorem w0 : checkWinCF (Glob.ofSigs ([(1447, Fn.«level_residual__L25_L15_L4_L2_loop0».sig), (1448, Fn.«level_residual__L25_L15_L4_L2_loop1».sig)]) Data.jtTrie globSem) code
+theorem w0 : checkWinCF (Glob.ofSigs ([(1448, Fn.«level_residual__L25_L15_L4_L2_loop0».sig), (1449, Fn.«level_residual__L25_L15_L4_L2_loop1».sig)]) Data.jtTrie globSem) code
     Fn.«level_residual__L25_L15_L4_L2».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 
@@ -330,7 +330,7 @@ open LeanVM.Guest LeanVM.Guest.Check
 @[expose] public section
 
 /-- `level_residual__L32_L20_L4_L2`, window 0. -/
-theorem w0 : checkWinCF (Glob.ofSigs ([(1492, Fn.«level_residual__L32_L20_L4_L2_loop0».sig)]) Data.jtTrie globSem) code
+theorem w0 : checkWinCF (Glob.ofSigs ([(1493, Fn.«level_residual__L32_L20_L4_L2_loop0».sig)]) Data.jtTrie globSem) code
     Fn.«level_residual__L32_L20_L4_L2».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 
@@ -343,8 +343,8 @@ open LeanVM.Guest LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop221`, window 0. -/
-theorem w0 : checkWinCF (Glob.ofSigs ([(1176, Fn.«level_residual__L37_L13_L4_L2_loop0».sig)]) Data.jtTrie globSem) code
+/-- `__loop222`, window 0. -/
+theorem w0 : checkWinCF (Glob.ofSigs ([(1177, Fn.«level_residual__L37_L13_L4_L2_loop0».sig)]) Data.jtTrie globSem) code
     Fn.«level_residual__L37_L13_L4_L2_loop0».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 
@@ -371,8 +371,8 @@ open LeanVM.Guest LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop243`, window 0. -/
-theorem w0 : checkWinCF (Glob.ofSigs ([(1205, Fn.«level_residual__L109_L18_L6_L3_loop0».sig)]) Data.jtTrie globSem) code
+/-- `__loop244`, window 0. -/
+theorem w0 : checkWinCF (Glob.ofSigs ([(1206, Fn.«level_residual__L109_L18_L6_L3_loop0».sig)]) Data.jtTrie globSem) code
     Fn.«level_residual__L109_L18_L6_L3_loop0».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 
@@ -385,8 +385,8 @@ open LeanVM.Guest LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop307`, window 0. -/
-theorem w0 : checkWinCF (Glob.ofSigs ([(1234, Fn.«decode_query_windows__L23_L5».sig), (1278, Fn.«level_positions__L15_L23_L5_loop0».sig)]) Data.jtTrie globSem) code
+/-- `__loop308`, window 0. -/
+theorem w0 : checkWinCF (Glob.ofSigs ([(1235, Fn.«decode_query_windows__L23_L5».sig), (1279, Fn.«level_positions__L15_L23_L5_loop0».sig)]) Data.jtTrie globSem) code
     Fn.«level_positions__L15_L23_L5_loop0».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 
@@ -400,12 +400,12 @@ open LeanVM.Guest LeanVM.Guest.Check
 @[expose] public section
 
 /-- `opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0`, window 0. -/
-theorem w0 : checkWinCF (Glob.ofSigs ([(1573, Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem) code
+theorem w0 : checkWinCF (Glob.ofSigs ([(1574, Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem) code
     Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0`, window 1. -/
-theorem w1 : checkWinCF (Glob.ofSigs ([(1573, Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem) code
+theorem w1 : checkWinCF (Glob.ofSigs ([(1574, Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem) code
     Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0».core (cert.withPows Data.powTree) false 1 = true := by
   decide +kernel
 
@@ -418,8 +418,8 @@ open LeanVM.Guest LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop383`, window 0. -/
-theorem w0 : checkWinCF (Glob.ofSigs ([(1279, Fn.«decode_query_windows__L24_L6».sig), (1371, Fn.«level_positions__L8_L24_L6_loop0».sig)]) Data.jtTrie globSem) code
+/-- `__loop384`, window 0. -/
+theorem w0 : checkWinCF (Glob.ofSigs ([(1280, Fn.«decode_query_windows__L24_L6».sig), (1372, Fn.«level_positions__L8_L24_L6_loop0».sig)]) Data.jtTrie globSem) code
     Fn.«level_positions__L8_L24_L6_loop0».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 
@@ -446,8 +446,8 @@ open LeanVM.Guest LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop459`, window 0. -/
-theorem w0 : checkWinCF (Glob.ofSigs ([(1458, Fn.«level_residual__L17_L7_L4_L2_loop1».sig)]) Data.jtTrie globSem) code
+/-- `__loop460`, window 0. -/
+theorem w0 : checkWinCF (Glob.ofSigs ([(1459, Fn.«level_residual__L17_L7_L4_L2_loop1».sig)]) Data.jtTrie globSem) code
     Fn.«level_residual__L17_L7_L4_L2_loop1».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 
@@ -460,18 +460,18 @@ open LeanVM.Guest LeanVM.Guest.Check
 
 @[expose] public section
 
-/-- `__loop577`, window 0. -/
-theorem w0 : checkWinCF (Glob.ofSigs ([(1557, Fn.«walk_path__L18_L5».sig), (1597, Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0».sig)]) Data.jtTrie globSem) code
+/-- `__loop578`, window 0. -/
+theorem w0 : checkWinCF (Glob.ofSigs ([(1558, Fn.«walk_path__L18_L5».sig), (1598, Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0».sig)]) Data.jtTrie globSem) code
     Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0».core (cert.withPows Data.powTree) false 0 = true := by
   decide +kernel
 
-/-- `__loop577`, window 1. -/
-theorem w1 : checkWinCF (Glob.ofSigs ([(1557, Fn.«walk_path__L18_L5».sig), (1597, Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0».sig)]) Data.jtTrie globSem) code
+/-- `__loop578`, window 1. -/
+theorem w1 : checkWinCF (Glob.ofSigs ([(1558, Fn.«walk_path__L18_L5».sig), (1598, Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0».sig)]) Data.jtTrie globSem) code
     Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0».core (cert.withPows Data.powTree) false 1 = true := by
   decide +kernel
 
-/-- `__loop577`, window 2. -/
-theorem w2 : checkWinCF (Glob.ofSigs ([(1557, Fn.«walk_path__L18_L5».sig), (1597, Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0».sig)]) Data.jtTrie globSem) code
+/-- `__loop578`, window 2. -/
+theorem w2 : checkWinCF (Glob.ofSigs ([(1558, Fn.«walk_path__L18_L5».sig), (1598, Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0».sig)]) Data.jtTrie globSem) code
     Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0».core (cert.withPows Data.powTree) false 2 = true := by
   decide +kernel
 

@@ -4,7 +4,7 @@ import re, sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import vtflat
 top, flat, ctr, cend = vtflat.load()
-assert cend == 5990, cend
+assert cend == 5995, cend
 st = []
 for (k, s), c in zip(flat, ctr):
     m = re.match(r'\.atom \(\.load \(\.n (\d+)\) \(\.n (\d+)\) (\d+)\)$', s)
@@ -34,7 +34,7 @@ def vtSL : List Atom := [
 set_option maxRecDepth 100000 in
 /-- The counter `storesOf` carries stays unevaluated over long runs without loads: the kernel's
 recursion goes deep (as `CoreNames`' checks). -/
-theorem vt_stores : storesOf 20 vtEvL = vtSL := by decide +kernel
+theorem vt_stores : storesOf {vtflat.NPARAMS} vtEvL = vtSL := by decide +kernel
 
 end
 end LeanVM.Guest.B1.Tables''')

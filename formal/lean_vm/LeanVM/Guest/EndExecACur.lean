@@ -316,7 +316,7 @@ theorem curFacts_frame {f : String} {j : ℕ} (hj : B2C.idxOf f = some j) :
     CurFacts (alignA f).X (B2C.fsN j) (coreOf j).loop (B2C.plumbOf j) (alignA f).body (alignA f).code (alignA f).d := by
   obtain ⟨i, rfl, -, -, -, -, -, -, h1, h2⟩ := B2C.fn_of_idx hj
   rw [alignA_of hj]
-  exact curFacts_of (AllocChk.curJ_all _ h1 (by have : nFns = 1602 := rfl; omega))
+  exact curFacts_of (AllocChk.curJ_all _ h1 (by have : nFns = fn_count% := rfl; omega))
 
 /-- A frame's function's advice by increasing pcs from its entry. -/
 theorem hintsUp_frame {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn) :
@@ -332,7 +332,7 @@ theorem loop_of_nextAt {f : String} {j : ℕ} (hj : B2C.idxOf f = some j) {off o
     coreProgram.loop f = true := by
   obtain ⟨i0, rfl, hi0, -, hfind, hcore, -, -, h1, h2⟩ := B2C.fn_of_idx hj
   rw [Program.loop_of_find? hfind, ← hcore]
-  have hd := JumpCells.jcData_all _ h1 (by have : nFns = 1602 := rfl; omega)
+  have hd := JumpCells.jcData_all _ h1 (by have : nFns = fn_count% := rfl; omega)
   unfold jcData jcDataD at hd
   simp only [Bool.and_eq_true] at hd
   obtain ⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, -⟩, -⟩, -⟩, hnext⟩ := hd
@@ -363,7 +363,7 @@ theorem notLast_of_site {f : String} {j : ℕ} (hj : B2C.idxOf f = some j) {σ :
     (hc : (calls es)[i]? = some c) {q : ℕ} {s : B2C.Site} (hs : (alignA f).X.siteAt q c.args c.rets = some s) :
     i + 1 < (calls es).length := by
   obtain ⟨i0, rfl, hi0, -, hfind, hcore, -, -, h1, h2⟩ := B2C.fn_of_idx hj
-  have hd := JumpCells.jcData_all _ h1 (by have : nFns = 1602 := rfl; omega)
+  have hd := JumpCells.jcData_all _ h1 (by have : nFns = fn_count% := rfl; omega)
   unfold jcData jcDataD at hd
   simp only [Bool.and_eq_true] at hd
   obtain ⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, -⟩, -⟩, hloop⟩, -⟩ := hd

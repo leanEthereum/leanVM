@@ -35,7 +35,7 @@ theorem bridgeCellsOk :
 
 /-- `child_claim_list_mono_last__L4` is in the hint bridge's prefix class. -/
 theorem bridgePrefixOk :
-    Bridge.prefixOk bridgeLoc Fn.«child_claim_list_mono_last__L4».core.body Fn.«child_claim_list_mono_last__L4».code.code Data.adviceFn391 = true := by
+    Bridge.prefixOk bridgeLoc Fn.«child_claim_list_mono_last__L4».core.body Fn.«child_claim_list_mono_last__L4».code.code Data.adviceFn392 = true := by
   decide +kernel
 
 end
@@ -65,7 +65,7 @@ theorem bridgeCellsOk :
 
 /-- `opening_queries__L0_L0_L4_L16_L17_L5_L4_L10_L20_L5_L1_loop0` is in the hint bridge's prefix class. -/
 theorem bridgePrefixOk :
-    Bridge.prefixOk bridgeLoc Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L4_L10_L20_L5_L1_loop0».core.body Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L4_L10_L20_L5_L1_loop0».code.code Data.adviceFn1540 = true := by
+    Bridge.prefixOk bridgeLoc Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L4_L10_L20_L5_L1_loop0».core.body Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L4_L10_L20_L5_L1_loop0».code.code Data.adviceFn1541 = true := by
   decide +kernel
 
 end

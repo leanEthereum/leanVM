@@ -63,7 +63,7 @@ def vsCallSkL : List (Option V × (String ⊕ (V × List String)) × List V × L
     (none, .inl "verify_bus_gkr", vsNs [554, 555, 556, 557, 558, 320, 253, 254, 561],
       vsNs [562, 563, 564, 565, 566, 567, 568]),
     (none, .inl "verify_tables", vsNs [562, 563, 564, 565, 566, 567, 0, 1, 254, 253, 71, 26, 4,
-      335, 559, 6, 569, 568, 572, 570], vsNs [573, 574, 575, 576, 577, 578, 579, 580, 581, 582]),
+      335, 559, 6, 569, 568, 572, 570, 25], vsNs [573, 574, 575, 576, 577, 578, 579, 580, 581, 582]),
     (none, .inl "verify_keccak", vsNs [573, 574, 575, 576, 577, 578, 583, 569, 587, 584, 585, 589, 25],
       vsNs [590, 591, 592, 593, 594, 595, 596]),
     (none, .inl "grind_check__L13", vsNs [606, 619], []),
@@ -536,7 +536,7 @@ theorem vs_callsMatch {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
     have hμ : S.H.μ = S.d := hpl
     show [σ (.n 562), σ (.n 563), σ (.n 564), σ (.n 565), σ (.n 566), σ (.n 567), σ (.n 0),
       σ (.n 1), σ (.n 254), σ (.n 253), σ (.n 71), σ (.n 26), σ (.n 4), σ (.n 335), σ (.n 559),
-      σ (.n 6), σ (.n 569), σ (.n 568), σ (.n 572), σ (.n 570)] =
+      σ (.n 6), σ (.n 569), σ (.n 568), σ (.n 572), σ (.n 570), σ (.n 25)] =
       S.H.args (S.vtB bs sqE (S.leavesB (outs.take 10)))
     rw [e9 0 (by norm_num), e9 1 (by norm_num), e9 2 (by norm_num), e9 3 (by norm_num),
       e9 4 (by norm_num), e567, show σ (.n 0) = args.getD 0 0 from vsC_param hl (by norm_num),
@@ -545,7 +545,8 @@ theorem vs_callsMatch {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
       pa (i := 3) (a := 71) (by norm_num) rfl, pa (i := 2) (a := 26) (by norm_num) rfl, p4,
       pa (i := 8) (a := 335) (by norm_num) rfl, V.beta, pa (i := 0) (a := 6) (by norm_num) rfl,
       pa (i := 9) (a := 569) (by norm_num) rfl, e568, V.tabs 572 (by simp),
-      pa (i := 10) (a := 570) (by norm_num) rfl, Tables.VtHonest.args, hμ]
+      pa (i := 10) (a := 570) (by norm_num) rfl, pa (i := 1) (a := 25) (by norm_num) rfl,
+      Tables.VtHonest.args, hμ]
     rfl
   · -- `verify_keccak`
     have hxl := (S.H_run hbl).2.2.2

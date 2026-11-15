@@ -1480,705 +1480,705 @@ kernel_rfl armsEq265 : listElementOrDefault Data.cplArms 265 [] = Fn.«verify_ta
 
 kernel_rfl snapsEq265 : B2C.snapsOf 265 = Fn.«verify_tables_loop0».snaps
 
-kernel_rfl code266 : fnOf 266 = Fn.«verify_keccak_loop0».code
+kernel_rfl code266 : fnOf 266 = Fn.«verify_tables_loop1».code
 
-kernel_rfl core266 : coreOf 266 = Fn.«verify_keccak_loop0».core
+kernel_rfl core266 : coreOf 266 = Fn.«verify_tables_loop1».core
 
-kernel_rfl cert266 : certOf 266 = (Fn.«verify_keccak_loop0».cert.withPows Data.powTree)
+kernel_rfl cert266 : certOf 266 = (Fn.«verify_tables_loop1».cert.withPows Data.powTree)
 
-kernel_rfl sigBody266 : sigFrom Fn.«verify_keccak_loop0».code Fn.«verify_keccak_loop0».core (Fn.«verify_keccak_loop0».cert.withPows Data.powTree) = Fn.«verify_keccak_loop0».sig
+kernel_rfl sigBody266 : sigFrom Fn.«verify_tables_loop1».code Fn.«verify_tables_loop1».core (Fn.«verify_tables_loop1».cert.withPows Data.powTree) = Fn.«verify_tables_loop1».sig
 
-theorem sig266 : glob.sig 266 = Fn.«verify_keccak_loop0».sig := sig_of_link code266 core266 cert266 sigBody266
+theorem sig266 : glob.sig 266 = Fn.«verify_tables_loop1».sig := sig_of_link code266 core266 cert266 sigBody266
 
-kernel_rfl plumbEq266 : B2C.plumbOf 266 = Fn.«verify_keccak_loop0».plumb
+kernel_rfl plumbEq266 : B2C.plumbOf 266 = Fn.«verify_tables_loop1».plumb
 
-kernel_rfl fsEq266 : B2C.fsN 266 = Fn.«verify_keccak_loop0».fs
+kernel_rfl fsEq266 : B2C.fsN 266 = Fn.«verify_tables_loop1».fs
 
-kernel_rfl partsEq266 : B2C.cplPartsOf 266 = Fn.«verify_keccak_loop0».parts
+kernel_rfl partsEq266 : B2C.cplPartsOf 266 = Fn.«verify_tables_loop1».parts
 
-kernel_rfl armsEq266 : listElementOrDefault Data.cplArms 266 [] = Fn.«verify_keccak_loop0».arms
+kernel_rfl armsEq266 : listElementOrDefault Data.cplArms 266 [] = Fn.«verify_tables_loop1».arms
 
-kernel_rfl snapsEq266 : B2C.snapsOf 266 = Fn.«verify_keccak_loop0».snaps
+kernel_rfl snapsEq266 : B2C.snapsOf 266 = Fn.«verify_tables_loop1».snaps
 
-kernel_rfl code267 : fnOf 267 = Fn.«keccak_layer__L1».code
+kernel_rfl code267 : fnOf 267 = Fn.«verify_keccak_loop0».code
 
-kernel_rfl core267 : coreOf 267 = Fn.«keccak_layer__L1».core
+kernel_rfl core267 : coreOf 267 = Fn.«verify_keccak_loop0».core
 
-kernel_rfl cert267 : certOf 267 = (Fn.«keccak_layer__L1».cert.withPows Data.powTree)
+kernel_rfl cert267 : certOf 267 = (Fn.«verify_keccak_loop0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody267 : sigFrom Fn.«keccak_layer__L1».code Fn.«keccak_layer__L1».core (Fn.«keccak_layer__L1».cert.withPows Data.powTree) = Fn.«keccak_layer__L1».sig
+kernel_rfl sigBody267 : sigFrom Fn.«verify_keccak_loop0».code Fn.«verify_keccak_loop0».core (Fn.«verify_keccak_loop0».cert.withPows Data.powTree) = Fn.«verify_keccak_loop0».sig
 
-theorem sig267 : glob.sig 267 = Fn.«keccak_layer__L1».sig := sig_of_link code267 core267 cert267 sigBody267
+theorem sig267 : glob.sig 267 = Fn.«verify_keccak_loop0».sig := sig_of_link code267 core267 cert267 sigBody267
 
-kernel_rfl plumbEq267 : B2C.plumbOf 267 = Fn.«keccak_layer__L1».plumb
+kernel_rfl plumbEq267 : B2C.plumbOf 267 = Fn.«verify_keccak_loop0».plumb
 
-kernel_rfl fsEq267 : B2C.fsN 267 = Fn.«keccak_layer__L1».fs
+kernel_rfl fsEq267 : B2C.fsN 267 = Fn.«verify_keccak_loop0».fs
 
-kernel_rfl partsEq267 : B2C.cplPartsOf 267 = Fn.«keccak_layer__L1».parts
+kernel_rfl partsEq267 : B2C.cplPartsOf 267 = Fn.«verify_keccak_loop0».parts
 
-kernel_rfl armsEq267 : listElementOrDefault Data.cplArms 267 [] = Fn.«keccak_layer__L1».arms
+kernel_rfl armsEq267 : listElementOrDefault Data.cplArms 267 [] = Fn.«verify_keccak_loop0».arms
 
-kernel_rfl snapsEq267 : B2C.snapsOf 267 = Fn.«keccak_layer__L1».snaps
+kernel_rfl snapsEq267 : B2C.snapsOf 267 = Fn.«verify_keccak_loop0».snaps
 
-kernel_rfl code268 : fnOf 268 = Fn.«keccak_layer__L0».code
+kernel_rfl code268 : fnOf 268 = Fn.«keccak_layer__L1».code
 
-kernel_rfl core268 : coreOf 268 = Fn.«keccak_layer__L0».core
+kernel_rfl core268 : coreOf 268 = Fn.«keccak_layer__L1».core
 
-kernel_rfl cert268 : certOf 268 = (Fn.«keccak_layer__L0».cert.withPows Data.powTree)
+kernel_rfl cert268 : certOf 268 = (Fn.«keccak_layer__L1».cert.withPows Data.powTree)
 
-kernel_rfl sigBody268 : sigFrom Fn.«keccak_layer__L0».code Fn.«keccak_layer__L0».core (Fn.«keccak_layer__L0».cert.withPows Data.powTree) = Fn.«keccak_layer__L0».sig
+kernel_rfl sigBody268 : sigFrom Fn.«keccak_layer__L1».code Fn.«keccak_layer__L1».core (Fn.«keccak_layer__L1».cert.withPows Data.powTree) = Fn.«keccak_layer__L1».sig
 
-theorem sig268 : glob.sig 268 = Fn.«keccak_layer__L0».sig := sig_of_link code268 core268 cert268 sigBody268
+theorem sig268 : glob.sig 268 = Fn.«keccak_layer__L1».sig := sig_of_link code268 core268 cert268 sigBody268
 
-kernel_rfl plumbEq268 : B2C.plumbOf 268 = Fn.«keccak_layer__L0».plumb
+kernel_rfl plumbEq268 : B2C.plumbOf 268 = Fn.«keccak_layer__L1».plumb
 
-kernel_rfl fsEq268 : B2C.fsN 268 = Fn.«keccak_layer__L0».fs
+kernel_rfl fsEq268 : B2C.fsN 268 = Fn.«keccak_layer__L1».fs
 
-kernel_rfl partsEq268 : B2C.cplPartsOf 268 = Fn.«keccak_layer__L0».parts
+kernel_rfl partsEq268 : B2C.cplPartsOf 268 = Fn.«keccak_layer__L1».parts
 
-kernel_rfl armsEq268 : listElementOrDefault Data.cplArms 268 [] = Fn.«keccak_layer__L0».arms
+kernel_rfl armsEq268 : listElementOrDefault Data.cplArms 268 [] = Fn.«keccak_layer__L1».arms
 
-kernel_rfl snapsEq268 : B2C.snapsOf 268 = Fn.«keccak_layer__L0».snaps
+kernel_rfl snapsEq268 : B2C.snapsOf 268 = Fn.«keccak_layer__L1».snaps
 
-kernel_rfl code269 : fnOf 269 = Fn.«keccak_plain_rounds__L6_L0».code
+kernel_rfl code269 : fnOf 269 = Fn.«keccak_layer__L0».code
 
-kernel_rfl core269 : coreOf 269 = Fn.«keccak_plain_rounds__L6_L0».core
+kernel_rfl core269 : coreOf 269 = Fn.«keccak_layer__L0».core
 
-kernel_rfl cert269 : certOf 269 = (Fn.«keccak_plain_rounds__L6_L0».cert.withPows Data.powTree)
+kernel_rfl cert269 : certOf 269 = (Fn.«keccak_layer__L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody269 : sigFrom Fn.«keccak_plain_rounds__L6_L0».code Fn.«keccak_plain_rounds__L6_L0».core (Fn.«keccak_plain_rounds__L6_L0».cert.withPows Data.powTree) = Fn.«keccak_plain_rounds__L6_L0».sig
+kernel_rfl sigBody269 : sigFrom Fn.«keccak_layer__L0».code Fn.«keccak_layer__L0».core (Fn.«keccak_layer__L0».cert.withPows Data.powTree) = Fn.«keccak_layer__L0».sig
 
-theorem sig269 : glob.sig 269 = Fn.«keccak_plain_rounds__L6_L0».sig := sig_of_link code269 core269 cert269 sigBody269
+theorem sig269 : glob.sig 269 = Fn.«keccak_layer__L0».sig := sig_of_link code269 core269 cert269 sigBody269
 
-kernel_rfl plumbEq269 : B2C.plumbOf 269 = Fn.«keccak_plain_rounds__L6_L0».plumb
+kernel_rfl plumbEq269 : B2C.plumbOf 269 = Fn.«keccak_layer__L0».plumb
 
-kernel_rfl fsEq269 : B2C.fsN 269 = Fn.«keccak_plain_rounds__L6_L0».fs
+kernel_rfl fsEq269 : B2C.fsN 269 = Fn.«keccak_layer__L0».fs
 
-kernel_rfl partsEq269 : B2C.cplPartsOf 269 = Fn.«keccak_plain_rounds__L6_L0».parts
+kernel_rfl partsEq269 : B2C.cplPartsOf 269 = Fn.«keccak_layer__L0».parts
 
-kernel_rfl armsEq269 : listElementOrDefault Data.cplArms 269 [] = Fn.«keccak_plain_rounds__L6_L0».arms
+kernel_rfl armsEq269 : listElementOrDefault Data.cplArms 269 [] = Fn.«keccak_layer__L0».arms
 
-kernel_rfl snapsEq269 : B2C.snapsOf 269 = Fn.«keccak_plain_rounds__L6_L0».snaps
+kernel_rfl snapsEq269 : B2C.snapsOf 269 = Fn.«keccak_layer__L0».snaps
 
-kernel_rfl code270 : fnOf 270 = Fn.«verify_keccak_loop1».code
+kernel_rfl code270 : fnOf 270 = Fn.«keccak_plain_rounds__L6_L0».code
 
-kernel_rfl core270 : coreOf 270 = Fn.«verify_keccak_loop1».core
+kernel_rfl core270 : coreOf 270 = Fn.«keccak_plain_rounds__L6_L0».core
 
-kernel_rfl cert270 : certOf 270 = (Fn.«verify_keccak_loop1».cert.withPows Data.powTree)
+kernel_rfl cert270 : certOf 270 = (Fn.«keccak_plain_rounds__L6_L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody270 : sigFrom Fn.«verify_keccak_loop1».code Fn.«verify_keccak_loop1».core (Fn.«verify_keccak_loop1».cert.withPows Data.powTree) = Fn.«verify_keccak_loop1».sig
+kernel_rfl sigBody270 : sigFrom Fn.«keccak_plain_rounds__L6_L0».code Fn.«keccak_plain_rounds__L6_L0».core (Fn.«keccak_plain_rounds__L6_L0».cert.withPows Data.powTree) = Fn.«keccak_plain_rounds__L6_L0».sig
 
-theorem sig270 : glob.sig 270 = Fn.«verify_keccak_loop1».sig := sig_of_link code270 core270 cert270 sigBody270
+theorem sig270 : glob.sig 270 = Fn.«keccak_plain_rounds__L6_L0».sig := sig_of_link code270 core270 cert270 sigBody270
 
-kernel_rfl plumbEq270 : B2C.plumbOf 270 = Fn.«verify_keccak_loop1».plumb
+kernel_rfl plumbEq270 : B2C.plumbOf 270 = Fn.«keccak_plain_rounds__L6_L0».plumb
 
-kernel_rfl fsEq270 : B2C.fsN 270 = Fn.«verify_keccak_loop1».fs
+kernel_rfl fsEq270 : B2C.fsN 270 = Fn.«keccak_plain_rounds__L6_L0».fs
 
-kernel_rfl partsEq270 : B2C.cplPartsOf 270 = Fn.«verify_keccak_loop1».parts
+kernel_rfl partsEq270 : B2C.cplPartsOf 270 = Fn.«keccak_plain_rounds__L6_L0».parts
 
-kernel_rfl armsEq270 : listElementOrDefault Data.cplArms 270 [] = Fn.«verify_keccak_loop1».arms
+kernel_rfl armsEq270 : listElementOrDefault Data.cplArms 270 [] = Fn.«keccak_plain_rounds__L6_L0».arms
 
-kernel_rfl snapsEq270 : B2C.snapsOf 270 = Fn.«verify_keccak_loop1».snaps
+kernel_rfl snapsEq270 : B2C.snapsOf 270 = Fn.«keccak_plain_rounds__L6_L0».snaps
 
-kernel_rfl code271 : fnOf 271 = Fn.«keccak_plain_rounds__L4_L1».code
+kernel_rfl code271 : fnOf 271 = Fn.«verify_keccak_loop1».code
 
-kernel_rfl core271 : coreOf 271 = Fn.«keccak_plain_rounds__L4_L1».core
+kernel_rfl core271 : coreOf 271 = Fn.«verify_keccak_loop1».core
 
-kernel_rfl cert271 : certOf 271 = (Fn.«keccak_plain_rounds__L4_L1».cert.withPows Data.powTree)
+kernel_rfl cert271 : certOf 271 = (Fn.«verify_keccak_loop1».cert.withPows Data.powTree)
 
-kernel_rfl sigBody271 : sigFrom Fn.«keccak_plain_rounds__L4_L1».code Fn.«keccak_plain_rounds__L4_L1».core (Fn.«keccak_plain_rounds__L4_L1».cert.withPows Data.powTree) = Fn.«keccak_plain_rounds__L4_L1».sig
+kernel_rfl sigBody271 : sigFrom Fn.«verify_keccak_loop1».code Fn.«verify_keccak_loop1».core (Fn.«verify_keccak_loop1».cert.withPows Data.powTree) = Fn.«verify_keccak_loop1».sig
 
-theorem sig271 : glob.sig 271 = Fn.«keccak_plain_rounds__L4_L1».sig := sig_of_link code271 core271 cert271 sigBody271
+theorem sig271 : glob.sig 271 = Fn.«verify_keccak_loop1».sig := sig_of_link code271 core271 cert271 sigBody271
 
-kernel_rfl plumbEq271 : B2C.plumbOf 271 = Fn.«keccak_plain_rounds__L4_L1».plumb
+kernel_rfl plumbEq271 : B2C.plumbOf 271 = Fn.«verify_keccak_loop1».plumb
 
-kernel_rfl fsEq271 : B2C.fsN 271 = Fn.«keccak_plain_rounds__L4_L1».fs
+kernel_rfl fsEq271 : B2C.fsN 271 = Fn.«verify_keccak_loop1».fs
 
-kernel_rfl partsEq271 : B2C.cplPartsOf 271 = Fn.«keccak_plain_rounds__L4_L1».parts
+kernel_rfl partsEq271 : B2C.cplPartsOf 271 = Fn.«verify_keccak_loop1».parts
 
-kernel_rfl armsEq271 : listElementOrDefault Data.cplArms 271 [] = Fn.«keccak_plain_rounds__L4_L1».arms
+kernel_rfl armsEq271 : listElementOrDefault Data.cplArms 271 [] = Fn.«verify_keccak_loop1».arms
 
-kernel_rfl snapsEq271 : B2C.snapsOf 271 = Fn.«keccak_plain_rounds__L4_L1».snaps
+kernel_rfl snapsEq271 : B2C.snapsOf 271 = Fn.«verify_keccak_loop1».snaps
 
-kernel_rfl code272 : fnOf 272 = Fn.«verify_keccak_loop2».code
+kernel_rfl code272 : fnOf 272 = Fn.«keccak_plain_rounds__L4_L1».code
 
-kernel_rfl core272 : coreOf 272 = Fn.«verify_keccak_loop2».core
+kernel_rfl core272 : coreOf 272 = Fn.«keccak_plain_rounds__L4_L1».core
 
-kernel_rfl cert272 : certOf 272 = (Fn.«verify_keccak_loop2».cert.withPows Data.powTree)
+kernel_rfl cert272 : certOf 272 = (Fn.«keccak_plain_rounds__L4_L1».cert.withPows Data.powTree)
 
-kernel_rfl sigBody272 : sigFrom Fn.«verify_keccak_loop2».code Fn.«verify_keccak_loop2».core (Fn.«verify_keccak_loop2».cert.withPows Data.powTree) = Fn.«verify_keccak_loop2».sig
+kernel_rfl sigBody272 : sigFrom Fn.«keccak_plain_rounds__L4_L1».code Fn.«keccak_plain_rounds__L4_L1».core (Fn.«keccak_plain_rounds__L4_L1».cert.withPows Data.powTree) = Fn.«keccak_plain_rounds__L4_L1».sig
 
-theorem sig272 : glob.sig 272 = Fn.«verify_keccak_loop2».sig := sig_of_link code272 core272 cert272 sigBody272
+theorem sig272 : glob.sig 272 = Fn.«keccak_plain_rounds__L4_L1».sig := sig_of_link code272 core272 cert272 sigBody272
 
-kernel_rfl plumbEq272 : B2C.plumbOf 272 = Fn.«verify_keccak_loop2».plumb
+kernel_rfl plumbEq272 : B2C.plumbOf 272 = Fn.«keccak_plain_rounds__L4_L1».plumb
 
-kernel_rfl fsEq272 : B2C.fsN 272 = Fn.«verify_keccak_loop2».fs
+kernel_rfl fsEq272 : B2C.fsN 272 = Fn.«keccak_plain_rounds__L4_L1».fs
 
-kernel_rfl partsEq272 : B2C.cplPartsOf 272 = Fn.«verify_keccak_loop2».parts
+kernel_rfl partsEq272 : B2C.cplPartsOf 272 = Fn.«keccak_plain_rounds__L4_L1».parts
 
-kernel_rfl armsEq272 : listElementOrDefault Data.cplArms 272 [] = Fn.«verify_keccak_loop2».arms
+kernel_rfl armsEq272 : listElementOrDefault Data.cplArms 272 [] = Fn.«keccak_plain_rounds__L4_L1».arms
 
-kernel_rfl snapsEq272 : B2C.snapsOf 272 = Fn.«verify_keccak_loop2».snaps
+kernel_rfl snapsEq272 : B2C.snapsOf 272 = Fn.«keccak_plain_rounds__L4_L1».snaps
 
-kernel_rfl code273 : fnOf 273 = Fn.«ring_switch_target_loop0».code
+kernel_rfl code273 : fnOf 273 = Fn.«verify_keccak_loop2».code
 
-kernel_rfl core273 : coreOf 273 = Fn.«ring_switch_target_loop0».core
+kernel_rfl core273 : coreOf 273 = Fn.«verify_keccak_loop2».core
 
-kernel_rfl cert273 : certOf 273 = (Fn.«ring_switch_target_loop0».cert.withPows Data.powTree)
+kernel_rfl cert273 : certOf 273 = (Fn.«verify_keccak_loop2».cert.withPows Data.powTree)
 
-kernel_rfl sigBody273 : sigFrom Fn.«ring_switch_target_loop0».code Fn.«ring_switch_target_loop0».core (Fn.«ring_switch_target_loop0».cert.withPows Data.powTree) = Fn.«ring_switch_target_loop0».sig
+kernel_rfl sigBody273 : sigFrom Fn.«verify_keccak_loop2».code Fn.«verify_keccak_loop2».core (Fn.«verify_keccak_loop2».cert.withPows Data.powTree) = Fn.«verify_keccak_loop2».sig
 
-theorem sig273 : glob.sig 273 = Fn.«ring_switch_target_loop0».sig := sig_of_link code273 core273 cert273 sigBody273
+theorem sig273 : glob.sig 273 = Fn.«verify_keccak_loop2».sig := sig_of_link code273 core273 cert273 sigBody273
 
-kernel_rfl plumbEq273 : B2C.plumbOf 273 = Fn.«ring_switch_target_loop0».plumb
+kernel_rfl plumbEq273 : B2C.plumbOf 273 = Fn.«verify_keccak_loop2».plumb
 
-kernel_rfl fsEq273 : B2C.fsN 273 = Fn.«ring_switch_target_loop0».fs
+kernel_rfl fsEq273 : B2C.fsN 273 = Fn.«verify_keccak_loop2».fs
 
-kernel_rfl partsEq273 : B2C.cplPartsOf 273 = Fn.«ring_switch_target_loop0».parts
+kernel_rfl partsEq273 : B2C.cplPartsOf 273 = Fn.«verify_keccak_loop2».parts
 
-kernel_rfl armsEq273 : listElementOrDefault Data.cplArms 273 [] = Fn.«ring_switch_target_loop0».arms
+kernel_rfl armsEq273 : listElementOrDefault Data.cplArms 273 [] = Fn.«verify_keccak_loop2».arms
 
-kernel_rfl snapsEq273 : B2C.snapsOf 273 = Fn.«ring_switch_target_loop0».snaps
+kernel_rfl snapsEq273 : B2C.snapsOf 273 = Fn.«verify_keccak_loop2».snaps
 
-kernel_rfl code274 : fnOf 274 = Fn.«check_opening_terminal_loop0».code
+kernel_rfl code274 : fnOf 274 = Fn.«ring_switch_target_loop0».code
 
-kernel_rfl core274 : coreOf 274 = Fn.«check_opening_terminal_loop0».core
+kernel_rfl core274 : coreOf 274 = Fn.«ring_switch_target_loop0».core
 
-kernel_rfl cert274 : certOf 274 = (Fn.«check_opening_terminal_loop0».cert.withPows Data.powTree)
+kernel_rfl cert274 : certOf 274 = (Fn.«ring_switch_target_loop0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody274 : sigFrom Fn.«check_opening_terminal_loop0».code Fn.«check_opening_terminal_loop0».core (Fn.«check_opening_terminal_loop0».cert.withPows Data.powTree) = Fn.«check_opening_terminal_loop0».sig
+kernel_rfl sigBody274 : sigFrom Fn.«ring_switch_target_loop0».code Fn.«ring_switch_target_loop0».core (Fn.«ring_switch_target_loop0».cert.withPows Data.powTree) = Fn.«ring_switch_target_loop0».sig
 
-theorem sig274 : glob.sig 274 = Fn.«check_opening_terminal_loop0».sig := sig_of_link code274 core274 cert274 sigBody274
+theorem sig274 : glob.sig 274 = Fn.«ring_switch_target_loop0».sig := sig_of_link code274 core274 cert274 sigBody274
 
-kernel_rfl plumbEq274 : B2C.plumbOf 274 = Fn.«check_opening_terminal_loop0».plumb
+kernel_rfl plumbEq274 : B2C.plumbOf 274 = Fn.«ring_switch_target_loop0».plumb
 
-kernel_rfl fsEq274 : B2C.fsN 274 = Fn.«check_opening_terminal_loop0».fs
+kernel_rfl fsEq274 : B2C.fsN 274 = Fn.«ring_switch_target_loop0».fs
 
-kernel_rfl partsEq274 : B2C.cplPartsOf 274 = Fn.«check_opening_terminal_loop0».parts
+kernel_rfl partsEq274 : B2C.cplPartsOf 274 = Fn.«ring_switch_target_loop0».parts
 
-kernel_rfl armsEq274 : listElementOrDefault Data.cplArms 274 [] = Fn.«check_opening_terminal_loop0».arms
+kernel_rfl armsEq274 : listElementOrDefault Data.cplArms 274 [] = Fn.«ring_switch_target_loop0».arms
 
-kernel_rfl snapsEq274 : B2C.snapsOf 274 = Fn.«check_opening_terminal_loop0».snaps
+kernel_rfl snapsEq274 : B2C.snapsOf 274 = Fn.«ring_switch_target_loop0».snaps
 
-kernel_rfl code275 : fnOf 275 = Fn.«column_selector__L0».code
+kernel_rfl code275 : fnOf 275 = Fn.«check_opening_terminal_loop0».code
 
-kernel_rfl core275 : coreOf 275 = Fn.«column_selector__L0».core
+kernel_rfl core275 : coreOf 275 = Fn.«check_opening_terminal_loop0».core
 
-kernel_rfl cert275 : certOf 275 = (Fn.«column_selector__L0».cert.withPows Data.powTree)
+kernel_rfl cert275 : certOf 275 = (Fn.«check_opening_terminal_loop0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody275 : sigFrom Fn.«column_selector__L0».code Fn.«column_selector__L0».core (Fn.«column_selector__L0».cert.withPows Data.powTree) = Fn.«column_selector__L0».sig
+kernel_rfl sigBody275 : sigFrom Fn.«check_opening_terminal_loop0».code Fn.«check_opening_terminal_loop0».core (Fn.«check_opening_terminal_loop0».cert.withPows Data.powTree) = Fn.«check_opening_terminal_loop0».sig
 
-theorem sig275 : glob.sig 275 = Fn.«column_selector__L0».sig := sig_of_link code275 core275 cert275 sigBody275
+theorem sig275 : glob.sig 275 = Fn.«check_opening_terminal_loop0».sig := sig_of_link code275 core275 cert275 sigBody275
 
-kernel_rfl plumbEq275 : B2C.plumbOf 275 = Fn.«column_selector__L0».plumb
+kernel_rfl plumbEq275 : B2C.plumbOf 275 = Fn.«check_opening_terminal_loop0».plumb
 
-kernel_rfl fsEq275 : B2C.fsN 275 = Fn.«column_selector__L0».fs
+kernel_rfl fsEq275 : B2C.fsN 275 = Fn.«check_opening_terminal_loop0».fs
 
-kernel_rfl partsEq275 : B2C.cplPartsOf 275 = Fn.«column_selector__L0».parts
+kernel_rfl partsEq275 : B2C.cplPartsOf 275 = Fn.«check_opening_terminal_loop0».parts
 
-kernel_rfl armsEq275 : listElementOrDefault Data.cplArms 275 [] = Fn.«column_selector__L0».arms
+kernel_rfl armsEq275 : listElementOrDefault Data.cplArms 275 [] = Fn.«check_opening_terminal_loop0».arms
 
-kernel_rfl snapsEq275 : B2C.snapsOf 275 = Fn.«column_selector__L0».snaps
+kernel_rfl snapsEq275 : B2C.snapsOf 275 = Fn.«check_opening_terminal_loop0».snaps
 
-kernel_rfl code276 : fnOf 276 = Fn.«column_selector__L1».code
+kernel_rfl code276 : fnOf 276 = Fn.«column_selector__L0».code
 
-kernel_rfl core276 : coreOf 276 = Fn.«column_selector__L1».core
+kernel_rfl core276 : coreOf 276 = Fn.«column_selector__L0».core
 
-kernel_rfl cert276 : certOf 276 = (Fn.«column_selector__L1».cert.withPows Data.powTree)
+kernel_rfl cert276 : certOf 276 = (Fn.«column_selector__L0».cert.withPows Data.powTree)
 
-kernel_rfl sigBody276 : sigFrom Fn.«column_selector__L1».code Fn.«column_selector__L1».core (Fn.«column_selector__L1».cert.withPows Data.powTree) = Fn.«column_selector__L1».sig
+kernel_rfl sigBody276 : sigFrom Fn.«column_selector__L0».code Fn.«column_selector__L0».core (Fn.«column_selector__L0».cert.withPows Data.powTree) = Fn.«column_selector__L0».sig
 
-theorem sig276 : glob.sig 276 = Fn.«column_selector__L1».sig := sig_of_link code276 core276 cert276 sigBody276
+theorem sig276 : glob.sig 276 = Fn.«column_selector__L0».sig := sig_of_link code276 core276 cert276 sigBody276
 
-kernel_rfl plumbEq276 : B2C.plumbOf 276 = Fn.«column_selector__L1».plumb
+kernel_rfl plumbEq276 : B2C.plumbOf 276 = Fn.«column_selector__L0».plumb
 
-kernel_rfl fsEq276 : B2C.fsN 276 = Fn.«column_selector__L1».fs
+kernel_rfl fsEq276 : B2C.fsN 276 = Fn.«column_selector__L0».fs
 
-kernel_rfl partsEq276 : B2C.cplPartsOf 276 = Fn.«column_selector__L1».parts
+kernel_rfl partsEq276 : B2C.cplPartsOf 276 = Fn.«column_selector__L0».parts
 
-kernel_rfl armsEq276 : listElementOrDefault Data.cplArms 276 [] = Fn.«column_selector__L1».arms
+kernel_rfl armsEq276 : listElementOrDefault Data.cplArms 276 [] = Fn.«column_selector__L0».arms
 
-kernel_rfl snapsEq276 : B2C.snapsOf 276 = Fn.«column_selector__L1».snaps
+kernel_rfl snapsEq276 : B2C.snapsOf 276 = Fn.«column_selector__L0».snaps
 
-kernel_rfl code277 : fnOf 277 = Fn.«column_selector__L2».code
+kernel_rfl code277 : fnOf 277 = Fn.«column_selector__L1».code
 
-kernel_rfl core277 : coreOf 277 = Fn.«column_selector__L2».core
+kernel_rfl core277 : coreOf 277 = Fn.«column_selector__L1».core
 
-kernel_rfl cert277 : certOf 277 = (Fn.«column_selector__L2».cert.withPows Data.powTree)
+kernel_rfl cert277 : certOf 277 = (Fn.«column_selector__L1».cert.withPows Data.powTree)
 
-kernel_rfl sigBody277 : sigFrom Fn.«column_selector__L2».code Fn.«column_selector__L2».core (Fn.«column_selector__L2».cert.withPows Data.powTree) = Fn.«column_selector__L2».sig
+kernel_rfl sigBody277 : sigFrom Fn.«column_selector__L1».code Fn.«column_selector__L1».core (Fn.«column_selector__L1».cert.withPows Data.powTree) = Fn.«column_selector__L1».sig
 
-theorem sig277 : glob.sig 277 = Fn.«column_selector__L2».sig := sig_of_link code277 core277 cert277 sigBody277
+theorem sig277 : glob.sig 277 = Fn.«column_selector__L1».sig := sig_of_link code277 core277 cert277 sigBody277
 
-kernel_rfl plumbEq277 : B2C.plumbOf 277 = Fn.«column_selector__L2».plumb
+kernel_rfl plumbEq277 : B2C.plumbOf 277 = Fn.«column_selector__L1».plumb
 
-kernel_rfl fsEq277 : B2C.fsN 277 = Fn.«column_selector__L2».fs
+kernel_rfl fsEq277 : B2C.fsN 277 = Fn.«column_selector__L1».fs
 
-kernel_rfl partsEq277 : B2C.cplPartsOf 277 = Fn.«column_selector__L2».parts
+kernel_rfl partsEq277 : B2C.cplPartsOf 277 = Fn.«column_selector__L1».parts
 
-kernel_rfl armsEq277 : listElementOrDefault Data.cplArms 277 [] = Fn.«column_selector__L2».arms
+kernel_rfl armsEq277 : listElementOrDefault Data.cplArms 277 [] = Fn.«column_selector__L1».arms
 
-kernel_rfl snapsEq277 : B2C.snapsOf 277 = Fn.«column_selector__L2».snaps
+kernel_rfl snapsEq277 : B2C.snapsOf 277 = Fn.«column_selector__L1».snaps
 
-kernel_rfl code278 : fnOf 278 = Fn.«column_selector__L3».code
+kernel_rfl code278 : fnOf 278 = Fn.«column_selector__L2».code
 
-kernel_rfl core278 : coreOf 278 = Fn.«column_selector__L3».core
+kernel_rfl core278 : coreOf 278 = Fn.«column_selector__L2».core
 
-kernel_rfl cert278 : certOf 278 = (Fn.«column_selector__L3».cert.withPows Data.powTree)
+kernel_rfl cert278 : certOf 278 = (Fn.«column_selector__L2».cert.withPows Data.powTree)
 
-kernel_rfl sigBody278 : sigFrom Fn.«column_selector__L3».code Fn.«column_selector__L3».core (Fn.«column_selector__L3».cert.withPows Data.powTree) = Fn.«column_selector__L3».sig
+kernel_rfl sigBody278 : sigFrom Fn.«column_selector__L2».code Fn.«column_selector__L2».core (Fn.«column_selector__L2».cert.withPows Data.powTree) = Fn.«column_selector__L2».sig
 
-theorem sig278 : glob.sig 278 = Fn.«column_selector__L3».sig := sig_of_link code278 core278 cert278 sigBody278
+theorem sig278 : glob.sig 278 = Fn.«column_selector__L2».sig := sig_of_link code278 core278 cert278 sigBody278
 
-kernel_rfl plumbEq278 : B2C.plumbOf 278 = Fn.«column_selector__L3».plumb
+kernel_rfl plumbEq278 : B2C.plumbOf 278 = Fn.«column_selector__L2».plumb
 
-kernel_rfl fsEq278 : B2C.fsN 278 = Fn.«column_selector__L3».fs
+kernel_rfl fsEq278 : B2C.fsN 278 = Fn.«column_selector__L2».fs
 
-kernel_rfl partsEq278 : B2C.cplPartsOf 278 = Fn.«column_selector__L3».parts
+kernel_rfl partsEq278 : B2C.cplPartsOf 278 = Fn.«column_selector__L2».parts
 
-kernel_rfl armsEq278 : listElementOrDefault Data.cplArms 278 [] = Fn.«column_selector__L3».arms
+kernel_rfl armsEq278 : listElementOrDefault Data.cplArms 278 [] = Fn.«column_selector__L2».arms
 
-kernel_rfl snapsEq278 : B2C.snapsOf 278 = Fn.«column_selector__L3».snaps
+kernel_rfl snapsEq278 : B2C.snapsOf 278 = Fn.«column_selector__L2».snaps
 
-kernel_rfl code279 : fnOf 279 = Fn.«column_selector__L4».code
+kernel_rfl code279 : fnOf 279 = Fn.«column_selector__L3».code
 
-kernel_rfl core279 : coreOf 279 = Fn.«column_selector__L4».core
+kernel_rfl core279 : coreOf 279 = Fn.«column_selector__L3».core
 
-kernel_rfl cert279 : certOf 279 = (Fn.«column_selector__L4».cert.withPows Data.powTree)
+kernel_rfl cert279 : certOf 279 = (Fn.«column_selector__L3».cert.withPows Data.powTree)
 
-kernel_rfl sigBody279 : sigFrom Fn.«column_selector__L4».code Fn.«column_selector__L4».core (Fn.«column_selector__L4».cert.withPows Data.powTree) = Fn.«column_selector__L4».sig
+kernel_rfl sigBody279 : sigFrom Fn.«column_selector__L3».code Fn.«column_selector__L3».core (Fn.«column_selector__L3».cert.withPows Data.powTree) = Fn.«column_selector__L3».sig
 
-theorem sig279 : glob.sig 279 = Fn.«column_selector__L4».sig := sig_of_link code279 core279 cert279 sigBody279
+theorem sig279 : glob.sig 279 = Fn.«column_selector__L3».sig := sig_of_link code279 core279 cert279 sigBody279
 
-kernel_rfl plumbEq279 : B2C.plumbOf 279 = Fn.«column_selector__L4».plumb
+kernel_rfl plumbEq279 : B2C.plumbOf 279 = Fn.«column_selector__L3».plumb
 
-kernel_rfl fsEq279 : B2C.fsN 279 = Fn.«column_selector__L4».fs
+kernel_rfl fsEq279 : B2C.fsN 279 = Fn.«column_selector__L3».fs
 
-kernel_rfl partsEq279 : B2C.cplPartsOf 279 = Fn.«column_selector__L4».parts
+kernel_rfl partsEq279 : B2C.cplPartsOf 279 = Fn.«column_selector__L3».parts
 
-kernel_rfl armsEq279 : listElementOrDefault Data.cplArms 279 [] = Fn.«column_selector__L4».arms
+kernel_rfl armsEq279 : listElementOrDefault Data.cplArms 279 [] = Fn.«column_selector__L3».arms
 
-kernel_rfl snapsEq279 : B2C.snapsOf 279 = Fn.«column_selector__L4».snaps
+kernel_rfl snapsEq279 : B2C.snapsOf 279 = Fn.«column_selector__L3».snaps
 
-kernel_rfl code280 : fnOf 280 = Fn.«column_selector__L5».code
+kernel_rfl code280 : fnOf 280 = Fn.«column_selector__L4».code
 
-kernel_rfl core280 : coreOf 280 = Fn.«column_selector__L5».core
+kernel_rfl core280 : coreOf 280 = Fn.«column_selector__L4».core
 
-kernel_rfl cert280 : certOf 280 = (Fn.«column_selector__L5».cert.withPows Data.powTree)
+kernel_rfl cert280 : certOf 280 = (Fn.«column_selector__L4».cert.withPows Data.powTree)
 
-kernel_rfl sigBody280 : sigFrom Fn.«column_selector__L5».code Fn.«column_selector__L5».core (Fn.«column_selector__L5».cert.withPows Data.powTree) = Fn.«column_selector__L5».sig
+kernel_rfl sigBody280 : sigFrom Fn.«column_selector__L4».code Fn.«column_selector__L4».core (Fn.«column_selector__L4».cert.withPows Data.powTree) = Fn.«column_selector__L4».sig
 
-theorem sig280 : glob.sig 280 = Fn.«column_selector__L5».sig := sig_of_link code280 core280 cert280 sigBody280
+theorem sig280 : glob.sig 280 = Fn.«column_selector__L4».sig := sig_of_link code280 core280 cert280 sigBody280
 
-kernel_rfl plumbEq280 : B2C.plumbOf 280 = Fn.«column_selector__L5».plumb
+kernel_rfl plumbEq280 : B2C.plumbOf 280 = Fn.«column_selector__L4».plumb
 
-kernel_rfl fsEq280 : B2C.fsN 280 = Fn.«column_selector__L5».fs
+kernel_rfl fsEq280 : B2C.fsN 280 = Fn.«column_selector__L4».fs
 
-kernel_rfl partsEq280 : B2C.cplPartsOf 280 = Fn.«column_selector__L5».parts
+kernel_rfl partsEq280 : B2C.cplPartsOf 280 = Fn.«column_selector__L4».parts
 
-kernel_rfl armsEq280 : listElementOrDefault Data.cplArms 280 [] = Fn.«column_selector__L5».arms
+kernel_rfl armsEq280 : listElementOrDefault Data.cplArms 280 [] = Fn.«column_selector__L4».arms
 
-kernel_rfl snapsEq280 : B2C.snapsOf 280 = Fn.«column_selector__L5».snaps
+kernel_rfl snapsEq280 : B2C.snapsOf 280 = Fn.«column_selector__L4».snaps
 
-kernel_rfl code281 : fnOf 281 = Fn.«column_selector__L6».code
+kernel_rfl code281 : fnOf 281 = Fn.«column_selector__L5».code
 
-kernel_rfl core281 : coreOf 281 = Fn.«column_selector__L6».core
+kernel_rfl core281 : coreOf 281 = Fn.«column_selector__L5».core
 
-kernel_rfl cert281 : certOf 281 = (Fn.«column_selector__L6».cert.withPows Data.powTree)
+kernel_rfl cert281 : certOf 281 = (Fn.«column_selector__L5».cert.withPows Data.powTree)
 
-kernel_rfl sigBody281 : sigFrom Fn.«column_selector__L6».code Fn.«column_selector__L6».core (Fn.«column_selector__L6».cert.withPows Data.powTree) = Fn.«column_selector__L6».sig
+kernel_rfl sigBody281 : sigFrom Fn.«column_selector__L5».code Fn.«column_selector__L5».core (Fn.«column_selector__L5».cert.withPows Data.powTree) = Fn.«column_selector__L5».sig
 
-theorem sig281 : glob.sig 281 = Fn.«column_selector__L6».sig := sig_of_link code281 core281 cert281 sigBody281
+theorem sig281 : glob.sig 281 = Fn.«column_selector__L5».sig := sig_of_link code281 core281 cert281 sigBody281
 
-kernel_rfl plumbEq281 : B2C.plumbOf 281 = Fn.«column_selector__L6».plumb
+kernel_rfl plumbEq281 : B2C.plumbOf 281 = Fn.«column_selector__L5».plumb
 
-kernel_rfl fsEq281 : B2C.fsN 281 = Fn.«column_selector__L6».fs
+kernel_rfl fsEq281 : B2C.fsN 281 = Fn.«column_selector__L5».fs
 
-kernel_rfl partsEq281 : B2C.cplPartsOf 281 = Fn.«column_selector__L6».parts
+kernel_rfl partsEq281 : B2C.cplPartsOf 281 = Fn.«column_selector__L5».parts
 
-kernel_rfl armsEq281 : listElementOrDefault Data.cplArms 281 [] = Fn.«column_selector__L6».arms
+kernel_rfl armsEq281 : listElementOrDefault Data.cplArms 281 [] = Fn.«column_selector__L5».arms
 
-kernel_rfl snapsEq281 : B2C.snapsOf 281 = Fn.«column_selector__L6».snaps
+kernel_rfl snapsEq281 : B2C.snapsOf 281 = Fn.«column_selector__L5».snaps
 
-kernel_rfl code282 : fnOf 282 = Fn.«column_selector__L7».code
+kernel_rfl code282 : fnOf 282 = Fn.«column_selector__L6».code
 
-kernel_rfl core282 : coreOf 282 = Fn.«column_selector__L7».core
+kernel_rfl core282 : coreOf 282 = Fn.«column_selector__L6».core
 
-kernel_rfl cert282 : certOf 282 = (Fn.«column_selector__L7».cert.withPows Data.powTree)
+kernel_rfl cert282 : certOf 282 = (Fn.«column_selector__L6».cert.withPows Data.powTree)
 
-kernel_rfl sigBody282 : sigFrom Fn.«column_selector__L7».code Fn.«column_selector__L7».core (Fn.«column_selector__L7».cert.withPows Data.powTree) = Fn.«column_selector__L7».sig
+kernel_rfl sigBody282 : sigFrom Fn.«column_selector__L6».code Fn.«column_selector__L6».core (Fn.«column_selector__L6».cert.withPows Data.powTree) = Fn.«column_selector__L6».sig
 
-theorem sig282 : glob.sig 282 = Fn.«column_selector__L7».sig := sig_of_link code282 core282 cert282 sigBody282
+theorem sig282 : glob.sig 282 = Fn.«column_selector__L6».sig := sig_of_link code282 core282 cert282 sigBody282
 
-kernel_rfl plumbEq282 : B2C.plumbOf 282 = Fn.«column_selector__L7».plumb
+kernel_rfl plumbEq282 : B2C.plumbOf 282 = Fn.«column_selector__L6».plumb
 
-kernel_rfl fsEq282 : B2C.fsN 282 = Fn.«column_selector__L7».fs
+kernel_rfl fsEq282 : B2C.fsN 282 = Fn.«column_selector__L6».fs
 
-kernel_rfl partsEq282 : B2C.cplPartsOf 282 = Fn.«column_selector__L7».parts
+kernel_rfl partsEq282 : B2C.cplPartsOf 282 = Fn.«column_selector__L6».parts
 
-kernel_rfl armsEq282 : listElementOrDefault Data.cplArms 282 [] = Fn.«column_selector__L7».arms
+kernel_rfl armsEq282 : listElementOrDefault Data.cplArms 282 [] = Fn.«column_selector__L6».arms
 
-kernel_rfl snapsEq282 : B2C.snapsOf 282 = Fn.«column_selector__L7».snaps
+kernel_rfl snapsEq282 : B2C.snapsOf 282 = Fn.«column_selector__L6».snaps
 
-kernel_rfl code283 : fnOf 283 = Fn.«column_selector__L8».code
+kernel_rfl code283 : fnOf 283 = Fn.«column_selector__L7».code
 
-kernel_rfl core283 : coreOf 283 = Fn.«column_selector__L8».core
+kernel_rfl core283 : coreOf 283 = Fn.«column_selector__L7».core
 
-kernel_rfl cert283 : certOf 283 = (Fn.«column_selector__L8».cert.withPows Data.powTree)
+kernel_rfl cert283 : certOf 283 = (Fn.«column_selector__L7».cert.withPows Data.powTree)
 
-kernel_rfl sigBody283 : sigFrom Fn.«column_selector__L8».code Fn.«column_selector__L8».core (Fn.«column_selector__L8».cert.withPows Data.powTree) = Fn.«column_selector__L8».sig
+kernel_rfl sigBody283 : sigFrom Fn.«column_selector__L7».code Fn.«column_selector__L7».core (Fn.«column_selector__L7».cert.withPows Data.powTree) = Fn.«column_selector__L7».sig
 
-theorem sig283 : glob.sig 283 = Fn.«column_selector__L8».sig := sig_of_link code283 core283 cert283 sigBody283
+theorem sig283 : glob.sig 283 = Fn.«column_selector__L7».sig := sig_of_link code283 core283 cert283 sigBody283
 
-kernel_rfl plumbEq283 : B2C.plumbOf 283 = Fn.«column_selector__L8».plumb
+kernel_rfl plumbEq283 : B2C.plumbOf 283 = Fn.«column_selector__L7».plumb
 
-kernel_rfl fsEq283 : B2C.fsN 283 = Fn.«column_selector__L8».fs
+kernel_rfl fsEq283 : B2C.fsN 283 = Fn.«column_selector__L7».fs
 
-kernel_rfl partsEq283 : B2C.cplPartsOf 283 = Fn.«column_selector__L8».parts
+kernel_rfl partsEq283 : B2C.cplPartsOf 283 = Fn.«column_selector__L7».parts
 
-kernel_rfl armsEq283 : listElementOrDefault Data.cplArms 283 [] = Fn.«column_selector__L8».arms
+kernel_rfl armsEq283 : listElementOrDefault Data.cplArms 283 [] = Fn.«column_selector__L7».arms
 
-kernel_rfl snapsEq283 : B2C.snapsOf 283 = Fn.«column_selector__L8».snaps
+kernel_rfl snapsEq283 : B2C.snapsOf 283 = Fn.«column_selector__L7».snaps
 
-kernel_rfl code284 : fnOf 284 = Fn.«column_selector__L9».code
+kernel_rfl code284 : fnOf 284 = Fn.«column_selector__L8».code
 
-kernel_rfl core284 : coreOf 284 = Fn.«column_selector__L9».core
+kernel_rfl core284 : coreOf 284 = Fn.«column_selector__L8».core
 
-kernel_rfl cert284 : certOf 284 = (Fn.«column_selector__L9».cert.withPows Data.powTree)
+kernel_rfl cert284 : certOf 284 = (Fn.«column_selector__L8».cert.withPows Data.powTree)
 
-kernel_rfl sigBody284 : sigFrom Fn.«column_selector__L9».code Fn.«column_selector__L9».core (Fn.«column_selector__L9».cert.withPows Data.powTree) = Fn.«column_selector__L9».sig
+kernel_rfl sigBody284 : sigFrom Fn.«column_selector__L8».code Fn.«column_selector__L8».core (Fn.«column_selector__L8».cert.withPows Data.powTree) = Fn.«column_selector__L8».sig
 
-theorem sig284 : glob.sig 284 = Fn.«column_selector__L9».sig := sig_of_link code284 core284 cert284 sigBody284
+theorem sig284 : glob.sig 284 = Fn.«column_selector__L8».sig := sig_of_link code284 core284 cert284 sigBody284
 
-kernel_rfl plumbEq284 : B2C.plumbOf 284 = Fn.«column_selector__L9».plumb
+kernel_rfl plumbEq284 : B2C.plumbOf 284 = Fn.«column_selector__L8».plumb
 
-kernel_rfl fsEq284 : B2C.fsN 284 = Fn.«column_selector__L9».fs
+kernel_rfl fsEq284 : B2C.fsN 284 = Fn.«column_selector__L8».fs
 
-kernel_rfl partsEq284 : B2C.cplPartsOf 284 = Fn.«column_selector__L9».parts
+kernel_rfl partsEq284 : B2C.cplPartsOf 284 = Fn.«column_selector__L8».parts
 
-kernel_rfl armsEq284 : listElementOrDefault Data.cplArms 284 [] = Fn.«column_selector__L9».arms
+kernel_rfl armsEq284 : listElementOrDefault Data.cplArms 284 [] = Fn.«column_selector__L8».arms
 
-kernel_rfl snapsEq284 : B2C.snapsOf 284 = Fn.«column_selector__L9».snaps
+kernel_rfl snapsEq284 : B2C.snapsOf 284 = Fn.«column_selector__L8».snaps
 
-kernel_rfl code285 : fnOf 285 = Fn.«column_selector__L10».code
+kernel_rfl code285 : fnOf 285 = Fn.«column_selector__L9».code
 
-kernel_rfl core285 : coreOf 285 = Fn.«column_selector__L10».core
+kernel_rfl core285 : coreOf 285 = Fn.«column_selector__L9».core
 
-kernel_rfl cert285 : certOf 285 = (Fn.«column_selector__L10».cert.withPows Data.powTree)
+kernel_rfl cert285 : certOf 285 = (Fn.«column_selector__L9».cert.withPows Data.powTree)
 
-kernel_rfl sigBody285 : sigFrom Fn.«column_selector__L10».code Fn.«column_selector__L10».core (Fn.«column_selector__L10».cert.withPows Data.powTree) = Fn.«column_selector__L10».sig
+kernel_rfl sigBody285 : sigFrom Fn.«column_selector__L9».code Fn.«column_selector__L9».core (Fn.«column_selector__L9».cert.withPows Data.powTree) = Fn.«column_selector__L9».sig
 
-theorem sig285 : glob.sig 285 = Fn.«column_selector__L10».sig := sig_of_link code285 core285 cert285 sigBody285
+theorem sig285 : glob.sig 285 = Fn.«column_selector__L9».sig := sig_of_link code285 core285 cert285 sigBody285
 
-kernel_rfl plumbEq285 : B2C.plumbOf 285 = Fn.«column_selector__L10».plumb
+kernel_rfl plumbEq285 : B2C.plumbOf 285 = Fn.«column_selector__L9».plumb
 
-kernel_rfl fsEq285 : B2C.fsN 285 = Fn.«column_selector__L10».fs
+kernel_rfl fsEq285 : B2C.fsN 285 = Fn.«column_selector__L9».fs
 
-kernel_rfl partsEq285 : B2C.cplPartsOf 285 = Fn.«column_selector__L10».parts
+kernel_rfl partsEq285 : B2C.cplPartsOf 285 = Fn.«column_selector__L9».parts
 
-kernel_rfl armsEq285 : listElementOrDefault Data.cplArms 285 [] = Fn.«column_selector__L10».arms
+kernel_rfl armsEq285 : listElementOrDefault Data.cplArms 285 [] = Fn.«column_selector__L9».arms
 
-kernel_rfl snapsEq285 : B2C.snapsOf 285 = Fn.«column_selector__L10».snaps
+kernel_rfl snapsEq285 : B2C.snapsOf 285 = Fn.«column_selector__L9».snaps
 
-kernel_rfl code286 : fnOf 286 = Fn.«column_selector__L11».code
+kernel_rfl code286 : fnOf 286 = Fn.«column_selector__L10».code
 
-kernel_rfl core286 : coreOf 286 = Fn.«column_selector__L11».core
+kernel_rfl core286 : coreOf 286 = Fn.«column_selector__L10».core
 
-kernel_rfl cert286 : certOf 286 = (Fn.«column_selector__L11».cert.withPows Data.powTree)
+kernel_rfl cert286 : certOf 286 = (Fn.«column_selector__L10».cert.withPows Data.powTree)
 
-kernel_rfl sigBody286 : sigFrom Fn.«column_selector__L11».code Fn.«column_selector__L11».core (Fn.«column_selector__L11».cert.withPows Data.powTree) = Fn.«column_selector__L11».sig
+kernel_rfl sigBody286 : sigFrom Fn.«column_selector__L10».code Fn.«column_selector__L10».core (Fn.«column_selector__L10».cert.withPows Data.powTree) = Fn.«column_selector__L10».sig
 
-theorem sig286 : glob.sig 286 = Fn.«column_selector__L11».sig := sig_of_link code286 core286 cert286 sigBody286
+theorem sig286 : glob.sig 286 = Fn.«column_selector__L10».sig := sig_of_link code286 core286 cert286 sigBody286
 
-kernel_rfl plumbEq286 : B2C.plumbOf 286 = Fn.«column_selector__L11».plumb
+kernel_rfl plumbEq286 : B2C.plumbOf 286 = Fn.«column_selector__L10».plumb
 
-kernel_rfl fsEq286 : B2C.fsN 286 = Fn.«column_selector__L11».fs
+kernel_rfl fsEq286 : B2C.fsN 286 = Fn.«column_selector__L10».fs
 
-kernel_rfl partsEq286 : B2C.cplPartsOf 286 = Fn.«column_selector__L11».parts
+kernel_rfl partsEq286 : B2C.cplPartsOf 286 = Fn.«column_selector__L10».parts
 
-kernel_rfl armsEq286 : listElementOrDefault Data.cplArms 286 [] = Fn.«column_selector__L11».arms
+kernel_rfl armsEq286 : listElementOrDefault Data.cplArms 286 [] = Fn.«column_selector__L10».arms
 
-kernel_rfl snapsEq286 : B2C.snapsOf 286 = Fn.«column_selector__L11».snaps
+kernel_rfl snapsEq286 : B2C.snapsOf 286 = Fn.«column_selector__L10».snaps
 
-kernel_rfl code287 : fnOf 287 = Fn.«column_selector__L12».code
+kernel_rfl code287 : fnOf 287 = Fn.«column_selector__L11».code
 
-kernel_rfl core287 : coreOf 287 = Fn.«column_selector__L12».core
+kernel_rfl core287 : coreOf 287 = Fn.«column_selector__L11».core
 
-kernel_rfl cert287 : certOf 287 = (Fn.«column_selector__L12».cert.withPows Data.powTree)
+kernel_rfl cert287 : certOf 287 = (Fn.«column_selector__L11».cert.withPows Data.powTree)
 
-kernel_rfl sigBody287 : sigFrom Fn.«column_selector__L12».code Fn.«column_selector__L12».core (Fn.«column_selector__L12».cert.withPows Data.powTree) = Fn.«column_selector__L12».sig
+kernel_rfl sigBody287 : sigFrom Fn.«column_selector__L11».code Fn.«column_selector__L11».core (Fn.«column_selector__L11».cert.withPows Data.powTree) = Fn.«column_selector__L11».sig
 
-theorem sig287 : glob.sig 287 = Fn.«column_selector__L12».sig := sig_of_link code287 core287 cert287 sigBody287
+theorem sig287 : glob.sig 287 = Fn.«column_selector__L11».sig := sig_of_link code287 core287 cert287 sigBody287
 
-kernel_rfl plumbEq287 : B2C.plumbOf 287 = Fn.«column_selector__L12».plumb
+kernel_rfl plumbEq287 : B2C.plumbOf 287 = Fn.«column_selector__L11».plumb
 
-kernel_rfl fsEq287 : B2C.fsN 287 = Fn.«column_selector__L12».fs
+kernel_rfl fsEq287 : B2C.fsN 287 = Fn.«column_selector__L11».fs
 
-kernel_rfl partsEq287 : B2C.cplPartsOf 287 = Fn.«column_selector__L12».parts
+kernel_rfl partsEq287 : B2C.cplPartsOf 287 = Fn.«column_selector__L11».parts
 
-kernel_rfl armsEq287 : listElementOrDefault Data.cplArms 287 [] = Fn.«column_selector__L12».arms
+kernel_rfl armsEq287 : listElementOrDefault Data.cplArms 287 [] = Fn.«column_selector__L11».arms
 
-kernel_rfl snapsEq287 : B2C.snapsOf 287 = Fn.«column_selector__L12».snaps
+kernel_rfl snapsEq287 : B2C.snapsOf 287 = Fn.«column_selector__L11».snaps
 
-kernel_rfl code288 : fnOf 288 = Fn.«column_selector__L13».code
+kernel_rfl code288 : fnOf 288 = Fn.«column_selector__L12».code
 
-kernel_rfl core288 : coreOf 288 = Fn.«column_selector__L13».core
+kernel_rfl core288 : coreOf 288 = Fn.«column_selector__L12».core
 
-kernel_rfl cert288 : certOf 288 = (Fn.«column_selector__L13».cert.withPows Data.powTree)
+kernel_rfl cert288 : certOf 288 = (Fn.«column_selector__L12».cert.withPows Data.powTree)
 
-kernel_rfl sigBody288 : sigFrom Fn.«column_selector__L13».code Fn.«column_selector__L13».core (Fn.«column_selector__L13».cert.withPows Data.powTree) = Fn.«column_selector__L13».sig
+kernel_rfl sigBody288 : sigFrom Fn.«column_selector__L12».code Fn.«column_selector__L12».core (Fn.«column_selector__L12».cert.withPows Data.powTree) = Fn.«column_selector__L12».sig
 
-theorem sig288 : glob.sig 288 = Fn.«column_selector__L13».sig := sig_of_link code288 core288 cert288 sigBody288
+theorem sig288 : glob.sig 288 = Fn.«column_selector__L12».sig := sig_of_link code288 core288 cert288 sigBody288
 
-kernel_rfl plumbEq288 : B2C.plumbOf 288 = Fn.«column_selector__L13».plumb
+kernel_rfl plumbEq288 : B2C.plumbOf 288 = Fn.«column_selector__L12».plumb
 
-kernel_rfl fsEq288 : B2C.fsN 288 = Fn.«column_selector__L13».fs
+kernel_rfl fsEq288 : B2C.fsN 288 = Fn.«column_selector__L12».fs
 
-kernel_rfl partsEq288 : B2C.cplPartsOf 288 = Fn.«column_selector__L13».parts
+kernel_rfl partsEq288 : B2C.cplPartsOf 288 = Fn.«column_selector__L12».parts
 
-kernel_rfl armsEq288 : listElementOrDefault Data.cplArms 288 [] = Fn.«column_selector__L13».arms
+kernel_rfl armsEq288 : listElementOrDefault Data.cplArms 288 [] = Fn.«column_selector__L12».arms
 
-kernel_rfl snapsEq288 : B2C.snapsOf 288 = Fn.«column_selector__L13».snaps
+kernel_rfl snapsEq288 : B2C.snapsOf 288 = Fn.«column_selector__L12».snaps
 
-kernel_rfl code289 : fnOf 289 = Fn.«column_selector__L14».code
+kernel_rfl code289 : fnOf 289 = Fn.«column_selector__L13».code
 
-kernel_rfl core289 : coreOf 289 = Fn.«column_selector__L14».core
+kernel_rfl core289 : coreOf 289 = Fn.«column_selector__L13».core
 
-kernel_rfl cert289 : certOf 289 = (Fn.«column_selector__L14».cert.withPows Data.powTree)
+kernel_rfl cert289 : certOf 289 = (Fn.«column_selector__L13».cert.withPows Data.powTree)
 
-kernel_rfl sigBody289 : sigFrom Fn.«column_selector__L14».code Fn.«column_selector__L14».core (Fn.«column_selector__L14».cert.withPows Data.powTree) = Fn.«column_selector__L14».sig
+kernel_rfl sigBody289 : sigFrom Fn.«column_selector__L13».code Fn.«column_selector__L13».core (Fn.«column_selector__L13».cert.withPows Data.powTree) = Fn.«column_selector__L13».sig
 
-theorem sig289 : glob.sig 289 = Fn.«column_selector__L14».sig := sig_of_link code289 core289 cert289 sigBody289
+theorem sig289 : glob.sig 289 = Fn.«column_selector__L13».sig := sig_of_link code289 core289 cert289 sigBody289
 
-kernel_rfl plumbEq289 : B2C.plumbOf 289 = Fn.«column_selector__L14».plumb
+kernel_rfl plumbEq289 : B2C.plumbOf 289 = Fn.«column_selector__L13».plumb
 
-kernel_rfl fsEq289 : B2C.fsN 289 = Fn.«column_selector__L14».fs
+kernel_rfl fsEq289 : B2C.fsN 289 = Fn.«column_selector__L13».fs
 
-kernel_rfl partsEq289 : B2C.cplPartsOf 289 = Fn.«column_selector__L14».parts
+kernel_rfl partsEq289 : B2C.cplPartsOf 289 = Fn.«column_selector__L13».parts
 
-kernel_rfl armsEq289 : listElementOrDefault Data.cplArms 289 [] = Fn.«column_selector__L14».arms
+kernel_rfl armsEq289 : listElementOrDefault Data.cplArms 289 [] = Fn.«column_selector__L13».arms
 
-kernel_rfl snapsEq289 : B2C.snapsOf 289 = Fn.«column_selector__L14».snaps
+kernel_rfl snapsEq289 : B2C.snapsOf 289 = Fn.«column_selector__L13».snaps
 
-kernel_rfl code290 : fnOf 290 = Fn.«column_selector__L15».code
+kernel_rfl code290 : fnOf 290 = Fn.«column_selector__L14».code
 
-kernel_rfl core290 : coreOf 290 = Fn.«column_selector__L15».core
+kernel_rfl core290 : coreOf 290 = Fn.«column_selector__L14».core
 
-kernel_rfl cert290 : certOf 290 = (Fn.«column_selector__L15».cert.withPows Data.powTree)
+kernel_rfl cert290 : certOf 290 = (Fn.«column_selector__L14».cert.withPows Data.powTree)
 
-kernel_rfl sigBody290 : sigFrom Fn.«column_selector__L15».code Fn.«column_selector__L15».core (Fn.«column_selector__L15».cert.withPows Data.powTree) = Fn.«column_selector__L15».sig
+kernel_rfl sigBody290 : sigFrom Fn.«column_selector__L14».code Fn.«column_selector__L14».core (Fn.«column_selector__L14».cert.withPows Data.powTree) = Fn.«column_selector__L14».sig
 
-theorem sig290 : glob.sig 290 = Fn.«column_selector__L15».sig := sig_of_link code290 core290 cert290 sigBody290
+theorem sig290 : glob.sig 290 = Fn.«column_selector__L14».sig := sig_of_link code290 core290 cert290 sigBody290
 
-kernel_rfl plumbEq290 : B2C.plumbOf 290 = Fn.«column_selector__L15».plumb
+kernel_rfl plumbEq290 : B2C.plumbOf 290 = Fn.«column_selector__L14».plumb
 
-kernel_rfl fsEq290 : B2C.fsN 290 = Fn.«column_selector__L15».fs
+kernel_rfl fsEq290 : B2C.fsN 290 = Fn.«column_selector__L14».fs
 
-kernel_rfl partsEq290 : B2C.cplPartsOf 290 = Fn.«column_selector__L15».parts
+kernel_rfl partsEq290 : B2C.cplPartsOf 290 = Fn.«column_selector__L14».parts
 
-kernel_rfl armsEq290 : listElementOrDefault Data.cplArms 290 [] = Fn.«column_selector__L15».arms
+kernel_rfl armsEq290 : listElementOrDefault Data.cplArms 290 [] = Fn.«column_selector__L14».arms
 
-kernel_rfl snapsEq290 : B2C.snapsOf 290 = Fn.«column_selector__L15».snaps
+kernel_rfl snapsEq290 : B2C.snapsOf 290 = Fn.«column_selector__L14».snaps
 
-kernel_rfl code291 : fnOf 291 = Fn.«column_selector__L16».code
+kernel_rfl code291 : fnOf 291 = Fn.«column_selector__L15».code
 
-kernel_rfl core291 : coreOf 291 = Fn.«column_selector__L16».core
+kernel_rfl core291 : coreOf 291 = Fn.«column_selector__L15».core
 
-kernel_rfl cert291 : certOf 291 = (Fn.«column_selector__L16».cert.withPows Data.powTree)
+kernel_rfl cert291 : certOf 291 = (Fn.«column_selector__L15».cert.withPows Data.powTree)
 
-kernel_rfl sigBody291 : sigFrom Fn.«column_selector__L16».code Fn.«column_selector__L16».core (Fn.«column_selector__L16».cert.withPows Data.powTree) = Fn.«column_selector__L16».sig
+kernel_rfl sigBody291 : sigFrom Fn.«column_selector__L15».code Fn.«column_selector__L15».core (Fn.«column_selector__L15».cert.withPows Data.powTree) = Fn.«column_selector__L15».sig
 
-theorem sig291 : glob.sig 291 = Fn.«column_selector__L16».sig := sig_of_link code291 core291 cert291 sigBody291
+theorem sig291 : glob.sig 291 = Fn.«column_selector__L15».sig := sig_of_link code291 core291 cert291 sigBody291
 
-kernel_rfl plumbEq291 : B2C.plumbOf 291 = Fn.«column_selector__L16».plumb
+kernel_rfl plumbEq291 : B2C.plumbOf 291 = Fn.«column_selector__L15».plumb
 
-kernel_rfl fsEq291 : B2C.fsN 291 = Fn.«column_selector__L16».fs
+kernel_rfl fsEq291 : B2C.fsN 291 = Fn.«column_selector__L15».fs
 
-kernel_rfl partsEq291 : B2C.cplPartsOf 291 = Fn.«column_selector__L16».parts
+kernel_rfl partsEq291 : B2C.cplPartsOf 291 = Fn.«column_selector__L15».parts
 
-kernel_rfl armsEq291 : listElementOrDefault Data.cplArms 291 [] = Fn.«column_selector__L16».arms
+kernel_rfl armsEq291 : listElementOrDefault Data.cplArms 291 [] = Fn.«column_selector__L15».arms
 
-kernel_rfl snapsEq291 : B2C.snapsOf 291 = Fn.«column_selector__L16».snaps
+kernel_rfl snapsEq291 : B2C.snapsOf 291 = Fn.«column_selector__L15».snaps
 
-kernel_rfl code292 : fnOf 292 = Fn.«column_selector__L17».code
+kernel_rfl code292 : fnOf 292 = Fn.«column_selector__L16».code
 
-kernel_rfl core292 : coreOf 292 = Fn.«column_selector__L17».core
+kernel_rfl core292 : coreOf 292 = Fn.«column_selector__L16».core
 
-kernel_rfl cert292 : certOf 292 = (Fn.«column_selector__L17».cert.withPows Data.powTree)
+kernel_rfl cert292 : certOf 292 = (Fn.«column_selector__L16».cert.withPows Data.powTree)
 
-kernel_rfl sigBody292 : sigFrom Fn.«column_selector__L17».code Fn.«column_selector__L17».core (Fn.«column_selector__L17».cert.withPows Data.powTree) = Fn.«column_selector__L17».sig
+kernel_rfl sigBody292 : sigFrom Fn.«column_selector__L16».code Fn.«column_selector__L16».core (Fn.«column_selector__L16».cert.withPows Data.powTree) = Fn.«column_selector__L16».sig
 
-theorem sig292 : glob.sig 292 = Fn.«column_selector__L17».sig := sig_of_link code292 core292 cert292 sigBody292
+theorem sig292 : glob.sig 292 = Fn.«column_selector__L16».sig := sig_of_link code292 core292 cert292 sigBody292
 
-kernel_rfl plumbEq292 : B2C.plumbOf 292 = Fn.«column_selector__L17».plumb
+kernel_rfl plumbEq292 : B2C.plumbOf 292 = Fn.«column_selector__L16».plumb
 
-kernel_rfl fsEq292 : B2C.fsN 292 = Fn.«column_selector__L17».fs
+kernel_rfl fsEq292 : B2C.fsN 292 = Fn.«column_selector__L16».fs
 
-kernel_rfl partsEq292 : B2C.cplPartsOf 292 = Fn.«column_selector__L17».parts
+kernel_rfl partsEq292 : B2C.cplPartsOf 292 = Fn.«column_selector__L16».parts
 
-kernel_rfl armsEq292 : listElementOrDefault Data.cplArms 292 [] = Fn.«column_selector__L17».arms
+kernel_rfl armsEq292 : listElementOrDefault Data.cplArms 292 [] = Fn.«column_selector__L16».arms
 
-kernel_rfl snapsEq292 : B2C.snapsOf 292 = Fn.«column_selector__L17».snaps
+kernel_rfl snapsEq292 : B2C.snapsOf 292 = Fn.«column_selector__L16».snaps
 
-kernel_rfl code293 : fnOf 293 = Fn.«column_selector__L18».code
+kernel_rfl code293 : fnOf 293 = Fn.«column_selector__L17».code
 
-kernel_rfl core293 : coreOf 293 = Fn.«column_selector__L18».core
+kernel_rfl core293 : coreOf 293 = Fn.«column_selector__L17».core
 
-kernel_rfl cert293 : certOf 293 = (Fn.«column_selector__L18».cert.withPows Data.powTree)
+kernel_rfl cert293 : certOf 293 = (Fn.«column_selector__L17».cert.withPows Data.powTree)
 
-kernel_rfl sigBody293 : sigFrom Fn.«column_selector__L18».code Fn.«column_selector__L18».core (Fn.«column_selector__L18».cert.withPows Data.powTree) = Fn.«column_selector__L18».sig
+kernel_rfl sigBody293 : sigFrom Fn.«column_selector__L17».code Fn.«column_selector__L17».core (Fn.«column_selector__L17».cert.withPows Data.powTree) = Fn.«column_selector__L17».sig
 
-theorem sig293 : glob.sig 293 = Fn.«column_selector__L18».sig := sig_of_link code293 core293 cert293 sigBody293
+theorem sig293 : glob.sig 293 = Fn.«column_selector__L17».sig := sig_of_link code293 core293 cert293 sigBody293
 
-kernel_rfl plumbEq293 : B2C.plumbOf 293 = Fn.«column_selector__L18».plumb
+kernel_rfl plumbEq293 : B2C.plumbOf 293 = Fn.«column_selector__L17».plumb
 
-kernel_rfl fsEq293 : B2C.fsN 293 = Fn.«column_selector__L18».fs
+kernel_rfl fsEq293 : B2C.fsN 293 = Fn.«column_selector__L17».fs
 
-kernel_rfl partsEq293 : B2C.cplPartsOf 293 = Fn.«column_selector__L18».parts
+kernel_rfl partsEq293 : B2C.cplPartsOf 293 = Fn.«column_selector__L17».parts
 
-kernel_rfl armsEq293 : listElementOrDefault Data.cplArms 293 [] = Fn.«column_selector__L18».arms
+kernel_rfl armsEq293 : listElementOrDefault Data.cplArms 293 [] = Fn.«column_selector__L17».arms
 
-kernel_rfl snapsEq293 : B2C.snapsOf 293 = Fn.«column_selector__L18».snaps
+kernel_rfl snapsEq293 : B2C.snapsOf 293 = Fn.«column_selector__L17».snaps
 
-kernel_rfl code294 : fnOf 294 = Fn.«column_selector__L19».code
+kernel_rfl code294 : fnOf 294 = Fn.«column_selector__L18».code
 
-kernel_rfl core294 : coreOf 294 = Fn.«column_selector__L19».core
+kernel_rfl core294 : coreOf 294 = Fn.«column_selector__L18».core
 
-kernel_rfl cert294 : certOf 294 = (Fn.«column_selector__L19».cert.withPows Data.powTree)
+kernel_rfl cert294 : certOf 294 = (Fn.«column_selector__L18».cert.withPows Data.powTree)
 
-kernel_rfl sigBody294 : sigFrom Fn.«column_selector__L19».code Fn.«column_selector__L19».core (Fn.«column_selector__L19».cert.withPows Data.powTree) = Fn.«column_selector__L19».sig
+kernel_rfl sigBody294 : sigFrom Fn.«column_selector__L18».code Fn.«column_selector__L18».core (Fn.«column_selector__L18».cert.withPows Data.powTree) = Fn.«column_selector__L18».sig
 
-theorem sig294 : glob.sig 294 = Fn.«column_selector__L19».sig := sig_of_link code294 core294 cert294 sigBody294
+theorem sig294 : glob.sig 294 = Fn.«column_selector__L18».sig := sig_of_link code294 core294 cert294 sigBody294
 
-kernel_rfl plumbEq294 : B2C.plumbOf 294 = Fn.«column_selector__L19».plumb
+kernel_rfl plumbEq294 : B2C.plumbOf 294 = Fn.«column_selector__L18».plumb
 
-kernel_rfl fsEq294 : B2C.fsN 294 = Fn.«column_selector__L19».fs
+kernel_rfl fsEq294 : B2C.fsN 294 = Fn.«column_selector__L18».fs
 
-kernel_rfl partsEq294 : B2C.cplPartsOf 294 = Fn.«column_selector__L19».parts
+kernel_rfl partsEq294 : B2C.cplPartsOf 294 = Fn.«column_selector__L18».parts
 
-kernel_rfl armsEq294 : listElementOrDefault Data.cplArms 294 [] = Fn.«column_selector__L19».arms
+kernel_rfl armsEq294 : listElementOrDefault Data.cplArms 294 [] = Fn.«column_selector__L18».arms
 
-kernel_rfl snapsEq294 : B2C.snapsOf 294 = Fn.«column_selector__L19».snaps
+kernel_rfl snapsEq294 : B2C.snapsOf 294 = Fn.«column_selector__L18».snaps
 
-kernel_rfl code295 : fnOf 295 = Fn.«column_selector__L20».code
+kernel_rfl code295 : fnOf 295 = Fn.«column_selector__L19».code
 
-kernel_rfl core295 : coreOf 295 = Fn.«column_selector__L20».core
+kernel_rfl core295 : coreOf 295 = Fn.«column_selector__L19».core
 
-kernel_rfl cert295 : certOf 295 = (Fn.«column_selector__L20».cert.withPows Data.powTree)
+kernel_rfl cert295 : certOf 295 = (Fn.«column_selector__L19».cert.withPows Data.powTree)
 
-kernel_rfl sigBody295 : sigFrom Fn.«column_selector__L20».code Fn.«column_selector__L20».core (Fn.«column_selector__L20».cert.withPows Data.powTree) = Fn.«column_selector__L20».sig
+kernel_rfl sigBody295 : sigFrom Fn.«column_selector__L19».code Fn.«column_selector__L19».core (Fn.«column_selector__L19».cert.withPows Data.powTree) = Fn.«column_selector__L19».sig
 
-theorem sig295 : glob.sig 295 = Fn.«column_selector__L20».sig := sig_of_link code295 core295 cert295 sigBody295
+theorem sig295 : glob.sig 295 = Fn.«column_selector__L19».sig := sig_of_link code295 core295 cert295 sigBody295
 
-kernel_rfl plumbEq295 : B2C.plumbOf 295 = Fn.«column_selector__L20».plumb
+kernel_rfl plumbEq295 : B2C.plumbOf 295 = Fn.«column_selector__L19».plumb
 
-kernel_rfl fsEq295 : B2C.fsN 295 = Fn.«column_selector__L20».fs
+kernel_rfl fsEq295 : B2C.fsN 295 = Fn.«column_selector__L19».fs
 
-kernel_rfl partsEq295 : B2C.cplPartsOf 295 = Fn.«column_selector__L20».parts
+kernel_rfl partsEq295 : B2C.cplPartsOf 295 = Fn.«column_selector__L19».parts
 
-kernel_rfl armsEq295 : listElementOrDefault Data.cplArms 295 [] = Fn.«column_selector__L20».arms
+kernel_rfl armsEq295 : listElementOrDefault Data.cplArms 295 [] = Fn.«column_selector__L19».arms
 
-kernel_rfl snapsEq295 : B2C.snapsOf 295 = Fn.«column_selector__L20».snaps
+kernel_rfl snapsEq295 : B2C.snapsOf 295 = Fn.«column_selector__L19».snaps
 
-kernel_rfl code296 : fnOf 296 = Fn.«column_selector__L21».code
+kernel_rfl code296 : fnOf 296 = Fn.«column_selector__L20».code
 
-kernel_rfl core296 : coreOf 296 = Fn.«column_selector__L21».core
+kernel_rfl core296 : coreOf 296 = Fn.«column_selector__L20».core
 
-kernel_rfl cert296 : certOf 296 = (Fn.«column_selector__L21».cert.withPows Data.powTree)
+kernel_rfl cert296 : certOf 296 = (Fn.«column_selector__L20».cert.withPows Data.powTree)
 
-kernel_rfl sigBody296 : sigFrom Fn.«column_selector__L21».code Fn.«column_selector__L21».core (Fn.«column_selector__L21».cert.withPows Data.powTree) = Fn.«column_selector__L21».sig
+kernel_rfl sigBody296 : sigFrom Fn.«column_selector__L20».code Fn.«column_selector__L20».core (Fn.«column_selector__L20».cert.withPows Data.powTree) = Fn.«column_selector__L20».sig
 
-theorem sig296 : glob.sig 296 = Fn.«column_selector__L21».sig := sig_of_link code296 core296 cert296 sigBody296
+theorem sig296 : glob.sig 296 = Fn.«column_selector__L20».sig := sig_of_link code296 core296 cert296 sigBody296
 
-kernel_rfl plumbEq296 : B2C.plumbOf 296 = Fn.«column_selector__L21».plumb
+kernel_rfl plumbEq296 : B2C.plumbOf 296 = Fn.«column_selector__L20».plumb
 
-kernel_rfl fsEq296 : B2C.fsN 296 = Fn.«column_selector__L21».fs
+kernel_rfl fsEq296 : B2C.fsN 296 = Fn.«column_selector__L20».fs
 
-kernel_rfl partsEq296 : B2C.cplPartsOf 296 = Fn.«column_selector__L21».parts
+kernel_rfl partsEq296 : B2C.cplPartsOf 296 = Fn.«column_selector__L20».parts
 
-kernel_rfl armsEq296 : listElementOrDefault Data.cplArms 296 [] = Fn.«column_selector__L21».arms
+kernel_rfl armsEq296 : listElementOrDefault Data.cplArms 296 [] = Fn.«column_selector__L20».arms
 
-kernel_rfl snapsEq296 : B2C.snapsOf 296 = Fn.«column_selector__L21».snaps
+kernel_rfl snapsEq296 : B2C.snapsOf 296 = Fn.«column_selector__L20».snaps
 
-kernel_rfl code297 : fnOf 297 = Fn.«column_selector__L22».code
+kernel_rfl code297 : fnOf 297 = Fn.«column_selector__L21».code
 
-kernel_rfl core297 : coreOf 297 = Fn.«column_selector__L22».core
+kernel_rfl core297 : coreOf 297 = Fn.«column_selector__L21».core
 
-kernel_rfl cert297 : certOf 297 = (Fn.«column_selector__L22».cert.withPows Data.powTree)
+kernel_rfl cert297 : certOf 297 = (Fn.«column_selector__L21».cert.withPows Data.powTree)
 
-kernel_rfl sigBody297 : sigFrom Fn.«column_selector__L22».code Fn.«column_selector__L22».core (Fn.«column_selector__L22».cert.withPows Data.powTree) = Fn.«column_selector__L22».sig
+kernel_rfl sigBody297 : sigFrom Fn.«column_selector__L21».code Fn.«column_selector__L21».core (Fn.«column_selector__L21».cert.withPows Data.powTree) = Fn.«column_selector__L21».sig
 
-theorem sig297 : glob.sig 297 = Fn.«column_selector__L22».sig := sig_of_link code297 core297 cert297 sigBody297
+theorem sig297 : glob.sig 297 = Fn.«column_selector__L21».sig := sig_of_link code297 core297 cert297 sigBody297
 
-kernel_rfl plumbEq297 : B2C.plumbOf 297 = Fn.«column_selector__L22».plumb
+kernel_rfl plumbEq297 : B2C.plumbOf 297 = Fn.«column_selector__L21».plumb
 
-kernel_rfl fsEq297 : B2C.fsN 297 = Fn.«column_selector__L22».fs
+kernel_rfl fsEq297 : B2C.fsN 297 = Fn.«column_selector__L21».fs
 
-kernel_rfl partsEq297 : B2C.cplPartsOf 297 = Fn.«column_selector__L22».parts
+kernel_rfl partsEq297 : B2C.cplPartsOf 297 = Fn.«column_selector__L21».parts
 
-kernel_rfl armsEq297 : listElementOrDefault Data.cplArms 297 [] = Fn.«column_selector__L22».arms
+kernel_rfl armsEq297 : listElementOrDefault Data.cplArms 297 [] = Fn.«column_selector__L21».arms
 
-kernel_rfl snapsEq297 : B2C.snapsOf 297 = Fn.«column_selector__L22».snaps
+kernel_rfl snapsEq297 : B2C.snapsOf 297 = Fn.«column_selector__L21».snaps
 
-kernel_rfl code298 : fnOf 298 = Fn.«column_selector__L23».code
+kernel_rfl code298 : fnOf 298 = Fn.«column_selector__L22».code
 
-kernel_rfl core298 : coreOf 298 = Fn.«column_selector__L23».core
+kernel_rfl core298 : coreOf 298 = Fn.«column_selector__L22».core
 
-kernel_rfl cert298 : certOf 298 = (Fn.«column_selector__L23».cert.withPows Data.powTree)
+kernel_rfl cert298 : certOf 298 = (Fn.«column_selector__L22».cert.withPows Data.powTree)
 
-kernel_rfl sigBody298 : sigFrom Fn.«column_selector__L23».code Fn.«column_selector__L23».core (Fn.«column_selector__L23».cert.withPows Data.powTree) = Fn.«column_selector__L23».sig
+kernel_rfl sigBody298 : sigFrom Fn.«column_selector__L22».code Fn.«column_selector__L22».core (Fn.«column_selector__L22».cert.withPows Data.powTree) = Fn.«column_selector__L22».sig
 
-theorem sig298 : glob.sig 298 = Fn.«column_selector__L23».sig := sig_of_link code298 core298 cert298 sigBody298
+theorem sig298 : glob.sig 298 = Fn.«column_selector__L22».sig := sig_of_link code298 core298 cert298 sigBody298
 
-kernel_rfl plumbEq298 : B2C.plumbOf 298 = Fn.«column_selector__L23».plumb
+kernel_rfl plumbEq298 : B2C.plumbOf 298 = Fn.«column_selector__L22».plumb
 
-kernel_rfl fsEq298 : B2C.fsN 298 = Fn.«column_selector__L23».fs
+kernel_rfl fsEq298 : B2C.fsN 298 = Fn.«column_selector__L22».fs
 
-kernel_rfl partsEq298 : B2C.cplPartsOf 298 = Fn.«column_selector__L23».parts
+kernel_rfl partsEq298 : B2C.cplPartsOf 298 = Fn.«column_selector__L22».parts
 
-kernel_rfl armsEq298 : listElementOrDefault Data.cplArms 298 [] = Fn.«column_selector__L23».arms
+kernel_rfl armsEq298 : listElementOrDefault Data.cplArms 298 [] = Fn.«column_selector__L22».arms
 
-kernel_rfl snapsEq298 : B2C.snapsOf 298 = Fn.«column_selector__L23».snaps
+kernel_rfl snapsEq298 : B2C.snapsOf 298 = Fn.«column_selector__L22».snaps
 
-kernel_rfl code299 : fnOf 299 = Fn.«column_selector__L24».code
+kernel_rfl code299 : fnOf 299 = Fn.«column_selector__L23».code
 
-kernel_rfl core299 : coreOf 299 = Fn.«column_selector__L24».core
+kernel_rfl core299 : coreOf 299 = Fn.«column_selector__L23».core
 
-kernel_rfl cert299 : certOf 299 = (Fn.«column_selector__L24».cert.withPows Data.powTree)
+kernel_rfl cert299 : certOf 299 = (Fn.«column_selector__L23».cert.withPows Data.powTree)
 
-kernel_rfl sigBody299 : sigFrom Fn.«column_selector__L24».code Fn.«column_selector__L24».core (Fn.«column_selector__L24».cert.withPows Data.powTree) = Fn.«column_selector__L24».sig
+kernel_rfl sigBody299 : sigFrom Fn.«column_selector__L23».code Fn.«column_selector__L23».core (Fn.«column_selector__L23».cert.withPows Data.powTree) = Fn.«column_selector__L23».sig
 
-theorem sig299 : glob.sig 299 = Fn.«column_selector__L24».sig := sig_of_link code299 core299 cert299 sigBody299
+theorem sig299 : glob.sig 299 = Fn.«column_selector__L23».sig := sig_of_link code299 core299 cert299 sigBody299
 
-kernel_rfl plumbEq299 : B2C.plumbOf 299 = Fn.«column_selector__L24».plumb
+kernel_rfl plumbEq299 : B2C.plumbOf 299 = Fn.«column_selector__L23».plumb
 
-kernel_rfl fsEq299 : B2C.fsN 299 = Fn.«column_selector__L24».fs
+kernel_rfl fsEq299 : B2C.fsN 299 = Fn.«column_selector__L23».fs
 
-kernel_rfl partsEq299 : B2C.cplPartsOf 299 = Fn.«column_selector__L24».parts
+kernel_rfl partsEq299 : B2C.cplPartsOf 299 = Fn.«column_selector__L23».parts
 
-kernel_rfl armsEq299 : listElementOrDefault Data.cplArms 299 [] = Fn.«column_selector__L24».arms
+kernel_rfl armsEq299 : listElementOrDefault Data.cplArms 299 [] = Fn.«column_selector__L23».arms
 
-kernel_rfl snapsEq299 : B2C.snapsOf 299 = Fn.«column_selector__L24».snaps
+kernel_rfl snapsEq299 : B2C.snapsOf 299 = Fn.«column_selector__L23».snaps
 
-kernel_rfl code300 : fnOf 300 = Fn.«column_selector__L25».code
+kernel_rfl code300 : fnOf 300 = Fn.«column_selector__L24».code
 
-kernel_rfl core300 : coreOf 300 = Fn.«column_selector__L25».core
+kernel_rfl core300 : coreOf 300 = Fn.«column_selector__L24».core
 
-kernel_rfl cert300 : certOf 300 = (Fn.«column_selector__L25».cert.withPows Data.powTree)
+kernel_rfl cert300 : certOf 300 = (Fn.«column_selector__L24».cert.withPows Data.powTree)
 
-kernel_rfl sigBody300 : sigFrom Fn.«column_selector__L25».code Fn.«column_selector__L25».core (Fn.«column_selector__L25».cert.withPows Data.powTree) = Fn.«column_selector__L25».sig
+kernel_rfl sigBody300 : sigFrom Fn.«column_selector__L24».code Fn.«column_selector__L24».core (Fn.«column_selector__L24».cert.withPows Data.powTree) = Fn.«column_selector__L24».sig
 
-theorem sig300 : glob.sig 300 = Fn.«column_selector__L25».sig := sig_of_link code300 core300 cert300 sigBody300
+theorem sig300 : glob.sig 300 = Fn.«column_selector__L24».sig := sig_of_link code300 core300 cert300 sigBody300
 
-kernel_rfl plumbEq300 : B2C.plumbOf 300 = Fn.«column_selector__L25».plumb
+kernel_rfl plumbEq300 : B2C.plumbOf 300 = Fn.«column_selector__L24».plumb
 
-kernel_rfl fsEq300 : B2C.fsN 300 = Fn.«column_selector__L25».fs
+kernel_rfl fsEq300 : B2C.fsN 300 = Fn.«column_selector__L24».fs
 
-kernel_rfl partsEq300 : B2C.cplPartsOf 300 = Fn.«column_selector__L25».parts
+kernel_rfl partsEq300 : B2C.cplPartsOf 300 = Fn.«column_selector__L24».parts
 
-kernel_rfl armsEq300 : listElementOrDefault Data.cplArms 300 [] = Fn.«column_selector__L25».arms
+kernel_rfl armsEq300 : listElementOrDefault Data.cplArms 300 [] = Fn.«column_selector__L24».arms
 
-kernel_rfl snapsEq300 : B2C.snapsOf 300 = Fn.«column_selector__L25».snaps
+kernel_rfl snapsEq300 : B2C.snapsOf 300 = Fn.«column_selector__L24».snaps
 
 end
 end LeanVM.Guest.Checked

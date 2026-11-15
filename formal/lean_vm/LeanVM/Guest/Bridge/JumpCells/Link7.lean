@@ -73,502 +73,502 @@ public section
 theorem jc701 : Bridge.jcData 701 = true := by
   have hx : Bridge.extraOf 701 = [] := congrArg Prod.fst ProgAl.tab701
   rw [Bridge.jcData, Checked.code701, Checked.core701, Checked.cert701, Checked.plumbEq701, Checked.fsEq701, hx]
-  exact Fn.«level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0».jcOk
+  exact Fn.«level_positions__L4_L21_L3».jcOk
 
 theorem jc702 : Bridge.jcData 702 = true := by
   have hx : Bridge.extraOf 702 = [] := congrArg Prod.fst ProgAl.tab702
   rw [Bridge.jcData, Checked.code702, Checked.core702, Checked.cert702, Checked.plumbEq702, Checked.fsEq702, hx]
-  exact Fn.«level_queries__L25_L0_L4_L16_L20_L2_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0».jcOk
 
 theorem jc703 : Bridge.jcData 703 = true := by
   have hx : Bridge.extraOf 703 = [] := congrArg Prod.fst ProgAl.tab703
   rw [Bridge.jcData, Checked.code703, Checked.core703, Checked.cert703, Checked.plumbEq703, Checked.fsEq703, hx]
-  exact Fn.«level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L25_L0_L4_L16_L20_L2_L0_L0_L0_L0».jcOk
 
 theorem jc704 : Bridge.jcData 704 = true := by
   have hx : Bridge.extraOf 704 = [] := congrArg Prod.fst ProgAl.tab704
   rw [Bridge.jcData, Checked.code704, Checked.core704, Checked.cert704, Checked.plumbEq704, Checked.fsEq704, hx]
-  exact Fn.«level_positions__L3_L20_L2».jcOk
+  exact Fn.«level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0».jcOk
 
 theorem jc705 : Bridge.jcData 705 = true := by
   have hx : Bridge.extraOf 705 = [] := congrArg Prod.fst ProgAl.tab705
   rw [Bridge.jcData, Checked.code705, Checked.core705, Checked.cert705, Checked.plumbEq705, Checked.fsEq705, hx]
-  exact Fn.«level_queries__L21_L0_L4_L16_L18_L6_L0_L0_L0_L0».jcOk
+  exact Fn.«level_positions__L3_L20_L2».jcOk
 
 theorem jc706 : Bridge.jcData 706 = true := by
   have hx : Bridge.extraOf 706 = [] := congrArg Prod.fst ProgAl.tab706
   rw [Bridge.jcData, Checked.code706, Checked.core706, Checked.cert706, Checked.plumbEq706, Checked.fsEq706, hx]
-  exact Fn.«level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L21_L0_L4_L16_L18_L6_L0_L0_L0_L0».jcOk
 
 theorem jc707 : Bridge.jcData 707 = true := by
   have hx : Bridge.extraOf 707 = [] := congrArg Prod.fst ProgAl.tab707
   rw [Bridge.jcData, Checked.code707, Checked.core707, Checked.cert707, Checked.plumbEq707, Checked.fsEq707, hx]
-  exact Fn.«level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0».jcOk
 
 theorem jc708 : Bridge.jcData 708 = true := by
   have hx : Bridge.extraOf 708 = [] := congrArg Prod.fst ProgAl.tab708
   rw [Bridge.jcData, Checked.code708, Checked.core708, Checked.cert708, Checked.plumbEq708, Checked.fsEq708, hx]
-  exact Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».jcOk
+  exact Fn.«level_queries__L18_L0_L4_L16_L20_L2_L0_L0_L0_L0».jcOk
 
 theorem jc709 : Bridge.jcData 709 = true := by
   have hx : Bridge.extraOf 709 = [] := congrArg Prod.fst ProgAl.tab709
   rw [Bridge.jcData, Checked.code709, Checked.core709, Checked.cert709, Checked.plumbEq709, Checked.fsEq709, hx]
-  exact Fn.«level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1».jcOk
+  exact Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».jcOk
 
 theorem jc710 : Bridge.jcData 710 = true := by
   have hx : Bridge.extraOf 710 = [] := congrArg Prod.fst ProgAl.tab710
   rw [Bridge.jcData, Checked.code710, Checked.core710, Checked.cert710, Checked.plumbEq710, Checked.fsEq710, hx]
-  exact Fn.«level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».jcOk
+  exact Fn.«level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1».jcOk
 
 theorem jc711 : Bridge.jcData 711 = true := by
   have hx : Bridge.extraOf 711 = [] := congrArg Prod.fst ProgAl.tab711
   rw [Bridge.jcData, Checked.code711, Checked.core711, Checked.cert711, Checked.plumbEq711, Checked.fsEq711, hx]
-  exact Fn.«level_residual__L218_L19_L6_L3».jcOk
+  exact Fn.«level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».jcOk
 
 theorem jc712 : Bridge.jcData 712 = true := by
   have hx : Bridge.extraOf 712 = [] := congrArg Prod.fst ProgAl.tab712
   rw [Bridge.jcData, Checked.code712, Checked.core712, Checked.cert712, Checked.plumbEq712, Checked.fsEq712, hx]
-  exact Fn.«level_residual__L109_L19_L6_L3».jcOk
+  exact Fn.«level_residual__L218_L19_L6_L3».jcOk
 
 theorem jc713 : Bridge.jcData 713 = true := by
   have hx : Bridge.extraOf 713 = [] := congrArg Prod.fst ProgAl.tab713
   rw [Bridge.jcData, Checked.code713, Checked.core713, Checked.cert713, Checked.plumbEq713, Checked.fsEq713, hx]
-  exact Fn.«level_residual__L73_L19_L6_L3».jcOk
+  exact Fn.«level_residual__L109_L19_L6_L3».jcOk
 
 theorem jc714 : Bridge.jcData 714 = true := by
   have hx : Bridge.extraOf 714 = [] := congrArg Prod.fst ProgAl.tab714
   rw [Bridge.jcData, Checked.code714, Checked.core714, Checked.cert714, Checked.plumbEq714, Checked.fsEq714, hx]
-  exact Fn.«level_residual__L55_L19_L6_L3».jcOk
+  exact Fn.«level_residual__L73_L19_L6_L3».jcOk
 
 theorem jc715 : Bridge.jcData 715 = true := by
   have hx : Bridge.extraOf 715 = [] := congrArg Prod.fst ProgAl.tab715
   rw [Bridge.jcData, Checked.code715, Checked.core715, Checked.cert715, Checked.plumbEq715, Checked.fsEq715, hx]
-  exact Fn.«level_residual__L55_L15_L4_L2».jcOk
+  exact Fn.«level_residual__L55_L19_L6_L3».jcOk
 
 theorem jc716 : Bridge.jcData 716 = true := by
   have hx : Bridge.extraOf 716 = [] := congrArg Prod.fst ProgAl.tab716
   rw [Bridge.jcData, Checked.code716, Checked.core716, Checked.cert716, Checked.plumbEq716, Checked.fsEq716, hx]
-  exact Fn.«level_residual__L44_L15_L4_L2».jcOk
+  exact Fn.«level_residual__L55_L15_L4_L2».jcOk
 
 theorem jc717 : Bridge.jcData 717 = true := by
   have hx : Bridge.extraOf 717 = [] := congrArg Prod.fst ProgAl.tab717
   rw [Bridge.jcData, Checked.code717, Checked.core717, Checked.cert717, Checked.plumbEq717, Checked.fsEq717, hx]
-  exact Fn.«level_residual__L37_L15_L4_L2».jcOk
+  exact Fn.«level_residual__L44_L15_L4_L2».jcOk
 
 theorem jc718 : Bridge.jcData 718 = true := by
   have hx : Bridge.extraOf 718 = [] := congrArg Prod.fst ProgAl.tab718
   rw [Bridge.jcData, Checked.code718, Checked.core718, Checked.cert718, Checked.plumbEq718, Checked.fsEq718, hx]
-  exact Fn.«level_residual__L32_L15_L4_L2».jcOk
+  exact Fn.«level_residual__L37_L15_L4_L2».jcOk
 
 theorem jc719 : Bridge.jcData 719 = true := by
   have hx : Bridge.extraOf 719 = [] := congrArg Prod.fst ProgAl.tab719
   rw [Bridge.jcData, Checked.code719, Checked.core719, Checked.cert719, Checked.plumbEq719, Checked.fsEq719, hx]
-  exact Fn.«level_residual__L28_L11_L4_L2».jcOk
+  exact Fn.«level_residual__L32_L15_L4_L2».jcOk
 
 theorem jc720 : Bridge.jcData 720 = true := by
   have hx : Bridge.extraOf 720 = [] := congrArg Prod.fst ProgAl.tab720
   rw [Bridge.jcData, Checked.code720, Checked.core720, Checked.cert720, Checked.plumbEq720, Checked.fsEq720, hx]
-  exact Fn.«level_residual__L25_L11_L4_L2».jcOk
+  exact Fn.«level_residual__L28_L11_L4_L2».jcOk
 
 theorem jc721 : Bridge.jcData 721 = true := by
   have hx : Bridge.extraOf 721 = [] := congrArg Prod.fst ProgAl.tab721
   rw [Bridge.jcData, Checked.code721, Checked.core721, Checked.cert721, Checked.plumbEq721, Checked.fsEq721, hx]
-  exact Fn.«level_residual__L23_L11_L4_L2».jcOk
+  exact Fn.«level_residual__L25_L11_L4_L2».jcOk
 
 theorem jc722 : Bridge.jcData 722 = true := by
   have hx : Bridge.extraOf 722 = [] := congrArg Prod.fst ProgAl.tab722
   rw [Bridge.jcData, Checked.code722, Checked.core722, Checked.cert722, Checked.plumbEq722, Checked.fsEq722, hx]
-  exact Fn.«level_residual__L21_L7_L4_L2».jcOk
+  exact Fn.«level_residual__L23_L11_L4_L2».jcOk
 
 theorem jc723 : Bridge.jcData 723 = true := by
   have hx : Bridge.extraOf 723 = [] := congrArg Prod.fst ProgAl.tab723
   rw [Bridge.jcData, Checked.code723, Checked.core723, Checked.cert723, Checked.plumbEq723, Checked.fsEq723, hx]
-  exact Fn.«level_residual__L19_L7_L4_L2».jcOk
+  exact Fn.«level_residual__L21_L7_L4_L2».jcOk
 
 theorem jc724 : Bridge.jcData 724 = true := by
   have hx : Bridge.extraOf 724 = [] := congrArg Prod.fst ProgAl.tab724
   rw [Bridge.jcData, Checked.code724, Checked.core724, Checked.cert724, Checked.plumbEq724, Checked.fsEq724, hx]
-  exact Fn.«level_residual__L18_L7_L4_L2».jcOk
+  exact Fn.«level_residual__L19_L7_L4_L2».jcOk
 
 theorem jc725 : Bridge.jcData 725 = true := by
   have hx : Bridge.extraOf 725 = [] := congrArg Prod.fst ProgAl.tab725
   rw [Bridge.jcData, Checked.code725, Checked.core725, Checked.cert725, Checked.plumbEq725, Checked.fsEq725, hx]
-  exact Fn.«level_positions__L37_L21_L3».jcOk
+  exact Fn.«level_residual__L18_L7_L4_L2».jcOk
 
 theorem jc726 : Bridge.jcData 726 = true := by
   have hx : Bridge.extraOf 726 = [] := congrArg Prod.fst ProgAl.tab726
   rw [Bridge.jcData, Checked.code726, Checked.core726, Checked.cert726, Checked.plumbEq726, Checked.fsEq726, hx]
-  exact Fn.«level_positions__L22_L22_L4».jcOk
+  exact Fn.«level_positions__L37_L21_L3».jcOk
 
 theorem jc727 : Bridge.jcData 727 = true := by
   have hx : Bridge.extraOf 727 = [] := congrArg Prod.fst ProgAl.tab727
   rw [Bridge.jcData, Checked.code727, Checked.core727, Checked.cert727, Checked.plumbEq727, Checked.fsEq727, hx]
-  exact Fn.«level_positions__L15_L23_L5».jcOk
+  exact Fn.«level_positions__L22_L22_L4».jcOk
 
 theorem jc728 : Bridge.jcData 728 = true := by
   have hx : Bridge.extraOf 728 = [] := congrArg Prod.fst ProgAl.tab728
   rw [Bridge.jcData, Checked.code728, Checked.core728, Checked.cert728, Checked.plumbEq728, Checked.fsEq728, hx]
-  exact Fn.«level_positions__L11_L24_L6».jcOk
+  exact Fn.«level_positions__L15_L23_L5».jcOk
 
 theorem jc729 : Bridge.jcData 729 = true := by
   have hx : Bridge.extraOf 729 = [] := congrArg Prod.fst ProgAl.tab729
   rw [Bridge.jcData, Checked.code729, Checked.core729, Checked.cert729, Checked.plumbEq729, Checked.fsEq729, hx]
-  exact Fn.«level_queries__L218_L1_L6_L32_L21_L3_L0_L0_L0_L0».jcOk
+  exact Fn.«level_positions__L11_L24_L6».jcOk
 
 theorem jc730 : Bridge.jcData 730 = true := by
   have hx : Bridge.extraOf 730 = [] := congrArg Prod.fst ProgAl.tab730
   rw [Bridge.jcData, Checked.code730, Checked.core730, Checked.cert730, Checked.plumbEq730, Checked.fsEq730, hx]
-  exact Fn.«level_queries__L109_L1_L6_L32_L22_L4_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L218_L1_L6_L32_L21_L3_L0_L0_L0_L0».jcOk
 
 theorem jc731 : Bridge.jcData 731 = true := by
   have hx : Bridge.extraOf 731 = [] := congrArg Prod.fst ProgAl.tab731
   rw [Bridge.jcData, Checked.code731, Checked.core731, Checked.cert731, Checked.plumbEq731, Checked.fsEq731, hx]
-  exact Fn.«level_queries__L73_L1_L6_L32_L23_L5_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L109_L1_L6_L32_L22_L4_L0_L0_L0_L0».jcOk
 
 theorem jc732 : Bridge.jcData 732 = true := by
   have hx : Bridge.extraOf 732 = [] := congrArg Prod.fst ProgAl.tab732
   rw [Bridge.jcData, Checked.code732, Checked.core732, Checked.cert732, Checked.plumbEq732, Checked.fsEq732, hx]
-  exact Fn.«level_queries__L55_L1_L6_L32_L24_L6_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L73_L1_L6_L32_L23_L5_L0_L0_L0_L0».jcOk
 
 theorem jc733 : Bridge.jcData 733 = true := by
   have hx : Bridge.extraOf 733 = [] := congrArg Prod.fst ProgAl.tab733
   rw [Bridge.jcData, Checked.code733, Checked.core733, Checked.cert733, Checked.plumbEq733, Checked.fsEq733, hx]
-  exact Fn.«level_positions__L8_L21_L3».jcOk
+  exact Fn.«level_queries__L55_L1_L6_L32_L24_L6_L0_L0_L0_L0».jcOk
 
 theorem jc734 : Bridge.jcData 734 = true := by
   have hx : Bridge.extraOf 734 = [] := congrArg Prod.fst ProgAl.tab734
   rw [Bridge.jcData, Checked.code734, Checked.core734, Checked.cert734, Checked.plumbEq734, Checked.fsEq734, hx]
-  exact Fn.«level_positions__L8_L22_L4».jcOk
+  exact Fn.«level_positions__L8_L21_L3».jcOk
 
 theorem jc735 : Bridge.jcData 735 = true := by
   have hx : Bridge.extraOf 735 = [] := congrArg Prod.fst ProgAl.tab735
   rw [Bridge.jcData, Checked.code735, Checked.core735, Checked.cert735, Checked.plumbEq735, Checked.fsEq735, hx]
-  exact Fn.«level_positions__L7_L23_L5».jcOk
+  exact Fn.«level_positions__L8_L22_L4».jcOk
 
 theorem jc736 : Bridge.jcData 736 = true := by
   have hx : Bridge.extraOf 736 = [] := congrArg Prod.fst ProgAl.tab736
   rw [Bridge.jcData, Checked.code736, Checked.core736, Checked.cert736, Checked.plumbEq736, Checked.fsEq736, hx]
-  exact Fn.«level_queries__L55_L0_L4_L16_L20_L2_L0_L0_L0_L0».jcOk
+  exact Fn.«level_positions__L7_L23_L5».jcOk
 
 theorem jc737 : Bridge.jcData 737 = true := by
   have hx : Bridge.extraOf 737 = [] := congrArg Prod.fst ProgAl.tab737
   rw [Bridge.jcData, Checked.code737, Checked.core737, Checked.cert737, Checked.plumbEq737, Checked.fsEq737, hx]
-  exact Fn.«level_queries__L44_L0_L4_L16_L21_L3_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L55_L0_L4_L16_L20_L2_L0_L0_L0_L0».jcOk
 
 theorem jc738 : Bridge.jcData 738 = true := by
   have hx : Bridge.extraOf 738 = [] := congrArg Prod.fst ProgAl.tab738
   rw [Bridge.jcData, Checked.code738, Checked.core738, Checked.cert738, Checked.plumbEq738, Checked.fsEq738, hx]
-  exact Fn.«level_queries__L37_L0_L4_L16_L22_L4_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L44_L0_L4_L16_L21_L3_L0_L0_L0_L0».jcOk
 
 theorem jc739 : Bridge.jcData 739 = true := by
   have hx : Bridge.extraOf 739 = [] := congrArg Prod.fst ProgAl.tab739
   rw [Bridge.jcData, Checked.code739, Checked.core739, Checked.cert739, Checked.plumbEq739, Checked.fsEq739, hx]
-  exact Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L37_L0_L4_L16_L22_L4_L0_L0_L0_L0».jcOk
 
 theorem jc740 : Bridge.jcData 740 = true := by
   have hx : Bridge.extraOf 740 = [] := congrArg Prod.fst ProgAl.tab740
   rw [Bridge.jcData, Checked.code740, Checked.core740, Checked.cert740, Checked.plumbEq740, Checked.fsEq740, hx]
-  exact Fn.«level_positions__L5_L21_L3».jcOk
+  exact Fn.«level_queries__L32_L0_L4_L16_L23_L5_L0_L0_L0_L0».jcOk
 
 theorem jc741 : Bridge.jcData 741 = true := by
   have hx : Bridge.extraOf 741 = [] := congrArg Prod.fst ProgAl.tab741
   rw [Bridge.jcData, Checked.code741, Checked.core741, Checked.cert741, Checked.plumbEq741, Checked.fsEq741, hx]
-  exact Fn.«level_positions__L5_L22_L4».jcOk
+  exact Fn.«level_positions__L5_L21_L3».jcOk
 
 theorem jc742 : Bridge.jcData 742 = true := by
   have hx : Bridge.extraOf 742 = [] := congrArg Prod.fst ProgAl.tab742
   rw [Bridge.jcData, Checked.code742, Checked.core742, Checked.cert742, Checked.plumbEq742, Checked.fsEq742, hx]
-  exact Fn.«level_queries__L28_L0_L4_L16_L20_L2_L0_L0_L0_L0».jcOk
+  exact Fn.«level_positions__L5_L22_L4».jcOk
 
 theorem jc743 : Bridge.jcData 743 = true := by
   have hx : Bridge.extraOf 743 = [] := congrArg Prod.fst ProgAl.tab743
   rw [Bridge.jcData, Checked.code743, Checked.core743, Checked.cert743, Checked.plumbEq743, Checked.fsEq743, hx]
-  exact Fn.«level_queries__L25_L0_L4_L16_L21_L3_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L28_L0_L4_L16_L20_L2_L0_L0_L0_L0».jcOk
 
 theorem jc744 : Bridge.jcData 744 = true := by
   have hx : Bridge.extraOf 744 = [] := congrArg Prod.fst ProgAl.tab744
   rw [Bridge.jcData, Checked.code744, Checked.core744, Checked.cert744, Checked.plumbEq744, Checked.fsEq744, hx]
-  exact Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L25_L0_L4_L16_L21_L3_L0_L0_L0_L0».jcOk
 
 theorem jc745 : Bridge.jcData 745 = true := by
   have hx : Bridge.extraOf 745 = [] := congrArg Prod.fst ProgAl.tab745
   rw [Bridge.jcData, Checked.code745, Checked.core745, Checked.cert745, Checked.plumbEq745, Checked.fsEq745, hx]
-  exact Fn.«level_positions__L3_L21_L3».jcOk
+  exact Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».jcOk
 
 theorem jc746 : Bridge.jcData 746 = true := by
   have hx : Bridge.extraOf 746 = [] := congrArg Prod.fst ProgAl.tab746
   rw [Bridge.jcData, Checked.code746, Checked.core746, Checked.cert746, Checked.plumbEq746, Checked.fsEq746, hx]
-  exact Fn.«level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0».jcOk
+  exact Fn.«level_positions__L3_L21_L3».jcOk
 
 theorem jc747 : Bridge.jcData 747 = true := by
   have hx : Bridge.extraOf 747 = [] := congrArg Prod.fst ProgAl.tab747
   rw [Bridge.jcData, Checked.code747, Checked.core747, Checked.cert747, Checked.plumbEq747, Checked.fsEq747, hx]
-  exact Fn.«level_queries__L19_L0_L4_L16_L20_L2_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L21_L0_L4_L16_L19_L7_L0_L0_L0_L0».jcOk
 
 theorem jc748 : Bridge.jcData 748 = true := by
   have hx : Bridge.extraOf 748 = [] := congrArg Prod.fst ProgAl.tab748
   rw [Bridge.jcData, Checked.code748, Checked.core748, Checked.cert748, Checked.plumbEq748, Checked.fsEq748, hx]
-  exact Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L19_L0_L4_L16_L20_L2_L0_L0_L0_L0».jcOk
 
 theorem jc749 : Bridge.jcData 749 = true := by
   have hx : Bridge.extraOf 749 = [] := congrArg Prod.fst ProgAl.tab749
   rw [Bridge.jcData, Checked.code749, Checked.core749, Checked.cert749, Checked.plumbEq749, Checked.fsEq749, hx]
-  exact Fn.«level_queries__L17_L0_L4_L16_L18_L6_L4_L20_L5_L1».jcOk
+  exact Fn.«level_queries__L18_L0_L4_L16_L21_L3_L0_L0_L0_L0».jcOk
 
 theorem jc750 : Bridge.jcData 750 = true := by
   have hx : Bridge.extraOf 750 = [] := congrArg Prod.fst ProgAl.tab750
   rw [Bridge.jcData, Checked.code750, Checked.core750, Checked.cert750, Checked.plumbEq750, Checked.fsEq750, hx]
-  exact Fn.«level_queries__L16_L0_L4_L16_L19_L7_L4_L20_L5_L1».jcOk
+  exact Fn.«level_queries__L17_L0_L4_L16_L18_L6_L4_L20_L5_L1».jcOk
 
 theorem jc751 : Bridge.jcData 751 = true := by
   have hx : Bridge.extraOf 751 = [] := congrArg Prod.fst ProgAl.tab751
   rw [Bridge.jcData, Checked.code751, Checked.core751, Checked.cert751, Checked.plumbEq751, Checked.fsEq751, hx]
-  exact Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».jcOk
+  exact Fn.«level_queries__L16_L0_L4_L16_L19_L7_L4_L20_L5_L1».jcOk
 
 theorem jc752 : Bridge.jcData 752 = true := by
   have hx : Bridge.extraOf 752 = [] := congrArg Prod.fst ProgAl.tab752
   rw [Bridge.jcData, Checked.code752, Checked.core752, Checked.cert752, Checked.plumbEq752, Checked.fsEq752, hx]
-  exact Fn.«level_residual__L218_L20_L6_L3».jcOk
+  exact Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».jcOk
 
 theorem jc753 : Bridge.jcData 753 = true := by
   have hx : Bridge.extraOf 753 = [] := congrArg Prod.fst ProgAl.tab753
   rw [Bridge.jcData, Checked.code753, Checked.core753, Checked.cert753, Checked.plumbEq753, Checked.fsEq753, hx]
-  exact Fn.«level_residual__L109_L20_L6_L3».jcOk
+  exact Fn.«level_residual__L218_L20_L6_L3».jcOk
 
 theorem jc754 : Bridge.jcData 754 = true := by
   have hx : Bridge.extraOf 754 = [] := congrArg Prod.fst ProgAl.tab754
   rw [Bridge.jcData, Checked.code754, Checked.core754, Checked.cert754, Checked.plumbEq754, Checked.fsEq754, hx]
-  exact Fn.«level_residual__L73_L20_L6_L3».jcOk
+  exact Fn.«level_residual__L109_L20_L6_L3».jcOk
 
 theorem jc755 : Bridge.jcData 755 = true := by
   have hx : Bridge.extraOf 755 = [] := congrArg Prod.fst ProgAl.tab755
   rw [Bridge.jcData, Checked.code755, Checked.core755, Checked.cert755, Checked.plumbEq755, Checked.fsEq755, hx]
-  exact Fn.«level_residual__L55_L20_L6_L3».jcOk
+  exact Fn.«level_residual__L73_L20_L6_L3».jcOk
 
 theorem jc756 : Bridge.jcData 756 = true := by
   have hx : Bridge.extraOf 756 = [] := congrArg Prod.fst ProgAl.tab756
   rw [Bridge.jcData, Checked.code756, Checked.core756, Checked.cert756, Checked.plumbEq756, Checked.fsEq756, hx]
-  exact Fn.«level_residual__L55_L16_L4_L2».jcOk
+  exact Fn.«level_residual__L55_L20_L6_L3».jcOk
 
 theorem jc757 : Bridge.jcData 757 = true := by
   have hx : Bridge.extraOf 757 = [] := congrArg Prod.fst ProgAl.tab757
   rw [Bridge.jcData, Checked.code757, Checked.core757, Checked.cert757, Checked.plumbEq757, Checked.fsEq757, hx]
-  exact Fn.«level_residual__L44_L16_L4_L2».jcOk
+  exact Fn.«level_residual__L55_L16_L4_L2».jcOk
 
 theorem jc758 : Bridge.jcData 758 = true := by
   have hx : Bridge.extraOf 758 = [] := congrArg Prod.fst ProgAl.tab758
   rw [Bridge.jcData, Checked.code758, Checked.core758, Checked.cert758, Checked.plumbEq758, Checked.fsEq758, hx]
-  exact Fn.«level_residual__L37_L16_L4_L2».jcOk
+  exact Fn.«level_residual__L44_L16_L4_L2».jcOk
 
 theorem jc759 : Bridge.jcData 759 = true := by
   have hx : Bridge.extraOf 759 = [] := congrArg Prod.fst ProgAl.tab759
   rw [Bridge.jcData, Checked.code759, Checked.core759, Checked.cert759, Checked.plumbEq759, Checked.fsEq759, hx]
-  exact Fn.«level_residual__L32_L16_L4_L2».jcOk
+  exact Fn.«level_residual__L37_L16_L4_L2».jcOk
 
 theorem jc760 : Bridge.jcData 760 = true := by
   have hx : Bridge.extraOf 760 = [] := congrArg Prod.fst ProgAl.tab760
   rw [Bridge.jcData, Checked.code760, Checked.core760, Checked.cert760, Checked.plumbEq760, Checked.fsEq760, hx]
-  exact Fn.«level_residual__L28_L12_L4_L2».jcOk
+  exact Fn.«level_residual__L32_L16_L4_L2».jcOk
 
 theorem jc761 : Bridge.jcData 761 = true := by
   have hx : Bridge.extraOf 761 = [] := congrArg Prod.fst ProgAl.tab761
   rw [Bridge.jcData, Checked.code761, Checked.core761, Checked.cert761, Checked.plumbEq761, Checked.fsEq761, hx]
-  exact Fn.«level_residual__L25_L12_L4_L2».jcOk
+  exact Fn.«level_residual__L28_L12_L4_L2».jcOk
 
 theorem jc762 : Bridge.jcData 762 = true := by
   have hx : Bridge.extraOf 762 = [] := congrArg Prod.fst ProgAl.tab762
   rw [Bridge.jcData, Checked.code762, Checked.core762, Checked.cert762, Checked.plumbEq762, Checked.fsEq762, hx]
-  exact Fn.«level_residual__L23_L12_L4_L2».jcOk
+  exact Fn.«level_residual__L25_L12_L4_L2».jcOk
 
 theorem jc763 : Bridge.jcData 763 = true := by
   have hx : Bridge.extraOf 763 = [] := congrArg Prod.fst ProgAl.tab763
   rw [Bridge.jcData, Checked.code763, Checked.core763, Checked.cert763, Checked.plumbEq763, Checked.fsEq763, hx]
-  exact Fn.«level_residual__L21_L8_L4_L2».jcOk
+  exact Fn.«level_residual__L23_L12_L4_L2».jcOk
 
 theorem jc764 : Bridge.jcData 764 = true := by
   have hx : Bridge.extraOf 764 = [] := congrArg Prod.fst ProgAl.tab764
   rw [Bridge.jcData, Checked.code764, Checked.core764, Checked.cert764, Checked.plumbEq764, Checked.fsEq764, hx]
-  exact Fn.«level_residual__L19_L8_L4_L2».jcOk
+  exact Fn.«level_residual__L21_L8_L4_L2».jcOk
 
 theorem jc765 : Bridge.jcData 765 = true := by
   have hx : Bridge.extraOf 765 = [] := congrArg Prod.fst ProgAl.tab765
   rw [Bridge.jcData, Checked.code765, Checked.core765, Checked.cert765, Checked.plumbEq765, Checked.fsEq765, hx]
-  exact Fn.«level_residual__L18_L8_L4_L2».jcOk
+  exact Fn.«level_residual__L19_L8_L4_L2».jcOk
 
 theorem jc766 : Bridge.jcData 766 = true := by
   have hx : Bridge.extraOf 766 = [] := congrArg Prod.fst ProgAl.tab766
   rw [Bridge.jcData, Checked.code766, Checked.core766, Checked.cert766, Checked.plumbEq766, Checked.fsEq766, hx]
-  exact Fn.«level_positions__L44_L22_L4».jcOk
+  exact Fn.«level_residual__L18_L8_L4_L2».jcOk
 
 theorem jc767 : Bridge.jcData 767 = true := by
   have hx : Bridge.extraOf 767 = [] := congrArg Prod.fst ProgAl.tab767
   rw [Bridge.jcData, Checked.code767, Checked.core767, Checked.cert767, Checked.plumbEq767, Checked.fsEq767, hx]
-  exact Fn.«level_positions__L22_L23_L5».jcOk
+  exact Fn.«level_positions__L44_L22_L4».jcOk
 
 theorem jc768 : Bridge.jcData 768 = true := by
   have hx : Bridge.extraOf 768 = [] := congrArg Prod.fst ProgAl.tab768
   rw [Bridge.jcData, Checked.code768, Checked.core768, Checked.cert768, Checked.plumbEq768, Checked.fsEq768, hx]
-  exact Fn.«level_positions__L15_L24_L6».jcOk
+  exact Fn.«level_positions__L22_L23_L5».jcOk
 
 theorem jc769 : Bridge.jcData 769 = true := by
   have hx : Bridge.extraOf 769 = [] := congrArg Prod.fst ProgAl.tab769
   rw [Bridge.jcData, Checked.code769, Checked.core769, Checked.cert769, Checked.plumbEq769, Checked.fsEq769, hx]
-  exact Fn.«level_positions__L11_L25_L7».jcOk
+  exact Fn.«level_positions__L15_L24_L6».jcOk
 
 theorem jc770 : Bridge.jcData 770 = true := by
   have hx : Bridge.extraOf 770 = [] := congrArg Prod.fst ProgAl.tab770
   rw [Bridge.jcData, Checked.code770, Checked.core770, Checked.cert770, Checked.plumbEq770, Checked.fsEq770, hx]
-  exact Fn.«level_queries__L218_L1_L6_L32_L22_L4_L0_L0_L0_L0».jcOk
+  exact Fn.«level_positions__L11_L25_L7».jcOk
 
 theorem jc771 : Bridge.jcData 771 = true := by
   have hx : Bridge.extraOf 771 = [] := congrArg Prod.fst ProgAl.tab771
   rw [Bridge.jcData, Checked.code771, Checked.core771, Checked.cert771, Checked.plumbEq771, Checked.fsEq771, hx]
-  exact Fn.«level_queries__L109_L1_L6_L32_L23_L5_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L218_L1_L6_L32_L22_L4_L0_L0_L0_L0».jcOk
 
 theorem jc772 : Bridge.jcData 772 = true := by
   have hx : Bridge.extraOf 772 = [] := congrArg Prod.fst ProgAl.tab772
   rw [Bridge.jcData, Checked.code772, Checked.core772, Checked.cert772, Checked.plumbEq772, Checked.fsEq772, hx]
-  exact Fn.«level_queries__L73_L1_L6_L32_L24_L6_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L109_L1_L6_L32_L23_L5_L0_L0_L0_L0».jcOk
 
 theorem jc773 : Bridge.jcData 773 = true := by
   have hx : Bridge.extraOf 773 = [] := congrArg Prod.fst ProgAl.tab773
   rw [Bridge.jcData, Checked.code773, Checked.core773, Checked.cert773, Checked.plumbEq773, Checked.fsEq773, hx]
-  exact Fn.«level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L73_L1_L6_L32_L24_L6_L0_L0_L0_L0».jcOk
 
 theorem jc774 : Bridge.jcData 774 = true := by
   have hx : Bridge.extraOf 774 = [] := congrArg Prod.fst ProgAl.tab774
   rw [Bridge.jcData, Checked.code774, Checked.core774, Checked.cert774, Checked.plumbEq774, Checked.fsEq774, hx]
-  exact Fn.«level_positions__L9_L22_L4».jcOk
+  exact Fn.«level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0».jcOk
 
 theorem jc775 : Bridge.jcData 775 = true := by
   have hx : Bridge.extraOf 775 = [] := congrArg Prod.fst ProgAl.tab775
   rw [Bridge.jcData, Checked.code775, Checked.core775, Checked.cert775, Checked.plumbEq775, Checked.fsEq775, hx]
-  exact Fn.«level_positions__L8_L23_L5».jcOk
+  exact Fn.«level_positions__L9_L22_L4».jcOk
 
 theorem jc776 : Bridge.jcData 776 = true := by
   have hx : Bridge.extraOf 776 = [] := congrArg Prod.fst ProgAl.tab776
   rw [Bridge.jcData, Checked.code776, Checked.core776, Checked.cert776, Checked.plumbEq776, Checked.fsEq776, hx]
-  exact Fn.«level_positions__L7_L24_L6».jcOk
+  exact Fn.«level_positions__L8_L23_L5».jcOk
 
 theorem jc777 : Bridge.jcData 777 = true := by
   have hx : Bridge.extraOf 777 = [] := congrArg Prod.fst ProgAl.tab777
   rw [Bridge.jcData, Checked.code777, Checked.core777, Checked.cert777, Checked.plumbEq777, Checked.fsEq777, hx]
-  exact Fn.«level_queries__L55_L0_L4_L16_L21_L3_L0_L0_L0_L0».jcOk
+  exact Fn.«level_positions__L7_L24_L6».jcOk
 
 theorem jc778 : Bridge.jcData 778 = true := by
   have hx : Bridge.extraOf 778 = [] := congrArg Prod.fst ProgAl.tab778
   rw [Bridge.jcData, Checked.code778, Checked.core778, Checked.cert778, Checked.plumbEq778, Checked.fsEq778, hx]
-  exact Fn.«level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L55_L0_L4_L16_L21_L3_L0_L0_L0_L0».jcOk
 
 theorem jc779 : Bridge.jcData 779 = true := by
   have hx : Bridge.extraOf 779 = [] := congrArg Prod.fst ProgAl.tab779
   rw [Bridge.jcData, Checked.code779, Checked.core779, Checked.cert779, Checked.plumbEq779, Checked.fsEq779, hx]
-  exact Fn.«level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L44_L0_L4_L16_L22_L4_L0_L0_L0_L0».jcOk
 
 theorem jc780 : Bridge.jcData 780 = true := by
   have hx : Bridge.extraOf 780 = [] := congrArg Prod.fst ProgAl.tab780
   rw [Bridge.jcData, Checked.code780, Checked.core780, Checked.cert780, Checked.plumbEq780, Checked.fsEq780, hx]
-  exact Fn.«level_queries__L32_L0_L4_L16_L24_L6_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0».jcOk
 
 theorem jc781 : Bridge.jcData 781 = true := by
   have hx : Bridge.extraOf 781 = [] := congrArg Prod.fst ProgAl.tab781
   rw [Bridge.jcData, Checked.code781, Checked.core781, Checked.cert781, Checked.plumbEq781, Checked.fsEq781, hx]
-  exact Fn.«level_positions__L5_L23_L5».jcOk
+  exact Fn.«level_queries__L32_L0_L4_L16_L24_L6_L0_L0_L0_L0».jcOk
 
 theorem jc782 : Bridge.jcData 782 = true := by
   have hx : Bridge.extraOf 782 = [] := congrArg Prod.fst ProgAl.tab782
   rw [Bridge.jcData, Checked.code782, Checked.core782, Checked.cert782, Checked.plumbEq782, Checked.fsEq782, hx]
-  exact Fn.«level_queries__L28_L0_L4_L16_L21_L3_L0_L0_L0_L0».jcOk
+  exact Fn.«level_positions__L5_L23_L5».jcOk
 
 theorem jc783 : Bridge.jcData 783 = true := by
   have hx : Bridge.extraOf 783 = [] := congrArg Prod.fst ProgAl.tab783
   rw [Bridge.jcData, Checked.code783, Checked.core783, Checked.cert783, Checked.plumbEq783, Checked.fsEq783, hx]
-  exact Fn.«level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L28_L0_L4_L16_L21_L3_L0_L0_L0_L0».jcOk
 
 theorem jc784 : Bridge.jcData 784 = true := by
   have hx : Bridge.extraOf 784 = [] := congrArg Prod.fst ProgAl.tab784
   rw [Bridge.jcData, Checked.code784, Checked.core784, Checked.cert784, Checked.plumbEq784, Checked.fsEq784, hx]
-  exact Fn.«level_queries__L23_L0_L4_L16_L23_L5_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0».jcOk
 
 theorem jc785 : Bridge.jcData 785 = true := by
   have hx : Bridge.extraOf 785 = [] := congrArg Prod.fst ProgAl.tab785
   rw [Bridge.jcData, Checked.code785, Checked.core785, Checked.cert785, Checked.plumbEq785, Checked.fsEq785, hx]
-  exact Fn.«level_positions__L4_L22_L4».jcOk
+  exact Fn.«level_queries__L23_L0_L4_L16_L23_L5_L0_L0_L0_L0».jcOk
 
 theorem jc786 : Bridge.jcData 786 = true := by
   have hx : Bridge.extraOf 786 = [] := congrArg Prod.fst ProgAl.tab786
   rw [Bridge.jcData, Checked.code786, Checked.core786, Checked.cert786, Checked.plumbEq786, Checked.fsEq786, hx]
-  exact Fn.«level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0».jcOk
+  exact Fn.«level_positions__L4_L22_L4».jcOk
 
 theorem jc787 : Bridge.jcData 787 = true := by
   have hx : Bridge.extraOf 787 = [] := congrArg Prod.fst ProgAl.tab787
   rw [Bridge.jcData, Checked.code787, Checked.core787, Checked.cert787, Checked.plumbEq787, Checked.fsEq787, hx]
-  exact Fn.«level_queries__L19_L0_L4_L16_L21_L3_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L21_L0_L4_L16_L20_L2_L0_L0_L0_L0».jcOk
 
 theorem jc788 : Bridge.jcData 788 = true := by
   have hx : Bridge.extraOf 788 = [] := congrArg Prod.fst ProgAl.tab788
   rw [Bridge.jcData, Checked.code788, Checked.core788, Checked.cert788, Checked.plumbEq788, Checked.fsEq788, hx]
-  exact Fn.«level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0».jcOk
+  exact Fn.«level_queries__L19_L0_L4_L16_L21_L3_L0_L0_L0_L0».jcOk
 
 theorem jc789 : Bridge.jcData 789 = true := by
   have hx : Bridge.extraOf 789 = [] := congrArg Prod.fst ProgAl.tab789
   rw [Bridge.jcData, Checked.code789, Checked.core789, Checked.cert789, Checked.plumbEq789, Checked.fsEq789, hx]
-  exact Fn.«level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1».jcOk
+  exact Fn.«level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0».jcOk
 
 theorem jc790 : Bridge.jcData 790 = true := by
   have hx : Bridge.extraOf 790 = [] := congrArg Prod.fst ProgAl.tab790
   rw [Bridge.jcData, Checked.code790, Checked.core790, Checked.cert790, Checked.plumbEq790, Checked.fsEq790, hx]
-  exact Fn.«level_queries__L16_L0_L4_L16_L20_L2_L5_L36_L6_L1».jcOk
+  exact Fn.«level_queries__L17_L0_L4_L16_L19_L7_L5_L36_L6_L1».jcOk
 
 theorem jc791 : Bridge.jcData 791 = true := by
   have hx : Bridge.extraOf 791 = [] := congrArg Prod.fst ProgAl.tab791
   rw [Bridge.jcData, Checked.code791, Checked.core791, Checked.cert791, Checked.plumbEq791, Checked.fsEq791, hx]
-  exact Fn.«level_queries__L15_L0_L4_L16_L21_L3_L5_L36_L6_L1».jcOk
+  exact Fn.«level_queries__L16_L0_L4_L16_L20_L2_L5_L36_L6_L1».jcOk
 
 theorem jc792 : Bridge.jcData 792 = true := by
   have hx : Bridge.extraOf 792 = [] := congrArg Prod.fst ProgAl.tab792
   rw [Bridge.jcData, Checked.code792, Checked.core792, Checked.cert792, Checked.plumbEq792, Checked.fsEq792, hx]
-  exact Fn.«level_residual__L218_L21_L6_L3».jcOk
+  exact Fn.«level_queries__L15_L0_L4_L16_L21_L3_L5_L36_L6_L1».jcOk
 
 theorem jc793 : Bridge.jcData 793 = true := by
   have hx : Bridge.extraOf 793 = [] := congrArg Prod.fst ProgAl.tab793
   rw [Bridge.jcData, Checked.code793, Checked.core793, Checked.cert793, Checked.plumbEq793, Checked.fsEq793, hx]
-  exact Fn.«level_residual__L109_L21_L6_L3».jcOk
+  exact Fn.«level_residual__L218_L21_L6_L3».jcOk
 
 theorem jc794 : Bridge.jcData 794 = true := by
   have hx : Bridge.extraOf 794 = [] := congrArg Prod.fst ProgAl.tab794
   rw [Bridge.jcData, Checked.code794, Checked.core794, Checked.cert794, Checked.plumbEq794, Checked.fsEq794, hx]
-  exact Fn.«level_residual__L73_L21_L6_L3».jcOk
+  exact Fn.«level_residual__L109_L21_L6_L3».jcOk
 
 theorem jc795 : Bridge.jcData 795 = true := by
   have hx : Bridge.extraOf 795 = [] := congrArg Prod.fst ProgAl.tab795
   rw [Bridge.jcData, Checked.code795, Checked.core795, Checked.cert795, Checked.plumbEq795, Checked.fsEq795, hx]
-  exact Fn.«level_residual__L55_L21_L6_L3».jcOk
+  exact Fn.«level_residual__L73_L21_L6_L3».jcOk
 
 theorem jc796 : Bridge.jcData 796 = true := by
   have hx : Bridge.extraOf 796 = [] := congrArg Prod.fst ProgAl.tab796
   rw [Bridge.jcData, Checked.code796, Checked.core796, Checked.cert796, Checked.plumbEq796, Checked.fsEq796, hx]
-  exact Fn.«level_residual__L55_L17_L4_L2».jcOk
+  exact Fn.«level_residual__L55_L21_L6_L3».jcOk
 
 theorem jc797 : Bridge.jcData 797 = true := by
   have hx : Bridge.extraOf 797 = [] := congrArg Prod.fst ProgAl.tab797
   rw [Bridge.jcData, Checked.code797, Checked.core797, Checked.cert797, Checked.plumbEq797, Checked.fsEq797, hx]
-  exact Fn.«level_residual__L44_L17_L4_L2».jcOk
+  exact Fn.«level_residual__L55_L17_L4_L2».jcOk
 
 theorem jc798 : Bridge.jcData 798 = true := by
   have hx : Bridge.extraOf 798 = [] := congrArg Prod.fst ProgAl.tab798
   rw [Bridge.jcData, Checked.code798, Checked.core798, Checked.cert798, Checked.plumbEq798, Checked.fsEq798, hx]
-  exact Fn.«level_residual__L37_L17_L4_L2».jcOk
+  exact Fn.«level_residual__L44_L17_L4_L2».jcOk
 
 theorem jc799 : Bridge.jcData 799 = true := by
   have hx : Bridge.extraOf 799 = [] := congrArg Prod.fst ProgAl.tab799
   rw [Bridge.jcData, Checked.code799, Checked.core799, Checked.cert799, Checked.plumbEq799, Checked.fsEq799, hx]
-  exact Fn.«level_residual__L32_L17_L4_L2».jcOk
+  exact Fn.«level_residual__L37_L17_L4_L2».jcOk
 
 theorem jc800 : Bridge.jcData 800 = true := by
   have hx : Bridge.extraOf 800 = [] := congrArg Prod.fst ProgAl.tab800
   rw [Bridge.jcData, Checked.code800, Checked.core800, Checked.cert800, Checked.plumbEq800, Checked.fsEq800, hx]
-  exact Fn.«level_residual__L28_L13_L4_L2».jcOk
+  exact Fn.«level_residual__L32_L17_L4_L2».jcOk
 
 end
 

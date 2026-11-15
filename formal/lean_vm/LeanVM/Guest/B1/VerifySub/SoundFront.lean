@@ -236,7 +236,7 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {C : CallRel}
   have hTP : Tables.TablesPre pi logMem weights r.2.1 r.2.2 L.read
       [σ (.n 562), σ (.n 563), σ (.n 564), σ (.n 565), σ (.n 566), σ (.n 567), σ (.n 0), σ (.n 1),
         σ (.n 254), σ (.n 253), σ (.n 71), σ (.n 26), σ (.n 4), σ (.n 335), σ (.n 559), σ (.n 6),
-        σ (.n 569), σ (.n 568), σ (.n 572), σ (.n 570)] :=
+        σ (.n 569), σ (.n 568), σ (.n 572), σ (.n 570), σ (.n 25)] :=
     ⟨hpi, hzeta, by rw [h253, hrL], by omega, hm1, hm30.trans (by norm_num), ⟨ds, hdsL, hdims⟩,
       expTablesAt_of hexp hwin, h572, hwL, hw335, hvL, by rw [hcurG.2]; exact hleaves⟩
   obtain ⟨xsT, capT, rowsN, bus, claims, hrowsL, hrows, hdims', hh31, hxsT, ⟨slots, hslL, hsl, hbp⟩,

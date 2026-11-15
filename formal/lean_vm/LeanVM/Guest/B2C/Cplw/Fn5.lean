@@ -51,7 +51,6 @@ import LeanVM.Guest.Pack.«P47».Cplw0
 import LeanVM.Guest.Pack.«P21».Cplw0
 import LeanVM.Guest.Pack.«P2».Cplw0
 import LeanVM.Guest.Pack.«P35».Cplw0
-import LeanVM.Guest.Pack.«P16».Cplw0
 
 namespace LeanVM.Guest.B2C.Cplw
 
@@ -105,109 +104,109 @@ theorem ok265 : CplOk 265 :=
   cplOk_of_link link265 plumbEq265 fsEq265 partsEq265 armsEq265 rfl Fn.«verify_tables_loop0».cplOk
 
 theorem ok266 : CplOk 266 :=
-  cplOk_of_link link266 plumbEq266 fsEq266 partsEq266 armsEq266 rfl Fn.«verify_keccak_loop0».cplOk
+  cplOk_of_link link266 plumbEq266 fsEq266 partsEq266 armsEq266 rfl Fn.«verify_tables_loop1».cplOk
 
 theorem ok267 : CplOk 267 :=
-  cplOk_of_link link267 plumbEq267 fsEq267 partsEq267 armsEq267 rfl Fn.«keccak_layer__L1».cplOk
+  cplOk_of_link link267 plumbEq267 fsEq267 partsEq267 armsEq267 rfl Fn.«verify_keccak_loop0».cplOk
 
 theorem ok268 : CplOk 268 :=
-  cplOk_of_link link268 plumbEq268 fsEq268 partsEq268 armsEq268 rfl Fn.«keccak_layer__L0».cplOk
+  cplOk_of_link link268 plumbEq268 fsEq268 partsEq268 armsEq268 rfl Fn.«keccak_layer__L1».cplOk
 
 theorem ok269 : CplOk 269 :=
-  cplOk_of_link link269 plumbEq269 fsEq269 partsEq269 armsEq269 rfl Fn.«keccak_plain_rounds__L6_L0».cplOk
+  cplOk_of_link link269 plumbEq269 fsEq269 partsEq269 armsEq269 rfl Fn.«keccak_layer__L0».cplOk
 
 theorem ok270 : CplOk 270 :=
-  cplOk_of_link link270 plumbEq270 fsEq270 partsEq270 armsEq270 rfl Fn.«verify_keccak_loop1».cplOk
+  cplOk_of_link link270 plumbEq270 fsEq270 partsEq270 armsEq270 rfl Fn.«keccak_plain_rounds__L6_L0».cplOk
 
 theorem ok271 : CplOk 271 :=
-  cplOk_of_link link271 plumbEq271 fsEq271 partsEq271 armsEq271 rfl Fn.«keccak_plain_rounds__L4_L1».cplOk
+  cplOk_of_link link271 plumbEq271 fsEq271 partsEq271 armsEq271 rfl Fn.«verify_keccak_loop1».cplOk
 
 theorem ok272 : CplOk 272 :=
-  cplOk_of_link link272 plumbEq272 fsEq272 partsEq272 armsEq272 rfl Fn.«verify_keccak_loop2».cplOk
+  cplOk_of_link link272 plumbEq272 fsEq272 partsEq272 armsEq272 rfl Fn.«keccak_plain_rounds__L4_L1».cplOk
 
 theorem ok273 : CplOk 273 :=
-  cplOk_of_link link273 plumbEq273 fsEq273 partsEq273 armsEq273 rfl Fn.«ring_switch_target_loop0».cplOk
+  cplOk_of_link link273 plumbEq273 fsEq273 partsEq273 armsEq273 rfl Fn.«verify_keccak_loop2».cplOk
 
 theorem ok274 : CplOk 274 :=
-  cplOk_of_link link274 plumbEq274 fsEq274 partsEq274 armsEq274 rfl Fn.«check_opening_terminal_loop0».cplOk
+  cplOk_of_link link274 plumbEq274 fsEq274 partsEq274 armsEq274 rfl Fn.«ring_switch_target_loop0».cplOk
 
 theorem ok275 : CplOk 275 :=
-  cplOk_of_link link275 plumbEq275 fsEq275 partsEq275 armsEq275 rfl Fn.«column_selector__L0».cplOk
+  cplOk_of_link link275 plumbEq275 fsEq275 partsEq275 armsEq275 rfl Fn.«check_opening_terminal_loop0».cplOk
 
 theorem ok276 : CplOk 276 :=
-  cplOk_of_link link276 plumbEq276 fsEq276 partsEq276 armsEq276 rfl Fn.«column_selector__L1».cplOk
+  cplOk_of_link link276 plumbEq276 fsEq276 partsEq276 armsEq276 rfl Fn.«column_selector__L0».cplOk
 
 theorem ok277 : CplOk 277 :=
-  cplOk_of_link link277 plumbEq277 fsEq277 partsEq277 armsEq277 rfl Fn.«column_selector__L2».cplOk
+  cplOk_of_link link277 plumbEq277 fsEq277 partsEq277 armsEq277 rfl Fn.«column_selector__L1».cplOk
 
 theorem ok278 : CplOk 278 :=
-  cplOk_of_link link278 plumbEq278 fsEq278 partsEq278 armsEq278 rfl Fn.«column_selector__L3».cplOk
+  cplOk_of_link link278 plumbEq278 fsEq278 partsEq278 armsEq278 rfl Fn.«column_selector__L2».cplOk
 
 theorem ok279 : CplOk 279 :=
-  cplOk_of_link link279 plumbEq279 fsEq279 partsEq279 armsEq279 rfl Fn.«column_selector__L4».cplOk
+  cplOk_of_link link279 plumbEq279 fsEq279 partsEq279 armsEq279 rfl Fn.«column_selector__L3».cplOk
 
 theorem ok280 : CplOk 280 :=
-  cplOk_of_link link280 plumbEq280 fsEq280 partsEq280 armsEq280 rfl Fn.«column_selector__L5».cplOk
+  cplOk_of_link link280 plumbEq280 fsEq280 partsEq280 armsEq280 rfl Fn.«column_selector__L4».cplOk
 
 theorem ok281 : CplOk 281 :=
-  cplOk_of_link link281 plumbEq281 fsEq281 partsEq281 armsEq281 rfl Fn.«column_selector__L6».cplOk
+  cplOk_of_link link281 plumbEq281 fsEq281 partsEq281 armsEq281 rfl Fn.«column_selector__L5».cplOk
 
 theorem ok282 : CplOk 282 :=
-  cplOk_of_link link282 plumbEq282 fsEq282 partsEq282 armsEq282 rfl Fn.«column_selector__L7».cplOk
+  cplOk_of_link link282 plumbEq282 fsEq282 partsEq282 armsEq282 rfl Fn.«column_selector__L6».cplOk
 
 theorem ok283 : CplOk 283 :=
-  cplOk_of_link link283 plumbEq283 fsEq283 partsEq283 armsEq283 rfl Fn.«column_selector__L8».cplOk
+  cplOk_of_link link283 plumbEq283 fsEq283 partsEq283 armsEq283 rfl Fn.«column_selector__L7».cplOk
 
 theorem ok284 : CplOk 284 :=
-  cplOk_of_link link284 plumbEq284 fsEq284 partsEq284 armsEq284 rfl Fn.«column_selector__L9».cplOk
+  cplOk_of_link link284 plumbEq284 fsEq284 partsEq284 armsEq284 rfl Fn.«column_selector__L8».cplOk
 
 theorem ok285 : CplOk 285 :=
-  cplOk_of_link link285 plumbEq285 fsEq285 partsEq285 armsEq285 rfl Fn.«column_selector__L10».cplOk
+  cplOk_of_link link285 plumbEq285 fsEq285 partsEq285 armsEq285 rfl Fn.«column_selector__L9».cplOk
 
 theorem ok286 : CplOk 286 :=
-  cplOk_of_link link286 plumbEq286 fsEq286 partsEq286 armsEq286 rfl Fn.«column_selector__L11».cplOk
+  cplOk_of_link link286 plumbEq286 fsEq286 partsEq286 armsEq286 rfl Fn.«column_selector__L10».cplOk
 
 theorem ok287 : CplOk 287 :=
-  cplOk_of_link link287 plumbEq287 fsEq287 partsEq287 armsEq287 rfl Fn.«column_selector__L12».cplOk
+  cplOk_of_link link287 plumbEq287 fsEq287 partsEq287 armsEq287 rfl Fn.«column_selector__L11».cplOk
 
 theorem ok288 : CplOk 288 :=
-  cplOk_of_link link288 plumbEq288 fsEq288 partsEq288 armsEq288 rfl Fn.«column_selector__L13».cplOk
+  cplOk_of_link link288 plumbEq288 fsEq288 partsEq288 armsEq288 rfl Fn.«column_selector__L12».cplOk
 
 theorem ok289 : CplOk 289 :=
-  cplOk_of_link link289 plumbEq289 fsEq289 partsEq289 armsEq289 rfl Fn.«column_selector__L14».cplOk
+  cplOk_of_link link289 plumbEq289 fsEq289 partsEq289 armsEq289 rfl Fn.«column_selector__L13».cplOk
 
 theorem ok290 : CplOk 290 :=
-  cplOk_of_link link290 plumbEq290 fsEq290 partsEq290 armsEq290 rfl Fn.«column_selector__L15».cplOk
+  cplOk_of_link link290 plumbEq290 fsEq290 partsEq290 armsEq290 rfl Fn.«column_selector__L14».cplOk
 
 theorem ok291 : CplOk 291 :=
-  cplOk_of_link link291 plumbEq291 fsEq291 partsEq291 armsEq291 rfl Fn.«column_selector__L16».cplOk
+  cplOk_of_link link291 plumbEq291 fsEq291 partsEq291 armsEq291 rfl Fn.«column_selector__L15».cplOk
 
 theorem ok292 : CplOk 292 :=
-  cplOk_of_link link292 plumbEq292 fsEq292 partsEq292 armsEq292 rfl Fn.«column_selector__L17».cplOk
+  cplOk_of_link link292 plumbEq292 fsEq292 partsEq292 armsEq292 rfl Fn.«column_selector__L16».cplOk
 
 theorem ok293 : CplOk 293 :=
-  cplOk_of_link link293 plumbEq293 fsEq293 partsEq293 armsEq293 rfl Fn.«column_selector__L18».cplOk
+  cplOk_of_link link293 plumbEq293 fsEq293 partsEq293 armsEq293 rfl Fn.«column_selector__L17».cplOk
 
 theorem ok294 : CplOk 294 :=
-  cplOk_of_link link294 plumbEq294 fsEq294 partsEq294 armsEq294 rfl Fn.«column_selector__L19».cplOk
+  cplOk_of_link link294 plumbEq294 fsEq294 partsEq294 armsEq294 rfl Fn.«column_selector__L18».cplOk
 
 theorem ok295 : CplOk 295 :=
-  cplOk_of_link link295 plumbEq295 fsEq295 partsEq295 armsEq295 rfl Fn.«column_selector__L20».cplOk
+  cplOk_of_link link295 plumbEq295 fsEq295 partsEq295 armsEq295 rfl Fn.«column_selector__L19».cplOk
 
 theorem ok296 : CplOk 296 :=
-  cplOk_of_link link296 plumbEq296 fsEq296 partsEq296 armsEq296 rfl Fn.«column_selector__L21».cplOk
+  cplOk_of_link link296 plumbEq296 fsEq296 partsEq296 armsEq296 rfl Fn.«column_selector__L20».cplOk
 
 theorem ok297 : CplOk 297 :=
-  cplOk_of_link link297 plumbEq297 fsEq297 partsEq297 armsEq297 rfl Fn.«column_selector__L22».cplOk
+  cplOk_of_link link297 plumbEq297 fsEq297 partsEq297 armsEq297 rfl Fn.«column_selector__L21».cplOk
 
 theorem ok298 : CplOk 298 :=
-  cplOk_of_link link298 plumbEq298 fsEq298 partsEq298 armsEq298 rfl Fn.«column_selector__L23».cplOk
+  cplOk_of_link link298 plumbEq298 fsEq298 partsEq298 armsEq298 rfl Fn.«column_selector__L22».cplOk
 
 theorem ok299 : CplOk 299 :=
-  cplOk_of_link link299 plumbEq299 fsEq299 partsEq299 armsEq299 rfl Fn.«column_selector__L24».cplOk
+  cplOk_of_link link299 plumbEq299 fsEq299 partsEq299 armsEq299 rfl Fn.«column_selector__L23».cplOk
 
 theorem ok300 : CplOk 300 :=
-  cplOk_of_link link300 plumbEq300 fsEq300 partsEq300 armsEq300 rfl Fn.«column_selector__L25».cplOk
+  cplOk_of_link link300 plumbEq300 fsEq300 partsEq300 armsEq300 rfl Fn.«column_selector__L24».cplOk
 
 end
 end LeanVM.Guest.B2C.Cplw

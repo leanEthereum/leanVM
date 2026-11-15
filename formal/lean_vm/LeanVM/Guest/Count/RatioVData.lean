@@ -21,13 +21,13 @@ set_option maxRecDepth 100000
 
 /-- Indices of the functions `verify_bus_gkr` reaches, part 0. -/
 def krVbgJ0 : List ℕ := [9, 90,
-    91, 436, 437, 438, 439, 440, 441]
+    91, 437, 438, 439, 440, 441, 442]
 /-- The core indices of the functions `verify_bus_gkr`'s paths reach. -/
 def krVbgJ : List ℕ := krVbgJ0
 
 /-- Their calls, by index, part 0. -/
 def krVbgCL0 : List (ℕ × List ℕ) := [(9, [90, 91]),
-    (90, [436, 437, 438, 439, 440, 441, 90]), (91, [91]), (436, [436])]
+    (90, [437, 438, 439, 440, 441, 442, 90]), (91, [91]), (437, [437])]
 /-- Their calls, by index. -/
 def krVbgCL : List (ℕ × List ℕ) := krVbgCL0
 
@@ -46,16 +46,16 @@ def krVbgA : Opcode → ℕ
 /-! ## `verify_keccak` -/
 
 /-- Indices of the functions `verify_keccak` reaches, part 0. -/
-def krVkJ0 : List ℕ := [12, 265,
-    266, 267, 268, 269, 270, 271, 442, 443, 444, 445, 446]
+def krVkJ0 : List ℕ := [12, 266,
+    267, 268, 269, 270, 271, 272, 443, 444, 445, 446, 447]
 /-- The core indices of the functions `verify_keccak`'s paths reach. -/
 def krVkJ : List ℕ := krVkJ0
 
 /-- Their calls, by index, part 0. -/
 def krVkCL0 : List (ℕ × List ℕ) := [
-    (12, [265, 266, 267, 267, 267, 267, 267, 267, 267, 267, 267, 267, 267, 268, 269, 270, 268, 271]),
-    (265, [265]), (266, [442, 443, 444]), (267, [442, 445, 446]), (269, [269]), (271, [271]),
-    (443, [443]), (444, [444]), (445, [445]), (446, [446])]
+    (12, [266, 267, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 268, 269, 270, 271, 269, 272]),
+    (266, [266]), (267, [443, 444, 445]), (268, [443, 446, 447]), (270, [270]), (272, [272]),
+    (444, [444]), (445, [445]), (446, [446]), (447, [447])]
 /-- Their calls, by index. -/
 def krVkCL : List (ℕ × List ℕ) := krVkCL0
 
@@ -71,22 +71,22 @@ def krVkA : Opcode → ℕ
   | .jump => 118
   | .keccak => 24
 
-/-! ## `__loop14` -/
+/-! ## `__loop15` -/
 
-/-- Indices of the functions `__loop14` reaches, part 0. -/
-def krVl15J0 : List ℕ := [273]
-/-- The core indices of the functions `__loop14`'s paths reach. -/
+/-- Indices of the functions `__loop15` reaches, part 0. -/
+def krVl15J0 : List ℕ := [274]
+/-- The core indices of the functions `__loop15`'s paths reach. -/
 def krVl15J : List ℕ := krVl15J0
 
 /-- Their calls, by index, part 0. -/
-def krVl15CL0 : List (ℕ × List ℕ) := [(273, [273])]
+def krVl15CL0 : List (ℕ × List ℕ) := [(274, [274])]
 /-- Their calls, by index. -/
 def krVl15CL : List (ℕ × List ℕ) := krVl15CL0
 
 /-- The calls of function `i`, by index. -/
 def krVl15C (i : ℕ) : List ℕ := (krVl15CL.lookup i).getD []
 
-/-- `__loop14`'s ratios, in thousandths. -/
+/-- `__loop15`'s ratios, in thousandths. -/
 def krVl15A : Opcode → ℕ
   | .xor => 53
   | .mulNative => 632
@@ -99,13 +99,13 @@ def krVl15A : Opcode → ℕ
 
 /-- Indices of the functions `ring_switch_weight` reaches, part 0. -/
 def krVrswJ0 : List ℕ := [5,
-    14, 80, 81, 82, 83, 84, 85, 86, 87, 88, 435]
+    14, 80, 81, 82, 83, 84, 85, 86, 87, 88, 436]
 /-- The core indices of the functions `ring_switch_weight`'s paths reach. -/
 def krVrswJ : List ℕ := krVrswJ0
 
 /-- Their calls, by index, part 0. -/
 def krVrswCL0 : List (ℕ × List ℕ) := [
-    (5, [80, 81, 82, 83, 84, 85, 86, 87, 88]), (14, [5]), (80, [435, 80])]
+    (5, [80, 81, 82, 83, 84, 85, 86, 87, 88]), (14, [5]), (80, [436, 80])]
 /-- Their calls, by index. -/
 def krVrswCL : List (ℕ × List ℕ) := krVrswCL0
 

@@ -20,9 +20,9 @@ def Data.takesT : NTree ℕ :=
   (.node 1259 7
     (.node 1078 6
     (.node 976 3
-    (.node 436 5
+    (.node 435 8
     (.node 366 7
-    (.node 264 7
+    (.node 264 6
     (.node 38 16
     (.node 36 56
     (.node 35 4
@@ -43,9 +43,9 @@ def Data.takesT : NTree ℕ :=
     .leaf
     .leaf)))
     (.node 273 4
-    (.node 271 4
-    (.node 269 4
-    (.node 265 4
+    (.node 270 4
+    (.node 266 4
+    (.node 265 5
     .leaf
     .leaf)
     .leaf)
@@ -53,28 +53,28 @@ def Data.takesT : NTree ℕ :=
     .leaf
     .leaf))
     (.node 347 4
-    (.node 346 4
+    (.node 274 4
     .leaf
     .leaf)
-    (.node 365 7
+    (.node 348 4
     .leaf
     .leaf))))
     (.node 424 4
-    (.node 405 4
-    (.node 403 4
+    (.node 405 7
+    (.node 386 4
     (.node 385 4
-    (.node 384 4
+    (.node 367 7
     .leaf
     .leaf)
     .leaf)
-    (.node 404 7
+    (.node 404 4
     .leaf
     .leaf))
-    (.node 419 6
+    (.node 407 4
     (.node 406 4
     .leaf
     .leaf)
-    (.node 423 4
+    (.node 420 6
     .leaf
     .leaf)))
     (.node 429 4
@@ -87,19 +87,19 @@ def Data.takesT : NTree ℕ :=
     (.node 428 4
     .leaf
     .leaf))
-    (.node 432 7
-    (.node 430 8
+    (.node 431 8
+    (.node 430 4
     .leaf
     .leaf)
-    (.node 434 8
+    (.node 433 7
     .leaf
     .leaf)))))
     (.node 958 3
     (.node 949 3
-    (.node 945 3
+    (.node 447 6
     (.node 445 6
     (.node 444 6
-    (.node 443 6
+    (.node 437 5
     .leaf
     .leaf)
     .leaf)
@@ -165,7 +165,7 @@ def Data.takesT : NTree ℕ :=
     (.node 975 3
     .leaf
     .leaf))))))
-    (.node 1034 6
+    (.node 1031 6
     (.node 994 3
     (.node 985 3
     (.node 981 3
@@ -202,7 +202,7 @@ def Data.takesT : NTree ℕ :=
     (.node 993 3
     .leaf
     .leaf))))
-    (.node 1007 6
+    (.node 1006 6
     (.node 999 3
     (.node 997 3
     (.node 996 3
@@ -213,17 +213,17 @@ def Data.takesT : NTree ℕ :=
     (.node 998 3
     .leaf
     .leaf))
-    (.node 1003 6
-    (.node 1001 6
+    (.node 1002 6
+    (.node 1000 3
     .leaf
     .leaf)
-    (.node 1005 6
+    (.node 1004 6
     .leaf
     .leaf)))
-    (.node 1027 6
+    (.node 1021 6
     (.node 1019 6
     (.node 1018 6
-    (.node 1017 6
+    (.node 1008 6
     .leaf
     .leaf)
     .leaf)
@@ -246,7 +246,7 @@ def Data.takesT : NTree ℕ :=
     .leaf
     .leaf)
     .leaf)
-    (.node 1042 7
+    (.node 1038 6
     .leaf
     .leaf))
     (.node 1045 7
@@ -273,7 +273,7 @@ def Data.takesT : NTree ℕ :=
     (.node 1055 7
     .leaf
     .leaf))))
-    (.node 1065 6
+    (.node 1065 7
     (.node 1061 7
     (.node 1059 7
     (.node 1058 7
@@ -292,20 +292,20 @@ def Data.takesT : NTree ℕ :=
     .leaf
     .leaf)))
     (.node 1073 6
-    (.node 1069 6
+    (.node 1068 6
     (.node 1067 6
     (.node 1066 6
     .leaf
     .leaf)
     .leaf)
-    (.node 1072 6
+    (.node 1070 6
     .leaf
     .leaf))
     (.node 1075 6
     (.node 1074 6
     .leaf
     .leaf)
-    (.node 1077 6
+    (.node 1076 6
     .leaf
     .leaf)))))))
     (.node 1171 7
@@ -315,7 +315,7 @@ def Data.takesT : NTree ℕ :=
     (.node 1087 7
     (.node 1085 7
     (.node 1084 7
-    (.node 1083 7
+    (.node 1079 6
     .leaf
     .leaf)
     .leaf)
@@ -356,18 +356,18 @@ def Data.takesT : NTree ℕ :=
     .leaf
     .leaf)
     .leaf)
-    (.node 1105 6
+    (.node 1105 7
     .leaf
     .leaf))
-    (.node 1109 6
+    (.node 1108 6
     (.node 1107 6
     .leaf
     .leaf)
-    (.node 1112 6
+    (.node 1110 6
     .leaf
     .leaf)))
-    (.node 1123 7
-    (.node 1117 6
+    (.node 1119 6
+    (.node 1116 6
     (.node 1115 6
     (.node 1114 6
     .leaf
@@ -383,7 +383,7 @@ def Data.takesT : NTree ℕ :=
     (.node 1126 7
     .leaf
     .leaf)))))
-    (.node 1145 6
+    (.node 1145 7
     (.node 1136 7
     (.node 1132 7
     (.node 1130 7
@@ -421,26 +421,26 @@ def Data.takesT : NTree ℕ :=
     .leaf))))
     (.node 1158 6
     (.node 1153 6
-    (.node 1149 6
+    (.node 1148 6
     (.node 1147 6
     (.node 1146 6
     .leaf
     .leaf)
     .leaf)
-    (.node 1152 6
+    (.node 1150 6
     .leaf
     .leaf))
     (.node 1155 6
     (.node 1154 6
     .leaf
     .leaf)
-    (.node 1157 6
+    (.node 1156 6
     .leaf
     .leaf)))
     (.node 1167 7
     (.node 1165 7
     (.node 1164 7
-    (.node 1163 7
+    (.node 1159 6
     .leaf
     .leaf)
     .leaf)
@@ -455,7 +455,7 @@ def Data.takesT : NTree ℕ :=
     .leaf
     .leaf))))))
     (.node 1214 7
-    (.node 1192 6
+    (.node 1190 6
     (.node 1180 7
     (.node 1176 7
     (.node 1174 7
@@ -474,7 +474,7 @@ def Data.takesT : NTree ℕ :=
     (.node 1179 7
     .leaf
     .leaf)))
-    (.node 1185 6
+    (.node 1185 7
     (.node 1183 7
     (.node 1182 7
     (.node 1181 7
@@ -488,12 +488,12 @@ def Data.takesT : NTree ℕ :=
     (.node 1186 6
     .leaf
     .leaf)
-    (.node 1189 6
+    (.node 1188 6
     .leaf
     .leaf))))
     (.node 1205 7
     (.node 1198 6
-    (.node 1196 6
+    (.node 1195 6
     (.node 1194 6
     (.node 1193 6
     .leaf
@@ -503,7 +503,7 @@ def Data.takesT : NTree ℕ :=
     .leaf
     .leaf))
     (.node 1203 7
-    (.node 1202 7
+    (.node 1199 6
     .leaf
     .leaf)
     (.node 1204 7
@@ -526,7 +526,7 @@ def Data.takesT : NTree ℕ :=
     (.node 1213 7
     .leaf
     .leaf)))))
-    (.node 1234 6
+    (.node 1233 6
     (.node 1223 7
     (.node 1219 7
     (.node 1217 7
@@ -556,7 +556,7 @@ def Data.takesT : NTree ℕ :=
     .leaf
     .leaf))
     (.node 1231 6
-    (.node 1230 6
+    (.node 1229 7
     .leaf
     .leaf)
     (.node 1232 6
@@ -566,14 +566,14 @@ def Data.takesT : NTree ℕ :=
     (.node 1243 6
     (.node 1240 6
     (.node 1239 6
-    (.node 1238 6
+    (.node 1235 6
     .leaf
     .leaf)
     .leaf)
-    (.node 1242 6
+    (.node 1241 6
     .leaf
     .leaf))
-    (.node 1248 7
+    (.node 1245 6
     (.node 1244 6
     .leaf
     .leaf)
@@ -600,7 +600,7 @@ def Data.takesT : NTree ℕ :=
     (.node 1432 7
     (.node 1346 7
     (.node 1303 7
-    (.node 1279 6
+    (.node 1278 6
     (.node 1269 7
     (.node 1264 7
     (.node 1262 7
@@ -632,7 +632,7 @@ def Data.takesT : NTree ℕ :=
     .leaf
     .leaf))
     (.node 1276 6
-    (.node 1275 6
+    (.node 1275 7
     .leaf
     .leaf)
     (.node 1277 6
@@ -642,14 +642,14 @@ def Data.takesT : NTree ℕ :=
     (.node 1287 6
     (.node 1284 6
     (.node 1283 6
-    (.node 1282 6
+    (.node 1280 6
     .leaf
     .leaf)
     .leaf)
-    (.node 1286 6
+    (.node 1285 6
     .leaf
     .leaf))
-    (.node 1292 7
+    (.node 1289 6
     (.node 1288 6
     .leaf
     .leaf)
@@ -702,7 +702,7 @@ def Data.takesT : NTree ℕ :=
     (.node 1316 7
     .leaf
     .leaf))
-    (.node 1319 6
+    (.node 1319 7
     (.node 1318 7
     .leaf
     .leaf)
@@ -710,17 +710,17 @@ def Data.takesT : NTree ℕ :=
     .leaf
     .leaf))))
     (.node 1337 7
-    (.node 1330 6
+    (.node 1329 6
     (.node 1327 6
-    (.node 1326 6
-    (.node 1323 6
+    (.node 1324 6
+    (.node 1322 6
     .leaf
     .leaf)
     .leaf)
     (.node 1328 6
     .leaf
     .leaf))
-    (.node 1335 7
+    (.node 1332 6
     (.node 1331 6
     .leaf
     .leaf)
@@ -774,18 +774,18 @@ def Data.takesT : NTree ℕ :=
     (.node 1359 7
     .leaf
     .leaf))
-    (.node 1362 6
+    (.node 1362 7
     (.node 1361 7
     .leaf
     .leaf)
     (.node 1363 6
     .leaf
     .leaf))))
-    (.node 1380 7
-    (.node 1373 6
+    (.node 1377 6
+    (.node 1372 6
     (.node 1370 6
-    (.node 1369 6
-    (.node 1366 6
+    (.node 1367 6
+    (.node 1365 6
     .leaf
     .leaf)
     .leaf)
@@ -852,8 +852,8 @@ def Data.takesT : NTree ℕ :=
     (.node 1406 7
     .leaf
     .leaf))))
-    (.node 1419 6
-    (.node 1412 6
+    (.node 1417 6
+    (.node 1412 7
     (.node 1410 7
     (.node 1409 7
     (.node 1408 7
@@ -867,11 +867,11 @@ def Data.takesT : NTree ℕ :=
     (.node 1413 6
     .leaf
     .leaf)
-    (.node 1416 6
+    (.node 1415 6
     .leaf
     .leaf)))
     (.node 1425 6
-    (.node 1423 6
+    (.node 1422 6
     (.node 1421 6
     (.node 1420 6
     .leaf
@@ -881,16 +881,16 @@ def Data.takesT : NTree ℕ :=
     .leaf
     .leaf))
     (.node 1430 7
-    (.node 1429 7
+    (.node 1426 6
     .leaf
     .leaf)
     (.node 1431 7
     .leaf
     .leaf)))))))
-    (.node 1515 10
-    (.node 1472 6
-    (.node 1450 7
-    (.node 1441 7
+    (.node 1516 10
+    (.node 1473 6
+    (.node 1451 7
+    (.node 1442 7
     (.node 1437 7
     (.node 1435 7
     (.node 1434 7
@@ -901,277 +901,279 @@ def Data.takesT : NTree ℕ :=
     (.node 1436 7
     .leaf
     .leaf))
+    (.node 1440 7
     (.node 1439 7
     (.node 1438 7
     .leaf
     .leaf)
-    (.node 1440 7
+    .leaf)
+    (.node 1441 7
     .leaf
     .leaf)))
-    (.node 1446 7
+    (.node 1447 7
+    (.node 1445 7
     (.node 1444 7
     (.node 1443 7
-    (.node 1442 7
     .leaf
     .leaf)
     .leaf)
-    (.node 1445 7
+    (.node 1446 7
     .leaf
     .leaf))
+    (.node 1449 7
     (.node 1448 7
-    (.node 1447 7
     .leaf
     .leaf)
-    (.node 1449 7
+    (.node 1450 7
     .leaf
     .leaf))))
-    (.node 1459 6
-    (.node 1455 7
+    (.node 1460 6
+    (.node 1456 7
+    (.node 1454 7
     (.node 1453 7
     (.node 1452 7
-    (.node 1451 7
     .leaf
     .leaf)
     .leaf)
-    (.node 1454 7
+    (.node 1455 7
     .leaf
     .leaf))
+    (.node 1458 7
     (.node 1457 7
-    (.node 1456 7
     .leaf
     .leaf)
-    (.node 1458 7
+    (.node 1459 7
     .leaf
     .leaf)))
-    (.node 1467 6
-    (.node 1463 6
+    (.node 1468 6
+    (.node 1464 6
+    (.node 1462 6
     (.node 1461 6
-    (.node 1460 6
     .leaf
     .leaf)
     .leaf)
-    (.node 1466 6
+    (.node 1467 6
     .leaf
     .leaf))
-    (.node 1470 6
-    (.node 1468 6
+    (.node 1471 6
+    (.node 1469 6
     .leaf
     .leaf)
-    (.node 1471 6
+    (.node 1472 6
     .leaf
     .leaf)))))
-    (.node 1493 7
-    (.node 1484 7
-    (.node 1480 7
+    (.node 1494 7
+    (.node 1485 7
+    (.node 1481 7
+    (.node 1479 7
     (.node 1478 7
-    (.node 1477 7
-    (.node 1473 6
+    (.node 1474 6
     .leaf
     .leaf)
     .leaf)
-    (.node 1479 7
+    (.node 1480 7
     .leaf
     .leaf))
+    (.node 1483 7
     (.node 1482 7
-    (.node 1481 7
     .leaf
     .leaf)
-    (.node 1483 7
+    (.node 1484 7
     .leaf
     .leaf)))
-    (.node 1489 7
+    (.node 1490 7
+    (.node 1488 7
     (.node 1487 7
     (.node 1486 7
-    (.node 1485 7
     .leaf
     .leaf)
     .leaf)
-    (.node 1488 7
+    (.node 1489 7
     .leaf
     .leaf))
+    (.node 1492 7
     (.node 1491 7
-    (.node 1490 7
     .leaf
     .leaf)
-    (.node 1492 7
+    (.node 1493 7
     .leaf
     .leaf))))
-    (.node 1502 7
-    (.node 1498 7
+    (.node 1503 7
+    (.node 1499 7
+    (.node 1497 7
     (.node 1496 7
     (.node 1495 7
-    (.node 1494 7
     .leaf
     .leaf)
     .leaf)
-    (.node 1497 7
+    (.node 1498 7
     .leaf
     .leaf))
+    (.node 1501 7
     (.node 1500 7
-    (.node 1499 7
     .leaf
     .leaf)
-    (.node 1501 7
+    (.node 1502 7
     .leaf
     .leaf)))
-    (.node 1508 10
+    (.node 1509 10
+    (.node 1506 7
     (.node 1505 7
     (.node 1504 7
-    (.node 1503 7
     .leaf
     .leaf)
     .leaf)
-    (.node 1506 7
+    (.node 1507 7
     .leaf
     .leaf))
-    (.node 1512 10
-    (.node 1510 10
+    (.node 1513 10
+    (.node 1511 10
     .leaf
     .leaf)
-    (.node 1514 10
+    (.node 1515 10
     .leaf
     .leaf))))))
-    (.node 1555 10
-    (.node 1535 10
-    (.node 1524 10
-    (.node 1520 10
+    (.node 1556 10
+    (.node 1536 10
+    (.node 1525 10
+    (.node 1521 10
+    (.node 1519 10
     (.node 1518 10
     (.node 1517 10
-    (.node 1516 10
     .leaf
     .leaf)
     .leaf)
-    (.node 1519 10
+    (.node 1520 10
     .leaf
     .leaf))
+    (.node 1523 10
     (.node 1522 10
-    (.node 1521 10
     .leaf
     .leaf)
-    (.node 1523 10
+    (.node 1524 10
     .leaf
     .leaf)))
-    (.node 1530 10
+    (.node 1531 10
+    (.node 1529 10
     (.node 1528 10
     (.node 1527 10
-    (.node 1526 10
     .leaf
     .leaf)
     .leaf)
-    (.node 1529 10
+    (.node 1530 10
     .leaf
     .leaf))
+    (.node 1533 10
     (.node 1532 10
-    (.node 1531 10
     .leaf
     .leaf)
-    (.node 1534 10
+    (.node 1535 10
     .leaf
     .leaf))))
-    (.node 1545 10
-    (.node 1540 10
+    (.node 1546 10
+    (.node 1541 10
+    (.node 1539 10
     (.node 1538 10
     (.node 1537 10
-    (.node 1536 10
     .leaf
     .leaf)
     .leaf)
-    (.node 1539 10
+    (.node 1540 10
     .leaf
     .leaf))
+    (.node 1544 10
     (.node 1543 10
-    (.node 1542 10
     .leaf
     .leaf)
-    (.node 1544 10
+    (.node 1545 10
     .leaf
     .leaf)))
-    (.node 1551 10
+    (.node 1552 10
+    (.node 1549 10
     (.node 1548 10
     (.node 1547 10
-    (.node 1546 10
     .leaf
     .leaf)
     .leaf)
-    (.node 1550 10
+    (.node 1551 10
     .leaf
     .leaf))
+    (.node 1554 10
     (.node 1553 10
-    (.node 1552 10
     .leaf
     .leaf)
-    (.node 1554 10
+    (.node 1555 10
     .leaf
     .leaf)))))
-    (.node 1576 10
-    (.node 1566 10
-    (.node 1561 10
+    (.node 1577 10
+    (.node 1567 10
+    (.node 1562 10
+    (.node 1560 10
     (.node 1559 10
     (.node 1558 10
-    (.node 1557 10
     .leaf
     .leaf)
     .leaf)
-    (.node 1560 10
+    (.node 1561 10
     .leaf
     .leaf))
-    (.node 1564 10
-    (.node 1562 10
+    (.node 1565 10
+    (.node 1563 10
     .leaf
     .leaf)
-    (.node 1565 10
+    (.node 1566 10
     .leaf
     .leaf)))
-    (.node 1572 10
+    (.node 1573 10
+    (.node 1570 10
     (.node 1569 10
     (.node 1568 10
-    (.node 1567 10
     .leaf
     .leaf)
     .leaf)
-    (.node 1571 10
+    (.node 1572 10
     .leaf
     .leaf))
+    (.node 1575 10
     (.node 1574 10
-    (.node 1573 10
     .leaf
     .leaf)
-    (.node 1575 10
+    (.node 1576 10
     .leaf
     .leaf))))
-    (.node 1587 10
-    (.node 1582 10
+    (.node 1588 10
+    (.node 1583 10
+    (.node 1581 10
     (.node 1580 10
     (.node 1579 10
-    (.node 1578 10
     .leaf
     .leaf)
     .leaf)
-    (.node 1581 10
+    (.node 1582 10
     .leaf
     .leaf))
-    (.node 1585 10
-    (.node 1583 10
+    (.node 1586 10
+    (.node 1584 10
     .leaf
     .leaf)
-    (.node 1586 10
+    (.node 1587 10
     .leaf
     .leaf)))
-    (.node 1593 10
+    (.node 1594 10
+    (.node 1591 10
     (.node 1590 10
     (.node 1589 10
-    (.node 1588 10
     .leaf
     .leaf)
     .leaf)
-    (.node 1592 10
+    (.node 1593 10
     .leaf
     .leaf))
+    (.node 1596 10
     (.node 1595 10
-    (.node 1594 10
     .leaf
     .leaf)
-    (.node 1596 10
+    (.node 1597 10
     .leaf
     .leaf)))))))))
 

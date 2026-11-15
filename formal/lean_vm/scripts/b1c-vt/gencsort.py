@@ -19,7 +19,7 @@ def segs(lo, hi):
     out = []; cur = []
     for p in range(lo, hi):
         a = atom(p); cur.append((p, a))
-        if a and a[0] == 'load' and a[1][1] in (33, 34):
+        if a and a[0] == 'load' and a[1][1] in (34, 35):
             out.append(cur); cur = []
     assert not cur
     return out
@@ -57,7 +57,7 @@ def group(gi, K, Z):
         L_.append(f'  have hk : σv (.n {kvar}) = gen ^ κ := by\n'
                   f'    rw [q{pk}, q{pc}, show ({c[1][1][0]} : ℕ) = 2 ^ 19 by norm_num, tb_word_two_pow (by norm_num)]\n'
                   f'    exact hkx')
-        kv = 25; adjv = 19; rest = K[2:]
+        kv = 26; adjv = 19; rest = K[2:]
     else:
         kvar = K[0][1][1][2]
         L_.append(f'  have hk : σv (.n {kvar}) = gen ^ κ := by simpa using hkx')
@@ -112,12 +112,12 @@ def group(gi, K, Z):
     L_.insert(0, pre)
     head = (f'set_option maxRecDepth 100000 in\n'
             f'/-- Group `{gi}`\'s key and size statements (`{a} ..< {a + L}`). -/\n'
-            f'theorem vtc_grp{gi} (hl : args.length = 20) {{κ : ℕ}}\n'
+            f'theorem vtc_grp{gi} (hl : args.length = 21) {{κ : ℕ}}\n'
             f'    (hkx : σv (.n (vtKv {i})) * gen ^ vtAdj {i} = gen ^ κ)\n'
             f'    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 247)))\n'
             f'    (hsq : LoadHolds rd (σv (.n 12) * gen ^ κ) 0 (gen ^ 2 ^ κ))\n'
-            f'    (hkey : LoadHolds rd (σv (.n 33)) (vtGi {i}) (gen ^ (κ * 247) * (gen ^ vtB0 {i})⁻¹))\n'
-            f'    (hsz : LoadHolds rd (σv (.n 34)) (vtGi {i}) (gen ^ (vtLen {i} * 2 ^ κ))) :\n'
+            f'    (hkey : LoadHolds rd (σv (.n 34)) (vtGi {i}) (gen ^ (κ * 247) * (gen ^ vtB0 {i})⁻¹))\n'
+            f'    (hsz : LoadHolds rd (σv (.n 35)) (vtGi {i}) (gen ^ (vtLen {i} * 2 ^ κ))) :\n'
             f'    ∀ s ∈ (vtPre.drop (vtGrpA {i})).take (vtGrpL {i}), VSH (coreProgram.Rel rd) rd σv s := by')
     return head + '\n' + '\n'.join(L_), (gi, a, L, kv, adjv, b0, ln)
 
@@ -169,12 +169,12 @@ def main():
             f'def vtGrpA (k : ℕ) : ℕ := [{A}].getD k 0\n'
             f'def vtGrpL (k : ℕ) : ℕ := [{Ls}].getD k 0\n\n')
     disp = ('/-- **Every group\'s key and size statements**, by group. -/\n'
-            'theorem vtc_grps (hl : args.length = 20) {k : ℕ} (hk : k < 15) {κ : ℕ}\n'
+            'theorem vtc_grps (hl : args.length = 21) {k : ℕ} (hk : k < 15) {κ : ℕ}\n'
             '    (hkx : σv (.n (vtKv k)) * gen ^ vtAdj k = gen ^ κ)\n'
             '    (hrk : LoadHolds rd (σv (.n 12) * gen ^ κ) 178 (gen ^ (κ * 247)))\n'
             '    (hsq : LoadHolds rd (σv (.n 12) * gen ^ κ) 0 (gen ^ 2 ^ κ))\n'
-            '    (hkey : LoadHolds rd (σv (.n 33)) (vtGi k) (gen ^ (κ * 247) * (gen ^ vtB0 k)⁻¹))\n'
-            '    (hsz : LoadHolds rd (σv (.n 34)) (vtGi k) (gen ^ (vtLen k * 2 ^ κ))) :\n'
+            '    (hkey : LoadHolds rd (σv (.n 34)) (vtGi k) (gen ^ (κ * 247) * (gen ^ vtB0 k)⁻¹))\n'
+            '    (hsz : LoadHolds rd (σv (.n 35)) (vtGi k) (gen ^ (vtLen k * 2 ^ κ))) :\n'
             '    ∀ s ∈ (vtPre.drop (vtGrpA k)).take (vtGrpL k), VSH (coreProgram.Rel rd) rd σv s := by\n'
             '  interval_cases k\n' +
             ''.join(f'  · exact vtc_grp{gi} hl hkx hrk hsq hkey hsz\n' for gi in gis))

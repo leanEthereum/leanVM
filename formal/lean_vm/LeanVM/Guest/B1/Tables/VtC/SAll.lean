@@ -37,7 +37,7 @@ theorem vtTauList_getD {τ : ℕ → ℕ} {t : ℕ} (ht : t < 6) : (vtTauList τ
   simp [vtTauList]
 
 /-- **`verify_tables`' statements `0 ..< 765` complete.** -/
-theorem vtS_complete (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} (hlm : lm ≤ 32)
+theorem vtS_complete (hl : args.length = 21) (hlow : LowDefB 14 rd) {lm : ℕ} (hlm : lm ≤ 32)
     (point : List E) (hμ33 : point.length < 33) (τ n : ℕ → ℕ)
     (hτ : ∀ t < 6, τ t = max (log2Ceil (n t)) (tableLogFloors.getD t 0))
     (hτ31 : ∀ t < 6, τ t < 31) (hτμ : ∀ t < 6, τ t ≤ point.length)
@@ -47,37 +47,37 @@ theorem vtS_complete (hl : args.length = 20) (hlow : LowDefB 14 rd) {lm : ℕ} (
     (hrows : ∀ t < 6, LoadHolds rd (σv (.n 11)) t (eOfNat (n t)))
     (hE : ExpTablesAt rd (σv (.n 12)))
     -- the own buffers
-    (hkeyW : TbReadsAt rd (w 33) (vtGKeyW lm τ)) (hszW : TbReadsAt rd (w 34) (vtGSizeW lm τ))
-    (hbaseW : TbReadsAt rd (w 35) (vtGBaseW lm τ)) (hordW : TbReadsAt rd (w 36) (vtGOrdW lm τ))
-    (hidxc : TbReadsAt rd (w 664) vtIdxcW) (hz1 : TbReadsAt rd (w 699) (point.map (1 + ·)))
-    (hrun : ∀ t < 6, RunTables rd (w 701 * gen ^ (288 * t)) (w 702 * gen ^ (144 * t))
+    (hkeyW : TbReadsAt rd (w 34) (vtGKeyW lm τ)) (hszW : TbReadsAt rd (w 35) (vtGSizeW lm τ))
+    (hbaseW : TbReadsAt rd (w 36) (vtGBaseW lm τ)) (hordW : TbReadsAt rd (w 37) (vtGOrdW lm τ))
+    (hidxc : TbReadsAt rd (w 665) vtIdxcW) (hz1 : TbReadsAt rd (w 700) (point.map (1 + ·)))
+    (hrun : ∀ t < 6, RunTables rd (w 702 * gen ^ (288 * t)) (w 703 * gen ^ (144 * t))
       (point.length - τ t) (point.drop (τ t)) ((point.map (1 + ·)).drop (τ t))
       ((gSquaresList.drop (τ t)).take (point.length - τ t)))
-    (hpad : ∀ t < 6, RunPads rd (w 701 * gen ^ (288 * t)) (w 702 * gen ^ (144 * t))
+    (hpad : ∀ t < 6, RunPads rd (w 702 * gen ^ (288 * t)) (w 703 * gen ^ (144 * t))
       (point.length - τ t) (point.drop (τ t)))
     -- the callees' returns
     (hwp : ∀ t < 6, w (vtPadV t) = paddingWeight (point.take (τ t)) (n t) ∧
       w (vtPadV t + 1) = PadLead (τ t) (n t) ∧ w (vtPadV t + 2) = PadRest (τ t) (n t))
-    (hw704 : w 700 = 0) :
+    (hw704 : w 701 = 0) :
     (∀ s ∈ (vtPre.drop 0).take 765, VSH (coreProgram.Rel rd) rd σv s) ∧
-      (∀ i < 5, σv (.n (20 + i)) = σv (.n i)) ∧
-      (∀ i < 8, σv (.n (25 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0) ∧
-      (∀ i < 4, σv (.n (33 + i)) = w (33 + i)) ∧
+      (∀ i < 5, σv (.n (21 + i)) = σv (.n i)) ∧
+      (∀ i < 8, σv (.n (26 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0) ∧
+      (∀ i < 4, σv (.n (34 + i)) = w (34 + i)) ∧
       (∀ x < 54, σv (.n (vtBoffV x)) =
         gen ^ (stackOffsets ((List.range 54).map (vtKap lm τ))).1.getD x 0) ∧
       (∀ x < 45, σv (.n (vtBoffV (108 + x))) =
         gen ^ (stackOffsets ((List.range 45).map fun c ↦ vtKap lm τ (108 + c))).1.getD x 0) ∧
       (∀ t < 6, σv (.n (vtPadV t)) = paddingWeight (point.take (τ t)) (n t)) ∧
       (∀ t < 6, σv (.n (vtShLen t)) = gen ^ (point.length - τ t)) ∧
-      σv (.n 664) = w 664 ∧ σv (.n 699) = w 699 ∧
-      σv (.n 701) = w 701 ∧ σv (.n 702) = w 702 := by
+      σv (.n 665) = w 665 ∧ σv (.n 700) = w 700 ∧
+      σv (.n 702) = w 702 ∧ σv (.n 703) = w 703 := by
   have hτ' : ∀ t < 6, τ t < 33 := fun t ht ↦ by have := hτ31 t ht; omega
   obtain ⟨h1, hcp, hkb, hal, hP, hC⟩ :=
     vtS_sort hl hlow hlm hτ' hdims hE hkeyW hszW hbaseW hordW
-  have hkbt : ∀ t < 6, σv (.n (27 + t)) = gen ^ τ t := by
+  have hkbt : ∀ t < 6, σv (.n (28 + t)) = gen ^ τ t := by
     intro t ht
     have := hkb (2 + t) (by omega)
-    rw [show 25 + (2 + t) = 27 + t by omega] at this
+    rw [show 26 + (2 + t) = 28 + t by omega] at this
     rw [this]
     rw [show 2 + t = t + 1 + 1 by omega]
     simp only [List.cons_append, List.nil_append, List.getD_cons_succ]

@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Gkr.Root
 /-!
 # The table evaluations (G:2594-2605, 2684)
 
-`vt_eval`: evaluation `k`'s read at `col_eval_words` (the cursor `σ 2647`), packing and copy.
+`vt_eval`: evaluation `k`'s read at `col_eval_words` (the cursor `σ 2652`), packing and copy.
 `vt_evals_fs`: from the last round's sponge, the 153 words absorbed leave the sponge whose
 capacity permutation `j` reads; `vt_evals`: the public input's challenge `rm` is the squeeze after
 them, the returned capacity the sponge after it.
@@ -39,7 +39,7 @@ theorem vtEvs_getD (σ : Val) {k : ℕ} (hk : k < 153) : (vtEvs σ).getD k 0 = �
 
 /-- **Evaluation `k`.** -/
 theorem vt_eval {rd : Reader} {σ : Val} (h : VtH rd σ) {k : ℕ} (hk : k < 153) :
-    LoadHolds rd (σ (.n 2647)) k (σ (.n (vtEvB k))) ∧
+    LoadHolds rd (σ (.n 2652)) k (σ (.n (vtEvB k))) ∧
       FsPackOk σ (.n (vtEvB k)) (vtEvB k + 1) dsObserve ∧
       σ (.n (vtEvB k + 3)) = σ (.n (vtEvB k)) := by
   obtain ⟨_, hs⟩ := h.sliceAt _ _ (vtEval_check k hk)

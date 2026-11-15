@@ -338,7 +338,7 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 34) (.n 33) (.n 1)) ::
   .atom (.const (.n 35) (word 2 0)) ::
   .atom (.mul (.n 36) (.n 0) (.n 35)) ::
-  .callIf (.n 34) "__loop27" [.n 36, .n 1, .n 2, .n 3] ::
+  .callIf (.n 34) "__loop28" [.n 36, .n 1, .n 2, .n 3] ::
   .ret [] ::
   [])
 
@@ -346,7 +346,7 @@ end core
 
 /-- `da_column_offsets_loop1`. -/
 noncomputable def core : Core.Fn where
-  name := "__loop27"
+  name := "__loop28"
   params := [.n 0, .n 1, .n 2, .n 3]
   body := core.body
 
@@ -390,14 +390,14 @@ noncomputable def body : List Core.Stmt := [
   .atom (.add (.n 26) (.n 25) (.n 1)),
   .atom (.const (.n 27) (word 2 0)),
   .atom (.mul (.n 28) (.n 0) (.n 27)),
-  .callIf (.n 26) "__loop72" [.n 28, .n 1, .n 2],
+  .callIf (.n 26) "__loop73" [.n 28, .n 1, .n 2],
   .ret []]
 
 end core
 
 /-- `da_levels__L256_L8_loop3`. -/
 noncomputable def core : Core.Fn where
-  name := "__loop72"
+  name := "__loop73"
   params := [.n 0, .n 1, .n 2]
   body := core.body
 
@@ -419,55 +419,55 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 3) (.n 1) (.n 2)) ::
   .atom (.const (.n 4) (word 1 0)) ::
   .atom (.const (.n 5) (word 69649 0)) ::
-  .callIf (.n 3) "__loop77" [.n 4, .n 5, .n 0] ::
+  .callIf (.n 3) "__loop78" [.n 4, .n 5, .n 0] ::
   .atom (.const (.n 6) (word 1 0)) ::
   .atom (.const (.n 7) (word 325 0)) ::
   .atom (.add (.n 8) (.n 6) (.n 7)) ::
   .atom (.const (.n 9) (word 1 0)) ::
   .atom (.const (.n 10) (word 325 0)) ::
-  .callIf (.n 8) "__loop78" [.n 9, .n 10, .n 0] ::
+  .callIf (.n 8) "__loop79" [.n 9, .n 10, .n 0] ::
   .atom (.const (.n 11) (word 1 0)) ::
   .atom (.const (.n 12) (word 27 0)) ::
   .atom (.add (.n 13) (.n 11) (.n 12)) ::
   .atom (.const (.n 14) (word 1 0)) ::
   .atom (.const (.n 15) (word 27 0)) ::
-  .callIf (.n 13) "__loop79" [.n 14, .n 15, .n 0] ::
+  .callIf (.n 13) "__loop80" [.n 14, .n 15, .n 0] ::
   .atom (.const (.n 16) (word 1 0)) ::
   .atom (.const (.n 17) (word 4294967296 0)) ::
   .atom (.add (.n 18) (.n 16) (.n 17)) ::
   .atom (.const (.n 19) (word 1 0)) ::
   .atom (.const (.n 20) (word 4294967296 0)) ::
-  .callIf (.n 18) "__loop80" [.n 19, .n 20, .n 0] ::
+  .callIf (.n 18) "__loop81" [.n 19, .n 20, .n 0] ::
   .atom (.const (.n 21) (word 1 0)) ::
   .atom (.const (.n 22) (word 65536 0)) ::
   .atom (.add (.n 23) (.n 21) (.n 22)) ::
   .atom (.const (.n 24) (word 1 0)) ::
   .atom (.const (.n 25) (word 65536 0)) ::
-  .callIf (.n 23) "__loop81" [.n 24, .n 25, .n 0] ::
+  .callIf (.n 23) "__loop82" [.n 24, .n 25, .n 0] ::
   .atom (.const (.n 26) (word 1 0)) ::
   .atom (.const (.n 27) (word 256 0)) ::
   .atom (.add (.n 28) (.n 26) (.n 27)) ::
   .atom (.const (.n 29) (word 1 0)) ::
   .atom (.const (.n 30) (word 256 0)) ::
-  .callIf (.n 28) "__loop82" [.n 29, .n 30, .n 0] ::
+  .callIf (.n 28) "__loop83" [.n 29, .n 30, .n 0] ::
   .atom (.const (.n 31) (word 1 0)) ::
   .atom (.const (.n 32) (word 16 0)) ::
   .atom (.add (.n 33) (.n 31) (.n 32)) ::
   .atom (.const (.n 34) (word 1 0)) ::
   .atom (.const (.n 35) (word 16 0)) ::
-  .callIf (.n 33) "__loop83" [.n 34, .n 35, .n 0] ::
+  .callIf (.n 33) "__loop84" [.n 34, .n 35, .n 0] ::
   .atom (.const (.n 36) (word 1 0)) ::
   .atom (.const (.n 37) (word 4 0)) ::
   .atom (.add (.n 38) (.n 36) (.n 37)) ::
   .atom (.const (.n 39) (word 1 0)) ::
   .atom (.const (.n 40) (word 4 0)) ::
-  .callIf (.n 38) "__loop84" [.n 39, .n 40, .n 0] ::
+  .callIf (.n 38) "__loop85" [.n 39, .n 40, .n 0] ::
   .atom (.const (.n 41) (word 1 0)) ::
   .atom (.const (.n 42) (word 2 0)) ::
   .atom (.add (.n 43) (.n 41) (.n 42)) ::
   .atom (.const (.n 44) (word 1 0)) ::
   .atom (.const (.n 45) (word 2 0)) ::
-  .callIf (.n 43) "__loop85" [.n 44, .n 45, .n 0] ::
+  .callIf (.n 43) "__loop86" [.n 44, .n 45, .n 0] ::
   .atom (.load (.n 46) (.n 0) 2044) ::
   .atom (.load (.n 47) (.n 0) 2045) ::
   .ret [.n 46, .n 47] ::
@@ -1301,7 +1301,7 @@ noncomputable def body : List Core.Stmt := [
   .atom (.add (.n 13) (.n 11) (.n 12)),
   .atom (.const (.n 14) (word 2 0)),
   .atom (.const (.n 15) (word 268435456 0)),
-  .callIf (.n 13) "__loop462" [.n 14, .n 15, .n 10, .n 6, .n 7, .n 8],
+  .callIf (.n 13) "__loop463" [.n 14, .n 15, .n 10, .n 6, .n 7, .n 8],
   .atom (.const (.n 16) (word 1331200 0)),
   .atom (.mul (.n 17) (.n 10) (.n 16)),
   .atom (.load (.n 18) (.n 17) 0),
@@ -1350,7 +1350,7 @@ noncomputable def body : List Core.Stmt := [
   .atom (.add (.n 13) (.n 11) (.n 12)),
   .atom (.const (.n 14) (word 2 0)),
   .atom (.const (.n 15) (word 256 0)),
-  .callIf (.n 13) "__loop310" [.n 14, .n 15, .n 10, .n 6, .n 7, .n 8],
+  .callIf (.n 13) "__loop311" [.n 14, .n 15, .n 10, .n 6, .n 7, .n 8],
   .atom (.const (.n 16) (word 1099511627776 0)),
   .atom (.mul (.n 17) (.n 10) (.n 16)),
   .atom (.load (.n 18) (.n 17) 0),
@@ -2447,7 +2447,7 @@ noncomputable def c1 : List Core.Stmt := (
   .atom (.add (.n 1017) (.n 1016) (.n 1)) ::
   .atom (.const (.n 1018) (word 2 0)) ::
   .atom (.mul (.n 1019) (.n 0) (.n 1018)) ::
-  .callIf (.n 1017) "__loop211" [.n 1019, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
+  .callIf (.n 1017) "__loop212" [.n 1019, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
   .ret [] ::
   [])
 
@@ -2458,7 +2458,7 @@ end core
 
 /-- `level_residual__L109_L17_L6_L3_loop0`. -/
 noncomputable def core : Core.Fn where
-  name := "__loop211"
+  name := "__loop212"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]
   body := core.body
 
@@ -2569,7 +2569,7 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 96) (.n 95) (.n 1)) ::
   .atom (.const (.n 97) (word 2 0)) ::
   .atom (.mul (.n 98) (.n 0) (.n 97)) ::
-  .callIf (.n 96) "__loop455" [.n 98, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
+  .callIf (.n 96) "__loop456" [.n 98, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
   .ret [] ::
   [])
 
@@ -2577,7 +2577,7 @@ end core
 
 /-- `level_residual__L19_L11_L4_L2_loop1`. -/
 noncomputable def core : Core.Fn where
-  name := "__loop455"
+  name := "__loop456"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]
   body := core.body
 
@@ -2605,7 +2605,7 @@ noncomputable def body : List Core.Stmt := [
   .atom (.add (.n 10) (.n 8) (.n 9)),
   .atom (.const (.n 11) (word 1 0)),
   .atom (.const (.n 12) (word 134217728 0)),
-  .callIf (.n 10) "__loop278" [.n 11, .n 12, .n 0, .n 5, .n 1, .n 2, .n 3],
+  .callIf (.n 10) "__loop279" [.n 11, .n 12, .n 0, .n 5, .n 1, .n 2, .n 3],
   .atom (.load (.n 13) (.n 5) 54),
   .atom (.load (.n 14) (.n 5) 55),
   .atom (.const (.n 15) (word 64 0)),
@@ -2619,7 +2619,7 @@ noncomputable def body : List Core.Stmt := [
   .atom (.add (.n 21) (.n 19) (.n 20)),
   .atom (.const (.n 22) (word 1 0)),
   .atom (.const (.n 23) (word 4 0)),
-  .callIf (.n 21) "__loop279" [.n 22, .n 23, .n 16, .n 18, .n 1, .n 2, .n 3],
+  .callIf (.n 21) "__loop280" [.n 22, .n 23, .n 16, .n 18, .n 1, .n 2, .n 3],
   .atom (.load (.n 24) (.n 16) 4),
   .atom (.load (.n 25) (.n 16) 5),
   .atom (.copy (.n 26) (.n 24)),
@@ -2711,7 +2711,7 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 66) (.n 65) (.n 1)) ::
   .atom (.const (.n 67) (word 2 0)) ::
   .atom (.mul (.n 68) (.n 0) (.n 67)) ::
-  .callIf (.n 66) "__loop128" [.n 68, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
+  .callIf (.n 66) "__loop129" [.n 68, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
   .ret [] ::
   [])
 
@@ -2719,7 +2719,7 @@ end core
 
 /-- `level_residual__L33_L6_L4_L2_loop1`. -/
 noncomputable def core : Core.Fn where
-  name := "__loop128"
+  name := "__loop129"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]
   body := core.body
 
@@ -2830,7 +2830,7 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 96) (.n 95) (.n 1)) ::
   .atom (.const (.n 97) (word 2 0)) ::
   .atom (.mul (.n 98) (.n 0) (.n 97)) ::
-  .callIf (.n 96) "__loop154" [.n 98, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
+  .callIf (.n 96) "__loop155" [.n 98, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
   .ret [] ::
   [])
 
@@ -2838,7 +2838,7 @@ end core
 
 /-- `level_residual__L55_L11_L4_L2_loop1`. -/
 noncomputable def core : Core.Fn where
-  name := "__loop154"
+  name := "__loop155"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]
   body := core.body
 
@@ -4118,7 +4118,7 @@ noncomputable def c2 : List Core.Stmt := (
   .atom (.add (.n 1257) (.n 1256) (.n 1)) ::
   .atom (.const (.n 1258) (word 2 0)) ::
   .atom (.mul (.n 1259) (.n 0) (.n 1258)) ::
-  .callIf (.n 1257) "__loop395" [.n 1259, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
+  .callIf (.n 1257) "__loop396" [.n 1259, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
   .ret [] ::
   [])
 
@@ -4129,7 +4129,7 @@ end core
 
 /-- `level_residual__L55_L22_L6_L3_loop0`. -/
 noncomputable def core : Core.Fn where
-  name := "__loop395"
+  name := "__loop396"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]
   body := core.body
 
@@ -4346,7 +4346,7 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 182) (.n 181) (.n 1)) ::
   .atom (.const (.n 183) (word 2 0)) ::
   .atom (.mul (.n 184) (.n 0) (.n 183)) ::
-  .callIf (.n 182) "__loop527" [.n 184, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
+  .callIf (.n 182) "__loop528" [.n 184, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
   .ret [] ::
   [])
 
@@ -4354,7 +4354,7 @@ end core
 
 /-- `opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0`. -/
 noncomputable def core : Core.Fn where
-  name := "__loop527"
+  name := "__loop528"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]
   body := core.body
 
@@ -4492,7 +4492,7 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 154) (.n 153) (.n 1)) ::
   .atom (.const (.n 155) (word 2 0)) ::
   .atom (.mul (.n 156) (.n 0) (.n 155)) ::
-  .callIf (.n 154) "__loop545" [.n 156, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
+  .callIf (.n 154) "__loop546" [.n 156, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
   .ret [] ::
   [])
 
@@ -4500,7 +4500,7 @@ end core
 
 /-- `opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0`. -/
 noncomputable def core : Core.Fn where
-  name := "__loop545"
+  name := "__loop546"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]
   body := core.body
 
@@ -4666,7 +4666,7 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 182) (.n 181) (.n 1)) ::
   .atom (.const (.n 183) (word 2 0)) ::
   .atom (.mul (.n 184) (.n 0) (.n 183)) ::
-  .callIf (.n 182) "__loop551" [.n 184, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
+  .callIf (.n 182) "__loop552" [.n 184, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
   .ret [] ::
   [])
 
@@ -4674,7 +4674,7 @@ end core
 
 /-- `opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0`. -/
 noncomputable def core : Core.Fn where
-  name := "__loop551"
+  name := "__loop552"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]
   body := core.body
 
@@ -4796,7 +4796,7 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 138) (.n 137) (.n 1)) ::
   .atom (.const (.n 139) (word 2 0)) ::
   .atom (.mul (.n 140) (.n 0) (.n 139)) ::
-  .callIf (.n 138) "__loop563" [.n 140, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
+  .callIf (.n 138) "__loop564" [.n 140, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
   .ret [] ::
   [])
 
@@ -4804,7 +4804,7 @@ end core
 
 /-- `opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0`. -/
 noncomputable def core : Core.Fn where
-  name := "__loop563"
+  name := "__loop564"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]
   body := core.body
 

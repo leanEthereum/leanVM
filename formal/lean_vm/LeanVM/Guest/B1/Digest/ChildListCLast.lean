@@ -46,7 +46,8 @@ theorem ccc_all {k : ℕ} (hk : k < 17) : cccOk k (coreProgram.getD (idx% «chil
   rcases Nat.lt_or_ge k 9 with h | h
   · exact ccc_lo k h
   · have := ccc_hi (k - 9) (by omega)
-    rwa [show 9 + (k - 9) = k by omega, show 376 + (k - 9) = 367 + k by omega] at this
+    rwa [show 9 + (k - 9) = k by omega, show idx% «child_claim_list_last__L9» + (k - 9) =
+      idx% «child_claim_list_last__L0» + k by omega] at this
 
 /-- The records' message is their cells. -/
 theorem ccMsg_vals {σ : Val} {o0 K : ℕ} {cells : List E} (hl : cells.length = 4 * K)

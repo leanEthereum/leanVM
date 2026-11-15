@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B2C.Share
 import LeanVM.Guest.Checked.Fn32
 import LeanVM.Guest.Checked.Link16
+import LeanVM.Guest.Pack.«P29».SharedOk
 import LeanVM.Guest.Pack.«P40».SharedOk
 
 namespace LeanVM.Guest.B2C.Shared
@@ -19,7 +20,10 @@ open LeanVM.Guest.Checked
 @[expose] public section
 
 theorem ok1601 : ShareOk 1601 :=
-  shareOk_of_link link1601 plumbEq1601 fsEq1601 snapsEq1601 rfl (fun h ↦ nomatch h) Fn.«walk_path__L12_L8».shareOk
+  shareOk_of_link link1601 plumbEq1601 fsEq1601 snapsEq1601 rfl (fun h ↦ nomatch h) Fn.«walk_path__L6_L6».shareOk
+
+theorem ok1602 : ShareOk 1602 :=
+  shareOk_of_link link1602 plumbEq1602 fsEq1602 snapsEq1602 rfl (fun h ↦ nomatch h) Fn.«walk_path__L12_L8».shareOk
 
 end
 end LeanVM.Guest.B2C.Shared

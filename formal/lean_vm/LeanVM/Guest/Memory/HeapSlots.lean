@@ -37,7 +37,7 @@ def heapSlots (f : String) : List ℕ :=
   | "claim_list_digest" => [0]
   | "da_verify" => [0, 2]
   | "verify_sub" => [5]
-  | "verify_tables" => [108, 109, 110]
+  | "verify_tables" => [108, 109, 111]
   | _ => []
 
 /-- **Function `j` and its callees, `d` calls deep, have no advised buffer.** -/

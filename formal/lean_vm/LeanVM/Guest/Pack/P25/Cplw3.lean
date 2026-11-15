@@ -23,16 +23,16 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop245`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(1207, Fn.«level_residual__L73_L18_L6_L3_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L73_L18_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+/-- `__loop246`, window 0, part 0. -/
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(1208, Fn.«level_residual__L73_L18_L6_L3_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L73_L18_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
-/-- `__loop245`, window 0, part 1. -/
-theorem cw0_1 : cplWinD (Glob.ofSigs ([(1207, Fn.«level_residual__L73_L18_L6_L3_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L73_L18_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 1 = true := by
+/-- `__loop246`, window 0, part 1. -/
+theorem cw0_1 : cplWinD (Glob.ofSigs ([(1208, Fn.«level_residual__L73_L18_L6_L3_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L73_L18_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 1 = true := by
   decide +kernel
 
-/-- `__loop245`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(1207, Fn.«level_residual__L73_L18_L6_L3_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L73_L18_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+/-- `__loop246`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs ([(1208, Fn.«level_residual__L73_L18_L6_L3_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L73_L18_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -52,12 +52,12 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop305`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(1149, Fn.«decode_query_windows__L21_L3».sig), (1276, Fn.«level_positions__L37_L21_L3_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_positions__L37_L21_L3_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+/-- `__loop306`, window 0, part 0. -/
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(1150, Fn.«decode_query_windows__L21_L3».sig), (1277, Fn.«level_positions__L37_L21_L3_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_positions__L37_L21_L3_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
-/-- `__loop305`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(1149, Fn.«decode_query_windows__L21_L3».sig), (1276, Fn.«level_positions__L37_L21_L3_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_positions__L37_L21_L3_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+/-- `__loop306`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs ([(1150, Fn.«decode_query_windows__L21_L3».sig), (1277, Fn.«level_positions__L37_L21_L3_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_positions__L37_L21_L3_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -100,8 +100,8 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop315`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(1293, Fn.«level_residual__L218_L20_L6_L3_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L218_L20_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+/-- `__loop316`, window 0, part 0. -/
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(1294, Fn.«level_residual__L218_L20_L6_L3_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L218_L20_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 end

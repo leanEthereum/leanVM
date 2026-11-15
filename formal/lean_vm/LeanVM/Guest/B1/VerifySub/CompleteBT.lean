@@ -205,7 +205,7 @@ theorem vs_kidsDepBPR {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
       [ptr (vb bs 4), ptr sqE] (Tables.cpOut S.logMem S.hs) Pcp (fs "certify_placement" + Tables.cpSizes.sum))
     (hvt : ∀ B, CompleteAtDTBR fs cert κ "verify_tables" (S.H.linL B) (S.H.args B) (Returns (S.H.retsH B))
       (fun rd t ↦ (∀ op, Budget.WeighsLe coreProgram (W.ωv op) (vtWB W.toVsWords op) t) ∧ Pvt rd t)
-      (vtMax fs W.Kf W.Ksh W.K10))
+      (vtMax fs W.Kf W.Ksh W.K10 W.K11))
     (hos : ∀ pv, CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 14 noKid pv).Lin
       ((S.kids bs sqE).getD 14 noKid pv).args ((S.kids bs sqE).getD 14 noKid pv).Out Pos
       (osBosAt fs W.Bnd S.μs)) :
@@ -255,7 +255,7 @@ theorem verify_sub_completeBTG {bytecode : List K} (hbl : bytecode.length = 2 ^ 
       [ptr e1, ptr e2] (Tables.cpOut S.logMem S.hs) Pcp (fs "certify_placement" + Tables.cpSizes.sum))
     (hvt : ∀ B, CompleteAtDTBR fs cert κ "verify_tables" (S.H.linL B) (S.H.args B) (Returns (S.H.retsH B))
       (fun rd t ↦ (∀ op, Budget.WeighsLe coreProgram (W.ωv op) (vtWB W.toVsWords op) t) ∧ Pvt rd t)
-      (vtMax fs W.Kf W.Ksh W.K10))
+      (vtMax fs W.Kf W.Ksh W.K10 W.K11))
     (hos : ∀ bs pv, CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 14 noKid pv).Lin
       ((S.kids bs sqE).getD 14 noKid pv).args ((S.kids bs sqE).getD 14 noKid pv).Out Pos
       (osBosAt fs W.Bnd S.μs)) :

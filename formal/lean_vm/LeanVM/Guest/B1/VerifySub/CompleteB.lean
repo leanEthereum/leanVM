@@ -119,7 +119,7 @@ theorem vs_kidsDepBAt_of {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {s
     (bs : List ℕ) (sqE : ℕ) (hsl : S.kc.2.2.length = 64)
     (hvt : ∀ pv, CompleteAtB fs cert κ "verify_tables" ((S.kids bs sqE).getD 10 noKid pv).Lin
       ((S.kids bs sqE).getD 10 noKid pv).args ((S.kids bs sqE).getD 10 noKid pv).Out
-      (vtMax fs W.Kf W.Ksh W.K10))
+      (vtMax fs W.Kf W.Ksh W.K10 W.K11))
     (hvk : CompleteAtB fs cert κ "verify_keccak" ((S.kids bs sqE).getD 11 noKid []).Lin
       ((S.kids bs sqE).getD 11 noKid []).args ((S.kids bs sqE).getD 11 noKid []).Out Bvk)
     (hterm : ∀ pv, ((S.kids bs sqE).getD 15 noKid pv).taken = true →
@@ -173,39 +173,39 @@ namespace ChildSegs
 variable {bytecode : List K} {seed : Digest} {c : Child} (S : ChildSegs bytecode seed c)
 
 /-- `verify_tables`' own buffers. -/
-theorem vt_sizes_sum : S.H.sizes.sum = 3841 + S.H.μ + 9 * (S.H.n + 1) := by
+theorem vt_sizes_sum : S.H.sizes.sum = 3875 + S.H.μ + 9 * (S.H.n + 1) := by
   simp only [Tables.VtHonest.sizes, List.sum_append, List.sum_cons, List.sum_nil,
     List.sum_replicate, smul_eq_mul]
   omega
 
 theorem vt_bound_le (hbl : bytecode.length = 2 ^ 23) (W : VsWordsOs fs) :
     fs "verify_tables" + S.H.sizes.sum + ((Tables.vtBs W.Kf W.Ksh
-      (Tables.vtRunB fs W.K10 S.H.n)).sum + Tables.ifFrames fs Tables.vtPre) ≤
-      vtMax fs W.Kf W.Ksh W.K10 := by
+      (Tables.vtRunB fs W.K10 S.H.n) (Tables.vtCopyB fs W.K11 S.H.n)).sum + Tables.ifFrames fs Tables.vtPre) ≤
+      vtMax fs W.Kf W.Ksh W.K10 W.K11 := by
   have hd := S.d_bounds hbl
   obtain ⟨-, -, -, -, hpl, -⟩ := S.gkr_inv hbl
   have hHμ : S.H.μ < 32 := by show S.rG.2.1.length < 32; omega
   have hn : S.H.n < 31 := by have := S.nT_le hbl; show S.nT < 31; omega
   rw [S.vt_sizes_sum]
   unfold vtMax
-  exact le_lmax2 (vtBnd fs W.Kf W.Ksh W.K10) hHμ hn
+  exact le_lmax2 (vtBnd fs W.Kf W.Ksh W.K10 W.K11) hHμ hn
 
 /-- **`verify_tables` on an honest child, within `vtMax`.** -/
 theorem vt_kidB (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 14 ≤ κ) (W : VsWordsOs fs)
     (B : Tables.VtBases) :
     CompleteAtB fs cert κ "verify_tables" (S.H.linL B) (S.H.args B) (Returns (S.H.retsH B))
-      (vtMax fs W.Kf W.Ksh W.K10) :=
-  (Tables.verify_tables_completeAtTB hκ (S.H_run hbl).1 (S.H_shape hbl) B W.Kf W.Ksh W.K10 W.hKf
-    W.hsh W.h10).toCompleteAtB.mono le_rfl (S.vt_bound_le hbl W)
+      (vtMax fs W.Kf W.Ksh W.K10 W.K11) :=
+  (Tables.verify_tables_completeAtTB hκ (S.H_run hbl).1 (S.H_shape hbl) B W.Kf W.Ksh W.K10 W.K11 W.hKf
+    W.hsh W.h10 W.h11).toCompleteAtB.mono le_rfl (S.vt_bound_le hbl W)
 
 /-- **`verify_tables` on an honest child, within `vtMax` by a tree within its weights.** -/
 theorem vt_kidBW (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 14 ≤ κ) (W : VsWordsOs fs)
     (B : Tables.VtBases) :
     CompleteAtDTB fs cert κ "verify_tables" (S.H.linL B) (S.H.args B) (Returns (S.H.retsH B))
       (fun t ↦ ∀ op, Budget.WeighsLe coreProgram (W.ωv op) (vtWB W.toVsWords op) t)
-      (vtMax fs W.Kf W.Ksh W.K10) :=
-  (Tables.verify_tables_completeAtTBW' hκ (S.H_run hbl).1 (S.H_shape hbl) B W.Kf W.Ksh W.K10 W.hKf
-    W.hsh W.h10 W.ωv W.Kvw W.Wss W.Kw10 W.hKvw W.hssw W.h10w).mono (S.vt_bound_le hbl W)
+      (vtMax fs W.Kf W.Ksh W.K10 W.K11) :=
+  (Tables.verify_tables_completeAtTBW' hκ (S.H_run hbl).1 (S.H_shape hbl) B W.Kf W.Ksh W.K10 W.K11 W.hKf
+    W.hsh W.h10 W.h11 W.ωv W.Kvw W.Wss W.Kw10 W.Kw11 W.hKvw W.hssw W.h10w W.h11w).mono (S.vt_bound_le hbl W)
     fun _ h ↦ h
 
 /-- **`verify_keccak` on an honest child**, from its bounded completeness. -/
@@ -279,7 +279,7 @@ theorem vs_kidsDepBP {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed 
   by_cases h10 : j = 10
   · subst h10
     refine ⟨fun _ ↦ ?_, fun h ↦ by cases h⟩
-    have e : (vsBsAt W Bvk S.μs S.rate).getD 10 0 = vtMax fs W.Kf W.Ksh W.K10 := by
+    have e : (vsBsAt W Bvk S.μs S.rate).getD 10 0 = vtMax fs W.Kf W.Ksh W.K10 W.K11 := by
       simp only [vsBsAt, vsBsWith, List.getD_cons_succ, List.getD_cons_zero]
     rw [e]
     exact S.vt_kidBW hbl (by omega) W _

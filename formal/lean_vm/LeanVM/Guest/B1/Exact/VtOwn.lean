@@ -35,13 +35,13 @@ attribute [local instance high] LeanVM.Guest.Core.instDecidableEqAtom
 
 /-- A table block's digits hint: block `b`, buffer `w`, table `t`. -/
 def vtDigA (b w t : ℕ) : Atom :=
-  .hint (.digitsExp (.n (vtBoffV b)) 34 9 4 0 (some (.n (27 + t))) (.heap (.n w) 0 9))
+  .hint (.digitsExp (.n (vtBoffV b)) 34 9 4 0 (some (.n (28 + t))) (.heap (.n w) 0 9))
 
 /-- A framework block's bits hint. -/
 def vtBitA (b : ℕ) : Atom := .hint (.bitsExp (.n (vtBoffV b)) 34 (.heap (.n (vtFwW b + 6)) 0 34))
 
 /-- The two limbs hints. -/
-def vtLimbA : List Atom := [.hint (.limbs (.n 6) [.n 5962]), .hint (.limbs (.n 7) [.n 5967])]
+def vtLimbA : List Atom := [.hint (.limbs (.n 6) [.n 5967]), .hint (.limbs (.n 7) [.n 5972])]
 
 /-- `verify_tables`' computed hints not pinned by the next atom. -/
 def vtSites : List Atom :=
@@ -109,9 +109,9 @@ section
 variable {rd : Reader} {w : ℕ → E} {args : List E}
 
 /-- **The limbs hints are exact** on the honest valuation: it evaluates them. -/
-theorem vt_limbs_exact (hl : args.length = 20) : ∀ a ∈ vtLimbA, a.Exact rd (vtσ rd w args) := by
-  have g1 := vt_goodL (rd := rd) (w := w) hl 5527 [.atom (.hint (.limbs (.n 6) [.n 5962]))] (by decide +kernel)
-  have g2 := vt_goodL (rd := rd) (w := w) hl 5533 [.atom (.hint (.limbs (.n 7) [.n 5967]))] (by decide +kernel)
+theorem vt_limbs_exact (hl : args.length = 21) : ∀ a ∈ vtLimbA, a.Exact rd (vtσ rd w args) := by
+  have g1 := vt_goodL (rd := rd) (w := w) hl 5532 [.atom (.hint (.limbs (.n 6) [.n 5967]))] (by decide +kernel)
+  have g2 := vt_goodL (rd := rd) (w := w) hl 5538 [.atom (.hint (.limbs (.n 7) [.n 5972]))] (by decide +kernel)
   generalize vtσ rd w args = σ at g1 g2 ⊢
   simp only [GoodL, GoodS, fixNe, Good, and_true] at g1 g2
   intro a ha
@@ -137,20 +137,20 @@ theorem vt_sites_exact {H : VtHonest} (hs : VtShape H) (B : VtBases) {o : ℕ} {
     · exact hlin q hq
     · exact hown q hq
   have hw := vtW_ok H B'
-  have hl : (H.args B').length = 20 := rfl
-  have p : ∀ i < 20, (vtσ rd (vtW H B') (H.args B')) (.n i) = (H.args B').getD i 0 := fun i hi ↦ vt_param hl hi
+  have hl : (H.args B').length = 21 := rfl
+  have p : ∀ i < 21, (vtσ rd (vtW H B') (H.args B')) (.n i) = (H.args B').getD i 0 := fun i hi ↦ vt_param hl hi
   have mDims : TbReadsAt rd (ofK (addressOfIndex B'.dims)) H.dimsW :=
     vt_lin_reads (q := (B'.dims, H.dimsW)) hm (by simp [VtHonest.linL])
   have mSq : TbReadsAt rd (ofK (addressOfIndex B'.sq)) expTableWordsW :=
     vt_lin_reads (q := (B'.sq, expTableWordsW)) hm (by simp [VtHonest.linL])
   have hd := fun j (hj : j < 9) ↦ ownW_getD_head H B' hj
-  have o33 : TbReadsAt rd (vtW H B' 33) (vtGKeyW H.lm H.τ) :=
+  have o33 : TbReadsAt rd (vtW H B' 34) (vtGKeyW H.lm H.τ) :=
     vt_own_reads' hm hw (j := 0) (by norm_num) rfl (hd 0 (by norm_num))
-  have o34 : TbReadsAt rd (vtW H B' 34) (vtGSizeW H.lm H.τ) :=
+  have o34 : TbReadsAt rd (vtW H B' 35) (vtGSizeW H.lm H.τ) :=
     vt_own_reads' hm hw (j := 1) (by norm_num) rfl (hd 1 (by norm_num))
-  have o35 : TbReadsAt rd (vtW H B' 35) (vtGBaseW H.lm H.τ) :=
+  have o35 : TbReadsAt rd (vtW H B' 36) (vtGBaseW H.lm H.τ) :=
     vt_own_reads' hm hw (j := 2) (by norm_num) rfl (hd 2 (by norm_num))
-  have o36 : TbReadsAt rd (vtW H B' 36) (vtGOrdW H.lm H.τ) :=
+  have o36 : TbReadsAt rd (vtW H B' 37) (vtGOrdW H.lm H.τ) :=
     vt_own_reads' hm hw (j := 3) (by norm_num) rfl (hd 3 (by norm_num))
   obtain ⟨-, -, hkb, -, hP, hC⟩ :=
     vtS_sort (rd := rd) (w := vtW H B') (args := H.args B') hl hlow hs.hlm hs.hτ33
@@ -166,9 +166,9 @@ theorem vt_sites_exact {H : VtHonest} (hs : VtShape H) (B : VtBases) {o : ℕ} {
       (Nat.pow_le_pow_right (by norm_num) (by omega))
   have hP' : ∀ x < 54, vtσ rd (vtW H B') (H.args B') (.n (vtBoffV x)) = gen ^ H.offP.getD x 0 := hP
   have hC' : ∀ x < 45, vtσ rd (vtW H B') (H.args B') (.n (vtBoffV (108 + x))) = gen ^ H.offC.getD x 0 := hC
-  have hkbt : ∀ t < 6, vtσ rd (vtW H B') (H.args B') (.n (27 + t)) = gen ^ H.τ t := fun t ht ↦ by
+  have hkbt : ∀ t < 6, vtσ rd (vtW H B') (H.args B') (.n (28 + t)) = gen ^ H.τ t := fun t ht ↦ by
     have := hkb (2 + t) (by omega)
-    rw [show 25 + (2 + t) = 27 + t by omega, Nat.add_comm 2 t, vt_tau_getD H.lm (vtHt H.rows) ht] at this
+    rw [show 26 + (2 + t) = 28 + t by omega, Nat.add_comm 2 t, vt_tau_getD H.lm (vtHt H.rows) ht] at this
     exact this
   have hτ : ∀ t < 6, H.τ t < 96 := fun t ht ↦ by have := hs.hτ31 t ht; simp only [VtHonest.τ]; omega
   obtain ⟨dP, dC, dF⟩ := vt_sel_data

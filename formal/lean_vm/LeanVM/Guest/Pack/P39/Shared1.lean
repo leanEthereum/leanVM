@@ -22,42 +22,42 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop17`, window 1. -/
+/-- `__loop18`, window 1. -/
 theorem sw1 : shareWinD Fn.«child_claim_list_any_loop0».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop17`, window 2. -/
+/-- `__loop18`, window 2. -/
 theorem sw2 : shareWinD Fn.«child_claim_list_any_loop0».core (cert.withPows Data.powTree) plumb fs snaps 2 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop17`, window 3. -/
+/-- `__loop18`, window 3. -/
 theorem sw3 : shareWinD Fn.«child_claim_list_any_loop0».core (cert.withPows Data.powTree) plumb fs snaps 3 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop17`, window 4. -/
+/-- `__loop18`, window 4. -/
 theorem sw4 : shareWinD Fn.«child_claim_list_any_loop0».core (cert.withPows Data.powTree) plumb fs snaps 4 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop17`, window 5. -/
+/-- `__loop18`, window 5. -/
 theorem sw5 : shareWinD Fn.«child_claim_list_any_loop0».core (cert.withPows Data.powTree) plumb fs snaps 5 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop17`, window 6. -/
+/-- `__loop18`, window 6. -/
 theorem sw6 : shareWinD Fn.«child_claim_list_any_loop0».core (cert.withPows Data.powTree) plumb fs snaps 6 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop17`, window 7. -/
+/-- `__loop18`, window 7. -/
 theorem sw7 : shareWinD Fn.«child_claim_list_any_loop0».core (cert.withPows Data.powTree) plumb fs snaps 7 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop17`, window 8. -/
+/-- `__loop18`, window 8. -/
 theorem sw8 : shareWinD Fn.«child_claim_list_any_loop0».core (cert.withPows Data.powTree) plumb fs snaps 8 = true := by
   decide +kernel
 

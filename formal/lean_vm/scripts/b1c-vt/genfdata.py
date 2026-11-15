@@ -4,7 +4,7 @@
 # reads of `fp_w`: evaluations (0, k), permutations (1, j), weight blocks (3, t)), from vt_ir.txt.
 import re, os, textwrap
 here = os.path.dirname(os.path.abspath(__file__))
-LO, HI, FPW, CUR = 2685, 5524, 13, 2647
+LO, HI, FPW, CUR = 2690, 5529, 13, 2652
 ir = {}
 for line in open(os.path.join(here, 'vt_ir.txt')):
     k, _, s = line.partition(': ')
@@ -21,8 +21,8 @@ def auto(s):
     return False
 air = []
 for p in range(LO, HI):
-    m = re.match(r'\.atom \(\.mul \(\.n 2544\) \(\.n (\d+)\) \(\.n (2[7-9]|3[0-2])\)\)$', ir[p])
-    if m: air.append((p, int(m.group(1)), int(m.group(2)) - 27))
+    m = re.match(r'\.atom \(\.mul \(\.n 2545\) \(\.n (\d+)\) \(\.n (2[8-9]|3[0-3])\)\)$', ir[p])
+    if m: air.append((p, int(m.group(1)), int(m.group(2)) - 28))
 assert [a[2] for a in air] == list(range(6))
 evs = {}  # cursor read position -> k
 for p in range(LO, HI):

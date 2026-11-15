@@ -584,7 +584,7 @@ theorem frameSize_alignA : FrameSize alignA := by
   obtain ⟨i0, rfl, -, -, hfind, hcore, hfs, -, h1, h2⟩ := B2C.fn_of_idx hj
   have hA : alignA e.I.t.name = fnAl (i0 + 1) := alignA_of hj
   rw [hA] at hqm hsite
-  obtain ⟨cs, hchk⟩ := AllocChk.frJ_all _ h1 (by have : nFns = 1602 := rfl; omega)
+  obtain ⟨cs, hchk⟩ := AllocChk.frJ_all _ h1 (by have : nFns = fn_count% := rfl; omega)
   have hne : (frames (ctxOf (i0 + 1)) (adviceOf (i0 + 1))).isEmpty = false := by
     cases hf : frames (ctxOf (i0 + 1)) (adviceOf (i0 + 1)) with
     | nil => change (off, h) ∈ frames (ctxOf (i0 + 1)) (adviceOf (i0 + 1)) at hqm; rw [hf] at hqm; cases hqm

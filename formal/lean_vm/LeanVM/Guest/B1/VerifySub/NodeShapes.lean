@@ -54,7 +54,7 @@ def vsCpS : Stmt := .call "certify_placement" [.n 83, .n 4] [.n 274, .n 275]
 
 /-- `verify_sub`'s call of `verify_tables`. -/
 def vsVtS : Stmt :=
-  .call "verify_tables" ([562, 563, 564, 565, 566, 567, 0, 1, 254, 253, 71, 26, 4, 335, 559, 6, 569, 568, 572, 570].map .n)
+  .call "verify_tables" ([562, 563, 564, 565, 566, 567, 0, 1, 254, 253, 71, 26, 4, 335, 559, 6, 569, 568, 572, 570, 25].map .n)
     ((List.range 10).map fun k => .n (573 + k))
 
 /-- `verify_sub`'s dispatch to `open_stacked`. -/
@@ -84,10 +84,10 @@ noncomputable def cpShapeOk : Bool :=
 theorem cpShape_ok : cpShapeOk = true := by decide +kernel
 
 /-- `verify_tables`' block group order hint. -/
-def vtOrdA : Atom := .hint (.witness "block_group_order" (.heap (.n 36) 0 24))
+def vtOrdA : Atom := .hint (.witness "block_group_order" (.heap (.n 37) 0 24))
 
 /-- `verify_tables`' round count hint. -/
-def vtZcA : Atom := .hint (.witness "zc_tau_max" (.stack [.n 2544]))
+def vtZcA : Atom := .hint (.witness "zc_tau_max" (.stack [.n 2545]))
 
 /-- `verify_tables`' shape. -/
 noncomputable def vtShapeOk : Bool :=

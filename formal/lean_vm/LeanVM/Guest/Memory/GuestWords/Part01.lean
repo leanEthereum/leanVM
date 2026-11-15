@@ -25,7 +25,7 @@ theorem wRange_143 : RangeOk (chkS true Data.wcertJ Data.womegaJ) 143 63 := by
   unfold RangeOk; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem wRange_206 : RangeOk (chkS true Data.wcertJ Data.womegaJ) 206 61 := by
+theorem wRange_206 : RangeOk (chkS true Data.wcertJ Data.womegaJ) 206 62 := by
   unfold RangeOk; decide +kernel
 
 end

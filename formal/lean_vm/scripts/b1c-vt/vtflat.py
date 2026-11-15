@@ -1,6 +1,7 @@
 # Library: verify_tables' evaluation list (`vtEvL`: top-level ites' branches inline) with the
 # checker's counter at each statement, from vt_ir.txt (dump.py). Used by genstores.py.
 import re, os
+NPARAMS = 21  # verify_tables' parameters: the checker's counter at the body's start
 def vs(t): return [int(x) for x in re.findall(r'\.n (\d+)', t)]
 def chkS(c, s):
     old = lambda v: v < c
@@ -55,7 +56,7 @@ def load(path=None):
         if s.startswith('.ite'):
             for b in branches(s): flat += [(k, t) for t in b]
         else: flat.append((k, s))
-    c = 20; ctr = []
+    c = NPARAMS; ctr = []
     for k, s in flat:
         ctr.append(c); c = chkS(c, s)
     return top, flat, ctr, c

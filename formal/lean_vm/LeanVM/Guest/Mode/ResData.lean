@@ -17,7 +17,6 @@ public import LeanVM.Guest.Pack.«P13».Mode2
 public import LeanVM.Guest.Pack.«P16».Mode0
 public import LeanVM.Guest.Pack.«P17».Mode0
 public import LeanVM.Guest.Pack.«P18».Mode0
-public import LeanVM.Guest.Pack.«P1».Mode0
 public import LeanVM.Guest.Pack.«P20».Mode0
 public import LeanVM.Guest.Pack.«P21».Mode0
 public import LeanVM.Guest.Pack.«P21».Mode1
@@ -92,8 +91,7 @@ noncomputable def nzFns : List (Fun × List OffsetInstruction) := [
   (Fn.«certify_placement».modeFun, Fn.«certify_placement».code.chunks.flatten),
   (Fn.«child_claim_list_mono_last__L0».modeFun, Fn.«child_claim_list_mono_last__L0».code.chunks.flatten),
   (Fn.«log2_ceil_in_the_exponent__L0_L34».modeFun, Fn.«log2_ceil_in_the_exponent__L0_L34».code.chunks.flatten),
-  (Fn.«log2_ceil_in_the_exponent__L16_L34».modeFun, Fn.«log2_ceil_in_the_exponent__L16_L34».code.chunks.flatten),
-  (Fn.«verify_tables_loop0».modeFun, Fn.«verify_tables_loop0».code.chunks.flatten)]
+  (Fn.«log2_ceil_in_the_exponent__L16_L34».modeFun, Fn.«log2_ceil_in_the_exponent__L16_L34».code.chunks.flatten)]
 
 /-- **Every nonzero residual of the guest's checked functions is a `MUL`'s divisor.** -/
 theorem nzMul_guest : ∀ p ∈ nzFns, nzMul p.1 p.2 = true := by
@@ -182,7 +180,6 @@ noncomputable def famFns : List (Fun × List OffsetInstruction) := [
   (Fn.«claim_list_digest».modeFun, Fn.«claim_list_digest».code.chunks.flatten),
   (Fn.«log2_ceil_in_the_exponent__L0_L34».modeFun, Fn.«log2_ceil_in_the_exponent__L0_L34».code.chunks.flatten),
   (Fn.«log2_ceil_in_the_exponent__L16_L34».modeFun, Fn.«log2_ceil_in_the_exponent__L16_L34».code.chunks.flatten),
-  (Fn.«verify_tables_loop0».modeFun, Fn.«verify_tables_loop0».code.chunks.flatten),
   (Fn.«walk_path__L12_L2».modeFun, Fn.«walk_path__L12_L2».code.chunks.flatten),
   (Fn.«walk_path__L12_L3».modeFun, Fn.«walk_path__L12_L3».code.chunks.flatten),
   (Fn.«walk_path__L12_L4».modeFun, Fn.«walk_path__L12_L4».code.chunks.flatten),

@@ -43,7 +43,7 @@ theorem pairJ_of_find {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn
     ∃ j, B2C.idxOf f = some j ∧ alignA f = fnAl j ∧ Bridge.PairJ j ∧ (coreOf j).body = fn.body ∧ j < nFns := by
   obtain ⟨j, hj⟩ := B2C.idxOf_of_find hf
   obtain ⟨i, -, hi, -, hfi, hc, -, -, h1, h2⟩ := B2C.fn_of_idx hj
-  refine ⟨j, hj, alignA_of hj, Bridge.PairChk.pairJ_all j h1 (by have : nFns = 1602 := rfl; omega), ?_, h2⟩
+  refine ⟨j, hj, alignA_of hj, Bridge.PairChk.pairJ_all j h1 (by have : nFns = fn_count% := rfl; omega), ?_, h2⟩
   rw [hc, ← Option.some.inj (hfi.symm.trans hf)]
 
 /-- **The deployed guest's computed hints pass the data check.** -/

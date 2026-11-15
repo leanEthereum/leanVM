@@ -16,7 +16,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `__loop15`: its mode walk accepts its code, window by window. -/
+/-- `__loop16`: its mode walk accepts its code, window by window. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=
   Mode.walk_of_wins (n := 1242) (by decide +kernel) [1213]
     ⟨by decide, by decide, by decide +kernel, modeW0,

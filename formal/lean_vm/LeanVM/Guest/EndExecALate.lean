@@ -85,7 +85,7 @@ theorem lateReady_alignA (hX : LateExcl) : LateReady alignA := by
   have hU := hintsUp_frame hE.find
   obtain ⟨i0, rfl, hi0, -, hfind, hcore, hfs, -, h1, h2⟩ := B2C.fn_of_idx hj
   have hA2 : alignA e.I.t.name = fnAl (i0 + 1) := alignA_of hj
-  have hAJ : AllocJ (i0 + 1) := AllocChk.allocJ_all _ h1 (by have : nFns = 1602 := rfl; omega) hex
+  have hAJ : AllocJ (i0 + 1) := AllocChk.allocJ_all _ h1 (by have : nFns = fn_count% := rfl; omega) hex
   have hlc := (lateChk_all (i0 + 1) h2).resolve_left hex
   -- the hint among the allocation hints
   have hget' : (hintsAtD (alignA e.I.t.name).d (alignA e.I.t.name).X.entry off)[i]? = some (.allocLate p b) := by

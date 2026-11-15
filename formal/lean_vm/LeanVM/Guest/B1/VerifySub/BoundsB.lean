@@ -49,13 +49,14 @@ open LeanVM.Node LeanVM.Guest.Memory
   lmax ((List.range 32).map (Tables.vbgBound fs K29 R K8))
 
 /-- `verify_tables`' bound at the bus depth `m` and the largest height `n`. -/
-noncomputable def vtBnd (fs : String → ℕ) (Kf : String → ℕ) (Ksh K10 m n : ℕ) : ℕ :=
-  fs "verify_tables" + (3841 + m + 9 * (n + 1)) +
-    ((Tables.vtBs Kf Ksh (Tables.vtRunB fs K10 n)).sum + Tables.ifFrames fs Tables.vtPre)
+noncomputable def vtBnd (fs : String → ℕ) (Kf : String → ℕ) (Ksh K10 K11 m n : ℕ) : ℕ :=
+  fs "verify_tables" + (3875 + m + 9 * (n + 1)) +
+    ((Tables.vtBs Kf Ksh (Tables.vtRunB fs K10 n) (Tables.vtCopyB fs K11 n)).sum +
+      Tables.ifFrames fs Tables.vtPre)
 
 /-- `verify_tables`' bound over the depths below `32` and the heights below `31`. -/
-@[irreducible] noncomputable def vtMax (fs : String → ℕ) (Kf : String → ℕ) (Ksh K10 : ℕ) : ℕ :=
-  lmax ((List.range 32).flatMap fun m ↦ (List.range 31).map (vtBnd fs Kf Ksh K10 m))
+@[irreducible] noncomputable def vtMax (fs : String → ℕ) (Kf : String → ℕ) (Ksh K10 K11 : ℕ) : ℕ :=
+  lmax ((List.range 32).flatMap fun m ↦ (List.range 31).map (vtBnd fs Kf Ksh K10 K11 m))
 
 /-- `open_stacked`'s bound over its arms (stack logs `20 .. 30`). -/
 @[irreducible] noncomputable def osMax (fs Bnd : String → ℕ) : ℕ :=
@@ -80,7 +81,7 @@ noncomputable def vsBsWith {fs : String → ℕ} (W : VsWordsOs fs) (Bvk os : �
     fs "certify_placement" + Tables.cpSizes.sum,
     fs "log2_ceil_in_the_exponent__L16_L34" + 34 + 2 * fs "assert_small_g_power",
     W.Kst "grind_check__L15", armMax W.Kst squeezeNames, W.Kst "opening_message__L1_L1",
-    busGrindMax fs, vbgMax fs W.K29 W.R W.K8, vtMax fs W.Kf W.Ksh W.K10, Bvk,
+    busGrindMax fs, vbgMax fs W.K29 W.R W.K8, vtMax fs W.Kf W.Ksh W.K10 W.K11, Bvk,
     W.Kst "grind_check__L13", fs "ring_switch_target" + 72 + W.B14, os,
     termBound fs W.Beqc W.K15 W.Bcs W.Brs]
 

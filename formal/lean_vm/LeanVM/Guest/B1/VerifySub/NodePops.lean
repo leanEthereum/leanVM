@@ -57,7 +57,7 @@ theorem cp_pops (hv : (Memory.Tree.node "certify_placement" σ bufs kids).Valid 
 
 /-- `verify_tables`' entries: its block group order's buffer, its round count. -/
 def vtPops (rd : Reader) (σ : Val) : List Pop :=
-  [("block_group_order", (Dest.heap (.n 36) 0 24).words rd σ), ("zc_tau_max", [σ (.n 2544)])]
+  [("block_group_order", (Dest.heap (.n 37) 0 24).words rd σ), ("zc_tau_max", [σ (.n 2545)])]
 
 /-- **`verify_tables` pops its block group order's buffer, then its round count.** -/
 theorem vt_pops (hv : (Memory.Tree.node "verify_tables" σ bufs kids).Valid coreProgram rd args rets) :
@@ -85,7 +85,7 @@ theorem vs_pops (hv : (Memory.Tree.node "verify_sub" σ bufs kids).Valid corePro
       tcp.name = "certify_placement" ∧ tcp.Valid coreProgram rd [σ (.n 83), σ (.n 4)] [σ (.n 274), σ (.n 275)] ∧
       tvt.name = "verify_tables" ∧
       tvt.Valid coreProgram rd
-        (([562, 563, 564, 565, 566, 567, 0, 1, 254, 253, 71, 26, 4, 335, 559, 6, 569, 568, 572, 570].map V.n).map σ)
+        (([562, 563, 564, 565, 566, 567, 0, 1, 254, 253, 71, 26, 4, 335, 559, 6, 569, 568, 572, 570, 25].map V.n).map σ)
         (((List.range 10).map fun k => V.n (573 + k)).map σ) ∧
       tos.name = vsOpen[i] ∧
       tos.Valid coreProgram rd (([66, 1370, 1371, 1372, 1373, 1374, 1917, 268, 271, 1919, 1921].map V.n).map σ)

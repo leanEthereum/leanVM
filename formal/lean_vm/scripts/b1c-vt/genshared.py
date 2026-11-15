@@ -13,8 +13,8 @@ def main():
     # find the six calls
     calls = [p for p in range(690, 800) if IR[p].startswith('.call "shared_selector_tables"')]
     assert len(calls) == 6, calls
-    EQ0, G0 = 701, 702
-    assert 'alloc (.n 701) 1728' in IR[695]
+    EQ0, G0 = 702, 703
+    assert 'alloc (.n 702) 1728' in IR[695]
     out = []
     prev_end = 696
     val = {EQ0: ('EQ', 0), G0: ('G', 0)}   # var -> (table kind, exponent in units)
@@ -59,7 +59,7 @@ def main():
         lastc = calls[t - 1] if t else 696
         seg = [x for x in hs if x[1] > lastc]
         mlen = [a for nm, p, a in seg if a and a[0] == 'mul' and a[1][0] == 9]
-        assert mlen and mlen[0][1][2] == 27 + t
+        assert mlen and mlen[0][1][2] == 28 + t
         lenraw = mlen[0][1][1]
         cp = [(nm, a) for nm, p, a in seg if a and a[0] == 'copy']
         assert cp and cp[0][1][1] == [lenv, lenraw]
@@ -67,7 +67,7 @@ def main():
         assert len(rc) == 1
         zm = [(nm, a) for nm, p, a in seg if a and a[0] == 'mul' and a[1][0] in (zv, z1v, sqv)]
         nmof = {a[1][0]: nm for nm, a in zm}
-        assert [a[1][1] for nm, a in zm] == [8, 699, 12] and all(a[1][2] == 27 + t for nm, a in zm)
+        assert [a[1][1] for nm, a in zm] == [8, 700, 12] and all(a[1][2] == 28 + t for nm, a in zm)
         mnm = [nm for nm, p, a in seg if a and a[0] == 'mul' and a[1][0] == 9][0]
         cnm = cp[0][0]
         rcnm = rc[0][0]
@@ -87,11 +87,11 @@ def main():
             for i in range(0, len(r), 2): rws += [r[i], r[i + 1]]
             return f'by rw [{", ".join(rws)}]' if len(r) == 2 else f'by rw [{", ".join(rws)}]; ring'
         out.append(f'''theorem vt_sh{t} {{rd : Reader}} {{σ : Val}} (h : VtH rd σ) :
-    σ (.n 9) = σ (.n {lenv}) * σ (.n {27 + t}) ∧ (Atom.rangeCheck {rc[0][1][1]}).Holds rd σ ∧
+    σ (.n 9) = σ (.n {lenv}) * σ (.n {28 + t}) ∧ (Atom.rangeCheck {rc[0][1][1]}).Holds rd σ ∧
       σ (.n {wvar}) = vtW33 ∧
       coreProgram.Rel rd "shared_selector_tables" [σ (.n {EQ0}) * gen ^ (288 * {t}),
-        σ (.n {G0}) * gen ^ (144 * {t}), σ (.n 8) * σ (.n {27 + t}), σ (.n 699) * σ (.n {27 + t}),
-        σ (.n 12) * σ (.n {27 + t}), σ (.n {lenv})] [] ∧
+        σ (.n {G0}) * gen ^ (144 * {t}), σ (.n 8) * σ (.n {28 + t}), σ (.n 700) * σ (.n {28 + t}),
+        σ (.n 12) * σ (.n {28 + t}), σ (.n {lenv})] [] ∧
       σ (.n {eqv}) = σ (.n {EQ0}) * gen ^ (288 * {t}) ∧ σ (.n {gv}) = σ (.n {G0}) * gen ^ (144 * {t}) := by
 {body}
   have e1 : σ (.n {eqv}) = σ (.n {EQ0}) * gen ^ (288 * {t}) := {ptrproof(eqr, eqe, EQ0)}
@@ -118,7 +118,7 @@ public import LeanVM.Guest.CoreData
 # The shared tables' statements (G:2318-2325)
 
 `vt_sh{t}`: table `t`'s `shared_len[t]` (`σ 9 = len · τ_g`, `τ_g = kb[2 + t]` the variable
-`27 + t`), its range check below `g^34`, and its `shared_selector_tables` call at
+`28 + t`), its range check below `g^34`, and its `shared_selector_tables` call at
 `shared_eq·g^(288 t)`, `shared_g·g^(144 t)` (the compiler steps these pointers from one another).
 -/
 

@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Bridge.ProgAl.Link16
+public import LeanVM.Guest.Bridge.WitChk.«P29»
 public import LeanVM.Guest.Bridge.WitChk.«P40»
 public import LeanVM.Guest.Bridge.WitDefs
 public import LeanVM.Guest.Checked.Link16
@@ -21,6 +22,10 @@ public section
 
 theorem wok1601 : Bridge.WitJ 1601 :=
   Bridge.witJ_of Checked.code1601 Checked.core1601 Checked.cert1601 Checked.plumbEq1601 Bridge.ProgAl.tab1601 rfl Checked.fsEq1601
+    Fn.«walk_path__L6_L6».witOk
+
+theorem wok1602 : Bridge.WitJ 1602 :=
+  Bridge.witJ_of Checked.code1602 Checked.core1602 Checked.cert1602 Checked.plumbEq1602 Bridge.ProgAl.tab1602 rfl Checked.fsEq1602
     Fn.«walk_path__L12_L8».witOk
 
 end

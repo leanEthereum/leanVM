@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.Bridge.AllocChk.«P29»
 public import LeanVM.Guest.Bridge.AllocChk.«P40»
 public import LeanVM.Guest.Bridge.AllocLink
 public import LeanVM.Guest.Bridge.ProgAl.Link16
@@ -20,10 +21,17 @@ open LeanVM.Guest
 public section
 
 theorem fok1601 : Bridge.FrJ 1601 :=
-  Bridge.frJ_of Checked.code1601 Checked.core1601 Checked.cert1601 Checked.plumbEq1601 Bridge.ProgAl.tab1601 rfl Checked.fsEq1601 Fn.«walk_path__L12_L8».frOk
+  Bridge.frJ_of Checked.code1601 Checked.core1601 Checked.cert1601 Checked.plumbEq1601 Bridge.ProgAl.tab1601 rfl Checked.fsEq1601 Fn.«walk_path__L6_L6».frOk
 
 theorem aok1601 : Bridge.AllocJ 1601 :=
   Bridge.allocJ_of Checked.code1601 Checked.core1601 Checked.cert1601 Checked.plumbEq1601 Bridge.ProgAl.tab1601 rfl Checked.fsEq1601
+    Fn.«walk_path__L6_L6».allocShapeOk Fn.«walk_path__L6_L6».curBodyOk Fn.«walk_path__L6_L6».allocOk
+
+theorem fok1602 : Bridge.FrJ 1602 :=
+  Bridge.frJ_of Checked.code1602 Checked.core1602 Checked.cert1602 Checked.plumbEq1602 Bridge.ProgAl.tab1602 rfl Checked.fsEq1602 Fn.«walk_path__L12_L8».frOk
+
+theorem aok1602 : Bridge.AllocJ 1602 :=
+  Bridge.allocJ_of Checked.code1602 Checked.core1602 Checked.cert1602 Checked.plumbEq1602 Bridge.ProgAl.tab1602 rfl Checked.fsEq1602
     Fn.«walk_path__L12_L8».allocShapeOk Fn.«walk_path__L12_L8».curBodyOk Fn.«walk_path__L12_L8».allocOk
 
 end

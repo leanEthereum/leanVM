@@ -36,7 +36,7 @@ theorem memRange_187 : RangeOk (memF Data.takesT) 187 150 := by
   unfold RangeOk; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem memRange_337 : RangeOk (memF Data.takesT) 337 47 := by
+theorem memRange_337 : RangeOk (memF Data.takesT) 337 45 := by
   unfold RangeOk; decide +kernel
 
 end

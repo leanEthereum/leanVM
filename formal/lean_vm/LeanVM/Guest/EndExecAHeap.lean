@@ -41,7 +41,7 @@ theorem advChk_alignA (f : String) : advChk (alignA f) = true := by
   unfold alignA
   rcases h : B2C.idxOf f with _ | j
   · simp only [Option.getD_none]
-    exact advChk_all 0 (by have : nFns = 1602 := rfl; omega)
+    exact advChk_all 0 (by have : nFns = fn_count% := rfl; omega)
   · simp only [Option.getD_some]
     obtain ⟨-, -, -, -, -, -, -, -, -, h2⟩ := B2C.fn_of_idx h
     exact advChk_all j h2

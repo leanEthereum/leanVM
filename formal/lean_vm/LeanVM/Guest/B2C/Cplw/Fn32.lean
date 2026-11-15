@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B2C.Cpl
 import LeanVM.Guest.Checked.Fn32
 import LeanVM.Guest.Checked.Link16
+import LeanVM.Guest.Pack.«P29».Cplw3
 import LeanVM.Guest.Pack.«P40».Cplw4
 
 namespace LeanVM.Guest.B2C.Cplw
@@ -19,7 +20,10 @@ open LeanVM.Guest.Checked
 @[expose] public section
 
 theorem ok1601 : CplOk 1601 :=
-  cplOk_of_link link1601 plumbEq1601 fsEq1601 partsEq1601 armsEq1601 rfl Fn.«walk_path__L12_L8».cplOk
+  cplOk_of_link link1601 plumbEq1601 fsEq1601 partsEq1601 armsEq1601 rfl Fn.«walk_path__L6_L6».cplOk
+
+theorem ok1602 : CplOk 1602 :=
+  cplOk_of_link link1602 plumbEq1602 fsEq1602 partsEq1602 armsEq1602 rfl Fn.«walk_path__L12_L8».cplOk
 
 end
 end LeanVM.Guest.B2C.Cplw

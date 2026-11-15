@@ -273,12 +273,12 @@ end
 /-- The buffers statements `0 ..< 765` load from: `dims_g`, `table_rows`, the exponent table, the
 group buffers, `idxc_tab`. -/
 def vtBufsSIdx : List (ℕ × ℕ) :=
-  [(10, 7), (11, 6), (12, 236), (33, 24), (34, 24), (35, 24), (36, 24), (664, 34)]
+  [(10, 7), (11, 6), (12, 236), (34, 24), (35, 24), (36, 24), (37, 24), (665, 34)]
 
 /-- The buffers the pointers' exponents come from: `dims_g` (`g^` at most `32`), the group order
 at the push and the pull side's slots (`g^` at most `23`). -/
 def vtPwsS : List (ℕ × ℕ × List ℕ) :=
-  [(10, 32, List.range 7), (36, 23, List.range 9 ++ (List.range 6).map (18 + ·))]
+  [(10, 32, List.range 7), (37, 23, List.range 9 ++ (List.range 6).map (18 + ·))]
 
 theorem vtS_ptr_check : ptrRun vtBufsSIdx vtPwsS [0, 19] [] ((vtPre.drop 0).take 765) = true := by
   simp only [vtPre_drop]; decide +kernel
@@ -300,7 +300,7 @@ theorem vtS_loads {bufs : List (E × ℕ)}
     (hb : ∀ q ∈ vtBufsSIdx, (vtσ rd w args (.n q.1), q.2) ∈ bufs) {lm : ℕ} (hlm : lm ≤ 32)
     {τ : ℕ → ℕ} (hτ : ∀ t < 6, τ t < 33)
     (hdims : TbReadsAt rd (vtσ rd w args (.n 10)) (gen ^ lm :: (vtTauList τ).map (gen ^ ·)))
-    (hord : TbReadsAt rd (vtσ rd w args (.n 36)) (vtGOrdW lm τ)) :
+    (hord : TbReadsAt rd (vtσ rd w args (.n 37)) (vtGOrdW lm τ)) :
     LoadsInBuf (vtσ rd w args) bufs ((vtPre.drop 0).take 765) := by
   refine ptrRun_sound hb (fun q hq j hj v hl ↦ ?_) _ [] (by simp) hV vtS_ptr_check
   simp only [vtPwsS, List.mem_cons, List.not_mem_nil, or_false] at hq

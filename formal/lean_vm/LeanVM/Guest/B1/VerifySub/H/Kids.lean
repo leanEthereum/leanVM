@@ -173,7 +173,7 @@ def cL : ℕ := S.cE bs + 101
 
 /-- `verify_tables`' buffers, its GKR leaves at `leaves`. -/
 def vtB (sqE leaves : ℕ) : Tables.VtBases :=
-  ⟨S.cT bs, vb bs 5, vb bs 3, vb bs 2, sqE, vb bs 8, vb bs 0, vb bs 9, leaves, vb bs 10, 0⟩
+  ⟨S.cT bs, vb bs 5, vb bs 3, vb bs 2, sqE, vb bs 8, vb bs 0, vb bs 9, leaves, vb bs 10, vb bs 1, 0⟩
 
 /-- `verify_bus_gkr`'s result among the results before. -/
 def gkRes (pv : List (List E × Main.Layout)) : List E × Main.Layout := pv.getD 9 ([], [])

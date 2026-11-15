@@ -12,7 +12,7 @@ namespace LeanVM.Guest.Memory
 
 public section
 
-theorem advFree_ok_1200 : RangeOk advFreeChk 1200 401 := by unfold RangeOk; decide +kernel
+theorem advFree_ok_1200 : RangeOk advFreeChk 1200 (core_count% - 1200) := by unfold RangeOk; decide +kernel
 
 end
 

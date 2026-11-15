@@ -28,7 +28,7 @@ theorem vtPerm_inF : ∀ j < 38, vtFLo ≤ (vtPermData.getD j (0, 0)).1 ∧
 
 /-- **Evaluation `k`**, on the window. -/
 theorem vt_evalF {rd : Reader} {σ : Val} (h : VtF rd σ) {k : ℕ} (hk : k < 153) :
-    LoadHolds rd (σ (.n 2647)) k (σ (.n (vtEvB k))) ∧
+    LoadHolds rd (σ (.n 2652)) k (σ (.n (vtEvB k))) ∧
       FsPackOk σ (.n (vtEvB k)) (vtEvB k + 1) dsObserve ∧
       σ (.n (vtEvB k + 3)) = σ (.n (vtEvB k)) := by
   obtain ⟨_, hs⟩ := h.sliceAt _ _ (vtEval_check k hk) (vtEval_inF k hk)

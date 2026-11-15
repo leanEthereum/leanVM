@@ -21,7 +21,7 @@ import LeanVM.Guest.Data.Source
 # `verify_tables` (TRIAGE G #51, #52): the interface
 
 `verify_tables(fs0, …, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares,
-fp_w, beta, claim_pool, chi, gkr_leaves, tabs, bc_point)` (G:2217-2694, `G` the guest
+fp_w, beta, claim_pool, chi, gkr_leaves, tabs, bc_point, stream)` (G:2223-2698, `G` the guest
 `crates/rec_aggregation/guests/lean_ethereum.py` and `V` `Statement/LeanVmVerifier.lean`, at the
 commit in `leanvm-rev`) settles the bus against the six tables: it certifies each side's blocks'
 offsets by a hinted order of its block groups (`busLayout`), certifies every table's log-height to
@@ -236,7 +236,7 @@ exponent tables (`ExpTablesAt`), `tabs` the window table among them; `fp_w` the 
 weights; `gkr_leaves` the three GKR values. -/
 def TablesPre (pi : Digest) (logMem : ℕ) (weights point values : List E) (rd : Reader) :
     List E → Prop
-  | [_, _, _, _, _, _, pi0, pi1, zeta, gmu, dims, _, sq, fpw, _, _, _, leaves, tabs, _] =>
+  | [_, _, _, _, _, _, pi0, pi1, zeta, gmu, dims, _, sq, fpw, _, _, _, leaves, tabs, _, _] =>
       (pi0, pi1) = digestHalves pi ∧ TbReadsAt rd zeta point ∧ gmu = gen ^ point.length ∧
       point.length < 33 ∧ 1 ≤ logMem ∧ logMem ≤ 32 ∧
       (∃ ds : List E, ds.length = 6 ∧ TbReadsAt rd dims (gen ^ logMem :: ds)) ∧
@@ -255,7 +255,7 @@ capacity, the cursor past `xs`, `g^n` (the table sumcheck's rounds), `bv`, the p
 challenge and `col_eval_words`. -/
 def TablesOut (bytecode : List K) (pi : Digest) (logMem : ℕ) (weights point values : List E)
     (rd : Reader) : List E → List E → Prop
-  | [f0, f1, f2, f3, f4, cur, _, _, zeta, gmu, dims, rows, _, _, beta, pool, chi, _, _, bcp],
+  | [f0, f1, f2, f3, f4, cur, _, _, zeta, gmu, dims, rows, _, _, beta, pool, chi, _, _, bcp, _],
       [f0', f1', f2', f3', f4', cur', gzcn, bv, rm, cew] =>
       ∃ (xs cap' : List E) (rowsN : List ℕ) (bus : BusResult) (claims : List ColumnClaim),
         rowsN.length = 6 ∧ TbReadsAt rd rows (rowsN.map eOfNat) ∧

@@ -24,7 +24,7 @@ open LeanVM.Guest
 /-- `open_stacked__L4`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«open_stacked__L4».cert.locs [] Fn.«open_stacked__L4».code.entryPc false
-    Fn.«open_stacked__L4».plumb Data.powTree Data.jtTrie [("fold_final_msg__L2", 257755), ("grind_check__L15", 210852), ("grind_check__L17", 255678), ("opening_message__L6_L1", 256679), ("opening_message__L8_L1", 256230), ("opening_round", 19476), ("opening_tail_round", 19536), ("squeeze_point_from__L10", 256727), ("squeeze_point_from__L14", 256290), ("squeeze_point_from__L18", 263954), ("squeeze_point_from__L6", 257092)] 524287 Fn.«open_stacked__L4».code.instructionCount
+    Fn.«open_stacked__L4».plumb Data.powTree Data.jtTrie [("fold_final_msg__L2", 257785), ("grind_check__L15", 210882), ("grind_check__L17", 255708), ("opening_message__L6_L1", 256709), ("opening_message__L8_L1", 256260), ("opening_round", 19476), ("opening_tail_round", 19536), ("squeeze_point_from__L10", 256757), ("squeeze_point_from__L14", 256320), ("squeeze_point_from__L18", 263984), ("squeeze_point_from__L6", 257122)] 524287 Fn.«open_stacked__L4».code.instructionCount
 
 end
 
@@ -37,7 +37,7 @@ theorem alignCellsOk :
 
 /-- `open_stacked__L4` aligns with its body. -/
 theorem alignOk :
-    Bridge.alignOk alignCtx Fn.«open_stacked__L4».core.body Fn.«open_stacked__L4».code.code Data.adviceFn340 = true := by
+    Bridge.alignOk alignCtx Fn.«open_stacked__L4».core.body Fn.«open_stacked__L4».code.code Data.adviceFn341 = true := by
   decide +kernel
 
 end

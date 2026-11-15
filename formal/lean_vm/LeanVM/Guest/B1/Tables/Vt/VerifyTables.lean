@@ -43,11 +43,12 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
   intro pi lm weights point values args rets hpre hrel
   obtain ⟨σ, hargs, h, hrets⟩ := vt_unfold hrel
   subst hargs hrets
-  rw [show (List.range 20).map (fun k ↦ σ (.n k)) = [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3),
+  rw [show (List.range 21).map (fun k ↦ σ (.n k)) = [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3),
     σ (.n 4), σ (.n 5), σ (.n 6), σ (.n 7), σ (.n 8), σ (.n 9), σ (.n 10), σ (.n 11), σ (.n 12),
-    σ (.n 13), σ (.n 14), σ (.n 15), σ (.n 16), σ (.n 17), σ (.n 18), σ (.n 19)] from rfl] at hpre ⊢
-  rw [show vtRets.map σ = [σ (.n 5978), σ (.n 5979), σ (.n 5980), σ (.n 5981), σ (.n 5982),
-    σ (.n 5985), σ (.n 5986), σ (.n 5987), σ (.n 5988), σ (.n 5989)] from rfl]
+    σ (.n 13), σ (.n 14), σ (.n 15), σ (.n 16), σ (.n 17), σ (.n 18), σ (.n 19), σ (.n 20)] from rfl]
+    at hpre ⊢
+  rw [show vtRets.map σ = [σ (.n 5983), σ (.n 5984), σ (.n 5985), σ (.n 5986), σ (.n 5987),
+    σ (.n 5990), σ (.n 5991), σ (.n 5992), σ (.n 5993), σ (.n 5994)] from rfl]
   obtain ⟨hpi, hz, hmu, hml, hlm1, hlm, ⟨ds, hdsl, hdims⟩, hE, -, hwl, hW, hvl, hvals⟩ := hpre
   -- the tables' heights and row counts
   have hpads := vt_pads hμ Lm σ h
@@ -83,12 +84,12 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     rw [this]
     simp [vtTauList]
   rw [hds] at hdims
-  have hkb : ∀ i < 8, σ (.n (25 + i)) = gen ^ ([0, lm] ++ vtTauList (vtHt rows)).getD i 0 := by
+  have hkb : ∀ i < 8, σ (.n (26 + i)) = gen ^ ([0, lm] ++ vtTauList (vtHt rows)).getD i 0 := by
     obtain ⟨k0, kl⟩ := vt_kb h
     intro i hi
     rcases i with _ | i
     · simpa using k0
-    · rw [show 25 + (i + 1) = 26 + i by omega,
+    · rw [show 26 + (i + 1) = 27 + i by omega,
         tb_loadHolds_unique (kl i (by omega)) (hdims i (by simp [vtTauList]; omega))]
       rcases i with _ | i
       · simp
@@ -96,9 +97,9 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
         simp only [List.getElem_cons_succ, List.getElem_map, List.cons_append, List.nil_append,
           List.getD_cons_succ]
         rw [List.getD_eq_getElem _ _ (by simp [vtTauList]; omega)]
-  have hkbt : ∀ t < 6, σ (.n (27 + t)) = gen ^ vtHt rows t := fun t ht => by
+  have hkbt : ∀ t < 6, σ (.n (28 + t)) = gen ^ vtHt rows t := fun t ht => by
     have := hkb (2 + t) (by omega)
-    rwa [show 25 + (2 + t) = 27 + t by omega, Nat.add_comm 2 t, vt_tau_getD lm _ ht] at this
+    rwa [show 26 + (2 + t) = 28 + t by omega, Nat.add_comm 2 t, vt_tau_getD lm _ ht] at this
   -- the round count and the table sumcheck
   obtain ⟨n, hgn, hτn, hτex, hnm⟩ := vt_zc_n hμ Lm h hτ hkbt hml hmu
   obtain ⟨hT, xs, pts, claimN, hrun, hxs, hxl, hpl, h2647, h2648, hchi, hcprod, hpeq⟩ :=
@@ -110,10 +111,10 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
     have hle : (tf t).1 ≤ point.length := by have := hτn t ht; rw [hHt t ht] at this; omega
     rw [hpwz, hHt t ht, hRw t ht, tbReadsAt_unique hzr (tbReadsAt_take hz (tf t).1) (by simp; omega)]
   -- the GKR leaves
-  have hv3 : values = [σ (.n 2441), σ (.n 2487), σ (.n 2542)] := by
-    have l0 := h.atomAt 2488 (.load (.n 2441) (.n 17) 0) (by decide +kernel)
-    have l1 := h.atomAt 2534 (.load (.n 2487) (.n 17) 1) (by decide +kernel)
-    have l2 := h.atomAt 2589 (.load (.n 2542) (.n 17) 2) (by decide +kernel)
+  have hv3 : values = [σ (.n 2442), σ (.n 2488), σ (.n 2543)] := by
+    have l0 := h.atomAt 2488 (.load (.n 2442) (.n 17) 0) (by decide +kernel)
+    have l1 := h.atomAt 2534 (.load (.n 2488) (.n 17) 1) (by decide +kernel)
+    have l2 := h.atomAt 2589 (.load (.n 2543) (.n 17) 2) (by decide +kernel)
     simp only [Atom.Holds] at l0 l1 l2
     refine tbReadsAt_unique hvals (fun k hk ↦ ?_) (by simp [hvl, nTrees])
     simp only [List.length_cons, List.length_nil] at hk
@@ -129,16 +130,16 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
   obtain ⟨ys, hysl, hys, hbcp, h1897, -, -, hsh⟩ := vt_bc h hwl hW (point.take L.logBytecode)
   obtain ⟨hxi, hxi2⟩ := vt_xi h
   obtain ⟨hrm, hcap', h5985, h5986, h5987, h5988, h5989, -, -⟩ := vt_pi h
-  set slots := [σ (.n 1867), σ (.n 1883), σ (.n 1891), σ (.n 1899)] with hslots
-  set bus := vtBus L weights (σ (.n 14)) point values [σ (.n 812), σ (.n 816)] (σ (.n 1302))
-    (σ (.n 1316)) (σ (.n 1840)) slots with hbus
-  have hforms : bus.forms = (vtAcc2 L weights (σ (.n 14)) point [σ (.n 812), σ (.n 816)]
-      (σ (.n 1302)) (σ (.n 1316)) (σ (.n 1840)) (σ (.n 2441)) (σ (.n 2487)) (σ (.n 2542))).1 := by
+  set slots := [σ (.n 1868), σ (.n 1884), σ (.n 1892), σ (.n 1900)] with hslots
+  set bus := vtBus L weights (σ (.n 14)) point values [σ (.n 813), σ (.n 817)] (σ (.n 1303))
+    (σ (.n 1317)) (σ (.n 1841)) slots with hbus
+  have hforms : bus.forms = (vtAcc2 L weights (σ (.n 14)) point [σ (.n 813), σ (.n 817)]
+      (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841)) (σ (.n 2442)) (σ (.n 2488)) (σ (.n 2543))).1 := by
     simp only [hbus, vtBus, hv3, List.getD_cons_zero, List.getD_cons_succ]
   set evs : List (List E) := vtEvsT σ with hevs
   have A_len : evs.length = (vtRows (tableHeightsOf rows) bus.forms point pts).length := by
-    have hF6 : (vtAcc2 L weights (σ (.n 14)) point [σ (.n 812), σ (.n 816)] (σ (.n 1302))
-        (σ (.n 1316)) (σ (.n 1840)) (σ (.n 2441)) (σ (.n 2487)) (σ (.n 2542))).1.length = 6 :=
+    have hF6 : (vtAcc2 L weights (σ (.n 14)) point [σ (.n 813), σ (.n 817)] (σ (.n 1303))
+        (σ (.n 1317)) (σ (.n 1841)) (σ (.n 2442)) (σ (.n 2488)) (σ (.n 2543))).1.length = 6 :=
       (vt_forms3_shape bc lm hr weights _ point _ _ _ _ _ _ _).1
     rw [hforms, vtEvsT_length]
     simp [vtRows, List.length_zip, vt_tableHeights_length hr, hF6,
@@ -147,25 +148,25 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
       p.2.length = p.1.1.width :=
     vt_evsT_widths σ _
   have A_flat : evs.flatten = vtEvs σ := vt_evsT_flatten σ
-  have A_fin : (termsPure ((powers (σ (.n 2610)) 5).take 2) ((powers (σ (.n 2610)) 5).drop 2)
+  have A_fin : (termsPure ((powers (σ (.n 2611)) 5).take 2) ((powers (σ (.n 2611)) 5).drop 2)
       pts.reverse (List.zip (vtRows (tableHeightsOf rows) bus.forms point pts) evs) 0 0 []).1 =
-      σ (.n 2648) := by
+      σ (.n 2653) := by
     rw [hforms]
     exact vt_asm_final hμ Lm h bc hbc hz hmu hml hE hlm hr hτ hkb hwl hW hgn hτn hnm hpl
       hcprod hpeq hchi
   -- the table phase
   set s0 := vtXiFs σ with hs0
-  have hξ : s0.squeeze.1 = σ (.n 2610) := hxi.symm
-  have htot : bus.totals = [σ (.n 2442), σ (.n 2488), σ (.n 2543)] := by
+  have hξ : s0.squeeze.1 = σ (.n 2611) := hxi.symm
+  have htot : bus.totals = [σ (.n 2443), σ (.n 2489), σ (.n 2544)] := by
     simp only [hbus, vtBus, hv3, List.getD_cons_zero, List.getD_cons_succ]
     rw [T0, T1, T2]
   have htarget : dot ((powers s0.squeeze.1 ((tables.map Table.nConstraints).sum + 3)).drop
-      (tables.map Table.nConstraints).sum) bus.totals = σ (.n 2620) := by
+      (tables.map Table.nConstraints).sum) bus.totals = σ (.n 2621) := by
     rw [vt_nConstraints, hξ, vt_powers5, htot, hT]
     simp only [dot, List.drop_succ_cons, List.drop_zero, List.zipWith_cons_cons,
       List.zipWith_nil_left, List.foldl_cons, List.foldl_nil]
     ring
-  have hs1 : (⟨(List.range 5).map fun k ↦ σ (.n (2642 + k)), []⟩ : Fs) = ⟨vtCapV σ 0, []⟩ := rfl
+  have hs1 : (⟨(List.range 5).map fun k ↦ σ (.n (2647 + k)), []⟩ : Fs) = ⟨vtCapV σ 0, []⟩ := rfl
   have hn : L.tableLogHeights.foldl max 0 = n := vt_foldl_max hr hτn hτex
   have hsc : RunsTo (sumcheck (dot ((powers s0.squeeze.1 ((tables.map Table.nConstraints).sum +
       3)).drop (tables.map Table.nConstraints).sum) bus.totals) 4 (List.replicate n none))
@@ -205,7 +206,7 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
         (tables.map Table.nConstraints).sum) bus.forms σ := by
     rw [hpc, htc, ← hrm]
     rfl
-  refine ⟨vtFreshWords σ ++ (ys ++ [σ (.n 1905)]) ++ (xs ++ vtEvs σ),
+  refine ⟨vtFreshWords σ ++ (ys ++ [σ (.n 1906)]) ++ (xs ++ vtEvs σ),
     (vtEvalFs σ).squeeze.2.cap, rows, bus, bus.claims ++ tclaims ++ pclaims, hr, ?rowsRead,
     ?dimsRead, ?h31, ?xsRead, ⟨slots, rfl, hbcp, rfl⟩, ?run, ?len, ?pool, ?cew, ?pipool, ?tctx,
     ?caps, ?cur⟩
@@ -225,24 +226,24 @@ theorem verify_tables_holds (bc : List K) (hbc : bc.length = 2 ^ 23) :
   case xsRead =>
     refine vt_readsAt_append (vt_readsAt_append hfr ?_) (vt_readsAt_append ?_ ?_)
     · rw [show (vtFreshWords σ).length = 7 from rfl]; exact hys
-    · rw [show (vtFreshWords σ ++ (ys ++ [σ (.n 1905)])).length = 14 by simp [hysl, vtFreshWords],
+    · rw [show (vtFreshWords σ ++ (ys ++ [σ (.n 1906)])).length = 14 by simp [hysl, vtFreshWords],
         show (14 : ℕ) = 13 + 1 from rfl, pow_add, ← mul_assoc,
-        show σ (.n 5) * gen ^ 13 = σ (.n 1897) by rw [h1897, mul_assoc, ← pow_add]]
+        show σ (.n 5) * gen ^ 13 = σ (.n 1898) by rw [h1897, mul_assoc, ← pow_add]]
       exact fun k hk ↦ by simpa using hxs k hk
     · intro k hk
       simp only [vtEvs, List.length_map, List.length_range] at hk
       simp only [vtEvs, List.getElem_map, List.getElem_range]
-      rw [show (vtFreshWords σ ++ (ys ++ [σ (.n 1905)])).length = 14 by simp [hysl, vtFreshWords],
-        hxl, show σ (.n 5) * gen ^ 14 * gen ^ (3 * n) = σ (.n 2647) by
+      rw [show (vtFreshWords σ ++ (ys ++ [σ (.n 1906)])).length = 14 by simp [hysl, vtFreshWords],
+        hxl, show σ (.n 5) * gen ^ 14 * gen ^ (3 * n) = σ (.n 2652) by
           rw [h2647, h1897]; ring]
       exact (vt_eval h hk).1
   case run =>
     intro ev hev
-    have hbv : BytecodeAt ev L.bytecode (point.take L.logBytecode ++ slots) (σ (.n 1905)) := by
+    have hbv : BytecodeAt ev L.bytecode (point.take L.logBytecode ++ slots) (σ (.n 1906)) := by
       rw [← h5987]; exact hev
-    have hBR := vt_busRest_run ev L weights (σ (.n 14)) point values [σ (.n 812), σ (.n 816)] rfl
-      (σ (.n 1302)) (σ (.n 1316)) (σ (.n 1840)) (σ (.n 1905)) slots
-      ([σ (.n 1840), σ (.n 1844), σ (.n 1848)] ++ ys ++ [σ (.n 1905)])
+    have hBR := vt_busRest_run ev L weights (σ (.n 14)) point values [σ (.n 813), σ (.n 817)] rfl
+      (σ (.n 1303)) (σ (.n 1317)) (σ (.n 1841)) (σ (.n 1906)) slots
+      ([σ (.n 1841), σ (.n 1845), σ (.n 1849)] ++ ys ++ [σ (.n 1906)])
       ⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], []⟩ s0 hsh hbv
     unfold tablesSeg
     exact RunsTo.of_eq (hBR.bind (hTP.bind (hPI.bind (runsTo_ret _ _)))) rfl

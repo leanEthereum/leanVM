@@ -3553,7 +3553,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `sp_wots`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨33516, 23713, Fn.«sp_wots».modeSig, (.node none (.node none modeHints1 (.node none modeHints2
+  ⟨33526, 23713, Fn.«sp_wots».modeSig, (.node none (.node none modeHints1 (.node none modeHints2
     modeHints3)) (.node none modeHints4 (.node none modeHints5 modeHints6))), .nil, (.node none
     (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none
     .nil (.node none (.node none (.node none (.node (some 64) .nil .nil) .nil) .nil) .nil))) .nil)

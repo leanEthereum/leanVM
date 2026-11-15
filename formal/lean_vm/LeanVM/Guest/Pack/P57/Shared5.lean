@@ -22,7 +22,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop268`, window 0. -/
+/-- `__loop269`, window 0. -/
 theorem sw0 : shareWinD Fn.«level_positions__L37_L20_L8_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
@@ -36,16 +36,16 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop272`, once. -/
+/-- `__loop273`, once. -/
 theorem st : shareStaticD Fn.«level_positions__L8_L20_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop272`, window 0. -/
+/-- `__loop273`, window 0. -/
 theorem sw0 : shareWinD Fn.«level_positions__L8_L20_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
-/-- `__loop272`: its static sharing check and every window's. -/
+/-- `__loop273`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_positions__L8_L20_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -63,16 +63,16 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop306`, once. -/
+/-- `__loop307`, once. -/
 theorem st : shareStaticD Fn.«level_positions__L22_L22_L4_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop306`, window 0. -/
+/-- `__loop307`, window 0. -/
 theorem sw0 : shareWinD Fn.«level_positions__L22_L22_L4_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
-/-- `__loop306`: its static sharing check and every window's. -/
+/-- `__loop307`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_positions__L22_L22_L4_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi

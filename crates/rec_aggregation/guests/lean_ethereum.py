@@ -2220,7 +2220,7 @@ def padding_weight(rows, zeta, tau: Const):
     return (1 + top) * pad, lead, rest
 
 
-def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares, fp_w, beta, claim_pool, chi, gkr_leaves, tabs, bc_point):
+def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares, fp_w, beta, claim_pool, chi, gkr_leaves, tabs, bc_point, stream):
     # Settle the bus against the six tables, in four steps: certify each side's
     # leaf-cube tiling, decompose the sides' GKR leaf values over it, run the ONE
     # table sumcheck they all reduce to, and bind the public input. Pooled claims land
@@ -2574,15 +2574,19 @@ def verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, d
     zc_rounds[GEN ** ROUND_CURSOR] = cursor
     zc_rounds[GEN ** ROUND_CLAIM] = bus_target
     zc_cprod[GEN ** 0] = 1
+    zc_rk = HeapBuf(SIZE_BITS)  # round j's challenge, as chi holds at most SIZE_BITS
     for xk in mul_range(1, g_zc_n):
         rd = zc_rounds * xk ** ROUND_SLOTS
         ncur, nclaim, rk = sumcheck_round4(rd, rd[GEN ** ROUND_CURSOR], rd[GEN ** ROUND_CLAIM], tabs)
-        chi[g_zc_n * INV_GEN / xk] = rk  # g^(n-1-j): the variable round j binds
+        zc_rk[xk] = rk
         nxt = rd * GEN ** ROUND_SLOTS
         nxt[GEN ** ROUND_CURSOR] = ncur
         nxt[GEN ** ROUND_CLAIM] = nclaim
         # cprod is the weight of a table that joins here; peq below is the rest
         zc_cprod[xk * GEN] = zc_cprod[xk] * rk
+    # chi[i]: the variable round n - 1 - i binds, copied in the order chi is read
+    for xi in mul_range(1, g_zc_n):
+        chi[xi] = zc_rk[g_zc_n * INV_GEN / xi]
     zc_last = zc_rounds * g_zc_n ** ROUND_SLOTS
     sp = fs_load(zc_last, ROUND_FS, 1)
     rate = StackBuf(8)
@@ -3633,7 +3637,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     # ---- the bus leaves, the table sumcheck, and the public-input claim ----
     chi = HeapBuf(SIZE_BITS)  # chi[i] = the challenge that bound variable i
     bc_point = HeapBuf(N_TUPLE_BITS)
-    fs0, fs1, fs2, fs3, fs4, cursor, g_zc_n, bc_value, rm, col_eval_words = verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares, fp_w, beta, claim_pool, chi, gkr_leaves, tabs, bc_point)
+    fs0, fs1, fs2, fs3, fs4, cursor, g_zc_n, bc_value, rm, col_eval_words = verify_tables(fs0, fs1, fs2, fs3, fs4, cursor, pi_0, pi_1, zeta, g_bus_mu, dims_g, table_rows, g_squares, fp_w, beta, claim_pool, chi, gkr_leaves, tabs, bc_point, stream)
 
     # ---- KECCAK validity, by GKR over the rounds ----
     tau_keccak_g = dims_g[GEN ** (TABLE_KECCAK + 1)]  # the KECCAK table's certified tau

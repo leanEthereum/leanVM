@@ -93,7 +93,7 @@ theorem vtW30_gen : vtW30 = gen ^ 30 := by rw [vtW30_eq, gen_pow_eq_ofK]
 theorem isInK_gpow' (a : ℕ) : IsInK (gen ^ a) := tb_gen_pow_isInK a
 
 /-- An `ite`'s branches' equations. -/
-theorem vt_goodIte' {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 20) {c : V}
+theorem vt_goodIte' {rd : Reader} {w : ℕ → E} {args : List E} (hl : args.length = 21) {c : V}
     {z nb : List Stmt} (hm : Stmt.ite c z nb ∈ vtPre) : GoodL rd w (vtσ rd w args) (z ++ nb) := by
   have h : ∀ t ∈ z ++ nb, GoodS rd vtSL w (vtσ rd w args) (fixNe t) :=
     fun t ht ↦ vt_good hl _ (vtEvL_mem_ite hm ht)

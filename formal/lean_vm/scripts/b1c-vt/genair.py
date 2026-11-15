@@ -5,13 +5,13 @@ import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from genforms import *
 from mk import write
 # G:2701 `air_acc += zc_cprod[g_zc_n / tau_g] * zc_peq[tau_g] * constraint_eval`, tau_g = kb[2 + t]
-# (the kappa_base frame variable 27 + t): `g_zc_n = x·τ`, cprod at 2630, peq at 2651.
-GZN, CPROD, PEQ, CLAIM = 2544, 2630, 2651, 2648
+# (the kappa_base frame variable 28 + t): `g_zc_n = x·τ`, cprod at 2631, peq at 2656.
+GZN, CPROD, PEQ, CLAIM = 2545, 2631, 2656, 2653
 out=[]
 def at(p): return f'  have a{p} := h.atomAt {p} {RAW[p][len(".atom "):]} (by decide +kernel)'
 airs=[]
 for t in range(6):
-    tau=27+t
+    tau=28+t
     px=[q for q in range(WLO,WHI+1) if RAW[q]==f'.atom (.mul (.n {GZN}) (.n {RAW[q].split()[5].rstrip(")") if RAW[q].startswith(f".atom (.mul (.n {GZN})") else -1}) (.n {tau}))']
     assert len(px)==1,(t,px)
     pxx=px[0]; x=parse_atom(RAW[pxx])[1][1]

@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.Bridge.Align.«P29»
 public import LeanVM.Guest.Bridge.Align.«P40»
 public import LeanVM.Guest.Bridge.ProgAlDefs
 public import LeanVM.Guest.Checked.Link16
@@ -22,7 +23,13 @@ kernel_rfl tab1601 : (Bridge.extraOf 1601, Bridge.entsOf 1601, Bridge.adviceOf 1
     ([], [], Data.adviceFn1601)
 
 theorem ok1601 : Bridge.FnAlOk 1601 :=
-  Bridge.fnAlOk_of Checked.code1601 Checked.core1601 Checked.cert1601 Checked.plumbEq1601 tab1601 rfl Fn.«walk_path__L12_L8».alignOk
+  Bridge.fnAlOk_of Checked.code1601 Checked.core1601 Checked.cert1601 Checked.plumbEq1601 tab1601 rfl Fn.«walk_path__L6_L6».alignOk
+
+kernel_rfl tab1602 : (Bridge.extraOf 1602, Bridge.entsOf 1602, Bridge.adviceOf 1602) =
+    ([], [], Data.adviceFn1602)
+
+theorem ok1602 : Bridge.FnAlOk 1602 :=
+  Bridge.fnAlOk_of Checked.code1602 Checked.core1602 Checked.cert1602 Checked.plumbEq1602 tab1602 rfl Fn.«walk_path__L12_L8».alignOk
 
 end
 

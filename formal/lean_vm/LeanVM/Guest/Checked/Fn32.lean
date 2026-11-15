@@ -26,8 +26,11 @@ import LeanVM.Guest.Checked.Link13
 import LeanVM.Guest.Checked.Link14
 import LeanVM.Guest.Checked.Link15
 import LeanVM.Guest.Checked.Link16
+public import LeanVM.Guest.Pack.«P29».Core
+public import LeanVM.Guest.Pack.«P29».Bundle
 public import LeanVM.Guest.Pack.«P40».Core
 public import LeanVM.Guest.Pack.«P40».Bundle
+import LeanVM.Guest.Pack.«P29».Checked
 import LeanVM.Guest.Pack.«P40».Checked
 
 namespace LeanVM.Guest.Checked
@@ -37,23 +40,39 @@ open LeanVM.Guest.Check
 @[expose] public section
 
 theorem link1601 : Link 1601 (Glob.ofSigs [] Data.jtTrie globSem)
-    Fn.«walk_path__L12_L8».code Fn.«walk_path__L12_L8».core (Fn.«walk_path__L12_L8».cert.withPows Data.powTree) :=
+    Fn.«walk_path__L6_L6».code Fn.«walk_path__L6_L6».core (Fn.«walk_path__L6_L6».cert.withPows Data.powTree) :=
   Link.of code1601 core1601 cert1601 SigsOk.nil
     (by decide +kernel)
 
-theorem w1601_0 : WinOk 1601 0 := link1601.win rfl Fn.«walk_path__L12_L8».w0
+theorem w1601_0 : WinOk 1601 0 := link1601.win rfl Fn.«walk_path__L6_L6».w0
 
-theorem w1601_1 : WinOk 1601 1 := link1601.win rfl Fn.«walk_path__L12_L8».w1
-
-theorem w1601_2 : WinOk 1601 2 := link1601.win rfl Fn.«walk_path__L12_L8».w2
+theorem w1601_1 : WinOk 1601 1 := link1601.win rfl Fn.«walk_path__L6_L6».w1
 
 theorem ok1601 : CheckOk 1601 := fun i hi ↦ by
-  have h : (certOf 1601).cuts.length = 2 := by decide +kernel
+  have h : (certOf 1601).cuts.length = 1 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w1601_0
   · exact w1601_1
-  · exact w1601_2
+
+theorem link1602 : Link 1602 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«walk_path__L12_L8».code Fn.«walk_path__L12_L8».core (Fn.«walk_path__L12_L8».cert.withPows Data.powTree) :=
+  Link.of code1602 core1602 cert1602 SigsOk.nil
+    (by decide +kernel)
+
+theorem w1602_0 : WinOk 1602 0 := link1602.win rfl Fn.«walk_path__L12_L8».w0
+
+theorem w1602_1 : WinOk 1602 1 := link1602.win rfl Fn.«walk_path__L12_L8».w1
+
+theorem w1602_2 : WinOk 1602 2 := link1602.win rfl Fn.«walk_path__L12_L8».w2
+
+theorem ok1602 : CheckOk 1602 := fun i hi ↦ by
+  have h : (certOf 1602).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w1602_0
+  · exact w1602_1
+  · exact w1602_2
 
 end
 end LeanVM.Guest.Checked

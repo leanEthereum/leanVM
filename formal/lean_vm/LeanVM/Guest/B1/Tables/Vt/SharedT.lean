@@ -16,7 +16,7 @@ public import LeanVM.Guest.CoreData
 # The shared tables' statements (G:2318-2325)
 
 `vt_sh{t}`: table `t`'s `shared_len[t]` (`σ 9 = len · τ_g`, `τ_g = kb[2 + t]` the variable
-`27 + t`), its range check below `g^34`, and its `shared_selector_tables` call at
+`28 + t`), its range check below `g^34`, and its `shared_selector_tables` call at
 `shared_eq·g^(288 t)`, `shared_g·g^(144 t)` (the compiler steps these pointers from one another).
 -/
 
@@ -41,161 +41,161 @@ theorem vtW144_eq : word 21299200 0 = gen ^ 144 := by
     show K.ofBits 21299200 = Parameters.addressOfIndex 144 by decide +kernel]
 
 theorem vt_sh0 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    σ (.n 9) = σ (.n 704) * σ (.n 27) ∧ (Atom.rangeCheck (.n 704) (.n 706) (.n 707) (.n 708) (.n 705)).Holds rd σ ∧
-      σ (.n 705) = vtW33 ∧
-      coreProgram.Rel rd "shared_selector_tables" [σ (.n 701) * gen ^ (288 * 0),
-        σ (.n 702) * gen ^ (144 * 0), σ (.n 8) * σ (.n 27), σ (.n 699) * σ (.n 27),
-        σ (.n 12) * σ (.n 27), σ (.n 704)] [] ∧
-      σ (.n 701) = σ (.n 701) * gen ^ (288 * 0) ∧ σ (.n 702) = σ (.n 702) * gen ^ (144 * 0) := by
-  have a697 := h.atomAt 697 (.mul (.n 9) (.n 703) (.n 27)) (by decide +kernel)
-  have a698 := h.atomAt 698 (.copy (.n 704) (.n 703)) (by decide +kernel)
-  have a699 := h.atomAt 699 (.const (.n 705) (word 8589934592 0)) (by decide +kernel)
-  have a700 := h.atomAt 700 (.rangeCheck (.n 704) (.n 706) (.n 707) (.n 708) (.n 705)) (by decide +kernel)
-  have a701 := h.atomAt 701 (.mul (.n 709) (.n 8) (.n 27)) (by decide +kernel)
-  have a702 := h.atomAt 702 (.mul (.n 710) (.n 699) (.n 27)) (by decide +kernel)
-  have a703 := h.atomAt 703 (.mul (.n 711) (.n 12) (.n 27)) (by decide +kernel)
-  have hc := h.callAt 704 "shared_selector_tables" [.n 701, .n 702, .n 709, .n 710, .n 711, .n 704] []
+    σ (.n 9) = σ (.n 705) * σ (.n 28) ∧ (Atom.rangeCheck (.n 705) (.n 707) (.n 708) (.n 709) (.n 706)).Holds rd σ ∧
+      σ (.n 706) = vtW33 ∧
+      coreProgram.Rel rd "shared_selector_tables" [σ (.n 702) * gen ^ (288 * 0),
+        σ (.n 703) * gen ^ (144 * 0), σ (.n 8) * σ (.n 28), σ (.n 700) * σ (.n 28),
+        σ (.n 12) * σ (.n 28), σ (.n 705)] [] ∧
+      σ (.n 702) = σ (.n 702) * gen ^ (288 * 0) ∧ σ (.n 703) = σ (.n 703) * gen ^ (144 * 0) := by
+  have a697 := h.atomAt 697 (.mul (.n 9) (.n 704) (.n 28)) (by decide +kernel)
+  have a698 := h.atomAt 698 (.copy (.n 705) (.n 704)) (by decide +kernel)
+  have a699 := h.atomAt 699 (.const (.n 706) (word 8589934592 0)) (by decide +kernel)
+  have a700 := h.atomAt 700 (.rangeCheck (.n 705) (.n 707) (.n 708) (.n 709) (.n 706)) (by decide +kernel)
+  have a701 := h.atomAt 701 (.mul (.n 710) (.n 8) (.n 28)) (by decide +kernel)
+  have a702 := h.atomAt 702 (.mul (.n 711) (.n 700) (.n 28)) (by decide +kernel)
+  have a703 := h.atomAt 703 (.mul (.n 712) (.n 12) (.n 28)) (by decide +kernel)
+  have hc := h.callAt 704 "shared_selector_tables" [.n 702, .n 703, .n 710, .n 711, .n 712, .n 705] []
     (by decide +kernel)
   simp only [Atom.Holds] at a697 a698 a699 a701 a702 a703
-  have e1 : σ (.n 701) = σ (.n 701) * gen ^ (288 * 0) := by ring
-  have e2 : σ (.n 702) = σ (.n 702) * gen ^ (144 * 0) := by ring
+  have e1 : σ (.n 702) = σ (.n 702) * gen ^ (288 * 0) := by ring
+  have e2 : σ (.n 703) = σ (.n 703) * gen ^ (144 * 0) := by ring
   refine ⟨by rw [a697, ← a698], a700, a699, ?_, e1, e2⟩
   rw [← e1, ← e2, ← a701, ← a702, ← a703]
   simpa using hc
 
 theorem vt_sh1 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    σ (.n 9) = σ (.n 713) * σ (.n 28) ∧ (Atom.rangeCheck (.n 713) (.n 715) (.n 716) (.n 717) (.n 714)).Holds rd σ ∧
-      σ (.n 714) = vtW33 ∧
-      coreProgram.Rel rd "shared_selector_tables" [σ (.n 701) * gen ^ (288 * 1),
-        σ (.n 702) * gen ^ (144 * 1), σ (.n 8) * σ (.n 28), σ (.n 699) * σ (.n 28),
-        σ (.n 12) * σ (.n 28), σ (.n 713)] [] ∧
-      σ (.n 719) = σ (.n 701) * gen ^ (288 * 1) ∧ σ (.n 721) = σ (.n 702) * gen ^ (144 * 1) := by
-  have a697 := h.atomAt 697 (.mul (.n 9) (.n 703) (.n 27)) (by decide +kernel)
-  have a698 := h.atomAt 698 (.copy (.n 704) (.n 703)) (by decide +kernel)
-  have a699 := h.atomAt 699 (.const (.n 705) (word 8589934592 0)) (by decide +kernel)
-  have a700 := h.atomAt 700 (.rangeCheck (.n 704) (.n 706) (.n 707) (.n 708) (.n 705)) (by decide +kernel)
-  have a701 := h.atomAt 701 (.mul (.n 709) (.n 8) (.n 27)) (by decide +kernel)
-  have a702 := h.atomAt 702 (.mul (.n 710) (.n 699) (.n 27)) (by decide +kernel)
-  have a703 := h.atomAt 703 (.mul (.n 711) (.n 12) (.n 27)) (by decide +kernel)
-  have a705 := h.atomAt 705 (.mul (.n 9) (.n 712) (.n 28)) (by decide +kernel)
-  have a706 := h.atomAt 706 (.copy (.n 713) (.n 712)) (by decide +kernel)
-  have a707 := h.atomAt 707 (.const (.n 714) (word 8589934592 0)) (by decide +kernel)
-  have a708 := h.atomAt 708 (.rangeCheck (.n 713) (.n 715) (.n 716) (.n 717) (.n 714)) (by decide +kernel)
-  have a709 := h.atomAt 709 (.const (.n 718) (word 299140177199104 0)) (by decide +kernel)
-  have a710 := h.atomAt 710 (.mul (.n 719) (.n 701) (.n 718)) (by decide +kernel)
-  have a711 := h.atomAt 711 (.const (.n 720) (word 21299200 0)) (by decide +kernel)
-  have a712 := h.atomAt 712 (.mul (.n 721) (.n 702) (.n 720)) (by decide +kernel)
-  have a713 := h.atomAt 713 (.mul (.n 722) (.n 8) (.n 28)) (by decide +kernel)
-  have a714 := h.atomAt 714 (.mul (.n 723) (.n 699) (.n 28)) (by decide +kernel)
-  have a715 := h.atomAt 715 (.mul (.n 724) (.n 12) (.n 28)) (by decide +kernel)
-  have hc := h.callAt 716 "shared_selector_tables" [.n 719, .n 721, .n 722, .n 723, .n 724, .n 713] []
+    σ (.n 9) = σ (.n 714) * σ (.n 29) ∧ (Atom.rangeCheck (.n 714) (.n 716) (.n 717) (.n 718) (.n 715)).Holds rd σ ∧
+      σ (.n 715) = vtW33 ∧
+      coreProgram.Rel rd "shared_selector_tables" [σ (.n 702) * gen ^ (288 * 1),
+        σ (.n 703) * gen ^ (144 * 1), σ (.n 8) * σ (.n 29), σ (.n 700) * σ (.n 29),
+        σ (.n 12) * σ (.n 29), σ (.n 714)] [] ∧
+      σ (.n 720) = σ (.n 702) * gen ^ (288 * 1) ∧ σ (.n 722) = σ (.n 703) * gen ^ (144 * 1) := by
+  have a697 := h.atomAt 697 (.mul (.n 9) (.n 704) (.n 28)) (by decide +kernel)
+  have a698 := h.atomAt 698 (.copy (.n 705) (.n 704)) (by decide +kernel)
+  have a699 := h.atomAt 699 (.const (.n 706) (word 8589934592 0)) (by decide +kernel)
+  have a700 := h.atomAt 700 (.rangeCheck (.n 705) (.n 707) (.n 708) (.n 709) (.n 706)) (by decide +kernel)
+  have a701 := h.atomAt 701 (.mul (.n 710) (.n 8) (.n 28)) (by decide +kernel)
+  have a702 := h.atomAt 702 (.mul (.n 711) (.n 700) (.n 28)) (by decide +kernel)
+  have a703 := h.atomAt 703 (.mul (.n 712) (.n 12) (.n 28)) (by decide +kernel)
+  have a705 := h.atomAt 705 (.mul (.n 9) (.n 713) (.n 29)) (by decide +kernel)
+  have a706 := h.atomAt 706 (.copy (.n 714) (.n 713)) (by decide +kernel)
+  have a707 := h.atomAt 707 (.const (.n 715) (word 8589934592 0)) (by decide +kernel)
+  have a708 := h.atomAt 708 (.rangeCheck (.n 714) (.n 716) (.n 717) (.n 718) (.n 715)) (by decide +kernel)
+  have a709 := h.atomAt 709 (.const (.n 719) (word 299140177199104 0)) (by decide +kernel)
+  have a710 := h.atomAt 710 (.mul (.n 720) (.n 702) (.n 719)) (by decide +kernel)
+  have a711 := h.atomAt 711 (.const (.n 721) (word 21299200 0)) (by decide +kernel)
+  have a712 := h.atomAt 712 (.mul (.n 722) (.n 703) (.n 721)) (by decide +kernel)
+  have a713 := h.atomAt 713 (.mul (.n 723) (.n 8) (.n 29)) (by decide +kernel)
+  have a714 := h.atomAt 714 (.mul (.n 724) (.n 700) (.n 29)) (by decide +kernel)
+  have a715 := h.atomAt 715 (.mul (.n 725) (.n 12) (.n 29)) (by decide +kernel)
+  have hc := h.callAt 716 "shared_selector_tables" [.n 720, .n 722, .n 723, .n 724, .n 725, .n 714] []
     (by decide +kernel)
   simp only [Atom.Holds] at a697 a698 a699 a701 a702 a703 a705 a706 a707 a709 a710 a711 a712 a713 a714 a715
   rw [vtW288_eq] at a709
   rw [vtW144_eq] at a711
-  have e1 : σ (.n 719) = σ (.n 701) * gen ^ (288 * 1) := by rw [a710, a709]
-  have e2 : σ (.n 721) = σ (.n 702) * gen ^ (144 * 1) := by rw [a712, a711]
+  have e1 : σ (.n 720) = σ (.n 702) * gen ^ (288 * 1) := by rw [a710, a709]
+  have e2 : σ (.n 722) = σ (.n 703) * gen ^ (144 * 1) := by rw [a712, a711]
   refine ⟨by rw [a705, ← a706], a708, a707, ?_, e1, e2⟩
   rw [← e1, ← e2, ← a713, ← a714, ← a715]
   simpa using hc
 
 theorem vt_sh2 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    σ (.n 9) = σ (.n 726) * σ (.n 29) ∧ (Atom.rangeCheck (.n 726) (.n 728) (.n 729) (.n 730) (.n 727)).Holds rd σ ∧
-      σ (.n 727) = vtW33 ∧
-      coreProgram.Rel rd "shared_selector_tables" [σ (.n 701) * gen ^ (288 * 2),
-        σ (.n 702) * gen ^ (144 * 2), σ (.n 8) * σ (.n 29), σ (.n 699) * σ (.n 29),
-        σ (.n 12) * σ (.n 29), σ (.n 726)] [] ∧
-      σ (.n 732) = σ (.n 701) * gen ^ (288 * 2) ∧ σ (.n 734) = σ (.n 702) * gen ^ (144 * 2) := by
-  have a697 := h.atomAt 697 (.mul (.n 9) (.n 703) (.n 27)) (by decide +kernel)
-  have a698 := h.atomAt 698 (.copy (.n 704) (.n 703)) (by decide +kernel)
-  have a699 := h.atomAt 699 (.const (.n 705) (word 8589934592 0)) (by decide +kernel)
-  have a700 := h.atomAt 700 (.rangeCheck (.n 704) (.n 706) (.n 707) (.n 708) (.n 705)) (by decide +kernel)
-  have a701 := h.atomAt 701 (.mul (.n 709) (.n 8) (.n 27)) (by decide +kernel)
-  have a702 := h.atomAt 702 (.mul (.n 710) (.n 699) (.n 27)) (by decide +kernel)
-  have a703 := h.atomAt 703 (.mul (.n 711) (.n 12) (.n 27)) (by decide +kernel)
-  have a705 := h.atomAt 705 (.mul (.n 9) (.n 712) (.n 28)) (by decide +kernel)
-  have a706 := h.atomAt 706 (.copy (.n 713) (.n 712)) (by decide +kernel)
-  have a707 := h.atomAt 707 (.const (.n 714) (word 8589934592 0)) (by decide +kernel)
-  have a708 := h.atomAt 708 (.rangeCheck (.n 713) (.n 715) (.n 716) (.n 717) (.n 714)) (by decide +kernel)
-  have a709 := h.atomAt 709 (.const (.n 718) (word 299140177199104 0)) (by decide +kernel)
-  have a710 := h.atomAt 710 (.mul (.n 719) (.n 701) (.n 718)) (by decide +kernel)
-  have a711 := h.atomAt 711 (.const (.n 720) (word 21299200 0)) (by decide +kernel)
-  have a712 := h.atomAt 712 (.mul (.n 721) (.n 702) (.n 720)) (by decide +kernel)
-  have a713 := h.atomAt 713 (.mul (.n 722) (.n 8) (.n 28)) (by decide +kernel)
-  have a714 := h.atomAt 714 (.mul (.n 723) (.n 699) (.n 28)) (by decide +kernel)
-  have a715 := h.atomAt 715 (.mul (.n 724) (.n 12) (.n 28)) (by decide +kernel)
-  have a717 := h.atomAt 717 (.mul (.n 9) (.n 725) (.n 29)) (by decide +kernel)
-  have a718 := h.atomAt 718 (.copy (.n 726) (.n 725)) (by decide +kernel)
-  have a719 := h.atomAt 719 (.const (.n 727) (word 8589934592 0)) (by decide +kernel)
-  have a720 := h.atomAt 720 (.rangeCheck (.n 726) (.n 728) (.n 729) (.n 730) (.n 727)) (by decide +kernel)
-  have a721 := h.atomAt 721 (.const (.n 731) (word 299140177199104 0)) (by decide +kernel)
-  have a722 := h.atomAt 722 (.mul (.n 732) (.n 719) (.n 731)) (by decide +kernel)
-  have a723 := h.atomAt 723 (.const (.n 733) (word 299140177199104 0)) (by decide +kernel)
-  have a724 := h.atomAt 724 (.mul (.n 734) (.n 702) (.n 733)) (by decide +kernel)
-  have a725 := h.atomAt 725 (.mul (.n 735) (.n 8) (.n 29)) (by decide +kernel)
-  have a726 := h.atomAt 726 (.mul (.n 736) (.n 699) (.n 29)) (by decide +kernel)
-  have a727 := h.atomAt 727 (.mul (.n 737) (.n 12) (.n 29)) (by decide +kernel)
-  have hc := h.callAt 728 "shared_selector_tables" [.n 732, .n 734, .n 735, .n 736, .n 737, .n 726] []
+    σ (.n 9) = σ (.n 727) * σ (.n 30) ∧ (Atom.rangeCheck (.n 727) (.n 729) (.n 730) (.n 731) (.n 728)).Holds rd σ ∧
+      σ (.n 728) = vtW33 ∧
+      coreProgram.Rel rd "shared_selector_tables" [σ (.n 702) * gen ^ (288 * 2),
+        σ (.n 703) * gen ^ (144 * 2), σ (.n 8) * σ (.n 30), σ (.n 700) * σ (.n 30),
+        σ (.n 12) * σ (.n 30), σ (.n 727)] [] ∧
+      σ (.n 733) = σ (.n 702) * gen ^ (288 * 2) ∧ σ (.n 735) = σ (.n 703) * gen ^ (144 * 2) := by
+  have a697 := h.atomAt 697 (.mul (.n 9) (.n 704) (.n 28)) (by decide +kernel)
+  have a698 := h.atomAt 698 (.copy (.n 705) (.n 704)) (by decide +kernel)
+  have a699 := h.atomAt 699 (.const (.n 706) (word 8589934592 0)) (by decide +kernel)
+  have a700 := h.atomAt 700 (.rangeCheck (.n 705) (.n 707) (.n 708) (.n 709) (.n 706)) (by decide +kernel)
+  have a701 := h.atomAt 701 (.mul (.n 710) (.n 8) (.n 28)) (by decide +kernel)
+  have a702 := h.atomAt 702 (.mul (.n 711) (.n 700) (.n 28)) (by decide +kernel)
+  have a703 := h.atomAt 703 (.mul (.n 712) (.n 12) (.n 28)) (by decide +kernel)
+  have a705 := h.atomAt 705 (.mul (.n 9) (.n 713) (.n 29)) (by decide +kernel)
+  have a706 := h.atomAt 706 (.copy (.n 714) (.n 713)) (by decide +kernel)
+  have a707 := h.atomAt 707 (.const (.n 715) (word 8589934592 0)) (by decide +kernel)
+  have a708 := h.atomAt 708 (.rangeCheck (.n 714) (.n 716) (.n 717) (.n 718) (.n 715)) (by decide +kernel)
+  have a709 := h.atomAt 709 (.const (.n 719) (word 299140177199104 0)) (by decide +kernel)
+  have a710 := h.atomAt 710 (.mul (.n 720) (.n 702) (.n 719)) (by decide +kernel)
+  have a711 := h.atomAt 711 (.const (.n 721) (word 21299200 0)) (by decide +kernel)
+  have a712 := h.atomAt 712 (.mul (.n 722) (.n 703) (.n 721)) (by decide +kernel)
+  have a713 := h.atomAt 713 (.mul (.n 723) (.n 8) (.n 29)) (by decide +kernel)
+  have a714 := h.atomAt 714 (.mul (.n 724) (.n 700) (.n 29)) (by decide +kernel)
+  have a715 := h.atomAt 715 (.mul (.n 725) (.n 12) (.n 29)) (by decide +kernel)
+  have a717 := h.atomAt 717 (.mul (.n 9) (.n 726) (.n 30)) (by decide +kernel)
+  have a718 := h.atomAt 718 (.copy (.n 727) (.n 726)) (by decide +kernel)
+  have a719 := h.atomAt 719 (.const (.n 728) (word 8589934592 0)) (by decide +kernel)
+  have a720 := h.atomAt 720 (.rangeCheck (.n 727) (.n 729) (.n 730) (.n 731) (.n 728)) (by decide +kernel)
+  have a721 := h.atomAt 721 (.const (.n 732) (word 299140177199104 0)) (by decide +kernel)
+  have a722 := h.atomAt 722 (.mul (.n 733) (.n 720) (.n 732)) (by decide +kernel)
+  have a723 := h.atomAt 723 (.const (.n 734) (word 299140177199104 0)) (by decide +kernel)
+  have a724 := h.atomAt 724 (.mul (.n 735) (.n 703) (.n 734)) (by decide +kernel)
+  have a725 := h.atomAt 725 (.mul (.n 736) (.n 8) (.n 30)) (by decide +kernel)
+  have a726 := h.atomAt 726 (.mul (.n 737) (.n 700) (.n 30)) (by decide +kernel)
+  have a727 := h.atomAt 727 (.mul (.n 738) (.n 12) (.n 30)) (by decide +kernel)
+  have hc := h.callAt 728 "shared_selector_tables" [.n 733, .n 735, .n 736, .n 737, .n 738, .n 727] []
     (by decide +kernel)
   simp only [Atom.Holds] at a697 a698 a699 a701 a702 a703 a705 a706 a707 a709 a710 a711 a712 a713 a714 a715 a717 a718 a719 a721 a722 a723 a724 a725 a726 a727
   rw [vtW288_eq] at a709
   rw [vtW144_eq] at a711
   rw [vtW288_eq] at a721
   rw [vtW288_eq] at a723
-  have e1 : σ (.n 732) = σ (.n 701) * gen ^ (288 * 2) := by rw [a722, a721, a710, a709]; ring
-  have e2 : σ (.n 734) = σ (.n 702) * gen ^ (144 * 2) := by rw [a724, a723]
+  have e1 : σ (.n 733) = σ (.n 702) * gen ^ (288 * 2) := by rw [a722, a721, a710, a709]; ring
+  have e2 : σ (.n 735) = σ (.n 703) * gen ^ (144 * 2) := by rw [a724, a723]
   refine ⟨by rw [a717, ← a718], a720, a719, ?_, e1, e2⟩
   rw [← e1, ← e2, ← a725, ← a726, ← a727]
   simpa using hc
 
 theorem vt_sh3 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    σ (.n 9) = σ (.n 739) * σ (.n 30) ∧ (Atom.rangeCheck (.n 739) (.n 741) (.n 742) (.n 743) (.n 740)).Holds rd σ ∧
-      σ (.n 740) = vtW33 ∧
-      coreProgram.Rel rd "shared_selector_tables" [σ (.n 701) * gen ^ (288 * 3),
-        σ (.n 702) * gen ^ (144 * 3), σ (.n 8) * σ (.n 30), σ (.n 699) * σ (.n 30),
-        σ (.n 12) * σ (.n 30), σ (.n 739)] [] ∧
-      σ (.n 745) = σ (.n 701) * gen ^ (288 * 3) ∧ σ (.n 747) = σ (.n 702) * gen ^ (144 * 3) := by
-  have a697 := h.atomAt 697 (.mul (.n 9) (.n 703) (.n 27)) (by decide +kernel)
-  have a698 := h.atomAt 698 (.copy (.n 704) (.n 703)) (by decide +kernel)
-  have a699 := h.atomAt 699 (.const (.n 705) (word 8589934592 0)) (by decide +kernel)
-  have a700 := h.atomAt 700 (.rangeCheck (.n 704) (.n 706) (.n 707) (.n 708) (.n 705)) (by decide +kernel)
-  have a701 := h.atomAt 701 (.mul (.n 709) (.n 8) (.n 27)) (by decide +kernel)
-  have a702 := h.atomAt 702 (.mul (.n 710) (.n 699) (.n 27)) (by decide +kernel)
-  have a703 := h.atomAt 703 (.mul (.n 711) (.n 12) (.n 27)) (by decide +kernel)
-  have a705 := h.atomAt 705 (.mul (.n 9) (.n 712) (.n 28)) (by decide +kernel)
-  have a706 := h.atomAt 706 (.copy (.n 713) (.n 712)) (by decide +kernel)
-  have a707 := h.atomAt 707 (.const (.n 714) (word 8589934592 0)) (by decide +kernel)
-  have a708 := h.atomAt 708 (.rangeCheck (.n 713) (.n 715) (.n 716) (.n 717) (.n 714)) (by decide +kernel)
-  have a709 := h.atomAt 709 (.const (.n 718) (word 299140177199104 0)) (by decide +kernel)
-  have a710 := h.atomAt 710 (.mul (.n 719) (.n 701) (.n 718)) (by decide +kernel)
-  have a711 := h.atomAt 711 (.const (.n 720) (word 21299200 0)) (by decide +kernel)
-  have a712 := h.atomAt 712 (.mul (.n 721) (.n 702) (.n 720)) (by decide +kernel)
-  have a713 := h.atomAt 713 (.mul (.n 722) (.n 8) (.n 28)) (by decide +kernel)
-  have a714 := h.atomAt 714 (.mul (.n 723) (.n 699) (.n 28)) (by decide +kernel)
-  have a715 := h.atomAt 715 (.mul (.n 724) (.n 12) (.n 28)) (by decide +kernel)
-  have a717 := h.atomAt 717 (.mul (.n 9) (.n 725) (.n 29)) (by decide +kernel)
-  have a718 := h.atomAt 718 (.copy (.n 726) (.n 725)) (by decide +kernel)
-  have a719 := h.atomAt 719 (.const (.n 727) (word 8589934592 0)) (by decide +kernel)
-  have a720 := h.atomAt 720 (.rangeCheck (.n 726) (.n 728) (.n 729) (.n 730) (.n 727)) (by decide +kernel)
-  have a721 := h.atomAt 721 (.const (.n 731) (word 299140177199104 0)) (by decide +kernel)
-  have a722 := h.atomAt 722 (.mul (.n 732) (.n 719) (.n 731)) (by decide +kernel)
-  have a723 := h.atomAt 723 (.const (.n 733) (word 299140177199104 0)) (by decide +kernel)
-  have a724 := h.atomAt 724 (.mul (.n 734) (.n 702) (.n 733)) (by decide +kernel)
-  have a725 := h.atomAt 725 (.mul (.n 735) (.n 8) (.n 29)) (by decide +kernel)
-  have a726 := h.atomAt 726 (.mul (.n 736) (.n 699) (.n 29)) (by decide +kernel)
-  have a727 := h.atomAt 727 (.mul (.n 737) (.n 12) (.n 29)) (by decide +kernel)
-  have a729 := h.atomAt 729 (.mul (.n 9) (.n 738) (.n 30)) (by decide +kernel)
-  have a730 := h.atomAt 730 (.copy (.n 739) (.n 738)) (by decide +kernel)
-  have a731 := h.atomAt 731 (.const (.n 740) (word 8589934592 0)) (by decide +kernel)
-  have a732 := h.atomAt 732 (.rangeCheck (.n 739) (.n 741) (.n 742) (.n 743) (.n 740)) (by decide +kernel)
-  have a733 := h.atomAt 733 (.const (.n 744) (word 299140177199104 0)) (by decide +kernel)
-  have a734 := h.atomAt 734 (.mul (.n 745) (.n 732) (.n 744)) (by decide +kernel)
-  have a735 := h.atomAt 735 (.const (.n 746) (word 21299200 0)) (by decide +kernel)
-  have a736 := h.atomAt 736 (.mul (.n 747) (.n 734) (.n 746)) (by decide +kernel)
-  have a737 := h.atomAt 737 (.mul (.n 748) (.n 8) (.n 30)) (by decide +kernel)
-  have a738 := h.atomAt 738 (.mul (.n 749) (.n 699) (.n 30)) (by decide +kernel)
-  have a739 := h.atomAt 739 (.mul (.n 750) (.n 12) (.n 30)) (by decide +kernel)
-  have hc := h.callAt 740 "shared_selector_tables" [.n 745, .n 747, .n 748, .n 749, .n 750, .n 739] []
+    σ (.n 9) = σ (.n 740) * σ (.n 31) ∧ (Atom.rangeCheck (.n 740) (.n 742) (.n 743) (.n 744) (.n 741)).Holds rd σ ∧
+      σ (.n 741) = vtW33 ∧
+      coreProgram.Rel rd "shared_selector_tables" [σ (.n 702) * gen ^ (288 * 3),
+        σ (.n 703) * gen ^ (144 * 3), σ (.n 8) * σ (.n 31), σ (.n 700) * σ (.n 31),
+        σ (.n 12) * σ (.n 31), σ (.n 740)] [] ∧
+      σ (.n 746) = σ (.n 702) * gen ^ (288 * 3) ∧ σ (.n 748) = σ (.n 703) * gen ^ (144 * 3) := by
+  have a697 := h.atomAt 697 (.mul (.n 9) (.n 704) (.n 28)) (by decide +kernel)
+  have a698 := h.atomAt 698 (.copy (.n 705) (.n 704)) (by decide +kernel)
+  have a699 := h.atomAt 699 (.const (.n 706) (word 8589934592 0)) (by decide +kernel)
+  have a700 := h.atomAt 700 (.rangeCheck (.n 705) (.n 707) (.n 708) (.n 709) (.n 706)) (by decide +kernel)
+  have a701 := h.atomAt 701 (.mul (.n 710) (.n 8) (.n 28)) (by decide +kernel)
+  have a702 := h.atomAt 702 (.mul (.n 711) (.n 700) (.n 28)) (by decide +kernel)
+  have a703 := h.atomAt 703 (.mul (.n 712) (.n 12) (.n 28)) (by decide +kernel)
+  have a705 := h.atomAt 705 (.mul (.n 9) (.n 713) (.n 29)) (by decide +kernel)
+  have a706 := h.atomAt 706 (.copy (.n 714) (.n 713)) (by decide +kernel)
+  have a707 := h.atomAt 707 (.const (.n 715) (word 8589934592 0)) (by decide +kernel)
+  have a708 := h.atomAt 708 (.rangeCheck (.n 714) (.n 716) (.n 717) (.n 718) (.n 715)) (by decide +kernel)
+  have a709 := h.atomAt 709 (.const (.n 719) (word 299140177199104 0)) (by decide +kernel)
+  have a710 := h.atomAt 710 (.mul (.n 720) (.n 702) (.n 719)) (by decide +kernel)
+  have a711 := h.atomAt 711 (.const (.n 721) (word 21299200 0)) (by decide +kernel)
+  have a712 := h.atomAt 712 (.mul (.n 722) (.n 703) (.n 721)) (by decide +kernel)
+  have a713 := h.atomAt 713 (.mul (.n 723) (.n 8) (.n 29)) (by decide +kernel)
+  have a714 := h.atomAt 714 (.mul (.n 724) (.n 700) (.n 29)) (by decide +kernel)
+  have a715 := h.atomAt 715 (.mul (.n 725) (.n 12) (.n 29)) (by decide +kernel)
+  have a717 := h.atomAt 717 (.mul (.n 9) (.n 726) (.n 30)) (by decide +kernel)
+  have a718 := h.atomAt 718 (.copy (.n 727) (.n 726)) (by decide +kernel)
+  have a719 := h.atomAt 719 (.const (.n 728) (word 8589934592 0)) (by decide +kernel)
+  have a720 := h.atomAt 720 (.rangeCheck (.n 727) (.n 729) (.n 730) (.n 731) (.n 728)) (by decide +kernel)
+  have a721 := h.atomAt 721 (.const (.n 732) (word 299140177199104 0)) (by decide +kernel)
+  have a722 := h.atomAt 722 (.mul (.n 733) (.n 720) (.n 732)) (by decide +kernel)
+  have a723 := h.atomAt 723 (.const (.n 734) (word 299140177199104 0)) (by decide +kernel)
+  have a724 := h.atomAt 724 (.mul (.n 735) (.n 703) (.n 734)) (by decide +kernel)
+  have a725 := h.atomAt 725 (.mul (.n 736) (.n 8) (.n 30)) (by decide +kernel)
+  have a726 := h.atomAt 726 (.mul (.n 737) (.n 700) (.n 30)) (by decide +kernel)
+  have a727 := h.atomAt 727 (.mul (.n 738) (.n 12) (.n 30)) (by decide +kernel)
+  have a729 := h.atomAt 729 (.mul (.n 9) (.n 739) (.n 31)) (by decide +kernel)
+  have a730 := h.atomAt 730 (.copy (.n 740) (.n 739)) (by decide +kernel)
+  have a731 := h.atomAt 731 (.const (.n 741) (word 8589934592 0)) (by decide +kernel)
+  have a732 := h.atomAt 732 (.rangeCheck (.n 740) (.n 742) (.n 743) (.n 744) (.n 741)) (by decide +kernel)
+  have a733 := h.atomAt 733 (.const (.n 745) (word 299140177199104 0)) (by decide +kernel)
+  have a734 := h.atomAt 734 (.mul (.n 746) (.n 733) (.n 745)) (by decide +kernel)
+  have a735 := h.atomAt 735 (.const (.n 747) (word 21299200 0)) (by decide +kernel)
+  have a736 := h.atomAt 736 (.mul (.n 748) (.n 735) (.n 747)) (by decide +kernel)
+  have a737 := h.atomAt 737 (.mul (.n 749) (.n 8) (.n 31)) (by decide +kernel)
+  have a738 := h.atomAt 738 (.mul (.n 750) (.n 700) (.n 31)) (by decide +kernel)
+  have a739 := h.atomAt 739 (.mul (.n 751) (.n 12) (.n 31)) (by decide +kernel)
+  have hc := h.callAt 740 "shared_selector_tables" [.n 746, .n 748, .n 749, .n 750, .n 751, .n 740] []
     (by decide +kernel)
   simp only [Atom.Holds] at a697 a698 a699 a701 a702 a703 a705 a706 a707 a709 a710 a711 a712 a713 a714 a715 a717 a718 a719 a721 a722 a723 a724 a725 a726 a727 a729 a730 a731 a733 a734 a735 a736 a737 a738 a739
   rw [vtW288_eq] at a709
@@ -204,71 +204,71 @@ theorem vt_sh3 {rd : Reader} {σ : Val} (h : VtH rd σ) :
   rw [vtW288_eq] at a723
   rw [vtW288_eq] at a733
   rw [vtW144_eq] at a735
-  have e1 : σ (.n 745) = σ (.n 701) * gen ^ (288 * 3) := by rw [a734, a733, a722, a721, a710, a709]; ring
-  have e2 : σ (.n 747) = σ (.n 702) * gen ^ (144 * 3) := by rw [a736, a735, a724, a723]; ring
+  have e1 : σ (.n 746) = σ (.n 702) * gen ^ (288 * 3) := by rw [a734, a733, a722, a721, a710, a709]; ring
+  have e2 : σ (.n 748) = σ (.n 703) * gen ^ (144 * 3) := by rw [a736, a735, a724, a723]; ring
   refine ⟨by rw [a729, ← a730], a732, a731, ?_, e1, e2⟩
   rw [← e1, ← e2, ← a737, ← a738, ← a739]
   simpa using hc
 
 theorem vt_sh4 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    σ (.n 9) = σ (.n 752) * σ (.n 31) ∧ (Atom.rangeCheck (.n 752) (.n 754) (.n 755) (.n 756) (.n 753)).Holds rd σ ∧
-      σ (.n 753) = vtW33 ∧
-      coreProgram.Rel rd "shared_selector_tables" [σ (.n 701) * gen ^ (288 * 4),
-        σ (.n 702) * gen ^ (144 * 4), σ (.n 8) * σ (.n 31), σ (.n 699) * σ (.n 31),
-        σ (.n 12) * σ (.n 31), σ (.n 752)] [] ∧
-      σ (.n 758) = σ (.n 701) * gen ^ (288 * 4) ∧ σ (.n 760) = σ (.n 702) * gen ^ (144 * 4) := by
-  have a697 := h.atomAt 697 (.mul (.n 9) (.n 703) (.n 27)) (by decide +kernel)
-  have a698 := h.atomAt 698 (.copy (.n 704) (.n 703)) (by decide +kernel)
-  have a699 := h.atomAt 699 (.const (.n 705) (word 8589934592 0)) (by decide +kernel)
-  have a700 := h.atomAt 700 (.rangeCheck (.n 704) (.n 706) (.n 707) (.n 708) (.n 705)) (by decide +kernel)
-  have a701 := h.atomAt 701 (.mul (.n 709) (.n 8) (.n 27)) (by decide +kernel)
-  have a702 := h.atomAt 702 (.mul (.n 710) (.n 699) (.n 27)) (by decide +kernel)
-  have a703 := h.atomAt 703 (.mul (.n 711) (.n 12) (.n 27)) (by decide +kernel)
-  have a705 := h.atomAt 705 (.mul (.n 9) (.n 712) (.n 28)) (by decide +kernel)
-  have a706 := h.atomAt 706 (.copy (.n 713) (.n 712)) (by decide +kernel)
-  have a707 := h.atomAt 707 (.const (.n 714) (word 8589934592 0)) (by decide +kernel)
-  have a708 := h.atomAt 708 (.rangeCheck (.n 713) (.n 715) (.n 716) (.n 717) (.n 714)) (by decide +kernel)
-  have a709 := h.atomAt 709 (.const (.n 718) (word 299140177199104 0)) (by decide +kernel)
-  have a710 := h.atomAt 710 (.mul (.n 719) (.n 701) (.n 718)) (by decide +kernel)
-  have a711 := h.atomAt 711 (.const (.n 720) (word 21299200 0)) (by decide +kernel)
-  have a712 := h.atomAt 712 (.mul (.n 721) (.n 702) (.n 720)) (by decide +kernel)
-  have a713 := h.atomAt 713 (.mul (.n 722) (.n 8) (.n 28)) (by decide +kernel)
-  have a714 := h.atomAt 714 (.mul (.n 723) (.n 699) (.n 28)) (by decide +kernel)
-  have a715 := h.atomAt 715 (.mul (.n 724) (.n 12) (.n 28)) (by decide +kernel)
-  have a717 := h.atomAt 717 (.mul (.n 9) (.n 725) (.n 29)) (by decide +kernel)
-  have a718 := h.atomAt 718 (.copy (.n 726) (.n 725)) (by decide +kernel)
-  have a719 := h.atomAt 719 (.const (.n 727) (word 8589934592 0)) (by decide +kernel)
-  have a720 := h.atomAt 720 (.rangeCheck (.n 726) (.n 728) (.n 729) (.n 730) (.n 727)) (by decide +kernel)
-  have a721 := h.atomAt 721 (.const (.n 731) (word 299140177199104 0)) (by decide +kernel)
-  have a722 := h.atomAt 722 (.mul (.n 732) (.n 719) (.n 731)) (by decide +kernel)
-  have a723 := h.atomAt 723 (.const (.n 733) (word 299140177199104 0)) (by decide +kernel)
-  have a724 := h.atomAt 724 (.mul (.n 734) (.n 702) (.n 733)) (by decide +kernel)
-  have a725 := h.atomAt 725 (.mul (.n 735) (.n 8) (.n 29)) (by decide +kernel)
-  have a726 := h.atomAt 726 (.mul (.n 736) (.n 699) (.n 29)) (by decide +kernel)
-  have a727 := h.atomAt 727 (.mul (.n 737) (.n 12) (.n 29)) (by decide +kernel)
-  have a729 := h.atomAt 729 (.mul (.n 9) (.n 738) (.n 30)) (by decide +kernel)
-  have a730 := h.atomAt 730 (.copy (.n 739) (.n 738)) (by decide +kernel)
-  have a731 := h.atomAt 731 (.const (.n 740) (word 8589934592 0)) (by decide +kernel)
-  have a732 := h.atomAt 732 (.rangeCheck (.n 739) (.n 741) (.n 742) (.n 743) (.n 740)) (by decide +kernel)
-  have a733 := h.atomAt 733 (.const (.n 744) (word 299140177199104 0)) (by decide +kernel)
-  have a734 := h.atomAt 734 (.mul (.n 745) (.n 732) (.n 744)) (by decide +kernel)
-  have a735 := h.atomAt 735 (.const (.n 746) (word 21299200 0)) (by decide +kernel)
-  have a736 := h.atomAt 736 (.mul (.n 747) (.n 734) (.n 746)) (by decide +kernel)
-  have a737 := h.atomAt 737 (.mul (.n 748) (.n 8) (.n 30)) (by decide +kernel)
-  have a738 := h.atomAt 738 (.mul (.n 749) (.n 699) (.n 30)) (by decide +kernel)
-  have a739 := h.atomAt 739 (.mul (.n 750) (.n 12) (.n 30)) (by decide +kernel)
-  have a741 := h.atomAt 741 (.mul (.n 9) (.n 751) (.n 31)) (by decide +kernel)
-  have a742 := h.atomAt 742 (.copy (.n 752) (.n 751)) (by decide +kernel)
-  have a743 := h.atomAt 743 (.const (.n 753) (word 8589934592 0)) (by decide +kernel)
-  have a744 := h.atomAt 744 (.rangeCheck (.n 752) (.n 754) (.n 755) (.n 756) (.n 753)) (by decide +kernel)
-  have a745 := h.atomAt 745 (.const (.n 757) (word 299140177199104 0)) (by decide +kernel)
-  have a746 := h.atomAt 746 (.mul (.n 758) (.n 745) (.n 757)) (by decide +kernel)
-  have a747 := h.atomAt 747 (.const (.n 759) (word 21299200 0)) (by decide +kernel)
-  have a748 := h.atomAt 748 (.mul (.n 760) (.n 747) (.n 759)) (by decide +kernel)
-  have a749 := h.atomAt 749 (.mul (.n 761) (.n 8) (.n 31)) (by decide +kernel)
-  have a750 := h.atomAt 750 (.mul (.n 762) (.n 699) (.n 31)) (by decide +kernel)
-  have a751 := h.atomAt 751 (.mul (.n 763) (.n 12) (.n 31)) (by decide +kernel)
-  have hc := h.callAt 752 "shared_selector_tables" [.n 758, .n 760, .n 761, .n 762, .n 763, .n 752] []
+    σ (.n 9) = σ (.n 753) * σ (.n 32) ∧ (Atom.rangeCheck (.n 753) (.n 755) (.n 756) (.n 757) (.n 754)).Holds rd σ ∧
+      σ (.n 754) = vtW33 ∧
+      coreProgram.Rel rd "shared_selector_tables" [σ (.n 702) * gen ^ (288 * 4),
+        σ (.n 703) * gen ^ (144 * 4), σ (.n 8) * σ (.n 32), σ (.n 700) * σ (.n 32),
+        σ (.n 12) * σ (.n 32), σ (.n 753)] [] ∧
+      σ (.n 759) = σ (.n 702) * gen ^ (288 * 4) ∧ σ (.n 761) = σ (.n 703) * gen ^ (144 * 4) := by
+  have a697 := h.atomAt 697 (.mul (.n 9) (.n 704) (.n 28)) (by decide +kernel)
+  have a698 := h.atomAt 698 (.copy (.n 705) (.n 704)) (by decide +kernel)
+  have a699 := h.atomAt 699 (.const (.n 706) (word 8589934592 0)) (by decide +kernel)
+  have a700 := h.atomAt 700 (.rangeCheck (.n 705) (.n 707) (.n 708) (.n 709) (.n 706)) (by decide +kernel)
+  have a701 := h.atomAt 701 (.mul (.n 710) (.n 8) (.n 28)) (by decide +kernel)
+  have a702 := h.atomAt 702 (.mul (.n 711) (.n 700) (.n 28)) (by decide +kernel)
+  have a703 := h.atomAt 703 (.mul (.n 712) (.n 12) (.n 28)) (by decide +kernel)
+  have a705 := h.atomAt 705 (.mul (.n 9) (.n 713) (.n 29)) (by decide +kernel)
+  have a706 := h.atomAt 706 (.copy (.n 714) (.n 713)) (by decide +kernel)
+  have a707 := h.atomAt 707 (.const (.n 715) (word 8589934592 0)) (by decide +kernel)
+  have a708 := h.atomAt 708 (.rangeCheck (.n 714) (.n 716) (.n 717) (.n 718) (.n 715)) (by decide +kernel)
+  have a709 := h.atomAt 709 (.const (.n 719) (word 299140177199104 0)) (by decide +kernel)
+  have a710 := h.atomAt 710 (.mul (.n 720) (.n 702) (.n 719)) (by decide +kernel)
+  have a711 := h.atomAt 711 (.const (.n 721) (word 21299200 0)) (by decide +kernel)
+  have a712 := h.atomAt 712 (.mul (.n 722) (.n 703) (.n 721)) (by decide +kernel)
+  have a713 := h.atomAt 713 (.mul (.n 723) (.n 8) (.n 29)) (by decide +kernel)
+  have a714 := h.atomAt 714 (.mul (.n 724) (.n 700) (.n 29)) (by decide +kernel)
+  have a715 := h.atomAt 715 (.mul (.n 725) (.n 12) (.n 29)) (by decide +kernel)
+  have a717 := h.atomAt 717 (.mul (.n 9) (.n 726) (.n 30)) (by decide +kernel)
+  have a718 := h.atomAt 718 (.copy (.n 727) (.n 726)) (by decide +kernel)
+  have a719 := h.atomAt 719 (.const (.n 728) (word 8589934592 0)) (by decide +kernel)
+  have a720 := h.atomAt 720 (.rangeCheck (.n 727) (.n 729) (.n 730) (.n 731) (.n 728)) (by decide +kernel)
+  have a721 := h.atomAt 721 (.const (.n 732) (word 299140177199104 0)) (by decide +kernel)
+  have a722 := h.atomAt 722 (.mul (.n 733) (.n 720) (.n 732)) (by decide +kernel)
+  have a723 := h.atomAt 723 (.const (.n 734) (word 299140177199104 0)) (by decide +kernel)
+  have a724 := h.atomAt 724 (.mul (.n 735) (.n 703) (.n 734)) (by decide +kernel)
+  have a725 := h.atomAt 725 (.mul (.n 736) (.n 8) (.n 30)) (by decide +kernel)
+  have a726 := h.atomAt 726 (.mul (.n 737) (.n 700) (.n 30)) (by decide +kernel)
+  have a727 := h.atomAt 727 (.mul (.n 738) (.n 12) (.n 30)) (by decide +kernel)
+  have a729 := h.atomAt 729 (.mul (.n 9) (.n 739) (.n 31)) (by decide +kernel)
+  have a730 := h.atomAt 730 (.copy (.n 740) (.n 739)) (by decide +kernel)
+  have a731 := h.atomAt 731 (.const (.n 741) (word 8589934592 0)) (by decide +kernel)
+  have a732 := h.atomAt 732 (.rangeCheck (.n 740) (.n 742) (.n 743) (.n 744) (.n 741)) (by decide +kernel)
+  have a733 := h.atomAt 733 (.const (.n 745) (word 299140177199104 0)) (by decide +kernel)
+  have a734 := h.atomAt 734 (.mul (.n 746) (.n 733) (.n 745)) (by decide +kernel)
+  have a735 := h.atomAt 735 (.const (.n 747) (word 21299200 0)) (by decide +kernel)
+  have a736 := h.atomAt 736 (.mul (.n 748) (.n 735) (.n 747)) (by decide +kernel)
+  have a737 := h.atomAt 737 (.mul (.n 749) (.n 8) (.n 31)) (by decide +kernel)
+  have a738 := h.atomAt 738 (.mul (.n 750) (.n 700) (.n 31)) (by decide +kernel)
+  have a739 := h.atomAt 739 (.mul (.n 751) (.n 12) (.n 31)) (by decide +kernel)
+  have a741 := h.atomAt 741 (.mul (.n 9) (.n 752) (.n 32)) (by decide +kernel)
+  have a742 := h.atomAt 742 (.copy (.n 753) (.n 752)) (by decide +kernel)
+  have a743 := h.atomAt 743 (.const (.n 754) (word 8589934592 0)) (by decide +kernel)
+  have a744 := h.atomAt 744 (.rangeCheck (.n 753) (.n 755) (.n 756) (.n 757) (.n 754)) (by decide +kernel)
+  have a745 := h.atomAt 745 (.const (.n 758) (word 299140177199104 0)) (by decide +kernel)
+  have a746 := h.atomAt 746 (.mul (.n 759) (.n 746) (.n 758)) (by decide +kernel)
+  have a747 := h.atomAt 747 (.const (.n 760) (word 21299200 0)) (by decide +kernel)
+  have a748 := h.atomAt 748 (.mul (.n 761) (.n 748) (.n 760)) (by decide +kernel)
+  have a749 := h.atomAt 749 (.mul (.n 762) (.n 8) (.n 32)) (by decide +kernel)
+  have a750 := h.atomAt 750 (.mul (.n 763) (.n 700) (.n 32)) (by decide +kernel)
+  have a751 := h.atomAt 751 (.mul (.n 764) (.n 12) (.n 32)) (by decide +kernel)
+  have hc := h.callAt 752 "shared_selector_tables" [.n 759, .n 761, .n 762, .n 763, .n 764, .n 753] []
     (by decide +kernel)
   simp only [Atom.Holds] at a697 a698 a699 a701 a702 a703 a705 a706 a707 a709 a710 a711 a712 a713 a714 a715 a717 a718 a719 a721 a722 a723 a724 a725 a726 a727 a729 a730 a731 a733 a734 a735 a736 a737 a738 a739 a741 a742 a743 a745 a746 a747 a748 a749 a750 a751
   rw [vtW288_eq] at a709
@@ -279,82 +279,82 @@ theorem vt_sh4 {rd : Reader} {σ : Val} (h : VtH rd σ) :
   rw [vtW144_eq] at a735
   rw [vtW288_eq] at a745
   rw [vtW144_eq] at a747
-  have e1 : σ (.n 758) = σ (.n 701) * gen ^ (288 * 4) := by rw [a746, a745, a734, a733, a722, a721, a710, a709]; ring
-  have e2 : σ (.n 760) = σ (.n 702) * gen ^ (144 * 4) := by rw [a748, a747, a736, a735, a724, a723]; ring
+  have e1 : σ (.n 759) = σ (.n 702) * gen ^ (288 * 4) := by rw [a746, a745, a734, a733, a722, a721, a710, a709]; ring
+  have e2 : σ (.n 761) = σ (.n 703) * gen ^ (144 * 4) := by rw [a748, a747, a736, a735, a724, a723]; ring
   refine ⟨by rw [a741, ← a742], a744, a743, ?_, e1, e2⟩
   rw [← e1, ← e2, ← a749, ← a750, ← a751]
   simpa using hc
 
 theorem vt_sh5 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    σ (.n 9) = σ (.n 765) * σ (.n 32) ∧ (Atom.rangeCheck (.n 765) (.n 767) (.n 768) (.n 769) (.n 766)).Holds rd σ ∧
-      σ (.n 766) = vtW33 ∧
-      coreProgram.Rel rd "shared_selector_tables" [σ (.n 701) * gen ^ (288 * 5),
-        σ (.n 702) * gen ^ (144 * 5), σ (.n 8) * σ (.n 32), σ (.n 699) * σ (.n 32),
-        σ (.n 12) * σ (.n 32), σ (.n 765)] [] ∧
-      σ (.n 771) = σ (.n 701) * gen ^ (288 * 5) ∧ σ (.n 773) = σ (.n 702) * gen ^ (144 * 5) := by
-  have a697 := h.atomAt 697 (.mul (.n 9) (.n 703) (.n 27)) (by decide +kernel)
-  have a698 := h.atomAt 698 (.copy (.n 704) (.n 703)) (by decide +kernel)
-  have a699 := h.atomAt 699 (.const (.n 705) (word 8589934592 0)) (by decide +kernel)
-  have a700 := h.atomAt 700 (.rangeCheck (.n 704) (.n 706) (.n 707) (.n 708) (.n 705)) (by decide +kernel)
-  have a701 := h.atomAt 701 (.mul (.n 709) (.n 8) (.n 27)) (by decide +kernel)
-  have a702 := h.atomAt 702 (.mul (.n 710) (.n 699) (.n 27)) (by decide +kernel)
-  have a703 := h.atomAt 703 (.mul (.n 711) (.n 12) (.n 27)) (by decide +kernel)
-  have a705 := h.atomAt 705 (.mul (.n 9) (.n 712) (.n 28)) (by decide +kernel)
-  have a706 := h.atomAt 706 (.copy (.n 713) (.n 712)) (by decide +kernel)
-  have a707 := h.atomAt 707 (.const (.n 714) (word 8589934592 0)) (by decide +kernel)
-  have a708 := h.atomAt 708 (.rangeCheck (.n 713) (.n 715) (.n 716) (.n 717) (.n 714)) (by decide +kernel)
-  have a709 := h.atomAt 709 (.const (.n 718) (word 299140177199104 0)) (by decide +kernel)
-  have a710 := h.atomAt 710 (.mul (.n 719) (.n 701) (.n 718)) (by decide +kernel)
-  have a711 := h.atomAt 711 (.const (.n 720) (word 21299200 0)) (by decide +kernel)
-  have a712 := h.atomAt 712 (.mul (.n 721) (.n 702) (.n 720)) (by decide +kernel)
-  have a713 := h.atomAt 713 (.mul (.n 722) (.n 8) (.n 28)) (by decide +kernel)
-  have a714 := h.atomAt 714 (.mul (.n 723) (.n 699) (.n 28)) (by decide +kernel)
-  have a715 := h.atomAt 715 (.mul (.n 724) (.n 12) (.n 28)) (by decide +kernel)
-  have a717 := h.atomAt 717 (.mul (.n 9) (.n 725) (.n 29)) (by decide +kernel)
-  have a718 := h.atomAt 718 (.copy (.n 726) (.n 725)) (by decide +kernel)
-  have a719 := h.atomAt 719 (.const (.n 727) (word 8589934592 0)) (by decide +kernel)
-  have a720 := h.atomAt 720 (.rangeCheck (.n 726) (.n 728) (.n 729) (.n 730) (.n 727)) (by decide +kernel)
-  have a721 := h.atomAt 721 (.const (.n 731) (word 299140177199104 0)) (by decide +kernel)
-  have a722 := h.atomAt 722 (.mul (.n 732) (.n 719) (.n 731)) (by decide +kernel)
-  have a723 := h.atomAt 723 (.const (.n 733) (word 299140177199104 0)) (by decide +kernel)
-  have a724 := h.atomAt 724 (.mul (.n 734) (.n 702) (.n 733)) (by decide +kernel)
-  have a725 := h.atomAt 725 (.mul (.n 735) (.n 8) (.n 29)) (by decide +kernel)
-  have a726 := h.atomAt 726 (.mul (.n 736) (.n 699) (.n 29)) (by decide +kernel)
-  have a727 := h.atomAt 727 (.mul (.n 737) (.n 12) (.n 29)) (by decide +kernel)
-  have a729 := h.atomAt 729 (.mul (.n 9) (.n 738) (.n 30)) (by decide +kernel)
-  have a730 := h.atomAt 730 (.copy (.n 739) (.n 738)) (by decide +kernel)
-  have a731 := h.atomAt 731 (.const (.n 740) (word 8589934592 0)) (by decide +kernel)
-  have a732 := h.atomAt 732 (.rangeCheck (.n 739) (.n 741) (.n 742) (.n 743) (.n 740)) (by decide +kernel)
-  have a733 := h.atomAt 733 (.const (.n 744) (word 299140177199104 0)) (by decide +kernel)
-  have a734 := h.atomAt 734 (.mul (.n 745) (.n 732) (.n 744)) (by decide +kernel)
-  have a735 := h.atomAt 735 (.const (.n 746) (word 21299200 0)) (by decide +kernel)
-  have a736 := h.atomAt 736 (.mul (.n 747) (.n 734) (.n 746)) (by decide +kernel)
-  have a737 := h.atomAt 737 (.mul (.n 748) (.n 8) (.n 30)) (by decide +kernel)
-  have a738 := h.atomAt 738 (.mul (.n 749) (.n 699) (.n 30)) (by decide +kernel)
-  have a739 := h.atomAt 739 (.mul (.n 750) (.n 12) (.n 30)) (by decide +kernel)
-  have a741 := h.atomAt 741 (.mul (.n 9) (.n 751) (.n 31)) (by decide +kernel)
-  have a742 := h.atomAt 742 (.copy (.n 752) (.n 751)) (by decide +kernel)
-  have a743 := h.atomAt 743 (.const (.n 753) (word 8589934592 0)) (by decide +kernel)
-  have a744 := h.atomAt 744 (.rangeCheck (.n 752) (.n 754) (.n 755) (.n 756) (.n 753)) (by decide +kernel)
-  have a745 := h.atomAt 745 (.const (.n 757) (word 299140177199104 0)) (by decide +kernel)
-  have a746 := h.atomAt 746 (.mul (.n 758) (.n 745) (.n 757)) (by decide +kernel)
-  have a747 := h.atomAt 747 (.const (.n 759) (word 21299200 0)) (by decide +kernel)
-  have a748 := h.atomAt 748 (.mul (.n 760) (.n 747) (.n 759)) (by decide +kernel)
-  have a749 := h.atomAt 749 (.mul (.n 761) (.n 8) (.n 31)) (by decide +kernel)
-  have a750 := h.atomAt 750 (.mul (.n 762) (.n 699) (.n 31)) (by decide +kernel)
-  have a751 := h.atomAt 751 (.mul (.n 763) (.n 12) (.n 31)) (by decide +kernel)
-  have a753 := h.atomAt 753 (.mul (.n 9) (.n 764) (.n 32)) (by decide +kernel)
-  have a754 := h.atomAt 754 (.copy (.n 765) (.n 764)) (by decide +kernel)
-  have a755 := h.atomAt 755 (.const (.n 766) (word 8589934592 0)) (by decide +kernel)
-  have a756 := h.atomAt 756 (.rangeCheck (.n 765) (.n 767) (.n 768) (.n 769) (.n 766)) (by decide +kernel)
-  have a757 := h.atomAt 757 (.const (.n 770) (word 299140177199104 0)) (by decide +kernel)
-  have a758 := h.atomAt 758 (.mul (.n 771) (.n 758) (.n 770)) (by decide +kernel)
-  have a759 := h.atomAt 759 (.const (.n 772) (word 21299200 0)) (by decide +kernel)
-  have a760 := h.atomAt 760 (.mul (.n 773) (.n 760) (.n 772)) (by decide +kernel)
-  have a761 := h.atomAt 761 (.mul (.n 774) (.n 8) (.n 32)) (by decide +kernel)
-  have a762 := h.atomAt 762 (.mul (.n 775) (.n 699) (.n 32)) (by decide +kernel)
-  have a763 := h.atomAt 763 (.mul (.n 776) (.n 12) (.n 32)) (by decide +kernel)
-  have hc := h.callAt 764 "shared_selector_tables" [.n 771, .n 773, .n 774, .n 775, .n 776, .n 765] []
+    σ (.n 9) = σ (.n 766) * σ (.n 33) ∧ (Atom.rangeCheck (.n 766) (.n 768) (.n 769) (.n 770) (.n 767)).Holds rd σ ∧
+      σ (.n 767) = vtW33 ∧
+      coreProgram.Rel rd "shared_selector_tables" [σ (.n 702) * gen ^ (288 * 5),
+        σ (.n 703) * gen ^ (144 * 5), σ (.n 8) * σ (.n 33), σ (.n 700) * σ (.n 33),
+        σ (.n 12) * σ (.n 33), σ (.n 766)] [] ∧
+      σ (.n 772) = σ (.n 702) * gen ^ (288 * 5) ∧ σ (.n 774) = σ (.n 703) * gen ^ (144 * 5) := by
+  have a697 := h.atomAt 697 (.mul (.n 9) (.n 704) (.n 28)) (by decide +kernel)
+  have a698 := h.atomAt 698 (.copy (.n 705) (.n 704)) (by decide +kernel)
+  have a699 := h.atomAt 699 (.const (.n 706) (word 8589934592 0)) (by decide +kernel)
+  have a700 := h.atomAt 700 (.rangeCheck (.n 705) (.n 707) (.n 708) (.n 709) (.n 706)) (by decide +kernel)
+  have a701 := h.atomAt 701 (.mul (.n 710) (.n 8) (.n 28)) (by decide +kernel)
+  have a702 := h.atomAt 702 (.mul (.n 711) (.n 700) (.n 28)) (by decide +kernel)
+  have a703 := h.atomAt 703 (.mul (.n 712) (.n 12) (.n 28)) (by decide +kernel)
+  have a705 := h.atomAt 705 (.mul (.n 9) (.n 713) (.n 29)) (by decide +kernel)
+  have a706 := h.atomAt 706 (.copy (.n 714) (.n 713)) (by decide +kernel)
+  have a707 := h.atomAt 707 (.const (.n 715) (word 8589934592 0)) (by decide +kernel)
+  have a708 := h.atomAt 708 (.rangeCheck (.n 714) (.n 716) (.n 717) (.n 718) (.n 715)) (by decide +kernel)
+  have a709 := h.atomAt 709 (.const (.n 719) (word 299140177199104 0)) (by decide +kernel)
+  have a710 := h.atomAt 710 (.mul (.n 720) (.n 702) (.n 719)) (by decide +kernel)
+  have a711 := h.atomAt 711 (.const (.n 721) (word 21299200 0)) (by decide +kernel)
+  have a712 := h.atomAt 712 (.mul (.n 722) (.n 703) (.n 721)) (by decide +kernel)
+  have a713 := h.atomAt 713 (.mul (.n 723) (.n 8) (.n 29)) (by decide +kernel)
+  have a714 := h.atomAt 714 (.mul (.n 724) (.n 700) (.n 29)) (by decide +kernel)
+  have a715 := h.atomAt 715 (.mul (.n 725) (.n 12) (.n 29)) (by decide +kernel)
+  have a717 := h.atomAt 717 (.mul (.n 9) (.n 726) (.n 30)) (by decide +kernel)
+  have a718 := h.atomAt 718 (.copy (.n 727) (.n 726)) (by decide +kernel)
+  have a719 := h.atomAt 719 (.const (.n 728) (word 8589934592 0)) (by decide +kernel)
+  have a720 := h.atomAt 720 (.rangeCheck (.n 727) (.n 729) (.n 730) (.n 731) (.n 728)) (by decide +kernel)
+  have a721 := h.atomAt 721 (.const (.n 732) (word 299140177199104 0)) (by decide +kernel)
+  have a722 := h.atomAt 722 (.mul (.n 733) (.n 720) (.n 732)) (by decide +kernel)
+  have a723 := h.atomAt 723 (.const (.n 734) (word 299140177199104 0)) (by decide +kernel)
+  have a724 := h.atomAt 724 (.mul (.n 735) (.n 703) (.n 734)) (by decide +kernel)
+  have a725 := h.atomAt 725 (.mul (.n 736) (.n 8) (.n 30)) (by decide +kernel)
+  have a726 := h.atomAt 726 (.mul (.n 737) (.n 700) (.n 30)) (by decide +kernel)
+  have a727 := h.atomAt 727 (.mul (.n 738) (.n 12) (.n 30)) (by decide +kernel)
+  have a729 := h.atomAt 729 (.mul (.n 9) (.n 739) (.n 31)) (by decide +kernel)
+  have a730 := h.atomAt 730 (.copy (.n 740) (.n 739)) (by decide +kernel)
+  have a731 := h.atomAt 731 (.const (.n 741) (word 8589934592 0)) (by decide +kernel)
+  have a732 := h.atomAt 732 (.rangeCheck (.n 740) (.n 742) (.n 743) (.n 744) (.n 741)) (by decide +kernel)
+  have a733 := h.atomAt 733 (.const (.n 745) (word 299140177199104 0)) (by decide +kernel)
+  have a734 := h.atomAt 734 (.mul (.n 746) (.n 733) (.n 745)) (by decide +kernel)
+  have a735 := h.atomAt 735 (.const (.n 747) (word 21299200 0)) (by decide +kernel)
+  have a736 := h.atomAt 736 (.mul (.n 748) (.n 735) (.n 747)) (by decide +kernel)
+  have a737 := h.atomAt 737 (.mul (.n 749) (.n 8) (.n 31)) (by decide +kernel)
+  have a738 := h.atomAt 738 (.mul (.n 750) (.n 700) (.n 31)) (by decide +kernel)
+  have a739 := h.atomAt 739 (.mul (.n 751) (.n 12) (.n 31)) (by decide +kernel)
+  have a741 := h.atomAt 741 (.mul (.n 9) (.n 752) (.n 32)) (by decide +kernel)
+  have a742 := h.atomAt 742 (.copy (.n 753) (.n 752)) (by decide +kernel)
+  have a743 := h.atomAt 743 (.const (.n 754) (word 8589934592 0)) (by decide +kernel)
+  have a744 := h.atomAt 744 (.rangeCheck (.n 753) (.n 755) (.n 756) (.n 757) (.n 754)) (by decide +kernel)
+  have a745 := h.atomAt 745 (.const (.n 758) (word 299140177199104 0)) (by decide +kernel)
+  have a746 := h.atomAt 746 (.mul (.n 759) (.n 746) (.n 758)) (by decide +kernel)
+  have a747 := h.atomAt 747 (.const (.n 760) (word 21299200 0)) (by decide +kernel)
+  have a748 := h.atomAt 748 (.mul (.n 761) (.n 748) (.n 760)) (by decide +kernel)
+  have a749 := h.atomAt 749 (.mul (.n 762) (.n 8) (.n 32)) (by decide +kernel)
+  have a750 := h.atomAt 750 (.mul (.n 763) (.n 700) (.n 32)) (by decide +kernel)
+  have a751 := h.atomAt 751 (.mul (.n 764) (.n 12) (.n 32)) (by decide +kernel)
+  have a753 := h.atomAt 753 (.mul (.n 9) (.n 765) (.n 33)) (by decide +kernel)
+  have a754 := h.atomAt 754 (.copy (.n 766) (.n 765)) (by decide +kernel)
+  have a755 := h.atomAt 755 (.const (.n 767) (word 8589934592 0)) (by decide +kernel)
+  have a756 := h.atomAt 756 (.rangeCheck (.n 766) (.n 768) (.n 769) (.n 770) (.n 767)) (by decide +kernel)
+  have a757 := h.atomAt 757 (.const (.n 771) (word 299140177199104 0)) (by decide +kernel)
+  have a758 := h.atomAt 758 (.mul (.n 772) (.n 759) (.n 771)) (by decide +kernel)
+  have a759 := h.atomAt 759 (.const (.n 773) (word 21299200 0)) (by decide +kernel)
+  have a760 := h.atomAt 760 (.mul (.n 774) (.n 761) (.n 773)) (by decide +kernel)
+  have a761 := h.atomAt 761 (.mul (.n 775) (.n 8) (.n 33)) (by decide +kernel)
+  have a762 := h.atomAt 762 (.mul (.n 776) (.n 700) (.n 33)) (by decide +kernel)
+  have a763 := h.atomAt 763 (.mul (.n 777) (.n 12) (.n 33)) (by decide +kernel)
+  have hc := h.callAt 764 "shared_selector_tables" [.n 772, .n 774, .n 775, .n 776, .n 777, .n 766] []
     (by decide +kernel)
   simp only [Atom.Holds] at a697 a698 a699 a701 a702 a703 a705 a706 a707 a709 a710 a711 a712 a713 a714 a715 a717 a718 a719 a721 a722 a723 a724 a725 a726 a727 a729 a730 a731 a733 a734 a735 a736 a737 a738 a739 a741 a742 a743 a745 a746 a747 a748 a749 a750 a751 a753 a754 a755 a757 a758 a759 a760 a761 a762 a763
   rw [vtW288_eq] at a709
@@ -367,8 +367,8 @@ theorem vt_sh5 {rd : Reader} {σ : Val} (h : VtH rd σ) :
   rw [vtW144_eq] at a747
   rw [vtW288_eq] at a757
   rw [vtW144_eq] at a759
-  have e1 : σ (.n 771) = σ (.n 701) * gen ^ (288 * 5) := by rw [a758, a757, a746, a745, a734, a733, a722, a721, a710, a709]; ring
-  have e2 : σ (.n 773) = σ (.n 702) * gen ^ (144 * 5) := by rw [a760, a759, a748, a747, a736, a735, a724, a723]; ring
+  have e1 : σ (.n 772) = σ (.n 702) * gen ^ (288 * 5) := by rw [a758, a757, a746, a745, a734, a733, a722, a721, a710, a709]; ring
+  have e2 : σ (.n 774) = σ (.n 703) * gen ^ (144 * 5) := by rw [a760, a759, a748, a747, a736, a735, a724, a723]; ring
   refine ⟨by rw [a753, ← a754], a756, a755, ?_, e1, e2⟩
   rw [← e1, ← e2, ← a761, ← a762, ← a763]
   simpa using hc

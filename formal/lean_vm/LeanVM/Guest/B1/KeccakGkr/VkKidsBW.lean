@@ -55,7 +55,7 @@ theorem plain0_totalLe_fs :
       "keccak_plain_rounds__L6_L0") (by decide +kernel)
   rwa [wSB_idx (j := idx% «keccak_plain_rounds__L6_L0») (f := "keccak_plain_rounds__L6_L0")
       (by decide +kernel),
-    show wSBJ 268 = 250 by decide +kernel] at h1
+    show wSBJ (idx% «keccak_plain_rounds__L6_L0») = 250 by decide +kernel] at h1
 
 /-- **`keccak_plain_rounds__L4_L1`'s words at `B2C.fs`**: `178`. -/
 theorem plain1_totalLe_fs :
@@ -64,7 +64,7 @@ theorem plain1_totalLe_fs :
       "keccak_plain_rounds__L4_L1") (by decide +kernel)
   rwa [wSB_idx (j := idx% «keccak_plain_rounds__L4_L1») (f := "keccak_plain_rounds__L4_L1")
       (by decide +kernel),
-    show wSBJ 270 = 178 by decide +kernel] at h1
+    show wSBJ (idx% «keccak_plain_rounds__L4_L1») = 178 by decide +kernel] at h1
 
 namespace VkData
 

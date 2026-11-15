@@ -100,9 +100,9 @@ its round count.** -/
 theorem vt_kidBWP (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 14 ≤ κ) (W : VsWordsOs fs) (B : Tables.VtBases) :
     CompleteAtDTBR fs cert κ "verify_tables" (S.H.linL B) (S.H.args B) (Returns (S.H.retsH B))
       (fun rd t ↦ (∀ op, Budget.WeighsLe coreProgram (W.ωv op) (vtWB W.toVsWords op) t) ∧
-        vsPvt S.logMem S.rowsN S.H.n rd t) (vtMax fs W.Kf W.Ksh W.K10) :=
-  (Tables.verify_tables_completeAtTBWR' hκ (S.H_run hbl).1 (S.H_shape hbl) B W.Kf W.Ksh W.K10 W.hKf
-    W.hsh W.h10 W.ωv W.Kvw W.Wss W.Kw10 W.hKvw W.hssw W.h10w).monoV (S.vt_bound_le hbl W)
+        vsPvt S.logMem S.rowsN S.H.n rd t) (vtMax fs W.Kf W.Ksh W.K10 W.K11) :=
+  (Tables.verify_tables_completeAtTBWR' hκ (S.H_run hbl).1 (S.H_shape hbl) B W.Kf W.Ksh W.K10 W.K11 W.hKf
+    W.hsh W.h10 W.h11 W.ωv W.Kvw W.Wss W.Kw10 W.Kw11 W.hKvw W.hssw W.h10w W.h11w).monoV (S.vt_bound_le hbl W)
     fun _ _ _ hv ⟨hw, _, _, e, hq⟩ ↦ ⟨hw, vt_honest_vsPvt rfl rfl e hq hv⟩
 
 end ChildSegs

@@ -11,6 +11,9 @@ public import LeanVM.Guest.CheckWinC
 public import LeanVM.Guest.B2C.Cpl
 public import LeanVM.Guest.B2C.Share
 meta import LeanVM.Guest.KernelLit
+public import LeanVM.Guest.Pack.«P29».Bundle
+public import LeanVM.Guest.Pack.«P29».Sig
+public import LeanVM.Guest.Pack.«P29».Core
 public import LeanVM.Guest.Pack.«P40».Bundle
 public import LeanVM.Guest.Pack.«P40».Sig
 public import LeanVM.Guest.Pack.«P40».Core
@@ -21,25 +24,45 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-kernel_rfl code1601 : fnOf 1601 = Fn.«walk_path__L12_L8».code
+kernel_rfl code1601 : fnOf 1601 = Fn.«walk_path__L6_L6».code
 
-kernel_rfl core1601 : coreOf 1601 = Fn.«walk_path__L12_L8».core
+kernel_rfl core1601 : coreOf 1601 = Fn.«walk_path__L6_L6».core
 
-kernel_rfl cert1601 : certOf 1601 = (Fn.«walk_path__L12_L8».cert.withPows Data.powTree)
+kernel_rfl cert1601 : certOf 1601 = (Fn.«walk_path__L6_L6».cert.withPows Data.powTree)
 
-kernel_rfl sigBody1601 : sigFrom Fn.«walk_path__L12_L8».code Fn.«walk_path__L12_L8».core (Fn.«walk_path__L12_L8».cert.withPows Data.powTree) = Fn.«walk_path__L12_L8».sig
+kernel_rfl sigBody1601 : sigFrom Fn.«walk_path__L6_L6».code Fn.«walk_path__L6_L6».core (Fn.«walk_path__L6_L6».cert.withPows Data.powTree) = Fn.«walk_path__L6_L6».sig
 
-theorem sig1601 : glob.sig 1601 = Fn.«walk_path__L12_L8».sig := sig_of_link code1601 core1601 cert1601 sigBody1601
+theorem sig1601 : glob.sig 1601 = Fn.«walk_path__L6_L6».sig := sig_of_link code1601 core1601 cert1601 sigBody1601
 
-kernel_rfl plumbEq1601 : B2C.plumbOf 1601 = Fn.«walk_path__L12_L8».plumb
+kernel_rfl plumbEq1601 : B2C.plumbOf 1601 = Fn.«walk_path__L6_L6».plumb
 
-kernel_rfl fsEq1601 : B2C.fsN 1601 = Fn.«walk_path__L12_L8».fs
+kernel_rfl fsEq1601 : B2C.fsN 1601 = Fn.«walk_path__L6_L6».fs
 
-kernel_rfl partsEq1601 : B2C.cplPartsOf 1601 = Fn.«walk_path__L12_L8».parts
+kernel_rfl partsEq1601 : B2C.cplPartsOf 1601 = Fn.«walk_path__L6_L6».parts
 
-kernel_rfl armsEq1601 : listElementOrDefault Data.cplArms 1601 [] = Fn.«walk_path__L12_L8».arms
+kernel_rfl armsEq1601 : listElementOrDefault Data.cplArms 1601 [] = Fn.«walk_path__L6_L6».arms
 
-kernel_rfl snapsEq1601 : B2C.snapsOf 1601 = Fn.«walk_path__L12_L8».snaps
+kernel_rfl snapsEq1601 : B2C.snapsOf 1601 = Fn.«walk_path__L6_L6».snaps
+
+kernel_rfl code1602 : fnOf 1602 = Fn.«walk_path__L12_L8».code
+
+kernel_rfl core1602 : coreOf 1602 = Fn.«walk_path__L12_L8».core
+
+kernel_rfl cert1602 : certOf 1602 = (Fn.«walk_path__L12_L8».cert.withPows Data.powTree)
+
+kernel_rfl sigBody1602 : sigFrom Fn.«walk_path__L12_L8».code Fn.«walk_path__L12_L8».core (Fn.«walk_path__L12_L8».cert.withPows Data.powTree) = Fn.«walk_path__L12_L8».sig
+
+theorem sig1602 : glob.sig 1602 = Fn.«walk_path__L12_L8».sig := sig_of_link code1602 core1602 cert1602 sigBody1602
+
+kernel_rfl plumbEq1602 : B2C.plumbOf 1602 = Fn.«walk_path__L12_L8».plumb
+
+kernel_rfl fsEq1602 : B2C.fsN 1602 = Fn.«walk_path__L12_L8».fs
+
+kernel_rfl partsEq1602 : B2C.cplPartsOf 1602 = Fn.«walk_path__L12_L8».parts
+
+kernel_rfl armsEq1602 : listElementOrDefault Data.cplArms 1602 [] = Fn.«walk_path__L12_L8».arms
+
+kernel_rfl snapsEq1602 : B2C.snapsOf 1602 = Fn.«walk_path__L12_L8».snaps
 
 end
 end LeanVM.Guest.Checked

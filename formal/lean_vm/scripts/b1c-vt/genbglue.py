@@ -11,9 +11,9 @@ tctr = {}
 for (k, s), c in zip(flat, ctr): tctr.setdefault(k, c)
 SLICES = [(765, 766), (778, 781), (794, 811), (824, 842), (1332, 1479), (1912, 1926), (1926, 2021),
           (2021, 2593)]
-READ = {13: ('hw', 16), 15: ('hpool', 4), 777: ('hidx', 3), 5: ('hcur', 7), 19: ('hpt', 4),
+READ = {13: ('hw', 16), 15: ('hpool', 4), 778: ('hidx', 3), 5: ('hcur', 7), 19: ('hpt', 4),
         17: ('hleaves', 3)}
-HYP = {'hw': ('W', 13, 16), 'hpool': ('P', 15, 4), 'hidx': ('Q', 777, 3), 'hcur': ('C', 5, 7),
+HYP = {'hw': ('W', 13, 16), 'hpool': ('P', 15, 4), 'hidx': ('Q', 778, 3), 'hcur': ('C', 5, 7),
        'hpt': ('T', 19, 4), 'hleaves': ('G', 17, 3)}
 def auto(s):
     m = re.match(r'\.atom \(\.(\w+)', s)
@@ -66,7 +66,7 @@ for a, b in SLICES:
             H += f'{{{f} : ℕ → E}}\n    ({nm} : ∀ i < {n}, LoadHolds rd (vtσ rd wo args (.n {p})) i ({f} i)) '
     sys.stderr.write(f'{name}: {sorted(used)} specials {specials}\n')
     out.append(f'''set_option maxRecDepth 100000 in
-theorem {name} (hl : args.length = 20) {H}{hyps} :
+theorem {name} (hl : args.length = 21) {H}{hyps} :
     ∀ s ∈ (vtPre.drop {a}).take {b - a}, VSH (coreProgram.Rel rd) rd (vtσ rd wo args) s := by
 {body}''')
 print('''/-

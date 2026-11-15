@@ -41,11 +41,11 @@ noncomputable def vtChunk : ℕ → List Stmt
   | 11 => (core% «verify_tables» c11)
   | 12 => (core% «verify_tables» c12)
   | 13 => (core% «verify_tables» c13)
-  | _ => (core% «verify_tables» c14).take 156
+  | _ => (core% «verify_tables» c14).take 160
 
 /-- `verify_tables`' returned values. -/
-def vtRets : List V := [.n 5978, .n 5979, .n 5980, .n 5981, .n 5982, .n 5985, .n 5986,
-  .n 5987, .n 5988, .n 5989]
+def vtRets : List V := [.n 5983, .n 5984, .n 5985, .n 5986, .n 5987, .n 5990, .n 5991,
+  .n 5992, .n 5993, .n 5994]
 
 theorem vtChunk_noRet' : ∀ i < 15, Stmt.noRetList (vtChunk i) = true := by decide +kernel
 
@@ -59,7 +59,7 @@ theorem vtChunk_noRet (i : ℕ) : Stmt.noRetList (vtChunk i) = true := by
 
 theorem verify_tables_body :
     (core% «verify_tables» body) = ((List.range 15).map vtChunk).flatten ++ [.ret vtRets] := by
-  have h14 : (core% «verify_tables» c14) = (core% «verify_tables» c14).take 156 ++ [.ret vtRets] :=
+  have h14 : (core% «verify_tables» c14) = (core% «verify_tables» c14).take 160 ++ [.ret vtRets] :=
     tbStmtsEqb_sound (by decide +kernel)
   conv_lhs => rw [core_eq% «verify_tables» body, h14]
   simp only [List.range_succ, List.range_zero, List.map_append, List.map_cons,
@@ -68,14 +68,14 @@ theorem verify_tables_body :
 
 noncomputable def vtCheck : Bool :=
   match coreProgram.find? name% «verify_tables» with
-  | some fn => decide (fn.params = (List.range 20).map V.n) &&
+  | some fn => decide (fn.params = (List.range 21).map V.n) &&
       tbStmtsEqb fn.body (core% «verify_tables» body)
   | none => false
 
 theorem vtCheck_eq : vtCheck = true := by decide +kernel
 
 theorem vtFound : ∃ fn : Fn, coreProgram.find? name% «verify_tables» = some fn ∧
-    fn.params = (List.range 20).map V.n ∧
+    fn.params = (List.range 21).map V.n ∧
     fn.body = ((List.range 15).map vtChunk).flatten ++ [.ret vtRets] := by
   have h := vtCheck_eq
   unfold vtCheck at h
@@ -93,7 +93,7 @@ theorem vtPre_noRet : Stmt.noRetList vtPre = true :=
 
 /-- The lengths of `verify_tables`' chunks. -/
 def vtLens : List ℕ :=
-  [576, 286, 159, 167, 211, 209, 160, 189, 587, 569, 568, 530, 592, 600, 156]
+  [576, 286, 159, 167, 211, 209, 160, 189, 587, 569, 568, 531, 592, 600, 160]
 
 theorem vtLens_eq : ((List.range 15).map vtChunk).map List.length = vtLens := by decide +kernel
 
@@ -119,7 +119,7 @@ def VtH (rd : Reader) (σ : Val) : Prop :=
 `vtRets`. -/
 theorem vt_unfold {rd : Reader} {args rets : List E}
     (h : coreProgram.Rel rd "verify_tables" args rets) :
-    ∃ σ : Val, (List.range 20).map (fun k ↦ σ (.n k)) = args ∧ VtH rd σ ∧
+    ∃ σ : Val, (List.range 21).map (fun k ↦ σ (.n k)) = args ∧ VtH rd σ ∧
       vtRets.map σ = rets := by
   obtain ⟨fn, hf, hpar, hb⟩ := vtFound
   obtain ⟨σ, hp, hbd, hr⟩ := (tb_rel_pre hf hb vtPre_noRet args rets).mp h

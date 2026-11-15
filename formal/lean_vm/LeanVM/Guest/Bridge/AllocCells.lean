@@ -57,7 +57,7 @@ theorem cellsChk_2 : ∀ j < 1200, 800 ≤ j → cellsChk (fnAl j) (B2C.fsN j) =
 theorem cellsChk_3 : ∀ j < nFns, 1200 ≤ j → cellsChk (fnAl j) (B2C.fsN j) = true := by decide +kernel
 
 theorem cellsChk_all (j : ℕ) (h : j < nFns) : cellsChk (fnAl j) (B2C.fsN j) = true := by
-  have : nFns = 1602 := rfl
+  have : nFns = fn_count% := rfl
   rcases Nat.lt_or_ge j 400 with h0 | h0
   · exact cellsChk_0 j h0
   rcases Nat.lt_or_ge j 800 with h1 | h1

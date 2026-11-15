@@ -65,7 +65,7 @@ theorem take_self_len (l : List E) (k : ℕ) : l.take k = l.take (l.take k).leng
   rw [List.length_take]; exact List.take_eq_take_min
 
 theorem chiW_length (H : VtHonest) : H.chiW.length = H.n := by
-  simp [VtHonest.chiW, zcChis]
+  simp [VtHonest.chiW, zcChis, zcRkW]
 
 theorem vsEvTab_lt : ∀ k < 153, vsEvTab k < 6 := by decide +kernel
 

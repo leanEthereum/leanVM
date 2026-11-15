@@ -18,15 +18,15 @@ namespace LeanVM.Guest.End
 
 set_option maxRecDepth 100000 in
 /-- `open_stacked__L6`. -/
-theorem osOk_342 : osOk 342 [(79, 32), (175, 289), (271, 438), (367, 587), (441, 701)] = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `open_stacked__L7`. -/
 theorem osOk_343 : osOk 343 [(79, 32), (175, 289), (271, 438), (367, 587), (441, 701)] = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
+/-- `open_stacked__L7`. -/
+theorem osOk_344 : osOk 344 [(79, 32), (175, 289), (271, 438), (367, 587), (441, 701)] = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
 /-- `open_stacked__L8`. -/
-theorem osOk_344 : osOk 344 [(79, 32), (175, 289), (271, 438), (367, 587), (463, 736), (537, 850)] = true := by decide +kernel
+theorem osOk_345 : osOk 345 [(79, 32), (175, 289), (271, 438), (367, 587), (463, 736), (537, 850)] = true := by decide +kernel
 
 end
 end LeanVM.Guest.End

@@ -34,7 +34,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `list_split`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨61189, 30, Fn.«list_split».modeSig, (.node (some [(.witnessStack "signers_split" 6 3)]) .nil
+  ⟨61199, 30, Fn.«list_split».modeSig, (.node (some [(.witnessStack "signers_split" 6 3)]) .nil
     .nil), .nil, .nil, false, .nil⟩
 
 /-- `list_split`: its mode walk accepts its code. -/
@@ -53,34 +53,33 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `da_column_offsets`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none .nil (.node none .nil (.node none (.node none
-    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node
+  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none .nil (.node none (.node none (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node
     none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node
     none .nil (.node (some Fn.«da_column_offsets_loop5».modeSig) .nil .nil)))) .nil)) .nil))))
-    .nil) .nil)) (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
-    .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node (some Fn.«da_column_offsets_loop1».modeSig) .nil .nil)))) .nil)) .nil))) .nil)
-    .nil)) .nil)) (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
-    none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node
-    none .nil (.node none .nil (.node (some Fn.«da_column_offsets_loop3».modeSig) .nil .nil))))
-    .nil)) .nil))) .nil)) .nil)))) (.node none (.node none (.node none (.node none (.node none .nil
+    .nil)) .nil) (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node
+    none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node (some Fn.«da_column_offsets_loop1».modeSig) .nil .nil)))) .nil)) .nil))) .nil)
+    .nil)))) (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none
+    .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node (some Fn.«da_column_offsets_loop3».modeSig) .nil .nil)))) .nil))
+    .nil))) .nil))) .nil))) (.node none (.node none (.node none .nil (.node none (.node none .nil
     (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
     none .nil (.node none .nil (.node none .nil (.node (some Fn.«da_column_offsets_loop2».modeSig)
-    .nil .nil)))) .nil)) .nil))) .nil)) .nil) .nil) (.node none (.node none .nil (.node none (.node
+    .nil .nil)))) .nil)) .nil))) .nil)) .nil)) (.node none .nil (.node none .nil (.node none (.node
     none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
     none .nil (.node none .nil (.node none .nil (.node (some Fn.«da_column_offsets_loop6».modeSig)
-    .nil .nil)))) .nil)) .nil)))) .nil)) .nil)) (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_column_offsets_loop4».modeSig) .nil .nil)))) .nil)) .nil))) .nil)))) (.node none (.node
-    none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_column_offsets_loop0».modeSig) .nil .nil)))) .nil)) .nil))) .nil) .nil) .nil)
-    .nil)))))), 524287⟩
+    .nil .nil)))) .nil)) .nil)))) .nil)))) (.node none (.node none (.node none (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node (some Fn.«da_column_offsets_loop4».modeSig)
+    .nil .nil)))) .nil)) .nil)))) .nil) .nil) .nil) (.node none .nil (.node none (.node none (.node
+    none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none
+    .nil (.node none .nil (.node none .nil (.node (some Fn.«da_column_offsets_loop0».modeSig) .nil
+    .nil)))) .nil)) .nil))) .nil) .nil) .nil))))) .nil)), 524287⟩
 
 /-- `da_column_offsets`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨63074, 264, Fn.«da_column_offsets».modeSig, (.node (some [(.alloc 4 1024)]) (.node none (.node
+  ⟨63084, 264, Fn.«da_column_offsets».modeSig, (.node (some [(.alloc 4 1024)]) (.node none (.node
     none .nil (.node none (.node none .nil (.node none .nil (.node (some [(.allocFrames 76 42 74
     (LeanVM.Parameters.K.ofBits 0x1) 42)]) .nil .nil))) (.node none .nil (.node none (.node none
     .nil (.node (some [(.allocFrames 138 42 136 (LeanVM.Parameters.K.ofBits 0x1) 42)]) .nil .nil))
@@ -116,7 +115,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `padding_weight__L5`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨189328, 60, Fn.«padding_weight__L5».modeSig, (.node none .nil (.node (some [(.bitDecompose 8
+  ⟨189338, 60, Fn.«padding_weight__L5».modeSig, (.node none .nil (.node (some [(.bitDecompose 8
     (.stack 9) 6)]) .nil .nil)), .nil, .nil, false, .nil⟩
 
 /-- `padding_weight__L5`: its mode walk accepts its code. -/
@@ -139,7 +138,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `padding_weight__L10`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨189708, 100, Fn.«padding_weight__L10».modeSig, (.node none .nil (.node (some [(.bitDecompose 8
+  ⟨189718, 100, Fn.«padding_weight__L10».modeSig, (.node none .nil (.node (some [(.bitDecompose 8
     (.stack 9) 11)]) .nil .nil)), .nil, .nil, false, .nil⟩
 
 /-- `padding_weight__L10`: its mode walk accepts its code. -/
@@ -162,7 +161,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `index_mle__L31`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨203341, 157, Fn.«index_mle__L31».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨203351, 157, Fn.«index_mle__L31».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `index_mle__L31`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by

@@ -83,9 +83,9 @@ this one. -/
 def VtRankFacts (rd : Reader) (σ : Val) (v0 s r : ℕ) : Prop :=
   (∃ e < 24, σ (.n (vtRv v0 r)) = gen ^ e) ∧
     LoadHolds rd (σ (.n 12) * σ (.n (vtRv v0 r))) 212 (word s 0) ∧
-    LoadHolds rd (σ (.n 33) * σ (.n (vtRv v0 r))) 0 (σ (.n (vtRv v0 r + 8))) ∧
-    LoadHolds rd (σ (.n 35) * σ (.n (vtRv v0 r))) 0 (σ (.n (vtGin v0 r))) ∧
-    LoadHolds rd (σ (.n 34) * σ (.n (vtRv v0 r))) 0 (σ (.n (vtSz v0 r))) ∧
+    LoadHolds rd (σ (.n 34) * σ (.n (vtRv v0 r))) 0 (σ (.n (vtRv v0 r + 8))) ∧
+    LoadHolds rd (σ (.n 36) * σ (.n (vtRv v0 r))) 0 (σ (.n (vtGin v0 r))) ∧
+    LoadHolds rd (σ (.n 35) * σ (.n (vtRv v0 r))) 0 (σ (.n (vtSz v0 r))) ∧
     σ (.n (vtGout v0 r)) = σ (.n (vtGin v0 r)) * σ (.n (vtSz v0 r)) ∧
     (r = 0 → σ (.n (vtGin v0 r)) = 1) ∧
     (1 ≤ r → ∃ d < 8398, σ (.n (vtRv v0 (r - 1) + 8)) = gen ^ (d + 1) * σ (.n (vtRv v0 r + 8)))
@@ -156,14 +156,14 @@ theorem vt_side_cert {rd : Reader} {σ : Val} {n m G0 base v0 s : ℕ} (κs : Li
     (hfacts : ∀ r < m, VtRankFacts rd σ v0 s r)
     (hside : ∀ e < 24, LoadHolds rd (σ (.n 12)) (212 + e) (word (vtGroupSide e) 0))
     (hsideS : ∀ e < 24, vtGroupSide e = s → G0 ≤ e ∧ e < G0 + m) (hs : s < 3)
-    (hkey : ∀ j < m, ∃ key, LoadHolds rd (σ (.n 33)) (G0 + j) key ∧
+    (hkey : ∀ j < m, ∃ key, LoadHolds rd (σ (.n 34)) (G0 + j) key ∧
       key * gen ^ (base + st j) = gen ^ (kg j * 247))
-    (hsz : ∀ j < m, LoadHolds rd (σ (.n 34)) (G0 + j) (gen ^ ((st (j + 1) - st j) * 2 ^ kg j)))
+    (hsz : ∀ j < m, LoadHolds rd (σ (.n 35)) (G0 + j) (gen ^ ((st (j + 1) - st j) * 2 ^ kg j)))
     (hkg : ∀ j < m, kg j < 34) (hrun : ∀ j < m, st j < st (j + 1))
     (hgrp : ∀ x < n, grp x < m ∧ st (grp x) ≤ x ∧ x < st (grp x + 1))
     (hgrp' : ∀ j < m, ∀ x, st j ≤ x → x < st (j + 1) → x < n ∧ grp x = j)
     (hκ : ∀ x < n, κs.getD x 0 = kg (grp x))
-    (hb0 : ∀ j < m, LoadHolds rd (σ (.n 35)) (G0 + j) (σ (.n (bv (st j)))))
+    (hb0 : ∀ j < m, LoadHolds rd (σ (.n 36)) (G0 + j) (σ (.n (bv (st j)))))
     (hstep : ∀ x < n, st (grp x) < x →
       σ (.n (bv x)) = σ (.n (bv (x - 1))) * gen ^ 2 ^ kg (grp x)) :
     ∀ x < n, σ (.n (bv x)) = gen ^ (stackOffsets κs).1.getD x 0 := by
@@ -285,7 +285,7 @@ and the tables' heights and the exponent tables in place, the push side's `54` b
 count side's `45` hold `g^` the `stackOffsets` offsets of their side's log-sizes in `block_off`. -/
 theorem vt_sort {σ : Val} (h : VtH Lm.read σ) {lm : ℕ} {τ : ℕ → ℕ} (hlm : lm ≤ 32)
     (hτ : ∀ t < 6, τ t < 33)
-    (hkb : ∀ i < 8, σ (.n (25 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0)
+    (hkb : ∀ i < 8, σ (.n (26 + i)) = gen ^ ([0, lm] ++ vtTauList τ).getD i 0)
     (hE : ExpTablesAt Lm.read (σ (.n 12))) :
     (∀ x < 54, σ (.n (vtBoffV x)) =
       gen ^ (stackOffsets ((List.range 54).map (vtKap lm τ))).1.getD x 0) ∧
@@ -300,9 +300,9 @@ theorem vt_sort {σ : Val} (h : VtH Lm.read σ) {lm : ℕ} {τ : ℕ → ℕ} (h
     vt_kap_lt lm τ hlm hτ (by have : ∀ k < 15, vtB0 k < 153 := by decide +kernel
                               exact this k hk)
   -- the groups' keys and sizes
-  have hG : ∀ k < 15, (∃ key, LoadHolds Lm.read (σ (.n 33)) (vtGi k) key ∧
+  have hG : ∀ k < 15, (∃ key, LoadHolds Lm.read (σ (.n 34)) (vtGi k) key ∧
       key * gen ^ vtB0 k = gen ^ (vtKap lm τ (vtB0 k) * 247)) ∧
-      LoadHolds Lm.read (σ (.n 34)) (vtGi k) (gen ^ (vtLen k * 2 ^ vtKap lm τ (vtB0 k))) := by
+      LoadHolds Lm.read (σ (.n 35)) (vtGi k) (gen ^ (vtLen k * 2 ^ vtKap lm τ (vtB0 k))) := by
     intro k hk
     obtain ⟨key, rk, sz, sq, hk1, hrk1, hke, hsz1, hsq1, hszv⟩ := vt_grps h k hk
     rw [hkx k hk, tb_loadHolds_mul_gen_pow] at hrk1 hsq1
@@ -317,7 +317,7 @@ theorem vt_sort {σ : Val} (h : VtH Lm.read σ) {lm : ℕ} {τ : ℕ → ℕ} (h
     refine ⟨⟨key, hk1, by rw [hke, e1]⟩, ?_⟩
     rwa [hszv, e2, ← pow_mul, mul_comm] at hsz1
   -- the groups' block offsets
-  have hB : ∀ k < 15, LoadHolds Lm.read (σ (.n 35)) (vtGi k)
+  have hB : ∀ k < 15, LoadHolds Lm.read (σ (.n 36)) (vtGi k)
         (σ (.n (vtBoffData.getD k default).2.2.2)) ∧
       σ (.n ((vtBoffData.getD k default).2.2.2 - 1)) = gen ^ 2 ^ vtKap lm τ (vtB0 k) ∧
       ∀ i < vtLen k - 1, σ (.n ((vtBoffData.getD k default).2.2.2 + 1 + i)) =
@@ -410,14 +410,14 @@ theorem vt_sort {σ : Val} (h : VtH Lm.read σ) {lm : ℕ} {τ : ℕ → ℕ} (h
       obtain ⟨-, hst, hch⟩ := hB _ hk
       rw [hkk] at hst hch hb0
       rw [e1, e2, hch _ e3, hst, hb0]
-  have hP := side 0 0 0 9 54 111 0 (by norm_num) (by norm_num) (fun r hr => by
+  have hP := side 0 0 0 9 54 112 0 (by norm_num) (by norm_num) (fun r hr => by
       rcases Nat.eq_zero_or_pos r with rfl | hr0
       · obtain ⟨k, hs⟩ := h.sliceAt 110 _ vtPush0_check
         exact vt_rank0 hμ Lm hs
       · obtain ⟨k, hs⟩ := h.sliceAt _ _ (vtPush_check r hr hr0)
         exact vt_rank hμ Lm hr0 hs)
     (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel)
-  have hC := side 108 18 9 6 45 408 2 (by norm_num) (by norm_num) (fun r hr => by
+  have hC := side 108 18 9 6 45 409 2 (by norm_num) (by norm_num) (fun r hr => by
       rcases Nat.eq_zero_or_pos r with rfl | hr0
       · obtain ⟨k, hs⟩ := h.sliceAt 403 _ vtCount0_check
         exact vt_rank0 hμ Lm hs

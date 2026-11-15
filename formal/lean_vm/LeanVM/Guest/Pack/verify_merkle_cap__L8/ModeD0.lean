@@ -26,7 +26,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `verify_merkle_cap__L8`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨330408, 2810, Fn.«verify_merkle_cap__L8».modeSig, (.node none .nil (.node none .nil (.node none
+  ⟨330438, 2810, Fn.«verify_merkle_cap__L8».modeSig, (.node none .nil (.node none .nil (.node none
     .nil (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node
     (some [(.cellAddress 1035 1036)]) .nil .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)))),
     .nil, .nil, false, (.node none (.node none .nil (.node none .nil (.node none .nil (.node none

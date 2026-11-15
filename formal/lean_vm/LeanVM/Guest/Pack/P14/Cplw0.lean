@@ -225,12 +225,12 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop24`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(407, Fn.«da_verify_loop3».sig)]) Data.jtTrie globSem) code Fn.«da_verify_loop3».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+/-- `__loop25`, window 0, part 0. -/
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(408, Fn.«da_verify_loop3».sig)]) Data.jtTrie globSem) code Fn.«da_verify_loop3».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
-/-- `__loop24`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(407, Fn.«da_verify_loop3».sig)]) Data.jtTrie globSem) code Fn.«da_verify_loop3».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+/-- `__loop25`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs ([(408, Fn.«da_verify_loop3».sig)]) Data.jtTrie globSem) code Fn.«da_verify_loop3».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi

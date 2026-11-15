@@ -23,8 +23,8 @@ public import LeanVM.Guest.B1.Tables.InterfaceP
 * `vtBoffT kv off gi bv len`: group `gi`'s blocks' offsets, `block_off[b0] = group_base[gi]` then
   one step `g_squares[κ]` a block.
 
-The push side's ranks sit at statement `110` (values from `111`), the count side's at `403` (from
-`408`); rank `r ≥ 1` is `13 + 18 (r - 1)` statements on and its values `13 + 20 (r - 1)` on.
+The push side's ranks sit at statement `110` (values from `112`), the count side's at `403` (from
+`409`); rank `r ≥ 1` is `13 + 18 (r - 1)` statements on and its values `13 + 20 (r - 1)` on.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -49,8 +49,8 @@ theorem vt_wInv {W b : ℕ} (hW : K.ofBits W * Parameters.addressOfIndex b = 1) 
 /-- Block group `gi` (first block `b0`, `len` blocks, log-size `κ` with `g^κ = kx`): its key
 `rank_keys[κ]·g^(-b0)` and its size `g_squares[κ]^len`, stored at `g^gi`. -/
 def VtGrpFacts (rd : Reader) (σ : Val) (gi : ℕ) (kx : E) (b0 len : ℕ) : Prop :=
-  ∃ key rk sz sq : E, LoadHolds rd (σ (.n 33)) gi key ∧ LoadHolds rd (σ (.n 12) * kx) 178 rk ∧
-    key * gen ^ b0 = rk ∧ LoadHolds rd (σ (.n 34)) gi sz ∧ LoadHolds rd (σ (.n 12) * kx) 0 sq ∧
+  ∃ key rk sz sq : E, LoadHolds rd (σ (.n 34)) gi key ∧ LoadHolds rd (σ (.n 12) * kx) 178 rk ∧
+    key * gen ^ b0 = rk ∧ LoadHolds rd (σ (.n 35)) gi sz ∧ LoadHolds rd (σ (.n 12) * kx) 0 sq ∧
     sz = sq ^ len
 
 /-- Group index `k < 15`: the push side's groups `0 .. 8`, then the count side's `18 .. 23`. -/
@@ -59,31 +59,31 @@ def vtGi (k : ℕ) : ℕ := if k < 9 then k else k + 9
 /-- Group `k`'s first block, its length, its `kappa_base` variable and adjustment. -/
 def vtB0 (k : ℕ) : ℕ := blockGroupStart.getD (vtGi k) 0
 def vtLen (k : ℕ) : ℕ := blockGroupStart.getD (vtGi k + 1) 0 - vtB0 k
-def vtKv (k : ℕ) : ℕ := 25 + blockKappaSrc.getD (vtB0 k) 0
+def vtKv (k : ℕ) : ℕ := 26 + blockKappaSrc.getD (vtB0 k) 0
 def vtAdj (k : ℕ) : ℕ := blockKappaAdj (vtB0 k)
 
 /-- A side's first rank. -/
 def vtRank0T (v R s : ℕ) : List Stmt :=
-  [.atom (.load (.n v) (.n 36) R), .atom (.const (.n (v + 1)) vtW23),
+  [.atom (.load (.n v) (.n 37) R), .atom (.const (.n (v + 1)) vtW23),
     .atom (.rangeCheck (.n v) (.n (v + 2)) (.n (v + 3)) (.n (v + 4)) (.n (v + 1))),
     .atom (.const (.n (v + 5)) (word s 0)), .atom (.mul (.n (v + 6)) (.n 12) (.n v)),
-    .atom (.load (.n (v + 5)) (.n (v + 6)) 212), .atom (.mul (.n (v + 7)) (.n 33) (.n v)),
+    .atom (.load (.n (v + 5)) (.n (v + 6)) 212), .atom (.mul (.n (v + 7)) (.n 34) (.n v)),
     .atom (.load (.n (v + 8)) (.n (v + 7)) 0), .atom (.const (.n (v + 9)) (word 1 0)),
-    .atom (.mul (.n (v + 10)) (.n 35) (.n v)), .atom (.load (.n (v + 9)) (.n (v + 10)) 0),
-    .atom (.mul (.n (v + 11)) (.n 34) (.n v)), .atom (.load (.n (v + 12)) (.n (v + 11)) 0)]
+    .atom (.mul (.n (v + 10)) (.n 36) (.n v)), .atom (.load (.n (v + 9)) (.n (v + 10)) 0),
+    .atom (.mul (.n (v + 11)) (.n 35) (.n v)), .atom (.load (.n (v + 12)) (.n (v + 11)) 0)]
 
 /-- A later rank. -/
 def vtRankT (v R s pk gin : ℕ) : List Stmt :=
-  [.atom (.load (.n v) (.n 36) R), .atom (.const (.n (v + 1)) vtW23),
+  [.atom (.load (.n v) (.n 37) R), .atom (.const (.n (v + 1)) vtW23),
     .atom (.rangeCheck (.n v) (.n (v + 2)) (.n (v + 3)) (.n (v + 4)) (.n (v + 1))),
     .atom (.const (.n (v + 5)) (word s 0)), .atom (.mul (.n (v + 6)) (.n 12) (.n v)),
-    .atom (.load (.n (v + 5)) (.n (v + 6)) 212), .atom (.mul (.n (v + 7)) (.n 33) (.n v)),
+    .atom (.load (.n (v + 5)) (.n (v + 6)) 212), .atom (.mul (.n (v + 7)) (.n 34) (.n v)),
     .atom (.load (.n (v + 8)) (.n (v + 7)) 0), .atom (.const (.n (v + 9)) vtW8397),
     .atom (.mul (.n pk) (.n (v + 10)) (.n (v + 8))), .atom (.const (.n (v + 11)) vtWInvGen),
     .atom (.mul (.n (v + 12)) (.n (v + 10)) (.n (v + 11))),
     .atom (.rangeCheck (.n (v + 12)) (.n (v + 13)) (.n (v + 14)) (.n (v + 15)) (.n (v + 9))),
-    .atom (.mul (.n (v + 16)) (.n 35) (.n v)), .atom (.load (.n gin) (.n (v + 16)) 0),
-    .atom (.mul (.n (v + 17)) (.n 34) (.n v)), .atom (.load (.n (v + 18)) (.n (v + 17)) 0),
+    .atom (.mul (.n (v + 16)) (.n 36) (.n v)), .atom (.load (.n gin) (.n (v + 16)) 0),
+    .atom (.mul (.n (v + 17)) (.n 35) (.n v)), .atom (.load (.n (v + 18)) (.n (v + 17)) 0),
     .atom (.mul (.n (v + 19)) (.n gin) (.n (v + 18)))]
 
 /-- Rank `r`'s values, from the side's `v0`. -/
@@ -103,278 +103,278 @@ def vtRp (p0 r : ℕ) : ℕ := if r = 0 then p0 else p0 + 13 + 18 * (r - 1)
 first block's offset the group's base, then one step a block. -/
 def vtBoffT (kv off gi bv len : ℕ) : List Stmt :=
   [.atom (.mul (.n (bv - 2)) (.n 12) (.n kv)), .atom (.load (.n (bv - 1)) (.n (bv - 2)) off),
-    .atom (.load (.n bv) (.n 35) gi)] ++
+    .atom (.load (.n bv) (.n 36) gi)] ++
   (List.range (len - 1)).map fun i ↦ .atom (.mul (.n (bv + 1 + i)) (.n (bv + i)) (.n (bv - 1)))
 
 theorem vtPush0_check :
-    tbStmtsEqb (vtRank0T 111 0 0) ((vtAt 110).take (vtRank0T 111 0 0).length) = true := by
+    tbStmtsEqb (vtRank0T 112 0 0) ((vtAt 110).take (vtRank0T 112 0 0).length) = true := by
   decide +kernel
 
 theorem vtCount0_check :
-    tbStmtsEqb (vtRank0T 408 18 2) ((vtAt 403).take (vtRank0T 408 18 2).length) = true := by
+    tbStmtsEqb (vtRank0T 409 18 2) ((vtAt 403).take (vtRank0T 409 18 2).length) = true := by
   decide +kernel
 
 theorem vtPush_check : ∀ r < 9, 1 ≤ r →
-    tbStmtsEqb (vtRankAt 111 0 0 r) ((vtAt (vtRp 110 r)).take (vtRankAt 111 0 0 r).length) =
+    tbStmtsEqb (vtRankAt 112 0 0 r) ((vtAt (vtRp 110 r)).take (vtRankAt 112 0 0 r).length) =
       true := by
   decide +kernel
 
 theorem vtCount_check : ∀ r < 6, 1 ≤ r →
-    tbStmtsEqb (vtRankAt 408 18 2 r) ((vtAt (vtRp 403 r)).take (vtRankAt 408 18 2 r).length) =
+    tbStmtsEqb (vtRankAt 409 18 2 r) ((vtAt (vtRp 403 r)).take (vtRankAt 409 18 2 r).length) =
       true := by
   decide +kernel
 
 
 theorem vt_grp0 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    VtGrpFacts rd σ 0 (σ (.n 25) * gen ^ 0) 0 1 := by
-  have k0 := h.atomAt 18 (.mul (.n 37) (.n 12) (.n 25)) (by decide +kernel)
-  have k1 := h.atomAt 19 (.load (.n 38) (.n 37) 178) (by decide +kernel)
-  have k2 := h.atomAt 20 (.load (.n 38) (.n 33) 0) (by decide +kernel)
-  have s0 := h.atomAt 21 (.mul (.n 39) (.n 12) (.n 25)) (by decide +kernel)
-  have s1 := h.atomAt 22 (.load (.n 40) (.n 39) 0) (by decide +kernel)
-  have s2 := h.atomAt 23 (.load (.n 40) (.n 34) 0) (by decide +kernel)
+    VtGrpFacts rd σ 0 (σ (.n 26) * gen ^ 0) 0 1 := by
+  have k0 := h.atomAt 18 (.mul (.n 38) (.n 12) (.n 26)) (by decide +kernel)
+  have k1 := h.atomAt 19 (.load (.n 39) (.n 38) 178) (by decide +kernel)
+  have k2 := h.atomAt 20 (.load (.n 39) (.n 34) 0) (by decide +kernel)
+  have s0 := h.atomAt 21 (.mul (.n 40) (.n 12) (.n 26)) (by decide +kernel)
+  have s1 := h.atomAt 22 (.load (.n 41) (.n 40) 0) (by decide +kernel)
+  have s2 := h.atomAt 23 (.load (.n 41) (.n 35) 0) (by decide +kernel)
   simp only [Atom.Holds] at k0 k1 k2 s0 s1 s2
-  exact ⟨σ (.n 38), σ (.n 38), σ (.n 40), σ (.n 40), k2, by rw [pow_zero, mul_one, ← k0]; exact k1,
+  exact ⟨σ (.n 39), σ (.n 39), σ (.n 41), σ (.n 41), k2, by rw [pow_zero, mul_one, ← k0]; exact k1,
     by rw [pow_zero, mul_one], s2, by rw [pow_zero, mul_one, ← s0]; exact s1, by rw [pow_one]⟩
 
 theorem vt_grp1 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    VtGrpFacts rd σ 1 (σ (.n 26) * gen ^ 0) 1 1 := by
-  have k0 := h.atomAt 24 (.mul (.n 41) (.n 12) (.n 26)) (by decide +kernel)
-  have k1 := h.atomAt 25 (.load (.n 42) (.n 41) 178) (by decide +kernel)
-  have k2 := h.atomAt 26 (.const (.n 43) (word 9223372036854775821 0)) (by decide +kernel)
-  have k3 := h.atomAt 27 (.mul (.n 44) (.n 42) (.n 43)) (by decide +kernel)
-  have k4 := h.atomAt 28 (.load (.n 44) (.n 33) 1) (by decide +kernel)
-  have s0 := h.atomAt 29 (.mul (.n 45) (.n 12) (.n 26)) (by decide +kernel)
-  have s1 := h.atomAt 30 (.load (.n 46) (.n 45) 0) (by decide +kernel)
-  have s2 := h.atomAt 31 (.load (.n 46) (.n 34) 1) (by decide +kernel)
+    VtGrpFacts rd σ 1 (σ (.n 27) * gen ^ 0) 1 1 := by
+  have k0 := h.atomAt 24 (.mul (.n 42) (.n 12) (.n 27)) (by decide +kernel)
+  have k1 := h.atomAt 25 (.load (.n 43) (.n 42) 178) (by decide +kernel)
+  have k2 := h.atomAt 26 (.const (.n 44) (word 9223372036854775821 0)) (by decide +kernel)
+  have k3 := h.atomAt 27 (.mul (.n 45) (.n 43) (.n 44)) (by decide +kernel)
+  have k4 := h.atomAt 28 (.load (.n 45) (.n 34) 1) (by decide +kernel)
+  have s0 := h.atomAt 29 (.mul (.n 46) (.n 12) (.n 27)) (by decide +kernel)
+  have s1 := h.atomAt 30 (.load (.n 47) (.n 46) 0) (by decide +kernel)
+  have s2 := h.atomAt 31 (.load (.n 47) (.n 35) 1) (by decide +kernel)
   simp only [Atom.Holds] at k0 k1 k2 k3 k4 s0 s1 s2
-  exact ⟨σ (.n 44), σ (.n 42), σ (.n 46), σ (.n 46), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
+  exact ⟨σ (.n 45), σ (.n 43), σ (.n 47), σ (.n 47), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
     by rw [k3, k2, mul_assoc, vt_wInv (by decide +kernel), mul_one], s2, by rw [pow_zero, mul_one, ← s0]; exact s1, by rw [pow_one]⟩
 
 theorem vt_grp2 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    VtGrpFacts rd σ 2 (σ (.n 25) * gen ^ 19) 2 1 := by
-  have k0 := h.atomAt 32 (.const (.n 47) (word 524288 0)) (by decide +kernel)
-  have k1 := h.atomAt 33 (.mul (.n 48) (.n 25) (.n 47)) (by decide +kernel)
-  have k2 := h.atomAt 34 (.mul (.n 49) (.n 12) (.n 48)) (by decide +kernel)
-  have k3 := h.atomAt 35 (.load (.n 50) (.n 49) 178) (by decide +kernel)
-  have k4 := h.atomAt 36 (.const (.n 51) (word 13835058055282163723 0)) (by decide +kernel)
-  have k5 := h.atomAt 37 (.mul (.n 52) (.n 50) (.n 51)) (by decide +kernel)
-  have k6 := h.atomAt 38 (.load (.n 52) (.n 33) 2) (by decide +kernel)
-  have s0 := h.atomAt 39 (.mul (.n 53) (.n 12) (.n 48)) (by decide +kernel)
-  have s1 := h.atomAt 40 (.load (.n 54) (.n 53) 0) (by decide +kernel)
-  have s2 := h.atomAt 41 (.load (.n 54) (.n 34) 2) (by decide +kernel)
+    VtGrpFacts rd σ 2 (σ (.n 26) * gen ^ 19) 2 1 := by
+  have k0 := h.atomAt 32 (.const (.n 48) (word 524288 0)) (by decide +kernel)
+  have k1 := h.atomAt 33 (.mul (.n 49) (.n 26) (.n 48)) (by decide +kernel)
+  have k2 := h.atomAt 34 (.mul (.n 50) (.n 12) (.n 49)) (by decide +kernel)
+  have k3 := h.atomAt 35 (.load (.n 51) (.n 50) 178) (by decide +kernel)
+  have k4 := h.atomAt 36 (.const (.n 52) (word 13835058055282163723 0)) (by decide +kernel)
+  have k5 := h.atomAt 37 (.mul (.n 53) (.n 51) (.n 52)) (by decide +kernel)
+  have k6 := h.atomAt 38 (.load (.n 53) (.n 34) 2) (by decide +kernel)
+  have s0 := h.atomAt 39 (.mul (.n 54) (.n 12) (.n 49)) (by decide +kernel)
+  have s1 := h.atomAt 40 (.load (.n 55) (.n 54) 0) (by decide +kernel)
+  have s2 := h.atomAt 41 (.load (.n 55) (.n 35) 2) (by decide +kernel)
   simp only [Atom.Holds] at k0 k1 k2 k3 k4 k5 k6 s0 s1 s2
-  have hkv : σ (.n 48) = σ (.n 25) * gen ^ 19 := by rw [k1, k0, show (524288 : ℕ) = 2 ^ 19 by norm_num, tb_word_two_pow (by norm_num)]
-  exact ⟨σ (.n 52), σ (.n 50), σ (.n 54), σ (.n 54), k6, by rw [← hkv, ← k2]; exact k3,
+  have hkv : σ (.n 49) = σ (.n 26) * gen ^ 19 := by rw [k1, k0, show (524288 : ℕ) = 2 ^ 19 by norm_num, tb_word_two_pow (by norm_num)]
+  exact ⟨σ (.n 53), σ (.n 51), σ (.n 55), σ (.n 55), k6, by rw [← hkv, ← k2]; exact k3,
     by rw [k5, k4, mul_assoc, vt_wInv (by decide +kernel), mul_one], s2, by rw [← hkv, ← s0]; exact s1, by rw [pow_one]⟩
 
 theorem vt_grp3 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    VtGrpFacts rd σ 3 (σ (.n 27) * gen ^ 0) 3 5 := by
-  have k0 := h.atomAt 42 (.mul (.n 55) (.n 12) (.n 27)) (by decide +kernel)
-  have k1 := h.atomAt 43 (.load (.n 56) (.n 55) 178) (by decide +kernel)
-  have k2 := h.atomAt 44 (.const (.n 57) (word 16140901064495857672 0)) (by decide +kernel)
-  have k3 := h.atomAt 45 (.mul (.n 58) (.n 56) (.n 57)) (by decide +kernel)
-  have k4 := h.atomAt 46 (.load (.n 58) (.n 33) 3) (by decide +kernel)
-  have s0 := h.atomAt 47 (.mul (.n 59) (.n 12) (.n 27)) (by decide +kernel)
-  have s1 := h.atomAt 48 (.load (.n 60) (.n 59) 0) (by decide +kernel)
-  have s2 := h.atomAt 49 (.mul (.n 61) (.n 60) (.n 60)) (by decide +kernel)
-  have s3 := h.atomAt 50 (.mul (.n 62) (.n 61) (.n 61)) (by decide +kernel)
-  have s4 := h.atomAt 51 (.mul (.n 63) (.n 62) (.n 60)) (by decide +kernel)
-  have s5 := h.atomAt 52 (.load (.n 63) (.n 34) 3) (by decide +kernel)
+    VtGrpFacts rd σ 3 (σ (.n 28) * gen ^ 0) 3 5 := by
+  have k0 := h.atomAt 42 (.mul (.n 56) (.n 12) (.n 28)) (by decide +kernel)
+  have k1 := h.atomAt 43 (.load (.n 57) (.n 56) 178) (by decide +kernel)
+  have k2 := h.atomAt 44 (.const (.n 58) (word 16140901064495857672 0)) (by decide +kernel)
+  have k3 := h.atomAt 45 (.mul (.n 59) (.n 57) (.n 58)) (by decide +kernel)
+  have k4 := h.atomAt 46 (.load (.n 59) (.n 34) 3) (by decide +kernel)
+  have s0 := h.atomAt 47 (.mul (.n 60) (.n 12) (.n 28)) (by decide +kernel)
+  have s1 := h.atomAt 48 (.load (.n 61) (.n 60) 0) (by decide +kernel)
+  have s2 := h.atomAt 49 (.mul (.n 62) (.n 61) (.n 61)) (by decide +kernel)
+  have s3 := h.atomAt 50 (.mul (.n 63) (.n 62) (.n 62)) (by decide +kernel)
+  have s4 := h.atomAt 51 (.mul (.n 64) (.n 63) (.n 61)) (by decide +kernel)
+  have s5 := h.atomAt 52 (.load (.n 64) (.n 35) 3) (by decide +kernel)
   simp only [Atom.Holds] at k0 k1 k2 k3 k4 s0 s1 s2 s3 s4 s5
-  exact ⟨σ (.n 58), σ (.n 56), σ (.n 63), σ (.n 60), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
+  exact ⟨σ (.n 59), σ (.n 57), σ (.n 64), σ (.n 61), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
     by rw [k3, k2, mul_assoc, vt_wInv (by decide +kernel), mul_one], s5, by rw [pow_zero, mul_one, ← s0]; exact s1, by rw [s4, s3, s2]; ring⟩
 
 theorem vt_grp4 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    VtGrpFacts rd σ 4 (σ (.n 28) * gen ^ 0) 8 5 := by
-  have k0 := h.atomAt 53 (.mul (.n 64) (.n 12) (.n 28)) (by decide +kernel)
-  have k1 := h.atomAt 54 (.load (.n 65) (.n 64) 178) (by decide +kernel)
-  have k2 := h.atomAt 55 (.const (.n 66) (word 14339461213547659275 0)) (by decide +kernel)
-  have k3 := h.atomAt 56 (.mul (.n 67) (.n 65) (.n 66)) (by decide +kernel)
-  have k4 := h.atomAt 57 (.load (.n 67) (.n 33) 4) (by decide +kernel)
-  have s0 := h.atomAt 58 (.mul (.n 68) (.n 12) (.n 28)) (by decide +kernel)
-  have s1 := h.atomAt 59 (.load (.n 69) (.n 68) 0) (by decide +kernel)
-  have s2 := h.atomAt 60 (.mul (.n 70) (.n 69) (.n 69)) (by decide +kernel)
-  have s3 := h.atomAt 61 (.mul (.n 71) (.n 70) (.n 70)) (by decide +kernel)
-  have s4 := h.atomAt 62 (.mul (.n 72) (.n 71) (.n 69)) (by decide +kernel)
-  have s5 := h.atomAt 63 (.load (.n 72) (.n 34) 4) (by decide +kernel)
+    VtGrpFacts rd σ 4 (σ (.n 29) * gen ^ 0) 8 5 := by
+  have k0 := h.atomAt 53 (.mul (.n 65) (.n 12) (.n 29)) (by decide +kernel)
+  have k1 := h.atomAt 54 (.load (.n 66) (.n 65) 178) (by decide +kernel)
+  have k2 := h.atomAt 55 (.const (.n 67) (word 14339461213547659275 0)) (by decide +kernel)
+  have k3 := h.atomAt 56 (.mul (.n 68) (.n 66) (.n 67)) (by decide +kernel)
+  have k4 := h.atomAt 57 (.load (.n 68) (.n 34) 4) (by decide +kernel)
+  have s0 := h.atomAt 58 (.mul (.n 69) (.n 12) (.n 29)) (by decide +kernel)
+  have s1 := h.atomAt 59 (.load (.n 70) (.n 69) 0) (by decide +kernel)
+  have s2 := h.atomAt 60 (.mul (.n 71) (.n 70) (.n 70)) (by decide +kernel)
+  have s3 := h.atomAt 61 (.mul (.n 72) (.n 71) (.n 71)) (by decide +kernel)
+  have s4 := h.atomAt 62 (.mul (.n 73) (.n 72) (.n 70)) (by decide +kernel)
+  have s5 := h.atomAt 63 (.load (.n 73) (.n 35) 4) (by decide +kernel)
   simp only [Atom.Holds] at k0 k1 k2 k3 k4 s0 s1 s2 s3 s4 s5
-  exact ⟨σ (.n 67), σ (.n 65), σ (.n 72), σ (.n 69), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
+  exact ⟨σ (.n 68), σ (.n 66), σ (.n 73), σ (.n 70), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
     by rw [k3, k2, mul_assoc, vt_wInv (by decide +kernel), mul_one], s5, by rw [pow_zero, mul_one, ← s0]; exact s1, by rw [s4, s3, s2]; ring⟩
 
 theorem vt_grp5 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    VtGrpFacts rd σ 5 (σ (.n 29) * gen ^ 0) 13 3 := by
-  have k0 := h.atomAt 64 (.mul (.n 73) (.n 12) (.n 29)) (by decide +kernel)
-  have k1 := h.atomAt 65 (.load (.n 74) (.n 73) 178) (by decide +kernel)
-  have k2 := h.atomAt 66 (.const (.n 75) (word 10247940952081563661 0)) (by decide +kernel)
-  have k3 := h.atomAt 67 (.mul (.n 76) (.n 74) (.n 75)) (by decide +kernel)
-  have k4 := h.atomAt 68 (.load (.n 76) (.n 33) 5) (by decide +kernel)
-  have s0 := h.atomAt 69 (.mul (.n 77) (.n 12) (.n 29)) (by decide +kernel)
-  have s1 := h.atomAt 70 (.load (.n 78) (.n 77) 0) (by decide +kernel)
-  have s2 := h.atomAt 71 (.mul (.n 79) (.n 78) (.n 78)) (by decide +kernel)
-  have s3 := h.atomAt 72 (.mul (.n 80) (.n 79) (.n 78)) (by decide +kernel)
-  have s4 := h.atomAt 73 (.load (.n 80) (.n 34) 5) (by decide +kernel)
+    VtGrpFacts rd σ 5 (σ (.n 30) * gen ^ 0) 13 3 := by
+  have k0 := h.atomAt 64 (.mul (.n 74) (.n 12) (.n 30)) (by decide +kernel)
+  have k1 := h.atomAt 65 (.load (.n 75) (.n 74) 178) (by decide +kernel)
+  have k2 := h.atomAt 66 (.const (.n 76) (word 10247940952081563661 0)) (by decide +kernel)
+  have k3 := h.atomAt 67 (.mul (.n 77) (.n 75) (.n 76)) (by decide +kernel)
+  have k4 := h.atomAt 68 (.load (.n 77) (.n 34) 5) (by decide +kernel)
+  have s0 := h.atomAt 69 (.mul (.n 78) (.n 12) (.n 30)) (by decide +kernel)
+  have s1 := h.atomAt 70 (.load (.n 79) (.n 78) 0) (by decide +kernel)
+  have s2 := h.atomAt 71 (.mul (.n 80) (.n 79) (.n 79)) (by decide +kernel)
+  have s3 := h.atomAt 72 (.mul (.n 81) (.n 80) (.n 79)) (by decide +kernel)
+  have s4 := h.atomAt 73 (.load (.n 81) (.n 35) 5) (by decide +kernel)
   simp only [Atom.Holds] at k0 k1 k2 k3 k4 s0 s1 s2 s3 s4
-  exact ⟨σ (.n 76), σ (.n 74), σ (.n 80), σ (.n 78), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
+  exact ⟨σ (.n 77), σ (.n 75), σ (.n 81), σ (.n 79), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
     by rw [k3, k2, mul_assoc, vt_wInv (by decide +kernel), mul_one], s4, by rw [pow_zero, mul_one, ← s0]; exact s1, by rw [s3, s2]; ring⟩
 
 theorem vt_grp6 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    VtGrpFacts rd σ 6 (σ (.n 30) * gen ^ 0) 16 5 := by
-  have k0 := h.atomAt 74 (.mul (.n 81) (.n 12) (.n 30)) (by decide +kernel)
-  have k1 := h.atomAt 75 (.load (.n 82) (.n 81) 178) (by decide +kernel)
-  have k2 := h.atomAt 76 (.const (.n 83) (word 8198521646651277316 0)) (by decide +kernel)
-  have k3 := h.atomAt 77 (.mul (.n 84) (.n 82) (.n 83)) (by decide +kernel)
-  have k4 := h.atomAt 78 (.load (.n 84) (.n 33) 6) (by decide +kernel)
-  have s0 := h.atomAt 79 (.mul (.n 85) (.n 12) (.n 30)) (by decide +kernel)
-  have s1 := h.atomAt 80 (.load (.n 86) (.n 85) 0) (by decide +kernel)
-  have s2 := h.atomAt 81 (.mul (.n 87) (.n 86) (.n 86)) (by decide +kernel)
-  have s3 := h.atomAt 82 (.mul (.n 88) (.n 87) (.n 87)) (by decide +kernel)
-  have s4 := h.atomAt 83 (.mul (.n 89) (.n 88) (.n 86)) (by decide +kernel)
-  have s5 := h.atomAt 84 (.load (.n 89) (.n 34) 6) (by decide +kernel)
+    VtGrpFacts rd σ 6 (σ (.n 31) * gen ^ 0) 16 5 := by
+  have k0 := h.atomAt 74 (.mul (.n 82) (.n 12) (.n 31)) (by decide +kernel)
+  have k1 := h.atomAt 75 (.load (.n 83) (.n 82) 178) (by decide +kernel)
+  have k2 := h.atomAt 76 (.const (.n 84) (word 8198521646651277316 0)) (by decide +kernel)
+  have k3 := h.atomAt 77 (.mul (.n 85) (.n 83) (.n 84)) (by decide +kernel)
+  have k4 := h.atomAt 78 (.load (.n 85) (.n 34) 6) (by decide +kernel)
+  have s0 := h.atomAt 79 (.mul (.n 86) (.n 12) (.n 31)) (by decide +kernel)
+  have s1 := h.atomAt 80 (.load (.n 87) (.n 86) 0) (by decide +kernel)
+  have s2 := h.atomAt 81 (.mul (.n 88) (.n 87) (.n 87)) (by decide +kernel)
+  have s3 := h.atomAt 82 (.mul (.n 89) (.n 88) (.n 88)) (by decide +kernel)
+  have s4 := h.atomAt 83 (.mul (.n 90) (.n 89) (.n 87)) (by decide +kernel)
+  have s5 := h.atomAt 84 (.load (.n 90) (.n 35) 6) (by decide +kernel)
   simp only [Atom.Holds] at k0 k1 k2 k3 k4 s0 s1 s2 s3 s4 s5
-  exact ⟨σ (.n 84), σ (.n 82), σ (.n 89), σ (.n 86), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
+  exact ⟨σ (.n 85), σ (.n 83), σ (.n 90), σ (.n 87), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
     by rw [k3, k2, mul_assoc, vt_wInv (by decide +kernel), mul_one], s5, by rw [pow_zero, mul_one, ← s0]; exact s1, by rw [s4, s3, s2]; ring⟩
 
 theorem vt_grp7 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    VtGrpFacts rd σ 7 (σ (.n 31) * gen ^ 0) 21 5 := by
-  have k0 := h.atomAt 85 (.mul (.n 90) (.n 12) (.n 31)) (by decide +kernel)
-  have k1 := h.atomAt 86 (.load (.n 91) (.n 90) 178) (by decide +kernel)
-  have k2 := h.atomAt 87 (.const (.n 92) (word 16397104865953710088 0)) (by decide +kernel)
-  have k3 := h.atomAt 88 (.mul (.n 93) (.n 91) (.n 92)) (by decide +kernel)
-  have k4 := h.atomAt 89 (.load (.n 93) (.n 33) 7) (by decide +kernel)
-  have s0 := h.atomAt 90 (.mul (.n 94) (.n 12) (.n 31)) (by decide +kernel)
-  have s1 := h.atomAt 91 (.load (.n 95) (.n 94) 0) (by decide +kernel)
-  have s2 := h.atomAt 92 (.mul (.n 96) (.n 95) (.n 95)) (by decide +kernel)
-  have s3 := h.atomAt 93 (.mul (.n 97) (.n 96) (.n 96)) (by decide +kernel)
-  have s4 := h.atomAt 94 (.mul (.n 98) (.n 97) (.n 95)) (by decide +kernel)
-  have s5 := h.atomAt 95 (.load (.n 98) (.n 34) 7) (by decide +kernel)
+    VtGrpFacts rd σ 7 (σ (.n 32) * gen ^ 0) 21 5 := by
+  have k0 := h.atomAt 85 (.mul (.n 91) (.n 12) (.n 32)) (by decide +kernel)
+  have k1 := h.atomAt 86 (.load (.n 92) (.n 91) 178) (by decide +kernel)
+  have k2 := h.atomAt 87 (.const (.n 93) (word 16397104865953710088 0)) (by decide +kernel)
+  have k3 := h.atomAt 88 (.mul (.n 94) (.n 92) (.n 93)) (by decide +kernel)
+  have k4 := h.atomAt 89 (.load (.n 94) (.n 34) 7) (by decide +kernel)
+  have s0 := h.atomAt 90 (.mul (.n 95) (.n 12) (.n 32)) (by decide +kernel)
+  have s1 := h.atomAt 91 (.load (.n 96) (.n 95) 0) (by decide +kernel)
+  have s2 := h.atomAt 92 (.mul (.n 97) (.n 96) (.n 96)) (by decide +kernel)
+  have s3 := h.atomAt 93 (.mul (.n 98) (.n 97) (.n 97)) (by decide +kernel)
+  have s4 := h.atomAt 94 (.mul (.n 99) (.n 98) (.n 96)) (by decide +kernel)
+  have s5 := h.atomAt 95 (.load (.n 99) (.n 35) 7) (by decide +kernel)
   simp only [Atom.Holds] at k0 k1 k2 k3 k4 s0 s1 s2 s3 s4 s5
-  exact ⟨σ (.n 93), σ (.n 91), σ (.n 98), σ (.n 95), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
+  exact ⟨σ (.n 94), σ (.n 92), σ (.n 99), σ (.n 96), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
     by rw [k3, k2, mul_assoc, vt_wInv (by decide +kernel), mul_one], s5, by rw [pow_zero, mul_one, ← s0]; exact s1, by rw [s4, s3, s2]; ring⟩
 
 theorem vt_grp8 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    VtGrpFacts rd σ 8 (σ (.n 32) * gen ^ 0) 26 28 := by
-  have k0 := h.atomAt 96 (.mul (.n 99) (.n 12) (.n 32)) (by decide +kernel)
-  have k1 := h.atomAt 97 (.load (.n 100) (.n 99) 178) (by decide +kernel)
-  have k2 := h.atomAt 98 (.const (.n 101) (word 14347467582343217163 0)) (by decide +kernel)
-  have k3 := h.atomAt 99 (.mul (.n 102) (.n 100) (.n 101)) (by decide +kernel)
-  have k4 := h.atomAt 100 (.load (.n 102) (.n 33) 8) (by decide +kernel)
-  have s0 := h.atomAt 101 (.mul (.n 103) (.n 12) (.n 32)) (by decide +kernel)
-  have s1 := h.atomAt 102 (.load (.n 104) (.n 103) 0) (by decide +kernel)
-  have s2 := h.atomAt 103 (.mul (.n 105) (.n 104) (.n 104)) (by decide +kernel)
-  have s3 := h.atomAt 104 (.mul (.n 106) (.n 105) (.n 104)) (by decide +kernel)
-  have s4 := h.atomAt 105 (.mul (.n 107) (.n 106) (.n 106)) (by decide +kernel)
-  have s5 := h.atomAt 106 (.mul (.n 108) (.n 107) (.n 104)) (by decide +kernel)
-  have s6 := h.atomAt 107 (.mul (.n 109) (.n 108) (.n 108)) (by decide +kernel)
-  have s7 := h.atomAt 108 (.mul (.n 110) (.n 109) (.n 109)) (by decide +kernel)
-  have s8 := h.atomAt 109 (.load (.n 110) (.n 34) 8) (by decide +kernel)
+    VtGrpFacts rd σ 8 (σ (.n 33) * gen ^ 0) 26 28 := by
+  have k0 := h.atomAt 96 (.mul (.n 100) (.n 12) (.n 33)) (by decide +kernel)
+  have k1 := h.atomAt 97 (.load (.n 101) (.n 100) 178) (by decide +kernel)
+  have k2 := h.atomAt 98 (.const (.n 102) (word 14347467582343217163 0)) (by decide +kernel)
+  have k3 := h.atomAt 99 (.mul (.n 103) (.n 101) (.n 102)) (by decide +kernel)
+  have k4 := h.atomAt 100 (.load (.n 103) (.n 34) 8) (by decide +kernel)
+  have s0 := h.atomAt 101 (.mul (.n 104) (.n 12) (.n 33)) (by decide +kernel)
+  have s1 := h.atomAt 102 (.load (.n 105) (.n 104) 0) (by decide +kernel)
+  have s2 := h.atomAt 103 (.mul (.n 106) (.n 105) (.n 105)) (by decide +kernel)
+  have s3 := h.atomAt 104 (.mul (.n 107) (.n 106) (.n 105)) (by decide +kernel)
+  have s4 := h.atomAt 105 (.mul (.n 108) (.n 107) (.n 107)) (by decide +kernel)
+  have s5 := h.atomAt 106 (.mul (.n 109) (.n 108) (.n 105)) (by decide +kernel)
+  have s6 := h.atomAt 107 (.mul (.n 110) (.n 109) (.n 109)) (by decide +kernel)
+  have s7 := h.atomAt 108 (.mul (.n 111) (.n 110) (.n 110)) (by decide +kernel)
+  have s8 := h.atomAt 109 (.load (.n 111) (.n 35) 8) (by decide +kernel)
   simp only [Atom.Holds] at k0 k1 k2 k3 k4 s0 s1 s2 s3 s4 s5 s6 s7 s8
-  exact ⟨σ (.n 102), σ (.n 100), σ (.n 110), σ (.n 104), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
+  exact ⟨σ (.n 103), σ (.n 101), σ (.n 111), σ (.n 105), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
     by rw [k3, k2, mul_assoc, vt_wInv (by decide +kernel), mul_one], s8, by rw [pow_zero, mul_one, ← s0]; exact s1, by rw [s7, s6, s5, s4, s3, s2]; ring⟩
 
 theorem vt_grp18 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    VtGrpFacts rd σ 18 (σ (.n 27) * gen ^ 0) 108 4 := by
-  have k0 := h.atomAt 339 (.mul (.n 356) (.n 12) (.n 27)) (by decide +kernel)
-  have k1 := h.atomAt 340 (.load (.n 357) (.n 356) 178) (by decide +kernel)
-  have k2 := h.atomAt 341 (.const (.n 358) (word 680209610532396145 0)) (by decide +kernel)
-  have k3 := h.atomAt 342 (.mul (.n 359) (.n 357) (.n 358)) (by decide +kernel)
-  have k4 := h.atomAt 343 (.load (.n 359) (.n 33) 18) (by decide +kernel)
-  have s0 := h.atomAt 344 (.mul (.n 360) (.n 12) (.n 27)) (by decide +kernel)
-  have s1 := h.atomAt 345 (.load (.n 361) (.n 360) 0) (by decide +kernel)
-  have s2 := h.atomAt 346 (.mul (.n 362) (.n 361) (.n 361)) (by decide +kernel)
-  have s3 := h.atomAt 347 (.mul (.n 363) (.n 362) (.n 362)) (by decide +kernel)
-  have s4 := h.atomAt 348 (.load (.n 363) (.n 34) 18) (by decide +kernel)
+    VtGrpFacts rd σ 18 (σ (.n 28) * gen ^ 0) 108 4 := by
+  have k0 := h.atomAt 339 (.mul (.n 357) (.n 12) (.n 28)) (by decide +kernel)
+  have k1 := h.atomAt 340 (.load (.n 358) (.n 357) 178) (by decide +kernel)
+  have k2 := h.atomAt 341 (.const (.n 359) (word 680209610532396145 0)) (by decide +kernel)
+  have k3 := h.atomAt 342 (.mul (.n 360) (.n 358) (.n 359)) (by decide +kernel)
+  have k4 := h.atomAt 343 (.load (.n 360) (.n 34) 18) (by decide +kernel)
+  have s0 := h.atomAt 344 (.mul (.n 361) (.n 12) (.n 28)) (by decide +kernel)
+  have s1 := h.atomAt 345 (.load (.n 362) (.n 361) 0) (by decide +kernel)
+  have s2 := h.atomAt 346 (.mul (.n 363) (.n 362) (.n 362)) (by decide +kernel)
+  have s3 := h.atomAt 347 (.mul (.n 364) (.n 363) (.n 363)) (by decide +kernel)
+  have s4 := h.atomAt 348 (.load (.n 364) (.n 35) 18) (by decide +kernel)
   simp only [Atom.Holds] at k0 k1 k2 k3 k4 s0 s1 s2 s3 s4
-  exact ⟨σ (.n 359), σ (.n 357), σ (.n 363), σ (.n 361), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
+  exact ⟨σ (.n 360), σ (.n 358), σ (.n 364), σ (.n 362), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
     by rw [k3, k2, mul_assoc, vt_wInv (by decide +kernel), mul_one], s4, by rw [pow_zero, mul_one, ← s0]; exact s1, by rw [s3, s2]; ring⟩
 
 theorem vt_grp19 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    VtGrpFacts rd σ 19 (σ (.n 28) * gen ^ 0) 112 4 := by
-  have k0 := h.atomAt 349 (.mul (.n 364) (.n 12) (.n 28)) (by decide +kernel)
-  have k1 := h.atomAt 350 (.load (.n 365) (.n 364) 178) (by decide +kernel)
-  have k2 := h.atomAt 351 (.const (.n 366) (word 8112963632906203587 0)) (by decide +kernel)
-  have k3 := h.atomAt 352 (.mul (.n 367) (.n 365) (.n 366)) (by decide +kernel)
-  have k4 := h.atomAt 353 (.load (.n 367) (.n 33) 19) (by decide +kernel)
-  have s0 := h.atomAt 354 (.mul (.n 368) (.n 12) (.n 28)) (by decide +kernel)
-  have s1 := h.atomAt 355 (.load (.n 369) (.n 368) 0) (by decide +kernel)
-  have s2 := h.atomAt 356 (.mul (.n 370) (.n 369) (.n 369)) (by decide +kernel)
-  have s3 := h.atomAt 357 (.mul (.n 371) (.n 370) (.n 370)) (by decide +kernel)
-  have s4 := h.atomAt 358 (.load (.n 371) (.n 34) 19) (by decide +kernel)
+    VtGrpFacts rd σ 19 (σ (.n 29) * gen ^ 0) 112 4 := by
+  have k0 := h.atomAt 349 (.mul (.n 365) (.n 12) (.n 29)) (by decide +kernel)
+  have k1 := h.atomAt 350 (.load (.n 366) (.n 365) 178) (by decide +kernel)
+  have k2 := h.atomAt 351 (.const (.n 367) (word 8112963632906203587 0)) (by decide +kernel)
+  have k3 := h.atomAt 352 (.mul (.n 368) (.n 366) (.n 367)) (by decide +kernel)
+  have k4 := h.atomAt 353 (.load (.n 368) (.n 34) 19) (by decide +kernel)
+  have s0 := h.atomAt 354 (.mul (.n 369) (.n 12) (.n 29)) (by decide +kernel)
+  have s1 := h.atomAt 355 (.load (.n 370) (.n 369) 0) (by decide +kernel)
+  have s2 := h.atomAt 356 (.mul (.n 371) (.n 370) (.n 370)) (by decide +kernel)
+  have s3 := h.atomAt 357 (.mul (.n 372) (.n 371) (.n 371)) (by decide +kernel)
+  have s4 := h.atomAt 358 (.load (.n 372) (.n 35) 19) (by decide +kernel)
   simp only [Atom.Holds] at k0 k1 k2 k3 k4 s0 s1 s2 s3 s4
-  exact ⟨σ (.n 367), σ (.n 365), σ (.n 371), σ (.n 369), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
+  exact ⟨σ (.n 368), σ (.n 366), σ (.n 372), σ (.n 370), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
     by rw [k3, k2, mul_assoc, vt_wInv (by decide +kernel), mul_one], s4, by rw [pow_zero, mul_one, ← s0]; exact s1, by rw [s3, s2]; ring⟩
 
 theorem vt_grp20 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    VtGrpFacts rd σ 20 (σ (.n 29) * gen ^ 0) 116 2 := by
-  have k0 := h.atomAt 359 (.mul (.n 372) (.n 12) (.n 29)) (by decide +kernel)
-  have k1 := h.atomAt 360 (.load (.n 373) (.n 372) 178) (by decide +kernel)
-  have k2 := h.atomAt 361 (.const (.n 374) (word 10883353768518260496 0)) (by decide +kernel)
-  have k3 := h.atomAt 362 (.mul (.n 375) (.n 373) (.n 374)) (by decide +kernel)
-  have k4 := h.atomAt 363 (.load (.n 375) (.n 33) 20) (by decide +kernel)
-  have s0 := h.atomAt 364 (.mul (.n 376) (.n 12) (.n 29)) (by decide +kernel)
-  have s1 := h.atomAt 365 (.load (.n 377) (.n 376) 0) (by decide +kernel)
-  have s2 := h.atomAt 366 (.mul (.n 378) (.n 377) (.n 377)) (by decide +kernel)
-  have s3 := h.atomAt 367 (.load (.n 378) (.n 34) 20) (by decide +kernel)
+    VtGrpFacts rd σ 20 (σ (.n 30) * gen ^ 0) 116 2 := by
+  have k0 := h.atomAt 359 (.mul (.n 373) (.n 12) (.n 30)) (by decide +kernel)
+  have k1 := h.atomAt 360 (.load (.n 374) (.n 373) 178) (by decide +kernel)
+  have k2 := h.atomAt 361 (.const (.n 375) (word 10883353768518260496 0)) (by decide +kernel)
+  have k3 := h.atomAt 362 (.mul (.n 376) (.n 374) (.n 375)) (by decide +kernel)
+  have k4 := h.atomAt 363 (.load (.n 376) (.n 34) 20) (by decide +kernel)
+  have s0 := h.atomAt 364 (.mul (.n 377) (.n 12) (.n 30)) (by decide +kernel)
+  have s1 := h.atomAt 365 (.load (.n 378) (.n 377) 0) (by decide +kernel)
+  have s2 := h.atomAt 366 (.mul (.n 379) (.n 378) (.n 378)) (by decide +kernel)
+  have s3 := h.atomAt 367 (.load (.n 379) (.n 35) 20) (by decide +kernel)
   simp only [Atom.Holds] at k0 k1 k2 k3 k4 s0 s1 s2 s3
-  exact ⟨σ (.n 375), σ (.n 373), σ (.n 378), σ (.n 377), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
+  exact ⟨σ (.n 376), σ (.n 374), σ (.n 379), σ (.n 378), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
     by rw [k3, k2, mul_assoc, vt_wInv (by decide +kernel), mul_one], s3, by rw [pow_zero, mul_one, ← s0]; exact s1, by rw [s2]; ring⟩
 
 theorem vt_grp21 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    VtGrpFacts rd σ 21 (σ (.n 30) * gen ^ 0) 118 4 := by
-  have k0 := h.atomAt 368 (.mul (.n 379) (.n 12) (.n 30)) (by decide +kernel)
-  have k1 := h.atomAt 369 (.load (.n 380) (.n 379) 178) (by decide +kernel)
-  have k2 := h.atomAt 370 (.const (.n 381) (word 2720838442129565124 0)) (by decide +kernel)
-  have k3 := h.atomAt 371 (.mul (.n 382) (.n 380) (.n 381)) (by decide +kernel)
-  have k4 := h.atomAt 372 (.load (.n 382) (.n 33) 21) (by decide +kernel)
-  have s0 := h.atomAt 373 (.mul (.n 383) (.n 12) (.n 30)) (by decide +kernel)
-  have s1 := h.atomAt 374 (.load (.n 384) (.n 383) 0) (by decide +kernel)
-  have s2 := h.atomAt 375 (.mul (.n 385) (.n 384) (.n 384)) (by decide +kernel)
-  have s3 := h.atomAt 376 (.mul (.n 386) (.n 385) (.n 385)) (by decide +kernel)
-  have s4 := h.atomAt 377 (.load (.n 386) (.n 34) 21) (by decide +kernel)
+    VtGrpFacts rd σ 21 (σ (.n 31) * gen ^ 0) 118 4 := by
+  have k0 := h.atomAt 368 (.mul (.n 380) (.n 12) (.n 31)) (by decide +kernel)
+  have k1 := h.atomAt 369 (.load (.n 381) (.n 380) 178) (by decide +kernel)
+  have k2 := h.atomAt 370 (.const (.n 382) (word 2720838442129565124 0)) (by decide +kernel)
+  have k3 := h.atomAt 371 (.mul (.n 383) (.n 381) (.n 382)) (by decide +kernel)
+  have k4 := h.atomAt 372 (.load (.n 383) (.n 34) 21) (by decide +kernel)
+  have s0 := h.atomAt 373 (.mul (.n 384) (.n 12) (.n 31)) (by decide +kernel)
+  have s1 := h.atomAt 374 (.load (.n 385) (.n 384) 0) (by decide +kernel)
+  have s2 := h.atomAt 375 (.mul (.n 386) (.n 385) (.n 385)) (by decide +kernel)
+  have s3 := h.atomAt 376 (.mul (.n 387) (.n 386) (.n 386)) (by decide +kernel)
+  have s4 := h.atomAt 377 (.load (.n 387) (.n 35) 21) (by decide +kernel)
   simp only [Atom.Holds] at k0 k1 k2 k3 k4 s0 s1 s2 s3 s4
-  exact ⟨σ (.n 382), σ (.n 380), σ (.n 386), σ (.n 384), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
+  exact ⟨σ (.n 383), σ (.n 381), σ (.n 387), σ (.n 385), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
     by rw [k3, k2, mul_assoc, vt_wInv (by decide +kernel), mul_one], s4, by rw [pow_zero, mul_one, ← s0]; exact s1, by rw [s3, s2]; ring⟩
 
 theorem vt_grp22 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    VtGrpFacts rd σ 22 (σ (.n 31) * gen ^ 0) 122 4 := by
-  have k0 := h.atomAt 378 (.mul (.n 387) (.n 12) (.n 31)) (by decide +kernel)
-  have k1 := h.atomAt 379 (.load (.n 388) (.n 387) 178) (by decide +kernel)
-  have k2 := h.atomAt 380 (.const (.n 389) (word 14005110457915261527 0)) (by decide +kernel)
-  have k3 := h.atomAt 381 (.mul (.n 390) (.n 388) (.n 389)) (by decide +kernel)
-  have k4 := h.atomAt 382 (.load (.n 390) (.n 33) 22) (by decide +kernel)
-  have s0 := h.atomAt 383 (.mul (.n 391) (.n 12) (.n 31)) (by decide +kernel)
-  have s1 := h.atomAt 384 (.load (.n 392) (.n 391) 0) (by decide +kernel)
-  have s2 := h.atomAt 385 (.mul (.n 393) (.n 392) (.n 392)) (by decide +kernel)
-  have s3 := h.atomAt 386 (.mul (.n 394) (.n 393) (.n 393)) (by decide +kernel)
-  have s4 := h.atomAt 387 (.load (.n 394) (.n 34) 22) (by decide +kernel)
+    VtGrpFacts rd σ 22 (σ (.n 32) * gen ^ 0) 122 4 := by
+  have k0 := h.atomAt 378 (.mul (.n 388) (.n 12) (.n 32)) (by decide +kernel)
+  have k1 := h.atomAt 379 (.load (.n 389) (.n 388) 178) (by decide +kernel)
+  have k2 := h.atomAt 380 (.const (.n 390) (word 14005110457915261527 0)) (by decide +kernel)
+  have k3 := h.atomAt 381 (.mul (.n 391) (.n 389) (.n 390)) (by decide +kernel)
+  have k4 := h.atomAt 382 (.load (.n 391) (.n 34) 22) (by decide +kernel)
+  have s0 := h.atomAt 383 (.mul (.n 392) (.n 12) (.n 32)) (by decide +kernel)
+  have s1 := h.atomAt 384 (.load (.n 393) (.n 392) 0) (by decide +kernel)
+  have s2 := h.atomAt 385 (.mul (.n 394) (.n 393) (.n 393)) (by decide +kernel)
+  have s3 := h.atomAt 386 (.mul (.n 395) (.n 394) (.n 394)) (by decide +kernel)
+  have s4 := h.atomAt 387 (.load (.n 395) (.n 35) 22) (by decide +kernel)
   simp only [Atom.Holds] at k0 k1 k2 k3 k4 s0 s1 s2 s3 s4
-  exact ⟨σ (.n 390), σ (.n 388), σ (.n 394), σ (.n 392), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
+  exact ⟨σ (.n 391), σ (.n 389), σ (.n 395), σ (.n 393), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
     by rw [k3, k2, mul_assoc, vt_wInv (by decide +kernel), mul_one], s4, by rw [pow_zero, mul_one, ← s0]; exact s1, by rw [s3, s2]; ring⟩
 
 theorem vt_grp23 {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    VtGrpFacts rd σ 23 (σ (.n 32) * gen ^ 0) 126 27 := by
-  have k0 := h.atomAt 388 (.mul (.n 395) (.n 12) (.n 32)) (by decide +kernel)
-  have k1 := h.atomAt 389 (.load (.n 396) (.n 395) 178) (by decide +kernel)
-  have k2 := h.atomAt 390 (.const (.n 397) (word 6639926926653938722 0)) (by decide +kernel)
-  have k3 := h.atomAt 391 (.mul (.n 398) (.n 396) (.n 397)) (by decide +kernel)
-  have k4 := h.atomAt 392 (.load (.n 398) (.n 33) 23) (by decide +kernel)
-  have s0 := h.atomAt 393 (.mul (.n 399) (.n 12) (.n 32)) (by decide +kernel)
-  have s1 := h.atomAt 394 (.load (.n 400) (.n 399) 0) (by decide +kernel)
-  have s2 := h.atomAt 395 (.mul (.n 401) (.n 400) (.n 400)) (by decide +kernel)
-  have s3 := h.atomAt 396 (.mul (.n 402) (.n 401) (.n 400)) (by decide +kernel)
-  have s4 := h.atomAt 397 (.mul (.n 403) (.n 402) (.n 402)) (by decide +kernel)
-  have s5 := h.atomAt 398 (.mul (.n 404) (.n 403) (.n 403)) (by decide +kernel)
-  have s6 := h.atomAt 399 (.mul (.n 405) (.n 404) (.n 400)) (by decide +kernel)
-  have s7 := h.atomAt 400 (.mul (.n 406) (.n 405) (.n 405)) (by decide +kernel)
-  have s8 := h.atomAt 401 (.mul (.n 407) (.n 406) (.n 400)) (by decide +kernel)
-  have s9 := h.atomAt 402 (.load (.n 407) (.n 34) 23) (by decide +kernel)
+    VtGrpFacts rd σ 23 (σ (.n 33) * gen ^ 0) 126 27 := by
+  have k0 := h.atomAt 388 (.mul (.n 396) (.n 12) (.n 33)) (by decide +kernel)
+  have k1 := h.atomAt 389 (.load (.n 397) (.n 396) 178) (by decide +kernel)
+  have k2 := h.atomAt 390 (.const (.n 398) (word 6639926926653938722 0)) (by decide +kernel)
+  have k3 := h.atomAt 391 (.mul (.n 399) (.n 397) (.n 398)) (by decide +kernel)
+  have k4 := h.atomAt 392 (.load (.n 399) (.n 34) 23) (by decide +kernel)
+  have s0 := h.atomAt 393 (.mul (.n 400) (.n 12) (.n 33)) (by decide +kernel)
+  have s1 := h.atomAt 394 (.load (.n 401) (.n 400) 0) (by decide +kernel)
+  have s2 := h.atomAt 395 (.mul (.n 402) (.n 401) (.n 401)) (by decide +kernel)
+  have s3 := h.atomAt 396 (.mul (.n 403) (.n 402) (.n 401)) (by decide +kernel)
+  have s4 := h.atomAt 397 (.mul (.n 404) (.n 403) (.n 403)) (by decide +kernel)
+  have s5 := h.atomAt 398 (.mul (.n 405) (.n 404) (.n 404)) (by decide +kernel)
+  have s6 := h.atomAt 399 (.mul (.n 406) (.n 405) (.n 401)) (by decide +kernel)
+  have s7 := h.atomAt 400 (.mul (.n 407) (.n 406) (.n 406)) (by decide +kernel)
+  have s8 := h.atomAt 401 (.mul (.n 408) (.n 407) (.n 401)) (by decide +kernel)
+  have s9 := h.atomAt 402 (.load (.n 408) (.n 35) 23) (by decide +kernel)
   simp only [Atom.Holds] at k0 k1 k2 k3 k4 s0 s1 s2 s3 s4 s5 s6 s7 s8 s9
-  exact ⟨σ (.n 398), σ (.n 396), σ (.n 407), σ (.n 400), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
+  exact ⟨σ (.n 399), σ (.n 397), σ (.n 408), σ (.n 401), k4, by rw [pow_zero, mul_one, ← k0]; exact k1,
     by rw [k3, k2, mul_assoc, vt_wInv (by decide +kernel), mul_one], s9, by rw [pow_zero, mul_one, ← s0]; exact s1, by rw [s8, s7, s6, s5, s4, s3, s2]; ring⟩
 
 /-- Each group's block-offset statements: position, `kappa_g`'s variable, its load offset, the first block's variable. -/
 def vtBoffData : List (ℕ × ℕ × ℕ × ℕ) :=
-  [(267, 25, 0, 286), (270, 26, 0, 289), (273, 25, 19, 292), (276, 27, 0, 295), (283, 28, 0, 302), (290, 29, 0, 309), (295, 30, 0, 314), (302, 31, 0, 321), (309, 32, 0, 328), (506, 27, 0, 523), (512, 28, 0, 529), (518, 29, 0, 535), (522, 30, 0, 539), (528, 31, 0, 545), (534, 32, 0, 551)]
+  [(267, 26, 0, 287), (270, 27, 0, 290), (273, 26, 19, 293), (276, 28, 0, 296), (283, 29, 0, 303), (290, 30, 0, 310), (295, 31, 0, 315), (302, 32, 0, 322), (309, 33, 0, 329), (506, 28, 0, 524), (512, 29, 0, 530), (518, 30, 0, 536), (522, 31, 0, 540), (528, 32, 0, 546), (534, 33, 0, 552)]
 
 theorem vtBoff_check : ∀ k < 15,
     tbStmtsEqb (vtBoffT (vtBoffData.getD k default).2.1 (vtBoffData.getD k default).2.2.1 (vtGi k)

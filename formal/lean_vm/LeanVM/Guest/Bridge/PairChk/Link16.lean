@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.Bridge.PairChk.«P29»
 public import LeanVM.Guest.Bridge.PairChk.«P40»
 public import LeanVM.Guest.Bridge.PairLink
 public import LeanVM.Guest.Bridge.ProgAl.Link16
@@ -21,11 +22,19 @@ public section
 
 kernel_rfl adv1601 : Data.adviceFns[1601]? = some Data.adviceFn1601
 
-kernel_rfl len1601 : Data.adviceFn1601.2.1 = Fn.«walk_path__L12_L8».code.instructionCount
+kernel_rfl len1601 : Data.adviceFn1601.2.1 = Fn.«walk_path__L6_L6».code.instructionCount
 
 theorem pok1601 : Bridge.PairJ 1601 :=
-  Bridge.pairJ_of Checked.code1601 Checked.core1601 Checked.cert1601 Bridge.ProgAl.tab1601 Checked.fsEq1601 Fn.«walk_path__L12_L8».pairOk
+  Bridge.pairJ_of Checked.code1601 Checked.core1601 Checked.cert1601 Bridge.ProgAl.tab1601 Checked.fsEq1601 Fn.«walk_path__L6_L6».pairOk
     adv1601 len1601
+
+kernel_rfl adv1602 : Data.adviceFns[1602]? = some Data.adviceFn1602
+
+kernel_rfl len1602 : Data.adviceFn1602.2.1 = Fn.«walk_path__L12_L8».code.instructionCount
+
+theorem pok1602 : Bridge.PairJ 1602 :=
+  Bridge.pairJ_of Checked.code1602 Checked.core1602 Checked.cert1602 Bridge.ProgAl.tab1602 Checked.fsEq1602 Fn.«walk_path__L12_L8».pairOk
+    adv1602 len1602
 
 end
 

@@ -30,10 +30,10 @@ open Finset (range)
 
 @[expose] public section
 
-theorem vtPad_read : ∀ t < 5, Atom.load (.n (578 + 13 * t + 4)) (.n 11) t ∉ vtSL := by
+theorem vtPad_read : ∀ t < 5, Atom.load (.n (579 + 13 * t + 4)) (.n 11) t ∉ vtSL := by
   decide +kernel
 
-theorem vtPad5_read : Atom.load (.n (643 + 4)) (.n 11) 5 ∉ vtSL := by decide +kernel
+theorem vtPad5_read : Atom.load (.n (644 + 4)) (.n 11) 5 ∉ vtSL := by decide +kernel
 
 section
 variable {rd : Reader} {w : ℕ → E} {args : List E}
@@ -58,55 +58,55 @@ theorem vt_tmplSlice {P : Stmt → Prop} {n : ℕ} {blk : List Stmt}
 
 set_option maxRecDepth 10000 in
 /-- **Statements `563 ..< 765`.** -/
-theorem vtS_p2 (hl : args.length = 20) (hlow : LowDefB 14 rd) (point : List E)
+theorem vtS_p2 (hl : args.length = 21) (hlow : LowDefB 14 rd) (point : List E)
     (hμ33 : point.length < 33) (τ n : ℕ → ℕ)
     (hτ : ∀ t < 6, τ t = max (log2Ceil (n t)) (tableLogFloors.getD t 0))
     (hτ31 : ∀ t < 6, τ t < 31) (hτμ : ∀ t < 6, τ t ≤ point.length)
-    (hkb : ∀ t < 6, σv (.n (27 + t)) = gen ^ τ t)
+    (hkb : ∀ t < 6, σv (.n (28 + t)) = gen ^ τ t)
     (hz : TbReadsAt rd (σv (.n 8)) point) (h9 : σv (.n 9) = gen ^ point.length)
     (hrows : ∀ t < 6, LoadHolds rd (σv (.n 11)) t (eOfNat (n t)))
     (hsq : TbReadsAt rd (σv (.n 12)) gSquaresList)
     (hwp : ∀ t < 6, w (vtPadV t) = paddingWeight (point.take (τ t)) (n t) ∧
       w (vtPadV t + 1) = PadLead (τ t) (n t) ∧ w (vtPadV t + 2) = PadRest (τ t) (n t))
-    (hidxc : TbReadsAt rd (w 664) vtIdxcW) (hz1 : TbReadsAt rd (w 699) (point.map (1 + ·)))
-    (hw704 : w 700 = 0)
-    (hrun : ∀ t < 6, RunTables rd (w 701 * gen ^ (288 * t)) (w 702 * gen ^ (144 * t))
+    (hidxc : TbReadsAt rd (w 665) vtIdxcW) (hz1 : TbReadsAt rd (w 700) (point.map (1 + ·)))
+    (hw704 : w 701 = 0)
+    (hrun : ∀ t < 6, RunTables rd (w 702 * gen ^ (288 * t)) (w 703 * gen ^ (144 * t))
       (point.length - τ t) (point.drop (τ t)) ((point.map (1 + ·)).drop (τ t))
       ((gSquaresList.drop (τ t)).take (point.length - τ t)))
-    (hrpad : ∀ t < 6, RunPads rd (w 701 * gen ^ (288 * t)) (w 702 * gen ^ (144 * t))
+    (hrpad : ∀ t < 6, RunPads rd (w 702 * gen ^ (288 * t)) (w 703 * gen ^ (144 * t))
       (point.length - τ t) (point.drop (τ t))) :
     (∀ s ∈ (vtPre.drop 563).take 202, VSH (coreProgram.Rel rd) rd σv s) ∧
       (∀ t < 6, σv (.n (vtPadV t)) = paddingWeight (point.take (τ t)) (n t)) ∧
       (∀ t < 6, σv (.n (vtShLen t)) = gen ^ (point.length - τ t)) ∧
-      σv (.n 664) = w 664 ∧ σv (.n 699) = w 699 ∧
-      σv (.n 701) = w 701 ∧ σv (.n 702) = w 702 := by
-  have e668 : σv (.n 664) = w 664 := vt_allocAt hl 624 (k := 34) (by decide +kernel)
-  have e703 : σv (.n 699) = w 699 := vt_allocDynAt hl 693 (s := .n 9) (by decide +kernel)
-  have e705 : σv (.n 701) = w 701 := vt_allocAt hl 695 (k := 1728) (by decide +kernel)
-  have e706 : σv (.n 702) = w 702 := vt_allocAt hl 696 (k := 864) (by decide +kernel)
-  have hz1' : TbReadsAt rd (σv (.n 699)) (point.map (1 + ·)) := by rw [e703]; exact hz1
+      σv (.n 665) = w 665 ∧ σv (.n 700) = w 700 ∧
+      σv (.n 702) = w 702 ∧ σv (.n 703) = w 703 := by
+  have e668 : σv (.n 665) = w 665 := vt_allocAt hl 624 (k := 34) (by decide +kernel)
+  have e703 : σv (.n 700) = w 700 := vt_allocDynAt hl 693 (s := .n 9) (by decide +kernel)
+  have e705 : σv (.n 702) = w 702 := vt_allocAt hl 695 (k := 1728) (by decide +kernel)
+  have e706 : σv (.n 703) = w 703 := vt_allocAt hl 696 (k := 864) (by decide +kernel)
+  have hz1' : TbReadsAt rd (σv (.n 700)) (point.map (1 + ·)) := by rw [e703]; exact hz1
   -- the pads
-  have hpad : ∀ t < 5, (∀ st ∈ vtPadT (578 + 13 * t) t, VSH (coreProgram.Rel rd) rd σv st) ∧
-      σv (.n (578 + 13 * t + 5)) = paddingWeight (point.take (τ t)) (n t) := by
+  have hpad : ∀ t < 5, (∀ st ∈ vtPadT (579 + 13 * t) t, VSH (coreProgram.Rel rd) rd σv st) ∧
+      σv (.n (579 + 13 * t + 5)) = paddingWeight (point.take (τ t)) (n t) := by
     intro t ht
     have hf : tableLogFloors.getD t 0 = 0 := by interval_cases t <;> rfl
     have hτt := hτ t (by omega)
     rw [hf] at hτt
     obtain ⟨w5, w6, w7⟩ := hwp t (by omega)
-    rw [show vtPadV t = 578 + 13 * t + 5 by unfold vtPadV; ring] at w5 w6 w7
+    rw [show vtPadV t = 579 + 13 * t + 5 by unfold vtPadV; ring] at w5 w6 w7
     exact pad_ok hlow (vt_goodL hl _ _ (vtPre_drop _ ▸ vtPad_check t ht)) (vtPad_read t ht)
       (hkb t (by omega)) (hrows t (by omega))
       (tbReadsAt_take hz (τ t)) (by simp; exact hτμ t (by omega)) (hτ31 t (by omega))
-      (by omega) w5 w6 (by rw [show 578 + 13 * t + 7 = 578 + 13 * t + 5 + 2 by ring]; exact w7)
-  have hpad5 : (∀ st ∈ vtPad5T 643, VSH (coreProgram.Rel rd) rd σv st) ∧
-      σv (.n (643 + 5)) = paddingWeight (point.take (τ 5)) (n 5) := by
+      (by omega) w5 w6 (by rw [show 579 + 13 * t + 7 = 579 + 13 * t + 5 + 2 by ring]; exact w7)
+  have hpad5 : (∀ st ∈ vtPad5T 644, VSH (coreProgram.Rel rd) rd σv st) ∧
+      σv (.n (644 + 5)) = paddingWeight (point.take (τ 5)) (n 5) := by
     obtain ⟨w5, w6, w7⟩ := hwp 5 (by norm_num)
-    have hm : Stmt.ite (.n (643 + 15)) [] [.atom (.const (.n (643 + 16)) (word 1 0)),
-      .atom (.assertEq (.n (643 + 6)) (.n (643 + 16))),
-      .atom (.const (.n (643 + 17)) (word 0 0)),
-      .atom (.add (.n (643 + 18)) (.n (643 + 7)) (.n (643 + 17))),
-      .atom (.hint (.inverse (.n (643 + 18)) (.n (643 + 19)))),
-      .atom (.assertNe (.n (643 + 18)) (.n (643 + 19)) (.n (643 + 20)))] ∈ vtPre :=
+    have hm : Stmt.ite (.n (644 + 15)) [] [.atom (.const (.n (644 + 16)) (word 1 0)),
+      .atom (.assertEq (.n (644 + 6)) (.n (644 + 16))),
+      .atom (.const (.n (644 + 17)) (word 0 0)),
+      .atom (.add (.n (644 + 18)) (.n (644 + 7)) (.n (644 + 17))),
+      .atom (.hint (.inverse (.n (644 + 18)) (.n (644 + 19)))),
+      .atom (.assertNe (.n (644 + 18)) (.n (644 + 19)) (.n (644 + 20)))] ∈ vtPre :=
       vt_mem_slice (vtPre_drop _ ▸ vtPad5_check) (by simp [vtPad5T])
     have hgb := vt_goodIte' (rd := rd) (w := w) hl hm
     rw [List.nil_append] at hgb
@@ -135,15 +135,15 @@ theorem vtS_p2 (hl : args.length = 20) (hlow : LowDefB 14 rd) (point : List E)
       have := forall_slices (fun t ↦ 563 + 10 * t) (fun _ ↦ 10) 5 (by decide)
         (fun t ht ↦ by
           have h := vt_tmplSlice (vtPad_check t ht) (hpad t ht).1
-          rwa [show (vtPadT (578 + 13 * t) t).length = 10 from rfl] at h)
+          rwa [show (vtPadT (579 + 13 * t) t).length = 10 from rfl] at h)
       simpa using this
     have s3 : ∀ s ∈ (vtPre.drop 613).take 11, VSH (coreProgram.Rel rd) rd σv s :=
       vt_tmplSlice vtPad5_check hpad5.1
-    have s4 := vt_hintSlice (rd := rd) (w := w) (args := args) 624 (h := .alloc (.n 664) 34) (by decide +kernel)
+    have s4 := vt_hintSlice (rd := rd) (w := w) (args := args) 624 (h := .alloc (.n 665) 34) (by decide +kernel)
     have s5 : ∀ s ∈ (vtPre.drop 625).take 68, VSH (coreProgram.Rel rd) rd σv s := by
       have h := vt_tmplSlice vtIdxc_check (idxc_ok hl (by rw [e668]; exact hidxc))
       rwa [show vtIdxcT.length = 68 by decide +kernel] at h
-    have s6 := vt_hintSlice (rd := rd) (w := w) (args := args) 693 (h := .allocDyn (.n 699) (.n 9))
+    have s6 := vt_hintSlice (rd := rd) (w := w) (args := args) 693 (h := .allocDyn (.n 700) (.n 9))
       (by decide +kernel)
     have s7 : ∀ s ∈ (vtPre.drop 694).take 1, VSH (coreProgram.Rel rd) rd σv s := by
       have h := vt_tmplSlice (P := VSH (coreProgram.Rel rd) rd σv) vtZeta1_check (by
@@ -152,9 +152,9 @@ theorem vtS_p2 (hl : args.length = 20) (hlow : LowDefB 14 rd) (point : List E)
         subst hs
         exact zeta1_ok hl h9 (by omega) hz hz1' hw704)
       exact h
-    have s8 := vt_hintSlice (rd := rd) (w := w) (args := args) 695 (h := .alloc (.n 701) 1728)
+    have s8 := vt_hintSlice (rd := rd) (w := w) (args := args) 695 (h := .alloc (.n 702) 1728)
       (by decide +kernel)
-    have s9 := vt_hintSlice (rd := rd) (w := w) (args := args) 696 (h := .alloc (.n 702) 864)
+    have s9 := vt_hintSlice (rd := rd) (w := w) (args := args) 696 (h := .alloc (.n 703) 864)
       (by decide +kernel)
     have s10 : ∀ s ∈ (vtPre.drop 697).take 68, VSH (coreProgram.Rel rd) rd σv s := by
       have := forall_slices (fun t ↦ [697, 705, 717, 729, 741, 753].getD t 0)
@@ -171,7 +171,7 @@ theorem vtS_p2 (hl : args.length = 20) (hlow : LowDefB 14 rd) (point : List E)
     exact forall_slice_join (a := 563) (l1 := 134) (l2 := 68) j8 s10
   · intro t ht
     rcases Nat.lt_or_ge t 5 with h5 | h5
-    · rw [show vtPadV t = 578 + 13 * t + 5 by unfold vtPadV; ring]; exact (hpad t h5).2
+    · rw [show vtPadV t = 579 + 13 * t + 5 by unfold vtPadV; ring]; exact (hpad t h5).2
     · obtain rfl : t = 5 := by omega
       exact hpad5.2
 

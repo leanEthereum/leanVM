@@ -16,27 +16,27 @@ open Core Memory
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem memRange_384 : RangeOk (memF Data.takesT) 384 150 := by
+theorem memRange_382 : RangeOk (memF Data.takesT) 382 150 := by
   unfold RangeOk; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem memRange_534 : RangeOk (memF Data.takesT) 534 150 := by
+theorem memRange_532 : RangeOk (memF Data.takesT) 532 150 := by
   unfold RangeOk; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem memRange_684 : RangeOk (memF Data.takesT) 684 150 := by
+theorem memRange_682 : RangeOk (memF Data.takesT) 682 150 := by
   unfold RangeOk; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem memRange_834 : RangeOk (memF Data.takesT) 834 150 := by
+theorem memRange_832 : RangeOk (memF Data.takesT) 832 150 := by
   unfold RangeOk; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem memRange_984 : RangeOk (memF Data.takesT) 984 115 := by
+theorem memRange_982 : RangeOk (memF Data.takesT) 982 117 := by
   unfold RangeOk; decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem memRange_1099 : RangeOk (memF Data.takesT) 1099 98 := by
+theorem memRange_1099 : RangeOk (memF Data.takesT) 1099 93 := by
   unfold RangeOk; decide +kernel
 
 end

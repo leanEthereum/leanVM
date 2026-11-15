@@ -85,8 +85,149 @@ open LeanVM.Guest LeanVM.Guest.Exec
 /-- `verify_tables`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none (.node none (.node
-    none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none
+    none (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    (some Fn.«plus_one_run__L10».modeSig) .nil .nil) .nil))))) .nil)) (.node none .nil (.node none
+    .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    (some Fn.«block_selector__L14».modeSig) .nil .nil) .nil)))))))) .nil)) (.node none .nil (.node
+    none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none (.node
+    none (.node none .nil (.node (some Fn.«block_selector__L25».modeSig) .nil .nil)) .nil) .nil)
+    .nil) .nil) .nil))) (.node none (.node none (.node none .nil (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node (some Fn.«index_mle__L30».modeSig) .nil .nil))
+    .nil) .nil) .nil))) .nil) .nil)))) (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none
+    (.node none .nil (.node (some Fn.«block_selector_tab__L16».modeSig) .nil .nil)) .nil) .nil)
+    .nil)))) .nil))))) (.node none (.node none (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node (some
+    Fn.«block_selector__L30».modeSig) .nil .nil)) .nil) .nil) .nil) .nil))) .nil) .nil) (.node none
+    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node (some Fn.«plus_one_run__L21».modeSig) .nil .nil)
+    .nil))))) .nil))) .nil)) (.node none (.node none (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«block_selector__L9».modeSig) .nil .nil) .nil))))))) .nil) .nil) .nil)) (.node none (.node
+    none (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node (some Fn.«index_mle__L15».modeSig) .nil .nil))
+    .nil) .nil) .nil)) .nil) .nil))) (.node none .nil (.node none (.node none (.node none (.node
+    none (.node none .nil (.node none (.node none (.node none .nil (.node (some
+    Fn.«block_selector_tab__L31».modeSig) .nil .nil)) .nil) .nil)) .nil) .nil) .nil) .nil)))
+    .nil))) (.node none (.node none (.node none (.node none (.node none (.node none (.node none
+    .nil (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node (some
+    Fn.«block_selector__L22».modeSig) .nil .nil)) .nil) .nil) .nil) (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node (some Fn.«plus_one_run__L5».modeSig) .nil .nil)
+    .nil))))) .nil)) .nil) (.node none (.node none (.node none (.node none (.node none .nil (.node
+    none (.node none (.node none .nil (.node (some Fn.«block_selector_tab__L29».modeSig) .nil
+    .nil)) .nil) .nil)) .nil) .nil) .nil) .nil)) (.node none .nil (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
+    (some Fn.«block_selector_tab__L14».modeSig) .nil .nil)) .nil) .nil) .nil)))) .nil))) (.node
+    none (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node
+    none (.node none .nil (.node (some Fn.«block_selector__L17».modeSig) .nil .nil)) .nil) .nil)
+    .nil) .nil) .nil) .nil) .nil) .nil) .nil)) (.node none .nil (.node none .nil (.node none (.node
+    none .nil (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node
+    none .nil (.node (some Fn.«index_mle__L14».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil) .nil))
+    .nil)))) (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
+    (some Fn.«index_mle__L31».modeSig) .nil .nil)) .nil) .nil) .nil))) .nil)) .nil) (.node none
+    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node (some Fn.«block_selector__L1».modeSig) .nil .nil)
+    .nil)))))) .nil)) .nil))) (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none .nil (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil
+    (.node (some Fn.«block_selector__L33».modeSig) .nil .nil)) .nil) .nil) .nil) .nil)))))) (.node
+    none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«block_selector__L6».modeSig) .nil .nil) .nil)))))) .nil))) (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none .nil (.node none (.node (some Fn.«plus_one_run__L26».modeSig) .nil .nil) .nil)))))
+    .nil))))))))) (.node none (.node none (.node none (.node none (.node none (.node none (.node
+    none .nil (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node
+    none .nil (.node (some Fn.«block_selector_tab__L32».modeSig) .nil .nil)) .nil) .nil)) .nil)
+    .nil) .nil)) (.node none (.node none (.node none (.node none .nil (.node none (.node none
+    (.node none (.node none .nil (.node (some Fn.«index_mle__L0».modeSig) .nil .nil)) .nil) .nil)
+    .nil)) .nil) .nil) .nil)) .nil) (.node none (.node none .nil (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node (some Fn.«block_selector__L5».modeSig) .nil .nil) .nil)))))) .nil))) .nil)) (.node
+    none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
+    (.node none (.node none (.node none (.node none .nil (.node (some Fn.«index_mle__L23».modeSig)
+    .nil .nil)) .nil) .nil) .nil)) .nil))) .nil) .nil) (.node none .nil (.node none (.node none
+    .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
+    none .nil (.node none (.node (some Fn.«block_selector__L2».modeSig) .nil .nil) .nil))))))
+    .nil)) (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node (some Fn.«plus_one_run__L2».modeSig) .nil .nil)
+    .nil))))) .nil) .nil)))))) (.node none (.node none .nil (.node none .nil (.node none (.node
+    none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node (some Fn.«block_selector__L0».modeSig) .nil .nil)
+    .nil)))))) .nil)) .nil))) (.node none (.node none (.node none .nil (.node none .nil (.node none
     (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node (some
+    Fn.«block_selector__L21».modeSig) .nil .nil)) .nil) .nil) .nil) .nil) .nil) .nil))) (.node none
+    .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
+    none (.node none .nil (.node (some Fn.«index_mle__L22».modeSig) .nil .nil)) .nil) .nil) .nil))
+    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
+    Fn.«block_selector_tab__L15».modeSig) .nil .nil)) .nil) .nil) .nil)))) .nil))) (.node none .nil
+    (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node none
+    (.node none .nil (.node (some Fn.«block_selector__L18».modeSig) .nil .nil)) .nil) .nil) .nil)
+    .nil) (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    (some Fn.«plus_one_run__L29».modeSig) .nil .nil) .nil)))))) .nil) .nil) .nil))))) (.node none
+    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
+    (.node (some Fn.«block_selector__L10».modeSig) .nil .nil) .nil))))))) .nil) .nil)) (.node none
+    .nil (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none .nil (.node none (.node (some Fn.«plus_one_run__L13».modeSig) .nil
+    .nil) .nil))))) .nil)) (.node none (.node none .nil (.node none (.node none (.node none (.node
+    none (.node none .nil (.node (some Fn.«block_selector__L29».modeSig) .nil .nil)) .nil) .nil)
+    .nil) .nil)) .nil)) .nil)))) (.node none (.node none .nil (.node none (.node none (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none (.node
+    none .nil (.node (some Fn.«block_selector_tab__L3».modeSig) .nil .nil)) .nil) .nil) .nil))))
+    .nil) (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none
+    (.node none .nil (.node (some Fn.«block_selector_tab__L30».modeSig) .nil .nil)) .nil) .nil))
+    (.node none (.node none (.node none (.node none .nil (.node (some Fn.«index_mle__L6».modeSig)
+    .nil .nil)) .nil) .nil) .nil)) .nil) (.node none .nil (.node none .nil (.node none (.node none
+    (.node none (.node none .nil (.node (some Fn.«block_selector_tab__L13».modeSig) .nil .nil))
+    .nil) .nil) .nil)))) .nil)) (.node none .nil (.node none (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«plus_one_run__L18».modeSig) .nil .nil) .nil))))) .nil)) .nil)))) (.node none (.node none
+    .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none
+    (.node none (.node none (.node none .nil (.node (some Fn.«block_selector__L26».modeSig) .nil
+    .nil)) .nil) .nil) .nil) .nil) .nil))))) (.node none (.node none .nil (.node none (.node none
+    (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
+    Fn.«index_mle__L7».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil) .nil) .nil)) (.node none .nil
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node (some Fn.«block_selector__L13».modeSig) .nil .nil)
+    .nil))))))) .nil)))))))) (.node none (.node none (.node none (.node none (.node none (.node
+    none .nil (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node (some Fn.«index_mle__L19».modeSig) .nil .nil))
+    .nil) .nil) .nil)) .nil)) .nil) (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«block_selector__L12».modeSig) .nil .nil) .nil))))))) .nil))) (.node none (.node none (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none
+    (.node none .nil (.node (some Fn.«block_selector_tab__L1».modeSig) .nil .nil)) .nil) .nil)
+    .nil)))) .nil) .nil) (.node none (.node none (.node none (.node none .nil (.node none (.node
+    none (.node none (.node none (.node none .nil (.node (some Fn.«block_selector__L27».modeSig)
+    .nil .nil)) .nil) .nil) .nil) .nil)) .nil) .nil) .nil))) (.node none (.node none (.node none
+    .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    none (.node none (.node none .nil (.node (some Fn.«block_selector_tab__L22».modeSig) .nil
+    .nil)) .nil) .nil) .nil)))))) (.node none .nil (.node none .nil (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
+    Fn.«block_selector_tab__L24».modeSig) .nil .nil)) .nil) .nil) .nil))))))) (.node none (.node
+    none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node (some Fn.«plus_one_run__L9».modeSig) .nil .nil)
+    .nil))))) .nil)) .nil) (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node none (.node none (.node none .nil (.node (some
+    Fn.«block_selector_tab__L23».modeSig) .nil .nil)) .nil) .nil) .nil)))))) (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
+    none (.node none .nil (.node (some Fn.«block_selector_tab__L21».modeSig) .nil .nil)) .nil)
+    .nil) .nil))))) (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
+    (some Fn.«shared_selector_tables».modeSig) .nil .nil) .nil) .nil))) .nil))))) (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«block_selector__L11».modeSig) .nil .nil) .nil))))))) .nil)) (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node
+    none .nil (.node (some Fn.«index_mle__L26».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil)))))
+    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«plus_one_run__L22».modeSig) .nil .nil) .nil))))) .nil))) (.node none (.node none (.node
+    none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node (some
+    Fn.«block_selector__L28».modeSig) .nil .nil)) .nil) .nil) .nil) .nil)) .nil) .nil)))) .nil))
+    (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node
+    none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node (some
     Fn.«block_selector__L19».modeSig) .nil .nil)) .nil) .nil) .nil) .nil) .nil) .nil) (.node none
     .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
     none (.node (some Fn.«plus_one_run__L25».modeSig) .nil .nil) .nil))))) .nil))))) (.node none
@@ -103,70 +244,21 @@ noncomputable def modeEnv : Mode.Env :=
     (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
     none (.node (some Fn.«block_selector__L3».modeSig) .nil .nil) .nil)))))) .nil)) (.node none
     (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil
-    (.node (some Fn.«index_mle__L10».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil) .nil) .nil))))))
-    (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node (some Fn.«block_selector__L11».modeSig) .nil .nil) .nil))))))) .nil)) (.node none
-    .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none
-    (.node none (.node none .nil (.node (some Fn.«index_mle__L26».modeSig) .nil .nil)) .nil) .nil)
-    .nil)) .nil))))) (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«plus_one_run__L22».modeSig) .nil .nil) .nil))))) .nil))) (.node none (.node none (.node
-    none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node (some
-    Fn.«block_selector__L28».modeSig) .nil .nil)) .nil) .nil) .nil) .nil)) .nil) .nil)))) .nil)
-    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
-    Fn.«block_selector_tab__L22».modeSig) .nil .nil)) .nil) .nil) .nil)))))) (.node none .nil
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
-    (.node none (.node none .nil (.node (some Fn.«block_selector_tab__L24».modeSig) .nil .nil))
-    .nil) .nil) .nil))))))) (.node none (.node none (.node none (.node none .nil (.node none (.node
-    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«plus_one_run__L9».modeSig) .nil .nil) .nil))))) .nil)) .nil) (.node none .nil (.node none
-    .nil (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil
-    (.node (some Fn.«block_selector_tab__L23».modeSig) .nil .nil)) .nil) .nil) .nil)))))) (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    none (.node none (.node none .nil (.node (some Fn.«block_selector_tab__L21».modeSig) .nil
-    .nil)) .nil) .nil) .nil))))) .nil))) (.node none (.node none (.node none (.node none (.node
-    none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none
-    .nil (.node (some Fn.«block_selector_tab__L1».modeSig) .nil .nil)) .nil) .nil) .nil)))) .nil)
-    .nil) (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none
-    (.node none (.node none .nil (.node (some Fn.«block_selector__L27».modeSig) .nil .nil)) .nil)
-    .nil) .nil) .nil)) .nil) .nil) .nil)) (.node none (.node none (.node none (.node none .nil
-    (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
-    Fn.«index_mle__L19».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil)) .nil) (.node none (.node
-    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node (some Fn.«block_selector__L12».modeSig) .nil .nil) .nil))))))) .nil))
-    .nil))))) (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node
-    none (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node none
-    .nil (.node (some Fn.«index_mle__L2».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil) .nil) (.node
-    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node (some Fn.«block_selector__L15».modeSig) .nil .nil) .nil))))))))) (.node none
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
-    none (.node none .nil (.node (some Fn.«block_selector_tab__L6».modeSig) .nil .nil)) .nil) .nil)
-    .nil)))) .nil) .nil)) (.node none (.node none .nil (.node none (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«plus_one_run__L30».modeSig) .nil .nil) .nil)))))) .nil) .nil)) (.node none .nil (.node none
-    (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node none .nil
-    (.node (some Fn.«block_selector__L24».modeSig) .nil .nil)) .nil) .nil) .nil) .nil) .nil))
-    .nil)))) (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node
-    none .nil (.node none (.node none (.node none (.node none .nil (.node (some
-    Fn.«index_mle__L11».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil) .nil)) .nil) .nil) (.node
-    none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none .nil (.node none .nil (.node none (.node (some Fn.«plus_one_run__L33».modeSig)
-    .nil .nil) .nil)))))) .nil)) .nil) .nil))) (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node none .nil (.node none (.node (some Fn.«plus_one_run__L1».modeSig) .nil .nil)
-    .nil))))) .nil) .nil))))) (.node none (.node none (.node none (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
-    (some Fn.«block_selector_tab__L0».modeSig) .nil .nil)) .nil) .nil) .nil)))) .nil) (.node none
-    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none (.node none
-    .nil (.node (some Fn.«block_selector__L31».modeSig) .nil .nil)) .nil) .nil) .nil) .nil)))
-    .nil)) (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
-    (.node none (.node none (.node none .nil (.node (some Fn.«block_selector_tab__L8».modeSig) .nil
-    .nil)) .nil) .nil) .nil)))) .nil) .nil)) (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
-    .nil (.node none (.node (some Fn.«block_selector__L8».modeSig) .nil .nil) .nil))))))
-    .nil))))))) (.node none (.node none (.node none (.node none (.node none (.node none (.node none
+    (.node (some Fn.«index_mle__L10».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil) .nil)
+    .nil))))))) (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node
+    none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node
+    none .nil (.node (some Fn.«index_mle__L18».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil)) .nil)
+    .nil) (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node (some Fn.«block_selector_tab__L7».modeSig) .nil
+    .nil)) .nil) .nil) .nil)))) .nil) (.node none (.node none .nil (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«plus_one_run__L17».modeSig) .nil .nil) .nil))))) .nil)) (.node none (.node none .nil (.node
+    none (.node none (.node (some Fn.«eq_prefix_chain».modeSig) .nil .nil) .nil) .nil)) (.node none
+    .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    (some Fn.«block_selector__L16».modeSig) .nil .nil) .nil)))))))))) (.node none .nil (.node none
+    (.node none (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node
+    none .nil (.node (some Fn.«block_selector__L23».modeSig) .nil .nil)) .nil) .nil) .nil) .nil)
+    .nil)) .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none (.node none
     (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
     (some Fn.«index_mle__L27».modeSig) .nil .nil)) .nil) .nil) .nil))) .nil) .nil) (.node none
     (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
@@ -178,133 +270,127 @@ noncomputable def modeEnv : Mode.Env :=
     none (.node none (.node none .nil (.node (some Fn.«block_selector_tab__L5».modeSig) .nil .nil))
     .nil) .nil) .nil)))) (.node none .nil (.node none .nil (.node none (.node none (.node none
     (.node none (.node none .nil (.node (some Fn.«block_selector__L32».modeSig) .nil .nil)) .nil)
-    .nil) .nil) .nil)))) .nil) .nil))) (.node none (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none
-    .nil (.node (some Fn.«index_mle__L18».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil)) .nil)
-    .nil) (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
-    (.node none (.node none (.node none .nil (.node (some Fn.«block_selector_tab__L7».modeSig) .nil
-    .nil)) .nil) .nil) .nil)))) .nil) (.node none (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«plus_one_run__L17».modeSig) .nil .nil) .nil))))) .nil)) (.node none .nil (.node none .nil
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«block_selector__L16».modeSig) .nil .nil) .nil)))))))))) (.node none .nil (.node none (.node
-    none (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node none
-    .nil (.node (some Fn.«block_selector__L23».modeSig) .nil .nil)) .nil) .nil) .nil) .nil) .nil))
-    .nil) .nil))) .nil)))) (.node none (.node none (.node none (.node none .nil (.node none (.node
-    none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«block_selector__L10».modeSig) .nil .nil) .nil))))))) .nil) .nil)) (.node none .nil (.node
-    none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node (some Fn.«plus_one_run__L13».modeSig) .nil .nil)
-    .nil))))) .nil)) (.node none (.node none .nil (.node none (.node none (.node none (.node none
-    (.node none .nil (.node (some Fn.«block_selector__L29».modeSig) .nil .nil)) .nil) .nil) .nil)
-    .nil)) .nil)) (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
-    (some Fn.«shared_selector_tables».modeSig) .nil .nil) .nil) .nil))) .nil))))) (.node none
-    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node none (.node none (.node none (.node none .nil (.node (some
-    Fn.«block_selector_tab__L3».modeSig) .nil .nil)) .nil) .nil) .nil)))) .nil) (.node none (.node
-    none (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node
-    (some Fn.«block_selector_tab__L30».modeSig) .nil .nil)) .nil) .nil)) (.node none (.node none
-    (.node none (.node none .nil (.node (some Fn.«index_mle__L6».modeSig) .nil .nil)) .nil) .nil)
-    .nil)) .nil) (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none
-    .nil (.node (some Fn.«block_selector_tab__L13».modeSig) .nil .nil)) .nil) .nil) .nil)))) .nil))
-    (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node (some Fn.«plus_one_run__L18».modeSig) .nil
-    .nil) .nil))))) .nil)) .nil)))) (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node none .nil
-    (.node (some Fn.«block_selector__L26».modeSig) .nil .nil)) .nil) .nil) .nil) .nil) .nil)))))
-    (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none
-    (.node none (.node none (.node none .nil (.node (some Fn.«index_mle__L7».modeSig) .nil .nil))
-    .nil) .nil) .nil)) .nil) .nil) .nil)) (.node none .nil (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    (some Fn.«block_selector__L13».modeSig) .nil .nil) .nil))))))) .nil)))))) (.node none (.node
-    none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none
-    .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    (some Fn.«block_selector__L0».modeSig) .nil .nil) .nil)))))) .nil)) .nil))) (.node none (.node
-    none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none (.node
-    none (.node none (.node none .nil (.node (some Fn.«block_selector__L21».modeSig) .nil .nil))
-    .nil) .nil) .nil) .nil) .nil) .nil))) (.node none .nil (.node none (.node none .nil (.node none
-    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
-    Fn.«index_mle__L22».modeSig) .nil .nil)) .nil) .nil) .nil)) (.node none .nil (.node none (.node
-    none (.node none (.node none .nil (.node (some Fn.«block_selector_tab__L15».modeSig) .nil
-    .nil)) .nil) .nil) .nil)))) .nil))) (.node none .nil (.node none (.node none (.node none (.node
-    none (.node none (.node none (.node none (.node none (.node none .nil (.node (some
-    Fn.«block_selector__L18».modeSig) .nil .nil)) .nil) .nil) .nil) .nil) (.node none .nil (.node
-    none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«plus_one_run__L29».modeSig) .nil .nil) .nil)))))) .nil) .nil) .nil)))) (.node none (.node
-    none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none .nil (.node (some Fn.«index_mle__L23».modeSig)
-    .nil .nil)) .nil) .nil) .nil)) .nil))) .nil) .nil) (.node none .nil (.node none (.node none
-    .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node none (.node (some Fn.«block_selector__L2».modeSig) .nil .nil) .nil))))))
-    .nil)) (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node (some Fn.«plus_one_run__L2».modeSig) .nil .nil)
-    .nil))))) .nil) .nil))))) (.node none (.node none (.node none .nil (.node none .nil (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node (some Fn.«block_selector__L5».modeSig) .nil .nil) .nil)))))) .nil))) .nil) (.node
-    none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node
-    none (.node none (.node none .nil (.node (some Fn.«index_mle__L0».modeSig) .nil .nil)) .nil)
-    .nil) .nil)) .nil) .nil) .nil) (.node none (.node none (.node none (.node none (.node none .nil
-    (.node none (.node none (.node none .nil (.node (some Fn.«block_selector_tab__L32».modeSig)
-    .nil .nil)) .nil) .nil)) .nil) .nil) .nil) .nil))))))) (.node none (.node none (.node none
-    (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
-    (.node none (.node none (.node none (.node none .nil (.node (some
-    Fn.«block_selector__L30».modeSig) .nil .nil)) .nil) .nil) .nil) .nil))) .nil) .nil) (.node none
-    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node (some Fn.«plus_one_run__L21».modeSig) .nil .nil)
-    .nil))))) .nil))) .nil)) (.node none (.node none (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«block_selector__L9».modeSig) .nil .nil) .nil))))))) .nil) .nil) .nil)) (.node none (.node
-    none (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none
-    (.node none (.node none (.node none .nil (.node (some Fn.«index_mle__L15».modeSig) .nil .nil))
-    .nil) .nil) .nil)) .nil) .nil))) (.node none .nil (.node none (.node none (.node none (.node
-    none (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«block_selector_tab__L31».modeSig) .nil .nil)) .nil) .nil)) .nil) .nil) .nil) (.node none
-    (.node none .nil (.node none (.node none (.node (some Fn.«eq_prefix_chain».modeSig) .nil .nil)
-    .nil) .nil)) .nil)))) .nil)) (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
-    none (.node none .nil (.node (some Fn.«block_selector_tab__L16».modeSig) .nil .nil)) .nil)
-    .nil) .nil)))) .nil)))) (.node none (.node none .nil (.node none (.node none .nil (.node none
-    .nil (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node (some
-    Fn.«block_selector__L25».modeSig) .nil .nil)) .nil) .nil) .nil) .nil) .nil))) (.node none
-    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none
-    .nil (.node (some Fn.«index_mle__L30».modeSig) .nil .nil)) .nil) .nil) .nil))) .nil) .nil)))
-    (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none .nil (.node none (.node (some Fn.«plus_one_run__L10».modeSig)
-    .nil .nil) .nil))))) .nil)) (.node none .nil (.node none .nil (.node none .nil (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node (some Fn.«block_selector__L14».modeSig)
-    .nil .nil) .nil)))))))) .nil) .nil)))) (.node none (.node none (.node none .nil (.node none
-    (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node
-    none (.node none (.node none .nil (.node (some Fn.«index_mle__L31».modeSig) .nil .nil)) .nil)
-    .nil) .nil))) .nil)) .nil) (.node none (.node none .nil (.node none (.node none .nil (.node
-    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«block_selector__L1».modeSig) .nil .nil) .nil)))))) .nil)) .nil))) (.node none (.node none
-    .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    none (.node none (.node none (.node none .nil (.node (some Fn.«block_selector__L33».modeSig)
-    .nil .nil)) .nil) .nil) .nil) .nil)))))) (.node none (.node none .nil (.node none .nil (.node
+    .nil) .nil) .nil)))) .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none
+    .nil (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none
+    (.node none .nil (.node (some Fn.«index_mle__L2».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil)
+    .nil) (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node (some Fn.«block_selector__L15».modeSig) .nil .nil)
+    .nil))))))))) (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node none (.node none (.node none .nil (.node (some Fn.«block_selector_tab__L6».modeSig)
+    .nil .nil)) .nil) .nil) .nil)))) .nil) .nil)) (.node none (.node none .nil (.node none (.node
     none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node (some Fn.«block_selector__L6».modeSig) .nil .nil) .nil)))))) .nil))) (.node
-    none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node (some Fn.«plus_one_run__L26».modeSig) .nil
-    .nil) .nil))))) .nil))))))) (.node none (.node none .nil (.node none .nil (.node none (.node
-    none .nil (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node
-    none .nil (.node (some Fn.«index_mle__L14».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil) .nil))
-    .nil))) (.node none (.node none (.node none (.node none (.node none (.node none (.node none
+    (.node none (.node (some Fn.«plus_one_run__L30».modeSig) .nil .nil) .nil)))))) .nil) .nil))
+    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none
+    (.node none (.node none .nil (.node (some Fn.«block_selector__L24».modeSig) .nil .nil)) .nil)
+    .nil) .nil) .nil) .nil)) .nil)))) (.node none (.node none (.node none (.node none .nil (.node
+    none (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
+    (some Fn.«index_mle__L11».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil) .nil)) .nil) .nil)
+    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«plus_one_run__L33».modeSig) .nil .nil) .nil)))))) .nil)) .nil) .nil))) (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«plus_one_run__L1».modeSig) .nil .nil) .nil))))) .nil) .nil))))) (.node none (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    none (.node none (.node none .nil (.node (some Fn.«block_selector_tab__L0».modeSig) .nil .nil))
+    .nil) .nil) .nil)))) .nil) (.node none (.node none .nil (.node none .nil (.node none (.node
+    none (.node none (.node none (.node none .nil (.node (some Fn.«block_selector__L31».modeSig)
+    .nil .nil)) .nil) .nil) .nil) .nil))) .nil)) (.node none (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
+    Fn.«block_selector_tab__L8».modeSig) .nil .nil)) .nil) .nil) .nil)))) .nil) .nil)) (.node none
+    .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«block_selector__L8».modeSig) .nil .nil) .nil)))))) .nil)))))))))) (.node none (.node none
+    (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none (.node
+    none .nil (.node (some Fn.«block_selector_tab__L18».modeSig) .nil .nil)) .nil) .nil) .nil)))))
+    (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node
+    none .nil (.node (some Fn.«index_mle__L5».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil) .nil)
+    .nil)) .nil)) (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«plus_one_run__L11».modeSig) .nil .nil) .nil))))) .nil)) .nil) (.node none (.node none
+    (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
+    Fn.«index_mle__L8».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil) .nil) .nil))) (.node none .nil
+    (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none
+    (.node none (.node none .nil (.node (some Fn.«verify_tables_loop1».modeSig) .nil .nil)) .nil)
+    .nil)) .nil) .nil) .nil)) (.node none .nil (.node none .nil (.node none .nil (.node none .nil
     (.node none (.node none (.node none (.node none .nil (.node (some
-    Fn.«block_selector__L17».modeSig) .nil .nil)) .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)
-    .nil) (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none (.node none (.node none (.node none .nil (.node (some
-    Fn.«block_selector_tab__L14».modeSig) .nil .nil)) .nil) .nil) .nil)))) .nil)) (.node none
-    (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node
-    none .nil (.node (some Fn.«block_selector_tab__L29».modeSig) .nil .nil)) .nil) .nil)) .nil)
-    .nil) .nil) .nil) (.node none .nil (.node none (.node none (.node none (.node none (.node none
-    (.node none (.node none .nil (.node (some Fn.«block_selector__L22».modeSig) .nil .nil)) .nil)
-    .nil) .nil) (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«plus_one_run__L5».modeSig) .nil .nil) .nil))))) .nil) .nil)))))))))) (.node none (.node
-    none (.node none (.node none (.node none (.node none (.node none (.node none (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
-    .nil (.node none (.node (some Fn.«plus_one_run__L32».modeSig) .nil .nil) .nil)))))) (.node none
+    Fn.«block_selector_tab__L25».modeSig) .nil .nil)) .nil) .nil) .nil))))))))) (.node none (.node
+    none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
+    (.node none (.node (some Fn.«opening_tail_round».modeSig) .nil .nil) .nil) .nil))) (.node none
+    .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node (some Fn.«plus_one_run__L20».modeSig) .nil .nil) .nil))))) .nil))) .nil) .nil))
+    .nil)) (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node (some Fn.«plus_one_run__L27».modeSig) .nil .nil) .nil)))))) .nil) .nil) (.node none
+    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none
+    .nil (.node (some Fn.«index_mle__L21».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil)) .nil))
+    .nil)) (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
+    Fn.«block_selector_tab__L4».modeSig) .nil .nil)) .nil) .nil) .nil)))) .nil) .nil) .nil)))
+    (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none
     .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
+    Fn.«block_selector_tab__L11».modeSig) .nil .nil)) .nil) .nil) .nil)))) (.node none (.node none
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«padding_weight__L2».modeSig) .nil .nil) .nil)))) .nil) .nil) .nil))) (.node none (.node
+    none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none
+    (.node none .nil (.node (some Fn.«index_mle__L24».modeSig) .nil .nil)) .nil) .nil) .nil))
+    .nil))) .nil)) .nil) (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    (some Fn.«padding_weight__L0».modeSig) .nil .nil) .nil)))) .nil) .nil) .nil)) (.node none .nil
+    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node (some Fn.«plus_one_run__L4».modeSig) .nil .nil) .nil))))) .nil) .nil))))))))
+    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none
+    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node (some Fn.«plus_one_run__L12».modeSig) .nil .nil) .nil))))) .nil)) .nil)
+    .nil))) (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
+    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
+    Fn.«index_mle__L13».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil) .nil)) .nil)) .nil)) (.node
+    none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«plus_one_run__L19».modeSig) .nil .nil) .nil))))) .nil))) .nil) .nil) (.node none .nil
+    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    none (.node none (.node none .nil (.node (some Fn.«block_selector_tab__L9».modeSig) .nil .nil))
+    .nil) .nil) .nil)))) .nil) .nil))) (.node none (.node none .nil (.node none (.node none .nil
+    (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil
+    (.node (some Fn.«verify_tables_loop0».modeSig) .nil .nil)) .nil) .nil)) .nil) .nil) .nil))
+    .nil)) (.node none (.node none (.node none (.node none (.node none (.node none (.node none .nil
+    (.node none (.node none (.node none .nil (.node (some Fn.«block_selector_tab__L27».modeSig)
+    .nil .nil)) .nil) .nil)) .nil) .nil) .nil) .nil) .nil) (.node none (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
+    (some Fn.«index_mle__L32».modeSig) .nil .nil)) .nil) .nil) .nil))) .nil)) .nil))))) (.node none
+    (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none (.node none
+    .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
+    Fn.«index_mle__L29».modeSig) .nil .nil)) .nil) .nil) .nil))) .nil) .nil)) (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
+    none (.node none .nil (.node (some Fn.«block_selector_tab__L20».modeSig) .nil .nil)) .nil)
+    .nil) .nil))))) .nil)) (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    (some Fn.«plus_one_run__L3».modeSig) .nil .nil) .nil))))) .nil) .nil)))))) (.node none (.node
+    none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«plus_one_run__L28».modeSig) .nil .nil) .nil)))))) .nil) .nil) .nil)) .nil) (.node none .nil
+    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node
+    none (.node none (.node none (.node none .nil (.node (some Fn.«index_mle__L16».modeSig) .nil
+    .nil)) .nil) .nil) .nil)) .nil) .nil))) .nil)))))) (.node none (.node none (.node none (.node
+    none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«padding_weight__L1».modeSig) .nil .nil) .nil)))) .nil) .nil) .nil))) .nil) (.node none
+    (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none .nil (.node none (.node (some Fn.«plus_one_run__L15».modeSig) .nil
+    .nil) .nil))))) .nil)) .nil)) .nil)) (.node none .nil (.node none .nil (.node none (.node none
+    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none
+    .nil (.node (some Fn.«index_mle__L20».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil)) .nil)
+    .nil)))) (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
+    Fn.«index_mle__L25».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil)))) .nil) .nil) (.node none
+    .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«plus_one_run__L16».modeSig) .nil .nil) .nil))))) .nil)) .nil)) .nil)))) (.node none (.node
+    none (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«plus_one_run__L32».modeSig) .nil .nil) .nil)))))) (.node none .nil (.node none .nil (.node
+    none (.node none (.node none (.node none .nil (.node (some
     Fn.«block_selector_tab__L17».modeSig) .nil .nil)) .nil) .nil) .nil))))) .nil) .nil) (.node none
     .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none (.node
     none (.node none (.node none .nil (.node (some Fn.«index_mle__L9».modeSig) .nil .nil)) .nil)
@@ -325,82 +411,73 @@ noncomputable def modeEnv : Mode.Env :=
     Fn.«padding_weight__L23».modeSig) .nil .nil) .nil)))) .nil))) .nil) (.node none .nil (.node
     none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
     (.node (some Fn.«padding_weight__L5».modeSig) .nil .nil) .nil)))) .nil) .nil) .nil)))) (.node
-    none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
-    (some Fn.«opening_tail_round».modeSig) .nil .nil) .nil) .nil))) (.node none .nil (.node none
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«padding_weight__L13».modeSig) .nil .nil) .nil)))) .nil) .nil))) (.node none .nil (.node
-    none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node (some Fn.«padding_weight__L15».modeSig) .nil .nil) .nil)))) .nil) .nil)))) (.node
-    none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node (some Fn.«padding_weight__L29».modeSig) .nil .nil)
-    .nil))))) .nil) .nil) (.node none (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node (some Fn.«plus_one_run__L0».modeSig) .nil .nil)
-    .nil))))) .nil) .nil))))) (.node none (.node none (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
-    (.node (some Fn.«padding_weight__L25».modeSig) .nil .nil) .nil)))) .nil)))) (.node none (.node
-    none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none
-    .nil (.node (some Fn.«block_selector_tab__L12».modeSig) .nil .nil)) .nil) .nil) .nil)))) (.node
+    none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none (.node (some Fn.«padding_weight__L13».modeSig)
+    .nil .nil) .nil)))) .nil) .nil))) (.node none .nil (.node none .nil (.node none (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«padding_weight__L15».modeSig) .nil .nil) .nil)))) .nil) .nil)))) (.node none .nil (.node
     none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
-    (.node (some Fn.«padding_weight__L3».modeSig) .nil .nil) .nil)))) .nil) .nil) .nil))) (.node
-    none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node none (.node (some Fn.«padding_weight__L9».modeSig) .nil .nil) .nil))))
-    .nil) .nil)) .nil) (.node none (.node none (.node none .nil (.node none (.node none .nil (.node
-    none .nil (.node none .nil (.node none (.node (some Fn.«padding_weight__L19».modeSig) .nil
-    .nil) .nil)))) .nil)) .nil) .nil))) (.node none (.node none (.node none (.node none (.node none
+    .nil (.node none (.node (some Fn.«padding_weight__L29».modeSig) .nil .nil) .nil))))) .nil)
+    .nil) (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node (some Fn.«plus_one_run__L0».modeSig) .nil .nil) .nil))))) .nil)
+    .nil))))) (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
     .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«padding_weight__L25».modeSig) .nil .nil) .nil)))) .nil)))) (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
+    (some Fn.«block_selector_tab__L12».modeSig) .nil .nil)) .nil) .nil) .nil)))) (.node none (.node
+    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«padding_weight__L3».modeSig) .nil .nil) .nil)))) .nil) .nil) .nil))) (.node none (.node
+    none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node (some Fn.«padding_weight__L9».modeSig) .nil .nil) .nil)))) .nil) .nil))
+    .nil) (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node (some Fn.«padding_weight__L19».modeSig) .nil .nil) .nil))))
+    .nil)) .nil) .nil))) (.node none (.node none (.node none (.node none (.node none .nil (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
     Fn.«padding_weight__L17».modeSig) .nil .nil) .nil)))) .nil)) .nil) .nil) (.node none (.node
     none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
     none (.node (some Fn.«padding_weight__L11».modeSig) .nil .nil) .nil)))) .nil) .nil)) .nil))
     (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
     .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«padding_weight__L27».modeSig) .nil .nil) .nil)))) .nil))))))))) (.node none (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    Fn.«padding_weight__L27».modeSig) .nil .nil) .nil)))) .nil)))))))))) (.node none (.node none
+    (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node
     none .nil (.node none (.node none (.node none (.node none .nil (.node (some
-    Fn.«index_mle__L25».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil)))) .nil) .nil) (.node none
-    .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«plus_one_run__L16».modeSig) .nil .nil) .nil))))) .nil)) .nil)) .nil))) (.node none (.node
-    none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none
-    .nil (.node none (.node none (.node none (.node none .nil (.node (some
-    Fn.«index_mle__L20».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil)) .nil) .nil))) (.node none
-    (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node
-    none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«plus_one_run__L15».modeSig) .nil .nil) .nil))))) .nil)) .nil)) .nil) (.node none .nil
-    (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node (some Fn.«padding_weight__L1».modeSig) .nil .nil)
-    .nil)))) .nil) .nil) .nil)) .nil)))))) (.node none (.node none (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node none (.node none (.node none .nil (.node (some Fn.«block_selector_tab__L2».modeSig)
-    .nil .nil)) .nil) .nil) .nil)))) .nil) .nil) (.node none .nil (.node none .nil (.node none
+    Fn.«index_mle__L1».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil) .nil) .nil)) .nil) (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node none .nil (.node none (.node (some Fn.«plus_one_run__L8».modeSig) .nil .nil)
+    .nil))))) .nil)) .nil) .nil) .nil)) (.node none .nil (.node none (.node none (.node none (.node
+    none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node (some Fn.«padding_weight__L8».modeSig) .nil .nil) .nil)))) .nil) .nil)) (.node none
     (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
-    Fn.«index_mle__L17».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil) .nil))))) (.node none (.node
-    none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node (some Fn.«plus_one_run__L7».modeSig) .nil
-    .nil) .nil))))) .nil)) .nil) .nil) .nil) .nil)) (.node none (.node none (.node none .nil (.node
-    none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
-    none (.node none .nil (.node (some Fn.«index_mle__L28».modeSig) .nil .nil)) .nil) .nil) .nil)))
-    .nil) .nil) .nil)) (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
+    Fn.«index_mle__L12».modeSig) .nil .nil)) .nil) .nil) .nil)) (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node none (.node (some Fn.«padding_weight__L20».modeSig) .nil
+    .nil) .nil)))) .nil)) .nil)) (.node none (.node none .nil (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«padding_weight__L24».modeSig) .nil .nil) .nil)))) .nil))) (.node none (.node none (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«padding_weight__L4».modeSig) .nil .nil) .nil)))) .nil) .nil) .nil))) (.node none (.node
+    none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node (some Fn.«padding_weight__L28».modeSig) .nil .nil) .nil))))) .nil)
+    .nil) .nil) (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node (some Fn.«padding_weight__L12».modeSig) .nil .nil)
+    .nil)))) .nil) .nil)) (.node none .nil (.node none (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node (some Fn.«padding_weight__L16».modeSig) .nil .nil)
+    .nil)))) .nil) .nil))))))) (.node none (.node none (.node none (.node none .nil (.node none
+    (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node (some Fn.«padding_weight__L18».modeSig) .nil .nil) .nil)))) .nil)) (.node
+    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«padding_weight__L10».modeSig) .nil .nil) .nil)))) .nil) .nil)) (.node none .nil (.node none
     (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«plus_one_run__L24».modeSig) .nil .nil) .nil))))) .nil)))) .nil)) (.node none (.node none
-    .nil (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none
-    (.node none (.node none .nil (.node (some Fn.«block_selector_tab__L28».modeSig) .nil .nil))
-    .nil) .nil)) .nil) .nil) .nil) .nil) .nil)) .nil))) (.node none (.node none (.node none (.node
-    none (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node (some Fn.«padding_weight__L18».modeSig)
-    .nil .nil) .nil)))) .nil)) (.node none (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node none (.node (some Fn.«padding_weight__L10».modeSig) .nil .nil) .nil)))) .nil)
-    .nil)) (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node none (.node (some Fn.«plus_one_run__L23».modeSig) .nil .nil) .nil))))) (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«padding_weight__L26».modeSig) .nil .nil) .nil)))) .nil))))) (.node none .nil (.node none
-    .nil (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node
-    none .nil (.node (some Fn.«index_mle__L33».modeSig) .nil .nil)) .nil) .nil) .nil))) .nil))))
-    (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil
-    (.node none (.node none (.node none .nil (.node (some Fn.«block_selector_tab__L33».modeSig)
-    .nil .nil)) .nil) .nil)) .nil) .nil) .nil)) .nil) (.node none (.node none .nil (.node none
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
-    (.node (some Fn.«padding_weight__L30».modeSig) .nil .nil) .nil))))) .nil) (.node none (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«plus_one_run__L23».modeSig) .nil .nil) .nil))))) (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node (some Fn.«padding_weight__L26».modeSig) .nil .nil)
+    .nil)))) .nil))))) (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
+    .nil (.node none (.node none (.node none (.node none .nil (.node (some
+    Fn.«index_mle__L33».modeSig) .nil .nil)) .nil) .nil) .nil))) .nil)))) (.node none (.node none
+    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none (.node none
+    (.node none .nil (.node (some Fn.«block_selector_tab__L33».modeSig) .nil .nil)) .nil) .nil))
+    .nil) .nil) .nil)) .nil) (.node none (.node none .nil (.node none (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
+    Fn.«padding_weight__L30».modeSig) .nil .nil) .nil))))) .nil) (.node none (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node (some
     Fn.«padding_weight__L14».modeSig) .nil .nil) .nil)))) .nil) .nil))) (.node none .nil (.node
     none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
     (.node (some Fn.«padding_weight__L6».modeSig) .nil .nil) .nil)))) .nil) (.node none (.node none
@@ -411,532 +488,458 @@ noncomputable def modeEnv : Mode.Env :=
     Fn.«block_selector_tab__L19».modeSig) .nil .nil)) .nil) .nil) .nil))))) .nil) (.node none
     (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
     none (.node none .nil (.node (some Fn.«block_selector_tab__L10».modeSig) .nil .nil)) .nil)
-    .nil) .nil)))) .nil) .nil)))) (.node none (.node none .nil (.node none (.node none (.node none
-    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node (some Fn.«padding_weight__L8».modeSig) .nil .nil) .nil)))) .nil) .nil))
-    (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil
-    (.node (some Fn.«index_mle__L12».modeSig) .nil .nil)) .nil) .nil) .nil)) (.node none (.node
-    none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«padding_weight__L20».modeSig) .nil .nil) .nil)))) .nil)) .nil)) (.node none (.node none
-    .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node (some Fn.«padding_weight__L24».modeSig) .nil .nil) .nil)))) .nil))) (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    (some Fn.«padding_weight__L4».modeSig) .nil .nil) .nil)))) .nil) .nil) .nil))) (.node none
-    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node none (.node (some Fn.«padding_weight__L28».modeSig) .nil .nil) .nil))))) .nil)
-    .nil) .nil) (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node (some Fn.«padding_weight__L12».modeSig) .nil .nil)
-    .nil)))) .nil) .nil)) (.node none .nil (.node none (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node (some Fn.«padding_weight__L16».modeSig) .nil .nil)
-    .nil)))) .nil) .nil)))))) (.node none (.node none (.node none (.node none (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
-    (.node (some Fn.«plus_one_run__L8».modeSig) .nil .nil) .nil))))) .nil)) .nil) .nil) .nil)
-    (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none
-    (.node none (.node none (.node none .nil (.node (some Fn.«index_mle__L1».modeSig) .nil .nil))
-    .nil) .nil) .nil)) .nil) .nil) .nil) .nil))))))) (.node none (.node none (.node none (.node
-    none .nil (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil
-    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
-    Fn.«index_mle__L29».modeSig) .nil .nil)) .nil) .nil) .nil))) .nil) .nil)) (.node none (.node
-    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
-    none (.node none .nil (.node (some Fn.«block_selector_tab__L20».modeSig) .nil .nil)) .nil)
-    .nil) .nil))))) .nil)) (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    (some Fn.«plus_one_run__L3».modeSig) .nil .nil) .nil))))) .nil) .nil)))))) (.node none (.node
-    none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«plus_one_run__L28».modeSig) .nil .nil) .nil)))))) .nil) .nil) .nil)) .nil) (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node
-    none (.node none (.node none (.node none .nil (.node (some Fn.«index_mle__L16».modeSig) .nil
-    .nil)) .nil) .nil) .nil)) .nil) .nil))) .nil)))) (.node none (.node none (.node none (.node
-    none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none .nil (.node none (.node (some Fn.«plus_one_run__L19».modeSig)
-    .nil .nil) .nil))))) .nil))) .nil) .nil) (.node none .nil (.node none (.node none (.node none
-    .nil (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil
-    (.node (some Fn.«block_selector_tab__L9».modeSig) .nil .nil)) .nil) .nil) .nil)))) .nil)
-    .nil))) (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
-    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«verify_tables_loop0».modeSig) .nil .nil)) .nil) .nil)) .nil) .nil) .nil)) .nil)) (.node
-    none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none
-    (.node none (.node none .nil (.node (some Fn.«block_selector_tab__L27».modeSig) .nil .nil))
-    .nil) .nil)) .nil) .nil) .nil) .nil) .nil) (.node none (.node none .nil (.node none (.node none
-    .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
-    Fn.«index_mle__L32».modeSig) .nil .nil)) .nil) .nil) .nil))) .nil)) .nil)))) (.node none (.node
-    none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none .nil (.node (some Fn.«index_mle__L13».modeSig)
-    .nil .nil)) .nil) .nil) .nil)) .nil) .nil)) .nil)) .nil) (.node none (.node none .nil (.node
-    none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node (some Fn.«plus_one_run__L12».modeSig) .nil .nil)
-    .nil))))) .nil)) .nil) .nil)) .nil)))) (.node none (.node none (.node none (.node none .nil
-    (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node
-    none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«plus_one_run__L20».modeSig) .nil .nil) .nil))))) .nil))) .nil) .nil)) .nil) (.node none
-    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none
-    .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«plus_one_run__L11».modeSig) .nil .nil) .nil))))) .nil)) .nil) (.node none (.node none
-    (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
-    Fn.«index_mle__L8».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil) .nil) .nil))) (.node none .nil
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node none (.node none (.node none .nil (.node (some
-    Fn.«block_selector_tab__L25».modeSig) .nil .nil)) .nil) .nil) .nil)))))))) (.node none (.node
-    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node none (.node none (.node none .nil (.node (some
-    Fn.«block_selector_tab__L18».modeSig) .nil .nil)) .nil) .nil) .nil))))) (.node none (.node none
-    (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
-    Fn.«index_mle__L5».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil) .nil) .nil)) .nil) .nil)))
-    (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil
+    .nil) .nil)))) .nil) .nil))))) (.node none (.node none (.node none .nil (.node none (.node none
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
+    none (.node none .nil (.node (some Fn.«block_selector_tab__L2».modeSig) .nil .nil)) .nil) .nil)
+    .nil)))) .nil) .nil) (.node none .nil (.node none .nil (.node none (.node none (.node none .nil
+    (.node none (.node none (.node none (.node none .nil (.node (some Fn.«index_mle__L17».modeSig)
+    .nil .nil)) .nil) .nil) .nil)) .nil) .nil))))) (.node none (.node none (.node none (.node none
+    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node (some Fn.«plus_one_run__L7».modeSig) .nil .nil) .nil))))) .nil)) .nil)
+    .nil) .nil) .nil)) (.node none (.node none (.node none .nil (.node none (.node none (.node none
     (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
-    (some Fn.«block_selector_tab__L11».modeSig) .nil .nil)) .nil) .nil) .nil)))) (.node none (.node
-    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«padding_weight__L2».modeSig) .nil .nil) .nil)))) .nil) .nil) .nil))) (.node none (.node
-    none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none
-    (.node none .nil (.node (some Fn.«index_mle__L24».modeSig) .nil .nil)) .nil) .nil) .nil))
-    .nil))) .nil)) .nil) (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    (some Fn.«padding_weight__L0».modeSig) .nil .nil) .nil)))) .nil) .nil) .nil)) (.node none .nil
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node (some Fn.«plus_one_run__L4».modeSig) .nil .nil) .nil))))) .nil) .nil))))))
-    (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
-    Fn.«block_selector_tab__L4».modeSig) .nil .nil)) .nil) .nil) .nil)))) .nil) .nil) .nil)) (.node
-    none (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    (some Fn.«index_mle__L28».modeSig) .nil .nil)) .nil) .nil) .nil))) .nil) .nil) .nil)) (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node
     none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    Fn.«plus_one_run__L27».modeSig) .nil .nil) .nil)))))) .nil) .nil) (.node none (.node none .nil
-    (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some
-    Fn.«index_mle__L21».modeSig) .nil .nil)) .nil) .nil) .nil)) .nil)) .nil)) .nil) .nil))))))),
-    524287⟩
+    Fn.«plus_one_run__L24».modeSig) .nil .nil) .nil))))) .nil)))) .nil)) (.node none (.node none
+    .nil (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    (.node none (.node none .nil (.node (some Fn.«block_selector_tab__L28».modeSig) .nil .nil))
+    .nil) .nil)) .nil) .nil) .nil) .nil) .nil)) .nil))))))), 524287⟩
 
 /-- `verify_tables`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨20001, 5231, Fn.«verify_tables».modeSig, (.node none (.node none (.node none (.node none (.node
+  ⟨20001, 5240, Fn.«verify_tables».modeSig, (.node none (.node none (.node none (.node none (.node
     none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
-    (some [(.alloc 2397 67)]) .nil .nil) .nil) (.node (some [(.digitDecomposeExp 178 (.heap 2073)
-    34 9 4 0 (some 52)), (.allocArm 2076 658 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38,
+    (some [(.alloc 2398 67)]) .nil .nil) .nil) (.node (some [(.digitDecomposeExp 179 (.heap 2074)
+    34 9 4 0 (some 53)), (.allocArm 2077 659 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38,
     38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87,
-    98]]))]) .nil .nil))) (.node none .nil (.node (some [(.digitDecomposeExp 66 (.heap 1609) 34 9 4
-    0 (some 49)), (.allocArm 1612 655 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38,
+    98]]))]) .nil .nil))) (.node none .nil (.node (some [(.digitDecomposeExp 67 (.heap 1610) 34 9 4
+    0 (some 50)), (.allocArm 1613 656 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38,
     38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87,
-    98]]))]) .nil .nil)))) (.node none .nil (.node none (.node none .nil (.node none (.node (some
-    [(.digitDecomposeExp 98 (.heap 1833) 34 9 4 0 (some 54)), (.allocArm 1836 660 (List.flatten
-    [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
-    68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil)) (.node none (.node none
-    (.node none (.node (some [(.digitDecomposeExp 210 (.heap 2297) 34 9 4 0 (some 54)), (.allocArm
-    2300 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47,
-    58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil)
-    (.node none (.node (some [(.witnessStack "zc_tau_max" 2803 1)]) .nil .nil) .nil)) .nil))))
-    (.node none (.node none (.node none (.node none (.node none (.node none (.node (some
-    [(.digitDecomposeExp 194 (.heap 2185) 34 9 4 0 (some 54)), (.allocArm 2188 660 (List.flatten
-    [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
-    68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil) .nil) (.node none
-    (.node none (.node (some [(.digitDecomposeExp 82 (.heap 1721) 34 9 4 0 (some 53)), (.allocArm
-    1724 659 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47,
-    58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil)
-    .nil)) .nil) .nil)) (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node (some [(.digitDecomposeExp 106 (.heap 1889) 34 9 4 0 (some 54)), (.allocArm
-    1892 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47,
-    58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil))))
-    (.node none (.node none (.node none (.node none (.node (some [(.digitDecomposeExp 74 (.heap
-    1665) 34 9 4 0 (some 51)), (.allocArm 1668 657 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28,
-    27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88,
-    88], [87, 98]]))]) .nil .nil) .nil) (.node (some [(.allocArm 1536 1525 (List.flatten [[8, 15,
-    24, 33, 42, 51, 60, 69, 78, 87, 96, 105, 114, 123, 132, 141], [150, 159, 168, 177, 186, 195,
-    204, 213, 222, 231, 240, 249, 258, 267, 276, 285], [294, 303]]))]) .nil .nil)) (.node none .nil
-    (.node none .nil (.node (some [(.digitDecomposeExp 186 (.heap 2129) 34 9 4 0 (some 54)),
-    (.allocArm 2132 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48,
-    48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil
-    .nil)))) .nil)) (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
-    (.node (some [(.digitDecomposeExp 170 (.heap 2017) 34 9 4 0 (some 49)), (.allocArm 2020 655
+    98]]))]) .nil .nil)))) (.node none .nil (.node none (.node none (.node none (.node none .nil
+    (.node none (.node (some [(.fieldLimbs 9 6081 1)]) .nil .nil) .nil)) .nil) (.node none (.node
+    (some [(.digitDecomposeExp 99 (.heap 1834) 34 9 4 0 (some 55)), (.allocArm 1837 661
+    (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58,
+    58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil)) (.node
+    none (.node none (.node none (.node (some [(.digitDecomposeExp 211 (.heap 2298) 34 9 4 0 (some
+    55)), (.allocArm 2301 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37,
+    48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))])
+    .nil .nil) .nil) (.node none (.node (some [(.witnessStack "zc_tau_max" 2804 1)]) .nil .nil)
+    .nil)) .nil)))) (.node none (.node none (.node none (.node none (.node none (.node none (.node
+    (some [(.digitDecomposeExp 195 (.heap 2186) 34 9 4 0 (some 55)), (.allocArm 2189 661
+    (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58,
+    58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil) .nil)
+    (.node none (.node none (.node (some [(.digitDecomposeExp 83 (.heap 1722) 34 9 4 0 (some 54)),
+    (.allocArm 1725 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48,
+    48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil)
+    .nil) .nil)) .nil) .nil)) (.node none (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node (some [(.digitDecomposeExp 107 (.heap 1890) 34 9 4 0 (some 55)),
+    (.allocArm 1893 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48,
+    48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil)
+    .nil)))) (.node none (.node none (.node none (.node none (.node (some [(.digitDecomposeExp 75
+    (.heap 1666) 34 9 4 0 (some 52)), (.allocArm 1669 658 (List.flatten [[8, 17, 17, 17, 17, 28,
+    28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77,
+    88, 88, 88], [87, 98]]))]) .nil .nil) .nil) (.node (some [(.allocArm 1537 1526 (List.flatten
+    [[8, 15, 24, 33, 42, 51, 60, 69, 78, 87, 96, 105, 114, 123, 132, 141], [150, 159, 168, 177,
+    186, 195, 204, 213, 222, 231, 240, 249, 258, 267, 276, 285], [294, 303]]))]) .nil .nil)) (.node
+    none .nil (.node none .nil (.node (some [(.digitDecomposeExp 187 (.heap 2130) 34 9 4 0 (some
+    55)), (.allocArm 2133 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37,
+    48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))])
+    .nil .nil)))) .nil)) (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
+    (.node (some [(.digitDecomposeExp 171 (.heap 2018) 34 9 4 0 (some 50)), (.allocArm 2021 656
     (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58,
     58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil)) .nil))) (.node
-    none .nil (.node none (.node none (.node none (.node none (.node (some [(.digitDecomposeExp 202
-    (.heap 2241) 34 9 4 0 (some 54)), (.allocArm 2244 660 (List.flatten [[8, 17, 17, 17, 17, 28,
+    none .nil (.node none (.node none (.node none (.node none (.node (some [(.digitDecomposeExp 203
+    (.heap 2242) 34 9 4 0 (some 55)), (.allocArm 2245 661 (List.flatten [[8, 17, 17, 17, 17, 28,
     28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77,
     88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node (some
-    [(.digitDecomposeExp 90 (.heap 1777) 34 9 4 0 (some 54)), (.allocArm 1780 660 (List.flatten
+    [(.digitDecomposeExp 91 (.heap 1778) 34 9 4 0 (some 55)), (.allocArm 1781 661 (List.flatten
     [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
     68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil)))))) (.node none
-    (.node none (.node none (.node none (.node none (.node none .nil (.node (some [(.alloc 712
+    (.node none (.node none (.node none (.node none (.node none .nil (.node (some [(.alloc 713
     53)]) .nil .nil)) .nil) (.node none (.node none (.node none (.node none (.node (some
-    [(.digitDecomposeExp 198 (.heap 2213) 34 9 4 0 (some 54)), (.allocArm 2216 660 (List.flatten
+    [(.digitDecomposeExp 199 (.heap 2214) 34 9 4 0 (some 55)), (.allocArm 2217 661 (List.flatten
     [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
     68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil) .nil) (.node none
-    (.node none (.node (some [(.digitDecomposeExp 86 (.heap 1749) 34 9 4 0 (some 54)), (.allocArm
-    1752 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47,
+    (.node none (.node (some [(.digitDecomposeExp 87 (.heap 1750) 34 9 4 0 (some 55)), (.allocArm
+    1753 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47,
     58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil)
-    .nil))) (.node none .nil (.node none (.node none .nil (.node (some [(.bitDecomposeExp 61 (.heap
-    1567) 34)]) .nil .nil)) .nil))) (.node none (.node none (.node none .nil (.node none .nil
-    (.node none (.node (some [(.digitDecomposeExp 102 (.heap 1861) 34 9 4 0 (some 54)), (.allocArm
-    1864 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47,
+    .nil))) (.node none .nil (.node none (.node none .nil (.node (some [(.bitDecomposeExp 62 (.heap
+    1568) 34)]) .nil .nil)) .nil))) (.node none (.node none (.node none .nil (.node none .nil
+    (.node none (.node (some [(.digitDecomposeExp 103 (.heap 1862) 34 9 4 0 (some 55)), (.allocArm
+    1865 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47,
     58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil)))
     .nil) (.node none .nil (.node none (.node none .nil (.node none .nil (.node (some
-    [(.digitDecomposeExp 182 (.heap 2101) 34 9 4 0 (some 53)), (.allocArm 2104 659 (List.flatten
+    [(.digitDecomposeExp 183 (.heap 2102) 34 9 4 0 (some 54)), (.allocArm 2105 660 (List.flatten
     [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
     68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil))) (.node none .nil (.node (some
-    [(.digitDecomposeExp 70 (.heap 1637) 34 9 4 0 (some 50)), (.allocArm 1640 656 (List.flatten
+    [(.digitDecomposeExp 71 (.heap 1638) 34 9 4 0 (some 51)), (.allocArm 1641 657 (List.flatten
     [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
     68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil)))))) (.node none (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node (some [(.digitDecomposeExp 174
-    (.heap 2045) 34 9 4 0 (some 50)), (.allocArm 2048 656 (List.flatten [[8, 17, 17, 17, 17, 28,
+    (.node none (.node none (.node none .nil (.node none .nil (.node (some [(.digitDecomposeExp 175
+    (.heap 2046) 34 9 4 0 (some 51)), (.allocArm 2049 657 (List.flatten [[8, 17, 17, 17, 17, 28,
     28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77,
-    88, 88, 88], [87, 98]]))]) .nil .nil))) (.node none .nil (.node (some [(.digitDecomposeExp 62
-    (.heap 1581) 34 9 4 0 (some 49)), (.allocArm 1584 655 (List.flatten [[8, 17, 17, 17, 17, 28,
+    88, 88, 88], [87, 98]]))]) .nil .nil))) (.node none .nil (.node (some [(.digitDecomposeExp 63
+    (.heap 1582) 34 9 4 0 (some 50)), (.allocArm 1585 656 (List.flatten [[8, 17, 17, 17, 17, 28,
     28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77,
     88, 88, 88], [87, 98]]))]) .nil .nil))) (.node none (.node none .nil (.node (some [(.allocArm
-    1554 48 (List.flatten [[5, 9, 14, 19, 24, 29, 34, 39, 44, 49, 54, 59, 64, 69, 74, 79], [84, 89,
+    1555 49 (List.flatten [[5, 9, 14, 19, 24, 29, 34, 39, 44, 49, 54, 59, 64, 69, 74, 79], [84, 89,
     94, 99, 104, 109, 114, 119, 124, 129, 134, 139, 144, 149, 154, 159], [164, 169]]))]) .nil
     .nil)) .nil)) (.node none (.node none (.node none .nil (.node none (.node (some
-    [(.digitDecomposeExp 94 (.heap 1805) 34 9 4 0 (some 54)), (.allocArm 1808 660 (List.flatten
+    [(.digitDecomposeExp 95 (.heap 1806) 34 9 4 0 (some 55)), (.allocArm 1809 661 (List.flatten
     [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
     68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil)) (.node none (.node none
-    (.node none (.node (some [(.digitDecomposeExp 206 (.heap 2269) 34 9 4 0 (some 54)), (.allocArm
-    2272 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47,
+    (.node none (.node (some [(.digitDecomposeExp 207 (.heap 2270) 34 9 4 0 (some 55)), (.allocArm
+    2273 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47,
     58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil)
     .nil) .nil)) .nil)) (.node none (.node none .nil (.node none (.node none (.node none (.node
-    (some [(.digitDecomposeExp 78 (.heap 1693) 34 9 4 0 (some 52)), (.allocArm 1696 658
+    (some [(.digitDecomposeExp 79 (.heap 1694) 34 9 4 0 (some 53)), (.allocArm 1697 659
     (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58,
     58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil)
-    (.node none .nil (.node none .nil (.node (some [(.digitDecomposeExp 190 (.heap 2157) 34 9 4 0
-    (some 54)), (.allocArm 2160 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38,
+    (.node none .nil (.node none .nil (.node (some [(.digitDecomposeExp 191 (.heap 2158) 34 9 4 0
+    (some 55)), (.allocArm 2161 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38,
     37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87,
     98]]))]) .nil .nil))))) (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    (some [(.digitDecomposeExp 110 (.heap 1917) 34 9 4 0 (some 54)), (.allocArm 1920 660
+    (some [(.digitDecomposeExp 111 (.heap 1918) 34 9 4 0 (some 55)), (.allocArm 1921 661
     (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58,
     58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil))))))))
     (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node
-    none (.node (some [(.digitDecomposeExp 76 (.heap 1679) 34 9 4 0 (some 52)), (.allocArm 1682 658
+    none (.node (some [(.digitDecomposeExp 77 (.heap 1680) 34 9 4 0 (some 53)), (.allocArm 1683 659
     (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58,
-    58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) (.node none
-    .nil (.node none (.node (some [(.alloc 2909 16)]) .nil .nil) .nil))) (.node none .nil (.node
-    none .nil (.node (some [(.digitDecomposeExp 188 (.heap 2143) 34 9 4 0 (some 54)), (.allocArm
-    2146 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47,
-    58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil)))))
-    (.node none .nil (.node none .nil (.node none .nil (.node none (.node (some
-    [(.digitDecomposeExp 108 (.heap 1903) 34 9 4 0 (some 54)), (.allocArm 1906 660 (List.flatten
-    [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
-    68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil))))) (.node none (.node none
-    (.node none (.node none .nil (.node none (.node (some [(.digitDecomposeExp 92 (.heap 1791) 34 9
-    4 0 (some 54)), (.allocArm 1794 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38,
-    38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87,
-    98]]))]) .nil .nil) .nil)) (.node none (.node none (.node none (.node (some
-    [(.digitDecomposeExp 204 (.heap 2255) 34 9 4 0 (some 54)), (.allocArm 2258 660 (List.flatten
-    [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
-    68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil) .nil)) (.node none
-    (.node none (.node none (.node none .nil (.node none (.node (some [(.fieldLimbs 8 6071 1)])
-    .nil .nil) .nil)) .nil) .nil) .nil)) (.node none (.node none .nil (.node none (.node none .nil
-    (.node (some [(.digitDecomposeExp 167 (.heap 1997) 34 9 4 0 (some 49)), (.allocArm 2000 655
+    58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil)
+    (.node none .nil (.node none .nil (.node (some [(.digitDecomposeExp 189 (.heap 2144) 34 9 4 0
+    (some 55)), (.allocArm 2147 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38,
+    37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87,
+    98]]))]) .nil .nil))))) (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    (some [(.digitDecomposeExp 109 (.heap 1904) 34 9 4 0 (some 55)), (.allocArm 1907 661
     (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58,
-    58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil)) .nil)) (.node
-    none .nil (.node none (.node none .nil (.node (some [(.digitDecomposeExp 172 (.heap 2031) 34 9
-    4 0 (some 50)), (.allocArm 2034 656 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38,
-    38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87,
-    98]]))]) .nil .nil)) .nil))))) (.node none (.node none .nil (.node none (.node none (.node none
-    (.node none (.node none (.node (some [(.digitDecomposeExp 196 (.heap 2199) 34 9 4 0 (some 54)),
-    (.allocArm 2202 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48,
-    48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil)
-    .nil) .nil) (.node none .nil (.node none (.node (some [(.allocFrames 2885 36 2803
-    (LeanVM.Parameters.K.ofBits 0x1) 36)]) .nil .nil) .nil))) (.node none (.node none (.node (some
-    [(.digitDecomposeExp 84 (.heap 1735) 34 9 4 0 (some 53)), (.allocArm 1738 659 (List.flatten
+    58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil))))) (.node
+    none (.node none (.node none (.node none .nil (.node none (.node (some [(.digitDecomposeExp 93
+    (.heap 1792) 34 9 4 0 (some 55)), (.allocArm 1795 661 (List.flatten [[8, 17, 17, 17, 17, 28,
+    28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77,
+    88, 88, 88], [87, 98]]))]) .nil .nil) .nil)) (.node none (.node none (.node none (.node (some
+    [(.digitDecomposeExp 205 (.heap 2256) 34 9 4 0 (some 55)), (.allocArm 2259 661 (List.flatten
     [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
-    68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil)) .nil)) (.node none
-    (.node none .nil (.node none (.node none .nil (.node none .nil (.node (some
-    [(.digitDecomposeExp 180 (.heap 2087) 34 9 4 0 (some 52)), (.allocArm 2090 658 (List.flatten
+    68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil) .nil)) .nil) (.node
+    none (.node none .nil (.node none (.node none .nil (.node (some [(.digitDecomposeExp 168 (.heap
+    1998) 34 9 4 0 (some 50)), (.allocArm 2001 656 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28,
+    27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88,
+    88], [87, 98]]))]) .nil .nil)) .nil)) (.node none .nil (.node none (.node none .nil (.node
+    (some [(.digitDecomposeExp 173 (.heap 2032) 34 9 4 0 (some 51)), (.allocArm 2035 657
+    (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58,
+    58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil)) .nil))))) (.node
+    none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
+    (.node (some [(.allocLate 2912 (.exp 2877))]) .nil .nil) .nil))) .nil)) (.node none (.node none
+    (.node none (.node none (.node none (.node (some [(.digitDecomposeExp 197 (.heap 2200) 34 9 4 0
+    (some 55)), (.allocArm 2203 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38,
+    37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87,
+    98]]))]) .nil .nil) .nil) .nil) (.node none .nil (.node none (.node (some [(.allocFrames 2887
+    32 2804 (LeanVM.Parameters.K.ofBits 0x1) 32)]) .nil .nil) .nil))) (.node none (.node none
+    (.node (some [(.digitDecomposeExp 85 (.heap 1736) 34 9 4 0 (some 54)), (.allocArm 1739 660
+    (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58,
+    58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil))
+    .nil)) (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node (some
+    [(.digitDecomposeExp 181 (.heap 2088) 34 9 4 0 (some 53)), (.allocArm 2091 659 (List.flatten
     [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
     68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil))) (.node none .nil (.node (some
-    [(.digitDecomposeExp 68 (.heap 1623) 34 9 4 0 (some 50)), (.allocArm 1626 656 (List.flatten
+    [(.digitDecomposeExp 69 (.heap 1624) 34 9 4 0 (some 51)), (.allocArm 1627 657 (List.flatten
     [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
     68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil)))) (.node none .nil (.node none
-    (.node none .nil (.node none (.node (some [(.digitDecomposeExp 100 (.heap 1847) 34 9 4 0 (some
-    54)), (.allocArm 1850 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37,
+    (.node none .nil (.node none (.node (some [(.digitDecomposeExp 101 (.heap 1848) 34 9 4 0 (some
+    55)), (.allocArm 1851 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37,
     48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))])
     .nil .nil) .nil)) .nil))))) (.node none (.node none (.node none (.node none .nil (.node none
-    (.node none .nil (.node none (.node (some [(.digitDecomposeExp 96 (.heap 1819) 34 9 4 0 (some
-    54)), (.allocArm 1822 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37,
+    (.node none .nil (.node none (.node (some [(.digitDecomposeExp 97 (.heap 1820) 34 9 4 0 (some
+    55)), (.allocArm 1823 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37,
     48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))])
-    .nil .nil) .nil)) (.node none (.node none (.node none (.node (some [(.digitDecomposeExp 208
-    (.heap 2283) 34 9 4 0 (some 54)), (.allocArm 2286 660 (List.flatten [[8, 17, 17, 17, 17, 28,
+    .nil .nil) .nil)) (.node none (.node none (.node none (.node (some [(.digitDecomposeExp 209
+    (.heap 2284) 34 9 4 0 (some 55)), (.allocArm 2287 661 (List.flatten [[8, 17, 17, 17, 17, 28,
     28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77,
     88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil) .nil))) (.node none (.node none (.node none
-    .nil (.node none .nil (.node (some [(.digitDecomposeExp 176 (.heap 2059) 34 9 4 0 (some 51)),
-    (.allocArm 2062 657 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48,
+    .nil (.node none .nil (.node (some [(.digitDecomposeExp 177 (.heap 2060) 34 9 4 0 (some 52)),
+    (.allocArm 2063 658 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48,
     48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil
-    .nil))) (.node none .nil (.node (some [(.digitDecomposeExp 64 (.heap 1595) 34 9 4 0 (some 49)),
-    (.allocArm 1598 655 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48,
+    .nil))) (.node none .nil (.node (some [(.digitDecomposeExp 65 (.heap 1596) 34 9 4 0 (some 50)),
+    (.allocArm 1599 656 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48,
     48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil
     .nil))) .nil)) (.node none (.node none (.node none (.node none (.node none .nil (.node (some
-    [(.digitDecomposeExp 112 (.heap 1931) 34 9 4 0 (some 54)), (.allocArm 1934 660 (List.flatten
+    [(.digitDecomposeExp 113 (.heap 1932) 34 9 4 0 (some 55)), (.allocArm 1935 661 (List.flatten
     [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
     68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil)) (.node none (.node none (.node
-    (some [(.alloc 2377 67)]) .nil .nil) .nil) .nil)) .nil) .nil) (.node none (.node none .nil
-    (.node none (.node (some [(.alloc 670 53)]) .nil .nil) .nil)) (.node none (.node none (.node
-    none (.node (some [(.digitDecomposeExp 80 (.heap 1707) 34 9 4 0 (some 53)), (.allocArm 1710 659
+    (some [(.alloc 2378 67)]) .nil .nil) .nil) .nil)) .nil) .nil) (.node none (.node none .nil
+    (.node none (.node (some [(.alloc 671 53)]) .nil .nil) .nil)) (.node none (.node none (.node
+    none (.node (some [(.digitDecomposeExp 81 (.heap 1708) 34 9 4 0 (some 54)), (.allocArm 1711 660
     (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58,
     58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil)
-    (.node none .nil (.node none .nil (.node (some [(.digitDecomposeExp 192 (.heap 2171) 34 9 4 0
-    (some 54)), (.allocArm 2174 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38,
+    (.node none .nil (.node none .nil (.node (some [(.digitDecomposeExp 193 (.heap 2172) 34 9 4 0
+    (some 55)), (.allocArm 2175 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38,
     37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87,
     98]]))]) .nil .nil))))))) (.node none (.node none (.node none (.node none (.node none (.node
-    none (.node (some [(.digitDecomposeExp 72 (.heap 1651) 34 9 4 0 (some 51)), (.allocArm 1654 657
+    none (.node (some [(.digitDecomposeExp 73 (.heap 1652) 34 9 4 0 (some 52)), (.allocArm 1655 658
     (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58,
     58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil)
-    (.node none .nil (.node none .nil (.node (some [(.digitDecomposeExp 184 (.heap 2115) 34 9 4 0
-    (some 53)), (.allocArm 2118 659 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38,
+    (.node none .nil (.node none .nil (.node (some [(.digitDecomposeExp 185 (.heap 2116) 34 9 4 0
+    (some 54)), (.allocArm 2119 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38,
     37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87,
     98]]))]) .nil .nil)))) .nil) (.node none (.node none .nil (.node none .nil (.node none (.node
-    (some [(.digitDecomposeExp 104 (.heap 1875) 34 9 4 0 (some 54)), (.allocArm 1878 660
+    (some [(.digitDecomposeExp 105 (.heap 1876) 34 9 4 0 (some 55)), (.allocArm 1879 661
     (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58,
     58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil))) .nil))
     (.node none (.node none .nil (.node none (.node none (.node none (.node none (.node (some
-    [(.digitDecomposeExp 200 (.heap 2227) 34 9 4 0 (some 54)), (.allocArm 2230 660 (List.flatten
+    [(.digitDecomposeExp 201 (.heap 2228) 34 9 4 0 (some 55)), (.allocArm 2231 661 (List.flatten
     [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
     68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil) .nil) (.node none
-    (.node (some [(.alloc 692 53)]) (.node (some [(.digitDecomposeExp 88 (.heap 1763) 34 9 4 0
-    (some 54)), (.allocArm 1766 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38,
+    (.node (some [(.alloc 693 53)]) (.node (some [(.digitDecomposeExp 89 (.heap 1764) 34 9 4 0
+    (some 55)), (.allocArm 1767 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38,
     37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87,
     98]]))]) .nil .nil) .nil) .nil))) (.node none (.node none (.node none .nil (.node (some
-    [(.allocArm 1549 1539 (List.flatten [[8, 15, 24, 33, 42, 51, 60, 69, 78, 87, 96, 105, 114, 123,
+    [(.allocArm 1550 1540 (List.flatten [[8, 15, 24, 33, 42, 51, 60, 69, 78, 87, 96, 105, 114, 123,
     132, 141], [150, 159, 168, 177, 186, 195, 204, 213, 222, 231, 240, 249, 258, 267, 276, 285],
-    [294, 303]]))]) .nil .nil)) (.node none (.node none .nil (.node (some [(.digitDecomposeExp 168
-    (.heap 2003) 34 9 4 0 (some 49)), (.allocArm 2006 655 (List.flatten [[8, 17, 17, 17, 17, 28,
+    [294, 303]]))]) .nil .nil)) (.node none (.node none .nil (.node (some [(.digitDecomposeExp 169
+    (.heap 2004) 34 9 4 0 (some 50)), (.allocArm 2007 656 (List.flatten [[8, 17, 17, 17, 17, 28,
     28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77,
     88, 88, 88], [87, 98]]))]) .nil .nil)) .nil)) .nil)))))) (.node none (.node none (.node none
     (.node none (.node none (.node none (.node none (.node none (.node none (.node (some
-    [(.digitDecomposeExp 71 (.heap 1644) 34 9 4 0 (some 50)), (.allocArm 1647 656 (List.flatten
+    [(.digitDecomposeExp 72 (.heap 1645) 34 9 4 0 (some 51)), (.allocArm 1648 657 (List.flatten
     [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
     68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil) (.node none .nil
-    (.node none .nil (.node (some [(.digitDecomposeExp 183 (.heap 2108) 34 9 4 0 (some 53)),
-    (.allocArm 2111 659 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48,
+    (.node none .nil (.node (some [(.digitDecomposeExp 184 (.heap 2109) 34 9 4 0 (some 54)),
+    (.allocArm 2112 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48,
     48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil
-    .nil)))) (.node none (.node none (.node (some [(.inverse 590 591)]) .nil .nil) (.node none .nil
-    (.node none (.node (some [(.allocLate 2908 (.exp 2876))]) .nil .nil) .nil))) .nil)) (.node none
-    (.node none .nil (.node none .nil (.node none (.node (some [(.digitDecomposeExp 103 (.heap
-    1868) 34 9 4 0 (some 54)), (.allocArm 1871 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28,
-    27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88,
-    88], [87, 98]]))]) .nil .nil) .nil))) .nil)) (.node none (.node none (.node none (.node none
-    (.node (some [(.allocArm 563 51 (List.flatten [[41, 52, 63, 72, 79, 86, 93, 100, 107, 114, 121,
-    128, 135, 142, 149, 156], [163, 170, 177, 184, 191, 198, 205, 212, 219, 226, 233, 240, 247,
-    254, 261]]))]) .nil .nil) .nil) .nil) (.node none (.node none (.node none (.node none (.node
-    (some [(.digitDecomposeExp 199 (.heap 2220) 34 9 4 0 (some 54)), (.allocArm 2223 660
+    .nil)))) (.node none (.node none (.node (some [(.inverse 591 592)]) .nil .nil) .nil) .nil))
+    (.node none (.node none .nil (.node none .nil (.node none (.node (some [(.digitDecomposeExp 104
+    (.heap 1869) 34 9 4 0 (some 55)), (.allocArm 1872 661 (List.flatten [[8, 17, 17, 17, 17, 28,
+    28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77,
+    88, 88, 88], [87, 98]]))]) .nil .nil) .nil))) .nil)) (.node none (.node none (.node none (.node
+    none (.node (some [(.allocArm 564 52 (List.flatten [[41, 52, 63, 72, 79, 86, 93, 100, 107, 114,
+    121, 128, 135, 142, 149, 156], [163, 170, 177, 184, 191, 198, 205, 212, 219, 226, 233, 240,
+    247, 254, 261]]))]) .nil .nil) .nil) .nil) (.node none (.node none (.node none (.node none
+    (.node (some [(.digitDecomposeExp 200 (.heap 2221) 34 9 4 0 (some 55)), (.allocArm 2224 661
     (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58,
     58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil) .nil)
-    (.node none (.node none (.node (some [(.digitDecomposeExp 87 (.heap 1756) 34 9 4 0 (some 54)),
-    (.allocArm 1759 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48,
+    (.node none (.node none (.node (some [(.digitDecomposeExp 88 (.heap 1757) 34 9 4 0 (some 55)),
+    (.allocArm 1760 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48,
     48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil)
-    .nil) .nil))) (.node none .nil (.node none .nil (.node none (.node (some [(.alloc 702 53)])
+    .nil) .nil))) (.node none .nil (.node none .nil (.node none (.node (some [(.alloc 703 53)])
     .nil .nil) .nil))))) (.node none (.node none (.node none (.node none (.node none (.node none
-    .nil (.node (some [(.digitDecomposeExp 111 (.heap 1924) 34 9 4 0 (some 54)), (.allocArm 1927
-    660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58,
+    .nil (.node (some [(.digitDecomposeExp 112 (.heap 1925) 34 9 4 0 (some 55)), (.allocArm 1928
+    661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58,
     58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil)) .nil) .nil)
-    .nil) (.node none .nil (.node none (.node none (.node none (.node (some [(.digitDecomposeExp 79
-    (.heap 1700) 34 9 4 0 (some 52)), (.allocArm 1703 658 (List.flatten [[8, 17, 17, 17, 17, 28,
+    .nil) (.node none .nil (.node none (.node none (.node none (.node (some [(.digitDecomposeExp 80
+    (.heap 1701) 34 9 4 0 (some 53)), (.allocArm 1704 659 (List.flatten [[8, 17, 17, 17, 17, 28,
     28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77,
     88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil) (.node none .nil (.node none .nil (.node
-    (some [(.digitDecomposeExp 191 (.heap 2164) 34 9 4 0 (some 54)), (.allocArm 2167 660
+    (some [(.digitDecomposeExp 192 (.heap 2165) 34 9 4 0 (some 55)), (.allocArm 2168 661
     (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58,
     58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil)))))) (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node (some [(.digitDecomposeExp 175
-    (.heap 2052) 34 9 4 0 (some 51)), (.allocArm 2055 657 (List.flatten [[8, 17, 17, 17, 17, 28,
+    (.node none (.node none (.node none .nil (.node none .nil (.node (some [(.digitDecomposeExp 176
+    (.heap 2053) 34 9 4 0 (some 52)), (.allocArm 2056 658 (List.flatten [[8, 17, 17, 17, 17, 28,
     28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77,
-    88, 88, 88], [87, 98]]))]) .nil .nil))) (.node none .nil (.node (some [(.digitDecomposeExp 63
-    (.heap 1588) 34 9 4 0 (some 49)), (.allocArm 1591 655 (List.flatten [[8, 17, 17, 17, 17, 28,
+    88, 88, 88], [87, 98]]))]) .nil .nil))) (.node none .nil (.node (some [(.digitDecomposeExp 64
+    (.heap 1589) 34 9 4 0 (some 50)), (.allocArm 1592 656 (List.flatten [[8, 17, 17, 17, 17, 28,
     28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77,
     88, 88, 88], [87, 98]]))]) .nil .nil))) .nil) (.node none (.node none (.node none .nil (.node
-    none (.node (some [(.digitDecomposeExp 95 (.heap 1812) 34 9 4 0 (some 54)), (.allocArm 1815 660
+    none (.node (some [(.digitDecomposeExp 96 (.heap 1813) 34 9 4 0 (some 55)), (.allocArm 1816 661
     (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58,
     58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil)) (.node
-    none (.node none (.node none (.node (some [(.digitDecomposeExp 207 (.heap 2276) 34 9 4 0 (some
-    54)), (.allocArm 2279 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37,
+    none (.node none (.node none (.node (some [(.digitDecomposeExp 208 (.heap 2277) 34 9 4 0 (some
+    55)), (.allocArm 2280 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37,
     48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))])
-    .nil .nil) .nil) .nil) .nil)) (.node none .nil (.node (some [(.inverse 542 543)]) .nil
+    .nil .nil) .nil) .nil) .nil)) (.node none .nil (.node (some [(.inverse 543 544)]) .nil
     .nil)))))) (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node
-    none (.node (some [(.digitDecomposeExp 91 (.heap 1784) 34 9 4 0 (some 54)), (.allocArm 1787 660
+    none (.node (some [(.digitDecomposeExp 92 (.heap 1785) 34 9 4 0 (some 55)), (.allocArm 1788 661
     (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58,
     58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil)) (.node
-    none (.node none (.node none (.node (some [(.digitDecomposeExp 203 (.heap 2248) 34 9 4 0 (some
-    54)), (.allocArm 2251 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37,
+    none (.node none (.node none (.node (some [(.digitDecomposeExp 204 (.heap 2249) 34 9 4 0 (some
+    55)), (.allocArm 2252 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37,
     48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))])
     .nil .nil) .nil) .nil) .nil)) .nil) (.node none (.node none (.node none .nil (.node (some
-    [(.bitDecomposeExp 59 (.heap 1530) 34)]) .nil .nil)) (.node none (.node (some [(.allocArm 652
+    [(.bitDecomposeExp 60 (.heap 1531) 34)]) .nil .nil)) (.node none (.node (some [(.allocArm 653
     11 (List.flatten [[6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36], [38, 40, 42,
     44, 46, 48, 50, 52, 54, 56, 58, 60, 62, 64, 66, 68], [70, 72]]))]) .nil .nil) .nil)) (.node
-    none .nil (.node none (.node none .nil (.node (some [(.digitDecomposeExp 171 (.heap 2024) 34 9
-    4 0 (some 50)), (.allocArm 2027 656 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38,
+    none .nil (.node none (.node none .nil (.node (some [(.digitDecomposeExp 172 (.heap 2025) 34 9
+    4 0 (some 51)), (.allocArm 2028 657 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38,
     38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87,
     98]]))]) .nil .nil)) .nil)))) (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node (some [(.digitDecomposeExp 107 (.heap 1896) 34 9 4 0 (some 54)), (.allocArm
-    1899 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47,
+    (.node none (.node (some [(.digitDecomposeExp 108 (.heap 1897) 34 9 4 0 (some 55)), (.allocArm
+    1900 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47,
     58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil))))
-    (.node none (.node none (.node none (.node (some [(.allocArm 587 53 (List.flatten [[41, 52, 63,
+    (.node none (.node none (.node none (.node (some [(.allocArm 588 54 (List.flatten [[41, 52, 63,
     72, 79, 86, 93, 100, 107, 114, 121, 128, 135, 142, 149, 156], [163, 170, 177, 184, 191, 198,
-    205, 212, 219, 226, 233, 240, 247, 254, 261]]))]) (.node (some [(.digitDecomposeExp 75 (.heap
-    1672) 34 9 4 0 (some 52)), (.allocArm 1675 658 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28,
+    205, 212, 219, 226, 233, 240, 247, 254, 261]]))]) (.node (some [(.digitDecomposeExp 76 (.heap
+    1673) 34 9 4 0 (some 53)), (.allocArm 1676 659 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28,
     27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88,
-    88], [87, 98]]))]) .nil .nil) .nil) .nil) (.node none .nil (.node none .nil (.node (some
-    [(.digitDecomposeExp 187 (.heap 2136) 34 9 4 0 (some 54)), (.allocArm 2139 660 (List.flatten
-    [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
-    68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil)))) (.node none (.node none .nil
-    (.node (some [(.allocArm 1578 221 (List.flatten [[5, 9, 14, 19, 24, 29, 34, 39, 44, 49, 54, 59,
-    64, 69, 74, 79], [84, 89, 94, 99, 104, 109, 114, 119, 124, 129, 134, 139, 144, 149, 154, 159],
-    [164, 169]]))]) .nil .nil)) .nil)))) (.node none (.node none (.node none .nil (.node none
-    (.node none .nil (.node none .nil (.node (some [(.digitDecomposeExp 179 (.heap 2080) 34 9 4 0
-    (some 52)), (.allocArm 2083 658 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38,
-    37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87,
-    98]]))]) .nil .nil))) (.node none .nil (.node (some [(.digitDecomposeExp 67 (.heap 1616) 34 9 4
-    0 (some 50)), (.allocArm 1619 656 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38,
-    38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87,
-    98]]))]) .nil .nil)))) (.node none .nil (.node none (.node none .nil (.node none (.node (some
-    [(.digitDecomposeExp 99 (.heap 1840) 34 9 4 0 (some 54)), (.allocArm 1843 660 (List.flatten
-    [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
-    68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil)) (.node (some (List.flatten
-    [[(.alloc 615 34), (.allocDyn 650 11), (.alloc 661 1728), (.alloc 662 864), (.alloc 877 153),
-    (.alloc 1530 34), (.alloc 1543 34), (.alloc 1567 34), (.alloc 1581 9), (.alloc 1588 9), (.alloc
-    1595 9), (.alloc 1602 9), (.alloc 1609 9), (.alloc 1616 9), (.alloc 1623 9), (.alloc 1630 9)],
-    [(.alloc 1637 9), (.alloc 1644 9), (.alloc 1651 9), (.alloc 1658 9), (.alloc 1665 9), (.alloc
-    1672 9), (.alloc 1679 9), (.alloc 1686 9), (.alloc 1693 9), (.alloc 1700 9), (.alloc 1707 9),
-    (.alloc 1714 9), (.alloc 1721 9), (.alloc 1728 9), (.alloc 1735 9), (.alloc 1742 9)], [(.alloc
-    1749 9), (.alloc 1756 9), (.alloc 1763 9), (.alloc 1770 9), (.alloc 1777 9), (.alloc 1784 9),
-    (.alloc 1791 9), (.alloc 1798 9), (.alloc 1805 9), (.alloc 1812 9), (.alloc 1819 9), (.alloc
-    1826 9), (.alloc 1833 9), (.alloc 1840 9), (.alloc 1847 9), (.alloc 1854 9)], [(.alloc 1861 9),
-    (.alloc 1868 9), (.alloc 1875 9), (.alloc 1882 9), (.alloc 1889 9), (.alloc 1896 9), (.alloc
-    1903 9), (.alloc 1910 9), (.alloc 1917 9), (.alloc 1924 9), (.alloc 1931 9), (.alloc 1997 9),
-    (.alloc 2003 9), (.alloc 2010 9), (.alloc 2017 9), (.alloc 2024 9)], [(.alloc 2031 9), (.alloc
-    2038 9), (.alloc 2045 9), (.alloc 2052 9), (.alloc 2059 9), (.alloc 2066 9), (.alloc 2073 9),
-    (.alloc 2080 9), (.alloc 2087 9), (.alloc 2094 9), (.alloc 2101 9), (.alloc 2108 9), (.alloc
-    2115 9), (.alloc 2122 9), (.alloc 2129 9), (.alloc 2136 9)], [(.alloc 2143 9), (.alloc 2150 9),
-    (.alloc 2157 9), (.alloc 2164 9), (.alloc 2171 9), (.alloc 2178 9), (.alloc 2185 9), (.alloc
-    2192 9), (.alloc 2199 9), (.alloc 2206 9), (.alloc 2213 9), (.alloc 2220 9), (.alloc 2227 9),
-    (.alloc 2234 9), (.alloc 2241 9), (.alloc 2248 9)], [(.alloc 2255 9), (.alloc 2262 9), (.alloc
-    2269 9), (.alloc 2276 9), (.alloc 2283 9), (.alloc 2290 9), (.alloc 2297 9), (.alloc 2304 9),
-    (.allocAdvice 2881 "heap_sizes"), (.allocAdvice 2882 "heap_sizes"), (.allocAdvice 2908
-    "heap_sizes"), (.allocArm 539 49 (List.flatten [[41, 52, 63, 72, 79, 86, 93, 100, 107, 114,
-    121, 128, 135, 142, 149, 156], [163, 170, 177, 184, 191, 198, 205, 212, 219, 226, 233, 240,
-    247, 254, 261]]))]])) (.node none (.node none (.node (some [(.digitDecomposeExp 211 (.heap
-    2304) 34 9 4 0 (some 54)), (.allocArm 2307 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28,
-    27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88,
-    88], [87, 98]]))]) .nil .nil) .nil) .nil) .nil)))) (.node none (.node none (.node none (.node
-    none (.node (some [(.inverse 566 567)]) (.node none (.node (some [(.digitDecomposeExp 195
-    (.heap 2192) 34 9 4 0 (some 54)), (.allocArm 2195 660 (List.flatten [[8, 17, 17, 17, 17, 28,
+    88], [87, 98]]))]) .nil .nil) .nil) (.node none .nil (.node none (.node (some [(.allocFrames
+    2889 21 2804 (LeanVM.Parameters.K.ofBits 0x1) 21)]) .nil .nil) .nil))) (.node none .nil (.node
+    none .nil (.node (some [(.digitDecomposeExp 188 (.heap 2137) 34 9 4 0 (some 55)), (.allocArm
+    2140 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47,
+    58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil)))) (.node
+    none (.node none .nil (.node (some [(.allocArm 1579 222 (List.flatten [[5, 9, 14, 19, 24, 29,
+    34, 39, 44, 49, 54, 59, 64, 69, 74, 79], [84, 89, 94, 99, 104, 109, 114, 119, 124, 129, 134,
+    139, 144, 149, 154, 159], [164, 169]]))]) .nil .nil)) .nil)))) (.node none (.node none (.node
+    none .nil (.node none (.node none .nil (.node none .nil (.node (some [(.digitDecomposeExp 180
+    (.heap 2081) 34 9 4 0 (some 53)), (.allocArm 2084 659 (List.flatten [[8, 17, 17, 17, 17, 28,
     28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77,
-    88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node (some
-    [(.digitDecomposeExp 83 (.heap 1728) 34 9 4 0 (some 53)), (.allocArm 1731 659 (List.flatten
+    88, 88, 88], [87, 98]]))]) .nil .nil))) (.node none .nil (.node (some [(.digitDecomposeExp 68
+    (.heap 1617) 34 9 4 0 (some 51)), (.allocArm 1620 657 (List.flatten [[8, 17, 17, 17, 17, 28,
+    28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77,
+    88, 88, 88], [87, 98]]))]) .nil .nil)))) (.node none .nil (.node none (.node none .nil (.node
+    none (.node (some [(.digitDecomposeExp 100 (.heap 1841) 34 9 4 0 (some 55)), (.allocArm 1844
+    661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58,
+    58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil)) (.node
+    (some (List.flatten [[(.alloc 616 34), (.allocDyn 651 11), (.alloc 662 1728), (.alloc 663 864),
+    (.alloc 878 153), (.alloc 1531 34), (.alloc 1544 34), (.alloc 1568 34), (.alloc 1582 9),
+    (.alloc 1589 9), (.alloc 1596 9), (.alloc 1603 9), (.alloc 1610 9), (.alloc 1617 9), (.alloc
+    1624 9), (.alloc 1631 9)], [(.alloc 1638 9), (.alloc 1645 9), (.alloc 1652 9), (.alloc 1659 9),
+    (.alloc 1666 9), (.alloc 1673 9), (.alloc 1680 9), (.alloc 1687 9), (.alloc 1694 9), (.alloc
+    1701 9), (.alloc 1708 9), (.alloc 1715 9), (.alloc 1722 9), (.alloc 1729 9), (.alloc 1736 9),
+    (.alloc 1743 9)], [(.alloc 1750 9), (.alloc 1757 9), (.alloc 1764 9), (.alloc 1771 9), (.alloc
+    1778 9), (.alloc 1785 9), (.alloc 1792 9), (.alloc 1799 9), (.alloc 1806 9), (.alloc 1813 9),
+    (.alloc 1820 9), (.alloc 1827 9), (.alloc 1834 9), (.alloc 1841 9), (.alloc 1848 9), (.alloc
+    1855 9)], [(.alloc 1862 9), (.alloc 1869 9), (.alloc 1876 9), (.alloc 1883 9), (.alloc 1890 9),
+    (.alloc 1897 9), (.alloc 1904 9), (.alloc 1911 9), (.alloc 1918 9), (.alloc 1925 9), (.alloc
+    1932 9), (.alloc 1998 9), (.alloc 2004 9), (.alloc 2011 9), (.alloc 2018 9), (.alloc 2025 9)],
+    [(.alloc 2032 9), (.alloc 2039 9), (.alloc 2046 9), (.alloc 2053 9), (.alloc 2060 9), (.alloc
+    2067 9), (.alloc 2074 9), (.alloc 2081 9), (.alloc 2088 9), (.alloc 2095 9), (.alloc 2102 9),
+    (.alloc 2109 9), (.alloc 2116 9), (.alloc 2123 9), (.alloc 2130 9), (.alloc 2137 9)], [(.alloc
+    2144 9), (.alloc 2151 9), (.alloc 2158 9), (.alloc 2165 9), (.alloc 2172 9), (.alloc 2179 9),
+    (.alloc 2186 9), (.alloc 2193 9), (.alloc 2200 9), (.alloc 2207 9), (.alloc 2214 9), (.alloc
+    2221 9), (.alloc 2228 9), (.alloc 2235 9), (.alloc 2242 9), (.alloc 2249 9)], [(.alloc 2256 9),
+    (.alloc 2263 9), (.alloc 2270 9), (.alloc 2277 9), (.alloc 2284 9), (.alloc 2291 9), (.alloc
+    2298 9), (.alloc 2305 9), (.allocAdvice 2882 "heap_sizes"), (.allocAdvice 2883 "heap_sizes"),
+    (.alloc 2885 34), (.allocAdvice 2912 "heap_sizes"), (.allocArm 540 50 (List.flatten [[41, 52,
+    63, 72, 79, 86, 93, 100, 107, 114, 121, 128, 135, 142, 149, 156], [163, 170, 177, 184, 191,
+    198, 205, 212, 219, 226, 233, 240, 247, 254, 261]]))]])) (.node none (.node none (.node (some
+    [(.digitDecomposeExp 212 (.heap 2305) 34 9 4 0 (some 55)), (.allocArm 2308 661 (List.flatten
     [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
-    68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil)) .nil) .nil))))
-    (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node none
-    (.node none (.node (some [(.digitDecomposeExp 193 (.heap 2178) 34 9 4 0 (some 54)), (.allocArm
-    2181 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47,
+    68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil) .nil)))) (.node none
+    (.node none (.node none (.node none (.node (some [(.inverse 567 568)]) (.node none (.node (some
+    [(.digitDecomposeExp 196 (.heap 2193) 34 9 4 0 (some 55)), (.allocArm 2196 661 (List.flatten
+    [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
+    68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil) .nil) (.node none
+    (.node none (.node (some [(.digitDecomposeExp 84 (.heap 1729) 34 9 4 0 (some 54)), (.allocArm
+    1732 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47,
     58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil)
-    .nil) .nil) (.node none (.node none (.node (some [(.digitDecomposeExp 81 (.heap 1714) 34 9 4 0
-    (some 53)), (.allocArm 1717 659 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38,
+    .nil)) .nil) .nil)))) (.node none (.node none (.node none (.node none (.node none (.node none
+    (.node none (.node none (.node none (.node (some [(.digitDecomposeExp 194 (.heap 2179) 34 9 4 0
+    (some 55)), (.allocArm 2182 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38,
     37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87,
-    98]]))]) .nil .nil) .nil) .nil)) .nil) (.node none (.node none (.node none (.node (some
-    [(.allocArm 575 52 (List.flatten [[41, 52, 63, 72, 79, 86, 93, 100, 107, 114, 121, 128, 135,
-    142, 149, 156], [163, 170, 177, 184, 191, 198, 205, 212, 219, 226, 233, 240, 247, 254,
-    261]]))]) .nil .nil) .nil) .nil) .nil)) (.node none (.node none .nil (.node none (.node none
-    .nil (.node none (.node (some [(.digitDecomposeExp 97 (.heap 1826) 34 9 4 0 (some 54)),
-    (.allocArm 1829 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48,
+    98]]))]) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node (some [(.digitDecomposeExp
+    82 (.heap 1715) 34 9 4 0 (some 54)), (.allocArm 1718 660 (List.flatten [[8, 17, 17, 17, 17, 28,
+    28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77,
+    88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil)) .nil) (.node none (.node none (.node none
+    (.node (some [(.allocArm 576 53 (List.flatten [[41, 52, 63, 72, 79, 86, 93, 100, 107, 114, 121,
+    128, 135, 142, 149, 156], [163, 170, 177, 184, 191, 198, 205, 212, 219, 226, 233, 240, 247,
+    254, 261]]))]) .nil .nil) .nil) .nil) .nil)) (.node none (.node none .nil (.node none (.node
+    none .nil (.node none (.node (some [(.digitDecomposeExp 98 (.heap 1827) 34 9 4 0 (some 55)),
+    (.allocArm 1830 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48,
     48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil)
-    .nil)) (.node none (.node none (.node none (.node (some [(.digitDecomposeExp 209 (.heap 2290)
-    34 9 4 0 (some 54)), (.allocArm 2293 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38,
+    .nil)) (.node none (.node none (.node none (.node (some [(.digitDecomposeExp 210 (.heap 2291)
+    34 9 4 0 (some 55)), (.allocArm 2294 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38,
     38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87,
     98]]))]) .nil .nil) .nil) .nil) .nil))) (.node none (.node none (.node none .nil (.node none
-    .nil (.node (some [(.digitDecomposeExp 177 (.heap 2066) 34 9 4 0 (some 52)), (.allocArm 2069
-    658 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58,
+    .nil (.node (some [(.digitDecomposeExp 178 (.heap 2067) 34 9 4 0 (some 53)), (.allocArm 2070
+    659 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58,
     58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil))) (.node none
-    .nil (.node (some [(.digitDecomposeExp 65 (.heap 1602) 34 9 4 0 (some 49)), (.allocArm 1605 655
+    .nil (.node (some [(.digitDecomposeExp 66 (.heap 1603) 34 9 4 0 (some 50)), (.allocArm 1606 656
     (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58,
     58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil))) .nil))) (.node
-    none (.node none (.node none (.node none (.node none (.node (some [(.inverse 554 555)]) .nil
-    .nil) .nil) .nil) (.node none .nil (.node none (.node (some [(.alloc 682 53)]) .nil (.node
-    (some [(.digitDecomposeExp 169 (.heap 2010) 34 9 4 0 (some 49)), (.allocArm 2013 655
+    none (.node none (.node none (.node none (.node none (.node (some [(.inverse 555 556)]) .nil
+    .nil) .nil) .nil) (.node none (.node none .nil (.node none .nil (.node none (.node (some
+    [(.alloc 2913 16)]) .nil .nil) .nil))) (.node none (.node (some [(.alloc 683 53)]) .nil (.node
+    (some [(.digitDecomposeExp 170 (.heap 2011) 34 9 4 0 (some 50)), (.allocArm 2014 656
     (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58,
     58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil)) .nil))) (.node
-    none (.node none (.node none .nil (.node none (.node none (.node (some [(.alloc 2387 67)]) .nil
+    none (.node none (.node none .nil (.node none (.node none (.node (some [(.alloc 2388 67)]) .nil
     .nil) .nil) .nil)) .nil) (.node none (.node none (.node none (.node none (.node (some
-    [(.digitDecomposeExp 201 (.heap 2234) 34 9 4 0 (some 54)), (.allocArm 2237 660 (List.flatten
+    [(.digitDecomposeExp 202 (.heap 2235) 34 9 4 0 (some 55)), (.allocArm 2238 661 (List.flatten
     [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
     68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil) .nil) (.node none
-    (.node none (.node (some [(.digitDecomposeExp 89 (.heap 1770) 34 9 4 0 (some 54)), (.allocArm
-    1773 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47,
+    (.node none (.node (some [(.digitDecomposeExp 90 (.heap 1771) 34 9 4 0 (some 55)), (.allocArm
+    1774 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47,
     58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil)
     .nil)))) (.node none (.node none (.node none (.node none (.node none (.node (some
-    [(.digitDecomposeExp 73 (.heap 1658) 34 9 4 0 (some 51)), (.allocArm 1661 657 (List.flatten
+    [(.digitDecomposeExp 74 (.heap 1659) 34 9 4 0 (some 52)), (.allocArm 1662 658 (List.flatten
     [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
     68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil) (.node none .nil
-    (.node none .nil (.node (some [(.digitDecomposeExp 185 (.heap 2122) 34 9 4 0 (some 54)),
-    (.allocArm 2125 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48,
+    (.node none .nil (.node (some [(.digitDecomposeExp 186 (.heap 2123) 34 9 4 0 (some 55)),
+    (.allocArm 2126 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48,
     48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil
-    .nil)))) .nil) (.node none (.node none (.node none .nil (.node (some [(.bitDecomposeExp 60
-    (.heap 1543) 34)]) .nil .nil)) (.node none .nil (.node none (.node (some [(.digitDecomposeExp
-    105 (.heap 1882) 34 9 4 0 (some 54)), (.allocArm 1885 660 (List.flatten [[8, 17, 17, 17, 17,
-    28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78,
-    77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil))) .nil)))) (.node (some [(.alloc 55 24),
-    (.alloc 56 24), (.alloc 57 24), (.alloc 58 24), (.witnessHeap "block_group_order" 58 0 24)])
-    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node (some
-    [(.digitDecomposeExp 101 (.heap 1854) 34 9 4 0 (some 54)), (.allocArm 1857 660 (List.flatten
-    [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
-    68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil))) (.node none (.node none
-    (.node (some [(.allocArm 599 54 (List.flatten [[41, 52, 63, 72, 79, 86, 93, 100, 107, 114, 121,
-    128, 135, 142, 149, 156], [163, 170, 177, 184, 191, 198, 205, 212, 219, 226, 233, 240, 247,
-    254, 261]]))]) .nil .nil) .nil) .nil)) (.node none .nil (.node none (.node none .nil (.node
-    (some [(.allocArm 1573 1563 (List.flatten [[8, 15, 24, 33, 42, 51, 60, 69, 78, 87, 96, 105,
-    114, 123, 132, 141], [150, 159, 168, 177, 186, 195, 204, 213, 222, 231, 240, 249, 258, 267,
-    276, 285], [294, 303]]))]) .nil (.node (some [(.digitDecomposeExp 181 (.heap 2094) 34 9 4 0
-    (some 53)), (.allocArm 2097 659 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38,
+    .nil)))) (.node none (.node none (.node none (.node none .nil (.node none (.node (some
+    [(.fieldLimbs 8 6075 1)]) .nil .nil) .nil)) .nil) .nil) .nil)) (.node none (.node none (.node
+    none .nil (.node (some [(.bitDecomposeExp 61 (.heap 1544) 34)]) .nil .nil)) (.node none .nil
+    (.node none (.node (some [(.digitDecomposeExp 106 (.heap 1883) 34 9 4 0 (some 55)), (.allocArm
+    1886 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47,
+    58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil)))
+    .nil)))) (.node (some [(.alloc 56 24), (.alloc 57 24), (.alloc 58 24), (.alloc 59 24),
+    (.witnessHeap "block_group_order" 59 0 24)]) (.node none (.node none (.node none (.node none
+    .nil (.node none .nil (.node none (.node (some [(.digitDecomposeExp 102 (.heap 1855) 34 9 4 0
+    (some 55)), (.allocArm 1858 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38,
     37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87,
-    98]]))]) .nil .nil))) (.node none .nil (.node (some [(.digitDecomposeExp 69 (.heap 1630) 34 9 4
-    0 (some 50)), (.allocArm 1633 656 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38,
-    38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87,
-    98]]))]) .nil .nil))))) (.node none (.node none (.node none (.node none .nil (.node (some
-    [(.alloc 722 53)]) .nil .nil)) .nil) (.node none (.node none (.node (some [(.cellAddress 608
-    609)]) (.node none .nil (.node none (.node (some [(.fieldLimbs 9 6077 1)]) .nil .nil) .nil))
-    .nil) .nil) .nil)) (.node none (.node none (.node none (.node none (.node none (.node (some
-    [(.digitDecomposeExp 197 (.heap 2206) 34 9 4 0 (some 54)), (.allocArm 2209 660 (List.flatten
-    [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
-    68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil) .nil) (.node none
-    (.node none (.node (some [(.digitDecomposeExp 85 (.heap 1742) 34 9 4 0 (some 54)), (.allocArm
-    1745 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47,
-    58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil)
-    .nil)) .nil))) (.node none (.node none (.node none .nil (.node none (.node none (.node none
-    (.node (some [(.digitDecomposeExp 77 (.heap 1686) 34 9 4 0 (some 52)), (.allocArm 1689 658
+    98]]))]) .nil .nil) .nil))) (.node none (.node none (.node (some [(.allocArm 600 55
+    (List.flatten [[41, 52, 63, 72, 79, 86, 93, 100, 107, 114, 121, 128, 135, 142, 149, 156], [163,
+    170, 177, 184, 191, 198, 205, 212, 219, 226, 233, 240, 247, 254, 261]]))]) .nil .nil) .nil)
+    .nil)) (.node none .nil (.node none (.node none .nil (.node (some [(.allocArm 1574 1564
+    (List.flatten [[8, 15, 24, 33, 42, 51, 60, 69, 78, 87, 96, 105, 114, 123, 132, 141], [150, 159,
+    168, 177, 186, 195, 204, 213, 222, 231, 240, 249, 258, 267, 276, 285], [294, 303]]))]) .nil
+    (.node (some [(.digitDecomposeExp 182 (.heap 2095) 34 9 4 0 (some 54)), (.allocArm 2098 660
     (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58,
-    58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil)
-    (.node none .nil (.node none .nil (.node (some [(.digitDecomposeExp 189 (.heap 2150) 34 9 4 0
-    (some 54)), (.allocArm 2153 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38,
-    37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87,
-    98]]))]) .nil .nil))))) (.node none (.node none (.node none (.node (some [(.inverse 578 579)])
-    .nil .nil) .nil) .nil) (.node none .nil (.node none .nil (.node none (.node (some
-    [(.digitDecomposeExp 109 (.heap 1910) 34 9 4 0 (some 54)), (.allocArm 1913 660 (List.flatten
+    58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil))) (.node none
+    .nil (.node (some [(.digitDecomposeExp 70 (.heap 1631) 34 9 4 0 (some 51)), (.allocArm 1634 657
+    (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58,
+    58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil))))) (.node none
+    (.node none (.node none (.node none .nil (.node (some [(.alloc 723 53)]) .nil .nil)) .nil)
+    (.node none (.node none (.node (some [(.cellAddress 609 610)]) .nil .nil) .nil) .nil)) (.node
+    none (.node none (.node none (.node none (.node none (.node (some [(.digitDecomposeExp 198
+    (.heap 2207) 34 9 4 0 (some 55)), (.allocArm 2210 661 (List.flatten [[8, 17, 17, 17, 17, 28,
+    28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77,
+    88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node (some
+    [(.digitDecomposeExp 86 (.heap 1743) 34 9 4 0 (some 55)), (.allocArm 1746 661 (List.flatten
     [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
-    68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil))))) (.node none (.node none
-    (.node none (.node none .nil (.node none (.node (some [(.digitDecomposeExp 93 (.heap 1798) 34 9
-    4 0 (some 54)), (.allocArm 1801 660 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38,
-    38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87,
-    98]]))]) .nil .nil) (.node none (.node (some [(.allocLate 2881 (.exp 2880)), (.allocLate 2882
-    (.exp 2876))]) .nil .nil) .nil))) (.node none (.node none (.node none (.node (some
-    [(.digitDecomposeExp 205 (.heap 2262) 34 9 4 0 (some 54)), (.allocArm 2265 660 (List.flatten
+    68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil)) .nil))) (.node none
+    (.node none (.node none .nil (.node none (.node none (.node none (.node (some
+    [(.digitDecomposeExp 78 (.heap 1687) 34 9 4 0 (some 53)), (.allocArm 1690 659 (List.flatten
     [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68,
-    68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil) .nil)) (.node none
-    (.node none (.node (some [(.inverse 612 613)]) .nil .nil) .nil) .nil)) (.node none .nil (.node
-    none .nil (.node (some [(.allocArm 551 50 (List.flatten [[41, 52, 63, 72, 79, 86, 93, 100, 107,
-    114, 121, 128, 135, 142, 149, 156], [163, 170, 177, 184, 191, 198, 205, 212, 219, 226, 233,
-    240, 247, 254, 261]]))]) (.node none .nil (.node (some [(.digitDecomposeExp 173 (.heap 2038) 34
-    9 4 0 (some 50)), (.allocArm 2041 656 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38,
-    38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87,
-    98]]))]) .nil .nil)) .nil))))))))), .nil, (.node none (.node none (.node none (.node none
-    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node (some
-    34) .nil .nil) .nil)) (.node none (.node none (.node none (.node (some 34) .nil .nil) .nil)
-    .nil) .nil))) (.node none (.node none (.node none .nil (.node none .nil (.node (some 34) .nil
-    .nil))) (.node none .nil (.node (some 34) .nil .nil))) .nil)) (.node none (.node none (.node
-    none (.node none (.node none .nil (.node (some 34) .nil .nil)) .nil) .nil) .nil) (.node none
-    .nil (.node none (.node none (.node none (.node (some 34) .nil .nil) .nil) .nil) (.node none
-    .nil (.node none .nil (.node (some 34) .nil .nil))))))) (.node none (.node none (.node none
+    68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil) .nil) .nil) (.node none .nil
+    (.node none .nil (.node (some [(.digitDecomposeExp 190 (.heap 2151) 34 9 4 0 (some 55)),
+    (.allocArm 2154 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48,
+    48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil
+    .nil))))) (.node none (.node none (.node none (.node (some [(.inverse 579 580)]) .nil .nil)
+    .nil) .nil) (.node none .nil (.node none .nil (.node none (.node (some [(.digitDecomposeExp 110
+    (.heap 1911) 34 9 4 0 (some 55)), (.allocArm 1914 661 (List.flatten [[8, 17, 17, 17, 17, 28,
+    28, 28, 27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77,
+    88, 88, 88], [87, 98]]))]) .nil .nil) .nil))))) (.node none (.node none (.node none (.node none
+    .nil (.node none (.node (some [(.digitDecomposeExp 94 (.heap 1799) 34 9 4 0 (some 55)),
+    (.allocArm 1802 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37, 48, 48,
+    48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))]) .nil .nil)
+    (.node none (.node (some [(.allocLate 2882 (.exp 2881)), (.allocLate 2883 (.exp 2877))]) .nil
+    .nil) .nil))) (.node none (.node none (.node none (.node (some [(.digitDecomposeExp 206 (.heap
+    2263) 34 9 4 0 (some 55)), (.allocArm 2266 661 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28,
+    27, 38, 38, 38, 37, 48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88,
+    88], [87, 98]]))]) .nil .nil) .nil) .nil) .nil)) (.node none (.node none (.node (some
+    [(.inverse 613 614)]) .nil .nil) .nil) .nil)) (.node none .nil (.node none .nil (.node (some
+    [(.allocArm 552 51 (List.flatten [[41, 52, 63, 72, 79, 86, 93, 100, 107, 114, 121, 128, 135,
+    142, 149, 156], [163, 170, 177, 184, 191, 198, 205, 212, 219, 226, 233, 240, 247, 254,
+    261]]))]) (.node none .nil (.node (some [(.digitDecomposeExp 174 (.heap 2039) 34 9 4 0 (some
+    51)), (.allocArm 2042 657 (List.flatten [[8, 17, 17, 17, 17, 28, 28, 28, 27, 38, 38, 38, 37,
+    48, 48, 48], [47, 58, 58, 58, 57, 68, 68, 68, 67, 78, 78, 78, 77, 88, 88, 88], [87, 98]]))])
+    .nil .nil)) .nil))))))))), .nil, (.node none (.node none (.node none (.node none (.node none
+    (.node none (.node none .nil (.node none (.node none .nil (.node none (.node (some 34) .nil
+    .nil) .nil)) (.node none (.node none (.node none (.node (some 34) .nil .nil) .nil) .nil)
+    .nil))) (.node none (.node none (.node none .nil (.node none .nil (.node (some 34) .nil .nil)))
+    (.node none .nil (.node (some 34) .nil .nil))) .nil)) (.node none (.node none (.node none
+    (.node none (.node none .nil (.node (some 34) .nil .nil)) .nil) .nil) .nil) (.node none .nil
     (.node none (.node none (.node none (.node (some 34) .nil .nil) .nil) .nil) (.node none .nil
-    (.node none .nil (.node (some 34) .nil .nil)))) .nil) (.node none (.node none .nil (.node none
-    .nil (.node none (.node (some 34) .nil .nil) .nil))) .nil)) (.node none (.node none .nil (.node
-    none (.node none (.node none (.node none (.node (some 34) .nil .nil) .nil) .nil) .nil) (.node
-    none (.node none (.node (some 34) .nil .nil) .nil) .nil))) .nil))) (.node none (.node none
-    (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node (some 34)
-    .nil .nil) .nil) .nil) .nil) (.node none (.node none (.node (some 34) .nil .nil) .nil) .nil))
-    .nil)) (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node (some
-    34) .nil .nil))) (.node none .nil (.node (some 34) .nil .nil)))) (.node none .nil (.node none
+    (.node none .nil (.node (some 34) .nil .nil))))))) (.node none (.node none (.node none (.node
+    none (.node none (.node none (.node (some 34) .nil .nil) .nil) .nil) (.node none .nil (.node
+    none .nil (.node (some 34) .nil .nil)))) .nil) (.node none (.node none .nil (.node none .nil
+    (.node none (.node (some 34) .nil .nil) .nil))) .nil)) (.node none (.node none .nil (.node none
+    (.node none (.node none (.node none (.node (some 34) .nil .nil) .nil) .nil) .nil) (.node none
+    (.node none (.node (some 34) .nil .nil) .nil) .nil))) .nil))) (.node none (.node none (.node
+    none .nil (.node none (.node none (.node none (.node none (.node none (.node (some 34) .nil
+    .nil) .nil) .nil) .nil) (.node none (.node none (.node (some 34) .nil .nil) .nil) .nil)) .nil))
+    (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node (some 34)
+    .nil .nil))) (.node none .nil (.node (some 34) .nil .nil)))) (.node none .nil (.node none
     (.node none .nil (.node none (.node (some 34) .nil .nil) .nil)) (.node none (.node none (.node
     none (.node (some 34) .nil .nil) .nil) .nil) .nil))))) (.node none (.node none (.node none
     (.node none (.node none .nil (.node none (.node (some 34) .nil .nil) .nil)) (.node none (.node

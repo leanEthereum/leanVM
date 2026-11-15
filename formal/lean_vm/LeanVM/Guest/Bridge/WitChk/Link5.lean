@@ -71,403 +71,403 @@ public section
 
 theorem wok501 : Bridge.WitJ 501 :=
   Bridge.witJ_of Checked.code501 Checked.core501 Checked.cert501 Checked.plumbEq501 Bridge.ProgAl.tab501 rfl Checked.fsEq501
-    Fn.«level_residual__L109_L14_L6_L3».witOk
+    Fn.«level_residual__L219_L14_L6_L3».witOk
 
 theorem wok502 : Bridge.WitJ 502 :=
   Bridge.witJ_of Checked.code502 Checked.core502 Checked.cert502 Checked.plumbEq502 Bridge.ProgAl.tab502 rfl Checked.fsEq502
-    Fn.«level_residual__L73_L14_L6_L3».witOk
+    Fn.«level_residual__L109_L14_L6_L3».witOk
 
 theorem wok503 : Bridge.WitJ 503 :=
   Bridge.witJ_of Checked.code503 Checked.core503 Checked.cert503 Checked.plumbEq503 Bridge.ProgAl.tab503 rfl Checked.fsEq503
-    Fn.«level_residual__L55_L14_L6_L3».witOk
+    Fn.«level_residual__L73_L14_L6_L3».witOk
 
 theorem wok504 : Bridge.WitJ 504 :=
   Bridge.witJ_of Checked.code504 Checked.core504 Checked.cert504 Checked.plumbEq504 Bridge.ProgAl.tab504 rfl Checked.fsEq504
-    Fn.«level_residual__L55_L10_L4_L2».witOk
+    Fn.«level_residual__L55_L14_L6_L3».witOk
 
 theorem wok505 : Bridge.WitJ 505 :=
   Bridge.witJ_of Checked.code505 Checked.core505 Checked.cert505 Checked.plumbEq505 Bridge.ProgAl.tab505 rfl Checked.fsEq505
-    Fn.«level_residual__L44_L10_L4_L2».witOk
+    Fn.«level_residual__L55_L10_L4_L2».witOk
 
 theorem wok506 : Bridge.WitJ 506 :=
   Bridge.witJ_of Checked.code506 Checked.core506 Checked.cert506 Checked.plumbEq506 Bridge.ProgAl.tab506 rfl Checked.fsEq506
-    Fn.«level_residual__L37_L10_L4_L2».witOk
+    Fn.«level_residual__L44_L10_L4_L2».witOk
 
 theorem wok507 : Bridge.WitJ 507 :=
   Bridge.witJ_of Checked.code507 Checked.core507 Checked.cert507 Checked.plumbEq507 Bridge.ProgAl.tab507 rfl Checked.fsEq507
-    Fn.«level_residual__L32_L10_L4_L2».witOk
+    Fn.«level_residual__L37_L10_L4_L2».witOk
 
 theorem wok508 : Bridge.WitJ 508 :=
   Bridge.witJ_of Checked.code508 Checked.core508 Checked.cert508 Checked.plumbEq508 Bridge.ProgAl.tab508 rfl Checked.fsEq508
-    Fn.«level_residual__L33_L6_L4_L2».witOk
+    Fn.«level_residual__L32_L10_L4_L2».witOk
 
 theorem wok509 : Bridge.WitJ 509 :=
   Bridge.witJ_of Checked.code509 Checked.core509 Checked.cert509 Checked.plumbEq509 Bridge.ProgAl.tab509 rfl Checked.fsEq509
-    Fn.«level_residual__L29_L6_L4_L2».witOk
+    Fn.«level_residual__L33_L6_L4_L2».witOk
 
 theorem wok510 : Bridge.WitJ 510 :=
   Bridge.witJ_of Checked.code510 Checked.core510 Checked.cert510 Checked.plumbEq510 Bridge.ProgAl.tab510 rfl Checked.fsEq510
-    Fn.«level_residual__L25_L6_L4_L2».witOk
+    Fn.«level_residual__L29_L6_L4_L2».witOk
 
 theorem wok511 : Bridge.WitJ 511 :=
   Bridge.witJ_of Checked.code511 Checked.core511 Checked.cert511 Checked.plumbEq511 Bridge.ProgAl.tab511 rfl Checked.fsEq511
-    Fn.«level_residual__L23_L6_L4_L2».witOk
+    Fn.«level_residual__L25_L6_L4_L2».witOk
 
 theorem wok512 : Bridge.WitJ 512 :=
   Bridge.witJ_of Checked.code512 Checked.core512 Checked.cert512 Checked.plumbEq512 Bridge.ProgAl.tab512 rfl Checked.fsEq512
-    Fn.«squeeze_point_from__L15».witOk
+    Fn.«level_residual__L23_L6_L4_L2».witOk
 
 theorem wok513 : Bridge.WitJ 513 :=
   Bridge.witJ_of Checked.code513 Checked.core513 Checked.cert513 Checked.plumbEq513 Bridge.ProgAl.tab513 rfl Checked.fsEq513
-    Fn.«level_positions__L28_L16_L4».witOk
+    Fn.«squeeze_point_from__L15».witOk
 
 theorem wok514 : Bridge.WitJ 514 :=
   Bridge.witJ_of Checked.code514 Checked.core514 Checked.cert514 Checked.plumbEq514 Bridge.ProgAl.tab514 rfl Checked.fsEq514
-    Fn.«level_positions__L16_L17_L5».witOk
+    Fn.«level_positions__L28_L16_L4».witOk
 
 theorem wok515 : Bridge.WitJ 515 :=
   Bridge.witJ_of Checked.code515 Checked.core515 Checked.cert515 Checked.plumbEq515 Bridge.ProgAl.tab515 rfl Checked.fsEq515
-    Fn.«level_positions__L11_L18_L6».witOk
+    Fn.«level_positions__L16_L17_L5».witOk
 
 theorem wok516 : Bridge.WitJ 516 :=
   Bridge.witJ_of Checked.code516 Checked.core516 Checked.cert516 Checked.plumbEq516 Bridge.ProgAl.tab516 rfl Checked.fsEq516
-    Fn.«level_positions__L10_L19_L7».witOk
+    Fn.«level_positions__L11_L18_L6».witOk
 
 theorem wok517 : Bridge.WitJ 517 :=
   Bridge.witJ_of Checked.code517 Checked.core517 Checked.cert517 Checked.plumbEq517 Bridge.ProgAl.tab517 rfl Checked.fsEq517
-    Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».witOk
+    Fn.«level_positions__L10_L19_L7».witOk
 
 theorem wok518 : Bridge.WitJ 518 :=
   Bridge.witJ_of Checked.code518 Checked.core518 Checked.cert518 Checked.plumbEq518 Bridge.ProgAl.tab518 rfl Checked.fsEq518
-    Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».witOk
+    Fn.«level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0».witOk
 
 theorem wok519 : Bridge.WitJ 519 :=
   Bridge.witJ_of Checked.code519 Checked.core519 Checked.cert519 Checked.plumbEq519 Bridge.ProgAl.tab519 rfl Checked.fsEq519
-    Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».witOk
+    Fn.«level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0».witOk
 
 theorem wok520 : Bridge.WitJ 520 :=
   Bridge.witJ_of Checked.code520 Checked.core520 Checked.cert520 Checked.plumbEq520 Bridge.ProgAl.tab520 rfl Checked.fsEq520
-    Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».witOk
+    Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».witOk
 
 theorem wok521 : Bridge.WitJ 521 :=
   Bridge.witJ_of Checked.code521 Checked.core521 Checked.cert521 Checked.plumbEq521 Bridge.ProgAl.tab521 rfl Checked.fsEq521
-    Fn.«squeeze_point_from__L11».witOk
+    Fn.«level_queries__L55_L1_L6_L32_L19_L7_L0_L0_L0_L0».witOk
 
 theorem wok522 : Bridge.WitJ 522 :=
   Bridge.witJ_of Checked.code522 Checked.core522 Checked.cert522 Checked.plumbEq522 Bridge.ProgAl.tab522 rfl Checked.fsEq522
-    Fn.«level_positions__L7_L15_L3».witOk
+    Fn.«squeeze_point_from__L11».witOk
 
 theorem wok523 : Bridge.WitJ 523 :=
   Bridge.witJ_of Checked.code523 Checked.core523 Checked.cert523 Checked.plumbEq523 Bridge.ProgAl.tab523 rfl Checked.fsEq523
-    Fn.«level_positions__L6_L16_L4».witOk
+    Fn.«level_positions__L7_L15_L3».witOk
 
 theorem wok524 : Bridge.WitJ 524 :=
   Bridge.witJ_of Checked.code524 Checked.core524 Checked.cert524 Checked.plumbEq524 Bridge.ProgAl.tab524 rfl Checked.fsEq524
-    Fn.«level_positions__L6_L17_L5».witOk
+    Fn.«level_positions__L6_L16_L4».witOk
 
 theorem wok525 : Bridge.WitJ 525 :=
   Bridge.witJ_of Checked.code525 Checked.core525 Checked.cert525 Checked.plumbEq525 Bridge.ProgAl.tab525 rfl Checked.fsEq525
-    Fn.«level_positions__L5_L18_L6».witOk
+    Fn.«level_positions__L6_L17_L5».witOk
 
 theorem wok526 : Bridge.WitJ 526 :=
   Bridge.witJ_of Checked.code526 Checked.core526 Checked.cert526 Checked.plumbEq526 Bridge.ProgAl.tab526 rfl Checked.fsEq526
-    Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».witOk
+    Fn.«level_positions__L5_L18_L6».witOk
 
 theorem wok527 : Bridge.WitJ 527 :=
   Bridge.witJ_of Checked.code527 Checked.core527 Checked.cert527 Checked.plumbEq527 Bridge.ProgAl.tab527 rfl Checked.fsEq527
-    Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».witOk
+    Fn.«level_queries__L55_L0_L4_L16_L15_L3_L0_L0_L0_L0».witOk
 
 theorem wok528 : Bridge.WitJ 528 :=
   Bridge.witJ_of Checked.code528 Checked.core528 Checked.cert528 Checked.plumbEq528 Bridge.ProgAl.tab528 rfl Checked.fsEq528
-    Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».witOk
+    Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».witOk
 
 theorem wok529 : Bridge.WitJ 529 :=
   Bridge.witJ_of Checked.code529 Checked.core529 Checked.cert529 Checked.plumbEq529 Bridge.ProgAl.tab529 rfl Checked.fsEq529
-    Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».witOk
+    Fn.«level_queries__L37_L0_L4_L16_L17_L5_L0_L0_L0_L0».witOk
 
 theorem wok530 : Bridge.WitJ 530 :=
   Bridge.witJ_of Checked.code530 Checked.core530 Checked.cert530 Checked.plumbEq530 Bridge.ProgAl.tab530 rfl Checked.fsEq530
-    Fn.«squeeze_point_from__L7».witOk
+    Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».witOk
 
 theorem wok531 : Bridge.WitJ 531 :=
   Bridge.witJ_of Checked.code531 Checked.core531 Checked.cert531 Checked.plumbEq531 Bridge.ProgAl.tab531 rfl Checked.fsEq531
-    Fn.«level_positions__L4_L16_L4».witOk
+    Fn.«squeeze_point_from__L7».witOk
 
 theorem wok532 : Bridge.WitJ 532 :=
   Bridge.witJ_of Checked.code532 Checked.core532 Checked.cert532 Checked.plumbEq532 Bridge.ProgAl.tab532 rfl Checked.fsEq532
-    Fn.«level_positions__L4_L17_L5».witOk
+    Fn.«level_positions__L4_L16_L4».witOk
 
 theorem wok533 : Bridge.WitJ 533 :=
   Bridge.witJ_of Checked.code533 Checked.core533 Checked.cert533 Checked.plumbEq533 Bridge.ProgAl.tab533 rfl Checked.fsEq533
-    Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».witOk
+    Fn.«level_positions__L4_L17_L5».witOk
 
 theorem wok534 : Bridge.WitJ 534 :=
   Bridge.witJ_of Checked.code534 Checked.core534 Checked.cert534 Checked.plumbEq534 Bridge.ProgAl.tab534 rfl Checked.fsEq534
-    Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».witOk
+    Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».witOk
 
 theorem wok535 : Bridge.WitJ 535 :=
   Bridge.witJ_of Checked.code535 Checked.core535 Checked.cert535 Checked.plumbEq535 Bridge.ProgAl.tab535 rfl Checked.fsEq535
-    Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».witOk
+    Fn.«level_queries__L28_L0_L4_L16_L15_L3_L0_L0_L0_L0».witOk
 
 theorem wok536 : Bridge.WitJ 536 :=
   Bridge.witJ_of Checked.code536 Checked.core536 Checked.cert536 Checked.plumbEq536 Bridge.ProgAl.tab536 rfl Checked.fsEq536
-    Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».witOk
+    Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».witOk
 
 theorem wok537 : Bridge.WitJ 537 :=
   Bridge.witJ_of Checked.code537 Checked.core537 Checked.cert537 Checked.plumbEq537 Bridge.ProgAl.tab537 rfl Checked.fsEq537
-    Fn.«opening_message__L12_L1».witOk
+    Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0».witOk
 
 theorem wok538 : Bridge.WitJ 538 :=
   Bridge.witJ_of Checked.code538 Checked.core538 Checked.cert538 Checked.plumbEq538 Bridge.ProgAl.tab538 rfl Checked.fsEq538
-    Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».witOk
+    Fn.«opening_message__L12_L1».witOk
 
 theorem wok539 : Bridge.WitJ 539 :=
   Bridge.witJ_of Checked.code539 Checked.core539 Checked.cert539 Checked.plumbEq539 Bridge.ProgAl.tab539 rfl Checked.fsEq539
-    Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».witOk
+    Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».witOk
 
 theorem wok540 : Bridge.WitJ 540 :=
   Bridge.witJ_of Checked.code540 Checked.core540 Checked.cert540 Checked.plumbEq540 Bridge.ProgAl.tab540 rfl Checked.fsEq540
-    Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».witOk
+    Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».witOk
 
 theorem wok541 : Bridge.WitJ 541 :=
   Bridge.witJ_of Checked.code541 Checked.core541 Checked.cert541 Checked.plumbEq541 Bridge.ProgAl.tab541 rfl Checked.fsEq541
-    Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».witOk
+    Fn.«level_queries__L20_L0_L4_L16_L15_L3_L3_L12_L4_L1».witOk
 
 theorem wok542 : Bridge.WitJ 542 :=
   Bridge.witJ_of Checked.code542 Checked.core542 Checked.cert542 Checked.plumbEq542 Bridge.ProgAl.tab542 rfl Checked.fsEq542
-    Fn.«fold_final_msg__L3».witOk
+    Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».witOk
 
 theorem wok543 : Bridge.WitJ 543 :=
   Bridge.witJ_of Checked.code543 Checked.core543 Checked.cert543 Checked.plumbEq543 Bridge.ProgAl.tab543 rfl Checked.fsEq543
-    Fn.«level_residual__L218_L15_L6_L3».witOk
+    Fn.«fold_final_msg__L3».witOk
 
 theorem wok544 : Bridge.WitJ 544 :=
   Bridge.witJ_of Checked.code544 Checked.core544 Checked.cert544 Checked.plumbEq544 Bridge.ProgAl.tab544 rfl Checked.fsEq544
-    Fn.«level_residual__L109_L15_L6_L3».witOk
+    Fn.«level_residual__L218_L15_L6_L3».witOk
 
 theorem wok545 : Bridge.WitJ 545 :=
   Bridge.witJ_of Checked.code545 Checked.core545 Checked.cert545 Checked.plumbEq545 Bridge.ProgAl.tab545 rfl Checked.fsEq545
-    Fn.«level_residual__L73_L15_L6_L3».witOk
+    Fn.«level_residual__L109_L15_L6_L3».witOk
 
 theorem wok546 : Bridge.WitJ 546 :=
   Bridge.witJ_of Checked.code546 Checked.core546 Checked.cert546 Checked.plumbEq546 Bridge.ProgAl.tab546 rfl Checked.fsEq546
-    Fn.«level_residual__L55_L15_L6_L3».witOk
+    Fn.«level_residual__L73_L15_L6_L3».witOk
 
 theorem wok547 : Bridge.WitJ 547 :=
   Bridge.witJ_of Checked.code547 Checked.core547 Checked.cert547 Checked.plumbEq547 Bridge.ProgAl.tab547 rfl Checked.fsEq547
-    Fn.«level_residual__L55_L11_L4_L2».witOk
+    Fn.«level_residual__L55_L15_L6_L3».witOk
 
 theorem wok548 : Bridge.WitJ 548 :=
   Bridge.witJ_of Checked.code548 Checked.core548 Checked.cert548 Checked.plumbEq548 Bridge.ProgAl.tab548 rfl Checked.fsEq548
-    Fn.«level_residual__L44_L11_L4_L2».witOk
+    Fn.«level_residual__L55_L11_L4_L2».witOk
 
 theorem wok549 : Bridge.WitJ 549 :=
   Bridge.witJ_of Checked.code549 Checked.core549 Checked.cert549 Checked.plumbEq549 Bridge.ProgAl.tab549 rfl Checked.fsEq549
-    Fn.«level_residual__L37_L11_L4_L2».witOk
+    Fn.«level_residual__L44_L11_L4_L2».witOk
 
 theorem wok550 : Bridge.WitJ 550 :=
   Bridge.witJ_of Checked.code550 Checked.core550 Checked.cert550 Checked.plumbEq550 Bridge.ProgAl.tab550 rfl Checked.fsEq550
-    Fn.«level_residual__L32_L11_L4_L2».witOk
+    Fn.«level_residual__L37_L11_L4_L2».witOk
 
 theorem wok551 : Bridge.WitJ 551 :=
   Bridge.witJ_of Checked.code551 Checked.core551 Checked.cert551 Checked.plumbEq551 Bridge.ProgAl.tab551 rfl Checked.fsEq551
-    Fn.«level_residual__L32_L7_L4_L2».witOk
+    Fn.«level_residual__L32_L11_L4_L2».witOk
 
 theorem wok552 : Bridge.WitJ 552 :=
   Bridge.witJ_of Checked.code552 Checked.core552 Checked.cert552 Checked.plumbEq552 Bridge.ProgAl.tab552 rfl Checked.fsEq552
-    Fn.«level_residual__L28_L7_L4_L2».witOk
+    Fn.«level_residual__L32_L7_L4_L2».witOk
 
 theorem wok553 : Bridge.WitJ 553 :=
   Bridge.witJ_of Checked.code553 Checked.core553 Checked.cert553 Checked.plumbEq553 Bridge.ProgAl.tab553 rfl Checked.fsEq553
-    Fn.«level_residual__L25_L7_L4_L2».witOk
+    Fn.«level_residual__L28_L7_L4_L2».witOk
 
 theorem wok554 : Bridge.WitJ 554 :=
   Bridge.witJ_of Checked.code554 Checked.core554 Checked.cert554 Checked.plumbEq554 Bridge.ProgAl.tab554 rfl Checked.fsEq554
-    Fn.«level_residual__L23_L7_L4_L2».witOk
+    Fn.«level_residual__L25_L7_L4_L2».witOk
 
 theorem wok555 : Bridge.WitJ 555 :=
   Bridge.witJ_of Checked.code555 Checked.core555 Checked.cert555 Checked.plumbEq555 Bridge.ProgAl.tab555 rfl Checked.fsEq555
-    Fn.«squeeze_point_from__L16».witOk
+    Fn.«level_residual__L23_L7_L4_L2».witOk
 
 theorem wok556 : Bridge.WitJ 556 :=
   Bridge.witJ_of Checked.code556 Checked.core556 Checked.cert556 Checked.plumbEq556 Bridge.ProgAl.tab556 rfl Checked.fsEq556
-    Fn.«level_positions__L32_L17_L5».witOk
+    Fn.«squeeze_point_from__L16».witOk
 
 theorem wok557 : Bridge.WitJ 557 :=
   Bridge.witJ_of Checked.code557 Checked.core557 Checked.cert557 Checked.plumbEq557 Bridge.ProgAl.tab557 rfl Checked.fsEq557
-    Fn.«level_positions__L16_L18_L6».witOk
+    Fn.«level_positions__L32_L17_L5».witOk
 
 theorem wok558 : Bridge.WitJ 558 :=
   Bridge.witJ_of Checked.code558 Checked.core558 Checked.cert558 Checked.plumbEq558 Bridge.ProgAl.tab558 rfl Checked.fsEq558
-    Fn.«level_positions__L13_L19_L7».witOk
+    Fn.«level_positions__L16_L18_L6».witOk
 
 theorem wok559 : Bridge.WitJ 559 :=
   Bridge.witJ_of Checked.code559 Checked.core559 Checked.cert559 Checked.plumbEq559 Bridge.ProgAl.tab559 rfl Checked.fsEq559
-    Fn.«level_positions__L10_L20_L2».witOk
+    Fn.«level_positions__L13_L19_L7».witOk
 
 theorem wok560 : Bridge.WitJ 560 :=
   Bridge.witJ_of Checked.code560 Checked.core560 Checked.cert560 Checked.plumbEq560 Bridge.ProgAl.tab560 rfl Checked.fsEq560
-    Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».witOk
+    Fn.«level_positions__L10_L20_L2».witOk
 
 theorem wok561 : Bridge.WitJ 561 :=
   Bridge.witJ_of Checked.code561 Checked.core561 Checked.cert561 Checked.plumbEq561 Bridge.ProgAl.tab561 rfl Checked.fsEq561
-    Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».witOk
+    Fn.«level_queries__L218_L1_L6_L32_L17_L5_L0_L0_L0_L0».witOk
 
 theorem wok562 : Bridge.WitJ 562 :=
   Bridge.witJ_of Checked.code562 Checked.core562 Checked.cert562 Checked.plumbEq562 Bridge.ProgAl.tab562 rfl Checked.fsEq562
-    Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».witOk
+    Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».witOk
 
 theorem wok563 : Bridge.WitJ 563 :=
   Bridge.witJ_of Checked.code563 Checked.core563 Checked.cert563 Checked.plumbEq563 Bridge.ProgAl.tab563 rfl Checked.fsEq563
-    Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».witOk
+    Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».witOk
 
 theorem wok564 : Bridge.WitJ 564 :=
   Bridge.witJ_of Checked.code564 Checked.core564 Checked.cert564 Checked.plumbEq564 Bridge.ProgAl.tab564 rfl Checked.fsEq564
-    Fn.«squeeze_point_from__L12».witOk
+    Fn.«level_queries__L55_L1_L6_L32_L20_L2_L0_L0_L0_L0».witOk
 
 theorem wok565 : Bridge.WitJ 565 :=
   Bridge.witJ_of Checked.code565 Checked.core565 Checked.cert565 Checked.plumbEq565 Bridge.ProgAl.tab565 rfl Checked.fsEq565
-    Fn.«level_positions__L7_L16_L4».witOk
+    Fn.«squeeze_point_from__L12».witOk
 
 theorem wok566 : Bridge.WitJ 566 :=
   Bridge.witJ_of Checked.code566 Checked.core566 Checked.cert566 Checked.plumbEq566 Bridge.ProgAl.tab566 rfl Checked.fsEq566
-    Fn.«level_positions__L7_L17_L5».witOk
+    Fn.«level_positions__L7_L16_L4».witOk
 
 theorem wok567 : Bridge.WitJ 567 :=
   Bridge.witJ_of Checked.code567 Checked.core567 Checked.cert567 Checked.plumbEq567 Bridge.ProgAl.tab567 rfl Checked.fsEq567
-    Fn.«level_positions__L6_L18_L6».witOk
+    Fn.«level_positions__L7_L17_L5».witOk
 
 theorem wok568 : Bridge.WitJ 568 :=
   Bridge.witJ_of Checked.code568 Checked.core568 Checked.cert568 Checked.plumbEq568 Bridge.ProgAl.tab568 rfl Checked.fsEq568
-    Fn.«level_positions__L6_L19_L7».witOk
+    Fn.«level_positions__L6_L18_L6».witOk
 
 theorem wok569 : Bridge.WitJ 569 :=
   Bridge.witJ_of Checked.code569 Checked.core569 Checked.cert569 Checked.plumbEq569 Bridge.ProgAl.tab569 rfl Checked.fsEq569
-    Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».witOk
+    Fn.«level_positions__L6_L19_L7».witOk
 
 theorem wok570 : Bridge.WitJ 570 :=
   Bridge.witJ_of Checked.code570 Checked.core570 Checked.cert570 Checked.plumbEq570 Bridge.ProgAl.tab570 rfl Checked.fsEq570
-    Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».witOk
+    Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».witOk
 
 theorem wok571 : Bridge.WitJ 571 :=
   Bridge.witJ_of Checked.code571 Checked.core571 Checked.cert571 Checked.plumbEq571 Bridge.ProgAl.tab571 rfl Checked.fsEq571
-    Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».witOk
+    Fn.«level_queries__L44_L0_L4_L16_L17_L5_L0_L0_L0_L0».witOk
 
 theorem wok572 : Bridge.WitJ 572 :=
   Bridge.witJ_of Checked.code572 Checked.core572 Checked.cert572 Checked.plumbEq572 Bridge.ProgAl.tab572 rfl Checked.fsEq572
-    Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».witOk
+    Fn.«level_queries__L37_L0_L4_L16_L18_L6_L0_L0_L0_L0».witOk
 
 theorem wok573 : Bridge.WitJ 573 :=
   Bridge.witJ_of Checked.code573 Checked.core573 Checked.cert573 Checked.plumbEq573 Bridge.ProgAl.tab573 rfl Checked.fsEq573
-    Fn.«squeeze_point_from__L8».witOk
+    Fn.«level_queries__L32_L0_L4_L16_L19_L7_L0_L0_L0_L0».witOk
 
 theorem wok574 : Bridge.WitJ 574 :=
   Bridge.witJ_of Checked.code574 Checked.core574 Checked.cert574 Checked.plumbEq574 Bridge.ProgAl.tab574 rfl Checked.fsEq574
-    Fn.«level_positions__L4_L18_L6».witOk
+    Fn.«squeeze_point_from__L8».witOk
 
 theorem wok575 : Bridge.WitJ 575 :=
   Bridge.witJ_of Checked.code575 Checked.core575 Checked.cert575 Checked.plumbEq575 Bridge.ProgAl.tab575 rfl Checked.fsEq575
-    Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».witOk
+    Fn.«level_positions__L4_L18_L6».witOk
 
 theorem wok576 : Bridge.WitJ 576 :=
   Bridge.witJ_of Checked.code576 Checked.core576 Checked.cert576 Checked.plumbEq576 Bridge.ProgAl.tab576 rfl Checked.fsEq576
-    Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».witOk
+    Fn.«level_queries__L32_L0_L4_L16_L15_L3_L0_L0_L0_L0».witOk
 
 theorem wok577 : Bridge.WitJ 577 :=
   Bridge.witJ_of Checked.code577 Checked.core577 Checked.cert577 Checked.plumbEq577 Bridge.ProgAl.tab577 rfl Checked.fsEq577
-    Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».witOk
+    Fn.«level_queries__L28_L0_L4_L16_L16_L4_L0_L0_L0_L0».witOk
 
 theorem wok578 : Bridge.WitJ 578 :=
   Bridge.witJ_of Checked.code578 Checked.core578 Checked.cert578 Checked.plumbEq578 Bridge.ProgAl.tab578 rfl Checked.fsEq578
-    Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».witOk
+    Fn.«level_queries__L25_L0_L4_L16_L17_L5_L0_L0_L0_L0».witOk
 
 theorem wok579 : Bridge.WitJ 579 :=
   Bridge.witJ_of Checked.code579 Checked.core579 Checked.cert579 Checked.plumbEq579 Bridge.ProgAl.tab579 rfl Checked.fsEq579
-    Fn.«opening_message__L20_L1».witOk
+    Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0».witOk
 
 theorem wok580 : Bridge.WitJ 580 :=
   Bridge.witJ_of Checked.code580 Checked.core580 Checked.cert580 Checked.plumbEq580 Bridge.ProgAl.tab580 rfl Checked.fsEq580
-    Fn.«level_positions__L3_L17_L5».witOk
+    Fn.«opening_message__L20_L1».witOk
 
 theorem wok581 : Bridge.WitJ 581 :=
   Bridge.witJ_of Checked.code581 Checked.core581 Checked.cert581 Checked.plumbEq581 Bridge.ProgAl.tab581 rfl Checked.fsEq581
-    Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».witOk
+    Fn.«level_positions__L3_L17_L5».witOk
 
 theorem wok582 : Bridge.WitJ 582 :=
   Bridge.witJ_of Checked.code582 Checked.core582 Checked.cert582 Checked.plumbEq582 Bridge.ProgAl.tab582 rfl Checked.fsEq582
-    Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».witOk
+    Fn.«level_queries__L24_L0_L4_L16_L14_L2_L4_L20_L5_L1».witOk
 
 theorem wok583 : Bridge.WitJ 583 :=
   Bridge.witJ_of Checked.code583 Checked.core583 Checked.cert583 Checked.plumbEq583 Bridge.ProgAl.tab583 rfl Checked.fsEq583
-    Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».witOk
+    Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».witOk
 
 theorem wok584 : Bridge.WitJ 584 :=
   Bridge.witJ_of Checked.code584 Checked.core584 Checked.cert584 Checked.plumbEq584 Bridge.ProgAl.tab584 rfl Checked.fsEq584
-    Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».witOk
+    Fn.«level_queries__L20_L0_L4_L16_L16_L4_L4_L20_L5_L1».witOk
 
 theorem wok585 : Bridge.WitJ 585 :=
   Bridge.witJ_of Checked.code585 Checked.core585 Checked.cert585 Checked.plumbEq585 Bridge.ProgAl.tab585 rfl Checked.fsEq585
-    Fn.«fold_final_msg__L4».witOk
+    Fn.«level_queries__L18_L0_L4_L16_L17_L5_L4_L20_L5_L1».witOk
 
 theorem wok586 : Bridge.WitJ 586 :=
   Bridge.witJ_of Checked.code586 Checked.core586 Checked.cert586 Checked.plumbEq586 Bridge.ProgAl.tab586 rfl Checked.fsEq586
-    Fn.«level_residual__L218_L16_L6_L3».witOk
+    Fn.«fold_final_msg__L4».witOk
 
 theorem wok587 : Bridge.WitJ 587 :=
   Bridge.witJ_of Checked.code587 Checked.core587 Checked.cert587 Checked.plumbEq587 Bridge.ProgAl.tab587 rfl Checked.fsEq587
-    Fn.«level_residual__L109_L16_L6_L3».witOk
+    Fn.«level_residual__L218_L16_L6_L3».witOk
 
 theorem wok588 : Bridge.WitJ 588 :=
   Bridge.witJ_of Checked.code588 Checked.core588 Checked.cert588 Checked.plumbEq588 Bridge.ProgAl.tab588 rfl Checked.fsEq588
-    Fn.«level_residual__L73_L16_L6_L3».witOk
+    Fn.«level_residual__L109_L16_L6_L3».witOk
 
 theorem wok589 : Bridge.WitJ 589 :=
   Bridge.witJ_of Checked.code589 Checked.core589 Checked.cert589 Checked.plumbEq589 Bridge.ProgAl.tab589 rfl Checked.fsEq589
-    Fn.«level_residual__L55_L16_L6_L3».witOk
+    Fn.«level_residual__L73_L16_L6_L3».witOk
 
 theorem wok590 : Bridge.WitJ 590 :=
   Bridge.witJ_of Checked.code590 Checked.core590 Checked.cert590 Checked.plumbEq590 Bridge.ProgAl.tab590 rfl Checked.fsEq590
-    Fn.«level_residual__L55_L12_L4_L2».witOk
+    Fn.«level_residual__L55_L16_L6_L3».witOk
 
 theorem wok591 : Bridge.WitJ 591 :=
   Bridge.witJ_of Checked.code591 Checked.core591 Checked.cert591 Checked.plumbEq591 Bridge.ProgAl.tab591 rfl Checked.fsEq591
-    Fn.«level_residual__L44_L12_L4_L2».witOk
+    Fn.«level_residual__L55_L12_L4_L2».witOk
 
 theorem wok592 : Bridge.WitJ 592 :=
   Bridge.witJ_of Checked.code592 Checked.core592 Checked.cert592 Checked.plumbEq592 Bridge.ProgAl.tab592 rfl Checked.fsEq592
-    Fn.«level_residual__L37_L12_L4_L2».witOk
+    Fn.«level_residual__L44_L12_L4_L2».witOk
 
 theorem wok593 : Bridge.WitJ 593 :=
   Bridge.witJ_of Checked.code593 Checked.core593 Checked.cert593 Checked.plumbEq593 Bridge.ProgAl.tab593 rfl Checked.fsEq593
-    Fn.«level_residual__L32_L12_L4_L2».witOk
+    Fn.«level_residual__L37_L12_L4_L2».witOk
 
 theorem wok594 : Bridge.WitJ 594 :=
   Bridge.witJ_of Checked.code594 Checked.core594 Checked.cert594 Checked.plumbEq594 Bridge.ProgAl.tab594 rfl Checked.fsEq594
-    Fn.«level_residual__L32_L8_L4_L2».witOk
+    Fn.«level_residual__L32_L12_L4_L2».witOk
 
 theorem wok595 : Bridge.WitJ 595 :=
   Bridge.witJ_of Checked.code595 Checked.core595 Checked.cert595 Checked.plumbEq595 Bridge.ProgAl.tab595 rfl Checked.fsEq595
-    Fn.«level_residual__L28_L8_L4_L2».witOk
+    Fn.«level_residual__L32_L8_L4_L2».witOk
 
 theorem wok596 : Bridge.WitJ 596 :=
   Bridge.witJ_of Checked.code596 Checked.core596 Checked.cert596 Checked.plumbEq596 Bridge.ProgAl.tab596 rfl Checked.fsEq596
-    Fn.«level_residual__L25_L8_L4_L2».witOk
+    Fn.«level_residual__L28_L8_L4_L2».witOk
 
 theorem wok597 : Bridge.WitJ 597 :=
   Bridge.witJ_of Checked.code597 Checked.core597 Checked.cert597 Checked.plumbEq597 Bridge.ProgAl.tab597 rfl Checked.fsEq597
-    Fn.«level_residual__L23_L8_L4_L2».witOk
+    Fn.«level_residual__L25_L8_L4_L2».witOk
 
 theorem wok598 : Bridge.WitJ 598 :=
   Bridge.witJ_of Checked.code598 Checked.core598 Checked.cert598 Checked.plumbEq598 Bridge.ProgAl.tab598 rfl Checked.fsEq598
-    Fn.«squeeze_point_from__L17».witOk
+    Fn.«level_residual__L23_L8_L4_L2».witOk
 
 theorem wok599 : Bridge.WitJ 599 :=
   Bridge.witJ_of Checked.code599 Checked.core599 Checked.cert599 Checked.plumbEq599 Bridge.ProgAl.tab599 rfl Checked.fsEq599
-    Fn.«level_positions__L32_L18_L6».witOk
+    Fn.«squeeze_point_from__L17».witOk
 
 theorem wok600 : Bridge.WitJ 600 :=
   Bridge.witJ_of Checked.code600 Checked.core600 Checked.cert600 Checked.plumbEq600 Bridge.ProgAl.tab600 rfl Checked.fsEq600
-    Fn.«level_positions__L19_L19_L7».witOk
+    Fn.«level_positions__L32_L18_L6».witOk
 
 end
 

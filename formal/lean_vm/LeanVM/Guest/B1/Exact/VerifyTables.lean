@@ -96,9 +96,9 @@ theorem vt_kidBWPE (hbl : bytecode.length = 2 ^ 23) {κ : ℕ} (hκ : 14 ≤ κ)
     CompleteAtDTBR fs cert κ "verify_tables" (S.H.linL B) (S.H.args B) (Returns (S.H.retsH B))
       (fun rd t ↦ ((∀ op, Budget.WeighsLe coreProgram (W.ωv op) (vtWB W.toVsWords op) t) ∧
         vsPvt S.logMem S.rowsN S.H.n rd t ∧ t.heapPops heapSlots = (heapSlots "verify_tables").map
-          (advEntry S.H.sizes)) ∧ t.Every (ExactAt coreProgram rd)) (vtMax fs W.Kf W.Ksh W.K10) :=
-  CompleteAtDTBR.monoVM (Tables.verify_tables_completeAtTBWR' hκ (S.H_run hbl).1 (S.H_shape hbl) B W.Kf W.Ksh W.K10
-    W.hKf W.hsh W.h10 W.ωv W.Kvw W.Wss W.Kw10 W.hKvw W.hssw W.h10w) (S.vt_bound_le hbl W)
+          (advEntry S.H.sizes)) ∧ t.Every (ExactAt coreProgram rd)) (vtMax fs W.Kf W.Ksh W.K10 W.K11) :=
+  CompleteAtDTBR.monoVM (Tables.verify_tables_completeAtTBWR' hκ (S.H_run hbl).1 (S.H_shape hbl) B W.Kf W.Ksh W.K10 W.K11
+    W.hKf W.hsh W.h10 W.h11 W.ωv W.Kvw W.Wss W.Kw10 W.Kw11 W.hKvw W.hssw W.h10w W.h11w) (S.vt_bound_le hbl W)
     fun rd t _ hlow hlin hv ⟨hw, σ, ks, e, hq⟩ ↦ by
       subst e
       exact ⟨⟨hw, vt_honest_vsPvt rfl rfl rfl hq hv, heapPops_own vt_noAdvBut vt_name hv⟩, Tree.every_node.mpr

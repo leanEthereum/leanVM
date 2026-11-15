@@ -15,7 +15,7 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop15`: the paths and pending edges at its cut at offset 1213. -/
+/-- `__loop16`: the paths and pending edges at its cut at offset 1213. -/
 noncomputable def snap1213 : List Mode.Abs × Mode.Pend :=
   ([⟨(.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node
     (some ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node (some ()) (.node (some ())

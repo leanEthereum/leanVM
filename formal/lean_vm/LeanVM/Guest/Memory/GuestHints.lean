@@ -35,7 +35,7 @@ open LeanVM.Guest.Core LeanVM.Guest
 theorem hintsAll : RangeOk chkH 0 coreProgram.length := by
   have h := (((((hintsRange_0.append (m := 264) hintsRange_36).append (m := 47) hintsRange_300).append
     (m := 213) hintsRange_347).append (m := 520) hintsRange_560).append (m := 260) hintsRange_1080).append
-    (m := 261) hintsRange_1340
+    (m := core_count% - 1340) hintsRange_1340
   rw [coreProgram_length]; exact h
 
 /-- A function found by name passes the check. -/

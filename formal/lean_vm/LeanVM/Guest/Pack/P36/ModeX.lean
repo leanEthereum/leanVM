@@ -23,22 +23,22 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `keccak_layer__L1`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none (.node none (.node
-    none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
+  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node
     none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node (some Fn.«keccak_layer__L1_loop1».modeSig) .nil .nil))))) .nil) .nil)) .nil))
-    .nil)))) .nil) .nil) .nil) (.node none (.node none (.node none (.node none (.node none .nil
+    none .nil (.node (some Fn.«keccak_layer__L1_loop1».modeSig) .nil .nil))))) .nil) .nil)) .nil)))
+    .nil) .nil) .nil)))) (.node none .nil (.node none (.node none .nil (.node none (.node none
     (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none
     (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«keccak_layer__L1_loop0».modeSig) .nil .nil))))) .nil) .nil)) .nil) .nil)) .nil)) .nil)
-    .nil) (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none
+    Fn.«grind_check__L3».modeSig) .nil .nil))))) .nil) .nil)) .nil) .nil)) .nil) .nil) .nil))
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
     (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node none .nil (.node (some Fn.«grind_check__L3».modeSig) .nil .nil))))) .nil)
-    .nil)) .nil) .nil) .nil))) .nil))) .nil)), 524287⟩
+    none .nil (.node none .nil (.node (some Fn.«keccak_layer__L1_loop0».modeSig) .nil .nil)))))
+    .nil) .nil)) .nil) .nil)) .nil))))))), 524287⟩
 
 /-- `keccak_layer__L1`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨205550, 1449, Fn.«keccak_layer__L1».modeSig, (.node none .nil (.node none (.node none (.node
+  ⟨205580, 1449, Fn.«keccak_layer__L1».modeSig, (.node none .nil (.node none (.node none (.node
     none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node (some
     [(.allocFrames 774 374 11 (LeanVM.Parameters.K.ofBits 0x1) 374)]) .nil .nil) .nil) .nil))
     .nil))) (.node none .nil (.node none (.node none (.node none (.node none .nil (.node (some

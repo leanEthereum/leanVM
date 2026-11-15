@@ -34,7 +34,7 @@ theorem jumpCells_deployed (hT : T.name = "main")
     {e : Ent} {st : List Ent}
     (h : RefOk coreProgram rd0 (honestInsts coreProgram B2C.fs B2C.H hdr T) T M (entOf alignA) (alOf alignA) pc fp
       (done, e :: st)) : JumpCells L alignA e pc :=
-  jumpCells_of hT hH hL (fun j h1 h2 ↦ JumpCells.jcData_all j h1 (by have : nFns = 1602 := rfl; omega)) hCh h
+  jumpCells_of hT hH hL (fun j h1 h2 ↦ JumpCells.jcData_all j h1 (by have : nFns = fn_count% := rfl; omega)) hCh h
 
 /-- **The trace along the deployed guest's reference run**, the chained `match`es' arms given. -/
 theorem trace_deployed' {b : Budget} (hm : MainCompleteP B2C.fs B2C.cert B2C.cnt b) :

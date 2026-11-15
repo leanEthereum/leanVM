@@ -11,7 +11,7 @@ def group_segs(lo, hi):
     out = []; cur = []
     for p in range(lo, hi + 1):
         a = atom(p); cur.append((p, a))
-        if a and a[0] == 'load' and a[1][1] in (33, 34):
+        if a and a[0] == 'load' and a[1][1] in (34, 35):
             out.append(cur); cur = []
     assert not cur
     return out
@@ -38,7 +38,7 @@ def group_lemma(gi, key, size):
     if adj:
         # const c g^19; mul kv 25 c; mul a 12 kv; load rk a 178; const w W; mul key rk w; load key 33 gi
         (_, c), (_, mkv), (_, ma), (_, lrk), (_, cw), (_, mk), (_, lk) = key
-        kx = 'σ (.n 25) * gen ^ 19'; kv = mkv[1][0]
+        kx = 'σ (.n 26) * gen ^ 19'; kv = mkv[1][0]
         rkv = lrk[1][0]; keyv = mk[1][0]
         L.append(f'  have hkv : σ (.n {kv}) = {kx} := by rw [k1, k0, show ({c[1][1][0]} : ℕ) = 2 ^ 19 by norm_num, tb_word_two_pow (by norm_num)]')
         rkfact = f'by rw [← hkv, ← k2]; exact k3'
@@ -70,7 +70,7 @@ def block_segs(lo, hi):
     out = []; p = lo
     while p <= hi:
         a0, a1, a2 = atom(p), atom(p + 1), atom(p + 2)
-        assert a0[0] == 'mul' and a0[1][1] == 12 and a1[0] == 'load' and a2[0] == 'load' and a2[1][1] == 35, p
+        assert a0[0] == 'mul' and a0[1][1] == 12 and a1[0] == 'load' and a2[0] == 'load' and a2[1][1] == 36, p
         kv = a0[1][2]; off = a1[1][2]; bv = a2[1][0]; gi = a2[1][2]
         assert a0[1][0] == bv - 2 and a1[1][0] == bv - 1 and a1[1][1] == bv - 2
         ln = GSTART[gi + 1] - GSTART[gi]
@@ -102,8 +102,8 @@ public import LeanVM.Guest.B1.Tables.InterfaceP
 * `vtBoffT kv off gi bv len`: group `gi`'s blocks' offsets, `block_off[b0] = group_base[gi]` then
   one step `g_squares[κ]` a block.
 
-The push side's ranks sit at statement `110` (values from `111`), the count side's at `403` (from
-`408`); rank `r ≥ 1` is `13 + 18 (r - 1)` statements on and its values `13 + 20 (r - 1)` on.
+The push side's ranks sit at statement `110` (values from `112`), the count side's at `403` (from
+`409`); rank `r ≥ 1` is `13 + 18 (r - 1)` statements on and its values `13 + 20 (r - 1)` on.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -128,8 +128,8 @@ theorem vt_wInv {W b : ℕ} (hW : K.ofBits W * Parameters.addressOfIndex b = 1) 
 /-- Block group `gi` (first block `b0`, `len` blocks, log-size `κ` with `g^κ = kx`): its key
 `rank_keys[κ]·g^(-b0)` and its size `g_squares[κ]^len`, stored at `g^gi`. -/
 def VtGrpFacts (rd : Reader) (σ : Val) (gi : ℕ) (kx : E) (b0 len : ℕ) : Prop :=
-  ∃ key rk sz sq : E, LoadHolds rd (σ (.n 33)) gi key ∧ LoadHolds rd (σ (.n 12) * kx) 178 rk ∧
-    key * gen ^ b0 = rk ∧ LoadHolds rd (σ (.n 34)) gi sz ∧ LoadHolds rd (σ (.n 12) * kx) 0 sq ∧
+  ∃ key rk sz sq : E, LoadHolds rd (σ (.n 34)) gi key ∧ LoadHolds rd (σ (.n 12) * kx) 178 rk ∧
+    key * gen ^ b0 = rk ∧ LoadHolds rd (σ (.n 35)) gi sz ∧ LoadHolds rd (σ (.n 12) * kx) 0 sq ∧
     sz = sq ^ len
 
 /-- Group index `k < 15`: the push side's groups `0 .. 8`, then the count side's `18 .. 23`. -/
@@ -138,31 +138,31 @@ def vtGi (k : ℕ) : ℕ := if k < 9 then k else k + 9
 /-- Group `k`'s first block, its length, its `kappa_base` variable and adjustment. -/
 def vtB0 (k : ℕ) : ℕ := blockGroupStart.getD (vtGi k) 0
 def vtLen (k : ℕ) : ℕ := blockGroupStart.getD (vtGi k + 1) 0 - vtB0 k
-def vtKv (k : ℕ) : ℕ := 25 + blockKappaSrc.getD (vtB0 k) 0
+def vtKv (k : ℕ) : ℕ := 26 + blockKappaSrc.getD (vtB0 k) 0
 def vtAdj (k : ℕ) : ℕ := blockKappaAdj (vtB0 k)
 
 /-- A side's first rank. -/
 def vtRank0T (v R s : ℕ) : List Stmt :=
-  [.atom (.load (.n v) (.n 36) R), .atom (.const (.n (v + 1)) vtW23),
+  [.atom (.load (.n v) (.n 37) R), .atom (.const (.n (v + 1)) vtW23),
     .atom (.rangeCheck (.n v) (.n (v + 2)) (.n (v + 3)) (.n (v + 4)) (.n (v + 1))),
     .atom (.const (.n (v + 5)) (word s 0)), .atom (.mul (.n (v + 6)) (.n 12) (.n v)),
-    .atom (.load (.n (v + 5)) (.n (v + 6)) 212), .atom (.mul (.n (v + 7)) (.n 33) (.n v)),
+    .atom (.load (.n (v + 5)) (.n (v + 6)) 212), .atom (.mul (.n (v + 7)) (.n 34) (.n v)),
     .atom (.load (.n (v + 8)) (.n (v + 7)) 0), .atom (.const (.n (v + 9)) (word 1 0)),
-    .atom (.mul (.n (v + 10)) (.n 35) (.n v)), .atom (.load (.n (v + 9)) (.n (v + 10)) 0),
-    .atom (.mul (.n (v + 11)) (.n 34) (.n v)), .atom (.load (.n (v + 12)) (.n (v + 11)) 0)]
+    .atom (.mul (.n (v + 10)) (.n 36) (.n v)), .atom (.load (.n (v + 9)) (.n (v + 10)) 0),
+    .atom (.mul (.n (v + 11)) (.n 35) (.n v)), .atom (.load (.n (v + 12)) (.n (v + 11)) 0)]
 
 /-- A later rank. -/
 def vtRankT (v R s pk gin : ℕ) : List Stmt :=
-  [.atom (.load (.n v) (.n 36) R), .atom (.const (.n (v + 1)) vtW23),
+  [.atom (.load (.n v) (.n 37) R), .atom (.const (.n (v + 1)) vtW23),
     .atom (.rangeCheck (.n v) (.n (v + 2)) (.n (v + 3)) (.n (v + 4)) (.n (v + 1))),
     .atom (.const (.n (v + 5)) (word s 0)), .atom (.mul (.n (v + 6)) (.n 12) (.n v)),
-    .atom (.load (.n (v + 5)) (.n (v + 6)) 212), .atom (.mul (.n (v + 7)) (.n 33) (.n v)),
+    .atom (.load (.n (v + 5)) (.n (v + 6)) 212), .atom (.mul (.n (v + 7)) (.n 34) (.n v)),
     .atom (.load (.n (v + 8)) (.n (v + 7)) 0), .atom (.const (.n (v + 9)) vtW8397),
     .atom (.mul (.n pk) (.n (v + 10)) (.n (v + 8))), .atom (.const (.n (v + 11)) vtWInvGen),
     .atom (.mul (.n (v + 12)) (.n (v + 10)) (.n (v + 11))),
     .atom (.rangeCheck (.n (v + 12)) (.n (v + 13)) (.n (v + 14)) (.n (v + 15)) (.n (v + 9))),
-    .atom (.mul (.n (v + 16)) (.n 35) (.n v)), .atom (.load (.n gin) (.n (v + 16)) 0),
-    .atom (.mul (.n (v + 17)) (.n 34) (.n v)), .atom (.load (.n (v + 18)) (.n (v + 17)) 0),
+    .atom (.mul (.n (v + 16)) (.n 36) (.n v)), .atom (.load (.n gin) (.n (v + 16)) 0),
+    .atom (.mul (.n (v + 17)) (.n 35) (.n v)), .atom (.load (.n (v + 18)) (.n (v + 17)) 0),
     .atom (.mul (.n (v + 19)) (.n gin) (.n (v + 18)))]
 
 /-- Rank `r`'s values, from the side's `v0`. -/
@@ -182,42 +182,42 @@ def vtRp (p0 r : ℕ) : ℕ := if r = 0 then p0 else p0 + 13 + 18 * (r - 1)
 first block's offset the group's base, then one step a block. -/
 def vtBoffT (kv off gi bv len : ℕ) : List Stmt :=
   [.atom (.mul (.n (bv - 2)) (.n 12) (.n kv)), .atom (.load (.n (bv - 1)) (.n (bv - 2)) off),
-    .atom (.load (.n bv) (.n 35) gi)] ++
+    .atom (.load (.n bv) (.n 36) gi)] ++
   (List.range (len - 1)).map fun i ↦ .atom (.mul (.n (bv + 1 + i)) (.n (bv + i)) (.n (bv - 1)))
 
 theorem vtPush0_check :
-    tbStmtsEqb (vtRank0T 111 0 0) ((vtAt 110).take (vtRank0T 111 0 0).length) = true := by
+    tbStmtsEqb (vtRank0T 112 0 0) ((vtAt 110).take (vtRank0T 112 0 0).length) = true := by
   decide +kernel
 
 theorem vtCount0_check :
-    tbStmtsEqb (vtRank0T 408 18 2) ((vtAt 403).take (vtRank0T 408 18 2).length) = true := by
+    tbStmtsEqb (vtRank0T 409 18 2) ((vtAt 403).take (vtRank0T 409 18 2).length) = true := by
   decide +kernel
 
 theorem vtPush_check : ∀ r < 9, 1 ≤ r →
-    tbStmtsEqb (vtRankAt 111 0 0 r) ((vtAt (vtRp 110 r)).take (vtRankAt 111 0 0 r).length) =
+    tbStmtsEqb (vtRankAt 112 0 0 r) ((vtAt (vtRp 110 r)).take (vtRankAt 112 0 0 r).length) =
       true := by
   decide +kernel
 
 theorem vtCount_check : ∀ r < 6, 1 ≤ r →
-    tbStmtsEqb (vtRankAt 408 18 2 r) ((vtAt (vtRp 403 r)).take (vtRankAt 408 18 2 r).length) =
+    tbStmtsEqb (vtRankAt 409 18 2 r) ((vtAt (vtRp 403 r)).take (vtRankAt 409 18 2 r).length) =
       true := by
   decide +kernel
 '''
 
 def main():
     # sanity: the rank templates' positions
-    for p0, v0, n in [(110, 111, 9), (403, 408, 6)]:
-        assert atom(p0) == ('load', [v0, 36, 0 if p0 == 110 else 18])
+    for p0, v0, n in [(110, 112, 9), (403, 409, 6)]:
+        assert atom(p0) == ('load', [v0, 37, 0 if p0 == 110 else 18])
         for r in range(1, n):
             p = p0 + 13 + 18 * (r - 1); v = v0 + 13 + 20 * (r - 1)
-            assert atom(p)[0] == 'load' and atom(p)[1][:2] == [v, 36], (p, atom(p))
+            assert atom(p)[0] == 'load' and atom(p)[1][:2] == [v, 37], (p, atom(p))
     gs = group_segs(18, 109) + group_segs(339, 402)
     gis = list(range(9)) + list(range(18, 24))
     out = [HDR]
     kxs = {}
     for k, gi in enumerate(gis):
         key, size = gs[2 * k], gs[2 * k + 1]
-        assert key[-1][1] == ('load', [key[-1][1][1][0], 33, gi]) and size[-1][1][1][1:] == [34, gi]
+        assert key[-1][1] == ('load', [key[-1][1][1][0], 34, gi]) and size[-1][1][1][1:] == [35, gi]
         txt, kx = group_lemma(gi, key, size); kxs[gi] = kx
         out.append(txt)
     bs = block_segs(267, 338) + block_segs(506, 562)

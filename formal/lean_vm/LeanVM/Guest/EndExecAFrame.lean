@@ -215,7 +215,7 @@ theorem frame_next {r : Ref} {C : Ctx} {e : Ent} {s sx : St} {i : ℕ} {h : Hint
   rw [path_eq hE hE1 hI1, hn1] at hc
   rw [hI1] at hsite
   -- the site's cell
-  have hd := JumpCells.jcData_all _ h1 (by have : nFns = 1602 := rfl; omega)
+  have hd := JumpCells.jcData_all _ h1 (by have : nFns = fn_count% := rfl; omega)
   unfold jcData jcDataD at hd
   simp only [Bool.and_eq_true] at hd
   obtain ⟨⟨⟨⟨⟨⟨⟨-, -⟩, -⟩, -⟩, -⟩, -⟩, hloop⟩, -⟩ := hd
@@ -250,7 +250,7 @@ theorem framePtr_alignA : FramePtr alignA := by
   obtain ⟨hI, j, bufs, kids, vs, hj, hIt, hfn, hw, hFH⟩ := (htr.frames hr.name hHon hHX.covers) e List.mem_cons_self
   obtain ⟨i0, rfl, -, -, -, -, hfs, -, h1, h2⟩ := B2C.fn_of_idx hj
   have hA : alignA e.I.t.name = fnAl (i0 + 1) := alignA_of hj
-  have hd := JumpCells.jcData_all _ h1 (by have : nFns = 1602 := rfl; omega)
+  have hd := JumpCells.jcData_all _ h1 (by have : nFns = fn_count% := rfl; omega)
   unfold jcData jcDataD at hd
   simp only [Bool.and_eq_true] at hd
   obtain ⟨⟨⟨⟨⟨⟨⟨-, -⟩, hsites⟩, huniq⟩, -⟩, -⟩, -⟩, -⟩ := hd

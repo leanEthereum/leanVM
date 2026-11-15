@@ -6612,57 +6612,80 @@ def f264c0 : List OffsetInstruction := [
 
 /-- `__loop9` from offset 0. -/
 def f265c0 : List OffsetInstruction := [
-  .mul 2 2 10,
-  .mul 10 2 11,
-  .mul 11 11 12,
-  .mul 12 2 13,
-  .mul 4 13 14,
-  .deref 14 5 18 .cell,
-  .deref 14 6 19 .cell,
-  .set 22 1 0,
-  .set 21 17659542310559622679 0,
-  .deref 20 2 14 .cell,
-  .deref 20 3 18 .cell,
-  .deref 20 4 19 .cell,
-  .deref 20 5 5 .cell,
-  .deref 20 1 0 .fp,
-  .deref 20 0 0 .pc,
-  .jump 22 21 20,
-  .deref 20 6 15 .cell,
-  .deref 20 7 16 .cell,
-  .deref 20 8 17 .cell,
-  .set 23 9223372036854775821 0,
-  .mul 7 23 24,
-  .mul 25 2 24,
-  .mul 6 25 26,
-  .deref 26 0 17 .cell,
-  .deref 14 12 15 .cell,
-  .deref 14 13 16 .cell,
-  .mul 8 2 27,
-  .deref 27 0 28 .cell,
-  .mul 28 17 29,
-  .deref 27 1 29 .cell,
-  .set 30 2 0,
-  .mul 2 30 31,
-  .xor 31 3 32,
-  .set 33 68719476736 0,
-  .mul 9 33 34,
-  .set 35 16205143985090750064 0,
-  .mul 31 22 38,
-  .mul 3 22 39,
-  .mul 4 22 40,
-  .mul 5 22 41,
-  .mul 6 22 42,
-  .mul 7 22 43,
-  .mul 8 22 44,
-  .mul 34 22 45,
-  .mul 1 22 37,
-  .mul 0 22 36,
-  .jump 32 35 34,
-  .jump 22 0 1]
+  .mul 2 2 9,
+  .mul 9 2 10,
+  .mul 10 10 11,
+  .mul 11 2 12,
+  .mul 4 12 13,
+  .deref 13 5 17 .cell,
+  .deref 13 6 18 .cell,
+  .set 21 1 0,
+  .set 20 17659542310559622679 0,
+  .deref 19 2 13 .cell,
+  .deref 19 3 17 .cell,
+  .deref 19 4 18 .cell,
+  .deref 19 5 5 .cell,
+  .deref 19 1 0 .fp,
+  .deref 19 0 0 .pc,
+  .jump 21 20 19,
+  .deref 19 6 14 .cell,
+  .deref 19 7 15 .cell,
+  .deref 19 8 16 .cell,
+  .mul 6 2 22,
+  .deref 22 0 16 .cell,
+  .deref 13 12 14 .cell,
+  .deref 13 13 15 .cell,
+  .mul 7 2 23,
+  .deref 23 0 24 .cell,
+  .mul 24 16 25,
+  .deref 23 1 25 .cell,
+  .set 26 2 0,
+  .mul 2 26 27,
+  .xor 27 3 28,
+  .set 29 4294967296 0,
+  .mul 8 29 30,
+  .set 31 10444518468041171117 0,
+  .mul 27 21 34,
+  .mul 3 21 35,
+  .mul 4 21 36,
+  .mul 5 21 37,
+  .mul 6 21 38,
+  .mul 7 21 39,
+  .mul 30 21 40,
+  .mul 1 21 33,
+  .mul 0 21 32,
+  .jump 28 31 30,
+  .jump 21 0 1]
 
 /-- `__loop10` from offset 0. -/
 def f266c0 : List OffsetInstruction := [
+  .set 8 9223372036854775821 0,
+  .mul 6 8 9,
+  .mul 10 2 9,
+  .mul 5 10 11,
+  .deref 11 0 12 .cell,
+  .mul 4 2 13,
+  .deref 13 0 12 .cell,
+  .set 14 2 0,
+  .mul 2 14 15,
+  .xor 15 3 16,
+  .set 17 2097152 0,
+  .mul 7 17 18,
+  .set 20 1 0,
+  .set 19 11387936160866808435 0,
+  .mul 15 20 23,
+  .mul 3 20 24,
+  .mul 4 20 25,
+  .mul 5 20 26,
+  .mul 6 20 27,
+  .mul 18 20 28,
+  .mul 1 20 22,
+  .mul 0 20 21,
+  .jump 16 19 18,
+  .jump 20 0 1]
+
+/-- `__loop11` from offset 0. -/
+def f267c0 : List OffsetInstruction := [
   .mul 5 2 7,
   .deref 7 0 8 .cell,
   .mul 4 2 9,
@@ -6673,7 +6696,7 @@ def f266c0 : List OffsetInstruction := [
   .set 13 131072 0,
   .mul 6 13 14,
   .set 16 1 0,
-  .set 15 7383695906306337484 0,
+  .set 15 11112995686020476829 0,
   .mul 11 16 19,
   .mul 3 16 20,
   .mul 4 16 21,
@@ -6685,7 +6708,7 @@ def f266c0 : List OffsetInstruction := [
   .jump 16 0 1]
 
 /-- `keccak_layer__L1` from offset 0. -/
-def f267c0 : List OffsetInstruction := [
+def f268c0 : List OffsetInstruction := [
   .set 30 1 0,
   .mul 2 30 25,
   .mul 3 30 26,
@@ -7081,7 +7104,7 @@ def f267c0 : List OffsetInstruction := [
   .set 596 0 0,
   .set 597 0 0,
   .keccak 569 570 594 594 594 564 565 580 false false .all,
-  .set 599 1767236175493088544 0,
+  .set 599 1053579840264321828 0,
   .deref 598 2 581 .cell,
   .deref 598 3 16 .cell,
   .deref 598 1 0 .fp,
@@ -7285,7 +7308,7 @@ def f267c0 : List OffsetInstruction := [
   .deref 770 96 767 .cell,
   .deref 770 112 30 .cell,
   .xor 30 11 773,
-  .set 775 5915018440755882540 0,
+  .set 775 12846775819023644133 0,
   .deref 774 2 30 .cell,
   .deref 774 3 11 .cell,
   .deref 774 4 770 .cell,
@@ -7303,7 +7326,7 @@ def f267c0 : List OffsetInstruction := [
   .mul 768 779 780,
   .mul 769 779 781,
   .xor 30 12 782,
-  .set 784 7311568985011201444 0,
+  .set 784 4149725557142485360 0,
   .deref 783 2 30 .cell,
   .deref 783 3 12 .cell,
   .deref 783 4 776 .cell,
@@ -8137,7 +8160,7 @@ def f267c0 : List OffsetInstruction := [
   .jump 30 0 1]
 
 /-- `keccak_layer__L0` from offset 0. -/
-def f268c0 : List OffsetInstruction := [
+def f269c0 : List OffsetInstruction := [
   .set 30 1 0,
   .mul 2 30 25,
   .mul 3 30 26,
@@ -8525,7 +8548,7 @@ def f268c0 : List OffsetInstruction := [
   .mul 556 30 540,
   .set 541 0 4,
   .keccak 534 535 536 537 538 529 530 558 false false .all,
-  .set 572 1767236175493088544 0,
+  .set 572 1053579840264321828 0,
   .deref 571 2 559 .cell,
   .deref 571 3 16 .cell,
   .deref 571 1 0 .fp,
@@ -8729,7 +8752,7 @@ def f268c0 : List OffsetInstruction := [
   .deref 743 96 740 .cell,
   .deref 743 112 30 .cell,
   .xor 30 11 746,
-  .set 748 15229456264192203259 0,
+  .set 748 2261236357041936166 0,
   .deref 747 2 30 .cell,
   .deref 747 3 11 .cell,
   .deref 747 4 743 .cell,
@@ -8747,7 +8770,7 @@ def f268c0 : List OffsetInstruction := [
   .mul 741 752 753,
   .mul 742 752 754,
   .xor 30 12 755,
-  .set 757 14607436426638806690 0,
+  .set 757 6213300258527656886 0,
   .deref 756 2 30 .cell,
   .deref 756 3 12 .cell,
   .deref 756 4 749 .cell,
@@ -9918,7 +9941,7 @@ def f268c0 : List OffsetInstruction := [
   .jump 30 0 1]
 
 /-- `keccak_plain_rounds__L6_L0` from offset 0. -/
-def f269c0 : List OffsetInstruction := [
+def f270c0 : List OffsetInstruction := [
   .set 26 1 0,
   .mul 2 26 21,
   .mul 3 26 22,
@@ -10025,8 +10048,8 @@ def f269c0 : List OffsetInstruction := [
   .mul 247 26 19,
   .jump 26 0 1]
 
-/-- `__loop11` from offset 0. -/
-def f270c0 : List OffsetInstruction := [
+/-- `__loop12` from offset 0. -/
+def f271c0 : List OffsetInstruction := [
   .mul 5 2 7,
   .deref 7 0 8 .cell,
   .mul 4 2 9,
@@ -10037,7 +10060,7 @@ def f270c0 : List OffsetInstruction := [
   .set 13 131072 0,
   .mul 6 13 14,
   .set 16 1 0,
-  .set 15 7148032197604955018 0,
+  .set 15 6580626449533483422 0,
   .mul 11 16 19,
   .mul 3 16 20,
   .mul 4 16 21,
@@ -10049,7 +10072,7 @@ def f270c0 : List OffsetInstruction := [
   .jump 16 0 1]
 
 /-- `keccak_plain_rounds__L4_L1` from offset 0. -/
-def f271c0 : List OffsetInstruction := [
+def f272c0 : List OffsetInstruction := [
   .set 26 1 0,
   .mul 2 26 21,
   .mul 3 26 22,
@@ -10132,8 +10155,8 @@ def f271c0 : List OffsetInstruction := [
   .mul 175 26 19,
   .jump 26 0 1]
 
-/-- `__loop12` from offset 0. -/
-def f272c0 : List OffsetInstruction := [
+/-- `__loop13` from offset 0. -/
+def f273c0 : List OffsetInstruction := [
   .mul 5 2 7,
   .deref 7 0 8 .cell,
   .mul 4 2 9,
@@ -10144,7 +10167,7 @@ def f272c0 : List OffsetInstruction := [
   .set 13 131072 0,
   .mul 6 13 14,
   .set 16 1 0,
-  .set 15 3344488431539453787 0,
+  .set 15 10183764477973073632 0,
   .mul 11 16 19,
   .mul 3 16 20,
   .mul 4 16 21,
@@ -10155,8 +10178,8 @@ def f272c0 : List OffsetInstruction := [
   .jump 12 15 14,
   .jump 16 0 1]
 
-/-- `__loop13` from offset 0. -/
-def f273c0 : List OffsetInstruction := [
+/-- `__loop14` from offset 0. -/
+def f274c0 : List OffsetInstruction := [
   .deref 3 8 7 .cell,
   .deref 3 9 8 .cell,
   .deref 3 10 9 .cell,
@@ -10513,7 +10536,7 @@ def f273c0 : List OffsetInstruction := [
   .set 352 120219158272016384 0,
   .mul 6 352 353,
   .set 355 1 0,
-  .set 354 2892248844015138016 0,
+  .set 354 18258610182140626249 0,
   .mul 349 355 358,
   .mul 3 355 359,
   .mul 4 355 360,
@@ -10524,8 +10547,8 @@ def f273c0 : List OffsetInstruction := [
   .jump 351 354 353,
   .jump 355 0 1]
 
-/-- `__loop14` from offset 0. -/
-def f274c0 : List OffsetInstruction := [
+/-- `__loop15` from offset 0. -/
+def f275c0 : List OffsetInstruction := [
   .mul 4 2 7,
   .deref 7 0 8 .cell,
   .mul 5 2 9,
@@ -10538,7 +10561,7 @@ def f274c0 : List OffsetInstruction := [
   .set 15 524288 0,
   .mul 6 15 16,
   .set 18 1 0,
-  .set 17 17243555830898355224 0,
+  .set 17 13786638879712514062 0,
   .mul 13 18 21,
   .mul 3 18 22,
   .mul 4 18 23,
@@ -10550,7 +10573,7 @@ def f274c0 : List OffsetInstruction := [
   .jump 18 0 1]
 
 /-- `column_selector__L0` from offset 0. -/
-def f275c0 : List OffsetInstruction := [
+def f276c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -10628,7 +10651,7 @@ def f275c0 : List OffsetInstruction := [
   .jump 85 0 1]
 
 /-- `column_selector__L1` from offset 0. -/
-def f276c0 : List OffsetInstruction := [
+def f277c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -10706,7 +10729,7 @@ def f276c0 : List OffsetInstruction := [
   .jump 85 0 1]
 
 /-- `column_selector__L2` from offset 0. -/
-def f277c0 : List OffsetInstruction := [
+def f278c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -10784,7 +10807,7 @@ def f277c0 : List OffsetInstruction := [
   .jump 85 0 1]
 
 /-- `column_selector__L3` from offset 0. -/
-def f278c0 : List OffsetInstruction := [
+def f279c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -10862,7 +10885,7 @@ def f278c0 : List OffsetInstruction := [
   .jump 85 0 1]
 
 /-- `column_selector__L4` from offset 0. -/
-def f279c0 : List OffsetInstruction := [
+def f280c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -10931,7 +10954,7 @@ def f279c0 : List OffsetInstruction := [
   .jump 76 0 1]
 
 /-- `column_selector__L5` from offset 0. -/
-def f280c0 : List OffsetInstruction := [
+def f281c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11000,7 +11023,7 @@ def f280c0 : List OffsetInstruction := [
   .jump 76 0 1]
 
 /-- `column_selector__L6` from offset 0. -/
-def f281c0 : List OffsetInstruction := [
+def f282c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11069,7 +11092,7 @@ def f281c0 : List OffsetInstruction := [
   .jump 76 0 1]
 
 /-- `column_selector__L7` from offset 0. -/
-def f282c0 : List OffsetInstruction := [
+def f283c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11138,7 +11161,7 @@ def f282c0 : List OffsetInstruction := [
   .jump 76 0 1]
 
 /-- `column_selector__L8` from offset 0. -/
-def f283c0 : List OffsetInstruction := [
+def f284c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11198,7 +11221,7 @@ def f283c0 : List OffsetInstruction := [
   .jump 67 0 1]
 
 /-- `column_selector__L9` from offset 0. -/
-def f284c0 : List OffsetInstruction := [
+def f285c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11258,7 +11281,7 @@ def f284c0 : List OffsetInstruction := [
   .jump 67 0 1]
 
 /-- `column_selector__L10` from offset 0. -/
-def f285c0 : List OffsetInstruction := [
+def f286c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11318,7 +11341,7 @@ def f285c0 : List OffsetInstruction := [
   .jump 67 0 1]
 
 /-- `column_selector__L11` from offset 0. -/
-def f286c0 : List OffsetInstruction := [
+def f287c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11378,7 +11401,7 @@ def f286c0 : List OffsetInstruction := [
   .jump 67 0 1]
 
 /-- `column_selector__L12` from offset 0. -/
-def f287c0 : List OffsetInstruction := [
+def f288c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11429,7 +11452,7 @@ def f287c0 : List OffsetInstruction := [
   .jump 58 0 1]
 
 /-- `column_selector__L13` from offset 0. -/
-def f288c0 : List OffsetInstruction := [
+def f289c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11480,7 +11503,7 @@ def f288c0 : List OffsetInstruction := [
   .jump 58 0 1]
 
 /-- `column_selector__L14` from offset 0. -/
-def f289c0 : List OffsetInstruction := [
+def f290c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11531,7 +11554,7 @@ def f289c0 : List OffsetInstruction := [
   .jump 58 0 1]
 
 /-- `column_selector__L15` from offset 0. -/
-def f290c0 : List OffsetInstruction := [
+def f291c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11582,7 +11605,7 @@ def f290c0 : List OffsetInstruction := [
   .jump 58 0 1]
 
 /-- `column_selector__L16` from offset 0. -/
-def f291c0 : List OffsetInstruction := [
+def f292c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11624,7 +11647,7 @@ def f291c0 : List OffsetInstruction := [
   .jump 49 0 1]
 
 /-- `column_selector__L17` from offset 0. -/
-def f292c0 : List OffsetInstruction := [
+def f293c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11666,7 +11689,7 @@ def f292c0 : List OffsetInstruction := [
   .jump 49 0 1]
 
 /-- `column_selector__L18` from offset 0. -/
-def f293c0 : List OffsetInstruction := [
+def f294c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11708,7 +11731,7 @@ def f293c0 : List OffsetInstruction := [
   .jump 49 0 1]
 
 /-- `column_selector__L19` from offset 0. -/
-def f294c0 : List OffsetInstruction := [
+def f295c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11750,7 +11773,7 @@ def f294c0 : List OffsetInstruction := [
   .jump 49 0 1]
 
 /-- `column_selector__L20` from offset 0. -/
-def f295c0 : List OffsetInstruction := [
+def f296c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11783,7 +11806,7 @@ def f295c0 : List OffsetInstruction := [
   .jump 40 0 1]
 
 /-- `column_selector__L21` from offset 0. -/
-def f296c0 : List OffsetInstruction := [
+def f297c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11816,7 +11839,7 @@ def f296c0 : List OffsetInstruction := [
   .jump 40 0 1]
 
 /-- `column_selector__L22` from offset 0. -/
-def f297c0 : List OffsetInstruction := [
+def f298c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11849,7 +11872,7 @@ def f297c0 : List OffsetInstruction := [
   .jump 40 0 1]
 
 /-- `column_selector__L23` from offset 0. -/
-def f298c0 : List OffsetInstruction := [
+def f299c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11882,7 +11905,7 @@ def f298c0 : List OffsetInstruction := [
   .jump 40 0 1]
 
 /-- `column_selector__L24` from offset 0. -/
-def f299c0 : List OffsetInstruction := [
+def f300c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11906,7 +11929,7 @@ def f299c0 : List OffsetInstruction := [
   .jump 31 0 1]
 
 /-- `column_selector__L25` from offset 0. -/
-def f300c0 : List OffsetInstruction := [
+def f301c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11930,7 +11953,7 @@ def f300c0 : List OffsetInstruction := [
   .jump 31 0 1]
 
 /-- `column_selector__L26` from offset 0. -/
-def f301c0 : List OffsetInstruction := [
+def f302c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11954,7 +11977,7 @@ def f301c0 : List OffsetInstruction := [
   .jump 31 0 1]
 
 /-- `column_selector__L27` from offset 0. -/
-def f302c0 : List OffsetInstruction := [
+def f303c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11978,7 +12001,7 @@ def f302c0 : List OffsetInstruction := [
   .jump 31 0 1]
 
 /-- `column_selector__L28` from offset 0. -/
-def f303c0 : List OffsetInstruction := [
+def f304c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -11993,7 +12016,7 @@ def f303c0 : List OffsetInstruction := [
   .jump 22 0 1]
 
 /-- `column_selector__L29` from offset 0. -/
-def f304c0 : List OffsetInstruction := [
+def f305c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -12008,7 +12031,7 @@ def f304c0 : List OffsetInstruction := [
   .jump 22 0 1]
 
 /-- `column_selector__L30` from offset 0. -/
-def f305c0 : List OffsetInstruction := [
+def f306c0 : List OffsetInstruction := [
   .set 14 32768 0,
   .deref 6 0 16 .cell,
   .mul 6 15 14,
@@ -12023,7 +12046,7 @@ def f305c0 : List OffsetInstruction := [
   .jump 22 0 1]
 
 /-- `log2_ceil_in_the_exponent__L0_L34` from offset 0. -/
-def f306c0 : List OffsetInstruction := [
+def f307c0 : List OffsetInstruction := [
   .set 5 17179869184 0,
   .set 8 8589934592 0,
   .deref 7 0 10 .cell,
@@ -12046,9 +12069,9 @@ def f306c0 : List OffsetInstruction := [
   .xor 7 12 22,
   .deref 23 0 0 .fp,
   .deref 23 0 24 .cell,
-  .set 25 3402153195415343355 0,
+  .set 25 10595919057429498269 0,
   .jump 22 25 24,
-  .set 26 7927712770534903741 0,
+  .set 26 14142397866359460304 0,
   .jump 12 26 24,
   .set 27 9223372036854775821 0,
   .mul 2 27 28,
@@ -12066,7 +12089,7 @@ def f306c0 : List OffsetInstruction := [
   .jump 12 0 1]
 
 /-- `log2_ceil_in_the_exponent__L16_L34` from offset 0. -/
-def f307c0 : List OffsetInstruction := [
+def f308c0 : List OffsetInstruction := [
   .set 5 17179869184 0,
   .set 8 8589934592 0,
   .deref 7 0 10 .cell,
@@ -12090,9 +12113,9 @@ def f307c0 : List OffsetInstruction := [
   .xor 7 12 23,
   .deref 24 0 0 .fp,
   .deref 24 0 25 .cell,
-  .set 26 7071198933179730152 0,
+  .set 26 13912501312376578239 0,
   .jump 23 26 25,
-  .set 27 2242634580178688342 0,
+  .set 27 3612931805659481515 0,
   .jump 22 27 25,
   .set 28 9223372036854775821 0,
   .mul 2 28 29,
@@ -12110,7 +12133,7 @@ def f307c0 : List OffsetInstruction := [
   .jump 22 0 1]
 
 /-- `grind_check__L15` from offset 0. -/
-def f308c0 : List OffsetInstruction := [
+def f309c0 : List OffsetInstruction := [
   .set 10 2147483648 0,
   .deref 8 0 12 .cell,
   .mul 8 11 10,
@@ -12158,7 +12181,7 @@ def f308c0 : List OffsetInstruction := [
   .jump 52 0 1]
 
 /-- `squeeze_point_from__L20` from offset 0. -/
-def f309c0 : List OffsetInstruction := [
+def f310c0 : List OffsetInstruction := [
   .deref 8 0 7 .cell,
   .set 20 1 0,
   .mul 2 20 15,
@@ -12241,7 +12264,7 @@ def f309c0 : List OffsetInstruction := [
   .jump 20 0 1]
 
 /-- `squeeze_point_from__L21` from offset 0. -/
-def f310c0 : List OffsetInstruction := [
+def f311c0 : List OffsetInstruction := [
   .deref 8 0 7 .cell,
   .set 20 1 0,
   .mul 2 20 15,
@@ -12327,7 +12350,7 @@ def f310c0 : List OffsetInstruction := [
   .jump 20 0 1]
 
 /-- `squeeze_point_from__L22` from offset 0. -/
-def f311c0 : List OffsetInstruction := [
+def f312c0 : List OffsetInstruction := [
   .deref 8 0 7 .cell,
   .set 20 1 0,
   .mul 2 20 15,
@@ -12416,7 +12439,7 @@ def f311c0 : List OffsetInstruction := [
   .jump 20 0 1]
 
 /-- `squeeze_point_from__L23` from offset 0. -/
-def f312c0 : List OffsetInstruction := [
+def f313c0 : List OffsetInstruction := [
   .deref 8 0 7 .cell,
   .set 20 1 0,
   .mul 2 20 15,
@@ -12508,7 +12531,7 @@ def f312c0 : List OffsetInstruction := [
   .jump 20 0 1]
 
 /-- `squeeze_point_from__L24` from offset 0. -/
-def f313c0 : List OffsetInstruction := [
+def f314c0 : List OffsetInstruction := [
   .deref 8 0 7 .cell,
   .set 20 1 0,
   .mul 2 20 15,
@@ -12603,7 +12626,7 @@ def f313c0 : List OffsetInstruction := [
   .jump 20 0 1]
 
 /-- `squeeze_point_from__L25` from offset 0. -/
-def f314c0 : List OffsetInstruction := [
+def f315c0 : List OffsetInstruction := [
   .deref 8 0 7 .cell,
   .set 20 1 0,
   .mul 2 20 15,
@@ -12701,7 +12724,7 @@ def f314c0 : List OffsetInstruction := [
   .jump 20 0 1]
 
 /-- `squeeze_point_from__L26` from offset 0. -/
-def f315c0 : List OffsetInstruction := [
+def f316c0 : List OffsetInstruction := [
   .deref 8 0 7 .cell,
   .set 20 1 0,
   .mul 2 20 15,
@@ -12802,7 +12825,7 @@ def f315c0 : List OffsetInstruction := [
   .jump 20 0 1]
 
 /-- `squeeze_point_from__L27` from offset 0. -/
-def f316c0 : List OffsetInstruction := [
+def f317c0 : List OffsetInstruction := [
   .deref 8 0 7 .cell,
   .set 20 1 0,
   .mul 2 20 15,
@@ -12906,7 +12929,7 @@ def f316c0 : List OffsetInstruction := [
   .jump 20 0 1]
 
 /-- `squeeze_point_from__L28` from offset 0. -/
-def f317c0 : List OffsetInstruction := [
+def f318c0 : List OffsetInstruction := [
   .deref 8 0 7 .cell,
   .set 20 1 0,
   .mul 2 20 15,
@@ -13013,7 +13036,7 @@ def f317c0 : List OffsetInstruction := [
   .jump 20 0 1]
 
 /-- `squeeze_point_from__L29` from offset 0. -/
-def f318c0 : List OffsetInstruction := [
+def f319c0 : List OffsetInstruction := [
   .deref 8 0 7 .cell,
   .set 20 1 0,
   .mul 2 20 15,
@@ -13123,7 +13146,7 @@ def f318c0 : List OffsetInstruction := [
   .jump 20 0 1]
 
 /-- `squeeze_point_from__L30` from offset 0. -/
-def f319c0 : List OffsetInstruction := [
+def f320c0 : List OffsetInstruction := [
   .deref 8 0 7 .cell,
   .set 20 1 0,
   .mul 2 20 15,
@@ -13236,7 +13259,7 @@ def f319c0 : List OffsetInstruction := [
   .jump 20 0 1]
 
 /-- `opening_message__L1_L1` from offset 0. -/
-def f320c0 : List OffsetInstruction := [
+def f321c0 : List OffsetInstruction := [
   .set 23 1 0,
   .mul 2 23 18,
   .mul 3 23 19,
@@ -13269,9 +13292,9 @@ def f320c0 : List OffsetInstruction := [
   .jump 23 0 1]
 
 /-- `bus_grind_check__L0` from offset 0. -/
-def f321c0 : List OffsetInstruction := [
+def f322c0 : List OffsetInstruction := [
   .set 7 1 0,
-  .set 6 11639815765221067811 0,
+  .set 6 2900198362610674251 0,
   .deref 5 2 2 .cell,
   .deref 5 3 3 .cell,
   .deref 5 1 0 .fp,
@@ -13281,9 +13304,9 @@ def f321c0 : List OffsetInstruction := [
   .jump 7 0 1]
 
 /-- `bus_grind_check__L1` from offset 0. -/
-def f322c0 : List OffsetInstruction := [
+def f323c0 : List OffsetInstruction := [
   .set 7 1 0,
-  .set 6 14521222348673408297 0,
+  .set 6 9604233281096529510 0,
   .deref 5 2 2 .cell,
   .deref 5 3 3 .cell,
   .deref 5 1 0 .fp,
@@ -13293,9 +13316,9 @@ def f322c0 : List OffsetInstruction := [
   .jump 7 0 1]
 
 /-- `bus_grind_check__L2` from offset 0. -/
-def f323c0 : List OffsetInstruction := [
+def f324c0 : List OffsetInstruction := [
   .set 7 1 0,
-  .set 6 10062257486128609420 0,
+  .set 6 14325244667231393873 0,
   .deref 5 2 2 .cell,
   .deref 5 3 3 .cell,
   .deref 5 1 0 .fp,
@@ -13305,9 +13328,9 @@ def f323c0 : List OffsetInstruction := [
   .jump 7 0 1]
 
 /-- `bus_grind_check__L3` from offset 0. -/
-def f324c0 : List OffsetInstruction := [
+def f325c0 : List OffsetInstruction := [
   .set 7 1 0,
-  .set 6 13767556225064306938 0,
+  .set 6 6560410113871249220 0,
   .deref 5 2 2 .cell,
   .deref 5 3 3 .cell,
   .deref 5 1 0 .fp,
@@ -13317,9 +13340,9 @@ def f324c0 : List OffsetInstruction := [
   .jump 7 0 1]
 
 /-- `bus_grind_check__L4` from offset 0. -/
-def f325c0 : List OffsetInstruction := [
+def f326c0 : List OffsetInstruction := [
   .set 7 1 0,
-  .set 6 9629011258590077391 0,
+  .set 6 5016984080843968354 0,
   .deref 5 2 2 .cell,
   .deref 5 3 3 .cell,
   .deref 5 1 0 .fp,
@@ -13329,9 +13352,9 @@ def f325c0 : List OffsetInstruction := [
   .jump 7 0 1]
 
 /-- `bus_grind_check__L5` from offset 0. -/
-def f326c0 : List OffsetInstruction := [
+def f327c0 : List OffsetInstruction := [
   .set 7 1 0,
-  .set 6 11522583610096837815 0,
+  .set 6 11503276668726740985 0,
   .deref 5 2 2 .cell,
   .deref 5 3 3 .cell,
   .deref 5 1 0 .fp,
@@ -13341,9 +13364,9 @@ def f326c0 : List OffsetInstruction := [
   .jump 7 0 1]
 
 /-- `bus_grind_check__L6` from offset 0. -/
-def f327c0 : List OffsetInstruction := [
+def f328c0 : List OffsetInstruction := [
   .set 7 1 0,
-  .set 6 11806519474226984361 0,
+  .set 6 2288388717151009470 0,
   .deref 5 2 2 .cell,
   .deref 5 3 3 .cell,
   .deref 5 1 0 .fp,
@@ -13353,9 +13376,9 @@ def f327c0 : List OffsetInstruction := [
   .jump 7 0 1]
 
 /-- `bus_grind_check__L7` from offset 0. -/
-def f328c0 : List OffsetInstruction := [
+def f329c0 : List OffsetInstruction := [
   .set 7 1 0,
-  .set 6 13978445305662324521 0,
+  .set 6 8290757240056355492 0,
   .deref 5 2 2 .cell,
   .deref 5 3 3 .cell,
   .deref 5 1 0 .fp,
@@ -13365,9 +13388,9 @@ def f328c0 : List OffsetInstruction := [
   .jump 7 0 1]
 
 /-- `bus_grind_check__L8` from offset 0. -/
-def f329c0 : List OffsetInstruction := [
+def f330c0 : List OffsetInstruction := [
   .set 7 1 0,
-  .set 6 1058284977828569149 0,
+  .set 6 2568925421502244119 0,
   .deref 5 2 2 .cell,
   .deref 5 3 3 .cell,
   .deref 5 1 0 .fp,
@@ -13377,9 +13400,9 @@ def f329c0 : List OffsetInstruction := [
   .jump 7 0 1]
 
 /-- `bus_grind_check__L9` from offset 0. -/
-def f330c0 : List OffsetInstruction := [
+def f331c0 : List OffsetInstruction := [
   .set 7 1 0,
-  .set 6 12008865324740187213 0,
+  .set 6 14351077626591717160 0,
   .deref 5 2 2 .cell,
   .deref 5 3 3 .cell,
   .deref 5 1 0 .fp,
@@ -13389,9 +13412,9 @@ def f330c0 : List OffsetInstruction := [
   .jump 7 0 1]
 
 /-- `bus_grind_check__L10` from offset 0. -/
-def f331c0 : List OffsetInstruction := [
+def f332c0 : List OffsetInstruction := [
   .set 7 1 0,
-  .set 6 2973801739278820097 0,
+  .set 6 4866641602152345125 0,
   .deref 5 2 2 .cell,
   .deref 5 3 3 .cell,
   .deref 5 1 0 .fp,
@@ -13401,9 +13424,9 @@ def f331c0 : List OffsetInstruction := [
   .jump 7 0 1]
 
 /-- `bus_grind_check__L11` from offset 0. -/
-def f332c0 : List OffsetInstruction := [
+def f333c0 : List OffsetInstruction := [
   .set 7 1 0,
-  .set 6 9928397212460393453 0,
+  .set 6 6587509478997152654 0,
   .deref 5 2 2 .cell,
   .deref 5 3 3 .cell,
   .deref 5 1 0 .fp,
@@ -13413,9 +13436,9 @@ def f332c0 : List OffsetInstruction := [
   .jump 7 0 1]
 
 /-- `bus_grind_check__L12` from offset 0. -/
-def f333c0 : List OffsetInstruction := [
+def f334c0 : List OffsetInstruction := [
   .set 7 1 0,
-  .set 6 7748715915701881221 0,
+  .set 6 9886775984300249708 0,
   .deref 5 2 2 .cell,
   .deref 5 3 3 .cell,
   .deref 5 1 0 .fp,
@@ -13425,9 +13448,9 @@ def f333c0 : List OffsetInstruction := [
   .jump 7 0 1]
 
 /-- `bus_grind_check__L13` from offset 0. -/
-def f334c0 : List OffsetInstruction := [
+def f335c0 : List OffsetInstruction := [
   .set 7 1 0,
-  .set 6 3810713882655351107 0,
+  .set 6 9589456977772472439 0,
   .deref 5 2 2 .cell,
   .deref 5 3 3 .cell,
   .deref 5 1 0 .fp,
@@ -13437,7 +13460,7 @@ def f334c0 : List OffsetInstruction := [
   .jump 7 0 1]
 
 /-- `grind_check__L13` from offset 0. -/
-def f335c0 : List OffsetInstruction := [
+def f336c0 : List OffsetInstruction := [
   .set 10 9223372036854775983 0,
   .deref 8 0 12 .cell,
   .mul 8 11 10,
@@ -13485,7 +13508,7 @@ def f335c0 : List OffsetInstruction := [
   .jump 52 0 1]
 
 /-- `open_stacked__L0` from offset 0. -/
-def f336c0 : List OffsetInstruction := [
+def f337c0 : List OffsetInstruction := [
   .set 18 256 0,
   .deref 20 0 9 .cell,
   .deref 20 1 10 .cell,
@@ -13634,7 +13657,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 101 16 96 .cell,
   .deref 101 17 97 .cell,
   .deref 101 18 98 .cell,
-  .set 113 1484024506382580471 0,
+  .set 113 4700102961236008261 0,
   .deref 112 2 92 .cell,
   .deref 112 3 93 .cell,
   .deref 112 4 94 .cell,
@@ -13653,7 +13676,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 112 14 109 .cell,
   .deref 112 15 110 .cell,
   .deref 112 16 111 .cell,
-  .set 115 8970538320714753368 0,
+  .set 115 14451727222637926060 0,
   .deref 114 2 105 .cell,
   .deref 114 3 12 .cell,
   .deref 114 1 0 .fp,
@@ -13665,7 +13688,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 20 3 117 .cell,
   .set 123 16777216 0,
   .mul 31 123 124,
-  .set 126 7858490326909964153 0,
+  .set 126 4437158197058532764 0,
   .deref 125 2 106 .cell,
   .deref 125 3 107 .cell,
   .deref 125 4 108 .cell,
@@ -13698,7 +13721,7 @@ def f336c0 : List OffsetInstruction := [
   .set 163 0 0,
   .set 164 0 0,
   .keccak 133 134 135 136 161 128 129 147 false false .all,
-  .set 166 11639815765221067811 0,
+  .set 166 2900198362610674251 0,
   .deref 165 2 148 .cell,
   .deref 165 3 12 .cell,
   .deref 165 1 0 .fp,
@@ -13714,7 +13737,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 172 9 35 .cell,
   .deref 172 10 12 .cell,
   .deref 172 1 0 .fp,
-  .set 173 8614726913166064691 0,
+  .set 173 437041637832019753 0,
   .deref 172 0 173 .cell,
   .deref 2 10835 174 .cell,
   .jump 45 174 172,
@@ -13759,7 +13782,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 226 6 34 .cell,
   .deref 226 7 35 .cell,
   .deref 226 1 0 .fp,
-  .set 227 6306987281011224024 0,
+  .set 227 713023909585532475 0,
   .deref 226 0 227 .cell,
   .deref 2 10839 228 .cell,
   .jump 45 228 226,
@@ -13872,7 +13895,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 278 17 274 .cell,
   .deref 278 18 275 .cell,
   .set 280 64 0,
-  .set 291 17728391252998787408 0,
+  .set 291 10991215581794031614 0,
   .deref 290 2 269 .cell,
   .deref 290 3 270 .cell,
   .deref 290 4 271 .cell,
@@ -13891,7 +13914,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 290 14 287 .cell,
   .deref 290 15 288 .cell,
   .deref 290 16 289 .cell,
-  .set 293 8970538320714753368 0,
+  .set 293 14451727222637926060 0,
   .deref 292 2 283 .cell,
   .deref 292 3 12 .cell,
   .deref 292 1 0 .fp,
@@ -13902,7 +13925,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 281 1 295 .cell,
   .deref 20 5 295 .cell,
   .mul 124 123 301,
-  .set 303 10473624824915400022 0,
+  .set 303 6337379785528715782 0,
   .deref 302 2 284 .cell,
   .deref 302 3 285 .cell,
   .deref 302 4 286 .cell,
@@ -13930,7 +13953,7 @@ def f336c0 : List OffsetInstruction := [
   .mul 322 45 312,
   .set 313 0 4,
   .keccak 310 311 312 313 161 305 306 324 false false .all,
-  .set 338 11639815765221067811 0,
+  .set 338 2900198362610674251 0,
   .deref 337 2 325 .cell,
   .deref 337 3 12 .cell,
   .deref 337 1 0 .fp,
@@ -13949,7 +13972,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 347 9 346 .cell,
   .deref 347 10 12 .cell,
   .deref 347 1 0 .fp,
-  .set 348 756002125161683036 0,
+  .set 348 6479824543508415333 0,
   .deref 347 0 348 .cell,
   .deref 2 10843 349 .cell,
   .jump 45 349 347,
@@ -13988,7 +14011,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 397 6 345 .cell,
   .deref 397 7 346 .cell,
   .deref 397 1 0 .fp,
-  .set 398 15702977082298910077 0,
+  .set 398 6242465574973471135 0,
   .deref 397 0 398 .cell,
   .deref 2 10847 399 .cell,
   .jump 45 399 397,
@@ -14100,7 +14123,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 449 16 444 .cell,
   .deref 449 17 445 .cell,
   .deref 449 18 446 .cell,
-  .set 461 17728391252998787408 0,
+  .set 461 10991215581794031614 0,
   .deref 460 2 440 .cell,
   .deref 460 3 441 .cell,
   .deref 460 4 442 .cell,
@@ -14119,7 +14142,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 460 14 457 .cell,
   .deref 460 15 458 .cell,
   .deref 460 16 459 .cell,
-  .set 463 8970538320714753368 0,
+  .set 463 14451727222637926060 0,
   .deref 462 2 453 .cell,
   .deref 462 3 12 .cell,
   .deref 462 1 0 .fp,
@@ -14130,7 +14153,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 451 1 465 .cell,
   .deref 20 7 465 .cell,
   .mul 301 123 471,
-  .set 473 3021852682043597329 0,
+  .set 473 4553500432888791104 0,
   .deref 472 2 454 .cell,
   .deref 472 3 455 .cell,
   .deref 472 4 456 .cell,
@@ -14158,7 +14181,7 @@ def f336c0 : List OffsetInstruction := [
   .mul 492 45 482,
   .set 483 0 4,
   .keccak 480 481 482 483 161 475 476 494 false false .all,
-  .set 508 11639815765221067811 0,
+  .set 508 2900198362610674251 0,
   .deref 507 2 495 .cell,
   .deref 507 3 12 .cell,
   .deref 507 1 0 .fp,
@@ -14176,7 +14199,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 516 9 515 .cell,
   .deref 516 10 12 .cell,
   .deref 516 1 0 .fp,
-  .set 517 16896793822474708887 0,
+  .set 517 6334218214593983263 0,
   .deref 516 0 517 .cell,
   .deref 2 10851 518 .cell,
   .jump 45 518 516,
@@ -14215,7 +14238,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 566 6 514 .cell,
   .deref 566 7 515 .cell,
   .deref 566 1 0 .fp,
-  .set 567 14939512972947894393 0,
+  .set 567 6303223208448734291 0,
   .deref 566 0 567 .cell,
   .deref 2 10855 568 .cell,
   .jump 45 568 566,
@@ -14327,7 +14350,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 618 16 613 .cell,
   .deref 618 17 614 .cell,
   .deref 618 18 615 .cell,
-  .set 629 1484024506382580471 0,
+  .set 629 4700102961236008261 0,
   .deref 628 2 609 .cell,
   .deref 628 3 610 .cell,
   .deref 628 4 611 .cell,
@@ -14346,7 +14369,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 628 14 625 .cell,
   .deref 628 15 626 .cell,
   .deref 628 16 627 .cell,
-  .set 631 11639815765221067811 0,
+  .set 631 2900198362610674251 0,
   .deref 630 2 621 .cell,
   .deref 630 3 12 .cell,
   .deref 630 1 0 .fp,
@@ -14364,7 +14387,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 639 9 638 .cell,
   .deref 639 10 12 .cell,
   .deref 639 1 0 .fp,
-  .set 640 10328645466237734175 0,
+  .set 640 18339540884821468124 0,
   .deref 639 0 640 .cell,
   .deref 2 10859 641 .cell,
   .jump 45 641 639,
@@ -14405,7 +14428,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 664 6 637 .cell,
   .deref 664 7 638 .cell,
   .deref 664 1 0 .fp,
-  .set 665 1808798041719613692 0,
+  .set 665 1353237402161202073 0,
   .deref 664 0 665 .cell,
   .deref 2 10863 666 .cell,
   .jump 45 666 664,
@@ -14461,7 +14484,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 668 2 161 .cell,
   .deref 668 3 161 .cell,
   .deref 668 4 161 .cell,
-  .set 691 3396017481213656162 0,
+  .set 691 49661746895299966 0,
   .deref 690 2 19 .cell,
   .deref 690 3 668 .cell,
   .deref 690 1 0 .fp,
@@ -14752,7 +14775,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 861 4 29 .cell,
   .deref 861 5 206 .cell,
   .deref 861 1 0 .fp,
-  .set 862 17595209196098179155 0,
+  .set 862 10846801052976250006 0,
   .deref 861 0 862 .cell,
   .deref 2 10867 863 .cell,
   .jump 45 863 861,
@@ -14771,7 +14794,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 872 4 396 .cell,
   .deref 872 5 381 .cell,
   .deref 872 1 0 .fp,
-  .set 873 17028902881037123431 0,
+  .set 873 11580443336755068516 0,
   .deref 872 0 873 .cell,
   .deref 2 10871 874 .cell,
   .jump 45 874 872,
@@ -14790,7 +14813,7 @@ def f336c0 : List OffsetInstruction := [
   .deref 883 4 565 .cell,
   .deref 883 5 550 .cell,
   .deref 883 1 0 .fp,
-  .set 884 9769458505487260266 0,
+  .set 884 18365440248094620025 0,
   .deref 883 0 884 .cell,
   .deref 2 10875 885 .cell,
   .jump 45 885 883,
@@ -14933,7 +14956,7 @@ def f336c0 : List OffsetInstruction := [
   .jump 45 0 1]
 
 /-- `open_stacked__L1` from offset 0. -/
-def f337c0 : List OffsetInstruction := [
+def f338c0 : List OffsetInstruction := [
   .set 18 4096 0,
   .set 20 256 0,
   .deref 21 0 9 .cell,
@@ -15083,7 +15106,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 102 16 97 .cell,
   .deref 102 17 98 .cell,
   .deref 102 18 99 .cell,
-  .set 114 1484024506382580471 0,
+  .set 114 4700102961236008261 0,
   .deref 113 2 93 .cell,
   .deref 113 3 94 .cell,
   .deref 113 4 95 .cell,
@@ -15102,7 +15125,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 113 14 110 .cell,
   .deref 113 15 111 .cell,
   .deref 113 16 112 .cell,
-  .set 116 8970538320714753368 0,
+  .set 116 14451727222637926060 0,
   .deref 115 2 106 .cell,
   .deref 115 3 12 .cell,
   .deref 115 1 0 .fp,
@@ -15114,7 +15137,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 21 3 118 .cell,
   .set 124 16777216 0,
   .mul 32 124 125,
-  .set 127 13458982849158592203 0,
+  .set 127 17044732269333478359 0,
   .deref 126 2 107 .cell,
   .deref 126 3 108 .cell,
   .deref 126 4 109 .cell,
@@ -15147,7 +15170,7 @@ def f337c0 : List OffsetInstruction := [
   .set 164 0 0,
   .set 165 0 0,
   .keccak 134 135 136 137 162 129 130 148 false false .all,
-  .set 167 11639815765221067811 0,
+  .set 167 2900198362610674251 0,
   .deref 166 2 149 .cell,
   .deref 166 3 12 .cell,
   .deref 166 1 0 .fp,
@@ -15163,7 +15186,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 173 9 36 .cell,
   .deref 173 10 12 .cell,
   .deref 173 1 0 .fp,
-  .set 174 10122175023297801260 0,
+  .set 174 8538766655016433485 0,
   .deref 173 0 174 .cell,
   .deref 2 10879 175 .cell,
   .jump 46 175 173,
@@ -15208,7 +15231,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 227 6 35 .cell,
   .deref 227 7 36 .cell,
   .deref 227 1 0 .fp,
-  .set 228 16538385625722955593 0,
+  .set 228 10297807997744434906 0,
   .deref 227 0 228 .cell,
   .deref 2 10883 229 .cell,
   .jump 46 229 227,
@@ -15321,7 +15344,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 279 17 275 .cell,
   .deref 279 18 276 .cell,
   .set 281 64 0,
-  .set 292 17728391252998787408 0,
+  .set 292 10991215581794031614 0,
   .deref 291 2 270 .cell,
   .deref 291 3 271 .cell,
   .deref 291 4 272 .cell,
@@ -15340,7 +15363,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 291 14 288 .cell,
   .deref 291 15 289 .cell,
   .deref 291 16 290 .cell,
-  .set 294 8970538320714753368 0,
+  .set 294 14451727222637926060 0,
   .deref 293 2 284 .cell,
   .deref 293 3 12 .cell,
   .deref 293 1 0 .fp,
@@ -15351,7 +15374,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 282 1 296 .cell,
   .deref 21 5 296 .cell,
   .mul 125 124 302,
-  .set 304 11484825506972065506 0,
+  .set 304 14022687222057406244 0,
   .deref 303 2 285 .cell,
   .deref 303 3 286 .cell,
   .deref 303 4 287 .cell,
@@ -15379,7 +15402,7 @@ def f337c0 : List OffsetInstruction := [
   .mul 323 46 313,
   .set 314 0 4,
   .keccak 311 312 313 314 162 306 307 325 false false .all,
-  .set 339 11639815765221067811 0,
+  .set 339 2900198362610674251 0,
   .deref 338 2 326 .cell,
   .deref 338 3 12 .cell,
   .deref 338 1 0 .fp,
@@ -15398,7 +15421,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 348 9 347 .cell,
   .deref 348 10 12 .cell,
   .deref 348 1 0 .fp,
-  .set 349 1831161039566243014 0,
+  .set 349 16030669740424551920 0,
   .deref 348 0 349 .cell,
   .deref 2 10887 350 .cell,
   .jump 46 350 348,
@@ -15437,7 +15460,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 398 6 346 .cell,
   .deref 398 7 347 .cell,
   .deref 398 1 0 .fp,
-  .set 399 17348538370329670884 0,
+  .set 399 14839076253803012258 0,
   .deref 398 0 399 .cell,
   .deref 2 10891 400 .cell,
   .jump 46 400 398,
@@ -15549,7 +15572,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 450 16 445 .cell,
   .deref 450 17 446 .cell,
   .deref 450 18 447 .cell,
-  .set 462 17728391252998787408 0,
+  .set 462 10991215581794031614 0,
   .deref 461 2 441 .cell,
   .deref 461 3 442 .cell,
   .deref 461 4 443 .cell,
@@ -15568,7 +15591,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 461 14 458 .cell,
   .deref 461 15 459 .cell,
   .deref 461 16 460 .cell,
-  .set 464 8970538320714753368 0,
+  .set 464 14451727222637926060 0,
   .deref 463 2 454 .cell,
   .deref 463 3 12 .cell,
   .deref 463 1 0 .fp,
@@ -15579,7 +15602,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 452 1 466 .cell,
   .deref 21 7 466 .cell,
   .mul 302 124 472,
-  .set 474 11218797319658957307 0,
+  .set 474 4420312162507044578 0,
   .deref 473 2 455 .cell,
   .deref 473 3 456 .cell,
   .deref 473 4 457 .cell,
@@ -15607,7 +15630,7 @@ def f337c0 : List OffsetInstruction := [
   .mul 493 46 483,
   .set 484 0 4,
   .keccak 481 482 483 484 162 476 477 495 false false .all,
-  .set 509 11639815765221067811 0,
+  .set 509 2900198362610674251 0,
   .deref 508 2 496 .cell,
   .deref 508 3 12 .cell,
   .deref 508 1 0 .fp,
@@ -15625,7 +15648,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 517 9 516 .cell,
   .deref 517 10 12 .cell,
   .deref 517 1 0 .fp,
-  .set 518 7322281677793618014 0,
+  .set 518 256522758461428595 0,
   .deref 517 0 518 .cell,
   .deref 2 10895 519 .cell,
   .jump 46 519 517,
@@ -15664,7 +15687,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 567 6 515 .cell,
   .deref 567 7 516 .cell,
   .deref 567 1 0 .fp,
-  .set 568 2212443816284579393 0,
+  .set 568 8271346219025953253 0,
   .deref 567 0 568 .cell,
   .deref 2 10899 569 .cell,
   .jump 46 569 567,
@@ -15776,7 +15799,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 619 16 614 .cell,
   .deref 619 17 615 .cell,
   .deref 619 18 616 .cell,
-  .set 630 1414193512564188958 0,
+  .set 630 8215473675956684704 0,
   .deref 629 2 610 .cell,
   .deref 629 3 611 .cell,
   .deref 629 4 612 .cell,
@@ -15795,7 +15818,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 629 14 626 .cell,
   .deref 629 15 627 .cell,
   .deref 629 16 628 .cell,
-  .set 632 11639815765221067811 0,
+  .set 632 2900198362610674251 0,
   .deref 631 2 622 .cell,
   .deref 631 3 12 .cell,
   .deref 631 1 0 .fp,
@@ -15813,7 +15836,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 640 9 639 .cell,
   .deref 640 10 12 .cell,
   .deref 640 1 0 .fp,
-  .set 641 11268318898054184667 0,
+  .set 641 8905252218256392391 0,
   .deref 640 0 641 .cell,
   .deref 2 10903 642 .cell,
   .jump 46 642 640,
@@ -15868,7 +15891,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 675 6 638 .cell,
   .deref 675 7 639 .cell,
   .deref 675 1 0 .fp,
-  .set 676 7764448756230166953 0,
+  .set 676 7058449494883604416 0,
   .deref 675 0 676 .cell,
   .deref 2 10907 677 .cell,
   .jump 46 677 675,
@@ -15944,7 +15967,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 679 2 707 .cell,
   .deref 679 3 162 .cell,
   .deref 679 4 162 .cell,
-  .set 712 10171020888707124911 0,
+  .set 712 620885044487874529 0,
   .deref 711 2 19 .cell,
   .deref 711 3 679 .cell,
   .deref 711 1 0 .fp,
@@ -16251,7 +16274,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 895 4 30 .cell,
   .deref 895 5 207 .cell,
   .deref 895 1 0 .fp,
-  .set 896 16171407957614036653 0,
+  .set 896 16420301989843594314 0,
   .deref 895 0 896 .cell,
   .deref 2 10911 897 .cell,
   .jump 46 897 895,
@@ -16270,7 +16293,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 906 4 397 .cell,
   .deref 906 5 382 .cell,
   .deref 906 1 0 .fp,
-  .set 907 1070867237640415373 0,
+  .set 907 957659386599188855 0,
   .deref 906 0 907 .cell,
   .deref 2 10915 908 .cell,
   .jump 46 908 906,
@@ -16289,7 +16312,7 @@ def f337c0 : List OffsetInstruction := [
   .deref 917 4 566 .cell,
   .deref 917 5 551 .cell,
   .deref 917 1 0 .fp,
-  .set 918 16186404667891925517 0,
+  .set 918 5844283088950872390 0,
   .deref 917 0 918 .cell,
   .deref 2 10919 919 .cell,
   .jump 46 919 917,
@@ -16444,7 +16467,7 @@ def f337c0 : List OffsetInstruction := [
   .jump 46 0 1]
 
 /-- `open_stacked__L2` from offset 0. -/
-def f338c0 : List OffsetInstruction := [
+def f339c0 : List OffsetInstruction := [
   .set 18 1048576 0,
   .set 20 256 0,
   .deref 21 0 9 .cell,
@@ -16594,7 +16617,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 102 16 97 .cell,
   .deref 102 17 98 .cell,
   .deref 102 18 99 .cell,
-  .set 114 1484024506382580471 0,
+  .set 114 4700102961236008261 0,
   .deref 113 2 93 .cell,
   .deref 113 3 94 .cell,
   .deref 113 4 95 .cell,
@@ -16613,7 +16636,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 113 14 110 .cell,
   .deref 113 15 111 .cell,
   .deref 113 16 112 .cell,
-  .set 116 8970538320714753368 0,
+  .set 116 14451727222637926060 0,
   .deref 115 2 106 .cell,
   .deref 115 3 12 .cell,
   .deref 115 1 0 .fp,
@@ -16625,7 +16648,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 21 3 118 .cell,
   .set 124 16777216 0,
   .mul 32 124 125,
-  .set 127 5434860800528530443 0,
+  .set 127 10866252429633414810 0,
   .deref 126 2 107 .cell,
   .deref 126 3 108 .cell,
   .deref 126 4 109 .cell,
@@ -16658,7 +16681,7 @@ def f338c0 : List OffsetInstruction := [
   .set 164 0 0,
   .set 165 0 0,
   .keccak 134 135 136 137 162 129 130 148 false false .all,
-  .set 167 11639815765221067811 0,
+  .set 167 2900198362610674251 0,
   .deref 166 2 149 .cell,
   .deref 166 3 12 .cell,
   .deref 166 1 0 .fp,
@@ -16674,7 +16697,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 173 9 36 .cell,
   .deref 173 10 12 .cell,
   .deref 173 1 0 .fp,
-  .set 174 66133507230412392 0,
+  .set 174 14091213040178560876 0,
   .deref 173 0 174 .cell,
   .deref 2 10923 175 .cell,
   .jump 46 175 173,
@@ -16719,7 +16742,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 227 6 35 .cell,
   .deref 227 7 36 .cell,
   .deref 227 1 0 .fp,
-  .set 228 417991547296133121 0,
+  .set 228 4606316005235082906 0,
   .deref 227 0 228 .cell,
   .deref 2 10927 229 .cell,
   .jump 46 229 227,
@@ -16832,7 +16855,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 279 17 275 .cell,
   .deref 279 18 276 .cell,
   .set 281 64 0,
-  .set 292 17728391252998787408 0,
+  .set 292 10991215581794031614 0,
   .deref 291 2 270 .cell,
   .deref 291 3 271 .cell,
   .deref 291 4 272 .cell,
@@ -16851,7 +16874,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 291 14 288 .cell,
   .deref 291 15 289 .cell,
   .deref 291 16 290 .cell,
-  .set 294 8970538320714753368 0,
+  .set 294 14451727222637926060 0,
   .deref 293 2 284 .cell,
   .deref 293 3 12 .cell,
   .deref 293 1 0 .fp,
@@ -16862,7 +16885,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 282 1 296 .cell,
   .deref 21 5 296 .cell,
   .mul 125 124 302,
-  .set 304 11357126654311628910 0,
+  .set 304 4528193609306091515 0,
   .deref 303 2 285 .cell,
   .deref 303 3 286 .cell,
   .deref 303 4 287 .cell,
@@ -16890,7 +16913,7 @@ def f338c0 : List OffsetInstruction := [
   .mul 323 46 313,
   .set 314 0 4,
   .keccak 311 312 313 314 162 306 307 325 false false .all,
-  .set 339 11639815765221067811 0,
+  .set 339 2900198362610674251 0,
   .deref 338 2 326 .cell,
   .deref 338 3 12 .cell,
   .deref 338 1 0 .fp,
@@ -16909,7 +16932,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 348 9 347 .cell,
   .deref 348 10 12 .cell,
   .deref 348 1 0 .fp,
-  .set 349 15484469158172672515 0,
+  .set 349 3393445287136675342 0,
   .deref 348 0 349 .cell,
   .deref 2 10931 350 .cell,
   .jump 46 350 348,
@@ -16948,7 +16971,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 398 6 346 .cell,
   .deref 398 7 347 .cell,
   .deref 398 1 0 .fp,
-  .set 399 3450044085279923186 0,
+  .set 399 4657574121118292412 0,
   .deref 398 0 399 .cell,
   .deref 2 10935 400 .cell,
   .jump 46 400 398,
@@ -17060,7 +17083,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 450 16 445 .cell,
   .deref 450 17 446 .cell,
   .deref 450 18 447 .cell,
-  .set 462 17728391252998787408 0,
+  .set 462 10991215581794031614 0,
   .deref 461 2 441 .cell,
   .deref 461 3 442 .cell,
   .deref 461 4 443 .cell,
@@ -17079,7 +17102,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 461 14 458 .cell,
   .deref 461 15 459 .cell,
   .deref 461 16 460 .cell,
-  .set 464 8970538320714753368 0,
+  .set 464 14451727222637926060 0,
   .deref 463 2 454 .cell,
   .deref 463 3 12 .cell,
   .deref 463 1 0 .fp,
@@ -17090,7 +17113,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 452 1 466 .cell,
   .deref 21 7 466 .cell,
   .mul 302 124 472,
-  .set 474 15463820455890207082 0,
+  .set 474 9651302341042041931 0,
   .deref 473 2 455 .cell,
   .deref 473 3 456 .cell,
   .deref 473 4 457 .cell,
@@ -17118,7 +17141,7 @@ def f338c0 : List OffsetInstruction := [
   .mul 493 46 483,
   .set 484 0 4,
   .keccak 481 482 483 484 162 476 477 495 false false .all,
-  .set 509 11639815765221067811 0,
+  .set 509 2900198362610674251 0,
   .deref 508 2 496 .cell,
   .deref 508 3 12 .cell,
   .deref 508 1 0 .fp,
@@ -17136,7 +17159,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 517 9 516 .cell,
   .deref 517 10 12 .cell,
   .deref 517 1 0 .fp,
-  .set 518 12972225973943532997 0,
+  .set 518 14465561395629241702 0,
   .deref 517 0 518 .cell,
   .deref 2 10939 519 .cell,
   .jump 46 519 517,
@@ -17175,7 +17198,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 567 6 515 .cell,
   .deref 567 7 516 .cell,
   .deref 567 1 0 .fp,
-  .set 568 9223061004641557291 0,
+  .set 568 10005510508910122369 0,
   .deref 567 0 568 .cell,
   .deref 2 10943 569 .cell,
   .jump 46 569 567,
@@ -17287,7 +17310,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 619 16 614 .cell,
   .deref 619 17 615 .cell,
   .deref 619 18 616 .cell,
-  .set 630 3491451973169021765 0,
+  .set 630 10143479453110492844 0,
   .deref 629 2 610 .cell,
   .deref 629 3 611 .cell,
   .deref 629 4 612 .cell,
@@ -17306,7 +17329,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 629 14 626 .cell,
   .deref 629 15 627 .cell,
   .deref 629 16 628 .cell,
-  .set 632 11639815765221067811 0,
+  .set 632 2900198362610674251 0,
   .deref 631 2 622 .cell,
   .deref 631 3 12 .cell,
   .deref 631 1 0 .fp,
@@ -17324,7 +17347,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 640 9 639 .cell,
   .deref 640 10 12 .cell,
   .deref 640 1 0 .fp,
-  .set 641 1794356292353234455 0,
+  .set 641 11496816310715425430 0,
   .deref 640 0 641 .cell,
   .deref 2 10947 642 .cell,
   .jump 46 642 640,
@@ -17407,7 +17430,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 695 6 638 .cell,
   .deref 695 7 639 .cell,
   .deref 695 1 0 .fp,
-  .set 696 6004573235863953644 0,
+  .set 696 15555231055505290006 0,
   .deref 695 0 696 .cell,
   .deref 2 10951 697 .cell,
   .jump 46 697 695,
@@ -17503,7 +17526,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 738 17 737 .cell,
   .deref 699 3 737 .cell,
   .deref 699 4 162 .cell,
-  .set 742 6199064732244665506 0,
+  .set 742 16881207918380393339 0,
   .deref 741 2 19 .cell,
   .deref 741 3 699 .cell,
   .deref 741 1 0 .fp,
@@ -17826,7 +17849,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 938 4 30 .cell,
   .deref 938 5 207 .cell,
   .deref 938 1 0 .fp,
-  .set 939 6377835663337647449 0,
+  .set 939 12052683012952730041 0,
   .deref 938 0 939 .cell,
   .deref 2 10955 940 .cell,
   .jump 46 940 938,
@@ -17845,7 +17868,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 949 4 397 .cell,
   .deref 949 5 382 .cell,
   .deref 949 1 0 .fp,
-  .set 950 18299506785506373084 0,
+  .set 950 15761837238054108959 0,
   .deref 949 0 950 .cell,
   .deref 2 10959 951 .cell,
   .jump 46 951 949,
@@ -17864,7 +17887,7 @@ def f338c0 : List OffsetInstruction := [
   .deref 960 4 566 .cell,
   .deref 960 5 551 .cell,
   .deref 960 1 0 .fp,
-  .set 961 4880591006403770273 0,
+  .set 961 6605212655158857678 0,
   .deref 960 0 961 .cell,
   .deref 2 10963 962 .cell,
   .jump 46 962 960,

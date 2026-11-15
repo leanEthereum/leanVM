@@ -38,9 +38,9 @@ abbrev vtW30 : E := word 1073741824 0
 `27 + t`) below `g^31`. -/
 def vtPadT (v t : ℕ) : List Stmt :=
   [.atom (.const (.n v) vtW30),
-    .atom (.rangeCheck (.n (27 + t)) (.n (v + 1)) (.n (v + 2)) (.n (v + 3)) (.n v)),
+    .atom (.rangeCheck (.n (28 + t)) (.n (v + 1)) (.n (v + 2)) (.n (v + 3)) (.n v)),
     .atom (.load (.n (v + 4)) (.n 11) t),
-    .dispatch (.n (27 + t)) vtPadNames [.n (v + 4), .n 8] [.n (v + 5), .n (v + 6), .n (v + 7)],
+    .dispatch (.n (28 + t)) vtPadNames [.n (v + 4), .n 8] [.n (v + 5), .n (v + 6), .n (v + 7)],
     .atom (.const (.n (v + 8)) (word 1 0)), .atom (.assertEq (.n (v + 6)) (.n (v + 8))),
     .atom (.const (.n (v + 9)) (word 0 0)), .atom (.add (.n (v + 10)) (.n (v + 7)) (.n (v + 9))),
     .atom (.hint (.inverse (.n (v + 10)) (.n (v + 11)))),
@@ -49,13 +49,13 @@ def vtPadT (v t : ℕ) : List Stmt :=
 /-- The `KECCAK` table's height statements, values from `v`. -/
 def vtPad5T (v : ℕ) : List Stmt :=
   [.atom (.const (.n v) vtW30),
-    .atom (.rangeCheck (.n 32) (.n (v + 1)) (.n (v + 2)) (.n (v + 3)) (.n v)),
+    .atom (.rangeCheck (.n 33) (.n (v + 1)) (.n (v + 2)) (.n (v + 3)) (.n v)),
     .atom (.load (.n (v + 4)) (.n 11) 5),
-    .dispatch (.n 32) vtPadNames [.n (v + 4), .n 8] [.n (v + 5), .n (v + 6), .n (v + 7)],
+    .dispatch (.n 33) vtPadNames [.n (v + 4), .n 8] [.n (v + 5), .n (v + 6), .n (v + 7)],
     .atom (.const (.n (v + 8)) vtW30), .atom (.const (.n (v + 9)) (word 512 0)),
-    .atom (.mul (.n 32) (.n (v + 10)) (.n (v + 9))),
+    .atom (.mul (.n 33) (.n (v + 10)) (.n (v + 9))),
     .atom (.rangeCheck (.n (v + 10)) (.n (v + 11)) (.n (v + 12)) (.n (v + 13)) (.n (v + 8))),
-    .atom (.const (.n (v + 14)) (word 512 0)), .atom (.add (.n (v + 15)) (.n 32) (.n (v + 14))),
+    .atom (.const (.n (v + 14)) (word 512 0)), .atom (.add (.n (v + 15)) (.n 33) (.n (v + 14))),
     .ite (.n (v + 15)) [] [.atom (.const (.n (v + 16)) (word 1 0)),
       .atom (.assertEq (.n (v + 6)) (.n (v + 16))), .atom (.const (.n (v + 17)) (word 0 0)),
       .atom (.add (.n (v + 18)) (.n (v + 7)) (.n (v + 17))),
@@ -63,19 +63,19 @@ def vtPad5T (v : ℕ) : List Stmt :=
       .atom (.assertNe (.n (v + 18)) (.n (v + 19)) (.n (v + 20)))]]
 
 theorem vtPad_check : ∀ t < 5,
-    tbStmtsEqb (vtPadT (578 + 13 * t) t)
-      ((vtAt (563 + 10 * t)).take (vtPadT (578 + 13 * t) t).length) = true := by
+    tbStmtsEqb (vtPadT (579 + 13 * t) t)
+      ((vtAt (563 + 10 * t)).take (vtPadT (579 + 13 * t) t).length) = true := by
   decide +kernel
 
 theorem vtPad5_check :
-    tbStmtsEqb (vtPad5T 643) ((vtAt 613).take (vtPad5T 643).length) = true := by
+    tbStmtsEqb (vtPad5T 644) ((vtAt 613).take (vtPad5T 644).length) = true := by
   decide +kernel
 
 /-- `kappa_base` in the frame (G:2236-2239): `kb[0] = 1`, `kb[1 + t] = dims_g[t]`. -/
 theorem vt_kb {rd : Reader} {σ : Val} (h : VtH rd σ) :
-    σ (.n 25) = 1 ∧ ∀ i < 7, LoadHolds rd (σ (.n 10)) i (σ (.n (26 + i))) := by
-  have c := h.atomAt 5 (.const (.n 25) (word 1 0)) (by decide +kernel)
-  have hl : ∀ i < 7, Atom.Holds rd σ (.load (.n (26 + i)) (.n 10) i) := by
+    σ (.n 26) = 1 ∧ ∀ i < 7, LoadHolds rd (σ (.n 10)) i (σ (.n (27 + i))) := by
+  have c := h.atomAt 5 (.const (.n 26) (word 1 0)) (by decide +kernel)
+  have hl : ∀ i < 7, Atom.Holds rd σ (.load (.n (27 + i)) (.n 10) i) := by
     intro i hi
     exact h.atomAt (6 + i) _ (by revert i; decide +kernel)
   refine ⟨by simpa [Atom.Holds, tb_word_one] using c, fun i hi => ?_⟩
@@ -86,7 +86,7 @@ theorem vtW30_eq : vtW30 = ofK (Parameters.addressOfIndex 30) := by
     gen_pow_eq_ofK]
 
 /-- Table `t`'s padding weight's value. -/
-def vtPadV (t : ℕ) : ℕ := 583 + 13 * t
+def vtPadV (t : ℕ) : ℕ := 584 + 13 * t
 
 /-- What table `t`'s height statements give. -/
 def VtPadOk (rd : Reader) (σ : Val) (t : ℕ) : Prop :=
@@ -117,8 +117,8 @@ theorem vt_pad (σ : Val) (h : VtH Lm.read σ) {t : ℕ} (ht : t < 5) : VtPadOk 
   simp only [vtPadT, Stmt.HoldsList, Stmt.Holds, and_true] at hs
   obtain ⟨c1, rc, l5, hd, c9, q, c10, a11, -, n13⟩ := hs
   simp only [Atom.Holds] at c1 l5 c9 q c10 a11 n13
-  have l0 : LoadHolds Lm.read (σ (.n 10)) (t + 1) (σ (.n (27 + t))) := by
-    have := (vt_kb h).2 (t + 1) (by omega); rwa [show 26 + (t + 1) = 27 + t by omega] at this
+  have l0 : LoadHolds Lm.read (σ (.n 10)) (t + 1) (σ (.n (28 + t))) := by
+    have := (vt_kb h).2 (t + 1) (by omega); rwa [show 27 + (t + 1) = 28 + t by omega] at this
   obtain ⟨τ, hτ, hv⟩ := vt_rc hμ Lm (K := 31) (by omega) (by norm_num) (by rw [c1, vtW30_eq]) rc
   have hp := vt_pad_arm hτ hv hd
   simp only [List.map_cons, List.map_nil, PadWeightOut] at hp
@@ -132,7 +132,7 @@ theorem vt_pad (σ : Val) (h : VtH Lm.read σ) {t : ℕ} (ht : t < 5) : VtPadOk 
       exact zero_ne_one e2
   have hlog := (lead_rest_iff (by omega) hn).mp hlr
   refine ⟨τ, n, zs, hτ, by rw [← hv]; exact l0, by rw [← hrows]; exact l5, hn, hzl, hzs,
-    by rw [show vtPadV t = 578 + 13 * t + 5 by unfold vtPadV; ring]; exact hpad, ?_⟩
+    by rw [show vtPadV t = 579 + 13 * t + 5 by unfold vtPadV; ring]; exact hpad, ?_⟩
   have hf : tableLogFloors.getD t 0 = 0 := by interval_cases t <;> rfl
   rw [hf, hlog]
   simp
@@ -144,7 +144,7 @@ theorem vt_pad5 (σ : Val) (h : VtH Lm.read σ) : VtPadOk Lm.read σ 5 := by
   simp only [Stmt.HoldsList, Stmt.Holds, and_true] at hs
   obtain ⟨c1, rc, l5, hd, c9, c10, m11, rc11, c15, a16, ⟨-, -, hne⟩⟩ := hs
   simp only [Atom.Holds] at c1 l5 c9 c10 m11 c15 a16
-  have l0 : LoadHolds Lm.read (σ (.n 10)) 6 (σ (.n 32)) := (vt_kb h).2 6 (by omega)
+  have l0 : LoadHolds Lm.read (σ (.n 10)) 6 (σ (.n 33)) := (vt_kb h).2 6 (by omega)
   obtain ⟨τ, hτ, hv⟩ := vt_rc hμ Lm (K := 31) (by omega) (by norm_num) (by rw [c1, vtW30_eq]) rc
   obtain ⟨d, hd31, hdv⟩ := vt_rc hμ Lm (K := 31) (by omega) (by norm_num) (by rw [c9, vtW30_eq])
     rc11
@@ -156,13 +156,13 @@ theorem vt_pad5 (σ : Val) (h : VtH Lm.read σ) : VtPadOk Lm.read σ 5 := by
     rw [hv, hdv, c10, ← pow_add] at m11
     exact gen_pow_inj (by omega) (by omega) m11
   refine ⟨τ, n, zs, hτ, by rw [← hv]; exact l0, by rw [← hrows]; exact l5, hn, hzl, hzs,
-    by rw [show vtPadV 5 = 643 + 5 from rfl]; exact hpad, ?_⟩
+    by rw [show vtPadV 5 = 644 + 5 from rfl]; exact hpad, ?_⟩
   show τ = max (log2Ceil n) 9
   rcases Nat.eq_or_lt_of_le (show 9 ≤ τ by omega) with h9 | h9
   · rw [← h9]
     have := log2Ceil_le_iff.mpr (show n ≤ 2 ^ 9 by rw [h9]; exact hn)
     omega
-  · have hne' : σ (.n (643 + 15)) ≠ 0 := by
+  · have hne' : σ (.n (644 + 15)) ≠ 0 := by
       rw [a16, hv, c15]
       intro h0
       have := gen_pow_inj (by omega) (by omega) (e_add_eq_zero_iff.mp h0)

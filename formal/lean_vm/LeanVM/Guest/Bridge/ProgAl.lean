@@ -143,7 +143,7 @@ theorem progAl : ProgAl guestProgram coreProgram alignA where
     obtain ⟨j, hj⟩ := B2C.idxOf_of_find hf
     obtain ⟨-, -, -, -, -, -, -, -, h1, h2⟩ := B2C.fn_of_idx hj
     rw [alignA_of hj]
-    exact ProgAl.fnAlOk_all j h1 (by have : nFns = 1602 := rfl; omega)
+    exact ProgAl.fnAlOk_all j h1 (by have : nFns = fn_count% := rfl; omega)
   body f fn hf := by
     obtain ⟨j, hj⟩ := B2C.idxOf_of_find hf
     obtain ⟨i, -, hi, -, hfi, hc, -⟩ := B2C.fn_of_idx hj

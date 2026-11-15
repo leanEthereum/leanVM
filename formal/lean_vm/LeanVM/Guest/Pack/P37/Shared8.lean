@@ -22,16 +22,16 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop328`, once. -/
+/-- `__loop329`, once. -/
 theorem st : shareStaticD Fn.«level_residual__L37_L16_L4_L2_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop328`, window 0. -/
+/-- `__loop329`, window 0. -/
 theorem sw0 : shareWinD Fn.«level_residual__L37_L16_L4_L2_loop1».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
-/-- `__loop328`: its static sharing check and every window's. -/
+/-- `__loop329`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_residual__L37_L16_L4_L2_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -49,16 +49,16 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop462`, once. -/
+/-- `__loop463`, once. -/
 theorem st : shareStaticD Fn.«level_positions__L28_L26_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop462`, window 0. -/
+/-- `__loop463`, window 0. -/
 theorem sw0 : shareWinD Fn.«level_positions__L28_L26_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
-/-- `__loop462`: its static sharing check and every window's. -/
+/-- `__loop463`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_positions__L28_L26_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -109,7 +109,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop475`, once. -/
+/-- `__loop476`, once. -/
 theorem st : shareStaticD Fn.«level_residual__L109_L24_L6_L3_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 

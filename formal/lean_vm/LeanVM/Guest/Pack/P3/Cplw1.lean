@@ -36,15 +36,15 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `verify_keccak`, window 3, part 0. -/
-theorem cw3_0 : cplWinD (Glob.ofSigs ([(266, Fn.«verify_keccak_loop0».sig), (267, Fn.«keccak_layer__L1».sig), (268, Fn.«keccak_layer__L0».sig), (269, Fn.«keccak_plain_rounds__L6_L0».sig), (270, Fn.«verify_keccak_loop1».sig), (271, Fn.«keccak_plain_rounds__L4_L1».sig), (272, Fn.«verify_keccak_loop2».sig)]) Data.jtTrie globSem) code Fn.«verify_keccak».core (cert.withPows Data.powTree) plumb fs parts arms false 3 0 = true := by
+theorem cw3_0 : cplWinD (Glob.ofSigs ([(267, Fn.«verify_keccak_loop0».sig), (268, Fn.«keccak_layer__L1».sig), (269, Fn.«keccak_layer__L0».sig), (270, Fn.«keccak_plain_rounds__L6_L0».sig), (271, Fn.«verify_keccak_loop1».sig), (272, Fn.«keccak_plain_rounds__L4_L1».sig), (273, Fn.«verify_keccak_loop2».sig)]) Data.jtTrie globSem) code Fn.«verify_keccak».core (cert.withPows Data.powTree) plumb fs parts arms false 3 0 = true := by
   decide +kernel
 
 /-- `verify_keccak`, window 4, part 0. -/
-theorem cw4_0 : cplWinD (Glob.ofSigs ([(266, Fn.«verify_keccak_loop0».sig), (267, Fn.«keccak_layer__L1».sig), (268, Fn.«keccak_layer__L0».sig), (269, Fn.«keccak_plain_rounds__L6_L0».sig), (270, Fn.«verify_keccak_loop1».sig), (271, Fn.«keccak_plain_rounds__L4_L1».sig), (272, Fn.«verify_keccak_loop2».sig)]) Data.jtTrie globSem) code Fn.«verify_keccak».core (cert.withPows Data.powTree) plumb fs parts arms false 4 0 = true := by
+theorem cw4_0 : cplWinD (Glob.ofSigs ([(267, Fn.«verify_keccak_loop0».sig), (268, Fn.«keccak_layer__L1».sig), (269, Fn.«keccak_layer__L0».sig), (270, Fn.«keccak_plain_rounds__L6_L0».sig), (271, Fn.«verify_keccak_loop1».sig), (272, Fn.«keccak_plain_rounds__L4_L1».sig), (273, Fn.«verify_keccak_loop2».sig)]) Data.jtTrie globSem) code Fn.«verify_keccak».core (cert.withPows Data.powTree) plumb fs parts arms false 4 0 = true := by
   decide +kernel
 
 /-- `verify_keccak`, window 5, part 0. -/
-theorem cw5_0 : cplWinD (Glob.ofSigs ([(266, Fn.«verify_keccak_loop0».sig), (267, Fn.«keccak_layer__L1».sig), (268, Fn.«keccak_layer__L0».sig), (269, Fn.«keccak_plain_rounds__L6_L0».sig), (270, Fn.«verify_keccak_loop1».sig), (271, Fn.«keccak_plain_rounds__L4_L1».sig), (272, Fn.«verify_keccak_loop2».sig)]) Data.jtTrie globSem) code Fn.«verify_keccak».core (cert.withPows Data.powTree) plumb fs parts arms false 5 0 = true := by
+theorem cw5_0 : cplWinD (Glob.ofSigs ([(267, Fn.«verify_keccak_loop0».sig), (268, Fn.«keccak_layer__L1».sig), (269, Fn.«keccak_layer__L0».sig), (270, Fn.«keccak_plain_rounds__L6_L0».sig), (271, Fn.«verify_keccak_loop1».sig), (272, Fn.«keccak_plain_rounds__L4_L1».sig), (273, Fn.«verify_keccak_loop2».sig)]) Data.jtTrie globSem) code Fn.«verify_keccak».core (cert.withPows Data.powTree) plumb fs parts arms false 5 0 = true := by
   decide +kernel
 
 end
@@ -129,11 +129,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `da_levels__L1024_L10`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(991, Fn.«da_levels__L1024_L10_loop0».sig), (992, Fn.«da_levels__L1024_L10_loop1».sig), (993, Fn.«da_levels__L1024_L10_loop2».sig), (994, Fn.«da_levels__L1024_L10_loop3».sig), (995, Fn.«da_levels__L1024_L10_loop4».sig), (996, Fn.«da_levels__L1024_L10_loop5».sig), (997, Fn.«da_levels__L1024_L10_loop6».sig), (998, Fn.«da_levels__L1024_L10_loop7».sig), (999, Fn.«da_levels__L1024_L10_loop8».sig), (1000, Fn.«da_levels__L1024_L10_loop9».sig)]) Data.jtTrie globSem) code Fn.«da_levels__L1024_L10».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(992, Fn.«da_levels__L1024_L10_loop0».sig), (993, Fn.«da_levels__L1024_L10_loop1».sig), (994, Fn.«da_levels__L1024_L10_loop2».sig), (995, Fn.«da_levels__L1024_L10_loop3».sig), (996, Fn.«da_levels__L1024_L10_loop4».sig), (997, Fn.«da_levels__L1024_L10_loop5».sig), (998, Fn.«da_levels__L1024_L10_loop6».sig), (999, Fn.«da_levels__L1024_L10_loop7».sig), (1000, Fn.«da_levels__L1024_L10_loop8».sig), (1001, Fn.«da_levels__L1024_L10_loop9».sig)]) Data.jtTrie globSem) code Fn.«da_levels__L1024_L10».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `da_levels__L1024_L10`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(991, Fn.«da_levels__L1024_L10_loop0».sig), (992, Fn.«da_levels__L1024_L10_loop1».sig), (993, Fn.«da_levels__L1024_L10_loop2».sig), (994, Fn.«da_levels__L1024_L10_loop3».sig), (995, Fn.«da_levels__L1024_L10_loop4».sig), (996, Fn.«da_levels__L1024_L10_loop5».sig), (997, Fn.«da_levels__L1024_L10_loop6».sig), (998, Fn.«da_levels__L1024_L10_loop7».sig), (999, Fn.«da_levels__L1024_L10_loop8».sig), (1000, Fn.«da_levels__L1024_L10_loop9».sig)]) Data.jtTrie globSem) code Fn.«da_levels__L1024_L10».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(992, Fn.«da_levels__L1024_L10_loop0».sig), (993, Fn.«da_levels__L1024_L10_loop1».sig), (994, Fn.«da_levels__L1024_L10_loop2».sig), (995, Fn.«da_levels__L1024_L10_loop3».sig), (996, Fn.«da_levels__L1024_L10_loop4».sig), (997, Fn.«da_levels__L1024_L10_loop5».sig), (998, Fn.«da_levels__L1024_L10_loop6».sig), (999, Fn.«da_levels__L1024_L10_loop7».sig), (1000, Fn.«da_levels__L1024_L10_loop8».sig), (1001, Fn.«da_levels__L1024_L10_loop9».sig)]) Data.jtTrie globSem) code Fn.«da_levels__L1024_L10».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi

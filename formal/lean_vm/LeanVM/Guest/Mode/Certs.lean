@@ -32,13 +32,15 @@ public section
 /-- **The walks and hints the kernel does not check**, one per function: a walk failing or too
     costly to check (`WalkHyp`), hints too costly to check in one piece (`HintsHyp`). -/
 structure ModeHyps : Prop where
-  «__loop23» : WalkHyp Fn.«da_verify_loop2».modeCert
-  «__loop25» : WalkHyp Fn.«da_verify_column_loop0».modeCert
-  «__loop37» : WalkHyp Fn.«keccak_layer__L1_loop0».modeCert
-  «__loop38» : WalkHyp Fn.«keccak_layer__L1_loop1».modeCert
-  «__loop39» : WalkHyp Fn.«keccak_layer__L0_loop0».modeCert
-  «__loop40» : WalkHyp Fn.«keccak_layer__L0_loop1».modeCert
+  «__loop10» : WalkHyp Fn.«verify_tables_loop1».modeCert
+  «__loop24» : WalkHyp Fn.«da_verify_loop2».modeCert
+  «__loop26» : WalkHyp Fn.«da_verify_column_loop0».modeCert
+  «__loop38» : WalkHyp Fn.«keccak_layer__L1_loop0».modeCert
+  «__loop39» : WalkHyp Fn.«keccak_layer__L1_loop1».modeCert
+  «__loop40» : WalkHyp Fn.«keccak_layer__L0_loop0».modeCert
+  «__loop41» : WalkHyp Fn.«keccak_layer__L0_loop1».modeCert
   «__loop6» : WalkHyp Fn.«verify_bus_gkr_loop0».modeCert
+  «__loop9» : WalkHyp Fn.«verify_tables_loop0».modeCert
   «check_opening_terminal» : WalkHyp Fn.«check_opening_terminal».modeCert
   «da_verify» : WalkHyp Fn.«da_verify».modeCert
   «keccak_layer__L0» : WalkHyp Fn.«keccak_layer__L0».modeCert
@@ -62,7 +64,7 @@ structure ModeHyps : Prop where
 
 theorem guestGroup_walk0 (h : ModeHyps) : ∀ l ∈ guestGroups[0]!, ∀ K ∈ l, CertWalk K :=
   Mode.fa_cons (ModePack.«P0».certs_walk)
-    (Mode.fa_cons (ModePack.«P1».certs_walk)
+    (Mode.fa_cons (ModePack.«P1».certs_walk h.«__loop9»)
     (Mode.fa_cons (ModePack.«P10».certs_walk)
     (Mode.fa_cons (ModePack.«P11».certs_walk h.«__loop6»)
     (Mode.fa_cons (ModePack.«P12».certs_walk)
@@ -81,9 +83,9 @@ theorem guestGroup_walk0 (h : ModeHyps) : ∀ l ∈ guestGroups[0]!, ∀ K ∈ l
 
 theorem guestGroup_walk1 (h : ModeHyps) : ∀ l ∈ guestGroups[1]!, ∀ K ∈ l, CertWalk K :=
   Mode.fa_cons (ModePack.«P23».certs_walk)
-    (Mode.fa_cons (ModePack.«P24».certs_walk h.«__loop25»)
+    (Mode.fa_cons (ModePack.«P24».certs_walk h.«__loop26»)
     (Mode.fa_cons (ModePack.«P25».certs_walk)
-    (Mode.fa_cons (ModePack.«P26».certs_walk h.«__loop38»)
+    (Mode.fa_cons (ModePack.«P26».certs_walk h.«__loop39»)
     (Mode.fa_cons (ModePack.«P27».certs_walk)
     (Mode.fa_cons (ModePack.«P28».certs_walk)
     (Mode.fa_cons (ModePack.«P29».certs_walk)
@@ -91,8 +93,8 @@ theorem guestGroup_walk1 (h : ModeHyps) : ∀ l ∈ guestGroups[1]!, ∀ K ∈ l
     (Mode.fa_cons (ModePack.«P30».certs_walk)
     (Mode.fa_cons (ModePack.«P31».certs_walk)
     (Mode.fa_cons (ModePack.«P32».certs_walk)
-    (Mode.fa_cons (ModePack.«P33».certs_walk h.«verify_sub» h.«__loop23»)
-    (Mode.fa_cons (ModePack.«P34».certs_walk h.«__loop39»)
+    (Mode.fa_cons (ModePack.«P33».certs_walk h.«verify_sub» h.«__loop24»)
+    (Mode.fa_cons (ModePack.«P34».certs_walk h.«__loop40»)
     (Mode.fa_cons (ModePack.«P35».certs_walk)
     (Mode.fa_cons (ModePack.«P36».certs_walk h.«keccak_layer__L1»)
     (Mode.fa_cons (ModePack.«P37».certs_walk)
@@ -107,8 +109,8 @@ theorem guestGroup_walk2 (h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ l
     (Mode.fa_cons (ModePack.«P42».certs_walk)
     (Mode.fa_cons (ModePack.«P43».certs_walk)
     (Mode.fa_cons (ModePack.«P44».certs_walk)
-    (Mode.fa_cons (ModePack.«P45».certs_walk h.«__loop37»)
-    (Mode.fa_cons (ModePack.«P46».certs_walk)
+    (Mode.fa_cons (ModePack.«P45».certs_walk h.«__loop38»)
+    (Mode.fa_cons (ModePack.«P46».certs_walk h.«__loop10»)
     (Mode.fa_cons (ModePack.«P47».certs_walk)
     (Mode.fa_cons (ModePack.«P48».certs_walk)
     (Mode.fa_cons (ModePack.«P49».certs_walk)
@@ -119,7 +121,7 @@ theorem guestGroup_walk2 (h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ l
 
 theorem guestGroup_walk3 (h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ l, CertWalk K :=
   Mode.fa_cons (ModePack.«P52».certs_walk)
-    (Mode.fa_cons (ModePack.«P53».certs_walk h.«__loop40»)
+    (Mode.fa_cons (ModePack.«P53».certs_walk h.«__loop41»)
     (Mode.fa_cons (ModePack.«P54».certs_walk h.«da_verify»)
     (Mode.fa_cons (ModePack.«P55».certs_walk h.«keccak_layer__L0»)
     (Mode.fa_cons (ModePack.«P56».certs_walk)

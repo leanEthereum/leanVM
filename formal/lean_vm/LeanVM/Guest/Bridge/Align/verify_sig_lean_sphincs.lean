@@ -24,7 +24,7 @@ open LeanVM.Guest
 /-- `verify_sig_lean_sphincs`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«verify_sig_lean_sphincs».cert.locs [] Fn.«verify_sig_lean_sphincs».code.entryPc false
-    Fn.«verify_sig_lean_sphincs».plumb Data.powTree Data.jtTrie [("sp_wots", 33516)] 524287 Fn.«verify_sig_lean_sphincs».code.instructionCount
+    Fn.«verify_sig_lean_sphincs».plumb Data.powTree Data.jtTrie [("sp_wots", 33526)] 524287 Fn.«verify_sig_lean_sphincs».code.instructionCount
 
 end
 

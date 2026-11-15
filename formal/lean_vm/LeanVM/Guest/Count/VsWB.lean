@@ -52,7 +52,7 @@ set_option maxHeartbeats 40000000 in
 theorem vtWB_eq (op : Opcode) : B1.VerifySub.vtWB vsWords op = kcVtW op := by
   show B2C.ωArm B2C.xmssArmC op "verify_tables" + (B1.Tables.vtBs (kuSB op)
     (B2C.ωArm B2C.xmssArmC op "shared_selector_tables" + 15 * kuSK op (name% shared_selector_tables_loop0) + kSpW op)
-    (32 * kuSK op (name% verify_tables_loop0))).sum = kcVtW op
+    (32 * kuSK op (name% verify_tables_loop0)) (32 * kuSK op (name% verify_tables_loop1))).sum = kcVtW op
   rw [ωArm_idx (j := idx% verify_tables) (by decide +kernel) (by decide),
     ωArm_idx (j := idx% shared_selector_tables) (by decide +kernel) (by decide)]
   unfold kSpW

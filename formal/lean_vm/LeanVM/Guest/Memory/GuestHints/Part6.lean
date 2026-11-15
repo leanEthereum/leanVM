@@ -14,7 +14,7 @@ open LeanVM.Guest.Core LeanVM.Guest
 
 @[expose] public section
 
-theorem hintsRange_1340 : RangeOk chkH 1340 261 := by
+theorem hintsRange_1340 : RangeOk chkH 1340 (core_count% - 1340) := by
   unfold RangeOk; decide +kernel
 
 end

@@ -90,7 +90,7 @@ theorem child_claim_list_any_completeAtTBP (fs : String → ℕ) (cert : String 
           name% «child_claim_list_any_loop1», fs (cclNames.getD r "")] := by
     refine ⟨fun ht => ?_, fun ht => ?_, fun _ => ?_, trivial⟩
     · simp only [decide_eq_true_eq] at ht
-      refine anyLoop_completeAtBP (hwit := any136_wits) fs cert (j := 365)
+      refine anyLoop_completeAtBP (hwit := any136_wits) fs cert (j := idx% «child_claim_list_any_loop0»)
         (find_of_idx any136_idx) any136_ok any136c_head
         any136c_edge any136c_recs any136_nb any136_unplaced (by norm_num)
         (chP := b0) (n0 := 0) (pre0 := []) (o := o) (cells := cells) rfl rfl rfl (by simp)
@@ -105,7 +105,7 @@ theorem child_claim_list_any_completeAtTBP (fs : String → ℕ) (cert : String 
         exact this
       · rw [Nat.add_assoc]; exact hOR _ (by omega)
     · simp only [decide_eq_true_eq] at ht
-      refine anyLoop_completeAtBP (hwit := any17_wits) fs cert (j := 366)
+      refine anyLoop_completeAtBP (hwit := any17_wits) fs cert (j := idx% «child_claim_list_any_loop1»)
         (find_of_idx any17_idx) any17_ok any17c_parts.1
         any17c_parts.2.1 any17c_parts.2.2 any17_nb any17_unplaced
         (by norm_num) (chP := b0 + 13 * a) (n0 := 64 * a)

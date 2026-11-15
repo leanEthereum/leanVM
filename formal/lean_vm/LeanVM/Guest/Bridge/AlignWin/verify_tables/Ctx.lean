@@ -22,7 +22,7 @@ open LeanVM.Guest
 /-- `verify_tables`: what its alignment check reads beyond its body and code. -/
 noncomputable def alignCtx : Bridge.AlignCtx :=
   Bridge.AlignCtx.ofData Fn.«verify_tables».cert.locs [] Fn.«verify_tables».code.entryPc false
-    Fn.«verify_tables».plumb Data.powTree Data.jtTrie [("__loop9", 205482), ("eq_prefix_chain", 19365), ("opening_tail_round", 19536), ("shared_selector_tables", 19937)] 524287 Fn.«verify_tables».code.instructionCount
+    Fn.«verify_tables».plumb Data.powTree Data.jtTrie [("__loop10", 205536), ("__loop9", 205492), ("eq_prefix_chain", 19365), ("opening_tail_round", 19536), ("shared_selector_tables", 19937)] 524287 Fn.«verify_tables».code.instructionCount
 
 /-- `verify_tables`: the pass's state at offset 0. -/
 def alignK0 : Bridge.KSt :=
@@ -30,11 +30,11 @@ def alignK0 : Bridge.KSt :=
 
 /-- `verify_tables`: the pass's state at offset 4096. -/
 def alignK1 : Bridge.KSt :=
-  ⟨4096, 133, some ([], 5527), [], []⟩
+  ⟨4096, 134, some ([], 5532), [], []⟩
 
-/-- `verify_tables`: the pass's state at offset 5231. -/
+/-- `verify_tables`: the pass's state at offset 5240. -/
 def alignK2 : Bridge.KSt :=
-  ⟨5231, 135, none, [], []⟩
+  ⟨5240, 136, none, [], []⟩
 
 end
 

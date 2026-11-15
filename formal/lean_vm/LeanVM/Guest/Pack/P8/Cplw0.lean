@@ -161,12 +161,12 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop12`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(272, Fn.«verify_keccak_loop2».sig)]) Data.jtTrie globSem) code Fn.«verify_keccak_loop2».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+/-- `__loop13`, window 0, part 0. -/
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(273, Fn.«verify_keccak_loop2».sig)]) Data.jtTrie globSem) code Fn.«verify_keccak_loop2».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
-/-- `__loop12`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(272, Fn.«verify_keccak_loop2».sig)]) Data.jtTrie globSem) code Fn.«verify_keccak_loop2».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+/-- `__loop13`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs ([(273, Fn.«verify_keccak_loop2».sig)]) Data.jtTrie globSem) code Fn.«verify_keccak_loop2».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -186,7 +186,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(1032, Fn.«verify_merkle_cap__L7».sig), (1072, Fn.«opening_queries__L1_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(1033, Fn.«verify_merkle_cap__L7».sig), (1073, Fn.«opening_queries__L1_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 end

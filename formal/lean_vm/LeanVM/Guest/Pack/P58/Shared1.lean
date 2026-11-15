@@ -49,16 +49,16 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop34`, once. -/
+/-- `__loop35`, once. -/
 theorem st : shareStaticD Fn.«aggregate_claims_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop34`, window 0. -/
+/-- `__loop35`, window 0. -/
 theorem sw0 : shareWinD Fn.«aggregate_claims_loop1».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
-/-- `__loop34`: its static sharing check and every window's. -/
+/-- `__loop35`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«aggregate_claims_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi

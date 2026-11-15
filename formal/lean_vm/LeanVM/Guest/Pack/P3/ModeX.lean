@@ -28,33 +28,33 @@ open LeanVM.Guest LeanVM.Guest.Exec
 /-- `verify_keccak`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none (.node none .nil
-    (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none (.node none
-    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil (.node
-    (some Fn.«keccak_layer__L0».modeSig) .nil .nil)) .nil) .nil)) .nil)) .nil) .nil) .nil)) (.node
-    none (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
-    none (.node none (.node none .nil (.node (some Fn.«verify_keccak_loop2».modeSig) .nil .nil))
-    .nil) .nil))) .nil) .nil) .nil) .nil) .nil)) .nil))) .nil) (.node none (.node none .nil (.node
-    none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil
-    (.node (some Fn.«keccak_plain_rounds__L6_L0».modeSig) .nil .nil)) .nil) .nil)) .nil)))))) .nil)
-    .nil) .nil)) .nil)) (.node none .nil (.node none (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«verify_keccak_loop1».modeSig) .nil .nil)) .nil) .nil)) .nil))))))))) (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
-    none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«verify_keccak_loop0».modeSig) .nil .nil)) .nil) .nil)) .nil) .nil) .nil)) .nil))) .nil)))
-    (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node none
-    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node
-    (some Fn.«keccak_plain_rounds__L4_L1».modeSig) .nil .nil)) .nil) .nil))) .nil) .nil) .nil)
-    .nil) .nil) .nil) .nil) .nil) (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
+    none .nil (.node (some Fn.«keccak_plain_rounds__L6_L0».modeSig) .nil .nil)) .nil) .nil))
+    .nil)))))) .nil)) .nil)) .nil) (.node none .nil (.node none (.node none .nil (.node none .nil
     (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none
-    (.node none (.node none .nil (.node (some Fn.«keccak_layer__L1».modeSig) .nil .nil)) .nil)
-    .nil)) .nil) .nil) .nil)) .nil)))) .nil))))), 524287⟩
+    (.node none .nil (.node none (.node none (.node none .nil (.node (some
+    Fn.«keccak_layer__L0».modeSig) .nil .nil)) .nil) .nil)) .nil)) .nil) .nil) .nil)) (.node none
+    (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
+    (.node none (.node none .nil (.node (some Fn.«verify_keccak_loop2».modeSig) .nil .nil)) .nil)
+    .nil))) .nil) .nil) .nil) .nil) .nil)))) .nil))) (.node none (.node none (.node none (.node
+    none .nil (.node none (.node none (.node none (.node none (.node none (.node none (.node none
+    (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
+    Fn.«verify_keccak_loop1».modeSig) .nil .nil)) .nil) .nil))) .nil) .nil) .nil) .nil) .nil) .nil)
+    .nil)) (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    none .nil (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node
+    none .nil (.node (some Fn.«verify_keccak_loop0».modeSig) .nil .nil)) .nil) .nil)) .nil) .nil)
+    .nil)) .nil)))))) (.node none (.node none (.node none .nil (.node none (.node none (.node none
+    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none
+    (.node none .nil (.node (some Fn.«keccak_plain_rounds__L4_L1».modeSig) .nil .nil)) .nil)
+    .nil))) .nil) .nil) .nil) .nil) .nil) .nil)) .nil) (.node none (.node none (.node none (.node
+    none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil
+    (.node none (.node none (.node none .nil (.node (some Fn.«keccak_layer__L1».modeSig) .nil
+    .nil)) .nil) .nil)) .nil) .nil) .nil))) .nil) .nil) .nil) .nil))) .nil)), 524287⟩
 
 /-- `verify_keccak`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨25232, 3258, Fn.«verify_keccak».modeSig, (.node none (.node none (.node none (.node none (.node
+  ⟨25241, 3258, Fn.«verify_keccak».modeSig, (.node none (.node none (.node none (.node none (.node
     none (.node none .nil (.node none (.node none .nil (.node none (.node (some [(.alloc 583
     2242)]) .nil .nil) .nil)) (.node none (.node none .nil (.node (some [(.alloc 708 2242)]) .nil
     .nil)) .nil))) (.node none (.node none .nil (.node none .nil (.node none (.node (some [(.alloc

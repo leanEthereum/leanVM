@@ -51,10 +51,10 @@ theorem vs_heap {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dig
       gpowE, gpowK_eq (by unfold u128Bound; omega)]
   have eH : ∀ k m, S.H.sizes[k]? = some m → m < 2 ^ 128 → advEntry S.H.sizes k = [Hints.count m] := fun k m h hm => by
     rw [advEntry, h, Option.map_some, Option.toList_some, Hints.count, gpowE, gpowK_eq (by unfold u128Bound; omega)]
-  rw [show heapSlots "verify_sub" = [5] from rfl, show heapSlots "verify_tables" = [108, 109, 110] from rfl]
+  rw [show heapSlots "verify_sub" = [5] from rfl, show heapSlots "verify_tables" = [108, 109, 111] from rfl]
   simp only [List.map_cons, List.map_nil, List.cons_append, List.nil_append]
   rw [e5, eH 108 (7 * (S.H.n + 1)) rfl (by omega), eH 109 (S.H.n + 1) rfl (by omega),
-    eH 110 (S.H.n + 1) rfl (by omega), childHeapH, S.hann]
+    eH 111 (S.H.n + 1) rfl (by omega), childHeapH, S.hann]
   have hh : S.layout.tableLogHeights.foldl max 0 = S.H.n := by
     show S.layout.tableLogHeights.foldl max 0 = S.hs.foldl max 0
     rw [S.hlayout]; rfl

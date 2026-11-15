@@ -6,10 +6,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from symev import IR, parse_atom, VT_LEAN
 
 GSTART = [0, 1, 2, 3, 8, 13, 16, 21, 26, 54, 55, 56, 57, 62, 67, 70, 75, 80, 108, 112, 116, 118, 122, 126, 153]
-BOFF0 = {0: 286, 1: 289, 2: 292, 3: 295, 4: 302, 5: 309, 6: 314, 7: 321, 8: 328,
-         18: 523, 19: 529, 20: 535, 21: 539, 22: 545, 23: 551}
+BOFF0 = {0: 287, 1: 290, 2: 293, 3: 296, 4: 303, 5: 310, 6: 315, 7: 322, 8: 329,
+         18: 524, 19: 530, 20: 536, 21: 540, 22: 546, 23: 552}
 W288, W144 = 299140177199104, 21299200
-SHLEN = [704, 713, 726, 739, 752, 765]
+SHLEN = [705, 714, 727, 740, 753, 766]
 
 def boffvar():
     m = {}
@@ -27,7 +27,7 @@ def main():
         m = re.match(r'\.atom \(\.hint \(\.digitsExp \(\.n (\d+)\) 34 9 4 0 \(some \(\.n (\d+)\)\) \(\.heap \(\.n (\d+)\) 0 9\)\)\)', s)
         if not m: continue
         off, kv, w = int(m.group(1)), int(m.group(2)), int(m.group(3))
-        b = bv[off]; t = kv - 27
+        b = bv[off]; t = kv - 28
         assert IR[p - 1] == f'.atom (.hint (.alloc (.n {w}) 9))', (p, IR[p - 1])
         q = p + 1
         es = gs = gw = 0
@@ -39,7 +39,7 @@ def main():
             q += 4
         E = w + 1 if t == 0 else w + 5
         d = IR[q]; assert d.startswith('.dispatch (.n %d)' % SHLEN[t]), (q, d)
-        assert nums(d)[-5:] == [w, 701 if t == 0 else w + 2, 702 if t == 0 else w + 4, E, E + 1], (q, nums(d))
+        assert nums(d)[-5:] == [w, 702 if t == 0 else w + 2, 703 if t == 0 else w + 4, E, E + 1], (q, nums(d))
         assert parse_atom(IR[q + 1]) == ('assertEq', '(.n %d) (.n %d)' % (E + 1, off)), IR[q + 1]
         a = parse_atom(IR[q + 2])
         if a[0] == 'add':
@@ -110,12 +110,12 @@ def vtSelTail (w t : ℕ) : Option ℕ → List Stmt
 /-- A table block's statements. -/
 def vtSelT (w b t : ℕ) (prev : Option ℕ) (es gs gw : ℕ) : List Stmt :=
   [.atom (.hint (.alloc (.n w) 9)),
-    .atom (.hint (.digitsExp (.n (vtBoffV b)) 34 9 4 0 (some (.n (27 + t))) (.heap (.n w) 0 9)))] ++
+    .atom (.hint (.digitsExp (.n (vtBoffV b)) 34 9 4 0 (some (.n (28 + t))) (.heap (.n w) 0 9)))] ++
   (if t = 0 then [] else
     [.atom (.const (.n (w + 1)) vtW288), .atom (.mul (.n (w + 2)) (.n es) (.n (w + 1))),
       .atom (.const (.n (w + 3)) (word gw 0)), .atom (.mul (.n (w + 4)) (.n gs) (.n (w + 3)))]) ++
-  [.dispatch (.n (vtShLen t)) vtBstNames [.n w, .n (if t = 0 then 701 else w + 2),
-      .n (if t = 0 then 702 else w + 4)] [.n (vtSelE w t), .n (vtSelE w t + 1)],
+  [.dispatch (.n (vtShLen t)) vtBstNames [.n w, .n (if t = 0 then 702 else w + 2),
+      .n (if t = 0 then 703 else w + 4)] [.n (vtSelE w t), .n (vtSelE w t + 1)],
     .atom (.assertEq (.n (vtSelE w t + 1)) (.n (vtBoffV b)))] ++ vtSelTail w t prev
 '''
 

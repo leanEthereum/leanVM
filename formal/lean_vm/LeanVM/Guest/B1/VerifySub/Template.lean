@@ -200,7 +200,7 @@ def vsCallsT : List Stmt :=
   [vsCall "verify_bus_gkr" [554, 555, 556, 557, 558, 320, 253, 254, 561] ((List.range 7).map (562 + ·)),
     vsAlloc 569 34, vsAlloc 570 4] ++ vsTabsT 571 572 ++
   [vsCall "verify_tables" [562, 563, 564, 565, 566, 567, 0, 1, 254, 253, 71, 26, 4, 335, 559, 6,
-      569, 568, 572, 570] ((List.range 10).map (573 + ·)),
+      569, 568, 572, 570, 25] ((List.range 10).map (573 + ·)),
     vsLd 583 71 6, vsAlloc 584 78, vsAlloc 585 64, vsConst 586 (word 3710851743744 0),
     vsMul 587 582 586] ++ vsTabsT 588 589 ++
   [vsCall "verify_keccak" [573, 574, 575, 576, 577, 578, 583, 569, 587, 584, 585, 589, 25]

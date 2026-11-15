@@ -25,15 +25,18 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory Le
 
 theorem vtPairs_ok : (vtPairs.all fun p => wOkB p.2 p.1) = true := by decide +kernel
 
-theorem vtPairs_names : B1.Tables.vtKidS.filter (fun g => g != (name% verify_tables_loop0) && g != "shared_selector_tables" && g != (name% shared_selector_tables_loop0)) =
+theorem vtPairs_names : B1.Tables.vtKidS.filter (fun g => g != (name% verify_tables_loop0) &&
+    g != (name% verify_tables_loop1) && g != "shared_selector_tables" &&
+    g != (name% shared_selector_tables_loop0)) =
     vtPairs.map Prod.fst := by decide +kernel
 
-theorem vt_kids_totalLe : ∀ g ∈ B1.Tables.vtKidS, g ≠ (name% verify_tables_loop0) → g ≠ (name% shared_selector_tables_loop0) →
+theorem vt_kids_totalLe : ∀ g ∈ B1.Tables.vtKidS, g ≠ (name% verify_tables_loop0) →
+    g ≠ (name% verify_tables_loop1) → g ≠ (name% shared_selector_tables_loop0) →
     g ≠ "shared_selector_tables" → TotalLe coreProgram B2C.fs g (fun _ => wSB g) := by
-  intro g hg h1 h3 h2
+  intro g hg h1 h11 h3 h2
   have hm : g ∈ vtPairs.map Prod.fst := by
     rw [← vtPairs_names, List.mem_filter]
-    exact ⟨hg, by simp [h1, h2, h3]⟩
+    exact ⟨hg, by simp [h1, h11, h2, h3]⟩
   obtain ⟨p, hp, rfl⟩ := List.mem_map.mp hm
   exact wSB_totalLe (List.all_eq_true.mp vtPairs_ok p hp)
 
@@ -85,13 +88,14 @@ theorem gr_totalLe : ∀ n ∈ [0, 1, 2, 4, 6],
 theorem vtPairs_okW (op : Opcode) : (vtPairs.all fun p => kuOkB op p.2 p.1) = true := by
   cases op <;> decide +kernel
 
-theorem vt_kids_weightLe (op : Opcode) : ∀ g ∈ B1.Tables.vtKidS, g ≠ (name% verify_tables_loop0) → g ≠ (name% shared_selector_tables_loop0) →
+theorem vt_kids_weightLe (op : Opcode) : ∀ g ∈ B1.Tables.vtKidS, g ≠ (name% verify_tables_loop0) →
+    g ≠ (name% verify_tables_loop1) → g ≠ (name% shared_selector_tables_loop0) →
     g ≠ "shared_selector_tables" →
       WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op) g (fun _ => kuSB op g) := by
-  intro g hg h1 h3 h2
+  intro g hg h1 h11 h3 h2
   have hm : g ∈ vtPairs.map Prod.fst := by
     rw [← vtPairs_names, List.mem_filter]
-    exact ⟨hg, by simp [h1, h2, h3]⟩
+    exact ⟨hg, by simp [h1, h11, h2, h3]⟩
   obtain ⟨p, hp, rfl⟩ := List.mem_map.mp hm
   exact kuSB_weightLe (List.all_eq_true.mp (vtPairs_okW op) p hp)
 
@@ -163,10 +167,12 @@ noncomputable def vsWords : B1.VerifySub.VsWords B2C.fs where
   Ksh := B2C.fs "shared_selector_tables" +
     (B2C.fs (name% shared_selector_tables_loop0) + 15 * (wSK (name% shared_selector_tables_loop0) - B2C.fs (name% shared_selector_tables_loop0))) + kSp
   K10 := wSK (name% verify_tables_loop0) - B2C.fs (name% verify_tables_loop0)
+  K11 := wSK (name% verify_tables_loop1) - B2C.fs (name% verify_tables_loop1)
   hKf := vt_kids_totalLe
   hsh := B1.Tables.ss_totalLeOn (wSK (name% shared_selector_tables_loop0) - B2C.fs (name% shared_selector_tables_loop0)) kSp
     (by simpa only [wSKt_eq] using wSKt_totalLeOn (j := idx% shared_selector_tables_loop0) (by decide +kernel)) sp_totalLe
   h10 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := idx% verify_tables_loop0) (by decide +kernel)
+  h11 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := idx% verify_tables_loop1) (by decide +kernel)
   B14 := 3204
   hl14 := B1.VerifySub.l14_totalLeOn_fs
   Beqc := 184
@@ -182,10 +188,12 @@ noncomputable def vsWords : B1.VerifySub.VsWords B2C.fs where
   Wss := fun op => B2C.ωArm B2C.xmssArmC op "shared_selector_tables" + 15 * kuSK op (name% shared_selector_tables_loop0) +
     kSpW op
   Kw10 := fun op => kuSK op (name% verify_tables_loop0)
+  Kw11 := fun op => kuSK op (name% verify_tables_loop1)
   hKvw := vt_kids_weightLe
   hssw := fun op => B1.Tables.ss_weightLeOn _ _ _
     (loopW_of (kuSK_loop (j := idx% shared_selector_tables_loop0) (by cases op <;> decide +kernel))) (sp_weightLe op)
   h10w := fun op => loopW_of (kuSK_loop (j := idx% verify_tables_loop0) (by cases op <;> decide +kernel))
+  h11w := fun op => loopW_of (kuSK_loop (j := idx% verify_tables_loop1) (by cases op <;> decide +kernel))
   Weqc := fun op => kuSB op "eq_prefix_chain"
   W15 := fun op => krVl15A op * max (B2C.fs (name% check_opening_terminal_loop0)) (32 * 38) / 1000
   Wst := fun op => kuSB op "selector_tables"
