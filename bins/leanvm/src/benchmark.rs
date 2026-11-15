@@ -46,7 +46,7 @@ fn report(label: &str, stats: &Stats, sig: &AggregateProof, prove_time: &Timing)
         pretty_integer(stats.cycles),
         crate::report::pow(stats.cycles)
     );
-    println!("    details                   : {}", crate::report::details(stats));
+    println!("    details                   : {}", crate::report::details(stats, aggregation::unified_guest().code_len()));
     crate::report::print_proof_size(sig.to_bytes().len());
     // The whole `aggregate` call, not just `cpu::prove`: for a node that also
     // covers replaying each child and batching the deferred claims, which are

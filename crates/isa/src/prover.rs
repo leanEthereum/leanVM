@@ -6,7 +6,7 @@ use verifier::{E, layout::N_TABLES};
 
 /// A prover of ISA programs, and the thread pool and field kernels it brings for the work around a proof.
 pub trait Prover: 'static {
-    /// Start the prover's thread pool. Call it before anything below; a second call does nothing.
+    /// Warm up the prover's thread pool, so that no timed work pays for starting it. Idempotent.
     fn init();
 
     /// Prove an execution of `program` on `public_input` at the code rate `2^-log_inv_rate`, or say why there is none.
@@ -47,8 +47,6 @@ pub struct Stats {
     pub log_mem: usize,
     /// Cells actually touched, before the pad to `2^log_mem`.
     pub mem_used: usize,
-    /// Bytecode instructions, before the pad to a power of two.
-    pub bytecode: usize,
 }
 
 impl Stats {

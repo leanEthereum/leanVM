@@ -312,7 +312,6 @@ pub fn prove(
             committed: committed_size,
             log_mem: w.log_mem,
             mem_used,
-            bytecode: program.code_len(),
         },
     ))
 }

@@ -165,7 +165,6 @@ pub fn prove(
         committed: layout.committed_size(),
         log_mem,
         mem_used: exec.mem_used,
-        bytecode: program.code_len(),
     };
     let mut w = crate::stage!("Build witness", || build(program, &exec, layout));
     drop(exec);

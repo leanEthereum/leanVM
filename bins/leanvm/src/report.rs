@@ -20,9 +20,9 @@ pub fn peak_gib() -> String {
     pretty_f64(bench::peak_rss_bytes() as f64 / (1u64 << 30) as f64)
 }
 
-/// One line of per-table instruction counts and shares, largest first, followed by memory, bytecode and
-/// committed-witness sizes. Zero-count tables are omitted.
-pub fn details(stats: &isa::Stats) -> String {
+/// One line of per-table instruction counts and shares, largest first, followed by memory, bytecode (`code_len`
+/// instructions) and committed-witness sizes. Zero-count tables are omitted.
+pub fn details(stats: &isa::Stats, code_len: usize) -> String {
     if stats.cycles == 0 {
         return "-".to_string();
     }
@@ -39,7 +39,7 @@ pub fn details(stats: &isa::Stats) -> String {
         .map(|&(name, c)| format!("{name} 2^{} ({:.1}%)", log2(c), 100.0 * c as f64 / stats.cycles as f64))
         .collect();
     parts.push(format!("MEMORY 2^{}", log2(stats.mem_used)));
-    parts.push(format!("BYTECODE 2^{}", log2(stats.bytecode)));
+    parts.push(format!("BYTECODE 2^{}", log2(code_len)));
     parts.push(format!("TOTAL_COMMITTED 2^{}", log2(stats.committed)));
     parts.join("  ")
 }
