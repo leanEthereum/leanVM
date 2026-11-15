@@ -34,9 +34,11 @@ open LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- **The jump table slots the back end writes are `main`'s table cells.** -/
+/-- **The jump table slots the back end writes are `main`'s table cells**: each slot's word is a
+table cell's, at the slot's address. -/
 def JTCells : Prop := ∀ (s : ℕ) (k : KVal) (w : E), W0.slots[s]? = some k →
-  SlotWord W0.layout k = some w → (W0.layout.tablesBase + s, w) ∈ tableCells
+  SlotWord W0.layout k = some w → ∃ q ∈ tableCells,
+    addressOfIndex q.1 = addressOfIndex (W0.layout.tablesBase + s) ∧ q.2 = w
 
 /-- **What a frame of function `j` holds** at the instance, `main`'s frame at `0`. -/
 def FHG {κ : ℕ} (L : MemoryImage κ) (j fp : ℕ) (σ : Val) (es : List Ev) (_vs : List V)
@@ -437,9 +439,9 @@ theorem cplRunG (hok : CplOkAll) (hFC : Complete.FrameConsistentStmt) (hjt : JTC
   have hent : ∀ ic, ic + 1 < nFns → W.ent (coreOf (ic + 1)).name = (fnOf (ic + 1)).entryPc :=
     fun ic hic => (withL_ent W0 L _).trans (B2.ent_eq guest_compiles (by omega) hic : W0.ent _ = _)
   have hJT : JTHolds L W0.layout W0.slots := fun s k w hs hk => by
-    have h := htab _ (hjt s k w hs hk)
-    dsimp only at h
-    exact h
+    obtain ⟨q, hq, ha, hqw⟩ := hjt s k w hs hk
+    rw [← ha, ← hqw]
+    exact htab q hq
   have hKP : Complete.World.KidsRunP W σ es kfps ck := by
     refine ⟨hK.1, fun i' c kfp hc hp ht => ?_⟩
     obtain ⟨⟨r, hr, hrc⟩, hrets⟩ := hK.2 i' c kfp hc hp ht
