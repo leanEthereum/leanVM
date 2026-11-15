@@ -1,30 +1,33 @@
-//! The stable and the experimental prover give the same proof of the same statement, byte for byte: three leaves (leanXMSS
-//! signatures and blobs, leanSPHINCS signatures, both schemes and blobs) and a recursion node over them, at the four
-//! rates; and every compiler test program, or the same refusal. Both trees' thread pools run in this one process, each
-//! idle while the other proves.
+//! The stable and the experimental prover give the same proof of the same statement, byte for byte: three leaves
+//! (leanXMSS signatures and blobs, leanSPHINCS signatures, both schemes and blobs), a recursion node over them, at the
+//! four rates, and a second-level node over that node, a leaf and a raw signature; the same refusal of a forged
+//! signature the native pre-check misses; and every compiler test program, or the same refusal. Both trees' thread
+//! pools live in this one process, and libtest may run the two tests at once: both pools can then be busy together,
+//! and either can take dispatches from both tests, which its dispatch lock serializes.
 
-use aggregation::{OutputClaims, aggregate, signers_cache};
+use aggregation::{AggregateError, OutputClaims, aggregate, signers_cache};
 use experimental_lean_vm_core::ExperimentalProver;
 use isa::{CompiledProgram, Prover};
 use stable_lean_vm_core::StableProver;
 use verifier::E;
 
-/// The proofs `P` gives: the three leaves', then the node's.
-fn proofs<P: Prover>() -> [Vec<u8>; 4] {
+/// The proofs `P` gives, the three leaves', the node's and the second-level node's, then why it refuses a
+/// forged signature.
+fn proofs<P: Prover>() -> ([Vec<u8>; 5], Option<AggregateError>) {
     P::init();
     let symbols: Vec<u128> = (0..2 * lean_da::BLOB_SYMBOLS as u128)
         .map(|i| i.wrapping_mul(0x9e37_79b9_7f4a_7c15))
         .collect();
     let blobs = lean_da::BlobMatrix::build(symbols.as_chunks().0).unwrap();
     let (xmss, sphincs) = (
-        signers_cache::get_signers(5),
+        signers_cache::get_signers(6),
         signers_cache::get_lean_sphincs_signers(2),
     );
     let left = aggregate::<P>(&[], xmss[..3].to_vec(), vec![], Some(&blobs), OutputClaims::All, 1).unwrap();
     let right = aggregate::<P>(&[], vec![], sphincs[..1].to_vec(), None, OutputClaims::All, 2).unwrap();
     let mixed = aggregate::<P>(
         &[],
-        xmss[3..].to_vec(),
+        xmss[3..5].to_vec(),
         sphincs[1..].to_vec(),
         Some(&blobs),
         OutputClaims::All,
@@ -33,18 +36,33 @@ fn proofs<P: Prover>() -> [Vec<u8>; 4] {
     .unwrap();
     let children = [left.clone(), right.clone(), mixed.clone()];
     let node = aggregate::<P>(&children, vec![], vec![], None, OutputClaims::All, 4).unwrap();
-    [left, right, mixed, node].map(|(_, proof)| proof.to_bytes())
+    // The node's carried deferred claim is at a non-zero point, unlike a leaf's.
+    let children = [node.clone(), right.clone()];
+    let top = aggregate::<P>(&children, xmss[5..].to_vec(), vec![], None, OutputClaims::All, 1).unwrap();
+    // A leanXMSS signature with its top layer's last path node changed: the native pre-check passes, the guest fails.
+    let (pk, message, signature) = &xmss[0];
+    let mut bytes = signature.to_bytes();
+    bytes[lean_xmss::SIG_SIZE - 1] ^= 1;
+    let forged = vec![(*pk, *message, lean_xmss::LeanXmssSignature::from_bytes(&bytes))];
+    let refusal = aggregate::<P>(&[], forged, vec![], None, OutputClaims::All, 1).err();
+    (
+        [left, right, mixed, node, top].map(|(_, proof)| proof.to_bytes()),
+        refusal,
+    )
 }
 
 #[test]
 fn stable_and_experimental_proofs_are_identical() {
-    let (experimental, stable) = (proofs::<ExperimentalProver>(), proofs::<StableProver>());
-    for (name, (e, s)) in ["left leaf", "right leaf", "mixed leaf", "node"]
+    let ((experimental, experimental_refusal), (stable, stable_refusal)) =
+        (proofs::<ExperimentalProver>(), proofs::<StableProver>());
+    for (name, (e, s)) in ["left leaf", "right leaf", "mixed leaf", "node", "second-level node"]
         .iter()
         .zip(experimental.iter().zip(&stable))
     {
         assert!(e == s, "the {name}'s proofs differ ({} and {} bytes)", e.len(), s.len());
     }
+    assert_eq!(experimental_refusal, stable_refusal);
+    assert_eq!(stable_refusal, Some(AggregateError::ProvingFailed));
 }
 
 /// `program`'s proof at rate 1 on `public_input`, or why there is none.
