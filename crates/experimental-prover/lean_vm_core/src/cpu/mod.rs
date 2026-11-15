@@ -35,21 +35,6 @@ pub(crate) use trace::{Drow, Jrow, Krow, Rows, Srow, Trace, Xrow};
 /// The data memory's size bounds (doc §Memory): `2^h` cells, `MIN_LOG_MEMORY ≤ h ≤ MAX_LOG_MEMORY`.
 pub use verifier::{MAX_LOG_MEMORY, MIN_LOG_MEMORY};
 
-/// The Fiat-Shamir IV: ONE 32-byte digest, as two field words, committing to
-/// everything fixed about the proving environment.
-///
-/// It is [`verifier::TAG`] followed by the stacked bytecode multilinear
-/// ([`layout::bytecode_table`]) rather than an assembler digest, so a verifier
-/// holding only that polynomial reproduces the seed.
-///
-/// The IV fills lanes 0..4 of the transcript's first permutation input
-/// ([`fiat_shamir::FiatShamirState::new`]), the public input the next four, so all challenges depend on the circuit version and the program before
-/// anything else; a recursion guest carries the INNER program's IV in its public
-/// input, pinning both with one word pair.
-pub fn fs_seed(program: &Program) -> [F128; 2] {
-    fiat_shamir::merkle::hash_to_scalars(&program.fiat_shamir_iv)
-}
-
 /// The two 128-bit halves a digest travels in, as the four words the
 /// Fiat-Shamir sponge absorbs.
 fn digest_words(halves: &[F128; 2]) -> [F64; 4] {
@@ -65,7 +50,7 @@ fn digest_words(halves: &[F128; 2]) -> [F64; 4] {
 /// writing them onto the scalar stream, which binds them into the state and lets the
 /// verifier reconstruct the layout, every table's height following from its rows
 /// ([`layout::table_logs`]). The public statement (program + input) is not announced
-/// here; it seeds the transcript at construction (see [`fs_seed`]). The boundary
+/// here; it seeds the transcript at construction (see [`Program`]'s IV). The boundary
 /// states are derived from the program, so they need no binding.
 fn announce_public(ps: &mut ProverState, log_mem: usize, rows: [usize; tables::N_TABLES], log_inv_rate: usize) {
     ps.add_scalar(F128::new(log_mem as u64, 0));
@@ -78,7 +63,9 @@ fn announce_public(ps: &mut ProverState, log_mem: usize, rows: [usize; tables::N
 #[derive(Clone)]
 pub struct Program {
     pub(crate) prog: Vec<Op>, // bytecode (size B, power of two)
-    /// The Fiat-Shamir IV ([`fs_seed`]), computed once at assembly so proofs of
+    /// The Fiat-Shamir IV: [`verifier::TAG`] followed by the stacked bytecode multilinear
+    /// ([`layout::bytecode_table`]), hashed, so a verifier holding only that polynomial
+    /// reproduces it. Computed once at assembly so proofs of
     /// the same program do not rehash the stacked bytecode multilinear (that
     /// table is 16·2^kbc words). Trusted
     /// to match `prog`: always set by [`Program::assemble`] from the bytecode,

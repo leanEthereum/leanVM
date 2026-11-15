@@ -368,7 +368,7 @@ pub(crate) fn bytecode_columns(prog: &[Op]) -> BytecodeColumns {
 /// short sumcheck reduces to one evaluation (§sec:e2e-bc).
 ///
 /// This is the multilinear an outermost verifier is handed in place of a
-/// structured program, and what the transcript seed binds ([`super::fs_seed`]).
+/// structured program, and what the transcript seed binds ([`super::Program`]'s IV).
 pub fn bytecode_table(prog: &[Op]) -> Vec<F64> {
     stack_columns(&bytecode_columns(prog))
 }
