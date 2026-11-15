@@ -3,7 +3,8 @@
 //! - leanSPHINCS (stateless, for the execution layer)
 //! - leanDA (PQ blobs)
 //!
-//! Proving runs the stable prover, plain portable code, or with the `experimental-prover` feature the optimized one.
+//! Proving runs the stable prover, the reference written to be read, or with the `experimental-prover` feature the
+//! optimized one.
 //! Both give the same proofs, byte for byte, and verifying needs neither.
 //!
 //! Example: [`crates/lean_vm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/lean_vm/tests/api.rs).
