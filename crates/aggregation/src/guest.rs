@@ -23,8 +23,7 @@ pub fn warm_up<P: Prover>() {
 ///
 /// The recursion placeholders are a function of the inner bytecode's log size,
 /// and here the inner bytecode is this one, so the size has to agree with
-/// itself. Its *digest* needs no such loop: it rides the statement rather than
-/// the code. The guess converges in one or two rounds because the map's only
+/// itself. The guess converges in one or two rounds because the map's only
 /// size-dependent part is a handful of unrolled sumcheck rounds.
 pub fn unified_guest() -> &'static CompiledProgram {
     static GUEST: OnceLock<CompiledProgram> = OnceLock::new();

@@ -113,7 +113,7 @@ pub(super) fn plan_coverage(
     children: &[(AggregateClaims, AggregateProof)],
     declare: Option<&AggregateClaims>,
 ) -> Result<Coverage, AggregateError> {
-    let cover = Coverage {
+    Ok(Coverage {
         lean_xmss: Region::plan(
             raw_lean_xmss,
             children.iter().map(|(claims, _)| claims.lean_xmss.as_slice()),
@@ -124,6 +124,5 @@ pub(super) fn plan_coverage(
             children.iter().map(|(claims, _)| claims.lean_sphincs.as_slice()),
             declare.map(|claims| claims.lean_sphincs.as_slice()),
         )?,
-    };
-    Ok(cover)
+    })
 }
