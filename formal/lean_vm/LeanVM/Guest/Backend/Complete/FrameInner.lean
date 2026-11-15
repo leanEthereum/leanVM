@@ -602,6 +602,16 @@ theorem inBlockOf (hok : OpOK Γ I Ag cl) (hI : I.Ok) : InBlockOf Γ Ag cl ctx I
     · exact wp_bind.mpr (wp_get.mpr (wp_bind.mpr (wp_set.mpr (wp_pure.mpr
         (fin { st₃ with rest := st₃.rest.tail } le_rfl rfl rfl rfl rfl ⟨[], by simp⟩)))))
 
+/-- **The block lemma of a body**, `bodyW` with the placement facts and the inner blocks proved:
+what is left is the frame address fact, the straight-line and call statements, the self
+`callIf`, the branch statement and the `match`. -/
+theorem bodyW_of (body : List Stmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
+    (hfa : ∀ s rest, InBody body (s :: rest) → FaAfter I.σ s rest)
+    (hflat : FlatW Γ Ag cl ctx I (InBody body)) (hself : SelfW Γ Ag cl ctx I (InBody body))
+    (hite : IteStmt Γ Ag cl ctx I) (hmatch : MatchW Γ Ag cl ctx I (InBody body))
+    (tl : List Stmt) : BlockW Γ Ag cl ctx I (placeBlock body) body tl :=
+  bodyW body placeMono placeNew_ok hfa hflat hself (inBlockOf hok hI) hite hmatch tl
+
 end Inner
 
 /-! ## An inner block off the path -/
