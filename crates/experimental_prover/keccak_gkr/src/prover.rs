@@ -10,7 +10,7 @@
 //! are down to one row.
 
 use primitives::field::{F128, F128Unreduced};
-use primitives::hash::bits::row_positions;
+use primitives::hash::positions::row_positions;
 use primitives::multilinear::{eq_table, poly_eval};
 use primitives::transcript::ProverState;
 use verifier::keccak::{BITS, LOCAL_BITS, along, linear_transpose};

@@ -10,7 +10,7 @@
 use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim};
 use primitives::field::{F64, F128, F128Unreduced};
 use primitives::hash::STATE_LANES;
-use primitives::hash::bits::iota_bit;
+use primitives::hash::positions::iota_bit;
 use primitives::multilinear::{eq_table, interp, mle_eval, poly_eval};
 use primitives::transcript::ProverState;
 use verifier::keccak::{BITS, along};

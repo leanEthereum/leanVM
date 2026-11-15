@@ -2,6 +2,9 @@
 //!
 //! Position `j = z + 64 * (x + 5 * y)` is bit `z` of lane `x + 5 * y`. A round is the linear map `theta, rho, pi`,
 //! then `chi`, then `iota`.
+//!
+//! The rest of the bit view, the layout (`BITS`, `along`) and the adjoint of [`linear`] (`linear_transpose`), is the
+//! verifier's `keccak`.
 
 use crate::{PI, RC, RHO, ROUNDS, STATE_LANES};
 

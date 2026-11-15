@@ -6,7 +6,7 @@
 //! vector forms are compiled only where their features are.
 
 use primitives::field::gf2_64::mul_wide;
-use primitives::hash::bits::row_positions;
+use primitives::hash::positions::row_positions;
 
 use crate::rmfe::RMFE;
 use crate::witness::BLOCK_WORDS;

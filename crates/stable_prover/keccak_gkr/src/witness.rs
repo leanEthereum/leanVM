@@ -5,7 +5,7 @@
 //! as lanes.
 
 use primitives::field::F64;
-use primitives::hash::bits::{iota_bit, linear};
+use primitives::hash::positions::{iota_bit, linear};
 use primitives::hash::{ROUNDS, STATE_LANES};
 use verifier::keccak::{BITS, along};
 

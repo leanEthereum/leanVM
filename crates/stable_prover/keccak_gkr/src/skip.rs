@@ -19,7 +19,7 @@
 use primitives::bit_fold::BitFold;
 use primitives::field::lanes::Wide8;
 use primitives::field::{F128, F128Unreduced, clmul8_low, powers};
-use primitives::hash::bits::row_positions;
+use primitives::hash::positions::row_positions;
 use primitives::multilinear::{eq_table, poly_eval};
 use primitives::transcript::ProverState;
 use verifier::keccak::PRODUCT_BITS;

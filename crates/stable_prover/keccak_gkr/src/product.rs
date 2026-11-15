@@ -13,7 +13,7 @@
 
 use primitives::field::lanes::transpose_bits;
 use primitives::field::{Acc8, F128, F128x8, clmul8_low};
-use primitives::hash::bits::row_positions;
+use primitives::hash::positions::row_positions;
 use primitives::multilinear::eq_table;
 use verifier::keccak::{BITS, PRODUCT_BITS};
 

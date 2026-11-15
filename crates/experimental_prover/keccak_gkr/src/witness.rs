@@ -8,7 +8,7 @@ use std::marker::PhantomData;
 
 use parallel::SendPtr;
 use primitives::field::F64;
-use primitives::hash::bits::linear;
+use primitives::hash::positions::linear;
 use primitives::hash::{RC, ROUNDS, STATE_LANES};
 use primitives::stream::Stream;
 use verifier::keccak::{BITS, along};
@@ -655,7 +655,7 @@ mod neon {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use primitives::hash::bits::iota_bit;
+    use primitives::hash::positions::iota_bit;
     use primitives::test_rng::Rng;
 
     #[test]
