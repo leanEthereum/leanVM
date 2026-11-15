@@ -21,7 +21,7 @@ open LeanVM.Guest.Core LeanVM.Guest.Backend
 @[expose] public section
 
 kernel_rfl cut19_p3 :
-    placeBlockN ((guestTraced.getD 19 default).core.body.drop 51) 10 ctx19 cut19_3 = .ok ((), cut19_4)
+    placeBlockN ((guestTraced.getD 19 default).core.body.drop 36) 5 ctx19 cut19_3 = .ok ((), cut19_4)
 
 end
 end LeanVM.Guest.Backend.GuestPiece

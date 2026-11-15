@@ -20,21 +20,8 @@ open LeanVM.Guest.Core LeanVM.Guest.Backend
 
 @[expose] public section
 
-theorem cut19_chunk7 :
-    cutChunkAt layG guestTraced outsG Data.functions.tail 19 cut19_end 7 = true := by
-  decide +kernel
-
-theorem cut19_chunk8 :
-    cutChunkAt layG guestTraced outsG Data.functions.tail 19 cut19_end 8 = true := by
-  decide +kernel
-
-theorem cut19_chunk9 :
-    cutChunkAt layG guestTraced outsG Data.functions.tail 19 cut19_end 9 = true := by
-  decide +kernel
-
-theorem cut19_chunk10 :
-    cutChunkAt layG guestTraced outsG Data.functions.tail 19 cut19_end 10 = true := by
-  decide +kernel
+kernel_rfl cut19_p13 :
+    placeBlockN ((guestTraced.getD 19 default).core.body.drop 86) 5 ctx19 cut19_13 = .ok ((), cut19_14)
 
 end
 end LeanVM.Guest.Backend.GuestPiece
