@@ -339,7 +339,9 @@ theorem tmpsApartB_of {tf : TracedFn} {pf : Placed} {T Ts : NMap Unit} {C : NMap
     (hone : (Stmt.tmpsList tf.core.body).all (fun t => match cellP pf.locs t with
       | some n => C.get? n == some 1
       | none => false) = true)
-    (hdc : distinctCells pf.locs (Stmt.tmpsList tf.core.body) {} = true) {F : NMap Unit}
+    (hdc : distinctCells pf.locs (Stmt.tmpsList tf.core.body) {} = true)
+    (hrc : (!Ts.contains (2 + tf.core.params.length + tf.rets)) = true)
+    (hns : noShift0 pf.locs = true) {F : NMap Unit}
     (hfp : ((blockOps pf.fn.body 0).drop 0).foldl fpStep {} = F)
     (hto : ((blockOps pf.fn.body 0).drop 0).all (tmpOpOk Ts F) = true) :
     tmpsApartB tf pf = true := by
@@ -359,7 +361,7 @@ theorem tmpsApartB_of {tf : TracedFn} {pf : Placed} {T Ts : NMap Unit} {C : NMap
   simp only [nmapSeq_eq]
   rw [hset, hcnt', hfp']
   simp only [Bool.and_eq_true]
-  refine ⟨?_, ⟨?_, hdc⟩, hto⟩
+  refine ⟨?_, ⟨⟨⟨?_, hdc⟩, hrc⟩, hns⟩, hto⟩
   · unfold freshOnce
     rw [natSeq_eq, hnd, Bool.true_and, List.all_eq_true]
     intro t ht
@@ -479,7 +481,7 @@ noncomputable def smallOk (j : ℕ) (pf : Placed) (TL : List V) (C : NMap ℕ) :
     TL.all (fun t => match cellP pf.locs t with
       | some n => C.get? n == some 1
       | none => false) &&
-    distinctCells pf.locs TL {}
+    distinctCells pf.locs TL {} && !c.TA.contains (2 + tf.core.params.length + tf.rets)
 
 /-- **A large function's test from its parts**: the runs of statements (`hseg`), the checks on its
 temporaries and frame (`hsmall`), the counts of its temporaries' cells, the frame pointers' cells and the instructions' test by chunks (`hcnt`, `hfp`, `hto`), the
@@ -492,6 +494,7 @@ theorem cplOk_big {j : ℕ} {pf : Placed} {TL : List V} {C : NMap ℕ} {S : SSt}
     (hcnt : ((blockOps pf.fn.body 0).drop 0).foldl (cntStep (tmpCellSet pf.locs TL)) {} = C)
     {F : NMap Unit} (hfp : ((blockOps pf.fn.body 0).drop 0).foldl fpStep {} = F)
     (hto : ((blockOps pf.fn.body 0).drop 0).all (tmpOpOk (tmpCellSet pf.locs TL) F) = true)
+    (hns : noShift0 pf.locs = true)
     {M : VMap Unit} (ho : onceRun (addLive {} (guestTraced.getD j default).core.params)
       (allocsOf (guestTraced.getD j default).trace.toList) = some M)
     (hscope : scopeBlock (guestTraced.getD j default).rets ((guestTraced.getD j default).core.body.drop 0)
@@ -514,14 +517,14 @@ theorem cplOk_big {j : ℕ} {pf : Placed} {TL : List V} {C : NMap ℕ} {S : SSt}
     List.isEmpty_iff] at hseg'
   obtain ⟨⟨⟨⟨⟨htl, huses⟩, hrv⟩, hruns⟩, hret⟩, hcalls⟩ := hseg'
   simp only [smallOk, htf, Bool.and_eq_true] at hsmall
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hhead, hpar⟩, hin⟩, hnd⟩, hself⟩, hidx⟩, hT⟩, hparU⟩, hsome⟩, hone⟩, hdc⟩ := hsmall
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hhead, hpar⟩, hin⟩, hnd⟩, hself⟩, hidx⟩, hT⟩, hparU⟩, hsome⟩, hone⟩, hdc⟩, hrc⟩ := hsmall
   have h0 : staticOk loopsG tf pf (fsWant j) = true := by
     refine staticOk_of (Ts := c.Ts) (by simp only [Bool.and_eq_true]; exact hhead) hpar hret (by rw [htl]; exact hin) (by rw [htl]; exact hnd)
       (by rw [List.drop_zero, hrv]; rfl) (by rw [htl]; rfl) hself (by rw [List.drop_zero]; exact hruns)
   have h3 : tmpsApartB tf pf = true :=
     tmpsApartB_of (T := c.T) (Ts := c.TA) (by rw [htl]; exact hidx) (by rw [htl]; exact hT)
       (by rw [List.drop_zero]; exact huses) hparU (by rw [htl]; rfl) hcnt (by rw [htl]; exact hsome)
-      (by rw [htl]; exact hone) (by rw [htl]; exact hdc) hfp hto
+      (by rw [htl]; exact hone) (by rw [htl]; exact hdc) hrc hns hfp hto
   have h1 : scopedB tf = true := scopedB_of ho hscope hfin
   have h2 : noSelfCallB tf = true := by
     unfold noSelfCallB
