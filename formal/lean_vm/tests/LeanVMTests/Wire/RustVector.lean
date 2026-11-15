@@ -29,7 +29,7 @@ open LeanVM.Protocol.Compile
 /-- The rows, `F64` words as their bits. -/
 def rows : List (List K) := [[0, 0, 1], [0, 2, 3], [0, 0, 4], [0, 5, 0]].map (·.map K.ofBits)
 
-/-- `hash_words`: Keccak-256 of the words' bytes. -/
+/-- `hash_leaf` (`crates/verifier/src/merkle.rs`): Keccak-256 of the words' bytes. -/
 def hashWords (words : List K) : Digest := keccak256 (words.flatMap K.toBytes)
 
 /-- `hash_pair`: Keccak-256 of the two digests' bytes. -/

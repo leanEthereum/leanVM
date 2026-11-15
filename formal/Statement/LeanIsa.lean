@@ -452,8 +452,8 @@ def busEntry : LeanIsaInstruction → Vector K 13
         layoutFlagWord inOdd, layoutFlagWord outOdd, (keccakOutputFlags outCells).1,
         (keccakOutputFlags outCells).2]
 
-/-- The sixteen slots of an instruction (specification §8.1; `BYTECODE_PUBLIC_SLOT = 3`,
-`crates/lean_vm_core/src/leaf.rs`): the entry at slots 3 to 15, zero at slots 0 to 2. -/
+/-- The sixteen slots of an instruction (specification §8.1; `OPCODE_SLOT = 3`,
+`crates/isa/src/program.rs`): the entry at slots 3 to 15, zero at slots 0 to 2. -/
 def instructionSlots (i : LeanIsaInstruction) : Vector K 16 :=
   let e := busEntry i
   #v[0, 0, 0, e[0], e[1], e[2], e[3], e[4], e[5], e[6], e[7], e[8], e[9], e[10], e[11], e[12]]
