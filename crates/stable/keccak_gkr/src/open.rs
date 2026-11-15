@@ -62,7 +62,7 @@ impl Openings {
 /// The weight a claim puts on each `(slot, z)`: its position weights, on the slots of the states
 /// it speaks of, scaled by the segment. `first` is the state segment 0 claims, and only the first
 /// `count` segments' states are committed.
-pub fn slot_weights(shape: Shape, claim: &Claim, first: usize, count: usize) -> Vec<F128> {
+fn slot_weights(shape: Shape, claim: &Claim, first: usize, count: usize) -> Vec<F128> {
     let segments = eq_table(&claim.point[shape.pack_vars()..]);
     let mut out = vec![F128::ZERO; 64 << shape.slot_log()];
     for segment in 0..count {
@@ -112,7 +112,6 @@ fn slices(shape: Shape, committed: &[F64], point: &[F128]) -> Vec<F128> {
 }
 
 /// The sum over rows of the two tables' dot product: its round values at `0` and infinity.
-/// The sum over rows of the two tables' dot product: its round values at `0` and infinity.
 fn round_values(a: &[F128], b: &[F128], width: usize) -> (F128, F128) {
     let mut zero = F128::ZERO;
     let mut infinity = F128::ZERO;
@@ -125,6 +124,7 @@ fn round_values(a: &[F128], b: &[F128], width: usize) -> (F128, F128) {
     (zero, infinity)
 }
 
+/// `table`, rows of `width`, with the row index's lowest variable bound at `challenge`.
 pub(crate) fn fold(table: &[F128], width: usize, challenge: F128) -> Vec<F128> {
     table
         .chunks_exact(2 * width)
@@ -132,7 +132,8 @@ pub(crate) fn fold(table: &[F128], width: usize, challenge: F128) -> Vec<F128> {
         .collect()
 }
 
-/// Bind the leading variable of `scale * sum of a * b` in every round, down to one row of `a`.
+/// The sumcheck of `scale * sum of a * b` over the row index, rows of `width`, its lowest variable first, down to one
+/// row of each: returns those rows and the point.
 fn prove_rounds(
     ps: &mut ProverState,
     mut a: Vec<F128>,
@@ -169,7 +170,7 @@ fn word_weights(shape: Shape, claim: &Claim) -> Vec<F128> {
 /// word-level `claim` on the committed segment outputs among them. An opening is of the whole
 /// block, so the slots the claim puts no weight on are evaluated too: the spare ones past
 /// [`Shape::slots`] carry other columns (§cpu), and the fold that follows must see them.
-pub fn output_claim(shape: Shape, committed: &[F64], instance: &[F128], claim: &Claim) -> (Vec<F128>, F128) {
+pub fn output_words(shape: Shape, committed: &[F64], instance: &[F128], claim: &Claim) -> (Vec<F128>, F128) {
     let n = shape.n();
     let words = parallel::map_collect(1 << shape.slot_log(), |slot| {
         mle_eval(&committed[slot * n..][..n], instance)

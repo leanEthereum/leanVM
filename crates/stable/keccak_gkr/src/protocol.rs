@@ -1,21 +1,16 @@
-//! The claims the layers pass along, and what forming the next one takes.
-//!
-//! A [`Claim`] is a weighted sum of the bits of one state per segment. With `bit(y, j, i)` the
-//! bit at position `j` of instance `i` of pack `y`, the claimed value is
+//! The claims the layers pass along (the crate docs' "Claims"): with `bit(y, j, i)` bit `j` of instance `i` of pack
+//! `y`, in the state each segment's claim is on, a claim says
 //!
 //! ```text
-//!     sum over segments, packs y, positions j, instances i of
-//!         eq(point, (y, segment)) * weights[j] * mu[i] * bit(y, j, i)
+//!     value = sum over segments m, packs y, positions j, instances i of
+//!                 eq(point, (y, m)) * weights[j] * mu[i] * bit(y, j, i)
 //! ```
-//!
-//! One layer turns a claim on the states after a round into a claim on the states before it.
 
 use primitives::field::{F128, powers};
 use primitives::multilinear::eq_table;
+use verifier::{EMBED_BITS, PACK, RMFE_EMBED};
 
-use crate::keccak::{BITS, along};
-use crate::rmfe::{EMBED_BITS, PACK, RMFE};
-use crate::witness::Shape;
+use crate::keccak::{BITS, along, linear_transpose};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Claim {
@@ -28,46 +23,42 @@ pub struct Claim {
     pub weights: Vec<F128>,
 }
 
-/// The instance weights of a claim made at the polynomial point `s`: the value at `s` of each
-/// unit vector's embedding.
-pub fn mu_at(s: F128) -> [F128; PACK] {
+/// The first claim's weights, valued at zero: on the outputs at the caller's `instance` point, a random combination
+/// of the lanes as words, bit `z` of a word weighing `x^z`, at a random segment.
+pub fn first_claim(instance: &[F128], segment: &[F128], r_lane: &[F128]) -> Claim {
+    let lanes = eq_table(r_lane);
+    Claim {
+        value: F128::ZERO,
+        mu: eq_table(&instance[..4]).try_into().expect("four low variables"),
+        point: [&instance[4..], segment].concat(),
+        weights: (0..BITS).map(|j| lanes[j / 64] * F128::new(1 << (j % 64), 0)).collect(),
+    }
+}
+
+/// The instance weights of a claim made at the polynomial point `s`: each unit vector's embedding at `s`.
+pub fn instance_weights(s: F128) -> [F128; PACK] {
     let powers = powers(s, EMBED_BITS);
     std::array::from_fn(|i| {
         (0..EMBED_BITS)
-            .filter(|b| RMFE.emb[i] >> b & 1 == 1)
+            .filter(|b| RMFE_EMBED[i] >> b & 1 == 1)
             .map(|b| powers[b])
             .sum()
     })
 }
 
+/// The position weights of the claim a layer leaves, whose bit-position sumcheck ended at `local`: on the state
+/// before `chi`, `t[k] = sum_j eq(local, j) * u[j + k]` batched by `beta`, then moved through the linear map.
+pub fn next_weights(local: &[F128], beta: F128) -> Vec<F128> {
+    let eq = eq_table(local);
+    let mut w = vec![F128::ZERO; BITS];
+    for j in 0..BITS {
+        w[j] += eq[j];
+        w[along(j, 1)] += beta * eq[j];
+        w[along(j, 2)] += beta.square() * eq[j];
+    }
+    linear_transpose(&w)
+}
+
 pub fn dot(a: &[F128], b: &[F128]) -> F128 {
     a.iter().zip(b).map(|(&x, &y)| x * y).sum()
-}
-
-/// The weights of the claim a layer leaves on the state before `chi`.
-///
-/// The layer ends with `t[k] = sum_j eq[j] * T[j + k]` for `k` in `0..3`, which `beta` batches
-/// into one weighted sum of `T`.
-pub fn chi_weights(eq: &[F128], beta: F128) -> Vec<F128> {
-    let mut out = vec![F128::ZERO; BITS];
-    for j in 0..BITS {
-        out[j] += eq[j];
-        out[along(j, 1)] += beta * eq[j];
-        out[along(j, 2)] += beta.square() * eq[j];
-    }
-    out
-}
-
-/// The claim the layers start from, once its challenges are drawn, valued at zero: a random
-/// combination of the output lanes as words, bit `z` of a word weighing `x^z`.
-pub fn first_claim(shape: Shape, r_low: &[F128], point: Vec<F128>, r_lane: &[F128]) -> Claim {
-    let mu: [F128; PACK] = eq_table(r_low).try_into().expect("four low variables");
-    assert_eq!(point.len(), shape.y_vars());
-    let lanes = eq_table(r_lane);
-    Claim {
-        value: F128::ZERO,
-        mu,
-        point,
-        weights: (0..BITS).map(|j| lanes[j / 64] * F128::new(1 << (j % 64), 0)).collect(),
-    }
 }
