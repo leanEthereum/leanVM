@@ -191,6 +191,61 @@ theorem wS_chain {h : List LHint} {join lx entry one sfp : ℕ} {firsts : List �
   simp only [wS, hcs]
   exact ⟨hset, hslot, hhead _ _ hst⟩
 
+/-- **A `JumpTo` from its cells' words**: the condition `1`, the destination the pc word of `t`,
+the frame pointer this frame's. -/
+theorem jumpTo_of {size : ℕ} (hr : Rds Ag fp size (fwd hdr FS)) {oc od of t : ℕ} (hc : oc < size)
+    (hd : od < size) (hf : of < size) (hoc : fwd hdr FS oc = 1) (hod : fwd hdr FS od = Γ.tgt t)
+    (hof : fwd hdr FS of = ofK (addressOfIndex fp)) : JumpTo Γ fp hdr FS Ag oc od of t :=
+  fun _ _ ht => jw_of hr hc hd hf (by rw [hoc]; exact (isInK_iff 1).mpr ⟨1, ofK_one.symm⟩)
+    (by rw [hod]; exact isInK_ofK _) (by rw [hof]; exact isInK_ofK _)
+    (fun h0 => absurd (hoc ▸ h0) one_ne_zero) fun _ => by rw [hod, hof]; exact ht
+
+theorem armsFills_mem (f : String) (first : ℕ) : ∀ (blocks : List (List PStmt)) (j₀ q i : ℕ),
+    i < blocks.length →
+    (first + (j₀ + i), KVal.at f (q + armsSize (blocks.take i))) ∈ armsFills f first blocks j₀ q
+  | [], _, _, _, hi => absurd hi (Nat.not_lt_zero _)
+  | b :: bs, j₀, q, 0, _ => by simp [armsFills, armsSize]
+  | b :: bs, j₀, q, i + 1, hi => by
+    have := armsFills_mem f first bs (j₀ + 1) (q + blockSize b) i (by simpa using hi)
+    simp only [armsFills, List.mem_cons, List.mem_append]
+    refine Or.inr (Or.inr ?_)
+    simpa [armsSize, List.take_succ_cons, Nat.add_assoc, Nat.add_comm 1 i] using this
+
+/-- **A one-stage chain's table holds its arms' targets**, from the jump table fills of the chain
+node at its position. -/
+theorem slot_chain1 {Ag' : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop}
+    {h : List LHint} {join lx entry one sfp first pos j : ℕ} {blocks : List (List PStmt)}
+    (hF : FillsIn Γ Ag' pos [PStmt.chain h join lx entry one sfp [first] [blocks]])
+    (hj : j < blocks.length) : ∀ σ' Ψ kh κ (L : MemoryImage κ), Ag' σ' Ψ kh κ L →
+      L.read (addressOfIndex (Γ.l.tablesBase + (first + j))) =
+        some (Γ.tgt (pos + 3 + armsSize (blocks.take j))) :=
+  hF "" _ _ (by
+    have := armsFills_mem "" first blocks 0 (pos + 3) j hj
+    simp only [Nat.zero_add] at this
+    simpa [blockFills, stmtFills, stagesFills] using this)
+
+/-- **A one-stage chain's head words** (`blkW_chain1`'s `hhead`) from its cells' words: the join
+holds the `SET`'s immediate, the selector `g^j`, the entry the picked arm's target, which the
+table slot holds, `1`, and this frame. -/
+theorem head_words {size : ℕ} (hr : Rds Ag fp size (fwd hdr FS))
+    {join lx entry one sfp first pos j : ℕ} {blocks : List (List PStmt)}
+    (hjoin : join < size) (hlx : lx < size) (hent : entry < size) (hone : one < size)
+    (hsfp : sfp < size)
+    (hfj : fwd hdr FS join = kwOf Γ (.local (pos + 3 + armsSize blocks)))
+    (hfjt : fwd hdr FS join = Γ.tgt (pos + 3 + armsSize blocks))
+    (hfx : fwd hdr FS lx = ofK (addressOfIndex j))
+    (hfe : fwd hdr FS entry = Γ.tgt (pos + 3 + armsSize (blocks.take j)))
+    (hslot : ∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →
+      L.read (addressOfIndex (Γ.l.tablesBase + (first + j))) =
+        some (Γ.tgt (pos + 3 + armsSize (blocks.take j))))
+    (hfo : fwd hdr FS one = 1) (hfs : fwd hdr FS sfp = ofK (addressOfIndex fp)) :
+    HW Γ fp Ag (Γ.pc0 + pos) (.set join (.local (pos + 3 + armsSize blocks))) ∧
+      HW Γ fp Ag (Γ.pc0 + pos + 1) (.slot lx first entry) ∧
+      JumpTo Γ fp hdr FS Ag one entry sfp (pos + 3 + armsSize (blocks.take j)) ∧
+      (j + 1 ≠ blocks.length → JumpTo Γ fp hdr FS Ag one join sfp (pos + 3 + armsSize blocks)) :=
+  ⟨set_hw hr hjoin hfj, slot_hw hr hlx hent hfx fun κ L hA => by rw [hfe]; exact hslot κ L hA,
+    jumpTo_of hr hone hent hsfp hfo hfe hfs, fun _ => jumpTo_of hr hone hjoin hsfp hfo hfjt hfs⟩
+
 end Words
 
 /-! ## Arms off the path -/
@@ -766,6 +821,76 @@ theorem stageEnd_fbat {X : PStmt} {ev : Event} {es : List Event} {what : String}
   exact push_end' fun _ => ⟨rfl, rfl⟩
 
 end Cells
+
+/-! ## A one-stage chain's words from its picked arm's -/
+
+theorem armsOps_mem : ∀ (blocks : List (List PStmt)) (pos j : ℕ) (hj : j < blocks.length),
+    ∀ o ∈ blockOps blocks[j] (pos + armsSize (blocks.take j)), o ∈ armsOps blocks pos
+  | [], _, _, hj => absurd hj (Nat.not_lt_zero _)
+  | b :: bs, pos, 0, _ => fun o ho => by
+    simp only [armsOps, List.mem_append]
+    exact Or.inl (by simpa [armsSize] using ho)
+  | b :: bs, pos, j + 1, hj => fun o ho => by
+    simp only [armsOps, List.mem_append]
+    refine Or.inr (armsOps_mem bs (pos + blockSize b) j (by simpa using hj) o ?_)
+    simpa [armsSize, List.take_succ_cons, Nat.add_assoc] using ho
+
+section Chain1
+
+variable {κ₀ : ℕ} {Γ : Site κ₀}
+  {Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop} {cl : List Call}
+  {ctx : Backend.Ctx} {I : Inst}
+
+/-- **The words of a one-stage chain** (an unchained `match`) from those of the block of the arm
+its selector picks, the join's `SET`, the table read and the jumps (`hhead`, from the cells'
+words). -/
+theorem blkW_chain1 {C : (ℕ → E) → Prop} {h : List LHint} {join lx entry one sfp first : ℕ}
+    {blocks : List (List PStmt)} {x : V} {arms : List (List Stmt)} {tl : List Stmt} {o : Out}
+    {i₀ pos j : ℕ} {blk : List PStmt} (hj : j < blocks.length) (ha : j < arms.length)
+    (hbj : blocks[j] = blk ++
+      (if j + 1 != blocks.length then [PStmt.op [] (.jump one join sfp)] else []))
+    (hx : I.σ x = ofK (addressOfIndex j)) (hne : ∀ i < j, I.σ x ≠ ofK (addressOfIndex i))
+    (hxS : ∀ σ', I.Same σ' → σ' x = I.σ x)
+    (hB : BlkW Γ I ctx Ag cl C blk arms[j] [] o i₀ (pos + 3 + armsSize (blocks.take j)))
+    (hhead : PremW I ctx → ∀ Ψ, C Ψ → ∀ σ', I.Same σ' → ∀ kh : ℕ → E × E,
+      (∀ o' ∈ blockOps [PStmt.chain h join lx entry one sfp [first] [blocks]] pos, o' ∈ I.ops) →
+      HW Γ I.fp (Ag σ' Ψ kh) (Γ.pc0 + pos) (.set join (.local (pos + 3 + armsSize blocks))) ∧
+      HW Γ I.fp (Ag σ' Ψ kh) (Γ.pc0 + pos + 1) (.slot lx first entry) ∧
+      JumpTo Γ I.fp I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) one entry sfp
+        (pos + 3 + armsSize (blocks.take j)) ∧
+      (j + 1 ≠ blocks.length → JumpTo Γ I.fp I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) one join sfp
+        (pos + 3 + armsSize blocks))) :
+    BlkW Γ I ctx Ag cl C [PStmt.chain h join lx entry one sfp [first] [blocks]] [.match_ x arms]
+      tl o i₀ pos := by
+  obtain ⟨hs, hl, hok, hW⟩ := hB
+  refine ⟨hs, hl, hok, fun hP Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops hcs hks hout => ?_⟩
+  obtain ⟨hset, hslot, hhd, hjn⟩ := hhead hP Ψ hΨ σ' hσ kh hops
+  have hcs' : ctrlSplit cs = some (.match_ x arms, tl) := by rw [hcs]; rfl
+  simp only [wLc, List.isEmpty_nil, ite_true]
+  refine wS_chain1 hcs' hset hslot j hj ha (by rw [hxS σ' hσ]; exact hx)
+    (fun i hi => by rw [hxS σ' hσ]; exact hne i hi) hhd ?_
+  rw [hbj]
+  refine wL_arm_join (N := fun ks' => next tl ks')
+    (fun nx kx hk => hW hP Ψ hΨ σ' hσ kh arms[j] ks nx kx kret khalt (fun o' ho' => hops o' ?_)
+      (by simp) hks hk) ?_ (fun hlast => ?_) hjn
+  · have h1 : o' ∈ blockOps blocks[j] (pos + 3 + armsSize (blocks.take j)) := by
+      rw [hbj, bops_append]
+      exact List.mem_append_left _ ho'
+    have h2 := armsOps_mem blocks (pos + 3) j hj o' h1
+    simp only [blockOps, stmtOps, stagesOps, List.mem_append, List.append_nil]
+    exact Or.inr h2
+  · cases o with
+    | fall es => exact fun _ _ => hout tl rfl
+    | ret es vs => exact hout
+    | stuck => exact hout.elim
+  · have hb0 : blocks[j] = blk := by
+      rw [hbj]
+      simp [hlast]
+    have := armsSize_take_succ blocks j hj
+    rw [hlast, List.take_length, hb0] at this
+    omega
+
+end Chain1
 
 end
 end LeanVM.Guest.Backend.Complete
