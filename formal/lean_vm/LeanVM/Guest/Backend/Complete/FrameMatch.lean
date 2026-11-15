@@ -169,8 +169,7 @@ theorem wL_arm_next {o : Out} {blk : List PStmt} {a : List Stmt} {p T lx nf e on
   cases o with
   | fall es =>
     intro cs' hc
-    simp only [wLc, wS, List.isEmpty_cons, List.isEmpty_nil, Bool.false_eq_true, ite_false,
-      ite_true]
+    simp only [wLc, wS, List.isEmpty_nil, ite_true]
     exact ⟨hslot, hjump _ _ (hout cs' hc)⟩
   | ret es vs => exact hout
   | stuck => exact hout.elim
