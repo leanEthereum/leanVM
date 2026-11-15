@@ -1,6 +1,6 @@
 """Posts on a PR, as one comment, what a run comparing the PR with its base found.
 
-    pr_comment.py bench HEAD_SHA ab.json...      (bench.yml's artifacts `ab-*`)
+    pr_comment.py HEAD_SHA ab.json...      (bench.yml's artifacts `ab-*`)
 
 The comment is created, edited on every run, and deleted once nothing is shown. `--dry-run`
 prints it instead and calls nothing.
@@ -305,7 +305,6 @@ def post(repo, pr, head, marker, body):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("kind", choices=["bench"])
     parser.add_argument("head", help="the PR's head commit, the one the run measured")
     parser.add_argument("files", nargs="+")
     parser.add_argument("--dry-run", action="store_true", help="print the comment, call nothing")
@@ -326,7 +325,7 @@ def main():
     if args.dry_run:
         print(body)
     else:
-        post(os.environ["REPO"], pr, head, f"<!-- leanvm-{args.kind} -->", body)
+        post(os.environ["REPO"], pr, head, "<!-- leanvm-bench -->", body)
 
 
 if __name__ == "__main__":
