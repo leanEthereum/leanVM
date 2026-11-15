@@ -34,7 +34,10 @@ pub fn run_fibonacci<P: Prover>(n: usize, log_inv_rate: usize, plan: Plan) {
         pretty_integer(n)
     );
     println!("  cycles (VM steps)           : {}", pretty_integer(stats.cycles));
-    println!("    details                   : {}", crate::report::details(&stats, program.code_len()));
+    println!(
+        "    details                   : {}",
+        crate::report::details(&stats, program.code_len())
+    );
     crate::report::print_proof_size(proof.to_bytes().len());
     let cycles_per_second = (stats.cycles as f64 / prove_time.mean()).round() as u64;
     println!(

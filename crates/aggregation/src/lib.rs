@@ -55,7 +55,7 @@ mod statement;
 mod tests;
 
 pub use error::AggregateError;
-pub use guest::{unified_guest, warm_up};
+pub use guest::unified_guest;
 use lean_sphincs::LeanSphincsPublicKey;
 use lean_xmss::LeanXmssPublicKey;
 pub use node::aggregate;

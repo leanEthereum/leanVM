@@ -11,12 +11,6 @@ use zkdsl_compiler::{compile, parse_with_replacements};
 pub(super) const GUEST_SOURCE: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../guests/lean_ethereum.py"));
 
-/// Build the guest and its bytecode table. Both are cached, so this only moves the cost out of the first prove or
-/// verify.
-pub fn warm_up() {
-    unified_guest();
-}
-
 /// The aggregation bytecode, compiled to a fixed point on its own size: the one fixed program every node proves, and
 /// whose stacked bytecode every node's bytecode claims are about.
 ///

@@ -17,8 +17,8 @@ pub struct Program {
     compiled: CompiledProgram,
     /// Bus coordinate `s` of every instruction at `s * prog.len()`, for `s < 2^BUS_BITS`.
     stacked_bytecode: Vec<u64>,
-    /// `stacked_bytecode` prepared for the verifier, with its Fiat-Shamir IV.
-    bytecode: verifier::Bytecode,
+    /// `stacked_bytecode` prepared for the verifier, on first use: a program that is only executed never needs it.
+    bytecode: OnceLock<verifier::Bytecode>,
 }
 
 /// # Panics
@@ -34,11 +34,10 @@ impl From<CompiledProgram> for Program {
                 stacked[(OPCODE_SLOT + i) * n + pc] = word;
             }
         }
-        let bytecode = verifier::Bytecode::new(&stacked);
         Self {
             compiled,
             stacked_bytecode: stacked,
-            bytecode,
+            bytecode: OnceLock::new(),
         }
     }
 }
@@ -59,7 +58,8 @@ impl Program {
 
     /// [`Self::stacked_bytecode`] prepared for the verifier, with its Fiat-Shamir IV.
     pub fn bytecode(&self) -> &verifier::Bytecode {
-        &self.bytecode
+        self.bytecode
+            .get_or_init(|| verifier::Bytecode::new(&self.stacked_bytecode))
     }
 }
 

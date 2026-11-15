@@ -46,7 +46,10 @@ fn report(label: &str, stats: &Stats, sig: &AggregateProof, prove_time: &Timing)
         pretty_integer(stats.cycles),
         crate::report::pow(stats.cycles)
     );
-    println!("    details                   : {}", crate::report::details(stats, aggregation::unified_guest().code_len()));
+    println!(
+        "    details                   : {}",
+        crate::report::details(stats, aggregation::unified_guest().code_len())
+    );
     crate::report::print_proof_size(sig.to_bytes().len());
     // The whole `aggregate` call, not just `cpu::prove`: for a node that also
     // covers replaying each child and batching the deferred claims, which are
@@ -90,7 +93,6 @@ pub fn run_aggregation<P: Prover>(
         "a leaf needs signatures or blobs"
     );
     let trace_span = tracing::info_span!("aggregation", n_lean_xmss, n_lean_sphincs, n_blobs, log_inv_rate).entered();
-    aggregation::warm_up();
     let raw_lean_xmss = signers(0, n_lean_xmss);
     let raw_lean_sphincs = lean_sphincs_signers(0, n_lean_sphincs);
     let blobs = blobs(n_blobs, 0);
