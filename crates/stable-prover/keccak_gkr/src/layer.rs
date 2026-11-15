@@ -1,5 +1,5 @@
 //! One layer: a claim on the states after a round becomes one on the states before it, in the order
-//! `crates/verifier`'s `verify_layer` reads it (the steps of the crate docs):
+//! `crates/verifier`'s `verify_layer` reads it (Annex C, `keccak:layer`):
 //!
 //! 1. the product polynomial `U` ([`product`]);
 //! 2. its evaluation point `s`;
@@ -138,7 +138,7 @@ impl Sumcheck {
     /// Send the next round, whose polynomial before `scale` and the `eq` factor on its variable has the values `zero`,
     /// `one` and `infinity` at `0`, `1` and infinity, and bind its variable, the claim's coordinate on which is `r`.
     /// Returns the challenge. Without `one`, `value = (1 + r) h(0) + r h(1) = c0 + r (c1 + c2)` gives the coefficient
-    /// the other values do not, which needs `r` nonzero, as experimental's tail rounds do too.
+    /// the other values do not, which needs `r` nonzero.
     pub fn round(&mut self, ps: &mut ProverState, zero: F128, one: Option<F128>, infinity: F128, r: F128) -> F128 {
         let (c0, c2) = (self.scale * zero, self.scale * infinity);
         let c1 = match one {

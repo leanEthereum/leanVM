@@ -77,7 +77,7 @@ fn end_to_end(n_instances: usize, depth: usize) {
     let shape = Shape::new(n_instances, depth);
     let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
     Witness::generate(shape, &inputs, &mut committed);
-    // Other columns ride the slots the states leave free (§cpu). The reduction weighs nothing
+    // Other columns ride the slots the states leave free (`lean_vm_core::cpu::keccak_value`). The reduction weighs nothing
     // there, but its openings are claims on the whole committed block, so they have to fold
     // whatever sits in them: junk here, and the checks against the commitment below are what
     // say the fold did.

@@ -45,28 +45,8 @@ pub(crate) const MAP_CHALLENGES: usize = 16;
 /// recursion guest does. Expanding puts one term at every Frobenius exponent below 64:
 /// `Phi(v) = sum_(k<64) C_k v^(2^k)` with `C_(8p+b) = f_p g_b^(2^(8p))`.
 ///
-/// ## Soundness
-///
-/// Let `delta != 0` be the prover's error on the transposed columns, fixed before the challenges. The check misses
-/// it iff `sum_w Phi(b_w) delta_w = sum_(k<64) C_k V_k = 0` with `V_k = sum_w b_w^(2^k) delta_w`. Writing
-/// `w = 64 j + i` and `b_w = x^i Y^j`,
-///
-/// ```text
-///     V_k = R_(0,k) + Y^(2^k) R_(1,k),   R_(j,k) = sum_(i<64) x^(i 2^k) delta_(64j+i) in K.
-/// ```
-///
-/// `Y^(2^k)` is not in `K` (squaring is a bijection of `K`, so `Y^(2^k)` in `K` would put `Y` in `K`) and
-/// `[E:K] = 2`, so `{1, Y^(2^k)}` is a `K`-basis and `V_k = 0` forces both `R_(j,k) = 0`. At fixed `j` those 64
-/// equations say that `D_j(U) = sum_(i<64) delta_(64j+i) U^i`, of degree at most 63, vanishes at the 64 distinct
-/// points `x, x^2, x^4, ..., x^(2^63)` (`x` has degree 64 over F_2), so `D_j = 0` and `delta = 0`: some `V_k != 0`.
-/// Grouped by `p`, the discrepancy is `sum_p f_p M_p` with
-/// `M_p = sum_b g_b^(2^(8p)) V_(8p+b) = (sum_b g_b V_(8p+b)^(2^(-8p)))^(2^(8p))`. For a `p` with some
-/// `V_(8p+b) != 0`, the inner form is a nonzero linear form in the `g_b`, zero with probability `1 / |E|`, and
-/// otherwise the outer one is nonzero in the `f_p`, zero with probability `1 / |E|`: `2 / |E|` in all.
-///
-/// The 64 terms are also the floor: the weights must separate any nonzero error on the 128 transposed `K` columns,
-/// `|S|` `E`-equations, that is `2 |S|` `K`-equations, in 128 `K`-unknowns, and with `2 |S| < 128` a nonzero error
-/// lies in the kernel for every choice of coefficients.
+/// A nonzero error on the transposed slices survives the batched check with probability at most `2 / |E|` (Annex A,
+/// `rs:map`).
 pub(crate) fn coordinate_weights(challenges: &[F128; MAP_CHALLENGES]) -> [F128; DEGREE_E] {
     std::array::from_fn(|w| apply_map(F128::from(1u128 << w), challenges))
 }
@@ -126,6 +106,7 @@ impl RingWeight {
 }
 
 /// `Phi(eq(point, y))` ready to be written out: `eq` as a low and a high table, `Phi` as a bit fold of the products.
+/// The low table, along which [`Self::add_chunk`] runs, takes half the point's variables, and at least four.
 pub(crate) struct RingFold {
     eq_lo: Vec<F128>,
     eq_hi: Vec<F128>,
@@ -134,7 +115,7 @@ pub(crate) struct RingFold {
 
 impl RingFold {
     pub(crate) fn new(phi: [F128; DEGREE_E], point: &[F128]) -> Self {
-        let lo = (point.len() / 2).clamp(4.min(point.len()), point.len());
+        let lo = (point.len() / 2).max(4).min(point.len());
         Self {
             eq_lo: eq_table_serial(&point[..lo]),
             eq_hi: eq_table_serial(&point[lo..]),

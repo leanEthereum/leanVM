@@ -58,7 +58,7 @@ fn slot_weights(shape: Shape, claim: &Claim, first: usize, count: usize) -> Vec<
 /// apart: entry `(i + 16 * slot) * 64 + z` is the sum over packs `y` of `eq(point, y)` times bit
 /// `z` of slot `slot` of instance `16 * y + i`. An opening is of the whole block, so the slots the
 /// claim puts no weight on are evaluated too: the spare ones past [`Shape::slots`] carry other
-/// columns (§cpu), and the fold that follows must see them.
+/// columns (`lean_vm_core::cpu::keccak_value`), and the fold that follows must see them.
 ///
 /// The words of 64 packs, bit-transposed, give per `z` a row of 64 bits, one per pack, whose weighted sum is a
 /// [`BitFold`] of those packs' weights.
@@ -143,7 +143,7 @@ fn word_weights(shape: Shape, claim: &Claim) -> Vec<F128> {
 /// Every slot of the committed block as a word, at an instance point, and the part of the
 /// word-level `claim` on the committed segment outputs among them. An opening is of the whole
 /// block, so the slots the claim puts no weight on are evaluated too: the spare ones past
-/// [`Shape::slots`] carry other columns (§cpu), and the fold that follows must see them.
+/// [`Shape::slots`] carry other columns (`lean_vm_core::cpu::keccak_value`), and the fold that follows must see them.
 pub fn output_words(shape: Shape, committed: &[F64], instance: &[F128], claim: &Claim) -> (Vec<F128>, F128) {
     let n = shape.n();
     let words = parallel::map_collect(1 << shape.slot_log(), |slot| {

@@ -1,4 +1,4 @@
-//! The claims the layers pass along (the crate docs' "Claims"): with `bit(y, j, i)` bit `j` of instance `i` of pack
+//! The claims the layers pass along (Annex C, `keccak:claims`): with `bit(y, j, i)` bit `j` of instance `i` of pack
 //! `y`, in the state each segment's claim is on, a claim says
 //!
 //! ```text
