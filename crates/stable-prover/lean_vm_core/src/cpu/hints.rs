@@ -77,16 +77,6 @@ impl GPow {
         g
     }
 
-    /// [`Self::new`] with every exponent up to `upto` announced, so that
-    /// [`Self::lookup`] alone finds any of them.
-    pub(crate) fn dense(upto: usize) -> Self {
-        let mut g = Self::new(upto);
-        for k in 0..=upto {
-            g.note(k);
-        }
-        g
-    }
-
     /// `g^k`. Panics past the grown range, which is the honest outcome: every
     /// index the interpreter reads has been covered by a [`Self::grow_to`].
     pub fn pow(&self, k: usize) -> F64 {
@@ -136,7 +126,7 @@ impl GPow {
         })
     }
 
-    /// The exponent of `x` if announced: any covered one, for a table built by [`Self::dense`].
+    /// The exponent of `x` if announced.
     pub(crate) fn lookup(&self, x: F64) -> Option<u32> {
         self.index.get(&x.0).copied()
     }
@@ -163,7 +153,10 @@ pub(crate) fn bounded_dlog(x: F64, nbits: u32) -> Option<u128> {
     const LOG_BABY: u32 = 17;
     static TABLE: std::sync::OnceLock<(GPow, F64)> = std::sync::OnceLock::new();
     let (baby, giant) = TABLE.get_or_init(|| {
-        let baby = GPow::dense((1usize << LOG_BABY) - 1);
+        let mut baby = GPow::new((1usize << LOG_BABY) - 1);
+        for j in 0..1usize << LOG_BABY {
+            baby.note(j);
+        }
         // g^(2^17), one past the table; its inverse is the giant step.
         let giant = mul_by_g(baby.pow((1usize << LOG_BABY) - 1)).inv();
         (baby, giant)
