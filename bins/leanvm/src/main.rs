@@ -82,9 +82,9 @@ struct Cli {
     #[arg(long, global = true, default_value_t = 2)]
     cooldown: u64,
 
-    /// The prover to run. Required: `main` checks it, since clap cannot require a global flag.
-    #[arg(long, global = true, value_enum)]
-    prover: Option<Prover>,
+    /// The prover to run, before the subcommand.
+    #[arg(long, value_enum)]
+    prover: Prover,
 
     #[command(subcommand)]
     command: Command,
@@ -145,14 +145,7 @@ enum Command {
 fn main() {
     let cli = Cli::parse();
     match cli.prover {
-        Some(Prover::Stable) => run::<StableProver>(cli),
-        Some(Prover::Experimental) => run::<ExperimentalProver>(cli),
-        None => {
-            use clap::CommandFactory;
-            let message = "--prover stable|experimental is required";
-            Cli::command()
-                .error(clap::error::ErrorKind::MissingRequiredArgument, message)
-                .exit()
-        }
+        Prover::Stable => run::<StableProver>(cli),
+        Prover::Experimental => run::<ExperimentalProver>(cli),
     }
 }
