@@ -10,7 +10,7 @@ pub fn hash_pair(left: &[u8], right: &[u8]) -> Digest {
     keccak_hash(&pair)
 }
 
-fn hash_leaf(image: &[K]) -> Digest {
+pub(crate) fn hash_leaf(image: &[K]) -> Digest {
     keccak_hash(&image.iter().flat_map(|word| word.to_bytes()).collect::<Vec<u8>>())
 }
 

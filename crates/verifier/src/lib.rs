@@ -2,7 +2,7 @@
 //!
 //! Kept close enough to the Lean transcription (`formal/Statement/LeanVmVerifier.lean`) to read side by side: the same functions, in the same order, with the same constants.
 //!
-//! What the transcription has no counterpart for sits in modules of its own: the prepared [`Bytecode`] and what the statement of an aggregate adds, [`da`].
+//! What the transcription has no counterpart for sits in modules of its own: the prepared [`Bytecode`], the proof's byte encoding ([`Proof::to_bytes`]) and what the statement of an aggregate adds, [`da`].
 //!
 //! One walk of the protocol serves two entry points. [`verify_execution`] checks the proof. [`replay_unchecked`] reads the same [`Summary`] out of it and checks nothing: every check it leaves out is behind `Transcript::checked`.
 
@@ -20,6 +20,7 @@ mod multilinear;
 mod ring_switch;
 mod transcript;
 mod whir;
+mod wire;
 
 pub use bytecode::Bytecode;
 pub use field::{E, K};
@@ -28,9 +29,9 @@ pub use layout::{
     min_execution_stacked_log,
 };
 pub use merkle::MerklePath;
-pub use transcript::Proof;
-pub use transcript::SECURITY_BITS;
+pub use transcript::{Proof, RATE_SCALARS, SECURITY_BITS, grinding_bits};
 pub use whir::{BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY_GRINDING_BITS, whir_queries};
+pub use wire::{MAX_HEIGHT, MAX_LEAF_WORDS, MAX_PHASES, MAX_QUERIES};
 
 // What the aggregation's guest constants and witness read of the protocol (`aggregation`).
 pub use bus::N_TREES as N_BUS_TREES;
@@ -46,7 +47,7 @@ use layout::{GLOBAL_COLUMN_BASES, KECCAK_OUT, MEMORY_0, MEMORY_1, N_TABLES, OP_K
 use multilinear::{dot, eq_eval, multilinear_eval};
 use ring_switch::ring_switch;
 use std::ops::Range;
-use transcript::{Transcript, grinding_bits};
+use transcript::Transcript;
 use whir::verify_whir;
 
 /// Why a proof was rejected.
