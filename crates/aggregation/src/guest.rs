@@ -38,7 +38,6 @@ impl Guest {
 /// prove or verify.
 pub fn warm_up<P: Prover>() {
     assembled::<P>();
-    stacked_bytecode();
     scalar_bytecode();
 }
 

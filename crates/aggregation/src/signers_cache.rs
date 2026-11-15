@@ -15,8 +15,10 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Mutex, OnceLock};
 use std::time::Instant;
 
+use isa::Prover;
 use lean_xmss::internals::*;
 use lean_xmss::*;
+use primitives::{pretty_f64, pretty_integer};
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 
@@ -164,56 +166,41 @@ fn write_cache(path: &Path, bytes: &[u8]) {
     }
 }
 
-/// `f` over `start..end` on plain threads, gone before it returns, with a progress line naming `what`. The cache is
-/// prover-independent, so it uses no prover's pool; it takes the pool's thread count, `LEANVM_NUM_THREADS` if set.
-fn generate<T: Send>(start: usize, end: usize, what: &str, f: impl Fn(usize) -> T + Sync) -> Vec<T> {
+/// `f` over `start..end` on `P`'s pool, with a progress line naming `what`.
+fn generate<P: Prover, T: Send>(start: usize, end: usize, what: &str, f: impl Fn(usize) -> T + Sync) -> Vec<T> {
     let total = end - start;
     let started = Instant::now();
-    let (next, done) = (AtomicUsize::new(0), AtomicUsize::new(0));
-    let threads = std::env::var("LEANVM_NUM_THREADS")
-        .ok()
-        .and_then(|n| n.parse().ok())
-        .filter(|&n| n > 0)
-        .unwrap_or_else(|| std::thread::available_parallelism().map_or(1, usize::from));
-    let mut generated: Vec<(usize, T)> = std::thread::scope(|scope| {
-        let worker = || {
-            let mut mine = Vec::new();
-            loop {
-                let k = next.fetch_add(1, Ordering::Relaxed);
-                if k >= total {
-                    return mine;
-                }
-                mine.push((k, f(start + k)));
-                let done = done.fetch_add(1, Ordering::Relaxed) + 1;
-                print!("\r  generating {what}: {done}/{total}");
-                let _ = std::io::stdout().flush();
-            }
-        };
-        let workers: Vec<_> = (0..threads).map(|_| scope.spawn(worker)).collect();
-        workers
-            .into_iter()
-            .flat_map(|w| w.join().expect("a generator thread"))
-            .collect()
+    let done = AtomicUsize::new(0);
+    let generated = P::map_collect(total, |k| {
+        let generated = f(start + k);
+        let done = done.fetch_add(1, Ordering::Relaxed) + 1;
+        print!(
+            "\r  generating {what}: {}/{}",
+            pretty_integer(done),
+            pretty_integer(total)
+        );
+        let _ = std::io::stdout().flush();
+        generated
     });
     println!(
-        "\r  generated {total} {what} in {:.3} s                              ",
-        started.elapsed().as_secs_f64()
+        "\r  generated {} {what} in {} s                              ",
+        pretty_integer(total),
+        pretty_f64(started.elapsed().as_secs_f64())
     );
-    generated.sort_by_key(|&(k, _)| k);
-    generated.into_iter().map(|(_, t)| t).collect()
+    generated
 }
 
 static POOLS: Mutex<BTreeMap<u32, Vec<LeanXmssSigner>>> = Mutex::new(BTreeMap::new());
 
-/// The first `n` cached signers of [`message`] and the rounds after it.
-pub fn get_signers(n: usize) -> Vec<LeanXmssSigner> {
-    get_signers_for(n, 0)
+/// The first `n` cached signers of [`message`] and the rounds after it, generated on `P`'s pool if not cached.
+pub fn get_signers<P: Prover>(n: usize) -> Vec<LeanXmssSigner> {
+    get_signers_for::<P>(n, 0)
 }
 
 /// The first `n` cached signers of cache `message_id`, signer `i` at
 /// `leaf_index_of(i, message_id)`: one cache file per message id, the keys shared
 /// across them.
-pub(crate) fn get_signers_for(n: usize, message_id: u32) -> Vec<LeanXmssSigner> {
+pub(crate) fn get_signers_for<P: Prover>(n: usize, message_id: u32) -> Vec<LeanXmssSigner> {
     let mut pools = POOLS.lock().unwrap();
     let pool = pools.entry(message_id).or_default();
     if pool.len() < n {
@@ -228,10 +215,10 @@ pub(crate) fn get_signers_for(n: usize, message_id: u32) -> Vec<LeanXmssSigner> 
             // keys it would otherwise generate one after another.
             let keys: Keys = [const { OnceLock::new() }; NUM_KEYS];
             let start = pool.len();
-            generate(start, n.min(start + NUM_KEYS), "leanXMSS keys", |index| {
+            generate::<P, _>(start, n.min(start + NUM_KEYS), "leanXMSS keys", |index| {
                 key(&keys, index % NUM_KEYS);
             });
-            let mut fresh = generate(pool.len(), n, "leanXMSS signatures", |index| {
+            let mut fresh = generate::<P, _>(pool.len(), n, "leanXMSS signatures", |index| {
                 compute_signer(&keys, index, message_id)
             });
             pool.append(&mut fresh);
@@ -326,7 +313,8 @@ fn save_lean_sphincs_cache(signers: &[CachedSphincsSignature]) {
 
 static LEAN_SPHINCS_POOL: Mutex<Vec<CachedSphincsSignature>> = Mutex::new(Vec::new());
 
-pub fn get_lean_sphincs_signers(n: usize) -> Vec<CachedSphincsSignature> {
+/// The first `n` cached leanSPHINCS signers, generated on `P`'s pool if not cached.
+pub fn get_lean_sphincs_signers<P: Prover>(n: usize) -> Vec<CachedSphincsSignature> {
     let mut pool = LEAN_SPHINCS_POOL.lock().unwrap();
     if pool.len() < n {
         if let Some(disk) = try_load_lean_sphincs_cache()
@@ -335,7 +323,7 @@ pub fn get_lean_sphincs_signers(n: usize) -> Vec<CachedSphincsSignature> {
             *pool = disk;
         }
         if pool.len() < n {
-            let mut fresh = generate(pool.len(), n, "leanSPHINCS signatures", compute_lean_sphincs_signer);
+            let mut fresh = generate::<P, _>(pool.len(), n, "leanSPHINCS signatures", compute_lean_sphincs_signer);
             pool.append(&mut fresh);
             save_lean_sphincs_cache(&pool);
         }

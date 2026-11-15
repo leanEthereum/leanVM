@@ -34,7 +34,7 @@ use isa::{BitsDest, CompiledProgram, DerefMode, Op, OutCells, RHint};
 use primitives::pretty_integer;
 
 mod ast;
-pub mod field;
+mod field;
 mod ir;
 mod lower;
 mod parser;
