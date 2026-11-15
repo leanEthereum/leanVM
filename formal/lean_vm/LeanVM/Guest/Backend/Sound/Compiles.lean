@@ -296,20 +296,22 @@ theorem jtChunk_eq (l : Layout) (base : ℕ) (slots : Array KVal) (c : ℕ) :
   rw [resolvedFn_jtOf, ← List.map_drop, ← List.map_take, drop_zipIdx, Nat.zero_add, jtChunk,
     take_zipIdx]
 
-/-- Whether a compiled function is `__jump_tables` of `slots` at pc `0` but for its code. -/
-def jtHead (slots : Array KVal) (cf : CompiledFunction) : Bool :=
-  cf.name == "__jump_tables" && cf.entryPc == 0 && cf.instructionCount == slots.size &&
-    cf.chunks.length == (slots.size + chunkSize - 1) / chunkSize
+theorem jtPart_eq (l : Layout) (base : ℕ) (slots : Array KVal) (c a n : ℕ)
+    (h : a + n ≤ chunkSize) :
+    jtPart l base slots c a n = ((jtChunk l base slots c).drop a).take n := by
+  rw [jtPart, jtChunk, ← List.map_drop, ← List.map_take, drop_zipIdx, take_zipIdx, List.drop_take,
+    List.take_take, List.drop_drop, Nat.min_eq_left (by omega)]
 
-/-- **`__jump_tables`, chunk by chunk**: its compiled function, when each chunk is. -/
+/-- **`__jump_tables`, chunk by chunk**: its compiled function, when each chunk is, each chunk
+compared in `jtParts` parts. -/
 theorem jt_of_chunks {l : Layout} {base : ℕ} {slots : Array KVal} {cf : CompiledFunction}
     (hhead : jtHead slots cf = true)
-    (hchunks : ∀ c < cf.chunks.length, jtChunkOk l base slots cf c = true) :
+    (hchunks : ∀ c < cf.chunks.length, ∀ q < jtParts, jtPartOk l base slots cf c q = true) :
     cf = ⟨"__jump_tables", 0, slots.size, chunked (resolvedFn l 0 (jtOf base slots))⟩ := by
-  simp only [jtHead, Bool.and_eq_true, beq_iff_eq] at hhead
-  obtain ⟨⟨⟨hn, he⟩, hc⟩, hl⟩ := hhead
+  simp only [jtHead, Bool.and_eq_true, beq_iff_eq, List.all_eq_true, decide_eq_true_eq] at hhead
+  obtain ⟨⟨⟨⟨hn, he⟩, hc⟩, hl⟩, hle⟩ := hhead
   obtain ⟨n, e, c, ch⟩ := cf
-  simp only at hn he hc hl hchunks ⊢
+  simp only at hn he hc hl hle hchunks ⊢
   subst hn he hc
   simp only [CompiledFunction.mk.injEq, true_and]
   have hlen : (resolvedFn l 0 (jtOf base slots)).length = slots.size := by
@@ -318,10 +320,41 @@ theorem jt_of_chunks {l : Layout} {base : ℕ} {slots : Array KVal} {cf : Compil
   apply List.ext_getElem
   · simp [hl]
   · intro i h1 h2
-    have := hchunks i h1
-    simp only [jtChunkOk, decide_eq_true_eq, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h1,
-      Option.getD_some, jtChunk_eq] at this
-    simp [this]
+    have hparts : ∀ q < jtParts, ((jtChunk l base slots i).drop (q * jtPartSize)).take jtPartSize =
+        ((ch[i]).drop (q * jtPartSize)).take jtPartSize := by
+      intro q hq
+      have := hchunks i h1 q hq
+      have hq' : q * jtPartSize + jtPartSize ≤ chunkSize := by
+        have : jtParts * jtPartSize = chunkSize := rfl
+        have : (q + 1) * jtPartSize ≤ jtParts * jtPartSize := Nat.mul_le_mul_right _ hq
+        rw [Nat.succ_mul] at this
+        omega
+      simp only [jtPartOk, decide_eq_true_eq, List.getD_eq_getElem?_getD,
+        List.getElem?_eq_getElem h1, Option.getD_some, jtPart_eq _ _ _ _ _ _ hq'] at this
+      exact this
+    have hall : ∀ (L M : List OffsetInstruction), L.length ≤ chunkSize → M.length ≤ chunkSize →
+        (∀ q < jtParts, (L.drop (q * jtPartSize)).take jtPartSize =
+          (M.drop (q * jtPartSize)).take jtPartSize) → L = M := by
+      intro L M hL hM h
+      have hps : jtParts * jtPartSize = chunkSize := rfl
+      have key : ∀ k ≤ jtParts, L.take (k * jtPartSize) = M.take (k * jtPartSize) := by
+        intro k hk
+        induction k with
+        | zero => simp
+        | succ k ih =>
+            rw [Nat.succ_mul, ← List.take_append_drop (k * jtPartSize) (L.take _),
+              ← List.take_append_drop (k * jtPartSize) (M.take _), List.take_take, List.take_take,
+              List.drop_take, List.drop_take, Nat.add_sub_cancel_left,
+              Nat.min_eq_left (Nat.le_add_right _ _), ih (by omega), h k (by omega)]
+      have := key jtParts le_rfl
+      rw [hps, List.take_of_length_le hL, List.take_of_length_le hM] at this
+      exact this
+    have hlL : (jtChunk l base slots i).length ≤ chunkSize := by
+      rw [jtChunk_eq]
+      exact List.length_take_le _ _
+    simp only [List.getElem_map, List.getElem_range]
+    rw [← jtChunk_eq]
+    exact (hall _ _ hlL (hle _ (List.getElem_mem h1)) hparts).symm
 
 /-! ## The composition -/
 
@@ -442,12 +475,17 @@ theorem compiles_of_pieces {p : List TracedFn} {os : List FnOut} {cfJt : Compile
   rw [fnsFrom_of_chainOut _ _ _ _ _ _ hout', hjt, hsz]
   rfl
 
+/-- The labelled functions of a result of `lowerProgram`, none for an error. -/
+def fnsOf : Except String (List Lowered × Array KVal) → List Lowered
+  | .ok r => r.1
+  | .error _ => []
+
 /-! ## Ranges of pieces -/
 
 section Ranges
 
 variable {loops : Loops} {sigs : SMap (ℕ × ℕ)} {l : Layout} {p : List TracedFn} {os : List FnOut}
-  {cfs : List CompiledFunction} {extra : VMap Loc → Bool}
+  {cfs : List CompiledFunction} {extra : ℕ → VMap Loc → Bool}
 
 theorem piecesIn_spec {a b : ℕ} (h : piecesIn loops sigs l p os cfs a b = true) :
     ∀ j, a ≤ j → j < b → pieceAt loops sigs l p os cfs j = true := by
@@ -468,8 +506,9 @@ theorem piecesIn_single {j : ℕ} (h : pieceAt loops sigs l p os cfs j = true) :
     piecesIn loops sigs l p os cfs j (j + 1) = true := by
   simp [piecesIn, h]
 
-theorem pieceOk_of_with {t : Tables} {tf : TracedFn} {o : FnOut} {pc0 frame : ℕ}
-    {cf : CompiledFunction} (h : pieceOkWith extra loops sigs l t tf o pc0 frame cf = true) :
+theorem pieceOk_of_with {test : VMap Loc → Bool} {t : Tables} {tf : TracedFn} {o : FnOut}
+    {pc0 frame : ℕ} {cf : CompiledFunction}
+    (h : pieceOkWith test loops sigs l t tf o pc0 frame cf = true) :
     pieceOk loops sigs l t tf o pc0 frame cf = true := by
   unfold pieceOk pieceOkWith at *
   split at h
@@ -503,7 +542,7 @@ theorem pieceAt_of_with {j : ℕ} (h : pieceAtWith extra loops sigs l p os cfs j
 
 /-- **A piece with a test passes the test on the placed locations** of its function. -/
 theorem extra_of_with {j : ℕ} (h : pieceAtWith extra loops sigs l p os cfs j = true) :
-    extra (placedLocsAt loops sigs p os j) = true := by
+    extra j (placedLocsAt loops sigs p os j) = true := by
   obtain ⟨pf, hpf, -, -, -, -, -, -, -, -, hx⟩ := pieceOkWith_spec h
   rw [placedLocsAt, hpf]
   exact hx
@@ -625,6 +664,18 @@ theorem placed_locs_of_pieces {p : List TracedFn} {os : List FnOut} {cfs : List 
   simp only
   rw [← hname, find?_of_getElem? (·.fn.name) placed j pf (hnames ▸ namesDistinct_nodup hdist) hget]
   rw [placedLocsAt, tablesAt, hpf]
+
+/-- **The places of function `j`'s values in a world** whose program is compiled from its pieces. -/
+theorem world_locs_of_pieces {κ : ℕ} (W : World κ) {p : List TracedFn} {os : List FnOut}
+    {cfs : List CompiledFunction} {loops : Loops} {sigs : SMap (ℕ × ℕ)} {l : Layout} (hp : W.p = p)
+    (hloops : loopTable p = loops) (hsigs : sigTable p = sigs) (hchecks : progChecks p loops = true)
+    (hos : os.length = p.length) (hcfs : cfs.length = p.length)
+    (hpieces : ∀ j < p.length, pieceAt loops sigs l p os cfs j = true) {j : ℕ} (hj : j < p.length) :
+    W.locs (p.getD j default).core.name = placedLocsAt loops sigs p os j := by
+  have h := placed_locs_of_pieces hloops hsigs hchecks hos hcfs hpieces hj
+  unfold World.locs World.placed
+  rw [hp]
+  exact h
 
 end
 end LeanVM.Guest.Backend

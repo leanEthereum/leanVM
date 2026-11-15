@@ -180,11 +180,11 @@ def pieceAt (loops : Loops) (sigs : SMap (Nat × Nat)) (l : Layout) (p : List Tr
   pieceOk loops sigs l (tablesAt os j) (p.getD j default) (os.getD j default)
     (n + ((os.take j).map (·.size)).sum) ((framesOf n os).getD j 0) (cfs.getD j noFunction)
 
-/-- `pieceAt`, its placement also passing the test `extra` on the placed locations. -/
-def pieceAtWith (extra : VMap Loc → Bool) (loops : Loops) (sigs : SMap (Nat × Nat)) (l : Layout)
+/-- `pieceAt`, its placement also passing the test `extra j` on the placed locations. -/
+def pieceAtWith (extra : Nat → VMap Loc → Bool) (loops : Loops) (sigs : SMap (Nat × Nat)) (l : Layout)
     (p : List TracedFn) (os : List FnOut) (cfs : List CompiledFunction) (j : Nat) : Bool :=
   let n := (tablesEnd os).len
-  pieceOkWith extra loops sigs l (tablesAt os j) (p.getD j default) (os.getD j default)
+  pieceOkWith (extra j) loops sigs l (tablesAt os j) (p.getD j default) (os.getD j default)
     (n + ((os.take j).map (·.size)).sum) ((framesOf n os).getD j 0) (cfs.getD j noFunction)
 
 /-- The pieces of functions `a` to `b - 1`. -/
@@ -192,8 +192,9 @@ def piecesIn (loops : Loops) (sigs : SMap (Nat × Nat)) (l : Layout) (p : List T
     (os : List FnOut) (cfs : List CompiledFunction) (a b : Nat) : Bool :=
   (List.range' a (b - a)).all (pieceAt loops sigs l p os cfs)
 
-/-- `piecesIn`, each placement also passing the test `extra` on the placed locations. -/
-def piecesInWith (extra : VMap Loc → Bool) (loops : Loops) (sigs : SMap (Nat × Nat)) (l : Layout)
+/-- `piecesIn`, the placement of each function `j` also passing the test `extra j` on its placed
+locations. -/
+def piecesInWith (extra : Nat → VMap Loc → Bool) (loops : Loops) (sigs : SMap (Nat × Nat)) (l : Layout)
     (p : List TracedFn) (os : List FnOut) (cfs : List CompiledFunction) (a b : Nat) : Bool :=
   (List.range' a (b - a)).all (pieceAtWith extra loops sigs l p os cfs)
 
@@ -211,10 +212,30 @@ def jtChunk (l : Layout) (base : Nat) (slots : Array KVal) (k : Nat) : List Offs
   (((slots.toList.drop (k * chunkSize)).take chunkSize).zipIdx (k * chunkSize)).map fun x =>
     resolveOp l 0 (base + slots.size) (.set (base + x.2) x.1)
 
-/-- Chunk `k` of `__jump_tables` is the compiled function's. -/
-def jtChunkOk (l : Layout) (base : Nat) (slots : Array KVal) (cf : CompiledFunction) (k : Nat) :
+/-- The instructions of a chunk of `__jump_tables` compared at once. -/
+def jtPartSize : Nat := 512
+
+/-- The parts of a chunk. -/
+def jtParts : Nat := 4
+
+/-- Instructions `a` to `a + n - 1` of chunk `k` of `__jump_tables`. -/
+def jtPart (l : Layout) (base : Nat) (slots : Array KVal) (k a n : Nat) : List OffsetInstruction :=
+  (((slots.toList.drop (k * chunkSize + a)).take n).zipIdx (k * chunkSize + a)).map fun x =>
+    resolveOp l 0 (base + slots.size) (.set (base + x.2) x.1)
+
+/-- Part `q` of chunk `k` of `__jump_tables` is the compiled function's. -/
+def jtPartOk (l : Layout) (base : Nat) (slots : Array KVal) (cf : CompiledFunction) (k q : Nat) :
     Bool :=
-  decide (jtChunk l base slots k = cf.chunks.getD k [])
+  decide (jtPart l base slots k (q * jtPartSize) jtPartSize =
+    ((cf.chunks.getD k []).drop (q * jtPartSize)).take jtPartSize)
+
+/-- Whether a compiled function is `__jump_tables` of `slots` at pc `0` but for its code. -/
+def jtHead (slots : Array KVal) (cf : CompiledFunction) : Bool :=
+  cf.name == "__jump_tables" && cf.entryPc == 0 && cf.instructionCount == slots.size &&
+    cf.chunks.length == (slots.size + chunkSize - 1) / chunkSize &&
+    cf.chunks.all (·.length ≤ chunkSize)
+
+
 
 end
 end LeanVM.Guest.Backend
