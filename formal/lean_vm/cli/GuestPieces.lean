@@ -51,7 +51,7 @@ but in parts (`Piece/C{j}*.lean`). -/
 def bigNames : List String := ["verify_tables", "verify_sig_lean_sphincs", "sp_wots", "__loop2"]
 
 /-- The functions of `bigNames` whose piece is written in parts; the others are `BigPieces`. -/
-def cutNames : List String := ["verify_tables", "verify_sig_lean_sphincs", "sp_wots"]
+def cutNames : List String := bigNames
 
 /-- A definition of data is split once its text is longer than this. -/
 def maxDef : Nat := 24000
@@ -674,7 +674,7 @@ def pmapDelta {α : Type} [BEq α] (old new : PMap α) : Except String (List ((N
 
 /-- A cut function's walk is checked in parts, each over at most this many instructions but for
 one statement or one arm. -/
-def maxPart : Nat := 2400
+def maxPart : Nat := 2000
 
 /-- A data module of a cut function is closed once its text is longer than this. -/
 def maxDataModule : Nat := 1500000
