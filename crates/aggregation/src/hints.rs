@@ -62,8 +62,7 @@ thread_local! {
     pub(super) static FORGE: std::cell::RefCell<Option<Forgery>> = const { std::cell::RefCell::new(None) };
 }
 
-/// One `hint_witness` stream: a name and its entries, in the order the guest
-/// pops them.
+/// The `hint_witness` streams of a run: each a name and its entries, in the order the guest pops them.
 #[derive(Default)]
 pub(super) struct Hints(Vec<(String, Vec<Vec<F128>>)>);
 
