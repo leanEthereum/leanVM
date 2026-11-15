@@ -657,7 +657,7 @@ theorem blkW_ops_ctl (hok : OpOK Γ I Ag cl) {C : (ℕ → E) → Prop} {ops : L
       wLc Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl [X] cs pos ks next kj kret khalt) :
     BlkW Γ I bx Ag cl C (ops ++ [X]) ss tl (.ret es vs) i₀ pos := by
   refine ⟨[], by simp [outEs, hc], HsOk.nil _ _ _,
-    fun hp Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo _ _ hk => ?_⟩
+    fun hp _ Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo _ _ hk => ?_⟩
   rw [wLc_append _ _ _ _ _ _ _ ops [X] (List.cons_ne_nil _ _)]
   have hbo₁ : ∀ o' ∈ blockOps ops pos, o' ∈ I.ops := fun o' ho =>
     hbo o' (by rw [bops_append]; exact List.mem_append_left _ ho)

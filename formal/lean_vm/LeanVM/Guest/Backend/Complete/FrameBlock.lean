@@ -183,6 +183,11 @@ def PremW (I : Inst) (bx : Ctx) : Prop :=
   (bx.isMain = false → IsInK I.hdr.1 ∧ IsInK I.hdr.2) ∧
     (I.loopH = true → ∀ kfp, I.kf.getLast? = some kfp → kfp = I.fp + I.size)
 
+/-- A returning path's calls are the last of the whole path: the block's calls from `i₀` end at
+the last callee frame. -/
+def KLast (I : Inst) (o : Out) (i₀ : ℕ) : Prop :=
+  ∀ es vs, o = .ret es vs → i₀ + (calls es).length = I.kf.length
+
 /-- **The words of a placed block on the path**: the block `blk` placed at the absolute position
 `pos` for the core statements `ss` (followed by `tl`) whose path under the instance's valuation is
 `o`, its calls from index `i₀`; for every frame word the constraint allows and every valuation
@@ -192,8 +197,8 @@ def BlkW {κ₀ : ℕ} (Γ : Site κ₀) (I : Inst) (bx : Ctx)
     (Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop) (cl : List Call)
     (C : (ℕ → E) → Prop) (blk : List PStmt) (ss tl : List Stmt) (o : Out) (i₀ pos : ℕ) : Prop :=
   ∃ hs : List (E × E), hs.length = (calls (outEs o)).length ∧ HsOk I bx (calls (outEs o)) hs ∧
-  (PremW I bx → ∀ Ψ, C Ψ → ∀ σ', I.Same σ' → ∀ (kh : ℕ → E × E) (cs : List Stmt)
-    (ks : List (ℕ × ℕ)) (next : List Stmt → List (ℕ × ℕ) → Prop)
+  (PremW I bx → KLast I o i₀ → ∀ Ψ, C Ψ → ∀ σ', I.Same σ' → ∀ (kh : ℕ → E × E)
+    (cs : List Stmt) (ks : List (ℕ × ℕ)) (next : List Stmt → List (ℕ × ℕ) → Prop)
     (kj : List (ℕ × ℕ) → E → E → Prop) (kret khalt : Prop),
     (∀ o' ∈ blockOps blk pos, o' ∈ I.ops) →
     ctrlSplit cs = ctrlSplit (ss ++ tl) → KsAt cl I.kf kh i₀ (calls (outEs o)) hs ks →
@@ -363,7 +368,7 @@ theorem BlkW.mono {C C' : (ℕ → E) → Prop} {blk : List PStmt} {ss tl : List
     {i₀ pos : ℕ} (h : BlkW Γ I bx Ag cl C blk ss tl o i₀ pos) (hs : Stronger C' C) :
     BlkW Γ I bx Ag cl C' blk ss tl o i₀ pos := by
   obtain ⟨hs', hl, hh, h⟩ := h
-  exact ⟨hs', hl, hh, fun hp Ψ hΨ => h hp Ψ (hs Ψ hΨ)⟩
+  exact ⟨hs', hl, hh, fun hp hK Ψ hΨ => h hp hK Ψ (hs Ψ hΨ)⟩
 
 /-- A block whose path returns, then statements off the path. -/
 theorem BlkW.append_ret {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt} {ss₁ ss₂ tl : List Stmt}
@@ -371,17 +376,17 @@ theorem BlkW.append_ret {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt} 
     (h₁ : BlkW Γ I bx Ag cl C blk₁ ss₁ (ss₂ ++ tl) (.ret es vs) i₀ pos) :
     BlkW Γ I bx Ag cl C (blk₁ ++ blk₂) (ss₁ ++ ss₂) tl (.ret es vs) i₀ pos := by
   obtain ⟨hs, hl, hh, h⟩ := h₁
-  refine ⟨hs, hl, hh, fun hp Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops hcs hks hk => ?_⟩
+  refine ⟨hs, hl, hh, fun hp hK Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops hcs hks hk => ?_⟩
   have hops₁ : ∀ o' ∈ blockOps blk₁ pos, o' ∈ I.ops := fun o' ho =>
     hops o' (by rw [bops_append]; exact List.mem_append_left _ ho)
   have hcs₁ : ctrlSplit cs = ctrlSplit (ss₁ ++ (ss₂ ++ tl)) := by rwa [← List.append_assoc]
   cases blk₂ with
   | nil =>
     rw [List.append_nil]
-    exact h hp Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops₁ hcs₁ hks hk
+    exact h hp hK Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops₁ hcs₁ hks hk
   | cons b bs =>
     rw [wLc_append _ _ _ _ _ _ _ blk₁ (b :: bs) (List.cons_ne_nil _ _)]
-    exact h hp Ψ hΨ σ' hσ kh cs ks _ _ kret khalt hops₁ hcs₁ hks hk
+    exact h hp hK Ψ hΨ σ' hσ kh cs ks _ _ kret khalt hops₁ hcs₁ hks hk
 
 theorem calls_append' (a b : List Ev) : calls (a ++ b) = calls a ++ calls b := by
   simp [calls, List.filterMap_append]
@@ -391,6 +396,7 @@ theorem BlkW.append_core {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt}
     (hc : calls (outEs o) = calls es₁ ++ calls (outEs o₂))
     (hk : ∀ next kret ks, OutK o tl next kret ks →
       OutK o₂ tl next kret (ks.drop (calls es₁).length))
+    (hkl : KLast I o i₀ → KLast I o₂ (i₀ + (calls es₁).length))
     (h₁ : BlkW Γ I bx Ag cl C blk₁ ss₁ (ss₂ ++ tl) (.fall es₁) i₀ pos)
     (h₂ : BlkW Γ I bx Ag cl C blk₂ ss₂ tl o₂ (i₀ + (calls es₁).length) (pos + blockSize blk₁)) :
     BlkW Γ I bx Ag cl C (blk₁ ++ blk₂) (ss₁ ++ ss₂) tl o i₀ pos := by
@@ -399,9 +405,10 @@ theorem BlkW.append_core {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt}
   simp only [outEs] at hl₁ hh₁
   refine ⟨hs₁ ++ hs₂, by rw [List.length_append, hl₁, hl₂, hc, List.length_append],
     by rw [hc]; exact hh₁.append hh₂ hl₁, ?_⟩
-  intro hp Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops hcs hks hk'
+  intro hp hK Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops hcs hks hk'
   obtain ⟨-, hks⟩ := hks
   rw [hc] at hks
+  have hK₁ : KLast I (.fall es₁) i₀ := fun _ _ h => by cases h
   have hops₁ : ∀ o' ∈ blockOps blk₁ pos, o' ∈ I.ops := fun o' ho =>
     hops o' (by rw [bops_append]; exact List.mem_append_left _ ho)
   have hops₂ : ∀ o' ∈ blockOps blk₂ (pos + blockSize blk₁), o' ∈ I.ops := fun o' ho =>
@@ -418,7 +425,7 @@ theorem BlkW.append_core {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt}
       wLc Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl blk₂ cs' (pos + blockSize blk₁)
         (ks.drop (calls es₁).length) next kj kret khalt := by
     intro cs' hcs'
-    refine h₂ hp Ψ hΨ σ' hσ kh cs' _ next kj kret khalt hops₂ hcs' ⟨hl₂, fun j hj => ?_⟩
+    refine h₂ hp (hkl hK) Ψ hΨ σ' hσ kh cs' _ next kj kret khalt hops₂ hcs' ⟨hl₂, fun j hj => ?_⟩
       (hk next _ ks hk')
     obtain ⟨⟨kfp, h1, h1'⟩, h2, h3⟩ := hks ((calls es₁).length + j)
       (by rw [List.length_append]; omega)
@@ -432,12 +439,12 @@ theorem BlkW.append_core {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt}
   cases blk₂ with
   | nil =>
     rw [List.append_nil]
-    refine h₁ hp Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops₁ hcs₁ hks₁ fun cs' hcs' => ?_
+    refine h₁ hp hK₁ Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops₁ hcs₁ hks₁ fun cs' hcs' => ?_
     have := hnext cs' hcs'
     rwa [wLc] at this
   | cons b bs =>
     rw [wLc_append _ _ _ _ _ _ _ blk₁ (b :: bs) (List.cons_ne_nil _ _)]
-    exact h₁ hp Ψ hΨ σ' hσ kh cs ks _ _ kret khalt hops₁ hcs₁ hks₁ hnext
+    exact h₁ hp hK₁ Ψ hΨ σ' hσ kh cs ks _ _ kret khalt hops₁ hcs₁ hks₁ hnext
 
 /-- A block whose path falls through, then a block on the path. -/
 theorem BlkW.append_fall {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt} {ss₁ ss₂ tl : List Stmt}
@@ -448,15 +455,21 @@ theorem BlkW.append_fall {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt}
   cases o₂ with
   | stuck =>
     exact ⟨[], by simp [outEs, Out.pre, calls], HsOk.nil _ _ _,
-      fun _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hk => hk.elim⟩
+      fun _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hk => hk.elim⟩
   | fall es₂ =>
     refine BlkW.append_core (by simp [outEs, Out.pre, calls_append']) (fun next kret ks hk => ?_)
-      h₁ h₂
+      (fun _ _ _ h => by cases h) h₁ h₂
     intro cs' hcs'
     have := hk cs' hcs'
     rwa [calls_append', List.length_append, ← List.drop_drop] at this
   | ret es₂ vs =>
-    exact BlkW.append_core (by simp [outEs, Out.pre, calls_append']) (fun _ _ _ hk => hk) h₁ h₂
+    refine BlkW.append_core (by simp [outEs, Out.pre, calls_append']) (fun _ _ _ hk => hk)
+      (fun hK es vs' he => ?_) h₁ h₂
+    injection he with h1 h2
+    subst h1 h2
+    have := hK (es₁ ++ es₂) vs rfl
+    rw [calls_append', List.length_append] at this
+    omega
 
 /-- **A straight-line instruction's relation gives its words** on the memories `Ag`, for every
 frame word and valuation `Same` as the instance's (from `FrameHW`'s `opW_hw`/`opW_jw` and
@@ -510,7 +523,7 @@ theorem FAt.toBlk (hok : OpOK Γ I Ag cl) {ctx : Ctx} {C : (ℕ → E) → Prop}
   refine wp_mono (h hc0) fun a st' ⟨C', hcok, hs, hn, hl, ⟨ops, ho, hops⟩, hr⟩ =>
     ⟨C', hcok.sat, hcok.blind, hs, hn, hl, hcok, hr, ops, ho, fun hfit hout pos => ⟨[],
       by simp [outEs, hc], HsOk.nil _ _ _,
-      fun _ Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo hcs _ hk => ?_⟩⟩
+      fun _ _ Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo hcs _ hk => ?_⟩⟩
   refine wLc_ops hok hΨ hσ kh ops (hops hfit hout)
     pos hbo cs ks next kj kret khalt ?_
   have := hk cs (hcs.trans hss)
@@ -723,7 +736,7 @@ theorem BlockW.nil (tl : List Stmt) : BlockW Γ Ag cl ctx I (placeBlock []) [] t
   rw [placeBlock]
   refine FBAt.pure ⟨fun _ _ _ => hinv, hinv.chain, fun _ => ⟨[], by simp, ⟨[],
     by simp [outEs, calls], HsOk.nil _ _ _,
-    fun _ Ψ _ σ' _ kh cs ks next kj kret khalt _ hcs _ hk => ?_⟩,
+    fun _ _ Ψ _ σ' _ kh cs ks next kj kret khalt _ hcs _ hk => ?_⟩,
     by rw [pathVals_nil]; exact fun v hv => nomatch hv⟩⟩
   rw [wLc]
   have := hk cs (by simpa using hcs)
