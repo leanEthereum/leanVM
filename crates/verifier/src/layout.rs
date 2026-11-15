@@ -207,7 +207,7 @@ impl Table {
         self.columns.len()
     }
 
-    pub fn count_columns(&self) -> impl Iterator<Item = usize> {
+    fn count_columns(&self) -> impl Iterator<Item = usize> {
         (0..self.width()).filter(|&i| self.columns[i].starts_with("cnt"))
     }
 }
@@ -301,7 +301,7 @@ fn jump_constraints(columns: &[E]) -> Vec<E> {
 /// The lanes each of a sponge state's thirteen cells holds, `(lo, hi)`, in the even layout or the odd one, `None`
 /// marking a limb that holds no lane: nine rate cells, lanes 0..16 two to a cell then lane 16 in a low limb (even), or
 /// lane 0 in a high limb then lanes 1..17 two to a cell (odd), then the capacity lanes 17..25.
-pub fn keccak_cell_lanes(odd: bool) -> [(Option<usize>, Option<usize>); KECCAK_CELLS] {
+fn keccak_cell_lanes(odd: bool) -> [(Option<usize>, Option<usize>); KECCAK_CELLS] {
     std::array::from_fn(|cell| match (odd, cell) {
         (_, 9..) | (true, 1..) => (Some(2 * cell - 1), Some(2 * cell)),
         (true, _) => (None, Some(0)),
@@ -388,7 +388,7 @@ const JUMP_COLUMNS: &[&str] = &["pc", "fp", "o_c", "o_d", "o_f", "v_cond", "v_pc
 // q_keccak's slots, and the output lanes' claims are the Keccak reduction's claim on the output.
 #[rustfmt::skip]
 const KECCAK_HEAD: &[&str] = &["pc", "fp", "o_m0", "o_m1", "o_m2", "o_m3", "o_tail", "o_b8", "o_cap", "o_out", "odd_in", "odd_out", "out_two", "out_all", "free"];
-pub const KECCAK_CELLS: usize = 13; // a sponge state, read then written
+const KECCAK_CELLS: usize = 13; // a sponge state, read then written
 pub const KECCAK_IN: usize = KECCAK_HEAD.len();
 pub const KECCAK_OUT: usize = KECCAK_IN + STATE_LANES;
 pub const KECCAK_CNT: usize = KECCAK_OUT + STATE_LANES;
