@@ -58,7 +58,7 @@ leanVM is designed for security:
 
 ## two provers
 
-In the short term, we support two Rust implementations of the prover, `stable` and `experimental`, giving identical proofs: experimental includes the latest optimizations, while stable focuses on readability and safety. There will eventually be a single prover.
+In the short term, we provide two Rust implementations of the prover, `stable` (for readability and safety) and `experimental` (includes the latest optimizations). There will eventually be a single prover in this repo.
 
 ## benchmarks
 
