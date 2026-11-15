@@ -224,6 +224,28 @@ theorem slot_chain1 {Ag' : Val → (ℕ → E) → (ℕ → E × E) → (κ : �
     simp only [Nat.zero_add] at this
     simpa [blockFills, stmtFills, stagesFills] using this)
 
+/-- **A one-stage chain's head words** (`blkW_chain1`'s `hhead`) from its cells' words: the join
+holds the `SET`'s immediate, the selector `g^j`, the entry the picked arm's target, which the
+table slot holds, `1`, and this frame. -/
+theorem head_words {size : ℕ} (hr : Rds Ag fp size (fwd hdr FS))
+    {join lx entry one sfp first pos j : ℕ} {blocks : List (List PStmt)}
+    (hjoin : join < size) (hlx : lx < size) (hent : entry < size) (hone : one < size)
+    (hsfp : sfp < size)
+    (hfj : fwd hdr FS join = kwOf Γ (.local (pos + 3 + armsSize blocks)))
+    (hfjt : fwd hdr FS join = Γ.tgt (pos + 3 + armsSize blocks))
+    (hfx : fwd hdr FS lx = ofK (addressOfIndex j))
+    (hfe : fwd hdr FS entry = Γ.tgt (pos + 3 + armsSize (blocks.take j)))
+    (hslot : ∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →
+      L.read (addressOfIndex (Γ.l.tablesBase + (first + j))) =
+        some (Γ.tgt (pos + 3 + armsSize (blocks.take j))))
+    (hfo : fwd hdr FS one = 1) (hfs : fwd hdr FS sfp = ofK (addressOfIndex fp)) :
+    HW Γ fp Ag (Γ.pc0 + pos) (.set join (.local (pos + 3 + armsSize blocks))) ∧
+      HW Γ fp Ag (Γ.pc0 + pos + 1) (.slot lx first entry) ∧
+      JumpTo Γ fp hdr FS Ag one entry sfp (pos + 3 + armsSize (blocks.take j)) ∧
+      (j + 1 ≠ blocks.length → JumpTo Γ fp hdr FS Ag one join sfp (pos + 3 + armsSize blocks)) :=
+  ⟨set_hw hr hjoin hfj, slot_hw hr hlx hent hfx fun κ L hA => by rw [hfe]; exact hslot κ L hA,
+    jumpTo_of hr hone hent hsfp hfo hfe hfs, fun _ => jumpTo_of hr hone hjoin hsfp hfo hfjt hfs⟩
+
 end Words
 
 /-! ## Arms off the path -/
