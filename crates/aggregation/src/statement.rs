@@ -3,6 +3,7 @@
 use super::cells::{cell_bytes, count, pack_16_bytes};
 use super::deferred::DeferredBytecodeClaim;
 use super::guest::fs_seed;
+use super::proof::AggregateClaims;
 use super::{LeanSphincsClaim, LeanXmssClaim};
 use fiat_shamir_prover::merkle::hash_to_scalars;
 use primitives::field::F128;
@@ -67,7 +68,7 @@ fn cell_hash(cells: impl IntoIterator<Item = F128>) -> [F128; 2] {
     hash_to_scalars(&keccak256::hash(&cell_bytes(cells)))
 }
 
-/// A node's public statement, hashed to the two words the VM publishes. The
+/// A node's public statement, hashed to the two words the VM publishes as its public input. The
 /// guest's `statement_digest` computes exactly this, both for itself and when it
 /// rebuilds a child's, which is what forces a whole tree onto one bytecode and
 /// each child's claims, bound by the two list digests, onto its parent's lists.
@@ -78,17 +79,12 @@ fn cell_hash(cells: impl IntoIterator<Item = F128>) -> [F128; 2] {
 /// preimage from every other use of the hash here. The header cells, then the
 /// deferred cells, each hashed as its two lanes. Each claim list's digest binds its
 /// own length through the hash's padding, so the pair binds both lists whole.
-pub(super) fn statement_digest(
-    xmss_signers: &[LeanXmssClaim],
-    lean_sphincs_signers: &[LeanSphincsClaim],
-    da_digest: [u8; 32],
-    defer: &DeferredBytecodeClaim,
-) -> [F128; 2] {
+pub(super) fn statement_digest(claims: &AggregateClaims, defer: &DeferredBytecodeClaim) -> [F128; 2] {
     let header: [[F128; 2]; STATEMENT_HEADER / 2] = [
         fs_seed(),
-        claim_list_digest(xmss_signers.iter().map(lean_xmss_claim_cells)),
-        claim_list_digest(lean_sphincs_signers.iter().map(lean_sphincs_claim_cells)),
-        hash_to_scalars(&da_digest),
+        claim_list_digest(claims.lean_xmss.iter().map(lean_xmss_claim_cells)),
+        claim_list_digest(claims.lean_sphincs.iter().map(lean_sphincs_claim_cells)),
+        hash_to_scalars(&verifier::da::digest(claims.da_commitment)),
     ];
     cell_hash(header.into_iter().flatten().chain(defer.cells()))
 }

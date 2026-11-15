@@ -73,12 +73,6 @@ impl AggregateClaims {
     }
 }
 
-/// The VM's public input: the digest of the claims and the deferred claim.
-pub(super) fn public_input(claims: &AggregateClaims, defer: &DeferredBytecodeClaim) -> [F128; 2] {
-    let da = verifier::da::digest(claims.da_commitment);
-    statement_digest(&claims.lean_xmss, &claims.lean_sphincs, da, defer)
-}
-
 impl AggregateProof {
     pub fn to_bytes(&self) -> Vec<u8> {
         encode(&self.bytecode_point, &self.proof.to_bytes())
@@ -101,10 +95,10 @@ impl AggregateProof {
         if !is_sorted(claims) {
             return false;
         }
-        let Some(defer) = DeferredBytecodeClaim::recompute_scalar(self.bytecode_point.clone()) else {
+        let Some(defer) = DeferredBytecodeClaim::recompute(self.bytecode_point.clone()) else {
             return false;
         };
-        let pi = public_input(claims, &defer);
+        let pi = statement_digest(claims, &defer);
         let verdict = verifier::verify_execution(scalar_bytecode(), &public_input_bytes(&pi), &self.proof);
         if let Err(error) = &verdict {
             tracing::debug!(%error, "the proof does not verify");

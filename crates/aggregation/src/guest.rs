@@ -9,7 +9,7 @@ use std::sync::{Mutex, OnceLock};
 use zkdsl_compiler::{compile, parse_with_replacements};
 
 /// The aggregation guest's zkDSL source.
-pub(crate) const GUEST_SOURCE: &str =
+pub(super) const GUEST_SOURCE: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../guests/lean_ethereum.py"));
 
 /// Build the guest, its tables and `P`'s assembly of it. All are cached, so this only moves the cost out of the first
@@ -44,7 +44,7 @@ pub fn unified_guest() -> &'static CompiledProgram {
 }
 
 /// The guest as prover `P` runs it, assembled once per prover.
-pub(crate) fn assembled<P: Prover>() -> &'static P::Program {
+pub(super) fn assembled<P: Prover>() -> &'static P::Program {
     // A generic function's statics are shared by all its instantiations, so the cache is keyed by the prover's type.
     static ASSEMBLED: Mutex<Vec<(TypeId, &'static (dyn Any + Send + Sync))>> = Mutex::new(Vec::new());
     let mut cache = ASSEMBLED.lock().unwrap();
@@ -61,7 +61,7 @@ pub(crate) fn assembled<P: Prover>() -> &'static P::Program {
 
 /// The stacked bytecode polynomial of the aggregation guest: the one fixed table every node's bytecode claims are
 /// about.
-pub(crate) fn stacked_bytecode() -> &'static [u64] {
+pub(super) fn stacked_bytecode() -> &'static [u64] {
     static TABLE: OnceLock<Vec<u64>> = OnceLock::new();
     TABLE.get_or_init(|| {
         let table = lean_vm_core::cpu::layout::bytecode_table(&unified_guest().prog);
@@ -70,13 +70,13 @@ pub(crate) fn stacked_bytecode() -> &'static [u64] {
 }
 
 /// [`stacked_bytecode`] as the `verifier` crate takes it, hashed once: what [`AggregateProof::verify`](super::AggregateProof::verify) checks proofs against, and [`aggregate`](super::aggregate) reads its children with.
-pub(crate) fn scalar_bytecode() -> &'static verifier::Bytecode {
+pub(super) fn scalar_bytecode() -> &'static verifier::Bytecode {
     static BYTECODE: OnceLock<verifier::Bytecode> = OnceLock::new();
     BYTECODE.get_or_init(|| verifier::Bytecode::new(stacked_bytecode()))
 }
 
 /// The guest's Fiat-Shamir IV as the two words a statement carries it in.
-pub(crate) fn fs_seed() -> [F128; 2] {
+pub(super) fn fs_seed() -> [F128; 2] {
     hash_to_scalars(&scalar_bytecode().fiat_shamir_iv())
 }
 

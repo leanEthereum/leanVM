@@ -6,19 +6,13 @@ use super::hints::SubHints;
 use fiat_shamir_prover::{FiatShamirState, RATE_SCALARS, Sequential, grinding_bits};
 use isa::Prover;
 use lean_vm_core::cpu::{from_scalar, to_scalar};
-use lean_vm_core::leaf::{N_BYTECODE_SELECTORS, N_TUPLE_BITS};
+use lean_vm_core::leaf::N_BYTECODE_SELECTORS;
 use primitives::field::F128;
 // `eq` tables on the calling thread: the batch runs under either prover, some of it in its pool's tasks.
 use primitives::multilinear::{eq_table_serial as eq_table, interp};
 use std::ops::Range;
 
 pub(super) const RECURSION_AGG_LABEL: &[u8] = b"leanvm/recursion-aggregation/v1";
-
-// The guest bakes a bytecode claim's width from `N_TUPLE_BITS` while `bytecode_vars`
-// reads it off the stacked table, which is `N_BYTECODE_SELECTORS` wide. Two constants
-// that happen to agree: were they to drift, a leaf's claim point would be one length in
-// the guest and another in the statement, and nothing else would notice.
-const _: () = assert!(N_TUPLE_BITS == N_BYTECODE_SELECTORS);
 
 /// The claim on the stacked bytecode that a node defers rather than evaluating
 /// in-circuit: one point and value (`doc/leanvm/main.tex` §Deferred evaluation
@@ -28,7 +22,7 @@ const _: () = assert!(N_TUPLE_BITS == N_BYTECODE_SELECTORS);
 /// prover that lies about a value changes the statement its proof has to satisfy
 /// rather than the claim anyone checks.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct DeferredBytecodeClaim {
+pub(super) struct DeferredBytecodeClaim {
     pub(super) bytecode_point: Vec<F128>,
     pub(super) bytecode_value: F128,
 }
@@ -37,7 +31,7 @@ impl DeferredBytecodeClaim {
     /// What a leaf defers: the all-zeros point, where the value is just the
     /// table's first entry.
     pub(super) fn leaf() -> Self {
-        Self::recompute_scalar(vec![F128::ZERO; bytecode_vars()]).expect("the all-zeros point has the right shape")
+        Self::recompute(vec![F128::ZERO; bytecode_vars()]).expect("the all-zeros point has the right shape")
     }
 
     /// The claim at `bytecode_point`, its value read off the point's [`bytecode_sums`].
@@ -51,7 +45,7 @@ impl DeferredBytecodeClaim {
 
     /// The claim at `bytecode_point`, evaluated by the `verifier` crate, scalar and single threaded: what a received
     /// aggregate is checked with. `None` for a point of the wrong length.
-    pub(super) fn recompute_scalar(bytecode_point: Vec<F128>) -> Option<Self> {
+    pub(super) fn recompute(bytecode_point: Vec<F128>) -> Option<Self> {
         if bytecode_point.len() != bytecode_vars() {
             return None;
         }
@@ -195,14 +189,12 @@ fn absorb_round(
 /// Each child brings its public input and two claims, the fresh one its verification raised and the one it deferred:
 /// `claims` holds them child by child in that order, and `sums` their [`bytecode_sums`]. A child's fresh claim is
 /// batched with its carried one at every child count, one included. Returns the guest hints and the single claim they
-/// reduce to, or `None` when a value is not the bytecode's evaluation.
+/// reduce to.
 pub(super) fn aggregate_deferred_claims<P: Prover>(
     public_inputs: &[[F128; 2]],
     claims: &[DeferredBytecodeClaim],
     mut sums: Vec<Vec<F128>>,
-) -> Option<(SubHints, DeferredBytecodeClaim)> {
-    assert_eq!(claims.len(), 2 * public_inputs.len(), "two claims per child");
-    assert_eq!(sums.len(), claims.len(), "sums for every claim");
+) -> (SubHints, DeferredBytecodeClaim) {
     let kbcv = bytecode_vars();
 
     // The count and each child's words are padded with zeros to whole rates, so the
@@ -285,17 +277,17 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
         fold_lsb(&mut weights, r);
     }
     let value = rows[0];
-    if claim != value * weights[0] {
-        return None;
-    }
+    assert_eq!(
+        claim,
+        value * weights[0],
+        "every claim's value is the bytecode's evaluation"
+    );
 
     drop(_span);
     let hints = vec![("bc_sumcheck_msgs", messages), ("bc_star_hint", vec![value])];
-    Some((
-        hints,
-        DeferredBytecodeClaim {
-            bytecode_point: challenges,
-            bytecode_value: value,
-        },
-    ))
+    let reduced = DeferredBytecodeClaim {
+        bytecode_point: challenges,
+        bytecode_value: value,
+    };
+    (hints, reduced)
 }

@@ -9,8 +9,8 @@ use super::guest::{assembled, fs_seed, scalar_bytecode, unified_guest};
 #[cfg(test)]
 use super::hints::FORGE;
 use super::hints::{Hints, lean_sphincs_hints, lean_xmss_hints};
-use super::proof::{AggregateClaims, AggregateProof, OutputClaims, is_sorted, public_input};
-use super::statement::{lean_sphincs_claim_cells, lean_xmss_claim_cells, list_split};
+use super::proof::{AggregateClaims, AggregateProof, OutputClaims, is_sorted};
+use super::statement::{lean_sphincs_claim_cells, lean_xmss_claim_cells, list_split, statement_digest};
 use super::{MAX_LOG_INV_RATE, MAX_RECURSIONS, MIN_LOG_INV_RATE};
 use fiat_shamir_prover::merkle::hash_to_scalars;
 use isa::{Prover, Stats};
@@ -100,7 +100,7 @@ pub fn aggregate<P: Prover>(
     let public_inputs: Vec<[F128; 2]> = children
         .iter()
         .zip(&carried)
-        .map(|((claims, _), defer)| public_input(claims, defer))
+        .map(|((claims, _), defer)| statement_digest(claims, defer))
         .collect();
     // One single-threaded replay per worker: nothing inside dispatches.
     let summaries = P::map_collect(children.len(), |i| {
@@ -234,8 +234,7 @@ pub fn aggregate<P: Prover>(
             .into_iter()
             .zip(carried_sums)
             .flat_map(|(fresh, carried)| [fresh, carried]);
-        let (batch_hints, reduced) = aggregate_deferred_claims::<P>(&public_inputs, &claims, sums.collect())
-            .ok_or(AggregateError::ProvingFailed)?;
+        let (batch_hints, reduced) = aggregate_deferred_claims::<P>(&public_inputs, &claims, sums.collect());
         hints.extend(batch_hints);
         reduced
     };
@@ -261,7 +260,7 @@ pub fn aggregate<P: Prover>(
         lean_sphincs: cover.lean_sphincs.signers,
         da_commitment: da_root,
     };
-    let pi = public_input(&claims, &defer);
+    let pi = statement_digest(&claims, &defer);
     #[cfg(test)]
     if let Some(forge) = FORGE.with(|forge| forge.borrow_mut().take()) {
         forge(&mut hints);

@@ -101,7 +101,8 @@ pub fn file() -> File {
         bytecode_value: element(&mut rng),
     };
     let seed = fs_seed();
-    let statement = statement_digest(&xmss_typed, &sphincs_typed, da, &defer);
+    let claims = AggregateClaims { lean_xmss: xmss_typed, lean_sphincs: sphincs_typed, da_commitment: Some(root) };
+    let statement = statement_digest(&claims, &defer);
 
     // Two children with true claims on the stacked bytecode: each one's public input and fresh claim.
     let subproofs: Vec<([F128; 2], DeferredBytecodeClaim)> = (0..2)
@@ -115,7 +116,7 @@ pub fn file() -> File {
         })
         .collect();
     let carried: Vec<DeferredBytecodeClaim> = (0..2)
-        .map(|_| DeferredBytecodeClaim::recompute_scalar(elements(&mut rng, kbcv)).unwrap())
+        .map(|_| DeferredBytecodeClaim::recompute(elements(&mut rng, kbcv)).unwrap())
         .collect();
     // Each child's fresh claim, then its carried one: the batch's order, which its sums follow.
     let public_inputs: Vec<[F128; 2]> = subproofs.iter().map(|(public_input, _)| *public_input).collect();
@@ -127,8 +128,7 @@ pub fn file() -> File {
     let points: Vec<Vec<F128>> = claims.iter().map(|claim| claim.bytecode_point.clone()).collect();
     <StableProver as isa::Prover>::init();
     let sums = bytecode_sums::<StableProver>(&points);
-    let (hints, batched) = aggregate_deferred_claims::<StableProver>(&public_inputs, &claims, sums)
-        .expect("the honest children's deferred values are the bytecode's evaluations");
+    let (hints, batched) = aggregate_deferred_claims::<StableProver>(&public_inputs, &claims, sums);
     let hint = |name: &str| &hints.iter().find(|(n, _)| *n == name).unwrap().1;
     let msgs = hint("bc_sumcheck_msgs");
     let star = hint("bc_star_hint");

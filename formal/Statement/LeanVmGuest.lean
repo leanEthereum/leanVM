@@ -211,7 +211,7 @@ def DeferredBytecodeClaim.HasZeroPoint (bytecode : List K) (claim : DeferredByte
   claim.bytecodePoint = List.replicate (Nat.log2 bytecode.length) 0
 
 /-- **The deferred claim is true** of the bytecode `bytecode`: it has the shape, and the value is
-the bytecode's multilinear extension at the point (`DeferredBytecodeClaim::recompute_scalar`,
+the bytecode's multilinear extension at the point (`DeferredBytecodeClaim::recompute`,
 `crates/aggregation/src/deferred.rs`). The length being `2 ^ len` is part of it: `HasBytecodeShape`
 reads `Nat.log2` of the length, which a bytecode of other length shares, and the extension is of
 `2 ^ len` values. Stronger than `BytecodeClaim.Holds` (the value only). The deployed outer verifier
