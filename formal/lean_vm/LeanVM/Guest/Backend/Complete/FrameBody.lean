@@ -296,7 +296,7 @@ end Sels
 
 /-- **A block of statements leaves no value waiting to be placed**: each statement ends by
 clearing it. -/
-theorem placeBlock_lazy {ctx : Ctx} : ∀ (s : Stmt) (rest : List Stmt) (st : St),
+theorem placeBlock_lazyC {ctx : Ctx} : ∀ (s : Stmt) (rest : List Stmt) (st : St),
     wpP (placeBlock (s :: rest)) ctx st fun _ st' => st'.lazy = none
   | s, [], st => by
       rw [placeBlock]
@@ -309,7 +309,7 @@ theorem placeBlock_lazy {ctx : Ctx} : ∀ (s : Stmt) (rest : List Stmt) (st : St
       exact wp_pure.mpr h1
   | s, r :: rs, st => by
       rw [placeBlock]
-      exact wp_bind.mpr fun _ _ _ => wp_bind.mpr fun _ st₁ _ => placeBlock_lazy r rs st₁
+      exact wp_bind.mpr fun _ _ _ => wp_bind.mpr fun _ st₁ _ => placeBlock_lazyC r rs st₁
 
 /-- The walk's instance of a path with the callee frames `kfps`. -/
 noncomputable def instK {κ₀ : ℕ} (W : World κ₀) (tf : TracedFn) (pf : Placed) (fp : ℕ)
@@ -703,7 +703,7 @@ theorem walkWords_of_body (hbody : BodyW) : WalkWordsStmt := by
   have hlz : wpP (placeBlock tf.core.body) (ctxOf (loopTable W.p) (sigTable W.p) tf) st₁
       fun _ st' => st'.lazy = none := by
     rw [hbd₀]
-    exact placeBlock_lazy s₀ rest₀ st₁
+    exact placeBlock_lazyC s₀ rest₀ st₁
   refine wp_bind.mpr (wp_mono (wp_and (hB _ st₁ _ s' 0 0 (.ret es vs) hscope hwI (by simp)
     (fun e he => he) (fun j _ => by simp [outEs]) hwinv hwinv.cok) hlz) fun _ st₂ hst₂ => ?_)
   obtain ⟨⟨C', hsat, -, hstr, hn₂, hl₂, hout⟩, hlz₂⟩ := hst₂
