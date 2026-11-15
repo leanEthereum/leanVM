@@ -552,6 +552,162 @@ theorem selfFp_fat (hok : I.Ok) (hmain : ctx.isMain = true → I.fp = 0) (h2 : 2
         obtain ⟨hk, hr⟩ := hfr Ψ hΨ
         exact ⟨hk, fun h => absurd h hsf, fun _ rd hrd _ => hr rd hrd⟩
 
+/-! ## Known values through a flush -/
+
+theorem VW.grow {ok ok' : V → Prop} {C' : (ℕ → E) → Prop} {st' : St} (h : VW I C st ok)
+    (hs : Stronger C' C) (hn : st.next ≤ st'.next) (hl : LocsLe st.locs st'.locs)
+    (hok : ∀ v l, ok' v → st.locs[v]? = some l → ok v)
+    (hnew : ∀ v l, ok' v → st'.locs[v]? = some l → st.locs[v]? = none →
+      2 ≤ locBase l ∧ locBase l < st'.next ∧ ∀ Ψ, C' Ψ → locW Ψ l = I.σ v) :
+    VW I C' st' ok' := fun v l hv hl' => by
+  cases hv0 : st.locs[v]? with
+  | none => exact hnew v l hv hl' hv0
+  | some l0 =>
+    have e := hl v l0 hv0
+    rw [hl'] at e
+    cases e
+    obtain ⟨a, b, c⟩ := h v l (hok v l hv hv0) hv0
+    exact ⟨a, lt_of_lt_of_le b hn, fun Ψ hΨ => c Ψ (hs Ψ hΨ)⟩
+
+theorem VW.anti {ok ok' : V → Prop} (h : VW I C st ok) (hok : ∀ v, ok' v → ok v) :
+    VW I C st ok' := fun v l hv hl => h v l (hok v hv) hl
+
+/-- What a flush keeps of the known values: the places it adds are cells, and the values placed
+before and known, or placed by it, have their words. -/
+def FlushR (I : Inst) (C' : (ℕ → E) → Prop) (st st' : St) (ok : V → Prop) : Prop :=
+  (∀ (v : V) (l : Loc), st'.locs[v]? = some l → st.locs[v]? = some l ∨ ∃ c, l = Loc.cell c) ∧
+    VW I C' st' (fun v => ok v ∨ st.locs[v]? = none)
+
+theorem FlushR.refl {ok : V → Prop} (h : VW I C st ok) : FlushR I C st st ok :=
+  ⟨fun _ _ hl => Or.inl hl, fun v l hv hl => hv.elim (fun h' => h v l h' hl) fun h0 => by
+    rw [h0] at hl
+    cases hl⟩
+
+theorem FlushR.same {ok : V → Prop} {st' : St} (h : VW I C st ok) (hl : st'.locs = st.locs)
+    (hn : st'.next = st.next) : FlushR I C st st' ok := by
+  have := FlushR.refl h
+  unfold FlushR VW at this ⊢
+  rw [hl, hn]
+  exact this
+
+theorem FlushR.right {ok : V → Prop} {C' : (ℕ → E) → Prop} {st₁ st₂ : St}
+    (h : FlushR I C' st st₁ ok) (hl : st₂.locs = st₁.locs) (hn : st₂.next = st₁.next) :
+    FlushR I C' st st₂ ok := by
+  unfold FlushR VW at h ⊢
+  rw [hl, hn]
+  exact h
+
+theorem FlushR.trans {ok : V → Prop} {C₁ C₂ : (ℕ → E) → Prop} {st₁ st₂ : St}
+    (h₁ : FlushR I C₁ st st₁ ok) (h₂ : FlushR I C₂ st₁ st₂ (fun v => ok v ∨ st.locs[v]? = none)) :
+    FlushR I C₂ st st₂ ok :=
+  ⟨fun v l hl => (h₂.1 v l hl).elim (h₁.1 v l) Or.inr,
+    h₂.2.anti fun _ hv => Or.inl hv⟩
+
+theorem FlushR.of_locs {ok : V → Prop} {C' : (ℕ → E) → Prop} {st₁ st' : St}
+    (h : FlushR I C' st₁ st' ok) (he : st₁.locs = st.locs) : FlushR I C' st st' ok := by
+  unfold FlushR at h ⊢
+  rw [← he]
+  exact h
+
+/-- The places a run adds have their words. -/
+theorem run_new {vs : List V} {base : ℕ} {C' : (ℕ → E) → Prop} {st' : St}
+    (hbk : ∀ k < vs.length, 2 ≤ base + k ∧ base + k < st'.next)
+    (hnew : ∀ v l, st'.locs[v]? = some l → st.locs[v]? = some l ∨ v ∈ vs)
+    (hk : ∀ k (hk : k < vs.length), st'.locs[vs[k]]? = some (.cell (base + k)))
+    (hw : ∀ Ψ, C' Ψ → ∀ k (hk : k < vs.length), Ψ (base + k) = I.σ vs[k]) {ok : V → Prop}
+    (h : VW I C st ok) (hs : Stronger C' C) (hn : st.next ≤ st'.next)
+    (hl : LocsLe st.locs st'.locs) :
+    FlushR I C' st st' ok := by
+  have hc : ∀ v l, st'.locs[v]? = some l → st.locs[v]? = some l ∨
+      ∃ k, ∃ hk : k < vs.length, vs[k] = v ∧ l = Loc.cell (base + k) := by
+    intro v l hl'
+    rcases hnew v l hl' with h' | h'
+    · exact Or.inl h'
+    · obtain ⟨k, hk', rfl⟩ := List.getElem_of_mem h'
+      rw [hk k hk'] at hl'
+      cases hl'
+      exact Or.inr ⟨k, hk', rfl, rfl⟩
+  refine ⟨fun v l hl' => (hc v l hl').imp_right fun ⟨k, _, _, e⟩ => ⟨_, e⟩,
+    h.grow hs hn hl (fun v l hv h' => hv.resolve_right (by rw [h']; simp))
+      fun v l _ hl' h0 => ?_⟩
+  rcases hc v l hl' with h' | ⟨k, hk', rfl, rfl⟩
+  · rw [h0] at h'
+    cases h'
+  · exact ⟨(hbk k hk').1, (hbk k hk').2, fun Ψ hΨ => hw Ψ hΨ k hk'⟩
+
+theorem FAt.discard {α : Type} {m : P α} {R : α → ((ℕ → E) → Prop) → St → Prop}
+    (h : FAt ctx I C st m R) :
+    FAt ctx I C st (Functor.discard m) (fun _ C' st' => ∃ a, R a C' st') := by
+  rw [Functor.discard, map_const, Function.comp_apply, map_eq_pure_bind]
+  exact FAt.bind h fun a _ _ _ _ _ hr => FAt.pure ⟨a, hr⟩
+
+theorem FAt.peek_bind {β : Type} {f : Option Event → P β} {R : β → ((ℕ → E) → Prop) → St → Prop}
+    (h : FAt ctx I C st (f st.rest.head?) R) : FAt ctx I C st (peek >>= f) R :=
+  fun hc => wp_bind.mpr (wp_peek.mpr (h hc))
+
+theorem advance_fat :
+    FAt ctx I C st advance (fun _ C' st' => C' = C ∧ st' = { st with rest := st.rest.tail }) :=
+  FAt.modify rfl rfl rfl id
+
+/-- **A value made**: its run's cells and words (`.cell`, `.padRun`, a message run not read in
+place), a return area whose words the constraint gives already, a message run read in place whose
+copies' events give each alias its word, or nothing placed (`.pooled`, `.addr`, `.site`). -/
+theorem onAlloc_fat (vs : List V) (kind : Kind) (up : List Stmt) {ok : V → Prop}
+    (hcp : ∀ (k : ℕ) (d s : V), (∀ j < k, ∃ a, up[j]? = some (Stmt.atom a)) →
+      up[k]? = some (Stmt.atom (.copy d s)) → ok s ∧ I.σ d = I.σ s)
+    (hret : kind = .ret → 2 + ctx.argCells + vs.length ≤ st.next ∧
+      ∀ Ψ, C Ψ → ∀ k (hk : k < vs.length), Ψ (2 + ctx.argCells + k) = I.σ vs[k])
+    (h2 : 2 ≤ st.next) (hv : VW I C st ok) :
+    FAt ctx I C st (onAlloc vs kind up) (fun _ C' st' => st'.rest = st.rest ∧
+      FlushR I C' st st' ok) := by
+  have hrun : FAt ctx I C st (takeRun vs) (fun _ C' st' => st'.rest = st.rest ∧
+      FlushR I C' st st' ok) :=
+    FAt.mono (takeRun_fat vs) fun _ C' st' hs hn hl ⟨hnx, hr, _, hnew, hk, hw⟩ =>
+      ⟨hr, run_new (fun k hk => ⟨by simp only [Cell] at *; omega, by simp only [Cell] at *; omega⟩)
+        hnew hk hw hv hs hn hl⟩
+  unfold onAlloc
+  cases kind with
+  | cell => exact hrun
+  | pooled => exact FAt.quiet rfl rfl rfl rfl ⟨rfl, FlushR.same hv rfl rfl⟩
+  | addr => exact FAt.quiet rfl rfl rfl rfl ⟨rfl, FlushR.same hv rfl rfl⟩
+  | site => exact FAt.pure ⟨rfl, FlushR.refl hv⟩
+  | ret =>
+    obtain ⟨hb, hw⟩ := hret rfl
+    refine FAt.read_bind (FAt.mono (bindRun_fat vs _)
+      fun _ C' st' hs hn hl ⟨hC, he, hnew, hk⟩ => ⟨(congrArg St.rest he).trans rfl, ?_⟩)
+    subst hC
+    exact run_new (fun k hk => ⟨by simp only [Cell] at *; omega, by simp only [Cell] at *; omega⟩)
+      hnew hk hw hv hs hn hl
+  | padRun =>
+    exact FAt.bind hrun fun _ st₁ C₁ _ _ _ hr => FAt.quiet rfl rfl rfl rfl ⟨hr.1, hr.2.right rfl rfl⟩
+  | spongeRun =>
+    refine FAt.bind (FAt.ofSame (R := fun r C' st' => C' = C ∧ st = st' ∧ ∀ base, r = some base →
+        ∀ k (hk : k < vs.length), ∃ s, up[k]? = some (.atom (.copy vs[k] s)) ∧
+          st.locs[s]? = some (.cell (base + k)))
+      (wp_mono spongeInPlace_spec fun r st' ⟨he, h⟩ => ⟨by rw [he], by rw [he], by rw [he],
+        by rw [he]; exact LocsLe.refl _, rfl, he.symm, h⟩))
+      fun r st₁ C₁ hs₁ _ _ ⟨hC₁, he₁, hal⟩ => ?_
+    subst hC₁ he₁
+    cases r with
+    | none => exact hrun
+    | some base =>
+      refine FAt.bind (bindRun_fat vs base) fun _ st₂ C₂ hs₂ hn₂ hl₂ ⟨hC, he, hnew, hk⟩ => ?_
+      subst hC
+      refine FAt.quiet rfl rfl rfl rfl ⟨(congrArg St.rest he).trans rfl, ?_⟩
+      have hal' := hal base rfl
+      have hn₂' : st₂.next = st.next := (congrArg St.next he).trans rfl
+      refine run_new (base := base) (vs := vs) (fun k hk => ?_) hnew hk
+        (fun Ψ hΨ k hk => ?_) hv hs₁ hn₂ hl₂
+      · obtain ⟨s, hu, hs⟩ := hal' k hk
+        obtain ⟨hok, _⟩ := hcp k vs[k] s (fun j hj => let ⟨_, h, _⟩ := hal' j (by omega); ⟨_, h⟩) hu
+        obtain ⟨a, b, _⟩ := hv s _ hok hs
+        exact ⟨a, by rw [hn₂']; exact b⟩
+      · obtain ⟨s, hu, hs⟩ := hal' k hk
+        obtain ⟨hok, he'⟩ := hcp k vs[k] s
+          (fun j hj => let ⟨_, h, _⟩ := hal' j (by omega); ⟨_, h⟩) hu
+        obtain ⟨_, _, c⟩ := hv s _ hok hs
+        exact (c Ψ (hs₁ Ψ hΨ)).trans he'.symm
+
 end Prims
 
 end
