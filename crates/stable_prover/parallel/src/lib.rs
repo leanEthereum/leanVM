@@ -1,7 +1,7 @@
 //! Fixed-size thread pool for flat data-parallel kernels.
 //! Workers claim ranges from one shared counter, which also balances cores of different speeds.
 //! Dispatches cannot nest: a dispatch from a pool task panics, and one from a thread a task spawned can deadlock.
-//! Task panics are resumed on the dispatcher after every worker has stopped.
+//! The first task panic is resumed on the dispatcher after every worker has stopped; a later one's payload is leaked.
 
 use std::any::Any;
 use std::cell::Cell;
@@ -44,7 +44,7 @@ thread_local! {
 /// A type-erased work unit: `f(start, end)` over ranges tiling `0..n_tasks`.
 ///
 /// The closure's lifetime is erased to `'static`. The dispatcher waits for every worker to finish the job
-/// before it returns, so the borrow outlives every call.
+/// before it returns or unwinds ([`AwaitWorkers`]), so the borrow outlives every call.
 #[derive(Clone, Copy)]
 struct Job {
     f: NonNull<dyn Fn(usize, usize) + Sync>,
@@ -177,7 +177,29 @@ fn drain(pool: &Pool, job: Job) {
         }
     }));
     if let Err(payload) = result {
-        pool.panic.lock().unwrap().get_or_insert(payload); // keep the first
+        let mut first = pool.panic.lock().unwrap();
+        if first.is_none() {
+            *first = Some(payload);
+        } else {
+            // Leak rather than drop it: its `Drop` may panic, here outside `catch_unwind` and under the lock.
+            std::mem::forget(payload);
+        }
+    }
+}
+
+/// Created once a job is published, waits for every worker to finish it when dropped, unwinding included, so the
+/// dispatcher never leaves while a worker can still call the erased closure.
+struct AwaitWorkers(&'static Pool);
+
+impl Drop for AwaitWorkers {
+    fn drop(&mut self) {
+        let pool = self.0;
+        spin_while(|| pool.running.load(Ordering::Acquire) > 0);
+        let mut state = pool.state.lock().unwrap();
+        while pool.running.load(Ordering::Acquire) > 0 {
+            state = pool.done.wait(state).unwrap();
+        }
+        state.job = None;
     }
 }
 
@@ -223,8 +245,8 @@ pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
     let pool = pool();
     let guard = pool.dispatch.lock().unwrap();
 
-    // SAFETY: erase the borrow to `'static` so it fits in `Job`; the dispatcher waits for every worker
-    // before returning, so `f` outlives every dereference. `transmute` rather than a `*const dyn` cast,
+    // SAFETY: erase the borrow to `'static` so it fits in `Job`; `AwaitWorkers` waits for every worker before the
+    // dispatcher returns or unwinds, so `f` outlives every dereference. `transmute` rather than a `*const dyn` cast,
     // which would force `F: 'static`.
     let f_ref: &(dyn Fn(usize, usize) + Sync) = &f;
     let job = Job {
@@ -241,20 +263,14 @@ pub fn for_each_chunk<F: Fn(usize, usize) + Sync>(n_tasks: usize, f: F) {
         pool.published.store(state.generation, Ordering::Release);
         state.sleeping
     };
+    let workers = AwaitWorkers(pool);
     // The spinning workers see the new generation by themselves.
     if sleeping > 0 {
         pool.start.notify_all();
     }
 
     drain(pool, job); // the dispatcher runs as worker 0
-    spin_while(|| pool.running.load(Ordering::Acquire) > 0);
-    {
-        let mut state = pool.state.lock().unwrap();
-        while pool.running.load(Ordering::Acquire) > 0 {
-            state = pool.done.wait(state).unwrap();
-        }
-        state.job = None;
-    }
+    drop(workers);
 
     // Re-raise the first task panic after dropping the guard, so the lock
     // releases cleanly (no poison) and the pool stays usable.

@@ -3,7 +3,9 @@
 //! surfaces on the dispatcher without wedging the pool.
 
 extern crate experimental_parallel as parallel;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::panic::{AssertUnwindSafe, catch_unwind, panic_any};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::time::Duration;
 
 const SIZES: [usize; 7] = [0, 1, 2, 17, 1_000, 4_096, 100_000];
 
@@ -167,4 +169,91 @@ fn back_to_back_dispatches_leave_no_worker_in_a_finished_one() {
         assert_eq!(result.is_err(), panics, "round {round}");
         assert!(counts.iter().all(|c| c.load(Ordering::Relaxed) == 1), "round {round}");
     }
+}
+
+/// A panic payload whose `Drop` panics. The pool must never drop one where that panic could escape.
+struct Bomb;
+
+impl Drop for Bomb {
+    fn drop(&mut self) {
+        panic!("a panic payload's drop panicked");
+    }
+}
+
+/// Counts a task as running until dropped, unwinding included.
+struct Running<'a>(&'a AtomicUsize);
+
+impl<'a> Running<'a> {
+    fn enter(count: &'a AtomicUsize) -> Self {
+        count.fetch_add(1, Ordering::SeqCst);
+        Self(count)
+    }
+}
+
+impl Drop for Running<'_> {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, Ordering::SeqCst);
+    }
+}
+
+/// Two tasks of one dispatch panic with a `Bomb`, one on the dispatcher and one on a worker: the keeper first, the
+/// surplus once the pool has had time to keep the keeper's payload, so the pool is left holding a second payload whose
+/// `Drop` panics. The other workers' tasks stay in the closure until after the surplus panic.
+fn surplus_panic_payload_is_contained(surplus_on_dispatcher: bool) {
+    let pause = || std::thread::sleep(Duration::from_millis(20));
+    let wait = |flag: &AtomicBool| {
+        while !flag.load(Ordering::SeqCst) {
+            std::thread::yield_now();
+        }
+    };
+    let dispatcher = std::thread::current().id();
+    let sequential = parallel::num_threads() == 1;
+    // Whether each side's actor has started, indexed by `on_dispatcher`.
+    let present = [AtomicBool::new(false), AtomicBool::new(false)];
+    let worker_actor_taken = AtomicBool::new(false);
+    let (kept, surplus) = (AtomicBool::new(false), AtomicBool::new(false));
+    let running = AtomicUsize::new(0);
+    // Every worker holds at most one task until the surplus panic, so one is left for the dispatcher.
+    let caught = catch_unwind(AssertUnwindSafe(|| {
+        parallel::for_each(parallel::num_threads().max(2), |_| {
+            let _running = Running::enter(&running);
+            if sequential {
+                // The task runs inline and its panic unwinds straight to the caller: there is no worker.
+                panic_any(Bomb);
+            }
+            let on_dispatcher = std::thread::current().id() == dispatcher;
+            if !on_dispatcher && worker_actor_taken.swap(true, Ordering::SeqCst) {
+                wait(&surplus);
+                pause();
+                return;
+            }
+            present[usize::from(on_dispatcher)].store(true, Ordering::SeqCst);
+            if on_dispatcher == surplus_on_dispatcher {
+                wait(&kept);
+                pause();
+                surplus.store(true, Ordering::SeqCst);
+            } else {
+                wait(&present[usize::from(!on_dispatcher)]);
+                kept.store(true, Ordering::SeqCst);
+            }
+            panic_any(Bomb);
+        });
+    }));
+    let payload = caught.expect_err("a task panic must be re-raised on the dispatcher");
+    let resumed_a_bomb = payload.is::<Bomb>();
+    std::mem::forget(payload);
+    assert_eq!(running.load(Ordering::SeqCst), 0, "a task outlived the dispatch");
+    assert!(resumed_a_bomb, "the dispatch must re-raise the first task panic");
+    let out = parallel::map_collect(1_000, |i| i);
+    assert!(out.iter().enumerate().all(|(i, &v)| v == i));
+}
+
+#[test]
+fn surplus_panic_payload_on_the_dispatcher_is_contained() {
+    surplus_panic_payload_is_contained(true);
+}
+
+#[test]
+fn surplus_panic_payload_on_a_worker_is_contained() {
+    surplus_panic_payload_is_contained(false);
 }
