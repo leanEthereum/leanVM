@@ -2,9 +2,9 @@
 //! The base field `K = GF(2)[x] / (x^64 + x^4 + x^3 + x + 1)`, in which `x` has order `2^64 - 1`.
 //!
 //! A product is one carry-less 64x64 multiplication followed by a reduction.
-//! The reduction folds the high word back with shifts and XORs ([`reduce`]), except in the scalar products
-//! (`x86_64::mul`, `aarch64::mul_shift_tail`), which fold it with two more carry-less multiplications by `0x1B`
-//! and so never leave the vector register.
+//! The reduction folds the high word back with shifts and XORs ([`reduce`]), except in the scalar products,
+//! which never leave the vector register: `x86_64::mul` folds it with one more carry-less multiplication by
+//! `0x1B` and a byte lookup, `aarch64::mul_shift_tail` with two.
 
 use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, Mul, MulAssign};
@@ -170,14 +170,14 @@ impl Mul for F64 {
             // SAFETY: aes target feature is enabled at compile time.
             unsafe { aarch64::mul_shift_tail(self, rhs) }
         }
-        #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
+        #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq", target_feature = "ssse3"))]
         {
-            // SAFETY: pclmulqdq is enabled at compile time.
+            // SAFETY: pclmulqdq and ssse3 are enabled at compile time.
             unsafe { Self(x86_64::mul(self.0, rhs.0)) }
         }
         #[cfg(not(any(
             all(target_arch = "aarch64", target_feature = "aes"),
-            all(target_arch = "x86_64", target_feature = "pclmulqdq")
+            all(target_arch = "x86_64", target_feature = "pclmulqdq", target_feature = "ssse3")
         )))]
         {
             Self(reduce(mul_wide(self.0, rhs.0)))
@@ -419,26 +419,40 @@ pub mod x86_64 {
     use super::R64;
     use core::arch::x86_64::*;
 
-    /// One field product: the carry-less product, then two carry-less folds of its high word by `0x1B`.
+    /// `n * 0x1B` for a nibble `n`, the product fitting a byte.
+    static SPILL: [u8; 16] = {
+        let mut t = [0u8; 16];
+        let mut n = 0;
+        while n < 16 {
+            t[n] = (n ^ (n << 1) ^ (n << 3) ^ (n << 4)) as u8;
+            n += 1;
+        }
+        t
+    };
+
+    /// One field product: the carry-less product, one carry-less fold of its high word by `0x1B`, and a
+    /// byte lookup for the four bits that fold spills past `x^63`.
     ///
     /// The whole product stays in one vector register. [`super::reduce`] would move both words to integer
-    /// registers and back, and on Zen 4 that round trip and its shift chain cost more than the two folds.
+    /// registers and back, and on Zen 4 that round trip and its shift chain cost more than the fold.
     ///
-    /// Credit: binius64 <https://github.com/binius-zk/binius64>
-    /// (`crates/arith-bench/src/monbijou/clmul.rs::reduce`).
+    /// Credit: Lemire and Kaser, "Faster 64-bit universal hashing using carry-less multiplications",
+    /// Algorithm 3 <https://arxiv.org/abs/1503.03465>.
     ///
     /// # Safety
     ///
-    /// Requires the `pclmulqdq` target feature.
+    /// Requires the `pclmulqdq` and `ssse3` target features.
     #[inline]
-    #[target_feature(enable = "pclmulqdq")]
+    #[target_feature(enable = "pclmulqdq,ssse3")]
     pub unsafe fn mul(a: u64, b: u64) -> u64 {
         let r = _mm_cvtsi64_si128(R64 as i64);
         let p = _mm_clmulepi64_si128::<0x00>(_mm_cvtsi64_si128(a as i64), _mm_cvtsi64_si128(b as i64));
         // hi * 0x1B, at most 68 bits.
         let t = _mm_clmulepi64_si128::<0x01>(p, r);
-        // Its spill past x^63, times 0x1B: at most 8 bits.
-        let u = _mm_clmulepi64_si128::<0x01>(t, r);
+        // Its spill past x^63, the nibble in byte 8, moved to byte 0: every other index byte looks up zero.
+        // SAFETY: a 16-byte read of a 16-byte static.
+        let table = unsafe { _mm_loadu_si128(SPILL.as_ptr().cast()) };
+        let u = _mm_shuffle_epi8(table, _mm_srli_si128::<8>(t));
         _mm_cvtsi128_si64(_mm_xor_si128(_mm_xor_si128(p, t), u)) as u64
     }
 
