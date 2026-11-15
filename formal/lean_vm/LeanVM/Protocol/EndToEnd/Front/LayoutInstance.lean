@@ -151,10 +151,10 @@ theorem getElem_columns_pyCol (c : Col) :
 theorem refCol_memCol (i : Fin 3) : refCol (memCol i) = i := by
   revert i; decide +kernel
 
-/-- `BYTECODE_FINAL_COUNTERS` is `BYTECODE_FINAL_COUNTERS`. -/
+/-- The instance's `bfcntCol` is the reference's `BYTECODE_FINAL_COUNTERS`. -/
 theorem refCol_bfcntCol : refCol bfcntCol = bytecodeFinalCounters := by decide +kernel
 
-/-- `QKECCAK` is `QKECCAK`. -/
+/-- The instance's `keccakCol` is the reference's `QKECCAK`. -/
 theorem refCol_keccakCol : refCol keccakCol = qkeccak := by decide +kernel
 
 /-- Column `i` of opcode table `j` is the verifier's `GLOBAL_COLUMN_BASES[j] + i`. -/
