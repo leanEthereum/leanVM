@@ -7,15 +7,19 @@ Entry `i` of the back end's input (`guestTraced`, function `i + 1` of `Data.func
 `B2.locsOkAt i (placedLocs i)` (`B2/Locs.lean`, `Guest/Piece/Layout.lean`); the kernel decides it
 for a run of entries in one declaration of at most `MAX_DECL` instructions (the placement is run
 again, so the cost follows the instructions), `MAX_MODULE` instructions a module. The entries `BIG`
-(`sp_wots`, `__loop2`: their placement is past what one module may take) are not written: their
+(`__loop2`: its placement is past what one module may take, and not yet cut) are not written: their
 checks are the hypothesis `BigLocs`. The entries `CUT`, which the kernel places in parts, are
-checked on their cut walk's last state (`B2/Cuts.lean`), each alone in a module. `LocsAll.lean` composes the runs: `locsOk_all (hb : BigLocs)`.
+checked on their cut walk's last state (`placedLocs_j`, `Guest/Compiled.lean`), each alone in a
+module. `LocsAll.lean` composes the runs: `locsOk_all (hb : BigLocs)`.
 
-The instruction counts are read from `Statement/Data/Bytecode.lean`. `python3 -I scripts/b2-locs`,
+The instruction counts are read from `Statement/Data/Bytecode.lean`; the entries `SPLIT` are checked
+by runs of top-level statements, their sizes from `scripts/b2-locs.lean` (`lake env lean --run`,
+needs `LeanVM.Guest.Backend.ExpandTrace` built). `python3 -I scripts/b2-locs`,
 from any directory; `--check` fails when a file differs.
 """
 import argparse
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -25,10 +29,15 @@ B2 = ROOT / "LeanVM" / "Guest" / "Backend" / "Guest" / "B2"
 MOD = "LeanVM.Guest.Backend.Guest.B2"
 MAX_DECL = 2000
 MAX_MODULE = 16000
-BIG = [19, 36]
+BIG = [36]
 # Entries the kernel places in parts (`Guest/Piece/C{j}*`): their check reads the last state of
-# the cut walk (`B2/Cuts.lean`, `placedLocs_{j}`), alone in a module.
-CUT = [11, 20]
+# the cut walk (`placedLocs_{j}`, `Guest/Compiled.lean`), alone in a module.
+CUT = [11, 19, 20]
+# Entries of `CUT` whose check is also too large for one declaration: checked as its parameters
+# (`locsHeadAt`) and runs of top-level statements (`locsSegAt`) of at most `MAX_SEG` instructions,
+# counted in proportion to the values each statement names (`scripts/b2-locs.lean`).
+SPLIT = [19]
+MAX_SEG = 6000
 
 
 def sizes():
@@ -59,6 +68,66 @@ def runs(fs):
     if a is not None:
         out.append((a, len(fs)))
     return out
+
+
+def weights():
+    """For each `SPLIT` entry, the number of values of each top-level statement of its body."""
+    if not SPLIT:
+        return {}
+    r = subprocess.run(["lake", "env", "lean", "--run", "scripts/b2-locs.lean"] + [str(j) for j in SPLIT],
+                       cwd=ROOT, capture_output=True, text=True)
+    if r.returncode != 0:
+        sys.exit(r.stdout + r.stderr)
+    out = {}
+    for line in r.stdout.splitlines():
+        p = line.split()
+        if p and p[0] == "entry":
+            out[int(p[1])] = [int(x) for x in p[3:]]
+    return out
+
+
+def segments(n, ws):
+    """Runs `(a, m)` of statements, each at most `MAX_SEG` instructions in proportion to `ws`."""
+    budget = MAX_SEG * sum(ws) / n
+    out, a, acc = [], 0, 0
+    for k, w in enumerate(ws):
+        if k > a and acc + w > budget:
+            out.append((a, k - a))
+            a, acc = k, 0
+        acc += w
+    out.append((a, len(ws) - a))
+    return out
+
+
+def split_file(k, j, name, n, segs, last, total):
+    body = HEAD.format(mod=f"{MOD}.Eval.L{k:02d}",
+                       what=f"The kernel's check that `{name}`'s places agree with its certificate's cells, by parts.")
+    body += f"public import {MOD}.Locs\npublic import LeanVM.Guest.Backend.Guest.Compiled\n"
+    if k > 0 and segs and segs[0][0] > 0:
+        body += f"public import {MOD}.Eval.L{k - 1:02d}\n"
+    body += "\nset_option Elab.async false\nset_option maxRecDepth 100000\n\nnamespace LeanVM.Guest.Backend.B2\n\nopen GuestPiece\n\n@[expose] public section\n"
+    if segs and segs[0][0] == 0:
+        body += (f"\n/-- The parameters of entry {j} (`{name}`) agree with the cells. -/\n"
+                 f"theorem locsHead_{j} : locsHeadAt {j} (placedLocs {j}) = true := by\n"
+                 f"  rw [placedLocs_{j}]\n  decide +kernel\n")
+    for a, m in segs:
+        body += (f"\n/-- Statements {a} to {a + m - 1} of entry {j} (`{name}`) agree with the cells. -/\n"
+                 f"theorem locsSeg_{j}_{a}_{m} : locsSegAt {j} {a} {m} (placedLocs {j}) = true := by\n"
+                 f"  rw [placedLocs_{j}]\n  decide +kernel\n")
+    if last:
+        h = f"locsSeg_{j}_{total[-1][0]}_{total[-1][1]}"
+        rest = total[-1][1]
+        for a, m in reversed(total[:-1]):
+            h = f"(locsSeg_glue locsSeg_{j}_{a}_{m} (rfl : {a} + {m} = {a + m}) {h} (rfl : {m} + {rest} = {m + rest}))"
+            rest += m
+        L = sum(m for _, m in total)
+        body += (f"\n/-- **The places of entry {j} (`{name}`, {n} instructions) agree with the cells**, from its parts. -/\n"
+                 f"theorem locsOk_{j}_{j + 1} : (List.range' {j} 1).all (fun i => locsOkAt i (placedLocs i)) = true :=\n"
+                 f"  range_one (f := fun i => locsOkAt i (placedLocs i))\n"
+                 f"    (locsOk_of_segs (L := {L}) locsHead_{j}\n      {h}\n"
+                 f"      (by decide +kernel))\n")
+    body += "\nend\nend LeanVM.Guest.Backend.B2\n"
+    return body
 
 
 def modules(fs, rs):
@@ -98,7 +167,7 @@ def eval_file(k, ms, fs):
     body = HEAD.format(mod=f"{MOD}.Eval.L{k:02d}",
                        what="The kernel's checks that the guest's places agree with the certificates' cells.")
     cut = len(ms) == 1 and ms[0][0] in CUT
-    body += f"public import {MOD}.Locs\npublic import " + (f"{MOD}.Cuts" if cut else "LeanVM.Guest.Backend.Guest.Piece.Layout") + "\n\n"
+    body += f"public import {MOD}.Locs\npublic import " + ("LeanVM.Guest.Backend.Guest.Compiled" if cut else "LeanVM.Guest.Backend.Guest.Piece.Layout") + "\n\n"
     body += "set_option Elab.async false\nset_option maxRecDepth 100000\n\nnamespace LeanVM.Guest.Backend.B2\n\nopen GuestPiece\n\n@[expose] public section\n"
     for a, b in ms:
         n = sum(x for _, x in fs[a:b])
@@ -111,11 +180,11 @@ def eval_file(k, ms, fs):
     return body
 
 
-def all_file(mods, fs):
+def all_file(nmods, mods, fs):
     n = len(fs)
     body = HEAD.format(mod=f"{MOD}.LocsAll",
                        what="Every entry's places agree with its certificate's cells, but the `BIG` entries'.")
-    body += "".join(f"public import {MOD}.Eval.L{k:02d}\n" for k in range(len(mods)))
+    body += "".join(f"public import {MOD}.Eval.L{k:02d}\n" for k in range(nmods))
     body += "\nnamespace LeanVM.Guest.Backend.B2\n\nopen GuestPiece\n\n@[expose] public section\n\n"
     big = " ∧ ".join(f"locsOkAt {j} (placedLocs {j}) = true" for j in BIG)
     names = ", ".join(f"`{fs[j][0]}`" for j in BIG)
@@ -151,13 +220,36 @@ def all_file(mods, fs):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--check", action="store_true")
-    a = ap.parse_args()
+    args = ap.parse_args()
     fs = sizes()
+    ws = weights()
     mods = modules(fs, runs(fs))
-    files = {B2 / "Eval" / f"L{k:02d}.lean": eval_file(k, ms, fs) for k, ms in enumerate(mods)}
-    files[B2 / "LocsAll.lean"] = all_file(mods, fs)
+    files = {}
+    k = 0
+    for ms in mods:
+        j = ms[0][0]
+        if len(ms) == 1 and j in SPLIT:
+            segs = segments(fs[j][1], ws[j])
+            groups, cur, acc = [], [], 0
+            for a, m in segs:
+                w = fs[j][1] * sum(ws[j][a:a + m]) / sum(ws[j])
+                if cur and acc + w > MAX_MODULE:
+                    groups.append(cur)
+                    cur, acc = [], 0
+                cur.append((a, m))
+                acc += w
+            groups.append(cur)
+            for g, part in enumerate(groups):
+                files[B2 / "Eval" / f"L{k:02d}.lean"] = split_file(k, j, fs[j][0], fs[j][1], part,
+                                                                   g == len(groups) - 1, segs)
+                k += 1
+        else:
+            files[B2 / "Eval" / f"L{k:02d}.lean"] = eval_file(k, ms, fs)
+            k += 1
+    nmods = k
+    files[B2 / "LocsAll.lean"] = all_file(nmods, mods, fs)
     stale = sorted(p for p in (B2 / "Eval").glob("L[0-9]*.lean") if p not in files)
-    if a.check:
+    if args.check:
         bad = [str(p) for p, t in files.items() if not p.exists() or p.read_text() != t] + [str(p) for p in stale]
         if bad:
             sys.exit("stale: " + ", ".join(bad))
@@ -166,7 +258,7 @@ def main():
         p.unlink()
     for p, t in files.items():
         p.write_text(t)
-    print(f"{len(mods)} modules, {sum(len(m) for m in mods)} declarations, {sum(n for _, n in fs)} instructions "
+    print(f"{nmods} modules, {sum(len(m) for m in mods)} declarations, {sum(n for _, n in fs)} instructions "
           f"({sum(fs[j][1] for j in BIG)} in BigLocs)")
 
 
