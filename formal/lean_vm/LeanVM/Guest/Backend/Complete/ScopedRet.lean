@@ -235,6 +235,8 @@ theorem scoped_retShort {tf : TracedFn} (h : Scoped tf) :
     unfold scopedE at he
     split at he
     · cases he
+    split at he
+    · cases he
     · next s₁ h₁ =>
       split at he
       · cases he
