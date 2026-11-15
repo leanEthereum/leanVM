@@ -179,6 +179,27 @@ theorem winv_enter {C : (ℕ → E) → Prop} {st : St} {sc s₁ : SSt} (hinv : 
   · rw [hl]
     exact hinv.fresh v (by rw [hall]; exact hv)
 
+/-- The scope walk of an inner block, step by step. -/
+theorem scopeInner_inv {rc : ℕ} {blk : SSt → Except String SSt} {s s' : SSt}
+    (h : scopeInner rc blk s = .ok s') : ∃ s₁ s₂ s₃ s₄,
+      expectS isEnter "a block" s = .ok s₁ ∧ blk s₁ = .ok s₂ ∧ flushAt rc s₂ = .ok s₃ ∧
+      expectS isLeave "the end of a block" s₃ = .ok s₄ ∧ s' = { s₄ with live := s.live } := by
+  unfold scopeInner at h
+  split at h
+  · cases h
+  next s₁ h₁ =>
+  split at h
+  · cases h
+  next s₂ h₂ =>
+  split at h
+  · cases h
+  next s₃ h₃ =>
+  split at h
+  · cases h
+  next s₄ h₄ =>
+  cases h
+  exact ⟨s₁, s₂, s₃, s₄, h₁, h₂, h₃, h₄, rfl⟩
+
 /-- The blocks of a body: the body, the suffixes of a block, the blocks of a branch and the arms
 of a `match`. -/
 inductive InBody (body : List Stmt) : List Stmt → Prop
