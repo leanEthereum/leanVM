@@ -10,6 +10,8 @@
 //!
 //! - Portable: a 256-entry subset-sum table per byte, one lookup per byte.
 //! - GFNI: an 8x8 bit matrix per (input byte, output byte), applied to 64 rows by one instruction.
+//! - AVX2 without GFNI, and NEON: each of those matrices as two 16-entry nibble tables, one byte shuffle each per
+//!   32 or 16 rows.
 
 use crate::field::F128;
 
@@ -153,9 +155,12 @@ mod portable {
     pub(super) struct Imp {
         /// One subset-sum table per byte of a row.
         tables: Vec<Table>,
-        /// The nibble tables of [`avx2::fold_columns`].
+        /// The nibble tables of `avx2::fold_columns`.
         #[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "gfni")))]
         nibbles: Vec<super::avx2::Nibbles>,
+        /// The nibble tables of `neon::fold_columns`.
+        #[cfg(target_arch = "aarch64")]
+        nibbles: Vec<super::neon::Nibbles>,
     }
 
     impl Imp {
@@ -163,7 +168,9 @@ mod portable {
             Self {
                 tables: lookup_tables(weights),
                 #[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "gfni")))]
-                nibbles: super::avx2::nibble_tables(weights),
+                nibbles: super::nibble_tables(weights),
+                #[cfg(target_arch = "aarch64")]
+                nibbles: super::nibble_tables(weights),
             }
         }
 
@@ -185,7 +192,13 @@ mod portable {
             #[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "gfni")))]
             // SAFETY: AVX2 is enabled at compile time.
             return unsafe { super::avx2::fold_columns(&self.nibbles, cols, out) };
-            #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "gfni"))))]
+            #[cfg(target_arch = "aarch64")]
+            // SAFETY: NEON is part of aarch64.
+            return unsafe { super::neon::fold_columns(&self.nibbles, cols, out) };
+            #[cfg(not(any(
+                all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "gfni")),
+                target_arch = "aarch64"
+            )))]
             for (p, o) in out.iter_mut().enumerate() {
                 *o = cols
                     .iter()
@@ -195,6 +208,29 @@ mod portable {
             }
         }
     }
+}
+
+/// Entry `16 j + o`: the images of the low and the high nibble of input byte `j` in output byte `o`, each 16-entry
+/// table repeated to fill `W` bytes.
+#[cfg(any(
+    all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "gfni")),
+    target_arch = "aarch64"
+))]
+fn nibble_tables<const W: usize>(weights: &[F128]) -> Vec<[[u8; W]; 2]> {
+    let byte = |w: &F128, o: usize| (w.to_limbs()[o / 8] >> (8 * (o % 8))) as u8;
+    let mut out = Vec::with_capacity(2 * weights.len());
+    for w in weights.as_chunks::<8>().0 {
+        for o in 0..16 {
+            out.push(std::array::from_fn(|half| {
+                std::array::from_fn(|i| {
+                    (0..4)
+                        .filter(|t| (i % 16) >> t & 1 == 1)
+                        .fold(0, |acc, t| acc ^ byte(&w[4 * half + t], o))
+                })
+            }));
+        }
+    }
+    out
 }
 
 /// The GFNI fold's byte-matrix products as nibble lookups, for AVX2 without GFNI.
@@ -208,27 +244,8 @@ mod avx2 {
     use super::{BLOCK, F128};
     use crate::{load_at, store_at};
 
-    /// The images of the low and the high nibble of input byte `j` in output byte `o`, each table in both 128-bit lanes.
+    /// [`super::nibble_tables`], each table in both 128-bit lanes.
     pub(super) type Nibbles = [[u8; 32]; 2];
-
-    /// Entry `16 j + o`: the [`Nibbles`] of input byte `j` and output byte `o`.
-    pub(super) fn nibble_tables(weights: &[F128]) -> Vec<Nibbles> {
-        let byte = |w: &F128, o: usize| (w.to_limbs()[o / 8] >> (8 * (o % 8))) as u8;
-        let mut out = Vec::with_capacity(2 * weights.len());
-        for w in weights.as_chunks::<8>().0 {
-            for o in 0..16 {
-                out.push(std::array::from_fn(|half| {
-                    std::array::from_fn(|i| {
-                        let n = i % 16;
-                        (0..4)
-                            .filter(|t| n >> t & 1 == 1)
-                            .fold(0, |acc, t| acc ^ byte(&w[4 * half + t], o))
-                    })
-                }));
-            }
-        }
-        out
-    }
 
     /// [`super::BitFold::fold_columns`]: per 32 rows and coefficient, eight output bytes summed over the
     /// input bytes, then transposed into words.
@@ -771,6 +788,61 @@ mod gfni256 {
                     }
                 }
             }
+        }
+    }
+}
+
+/// The GFNI fold's byte-matrix products as nibble lookups on NEON, as `avx2` does them.
+#[cfg(target_arch = "aarch64")]
+mod neon {
+    use core::arch::aarch64::*;
+
+    use super::{BLOCK, F128};
+
+    /// An entry of [`super::nibble_tables`].
+    pub(super) type Nibbles = [[u8; 16]; 2];
+
+    /// [`super::BitFold::fold_columns`]: per 32 rows and coefficient, eight output bytes summed over the input bytes,
+    /// sixteen rows to a register, then gathered into words.
+    ///
+    /// # Safety
+    /// NEON must be available, as it is on every aarch64 target.
+    #[inline]
+    pub(super) unsafe fn fold_columns<const CHUNKS: usize>(
+        tables: &[Nibbles],
+        cols: &[[u8; BLOCK]; CHUNKS],
+        out: &mut [F128; BLOCK],
+    ) {
+        assert_eq!(tables.len(), 16 * CHUNKS);
+        // `bytes[o][p]`: byte `o` of row `p`'s sum.
+        let mut bytes = [[0u8; BLOCK]; 16];
+        // SAFETY: NEON is available (the contract), and every load and store stays inside its 16- or 64-byte array.
+        unsafe {
+            let mask = vdupq_n_u8(0x0f);
+            for k in 0..2 {
+                for h in 0..2 {
+                    let mut acc = [[vdupq_n_u8(0); 2]; 8];
+                    for (col, tables) in cols.iter().zip(tables.as_chunks::<16>().0) {
+                        let v = [vld1q_u8(col[32 * h..].as_ptr()), vld1q_u8(col[32 * h + 16..].as_ptr())];
+                        let (lo, hi) = (v.map(|v| vandq_u8(v, mask)), v.map(|v| vshrq_n_u8::<4>(v)));
+                        for (acc, t) in acc.iter_mut().zip(&tables[8 * k..8 * k + 8]) {
+                            let (tl, th) = (vld1q_u8(t[0].as_ptr()), vld1q_u8(t[1].as_ptr()));
+                            for ((acc, &lo), &hi) in acc.iter_mut().zip(&lo).zip(&hi) {
+                                *acc = veorq_u8(*acc, veorq_u8(vqtbl1q_u8(tl, lo), vqtbl1q_u8(th, hi)));
+                            }
+                        }
+                    }
+                    for (i, acc) in acc.iter().enumerate() {
+                        let row = &mut bytes[8 * k + i][32 * h..];
+                        vst1q_u8(row.as_mut_ptr(), acc[0]);
+                        vst1q_u8(row[16..].as_mut_ptr(), acc[1]);
+                    }
+                }
+            }
+        }
+        for (p, o) in out.iter_mut().enumerate() {
+            let limb = |k: usize| u64::from_le_bytes(std::array::from_fn(|i| bytes[8 * k + i][p]));
+            *o = F128::new(limb(0), limb(1));
         }
     }
 }

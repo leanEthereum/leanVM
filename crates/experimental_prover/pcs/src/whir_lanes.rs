@@ -14,6 +14,12 @@
 //! may reach past the committed lanes. A lane without a partner folds against zero, its row of `A` against its
 //! partner's.
 //!
+//! A claim's projection meets every other lane's row in the later rounds' cross terms, `<W_0, G>` with `W_0` from the
+//! lanes before `G`'s, so every lane projects the claims some row of `A` weighs. A ring claim weighs a few lanes, and
+//! its 128 terms cost a bit fold per block, so a pair projects them only where its own rows of `A` weigh them: onto
+//! its `X F`, and onto a lane whose own row does not. A lane's carried projections cover the rings its row weighs, as a
+//! folded row weighs only what its pair's rows did.
+//!
 //! Where the stack's blocks under a lane `X F` repeat, its blocks repeat past their first few words (one more per
 //! round, from multiplying by `X`), so a block of `X F` is a repeat when those words are too.
 
@@ -31,6 +37,9 @@ const HEAD: usize = 8;
 
 /// Coefficients per task where the last lane is written out.
 const COLS: usize = 1 << 13;
+
+/// A later round's projection slots per pair: the limbs of `X F`, of its first lane and of its second.
+const SLOTS: usize = 6;
 
 /// `sum_t a[t] * p[t]`.
 fn dot(a: &[F128], p: &[F128]) -> F128 {
@@ -202,43 +211,50 @@ impl LaneRounds {
         }
     }
 
-    /// Round 1's projections: every lane's into `p`, and `X F`'s per pair.
-    fn project_stack(&mut self, live: &[bool]) -> Vec<F128> {
+    /// Round 1's projections, each pair's onto the terms `needs` marks for it: every lane's into `p`, and `X F`'s per
+    /// pair.
+    fn project_stack(&mut self, needs: &[bool]) -> Vec<F128> {
         let (nt, n, lb) = (self.n_terms, self.n_lanes, self.lane_block);
         let (stack, terms) = (&self.stack, &self.terms);
         let low = terms.low_vars();
         let rows = tracing::info_span!("Project", lanes = n + n.div_ceil(2)).in_scope(|| {
-            terms.project_rows(n, 2, live, |l, blocks, feed| {
-                let lane = &stack[l * lb..(l + 1) * lb];
-                // Only an even lane, a pair's `F`, takes `X` times it.
-                let mut scratch = (l % 2 == 0).then(|| (vec![F64::ZERO; SWEEP << low], [false; SWEEP]));
-                let tags = terms.lane_repeats(l, blocks.clone());
-                // The block before's first word of `X F`.
-                let mut last = None;
-                for start in blocks.clone().step_by(SWEEP) {
-                    let sweep = start..(start + SWEEP).min(blocks.end);
-                    let words = sweep.start << low..sweep.end << low;
-                    feed(0, start, &lane[words.clone()], terms.lane_repeats(l, sweep.clone()));
-                    let Some((x, x_tags)) = scratch.as_mut() else {
-                        continue;
-                    };
-                    for (k, b) in sweep.clone().enumerate() {
-                        let (first, out) = (b << low, &mut x[k << low..(k + 1) << low]);
-                        mul_x_block(&lane[first..first + out.len()], first, outside(lane), out);
-                        x_tags[k] = last == Some(out[0]) && tags.get(b - blocks.start) == Some(&true);
-                        last = Some(out[0]);
+            terms.project_rows(
+                n,
+                2,
+                |l, _| &needs[l / 2 * nt..][..nt],
+                |l, blocks, feed| {
+                    let lane = &stack[l * lb..(l + 1) * lb];
+                    // Only an even lane, a pair's `F`, takes `X` times it.
+                    let mut scratch = (l % 2 == 0).then(|| (vec![F64::ZERO; SWEEP << low], [false; SWEEP]));
+                    let tags = terms.lane_repeats(l, blocks.clone());
+                    // The block before's first word of `X F`.
+                    let mut last = None;
+                    for start in blocks.clone().step_by(SWEEP) {
+                        let sweep = start..(start + SWEEP).min(blocks.end);
+                        let words = sweep.start << low..sweep.end << low;
+                        feed(0, start, &lane[words.clone()], terms.lane_repeats(l, sweep.clone()));
+                        let Some((x, x_tags)) = scratch.as_mut() else {
+                            continue;
+                        };
+                        for (k, b) in sweep.clone().enumerate() {
+                            let (first, out) = (b << low, &mut x[k << low..(k + 1) << low]);
+                            mul_x_block(&lane[first..first + out.len()], first, outside(lane), out);
+                            x_tags[k] = last == Some(out[0]) && tags.get(b - blocks.start) == Some(&true);
+                            last = Some(out[0]);
+                        }
+                        feed(1, start, &x[..words.len()], &x_tags[..sweep.len()]);
                     }
-                    feed(1, start, &x[..words.len()], &x_tags[..sweep.len()]);
-                }
-            })
+                },
+            )
         });
         self.p = rows.chunks_exact(nt).step_by(2).flatten().copied().collect();
         // Lane `2m`'s second slot.
         rows.chunks_exact(nt).skip(1).step_by(4).flatten().copied().collect()
     }
 
-    /// A later round's pairs, the last fold's lanes, written out, and `X F`'s projection per pair.
-    fn write_pairs(&self, folded: &Folded, live: &[bool]) -> (Pairs, Vec<F128>) {
+    /// A later round's pairs, the last fold's lanes, written out, `X F`'s projection per pair onto the terms `needs`
+    /// marks for it, and each lane's onto the terms `fresh` marks for it, as `(index into p, value)`.
+    fn write_pairs(&self, folded: &Folded, needs: &[bool], fresh: &[bool]) -> (Pairs, Vec<F128>, Vec<(usize, F128)>) {
         let (nt, lb, terms) = (self.n_terms, self.lane_block, &self.terms);
         let (count, len) = (folded.count(), folded.len());
         let n_pairs = count.div_ceil(2);
@@ -253,11 +269,20 @@ impl LaneRounds {
             )
         };
         let (fp, gp) = (parallel::SendPtr(f.as_mut_ptr()), parallel::SendPtr(g.as_mut_ptr()));
+        let live = |m: usize, slot: usize| match slot {
+            0 | 1 => &needs[m * nt..][..nt],
+            _ => &fresh[(2 * m + (slot - 2) / 2) * nt..][..nt],
+        };
         let rows = tracing::info_span!("Project", lanes = n_pairs).in_scope(|| {
-            terms.project_rows(n_pairs, 2, live, |m, blocks, feed| {
+            terms.project_rows(n_pairs, SLOTS, live, |m, blocks, feed| {
                 let stream = Stream::new();
                 let [mut pa, mut pb, mut xf] = [0; 3].map(|_| vec![F128::ZERO; block]);
-                let mut limbs = [vec![F64::ZERO; SWEEP << low], vec![F64::ZERO; SWEEP << low]];
+                // The limbs of `X F` and of the pair's lanes, each where it projects some term.
+                let mut limbs = [0, 2, 4].map(|slot| {
+                    live(m, slot)
+                        .contains(&true)
+                        .then(|| [0; 2].map(|_| vec![F64::ZERO; SWEEP << low]))
+                });
                 let mut tags = [false; SWEEP];
                 let stacked = 2 * m * group..((2 * m + 1) * group).min(self.n_stack);
                 let repeats = |b: usize| {
@@ -291,15 +316,24 @@ impl LaneRounds {
                         let words: [F128; HEAD] = xf[..HEAD].try_into().expect("a block holds its head");
                         tags[k] = last.is_some_and(|(_, w)| w == words) && repeats(b);
                         last = Some((pa[block - 1], words));
-                        let [lo, hi] = &mut limbs;
-                        for ((lo, hi), v) in lo[k << low..].iter_mut().zip(&mut hi[k << low..]).zip(&xf) {
-                            let [l, h] = v.to_limbs();
-                            (*lo, *hi) = (F64(l), F64(h));
+                        for (limbs, values) in limbs.iter_mut().zip([&xf, &pa, &pb]) {
+                            if let Some([lo, hi]) = limbs {
+                                for ((lo, hi), v) in lo[k << low..].iter_mut().zip(&mut hi[k << low..]).zip(values) {
+                                    let [l, h] = v.to_limbs();
+                                    (*lo, *hi) = (F64(l), F64(h));
+                                }
+                            }
                         }
                     }
                     let words = sweep.len() << low;
-                    feed(0, start, &limbs[0][..words], &tags[..sweep.len()]);
-                    feed(1, start, &limbs[1][..words], &tags[..sweep.len()]);
+                    for (slot, limbs) in (0..).step_by(2).zip(&limbs) {
+                        if let Some([lo, hi]) = limbs {
+                            // Only `X F` has repeat tags.
+                            let tags = if slot == 0 { &tags[..sweep.len()] } else { &[] };
+                            feed(slot, start, &lo[..words], tags);
+                            feed(slot + 1, start, &hi[..words], tags);
+                        }
+                    }
                 }
             })
         });
@@ -309,33 +343,58 @@ impl LaneRounds {
                 g[m * len + c] = folded.at(2 * m + 1, c);
             }
         }
-        let pxf = (0..n_pairs * nt)
+        // A projection from its limbs' in slots `slot` and `slot + 1` of pair `m`.
+        let join = |m: usize, slot: usize, t: usize| {
+            rows[(m * SLOTS + slot) * nt + t] + F128::Y * rows[(m * SLOTS + slot + 1) * nt + t]
+        };
+        let pxf = (0..n_pairs * nt).map(|i| join(i / nt, 0, i % nt)).collect();
+        let own = (0..fresh.len())
+            .filter(|&i| fresh[i])
             .map(|i| {
-                let (m, t) = (i / nt, i % nt);
-                rows[2 * m * nt + t] + F128::Y * rows[(2 * m + 1) * nt + t]
+                let (l, t) = (i / nt, i % nt);
+                (i, join(l / 2, 2 + 2 * (l % 2), t))
             })
             .collect();
-        (Pairs::Stored { f, g, len }, pxf)
+        (Pairs::Stored { f, g, len }, pxf, own)
     }
 
     /// The round's table.
     pub(crate) fn table(&mut self) -> FoldTable {
         let (nt, n_pairs) = (self.n_terms, self.n_lanes.div_ceil(2));
         self.round += 1;
-        // The terms some row of `A` weighs: a lane's projection meets every other lane's row in the later rounds'
-        // cross terms, `<W_0, G>` with `W_0` from the lanes before `G`'s.
-        let live: Vec<bool> = (0..nt)
-            .map(|t| self.a.iter().skip(t).step_by(nt).any(|a| !a.is_zero()))
+        // A pair needs the terms some row of `A` weighs, a ring's only where its own rows weigh them.
+        let weighs = |l: usize, t: usize| self.a.get(l * nt + t).is_some_and(|a| !a.is_zero());
+        let ring = |t: usize| t >= self.terms.n_claims();
+        let weighed: Vec<bool> = (0..nt).map(|t| (0..self.a.len() / nt).any(|l| weighs(l, t))).collect();
+        let needs: Vec<bool> = (0..n_pairs * nt)
+            .map(|i| {
+                let (m, t) = (i / nt, i % nt);
+                if ring(t) {
+                    weighs(2 * m, t) || weighs(2 * m + 1, t)
+                } else {
+                    weighed[t]
+                }
+            })
             .collect();
         let (pairs, pxf) = match self.folded.take() {
-            None => (Pairs::Stack, self.project_stack(&live)),
+            None => (Pairs::Stack, self.project_stack(&needs)),
             Some((pairs, ch)) => {
-                let written = self.write_pairs(&self.view(&pairs, ch), &live);
+                // The rings a lane's pair needs and its own row does not weigh.
+                let fresh: Vec<bool> = (0..2 * n_pairs * nt)
+                    .map(|i| {
+                        let (l, t) = (i / nt, i % nt);
+                        l < self.n_lanes && ring(t) && needs[l / 2 * nt + t] && !weighs(l, t)
+                    })
+                    .collect();
+                let (written, pxf, own) = self.write_pairs(&self.view(&pairs, ch), &needs, &fresh);
+                for (i, value) in own {
+                    self.p[i] = value;
+                }
                 // Round 2 read the stack's pairs last.
                 if matches!(pairs, Pairs::Stack) && !self.keep_stack {
                     self.stack = Vec::new();
                 }
-                written
+                (written, pxf)
             }
         };
 

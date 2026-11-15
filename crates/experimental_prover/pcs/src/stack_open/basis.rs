@@ -164,7 +164,8 @@ pub(crate) struct Terms {
 }
 
 impl Terms {
-    fn n_claims(&self) -> usize {
+    /// The claims' terms, the first ones; the ring claims' follow.
+    pub(crate) fn n_claims(&self) -> usize {
         self.ranges.len()
     }
 
@@ -194,22 +195,22 @@ impl Terms {
         }
     }
 
-    /// Projections of `n_lanes` lanes, `slots` rows of [`Self::n_terms`] each, for the terms `live` marks, a range of
-    /// blocks per task: `task(lane, blocks, feed)` hands `feed` a slot, the first block of some words of the range,
-    /// the words and their repeat tags, in order of blocks per slot, [`SWEEP`] blocks or more at a time.
+    /// Projections of `n_lanes` lanes, `slots` rows of [`Self::n_terms`] each, for the terms `live(lane, slot)` marks, a
+    /// range of blocks per task: `task(lane, blocks, feed)` hands `feed` a slot, the first block of some words of the
+    /// range, the words and their repeat tags, in order of blocks per slot, [`SWEEP`] blocks or more at a time. A slot
+    /// that projects no term ignores its words.
     ///
     /// A repeat tag says a block equals the block fed before it to its slot, and means nothing on the slot's first
     /// block. Tags may be empty.
-    pub(crate) fn project_rows(
+    pub(crate) fn project_rows<'m>(
         &self,
         n_lanes: usize,
         slots: usize,
-        live: &[bool],
+        live: impl Fn(usize, usize) -> &'m [bool] + Sync,
         task: impl Fn(usize, std::ops::Range<usize>, &mut dyn FnMut(usize, usize, &[F64], &[bool])) + Sync,
     ) -> Vec<F128> {
         let n_terms = self.n_terms();
         let n_blocks = 1usize << (self.lane_vars - self.low_vars);
-        let live = self.live(live);
         // Enough tasks to balance the pool, each at least one sweep of blocks where the lane allows.
         let want = (8 * parallel::num_threads()).div_ceil(n_lanes.max(1));
         let per = (n_blocks / want.next_power_of_two()).max(SWEEP.min(n_blocks));
@@ -217,24 +218,36 @@ impl Terms {
         let parts = parallel::map_collect(n_lanes * n_ranges, |t| {
             let (lane, k) = (t / n_ranges, t % n_ranges);
             let blocks = k * per..((k + 1) * per).min(n_blocks);
+            let lives: Vec<Live> = (0..slots).map(|slot| self.live(live(lane, slot))).collect();
             let mut projections: Vec<Option<Projection>> = (0..slots).map(|_| None).collect();
             task(lane, blocks.clone(), &mut |slot, start, words, repeats| {
-                projections[slot]
-                    .get_or_insert_with(|| Projection::new(&live, blocks.clone()))
-                    .feed(self, &live, start, words, repeats);
-            });
-            let mut out = vec![F128::ZERO; slots * n_terms];
-            for (projection, row) in projections.into_iter().zip(out.chunks_exact_mut(n_terms)) {
-                if let Some(projection) = projection {
-                    projection.finish(self, &live, row);
+                let live = &lives[slot];
+                if live.patterns.is_empty() && live.rings.is_empty() {
+                    return;
                 }
-            }
-            out
+                projections[slot]
+                    .get_or_insert_with(|| Projection::new(live, blocks.clone()))
+                    .feed(self, live, start, words, repeats);
+            });
+            // Only the slots that projected something, so the sum below skips the others.
+            let finish = |(projection, live): (Option<Projection>, &Live)| {
+                projection.map(|projection| {
+                    let mut row = vec![F128::ZERO; n_terms];
+                    projection.finish(self, live, &mut row);
+                    row
+                })
+            };
+            projections.into_iter().zip(&lives).map(finish).collect::<Vec<_>>()
         });
         let mut rows = vec![F128::ZERO; n_lanes * slots * n_terms];
         for (t, part) in parts.iter().enumerate() {
-            let rows = &mut rows[t / n_ranges * slots * n_terms..][..slots * n_terms];
-            rows.iter_mut().zip(part).for_each(|(r, &p)| *r += p);
+            let lane_rows = rows[t / n_ranges * slots * n_terms..].chunks_exact_mut(n_terms);
+            for (rows, row) in lane_rows
+                .zip(part)
+                .filter_map(|(rows, row)| Some((rows, row.as_ref()?)))
+            {
+                rows.iter_mut().zip(row).for_each(|(r, &p)| *r += p);
+            }
         }
         rows
     }
