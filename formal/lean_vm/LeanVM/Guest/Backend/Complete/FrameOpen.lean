@@ -538,7 +538,8 @@ theorem match_preE (hI : I.Ok) {x : V} {arms : List (List Stmt)} {rest : List St
     {g : Unit → P Unit}
     {e : Option (ℕ × Cell)} (hinv : WInv ctx I C { st with chainIn := none } sc)
     (hche : st.chainIn = e) (h₀ : flushEdge ctx.retCells sc = .ok s₀)
-    (hf : ∀ (b : Bool) (st₂ : St) (C₂ : (ℕ → E) → Prop), st.next ≤ st₂.next →
+    (hf : ∀ (b : Bool) (st₂ : St) (C₂ : (ℕ → E) → Prop), Stronger C₂ C → OpR st st₂ →
+      st.next ≤ st₂.next →
       COk I C₂ st₂.next st₂.scope st₂.locs → EmitsW I C₂ st st₂ → PK st st₂ →
       st₂.rest = s₀.rest → st₂.rest.length ≤ ctx.fuel →
       VW I C₂ st₂ (fun v => s₀.live.contains v = true) →
@@ -566,8 +567,8 @@ theorem match_preE (hI : I.Ok) {x : V} {arms : List (List Stmt)} {rest : List St
       (fun k _ _ _ hk => by simp at hk)
       (fun v _ _ hv _ => (huseS v hv).elim Or.inl fun h => Or.inr (hsegA v h))
       hinv.abi hinv.two hvw (fun hr k hk Ψ w hC => hinv.ret hr Ψ k w hk hC))
-    (wp_and flush_pk (wp_and (flushLazy [] st (hinv.rest ▸ hlf)) flush_keep)))
-    fun _ st₁ C₁ _ hn₁ _ _ hE₁ ⟨⟨hr₁, hFR₁, hrb₁, hloc₁⟩, hpk₁, hz₁, hk₁⟩ => ?_
+    (wp_and flush_pk (wp_and (flushLazy [] st (hinv.rest ▸ hlf)) (wp_and flush_keep flush_op))))
+    fun _ st₁ C₁ hsC₁ hn₁ _ _ hE₁ ⟨⟨hr₁, hFR₁, hrb₁, hloc₁⟩, hpk₁, hz₁, hk₁, hop₁⟩ => ?_
   have hvw₁ : VW I C₁ st₁ fun v => s₀.live.contains v = true :=
     hFR₁.2.anti fun v hv => Or.inl (hokOf v hv)
   have hch₁ : st₁.chainIn = e := (show st₁.chainIn = st.chainIn from hk₁).trans hche
@@ -584,7 +585,8 @@ theorem match_preE (hI : I.Ok) {x : V} {arms : List (List Stmt)} {rest : List St
     (wp_set.mpr ⟨rfl, rfl, rfl, LocsLe.refl _, rfl, rfl⟩))
     fun _ st₂ C₂ _ hn₂ hl₂ hc₂ hE₂ ⟨hC₂, hst₂⟩ => ?_
   subst hC₂ hst₂
-  exact hf st₁.chain _ _ hn₁ hc₂ (hE₁.step hE₂ (Stronger.refl _) hn₂ hl₂)
+  obtain ⟨ops, hops, hopo⟩ := hop₁
+  exact hf st₁.chain _ _ hsC₁ ⟨ops, hops, hopo⟩ hn₁ hc₂ (hE₁.step hE₂ (Stronger.refl _) hn₂ hl₂)
     (hpk₁.trans (pk_same rfl rfl rfl)) hr₁ hf₁ hvw₁ hrb₁ hloc₁ rfl (by rw [hz₁]; exact hinv.lazy)
 
 end Stage
