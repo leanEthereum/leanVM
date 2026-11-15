@@ -27,7 +27,8 @@ A function too large for one piece is checked in parts (`Sound/Cut.lean` glues t
 * `cutHeadOk`: `pieceOk`'s comparisons but the code's, on the placed function of the last state, its
   jump table slots and size read off its statements (`blockFills`, `blockSize`), not emitted;
 * `cutChunkOk`: chunk `c` of its resolved code is the compiled function's, the code read off its
-  statements by position (`blockOps`), which the kernel unfolds only as far as the chunk.
+  statements by position from the chunk's first instruction (`blockOpsFrom`: the statements, stages
+  and arms before it skipped by their sizes, their instructions never made).
 
 The states are `state_lit` definitions (`StateLit.lean`): each map written out as a trie sharing
 the previous state's, so no check evaluates the walk that led to its state.
@@ -217,6 +218,41 @@ def fnPreOk (loops : Loops) (tf : TracedFn) (st : St) : Bool :=
       | _ => false) &&
     decide (st.next < 2 ^ 64)
 
+/-! ## A function's code from an instruction on -/
+
+mutual
+/-- `(stmtOps s pos).drop k`: a chain statement's stages, arms and statements before instruction `k`
+skipped by their sizes, their instructions never made. -/
+def stmtOpsFrom : PStmt → Nat → Nat → List LOp
+  | .chain _ join x entry one sfp firsts stages, pos, k =>
+      if k < 3 then
+        ([LOp.set join (.local (pos + 3 + stagesSize stages)), LOp.slot x (firsts.headD 0) entry,
+          LOp.jump one entry sfp]).drop k ++ stagesOps stages (pos + 3)
+      else stagesOpsFrom stages (pos + 3) (k - 3)
+  | s, pos, k => (stmtOps s pos).drop k
+
+/-- `(blockOps b pos).drop k`, the statements before instruction `k` skipped by their sizes. -/
+def blockOpsFrom : List PStmt → Nat → Nat → List LOp
+  | [], _, _ => []
+  | s :: ss, pos, k =>
+      if stmtSize s ≤ k then blockOpsFrom ss (pos + stmtSize s) (k - stmtSize s)
+      else stmtOpsFrom s pos k ++ blockOps ss (pos + stmtSize s)
+
+/-- `(armsOps as pos).drop k`, the arms before instruction `k` skipped by their sizes. -/
+def armsOpsFrom : List (List PStmt) → Nat → Nat → List LOp
+  | [], _, _ => []
+  | a :: as, pos, k =>
+      if blockSize a ≤ k then armsOpsFrom as (pos + blockSize a) (k - blockSize a)
+      else blockOpsFrom a pos k ++ armsOps as (pos + blockSize a)
+
+/-- `(stagesOps ss pos).drop k`, the stages before instruction `k` skipped by their sizes. -/
+def stagesOpsFrom : List (List (List PStmt)) → Nat → Nat → List LOp
+  | [], _, _ => []
+  | s :: ss, pos, k =>
+      if armsSize s ≤ k then stagesOpsFrom ss (pos + armsSize s) (k - armsSize s)
+      else armsOpsFrom s pos k ++ stagesOps ss (pos + armsSize s)
+end
+
 /-- `pieceOk`'s comparisons of the placed function `pf` and the tables `t'` but the code's, and the
 number of chunks; the slots and the size read off the placed statements. -/
 def cutHeadOk (t : Tables) (tf : TracedFn) (o : FnOut) (pc0 : Nat) (cf : CompiledFunction)
@@ -232,7 +268,7 @@ def cutHeadOk (t : Tables) (tf : TracedFn) (o : FnOut) (pc0 : Nat) (cf : Compile
 size `frame`, is the compiled function's: the code read off the statements by position. -/
 def cutChunkOk (l : Layout) (pc0 frame : Nat) (cf : CompiledFunction) (pf : Placed) (c : Nat) :
     Bool :=
-  decide ((((blockOps pf.fn.body 0).drop (c * chunkSize)).take chunkSize).map
+  decide (((blockOpsFrom pf.fn.body 0 (c * chunkSize)).take chunkSize).map
     (resolveOp l pc0 frame) = cf.chunks.getD c [])
 
 /-- `cutHeadOk` and `fnPreOk` for function `j` of `p`, as `pieceAt` reads it, its walk ending in
