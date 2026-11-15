@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.Backend.Guest.Piece.C20
 public import Statement.Data.Bytecode
-public meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
 set_option maxRecDepth 100000
@@ -21,15 +20,17 @@ open LeanVM.Guest.Core LeanVM.Guest.Backend
 
 @[expose] public section
 
-kernel_rfl cut20_seg0 :
-    placeHead (guestTraced.getD 20 default) 2006 (ctxOf loopsG sigsG (guestTraced.getD 20 default)) (initSt loopsG (tablesAt outsG 20) (guestTraced.getD 20 default)) = .ok ((), cut20_1)
+kernel_rfl cut20_trace : (guestTraced.getD 20 default).trace = GuestData.traceOf20
 
-kernel_rfl cut20_seg1 :
-    placeBlockN ((guestTraced.getD 20 default).core.body.drop 2006) 2385 (ctxOf loopsG sigsG (guestTraced.getD 20 default)) cut20_1 =
-      .ok ((), cut20_2)
+theorem cut20_ctx : ctxOf loopsG sigsG (guestTraced.getD 20 default) = ctx20 := by
+  refine ctxOf_fuel ?_
+  rw [cut20_trace]
+  unfold GuestData.traceOf20
+  simp only [List.size_toArray, List.length_flatten]
+  decide +kernel
 
-kernel_rfl cut20_tail :
-    placeTail (guestTraced.getD 20 default) 4391 (ctxOf loopsG sigsG (guestTraced.getD 20 default)) cut20_2 = .ok ((), cut20_end)
+kernel_rfl cut20_p0 :
+    placeHead (guestTraced.getD 20 default) 3432 ctx20 (initSt loopsG (tablesAt outsG 20) (guestTraced.getD 20 default)) = .ok ((), cut20_1)
 
 end
 end LeanVM.Guest.Backend.GuestPiece

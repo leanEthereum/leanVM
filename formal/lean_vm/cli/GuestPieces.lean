@@ -47,12 +47,11 @@ def maxDecl : Nat := 2000
 def maxModule : Nat := 16000
 
 /-- The functions whose one piece is past the memory a module may take: not written as one piece
-(`BigPieces`). -/
+but in parts (`Piece/C{j}*.lean`). -/
 def bigNames : List String := ["verify_tables", "verify_sig_lean_sphincs", "sp_wots", "__loop2"]
 
-/-- The functions of `bigNames` whose piece is written in parts, its walk cut between top-level
-statements (`Piece/C{j}.lean`); the others are `BigPieces`. -/
-def cutNames : List String := ["verify_tables", "verify_sig_lean_sphincs"]
+/-- The functions of `bigNames` whose piece is written in parts; the others are `BigPieces`. -/
+def cutNames : List String := ["verify_tables", "verify_sig_lean_sphincs", "sp_wots"]
 
 /-- A definition of data is split once its text is longer than this. -/
 def maxDef : Nat := 24000
@@ -345,34 +344,36 @@ def compiledFile (n : Nat) (rs : List (Nat × Nat)) (big : List Nat) (cuts : Lis
     (if cut.isEmpty then "" else "public import LeanVM.Guest.Backend.Sound.Cut\n")
   let cutPieces := String.join (cuts.map (·.2.1))
   let bigNames := pList (big.map toString)
-  let bigDef := match extra with
+  -- with no function left out, no hypothesis
+  let hb := if big.isEmpty then "" else "(hbig : BigPieces) "
+  let hbArg := if big.isEmpty then "" else " hbig"
+  let bigDef := if big.isEmpty then "" else match extra with
     | some x => s!"/-- The pieces of the guest's functions too large for one piece, not checked here. -/\n" ++
         s!"def BigPieces : Prop :=\n  ∀ j ∈ ({bigNames} : List Nat), pieceAtWith {x.name} {pieceArgs} j = true\n\n"
     | none => s!"/-- The pieces of the guest's functions too large for one piece, not checked here. -/\n" ++
         s!"def BigPieces : Prop :=\n  ∀ j ∈ ({bigNames} : List Nat), pieceAt {pieceArgs} j = true\n\n"
   let piecesAll := match extra with
     | some x => s!"/-- Every function's piece, with the test `{x.name}`. -/\n" ++
-        s!"theorem guest_pieces_with (hbig : BigPieces) :\n    ∀ j < guestTraced.length, pieceAtWith {x.name} {pieceArgs} j = true := by\n" ++
+        s!"theorem guest_pieces_with {hb}:\n    ∀ j < guestTraced.length, pieceAtWith {x.name} {pieceArgs} j = true := by\n" ++
         s!"  rw [guestTraced_length]\n  exact fun j hj => piecesInWith_spec (a := 0) (b := {n})\n    {glueTerm n rs big cut extra} j (Nat.zero_le _) hj\n\n" ++
         "/-- **Every function's piece.** -/\n" ++
-        s!"theorem guest_pieces (hbig : BigPieces) :\n    ∀ j < guestTraced.length, pieceAt {pieceArgs} j = true :=\n" ++
-        "  fun j hj => pieceAt_of_with (guest_pieces_with hbig j hj)\n\n" ++
+        s!"theorem guest_pieces {hb}:\n    ∀ j < guestTraced.length, pieceAt {pieceArgs} j = true :=\n" ++
+        s!"  fun j hj => pieceAt_of_with (guest_pieces_with{hbArg} j hj)\n\n" ++
         s!"/-- **Every function's placed locations pass the test `{x.name}`.** -/\n" ++
-        s!"theorem guest_extra (hbig : BigPieces) :\n    ∀ j < guestTraced.length, {x.name} j (placedLocs j) = true :=\n" ++
-        "  fun j hj => extra_of_with (guest_pieces_with hbig j hj)\n\n"
+        s!"theorem guest_extra {hb}:\n    ∀ j < guestTraced.length, {x.name} j (placedLocs j) = true :=\n" ++
+        s!"  fun j hj => extra_of_with (guest_pieces_with{hbArg} j hj)\n\n"
     | none => "/-- **Every function's piece.** -/\n" ++
-        s!"theorem guest_pieces (hbig : BigPieces) :\n    ∀ j < guestTraced.length, pieceAt {pieceArgs} j = true := by\n" ++
+        s!"theorem guest_pieces {hb}:\n    ∀ j < guestTraced.length, pieceAt {pieceArgs} j = true := by\n" ++
         s!"  rw [guestTraced_length]\n  exact fun j hj => piecesIn_spec (a := 0) (b := {n})\n    {glueTerm n rs big cut extra} j (Nat.zero_le _) hj\n\n"
-  let hbigDoc := if big.isEmpty then "every function is a piece checked here, so `BigPieces` holds trivially (`bigPieces`)"
+  let hbigDoc := if big.isEmpty then "every function's piece is checked here, so `guest_compiles` has no hypothesis"
     else s!"the {big.length} functions too large for one piece (`BigPieces`) are a hypothesis"
-  let bigThm := if big.isEmpty then "theorem bigPieces : BigPieces := fun _ h => nomatch h\n\n" else ""
   header "LeanVM.Guest.Backend.Guest.Compiled" "The back end compiles the guest to the statement's bytecode, from the kernel-checked pieces." ++
   "\nmodule\n\npublic import LeanVM.Guest.Backend.Guest.World\npublic import LeanVM.Guest.Backend.Sound.Compiles\n" ++
   "public import LeanVM.Guest.Backend.Guest.Piece.Checks\npublic import LeanVM.Guest.Backend.Guest.Piece.Names\n" ++ imports ++
-  s!"\n/-!\n# The guest compiled\n\n`guest_compiles`: `GuestCompiles guestFns guestSlots`, by `compiles_of_pieces` from the pieces of\n`Guest/Piece/` and the checks of `Guest/Piece/Checks.lean`; {hbigDoc}.\n`guest_program_sound_compiled` is `guest_program_sound` without `GuestCompiles`, and\n`guestWorld_locs` says function `j`'s places in the guest's world are `placedLocs j`, which the\nkernel evaluates.\n-/\n\n" ++
+  s!"\n/-!\n# The guest compiled\n\n`guest_compiles`: `GuestCompiles guestFns guestSlots`, by `compiles_of_pieces` from the pieces of\n`Guest/Piece/` and the checks of `Guest/Piece/Checks.lean`; {hbigDoc}.\n`guest_program_sound_compiled` is `guest_program_sound` without `GuestCompiles`, and\n`guestWorld_locs` says function `j`'s places in the guest's world are `placedLocs j`, which the\nkernel evaluates; for a function checked in parts, `placedLocs_j` gives them as its walk's last state's.\n-/\n\n" ++
   "set_option maxRecDepth 100000\n\n" ++
   "namespace LeanVM.Guest.Backend\n\nopen LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core GuestPiece\n\n@[expose] public section\n\n" ++
-  bigDef ++ bigThm ++ cutPieces ++ piecesAll ++
+  bigDef ++ cutPieces ++ piecesAll ++
   "/-- The labelled code of the guest's functions, as the back end lowers them. -/\n" ++
   "noncomputable def guestFns : List Lowered := fnsOf (lowerProgram guestTraced)\n\n" ++
   "/-- The guest's jump table slots. -/\ndef guestSlots : Array KVal := slotsG\n\n" ++
@@ -382,9 +383,9 @@ def compiledFile (n : Nat) (rs : List (Nat × Nat)) (big : List Nat) (cuts : Lis
   s!"  have hn : Data.f0.chunks.length = {jts} := rfl\n  rw [hn] at hc\n" ++
   jtCases "  " jts (fun c q => s!"jt_{c}_{q}") ++ "\n" ++
   "/-- **The back end compiles the guest to the statement's bytecode.** -/\n" ++
-  "theorem guest_compiles (hbig : BigPieces) : GuestCompiles guestFns guestSlots := by\n" ++
+  s!"theorem guest_compiles {hb}: GuestCompiles guestFns guestSlots := by\n" ++
   "  obtain ⟨fns, hlow, hfun, hsize⟩ := compiles_of_pieces (cfJt := Data.f0) (k := 19) loopsG_eq sigsG_eq\n" ++
-  "    layG_eq checks_ok outs_length cfs_length (guest_pieces hbig) slots_ok slots_ne guest_jt size_ok\n" ++
+  s!"    layG_eq checks_ok outs_length cfs_length (guest_pieces{hbArg}) slots_ok slots_ne guest_jt size_ok\n" ++
   "    (by norm_num)\n" ++
   "  have hf : guestFns = fns := by rw [guestFns, hlow]; rfl\n" ++
   "  rw [slotsOfOuts_eq] at hlow hfun hsize\n" ++
@@ -392,20 +393,22 @@ def compiledFile (n : Nat) (rs : List (Nat × Nat)) (big : List Nat) (cuts : Lis
   "  refine ⟨hlow, ?_, hsize⟩\n  rw [hfun]\n  exact functions_eq.symm\n\n" ++
   "variable {κ : ℕ} {L : MemoryImage κ} {U : String → List E → Prop}\n\n" ++
   "/-- **At the guest**, `guest_program_sound` with the guest compiled: given every function's\nobligations, a halting run of the statement's `guestProgram` from `(g^0, 1)` makes `main`'s core body\nhold at frame `1`. -/\n" ++
-  "theorem guest_program_sound_compiled (hbig : BigPieces) (hκ : κ < 64)\n" ++
+  s!"theorem guest_program_sound_compiled {hb}(hκ : κ < 64)\n" ++
   "    (hobl : ∀ tf ∈ guestTraced, (guestWorld guestFns guestSlots L U).Obligations tf)\n" ++
   "    (hU : ∀ tf ∈ guestTraced, tf.core.name = \"main\" → U \"main\" (frameWords L 1 2 (sigOf tf).1))\n" ++
   "    {k : ℕ} (hs : Safe guestProgram L k ⟨addressOfIndex 0, 1⟩) :\n" ++
   "    (guestWorld guestFns guestSlots L U).MainHolds :=\n" ++
-  "  guest_program_sound (guest_compiles hbig) hκ hobl hU hs\n\n" ++
+  s!"  guest_program_sound (guest_compiles{hbArg}) hκ hobl hU hs\n\n" ++
   "/-- **Function `j`'s places in the guest's world** are `placedLocs j`. -/\n" ++
-  "theorem guestWorld_locs (hbig : BigPieces) {j : ℕ} (hj : j < guestTraced.length) :\n" ++
+  s!"theorem guestWorld_locs {hb}\{j : ℕ} (hj : j < guestTraced.length) :\n" ++
   "    (guestWorld guestFns guestSlots L U).locs (guestTraced.getD j default).core.name = placedLocs j :=\n" ++
-  "  world_locs_of_pieces _ guestWorld_p loopsG_eq sigsG_eq checks_ok outs_length cfs_length (guest_pieces hbig) hj\n\n" ++
+  s!"  world_locs_of_pieces _ guestWorld_p loopsG_eq sigsG_eq checks_ok outs_length cfs_length (guest_pieces{hbArg}) hj\n\n" ++
   "end\nend LeanVM.Guest.Backend\n\n" ++
   "/-- info: 'LeanVM.Guest.Backend.guest_compiles' depends on axioms: [propext, Classical.choice, Quot.sound] -/\n#guard_msgs in\n#print axioms LeanVM.Guest.Backend.guest_compiles\n\n" ++
   "/-- info: 'LeanVM.Guest.Backend.guest_program_sound_compiled' depends on axioms: [propext, Classical.choice, Quot.sound] -/\n#guard_msgs in\n#print axioms LeanVM.Guest.Backend.guest_program_sound_compiled\n\n" ++
-  "/-- info: 'LeanVM.Guest.Backend.guestWorld_locs' depends on axioms: [propext, Classical.choice, Quot.sound] -/\n#guard_msgs in\n#print axioms LeanVM.Guest.Backend.guestWorld_locs\n"
+  "/-- info: 'LeanVM.Guest.Backend.guestWorld_locs' depends on axioms: [propext, Classical.choice, Quot.sound] -/\n#guard_msgs in\n#print axioms LeanVM.Guest.Backend.guestWorld_locs\n" ++
+  String.join (cut.map fun j =>
+    s!"\n/-- info: 'LeanVM.Guest.Backend.placedLocs_{j}' depends on axioms: [propext, Classical.choice, Quot.sound] -/\n#guard_msgs in\n#print axioms LeanVM.Guest.Backend.placedLocs_{j}\n")
 
 /-! ## The test program -/
 
@@ -559,8 +562,6 @@ def testFile (name : String) : IO String := do
 
 /-! ## Cut pieces -/
 
-/-- A cut piece's walk is cut once its statements since the last cut make this many instructions. -/
-def cutSize : Nat := 1500
 
 def pOpt {α : Type} (pa : α → String) : Option α → String
   | some a => s!"(some {pa a})"
@@ -671,42 +672,137 @@ def pmapDelta {α : Type} [BEq α] (old new : PMap α) : Except String (List ((N
     if (new.get? k).isNone then throw "an entry went away"
   return (entries new).filter fun (k, a) => old.get? k != some a
 
-/-- A cut function's walk: the cuts, the states there, and the state at its end. -/
-structure CutPlan where
-  ks : List Nat
-  states : List St
-  final : St
+/-- A cut function's walk is checked in parts, each over at most this many instructions but for
+one statement or one arm. -/
+def maxPart : Nat := 2400
 
-/-- Function `tf`'s walk from the jump tables `t`, cut between top-level statements once the
-statements since the last cut make `cutSize` instructions, never inside a chain of `match`es. -/
-def planCuts (loops : Loops) (sigs : SMap (Nat × Nat)) (t : Tables) (tf : TracedFn)
-    (target : Nat := cutSize) : Except String CutPlan := do
+/-- A data module of a cut function is closed once its text is longer than this. -/
+def maxDataModule : Nat := 1500000
+
+/-- One part of a cut function's walk. -/
+inductive Part where
+  /-- `placeHead tf k`. -/
+  | head (k : Nat)
+  /-- `placeBlockN (body.drop a) m`. -/
+  | seg (a m : Nat)
+  /-- `matchPre` of statement `i`, giving `mc`. -/
+  | pre (i : Nat) (mc : MatchHead)
+  /-- `armsRunN` over the `m` arms from arm `a` of statement `i`, giving `blocks` and reaching `top`. -/
+  | arms (i a m : Nat) (mc : MatchHead) (blocks : List (List PStmt)) (top : Nat)
+  /-- `matchPost` of statement `i` after its arms' runs `(first arm, part index)`, reaching `top`. -/
+  | post (i : Nat) (mc : MatchHead) (runs : List (Nat × Nat)) (top : Nat)
+  /-- `placeTail tf k`. -/
+  | tail (k : Nat)
+
+/-- A cut function's walk: each part with the state after it and its number of instructions. -/
+abbrev CutPlan := List (Part × St × Nat)
+
+/-- A `match` statement's walk in parts, from the state `st`: before the arms, the arms in runs of
+at most `maxPart` instructions, after them. Parts are numbered from `q`. -/
+def planMatch (ctx : Ctx) (body : List Stmt) (i q : Nat) (st : St) : Except String (Array (Part × St × Nat)) := do
+  let s := body.getD i default
+  let arms := armsOf s
+  let n := arms.length
+  let (mc, st1) ← matchPre (selOf s) n (body.drop (i + 1)) ctx st
+  let ((all, _), _) ← armsRun arms 0 n mc.base mc.exit ctx st1
+  let mut out : Array (Part × St × Nat) := #[(.pre i mc, st1, 0)]
+  let mut cur := st1
+  let mut a := 0
+  let mut runs : Array (Nat × Nat × Nat) := #[]
+  -- `r` runs of about equal size: arm `k` in run `⌊r · (instructions before it) / total⌋`
+  let total := blockSize all.flatten
+  let r := max 1 ((total + maxPart - 1) / maxPart)
+  let runOf (k : Nat) := min (r - 1) (r * blockSize (all.take k).flatten / max total 1)
+  while a < n do
+    let mut m := 0
+    let mut size := 0
+    while a + m < n && runOf (a + m) == runOf a do
+      size := size + blockSize (all.getD (a + m) [])
+      m := m + 1
+    let ((blocks, top), st') ← armsRunN (arms.drop a) a n mc.base mc.exit m ctx cur
+    runs := runs.push (a, q + out.size, top)
+    out := out.push (.arms i a m mc blocks top, st', size)
+    cur := st'
+    a := a + m
+  let topAll := runs.foldr (fun r t => max t r.2.2) mc.base
+  let blocksAll := out.toList.flatMap fun
+    | (.arms _ _ _ _ b _, _) => b
+    | _ => []
+  let ((), st2) ← matchPost mc blocksAll topAll ctx cur
+  let ((), stD) ← placeBlockN (body.drop i) 1 ctx st
+  unless stD.next == st2.next && stD.out.size == st2.out.size &&
+      blockSize stD.out.toList == blockSize st2.out.toList && stD.rest.length == st2.rest.length do
+    throw s!"statement {i}: its parts are not its walk"
+  return out.push (.post i mc (runs.toList.map fun r => (r.1, r.2.1)) topAll, st2, 0)
+
+/-- Function `tf`'s walk from the jump tables `t` in parts: top-level statements in runs of at most
+`maxPart` instructions, and a `match` larger than that, or a stage of a chain of `match`es, in parts
+of its own (`planMatch`). -/
+def planCuts (loops : Loops) (sigs : SMap (Nat × Nat)) (t : Tables) (tf : TracedFn) :
+    Except String CutPlan := do
   let ctx := ctxOf loops sigs tf
-  let ((), st0) ← placeParams tf ctx (initSt loops t tf)
   let body := tf.core.body
-  let mut st := st0
-  let mut acc := 0
-  let mut size := 0
-  let mut ks : Array Nat := #[]
-  let mut sts : Array St := #[]
+  let st0 := initSt loops t tf
+  let ((), stP) ← placeParams tf ctx st0
+  -- each statement's size, and whether it is a `match` placed in parts
+  let mut st := stP
+  let mut sizes : Array Nat := #[]
+  let mut split : Array Bool := #[]
   for i in List.range body.length do
     let ((), st') ← placeBlockN (body.drop i) 1 ctx st
-    let size' := blockSize st'.out.toList
-    acc := acc + (size' - size)
-    size := size'
+    let size := blockSize st'.out.toList - blockSize st.out.toList
+    sizes := sizes.push size
+    split := split.push (isMatchAt body i &&
+      (maxPart < size || st.chainIn.isSome || st'.chainIn.isSome))
     st := st'
-    if target ≤ acc && st.chainIn.isNone && i + 1 < body.length then
-      ks := ks.push (i + 1)
-      sts := sts.push st
+  let mut parts : Array (Part × St × Nat) := #[]
+  let mut cur := st0
+  let mut start := 0
+  let mut acc := 0
+  let mut isHead := true
+  for i in List.range body.length do
+    let close := split.getD i false || (start < i && maxPart < acc + sizes.getD i 0)
+    if close then
+      if isHead then
+        let ((), st') ← placeHead tf i ctx cur
+        parts := parts.push (.head i, st', acc)
+        cur := st'
+        isHead := false
+      else if start < i then
+        let ((), st') ← placeBlockN (body.drop start) (i - start) ctx cur
+        parts := parts.push (.seg start (i - start), st', acc)
+        cur := st'
+      start := i
       acc := 0
-  let (some k, some sk) := (ks.back?, sts.back?) | throw s!"{tf.core.name}: no cut"
-  let ((), fin) ← placeTail tf k ctx sk
-  return ⟨ks.toList, sts.toList, fin⟩
+    if split.getD i false then
+      let mps ← planMatch ctx body i parts.size cur
+      parts := parts ++ mps
+      cur := (mps.back?.map (·.2.1)).getD cur
+      start := i + 1
+    else
+      acc := acc + sizes.getD i 0
+  if isHead then
+    let ((), st') ← placeHead tf start ctx cur
+    parts := parts.push (.head start, st', 0)
+    cur := st'
+  let ((), fin) ← placeTail tf start ctx cur
+  parts := parts.push (.tail start, fin, acc)
+  return parts.toList
 
-/-- The term of state `st`, written as `prev` (the state `prevSt`) with what it adds; its lists are
-the definitions `{name}_…`, returned with it. -/
-def stateDef (j : Nat) (name prev : String) (prevSt st : St) (traceSize : Nat) :
-    Except String String := do
+/-- The text of a `match`'s head. -/
+def pMatchHead (mc : MatchHead) : String :=
+  let head := match mc.head with
+    | some (hs, e) => s!"(some ({pHints hs}, {e}))"
+    | none => "none"
+  let exit := match mc.exit with
+    | .next x f o s => s!"(ArmExit.next {x} {f} {o} {s})"
+    | .join j o s => s!"(ArmExit.join {j} {o} {s})"
+  s!"(⟨{mc.lx}, {mc.join}, {mc.first}, {head}, {exit}, {mc.base}, {mc.one}, {mc.sfp}⟩ : MatchHead)"
+
+/-- The term of state `st`, written as `prev` (the state `prevSt`) with what it adds, its statements
+`out` if given; the definitions of what it adds, returned with it. -/
+def stateDef (j : Nat) (name prev : String) (prevSt st : St) (traceSize : Nat)
+    (out : Option String) : Except String (String × String) := do
   let locs ← kmapDelta prevSt.locs st.locs
   let consts ← kmapDelta prevSt.constOf st.constOf
   let pc ← pmapDelta prevSt.scope.consts st.scope.consts
@@ -714,15 +810,21 @@ def stateDef (j : Nat) (name prev : String) (prevSt st : St) (traceSize : Nat) :
   let pm ← pmapDelta prevSt.scope.muls st.scope.muls
   let pl ← pmapDelta prevSt.scope.loads st.scope.loads
   let mats ← nmapDelta prevSt.scope.mats st.scope.mats
-  unless prevSt.out.size ≤ st.out.size do throw "the statements shrank"
-  let out := st.out.toList.drop prevSt.out.size
   let fresh := st.tables.shared.length - prevSt.tables.shared.length
   let pPool (l : List ((Nat × Nat) × Nat)) := l.map fun (k, c) => s!"({pPair k}, {c})"
+  let (outDefs, outT) ← match out with
+    | some o => pure ("", o)
+    | none => do
+        unless prevSt.out.size ≤ st.out.size do throw "the statements shrank"
+        let delta := st.out.toList.drop prevSt.out.size
+        if delta.isEmpty then pure ("", s!"({prev}).out")
+        else pure (chunkedDefs "Statements placed." s!"{name}_out" "PStmt" (delta.map pPStmt),
+          s!"({prev}).out.appendList {name}_out")
   let defs :=
     chunkedDefs "Values placed." s!"{name}_locs" "(V × Loc)" (locs.map fun (v, l) => s!"({pV v}, {pLoc l})") ++
     chunkedDefs "Constants set." s!"{name}_consts" "(V × (Nat × Nat))"
       (consts.map fun (v, k) => s!"({pV v}, {pPair k})") ++
-    chunkedDefs "Statements placed." s!"{name}_out" "PStmt" (out.map pPStmt) ++
+    outDefs ++
     chunkedDefs "Pooled constants." s!"{name}_pc" "((Nat × Nat) × Nat)" (pPool pc) ++
     chunkedDefs "Pooled sums." s!"{name}_px" "((Nat × Nat) × Nat)" (pPool px) ++
     chunkedDefs "Pooled products." s!"{name}_pm" "((Nat × Nat) × Nat)" (pPool pm) ++
@@ -731,8 +833,8 @@ def stateDef (j : Nat) (name prev : String) (prevSt st : St) (traceSize : Nat) :
       (mats.map fun (k, l) => s!"({k}, {pList (l.map pPair)})")
   let sh := (st.tables.shared.take fresh).map fun (cs, n) => s!"({pStrs cs}, {n})"
   let pVOpt (o : Option (List V)) := pOpt (fun vs => pList (vs.map pV)) o
-  return defs ++
-    s!"/-- The walk's state at a cut. -/\nnoncomputable def {name} : St :=\n" ++
+  return (defs,
+    s!"/-- The walk's state at a cut. -/\nstate_lit {name} : St :=\n" ++
     s!"  \{ next := {st.next},\n" ++
     s!"    locs := ({prev}).locs.insertAll {name}_locs,\n" ++
     s!"    scope :=\n      \{ consts := ({prev}).scope.consts.insertAll {name}_pc,\n" ++
@@ -742,9 +844,9 @@ def stateDef (j : Nat) (name prev : String) (prevSt st : St) (traceSize : Nat) :
     s!"        mats := ({prev}).scope.mats.insertAll {name}_mats,\n" ++
     s!"        selfFp := {pOpt toString st.scope.selfFp} },\n" ++
     s!"    pending := #{pList (st.pending.toList.map pLHint)},\n" ++
-    s!"    out := ({prev}).out.appendList {name}_out,\n" ++
+    s!"    out := {outT},\n" ++
     s!"    tables := \{ len := {st.tables.len}, shared := {pList sh} ++ ({prev}).tables.shared },\n" ++
-    s!"    rest := (guestTraced.getD {j} default).trace.toList.drop {traceSize - st.rest.length},\n" ++
+    s!"    rest := traceRest (guestTraced.getD {j} default) {traceSize - st.rest.length},\n" ++
     s!"    lazy := {pOpt (fun (v, k) => s!"({pV v}, {pKind k})") st.lazy},\n" ++
     s!"    used := {pList (st.used.map pV)},\n" ++
     s!"    shift := {pOpt (fun (v, e) => s!"({pV v}, {e})") st.shift},\n" ++
@@ -753,80 +855,176 @@ def stateDef (j : Nat) (name prev : String) (prevSt st : St) (traceSize : Nat) :
     s!"    chainIn := {pOpt pPair st.chainIn},\n" ++
     s!"    padRun := {pVOpt st.padRun},\n" ++
     s!"    aliasRun := {pVOpt st.aliasRun},\n" ++
-    s!"    constOf := ({prev}).constOf.insertAll {name}_consts }\n\n"
-
-/-- A cut piece's checks are grouped in modules of this many declarations. -/
-def cutGroup : Nat := 3
+    s!"    constOf := ({prev}).constOf.insertAll {name}_consts }\n\n")
 
 def cutHeader (mod what : String) (imports : String) : String :=
-  header mod what ++ "\nmodule\n\n" ++ imports ++ "public meta import LeanVM.Guest.KernelLit\n\n" ++
-    "set_option Elab.async false\nset_option maxRecDepth 100000\nset_option linter.all false\n\n" ++
+  header mod what ++ "\nmodule\n\n" ++ imports ++
+    "\nset_option Elab.async false\nset_option maxRecDepth 100000\nset_option linter.all false\n\n" ++
     "namespace LeanVM.Guest.Backend.GuestPiece\n\nopen LeanVM.Guest.Core LeanVM.Guest.Backend\n\n@[expose] public section\n\n"
 
-/-- Function `j`'s cut piece: the module of its walk's states (`C{j}.lean`), the modules of its
-checks (`C{j}P{m}.lean`), and the theorem gluing them (in `Compiled.lean`). With `limit`, its first
-`limit` states and the walk to the last of them only, for measuring. -/
+/-- The chunk checks of a cut function are grouped in modules of this many. -/
+def chunkGroup : Nat := 4
+
+/-- Function `j`'s cut piece: the modules of its data (`C{j}D{d}.lean`), of its walk's states
+(`C{j}.lean`) and of its checks (`C{j}P{m}.lean`), and the theorems gluing them (in `Compiled.lean`).
+With `limit`, the parts up to `limit` only, for measuring. -/
 def cutFiles (j : Nat) (tf : TracedFn) (t : Tables) (loops : Loops) (plan : CutPlan) (chunks : Nat)
     (extra : Option Extra) (limit : Option Nat := none) :
     Except String (List (String × String) × String) := do
   let tfT := s!"(guestTraced.getD {j} default)"
-  let ctxT := s!"(ctxOf loopsG sigsG {tfT})"
+  let bodyT := s!"{tfT}.core.body"
+  let ctxT := s!"ctx{j}"
   let initT := s!"(initSt loopsG (tablesAt outsG {j}) {tfT})"
-  let st0 := initSt loops t tf
-  let states := match limit with
-    | some n => plan.states.take n
-    | none => plan.states
-  let names := (List.range states.length).map fun i => s!"cut{j}_{i + 1}"
-  let mut defs := ""
+  let stmtT (i : Nat) := s!"({bodyT}.getD {i} default)"
+  let armsT (i : Nat) := s!"(armsOf {stmtT i})"
+  let plan := match limit with
+    | some n => plan.take n
+    | none => plan
+  let nParts := plan.length
+  let stName (q : Nat) := if limit.isNone && q + 1 == nParts then s!"cut{j}_end" else s!"cut{j}_{q + 1}"
+  let mut dataMods : Array String := #[]
+  let mut data := ""
+  let mut states := ""
+  let mut checks : Array (String × Nat) := #[]
   let mut prev := initT
-  let mut prevSt := st0
-  for (st, nm) in states.zip names do
-    defs := defs ++ (← stateDef j nm prev prevSt st tf.trace.size)
+  let mut prevSt := initSt loops t tf
+  -- the chain statement being built: its fixed arguments, its tables and its stages
+  let mut chainT : Option (String × String × String) := none
+  -- the walk's proof, statement by statement
+  let mut walk := ""
+  let mut tailK := 0
+  for ((part, st, size), q) in plan.zipIdx do
+    let nm := stName q
+    let pq := s!"cut{j}_p{q}"
+    let mut outT : Option String := none
+    match part with
+    | .head k =>
+        checks := checks.push (s!"kernel_rfl {pq} :\n    placeHead {tfT} {k} {ctxT} {initT} = .ok ((), {nm})\n\n", size)
+        walk := pq
+    | .seg a m =>
+        checks := checks.push (s!"kernel_rfl {pq} :\n    placeBlockN ({bodyT}.drop {a}) {m} {ctxT} {prev} = .ok ((), {nm})\n\n", size)
+        walk := s!"(placeHead_add {walk}\n      {pq})"
+    | .pre i mc =>
+        checks := checks.push (s!"theorem cut{j}_is{i} : isMatchAt {bodyT} {i} = true := by decide +kernel\n\n" ++
+          s!"theorem cut{j}_len{i} : {armsT i}.length ≤ {(armsOf (tf.core.body.getD i default)).length} := by\n  decide +kernel\n\n" ++
+          s!"kernel_rfl {pq} :\n    matchPre (selOf {stmtT i}) {armsT i}.length ({bodyT}.drop {i + 1}) {ctxT} {prev} =\n" ++
+          s!"      .ok ({pMatchHead mc}, {nm})\n\n", size)
+    | .arms i a m mc blocks top =>
+        data := data ++ chunkedDefs "Arms placed." s!"{nm}_b" "(List PStmt)"
+          (blocks.map fun b => pList (b.map pPStmt))
+        checks := checks.push (s!"kernel_rfl {pq} :\n    armsRunN ({armsT i}.drop {a}) {a} {armsT i}.length {mc.base}\n" ++
+          s!"      {pMatchHead mc}.exit {m} {ctxT} {prev} =\n      .ok (({nm}_b, {top}), {nm})\n\n", size)
+    | .post i mc runs top =>
+        -- the arms' blocks, as the glue of the runs writes them
+        let bs := runs.foldr (fun (_, r) acc => s!"(cut{j}_{r + 1}_b ++ {acc})") "[]"
+        let node (f s : String) (fixed : String) := s!"(PStmt.chain {fixed} {f} {s})"
+        match mc.head with
+        | some (hs, e) =>
+            let fixed := s!"{pHints hs} {mc.join} {mc.lx} {e} {mc.one} {mc.sfp}"
+            let f := s!"[{mc.first}]"
+            let s := s!"[{bs}]"
+            outT := some s!"({prev}).out.push {node f s fixed}"
+            chainT := some (fixed, f, s)
+        | none =>
+            let some (fixed, f, s) := chainT | throw s!"statement {i}: a chained match follows no match"
+            let f := s!"({f} ++ [{mc.first}])"
+            let s := s!"({s} ++ [{bs}])"
+            outT := some s!"({prev}).out.pop.push {node f s fixed}"
+            chainT := some (fixed, f, s)
+        checks := checks.push (s!"kernel_rfl {pq} :\n    matchPost {pMatchHead mc} {bs} {top} {ctxT} {prev} =\n" ++
+          s!"      .ok ((), {nm})\n\n", size)
+        -- the arms' runs glued, then the statement
+        let tops := plan.filterMap fun
+          | (.arms i' a _ _ _ t', _) => if i' == i then some (a, t') else none
+          | _ => none
+        let mut armsP := s!"(armsRun_end cut{j}_len{i})"
+        let mut tAcc := mc.base
+        for ((_, r), (_, t')) in (runs.zip tops).reverse do
+          tAcc := max tAcc t'
+          armsP := s!"(armsRun_cut (t := {tAcc}) rfl (by decide) cut{j}_p{r}\n        {armsP})"
+        let preQ := q - runs.length - 1
+        walk := s!"(placeHead_add {walk}\n      (placeBlockN_match_at cut{j}_is{i} cut{j}_p{preQ}\n        (armsRun_drop_zero {armsP})\n        {pq}))"
+    | .tail k =>
+        checks := checks.push (s!"kernel_rfl {pq} :\n    placeTail {tfT} {k} {ctxT} {prev} = .ok ((), {nm})\n\n", size)
+        tailK := k
+    let (d, s) ← stateDef j nm prev prevSt st tf.trace.size outT
+    data := data ++ d
+    states := states ++ s
+    if maxDataModule < data.length then
+      dataMods := dataMods.push data
+      data := ""
     prev := nm
     prevSt := st
+  if !data.isEmpty then dataMods := dataMods.push data
+  let dataImports := String.join ((List.range dataMods.size).map fun d =>
+    s!"public import LeanVM.Guest.Backend.Guest.Piece.C{j}D{d}\n")
+  let dataFiles := dataMods.toList.zipIdx.map fun (text, d) =>
+    (s!"C{j}D{d}.lean", cutHeader s!"LeanVM.Guest.Backend.Guest.Piece.C{j}D{d}"
+      s!"What the walk of `{tf.core.name}` adds at its cuts, part {d}."
+      "public import LeanVM.Guest.Backend.Guest.Piece.Layout\npublic import LeanVM.Guest.Backend.Cut\n" ++
+      text ++ "end\nend LeanVM.Guest.Backend.GuestPiece\n")
+  let ctxDef := s!"/-- The context `{tf.core.name}` is walked in, the length of its trace written out. -/\n" ++
+    s!"noncomputable def ctx{j} : Ctx := \{ ctxOf loopsG sigsG {tfT} with fuel := {tf.trace.size} }\n\n"
+  let statesFile := cutHeader s!"LeanVM.Guest.Backend.Guest.Piece.C{j}"
+    s!"The states of the walk of `{tf.core.name}` at its cuts."
+    (dataImports ++ "public meta import LeanVM.Guest.Backend.StateLit\n") ++
+    ctxDef ++ states ++ "end\nend LeanVM.Guest.Backend.GuestPiece\n"
+  let ctxThm := s!"kernel_rfl cut{j}_trace : {tfT}.trace = GuestData.traceOf{j}\n\n" ++
+    s!"theorem cut{j}_ctx : ctxOf loopsG sigsG {tfT} = ctx{j} := by\n" ++
+    s!"  refine ctxOf_fuel ?_\n  rw [cut{j}_trace]\n  unfold GuestData.traceOf{j}\n" ++
+    "  simp only [List.size_toArray, List.length_flatten]\n  decide +kernel\n\n"
+  checks := #[(ctxThm, 0)] ++ checks
+  -- the checks on the last state
+  let mut finals : Array String := #[]
   if limit.isNone then
-    defs := defs ++ (← stateDef j s!"cut{j}_end" prev prevSt plan.final tf.trace.size)
-  let ks := plan.ks
-  let mut checks : Array String := #[]
-  if limit.isNone || states.length == 1 then
-    checks := checks.push s!"kernel_rfl cut{j}_seg0 :\n    placeHead {tfT} {ks.headD 0} {ctxT} {initT} = .ok ((), cut{j}_1)\n\n"
-  for i in (List.range (states.length - 1)).filter fun i => limit.isNone || i + 2 == states.length do
-    let a := ks.getD i 0
-    let b := ks.getD (i + 1) 0
-    checks := checks.push s!"kernel_rfl cut{j}_seg{i + 1} :\n    placeBlockN ({tfT}.core.body.drop {a}) {b - a} {ctxT} cut{j}_{i + 1} =\n      .ok ((), cut{j}_{i + 2})\n\n"
-  let statesImports := "public import LeanVM.Guest.Backend.Guest.Piece.Layout\npublic import LeanVM.Guest.Backend.Cut\n"
-  if let some _ := limit then
-    return ([("", cutHeader s!"LeanVM.Scratch.Cut{j}" "A measurement of some of a function's cut parts."
-      statesImports ++ defs ++ String.join checks.toList ++ "end\nend LeanVM.Guest.Backend.GuestPiece\n")], "")
-  checks := checks.push s!"kernel_rfl cut{j}_tail :\n    placeTail {tfT} {ks.getLastD 0} {ctxT} cut{j}_{ks.length} = .ok ((), cut{j}_end)\n\n"
-  checks := checks.push s!"theorem cut{j}_head : cutHeadAt loopsG guestTraced outsG Data.functions.tail {j} cut{j}_end = true := by\n  decide +kernel\n\n"
-  for c in List.range chunks do
-    checks := checks.push s!"theorem cut{j}_chunk{c} :\n    cutChunkAt layG guestTraced outsG Data.functions.tail {j} cut{j}_end {c} = true := by\n  decide +kernel\n\n"
-  if let some x := extra then
-    checks := checks.push s!"theorem cut{j}_extra : {x.name} {j} (placedOf {tfT} cut{j}_end).1.locs = true := by\n  decide +kernel\n\n"
-  let walk := (List.range (ks.length - 1)).foldl (fun acc i => s!"(placeHead_add {acc} cut{j}_seg{i + 1})") s!"cut{j}_seg0"
+    finals := finals.push s!"theorem cut{j}_head : cutHeadAt loopsG guestTraced outsG Data.functions.tail {j} cut{j}_end = true := by\n  decide +kernel\n\n"
+    if let some x := extra then
+      finals := finals.push s!"theorem cut{j}_extra : {x.name} {j} (placedOf {tfT} cut{j}_end).1.locs = true := by\n  decide +kernel\n\n"
+    for c in List.range chunks do
+      finals := finals.push s!"theorem cut{j}_chunk{c} :\n    cutChunkAt layG guestTraced outsG Data.functions.tail {j} cut{j}_end {c} = true := by\n  decide +kernel\n\n"
+  -- the walk's checks grouped by size, then the last state's
+  let mut groups : Array (List String) := #[]
+  let mut cur : Array String := #[]
+  let mut acc := 0
+  for (c, size) in checks do
+    if !cur.isEmpty && maxPart < acc + size then
+      groups := groups.push cur.toList
+      cur := #[]
+      acc := 0
+    cur := cur.push c
+    acc := acc + size
+  if !cur.isEmpty then groups := groups.push cur.toList
+  for m in List.range ((finals.size + chunkGroup - 1) / chunkGroup) do
+    groups := groups.push ((finals.toList.drop (m * chunkGroup)).take chunkGroup)
+  let checkImports := s!"public import LeanVM.Guest.Backend.Guest.Piece.C{j}\npublic import Statement.Data.Bytecode\n" ++
+    (match extra with | some x => s!"public import {x.mod}\n" | none => "")
+  let checkFiles := groups.toList.zipIdx.map fun (g, m) =>
+    (s!"C{j}P{m}.lean", cutHeader s!"LeanVM.Guest.Backend.Guest.Piece.C{j}P{m}"
+      s!"The kernel's checks of some of the parts of the piece of `{tf.core.name}`." checkImports ++
+      String.join g ++ "end\nend LeanVM.Guest.Backend.GuestPiece\n")
+  if limit.isSome then
+    return ((s!"C{j}.lean", statesFile) :: dataFiles ++ checkFiles, "")
   let pat := " | ".intercalate ((List.range chunks).map fun _ => "_") ++ " | c"
-  let piece := s!"/-- **The piece of function {j}** (`{tf.core.name}`), from its parts. -/\n" ++
+  let lastQ := nParts - 2
+  let realCtx := s!"(ctxOf loopsG sigsG {tfT})"
+  let piece := s!"/-- The walk of function {j} (`{tf.core.name}`) to its last cut, from its parts. -/\n" ++
+    s!"theorem cut{j}_walk :\n    placeHead {tfT} {tailK} {realCtx} {initT} = .ok ((), cut{j}_{lastQ + 1}) := by\n" ++
+    s!"  rw [cut{j}_ctx]\n  have h := {walk}\n  exact h\n\n" ++
+    s!"theorem cut{j}_tailOk :\n    placeTail {tfT} {tailK} {realCtx} cut{j}_{lastQ + 1} = .ok ((), cut{j}_end) := by\n" ++
+    s!"  rw [cut{j}_ctx]\n  exact cut{j}_p{nParts - 1}\n\n" ++
+    s!"/-- **The piece of function {j}** (`{tf.core.name}`), from its parts. -/\n" ++
     (match extra with
       | some x => s!"theorem piece_{j} : pieceAtWith {x.name} {pieceArgs} {j} = true :=\n" ++
-          s!"  pieceAtWith_of_cut {walk}\n    cut{j}_tail cut{j}_head cut{j}_extra fun c hc => by\n"
+          s!"  pieceAtWith_of_cut cut{j}_walk cut{j}_tailOk cut{j}_head cut{j}_extra fun c hc => by\n"
       | none => s!"theorem piece_{j} : pieceAt {pieceArgs} {j} = true :=\n" ++
-          s!"  pieceAt_of_cut {walk}\n    cut{j}_tail cut{j}_head fun c hc => by\n") ++
+          s!"  pieceAt_of_cut cut{j}_walk cut{j}_tailOk cut{j}_head fun c hc => by\n") ++
     s!"      have hn : (Data.functions.tail.getD {j} noFunction).chunks.length = {chunks} := rfl\n      rw [hn] at hc\n" ++
     s!"      rcases c with {pat}\n" ++
-    s!"      exacts [{", ".intercalate ((List.range chunks).map fun c => s!"cut{j}_chunk{c}")}, absurd hc (by omega)]\n\n"
-  let statesFile := cutHeader s!"LeanVM.Guest.Backend.Guest.Piece.C{j}"
-    s!"The states of the walk of `{tf.core.name}` at its cuts between top-level statements."
-    statesImports ++ defs ++ "end\nend LeanVM.Guest.Backend.GuestPiece\n"
-  let groups := (List.range ((checks.size + cutGroup - 1) / cutGroup)).map fun m =>
-    (checks.toList.drop (m * cutGroup)).take cutGroup
-  let checkFiles := groups.zipIdx.map fun (g, m) =>
-    (s!"C{j}P{m}.lean", cutHeader s!"LeanVM.Guest.Backend.Guest.Piece.C{j}P{m}"
-      s!"The kernel's checks of some of the parts of the piece of `{tf.core.name}`."
-      (s!"public import LeanVM.Guest.Backend.Guest.Piece.C{j}\npublic import Statement.Data.Bytecode\n" ++
-        (match extra with | some x => s!"public import {x.mod}\n" | none => "")) ++
-      String.join g ++ "end\nend LeanVM.Guest.Backend.GuestPiece\n")
-  return ((s!"C{j}.lean", statesFile) :: checkFiles, piece)
+    s!"      exacts [{", ".intercalate ((List.range chunks).map fun c => s!"cut{j}_chunk{c}")}, absurd hc (by omega)]\n\n" ++
+    s!"/-- **Function {j}'s places** (`{tf.core.name}`): its walk's last state's. -/\n" ++
+    s!"theorem placedLocs_{j} : placedLocs {j} = cut{j}_end.locs :=\n" ++
+    s!"  placedLocsAt_of_cutWalk cut{j}_walk cut{j}_tailOk cut{j}_head\n\n"
+  return ((s!"C{j}.lean", statesFile) :: dataFiles ++ checkFiles, piece)
 
 /-! ## Native checks -/
 
@@ -883,7 +1081,7 @@ def files (P : List TracedFn) (outs : List FnOut) (extra : Option Extra) :
     let chunks := (Data.functions.tail.getD j noFunction).chunks.length
     let (fs, piece) ← cutFiles j tf (tablesAt outs j) loops plan chunks extra
     for (n, text) in fs do out := out.push (pieceDir / n, text)
-    cuts := cuts.push (j, piece, fs.length - 1)
+    cuts := cuts.push (j, piece, (fs.filter fun (n, _) => n.startsWith s!"C{j}P").length)
   out := out.push (compiledPath, compiledFile P.length rs big cuts.toList mods.length jts extra)
   return (out.toList, big)
 
@@ -898,19 +1096,23 @@ def main (args : List String) : IO UInt32 := do
     | ["test", "--check"] => pure (true, true, none)
     | ["--extra", n, m] => pure (false, false, some (⟨n, m⟩ : Extra))
     | ["--check", "--extra", n, m] => pure (false, true, some ⟨n, m⟩)
-    | ["cut", j, size, n, path] =>
-        -- Some cut parts of function `j`, for measuring: its first `n` cuts, at `size` instructions.
+    | ["cut", j, n] =>
+        -- The first `n` parts of function `j`'s cut piece, for measuring: written to `Guest/Piece/`.
         let P ← input
         let outs ← orThrow (outsOf P)
         let j := j.toNat!
         let tf := P.getD j default
-        let plan ← orThrow (planCuts (loopTable P) (sigTable P) (tablesAt outs j) tf size.toNat!)
-        IO.println s!"{tf.core.name}: cuts {plan.ks} at instructions {plan.states.map fun st => blockSize st.out.toList}, events {plan.states.map fun st => tf.trace.size - st.rest.length} of {tf.trace.size}, locs {plan.states.map fun st => (trieEntries st.locs.t).length}"
+        let plan ← orThrow (planCuts (loopTable P) (sigTable P) (tablesAt outs j) tf)
+        let kind : Part → String
+          | .head k => s!"head {k}" | .seg a m => s!"seg {a}+{m}" | .pre i _ => s!"pre {i}"
+          | .arms i a m _ _ _ => s!"arms {i}:{a}+{m}" | .post i _ _ _ => s!"post {i}" | .tail k => s!"tail {k}"
+        for ((part, st, size), q) in plan.zipIdx do
+          IO.println s!"part {q}: {kind part}, {size} instructions, locs {(trieEntries st.locs.t).length}"
         let (fs, _) ← orThrow (cutFiles j tf (tablesAt outs j) (loopTable P) plan 0 none (some n.toNat!))
-        IO.FS.writeFile path ((fs.headD ("", "")).2)
+        for (name, text) in fs do IO.FS.writeFile (pieceDir / name) text
         return 0
     | _ =>
-        IO.eprintln "usage: guest-pieces [--check] [--extra NAME MODULE] | guest-pieces test [--check]"
+        IO.eprintln "usage: guest-pieces [--check] [--extra NAME MODULE] | guest-pieces test [--check] | guest-pieces cut J N"
         return 2
   unless ← pieceDir.parent.getD "." |>.isDir do
     IO.eprintln "run from lean_vm"

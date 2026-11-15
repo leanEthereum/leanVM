@@ -41,18 +41,35 @@ public import LeanVM.Guest.Backend.Guest.Piece.Jt6
 public import LeanVM.Guest.Backend.Guest.Piece.C11P0
 public import LeanVM.Guest.Backend.Guest.Piece.C11P1
 public import LeanVM.Guest.Backend.Guest.Piece.C11P2
+public import LeanVM.Guest.Backend.Guest.Piece.C11P3
+public import LeanVM.Guest.Backend.Guest.Piece.C19P0
+public import LeanVM.Guest.Backend.Guest.Piece.C19P1
+public import LeanVM.Guest.Backend.Guest.Piece.C19P2
+public import LeanVM.Guest.Backend.Guest.Piece.C19P3
+public import LeanVM.Guest.Backend.Guest.Piece.C19P4
+public import LeanVM.Guest.Backend.Guest.Piece.C19P5
+public import LeanVM.Guest.Backend.Guest.Piece.C19P6
+public import LeanVM.Guest.Backend.Guest.Piece.C19P7
+public import LeanVM.Guest.Backend.Guest.Piece.C19P8
+public import LeanVM.Guest.Backend.Guest.Piece.C19P9
+public import LeanVM.Guest.Backend.Guest.Piece.C19P10
+public import LeanVM.Guest.Backend.Guest.Piece.C19P11
+public import LeanVM.Guest.Backend.Guest.Piece.C19P12
+public import LeanVM.Guest.Backend.Guest.Piece.C19P13
+public import LeanVM.Guest.Backend.Guest.Piece.C19P14
 public import LeanVM.Guest.Backend.Guest.Piece.C20P0
 public import LeanVM.Guest.Backend.Guest.Piece.C20P1
+public import LeanVM.Guest.Backend.Guest.Piece.C20P2
 public import LeanVM.Guest.Backend.Sound.Cut
 
 /-!
 # The guest compiled
 
 `guest_compiles`: `GuestCompiles guestFns guestSlots`, by `compiles_of_pieces` from the pieces of
-`Guest/Piece/` and the checks of `Guest/Piece/Checks.lean`; the 2 functions too large for one piece (`BigPieces`) are a hypothesis.
+`Guest/Piece/` and the checks of `Guest/Piece/Checks.lean`; the 1 functions too large for one piece (`BigPieces`) are a hypothesis.
 `guest_program_sound_compiled` is `guest_program_sound` without `GuestCompiles`, and
 `guestWorld_locs` says function `j`'s places in the guest's world are `placedLocs j`, which the
-kernel evaluates.
+kernel evaluates; for a function checked in parts, `placedLocs_j` gives them as its walk's last state's.
 -/
 
 set_option maxRecDepth 100000
@@ -65,25 +82,89 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core GuestPiec
 
 /-- The pieces of the guest's functions too large for one piece, not checked here. -/
 def BigPieces : Prop :=
-  ∀ j ∈ ([19, 36] : List Nat), pieceAt loopsG sigsG layG guestTraced outsG Data.functions.tail j = true
+  ∀ j ∈ ([36] : List Nat), pieceAt loopsG sigsG layG guestTraced outsG Data.functions.tail j = true
+
+/-- The walk of function 11 (`verify_tables`) to its last cut, from its parts. -/
+theorem cut11_walk :
+    placeHead (guestTraced.getD 11 default) 4996 (ctxOf loopsG sigsG (guestTraced.getD 11 default)) (initSt loopsG (tablesAt outsG 11) (guestTraced.getD 11 default)) = .ok ((), cut11_2) := by
+  rw [cut11_ctx]
+  have h := (placeHead_add cut11_p0
+      cut11_p1)
+  exact h
+
+theorem cut11_tailOk :
+    placeTail (guestTraced.getD 11 default) 4996 (ctxOf loopsG sigsG (guestTraced.getD 11 default)) cut11_2 = .ok ((), cut11_end) := by
+  rw [cut11_ctx]
+  exact cut11_p2
 
 /-- **The piece of function 11** (`verify_tables`), from its parts. -/
 theorem piece_11 : pieceAt loopsG sigsG layG guestTraced outsG Data.functions.tail 11 = true :=
-  pieceAt_of_cut (placeHead_add (placeHead_add cut11_seg0 cut11_seg1) cut11_seg2)
-    cut11_tail cut11_head fun c hc => by
+  pieceAt_of_cut cut11_walk cut11_tailOk cut11_head fun c hc => by
       have hn : (Data.functions.tail.getD 11 noFunction).chunks.length = 3 := rfl
       rw [hn] at hc
       rcases c with _ | _ | _ | c
       exacts [cut11_chunk0, cut11_chunk1, cut11_chunk2, absurd hc (by omega)]
 
+/-- **Function 11's places** (`verify_tables`): its walk's last state's. -/
+theorem placedLocs_11 : placedLocs 11 = cut11_end.locs :=
+  placedLocsAt_of_cutWalk cut11_walk cut11_tailOk cut11_head
+
+/-- The walk of function 19 (`sp_wots`) to its last cut, from its parts. -/
+theorem cut19_walk :
+    placeHead (guestTraced.getD 19 default) 121 (ctxOf loopsG sigsG (guestTraced.getD 19 default)) (initSt loopsG (tablesAt outsG 19) (guestTraced.getD 19 default)) = .ok ((), cut19_10) := by
+  rw [cut19_ctx]
+  have h := (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add (placeHead_add cut19_p0
+      cut19_p1)
+      cut19_p2)
+      cut19_p3)
+      cut19_p4)
+      cut19_p5)
+      cut19_p6)
+      cut19_p7)
+      cut19_p8)
+      cut19_p9)
+  exact h
+
+theorem cut19_tailOk :
+    placeTail (guestTraced.getD 19 default) 121 (ctxOf loopsG sigsG (guestTraced.getD 19 default)) cut19_10 = .ok ((), cut19_end) := by
+  rw [cut19_ctx]
+  exact cut19_p10
+
+/-- **The piece of function 19** (`sp_wots`), from its parts. -/
+theorem piece_19 : pieceAt loopsG sigsG layG guestTraced outsG Data.functions.tail 19 = true :=
+  pieceAt_of_cut cut19_walk cut19_tailOk cut19_head fun c hc => by
+      have hn : (Data.functions.tail.getD 19 noFunction).chunks.length = 12 := rfl
+      rw [hn] at hc
+      rcases c with _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | c
+      exacts [cut19_chunk0, cut19_chunk1, cut19_chunk2, cut19_chunk3, cut19_chunk4, cut19_chunk5, cut19_chunk6, cut19_chunk7, cut19_chunk8, cut19_chunk9, cut19_chunk10, cut19_chunk11, absurd hc (by omega)]
+
+/-- **Function 19's places** (`sp_wots`): its walk's last state's. -/
+theorem placedLocs_19 : placedLocs 19 = cut19_end.locs :=
+  placedLocsAt_of_cutWalk cut19_walk cut19_tailOk cut19_head
+
+/-- The walk of function 20 (`verify_sig_lean_sphincs`) to its last cut, from its parts. -/
+theorem cut20_walk :
+    placeHead (guestTraced.getD 20 default) 3432 (ctxOf loopsG sigsG (guestTraced.getD 20 default)) (initSt loopsG (tablesAt outsG 20) (guestTraced.getD 20 default)) = .ok ((), cut20_1) := by
+  rw [cut20_ctx]
+  have h := cut20_p0
+  exact h
+
+theorem cut20_tailOk :
+    placeTail (guestTraced.getD 20 default) 3432 (ctxOf loopsG sigsG (guestTraced.getD 20 default)) cut20_1 = .ok ((), cut20_end) := by
+  rw [cut20_ctx]
+  exact cut20_p1
+
 /-- **The piece of function 20** (`verify_sig_lean_sphincs`), from its parts. -/
 theorem piece_20 : pieceAt loopsG sigsG layG guestTraced outsG Data.functions.tail 20 = true :=
-  pieceAt_of_cut (placeHead_add cut20_seg0 cut20_seg1)
-    cut20_tail cut20_head fun c hc => by
+  pieceAt_of_cut cut20_walk cut20_tailOk cut20_head fun c hc => by
       have hn : (Data.functions.tail.getD 20 noFunction).chunks.length = 2 := rfl
       rw [hn] at hc
       rcases c with _ | _ | c
       exacts [cut20_chunk0, cut20_chunk1, absurd hc (by omega)]
+
+/-- **Function 20's places** (`verify_sig_lean_sphincs`): its walk's last state's. -/
+theorem placedLocs_20 : placedLocs 20 = cut20_end.locs :=
+  placedLocsAt_of_cutWalk cut20_walk cut20_tailOk cut20_head
 
 /-- **Every function's piece.** -/
 theorem guest_pieces (hbig : BigPieces) :
@@ -98,7 +179,7 @@ theorem guest_pieces (hbig : BigPieces) :
       pieces_13_17 (by decide) (by decide))
       pieces_17_18 (by decide) (by decide))
       pieces_18_19 (by decide) (by decide))
-      (piecesIn_single (hbig 19 (by decide))) (by decide) (by decide))
+      (piecesIn_single piece_19) (by decide) (by decide))
       (piecesIn_single piece_20) (by decide) (by decide))
       pieces_21_32 (by decide) (by decide))
       pieces_32_36 (by decide) (by decide))
@@ -339,3 +420,15 @@ end LeanVM.Guest.Backend
 /-- info: 'LeanVM.Guest.Backend.guestWorld_locs' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.Backend.guestWorld_locs
+
+/-- info: 'LeanVM.Guest.Backend.placedLocs_11' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Backend.placedLocs_11
+
+/-- info: 'LeanVM.Guest.Backend.placedLocs_19' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Backend.placedLocs_19
+
+/-- info: 'LeanVM.Guest.Backend.placedLocs_20' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Backend.placedLocs_20

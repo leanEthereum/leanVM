@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.Backend.Guest.Piece.C20
 public import Statement.Data.Bytecode
-public meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
 set_option maxRecDepth 100000
@@ -21,16 +20,8 @@ open LeanVM.Guest.Core LeanVM.Guest.Backend
 
 @[expose] public section
 
-theorem cut20_head : cutHeadAt loopsG guestTraced outsG Data.functions.tail 20 cut20_end = true := by
-  decide +kernel
-
-theorem cut20_chunk0 :
-    cutChunkAt layG guestTraced outsG Data.functions.tail 20 cut20_end 0 = true := by
-  decide +kernel
-
-theorem cut20_chunk1 :
-    cutChunkAt layG guestTraced outsG Data.functions.tail 20 cut20_end 1 = true := by
-  decide +kernel
+kernel_rfl cut20_p1 :
+    placeTail (guestTraced.getD 20 default) 3432 ctx20 cut20_1 = .ok ((), cut20_end)
 
 end
 end LeanVM.Guest.Backend.GuestPiece
