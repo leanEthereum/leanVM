@@ -30,7 +30,7 @@ use primitives::field::F64;
 
 use ::pcs::ood::ood_sample;
 use ::pcs::stack_open::open_batch_mixed_whir_stacked;
-pub use ::pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim as SlotClaim};
+pub use ::pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim};
 use ::pcs::whir::ProverConfig;
 use ::pcs::whir::{ProverData, commit as whir_commit, config_for_rate};
 
@@ -79,7 +79,7 @@ pub struct Committed {
     /// L0 inverse-rate logarithm bound into the transcript before this commitment.
     pub log_inv_rate: usize,
     /// The OOD sample's claim ([`::pcs::ood`]), which the opening discharges after the caller's.
-    pub ood: SlotClaim,
+    pub ood: StackClaim,
 }
 
 /// Commit a `K`-valued witness of `2^μ` words (`μ ≥ MIN_STACKED_LOG`, from
@@ -138,7 +138,7 @@ pub fn commit(
 ///
 /// The OOD sample's claim follows `points`. The opening consumes the commitment: it frees the codeword and tree once
 /// the L0 queries are answered.
-pub fn open(ps: &mut ProverState, c: Committed, q: Vec<F64>, points: &[SlotClaim], ring: &RingSwitchOpen) {
+pub fn open(ps: &mut ProverState, c: Committed, q: Vec<F64>, points: &[StackClaim], ring: &RingSwitchOpen) {
     let lane_block = 1usize << (c.mu - LOG_BATCH);
     assert_eq!(q.len() % lane_block, 0, "witness must be whole committed lanes");
     assert!(q.len() <= 1usize << c.mu, "witness must fit the announced size");

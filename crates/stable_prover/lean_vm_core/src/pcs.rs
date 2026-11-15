@@ -10,11 +10,7 @@
 //! Every supported rate uses Johnson list decoding with OOD binding ([`verifier::SECURITY_BITS`]). Level 0 takes
 //! its OOD sample right after its root ([`::pcs::commit`]), each deeper commitment one inside the opening.
 
-use ::pcs::Committed;
-use primitives::field::F64;
-use primitives::transcript::ProverState;
-
-pub use ::pcs::{StackClaim as SlotClaim, open};
+pub use ::pcs::{StackClaim, commit, open};
 
 /// `log2` of the lanes a Merkle leaf holds, which is also WHIR's initial folding factor: the level-0 commitment is
 /// reused by the opening, so the two are one knob.
@@ -25,18 +21,6 @@ pub const TEST_LOG_INV_RATE: usize = 1;
 pub use ::pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 /// The committed stack's log-size bounds, the protocol's.
 pub use verifier::{MAX_STACKED_LOG, MIN_STACKED_LOG};
-
-/// Commit the stack's committed lanes `witness` (its zero tail past them is neither encoded nor hashed, and the
-/// commitment is the full stack's), bind the root, and take the OOD sample. The witness itself stays the caller's,
-/// who hands it back to [`open`].
-pub fn commit(
-    ps: &mut ProverState,
-    witness: &[F64],
-    shape: crate::witness::StackShape,
-    log_inv_rate: usize,
-) -> Committed {
-    ::pcs::commit(ps, witness, shape.mu, log_inv_rate)
-}
 
 #[cfg(test)]
 mod tests {

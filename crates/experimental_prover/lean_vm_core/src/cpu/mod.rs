@@ -327,7 +327,7 @@ fn finish_claims(
     bus_claims: Vec<ColumnClaim>,
     table_claims: &[constraints::Claims],
     r_pi: F128,
-) -> Vec<pcs::SlotClaim> {
+) -> Vec<pcs::StackClaim> {
     let mut claims = bus_claims;
     let sch = schema();
     claims.reserve(sch.n - NUM_GLOBAL_COLUMNS);
@@ -401,20 +401,20 @@ pub fn verify(
 /// `q_keccak` slot evaluation: an ordinary claim on the committed `QKECCAK` column at the
 /// point whose low coords are `r` and whose next `SLOT_LOG` are the slot's bits. No
 /// downstream special-casing: it folds into the one opening like every other point claim.
-fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::SlotClaim> {
+fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::StackClaim> {
     claims
         .into_iter()
         .map(|c| {
             // A KECCAK value column (always virtual): its bus claim at instance point
             // `c.point` is a claim on the slot's `2^n_log` words of QKECCAK.
             if let Some(KeccakLane::Slot(slot)) = keccak_value(c.col) {
-                return pcs::SlotClaim::Point {
+                return pcs::StackClaim::Point {
                     offset: l.placements[QKECCAK].offset + (slot << c.point.len()),
                     low_point: c.point,
                     value: c.value,
                 };
             }
-            pcs::SlotClaim::Point {
+            pcs::StackClaim::Point {
                 offset: l.placements[c.col].offset,
                 low_point: c.point,
                 value: c.value,

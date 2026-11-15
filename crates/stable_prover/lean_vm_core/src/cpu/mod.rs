@@ -179,7 +179,7 @@ pub fn prove(
         verifier::Digest(public_input_bytes(&public_input)).words(),
     );
     announce_public(&mut ps, log_mem, w.layout.rows, log_inv_rate);
-    let committed = crate::stage!("Commit", || pcs::commit(&mut ps, &w.q, w.layout.shape, log_inv_rate));
+    let committed = crate::stage!("Commit", || pcs::commit(&mut ps, &w.q, w.layout.shape.mu, log_inv_rate));
 
     let (bus, table_claims) = {
         let l = &w.layout;
@@ -227,7 +227,7 @@ fn finish_claims(
     bus_claims: Vec<ColumnClaim>,
     table_claims: &[constraints::Claims],
     r_pi: F128,
-) -> Vec<pcs::SlotClaim> {
+) -> Vec<pcs::StackClaim> {
     let bus = bus_claims.into_iter().map(|c| (c.col, c.point));
     let tables = (0..tables::N_TABLES).flat_map(|t| {
         (GLOBAL_COLUMN_BASES[t]..GLOBAL_COLUMN_BASES[t] + TABLE_WIDTHS[t])
@@ -283,12 +283,12 @@ pub fn verify(
 /// The columns `q_keccak` carries are virtual: they have no committed placement. A claim
 /// `col(r) = v` on one, at the instance point `r`, is the claim on its slot's `2^|r|` words of
 /// `q_keccak`, which folds into the one opening like every other point claim.
-fn slot_claim(l: &Layout, col: usize, point: Vec<F128>) -> pcs::SlotClaim {
+fn slot_claim(l: &Layout, col: usize, point: Vec<F128>) -> pcs::StackClaim {
     let offset = match keccak_value(col) {
         Some(KeccakLane::Slot(slot)) => l.placements[QKECCAK].offset + (slot << point.len()),
         _ => l.placements[col].offset,
     };
-    pcs::SlotClaim {
+    pcs::StackClaim {
         offset,
         low_point: point,
     }
