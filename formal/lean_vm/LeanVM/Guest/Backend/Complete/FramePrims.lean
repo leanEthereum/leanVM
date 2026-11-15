@@ -153,6 +153,28 @@ theorem emitOp_fat (o : LOp) (h : Fits I st → o ∈ I.ops → ∀ Ψ, C Ψ →
   subst hs
   exact ⟨_, _, rfl, h hz (hops _ _ List.mem_cons_self)⟩
 
+/-- The state once `o` is emitted. -/
+def emitted (st : St) (o : LOp) : St :=
+  { st with pending := #[], out := st.out.push (.op st.pending.toList o) }
+
+/-- **An instruction emitted**, its relation given once the final placement has the block's
+straight-line instructions up to it. -/
+theorem emitOp_fatO (o : LOp) (h : Fits I st → OutOps I (emitted st o) → ∀ Ψ, C Ψ → OpW I Ψ o) :
+    FAt ctx I C st (emitOp o) (fun _ C' st' => C' = C ∧
+      st' = { st with pending := #[], out := st.out.push (.op st.pending.toList o) }) := by
+  intro hc
+  unfold emitOp takeHints push
+  refine wp_bind.mpr (wp_modifyGet.mpr (wp_modify.mpr ?_))
+  refine ⟨C, hc, Stronger.refl C, le_rfl, LocsLe.refl _,
+    ⟨[.op st.pending.toList o], by simp, fun hz hout s hs => ?_⟩, rfl, rfl⟩
+  rw [List.mem_singleton] at hs
+  subst hs
+  exact ⟨_, _, rfl, h hz hout⟩
+
+/-- The straight-line instructions of a later output. -/
+theorem OutOps.sub {s s' : St} (h : OutOps I s) (hsub : ∀ x ∈ s'.out.toList, x ∈ s.out.toList) :
+    OutOps I s' := fun h' o hm => h h' o (hsub _ hm)
+
 /-- **A pooled result**: the pool's cell, or a fresh one, given the word `w`, which the
 instruction writes and the pool learns. -/
 theorem pooledCell_fat {find : Scope → Option Cell} {learn : Cell → Scope → Scope}
@@ -438,6 +460,61 @@ theorem materialize_fat (c : Cell) (exp : ℕ) (hok : I.Ok) (hc2 : 2 ≤ c) (hc 
             fun Ψ hΨ => by rw [hsrc'.2 Ψ hΨ, ha Ψ hΨ]).symm
         · exact (fixed_ne hc1.sat (hkb c' hc' hb) hkw).symm
 
+/-- A pooled constant keeps the products and only extends the output. -/
+theorem constCell_muls (k : ℕ × ℕ) : wpP (constCell k) ctx st fun _ st' =>
+    st'.scope.muls = st.scope.muls ∧ ∀ x ∈ st.out.toList, x ∈ st'.out.toList := by
+  rw [constCell_eq]
+  unfold pooledCell fresh emitOp takeHints push
+  refine wp_bind.mpr (wp_get.mpr ?_)
+  split
+  · exact wp_pure.mpr ⟨rfl, fun _ h => h⟩
+  · simp only [wp_bind, wp_modifyGet, wp_modify, wp_pure]
+    exact ⟨by simp, fun _ h => by simp [h]⟩
+
+/-- **A shifted pointer made a value is no temporary's cell**: a cell of the pools of products
+and shifted pointers, or a fresh one a `MUL` writes. -/
+theorem materialize_nt (c : Cell) (exp : ℕ) (hok : I.Ok) :
+    wpP (materialize c exp) ctx st fun o st' => exp ≠ 0 → ∀ s : St,
+      (∀ x ∈ st'.out.toList, x ∈ s.out.toList) → OutOps I s →
+      (OutOps I st → PoolNT I st.scope) → ¬ I.tc o := by
+  by_cases he : exp = 0
+  · exact fun _ _ _ h => absurd he h
+  unfold materialize
+  dsimp only
+  simp only [he, ↓reduceIte]
+  split
+  · exact wp_bind.mpr wp_failP
+  · refine wp_bind.mpr (wp_get.mpr ?_)
+    split
+    · next e o hfind =>
+      refine wp_pure.mpr fun _ s hsub hout hp => ?_
+      have hm := List.mem_of_find?_eq_some hfind
+      cases hmc : st.scope.mats.get? c with
+      | none => rw [hmc] at hm; simp at hm
+      | some l =>
+        rw [hmc] at hm
+        exact (hp (hout.sub hsub)).2 c l hmc _ hm
+    · generalize matStart _ _ _ _ = pr
+      obtain ⟨src, dist⟩ := pr
+      dsimp only
+      refine wp_bind.mpr (wp_mono (constCell_muls _) fun k s₁ ⟨hm₁, hs₁⟩ => ?_)
+      rw [mulCell_eq]
+      unfold pooledCell
+      refine wp_bind.mpr (wp_bind.mpr (wp_get.mpr ?_))
+      split
+      · next o ho =>
+        refine wp_pure.mpr (wp_bind.mpr (wp_modify.mpr (wp_pure.mpr fun _ s hsub hout hp => ?_)))
+        have hs' : ∀ x ∈ st.out.toList, x ∈ s.out.toList := fun x hx => hsub x (hs₁ x hx)
+        have ho' : s₁.scope.muls.get? (sorted src k) = some o := ho
+        rw [hm₁] at ho'
+        exact (hp (hout.sub hs')).1 _ o ho'
+      · unfold fresh emitOp takeHints push
+        simp only [wp_bind, wp_modifyGet, wp_modify, wp_pure]
+        intro _ s hsub hout _ htc
+        have hmem := hout s₁.pending.toList (LOp.mul src k s₁.next) (hsub _ (by simp))
+        obtain ⟨p, hp, _⟩ := hok.tops _ htc _ hmem (by simp [opCells])
+        cases hp
+
 /-! ## Return areas -/
 
 /-- **A return area placed**: the cells from `base`, below the next free one and blind to the
@@ -542,12 +619,12 @@ theorem emitDeref_fat {ptr off dst : Cell} (hp2 : 2 ≤ ptr) (hd2 : 2 ≤ dst) (
     (hk : ∀ Ψ, C Ψ → IsInK (Ψ ptr))
     (hrd : ∀ Ψ, C Ψ → ((Fits I st ∧ ¬ I.tc dst) ∨ ∀ t ∈ I.tmps, cellP st.locs t ≠ some dst) →
       ∀ rd, I.Rd rd → rd ((Ψ ptr).limb 0 * addressOfIndex off) = some (Ψ dst))
-    (htl : Fits I st → LOp.deref ptr off dst .cell ∈ I.ops → ∀ Ψ, C Ψ → I.tc dst →
-      I.TL (Ψ ptr) off dst) :
+    (htl : Fits I st → OutOps I (emitted st (.deref ptr off dst .cell)) →
+      ∀ Ψ, C Ψ → I.tc dst → I.TL (Ψ ptr) off dst) :
     FAt ctx I C st (emitDeref ptr off dst) (fun _ C' st' => C' = C ∧ st'.next = st.next ∧
       st'.locs = st.locs ∧ st'.rest = st.rest) := by
   unfold emitDeref
-  refine FAt.bind (emitOp_fat _ fun hz hm Ψ hΨ => ?_) fun _ st₁ C₁ _ _ _ ⟨hC₁, hst₁⟩ => ?_
+  refine FAt.bind (emitOp_fatO _ fun hz hm Ψ hΨ => ?_) fun _ st₁ C₁ _ _ _ ⟨hC₁, hst₁⟩ => ?_
   · show IsInK (fw I Ψ ptr) ∧ (I.tc dst → I.TL (fw I Ψ ptr) off dst) ∧
       (¬ I.tc dst → ∀ rd, FrameRd I Ψ rd → I.Rd rd →
         rd ((fw I Ψ ptr).limb 0 * addressOfIndex off) = some (fw I Ψ dst))
