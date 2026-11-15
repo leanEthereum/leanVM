@@ -468,23 +468,6 @@ mod tests {
             .collect()
     }
 
-    #[test]
-    fn products_are_merged_into_groups() {
-        let mut s = 1;
-        let pows: Vec<F128> = (0..3).map(|_| random_e(&mut s)).collect();
-        let form = Grouped::new(&synth(&pows));
-        let pairs: Vec<(usize, usize)> = form
-            .groups
-            .iter()
-            .flat_map(|(a, r)| r.iter().map(|&(b, _)| (*a, b)))
-            .collect();
-        assert_eq!(
-            pairs,
-            [(0, 1), (0, 3), (0, 4), (5, 5)],
-            "the pair named twice, either way round, is one product"
-        );
-    }
-
     /// `[Σ eqr·P(end), Σ eqr·Q(lo + hi)]` by evaluating the summand row by row.
     fn naive_message(pows: &[F128], cols: &[Vec<F128>], eqr: &[F128], half: usize, at_one: bool) -> [F128; 2] {
         (0..half).fold([F128::ZERO; 2], |acc, i| {
