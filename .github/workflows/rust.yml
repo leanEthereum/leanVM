@@ -57,6 +57,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Clippy
         run: cargo clippyall
+      - name: Clippy (the API on the experimental prover)
+        run: cargo clippy --release -p leanvm --all-targets --features experimental-prover -- -D warnings
 
   # Clippy type-checks every arm the ISA selects, so it also does `cargo check`'s work.
   # Nothing runs: GitHub's x86-64 runners do not reliably have AVX-512.

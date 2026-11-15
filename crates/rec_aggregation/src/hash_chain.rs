@@ -6,7 +6,7 @@ use crate::aggregation::public_input_bytes;
 use crate::protocol::bytecode_table;
 use isa::{Prover, Stats};
 use lean_compiler::{compile, parse};
-use leanvm_core::Stable;
+use leanvm_core::StableProver;
 use leanvm_core::cpu::{from_scalar, scalar_proof};
 use std::time::Instant;
 use verifier::E;
@@ -76,8 +76,8 @@ fn keccak_hash_chain() {
 
     let compiled = compile(&parse(&chain_source(steps, unroll)).expect("parse"));
     let bytecode = verifier::Bytecode::new(&bytecode_table(&compiled.prog));
-    Stable::init();
-    let program = Stable::assemble(compiled);
+    StableProver::init();
+    let program = StableProver::assemble(compiled);
 
     let started = Instant::now();
     let (tree_proof, stats) = leanvm_core::cpu::prove(

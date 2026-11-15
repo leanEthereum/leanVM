@@ -16,5 +16,5 @@ stable_leanvm_core = { path = "../stable-prover/leanvm_core" }
 experimental_leanvm_core = { path = "../experimental-prover/leanvm_core", optional = true }
 
 [features]
-# The optimized prover, `Experimental`, beside the default `Stable`.
+# Prove with the experimental tree rather than the stable one.
 experimental-prover = ["dep:experimental_leanvm_core"]

@@ -6,7 +6,7 @@ const MSG_2: lean_xmss::Message = [2; lean_xmss::MESSAGE_LEN];
 
 #[test]
 fn public_api_end_to_end() {
-    setup::<Stable>();
+    setup();
 
     // 1. Eight leanXMSS signatures over three messages, three of the first, four of the second, one of the third,
     //    by four keys. A key signs each message at its own leaf index, which the statement does not record.
@@ -38,9 +38,9 @@ fn public_api_end_to_end() {
 
     // 3. Two leaves, then a root over both. Both leaves hold claims on the second message; the root's claims are the union.
     let blobs: Vec<lean_da::Blob> = vec![std::array::from_fn(|i| i as u128)];
-    let matrix = lean_da::BlobMatrix::build::<Stable>(&blobs).unwrap();
+    let matrix = lean_da::BlobMatrix::build(&blobs).unwrap();
     let commitment = matrix.top_root();
-    let left = aggregate::<Stable>(
+    let left = aggregate(
         &[],
         lean_xmss_input[..4].to_vec(),
         lean_sphincs_input[..1].to_vec(),
@@ -52,9 +52,9 @@ fn public_api_end_to_end() {
     assert!(left.1.verify(&left.0));
     assert_eq!(left.0.da_commitment, Some(commitment));
     let other_blobs: Vec<lean_da::Blob> = blobs.iter().map(|blob| blob.map(|x| x ^ 42)).collect();
-    let other_matrix = lean_da::BlobMatrix::build::<Stable>(&other_blobs).unwrap();
+    let other_matrix = lean_da::BlobMatrix::build(&other_blobs).unwrap();
     let other_commitment = other_matrix.top_root();
-    let right = aggregate::<Stable>(
+    let right = aggregate(
         &[],
         lean_xmss_input[4..7].to_vec(),
         lean_sphincs_input[1..].to_vec(),
@@ -65,7 +65,7 @@ fn public_api_end_to_end() {
     .unwrap();
     assert_eq!(right.0.da_commitment, Some(other_commitment));
     // A proof carries one blob matrix: the root passes on one child's, by default the first's.
-    let (claims, proof) = aggregate::<Stable>(
+    let (claims, proof) = aggregate(
         &[left, right],
         lean_xmss_input[7..].to_vec(),
         vec![],
@@ -95,7 +95,7 @@ fn public_api_end_to_end() {
         lean_sphincs: claims.lean_sphincs[1..].to_vec(),
         da_commitment: Some(commitment),
     };
-    let narrowed = aggregate::<Stable>(
+    let narrowed = aggregate(
         &[(claims, received)],
         vec![],
         vec![],
@@ -113,19 +113,7 @@ fn public_api_end_to_end() {
         da_commitment: None,
         ..retained
     };
-    let dropped =
-        aggregate::<Stable>(&[narrowed], vec![], vec![], None, OutputClaims::Only(&without_blobs), 2).unwrap();
+    let dropped = aggregate(&[narrowed], vec![], vec![], None, OutputClaims::Only(&without_blobs), 2).unwrap();
     assert!(dropped.1.verify(&dropped.0));
     assert_eq!(dropped.0, without_blobs);
-}
-
-#[cfg(feature = "experimental-prover")]
-#[test]
-fn experimental_prover_through_the_api() {
-    setup::<Stable>();
-    setup::<Experimental>();
-    let blobs: Vec<lean_da::Blob> = vec![std::array::from_fn(|i| (i as u128) << 7)];
-    let stable = lean_da::BlobMatrix::build::<Stable>(&blobs).unwrap();
-    let experimental = lean_da::BlobMatrix::build::<Experimental>(&blobs).unwrap();
-    assert_eq!(stable.top_root(), experimental.top_root());
 }

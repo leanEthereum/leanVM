@@ -7,7 +7,7 @@
 //! are hand-written in `tests/LeanVMTests/Spec/Node.lean`.
 
 use super::*;
-use stable_leanvm_core::Stable;
+use stable_leanvm_core::StableProver;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use std::fmt::Write as _;
@@ -123,9 +123,9 @@ pub fn file() -> File {
         .zip(&carried)
         .flat_map(|(subproof, carried)| [subproof.bytecode_point.clone(), carried.bytecode_point.clone()])
         .collect();
-    <Stable as isa::Prover>::init();
-    let sums = bytecode_sums::<Stable>(&points);
-    let (hints, batched) = aggregate_deferred_claims::<Stable>(&subproofs, &carried, sums)
+    <StableProver as isa::Prover>::init();
+    let sums = bytecode_sums::<StableProver>(&points);
+    let (hints, batched) = aggregate_deferred_claims::<StableProver>(&subproofs, &carried, sums)
         .expect("the honest children's deferred values are the bytecode's evaluations");
     let hint = |name: &str| &hints.iter().find(|(n, _)| *n == name).unwrap().1;
     let msgs = hint("bc_sumcheck_msgs");

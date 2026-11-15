@@ -30,7 +30,7 @@ pub mod witness;
 /// `2^-SECURITY_BITS`. Challenges are sampled in `E`, so a message whose error is `N/|E|` grinds
 /// `fiat_shamir::grinding_bits(N)` bits.
 pub use fiat_shamir::SECURITY_BITS;
-pub use prover::Stable;
+pub use prover::StableProver;
 
 /// `stage!("Commit", || …)`: one named prover stage, run inside its `tracing` span, which is what the CLI's
 /// `--tracing` tree shows.

@@ -36,7 +36,7 @@ pub mod witness;
 /// most `2^-SECURITY_BITS`. Challenges are sampled in F128, so a message whose error is `N/|E|`
 /// grinds `fiat_shamir::grinding_bits(N)` bits.
 pub use fiat_shamir::SECURITY_BITS;
-pub use prover::Experimental;
+pub use prover::ExperimentalProver;
 
 /// Below this many parallelizable items a pass runs serially: the fan-out
 /// overhead is not worth it for small inputs. Shared by [`constraints`], [`gkr`], [`leaf`].

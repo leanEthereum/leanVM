@@ -41,11 +41,6 @@ pub trait Prover: 'static {
     /// Each row's dot product with `weights`, over the rows of `weights.len()` `K` words that `rows` holds end to end.
     /// A prover may require the row width to be a multiple of 8.
     fn dot_rows(rows: &[u64], weights: &[E]) -> Vec<E>;
-
-    /// Each row of `2^log_k` symbols encoded at rate one half, systematically: each limb of a symbol is the evaluation,
-    /// on the standard additive domain of `2^(log_k + 1)` points, of the novel-basis polynomial of degree below `2^log_k`
-    /// that the row's limbs interpolate on its first half.
-    fn encode_rows(symbols: &[u128], log_k: usize) -> Vec<u128>;
 }
 
 /// Run statistics returned with a proof.

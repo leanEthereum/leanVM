@@ -61,8 +61,8 @@ fn report(label: &str, stats: &Stats, sig: &AggregateProof, prove_time: &Timing)
 }
 
 /// The blobs' matrix, `None` for no blobs.
-fn matrix<P: Prover>(blobs: &[lean_da::Blob]) -> Option<lean_da::BlobMatrix> {
-    (!blobs.is_empty()).then(|| lean_da::BlobMatrix::build::<P>(blobs).expect("at most DA_MAX_ROWS blobs"))
+fn matrix(blobs: &[lean_da::Blob]) -> Option<lean_da::BlobMatrix> {
+    (!blobs.is_empty()).then(|| lean_da::BlobMatrix::build(blobs).expect("at most DA_MAX_ROWS blobs"))
 }
 
 /// How a benchmark names a leaf of either scheme or of both.
@@ -103,7 +103,7 @@ pub fn run_aggregation<P: Prover>(
             &[],
             raw_lean_xmss.clone(),
             raw_lean_sphincs.clone(),
-            matrix::<P>(&blobs).as_ref(),
+            matrix(&blobs).as_ref(),
             OutputClaims::All,
             log_inv_rate,
         )
@@ -257,7 +257,7 @@ fn write_leaves<P: Prover>(
             &[],
             all[k * per_leaf..(k + 1) * per_leaf].to_vec(),
             all_lean_sphincs[k * lean_sphincs_per_leaf..(k + 1) * lean_sphincs_per_leaf].to_vec(),
-            matrix::<P>(&blobs(blobs_per_leaf, k as u64)).as_ref(),
+            matrix(&blobs(blobs_per_leaf, k as u64)).as_ref(),
             OutputClaims::All,
             log_inv_rate,
         )

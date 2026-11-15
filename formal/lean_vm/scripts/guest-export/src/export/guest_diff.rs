@@ -14,7 +14,7 @@ use super::*;
 use crate::signers_cache::{get_lean_sphincs_signers, get_signers};
 use lean_da::BLOB_SYMBOLS;
 use isa::Prover;
-use stable_leanvm_core::Stable;
+use stable_leanvm_core::StableProver;
 use lean_sphincs::LeanSphincsSignature;
 use lean_xmss::LeanXmssSignature;
 use rand::rngs::StdRng;
@@ -156,9 +156,9 @@ fn export(
     blobs: &[lean_da::Blob],
 ) -> (AggregateClaims, AggregateProof) {
     let direct =
-        (!blobs.is_empty()).then(|| lean_da::BlobMatrix::build::<Stable>(blobs).expect("1 to DA_MAX_ROWS blobs"));
+        (!blobs.is_empty()).then(|| lean_da::BlobMatrix::build(blobs).expect("1 to DA_MAX_ROWS blobs"));
     capture_next();
-    let (claims, node) = aggregate::<Stable>(
+    let (claims, node) = aggregate::<StableProver>(
         &children,
         raw_xmss.clone(),
         raw_sphincs.clone(),
@@ -304,7 +304,7 @@ fn blob(seed: u64) -> Vec<lean_da::Blob> {
 #[test]
 #[ignore]
 fn guest_diff() {
-    Stable::init();
+    StableProver::init();
     let wide = CLAIM_GROUP + 3;
     let xmss = get_signers(wide + 2);
     let sphincs = get_lean_sphincs_signers(3);
@@ -319,6 +319,6 @@ fn guest_diff() {
 #[test]
 #[ignore]
 fn guest_diff_leaf() {
-    Stable::init();
+    StableProver::init();
     export("leaf", vec![], get_signers(1), vec![], &[]);
 }

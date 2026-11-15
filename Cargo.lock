@@ -338,11 +338,10 @@ dependencies = [
 name = "lean_da"
 version = "0.1.0"
 dependencies = [
- "isa",
  "keccak256",
  "rand",
- "stable_leanvm_core",
  "tracing",
+ "verifier",
 ]
 
 [[package]]

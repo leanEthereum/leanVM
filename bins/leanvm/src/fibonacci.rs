@@ -109,8 +109,8 @@ fn fibonacci_program(fib_n: usize) -> (String, [E; 2]) {
 mod tests {
     #[test]
     fn fibonacci() {
-        <stable_leanvm_core::Stable as isa::Prover>::init();
-        super::run_fibonacci::<stable_leanvm_core::Stable>(
+        <stable_leanvm_core::StableProver as isa::Prover>::init();
+        super::run_fibonacci::<stable_leanvm_core::StableProver>(
             200_000,
             stable_leanvm_core::pcs::TEST_LOG_INV_RATE,
             bench::Plan::default(),

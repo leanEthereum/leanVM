@@ -1,7 +1,7 @@
 [alias]
-testall = ["test", "--release", "--workspace", "--all-features"]
-clippyall = ["clippy", "--release", "--workspace", "--all-targets", "--all-features", "--", "-D", "warnings"]
-docall = ["doc", "--release", "--workspace", "--all-features", "--no-deps"]
+testall = ["test", "--release", "--workspace"]
+clippyall = ["clippy", "--release", "--workspace", "--all-targets", "--", "-D", "warnings"]
+docall = ["doc", "--release", "--workspace", "--no-deps"]
 leanvm = ["run", "--release", "-p", "leanvm-cli", "--"]
 
 [build]

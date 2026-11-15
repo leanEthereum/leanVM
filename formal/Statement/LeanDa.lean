@@ -185,12 +185,12 @@ abbrev Cell := Fin 128 → E
 /-! ### The code (`encode.rs`) -/
 
 /-- The polynomial of `E[X]` of degree below `2^13` taking the payload's values on the points
-`0 … 2^13 - 1` (`inverse_transform`, on each limb). -/
+`0 … 2^13 - 1` (`interpolate`, on each limb). -/
 noncomputable def interpolate (p : Payload) : E[X] :=
   Lagrange.interpolate Finset.univ (fun a : Fin (2 ^ 13) ↦ ι (point a)) p
 
 /-- **The systematic encoding of a payload** (`encode_rows`): its polynomial's values on all
-`2^14` points (`encode_interleaved_in_place`, on each limb). -/
+`2^14` points (`evaluate`, on each limb). -/
 noncomputable def encodeRow (p : Payload) : Row := fun b ↦ (interpolate p).eval (ι (point b))
 
 /-- Cell `j` of a codeword: its symbols `128 j … 128 j + 127`. -/

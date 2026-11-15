@@ -16,7 +16,7 @@ use lean_compiler::{compile, parse_with_replacements};
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS, Hash, LOG_BLOB_SYMBOLS};
 use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
-use leanvm_core::Stable;
+use leanvm_core::StableProver;
 use leanvm_core::cpu::{ExecError, Execution, from_scalar};
 use rand::SeedableRng;
 use rand::rngs::StdRng;
@@ -41,7 +41,7 @@ fn aggregate(
     output: OutputClaims,
     log_inv_rate: usize,
 ) -> Result<(AggregateClaims, AggregateProof), AggregateError> {
-    super::aggregate::<Stable>(children, raw_lean_xmss, raw_lean_sphincs, blobs, output, log_inv_rate)
+    super::aggregate::<StableProver>(children, raw_lean_xmss, raw_lean_sphincs, blobs, output, log_inv_rate)
 }
 
 /// Run a program assembled for the stable prover.
@@ -51,7 +51,7 @@ fn execute(program: &leanvm_core::cpu::Program, public_input: [E; 2]) -> Result<
 
 /// The blobs' matrix, `None` for no blobs.
 fn matrix(blobs: &[lean_da::Blob]) -> Option<lean_da::BlobMatrix> {
-    (!blobs.is_empty()).then(|| lean_da::BlobMatrix::build::<Stable>(blobs).unwrap())
+    (!blobs.is_empty()).then(|| lean_da::BlobMatrix::build(blobs).unwrap())
 }
 
 /// An aggregate's claims and proof, as [`aggregate`] returns them.
@@ -138,7 +138,7 @@ fn prove_lean_sphincs_leaf(signers: &[RawSphincs]) -> Node {
 
 #[test]
 fn aggregate_one_lean_sphincs_signer() {
-    Stable::init();
+    StableProver::init();
     let aggregate = prove_lean_sphincs_leaf(&get_lean_sphincs_signers(1));
     assert!(aggregate.verify(), "verifies");
     assert!(aggregate.0.lean_xmss.is_empty());
@@ -150,7 +150,7 @@ fn aggregate_one_lean_sphincs_signer() {
 /// the other way, or give a layer another counter fails the guest's run.
 #[test]
 fn forged_lean_sphincs_hints_are_rejected() {
-    Stable::init();
+    StableProver::init();
     let signers = get_lean_sphincs_signers(1);
     let forgeries: [Forgery; 3] = [
         Box::new(|hints: &mut Hints| {
@@ -176,7 +176,7 @@ fn forged_lean_sphincs_hints_are_rejected() {
 /// dispatch a digit group other than the digest's fails the guest's run.
 #[test]
 fn forged_lean_xmss_hints_are_rejected() {
-    Stable::init();
+    StableProver::init();
     let signers = get_signers(1);
     let forgeries: [Forgery; 3] = [
         Box::new(|hints: &mut Hints| hints.entry_mut("lx_index", 0)[0] += ONE),
@@ -197,7 +197,7 @@ fn forged_lean_xmss_hints_are_rejected() {
 
 #[test]
 fn aggregate_one_signer() {
-    Stable::init();
+    StableProver::init();
     let aggregate = prove_leaf(&get_signers(1));
     assert!(aggregate.verify(), "verifies");
     assert_eq!(aggregate.0.lean_xmss[0].1, message());
@@ -206,7 +206,7 @@ fn aggregate_one_signer() {
 /// A leaf holding claims of both schemes, each list in its own region.
 #[test]
 fn aggregate_mixed_leaf() {
-    Stable::init();
+    StableProver::init();
     let aggregate = aggregate(
         &[],
         get_signers(3),
@@ -225,7 +225,7 @@ fn aggregate_mixed_leaf() {
 /// child's two claim lists have to land in their own.
 #[test]
 fn aggregate_mixed_two_to_one() {
-    Stable::init();
+    StableProver::init();
     let xmss = get_signers(6);
     let lean_sphincs = get_lean_sphincs_signers(4);
     let leaf = |x: &[LeanXmssSigner], s: &[RawSphincs]| {
@@ -247,7 +247,7 @@ fn aggregate_mixed_two_to_one() {
 /// log(g^0)` (unsatisfiable, so nothing may be written there) is reached.
 #[test]
 fn aggregate_one_scheme_per_child() {
-    Stable::init();
+    StableProver::init();
     let lean_xmss_child = prove_leaf(&get_signers(3));
     let lean_sphincs_child = prove_lean_sphincs_leaf(&get_lean_sphincs_signers(2));
     let node = aggregate(
@@ -268,7 +268,7 @@ fn aggregate_one_scheme_per_child() {
 /// here rather than cached, the cache holding one message per pubkey.
 #[test]
 fn aggregate_one_key_two_messages() {
-    Stable::init();
+    StableProver::init();
     let secret_key = [77; lean_sphincs::SECRET_KEY_LEN];
     let public_key = lean_sphincs::key_gen(&secret_key);
     let raw: Vec<RawSphincs> = [3u8, 9]
@@ -289,7 +289,7 @@ fn aggregate_one_key_two_messages() {
 
 #[test]
 fn guest_column_selectors_match_native_eq() {
-    Stable::init();
+    StableProver::init();
     let (helpers, _) = super::guest::GUEST_SOURCE.split_once("\ndef main():").unwrap();
     let source = format!(
         r#"{helpers}
@@ -314,7 +314,7 @@ def main():
 "#
     );
     let kbc = 18;
-    let guest = Stable::assemble(compile(
+    let guest = StableProver::assemble(compile(
         &parse_with_replacements(&source, &placeholder_map(kbc)).unwrap(),
     ));
     let run = |point: &[E], offset: usize, kappa: usize, expected: E| {
@@ -323,7 +323,7 @@ def main():
         hints.push("offset", vec![count(offset)]);
         hints.push("kappa", vec![count(kappa)]);
         let mut program = guest.clone();
-        hints.install::<Stable>(&mut program);
+        hints.install::<StableProver>(&mut program);
         execute(&program, [expected, ZERO])
     };
     let mut rng = StdRng::seed_from_u64(813);
@@ -360,7 +360,7 @@ def main():
 /// a partial group alone.
 #[test]
 fn aggregate_two_to_one() {
-    Stable::init();
+    StableProver::init();
     let big = 2 * CLAIM_GROUP + 3;
     let signers = get_signers(SMALL_LEAF_SIZE + big);
     let left = prove_leaf(&signers[..SMALL_LEAF_SIZE]);
@@ -388,7 +388,7 @@ fn da_rows(n_rows: usize, seed: u64) -> Vec<lean_da::Blob> {
 /// aggregate has to verify against a statement that carries it.
 #[test]
 fn aggregate_with_a_da_payload() {
-    Stable::init();
+    StableProver::init();
     let rows = da_rows(3, 97);
 
     let node = aggregate(
@@ -403,7 +403,7 @@ fn aggregate_with_a_da_payload() {
     assert!(node.verify(), "node verifies");
     assert_eq!(node.0.num_signature_claims(), 0);
 
-    let commitment = lean_da::BlobMatrix::build::<Stable>(&rows).unwrap().top_root();
+    let commitment = lean_da::BlobMatrix::build(&rows).unwrap().top_root();
     assert_eq!(
         node.0.da_commitment,
         Some(commitment),
@@ -478,7 +478,7 @@ fn invalid_da_selections_are_rejected_before_building_the_proof() {
 /// publishes their matrix's, whatever its children hold.
 #[test]
 fn a_node_passes_on_one_childs_da_root() {
-    Stable::init();
+    StableProver::init();
     let signers = get_signers(SMALL_LEAF_SIZE);
     let mut children = vec![prove_leaf(&signers)];
     for (n_rows, seed) in [(1, 509), (2, 510)] {
@@ -524,7 +524,7 @@ fn a_node_passes_on_one_childs_da_root() {
     let rows = da_rows(1, 511);
     assert_eq!(
         pass_on(None, &rows),
-        Some(lean_da::BlobMatrix::build::<Stable>(&rows).unwrap().top_root())
+        Some(lean_da::BlobMatrix::build(&rows).unwrap().top_root())
     );
 
     // Passed on again, one level up.
@@ -548,7 +548,7 @@ fn a_node_passes_on_one_childs_da_root() {
 /// node's blobs, or a membership challenge other than the root's fails the guest's run.
 #[test]
 fn forged_da_hints_are_rejected() {
-    Stable::init();
+    StableProver::init();
     let signers = get_signers(SMALL_LEAF_SIZE);
     let child = aggregate(
         &[],
@@ -598,7 +598,7 @@ fn forged_da_hints_are_rejected() {
 /// The child's opening rides in as hints: a forged opened row or cap node fails the guest's Merkle check.
 #[test]
 fn forged_opening_hints_are_rejected() {
-    Stable::init();
+    StableProver::init();
     let signers = get_signers(SMALL_LEAF_SIZE);
     let child = aggregate(&[], signers.clone(), vec![], None, OutputClaims::All, LOG_INV_RATE).unwrap();
     let forgeries: [Forgery; 2] = [
@@ -640,7 +640,7 @@ def main():
     return
 "#
     );
-    let guest = Stable::assemble(compile(
+    let guest = StableProver::assemble(compile(
         &parse_with_replacements(&source, &placeholder_map(20)).unwrap(),
     ));
     let run = |body: E, rest: E| {
@@ -648,7 +648,7 @@ def main():
         hints.push("n", vec![count(6)]);
         hints.push("signers_split", vec![count(0), body, rest]);
         let mut program = guest.clone();
-        hints.install::<Stable>(&mut program);
+        hints.install::<StableProver>(&mut program);
         execute(&program, [body, rest])
     };
     // Six claims: no whole group, then six.
@@ -675,14 +675,14 @@ def main():
     return
 "#
     );
-    let guest = Stable::assemble(compile(
+    let guest = StableProver::assemble(compile(
         &parse_with_replacements(&source, &placeholder_map(20)).unwrap(),
     ));
     let run = |lane: u64| {
         let mut hints = Hints::default();
         hints.push("w", vec![E::new(lane, 0x0123_4567_89AB_CDEF)]);
         let mut program = guest.clone();
-        hints.install::<Stable>(&mut program);
+        hints.install::<StableProver>(&mut program);
         execute(&program, [ZERO, ZERO])
     };
     for lane in [0, 0b1000, 1 << 63, 0xFEDC_BA98_7654_3218] {
@@ -697,7 +697,7 @@ def main():
 /// one row flipped, in either limb, though its root and vector are that matrix's: the row is no codeword.
 #[test]
 fn da_guest_checks_codeword_membership() {
-    Stable::init();
+    StableProver::init();
     let (helpers, _) = super::guest::GUEST_SOURCE.split_once("\ndef main():").unwrap();
     let source = format!(
         r#"{helpers}
@@ -711,11 +711,11 @@ def main():
     return
 "#
     );
-    let guest = Stable::assemble(compile(
+    let guest = StableProver::assemble(compile(
         &parse_with_replacements(&source, &placeholder_map(20)).unwrap(),
     ));
     let blobs = da_rows(3, 101);
-    let witness = lean_da::BlobMatrix::build::<Stable>(&blobs).unwrap();
+    let witness = lean_da::BlobMatrix::build(&blobs).unwrap();
     let rows: Vec<Codeword> = (0..blobs.len()).map(|i| *witness.row(i).unwrap()).collect();
     assert_eq!(da_root(&rows), witness.top_root());
     let run = |rows: &[Codeword]| {
@@ -730,7 +730,7 @@ def main():
             }
         }
         let mut program = guest.clone();
-        hints.install::<Stable>(&mut program);
+        hints.install::<StableProver>(&mut program);
         execute(&program, hash_to_scalars(&verifier::da::digest(Some(commitment))))
     };
     assert!(run(&rows).unwrap().unconstrained_reads.is_empty());
@@ -741,7 +741,7 @@ def main():
     }
 }
 
-/// The commitment to rows that need not be codewords, rebuilt pairwise as `BlobMatrix::build` doess it.
+/// The commitment to rows that need not be codewords, rebuilt pairwise as `BlobMatrix::build` does it.
 fn da_root(rows: &[Codeword]) -> Hash {
     fn root(mut level: Vec<Hash>) -> Hash {
         while level.len() > 1 {
@@ -763,7 +763,7 @@ fn da_root(rows: &[Codeword]) -> Hash {
 /// root, the padding gap empty or not.
 #[test]
 fn da_row_count_is_a_run_time_parameter() {
-    Stable::init();
+    StableProver::init();
     let signers = get_signers(SMALL_LEAF_SIZE);
     for n_rows in [1usize, 3, DA_MAX_ROWS] {
         let rows = da_rows(n_rows, 200 + n_rows as u64);
@@ -777,7 +777,7 @@ fn da_row_count_is_a_run_time_parameter() {
         )
         .expect("node aggregates");
         assert!(node.verify(), "node verifies");
-        let commitment = lean_da::BlobMatrix::build::<Stable>(&rows).unwrap().top_root();
+        let commitment = lean_da::BlobMatrix::build(&rows).unwrap().top_root();
         assert_eq!(node.0.da_commitment, Some(commitment), "{n_rows} rows");
     }
 }
@@ -785,7 +785,7 @@ fn da_row_count_is_a_run_time_parameter() {
 /// A leaf carrying no payload publishes zeros for its root.
 #[test]
 fn no_payload_publishes_no_root() {
-    Stable::init();
+    StableProver::init();
     let signers = get_signers(SMALL_LEAF_SIZE);
     let node = prove_leaf(&signers);
     assert_eq!(node.0.da_commitment, None);
@@ -795,7 +795,7 @@ fn no_payload_publishes_no_root() {
 /// claim on one message, the second all but one claim.
 #[test]
 fn a_node_may_publish_less_than_it_covers() {
-    Stable::init();
+    StableProver::init();
     let at_a = get_signers(3);
     let at_b = get_signers_for(2, MESSAGE_B);
     let mut raw = at_a.clone();
@@ -860,7 +860,7 @@ fn a_node_may_publish_less_than_it_covers() {
 /// A raw signature whose claim goes undeclared covers a duplicate slot.
 #[test]
 fn raw_signatures_may_go_undeclared() {
-    Stable::init();
+    StableProver::init();
     let a = get_signers(1);
     let b = get_signers_for(1, MESSAGE_B);
     let mut raw = a.clone();
@@ -888,7 +888,7 @@ fn raw_signatures_may_go_undeclared() {
 /// slot for the claim both leaves cover.
 #[test]
 fn aggregate_two_messages() {
-    Stable::init();
+    StableProver::init();
     let at_a = get_signers(4);
     let at_b = get_signers_for(2, MESSAGE_B);
     assert_eq!(at_a[0].0, at_b[0].0, "the cache reuses pubkeys across messages");
@@ -932,7 +932,7 @@ fn aggregate_two_messages() {
 
 #[test]
 fn aggregate_overlapping_signers() {
-    Stable::init();
+    StableProver::init();
     let signers = get_signers(40);
     let left = prove_leaf(&signers[..25]);
     let right = prove_leaf(&signers[15..]);
@@ -964,7 +964,7 @@ def main():
     return
 "#
     );
-    let guest = Stable::assemble(compile(
+    let guest = StableProver::assemble(compile(
         &parse_with_replacements(&source, &placeholder_map(20)).unwrap(),
     ));
     let claim = |i: u64| [1, 2, 3, 4].map(|k| E::new(i * 7919 + k, k));
@@ -979,7 +979,7 @@ def main():
             hints.push("child_claim_gap", vec![gap]);
         }
         let mut program = guest.clone();
-        hints.install::<Stable>(&mut program);
+        hints.install::<StableProver>(&mut program);
         execute(&program, claim_list_digest(child.iter().copied()))
     };
     assert!(run(&[claim(0), claim(1)], &[count(0), count(0)]).is_ok());
@@ -997,7 +997,7 @@ def main():
 /// children.
 #[test]
 fn aggregate_three_levels() {
-    Stable::init();
+    StableProver::init();
     let signers = get_signers(4 * SMALL_LEAF_SIZE);
     let claims = get_lean_sphincs_signers(5);
     let leaf = |index: usize, lean_sphincs: &[RawSphincs]| {
@@ -1037,7 +1037,7 @@ fn aggregate_three_levels() {
 
 #[test]
 fn aggregate_round_trips_through_the_wire() {
-    Stable::init();
+    StableProver::init();
     let signers = get_signers(2 * SMALL_LEAF_SIZE);
     let left = prove_leaf(&signers[..SMALL_LEAF_SIZE]);
     let right = prove_leaf(&signers[SMALL_LEAF_SIZE..]);
@@ -1083,10 +1083,10 @@ fn bytecode_sums_give_the_bytecode_value() {
         limbs.map(|(c0, c1)| E::new(c0, c1)).collect(),
         vec![ZERO; bytecode_vars()],
     ];
-    Stable::init();
-    for (sums, point) in bytecode_sums::<Stable>(&points).iter().zip(&points) {
+    StableProver::init();
+    for (sums, point) in bytecode_sums::<StableProver>(&points).iter().zip(&points) {
         assert_eq!(
-            Some(bytecode_value::<Stable>(sums, point)),
+            Some(bytecode_value::<StableProver>(sums, point)),
             scalar_bytecode().evaluate(point).ok()
         );
     }

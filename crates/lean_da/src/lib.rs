@@ -12,6 +12,7 @@
 //! has [`MERKLE_PATH_LEN`] siblings.
 
 mod commit;
+mod encode;
 
 pub use commit::{BlobCountError, BlobMatrix, Hash, MERKLE_PATH_LEN, root_of_padding_blob, verify_cell};
 

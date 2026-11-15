@@ -1,7 +1,7 @@
-use isa::Prover;
 use keccak256::{OUT_LEN, hash, hash_many, hash_pair};
 
-use crate::{Blob, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, Codeword, DA_MAX_ROWS, LOG_BLOB_SYMBOLS, Symbol};
+use crate::encode::encode_rows;
+use crate::{Blob, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, Codeword, DA_MAX_ROWS, Symbol};
 
 /// A Merkle node.
 pub type Hash = [u8; 32];
@@ -24,18 +24,17 @@ pub struct BlobMatrix {
 }
 
 impl BlobMatrix {
-    /// Encode the blobs on the prover `P` and commit to them.
+    /// Encode the blobs and commit to them.
     ///
     /// # Errors
     ///
     /// If there are not 1 to [`DA_MAX_ROWS`] blobs.
     #[tracing::instrument(name = "Commit", skip_all)]
-    pub fn build<P: Prover>(blobs: &[Blob]) -> Result<Self, BlobCountError> {
+    pub fn build(blobs: &[Blob]) -> Result<Self, BlobCountError> {
         if !(1..=DA_MAX_ROWS).contains(&blobs.len()) {
             return Err(BlobCountError { blobs: blobs.len() });
         }
-        let codewords =
-            tracing::info_span!("Encoding").in_scope(|| P::encode_rows(blobs.as_flattened(), LOG_BLOB_SYMBOLS));
+        let codewords = tracing::info_span!("Encoding").in_scope(|| encode_rows(blobs));
         let blob_merkle_nodes = blob_merkle_nodes(codewords.as_chunks().0);
         let mut blob_roots: Vec<Hash> = blob_merkle_nodes
             .as_chunks::<BLOB_MERKLE_NODES>()
@@ -198,11 +197,9 @@ mod tests {
     use super::*;
     use crate::BLOB_SYMBOLS;
     use rand::{Rng, SeedableRng, rngs::StdRng};
-    use stable_leanvm_core::Stable;
 
     fn build(blobs: &[Symbol]) -> BlobMatrix {
-        Stable::init();
-        BlobMatrix::build::<Stable>(blobs.as_chunks().0).unwrap()
+        BlobMatrix::build(blobs.as_chunks().0).unwrap()
     }
 
     fn payload(n_rows: usize, seed: u64) -> Vec<Symbol> {

@@ -4,8 +4,8 @@
 static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;
 
 use clap::{Parser, Subcommand};
-use experimental_leanvm_core::Experimental;
-use stable_leanvm_core::Stable;
+use experimental_leanvm_core::ExperimentalProver;
+use stable_leanvm_core::StableProver;
 
 mod benchmark;
 mod fibonacci;
@@ -17,7 +17,7 @@ trait CliProver: isa::Prover {
     fn hash(log_n: usize, log_inv_rate: usize, plan: bench::Plan);
 }
 
-impl CliProver for Stable {
+impl CliProver for StableProver {
     fn hash(log_n: usize, log_inv_rate: usize, plan: bench::Plan) {
         use stable_leanvm_core::{keccak, pcs};
         let least = (pcs::MIN_STACKED_LOG - keccak::SLOT_LOG).max(keccak::MIN_STEPS.ilog2() as usize);
@@ -26,7 +26,7 @@ impl CliProver for Stable {
     }
 }
 
-impl CliProver for Experimental {
+impl CliProver for ExperimentalProver {
     fn hash(log_n: usize, log_inv_rate: usize, plan: bench::Plan) {
         use experimental_leanvm_core::{keccak, pcs};
         let least = (pcs::MIN_STACKED_LOG - keccak::SLOT_LOG).max(keccak::MIN_STEPS.ilog2() as usize);
@@ -190,7 +190,7 @@ fn invalid(message: String) -> ! {
 fn main() {
     let cli = Cli::parse();
     match cli.prover {
-        Prover::Stable => run::<Stable>(cli),
-        Prover::Experimental => run::<Experimental>(cli),
+        Prover::Stable => run::<StableProver>(cli),
+        Prover::Experimental => run::<ExperimentalProver>(cli),
     }
 }

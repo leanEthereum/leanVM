@@ -8,10 +8,9 @@ publish = false
 workspace = true
 
 [dependencies]
-isa.workspace = true
 keccak256.workspace = true
+verifier.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
 rand.workspace = true
-stable_leanvm_core = { path = "../stable-prover/leanvm_core" }
