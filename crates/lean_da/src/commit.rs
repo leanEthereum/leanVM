@@ -204,6 +204,17 @@ mod tests {
         (0..n_rows * BLOB_SYMBOLS).map(|_| rng.random()).collect()
     }
 
+    /// The commitment to fixed blobs, against a value computed once: every other test checks the encoder against
+    /// itself, and the guest's tables come from the same NTT.
+    #[test]
+    fn known_answer() {
+        let blobs: Vec<Symbol> = (0..3 * BLOB_SYMBOLS as u128)
+            .map(|i| 0x9E37_79B9_7F4A_7C15_F39C_C060_5CED_C835u128.wrapping_mul(i + 1))
+            .collect();
+        let root: String = build(&blobs).top_root().iter().map(|b| format!("{b:02x}")).collect();
+        assert_eq!(root, "f0a743ba64bc65d80777a758215e34f10f3abee5d60b4afe0f991b5e74ed9bc4");
+    }
+
     /// Each blob root is the root over its cells, and the commitment the root over the blob roots,
     /// padded to `DA_MAX_ROWS` with the zero codeword's.
     #[test]
