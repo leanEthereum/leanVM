@@ -67,13 +67,30 @@ def cellCounts (set : NMap Unit) (ops : List LOp) : NMap ℕ :=
   ops.foldl (fun m o => (opCells o).foldl (fun m c =>
     if set.contains c then m.insert c ((m.get? c).getD 0 + 1) else m) m) {}
 
-/-- **Temporaries apart, decided.** -/
-def tmpsApartB (tf : TracedFn) (pf : Placed) : Bool :=
-  let ts := Stmt.tmpsList tf.core.body
-  let set := tmpCellSet pf.locs ts
-  let counts := cellCounts set (blockOps pf.fn.body 0)
-  tf.core.freshB &&
-    ts.all (fun t => (cellP pf.locs t).isSome) &&
+/-- `k n`, `n` evaluated first (the kernel then shares it). -/
+def natSeq {β : Type} (n : ℕ) (k : ℕ → β) : β :=
+  match n with
+  | 0 => k 0
+  | m + 1 => k (m + 1)
+
+theorem natSeq_eq {β : Type} (n : ℕ) (k : ℕ → β) : natSeq n k = k n := by cases n <;> rfl
+
+/-- `k m`, the trie of `m` evaluated first. -/
+def nmapSeq {α β : Type} (m : NMap α) (k : NMap α → β) : β := m.t.seq fun t => k ⟨t⟩
+
+theorem nmapSeq_eq {α β : Type} (m : NMap α) (k : NMap α → β) : nmapSeq m k = k m := by
+  cases m
+  exact Trie.seq_eq _ _
+
+/-- The temporaries are fresh (`Fn.freshB`), the mask of the uses computed once. -/
+def freshOnce (tf : TracedFn) (ts : List V) : Bool :=
+  idxNodup ts 0 && natSeq (idxMask (Stmt.usesList tf.core.body ++ tf.core.params)) fun m =>
+    ts.all fun t => !m.testBit t.idx
+
+/-- The places and counts checks of `tmpsApartB`, the set and the counts given. -/
+def apartWith (tf : TracedFn) (pf : Placed) (ts : List V) (set : NMap Unit) (counts : NMap ℕ) :
+    Bool :=
+  ts.all (fun t => (cellP pf.locs t).isSome) &&
     (Stmt.usesList tf.core.body ++ tf.core.params).all (fun v =>
       match pf.locs[v]? with
       | some l => !set.contains (locBase l)
@@ -82,8 +99,25 @@ def tmpsApartB (tf : TracedFn) (pf : Placed) : Bool :=
       | some n => counts.get? n == some 1
       | none => false)
 
+/-- **Temporaries apart, decided**, each intermediate evaluated once. -/
+def tmpsApartB (tf : TracedFn) (pf : Placed) : Bool :=
+  freshOnce tf (Stmt.tmpsList tf.core.body) &&
+    nmapSeq (tmpCellSet pf.locs (Stmt.tmpsList tf.core.body)) fun set =>
+      nmapSeq (cellCounts set (blockOps pf.fn.body 0)) fun counts =>
+        apartWith tf pf (Stmt.tmpsList tf.core.body) set counts
+
+theorem freshOnce_eq (tf : TracedFn) : freshOnce tf (Stmt.tmpsList tf.core.body) = tf.core.freshB := by
+  rw [freshOnce, natSeq_eq]
+  rfl
+
 /-- **The temporaries of a placed function have cells of their own.** -/
 def TmpsApart (tf : TracedFn) (pf : Placed) : Prop := tmpsApartB tf pf = true
+
+/-- Placements with temporaries apart have fresh temporaries. -/
+theorem TmpsApart.fresh {tf : TracedFn} {pf : Placed} (h : TmpsApart tf pf) : tf.core.Fresh := by
+  unfold TmpsApart tmpsApartB at h
+  rw [Bool.and_eq_true, freshOnce_eq] at h
+  exact fn_fresh_of_freshB h.1
 
 end
 end LeanVM.Guest.Backend.Complete
