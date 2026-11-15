@@ -97,5 +97,75 @@ theorem blockW_good (hmono : PlaceMono ctx) (hnew : PlaceNew ctx)
 termination_by ss => sizeOf ss
 decreasing_by all_goals (simp_wf; assumption)
 
+/-! ## A branch: its inner blocks and the statement -/
+
+section Ite
+
+variable (Γ Ag cl ctx I)
+
+/-- **An inner block on the path**: `inBlock (placeBlock z)` from a state in lockstep with the scope
+walk, against `scopeInner`, gives the outer block's statements and pools back, no `match` chaining
+out, and once the final placement extends the state reached and has the inner block's
+instructions at the absolute position `p₁` (and the tables), the invariant after it if its path
+falls through, its words (`BlkW` at `p₁`, the core block followed by nothing) and the words of
+the values its path reads. -/
+def InBlockW (z : List Stmt) : Prop :=
+  ∀ (C : (ℕ → E) → Prop) (st : St) (sc sc' : SSt) (i₀ p₁ : ℕ) (o : Out),
+    scopeInner ctx.retCells (fun s' => scopeBlock ctx.retCells z s') sc = .ok sc' →
+    walk I.σ z = o → o ≠ .stuck → (∀ e ∈ outEs o, e ∈ I.es) →
+    (∀ j < (calls (outEs o)).length, cl[i₀ + j]? = (calls (outEs o))[j]?) →
+    WInv ctx I C st sc →
+    FBAt ctx I C st (inBlock (placeBlock z)) fun blk C' st' =>
+      st'.out = st.out ∧ st'.scope = st.scope ∧ st'.chainIn = none ∧
+      (∀ es, o = .fall es → Fits I st' → OpsIn I p₁ (blockOps blk p₁) → TabsW Γ Ag st' →
+        WInv ctx I C' st' sc') ∧
+      (Fits I st' → OpsIn I p₁ (blockOps blk p₁) → TabsW Γ Ag st' →
+        BlkW Γ I ctx Ag cl C' blk z [] o i₀ p₁ ∧ RW I C' st' (pathVals I.σ z o))
+
+/-- **An inner block from its block lemma** (open: the block's flush, `leave` and anchor). -/
+def InBlockOf : Prop :=
+  ∀ z, (∀ tl, BlockW Γ Ag cl ctx I (placeBlock z) z tl) → InBlockW Γ Ag cl ctx I z
+
+/-- **A branch statement** from its inner blocks (open: the condition's cell, the destinations,
+the untaken block off the path, the words of the `ite`). -/
+def IteStmt : Prop :=
+  ∀ c z nz rest tl, InBlockW Γ Ag cl ctx I z → InBlockW Γ Ag cl ctx I nz →
+    StmtW Γ Ag cl ctx I (.ite c z nz) rest tl
+
+end Ite
+
+/-- **A branch** from the inner block lemma and the branch statement. -/
+theorem iteW_of (hmono : PlaceMono ctx) (hnew : PlaceNew ctx)
+    (hsub : ∀ c z nz rest, Good (.ite c z nz :: rest) → Good z ∧ Good nz ∧ Good rest)
+    (hfa : ∀ s rest, Good (s :: rest) → FaAfter I.σ s rest)
+    (hin : InBlockOf Γ Ag cl ctx I) (hite : IteStmt Γ Ag cl ctx I) : IteW Γ Ag cl ctx I Good := by
+  intro c z nz rest tl hg ih
+  obtain ⟨hz, hn, hr⟩ := hsub c z nz rest hg
+  refine BlockW.cons hmono hnew (hfa _ _ hg)
+    (hite c z nz rest tl (hin z fun tl' => ih z hz ?_ tl') (hin nz fun tl' => ih nz hn ?_ tl'))
+    (ih rest hr ?_ tl)
+  all_goals simp only [List.cons.sizeOf_spec, Stmt.ite.sizeOf_spec]; omega
+
+/-- The blocks of a body: the body, the suffixes of a block, the blocks of a branch and the arms
+of a `match`. -/
+inductive InBody (body : List Stmt) : List Stmt → Prop
+  | top : InBody body body
+  | tail {s : Stmt} {rest : List Stmt} : InBody body (s :: rest) → InBody body rest
+  | iteZ {c : V} {z nz rest : List Stmt} : InBody body (.ite c z nz :: rest) → InBody body z
+  | iteN {c : V} {z nz rest : List Stmt} : InBody body (.ite c z nz :: rest) → InBody body nz
+  | arm {x : V} {arms : List (List Stmt)} {rest a : List Stmt} :
+      InBody body (.match_ x arms :: rest) → a ∈ arms → InBody body a
+
+/-- **The block lemma of a body** from the constructs' statements on its blocks. -/
+theorem bodyW (body : List Stmt) (hmono : PlaceMono ctx) (hnew : PlaceNew ctx)
+    (hfa : ∀ s rest, InBody body (s :: rest) → FaAfter I.σ s rest)
+    (hflat : FlatW Γ Ag cl ctx I (InBody body)) (hself : SelfW Γ Ag cl ctx I (InBody body))
+    (hin : InBlockOf Γ Ag cl ctx I) (hite : IteStmt Γ Ag cl ctx I)
+    (hmatch : MatchW Γ Ag cl ctx I (InBody body)) (tl : List Stmt) :
+    BlockW Γ Ag cl ctx I (placeBlock body) body tl :=
+  blockW_good hmono hnew (fun _ _ h => .tail h) hfa hflat hself
+    (iteW_of hmono hnew (fun _ _ _ _ h => ⟨.iteZ h, .iteN h, .tail h⟩) hfa hin hite) hmatch body
+    .top tl
+
 end
 end LeanVM.Guest.Backend.Complete
