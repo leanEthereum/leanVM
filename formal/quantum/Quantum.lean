@@ -10,6 +10,8 @@ import Quantum.Sponge.Reads.Single
 import Quantum.Sponge.Keccak
 import Quantum.Sponge.Assembly.Collision
 import Quantum.Sponge.Target
+import Quantum.Xmss.Game
+import Quantum.Xmss.Keccak
 
 /-! Security against quantum adversaries in the quantum random-permutation model (`Quantum.Model`),
 on VCVio's quantum oracle programs (`VCVio.Quantum`): the sponge's collision and preimage
