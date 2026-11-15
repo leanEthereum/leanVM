@@ -50,6 +50,64 @@ theorem addLive_contains : ∀ (vs : List V) (live : VMap Unit) (v : V),
       · exact Or.inl (by rw [KMap.contains_eq_isSome]; exact h')
     · exact Or.inr (List.mem_cons_of_mem _ h')
 
+theorem contains_insert_of {m : VMap Unit} {v w : V} (h : m.contains w = true) :
+    (m.insert v ()).contains w = true := by
+  rw [KMap.contains_eq_isSome, KMap.getElem?_insert]
+  split
+  · rfl
+  · rwa [KMap.contains_eq_isSome] at h
+
+theorem addLive_of_contains : ∀ (vs : List V) (live : VMap Unit) (v : V),
+    live.contains v = true → (addLive live vs).contains v = true
+  | [], _, _, h => h
+  | _ :: ws, _, v, h => addLive_of_contains ws _ v (contains_insert_of h)
+
+theorem addLive_of_mem : ∀ (vs : List V) (live : VMap Unit) (v : V), v ∈ vs →
+    (addLive live vs).contains v = true
+  | [], _, _, h => nomatch h
+  | w :: ws, live, v, h => by
+    rcases List.mem_cons.mp h with rfl | h
+    · exact addLive_of_contains ws _ v (by rw [KMap.contains_eq_isSome, KMap.getElem?_insert]; simp)
+    · exact addLive_of_mem ws _ v h
+
+theorem onceAfter_spec : ∀ (vs : List V) (seen : VMap Unit), onceAfter seen vs = true →
+    vs.Nodup ∧ ∀ v ∈ vs, seen.contains v = false
+  | [], _, _ => ⟨List.nodup_nil, fun _ h => nomatch h⟩
+  | v :: vs, seen, h => by
+    simp only [onceAfter, Bool.and_eq_true, Bool.not_eq_eq_eq_not, Bool.not_true] at h
+    obtain ⟨h1, h2⟩ := h
+    obtain ⟨hn, hs⟩ := onceAfter_spec vs _ h2
+    refine ⟨List.nodup_cons.mpr ⟨fun hm => ?_, hn⟩, fun w hw => ?_⟩
+    · have := hs v hm
+      rw [KMap.contains_eq_isSome, KMap.getElem?_insert] at this
+      simp at this
+    · rcases List.mem_cons.mp hw with rfl | hw
+      · exact h1
+      · cases hc : seen.contains w with
+        | false => rfl
+        | true =>
+          have := hs w hw
+          rw [contains_insert_of hc] at this
+          cases this
+
+/-- **A scoped function's trace makes each value once and no parameter.** -/
+theorem scoped_allocs {tf : TracedFn} (h : Scoped tf) :
+    (allocsOf tf.trace.toList).Nodup ∧ ∀ v ∈ tf.core.params, v ∉ allocsOf tf.trace.toList := by
+  have ha : allocsOnceB tf = true := by
+    unfold Scoped scopedB at h
+    split at h
+    · next he =>
+      unfold scopedE at he
+      split at he
+      · cases he
+      · next hn => simpa using hn
+    · cases h
+  obtain ⟨hnd, hs⟩ := onceAfter_spec _ _ ha
+  refine ⟨hnd, fun v hv hm => ?_⟩
+  have := hs v hm
+  rw [addLive_of_mem _ _ v hv] at this
+  cases this
+
 /-! ## The scope walk -/
 
 /-- **A flush of the scope walk** passes `flushSeg`; what is in scope after it, or is used in it,
