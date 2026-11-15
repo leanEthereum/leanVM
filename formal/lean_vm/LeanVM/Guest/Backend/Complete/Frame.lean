@@ -341,12 +341,6 @@ def flushSeg : List Event → List Event
       | .emit | .enter | .leave => []
       | _ => e :: flushSeg es
 
-/-- The values the events make. -/
-def allocsOf (rs : List Event) : List V :=
-  rs.flatMap fun
-    | .alloc vs _ => vs
-    | _ => []
-
 /-- **The shape of an atom on the path** (`FrameAtoms.lean`): from a state whose known values
 include the atom's (a copy dropped into a sponge alias apart), the atom an event of the path, its
 relation without its temporaries on every reader `Rd`, its own values no temporaries and its

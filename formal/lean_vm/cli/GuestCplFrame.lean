@@ -51,18 +51,6 @@ partial def callsSelf (f : String) : List Stmt → Bool
       | .match_ _ arms => arms.any (callsSelf f)
       | _ => false) || callsSelf f ss
 
-/-- The values the trace's events make, in order (`Complete.allocsOf`). -/
-def traceAllocs (tf : TracedFn) : List V :=
-  tf.trace.toList.flatMap fun
-    | .alloc vs _ => vs
-    | _ => []
-
-/-- Whether the values made by the trace are made once and none is a parameter. -/
-def allocsOnce (tf : TracedFn) : Bool :=
-  let step : Option (VMap Unit) → V → Option (VMap Unit) := fun m v => m.bind fun m =>
-    if m.contains v then none else some (m.insert v ())
-  ((traceAllocs tf).foldl step (some (tf.core.params.foldl (fun m v => m.insert v ()) {}))).isSome
-
 /-- The atoms of a body, at any depth. -/
 partial def atomsOf : List Stmt → List LeanVM.Guest.Core.Atom
   | [] => []
@@ -125,7 +113,7 @@ def main (args : List String) : IO UInt32 := do
   let nsc := (P.filter noSelfCallB).length
   IO.println s!"noSelfCallB: {nsc} of {P.length} functions"
   for b in (if detail then badT else badT.extract 0 40) do IO.println s!"  {b}"
-  let nonce := P.filter fun tf => !allocsOnce tf
+  let nonce := P.filter fun tf => !allocsOnceB tf
   IO.println s!"allocations once, none a parameter: {P.length - nonce.length} of {P.length} functions"
   for tf in (if detail then nonce else nonce.take 40) do IO.println s!"  {tf.core.name}"
   let (nst, nfa) := (pls.zip P).foldl (fun (a, b) (pf, tf) =>
