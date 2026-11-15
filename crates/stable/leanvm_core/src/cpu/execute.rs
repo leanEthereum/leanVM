@@ -1,5 +1,5 @@
-//! The write-once execution interpreter: run the compiled program to produce
-//! the final memory image and the per-opcode [`Trace`].
+//! The write-once interpreter: run the program, with its hints, to the final memory image and the per-opcode
+//! [`Trace`].
 
 use std::collections::HashMap;
 
@@ -10,24 +10,21 @@ use primitives::{
     pretty_f64, pretty_integer,
 };
 
+/// A run of a program.
 pub struct Execution {
-    pub mem: Memory,     // data memory after the run, write-once (size cells, power of two)
-    pub cycles: usize,   // number of instructions the run executed (trace length)
-    pub mem_used: usize, // cells actually touched, before the power-of-two pad of `mem`
-    /// Cells an instruction read before anything wrote them, so the value it read was
-    /// ZERO here and prover-chosen in a proof: memory is a committed array and the bus
-    /// only forces accesses to one address to *agree*, never that the address was
-    /// written. `zkDSL.md` says don't; this is what says whether the
-    /// emitted code did. A non-empty list means a live value came from outside the
-    /// constraint system, so an `assert` on it is vacuous and a published value is
-    /// free: the source read a cell nothing stores, or the lowering dropped or
-    /// misplaced a store the source asked for.
-    ///
-    /// Legitimate unconstrained cells are absent by construction, not by
-    /// exemption: a range-check touch only links its two cells, reading neither,
-    /// and an arithmetic back-solve writes its operand before reading it.
+    /// The final memory image, a power of two cells.
+    pub mem: Memory,
+    /// Instructions executed.
+    pub cycles: usize,
+    /// Cells the run touched, before the pad of `mem`.
+    pub mem_used: usize,
+    /// Cells an instruction read before anything wrote them, so the value it read was ZERO here and prover-chosen
+    /// in a proof: the bus only forces the accesses to one address to agree, never that it was written. A non-empty
+    /// list means a live value came from outside the constraint system: the source read a cell nothing stores, or
+    /// the lowering dropped or misplaced a store. A range-check touch, which only links its two cells, and an
+    /// arithmetic back-solve, which writes its operand first, read none.
     pub unconstrained_reads: Vec<u32>,
-    pub(crate) trace: Trace, // rows + final access-count columns, emitted in the same walk
+    pub(crate) trace: Trace,
 }
 
 impl Execution {

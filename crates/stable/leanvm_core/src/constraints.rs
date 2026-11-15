@@ -12,8 +12,8 @@
 //! cubic `h(Y) = Σ_j (…)`: the claim fixes its linear coefficient and the other three travel. Each table's columns end
 //! on the nested point `χ_{<τ_j}`.
 //!
-//! A table's rows are read from its `K` columns until it joins; from then on it is held as a few folded `E` columns
-//! (`Grouped`), never the folded columns themselves.
+//! A table's rows are read from its `K` columns until it joins. From then on it is held as its summand's few linear
+//! parts, folded as `E` columns (`Grouped`), rather than as its columns folded one by one.
 
 use crate::{load_e, load_k};
 use fiat_shamir::transcript::ProverState;

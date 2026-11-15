@@ -134,9 +134,6 @@ fn products(values: &[F128], ones: &[Range<usize>]) -> Vec<F128> {
             return [F128::ONE; 8];
         }
         let v: [F128; 32] = padded(values, 32 * k);
-        if identity(&v) {
-            return [F128::ONE; 8];
-        }
         let child = |c: usize| lanes(|p| v[4 * p + c]);
         ((child(0) * child(1)) * (child(2) * child(3))).to_array()
     };
@@ -148,13 +145,6 @@ fn products(values: &[F128], ones: &[Range<usize>]) -> Vec<F128> {
     .into_flattened();
     next.truncate(n);
     next
-}
-
-/// Whether every value is the identity: besides the padding runs, whole blocks of the count tree are (a `KECCAK`
-/// row's output cells are fresh, their counts `g^0`), and checking costs less than their products.
-#[inline(always)]
-fn identity(values: &[F128]) -> bool {
-    values.iter().all(|&v| v == F128::ONE)
 }
 
 /// Eight lanes, lane `p` being `value(p)`.
@@ -359,14 +349,11 @@ fn fold_rows(rows: &[F128], start: usize, r: F128x8, out: &mut [F128]) {
 
 /// Add a group's terms of `q(X) = eq·∏_c (a_c + s_c·X)` to `acc`, as `[q(0) + q(1), c2, c3, c4]`: lane `p` takes the
 /// pair of rows `2p, 2p + 1`, its child `c` the line from `a_c` (the lower row's) to `a_c + s_c` (the upper's). The
-/// weight scales child 0's line, and with it the product. An identity group adds nothing, as `q` is then constant.
+/// weight scales child 0's line, and with it the product.
 ///
 /// Karatsuba throughout: in characteristic two, `x_i·y_j + x_j·y_i = (x_i + x_j)·(y_i + y_j) + x_i·y_i + x_j·y_j`.
 #[inline(always)]
 fn add_message(group: &[F128; 4 * GROUP], eq: F128x8, acc: &mut [Acc8; 4]) {
-    if identity(group) {
-        return;
-    }
     // `g[c]` is child `c` of each pair's lower row, `g[4 + c]` of its upper.
     let g: [F128x8; 8] = std::array::from_fn(|j| lanes(|p| group[8 * p + j]));
     // Children 0 and 1 make the quadratic `left`, children 2 and 3 `right`, by coefficient.

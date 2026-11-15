@@ -154,7 +154,7 @@ pub(crate) fn prove_balance(
     tables: &[(usize, usize)],
     ps: &mut ProverState,
 ) -> BusProof {
-    let layouts = blocks.map(layout);
+    let mut layouts = blocks.map(layout);
     let mu = layouts[0].mu;
     assert_eq!(
         layouts[1].mu, mu,
@@ -171,31 +171,18 @@ pub(crate) fn prove_balance(
     tracing::info_span!("Bus grind", mu, bits).in_scope(|| ps.grind(bits));
     let alpha = ps.sample_vec(1 << N_TUPLE_BITS);
     let beta = ps.sample();
-    // The count tree's leaf is the count itself: weight one in slot 0, `β = 0`.
+    // The count tree's leaf is the count itself: weight one in slot 0, `β = 0`. Its leaves are a prefix of the push
+    // tree's depth, at which `ζ` splits.
     let mut count_alpha = vec![F128::ZERO; 1 << N_TUPLE_BITS];
     count_alpha[0] = F128::ONE;
-    let [push, pull, count] = layouts;
-    let trees = [
-        Tree {
-            blocks: blocks[0],
-            layout: push,
-            alpha: &alpha,
-            beta,
-        },
-        Tree {
-            blocks: blocks[1],
-            layout: pull,
-            alpha: &alpha,
-            beta,
-        },
-        // Its leaves are a prefix of the push tree's depth, at which `ζ` splits.
-        Tree {
-            blocks: blocks[2],
-            layout: Layout { mu, ..count },
-            alpha: &count_alpha,
-            beta: F128::ZERO,
-        },
-    ];
+    let fingerprints = [(&alpha, beta), (&alpha, beta), (&count_alpha, F128::ZERO)];
+    layouts[2].mu = mu;
+    let trees: [Tree; N_BUS_TREES] = std::array::from_fn(|s| Tree {
+        blocks: blocks[s],
+        layout: layouts[s].clone(),
+        alpha: fingerprints[s].0,
+        beta: fingerprints[s].1,
+    });
 
     let leaves = crate::stage!("Bus leaves", || trees.each_ref().map(|tree| build_leaves(tree, cols)));
     let ones = trees.each_ref().map(padding_runs);
