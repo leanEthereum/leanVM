@@ -716,6 +716,32 @@ theorem ofK_addr_ne_zero (e : ℕ) : ofK (addressOfIndex e) ≠ 0 := by
   rw [addressOfIndex] at h2
   exact pow_ne_zero _ (by decide) h2
 
+theorem newOf {st st' : St} {vs : List V}
+    (hnew : ∀ v l, st'.locs[v]? = some l → st.locs[v]? = some l ∨ v ∈ vs) :
+    ∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ vs := fun v hv => by
+  cases h : st'.locs[v]? with
+  | none => exact absurd h hv
+  | some l => exact (hnew v l h).imp (fun h' => by rw [h']; simp) id
+
+theorem allocsOf_mono {l l' : List Event} (hsub : ∀ x, x ∈ l → x ∈ l') :
+    ∀ v, v ∈ allocsOf l → v ∈ allocsOf l' := by
+  intro v hv
+  simp only [allocsOf, List.mem_flatMap] at hv ⊢
+  obtain ⟨x, hx, h⟩ := hv
+  exact ⟨x, hsub x hx, h⟩
+
+theorem allocsOf_left {vs : List V} {k : Kind} {es : List Event} :
+    ∀ v, v ∈ vs → v ∈ allocsOf (flushSeg (.alloc vs k :: es)) := fun v h => by
+  show v ∈ List.flatMap _ (Event.alloc vs k :: flushSeg es)
+  rw [List.flatMap_cons]
+  exact List.mem_append_left _ h
+
+theorem allocsOf_right {vs : List V} {k : Kind} {es : List Event} :
+    ∀ v, v ∈ allocsOf (flushSeg es) → v ∈ allocsOf (flushSeg (.alloc vs k :: es)) := fun v h => by
+  show v ∈ List.flatMap _ (Event.alloc vs k :: flushSeg es)
+  rw [List.flatMap_cons]
+  exact List.mem_append_right _ h
+
 /-- **A value made**: its run's cells and words (`.cell`, `.padRun`, a message run not read in
 place), a return area in return cells the constraint leaves free, a message run read in place
 whose copies' events give each alias its word, or nothing placed (`.pooled`, `.addr`, `.site`).
@@ -727,29 +753,33 @@ theorem onAlloc_fat (vs : List V) (kind : Kind) (up : List Stmt) {ok : V → Pro
       ∀ k, k < vs.length → BlindAt C (2 + ctx.argCells + k))
     (h2 : 2 ≤ st.next) (hv : VW I C st ok) :
     FAt ctx I C st (onAlloc vs kind up) (fun _ C' st' => st'.rest = st.rest ∧
-      FlushR I C' st st' ok ∧ (kind ≠ .ret → ∀ c, c < st.next → BlindAt C c → BlindAt C' c)) := by
+      FlushR I C' st st' ok ∧ (kind ≠ .ret → ∀ c, c < st.next → BlindAt C c → BlindAt C' c) ∧
+      ∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ vs) := by
   have hrun : FAt ctx I C st (takeRun vs) (fun _ C' st' => st'.rest = st.rest ∧
-      FlushR I C' st st' ok ∧ (kind ≠ .ret → ∀ c, c < st.next → BlindAt C c → BlindAt C' c)) :=
+      FlushR I C' st st' ok ∧ (kind ≠ .ret → ∀ c, c < st.next → BlindAt C c → BlindAt C' c) ∧
+      ∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ vs) :=
     FAt.mono (takeRun_fat vs) fun _ C' st' hs hn hl ⟨hnx, hr, _, hnew, hk, hw, hwb⟩ =>
       ⟨hr, run_new (fun k hk => ⟨by simp only [Cell] at *; omega, by simp only [Cell] at *; omega⟩)
-        hnew hk hw hv hs hn hl, fun _ => hwb⟩
+        hnew hk hw hv hs hn hl, fun _ => hwb, newOf hnew⟩
   unfold onAlloc
   cases kind with
   | cell => exact hrun
   | pooled =>
-    exact FAt.quiet rfl rfl rfl rfl ⟨rfl, FlushR.same hv rfl rfl, fun _ _ _ hb => hb⟩
+    exact FAt.quiet rfl rfl rfl rfl ⟨rfl, FlushR.same hv rfl rfl, fun _ _ _ hb => hb,
+      fun _ h => Or.inl h⟩
   | addr =>
-    exact FAt.quiet rfl rfl rfl rfl ⟨rfl, FlushR.same hv rfl rfl, fun _ _ _ hb => hb⟩
-  | site => exact FAt.pure ⟨rfl, FlushR.refl hv, fun _ _ _ hb => hb⟩
+    exact FAt.quiet rfl rfl rfl rfl ⟨rfl, FlushR.same hv rfl rfl, fun _ _ _ hb => hb,
+      fun _ h => Or.inl h⟩
+  | site => exact FAt.pure ⟨rfl, FlushR.refl hv, fun _ _ _ hb => hb, fun _ h => Or.inl h⟩
   | ret =>
     obtain ⟨hb, hbl⟩ := hret rfl
     refine FAt.read_bind (FAt.mono (bindRunAssign_fat vs _ hb fun Ψ k w hk h => hbl k hk Ψ w h)
-      fun _ C' st' hs hn hl ⟨_, hr, _, hnew, hk, hw⟩ => ⟨hr, ?_, fun h => absurd rfl h⟩)
+      fun _ C' st' hs hn hl ⟨_, hr, _, hnew, hk, hw⟩ => ⟨hr, ?_, fun h => absurd rfl h, newOf hnew⟩)
     exact run_new (fun k hk => ⟨by simp only [Cell] at *; omega, by simp only [Cell] at *; omega⟩)
       hnew hk hw hv hs hn hl
   | padRun =>
     exact FAt.bind hrun fun _ st₁ C₁ _ _ _ hr =>
-      FAt.quiet rfl rfl rfl rfl ⟨hr.1, hr.2.1.right rfl rfl, hr.2.2⟩
+      FAt.quiet rfl rfl rfl rfl ⟨hr.1, hr.2.1.right rfl rfl, hr.2.2.1, hr.2.2.2⟩
   | spongeRun =>
     refine FAt.bind (FAt.ofSame (R := fun r C' st' => C' = C ∧ st = st' ∧ ∀ base, r = some base →
         ∀ k (hk : k < vs.length), ∃ s, up[k]? = some (.atom (.copy vs[k] s)) ∧
@@ -764,7 +794,7 @@ theorem onAlloc_fat (vs : List V) (kind : Kind) (up : List Stmt) {ok : V → Pro
       refine FAt.bind (bindRun_fat vs base) fun _ st₂ C₂ hs₂ hn₂ hl₂ ⟨hC, he, hnew, hk⟩ => ?_
       subst hC
       refine FAt.quiet rfl rfl rfl rfl ⟨(congrArg St.rest he).trans rfl, ?_,
-        fun _ _ _ hb => hb⟩
+        fun _ _ _ hb => hb, newOf hnew⟩
       have hal' := hal base rfl
       have hn₂' : st₂.next = st.next := (congrArg St.next he).trans rfl
       refine run_new (base := base) (vs := vs) (fun k hk => ?_) hnew hk
@@ -800,21 +830,22 @@ theorem flushN_lock (up : List Stmt) (hok : I.Ok) : ∀ (fuel : ℕ) (rs : List 
     flushS ctx.retCells rs live r = .ok s₁ → st.rest = rs → rs.length ≤ fuel →
     (∀ (k : ℕ) (d s : V), (∀ j < k, ∃ a, up[j]? = some (Stmt.atom a)) →
       up[k]? = some (Stmt.atom (.copy d s)) → ok s ∧ I.σ d = I.σ s) →
-    (∀ v n e, Event.use v ∈ rs → st.locs[v]? = some (.shifted n e) → ok v) →
+    (∀ v n e, Event.use v ∈ flushSeg rs → st.locs[v]? = some (.shifted n e) → ok v) →
     2 + ctx.argCells + ctx.retCells ≤ st.next → 2 ≤ st.next → VW I C st ok →
     (r = false → RetBlind ctx C) →
     FAt ctx I C st (flushN up fuel) (fun _ C' st' => st'.rest = s₁.rest ∧
-      FlushR I C' st st' ok ∧ (s₁.retDone = false → RetBlind ctx C'))
+      FlushR I C' st st' ok ∧ (s₁.retDone = false → RetBlind ctx C') ∧
+      ∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf (flushSeg rs))
   | fuel, [], live, r, s₁, ok, st, C, hfl, hst, _, _, _, _, _, hv, hb => by
       simp only [flushS] at hfl
       cases hfl
       cases fuel with
-      | zero => exact FAt.pure ⟨hst, FlushR.refl hv, hb⟩
+      | zero => exact FAt.pure ⟨hst, FlushR.refl hv, hb, fun _ h => Or.inl h⟩
       | succ fuel =>
         unfold flushN
         refine FAt.peek_bind ?_
         rw [hst]
-        exact FAt.pure ⟨hst, FlushR.refl hv, hb⟩
+        exact FAt.pure ⟨hst, FlushR.refl hv, hb, fun _ h => Or.inl h⟩
   | 0, e :: es, _, _, _, _, _, _, _, _, hlen, _, _, _, _, _, _ => absurd hlen (by simp)
   | fuel + 1, e :: es, live, r, s₁, ok, st, C, hfl, hst, hlen, hcp, huse, hab, h2, hv, hb => by
       have hlen' : es.length ≤ fuel := by simpa using hlen
@@ -823,19 +854,22 @@ theorem flushN_lock (up : List Stmt) (hok : I.Ok) : ∀ (fuel : ℕ) (rs : List 
           (ok s ∨ st.locs[s]? = none) ∧ I.σ d = I.σ s :=
         fun k d s hl hu => let ⟨a, b⟩ := hcp k d s hl hu; ⟨Or.inl a, b⟩
       -- The rest of the flush after a step that keeps the places and the trace's tail.
-      have hkeep : ∀ (r' : Bool) (st₂ : St) (C₂ : (ℕ → E) → Prop),
+      have hkeep : (∀ x, x ∈ flushSeg es → x ∈ flushSeg (e :: es)) →
+          ∀ (r' : Bool) (st₂ : St) (C₂ : (ℕ → E) → Prop),
           flushS ctx.retCells es live r' = .ok s₁ → (r' = false → RetBlind ctx C₂) →
           Stronger C₂ C → st.next ≤ st₂.next → st₂.locs = st.locs → st₂.rest = st.rest.tail →
           FAt ctx I C₂ st₂ (flushN up fuel) (fun _ C' st' => st'.rest = s₁.rest ∧
-            FlushR I C' st st' ok ∧ (s₁.retDone = false → RetBlind ctx C')) :=
-        fun r' st₂ C₂ hfl' hb' hs₂ hn₂ hlo₂ hr₂ => by
+            FlushR I C' st st' ok ∧ (s₁.retDone = false → RetBlind ctx C') ∧
+            ∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf (flushSeg (e :: es))) :=
+        fun hsub r' st₂ C₂ hfl' hb' hs₂ hn₂ hlo₂ hr₂ => by
           refine FAt.mono (flushN_lock up hok fuel es live r' s₁ ok st₂ C₂ hfl'
             (by rw [hr₂, hst]; rfl) hlen' hcp
-            (fun v n e hu hl => huse v n e (List.mem_cons_of_mem _ hu) (by rw [← hlo₂]; exact hl))
+            (fun v n e hu hl => huse v n e (hsub _ hu) (by rw [← hlo₂]; exact hl))
             (le_trans hab hn₂) (le_trans h2 hn₂)
             (hv.grow hs₂ hn₂ (by rw [hlo₂]; exact LocsLe.refl _) (fun _ _ h _ => h)
               fun v l _ hl h0 => by rw [hlo₂, h0] at hl; cases hl) hb')
-            fun _ C' st' _ _ _ ⟨h1, h2, h3⟩ => ⟨h1, h2.of_locs hlo₂, h3⟩
+            fun _ C' st' _ _ _ ⟨h1, h2, h3, h4⟩ => ⟨h1, h2.of_locs hlo₂, h3, fun v hv' =>
+              (h4 v hv').imp (fun h => by rw [← hlo₂]; exact h) (allocsOf_mono hsub v)⟩
       unfold flushN
       refine FAt.peek_bind ?_
       rw [hst]
@@ -868,23 +902,27 @@ theorem flushN_lock (up : List Stmt) (hok : I.Ok) : ∀ (fuel : ℕ) (rs : List 
           refine FAt.bind (onAlloc_fat (st := { st with rest := st.rest.tail }) vs kind up hcp
             (fun _ => ⟨by simp only [Cell] at *; omega, fun k hk' => hb rfl k (by omega)⟩) h2
             hv)
-            fun _ st₂ C₂ hs₂ hn₂ _ ⟨hr₂, hf₂, _⟩ => ?_
+            fun _ st₂ C₂ hs₂ hn₂ _ ⟨hr₂, hf₂, _, hnw⟩ => ?_
           refine FAt.mono (flushN_lock up hok fuel es (addLive live vs) true s₁
             (fun v => ok v ∨ st.locs[v]? = none) st₂ C₂ hfl' (by rw [hr₂, hst]; rfl) hlen' hcp'
             (fun v n e hu hl => ?_) (le_trans hab hn₂) (le_trans h2 hn₂) hf₂.2 (by simp))
-            fun _ C' st' _ _ _ ⟨h1, h3, h4⟩ => ⟨h1, hf₂.trans h3, h4⟩
+            fun _ C' st' _ _ _ ⟨h1, h3, h4, h5⟩ => ⟨h1, hf₂.trans h3, h4, fun v hv' =>
+              (h5 v hv').elim (fun h => (hnw v h).imp id (allocsOf_left v))
+                fun h => Or.inr (allocsOf_right v h)⟩
           rcases hf₂.1 v _ hl with h | ⟨c, hc⟩
           · exact Or.inl (huse v n e (List.mem_cons_of_mem _ hu) h)
           · cases hc
         · have hfl' := hnret hk
           refine FAt.bind (onAlloc_fat (st := { st with rest := st.rest.tail }) vs kind up hcp
             (fun h => absurd h hk) h2 hv)
-            fun _ st₂ C₂ hs₂ hn₂ _ ⟨hr₂, hf₂, hkb⟩ => ?_
+            fun _ st₂ C₂ hs₂ hn₂ _ ⟨hr₂, hf₂, hkb, hnw⟩ => ?_
           refine FAt.mono (flushN_lock up hok fuel es (addLive live vs) r s₁
             (fun v => ok v ∨ st.locs[v]? = none) st₂ C₂ hfl' (by rw [hr₂, hst]; rfl) hlen' hcp'
             (fun v n e hu hl => ?_) (le_trans hab hn₂) (le_trans h2 hn₂) hf₂.2
             fun hr => (hb hr).keep hab (hkb hk))
-            fun _ C' st' _ _ _ ⟨h1, h3, h4⟩ => ⟨h1, hf₂.trans h3, h4⟩
+            fun _ C' st' _ _ _ ⟨h1, h3, h4, h5⟩ => ⟨h1, hf₂.trans h3, h4, fun v hv' =>
+              (h5 v hv').elim (fun h => (hnw v h).imp id (allocsOf_left v))
+                fun h => Or.inr (allocsOf_right v h)⟩
           rcases hf₂.1 v _ hl with h | ⟨c, hc⟩
           · exact Or.inl (huse v n e (List.mem_cons_of_mem _ hu) h)
           · cases hc
@@ -904,11 +942,11 @@ theorem flushN_lock (up : List Stmt) (hok : I.Ok) : ∀ (fuel : ℕ) (rs : List 
             c e hok a b)) fun _ st₂ C₂ hs₂ hn₂ _ ⟨_, _, _, hlo₂, hr₂, _, hmb⟩ => ?_
           refine FAt.bind (FAt.modify rfl rfl rfl id) fun _ st₃ C₃ _ _ _ ⟨hC₃, hst₃⟩ => ?_
           subst C₃ st₃
-          exact hkeep r _ C₂ hfl' (fun hr => (hb hr).keep hab
+          exact hkeep (fun _ hx => List.mem_cons_of_mem _ hx) r _ C₂ hfl' (fun hr => (hb hr).keep hab
             (hmb (fixed_of_shift hw))) hs₂ hn₂ hlo₂ hr₂
         · exact FAt.bind (FAt.modify rfl rfl rfl id) fun _ st₃ C₃ _ _ _ ⟨hC₃, hst₃⟩ => by
             subst C₃ st₃
-            exact hkeep r _ C hfl' hb (Stronger.refl C) le_rfl rfl rfl
+            exact hkeep (fun _ hx => List.mem_cons_of_mem _ hx) r _ C hfl' hb (Stronger.refl C) le_rfl rfl rfl
       | shift v x =>
         have hfl' : flushS ctx.retCells es live r = .ok s₁ := by
           simp only [flushS] at hfl
@@ -919,31 +957,31 @@ theorem flushN_lock (up : List Stmt) (hok : I.Ok) : ∀ (fuel : ℕ) (rs : List 
         subst C₁ st₁
         exact FAt.bind (FAt.modify rfl rfl rfl id) fun _ st₃ C₃ _ _ _ ⟨hC₃, hst₃⟩ => by
           subst C₃ st₃
-          exact hkeep r _ C hfl' hb (Stronger.refl C) le_rfl rfl rfl
+          exact hkeep (fun _ hx => List.mem_cons_of_mem _ hx) r _ C hfl' hb (Stronger.refl C) le_rfl rfl rfl
       | chain =>
         refine FAt.bind advance_fat fun _ st₁ C₁ _ _ _ ⟨hC₁, hst₁⟩ => ?_
         subst C₁ st₁
         exact FAt.bind (FAt.modify rfl rfl rfl id) fun _ st₃ C₃ _ _ _ ⟨hC₃, hst₃⟩ => by
           subst C₃ st₃
-          exact hkeep r _ C hfl hb (Stronger.refl C) le_rfl rfl rfl
+          exact hkeep (fun _ hx => List.mem_cons_of_mem _ hx) r _ C hfl hb (Stronger.refl C) le_rfl rfl rfl
       | note n =>
         refine FAt.bind advance_fat fun _ st₁ C₁ _ _ _ ⟨hC₁, hst₁⟩ => ?_
         subst C₁ st₁
         exact FAt.bind (FAt.modify rfl rfl rfl id) fun _ st₃ C₃ _ _ _ ⟨hC₃, hst₃⟩ => by
           subst C₃ st₃
-          exact hkeep r _ C hfl hb (Stronger.refl C) le_rfl rfl rfl
+          exact hkeep (fun _ hx => List.mem_cons_of_mem _ hx) r _ C hfl hb (Stronger.refl C) le_rfl rfl rfl
       | emit =>
         simp only [flushS] at hfl
         cases hfl
-        exact FAt.pure ⟨hst, FlushR.refl hv, hb⟩
+        exact FAt.pure ⟨hst, FlushR.refl hv, hb, fun _ h => Or.inl h⟩
       | enter =>
         simp only [flushS] at hfl
         cases hfl
-        exact FAt.pure ⟨hst, FlushR.refl hv, hb⟩
+        exact FAt.pure ⟨hst, FlushR.refl hv, hb, fun _ h => Or.inl h⟩
       | leave =>
         simp only [flushS] at hfl
         cases hfl
-        exact FAt.pure ⟨hst, FlushR.refl hv, hb⟩
+        exact FAt.pure ⟨hst, FlushR.refl hv, hb, fun _ h => Or.inl h⟩
 
 /-- `flushN` to the next statement, in lockstep with `flushS`. -/
 theorem flush_lock (up : List Stmt) (hok : I.Ok) {live : VMap Unit} {r : Bool} {s₁ : SSt}
@@ -951,11 +989,12 @@ theorem flush_lock (up : List Stmt) (hok : I.Ok) {live : VMap Unit} {r : Bool} {
     (hlen : st.rest.length ≤ ctx.fuel)
     (hcp : ∀ (k : ℕ) (d s : V), (∀ j < k, ∃ a, up[j]? = some (Stmt.atom a)) →
       up[k]? = some (Stmt.atom (.copy d s)) → ok s ∧ I.σ d = I.σ s)
-    (huse : ∀ v n e, Event.use v ∈ st.rest → st.locs[v]? = some (.shifted n e) → ok v)
+    (huse : ∀ v n e, Event.use v ∈ flushSeg st.rest → st.locs[v]? = some (.shifted n e) → ok v)
     (hab : 2 + ctx.argCells + ctx.retCells ≤ st.next) (h2 : 2 ≤ st.next) (hv : VW I C st ok)
     (hb : r = false → RetBlind ctx C) :
     FAt ctx I C st (flush up) (fun _ C' st' => st'.rest = s₁.rest ∧
-      FlushR I C' st st' ok ∧ (s₁.retDone = false → RetBlind ctx C')) :=
+      FlushR I C' st st' ok ∧ (s₁.retDone = false → RetBlind ctx C') ∧
+      ∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf (flushSeg st.rest)) :=
   FAt.read_bind (flushN_lock up hok ctx.fuel st.rest live r s₁ ok st C hfl rfl hlen hcp huse hab
     h2 hv hb)
 
