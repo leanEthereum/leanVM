@@ -200,7 +200,6 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
 
 /// The bus blocks and their coordinates and terms. Returns the bus claim count and the public coordinates' count.
 fn bus_placeholders(sides: &[Vec<Block>; 3], kbc: usize, ps: &mut impl FnMut(&str, String)) -> (usize, usize) {
-    // ---- flattened block/coord descriptors (structural) ----
     let mut sblk = vec![0usize];
     let mut block_coords = Vec::new();
     let mut coordinates = Vec::new();
@@ -214,14 +213,14 @@ fn bus_placeholders(sides: &[Vec<Block>; 3], kbc: usize, ps: &mut impl FnMut(&st
     // successor) costs terms rather than columns. A framework coordinate has none:
     // it decomposes into pooled claims instead.
     // The table sumcheck settles table claims; only framework blocks stream column values.
-    let owner_pm: Vec<Option<usize>> = block_kappa_sources(kbc)
+    let block_tables: Vec<Option<usize>> = block_kappa_sources(kbc)
         .into_iter()
         .map(|(src, _)| src.checked_sub(2))
         .collect();
     for blocks in sides.iter() {
         for blk in blocks.iter() {
             block_coords.push(coordinates.len()..coordinates.len() + blk.coords.len());
-            let owner = owner_pm[nblocks];
+            let owner = block_tables[nblocks];
             nblocks += 1;
             for (i, c) in blk.coords.iter().enumerate() {
                 // One COORD_FRESH/COORD_CLAIM_SLOT entry PER coord (the guest
@@ -359,23 +358,22 @@ fn claim_placeholders(sides: &[Vec<Block>; 3], kbc: usize, nclaims: usize, ps: &
     let evtot: usize = TABLE_WIDTHS.iter().sum();
     let ncl = nclaims + evtot + 2; // bus + constraint + the two PI memory-limb claims
 
-    // ---- claim descriptor buffer ids (structural) ----
-    let col_sources_pm = col_kappa_sources(kbc);
-    let mut compact_col_pm = vec![usize::MAX; col_sources_pm.len()];
+    let col_sources = col_kappa_sources(kbc);
+    let mut compact_col = vec![usize::MAX; col_sources.len()];
     let mut n_committed = 0usize;
-    for (global, source) in col_sources_pm.iter().enumerate() {
+    for (global, source) in col_sources.iter().enumerate() {
         if source.is_some() {
-            compact_col_pm[global] = n_committed;
+            compact_col[global] = n_committed;
             n_committed += 1;
         }
     }
-    let qkeccak_compact = compact_col_pm[QKECCAK];
+    let qkeccak_compact = compact_col[QKECCAK];
     assert_ne!(qkeccak_compact, usize::MAX, "QKECCAK must be committed");
     let mut claims = Vec::new();
     walk_claims(sides, kbc, |site| {
         let descriptor = match site {
             ClaimSite::Framework { column, source } => {
-                let column = compact_col_pm[column];
+                let column = compact_col[column];
                 assert_ne!(column, usize::MAX, "framework claim must target a committed column");
                 ClaimDescriptor {
                     buffer: POINT_BUF_ZETA,
@@ -390,7 +388,7 @@ fn claim_placeholders(sides: &[Vec<Block>; 3], kbc: usize, nclaims: usize, ps: &
                 match keccak_value(column) {
                     None => ClaimDescriptor {
                         buffer: POINT_BUF_RHO,
-                        column: compact_col_pm[column],
+                        column: compact_col[column],
                         qkeccak_slot: 0,
                         source,
                     },
@@ -410,7 +408,7 @@ fn claim_placeholders(sides: &[Vec<Block>; 3], kbc: usize, nclaims: usize, ps: &
             }
             ClaimSite::MemoryLimb { column } => ClaimDescriptor {
                 buffer: POINT_BUF_PI,
-                column: compact_col_pm[column],
+                column: compact_col[column],
                 qkeccak_slot: 0,
                 source: (1, 0),
             },
