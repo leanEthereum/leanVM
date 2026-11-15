@@ -12,10 +12,11 @@ use verifier::{E, K};
 
 /// The layout of an execution of a `2^kbc`-instruction program with `2^log_mem` cells of memory and `rows` rows in each
 /// table, as the prover builds it. It reads the program only through its public columns, which no coordinate the guest
-/// is given depends on, so a stand-in program of that size serves.
+/// is given depends on, so zero columns of that length serve, one shared by all.
 pub(super) fn execution_layout(kbc: usize, log_mem: usize, rows: [usize; N_TABLES]) -> Layout {
-    let stand_in = vec![isa::Op::Xor { a: 0, b: 0, c: 0 }; 1 << kbc];
-    lean_vm_core::cpu::layout(&stand_in, log_mem, rows, [from_scalar(ZERO); 2])
+    let zeros = std::sync::Arc::new(vec![primitives::field::F64::ZERO; 1 << kbc]);
+    let columns = std::array::from_fn(|_| zeros.clone());
+    lean_vm_core::cpu::layout::layout_of(&columns, log_mem, rows, [from_scalar(ZERO); 2])
 }
 
 /// The stacked opening's shape at one committed size and rate, plus the query packing derived from it. The hint

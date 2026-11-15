@@ -269,7 +269,7 @@ fn col_kappas(log_mem: usize, log_bytecode: usize, taus: [usize; tables::N_TABLE
 pub(crate) const BYTECODE_OPERANDS: usize = 12;
 
 /// The PUBLIC bytecode columns of a program.
-pub(crate) type BytecodeColumns = [Arc<Vec<F64>>; 1 + BYTECODE_OPERANDS];
+pub type BytecodeColumns = [Arc<Vec<F64>>; 1 + BYTECODE_OPERANDS];
 
 /// The PUBLIC bytecode columns over the program cube, in bytecode-slot order: the opcode, then
 /// the operand slots. The program is not committed, so these ride the seed/finalize blocks as
@@ -383,7 +383,7 @@ pub fn layout(prog: &[Op], log_mem: usize, rows: [usize; tables::N_TABLES], pi: 
 }
 
 /// [`layout`] of a program's columns.
-pub(crate) fn layout_of(
+pub fn layout_of(
     prog_cols: &BytecodeColumns,
     log_mem: usize,
     rows: [usize; tables::N_TABLES],

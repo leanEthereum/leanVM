@@ -28,8 +28,7 @@ pub trait Prover: 'static {
     /// `f(i)` for every `i < n`, on the thread pool. `f` must not dispatch to the pool itself.
     fn map_collect<T: Send>(n: usize, f: impl Fn(usize) -> T + Sync) -> Vec<T>;
 
-    // The field kernels: the deferred claims' batching (`aggregation`) runs on the first three, LeanDA's
-    // encoding on the last.
+    // The field kernels the deferred claims' batching (`aggregation`) runs on.
 
     /// `a * b`, faster than the verifier's portable product.
     fn mul(a: E, b: E) -> E;

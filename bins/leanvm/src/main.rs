@@ -11,7 +11,7 @@ mod benchmark;
 mod fibonacci;
 mod report;
 
-/// Run the CLI's command on prover `P`, whose thread pool is the only one started.
+/// Run the CLI's command on prover `P`.
 fn run<P: isa::Prover>(cli: Cli) {
     if let Command::Aggregate { blobs, .. }
     | Command::Recursion {
