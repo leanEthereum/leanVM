@@ -103,9 +103,29 @@ structure WInv (ctx : Ctx) (I : Inst) (C : (ℕ → E) → Prop) (st : St) (s : 
   pnt : PoolNT I st.scope
   lazy : st.lazy = none
 
+/-- The final placement's instructions at `p₀`: `ops` from the absolute position `p₀` on. -/
+def OpsIn (I : Inst) (p₀ : ℕ) (ops : List LOp) : Prop :=
+  ∀ i (h : i < ops.length), I.ops[p₀ + i]? = some ops[i]
+
 /-- The instructions the current block has placed so far, its first at the absolute position
-`p₀`, are the final placement's. -/
-def OpsAt (I : Inst) (p₀ : ℕ) (st : St) : Prop := ∀ o ∈ blockOps st.out.toList p₀, o ∈ I.ops
+`p₀`, are the final placement's there. -/
+def OpsAt (I : Inst) (p₀ : ℕ) (st : St) : Prop := OpsIn I p₀ (blockOps st.out.toList p₀)
+
+theorem OpsIn.mem {I : Inst} {p₀ : ℕ} {ops : List LOp} (h : OpsIn I p₀ ops) :
+    ∀ o ∈ ops, o ∈ I.ops := fun o ho => by
+  obtain ⟨i, hi, rfl⟩ := List.getElem_of_mem ho
+  exact List.mem_of_getElem? (h i hi)
+
+theorem OpsIn.left {I : Inst} {p₀ : ℕ} {a b : List LOp} (h : OpsIn I p₀ (a ++ b)) :
+    OpsIn I p₀ a := fun i hi => by
+  have := h i (by rw [List.length_append]; omega)
+  rwa [List.getElem_append_left hi] at this
+
+theorem OpsIn.right {I : Inst} {p₀ : ℕ} {a b : List LOp} (h : OpsIn I p₀ (a ++ b)) :
+    OpsIn I (p₀ + a.length) b := fun i hi => by
+  have := h (a.length + i) (by rw [List.length_append]; omega)
+  rw [List.getElem_append_right (by omega)] at this
+  simpa [Nat.add_assoc] using this
 
 /-- The values a path returns. -/
 def retVals : Out → List V
@@ -511,11 +531,11 @@ variable {I : Inst}
 rest of the trace makes. -/
 theorem RW.grow {C C' : (ℕ → E) → Prop} {st st' : St} {vs : List V} (h : RW I C st vs)
     (hs : Stronger C' C) (hn : st.next ≤ st'.next) (hl : LocsLe st.locs st'.locs)
-    (hnew : ∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest)
+    (hnew : ∀ v ∈ vs, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest)
     (hr : ∀ v ∈ allocsOf st'.rest, v ∈ allocsOf st.rest) : RW I C' st' vs := fun v hv => by
   obtain ⟨hf, hw⟩ := h v hv
   refine ⟨fun h' => hf (hr v h'), fun ht l hl' => ?_⟩
-  rcases hnew v (by rw [hl']; simp) with h0 | h0
+  rcases hnew v hv (by rw [hl']; simp) with h0 | h0
   · obtain ⟨l₀, hl₀⟩ := Option.ne_none_iff_exists'.mp h0
     have hl₁ := hl v l₀ hl₀
     rw [hl'] at hl₁
@@ -532,11 +552,13 @@ theorem RW.anti {C : (ℕ → E) → Prop} {st : St} {a b : List V} (h : RW I C 
     (hs : ∀ v ∈ a, v ∈ b) : RW I C st a := fun v hv => h v (hs v hv)
 
 theorem OpsAt.back {p₀ : ℕ} {st st' : St} {blk : List PStmt} (h : OpsAt I p₀ st')
-    (ho : st'.out.toList = st.out.toList ++ blk) : OpsAt I p₀ st := fun o hm =>
-  h o (by rw [ho, bops_append]; exact List.mem_append_left _ hm)
+    (ho : st'.out.toList = st.out.toList ++ blk) : OpsAt I p₀ st := by
+  unfold OpsAt at h ⊢
+  rw [ho, bops_append] at h
+  exact h.left
 
 theorem OpsAt.outOps {p₀ : ℕ} {st : St} (h : OpsAt I p₀ st) : OutOps I st := fun _ _ hm =>
-  h _ (op_mem_blockOps _ p₀ hm)
+  h.mem _ (op_mem_blockOps _ p₀ hm)
 
 /-- A state before one the final placement extends, with fewer instructions and tables. -/
 theorem FinAt.back {κ₀ : ℕ} {Γ : Site κ₀}
@@ -665,13 +687,45 @@ def PlaceMono (ctx : Ctx) : Prop :=
     LocsLe st.locs st'.locs ∧ (st.chainIn = none → st'.chainIn = none ∧
       ∃ blk, st'.out.toList = st.out.toList ++ blk)
 
-/-- **A block places no value but those its trace makes** and passes the trace on (from the
-primitives' agent): the values a path already read stay unplaced or keep their places. -/
+mutual
+/-- The atoms of a block, through its inner blocks. -/
+def atomsIn : List Stmt → List Atom
+  | [] => []
+  | s :: ss => atomsOf s ++ atomsIn ss
+
+/-- The atoms of a statement, through its inner blocks. -/
+def atomsOf : Stmt → List Atom
+  | .atom a => [a]
+  | .ite _ z n => atomsIn z ++ atomsIn n
+  | .match_ _ arms => armsAtoms arms
+  | _ => []
+
+/-- The atoms of the arms of a `match`. -/
+def armsAtoms : List (List Stmt) → List Atom
+  | [] => []
+  | a :: as => atomsIn a ++ armsAtoms as
+end
+
+/-- **A block places no value but those its trace makes or its frame addresses bind** and passes
+the trace on (from the primitives' agent). -/
 def PlaceNew (ctx : Ctx) : Prop :=
   ∀ (ss : List Stmt) (st : St), wpP (placeBlock ss) ctx st fun _ st' =>
-    (st.lazy = none → ∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest) ∧
+    (st.lazy = none → ∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest ∨
+      ∃ run, Atom.frameAddr v run ∈ atomsIn ss) ∧
     (∀ v ∈ allocsOf st'.rest, v ∈ allocsOf st.rest) ∧
     ∀ x ∈ st.tables.shared, x ∈ st'.tables.shared
+
+/-- The values a statement's path reads are bound by no frame address of the statements after it
+(a core program fact: a frame address binds a value no earlier statement reads). -/
+def FaAfter (σ : Val) (s : Stmt) (rest : List Stmt) : Prop :=
+  ∀ v ∈ pathVals σ [s] (walk1 σ s), ∀ run, Atom.frameAddr v run ∉ atomsIn rest
+
+theorem placeNew_vs {σ : Val} {s : Stmt} {rest : List Stmt} {st₁ st₂ : St} (hfa : FaAfter σ s rest)
+    (h : ∀ v, st₂.locs[v]? ≠ none → st₁.locs[v]? ≠ none ∨ v ∈ allocsOf st₁.rest ∨
+      ∃ run, Atom.frameAddr v run ∈ atomsIn rest) :
+    ∀ v ∈ pathVals σ [s] (walk1 σ s), st₂.locs[v]? ≠ none → st₁.locs[v]? ≠ none ∨
+      v ∈ allocsOf st₁.rest := fun v hv hp =>
+  (h v hp).elim Or.inl fun h' => h'.elim Or.inr fun ⟨run, hr⟩ => absurd hr (hfa v hv run)
 
 /-- A statement's end clears the value waiting to be placed. -/
 theorem end_lazy {α : Type} (m : P α) (st : St) :
@@ -706,6 +760,7 @@ theorem atom_onPath (σ : Val) : ∀ (rest : List Stmt) (k : ℕ) (a : Atom),
 path falls through it (off it if the final placement does not extend the state between or lacks
 its instructions), off it if it returns. -/
 theorem BlockW.cons (hmono : PlaceMono ctx) (hnew : PlaceNew ctx) {s : Stmt} {rest tl : List Stmt}
+    (hfa : FaAfter I.σ s rest)
     (h₁ : StmtW Γ Ag cl ctx I s rest tl) (h₂ : BlockW Γ Ag cl ctx I (placeBlock rest) rest tl) :
     BlockW Γ Ag cl ctx I (placeBlock (s :: rest)) (s :: rest) tl := by
   intro C st sc sc'' i₀ p₀ o hsc hw hns hes hcl hinv
@@ -726,7 +781,8 @@ theorem BlockW.cons (hmono : PlaceMono ctx) (hnew : PlaceNew ctx) {s : Stmt} {re
     refine FBAt.mono (FBAt.bind_dead (Q := fun st₁ _ st₂ => (st₁.chainIn = none →
         st₂.chainIn = none ∧ ∃ blk, st₂.out.toList = st₁.out.toList ++ blk) ∧
         ((st₁.lazy = none → ∀ v, st₂.locs[v]? ≠ none → st₁.locs[v]? ≠ none ∨
-          v ∈ allocsOf st₁.rest) ∧ (∀ v ∈ allocsOf st₂.rest, v ∈ allocsOf st₁.rest) ∧
+          v ∈ allocsOf st₁.rest ∨ ∃ run, Atom.frameAddr v run ∈ atomsIn rest) ∧
+          (∀ v ∈ allocsOf st₂.rest, v ∈ allocsOf st₁.rest) ∧
           ∀ x ∈ st₁.tables.shared, x ∈ st₂.tables.shared))
       (FBAt.and_wp (h₁ C st sc sc₁ i₀ p₀ _ hsc₁ ⟨sc'', hsc⟩ ho₁ (by simp) hes hcl
       (fun _ h => nomatch h) hinv) (end_lazy _ st)) fun _ st₁ a s h =>
@@ -736,8 +792,11 @@ theorem BlockW.cons (hmono : PlaceMono ctx) (hnew : PlaceNew ctx) {s : Stmt} {re
     obtain ⟨hc₂, blk₂, ho₂⟩ := hq hc₁
     refine ⟨(fun _ h => nomatch h), hc₂, fun hfin => ?_⟩
     obtain ⟨blk₁, ho₁', hb₁, hrw⟩ := hw₁ (hfin.back hn₂ hl₂ ho₂ htb)
-    exact ⟨blk₁ ++ blk₂, by rw [ho₂, ho₁', List.append_assoc], BlkW.append_ret hb₁,
-      by rw [pathVals_ret ho₁]; exact hrw.grow (Stronger.refl _) hn₂ hl₂ (hnw hlz) hrr⟩
+    have hvs := placeNew_vs hfa (hnw hlz)
+    rw [ho₁] at hvs
+    refine ⟨blk₁ ++ blk₂, by rw [ho₂, ho₁', List.append_assoc], BlkW.append_ret hb₁, ?_⟩
+    rw [pathVals_ret ho₁]
+    exact hrw.grow (Stronger.refl _) hn₂ hl₂ hvs hrr
   | fall es₁ =>
     rw [ho₁] at hw
     simp only [Out.seq] at hw
@@ -788,8 +847,9 @@ theorem BlockW.cons (hmono : PlaceMono ctx) (hnew : PlaceNew ctx) {s : Stmt} {re
         rw [ho₁', bsize_append, ← Nat.add_assoc] at hb₂'
         exact BlkW.append_fall (hb₁'.mono hs₂) hb₂'
       · rw [← hw]
-        exact ((hrw₁.grow hs₂ hn₂ hl₂ (hnw hW₁.lazy) hrr).append hrw₂).anti
-          (pathVals_fall ho₁ hns₂)
+        have hvs := placeNew_vs hfa (hnw hW₁.lazy)
+        rw [ho₁] at hvs
+        exact ((hrw₁.grow hs₂ hn₂ hl₂ hvs hrr).append hrw₂).anti (pathVals_fall ho₁ hns₂)
 
 end BlockCons
 
