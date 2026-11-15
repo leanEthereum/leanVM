@@ -112,8 +112,13 @@ def scopeInner (rc : Nat) (blk : SSt → Except String SSt) (s : SSt) : Except S
         | .error e => .error e
         | .ok s₄ => .ok { s₄ with live := s.live }
 
+/-- An address of no cells: placement binds it to a frame address no event ties to its value. -/
+def noCells : Stmt → Bool
+  | .atom (.frameAddr _ []) => true
+  | _ => false
+
 /-- A statement other than a branch or a `match`: its values in scope after the values made
-before it. -/
+before it; not an address of no cells. -/
 def scopeFlat (rc : Nat) (st : Stmt) (s : SSt) : Except String SSt :=
   match flushAt rc s with
   | .error e => .error e
@@ -123,7 +128,7 @@ def scopeFlat (rc : Nat) (st : Stmt) (s : SSt) : Except String SSt :=
     | .ok s₂ =>
       match needScope s₂.live (ownUses st) "a statement" with
       | .error e => .error e
-      | .ok () => .ok s₂
+      | .ok () => if noCells st then .error "an address of no cells" else .ok s₂
 
 /-- A branch after its blocks were walked: the `else` block, if the trace enters it, then the
 branch's own event. `nz` walks the `else` block; `before` is whether the path had made its return
