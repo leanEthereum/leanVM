@@ -102,10 +102,6 @@ pub fn open(
     } = committed;
     let config = verifier::derive_config(log_n, log_inv_rate)
         .unwrap_or_else(|e| panic!("whir config for log_n={log_n}, log_inv_rate={log_inv_rate}: {e}"));
-    assert_eq!(
-        config.folds[0], INITIAL_FOLDING_FACTOR,
-        "level 0 folds the leaf's lanes"
-    );
     let point_claims = [point_claims, &[ood]].concat();
     let qkeccak = 1usize << ring.qkeccak_vars();
     assert!(ring.offset.is_multiple_of(qkeccak), "q_keccak is aligned");
@@ -145,6 +141,8 @@ pub fn open(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ring_switch::RingFold;
+    use crate::whir::{Dense, FoldChallenges, FoldRounds};
     use primitives::test_rng::Rng;
 
     /// The OOD value sent is the zero-padded stack's MLE at the sampled point, written out one eq weight at a time.
@@ -169,9 +167,6 @@ mod tests {
         let sent = *ps.into_proof().stream.last().expect("the value is sent last");
         assert_eq!(sent, verifier::E::new(naive.c0, naive.c1));
     }
-
-    use crate::ring_switch::RingFold;
-    use crate::whir::{Dense, FoldChallenges, FoldRounds};
 
     /// The level-0 rounds on the factored weight send the tables of the dense rounds on the transposed stack and dense
     /// weight, and leave the same lane and weight, across claims inside one lane and spanning lanes, strides above the

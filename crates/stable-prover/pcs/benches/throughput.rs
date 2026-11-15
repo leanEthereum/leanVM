@@ -1,9 +1,6 @@
-//! Dedicated PCS throughput benchmark.
-//!
-//! Commits a random witness of `2^PCS_LOG_N` GF(2^64) elements at
-//! inverse-rate `1/2^PCS_LOG_INV_RATE`, with its OOD sample, and opens it through the stacked opener with one point
-//! claim, times each phase, and reports GiB/s over the committed data. The
-//! passes follow [`bench::Plan::from_env`] (`BENCH_REPEAT`, `BENCH_COOLDOWN`).
+//! PCS throughput: commits a random witness of `2^PCS_LOG_N` `K` words at inverse rate `2^PCS_LOG_INV_RATE`, with its
+//! OOD sample, opens it, times each phase, and reports GiB/s over the committed data. The passes follow
+//! [`bench::Plan::from_env`] (`BENCH_REPEAT`, `BENCH_COOLDOWN`).
 //!
 //! ```text
 //! PCS_LOG_N          number of variables = log2(witness length)   [default 22]
@@ -15,8 +12,7 @@
 //! PCS_LOG_N=24 PCS_LOG_INV_RATE=1 BENCH_REPEAT=5 cargo bench -p stable_pcs --bench throughput
 //! ```
 //!
-//! Large `PCS_LOG_N` needs substantial memory: the RS codeword is `2^log_inv_rate`×
-//! the witness.
+//! The codeword is `2^PCS_LOG_INV_RATE` times the witness, so a large `PCS_LOG_N` needs much memory.
 
 extern crate stable_pcs as pcs;
 use std::hint::black_box;
@@ -92,8 +88,7 @@ fn main() {
     let gibps = |secs: f64| (data_bytes / (1u64 << 30) as f64) / secs;
     let codeword_bytes = data_bytes * (1u64 << log_inv_rate) as f64;
 
-    // tracing-forest renders the tree when its root span closes. Close it
-    // before printing the throughput report so the complete trace appears first.
+    // The trace tree renders when its root span closes: before the report.
     drop(trace_span);
 
     println!(

@@ -5,8 +5,8 @@
 
 pub mod merkle;
 pub mod ntt;
-pub mod ring_switch;
-pub mod stack_open;
+mod ring_switch;
+mod stack_open;
 pub mod whir;
 mod whir_induce;
 mod whir_lanes;

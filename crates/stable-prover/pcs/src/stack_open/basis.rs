@@ -114,7 +114,7 @@ impl Ring {
 /// The factored terms of the opening's weight.
 pub(crate) struct Terms {
     /// Bits of a lane block.
-    lane_vars: usize,
+    pub(crate) lane_vars: usize,
     claims: Vec<ClaimBlocks>,
     patterns: Vec<Pattern>,
     rings: Vec<Ring>,
@@ -127,11 +127,6 @@ impl Terms {
 
     pub(crate) fn n_terms(&self) -> usize {
         self.claims.len() + DEGREE_E * self.rings.len()
-    }
-
-    /// Bits of a lane block.
-    pub(crate) fn lane_vars(&self) -> usize {
-        self.lane_vars
     }
 
     /// The projections of `n` items onto the terms, each item `S` sequences of `2^lane_vars` words: `blocks(i, h, out)`
