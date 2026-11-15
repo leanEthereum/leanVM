@@ -29,8 +29,8 @@ open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.Backend
 
 namespace GuestCplEval
 
-def maxDecl : Nat := 2000
-def maxModule : Nat := 12000
+def maxDecl : Nat := 1500
+def maxModule : Nat := 9000
 /-- Entries the pieces place in parts, tested on the last state of their walk. -/
 def cutEntries : List Nat := [11, 19, 20, 36]
 /-- Entries of `cutEntries` tested by runs of top-level statements. -/
@@ -55,7 +55,30 @@ def closing : String := "\nend\nend LeanVM.Guest.Backend.CplEval\n"
 
 def pV (v : V) : String := s!"⟨[], 0, {v.idx}⟩"
 
-def pVs (vs : List V) : String := "[" ++ ", ".intercalate (vs.map pV) ++ "]"
+/-- A list literal: `::` past 31 items (the `[…]` notation then elaborates to `let`s). -/
+def pList (items : List String) : String :=
+  if items.length < 32 then s!"[{", ".intercalate items}]"
+  else s!"({" :: ".intercalate items} :: [])"
+
+def pVs (vs : List V) : String := pList (vs.map pV)
+
+/-- A list split into definitions of at most `maxDef` characters, `name` their concatenation. -/
+def chunkedDefs (doc name ty : String) (items : List String) : String := Id.run do
+  let mut chunks : Array (List String) := #[]
+  let mut cur : Array String := #[]
+  let mut size := 0
+  for it in items do
+    if size + it.length + 4 > 24000 && !cur.isEmpty then
+      chunks := chunks.push cur.toList
+      cur := #[]
+      size := 0
+    cur := cur.push it
+    size := size + it.length + 4
+  if !cur.isEmpty || chunks.isEmpty then chunks := chunks.push cur.toList
+  let names := (List.range chunks.size).map fun i => s!"{name}_c{i}"
+  let parts := (chunks.toList.zip names).map fun (c, n) =>
+    s!"\n/-- Part of `{name}`. -/\ndef {n} : List {ty} :=\n  {pList c}\n"
+  return String.join parts ++ s!"\n/-- {doc} -/\ndef {name} : List {ty} :=\n  List.flatten {pList names}\n"
 
 def tfOf (j : Nat) : String := s!"(guestTraced.getD {j} default)"
 
@@ -118,7 +141,8 @@ def bigFiles (j : Nat) (tf : TracedFn) (pf : Placed) : Except String (List (Stri
     let ev := tf.trace.size - nxt.rest.length
     let added := allVals.filter fun v => nxt.live.contains v && !(k > 0 && prev.live.contains v)
     let base := if k = 0 then "{}" else s!"sc{j}_{k}.live"
-    let entries := "[" ++ ", ".intercalate (added.map fun v => s!"({pV v}, ())") ++ "]"
+    data := data ++ chunkedDefs s!"The values the scope walk of entry {j} puts in scope over statements {g.a} to {g.a + g.m - 1}." s!"sc{j}_{k + 1}_add" "(V × Unit)" (added.map fun v => s!"({pV v}, ())")
+    let entries := s!"sc{j}_{k + 1}_add"
     data := data ++ s!"\n/-- The scope walk of entry {j} after statement {g.a + g.m - 1}. -/\nstate_lit sc{j}_{k + 1} : SSt :=\n  \{ rest := traceRest {tfs} {ev},\n    live := KMap.insertAll {base} {entries},\n    retDone := {nxt.retDone} }\n"
     states := states.push s!"sc{j}_{k + 1}"
     prev := nxt
@@ -140,11 +164,11 @@ def bigFiles (j : Nat) (tf : TracedFn) (pf : Placed) : Except String (List (Stri
     let sz := min maxChunk (ops.size - k)
     M := (ops.extract k (k + sz)).toList.foldl (CplEval.cntStep TA) M
     let es := tcells.filterMap fun c => (M.get? c).map fun n => s!"({c}, {n})"
-    data := data ++ s!"\n/-- The counts of entry {j}'s temporaries' cells after {k + sz} instructions. -/\ndef cn{j}_{chunks.size + 1} : NMap ℕ := NMap.insertAll \{} [{", ".intercalate es}]\n"
+    data := data ++ s!"\n/-- The counts of entry {j}'s temporaries' cells after {k + sz} instructions. -/\ndef cn{j}_{chunks.size + 1} : NMap ℕ := NMap.insertAll \{} {pList es}\n"
     for o in (ops.extract k (k + sz)).toList do
       if let .deref p _ _ .fp := o then
         if !fps.contains p then fps := fps.push p
-    data := data ++ s!"\n/-- The frame pointers' cells of entry {j} after {k + sz} instructions. -/\ndef fp{j}_{chunks.size + 1} : NMap Unit := NMap.insertAll \{} [{", ".intercalate (fps.toList.map fun p => s!"({p}, ())")}]\n"
+    data := data ++ s!"\n/-- The frame pointers' cells of entry {j} after {k + sz} instructions. -/\ndef fp{j}_{chunks.size + 1} : NMap Unit := NMap.insertAll \{} {pList (fps.toList.map fun p => s!"({p}, ())")}\n"
     chunks := chunks.push (k, sz)
     k := k + sz
   let nC := chunks.size
@@ -193,7 +217,7 @@ def bigFiles (j : Nat) (tf : TracedFn) (pf : Placed) : Except String (List (Stri
     s!"\n/-- The checks of entry {j} on its temporaries, parameters and frame. -/\ntheorem small{j} : smallOk {j} pf{j} TL{j} cn{j}_{nC} = true := by\n  decide +kernel\n" ++
     s!"\n/-- The scope walk of entry {j} ends with its trace. -/\ntheorem fin{j} : (match flushAt {tfs}.rets sc{j}_{segs.length} with\n    | .ok s => s.rest.isEmpty\n    | .error _ => false) = true := by\n  decide +kernel\n" ++
     String.join ([4, 5, 6, 7].map fun k => s!"\ntheorem rest{j}_{k} : partsOk [{k}] {j} pf{j} = true := by\n  decide +kernel\n") ++
-    s!"\n/-- **Entry {j}'s test.** -/\ntheorem cplOk_{j} : cplOkAt {j} = true :=\n  cplOk_big (pf := pf{j}) (TL := TL{j}) (C := cn{j}_{nC}) (F := fp{j}_{nC})\n    (S := sc{j}_{segs.length})\n    (placedAt_cut cut{j}_walk cut{j}_tailOk cut{j}_head)\n    {segChain}\n    small{j}\n    {opsChain "cnt"}\n    {opsChain "fps"}\n    {toChain}\n    {scChain}\n    fin{j}\n    (partsOk_app rest{j}_4 (partsOk_app rest{j}_5 (partsOk_app rest{j}_6 rest{j}_7)))\n" ++ closing
+    s!"\n/-- **Entry {j}'s test.** -/\ntheorem cplOk_{j} : cplOkAt {j} = true :=\n  cplOk_big (pf := pf{j}) (TL := TL{j}) (C := cn{j}_{nC}) (F := fp{j}_{nC})\n    (S := sc{j}_{segs.length})\n    (placedAt_cut cut{j}_walk cut{j}_tailOk cut{j}_head)\n    {segChain}\n    small{j}\n    {opsChain "cnt"}\n    {opsChain "fps"}\n    {toChain}\n    {scChain}\n    fin{j}\n    (partsOk_4567 rest{j}_4 rest{j}_5 rest{j}_6 rest{j}_7)\n" ++ closing
   return files ++ [(s!"B{j}Ok", okMod)]
 
 /-- Runs of entries `(a, b)`, each at most `maxDecl` instructions; cut and large entries alone. -/
@@ -225,10 +249,10 @@ def runThm (sizes : Array Nat) (names : Array String) (a b : Nat) : String :=
   if cutEntries.contains a then
     let pf := s!"(placedOf {tfOf a} cut{a}_end).1"
     s!"\ntheorem cplOkC_{a}_0 : partsOk [0, 1, 2] {a} {pf} = true := by\n  decide +kernel\n\ntheorem cplOkC_{a}_1 : partsOk [3, 4, 5, 6, 7] {a} {pf} = true := by\n  decide +kernel\n" ++
-      doc ++ s!"theorem cplOk_{a}_{b} : (List.range' {a} 1).all cplOkAt = true :=\n  range_one (cplOkAt_of_with (placedAt_cut cut{a}_walk cut{a}_tailOk cut{a}_head)\n    (partsOk_app cplOkC_{a}_0 cplOkC_{a}_1))\n"
+      doc ++ s!"theorem cplOk_{a}_{b} : (List.range' {a} 1).all cplOkAt = true :=\n  range_one (f := cplOkAt) (cplOkAt_of_with_two (placedAt_cut cut{a}_walk cut{a}_tailOk cut{a}_head)\n    cplOkC_{a}_0 cplOkC_{a}_1)\n"
   else if b = a + 1 && n > maxDecl then
     s!"\ntheorem cplOkG_{a}_0 : (placedAt {a}).any (partsOk [0, 1, 2] {a}) = true := by\n  decide +kernel\n\ntheorem cplOkG_{a}_1 : (placedAt {a}).any (partsOk [3, 4, 5, 6, 7] {a}) = true := by\n  decide +kernel\n" ++
-      doc ++ s!"theorem cplOk_{a}_{b} : (List.range' {a} 1).all cplOkAt = true :=\n  range_one (cplOkAt_of_any (any_app cplOkG_{a}_0 cplOkG_{a}_1))\n"
+      doc ++ s!"theorem cplOk_{a}_{b} : (List.range' {a} 1).all cplOkAt = true :=\n  range_one (f := cplOkAt) (cplOkAt_of_two cplOkG_{a}_0 cplOkG_{a}_1)\n"
   else
     doc ++ s!"theorem cplOk_{a}_{b} : (List.range' {a} {b - a}).all cplOkAt = true := by\n  decide +kernel\n"
 
@@ -238,6 +262,16 @@ open GuestCplEval in
 def main (args : List String) : IO UInt32 := do
   let check := args.contains "--check"
   let P ← input
+  if let "kinds" :: j :: ks := args then
+    let tf := P[j.toNat!]!
+    for k in ks do
+      let st := tf.core.body[k.toNat!]!
+      let d := match st with
+        | .match_ _ arms => s!"match of {arms.length} arms, uses {arms.map fun a => (Stmt.usesList a).length}"
+        | .ite _ z n => s!"ite, uses {(Stmt.usesList z).length} and {(Stmt.usesList n).length}"
+        | _ => "other"
+      IO.println s!"{k}: {d}"
+    return 0
   let (pls, _) ← orThrow (placeProgram P)
   let sizes := (pls.map fun pf => blockSize pf.fn.body).toArray
   let names := (P.map (·.core.name)).toArray
