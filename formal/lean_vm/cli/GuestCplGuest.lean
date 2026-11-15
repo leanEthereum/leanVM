@@ -18,9 +18,11 @@ The guest is the back end's input as `guest-traced` makes it (`GuestInput.input`
    parameters' and returns' cells, temporaries, frame runs);
 2. `Complete.pmaxP keyed` against the table's `pmax`, `keyed` when `Data.cplArms` counts the
    function's arms separately;
-3. `Complete.armsP keyed` against `Data.cplArms`;
+3. `Complete.armsP keyed` against `Data.cplArms`, its selectors distinct;
 4. `Complete.scopedB`;
-5. `Complete.tmpsApartB`.
+5. `Complete.tmpsApartB`;
+6. `Complete.noSelfCallB`;
+7. `Complete.alL`.
 -/
 
 open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Backend LeanVM.Guest.Backend.GuestInput
@@ -53,8 +55,8 @@ def main (args : List String) : IO UInt32 := do
   let P ← input
   let (pls, _) ← orThrow (placeProgram P)
   let loops := loopTable P
-  let names := ["static", "pmax", "arms", "scoped", "tmpsApart"]
-  let mut ok : Array Nat := #[0, 0, 0, 0, 0]
+  let names := ["static", "pmax", "arms", "scoped", "tmpsApart", "noSelfCall", "aligned"]
+  let mut ok : Array Nat := #[0, 0, 0, 0, 0, 0, 0]
   let mut bad : Array String := #[]
   for (tf, i) in P.zipIdx do
     let some pf := pls[i]? | bad := bad.push s!"{i} {tf.core.name}: not placed"
@@ -63,7 +65,10 @@ def main (args : List String) : IO UInt32 := do
     let mine := Complete.ofCnt (Complete.pmaxP keyed pf)
     let theirs := (pm.get? (i + 1)).getD []
     let r := [Cpl.staticOk loops tf pf (fsWantE i), mine == theirs,
-      Complete.armsP keyed tf pf == arms, Complete.scopedB tf, Complete.tmpsApartB tf pf]
+      Complete.armsP keyed tf pf == arms &&
+        natsDistinct ((Complete.armsP keyed tf pf).map (·.1)),
+      Complete.scopedB tf, Complete.tmpsApartB tf pf, Complete.noSelfCallB tf,
+      Complete.alL pf.fn.body tf.core.body]
     for (b, k) in r.zipIdx do
       if b then ok := ok.modify k (· + 1)
       else
