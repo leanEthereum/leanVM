@@ -665,7 +665,7 @@ NARROW = collections.defaultdict(dict)
 DONE = set()
 # functions that pass with residuals outside the families `Res/SelDefs.lean` and `Res/SubDefs.lean` accept,
 # held as failing (their callees' narrowings undone) until those families take them
-HELD = {'check_opening_terminal', 'keccak_layer__L0', 'keccak_layer__L1', '__loop37', '__loop38', '__loop39', '__loop40'}
+HELD = {'keccak_layer__L0', 'keccak_layer__L1', '__loop37', '__loop38', '__loop39', '__loop40'}
 
 
 # each function's last inference, its signature and residuals (a narrowed callee's replaced)

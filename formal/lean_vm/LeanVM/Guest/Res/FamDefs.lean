@@ -109,9 +109,6 @@ noncomputable def holdsBase (j : ℕ) (w : Wit) (o : ℕ) : Mode.Base → Bool
       | .load y p d' => cellJ j y == o && cellJ j p == q && d' == d
       | _ => false
 
-/-- Cell `o` is inside function `j`'s frame. -/
-noncomputable def inFr (j o : ℕ) : Bool := decide (2 ≤ o) && decide (o < fsN j)
-
 /-- The cells of function `j` holding cell `c`'s word: `c`, and those a top-level copy ties to it. -/
 noncomputable def eqCells (j : ℕ) (w : Wit) (c : ℕ) : List ℕ :=
   c :: w.as.filterMap fun

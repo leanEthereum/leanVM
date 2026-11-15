@@ -13,7 +13,7 @@ public import LeanVM.Guest.Res.SubCerts2
 public import LeanVM.Guest.Res.SubCerts3
 public import LeanVM.Guest.Res.SubCerts4
 public import LeanVM.Guest.Res.MonoOk
-public import LeanVM.Guest.EndExecRF
+public import LeanVM.Guest.EndExecRSub
 
 set_option Elab.async false
 
@@ -117,7 +117,7 @@ theorem resTop_guestF {A : String → Bridge.FnAl} (hexc : ∀ K ∈ resExc, Res
     (hnz0 : NzVal "log2_ceil_in_the_exponent__L0_L34" (.n 0))
     (hnz1 : NzVal "log2_ceil_in_the_exponent__L16_L34" (.n 0)) :
     ResTop guestCerts A :=
-  resTop_guestM hexc (resOpen_subOk guestCerts_sub hexc) (by
+  resTop_guestM hexc (resOpen_subOk guestCerts_sub hexc) resOpen_ltExp (by
     intro p hp
     simp only [nzVals, List.mem_cons, List.not_mem_nil, or_false] at hp
     rcases hp with rfl | rfl | rfl

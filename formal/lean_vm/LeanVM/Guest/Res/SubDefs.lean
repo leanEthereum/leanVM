@@ -12,14 +12,16 @@ public import LeanVM.Guest.Res.AnyData
 public import LeanVM.Guest.Res.MonoDefs
 public import LeanVM.Guest.Res.ResGiven
 public import LeanVM.Guest.Res.FamDefs
+public import LeanVM.Guest.Res.TermDefs
 
 /-!
 # The `sub` residuals' families
 
 `subB j x`: residual `x` of function `j` is no `sub` residual, or one of the families
-(`splitB`, `anyResB anyLink`, `monoResB`, and those read off the function's code, `subFamB`). `SubOk exc K`: certificate `K` is listed in `exc`, or
+(`splitB`, `anyResB anyLink`, `monoResB`, and those read off the function's code, `subFamB` and
+`termFamB`). `SubOk exc K`: certificate `K` is listed in `exc`, or
 each of its residuals passes `subB` at its function's index, decided per certificate (`subOk_of`).
-`EndExec.resOpen_subOk` (`EndExecRF`): given `SubOk resExc` of every certificate and the listed
+`EndExec.resOpen_subOk` (`EndExecRSub`): given `SubOk resExc` of every certificate and the listed
 certificates' residuals, no `sub` residual outside the families is left open.
 -/
 
@@ -32,7 +34,7 @@ open LeanVM.Guest LeanVM.Guest.Core
 /-- **The `sub` residuals' families**, the families read off the code from the witness `w`. -/
 noncomputable def subB (j : ℕ) (w : Wit) : Mode.Res → Bool
   | .sub a bs => splitB j (.sub a bs) || anyResB anyLink j (.sub a bs) || monoResB j (.sub a bs) ||
-      subFamB j w (.sub a bs)
+      subFamB j w (.sub a bs) || termFamB j w (.sub a bs)
   | _ => true
 
 /-- **A certificate's `sub` residuals in the families**: it is listed in `exc`, or each is at its

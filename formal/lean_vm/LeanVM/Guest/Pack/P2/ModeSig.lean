@@ -69,14 +69,14 @@ namespace LeanVM.Guest.Fn.«column_selector__L23»
 /-- `column_selector__L23`: its entry, the cells and heap facts it needs at entry and guarantees at
     return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨210579, [0, 1, 2, 3, 4], none, [], [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 16), 1, 320⟩, ⟨⟨0,
+  ⟨210579, [0, 1, 2, 3, 4], none, [], [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 2), 8, 320⟩, ⟨⟨0,
     0, [((.fr 3), 1)]⟩, (.num 0), (.num 16), 1, 432⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 16),
     1, 496⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 16), 1, 80⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num
     0), (.num 16), 1, 96⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 16), 1, 112⟩], [], [5], [],
-    [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 16), 1, 320⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0),
-    (.num 16), 1, 432⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 16), 1, 496⟩, ⟨⟨0, 0, [((.fr 4),
-    1)]⟩, (.num 0), (.num 16), 1, 80⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 16), 1, 96⟩, ⟨⟨0,
-    0, [((.fr 4), 1)]⟩, (.num 0), (.num 16), 1, 112⟩], [], [], [], [], []⟩
+    [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 2), 8, 320⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num
+    16), 1, 432⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 16), 1, 496⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩,
+    (.num 0), (.num 16), 1, 80⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 16), 1, 96⟩, ⟨⟨0, 0,
+    [((.fr 4), 1)]⟩, (.num 0), (.num 16), 1, 112⟩], [], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 

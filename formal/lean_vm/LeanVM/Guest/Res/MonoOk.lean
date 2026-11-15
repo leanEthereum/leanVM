@@ -43,8 +43,9 @@ the listed parameters' nonzero values. -/
 theorem resTop_guestM {A : String → Bridge.FnAl} (hexc : ∀ K ∈ resExc, ResCert A K)
     (hsub : ResOpen guestCerts A fun j x ↦ (((∃ a bs, x = .sub a bs) ∧ splitB j x = false) ∧
       anyResB anyLink j x = false) ∧ monoResB j x = false)
+    (hexp : ResOpen guestCerts A fun j x ↦ ltExpB j x = true)
     (hnz : ∀ p ∈ nzVals, NzVal p.1 p.2) : ResTop guestCerts A :=
-  resTop_guestA hexc (resOpen_mono mono_ok hsub) hnz
+  resTop_guestA hexc (resOpen_mono mono_ok hsub) hexp hnz
 
 end
 

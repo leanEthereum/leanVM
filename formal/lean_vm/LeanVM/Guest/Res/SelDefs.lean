@@ -11,6 +11,8 @@ public import LeanVM.Guest.Memory.StaticSound
 public import LeanVM.Guest.B2C.Cells
 public import LeanVM.Guest.Mode.Step
 public meta import LeanVM.Guest.CoreRef
+public import LeanVM.Guest.Res.ParamRef
+import LeanVM.Guest.Data.Source
 
 /-!
 # The selectors' checks
@@ -27,10 +29,13 @@ top-level atom before it loads from `[q]·g^k` (`scanHp_sound`). `ltSelB j r`: r
 a bound of function `j`'s body, its cell inside the frame (`2 ≤ cell < fsN j`, where the
 completeness check reads it).
 
+`ltExpB j r`: residual `r` is `[B] + t < N`, `B` named by an exponent fact (`expFacts`: a listed
+parameter's word, or the word read through it, is `g^e`, `e` below a bound `b`), `b + t ≤ N`.
+
 `splitB j r`: residual `r` is a run inside another over the same product, both read off a split
 of the frame (`splits`: `[n] = [s]^S·[r]`, `[s]` and `[r]` powers of `g`). `nzB nzs j o`: residual
 `nz o` is the cell of a parameter of function `j`, its loop counter or listed in `nzs`. `ResOk exc nzs K`: certificate `K` is listed in `exc`, or each of its residuals
-is a name, a selector's bound or such a divisor at its function's index, or a run inside others
+is a name, a selector's bound, an exponent fact's bound or such a divisor at its function's index, or a run inside others
 (`sub`), decided per certificate (`resOk_of`). `allV p t`: every value stored in `t` satisfies `p`
 (`allV_get`).
 -/
@@ -145,11 +150,46 @@ def splitShape (s r n S : ℕ) : Mode.Res → Bool
 noncomputable def splitB (j : ℕ) (x : Mode.Res) : Bool :=
   splits.any fun p ↦ p.1 == j && splitShape (cellJ j p.2.1) (cellJ j p.2.2.1) (cellJ j p.2.2.2.1) p.2.2.2.2 x
 
-/-- A residual the families take at function `j`: a name, a selector's bound (`ltSelB`), a run
-inside others, or a nonzero divisor at a parameter (`nzB`). -/
+/-- Cell `o` is inside function `j`'s frame. -/
+noncomputable def inFr (j o : ℕ) : Bool := decide (2 ≤ o) && decide (o < fsN j)
+
+/-- **Exponent facts at listed parameters**: function, parameter, offset (`none`: its word; `some k`:
+the word read at `[parameter]·g^k`), bound; `check_opening_terminal`'s `tau_keccak_g` and
+`kappa_base`'s words, which `verify_sub` hands it (`Res.TermFront`). -/
+def expFacts : List (String × ℕ × Option ℕ × ℕ) :=
+  [(name% «check_opening_terminal», param% check_opening_terminal "tau_keccak_g", none, 31),
+    (name% «check_opening_terminal», param% check_opening_terminal "kappa_base", some 0, 1)] ++
+  (List.range 7).map fun k ↦
+    (name% «check_opening_terminal», param% check_opening_terminal "kappa_base", some (k + 1), 31)
+
+/-- Parameter `p`'s fact at offset `o` names base `B` of function `j`. -/
+noncomputable def baseAt (j : ℕ) (p : V) : Option ℕ → Mode.Base → Bool
+  | none, .fr c => cellJ j p == c
+  | some k, .hp q k' => cellJ j p == q && k == k'
+  | _, _ => false
+
+/-- **A base's exponent fact**: the parameter and the bound of a listed fact naming it. -/
+noncomputable def expOf (j : ℕ) (B : Mode.Base) : Option (V × ℕ) :=
+  expFacts.findSome? fun c ↦
+    if c.1 == (coreOf j).name then
+      match (coreOf j).params[c.2.1]? with
+      | some p => if baseAt j p c.2.2.1 B then some (p, c.2.2.2) else none
+      | none => none
+    else none
+
+/-- **An order residual bounded by an exponent fact** (F7, F8): `[B] + t < N`, `B` named by a fact of
+bound `b`, `b + t ≤ N`. -/
+noncomputable def ltExpB (j : ℕ) : Mode.Res → Bool
+  | .lt (.ex B t) (.num N) => match expOf j B with
+    | some (p, b) => inFr j (cellJ j p) && decide (b ≤ 2 ^ 33) && decide (N ≤ 2 ^ 33) && decide (b + t ≤ N)
+    | none => false
+  | _ => false
+
+/-- A residual the families take at function `j`: a name, a selector's bound (`ltSelB`) or one an
+exponent fact gives (`ltExpB`), a run inside others, or a nonzero divisor at a parameter (`nzB`). -/
 noncomputable def famB (nzs : List (String × V)) (j : ℕ) : Mode.Res → Bool
   | .name _ => true
-  | .lt a b => ltSelB j (.lt a b)
+  | .lt a b => ltSelB j (.lt a b) || ltExpB j (.lt a b)
   | .sub _ _ => true
   | .nz o => nzB nzs j o
 

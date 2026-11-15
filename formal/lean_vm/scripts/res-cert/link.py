@@ -115,8 +115,9 @@ def render():
              'theorem resTop_guestA {A : String → Bridge.FnAl} (hexc : ∀ K ∈ resExc, ResCert A K)\n'
              '    (hsub : ResOpen guestCerts A fun j x ↦ ((∃ a bs, x = .sub a bs) ∧ splitB j x = false) ∧\n'
              '      anyResB anyLink j x = false)\n'
+             '    (hexp : ResOpen guestCerts A fun j x ↦ ltExpB j x = true)\n'
              '    (hnz : ∀ p ∈ nzVals, NzVal p.1 p.2) : ResTop guestCerts A :=\n'
-             '  resTop_guest hexc (resOpen_any anyLink_ok hsub) hnz\n\nend\n\nend LeanVM.Guest.EndExec\n')
+             '  resTop_guest hexc (resOpen_any anyLink_ok hsub) hexp hnz\n\nend\n\nend LeanVM.Guest.EndExec\n')
     files[mod] = ''.join(t)
     return {os.path.join(OUT, m.split('.')[-1] + '.lean'): v for m, v in files.items()}
 

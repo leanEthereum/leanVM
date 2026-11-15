@@ -142,7 +142,9 @@ noncomputable def modeEnv : Mode.Env :=
 /-- `column_selector__L14`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨210237, 48, Fn.«column_selector__L14».modeSig, (.node (some [(.digitDecomposeExp 2 (.stack 6) 32
-    5 4 12 none)]) .nil .nil), .nil, .nil, false, .nil⟩
+    5 4 12 none)]) .nil .nil), (.node none (.node none .nil (.node (some [(.sub ⟨⟨0, 208, [((.fr
+    3), 1), ((.fr 6), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 4),
+    4, 208⟩])]) .nil .nil)) .nil), .nil, false, .nil⟩
 
 /-- `column_selector__L14`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by

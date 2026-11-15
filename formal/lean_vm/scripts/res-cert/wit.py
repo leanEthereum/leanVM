@@ -1,7 +1,7 @@
 """The witnesses of the `sub` families read off a function's own code (`Res.Wit`, `Res/FamDefs.lean`): for
 each residual a family takes, the top-level atoms and selectors of the function's body its check reads,
-mirroring `Res.shiftB`, `Res.sideB` and `Res.runB` (`cellLt`, `eqCells`, `mulBy`, `holdsBase`,
-`sideRead`, `mulConst`). The kernel
+mirroring `Res.shiftB`, `Res.sideB`, `Res.runB` (`cellLt`, `eqCells`, `mulBy`, `holdsBase`,
+`sideRead`, `mulConst`) and `Res.dimB` (`lowOk`). The kernel
 checks the witness (`Res.witOk`) and the family on it, so a witness found here is only a hint.
 """
 import os, sys, importlib.util
@@ -22,6 +22,10 @@ def tab_params():
     for m in re.finditer(r'\(name% «([^»]+)», (\d+), \.tab\)', t):
         out.setdefault(m.group(1), set()).add(int(m.group(2)))
     return out
+
+
+# the functions of `Res.dimFacts` (`Res/TermDefs.lean`)
+DIM_FNS = {'check_opening_terminal'}
 
 
 # ---- the core IR, atoms kept whole ---------------------------------------------------------------------------
@@ -289,6 +293,22 @@ class Fn:
                         return True
         return False
 
+    def dim(self, a, b):
+        """`Res.lowOk`'s product: a frame cell a top-level product writes of a loaded value and a constant."""
+        bs, bb = a[0][2], b[0][2]
+        if len(bs) != 2 or len(bb) != 1 or bs[0] != bb[0] or bs[1][0][0] != 'fr':
+            return False
+        P = bs[1][0][1]
+        for m in self.atoms:
+            if m[0] != 'mul' or self.cell(m[1]) != P:
+                continue
+            k = self.const_of(m[3])
+            ld = next((l for l in self.atoms if l[0] == 'load' and l[1] == m[2]), None)
+            if k and ld:
+                for z in (m, ld, k): self.pick(z)
+                return True
+        return False
+
     def lean(self):
         return '⟨[%s], [%s]⟩' % (', '.join(self.picked), ', '.join('(.n %d, %d)' % p for p in self.psels))
 
@@ -314,7 +334,7 @@ def witnesses(residuals):
             except (ValueError, IndexError, TypeError):
                 continue
             snap = (list(f.picked), list(f.psels))
-            if not (f.shift(a, b) or f.side(a, b) or f.run(a, b)):
+            if not (f.shift(a, b) or f.side(a, b) or f.run(a, b) or (n in DIM_FNS and f.dim(a, b))):
                 f.picked, f.psels = snap
         if f.picked or f.psels:
             out[n] = f.lean()

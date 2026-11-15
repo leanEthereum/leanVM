@@ -1,9 +1,8 @@
 /-
   LeanVM.Guest.Res.TermDefs
 
-  `check_opening_terminal`'s residual families: what `verify_sub` hands it (`TermFront`), the
-  exponent facts carried at its parameters, and the checks of its order residuals (F7, F8), its
-  claims' low dimensions (F9) and `column_selector`'s lowest digit (F3).
+  `check_opening_terminal`'s residual families: what `verify_sub` hands it (`TermFront`), and the
+  checks of its claims' low dimensions (F9) and `column_selector`'s lowest digit (F3).
 -/
 
 module
@@ -24,21 +23,16 @@ g^τ_5]`, `g_log_mem = g^log_mem`, `tau_keccak_g = g^τ_5`, the heights below `3
 `g_squares·g^34` the
 selector's nibble shares; `verify_tables`' context (`TCtx`) on `[zeta, chi, rm, g_bus_mu, g_zc_n]`.
 
-`expFacts`: function, parameter, offset, bound: the parameter's word (`none`), or the word read at
-`[parameter]·g^k` (`some k`), is `g^e`, `e` below the bound. `ltExpB j w` (F7, F8): an order
-residual `[B] + t < N` whose base `B` has such a fact, with bound `b`: `b + t ≤ N`, or a top-level
-dispatch of at most `n` ways on `[B]·g^adj` (a product by a constant, or `B`'s word itself) with
-`n + t ≤ N + adj`.
-
 `dimFacts`: function, base parameter, bound parameter, pairs `(k, c)`: the word at `[base]·g^k` is
 `g^e`, the bound's `g^m`, `e + c ≤ m`; at `check_opening_terminal`, the pooled claims' `kappa_base`
 sources and adjustments, the bus's against `g_bus_mu`, the tables' against `g_zc_n` (`busPairs`,
-`tabPairs`). `dimB j` (F9): the point `[T]·[[K]·g^k]·g^c` inside `[T]·g^i`, `i` below `[M]`'s
-exponent plus `t ≥ 1`, `(k, c)` a pair of such a fact on `K`, `M`.
+`tabPairs`). `dimB j w` (F9): the point `[T]·B·g^d` inside `[T]·g^i`, `i` below `[M]`'s exponent
+plus `t ≥ 1`, `B` the word at `[K]·g^k` (or a product of it and a constant `g^c` the code writes),
+`(k, c + d)` a pair of such a fact on `K`, `M`.
 
 `csRes κ s d` (F3): `column_selector__L{κ}`'s read of its lowest digit `[d]`'s eq weight at
 `[s]·[d]·g^(64(κ/4) + 16(w - 1))`, inside the strided level-`w` table, `w` the digit's width; `csB j`
-names it at function `j`.
+names it at function `j`. `termFamB`: either.
 -/
 
 namespace LeanVM.Guest.Res
@@ -66,64 +60,6 @@ def TermFront (rd : Reader) : List E → Prop
         Tables.TCtx rd layout bus claims [zeta, chi, rm, gmu, gzcn]
   | _ => False
 
-/-! ## Exponent facts -/
-
-/-- **Exponent facts at listed parameters**: function, parameter, offset (`none`: its word; `some k`:
-the word read at `[parameter]·g^k`), bound. -/
-def expFacts : List (String × ℕ × Option ℕ × ℕ) :=
-  [(name% «check_opening_terminal», param% check_opening_terminal "tau_keccak_g", none, 31),
-    (name% «check_opening_terminal», param% check_opening_terminal "kappa_base", some 0, 1)] ++
-  (List.range 7).map fun k ↦
-    (name% «check_opening_terminal», param% check_opening_terminal "kappa_base", some (k + 1), 31)
-
-/-- Parameter `p`'s fact at offset `o` names base `B` of function `j`. -/
-noncomputable def baseAt (j : ℕ) (p : V) : Option ℕ → Mode.Base → Bool
-  | none, .fr c => cellJ j p == c
-  | some k, .hp q k' => cellJ j p == q && k == k'
-  | _, _ => false
-
-/-- **A base's exponent fact**: the parameter and the bound of a listed fact naming it. -/
-noncomputable def expOf (j : ℕ) (B : Mode.Base) : Option (V × ℕ) :=
-  expFacts.findSome? fun c ↦
-    if c.1 == (coreOf j).name then
-      match (coreOf j).params[c.2.1]? with
-      | some p => if baseAt j p c.2.2.1 B then some (p, c.2.2.2) else none
-      | none => none
-    else none
-
-/-- The base's word `y`, read through parameter `p`: `p` itself, or a top-level load from `[p]·g^k`. -/
-def readOf (w : Wit) (p : V) : Mode.Base → V → Bool
-  | .fr _, y => decide (y = p)
-  | .hp _ k, y => w.as.any fun
-    | .load y' p' k' => decide (y' = y) && decide (p' = p) && k' == k
-    | _ => false
-
-/-- A top-level selector of at most `n` ways on `z`, `n + t ≤ N + adj`. -/
-def selLe (w : Wit) (z : V) (t N adj : ℕ) : Bool :=
-  w.ss.any fun s ↦ decide (s.1 = z) && decide (s.2 + t ≤ N + adj)
-
-/-- `z` is dispatched on, a constant `c = g^adj` its factor, `adj < 2^33`. -/
-noncomputable def constSel (w : Wit) (c z : V) (t N : ℕ) : Bool :=
-  match (constOf w.as c).bind powOf with
-  | some adj => decide (adj < 2 ^ 33) && selLe w z t N adj
-  | none => false
-
-/-- **A dispatch on the base's word times a constant**, or on the word itself. -/
-noncomputable def prodSel (w : Wit) (p : V) (B : Mode.Base) (t N : ℕ) : Bool :=
-  w.ss.any (fun s ↦ readOf w p B s.1 && decide (s.2 + t ≤ N)) ||
-    w.as.any fun
-      | .mul z a c => (readOf w p B a && constSel w c z t N) || (readOf w p B c && constSel w a z t N)
-      | _ => false
-
-/-- **An order residual bounded by an exponent fact** (F7, F8): `[B] + t < N`, `B` named by a fact of
-bound `b`, `b + t ≤ N` or a dispatch bounding it (`prodSel`). -/
-noncomputable def ltExpB (j : ℕ) (w : Wit) : Mode.Res → Bool
-  | .lt (.ex B t) (.num N) => match expOf j B with
-    | some (p, b) => inFr j (cellJ j p) && decide (b ≤ 2 ^ 33) && decide (N ≤ 2 ^ 33) &&
-        (decide (b + t ≤ N) || prodSel w p B t N)
-    | none => false
-  | _ => false
-
 /-! ## The claims' low dimensions -/
 
 /-- The pooled claims' `kappa_base` sources and adjustments, bus claims first. -/
@@ -143,22 +79,38 @@ def dimFacts : List (String × ℕ × ℕ × List (ℕ × ℕ)) :=
     (name% «check_opening_terminal», param% check_opening_terminal "kappa_base",
       param% check_opening_terminal "g_zc_n", tabPairs)]
 
-/-- The shape `dimB` reads: `[T]·[[q]·g^k]` and `[T]` up to `[o] + t`, as `(q, k, o, t)`. -/
-def dimShape (a b : Mode.Rng) : Option (ℕ × ℕ × ℕ × ℕ) :=
+/-- The shape `dimB` reads: `[T]·B` and `[T]` up to `[o] + t`, as `(B, o, t)`. -/
+def dimShape (a b : Mode.Rng) : Option (Mode.Base × ℕ × ℕ) :=
   match a.q.bs, b.q.bs, b.hi with
-  | [(.fr T, 1), (.hp q k, 1)], [(.fr T', 1)], .ex (.fr o) t => if T = T' then some (q, k, o, t) else none
+  | [(.fr T, 1), (B, 1)], [(.fr T', 1)], .ex (.fr o) t => if T = T' then some (B, o, t) else none
   | _, _, _ => none
 
-/-- **A claim's low point inside its chain** (F9): `[T]·[[q]·g^k]·g^c` inside `[T]·g^i`, `i` below
-`[o] + t`, `(k, c)` a pair of a dimension fact on the parameters of cells `q`, `o`. -/
-noncomputable def dimB (j : ℕ) : Mode.Res → Bool
+/-- **Base `B` is the word at `[pk]·g^k` times `g^c`**, `ok k c`: `B` read there (`c = 0`), or a frame
+cell a top-level product writes of a value a top-level load reads there and a constant `g^c`. -/
+noncomputable def lowOk (j : ℕ) (w : Wit) (pk : V) (B : Mode.Base) (ok : ℕ → ℕ → Bool) : Bool :=
+  match B with
+  | .hp q k => inFr j q && cellJ j pk == q && ok k 0
+  | .fr P => inFr j P && w.as.any fun
+      | .mul P' y z => cellJ j P' == P && w.as.any fun
+          | .load y' p k => decide (y' = y) && decide (p = pk) &&
+              match (constOf w.as z).bind powOf with
+              | some c => ok k c
+              | none => false
+          | _ => false
+      | _ => false
+
+/-- **A claim's low point inside its chain** (F9): `[T]·B·g^d` inside `[T]·g^i`, `i` below `[o] + t`,
+`B` the word at `[K]·g^k` times `g^c` (`lowOk`), `(k, c + d)` a pair of a dimension fact on the
+parameters `K` and the one of cell `o`. -/
+noncomputable def dimB (j : ℕ) (w : Wit) : Mode.Res → Bool
   | .sub a [b] => match dimShape a b with
-    | some (q, k, o, t) =>
+    | some (B, o, t) =>
       a.lo == .num 0 && a.hi == .num 1 && a.d == 0 && b.lo == .num 0 && b.S == 1 && b.d == 0 &&
-        a.q.fp == b.q.fp && decide (b.q.k ≤ a.q.k) && decide (1 ≤ t) && inFr j q && inFr j o &&
+        a.q.fp == b.q.fp && decide (b.q.k ≤ a.q.k) && decide (1 ≤ t) && inFr j o &&
         dimFacts.any fun c ↦ c.1 == (coreOf j).name &&
           match (coreOf j).params[c.2.1]?, (coreOf j).params[c.2.2.1]? with
-          | some pk, some pb => cellJ j pk == q && cellJ j pb == o && c.2.2.2.contains (k, a.q.k - b.q.k)
+          | some pk, some pb => cellJ j pb == o &&
+              lowOk j w pk B fun k c' ↦ c.2.2.2.contains (k, c' + (a.q.k - b.q.k))
           | _, _ => false
     | none => false
   | _ => false
@@ -191,6 +143,9 @@ noncomputable def csB (j : ℕ) : Mode.Res → Bool
     decide (csKappa a.q.k < 31) && (coreOf j).name == Tables.lName "column_selector" (csKappa a.q.k) &&
       inFr j (cellJ j (.n 3)) && decide (Mode.Res.sub a [b] = csRes (csKappa a.q.k) (cellJ j (.n 1)) (cellJ j (.n 3)))
   | _ => false
+
+/-- **`check_opening_terminal`'s `sub` families**: F9 (`dimB`) and F3 (`csB`). -/
+noncomputable def termFamB (j : ℕ) (w : Wit) (x : Mode.Res) : Bool := dimB j w x || csB j x
 
 end
 

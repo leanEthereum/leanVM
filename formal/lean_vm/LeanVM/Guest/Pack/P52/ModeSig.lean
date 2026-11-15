@@ -134,14 +134,14 @@ namespace LeanVM.Guest.Fn.«column_selector__L10»
 /-- `column_selector__L10`: its entry, the cells and heap facts it needs at entry and guarantees at
     return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨210027, [0, 1, 2, 3, 4], none, [], [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 16), 1, 144⟩, ⟨⟨0,
+  ⟨210027, [0, 1, 2, 3, 4], none, [], [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 4), 4, 144⟩, ⟨⟨0,
     0, [((.fr 3), 1)]⟩, (.num 0), (.num 16), 1, 240⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 16),
     1, 304⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 16), 1, 368⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num
     0), (.num 16), 1, 432⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 16), 1, 496⟩, ⟨⟨0, 0, [((.fr
     4), 1)]⟩, (.num 0), (.num 16), 1, 32⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 16), 1, 48⟩,
     ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 16), 1, 64⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num
     16), 1, 80⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 16), 1, 96⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩,
-    (.num 0), (.num 16), 1, 112⟩], [], [5], [], [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 16), 1,
+    (.num 0), (.num 16), 1, 112⟩], [], [5], [], [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 4), 4,
     144⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 16), 1, 240⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0),
     (.num 16), 1, 304⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 16), 1, 368⟩, ⟨⟨0, 0, [((.fr 3),
     1)]⟩, (.num 0), (.num 16), 1, 432⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 16), 1, 496⟩, ⟨⟨0,
@@ -163,9 +163,9 @@ namespace LeanVM.Guest.Fn.«column_selector__L29»
 /-- `column_selector__L29`: its entry, the cells and heap facts it needs at entry and guarantees at
     return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨210705, [0, 1, 2, 3, 4], none, [], [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 16), 1, 480⟩, ⟨⟨0,
+  ⟨210705, [0, 1, 2, 3, 4], none, [], [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 8), 2, 480⟩, ⟨⟨0,
     0, [((.fr 4), 1)]⟩, (.num 0), (.num 16), 1, 112⟩], [], [5], [], [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num
-    0), (.num 16), 1, 480⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 16), 1, 112⟩], [], [], [], [],
+    0), (.num 8), 2, 480⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 16), 1, 112⟩], [], [], [], [],
     []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel

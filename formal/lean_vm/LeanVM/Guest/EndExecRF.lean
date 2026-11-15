@@ -2,15 +2,13 @@
   LeanVM.Guest.EndExecRF
 
   The `sub` families read off a function's own code, sound at the honest frames: a run over a product
-  scaled by a factor (F4, F6) and a read the exponent tables' side section guards (F2); and the
-  certificates' `sub` residuals left open by none of the families.
+  scaled by a factor (F4, F6) and a read the exponent tables' side section guards (F2).
 -/
 
 module
 
 public import LeanVM.Guest.EndExecRS
 public import LeanVM.Guest.Res.FamDefs
-public import LeanVM.Guest.Res.SubDefs
 public import LeanVM.Guest.B1.Placement.Common
 public import LeanVM.Guest.EndExecYWitCells
 public import LeanVM.Guest.EndExecRA
@@ -31,8 +29,7 @@ the frame's value there (`TopAt.cell`).
 makes `Q·[o]·g^j = Q·g^(eo + j)`, below `[p]`'s exponent `ec + eo` (F4) or a constant above it (F6).
 `side_top` (F2): the group `g^gi` read at `[q]·g^r` reads the exponent tables' side section at its
 group (`tabVals`, the carried tables, `carryQ_all`) into a constant, which the table makes its side's
-word, so the group lies in the side's block. `resOpen_subOk`: each certificate's `sub` residuals in
-the families (`Res.SubOk`) leave none open but the listed certificates'.
+word, so the group lies in the side's block.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -662,31 +659,6 @@ theorem subFam_top {A : String → FnAl} {r : Ref} {K : Mode.Cert} {i : ℕ} {e 
   · exact shift_top t hr hW hx
   · exact side_top t hr hW hx
   · exact run_top t hr hW hx
-
-open LeanVM.Guest.Res (allV_get subB SubOk resExc splitB anyResB anyLink monoResB) in
-/-- **No `sub` residual outside the families is left open**: each certificate's are in the
-families, or the certificate is listed and its residuals given. -/
-theorem resOpen_subOk {Ks : List Mode.Cert} {A : String → Bridge.FnAl} (hok : ∀ K ∈ Ks, SubOk resExc K)
-    (hexc : ∀ K ∈ resExc, ResCert A K) :
-    ResOpen Ks A fun j x ↦ (((∃ a bs, x = .sub a bs) ∧ splitB j x = false) ∧ anyResB anyLink j x = false) ∧
-      monoResB j x = false := by
-  intro r hr K hK i hi e j t x hx hp hin
-  rcases hok K hK with hK' | ⟨j0, w, hj0, hent, hW, hall⟩
-  · exact hexc K hK' r hr i hi e j t x hx hin
-  obtain rfl : j = j0 := by
-    obtain ⟨_, -, -, -, -, -, -, -, -, hj⟩ := fn_of_idx t.idx
-    refine fnOf_entry_inj hj hj0 ?_
-    have := t.entry
-    simp only [entryOf, t.idx] at this
-    rw [this, hent]
-  obtain ⟨⟨⟨⟨a, bs, rfl⟩, hs⟩, ha⟩, hm⟩ := hp
-  cases hg : K.F.res.get i with
-  | none => rw [hg] at hx; cases hx
-  | some l =>
-    rw [hg, Option.getD_some] at hx
-    have hf := List.all_eq_true.mp (allV_get hall hg) _ hx
-    simp only [subB, hs, ha, hm, Bool.false_or] at hf
-    exact subFam_top t hr hW hf
 
 end
 

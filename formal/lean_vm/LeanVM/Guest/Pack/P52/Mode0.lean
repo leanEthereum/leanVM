@@ -148,7 +148,9 @@ noncomputable def modeEnv : Mode.Env :=
 /-- `column_selector__L10`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨210027, 57, Fn.«column_selector__L10».modeSig, (.node (some [(.digitDecomposeExp 2 (.stack 6) 32
-    6 4 8 none)]) .nil .nil), .nil, .nil, false, .nil⟩
+    6 4 8 none)]) .nil .nil), (.node none (.node none .nil (.node (some [(.sub ⟨⟨0, 144, [((.fr 3),
+    1), ((.fr 6), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 4), 4,
+    144⟩])]) .nil .nil)) .nil), .nil, false, .nil⟩
 
 /-- `column_selector__L10`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -171,7 +173,9 @@ noncomputable def modeEnv : Mode.Env :=
 /-- `column_selector__L29`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
   ⟨210705, 12, Fn.«column_selector__L29».modeSig, (.node (some [(.digitDecomposeExp 2 (.stack 6) 32
-    1 4 28 none)]) .nil .nil), .nil, .nil, false, .nil⟩
+    1 4 28 none)]) .nil .nil), (.node none (.node none .nil (.node (some [(.sub ⟨⟨0, 480, [((.fr
+    3), 1), ((.fr 6), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 8),
+    2, 480⟩])]) .nil .nil)) .nil), .nil, false, .nil⟩
 
 /-- `column_selector__L29`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by

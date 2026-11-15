@@ -44,7 +44,7 @@ def render():
     mod = 'LeanVM.Guest.Res.SubCerts'
     t = [header(mod, '`ResTop guestCerts` from the listed certificates\' residuals and the listed parameters\' nonzero values.')]
     t.append(''.join('public import %s\n' % m for m in mods))
-    t.append('public import LeanVM.Guest.Res.MonoOk\npublic import LeanVM.Guest.EndExecRF\n')
+    t.append('public import LeanVM.Guest.Res.MonoOk\npublic import LeanVM.Guest.EndExecRSub\n')
     t.append('\nset_option Elab.async false\n\nnamespace LeanVM.Guest.EndExec\n\nopen LeanVM.Guest LeanVM.Guest.Mode '
              'LeanVM.Guest.Res\n\npublic section\n\n/-- **Every certificate\'s `sub` residuals are in the families.** -/\n'
              'theorem guestCerts_sub : ∀ K ∈ guestCerts, SubOk resExc K :=\n  fa_flatten (fa_flatten (%s))\n\n' % term.chain(
@@ -57,7 +57,7 @@ def render():
              'certificates\' residuals and the nonzero values not proved here. -/\n'
              'theorem resTop_guestF {A : String → Bridge.FnAl} (hexc : ∀ K ∈ resExc, ResCert A K)%s :\n'
              '    ResTop guestCerts A :=\n'
-             '  resTop_guestM hexc (resOpen_subOk guestCerts_sub hexc) (by\n'
+             '  resTop_guestM hexc (resOpen_subOk guestCerts_sub hexc) resOpen_ltExp (by\n'
              '    intro p hp\n'
              '    simp only [nzVals, List.mem_cons, List.not_mem_nil, or_false] at hp\n'
              '    rcases hp with %s%s)\n\nend\n\nend LeanVM.Guest.EndExec\n' % (hyps, ' | '.join(['rfl'] * len(nz)), arms))

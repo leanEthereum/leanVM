@@ -166,10 +166,10 @@ namespace LeanVM.Guest.Fn.«column_selector__L26»
 /-- `column_selector__L26`: its entry, the cells and heap facts it needs at entry and guarantees at
     return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨210651, [0, 1, 2, 3, 4], none, [], [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 16), 1, 400⟩, ⟨⟨0,
+  ⟨210651, [0, 1, 2, 3, 4], none, [], [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 4), 4, 400⟩, ⟨⟨0,
     0, [((.fr 3), 1)]⟩, (.num 0), (.num 16), 1, 496⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 16),
     1, 96⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 16), 1, 112⟩], [], [5], [], [⟨⟨0, 0, [((.fr
-    3), 1)]⟩, (.num 0), (.num 16), 1, 400⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 16), 1, 496⟩,
+    3), 1)]⟩, (.num 0), (.num 4), 4, 400⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 16), 1, 496⟩,
     ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 16), 1, 96⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num
     16), 1, 112⟩], [], [], [], [], []⟩
 

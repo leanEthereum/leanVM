@@ -111,11 +111,13 @@ theorem guestCerts_res : ∀ K ∈ guestCerts, ResOk resExc nzVals K :=
     (Mode.fa_nil)))))))
 
 /-- **The residuals at the honest frames**, for the mode walk's certificates: from the listed
-certificates', the `sub` residuals' but the splits' and the listed parameters' nonzero values. -/
+certificates', the `sub` residuals' but the splits', the exponent facts' order residuals and the listed
+parameters' nonzero values. -/
 theorem resTop_guest {A : String → Bridge.FnAl} (hexc : ∀ K ∈ resExc, ResCert A K)
     (hsub : ResOpen guestCerts A fun j x ↦ (∃ a bs, x = .sub a bs) ∧ splitB j x = false)
+    (hexp : ResOpen guestCerts A fun j x ↦ ltExpB j x = true)
     (hnz : ∀ p ∈ nzVals, NzVal p.1 p.2) : ResTop guestCerts A :=
-  resTop_of_ok guestCerts_res hexc splits_ok hsub hnz
+  resTop_of_ok guestCerts_res hexc splits_ok hsub hexp hnz
 
 end
 

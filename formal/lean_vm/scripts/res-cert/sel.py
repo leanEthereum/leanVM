@@ -95,11 +95,13 @@ def render():
              'theorem guestCerts_res : ∀ K ∈ guestCerts, ResOk resExc nzVals K :=\n  fa_flatten (fa_flatten (%s))\n\n' % term.chain(
                  ['(%s)' % term.chain(['ModePack.«%s».certs_res' % p for p in g]) for g in G]))
     t.append('/-- **The residuals at the honest frames**, for the mode walk\'s certificates: from the listed\n'
-             'certificates\', the `sub` residuals\' but the splits\' and the listed parameters\' nonzero values. -/\n'
+             'certificates\', the `sub` residuals\' but the splits\', the exponent facts\' order residuals and the listed\n'
+             'parameters\' nonzero values. -/\n'
              'theorem resTop_guest {A : String → Bridge.FnAl} (hexc : ∀ K ∈ resExc, ResCert A K)\n'
              '    (hsub : ResOpen guestCerts A fun j x ↦ (∃ a bs, x = .sub a bs) ∧ splitB j x = false)\n'
+             '    (hexp : ResOpen guestCerts A fun j x ↦ ltExpB j x = true)\n'
              '    (hnz : ∀ p ∈ nzVals, NzVal p.1 p.2) : ResTop guestCerts A :=\n'
-             '  resTop_of_ok guestCerts_res hexc splits_ok hsub hnz\n\nend\n\nend LeanVM.Guest.EndExec\n')
+             '  resTop_of_ok guestCerts_res hexc splits_ok hsub hexp hnz\n\nend\n\nend LeanVM.Guest.EndExec\n')
     files[mod] = ''.join(t)
     return {os.path.join(OUT, m.split('.')[-1] + '.lean'): v for m, v in files.items()}
 
