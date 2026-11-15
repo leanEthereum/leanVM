@@ -327,8 +327,8 @@ def VW (I : Inst) (C : (ℕ → E) → Prop) (st : St) (ok : V → Prop) : Prop 
 a `SET` constant to its word and (in a registered loop helper, the only function that sets it)
 the frame size to `g^size`, no value the function names but a temporary has a temporary's cell,
 and an instruction of the placement naming a temporary's cell is a `DEREF` into it at offset `0`
-through a pointer cell no `DEREF` of the frame pointer writes through (`TmpsApart`), and the end
-sentinel's word is in `K`. -/
+through a pointer cell no `DEREF` of the frame pointer writes through (`TmpsApart`), the end
+sentinel's word is in `K`, and no place is a shift by `g^0`. -/
 structure Inst.Ok (I : Inst) : Prop where
   rd : ∃ rd, I.Rd rd
   kconst : ∀ x y, I.kw (.const x y) = Guest.word x y
@@ -337,6 +337,7 @@ structure Inst.Ok (I : Inst) : Prop where
   tops : ∀ c, I.tc c → ∀ o ∈ I.ops, c ∈ opCells o →
     ∃ p, o = .deref p 0 c .cell ∧ ∀ q off d, LOp.deref q off d .fp ∈ I.ops → q ≠ p
   kend : IsInK (I.kw .endSentinel)
+  hsh : ∀ (v : V) (n : ℕ), I.locs[v]? ≠ some (Loc.shifted n 0)
 
 /-- An atom's relation with its temporaries' loads left out: what the readers `Rd` of an
 instance give. -/
