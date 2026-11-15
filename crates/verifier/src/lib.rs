@@ -37,7 +37,7 @@ pub use wire::{MAX_HEIGHT, MAX_LEAF_WORDS, MAX_PHASES, MAX_QUERIES};
 pub use bus::N_TREES as N_BUS_TREES;
 pub use hash::Digest;
 pub use keccak::{EMBED_BITS, KeccakShape, PACK, PRODUCT_BITS, RMFE_EMBED, RMFE_PROJECT};
-pub use whir::{WhirConfig, derive_config, subspace_roots};
+pub use whir::{Subspace, WhirConfig, derive_config, subspace_roots};
 
 use bus::{ColumnClaim, N_TREES, table_sumcheck, verify_bus_balance};
 use field::{ZERO, powers};

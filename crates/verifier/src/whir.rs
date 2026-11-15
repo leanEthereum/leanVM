@@ -103,20 +103,20 @@ pub fn subspace_roots(log_n: usize) -> Vec<K> {
 }
 
 /// The normalized subspace polynomials `What_i = W_i / W_i(beta_i)` for `i <= mu`, at points of the RS domain.
-struct Subspace {
+pub struct Subspace {
     roots: Vec<K>,
     inverses: Vec<K>,
 }
 
 impl Subspace {
-    fn new(mu: usize) -> Self {
+    pub fn new(mu: usize) -> Self {
         let roots = subspace_roots(mu);
         let inverses = roots.iter().map(|value| value.inv()).collect();
         Self { roots, inverses }
     }
 
     /// `What_i(x)` for `i <= mu`, by `W_(i+1) = W_i^2 + W_i(beta_i) W_i`.
-    fn at(&self, x: K) -> Vec<K> {
+    pub fn at(&self, x: K) -> Vec<K> {
         let mut basis = x;
         let mut values = Vec::with_capacity(self.roots.len());
         for (&root, &inverse) in self.roots.iter().zip(&self.inverses) {
