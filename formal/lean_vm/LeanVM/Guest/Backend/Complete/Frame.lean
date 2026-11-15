@@ -95,6 +95,12 @@ structure PoolW (I : Inst) (Ψ : ℕ → E) (locs : VMap Loc) (sc : Scope) : Pro
   mats : ∀ c l, sc.mats.get? c = some l → ∀ p ∈ l, Ψ p.2 = Ψ c * ofK (addressOfIndex p.1)
   selfFp : ∀ o, sc.selfFp = some o → Ψ o = I.fpw
 
+/-- **No pool cell a multiplication makes is a temporary's cell**: the products and the shifted
+pointers of the scope. A store's `DEREF` into one is then no temporary's load. -/
+def PoolNT (I : Inst) (sc : Scope) : Prop :=
+  (∀ k o, sc.muls.get? k = some o → ¬ I.tc o) ∧
+    ∀ c l, sc.mats.get? c = some l → ∀ p ∈ l, ¬ I.tc p.2
+
 /-! ## Constraints -/
 
 /-- A constraint on frame words that mentions no cell from `n` on. -/
@@ -289,12 +295,16 @@ theorem Fits.back {I : Inst} {st st' : St} (h : Fits I st') (hn : st.next ≤ st
     (hl : LocsLe st.locs st'.locs) : Fits I st :=
   ⟨le_trans hn h.1, hl.trans h.2⟩
 
+/-- The straight-line instructions the current block has placed so far are the final
+placement's. -/
+def OutOps (I : Inst) (st : St) : Prop := ∀ h o, PStmt.op h o ∈ st.out.toList → o ∈ I.ops
+
 /-- The statements a walk emitted on the path from `st` to `st'`: straight-line instructions
 only, each of whose relation holds on every frame word the constraint allows, once the final
-placement extends `st'` and has these instructions. -/
+placement extends `st'` and has the block's straight-line instructions so far. -/
 def EmitsW (I : Inst) (C : (ℕ → E) → Prop) (st st' : St) : Prop :=
   ∃ ops : List PStmt, st'.out.toList = st.out.toList ++ ops ∧
-    (Fits I st' → (∀ h o, PStmt.op h o ∈ ops → o ∈ I.ops) →
+    (Fits I st' → OutOps I st' →
       ∀ s ∈ ops, ∃ h o, s = PStmt.op h o ∧ ∀ Ψ, C Ψ → OpW I Ψ o)
 
 /-- **On `σ`'s path, every success of `m` from `st`** strengthens the constraint keeping it
@@ -312,6 +322,13 @@ header and below the next free cell, and its place holds its word under the cons
 def VW (I : Inst) (C : (ℕ → E) → Prop) (st : St) (ok : V → Prop) : Prop :=
   ∀ v l, ok v → st.locs[v]? = some l →
     2 ≤ locBase l ∧ locBase l < st.next ∧ ∀ Ψ, C Ψ → locW Ψ l = I.σ v
+
+/-- **The words of the values a path read**: each value of `vs` but a temporary that the final
+placement places is placed so by `st` already, in the frame below the next free cell, and its place
+holds its word under the constraint. -/
+def RW (I : Inst) (C : (ℕ → E) → Prop) (st : St) (vs : List V) : Prop :=
+  ∀ v ∈ vs, v ∉ I.tmps → ∀ l, I.locs[v]? = some l →
+    st.locs[v]? = some l ∧ 2 ≤ locBase l ∧ locBase l < st.next ∧ ∀ Ψ, C Ψ → locW Ψ l = I.σ v
 
 /-- What the walk takes of an instance: some reader holds the path's events, the layout resolves
 a `SET` constant to its word and (in a registered loop helper, the only function that sets it)
@@ -342,12 +359,13 @@ def flushSeg : List Event → List Event
       | _ => e :: flushSeg es
 
 /-- **The shape of an atom on the path** (`FrameAtoms.lean`): from a state whose known values
-include the atom's (a copy dropped into a sponge alias apart), the atom an event of the path, its
-relation without its temporaries on every reader `Rd`, its own values no temporaries and its
-temporaries the instance's, an address's word being the frame address of its run's first cell,
-placing the atom keeps the known values' words and knows the atom's values (once the final
-placement extends the state reached), leaves the trace, places no value but the atom's, and leaves
-free every cell below the next free one the constraint left free. -/
+include the atom's (a copy dropped into a sponge alias apart) and whose multiplied pool cells are
+no temporary's, the atom an event of the path, its relation without its temporaries on every
+reader `Rd`, its own values no temporaries and its temporaries the instance's, an address's word
+being the frame address of its run's first cell, placing the atom keeps the known values' words
+and knows the atom's values (once the final placement extends the state reached), leaves the
+trace, places no value but the atom's and places all of them, and leaves free every cell below
+the next free one the constraint left free. -/
 def AtomFAt (a : Atom) : Prop :=
   ∀ (ctx : Ctx) (I : Inst) (C : (ℕ → E) → Prop) (st : St) (ok : V → Prop),
     I.Ok → (ctx.isMain = true → I.fp = 0) → Memory.Ev.atom a ∈ I.es →
@@ -356,8 +374,7 @@ def AtomFAt (a : Atom) : Prop :=
     (∀ v ∈ Memory.atomUses a, v ∈ I.named) →
     (Fits I st → ∀ p run, a = .frameAddr p run → ∃ r0 base, run.head? = some r0 ∧
       st.locs[r0]? = some (.cell base) ∧ I.σ p = ofK (addressOfIndex (I.fp + base))) →
-    (Fits I st → ∀ d p off, a = .load d p off → ∀ n e, st.locs[d]? ≠ some (.shifted n e)) →
-    2 ≤ st.next → VW I C st ok →
+    2 ≤ st.next → VW I C st ok → (OutOps I st → PoolNT I st.scope) →
     (∀ v ∈ Memory.atomUses a ++ Memory.atomTmps a, ok v ∨
       ∃ s, s ≠ v ∧ a = .copy v s ∧ st.aliasRun.any (·.contains v) = true) →
     FAt ctx I C st (placeAtom a) fun _ C' st' =>
@@ -366,7 +383,14 @@ def AtomFAt (a : Atom) : Prop :=
         (∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨
           v ∈ Memory.atomUses a ++ Memory.atomTmps a) ∧
         (∀ c, c < st.next → (∀ Ψ w, C Ψ → C (Function.update Ψ c w)) →
-          ∀ Ψ w, C' Ψ → C' (Function.update Ψ c w))
+          ∀ Ψ w, C' Ψ → C' (Function.update Ψ c w)) ∧
+        ∀ v ∈ Memory.atomUses a ++ Memory.atomTmps a, st'.locs[v]? ≠ none
+
+/-- **A placement keeps the multiplied pool cells off the temporaries** once the final placement
+has the straight-line instructions it placed (each such cell is written by a `MUL` it placed,
+which `Inst.Ok.tops` keeps off a temporary's cell); the pools a block learns revert after it. -/
+def PoolKeep {α : Type} (ctx : Ctx) (I : Inst) (st : St) (m : P α) : Prop :=
+  I.Ok → PoolNT I st.scope → wpP m ctx st fun _ st' => OutOps I st' → PoolNT I st'.scope
 
 /-! ## Primitives on the path -/
 
@@ -375,6 +399,13 @@ section Prims
 variable {ctx : Ctx} {I : Inst} {C : (ℕ → E) → Prop} {st : St}
 
 theorem EmitsW.refl (st : St) : EmitsW I C st st := ⟨[], by simp, fun _ _ _ h => nomatch h⟩
+
+/-- Emitted statements whose relations hold once the final placement has these instructions. -/
+theorem EmitsW.of_ops {st st' : St} {ops : List PStmt}
+    (ho : st'.out.toList = st.out.toList ++ ops)
+    (h : Fits I st' → (∀ h o, PStmt.op h o ∈ ops → o ∈ I.ops) →
+      ∀ s ∈ ops, ∃ h o, s = PStmt.op h o ∧ ∀ Ψ, C Ψ → OpW I Ψ o) : EmitsW I C st st' :=
+  ⟨ops, ho, fun hz hout => h hz fun h o hm => hout h o (by rw [ho]; exact List.mem_append_right _ hm)⟩
 
 theorem EmitsW.mono {C' : (ℕ → E) → Prop} {st st' : St} (h : EmitsW I C st st')
     (hs : Stronger C' C) : EmitsW I C' st st' := by
@@ -389,8 +420,9 @@ theorem EmitsW.trans {st₁ st₂ st₃ : St} (h₁ : EmitsW I C st₁ st₂) (h
   obtain ⟨ops₂, ho₂, hops₂⟩ := h₂
   refine ⟨ops₁ ++ ops₂, by rw [ho₂, ho₁, List.append_assoc], fun hz hin s hs => ?_⟩
   rcases List.mem_append.mp hs with hs | hs
-  · exact hops₁ (hz.back hn hl) (fun h o ho => hin h o (List.mem_append_left _ ho)) s hs
-  · exact hops₂ hz (fun h o ho => hin h o (List.mem_append_right _ ho)) s hs
+  · exact hops₁ (hz.back hn hl)
+      (fun h o ho => hin h o (by rw [ho₂]; exact List.mem_append_left _ ho)) s hs
+  · exact hops₂ hz hin s hs
 
 theorem FAt.pure {α : Type} {a : α} {R : α → ((ℕ → E) → Prop) → St → Prop} (h : R a C st) :
     FAt ctx I C st (Pure.pure a) R :=
