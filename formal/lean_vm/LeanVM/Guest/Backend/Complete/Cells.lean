@@ -21,8 +21,10 @@ cell a place is read from.
 **Temporaries apart.** The words of a range check's temporaries are chosen last, from the final
 memory (`Memory/Retemp.lean`), so the completeness proof needs their cells to be theirs alone:
 `TmpsApart tf pf` says the function's temporaries are fresh (`Fn.freshB`), each is placed in a
-cell, no other value the body or the parameters name is placed at a temporary's cell, and each
-temporary's cell is named by exactly one instruction of the placed body (its own `DEREF`).
+cell of its own (no two temporaries share one), no other value the body or the parameters name is
+placed at a temporary's cell, each temporary's cell is named by exactly one instruction of the
+placed body, and every instruction naming a temporary's cell is a `DEREF` into it at offset `0`
+through a cell that is no temporary's and through which no `DEREF` stores the frame pointer.
 `tmpsApartB` decides it.
 -/
 
@@ -99,12 +101,35 @@ def apartWith (tf : TracedFn) (pf : Placed) (ts : List V) (set : NMap Unit) (cou
       | some n => counts.get? n == some 1
       | none => false)
 
+/-- No two of the values `ts` placed in a cell share one, none of the cells in `m`. -/
+def distinctCells (locs : VMap Loc) : List V → NMap Unit → Bool
+  | [], _ => true
+  | t :: ts, m => match cellP locs t with
+    | some n => !m.contains n && distinctCells locs ts (m.insert n ())
+    | none => distinctCells locs ts m
+
+/-- The pointer cells of the `DEREF`s that store the frame pointer. -/
+def fpPtrs (ops : List LOp) : NMap Unit :=
+  ops.foldl (fun m o => match o with
+    | .deref p _ _ .fp => m.insert p ()
+    | _ => m) {}
+
+/-- Each instruction naming a cell of `set` is a `DEREF` into it at offset `0` through a cell
+neither in `set` nor in `fps`. -/
+def tmpOpsB (set fps : NMap Unit) (ops : List LOp) : Bool :=
+  ops.all fun o => (opCells o).all fun c => !set.contains c || match o with
+    | .deref p 0 d .cell => d == c && !set.contains p && !fps.contains p
+    | _ => false
+
 /-- **Temporaries apart, decided**, each intermediate evaluated once. -/
 def tmpsApartB (tf : TracedFn) (pf : Placed) : Bool :=
   freshOnce tf (Stmt.tmpsList tf.core.body) &&
     nmapSeq (tmpCellSet pf.locs (Stmt.tmpsList tf.core.body)) fun set =>
       nmapSeq (cellCounts set (blockOps pf.fn.body 0)) fun counts =>
-        apartWith tf pf (Stmt.tmpsList tf.core.body) set counts
+        apartWith tf pf (Stmt.tmpsList tf.core.body) set counts &&
+          distinctCells pf.locs (Stmt.tmpsList tf.core.body) {} &&
+          nmapSeq (fpPtrs (blockOps pf.fn.body 0)) fun fps =>
+            tmpOpsB set fps (blockOps pf.fn.body 0)
 
 theorem freshOnce_eq (tf : TracedFn) : freshOnce tf (Stmt.tmpsList tf.core.body) = tf.core.freshB := by
   rw [freshOnce, natSeq_eq]
