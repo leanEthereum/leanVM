@@ -89,10 +89,16 @@ mod lanes;
 
 pub use lanes::{LANES, digest_halves_from, hash_many, hash_many_from_state, keccak_f_many};
 
-/// The Keccak-f\[1600\] permutation, in place: 24 rounds of θ, ρ, π, χ and ι.
+#[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
+mod single_avx512;
+
+/// The Keccak-f\[1600\] permutation, in place: 24 rounds of θ, ρ, π, χ and ι. On AVX-512, one state in five vectors.
 #[inline]
 pub fn keccak_f(a: &mut [u64; STATE_LANES]) {
-    lanes::permute(a);
+    cfg_select! {
+        all(target_arch = "x86_64", target_feature = "avx512f") => single_avx512::permute(a),
+        _ => lanes::permute(a),
+    }
 }
 
 /// One sponge step: XOR the rate block `block` into `state` and permute.
