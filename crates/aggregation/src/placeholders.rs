@@ -4,7 +4,7 @@ use super::MAX_RECURSIONS;
 use super::cells::pack_16_bytes;
 use super::child::execution_layout;
 use super::child::{
-    MU_CAP, QUERY_WINDOW_BITS, QUERY_WINDOWS_CAP, STREAM_CAP, block_groups, col_groups, merkle_cap_depth, whir_shape,
+    MU_CAP, QUERY_WINDOW_BITS, QUERY_WINDOWS_CAP, STREAM_CAP, block_groups, col_groups, merkle_cap_depth, whir_levels,
 };
 use super::claim_pool::{ClaimSite, coord_difference, coord_kind, coord_scale, push_coord_terms, walk_claims};
 use super::deferred::RECURSION_AGG_LABEL;
@@ -636,12 +636,13 @@ fn field_placeholders(ps: &mut impl FnMut(&str, String)) {
 /// an execution of the guest's bytecode, `min_execution_stacked_log(kbc)..=MAX_STACKED_LOG`.
 fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
     let oshape = |m: usize, log_inv_rate: usize| {
-        let shape = whir_shape(m, log_inv_rate);
-        // The yr level is the last, as `whir_shape` checks.
-        let (cn, cr) = (shape.folds.len(), shape.folds.len() - 1);
-        let (ck, cyr) = (&shape.folds, shape.yr_log_n);
-        let cq = &shape.queries;
-        let (cd, cp) = (&shape.depth, &shape.per_squeeze);
+        let (config, log_msg_cols, cd) = whir_levels(m, log_inv_rate);
+        // Every level is committed and queried, the yr level last.
+        let (cn, cr) = (config.folds.len(), config.folds.len() - 1);
+        let (ck, cyr) = (&config.folds, log_msg_cols[cr]);
+        let cq = config.queries;
+        // Query positions one squeezed word carries, per level.
+        let cp: Vec<usize> = cd.iter().map(|&d| 128 / d).collect();
         let cs: Vec<usize> = (0..cn).map(|i| cq[i].div_ceil(cp[i])).collect();
         let cni: Vec<usize> = ck.iter().map(|&k| 1usize << k).collect();
         assert!(
@@ -667,11 +668,11 @@ fn opening_placeholders(kbc: usize, ps: &mut impl FnMut(&str, String)) {
             n_levels: cn,
             yr_level: cr,
             yr_log_len: cyr,
-            folds: shape.folds.clone(),
-            log_message_columns: shape.log_msg_cols,
-            queries: shape.queries.clone(),
-            tree_depths: shape.depth,
-            positions_per_squeeze: shape.per_squeeze,
+            folds: config.folds.clone(),
+            log_message_columns: log_msg_cols,
+            queries: cq.to_vec(),
+            tree_depths: cd,
+            positions_per_squeeze: cp,
             squeezes: cs,
             interleaving: cni,
             cap_depths,

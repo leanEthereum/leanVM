@@ -88,7 +88,7 @@ pub fn aggregate_with_stats<P: Prover>(
         }
     };
 
-    let kbc = unified_guest().prog().len().trailing_zeros() as usize;
+    let kbc = unified_guest().prog.len().trailing_zeros() as usize;
     // On the whole (pubkey, message) pair, so a signer may appear once per message. One
     // claim needs one signature, whatever leaf index a leanXMSS one carries.
     let mut raw_lean_xmss = raw_lean_xmss;

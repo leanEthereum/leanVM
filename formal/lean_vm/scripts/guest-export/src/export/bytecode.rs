@@ -64,12 +64,12 @@ fn header(module: &str, about: &str, imports: &str) -> String {
 const FOOTER: &str = "end\nend LeanVM.Guest.Data\n";
 
 /// The data modules.
-pub fn files(guest: &Guest) -> Vec<File> {
-    let prog = guest.prog();
+pub fn files(guest: &isa::CompiledProgram) -> Vec<File> {
+    let prog = &guest.prog;
     let log_size = prog.len().trailing_zeros();
     assert_eq!(prog.len(), 1 << log_size);
     let mut pc = 0;
-    for (name, entry, len) in guest.fn_ranges() {
+    for (name, entry, len) in &guest.fn_ranges {
         assert!(name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_'), "{name}");
         assert_eq!(*entry as usize, pc, "{name} is not laid out after its predecessor");
         pc += *len as usize;
@@ -106,7 +106,7 @@ pub fn files(guest: &Guest) -> Vec<File> {
     // `verify_sig_lean_sphincs` spans several) and the modules elaborate in parallel. The
     // function records `f{i}` go to the table module, which imports them all.
     let mut records = String::new();
-    for (index, (name, entry, len)) in guest.fn_ranges().iter().enumerate() {
+    for (index, (name, entry, len)) in guest.fn_ranges.iter().enumerate() {
         let (entry, len) = (*entry as usize, *len as usize);
         let code = &prog[entry..entry + len];
         let chunks: Vec<String> = (0..code.len().div_ceil(CHUNK)).map(|c| format!("f{index}c{c}")).collect();
@@ -139,7 +139,7 @@ pub fn files(guest: &Guest) -> Vec<File> {
             format!("public import Statement.Data.{m}")
         })
         .collect();
-    let table: Vec<String> = (0..guest.fn_ranges().len()).map(|i| format!("f{i}")).collect();
+    let table: Vec<String> = (0..guest.fn_ranges.len()).map(|i| format!("f{i}")).collect();
     let mut body = records;
     writeln!(body, "/-- The log of the bytecode size. -/\ndef logSize : ℕ := {log_size}\n").unwrap();
     writeln!(

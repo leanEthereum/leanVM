@@ -31,6 +31,13 @@ pub struct CompiledProgram {
     pub src_lines: Vec<u32>,
 }
 
+impl CompiledProgram {
+    /// Instructions before the pad to a power of two.
+    pub fn code_len(&self) -> usize {
+        self.fn_ranges.iter().map(|&(_, _, len)| len as usize).sum()
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum Op {
     Xor {

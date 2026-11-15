@@ -16,9 +16,9 @@ fn main() {
     let guest = lean_export::guest();
     eprintln!(
         "guest: 2^{} slots, {} instructions of code, {} functions ({:.1?})",
-        guest.prog().len().trailing_zeros(),
+        guest.prog.len().trailing_zeros(),
         guest.code_len(),
-        guest.fn_ranges().len(),
+        guest.fn_ranges.len(),
         t.elapsed()
     );
     let files = lean_export::all_files();

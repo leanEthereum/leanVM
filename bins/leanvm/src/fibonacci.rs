@@ -2,7 +2,6 @@
 //! recurrence `buff[i·g²] = buff[i·g] · buff[i]`).
 
 use crate::report::{pretty_f64, pretty_integer};
-use aggregation::vm;
 use bench::Plan;
 use isa::Prover;
 use verifier::{E, K};
@@ -17,7 +16,11 @@ pub fn run_fibonacci<P: Prover>(n: usize, log_inv_rate: usize, plan: Plan) {
 
     let (src, pi) = fibonacci_program(n);
     let compiled = compile(&parse(&src).unwrap());
-    let bytecode = verifier::Bytecode::new(&vm::bytecode_table(&compiled.prog));
+    let table: Vec<u64> = stable_lean_vm_core::cpu::layout::bytecode_table(&compiled.prog)
+        .iter()
+        .map(|w| w.0)
+        .collect();
+    let bytecode = verifier::Bytecode::new(&table);
     let program = P::assemble(compiled);
     let public_input = verifier::Digest::from_halves(pi[0], pi[1]).0;
 

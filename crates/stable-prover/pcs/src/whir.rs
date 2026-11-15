@@ -37,39 +37,6 @@ pub const MAX_LOG_INV_RATE: usize = 4;
 /// Level 0's fold count, which is also the number of lanes a level-0 leaf holds, `2^INITIAL_FOLDING_FACTOR`.
 pub const INITIAL_FOLDING_FACTOR: usize = 6;
 
-/// The per-level sizes a [`WhirConfig`] (`verifier::derive_config`) implies for a `log_n`-variable opening.
-#[derive(Clone, Debug)]
-pub struct LevelShapes {
-    /// Log message columns after each level's folds.
-    pub log_msg_cols: Vec<usize>,
-    /// Each level's block length: its message columns times its inverse rate.
-    pub block_len: Vec<usize>,
-    /// The variables left after every fold, which the tail sumcheck takes.
-    pub yr_log_n: usize,
-}
-
-/// See [`LevelShapes`].
-pub fn level_shapes(config: &WhirConfig, log_n: usize) -> LevelShapes {
-    let log_msg_cols: Vec<usize> = config
-        .folds
-        .iter()
-        .scan(log_n, |vars, &k| {
-            *vars -= k;
-            Some(*vars)
-        })
-        .collect();
-    let block_len = log_msg_cols
-        .iter()
-        .zip(&config.log_inv_rates)
-        .map(|(&c, &r)| 1 << (c + r))
-        .collect();
-    LevelShapes {
-        yr_log_n: *log_msg_cols.last().expect("at least one level"),
-        log_msg_cols,
-        block_len,
-    }
-}
-
 /// Elements a task of a parallel pass takes.
 const CHUNK: usize = 1 << 12;
 

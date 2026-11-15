@@ -198,7 +198,7 @@ pub fn run_recursion<P: Prover>(
     println!(
         "aggregation bytecode: {} instructions (2^{} padded), compiled in {} s",
         pretty_integer(guest_instructions),
-        aggregation::unified_guest().prog().len().trailing_zeros(),
+        aggregation::unified_guest().prog.len().trailing_zeros(),
         pretty_f64(compile_time.as_secs_f64())
     );
     let mut inputs = Vec::new();

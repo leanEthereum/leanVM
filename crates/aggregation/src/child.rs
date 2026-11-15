@@ -19,41 +19,26 @@ pub(super) fn execution_layout(kbc: usize, log_mem: usize, rows: [usize; N_TABLE
     lean_vm_core::cpu::layout::layout_of(&columns, log_mem, rows, [F128::ZERO; 2])
 }
 
-/// The stacked opening's shape at one committed size and rate, plus the query packing derived from it. The hint
-/// builder needs it for the real opening and the placeholder map for every candidate size, so it lives here: a
-/// candidate whose shape differed from the real one would compile a guest that cannot open the proof it is handed.
-pub(super) struct WhirShape {
-    /// Per-level query counts.
-    pub(super) queries: Vec<usize>,
-    /// Per-level fold counts, the lane fold first.
-    pub(super) folds: Vec<usize>,
-    /// Log message columns after each level's fold.
-    pub(super) log_msg_cols: Vec<usize>,
-    /// The residual cube's dimension, left after every fold.
-    pub(super) yr_log_n: usize,
-    /// Merkle tree depth per level.
-    pub(super) depth: Vec<usize>,
-    /// Query positions carried by one squeezed word, per level.
-    pub(super) per_squeeze: Vec<usize>,
-}
-
-pub(super) fn whir_shape(mu: usize, log_inv_rate: usize) -> WhirShape {
+/// The stacked WHIR opening of a `2^mu` stack at a rate: the verifier's config, then each level's message columns
+/// after its folds and its Merkle tree's depth. The hint builder needs it for the real opening and the placeholder map
+/// for every candidate size, so it lives here: a candidate whose shape differed from the real one would compile a
+/// guest that cannot open the proof it is handed.
+pub(super) fn whir_levels(mu: usize, log_inv_rate: usize) -> (verifier::WhirConfig, Vec<usize>, Vec<usize>) {
     let config = verifier::derive_config(mu, log_inv_rate).expect("stacked whir config");
-    let levels = pcs::whir::level_shapes(&config, mu);
-    // Every level, the final one included, is committed and queried: each cap root the guest reaches is bound.
-    assert!(
-        config.queries.len() == config.folds.len() && levels.block_len.len() == config.folds.len(),
-        "the yr level must be the last one"
-    );
-    let depth: Vec<usize> = levels.block_len.iter().map(|b| b.trailing_zeros() as usize).collect();
-    WhirShape {
-        queries: config.queries.to_vec(),
-        folds: config.folds,
-        log_msg_cols: levels.log_msg_cols,
-        yr_log_n: levels.yr_log_n,
-        per_squeeze: depth.iter().map(|&d| 128 / d).collect(),
-        depth,
-    }
+    let log_msg_cols: Vec<usize> = config
+        .folds
+        .iter()
+        .scan(mu, |cols, &fold| {
+            *cols -= fold;
+            Some(*cols)
+        })
+        .collect();
+    let depth = log_msg_cols
+        .iter()
+        .zip(&config.log_inv_rates)
+        .map(|(c, r)| c + r)
+        .collect();
+    (config, log_msg_cols, depth)
 }
 
 /// The path bits a query's Merkle walk dispatches on at a time, the guest's `QW` (`walk_path`).
@@ -133,7 +118,8 @@ pub(super) fn gen_verify(
         ("col_group_order", col_group_order(kbc, &column_offsets)),
         ("block_group_order", block_group_order(kbc, &sides)),
     ];
-    hints.extend(merkle_hints(&whir_shape(mu, summary.log_inv_rate), proof));
+    let (config, _, depth) = whir_levels(mu, summary.log_inv_rate);
+    hints.extend(merkle_hints(config.queries, &depth, proof));
     let deferred = DeferredSubproof {
         public_input,
         bytecode_point: summary.bytecode_point.iter().copied().map(from_scalar).collect(),
@@ -191,9 +177,9 @@ fn block_group_order(kbc: usize, sides: &[Vec<Block>; 3]) -> Vec<F128> {
 /// climbs through below the level's cap, then the cap, every node of the top [`merkle_cap_depth`] levels the queries
 /// reach, and which of its nodes they reach. The upper tree is shared by a level's queries; a subtree no query reaches
 /// stays zero, unread.
-fn merkle_hints(stack: &WhirShape, proof: &verifier::Proof) -> SubHints {
+fn merkle_hints(queries: &[usize], depth: &[usize], proof: &verifier::Proof) -> SubHints {
     let mut hints = Vec::new();
-    let levels = stack.queries.iter().zip(&stack.depth);
+    let levels = queries.iter().zip(depth);
     for (level, ((&queries, &depth), phase)) in levels.zip(&proof.merkle_openings).enumerate() {
         let cap_depth = merkle_cap_depth(queries, depth);
         let path_depth = depth - cap_depth;

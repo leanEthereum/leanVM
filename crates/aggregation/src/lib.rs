@@ -55,7 +55,7 @@ mod statement;
 mod tests;
 
 pub use error::AggregateError;
-pub use guest::{Guest, unified_guest, warm_up};
+pub use guest::{unified_guest, warm_up};
 use lean_sphincs::LeanSphincsPublicKey;
 use lean_xmss::LeanXmssPublicKey;
 pub use node::{aggregate, aggregate_with_stats};
@@ -75,8 +75,3 @@ pub const MAX_RECURSIONS: usize = 16;
 pub const MIN_LOG_INV_RATE: usize = pcs::whir::MIN_LOG_INV_RATE;
 /// The largest `log_inv_rate` a proof can use.
 pub const MAX_LOG_INV_RATE: usize = pcs::whir::MAX_LOG_INV_RATE;
-
-/// What a proof of any program is about, as the `verifier` crate takes it: the program's stacked bytecode.
-pub mod vm {
-    pub use crate::guest::bytecode_table;
-}

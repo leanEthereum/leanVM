@@ -288,7 +288,7 @@ const LOG_INV_RATE: usize = lean_vm_core::pcs::TEST_LOG_INV_RATE;
 
 /// The guest's log size.
 fn kbc() -> usize {
-    unified_guest().prog().len().trailing_zeros() as usize
+    unified_guest().prog.len().trailing_zeros() as usize
 }
 
 fn blob(seed: u64) -> Vec<lean_da::Blob> {
