@@ -1,6 +1,7 @@
 """The witnesses of the `sub` families read off a function's own code (`Res.Wit`, `Res/FamDefs.lean`): for
 each residual a family takes, the top-level atoms and selectors of the function's body its check reads,
-mirroring `Res.shiftB` and `Res.sideB` (`cellLt`, `eqCells`, `mulBy`, `holdsBase`, `sideRead`). The kernel
+mirroring `Res.shiftB`, `Res.sideB` and `Res.runB` (`cellLt`, `eqCells`, `mulBy`, `holdsBase`,
+`sideRead`, `mulConst`). The kernel
 checks the witness (`Res.witOk`) and the family on it, so a witness found here is only a hint.
 """
 import os, sys, importlib.util
@@ -271,6 +272,23 @@ class Fn:
                             return True
         return False
 
+    def run(self, a, b):
+        if a[1][0] != 'num' or a[2][0] != 'num' or b[2][0] != 'ex' or b[2][1][0] != 'fr':
+            return False
+        p = b[2][1][1]
+        for B, e in a[0][2]:
+            if e != 1 or a[0][2] != insert_bs((B, 1), b[0][2]):
+                continue
+            for m in self.atoms:
+                if m[0] != 'mul' or self.cell(m[1]) != p:
+                    continue
+                for f, c in ((m[2], m[3]), (m[3], m[2])):
+                    k = self.const_of(c)
+                    if k and self.holds_base(self.cell(f), B) and self.cell_lt(self.cell(f)):
+                        self.pick(m); self.pick(k)
+                        return True
+        return False
+
     def lean(self):
         return '⟨[%s], [%s]⟩' % (', '.join(self.picked), ', '.join('(.n %d, %d)' % p for p in self.psels))
 
@@ -296,7 +314,7 @@ def witnesses(residuals):
             except (ValueError, IndexError, TypeError):
                 continue
             snap = (list(f.picked), list(f.psels))
-            if not (f.shift(a, b) or f.side(a, b)):
+            if not (f.shift(a, b) or f.side(a, b) or f.run(a, b)):
                 f.picked, f.psels = snap
         if f.picked or f.psels:
             out[n] = f.lean()

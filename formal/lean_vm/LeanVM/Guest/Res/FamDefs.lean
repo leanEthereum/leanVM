@@ -147,6 +147,45 @@ noncomputable def shiftB (j : ℕ) (w : Wit) : Mode.Res → Bool
     | none => false
   | _ => false
 
+/-- The constant `n` of an exponent `num n`. -/
+def numOf : Mode.Idx → Option ℕ
+  | .num n => some n
+  | _ => none
+
+/-- The frame cell `p` and constant `t` of an exponent `[p] + t`. -/
+def frExT : Mode.Idx → Option (ℕ × ℕ)
+  | .ex (.fr p) t => some (p, t)
+  | _ => none
+
+/-- A top-level `MUL` of the witness into cell `p`, one factor's cell holding base `B`'s word and
+bounded, the other a constant `g^z`, `z < 2^33`, with `ok z`. -/
+noncomputable def mulConst (j : ℕ) (w : Wit) (p : ℕ) (B : Mode.Base) (ok : ℕ → Bool) : Bool :=
+  w.as.any fun
+    | .mul P x y => inFr j (cellJ j P) && cellJ j P == p &&
+        ((holdsBase j w (cellJ j x) B && cellLt j w (cellJ j x) (2 ^ 33) &&
+            match (constOf w.as y).bind powOf with
+            | some z => decide (z < 2 ^ 33) && ok z
+            | none => false) ||
+          (holdsBase j w (cellJ j y) B && cellLt j w (cellJ j y) (2 ^ 33) &&
+            match (constOf w.as x).bind powOf with
+            | some z => decide (z < 2 ^ 33) && ok z
+            | none => false))
+    | _ => false
+
+/-- **A run past a factor inside the run up to the factor times a constant** (F5):
+`⟨Q·x·g^c', lo, hi, S, d⟩` inside `⟨Q, 0, [p] + t, 1, 0⟩`, `c'` past `Q`'s offset, the code's
+`[p] = [o]·g^z` with `[o]` the factor `x`'s word bounded, the run's last point `c' + S·(hi - 1) + d`
+below `z + t`. -/
+noncomputable def runB (j : ℕ) (w : Wit) : Mode.Res → Bool
+  | .sub a [b] => match numOf a.lo, numOf a.hi, frExT b.hi with
+    | some lo, some hi, some (p, t) =>
+      decide (lo < hi) && b.lo == .num 0 && b.S == 1 && b.d == 0 && a.q.fp == b.q.fp &&
+        decide (b.q.k ≤ a.q.k) &&
+        a.q.bs.any fun be => be.2 == 1 && decide (a.q.bs = Mode.insertBs (be.1, 1) b.q.bs) &&
+          mulConst j w p be.1 fun z => decide (a.q.k - b.q.k + a.S * (hi - 1) + a.d < z + t)
+    | _, _, _ => false
+  | _ => false
+
 /-- Function `j`'s values carried as the exponent tables' base (`Kd.tab`). -/
 noncomputable def tabVals (j : ℕ) : List V :=
   carried.filterMap fun c => if c.1 == (coreOf j).name && c.2.2 == .tab then (coreOf j).params[c.2.1]? else none
@@ -195,8 +234,9 @@ noncomputable def sideB (j : ℕ) (w : Wit) : Mode.Res → Bool
     | none => false
   | _ => false
 
-/-- **The `sub` families read off the function's own code**: F4 and F6 (`shiftB`), F2 (`sideB`). -/
-noncomputable def subFamB (j : ℕ) (w : Wit) (x : Mode.Res) : Bool := shiftB j w x || sideB j w x
+/-- **The `sub` families read off the function's own code**: F4 and F6 (`shiftB`), F2 (`sideB`), F5
+(`runB`). -/
+noncomputable def subFamB (j : ℕ) (w : Wit) (x : Mode.Res) : Bool := shiftB j w x || sideB j w x || runB j w x
 
 end
 

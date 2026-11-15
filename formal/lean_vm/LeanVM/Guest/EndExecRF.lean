@@ -40,7 +40,7 @@ namespace LeanVM.Guest.EndExec
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.Core LeanVM.Guest.Memory
 open LeanVM.Guest.B2C (idxOf entryOf FrameHolds fsN fn_of_idx cellJ namedOf)
 open LeanVM.Guest.Bridge (FnAl)
-open LeanVM.Guest.Res (Wit witOk topAtoms topSels selOf powOf constOf rcBound cellLt holdsBase mulBy inFr eqCells shiftHi shiftB frEx subFamB sideShape sideB sideRead sideIn tabVals)
+open LeanVM.Guest.Res (Wit witOk topAtoms topSels selOf powOf constOf rcBound cellLt holdsBase mulBy inFr eqCells shiftHi shiftB frEx subFamB sideShape sideB sideRead sideIn tabVals numOf frExT mulConst)
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Prover.Exec
 
@@ -226,6 +226,19 @@ theorem rmono_insert {a b : Mono} {B : Base} (hfp : a.fp = b.fp) (hk : a.k = b.k
   rw [rbase_uniq hu' hu, rbs_uniq hwl hw', hfp, hk]
   ring
 
+
+/-- **A product with one more base and a larger offset**: its word is the other's times the base's
+times `g^c`. -/
+theorem rmono_insert' {a b : Mono} {B : Base} (hfp : a.fp = b.fp) (hk : b.k ≤ a.k)
+    (hbs : a.bs = insertBs (B, 1) b.bs) {u va vb : E} (hu : RBase M fp B u) (ha : RMono M fp a va)
+    (hb : RMono M fp b vb) : va = vb * u * ofK (Parameters.g ^ (a.k - b.k)) := by
+  obtain ⟨w, hw, rfl⟩ := ha
+  obtain ⟨w', hw', rfl⟩ := hb
+  rw [hbs] at hw
+  obtain ⟨u', wl, hu', hwl, rfl⟩ := rbs_insert_inv hw
+  rw [rbase_uniq hu' hu, rbs_uniq hwl hw', hfp, show a.k = b.k + (a.k - b.k) by omega, pow_add, ofK_mul,
+    show b.k + (a.k - b.k) - b.k = a.k - b.k by omega]
+  ring
 end
 
 section
@@ -528,6 +541,116 @@ theorem side_top (t : TopAt A r K i e j) (hr : r.Ok) (hW : witOk j w = true) {x 
 
 end
 
+/-! ## F5: a run inside the run up to a factor times a constant -/
+
+theorem numOf_eq {i : Mode.Idx} {n : ℕ} (h : numOf i = some n) : i = .num n := by
+  match i, h with
+  | .num n', h => simp only [numOf, Option.some.injEq] at h; rw [h]
+
+theorem frExT_eq {i : Mode.Idx} {p t : ℕ} (h : frExT i = some (p, t)) : i = .ex (.fr p) t := by
+  match i, h with
+  | .ex (.fr p') t', h => simp only [frExT, Option.some.injEq, Prod.mk.injEq] at h; rw [h.1, h.2]
+
+section
+
+variable {A : String → FnAl} {r : Ref} {K : Mode.Cert} {i : ℕ} {e : Bridge.Ent} {j : ℕ} {w : Wit}
+
+/-- **A product by a constant at an honest frame**: `[p] = g^(eo + z)`, `[o] = g^eo` holding the base. -/
+theorem mulConst_top (t : TopAt A r K i e j) (hr : r.Ok) (hW : witOk j w = true) {p : ℕ} {B : Base}
+    {ok : ℕ → Bool} (h : mulConst j w p B ok = true) :
+    ∃ o eo z, eo < 2 ^ 33 ∧ z < 2 ^ 33 ∧ ok z = true ∧ RBase (refMem r.img) e.I.fp B (refMem r.img (e.I.fp + o)) ∧
+      refMem r.img (e.I.fp + o) = ofK (Parameters.g ^ eo) ∧
+      refMem r.img (e.I.fp + p) = ofK (Parameters.g ^ (eo + z)) := by
+  obtain ⟨vs, hw, hF, hev, hwa, hws⟩ := t.wit hr hW
+  have hall : ∀ a ∈ w.as, a.Holds r.img.read e.σ := fun a ha ↦ hev _ (hwa _ ha)
+  obtain ⟨m, hm, hb⟩ := List.any_eq_true.mp h
+  cases m with
+  | mul P x y =>
+    have hon := hwa _ hm
+    have hmul : e.σ P = e.σ x * e.σ y := hall _ hm
+    simp only [inFr, Bool.and_eq_true, Bool.or_eq_true, decide_eq_true_eq, beq_iff_eq] at hb
+    obtain ⟨⟨hPf, hPp⟩, hb⟩ := hb
+    have cell : ∀ v ∈ atomUses (.mul P x y), 2 ≤ cellJ j v → cellJ j v < fsN j →
+        refMem r.img (e.I.fp + cellJ j v) = e.σ v := fun v hv h2 hlt ↦
+      t.cell hr hF (namedOf_atom hon hv) h2 hlt
+    have eP := cell P (by simp [atomUses]) hPf.1 hPf.2
+    rw [hPp] at eP
+    -- one factor the base, the other the constant
+    have key : ∀ f c : V, (e.σ P = e.σ f * e.σ c) → f ∈ atomUses (.mul P x y) →
+        holdsBase j w (cellJ j f) B = true → cellLt j w (cellJ j f) (2 ^ 33) = true →
+        (match (constOf w.as c).bind powOf with
+          | some z => decide (z < 2 ^ 33) && ok z
+          | none => false) = true → ∃ o eo z, eo < 2 ^ 33 ∧ z < 2 ^ 33 ∧ ok z = true ∧
+          RBase (refMem r.img) e.I.fp B (refMem r.img (e.I.fp + o)) ∧
+          refMem r.img (e.I.fp + o) = ofK (Parameters.g ^ eo) ∧
+          refMem r.img (e.I.fp + p) = ofK (Parameters.g ^ (eo + z)) := by
+      intro f c hfc hf hhb hcl hc
+      split at hc
+      · rename_i z hz
+        simp only [Bool.and_eq_true, decide_eq_true_eq] at hc
+        obtain ⟨wc, hwc, hpz⟩ := Option.bind_eq_some_iff.mp hz
+        have hcw : e.σ c = wc := hall _ (constOf_sound hwc)
+        obtain ⟨eo, heo, how⟩ := cellLt_top t hr hW hcl
+        have hfb := cellLt_bounds hcl
+        have ef := cell f hf hfb.1 hfb.2
+        refine ⟨_, eo, z, heo, hc.1, hc.2, holdsBase_top t hr hW hfb.1 hfb.2 hhb, how, ?_⟩
+        rw [eP, hfc, ← ef, how, hcw, powOf_sound hpz, ← ofK_mul, ← pow_add]
+      · cases hc
+    rcases hb with ⟨⟨hxb, hxl⟩, hxc⟩ | ⟨⟨hyb, hyl⟩, hyc⟩
+    · exact key x y hmul (by simp [atomUses]) hxb hxl hxc
+    · exact key y x (by rw [hmul, mul_comm]) (by simp [atomUses]) hyb hyl hyc
+  | _ => simp at hb
+
+/-- **F5 at an honest frame**: the run past the factor lies inside the run up to the factor times
+the constant. -/
+theorem run_top (t : TopAt A r K i e j) (hr : r.Ok) (hW : witOk j w = true) {x : Mode.Res}
+    (hx : Res.runB j w x = true) : RRes (refMem r.img) e.I.fp x := by
+  match x, hx with
+  | .sub a [b], hx =>
+    simp only [Res.runB] at hx
+    cases hlo : numOf a.lo with
+    | none => rw [hlo] at hx; cases hx
+    | some lo =>
+    cases hhi : numOf a.hi with
+    | none => rw [hlo, hhi] at hx; cases hx
+    | some hi =>
+    cases hp : frExT b.hi with
+    | none => rw [hlo, hhi, hp] at hx; cases hx
+    | some pt =>
+      obtain ⟨p, tt⟩ := pt
+      rw [hlo, hhi, hp] at hx
+      simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hx
+      obtain ⟨⟨⟨⟨⟨⟨hlh, hbl⟩, hbS⟩, hbd⟩, hfp⟩, hk⟩, hany⟩ := hx
+      obtain ⟨⟨B, eB⟩, -, hB⟩ := List.any_eq_true.mp hany
+      simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hB
+      obtain ⟨⟨heB, hbs⟩, hm⟩ := hB
+      subst heB
+      obtain ⟨o, eo, z, heo, hz, hok, hu, how, hpw⟩ := mulConst_top t hr hW hm
+      simp only [decide_eq_true_eq] at hok
+      refine ⟨lo, hi, by rw [numOf_eq hlo]; rfl, by rw [numOf_eq hhi]; rfl, fun vq hvq jj hjj1 hjj2 ↦
+        ⟨b, List.mem_singleton_self _, fun vb ylo yhi hvb hyl hyh ↦ ?_⟩⟩
+      rw [hbl] at hyl
+      change ylo = 0 at hyl
+      rw [frExT_eq hp] at hyh
+      obtain ⟨vp, ep, hvp, hvp', hep, hyy⟩ := hyh
+      change refMem r.img (e.I.fp + p) = vp at hvp
+      rw [hvp', hpw] at hvp
+      have hep' : ep = eo + z := (gpow_inj (by omega) (by omega) (ofK_injective hvp)).symm
+      have hS : a.S * jj ≤ a.S * (hi - 1) := Nat.mul_le_mul_left _ (by omega)
+      refine ⟨eo + (a.q.k - b.q.k) + a.S * jj + a.d, by omega, by omega, ?_⟩
+      rw [rmono_insert' hfp hk hbs hu hvq hvb, how, hbS, hbd]
+      simp only [one_mul, Nat.add_zero, ofK_gpow]
+      rw [show eo + (a.q.k - b.q.k) + a.S * jj + a.d = eo + (a.q.k - b.q.k) + (a.S * jj + a.d) by omega,
+        pow_add, pow_add]
+      ring
+  | .sub _ [], hx => simp [Res.runB] at hx
+  | .sub _ (_ :: _ :: _), hx => simp [Res.runB] at hx
+  | .lt _ _, hx => simp [Res.runB] at hx
+  | .nz _, hx => simp [Res.runB] at hx
+  | .name _, hx => simp [Res.runB] at hx
+
+end
+
 /-! ## The families' residuals -/
 
 /-- **The `sub` families read off the code, at an honest frame.** -/
@@ -535,9 +658,10 @@ theorem subFam_top {A : String → FnAl} {r : Ref} {K : Mode.Cert} {i : ℕ} {e 
     {w : Wit} (t : TopAt A r K i e j) (hr : r.Ok) (hW : witOk j w = true) {x : Mode.Res} (hx : subFamB j w x = true) :
     RRes (refMem r.img) e.I.fp x := by
   simp only [LeanVM.Guest.Res.subFamB, Bool.or_eq_true] at hx
-  rcases hx with hx | hx
+  rcases hx with (hx | hx) | hx
   · exact shift_top t hr hW hx
   · exact side_top t hr hW hx
+  · exact run_top t hr hW hx
 
 open LeanVM.Guest.Res (allV_get subB SubOk resExc splitB anyResB anyLink monoResB) in
 /-- **No `sub` residual outside the families is left open**: each certificate's are in the
