@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.Backend.Guest.Piece.C11
 public import Statement.Data.Bytecode
-public meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
 set_option maxRecDepth 100000
@@ -21,16 +20,17 @@ open LeanVM.Guest.Core LeanVM.Guest.Backend
 
 @[expose] public section
 
-kernel_rfl cut11_seg0 :
-    placeHead (guestTraced.getD 11 default) 1279 (ctxOf loopsG sigsG (guestTraced.getD 11 default)) (initSt loopsG (tablesAt outsG 11) (guestTraced.getD 11 default)) = .ok ((), cut11_1)
+kernel_rfl cut11_trace : (guestTraced.getD 11 default).trace = GuestData.traceOf11
 
-kernel_rfl cut11_seg1 :
-    placeBlockN ((guestTraced.getD 11 default).core.body.drop 1279) 1532 (ctxOf loopsG sigsG (guestTraced.getD 11 default)) cut11_1 =
-      .ok ((), cut11_2)
+theorem cut11_ctx : ctxOf loopsG sigsG (guestTraced.getD 11 default) = ctx11 := by
+  refine ctxOf_fuel ?_
+  rw [cut11_trace]
+  unfold GuestData.traceOf11
+  simp only [List.size_toArray, List.length_flatten]
+  decide +kernel
 
-kernel_rfl cut11_seg2 :
-    placeBlockN ((guestTraced.getD 11 default).core.body.drop 2811) 1764 (ctxOf loopsG sigsG (guestTraced.getD 11 default)) cut11_2 =
-      .ok ((), cut11_3)
+kernel_rfl cut11_p0 :
+    placeHead (guestTraced.getD 11 default) 1960 ctx11 (initSt loopsG (tablesAt outsG 11) (guestTraced.getD 11 default)) = .ok ((), cut11_1)
 
 end
 end LeanVM.Guest.Backend.GuestPiece

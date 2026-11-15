@@ -9,7 +9,6 @@ module
 
 public import LeanVM.Guest.Backend.Guest.Piece.C11
 public import Statement.Data.Bytecode
-public meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
 set_option maxRecDepth 100000
@@ -21,13 +20,8 @@ open LeanVM.Guest.Core LeanVM.Guest.Backend
 
 @[expose] public section
 
-theorem cut11_chunk1 :
-    cutChunkAt layG guestTraced outsG Data.functions.tail 11 cut11_end 1 = true := by
-  decide +kernel
-
-theorem cut11_chunk2 :
-    cutChunkAt layG guestTraced outsG Data.functions.tail 11 cut11_end 2 = true := by
-  decide +kernel
+kernel_rfl cut11_p2 :
+    placeTail (guestTraced.getD 11 default) 4996 ctx11 cut11_2 = .ok ((), cut11_end)
 
 end
 end LeanVM.Guest.Backend.GuestPiece
