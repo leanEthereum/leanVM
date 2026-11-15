@@ -96,36 +96,6 @@ pub fn g_pow(i: usize) -> F64 {
     F64::G.pow(i as u128)
 }
 
-/// `g^i` for a `u32` exponent, from two `2^16`-entry tables built once: `i` splits as
-/// `hi·2^16 + lo`, so a small exponent is one load and any other one more load and a
-/// product. Unlike a table grown to the exponent, the cost says nothing about `i`, which
-/// is what keeps an operand's magnitude out of the work its program costs.
-pub fn g_pow32_by_lookup(i: u32) -> F64 {
-    const LOG_SPLIT: u32 = 16;
-    const SPAN: usize = 1 << LOG_SPLIT;
-    static TABLES: std::sync::OnceLock<[Vec<F64>; 2]> = std::sync::OnceLock::new();
-    let [baby, giant] = TABLES.get_or_init(|| {
-        let mut baby = Vec::with_capacity(SPAN);
-        let mut acc = F64::ONE;
-        for _ in 0..SPAN {
-            baby.push(acc);
-            acc = mul_by_g(acc);
-        }
-        // `acc` is `g^{2^16}` now, one past the baby table: the step between giant entries.
-        let (step, mut giant) = (acc, Vec::with_capacity(SPAN));
-        acc = F64::ONE;
-        for _ in 0..SPAN {
-            giant.push(acc);
-            acc *= step;
-        }
-        [baby, giant]
-    });
-    match i >> LOG_SPLIT {
-        0 => baby[i as usize],
-        hi => baby[i as usize & (SPAN - 1)] * giant[hi as usize],
-    }
-}
-
 /// MLE of the index column `[g^0, …, g^{2^n−1}]` over the `n`-variable cube,
 /// evaluated at an `E`-point: `∏_k (1 + ζ_k·(1 + g^{2^k}))` in `O(n)` (§sec:idxcol).
 /// The `g^{2^k}` factors are `K`-constants, so each term is one mixed product.
@@ -137,30 +107,4 @@ pub fn index_mle(zeta: &[F128]) -> F128 {
         g2k = g2k * g2k;
     }
     acc
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// The split table against the square-and-multiply it replaces, at both sides of the
-    /// `2^16` boundary and at the ends of the operand range.
-    #[test]
-    fn g_pow32_matches_square_and_multiply() {
-        const SPLIT: u32 = 1 << 16;
-        for i in [
-            0,
-            1,
-            63,
-            64,
-            SPLIT - 1,
-            SPLIT,
-            SPLIT + 1,
-            1 << 28,
-            u32::MAX - 1,
-            u32::MAX,
-        ] {
-            assert_eq!(g_pow32_by_lookup(i), g_pow(i as usize), "g^{i}");
-        }
-    }
 }

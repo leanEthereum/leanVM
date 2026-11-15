@@ -125,5 +125,19 @@ fn g_pow(e: u32) -> u64 {
         let high = powers(low[(1 << 16) - 1] * K(2));
         [low, high]
     });
-    (low[e as usize & 0xFFFF] * high[e as usize >> 16]).0
+    match e >> 16 {
+        0 => low[e as usize].0,
+        hi => (low[e as usize & 0xFFFF] * high[hi as usize]).0,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    /// The split tables against square-and-multiply, on both sides of the `2^16` boundary and at the ends of the range.
+    #[test]
+    fn g_pow_matches_square_and_multiply() {
+        for e in [0, 1, 63, 64, (1 << 16) - 1, 1 << 16, (1 << 16) + 1, 1 << 28, u32::MAX] {
+            assert_eq!(super::g_pow(e), verifier::E::new(2, 0).pow(u64::from(e)).c0, "g^{e}");
+        }
+    }
 }
