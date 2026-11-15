@@ -155,6 +155,8 @@ part_res() {
   python3 -I scripts/res-cert/sub.py "${check[@]}"
   step "res: facts carried down to callees (scripts/res-cert/carry.py)"
   python3 -I scripts/res-cert/carry.py "${check[@]}"
+  step "res: check_opening_terminal's callers (scripts/res-cert/termcall.py)"
+  python3 -I scripts/res-cert/termcall.py "${check[@]}"
 }
 
 part_whir_data() {
