@@ -48,11 +48,13 @@ theorem pieces : piecesIn loops sigs lay prog outs cfs.tail 0 3 = true := by dec
 
 theorem jt : cfs.headD noFunction = ⟨"__jump_tables", 0, (slotsOfOuts prog outs).size,
     chunked (resolvedFn lay 0 (jtOf (baseOf outs) (slotsOfOuts prog outs)))⟩ :=
-  jt_of_chunks (by decide +kernel) fun c hc => by
+  jt_of_chunks (by decide +kernel) fun c hc q hq => by
     have hn : (cfs.headD noFunction).chunks.length = 1 := rfl
     rw [hn] at hc
     rcases c with _ | c
-    exacts [by decide +kernel, absurd hc (by omega)]
+    · rcases q with _ | _ | _ | _ | c
+      exacts [by decide +kernel, by decide +kernel, by decide +kernel, by decide +kernel, absurd hq (by rw [show jtParts = 4 from rfl]; omega)]
+    · exact absurd hc (by omega)
 
 /-- **`match_arms.py` compiled from its pieces.** -/
 theorem matcharms_compiles : ∃ fns, lowerProgram prog = .ok (fns, slotsOfOuts prog outs) ∧

@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.Backend.Sound.Main
-public import LeanVM.Guest.Backend.Sound.Compiles
+public import LeanVM.Guest.Backend.Sound.Cut
 
 /-!
 # The back end's correctness
@@ -41,7 +41,9 @@ And composed (`Sound/Program.lean`, `Main.lean`):
 And the guest's equation by pieces (`Sound/Piece.lean`, `Compiles.lean`): `pieceOk_spec`, what a
 kernel-checked piece of one function says, and `compiles_of_pieces`, a program compiled from the
 pieces of its functions and checks on numbers (`lowerProgram` succeeds and the assembled functions
-are the given ones); `placed_locs_of_pieces`, the places of each function's values.
+are the given ones); `placed_locs_of_pieces`, `world_locs_of_pieces`, the places of each function's values; and a
+function's piece from parts, its walk cut between top-level statements (`Sound/Cut.lean`,
+`pieceAt_of_cut`).
 
 No certificate enters: the hypotheses are that `lowerProgram` succeeded (`World.Compiled`), the
 memory is within the address space, and the functions' obligations (`World.Obligations`: selectors
@@ -154,3 +156,11 @@ example : ProgramSoundStmt := programSound
 /-- info: 'LeanVM.Guest.Backend.placed_locs_of_pieces' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.Backend.placed_locs_of_pieces
+
+/-- info: 'LeanVM.Guest.Backend.world_locs_of_pieces' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Backend.world_locs_of_pieces
+
+/-- info: 'LeanVM.Guest.Backend.pieceAt_of_cut' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Backend.pieceAt_of_cut
