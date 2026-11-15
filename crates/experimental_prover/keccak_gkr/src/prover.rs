@@ -10,12 +10,12 @@
 //! are down to one row.
 
 use primitives::field::{F128, F128Unreduced};
+use primitives::hash::bits::row_positions;
 use primitives::multilinear::{eq_table, poly_eval};
 use primitives::transcript::ProverState;
-use verifier::{along, linear_transpose};
+use verifier::keccak::{BITS, LOCAL_BITS, along, linear_transpose};
 
 use crate::basis::{PolyEval, add_mul, carry};
-use crate::keccak::{BITS, LOCAL_VARS, row_positions};
 use crate::kernels::{GROUP, MIXED, PACKS, SKIP, SkipBlock, TERNARY, embed, mixed_points, products, slot};
 use crate::open::fold;
 use crate::power::{Element, PowerField, get, set};
@@ -813,7 +813,7 @@ pub fn prove_layer(
     drop(tail);
 
     // The bit positions, in the standard basis.
-    let cube = 1usize << LOCAL_VARS;
+    let cube = 1usize << LOCAL_BITS;
     let standard = |row: &[u64]| -> Vec<F128> {
         let mut out: Vec<F128> = (0..BITS).map(|j| field.to_field(&get(row, BITS, j))).collect();
         out.resize(cube, F128::ZERO);
@@ -829,8 +829,8 @@ pub fn prove_layer(
     let mut t = [t0, t1, t2];
     let mut w = claim.weights.clone();
     w.resize(cube, F128::ZERO);
-    let mut local = Vec::with_capacity(LOCAL_VARS);
-    for _ in 0..LOCAL_VARS {
+    let mut local = Vec::with_capacity(LOCAL_BITS);
+    for _ in 0..LOCAL_BITS {
         let coeffs = local_round(&w, &t, kappa).map(|c| scale * c);
         ps.add_round_poly(&coeffs, false);
         let challenge = ps.sample();
@@ -884,8 +884,8 @@ mod gfni_tests {
     use primitives::test_rng::Rng;
 
     use super::*;
-    use crate::keccak::LANES;
     use crate::protocol::first_claim;
+    use primitives::hash::STATE_LANES;
 
     /// The GFNI outer products give the digit buckets' sums, on dense, sparse and zero weights,
     /// with and without a padding block.
@@ -895,7 +895,7 @@ mod gfni_tests {
         {
             let (n, depth, seed) = (1100, 12, 2);
             let mut rng = Rng::new(seed);
-            let inputs: Vec<[u64; LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
+            let inputs: Vec<[u64; STATE_LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
             let shape = Shape::new(n, depth);
             let mut committed = vec![primitives::field::F64(0); 1 << shape.stack_log()];
             let witness = Witness::generate(shape, &inputs, &mut committed);

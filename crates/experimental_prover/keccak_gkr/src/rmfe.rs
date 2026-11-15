@@ -1,5 +1,6 @@
 //! The reverse multiplication-friendly embedding the protocol packs sixteen instances with, the verifier's
-//! ([`verifier::RMFE_EMBED`], [`verifier::RMFE_PROJECT`]), with the byte tables the kernels embed through.
+//! ([`verifier::keccak::RMFE_EMBED`], [`verifier::keccak::RMFE_PROJECT`]), with the byte tables the kernels embed
+//! through.
 //!
 //! `embed` sends sixteen bits to a binary polynomial of degree at most 23, and `project` sends a
 //! product of two embeddings back to the bitwise AND of what they embed:
@@ -8,8 +9,8 @@
 //!     project(embed(a) * embed(b)) = a & b
 //! ```
 
-use verifier::RMFE_EMBED;
-pub use verifier::{EMBED_BITS, PACK, PRODUCT_BITS as PROD_BITS};
+use verifier::keccak::RMFE_EMBED;
+pub use verifier::keccak::{EMBED_BITS, PACK, PRODUCT_BITS as PROD_BITS};
 
 pub struct Rmfe {
     /// `embed` of each unit vector.
@@ -61,7 +62,7 @@ impl Rmfe {
     #[cfg(test)]
     fn project(&self, product: u64) -> u16 {
         (0..PACK).fold(0, |a, i| {
-            a | (((product & verifier::RMFE_PROJECT[i]).count_ones() as u16 & 1) << i)
+            a | (((product & verifier::keccak::RMFE_PROJECT[i]).count_ones() as u16 & 1) << i)
         })
     }
 }

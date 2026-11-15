@@ -11,9 +11,8 @@
 use primitives::field::F128;
 use primitives::multilinear::poly_eval;
 use primitives::transcript::ProverState;
-use verifier::{PRODUCT_BITS, along};
+use verifier::keccak::{BITS, LOCAL_BITS, PRODUCT_BITS, along};
 
-use crate::keccak::{BITS, LOCAL_VARS};
 use crate::open::fold;
 use crate::protocol::{Claim, instance_weights, next_weights};
 use crate::table::{Summand, Tables};
@@ -166,7 +165,7 @@ fn prove_positions(
     kappa: F128,
     scale: F128,
 ) -> (Vec<F128>, [F128; 3]) {
-    let cube = 1 << LOCAL_VARS;
+    let cube = 1 << LOCAL_BITS;
     let shift = |k: usize| -> Vec<F128> {
         (0..cube)
             .map(|j| if j < BITS { folded[along(j, k)] } else { F128::ZERO })
@@ -175,8 +174,8 @@ fn prove_positions(
     let mut t: [Vec<F128>; 3] = [0, 1, 2].map(shift);
     let mut w = weights.to_vec();
     w.resize(cube, F128::ZERO);
-    let mut point = Vec::with_capacity(LOCAL_VARS);
-    for _ in 0..LOCAL_VARS {
+    let mut point = Vec::with_capacity(LOCAL_BITS);
+    for _ in 0..LOCAL_BITS {
         ps.add_round_poly(&position_round(&w, &t, kappa).map(|c| scale * c), false);
         let challenge = ps.sample();
         point.push(challenge);

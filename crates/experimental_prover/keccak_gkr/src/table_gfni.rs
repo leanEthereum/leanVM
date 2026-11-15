@@ -14,8 +14,8 @@
 use core::arch::x86_64::*;
 
 use primitives::field::gf2_64::mul_wide;
+use verifier::keccak::BITS;
 
-use crate::keccak::BITS;
 use crate::kernels::GROUP;
 use crate::power::PowerField;
 use crate::rmfe::RMFE;

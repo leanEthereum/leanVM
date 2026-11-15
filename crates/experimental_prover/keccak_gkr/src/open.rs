@@ -9,12 +9,13 @@
 
 use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim};
 use primitives::field::{F64, F128, F128Unreduced};
+use primitives::hash::STATE_LANES;
+use primitives::hash::bits::iota_bit;
 use primitives::multilinear::{eq_table, interp, mle_eval, poly_eval};
 use primitives::transcript::ProverState;
-use verifier::along;
+use verifier::keccak::{BITS, along};
 
 use crate::basis::byte_sums;
-use crate::keccak::{BITS, LANES, iota_bit};
 use crate::protocol::{Claim, dot};
 use crate::witness::{BLOCK_WORDS, Shape, Witness, words};
 
@@ -67,7 +68,7 @@ pub fn slot_weights(shape: Shape, claim: &Claim, first: usize, count: usize) -> 
     let segments = eq_table(&claim.point[shape.pack_vars()..]);
     let mut out = vec![F128::ZERO; 64 << shape.slot_log()];
     for segment in 0..count {
-        let base = 64 * LANES * (first + segment);
+        let base = 64 * STATE_LANES * (first + segment);
         for j in 0..BITS {
             out[base + j] = segments[segment] * claim.weights[j];
         }
@@ -113,8 +114,8 @@ fn fold_packs(witness: &Witness, point: &[F128]) -> Vec<F128> {
     // A task per position of a committed lane: a task per lane would leave threads idle.
     let positions: Vec<[F128; 16]> = parallel::map_collect(64 * shape.slots(), |task| {
         let (lane, z) = (task / 64, task % 64);
-        let round = shape.depth * (lane / LANES);
-        let j = 64 * (lane % LANES) + z;
+        let round = shape.depth * (lane / STATE_LANES);
+        let j = 64 * (lane % STATE_LANES) + z;
         let mut acc = [F128Unreduced::ZERO; 16];
         for (run, &scale) in runs.iter().enumerate().take(written.div_ceil(1 << run_vars)) {
             let mut sums = [F128::ZERO; 16];

@@ -9,9 +9,8 @@ use primitives::field::lanes::transpose_bytes;
 use primitives::field::{Acc8, F128, F128Unreduced, F128x8};
 use primitives::multilinear::eq_table;
 use primitives::transcript::ProverState;
-use verifier::{PACK, along};
+use verifier::keccak::{BITS, PACK, along};
 
-use crate::keccak::BITS;
 use crate::kernels::{FieldMap, field_map, map_sums};
 use crate::layer::{Layer, Sumcheck};
 use crate::protocol::Claim;

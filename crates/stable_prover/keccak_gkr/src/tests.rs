@@ -1,12 +1,13 @@
 use fiat_shamir::Proof;
 use pcs::whir::MIN_LOG_INV_RATE;
 use primitives::field::{F64, F128};
+use primitives::hash::STATE_LANES;
 use primitives::test_rng::Rng;
 use primitives::transcript::ProverState;
-use verifier::{PRODUCT_BITS, VerifierError};
+use verifier::VerifierError;
+use verifier::keccak::{LANE_BITS, LOCAL_BITS, PRODUCT_BITS};
 
 use crate::batch_bench::{batch_transcript, open_commitment, output_claim};
-use crate::keccak::{LANE_VARS, LANES, LOCAL_VARS};
 use crate::witness::{BLOCK, Shape, Witness, run_block};
 
 const LABEL: &[u8] = b"keccak-gkr-test";
@@ -17,7 +18,7 @@ fn verify(shape: Shape, proof: &Proof) -> Result<(), VerifierError> {
 }
 
 /// A proof of the batch `inputs`, its output claim offset by `lane_error` in one lane.
-fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[F64], lane_error: F128) -> Proof {
+fn prove(shape: Shape, inputs: &[[u64; STATE_LANES]], committed: &[F64], lane_error: F128) -> Proof {
     let mut honest = vec![F64(0); 1 << shape.stack_log()];
     let witness = Witness::generate(shape, inputs, &mut honest);
     let mut ps = batch_transcript(LABEL, shape, MIN_LOG_INV_RATE);
@@ -43,11 +44,11 @@ fn keccak_check(shape: Shape, at: usize) -> Option<VerifierError> {
     let layer = PRODUCT_BITS
         + nonce(PRODUCT_BITS - 1)
         + round3 * (shape.pack_vars() + shape.seg_log())
-        + (round3 + 1) * LOCAL_VARS
+        + (round3 + 1) * LOCAL_BITS
         + 3
         + nonce(2);
     let ood = usize::from(verifier::OOD_GRINDING_BITS > 0);
-    let first = 2 + ood + 1 + nonce(shape.n_log()) + LANES + nonce(shape.seg_log() + LANE_VARS);
+    let first = 2 + ood + 1 + nonce(shape.n_log()) + STATE_LANES + nonce(shape.seg_log() + LANE_BITS);
     let layers = first + committed;
     let outputs = layers + shape.depth() * layer;
     let word = outputs + committed * round2 * shape.slot_log();
@@ -68,7 +69,7 @@ fn keccak_check(shape: Shape, at: usize) -> Option<VerifierError> {
 
 fn end_to_end(n_instances: usize, depth: usize) {
     let mut rng = Rng::new(77);
-    let inputs: Vec<[u64; LANES]> = (0..n_instances)
+    let inputs: Vec<[u64; STATE_LANES]> = (0..n_instances)
         .map(|_| std::array::from_fn(|_| rng.next_u64()))
         .collect();
     let shape = Shape::new(n_instances, depth);
@@ -100,7 +101,7 @@ fn end_to_end(n_instances: usize, depth: usize) {
 fn spare_slots_must_be_the_committed_ones() {
     let mut rng = Rng::new(81);
     let (n, depth) = (600, 12);
-    let inputs: Vec<[u64; LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
+    let inputs: Vec<[u64; STATE_LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
     let shape = Shape::new(n, depth);
     let states = shape.slots() * shape.n();
     let mut committed = vec![F64(0); 1 << shape.stack_log()];
@@ -131,7 +132,7 @@ fn proof_verifies_against_the_commitment() {
 }
 
 /// The witness of every block run, the padding ones included.
-fn dense(shape: Shape, inputs: &[[u64; LANES]]) -> Witness {
+fn dense(shape: Shape, inputs: &[[u64; STATE_LANES]]) -> Witness {
     let blocks = (0..shape.n_blocks())
         .map(|g| {
             let inputs = &inputs[(g * BLOCK).min(inputs.len())..((g + 1) * BLOCK).min(inputs.len())];
@@ -151,7 +152,7 @@ fn dense(shape: Shape, inputs: &[[u64; LANES]]) -> Witness {
 fn padding_proves_as_the_blocks_it_stands_for() {
     let mut rng = Rng::new(79);
     for (n, depth) in [(0, 12), (300, 24), (1100, 8), (2600, 12), (4700, 6)] {
-        let inputs: Vec<[u64; LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
+        let inputs: Vec<[u64; STATE_LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
         let shape = Shape::new(n, depth);
         let mut committed = vec![F64(0); 1 << shape.stack_log()];
         let padded = Witness::generate(shape, &inputs, &mut committed);
@@ -173,7 +174,7 @@ fn padding_proves_as_the_blocks_it_stands_for() {
 #[test]
 fn a_broken_committed_state_is_rejected() {
     let mut rng = Rng::new(78);
-    let inputs: Vec<[u64; LANES]> = (0..600).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
+    let inputs: Vec<[u64; STATE_LANES]> = (0..600).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
     let shape = Shape::new(inputs.len(), 6);
     let mut committed = vec![F64(0); 1 << shape.stack_log()];
     Witness::generate(shape, &inputs, &mut committed);

@@ -17,9 +17,12 @@ const PACK_BITS: usize = 4;
 pub const PACK: usize = 1 << PACK_BITS;
 pub const EMBED_BITS: usize = 24;
 pub const PRODUCT_BITS: usize = 2 * EMBED_BITS - 1;
-const BITS: usize = 64 * STATE_LANES;
-const LOCAL_BITS: usize = 11; // a bit position is z + 64 * lane, in a cube of 2048
-const LANE_BITS: usize = 5;
+/// The state's bit positions: `j = z + 64 * (x + 5 * y)` is bit `z` of lane `x + 5 * y`.
+pub const BITS: usize = 64 * STATE_LANES;
+/// The variables of the cube a bit position embeds in, `z` low, then the lane.
+pub const LOCAL_BITS: usize = 11;
+/// The variables of a lane's index.
+pub const LANE_BITS: usize = 5;
 
 /// Sixteen bits embed in a binary polynomial of degree at most 23, and a product of two embeddings projects to the
 /// AND of what they embed: each unit vector's embedding, and per bit of the projection the product coefficients it is
@@ -232,7 +235,7 @@ fn open(
 
 /// What the reduction leaves: the committed segment outputs as words at one point of q_keccak, if any segment's
 /// output is committed, and the column's 64 slices at another.
-pub struct KeccakOpenings {
+pub(crate) struct KeccakOpenings {
     pub outputs: Option<(Vec<E>, E)>,
     pub inputs: (Vec<E>, Vec<E>),
 }
@@ -240,7 +243,7 @@ pub struct KeccakOpenings {
 /// The reduction: a random claim on every segment's output at `instance`, `depth` layers down to the committed inputs.
 /// The last segment's output is the permutation's, claimed by `output`, its lanes as words at `instance`; the others
 /// are committed.
-pub fn verify_keccak(
+pub(crate) fn verify_keccak(
     transcript: &mut Transcript,
     shape: KeccakShape,
     instance: &[E],

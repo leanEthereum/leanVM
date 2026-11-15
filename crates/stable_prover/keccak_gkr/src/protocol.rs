@@ -8,9 +8,7 @@
 
 use primitives::field::{F128, powers};
 use primitives::multilinear::eq_table;
-use verifier::{EMBED_BITS, PACK, RMFE_EMBED, along, linear_transpose};
-
-use crate::keccak::BITS;
+use verifier::keccak::{BITS, EMBED_BITS, PACK, RMFE_EMBED, along, linear_transpose};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Claim {

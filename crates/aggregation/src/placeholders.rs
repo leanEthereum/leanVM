@@ -218,7 +218,8 @@ pub(super) fn placeholder_map(kbc: usize) -> BTreeMap<String, String> {
 fn constants(ph: &mut Placeholders) {
     use lean_sphincs::internals as sp;
     use lean_xmss::internals as lx;
-    use verifier::{EMBED_BITS, N_BUS_TREES, PACK, PRODUCT_BITS};
+    use verifier::N_BUS_TREES;
+    use verifier::keccak::{EMBED_BITS, PACK, PRODUCT_BITS};
     let nonces = |bits: u32| usize::from(bits > 0);
     // The F128 tower F64[Y]/(Y^2 + xY + 1): Y_TOWER embeds Y for AIR lane reassembly; Y_INV = Y + x splits a word
     // into its two K limbs.
@@ -481,7 +482,7 @@ fn claim_placeholders(ph: &mut Placeholders, pool: &[ClaimSite], kbc: usize) {
 /// The Keccak reduction's RMFE projection and embedding as straight-line programs, and its iota and linear layer, as
 /// index lists the guest unrolls.
 fn keccak_placeholders(ph: &mut Placeholders) {
-    use verifier::{EMBED_BITS, PACK, PRODUCT_BITS as PROD_BITS, RMFE_EMBED, RMFE_PROJECT};
+    use verifier::keccak::{EMBED_BITS, PACK, PRODUCT_BITS as PROD_BITS, RMFE_EMBED, RMFE_PROJECT};
     let shape = KECCAK_MIN_SHAPE;
     let (depth, segments) = (shape.depth(), shape.segments());
     // `starts[i]..starts[i + 1]` indexes row `i`'s entries of the flat list: each row's

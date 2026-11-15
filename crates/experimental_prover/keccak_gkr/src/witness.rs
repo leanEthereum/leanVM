@@ -8,12 +8,10 @@ use std::marker::PhantomData;
 
 use parallel::SendPtr;
 use primitives::field::F64;
-use primitives::hash::{RC, ROUNDS};
+use primitives::hash::bits::linear;
+use primitives::hash::{RC, ROUNDS, STATE_LANES};
 use primitives::stream::Stream;
-
-use verifier::along;
-
-use crate::keccak::{BITS, LANES, linear};
+use verifier::keccak::{BITS, along};
 
 /// Instances a block holds, and the words one position of a block takes.
 pub const BLOCK: usize = 512;
@@ -81,7 +79,7 @@ impl Shape {
     }
     /// Committed lanes per instance: the state each segment starts from.
     pub const fn slots(&self) -> usize {
-        LANES * self.segments()
+        STATE_LANES * self.segments()
     }
     pub const fn slot_log(&self) -> usize {
         self.slots().next_power_of_two().ilog2() as usize
@@ -209,7 +207,7 @@ fn xor(a: Word, b: Word) -> Word {
 /// `slot`, if any, is a slot of a live [`Extent`] that no other call is writing.
 pub unsafe fn block(
     depth: usize,
-    inputs: &[[u64; LANES]],
+    inputs: &[[u64; STATE_LANES]],
     slot: Option<Slot>,
     mut commit: impl FnMut(usize, usize, &[u64; 64]),
 ) {
@@ -217,7 +215,7 @@ pub unsafe fn block(
     let mut state = vec![[0u64; BLOCK_WORDS]; BITS];
     let mut u = vec![[0u64; BLOCK_WORDS]; BITS];
     let mut rows = [0u64; 64];
-    for lane in 0..LANES {
+    for lane in 0..STATE_LANES {
         for w in 0..BLOCK_WORDS {
             for (i, row) in rows.iter_mut().enumerate() {
                 *row = inputs.get(64 * w + i).map_or(0, |x| x[lane]);
@@ -230,13 +228,13 @@ pub unsafe fn block(
     }
     let mut lanes = |m: usize, state: &[Word]| {
         let mut rows = [0u64; 64];
-        for lane in 0..LANES {
+        for lane in 0..STATE_LANES {
             for w in 0..BLOCK_WORDS {
                 for z in 0..64 {
                     rows[z] = state[64 * lane + z][w];
                 }
                 transpose64(&mut rows);
-                commit(LANES * m + lane, w, &rows);
+                commit(STATE_LANES * m + lane, w, &rows);
             }
         }
     };
@@ -254,7 +252,7 @@ pub unsafe fn block(
     for round in 1..=last {
         linear(&state, &mut u, xor);
         store(round, &u);
-        for lane in 0..LANES {
+        for lane in 0..STATE_LANES {
             let (a, b, c) = (64 * lane, along(64 * lane, 1), along(64 * lane, 2));
             // A lane's 64 positions are 512 consecutive words in each table: `chi` word by word
             // over them, which vectorizes with plain loads (by position, it took gathers).
@@ -278,9 +276,9 @@ pub unsafe fn block(
 ///
 /// # Safety
 /// As [`block`].
-unsafe fn block_lanes_into(depth: usize, inputs: &[[u64; LANES]], slot: Option<Slot>) -> Vec<u64> {
+unsafe fn block_lanes_into(depth: usize, inputs: &[[u64; STATE_LANES]], slot: Option<Slot>) -> Vec<u64> {
     // SAFETY: `block` writes every instance of every slot.
-    let mut lanes = unsafe { primitives::uninit_vec(LANES * (ROUNDS / depth) * BLOCK) };
+    let mut lanes = unsafe { primitives::uninit_vec(STATE_LANES * (ROUNDS / depth) * BLOCK) };
     // SAFETY: forwarded to the caller.
     unsafe {
         block(depth, inputs, slot, |slot, w, words| {
@@ -293,7 +291,7 @@ unsafe fn block_lanes_into(depth: usize, inputs: &[[u64; LANES]], slot: Option<S
 /// One block's committed lanes alone: slot `s` at `s * BLOCK ..`, a word per instance.
 ///
 /// Its rounds are not kept: the reduction rebuilds them from the committed column.
-pub fn block_lanes(depth: usize, inputs: &[[u64; LANES]]) -> Vec<u64> {
+pub fn block_lanes(depth: usize, inputs: &[[u64; STATE_LANES]]) -> Vec<u64> {
     // SAFETY: no slot is written.
     unsafe { block_lanes_into(depth, inputs, None) }
 }
@@ -362,7 +360,7 @@ impl Witness {
     /// segment count, is slot `25 * m + l`, one word per instance. Whatever `committed` has past
     /// the last slot is zeroed, so a caller whose spare slots carry other columns (§cpu) passes
     /// the states' prefix alone. The blocks after the last input are run once, as the padding block.
-    pub fn generate(shape: Shape, inputs: &[[u64; LANES]], committed: &mut [F64]) -> Self {
+    pub fn generate(shape: Shape, inputs: &[[u64; STATE_LANES]], committed: &mut [F64]) -> Self {
         assert!(inputs.len() <= shape.n());
         let column = Column::new(shape, committed);
         let written = inputs.len().div_ceil(BLOCK);
@@ -409,14 +407,14 @@ impl Witness {
     /// - The blocks past the last input are the padding block.
     pub fn from_committed(shape: Shape, instances: usize, committed: &[F64]) -> Self {
         let n = shape.n();
-        assert!(instances <= n && committed.len() >= LANES * n);
+        assert!(instances <= n && committed.len() >= STATE_LANES * n);
         let written = instances.div_ceil(BLOCK);
         let mut extent = Extent::new(0, written);
         let slots: Vec<Slot> = (0..written).map(|g| extent.slot(g)).collect();
         parallel::for_each(written, |g| {
             // Slot `l` holds lane `l` of every input, a word per instance. A step past the last
             // input reads the all-zero input the block pads with.
-            let inputs: Vec<[u64; LANES]> = (g * BLOCK..(g + 1) * BLOCK)
+            let inputs: Vec<[u64; STATE_LANES]> = (g * BLOCK..(g + 1) * BLOCK)
                 .map(|i| std::array::from_fn(|lane| committed[lane * n + i].0))
                 .collect();
             // SAFETY: block `g` owns its slot.
@@ -657,7 +655,7 @@ mod neon {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::keccak::iota_bit;
+    use primitives::hash::bits::iota_bit;
     use primitives::test_rng::Rng;
 
     #[test]
@@ -678,14 +676,14 @@ mod tests {
     #[test]
     fn committed_states_follow_the_permutation() {
         let mut rng = Rng::new(9);
-        let inputs: Vec<[u64; LANES]> = (0..1100).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
+        let inputs: Vec<[u64; STATE_LANES]> = (0..1100).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
         let shape = Shape::new(inputs.len(), 8);
         let mut committed = vec![F64(1); 1 << shape.stack_log()];
         Witness::generate(shape, &inputs, &mut committed);
         let n = shape.n();
         for x in (0..n).step_by(37) {
-            let state = inputs.get(x).copied().unwrap_or([0; LANES]);
-            for lane in 0..LANES {
+            let state = inputs.get(x).copied().unwrap_or([0; STATE_LANES]);
+            for lane in 0..STATE_LANES {
                 assert_eq!(committed[lane * n + x].0, state[lane]);
             }
             // The state after 16 rounds, bit by bit.
@@ -697,9 +695,9 @@ mod tests {
                     bits[j] = u[j] ^ (!u[along(j, 1)] & u[along(j, 2)]) ^ (j < 64 && iota_bit(round, j));
                 }
             }
-            for lane in 0..LANES {
+            for lane in 0..STATE_LANES {
                 let word = (0..64).fold(0u64, |w, z| w | (bits[64 * lane + z] as u64) << z);
-                assert_eq!(committed[(2 * LANES + lane) * n + x].0, word, "instance {x}");
+                assert_eq!(committed[(2 * STATE_LANES + lane) * n + x].0, word, "instance {x}");
             }
         }
         assert!(committed[shape.slots() * n..].iter().all(|w| w.0 == 0));

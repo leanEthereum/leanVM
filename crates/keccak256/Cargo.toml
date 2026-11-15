@@ -11,6 +11,7 @@ workspace = true
 sha3.workspace = true
 bench.workspace = true
 parallel = { package = "stable_parallel", path = "../stable_prover/parallel" }
+verifier.workspace = true
 
 [[bench]]
 name = "hash_throughput"

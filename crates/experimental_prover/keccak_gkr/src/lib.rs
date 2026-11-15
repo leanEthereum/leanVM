@@ -86,18 +86,18 @@
 //! of eight positions' weights applied to bit-transposed products (`products_gfni`); elsewhere,
 //! the positions grouped by each byte of their weight (`prover`'s digit buckets).
 
-use keccak::LANE_VARS;
 use primitives::field::{F64, F128, F128Unreduced};
+use primitives::hash::STATE_LANES;
 use primitives::multilinear::eq_table;
 use primitives::transcript::ProverState;
 use protocol::{Claim, dot, first_claim};
+use verifier::keccak::LANE_BITS;
 
 mod basis;
 #[cfg(feature = "bench")]
 pub mod batch_bench;
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq"))]
 mod clmul;
-mod keccak;
 pub mod kernels;
 mod open;
 mod power;
@@ -128,23 +128,23 @@ pub use witness::{Shape, Witness};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OutputClaim {
     pub instance: Vec<F128>,
-    pub lanes: [F128; keccak::LANES],
+    pub lanes: [F128; STATE_LANES],
 }
 
 impl OutputClaim {
     /// The true claim at `instance` on the batch of `inputs`, padded with all-zero inputs, by
     /// running the permutation: what a caller without a claim of its own (a test, a benchmark)
     /// binds and passes.
-    pub fn of_inputs(shape: Shape, inputs: &[[u64; keccak::LANES]], instance: Vec<F128>) -> Self {
-        let permute = |mut state: [u64; keccak::LANES]| {
+    pub fn of_inputs(shape: Shape, inputs: &[[u64; STATE_LANES]], instance: Vec<F128>) -> Self {
+        let permute = |mut state: [u64; STATE_LANES]| {
             primitives::hash::keccak_f(&mut state);
             state
         };
-        let padding = permute([0; keccak::LANES]);
+        let padding = permute([0; STATE_LANES]);
         let eq = eq_table(&instance);
         let lanes = parallel::fold_reduce(
             shape.n(),
-            || [F128Unreduced::ZERO; keccak::LANES],
+            || [F128Unreduced::ZERO; STATE_LANES],
             |acc, i| {
                 let output = inputs.get(i).map_or(padding, |&x| permute(x));
                 for (acc, word) in acc.iter_mut().zip(output) {
@@ -172,7 +172,7 @@ fn first(shape: Shape, output: &OutputClaim, segment: Vec<F128>, r_lane: &[F128]
     let point = [&output.instance[4..], &segment[..]].concat();
     let mut claim = first_claim(shape, &output.instance[..4], point, r_lane);
     let last = eq_table(&segment)[shape.segments() - 1];
-    claim.value = last * dot(&eq_table(r_lane)[..keccak::LANES], &output.lanes);
+    claim.value = last * dot(&eq_table(r_lane)[..STATE_LANES], &output.lanes);
     claim
 }
 
@@ -189,8 +189,8 @@ impl Witness {
             "the openings are claims on the whole committed block"
         );
         // One message: the first claim is multilinear in the segment and lane coordinates.
-        ps.grind(fiat_shamir::grinding_bits((shape.seg_log() + LANE_VARS) as u128));
-        let (segment, r_lane) = (ps.sample_vec(shape.seg_log()), ps.sample_vec(LANE_VARS));
+        ps.grind(fiat_shamir::grinding_bits((shape.seg_log() + LANE_BITS) as u128));
+        let (segment, r_lane) = (ps.sample_vec(shape.seg_log()), ps.sample_vec(LANE_BITS));
         let mut first = first(shape, output, segment, &r_lane);
         let instance = &output.instance;
         let (folded, committed_value) =

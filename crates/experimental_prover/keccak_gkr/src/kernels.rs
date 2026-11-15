@@ -6,8 +6,8 @@
 //! vector forms are compiled only where their features are.
 
 use primitives::field::gf2_64::mul_wide;
+use primitives::hash::bits::row_positions;
 
-use crate::keccak::row_positions;
 use crate::rmfe::RMFE;
 use crate::witness::BLOCK_WORDS;
 
@@ -335,7 +335,7 @@ mod x86 {
 
     use super::*;
     pub use super::{embed_extend_portable as embed_extend, products_clmul as products, skip_row_portable as skip_row};
-    use crate::keccak::BITS;
+    use verifier::keccak::BITS;
 
     /// The matrices sending a pack's low and high byte to each byte of its embedding. An affine
     /// byte map reads output bit `t` off matrix byte `7 - t`.
@@ -990,8 +990,8 @@ mod neon {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::keccak::BITS;
     use primitives::test_rng::Rng;
+    use verifier::keccak::BITS;
 
     #[test]
     fn extension_follows_the_ternary_digits() {

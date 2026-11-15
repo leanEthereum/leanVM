@@ -3,7 +3,7 @@
 
 use primitives::field::F128;
 use primitives::field::lanes::{ByteMap, Linear16, map_bytes, map_fields, transpose_bytes, transpose_words};
-use verifier::RMFE_EMBED;
+use verifier::keccak::RMFE_EMBED;
 
 use crate::witness::BLOCK_WORDS;
 

@@ -5,10 +5,10 @@ use bench::{Metric, Plan, Timing, bencher_json};
 use isa::pretty_integer;
 use pcs::Committed;
 use primitives::field::{F64, F128Unreduced};
+use primitives::hash::STATE_LANES;
 use primitives::multilinear::eq_table;
 use primitives::{test_rng::Rng, transcript::ProverState};
 
-use crate::keccak::LANES;
 use crate::{Openings, OutputClaim, Shape, Witness};
 
 const LABEL: &[u8] = b"keccak-gkr-batch";
@@ -29,7 +29,7 @@ pub struct Report {
 pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
     let shape = Shape::new(n, depth);
     let mut rng = Rng::new(0x9E37_79B9_7F4A_7C15 ^ n as u64);
-    let inputs: Vec<[u64; LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
+    let inputs: Vec<[u64; STATE_LANES]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
 
     let (proof, prove) = plan.warm_then_measure(|final_pass| {
         let _quiet = (!final_pass).then(bench::suppress_tracing);
@@ -109,18 +109,18 @@ pub(crate) fn batch_transcript(label: &[u8], shape: Shape, log_inv_rate: usize) 
 
 /// The true claim on the batch of `inputs`, padded with all-zero inputs, at the instance drawn after its grind: the
 /// point pins the committed middle states, a multilinear identity of degree `n_log` in it. The caller binds the lanes.
-pub(crate) fn output_claim(ps: &mut ProverState, shape: Shape, inputs: &[[u64; LANES]]) -> OutputClaim {
+pub(crate) fn output_claim(ps: &mut ProverState, shape: Shape, inputs: &[[u64; STATE_LANES]]) -> OutputClaim {
     ps.grind(fiat_shamir::grinding_bits(shape.n_log() as u128));
     let instance = ps.sample_vec(shape.n_log());
-    let permute = |mut state: [u64; LANES]| {
+    let permute = |mut state: [u64; STATE_LANES]| {
         primitives::hash::keccak_f(&mut state);
         state
     };
-    let padding = permute([0; LANES]);
+    let padding = permute([0; STATE_LANES]);
     let eq = eq_table(&instance);
     let lanes = parallel::fold_reduce(
         shape.n(),
-        || [F128Unreduced::ZERO; LANES],
+        || [F128Unreduced::ZERO; STATE_LANES],
         |acc, i| {
             let output = inputs.get(i).map_or(padding, |&x| permute(x));
             for (acc, word) in acc.iter_mut().zip(output) {

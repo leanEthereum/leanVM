@@ -10,10 +10,11 @@
 use pcs::{RingSwitchOpen, StackClaim};
 use primitives::bit_fold::BitFold;
 use primitives::field::{F64, F128, dot};
+use primitives::hash::STATE_LANES;
 use primitives::multilinear::{eq_table, interp, mle_eval};
 use primitives::transcript::ProverState;
+use verifier::keccak::BITS;
 
-use crate::keccak::{BITS, LANES};
 use crate::protocol::Claim;
 use crate::witness::{Shape, transpose64};
 
@@ -46,7 +47,7 @@ fn slot_weights(shape: Shape, claim: &Claim, first: usize, count: usize) -> Vec<
     let segments = eq_table(&claim.point[shape.pack_vars()..]);
     let mut out = vec![F128::ZERO; 64 << shape.slot_log()];
     for segment in 0..count {
-        let base = 64 * LANES * (first + segment);
+        let base = 64 * STATE_LANES * (first + segment);
         for j in 0..BITS {
             out[base + j] = segments[segment] * claim.weights[j];
         }

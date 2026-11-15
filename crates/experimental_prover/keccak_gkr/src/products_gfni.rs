@@ -25,8 +25,8 @@
 use core::arch::x86_64::*;
 
 use primitives::field::F128;
+use verifier::keccak::BITS;
 
-use crate::keccak::BITS;
 use crate::kernels::{PACKS, embed, products};
 use crate::prover::PAYLOAD_BITS;
 use crate::witness::words;

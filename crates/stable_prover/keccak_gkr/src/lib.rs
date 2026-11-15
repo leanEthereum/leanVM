@@ -26,14 +26,14 @@
 //! Step 4 runs on tables of the 1600 positions. The blocks past the last input all equal the padding block, which
 //! every pass walks once, at their summed weight.
 
-use keccak::{LANE_VARS, LANES};
 use primitives::field::{F64, F128};
+use primitives::hash::STATE_LANES;
 use primitives::transcript::ProverState;
 use protocol::first_claim;
+use verifier::keccak::LANE_BITS;
 
 #[cfg(feature = "bench")]
 pub mod batch_bench;
-mod keccak;
 mod kernels;
 mod layer;
 mod open;
@@ -55,7 +55,7 @@ pub use witness::{Shape, Witness};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OutputClaim {
     pub instance: Vec<F128>,
-    pub lanes: [F128; LANES],
+    pub lanes: [F128; STATE_LANES],
 }
 
 impl Witness {
@@ -72,9 +72,9 @@ impl Witness {
             "the openings are claims on the whole committed block"
         );
         // One message, the segment then the lane: the first claim is multilinear in them.
-        ps.grind(fiat_shamir::grinding_bits((shape.seg_log() + LANE_VARS) as u128));
+        ps.grind(fiat_shamir::grinding_bits((shape.seg_log() + LANE_BITS) as u128));
         let segment = ps.sample_vec(shape.seg_log());
-        let r_lane = ps.sample_vec(LANE_VARS);
+        let r_lane = ps.sample_vec(LANE_BITS);
         let first = first_claim(&output.instance, &segment, &r_lane);
         // The last segment's output is the caller's, and the prover sends the committed ones' part.
         let (words, committed_value) =

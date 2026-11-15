@@ -12,10 +12,8 @@
 
 use primitives::field::{F128, powers};
 use primitives::multilinear::eq_table;
+use verifier::keccak::{BITS, along};
 
-use verifier::along;
-
-use crate::keccak::BITS;
 use crate::rmfe::{EMBED_BITS, PACK, RMFE};
 use crate::witness::Shape;
 

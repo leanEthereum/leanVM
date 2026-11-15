@@ -5,10 +5,10 @@
 //! as lanes.
 
 use primitives::field::F64;
-use primitives::hash::ROUNDS;
-use verifier::along;
+use primitives::hash::bits::{iota_bit, linear};
+use primitives::hash::{ROUNDS, STATE_LANES};
+use verifier::keccak::{BITS, along};
 
-use crate::keccak::{BITS, LANES, iota_bit, linear};
 use crate::kernels::xor;
 
 /// Instances a block holds, and the words one position of a block takes.
@@ -65,7 +65,7 @@ impl Shape {
     }
     /// Committed lanes per instance: the state each segment starts from.
     pub const fn slots(&self) -> usize {
-        LANES * self.segments()
+        STATE_LANES * self.segments()
     }
     pub const fn slot_log(&self) -> usize {
         self.slots().next_power_of_two().ilog2() as usize
@@ -123,12 +123,12 @@ type Word = [u64; BLOCK_WORDS];
 /// `depth * (s / 25)` rounds: every state a segment starts from, the output not being committed.
 /// With `keep`, it also returns its input state and the state each round applies `chi` to, all
 /// sliced, round after round; without, the run ends at the last committed state.
-pub(crate) fn run_block(depth: usize, inputs: &[[u64; LANES]], keep: bool) -> (Vec<u64>, Vec<u64>) {
+pub(crate) fn run_block(depth: usize, inputs: &[[u64; STATE_LANES]], keep: bool) -> (Vec<u64>, Vec<u64>) {
     assert!(inputs.len() <= BLOCK);
     let mut state = vec![[0u64; BLOCK_WORDS]; BITS];
     let mut u = vec![[0u64; BLOCK_WORDS]; BITS];
     let mut rows = [0u64; 64];
-    for lane in 0..LANES {
+    for lane in 0..STATE_LANES {
         for w in 0..BLOCK_WORDS {
             for (i, row) in rows.iter_mut().enumerate() {
                 *row = inputs.get(64 * w + i).map_or(0, |x| x[lane]);
@@ -139,15 +139,15 @@ pub(crate) fn run_block(depth: usize, inputs: &[[u64; LANES]], keep: bool) -> (V
             }
         }
     }
-    let mut lanes = vec![0u64; LANES * (ROUNDS / depth) * BLOCK];
+    let mut lanes = vec![0u64; STATE_LANES * (ROUNDS / depth) * BLOCK];
     let mut commit = |m: usize, state: &[Word]| {
-        for lane in 0..LANES {
+        for lane in 0..STATE_LANES {
             for w in 0..BLOCK_WORDS {
                 for z in 0..64 {
                     rows[z] = state[64 * lane + z][w];
                 }
                 transpose64(&mut rows);
-                lanes[(LANES * m + lane) * BLOCK + 64 * w..][..64].copy_from_slice(&rows);
+                lanes[(STATE_LANES * m + lane) * BLOCK + 64 * w..][..64].copy_from_slice(&rows);
             }
         }
     };
@@ -162,7 +162,7 @@ pub(crate) fn run_block(depth: usize, inputs: &[[u64; LANES]], keep: bool) -> (V
         if keep {
             rounds.extend_from_slice(u.as_flattened());
         }
-        for lane in 0..LANES {
+        for lane in 0..STATE_LANES {
             let (a, b, c) = (64 * lane, along(64 * lane, 1), along(64 * lane, 2));
             // A lane's 64 positions are 512 consecutive words in each table: `chi` word by word
             // over them, which vectorizes with plain loads (by position, it took gathers).
@@ -187,7 +187,7 @@ pub(crate) fn run_block(depth: usize, inputs: &[[u64; LANES]], keep: bool) -> (V
 /// `m` below the segment count, is slot `25 * m + l`, one word per instance. The slots past them are the caller's: in
 /// the VM other columns ride them (`lean_vm_core::cpu::keccak_value`). The blocks after the last input are run once,
 /// as the padding block.
-pub fn commit_states(shape: Shape, inputs: &[[u64; LANES]], states: &mut [F64]) {
+pub fn commit_states(shape: Shape, inputs: &[[u64; STATE_LANES]], states: &mut [F64]) {
     let n = shape.n();
     assert!(inputs.len() <= n);
     assert_eq!(
@@ -195,7 +195,7 @@ pub fn commit_states(shape: Shape, inputs: &[[u64; LANES]], states: &mut [F64]) 
         shape.slots() * n,
         "the committed states are the wrong size"
     );
-    let block_lanes = |inputs: &[[u64; LANES]]| run_block(shape.depth, inputs, false).0;
+    let block_lanes = |inputs: &[[u64; STATE_LANES]]| run_block(shape.depth, inputs, false).0;
     let lanes = parallel::map_collect(inputs.len().div_ceil(BLOCK), |g| {
         block_lanes(&inputs[g * BLOCK..((g + 1) * BLOCK).min(inputs.len())])
     });
@@ -212,7 +212,7 @@ pub fn commit_states(shape: Shape, inputs: &[[u64; LANES]], states: &mut [F64]) 
 
 impl Witness {
     /// [`commit_states`] over the first `slots * n` words of `committed`, then the witness rebuilt from them.
-    pub fn generate(shape: Shape, inputs: &[[u64; LANES]], committed: &mut [F64]) -> Self {
+    pub fn generate(shape: Shape, inputs: &[[u64; STATE_LANES]], committed: &mut [F64]) -> Self {
         let states = &mut committed[..shape.slots() * shape.n()];
         commit_states(shape, inputs, states);
         Self::from_committed(shape, inputs.len(), states)
@@ -224,13 +224,13 @@ impl Witness {
     /// - The blocks past the last input are the padding block.
     pub fn from_committed(shape: Shape, instances: usize, committed: &[F64]) -> Self {
         let n = shape.n();
-        assert!(instances <= n && committed.len() >= LANES * n);
+        assert!(instances <= n && committed.len() >= STATE_LANES * n);
         let written = instances.div_ceil(BLOCK);
         let held = written + usize::from(written < shape.n_blocks());
         let blocks = parallel::map_collect(held, |g| {
             // Slot `l` holds lane `l` of every input, a word per instance. A step past the last
             // input reads the all-zero input the block pads with.
-            let inputs: Vec<[u64; LANES]> = if g < written {
+            let inputs: Vec<[u64; STATE_LANES]> = if g < written {
                 (g * BLOCK..(g + 1) * BLOCK)
                     .map(|i| std::array::from_fn(|lane| committed[lane * n + i].0))
                     .collect()
@@ -276,14 +276,14 @@ mod tests {
     #[test]
     fn committed_states_follow_the_permutation() {
         let mut rng = Rng::new(9);
-        let inputs: Vec<[u64; LANES]> = (0..1100).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
+        let inputs: Vec<[u64; STATE_LANES]> = (0..1100).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
         let shape = Shape::new(inputs.len(), 8);
         let mut committed = vec![F64(0); 1 << shape.stack_log()];
         Witness::generate(shape, &inputs, &mut committed);
         let n = shape.n();
         for x in (0..n).step_by(37) {
-            let state = inputs.get(x).copied().unwrap_or([0; LANES]);
-            for lane in 0..LANES {
+            let state = inputs.get(x).copied().unwrap_or([0; STATE_LANES]);
+            for lane in 0..STATE_LANES {
                 assert_eq!(committed[lane * n + x].0, state[lane]);
             }
             // The state after 16 rounds, bit by bit.
@@ -295,9 +295,9 @@ mod tests {
                     bits[j] = u[j] ^ (!u[along(j, 1)] & u[along(j, 2)]) ^ (j < 64 && iota_bit(round, j));
                 }
             }
-            for lane in 0..LANES {
+            for lane in 0..STATE_LANES {
                 let word = (0..64).fold(0u64, |w, z| w | (bits[64 * lane + z] as u64) << z);
-                assert_eq!(committed[(2 * LANES + lane) * n + x].0, word, "instance {x}");
+                assert_eq!(committed[(2 * STATE_LANES + lane) * n + x].0, word, "instance {x}");
             }
         }
     }

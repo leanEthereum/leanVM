@@ -338,6 +338,7 @@ dependencies = [
  "bench",
  "sha3",
  "stable_parallel",
+ "verifier",
 ]
 
 [[package]]
