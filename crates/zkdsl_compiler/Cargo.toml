@@ -14,5 +14,6 @@ verifier.workspace = true
 primitives = { package = "stable_primitives", path = "../stable-prover/primitives" }
 
 [dev-dependencies]
+fiat_shamir = { package = "stable_fiat_shamir", path = "../stable-prover/fiat_shamir" }
 lean_vm_core = { package = "stable_lean_vm_core", path = "../stable-prover/lean_vm_core" }
 parallel = { package = "stable_parallel", path = "../stable-prover/parallel" }

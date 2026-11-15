@@ -69,14 +69,15 @@ fn tampers_fail_their_check() {
     // `2^mu + k` coefficients of the folded lane, the query nonce, then the tail rounds. The level before ends on its
     // high part, the OOD nonce, the OOD value and the query nonce.
     let rows: Vec<usize> = fixture.summary.table_rows.iter().map(|&rows| rows as usize).collect();
-    let stack_log = lean_vm_core::cpu::layout::layout(
-        fixture.program.prog(),
-        fixture.summary.log_memory,
-        rows.try_into().expect("one row count a table"),
-        fixture.public_input,
-    )
-    .shape
-    .mu;
+    let stack_log = fixture
+        .program
+        .layout(
+            fixture.summary.log_memory,
+            rows.try_into().expect("one row count a table"),
+            fixture.public_input,
+        )
+        .shape
+        .mu;
     let (mut mu, mut k) = (stack_log - 6, 6); // the ladder: 6 lane variables, then 4 a level while over 5 remain
     while mu > 5 {
         k = mu.min(4);

@@ -76,7 +76,7 @@ pub(crate) fn stack_offsets(kappas: &[Option<usize>]) -> (Vec<usize>, usize) {
 /// columns' log-sizes alone, largest-first at aligned offsets. A `None` kappa marks
 /// a virtual (uncommitted) column. Depends only on lengths, so the verifier can
 /// reconstruct it.
-pub fn placements_of(kappas: &[Option<usize>]) -> (Vec<Placement>, StackShape) {
+pub(crate) fn placements_of(kappas: &[Option<usize>]) -> (Vec<Placement>, StackShape) {
     let (offsets, placed) = stack_offsets(kappas);
     let placements = kappas
         .iter()
@@ -98,7 +98,7 @@ pub fn placements_of(kappas: &[Option<usize>]) -> (Vec<Placement>, StackShape) {
 /// Carve the stack into one mutable window per committed column, in column order, so that each column is
 /// written in its final place. A virtual column gets an empty window: it is not in the stack, so its values need
 /// storage of their own.
-pub fn split_stack<'a>(q: &'a mut [F64], placements: &[Placement]) -> Vec<&'a mut [F64]> {
+pub(crate) fn split_stack<'a>(q: &'a mut [F64], placements: &[Placement]) -> Vec<&'a mut [F64]> {
     let mut order: Vec<usize> = (0..placements.len()).filter(|&i| !placements[i].is_virtual()).collect();
     order.sort_unstable_by_key(|&i| placements[i].offset);
 
@@ -125,9 +125,8 @@ mod tests {
 
     /// The shape has to cover the placed columns with as few lanes as possible: the
     /// prover commits `committed_len()` words, so anything short of `placed` would
-    /// leave a claim outside the commitment, and any extra whole lane is work the
-    /// change exists to avoid. `mu` stays the announced `2^mu` size both sides
-    /// derive their layout from.
+    /// leave a claim outside the commitment, and any extra whole lane is wasted
+    /// work. `mu` stays the announced `2^mu` size both sides derive their layout from.
     #[test]
     fn placements_cover_the_columns_in_the_fewest_lanes() {
         let lanes = 1usize << crate::pcs::LOG_BATCH;

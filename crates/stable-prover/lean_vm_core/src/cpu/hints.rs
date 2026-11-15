@@ -5,7 +5,7 @@ use primitives::field::{F64, div_by_g, mul_by_g};
 use std::collections::HashMap;
 use std::hash::{BuildHasherDefault, Hasher};
 
-pub use isa::{BitsDest, Off, RHint};
+pub(crate) use isa::{BitsDest, RHint};
 
 /// The cells a provable run can address, which the [`GPow`] index covers: a memory of `2^29`
 /// cells would overflow the `2^30` stack with its three columns, so no larger one can be committed.

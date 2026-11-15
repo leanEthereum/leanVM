@@ -1,4 +1,4 @@
-//! The whole program: its assembly ([`Program`]), its run ([`Program::execute`]), its public layout ([`layout()`]),
+//! The whole program: its assembly ([`Program`]), its run ([`Program::execute`]), its public layout ([`layout_of`]),
 //! and [`prove`], which binds the six instruction tables to one commitment through the state, memory and bytecode
 //! buses (`doc/leanvm/main.tex`). [`verify`] wraps the `verifier` crate.
 
@@ -13,23 +13,16 @@ use crate::tables::{
 use crate::witness;
 use fiat_shamir::transcript::ProverState;
 use primitives::field::{F64, F128, g_pow};
+use verifier::layout::{GLOBAL_COLUMN_BASES, TABLE_WIDTHS};
 
 mod execute;
-pub mod hints;
+mod hints;
 pub mod layout;
 mod trace;
 pub use ::isa::{DerefMode, Op, OutCells};
 pub use execute::{ExecError, Execution, Fault, Memory};
 pub use layout::*;
 pub(crate) use trace::{Drow, Jrow, Krow, Srow, Trace, Xrow};
-
-/// The data memory's size bounds (doc §Memory): `2^h` cells, `MIN_LOG_MEMORY ≤ h ≤ MAX_LOG_MEMORY`.
-pub use verifier::{MAX_LOG_MEMORY, MIN_LOG_MEMORY};
-
-/// The two 128-bit halves a digest travels in, as the four words the Fiat-Shamir sponge absorbs.
-fn digest_words(halves: &[F128; 2]) -> [F64; 4] {
-    [halves[0].c0, halves[0].c1, halves[1].c0, halves[1].c1].map(F64)
-}
 
 /// Announce the prover's sizes (`log_mem`, every table's row count, the PCS rate) on the stream, from which the
 /// verifier rebuilds the layout ([`layout::table_logs`]). The statement, the program and the public input, is not
@@ -55,7 +48,7 @@ pub struct Program {
     bytecode_columns: layout::BytecodeColumns,
     /// The frame and buffer allocation hints, by pc, and the size of `main`'s frame: the nondeterminism
     /// [`Program::execute`] needs, which verification ignores.
-    pub(crate) hints: HashMap<u32, Vec<hints::RHint>>,
+    pub(crate) hints: HashMap<u32, Vec<::isa::RHint>>,
     pub(crate) main_frame: u32,
     /// The witness streams of the program's `hint_witness` calls ([`Program::set_witness`]), by name: each call pops
     /// the next entry, whose length must match its destination.
@@ -86,7 +79,7 @@ impl Program {
     /// # Panics
     ///
     /// If `prog` is not a power of two long.
-    pub fn assemble(prog: Vec<Op>, hints: HashMap<u32, Vec<hints::RHint>>, main_frame: u32) -> Self {
+    pub fn assemble(prog: Vec<Op>, hints: HashMap<u32, Vec<::isa::RHint>>, main_frame: u32) -> Self {
         assert!(
             prog.len().is_power_of_two(),
             "the bytecode must be a power of two long, not {}",
@@ -118,7 +111,7 @@ impl Program {
         &self.prog
     }
 
-    /// The [`layout()`] of this program.
+    /// The public [`Layout`] of a run of this program ([`layout_of`]).
     pub fn layout(&self, log_mem: usize, rows: [usize; tables::N_TABLES], pi: [F128; 2]) -> Layout {
         layout::layout_of(&self.bytecode_columns, log_mem, rows, pi)
     }
@@ -216,30 +209,13 @@ impl std::fmt::Display for ProveError {
 
 impl std::error::Error for ProveError {}
 
-/// Per bus tree, the table owning each block with its first column, none for a boundary block; and each table's
-/// first column and column count. Public: the program and the layout fix them.
-#[allow(clippy::type_complexity)]
-fn bus_wiring(program: &Program, l: &Layout) -> ([Vec<Option<(usize, usize)>>; 3], Vec<(usize, usize)>) {
-    let sch = schema();
-    // A block as tall as table `t` (its height's source `2 + t`) is one of its flushes.
-    let mut owners = block_kappa_sources(crate::log2_strict_usize(program.prog.len()))
-        .into_iter()
-        .map(|(source, _)| source.checked_sub(2).map(|t| (t, sch.base[t])));
-    let owners = [l.push.len(), l.pull.len(), l.count.len()].map(|n| owners.by_ref().take(n).collect());
-    let spans = (tables::tables().iter().enumerate())
-        .map(|(t, table)| (sch.base[t], table.n_committed_columns()))
-        .collect();
-    (owners, spans)
-}
-
-/// The tables' entries in the table sumcheck, in schema order: each table's committed columns, its summand (its
+/// The tables' entries in the table sumcheck, in table order: each table's committed columns, its summand (its
 /// identities weighted by its own range of `ξ`-powers, each tree's bus form by the tree's power at
 /// [`xi_form_base`]), and what the summand sums to, its bus forms' share, as its identities vanish.
 fn airs<'a>(
     taus: &[usize; tables::N_TABLES],
     bus: &leaf::BusProof,
     cols: &'a [&'a [F64]],
-    spans: &[(usize, usize)],
     xi: F128,
 ) -> Vec<constraints::Air<'a>> {
     let base = xi_form_base();
@@ -247,14 +223,14 @@ fn airs<'a>(
     let offsets = constraints::xi_offsets(tables::tables().iter().map(|t| t.n_constraints()));
     tables::tables()
         .iter()
-        .zip(taus.iter().zip(spans))
+        .zip(taus)
         .enumerate()
-        .map(|(t, (&table, (&tau, &(start, n))))| {
+        .map(|(t, (&table, &tau))| {
             let identities = table.constraint(&pows[offsets[t]..][..table.n_constraints()]);
             let bus_forms = (0..leaf::N_BUS_TREES).map(|s| bus.forms[s][t].scaled(pows[base + s]));
             constraints::Air {
                 tau,
-                cols: &cols[start..start + n],
+                cols: &cols[GLOBAL_COLUMN_BASES[t]..][..TABLE_WIDTHS[t]],
                 form: constraints::Form::sum(bus_forms.chain([identities])),
                 sigma: (0..leaf::N_BUS_TREES).map(|s| pows[base + s] * bus.sigmas[s][t]).sum(),
             }
@@ -341,22 +317,21 @@ pub fn prove(program: &Program, public_input: [F128; 2], log_inv_rate: usize) ->
     // before any challenge.
     let mut ps = ProverState::new(
         fiat_shamir::digest_words(&program.fiat_shamir_iv),
-        digest_words(&public_input),
+        fiat_shamir::digest_words(&public_input_bytes(&public_input)),
     );
     announce_public(&mut ps, log_mem, w.layout.rows, log_inv_rate);
     let committed = crate::stage!("Commit", || pcs::commit(&mut ps, &w.q, w.layout.shape, log_inv_rate));
 
-    let (owners, spans) = bus_wiring(program, &w.layout);
     let (bus, table_claims) = {
         let l = &w.layout;
         let cols = w.columns();
         let bus = crate::stage!("Prove bus", || {
-            leaf::prove_balance([&l.push, &l.pull, &l.count], &cols, &owners, &spans, &mut ps)
+            leaf::prove_balance([&l.push, &l.pull, &l.count], &cols, &mut ps)
         });
         let table_claims = crate::stage!("Prove constraints", || {
             ps.grind(fiat_shamir::grinding_bits(n_xi_powers() as u128 - 1));
             let xi = ps.sample();
-            constraints::prove(&airs(&l.taus, &bus, &cols, &spans, xi), &bus.point, &mut ps)
+            constraints::prove(&airs(&l.taus, &bus, &cols, xi), &bus.point, &mut ps)
         });
         (bus, table_claims)
     };
@@ -382,7 +357,7 @@ pub fn prove(program: &Program, public_input: [F128; 2], log_inv_rate: usize) ->
     Ok((ps.into_proof(), stats))
 }
 
-/// Everything the PCS has to open, in the ORDER that feeds the batch's weights:
+/// Everything the PCS has to open, in the order that feeds the batch's weights:
 /// the bus's framework claims, then the table sumcheck's per-table column claims (less the
 /// `KECCAK` output lanes', which go to the reduction), then the two public-input limb
 /// claims, each located in its committed slot. Every verifier assembles the same list in
@@ -394,11 +369,10 @@ fn finish_claims(
     r_pi: F128,
 ) -> Vec<pcs::SlotClaim> {
     let mut claims = bus_claims;
-    let sch = schema();
-    claims.reserve(sch.n - N_SHARED);
-    for (t, table) in tables::tables().iter().enumerate() {
-        for c in 0..table.n_committed_columns() {
-            let col = sch.base[t] + c;
+    claims.reserve(N_COLUMNS - N_SHARED);
+    for t in 0..tables::N_TABLES {
+        for c in 0..TABLE_WIDTHS[t] {
+            let col = GLOBAL_COLUMN_BASES[t] + c;
             if let Some(KeccakLane::Output(_)) = keccak_value(col) {
                 continue; // the Keccak reduction's claim on the output (`keccak_output_claim`)
             }
@@ -487,25 +461,18 @@ pub fn verify(
 /// the slot at `placements[c].offset`, with the claim's point as the low point.
 ///
 /// The columns `q_keccak` carries are virtual: they have no committed placement. A claim
-/// `col(r) = v` on one (at the `n_log`-dim instance point `r`) is re-routed to the equal
-/// `q_keccak` slot evaluation: an ordinary claim on the committed `QKECCAK` column at the
-/// point whose low coords are `r` and whose next `SLOT_LOG` are the slot's bits. No
-/// downstream special-casing: it folds into the one opening like every other point claim.
+/// `col(r) = v` on one, at the instance point `r`, is the claim on its slot's `2^|r|` words of
+/// `q_keccak`, which folds into the one opening like every other point claim.
 fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::SlotClaim> {
     claims
         .into_iter()
         .map(|c| {
-            // A KECCAK value column (always virtual): its bus claim at instance point
-            // `c.point` is a claim on the slot's `2^n_log` words of QKECCAK.
-            if let Some(KeccakLane::Slot(slot)) = keccak_value(c.col) {
-                return pcs::SlotClaim::Point {
-                    offset: l.placements[QKECCAK].offset + (slot << c.point.len()),
-                    low_point: c.point,
-                    value: c.value,
-                };
-            }
+            let offset = match keccak_value(c.col) {
+                Some(KeccakLane::Slot(slot)) => l.placements[QKECCAK].offset + (slot << c.point.len()),
+                _ => l.placements[c.col].offset,
+            };
             pcs::SlotClaim::Point {
-                offset: l.placements[c.col].offset,
+                offset,
                 low_point: c.point,
                 value: c.value,
             }

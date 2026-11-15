@@ -18,7 +18,7 @@ pub struct Execution {
     pub cycles: usize,
     /// Cells the run touched, before the pad of `mem`.
     pub mem_used: usize,
-    /// Cells an instruction read before anything wrote them, so the value it read was ZERO here and prover-chosen
+    /// Cells an instruction read before anything wrote them, so the value it read was zero here and prover-chosen
     /// in a proof: the bus only forces the accesses to one address to agree, never that it was written. A non-empty
     /// list means a live value came from outside the constraint system: the source read a cell nothing stores, or
     /// the lowering dropped or misplaced a store. A range-check touch, which only links its two cells, and an
@@ -34,7 +34,7 @@ impl Execution {
     }
 }
 
-/// A cell's write state. A cell not `Written` holds ZERO; a `DEREF` between two
+/// A cell's write state. A cell not `Written` holds zero; a `DEREF` between two
 /// unwritten cells links them, and a write to either reaches the other at once.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum State {
@@ -108,7 +108,7 @@ pub struct ExecError {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Fault {
     /// A second value for a written cell: a failed `assert`, two writes that disagree,
-    /// or a write to a cell an instruction already read, unwritten, as ZERO. `hint`
+    /// or a write to a cell an instruction already read, unwritten, as zero. `hint`
     /// names the hint that wrote it, if one did.
     Conflict {
         cell: u32,
@@ -305,7 +305,7 @@ impl Mem {
         self.cell(cell).map_or(F128::ZERO, |c| c.word)
     }
 
-    /// An instruction's read. An unwritten cell reads as ZERO, which is then written there: the row is filled from
+    /// An instruction's read. An unwritten cell reads as zero, which is then written there: the row is filled from
     /// the final image, which has to agree.
     fn read(&mut self, cell: u32) -> F128 {
         let c = self.at(cell);

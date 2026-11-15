@@ -1,28 +1,30 @@
-//! Per-instruction tables (`doc/leanvm/body/07-instruction-tables.tex`). Each opcode is one [`Table`] impl that declares,
+//! Per-instruction tables (`doc/leanvm/body/07-instruction-tables.tex`). Each opcode is one `Table` impl that declares,
 //! in one place, its committed columns, how to fill them from the trace, its bus
 //! interactions (flushes), the read-count columns that feed the count channel,
 //! and its degree-2 constraint. Column indices here are *local* (`0..n_committed_columns`);
-//! `cpu`'s schema offsets them to global witness columns.
+//! `cpu` offsets them by the verifier's `GLOBAL_COLUMN_BASES` to global witness columns.
 //!
 //! Columns are `K`-valued (`F64`). The pc/fp, operands, counts, opcodes and
-//! separators are single `K`-columns; a **machine word** (memory value) is
-//! 128-bit (`E = F128`), committed as TWO `K`-lane columns. Nothing a row
-//! DERIVES is a column at all: an operand address `fp·o`, an `XOR`/`MUL` result,
+//! separators are single `K`-columns; a machine word (memory value) is
+//! 128-bit (`E = F128`), committed as two `K`-lane columns. Nothing a row
+//! derives is a column at all: an operand address `fp·o`, an `XOR`/`MUL` result,
 //! the `DEREF` store, the `JUMP` successors are each written out as the degree-2
 //! bus coordinate that carries them (§sec:m3), which leaves `JUMP`'s is-nonzero
-//! indicator as the one identity any table still has. Every identity is `K`-valued,
+//! indicator as the one identity any table has. Every identity is `K`-valued,
 //! so a relation on machine words is written out lane by lane. A table hands its
-//! identities to the table sumcheck as a degree-2 form ([`Table::constraint`]).
+//! identities to the table sumcheck as a degree-2 form (`Table::constraint`).
 
 use crate::constraints::Form;
 use crate::cpu::{Drow, Jrow, Krow, Memory, Op, Srow, Trace};
 use crate::leaf::Coord::{self, Col, Const, GCol, Prod};
 use primitives::field::{F64, F128, mul_by_g};
+use std::ops::Range;
+use verifier::layout::TABLE_WIDTHS;
 
 // ---- the identities ----------------------------------------------------------
 //
-// EVERY identity is `K`-valued, like the columns it reads and like the bus
-// coordinates (§sec:air). A relation between machine WORDS is therefore written out
+// Every identity is `K`-valued, like the columns it reads and like the bus
+// coordinates (§sec:air). A relation between machine words is therefore written out
 // lane by lane, with the tower multiplication unrolled by hand ([`TOWER_LANES`]),
 // rather than assembled into one `E` equation.
 
@@ -31,18 +33,6 @@ use primitives::field::{F64, F128, mul_by_g};
 /// `c1 = x0y1 + x1y0 + g·x1y1`; written once here for `MUL`'s result coordinate
 /// ([`arith_result`]) and the test that pins it against the field.
 const TOWER_LANES: [&[(usize, usize, u32)]; 2] = [&[(0, 0, 0), (1, 1, 0)], &[(0, 1, 0), (1, 0, 0), (1, 1, 1)]];
-
-/// One lane of the tower product, in the columns' own field. Only the test that
-/// checks [`TOWER_LANES`] against the field needs it: `MUL`'s result rides the bus
-/// as a coordinate ([`arith_result`]), and `JUMP`'s condition is `K`-valued, so no
-/// identity assembles a tower product any more.
-#[cfg(test)]
-fn tower_lane(lane: usize, x: [F64; 2], y: [F64; 2]) -> F64 {
-    TOWER_LANES[lane]
-        .iter()
-        .map(|&(j, k, e)| g_pow(e as usize) * x[j] * y[k])
-        .sum()
-}
 
 // ---- shared bus vocabulary ---------------------------------------------------
 
@@ -76,7 +66,7 @@ pub(crate) const OP_KECCAK: F64 = g_pow(5);
 /// push/pull of a memory-checked entry differ only by one coordinate carrying the
 /// post-increment `g·count` (`GCol`) instead of the pre-increment (`Col`); these
 /// helpers encode that pairing so each table reads declaratively.
-pub struct FlushBuilder {
+pub(crate) struct FlushBuilder {
     pub(crate) push: Vec<Vec<Coord>>,
     pub(crate) pull: Vec<Vec<Coord>>,
 }
@@ -103,7 +93,7 @@ impl FlushBuilder {
     }
 
     /// Explicit state transition (JUMP): push the next state, which the row
-    /// DERIVES from its columns rather than committing, and pull `(pc, fp)`.
+    /// derives from its columns rather than committing, and pull `(pc, fp)`.
     pub(crate) fn state_derived(&mut self, pc: usize, fp: usize, npc: Coord, nfp: Coord) {
         self.pair(
             vec![Const(SEP_STATE), npc, nfp],
@@ -123,10 +113,10 @@ impl FlushBuilder {
 
     /// The shape every memory interaction shares: the word at `addr` carried as
     /// two value coordinates, with the cell's access count advanced by ×g on the
-    /// push side. A value the row DERIVES rather than commits (an `XOR`/`MUL`
+    /// push side. A value the row derives rather than commits (an `XOR`/`MUL`
     /// result, a `DEREF` store) is passed here as its form: the cell then holds
-    /// whatever the form says, which removes both the value columns and the
-    /// identity that used to tie them (§sec:m3).
+    /// whatever the form says, with no value column and no identity to tie one
+    /// (§sec:m3).
     pub(crate) fn memory_coords(&mut self, addr: Coord, count: usize, vals: [Coord; 2]) {
         self.memory_pushing(GCol(count, 1), addr, count, vals);
     }
@@ -153,7 +143,7 @@ impl FlushBuilder {
 
     /// Memory read of a K-valued word: the high limb is literal zero. Used where
     /// the word is carried by a single K column (e.g. the DEREF pointer). Sound
-    /// because the bus balances only if the stored value's HI lane is likewise 0.
+    /// because the bus balances only if the stored value's high lane is likewise 0.
     pub(crate) fn memory_k(&mut self, addr: Coord, count: usize, val: usize) {
         self.memory_coords(addr, count, [Col(val), Const(F64::ZERO)]);
     }
@@ -163,7 +153,7 @@ impl FlushBuilder {
 
 /// Inputs a table needs to fill its columns: the trace rows, the final memory
 /// image (for read values), and `g^0..` for O(1) address/operand lookups.
-pub struct FillCtx<'a> {
+pub(crate) struct FillCtx<'a> {
     pub(crate) trace: &'a Trace,
     pub(crate) mem: &'a Memory,
     pub(crate) gpow: &'a [F64],
@@ -199,8 +189,7 @@ impl<'a> FillCtx<'a> {
 
     /// The three frame offsets of an `XOR`/`MUL` row. A row records
     /// only its `(pc, fp)`; the operands are the instruction's, so they are read
-    /// back from the bytecode rather than copied into every row (§the trace rows
-    /// in `cpu::trace`).
+    /// back from the bytecode rather than copied into every row (`cpu::trace`).
     fn ternary_operands(&self, pc: u32) -> (u32, u32, u32) {
         match self.prog[pc as usize] {
             Op::Xor { a, b, c } | Op::Mul { a, b, c } => (a, b, c),
@@ -214,10 +203,8 @@ impl<'a> FillCtx<'a> {
         self.cols(out, rows, at, |r| [f(r)]);
     }
 
-    /// Write the `N` local columns at `at..at + N` from one closure per row.
-    /// Columns fed by the same read fill together: the two lanes of a 128-bit
-    /// memory word are one random access, and splitting them across `N` passes
-    /// pays for it `N` times.
+    /// Write the `N` local columns at `at..at + N` from one closure per row, so that columns fed by the same read
+    /// fill together.
     fn cols<const N: usize, R: Sync>(
         &self,
         out: &mut [&mut [F64]],
@@ -283,14 +270,14 @@ impl<'a> FillCtx<'a> {
 
 /// One instruction table. Indices in [`flushes`](Table::flushes) and
 /// [`count_columns`](Table::count_columns) are local to this table.
-pub trait Table: Sync {
+pub(crate) trait Table: Sync {
     /// Number of committed columns (local indices `0..n_committed_columns`).
     fn n_committed_columns(&self) -> usize;
-    /// Local indices of this table's read-count columns: the `g^{count}` values
+    /// Local indices of this table's read-count columns, one contiguous run: the `g^{count}` values
     /// recording how many times each accessed cell (and the pc) was read. The
     /// framework treats them specially: each gets its own single-column "count"
     /// bus block.
-    fn count_columns(&self) -> &'static [usize];
+    fn count_columns(&self) -> Range<usize>;
     /// The row a padding row holds, past the rows the program executed
     /// (§sec:e2e-pad). Public, since every verifier evaluates the table's bus forms
     /// at it, and it has to satisfy the table's constraint. All zeros by default,
@@ -299,7 +286,7 @@ pub trait Table: Sync {
         vec![F64::ZERO; self.n_committed_columns()]
     }
     /// How many identities [`constraint`](Table::constraint) folds.
-    /// Sizes this table's slice of the batch's disjoint `xi`-range (§constraints).
+    /// Sizes this table's slice of the batch's disjoint `xi`-range (§sec:air).
     /// Defaults to none, which is every table but `JUMP`: a relation whose value
     /// rides the bus as a coordinate needs no identity to tie it (§sec:m3).
     fn n_constraints(&self) -> usize {
@@ -327,9 +314,9 @@ pub trait Table: Sync {
 
 /// The tables in fixed order `[XOR, MUL, SET, DEREF, JUMP, KECCAK]`, the
 /// order of `row_counts` / `taus` throughout `cpu`.
-pub const N_TABLES: usize = 6;
+pub use verifier::layout::N_TABLES;
 
-pub fn tables() -> [&'static dyn Table; N_TABLES] {
+pub(crate) fn tables() -> [&'static dyn Table; N_TABLES] {
     [
         &Arith { is_xor: true },
         &Arith { is_xor: false },
@@ -341,10 +328,11 @@ pub fn tables() -> [&'static dyn Table; N_TABLES] {
 }
 
 /// Index of the KECCAK table in [`tables`].
-pub(crate) const KECCAK_TABLE: usize = 5;
+pub(crate) const KECCAK_TABLE: usize = verifier::layout::OP_KECCAK;
 
 /// Each table's least log height: 0, but the Keccak reduction's block of steps for `KECCAK`.
-pub const TABLE_LOG_FLOORS: [usize; N_TABLES] = [0, 0, 0, 0, 0, crate::keccak::MIN_STEPS.ilog2() as usize];
+pub use verifier::layout::TABLE_LOG_FLOORS;
+const _: () = assert!(crate::keccak::MIN_STEPS == 1 << TABLE_LOG_FLOORS[KECCAK_TABLE]);
 
 /// What each cell a `KECCAK` row touches is addressed by, in flush order (the four `m` cells, the
 /// four `tail` cells, `b8`, the four `cap` cells, then the thirteen output cells): the offset
@@ -433,7 +421,7 @@ const fn free_limb(odd: bool) -> (usize, bool) {
 /// the bus (`v_A + v_B` for `XOR`, `v_A·v_B` in `E = K[y]/(y²+x·y+1)` for `MUL`).
 /// Neither commits that value and neither has an identity: the destination's
 /// memory flush carries the result as a degree-≤2 coordinate over the operand
-/// lanes, so bus balance IS the assertion (§sec:m3).
+/// lanes, so bus balance is the assertion (§sec:m3).
 struct Arith {
     is_xor: bool,
 }
@@ -446,7 +434,7 @@ mod arith {
     pub const OC: usize = 4;
     // No absolute-address columns: the memory bus carries `fp·o` as a product
     // coordinate (§sec:m3), which is why there is no address binding below.
-    // The two read words, two K-limbs each. The third word (the result) is DERIVED.
+    // The two read words, two K-limbs each. The third word (the result) is derived.
     pub const VA_LO: usize = 5;
     pub const VA_HI: usize = 6;
     pub const VB_LO: usize = 7;
@@ -478,9 +466,8 @@ impl Table for Arith {
     fn n_committed_columns(&self) -> usize {
         arith::N
     }
-    fn count_columns(&self) -> &'static [usize] {
-        use arith::*;
-        &[RA, RB, RC, RBC]
+    fn count_columns(&self) -> Range<usize> {
+        arith::RA..arith::RBC + 1
     }
     fn flushes(&self, f: &mut FlushBuilder) {
         use arith::*;
@@ -500,8 +487,6 @@ impl Table for Arith {
         let rows = if self.is_xor { &ctx.trace.xor } else { &ctx.trace.mul };
         ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
         ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
-        // The offsets and both operand words come out of ONE bytecode decode: split
-        // across passes, the row's instruction is fetched once per pass.
         ctx.cols(out, rows, OA, |r| {
             let (a, b, c) = ctx.ternary_operands(r.pc);
             let (va, vb) = (ctx.limbs(r.fp + a), ctx.limbs(r.fp + b));
@@ -532,15 +517,14 @@ impl Table for SetTable {
     fn n_committed_columns(&self) -> usize {
         set::N
     }
-    fn count_columns(&self) -> &'static [usize] {
-        use set::*;
-        &[R, RBC]
+    fn count_columns(&self) -> Range<usize> {
+        set::R..set::RBC + 1
     }
     fn flushes(&self, f: &mut FlushBuilder) {
         use set::*;
         f.state_step(PC, FP);
-        // The immediate's two limbs occupy bytecode operand slots o2, o3
-        // (matching layout::operands for SET).
+        // The immediate's two limbs occupy bytecode operand slots o2, o3 (as `cpu::layout::bytecode_columns` lays
+        // out a SET).
         f.bytecode(
             PC,
             RBC,
@@ -582,12 +566,12 @@ mod deref {
     pub const O3: usize = 4;
     pub const FPC: usize = 5;
     pub const FFP: usize = 6;
-    // The pointer word is a SINGLE K-lane, so its extension limbs are provably
-    // zero: they are NOT committed, and the memory read carries literal zeros
+    // The pointer word is a single K-lane, so its extension limbs are provably
+    // zero: they are not committed, and the memory read carries literal zeros
     // there. Being a column is what puts it in K, and the pointer-relative
-    // address it forms on the bus, `p·obe`, is a K product for the same reason.
+    // address it forms on the bus, `p·o2`, is a K product for the same reason.
     pub const P: usize = 7;
-    // The local cell, a full 128-bit word. The store target is DERIVED from it,
+    // The local cell, a full 128-bit word. The store target is derived from it,
     // the two flags, `pc` and `fp`, so it is no column.
     pub const V3_LO: usize = 8;
     pub const V3_HI: usize = 9;
@@ -616,16 +600,15 @@ impl Table for DerefTable {
     fn n_committed_columns(&self) -> usize {
         deref::N
     }
-    fn count_columns(&self) -> &'static [usize] {
-        use deref::*;
-        &[R1, R2, R3, RBC]
+    fn count_columns(&self) -> Range<usize> {
+        deref::R1..deref::RBC + 1
     }
     fn flushes(&self, f: &mut FlushBuilder) {
         use deref::*;
         f.state_step(PC, FP);
         f.bytecode(PC, RBC, OP_DEREF, &[Col(O1), Col(O2), Col(O3), Col(FPC), Col(FFP)]);
         // The pointer cell and the local cell are frame-relative; the store target
-        // is pointer-relative, so its address is `p·obe`, and its value is the
+        // is pointer-relative, so its address is `p·o2`, and its value is the
         // flag-selected source rather than a column.
         f.memory_k(Prod(FP, O1, 0), R1, P);
         f.memory_coords(Prod(P, O2, 0), R2, deref_store());
@@ -647,8 +630,6 @@ impl Table for DerefTable {
                 .all(|r| ctx.mem.word((r.fp + ins(r).0) as usize).as_base().is_some()),
             "deref pointer must be K-valued"
         );
-        // The three offsets, the two mode flags, the pointer lane and the local
-        // word all follow from ONE bytecode decode.
         ctx.cols(out, rows, O1, |r| {
             let (o1, o2, o3, mode) = ins(r);
             let v3 = ctx.limbs(r.fp + o3);
@@ -679,7 +660,7 @@ mod jump {
     pub const OD: usize = 3;
     pub const OF: usize = 4;
     // The condition, destination and frame words are all K-valued, so each is a
-    // SINGLE lane read through `memory_k`: bus balance forces the stored words
+    // single lane read through `memory_k`: bus balance forces the stored words
     // into K, exactly as for the DEREF pointer. A guest branches on g-powers,
     // never on an arbitrary word: `assert a != b` takes an inverse hint instead
     // of a branch (§sec:prog-div-ne).
@@ -702,9 +683,8 @@ impl Table for JumpTable {
     fn n_committed_columns(&self) -> usize {
         jump::N
     }
-    fn count_columns(&self) -> &'static [usize] {
-        use jump::*;
-        &[RC, RD, RF, RBC]
+    fn count_columns(&self) -> Range<usize> {
+        jump::RC..jump::RBC + 1
     }
     fn n_constraints(&self) -> usize {
         2 // the two indicator identities; the selections ride the state push
@@ -729,7 +709,7 @@ impl Table for JumpTable {
     }
     fn flushes(&self, f: &mut FlushBuilder) {
         use jump::*;
-        // The successor state is DERIVED: `b·d + (b+1)·g·pc` and `b·f + (b+1)·fp`,
+        // The successor state is derived: `b·d + (b+1)·g·pc` and `b·f + (b+1)·fp`,
         // each degree 2 in K columns, so neither successor is committed. Written
         // out in characteristic 2 as `b·d + b·(g·pc) + g·pc`.
         f.state_derived(
@@ -763,8 +743,7 @@ impl Table for JumpTable {
         };
         ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
         ctx.col(out, rows, FP, |r| ctx.g_at(r.fp));
-        // The three offsets and the three cells they name come out of ONE decode.
-        // Those cells are K-valued on every row, taken or not (`cpu::execute`
+        // The three cells the offsets name are K-valued on every row, taken or not (`cpu::execute`
         // rejects anything else), so each is one lane and the memory flush carries
         // literal zeros above it.
         ctx.cols(out, rows, OC, |r| {
@@ -802,14 +781,14 @@ impl Table for JumpTable {
 /// consecutive runs based at `fp·o_T`, `fp·o_C` and `fp·o_O`. No address is committed: each rides
 /// the bus as the product `fp·o_X·g^k` (§sec:m3). The permutation relating output lanes to input
 /// lanes carries no table constraint either: it is proven by the Keccak reduction over
-/// `q_keccak` (§keccak), which leaves this table with no identity of its own.
+/// `q_keccak` (§annex:keccak), which leaves this table with no identity of its own.
 ///
 /// The cells read and written hold the lanes in the layout their flag names
 /// ([`crate::keccak::cell_lanes`]), the flags bound by the bytecode read, so a cell's limb is the
 /// form `a + flag·(a + b)` of its lane in either layout, of degree two. The one limb of a read
 /// cell that holds no lane is the column `FREE`; written, it is zero. The fifty lanes are
 /// value columns, listed in `n_committed_columns` (they need a local index for the flushes), but
-/// `cpu` treats them as VIRTUAL ([`crate::cpu::keccak_value`]): the input lanes are `q_keccak`'s
+/// `cpu` treats them as virtual ([`crate::cpu::keccak_value`]): the input lanes are `q_keccak`'s
 /// slots, which hold those words, so their claims route there and the fill leaves them alone,
 /// and the output lanes' claims are the Keccak reduction's claim on the output.
 struct KeccakTable;
@@ -853,18 +832,8 @@ impl Table for KeccakTable {
     fn n_committed_columns(&self) -> usize {
         keccakt::N
     }
-    fn count_columns(&self) -> &'static [usize] {
-        const COUNTS: [usize; crate::keccak::ROW_CELLS + 1] = {
-            let mut c = [0usize; crate::keccak::ROW_CELLS + 1];
-            let mut i = 0;
-            while i < crate::keccak::ROW_CELLS {
-                c[i] = keccakt::R0 + i;
-                i += 1;
-            }
-            c[crate::keccak::ROW_CELLS] = keccakt::RBC;
-            c
-        };
-        &COUNTS
+    fn count_columns(&self) -> Range<usize> {
+        keccakt::R0..keccakt::RBC + 1
     }
     /// Zeros, but for the output lanes: a padding row, like the Keccak reduction's padding
     /// steps, permutes zeros, in the even layout.
@@ -957,6 +926,16 @@ impl Table for KeccakTable {
 pub(crate) const MIN_COMMITTED_COLUMNS: usize = set::N;
 const _: () = assert!(set::N <= arith::N && set::N <= deref::N && set::N <= jump::N && set::N <= keccakt::N);
 
+// Each table's columns are the verifier's, in number, and the KECCAK value lanes and read counts where the verifier's
+// spare slots expect them.
+const _: () = {
+    use verifier::layout::{KECCAK_CNT, KECCAK_IN, KECCAK_OUT, OP_DEREF, OP_JUMP, OP_MUL, OP_SET, OP_XOR};
+    assert!(arith::N == TABLE_WIDTHS[OP_XOR] && arith::N == TABLE_WIDTHS[OP_MUL]);
+    assert!(set::N == TABLE_WIDTHS[OP_SET] && deref::N == TABLE_WIDTHS[OP_DEREF] && jump::N == TABLE_WIDTHS[OP_JUMP]);
+    assert!(keccakt::N == TABLE_WIDTHS[KECCAK_TABLE]);
+    assert!(keccakt::V_IN == KECCAK_IN && keccakt::V_OUT == KECCAK_OUT && keccakt::R0 == KECCAK_CNT);
+};
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -964,7 +943,15 @@ mod tests {
 
     const C: F128 = F128::new(0x0123_4567_89ab_cdef, 0xfeed_face_dead_beef);
 
-    /// The hand-unrolled tower product IS `E`'s multiplication, lane by lane. `MUL`'s
+    /// One lane of the tower product, in the columns' own field.
+    fn tower_lane(lane: usize, x: [F64; 2], y: [F64; 2]) -> F64 {
+        TOWER_LANES[lane]
+            .iter()
+            .map(|&(j, k, e)| g_pow(e as usize) * x[j] * y[k])
+            .sum()
+    }
+
+    /// The hand-unrolled tower product is `E`'s multiplication, lane by lane. `MUL`'s
     /// result coordinate is written out from [`TOWER_LANES`] and rides the bus, where
     /// nothing checks it against the field at run time, so pin the unrolling here.
     #[test]

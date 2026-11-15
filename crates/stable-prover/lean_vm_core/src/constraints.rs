@@ -83,13 +83,13 @@ impl Form {
 
 /// One table's columns' evaluations at the sumcheck's point `χ_{<τ_j}`.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Claims {
+pub(crate) struct Claims {
     pub chi: Vec<F128>,
     pub evals: Vec<F128>,
 }
 
 /// One table in the batch.
-pub struct Air<'a> {
+pub(crate) struct Air<'a> {
     pub tau: usize,
     /// Its committed columns, `2^tau` values each, read in place.
     pub cols: &'a [&'a [F64]],
@@ -113,7 +113,7 @@ pub fn xi_offsets(n_constraints: impl Iterator<Item = usize>) -> Vec<usize> {
 
 /// Prove that every table's summand sums to its `sigma`, as one sumcheck over `τ_max` variables, the `eq` point
 /// `zeta` (the bus GKR's `ζ`). Returns each table's column claims, in input order.
-pub fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Vec<Claims> {
+pub(crate) fn prove(airs: &[Air<'_>], zeta: &[F128], ps: &mut ProverState) -> Vec<Claims> {
     let n = airs.iter().map(|a| a.tau).max().unwrap_or(0);
     debug_assert!(zeta.len() >= n, "the eq point must cover the tallest table");
     let mut tables: Vec<Table> = airs

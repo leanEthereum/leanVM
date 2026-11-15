@@ -1,8 +1,8 @@
 //! Proof-level properties of the VM: that its channels carry everything, and that a malformed input is an error rather than a panic.
 
 use crate::common::compile;
+use fiat_shamir::compress;
 use lean_vm_core::cpu::{Proof, ProveError, prove, verify};
-use lean_vm_core::vmhash::compress;
 use primitives::field::{F64, F128};
 use zkdsl_compiler::parse;
 

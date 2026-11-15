@@ -16,6 +16,7 @@ use crate::gkr::{self, Ones};
 use fiat_shamir::transcript::ProverState;
 use primitives::field::{Acc8, F64, F64x8, F128, F128x8, g_pow, g_pow32_by_lookup, index_mle, mul_by_g};
 use primitives::multilinear::{eq_eval, interp};
+use verifier::layout::{GLOBAL_COLUMN_BASES, TABLE_WIDTHS};
 
 /// One tuple coordinate as a function of the block's row `z`.
 #[derive(Clone, Debug)]
@@ -49,16 +50,19 @@ pub struct Block {
     pub rows: usize,
     pub coords: Vec<Coord>,
     pub padding: Vec<F64>,
+    /// The table whose flush this is, by index; `None` for a boundary block.
+    pub owner: Option<usize>,
 }
 
 impl Block {
-    /// A block every row of which flushes.
+    /// A boundary block, every row of which flushes.
     pub fn full(kappa: usize, coords: Vec<Coord>) -> Self {
         Self {
             kappa,
             rows: 1 << kappa,
             coords,
             padding: Vec::new(),
+            owner: None,
         }
     }
 }
@@ -77,14 +81,14 @@ pub(crate) fn coord_at(c: &Coord, row: &[F64]) -> F64 {
 
 /// Bits indexing a bus tuple's coordinates: its `2^4` slots are those of the bytecode encoding (§sec:m3,
 /// §sec:e2e-bc). A tuple is fingerprinted as `Σ_x α_x·σ_x`, one independent weight per slot (§sec:gp).
-pub const N_TUPLE_BITS: usize = 4;
+pub const N_TUPLE_BITS: usize = verifier::layout::BUS_BITS;
 
 /// The trees the bus GKR batches, in its order: push, pull, then the count tree.
-pub const N_BUS_TREES: usize = 3;
+pub const N_BUS_TREES: usize = verifier::N_BUS_TREES;
 
 /// Selector bits of the stacked bytecode polynomial: the thirteen public encoding columns (opcode and twelve operand
 /// slots) stack along `2^N_BYTECODE_SELECTORS` slots, a column's slot being its bus tuple coordinate.
-pub const N_BYTECODE_SELECTORS: usize = 4;
+pub const N_BYTECODE_SELECTORS: usize = N_TUPLE_BITS;
 
 /// Slot of the first public column: the bytecode block leads with three non-public coordinates (tag, index, read
 /// count).
@@ -115,7 +119,7 @@ pub fn layout(blocks: &[Block]) -> Layout {
 
 /// An evaluation claim on a committed column, settled by the PCS opening.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ColumnClaim {
+pub(crate) struct ColumnClaim {
     pub col: usize,
     pub point: Vec<F128>,
     pub value: F128,
@@ -141,19 +145,12 @@ struct Tree<'a> {
     beta: F128,
 }
 
-/// Prove the bus balances (§sec:gp to §sec:leafstack). `owners[tree][block]` is the table that owns a block and its
-/// first column, `tables[t]` table `t`'s first column and column count.
+/// Prove the bus balances (§sec:gp to §sec:leafstack).
 ///
 /// The stream: the [`bus_grinding_bits`] grind and the fingerprint `(α⃗, β)`; the batched GKR
 /// ([`gkr::prove_products`]); the boundary blocks' fresh column values; the bytecode's share
 /// ([`prove_bytecode_share`]).
-pub(crate) fn prove_balance(
-    blocks: [&[Block]; N_BUS_TREES],
-    cols: &[&[F64]],
-    owners: &[Vec<Option<(usize, usize)>>; N_BUS_TREES],
-    tables: &[(usize, usize)],
-    ps: &mut ProverState,
-) -> BusProof {
+pub(crate) fn prove_balance(blocks: [&[Block]; N_BUS_TREES], cols: &[&[F64]], ps: &mut ProverState) -> BusProof {
     let mut layouts = blocks.map(layout);
     let mu = layouts[0].mu;
     assert_eq!(
@@ -190,14 +187,14 @@ pub(crate) fn prove_balance(
     let zeta = products.point;
 
     let mut claims = Vec::new();
-    let mut forms = std::array::from_fn(|_| tables.iter().map(|&(_, n)| Form::new(n)).collect::<Vec<_>>());
+    let mut forms = std::array::from_fn(|_| TABLE_WIDTHS.map(Form::new).to_vec());
     let boundary = crate::stage!("Bus decompose", || {
         let boundary: [F128; N_BUS_TREES] =
-            std::array::from_fn(|s| decompose(&trees[s], cols, &zeta, &owners[s], &mut forms[s], &mut claims, ps));
+            std::array::from_fn(|s| decompose(&trees[s], cols, &zeta, &mut forms[s], &mut claims, ps));
         prove_bytecode_share(blocks[0], &zeta, &alpha, ps);
         boundary
     });
-    let sigmas = crate::stage!("Bus tables", || table_sums(cols, tables, &forms, &zeta));
+    let sigmas = crate::stage!("Bus tables", || table_sums(cols, &forms, &zeta));
     for s in 0..N_BUS_TREES {
         // Completeness only: the verifier derives the tables' share rather than checking it.
         debug_assert_eq!(
@@ -353,7 +350,6 @@ fn decompose(
     tree: &Tree,
     cols: &[&[F64]],
     zeta: &[F128],
-    owners: &[Option<(usize, usize)>],
     forms: &mut [Form],
     claims: &mut Vec<ColumnClaim>,
     ps: &mut ProverState,
@@ -362,7 +358,7 @@ fn decompose(
     assert_eq!(zeta.len(), tree.layout.mu);
     let mut share = F128::ZERO;
     let mut used = F128::ZERO;
-    for ((block, &offset), owner) in tree.blocks.iter().zip(&tree.layout.offsets).zip(owners) {
+    for (block, &offset) in tree.blocks.iter().zip(&tree.layout.offsets) {
         let (zeta_lo, zeta_hi) = zeta.split_at(block.kappa);
         let sel = offset >> block.kappa;
         let sel_bits: Vec<F128> = (0..zeta_hi.len())
@@ -371,8 +367,8 @@ fn decompose(
         let eq_sel = eq_eval(&sel_bits, zeta_hi);
         used += eq_sel;
 
-        if let Some((t, base)) = *owner {
-            let form = &mut forms[t];
+        if let Some(t) = block.owner {
+            let (form, base) = (&mut forms[t], GLOBAL_COLUMN_BASES[t]);
             form.constant += eq_sel * beta;
             for (c, &w) in block.coords.iter().zip(alpha) {
                 add_to_form(c, eq_sel * w, base, form);
@@ -502,15 +498,11 @@ fn prove_bytecode_share(push: &[Block], zeta: &[F128], alpha: &[F128], ps: &mut 
 /// What each tree's form of each table sums to against `eq(ζ_{<τ}, ·)`. A form's linear part needs the table's
 /// columns at `ζ_{<τ}`, its products `Σ_z eq·col_a·col_b` for each pair, all of a table's in one pass, a pair named
 /// by several forms (an address flushed by both sides) once.
-fn table_sums(
-    cols: &[&[F64]],
-    tables: &[(usize, usize)],
-    forms: &[Vec<Form>; N_BUS_TREES],
-    zeta: &[F128],
-) -> [Vec<F128>; N_BUS_TREES] {
-    let per_table: Vec<[F128; N_BUS_TREES]> = (tables.iter().enumerate())
-        .map(|(t, &(base, n_cols))| {
-            let columns = &cols[base..base + n_cols];
+fn table_sums(cols: &[&[F64]], forms: &[Vec<Form>; N_BUS_TREES], zeta: &[F128]) -> [Vec<F128>; N_BUS_TREES] {
+    let per_table: Vec<[F128; N_BUS_TREES]> = (0..verifier::layout::N_TABLES)
+        .map(|t| {
+            let n_cols = TABLE_WIDTHS[t];
+            let columns = &cols[GLOBAL_COLUMN_BASES[t]..][..n_cols];
             let mut pairs: Vec<(usize, usize)> = (forms.iter())
                 .flat_map(|tree| tree[t].prods.iter().map(|&(a, b, _)| (a, b)))
                 .collect();
@@ -580,6 +572,7 @@ mod tests {
             rows,
             coords,
             padding: Vec::new(),
+            owner: None,
         };
         use Coord::*;
         let wide = |count: Coord| {

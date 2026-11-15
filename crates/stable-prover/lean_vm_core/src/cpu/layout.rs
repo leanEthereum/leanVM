@@ -1,109 +1,53 @@
 //! The public structure of a run, which the verifier rebuilds from the program, the announced sizes and the public
-//! input: the column schema, the bus blocks and the stack's placements. And the prover's witness build.
+//! input: the bus blocks and the stack's placements, over the verifier's column numbering. And the prover's witness
+//! build.
 
 use super::*;
 use std::sync::Arc;
+use verifier::layout::{GLOBAL_COLUMN_BASES, TABLE_WIDTHS};
 
-// The shared committed columns, `0..N_SHARED`. The program is public: it rides the bytecode blocks as
-// `Coord::Public`, and only its execution counts are committed.
+// The shared committed columns, `0..N_SHARED`, the verifier's global columns. The program is public: it rides the
+// bytecode blocks as `Coord::Public`, and only its execution counts are committed.
 /// The memory image's low limbs, a word a cell.
-pub const MEM_LO: usize = 0;
+pub const MEM_LO: usize = verifier::layout::MEMORY_0;
 /// The memory image's high limbs.
-pub const MEM_HI: usize = 1;
+pub const MEM_HI: usize = verifier::layout::MEMORY_1;
 /// Each cell's final access count, `g^{A[i]}`.
-pub(crate) const MFCNT: usize = 2;
+pub(crate) const MFCNT: usize = verifier::layout::MEMORY_FINAL_COUNTERS;
 /// Each pc's execution count, `g^{A[pc]}`.
-pub(crate) const BFCNT: usize = 3;
+pub(crate) const BFCNT: usize = verifier::layout::BYTECODE_FINAL_COUNTERS;
 /// The Keccak reduction's committed states `q_keccak`, `2^(SLOT_LOG + τ)` words for `2^τ` steps: the one copy of the
 /// `KECCAK` input lanes, whose columns are virtual ([`keccak_value`]).
-pub const QKECCAK: usize = 4;
-pub(crate) const N_SHARED: usize = 5;
+pub use verifier::layout::QKECCAK;
+pub(crate) const N_SHARED: usize = verifier::layout::NUM_GLOBAL_COLUMNS;
 
-/// Global column indexing: the shared columns occupy `0..N_SHARED`, then each
-/// table `t` (in [`tables::tables`] order) owns the contiguous block `[base[t],
-/// base[t] + n_committed_columns_t)`. Both prover and verifier derive this identically
-/// from the table set, so every column claim lines up.
-pub struct Schema {
-    pub base: [usize; tables::N_TABLES],
-    pub n: usize,
-}
+/// Every column, the shared ones then each table's, at [`GLOBAL_COLUMN_BASES`].
+pub(crate) const N_COLUMNS: usize = GLOBAL_COLUMN_BASES[tables::N_TABLES - 1] + TABLE_WIDTHS[tables::N_TABLES - 1];
 
-/// The schema is a pure function of the fixed table set, so compute it once.
-pub fn schema() -> &'static Schema {
-    static SCHEMA: std::sync::OnceLock<Schema> = std::sync::OnceLock::new();
-    SCHEMA.get_or_init(|| {
-        let mut base = [0usize; tables::N_TABLES];
-        let mut next = N_SHARED;
-        for (t, table) in tables::tables().iter().enumerate() {
-            base[t] = next;
-            next += table.n_committed_columns();
-        }
-        Schema { base, n: next }
-    })
-}
-
-/// A KECCAK column that `q_keccak` carries. Both kinds are VIRTUAL, with no placement of
-/// their own.
+/// A KECCAK column that `q_keccak` carries. Both kinds are virtual, with no placement of their own.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum KeccakLane {
-    /// A column whose words ARE `q_keccak`'s slot `s`, so a claim on it is a claim on that
-    /// slot: an input lane (slot = lane), or one of the columns riding the spare slots.
+    /// A column whose words are `q_keccak`'s slot `s`, so a claim on it is a claim on that slot: an input lane
+    /// (slot = lane), or one of the columns riding the spare slots ([`verifier::layout::qkeccak_slot`]).
     Slot(usize),
     /// Output lane `l`, whose claim is the Keccak reduction's claim on the permutation's output.
     Output(usize),
 }
 
-/// Slots of `q_keccak` no committed state occupies: the lanes of the states a step commits,
-/// `crate::keccak::SLOTS`, rounded up to the power of two the slot index needs. The reduction
-/// weighs nothing there, so they carry the KECCAK table's own first columns instead of zeros,
-/// which is `QKECCAK_SPARE` columns the stack does not have to hold twice.
-pub const QKECCAK_SPARE: usize = (1 << crate::keccak::SLOT_LOG) - crate::keccak::SLOTS;
-
-/// The local KECCAK column riding spare slot `k`: its committed columns in local order, which
-/// are the ones before the value lanes, then the read counts after them.
-const fn spare_local(k: usize) -> usize {
-    if k < tables::keccakt::V_IN {
-        k
-    } else {
-        tables::keccakt::R0 + (k - tables::keccakt::V_IN)
-    }
-}
-const _: () = {
-    let mut k = 0;
-    while k < QKECCAK_SPARE {
-        let local = spare_local(k);
-        // Increasing, so distinct: two spare slots sharing a column would leave the other's
-        // words unwritten. And never a value lane, which q_keccak already holds.
-        assert!(
-            k == 0 || spare_local(k - 1) < local,
-            "the spare columns must be distinct"
-        );
-        assert!(
-            local < tables::keccakt::V_IN || (local >= tables::keccakt::R0 && local < tables::keccakt::N),
-            "the KECCAK table has fewer committed columns than q_keccak has spare slots"
-        );
-        k += 1;
-    }
-};
-
 /// What `q_keccak` holds for the global column `col`, if it holds anything: a value lane of
 /// the KECCAK table, or one of its columns riding a spare slot.
 pub fn keccak_value(col: usize) -> Option<KeccakLane> {
-    use primitives::hash::STATE_LANES;
-    let local = col.checked_sub(schema().base[tables::KECCAK_TABLE])?;
-    if local >= tables::keccakt::N {
-        return None;
+    if let Some(slot) = verifier::layout::qkeccak_slot(col) {
+        return Some(KeccakLane::Slot(slot));
     }
-    if let Some(k) = (0..QKECCAK_SPARE).find(|&k| spare_local(k) == local) {
-        return Some(KeccakLane::Slot(crate::keccak::SLOTS + k));
-    }
-    let lane = local.checked_sub(tables::keccakt::V_IN)?;
-    match lane {
-        0..STATE_LANES => Some(KeccakLane::Slot(lane)),
-        _ if lane < 2 * STATE_LANES => Some(KeccakLane::Output(lane - STATE_LANES)),
-        _ => None,
-    }
+    let lane = col.checked_sub(GLOBAL_COLUMN_BASES[tables::KECCAK_TABLE] + tables::keccakt::V_OUT)?;
+    (lane < primitives::hash::STATE_LANES).then_some(KeccakLane::Output(lane))
 }
+// `q_keccak`'s slots as the verifier counts them: the committed states', then a spare one per riding column.
+const _: () = {
+    use verifier::layout::{QKECCAK_SLOTS, QKECCAK_SPARE};
+    assert!(crate::keccak::SLOTS == QKECCAK_SLOTS && 1 << crate::keccak::SLOT_LOG == QKECCAK_SLOTS + QKECCAK_SPARE);
+};
 
 /// Offset a table's local flush coordinates to global column indices.
 fn offset_coords(base: usize, coords: Vec<Coord>) -> Vec<Coord> {
@@ -120,10 +64,8 @@ fn offset_coord(base: usize, c: Coord) -> Coord {
     }
 }
 
-/// The public proof structure: everything the verifier reconstructs from the
-/// program, the announced sizes, and the public input, with no witness values. The
-/// flush blocks reference columns by INDEX (see [`crate::leaf::Coord`]), so they
-/// are pure public structure.
+/// The public proof structure: everything the verifier reconstructs from the program, the announced sizes, and the
+/// public input, with no witness values. The flush blocks reference columns by index ([`crate::leaf::Coord`]).
 pub struct Layout {
     pub push: Vec<Block>,
     pub pull: Vec<Block>,
@@ -192,35 +134,25 @@ impl Witness {
     }
 }
 
-/// The committed columns' kappa SOURCES, for the recursion guest's
-/// in-circuit certification of the stacked size m = max(log2_ceil(sum of
-/// 2^kappa), MIN_STACKED_LOG). Per committed column: `Some((source, adj))` with
-/// kappa = value(source) + adj, where source 0 is the constant 0 (kappa =
-/// adj; used for the fixed-size columns and the program bytecode length,
-/// which the caller passes as `log_bytecode`), source 1 is log_mem, and
-/// source 2 + t is tau_t. `None` = virtual (never committed). `col_kappas`
-/// is derived from this, so the two cannot drift apart.
+/// The committed columns' kappa sources, for the recursion guest's in-circuit certification of the stacked size
+/// `m = max(log2_ceil(Σ 2^kappa), MIN_STACKED_LOG)`. Per committed column `Some((source, adj))`, with
+/// `kappa = value(source) + adj`: source 0 is the constant 0 (the bytecode's count column takes
+/// `adj = log_bytecode`), source 1 is `log_mem`, and source `2 + t` is `tau_t`. `None` marks a virtual column, never
+/// committed. `col_kappas` is derived from this, so the two cannot drift apart.
 pub fn col_kappa_sources(log_bytecode: usize) -> Vec<Option<(usize, usize)>> {
-    let sch = schema();
-    let mut k = vec![Some((0usize, 0usize)); sch.n];
+    let mut k = vec![Some((0usize, 0usize)); N_COLUMNS];
     k[MEM_LO] = Some((1, 0));
     k[MEM_HI] = Some((1, 0));
     k[MFCNT] = Some((1, 0));
     k[BFCNT] = Some((0, log_bytecode));
-    // q_keccak is `2^(SLOT_LOG + n_steps_log)` F64 words, and tau_5 IS
-    // n_steps_log (the announced-size certification uses the same floor), so this
-    // reproduces `qkeccak_kappa`.
+    // `q_keccak` is `2^(SLOT_LOG + n_steps_log)` words, and the KECCAK table is `2^n_steps_log` rows.
     k[QKECCAK] = Some((2 + tables::KECCAK_TABLE, crate::keccak::SLOT_LOG));
-    for (t, table) in tables::tables().iter().enumerate() {
-        let base = sch.base[t];
-        k[base..base + table.n_committed_columns()].fill(Some((2 + t, 0)));
+    for t in 0..tables::N_TABLES {
+        let base = GLOBAL_COLUMN_BASES[t];
+        k[base..base + TABLE_WIDTHS[t]].fill(Some((2 + t, 0)));
     }
-    // The columns `q_keccak` carries are ALWAYS virtual: it already holds the input words at
-    // fixed slots and the KECCAK columns riding its spare ones, and the output words are the
-    // reduction's to prove. A slot column's bus claims route directly to the matching
-    // `q_keccak` slot evaluation (`slot_claims`), the output lanes' to the reduction's output
-    // claim, which binds both to the proven witness with no separate value-binding
-    // sub-protocol.
+    // The columns `q_keccak` carries are virtual: it holds the input lanes and the KECCAK columns riding its spare
+    // slots, whose claims route to those slots (`slot_claims`), and the output lanes are the reduction's to prove.
     for (col, k) in k.iter_mut().enumerate() {
         if keccak_value(col).is_some() {
             *k = None;
@@ -229,12 +161,8 @@ pub fn col_kappa_sources(log_bytecode: usize) -> Vec<Option<(usize, usize)>> {
     k
 }
 
-/// The bus flush blocks' kappa SOURCES, flattened in side order (push, pull,
-/// count) exactly as the blocks are constructed below: per block
-/// `(source, adj)` with kappa = value(source) + adj, source 0 = the constant
-/// 0, 1 = log_mem, 2 + t = tau_t. For the recursion guest's in-circuit pin
-/// of every hinted block kappa. Keep in lockstep with the block
-/// construction in [`fn@layout`].
+/// The bus blocks' kappa sources, as [`col_kappa_sources`] numbers them, flattened in side order (push, pull,
+/// count) as [`layout_of`] builds the blocks: for the recursion guest's in-circuit pin of every hinted block kappa.
 pub fn block_kappa_sources(log_bytecode: usize) -> Vec<(usize, usize)> {
     let mut push = vec![(0, 0), (1, 0), (0, log_bytecode)];
     let mut pull = vec![(0, 0), (1, 0), (0, log_bytecode)];
@@ -251,11 +179,8 @@ pub fn block_kappa_sources(log_bytecode: usize) -> Vec<(usize, usize)> {
     push
 }
 
-/// Column → log-size (`kappa`) map, derived from [`col_kappa_sources`] by
-/// substituting the announced sizes: source 0 is the constant 0, source 1 is
-/// `log_mem`, source `2 + t` is `tau_t`. `None` marks a **virtual**
-/// (uncommitted) column. Depends only on the public sizes, so the verifier can
-/// reconstruct the placements.
+/// Each column's log size (`kappa`): [`col_kappa_sources`] at the announced sizes, `None` for a virtual column.
+/// Depends only on the public sizes, so the verifier can reconstruct the placements.
 fn col_kappas(log_mem: usize, log_bytecode: usize, taus: [usize; tables::N_TABLES]) -> Vec<Option<usize>> {
     let mut values = vec![0usize, log_mem];
     values.extend(taus);
@@ -268,10 +193,10 @@ fn col_kappas(log_mem: usize, log_bytecode: usize, taus: [usize; tables::N_TABLE
 /// Operand slots of a bytecode tuple, after the opcode.
 pub(crate) const BYTECODE_OPERANDS: usize = 12;
 
-/// The PUBLIC bytecode columns of a program.
+/// The public bytecode columns of a program.
 pub type BytecodeColumns = [Arc<Vec<F64>>; 1 + BYTECODE_OPERANDS];
 
-/// The PUBLIC bytecode columns over the program cube, in bytecode-slot order: the opcode, then
+/// The public bytecode columns over the program cube, in bytecode-slot order: the opcode, then
 /// the operand slots. The program is not committed, so these ride the seed/finalize blocks as
 /// `Coord::Public` and stack into the polynomial [`bytecode_table`] returns.
 pub(crate) fn bytecode_columns(prog: &[Op]) -> BytecodeColumns {
@@ -373,16 +298,10 @@ pub(crate) fn stack_columns(columns: &BytecodeColumns) -> Vec<F64> {
     table
 }
 
-/// Build the public [`Layout`] from the program, the memory log-size `log_mem`, the
-/// instruction tables' row counts `rows`, and the public input `pi`. The flush blocks
-/// reference columns only by INDEX and the program only through its public columns, so
-/// this needs no committed witness: both prover and verifier reconstruct exactly the
+/// The public [`Layout`] of a program's public columns `prog_cols`, the memory log-size `log_mem`, the instruction
+/// tables' row counts `rows`, and the public input `pi`. The flush blocks reference columns only by index and the
+/// program only through its public columns, so this needs no committed witness: prover and verifier reconstruct the
 /// same structure.
-pub fn layout(prog: &[Op], log_mem: usize, rows: [usize; tables::N_TABLES], pi: [F128; 2]) -> Layout {
-    layout_of(&bytecode_columns(prog), log_mem, rows, pi)
-}
-
-/// [`layout()`] of a program's columns.
 pub fn layout_of(
     prog_cols: &BytecodeColumns,
     log_mem: usize,
@@ -439,22 +358,22 @@ pub fn layout_of(
 
     // Per-table blocks: each table declares its flushes and read-count columns in
     // local indices; offset them to the table's global columns.
-    let sch = schema();
     let mut count_blocks: Vec<Block> = Vec::new();
     for (t, table) in tables::tables().iter().enumerate() {
-        let base = sch.base[t];
+        let base = GLOBAL_COLUMN_BASES[t];
         let padding = table.padding();
         let table_block = |coords: Vec<Coord>| Block {
             kappa: taus[t],
             rows: rows[t],
             padding: coords.iter().map(|c| crate::leaf::coord_at(c, &padding)).collect(),
             coords: offset_coords(base, coords),
+            owner: Some(t),
         };
         let mut fb = FlushBuilder::new();
         table.flushes(&mut fb);
         push.extend(fb.push.into_iter().map(table_block));
         pull.extend(fb.pull.into_iter().map(table_block));
-        count_blocks.extend(table.count_columns().iter().map(|&c| table_block(vec![Col(c)])));
+        count_blocks.extend(table.count_columns().map(|c| table_block(vec![Col(c)])));
     }
 
     let (placements, shape) = witness::placements_of(&col_kappas(log_mem, log_bytecode, taus));
@@ -486,7 +405,6 @@ impl Program {
     /// the layout `l` fixes.
     pub(crate) fn build(&self, exec: &Execution, l: Layout) -> Witness {
         let (tr, cells) = (&exec.trace, exec.mem.len());
-        let sch = schema();
         // Every pc, frame base, operand and access count a fill writes is a `g`-power below this.
         let gpow = primitives::field::g_powers(exec.mem_used.max(self.prog.len()).max(tr.counts));
 
@@ -494,7 +412,7 @@ impl Program {
         let mut windows = witness::split_stack(&mut q, &l.placements);
         // An output lane is in neither the stack nor `q_keccak`, but the bus reads it: it has a buffer of its own.
         let steps = 1 << l.taus[tables::KECCAK_TABLE];
-        let mut virt: Vec<(usize, Vec<F64>)> = (0..sch.n)
+        let mut virt: Vec<(usize, Vec<F64>)> = (0..N_COLUMNS)
             .filter(|&i| matches!(keccak_value(i), Some(KeccakLane::Output(_))))
             .map(|i| (i, vec![F64::ZERO; steps]))
             .collect();
@@ -505,12 +423,12 @@ impl Program {
         let (states, spare) = std::mem::take(&mut windows[QKECCAK]).split_at_mut(crate::keccak::SLOTS * steps);
         windows[QKECCAK] = states;
         for (k, window) in spare.chunks_exact_mut(steps).enumerate() {
-            windows[sch.base[tables::KECCAK_TABLE] + spare_local(k)] = window;
+            windows[GLOBAL_COLUMN_BASES[tables::KECCAK_TABLE] + verifier::layout::spare_local(k)] = window;
         }
 
         crate::stage!("Fill columns", || {
             for (t, table) in tables::tables().iter().enumerate() {
-                let (base, n) = (sch.base[t], table.n_committed_columns());
+                let (base, n) = (GLOBAL_COLUMN_BASES[t], TABLE_WIDTHS[t]);
                 let ctx = FillCtx::new(tr, &exec.mem, &gpow, &self.prog, 1 << l.taus[t], table.padding());
                 table.fill(&ctx, &mut windows[base..base + n]);
             }

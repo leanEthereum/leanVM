@@ -874,6 +874,7 @@ version = "0.1.0"
 dependencies = [
  "isa",
  "keccak256",
+ "stable_fiat_shamir",
  "stable_lean_vm_core",
  "stable_parallel",
  "stable_primitives",

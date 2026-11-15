@@ -22,7 +22,7 @@ use primitives::field::{Acc8, F128, F128x8};
 use primitives::multilinear::interp;
 
 /// The leaf claims a batched grand-product proof ends on: every tree's at one shared point.
-pub struct Products {
+pub(crate) struct Products {
     pub point: Vec<F128>,
     pub values: [F128; TREES],
 }
