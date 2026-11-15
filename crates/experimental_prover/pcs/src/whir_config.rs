@@ -785,7 +785,7 @@ impl WhirSecurityConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use primitives::pretty_integer;
+    use isa::pretty_integer;
 
     const STACKED_LOGS: std::ops::RangeInclusive<usize> = verifier::MIN_STACKED_LOG..=verifier::MAX_STACKED_LOG;
 

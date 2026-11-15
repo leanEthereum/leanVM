@@ -20,8 +20,3 @@ test-util = ["dep:rand"]
 
 [dev-dependencies]
 primitives = { package = "experimental_primitives", path = ".", features = ["test-util"] }
-bench.workspace = true
-
-[[bench]]
-name = "hash_throughput"
-harness = false

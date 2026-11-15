@@ -16,6 +16,7 @@ tracing.workspace = true
 [dev-dependencies]
 primitives = { package = "experimental_primitives", path = "../primitives", features = ["test-util"] }
 bench.workspace = true
+isa.workspace = true
 verifier.workspace = true
 
 [[bench]]

@@ -5,10 +5,8 @@ use std::collections::HashMap;
 
 use super::hints::{MAX_CELLS, MAX_INDEX, bounded_dlog};
 use super::*;
-use primitives::{
-    field::{F64, F128},
-    pretty_f64, pretty_integer,
-};
+use isa::{pretty_f64, pretty_integer};
+use primitives::field::{F64, F128};
 
 pub struct Execution {
     pub mem: Memory,     // data memory after the run, write-once (size cells, power of two)

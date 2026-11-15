@@ -217,6 +217,7 @@ dependencies = [
  "experimental_pcs",
  "experimental_primitives",
  "fiat_shamir_prover",
+ "isa",
  "tracing",
  "verifier",
 ]
@@ -250,6 +251,7 @@ dependencies = [
  "experimental_parallel",
  "experimental_primitives",
  "fiat_shamir_prover",
+ "isa",
  "tracing",
  "verifier",
 ]
@@ -258,7 +260,6 @@ dependencies = [
 name = "experimental_primitives"
 version = "0.1.0"
 dependencies = [
- "bench",
  "experimental_parallel",
  "experimental_primitives",
  "fiat_shamir_prover",

@@ -4,11 +4,11 @@
 use std::time::Instant;
 
 use bench::{Metric, Plan, Timing, bencher_json};
+use isa::pretty_integer;
 use pcs::stack_open::StackClaim;
 use pcs::whir::{INITIAL_FOLDING_FACTOR, ProverConfig, ProverData, commit, config_for_rate};
 use primitives::{
     field::{F64, F128},
-    pretty_integer,
     test_rng::Rng,
     transcript::ProverState,
 };

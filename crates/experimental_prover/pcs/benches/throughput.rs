@@ -23,13 +23,13 @@ use std::hint::black_box;
 use std::time::Instant;
 
 use bench::{Plan, Timing, env_usize};
+use isa::pretty_integer;
 use pcs::ood::ood_sample;
 use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim, open_batch_mixed_whir_stacked};
 use pcs::whir::{LOG_INV_RATE_0, commit, config_for_rate, inner_product_base_ext};
 use primitives::{
     field::{F64, F128},
     multilinear::eq_table_serial,
-    pretty_integer,
     test_rng::Rng,
 };
 
