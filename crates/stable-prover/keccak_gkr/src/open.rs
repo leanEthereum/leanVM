@@ -8,12 +8,12 @@
 //! are only ever needed as the one they add up to: the committed polynomial at that point.
 
 use pcs::{RingSwitchOpen, StackClaim};
+use primitives::bit_fold::BitFold;
 use primitives::field::{F64, F128};
 use primitives::multilinear::{eq_table, interp, mle_eval};
 use primitives::transcript::ProverState;
 
 use crate::keccak::{BITS, LANES};
-use crate::kernels::byte_sums;
 use crate::protocol::{Claim, dot};
 use crate::witness::{Shape, transpose64};
 
@@ -60,16 +60,15 @@ fn slot_weights(shape: Shape, claim: &Claim, first: usize, count: usize) -> Vec<
 /// claim puts no weight on are evaluated too: the spare ones past [`Shape::slots`] carry other
 /// columns (§cpu), and the fold that follows must see them.
 ///
-/// The words of 64 packs, bit-transposed, give per `z` a byte per eight packs, whose weighted sum
-/// is a lookup in the subset sums of those packs' weights.
+/// The words of 64 packs, bit-transposed, give per `z` a row of 64 bits, one per pack, whose weighted sum is a
+/// [`BitFold`] of those packs' weights.
 fn slices(shape: Shape, committed: &[F64], point: &[F128]) -> Vec<F128> {
     let n = shape.n();
     let eq = eq_table(point);
     let chunks = eq.len().div_ceil(64);
-    let tables: Vec<[F128; 256]> = parallel::map_collect(8 * chunks, |k| {
-        byte_sums(&std::array::from_fn(|t| {
-            eq.get(8 * k + t).copied().unwrap_or(F128::ZERO)
-        }))
+    let folds: Vec<BitFold> = parallel::map_collect(chunks, |chunk| {
+        let weights: [F128; 64] = std::array::from_fn(|t| eq.get(64 * chunk + t).copied().unwrap_or(F128::ZERO));
+        BitFold::new(&weights)
     });
     let slots: Vec<Vec<F128>> = parallel::map_collect(1 << shape.slot_log(), |slot| {
         let words = &committed[slot * n..][..n];
@@ -80,9 +79,7 @@ fn slices(shape: Shape, committed: &[F64], point: &[F128]) -> Vec<F128> {
                     std::array::from_fn(|t| words.get(16 * (64 * chunk + t) + i).map_or(0, |w| w.0));
                 transpose64(&mut rows);
                 for (out, row) in out.iter_mut().zip(rows) {
-                    for (b, byte) in row.to_le_bytes().into_iter().enumerate() {
-                        *out += tables[8 * chunk + b][byte as usize];
-                    }
+                    *out += folds[chunk].fold_row(&row.to_le_bytes());
                 }
             }
         }

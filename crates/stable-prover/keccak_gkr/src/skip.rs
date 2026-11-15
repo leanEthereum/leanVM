@@ -16,6 +16,7 @@
 //! polynomial in `s` ([`AtS`]), the weight multiplies it in two more, so a block's sums are binary polynomials,
 //! evaluated at `s` once per point.
 
+use primitives::bit_fold::BitFold;
 use primitives::field::lanes::Wide8;
 use primitives::field::{F128, F128Unreduced, clmul8_low, powers};
 use primitives::multilinear::{eq_table, poly_eval};
@@ -23,7 +24,7 @@ use primitives::transcript::ProverState;
 use verifier::PRODUCT_BITS;
 
 use crate::keccak::row_positions;
-use crate::kernels::{PACKS, Run, byte_sums, embed_run, xor};
+use crate::kernels::{PACKS, Run, embed_run, xor};
 use crate::layer::{Layer, Sumcheck};
 use crate::protocol::Claim;
 
@@ -174,10 +175,10 @@ const COEFFS: usize = 192;
 
 /// Field elements as binary polynomials at `s`.
 struct AtS {
-    /// Per bit of an element, a polynomial of degree below 128 whose value at `s` is that bit.
-    unit: Vec<u128>,
-    /// Per byte of a polynomial, the value at `s` of each of its 256 values.
-    bytes: Vec<[F128; 256]>,
+    /// An element's coordinates to the polynomial of degree below 128 whose value at `s` is the element.
+    unit: BitFold,
+    /// A polynomial's coefficients, [`COEFFS`] of them, to its value at `s`.
+    powers: BitFold,
 }
 
 impl AtS {
@@ -198,28 +199,22 @@ impl AtS {
                 }
             }
         }
+        let unit: Vec<F128> = rows.iter().map(|row| F128::from(row.1)).collect();
         Self {
-            unit: rows.iter().map(|row| row.1).collect(),
-            bytes: powers.as_chunks::<8>().0.iter().map(byte_sums).collect(),
+            unit: BitFold::new(&unit),
+            powers: BitFold::new(&powers),
         }
     }
 
     /// The polynomial of degree below 128 whose value at `s` is `w`, its two words as an element's limbs.
     fn poly(&self, w: F128) -> F128 {
-        let w = u128::from(w);
-        F128::from((0..128).filter(|k| w >> k & 1 == 1).fold(0, |p, k| p ^ self.unit[k]))
+        self.unit.fold_row(&u128::from(w).to_le_bytes())
     }
 
     /// `low + x^64 high` at `s`, for the two partial products of a weight's words.
     fn eval(&self, [low, high]: [u128; 2]) -> F128 {
         let words = [low as u64, (low >> 64) as u64 ^ high as u64, (high >> 64) as u64];
-        let mut acc = F128::ZERO;
-        for (w, bytes) in words.iter().zip(self.bytes.as_chunks::<8>().0) {
-            for (b, table) in bytes.iter().enumerate() {
-                acc += table[(w >> (8 * b)) as usize & 0xff];
-            }
-        }
-        acc
+        self.powers.fold_row(words.map(u64::to_le_bytes).as_flattened())
     }
 }
 
