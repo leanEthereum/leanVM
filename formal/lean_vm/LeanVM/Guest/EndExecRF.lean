@@ -432,7 +432,7 @@ theorem tabVals_top (t : TopAt A r K i e j) (hr : r.Ok) {G : V} (hG : G ∈ tabV
   have hq := carryQ_all hr e.I t.inst f e.σ bufs kids hn _ hfi c hcm (by rw [hc1, hc, hname]) G
     (by rw [← hc]; exact hcf)
   rw [hc2] at hq
-  exact hq
+  exact hq.1
 
 /-- **F2 at an honest frame**: the side section puts the loaded group inside the block. -/
 theorem side_top (t : TopAt A r K i e j) (hr : r.Ok) (hW : witOk j w = true) {x : Mode.Res} (hx : sideB j w x = true) :

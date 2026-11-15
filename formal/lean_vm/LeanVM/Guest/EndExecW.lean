@@ -18,7 +18,8 @@ public import LeanVM.Guest.B1.Bits.Tables
 # Facts carried at listed parameters
 
 `CarryQ r J`: at an instance `J` of a callee listed in `Res.carried`, each listed parameter holds
-its fact (`KH`): in `K`, or the base of the exponent tables on the reference memory.
+its fact (`KH`): in `K`, or the base of the exponent tables, their window section included, on the
+reference memory.
 
 `carryQ_all`: at every honest instance, by `Res.insts_down`. A caller passes the facts on at every
 call site (`Res.carry_all`, the check `Res.carryG`): an argument in `K` (`Res.kOf`) is one of the
@@ -45,7 +46,7 @@ open LeanVM.Protocol.Verifier (gen)
 /-- A carried fact of a value, on the reference memory. -/
 def KH (r : Ref) : Kd → E → Prop
   | .inK, x => IsInK x
-  | .tab, x => B1.ExpTables r.img.read x
+  | .tab, x => B1.ExpTables r.img.read x ∧ B1.ExpWinTab r.img.read x
 
 /-- **The carried facts at an instance.** -/
 def CarryQ (r : Ref) (J : Inst) : Prop :=
@@ -240,7 +241,7 @@ theorem pin_sound (hr : r.Ok) {I : Inst} (hI : I ∈ honestInsts coreProgram B2C
       rw [hw] at hw'
       obtain ⟨rfl, -⟩ := Out.ret.inj hw'
       have hrel := Tree.KidsValid.rel σ kids (calls es) hk _ (mem_calls_of_call he) rfl
-      exact ((B1.exponent_tables_holds _ _ _).mp hrel).1
+      exact (B1.exponent_tables_holds _ _ _).mp hrel
 
 /-- **The carried facts pass down a call.** -/
 theorem carryQ_step (hr : r.Ok) :
@@ -332,7 +333,7 @@ theorem nzVal_lce {name : String} {fl : ℕ} {f : Fn} (hfind : coreProgram.find?
     (hps : f.params = [.n 0, .n 1]) (hc : (name, 1, Kd.tab) ∈ carried)
     (hspec : B1.log2_ceil_in_the_exponent_SpecP coreProgram name fl) : NzVal name (.n 0) := by
   intro r hr I hI σ bufs kids hIt
-  have ht := carryQ_all hr I hI name σ bufs kids hIt f hfind _ hc rfl (.n 1) (by rw [hps]; rfl)
+  have ht := (carryQ_all hr I hI name σ bufs kids hIt f hfind _ hc rfl (.n 1) (by rw [hps]; rfl)).1
   obtain ⟨args, rets, hv⟩ := inst_valid' hr hI hIt
   have hrel := Tree.Valid.rel _ hv
   obtain ⟨fn', hf', hpar, -⟩ := hv

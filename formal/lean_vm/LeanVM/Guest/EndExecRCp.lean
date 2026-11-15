@@ -202,7 +202,8 @@ theorem resCp_alignA : ResCert alignA Fn.«certify_placement».modeCert := by
   obtain ⟨-, hb⟩ := LeanVM.Guest.Res.holds_of_valid LeanVM.Guest.Res.fs_pos hv hfn
   rw [hbody, holdsList_append, holdsList_noRet _ cpPre_noRet] at hb
   have htab : B1.ExpTables r.img.read (e.σ (.n 1)) :=
-    carryQ_all hr e.I t.inst _ e.σ bufs kids hnode fn hfn ("certify_placement", 1, .tab) (by decide) rfl (.n 1) (by rw [hps]; rfl)
+    (carryQ_all hr e.I t.inst _ e.σ bufs kids hnode fn hfn ("certify_placement", 1, .tab) (by decide) rfl (.n 1)
+      (by rw [hps]; rfl)).1
   obtain ⟨hK, hf, hord⟩ := cp_keys (by omega) r.img hb.1 htab
   -- the path's atoms name their values, which the frame holds
   obtain ⟨vs, hw, hF, -⟩ := t.events hr
