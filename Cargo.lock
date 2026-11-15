@@ -262,8 +262,8 @@ dependencies = [
  "experimental_parallel",
  "experimental_primitives",
  "fiat_shamir_prover",
+ "keccak256",
  "rand",
- "sha3",
 ]
 
 [[package]]

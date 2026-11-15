@@ -8,6 +8,7 @@ publish = false
 workspace = true
 
 [dependencies]
+keccak256.workspace = true
 parallel = { package = "experimental_parallel", path = "../parallel" }
 fiat_shamir_prover.workspace = true
 rand = { workspace = true, optional = true }
@@ -20,7 +21,6 @@ test-util = ["dep:rand"]
 [dev-dependencies]
 primitives = { package = "experimental_primitives", path = ".", features = ["test-util"] }
 bench.workspace = true
-sha3.workspace = true
 
 [[bench]]
 name = "hash_throughput"

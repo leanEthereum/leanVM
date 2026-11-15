@@ -4,9 +4,6 @@
 
 use crate::{END_BIT, OUT_LEN, PAD_FIRST, RATE, RATE_LANES, RC, STATE_LANES, hash_from_state, keccak_f};
 
-/// The digest's lanes.
-const OUT_LANES: usize = OUT_LEN / 8;
-
 /// One state lane across [`Lane::WIDTH`] states. The permutation is written once over this trait.
 pub(crate) trait Lane: Copy {
     const WIDTH: usize;
@@ -176,37 +173,63 @@ pub fn hash_many_from_state(data: &[u8], len: usize, state: &[u64; STATE_LANES],
 #[inline(always)]
 fn hash_group(inputs: &[u8], len: usize, state: &[u64; STATE_LANES], out: &mut [u8; LANES * OUT_LEN]) {
     let mut st: [Backend; STATE_LANES] = core::array::from_fn(|i| Backend::splat(state[i]));
-    // The little-endian word of every input that starts `at` bytes in, or its first `n < 8` bytes.
-    let word = |at: usize, n: usize| {
-        Backend::load(&core::array::from_fn::<u64, LANES, _>(|l| {
-            let mut bytes = [0u8; 8];
-            bytes[..n].copy_from_slice(&inputs[l * len + at..][..n]);
-            u64::from_le_bytes(bytes)
-        }))
-    };
     let (blocks, tail) = (len / RATE, len % RATE);
     for b in 0..blocks {
-        for (w, lane) in st[..RATE_LANES].iter_mut().enumerate() {
-            *lane = lane.xor(word(b * RATE + 8 * w, 8));
-        }
+        absorb(&mut st, inputs, len, b * RATE, RATE_LANES);
         permute(&mut st);
     }
     // The final block: the tail's whole words, its last partial word, then the padding, the same in every input.
     let (words, part) = (tail / 8, tail % 8);
-    for (w, lane) in st[..words].iter_mut().enumerate() {
-        *lane = lane.xor(word(blocks * RATE + 8 * w, 8));
+    absorb(&mut st, inputs, len, blocks * RATE, words);
+    if part > 0 {
+        st[words] = st[words].xor(word(inputs, len, blocks * RATE + 8 * words, part));
     }
-    st[words] = st[words].xor(word(blocks * RATE + 8 * words, part));
     st[words] = st[words].xor(Backend::splat(u64::from(PAD_FIRST) << (8 * part)));
     st[RATE_LANES - 1] = st[RATE_LANES - 1].xor(Backend::splat(END_BIT));
     permute(&mut st);
-    let mut words = [[0u64; LANES]; OUT_LANES];
-    for (lane, words) in st.iter().zip(&mut words) {
-        lane.store(words);
+    digests(&st, out);
+}
+
+/// The first `n < 8` bytes of every input from byte `at` on, as a little-endian word.
+#[inline(always)]
+fn word(inputs: &[u8], len: usize, at: usize, n: usize) -> Backend {
+    Backend::load(&core::array::from_fn::<u64, LANES, _>(|l| {
+        let mut bytes = [0u8; 8];
+        bytes[..n].copy_from_slice(&inputs[l * len + at..][..n]);
+        u64::from_le_bytes(bytes)
+    }))
+}
+
+cfg_select! {
+    all(target_arch = "x86_64", target_feature = "avx512f") => {
+        use x86::{absorb, digests};
     }
-    for (l, digest) in out.as_chunks_mut::<OUT_LEN>().0.iter_mut().enumerate() {
-        for (w, bytes) in digest.as_chunks_mut::<8>().0.iter_mut().enumerate() {
-            *bytes = words[w][l].to_le_bytes();
+    target_arch = "aarch64" => {
+        use arm::{absorb, digests};
+    }
+    _ => {
+        /// XOR the `words` little-endian words of every input from byte `at` on into `st[..words]`.
+        #[inline(always)]
+        fn absorb(st: &mut [Backend; STATE_LANES], inputs: &[u8], len: usize, at: usize, words: usize) {
+            for (w, lane) in st[..words].iter_mut().enumerate() {
+                *lane = lane.xor(Backend::load(&core::array::from_fn::<u64, LANES, _>(|l| {
+                    u64::from_le_bytes(*inputs[l * len + at + 8 * w..].first_chunk().unwrap())
+                })));
+            }
+        }
+
+        /// Every input's digest, the first [`OUT_LEN`] bytes of its state, input `l`'s at `out[l * OUT_LEN..]`.
+        #[inline(always)]
+        fn digests(st: &[Backend; STATE_LANES], out: &mut [u8; LANES * OUT_LEN]) {
+            let mut words = [[0u64; LANES]; OUT_LEN / 8];
+            for (lane, words) in st.iter().zip(&mut words) {
+                lane.store(words);
+            }
+            for (l, digest) in out.as_chunks_mut::<OUT_LEN>().0.iter_mut().enumerate() {
+                for (w, bytes) in digest.as_chunks_mut::<8>().0.iter_mut().enumerate() {
+                    *bytes = words[w][l].to_le_bytes();
+                }
+            }
         }
     }
 }
@@ -241,6 +264,8 @@ pub fn digest_halves_from(template: &[u64; STATE_LANES], at: usize, values: &[u1
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
 mod x86 {
     use super::Lane;
+    #[cfg(target_feature = "avx512f")]
+    use crate::{OUT_LEN, RATE_LANES, STATE_LANES};
     use core::arch::x86_64::*;
 
     /// Four states in a YMM register. No 64-bit rotate before AVX-512, so a rotation is a shift pair.
@@ -344,11 +369,76 @@ mod x86 {
             }
         }
     }
+
+    /// The generic `absorb` on eight inputs: each input's words in rows of eight, transposed into one register per
+    /// word.
+    #[cfg(target_feature = "avx512f")]
+    #[inline(always)]
+    pub(super) fn absorb(st: &mut [Avx512; STATE_LANES], inputs: &[u8], len: usize, at: usize, words: usize) {
+        assert!(words <= RATE_LANES && at + 8 * words <= len);
+        for g in 0..words.div_ceil(8) {
+            let n = (words - 8 * g).min(8);
+            let rows: [__m512i; 8] = core::array::from_fn(|l| {
+                let row = &inputs[l * len + at + 64 * g..][..8 * n];
+                // SAFETY: the module's cfg enables avx512f, and the mask reads the row's `n` words and no others.
+                unsafe { _mm512_maskz_loadu_epi64(((1u32 << n) - 1) as __mmask8, row.as_ptr().cast()) }
+            });
+            for (lane, col) in st[8 * g..8 * g + n].iter_mut().zip(transpose8(rows)) {
+                *lane = lane.xor(Avx512(col));
+            }
+        }
+    }
+
+    /// The generic `digests` on eight inputs: the four digest lanes transposed into rows, two inputs' rows per store.
+    #[cfg(target_feature = "avx512f")]
+    #[inline(always)]
+    pub(super) fn digests(st: &[Avx512; STATE_LANES], out: &mut [u8; 8 * OUT_LEN]) {
+        // SAFETY: the module's cfg enables avx512f.
+        let zero = unsafe { _mm512_setzero_si512() };
+        let rows = transpose8([st[0].0, st[1].0, st[2].0, st[3].0, zero, zero, zero, zero]);
+        for ([first, second], bytes) in rows.as_chunks::<2>().0.iter().zip(out.as_chunks_mut::<64>().0) {
+            // SAFETY: the module's cfg enables avx512f, and `bytes` is 64 writable bytes.
+            unsafe { _mm512_storeu_si512(bytes.as_mut_ptr().cast(), _mm512_shuffle_i64x2::<0x44>(*first, *second)) }
+        }
+    }
+
+    /// The 8x8 transpose of 64-bit words: word `j` of row `i` becomes word `i` of row `j`.
+    #[cfg(target_feature = "avx512f")]
+    #[inline(always)]
+    fn transpose8(r: [__m512i; 8]) -> [__m512i; 8] {
+        // SAFETY: the module's cfg enables avx512f.
+        unsafe {
+            // Pairs of words, then 128-bit lane picks to finish.
+            let (a0, a1) = (_mm512_unpacklo_epi64(r[0], r[1]), _mm512_unpackhi_epi64(r[0], r[1]));
+            let (a2, a3) = (_mm512_unpacklo_epi64(r[2], r[3]), _mm512_unpackhi_epi64(r[2], r[3]));
+            let (a4, a5) = (_mm512_unpacklo_epi64(r[4], r[5]), _mm512_unpackhi_epi64(r[4], r[5]));
+            let (a6, a7) = (_mm512_unpacklo_epi64(r[6], r[7]), _mm512_unpackhi_epi64(r[6], r[7]));
+            let b0 = _mm512_shuffle_i64x2::<0x88>(a0, a2);
+            let b1 = _mm512_shuffle_i64x2::<0x88>(a1, a3);
+            let b2 = _mm512_shuffle_i64x2::<0xDD>(a0, a2);
+            let b3 = _mm512_shuffle_i64x2::<0xDD>(a1, a3);
+            let b4 = _mm512_shuffle_i64x2::<0x88>(a4, a6);
+            let b5 = _mm512_shuffle_i64x2::<0x88>(a5, a7);
+            let b6 = _mm512_shuffle_i64x2::<0xDD>(a4, a6);
+            let b7 = _mm512_shuffle_i64x2::<0xDD>(a5, a7);
+            [
+                _mm512_shuffle_i64x2::<0x88>(b0, b4),
+                _mm512_shuffle_i64x2::<0x88>(b1, b5),
+                _mm512_shuffle_i64x2::<0x88>(b2, b6),
+                _mm512_shuffle_i64x2::<0x88>(b3, b7),
+                _mm512_shuffle_i64x2::<0xDD>(b0, b4),
+                _mm512_shuffle_i64x2::<0xDD>(b1, b5),
+                _mm512_shuffle_i64x2::<0xDD>(b2, b6),
+                _mm512_shuffle_i64x2::<0xDD>(b3, b7),
+            ]
+        }
+    }
 }
 
 #[cfg(target_arch = "aarch64")]
 mod arm {
     use super::Lane;
+    use crate::{OUT_LEN, RATE_LANES, STATE_LANES};
     use core::arch::aarch64::*;
 
     /// Two states in a NEON register. With the SHA3 extension, χ is one `BCAX`, the column parity two `EOR3` and θ's
@@ -414,6 +504,46 @@ mod arm {
         fn theta_d(c_prev: Self, c_next: Self) -> Self {
             // SAFETY: the cfg enables sha3.
             Self(unsafe { vrax1q_u64(c_prev.0, c_next.0) })
+        }
+    }
+
+    /// The generic `absorb` on two inputs: two words of each per load, `ZIP1` and `ZIP2` turning the two rows into
+    /// two lanes.
+    #[inline(always)]
+    pub(super) fn absorb(st: &mut [Neon; STATE_LANES], inputs: &[u8], len: usize, at: usize, words: usize) {
+        assert!(words <= RATE_LANES && at + 8 * words <= len);
+        let (a, b) = (&inputs[at..][..8 * words], &inputs[len + at..][..8 * words]);
+        for (p, (x, y)) in a.as_chunks::<16>().0.iter().zip(b.as_chunks::<16>().0).enumerate() {
+            // SAFETY: `x` and `y` are 16 readable bytes each, and NEON is in the aarch64 baseline.
+            unsafe {
+                let (x, y) = (vld1q_u64(x.as_ptr().cast()), vld1q_u64(y.as_ptr().cast()));
+                st[2 * p] = Neon(veorq_u64(st[2 * p].0, vzip1q_u64(x, y)));
+                st[2 * p + 1] = Neon(veorq_u64(st[2 * p + 1].0, vzip2q_u64(x, y)));
+            }
+        }
+        if words % 2 == 1 {
+            let w = words - 1;
+            let word = |input: &[u8]| u64::from_le_bytes(*input[8 * w..].first_chunk().unwrap());
+            st[w] = st[w].xor(Neon::load(&[word(a), word(b)]));
+        }
+    }
+
+    /// The generic `digests` on two inputs: `ZIP1` of two digest lanes is two words of the first input, `ZIP2` of
+    /// the second.
+    #[inline(always)]
+    pub(super) fn digests(st: &[Neon; STATE_LANES], out: &mut [u8; 2 * OUT_LEN]) {
+        // SAFETY: NEON is in the aarch64 baseline.
+        let halves = unsafe {
+            [
+                vzip1q_u64(st[0].0, st[1].0),
+                vzip1q_u64(st[2].0, st[3].0),
+                vzip2q_u64(st[0].0, st[1].0),
+                vzip2q_u64(st[2].0, st[3].0),
+            ]
+        };
+        for (bytes, half) in out.as_chunks_mut::<16>().0.iter_mut().zip(halves) {
+            // SAFETY: `bytes` is 16 writable bytes, and NEON is in the aarch64 baseline.
+            unsafe { vst1q_u64(bytes.as_mut_ptr().cast(), half) }
         }
     }
 }
