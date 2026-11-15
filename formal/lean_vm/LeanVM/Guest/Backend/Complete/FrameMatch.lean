@@ -151,6 +151,47 @@ theorem wL_arm_join {o : Out} {blk : List PStmt} {a : List Stmt} {p T j n join o
     | ret es vs => exact hout
     | stuck => exact hout.elim
 
+/-- **The words of the picked arm of a stage that dispatches into the next**: its block's words
+given how its path ends, then the read of the next stage's table and the jump to the arm `T` it
+names, where the next stage's words `kj` hold. -/
+theorem wL_arm_next {o : Out} {blk : List PStmt} {a : List Stmt} {p T lx nf e one sfp : ℕ}
+    {ks : List (ℕ × ℕ)} {Nf : List (ℕ × ℕ) → Prop} {kj : List (ℕ × ℕ) → E → E → Prop}
+    {K kret khalt : Prop}
+    (hblk : ∀ (next : List Stmt → List (ℕ × ℕ) → Prop) (kj : List (ℕ × ℕ) → E → E → Prop),
+      OutK o [] next K ks → wLc Γ fp σ hdr FS Ag cl blk a p ks next kj kret khalt)
+    (hout : OutK o [] (fun _ ks' => kj ks' (Γ.tgt T) (ofK (addressOfIndex fp))) K ks)
+    (hslot : HW Γ fp Ag (Γ.pc0 + (p + blockSize blk)) (.slot lx nf e))
+    (hjump : JumpTo Γ fp hdr FS Ag one e sfp T) :
+    wL Γ fp σ hdr FS Ag cl (blk ++ [PStmt.op [] (.slot lx nf e), .op [] (.jump one e sfp)])
+      a p ks Nf kj kret khalt := by
+  rw [wL_eq_wLc, wLc_append Γ fp σ hdr FS Ag cl _ _ (List.cons_ne_nil _ _)]
+  refine hblk _ _ ?_
+  cases o with
+  | fall es =>
+    intro cs' hc
+    simp only [wLc, wS, List.isEmpty_cons, List.isEmpty_nil, Bool.false_eq_true, ite_false,
+      ite_true]
+    exact ⟨hslot, hjump _ _ (hout cs' hc)⟩
+  | ret es vs => exact hout
+  | stuck => exact hout.elim
+
+/-- **The words of a chain** from its head (the join's `SET`, the first table read, the jump into
+the arm `T` the first selector names) and its stages' words from there. -/
+theorem wS_chain {h : List LHint} {join lx entry one sfp : ℕ} {firsts : List ℕ}
+    {stages : List (List (List PStmt))} {cs rest : List Stmt} {s : Stmt} {pos T : ℕ}
+    {ks : List (ℕ × ℕ)} {next : List Stmt → List (ℕ × ℕ) → Prop}
+    {kj : List (ℕ × ℕ) → E → E → Prop} {kret khalt : Prop}
+    (hcs : ctrlSplit cs = some (s, rest))
+    (hset : HW Γ fp Ag (Γ.pc0 + pos) (.set join (.local (pos + 3 + stagesSize stages))))
+    (hslot : HW Γ fp Ag (Γ.pc0 + pos + 1) (.slot lx (firsts.headD 0) entry))
+    (hhead : JumpTo Γ fp hdr FS Ag one entry sfp T)
+    (hst : wStages Γ fp σ hdr FS Ag cl stages ((s :: rest).take stages.length) (pos + 3)
+      (next ((s :: rest).drop stages.length)) kret khalt ks (Γ.tgt T) (ofK (addressOfIndex fp))) :
+    wS Γ fp σ hdr FS Ag cl (.chain h join lx entry one sfp firsts stages) cs pos ks next kj
+      kret khalt := by
+  simp only [wS, hcs]
+  exact ⟨hset, hslot, hhead _ _ hst⟩
+
 end Words
 
 /-! ## Arms off the path -/
