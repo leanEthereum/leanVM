@@ -783,6 +783,51 @@ def OpenW (Good : List Stmt → Prop) : Prop :=
       OpenOut (Γ := Γ) (Ag := Ag) (cl := cl) (ctx := ctx) (I := I) O h join lx entry one sfp firsts
         stages first x sc'' (.match_ x arms :: rest) tl o i₀ p₀ C' st'
 
+/-- **The next stage's selector has its word at the stage before it**: in scope there, or not yet
+placed (made by the events the next stage's edge flush passes). -/
+theorem nextSel_ok {C : (ℕ → E) → Prop} {st st₂ : St} {sc s₀ s₁ sc' s₀' : SSt} {x' : V}
+    {arms : List (List Stmt)} (hinv : WInv ctx I C st sc) (h₀ : flushEdge ctx.retCells sc = .ok s₀)
+    (hloc₂ : ∀ v, st₂.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf (flushSeg st.rest))
+    (hsa : scopeArms ctx.retCells arms s₀ s₀.retDone = .ok s₁)
+    (hem : expectS isEmit "a match" s₁ = .ok sc') (h₀' : flushEdge ctx.retCells sc' = .ok s₀')
+    (hx' : s₀'.live.contains x' = true) :
+    s₀.live.contains x' = true ∨ st₂.locs[x']? = none := by
+  rcases nextSel_live hsa hem h₀' hx' with h | h
+  · exact Or.inl h
+  right
+  have hfl : flushS ctx.retCells st.rest sc.live sc.retDone = .ok s₀ := by
+    rw [← hinv.rest]; exact (flushEdge_ok h₀).2
+  obtain ⟨hseg, -, -⟩ := flushS_seg _ _ _ _ _ hfl
+  obtain ⟨hseg', -, -⟩ := flushS_seg _ _ _ _ _ (flushEdge_ok h₀').2
+  obtain ⟨q, hq, -⟩ := (scopeArms_cons _ arms _ _ s₁ hsa).trans (expectS_cons noAlloc_emit hem)
+  have hx0 : x' ∈ allocsOf s₀.rest := by
+    rw [hq, allocsOf_append, hseg', allocsOf_append]
+    exact List.mem_append_right _ (List.mem_append_left _ h)
+  have hall : allocsOf st.rest = allocsOf (flushSeg st.rest) ++ allocsOf s₀.rest := by
+    conv_lhs => rw [hseg]
+    rw [allocsOf_append]
+  have hnd : (allocsOf (flushSeg st.rest) ++ allocsOf s₀.rest).Nodup := hall ▸ hinv.nodup
+  by_contra hne
+  rcases hloc₂ x' hne with h1 | h1
+  · exact h1 (hinv.fresh x' (by rw [hall]; exact List.mem_append_right _ hx0)).1
+  · exact List.disjoint_of_nodup_append hnd h1 hx0
+
+/-- **The rest of a chain off the path**: placing a block entered by an open chain extends the
+chain node by its stages (the first in the table `first`) and leaves no `match` chaining out
+(`openOff`, CplFramePrims4). -/
+def OpenOffW : Prop :=
+  ∀ (x : V) (arms : List (List Stmt)) (rest : List Stmt) (st : St) (O : List PStmt)
+    (h : List LHint) (join lx entry one sfp first : ℕ) (firsts : List ℕ)
+    (stages : List (List (List PStmt))) (join' : ℕ),
+    st.chainIn = some (first, join') →
+    st.out.toList = O ++ [.chain h join lx entry one sfp firsts stages] →
+    wpP (placeBlock (.match_ x arms :: rest)) ctx st fun _ st' => st'.chainIn = none ∧
+      st.next ≤ st'.next ∧ LocsLe st.locs st'.locs ∧
+      (∀ y ∈ st.tables.shared, y ∈ st'.tables.shared) ∧
+      ∃ (firstsN : List ℕ) (stagesN : List (List (List PStmt))) (blk : List PStmt),
+        st'.out.toList = O ++ [.chain h join lx entry one sfp (firsts ++ firstsN)
+          (stages ++ stagesN)] ++ blk ∧ firstsN.head? = some first
+
 end Head
 
 end
