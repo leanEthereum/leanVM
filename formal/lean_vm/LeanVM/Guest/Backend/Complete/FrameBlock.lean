@@ -92,6 +92,8 @@ structure WInv (ctx : Ctx) (I : Inst) (C : (ℕ → E) → Prop) (st : St) (s : 
   rest : s.rest = st.rest
   vw : Fits I st → VW I C st (fun v => s.live.contains v = true)
   two : 2 ≤ st.next
+  abi : 2 + ctx.argCells + ctx.retCells ≤ st.next
+  fuel : st.rest.length ≤ ctx.fuel
   ret : s.retDone = false → ∀ Ψ k w, k < ctx.retCells → C Ψ →
     C (Function.update Ψ (2 + ctx.argCells + k) w)
 
