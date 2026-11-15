@@ -121,6 +121,7 @@ def BlkW {κ₀ : ℕ} (Γ : Site κ₀) (I : Inst)
   ∃ hs : ℕ → List (E × E), ∀ Ψ, C Ψ → ∀ σ', I.Same σ' → ∀ (kh : ℕ → E × E) (cs : List Stmt)
     (pos : ℕ) (ks : List (ℕ × ℕ)) (next : List Stmt → List (ℕ × ℕ) → Prop)
     (kj : List (ℕ × ℕ) → E → E → Prop) (kret khalt : Prop),
+    (∀ o' ∈ blockOps blk pos, o' ∈ I.ops) →
     ctrlSplit cs = ctrlSplit (ss ++ tl) → KsAt cl kh i₀ (calls (outEs o)) (hs pos) ks →
     OutK o tl next kret ks →
     wLc Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl blk cs pos ks next kj kret khalt
