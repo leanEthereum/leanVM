@@ -118,7 +118,8 @@ its statements' words (`wLc`), the memories being `Ag σ' Ψ kh`, with headers `
 def BlkW {κ₀ : ℕ} (Γ : Site κ₀) (I : Inst)
     (Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop) (cl : List Call)
     (C : (ℕ → E) → Prop) (blk : List PStmt) (ss tl : List Stmt) (o : Out) (i₀ : ℕ) : Prop :=
-  ∃ hs : ℕ → List (E × E), ∀ Ψ, C Ψ → ∀ σ', I.Same σ' → ∀ (kh : ℕ → E × E) (cs : List Stmt)
+  ∃ hs : ℕ → List (E × E), (∀ pos, (hs pos).length = (calls (outEs o)).length) ∧
+  ∀ Ψ, C Ψ → ∀ σ', I.Same σ' → ∀ (kh : ℕ → E × E) (cs : List Stmt)
     (pos : ℕ) (ks : List (ℕ × ℕ)) (next : List Stmt → List (ℕ × ℕ) → Prop)
     (kj : List (ℕ × ℕ) → E → E → Prop) (kret khalt : Prop),
     (∀ o' ∈ blockOps blk pos, o' ∈ I.ops) →
@@ -148,6 +149,48 @@ def BlockW {κ₀ : ℕ} (Γ : Site κ₀) (Ag : Val → (ℕ → E) → (ℕ �
     FBAt ctx I C st m fun _ C' st' => WInv ctx I C' st' s' ∧
       ∃ blk, st'.out.toList = st.out.toList ++ blk ∧
         (Fits I st' → BlkW Γ I Ag cl C' blk ss tl o i₀)
+
+theorem bsize_append (a b : List PStmt) : blockSize (a ++ b) = blockSize a + blockSize b := by
+  induction a with
+  | nil => simp [blockSize]
+  | cons s ss ih => simp [blockSize, ih, Nat.add_assoc]
+
+theorem bops_append (a b : List PStmt) (pos : ℕ) :
+    blockOps (a ++ b) pos = blockOps a pos ++ blockOps b (pos + blockSize a) := by
+  induction a generalizing pos with
+  | nil => simp [blockOps, blockSize]
+  | cons s ss ih => simp [blockOps, blockSize, ih, Nat.add_assoc]
+
+section Compose
+
+variable {κ₀ : ℕ} {Γ : Site κ₀} {I : Inst}
+  {Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop} {cl : List Call}
+
+theorem BlkW.mono {C C' : (ℕ → E) → Prop} {blk : List PStmt} {ss tl : List Stmt} {o : Out}
+    {i₀ : ℕ} (h : BlkW Γ I Ag cl C blk ss tl o i₀) (hs : Stronger C' C) :
+    BlkW Γ I Ag cl C' blk ss tl o i₀ := by
+  obtain ⟨hs', hl, h⟩ := h
+  exact ⟨hs', hl, fun Ψ hΨ => h Ψ (hs Ψ hΨ)⟩
+
+/-- A block whose path returns, then statements off the path. -/
+theorem BlkW.append_ret {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt} {ss₁ ss₂ tl : List Stmt}
+    {es : List Ev} {vs : List V} {i₀ : ℕ}
+    (h₁ : BlkW Γ I Ag cl C blk₁ ss₁ (ss₂ ++ tl) (.ret es vs) i₀) :
+    BlkW Γ I Ag cl C (blk₁ ++ blk₂) (ss₁ ++ ss₂) tl (.ret es vs) i₀ := by
+  obtain ⟨hs, hl, h⟩ := h₁
+  refine ⟨hs, hl, fun Ψ hΨ σ' hσ kh cs pos ks next kj kret khalt hops hcs hks hk => ?_⟩
+  have hops₁ : ∀ o' ∈ blockOps blk₁ pos, o' ∈ I.ops := fun o' ho =>
+    hops o' (by rw [bops_append]; exact List.mem_append_left _ ho)
+  have hcs₁ : ctrlSplit cs = ctrlSplit (ss₁ ++ (ss₂ ++ tl)) := by rwa [← List.append_assoc]
+  cases blk₂ with
+  | nil =>
+    rw [List.append_nil]
+    exact h Ψ hΨ σ' hσ kh cs pos ks next kj kret khalt hops₁ hcs₁ hks hk
+  | cons b bs =>
+    rw [wLc_append _ _ _ _ _ _ _ blk₁ (b :: bs) (List.cons_ne_nil _ _)]
+    exact h Ψ hΨ σ' hσ kh cs pos ks _ _ kret khalt hops₁ hcs₁ hks hk
+
+end Compose
 
 end
 end LeanVM.Guest.Backend.Complete
