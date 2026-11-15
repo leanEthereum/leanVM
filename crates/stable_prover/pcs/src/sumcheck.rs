@@ -5,7 +5,7 @@ use primitives::multilinear::fold;
 use primitives::transcript::ProverState;
 
 /// The sumcheck of `scale * sum of a * b` over the row index, rows of `width`, its lowest variable first, down to one
-/// row of each: returns those rows and the point. A round sends its coefficients at `1` and `X^2`; the running claim
+/// row of each: returns those rows and the point. A round sends its constant and `X^2` coefficients; the running claim
 /// fixes the linear one.
 pub fn product_sumcheck(
     ps: &mut ProverState,

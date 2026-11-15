@@ -44,7 +44,8 @@ fn pairs8(v: &[F128], q: usize) -> (F128x8, F128x8) {
     (F128x8::from_array(&first), F128x8::from_array(&second))
 }
 
-/// `interp(x[2q], x[2q + 1], r)` for every pair.
+/// `interp(x[2q], x[2q + 1], r)` for every pair: the pooled SIMD form of [`fold`](primitives::multilinear::fold)
+/// `(x, 1, r)`, for the large weight table.
 fn fold_pairs(x: &[F128], r: F128) -> Vec<F128> {
     let r = F128x8::splat(r);
     crate::collect_chunks(x.len() / 2, |k| {
