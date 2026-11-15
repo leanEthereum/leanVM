@@ -1,54 +1,160 @@
-//! The grand product via GKR (§sec:gkr): given leaves `v_0…v_{2^μ-1}`, prove the
-//! root `P = ∏ v_k` of the product tree, reducing the root to one leaf evaluation
-//! `Ṽ_0(ζ)`. Two binary levels are contracted at a time: a radix-four layer has
-//! relation `V_i(x)=∏_{a,b∈{0,1}}V_{i-2}(a,b,x)`. Its normalized eq-trick
-//! sumcheck has degree four. An odd-depth tree starts with one binary layer.
-//! Leaves and every layer are `E`-valued (the bus fingerprints mix `K`-columns
-//! into `E` upstream, [`crate::leaf`]).
+//! The bus's grand products by GKR (§sec:gkr): the push, pull and count trees in one batched pass, reducing each
+//! root to a claim on its leaves `Ṽ_0(ζ)`, all at one point `ζ`.
 //!
-//! A tree's leaves are a prefix of its `2^μ` (every block's rows, padding rows included), the rest the identity, and
-//! every level is held the same way: a prefix covering every non-identity value, rounded up to whole pairs of rows. An identity pair of rows adds only
-//! its eq weight to a round polynomial's constant, which never travels, and folds to an identity row, so no
-//! round reads or writes past the held prefix. Within it, the runs of rows known to be the identity (a block's padding
-//! rows) are neither read nor folded: every pass writes them as the identity.
+//! Two binary levels are contracted at a time, a node being the product of its four grandchildren:
+//! `V_i(x) = ∏_{a,b} V_{i-2}(a, b, x)`. A claim on `Ṽ_i(r)` is the sum over `x` of `eq(r, x)·∏_{a,b} Ṽ_{i-2}(a, b, x)`,
+//! which a sumcheck reduces to the four values `Ṽ_{i-2}(a, b, χ)`, the trees' sumchecks batched by a combiner `λ`.
+//! The prover sends them and two challenges `(u_0, u_1)` combine them into the next claim `Ṽ_{i-2}(u_0, u_1, χ)`. An
+//! odd-depth tree starts with one binary layer.
+//!
+//! The layer below a claim is held as rows of four children, row `x` holding `V_{i-2}(·, ·, x)`, and only as the
+//! prefix that covers its non-identity rows. An identity pair of rows adds only its eq weight to a round
+//! polynomial's constant, which never travels, and folds to an identity row, so no pass reads past the prefix. The
+//! bus's padding rows make long runs of identity leaves inside it, which the bus hands over as `Ones`: no pass
+//! reads them either.
 
 use std::ops::Range;
 
+use crate::eq::SplitEq;
 use crate::leaf::N_BUS_TREES as TREES;
-use crate::transcript::ProverState;
+use fiat_shamir::transcript::ProverState;
 use primitives::field::{Acc8, F128, F128x8};
-use primitives::multilinear::{eq_table_serial, interp};
+use primitives::multilinear::interp;
 
-/// Groups of eight pairs per parallel task.
-const CHUNK: usize = 1 << 7;
-
-/// Groups per task of a pass over `n` groups: all of them below [`crate::SERIAL_BELOW`], so that a small pass runs on
-/// the calling thread.
-fn chunk(n: usize) -> usize {
-    if n < crate::SERIAL_BELOW { n.max(1) } else { CHUNK }
-}
-
-/// The result of a batched grand-product proof: the leaf evaluations, all reduced to one shared point.
+/// The leaf claims a batched grand-product proof ends on: every tree's at one shared point.
 pub struct Products {
     pub point: Vec<F128>,
     pub values: [F128; TREES],
 }
 
-/// A sumcheck round's grind: its polynomial is `eq` times a product of four lines, degree five. In the bus's last
+/// Runs of rows known to be the identity, sorted and disjoint.
+pub(crate) type Ones = Vec<Range<usize>>;
+
+/// The grind of a sumcheck round: its polynomial is `eq` times a product of four lines, degree five. In the last
 /// layer the challenge is also a coordinate of `ζ`, which the table sumcheck's zerocheck reads, one more: six, as
 /// many bits.
 pub const ROUND_GRIND: u32 = fiat_shamir::grinding_bits(4 + 1);
 const _: () = assert!(fiat_shamir::grinding_bits(4 + 1 + 1) == ROUND_GRIND);
 
-/// The grind before a layer's `y`, its `step` coordinates: the children's multilinear has degree `step` in them.
-/// The last layer's are `ζ`'s first coordinates, which the bus's zerocheck also reads, `step` more (every table
-/// sumcheck spans at least two variables, the KECCAK table's floor).
+/// The grind before a layer's `(u_0, u_1)`, or the binary layer's `u_0`, its `step` coordinates: the children's
+/// multilinear has degree `step` in them. The last layer's are `ζ`'s first coordinates, which the zerocheck also
+/// reads, `step` more (every table sumcheck spans at least two variables, the KECCAK table's floor).
 pub fn y_grind(step: usize, last: bool) -> u32 {
     fiat_shamir::grinding_bits((step << usize::from(last)) as u128)
 }
 
-fn add4(a: [F128; 4], b: [F128; 4]) -> [F128; 4] {
-    std::array::from_fn(|i| a[i] + b[i])
+/// Prove the bus's grand products as one batched radix-four GKR: push, pull, then count. Push and pull have one
+/// product by construction, so one root is sent for both, then the count's. `ones` are each tree's runs of leaves
+/// known to be the identity.
+///
+/// Per layer: a grind and the combiner `λ`, the sumcheck rounds, the trees' children, then a grind and `(u_0, u_1)`.
+pub(crate) fn prove_products(leaves: [Vec<F128>; TREES], ones: [Ones; TREES], ps: &mut ProverState) -> Products {
+    let mu = crate::log2_ceil_usize(leaves[0].len());
+    assert!(
+        leaves.iter().all(|tree| !tree.is_empty() && tree.len() <= 1 << mu),
+        "batched trees must be nonempty prefixes of the first tree's logical tree"
+    );
+    // Levels `0, 2, 4, …` of each tree, read as rows of four, up to the top, which has one node, or two when `μ` is
+    // odd. A level's rows known to be the identity are the nodes two levels up made of identity leaves only.
+    let mut trees = leaves.into_iter().zip(ones);
+    let mut levels: [Vec<(Vec<F128>, Ones)>; TREES] = std::array::from_fn(|_| {
+        let (leaves, ones) = trees.next().unwrap();
+        let row_ones = |level: usize| coarsen(&ones, 4 << (2 * level));
+        let mut levels = vec![(leaves, row_ones(0))];
+        while levels.len() <= mu / 2 {
+            let (values, ones) = levels.last().unwrap();
+            let next = products(values, ones);
+            levels.push((next, row_ones(levels.len())));
+        }
+        levels
+    });
+    let tops = levels.each_mut().map(|levels| {
+        let (mut top, _) = levels.pop().unwrap();
+        top.resize(1 << (mu % 2), F128::ONE);
+        top
+    });
+    let roots: [F128; TREES] = tops.each_ref().map(|top| top.iter().copied().product());
+    assert_eq!(roots[0], roots[1], "push and pull products must agree");
+    ps.add_scalar(roots[0]);
+    ps.add_scalar(roots[2]);
+    let (mut point, mut values) = (Vec::new(), roots);
+
+    if mu % 2 == 1 {
+        // The root-most layer is binary, its two children the top level, with no sumcheck rounds.
+        // Its `λ` is drawn as every layer's, though it batches nothing.
+        ps.grind(fiat_shamir::grinding_bits(TREES as u128 - 1));
+        let _: F128 = ps.sample();
+        for top in &tops {
+            ps.add_scalars(top);
+        }
+        ps.grind(y_grind(1, mu == 1));
+        let u = ps.sample();
+        values = tops.each_ref().map(|top| interp(top[0], top[1], u));
+        point = vec![u];
+    }
+    while !levels[0].is_empty() {
+        let layer = Layer::new(levels.each_mut().map(|levels| levels.pop().unwrap()));
+        ps.grind(fiat_shamir::grinding_bits(TREES as u128 - 1));
+        let lambda = ps.sample();
+        let (chi, mut children) = layer.sumcheck(&point, lambda, ps);
+        for children in &mut children {
+            children.resize(4, F128::ONE);
+            ps.add_scalars(children);
+        }
+        ps.grind(y_grind(2, levels[0].is_empty()));
+        let (u0, u1) = (ps.sample(), ps.sample());
+        values = children
+            .each_ref()
+            .map(|c| interp(interp(c[0], c[1], u0), interp(c[2], c[3], u0), u1));
+        point = [vec![u0, u1], chi].concat();
+    }
+    Products { point, values }
+}
+
+/// The rows of a level `by` times coarser all of whose rows are in `ones`.
+fn coarsen(ones: &[Range<usize>], by: usize) -> Ones {
+    ones.iter()
+        .map(|r| r.start.div_ceil(by)..r.end / by)
+        .filter(|r| !r.is_empty())
+        .collect()
+}
+
+/// Whether the `n` rows from `first` all lie in `ones`.
+#[inline(always)]
+fn known(ones: &[Range<usize>], first: usize, n: usize) -> bool {
+    let i = ones.partition_point(|r| r.end < first + n);
+    ones.get(i).is_some_and(|r| r.start <= first)
+}
+
+/// The level two above `values`: each row's product, the rows past the end and those in `ones` the identity.
+fn products(values: &[F128], ones: &[Range<usize>]) -> Vec<F128> {
+    let n = values.len().div_ceil(4);
+    let eight = |k: usize| {
+        if known(ones, 8 * k, 8) {
+            return [F128::ONE; 8];
+        }
+        let v: [F128; 32] = padded(values, 32 * k);
+        if identity(&v) {
+            return [F128::ONE; 8];
+        }
+        let child = |c: usize| lanes(|p| v[4 * p + c]);
+        ((child(0) * child(1)) * (child(2) * child(3))).to_array()
+    };
+    let mut next = if n < 8 * crate::SERIAL_BELOW {
+        (0..n.div_ceil(8)).map(eight).collect::<Vec<_>>()
+    } else {
+        parallel::map_collect(n.div_ceil(8), eight)
+    }
+    .into_flattened();
+    next.truncate(n);
+    next
+}
+
+/// Whether every value is the identity: besides the padding runs, whole blocks of the count tree are (a `KECCAK`
+/// row's output cells are fresh, their counts `g^0`), and checking costs less than their products.
+#[inline(always)]
+fn identity(values: &[F128]) -> bool {
+    values.iter().all(|&v| v == F128::ONE)
 }
 
 /// Eight lanes, lane `p` being `value(p)`.
@@ -66,72 +172,203 @@ fn padded<const N: usize>(values: &[F128], start: usize) -> [F128; N] {
     }
 }
 
-/// Rows known to be the identity, as sorted disjoint ranges.
-type Ones = Vec<Range<usize>>;
+/// A round's messages: per tree, `[q(0) + q(1), c2, c3, c4]` of its round polynomial `q`.
+type Messages = [[F128; 4]; TREES];
 
-/// The rows of a level `by` times coarser all of whose rows are in `ones`.
-fn coarsen(ones: &[Range<usize>], by: usize) -> Ones {
-    ones.iter()
-        .map(|r| r.start.div_ceil(by)..r.end / by)
-        .filter(|r| !r.is_empty())
-        .collect()
+fn add_messages(a: Messages, b: Messages) -> Messages {
+    std::array::from_fn(|t| std::array::from_fn(|c| a[t][c] + b[t][c]))
 }
 
-/// Whether the `n` rows from `first` all lie in `ones`.
-#[inline(always)]
-fn known(ones: &[Range<usize>], first: usize, n: usize) -> bool {
-    let i = ones.partition_point(|r| r.end < first + n);
-    ones.get(i).is_some_and(|r| r.start <= first)
+/// The three trees' layer below the claim, during its sumcheck. A round binds the lowest row variable: a fold makes
+/// row `i` `interp(row 2i, row 2i + 1, χ)`, child by child.
+struct Layer {
+    /// Each tree's held rows, four children a row.
+    rows: [Vec<F128>; TREES],
+    /// Each tree's rows known to be the identity.
+    ones: [Ones; TREES],
+    /// Each tree's buffer the next fold writes, reused round after round.
+    spare: [Vec<F128>; TREES],
+    /// The first round's challenge, which the rows are not yet folded by: the second round's fold applies both, so
+    /// a layer is read three times and written once, at a quarter of its size, the second round's messages read
+    /// through the pending fold.
+    pending: Option<F128>,
 }
 
-/// The level above `values`: `out[i] = ∏ values[4i..4i + 4]`, the values past the end, and the rows in `ones`, being
-/// the identity.
-fn next_level(values: &[F128], ones: &[Range<usize>]) -> Vec<F128> {
-    let n = values.len().div_ceil(4);
-    let products = |k: usize| {
-        if known(ones, 8 * k, 8) {
-            return [F128::ONE; 8];
+/// Rows per group: the unit of every pass, eight pairs of rows, which the lanes take one pair each.
+const GROUP: usize = 16;
+
+impl Layer {
+    fn new(levels: [(Vec<F128>, Ones); TREES]) -> Self {
+        let [a, b, c] = levels;
+        Self {
+            rows: [a.0, b.0, c.0],
+            ones: [a.1, b.1, c.1],
+            spare: Default::default(),
+            pending: None,
         }
-        let v: [F128; 32] = padded(values, 32 * k);
-        if identity(&v) {
-            return [F128::ONE; 8];
-        }
-        let child = |c: usize| lanes(|p| v[4 * p + c]);
-        ((child(0) * child(1)) * (child(2) * child(3))).to_array()
-    };
-    let mut next = if n < 8 * crate::SERIAL_BELOW {
-        (0..n.div_ceil(8)).map(products).collect::<Vec<_>>()
-    } else {
-        parallel::map_collect(n.div_ceil(8), products)
     }
-    .into_flattened();
-    next.truncate(n);
-    next
+
+    /// The sumcheck rounds of the claim on `Ṽ_i(point)`, the trees batched by `λ`: their challenges `χ`, and each
+    /// tree's children at the end, its rows folded to one.
+    fn sumcheck(mut self, point: &[F128], lambda: F128, ps: &mut ProverState) -> (Vec<F128>, [Vec<F128>; TREES]) {
+        let rounds = point.len();
+        let mut chi = Vec::with_capacity(rounds);
+        // Round `j` binds `point[j]`'s variable and weights each pair of rows by `eq(point[j + 1..], ·)`; the
+        // verifier multiplies in the line `eq(point[j], X)`.
+        let mut messages = match rounds {
+            0 => [[F128::ZERO; 4]; TREES],
+            _ => self.messages(&SplitEq::new(&point[1..])),
+        };
+        for j in 0..rounds {
+            let mut coeffs: [F128; 4] = std::array::from_fn(|c| {
+                // `Σ_t λ^t message_t`, by Horner.
+                messages.iter().rev().fold(F128::ZERO, |acc, m| m[c] + lambda * acc)
+            });
+            // `c1 = (q(0) + q(1)) + c2 + c3 + c4`: the claim fixes `c0`, so only `c1..c4` travel.
+            coeffs[0] = coeffs.iter().copied().sum();
+            ps.add_scalars(&coeffs);
+            ps.grind(ROUND_GRIND);
+            let r = ps.sample();
+            chi.push(r);
+            let next = (j + 1 < rounds).then(|| SplitEq::new(&point[j + 2..]));
+            messages = match (j, &next) {
+                (0, Some(eq)) => {
+                    self.pending = Some(r);
+                    self.messages(eq)
+                }
+                _ => self.fold(r, next.as_ref()),
+            };
+        }
+        (chi, self.rows)
+    }
+
+    /// The challenges the rows are folded by when read, as lanes: the pending one, then `r` if given.
+    fn folds(&self, r: Option<F128>) -> Vec<F128x8> {
+        self.pending.into_iter().chain(r).map(F128x8::splat).collect()
+    }
+
+    /// Each tree's round polynomial, the pairs of its rows (as folded by `pending`) weighted by `eq`.
+    fn messages(&self, eq: &SplitEq) -> Messages {
+        let folds = self.folds(None);
+        let span = GROUP << folds.len();
+        let groups = self.rows.each_ref().map(|rows| rows.len().div_ceil(4 * span));
+        // The trees' groups end to end, tree `t`'s from `first[t]`, a task a chunk of them.
+        let first: [usize; TREES] = std::array::from_fn(|t| groups[..t].iter().sum());
+        let total = groups.iter().sum();
+        let chunk = crate::chunk(total);
+        parallel::map_reduce(
+            total.div_ceil(chunk),
+            || [[F128::ZERO; 4]; TREES],
+            |task| {
+                std::array::from_fn(|t| {
+                    let mut acc = [Acc8::ZERO; 4];
+                    let start = (task * chunk).max(first[t]) - first[t];
+                    let end = ((task + 1) * chunk).min(first[t] + groups[t]).saturating_sub(first[t]);
+                    for k in start..end {
+                        if !known(&self.ones[t], span * k, span) {
+                            let mut group = [F128::ONE; 4 * GROUP];
+                            fold_group(&self.rows[t], k, &folds, &mut group);
+                            add_message(&group, eq.lanes(k), &mut acc);
+                        }
+                    }
+                    acc.map(Acc8::sum)
+                })
+            },
+            add_messages,
+        )
+    }
+
+    /// Bind the lowest row variable to `r`, after the pending challenge if any, writing the folded rows over the
+    /// spare buffers, which then hold the rows they replace. With `next`, also the next round's messages, from the
+    /// folded rows while they are at hand.
+    fn fold(&mut self, r: F128, next: Option<&SplitEq>) -> Messages {
+        let folds = self.folds(Some(r));
+        self.pending = None;
+        let span = GROUP << folds.len();
+        for (rows, spare) in self.rows.iter().zip(&mut self.spare) {
+            let len = 4 * GROUP * rows.len().div_ceil(4 * span);
+            if spare.len() < len {
+                *spare = crate::filled(len, F128::ONE);
+            }
+            spare.truncate(len);
+        }
+        let chunk = crate::chunk(self.spare.iter().map(|spare| spare.len() / (4 * GROUP)).sum());
+        let (rows, ones) = (&self.rows, &self.ones);
+        let messages = parallel::map_reduce_chunks_mut(
+            self.spare.each_mut().map(|spare| spare.as_mut_slice()),
+            [4 * GROUP * chunk; TREES],
+            || (),
+            || [[F128::ZERO; 4]; TREES],
+            |_, messages, task, outs| {
+                for (t, out) in outs.into_iter().enumerate() {
+                    let mut acc = [Acc8::ZERO; 4];
+                    for (j, group) in out.as_chunks_mut().0.iter_mut().enumerate() {
+                        let k = task * chunk + j;
+                        if known(&ones[t], span * k, span) {
+                            *group = [F128::ONE; 4 * GROUP];
+                            continue;
+                        }
+                        fold_group(&rows[t], k, &folds, group);
+                        if let Some(eq) = next {
+                            add_message(group, eq.lanes(k), &mut acc);
+                        }
+                    }
+                    for (m, acc) in messages[t].iter_mut().zip(acc) {
+                        *m += acc.sum();
+                    }
+                }
+            },
+            add_messages,
+        );
+        std::mem::swap(&mut self.rows, &mut self.spare);
+        for ones in &mut self.ones {
+            *ones = coarsen(ones, 1 << folds.len());
+        }
+        messages
+    }
 }
 
-/// Eight pairs of rows, `g[j]` lane `p` being value `j` of pair `p`: `g[c]` child `c` of its lower row and
-/// `g[4 + c]` of its upper.
-type Group = [F128x8; 8];
-
-/// Eight pairs of rows held in order, as a group.
+/// Group `k` of `rows` folded by each of `folds` in turn, written over `out`: the [`GROUP`] rows folded from the
+/// `GROUP << folds.len()` rows from `(GROUP << folds.len())·k`, the identity past the end of `rows`.
 #[inline(always)]
-fn group(v: &[F128; 64]) -> Group {
-    std::array::from_fn(|j| lanes(|p| v[8 * p + j]))
+fn fold_group(rows: &[F128], k: usize, folds: &[F128x8], out: &mut [F128; 4 * GROUP]) {
+    match *folds {
+        [] => *out = padded(rows, 4 * GROUP * k),
+        [r] => fold_rows(rows, 8 * GROUP * k, r, out),
+        [r0, r1] => {
+            let mut half = [F128::ONE; 8 * GROUP];
+            fold_rows(rows, 16 * GROUP * k, r0, &mut half);
+            fold_rows(&half, 0, r1, out);
+        }
+        _ => unreachable!("a fold applies at most two challenges"),
+    }
 }
 
-/// Whether every value is the identity. The padding rows of the bus's blocks make long runs of such values, and
-/// their products, folds and message terms are known: the identity, the identity and nothing.
+/// `out`'s row `i` is `interp(row 2i, row 2i + 1, r)` of the rows from `rows[start]`, child by child, two output rows
+/// at a time.
 #[inline(always)]
-fn identity(values: &[F128]) -> bool {
-    values.iter().all(|&v| v == F128::ONE)
+fn fold_rows(rows: &[F128], start: usize, r: F128x8, out: &mut [F128]) {
+    for (i, out) in out.as_chunks_mut::<8>().0.iter_mut().enumerate() {
+        let pairs: [F128; 16] = padded(rows, start + 16 * i);
+        // Lane `l` takes child `l mod 4` of the pair `l / 4`.
+        let lo = lanes(|l| pairs[8 * (l / 4) + l % 4]);
+        let hi = lanes(|l| pairs[8 * (l / 4) + 4 + l % 4]);
+        *out = (lo + r * (lo + hi)).to_array();
+    }
 }
 
-/// Add eight pairs' terms of `q(X) = eq·∏_c (a_c + s_c·X)` to `acc`, as `[q(0) + q(1), c2, c3, c4]`. The weight
-/// scales child 0's line, and with it every product. An identity pair adds nothing: its `q` is a constant.
+/// Add a group's terms of `q(X) = eq·∏_c (a_c + s_c·X)` to `acc`, as `[q(0) + q(1), c2, c3, c4]`: lane `p` takes the
+/// pair of rows `2p, 2p + 1`, its child `c` the line from `a_c` (the lower row's) to `a_c + s_c` (the upper's). The
+/// weight scales child 0's line, and with it the product. An identity group adds nothing, as `q` is then constant.
 ///
 /// Karatsuba throughout: in characteristic two, `x_i·y_j + x_j·y_i = (x_i + x_j)·(y_i + y_j) + x_i·y_i + x_j·y_j`.
 #[inline(always)]
-fn add_message(g: &Group, eq: F128x8, acc: &mut [Acc8; 4]) {
+fn add_message(group: &[F128; 4 * GROUP], eq: F128x8, acc: &mut [Acc8; 4]) {
+    if identity(group) {
+        return;
+    }
+    // `g[c]` is child `c` of each pair's lower row, `g[4 + c]` of its upper.
+    let g: [F128x8; 8] = std::array::from_fn(|j| lanes(|p| group[8 * p + j]));
     // Children 0 and 1 make the quadratic `left`, children 2 and 3 `right`, by coefficient.
     let a0 = eq * g[0];
     let d0 = eq * (g[0] + g[4]);
@@ -151,294 +388,6 @@ fn add_message(g: &Group, eq: F128x8, acc: &mut [Acc8; 4]) {
     acc[1] += cross_even + c0 + c4 + middle;
     acc[2] += cross_high + middle + c4;
     acc[3] += c4;
-}
-
-/// Group `k` of `values` folded by `r`, the identity past the end of `values`: output row `i` is
-/// `interp(row 2i, row 2i + 1, r)`, child by child.
-#[inline(always)]
-fn fold_group(values: &[F128], k: usize, r: F128x8) -> [F128; 64] {
-    let mut out = [F128::ONE; 64];
-    // Output rows `2i` and `2i + 1` from input pairs `2i` and `2i + 1`.
-    for (i, out) in out.as_chunks_mut::<8>().0.iter_mut().enumerate() {
-        let v: [F128; 16] = padded(values, 128 * k + 16 * i);
-        if !identity(&v) {
-            let lo = lanes(|l| v[8 * (l / 4) + l % 4]);
-            let hi = lanes(|l| v[8 * (l / 4) + 4 + l % 4]);
-            (lo + r * (lo + hi)).store(out);
-        }
-    }
-    out
-}
-
-/// The round polynomials `q_t(X) = Σ_p eq[p]·∏_c V_t(c, 2p + X)` of every tree's layer, row `r` of a layer holding
-/// its four children at `values[4r..4r + 4]`, as `[q(0) + q(1), c2, c3, c4]`. The pairs past a layer's values are
-/// identity pairs, which add nothing, as are the rows in `ones`. With `fold`, of the layer its rows bound to `fold`,
-/// folded on the fly as [`fold`] would. One dispatch for the three trees.
-fn round_messages(
-    trees: &[Vec<F128>; TREES],
-    ones: &[Ones; TREES],
-    eq: &SplitEq,
-    fold: Option<F128>,
-) -> [[F128; 4]; TREES] {
-    let per_group = if fold.is_some() { 128 } else { 64 };
-    let groups = trees.each_ref().map(|values| values.len().div_ceil(per_group));
-    let total = groups.iter().sum();
-    let chunk = chunk(total);
-    let tasks = groups.map(|g| g.div_ceil(chunk));
-    let message = |task: usize| {
-        let (mut t, mut task) = (0, task);
-        while task >= tasks[t] {
-            task -= tasks[t];
-            t += 1;
-        }
-        let mut acc = [Acc8::ZERO; 4];
-        for k in task * chunk..groups[t].min((task + 1) * chunk) {
-            if known(&ones[t], per_group / 4 * k, per_group / 4) {
-                continue;
-            }
-            let v = match fold {
-                Some(r) => fold_group(&trees[t], k, F128x8::splat(r)),
-                None => padded(&trees[t], 64 * k),
-            };
-            if !identity(&v) {
-                add_message(&group(&v), eq.lanes(k), &mut acc);
-            }
-        }
-        let mut messages = [[F128::ZERO; 4]; TREES];
-        messages[t] = acc.map(Acc8::sum);
-        messages
-    };
-    let n_tasks = tasks.iter().sum();
-    if total < crate::SERIAL_BELOW {
-        (0..n_tasks).map(message).fold([[F128::ZERO; 4]; TREES], add_messages)
-    } else {
-        parallel::map_reduce(n_tasks, || [[F128::ZERO; 4]; TREES], message, add_messages)
-    }
-}
-
-/// Bind every tree's lowest row variable to `r`, after binding it to `first` if given: row `i` becomes
-/// `interp(row 2i, row 2i + 1, r)`, child by child, written over the tree's `spare` buffer, which then holds the
-/// layer it replaces. The output is padded with identity rows to whole groups, and the rows in `ones` are coarsened to
-/// the output's. With `eq`, also the next round's messages, from the folded rows while they are at hand. One dispatch
-/// for the three trees.
-fn fold(
-    trees: &mut [Vec<F128>; TREES],
-    ones: &mut [Ones; TREES],
-    spares: &mut [Vec<F128>; TREES],
-    first: Option<F128>,
-    r: F128,
-    eq: Option<&SplitEq>,
-) -> [[F128; 4]; TREES] {
-    // Input values per output group.
-    let per_group = if first.is_some() { 256 } else { 128 };
-    for (values, spare) in trees.iter().zip(spares.iter_mut()) {
-        let len = values.len().div_ceil(per_group) * 64;
-        if spare.len() < len {
-            *spare = if len < 8 * crate::SERIAL_BELOW {
-                vec![F128::ONE; len]
-            } else {
-                parallel::filled(len, F128::ONE)
-            };
-        }
-        spare.truncate(len);
-    }
-    let chunk = chunk(spares.iter().map(|spare| spare.len() / 64).sum());
-    let (first, r) = (first.map(F128x8::splat), F128x8::splat(r));
-    let [a, b, c] = spares.each_mut().map(|spare| spare.as_mut_slice());
-    let messages = parallel::map_reduce_chunks_mut(
-        [a, b, c],
-        [64 * chunk; TREES],
-        || (),
-        || [[F128::ZERO; 4]; TREES],
-        |_, messages, task, outs| {
-            for (t, out) in outs.into_iter().enumerate() {
-                let mut acc = [Acc8::ZERO; 4];
-                for (j, out) in out.as_chunks_mut::<64>().0.iter_mut().enumerate() {
-                    let k = task * chunk + j;
-                    if known(&ones[t], per_group / 4 * k, per_group / 4) {
-                        *out = [F128::ONE; 64];
-                        continue;
-                    }
-                    *out = match first {
-                        Some(first) => {
-                            let mut both = [F128::ONE; 128];
-                            for (h, half) in both.as_chunks_mut::<64>().0.iter_mut().enumerate() {
-                                *half = fold_group(&trees[t], 2 * k + h, first);
-                            }
-                            fold_group(&both, 0, r)
-                        }
-                        None => fold_group(&trees[t], k, r),
-                    };
-                    if let Some(eq) = eq
-                        && !identity(out)
-                    {
-                        add_message(&group(out), eq.lanes(k), &mut acc);
-                    }
-                }
-                messages[t] = add4(messages[t], acc.map(Acc8::sum));
-            }
-        },
-        add_messages,
-    );
-    std::mem::swap(trees, spares);
-    for ones in ones.iter_mut() {
-        *ones = coarsen(ones, per_group / 128 * 2);
-    }
-    messages
-}
-
-fn add_messages(a: [[F128; 4]; TREES], b: [[F128; 4]; TREES]) -> [[F128; 4]; TREES] {
-    std::array::from_fn(|t| add4(a[t], b[t]))
-}
-
-/// `eq(point, ·)` as the product of a table over its low variables, at least three of them where there are, and one
-/// over the rest, so that no table of a round's size is built.
-struct SplitEq {
-    lo: Vec<F128>,
-    hi: Vec<F128>,
-    lo_bits: usize,
-}
-
-impl SplitEq {
-    /// Variables of the low table, a few kilobytes.
-    const LO_BITS: usize = 10;
-
-    fn new(point: &[F128]) -> Self {
-        let lo_bits = point.len().min(Self::LO_BITS);
-        Self {
-            lo: eq_table_serial(&point[..lo_bits]),
-            hi: eq_table_serial(&point[lo_bits..]),
-            lo_bits,
-        }
-    }
-
-    /// `eq` at pairs `8k..8k + 8`, zero past the table.
-    #[inline(always)]
-    fn lanes(&self, k: usize) -> F128x8 {
-        let (block, at) = ((8 * k) >> self.lo_bits, (8 * k) & (self.lo.len() - 1));
-        match (self.hi.get(block), self.lo.get(at..at + 8)) {
-            (Some(&hi), Some(lo)) => F128x8::load(lo) * F128x8::splat(hi),
-            (Some(&hi), None) => lanes(|p| self.lo.get(at + p).map_or(F128::ZERO, |&lo| lo * hi)),
-            (None, _) => F128x8::ZERO,
-        }
-    }
-}
-
-/// Prove the bus's identity-padded grand products as one RLC-batched radix-four GKR: push, pull, then count. Push
-/// and pull have one product by construction, so one root is sent for both, then the count's. `ones` are runs of
-/// each tree's leaves known to be the identity.
-///
-/// Per layer: a grind and the combiner `λ` (degree two in it), the sumcheck rounds (each its coefficients `c1..c4`,
-/// then its grind and challenge), the trees' children, then a grind and `y`.
-pub(crate) fn prove_products(mut leaves: [Vec<F128>; TREES], ones: [Ones; TREES], ps: &mut ProverState) -> Products {
-    let mu = crate::log2_ceil_usize(leaves[0].len());
-    assert!(
-        leaves.iter().all(|lane| !lane.is_empty() && lane.len() <= 1 << mu),
-        "batched trees must be nonempty prefixes of the first tree's logical tree"
-    );
-    // Levels `0, 2, 4, …` of each tree, and their rows known to be the identity. The last level has one node, or two
-    // when `μ` is odd.
-    let mut level_ones: [Vec<Ones>; TREES] =
-        ones.map(|ones| (1..=mu / 2 + 1).map(|j| coarsen(&ones, 1 << (2 * j))).collect());
-    let mut levels: [Vec<Vec<F128>>; TREES] = std::array::from_fn(|t| {
-        let mut levels = vec![std::mem::take(&mut leaves[t])];
-        for ones in &level_ones[t][..mu / 2] {
-            let next = next_level(levels.last().unwrap(), ones);
-            levels.push(next);
-        }
-        levels
-    });
-    for ones in &mut level_ones {
-        ones.pop();
-    }
-    let tops = levels.each_mut().map(|levels| {
-        let mut top = levels.pop().unwrap();
-        top.resize(1 << (mu % 2), F128::ONE);
-        top
-    });
-    let roots: [F128; TREES] = tops.each_ref().map(|top| top.iter().copied().product());
-    assert_eq!(roots[0], roots[1], "push and pull products must agree");
-    ps.add_scalar(roots[0]);
-    ps.add_scalar(roots[2]);
-    let mut point = Vec::new();
-    let mut values = roots;
-
-    let mut layer = mu;
-    while layer > 0 {
-        ps.grind(fiat_shamir::grinding_bits(TREES as u128 - 1));
-        let lambda = ps.sample();
-        if layer % 2 == 1 {
-            // The root-most layer of an odd-depth tree is binary: its two children are the top level.
-            for top in &tops {
-                ps.add_scalars(top);
-            }
-            ps.grind(y_grind(1, layer == 1));
-            let challenge = ps.sample();
-            for (value, top) in values.iter_mut().zip(&tops) {
-                *value = interp(top[0], top[1], challenge);
-            }
-            point = vec![challenge];
-            layer -= 1;
-            continue;
-        }
-
-        let mut trees = levels.each_mut().map(|levels| levels.pop().unwrap());
-        let mut ones = level_ones.each_mut().map(|ones| ones.pop().unwrap());
-        let round_count = mu - layer;
-        let mut round_point = Vec::with_capacity(round_count);
-        let mut spares: [Vec<F128>; TREES] = Default::default();
-        // Round `j` weights its pairs by `eq(point[1 + j..], ·)`.
-        let mut messages = match round_count {
-            0 => [[F128::ZERO; 4]; TREES],
-            _ => round_messages(&trees, &ones, &SplitEq::new(&point[1..]), None),
-        };
-        // A layer's first two challenges fold its rows at once, the second round's messages computed from rows folded
-        // on the fly: the layer is read three times and written once, at a quarter of its size.
-        let mut first = None;
-        for round in 0..round_count {
-            // `Σ_t λ^t message_t`, by Horner.
-            let mut coeffs: [F128; 4] = std::array::from_fn(|k| {
-                messages
-                    .iter()
-                    .rev()
-                    .fold(F128::ZERO, |acc, message| message[k] + lambda * acc)
-            });
-            // `q(0) + q(1) = c1 + c2 + c3 + c4`. The claim fixes `c0`, so only `c1..c4` travel.
-            coeffs[0] = coeffs.iter().copied().sum();
-            ps.add_scalars(&coeffs);
-            ps.grind(ROUND_GRIND);
-            let challenge = ps.sample();
-            round_point.push(challenge);
-            let eq = (round + 1 < round_count).then(|| SplitEq::new(&point[2 + round..]));
-            messages = match (round, &eq) {
-                (0, Some(eq)) => {
-                    first = Some(challenge);
-                    round_messages(&trees, &ones, eq, first)
-                }
-                _ => fold(&mut trees, &mut ones, &mut spares, first.take(), challenge, eq.as_ref()),
-            };
-        }
-
-        for tree in &mut trees {
-            tree.resize(4, F128::ONE);
-            ps.add_scalars(tree);
-        }
-        ps.grind(y_grind(2, layer == 2));
-        let low_challenge = ps.sample();
-        let high_challenge = ps.sample();
-        for (value, tail) in values.iter_mut().zip(&trees) {
-            *value = interp(
-                interp(tail[0], tail[1], low_challenge),
-                interp(tail[2], tail[3], low_challenge),
-                high_challenge,
-            );
-        }
-        point = vec![low_challenge, high_challenge];
-        point.extend_from_slice(&round_point);
-        layer -= 2;
-    }
-
-    Products { point, values }
 }
 
 #[cfg(test)]
@@ -469,12 +418,8 @@ mod tests {
             let below: Vec<F128> = (0..4 * width).map(|i| element(i, width)).collect();
             let point: Vec<F128> = (0..width.ilog2() - 1).map(|i| element(31 * i as usize, 5)).collect();
             let equality = eq_table(&point);
-            let message = round_messages(
-                &[below.clone(), below.clone(), below.clone()],
-                &Default::default(),
-                &SplitEq::new(&point),
-                None,
-            )[2];
+            let layer = Layer::new([0, 1, 2].map(|_| (below.clone(), Ones::new())));
+            let message = layer.messages(&SplitEq::new(&point))[2];
             let direct = |x: F128| {
                 (0..width / 2)
                     .map(|row| {

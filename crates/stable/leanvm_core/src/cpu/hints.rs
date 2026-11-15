@@ -93,11 +93,6 @@ impl GPow {
         self.pow[k]
     }
 
-    /// The forward table, `g^0` to `g^{covered - 1}`.
-    pub(crate) fn into_powers(self) -> Vec<F64> {
-        self.pow
-    }
-
     /// Extend the forward table to cover index `upto`.
     pub fn grow_to(&mut self, upto: usize) {
         if upto < self.pow.len() {

@@ -1,45 +1,39 @@
-//! leanVM: arithmetization of a minimal zkVM (see `doc/leanvm/main.tex`).
+//! leanVM's arithmetization and its prover (`doc/leanvm/main.tex`), the stable tree's.
 //!
-//! Machine words are `c0 + c1*y ∈ E = K[y]/(y² + x*y + 1)`.
-//! Addresses, pc/fp, read counters, and logical indices live in
-//! `K = GF(2^64)`; indices are powers of a fixed generator `g`, so incrementing
-//! one is a multiplication by `g`, a free virtual operation. Every physical
-//! witness column is K-valued (an E-valued word is two K-lane columns) and is
-//! committed directly by a dense multilinear PCS. Challenges and transcript
-//! scalars live in `E = GF(2^128)`.
+//! Machine words are `c0 + c1·y ∈ E = K[y]/(y² + x·y + 1)`. Addresses, `pc`/`fp`, access counts and row indices
+//! live in `K = GF(2^64)` as powers of a fixed generator `g`, so an increment is a free multiplication by `g`. Every
+//! committed column is `K`-valued (a word is two columns); challenges and transcript scalars are in `E`.
 //!
-//! - [`transcript`]: the shared Fiat-Shamir transcript (re-exported from `fiat_shamir`).
-//! - [`pcs`]: `K`-committed witness, `E`-opened, via the stacked WHIR (§sec:stacking, §annex:pcs).
-//! - [`witness`]: `K`-valued columns stacked into one committed witness.
-//! - [`gkr`]: the grand product via GKR (§sec:gkr), balancing the bus.
-//! - [`leaf`]: the shared bus: grand-product balance, decomposed to per-column claims (§sec:gp through §sec:leafstack, §sec:omc).
-//! - [`constraints`]: one table sumcheck over all six tables'
-//!   degree-2 identities plus their bus forms, one per bus tree (§sec:air).
-//! - [`tables`]: the six instruction tables (columns, flushes, constraints).
-//! - [`cpu`]: whole-program assembly, control flow, and the prove/verify entry points.
-//! - [`keccak`]: the `KECCAK` glue: the Keccak GKR reduction over the same commitment.
-//! - [`vmhash`]: VM-native hashing (the one-block hash every Merkle node uses).
+//! A proof ([`cpu::prove`]) runs the program, commits every column in one stacked witness ([`witness`], [`pcs`]),
+//! then proves:
+//! - [`leaf`]: the bus balances, by one batched grand product ([`gkr`]) whose leaf claims split into column claims
+//!   and one degree-two form per table (§sec:gp to §sec:leafstack);
+//! - [`constraints`]: one sumcheck over every table for its identities and its bus forms (§sec:air);
+//! - [`keccak`]: the `KECCAK` steps, by the Keccak reduction over the same commitment;
+//! - and opens every claim in one stacked WHIR ([`pcs`]).
+//!
+//! [`tables`] declares the six instruction tables, [`cpu`] the whole program's layout, execution and witness.
 
 pub mod constraints;
 pub mod cpu;
+mod eq;
 pub mod gkr;
 pub mod keccak;
 pub mod leaf;
 pub mod pcs;
 mod prover;
 pub mod tables;
-pub mod transcript;
 pub mod vmhash;
 pub mod witness;
 
-/// Target soundness in bits: every verifier message's round-by-round error, after its grind, is at
-/// most `2^-SECURITY_BITS`. Challenges are sampled in F128, so a message whose error is `N/|E|`
-/// grinds `fiat_shamir::grinding_bits(N)` bits.
+/// Target soundness in bits: every verifier message's round-by-round error, after its grind, is at most
+/// `2^-SECURITY_BITS`. Challenges are sampled in `E`, so a message whose error is `N/|E|` grinds
+/// `fiat_shamir::grinding_bits(N)` bits.
 pub use fiat_shamir::SECURITY_BITS;
 pub use prover::Stable;
 
-/// `stage!("Commit", || …)`: one named prover stage, run inside its `tracing` span,
-/// which is what the CLI's `--tracing` tree shows.
+/// `stage!("Commit", || …)`: one named prover stage, run inside its `tracing` span, which is what the CLI's
+/// `--tracing` tree shows.
 macro_rules! stage {
     ($name:literal, $f:expr) => {
         tracing::info_span!($name).in_scope($f)
@@ -51,8 +45,24 @@ pub(crate) use primitives::{log2_ceil_usize, log2_strict_usize};
 
 use primitives::field::{F64, F64x8, F128, F128x8};
 
-/// Vectors of eight rows below which a pass runs on the calling thread: waking the pool would cost more than it saves.
-pub(crate) const SERIAL_BELOW: usize = 1 << 10;
+/// Vectors of eight rows below which a pass runs on the calling thread: waking the pool would cost more than it
+/// saves, and a proof makes many such passes (the GKR's and the table sumcheck's last rounds, the small tables).
+const SERIAL_BELOW: usize = 1 << 10;
+
+/// Vectors of eight rows per task of a pass over `n` of them: one task for a small pass, which the pool then runs on
+/// the calling thread.
+pub(crate) fn chunk(n: usize) -> usize {
+    if n < SERIAL_BELOW { n.max(1) } else { 1 << 7 }
+}
+
+/// `n` copies of `value`, written by the pool only when the buffer is large.
+pub(crate) fn filled<T: Copy + Send + Sync>(n: usize, value: T) -> Vec<T> {
+    if n < 8 * SERIAL_BELOW {
+        vec![value; n]
+    } else {
+        parallel::filled(n, value)
+    }
+}
 
 /// `values[i..i + n]` as lanes, zero past `n` (`n` at least eight takes eight).
 #[inline(always)]

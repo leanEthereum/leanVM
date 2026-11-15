@@ -1,12 +1,6 @@
-//! Whole-program assembly over GF(2^64) (`doc/leanvm/main.tex`): the instruction tables
-//! sharing the state / memory / bytecode buses, bound to one field-valued
-//! commitment and verified oracle-free. Addresses, the program counter, and read
-//! counts are g-powers, so every increment is a free ×g. Machine-word arithmetic
-//! is over `E = F128 = K[y]/(y²+x·y+1)` (XOR degree 1, MUL_NATIVE degree 2),
-//! with each word carried by two committed `K = F64` limbs. `KECCAK` adds the
-//! memory/state/bytecode plumbing for one Keccak-f sponge step whose relation
-//! is discharged by the Keccak reduction (see [`crate::keccak`]). All
-//! challenges and transcript scalars live in the same tower E.
+//! The whole program: its assembly ([`Program`]), its run ([`Program::execute`]), its public layout ([`layout()`]),
+//! and [`prove`], which binds the six instruction tables to one commitment through the state, memory and bytecode
+//! buses (`doc/leanvm/main.tex`). [`verify`] wraps the `verifier` crate.
 
 use std::collections::HashMap;
 
@@ -16,55 +10,30 @@ use crate::pcs;
 use crate::tables::{
     self, FillCtx, FlushBuilder, OP_DEREF, OP_JUMP, OP_KECCAK, OP_MUL, OP_SET, OP_XOR, SEP_BYTECODE, SEP_MEM, SEP_STATE,
 };
-use crate::transcript::ProverState;
 use crate::witness;
+use fiat_shamir::transcript::ProverState;
 use primitives::field::{F64, F128, g_pow};
 
 mod execute;
 pub mod hints;
-mod isa;
 pub mod layout;
 mod trace;
+pub use ::isa::{DerefMode, Op, OutCells};
 pub use execute::{ExecError, Execution, Fault, Memory};
-pub use isa::{DerefMode, Op, OutCells};
 pub use layout::*;
 pub(crate) use trace::{Drow, Jrow, Krow, Srow, Trace, Xrow};
 
 /// The data memory's size bounds (doc §Memory): `2^h` cells, `MIN_LOG_MEMORY ≤ h ≤ MAX_LOG_MEMORY`.
 pub use verifier::{MAX_LOG_MEMORY, MIN_LOG_MEMORY};
 
-/// The Fiat-Shamir IV: ONE 32-byte digest, as two field words, committing to
-/// everything fixed about the proving environment.
-///
-/// It is [`verifier::TAG`] followed by the stacked bytecode multilinear
-/// ([`layout::bytecode_table`]) rather than an assembler digest, so a verifier
-/// holding only that polynomial reproduces the seed.
-///
-/// The IV fills lanes 0..4 of the transcript's first permutation input
-/// ([`fiat_shamir::FiatShamirState::new`]), the public input the next four, so all challenges depend on the circuit version and the program before
-/// anything else; a recursion guest carries the INNER program's IV in its public
-/// input, pinning both with one word pair.
-pub fn fs_seed(program: &Program) -> [F128; 2] {
-    fiat_shamir::merkle::hash_to_scalars(&program.fiat_shamir_iv)
-}
-
-/// The two 128-bit halves a digest travels in, as the four words the
-/// Fiat-Shamir sponge absorbs.
+/// The two 128-bit halves a digest travels in, as the four words the Fiat-Shamir sponge absorbs.
 fn digest_words(halves: &[F128; 2]) -> [F64; 4] {
-    [
-        F64(halves[0].c0),
-        F64(halves[0].c1),
-        F64(halves[1].c0),
-        F64(halves[1].c1),
-    ]
+    [halves[0].c0, halves[0].c1, halves[1].c0, halves[1].c1].map(F64)
 }
 
-/// Announce the prover's sizes (`log_mem`, every table's row count, the PCS rate) by
-/// writing them onto the scalar stream, which binds them into the state and lets the
-/// verifier reconstruct the layout, every table's height following from its rows
-/// ([`layout::table_logs`]). The public statement (program + input) is not announced
-/// here; it seeds the transcript at construction (see [`fs_seed`]). The boundary
-/// states are derived from the program, so they need no binding.
+/// Announce the prover's sizes (`log_mem`, every table's row count, the PCS rate) on the stream, from which the
+/// verifier rebuilds the layout ([`layout::table_logs`]). The statement, the program and the public input, is not
+/// announced: it seeds the transcript.
 fn announce_public(ps: &mut ProverState, log_mem: usize, rows: [usize; tables::N_TABLES], log_inv_rate: usize) {
     ps.add_scalar(F128::new(log_mem as u64, 0));
     for n in rows {
@@ -73,36 +42,28 @@ fn announce_public(ps: &mut ProverState, log_mem: usize, rows: [usize; tables::N
     ps.add_scalar(F128::new(log_inv_rate as u64, 0));
 }
 
+/// An assembled program: its bytecode and what proving it needs beside the public input.
 #[derive(Clone)]
 pub struct Program {
-    pub(crate) prog: Vec<Op>, // bytecode (size B, power of two)
-    /// The Fiat-Shamir IV ([`fs_seed`]), computed once at assembly so proofs of
-    /// the same program do not rehash the stacked bytecode multilinear (that
-    /// table is 16·2^kbc words). Trusted
-    /// to match `prog`: always set by [`Program::assemble`] from the bytecode,
-    /// so a `Program` cannot carry an IV inconsistent with its own `prog`.
+    /// The bytecode, a power of two long.
+    pub(crate) prog: Vec<Op>,
+    /// The Fiat-Shamir IV: the hash of [`verifier::TAG`] and the stacked bytecode ([`layout::bytecode_table`]), which
+    /// a verifier holding only that polynomial reproduces. Set by [`Program::assemble`] alone, so it always matches
+    /// `prog`.
     pub(crate) fiat_shamir_iv: [u8; 32],
-    /// The public bytecode columns, computed once at assembly with the IV: every layout of the
-    /// program shares them, as a proof's and each of a recursion node's children's do.
+    /// The public bytecode columns, which every layout of the program shares.
     bytecode_columns: layout::BytecodeColumns,
-    /// Prover-side frame/buffer allocation hints (keyed by global pc) and the
-    /// size of `main`'s frame: the nondeterminism [`Program::execute`] needs to
-    /// run the program. Public verification ([`verify`]) ignores them.
+    /// The frame and buffer allocation hints, by pc, and the size of `main`'s frame: the nondeterminism
+    /// [`Program::execute`] needs, which verification ignores.
     pub(crate) hints: HashMap<u32, Vec<hints::RHint>>,
     pub(crate) main_frame: u32,
-    /// Named prover witness streams for the program's `hint_witness` calls
-    /// ([`Program::set_witness`]): a stream is a sequence of *entries* (one
-    /// slice of values per `hint_witness` call; the same symbol may be
-    /// hinted many times); each call pops the next entry, whose length must
-    /// match its destination. Prover-side only; verification ignores them.
+    /// The witness streams of the program's `hint_witness` calls ([`Program::set_witness`]), by name: each call pops
+    /// the next entry, whose length must match its destination.
     pub(crate) witness: HashMap<String, Vec<Vec<F128>>>,
-    /// Function pc-ranges `(name, entry, len)` from the compiler, for the
-    /// `DBG_PROF=1` per-function cycle profile ([`Program::execute`]). Purely
-    /// diagnostic; empty for hand-assembled programs.
+    /// Function pc-ranges `(name, entry, len)` from the compiler, for the `DBG_PROF=1` profile and error sites. Empty
+    /// for a hand-assembled program.
     pub fn_ranges: Vec<(String, u32, u32)>,
-    /// Source line of the statement that emitted each pc. Prover-side only, and
-    /// outside `fiat_shamir_iv`, so it costs nothing in the proof: a failed guest
-    /// check reports a line rather than a pc to disassemble around. Empty for a
+    /// Source line of the statement that emitted each pc, so a failed check reports a line. Empty for a
     /// hand-assembled program, and shorter than `prog`, which is padded.
     pub src_lines: Vec<u32>,
 }
@@ -212,8 +173,8 @@ impl Program {
 }
 
 /// The whole proof is the transcript: a scalar stream plus the PCS hint
-/// channels (see [`crate::transcript::Proof`]).
-pub use crate::transcript::Proof;
+/// channels.
+pub use fiat_shamir::transcript::Proof;
 
 /// Why [`prove`] produced no proof.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -255,49 +216,25 @@ impl std::fmt::Display for ProveError {
 
 impl std::error::Error for ProveError {}
 
-/// Per side, which table (if any) owns each bus block, as `(table, column base)`.
-type BlockOwners = [Vec<Option<(usize, usize)>>; 3];
-/// Each table's `(column base, committed column count)` in the global schema.
-type TableSpans = Vec<(usize, usize)>;
-
-/// Blocks sourced from a table's height belong to it; the boundary, memory and
-/// bytecode blocks belong to none and keep their own column claims at ζ.
-fn block_owners(log_bytecode: usize, sides: [usize; 3]) -> BlockOwners {
+/// Per bus tree, the table owning each block with its first column, none for a boundary block; and each table's
+/// first column and column count. Public: the program and the layout fix them.
+#[allow(clippy::type_complexity)]
+fn bus_wiring(program: &Program, l: &Layout) -> ([Vec<Option<(usize, usize)>>; 3], Vec<(usize, usize)>) {
     let sch = schema();
-    let src = block_kappa_sources(log_bytecode);
-    let mut it = src
+    // A block as tall as table `t` (its height's source `2 + t`) is one of its flushes.
+    let mut owners = block_kappa_sources(crate::log2_strict_usize(program.prog.len()))
         .into_iter()
         .map(|(source, _)| source.checked_sub(2).map(|t| (t, sch.base[t])));
-    sides.map(|n| it.by_ref().take(n).collect())
+    let owners = [l.push.len(), l.pull.len(), l.count.len()].map(|n| owners.by_ref().take(n).collect());
+    let spans = (tables::tables().iter().enumerate())
+        .map(|(t, table)| (sch.base[t], table.n_committed_columns()))
+        .collect();
+    (owners, spans)
 }
 
-/// The bus's public wiring: per side which table owns each block, and each table's
-/// column span. Derived from the program and the announced layout alone, so a
-/// verifier builds the same one.
-fn bus_wiring(program: &Program, l: &Layout) -> (BlockOwners, TableSpans) {
-    let owners = block_owners(
-        crate::log2_strict_usize(program.prog.len()),
-        [l.push.len(), l.pull.len(), l.count.len()],
-    );
-    (owners, table_spans())
-}
-
-/// The table sumcheck carries every committed column of a table, because its bus
-/// forms reference the flushed ones and its constraint the rest.
-fn table_spans() -> TableSpans {
-    let sch = schema();
-    tables::tables()
-        .iter()
-        .enumerate()
-        .map(|(t, tb)| (sch.base[t], tb.n_committed_columns()))
-        .collect()
-}
-
-/// The per-table inputs to the table sumcheck (§constraints), in schema order: each
-/// table's committed columns, its summand as one form over them (its identities
-/// weighted by its own `ξ`-range, its bus forms, one per tree, by the shared powers at
-/// [`xi_form_base`]), and what that summand sums to, its bus forms' `ξ`-weighted
-/// shares, since its identities vanish.
+/// The tables' entries in the table sumcheck, in schema order: each table's committed columns, its summand (its
+/// identities weighted by its own range of `ξ`-powers, each tree's bus form by the tree's power at
+/// [`xi_form_base`]), and what the summand sums to, its bus forms' share, as its identities vanish.
 fn airs<'a>(
     taus: &[usize; tables::N_TABLES],
     bus: &leaf::BusProof,
@@ -318,22 +255,16 @@ fn airs<'a>(
             constraints::Air {
                 tau,
                 cols: &cols[start..start + n],
-                form: leaf::BusForm::sum(bus_forms.chain([identities])),
+                form: constraints::Form::sum(bus_forms.chain([identities])),
                 sigma: (0..leaf::N_BUS_TREES).map(|s| pows[base + s] * bus.sigmas[s][t]).sum(),
             }
         })
         .collect()
 }
 
-/// Where the bus forms sit in the batch's `ξ`-powers: the last [`leaf::N_BUS_TREES`], one
-/// per tree, AFTER every table's identity range, and shared by all tables rather than
-/// one set per table. That sharing is what keeps the batch tied to the bus: with a common
-/// `ξ^{base+s}` per tree, the batch's target is `Σ_s ξ^{base+s}·R_s` for
-/// the trees' table shares `R_s`, which the verifier DERIVES from the leaf claims
-/// (a mismatch fails its table sumcheck's terminal check). Were the
-/// powers per table, the target
-/// would not factor through the `R_s` and nothing would pin the tables' share of
-/// the bus.
+/// Where the bus forms' `ξ`-powers start: after every table's identities, one power per tree, shared by every table.
+/// Shared, the batch's claim is `Σ_s ξ^{base + s}·rem_s`, which the verifier derives from the leaf claims; a power
+/// per table would not factor through the trees' totals, and nothing would pin the tables' share of the bus.
 pub fn xi_form_base() -> usize {
     tables::tables().iter().map(|t| t.n_constraints()).sum()
 }
@@ -343,8 +274,8 @@ pub fn n_xi_powers() -> usize {
     xi_form_base() + leaf::N_BUS_TREES
 }
 
-/// The KECCAK table's claims on its output lanes, which are the Keccak reduction's claim on
-/// the permutation's output: the batch claims every column of the table at one point.
+/// The KECCAK table's claims on its output lanes, which are the Keccak reduction's claim on the permutation's
+/// output: the table sumcheck claims every column of the table at one point.
 fn keccak_output_claim(table_claims: &[constraints::Claims]) -> keccak_gkr::OutputClaim {
     let claims = &table_claims[tables::KECCAK_TABLE];
     keccak_gkr::OutputClaim {
@@ -353,10 +284,8 @@ fn keccak_output_claim(table_claims: &[constraints::Claims]) -> keccak_gkr::Outp
     }
 }
 
-/// Run statistics returned alongside the proof: the cycle count (total executed
-/// instructions), the per-opcode row counts `[XOR, MUL, SET, DEREF, JUMP, KECCAK]`,
-/// and the committed witness size, the sum of the column lengths, i.e. the real data
-/// before the stacked witness is zero-padded to a power of two `2^m`.
+/// What a run took: its cycles, its rows per table, its committed words (before the stack's pad to a power of
+/// two), its memory and bytecode.
 pub struct Stats {
     pub cycles: usize,
     /// Rows per table the program executed.
@@ -364,8 +293,7 @@ pub struct Stats {
     pub committed: usize,
     /// Data memory is `2^log_mem` cells (the padded write-once image).
     pub log_mem: usize,
-    /// Cells actually touched, before the pad to `2^log_mem`, i.e. the real memory
-    /// footprint (`log2` is fractional).
+    /// Cells the run touched, before the pad to `2^log_mem`.
     pub mem_used: usize,
     /// Bytecode instructions, before the pad to a power of two ([`Program::code_len`]).
     pub bytecode: usize,
@@ -374,152 +302,84 @@ pub struct Stats {
 impl Stats {
     /// Table names in `rows` order.
     pub const TABLES: [&'static str; tables::N_TABLES] = ["XOR", "MUL", "SET", "DEREF", "JUMP", "KECCAK"];
-
-    /// One line of per-table instruction counts and shares, largest first, followed by memory, bytecode and committed-witness sizes.
-    ///
-    /// `log_mem` holds the padded memory size the commitment covers. Zero-count
-    /// tables are omitted.
-    #[must_use]
-    pub fn details(&self) -> String {
-        if self.cycles == 0 {
-            return "-".to_string();
-        }
-        let mut shares: Vec<(&str, usize)> = Self::TABLES
-            .iter()
-            .zip(&self.rows)
-            .filter(|&(_, &c)| c > 0)
-            .map(|(&name, &c)| (name, c))
-            .collect();
-        shares.sort_unstable_by_key(|&(_, c)| std::cmp::Reverse(c));
-        let mut parts: Vec<String> = shares
-            .iter()
-            .map(|&(name, c)| {
-                let pct = 100.0 * c as f64 / self.cycles as f64;
-                format!("{name} 2^{} ({pct:.1}%)", primitives::pretty_f64((c as f64).log2()))
-            })
-            .collect();
-        let log2 = |n: usize| primitives::pretty_f64((n.max(1) as f64).log2());
-        parts.push(format!("MEMORY 2^{}", log2(self.mem_used)));
-        parts.push(format!("BYTECODE 2^{}", log2(self.bytecode)));
-        parts.push(format!("TOTAL_COMMITTED 2^{}", log2(self.committed)));
-        parts.join("  ")
-    }
 }
 
-/// Prove the program on the given public input: run it (witness generation),
-/// then emit everything the verifier needs through the returned [`Proof`]
-/// (scalar stream + PCS commitment / opening hints). Returns the proof and the
-/// run [`Stats`], or why no proof was made ([`ProveError`]). `log_inv_rate`
-/// selects the PCS rate and is announced in the Fiat-Shamir transcript before
-/// the commitment.
+/// Prove the program on `public_input` at the PCS rate `2^-log_inv_rate`: run it, commit its witness, and prove, in
+/// transcript order, the bus, the table sumcheck, the public input's binding, the Keccak reduction and the opening.
+/// Returns the proof and the run's [`Stats`], or why no proof was made.
 #[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate))]
 pub fn prove(program: &Program, public_input: [F128; 2], log_inv_rate: usize) -> Result<(Proof, Stats), ProveError> {
     if ::pcs::whir::validate_log_inv_rate(log_inv_rate).is_err() {
         return Err(ProveError::InvalidRate { log_inv_rate });
     }
     let exec = crate::stage!("Execute program", || program.execute(public_input)).map_err(ProveError::Execution)?;
-    // A live value that came from outside the constraint system would make the proof
-    // about a weaker statement than the program text, so it is refused here, on the one
-    // path every proof takes, rather than left to whichever test happens to look.
+    // A value read before anything wrote it is the prover's to choose: the proof would be of a weaker statement than
+    // the program's.
     if !exec.unconstrained_reads.is_empty() {
         return Err(ProveError::UnconstrainedReads(exec.unconstrained_reads));
     }
-    // The layout follows from the run's sizes alone: a run past the window is refused
-    // before its witness is built.
-    let layout = program.layout(
-        crate::log2_strict_usize(exec.mem.len()),
-        exec.trace.row_counts(),
-        public_input,
-    );
+    // The layout follows from the run's sizes alone, so a run too large to commit is refused before its witness.
+    let log_mem = crate::log2_strict_usize(exec.mem.len());
+    let layout = program.layout(log_mem, exec.trace.row_counts(), public_input);
     if layout.shape.mu > pcs::MAX_STACKED_LOG {
         return Err(ProveError::WitnessOutOfRange {
             log_committed: layout.shape.mu,
         });
     }
-    let cycles = exec.cycles;
+    let stats = Stats {
+        cycles: exec.cycles,
+        rows: layout.rows,
+        committed: layout.committed_size(),
+        log_mem,
+        mem_used: exec.mem_used,
+        bytecode: program.code_len(),
+    };
     let mut w = crate::stage!("Build witness", || program.build(&exec, layout));
-    let mem_used = exec.mem_used;
     drop(exec);
-    let committed_size = w.committed_size();
-    // The public statement (program digest + input) seeds the transcript, so
-    // every challenge depends on the exact program and public input.
+
+    // The statement, the program's IV and the public input, seeds the transcript; the sizes and the commitment come
+    // before any challenge.
     let mut ps = ProverState::new(
         fiat_shamir::digest_words(&program.fiat_shamir_iv),
         digest_words(&public_input),
     );
+    announce_public(&mut ps, log_mem, w.layout.rows, log_inv_rate);
+    let committed = crate::stage!("Commit", || pcs::commit(&mut ps, &w.q, w.layout.shape, log_inv_rate));
 
-    // Announce the prover's sizes, then commit and take the commitment's OOD sample, before sampling any other challenge.
-    announce_public(&mut ps, w.log_mem, w.layout.rows, log_inv_rate);
-    let committed = crate::stage!("Commit", || {
-        pcs::commit(&mut ps, &w.q, w.layout.shape, log_inv_rate)
-    });
-
-    // KECCAK (§keccak), single PCS: q_keccak is ALWAYS a column in `w.q` (the
-    // KECCAK table is filled to the reduction's floor, so the proof shape is uniform
-    // and there is no has/hasn't-KECCAK fork). The Keccak reduction's claims and
-    // EVERY leanVM point claim are discharged together by ONE
-    // WHIR over this commitment (below). Input and output lanes bind through the
-    // memory bus: their virtual value columns route to q_keccak (inputs) and to the
-    // reduction's output claim (outputs), so no separate pin claims are needed.
     let (owners, spans) = bus_wiring(program, &w.layout);
-    // The columns are windows into `w.q`, so both stages read them in place: the
-    // table sumcheck builds a table's few `E` state columns from them on the round
-    // it joins and never writes the K-columns back.
     let (bus, table_claims) = {
         let l = &w.layout;
         let cols = w.columns();
         let bus = crate::stage!("Prove bus", || {
-            leaf::prove_balance(&l.push, &l.pull, &l.count, &cols, &owners, &spans, &mut ps)
+            leaf::prove_balance([&l.push, &l.pull, &l.count], &cols, &owners, &spans, &mut ps)
         });
         let table_claims = crate::stage!("Prove constraints", || {
-            // One sumcheck for all six tables (§constraints).
-            // The eq point is the bus GKR's ζ, not a fresh one: that is what lets the
-            // batch settle the bus forms alongside the constraints.
             ps.grind(fiat_shamir::grinding_bits(n_xi_powers() as u128 - 1));
             let xi = ps.sample();
             constraints::prove(&airs(&l.taus, &bus, &cols, &spans, xi), &bus.point, &mut ps)
         });
         (bus, table_claims)
     };
-    // The bus and the constraints were the output lanes' last readers.
+    // The output lanes' last readers were the bus and the table sumcheck.
     drop(std::mem::take(&mut w.virt));
-    let l = &w.layout;
 
-    // The PI binding (§sec:e2e-pi) transmits nothing: its claims are the public
-    // input's limb lines at `r_pi`, which the verifier evaluates itself. `r_pi`
-    // is still a challenge, squeezed after the commitment so the memory cannot
-    // be chosen to fit it. Its claims are lines in it, numerator one: no grind.
+    // The public input's binding (§sec:e2e-pi) sends nothing: its claims are lines in `r_pi` the verifier evaluates
+    // itself, numerator one, so no grind.
     let r_pi = ps.sample();
-    // Memory binds every step's input and output words. Their value columns are
-    // virtual: the inputs route to q_keccak through `slot_claims`, the outputs are
-    // the reduction's claim on the permutation's output.
-    let mut slots = finish_claims(l, bus.claims, &table_claims, r_pi);
-    let output = keccak_output_claim(&table_claims);
+    let mut slots = finish_claims(&w.layout, bus.claims, &table_claims, r_pi);
 
-    // Run the Keccak reduction over the witness rebuilt from q_keccak's input
-    // states; it returns two claims on the committed `q_keccak`, discharged by the
-    // PCS below in the SAME WHIR as every leanVM point claim: one ring-switched,
-    // one appended to the point claims.
-    let keccak_reduction = w.keccak_reduction;
+    // The Keccak reduction ends on two claims on `q_keccak`, which join the one opening: one ring-switched, one a
+    // point claim.
     let witness::Placement { offset, n_vars } = w.layout.placements[QKECCAK];
-    let q_keccak = &w.q[offset..][..1 << n_vars];
+    let output = keccak_output_claim(&table_claims);
     let openings = crate::stage!("Keccak reduction", || {
-        keccak_reduction.prove(&mut ps, q_keccak, &output)
+        w.keccak_reduction
+            .prove(&mut ps, &w.q[offset..][..1 << n_vars], &output)
     });
     let (ring, outputs) = openings.into_pcs_claims(offset);
     slots.extend(outputs);
-    crate::stage!("PCS open", || { pcs::open(&mut ps, committed, w.q, &slots, &ring) });
-    Ok((
-        ps.into_proof(),
-        Stats {
-            cycles,
-            rows: w.layout.rows,
-            committed: committed_size,
-            log_mem: w.log_mem,
-            mem_used,
-            bytecode: program.code_len(),
-        },
-    ))
+    crate::stage!("PCS open", || pcs::open(&mut ps, committed, w.q, &slots, &ring));
+    Ok((ps.into_proof(), stats))
 }
 
 /// Everything the PCS has to open, in the ORDER that feeds the batch's weights:

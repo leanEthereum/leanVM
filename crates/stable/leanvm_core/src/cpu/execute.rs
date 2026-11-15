@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use super::hints::{MAX_CELLS, MAX_INDEX, bounded_dlog};
+use super::hints::{BitsDest, GPow, MAX_CELLS, MAX_INDEX, QuickMap, RHint, bounded_dlog};
 use super::*;
 use primitives::{
     field::{F64, F128},
@@ -28,8 +28,6 @@ pub struct Execution {
     /// and an arithmetic back-solve writes its operand before reading it.
     pub unconstrained_reads: Vec<u32>,
     pub(crate) trace: Trace, // rows + final access-count columns, emitted in the same walk
-    /// `g^0, g^1, ..` as far as the run indexed them: every pc, frame base and cell it reached.
-    pub(crate) gpow: Vec<F64>,
 }
 
 impl Execution {
@@ -253,534 +251,308 @@ impl<'a> Stream<'a> {
     }
 }
 
-impl Program {
-    /// Run the program in write-once *fill* mode to produce its [`Execution`]:
-    /// the final memory image and the step count, or why it has none. The public
-    /// input seeds the first two memory cells `m[0], m[1]` (§sec:e2e-pi).
-    /// Compilation yields the `Program`; executing it (here) and proving it are
-    /// separate later phases.
-    pub fn execute(&self, public_input: [F128; 2]) -> Result<Execution, ExecError> {
-        use super::hints::{BitsDest, GPow, QuickMap, RHint};
+/// The cell `base + offset`, if it lies in the address space.
+fn cell_at(base: u32, offset: u32) -> Result<u32, Fault> {
+    let cell = u64::from(base) + u64::from(offset);
+    if cell < u64::from(MAX_CELLS) {
+        Ok(cell as u32)
+    } else {
+        Err(Fault::OutOfMemory)
+    }
+}
 
+/// The memory while the program runs: whole pages up to the highest cell reached.
+#[derive(Default)]
+struct Mem {
+    pages: Vec<Vec<Cell>>,
+    /// One past the highest cell accessed or reserved.
+    used: usize,
+    /// The highest access count any cell reached.
+    counts: u32,
+    /// The cells a `DEREF` linked each cell to.
+    links: QuickMap<u32, Vec<u32>>,
+    /// Cells an instruction read before anything wrote them.
+    unwritten_reads: Vec<u32>,
+}
+
+impl Mem {
+    /// Cover cell `idx`.
+    fn ensure(&mut self, idx: usize) {
+        if idx >= self.used {
+            self.used = idx + 1;
+            while self.pages.len() <= idx >> PAGE_LOG {
+                self.pages.push(vec![Cell::UNWRITTEN; 1 << PAGE_LOG]);
+            }
+        }
+    }
+
+    /// Cell `c`, covered.
+    fn at(&mut self, c: u32) -> &mut Cell {
+        self.ensure(c as usize);
+        let c = c as usize;
+        &mut self.pages[c >> PAGE_LOG][c & ((1 << PAGE_LOG) - 1)]
+    }
+
+    /// Cell `c`, if its page exists.
+    fn cell(&self, c: u32) -> Option<&Cell> {
+        let c = c as usize;
+        (self.pages.get(c >> PAGE_LOG)).map(|page| &page[c & ((1 << PAGE_LOG) - 1)])
+    }
+
+    fn written(&self, cell: u32) -> bool {
+        self.cell(cell).is_some_and(|c| c.state == State::Written)
+    }
+
+    /// A hint's read, which writes nothing: what a hint computes is advice the instructions go on to check.
+    fn get(&self, cell: u32) -> F128 {
+        self.cell(cell).map_or(F128::ZERO, |c| c.word)
+    }
+
+    /// An instruction's read. An unwritten cell reads as ZERO, which is then written there: the row is filled from
+    /// the final image, which has to agree.
+    fn read(&mut self, cell: u32) -> F128 {
+        let c = self.at(cell);
+        let word = c.word;
+        if c.state != State::Written {
+            c.state = State::Written;
+            self.unwritten_reads.push(cell);
+        }
+        word
+    }
+
+    /// Write-once store, carried to every cell linked to this one.
+    fn put(&mut self, cell: u32, v: F128) -> Result<(), Fault> {
+        if self.store(cell, v)? {
+            let mut todo = vec![cell];
+            while let Some(c) = todo.pop() {
+                for p in self.links.remove(&c).unwrap_or_default() {
+                    if self.store(p, v)? {
+                        todo.push(p);
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// `put` on one cell; whether it was linked.
+    fn store(&mut self, cell: u32, v: F128) -> Result<bool, Fault> {
+        let c = self.at(cell);
+        let state = c.state;
+        if state == State::Written && c.word != v {
+            let had = c.word;
+            return Err(Fault::Conflict {
+                cell,
+                had,
+                new: v,
+                hint: None,
+            });
+        }
+        (c.word, c.state) = (v, State::Written);
+        Ok(state == State::Linked)
+    }
+
+    fn link(&mut self, a: u32, b: u32) {
+        for (x, y) in [(a, b), (b, a)] {
+            let c = self.at(x);
+            if c.state == State::Unwritten {
+                c.state = State::Linked;
+            }
+            self.links.entry(x).or_default().push(y);
+        }
+    }
+
+    /// Read the running access count and advance it: the column's `×g`, on the exponent.
+    fn bump_access_count(&mut self, cell: u32) -> u32 {
+        let c = self.at(cell);
+        let count = c.count;
+        c.count = count + 1;
+        self.counts = self.counts.max(count + 1);
+        count
+    }
+}
+
+/// What the hints keep across the run: the next free cell, and each witness stream's next entry.
+struct Advice<'a> {
+    next_free: u32,
+    streams: QuickMap<&'a str, Stream<'a>>,
+}
+
+/// Reserve `size` fresh cells for the region whose pointer is `cell`, unless it already points somewhere: write the
+/// region's base `g^{next_free}` there.
+fn alloc(m: &mut Mem, g: &mut GPow, next_free: &mut u32, cell: u32, size: u32) -> Result<(), Fault> {
+    if m.written(cell) {
+        return Ok(());
+    }
+    let base = *next_free;
+    *next_free = cell_at(base, size)?;
+    g.grow_to(*next_free as usize);
+    // The base is about to become a pointer in memory.
+    g.note(base as usize);
+    if *next_free > base {
+        m.ensure(*next_free as usize - 1);
+    }
+    m.put(cell, F128::from(g.pow(base as usize)))
+}
+
+/// The cell a heap run starts at: the pointer in `cell`, inverted.
+fn heap_base(m: &Mem, g: &mut GPow, cell: u32, what: &'static str) -> Result<u32, Fault> {
+    let p = in_k(what, m.get(cell))?;
+    g.log(p).ok_or(Fault::NotAGPower { what, value: p })
+}
+
+/// Where a computed-advice bit buffer starts: a frame run needs no lookup at all, which is the point of having one.
+fn bits_base(m: &Mem, g: &mut GPow, fp: u32, dest: BitsDest, what: &'static str) -> Result<u32, Fault> {
+    match dest {
+        BitsDest::Stack(base) => Ok(fp + base),
+        BitsDest::Heap(ptr) => heap_base(m, g, fp + ptr, what),
+    }
+}
+
+/// `print`'s line for a cell: small integers and small g-powers overlap (`8 = x^3 = g^3`), so every reading that
+/// applies. Only a `K`-valued word can be a g-power.
+fn print(label: &str, m: &Mem, cell: u32) {
+    if !m.written(cell) {
+        return eprintln!("[print] {label} = <unwritten>");
+    }
+    let v = m.get(cell);
+    let k = v.as_base().and_then(|lo| bounded_dlog(lo, MAX_INDEX.ilog2()));
+    match (k, v.as_base().is_some_and(|lo| lo.0 < 1 << 32)) {
+        (Some(k), true) => eprintln!("[print] {label} = {} (g^{})", pretty_integer(v.c0), pretty_integer(k)),
+        (Some(k), false) => eprintln!("[print] {label} = g^{}", pretty_integer(k)),
+        (None, true) => eprintln!("[print] {label} = {}", pretty_integer(v.c0)),
+        (None, false) => eprintln!("[print] {label} = {:#x}:{:#x}", v.c1, v.c0),
+    }
+}
+
+/// A hint's name, for the conflict it caused.
+#[cold]
+fn hint_name(h: &RHint) -> &'static str {
+    match h {
+        RHint::FrameAddress { .. } => "FrameAddress",
+        RHint::AllocFrames { .. } => "AllocFrames",
+        RHint::Alloc { .. } => "Alloc",
+        RHint::AllocDyn { .. } => "AllocDyn",
+        RHint::WitnessStack { .. } => "WitnessStack",
+        RHint::WitnessHeap { .. } => "WitnessHeap",
+        RHint::Log2Ceil { .. } => "Log2Ceil",
+        RHint::BitDecompose { .. } => "BitDecompose",
+        RHint::BitDecomposeExp { .. } => "BitDecomposeExp",
+        RHint::DigitDecomposeExp { .. } => "DigitDecomposeExp",
+        RHint::WindowsExp { .. } => "WindowsExp",
+        RHint::FieldLimbs { .. } => "FieldLimbs",
+        RHint::Inverse { .. } => "Inverse",
+        RHint::Print { .. } => "Print",
+    }
+}
+
+impl Program {
+    /// Run the program in write-once *fill* mode to produce its [`Execution`]: the final memory image and the
+    /// trace, or why it has none. The public input seeds the first two memory cells `m[0], m[1]` (§sec:e2e-pi).
+    pub fn execute(&self, public_input: [F128; 2]) -> Result<Execution, ExecError> {
         let ending_pc = (self.prog.len() - 1) as u32; // last bytecode slot, g^{B-1}
         if self.main_frame >= MAX_CELLS {
             return Err(ExecError::new(self, 0, Fault::OutOfMemory));
         }
-
-        // g^j, covering the pcs and return targets and the main frame, then grown by each
-        // reservation and each lookup past it, and its reverse index g^j ↦ j.
+        // `g^j` for the pcs, the return targets and the main frame, grown as the run reaches further.
         let mut g = GPow::new((self.prog.len() + 2).max(self.main_frame as usize));
-
-        // The write-once data memory, each cell's access count and write state with its word.
-        let n0 = self.main_frame.max(2) as usize;
-        let mut m = Mem {
-            pages: Vec::new(),
-            used: 0,
-            counts: 0,
-            links: QuickMap::default(),
-            unwritten_reads: Vec::new(),
-            program: self,
-            dbg_pc: 0,
-            dbg_hint: None,
+        let mut m = Mem::default();
+        m.ensure(self.main_frame.max(2) as usize - 1);
+        let fail = |pc, fault| ExecError::new(self, pc, fault);
+        m.put(0, public_input[0]).map_err(|f| fail(0, f))?;
+        m.put(1, public_input[1]).map_err(|f| fail(0, f))?;
+        let mut advice = Advice {
+            next_free: self.main_frame,
+            streams: QuickMap::default(),
         };
-        m.ensure(n0 - 1);
-        // Seed the public input into m[0], m[1] (addresses g^0, g^1, §sec:e2e-pi).
-        m.put(0, public_input[0])?;
-        m.put(1, public_input[1])?;
-
-        // Per-pc bytecode execution count, as an exponent of `g`.
-        let mut bytecode_count: Vec<u32> = vec![0; self.prog.len()];
-
-        let mut next_free = self.main_frame;
-        let (mut pc, mut fp) = (0u32, 0u32);
-        let mut steps = 0usize;
-        // Witness streams by name, each with its next entry.
-        let mut streams: QuickMap<&str, Stream> = QuickMap::default();
         // Each pc's hints, indexed by pc: a map lookup on every step costs more than most steps.
         let mut hints: Vec<&[RHint]> = vec![&[]; self.prog.len()];
         for (&hpc, hs) in &self.hints {
             hints[hpc as usize] = hs;
         }
-        // `DBG_PROF=1`: per-pc step counts, printed as a per-function cycle
-        // profile after the run (needs `fn_ranges`, i.e. a compiled program).
+        // `DBG_PROF=1`: per-pc step counts, for a per-function cycle profile after the run.
         let mut prof: Option<Vec<u64>> = std::env::var("DBG_PROF").is_ok().then(|| vec![0u64; self.prog.len()]);
 
-        // Per-opcode trace rows, accumulated during the walk and assembled into the
-        // `Trace` once the run finishes (alongside the final count columns).
-        let mut xor: Vec<Xrow> = Vec::new();
-        let mut mul: Vec<Xrow> = Vec::new();
-        let mut set: Vec<Srow> = Vec::new();
-        let mut deref: Vec<Drow> = Vec::new();
-        let mut jump: Vec<Jrow> = Vec::new();
-        let mut keccak: Vec<Krow> = Vec::new();
-
-        // The memory, grown as the run reaches it.
-        struct Mem<'a> {
-            /// Whole pages covering every cell up to the highest accessed or reserved.
-            pages: Vec<Vec<Cell>>,
-            /// One past the highest cell accessed or reserved.
-            used: usize,
-            /// The highest access count any cell reached.
-            counts: u32,
-            /// The cells a `DEREF` linked each cell to.
-            links: QuickMap<u32, Vec<u32>>,
-            /// Cells an instruction read before anything wrote them.
-            unwritten_reads: Vec<u32>,
-            /// To name where a conflict happened.
-            program: &'a Program,
-            /// The pc of the currently executing instruction, and the name of the
-            /// computed-advice hint if the write comes from one, so a write-once
-            /// conflict can report where it happened.
-            dbg_pc: u32,
-            dbg_hint: Option<&'static str>,
-        }
-        impl Mem<'_> {
-            // Cover cell `idx`.
-            fn ensure(&mut self, idx: usize) {
-                if idx >= self.used {
-                    self.used = idx + 1;
-                    while self.pages.len() <= idx >> PAGE_LOG {
-                        self.pages.push(vec![Cell::UNWRITTEN; 1 << PAGE_LOG]);
-                    }
-                }
-            }
-            /// Cell `c`, which `ensure` has covered.
-            fn at(&mut self, c: u32) -> &mut Cell {
-                let c = c as usize;
-                &mut self.pages[c >> PAGE_LOG][c & ((1 << PAGE_LOG) - 1)]
-            }
-            /// Cell `c`, if its page exists.
-            fn cell(&self, c: u32) -> Option<&Cell> {
-                let c = c as usize;
-                self.pages
-                    .get(c >> PAGE_LOG)
-                    .map(|page| &page[c & ((1 << PAGE_LOG) - 1)])
-            }
-            fn written(&self, cell: u32) -> bool {
-                self.cell(cell).is_some_and(|c| c.state == State::Written)
-            }
-            // A hint's read, which writes nothing: what a hint computes is advice the
-            // instructions go on to check.
-            fn get(&self, cell: u32) -> F128 {
-                self.cell(cell).map_or(F128::ZERO, |c| c.word)
-            }
-            // An instruction's read. An unwritten cell reads as ZERO, which is then written
-            // there: the row is filled from the final image, which has to agree.
-            fn read(&mut self, cell: u32) -> F128 {
-                self.ensure(cell as usize);
-                let c = self.at(cell);
-                let word = c.word;
-                if c.state != State::Written {
-                    c.state = State::Written;
-                    self.unwritten_reads.push(cell);
-                }
-                word
-            }
-            // Write-once store, carried to every cell linked to this one.
-            fn put(&mut self, cell: u32, v: F128) -> Result<(), ExecError> {
-                if self.store(cell, v)? {
-                    self.spread(cell, v)?;
-                }
-                Ok(())
-            }
-            // `put` on one cell; whether it was linked.
-            fn store(&mut self, cell: u32, v: F128) -> Result<bool, ExecError> {
-                self.ensure(cell as usize);
-                let c = self.at(cell);
-                let s = c.state;
-                if s == State::Written && c.word != v {
-                    return Err(self.conflict(cell, v));
-                }
-                c.word = v;
-                c.state = State::Written;
-                Ok(s == State::Linked)
-            }
-            #[cold]
-            fn spread(&mut self, cell: u32, v: F128) -> Result<(), ExecError> {
-                let mut todo = vec![cell];
-                while let Some(c) = todo.pop() {
-                    for p in self.links.remove(&c).unwrap_or_default() {
-                        if self.store(p, v)? {
-                            todo.push(p);
-                        }
-                    }
-                }
-                Ok(())
-            }
-            fn link(&mut self, a: u32, b: u32) {
-                for (x, y) in [(a, b), (b, a)] {
-                    self.ensure(x as usize);
-                    let c = self.at(x);
-                    if c.state == State::Unwritten {
-                        c.state = State::Linked;
-                    }
-                    self.links.entry(x).or_default().push(y);
-                }
-            }
-            #[cold]
-            fn conflict(&self, cell: u32, v: F128) -> ExecError {
-                let fault = Fault::Conflict {
-                    cell,
-                    had: self.get(cell),
-                    new: v,
-                    hint: self.dbg_hint,
-                };
-                ExecError::new(self.program, self.dbg_pc, fault)
-            }
-            // Read the running access count and advance it: the column's `×g`, on the
-            // exponent. A run makes fewer than `2^32` accesses in all, so it cannot wrap.
-            fn bump_access_count(&mut self, cell: u32) -> u32 {
-                self.ensure(cell as usize);
-                let c = self.at(cell);
-                let count = c.count;
-                c.count = count + 1;
-                self.counts = self.counts.max(count + 1);
-                count
-            }
-        }
-        // The cell a heap run starts at: read the pointer back out of memory and
-        // invert it. Shared by every hint that writes through one.
-        fn heap_base(m: &Mem<'_>, g: &mut GPow, cell: u32, what: &'static str) -> Result<u32, Fault> {
-            let p = in_k(what, m.get(cell))?;
-            g.log(p).ok_or(Fault::NotAGPower { what, value: p })
-        }
-
-        // Where a computed-advice bit buffer starts: a frame run needs no lookup
-        // at all, which is the point of having one.
-        fn bits_base(m: &Mem<'_>, g: &mut GPow, fp: u32, dest: BitsDest, what: &'static str) -> Result<u32, Fault> {
-            match dest {
-                BitsDest::Stack(base) => Ok(fp + base),
-                BitsDest::Heap(ptr) => heap_base(m, g, fp + ptr, what),
-            }
-        }
-
+        let mut bytecode_count: Vec<u32> = vec![0; self.prog.len()];
+        let (mut xor, mut mul, mut set, mut deref, mut jump, mut keccak) =
+            (Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new(), Vec::new());
+        let (mut pc, mut fp) = (0u32, 0u32);
+        let mut steps = 0usize;
         loop {
-            if pc >= ending_pc {
-                // The machine halts in the final STATE `(g^{B-1}, g^0)`, the one the state bus
-                // pulls as its boundary (doc/leanvm sec:state).
-                if fp == 0 && pc == ending_pc {
-                    break;
-                }
-                if pc > ending_pc {
-                    // The last slot ran in another frame and fell through to `g^B`, no address.
-                    return Err(ExecError::new(self, ending_pc, Fault::HaltOutsideMain { fp }));
-                }
+            // The machine halts in the final STATE `(g^{B-1}, g^0)`, the one the state bus pulls (§sec:state).
+            if pc == ending_pc && fp == 0 {
+                break;
+            }
+            if pc > ending_pc {
+                // The last slot ran in another frame and fell through to `g^B`, no address.
+                return Err(fail(ending_pc, Fault::HaltOutsideMain { fp }));
             }
             if steps >= MAX_STEPS {
-                return Err(ExecError::new(self, pc, Fault::StepLimit));
+                return Err(fail(pc, Fault::StepLimit));
             }
-            m.dbg_pc = pc;
-            let fail = move |fault| ExecError::new(self, pc, fault);
-            // Cell `base + offset`, if it lies in the address space.
-            let at = move |base: u32, offset: u32| {
-                let cell = u64::from(base) + u64::from(offset);
-                if cell < u64::from(MAX_CELLS) {
-                    Ok(cell as u32)
-                } else {
-                    Err(fail(Fault::OutOfMemory))
-                }
-            };
+            let fail = move |fault| fail(pc, fault);
+            let at = move |base, offset| cell_at(base, offset).map_err(fail);
             if let Some(p) = prof.as_mut() {
                 p[pc as usize] += 1;
             }
-
-            // Apply the hints scheduled before this instruction.
             for h in hints[pc as usize] {
-                m.dbg_hint = Some(match h {
-                    RHint::FrameAddress { .. } => "FrameAddress",
-                    RHint::AllocFrames { .. } => "AllocFrames",
-                    RHint::Alloc { .. } => "Alloc",
-                    RHint::AllocDyn { .. } => "AllocDyn",
-                    RHint::WitnessStack { .. } => "WitnessStack",
-                    RHint::WitnessHeap { .. } => "WitnessHeap",
-                    RHint::Log2Ceil { .. } => "Log2Ceil",
-                    RHint::BitDecompose { .. } => "BitDecompose",
-                    RHint::BitDecomposeExp { .. } => "BitDecomposeExp",
-                    RHint::DigitDecomposeExp { .. } => "DigitDecomposeExp",
-                    RHint::WindowsExp { .. } => "WindowsExp",
-                    RHint::FieldLimbs { .. } => "FieldLimbs",
-                    RHint::Inverse { .. } => "Inverse",
-                    RHint::Print { .. } => "Print",
-                });
-                match h {
-                    RHint::FrameAddress { offset } => {
-                        g.note(at(fp, *offset)? as usize);
-                    }
-                    // A fresh region: write its base `g^{next_free}` into the
-                    // pointer cell (once) and reserve `size` cells. `AllocDyn`
-                    // reads the size from a cell at runtime.
-                    RHint::Alloc { .. } | RHint::AllocDyn { .. } | RHint::AllocFrames { .. } => {
-                        let (ptr, size) = match *h {
-                            RHint::Alloc { ptr, size } => (ptr, size),
-                            RHint::AllocFrames {
-                                ptr,
-                                size,
-                                end,
-                                start_inverse,
-                                tail,
-                            } => {
-                                let span = in_k("loop bound", m.get(fp + end)).map_err(fail)? * F64(start_inverse.0);
-                                if span.is_zero() {
-                                    return Err(fail(Fault::NotAGPower {
-                                        what: "loop bound",
-                                        value: span,
-                                    }));
-                                }
-                                let n = g.log(span).ok_or_else(|| {
-                                    fail(Fault::NotAGPower {
-                                        what: "loop bound",
-                                        value: span,
-                                    })
-                                })?;
-                                let cells = size.checked_mul(n).and_then(|frames| frames.checked_add(tail));
-                                (ptr, cells.ok_or_else(|| fail(Fault::OutOfMemory))?)
-                            }
-                            // A runtime size is carried in the exponent:
-                            // the cell holds g^k, allocate k cells.
-                            RHint::AllocDyn { ptr, size } => {
-                                let sz = in_k("HeapBuf size", m.get(fp + size)).map_err(fail)?;
-                                let cells = g.log(sz).ok_or_else(|| {
-                                    fail(Fault::NotAGPower {
-                                        what: "HeapBuf size",
-                                        value: sz,
-                                    })
-                                })?;
-                                (ptr, cells)
-                            }
-                            _ => unreachable!(),
-                        };
-                        let cell = fp + ptr;
-                        if !m.written(cell) {
-                            let base = next_free;
-                            next_free = at(base, size)?;
-                            g.grow_to(next_free as usize);
-                            // The base is about to become a pointer in memory.
-                            g.note(base as usize);
-                            if next_free > base {
-                                m.ensure(next_free as usize - 1);
-                            }
-                            m.put(cell, F128::from(g.pow(base as usize)))?;
-                        }
-                    }
-                    RHint::Print { label, cell } => {
-                        let c = fp + cell;
-                        if m.written(c) {
-                            let v = m.get(c);
-                            // Small integers and small g-powers overlap (8 = x^3
-                            // = g^3): show every reading that applies. Only a
-                            // K-valued word (extension limb 0) can be a g-power. Read
-                            // without growing the address table.
-                            let k = v.as_base().and_then(|lo| bounded_dlog(lo, MAX_INDEX.ilog2()));
-                            let small = v.as_base().is_some_and(|lo| lo.0 < 1 << 32);
-                            match (k, small) {
-                                (Some(k), true) => {
-                                    eprintln!("[print] {label} = {} (g^{})", pretty_integer(v.c0), pretty_integer(k))
-                                }
-                                (Some(k), false) => {
-                                    eprintln!("[print] {label} = g^{}", pretty_integer(k))
-                                }
-                                (None, true) => {
-                                    eprintln!("[print] {label} = {}", pretty_integer(v.c0))
-                                }
-                                (None, false) => {
-                                    eprintln!("[print] {label} = {:#x}:{:#x}", v.c1, v.c0)
-                                }
-                            }
-                        } else {
-                            eprintln!("[print] {label} = <unwritten>");
-                        }
-                    }
-                    RHint::WitnessStack { name, base, len } => {
-                        let values = streams
-                            .entry(name.as_str())
-                            .or_insert_with(|| Stream::new(&self.witness, name))
-                            .pop(*len)
-                            .map_err(fail)?;
-                        for (k, &value) in values.iter().enumerate() {
-                            m.put(fp + base + k as u32, value)?;
-                        }
-                    }
-                    RHint::WitnessHeap { name, ptr, lo, len } => {
-                        let b = heap_base(&m, &mut g, fp + ptr, "hint_witness heap pointer").map_err(fail)?;
-                        let values = streams
-                            .entry(name.as_str())
-                            .or_insert_with(|| Stream::new(&self.witness, name))
-                            .pop(*len)
-                            .map_err(fail)?;
-                        for (k, &value) in values.iter().enumerate() {
-                            m.put(b + lo + k as u32, value)?;
-                        }
-                    }
-                    RHint::Log2Ceil {
-                        bits,
-                        dst,
-                        nbits,
-                        floor,
-                    } => {
-                        let b = bits_base(&m, &mut g, fp, *bits, "log2_ceil pointer").map_err(fail)?;
-                        let mut word: u128 = 0;
-                        for j in 0..*nbits {
-                            if !m.get(b + j).is_zero() {
-                                word |= 1u128 << j;
-                            }
-                        }
-                        let cl = if word <= 1 {
-                            0
-                        } else {
-                            u128::BITS - (word - 1).leading_zeros()
-                        };
-                        let mu = cl.max(*floor);
-                        m.put(fp + dst, F128::from(primitives::field::g_pow(mu as usize)))?;
-                    }
-                    RHint::BitDecompose { value, bits, nbits } => {
-                        assert!(*nbits <= 128, "a machine word has 128 bits");
-                        let v = u128::from(m.get(fp + value));
-                        let bb = bits_base(&m, &mut g, fp, *bits, "decompose pointer").map_err(fail)?;
-                        for j in 0..*nbits {
-                            m.put(bb + j, F128::from((v >> j) & 1))?;
-                        }
-                    }
-                    RHint::BitDecomposeExp { value, bits, nbits } => {
-                        const WHAT: &str = "hint_decompose_bits_exponent value";
-                        let x = in_k(WHAT, m.get(fp + value)).map_err(fail)?;
-                        let n =
-                            bounded_dlog(x, *nbits).ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: x }))?;
-                        let bb =
-                            bits_base(&m, &mut g, fp, *bits, "hint_decompose_bits_exponent pointer").map_err(fail)?;
-                        for j in 0..*nbits {
-                            let bit = ((n >> j) & 1) as u64;
-                            m.put(bb + j, F128::new(bit, 0))?;
-                        }
-                    }
-                    RHint::WindowsExp {
-                        value,
-                        dest,
-                        at,
-                        start,
-                        width,
-                        count,
-                    } => {
-                        assert!(start + width * count <= 128, "a machine word has 128 bits");
-                        let v = u128::from(m.get(fp + value));
-                        let bb = bits_base(&m, &mut g, fp, *dest, "windows pointer").map_err(fail)?;
-                        for i in 0..*count {
-                            let mut n = 0usize;
-                            for j in 0..*width {
-                                n |= (((v >> (start + i * width + j)) & 1) as usize) << j;
-                            }
-                            m.put(bb + at + i, F128::from(primitives::field::g_pow(n)))?;
-                        }
-                    }
-                    RHint::DigitDecomposeExp {
-                        value,
-                        dst,
-                        nbits,
-                        ndigits,
-                        digit_bits,
-                        start,
-                        start_cell,
-                    } => {
-                        const WHAT: &str = "hint_decompose_digits_exponent value";
-                        let x = in_k(WHAT, m.get(fp + value)).map_err(fail)?;
-                        let n =
-                            bounded_dlog(x, *nbits).ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: x }))?;
-                        let s = match start_cell {
-                            None => *start,
-                            Some(c) => {
-                                const WHAT: &str = "hint_decompose_digits_exponent start";
-                                let y = in_k(WHAT, m.get(fp + c)).map_err(fail)?;
-                                bounded_dlog(y, 7).ok_or_else(|| fail(Fault::NotAGPower { what: WHAT, value: y }))?
-                                    as u32
-                            }
-                        };
-                        let bb =
-                            bits_base(&m, &mut g, fp, *dst, "hint_decompose_digits_exponent pointer").map_err(fail)?;
-                        let mask = (1u128 << digit_bits) - 1;
-                        for j in 0..*ndigits {
-                            let at = s + digit_bits * j;
-                            let d = if at >= 128 { 0 } else { (n >> at) & mask };
-                            m.put(bb + j, F128::from(primitives::field::g_pow(d as usize)))?;
-                        }
-                    }
-                    RHint::FieldLimbs { value, base, len } => {
-                        assert!((1..=2).contains(len), "an F128 value has two K limbs");
-                        let v = m.get(fp + value);
-                        let limbs = v.to_limbs();
-                        for j in 0..*len {
-                            m.put(fp + base + j, F128::new(limbs[j as usize], 0))?;
-                        }
-                    }
-                    RHint::Inverse { value, dst } => {
-                        let v = m.get(fp + value);
-                        m.put(fp + dst, if v.is_zero() { F128::ZERO } else { v.inv() })?;
-                    }
-                }
-                m.dbg_hint = None;
+                self.apply_hint(h, fp, &mut m, &mut g, &mut advice)
+                    .map_err(|fault| match fault {
+                        Fault::Conflict { cell, had, new, .. } => fail(Fault::Conflict {
+                            cell,
+                            had,
+                            new,
+                            hint: Some(hint_name(h)),
+                        }),
+                        fault => fail(fault),
+                    })?;
             }
             // Cover the g-powers this step may index (g²·pc return target, g^fp).
             g.grow_to((pc as usize + 2).max(fp as usize));
+            let bytecode_read = bytecode_count[pc as usize];
+            bytecode_count[pc as usize] += 1;
 
-            let bytecode_read = {
-                let v = bytecode_count[pc as usize];
-                bytecode_count[pc as usize] = v + 1;
-                v
-            };
-
-            // Loaded once: the shared Xor/Mul arm needs the discriminant again,
-            // and `Op` is wide enough that re-reading it costs a second load.
+            // Loaded once: the shared Xor/Mul arm needs the discriminant again, and `Op` is wide enough that
+            // re-reading it costs a second load.
             let op = self.prog[pc as usize];
             match op {
                 Op::Xor { a, b, c } | Op::Mul { a, b, c } => {
                     let is_xor = matches!(op, Op::Xor { .. });
                     let (aa, ab, ac) = (at(fp, a)?, at(fp, b)?, at(fp, c)?);
-                    // The row is the equality `m[c] = m[a] op m[b]` over write-once
-                    // memory. Normally the operands are known and the result is
-                    // computed forward; for a `MUL` whose result is already written
-                    // and exactly one of whose operands is not, the runner
-                    // back-solves that operand, which is what produces the
-                    // range-check complement `y = g^{k-1}·x^{-1}` from
-                    // `MUL x·y = g^{k-1}`, and the quotient of `a / b`, with no
-                    // dedicated hint.
-                    //
-                    // `XOR` deliberately does NOT deduce. Nothing asks it to (both
-                    // users are `MUL`), and an `XOR` into an already-written cell is
-                    // how `assert a == b` is spelled, so deducing there would define
-                    // the operand the assert exists to check instead of failing on it.
+                    // The row is `m[c] = m[a] op m[b]` over write-once memory. A `MUL` whose result is written and
+                    // exactly one of whose operands is not back-solves that operand: the range check's complement
+                    // `y = g^{k-1}·x^{-1}` and the quotient `a / b`, with no hint. An `XOR` does not, as one into a
+                    // written cell is how `assert a == b` is spelled.
                     if !is_xor && m.written(ac) {
                         let (ha, hb) = (m.written(aa), m.written(ab));
                         if ha ^ hb {
-                            let vk = m.get(if ha { aa } else { ab });
-                            if vk.is_zero() {
+                            let known = m.get(if ha { aa } else { ab });
+                            if known.is_zero() {
                                 return Err(fail(Fault::BackSolveThroughZero));
                             }
-                            m.put(if ha { ab } else { aa }, m.get(ac) * vk.inv())?;
+                            m.put(if ha { ab } else { aa }, m.get(ac) * known.inv()).map_err(fail)?;
                         }
                     }
-                    let va = m.read(aa);
-                    let vb = m.read(ab);
-                    let vc = if is_xor { va + vb } else { va * vb };
-                    m.put(ac, vc)?;
-                    let ra = m.bump_access_count(aa);
-                    let rb = m.bump_access_count(ab);
-                    let rc = m.bump_access_count(ac);
+                    let (va, vb) = (m.read(aa), m.read(ab));
+                    m.put(ac, if is_xor { va + vb } else { va * vb }).map_err(fail)?;
                     let row = Xrow {
                         pc,
                         fp,
-                        ra,
-                        rb,
-                        rc,
+                        ra: m.bump_access_count(aa),
+                        rb: m.bump_access_count(ab),
+                        rc: m.bump_access_count(ac),
                         bytecode_read,
                     };
                     if is_xor {
-                        xor.push(row);
+                        xor.push(row)
                     } else {
-                        mul.push(row);
+                        mul.push(row)
                     }
                     pc += 1;
                 }
                 Op::Set { o, k } => {
                     let a = at(fp, o)?;
-                    m.put(a, super::from_scalar(k))?;
+                    m.put(a, super::from_scalar(k)).map_err(fail)?;
                     let r = m.bump_access_count(a);
                     set.push(Srow {
                         pc,
@@ -795,90 +567,62 @@ impl Program {
                     let p = m.read(a1);
                     let p_addr = p.as_base().ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
                     let base = g.log(p_addr).ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
-                    let a2 = at(base, o2)?;
-                    let a3 = at(fp, o3)?;
+                    let (a2, a3) = (at(base, o2)?, at(fp, o3)?);
                     match mode {
-                        // Equality m[a2] == m[a3]: carry a written side to the other
-                        // (`put` checks it when both are), or link two unwritten sides
-                        // until either is written. A range-check touch may leave both
+                        // `m[a2] = m[a3]`: carry a written side to the other (`put` checks it when both are), or
+                        // link two unwritten sides until either is written. A range-check touch may leave both
                         // unwritten for good: only the validity of `a2` matters there.
                         DerefMode::Cell => {
                             if m.written(a2) {
-                                m.put(a3, m.get(a2))?;
+                                m.put(a3, m.get(a2)).map_err(fail)?;
                             } else if m.written(a3) {
-                                m.put(a2, m.get(a3))?;
+                                m.put(a2, m.get(a3)).map_err(fail)?;
                             } else {
                                 m.link(a2, a3);
                             }
                         }
+                        // The return target and the frame base are stored as addresses, which JUMP reads back.
                         DerefMode::Pc => {
-                            // The return target and the frame base are stored as
-                            // addresses, and JUMP reads them back.
                             g.note(pc as usize + 2);
-                            let v = F128::from(g.pow(pc as usize + 2));
-                            m.put(a2, v)?;
+                            m.put(a2, F128::from(g.pow(pc as usize + 2))).map_err(fail)?;
                         }
                         DerefMode::Fp => {
                             g.note(fp as usize);
-                            let v = F128::from(g.pow(fp as usize));
-                            m.put(a2, v)?;
+                            m.put(a2, F128::from(g.pow(fp as usize))).map_err(fail)?;
                         }
                     }
-                    let r1 = m.bump_access_count(a1);
-                    let r2 = m.bump_access_count(a2);
-                    let r3 = m.bump_access_count(a3);
                     deref.push(Drow {
                         pc,
                         fp,
-                        r1,
-                        r2,
-                        r3,
+                        r1: m.bump_access_count(a1),
+                        r2: m.bump_access_count(a2),
+                        r3: m.bump_access_count(a3),
                         bytecode_read,
                     });
                     pc += 1;
                 }
                 Op::Jump { oc, od, of } => {
                     let (ac, ad, af) = (at(fp, oc)?, at(fp, od)?, at(fp, of)?);
-                    // All three cells are K-valued on EVERY row, taken or not: the
-                    // table commits one lane each and their memory flushes carry
-                    // literal zeros above it (§sec:tab-jump), which the bus would
-                    // otherwise not balance. A guest branches on g-powers; the one
-                    // idiom that once branched on a word, `assert a != b`, takes an
-                    // inverse hint instead (§sec:prog-div-ne).
+                    // The three cells are `K`-valued on every row, taken or not: the table commits one lane each
+                    // and their memory flushes carry zeros above it (§sec:tab-jump). A guest branches on g-powers,
+                    // and `assert a != b` takes an inverse hint instead (§sec:prog-div-ne).
                     let c = in_k("JUMP condition", m.read(ac)).map_err(fail)?;
                     let d = in_k("JUMP target", m.read(ad)).map_err(fail)?;
                     let f = in_k("JUMP fp", m.read(af)).map_err(fail)?;
-                    // The is-nonzero witness `w = c⁻¹` is never used for control
-                    // flow, only recorded as a witness column, so it is not
-                    // computed here at all: `JumpTable::fill` batch-inverts every
-                    // row's condition at once (§the trace rows in `cpu::trace`).
-                    let rc = m.bump_access_count(ac);
-                    let rd = m.bump_access_count(ad);
-                    let rf = m.bump_access_count(af);
-                    let taken = !c.is_zero();
                     jump.push(Jrow {
                         pc,
                         fp,
-                        rc,
-                        rd,
-                        rf,
+                        rc: m.bump_access_count(ac),
+                        rd: m.bump_access_count(ad),
+                        rf: m.bump_access_count(af),
                         bytecode_read,
                     });
-                    if taken {
-                        pc = g.log_below(d, self.prog.len()).ok_or_else(|| {
-                            fail(Fault::NotAGPower {
-                                what: "JUMP target",
-                                value: d,
-                            })
-                        })?;
-                        fp = g.log(f).ok_or_else(|| {
-                            fail(Fault::NotAGPower {
-                                what: "JUMP fp",
-                                value: f,
-                            })
-                        })?;
-                    } else {
+                    if c.is_zero() {
                         pc += 1;
+                    } else {
+                        let not_a_g_power = |what, value| fail(Fault::NotAGPower { what, value });
+                        pc = (g.log_below(d, self.prog.len())).ok_or_else(|| not_a_g_power("JUMP target", d))?;
+                        fp = g.log(f).ok_or_else(|| not_a_g_power("JUMP fp", f))?;
                     }
                 }
                 Op::Keccak { .. } => {
@@ -889,19 +633,17 @@ impl Program {
                         let (offset, step) = k.cell_parts(c);
                         *cell = at(at(fp, offset)?, step)?;
                     }
+                    // The Keccak reduction proves the output; the run computes it for the later reads.
                     let input: [F128; STATE_CELLS] = std::array::from_fn(|c| m.read(cells[c]));
-                    // No table constraint covers the output (the relation is proven
-                    // by the Keccak reduction, §keccak); the interpreter still computes it so
-                    // the output cells are consistent for any later read.
                     let mut lanes = crate::keccak::state_of_cells(k.in_odd, |c| input[c]);
                     primitives::hash::keccak_f(&mut lanes);
                     let written = STATE_CELLS + k.out_cells.cells();
                     let output = crate::keccak::cells_of_state(&lanes, k.out_odd);
                     for (&cell, &v) in cells[STATE_CELLS..written].iter().zip(&output) {
-                        m.put(cell, v)?;
+                        m.put(cell, v).map_err(fail)?;
                     }
-                    // In flush order, so a cell two operands alias still pairs each
-                    // read with its own count. A cell not written keeps count 0.
+                    // In flush order, so a cell two operands alias pairs each read with its own count. A cell not
+                    // written keeps count 0.
                     let mut r = [0; ROW_CELLS];
                     for (count, &cell) in r.iter_mut().zip(&cells[..written]) {
                         *count = m.bump_access_count(cell);
@@ -921,7 +663,6 @@ impl Program {
         if let Some(p) = &prof {
             self.report_profile(p, steps);
         }
-
         let counts = bytecode_count.iter().copied().max().unwrap_or(0).max(m.counts) as usize + 1;
         let trace = Trace {
             xor,
@@ -933,22 +674,161 @@ impl Program {
             bytecode_count,
             counts,
         };
-        // The memory announced: the least power of two covering every cell the run touched
-        // (the boundary tables read a dense image).
-        let mem_used = m.used;
+        // The memory announced: the least power of two covering every cell the run touched.
         Ok(Execution {
             mem: Memory {
                 pages: m.pages,
-                len: mem_used.next_power_of_two(),
+                len: m.used.next_power_of_two(),
             },
             cycles: steps,
-            mem_used,
+            mem_used: m.used,
             unconstrained_reads: m.unwritten_reads,
             trace,
-            gpow: g.into_powers(),
         })
     }
 
+    /// Apply a hint scheduled before an instruction at frame `fp`.
+    fn apply_hint<'a>(
+        &'a self,
+        h: &'a RHint,
+        fp: u32,
+        m: &mut Mem,
+        g: &mut GPow,
+        advice: &mut Advice<'a>,
+    ) -> Result<(), Fault> {
+        let not_a_g_power = |what, value| Fault::NotAGPower { what, value };
+        let mut pop = |name: &'a str, len: u32| {
+            let stream = (advice.streams.entry(name)).or_insert_with(|| Stream::new(&self.witness, name));
+            stream.pop(len)
+        };
+        match *h {
+            RHint::FrameAddress { offset } => g.note(cell_at(fp, offset)? as usize),
+            // A fresh region: write its base `g^{next_free}` into the pointer cell (once) and reserve `size` cells.
+            RHint::Alloc { ptr, size } => alloc(m, g, &mut advice.next_free, fp + ptr, size)?,
+            // A runtime size is carried in the exponent: the cell holds `g^k`, allocate `k` cells.
+            RHint::AllocDyn { ptr, size } => {
+                let size = in_k("HeapBuf size", m.get(fp + size))?;
+                let cells = g.log(size).ok_or(not_a_g_power("HeapBuf size", size))?;
+                alloc(m, g, &mut advice.next_free, fp + ptr, cells)?;
+            }
+            RHint::AllocFrames {
+                ptr,
+                size,
+                end,
+                start_inverse,
+                tail,
+            } => {
+                let span = in_k("loop bound", m.get(fp + end))? * F64(start_inverse.0);
+                let n = (!span.is_zero())
+                    .then(|| g.log(span))
+                    .flatten()
+                    .ok_or(not_a_g_power("loop bound", span))?;
+                let cells = size.checked_mul(n).and_then(|frames| frames.checked_add(tail));
+                alloc(m, g, &mut advice.next_free, fp + ptr, cells.ok_or(Fault::OutOfMemory)?)?;
+            }
+            RHint::Print { ref label, cell } => print(label, m, fp + cell),
+            RHint::WitnessStack { ref name, base, len } => {
+                for (k, &value) in pop(name, len)?.iter().enumerate() {
+                    m.put(fp + base + k as u32, value)?;
+                }
+            }
+            RHint::WitnessHeap { ref name, ptr, lo, len } => {
+                let base = heap_base(m, g, fp + ptr, "hint_witness heap pointer")?;
+                for (k, &value) in pop(name, len)?.iter().enumerate() {
+                    m.put(base + lo + k as u32, value)?;
+                }
+            }
+            RHint::Log2Ceil {
+                bits,
+                dst,
+                nbits,
+                floor,
+            } => {
+                let base = bits_base(m, g, fp, bits, "log2_ceil pointer")?;
+                let word = (0..nbits).fold(0u128, |word, j| word | (u128::from(!m.get(base + j).is_zero()) << j));
+                let log = if word <= 1 {
+                    0
+                } else {
+                    u128::BITS - (word - 1).leading_zeros()
+                };
+                m.put(fp + dst, F128::from(primitives::field::g_pow(log.max(floor) as usize)))?;
+            }
+            RHint::BitDecompose { value, bits, nbits } => {
+                assert!(nbits <= 128, "a machine word has 128 bits");
+                let v = u128::from(m.get(fp + value));
+                let base = bits_base(m, g, fp, bits, "decompose pointer")?;
+                for j in 0..nbits {
+                    m.put(base + j, F128::from((v >> j) & 1))?;
+                }
+            }
+            RHint::BitDecomposeExp { value, bits, nbits } => {
+                const WHAT: &str = "hint_decompose_bits_exponent value";
+                let x = in_k(WHAT, m.get(fp + value))?;
+                let n = bounded_dlog(x, nbits).ok_or(not_a_g_power(WHAT, x))?;
+                let base = bits_base(m, g, fp, bits, "hint_decompose_bits_exponent pointer")?;
+                for j in 0..nbits {
+                    m.put(base + j, F128::new(((n >> j) & 1) as u64, 0))?;
+                }
+            }
+            RHint::WindowsExp {
+                value,
+                dest,
+                at,
+                start,
+                width,
+                count,
+            } => {
+                assert!(start + width * count <= 128, "a machine word has 128 bits");
+                let v = u128::from(m.get(fp + value));
+                let base = bits_base(m, g, fp, dest, "windows pointer")?;
+                for i in 0..count {
+                    let bit = |j| (((v >> (start + i * width + j)) & 1) as usize) << j;
+                    let window = (0..width).fold(0, |n, j| n | bit(j));
+                    m.put(base + at + i, F128::from(primitives::field::g_pow(window)))?;
+                }
+            }
+            RHint::DigitDecomposeExp {
+                value,
+                dst,
+                nbits,
+                ndigits,
+                digit_bits,
+                start,
+                start_cell,
+            } => {
+                const WHAT: &str = "hint_decompose_digits_exponent value";
+                let x = in_k(WHAT, m.get(fp + value))?;
+                let n = bounded_dlog(x, nbits).ok_or(not_a_g_power(WHAT, x))?;
+                let start = match start_cell {
+                    None => start,
+                    Some(c) => {
+                        const WHAT: &str = "hint_decompose_digits_exponent start";
+                        let y = in_k(WHAT, m.get(fp + c))?;
+                        bounded_dlog(y, 7).ok_or(not_a_g_power(WHAT, y))? as u32
+                    }
+                };
+                let base = bits_base(m, g, fp, dst, "hint_decompose_digits_exponent pointer")?;
+                let mask = (1u128 << digit_bits) - 1;
+                for j in 0..ndigits {
+                    let at = start + digit_bits * j;
+                    let digit = if at >= 128 { 0 } else { (n >> at) & mask };
+                    m.put(base + j, F128::from(primitives::field::g_pow(digit as usize)))?;
+                }
+            }
+            RHint::FieldLimbs { value, base, len } => {
+                assert!((1..=2).contains(&len), "an F128 value has two K limbs");
+                let limbs = m.get(fp + value).to_limbs();
+                for j in 0..len {
+                    m.put(fp + base + j, F128::new(limbs[j as usize], 0))?;
+                }
+            }
+            RHint::Inverse { value, dst } => {
+                let v = m.get(fp + value);
+                m.put(fp + dst, if v.is_zero() { F128::ZERO } else { v.inv() })?;
+            }
+        }
+        Ok(())
+    }
     /// The `DBG_PROF=1` report: the cycles of each compiled function, from the per-pc counts `p`, and with
     /// `DBG_PROF_DUMP=path` the raw per-pc counts plus the function table, so an offline pass can attribute the
     /// straight-line cycles of one big function to its source regions (the call sites of the lowered `for`

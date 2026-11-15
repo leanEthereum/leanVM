@@ -14,8 +14,8 @@
 //! so a relation on machine words is written out lane by lane. A table hands its
 //! identities to the table sumcheck as a degree-2 form ([`Table::constraint`]).
 
+use crate::constraints::Form;
 use crate::cpu::{Drow, Jrow, Krow, Memory, Op, Srow, Trace};
-use crate::leaf::BusForm;
 use crate::leaf::Coord::{self, Col, Const, GCol, Prod};
 use primitives::field::{F64, F128, mul_by_g};
 
@@ -174,10 +174,6 @@ pub struct FillCtx<'a> {
     padding: Vec<F64>,
 }
 
-/// Where one column's values go: its window in the stacked witness, or a private
-/// buffer if the column is virtual.
-pub(crate) type ColumnOut<'a> = &'a mut [F64];
-
 impl<'a> FillCtx<'a> {
     pub(crate) fn new(
         trace: &'a Trace,
@@ -214,7 +210,7 @@ impl<'a> FillCtx<'a> {
 
     /// Write local column `at`: `f` over the trace rows, then its padding value to the
     /// end of the window.
-    fn col<R: Sync>(&self, out: &mut [ColumnOut], rows: &[R], at: usize, f: impl Fn(&R) -> F64 + Sync) {
+    fn col<R: Sync>(&self, out: &mut [&mut [F64]], rows: &[R], at: usize, f: impl Fn(&R) -> F64 + Sync) {
         self.cols(out, rows, at, |r| [f(r)]);
     }
 
@@ -224,7 +220,7 @@ impl<'a> FillCtx<'a> {
     /// pays for it `N` times.
     fn cols<const N: usize, R: Sync>(
         &self,
-        out: &mut [ColumnOut],
+        out: &mut [&mut [F64]],
         rows: &[R],
         at: usize,
         f: impl Fn(&R) -> [F64; N] + Sync,
@@ -236,7 +232,7 @@ impl<'a> FillCtx<'a> {
     /// than read off the row.
     fn cols_at<const N: usize>(
         &self,
-        out: &mut [ColumnOut],
+        out: &mut [&mut [F64]],
         n_rows: usize,
         at: usize,
         f: impl Fn(usize) -> [F64; N] + Sync,
@@ -248,7 +244,7 @@ impl<'a> FillCtx<'a> {
         const STAGE: usize = 64;
         assert!(n_rows <= self.height, "a table's rows must fit its cube");
         let padding: [F64; N] = std::array::from_fn(|k| self.padding[at + k]);
-        let window: &mut [ColumnOut; N] = (&mut out[at..at + N]).try_into().unwrap();
+        let window: &mut [&mut [F64]; N] = (&mut out[at..at + N]).try_into().unwrap();
         let columns = window.each_mut().map(|column| {
             assert_eq!(column.len(), self.height, "a column's window is the table's height");
             &mut **column
@@ -317,9 +313,9 @@ pub trait Table: Sync {
     /// indexed past its end panics rather than reaching into the next table's range.
     /// The default is the constraint-free case; a table that declares constraints and
     /// forgets to state them trips the assert instead of dropping them.
-    fn constraint(&self, pows: &[F128]) -> BusForm {
+    fn constraint(&self, pows: &[F128]) -> Form {
         assert!(pows.is_empty(), "a table with constraints must state them");
-        BusForm::new(self.n_committed_columns())
+        Form::new(self.n_committed_columns())
     }
     /// Declare the table's bus interactions.
     fn flushes(&self, f: &mut FlushBuilder);
@@ -327,7 +323,7 @@ pub trait Table: Sync {
     /// window, already at its padded length. Every window must be written in full;
     /// use `FillCtx::col` / `FillCtx::cols`, which append the column's pad value
     /// past the last trace row.
-    fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]);
+    fn fill(&self, ctx: &FillCtx, out: &mut [&mut [F64]]);
 }
 
 /// The tables in fixed order `[XOR, MUL, SET, DEREF, JUMP, KECCAK]`, the
@@ -500,7 +496,7 @@ impl Table for Arith {
         f.memory(Prod(FP, OB, 0), RB, VB_LO, VB_HI);
         f.memory_coords(Prod(FP, OC, 0), RC, arith_result(self.is_xor));
     }
-    fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]) {
+    fn fill(&self, ctx: &FillCtx, out: &mut [&mut [F64]]) {
         use arith::*;
         let rows = if self.is_xor { &ctx.trace.xor } else { &ctx.trace.mul };
         ctx.col(out, rows, PC, |r| ctx.g_at(r.pc));
@@ -555,7 +551,7 @@ impl Table for SetTable {
         // The stored constant K is the cell's value.
         f.memory(Prod(FP, O, 0), R, K_LO, K_HI);
     }
-    fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]) {
+    fn fill(&self, ctx: &FillCtx, out: &mut [&mut [F64]]) {
         use set::*;
         let rows = &ctx.trace.set;
         // The offset and the stored immediate are the instruction's.
@@ -636,7 +632,7 @@ impl Table for DerefTable {
         f.memory_coords(Prod(P, O2, 0), R2, deref_store());
         f.memory(Prod(FP, O3, 0), R3, V3_LO, V3_HI);
     }
-    fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]) {
+    fn fill(&self, ctx: &FillCtx, out: &mut [&mut [F64]]) {
         use deref::*;
         let rows = &ctx.trace.deref;
         // Offsets and store mode are the instruction's. Neither the store target's
@@ -724,9 +720,9 @@ impl Table for JumpTable {
     /// The condition is `K`-valued, so both identities are single-lane. Its memory
     /// flush carries literal zeros above the low limb (`memory_k`), so a word outside
     /// `K` cannot balance the bus; the interpreter rejects one outright.
-    fn constraint(&self, pows: &[F128]) -> BusForm {
+    fn constraint(&self, pows: &[F128]) -> Form {
         use jump::*;
-        let mut form = BusForm::new(N);
+        let mut form = Form::new(N);
         form.coeffs[B] = pows[0];
         form.coeffs[V_COND] = pows[1];
         form.prods = vec![(V_COND, W, pows[0]), (V_COND, B, pows[1])];
@@ -753,7 +749,7 @@ impl Table for JumpTable {
         f.memory_k(Prod(FP, OD, 0), RD, V_PC);
         f.memory_k(Prod(FP, OF, 0), RF, V_FP);
     }
-    fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]) {
+    fn fill(&self, ctx: &FillCtx, out: &mut [&mut [F64]]) {
         use jump::*;
         let rows = &ctx.trace.jump;
         let ins = |r: &Jrow| match ctx.prog[r.pc as usize] {
@@ -909,7 +905,7 @@ impl Table for KeccakTable {
     }
     /// Every column but the input lanes, which are `q_keccak`'s and have no window here. The output lanes are the
     /// input permuted again, since a row writes only the output cells its bytecode requests.
-    fn fill(&self, ctx: &FillCtx, out: &mut [ColumnOut]) {
+    fn fill(&self, ctx: &FillCtx, out: &mut [&mut [F64]]) {
         use crate::keccak::state_of_cells;
         use keccakt::*;
         let rows = &ctx.trace.keccak;
@@ -957,20 +953,10 @@ impl Table for KeccakTable {
     }
 }
 
-/// The fewest committed columns of a table's row: a run of `n` steps commits at least `n` times
-/// it, which bounds the steps of a provable run (the interpreter's step limit).
-pub(crate) const MIN_COMMITTED_COLUMNS: usize = {
-    let widths = [arith::N, set::N, deref::N, jump::N, keccakt::N];
-    let mut min = widths[0];
-    let mut i = 1;
-    while i < widths.len() {
-        if widths[i] < min {
-            min = widths[i];
-        }
-        i += 1;
-    }
-    min
-};
+/// The fewest committed columns of a table's row, `SET`'s: a run of `n` steps commits at least `n` times it, which
+/// bounds the steps of a provable run (the interpreter's step limit).
+pub(crate) const MIN_COMMITTED_COLUMNS: usize = set::N;
+const _: () = assert!(set::N <= arith::N && set::N <= deref::N && set::N <= jump::N && set::N <= keccakt::N);
 
 #[cfg(test)]
 mod tests {

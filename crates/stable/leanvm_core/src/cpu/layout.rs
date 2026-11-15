@@ -1,28 +1,21 @@
-//! The public column schema and bus layout: the committed-column indices, and
-//! the flush/count blocks the verifier reconstructs from the program + announced
-//! sizes and public input. Plus the prover-side witness build.
+//! The public structure of a run, which the verifier rebuilds from the program, the announced sizes and the public
+//! input: the column schema, the bus blocks and the stack's placements. And the prover's witness build.
 
 use super::*;
 use std::sync::Arc;
 
-// ---- column schema -----------------------------------------------------------
-
-// Shared committed columns (indices `0..N_SHARED`). The program (opcode +
-// operands) is PUBLIC, not committed: it rides the bytecode seed/finalize blocks
-// as `Coord::Public`; only the witness-dependent finalize counts are committed.
-// The data-memory image, a 128-bit word per cell committed as two K-lane columns.
+// The shared committed columns, `0..N_SHARED`. The program is public: it rides the bytecode blocks as
+// `Coord::Public`, and only its execution counts are committed.
+/// The memory image's low limbs, a word a cell.
 pub const MEM_LO: usize = 0;
+/// The memory image's high limbs.
 pub const MEM_HI: usize = 1;
-pub(crate) const MFCNT: usize = 2; // per-cell memory access count, g^{A[i]}
-pub(crate) const BFCNT: usize = 3; // per-pc bytecode execution count, g^{A[pc]}
-// The Keccak reduction's committed states `q_keccak`, in the SAME stack as every
-// other column (single PCS). Size `2^(SLOT_LOG + tau)` F64 words for `2^tau`
-// KECCAK steps, never fewer than `MIN_STEPS`. It is the
-// SOLE copy of the input words: the VM's KECCAK value columns are virtual, the
-// input lanes' memory-bus claims routing to `q_keccak` slots (§keccak) and the
-// output lanes' becoming the reduction's claim on the output, which is not
-// committed. The reduction's two claims are discharged by the single stacked
-// WHIR opening over this commitment.
+/// Each cell's final access count, `g^{A[i]}`.
+pub(crate) const MFCNT: usize = 2;
+/// Each pc's execution count, `g^{A[pc]}`.
+pub(crate) const BFCNT: usize = 3;
+/// The Keccak reduction's committed states `q_keccak`, `2^(SLOT_LOG + τ)` words for `2^τ` steps: the one copy of the
+/// `KECCAK` input lanes, whose columns are virtual ([`keccak_value`]).
 pub const QKECCAK: usize = 4;
 pub(crate) const N_SHARED: usize = 5;
 
@@ -151,6 +144,16 @@ pub struct Layout {
     pub rows: [usize; tables::N_TABLES],
 }
 
+impl Layout {
+    /// Words of the committed columns, before the stack's pad to a power of two.
+    pub(crate) fn committed_size(&self) -> usize {
+        (self.placements.iter())
+            .filter(|p| !p.is_virtual())
+            .map(|p| 1usize << p.n_vars)
+            .sum()
+    }
+}
+
 /// The prover's witness: the stacked multilinear `q`, which holds every committed
 /// column at its placed offset, plus the public [`Layout`] (and the sizes needed to
 /// announce it).
@@ -160,7 +163,6 @@ pub(crate) struct Witness {
     /// data for the bus but are not committed, so they are not in `q`.
     pub(crate) virt: Vec<(usize, Vec<F64>)>,
     pub(crate) layout: Layout,
-    pub(crate) log_mem: usize,
     /// What the Keccak reduction needs beside `q`, which holds the states it rebuilds its witness from.
     pub(crate) keccak_reduction: crate::keccak::Reduction,
 }
@@ -187,16 +189,6 @@ impl Witness {
             cols[*i] = buf;
         }
         cols
-    }
-
-    /// Committed data before the zero-pad to `2^m`: the real witness size.
-    pub(crate) fn committed_size(&self) -> usize {
-        self.layout
-            .placements
-            .iter()
-            .filter(|p| !p.is_virtual())
-            .map(|p| 1usize << p.n_vars)
-            .sum()
     }
 }
 
@@ -363,7 +355,7 @@ pub(crate) fn bytecode_columns(prog: &[Op]) -> BytecodeColumns {
 /// short sumcheck reduces to one evaluation (§sec:e2e-bc).
 ///
 /// This is the multilinear an outermost verifier is handed in place of a
-/// structured program, and what the transcript seed binds ([`super::fs_seed`]).
+/// structured program, and what the Fiat-Shamir IV hashes.
 pub fn bytecode_table(prog: &[Op]) -> Vec<F64> {
     stack_columns(&bytecode_columns(prog))
 }
@@ -490,69 +482,47 @@ pub(crate) fn table_logs(rows: [usize; tables::N_TABLES]) -> [usize; tables::N_T
 }
 
 impl Program {
+    /// The witness of a run: every committed column written straight into its window of the stack, at the heights
+    /// the layout `l` fixes.
     pub(crate) fn build(&self, exec: &Execution, l: Layout) -> Witness {
-        assert!(exec.mem.len().is_power_of_two());
-        // The trace was emitted in the same walk as the memory image (no re-walk).
-        let tr = &exec.trace;
-        let cells = exec.mem.len();
-        let bytecode_size = self.prog.len();
-        let log_mem = crate::log2_strict_usize(cells);
-
+        let (tr, cells) = (&exec.trace, exec.mem.len());
         let sch = schema();
-        // g^0..g^{span-1}, so every pc/frame/operand/count fill is an O(1) lookup instead
-        // of an O(log) power: a frame base or an operand is below the cells the run used.
-        // The run's own table covers them unless a count outgrew it.
-        let span = exec.mem_used.max(bytecode_size).max(tr.counts);
-        let gpow = match exec.gpow.get(..span) {
-            Some(gpow) => std::borrow::Cow::Borrowed(gpow),
-            None => std::borrow::Cow::Owned(primitives::field::g_powers(span)),
-        };
+        // Every pc, frame base, operand and access count a fill writes is a `g`-power below this.
+        let gpow = primitives::field::g_powers(exec.mem_used.max(self.prog.len()).max(tr.counts));
 
-        // `l`, the public layout (flush/count blocks, placements, boundary, taus), is a pure
-        // function of the program, the announced sizes and the public input, so the prover
-        // and the verifier share it; it fixes each table's height `2^tau`, which lets every
-        // column be allocated at its final length in one pass.
-
-        // Every fill writes its column straight into its window of the stack.
         let mut q = parallel::filled(l.shape.committed_len(), F64::ZERO);
-        // An output lane is neither in the stack nor in `q_keccak`, so its values need
-        // storage of their own: it carries data for the bus. Every other column `q_keccak`
-        // carries ([`Witness::columns`]) is filled through the slot window handed out below.
+        let mut windows = witness::split_stack(&mut q, &l.placements);
+        // An output lane is in neither the stack nor `q_keccak`, but the bus reads it: it has a buffer of its own.
         let steps = 1 << l.taus[tables::KECCAK_TABLE];
         let mut virt: Vec<(usize, Vec<F64>)> = (0..sch.n)
             .filter(|&i| matches!(keccak_value(i), Some(KeccakLane::Output(_))))
             .map(|i| (i, vec![F64::ZERO; steps]))
             .collect();
-        let mut windows = witness::split_stack(&mut q, &l.placements);
         for (i, buf) in virt.iter_mut() {
             windows[*i] = buf;
         }
-        // q_keccak's window is the committed states and then the spare slots, a slot per
-        // KECCAK column riding them: hand each its slot, so its fill writes it where it
-        // lives and the stack never holds it twice.
+        // `q_keccak`'s window is the committed states, then a spare slot per KECCAK column riding there.
         let (states, spare) = std::mem::take(&mut windows[QKECCAK]).split_at_mut(crate::keccak::SLOTS * steps);
         windows[QKECCAK] = states;
         for (k, window) in spare.chunks_exact_mut(steps).enumerate() {
             windows[sch.base[tables::KECCAK_TABLE] + spare_local(k)] = window;
         }
 
-        // Each table fills its own columns from the trace (local indices, offset
-        // into its global block).
         crate::stage!("Fill columns", || {
             for (t, table) in tables::tables().iter().enumerate() {
                 let (base, n) = (sch.base[t], table.n_committed_columns());
                 let ctx = FillCtx::new(tr, &exec.mem, &gpow, &self.prog, 1 << l.taus[t], table.padding());
                 table.fill(&ctx, &mut windows[base..base + n]);
             }
-            // Shared columns. The 128-bit memory image splits into two K-limbs, and each cell's count
-            // ended at g^{A[i]}.
+            // The shared columns: the memory image's two limbs and each cell's final count `g^{A[i]}`, a cell read
+            // once for the three, and each pc's final count.
             const _: () = assert!(N_SHARED == 5, "a new shared column needs a fill here");
-            for c in [MEM_LO, MEM_HI, MFCNT] {
-                assert_eq!(windows[c].len(), cells, "a memory column spans the image");
-            }
-            // The three memory columns in one pass, a cell read once.
             const CHUNK: usize = 1 << 12;
             let [lo, hi, count] = windows.get_disjoint_mut([MEM_LO, MEM_HI, MFCNT]).unwrap();
+            assert!(
+                [&lo, &hi, &count].iter().all(|w| w.len() == cells),
+                "a memory column spans the image"
+            );
             parallel::map_reduce_chunks_mut(
                 [&mut **lo, &mut **hi, &mut **count],
                 [CHUNK; 3],
@@ -566,11 +536,10 @@ impl Program {
                 },
                 |_, _| (),
             );
-            parallel::fill(windows[BFCNT], |i| gpow[tr.bytecode_count[i] as usize]); // … at g^{A[pc]}
+            parallel::fill(windows[BFCNT], |i| gpow[tr.bytecode_count[i] as usize]);
         });
-        // The committed Keccak states q_keccak, ALWAYS in this same stack: built from
-        // the executed KECCAK rows in order (row j = step j), each step's input read back from
-        // the final memory image, which is write-once.
+        // The committed Keccak states, step `j` the `j`-th KECCAK row, its input read back from the final memory
+        // image, which is write-once.
         let keccak_reduction = crate::stage!("Build q_keccak", || {
             let inputs = parallel::map_collect(tr.keccak.len(), |i| {
                 let row = &tr.keccak[i];
@@ -579,15 +548,11 @@ impl Program {
             });
             crate::keccak::place(&inputs, windows[QKECCAK])
         });
-
-        // (`execute` already asserts the run halts at the sentinel (pc, fp) =
-        // (g^{B-1}, 0), exactly the boundary the public layout derives.)
-        drop(windows); // release the borrow of `q` and of the output lanes' buffers
+        drop(windows);
         Witness {
             q,
             virt,
             layout: l,
-            log_mem,
             keccak_reduction,
         }
     }

@@ -1,64 +1,47 @@
-//! Bridge to the Keccak prover ([`keccak_gkr`]), single-PCS.
+//! The `KECCAK` glue to the Keccak reduction ([`keccak_gkr`], Annex C), over the one commitment.
 //!
-//! The committed states of every `KECCAK` step are one column of leanVM's ONE stacked `F64`
-//! witness (§sec:stacking), a lane per slot and a word per step, with no separate commitment:
-//! the input and the state after every `DEPTH` rounds before the output. The output is not
-//! committed. The VM's `KECCAK` table commits no value column of its own: a claim on an input lane is
-//! a claim on its slot of that column, and the claims on the output lanes are the reduction's
-//! claim on the permutation's output ([`keccak_gkr::OutputClaim`]). The GKR reduction proves the
-//! rounds between, and its openings join the batch-mixed opening ([`::pcs::stack_open`]): the
-//! column's bit slices as the ring-switched claim, the committed states after the input as a
-//! point claim.
-//!
-//! ## The mapping
-//!
-//! The VM's `KECCAK` is Keccak-f\[1600\] of the 25 lanes thirteen cells hold, written to one, two
-//! or all thirteen cells, each side in one of two layouts ([`cell_lanes`]). The committed input is
-//! the lanes the VM reads, and the output is the permutation's, written as it is.
+//! The VM's `KECCAK` is Keccak-f\[1600\] of the 25 lanes thirteen cells hold, read and written each in one of two
+//! layouts ([`cell_lanes`]). The committed column `q_keccak` holds every step's input lanes and its state every
+//! [`DEPTH`] rounds before the output, a slot per lane and a word per step; the output is not committed. The
+//! `KECCAK` table commits no lane of its own: a claim on an input lane is a claim on its slot of `q_keccak`, and the
+//! claims on the output lanes are the reduction's claim on the permutation's output ([`keccak_gkr::OutputClaim`]).
+//! The reduction proves the rounds between, and its two claims on `q_keccak` join the one opening.
 
-use crate::transcript::ProverState;
+use fiat_shamir::transcript::ProverState;
 use keccak_gkr::witness::{BLOCK, block_lanes};
 use keccak_gkr::{Openings, OutputClaim, Shape, Witness};
 use primitives::field::{F64, F128};
 use primitives::hash::STATE_LANES;
 
+pub use isa::STATE_CELLS;
+
 /// Rounds between two committed states.
 pub const DEPTH: usize = 12;
 /// The reduction's shape at its fewest steps.
 const MIN_SHAPE: Shape = shape(0);
-/// `log2` of the slots the committed column holds per step: one per lane of each state but the
-/// output, rounded up to a power of two.
+/// `log2` of `q_keccak`'s slots a step: one per lane of each committed state, rounded up to a power of two.
 pub const SLOT_LOG: usize = MIN_SHAPE.slot_log();
-/// Slots of a step the committed states occupy, one per lane of each: the ones from here to
-/// `2^SLOT_LOG` carry no state, and the KECCAK table's own columns ride them
+/// Slots a step's committed states occupy: the ones from here to `2^SLOT_LOG` carry the KECCAK table's own columns
 /// (`cpu::keccak_value`).
 pub const SLOTS: usize = MIN_SHAPE.slots();
 /// The fewest steps the reduction is sized for, one of its blocks.
 pub const MIN_STEPS: usize = MIN_SHAPE.n();
+/// Cells one `KECCAK` row flushes: thirteen read, thirteen written or, past what it writes, cancelled.
+pub(crate) const ROW_CELLS: usize = 2 * STATE_CELLS;
+
+const fn shape(n_steps: usize) -> Shape {
+    Shape::new(n_steps, DEPTH)
+}
 
 /// `log2` of the steps the reduction proves for `n` executed ones.
 pub(crate) fn n_steps_log(n: usize) -> usize {
     shape(n).n_log()
 }
 
-const fn shape(n_steps: usize) -> Shape {
-    Shape::new(n_steps, DEPTH)
-}
-
-/// `log2` of the committed column, in words.
-pub fn qkeccak_kappa(n_steps: usize) -> usize {
-    shape(n_steps).stack_log()
-}
-
-pub use isa::{RATE_CELLS, STATE_CELLS};
-/// Cells one `KECCAK` row flushes: thirteen read, thirteen written or, past what it writes, cancelled.
-pub(crate) const ROW_CELLS: usize = 2 * STATE_CELLS;
-
-/// The lanes each state cell holds, `(lo, hi)`, in the even layout (`odd = false`) or the odd
-/// one, `None` marking a limb that holds no lane: nine rate cells, lanes `0..16` two to a cell
-/// then lane 16 in a low limb (even), or lane 0 in a high limb then lanes `1..17` two to a cell
-/// (odd), then the capacity lanes `17..25` two to a cell. A block of a message laid out in cells
-/// covers the nine rate cells of the layout of its parity.
+/// The lanes each state cell holds, `(lo, hi)`, in the even layout (`odd = false`) or the odd one, `None` marking a
+/// limb that holds no lane: nine rate cells, lanes `0..16` two to a cell then lane 16 in a low limb (even), or lane 0
+/// in a high limb then lanes `1..17` two to a cell (odd), then the capacity lanes `17..25` two to a cell. A block of a
+/// message laid out in cells covers the nine rate cells of the layout of its parity.
 pub const fn cell_lanes(odd: bool) -> [(Option<usize>, Option<usize>); STATE_CELLS] {
     let mut t = [(None, None); STATE_CELLS];
     let mut c = 0;
@@ -79,7 +62,7 @@ pub const fn cell_lanes(odd: bool) -> [(Option<usize>, Option<usize>); STATE_CEL
 
 /// The 25 lanes the thirteen state cells `cell(0..13)` hold in a layout.
 pub(crate) fn state_of_cells(odd: bool, cell: impl Fn(usize) -> F128) -> [u64; STATE_LANES] {
-    // The layout is a constant, so the loop compiles to straight-line moves.
+    // The layout a constant, the loop compiles to straight-line moves.
     fn read<const ODD: bool>(cell: impl Fn(usize) -> F128) -> [u64; STATE_LANES] {
         let mut s = [0; STATE_LANES];
         for c in 0..STATE_CELLS {
@@ -97,7 +80,7 @@ pub(crate) fn state_of_cells(odd: bool, cell: impl Fn(usize) -> F128) -> [u64; S
     if odd { read::<true>(cell) } else { read::<false>(cell) }
 }
 
-/// The thirteen state cells holding 25 lanes in a layout, a free lane zero.
+/// The thirteen state cells holding 25 lanes in a layout, a free limb zero.
 pub(crate) fn cells_of_state(s: &[u64; STATE_LANES], odd: bool) -> [F128; STATE_CELLS] {
     let lanes = cell_lanes(odd);
     std::array::from_fn(|c| {
@@ -114,17 +97,15 @@ pub(crate) fn permute_cells(cells: &[F128; STATE_CELLS], in_odd: bool, out_odd: 
     cells_of_state(&s, out_odd)
 }
 
-/// What the reduction needs beside the committed column.
-///
-/// Its witness, every round's state of every step, is rebuilt from the column's input states.
-/// Held from the witness build instead, it would sit beside the bus's trees, at the prover's peak.
+/// The reduction's sizes. Its witness, every round's state of every step, is rebuilt from `q_keccak`'s input states
+/// when it runs: held from the witness build instead, it would sit beside the bus's trees, at the prover's peak.
 pub(crate) struct Reduction {
     shape: Shape,
     steps: usize,
 }
 
 impl Reduction {
-    /// Rebuild the witness from `q_keccak`, the whole committed block, and run the reduction.
+    /// Rebuild the witness from `q_keccak`, the whole committed column, and run the reduction.
     pub(crate) fn prove(self, ps: &mut ProverState, q_keccak: &[F64], output: &OutputClaim) -> Openings {
         let witness =
             tracing::info_span!("Witness").in_scope(|| Witness::from_committed(self.shape, self.steps, q_keccak));
@@ -132,21 +113,19 @@ impl Reduction {
     }
 }
 
-/// Write the committed states of the steps `inputs`, padded with all-zero steps, into `q_keccak`, the states'
-/// part of the committed block, its first [`SLOTS`] slots: the spare slots past them belong to the columns that
-/// ride there and are written by their own fill.
-pub(crate) fn place(inputs: &[[u64; STATE_LANES]], q_keccak: &mut [F64]) -> Reduction {
+/// Write the committed states of the steps `inputs`, padded with all-zero steps, over `q_keccak`'s first [`SLOTS`]
+/// slots, `states`: the spare slots past them are their columns' to fill.
+pub(crate) fn place(inputs: &[[u64; STATE_LANES]], states: &mut [F64]) -> Reduction {
     let shape = shape(inputs.len());
     assert_eq!(
-        q_keccak.len(),
+        states.len(),
         shape.slots() * shape.n(),
         "the committed states are the wrong size"
     );
-    // Only the committed lanes of each block: the reduction rebuilds the rounds from the column.
     let lanes = parallel::map_collect(inputs.len().div_ceil(BLOCK), |g| {
         block_lanes(shape.depth(), &inputs[g * BLOCK..((g + 1) * BLOCK).min(inputs.len())])
     });
-    Witness::write_committed(shape, &lanes, q_keccak);
+    Witness::write_committed(shape, &lanes, states);
     Reduction {
         shape,
         steps: inputs.len(),
@@ -164,7 +143,7 @@ mod tests {
     /// The committed column for `instances`, padded with all-zero steps, and the reduction's
     /// witness.
     fn build_qkeccak(instances: &[[u64; STATE_LANES]]) -> (Vec<F64>, Witness) {
-        let mut q_keccak = vec![F64::ZERO; 1 << qkeccak_kappa(instances.len())];
+        let mut q_keccak = vec![F64::ZERO; 1 << shape(instances.len()).stack_log()];
         let states = SLOTS * (1 << n_steps_log(instances.len()));
         let witness = Witness::generate(shape(instances.len()), instances, &mut q_keccak[..states]);
         (q_keccak, witness)
