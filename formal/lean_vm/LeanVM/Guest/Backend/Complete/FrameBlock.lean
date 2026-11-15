@@ -264,6 +264,61 @@ theorem BlkW.append_fall {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt}
   | ret es₂ vs =>
     exact BlkW.append_core (by simp [outEs, Out.pre, calls_append']) (fun _ _ _ hk => hk) h₁ h₂
 
+/-- **A straight-line instruction's relation gives its words** on the memories `Ag`, for every
+frame word and valuation `Same` as the instance's (from `FrameHW`'s `opW_hw`/`opW_jw` and
+`Inst.Ok`: a final instruction names no temporary's cell but a temporary's `DEREF`). -/
+def OpOK (Γ : Site κ₀) (I : Inst)
+    (Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop) (cl : List Call) : Prop :=
+  ∀ (Ψ : ℕ → E) (σ' : Val), I.Same σ' → ∀ (kh : ℕ → E × E) (h : List LHint) (o : LOp) (pos : ℕ)
+    (cs : List Stmt) (ks : List (ℕ × ℕ)) (next : List Stmt → List (ℕ × ℕ) → Prop)
+    (kj : List (ℕ × ℕ) → E → E → Prop) (kret khalt : Prop),
+    o ∈ I.ops → OpW I Ψ o → next cs ks →
+    wS Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl (.op h o) cs pos ks next kj kret khalt
+
+/-- Straight-line instructions whose relations the constraint gives hand the cursor on. -/
+theorem wLc_ops (hok : OpOK Γ I Ag cl) {C : (ℕ → E) → Prop} {Ψ : ℕ → E} (hΨ : C Ψ) {σ' : Val}
+    (hσ : I.Same σ') (kh : ℕ → E × E) :
+    ∀ (blk : List PStmt), (∀ s ∈ blk, ∃ h o, s = PStmt.op h o ∧ ∀ Ψ, C Ψ → OpW I Ψ o) →
+    ∀ (pos : ℕ), (∀ o' ∈ blockOps blk pos, o' ∈ I.ops) → ∀ (cs : List Stmt) (ks : List (ℕ × ℕ))
+    (next : List Stmt → List (ℕ × ℕ) → Prop) (kj : List (ℕ × ℕ) → E → E → Prop)
+    (kret khalt : Prop), next cs ks →
+    wLc Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl blk cs pos ks next kj kret khalt
+  | [], _, _, _, _, _, _, _, _, _, hn => by rw [wLc]; exact hn
+  | s :: ss, hs, pos, hops, cs, ks, next, kj, kret, khalt, hn => by
+    obtain ⟨h, o, rfl, hw⟩ := hs s (List.mem_cons_self ..)
+    rw [wLc]
+    refine hok Ψ σ' hσ kh h o pos cs ks _ _ kret khalt
+      (hops o (by simp [blockOps, stmtOps])) (hw Ψ hΨ) ?_
+    exact wLc_ops hok hΨ hσ kh ss (fun s' hs' => hs s' (List.mem_cons_of_mem _ hs'))
+      (pos + stmtSize (.op h o)) (fun o' ho' => hops o' (by
+        simp only [blockOps, List.mem_append]; exact Or.inr ho')) cs ks next kj kret khalt hn
+
+theorem op_mem_blockOps : ∀ (blk : List PStmt) (pos : ℕ) {h : List LHint} {o : LOp},
+    PStmt.op h o ∈ blk → o ∈ blockOps blk pos
+  | [], _, _, _, hm => nomatch hm
+  | s :: ss, pos, h, o, hm => by
+    rcases List.mem_cons.mp hm with rfl | hm
+    · simp [blockOps, stmtOps]
+    · simp only [blockOps, List.mem_append]
+      exact Or.inr (op_mem_blockOps ss _ hm)
+
+/-- **Straight-line instructions on the path are words of a block** whose core statements make
+no call and stand for nothing the cursor sees (atoms). -/
+theorem FAt.toBlk (hok : OpOK Γ I Ag cl) {ctx : Ctx} {C : (ℕ → E) → Prop} {st : St} {α : Type}
+    {m : P α} {R : α → ((ℕ → E) → Prop) → St → Prop} {ss tl : List Stmt} {es : List Ev}
+    {i₀ : ℕ} (hss : ctrlSplit (ss ++ tl) = ctrlSplit tl) (hc : calls es = [])
+    (h : FAt ctx I C st m R) :
+    FBAt ctx I C st m fun a C' st' => R a C' st' ∧ ∃ blk, st'.out.toList = st.out.toList ++ blk ∧
+      (Fits I st' → BlkW Γ I Ag cl C' blk ss tl (.fall es) i₀) := by
+  intro hc0
+  refine wp_mono (h hc0) fun a st' ⟨C', hcok, hs, hn, hl, ⟨ops, ho, hops⟩, hr⟩ =>
+    ⟨C', hcok, hs, hn, hl, hr, ops, ho, fun hfit => ⟨fun _ => [], fun _ => by simp [outEs, hc],
+      fun Ψ hΨ σ' hσ kh cs pos ks next kj kret khalt hbo hcs _ hk => ?_⟩⟩
+  refine wLc_ops hok hΨ hσ kh ops (hops hfit fun _ o hm => hbo o (op_mem_blockOps ops pos hm))
+    pos hbo cs ks next kj kret khalt ?_
+  have := hk cs (hcs.trans hss)
+  simpa [hc] using this
+
 end Compose
 
 end
