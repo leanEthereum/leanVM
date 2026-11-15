@@ -105,6 +105,16 @@ fn task_panic_reaches_the_dispatcher_and_the_pool_survives() {
     assert!(out.iter().enumerate().all(|(i, &v)| v == i));
 }
 
+/// Nesting is a bug, not a slow path: it must be reported, not silently
+/// serialized, so that a lost fan-out cannot hide as a slow one.
+#[test]
+#[should_panic = "nested parallel dispatch"]
+fn nested_dispatch_panics_rather_than_deadlocking() {
+    parallel::for_each(parallel::num_threads().max(2), |_| {
+        parallel::for_each(4, |_| {});
+    });
+}
+
 #[test]
 fn find_first_returns_the_global_minimum() {
     for n in SIZES {
@@ -117,6 +127,12 @@ fn find_first_returns_the_global_minimum() {
         // No match.
         assert_eq!(parallel::find_first(n, |_| false), None, "n = {n}");
     }
+}
+
+#[test]
+#[should_panic = "nested parallel dispatch"]
+fn nested_dispatch_panics_even_when_the_outer_runs_inline() {
+    parallel::for_each(1, |_| parallel::for_each(4, |_| {}));
 }
 
 #[test]

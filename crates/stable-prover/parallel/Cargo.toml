@@ -3,10 +3,7 @@ name = "stable_parallel"
 version.workspace = true
 edition.workspace = true
 publish = false
-description = "Data-parallel kernels over a fixed-size rayon pool"
+description = "Fixed-size thread pool for flat data-parallel kernels"
 
 [lints]
 workspace = true
-
-[dependencies]
-rayon = "1.10"
