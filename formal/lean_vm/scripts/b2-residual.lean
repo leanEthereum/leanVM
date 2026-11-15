@@ -55,7 +55,7 @@ def main (args : List String) : IO UInt32 := do
       for ((pf, tf), i) in (pl.zip tr).zipIdx do
         let f := tf.core
         let cl := cells.getD f.name []
-        let A : Agree := ⟨fun v => pf.locs[v]?, cl, []⟩
+        let A : Agree := ⟨fun v => pf.locs[v]?, fun n => cl.getD n 0, []⟩
         if A.fnOk f then continue
         let res := residualOf A f
         let A' : Agree := { A with res := res }

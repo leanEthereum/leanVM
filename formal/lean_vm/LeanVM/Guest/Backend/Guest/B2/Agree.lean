@@ -60,15 +60,15 @@ end
 /-- A function's places, its cell table and its residual values. -/
 structure Agree where
   pl : V → Option Loc
-  cl : List Nat
+  cl : Nat → Nat
   res : List (V × Res)
 
 namespace Agree
 
 variable (A : Agree)
 
-/-- The cell the table gives a value (`0` past it). -/
-def cell (v : V) : Nat := A.cl.getD v.idx 0
+/-- The cell the table gives a value. -/
+def cell (v : V) : Nat := A.cl v.idx
 
 /-- The value has one word under both valuations: it is placed in its cell, or it is a residual
 pointer. -/
