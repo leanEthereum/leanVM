@@ -13,7 +13,6 @@ public import LeanVM.Guest.Pack.«P45».Mode1
 public import LeanVM.Guest.Pack.«P45».Mode2
 public import LeanVM.Guest.Pack.«P45».Mode3
 public import LeanVM.Guest.Pack.«P45».ModeH
-public import LeanVM.Guest.Pack.«P45».ModeX
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
@@ -816,7 +815,7 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     (Mode.fa_nil)))))))))))))))))))))))))))))))
 
 /-- The certificates' walks and hints. -/
-theorem certs_walk («__loop38» : Mode.WalkHyp Fn.«keccak_layer__L1_loop0».modeCert) :
+theorem certs_walk :
     ∀ K ∈ certs, Mode.CertWalk K :=
   Mode.fa_cons (⟨Fn.«opening_tail_round».modeOk, Fn.«opening_tail_round».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«eq_prefix_run__L32».modeOk, Fn.«eq_prefix_run__L32».modeHintsOk⟩)
@@ -830,7 +829,7 @@ theorem certs_walk («__loop38» : Mode.WalkHyp Fn.«keccak_layer__L1_loop0».mo
     (Mode.fa_cons (⟨Fn.«child_claim_list_last__L9».modeOk,
     Fn.«child_claim_list_last__L9».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«rs_eq_rows__L8».modeOk, Fn.«rs_eq_rows__L8».modeHintsOk⟩)
-    (Mode.fa_cons (⟨«__loop38», Fn.«keccak_layer__L1_loop0».modeHintsOk⟩)
+    (Mode.fa_cons (⟨Fn.«keccak_layer__L1_loop0».modeOk, Fn.«keccak_layer__L1_loop0».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«grind_check__L21».modeOk, Fn.«grind_check__L21».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«level_residual__L55_L10_L4_L2».modeOk,
     Fn.«level_residual__L55_L10_L4_L2».modeHintsOk⟩)

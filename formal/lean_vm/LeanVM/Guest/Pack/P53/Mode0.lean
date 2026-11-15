@@ -114,6 +114,37 @@ end
 
 end LeanVM.Guest.Fn.«block_selector_tab__L32»
 
+namespace LeanVM.Guest.Fn.«keccak_layer__L0_loop1»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `__loop41`: the program its walk shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none .nil (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none .nil
+    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none .nil (.node (some Fn.«keccak_layer__L0_loop1».modeSig) .nil .nil))))) .nil) .nil)))
+    .nil)) .nil) .nil)))) .nil)), 524287⟩
+
+/-- `__loop41`: its hints, residuals, table sizes and cuts. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨255644, 64, Fn.«keccak_layer__L0_loop1».modeSig, (.node none (.node none (.node none .nil (.node
+    none (.node none .nil (.node (some [(.frameAddress 77)]) .nil .nil)) .nil)) .nil) .nil), (.node
+    none (.node none .nil (.node none (.node (some [(.sub ⟨⟨0, 0, [((.fr 18), 1)]⟩, (.num 0), (.num
+    1), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 17), 1)]⟩, (.num 0), (.num 8192), 1, 0⟩])]) .nil .nil) (.node (some
+    [(.sub ⟨⟨0, 1, [((.fr 18), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.hp 1 17), 1)]⟩, (.num
+    0), (.num 8192), 1, 0⟩])]) .nil .nil))) .nil), .nil, false, .nil⟩
+
+/-- `__loop41`: its mode walk accepts its code. -/
+theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«keccak_layer__L0_loop1»
+
 namespace LeanVM.Guest.Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1»
 
 open LeanVM.Guest LeanVM.Guest.Exec

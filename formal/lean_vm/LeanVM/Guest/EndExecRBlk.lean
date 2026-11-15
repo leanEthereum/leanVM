@@ -15,7 +15,8 @@ public import LeanVM.Guest.Res.SubDefs
 
 `blk_rres`: on a frame whose `[n]` is `g^(K·a + b)`, `[s] = g^a` and `[r] = g^b`, the run of stride `S`
 from `d` up to `[n]`'s exponent lies in `blkRes`'s runs: a point `c < K·a` is `c = K·(c / K) + c % K`,
-offset `(c % K)·S + d` of block `c / K < a`; a point `K·a ≤ c` is `c - K·a < b` past `[s]^(K·S)`.
+offset `(c % K)·S + d` of block `c / K < a`; a point `K·a ≤ c` is `c - K·a < b` past `[s]^(K·S)`
+(`blk_rresC`: that factor first in the product).
 `blk_top`: at an honest frame, from the frame's split (`splits_ok`).
 -/
 
@@ -23,7 +24,7 @@ namespace LeanVM.Guest.EndExec
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.Core LeanVM.Guest.Memory
 open LeanVM.Guest.Bridge (FnAl)
-open LeanVM.Guest.Res (blkB blkRes)
+open LeanVM.Guest.Res (blkB blkRes blkResC)
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Prover.Exec
 
@@ -76,6 +77,22 @@ theorem blk_rres {T : Base} {s r n K S d a b : ℕ} (hs : M (fp + s) = ofK (Para
       rw [e, pow_add, pow_mul]
       ring
 
+/-- `blk_rres` with `[s]^(K·S)` first in the last run's product (`blkResC`). -/
+theorem blk_rresC {T : Base} {s r n K S d a b : ℕ} (hs : M (fp + s) = ofK (Parameters.g ^ a))
+    (hr : M (fp + r) = ofK (Parameters.g ^ b)) (hn : M (fp + n) = ofK (Parameters.g ^ (K * a + b)))
+    (hlt : K * a + b < 2 ^ 62) : RRes M fp (blkResC T s r n K S d) := by
+  obtain ⟨xlo, xhi, hlo, hhi, h⟩ := blk_rres (T := T) (S := S) (d := d) hs hr hn hlt
+  refine ⟨xlo, xhi, hlo, hhi, fun vq hvq c hc1 hc ↦ ?_⟩
+  obtain ⟨bb, hbm, hb⟩ := h vq hvq c hc1 hc
+  rcases List.mem_append.mp hbm with hbm | hbm
+  · exact ⟨bb, List.mem_append_left _ hbm, hb⟩
+  · obtain rfl := List.mem_singleton.mp hbm
+    refine ⟨_, List.mem_append_right _ (List.mem_singleton_self _), fun vb ylo yhi hvb hl hh ↦ ?_⟩
+    obtain ⟨wb, ⟨u2, w', hu2, ⟨u', w2, hu', hw2, rfl⟩, rfl⟩, rfl⟩ := hvb
+    change w2 = 1 at hw2
+    subst hw2
+    exact hb _ ylo yhi ⟨_, ⟨u', u2 ^ (K * S) * 1, hu', ⟨u2, 1, hu2, rfl, rfl⟩, rfl⟩, by ring⟩ hl hh
+
 end
 
 variable {A : String → FnAl} {r : Ref} {K : Mode.Cert} {i : ℕ} {e : Bridge.Ent} {j : ℕ}
@@ -88,11 +105,12 @@ theorem blk_top (t : TopAt A r K i e j) (hr : r.Ok) {x : Mode.Res} (hx : blkB j 
     simp only [blkB] at hx
     split at hx
     · obtain ⟨p, hp, hpx⟩ := List.any_eq_true.mp hx
-      simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hpx
+      simp only [Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq, decide_eq_true_eq] at hpx
       obtain ⟨rfl, hxe⟩ := hpx
       obtain ⟨a0, b0, hs, hr', hn, hlt⟩ := splits_ok p hp r K i e hr t
-      rw [hxe]
-      exact blk_rres hs hr' hn hlt
+      rcases hxe with hxe | hxe <;> rw [hxe]
+      · exact blk_rres hs hr' hn hlt
+      · exact blk_rresC hs hr' hn hlt
     · cases hx
   | .lt _ _, hx => simp [blkB] at hx
   | .nz _, hx => simp [blkB] at hx

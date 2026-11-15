@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P36».Mode0
 public import LeanVM.Guest.Pack.«P36».Mode1
-public import LeanVM.Guest.Pack.«P36».ModeX
+public import LeanVM.Guest.Pack.«P36».Mode2
 
 set_option Elab.async false
 
@@ -73,6 +73,21 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«block_selector_tab__L13»
+
+namespace LeanVM.Guest.Fn.«keccak_layer__L1»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `keccak_layer__L1`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 268) (d := Data.adviceFn268) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«keccak_layer__L1»
 
 namespace LeanVM.Guest.Fn.«column_selector__L9»
 
@@ -418,18 +433,3 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0_loop0»
-
-namespace LeanVM.Guest.Fn.«keccak_layer__L1»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `keccak_layer__L1`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 268) (d := Data.adviceFn268) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«keccak_layer__L1»

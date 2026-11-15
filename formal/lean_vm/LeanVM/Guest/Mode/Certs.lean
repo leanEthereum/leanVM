@@ -34,15 +34,9 @@ public section
 structure ModeHyps : Prop where
   «__loop24» : WalkHyp Fn.«da_verify_loop2».modeCert
   «__loop26» : WalkHyp Fn.«da_verify_column_loop0».modeCert
-  «__loop38» : WalkHyp Fn.«keccak_layer__L1_loop0».modeCert
-  «__loop39» : WalkHyp Fn.«keccak_layer__L1_loop1».modeCert
-  «__loop40» : WalkHyp Fn.«keccak_layer__L0_loop0».modeCert
-  «__loop41» : WalkHyp Fn.«keccak_layer__L0_loop1».modeCert
   «__loop6» : WalkHyp Fn.«verify_bus_gkr_loop0».modeCert
   «check_opening_terminal» : WalkHyp Fn.«check_opening_terminal».modeCert
   «da_verify» : WalkHyp Fn.«da_verify».modeCert
-  «keccak_layer__L0» : WalkHyp Fn.«keccak_layer__L0».modeCert
-  «keccak_layer__L1» : WalkHyp Fn.«keccak_layer__L1».modeCert
   «main» : WalkHyp Fn.«main».modeCert
   «open_stacked__L0» : WalkHyp Fn.«open_stacked__L0».modeCert
   «open_stacked__L1» : WalkHyp Fn.«open_stacked__L1».modeCert
@@ -56,7 +50,6 @@ structure ModeHyps : Prop where
   «open_stacked__L8» : WalkHyp Fn.«open_stacked__L8».modeCert
   «open_stacked__L9» : WalkHyp Fn.«open_stacked__L9».modeCert
   «verify_bus_gkr» : WalkHyp Fn.«verify_bus_gkr».modeCert
-  «verify_keccak» : WalkHyp Fn.«verify_keccak».modeCert
   «verify_sub» : WalkHyp Fn.«verify_sub».modeCert
   «verify_tables» : WalkHyp Fn.«verify_tables».modeCert
 
@@ -83,18 +76,18 @@ theorem guestGroup_walk1 (h : ModeHyps) : ∀ l ∈ guestGroups[1]!, ∀ K ∈ l
   Mode.fa_cons (ModePack.«P23».certs_walk)
     (Mode.fa_cons (ModePack.«P24».certs_walk h.«__loop26»)
     (Mode.fa_cons (ModePack.«P25».certs_walk)
-    (Mode.fa_cons (ModePack.«P26».certs_walk h.«__loop39»)
+    (Mode.fa_cons (ModePack.«P26».certs_walk)
     (Mode.fa_cons (ModePack.«P27».certs_walk)
     (Mode.fa_cons (ModePack.«P28».certs_walk)
     (Mode.fa_cons (ModePack.«P29».certs_walk)
-    (Mode.fa_cons (ModePack.«P3».certs_walk h.«verify_keccak»)
+    (Mode.fa_cons (ModePack.«P3».certs_walk)
     (Mode.fa_cons (ModePack.«P30».certs_walk)
     (Mode.fa_cons (ModePack.«P31».certs_walk)
     (Mode.fa_cons (ModePack.«P32».certs_walk)
     (Mode.fa_cons (ModePack.«P33».certs_walk h.«verify_sub» h.«__loop24»)
-    (Mode.fa_cons (ModePack.«P34».certs_walk h.«__loop40»)
+    (Mode.fa_cons (ModePack.«P34».certs_walk)
     (Mode.fa_cons (ModePack.«P35».certs_walk)
-    (Mode.fa_cons (ModePack.«P36».certs_walk h.«keccak_layer__L1»)
+    (Mode.fa_cons (ModePack.«P36».certs_walk)
     (Mode.fa_cons (ModePack.«P37».certs_walk)
     (Mode.fa_nil))))))))))))))))
 
@@ -107,7 +100,7 @@ theorem guestGroup_walk2 (h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ l
     (Mode.fa_cons (ModePack.«P42».certs_walk)
     (Mode.fa_cons (ModePack.«P43».certs_walk)
     (Mode.fa_cons (ModePack.«P44».certs_walk)
-    (Mode.fa_cons (ModePack.«P45».certs_walk h.«__loop38»)
+    (Mode.fa_cons (ModePack.«P45».certs_walk)
     (Mode.fa_cons (ModePack.«P46».certs_walk)
     (Mode.fa_cons (ModePack.«P47».certs_walk)
     (Mode.fa_cons (ModePack.«P48».certs_walk)
@@ -119,9 +112,9 @@ theorem guestGroup_walk2 (h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ l
 
 theorem guestGroup_walk3 (h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ l, CertWalk K :=
   Mode.fa_cons (ModePack.«P52».certs_walk)
-    (Mode.fa_cons (ModePack.«P53».certs_walk h.«__loop41»)
+    (Mode.fa_cons (ModePack.«P53».certs_walk)
     (Mode.fa_cons (ModePack.«P54».certs_walk h.«da_verify»)
-    (Mode.fa_cons (ModePack.«P55».certs_walk h.«keccak_layer__L0»)
+    (Mode.fa_cons (ModePack.«P55».certs_walk)
     (Mode.fa_cons (ModePack.«P56».certs_walk)
     (Mode.fa_cons (ModePack.«P57».certs_walk)
     (Mode.fa_cons (ModePack.«P58».certs_walk)

@@ -226,15 +226,18 @@ theorem split_rres {s r n S a b : ℕ} (hs : M (fp + s) = ofK (Parameters.g ^ a)
           ⟨S * a + j, ?_, ?_, ?_⟩⟩⟩
       · rw [hylo ylo hlo]; omega
       · rw [hyhi yhi hhi']; omega
-      · rw [hq] at hvq
-        obtain ⟨w, hw, rfl⟩ := hvq
-        obtain ⟨wb, hwb, rfl⟩ := hvb
-        obtain ⟨u, w1, hu, hw1, rfl⟩ := rbs_snoc hw
-        have e : ofK (Parameters.g ^ (S * a + j)) = ofK (Parameters.g ^ a) ^ S * ofK (Parameters.g ^ j) := by
+      · have e : ofK (Parameters.g ^ (S * a + j)) = ofK (Parameters.g ^ a) ^ S * ofK (Parameters.g ^ j) := by
           rw [pow_add, pow_mul', ofK_mul, Mode.ofK_pow (Parameters.g ^ a) S]
-        rw [rbs_uniq hw1 hwb, show u = ofK (Parameters.g ^ a) from hu.symm.trans hs, hS, hd, hbS, hbd, one_mul,
-          one_mul, add_zero, add_zero, e]
-        ring
+        rcases hq with hq | hq <;> rw [hq] at hvq <;> obtain ⟨w, hw, rfl⟩ := hvq <;>
+          obtain ⟨wb, hwb, rfl⟩ := hvb
+        · obtain ⟨u, w1, hu, hw1, rfl⟩ := rbs_snoc hw
+          rw [rbs_uniq hw1 hwb, show u = ofK (Parameters.g ^ a) from hu.symm.trans hs, hS, hd, hbS, hbd, one_mul,
+            one_mul, add_zero, add_zero, e]
+          ring
+        · obtain ⟨u, w1, hu, hw1, rfl⟩ := hw
+          change M (fp + s) = u at hu
+          rw [rbs_uniq hw1 hwb, ← hu, hs, hS, hd, hbS, hbd, one_mul, one_mul, add_zero, add_zero, e]
+          ring
   | .sub _ [], hx => simp [Res.splitShape] at hx
   | .sub _ (_ :: _ :: _), hx => simp [Res.splitShape] at hx
   | .lt _ _, hx => simp [Res.splitShape] at hx

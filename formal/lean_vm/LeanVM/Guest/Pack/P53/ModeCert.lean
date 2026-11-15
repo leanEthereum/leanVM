@@ -12,7 +12,6 @@ public import LeanVM.Guest.Pack.«P53».Mode0
 public import LeanVM.Guest.Pack.«P53».Mode1
 public import LeanVM.Guest.Pack.«P53».Mode2
 public import LeanVM.Guest.Pack.«P53».ModeH
-public import LeanVM.Guest.Pack.«P53».ModeX
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
@@ -683,13 +682,13 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     (Mode.fa_nil))))))))))))))))))))))))))
 
 /-- The certificates' walks and hints. -/
-theorem certs_walk («__loop41» : Mode.WalkHyp Fn.«keccak_layer__L0_loop1».modeCert) :
+theorem certs_walk :
     ∀ K ∈ certs, Mode.CertWalk K :=
   Mode.fa_cons (⟨Fn.«sumcheck_round4».modeOk, Fn.«sumcheck_round4».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«eq_prefix_run__L10».modeOk, Fn.«eq_prefix_run__L10».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«plus_one_run__L16».modeOk, Fn.«plus_one_run__L16».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«block_selector_tab__L32».modeOk, Fn.«block_selector_tab__L32».modeHintsOk⟩)
-    (Mode.fa_cons (⟨«__loop41», Fn.«keccak_layer__L0_loop1».modeHintsOk⟩)
+    (Mode.fa_cons (⟨Fn.«keccak_layer__L0_loop1».modeOk, Fn.«keccak_layer__L0_loop1».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».modeOk,
     Fn.«level_queries__L25_L0_L4_L16_L13_L7_L3_L12_L4_L1».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«level_residual__L109_L17_L6_L3».modeOk,

@@ -13,8 +13,8 @@ public import LeanVM.Guest.Child.Reads
 # `verify_keccak`'s cursor
 
 `VkQ J`: at an instance of `verify_keccak`, its cursor is `stream·g^p`, its table's log-height `τ`
-(`tau_g = g^τ`, `9 ≤ τ ≤ 28`), and `p + vkNeed τ ≤ 8192`: room for the word before its first layer
-and its twelve layers, each reading `84 + 2(τ - 3)` words.
+(`tau_g = g^τ`, `9 ≤ τ ≤ 28`), and `p + vkNeed τ ≤ 8192`: room for the word before its first layer,
+its twelve layers, each reading `84 + 2(τ - 3)` words, and the words after them.
 
 `runsTo_reads`: a run of a program of `n` reads (`Child.Reads`) from a carried sponge reads at most
 `n` words (`Child.run_reads`) and leaves a carried sponge. `vkQ_all`: at every honest instance of
@@ -32,12 +32,12 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- The words `verify_keccak` reads up to its last layer's end at a table of log-height `τ`: one,
-then twelve layers of `84 + 2(τ - 3)`. -/
-def vkNeed (τ : ℕ) : ℕ := 1 + 12 * (84 + 2 * (τ - 3))
+/-- The words `verify_keccak` reads at a table of log-height `τ`: one, twelve layers of
+`84 + 2(τ - 3)`, then the outputs' and the inputs' `97`. -/
+def vkNeed (τ : ℕ) : ℕ := 1 + 12 * (84 + 2 * (τ - 3)) + 97
 
 /-- **`verify_keccak`'s cursor in its stream**: `cursor = stream·g^p`, `tau_g = g^τ`, `9 ≤ τ ≤ 28`,
-and room for its layers. -/
+and room for its reads. -/
 def VkQ (J : Inst) : Prop :=
   ∀ σ bufs kids, J.t = .node "verify_keccak" σ bufs kids →
     ∃ p τ, σ (.n 5) = σ (.n 12) * gen ^ p ∧ σ (.n 6) = gen ^ τ ∧ 9 ≤ τ ∧ τ ≤ 28 ∧ p + vkNeed τ ≤ 8192

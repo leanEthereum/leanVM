@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.EndExecRSplit
 
-  The frames' splits (`Res.splits`) at the honest frames: `rs_eq_run`'s and
-  `shared_selector_tables`' `g`-power, rebuilt from its hinted bits.
+  The frames' splits (`Res.splits`) at the honest frames: `rs_eq_run`'s,
+  `shared_selector_tables`' and `verify_keccak`'s `g`-power, rebuilt from its hinted bits.
 -/
 
 module
@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.EndExecRS
 public import LeanVM.Guest.B1.Exact.RsEqRun
 public import LeanVM.Guest.B1.Exact.SharedTables
+public import LeanVM.Guest.EndExecRVk
 
 /-!
 # The splits
@@ -19,7 +20,8 @@ and `[37]` the products of the low and the high three bits' factors (`B1.rsBody`
 pins each bit, so `[23] = g^b`, `[37] = g^a`, `a, b < 8` (`Value.prod_gen_pow_of_bool`), and
 `[3] = g^(8a + b)`. `shared_selector_tables` likewise, `[5] = [39]^4·[20]`, two low bits and four
 high ones. On an honest frame the path holds on the reference and names those values, so the
-frame holds them (`TopAt.cell`): `SplitAt` (`split_rs`, `split_sst`, `splits_ok`).
+frame holds them (`TopAt.cell`): `SplitAt` (`split_rs`, `split_sst`, `splits_ok`). `verify_keccak`'s
+`y_g = step_g^8·rem_g` is `split_vk`.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -168,7 +170,7 @@ theorem split_sst : SplitAt A (fn_idx% «shared_selector_tables») (.n 39) (.n 2
 /-- **The frames' splits at the honest frames.** -/
 theorem splits_ok : ∀ p ∈ Res.splits, SplitAt A p.1 p.2.1 p.2.2.1 p.2.2.2.1 p.2.2.2.2 := by
   simp only [Res.splits, List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq]
-  exact ⟨split_rs, split_sst⟩
+  exact ⟨split_rs, split_sst, split_vk⟩
 
 end
 

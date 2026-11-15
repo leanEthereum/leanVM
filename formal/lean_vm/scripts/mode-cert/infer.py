@@ -908,8 +908,7 @@ STRIDES = set()
 # functions that pass with residuals outside the families `Res/SelDefs.lean` and `Res/SubDefs.lean` accept,
 # held as failing (their callees' narrowings undone) until those families take them; by stable name, a loop's
 # its caller's and its rank, so a guest edit renumbering the loops leaves it unchanged
-HELD_NS = {'keccak_layer__L0', 'keccak_layer__L1', 'keccak_layer__L0_loop0', 'keccak_layer__L0_loop1',
-           'keccak_layer__L1_loop0', 'keccak_layer__L1_loop1'}
+HELD_NS = set()
 HELD = {f['name'] for f in fns.values() if f['ns'] in HELD_NS}
 assert len(HELD) == len(HELD_NS), HELD_NS - {fns[n]['ns'] for n in HELD}
 

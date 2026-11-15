@@ -10,8 +10,8 @@ module
 public import LeanVM.Guest.Mode.CertDefs
 public import LeanVM.Guest.Pack.«P55».Mode0
 public import LeanVM.Guest.Pack.«P55».Mode1
+public import LeanVM.Guest.Pack.«P55».Mode2
 public import LeanVM.Guest.Pack.«P55».ModeH
-public import LeanVM.Guest.Pack.«P55».ModeX
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
@@ -722,13 +722,13 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     (Mode.fa_nil))))))))))))))))))))))))))))
 
 /-- The certificates' walks and hints. -/
-theorem certs_walk («keccak_layer__L0» : Mode.WalkHyp Fn.«keccak_layer__L0».modeCert) :
+theorem certs_walk :
     ∀ K ∈ certs, Mode.CertWalk K :=
   Mode.fa_cons (⟨Fn.«eq_prefix_run__L27».modeOk, Fn.«eq_prefix_run__L27».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«block_selector__L5».modeOk, Fn.«block_selector__L5».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«block_selector__L23».modeOk, Fn.«block_selector__L23».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«block_selector_tab__L12».modeOk, Fn.«block_selector_tab__L12».modeHintsOk⟩)
-    (Mode.fa_cons (⟨«keccak_layer__L0», Fn.«keccak_layer__L0».modeHintsOk⟩)
+    (Mode.fa_cons (⟨Fn.«keccak_layer__L0».modeOk, Fn.«keccak_layer__L0».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«column_selector__L8».modeOk, Fn.«column_selector__L8».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«bus_grind_check__L6».modeOk, Fn.«bus_grind_check__L6».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«bus_grind_check__L13».modeOk, Fn.«bus_grind_check__L13».modeHintsOk⟩)

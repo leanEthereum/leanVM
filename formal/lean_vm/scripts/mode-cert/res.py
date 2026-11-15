@@ -176,8 +176,10 @@ def listDef(name, typ, doc, rows):
 
 
 def thm(name, doc, lst, prop):
-    return ('/-- %s -/\ntheorem %s : ∀ p ∈ %s, %s := by\n  simp only [%s, List.forall_mem_cons, List.not_mem_nil, '
-            'false_imp_iff, implies_true, and_true]\n  decide +kernel\n\n') % (doc, name, lst, prop, lst)
+    # one `List.all` decided by the kernel: a conjunction per element outgrows instance synthesis
+    assert prop.endswith(' = true'), prop
+    return ('/-- %s -/\ntheorem %s : ∀ p ∈ %s, %s :=\n  List.all_eq_true.mp (by decide +kernel :\n    %s.all (fun p ↦ %s) = true)\n\n'
+            ) % (doc, name, lst, prop, lst, prop[:-len(' = true')])
 
 
 def render(F, D):

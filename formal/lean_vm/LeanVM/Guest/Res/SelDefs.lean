@@ -135,15 +135,17 @@ noncomputable def nzB (nzs : List (String × V)) (j o : ℕ) : Bool :=
 `s` and `r` powers of `g` (each one's bits hinted and pinned, `bitsExp`). -/
 noncomputable def splits : List (ℕ × V × V × V × ℕ) := [
   (fn_idx% «rs_eq_run», .n 37, .n 23, .n 3, 8),
-  (fn_idx% «shared_selector_tables», .n 39, .n 20, .n 5, 4)]
+  (fn_idx% «shared_selector_tables», .n 39, .n 20, .n 5, 4),
+  (fn_idx% «verify_keccak», .n 35, .n 49, .n 21, 8)]
 
 /-- **A run inside a split**: of stride `S` up to `[s]`'s exponent at an offset below `S`, or of
-stride `1` up to `[r]`'s exponent past `[s]^S`, inside the run up to `[n]`'s exponent over the same
-product. -/
+stride `1` up to `[r]`'s exponent past `[s]^S` (`[s]^S` last or first among the bases), inside the run
+up to `[n]`'s exponent over the same product. -/
 def splitShape (s r n S : ℕ) : Mode.Res → Bool
   | .sub a [b] => decide (b.lo = .num 0 ∧ b.hi = .ex (.fr n) 0 ∧ b.S = 1 ∧ b.d = 0 ∧ a.lo = .num 0 ∧
       ((a.q = b.q ∧ a.hi = .ex (.fr s) 0 ∧ a.S = S ∧ a.d < S) ∨
-        (a.q = ⟨b.q.fp, b.q.k, b.q.bs ++ [(.fr s, S)]⟩ ∧ a.hi = .ex (.fr r) 0 ∧ a.S = 1 ∧ a.d = 0)))
+        ((a.q = ⟨b.q.fp, b.q.k, b.q.bs ++ [(.fr s, S)]⟩ ∨ a.q = ⟨b.q.fp, b.q.k, (.fr s, S) :: b.q.bs⟩) ∧
+          a.hi = .ex (.fr r) 0 ∧ a.S = 1 ∧ a.d = 0)))
   | _ => false
 
 /-- A run inside a split of function `j`'s frame. -/
