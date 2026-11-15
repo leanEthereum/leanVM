@@ -439,6 +439,144 @@ theorem place_assertInK_fat (a b : V) : AtomFAt (.assertInK a b) := by
     exact ⟨fun _ => vw_same (hv₂.step hs₃ hn₃ hlo₃) hL (Stronger.refl _) le_rfl rfl,
       hr₃.trans (hr₂.trans hr₁)⟩
 
+/-- **A temporary's load**: the `DEREF` through `lp` into the temporary's cell, its word read on
+every valuation the instance's off the temporaries. -/
+theorem tmpDeref_fat {t pv : V} {lp dst : Cell} {a : Atom} (hes : Memory.Ev.atom a ∈ I.es)
+    (hload : ∀ (σ' : Val) (rd : Reader), (Memory.Ev.atom a).Holds rd σ' →
+      LoadHolds rd (σ' pv) 0 (σ' t))
+    (htt : t ∈ Memory.atomTmps a) (htm : t ∈ I.tmps) (hpv : pv ∉ I.tmps)
+    (hld : st.locs[t]? = some (.cell dst)) (hd2 : 2 ≤ dst) (hd : dst < st.next) (hp2 : 2 ≤ lp)
+    (hwp : ∀ Ψ, C Ψ → Ψ lp = I.σ pv) (hK : IsInK (I.σ pv)) :
+    FAt ctx I C st (emitDeref lp 0 dst) (fun _ C' st' => C' = C ∧ st'.next = st.next ∧
+      st'.locs = st.locs ∧ st'.rest = st.rest) := by
+  have hc : cellP st.locs t = some dst := by unfold cellP; rw [hld]
+  refine emitDeref_fat hp2 hd2 hd (fun Ψ hΨ => by rw [hwp Ψ hΨ]; exact hK)
+    (fun Ψ hΨ h => ?_) (fun hz _ Ψ hΨ _ => ?_)
+  · exfalso
+    rcases h with ⟨hz, hnt⟩ | h
+    · exact hnt ⟨t, htm, cellP_mono hz.2 hc⟩
+    · exact h t htm hc
+  · refine ⟨t, List.mem_flatMap.mpr ⟨_, hes, htt⟩, cellP_mono hz.2 hc, rfl,
+      by rw [hwp Ψ hΨ]; exact hK, fun σ' rd hsame hall => ?_⟩
+    have := (hload σ' rd (hall _ hes)).2
+    rw [hsame pv hpv, ← hwp Ψ hΨ] at this
+    exact this
+
+/-- **`assert_gpow`**: a load into the touch cell. -/
+theorem place_touch_fat (t p : V) : AtomFAt (.touch t p) := by
+  intro ctx I C st ok hok _ hes hh hus hts _ h2 hv hops
+  have hL := atom_ok hops fun _ _ h => by cases h
+  have hK : IsInK (I.σ p) := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
+  unfold placeAtom
+  dsimp only
+  refine FAt.bind (cellOf_fat p hok hv (hL p (by simp [Memory.atomUses])))
+    fun lp st₁ C₁ hs₁ hn₁ _ ⟨lp2, lp1, hlo₁, hr₁, hwp⟩ => ?_
+  have hv₁ := hv.step hs₁ hn₁ hlo₁
+  refine FAt.bind (cellAt_fat t) fun dt st₂ C₂ _ _ _ ⟨hC₂, hst₂, hld⟩ => ?_
+  subst C₂ st₂
+  obtain ⟨t2, t1, _⟩ := hv₁ t _ (hL t (by simp [Memory.atomTmps])) hld
+  refine FAt.mono (tmpDeref_fat hes (fun σ' rd h => h) (by simp [Memory.atomTmps])
+    (hts t (by simp [Memory.atomTmps])) (hus p (by simp [Memory.atomUses])) hld t2 t1 lp2 hwp hK)
+    fun _ C' st' _ _ _ ⟨hC, hn, hl, hr⟩ => ?_
+  subst C'
+  exact ⟨fun _ => vw_same hv₁ hL (Stronger.refl _) (le_of_eq hn.symm) hl, hr.trans hr₁⟩
+
+/-- **A range check**: two loads into its temporaries and `k = x · y`. -/
+theorem place_rangeCheck_fat (x y t1 t2 k : V) : AtomFAt (.rangeCheck x y t1 t2 k) := by
+  intro ctx I C st ok hok _ hes hh hus hts _ h2 hv hops
+  have hL := atom_ok hops fun _ _ h => by cases h
+  have hev : IsInK (I.σ x) ∧ I.σ k = I.σ x * I.σ y ∧ IsInK (I.σ y) :=
+    let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
+  unfold placeAtom
+  dsimp only
+  refine FAt.bind (cellOf_fat k hok hv (hL k (by simp [Memory.atomUses])))
+    fun lk st₁ C₁ hs₁ hn₁ _ ⟨lk2, lk1, hlo₁, hr₁, hwk⟩ => ?_
+  have hv₁ := hv.step hs₁ hn₁ hlo₁
+  refine FAt.bind (cellOf_fat x hok hv₁ (hL x (by simp [Memory.atomUses])))
+    fun lx st₂ C₂ hs₂ hn₂ _ ⟨lx2, lx1, hlo₂, hr₂, hwx⟩ => ?_
+  have hv₂ := hv₁.step hs₂ hn₂ hlo₂
+  refine FAt.bind (cellAt_fat y) fun ly st₃ C₃ _ _ _ ⟨hC₃, hst₃, hly⟩ => ?_
+  subst C₃ st₃
+  obtain ⟨y2, y1, hwy⟩ := hv₂ y _ (hL y (by simp [Memory.atomUses])) hly
+  refine FAt.bind (cellAt_fat t1) fun d1 st₃ C₃ _ _ _ ⟨hC₃, hst₃, hl1⟩ => ?_
+  subst C₃ st₃
+  obtain ⟨d12, d11, _⟩ := hv₂ t1 _ (hL t1 (by simp [Memory.atomTmps])) hl1
+  refine FAt.bind (tmpDeref_fat hes (fun σ' rd h => h.1) (by simp [Memory.atomTmps])
+    (hts t1 (by simp [Memory.atomTmps])) (hus x (by simp [Memory.atomUses])) hl1 d12 d11 lx2 hwx
+    hev.1) fun _ st₄ C₄ _ _ _ ⟨hC₄, hn₄, hl₄, hr₄⟩ => ?_
+  subst C₄
+  refine FAt.bind (emitOp_fat _ fun _ _ Ψ hΨ => ?_) fun _ st₅ C₅ _ _ _ ⟨hC₅, hst₅⟩ => ?_
+  · show fw I Ψ lk = fw I Ψ lx * fw I Ψ ly
+    rw [fw_of_two lk2, fw_of_two lx2, fw_of_two (n := ly) y2, hwk Ψ (hs₂ Ψ hΨ), hwx Ψ hΨ,
+      show Ψ ly = I.σ y from hwy Ψ hΨ, hev.2.1]
+  subst C₅ st₅
+  refine FAt.bind (cellAt_fat t2) fun d2 st₆ C₆ _ _ _ ⟨hC₆, hst₆, hl2⟩ => ?_
+  subst C₆ st₆
+  have hv₄ : VW I C₂ st₄ ok := hv₂.step (Stronger.refl _) (le_of_eq hn₄.symm) hl₄
+  obtain ⟨d22, d21, _⟩ := hv₄ t2 _ (hL t2 (by simp [Memory.atomTmps])) hl2
+  refine FAt.mono (tmpDeref_fat hes (fun σ' rd h => h.2.2) (by simp [Memory.atomTmps])
+    (hts t2 (by simp [Memory.atomTmps])) (hus y (by simp [Memory.atomUses])) hl2 d22 d21 y2
+    (fun Ψ hΨ => hwy Ψ hΨ) hev.2.2) fun _ C' st' _ _ _ ⟨hC, hn, hl, hr⟩ => ?_
+  subst C'
+  exact ⟨fun _ => vw_same hv₄ hL (Stronger.refl _) (le_of_eq hn.symm) hl,
+    hr.trans (hr₄.trans (hr₂.trans hr₁))⟩
+
+/-- **A copy**: `MUL` by the pooled `1`, or dropped when both values are one cell of a message run
+read in place (the copy's event giving the destination its word). -/
+theorem place_copy_fat (d s : V) (hds : d ≠ s) : AtomFAt (.copy d s) := by
+  intro ctx I C st ok hok _ _ hh _ _ _ h2 hv hops
+  have hev : I.σ d = I.σ s := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
+  have hks : ok s := (hops s (by simp [Memory.atomUses])).resolve_right fun ⟨_, h, _⟩ => by
+    cases h
+    exact hds rfl
+  unfold placeAtom
+  dsimp only
+  refine FAt.bind (FAt.and_wp (cellOf_fat s hok hv hks) (cellOf_alias s))
+    fun ls st₁ C₁ hs₁ hn₁ _ ⟨⟨l2, l1, hlo₁, hr₁, hws⟩, hal⟩ => ?_
+  have hv₁ := hv.step hs₁ hn₁ hlo₁
+  refine FAt.get_bind ?_
+  split
+  · refine FAt.bind (cellAt_fat d) fun c st₂ C₂ _ _ _ ⟨hC₂, hst₂, hlc⟩ => ?_
+    subst C₂ st₂
+    split
+    · exact FAt.fail_bind
+    · next hne =>
+      have hc : c = ls := by simpa using hne
+      subst hc
+      refine FAt.pure ⟨fun _ v l hv' hl' => ?_, hr₁⟩
+      by_cases hvd : v = d
+      · subst hvd
+        rw [hlc] at hl'
+        cases hl'
+        exact ⟨l2, l1, fun Ψ hΨ => (hws Ψ hΨ).trans hev.symm⟩
+      · rcases hv' with h | h
+        · exact hv₁ v l h hl'
+        · have hvs : v = s := by simp [Memory.atomUses, Memory.atomTmps, hvd] at h; exact h
+          subst hvs
+          exact hv₁ _ l hks hl'
+  · next hna =>
+    have hkd : ok d := (hops d (by simp [Memory.atomUses])).resolve_right fun ⟨_, _, h⟩ => by
+      rw [← hal] at h
+      exact hna h
+    have hL : ∀ v ∈ Memory.atomUses (.copy d s) ++ Memory.atomTmps (.copy d s), ok v := by
+      intro v hv'
+      simp [Memory.atomUses, Memory.atomTmps] at hv'
+      rcases hv' with rfl | rfl
+      · exact hkd
+      · exact hks
+    refine FAt.bind (constCell_fatB (1, 0) (hok.kconst _ _) (le_trans h2 hn₁))
+      fun one st₂ C₂ hs₂ hn₂ _ ⟨o2, _, hlo₂, hr₂, how, _⟩ => ?_
+    have hv₂ := hv₁.step hs₂ hn₂ hlo₂
+    refine FAt.bind (cellAt_fat d) fun ld st₃ C₃ _ _ _ ⟨hC₃, hst₃, hld⟩ => ?_
+    subst C₃ st₃
+    obtain ⟨d2, _, hwd⟩ := hv₂ d _ hkd hld
+    refine FAt.mono (emitOp_fat _ fun _ _ Ψ hΨ => ?_) fun _ C' st' _ _ _ ⟨hC, hst⟩ => ?_
+    · show fw I Ψ ld = fw I Ψ ls * fw I Ψ one
+      rw [fw_of_two (n := ld) d2, fw_of_two l2, fw_of_two o2, how Ψ hΨ, word_one, mul_one,
+        show Ψ ld = I.σ d from hwd Ψ hΨ, hws Ψ (hs₂ Ψ hΨ), hev]
+    · subst C' st'
+      exact ⟨fun _ => vw_same hv₂ hL (Stronger.refl _) le_rfl rfl, hr₂.trans hr₁⟩
+
 end Atoms
 
 end
