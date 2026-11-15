@@ -255,6 +255,190 @@ theorem place_const_fat (d : V) (c : E) : AtomFAt (.const d c) := by
       exact ⟨fun _ => vw_same hv hL (Stronger.refl _) le_rfl rfl, rfl⟩
     · exact FAt.pure ⟨fun _ => vw_same hv hL (Stronger.refl _) le_rfl rfl, rfl⟩
 
+/-- **`XOR`**: a pooled sum's cell, or the value's cell holding the sum. -/
+theorem place_add_fat (d a b : V) : AtomFAt (.add d a b) := by
+  intro ctx I C st ok hok _ _ hh _ _ _ h2 hv hops
+  have hL := atom_ok hops fun _ _ h => by cases h
+  have hev : I.σ d = I.σ a + I.σ b := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
+  unfold placeAtom
+  dsimp only
+  refine FAt.bind (cellOf_fat a hok hv (hL a (by simp [Memory.atomUses])))
+    fun la st₁ C₁ hs₁ hn₁ _ ⟨la2, la1, hlo₁, hr₁, hwa⟩ => ?_
+  have hv₁ := hv.step hs₁ hn₁ hlo₁
+  refine FAt.bind (cellOf_fat b hok hv₁ (hL b (by simp [Memory.atomUses])))
+    fun lb st₂ C₂ hs₂ hn₂ _ ⟨lb2, lb1, hlo₂, hr₂, hwb⟩ => ?_
+  have hv₂ := hv₁.step hs₂ hn₂ hlo₂
+  have hwa₂ : ∀ Ψ, C₂ Ψ → Ψ la = I.σ a := fun Ψ hΨ => hwa Ψ (hs₂ Ψ hΨ)
+  have h2' : 2 ≤ st₂.next := le_trans h2 (le_trans hn₁ hn₂)
+  refine FAt.bind (isLazy_fat d .pooled) fun z st₃ C₃ _ _ _ ⟨hC₃, hst₃⟩ => ?_
+  subst C₃ st₃
+  split
+  · unfold pooled
+    refine FAt.bind (pooledCell_fat (fun _ => True) (fun Ψ => Ψ la + Ψ lb)
+      (wblind_add (wblind_cell (lt_of_lt_of_le la1 hn₂)) (wblind_cell lb1)) h2'
+      (fun o ho Ψ _ hp _ => by rw [hp.xors _ o ho, add_sorted]) (fun o ho hs => hs.xors _ o ho)
+      (fun _ _ Ψ _ h => ?_) (fun Ψ _ h hp => hp.insertXor (by rw [h, add_sorted]))
+      (fun hs => { hs with xors := pmap_insert_imp hs.xors ⟨h2', Nat.lt_succ_self _⟩ }))
+      fun o st₄ C₄ hs₄ hn₄ _ ⟨o2, o1, hlo₄, hr₄, how, _⟩ => ?_
+    · show fw I Ψ st₂.next = fw I Ψ la + fw I Ψ lb
+      rw [fw_of_two la2, fw_of_two lb2, fw_of_two h2', h]
+    have hv₄ := hv₂.step hs₄ hn₄ hlo₄
+    refine FAt.mono (bindTo_fat d (.cell o)) fun _ C' st' _ _ _ ⟨hC, hst, hd0⟩ => ?_
+    subst C' st'
+    exact ⟨fun _ => vw_bind hv₄ (fun v hv' _ => hL v hv') (Stronger.refl _) le_rfl rfl hd0
+      ⟨o2, o1, fun Ψ hΨ => by
+        show Ψ o = I.σ d
+        rw [how Ψ hΨ trivial, hwa₂ Ψ (hs₄ Ψ hΨ), hwb Ψ (hs₄ Ψ hΨ), hev]⟩,
+      hr₄.trans (hr₂.trans hr₁)⟩
+  · refine FAt.bind (cellAt_fat d) fun ld st₄ C₄ _ _ _ ⟨hC₄, hst₄, hld⟩ => ?_
+    subst C₄ st₄
+    obtain ⟨d2, _, hwd⟩ := hv₂ d _ (hL d (by simp [Memory.atomUses])) hld
+    refine FAt.mono (emitOp_fat _ fun _ _ Ψ hΨ => ?_) fun _ C' st' _ _ _ ⟨hC, hst⟩ => ?_
+    · show fw I Ψ ld = fw I Ψ la + fw I Ψ lb
+      rw [fw_of_two (n := ld) d2, fw_of_two la2, fw_of_two lb2, show Ψ ld = I.σ d from hwd Ψ hΨ,
+        hwa₂ Ψ hΨ, hwb Ψ hΨ, hev]
+    · subst C' st'
+      exact ⟨fun _ => vw_same hv₂ hL (Stronger.refl _) le_rfl rfl, hr₂.trans hr₁⟩
+
+/-- **`MUL`**: a pooled product of the factors (an address's shift kept), or the value's cell
+holding the product (a store, a check, a back-solved quotient). -/
+theorem place_mul_fat (d a b : V) : AtomFAt (.mul d a b) := by
+  intro ctx I C st ok hok _ _ hh _ _ _ h2 hv hops
+  have hL := atom_ok hops fun _ _ h => by cases h
+  have hev : I.σ d = I.σ a * I.σ b := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
+  unfold placeAtom
+  dsimp only
+  refine FAt.bind (isLazy_fat d .pooled) fun z st₀ C₀ _ _ _ ⟨hC₀, hst₀⟩ => ?_
+  subst C₀ st₀
+  split
+  · refine FAt.bind (factor_fat a hok hv (hL a (by simp [Memory.atomUses])))
+      fun ra st₁ C₁ hs₁ hn₁ _ ⟨la2, la1, hlo₁, hr₁, hwa⟩ => ?_
+    have hv₁ := hv.step hs₁ hn₁ hlo₁
+    refine FAt.bind (factor_fat b hok hv₁ (hL b (by simp [Memory.atomUses])))
+      fun rb st₂ C₂ hs₂ hn₂ _ ⟨lb2, lb1, hlo₂, hr₂, hwb⟩ => ?_
+    have hv₂ := hv₁.step hs₂ hn₂ hlo₂
+    have h2' : 2 ≤ st₂.next := le_trans h2 (le_trans hn₁ hn₂)
+    obtain ⟨la, ea⟩ := ra
+    obtain ⟨lb, eb⟩ := rb
+    dsimp only at *
+    refine FAt.bind (pooledCell_fat (fun _ => True) (fun Ψ => Ψ la * Ψ lb)
+      (wblind_mul (wblind_cell (lt_of_lt_of_le la1 hn₂)) (wblind_cell lb1)) h2'
+      (fun o ho Ψ _ hp _ => by rw [hp.muls _ o ho, mul_sorted]) (fun o ho hs => hs.muls _ o ho)
+      (fun _ _ Ψ _ h => ?_) (fun Ψ _ h hp => hp.insertMul (by rw [h, mul_sorted]))
+      (fun hs => { hs with muls := pmap_insert_imp hs.muls ⟨h2', Nat.lt_succ_self _⟩ }))
+      fun o st₄ C₄ hs₄ hn₄ _ ⟨o2, o1, hlo₄, hr₄, how, _⟩ => ?_
+    · show fw I Ψ st₂.next = fw I Ψ la * fw I Ψ lb
+      rw [fw_of_two la2, fw_of_two lb2, fw_of_two h2', h]
+    have hv₄ := hv₂.step hs₄ hn₄ hlo₄
+    have hw : ∀ Ψ, C₄ Ψ → Ψ o * ofK (addressOfIndex (ea + eb)) = I.σ d := fun Ψ hΨ => by
+      rw [how Ψ hΨ trivial, hev, ← hwa Ψ (hs₂ Ψ (hs₄ Ψ hΨ)), ← hwb Ψ (hs₄ Ψ hΨ),
+        ← ofK_gpow_add]
+      ring
+    refine FAt.mono (bindTo_fat d _) fun _ C' st' _ _ _ ⟨hC, hst, hd0⟩ => ?_
+    subst C' st'
+    refine ⟨fun _ => vw_bind hv₄ (fun v hv' _ => hL v hv') (Stronger.refl _) le_rfl rfl hd0 ?_,
+      hr₄.trans (hr₂.trans hr₁)⟩
+    split
+    · next he =>
+      have he' : ea + eb = 0 := by simpa using he
+      exact ⟨o2, o1, fun Ψ hΨ => by
+        have := hw Ψ hΨ
+        rw [he', ofK_gpow_zero, mul_one] at this
+        exact this⟩
+    · exact ⟨o2, o1, hw⟩
+  · refine FAt.bind (cellOf_fat a hok hv (hL a (by simp [Memory.atomUses])))
+      fun la st₁ C₁ hs₁ hn₁ _ ⟨la2, la1, hlo₁, hr₁, hwa⟩ => ?_
+    have hv₁ := hv.step hs₁ hn₁ hlo₁
+    refine FAt.bind (cellOf_fat b hok hv₁ (hL b (by simp [Memory.atomUses])))
+      fun lb st₂ C₂ hs₂ hn₂ _ ⟨lb2, lb1, hlo₂, hr₂, hwb⟩ => ?_
+    have hv₂ := hv₁.step hs₂ hn₂ hlo₂
+    refine FAt.bind (cellAt_fat d) fun ld st₄ C₄ _ _ _ ⟨hC₄, hst₄, hld⟩ => ?_
+    subst C₄ st₄
+    obtain ⟨d2, _, hwd⟩ := hv₂ d _ (hL d (by simp [Memory.atomUses])) hld
+    refine FAt.mono (emitOp_fat _ fun _ _ Ψ hΨ => ?_) fun _ C' st' _ _ _ ⟨hC, hst⟩ => ?_
+    · show fw I Ψ ld = fw I Ψ la * fw I Ψ lb
+      rw [fw_of_two (n := ld) d2, fw_of_two la2, fw_of_two lb2, show Ψ ld = I.σ d from hwd Ψ hΨ,
+        hwa Ψ (hs₂ Ψ hΨ), hwb Ψ hΨ, hev]
+    · subst C' st'
+      exact ⟨fun _ => vw_same hv₂ hL (Stronger.refl _) le_rfl rfl, hr₂.trans hr₁⟩
+
+/-- **`assert a == b`**: `MUL` by the pooled `1`, the two words equal in characteristic `2`. -/
+theorem place_assertEq_fat (a b : V) : AtomFAt (.assertEq a b) := by
+  intro ctx I C st ok hok _ _ hh _ _ _ h2 hv hops
+  have hL := atom_ok hops fun _ _ h => by cases h
+  have hev : I.σ b = I.σ a := by
+    have h : I.σ a + I.σ b = 0 := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
+    rw [add_eq_zero_iff_eq_neg, CharTwo.neg_eq] at h
+    exact h.symm
+  unfold placeAtom
+  dsimp only
+  refine FAt.bind (cellOf_fat a hok hv (hL a (by simp [Memory.atomUses])))
+    fun la st₁ C₁ hs₁ hn₁ _ ⟨la2, la1, hlo₁, hr₁, hwa⟩ => ?_
+  have hv₁ := hv.step hs₁ hn₁ hlo₁
+  refine FAt.bind (cellOf_fat b hok hv₁ (hL b (by simp [Memory.atomUses])))
+    fun lb st₂ C₂ hs₂ hn₂ _ ⟨lb2, lb1, hlo₂, hr₂, hwb⟩ => ?_
+  have hv₂ := hv₁.step hs₂ hn₂ hlo₂
+  refine FAt.bind (constCell_fatB (1, 0) (hok.kconst _ _) (le_trans h2 (le_trans hn₁ hn₂)))
+    fun one st₃ C₃ hs₃ hn₃ _ ⟨o2, _, hlo₃, hr₃, how, _⟩ => ?_
+  refine FAt.mono (emitOp_fat _ fun _ _ Ψ hΨ => ?_) fun _ C' st' _ _ _ ⟨hC, hst⟩ => ?_
+  · show fw I Ψ lb = fw I Ψ la * fw I Ψ one
+    rw [fw_of_two la2, fw_of_two lb2, fw_of_two o2, how Ψ hΨ, word_one, mul_one,
+      hwb Ψ (hs₃ Ψ hΨ), hwa Ψ (hs₂ Ψ (hs₃ Ψ hΨ)), hev]
+  · subst C' st'
+    exact ⟨fun _ => vw_same (hv₂.step hs₃ hn₃ hlo₃) hL (Stronger.refl _) le_rfl rfl,
+      hr₃.trans (hr₂.trans hr₁)⟩
+
+/-- **`assert a != b`**: `p = x · inv` and `p = 1`. -/
+theorem place_assertNe_fat (x inv p : V) : AtomFAt (.assertNe x inv p) := by
+  intro ctx I C st ok hok _ _ hh _ _ _ h2 hv hops
+  have hL := atom_ok hops fun _ _ h => by cases h
+  have hev : I.σ p = I.σ x * I.σ inv ∧ I.σ p = 1 := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
+  unfold placeAtom
+  dsimp only
+  refine FAt.bind (cellOf_fat x hok hv (hL x (by simp [Memory.atomUses])))
+    fun lx st₁ C₁ hs₁ hn₁ _ ⟨lx2, lx1, hlo₁, hr₁, hwx⟩ => ?_
+  have hv₁ := hv.step hs₁ hn₁ hlo₁
+  refine FAt.bind (cellOf_fat inv hok hv₁ (hL inv (by simp [Memory.atomUses])))
+    fun li st₂ C₂ hs₂ hn₂ _ ⟨li2, li1, hlo₂, hr₂, hwi⟩ => ?_
+  have hv₂ := hv₁.step hs₂ hn₂ hlo₂
+  refine FAt.bind (cellAt_fat p) fun lp st₄ C₄ _ _ _ ⟨hC₄, hst₄, hlp⟩ => ?_
+  subst C₄ st₄
+  obtain ⟨p2, _, hwp⟩ := hv₂ p _ (hL p (by simp [Memory.atomUses])) hlp
+  refine FAt.bind (emitOp_fat _ fun _ _ Ψ hΨ => ?_) fun _ st₅ C₅ _ _ _ ⟨hC₅, hst₅⟩ => ?_
+  · show fw I Ψ lp = fw I Ψ lx * fw I Ψ li
+    rw [fw_of_two (n := lp) p2, fw_of_two lx2, fw_of_two li2, show Ψ lp = I.σ p from hwp Ψ hΨ,
+      hwx Ψ (hs₂ Ψ hΨ), hwi Ψ hΨ, hev.1]
+  subst C₅ st₅
+  refine FAt.mono (emitOp_fat _ fun _ _ Ψ hΨ => ?_) fun _ C' st' _ _ _ ⟨hC, hst⟩ => ?_
+  · show fw I Ψ lp = I.kw (.const 1 0)
+    rw [fw_of_two (n := lp) p2, hok.kconst, word_one, show Ψ lp = I.σ p from hwp Ψ hΨ, hev.2]
+  · subst C' st'
+    exact ⟨fun _ => vw_same hv₂ hL (Stronger.refl _) le_rfl rfl, hr₂.trans hr₁⟩
+
+/-- **`assert_in_k`**: a `JUMP` on the pooled `0`. -/
+theorem place_assertInK_fat (a b : V) : AtomFAt (.assertInK a b) := by
+  intro ctx I C st ok hok _ _ hh _ _ _ h2 hv hops
+  have hL := atom_ok hops fun _ _ h => by cases h
+  have hev : IsInK (I.σ a) ∧ IsInK (I.σ b) := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
+  unfold placeAtom
+  dsimp only
+  refine FAt.bind (cellOf_fat a hok hv (hL a (by simp [Memory.atomUses])))
+    fun la st₁ C₁ hs₁ hn₁ _ ⟨la2, la1, hlo₁, hr₁, hwa⟩ => ?_
+  have hv₁ := hv.step hs₁ hn₁ hlo₁
+  refine FAt.bind (cellOf_fat b hok hv₁ (hL b (by simp [Memory.atomUses])))
+    fun lb st₂ C₂ hs₂ hn₂ _ ⟨lb2, lb1, hlo₂, hr₂, hwb⟩ => ?_
+  have hv₂ := hv₁.step hs₂ hn₂ hlo₂
+  refine FAt.bind (constCell_fatB (0, 0) (hok.kconst _ _) (le_trans h2 (le_trans hn₁ hn₂)))
+    fun z st₃ C₃ hs₃ hn₃ _ ⟨z2, _, hlo₃, hr₃, hwz, _⟩ => ?_
+  refine FAt.mono (emitOp_fat _ fun _ _ Ψ hΨ => ?_) fun _ C' st' _ _ _ ⟨hC, hst⟩ => ?_
+  · show fw I Ψ z = 0 ∧ IsInK (fw I Ψ la) ∧ IsInK (fw I Ψ lb)
+    rw [fw_of_two z2, fw_of_two la2, fw_of_two lb2, hwz Ψ hΨ, word_zero,
+      hwb Ψ (hs₃ Ψ hΨ), hwa Ψ (hs₂ Ψ (hs₃ Ψ hΨ))]
+    exact ⟨rfl, hev⟩
+  · subst C' st'
+    exact ⟨fun _ => vw_same (hv₂.step hs₃ hn₃ hlo₃) hL (Stronger.refl _) le_rfl rfl,
+      hr₃.trans (hr₂.trans hr₁)⟩
+
 end Atoms
 
 end
