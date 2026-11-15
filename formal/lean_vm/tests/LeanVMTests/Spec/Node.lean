@@ -21,7 +21,7 @@ import LeanVMTests.Spec.NodeVectors
   unpadded, also change the digest).
 * Known answers for the claim lists' digests (`claimListDigest` of each scheme's claims) and the
   batching transcript's seed (`batchSeed`), computed by an independent transcription of
-  `claim_list_digest` and `FiatShamirState` (`crates/aggregation/src/`,
+  `claim_list_digest` and `FiatShamirState` (`crates/rec_aggregation/src/aggregation.rs`,
   `crates/fiat_shamir/src/lib.rs` at leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`), which the
   field change left as they were.
 * `batch` on no children is inhabited; the outer verifier's membership challenge

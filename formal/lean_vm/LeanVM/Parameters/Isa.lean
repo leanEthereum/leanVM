@@ -25,7 +25,7 @@ pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d`, the opcodes checked again at `4a
   sixth was `OP_BLAKE2S` at `127510d1`);
 * the memory bounds `1 ≤ κ_mem ≤ 30`, the floor the public input's two cells: specification §2
   (`02-vm-specification.tex`) and §6.3 (`06-bus-interactions.tex`) at `aca3ea6a`;
-  `crates/lean_vm_core/src/cpu/mod.rs`, `crates/verifier/src/layout.rs`
+  `crates/leanvm_core/src/cpu/mod.rs`, `crates/verifier/src/layout.rs`
   (`MIN_LOG_MEMORY`);
 * at most `2^30` rows per table and `2^30` bytecode instructions: specification §6.2, "Instance
   caps", and §6.4; `cpu/mod.rs` (`MAX_LOG_ROWS`) and `crates/verifier/src/layout.rs`

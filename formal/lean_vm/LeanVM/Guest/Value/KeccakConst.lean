@@ -26,7 +26,7 @@ public import LeanVM.Guest.WithHash
 # Baked Keccak constants
 
 The host bakes into the guest (`placeholder_map`,
-`crates/aggregation/src/placeholders.rs` at leanVM main `40f877dc`)
+`crates/rec_aggregation/src/aggregation/placeholders.rs` at leanVM main `40f877dc`)
 constants that are permutations or hashes of fixed inputs. Each is an equation between closed
 terms, checked here by `decide +kernel` through the evaluator of `KeccakEval` (`keccakF_eq_iff`,
 `keccak256_eq_iff`): no compiled code is trusted.
