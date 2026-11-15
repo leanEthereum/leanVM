@@ -119,6 +119,18 @@ theorem cplOkAt_of_with_two {i : ℕ} {pf : Placed} (hp : placedAt i = some pf)
     (h₁ : partsOk [0, 1, 2] i pf = true) (h₂ : partsOk [3, 4, 5, 6, 7] i pf = true) : cplOkAt i = true :=
   cplOkAt_of hp (cplOkWith_of_parts (partsOk_app h₁ h₂))
 
+/-- The conjuncts in five groups. -/
+theorem partsOk_five {i : ℕ} {pf : Placed} (h₀ : partsOk [0] i pf = true) (h₁ : partsOk [1] i pf = true)
+    (h₂ : partsOk [2] i pf = true) (h₃ : partsOk [3] i pf = true)
+    (h₄ : partsOk [4, 5, 6, 7] i pf = true) : partsOk [0, 1, 2, 3, 4, 5, 6, 7] i pf = true :=
+  partsOk_app h₀ (partsOk_app h₁ (partsOk_app h₂ (partsOk_app h₃ h₄)))
+
+/-- **Entry `i` on its placed function written out**, by five groups of conjuncts. -/
+theorem cplOkAt_of_five {i : ℕ} {pf : Placed} (hp : placedAt i = some pf) (h₀ : partsOk [0] i pf = true)
+    (h₁ : partsOk [1] i pf = true) (h₂ : partsOk [2] i pf = true) (h₃ : partsOk [3] i pf = true)
+    (h₄ : partsOk [4, 5, 6, 7] i pf = true) : cplOkAt i = true :=
+  cplOkAt_of hp (cplOkWith_of_parts (partsOk_five h₀ h₁ h₂ h₃ h₄))
+
 /-- **Entry `i` on its placed function written out.** -/
 theorem cplOkAt_of_with {i : ℕ} {pf : Placed} (hp : placedAt i = some pf)
     (h : partsOk [0, 1, 2, 3, 4, 5, 6, 7] i pf = true) : cplOkAt i = true :=
@@ -661,6 +673,24 @@ theorem scope_match {rc : ℕ} {b : List Stmt} {p : ℕ} {S S₁ T S₂ : SSt} {
   rw [take_one_match hm]
   rw [List.drop_zero] at harms
   simp only [scopeBlock, scopeStmt, hpre, hx, scopeArms_eq, harms, hpost]
+
+/-! ## No shift by `g^0`, by subtrees of the places' trie -/
+
+/-- A bucket of places with no shift by `g^0`. -/
+def shOk (b : List (V × Loc)) : Bool := b.all fun p => match p.2 with
+  | .shifted _ 0 => false
+  | _ => true
+
+theorem noShift0_eq (locs : VMap Loc) : noShift0 locs = (trieVals locs.t).all shOk := rfl
+
+theorem trieVals_all {α : Type} {f : α → Bool} {t : Trie α} (hv : t.val.toList.all f = true)
+    (hl : (trieVals t.left).all f = true) (hr : (trieVals t.right).all f = true) :
+    (trieVals t).all f = true := by
+  cases t with
+  | nil => rfl
+  | node v l r =>
+    simp only [trieVals, List.all_append, Bool.and_eq_true]
+    exact ⟨⟨hv, hl⟩, hr⟩
 
 end
 end LeanVM.Guest.Backend.CplEval

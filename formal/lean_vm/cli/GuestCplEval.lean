@@ -43,6 +43,9 @@ def maxChunk : Nat := 30000
 def maxPartModule : Nat := 150000
 /-- A big entry's data modules: their budget in characters. -/
 def maxData : Nat := 700000
+/-- The depth of the subtrees of a big entry's places checked apart, and how many a module. -/
+def nsDepth : Nat := 3
+def nsPerModule : Nat := 2
 
 def evalDir : System.FilePath := "LeanVM/Guest/Backend/Guest/Cpl/Eval"
 def modBase : String := "LeanVM.Guest.Backend.Guest.Cpl.Eval"
@@ -204,6 +207,13 @@ def segsOf (ws : List Nat) : List Seg := Id.run do
     acc := acc + w
   out := out.push ⟨a, ws.length - a, acc⟩
   return out.toList
+
+/-- The proof that the subtree `t` at depth `d`, number `q`, has no shift by `g^0`, from the leaves'. -/
+def nsNode (j : Nat) (leafName : Nat → String) (d q : Nat) (t : String) : String :=
+  if _ : d < nsDepth then
+    s!"(trieVals_all (t := {t}) (by decide +kernel)\n      {nsNode j leafName (d + 1) (2 * q) s!"(Trie.left {t})"}\n      {nsNode j leafName (d + 1) (2 * q + 1) s!"(Trie.right {t})"})"
+  else leafName q
+termination_by nsDepth - d
 
 /-- A big entry's modules. -/
 def bigFiles (j : Nat) (tf : TracedFn) (pf : Placed) : Except String (List (String × String)) := do
@@ -383,14 +393,27 @@ def bigFiles (j : Nat) (tf : TracedFn) (pf : Placed) : Except String (List (Stri
     s!"(ops_end (k := {ops.size}) (by decide +kernel))"
   let toChain := chunks.toList.zipIdx.foldr (fun (_, i) acc => s!"(opsAll_part tops{j}_{i} {acc})")
     s!"(opsAll_end (k := {ops.size}) (by decide +kernel))"
+  -- no shift by `g^0`: the places' trie by subtrees of depth `nsDepth`
+  let paths : List String := (List.range (2 ^ nsDepth)).map fun q =>
+    (List.range nsDepth).foldl (fun t b => s!"(Trie.{if q.testBit (nsDepth - 1 - b) then "right" else "left"} {t})") s!"pf{j}.locs.t"
+  let leafName (q : Nat) := s!"nsl{j}_{q}"
+  let nsLeafMods : List (String × String) := (List.range (2 ^ nsDepth / nsPerModule)).map fun m =>
+    (s!"B{j}Ns{m}", header s!"B{j}Ns{m}" s!"No place of entry {j} is a shift by `g^0`, by subtrees." ++
+      s!"public import {modBase}.B{j}\n" ++ opening ++
+      String.join ((List.range' (m * nsPerModule) nsPerModule).map fun q =>
+        s!"\ntheorem {leafName q} : (trieVals {paths[q]!}).all shOk = true := by\n  decide +kernel\n") ++ closing)
+  -- the inner nodes, from the leaves up
+  let nsMod := header s!"B{j}Ns" s!"No place of entry {j} is a shift by `g^0`." ++
+    String.join ((List.range nsLeafMods.length).map fun m => s!"public import {modBase}.B{j}Ns{m}\n") ++ opening ++
+    s!"\n/-- No place of entry {j} is a shift by `g^0`. -/\ntheorem ns{j} : noShift0 pf{j}.locs = true := by\n  rw [noShift0_eq]\n  exact {nsNode j leafName 0 0 s!"pf{j}.locs.t"}\n" ++ closing
   let okMod := header s!"B{j}Ok" s!"Entry {j}'s test, from its parts." ++
+    s!"public import {modBase}.B{j}Ns\n" ++
     String.join ((List.range nParts).map fun m => s!"public import {modBase}.B{j}P{m}\n") ++ opening ++ okItems ++
     s!"\n/-- The checks of entry {j} on its temporaries, parameters and frame. -/\ntheorem small{j} : smallOk {j} pf{j} TL{j} cn{j}_{nC} = true := by\n  decide +kernel\n" ++
-    s!"\n/-- No place of entry {j} is a shift by `g^0`. -/\ntheorem ns{j} : noShift0 pf{j}.locs = true := by\n  decide +kernel\n" ++
     s!"\n/-- The scope walk of entry {j} ends with its trace. -/\ntheorem fin{j} : (match flushAt {tfs}.rets sc{j}_{segs.length} with\n    | .ok s => s.rest.isEmpty\n    | .error _ => false) = true := by\n  decide +kernel\n" ++
     String.join ([4, 5, 6, 7].map fun k => s!"\ntheorem rest{j}_{k} : partsOk [{k}] {j} pf{j} = true := by\n  decide +kernel\n") ++
     s!"\n/-- **Entry {j}'s test.** -/\ntheorem cplOk_{j} : cplOkAt {j} = true :=\n  cplOk_big (pf := pf{j}) (TL := TL{j}) (C := cn{j}_{nC}) (F := fp{j}_{nC})\n    (S := sc{j}_{segs.length}) (M := sn{j}_{segs.length + 1})\n    (placedAt_cut cut{j}_walk cut{j}_tailOk cut{j}_head)\n    {segChain}\n    small{j}\n    {opsChain "cnt"}\n    {opsChain "fps"}\n    {toChain}\n    ns{j}\n    {onceChain}\n    {scChain}\n    fin{j}\n    (partsOk_4567 rest{j}_4 rest{j}_5 rest{j}_6 rest{j}_7)\n" ++ closing
-  return files ++ [(s!"B{j}Ok", okMod)]
+  return files ++ nsLeafMods ++ [(s!"B{j}Ns", nsMod), (s!"B{j}Ok", okMod)]
 
 /-- Runs of entries `(a, b)`, each at most `maxDecl` instructions; cut and large entries alone. -/
 def runsOf (sizes : Array Nat) : List (Nat × Nat) := Id.run do
@@ -423,7 +446,7 @@ def runThm (pls : List Placed) (sizes : Array Nat) (names : Array String) (a b :
     let groups := ["[0]", "[1]", "[2]", "[3]", "[4, 5, 6, 7]"]
     String.join (groups.zipIdx.map fun (g, q) =>
       s!"\ntheorem cplOkC_{a}_{q} : partsOk {g} {a} {pf} = true := by\n  decide +kernel\n") ++
-      doc ++ s!"theorem cplOk_{a}_{b} : (List.range' {a} 1).all cplOkAt = true :=\n  range_one (f := cplOkAt) (cplOkAt_of_with_two (placedAt_cut cut{a}_walk cut{a}_tailOk cut{a}_head)\n    (partsOk_app cplOkC_{a}_0 (partsOk_app cplOkC_{a}_1 cplOkC_{a}_2)) (partsOk_app cplOkC_{a}_3 cplOkC_{a}_4))\n"
+      doc ++ s!"theorem cplOk_{a}_{b} : (List.range' {a} 1).all cplOkAt = true :=\n  range_one (f := cplOkAt) (cplOkAt_of_five (placedAt_cut cut{a}_walk cut{a}_tailOk cut{a}_head)\n    cplOkC_{a}_0 cplOkC_{a}_1 cplOkC_{a}_2 cplOkC_{a}_3 cplOkC_{a}_4)\n"
   else if b = a + 1 && n > maxDecl then
     let pf := (pls[a]?).getD ⟨⟨"", [], 0⟩, {}⟩
     let locs := (trieEntries pf.locs.t).flatten.map fun (v, l) => s!"({pV v}, {pLoc l})"
