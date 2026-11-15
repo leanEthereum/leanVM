@@ -112,24 +112,10 @@ impl Sum for F64 {
     }
 }
 
-impl<'a> Sum<&'a F64> for F64 {
-    #[inline]
-    fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
-        iter.copied().sum()
-    }
-}
-
 impl Product for F64 {
     #[inline]
     fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(Self::ONE, |acc, x| acc * x)
-    }
-}
-
-impl<'a> Product<&'a F64> for F64 {
-    #[inline]
-    fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
-        iter.copied().product()
     }
 }
 

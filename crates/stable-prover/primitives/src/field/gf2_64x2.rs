@@ -200,13 +200,6 @@ impl Product for F128 {
     }
 }
 
-impl<'a> Product<&'a F128> for F128 {
-    #[inline]
-    fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
-        iter.copied().product()
-    }
-}
-
 /// An F128 value whose coefficients are not yet reduced modulo the base polynomial.
 ///
 /// Coefficient `k` is the 128-bit carry-less polynomial multiplying `y^k`, for `k < 2`.
