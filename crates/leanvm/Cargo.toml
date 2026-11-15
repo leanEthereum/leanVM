@@ -13,4 +13,8 @@ lean_da.workspace = true
 lean_xmss.workspace = true
 lean_sphincs.workspace = true
 stable_leanvm_core = { path = "../stable/leanvm_core" }
-experimental_leanvm_core = { path = "../experimental/leanvm_core" }
+experimental_leanvm_core = { path = "../experimental/leanvm_core", optional = true }
+
+[features]
+# The optimized prover, `Experimental`, beside the default `Stable`.
+experimental = ["dep:experimental_leanvm_core"]

@@ -36,7 +36,7 @@ Both prove the same protocol and give the same proof bytes, pinned by `bins/lean
 | `bench`           | benchmark harness (`Plan`, `Timing`, `--tracing`, Bencher output, the jemalloc allocator); never linked by a prover |
 | `lean_da`         | additive Reed-Solomon blob encoding (through the prover), commitments, membership vectors |
 | `rec_aggregation` | recursive signature and DA aggregation, generic over the prover: the guest's constants and witness, and the entry points |
-| `leanvm`          | the public API, both provers' types re-exported                        |
+| `leanvm`          | the public API: `Stable`, and `Experimental` behind the `experimental` feature |
 
 `rec_aggregation` derives the guest's constants and a child's witness from the verifier (`verifier::layout`, the WHIR table, the Keccak shape) and from its own `protocol` module, which restates the one thing the verifier does not keep: each bus coordinate as the prover writes it, whose term order the guest's arrays follow. Its tests pin `protocol`, the opening shapes and the proof encoding (`wire`) against the stable tree's.
 
@@ -58,6 +58,7 @@ Paths below such as `crates/leanvm_core` mean the crate in either tree. `crates/
 - `.cargo/config.toml` pins `-C target-cpu=native`, and `-D warnings` for rustdoc.
 - Run anything touching the VM in `--release`: a debug build proves far too slowly.
 - One test binary per crate: new `lean_compiler` integration tests are modules of `tests/suite/main.rs`.
+- The aliases below pass `--all-features`, so `leanvm`'s `experimental` feature is built, linted and tested too.
 
 ```bash
 cargo testall                     # release workspace tests

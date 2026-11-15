@@ -118,3 +118,14 @@ fn public_api_end_to_end() {
     assert!(dropped.1.verify(&dropped.0));
     assert_eq!(dropped.0, without_blobs);
 }
+
+#[cfg(feature = "experimental")]
+#[test]
+fn experimental_prover_through_the_api() {
+    setup::<Stable>();
+    setup::<Experimental>();
+    let blobs: Vec<lean_da::Blob> = vec![std::array::from_fn(|i| (i as u128) << 7)];
+    let stable = lean_da::BlobMatrix::build::<Stable>(&blobs).unwrap();
+    let experimental = lean_da::BlobMatrix::build::<Experimental>(&blobs).unwrap();
+    assert_eq!(stable.top_root(), experimental.top_root());
+}

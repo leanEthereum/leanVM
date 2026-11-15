@@ -3,11 +3,13 @@
 //! - leanSPHINCS (stateless, for the execution layer)
 //! - leanDA (PQ blobs)
 //!
-//! Two provers give the same proofs, byte for byte: [`Stable`], plain portable code, and [`Experimental`], the
-//! optimized one. What proves takes one as its type parameter; verifying needs neither.
+//! Two provers give the same proofs, byte for byte: [`Stable`], plain portable code, and `Experimental`, the
+//! optimized one, behind the `experimental` feature. What proves takes one as its type parameter; verifying needs
+//! neither.
 //!
 //! Example: [`crates/leanvm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/leanvm/tests/api.rs).
 
+#[cfg(feature = "experimental")]
 pub use experimental_leanvm_core::Experimental;
 pub use isa::Prover;
 pub use rec_aggregation::{
