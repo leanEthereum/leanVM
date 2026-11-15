@@ -81,9 +81,9 @@ structure OpenGaps : Prop where
   /-- Mode walk track: the walks (`walk … = true`) of the 30 functions the kernel does not check
   and the hints (`HintsOk`) of `main_loop2` and `sp_wots`. False as stated: 12 of the walks fail. -/
   modeHyps : Mode.ModeHyps
-  /-- Allocation track: the allocation facts still open (`AllocOpen`: dynamic sizes are powers,
-  the `heap_sizes` advice, the late hints, the frame hints the check skips, `claim_list_digest`'s
-  buffer). -/
+  /-- Allocation track: the allocation facts still open (`AllocOpen`: the `heap_sizes` pushes the
+  reference tree's advised sizes, the late hints, the frame hints the check skips,
+  `claim_list_digest`'s buffer). -/
   alloc : AllocOpen
   /-- Allocation track: the hints at a pc keep the cells used within the reference's `2^κ`. -/
   hintsUsed : HintsUsed YFin
@@ -106,7 +106,7 @@ theorem execGaps_of (O : OpenGaps) :
       · exact O.resCp) nzVal_lce0 nzVal_lce16)
     termNode_guest Bridge.progAl Bridge.alignA_main alLayout_alignA jumpCells_at Mode.guestCerts_entry_ne
     (derefPow_all _) O.hintsUsed
-    (KeepY.and (keepY_alignA (derefPow_all _) fun _ _ h ↦ h) (keepY_allocA_of O.alloc.sizesAt))
+    (KeepY.and (keepY_alignA (derefPow_all _) fun _ _ h ↦ h) O.alloc.keep)
     (InitY.and (initY_cur alignA) (initY_alloc alignA))
 
 /-- **The executor runs the guest program to completion on the guest's advice**, given the open

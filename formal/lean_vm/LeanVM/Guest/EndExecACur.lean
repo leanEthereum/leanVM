@@ -506,6 +506,7 @@ theorem curArith_alignA : CurArith alignA := by
   have hwj : walk e.σ (coreOf j).body = .ret (e.pre ++ e.es) vs := by rw [hfn]; exact hw
   obtain ⟨off, hpc, pc', fp', ⟨done', st'⟩, hr', hts', hk⟩ :=
     stepRule_off progAl honest_closed htr (jumpCells_at r hr _ _ _ _ _ htr) hstep (.inl hne')
+  have hk0 := hk
   have hoff : pc - entOf alignA e.I.t.name = off := by omega
   rw [hoff]
   have hstep' := cursor_step alignA e off
@@ -530,7 +531,7 @@ theorem curArith_alignA : CurArith alignA := by
   cases hk with
   | @fall e' ins hI' hnc' hins hjk =>
     refine ⟨_, _, done', _, st, hr', hts', ?_, chainA_top hI' (tailA_congr hI' hnc' (chainA_tail hch)) hch,
-      ncTop_same hI' hnc' hncT (by rw [hI']; omega)⟩
+      ncTop_same hI' hnc' hncT (by rw [hI']; omega), off, hpc, hk0⟩
     rw [cursorAt_congr hI' hnc', hI', show entOf alignA e.I.t.name + off + 1 - entOf alignA e.I.t.name = off + 1 by omega,
       hstep', cursorAt_unfold, hnbS]
     have hpe : (bif pendAt (alignA e.I.t.name).X (alignA e.I.t.name).code (alignA e.I.t.name).d (off + 1) then 1 else 0) =
@@ -548,7 +549,7 @@ theorem curArith_alignA : CurArith alignA := by
     rfl
   | @fwd e' oc od of _ hI' hnc' hins hz0 hself htgt hlt =>
     refine ⟨_, _, done', _, st, hr', hts', ?_, chainA_top hI' (tailA_congr hI' hnc' (chainA_tail hch)) hch,
-      ncTop_same hI' hnc' hncT (by rw [hI']; omega)⟩
+      ncTop_same hI' hnc' hncT (by rw [hI']; omega), off, hpc, hk0⟩
     rw [cursorAt_congr hI' hnc', hI', hstep', cursorAt_unfold]
     have hlt' : off < pc' - entOf alignA e.I.t.name := by omega
     obtain ⟨h1, h2, -⟩ := pend_nf hins rfl (noFrame_of hF hins (Or.inr (Or.inl hself)))
@@ -622,7 +623,7 @@ theorem curArith_alignA : CurArith alignA := by
       · exact Or.inl hnx
       · exact Or.inr (siteAt_some hs)
     have hle := bufs_le_of_call (hF.bufs off oc od of hins) hcall
-    refine ⟨_, _, done', _, st, hr', hts', ?_, chainA_top hI' ?_ hch, ncTop_past fun q hq ↦ ?_⟩
+    refine ⟨_, _, done', _, st, hr', hts', ?_, chainA_top hI' ?_ hch, ncTop_past fun q hq ↦ ?_, off, hpc, hk0⟩
     · rw [hI', show entOf alignA e.I.t.name + off + 1 - entOf alignA e.I.t.name = off + 1 by omega]
       exact hcur
     · unfold TailA
@@ -674,7 +675,7 @@ theorem curArith_alignA : CurArith alignA := by
       omega
     have hle := bufs_le_of_call (hF.bufs off oc od of hins) (Or.inr (siteAt_some hsite))
     refine ⟨_, _, done', _, e' :: st, hr', hts', ?_, ⟨tailA_enter J fn, ⟨s.r, hhdr, hsr63, ?_,
-      ncTop_past fun q hq ↦ ?_⟩, chainA_top hI' ?_ hch⟩, ncTop_enter alignA J fn _⟩
+      ncTop_past fun q hq ↦ ?_⟩, chainA_top hI' ?_ hch⟩, ncTop_enter alignA J fn _, off, hpc, hk0⟩
     · change cursorAt alignA (Ent.enter coreProgram J fn) (entOf alignA J.t.name - entOf alignA J.t.name) = _
       rw [Nat.sub_self, cursorAt_enter, hstep', hnbo, hfrAt, hpd, hsum, htake, ← hJcur,
         List.getElem?_eq_getElem hnc, hkc]
@@ -716,7 +717,7 @@ theorem curArith_alignA : CurArith alignA := by
       rw [take_map_sum_le (by omega)]
     have hend : J.endCur B2C.fs coreProgram.loop = e.I.endCur B2C.fs coreProgram.loop :=
       endCur_tail hl hne hJt hJcur.symm hnode
-    refine ⟨_, _, done', _, st, hr', hts', ?_, ?_, ncTop_enter alignA J fn _⟩
+    refine ⟨_, _, done', _, st, hr', hts', ?_, ?_, ncTop_enter alignA J fn _, off, hpc, hk0⟩
     · change cursorAt alignA (Ent.enter coreProgram J fn) (entOf alignA J.t.name - entOf alignA J.t.name) = _
       rw [Nat.sub_self]; exact hcur
     · rcases st with _ | ⟨e2, st2⟩
@@ -741,15 +742,12 @@ theorem curArith_alignA : CurArith alignA := by
     subst hr10
     have htake : (e.I.t.bufs.take (bufsOf (alignA e.I.t.name).X (alignA e.I.t.name).d).length).sum = e.I.t.bufs.sum :=
       take_sum_le hbl
-    refine ⟨_, _, done', e2, st2, hr', hts', ?_, hrest, hn2⟩
+    refine ⟨_, _, done', e2, st2, hr', hts', ?_, hrest, hn2, off, hpc, hk0⟩
     rw [← hend, endCur_ret hnode (fun hl hk ↦ htl hl (by omega) hk), hstep', hnbo, hfrAt, h2, hpd, h1, htake]
     simp only [Inst.curAt, List.take_length, Bool.cond_false, Nat.zero_mul, Nat.add_zero]
     rw [take_map_sum_le (l := e.I.t.kidsC coreProgram.loop) (n := e.nc) (by rw [hkC]; split <;> omega)]
 
 
-/-- **Each step keeps `YAlloc alignA`**, from `SizesAt` alone. -/
-theorem keepY_allocA_of (hS : SizesAt alignA) : KeepY (YAlloc alignA) :=
-  keepY_allocA hS curArith_alignA
 
 end
 

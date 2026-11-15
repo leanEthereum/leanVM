@@ -401,7 +401,7 @@ theorem frameSize_alignA (hS : FrSkip) : FrameSize alignA := by
   obtain ⟨p, hp⟩ := Option.isSome_iff_exists.mp (isFrame_ptr hfr)
   obtain ⟨off, c, s0, hpcE, hqm, hc, hsite, hkC⟩ := frame_next hat hfr hp
   have hat' := hat
-  obtain ⟨hr, hC, ⟨done, st, htr, hch⟩, -, hfine, -, hget, hpre, hag⟩ := hat
+  obtain ⟨hr, hC, ⟨done, st, htr, hch, -⟩, -, hfine, -, hget, hpre, hag⟩ := hat
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   obtain ⟨rd, hHon, hHX⟩ := hr.honest
   obtain ⟨hI, j, bufs, kids, vs, hj, hIt, hfn, hw, hFH⟩ := (htr.frames hr.name hHon hHX.covers) e List.mem_cons_self

@@ -40,10 +40,10 @@ What is named here, proved elsewhere: `DynPow`, every dynamic `HeapBuf`'s size i
 (`EndExecAFrSize.lean`, `EndExecAFrame.lean`): a callee frame's hint reserves the next callee's
 block (`SizeOk`: a constant, a dispatch arm's by its selector, a loop chain's by its bound), its
 pointer cell the next callee's frame (the next call, reached by the straight code to the call site's
-jump, `FrameHolds.site`). Named, not proved:
+jump, `FrameHolds.site`); `AdvNext`, an `allocAdvice` pops the `heap_sizes` entry of its buffer's
+size, empty when the path allocates none (`advNext_alignA`, `EndExecAHeap.lean`, from the advised
+sizes' track `HeapAt`). Named, not proved:
 
-* `AdvNext`: an `allocAdvice` pops the `heap_sizes` entry of its buffer's size, empty when the path
-  allocates none (the honest pushes of `heap_sizes` against the tree);
 * `LateReady`: a late hint finds its buffer reserved, its size cell a power;
 * `ExclReady`: the buffer hints of the function the allocation check excludes (`claim_list_digest`,
   its one buffer in a branch).
@@ -65,7 +65,7 @@ the reference's words. -/
 structure HintAt (A : String → FnAl) (r : Ref) (C : Ctx) (e : Ent) (s sx : St) (i : ℕ) (h : Hint) : Prop where
   ok : r.Ok
   ctx : Ctx.of guestProgram r.adv = .ok C
-  track : ∃ done st, RefTrack A r s.pc s.fp (done, e :: st) ∧ ChainA A (memOf r.img) (e :: st)
+  track : ∃ done st, RefTrack A r s.pc s.fp (done, e :: st) ∧ ChainA A (memOf r.img) (e :: st) ∧ HeapAt A r s e st
   nc : NcTop A e (s.pc - entOf A e.I.t.name)
   fine : Fine (refMem r.img) s
   onref : OnRef guestProgram r.img r.n s
@@ -367,9 +367,9 @@ theorem loop_calls_ne {fn : Fn} {p : B2C.Plumb} (h : loopChk fn p = true) {σ : 
 alignment, given the facts named. -/
 theorem allocReady_alignA (hD : DynPow) (hA : AdvNext alignA) (hL : LateReady alignA) (hF : FrameReady alignA)
     (hX : ExclReady alignA) : AllocReady alignA := by
-  intro r hr C hC done e st s htr hch hnc hfine hon i h sx hget hpre hm halloc hin hnf
+  intro r hr C hC done e st s htr hch hnc hha hfine hon i h sx hget hpre hm halloc hin hnf
   have hat : HintAt alignA r C e s sx i h :=
-    ⟨hr, hC, ⟨done, st, htr, hch⟩, hnc, hfine, hon, hget, hpre, hm.fine.agree.get⟩
+    ⟨hr, hC, ⟨done, st, htr, hch, hha⟩, hnc, hfine, hon, hget, hpre, hm.fine.agree.get⟩
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   obtain ⟨rd, hHon, hHX⟩ := hr.honest
   obtain ⟨hI, j, bufs, kids, vs, hj, hIt, hfn, hw, hFH⟩ := (htr.frames hr.name hHon hHX.covers) e List.mem_cons_self
@@ -563,8 +563,8 @@ theorem treeSizes_getD (A : String → FnAl) (e : Ent) {off i : ℕ} {h : Hint}
 /-- **Each hint reserves its `treeSizes` entry**, on the deployed alignment, given the facts named. -/
 theorem sizesAt_alignA (hA : AdvNext alignA) (hL : LateReady alignA) (hF : FrameReady alignA) (hX : ExclReady alignA) :
     SizesAt alignA := by
-  intro r hr C hC done e st s htr hch hnc hfine hon i h sx hget hpre hag
-  have hat : HintAt alignA r C e s sx i h := ⟨hr, hC, ⟨done, st, htr, hch⟩, hnc, hfine, hon, hget, hpre, hag⟩
+  intro r hr C hC done e st s htr hch hnc hha hfine hon i h sx hget hpre hag
+  have hat : HintAt alignA r C e s sx i h := ⟨hr, hC, ⟨done, st, htr, hch, hha⟩, hnc, hfine, hon, hget, hpre, hag⟩
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   obtain ⟨rd, hHon, hHX⟩ := hr.honest
   obtain ⟨hI, j, bufs, kids, vs, hj, hIt, hfn, hw, hFH⟩ := (htr.frames hr.name hHon hHX.covers) e List.mem_cons_self
@@ -677,8 +677,8 @@ theorem peek_of_written {M : ℕ → E} {s : St} (hag : ∀ c v, s.mem.get c = s
 /-- **The callee frames' hints**, from their sizes and pointers. -/
 theorem frameReady_of (hS : FrameSize alignA) (hP : FramePtr alignA) : FrameReady alignA := by
   intro r C e s sx i h hat hfr
-  obtain ⟨hr, hC, ⟨done, st, htr, hch⟩, hnc, hfine, hon, hget, hpre, hag⟩ := hat
-  have hat : HintAt alignA r C e s sx i h := ⟨hr, hC, ⟨done, st, htr, hch⟩, hnc, hfine, hon, hget, hpre, hag⟩
+  obtain ⟨hr, hC, ⟨done, st, htr, hch, hha⟩, hnc, hfine, hon, hget, hpre, hag⟩ := hat
+  have hat : HintAt alignA r C e s sx i h := ⟨hr, hC, ⟨done, st, htr, hch, hha⟩, hnc, hfine, hon, hget, hpre, hag⟩
   have hSz := hS r C e s sx i h hat hfr
   refine ⟨rsz_of_sizeOk hSz, fun hin hnf ↦ ?_⟩
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size

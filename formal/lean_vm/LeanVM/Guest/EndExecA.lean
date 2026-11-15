@@ -12,6 +12,8 @@ public import LeanVM.Guest.Bridge.AllocLink
 public import LeanVM.Guest.Bridge.AllocSound
 public import LeanVM.Guest.Bridge.AllocCur
 public import LeanVM.Guest.Memory.Cursor
+public import LeanVM.Guest.Memory.HeapPops
+public import LeanVM.Guest.Bridge.AllocAdv
 
 /-!
 # The bump pointer's track
@@ -23,8 +25,19 @@ each frame below the top resumes, at the return pc the header of the frame above
 cursor where that frame's subtree ends (`Inst.endCur`), and a loop iteration past all its calls has
 a phantom last callee (`TailA`). `NcTop A e off`: at an offset at or before a buffer hint the frame has made no call (the
 check puts every call after the buffer hints). `YAlloc A r s`: in the prologue the next
-free cell is past `main`'s frame; past it, a state of the tree track at the state's pc and frame
-whose top frame's cursor is the next free cell, its frames chained, `NcTop` at its offset.
+free cell is past `main`'s frame and nothing is popped from `heap_sizes`; past it, a state of the
+tree track at the state's pc and frame whose top frame's cursor is the next free cell, its frames
+chained, `NcTop` at its offset, and whose advised sizes still to pop are the rest of the stream
+(`HeapAt`).
+
+The advised sizes (`heap_sizes`, popped by `allocAdvice`, each a buffer hint before its function's
+first jump, `Bridge.advChk`): `slotsOf F`, the buffer indices a function's advice stands for;
+`advBefore F off`, those it pops before offset `off`; `restH A st off`, the entries the frames `st`
+still pop, the top frame at offset `off`: its own past `advBefore`, then each frame's callees not yet
+called (`Memory.Tree.heapPopsKids`); `ChainH`: each frame below resumes past its function's first
+jump, its advice all popped. `HeapAt A r s e st`: the stream (`heapStream`) past the executor's
+cursor is `restH`, the frames `ChainH`. `HeapPops`: the honest pushes of `heap_sizes` are the
+reference tree's advised sizes (`Memory.Tree.heapPops advSlots`).
 
 Proved here: the track holds initially (`initY_alloc`), and the reference holds a buffer's base at
 its hint's pointer cell (`bufBase_ref`: the `k`-th buffer hint of a function passing the allocation
@@ -49,6 +62,50 @@ noncomputable def cursorAt (A : String → FnAl) (e : Ent) (off : ℕ) : ℕ :=
     bif pendAt (A e.I.t.name).X (A e.I.t.name).code (A e.I.t.name).d off then
       (((e.I.t.kidsC coreProgram.loop)[e.nc]?).map (Tree.block B2C.fs coreProgram.loop)).getD 0
     else 0
+
+/-- The indices, from `k`, of the advised buffers' hints among buffer hints. -/
+def advIdx : ℕ → List (ℕ × Hint) → List ℕ
+  | _, [] => []
+  | k, q :: l => if isAdv q.2 then k :: advIdx (k + 1) l else advIdx (k + 1) l
+
+/-- **The buffer indices a function's `allocAdvice` hints stand for**, in order. -/
+noncomputable def slotsOf (F : FnAl) : List ℕ := advIdx 0 (bufsOf F.X F.d)
+
+/-- The advised sizes the deployed functions pop, by name. -/
+noncomputable def advSlots (f : String) : List ℕ := slotsOf (alignA f)
+
+/-- **The advised sizes a frame of `F` pops before offset `off`.** -/
+noncomputable def advBefore (F : FnAl) (off : ℕ) : ℕ :=
+  (allocHints F.d).countP fun q ↦ decide (q.1 < off) && isAdv q.2
+
+/-- The advised sizes frame `e`'s callees not yet called pop. -/
+noncomputable def kidsH (A : String → FnAl) (e : Ent) : List (List E) :=
+  Tree.heapPopsKids (fun f ↦ slotsOf (A f)) (e.I.t.kids.drop e.nc)
+
+/-- **The advised sizes the frames still pop**, the top one at offset `off`. -/
+noncomputable def restH (A : String → FnAl) : List Ent → ℕ → List (List E)
+  | [], _ => []
+  | e :: st, off => ((slotsOf (A e.I.t.name)).map (advEntry e.I.t.bufs)).drop (advBefore (A e.I.t.name) off) ++
+      kidsH A e ++ st.flatMap (kidsH A)
+
+/-- **Each frame below resumes past its function's first jump**, at the return pc the header of the
+frame above holds. -/
+def ChainH (A : String → FnAl) (M : ℕ → E) : List Ent → Prop
+  | e :: e' :: st => (∃ r, M (e.I.fp + 0) = ofK (addressOfIndex r) ∧ r < 2 ^ 63 ∧
+      nextJump (A e'.I.t.name).code 0 ≤ r - entOf A e'.I.t.name) ∧ ChainH A M (e' :: st)
+  | _ => True
+
+/-- **The honest pushes of `heap_sizes`**, their entries in order. -/
+noncomputable def heapStream (r : Ref) : List (List E) :=
+  ((Hints.honestPushes End.bytecode r.seed r.s r.w).filter (·.1 == Hints.heapSizeStream)).map (·.2)
+
+/-- **The advised sizes' track at a state**: the stream past the cursor is what the frames still pop. -/
+abbrev HeapAt (A : String → FnAl) (r : Ref) (s : St) (e : Ent) (st : List Ent) : Prop :=
+  (heapStream r).drop (s.cursor.getD Hints.heapSizeStream 0) = restH A (e :: st) (s.pc - entOf A e.I.t.name) ∧
+    ChainH A (memOf r.img) (e :: st)
+
+/-- **The honest pushes of `heap_sizes` are the reference tree's advised sizes.** -/
+def HeapPops : Prop := ∀ r : Ref, r.Ok → heapStream r = r.T.heapPops advSlots
 
 /-- **A loop iteration past all its calls ended its loop**: its last callee, past which the frame's
 cursor would go, is a phantom (`total = block`). -/
@@ -75,10 +132,10 @@ def ChainA (A : String → FnAl) (M : ℕ → E) : List Ent → Prop
 it, a state of the tree track at the state's pc and frame whose top frame's cursor is the next free
 cell, its frames chained. -/
 def YAlloc (A : String → FnAl) (r : Ref) (s : St) : Prop :=
-  (s.steps < proLen → s.nextFree = r.adv.mainFrame) ∧
+  (s.steps < proLen → s.nextFree = r.adv.mainFrame ∧ s.cursor.getD Hints.heapSizeStream 0 = 0) ∧
     (proLen ≤ s.steps → s.steps < r.n → ∃ done e st, RefTrack A r s.pc s.fp (done, e :: st) ∧
       s.nextFree = cursorAt A e (s.pc - entOf A e.I.t.name) ∧ ChainA A (memOf r.img) (e :: st) ∧
-      NcTop A e (s.pc - entOf A e.I.t.name))
+      NcTop A e (s.pc - entOf A e.I.t.name) ∧ HeapAt A r s e st)
 
 end
 
@@ -87,7 +144,7 @@ public section
 /-- **The bump pointer's track holds initially.** -/
 theorem initY_alloc (A : String → FnAl) : InitY (YAlloc A) := by
   intro r hr C m hC hm
-  refine ⟨fun _ ↦ rfl, fun h ↦ ?_⟩
+  refine ⟨fun _ ↦ ⟨rfl, Std.HashMap.getD_empty⟩, fun h ↦ ?_⟩
   exact absurd h (by show ¬ proLen ≤ 0; rw [proLen_eq]; norm_num)
 
 theorem compilesA_ptr {X : AlignCtx} {fs : ℕ} {a : Core.Hint} {h : Prover.Exec.Hint} (hc : compilesA X fs a h = true)
