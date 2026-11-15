@@ -75,7 +75,10 @@ def WalkWordsStmt : Prop :=
       (∀ rd : Reader, (∀ e ∈ es, e.Holds rd σ') →
         FrameClauses (loopTable W.p) tf pf fp σ' es vs hdr
           ⟨patchT (instOf W tf pf fp hdr σ es) Ψ σ', kh⟩) ∧
-      (kfps.length = (calls es).length → (∃ rd : Reader, ∀ e ∈ es, e.Holds rd σ') →
+      (kfps.length = (calls es).length →
+        (isLoopName tf.core.name = true → ∀ kfp, kfps.getLast? = some kfp →
+          kfp = fp + pf.fn.frameSize) →
+        (∃ rd : Reader, ∀ e ∈ es, e.Holds rd σ') →
         PathWords W tf pf fp σ' es kfps hdr ⟨patchT (instOf W tf pf fp hdr σ es) Ψ σ', kh⟩)
 
 end

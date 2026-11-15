@@ -673,7 +673,7 @@ def PathWords {κ₀ : ℕ} (W : World κ₀) (tf : TracedFn) (pf : Placed) (fp 
     (fun _ _ _ => False) (tf.core.name ≠ "main") (tf.core.name = "main")
 
 /-- **(Frame side)** The frame family's words describe every path whose events hold on some
-reader. -/
+reader, a loop helper's last callee frame (its next iteration's) right after its own. -/
 def FrameWordsStmt : Prop :=
   ∀ {κ₀ : ℕ} (W : World κ₀), W.Compiled → ∀ tf ∈ W.p, Scoped tf → ∀ pf, World.PlacedAs W tf pf →
   TmpsApart tf pf → NoSelfCall tf →
@@ -683,7 +683,10 @@ def FrameWordsStmt : Prop :=
       (∀ q ∈ addrs es, σ q.1 = ofK (addressOfIndex (fp + (cellP pf.locs q.2).getD 0))) →
       (∀ rd : Reader, (∀ e ∈ es, e.Holds rd σ) →
         FrameClauses (loopTable W.p) tf pf fp σ es vs hdr (FS σ)) ∧
-      (kfps.length = (calls es).length → (∃ rd : Reader, ∀ e ∈ es, e.Holds rd σ) →
+      (kfps.length = (calls es).length →
+        (isLoopName tf.core.name = true → ∀ kfp, kfps.getLast? = some kfp →
+          kfp = fp + pf.fn.frameSize) →
+        (∃ rd : Reader, ∀ e ∈ es, e.Holds rd σ) →
         PathWords W tf pf fp σ es kfps hdr (FS σ))
 
 /-- **(Run side)** The path's frame words, on a memory holding the frame, give the instructions'

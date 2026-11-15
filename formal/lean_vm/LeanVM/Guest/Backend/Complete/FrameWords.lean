@@ -68,7 +68,10 @@ theorem frameWords_of_walk (hWW : WalkWordsStmt) : FrameWordsStmt := by
         (∀ rd : Reader, (∀ e ∈ es, e.Holds rd σ') →
           FrameClauses (loopTable W.p) tf pf fp σ' es vs hdr
             ⟨patchT (instOf W tf pf fp hdr σ₀ es) p.1 σ', p.2⟩) ∧
-        (kfps.length = (calls es).length → (∃ rd : Reader, ∀ e ∈ es, e.Holds rd σ') →
+        (kfps.length = (calls es).length →
+          (isLoopName tf.core.name = true → ∀ kfp, kfps.getLast? = some kfp →
+            kfp = fp + pf.fn.frameSize) →
+          (∃ rd : Reader, ∀ e ∈ es, e.Holds rd σ') →
           PathWords W tf pf fp σ' es kfps hdr ⟨patchT (instOf W tf pf fp hdr σ₀ es) p.1 σ', p.2⟩) := by
     intro σ₀
     rcases hwk : walk σ₀ tf.core.body with es | ⟨es, vs⟩ | _
@@ -127,7 +130,7 @@ theorem frameWords_of_walk (hWW : WalkWordsStmt) : FrameWordsStmt := by
         exact evNT_of_holds (huse e he) (hrd e he)
     have hp := Classical.choose_spec (hX σ₀)
     refine ⟨fun rd hrd => (hp es vs hw₀ ha₀ ⟨rd, hRd rd hrd⟩ σ hSame).1 rd hrd,
-      fun hl ⟨rd, hrd⟩ => (hp es vs hw₀ ha₀ ⟨rd, hRd rd hrd⟩ σ hSame).2 hl ⟨rd, hrd⟩⟩
+      fun hl htl ⟨rd, hrd⟩ => (hp es vs hw₀ ha₀ ⟨rd, hRd rd hrd⟩ σ hSame).2 hl htl ⟨rd, hrd⟩⟩
 
 /-- info: 'LeanVM.Guest.Backend.Complete.frameWords_of_walk' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms frameWords_of_walk
