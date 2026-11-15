@@ -117,7 +117,7 @@ def KsAt (cl : List Call) (kh : ℕ → E × E) (i₀ : ℕ) (bc : List Call) (h
 `ss` (followed by `tl`) whose path under the instance's valuation is `o`, its calls from index
 `i₀`; for every frame word the constraint allows and every valuation `Same` as the instance's,
 its statements' words (`wLc`), the memories being `Ag σ' Ψ kh`, with headers `hs pos`. -/
-def BlkW {κ₀ : ℕ} (Γ : Site κ₀) (I : Inst)
+def BlkW {κ₀ : ℕ} (Γ : Site κ₀) (I : Inst) (main : Bool)
     (Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop) (cl : List Call)
     (C : (ℕ → E) → Prop) (blk : List PStmt) (ss tl : List Stmt) (o : Out) (i₀ : ℕ) : Prop :=
   ∃ hs : ℕ → List (E × E), (∀ pos, (hs pos).length = (calls (outEs o)).length) ∧
@@ -126,7 +126,7 @@ def BlkW {κ₀ : ℕ} (Γ : Site κ₀) (I : Inst)
     (kj : List (ℕ × ℕ) → E → E → Prop) (kret khalt : Prop),
     (∀ o' ∈ blockOps blk pos, o' ∈ I.ops) →
     ctrlSplit cs = ctrlSplit (ss ++ tl) → KsAt cl kh i₀ (calls (outEs o)) (hs pos) ks →
-    OutK o tl next kret ks →
+    OutK o tl next (if main then khalt else kret) ks →
     wLc Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl blk cs pos ks next kj kret khalt
 
 /-- `FAt` for actions that place control statements: the constraint's properties kept, the next
@@ -151,7 +151,7 @@ def BlockW {κ₀ : ℕ} (Γ : Site κ₀) (Ag : Val → (ℕ → E) → (ℕ �
     WInv ctx I C st s →
     FBAt ctx I C st m fun _ C' st' => (∀ es, o = .fall es → WInv ctx I C' st' s') ∧
       ∃ blk, st'.out.toList = st.out.toList ++ blk ∧
-        (Fits I st' → BlkW Γ I Ag cl C' blk ss tl o i₀)
+        (Fits I st' → BlkW Γ I ctx.isMain Ag cl C' blk ss tl o i₀)
 
 theorem bsize_append (a b : List PStmt) : blockSize (a ++ b) = blockSize a + blockSize b := by
   induction a with
@@ -168,18 +168,19 @@ section Compose
 
 variable {κ₀ : ℕ} {Γ : Site κ₀} {I : Inst}
   {Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop} {cl : List Call}
+  {main : Bool}
 
 theorem BlkW.mono {C C' : (ℕ → E) → Prop} {blk : List PStmt} {ss tl : List Stmt} {o : Out}
-    {i₀ : ℕ} (h : BlkW Γ I Ag cl C blk ss tl o i₀) (hs : Stronger C' C) :
-    BlkW Γ I Ag cl C' blk ss tl o i₀ := by
+    {i₀ : ℕ} (h : BlkW Γ I main Ag cl C blk ss tl o i₀) (hs : Stronger C' C) :
+    BlkW Γ I main Ag cl C' blk ss tl o i₀ := by
   obtain ⟨hs', hl, h⟩ := h
   exact ⟨hs', hl, fun Ψ hΨ => h Ψ (hs Ψ hΨ)⟩
 
 /-- A block whose path returns, then statements off the path. -/
 theorem BlkW.append_ret {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt} {ss₁ ss₂ tl : List Stmt}
     {es : List Ev} {vs : List V} {i₀ : ℕ}
-    (h₁ : BlkW Γ I Ag cl C blk₁ ss₁ (ss₂ ++ tl) (.ret es vs) i₀) :
-    BlkW Γ I Ag cl C (blk₁ ++ blk₂) (ss₁ ++ ss₂) tl (.ret es vs) i₀ := by
+    (h₁ : BlkW Γ I main Ag cl C blk₁ ss₁ (ss₂ ++ tl) (.ret es vs) i₀) :
+    BlkW Γ I main Ag cl C (blk₁ ++ blk₂) (ss₁ ++ ss₂) tl (.ret es vs) i₀ := by
   obtain ⟨hs, hl, h⟩ := h₁
   refine ⟨hs, hl, fun Ψ hΨ σ' hσ kh cs pos ks next kj kret khalt hops hcs hks hk => ?_⟩
   have hops₁ : ∀ o' ∈ blockOps blk₁ pos, o' ∈ I.ops := fun o' ho =>
@@ -201,9 +202,9 @@ theorem BlkW.append_core {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt}
     (hc : calls (outEs o) = calls es₁ ++ calls (outEs o₂))
     (hk : ∀ next kret ks, OutK o tl next kret ks →
       OutK o₂ tl next kret (ks.drop (calls es₁).length))
-    (h₁ : BlkW Γ I Ag cl C blk₁ ss₁ (ss₂ ++ tl) (.fall es₁) i₀)
-    (h₂ : BlkW Γ I Ag cl C blk₂ ss₂ tl o₂ (i₀ + (calls es₁).length)) :
-    BlkW Γ I Ag cl C (blk₁ ++ blk₂) (ss₁ ++ ss₂) tl o i₀ := by
+    (h₁ : BlkW Γ I main Ag cl C blk₁ ss₁ (ss₂ ++ tl) (.fall es₁) i₀)
+    (h₂ : BlkW Γ I main Ag cl C blk₂ ss₂ tl o₂ (i₀ + (calls es₁).length)) :
+    BlkW Γ I main Ag cl C (blk₁ ++ blk₂) (ss₁ ++ ss₂) tl o i₀ := by
   obtain ⟨hs₁, hl₁, h₁⟩ := h₁
   obtain ⟨hs₂, hl₂, h₂⟩ := h₂
   simp only [outEs] at hl₁
@@ -230,7 +231,7 @@ theorem BlkW.append_core {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt}
         (ks.drop (calls es₁).length) next kj kret khalt := by
     intro cs' hcs'
     refine h₂ Ψ hΨ σ' hσ kh cs' _ _ next kj kret khalt hops₂ hcs' ⟨hl₂ _, fun j hj => ?_⟩
-      (hk next kret ks hk')
+      (hk next _ ks hk')
     obtain ⟨⟨kfp, h1⟩, h2, h3⟩ := hks ((calls es₁).length + j)
       (by rw [List.length_append]; omega)
     refine ⟨⟨kfp, by rw [List.getElem?_drop, h1, Nat.add_assoc]⟩, ?_, ?_⟩
@@ -252,9 +253,9 @@ theorem BlkW.append_core {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt}
 /-- A block whose path falls through, then a block on the path. -/
 theorem BlkW.append_fall {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt} {ss₁ ss₂ tl : List Stmt}
     {es₁ : List Ev} {o₂ : Out} {i₀ : ℕ}
-    (h₁ : BlkW Γ I Ag cl C blk₁ ss₁ (ss₂ ++ tl) (.fall es₁) i₀)
-    (h₂ : BlkW Γ I Ag cl C blk₂ ss₂ tl o₂ (i₀ + (calls es₁).length)) :
-    BlkW Γ I Ag cl C (blk₁ ++ blk₂) (ss₁ ++ ss₂) tl (o₂.pre es₁) i₀ := by
+    (h₁ : BlkW Γ I main Ag cl C blk₁ ss₁ (ss₂ ++ tl) (.fall es₁) i₀)
+    (h₂ : BlkW Γ I main Ag cl C blk₂ ss₂ tl o₂ (i₀ + (calls es₁).length)) :
+    BlkW Γ I main Ag cl C (blk₁ ++ blk₂) (ss₁ ++ ss₂) tl (o₂.pre es₁) i₀ := by
   cases o₂ with
   | stuck =>
     exact ⟨fun _ => [], fun _ => rfl, fun _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hk => hk.elim⟩
@@ -313,7 +314,7 @@ theorem FAt.toBlk (hok : OpOK Γ I Ag cl) {ctx : Ctx} {C : (ℕ → E) → Prop}
     (h : FAt ctx I C st m R) :
     FBAt ctx I C st m fun a C' st' => COk I C' st'.next st'.scope st'.locs ∧ R a C' st' ∧
       ∃ blk, st'.out.toList = st.out.toList ++ blk ∧
-        (Fits I st' → BlkW Γ I Ag cl C' blk ss tl (.fall es) i₀) := by
+        (Fits I st' → BlkW Γ I main Ag cl C' blk ss tl (.fall es) i₀) := by
   intro hc0
   refine wp_mono (h hc0) fun a st' ⟨C', hcok, hs, hn, hl, ⟨ops, ho, hops⟩, hr⟩ =>
     ⟨C', hcok.sat, hcok.blind, hs, hn, hl, hcok, hr, ops, ho, fun hfit => ⟨fun _ => [],
@@ -406,7 +407,7 @@ def StmtW {κ₀ : ℕ} (Γ : Site κ₀) (Ag : Val → (ℕ → E) → (ℕ →
     FBAt ctx I C st (placeStmt s rest >>= fun _ => endStmt) fun _ C' st' =>
       (∀ es, o = .fall es → WInv ctx I C' st' sc') ∧
       ∃ blk, st'.out.toList = st.out.toList ++ blk ∧
-        (Fits I st' → BlkW Γ I Ag cl C' blk [s] (rest ++ tl) o i₀)
+        (Fits I st' → BlkW Γ I ctx.isMain Ag cl C' blk [s] (rest ++ tl) o i₀)
 
 section BlockCons
 
