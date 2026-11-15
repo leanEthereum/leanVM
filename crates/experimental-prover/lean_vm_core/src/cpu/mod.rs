@@ -32,9 +32,6 @@ pub use isa::{DerefMode, Op, OutCells};
 pub use layout::*;
 pub(crate) use trace::{Drow, Jrow, Krow, Rows, Srow, Trace, Xrow};
 
-/// The data memory's size bounds (doc §Memory): `2^h` cells, `MIN_LOG_MEMORY ≤ h ≤ MAX_LOG_MEMORY`.
-pub use verifier::{MAX_LOG_MEMORY, MIN_LOG_MEMORY};
-
 /// The two 128-bit halves a digest travels in, as the four words the
 /// Fiat-Shamir sponge absorbs.
 fn digest_words(halves: &[F128; 2]) -> [u64; 4] {
@@ -143,12 +140,7 @@ impl Program {
         }
     }
 
-    /// The bytecode, a power of two long.
-    pub fn prog(&self) -> &[Op] {
-        &self.prog
-    }
-
-    /// The [`layout()`] of this program.
+    /// This program's [`Layout`], from its bytecode columns.
     pub fn layout(&self, log_mem: usize, rows: [usize; tables::N_TABLES], pi: [F128; 2]) -> Layout {
         layout::layout_of(&self.bytecode_columns, log_mem, rows, pi)
     }

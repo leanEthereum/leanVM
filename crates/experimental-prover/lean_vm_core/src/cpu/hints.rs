@@ -3,7 +3,7 @@
 
 use primitives::field::{F64, div_by_g, mul_by_g};
 
-pub use isa::{BitsDest, Off, RHint};
+pub use isa::{BitsDest, RHint};
 
 /// The cells a provable run can address, which the [`GPow`] index covers: a memory of `2^29`
 /// cells would overflow the `2^30` stack with its three columns, so no larger one can be committed.

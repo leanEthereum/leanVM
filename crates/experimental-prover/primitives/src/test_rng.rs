@@ -1,8 +1,8 @@
-//! One deterministic generator for the whole workspace's tests, so a SIMD
+//! One deterministic generator for this tree's tests, so a SIMD
 //! kernel and its scalar oracle see the same stream on every host.
 //!
 //! Exported normally rather than under `#[cfg(test)]`: integration tests in
-//! `pcs`, `keccak_gkr`, `primitives` and `aggregation` are separate crates and
+//! `pcs`, `keccak_gkr` and `primitives` are separate crates and
 //! cannot reach a test-only module.
 
 use rand::{RngCore, SeedableRng, rngs::StdRng};

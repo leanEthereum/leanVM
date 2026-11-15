@@ -386,16 +386,11 @@ pub(crate) fn stack_columns(columns: &BytecodeColumns) -> Vec<F64> {
     table
 }
 
-/// Build the public [`Layout`] from the program, the memory log-size `log_mem`, the
+/// Build the public [`Layout`] from the program's columns, the memory log-size `log_mem`, the
 /// instruction tables' row counts `rows`, and the public input `pi`. The flush blocks
 /// reference columns only by INDEX and the program only through its public columns, so
 /// this needs no committed witness: both prover and verifier reconstruct exactly the
 /// same structure.
-pub fn layout(prog: &[Op], log_mem: usize, rows: [usize; tables::N_TABLES], pi: [F128; 2]) -> Layout {
-    layout_of(&bytecode_columns(prog), log_mem, rows, pi)
-}
-
-/// [`layout`] of a program's columns.
 pub(crate) fn layout_of(
     prog_cols: &BytecodeColumns,
     log_mem: usize,
