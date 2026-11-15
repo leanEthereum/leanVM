@@ -6,12 +6,13 @@ use std::time::Instant;
 use bench::{Metric, Plan, Timing, bencher_json};
 use isa::pretty_integer;
 use pcs::stack_open::StackClaim;
-use pcs::whir::{INITIAL_FOLDING_FACTOR, ProverConfig, ProverData, commit, config_for_rate};
+use pcs::whir::{ProverConfig, ProverData, commit, config_for_rate};
 use primitives::{
     field::{F64, F128},
     test_rng::Rng,
     transcript::ProverState,
 };
+use verifier::INITIAL_FOLDING_FACTOR;
 
 use crate::{Openings, OutputClaim, Shape, Witness};
 

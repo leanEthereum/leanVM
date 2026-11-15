@@ -484,7 +484,7 @@ fn claim_placeholders(ph: &mut Placeholders, pool: &[ClaimSite], kbc: usize) {
 /// The Keccak reduction's RMFE projection and embedding as straight-line programs, and its iota and linear layer, as
 /// index lists the guest unrolls.
 fn keccak_placeholders(ph: &mut Placeholders) {
-    use verifier::keccak::{EMBED_BITS, PACK, PRODUCT_BITS as PROD_BITS, RMFE_EMBED, RMFE_PROJECT};
+    use verifier::keccak::{EMBED_BITS, PACK, PRODUCT_BITS, RMFE_EMBED, RMFE_PROJECT};
     let shape = KECCAK_MIN_SHAPE;
     let (depth, segments) = (shape.depth(), shape.segments());
     // `starts[i]..starts[i + 1]` indexes row `i`'s entries of the flat list: each row's
@@ -526,7 +526,7 @@ fn keccak_placeholders(ph: &mut Placeholders) {
     // Each product coefficient's reader, the sum of the instance weights whose projection reads
     // it, as a straight line of sums over the PACK weights.
     let (ops, outputs) = straight_line(
-        &(0..PROD_BITS)
+        &(0..PRODUCT_BITS)
             .map(|c| (0..PACK).filter(|&i| RMFE_PROJECT[i] >> c & 1 == 1).collect::<Vec<_>>())
             .collect::<Vec<_>>(),
         PACK,

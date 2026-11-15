@@ -13,7 +13,7 @@ use primitives::multilinear::mle_eval_par;
 use primitives::transcript::ProverState;
 
 use crate::stack_open::StackClaim;
-use crate::whir_config::OOD_GRINDING_BITS;
+use verifier::OOD_GRINDING_BITS;
 
 /// The OOD sample of the level-0 commitment to `stack`, the committed lanes of a `2^log_n`-word stack that is zero
 /// past them; call it right after the root is sent. Returns the claim the stacked opening must discharge.

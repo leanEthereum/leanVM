@@ -126,30 +126,20 @@ fn print_whir_query_table() {
 #[test]
 fn grinding_constants_match_the_prover() {
     use pcs::whir_config as prover;
-    let rust = [
+    assert_eq!(
         verifier::SECURITY_BITS,
-        verifier::QUERY_GRINDING_BITS,
-        verifier::FOLD_GRINDING_BITS,
-        verifier::BATCH_GRINDING_BITS,
-        verifier::OOD_GRINDING_BITS,
-    ];
-    let expected = [
         lean_vm_core::SECURITY_BITS,
-        prover::QUERY_GRINDING_BITS,
-        prover::FOLD_GRINDING_BITS,
-        prover::BATCH_GRINDING_BITS,
-        prover::OOD_GRINDING_BITS,
-    ];
-    assert_eq!(rust, expected, "crates/verifier's grinding constants");
+        "crates/verifier's security target"
+    );
     assert_eq!(verifier::MAX_STACKED_CLAIMS, prover::MAX_STACKED_CLAIMS);
     assert_lean_constants(
         &lean_verifier(),
         &[
             ("securityBits", lean_vm_core::SECURITY_BITS as usize),
-            ("queryGrindingBits", prover::QUERY_GRINDING_BITS as usize),
-            ("foldGrindingBits", prover::FOLD_GRINDING_BITS as usize),
-            ("batchGrindingBits", prover::BATCH_GRINDING_BITS as usize),
-            ("oodGrindingBits", prover::OOD_GRINDING_BITS as usize),
+            ("queryGrindingBits", verifier::QUERY_GRINDING_BITS as usize),
+            ("foldGrindingBits", verifier::FOLD_GRINDING_BITS as usize),
+            ("batchGrindingBits", verifier::BATCH_GRINDING_BITS as usize),
+            ("oodGrindingBits", verifier::OOD_GRINDING_BITS as usize),
             ("maxStackedClaims", prover::MAX_STACKED_CLAIMS),
         ],
     );

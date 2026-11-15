@@ -12,7 +12,7 @@
 
 extern crate stable_keccak_gkr as keccak_gkr;
 use bench::{Plan, env_usize};
-use pcs::whir::MIN_LOG_INV_RATE;
+use verifier::MIN_LOG_INV_RATE;
 
 #[global_allocator]
 static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;

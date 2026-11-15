@@ -30,13 +30,12 @@ use primitives::field::{Acc8, F64, F128, F128Unreduced, F128x8, fold_pairs8_ext,
 use primitives::multilinear::{eq_table, interp};
 use primitives::transcript::ProverState;
 
-use super::whir_config::{FOLD_GRINDING_BITS, OOD_GRINDING_BITS};
 pub use super::whir_config::{
-    INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, LevelShapes, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE, ProverConfig,
-    QUERY_GRINDING_BITS, SECURITY_BITS, WhirSecurityConfig, validate_log_inv_rate,
+    LOG_INV_RATE_0, LevelShapes, ProverConfig, SECURITY_BITS, WhirSecurityConfig, validate_log_inv_rate,
 };
 #[cfg(test)]
 pub use super::whir_config::{default_config, udr_queries};
+use verifier::{FOLD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY_GRINDING_BITS};
 
 pub use crate::whir_induce::*;
 use crate::whir_lanes;

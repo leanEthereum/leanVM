@@ -20,9 +20,9 @@ use primitives::multilinear::mle_eval_par;
 use primitives::transcript::ProverState;
 
 use crate::ring_switch::{self, RingWeight};
-use crate::whir::{self, INITIAL_FOLDING_FACTOR, ProverData};
+use crate::whir::{self, ProverData};
 use crate::whir_lanes::LaneRounds;
-use verifier::{BATCH_GRINDING_BITS, MAX_STACKED_CLAIMS, OOD_GRINDING_BITS};
+use verifier::{BATCH_GRINDING_BITS, INITIAL_FOLDING_FACTOR, MAX_STACKED_CLAIMS, OOD_GRINDING_BITS};
 
 mod basis;
 

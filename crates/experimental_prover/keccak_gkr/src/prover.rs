@@ -20,8 +20,8 @@ use crate::kernels::{GROUP, MIXED, PACKS, SKIP, SkipBlock, TERNARY, embed, mixed
 use crate::open::fold;
 use crate::power::{Element, PowerField, get, set};
 use crate::protocol::{Claim, chi_weights, mu_at};
-use crate::rmfe::PROD_BITS;
 use crate::witness::{Shape, Witness, transpose64, words};
+use verifier::keccak::PRODUCT_BITS;
 
 /// The pattern index of a binary assignment.
 fn ternary(b: usize) -> usize {
@@ -240,7 +240,7 @@ impl Layer<'_> {
     /// over positions is taken bit by bit, by GFNI outer products where they are compiled
     /// (`products_gfni`) and by digit buckets elsewhere ([`Groups`]); only that sum meets
     /// the block's weight, as field elements.
-    fn pack_products(&self, claim: &Claim) -> Vec<[F128; PROD_BITS]> {
+    fn pack_products(&self, claim: &Claim) -> Vec<[F128; PRODUCT_BITS]> {
         cfg_select! {
             all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni") => {
                 self.pack_products_gfni(claim)
@@ -251,7 +251,7 @@ impl Layer<'_> {
 
     /// [`Self::pack_products`] by GFNI outer products (`products_gfni`): the same sums.
     #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"))]
-    fn pack_products_gfni(&self, claim: &Claim) -> Vec<[F128; PROD_BITS]> {
+    fn pack_products_gfni(&self, claim: &Claim) -> Vec<[F128; PRODUCT_BITS]> {
         use crate::products_gfni::ProductSums;
         let weights = self.task_weights(&eq_table(&claim.point[SKIP + 1..]));
         let kernel = ProductSums::new(&claim.weights);
@@ -284,7 +284,7 @@ impl Layer<'_> {
         all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"),
         allow(dead_code)
     )]
-    fn pack_products_buckets(&self, claim: &Claim) -> Vec<[F128; PROD_BITS]> {
+    fn pack_products_buckets(&self, claim: &Claim) -> Vec<[F128; PRODUCT_BITS]> {
         let weights = self.task_weights(&eq_table(&claim.point[SKIP + 1..]));
         let groups = Groups::new(&claim.weights);
         let sums = parallel::map_reduce_with_state(
@@ -749,11 +749,11 @@ pub fn prove_layer(
 
     let per_pack = tracing::info_span!("Product").in_scope(|| layer.pack_products(claim));
     let pack_weights = eq_table(&claim.point[..SKIP + 1]);
-    let product: [F128; PROD_BITS] =
+    let product: [F128; PRODUCT_BITS] =
         std::array::from_fn(|c| (0..PACKS).map(|q| pack_weights[q] * per_pack[q][c]).sum());
     ps.add_scalars(&product);
-    // `s`: the product polynomial has degree PROD_BITS - 1.
-    ps.grind(fiat_shamir::grinding_bits(PROD_BITS as u128 - 1));
+    // `s`: the product polynomial has degree PRODUCT_BITS - 1.
+    ps.grind(fiat_shamir::grinding_bits(PRODUCT_BITS as u128 - 1));
     let s = ps.sample();
     let kappa = mu_at(s).iter().sum();
     let mut value = poly_eval(&product, s);

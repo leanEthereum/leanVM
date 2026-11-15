@@ -53,7 +53,8 @@ use primitives::transcript::ProverState;
 
 use super::ring_switch;
 use super::whir::{ProverConfig, ProverData};
-use super::whir_config::{BATCH_GRINDING_BITS, MAX_STACKED_CLAIMS};
+use super::whir_config::MAX_STACKED_CLAIMS;
+use verifier::BATCH_GRINDING_BITS;
 
 mod basis;
 

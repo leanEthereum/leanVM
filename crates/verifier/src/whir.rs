@@ -13,10 +13,15 @@ pub const MIN_LOG_INV_RATE: usize = 1;
 pub const MAX_LOG_INV_RATE: usize = 4;
 /// Level 0's fold count, which is also the number of lanes a level-0 leaf holds, `2^INITIAL_FOLDING_FACTOR`.
 pub const INITIAL_FOLDING_FACTOR: usize = 6;
-const SUBSEQUENT_FOLDING_FACTOR: usize = 4;
-const RS_DOMAIN_INITIAL_REDUCTION_FACTOR: usize = 3;
-const RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR: usize = 1;
-const RESIDUAL_MAX_LOG: usize = 5;
+/// Every later level's fold count.
+pub const SUBSEQUENT_FOLDING_FACTOR: usize = 4;
+/// Bits the domain shrinks by after level 0's fold.
+pub const RS_DOMAIN_INITIAL_REDUCTION_FACTOR: usize = 3;
+/// Bits the domain shrinks by after every later fold.
+pub const RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR: usize = 1;
+/// Folding stops once at most this many variables remain: the final level is sent in clear.
+pub const RESIDUAL_MAX_LOG: usize = 5;
+/// Before each level's query message: its positions and, below the final level, the next level's lambda.
 pub const QUERY_GRINDING_BITS: u32 = 17;
 /// Before each fold round's `(alpha, beta)`.
 pub const FOLD_GRINDING_BITS: u32 = 7;

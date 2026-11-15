@@ -29,8 +29,9 @@ use crate::merkle::{LeafHasher, MerkleTree};
 use crate::ntt::AdditiveNttF64;
 use crate::whir_induce::induce_basis;
 use crate::whir_lanes::LaneRounds;
-use verifier::{FOLD_GRINDING_BITS, OOD_GRINDING_BITS, QUERY_GRINDING_BITS, WhirConfig};
-pub use verifier::{INITIAL_FOLDING_FACTOR, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
+use verifier::{
+    FOLD_GRINDING_BITS, INITIAL_FOLDING_FACTOR, MIN_LOG_INV_RATE, OOD_GRINDING_BITS, QUERY_GRINDING_BITS, WhirConfig,
+};
 
 /// Elements a task of a parallel pass takes.
 const CHUNK: usize = 1 << 12;
@@ -101,7 +102,7 @@ impl ProverData {
 /// `n_lanes - 1 - t`, so the absent lanes' zeros lead the leaf, where their whole blocks of zeros are one sponge state
 /// every leaf shares (Annex B, `sec:pcs-opt`).
 pub(crate) fn commit(message: &[F64], log_n: usize, log_inv_rate: usize) -> ProverData {
-    assert!(log_inv_rate >= 1 && log_n > INITIAL_FOLDING_FACTOR);
+    assert!(log_inv_rate >= MIN_LOG_INV_RATE && log_n > INITIAL_FOLDING_FACTOR);
     let log_rows = log_n - INITIAL_FOLDING_FACTOR;
     let n_lanes = message.len() >> log_rows;
     assert!(

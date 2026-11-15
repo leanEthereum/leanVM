@@ -1,9 +1,9 @@
 use fiat_shamir::Proof;
-use pcs::whir::MIN_LOG_INV_RATE;
 use primitives::field::{F64, F128};
 use primitives::hash::STATE_LANES;
 use primitives::test_rng::Rng;
 use primitives::transcript::ProverState;
+use verifier::MIN_LOG_INV_RATE;
 use verifier::VerifierError;
 use verifier::keccak::{LANE_BITS, LOCAL_BITS, PRODUCT_BITS};
 

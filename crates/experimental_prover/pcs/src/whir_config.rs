@@ -29,7 +29,14 @@
 
 mod affine_mca;
 
-pub use verifier::{INITIAL_FOLDING_FACTOR, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
+// The protocol's grinds are the search's inputs. `BATCH_GRINDING_BITS` and `OOD_GRINDING_BITS` are chosen, not
+// derived: one bit less costs queries, and more would let the search lower level 0's threshold, its list toward
+// `MAX_LIST_0`; the OOD grind also bounds the prover's grinding at the later levels.
+use verifier::{
+    BATCH_GRINDING_BITS, FOLD_GRINDING_BITS, INITIAL_FOLDING_FACTOR, MAX_LOG_INV_RATE, MIN_LOG_INV_RATE,
+    OOD_GRINDING_BITS, QUERY_GRINDING_BITS, RESIDUAL_MAX_LOG, RS_DOMAIN_INITIAL_REDUCTION_FACTOR,
+    RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR, SUBSEQUENT_FOLDING_FACTOR,
+};
 
 /// Round-by-round soundness target (bits): every verifier message's error, after its grind, is at most
 /// `2^-SECURITY_BITS` (`fiat_shamir::SECURITY_BITS`).
@@ -48,41 +55,8 @@ pub fn validate_log_inv_rate(log_inv_rate: usize) -> Result<(), String> {
     Ok(())
 }
 
-/// The grind before each level's query message: its positions and, below the final level, the next level's lambda.
-pub const QUERY_GRINDING_BITS: u32 = 17;
-
-/// Grinding before each fold round's `(alpha, beta)`: the least for which the fold
-/// rounds never cost a query.
-pub const FOLD_GRINDING_BITS: u32 = 7;
-
-/// Grinding before level 0's batching challenge `lambda`, the stacked opening's outer batching challenge. Later
-/// levels' `lambda` rides the query message. Chosen, not derived: one bit less costs queries, and more would let the
-/// search lower level 0's threshold, its list toward [`MAX_LIST_0`].
-pub const BATCH_GRINDING_BITS: u32 = 13;
-
-/// Grinding before every commitment's OOD point, level 0's (`crate::ood`) included. A budget chosen, not derived: a
-/// larger grind would let the search lower level 0's threshold past [`MAX_LIST_0`], and it bounds the prover's
-/// grinding at the later levels, below the least grind for which their term never costs a query.
-pub const OOD_GRINDING_BITS: u32 = 15;
-
-pub const SUBSEQUENT_FOLDING_FACTOR: usize = 4;
-
-/// Logarithmic reduction of the total Reed--Solomon domain after the initial
-/// fold. With the production six-variable initial fold, `3` changes the
-/// inverse-rate logarithm by `6 - 3 = 3` at the first recursive level.
-pub const RS_DOMAIN_INITIAL_REDUCTION_FACTOR: usize = 3;
-
-/// After each subsequent fold, shrink the total Reed--Solomon domain by one
-/// bit. This mirrors WHIR's recursive-domain schedule; unlike the initial
-/// reduction, it is deliberately fixed rather than a tuning parameter.
-const RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR: usize = 1;
-
 const _: () = assert!(RS_DOMAIN_INITIAL_REDUCTION_FACTOR <= INITIAL_FOLDING_FACTOR);
 const _: () = assert!(RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR <= SUBSEQUENT_FOLDING_FACTOR);
-
-/// Folding stops once at most this many variables remain: the final level is sent in clear instead of committed and
-/// folded further.
-pub const RESIDUAL_MAX_LOG: usize = 5;
 
 // The recursion guest rotates the terminal point left by the lane fold to index it
 // by witness coordinate, and the residual segment is what the last lane challenges
@@ -221,7 +195,7 @@ pub(crate) fn test_config_for(log_n: usize) -> ProverConfig {
         return config;
     }
     for log_batch_size in (1..=5).rev() {
-        for log_inv_rate in 1..=4 {
+        for log_inv_rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
             if let Ok(config) = default_config(log_n, log_batch_size, log_inv_rate) {
                 return config;
             }

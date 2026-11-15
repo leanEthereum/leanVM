@@ -9,8 +9,7 @@
 //!     project(embed(a) * embed(b)) = a & b
 //! ```
 
-use verifier::keccak::RMFE_EMBED;
-pub use verifier::keccak::{EMBED_BITS, PACK, PRODUCT_BITS as PROD_BITS};
+use verifier::keccak::{PACK, RMFE_EMBED};
 
 pub struct Rmfe {
     /// `embed` of each unit vector.
@@ -72,6 +71,7 @@ mod tests {
     use super::*;
     use primitives::field::gf2_64::mul_wide;
     use primitives::test_rng::Rng;
+    use verifier::keccak::{EMBED_BITS, PRODUCT_BITS};
 
     #[test]
     fn product_of_embeddings_projects_to_and() {
@@ -89,7 +89,7 @@ mod tests {
             let (ea, eb) = (r.embed(a), r.embed(b));
             assert!(ea < 1 << EMBED_BITS);
             let p = mul_wide(ea as u64, eb as u64) as u64;
-            assert!(p < 1 << PROD_BITS);
+            assert!(p < 1 << PRODUCT_BITS);
             assert_eq!(r.project(p), a & b);
         }
     }

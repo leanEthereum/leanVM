@@ -14,8 +14,9 @@ use primitives::field::{F128, powers};
 use primitives::multilinear::eq_table;
 use verifier::keccak::{BITS, along};
 
-use crate::rmfe::{EMBED_BITS, PACK, RMFE};
+use crate::rmfe::RMFE;
 use crate::witness::Shape;
+use verifier::keccak::{EMBED_BITS, PACK};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Claim {

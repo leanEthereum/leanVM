@@ -36,16 +36,14 @@ use ::pcs::whir::{ProverData, commit as whir_commit, config_for_rate};
 
 /// Row-batch lanes `2^LOG_BATCH`: the Merkle leaf width (`2^LOG_BATCH` F64
 /// = 512 bytes/leaf) IS WHIR's INITIAL folding factor: the L0 commit is
-/// reused, so the two are one knob ([`::pcs::whir::INITIAL_FOLDING_FACTOR`]).
+/// reused, so the two are one knob ([`verifier::INITIAL_FOLDING_FACTOR`]).
 /// Larger ⇒ far fewer Merkle nodes to hash at the cost of fatter query openings.
-pub(crate) const LOG_BATCH: usize = ::pcs::whir::INITIAL_FOLDING_FACTOR;
+pub(crate) const LOG_BATCH: usize = verifier::INITIAL_FOLDING_FACTOR;
 /// The rate the test suite and the benchmarks prove at. Not a default: every
 /// entry point takes `log_inv_rate` explicitly, and a caller has to choose.
 pub const TEST_LOG_INV_RATE: usize = ::pcs::whir::LOG_INV_RATE_0;
-/// The `log_inv_rate` values a WHIR configuration can be derived for.
-pub use ::pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
-/// The committed stack's log-size bounds, the protocol's.
-pub use verifier::{MAX_STACKED_LOG, MIN_STACKED_LOG};
+/// The protocol's bounds on `log_inv_rate` and on the committed stack's log-size.
+pub use verifier::{MAX_LOG_INV_RATE, MAX_STACKED_LOG, MIN_LOG_INV_RATE, MIN_STACKED_LOG};
 
 /// The shared WHIR config for a `2^μ`-word witness, memoized per `(μ, log_inv_rate)`.
 fn whir_config(mu: usize, log_inv_rate: usize) -> std::sync::Arc<ProverConfig> {
@@ -155,7 +153,7 @@ mod tests {
     /// the ladder: every size in the window is configurable at every rate.
     #[test]
     fn supported_window_is_configurable() {
-        for rate in ::pcs::whir::MIN_LOG_INV_RATE..=::pcs::whir::MAX_LOG_INV_RATE {
+        for rate in MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE {
             for mu in MIN_STACKED_LOG..=MAX_STACKED_LOG {
                 assert!(config_for_rate(mu, rate).is_ok(), "mu={mu} rate={rate}");
             }

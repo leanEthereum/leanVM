@@ -14,13 +14,11 @@ pub use ::pcs::{StackClaim, commit, open};
 
 /// `log2` of the lanes a Merkle leaf holds, which is also WHIR's initial folding factor: the level-0 commitment is
 /// reused by the opening, so the two are one knob.
-pub(crate) const LOG_BATCH: usize = ::pcs::whir::INITIAL_FOLDING_FACTOR;
+pub(crate) const LOG_BATCH: usize = verifier::INITIAL_FOLDING_FACTOR;
 /// The rate the test suite and the benchmarks prove at. Not a default: every entry point takes `log_inv_rate`.
 pub const TEST_LOG_INV_RATE: usize = 1;
-/// The `log_inv_rate` values a WHIR configuration can be derived for.
-pub use ::pcs::whir::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
-/// The committed stack's log-size bounds, the protocol's.
-pub use verifier::{MAX_STACKED_LOG, MIN_STACKED_LOG};
+/// The protocol's bounds on `log_inv_rate` and on the committed stack's log-size.
+pub use verifier::{MAX_LOG_INV_RATE, MAX_STACKED_LOG, MIN_LOG_INV_RATE, MIN_STACKED_LOG};
 
 #[cfg(test)]
 mod tests {

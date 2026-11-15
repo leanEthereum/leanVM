@@ -71,7 +71,4 @@ pub type LeanSphincsClaim = (LeanSphincsPublicKey, lean_sphincs::Message);
 /// The maximum number of child proofs one [`aggregate`] call can take.
 pub const MAX_RECURSIONS: usize = 16;
 
-/// The smallest `log_inv_rate` a proof can use, its code rate being `2^-log_inv_rate`.
-pub const MIN_LOG_INV_RATE: usize = pcs::whir::MIN_LOG_INV_RATE;
-/// The largest `log_inv_rate` a proof can use.
-pub const MAX_LOG_INV_RATE: usize = pcs::whir::MAX_LOG_INV_RATE;
+pub use verifier::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};

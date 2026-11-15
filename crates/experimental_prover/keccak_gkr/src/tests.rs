@@ -11,8 +11,8 @@ use crate::batch_bench::{batch_instance, batch_transcript, commit_stack, open_co
 use crate::open::state_words;
 use crate::protocol::{Claim, first_claim};
 use crate::prover::prove_layer;
-use crate::rmfe::PROD_BITS;
 use crate::witness::{BLOCK, BLOCK_LEN, BLOCK_WORDS, Extent, Shape, Witness, block};
+use verifier::keccak::PRODUCT_BITS;
 
 /// The sliced state after `round` rounds.
 fn state_after(witness: &Witness, round: usize) -> Vec<u64> {
@@ -134,8 +134,9 @@ fn keccak_check(shape: Shape, at: usize) -> Option<VerifierError> {
     let committed = usize::from(shape.segments() > 1);
     // A sumcheck round of degree 2 or 3 sends two scalars; the bit position's, of degree 3 with no eq factor, three.
     let (round2, round3) = (2 + nonce(2), 2 + nonce(3));
-    let layer = PROD_BITS + nonce(PROD_BITS - 1) + round3 * shape.y_vars() + (round3 + 1) * LOCAL_BITS + 3 + nonce(2);
-    let ood = usize::from(pcs::whir_config::OOD_GRINDING_BITS > 0);
+    let layer =
+        PRODUCT_BITS + nonce(PRODUCT_BITS - 1) + round3 * shape.y_vars() + (round3 + 1) * LOCAL_BITS + 3 + nonce(2);
+    let ood = usize::from(verifier::OOD_GRINDING_BITS > 0);
     let first = 2 + ood + 1 + nonce(shape.n_log()) + STATE_LANES + nonce(shape.seg_log() + LANE_BITS);
     let layers = first + committed;
     let outputs = layers + shape.depth() * layer;
@@ -145,7 +146,7 @@ fn keccak_check(shape: Shape, at: usize) -> Option<VerifierError> {
     let in_layer = at.wrapping_sub(layers) % layer;
     Some(match at {
         _ if (first..layers).contains(&at) => VerifierError::KeccakProduct,
-        _ if (layers..outputs).contains(&at) && in_layer < PROD_BITS => VerifierError::KeccakProduct,
+        _ if (layers..outputs).contains(&at) && in_layer < PRODUCT_BITS => VerifierError::KeccakProduct,
         _ if (layers..outputs).contains(&at) && (layer - 3 - nonce(2)..layer - nonce(2)).contains(&in_layer) => {
             VerifierError::KeccakLayer
         }
