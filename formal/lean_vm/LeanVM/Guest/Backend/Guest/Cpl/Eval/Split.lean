@@ -653,7 +653,7 @@ theorem armsRun_end {rc : ℕ} {A : List (List Stmt)} {k : ℕ} {S : SSt} {acc :
 /-- **A `match` statement's scope walk from its parts**: the values made before it, its selector
 in scope, its arms by runs, its own event. -/
 theorem scope_match {rc : ℕ} {b : List Stmt} {p : ℕ} {S S₁ T S₂ : SSt} {acc : Bool}
-    (hm : isMatchAt b p = true) (hpre : flushAt rc S = .ok S₁)
+    (hm : isMatchAt b p = true) (hpre : flushEdge rc S = .ok S₁)
     (hx : needScope S₁.live [selOf (b.getD p default)] "a match" = .ok ())
     (harms : armsRun rc ((armsOf (b.getD p default)).drop 0) S₁ S₁.retDone = .ok (T, acc))
     (hpost : expectS isEmit "a match" { T with retDone := acc } = .ok S₂) :

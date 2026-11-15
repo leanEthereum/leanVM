@@ -255,7 +255,7 @@ def bigFiles (j : Nat) (tf : TracedFn) (pf : Placed) : Except String (List (Stri
       data := data ++ s!"\n/-- The scope walk of entry {j} after statement {g.a + g.m - 1}. -/\nstate_lit sc{j}_{k + 1} : SSt :=\n  \{ rest := traceRest {tfs} {ev},\n    live := KMap.insertAll {base} sc{j}_{k + 1}_add,\n    retDone := {nxt.retDone} }\n"
       items := items.push (g.w, s!"\n/-- Statements {g.a} to {g.a + g.m - 1} of entry {j}. -/\ntheorem seg{j}_{k} : segOk big{j} {segT} tl{j}_{k} = true := by\n  decide +kernel\n\n/-- The scope walk of entry {j} over statements {g.a} to {g.a + g.m - 1}. -/\nkernel_rfl scope{j}_{k} :\n    scopeBlock {tfs}.rets {segT}\n      {Sexpr} = .ok sc{j}_{k + 1}\n")
     | some arms =>
-      let S1 ← Complete.flushAt rc prev
+      let S1 ← Complete.flushEdge rc prev
       let added := allVals.filter fun v => S1.live.contains v && !(k > 0 && prev.live.contains v)
       data := data ++ chunkedDefs s!"The values made before statement {g.a} of entry {j}." s!"scm{j}_{k}_0_add" "(V × Unit)" (added.map fun v => s!"({pV v}, ())")
       data := data ++ s!"\n/-- The scope walk of entry {j} at the `match` of statement {g.a}. -/\nstate_lit scm{j}_{k}_0 : SSt :=\n  \{ rest := traceRest {tfs} {tf.trace.size - S1.rest.length},\n    live := KMap.insertAll {base} scm{j}_{k}_0_add,\n    retDone := {S1.retDone} }\n"
@@ -296,7 +296,7 @@ def bigFiles (j : Nat) (tf : TracedFn) (pf : Placed) : Except String (List (Stri
         s!"(arms_end (k := {arms.length}) (by decide +kernel))"
       let scarChain := runs.zipIdx.foldr (fun (_, ri) a => s!"(armsRun_part scar{j}_{k}_{ri} {a})")
         s!"(armsRun_end (k := {arms.length}) (by decide +kernel))"
-      items := items.push (1, s!"\ntheorem ism{j}_{k} : isMatchAt {tfs}.core.body {g.a} = true := by\n  decide +kernel\n\ntheorem selm{j}_{k} : useOk big{j} (selOf ({tfs}.core.body.getD {g.a} default)) = true := by\n  decide +kernel\n\nkernel_rfl scpre{j}_{k} :\n    flushAt {tfs}.rets {Sexpr} = .ok scm{j}_{k}_0\n\nkernel_rfl scx{j}_{k} :\n    needScope scm{j}_{k}_0.live [selOf ({tfs}.core.body.getD {g.a} default)] \"a match\" = .ok ()\n\nkernel_rfl scpo{j}_{k} :\n    expectS isEmit \"a match\" \{ scm{j}_{k}_{R} with retDone := {acc} } = .ok sc{j}_{k + 1}\n")
+      items := items.push (1, s!"\ntheorem ism{j}_{k} : isMatchAt {tfs}.core.body {g.a} = true := by\n  decide +kernel\n\ntheorem selm{j}_{k} : useOk big{j} (selOf ({tfs}.core.body.getD {g.a} default)) = true := by\n  decide +kernel\n\nkernel_rfl scpre{j}_{k} :\n    flushEdge {tfs}.rets {Sexpr} = .ok scm{j}_{k}_0\n\nkernel_rfl scx{j}_{k} :\n    needScope scm{j}_{k}_0.live [selOf ({tfs}.core.body.getD {g.a} default)] \"a match\" = .ok ()\n\nkernel_rfl scpo{j}_{k} :\n    expectS isEmit \"a match\" \{ scm{j}_{k}_{R} with retDone := {acc} } = .ok sc{j}_{k + 1}\n")
       okItems := okItems ++ s!"\n/-- Statement {g.a} of entry {j}, by runs of arms. -/\ntheorem seg{j}_{k} : segOk big{j} {segT} tl{j}_{k} = true :=\n  seg_match ism{j}_{k} selm{j}_{k}\n    {armsChain}\n\n/-- The scope walk of entry {j} over statement {g.a}, by runs of arms. -/\ntheorem scope{j}_{k} : scopeBlock {tfs}.rets {segT} {Sexpr} = .ok sc{j}_{k + 1} :=\n  scope_match ism{j}_{k} scpre{j}_{k} scx{j}_{k}\n    {scarChain}\n    scpo{j}_{k}\n"
     let n := prev.rest.length - nxt.rest.length
     let made := Complete.allocsOf (prev.rest.take n)
