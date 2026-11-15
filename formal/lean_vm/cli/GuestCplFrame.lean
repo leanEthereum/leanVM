@@ -51,6 +51,33 @@ partial def callsSelf (f : String) : List Stmt → Bool
       | .match_ _ arms => arms.any (callsSelf f)
       | _ => false) || callsSelf f ss
 
+/-- The blocks a trace enters with a lazily placed value (`pooled` or `addr`) made since the last
+statement: such a value would be placed by whichever block runs first in placement. -/
+def lazyIntoBlock (tf : TracedFn) : Nat :=
+  (tf.trace.toList.foldl (fun (n, lazy) e => match e with
+    | .alloc _ .pooled | .alloc _ .addr => (n, true)
+    | .emit => (n, false)
+    | .enter => (if lazy then n + 1 else n, false)
+    | _ => (n, lazy)) (0, false)).1
+
+/-- The atoms of a body, at any depth. -/
+partial def atomsOf : List Stmt → List LeanVM.Guest.Core.Atom
+  | [] => []
+  | s :: ss => (match s with
+      | .atom a => [a]
+      | .ite _ z n => atomsOf z ++ atomsOf n
+      | .match_ _ arms => arms.flatMap atomsOf
+      | _ => []) ++ atomsOf ss
+
+/-- The stores of a value placed as a shifted pointer, and the frame addresses, of a placed body. -/
+def storesShifted (tf : TracedFn) (pf : Placed) : Nat × Nat :=
+  (atomsOf tf.core.body).foldl (fun (n, m) a => match a with
+    | .load d _ _ => match pf.locs[d]? with
+      | some (.shifted _ _) => (n + 1, m)
+      | _ => (n, m)
+    | .frameAddr _ _ => (n, m + 1)
+    | _ => (n, m)) (0, 0)
+
 def main (args : List String) : IO UInt32 := do
   let detail := args.contains "--detail"
   if args.contains "--selftest" then
@@ -95,4 +122,13 @@ def main (args : List String) : IO UInt32 := do
   let nsc := (P.filter noSelfCallB).length
   IO.println s!"noSelfCallB: {nsc} of {P.length} functions"
   for b in (if detail then badT else badT.extract 0 40) do IO.println s!"  {b}"
+  let nonce := P.filter fun tf => !allocsOnceB tf
+  IO.println s!"allocations once, none a parameter: {P.length - nonce.length} of {P.length} functions"
+  for tf in (if detail then nonce else nonce.take 40) do IO.println s!"  {tf.core.name}"
+  let nlz := P.foldl (fun n tf => n + lazyIntoBlock tf) 0
+  IO.println s!"blocks entered with a lazily placed value pending: {nlz}"
+  let (nst, nfa) := (pls.zip P).foldl (fun (a, b) (pf, tf) =>
+    let (x, y) := storesShifted tf pf
+    (a + x, b + y)) (0, 0)
+  IO.println s!"stores of a shifted value: {nst}; frame addresses: {nfa}"
   return if bad.isEmpty && badT.isEmpty then 0 else 1
