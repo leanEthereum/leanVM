@@ -13,7 +13,6 @@ keccak256.workspace = true
 parallel = { package = "stable_parallel", path = "../parallel" }
 fiat_shamir_prover.workspace = true
 rand = { workspace = true, optional = true }
-verifier.workspace = true
 
 [features]
 # `test_rng`, for the tests of this and other crates; off by default, keeping `rand` out of the build.

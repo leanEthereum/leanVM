@@ -213,7 +213,6 @@ dependencies = [
  "isa",
  "keccak256",
  "stable_parallel",
- "verifier",
 ]
 
 [[package]]
