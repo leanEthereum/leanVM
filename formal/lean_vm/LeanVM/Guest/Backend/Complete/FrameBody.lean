@@ -290,3 +290,65 @@ theorem armSels_sub (x : V) : ∀ (arms : List (List Stmt)) (j : ℕ),
 end
 
 end Sels
+
+/-! ## The statements the function level takes -/
+
+/-- **A flush places no value but those its trace makes** (the flush analogue of `PlaceNew`). -/
+def FlushNew : Prop :=
+  ∀ (ctx : Ctx) (st : St) (up : List Stmt), wpP (flush up) ctx st fun _ st' =>
+    ∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest
+
+/-- The walk's instance of a path with the callee frames `kfps`. -/
+noncomputable def instK {κ₀ : ℕ} (W : World κ₀) (tf : TracedFn) (pf : Placed) (fp : ℕ)
+    (hdr : E × E) (σ : Val) (es : List Ev) (kfps : List ℕ) : Inst :=
+  { instOf W tf pf fp hdr σ es with kf := kfps }
+
+/-- The memories of the walk's words: the frame words patched at the temporaries' cells. -/
+def agK {κ₀ : ℕ} (W : World κ₀) (tf : TracedFn) (pf : Placed) (fp : ℕ) (hdr : E × E)
+    (es : List Ev) (kfps : List ℕ) (I : Inst) :
+    Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop :=
+  fun σ' Ψ kh => AgOf W tf fp σ' es kfps hdr ⟨patchT I Ψ σ', kh⟩ pf.fn.frameSize
+
+/-- **The block lemma at a function's body** (the frame side's): placing the body on the path of
+the instance gives its words. -/
+def BodyW : Prop :=
+  ∀ {κ₀ : ℕ} (W : World κ₀), W.Compiled → ∀ tf ∈ W.p, Scoped tf → ∀ pf, World.PlacedAs W tf pf →
+  TmpsApart tf pf → NoSelfCall tf →
+  ∀ (fp : ℕ), (tf.core.name = "main" → fp = 0) → ∀ (kfps : List ℕ) (hdr : E × E) (σ : Val)
+    (es : List Ev) (vs : List V), walk σ tf.core.body = .ret es vs →
+    (∀ q ∈ addrs es, σ q.1 = ofK (addressOfIndex (fp + (cellP pf.locs q.2).getD 0))) →
+    (∃ rd, (instOf W tf pf fp hdr σ es).Rd rd) →
+    BlockW (World.cplSite W tf.core.name)
+      (agK W tf pf fp hdr es kfps (instK W tf pf fp hdr σ es kfps)) (calls es)
+      (ctxOf (loopTable W.p) (sigTable W.p) tf) (instK W tf pf fp hdr σ es kfps)
+      (placeBlock tf.core.body) tf.core.body []
+
+/-! ## Facts of the program -/
+
+theorem loopTable_go_name : ∀ (fns : List TracedFn) (t : Loops) (g : String) (x : LoopInfo),
+    (fns.foldl (fun table tf => if isLoopName tf.core.name then
+      table.insert tf.core.name ⟨tf.loop.1, tf.loop.2⟩ else table) t)[g]? = some x →
+    t[g]? = some x ∨ isLoopName g = true
+  | [], _, _, _, h => Or.inl h
+  | tf :: fns, t, g, x, h => by
+      rw [List.foldl_cons] at h
+      rcases loopTable_go_name fns _ g x h with h' | h'
+      · split at h'
+        · next hl =>
+          rw [KMap.getElem?_insert] at h'
+          split at h'
+          · next he => exact Or.inr (he ▸ hl)
+          · exact Or.inl h'
+        · exact Or.inl h'
+      · exact Or.inr h'
+
+/-- **A function the loop table has is a loop helper by its name.** -/
+theorem isLoopName_of_registered {fns : List TracedFn} {g : String}
+    (h : ((loopTable fns)[g]?).any (·.registered) = true) : isLoopName g = true := by
+  cases hx : (loopTable fns)[g]? with
+  | none => rw [hx] at h; cases h
+  | some x =>
+    unfold loopTable at hx
+    rcases loopTable_go_name fns {} g x hx with h' | h'
+    · simp at h'
+    · exact h'
