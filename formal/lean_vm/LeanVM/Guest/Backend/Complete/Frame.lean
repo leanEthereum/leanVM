@@ -314,7 +314,7 @@ def AtomFAt (a : Atom) : Prop :=
     I.Ok → (ctx.isMain = true → I.fp = 0) → Memory.Ev.atom a ∈ I.es →
     (∀ rd, I.Rd rd → holdsNT rd I.σ a) →
     (∀ v ∈ Memory.atomUses a, v ∉ I.tmps) → (∀ t ∈ Memory.atomTmps a, t ∈ I.tmps) →
-    (∀ p run, a = .frameAddr p run → ∃ r0 base, run.head? = some r0 ∧
+    (Fits I st → ∀ p run, a = .frameAddr p run → ∃ r0 base, run.head? = some r0 ∧
       st.locs[r0]? = some (.cell base) ∧ I.σ p = ofK (addressOfIndex (I.fp + base))) →
     2 ≤ st.next → VW I C st ok →
     (∀ v ∈ Memory.atomUses a ++ Memory.atomTmps a, ok v ∨
