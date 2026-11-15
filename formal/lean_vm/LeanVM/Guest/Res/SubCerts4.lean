@@ -19,7 +19,7 @@ open LeanVM.Guest LeanVM.Guest.Res
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 336) (by decide +kernel))
+  Mode.fa_cons (subOk_of (j := 336) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_nil)
 
 end
@@ -33,7 +33,7 @@ open LeanVM.Guest LeanVM.Guest.Res
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 337) (by decide +kernel))
+  Mode.fa_cons (subOk_of (j := 337) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_nil)
 
 end
@@ -47,7 +47,7 @@ open LeanVM.Guest LeanVM.Guest.Res
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 346) (by decide +kernel))
+  Mode.fa_cons (subOk_of (j := 346) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_nil)
 
 end
@@ -61,7 +61,7 @@ open LeanVM.Guest LeanVM.Guest.Res
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 338) (by decide +kernel))
+  Mode.fa_cons (subOk_of (j := 338) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_nil)
 
 end
@@ -75,7 +75,7 @@ open LeanVM.Guest LeanVM.Guest.Res
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 339) (by decide +kernel))
+  Mode.fa_cons (subOk_of (j := 339) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_nil)
 
 end
@@ -89,7 +89,7 @@ open LeanVM.Guest LeanVM.Guest.Res
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 340) (by decide +kernel))
+  Mode.fa_cons (subOk_of (j := 340) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_nil)
 
 end
@@ -103,7 +103,7 @@ open LeanVM.Guest LeanVM.Guest.Res
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 341) (by decide +kernel))
+  Mode.fa_cons (subOk_of (j := 341) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_nil)
 
 end
@@ -117,7 +117,7 @@ open LeanVM.Guest LeanVM.Guest.Res
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 342) (by decide +kernel))
+  Mode.fa_cons (subOk_of (j := 342) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_nil)
 
 end
@@ -131,7 +131,7 @@ open LeanVM.Guest LeanVM.Guest.Res
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 343) (by decide +kernel))
+  Mode.fa_cons (subOk_of (j := 343) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_nil)
 
 end
@@ -145,7 +145,7 @@ open LeanVM.Guest LeanVM.Guest.Res
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 344) (by decide +kernel))
+  Mode.fa_cons (subOk_of (j := 344) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_nil)
 
 end
@@ -159,7 +159,7 @@ open LeanVM.Guest LeanVM.Guest.Res
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 345) (by decide +kernel))
+  Mode.fa_cons (subOk_of (j := 345) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_nil)
 
 end
@@ -173,7 +173,7 @@ open LeanVM.Guest LeanVM.Guest.Res
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 20) (by decide +kernel))
+  Mode.fa_cons (subOk_of (j := 20) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_nil)
 
 end
@@ -187,7 +187,7 @@ open LeanVM.Guest LeanVM.Guest.Res
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 1236) (by decide +kernel))
+  Mode.fa_cons (subOk_of (j := 1236) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_nil)
 
 end
@@ -201,7 +201,7 @@ open LeanVM.Guest LeanVM.Guest.Res
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 21) (by decide +kernel))
+  Mode.fa_cons (subOk_of (j := 21) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_nil)
 
 end
@@ -215,7 +215,7 @@ open LeanVM.Guest LeanVM.Guest.Res
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 12) (by decide +kernel))
+  Mode.fa_cons (subOk_of (j := 12) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_nil)
 
 end

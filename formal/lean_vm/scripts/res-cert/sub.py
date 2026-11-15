@@ -1,9 +1,10 @@
 """Writes `Guest/Res/SubCerts*.lean`: every mode walk certificate's `sub` residuals are in the
-families (`Res.SubOk`: a split's, `anyLink`'s or the gap walk's reads, decided at the function's index
-by `Res.subOk_of`), but the certificates of `sel.EXC`; and `ResTop guestCerts` from the listed
-certificates' residuals (`EndExec.resOpen_subOk`) and the listed parameters' nonzero values but those
-of `PROVED`. The
-certificates, their packs, groups and function indices are those `term.py` reads.
+families (`Res.SubOk`: a split's, `anyLink`'s or the gap walk's reads, or a family read off the
+function's code, `Res.subFamB`, on the certificate's witness of that code, which `wit.py` finds),
+decided at the function's index by `Res.subOk_of`, but the certificates of `sel.EXC`; and
+`ResTop guestCerts` from the listed certificates' residuals (`EndExec.resOpen_subOk`) and the listed
+parameters' nonzero values but those of `PROVED`. The certificates, their packs, groups and function
+indices are those `term.py` reads.
 `--check` writes nothing and fails when a file differs.
 Usage: python3 -I scripts/res-cert/sub.py [--check]"""
 import sys, os, glob
@@ -12,6 +13,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import term
 import sel
+import wit
 
 OUT = term.OUT
 # the nonzero values proved here, by their proofs
@@ -24,6 +26,7 @@ def header(mod, what):
 
 def render():
     G = term.groups(); idx = term.packIdx(); files = {}; mods = []
+    W = wit.witnesses(sel.residuals())
     for k, g in enumerate(G):
         mod = 'LeanVM.Guest.Res.SubCerts%d' % k
         t = [header(mod, 'Each certificate\'s `sub` residuals are in the families (`Res.SubOk`), pack by pack.')]
@@ -36,12 +39,12 @@ def render():
                      'public section\n\ntheorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=\n  %s\n\nend\n\n'
                      'end LeanVM.Guest.ModePack.«%s»\n' % (p, term.chain([
                          ('subOk_exc (by simp [resExc])' if n in sel.EXC else
-                          'subOk_of (j := %d) (by decide +kernel)' % j) for n, j in zip(ns, js)]), p))
+                          'subOk_of (j := %d) (w := %s) (by decide +kernel)' % (j, W.get(n, '⟨[], []⟩'))) for n, j in zip(ns, js)]), p))
         files[mod] = ''.join(t); mods.append(mod)
     mod = 'LeanVM.Guest.Res.SubCerts'
     t = [header(mod, '`ResTop guestCerts` from the listed certificates\' residuals and the listed parameters\' nonzero values.')]
     t.append(''.join('public import %s\n' % m for m in mods))
-    t.append('public import LeanVM.Guest.Res.MonoOk\n')
+    t.append('public import LeanVM.Guest.Res.MonoOk\npublic import LeanVM.Guest.EndExecRF\n')
     t.append('\nset_option Elab.async false\n\nnamespace LeanVM.Guest.EndExec\n\nopen LeanVM.Guest LeanVM.Guest.Mode '
              'LeanVM.Guest.Res\n\npublic section\n\n/-- **Every certificate\'s `sub` residuals are in the families.** -/\n'
              'theorem guestCerts_sub : ∀ K ∈ guestCerts, SubOk resExc K :=\n  fa_flatten (fa_flatten (%s))\n\n' % term.chain(
