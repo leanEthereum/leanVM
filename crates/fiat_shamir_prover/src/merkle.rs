@@ -2,10 +2,9 @@
 //! Digest encoding and the Merkle openings a proof carries ([`MerklePath`]), prover side.
 
 use crate::Scalar;
+pub use keccak256::Hash;
 use verifier::Digest;
 pub use verifier::MerklePath;
-
-pub type Hash = [u8; 32];
 
 /// A digest as the two scalars it travels in, its halves ([`Digest::halves`]) in the prover's field.
 pub fn hash_to_scalars<F: Scalar>(hash: &Hash) -> [F; 2] {

@@ -14,7 +14,8 @@
 mod commit;
 mod encode;
 
-pub use commit::{BlobCountError, BlobMatrix, Hash, MERKLE_PATH_LEN, root_of_padding_blob, verify_cell};
+pub use commit::{BlobCountError, BlobMatrix, MERKLE_PATH_LEN, root_of_padding_blob, verify_cell};
+pub use keccak256::Hash;
 
 /// Symbols in one blob, as a logarithm: a blob is 128 KiB.
 pub use verifier::da::LOG_BLOB_SYMBOLS;

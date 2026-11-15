@@ -1,10 +1,7 @@
-use keccak256::{OUT_LEN, hash, hash_many, hash_pair};
+use keccak256::{Hash, OUT_LEN, hash, hash_many, hash_pair};
 
 use crate::encode::encode_rows;
 use crate::{Blob, CELL_SYMBOLS, CELLS_PER_ROW, CODEWORD_SYMBOLS, Codeword, DA_MAX_ROWS, Symbol};
-
-/// A Merkle node.
-pub type Hash = [u8; 32];
 
 /// Nodes in one blob's flat Merkle tree.
 const BLOB_MERKLE_NODES: usize = 2 * CELLS_PER_ROW - 1;

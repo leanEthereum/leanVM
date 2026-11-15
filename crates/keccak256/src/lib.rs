@@ -16,6 +16,8 @@
 
 /// Digest length in bytes. Keccak-256 throughout.
 pub const OUT_LEN: usize = 32;
+/// A digest, a Merkle node.
+pub type Hash = [u8; OUT_LEN];
 /// Sponge rate in bytes: `1600 - 2·256` bits.
 pub const RATE: usize = 136;
 /// Sponge rate in lanes.
