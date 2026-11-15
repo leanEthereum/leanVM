@@ -25,7 +25,7 @@ use std::time::Instant;
 use bench::{Plan, Timing, env_usize};
 use pcs::ood::ood_sample;
 use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim, open_batch_mixed_whir_stacked};
-use pcs::whir::{LOG_INV_RATE_0, commit, config_for_rate, inner_product_base_ext};
+use pcs::whir::{INITIAL_FOLDING_FACTOR, LOG_INV_RATE_0, commit, config_for_rate, inner_product_base_ext};
 use primitives::{
     field::{F64, F128},
     multilinear::eq_table_serial,
@@ -82,7 +82,8 @@ fn main() {
         let _quiet = (!last).then(bench::suppress_tracing);
 
         let t = Instant::now();
-        let (cm, pd) = tracing::info_span!("Commit").in_scope(|| commit(&witness, log_n, pc.initial_k, log_inv_rate));
+        let (cm, pd) =
+            tracing::info_span!("Commit").in_scope(|| commit(&witness, log_n, INITIAL_FOLDING_FACTOR, log_inv_rate));
         commit_t.push(t.elapsed().as_secs_f64());
 
         let mut ch = fiat_shamir::transcript::ProverState::from_label(b"pcs-throughput");
