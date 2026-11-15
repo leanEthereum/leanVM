@@ -31,9 +31,11 @@ into an enumeration of `Fin 512`, which deep unification must not reach.
 * `bad_mono_program`: more hardwired cells, fewer targets.
 * Program ports (the cell not yet hardwired): a program flips a state into `Bad` only through the
   filled cell. At most `2^960` values of an `h` cell (`card_flip_programH_bad_le`), none when the
-  head-tail of the cell is an exempted honest tail (`not_mem_bad_programH_honest`: only `¬ Good`
-  could flip, and `h` never changes goodness); the capacity-scale counts of `preimageRateBound`
-  for `k`, `k'` (`card_flip_programK_bad_le`, `card_flip_programK'_bad_le`).
+  head-tail of the cell is an exempted honest tail (`not_mem_bad_programH_honest`) or a proper
+  prefix of a multi-block honest input, which has no target (`not_mem_bad_programH_short`,
+  `card_flip_programH_bad_le_short`): only `¬ Good` could flip, and `h` never changes goodness.
+  The capacity-scale counts of `preimageRateBound` for `k`, `k'` (`card_flip_programK_bad_le`,
+  `card_flip_programK'_bad_le`).
 * Read ports: the read of the final `h` cell of a message-digest trial of key `(l, e)`, whose cell
   is not recorded (the `1 - P` part of `flipCost`), flips a state into `Bad` with the selection
   recorded for at most `msgCount * 2^960` values, whatever the read leaves in the cell
@@ -475,6 +477,19 @@ theorem not_mem_programH (hanti : TgtAnti tgt) {D : DbReg X Z} {W : Hw X Z} {m :
     (fun t xi hi ↦ hhead (not_mem_targetBad_iff.1 hU).1 t xi
       (hi.mono (extendsAll_eraseH _ z).1)) (some v) h2'
 
+omit [DecidableEq X] in
+open scoped Classical in
+/-- A program of an `h` cell after which no value is in the event flips nothing: its flip count is
+zero. -/
+theorem card_programH_eq_zero {D : DbReg X Z} {W : Hw X Z} {m : M} {z : Z}
+    (h : ∀ v : X, ((Function.update D.1 z none, D.2), (Function.update W.1 z (some v), W.2), m) ∉
+      HwTargetBad π out tgt N) :
+    (Finset.univ.filter fun v : X ↦
+      ((Function.update D.1 z none, D.2), (Function.update W.1 z (some v), W.2), m) ∈
+        HwTargetBad π out tgt N).card = 0 := by
+  rw [Finset.card_eq_zero, Finset.filter_eq_empty_iff]
+  exact fun v _ ↦ h v
+
 open scoped Classical in
 /-- **Programming a `k` cell** that is not hardwired: the capacity-scale count of the `k` fills
 of the union with the cell emptied, which has at most `T` entries per function. -/
@@ -827,6 +842,23 @@ theorem xmssTgt_select {Ex : Set Slot} {m : Selections} {l : Layer} {e : KeyInde
     | param => exact .inl h
     | seed => exact .inl h
 
+/-- **A tail shorter or longer than its slot's honest tail has no target**: at a chain, leaf or
+node slot only tails of the honest length (`fullTarget`) have one, and the other non-message
+slots have none. A proper prefix of a multi-block honest input (the leaf's 8 blocks) is such a
+tail. -/
+theorem xmssTgt_short {Ex : Set Slot} {M : Memory} {s : Slot} {t : List X}
+    (hs : slotOf L.param t = some s) (hmsg : ∀ l e, s ≠ .msg l e)
+    (hlen : (L.honestTail s).map List.length ≠ some t.length) : xmssTgt L Ex M t = none := by
+  rw [xmssTgt, hs, Option.bind_some]
+  have hst : structTgt L Ex t s = none := by
+    unfold structTgt
+    split_ifs
+    · rfl
+    · simp [fullTarget, hlen]
+  cases s with
+  | msg l e => exact absurd rfl (hmsg l e)
+  | _ => exact hst
+
 end Targets
 
 /-! ## The event -/
@@ -913,6 +945,34 @@ theorem not_mem_bad_programH_honest {D : DbReg X Z} {W : Hw X Z} {m : Selections
   not_mem_programH (tgtAnti_xmssTgtHw L) hs hW v fun hG _ _ hi ↦ by
     obtain ⟨rfl, -⟩ := hG.isHeadTail_unique hi hhead
     exact xmssTgt_honestTail ht hex
+
+/-- **Programming an intermediate `h` cell of a multi-block honest path**: no value flips. In
+the good union the head-tail of the cell is `t₀`, at a non-message slot `s` with a length other
+than the honest tail's (a proper prefix of the honest input), so it has no target; and `h` never
+changes goodness. -/
+theorem not_mem_bad_programH_short {D : DbReg X Z} {W : Hw X Z} {m : Selections}
+    (hs : (D, W, m) ∉ Bad L N) {z : Z} (hW : W.1 z = none) (v : X) {s : Slot} {t₀ : List X}
+    {xi₀ : X} (hslot : slotOf L.param t₀ = some s) (hmsg : ∀ l e, s ≠ .msg l e)
+    (hlen : (L.honestTail s).map List.length ≠ some t₀.length)
+    (hhead : IsHeadTail L.perm (union W D) t₀ z xi₀) :
+    ((Function.update D.1 z none, D.2), (Function.update W.1 z (some v), W.2), m) ∉ Bad L N :=
+  not_mem_programH (tgtAnti_xmssTgtHw L) hs hW v fun hG _ _ hi ↦ by
+    obtain ⟨rfl, -⟩ := hG.isHeadTail_unique hi hhead
+    exact xmssTgt_short hslot hmsg hlen
+
+open scoped Classical in
+/-- **`card_flip_programH_bad_le_short`**: programming an intermediate `h` cell of a multi-block
+honest path flips no state outside `Bad`, for any value (the program port's flip set at this
+state is empty). -/
+theorem card_flip_programH_bad_le_short {D : DbReg X Z} {W : Hw X Z} {m : Selections}
+    (hs : (D, W, m) ∉ Bad L N) {z : Z} (hW : W.1 z = none) {s : Slot} {t₀ : List X} {xi₀ : X}
+    (hslot : slotOf L.param t₀ = some s) (hmsg : ∀ l e, s ≠ .msg l e)
+    (hlen : (L.honestTail s).map List.length ≠ some t₀.length)
+    (hhead : IsHeadTail L.perm (union W D) t₀ z xi₀) :
+    (Finset.univ.filter fun v : X ↦
+      ((Function.update D.1 z none, D.2), (Function.update W.1 z (some v), W.2), m) ∈
+        Bad L N).card = 0 :=
+  card_programH_eq_zero fun v ↦ not_mem_bad_programH_short hs hW v hslot hmsg hlen hhead
 
 open scoped Classical in
 /-- **Programming a `k` cell** that is not hardwired: the capacity-scale count of
