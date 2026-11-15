@@ -22,13 +22,11 @@ use primitives::field::{F64, F128, g_pow};
 
 mod execute;
 pub mod hints;
-mod isa;
 pub mod layout;
 mod trace;
-pub use ::isa::Stats;
 pub(crate) use execute::Cell;
 pub use execute::{ExecError, Execution, Fault, Memory};
-pub use isa::{DerefMode, Op, OutCells};
+pub use isa::{DerefMode, Op, OutCells, Stats};
 pub use layout::*;
 pub(crate) use trace::{Drow, Jrow, Krow, Rows, Srow, Trace, Xrow};
 
@@ -93,8 +91,8 @@ pub struct Program {
 const _: () = assert!(cfg!(target_endian = "little"));
 
 /// A compiled program, assembled: its IV and bytecode columns computed, its debug information kept.
-impl From<::isa::CompiledProgram> for Program {
-    fn from(compiled: ::isa::CompiledProgram) -> Self {
+impl From<isa::CompiledProgram> for Program {
+    fn from(compiled: isa::CompiledProgram) -> Self {
         let mut program = Self::assemble(compiled.prog, compiled.hints, compiled.main_frame);
         program.fn_ranges = compiled.fn_ranges;
         program.src_lines = compiled.src_lines;
