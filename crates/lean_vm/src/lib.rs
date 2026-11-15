@@ -43,8 +43,8 @@ pub mod lean_sphincs {
     };
 }
 
-/// Call once before [`aggregate`]: it starts the prover's thread pool and builds the aggregation program and its
-/// Fiat-Shamir IV, which [`AggregateProof::verify`] also reads (it builds them on first use otherwise, and needs no pool).
+/// Starts the prover's thread pool and builds the aggregation program and its Fiat-Shamir IV, which
+/// [`AggregateProof::verify`] also reads. Optional: both are built on first use otherwise.
 pub fn setup() {
     P::init();
     aggregation::unified_guest().bytecode();
