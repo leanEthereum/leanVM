@@ -5,7 +5,7 @@
 //! ```
 //!
 //! With `-- --json` it prints, in place of the report, the proving time as Bencher Metric
-//! Format, which is what CI compares. `cargo leanvm hash` runs the same benchmark.
+//! Format, which is what CI compares.
 //!
 //! `KECCAK_DEPTH` sets the rounds between two committed states (a divisor of 24).
 //! `BENCH_TRACING=1` prints the final pass's span tree (`RUST_LOG` adjusts it).

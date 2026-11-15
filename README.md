@@ -139,7 +139,7 @@ recursion 2→1, over leaves of 1,400 leanXMSS signatures, leaf rate = 1/4, recu
 ### Proving KECCAK
 
 ```bash
-cargo leanvm hash --log-n 17 --repeat 3
+KECCAK_N_LOG=17 BENCH_REPEAT=3 cargo bench -p experimental_keccak_gkr --bench hash_batch
 ```
 
 ```

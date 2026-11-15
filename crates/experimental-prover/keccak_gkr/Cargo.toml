@@ -17,7 +17,7 @@ bench = { workspace = true, optional = true }
 verifier = { workspace = true, optional = true }
 
 [features]
-# The standalone batch benchmark (`batch_bench`), for the `hash_batch` target and the CLI.
+# The standalone batch benchmark (`batch_bench`), for the `hash_batch` target.
 bench = ["dep:bench", "dep:verifier", "primitives/test-util"]
 
 [dev-dependencies]

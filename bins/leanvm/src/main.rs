@@ -1,4 +1,4 @@
-//! Benchmark CLI for signature and blob proofs, recursion, batched Keccak, and the Fibonacci demo.
+//! Benchmark CLI for signature and blob proofs, recursion, and the Fibonacci demo.
 
 #[global_allocator]
 static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;
@@ -11,38 +11,8 @@ mod benchmark;
 mod fibonacci;
 mod report;
 
-/// A prover as the CLI runs it: the shared crates' [`isa::Prover`], and the Keccak GKR alone, which only its tree has.
-trait CliProver: isa::Prover {
-    /// The `hash` subcommand: the Keccak GKR alone, on `2^log_n` permutations.
-    fn hash(log_n: usize, log_inv_rate: usize, plan: bench::Plan);
-}
-
-impl CliProver for StableProver {
-    fn hash(log_n: usize, log_inv_rate: usize, plan: bench::Plan) {
-        use stable_lean_vm_core::{keccak, pcs};
-        let least = (pcs::MIN_STACKED_LOG - keccak::SLOT_LOG).max(keccak::MIN_STEPS.ilog2() as usize);
-        check_log_n(log_n, least, pcs::MAX_STACKED_LOG - keccak::SLOT_LOG);
-        stable_keccak_gkr::batch_bench::run(1 << log_n, keccak::DEPTH, log_inv_rate, plan).print();
-    }
-}
-
-impl CliProver for ExperimentalProver {
-    fn hash(log_n: usize, log_inv_rate: usize, plan: bench::Plan) {
-        use experimental_lean_vm_core::{keccak, pcs};
-        let least = (pcs::MIN_STACKED_LOG - keccak::SLOT_LOG).max(keccak::MIN_STEPS.ilog2() as usize);
-        check_log_n(log_n, least, pcs::MAX_STACKED_LOG - keccak::SLOT_LOG);
-        experimental_keccak_gkr::batch_bench::run(1 << log_n, keccak::DEPTH, log_inv_rate, plan).print();
-    }
-}
-
-fn check_log_n(log_n: usize, least: usize, most: usize) {
-    if !(least..=most).contains(&log_n) {
-        invalid(format!("--log-n must be in {least}..={most}"));
-    }
-}
-
 /// Run the CLI's command on prover `P`, whose thread pool is the only one started.
-fn run<P: CliProver>(cli: Cli) {
+fn run<P: isa::Prover>(cli: Cli) {
     if let Command::Aggregate { blobs, .. }
     | Command::Recursion {
         blobs_per_leaf: blobs, ..
@@ -78,7 +48,6 @@ fn run<P: CliProver>(cli: Cli) {
                 plan,
             );
         }
-        Command::Hash { log_n } => P::hash(log_n, cli.log_inv_rate, plan),
         Command::Fibonacci { n } => fibonacci::run_fibonacci::<P>(n, cli.log_inv_rate, plan),
     }
 }
@@ -163,13 +132,6 @@ enum Command {
             value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..=4)
         )]
         leaf_log_inv_rate: Option<usize>,
-    },
-    /// Prove and verify a batch of Keccak-f permutations with the VM's GKR, outside the VM.
-    Hash {
-        /// Log2 of the number of permutations: a committed block the verifiers accept, from the
-        /// least stack (or the reduction's fewest steps, if more) to the largest.
-        #[arg(long, default_value_t = 17)]
-        log_n: usize,
     },
     /// Prove and verify Fibonacci in the exponent (demo).
     Fibonacci {

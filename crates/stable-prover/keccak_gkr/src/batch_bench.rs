@@ -1,4 +1,4 @@
-//! The standalone batch benchmark, shared by the `hash_batch` bench target and `cargo leanvm hash`:
+//! The standalone batch benchmark of the `hash_batch` bench target and the tests:
 //! witness, commitment, reduction and opening of `n` random permutations, then verification.
 
 use std::time::Instant;
