@@ -11,12 +11,6 @@ pub fn interp(lo: F128, hi: F128, t: F128) -> F128 {
     lo + t * (lo + hi)
 }
 
-/// [`interp`] between two `K` endpoints: one mixed product.
-#[inline]
-pub fn interp_k(lo: F64, hi: F64, t: F128) -> F128 {
-    F128::from(lo) + t.mul_base(lo + hi)
-}
-
 /// `eq(r, x) = ∏_i (1 + r_i + x_i)`: for Boolean `r` the indicator of `x = r`, for any `r` the multilinear
 /// interpolation weight of `x`.
 pub fn eq_eval(r: &[F128], x: &[F128]) -> F128 {

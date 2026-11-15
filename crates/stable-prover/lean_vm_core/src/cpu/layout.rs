@@ -152,7 +152,7 @@ pub fn col_kappa_sources(log_bytecode: usize) -> Vec<Option<(usize, usize)>> {
         k[base..base + TABLE_WIDTHS[t]].fill(Some((2 + t, 0)));
     }
     // The columns `q_keccak` carries are virtual: it holds the input lanes and the KECCAK columns riding its spare
-    // slots, whose claims route to those slots (`slot_claims`), and the output lanes are the reduction's to prove.
+    // slots, whose claims route to those slots (`slot_claim`), and the output lanes are the reduction's to prove.
     for (col, k) in k.iter_mut().enumerate() {
         if keccak_value(col).is_some() {
             *k = None;

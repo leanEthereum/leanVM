@@ -341,50 +341,36 @@ pub fn prove(program: &Program, public_input: [F128; 2], log_inv_rate: usize) ->
 /// the bus's framework claims, then the table sumcheck's per-table column claims (less the
 /// `KECCAK` output lanes', which go to the reduction), then the two public-input limb
 /// claims, each located in its committed slot. Every verifier assembles the same list in
-/// the same order.
+/// the same order. The opening needs only each claim's column and point: the values were
+/// sent with the claims, or are the verifier's own.
 fn finish_claims(
     l: &Layout,
     bus_claims: Vec<ColumnClaim>,
     table_claims: &[constraints::Claims],
     r_pi: F128,
 ) -> Vec<pcs::SlotClaim> {
-    let mut claims = bus_claims;
-    claims.reserve(N_COLUMNS - N_SHARED);
-    for t in 0..tables::N_TABLES {
-        for c in 0..TABLE_WIDTHS[t] {
-            let col = GLOBAL_COLUMN_BASES[t] + c;
-            if let Some(KeccakLane::Output(_)) = keccak_value(col) {
-                continue; // the Keccak reduction's claim on the output (`keccak_output_claim`)
-            }
-            claims.push(ColumnClaim {
-                col,
-                point: table_claims[t].chi.clone(),
-                value: table_claims[t].evals[c],
-            });
-        }
-    }
-    claims.extend(bind_pi_claim(r_pi, l));
-    slot_claims(l, claims)
+    let bus = bus_claims.into_iter().map(|c| (c.col, c.point));
+    let tables = (0..tables::N_TABLES).flat_map(|t| {
+        (GLOBAL_COLUMN_BASES[t]..GLOBAL_COLUMN_BASES[t] + TABLE_WIDTHS[t])
+            // the Keccak reduction's claim on the output (`keccak_output_claim`)
+            .filter(|&col| !matches!(keccak_value(col), Some(KeccakLane::Output(_))))
+            .map(move |col| (col, table_claims[t].chi.clone()))
+    });
+    let pi = pi_point(r_pi, l);
+    let pi = [MEM_LO, MEM_HI].map(|col| (col, pi.clone()));
+    (bus.chain(tables).chain(pi))
+        .map(|(col, point)| slot_claim(l, col, point))
+        .collect()
 }
 
-/// The public-input binding (§sec:e2e-pi): each committed `MEM` limb at
+/// The point of the public-input binding (§sec:e2e-pi): each committed `MEM` limb at
 /// `(r, 0,…,0)` must equal the line through that limb of `pi[0]` and `pi[1]`.
-/// The public input is the statement, so both sides evaluate the lines
-/// themselves and build byte-identical claims from their layouts; the prover
-/// sends nothing.
-fn bind_pi_claim(r: F128, l: &Layout) -> [ColumnClaim; 2] {
-    let [a, b] = l.pi;
-    let limbs = [(a.c0, b.c0), (a.c1, b.c1)];
+/// The public input is the statement, so the verifier evaluates the lines itself;
+/// the prover sends nothing.
+fn pi_point(r: F128, l: &Layout) -> Vec<F128> {
     let mut point = vec![F128::ZERO; l.placements[MEM_LO].n_vars];
     point[0] = r;
-    [MEM_LO, MEM_HI].map(|col| {
-        let (x, y) = limbs[col - MEM_LO];
-        ColumnClaim {
-            col,
-            point: point.clone(),
-            value: primitives::multilinear::interp_k(F64(x), F64(y), r),
-        }
-    })
+    point
 }
 
 /// A field element in the `verifier` crate's type, and back: the same limbs, no arithmetic.
@@ -423,26 +409,21 @@ pub fn verify(
     verifier::verify_execution(&bytecode, &public_input_bytes(public_input), proof)
 }
 
-/// Lift `ColumnClaim`s to located PCS claims: a claim on column `c` lives in
-/// the slot at `placements[c].offset`, with the claim's point as the low point.
+/// Locate a claim on column `col` at `point`: it lives in the slot at `placements[col].offset`,
+/// with the claim's point as the low point.
 ///
 /// The columns `q_keccak` carries are virtual: they have no committed placement. A claim
 /// `col(r) = v` on one, at the instance point `r`, is the claim on its slot's `2^|r|` words of
 /// `q_keccak`, which folds into the one opening like every other point claim.
-fn slot_claims(l: &Layout, claims: Vec<ColumnClaim>) -> Vec<pcs::SlotClaim> {
-    claims
-        .into_iter()
-        .map(|c| {
-            let offset = match keccak_value(c.col) {
-                Some(KeccakLane::Slot(slot)) => l.placements[QKECCAK].offset + (slot << c.point.len()),
-                _ => l.placements[c.col].offset,
-            };
-            pcs::SlotClaim {
-                offset,
-                low_point: c.point,
-            }
-        })
-        .collect()
+fn slot_claim(l: &Layout, col: usize, point: Vec<F128>) -> pcs::SlotClaim {
+    let offset = match keccak_value(col) {
+        Some(KeccakLane::Slot(slot)) => l.placements[QKECCAK].offset + (slot << point.len()),
+        _ => l.placements[col].offset,
+    };
+    pcs::SlotClaim {
+        offset,
+        low_point: point,
+    }
 }
 
 #[cfg(test)]
