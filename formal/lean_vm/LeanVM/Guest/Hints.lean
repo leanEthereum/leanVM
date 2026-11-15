@@ -34,7 +34,7 @@ of entries in the order the guest pops them, for a run on the statement `s` unde
 at cells `g^0` and `g^1`. They mirror the Rust producers of
 `crates/aggregation/src/` (leanVM main `40f877dc`) push for push (`honestPushes`,
 grouped by stream as `Hints::push` does, `crates/aggregation/src/hints.rs`): the node's streams
-(`aggregate_with_stats`, `crates/aggregation/src/node.rs`), a raw signature's (`lean_xmss_hints`,
+(`aggregate`, `crates/aggregation/src/node.rs`), a raw signature's (`lean_xmss_hints`,
 `crates/aggregation/src/hints.rs`; `lean_sphincs_hints`, `crates/aggregation/src/hints.rs`), a
 child's (`gen_verify`, `crates/aggregation/src/child.rs`), the batching's
 (`aggregate_deferred_claims`, `crates/aggregation/src/deferred.rs`) and LeanDA's.
@@ -283,7 +283,7 @@ def sphincsHints (pk : Sphincs.PublicKey) (message : HashSig.Message) (σ : Sphi
 /-! ## LeanDA -/
 
 /-- A blob matrix's hints: the claim's membership challenge, the row count, and every row's cells,
-column by column (`aggregate_with_stats`, `crates/aggregation/src/node.rs`). The Rust
+column by column (`aggregate`, `crates/aggregation/src/node.rs`). The Rust
 pushes the root's challenge (`membership_challenge`, `crates/verifier/src/da.rs`), the claim's on
 an honest node. -/
 def daHints (c : DaClaim) (w : Da.MatrixWitness) : List (String × Entry) :=
@@ -445,7 +445,7 @@ def childHints (bytecode : List K) (seed : Digest) (c : Child) : List (String ×
       ("col_group_order", colGroupOrder layout), ("block_group_order", blockGroupOrder layout)] ++
       queries
 
-/-! ## The node (`aggregate_with_stats`) -/
+/-! ## The node (`aggregate`) -/
 
 /-- Whether a list is strictly increasing (`is_sorted_by(a < b)`). -/
 def increasing : List ℕ → Bool
@@ -480,7 +480,7 @@ def daPick (s : NodeStatement) (w : NodeWitness) : ℕ :=
   if w.daMatrix.isSome || s.claims.daDigest == zeroDigest then w.children.length
   else (w.children.findIdx? fun c ↦ c.statement.claims.daDigest == s.claims.daDigest).getD w.children.length
 
-/-- **Every push of an honest run**, in the order `aggregate_with_stats` makes them. -/
+/-- **Every push of an honest run**, in the order `aggregate` makes them. -/
 def honestPushes (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : NodeWitness) :
     List (String × Entry) :=
   let rawX := w.xmssSignatures

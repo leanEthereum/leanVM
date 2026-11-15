@@ -24,9 +24,9 @@ predicate on the witness:
 
 * **`DeployedLimits s w`, the deployed limits** of the node, which the Spec does not have (listed
   at the structure): the claims held with multiplicity and at most `16` children, which the guest
-  enforces (`aggregate_with_stats` refuses more than `16` children), and caps on the children's
+  enforces (`aggregate` refuses more than `16` children), and caps on the children's
   claims, the raw signatures and the blob matrix's rows, which neither the guest nor
-  `aggregate_with_stats` enforces: a node past a cap is still accepted, but completeness does not
+  `aggregate` enforces: a node past a cap is still accepted, but completeness does not
   cover it. An honest prover within them is never refused. The guest's proofs take them with the
   coverage table below `2^23` (`GuestLimits`), which their caps give.
 * **`ChildrenOk bytecode seed w`, every child one the guest accepts** (`AcceptableChild`, `LeanVM/Guest/AcceptableChild.lean`): besides
