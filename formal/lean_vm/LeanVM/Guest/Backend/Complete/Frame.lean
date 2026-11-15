@@ -323,13 +323,6 @@ def VW (I : Inst) (C : (ℕ → E) → Prop) (st : St) (ok : V → Prop) : Prop 
   ∀ v l, ok v → st.locs[v]? = some l →
     2 ≤ locBase l ∧ locBase l < st.next ∧ ∀ Ψ, C Ψ → locW Ψ l = I.σ v
 
-/-- **The words of the values a path read**: each value of `vs` but a temporary that the final
-placement places is placed so by `st` already, in the frame below the next free cell, and its place
-holds its word under the constraint. -/
-def RW (I : Inst) (C : (ℕ → E) → Prop) (st : St) (vs : List V) : Prop :=
-  ∀ v ∈ vs, v ∉ I.tmps → ∀ l, I.locs[v]? = some l →
-    st.locs[v]? = some l ∧ 2 ≤ locBase l ∧ locBase l < st.next ∧ ∀ Ψ, C Ψ → locW Ψ l = I.σ v
-
 /-- What the walk takes of an instance: some reader holds the path's events, the layout resolves
 a `SET` constant to its word and (in a registered loop helper, the only function that sets it)
 the frame size to `g^size`, no value the function names but a temporary has a temporary's cell,
@@ -376,6 +369,7 @@ def AtomFAt (a : Atom) : Prop :=
     (∀ v ∈ Memory.atomUses a, v ∈ I.named) →
     (Fits I st → ∀ p run, a = .frameAddr p run → ∃ r0 base, run.head? = some r0 ∧
       st.locs[r0]? = some (.cell base) ∧ I.σ p = ofK (addressOfIndex (I.fp + base))) →
+    (Fits I st → ∀ d p off, a = .load d p off → ∀ n, st.locs[d]? ≠ some (.shifted n 0)) →
     2 ≤ st.next → VW I C st ok → (OutOps I st → PoolNT I st.scope) →
     (∀ v ∈ Memory.atomUses a ++ Memory.atomTmps a, ok v ∨
       ∃ s, s ≠ v ∧ a = .copy v s ∧ st.aliasRun.any (·.contains v) = true) →
@@ -384,9 +378,8 @@ def AtomFAt (a : Atom) : Prop :=
         st'.rest = st.rest ∧
         (∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨
           v ∈ Memory.atomUses a ++ Memory.atomTmps a) ∧
-        (∀ c, c < st.next → (∀ Ψ w, C Ψ → C (Function.update Ψ c w)) →
-          ∀ Ψ w, C' Ψ → C' (Function.update Ψ c w)) ∧
-        ∀ v ∈ Memory.atomUses a ++ Memory.atomTmps a, st'.locs[v]? ≠ none
+        ∀ c, c < st.next → (∀ Ψ w, C Ψ → C (Function.update Ψ c w)) →
+          ∀ Ψ w, C' Ψ → C' (Function.update Ψ c w)
 
 /-- **A placement keeps the multiplied pool cells off the temporaries** once the final placement
 has the straight-line instructions it placed (each such cell is written by a `MUL` it placed,

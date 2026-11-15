@@ -134,22 +134,50 @@ def KsAt (cl : List Call) (kf : List ℕ) (kh : ℕ → E × E) (i₀ : ℕ) (bc
     (∃ kfp, ks[j]? = some (i₀ + j, kfp) ∧ kf[i₀ + j]? = some kfp) ∧
     cl[i₀ + j]? = bc[j]? ∧ kh (i₀ + j) = hs.getD j (0, 0)
 
+/-- **The callee headers of a block's calls** `bc`: in `K` once this frame's header is (a
+function's), and this frame's header for a call of the function itself. -/
+def HsOk (I : Inst) (bx : Ctx) (bc : List Call) (hs : List (E × E)) : Prop :=
+  ((bx.isMain = false → IsInK I.hdr.1 ∧ IsInK I.hdr.2) → ∀ h ∈ hs, IsInK h.1 ∧ IsInK h.2) ∧
+    ∀ j (hj : j < hs.length) c, bc[j]? = some c → c.f = bx.name → hs[j] = I.hdr
+
+theorem HsOk.nil (I : Inst) (bx : Ctx) (bc : List Call) : HsOk I bx bc [] :=
+  ⟨fun _ _ h => (nomatch h), fun _ hj => absurd hj (Nat.not_lt_zero _)⟩
+
+theorem HsOk.append {I : Inst} {bx : Ctx} {bc₁ bc₂ : List Call} {hs₁ hs₂ : List (E × E)}
+    (h₁ : HsOk I bx bc₁ hs₁) (h₂ : HsOk I bx bc₂ hs₂) (hl : hs₁.length = bc₁.length) :
+    HsOk I bx (bc₁ ++ bc₂) (hs₁ ++ hs₂) := by
+  refine ⟨fun hk h hm => (List.mem_append.mp hm).elim (h₁.1 hk h) (h₂.1 hk h),
+    fun j hj c hc hf => ?_⟩
+  by_cases hj₁ : j < hs₁.length
+  · rw [List.getElem_append_left hj₁]
+    exact h₁.2 j hj₁ c (by rwa [List.getElem?_append_left (by omega)] at hc) hf
+  · rw [List.length_append] at hj
+    rw [List.getElem_append_right (by omega)]
+    exact h₂.2 (j - hs₁.length) (by omega) c
+      (by rwa [List.getElem?_append_right (by omega), ← hl] at hc) hf
+
+/-- What the words of a path take of the frame: a function's header words in `K`, and a
+registered loop helper's last callee frame right past its own. -/
+def PremW (I : Inst) (bx : Ctx) : Prop :=
+  (bx.isMain = false → IsInK I.hdr.1 ∧ IsInK I.hdr.2) ∧
+    (I.loopH = true → ∀ kfp, I.kf.getLast? = some kfp → kfp = I.fp + I.size)
+
 /-- **The words of a placed block on the path**: the block `blk` placed at the absolute position
 `pos` for the core statements `ss` (followed by `tl`) whose path under the instance's valuation is
 `o`, its calls from index `i₀`; for every frame word the constraint allows and every valuation
 `Same` as the instance's, its statements' words (`wLc`), the memories being `Ag σ' Ψ kh`, with
 callee headers `hs`. -/
-def BlkW {κ₀ : ℕ} (Γ : Site κ₀) (I : Inst) (main : Bool)
+def BlkW {κ₀ : ℕ} (Γ : Site κ₀) (I : Inst) (bx : Ctx)
     (Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop) (cl : List Call)
     (C : (ℕ → E) → Prop) (blk : List PStmt) (ss tl : List Stmt) (o : Out) (i₀ pos : ℕ) : Prop :=
-  ∃ hs : List (E × E), hs.length = (calls (outEs o)).length ∧
-  ∀ Ψ, C Ψ → ∀ σ', I.Same σ' → ∀ (kh : ℕ → E × E) (cs : List Stmt)
+  ∃ hs : List (E × E), hs.length = (calls (outEs o)).length ∧ HsOk I bx (calls (outEs o)) hs ∧
+  (PremW I bx → ∀ Ψ, C Ψ → ∀ σ', I.Same σ' → ∀ (kh : ℕ → E × E) (cs : List Stmt)
     (ks : List (ℕ × ℕ)) (next : List Stmt → List (ℕ × ℕ) → Prop)
     (kj : List (ℕ × ℕ) → E → E → Prop) (kret khalt : Prop),
     (∀ o' ∈ blockOps blk pos, o' ∈ I.ops) →
     ctrlSplit cs = ctrlSplit (ss ++ tl) → KsAt cl I.kf kh i₀ (calls (outEs o)) hs ks →
-    OutK o tl next (if main then khalt else kret) ks →
-    wLc Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl blk cs pos ks next kj kret khalt
+    OutK o tl next (if bx.isMain then khalt else kret) ks →
+    wLc Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl blk cs pos ks next kj kret khalt)
 
 /-- `FAt` for actions that place control statements: the constraint's properties kept, the next
 free cell and the places growing, the result under the new constraint and state. -/
@@ -158,6 +186,13 @@ def FBAt {α : Type} (ctx : Ctx) (I : Inst) (C : (ℕ → E) → Prop) (st : St)
   COk I C st.next st.scope st.locs →
   wpP m ctx st fun a st' => ∃ C', (∃ Ψ, C' Ψ) ∧ Blind C' st'.next ∧ Stronger C' C ∧
     st.next ≤ st'.next ∧ LocsLe st.locs st'.locs ∧ R a C' st'
+
+/-- **The words of the values a path read**: no value of `vs` is made by an event of the rest of
+the trace (so no later placement places it), and a value of `vs` but a temporary, once placed,
+is in the frame below the next free cell and its place holds its word under the constraint. -/
+def RW (I : Inst) (C : (ℕ → E) → Prop) (st : St) (vs : List V) : Prop :=
+  ∀ v ∈ vs, v ∉ allocsOf st.rest ∧ (v ∉ I.tmps → ∀ l, st.locs[v]? = some l →
+    2 ≤ locBase l ∧ locBase l < st.next ∧ ∀ Ψ, C Ψ → locW Ψ l = I.σ v)
 
 /-- **What a block's placement on the path gives**, from `st` to `st'` for the core statements
 `ss` (followed by `tl`) with path `o`, calls from `i₀`, the current block's placed statements
@@ -170,7 +205,7 @@ def BlockOut {κ₀ : ℕ} (Γ : Site κ₀) (Ag : Val → (ℕ → E) → (ℕ 
   (∀ es, o = .fall es → Fits I st' → OpsAt I p₀ st' → WInv ctx I C' st' s') ∧
     st'.chainIn = none ∧ (Fits I st' → OpsAt I p₀ st' → ∃ blk,
       st'.out.toList = st.out.toList ++ blk ∧
-      BlkW Γ I ctx.isMain Ag cl C' blk ss tl o i₀ (p₀ + blockSize st.out.toList) ∧
+      BlkW Γ I ctx Ag cl C' blk ss tl o i₀ (p₀ + blockSize st.out.toList) ∧
       RW I C' st' (pathVals I.σ ss o))
 
 /-- **The block lemma's statement**: placing the core block `ss` (followed by `tl`) on the path
@@ -200,31 +235,31 @@ section Compose
 
 variable {κ₀ : ℕ} {Γ : Site κ₀} {I : Inst}
   {Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop} {cl : List Call}
-  {main : Bool}
+  {bx : Ctx}
 
 theorem BlkW.mono {C C' : (ℕ → E) → Prop} {blk : List PStmt} {ss tl : List Stmt} {o : Out}
-    {i₀ pos : ℕ} (h : BlkW Γ I main Ag cl C blk ss tl o i₀ pos) (hs : Stronger C' C) :
-    BlkW Γ I main Ag cl C' blk ss tl o i₀ pos := by
-  obtain ⟨hs', hl, h⟩ := h
-  exact ⟨hs', hl, fun Ψ hΨ => h Ψ (hs Ψ hΨ)⟩
+    {i₀ pos : ℕ} (h : BlkW Γ I bx Ag cl C blk ss tl o i₀ pos) (hs : Stronger C' C) :
+    BlkW Γ I bx Ag cl C' blk ss tl o i₀ pos := by
+  obtain ⟨hs', hl, hh, h⟩ := h
+  exact ⟨hs', hl, hh, fun hp Ψ hΨ => h hp Ψ (hs Ψ hΨ)⟩
 
 /-- A block whose path returns, then statements off the path. -/
 theorem BlkW.append_ret {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt} {ss₁ ss₂ tl : List Stmt}
     {es : List Ev} {vs : List V} {i₀ pos : ℕ}
-    (h₁ : BlkW Γ I main Ag cl C blk₁ ss₁ (ss₂ ++ tl) (.ret es vs) i₀ pos) :
-    BlkW Γ I main Ag cl C (blk₁ ++ blk₂) (ss₁ ++ ss₂) tl (.ret es vs) i₀ pos := by
-  obtain ⟨hs, hl, h⟩ := h₁
-  refine ⟨hs, hl, fun Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops hcs hks hk => ?_⟩
+    (h₁ : BlkW Γ I bx Ag cl C blk₁ ss₁ (ss₂ ++ tl) (.ret es vs) i₀ pos) :
+    BlkW Γ I bx Ag cl C (blk₁ ++ blk₂) (ss₁ ++ ss₂) tl (.ret es vs) i₀ pos := by
+  obtain ⟨hs, hl, hh, h⟩ := h₁
+  refine ⟨hs, hl, hh, fun hp Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops hcs hks hk => ?_⟩
   have hops₁ : ∀ o' ∈ blockOps blk₁ pos, o' ∈ I.ops := fun o' ho =>
     hops o' (by rw [bops_append]; exact List.mem_append_left _ ho)
   have hcs₁ : ctrlSplit cs = ctrlSplit (ss₁ ++ (ss₂ ++ tl)) := by rwa [← List.append_assoc]
   cases blk₂ with
   | nil =>
     rw [List.append_nil]
-    exact h Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops₁ hcs₁ hks hk
+    exact h hp Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops₁ hcs₁ hks hk
   | cons b bs =>
     rw [wLc_append _ _ _ _ _ _ _ blk₁ (b :: bs) (List.cons_ne_nil _ _)]
-    exact h Ψ hΨ σ' hσ kh cs ks _ _ kret khalt hops₁ hcs₁ hks hk
+    exact h hp Ψ hΨ σ' hσ kh cs ks _ _ kret khalt hops₁ hcs₁ hks hk
 
 theorem calls_append' (a b : List Ev) : calls (a ++ b) = calls a ++ calls b := by
   simp [calls, List.filterMap_append]
@@ -234,14 +269,15 @@ theorem BlkW.append_core {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt}
     (hc : calls (outEs o) = calls es₁ ++ calls (outEs o₂))
     (hk : ∀ next kret ks, OutK o tl next kret ks →
       OutK o₂ tl next kret (ks.drop (calls es₁).length))
-    (h₁ : BlkW Γ I main Ag cl C blk₁ ss₁ (ss₂ ++ tl) (.fall es₁) i₀ pos)
-    (h₂ : BlkW Γ I main Ag cl C blk₂ ss₂ tl o₂ (i₀ + (calls es₁).length) (pos + blockSize blk₁)) :
-    BlkW Γ I main Ag cl C (blk₁ ++ blk₂) (ss₁ ++ ss₂) tl o i₀ pos := by
-  obtain ⟨hs₁, hl₁, h₁⟩ := h₁
-  obtain ⟨hs₂, hl₂, h₂⟩ := h₂
-  simp only [outEs] at hl₁
-  refine ⟨hs₁ ++ hs₂, by rw [List.length_append, hl₁, hl₂, hc, List.length_append], ?_⟩
-  intro Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops hcs hks hk'
+    (h₁ : BlkW Γ I bx Ag cl C blk₁ ss₁ (ss₂ ++ tl) (.fall es₁) i₀ pos)
+    (h₂ : BlkW Γ I bx Ag cl C blk₂ ss₂ tl o₂ (i₀ + (calls es₁).length) (pos + blockSize blk₁)) :
+    BlkW Γ I bx Ag cl C (blk₁ ++ blk₂) (ss₁ ++ ss₂) tl o i₀ pos := by
+  obtain ⟨hs₁, hl₁, hh₁, h₁⟩ := h₁
+  obtain ⟨hs₂, hl₂, hh₂, h₂⟩ := h₂
+  simp only [outEs] at hl₁ hh₁
+  refine ⟨hs₁ ++ hs₂, by rw [List.length_append, hl₁, hl₂, hc, List.length_append],
+    by rw [hc]; exact hh₁.append hh₂ hl₁, ?_⟩
+  intro hp Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops hcs hks hk'
   obtain ⟨-, hks⟩ := hks
   rw [hc] at hks
   have hops₁ : ∀ o' ∈ blockOps blk₁ pos, o' ∈ I.ops := fun o' ho =>
@@ -260,7 +296,7 @@ theorem BlkW.append_core {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt}
       wLc Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl blk₂ cs' (pos + blockSize blk₁)
         (ks.drop (calls es₁).length) next kj kret khalt := by
     intro cs' hcs'
-    refine h₂ Ψ hΨ σ' hσ kh cs' _ next kj kret khalt hops₂ hcs' ⟨hl₂, fun j hj => ?_⟩
+    refine h₂ hp Ψ hΨ σ' hσ kh cs' _ next kj kret khalt hops₂ hcs' ⟨hl₂, fun j hj => ?_⟩
       (hk next _ ks hk')
     obtain ⟨⟨kfp, h1, h1'⟩, h2, h3⟩ := hks ((calls es₁).length + j)
       (by rw [List.length_append]; omega)
@@ -274,22 +310,23 @@ theorem BlkW.append_core {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt}
   cases blk₂ with
   | nil =>
     rw [List.append_nil]
-    refine h₁ Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops₁ hcs₁ hks₁ fun cs' hcs' => ?_
+    refine h₁ hp Ψ hΨ σ' hσ kh cs ks next kj kret khalt hops₁ hcs₁ hks₁ fun cs' hcs' => ?_
     have := hnext cs' hcs'
     rwa [wLc] at this
   | cons b bs =>
     rw [wLc_append _ _ _ _ _ _ _ blk₁ (b :: bs) (List.cons_ne_nil _ _)]
-    exact h₁ Ψ hΨ σ' hσ kh cs ks _ _ kret khalt hops₁ hcs₁ hks₁ hnext
+    exact h₁ hp Ψ hΨ σ' hσ kh cs ks _ _ kret khalt hops₁ hcs₁ hks₁ hnext
 
 /-- A block whose path falls through, then a block on the path. -/
 theorem BlkW.append_fall {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt} {ss₁ ss₂ tl : List Stmt}
     {es₁ : List Ev} {o₂ : Out} {i₀ pos : ℕ}
-    (h₁ : BlkW Γ I main Ag cl C blk₁ ss₁ (ss₂ ++ tl) (.fall es₁) i₀ pos)
-    (h₂ : BlkW Γ I main Ag cl C blk₂ ss₂ tl o₂ (i₀ + (calls es₁).length) (pos + blockSize blk₁)) :
-    BlkW Γ I main Ag cl C (blk₁ ++ blk₂) (ss₁ ++ ss₂) tl (o₂.pre es₁) i₀ pos := by
+    (h₁ : BlkW Γ I bx Ag cl C blk₁ ss₁ (ss₂ ++ tl) (.fall es₁) i₀ pos)
+    (h₂ : BlkW Γ I bx Ag cl C blk₂ ss₂ tl o₂ (i₀ + (calls es₁).length) (pos + blockSize blk₁)) :
+    BlkW Γ I bx Ag cl C (blk₁ ++ blk₂) (ss₁ ++ ss₂) tl (o₂.pre es₁) i₀ pos := by
   cases o₂ with
   | stuck =>
-    exact ⟨[], by simp [outEs, Out.pre, calls], fun _ _ _ _ _ _ _ _ _ _ _ _ _ _ hk => hk.elim⟩
+    exact ⟨[], by simp [outEs, Out.pre, calls], HsOk.nil _ _ _,
+      fun _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ hk => hk.elim⟩
   | fall es₂ =>
     refine BlkW.append_core (by simp [outEs, Out.pre, calls_append']) (fun next kret ks hk => ?_)
       h₁ h₂
@@ -346,12 +383,12 @@ theorem FAt.toBlk (hok : OpOK Γ I Ag cl) {ctx : Ctx} {C : (ℕ → E) → Prop}
     FBAt ctx I C st m fun a C' st' => COk I C' st'.next st'.scope st'.locs ∧ R a C' st' ∧
       ∃ blk, st'.out.toList = st.out.toList ++ blk ∧
         (Fits I st' → OutOps I st' → ∀ pos,
-          BlkW Γ I main Ag cl C' blk ss tl (.fall es) i₀ pos) := by
+          BlkW Γ I bx Ag cl C' blk ss tl (.fall es) i₀ pos) := by
   intro hc0
   refine wp_mono (h hc0) fun a st' ⟨C', hcok, hs, hn, hl, ⟨ops, ho, hops⟩, hr⟩ =>
     ⟨C', hcok.sat, hcok.blind, hs, hn, hl, hcok, hr, ops, ho, fun hfit hout pos => ⟨[],
-      by simp [outEs, hc],
-      fun Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo hcs _ hk => ?_⟩⟩
+      by simp [outEs, hc], HsOk.nil _ _ _,
+      fun _ Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo hcs _ hk => ?_⟩⟩
   refine wLc_ops hok hΨ hσ kh ops (hops hfit hout)
     pos hbo cs ks next kj kret khalt ?_
   have := hk cs (hcs.trans hss)
@@ -423,6 +460,14 @@ theorem FBAt.dead {α : Type} {m : P α} {Q : α → St → Prop}
   fun hc => wp_mono h fun _ _ ⟨hn, hl, hq⟩ =>
     ⟨C, hc.sat, hc.blind.mono hn, Stronger.refl C, hn, hl, rfl, hq⟩
 
+/-- An action's spec on the path with a fact of all its successes. -/
+theorem FBAt.and_wp {α : Type} {m : P α} {R : α → ((ℕ → E) → Prop) → St → Prop}
+    {Q : α → St → Prop} (h : FBAt ctx I C st m R) (hq : wpP m ctx st Q) :
+    FBAt ctx I C st m fun a C' st' => R a C' st' ∧ Q a st' :=
+  fun hc a st' he =>
+    let ⟨C', h1, h2, h3, h4, h5, h6⟩ := h hc a st' he
+    ⟨C', h1, h2, h3, h4, h5, h6, hq a st' he⟩
+
 end FB
 
 /-! ## A block, statement by statement -/
@@ -447,11 +492,22 @@ section RWs
 
 variable {I : Inst}
 
+/-- The words of the values read stay through a placement that places no value but those the
+rest of the trace makes. -/
 theorem RW.grow {C C' : (ℕ → E) → Prop} {st st' : St} {vs : List V} (h : RW I C st vs)
-    (hs : Stronger C' C) (hn : st.next ≤ st'.next) (hl : LocsLe st.locs st'.locs) :
-    RW I C' st' vs := fun v hv ht l hI =>
-  let ⟨h1, h2, h3, h4⟩ := h v hv ht l hI
-  ⟨hl v l h1, h2, lt_of_lt_of_le h3 hn, fun Ψ hΨ => h4 Ψ (hs Ψ hΨ)⟩
+    (hs : Stronger C' C) (hn : st.next ≤ st'.next) (hl : LocsLe st.locs st'.locs)
+    (hnew : ∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest)
+    (hr : ∀ v ∈ allocsOf st'.rest, v ∈ allocsOf st.rest) : RW I C' st' vs := fun v hv => by
+  obtain ⟨hf, hw⟩ := h v hv
+  refine ⟨fun h' => hf (hr v h'), fun ht l hl' => ?_⟩
+  rcases hnew v (by rw [hl']; simp) with h0 | h0
+  · obtain ⟨l₀, hl₀⟩ := Option.ne_none_iff_exists'.mp h0
+    have hl₁ := hl v l₀ hl₀
+    rw [hl'] at hl₁
+    cases hl₁
+    obtain ⟨b1, b2, b3⟩ := hw ht l hl₀
+    exact ⟨b1, lt_of_lt_of_le b2 hn, fun Ψ hΨ => b3 Ψ (hs Ψ hΨ)⟩
+  · exact absurd h0 hf
 
 theorem RW.append {C : (ℕ → E) → Prop} {st : St} {a b : List V} (h₁ : RW I C st a)
     (h₂ : RW I C st b) : RW I C st (a ++ b) := fun v hv =>
@@ -479,13 +535,13 @@ theorem PW.grow {C C' : (ℕ → E) → Prop} {st st' : St} {vs : List V} (h : P
   let ⟨l, h1, h2, h3, h4⟩ := h v hv ht
   ⟨l, hl v l h1, h2, lt_of_lt_of_le h3 hn, fun Ψ hΨ => h4 Ψ (hs Ψ hΨ)⟩
 
-theorem PW.rw {C : (ℕ → E) → Prop} {st : St} {vs : List V} (h : PW I C st vs) (hF : Fits I st) :
-    RW I C st vs := fun v hv ht l hl => by
-  obtain ⟨l', h1, h2, h3, h4⟩ := h v hv ht
-  have hI := hF.2 v l' h1
-  rw [hl] at hI
-  cases hI
-  exact ⟨h1, h2, h3, h4⟩
+theorem PW.rw {C : (ℕ → E) → Prop} {st : St} {vs : List V} (h : PW I C st vs)
+    (hf : ∀ v ∈ vs, v ∉ allocsOf st.rest) : RW I C st vs := fun v hv =>
+  ⟨hf v hv, fun ht l hl => by
+    obtain ⟨l', h1, h2, h3, h4⟩ := h v hv ht
+    rw [hl] at h1
+    cases h1
+    exact ⟨h2, h3, h4⟩⟩
 
 /-- A placement on the path keeps the words of values already placed. -/
 theorem FBAt.with_pw {ctx : Ctx} {C : (ℕ → E) → Prop} {st : St} {α : Type} {m : P α}
@@ -533,7 +589,8 @@ theorem BlockW.nil (tl : List Stmt) : BlockW Γ Ag cl ctx I (placeBlock []) [] t
   subst hw
   rw [placeBlock]
   refine FBAt.pure ⟨fun _ _ _ _ => hinv, hinv.chain, fun _ _ => ⟨[], by simp, ⟨[],
-    by simp [outEs, calls], fun Ψ _ σ' _ kh cs ks next kj kret khalt _ hcs _ hk => ?_⟩,
+    by simp [outEs, calls], HsOk.nil _ _ _,
+    fun _ Ψ _ σ' _ kh cs ks next kj kret khalt _ hcs _ hk => ?_⟩,
     by rw [pathVals_nil]; exact fun v hv => nomatch hv⟩⟩
   rw [wLc]
   have := hk cs (by simpa using hcs)
@@ -585,6 +642,13 @@ def PlaceMono (ctx : Ctx) : Prop :=
     LocsLe st.locs st'.locs ∧ (st.chainIn = none → st'.chainIn = none ∧
       ∃ blk, st'.out.toList = st.out.toList ++ blk)
 
+/-- **A block places no value but those its trace makes** and passes the trace on (from the
+primitives' agent): the values a path already read stay unplaced or keep their places. -/
+def PlaceNew (ctx : Ctx) : Prop :=
+  ∀ (ss : List Stmt) (st : St), wpP (placeBlock ss) ctx st fun _ st' =>
+    (∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest) ∧
+    ∀ v ∈ allocsOf st'.rest, v ∈ allocsOf st.rest
+
 theorem outEs_pre {o : Out} (h : o ≠ .stuck) (es : List Ev) :
     outEs (o.pre es) = es ++ outEs o := by
   cases o <;> simp_all [outEs, Out.pre]
@@ -612,7 +676,7 @@ theorem atom_onPath (σ : Val) : ∀ (rest : List Stmt) (k : ℕ) (a : Atom),
 /-- **A block, statement by statement**: the first statement, then the rest on the path if the
 path falls through it (off it if the final placement does not extend the state between or lacks
 its instructions), off it if it returns. -/
-theorem BlockW.cons (hmono : PlaceMono ctx) {s : Stmt} {rest tl : List Stmt}
+theorem BlockW.cons (hmono : PlaceMono ctx) (hnew : PlaceNew ctx) {s : Stmt} {rest tl : List Stmt}
     (h₁ : StmtW Γ Ag cl ctx I s rest tl) (h₂ : BlockW Γ Ag cl ctx I (placeBlock rest) rest tl) :
     BlockW Γ Ag cl ctx I (placeBlock (s :: rest)) (s :: rest) tl := by
   intro C st sc sc'' i₀ p₀ o hsc hw hns hes hcl hinv
@@ -630,16 +694,20 @@ theorem BlockW.cons (hmono : PlaceMono ctx) {s : Stmt} {rest tl : List Stmt}
     rw [ho₁] at hw
     simp only [Out.seq] at hw
     subst hw
-    refine FBAt.mono (FBAt.bind_dead (Q := fun st₁ _ st₂ => st₁.chainIn = none →
-        st₂.chainIn = none ∧ ∃ blk, st₂.out.toList = st₁.out.toList ++ blk)
+    refine FBAt.mono (FBAt.bind_dead (Q := fun st₁ _ st₂ => (st₁.chainIn = none →
+        st₂.chainIn = none ∧ ∃ blk, st₂.out.toList = st₁.out.toList ++ blk) ∧
+        (∀ v, st₂.locs[v]? ≠ none → st₁.locs[v]? ≠ none ∨ v ∈ allocsOf st₁.rest) ∧
+        ∀ v ∈ allocsOf st₂.rest, v ∈ allocsOf st₁.rest)
       (h₁ C st sc sc₁ i₀ p₀ _ hsc₁ ⟨sc'', hsc⟩ ho₁ (by simp) hes hcl
-      (fun _ h => nomatch h) hinv) fun _ st₁ => hmono rest st₁) ?_
-    rintro _ C' st₂ - - - ⟨_, st₁, ⟨-, hc₁, hw₁⟩, hq, hn₂, hl₂⟩
+      (fun _ h => nomatch h) hinv) fun _ st₁ a s h =>
+        let ⟨h1, h2, h3⟩ := hmono rest st₁ a s h
+        ⟨h1, h2, h3, hnew rest st₁ a s h⟩) ?_
+    rintro _ C' st₂ - - - ⟨_, st₁, ⟨-, hc₁, hw₁⟩, ⟨hq, hnw, hrr⟩, hn₂, hl₂⟩
     obtain ⟨hc₂, blk₂, ho₂⟩ := hq hc₁
     refine ⟨(fun _ h => nomatch h), hc₂, fun hfit hops => ?_⟩
     obtain ⟨blk₁, ho₁', hb₁, hrw⟩ := hw₁ (hfit.back hn₂ hl₂) (hops.back ho₂)
     exact ⟨blk₁ ++ blk₂, by rw [ho₂, ho₁', List.append_assoc], BlkW.append_ret hb₁,
-      by rw [pathVals_ret ho₁]; exact hrw.grow (Stronger.refl _) hn₂ hl₂⟩
+      by rw [pathVals_ret ho₁]; exact hrw.grow (Stronger.refl _) hn₂ hl₂ hnw hrr⟩
   | fall es₁ =>
     rw [ho₁] at hw
     simp only [Out.seq] at hw
@@ -664,13 +732,13 @@ theorem BlockW.cons (hmono : PlaceMono ctx) {s : Stmt} {rest tl : List Stmt}
         obtain ⟨hc₂, blk, ho⟩ := hq hc₁
         exact ⟨fun _ _ hF₂ hO₂ => absurd ⟨hF₂.back hn₂ hl₂, hO₂.back ho⟩ hF, hc₂,
           fun hF₂ hO₂ => absurd ⟨hF₂.back hn₂ hl₂, hO₂.back ho⟩ hF⟩)
-    refine FBAt.mono (h₂ C₁ st₁ sc₁ sc'' (i₀ + (calls es₁).length) p₀ _ hsc rfl hns₂
+    refine FBAt.mono (FBAt.and_wp (h₂ C₁ st₁ sc₁ sc'' (i₀ + (calls es₁).length) p₀ _ hsc rfl hns₂
       (fun e he => hes e (by rw [hes']; exact List.mem_append_right _ he))
       (fun j hj => by
         rw [Nat.add_assoc, hcl _ (by rw [hc', List.length_append]; omega), hc',
           List.getElem?_append_right (by omega)]
-        simp) (hw₁ es₁ rfl hF.1 hF.2)) ?_
-    rintro _ C₂ st₂ hs₂ hn₂ hl₂ ⟨hw₂, hc₂, hb₂⟩
+        simp) (hw₁ es₁ rfl hF.1 hF.2)) (hnew rest st₁)) ?_
+    rintro _ C₂ st₂ hs₂ hn₂ hl₂ ⟨⟨hw₂, hc₂, hb₂⟩, hnw, hrr⟩
     refine ⟨fun es he hF₂ hO₂ => ?_, hc₂, fun hfit hops => ?_⟩
     · obtain ⟨es₂, h⟩ : ∃ es₂, walk I.σ rest = .fall es₂ := by
         cases h : walk I.σ rest with
@@ -685,7 +753,7 @@ theorem BlockW.cons (hmono : PlaceMono ctx) {s : Stmt} {rest tl : List Stmt}
         rw [ho₁', bsize_append, ← Nat.add_assoc] at hb₂'
         exact BlkW.append_fall (hb₁'.mono hs₂) hb₂'
       · rw [← hw]
-        exact ((hrw₁.grow hs₂ hn₂ hl₂).append hrw₂).anti (pathVals_fall ho₁ hns₂)
+        exact ((hrw₁.grow hs₂ hn₂ hl₂ hnw hrr).append hrw₂).anti (pathVals_fall ho₁ hns₂)
 
 end BlockCons
 

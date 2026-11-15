@@ -294,14 +294,6 @@ theorem expect_fat {e : Event → Bool} {what : String} {ev : Event} {es : List 
   rw [h2, hr]
   rfl
 
-/-- An action's spec on the path with a fact of all its successes. -/
-theorem FBAt.and_wp {α : Type} {m : P α} {R : α → ((ℕ → E) → Prop) → St → Prop}
-    {Q : α → St → Prop} (h : FBAt ctx I C st m R) (hq : wpP m ctx st Q) :
-    FBAt ctx I C st m fun a C' st' => R a C' st' ∧ Q a st' :=
-  fun hc a st' he =>
-    let ⟨C', h1, h2, h3, h4, h5, h6⟩ := h hc a st' he
-    ⟨C', h1, h2, h3, h4, h5, h6, hq a st' he⟩
-
 /-- An on-path action's spec with a fact of all its successes. -/
 theorem FAt.and_wp {α : Type} {m : P α} {R : α → ((ℕ → E) → Prop) → St → Prop}
     {Q : α → St → Prop} (h : FAt ctx I C st m R) (hq : wpP m ctx st Q) :
@@ -431,6 +423,23 @@ theorem winv_flat {s : Stmt} {C C' : (ℕ → E) → Prop} {st st' : St} {sc sc'
     by rw [hr]; exact le_trans hlen hinv.fuel, fun hr' Ψ k w hk hC => hret hr' k hk Ψ w hC,
     by rw [hr]; exact hnd.of_append_right, hfr, hch, hpnt, hlz⟩
 
+/-- The values in scope after a straight-line statement are made by no event after it. -/
+theorem scopeFlat_fresh {s : Stmt} {C : (ℕ → E) → Prop} {st : St} {sc sc' : SSt}
+    (hsc : scopeFlat ctx.retCells s sc = .ok sc') (hinv : WInv ctx I C st sc) :
+    ∀ v, sc'.live.contains v = true → v ∉ allocsOf sc'.rest := by
+  obtain ⟨s₁, hfl, hr₁, hl₁, -, -⟩ := scopeFlat_inv hsc
+  rw [hinv.rest] at hfl
+  obtain ⟨hseg, hlive, -⟩ := flushS_seg _ _ _ _ _ hfl
+  have hall : allocsOf st.rest = allocsOf (flushSeg st.rest) ++ allocsOf sc'.rest := by
+    conv_lhs => rw [hseg]
+    rw [allocsOf_append, hr₁, allocsOf_other (e := Event.emit) (fun _ _ h => nomatch h)]
+  have hnd : (allocsOf (flushSeg st.rest) ++ allocsOf sc'.rest).Nodup := hall ▸ hinv.nodup
+  intro v hv hrest
+  obtain ⟨-, hlv⟩ := hinv.fresh v (by rw [hall]; exact List.mem_append_right _ hrest)
+  have hns : v ∉ allocsOf (flushSeg st.rest) := fun h => List.disjoint_of_nodup_append hnd h hrest
+  rw [hl₁] at hv
+  exact (hlive v hv).elim (fun h => by rw [hlv] at h; cases h) hns
+
 end Flat
 
 /-! ## The atom -/
@@ -449,7 +458,8 @@ theorem stmtW_atom (hflush : FlushSegStmt) (hpk : PoolKeepStmt) (hok : OpOK Γ I
     {a : Atom} (hat : AtomFAt a) {rest tl : List Stmt} (hck : ChainKeep ctx (.atom a) rest)
     (hu : ∀ v ∈ Memory.atomUses a, v ∉ I.tmps) (ht : ∀ t ∈ Memory.atomTmps a, t ∈ I.tmps)
     (hnm : ∀ v ∈ Memory.atomUses a, v ∈ I.named)
-    (hfa : ∀ p run, a ≠ .frameAddr p run) :
+    (hfa : ∀ p run, a ≠ .frameAddr p run)
+    (hsh : ∀ (v : V) (n : ℕ), I.locs[v]? ≠ some (Loc.shifted n 0)) :
     StmtW Γ Ag cl ctx I (.atom a) rest tl := by
   intro C st sc sc' i₀ p₀ o hsc ⟨sc'', hrest⟩ hw _ hes _ hup hinv
   simp only [walk1] at hw
@@ -488,8 +498,7 @@ theorem stmtW_atom (hflush : FlushSegStmt) (hpk : PoolKeepStmt) (hok : OpOK Γ I
         (Fits I st₃ → VW I C₃ st₃ fun v => sc'.live.contains v = true) ∧
         (sc'.retDone = false → RetBlind ctx C₃) ∧
         (∀ v, st₃.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf (flushSeg st.rest) ∨
-          sc'.live.contains v = true) ∧
-        (∀ v ∈ Memory.atomUses a ++ Memory.atomTmps a, st₃.locs[v]? ≠ none) := by
+          sc'.live.contains v = true) := by
     refine FAt.bind (FAt.and_wp (begin_fat hflush hI hsc hinv hcp)
       ((hpk ctx I st (.atom a :: rest) (.atom a) rest).1 hI hinv.pnt))
       fun _ st₂ C₂ _ hn₂ _ ⟨⟨h1, h2, h3, h4⟩, hp₂⟩ => ?_
@@ -497,42 +506,38 @@ theorem stmtW_atom (hflush : FlushSegStmt) (hpk : PoolKeepStmt) (hok : OpOK Γ I
       (hes _ (by simp [outEs]))
       (fun rd hrd => hRd rd hrd (Memory.Ev.atom a) (hes _ (by simp [outEs])))
       hu ht hnm (fun _ p run h => absurd h (hfa p run))
+      (fun hF d _ _ _ n hl => hsh d n (hF.2 _ _ hl))
       (le_trans hinv.two hn₂) h2 hp₂ (fun v hv => Or.inl (hown v hv)))
-      fun _ C₃ st₃ _ _ _ ⟨g1, g2, g3, g4, g5⟩ => ⟨g2.trans h1,
+      fun _ C₃ st₃ _ _ _ ⟨g1, g2, g3, g4⟩ => ⟨g2.trans h1,
         fun hF => (g1 hF).anti fun v hv => Or.inl hv,
         fun hr k hk => g4 (2 + ctx.argCells + k)
           (by have := hinv.abi; simp only [Cell] at *; omega) (h3 hr k hk),
         fun v hv => (g3 v hv).elim (fun h => (h4 v h).elim Or.inl fun h => Or.inr (Or.inl h))
-          fun h => Or.inr (Or.inr (hown v h)), g5⟩
+          fun h => Or.inr (Or.inr (hown v h))⟩
   have hF : FAt ctx I C st ((beginStmt (.atom a :: rest) >>= fun _ => placeAtom a) >>=
       fun _ => endStmt) fun _ C₃ st₃ => (st₃.rest = sc'.rest ∧
         (Fits I st₃ → VW I C₃ st₃ fun v => sc'.live.contains v = true) ∧
         (sc'.retDone = false → RetBlind ctx C₃) ∧
         (∀ v, st₃.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf (flushSeg st.rest) ∨
-          sc'.live.contains v = true) ∧
-        (∀ v ∈ Memory.atomUses a ++ Memory.atomTmps a, st₃.locs[v]? ≠ none)) ∧
+          sc'.live.contains v = true)) ∧
         st₃.lazy = none :=
     FAt.bind hA fun _ st₃ C₃ _ _ _ hr => by
       unfold endStmt
       exact FAt.quiet rfl rfl rfl rfl ⟨hr, rfl⟩
   rw [placeStmt]
-  refine FBAt.mono (FBAt.and_wp (FBAt.and_wp (FAt.toBlk (main := ctx.isMain) (ss := [.atom a])
+  refine FBAt.mono (FBAt.and_wp (FBAt.and_wp (FAt.toBlk (bx := ctx) (ss := [.atom a])
     (tl := rest ++ tl) (es := [.atom a]) (i₀ := i₀) hok rfl rfl hF) (hck st))
     ((hpk ctx I st (.atom a :: rest) (.atom a) rest).2 hI hinv.pnt)) ?_
-  rintro _ C' st' _ hn _ ⟨⟨⟨hcok, ⟨⟨h1, h2, h3, h4, h5⟩, hlz⟩, blk, hblk, hbw⟩, hch⟩, hpn⟩
+  rintro _ C' st' _ hn _ ⟨⟨⟨hcok, ⟨⟨h1, h2, h3, h4⟩, hlz⟩, blk, hblk, hbw⟩, hch⟩, hpn⟩
   have hch' : st'.chainIn = none := by rw [hch]; exact hinv.chain
   refine ⟨fun _ _ hF' hO' => winv_flat hsc hinv hcok hn h1 (h2 hF') h3 h4 hch'
     (hpn hO'.outOps) hlz, hch', fun hF' hO' => ⟨blk, hblk, hbw hF' hO'.outOps _,
-    fun v hv _ l hl => ?_⟩⟩
+    fun v hv => ?_⟩⟩
   have hvu : v ∈ Memory.atomUses a := by
     simpa [pathVals, outEs, retVals, pathSels, sels1, walk1, Memory.Ev.uses] using hv
-  have hmem : v ∈ Memory.atomUses a ++ Memory.atomTmps a := List.mem_append_left _ hvu
-  obtain ⟨l', hl'⟩ := Option.ne_none_iff_exists'.mp (h5 v hmem)
-  have hI' := hF'.2 v l' hl'
-  rw [hl] at hI'
-  cases hI'
-  obtain ⟨b1, b2, b3⟩ := h2 hF' v l (hown v (by simpa [ownUses] using hmem)) hl'
-  exact ⟨hl', b1, b2, b3⟩
+  have hlive : sc'.live.contains v = true := hown v (by simp [ownUses, hvu])
+  exact ⟨by rw [h1]; exact scopeFlat_fresh hsc hinv v hlive,
+    fun _ l hl => h2 hF' v l hlive hl⟩
 
 end Atom
 
@@ -617,11 +622,11 @@ theorem mapM_cellAt_cells : ∀ (l : List V) (st : St),
 /-- A control statement pushed, then the statement's end. -/
 theorem push_end {X : PStmt} {R : PUnit → ((ℕ → E) → Prop) → St → Prop}
     (h : ∀ st' : St, st'.out.toList = st.out.toList ++ [X] → st'.next = st.next →
-      st'.locs = st.locs → R ⟨⟩ C st') :
+      st'.locs = st.locs → st'.rest = st.rest → R ⟨⟩ C st') :
     FBAt ctx I C st (push X >>= fun _ => endStmt) R := fun hc => by
   unfold push endStmt
   exact wp_bind.mpr (wp_modify.mpr (wp_modify.mpr ⟨C, hc.sat, hc.blind, Stronger.refl C, le_rfl,
-    LocsLe.refl _, h _ (by simp) rfl rfl⟩))
+    LocsLe.refl _, h _ (by simp) rfl rfl rfl⟩))
 
 theorem not_tc_of (hI : I.Ok) {o : LOp} (ho : o ∈ I.ops) {c : ℕ} (hc : c ∈ opCells o)
     (hnd : ∀ p, o ≠ .deref p 0 c .cell) : ¬ I.tc c := fun ht =>
@@ -642,17 +647,17 @@ variable {κ₀ : ℕ} {Γ : Site κ₀}
 
 /-- The words of straight-line instructions the constraint gives, then one control statement. -/
 theorem blkW_ops_ctl (hok : OpOK Γ I Ag cl) {C : (ℕ → E) → Prop} {ops : List PStmt}
-    {X : PStmt} {main : Bool} {ss tl : List Stmt} {es : List Ev} {vs : List V} {i₀ pos : ℕ}
+    {X : PStmt} {bx : Ctx} {ss tl : List Stmt} {es : List Ev} {vs : List V} {i₀ pos : ℕ}
     (hc : calls es = [])
     (hW : ∀ s ∈ ops, ∃ h o, s = PStmt.op h o ∧ ∀ Ψ, C Ψ → OpW I Ψ o)
     (hX : ∀ Ψ, C Ψ → ∀ σ', I.Same σ' → ∀ (kh : ℕ → E × E) (cs : List Stmt) (pos : ℕ)
       (ks : List (ℕ × ℕ)) (next : List Stmt → List (ℕ × ℕ) → Prop)
       (kj : List (ℕ × ℕ) → E → E → Prop) (kret khalt : Prop),
-      (∀ o' ∈ stmtOps X pos, o' ∈ I.ops) → (if main then khalt else kret) →
+      (∀ o' ∈ stmtOps X pos, o' ∈ I.ops) → (if bx.isMain then khalt else kret) →
       wLc Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl [X] cs pos ks next kj kret khalt) :
-    BlkW Γ I main Ag cl C (ops ++ [X]) ss tl (.ret es vs) i₀ pos := by
-  refine ⟨[], by simp [outEs, hc],
-    fun Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo _ _ hk => ?_⟩
+    BlkW Γ I bx Ag cl C (ops ++ [X]) ss tl (.ret es vs) i₀ pos := by
+  refine ⟨[], by simp [outEs, hc], HsOk.nil _ _ _,
+    fun _ Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo _ _ hk => ?_⟩
   rw [wLc_append _ _ _ _ _ _ _ ops [X] (List.cons_ne_nil _ _)]
   have hbo₁ : ∀ o' ∈ blockOps ops pos, o' ∈ I.ops := fun o' ho =>
     hbo o' (by rw [bops_append]; exact List.mem_append_left _ ho)
@@ -689,7 +694,7 @@ theorem stmtW_ret (hflush : FlushSegStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
   have h1K : IsInK (1 : E) := (isInK_iff 1).mpr ⟨1, ofK_one.symm⟩
   refine FBAt.mono (FBAt.and_wp (R := fun _ C' st' => Fits I st' → OpsAt I p₀ st' → ∃ blk,
     st'.out.toList = st.out.toList ++ blk ∧
-      BlkW Γ I ctx.isMain Ag cl C' blk [.ret vs] (rest ++ tl) (.ret [] vs) i₀
+      BlkW Γ I ctx Ag cl C' blk [.ret vs] (rest ++ tl) (.ret [] vs) i₀
         (p₀ + blockSize st.out.toList) ∧
       RW I C' st' (pathVals I.σ [.ret vs] (.ret [] vs))) ?_ (hck st)) ?_
   rotate_left
@@ -698,7 +703,7 @@ theorem stmtW_ret (hflush : FlushSegStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
   · rw [placeStmt]
     simp only [bind_assoc]
     refine FBAt.fat_bind (begin_fat hflush hI hsc hinv hcp)
-      fun _ st₁ C₁ hs₁ hn₁ hl₁ _ hE₁ ⟨_, hvw₁, _, _⟩ => ?_
+      fun _ st₁ C₁ hs₁ hn₁ hl₁ _ hE₁ ⟨hr₁, hvw₁, _, _⟩ => ?_
     refine FBAt.read_bind ?_
     refine FBAt.fat_bind (FAt.ofSame (R := fun _ _ st' => st' = st₁ ∧
         ∀ v ∈ vs, ∃ n, st₁.locs[v]? = some (.cell n))
@@ -712,12 +717,16 @@ theorem stmtW_ret (hflush : FlushSegStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
       obtain ⟨n, hn⟩ := hcells v hvv
       obtain ⟨b1, b2, b3⟩ := hvw₁ v _ (hown v (by simpa [ownUses] using hvv)) hn
       exact ⟨_, hn, b1, b2, fun Ψ hΨ => b3 Ψ (hs₂ Ψ hΨ)⟩
-    refine FBAt.mono (FBAt.with_pw (R := fun _ C' st' => Fits I st' → OpsAt I p₀ st' → ∃ blk,
-      st'.out.toList = st.out.toList ++ blk ∧ BlkW Γ I ctx.isMain Ag cl C' blk [.ret vs]
-        (rest ++ tl) (.ret [] vs) i₀ (p₀ + blockSize st.out.toList)) ?_ hpw)
-      fun _ _ _ _ _ _ ⟨hr, hp⟩ hF hO =>
+    have hfr : ∀ v ∈ pathVals I.σ [.ret vs] (.ret [] vs), v ∉ allocsOf sc'.rest := fun v hv => by
+      have hvv : v ∈ vs := by simpa [pathVals, outEs, retVals, pathSels, sels1, walk1] using hv
+      exact scopeFlat_fresh hsc hinv v (hown v (by simpa [ownUses] using hvv))
+    refine FBAt.mono (FBAt.with_pw (R := fun _ C' st' => (Fits I st' → OpsAt I p₀ st' → ∃ blk,
+      st'.out.toList = st.out.toList ++ blk ∧ BlkW Γ I ctx Ag cl C' blk [.ret vs]
+        (rest ++ tl) (.ret [] vs) i₀ (p₀ + blockSize st.out.toList)) ∧ st'.rest = sc'.rest)
+        ?_ hpw)
+      fun _ _ _ _ _ _ ⟨⟨hr, hrest⟩, hp⟩ hF hO =>
         let ⟨blk, h1, h2⟩ := hr hF hO
-        ⟨blk, h1, h2, hp.rw hF⟩
+        ⟨blk, h1, h2, hp.rw fun v hv => by rw [hrest]; exact hfr v hv⟩
     have hE₂' := hE₁.step hE₂ hs₂ hn₂ hl₂
     split
     · simp only [bind_assoc]
@@ -726,7 +735,7 @@ theorem stmtW_ret (hflush : FlushSegStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
       unfold oneCell
       refine FBAt.fat_bind (constCell_fat (1, 0) (hI.kconst 1 0)
         (le_trans hinv.two (le_trans hn₁ hn₂)))
-        fun one st₃ C₃ hs₃ hn₃ hl₃ _ hE₃ ⟨ho2, hon, _, _, hoΨ⟩ => ?_
+        fun one st₃ C₃ hs₃ hn₃ hl₃ _ hE₃ ⟨ho2, hon, _, hr₃, hoΨ⟩ => ?_
       have hE₃' := hE₂'.step hE₃ hs₃ hn₃ hl₃
       refine FBAt.read_bind ?_
       split
@@ -738,7 +747,7 @@ theorem stmtW_ret (hflush : FlushSegStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
         refine FBAt.fat_bind takeHints_fat fun hints st₅ C₅ hs₅ hn₅ hl₅ _ hE₅ ⟨hC₅, hst₅⟩ => ?_
         have hE₅' := hE₄'.step hE₅ hs₅ hn₅ hl₅
         subst hC₅ hst₅ hC₄ hst₄ hd
-        refine push_end fun st' ho hn hl hF hO => ?_
+        refine push_end fun st' ho hn hl hrs => ⟨fun hF hO => ?_, by rw [hrs]; exact hr₃.trans hr₁⟩
         obtain ⟨ops, hops, hopsW⟩ := hE₅'
         have hF₅ : Fits I { st₃ with next := st₃.next + 1, pending := #[] } :=
           ⟨by rw [← hn]; exact hF.1, by rw [← hl]; exact hF.2⟩
@@ -776,7 +785,7 @@ theorem stmtW_ret (hflush : FlushSegStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
         refine FBAt.fat_bind takeHints_fat fun hints st₅ C₅ hs₅ hn₅ hl₅ _ hE₅ ⟨hC₅, hst₅⟩ => ?_
         have hE₅' := hE₃'.step hE₅ hs₅ hn₅ hl₅
         subst hC₅ hst₅
-        refine push_end fun st' ho hn hl hF hO => ?_
+        refine push_end fun st' ho hn hl hrs => ⟨fun hF hO => ?_, by rw [hrs]; exact hr₃.trans hr₁⟩
         obtain ⟨ops, hops, hopsW⟩ := hE₅'
         have hF₅ : Fits I { st₃ with pending := #[] } :=
           ⟨by rw [← hn]; exact hF.1, by rw [← hl]; exact hF.2⟩
