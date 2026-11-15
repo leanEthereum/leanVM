@@ -42,10 +42,9 @@ theorem stmtW_ret' (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = tru
     {vs : List V} {rest tl : List Stmt}
     (hAg : ∀ σ' Ψ kh κ (L : MemoryImage κ), Ag σ' Ψ kh κ L → ∀ n < I.size,
       L.read (addressOfIndex (I.fp + n)) = some (fwd I.hdr ⟨patchT I Ψ σ', kh⟩ n))
-    (hhdr : ctx.isMain = false → IsInK I.hdr.1 ∧ IsInK I.hdr.2)
     (hkend : IsInK (I.kw .endSentinel)) :
     StmtW Γ Ag cl ctx I (.ret vs) rest tl :=
-  stmtW_ret flushSeg_lock hok hI hmain chainKeep_ret' hAg hhdr hkend
+  stmtW_ret flushSeg_lock hok hI hmain chainKeep_ret' hAg hkend
 
 end
 end LeanVM.Guest.Backend.Complete

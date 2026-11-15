@@ -650,19 +650,19 @@ theorem blkW_ops_ctl (hok : OpOK Γ I Ag cl) {C : (ℕ → E) → Prop} {ops : L
     {X : PStmt} {bx : Ctx} {ss tl : List Stmt} {es : List Ev} {vs : List V} {i₀ pos : ℕ}
     (hc : calls es = [])
     (hW : ∀ s ∈ ops, ∃ h o, s = PStmt.op h o ∧ ∀ Ψ, C Ψ → OpW I Ψ o)
-    (hX : ∀ Ψ, C Ψ → ∀ σ', I.Same σ' → ∀ (kh : ℕ → E × E) (cs : List Stmt) (pos : ℕ)
+    (hX : PremW I bx → ∀ Ψ, C Ψ → ∀ σ', I.Same σ' → ∀ (kh : ℕ → E × E) (cs : List Stmt) (pos : ℕ)
       (ks : List (ℕ × ℕ)) (next : List Stmt → List (ℕ × ℕ) → Prop)
       (kj : List (ℕ × ℕ) → E → E → Prop) (kret khalt : Prop),
       (∀ o' ∈ stmtOps X pos, o' ∈ I.ops) → (if bx.isMain then khalt else kret) →
       wLc Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl [X] cs pos ks next kj kret khalt) :
     BlkW Γ I bx Ag cl C (ops ++ [X]) ss tl (.ret es vs) i₀ pos := by
   refine ⟨[], by simp [outEs, hc], HsOk.nil _ _ _,
-    fun _ Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo _ _ hk => ?_⟩
+    fun hp Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo _ _ hk => ?_⟩
   rw [wLc_append _ _ _ _ _ _ _ ops [X] (List.cons_ne_nil _ _)]
   have hbo₁ : ∀ o' ∈ blockOps ops pos, o' ∈ I.ops := fun o' ho =>
     hbo o' (by rw [bops_append]; exact List.mem_append_left _ ho)
   refine wLc_ops hok hΨ hσ kh ops hW pos hbo₁
-    cs ks _ _ kret khalt (hX Ψ hΨ σ' hσ kh cs _ ks next kj kret khalt (fun o' ho => hbo o' (by
+    cs ks _ _ kret khalt (hX hp Ψ hΨ σ' hσ kh cs _ ks next kj kret khalt (fun o' ho => hbo o' (by
       rw [bops_append]
       exact List.mem_append_right _ (by simpa [blockOps] using ho))) hk)
 
@@ -674,7 +674,6 @@ theorem stmtW_ret (hflush : FlushSegStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
     (hck : ChainKeep ctx (.ret vs) rest)
     (hAg : ∀ σ' Ψ kh κ (L : MemoryImage κ), Ag σ' Ψ kh κ L → ∀ n < I.size,
       L.read (addressOfIndex (I.fp + n)) = some (fwd I.hdr ⟨patchT I Ψ σ', kh⟩ n))
-    (hhdr : ctx.isMain = false → IsInK I.hdr.1 ∧ IsInK I.hdr.2)
     (hkend : IsInK (I.kw .endSentinel)) :
     StmtW Γ Ag cl ctx I (.ret vs) rest tl := by
   intro C st sc sc' i₀ p₀ o hsc _ hw _ _ _ _ hinv
@@ -754,7 +753,7 @@ theorem stmtW_ret (hflush : FlushSegStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
         have hO₅ : OutOps I { st₃ with next := st₃.next + 1, pending := #[] } := fun h o hm =>
           hO.outOps h o (by rw [ho]; exact List.mem_append_left _ hm)
         refine ⟨ops ++ [.halt hints one st₃.next], by rw [ho, hops, List.append_assoc], ?_⟩
-        refine blkW_ops_ctl hok rfl (hopsW hF₅ hO₅) fun Ψ hΨ σ' hσ kh cs pos ks next kj kret
+        refine blkW_ops_ctl hok rfl (hopsW hF₅ hO₅) fun _ Ψ hΨ σ' hσ kh cs pos ks next kj kret
           khalt hX hk => ?_
         have hset : LOp.set st₃.next .endSentinel ∈ I.ops := hX _ (by simp [stmtOps])
         have hjmp : LOp.jump one st₃.next one ∈ I.ops := hX _ (by simp [stmtOps])
@@ -792,7 +791,7 @@ theorem stmtW_ret (hflush : FlushSegStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
         have hO₅ : OutOps I { st₃ with pending := #[] } := fun h o hm =>
           hO.outOps h o (by rw [ho]; exact List.mem_append_left _ hm)
         refine ⟨ops ++ [.ret hints one], by rw [ho, hops, List.append_assoc], ?_⟩
-        refine blkW_ops_ctl hok rfl (hopsW hF₅ hO₅) fun Ψ hΨ σ' hσ kh cs pos ks next kj kret
+        refine blkW_ops_ctl hok rfl (hopsW hF₅ hO₅) fun hp Ψ hΨ σ' hσ kh cs pos ks next kj kret
           khalt hX hk => ?_
         have hjmp : LOp.jump one 0 1 ∈ I.ops := hX _ (by simp [stmtOps])
         have hotc : ¬ I.tc one := not_tc_of hI hjmp (by simp [opCells]) fun _ h => nomatch h
@@ -802,8 +801,8 @@ theorem stmtW_ret (hflush : FlushSegStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
           (fwd_patchT ho2 hotc).trans ((hoΨ Ψ hΨ).trans word_one)
         have hsz : st₃.next ≤ I.size := hF₅.1
         dsimp only [wLc, wS, JW]
-        refine ⟨fun κ L hL n hn => ?_, by rw [hfo]; exact h1K, by simpa [fwd] using (hhdr hm').1,
-          by simpa [fwd] using (hhdr hm').2, fun h0 => by rw [hfo] at h0; exact one_ne_zero h0,
+        refine ⟨fun κ L hL n hn => ?_, by rw [hfo]; exact h1K, by simpa [fwd] using (hp.1 hm').1,
+          by simpa [fwd] using (hp.1 hm').2, fun h0 => by rw [hfo] at h0; exact one_ne_zero h0,
           fun _ => hkr⟩
         simp only [List.mem_cons, List.not_mem_nil, or_false] at hn
         have honsz : one < I.size := by have := hon; simp only [Cell] at *; omega
