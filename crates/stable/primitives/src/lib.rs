@@ -1,8 +1,7 @@
-//! Shared primitives: field kernels, bit transposes, multilinear helpers, and
-//! small integer utilities.
+//! The stable prover's primitives: the fields and their one SIMD layer ([`field`]), Keccak-256 ([`hash`]), the
+//! weighted bit fold ([`bit_fold`]), multilinear helpers ([`multilinear`]), and small integer and slice utilities.
 
 pub mod bit_fold;
-pub mod bits;
 pub mod field;
 pub mod hash;
 pub mod multilinear;
@@ -10,10 +9,7 @@ pub mod multilinear;
 #[cfg(feature = "test-util")]
 pub mod test_rng;
 
-/// Format an integer with comma-separated groups of three decimal digits.
-///
-/// This accepts every standard signed and unsigned integer type through its
-/// [`ToString`] representation. A leading sign is preserved.
+/// An integer with its decimal digits in comma-separated groups of three, a leading `-` kept.
 ///
 /// ```
 /// use stable_primitives::pretty_integer;
@@ -23,17 +19,7 @@ pub mod test_rng;
 /// ```
 pub fn pretty_integer(value: impl ToString) -> String {
     let raw = value.to_string();
-    let (sign, digits) = match raw.as_bytes().first() {
-        Some(b'+' | b'-') => raw.split_at(1),
-        _ => ("", raw.as_str()),
-    };
-
-    // Keep misuse benign: callers are expected to pass integers, but returning
-    // the original representation is more useful than mangling another type.
-    if !digits.bytes().all(|b| b.is_ascii_digit()) {
-        return raw;
-    }
-
+    let (sign, digits) = raw.split_at(usize::from(raw.starts_with('-')));
     let separators = digits.len().saturating_sub(1) / 3;
     let mut out = String::with_capacity(raw.len() + separators);
     out.push_str(sign);
@@ -114,7 +100,6 @@ pub unsafe trait Plain: Copy {}
 // SAFETY: integers.
 unsafe impl Plain for u8 {}
 unsafe impl Plain for u64 {}
-unsafe impl Plain for u32 {}
 unsafe impl Plain for u128 {}
 // SAFETY: an array of plain elements has no padding.
 unsafe impl<T: Plain, const N: usize> Plain for [T; N] {}
@@ -165,7 +150,6 @@ mod formatting_tests {
             "340,282,366,920,938,463,463,374,607,431,768,211,455"
         );
         assert_eq!(pretty_integer(-12_345), "-12,345");
-        assert_eq!(pretty_integer("+123456"), "+123,456");
     }
 
     #[test]

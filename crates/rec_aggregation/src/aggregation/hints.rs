@@ -3,7 +3,9 @@
 use super::cells::{count, exponent_bytes, pack_16_bytes};
 use super::error::AggregateError;
 use isa::Prover;
+use lean_sphincs::internals as sp;
 use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
+use lean_xmss::internals as lx;
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use verifier::E;
 
@@ -16,37 +18,26 @@ pub(super) const DIGIT_GROUP: usize = 3;
 pub(super) const LX_DIGIT_GROUP: usize = 4;
 /// The guest's `LX_WINDOW`: index bits a path dispatch covers.
 pub(super) const LX_WINDOW: usize = 8;
-const _: () = assert!(
-    lean_sphincs::internals::W * lean_sphincs::internals::V == 128 && lean_sphincs::internals::V % DIGIT_GROUP == 1
-);
-const _: () = assert!(
-    lean_xmss::internals::W == lean_sphincs::internals::W && !lean_xmss::internals::V.is_multiple_of(LX_DIGIT_GROUP)
-);
+const _: () = assert!(sp::W * sp::V == 128 && sp::V % DIGIT_GROUP == 1);
+const _: () = assert!(lx::W == sp::W && !lx::V.is_multiple_of(LX_DIGIT_GROUP));
 // A leaf index is the two layers' indices, which the guest dispatches on a window at a time.
-const _: () = assert!(lean_xmss::LOG_LIFETIME == 32 && lean_xmss::internals::LAYER_HEIGHT.is_multiple_of(LX_WINDOW));
+const _: () = assert!(lean_xmss::LOG_LIFETIME == 32 && lx::LAYER_HEIGHT.is_multiple_of(LX_WINDOW));
 // The guest reads the leanSPHINCS digest as this shape lays it out: the FORS leaves
 // fill the first call's first 30 bytes, each byte in at most two of them, the tree
 // index's three bytes follow, the last in the second call, then the bottom leaf.
 // It reads the layers' leaves off those bytes, and places a FORS tree index in two
 // bytes and a codeword's digits a whole number to a byte.
-const _: () = assert!(lean_sphincs::internals::LAYER_HEIGHTS[0] == 8 && lean_sphincs::internals::LAYER_HEIGHTS[1] == 8);
-const _: () = assert!(lean_sphincs::internals::LAYER_HEIGHTS[2] == 10 && lean_sphincs::internals::LAYERS == 3);
-const _: () = assert!(
-    lean_sphincs::internals::MD_BYTES == 30
-        && lean_sphincs::internals::FORS_TREES * lean_sphincs::internals::FORS_HEIGHT == 240
-);
-const _: () = assert!(
-    lean_sphincs::internals::FORS_HEIGHT == 10
-        && lean_sphincs::internals::FORS_TREES << lean_sphincs::internals::FORS_HEIGHT <= 1 << 16
-);
-const _: () = assert!(lean_sphincs::internals::TREE_INDEX_BYTES == 3 && lean_sphincs::internals::LEAF_INDEX_BYTES == 1);
-const _: () = assert!(lean_sphincs::internals::DIGEST_CALLS == 2 && 8 % lean_sphincs::internals::W == 0);
+const _: () = assert!(sp::LAYER_HEIGHTS[0] == 8 && sp::LAYER_HEIGHTS[1] == 8);
+const _: () = assert!(sp::LAYER_HEIGHTS[2] == 10 && sp::LAYERS == 3);
+const _: () = assert!(sp::MD_BYTES == 30 && sp::FORS_TREES * sp::FORS_HEIGHT == 240);
+const _: () = assert!(sp::FORS_HEIGHT == 10 && sp::FORS_TREES << sp::FORS_HEIGHT <= 1 << 16);
+const _: () = assert!(sp::TREE_INDEX_BYTES == 3 && sp::LEAF_INDEX_BYTES == 1);
+const _: () = assert!(sp::DIGEST_CALLS == 2 && 8 % sp::W == 0);
 
 /// The end of `H_msg`'s second call's low lane: its bytes past the digest are the
 /// guest's `SP_UNUSED_BYTES`, `8 - (DIGEST_BYTES - 32)`.
 const SP_LANE_END: usize = 32 + 8;
-const _: () =
-    assert!(lean_sphincs::internals::DIGEST_BYTES > 32 && lean_sphincs::internals::DIGEST_BYTES <= SP_LANE_END);
+const _: () = assert!(sp::DIGEST_BYTES > 32 && sp::DIGEST_BYTES <= SP_LANE_END);
 
 /// Named hint entries for a single sub-proof, ordered within each stream.
 pub(super) type SubHints = Vec<(&'static str, Vec<E>)>;
@@ -94,9 +85,10 @@ impl Hints {
 /// exponent.
 fn digit_hints(codeword: &[u8], size: usize) -> impl Iterator<Item = Vec<E>> + '_ {
     codeword.chunks(size).map(|group| {
-        let index = group.iter().rev().fold(0, |index, &digit| {
-            index * lean_xmss::internals::CHAIN_LEN + digit as usize
-        });
+        let index = group
+            .iter()
+            .rev()
+            .fold(0, |index, &digit| index * lx::CHAIN_LEN + digit as usize);
         vec![count(index)]
     })
 }
@@ -110,7 +102,7 @@ pub(super) fn lean_xmss_hints(
     sig: &LeanXmssSignature,
     message: &lean_xmss::Message,
 ) -> Result<SubHints, AggregateError> {
-    let pp = lean_xmss::internals::pk_public_param(pk);
+    let pp = lx::pk_public_param(pk);
     let index = u64::from(sig.leaf_index());
     let windows = (0..lean_xmss::LOG_LIFETIME).step_by(LX_WINDOW).map(|s| index >> s);
     let mut hints: SubHints = vec![
@@ -122,15 +114,9 @@ pub(super) fn lean_xmss_hints(
     ];
     let mut root: Vec<u8> = message.to_vec();
     let mut level = 0;
-    for (layer, layer_sig) in [
-        lean_xmss::internals::sig_bottom(sig),
-        lean_xmss::internals::sig_top(sig),
-    ]
-    .into_iter()
-    .enumerate()
-    {
-        let e = lean_xmss::internals::layer_index(sig.leaf_index(), layer);
-        let (codeword, reached) = lean_xmss::internals::layer_root(pp, layer, e, &root, layer_sig, |pair| {
+    for (layer, layer_sig) in [lx::sig_bottom(sig), lx::sig_top(sig)].into_iter().enumerate() {
+        let e = lx::layer_index(sig.leaf_index(), layer);
+        let (codeword, reached) = lx::layer_root(pp, layer, e, &root, layer_sig, |pair| {
             hints.push((
                 "lx_path",
                 vec![pack_16_bytes(&pair[usize::from(index >> level & 1 == 0)])],
@@ -163,51 +149,32 @@ pub(super) fn lean_sphincs_hints(
     sig: &LeanSphincsSignature,
     message: &lean_sphincs::Message,
 ) -> Result<SubHints, AggregateError> {
-    let pk_seed = lean_sphincs::internals::pk_seed(pk);
-    let mut hints: SubHints = vec![(
-        "sp_rand",
-        vec![pack_16_bytes(lean_sphincs::internals::sig_randomizer(sig))],
-    )];
-    let digest = lean_sphincs::internals::h_msg(
-        lean_sphincs::internals::sig_randomizer(sig),
-        pk_seed,
-        lean_sphincs::internals::pk_root(pk),
-        message,
-    );
-    let (idx, leaves) = lean_sphincs::internals::digest_fields(&digest);
-    hints.push((
-        "sp_unused",
-        exponent_bytes(&digest[lean_sphincs::internals::DIGEST_BYTES..SP_LANE_END]),
-    ));
-    for tree in lean_sphincs::internals::sig_fors(sig) {
+    let pk_seed = sp::pk_seed(pk);
+    let mut hints: SubHints = vec![("sp_rand", vec![pack_16_bytes(sp::sig_randomizer(sig))])];
+    let digest = sp::h_msg(sp::sig_randomizer(sig), pk_seed, sp::pk_root(pk), message);
+    let (idx, leaves) = sp::digest_fields(&digest);
+    hints.push(("sp_unused", exponent_bytes(&digest[sp::DIGEST_BYTES..SP_LANE_END])));
+    for tree in sp::sig_fors(sig) {
         hints.push(("sp_fors_secrets", vec![pack_16_bytes(tree.secret())]));
     }
     // On every path the guest does not order a node and its sibling: it is handed the
     // two children in order and checks that the node it holds is the one its bit names.
-    let ordered = |pair: &[lean_sphincs::internals::Digest; 2]| vec![pack_16_bytes(&pair[0]), pack_16_bytes(&pair[1])];
-    let mut signed =
-        lean_sphincs::internals::fors_recover(pk_seed, idx, &leaves, lean_sphincs::internals::sig_fors(sig), |pair| {
-            hints.push(("sp_fors_nodes", ordered(pair)));
-        });
-    for (layer, layer_sig) in lean_sphincs::internals::sig_layers(sig).iter().enumerate() {
-        let key = lean_sphincs::internals::OtsKey::of_index(layer, idx);
-        let (codeword, leaf) =
-            lean_sphincs::internals::wots_leaf(pk_seed, &key, &signed, layer_sig.counter(), layer_sig.wots())
-                .ok_or(AggregateError::InvalidSignature)?;
+    let ordered = |pair: &[sp::Digest; 2]| vec![pack_16_bytes(&pair[0]), pack_16_bytes(&pair[1])];
+    let mut signed = sp::fors_recover(pk_seed, idx, &leaves, sp::sig_fors(sig), |pair| {
+        hints.push(("sp_fors_nodes", ordered(pair)));
+    });
+    for (layer, layer_sig) in sp::sig_layers(sig).iter().enumerate() {
+        let key = sp::OtsKey::of_index(layer, idx);
+        let (codeword, leaf) = sp::wots_leaf(pk_seed, &key, &signed, layer_sig.counter(), layer_sig.wots())
+            .ok_or(AggregateError::InvalidSignature)?;
         hints.push(("sp_counter", exponent_bytes(&layer_sig.counter().to_be_bytes())));
         hints.extend(digit_hints(&codeword, DIGIT_GROUP).map(|entry| ("digits", entry)));
         for value in layer_sig.wots() {
             hints.push(("chain_starts", vec![pack_16_bytes(value)]));
         }
-        signed = lean_sphincs::internals::tree_fold(
-            pk_seed,
-            &key,
-            leaf,
-            lean_sphincs::internals::sig_path(sig, layer),
-            |pair| {
-                hints.push(("siblings", ordered(pair)));
-            },
-        );
+        signed = sp::tree_fold(pk_seed, &key, leaf, sp::sig_path(sig, layer), |pair| {
+            hints.push(("siblings", ordered(pair)));
+        });
     }
     Ok(hints)
 }

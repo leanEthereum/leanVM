@@ -28,14 +28,7 @@ pub fn hash_words(words: &[F64]) -> Hash {
     hash_leaf(&words.iter().flat_map(|word| word.0.to_le_bytes()).collect::<Vec<u8>>())
 }
 
-/// Hash two children into their parent.
-#[inline]
-pub fn hash_pair(left: &Hash, right: &Hash) -> Hash {
-    let mut buf = [0u8; 64];
-    buf[..32].copy_from_slice(left);
-    buf[32..].copy_from_slice(right);
-    primitives::hash::hash(&buf)
-}
+pub use primitives::hash::hash_pair;
 
 /// One query's Merkle opening: its position, the whole leaf image it hashes, and its siblings, bottom level first.
 ///

@@ -6,6 +6,8 @@
 use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, Mul, MulAssign};
 
+pub use super::lanes::mul_wide;
+
 /// Reduction constant of the base field: `x^64 = x^4 + x^3 + x + 1 = 0x1B`.
 pub const R64: u64 = 0x1B;
 
@@ -131,46 +133,6 @@ impl<'a> Product<&'a F64> for F64 {
     }
 }
 
-/// The carry-less product of two 64-bit polynomials, as a 128-bit polynomial: one PMULL on aarch64, one
-/// PCLMULQDQ on x86-64, and [`clmul_portable`] elsewhere.
-#[inline]
-pub fn mul_wide(a: u64, b: u64) -> u128 {
-    #[cfg(all(target_arch = "aarch64", target_feature = "aes"))]
-    {
-        // SAFETY: the `aes` target feature, which carries PMULL, is enabled at compile time.
-        unsafe { core::arch::aarch64::vmull_p64(a, b) }
-    }
-    #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq"))]
-    {
-        use core::arch::x86_64::{__m128i, _mm_clmulepi64_si128, _mm_cvtsi64_si128};
-        // SAFETY: `pclmulqdq` is enabled at compile time, and both sides of the transmute are 128 plain bits.
-        unsafe {
-            let p = _mm_clmulepi64_si128::<0x00>(_mm_cvtsi64_si128(a as i64), _mm_cvtsi64_si128(b as i64));
-            core::mem::transmute::<__m128i, u128>(p)
-        }
-    }
-    #[cfg(not(any(
-        all(target_arch = "aarch64", target_feature = "aes"),
-        all(target_arch = "x86_64", target_feature = "pclmulqdq")
-    )))]
-    {
-        clmul_portable(a, b)
-    }
-}
-
-/// The carry-less product by schoolbook: XOR in `b * x^i` for every set bit `i` of `a`.
-pub const fn clmul_portable(a: u64, b: u64) -> u128 {
-    let mut acc = 0u128;
-    let mut i = 0;
-    while i < 64 {
-        if (a >> i) & 1 != 0 {
-            acc ^= (b as u128) << i;
-        }
-        i += 1;
-    }
-    acc
-}
-
 /// Reduce a 128-bit carry-less product modulo `x^64 + x^4 + x^3 + x + 1`.
 ///
 /// Write the product as `lo + hi * x^64` and substitute `x^64 = x^4 + x^3 + x + 1`:
@@ -207,16 +169,16 @@ mod tests {
     /// Operands that exercise the reduction's spill: the top bits set, all bits set, and the identities.
     const CORNERS: [u64; 6] = [0, 1, u64::MAX, 1 << 63, 0xF000_0000_0000_0000, R64];
 
-    /// Reference product: schoolbook multiply, then bit-by-bit long division by the modulus.
+    /// Reference product: shift and add, `a_i * b * x^i` for each bit `i` of `a`, `b * x^i` reduced a step at a time.
     fn reference_mul(a: u64, b: u64) -> u64 {
-        let mut p = clmul_portable(a, b);
-        // Clear bits 127..64 from the top, each with one shifted copy of x^64 + 0x1B.
-        for bit in (64..128).rev() {
-            if (p >> bit) & 1 != 0 {
-                p ^= ((1u128 << 64) | R64 as u128) << (bit - 64);
+        let (mut acc, mut shifted) = (0, b);
+        for i in 0..64 {
+            if (a >> i) & 1 != 0 {
+                acc ^= shifted;
             }
+            shifted = (shifted << 1) ^ (R64 * (shifted >> 63));
         }
-        p as u64
+        acc
     }
 
     #[test]
@@ -235,12 +197,7 @@ mod tests {
         let corners = CORNERS.iter().flat_map(|&a| CORNERS.iter().map(move |&b| (a, b)));
         for (a, b) in random.chain(corners) {
             let want = reference_mul(a, b);
-            // The product and the portable composition agree with the reference.
             assert_eq!((F64(a) * F64(b)).0, want);
-            assert_eq!(reduce(clmul_portable(a, b)), want);
-            // The widening product is the carry-less product.
-            assert_eq!(mul_wide(a, b), clmul_portable(a, b));
-            // Squaring is the self-product.
             assert_eq!(F64(a).square(), F64(reference_mul(a, a)));
         }
     }

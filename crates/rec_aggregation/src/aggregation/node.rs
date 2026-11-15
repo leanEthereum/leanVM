@@ -11,14 +11,14 @@ use super::hints::FORGE;
 use super::hints::{Hints, lean_sphincs_hints, lean_xmss_hints};
 use super::proof::{AggregateClaims, AggregateProof, OutputClaims, is_sorted, public_input, public_input_bytes};
 use super::statement::{lean_sphincs_claim_cells, lean_xmss_claim_cells, list_split, statement_digest};
-use super::{LeanSphincsClaim, LeanXmssClaim, MAX_LOG_INV_RATE, MAX_RECURSIONS, MIN_LOG_INV_RATE};
+use super::{MAX_LOG_INV_RATE, MAX_RECURSIONS, MIN_LOG_INV_RATE};
 use isa::{Prover, Stats};
 use lean_da::CELLS_PER_ROW;
 use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use verifier::E;
 
-/// Aggregate leanXMSS and leanSphincs signatures, and blobs, and the claims of child proofs, on the prover `P`.
+/// Aggregate leanXMSS and leanSPHINCS signatures, blobs and the claims of child proofs, on the prover `P`.
 ///
 /// - `children`: at most [`MAX_RECURSIONS`], each with its claims.
 /// - `raw_lean_xmss`, `raw_lean_sphincs`: `(public_key, message, signature)`, in any order.
@@ -87,60 +87,56 @@ pub fn aggregate_with_stats<P: Prover>(
     };
 
     let kbc = unified_guest().prog().len().trailing_zeros() as usize;
-    // On the whole (pubkey, message) pair, so a signer may appear once per message. One
-    // claim needs one signature, whatever leaf index a leanXMSS one carries.
-    let mut raw_lean_xmss = raw_lean_xmss;
-    raw_lean_xmss.sort_by_key(|(pk, message, _)| (*pk, *message));
-    raw_lean_xmss.dedup_by(|(a, am, _), (b, bm, _)| (a, am) == (b, bm));
-    let mut raw_lean_sphincs = raw_lean_sphincs;
-    raw_lean_sphincs.sort_by_key(|(pk, message, _)| (*pk, *message));
-    raw_lean_sphincs.dedup_by(|(a, am, _), (b, bm, _)| (a, am) == (b, bm));
+    let raw_lean_xmss = one_per_claim(raw_lean_xmss);
+    let raw_lean_sphincs = one_per_claim(raw_lean_sphincs);
 
     // The request's checks, on the claim lists alone, before any costly work.
     if !children.iter().all(|(claims, _)| is_sorted(claims)) {
         return Err(AggregateError::InvalidChild);
     }
-    let raw_xmss_claims: Vec<LeanXmssClaim> = raw_lean_xmss.iter().map(|(pk, message, _)| (*pk, *message)).collect();
-    let raw_lean_sphincs_claims: Vec<LeanSphincsClaim> = raw_lean_sphincs
-        .iter()
-        .map(|(pk, message, _)| (*pk, *message))
-        .collect();
-    let cover = plan_coverage(&raw_xmss_claims, &raw_lean_sphincs_claims, children, declare)?;
+    let cover = plan_coverage(
+        &claims_of(&raw_lean_xmss),
+        &claims_of(&raw_lean_sphincs),
+        children,
+        declare,
+    )?;
     if cover.lean_xmss.signers.is_empty() && cover.lean_sphincs.signers.is_empty() && da_root.is_none() {
         return Err(AggregateError::InvalidInput("nothing to publish"));
     }
 
-    // The children are assumed checked. Nothing here verifies one: the replay
-    // only reads out of its proof the summary `gen_verify` derives the guest's
-    // witness from, pinning the Merkle paths it reads, and fails on a proof it
-    // cannot walk. A child that does not
-    // verify fails in the guest instead, which verifies every child in the VM,
+    // The children are assumed checked. Nothing here verifies one: the replay only reads out of its proof the
+    // summary `gen_verify` derives the guest's witness from, pinning the Merkle paths it reads, and fails on a proof
+    // it cannot walk. A child that does not verify fails in the guest instead, which verifies every child in the VM,
     // so `prove` below returns the error.
     let _span = tracing::info_span!("Replay children").entered();
-    let carried = children
-        .iter()
-        .map(|(_, proof)| DeferredBytecodeClaim::recompute::<P>(proof.bytecode_point.clone()))
-        .collect::<Option<Vec<_>>>()
-        .ok_or(AggregateError::InvalidChild)?;
-    let mut public_inputs = Vec::with_capacity(children.len());
+    // Each child's carried claim, its value read off the sums the batch runs on.
+    let carried_points: Vec<Vec<E>> = children.iter().map(|(_, proof)| proof.bytecode_point.clone()).collect();
+    let carried_sums = bytecode_sums::<P>(&carried_points);
+    let carried: Vec<DeferredBytecodeClaim> = carried_points
+        .into_iter()
+        .zip(&carried_sums)
+        .map(|(point, sums)| DeferredBytecodeClaim::from_sums::<P>(point, sums))
+        .collect();
     let child_da: Vec<[u8; 32]> = children
         .iter()
         .map(|(claims, _)| verifier::da::digest(claims.da_commitment))
         .collect();
-    for ((claims, _), defer) in children.iter().zip(&carried) {
-        public_inputs.push(public_input(claims, defer));
-    }
+    let public_inputs: Vec<[E; 2]> = children
+        .iter()
+        .zip(&carried)
+        .map(|((claims, _), defer)| public_input(claims, defer))
+        .collect();
     // One single-threaded replay per worker: nothing inside dispatches.
-    let bytecode = scalar_bytecode();
     let summaries = P::map_collect(children.len(), |i| {
         let pi = public_input_bytes(&public_inputs[i]);
-        verifier::replay_unchecked(bytecode, &pi, &children[i].1.proof)
+        verifier::replay_unchecked(scalar_bytecode(), &pi, &children[i].1.proof)
     });
-    let mut replayed = Vec::with_capacity(children.len());
-    for (pi, summary) in public_inputs.into_iter().zip(summaries) {
-        let summary = summary.map_err(|_| AggregateError::InvalidChild)?;
-        replayed.push((pi, summary));
-    }
+    let replayed: Vec<([E; 2], verifier::Summary)> = public_inputs
+        .into_iter()
+        .zip(summaries)
+        .map(|(pi, summary)| summary.map(|summary| (pi, summary)))
+        .collect::<Result<_, _>>()
+        .map_err(|_| AggregateError::InvalidChild)?;
 
     drop(_span);
 
@@ -206,18 +202,16 @@ pub fn aggregate_with_stats<P: Prover>(
         }
     }
 
-    // Both claims of each child, in the batch's order: the fresh one, then the one it carried. The fresh
-    // claim's value is read off the sums the batch runs on.
-    let claim_points: Vec<Vec<E>> = replayed
+    // Each child's fresh claim, the one its verification raises, its value read off the sums the batch runs on.
+    let fresh_points: Vec<Vec<E>> = replayed
         .iter()
-        .zip(&carried)
-        .flat_map(|((_, summary), carried)| [summary.bytecode_point.clone(), carried.bytecode_point.clone()])
+        .map(|(_, summary)| summary.bytecode_point.clone())
         .collect();
-    let sums = bytecode_sums::<P>(&claim_points);
+    let fresh_sums = bytecode_sums::<P>(&fresh_points);
     // Each child's witness is its own, one child per worker: nothing inside dispatches.
     let verified = P::map_collect(children.len(), |i| {
         let (pi, summary) = &replayed[i];
-        let value = bytecode_value::<P>(&sums[2 * i], &claim_points[2 * i]);
+        let value = bytecode_value::<P>(&fresh_sums[i], &fresh_points[i]);
         gen_verify(kbc, *pi, &children[i].1.proof, summary, value)
     });
     let mut subs = Vec::with_capacity(children.len());
@@ -263,8 +257,13 @@ pub fn aggregate_with_stats<P: Prover>(
         leaf
     } else {
         let _span = tracing::info_span!("Batch deferred claims").entered();
+        // Each child's fresh claim, then its carried one: the batch's order.
+        let sums = fresh_sums
+            .into_iter()
+            .zip(carried_sums)
+            .flat_map(|(fresh, carried)| [fresh, carried]);
         let (agg_hints, reduced) =
-            aggregate_deferred_claims::<P>(&subs, &carried, sums).ok_or(AggregateError::ProvingFailed)?;
+            aggregate_deferred_claims::<P>(&subs, &carried, sums.collect()).ok_or(AggregateError::ProvingFailed)?;
         for (name, entry) in agg_hints {
             hints.push(name, entry);
         }
@@ -309,4 +308,17 @@ pub fn aggregate_with_stats<P: Prover>(
         proof,
     };
     Ok((claims, proof, stats))
+}
+
+/// `raw` sorted by claim, one signature kept per `(pubkey, message)` pair: a signer may sign several messages, and one
+/// claim needs one signature, whatever leaf index a leanXMSS one carries.
+fn one_per_claim<K: Ord + Copy, S>(mut raw: Vec<(K, [u8; 32], S)>) -> Vec<(K, [u8; 32], S)> {
+    raw.sort_by_key(|(pk, message, _)| (*pk, *message));
+    raw.dedup_by(|(a, am, _), (b, bm, _)| (a, am) == (b, bm));
+    raw
+}
+
+/// The `(pubkey, message)` claims of raw signatures.
+fn claims_of<K: Copy, S>(raw: &[(K, [u8; 32], S)]) -> Vec<(K, [u8; 32])> {
+    raw.iter().map(|(pk, message, _)| (*pk, *message)).collect()
 }

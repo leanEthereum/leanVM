@@ -217,6 +217,14 @@ pub fn hash(data: &[u8]) -> [u8; OUT_LEN] {
     hash_from_state(data, &[0; STATE_LANES])
 }
 
+/// A binary Merkle tree's node: the [`hash`] of its two children's digests, left then right.
+pub fn hash_pair(left: &[u8; OUT_LEN], right: &[u8; OUT_LEN]) -> [u8; OUT_LEN] {
+    let mut pair = [0; 2 * OUT_LEN];
+    pair[..OUT_LEN].copy_from_slice(left);
+    pair[OUT_LEN..].copy_from_slice(right);
+    hash(&pair)
+}
+
 /// The state after absorbing `n_blocks` all-zero blocks.
 ///
 /// A leaf image that starts with whole zero blocks (the PCS's absent interleaving lanes) shares that prefix with

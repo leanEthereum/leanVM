@@ -2,13 +2,14 @@ use fiat_shamir::transcript::{Proof, ProverState};
 use primitives::field::F128;
 use primitives::multilinear::eq_table;
 use primitives::test_rng::Rng;
+use verifier::PRODUCT_BITS;
 use verifier::VerifierError;
 
 use crate::batch_bench::{batch_instance, batch_transcript, commit_stack, open_commitment, scalar_proof};
 use crate::keccak::{BITS, LANE_VARS, LANES, LOCAL_VARS, along, iota_bit};
+use crate::layer::prove_layer;
 use crate::protocol::{Claim, first_claim};
-use crate::prover::prove_layer;
-use crate::rmfe::PROD_BITS;
+use crate::table::Tables;
 use crate::witness::{BLOCK, BLOCK_LEN, BLOCK_WORDS, Shape, Witness, run_block};
 
 /// The eight words of position `j` in block `g` of the state after `round` rounds.
@@ -74,11 +75,16 @@ fn layers_round_trip(n_instances: usize, depth: usize) {
         .collect();
 
     let mut ps = ProverState::from_label(b"keccak-gkr-test");
-    let (r_low, point, r_lane) = (ps.sample_vec(4), ps.sample_vec(shape.y_vars()), ps.sample_vec(5));
-    let mut claim = first_claim(shape, &r_low, point, &r_lane);
+    let (instance, segment, r_lane) = (
+        ps.sample_vec(shape.n_log()),
+        ps.sample_vec(shape.seg_log()),
+        ps.sample_vec(5),
+    );
+    let mut claim = first_claim(&instance, &segment, &r_lane);
     claim.value = evaluate(shape, &outputs, &claim);
+    let mut tables = Tables::new(shape);
     for step in 0..depth {
-        claim = prove_layer(&mut ps, &witness, step, &claim);
+        claim = prove_layer(&mut ps, &witness, step, &claim, &mut tables);
     }
     assert_eq!(
         claim.value,
@@ -143,7 +149,12 @@ fn keccak_check(shape: Shape, at: usize) -> Option<VerifierError> {
     let committed = usize::from(shape.segments() > 1);
     // A sumcheck round of degree 2 or 3 sends two scalars; the bit position's, of degree 3 with no eq factor, three.
     let (round2, round3) = (2 + nonce(2), 2 + nonce(3));
-    let layer = PROD_BITS + nonce(PROD_BITS - 1) + round3 * shape.y_vars() + (round3 + 1) * LOCAL_VARS + 3 + nonce(2);
+    let layer = PRODUCT_BITS
+        + nonce(PRODUCT_BITS - 1)
+        + round3 * (shape.pack_vars() + shape.seg_log())
+        + (round3 + 1) * LOCAL_VARS
+        + 3
+        + nonce(2);
     let ood = usize::from(pcs::whir_config::OOD_GRINDING_BITS > 0);
     let first = 2 + ood + 1 + nonce(shape.n_log()) + LANES + nonce(shape.seg_log() + LANE_VARS);
     let layers = first + committed;
@@ -154,7 +165,7 @@ fn keccak_check(shape: Shape, at: usize) -> Option<VerifierError> {
     let in_layer = at.wrapping_sub(layers) % layer;
     Some(match at {
         _ if (first..layers).contains(&at) => VerifierError::KeccakProduct,
-        _ if (layers..outputs).contains(&at) && in_layer < PROD_BITS => VerifierError::KeccakProduct,
+        _ if (layers..outputs).contains(&at) && in_layer < PRODUCT_BITS => VerifierError::KeccakProduct,
         _ if (layers..outputs).contains(&at) && (layer - 3 - nonce(2)..layer - nonce(2)).contains(&in_layer) => {
             VerifierError::KeccakLayer
         }
