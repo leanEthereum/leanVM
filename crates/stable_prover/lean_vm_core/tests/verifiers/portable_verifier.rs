@@ -4,7 +4,7 @@
 
 use crate::fixture::fixture;
 use fiat_shamir::grinding_bits;
-use lean_vm_core::cpu::{layout_of, prove};
+use lean_vm_core::cpu::prove;
 use verifier::{E, VerifierError, replay_unchecked, verify_execution};
 
 /// The replay reads out of an honest proof what verifying it leaves.
@@ -67,14 +67,14 @@ fn tampers_fail_their_check() {
     // The WHIR opening ends the stream. Its final level, after its `k` rounds of four scalars and a nonce: the
     // `2^mu + k` coefficients of the folded lane, the query nonce, then the tail rounds. The level before ends on its
     // high part, the OOD nonce, the OOD value and the query nonce.
-    let rows: Vec<usize> = fixture.summary.table_rows.iter().map(|&rows| rows as usize).collect();
-    let stack_log = layout_of(
-        &fixture.program.columns(),
-        fixture.summary.log_memory,
-        rows.try_into().expect("one row count a table"),
+    let summary = &fixture.summary;
+    let stack_log = verifier::layout::build_layout(
+        fixture.program.bytecode(),
+        summary.log_memory as u64,
+        &summary.table_rows,
     )
-    .shape
-    .mu;
+    .unwrap()
+    .stack_log;
     let (mut mu, mut k) = (stack_log - 6, 6); // the ladder: 6 lane variables, then 4 a level while over 5 remain
     while mu > 5 {
         k = mu.min(4);
