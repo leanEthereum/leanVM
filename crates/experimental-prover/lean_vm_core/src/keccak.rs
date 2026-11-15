@@ -13,7 +13,7 @@
 //! ## The mapping
 //!
 //! The VM's `KECCAK` is Keccak-f\[1600\] of the 25 lanes thirteen cells hold, written to one, two
-//! or all thirteen cells, each side in one of two layouts ([`cell_lanes`]). The committed input is
+//! or all thirteen cells, each side in one of two layouts ([`keccak_cell_lanes`]). The committed input is
 //! the lanes the VM reads, and the output is the permutation's, written as it is.
 
 use crate::transcript::ProverState;
@@ -21,6 +21,7 @@ use keccak_gkr::witness::{BLOCK, block_lanes};
 use keccak_gkr::{Openings, OutputClaim, Shape, Witness};
 use primitives::field::{F64, F128};
 use primitives::hash::STATE_LANES;
+use verifier::layout::keccak_cell_lanes;
 
 /// Rounds between two committed states.
 pub const DEPTH: usize = 12;
@@ -54,36 +55,13 @@ pub use isa::STATE_CELLS;
 /// Cells one `KECCAK` row flushes: thirteen read, thirteen written or, past what it writes, cancelled.
 pub(crate) const ROW_CELLS: usize = 2 * STATE_CELLS;
 
-/// The lanes each state cell holds, `(lo, hi)`, in the even layout (`odd = false`) or the odd
-/// one, `None` marking a limb that holds no lane: nine rate cells, lanes `0..16` two to a cell
-/// then lane 16 in a low limb (even), or lane 0 in a high limb then lanes `1..17` two to a cell
-/// (odd), then the capacity lanes `17..25` two to a cell. A block of a message laid out in cells
-/// covers the nine rate cells of the layout of its parity.
-pub const fn cell_lanes(odd: bool) -> [(Option<usize>, Option<usize>); STATE_CELLS] {
-    let mut t = [(None, None); STATE_CELLS];
-    let mut c = 0;
-    while c < STATE_CELLS {
-        t[c] = if c >= 9 || (odd && c >= 1) {
-            (Some(2 * c - 1), Some(2 * c))
-        } else if odd {
-            (None, Some(0))
-        } else if c == 8 {
-            (Some(16), None)
-        } else {
-            (Some(2 * c), Some(2 * c + 1))
-        };
-        c += 1;
-    }
-    t
-}
-
 /// The 25 lanes the thirteen state cells `cell(0..13)` hold in a layout.
 pub(crate) fn state_of_cells(odd: bool, cell: impl Fn(usize) -> F128) -> [u64; STATE_LANES] {
     // The layout is a constant, so the loop compiles to straight-line moves.
     fn read<const ODD: bool>(cell: impl Fn(usize) -> F128) -> [u64; STATE_LANES] {
         let mut s = [0; STATE_LANES];
         for c in 0..STATE_CELLS {
-            let (lo, hi) = const { cell_lanes(ODD) }[c];
+            let (lo, hi) = const { keccak_cell_lanes(ODD) }[c];
             let w = cell(c);
             if let Some(l) = lo {
                 s[l] = w.c0;
@@ -99,7 +77,7 @@ pub(crate) fn state_of_cells(odd: bool, cell: impl Fn(usize) -> F128) -> [u64; S
 
 /// The thirteen state cells holding 25 lanes in a layout, a free lane zero.
 pub(crate) fn cells_of_state(s: &[u64; STATE_LANES], odd: bool) -> [F128; STATE_CELLS] {
-    let lanes = cell_lanes(odd);
+    let lanes = keccak_cell_lanes(odd);
     std::array::from_fn(|c| {
         let (lo, hi) = lanes[c];
         F128::new(lo.map_or(0, |l| s[l]), hi.map_or(0, |h| s[h]))

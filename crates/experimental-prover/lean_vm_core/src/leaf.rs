@@ -113,12 +113,6 @@ pub struct ColumnClaim {
 /// independent weight per slot (§sec:gp), so a leaf factor is linear in the challenges.
 pub const N_TUPLE_BITS: usize = 4;
 
-/// The grind before the fingerprint `(α⃗, β)`: unequal push and pull multisets pass the product check with
-/// probability at most `2^μ/|E|` (Theorem th:product_check), `μ` the push depth.
-pub fn bus_grinding_bits(mu: usize) -> u32 {
-    fiat_shamir::grinding_bits(1 << mu)
-}
-
 /// The count tree's weights: the count alone, in slot `0` (`α⃗ = (1, 0, …, 0)`, `β = 0`).
 fn count_weights() -> Vec<F128> {
     let mut w = vec![F128::ZERO; 1 << N_TUPLE_BITS];
@@ -148,11 +142,11 @@ fn check_bus_shape(push_blocks: &[Block], pull_blocks: &[Block], push: &Layout, 
 
 /// Stack blocks largest-first at aligned offsets; `μ = ⌈log2 Σ 2^{κ_b}⌉`.
 pub fn layout(blocks: &[Block]) -> Layout {
-    let kappas: Vec<Option<usize>> = blocks.iter().map(|b| Some(b.kappa)).collect();
-    let (offsets, placed) = crate::witness::stack_offsets(&kappas);
+    let kappas: Vec<usize> = blocks.iter().map(|b| b.kappa).collect();
+    let (offsets, mu) = verifier::stack_offsets(&kappas);
     Layout {
-        mu: crate::log2_ceil_usize(placed.max(1)),
-        offsets,
+        mu,
+        offsets: offsets.into_iter().map(|offset| offset as usize).collect(),
     }
 }
 
@@ -327,7 +321,7 @@ pub(crate) fn build_leaves(
     let mut blocks: Vec<LeafBlock> = Vec::new();
     let mut lens = [1usize; N_BUS_TREES];
     for (side, &(side_blocks, lay, w, beta)) in sides.iter().enumerate() {
-        // `stack_offsets` packs the power-of-two blocks contiguously from zero,
+        // `verifier::stack_offsets` packs the power-of-two blocks contiguously from zero,
         // largest first, so they tile `0..len`, and the blocks of height `CHUNKED` or
         // more precede the smaller ones.
         if !side_blocks.is_empty() {
@@ -821,7 +815,7 @@ pub(crate) struct BusProof {
 /// fingerprint follows the witness commitment (the only ordering the grand product
 /// needs), and the block structure is public, so no shape is observed.
 ///
-/// The stream, in order: the [`bus_grinding_bits`] grind and the fingerprint `(α⃗, β)`; the
+/// The stream, in order: the [`verifier::bus_grinding_bits`] grind and the fingerprint `(α⃗, β)`; the
 /// batched GKR ([`gkr::prove_products`]); the framework blocks' fresh column values; the
 /// bytecode's share ([`prove_bytecode_share`]).
 pub(crate) fn prove_balance(
@@ -837,7 +831,7 @@ pub(crate) fn prove_balance(
     let pull_lay = layout(pull);
     let mut count_lay = layout(count);
     check_bus_shape(push, pull, &push_lay, &pull_lay, &count_lay);
-    let bits = bus_grinding_bits(push_lay.mu);
+    let bits = verifier::bus_grinding_bits(push_lay.mu);
     tracing::info_span!("Bus grind", mu = push_lay.mu, bits).in_scope(|| ps.grind(bits));
     let w = ps.sample_vec(1 << N_TUPLE_BITS);
     let beta = ps.sample();

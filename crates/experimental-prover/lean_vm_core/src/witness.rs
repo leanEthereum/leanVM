@@ -49,46 +49,28 @@ impl StackShape {
     }
 }
 
-/// Lay `2^kappa`-sized items end to end, largest first at aligned offsets and ties
-/// broken by index, returning the per-item offset and `Σ 2^kappa`. A `None`
-/// kappa takes no space and its offset is meaningless. Depends only on the sizes, so
-/// the verifier reconstructs the same tiling.
-pub(crate) fn stack_offsets(kappas: &[Option<usize>]) -> (Vec<usize>, usize) {
-    let n = kappas.len();
-    let mut order: Vec<usize> = (0..n).filter(|&i| kappas[i].is_some()).collect();
-    order.sort_by(|&a, &b| kappas[b].unwrap().cmp(&kappas[a].unwrap()).then(a.cmp(&b)));
-
-    let mut offsets = vec![0usize; n];
-    let mut off = 0usize;
-    for &i in &order {
-        let kappa = kappas[i].unwrap();
-        assert!(
-            kappa < usize::BITS as usize,
-            "kappa {kappa} is a log-size, not a length"
-        );
-        offsets[i] = off;
-        off += 1 << kappa;
-    }
-    (offsets, off)
-}
-
 /// Per-column placements (offset + n_vars) and the stack's [`StackShape`] from the
 /// columns' log-sizes alone, largest-first at aligned offsets. A `None` kappa marks
 /// a virtual (uncommitted) column. Depends only on lengths, so the verifier can
 /// reconstruct it.
 pub fn placements_of(kappas: &[Option<usize>]) -> (Vec<Placement>, StackShape) {
-    let (offsets, placed) = stack_offsets(kappas);
+    let committed: Vec<usize> = kappas.iter().flatten().copied().collect();
+    let (offsets, placed_log) = verifier::stack_offsets(&committed);
+    let mut offsets = offsets.into_iter();
     let placements = kappas
         .iter()
-        .zip(&offsets)
-        .map(|(k, &offset)| match *k {
-            Some(n_vars) => Placement { n_vars, offset },
+        .map(|k| match *k {
+            Some(n_vars) => Placement {
+                n_vars,
+                offset: offsets.next().unwrap() as usize,
+            },
             None => Placement::VIRTUAL,
         })
         .collect();
     // Floor at the PCS minimum (WHIR's level ladder needs room); tiny
     // witnesses zero-pad up. Both sides derive this identically from the kappas.
-    let mu = crate::log2_ceil_usize(placed.max(1)).max(crate::pcs::MIN_STACKED_LOG);
+    let mu = placed_log.max(crate::pcs::MIN_STACKED_LOG);
+    let placed: usize = committed.iter().map(|k| 1 << k).sum();
     // The columns tile from 0, so the padding is the tail: round it up to a whole
     // lane and the lanes past that are never committed at all.
     let n_lanes = placed.div_ceil(1 << (mu - crate::pcs::LOG_BATCH)).max(1);
