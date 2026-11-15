@@ -5,7 +5,7 @@ use super::child::gen_verify;
 use super::coverage::plan_coverage;
 use super::deferred::{DeferredBytecodeClaim, aggregate_deferred_claims, bytecode_sums};
 use super::error::AggregateError;
-use super::guest::{assembled, fs_seed, scalar_bytecode, unified_guest};
+use super::guest::{fs_seed, unified_guest};
 #[cfg(test)]
 use super::hints::FORGE;
 use super::hints::{Hints, lean_sphincs_hints, lean_xmss_hints};
@@ -105,7 +105,7 @@ pub fn aggregate<P: Prover>(
     // One single-threaded replay per worker: nothing inside dispatches.
     let summaries = P::map_collect(children.len(), |i| {
         let pi = public_input_bytes(&public_inputs[i]);
-        verifier::replay_unchecked(scalar_bytecode(), &pi, &children[i].1.proof)
+        verifier::replay_unchecked(unified_guest().bytecode(), &pi, &children[i].1.proof)
     });
     let summaries: Vec<verifier::Summary> = summaries
         .into_iter()
@@ -265,7 +265,7 @@ pub fn aggregate<P: Prover>(
         forge(&mut hints);
     }
     let public_input = statement_digest(&claims, &defer).map(|x| to_scalar(&x));
-    let (proof, stats) = P::prove(assembled::<P>(), &hints.witness(), public_input, log_inv_rate).map_err(|error| {
+    let (proof, stats) = P::prove(unified_guest(), &hints.witness(), public_input, log_inv_rate).map_err(|error| {
         tracing::debug!(%error, "proving failed");
         AggregateError::ProvingFailed
     })?;

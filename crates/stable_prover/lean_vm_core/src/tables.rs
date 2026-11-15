@@ -508,8 +508,8 @@ impl Table for SetTable {
     fn flushes(&self, f: &mut FlushBuilder) {
         use set::*;
         f.state_step(PC, FP);
-        // The immediate's two limbs occupy bytecode operand slots o2, o3 (as `cpu::layout::bytecode_columns` lays
-        // out a SET).
+        // The immediate's two limbs occupy bytecode operand slots o2, o3 (as `isa::Program`'s encoding lays out a
+        // SET).
         f.bytecode(
             PC,
             RBC,

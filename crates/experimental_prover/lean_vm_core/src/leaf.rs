@@ -735,11 +735,6 @@ fn decompose_prove(
     )
 }
 
-/// Slot of the first public column: the bytecode block leads with three
-/// non-public coordinates (tag, index, read count), and a column's slot IS its
-/// bus tuple coordinate.
-pub(crate) const BYTECODE_PUBLIC_SLOT: usize = 3;
-
 /// The bus trees in GKR order (push, pull, count), each its blocks, layout, fingerprint
 /// weights and `β`. The count channel's leaf is the count itself (a single `Col`), so it
 /// runs at [`count_weights`], `β = 0`, and its GKR root is the product of all counts.

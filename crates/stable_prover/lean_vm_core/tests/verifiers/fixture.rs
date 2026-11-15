@@ -1,11 +1,11 @@
 //! One honest proof of a small zkDSL program, shared by the verifier tests: a two-block Keccak and a
 //! loop of field arithmetic, long enough that every table and the Keccak reduction are exercised.
 
-use lean_vm_core::cpu::{Program, prove, public_input_bytes, verify};
+use isa::Program;
+use lean_vm_core::cpu::{prove, public_input_bytes, verify};
 use primitives::field::{F128, g_pow};
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
-use verifier::Bytecode;
 use zkdsl_compiler::{compile, parse_with_replacements};
 
 const SOURCE: &str = r#"
@@ -78,9 +78,7 @@ pub(crate) struct Fixture {
     pub proof: lean_vm_core::cpu::Proof,
     /// What verifying it leaves.
     pub summary: verifier::Summary,
-    /// The statement the verifiers take, not a structured program: the bytecode multilinear and the public input's
-    /// 256 bits.
-    pub bytecode: Bytecode,
+    /// The public input as the verifiers take it, its 256 bits.
     pub public_input_bytes: [u8; 32],
 }
 
@@ -88,17 +86,14 @@ pub(crate) fn fixture() -> &'static Fixture {
     static FIXTURE: OnceLock<Fixture> = OnceLock::new();
     FIXTURE.get_or_init(|| {
         let (program, public_input) = chain(LOOP_STEPS);
-        let (proof, _) = prove(&program, public_input, 1).unwrap();
+        let (proof, _) = prove(&program, &[], public_input, 1).unwrap();
         let summary = verify(&program, &public_input, &proof).expect("honest proof verifies");
-        let table = lean_vm_core::cpu::layout::bytecode_table(program.prog());
-        let bytecode = Bytecode::new(&table.iter().map(|word| word.0).collect::<Vec<_>>());
         Fixture {
             public_input_bytes: public_input_bytes(&public_input),
             program,
             public_input,
             proof,
             summary,
-            bytecode,
         }
     })
 }

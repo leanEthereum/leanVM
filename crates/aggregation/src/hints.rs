@@ -64,7 +64,7 @@ thread_local! {
 
 /// The `hint_witness` streams of a run: each a name and its entries, in the order the guest pops them.
 #[derive(Default)]
-pub(super) struct Hints(Vec<(String, Vec<Vec<F128>>)>);
+pub(super) struct Hints(pub(super) Vec<(String, Vec<Vec<F128>>)>);
 
 impl Hints {
     pub(super) fn push(&mut self, name: &str, entry: Vec<F128>) {

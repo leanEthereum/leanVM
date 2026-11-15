@@ -1,15 +1,11 @@
-//! The whole program: its assembly ([`Program`]), its run ([`Program::execute`]), its public layout ([`layout_of`]),
-//! and [`prove`], which binds the six instruction tables to one commitment through the state, memory and bytecode
-//! buses (`doc/leanvm/main.tex`). [`verify`] wraps the `verifier` crate.
-
-use std::collections::HashMap;
+//! The whole program: its run ([`execute`]), its public layout ([`layout_of`]), and [`prove`], which binds the six
+//! instruction tables to one commitment through the state, memory and bytecode buses (`doc/leanvm/main.tex`).
+//! [`verify`] wraps the `verifier` crate.
 
 use crate::constraints;
 use crate::leaf::{self, Block, ColumnClaim, Coord};
 use crate::pcs;
-use crate::tables::{
-    self, FillCtx, FlushBuilder, OP_DEREF, OP_JUMP, OP_KECCAK, OP_MUL, OP_SET, OP_XOR, SEP_BYTECODE, SEP_MEM, SEP_STATE,
-};
+use crate::tables::{self, FillCtx, FlushBuilder, SEP_BYTECODE, SEP_MEM, SEP_STATE};
 use crate::witness;
 use primitives::field::{F64, F128, g_pow};
 use primitives::transcript::ProverState;
@@ -19,8 +15,9 @@ mod execute;
 mod hints;
 pub mod layout;
 mod trace;
-pub use ::isa::{DerefMode, Op, OutCells, Stats};
-pub use execute::{ExecError, Execution, Fault, Memory};
+pub use execute::{ExecError, Execution, Fault, Memory, execute};
+use isa::Program;
+pub use isa::{DerefMode, Op, OutCells, Stats};
 pub use layout::*;
 pub(crate) use trace::{Drow, Jrow, Krow, Srow, Trace, Xrow};
 
@@ -33,136 +30,6 @@ fn announce_public(ps: &mut ProverState, log_mem: usize, rows: [usize; tables::N
         ps.add_scalar(F128::new(n as u64, 0));
     }
     ps.add_scalar(F128::new(log_inv_rate as u64, 0));
-}
-
-/// An assembled program: its bytecode and what proving it needs beside the public input.
-#[derive(Clone)]
-pub struct Program {
-    /// The bytecode, a power of two long.
-    pub(crate) prog: Vec<Op>,
-    /// The Fiat-Shamir IV: the hash of [`verifier::TAG`] and the stacked bytecode ([`layout::bytecode_table`]), which
-    /// a verifier holding only that polynomial reproduces. Set by [`Program::assemble`] alone, so it always matches
-    /// `prog`.
-    pub(crate) fiat_shamir_iv: [u8; 32],
-    /// The public bytecode columns, which every layout of the program shares.
-    bytecode_columns: layout::BytecodeColumns,
-    /// The frame and buffer allocation hints, by pc, and the size of `main`'s frame: the nondeterminism
-    /// [`Program::execute`] needs, which verification ignores.
-    pub(crate) hints: HashMap<u32, Vec<::isa::RHint>>,
-    pub(crate) main_frame: u32,
-    /// The witness streams of the program's `hint_witness` calls ([`Program::set_witness`]), by name: each call pops
-    /// the next entry, whose length must match its destination.
-    pub(crate) witness: HashMap<String, Vec<Vec<F128>>>,
-    /// Function pc-ranges `(name, entry, len)` from the compiler, for the `DBG_PROF=1` profile and error sites. Empty
-    /// for a hand-assembled program.
-    pub fn_ranges: Vec<(String, u32, u32)>,
-    /// Source line of the statement that emitted each pc, so a failed check reports a line. Empty for a
-    /// hand-assembled program, and shorter than `prog`, which is padded.
-    pub src_lines: Vec<u32>,
-}
-
-/// A compiled program, assembled: its IV and bytecode columns computed, its debug information kept.
-impl From<::isa::CompiledProgram> for Program {
-    fn from(compiled: ::isa::CompiledProgram) -> Self {
-        let mut program = Self::assemble(compiled.prog, compiled.hints, compiled.main_frame);
-        program.fn_ranges = compiled.fn_ranges;
-        program.src_lines = compiled.src_lines;
-        program
-    }
-}
-
-impl Program {
-    /// Assemble a [`Program`], computing its Fiat-Shamir IV
-    /// from `prog`. The single funnel for construction, so the digest is always
-    /// consistent with the bytecode.
-    ///
-    /// # Panics
-    ///
-    /// If `prog` is not a power of two long.
-    pub fn assemble(prog: Vec<Op>, hints: HashMap<u32, Vec<::isa::RHint>>, main_frame: u32) -> Self {
-        assert!(
-            prog.len().is_power_of_two(),
-            "the bytecode must be a power of two long, not {}",
-            prog.len()
-        );
-        let bytecode_columns = layout::bytecode_columns(&prog);
-        let fiat_shamir_iv = {
-            let table = layout::stack_columns(&bytecode_columns);
-            let bytes: Vec<u8> = table.iter().flat_map(|word| word.0.to_le_bytes()).collect();
-            primitives::hash::Hasher::new()
-                .update(verifier::TAG)
-                .update(&bytes)
-                .finalize()
-        };
-        Self {
-            prog,
-            fiat_shamir_iv,
-            bytecode_columns,
-            hints,
-            main_frame,
-            witness: HashMap::new(),
-            fn_ranges: Vec::new(),
-            src_lines: Vec::new(),
-        }
-    }
-
-    /// The bytecode, a power of two long.
-    pub fn prog(&self) -> &[Op] {
-        &self.prog
-    }
-
-    /// The public [`Layout`] of a run of this program ([`layout_of`]).
-    pub fn layout(&self, log_mem: usize, rows: [usize; tables::N_TABLES]) -> Layout {
-        layout::layout_of(&self.bytecode_columns, log_mem, rows)
-    }
-
-    /// Where `pc` came from: `"verify_sub (line 2204)"` when the compiler left a
-    /// line for it, the function name alone otherwise (a hand-assembled program,
-    /// or padding). This is what a run-time failure reports, so
-    /// the reader gets a line instead of a pc to disassemble around.
-    pub fn site_at(&self, pc: u32) -> String {
-        match self.src_lines.get(pc as usize) {
-            Some(&line) if line != 0 => format!("{} (line {line})", self.fn_at(pc)),
-            _ => self.fn_at(pc).to_string(),
-        }
-    }
-
-    /// Instructions before the pad to a power of two: the compiled functions, or
-    /// the whole bytecode of a hand-assembled program.
-    pub fn code_len(&self) -> usize {
-        match self.fn_ranges.as_slice() {
-            [] => self.prog.len(),
-            ranges => ranges.iter().map(|&(_, _, len)| len as usize).sum(),
-        }
-    }
-
-    /// The compiled function containing `pc`. [`Self::site_at`] wraps this with
-    /// the source line when one is known.
-    pub(crate) fn fn_at(&self, pc: u32) -> &str {
-        self.fn_ranges
-            .iter()
-            .find(|(_, entry, len)| pc >= *entry && pc < *entry + *len)
-            .map_or("<unknown fn>", |(name, _, _)| name.as_str())
-    }
-
-    /// Supply the entries of witness stream `name`: one slice of values per
-    /// `hint_witness(dest, "name")` call, popped in order (the same symbol
-    /// may be hinted many times). Prover-side data: entirely unconstrained,
-    /// invisible to verification.
-    pub fn set_witness(&mut self, name: impl Into<String>, entries: Vec<Vec<F128>>) {
-        self.witness.insert(name.into(), entries);
-    }
-
-    /// Assemble a program directly from a fixed bytecode vector, starting at
-    /// `(pc, fp) = (0, 0)` with no allocation hints. Suitable for straight-line
-    /// programs that never change the frame pointer and touch only the first
-    /// `main_frame` memory cells (so the prover needs no nondeterministic frame
-    /// allocation). `prog.len()` must be a power of two: the run halts on reaching
-    /// the final state `(g^{len-1}, g^0)`, the last slot in main's frame (§sec:state).
-    #[cfg(test)]
-    pub fn from_bytecode(prog: Vec<Op>, main_frame: u32) -> Self {
-        Self::assemble(prog, HashMap::new(), main_frame)
-    }
 }
 
 /// The whole proof is the transcript: a scalar stream plus the PCS hint
@@ -260,15 +127,21 @@ fn keccak_output_claim(table_claims: &[constraints::Claims]) -> keccak_gkr::Outp
     }
 }
 
-/// Prove the program on `public_input` at the PCS rate `2^-log_inv_rate`: run it, commit its witness, and prove, in
-/// transcript order, the bus, the table sumcheck, the public input's binding, the Keccak reduction and the opening.
-/// Returns the proof and the run's [`Stats`], or why no proof was made.
+/// Prove the program on `public_input` and `witness` ([`execute`]) at the PCS rate `2^-log_inv_rate`: run it, commit
+/// its witness, and prove, in transcript order, the bus, the table sumcheck, the public input's binding, the Keccak
+/// reduction and the opening. Returns the proof and the run's [`Stats`], or why no proof was made.
 #[tracing::instrument(name = "Prove", skip_all, fields(log_inv_rate))]
-pub fn prove(program: &Program, public_input: [F128; 2], log_inv_rate: usize) -> Result<(Proof, Stats), ProveError> {
+pub fn prove(
+    program: &Program,
+    witness: &[(String, Vec<Vec<F128>>)],
+    public_input: [F128; 2],
+    log_inv_rate: usize,
+) -> Result<(Proof, Stats), ProveError> {
     if !(pcs::MIN_LOG_INV_RATE..=pcs::MAX_LOG_INV_RATE).contains(&log_inv_rate) {
         return Err(ProveError::InvalidRate { log_inv_rate });
     }
-    let exec = crate::stage!("Execute program", || program.execute(public_input)).map_err(ProveError::Execution)?;
+    let exec =
+        crate::stage!("Execute program", || execute(program, witness, public_input)).map_err(ProveError::Execution)?;
     // A value read before anything wrote it is the prover's to choose: the proof would be of a weaker statement than
     // the program's.
     if !exec.unconstrained_reads.is_empty() {
@@ -276,7 +149,7 @@ pub fn prove(program: &Program, public_input: [F128; 2], log_inv_rate: usize) ->
     }
     // The layout follows from the run's sizes alone, so a run too large to commit is refused before its witness.
     let log_mem = crate::log2_strict_usize(exec.mem.len());
-    let layout = program.layout(log_mem, exec.trace.row_counts());
+    let layout = layout_of(&bytecode_columns(program), log_mem, exec.trace.row_counts());
     if layout.shape.mu > pcs::MAX_STACKED_LOG {
         return Err(ProveError::WitnessOutOfRange {
             log_committed: layout.shape.mu,
@@ -290,13 +163,13 @@ pub fn prove(program: &Program, public_input: [F128; 2], log_inv_rate: usize) ->
         mem_used: exec.mem_used,
         bytecode: program.code_len(),
     };
-    let mut w = crate::stage!("Build witness", || program.build(&exec, layout));
+    let mut w = crate::stage!("Build witness", || build(program, &exec, layout));
     drop(exec);
 
     // The statement, the program's IV and the public input, seeds the transcript; the sizes and the commitment come
     // before any challenge.
     let mut ps = ProverState::new(
-        fiat_shamir::digest_words(&program.fiat_shamir_iv),
+        fiat_shamir::digest_words(&program.bytecode().fiat_shamir_iv()),
         fiat_shamir::digest_words(&public_input_bytes(&public_input)),
     );
     announce_public(&mut ps, log_mem, w.layout.rows, log_inv_rate);
@@ -392,21 +265,15 @@ pub fn public_input_bytes(public_input: &[F128; 2]) -> [u8; 32] {
     bytes
 }
 
-/// Verify a proof against the public statement (program + public input). The `verifier` crate does it: this only builds its inputs.
-///
-/// The stacked bytecode is rebuilt and rehashed on every call. A caller verifying many proofs of one program prepares a [`verifier::Bytecode`] once instead.
+/// Verify a proof against the public statement (program + public input). The `verifier` crate does it: this only
+/// builds its inputs.
 #[tracing::instrument(name = "Verify", skip_all)]
 pub fn verify(
     program: &Program,
     public_input: &[F128; 2],
     proof: &Proof,
 ) -> Result<verifier::Summary, verifier::VerifierError> {
-    let table: Vec<u64> = layout::bytecode_table(&program.prog)
-        .iter()
-        .map(|word| word.0)
-        .collect();
-    let bytecode = verifier::Bytecode::new(&table);
-    verifier::verify_execution(&bytecode, &public_input_bytes(public_input), proof)
+    verifier::verify_execution(program.bytecode(), &public_input_bytes(public_input), proof)
 }
 
 /// Locate a claim on column `col` at `point`: it lives in the slot at `placements[col].offset`,
@@ -438,6 +305,20 @@ mod tests {
     /// A K-embedded immediate (extension limb zero).
     fn w(x: u64) -> F128 {
         F128::new(x, 0)
+    }
+
+    /// A hand-assembled program: no hints, no debug information, started at `(pc, fp) = (0, 0)`. Straight-line
+    /// programs that never change the frame pointer and touch only the first `main_frame` cells need no
+    /// allocation. It halts on reaching the final state `(g^{len-1}, g^0)`, the last slot in main's frame
+    /// (§sec:state).
+    fn from_bytecode(prog: Vec<Op>, main_frame: u32) -> Program {
+        Program::from(isa::CompiledProgram {
+            prog,
+            hints: Default::default(),
+            main_frame,
+            fn_ranges: Vec::new(),
+            src_lines: Vec::new(),
+        })
     }
 
     /// A hand-built straight-line program with two KECCAK rows. The first reads, in the even
@@ -479,7 +360,7 @@ mod tests {
         }
         prog.push(Op::Xor { a: 0, b: 0, c: 0 }); // sentinel
         assert_eq!(prog.len(), 16);
-        Program::from_bytecode(prog, 64)
+        from_bytecode(prog, 64)
     }
 
     /// Two KECCAK rows over one input that write only part of their output: the first its cell 0 at 13, the
@@ -505,7 +386,7 @@ mod tests {
         prog.push(set(41, F128::ONE));
         prog.push(Op::Xor { a: 0, b: 0, c: 0 }); // sentinel
         assert_eq!(prog.len(), 16);
-        Program::from_bytecode(prog, 64)
+        from_bytecode(prog, 64)
     }
 
     /// A KECCAK writes the output cells its bytecode requests and no other, and the proof verifies.
@@ -514,7 +395,7 @@ mod tests {
         use crate::keccak::permute_cells;
         let program = partial_keccak_program();
         let pi = [w(7), w(11)];
-        let exec = program.execute(pi).unwrap();
+        let exec = execute(&program, &[], pi).unwrap();
         let input = std::array::from_fn(|c| exec.mem.word(if c < 4 { 2 + c % 2 } else { c }));
         let out = permute_cells(&input, false, false);
         assert_eq!(exec.mem.word(13), out[0]);
@@ -523,7 +404,7 @@ mod tests {
             (14..26).chain(28..39).all(|c| exec.mem.word(c) == F128::ZERO),
             "a cell not requested is not written"
         );
-        let (proof, _) = prove(&program, pi, crate::pcs::TEST_LOG_INV_RATE).unwrap();
+        let (proof, _) = prove(&program, &[], pi, crate::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &pi, &proof).expect("partial outputs verify");
     }
 
@@ -541,7 +422,7 @@ mod tests {
         let end = F128::new(primitives::hash::END_BIT, 0x5555);
         let program = keccak_program(a, b, [pad, F128::ZERO, F128::ZERO, F128::ZERO], end);
         let pi = [w(7), w(11)];
-        let exec = program.execute(pi).unwrap();
+        let exec = execute(&program, &[], pi).unwrap();
 
         let mut input = [F128::ZERO; STATE_CELLS];
         input[..9].copy_from_slice(&[a, b, a, b, pad, F128::ZERO, F128::ZERO, F128::ZERO, end]);
@@ -560,7 +441,7 @@ mod tests {
             primitives::hash::hash(&bytes)
         );
 
-        let (proof, _) = prove(&program, pi, crate::pcs::TEST_LOG_INV_RATE).unwrap();
+        let (proof, _) = prove(&program, &[], pi, crate::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &pi, &proof).expect("a hand-assembled program verifies");
     }
 
@@ -585,19 +466,21 @@ mod tests {
                 fill,
                 last, // at fp = g it reads cells 2, 3, 2, so -> (g^7, g^0): the final state
             ];
-            Program::from_bytecode(code, 8)
+            from_bytecode(code, 8)
         };
 
         let jumping = program(Op::Jump { oc: 1, od: 2, of: 1 });
-        let exec = jumping.execute(pi).expect("the run halts in the final state");
+        let exec = execute(&jumping, &[], pi).expect("the run halts in the final state");
         assert_eq!(exec.cycles, 5, "three SETs and both JUMPs, the last slot's included");
         assert_eq!(exec.rows(), [0, 0, 3, 0, 2, 0], "XOR, MUL, SET, DEREF, JUMP, KECCAK");
-        let (proof, _) = prove(&jumping, pi, crate::pcs::TEST_LOG_INV_RATE).unwrap();
+        let (proof, _) = prove(&jumping, &[], pi, crate::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&jumping, &pi, &proof).expect("the verifier accepts the run");
 
         // With the compiler's SET in the last slot the run has nowhere to go from there, its
         // successor g^8 being no bytecode address.
-        let err = program(set(5, F128::ONE)).execute(pi).err().expect("the run must fail");
+        let err = execute(&program(set(5, F128::ONE)), &[], pi)
+            .err()
+            .expect("the run must fail");
         assert!(matches!(err.fault, Fault::HaltOutsideMain { fp: 1 }), "{err}");
     }
 
@@ -612,9 +495,9 @@ mod tests {
             Op::Mul { a: 2, b: 3, c: 4 },
             Op::Xor { a: 0, b: 0, c: 0 }, // sentinel (never executed)
         ];
-        let program = Program::from_bytecode(prog, 5);
+        let program = from_bytecode(prog, 5);
         let pi = [w(1), w(2)];
-        let exec = program.execute(pi).unwrap();
+        let exec = execute(&program, &[], pi).unwrap();
         assert_eq!(exec.mem.word(4), x * y, "MUL computes the E product");
     }
 }

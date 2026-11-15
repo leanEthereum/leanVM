@@ -30,11 +30,11 @@ def main():
     return
 ";
     for v in [1u128, 2, 3, 4, 5, 7, 8, 200] {
-        let mut program = compile(&parse(src).expect("parse"));
+        let program = compile(&parse(src).expect("parse"));
         let bits: Vec<F128> = (0..8).map(|j| F128::from(F64(((v >> j) & 1) as u64))).collect();
-        program.set_witness("bits", vec![bits]);
+        let witness = [("bits".to_string(), vec![bits])];
         let want = [F128::from(g_pow(log2_ceil_of(v))), F128::from(F64::ONE)];
-        let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        let (proof, _) = prove(&program, &witness, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &want, &proof).unwrap_or_else(|_| panic!("v={v}: log2_ceil advice must verify"));
     }
 }
@@ -54,11 +54,11 @@ def main():
     return
 ";
     for (v, mu) in [(2u128, 5usize), (4, 5), (64, 6), (200, 8)] {
-        let mut program = compile(&parse(src).expect("parse"));
+        let program = compile(&parse(src).expect("parse"));
         let bits: Vec<F128> = (0..8).map(|j| F128::from(F64(((v >> j) & 1) as u64))).collect();
-        program.set_witness("bits", vec![bits]);
+        let witness = [("bits".to_string(), vec![bits])];
         let want = [F128::from(g_pow(mu)), F128::from(F64::ONE)];
-        let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        let (proof, _) = prove(&program, &witness, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &want, &proof).unwrap_or_else(|_| panic!("v={v}: floored log2_ceil must verify"));
     }
 }

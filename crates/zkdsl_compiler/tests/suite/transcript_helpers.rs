@@ -4,6 +4,7 @@
 
 use crate::common::compile;
 use crate::common::f128_literal;
+use lean_vm_core::cpu::execute;
 use primitives::field::F128;
 use primitives::hash::{STATE_LANES, keccak_f};
 use zkdsl_compiler::parse;
@@ -66,9 +67,7 @@ fn guest_transcript_step_matches_the_native_duplex() {
     let second = duplex(&mut state, &[]);
 
     let program = compile(&parse(&src).expect("parse"));
-    program
-        .execute([first, second])
-        .expect("the guest's step is the native duplex");
+    execute(&program, &[], [first, second]).expect("the guest's step is the native duplex");
     let wrong = second + F128::new(1, 0);
-    assert!(program.execute([first, wrong]).is_err());
+    assert!(execute(&program, &[], [first, wrong]).is_err());
 }

@@ -12,30 +12,26 @@ pub struct ExperimentalProver;
 const GROUP: usize = 8;
 
 impl isa::Prover for ExperimentalProver {
-    type Program = cpu::Program;
-
     fn init() {
         parallel::init();
     }
 
-    fn assemble(program: isa::CompiledProgram) -> cpu::Program {
-        cpu::Program::from(program)
-    }
-
     fn prove(
-        program: &cpu::Program,
+        program: &isa::Program,
         witness: &[(String, Vec<Vec<E>>)],
         public_input: [E; 2],
         log_inv_rate: usize,
     ) -> Result<(verifier::Proof, isa::Stats), String> {
-        let mut program = program.clone();
-        for (name, entries) in witness {
-            let entries = entries
-                .iter()
-                .map(|entry| entry.iter().copied().map(from_scalar).collect());
-            program.set_witness(name.as_str(), entries.collect());
-        }
-        cpu::prove(&program, public_input.map(from_scalar), log_inv_rate).map_err(|e| e.to_string())
+        let witness: Vec<(String, Vec<Vec<F128>>)> = witness
+            .iter()
+            .map(|(name, entries)| {
+                let entries = entries
+                    .iter()
+                    .map(|entry| entry.iter().copied().map(from_scalar).collect());
+                (name.clone(), entries.collect())
+            })
+            .collect();
+        cpu::prove(program, &witness, public_input.map(from_scalar), log_inv_rate).map_err(|e| e.to_string())
     }
 
     fn map_collect<T: Send>(n: usize, f: impl Fn(usize) -> T + Sync) -> Vec<T> {

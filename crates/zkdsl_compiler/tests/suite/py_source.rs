@@ -16,7 +16,8 @@
 
 use std::fs;
 
-use lean_vm_core::cpu::{Program, from_scalar, prove, verify};
+use isa::Program;
+use lean_vm_core::cpu::{from_scalar, prove, verify};
 use primitives::field::F128;
 use zkdsl_compiler::{compile, parse, parse_const};
 
@@ -40,15 +41,18 @@ pub(crate) fn public_input(src: &str) -> Option<[F128; 2]> {
 /// The `# witness <name>: <elt>, …` annotations: one line per *entry*
 /// (repeated lines with the same name are the stream's successive entries,
 /// popped by successive `hint_witness` calls).
-pub(crate) fn witness(src: &str) -> std::collections::HashMap<String, Vec<Vec<F128>>> {
-    let mut streams: std::collections::HashMap<String, Vec<Vec<F128>>> = Default::default();
+pub(crate) fn witness(src: &str) -> Vec<(String, Vec<Vec<F128>>)> {
+    let mut streams: Vec<(String, Vec<Vec<F128>>)> = Vec::new();
     for rest in src.lines().filter_map(|l| l.trim().strip_prefix("# witness ")) {
         let (name, vals) = rest.split_once(':').expect("`# witness` needs `name: values`");
         let entry = vals
             .split(',')
             .map(|s| from_scalar(parse_const(s).unwrap_or_else(|e| panic!("bad witness value: {e}"))))
             .collect();
-        streams.entry(name.trim().to_string()).or_default().push(entry);
+        match streams.iter_mut().find(|(stream, _)| stream == name.trim()) {
+            Some((_, entries)) => entries.push(entry),
+            None => streams.push((name.trim().to_string(), vec![entry])),
+        }
     }
     streams
 }
@@ -70,11 +74,8 @@ fn all_py_programs() {
         let src = fs::read_to_string(&path).unwrap_or_else(|e| panic!("{name}: read: {e}"));
         let want = public_input(&src).unwrap_or([F128::ZERO; 2]);
         let ast = parse(&src).unwrap_or_else(|e| panic!("{name}: parse: {e}"));
-        let mut program = Program::from(compile(&ast));
-        for (stream, entries) in witness(&src) {
-            program.set_witness(stream, entries);
-        }
-        let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        let program = Program::from(compile(&ast));
+        let (proof, _) = prove(&program, &witness(&src), want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &want, &proof).unwrap_or_else(|e| panic!("{name}: verify: {e:?}"));
         println!("{name}: ok");
     }

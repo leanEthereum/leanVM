@@ -47,7 +47,7 @@ pub mod lean_sphincs {
 /// [`AggregateProof::verify`] also reads (it builds it on first use otherwise, and needs no pool).
 pub fn setup() {
     P::init();
-    aggregation::warm_up::<P>();
+    aggregation::warm_up();
 }
 
 /// Aggregate leanXMSS and leanSPHINCS signatures, blobs and the claims of child proofs.

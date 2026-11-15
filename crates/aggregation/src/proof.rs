@@ -1,7 +1,7 @@
 //! The aggregate, its wire format and its native verification.
 
 use super::deferred::{DeferredBytecodeClaim, bytecode_vars};
-use super::guest::scalar_bytecode;
+use super::guest::unified_guest;
 use super::statement::statement_digest;
 use super::{LeanSphincsClaim, LeanXmssClaim};
 use lean_vm_core::cpu::public_input_bytes;
@@ -97,7 +97,7 @@ impl AggregateProof {
         }
         let defer = DeferredBytecodeClaim::recompute(self.bytecode_point.clone());
         let pi = statement_digest(claims, &defer);
-        let verdict = verifier::verify_execution(scalar_bytecode(), &public_input_bytes(&pi), &self.proof);
+        let verdict = verifier::verify_execution(unified_guest().bytecode(), &public_input_bytes(&pi), &self.proof);
         if let Err(error) = &verdict {
             tracing::debug!(%error, "the proof does not verify");
         }

@@ -1,25 +1,19 @@
 //! What the crates both provers share (`aggregation`, `lean_vm`) need of a prover. Each prover tree implements
 //! [`Prover`] once, beside its `cpu::prove`.
 
-use crate::CompiledProgram;
+use crate::Program;
 use verifier::{E, layout::N_TABLES};
 
 /// A prover of ISA programs, and the thread pool and field kernels it brings for the work around a proof.
 pub trait Prover: 'static {
-    /// A program assembled for this prover.
-    type Program: Send + Sync + 'static;
-
     /// Start the prover's thread pool. Call it before anything below; a second call does nothing.
     fn init();
-
-    /// `program` as this prover runs it. Costly (it hashes the bytecode into the Fiat-Shamir IV): assemble once.
-    fn assemble(program: CompiledProgram) -> Self::Program;
 
     /// Prove an execution of `program` on `public_input` at the code rate `2^-log_inv_rate`, or say why there is none.
     /// `witness` names the streams of its `hint_witness` calls, each with one entry per call, in the order they are
     /// popped.
     fn prove(
-        program: &Self::Program,
+        program: &Program,
         witness: &[(String, Vec<Vec<E>>)],
         public_input: [E; 2],
         log_inv_rate: usize,

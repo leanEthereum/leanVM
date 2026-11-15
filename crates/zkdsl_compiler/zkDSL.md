@@ -4,7 +4,7 @@ The zkDSL is a Python-syntax language that compiles to the leanVM ISA: six instr
 
 Source files use the `.py` extension and are **Python-shaped**: they import the [`snark_lib`](snark_lib.py) stub, which defines `GEN`, `log`, `mul_range`, `HeapBuf`, `StackBuf`, `assert_in_k`, `keccak` and `keccak_cells`, so editors and linters resolve the intrinsic names. The compiler skips the import. Ordinary helpers such as `pack64x2` are defined in the single-file guest. A program that uses placeholders is not a runnable Python file: its `*_PLACEHOLDER` identifiers are undefined until the host fills them in, so importing it raises `NameError`.
 
-Entry points: `zkdsl_compiler::parse` / `parse_with_replacements` → `zkdsl_compiler::compile`, a `CompiledProgram` (crate `isa`) → `lean_vm_core::cpu::Program::from` in either prover tree → `cpu::prove` / `verify`.
+Entry points: `zkdsl_compiler::parse` / `parse_with_replacements` → `zkdsl_compiler::compile`, a `CompiledProgram` (crate `isa`) → `isa::Program::from` → `cpu::prove` / `verify` in either prover tree.
 
 ## Dev experience
 
@@ -484,7 +484,7 @@ which is the one-line form of allocating a `StackBuf(1)`, filling a slice of it,
 
 Prover-supplied data (leanVM's `hint_witness`): a stream is a sequence of **entries**, one slice of values per `hint_witness` call, and the same symbol may be hinted many times. Each call pops the stream's next entry (whose length must match the destination run) and writes it into `dest` through the hint mechanism, at **zero cycles**. The values are completely unconstrained; the program must constrain them itself (asserts, range checks, hashes): an unconstrained hint consumed by anything security-relevant is a critical vulnerability. Runtime-start heap slices (`buf[i:i + k]`, `k` a literal) work too.
 
-The prover supplies streams with `program.set_witness("name", entries)` (`Vec<Vec<extension-field>>`); test programs declare them as annotations, one line per entry, and repeated lines with the same name are its successive entries:
+The prover takes the streams beside the program, as its `witness` argument of `(name, entries)` pairs (`entries: Vec<Vec<extension-field>>`); test programs declare them as annotations, one line per entry, and repeated lines with the same name are its successive entries:
 
 ```python
 # witness r: GEN ** 5, 12

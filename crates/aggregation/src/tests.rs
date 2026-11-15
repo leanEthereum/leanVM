@@ -1,19 +1,20 @@
 use super::cells::{count, pack_16_bytes};
 use super::deferred::{DeferredBytecodeClaim, bytecode_sums, bytecode_value, bytecode_vars};
 use super::error::AggregateError;
-use super::guest::{GUEST_SOURCE, compile_guest, scalar_bytecode};
+use super::guest::{GUEST_SOURCE, compile_guest, unified_guest};
 use super::hints::{FORGE, Forgery, Hints};
 use super::placeholders::placeholder_map;
 use super::proof::{AggregateClaims, AggregateProof, decode, encode};
 use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
 use super::*;
 use fiat_shamir_prover::merkle::hash_to_scalars;
+use isa::Program;
 use isa::Prover;
 use keccak256::{hash, hash_pair};
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS, Hash};
 use lean_sphincs::LeanSphincsSignature;
 use lean_vm_core::StableProver;
-use lean_vm_core::cpu::{ExecError, Execution, Program, from_scalar, to_scalar};
+use lean_vm_core::cpu::{execute, from_scalar, to_scalar};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use primitives::field::F128;
 use rand::SeedableRng;
@@ -89,27 +90,15 @@ fn assert_forgery_rejected(
     );
 }
 
-/// The guest's helpers under a `main` of their own, assembled at the bytecode size `2^kbc`.
+/// The guest's helpers under a `main` of their own, compiled at the bytecode size `2^kbc`.
 fn guest_snippet(main: &str, kbc: usize) -> Program {
     let (helpers, _) = GUEST_SOURCE.split_once("\ndef main():").unwrap();
     let source = format!("{helpers}\ndef main():\n{main}");
-    StableProver::init();
-    StableProver::assemble(compile(
+    Program::from(compile(
         &parse_with_replacements(&source, &placeholder_map(kbc)).unwrap(),
     ))
 }
 
-/// Run `program` on `public_input` with the witness `hints`.
-fn run(program: &Program, hints: Hints, public_input: [F128; 2]) -> Result<Execution, ExecError> {
-    let mut program = program.clone();
-    for (name, entries) in hints.witness() {
-        let entries = entries
-            .into_iter()
-            .map(|entry| entry.into_iter().map(from_scalar).collect());
-        program.set_witness(name, entries.collect());
-    }
-    program.execute(public_input)
-}
 
 #[test]
 fn the_wire_layout_is_pinned() {
@@ -319,7 +308,7 @@ fn guest_column_selectors_match_native_eq() {
                 hints.push("point", point.clone());
                 hints.push("offset", vec![count(offset)]);
                 hints.push("kappa", vec![count(kappa)]);
-                let execution = run(&guest, hints, [expected, F128::ZERO]).unwrap();
+                let execution = execute(&guest, &hints.0, [expected, F128::ZERO]).unwrap();
                 assert!(execution.unconstrained_reads.is_empty());
             }
         }
@@ -462,7 +451,7 @@ fn list_split_rejects_a_negative_rest() {
         let mut hints = Hints::default();
         hints.push("n", vec![count(6)]);
         hints.push("signers_split", vec![count(0), body, rest]);
-        run(&guest, hints, [body, rest])
+        execute(&guest, &hints.0, [body, rest])
     };
     // Six claims: no whole group, then six.
     assert!(split(count(0), count(6)).is_ok());
@@ -489,7 +478,7 @@ fn grind_check_reads_the_low_bits() {
     let check = |lane: u64| {
         let mut hints = Hints::default();
         hints.push("w", vec![F128::new(lane, 0x0123_4567_89AB_CDEF)]);
-        run(&guest, hints, [F128::ZERO, F128::ZERO])
+        execute(&guest, &hints.0, [F128::ZERO, F128::ZERO])
     };
     for lane in [0, 0b1000, 1 << 63, 0xFEDC_BA98_7654_3218] {
         assert!(check(lane).is_ok(), "{lane:#x} has its low 3 bits zero");
@@ -532,7 +521,11 @@ fn da_guest_checks_codeword_membership() {
                 hints.push("da_symbols", cell.iter().map(|&w| F128::from(w)).collect());
             }
         }
-        run(&guest, hints, hash_to_scalars(&verifier::da::digest(Some(commitment))))
+        execute(
+            &guest,
+            &hints.0,
+            hash_to_scalars(&verifier::da::digest(Some(commitment))),
+        )
     };
     assert!(verify(&rows).unwrap().unconstrained_reads.is_empty());
     for (position, flip) in [(0, 1), (BLOB_SYMBOLS + 5, 1 << 64)] {
@@ -697,7 +690,7 @@ fn a_child_walk_cannot_step_back() {
         for &gap in gaps {
             hints.push("child_claim_gap", vec![gap]);
         }
-        run(&guest, hints, claim_list_digest(child.iter().copied()))
+        execute(&guest, &hints.0, claim_list_digest(child.iter().copied()))
     };
     assert!(walk(&[claim(0), claim(1)], &[count(0), count(0)]).is_ok());
     let back = count(1).inv();
@@ -748,7 +741,7 @@ fn bytecode_values_are_the_bytecode_evaluation() {
     StableProver::init();
     for (sums, point) in bytecode_sums::<StableProver>(&points).iter().zip(&points) {
         let scalars: Vec<_> = point.iter().map(to_scalar).collect();
-        let value = from_scalar(scalar_bytecode().evaluate(&scalars).unwrap());
+        let value = from_scalar(unified_guest().bytecode().evaluate(&scalars).unwrap());
         assert_eq!(bytecode_value(sums, point), value);
         assert_eq!(DeferredBytecodeClaim::recompute(point.clone()).bytecode_value, value);
     }

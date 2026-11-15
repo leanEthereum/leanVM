@@ -14,13 +14,7 @@ pub fn run_fibonacci<P: Prover>(n: usize, log_inv_rate: usize, plan: Plan) {
     let trace_span = tracing::info_span!("Fibonacci", n, log_inv_rate).entered();
 
     let (src, pi) = fibonacci_program(n);
-    let compiled = compile(&parse(&src).unwrap());
-    let table: Vec<u64> = stable_lean_vm_core::cpu::layout::bytecode_table(&compiled.prog)
-        .iter()
-        .map(|w| w.0)
-        .collect();
-    let bytecode = verifier::Bytecode::new(&table);
-    let program = P::assemble(compiled);
+    let program = isa::Program::from(compile(&parse(&src).unwrap()));
     let public_input = verifier::Digest::from_halves(pi[0], pi[1]).0;
 
     // Only the final measured pass of each stage is traced (see `run_aggregation`).
@@ -30,7 +24,7 @@ pub fn run_fibonacci<P: Prover>(n: usize, log_inv_rate: usize, plan: Plan) {
     });
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        verifier::verify_execution(&bytecode, &public_input, &proof).unwrap()
+        verifier::verify_execution(program.bytecode(), &public_input, &proof).unwrap()
     });
 
     drop(trace_span);

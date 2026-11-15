@@ -2,6 +2,7 @@
 //! compiler. Each is now rejected with a diagnostic, or compiled as written.
 
 use crate::common::compile;
+use lean_vm_core::cpu::execute;
 use primitives::field::{F64, F128, g_pow};
 use zkdsl_compiler::parse;
 
@@ -88,12 +89,11 @@ fn ill_formed_calls_are_rejected_when_lowered() {
 #[test]
 fn programs_compile_as_written() {
     let runs = |src: &str, witness: &[(&str, F128)]| {
-        let mut program = compile(&parse(src).unwrap());
-        for &(name, v) in witness {
-            program.set_witness(name, vec![vec![v]]);
-        }
-        program
-            .execute([F128::ZERO; 2])
+        let witness: Vec<_> = witness
+            .iter()
+            .map(|&(name, v)| (name.to_string(), vec![vec![v]]))
+            .collect();
+        execute(&compile(&parse(src).unwrap()), &witness, [F128::ZERO; 2])
             .unwrap_or_else(|e| panic!("{e:?}, for:\n{src}"));
     };
     // Integers past `u32` were compared as field elements, `2^33 XOR 2^33 = 0`.

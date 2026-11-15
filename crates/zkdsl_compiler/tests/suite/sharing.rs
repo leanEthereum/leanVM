@@ -5,7 +5,7 @@
 //! not to where it happens.
 
 use crate::common::compile;
-use lean_vm_core::cpu::{prove, verify};
+use lean_vm_core::cpu::{execute, prove, verify};
 use primitives::field::{F64, F128, g_pow};
 use zkdsl_compiler::parse;
 
@@ -32,7 +32,7 @@ def main():
 ";
     let program = compile(&parse(src).expect("parse"));
     let want = [F128::from(g_pow(3)) * F128::from(F64(7)), F128::from(F64(7))];
-    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("returned duplicate constant is preserved");
 }
 
@@ -57,7 +57,7 @@ def main():
     let program = compile(&parse(src).expect("parse"));
     // (k + k) + (k + k) == 0 in characteristic two.
     let want = [F128::ZERO, F128::ZERO];
-    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("duplicated call arguments are preserved");
 }
 
@@ -89,7 +89,7 @@ def main():
 ";
     let run = |pi: [F128; 2]| -> bool {
         let program = compile(&parse(src).expect("parse"));
-        prove(&program, pi, lean_vm_core::pcs::TEST_LOG_INV_RATE)
+        prove(&program, &[], pi, lean_vm_core::pcs::TEST_LOG_INV_RATE)
             .is_ok_and(|(proof, _)| verify(&program, &pi, &proof).is_ok())
     };
     assert!(
@@ -132,7 +132,7 @@ def main():
 fn assert_survives_a_duplicated_comparison() {
     let program = compile(&parse(&duplicated_comparison(9)).expect("parse"));
     let want = [F128::ZERO, F128::from(g_pow(9))];
-    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("passing assert still verifies");
 }
 
@@ -155,10 +155,10 @@ def main():
     p[GEN] = 0
     return
 ";
-    let mut program = compile(&parse(src).expect("parse"));
-    program.set_witness("flag", vec![vec![F128::ZERO]]);
+    let program = compile(&parse(src).expect("parse"));
+    let witness = [("flag".to_string(), vec![vec![F128::ZERO]])];
     let want = [F128::ZERO, F128::ZERO];
-    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, &witness, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("untaken branch must not consume its witness");
 }
 
@@ -201,7 +201,7 @@ def main():
 ";
     let program = compile(&parse(src).expect("parse"));
     let want = [F128::from(g_pow(11)), F128::from(g_pow(22))];
-    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("each hash absorbs into its own state");
 }
 
@@ -222,10 +222,15 @@ def main():
     return
 "#;
     let value = F128::new(17, 31);
-    let mut program = compile(&parse(source).unwrap());
-    program.set_witness("values", vec![vec![value, F128::ONE, value]]);
+    let program = compile(&parse(source).unwrap());
+    let witness = [("values".to_string(), vec![vec![value, F128::ONE, value]])];
     for branch in [F128::ZERO, F128::ONE] {
-        assert!(program.execute([branch, value]).unwrap().unconstrained_reads.is_empty());
+        assert!(
+            execute(&program, &witness, [branch, value])
+                .unwrap()
+                .unconstrained_reads
+                .is_empty()
+        );
     }
 }
 
@@ -255,10 +260,15 @@ def main():
     for touch in ["assert log(h) < 1024", "early = StackBuf(1)\n    early[0] = h[1]"] {
         for fill in ["hint_witness(h[0:1], \"value\")", "fill(h)"] {
             let source = source.replace("TOUCH", touch).replace("FILL", fill);
-            let mut program = compile(&parse(&source).unwrap());
-            program.set_witness("value", vec![vec![value]]);
-            assert!(program.execute(public).unwrap().unconstrained_reads.is_empty());
-            let (proof, _) = prove(&program, public, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+            let program = compile(&parse(&source).unwrap());
+            let witness = [("value".to_string(), vec![vec![value]])];
+            assert!(
+                execute(&program, &witness, public)
+                    .unwrap()
+                    .unconstrained_reads
+                    .is_empty()
+            );
+            let (proof, _) = prove(&program, &witness, public, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
             verify(&program, &public, &proof).unwrap();
         }
     }
@@ -280,7 +290,7 @@ def main():
 ";
     let program = compile(&parse(source).unwrap());
     let public = [F128::from(g_pow(4)), F128::ZERO];
-    let (proof, _) = prove(&program, public, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, &[], public, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &public, &proof).unwrap();
 }
 
@@ -296,7 +306,7 @@ def main():
     public[1] = x * GEN
     return
 ";
-    let exec = compile(&parse(source).unwrap()).execute([F128::ZERO; 2]).unwrap();
+    let exec = execute(&compile(&parse(source).unwrap()), &[], [F128::ZERO; 2]).unwrap();
     assert!(!exec.unconstrained_reads.is_empty());
 }
 
@@ -328,10 +338,15 @@ def main():
         ("other", "other[0] = h[GEN]\n    h[GEN] = value"),
     ] {
         let source = source.replace("FILL_DEST", fill).replace("DEST", dest);
-        let mut program = compile(&parse(&source).unwrap());
-        program.set_witness("value", vec![vec![value]]);
-        assert!(program.execute(public).unwrap().unconstrained_reads.is_empty());
-        let (proof, _) = prove(&program, public, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        let program = compile(&parse(&source).unwrap());
+        let witness = [("value".to_string(), vec![vec![value]])];
+        assert!(
+            execute(&program, &witness, public)
+                .unwrap()
+                .unconstrained_reads
+                .is_empty()
+        );
+        let (proof, _) = prove(&program, &witness, public, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &public, &proof).unwrap();
     }
 }

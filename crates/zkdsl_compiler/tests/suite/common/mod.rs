@@ -3,8 +3,8 @@
 use primitives::field::F128;
 use zkdsl_compiler::parse;
 
-/// The shared compiler's output, assembled for the stable prover.
-pub fn compile(ast: &zkdsl_compiler::Ast) -> lean_vm_core::cpu::Program {
+/// The shared compiler's output, with its bytecode table.
+pub fn compile(ast: &zkdsl_compiler::Ast) -> isa::Program {
     zkdsl_compiler::compile(ast).into()
 }
 
@@ -15,7 +15,9 @@ pub fn f128_literal(x: F128) -> String {
 
 /// The program's own instruction mix: executed but not proven.
 pub fn mix(src: &str, pi: [F128; 2]) -> [usize; lean_vm_core::cpu::Stats::TABLES.len()] {
-    compile(&parse(src).expect("parse")).execute(pi).unwrap().rows()
+    lean_vm_core::cpu::execute(&compile(&parse(src).expect("parse")), &[], pi)
+        .unwrap()
+        .rows()
 }
 
 /// An AST's shape with source lines stripped. Two spellings of the same program

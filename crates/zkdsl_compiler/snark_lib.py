@@ -187,7 +187,7 @@ def hint_witness(dest, name: Optional[str] = None) -> Any:
     entry then having to hold exactly one value.
 
     The same symbol may be hinted many times, each call popping the next entry
-    (`Program::set_witness`; test programs declare one `# witness name: v1, …`
+    (the prover's `witness` argument; test programs declare one `# witness name: v1, …`
     line per entry). Zero cycles either way, and the values are completely
     UNCONSTRAINED: the program must constrain them itself (asserts, range
     checks, hashes)."""

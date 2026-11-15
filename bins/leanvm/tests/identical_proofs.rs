@@ -7,7 +7,7 @@
 
 use aggregation::{AggregateClaims, AggregateError, AggregateProof, OutputClaims, signers_cache};
 use experimental_lean_vm_core::ExperimentalProver;
-use isa::{CompiledProgram, Prover};
+use isa::{Program, Prover};
 use stable_lean_vm_core::StableProver;
 use verifier::E;
 
@@ -62,12 +62,12 @@ fn stable_and_experimental_proofs_are_identical() {
 
 /// `program`'s proof at rate 1 on `public_input`, or why there is none.
 fn prove<P: Prover>(
-    program: &CompiledProgram,
+    program: &Program,
     public_input: [E; 2],
     witness: &[(String, Vec<Vec<E>>)],
 ) -> Result<verifier::Proof, String> {
     P::init();
-    P::prove(&P::assemble(program.clone()), witness, public_input, 1).map(|(proof, _)| proof)
+    P::prove(program, witness, public_input, 1).map(|(proof, _)| proof)
 }
 
 /// The compiler suite runs on stable alone; this runs its programs, with their annotated inputs (`# public_input:`,
@@ -93,7 +93,7 @@ fn compiler_programs_prove_identically() {
     };
     for path in paths {
         let src = std::fs::read_to_string(&path).unwrap();
-        let program = zkdsl_compiler::compile(&zkdsl_compiler::parse(&src).unwrap());
+        let program = Program::from(zkdsl_compiler::compile(&zkdsl_compiler::parse(&src).unwrap()));
         let annotation = |tag: &'static str| src.lines().filter_map(move |line| line.trim().strip_prefix(tag));
         let public_input = annotation("# public_input:")
             .next()

@@ -109,7 +109,7 @@ pub fn file() -> File {
         .map(|_| {
             let point = elements(&mut rng, kbcv);
             let scalars: Vec<_> = point.iter().map(to_scalar).collect();
-            let value = from_scalar(scalar_bytecode().evaluate(&scalars).unwrap());
+            let value = from_scalar(unified_guest().bytecode().evaluate(&scalars).unwrap());
             let canonical = |rng: &mut StdRng| F128::new(rng.random(), rng.random());
             let public_input = [canonical(&mut rng), canonical(&mut rng)];
             (public_input, DeferredBytecodeClaim { bytecode_point: point, bytecode_value: value })

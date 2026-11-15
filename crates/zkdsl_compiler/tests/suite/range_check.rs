@@ -7,7 +7,7 @@
 //! end-of-run resolution of the two touched cells.
 
 use crate::common::compile;
-use lean_vm_core::cpu::{prove, verify};
+use lean_vm_core::cpu::{execute, prove, verify};
 use primitives::field::{F64, F128, g_pow};
 use zkdsl_compiler::parse;
 
@@ -35,7 +35,7 @@ def main():
 ";
     let program = compile(&parse(src).expect("parse"));
     let want = [F128::from(g_pow(12)), F128::from(g_pow(5))];
-    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     // 2 DEREFs per range check (4 checks) + 2 publishing stores.
     assert_eq!(mix(src, want)[3], 10, "DEREF count");
     verify(&program, &want, &proof).expect("range-checked program verifies");
@@ -57,7 +57,7 @@ def main():
 ";
     let program = compile(&parse(src).expect("parse"));
     let want = [F128::from(g_pow(300)), F128::from(g_pow(300))];
-    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("unwritten touches verify");
 }
 
@@ -73,7 +73,7 @@ fn range_check_complement_sizes_the_memory() {
         );
         let program = compile(&parse(&src).expect("parse"));
         let want = [F128::from(g_pow(0)); 2];
-        let (proof, stats) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        let (proof, stats) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         assert_eq!(stats.log_mem, log_mem, "bound {k}");
         verify(&program, &want, &proof).unwrap_or_else(|e| panic!("bound {k}: {e:?}"));
     }
@@ -96,7 +96,7 @@ def main():
 ";
     let program = compile(&parse(src).expect("parse"));
     let want = [F128::from(F64(5)), F128::from(F64(7))];
-    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     // 6 iterations × 2 range-check DEREFs, plus call/publish plumbing.
     assert!(mix(src, want)[3] >= 12, "at least the 12 range-check DEREFs");
     verify(&program, &want, &proof).expect("loop range checks verify");
@@ -116,7 +116,7 @@ fn range_check_empty_bound_rejected() {
 fn range_check_bound_past_the_prover_is_an_error() {
     let src = "def main():\n    x = GEN ** 5\n    assert log x < 268435472\n    return\n";
     let program = compile(&parse(src).expect("parse"));
-    match program.execute([F128::ZERO; 2]) {
+    match execute(&program, &[], [F128::ZERO; 2]) {
         Err(err) => assert!(
             matches!(err.fault, lean_vm_core::cpu::Fault::WildPointer { .. }),
             "{err}"
@@ -142,10 +142,10 @@ def main():
     p[GEN] = x
     return
 ";
-    let mut program = compile(&parse(src).expect("parse"));
-    program.set_witness("n", vec![vec![F128::from(g_pow(5000))]]);
+    let program = compile(&parse(src).expect("parse"));
+    let witness = [("n".to_string(), vec![vec![F128::from(g_pow(5000))]])];
     let want = [F128::from(g_pow(3)); 2];
-    let (proof, stats) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, stats) = prove(&program, &witness, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     assert_eq!(stats.log_mem, 13);
     verify(&program, &want, &proof).expect("hinted g-power range checks verify");
 }
@@ -188,10 +188,10 @@ def main():
     p[GEN] = n
     return
 ";
-    let mut program = compile(&parse(src).expect("parse"));
-    program.set_witness("n", vec![vec![F128::from(g_pow(6))]]);
+    let program = compile(&parse(src).expect("parse"));
+    let witness = [("n".to_string(), vec![vec![F128::from(g_pow(6))]])];
     let want = [F128::from(g_pow(5)), F128::from(g_pow(6))];
-    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, &witness, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("runtime-bound range check verifies");
 }
 

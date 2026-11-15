@@ -25,7 +25,7 @@ def main():
 ";
     let program = compile(&parse(src).expect("parse"));
     let want = [F128::from(g_pow(12)), F128::from(g_pow(5))];
-    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("inequality program verifies");
 }
 
@@ -46,7 +46,7 @@ def main():
 ";
     let program = compile(&parse(src).expect("parse"));
     let want = [F128::from(F64(5)), F128::from(F64(7))];
-    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("loop inequality verifies");
 }
 
@@ -64,7 +64,7 @@ fn opcode_delta(with: &str, without: &str) -> (i64, i64, i64) {
     let count = |src: &str| {
         let p = compile(&parse(src).expect("parse"));
         let (mut xor, mut mul, mut jump) = (0i64, 0i64, 0i64);
-        for op in p.prog() {
+        for op in &p.prog {
             match op {
                 Op::Xor { .. } => xor += 1,
                 Op::Mul { .. } => mul += 1,

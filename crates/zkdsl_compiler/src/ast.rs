@@ -124,7 +124,7 @@ pub enum StmtKind {
     /// `f(args)` as a statement (returns discarded).
     Call(String, Vec<Expr>),
     /// `hint_witness(dest, "name")`: fill `dest` from the next entry of the named
-    /// witness stream (`Program::set_witness`), whose length must match. The same
+    /// witness stream (the prover's `witness` argument), whose length must match. The same
     /// name may be hinted many times, each call popping the next entry. Zero
     /// cycles and completely unconstrained, so the program must constrain the
     /// values itself.

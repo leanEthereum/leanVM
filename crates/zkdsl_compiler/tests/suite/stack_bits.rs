@@ -3,7 +3,7 @@
 //! pointer (at a runtime index, or from a callee).
 
 use crate::common::compile;
-use lean_vm_core::cpu::{Stats, prove, verify};
+use lean_vm_core::cpu::{Stats, execute, prove, verify};
 use primitives::field::{F64, F128};
 use zkdsl_compiler::parse;
 
@@ -71,11 +71,11 @@ def main():
     // bits 1011 = 11, whose ceil-log is 4. Executing is enough: a folded-away
     // store leaves its cell unwritten, and the advice then computed off the hole
     // collides with the published public input.
-    let mut program = compile(&parse(src).expect("parse"));
+    let program = compile(&parse(src).expect("parse"));
     let bits: Vec<F128> = [1u64, 1, 0, 1].iter().map(|&b| F128::from(F64(b))).collect();
-    program.set_witness("bits", vec![bits]);
+    let witness = [("bits".to_string(), vec![bits])];
     let want = [F128::from(primitives::field::g_pow(4)), F128::from(F64::ONE)];
-    let exec = program.execute(want).unwrap();
+    let exec = execute(&program, &witness, want).unwrap();
     assert!(
         exec.unconstrained_reads.is_empty(),
         "every cell of the run must still be written"
@@ -117,10 +117,10 @@ def probe(v):
     assert addr(bits) == ptr
     return total
 ";
-    let mut program = compile(&parse(src).expect("parse"));
-    program.set_witness("v", vec![vec![F128::from(F64(V))]]);
+    let program = compile(&parse(src).expect("parse"));
+    let witness = [("v".to_string(), vec![vec![F128::from(F64(V))]])];
     let want = [F128::from(F64(V)), F128::from(F64::ONE)];
-    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, &witness, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("the pointer reads the frame run");
 }
 

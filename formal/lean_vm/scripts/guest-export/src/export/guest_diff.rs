@@ -187,7 +187,7 @@ fn export(
 
     out.tag("children");
     out.n(children.len());
-    let bytecode = scalar_bytecode();
+    let bytecode = unified_guest().bytecode();
     for (child_claims, child) in &children {
         out.tag("child");
         let defer = DeferredBytecodeClaim::recompute(child.bytecode_point.clone());
@@ -197,7 +197,7 @@ fn export(
         let summary =
             verifier::replay_unchecked(bytecode, &public_input_bytes(&pi), &scalar).expect("the child replays");
         // The fresh claim's value, which the caller evaluates (`aggregate` off its batch's sums).
-        let fresh_value = from_scalar(scalar_bytecode().evaluate(&summary.bytecode_point).unwrap());
+        let fresh_value = from_scalar(unified_guest().bytecode().evaluate(&summary.bytecode_point).unwrap());
         gen_verify(kbc(), &child.proof, &summary).expect("the child fits");
         out.tag("fresh");
         let point: Vec<F128> = summary.bytecode_point.iter().copied().map(from_scalar).collect();

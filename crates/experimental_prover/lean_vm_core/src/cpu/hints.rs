@@ -1,4 +1,4 @@
-//! Runtime hint machinery: the resolved hint ops a [`super::Program`] carries ([`RHint`], from the `isa` crate the
+//! Runtime hint machinery: the resolved hint ops an [`isa::Program`] carries ([`RHint`], from the `isa` crate the
 //! compiler shares), and the g-power table + reverse index the hint interpreter grows on demand.
 
 use primitives::field::{F64, div_by_g, mul_by_g};

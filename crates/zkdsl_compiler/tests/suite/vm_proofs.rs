@@ -31,10 +31,10 @@ fn chained_digest(n: usize) -> [F128; 2] {
     hash_to_scalars(&h)
 }
 
-fn hashing_proof() -> (lean_vm_core::cpu::Program, [F128; 2], Proof) {
+fn hashing_proof() -> (isa::Program, [F128; 2], Proof) {
     let program = compile(&parse(HASHING).expect("parse"));
     let pi = chained_digest(1);
-    let (proof, _) = prove(&program, pi, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, &[], pi, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &pi, &proof).expect("honest proof verifies");
     (program, pi, proof)
 }
@@ -55,7 +55,7 @@ fn an_unsupported_rate_is_an_error() {
     let program = compile(&parse(HASHING).expect("parse"));
     let rate = lean_vm_core::pcs::MAX_LOG_INV_RATE + 1;
     assert_eq!(
-        prove(&program, chained_digest(1), rate).err(),
+        prove(&program, &[], chained_digest(1), rate).err(),
         Some(ProveError::InvalidRate { log_inv_rate: rate })
     );
 }
@@ -72,7 +72,7 @@ fn any_number_of_steps_proves() {
         source += &format!("    p = 1\n    p[1] = h{n}[0]\n    p[GEN] = h{n}[1]\n    return\n");
         let pi = chained_digest(n);
         let program = compile(&parse(&source).expect("parse"));
-        let (proof, stats) = prove(&program, pi, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        let (proof, stats) = prove(&program, &[], pi, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         assert_eq!(stats.rows[5], n, "{n} steps");
         verify(&program, &pi, &proof).unwrap_or_else(|e| panic!("{n} steps: {e:?}"));
     }
@@ -85,7 +85,7 @@ fn any_number_of_steps_proves() {
 fn a_tiny_memory_proves() {
     let program = compile(&parse("def main():\n    return\n").expect("parse"));
     let pi = [F128::ZERO; 2];
-    let (proof, stats) = prove(&program, pi, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, stats) = prove(&program, &[], pi, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     assert!(stats.log_mem < 3, "memory of 2^{} cells", stats.log_mem);
     verify(&program, &pi, &proof).expect("honest proof verifies");
 }

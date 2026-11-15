@@ -424,18 +424,18 @@ def derefFlags : DerefMode → K × K
   | .pc => (1, 0)
   | .fp => (0, 1)
 
-/-- A layout flag as the bytecode carries it: `0` or `1` (`flag`,
-`crates/lean_vm_core/src/cpu/layout.rs`). -/
+/-- A layout flag as the bytecode carries it: `0` or `1` (`encode`,
+`crates/isa/src/program.rs`). -/
 def layoutFlagWord (b : Bool) : K := if b then 1 else 0
 
 /-- `KECCAK`'s output flags `(out_two, out_all)`: whether output cell `1` is written, and whether
 cells `2` to `12` are: `one ↦ (0, 0)`, `two ↦ (1, 0)`, `all ↦ (1, 1)` (`OutCells::flags`,
-`crates/isa/src/lib.rs`; `crates/lean_vm_core/src/cpu/layout.rs`). -/
+`crates/isa/src/lib.rs`; `encode`, `crates/isa/src/program.rs`). -/
 def keccakOutputFlags (outCells : KeccakOutputCells) : K × K :=
   (layoutFlagWord (outCells != .one), layoutFlagWord (outCells == .all))
 
 /-- The bus entry of an instruction, `(opcode, op₁, …, op₁₂)`: slots 3 to 15 of specification
-§8.1, the thirteen public columns of `bytecode_columns` (`cpu/layout.rs`): offsets as
+§8.1, the thirteen public columns of `encode` (`crates/isa/src/program.rs`): offsets as
 g-powers, a `SET` immediate as its two limbs, the `DEREF` store-mode flags and `KECCAK`'s
 layout and output flags as `0` or `1`, unused slots zero. -/
 def busEntry : LeanIsaInstruction → Vector K 13

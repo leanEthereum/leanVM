@@ -24,7 +24,7 @@ use std::collections::BTreeMap;
 use std::fs;
 
 use crate::common::compile;
-use lean_vm_core::cpu::Program;
+use isa::Program;
 use zkdsl_compiler::parse;
 
 /// `tests/programs/<name>.py` against the digest of the bytecode it compiles to.
@@ -50,7 +50,7 @@ const GOLDEN: &[(&str, &str)] = &[
 ];
 
 fn digest(p: &Program) -> String {
-    primitives::hash::hash(format!("{:?}", p.prog()).as_bytes())
+    primitives::hash::hash(format!("{:?}", p.prog).as_bytes())
         .iter()
         .map(|b| format!("{b:02x}"))
         .collect()

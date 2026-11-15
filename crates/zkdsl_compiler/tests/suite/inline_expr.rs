@@ -51,6 +51,6 @@ def main():
     let o = f3 * f5;
     let want = [F128::from(x), F128::from(y + o)];
 
-    let (proof, _) = prove(&program, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    let (proof, _) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
     verify(&program, &want, &proof).expect("expression-position inline calls compute correctly");
 }

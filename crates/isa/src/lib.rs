@@ -1,13 +1,15 @@
 //! The leanVM instruction set, shared by the zkDSL compiler, which emits it, and both provers, which execute and prove
-//! it: the opcodes ([`Op`]), the hints a compiled program carries for its prover ([`RHint`]), and the program as the
-//! compiler hands it over ([`CompiledProgram`]). Machine words are the verifier's field elements. A prover of these
-//! programs is a [`Prover`], what the crates both provers share run on. And the counts they print, grouped by
-//! [`pretty_integer`] and [`pretty_f64`].
+//! it: the opcodes ([`Op`]), the hints a compiled program carries for its prover ([`RHint`]), the program as the
+//! compiler hands it over ([`CompiledProgram`]) and as the provers prove it ([`Program`]). Machine words are the
+//! verifier's field elements. A prover of these programs is a [`Prover`], what the crates both provers share run on.
+//! And the counts they print, grouped by [`pretty_integer`] and [`pretty_f64`].
 
 mod pretty;
+mod program;
 mod prover;
 
 pub use pretty::{pretty_f64, pretty_integer};
+pub use program::{BYTECODE_OPERANDS, Program};
 pub use prover::{Prover, Stats};
 use std::collections::HashMap;
 use verifier::{E, K};
@@ -35,9 +37,30 @@ pub struct CompiledProgram {
 }
 
 impl CompiledProgram {
-    /// Instructions before the pad to a power of two.
+    /// Instructions before the pad to a power of two: the compiled functions, or the whole bytecode of a
+    /// hand-assembled program.
     pub fn code_len(&self) -> usize {
-        self.fn_ranges.iter().map(|&(_, _, len)| len as usize).sum()
+        match self.fn_ranges.as_slice() {
+            [] => self.prog.len(),
+            ranges => ranges.iter().map(|&(_, _, len)| len as usize).sum(),
+        }
+    }
+
+    /// Where `pc` came from: `"verify_sub (line 2204)"` when the compiler left a line for it, the function name alone
+    /// otherwise (a hand-assembled program, or padding). A run-time failure reports it.
+    pub fn site_at(&self, pc: u32) -> String {
+        match self.src_lines.get(pc as usize) {
+            Some(&line) if line != 0 => format!("{} (line {line})", self.fn_at(pc)),
+            _ => self.fn_at(pc).to_string(),
+        }
+    }
+
+    /// The compiled function containing `pc`.
+    fn fn_at(&self, pc: u32) -> &str {
+        self.fn_ranges
+            .iter()
+            .find(|(_, entry, len)| pc >= *entry && pc < *entry + *len)
+            .map_or("<unknown fn>", |(name, _, _)| name.as_str())
     }
 }
 

@@ -4,7 +4,7 @@
 
 use crate::fixture::fixture;
 use fiat_shamir::grinding_bits;
-use lean_vm_core::cpu::prove;
+use lean_vm_core::cpu::{bytecode_columns, layout_of, prove};
 use verifier::{E, VerifierError, replay_unchecked, verify_execution};
 
 /// The replay reads out of an honest proof what verifying it leaves.
@@ -12,7 +12,7 @@ use verifier::{E, VerifierError, replay_unchecked, verify_execution};
 fn replay_reads_the_summary_unchecked() {
     let fixture = fixture();
     assert_eq!(
-        replay_unchecked(&fixture.bytecode, &fixture.public_input_bytes, &fixture.proof).as_ref(),
+        replay_unchecked(fixture.program.bytecode(), &fixture.public_input_bytes, &fixture.proof).as_ref(),
         Ok(&fixture.summary)
     );
 }
@@ -25,10 +25,14 @@ fn verifies_at_every_rate() {
     for log_inv_rate in 1..=4 {
         let proof = match log_inv_rate {
             1 => fixture.proof.clone(),
-            _ => prove(&fixture.program, fixture.public_input, log_inv_rate).unwrap().0,
+            _ => {
+                prove(&fixture.program, &[], fixture.public_input, log_inv_rate)
+                    .unwrap()
+                    .0
+            }
         };
         assert_eq!(
-            verify_execution(&fixture.bytecode, &fixture.public_input_bytes, &proof).map(|_| ()),
+            verify_execution(fixture.program.bytecode(), &fixture.public_input_bytes, &proof).map(|_| ()),
             Ok(()),
             "rate {log_inv_rate}"
         );
@@ -64,14 +68,13 @@ fn tampers_fail_their_check() {
     // `2^mu + k` coefficients of the folded lane, the query nonce, then the tail rounds. The level before ends on its
     // high part, the OOD nonce, the OOD value and the query nonce.
     let rows: Vec<usize> = fixture.summary.table_rows.iter().map(|&rows| rows as usize).collect();
-    let stack_log = fixture
-        .program
-        .layout(
-            fixture.summary.log_memory,
-            rows.try_into().expect("one row count a table"),
-        )
-        .shape
-        .mu;
+    let stack_log = layout_of(
+        &bytecode_columns(&fixture.program),
+        fixture.summary.log_memory,
+        rows.try_into().expect("one row count a table"),
+    )
+    .shape
+    .mu;
     let (mut mu, mut k) = (stack_log - 6, 6); // the ladder: 6 lane variables, then 4 a level while over 5 remain
     while mu > 5 {
         k = mu.min(4);
@@ -87,7 +90,11 @@ fn tampers_fail_their_check() {
     let ood_value = 1 + 6 + 1 + 2 + 1;
     // The bytecode sumcheck ends on the stacked bytecode at the summary's point, the scalar the stream holds; its
     // degree-two rounds over the four slot bits follow the share.
-    let bytecode_value = fixture.bytecode.evaluate(&fixture.summary.bytecode_point).unwrap();
+    let bytecode_value = fixture
+        .program
+        .bytecode()
+        .evaluate(&fixture.summary.bytecode_point)
+        .unwrap();
     let bytecode_value = stream.iter().position(|&s| s == bytecode_value).unwrap();
     let bytecode_share = bytecode_value - 4 * round - 1;
     let cases = [
@@ -113,7 +120,7 @@ fn tampers_fail_their_check() {
         let found = (1..=64).any(|delta| {
             let mut proof = fixture.proof.clone();
             proof.stream[position] += E::new(0, delta);
-            verify_execution(&fixture.bytecode, &fixture.public_input_bytes, &proof) == Err(error)
+            verify_execution(fixture.program.bytecode(), &fixture.public_input_bytes, &proof) == Err(error)
         });
         assert!(found, "no tamper of scalar {position} fails with {error}");
     }
