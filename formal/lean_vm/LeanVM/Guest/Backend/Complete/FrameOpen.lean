@@ -592,6 +592,58 @@ theorem match_preE (hI : I.Ok) {x : V} {arms : List (List Stmt)} {rest : List St
 
 end Stage
 
+section Choose
+
+variable {ctx : Backend.Ctx} {I : Inst}
+
+/-- **A word fixed ahead from the final state**: placement is a function of its state, so a fact
+of every success may take a word read off that success's final state. -/
+theorem FBAt.choose {C : (ℕ → E) → Prop} {st : St} {α : Type} {m : P α}
+    {R : α → ((ℕ → E) → Prop) → St → Prop} (f : St → E)
+    (H : ∀ we, FBAt ctx I C st m fun a C' st' => we = f st' → R a C' st') :
+    FBAt ctx I C st m R := fun hc a Sf he =>
+  let ⟨C', h0, hb, hs, hn, hl, hR⟩ := H (f Sf) hc a Sf he
+  ⟨C', h0, hb, hs, hn, hl, hR rfl⟩
+
+theorem winv_tables {C : (ℕ → E) → Prop} {st : St} {s : SSt} (h : WInv ctx I C st s)
+    (t : Tables) : WInv ctx I C { st with tables := t } s :=
+  ⟨h.cok, h.rest, h.vw, h.two, h.abi, h.fuel, h.ret, h.nodup, h.fresh, h.chain, h.pnt, h.lazy⟩
+
+theorem winv_nochain {C : (ℕ → E) → Prop} {st : St} {s : SSt} (h : WInv ctx I C st s) :
+    WInv ctx I C { st with chainIn := none } s :=
+  ⟨h.cok, h.rest, h.vw, h.two, h.abi, h.fuel, h.ret, h.nodup, h.fresh, rfl, h.pnt, h.lazy⟩
+
+open Classical in
+/-- The first `j` with `σ x = g^j`. -/
+noncomputable def jOf (σ : Val) (x : V) : ℕ :=
+  if h : ∃ j, σ x = ofK (addressOfIndex j) then Nat.find h else 0
+
+theorem jOf_eq {σ : Val} {x : V} {j : ℕ} (hx : σ x = ofK (addressOfIndex j))
+    (hne : ∀ i < j, σ x ≠ ofK (addressOfIndex i)) : jOf σ x = j := by
+  classical
+  unfold jOf
+  rw [dite_eq_left_of_eq_true (eq_true ⟨j, hx⟩)]
+  exact (Nat.find_eq_iff _).mpr ⟨hx, fun n hn => hne n hn⟩
+
+/-- The position of arm `j` of stage `k` of the chain node at index `O.length` of a state's
+output. -/
+def nodeT (p₀ : ℕ) (O : List PStmt) (k j : ℕ) (st : St) : ℕ :=
+  match st.out.toList[O.length]? with
+  | some (.chain _ _ _ _ _ _ _ sts) =>
+      p₀ + blockSize O + 3 + stagesSize (sts.take k) + armsSize ((sts.getD k []).take j)
+  | _ => 0
+
+theorem nodeT_eq {p₀ : ℕ} {O blk : List PStmt} {st : St} {h : List LHint}
+    {join lx entry one sfp : ℕ} {fs : List ℕ} {A : List (List (List PStmt))}
+    {B : List (List PStmt)} {more : List (List (List PStmt))} (j : ℕ)
+    (ho : st.out.toList = O ++ [.chain h join lx entry one sfp fs (A ++ B :: more)] ++ blk) :
+    nodeT p₀ O A.length j st = p₀ + blockSize O + 3 + stagesSize A + armsSize (B.take j) := by
+  unfold nodeT
+  rw [ho, List.append_assoc, List.getElem?_append_right (le_refl _), Nat.sub_self]
+  simp [List.getD_eq_getElem?_getD]
+
+end Choose
+
 section Last
 
 variable {κ₀ : ℕ} {Γ : Site κ₀}
