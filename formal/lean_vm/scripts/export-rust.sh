@@ -72,6 +72,7 @@ lean_vm_core = { package = "stable_lean_vm_core", path = "$checkout/crates/stabl
 zkdsl_compiler = { path = "$checkout/crates/zkdsl_compiler" }
 primitives = { package = "stable_primitives", path = "$checkout/crates/stable_prover/primitives" }
 verifier = { path = "$checkout/crates/verifier" }
+fiat_shamir = { package = "fiat_shamir_prover", path = "$checkout/crates/fiat_shamir_prover" }
 
 [profile.release]
 lto = "thin"
