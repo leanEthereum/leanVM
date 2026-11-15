@@ -60,6 +60,7 @@ structure Inst where
   ops : List LOp
   named : List V
   loopH : Bool
+  kf : List ℕ
 
 /-- The frame pointer's word. -/
 def Inst.fpw (I : Inst) : E := ofK (addressOfIndex I.fp)

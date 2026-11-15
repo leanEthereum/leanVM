@@ -111,9 +111,10 @@ def OutK (o : Out) (tl : List Stmt) (next : List Stmt → List (ℕ × ℕ) → 
 
 /-- The calls of a block's path, from call index `i₀` of the whole path `cl`: each takes a callee
 frame from `ks` and its header `hs[j]` in `kh`. -/
-def KsAt (cl : List Call) (kh : ℕ → E × E) (i₀ : ℕ) (bc : List Call) (hs : List (E × E))
-    (ks : List (ℕ × ℕ)) : Prop :=
-  hs.length = bc.length ∧ ∀ j < bc.length, (∃ kfp, ks[j]? = some (i₀ + j, kfp)) ∧
+def KsAt (cl : List Call) (kf : List ℕ) (kh : ℕ → E × E) (i₀ : ℕ) (bc : List Call)
+    (hs : List (E × E)) (ks : List (ℕ × ℕ)) : Prop :=
+  hs.length = bc.length ∧ ∀ j < bc.length,
+    (∃ kfp, ks[j]? = some (i₀ + j, kfp) ∧ kf[i₀ + j]? = some kfp) ∧
     cl[i₀ + j]? = bc[j]? ∧ kh (i₀ + j) = hs.getD j (0, 0)
 
 /-- **The words of a placed block on the path**: the block `blk` placed for the core statements
@@ -128,7 +129,7 @@ def BlkW {κ₀ : ℕ} (Γ : Site κ₀) (I : Inst) (main : Bool)
     (pos : ℕ) (ks : List (ℕ × ℕ)) (next : List Stmt → List (ℕ × ℕ) → Prop)
     (kj : List (ℕ × ℕ) → E → E → Prop) (kret khalt : Prop),
     (∀ o' ∈ blockOps blk pos, o' ∈ I.ops) →
-    ctrlSplit cs = ctrlSplit (ss ++ tl) → KsAt cl kh i₀ (calls (outEs o)) (hs pos) ks →
+    ctrlSplit cs = ctrlSplit (ss ++ tl) → KsAt cl I.kf kh i₀ (calls (outEs o)) (hs pos) ks →
     OutK o tl next (if main then khalt else kret) ks →
     wLc Γ I.fp σ' I.hdr ⟨patchT I Ψ σ', kh⟩ (Ag σ' Ψ kh) cl blk cs pos ks next kj kret khalt
 
@@ -223,7 +224,7 @@ theorem BlkW.append_core {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt}
   have hops₂ : ∀ o' ∈ blockOps blk₂ (pos + blockSize blk₁), o' ∈ I.ops := fun o' ho =>
     hops o' (by rw [bops_append]; exact List.mem_append_right _ ho)
   have hcs₁ : ctrlSplit cs = ctrlSplit (ss₁ ++ (ss₂ ++ tl)) := by rwa [← List.append_assoc]
-  have hks₁ : KsAt cl kh i₀ (calls (outEs (.fall es₁))) (hs₁ pos) ks := by
+  have hks₁ : KsAt cl I.kf kh i₀ (calls (outEs (.fall es₁))) (hs₁ pos) ks := by
     refine ⟨hn₁, fun j hj => ?_⟩
     obtain ⟨h1, h2, h3⟩ := hks j (by rw [List.length_append]; simp only [outEs] at hj; omega)
     simp only [outEs] at hj ⊢
@@ -236,9 +237,10 @@ theorem BlkW.append_core {C : (ℕ → E) → Prop} {blk₁ blk₂ : List PStmt}
     intro cs' hcs'
     refine h₂ Ψ hΨ σ' hσ kh cs' _ _ next kj kret khalt hops₂ hcs' ⟨hl₂ _, fun j hj => ?_⟩
       (hk next _ ks hk')
-    obtain ⟨⟨kfp, h1⟩, h2, h3⟩ := hks ((calls es₁).length + j)
+    obtain ⟨⟨kfp, h1, h1'⟩, h2, h3⟩ := hks ((calls es₁).length + j)
       (by rw [List.length_append]; omega)
-    refine ⟨⟨kfp, by rw [List.getElem?_drop, h1, Nat.add_assoc]⟩, ?_, ?_⟩
+    refine ⟨⟨kfp, by rw [List.getElem?_drop, h1, Nat.add_assoc], by rw [Nat.add_assoc]; exact h1'⟩,
+      ?_, ?_⟩
     · rw [Nat.add_assoc, h2, List.getElem?_append_right (by omega)]
       simp
     · rw [Nat.add_assoc, h3, List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD,
