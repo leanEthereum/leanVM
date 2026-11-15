@@ -19,7 +19,10 @@ fn run<P: isa::Prover>(cli: Cli) {
     } = cli.command
         && blobs > lean_da::DA_MAX_ROWS
     {
-        invalid(format!("at most {} blobs", lean_da::DA_MAX_ROWS));
+        usage_error(
+            clap::error::ErrorKind::ValueValidation,
+            format!("at most {} blobs", lean_da::DA_MAX_ROWS),
+        );
     }
     P::init();
     let plan = bench::Plan::new(cli.repeat, cli.cooldown);
@@ -89,9 +92,9 @@ struct Cli {
     #[arg(long, global = true, default_value_t = 2)]
     cooldown: u64,
 
-    /// The prover to run.
-    #[arg(long, global = true, value_enum, default_value_t = Prover::Experimental)]
-    prover: Prover,
+    /// The prover to run. Required: `main` checks it, since clap cannot require a global flag.
+    #[arg(long, global = true, value_enum)]
+    prover: Option<Prover>,
 
     #[command(subcommand)]
     command: Command,
@@ -141,18 +144,20 @@ enum Command {
     },
 }
 
-/// Exit with a usage error, as clap reports an argument out of range.
-fn invalid(message: String) -> ! {
+/// Exit with a usage error of `kind`, as clap reports one.
+fn usage_error(kind: clap::error::ErrorKind, message: String) -> ! {
     use clap::CommandFactory;
-    Cli::command()
-        .error(clap::error::ErrorKind::ValueValidation, message)
-        .exit()
+    Cli::command().error(kind, message).exit()
 }
 
 fn main() {
     let cli = Cli::parse();
     match cli.prover {
-        Prover::Stable => run::<StableProver>(cli),
-        Prover::Experimental => run::<ExperimentalProver>(cli),
+        Some(Prover::Stable) => run::<StableProver>(cli),
+        Some(Prover::Experimental) => run::<ExperimentalProver>(cli),
+        None => usage_error(
+            clap::error::ErrorKind::MissingRequiredArgument,
+            "--prover stable|experimental is required".into(),
+        ),
     }
 }

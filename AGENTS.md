@@ -51,7 +51,7 @@ Each tree holds, in dependency order, leaves first:
 | `keccak_gkr`      | the prover of the VM's `KECCAK` argument                               |
 | `lean_vm_core`    | arithmetization: tables, bus, constraints, `cpu::prove`; `cpu::verify` wraps `verifier`; `cpu::Program` from a `CompiledProgram`; the tree's `isa::Prover` |
 
-Paths below such as `crates/lean_vm_core` mean the crate in either tree. `crates/lean_vm/src/lib.rs` is the only thing a user imports: every other crate is `publish = false`, so a new user-facing item is a re-export there, and `crates/lean_vm/tests/api.rs` is its end-to-end use. A re-exported type brings its `pub` methods along, so one the workspace needs but users should not see is `#[doc(hidden)] pub fn __name`, the double underscore marking it internal at every call site. The guest is zkDSL, `guests/lean_ethereum.py`. The CLI is `bins/leanvm`, run with `cargo leanvm [--prover stable|experimental] <subcommand>` (`aggregate`, `recursion`, `fibonacci`; experimental by default), the benchmarks generic over the prover.
+Paths below such as `crates/lean_vm_core` mean the crate in either tree. `crates/lean_vm/src/lib.rs` is the only thing a user imports: every other crate is `publish = false`, so a new user-facing item is a re-export there, and `crates/lean_vm/tests/api.rs` is its end-to-end use. A re-exported type brings its `pub` methods along, so one the workspace needs but users should not see is `#[doc(hidden)] pub fn __name`, the double underscore marking it internal at every call site. The guest is zkDSL, `guests/lean_ethereum.py`. The CLI is `bins/leanvm`, run with `cargo leanvm --prover stable|experimental <subcommand>` (`aggregate`, `recursion`, `fibonacci`; the prover is required, with no default), the benchmarks generic over the prover.
 
 ## Building and testing
 
@@ -85,10 +85,10 @@ Where a proof's time goes is the `tracing` span tree, and only that: `--tracing`
 ## Benchmarking
 
 ```bash
-cargo leanvm aggregate --xmss 900 --log-inv-rate 1 --repeat 3
-cargo leanvm aggregate --sphincs 410 --log-inv-rate 1 --repeat 3
-cargo leanvm recursion --n 2 --xmss-per-leaf 900 --log-inv-rate 2 --repeat 3
-cargo leanvm --prover stable aggregate --xmss 900 --log-inv-rate 1 --repeat 3   # the same on the stable prover
+cargo leanvm --prover experimental aggregate --xmss 900 --log-inv-rate 1 --repeat 3
+cargo leanvm --prover experimental aggregate --sphincs 410 --log-inv-rate 1 --repeat 3
+cargo leanvm --prover experimental recursion --n 2 --xmss-per-leaf 900 --log-inv-rate 2 --repeat 3
+cargo leanvm --prover stable aggregate --xmss 900 --log-inv-rate 1 --repeat 3
 ```
 
 `aggregate` takes a count per scheme (both default to zero) and `--blobs`; `recursion` likewise takes `--sphincs-per-leaf` and `--blobs-per-leaf`. Compare schemes and changes by the reported VM cycle counts.

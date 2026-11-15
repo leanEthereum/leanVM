@@ -63,7 +63,7 @@ The Rust prover exists twice, proving the same protocol with the same proof byte
  * `crates/stable-prover`: the reference prover, written to be read: plain, safe code, as short as the protocol allows, slower
  * `crates/experimental-prover`: the optimized prover (NEON, AVX2, AVX-512, cache-aware kernels), where performance work lands
 
-Both are verified by the one verifier in `crates/verifier`, and share the zkDSL compiler, the signature schemes, LeanDA, the public API (`crates/lean_vm`, with the experimental prover behind its `experimental-prover` feature) and the whole aggregation (`crates/aggregation` and its guest), which is generic over the `isa::Prover` trait each prover implements. The benchmarks below are the experimental prover's; for the stable one, add `--prover stable` to a `cargo leanvm` command, or bench `stable_keccak_gkr` instead of `experimental_keccak_gkr`.
+Both are verified by the one verifier in `crates/verifier`, and share the zkDSL compiler, the signature schemes, LeanDA, the public API (`crates/lean_vm`, with the experimental prover behind its `experimental-prover` feature) and the whole aggregation (`crates/aggregation` and its guest), which is generic over the `isa::Prover` trait each prover implements. Every `cargo leanvm` command names its prover, `--prover stable` or `--prover experimental`, and each bench has a `stable_` and an `experimental_` package. The outputs below were measured on the experimental prover.
 
 ## benchmarks
 
@@ -74,7 +74,7 @@ Both are verified by the one verifier in `crates/verifier`, and share the zkDSL 
 The leanXMSS parameters are specified in [leanXMSS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/leanXMSS.pdf), with a [security proof in Lean 4](formal/statement.tex). **This is not the definitive parameter set.**
 
 ```bash
-cargo leanvm aggregate --xmss 1400 --log-inv-rate 2 --repeat 3
+cargo leanvm --prover experimental aggregate --xmss 1400 --log-inv-rate 2 --repeat 3
 ```
 
 ```
@@ -92,7 +92,7 @@ aggregation, 1,400 leanXMSS signatures
 The leanSPHINCS parameters are specified in [leanSPHINCS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/leanSPHINCS.pdf), with a [security proof in Lean 4](formal/statement.tex). **This is not the definitive parameter set.**
 
 ```bash
-cargo leanvm aggregate --sphincs 500 --log-inv-rate 1 --repeat 3
+cargo leanvm --prover experimental aggregate --sphincs 500 --log-inv-rate 1 --repeat 3
 ```
 
 ```
@@ -108,7 +108,7 @@ aggregation, 500 leanSPHINCS signatures
 ### data availability
 
 ```bash
-cargo leanvm aggregate --blobs 32 --log-inv-rate 1 --repeat 3
+cargo leanvm --prover experimental aggregate --blobs 32 --log-inv-rate 1 --repeat 3
 ```
 
 ```
@@ -124,7 +124,7 @@ aggregation, 32 blobs
 ### recursion
 
 ```bash
-cargo leanvm recursion --n 2 --xmss-per-leaf 1400 --leaf-log-inv-rate 2 --log-inv-rate 1 --repeat 3
+cargo leanvm --prover experimental recursion --n 2 --xmss-per-leaf 1400 --leaf-log-inv-rate 2 --log-inv-rate 1 --repeat 3
 ```
 
 ```
@@ -139,7 +139,7 @@ recursion 2→1, over leaves of 1,400 leanXMSS signatures, leaf rate = 1/4, recu
 ### Proving KECCAK
 
 ```bash
-KECCAK_N_LOG=17 BENCH_REPEAT=3 cargo bench -p experimental_keccak_gkr --bench hash_batch
+KECCAK_N_LOG=17 BENCH_REPEAT=3 cargo bench -p experimental_keccak_gkr --bench hash_batch   # or -p stable_keccak_gkr
 ```
 
 ```
@@ -159,7 +159,7 @@ Keccak GKR batch proving, 131,072 permutations, a state committed every 12 round
 ### Fibonacci
 
 ```bash
-cargo leanvm fibonacci --n 2000000 --log-inv-rate 1 --repeat 3
+cargo leanvm --prover experimental fibonacci --n 2000000 --log-inv-rate 1 --repeat 3
 ```
 
 ```
