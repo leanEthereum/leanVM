@@ -32,6 +32,8 @@ jobs:
       # The flags live in .cargo/config.toml's aliases
       - name: Test
         run: cargo testall
+      - name: Test (the API on the experimental prover)
+        run: cargo test --release -p lean_vm --features experimental-prover --test api
 
   # The NEON kernels, as bench.yml's arm64 testbed builds them: the x86 job's haswell reaches none of them.
   test-arm64:
