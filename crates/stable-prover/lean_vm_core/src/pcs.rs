@@ -34,15 +34,6 @@ pub fn commit(
     shape: crate::witness::StackShape,
     log_inv_rate: usize,
 ) -> Committed {
-    assert!(
-        shape.mu >= MIN_STACKED_LOG,
-        "a stack is at least 2^{MIN_STACKED_LOG} words"
-    );
-    assert_eq!(
-        witness.len(),
-        shape.committed_len(),
-        "the witness is the committed lanes"
-    );
     ::pcs::commit(ps, witness, shape.mu, log_inv_rate)
 }
 

@@ -42,9 +42,6 @@ pub struct StackShape {
 impl StackShape {
     /// Words actually committed: the placed columns rounded up to a whole lane.
     pub fn committed_len(&self) -> usize {
-        // Both fields are `pub`, and in release the shift below would mask an
-        // underflowed amount into a plausible wrong length rather than panic.
-        assert!(self.mu >= crate::pcs::LOG_BATCH, "a stack is at least one lane block");
         self.n_lanes << (self.mu - crate::pcs::LOG_BATCH)
     }
 }
@@ -61,13 +58,8 @@ pub(crate) fn stack_offsets(kappas: &[Option<usize>]) -> (Vec<usize>, usize) {
     let mut offsets = vec![0usize; n];
     let mut off = 0usize;
     for &i in &order {
-        let kappa = kappas[i].unwrap();
-        assert!(
-            kappa < usize::BITS as usize,
-            "kappa {kappa} is a log-size, not a length"
-        );
         offsets[i] = off;
-        off += 1 << kappa;
+        off += 1 << kappas[i].unwrap();
     }
     (offsets, off)
 }

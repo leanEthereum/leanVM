@@ -47,18 +47,16 @@ const fn g_pow(k: usize) -> F64 {
     acc
 }
 
-// Domain separators (coordinate 0 of every bus tuple): the g-powers g^0, g^1, g^2.
-pub(crate) const SEP_STATE: F64 = g_pow(0);
-pub(crate) const SEP_MEM: F64 = g_pow(1);
-pub(crate) const SEP_BYTECODE: F64 = g_pow(2);
-
-// Opcodes (coordinate 3 of a bytecode tuple).
-pub(crate) const OP_XOR: F64 = g_pow(0);
-pub(crate) const OP_MUL: F64 = g_pow(1);
-pub(crate) const OP_SET: F64 = g_pow(2);
-pub(crate) const OP_DEREF: F64 = g_pow(3);
-pub(crate) const OP_JUMP: F64 = g_pow(4);
-pub(crate) const OP_KECCAK: F64 = g_pow(5);
+// Domain separators (coordinate 0 of every bus tuple) and opcodes (coordinate 3 of a bytecode tuple), the verifier's.
+pub(crate) const SEP_STATE: F64 = F64(verifier::layout::SEP_STATE.c0);
+pub(crate) const SEP_MEM: F64 = F64(verifier::layout::SEP_MEM.c0);
+pub(crate) const SEP_BYTECODE: F64 = F64(verifier::layout::SEP_BYTECODE.c0);
+pub(crate) const OP_XOR: F64 = g_pow(verifier::layout::OP_XOR);
+pub(crate) const OP_MUL: F64 = g_pow(verifier::layout::OP_MUL);
+pub(crate) const OP_SET: F64 = g_pow(verifier::layout::OP_SET);
+pub(crate) const OP_DEREF: F64 = g_pow(verifier::layout::OP_DEREF);
+pub(crate) const OP_JUMP: F64 = g_pow(verifier::layout::OP_JUMP);
+pub(crate) const OP_KECCAK: F64 = g_pow(verifier::layout::OP_KECCAK);
 
 // ---- flush builder -----------------------------------------------------------
 
@@ -273,42 +271,29 @@ impl<'a> FillCtx<'a> {
 pub(crate) trait Table: Sync {
     /// Number of committed columns (local indices `0..n_committed_columns`).
     fn n_committed_columns(&self) -> usize;
-    /// Local indices of this table's read-count columns, one contiguous run: the `g^{count}` values
-    /// recording how many times each accessed cell (and the pc) was read. The
-    /// framework treats them specially: each gets its own single-column "count"
-    /// bus block.
+    /// Local indices of this table's read-count columns, one contiguous run: the `g^{count}` of each accessed cell
+    /// (and the pc), each of which gets its own single-column count bus block.
     fn count_columns(&self) -> Range<usize>;
-    /// The row a padding row holds, past the rows the program executed
-    /// (§sec:e2e-pad). Public, since every verifier evaluates the table's bus forms
-    /// at it, and it has to satisfy the table's constraint. All zeros by default,
-    /// which satisfies `JUMP`'s.
+    /// The row a padding row holds, past the rows the program executed (§sec:e2e-pad): public, and satisfying the
+    /// table's constraint. All zeros by default.
     fn padding(&self) -> Vec<F64> {
         vec![F64::ZERO; self.n_committed_columns()]
     }
-    /// How many identities [`constraint`](Table::constraint) folds.
-    /// Sizes this table's slice of the batch's disjoint `xi`-range (§sec:air).
-    /// Defaults to none, which is every table but `JUMP`: a relation whose value
-    /// rides the bus as a coordinate needs no identity to tie it (§sec:m3).
+    /// How many identities [`constraint`](Table::constraint) folds, the length of this table's range of `xi`-powers
+    /// (§sec:air). None but for `JUMP`: a value that rides the bus as a coordinate needs no identity (§sec:m3).
     fn n_constraints(&self) -> usize {
         0
     }
-    /// The table's identities as one degree-2 form over its columns, in local order
-    /// (e.g. `jump::V_COND`), identity `i` weighted by `pows[i]`, this table's slice of
-    /// the batch's `xi`-powers. The form vanishes on every valid row (§sec:air). The
-    /// slice is exactly [`n_constraints`](Table::n_constraints) long: an identity
-    /// indexed past its end panics rather than reaching into the next table's range.
-    /// The default is the constraint-free case; a table that declares constraints and
-    /// forgets to state them trips the assert instead of dropping them.
+    /// The table's identities as one degree-2 form over its local columns, identity `i` weighted by `pows[i]`, this
+    /// table's [`n_constraints`](Table::n_constraints) `xi`-powers. It vanishes on every valid row (§sec:air).
     fn constraint(&self, pows: &[F128]) -> Form {
         assert!(pows.is_empty(), "a table with constraints must state them");
         Form::new(self.n_committed_columns())
     }
     /// Declare the table's bus interactions.
     fn flushes(&self, f: &mut FlushBuilder);
-    /// Fill this table's columns from the trace: `out[i]` is local column `i`'s
-    /// window, already at its padded length. Every window must be written in full;
-    /// use `FillCtx::col` / `FillCtx::cols`, which append the column's pad value
-    /// past the last trace row.
+    /// Fill this table's columns from the trace: `out[i]` is local column `i`'s window, at its padded length, written
+    /// in full by `FillCtx::col` / `FillCtx::cols`.
     fn fill(&self, ctx: &FillCtx, out: &mut [&mut [F64]]);
 }
 

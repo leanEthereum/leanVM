@@ -15,7 +15,7 @@ use primitives::transcript::ProverState;
 pub use isa::STATE_CELLS;
 
 /// Rounds between two committed states.
-pub const DEPTH: usize = 12;
+pub const DEPTH: usize = verifier::layout::KECCAK_DEPTH;
 /// The reduction's shape at its fewest steps.
 pub const MIN_SHAPE: Shape = shape(0);
 /// `log2` of `q_keccak`'s slots a step: one per lane of each committed state, rounded up to a power of two.
