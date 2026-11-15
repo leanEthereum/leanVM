@@ -382,7 +382,7 @@ pub fn layout(prog: &[Op], log_mem: usize, rows: [usize; tables::N_TABLES], pi: 
     layout_of(&bytecode_columns(prog), log_mem, rows, pi)
 }
 
-/// [`layout`] of a program's columns.
+/// [`layout()`] of a program's columns.
 pub fn layout_of(
     prog_cols: &BytecodeColumns,
     log_mem: usize,
