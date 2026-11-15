@@ -5,7 +5,6 @@
 
 pub mod merkle;
 pub mod ntt;
-pub mod ood;
 pub mod ring_switch;
 pub mod stack_open;
 pub mod whir;
@@ -15,3 +14,5 @@ mod xmul;
 
 // Merkle leaves and the ring switch read words as their bytes, which are the little-endian ones the verifier hashes.
 const _: () = assert!(cfg!(target_endian = "little"));
+
+pub use stack_open::{Committed, RingSwitchOpen, StackClaim, commit, open};

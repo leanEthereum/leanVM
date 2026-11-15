@@ -111,14 +111,8 @@ fn inner_product(a: &[F128], b: &[F128]) -> F128 {
     )
 }
 
-/// The level-0 commitment: its Merkle root.
-#[derive(Clone, Debug)]
-pub struct Commitment {
-    pub root: Hash,
-}
-
 /// A committed oracle: its codeword, kept whole, a row per domain point, and the Merkle tree over the rows.
-pub struct ProverData {
+pub(crate) struct ProverData {
     codeword: Vec<F64>,
     row_words: usize,
     /// The leaf's width. At level 0, `2^ell_0` `K` words, the last lane first, of which the row holds the committed
@@ -136,25 +130,33 @@ impl ProverData {
         self.codeword.len() / self.row_words
     }
 
+    pub(crate) fn root(&self) -> Hash {
+        self.tree.root()
+    }
+
     /// The Merkle paths of the rows at `queries`.
     fn open(&self, queries: &[usize]) -> Vec<MerklePath> {
         self.tree.open(queries, self.leaf_words, |q| self.row(q))
     }
 }
 
-/// Commit to the `K` message of a `2^log_n`-word stack: its leading lane blocks of `2^(log_n - log_batch_size)` words,
-/// zero past them, one codeword per lane, and a Merkle leaf per domain point across the `2^log_batch_size` lanes.
+/// Commit to the `K` message of a `2^log_n`-word stack: its leading lane blocks of
+/// `2^(log_n - INITIAL_FOLDING_FACTOR)` words, zero past them, one codeword per lane, and a Merkle leaf per domain point
+/// across the `2^INITIAL_FOLDING_FACTOR` lanes.
 ///
 /// Only the lanes that carry data are encoded. The others' codewords are zero, and lane `t` of a row is message block
 /// `n_lanes - 1 - t`, so the absent lanes' zeros lead the leaf, where their whole blocks of zeros are one sponge state
 /// every leaf shares (Annex B, `sec:pcs-opt`).
-pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate: usize) -> (Commitment, ProverData) {
-    assert!(log_inv_rate >= 1 && log_n > log_batch_size);
-    let log_rows = log_n - log_batch_size;
+pub(crate) fn commit(message: &[F64], log_n: usize, log_inv_rate: usize) -> ProverData {
+    assert!(log_inv_rate >= 1 && log_n > INITIAL_FOLDING_FACTOR);
+    let log_rows = log_n - INITIAL_FOLDING_FACTOR;
     let n_lanes = message.len() >> log_rows;
-    assert!(message.len() == n_lanes << log_rows && (1..=1 << log_batch_size).contains(&n_lanes));
+    assert!(
+        message.len() == n_lanes << log_rows && (1..=1 << INITIAL_FOLDING_FACTOR).contains(&n_lanes),
+        "the message is whole lane blocks of the stack"
+    );
     let log_domain = log_rows + log_inv_rate;
-    let hasher = LeafHasher::new(n_lanes, 1 << log_batch_size);
+    let hasher = LeafHasher::new(n_lanes, 1 << INITIAL_FOLDING_FACTOR);
     let mut leaves = parallel::filled(1 << log_domain, [0u8; OUT_LEN]);
     let codeword = tracing::info_span!("NTT", kind = "base encode", log_domain, lanes = n_lanes).in_scope(|| {
         AdditiveNttF64::standard(log_domain).encode_lane_major(
@@ -166,14 +168,12 @@ pub fn commit(message: &[F64], log_n: usize, log_batch_size: usize, log_inv_rate
         )
     });
     let tree = tracing::info_span!("Merkle").in_scope(|| MerkleTree::from_leaves(leaves));
-    let commitment = Commitment { root: tree.root() };
-    let oracle = ProverData {
+    ProverData {
         codeword,
         row_words: n_lanes,
-        leaf_words: 1 << log_batch_size,
+        leaf_words: 1 << INITIAL_FOLDING_FACTOR,
         tree,
-    };
-    (commitment, oracle)
+    }
 }
 
 /// Commit to a deeper level's `E` message, `2^log_msg_cols` rows of `2^log_lanes` lanes.
@@ -386,18 +386,17 @@ pub(crate) fn open(ps: &mut ProverState, config: &WhirConfig, mut level0: LaneRo
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stack_open::{RingSwitchOpen, StackClaim, open_batch_mixed_whir_stacked};
+    use crate::stack_open::{RingSwitchOpen, StackClaim, commit, open};
     use crate::whir_induce::novel_basis_at;
     use crate::whir_induce::tests::novel_sum_at;
     use primitives::multilinear::interp;
     use primitives::test_rng::Rng;
 
     /// Committing only the lanes that carry data is indistinguishable from committing the whole `2^log_n` witness
-    /// with an explicit zero tail: same root and same proof.
+    /// with an explicit zero tail: same proof, root included.
     #[test]
     fn truncated_lanes_match_an_explicit_zero_tail() {
         for (log_n, lanes) in [(16usize, &[1usize, 5, 64][..]), (18, &[5, 64][..])] {
-            let pc = verifier::derive_config(log_n, MIN_LOG_INV_RATE).unwrap();
             let lane_vars = log_n - INITIAL_FOLDING_FACTOR;
             let lane_block = 1usize << lane_vars;
             for &n_lanes in lanes {
@@ -418,10 +417,10 @@ mod tests {
                     points: Vec::new(),
                 };
                 let prove = |msg: &[F64]| {
-                    let (cm, pd) = commit(msg, log_n, INITIAL_FOLDING_FACTOR, pc.log_inv_rates[0]);
                     let mut ps = ProverState::from_label(b"whir-test");
-                    open_batch_mixed_whir_stacked(&mut ps, log_n, msg.to_vec(), pd, &pc, &claims, &ring);
-                    (cm.root, ps.into_proof())
+                    let committed = commit(&mut ps, msg, log_n, MIN_LOG_INV_RATE);
+                    open(&mut ps, committed, msg.to_vec(), &claims, &ring);
+                    ps.into_proof()
                 };
                 assert_eq!(prove(&witness[..used]), prove(&witness), "n_lanes = {n_lanes}");
             }

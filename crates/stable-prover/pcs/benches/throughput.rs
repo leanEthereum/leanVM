@@ -1,8 +1,8 @@
 //! Dedicated PCS throughput benchmark.
 //!
 //! Commits a random witness of `2^PCS_LOG_N` GF(2^64) elements at
-//! inverse-rate `1/2^PCS_LOG_INV_RATE` and opens it through the stacked opener with one point
-//! claim, after the OOD sample, times each phase, and reports GiB/s over the committed data. The
+//! inverse-rate `1/2^PCS_LOG_INV_RATE`, with its OOD sample, and opens it through the stacked opener with one point
+//! claim, times each phase, and reports GiB/s over the committed data. The
 //! passes follow [`bench::Plan::from_env`] (`BENCH_REPEAT`, `BENCH_COOLDOWN`).
 //!
 //! ```text
@@ -23,9 +23,8 @@ use std::hint::black_box;
 use std::time::Instant;
 
 use bench::{Plan, Timing, env_usize};
-use pcs::ood::ood_sample;
-use pcs::stack_open::{RingSwitchOpen, StackClaim, open_batch_mixed_whir_stacked};
-use pcs::whir::{INITIAL_FOLDING_FACTOR, MIN_LOG_INV_RATE, commit};
+use pcs::whir::MIN_LOG_INV_RATE;
+use pcs::{RingSwitchOpen, StackClaim, commit, open};
 use primitives::{field::F64, pretty_integer, test_rng::Rng};
 
 #[global_allocator]
@@ -36,8 +35,7 @@ fn main() {
 
     let log_n = env_usize("PCS_LOG_N", 22);
     let log_inv_rate = env_usize("PCS_LOG_INV_RATE", MIN_LOG_INV_RATE);
-    let pc = verifier::derive_config(log_n, log_inv_rate)
-        .expect("WHIR config feasible (try a larger PCS_LOG_N, e.g. >= 16)");
+    verifier::derive_config(log_n, log_inv_rate).expect("WHIR config feasible (try a larger PCS_LOG_N, e.g. >= 16)");
     let plan = Plan::from_env();
     let trace_span = tracing::info_span!("PCS throughput", log_n, log_inv_rate).entered();
 
@@ -67,21 +65,16 @@ fn main() {
     plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
 
+        let mut ps = primitives::transcript::ProverState::from_label(b"pcs-throughput");
         let t = Instant::now();
-        let (cm, pd) =
-            tracing::info_span!("Commit").in_scope(|| commit(&witness, log_n, INITIAL_FOLDING_FACTOR, log_inv_rate));
+        let committed = tracing::info_span!("Commit").in_scope(|| commit(&mut ps, &witness, log_n, log_inv_rate));
         commit_t.push(t.elapsed().as_secs_f64());
 
-        let mut ch = primitives::transcript::ProverState::from_label(b"pcs-throughput");
         let stack = witness.clone();
         let t = Instant::now();
-        tracing::info_span!("PCS open").in_scope(|| {
-            let ood = ood_sample(&mut ch, &stack, log_n);
-            let claims = [&claims[..], &[ood]].concat();
-            open_batch_mixed_whir_stacked(&mut ch, log_n, stack, pd, &pc, &claims, &ring);
-        });
+        tracing::info_span!("PCS open").in_scope(|| open(&mut ps, committed, stack, &claims, &ring));
         open_t.push(t.elapsed().as_secs_f64());
-        black_box((cm, ch.into_proof()));
+        black_box(ps.into_proof());
     });
     // The warmup pass also pushed a sample; drop it.
     let [commit_t, open_t] = [commit_t, open_t].map(|t| {

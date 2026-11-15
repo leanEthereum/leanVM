@@ -4,15 +4,13 @@
 use std::time::Instant;
 
 use bench::{Metric, Plan, Timing, bencher_json};
-use pcs::stack_open::StackClaim;
-use pcs::whir::{INITIAL_FOLDING_FACTOR, ProverData, commit};
+use pcs::Committed;
 use primitives::{
     field::{F64, F128},
     pretty_integer,
     test_rng::Rng,
     transcript::ProverState,
 };
-use verifier::WhirConfig;
 
 use crate::{Openings, OutputClaim, Shape, Witness};
 
@@ -36,7 +34,6 @@ pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
     let mu = shape.stack_log();
     let mut rng = Rng::new(0x9E37_79B9_7F4A_7C15 ^ n as u64);
     let inputs: Vec<[u64; 25]> = (0..n).map(|_| std::array::from_fn(|_| rng.next_u64())).collect();
-    let config = verifier::derive_config(mu, log_inv_rate).expect("WHIR configuration");
 
     let prove_pass = || {
         let _span = tracing::info_span!("Keccak GKR prove", n).entered();
@@ -48,7 +45,7 @@ pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
 
         let mut ps = batch_transcript(LABEL, shape, log_inv_rate);
         let t = Instant::now();
-        let (prover_data, ood) = commit_stack(&mut ps, shape, &committed, log_inv_rate);
+        let commitment = pcs::commit(&mut ps, &committed, mu, log_inv_rate);
         let commit_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();
@@ -62,7 +59,7 @@ pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
         let gkr_s = t.elapsed().as_secs_f64();
 
         let t = Instant::now();
-        open_commitment(&mut ps, shape, committed, prover_data, &config, openings, ood);
+        open_commitment(&mut ps, commitment, committed, openings);
         let open_s = t.elapsed().as_secs_f64();
 
         (
@@ -169,19 +166,6 @@ pub(crate) fn batch_transcript(label: &[u8], shape: Shape, log_inv_rate: usize) 
     ProverState::new(iv, statement)
 }
 
-/// Commit to `stack`, send the root and take its OOD sample ([`pcs::ood`]): what precedes the output claim.
-pub(crate) fn commit_stack(
-    ps: &mut ProverState,
-    shape: Shape,
-    stack: &[F64],
-    log_inv_rate: usize,
-) -> (ProverData, StackClaim) {
-    let (commitment, prover_data) = commit(stack, shape.stack_log(), INITIAL_FOLDING_FACTOR, log_inv_rate);
-    ps.add_root(&commitment.root);
-    let ood = pcs::ood::ood_sample(ps, stack, shape.stack_log());
-    (prover_data, ood)
-}
-
 /// The instance a batch's output is claimed at, after its grind: the point pins the committed middle states, a
 /// multilinear identity of degree `n_log` in it.
 pub(crate) fn batch_instance(ps: &mut ProverState, shape: Shape) -> Vec<F128> {
@@ -191,16 +175,7 @@ pub(crate) fn batch_instance(ps: &mut ProverState, shape: Shape) -> Vec<F128> {
 
 /// Discharge the reduction's openings and the OOD sample's claim, after them, against the commitment to `stack`, which
 /// holds the committed states alone.
-pub(crate) fn open_commitment(
-    ps: &mut ProverState,
-    shape: Shape,
-    stack: Vec<F64>,
-    prover_data: ProverData,
-    config: &WhirConfig,
-    openings: Openings,
-    ood: StackClaim,
-) {
+pub(crate) fn open_commitment(ps: &mut ProverState, committed: Committed, stack: Vec<F64>, openings: Openings) {
     let (ring, outputs) = openings.into_pcs_claims(0);
-    let points: Vec<_> = outputs.into_iter().chain([ood]).collect();
-    pcs::stack_open::open_batch_mixed_whir_stacked(ps, shape.stack_log(), stack, prover_data, config, &points, &ring);
+    pcs::open(ps, committed, stack, outputs.as_slice(), &ring);
 }

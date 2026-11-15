@@ -1,8 +1,9 @@
 // CREDIT: https://github.com/succinctlabs/flock (flock-core), MIT OR Apache-2.0.
-//! The stacked opening: every claim on the committed stack in one WHIR opening (Annex B's Open).
+//! The commitment to a stack and its opening: every claim on the committed stack in one WHIR opening (Annex B's
+//! Open).
 //!
-//! The stack is `2^log_n` [`F64`] words, committed by [`crate::whir::commit`], of which only the lane blocks that
-//! carry data are held, zero past them. The claims are
+//! The stack is `2^log_n` [`F64`] words, of which only the lane blocks that carry data are held, zero past them. The
+//! claims are
 //!
 //! - **point claims** ([`StackClaim`]): multilinear evaluations of aligned slices of the stack, the weight
 //!   `eq(low_point, .)` on `[offset, offset + 2^|low_point|)`, which may reach past the committed lanes;
@@ -15,12 +16,13 @@
 //! none is observed here. `W` stays factored (`basis`), and level 0's fold rounds run on its terms (`whir_lanes`).
 
 use primitives::field::{F64, F128, powers};
+use primitives::multilinear::mle_eval_par;
 use primitives::transcript::ProverState;
 
 use crate::ring_switch::{self, RingWeight};
 use crate::whir::{self, INITIAL_FOLDING_FACTOR, ProverData};
 use crate::whir_lanes::LaneRounds;
-use verifier::{BATCH_GRINDING_BITS, MAX_STACKED_CLAIMS, WhirConfig};
+use verifier::{BATCH_GRINDING_BITS, MAX_STACKED_CLAIMS, OOD_GRINDING_BITS};
 
 mod basis;
 
@@ -51,20 +53,60 @@ impl RingSwitchOpen {
     }
 }
 
-/// Open the committed stack at every point claim and every ring-switched claim, in one WHIR opening against the
-/// commitment `prover_data` ([`crate::whir::commit`] at `config`'s level-0 fold and rate).
-///
-/// `stack` is the committed message, the `2^log_n`-word stack truncated to the lane blocks that carry data; the
-/// opening frees it once level 0's rounds no longer read it.
-pub fn open_batch_mixed_whir_stacked(
-    ps: &mut ProverState,
-    log_n: usize,
-    stack: Vec<F64>,
+/// A committed stack: the codeword and its Merkle tree, and the OOD sample's claim, which [`open`] discharges last.
+pub struct Committed {
     prover_data: ProverData,
-    config: &WhirConfig,
+    log_n: usize,
+    log_inv_rate: usize,
+    ood: StackClaim,
+}
+
+/// Commit to the `2^log_n`-word stack whose lane blocks that carry data are `stack` at rate `2^-log_inv_rate`, send
+/// the root, and take the OOD sample.
+///
+/// The level-0 commitment takes no OOD points inside the opening, so on its own it binds a list of up to `L_0`
+/// stacks. Right after its root comes its OOD sample: grind, sample `z` of the stack's `m` variables, then send the
+/// stack's MLE at `z`. Two list members that differ collide there with probability at most `m / q`: the sample fails
+/// to bind with at most `C(L_0, 2) m / q`, and every later challenge faces one candidate.
+pub fn commit(ps: &mut ProverState, stack: &[F64], log_n: usize, log_inv_rate: usize) -> Committed {
+    let prover_data = whir::commit(stack, log_n, log_inv_rate);
+    ps.add_root(&prover_data.root());
+    ps.grind(OOD_GRINDING_BITS);
+    let low_point = ps.sample_vec(log_n);
+    ps.add_scalar(tracing::info_span!("OOD").in_scope(|| mle_eval_par(stack, &low_point)));
+    Committed {
+        prover_data,
+        log_n,
+        log_inv_rate,
+        ood: StackClaim { offset: 0, low_point },
+    }
+}
+
+/// Open the committed stack at every point claim, then the OOD sample's, and every ring-switched claim, in one WHIR
+/// opening.
+///
+/// `stack` is the committed message, as given to [`commit`]; the opening frees it once level 0's rounds no longer read
+/// it.
+pub fn open(
+    ps: &mut ProverState,
+    committed: Committed,
+    stack: Vec<F64>,
     point_claims: &[StackClaim],
     ring: &RingSwitchOpen,
 ) {
+    let Committed {
+        prover_data,
+        log_n,
+        log_inv_rate,
+        ood,
+    } = committed;
+    let config = verifier::derive_config(log_n, log_inv_rate)
+        .unwrap_or_else(|e| panic!("whir config for log_n={log_n}, log_inv_rate={log_inv_rate}: {e}"));
+    assert_eq!(
+        config.folds[0], INITIAL_FOLDING_FACTOR,
+        "level 0 folds the leaf's lanes"
+    );
+    let point_claims = [point_claims, &[ood]].concat();
     let qkeccak = 1usize << ring.qkeccak_vars();
     assert!(ring.offset.is_multiple_of(qkeccak), "q_keccak is aligned");
     assert!(ring.offset + qkeccak <= stack.len(), "q_keccak lies inside the stack");
@@ -72,7 +114,7 @@ pub fn open_batch_mixed_whir_stacked(
         ring.points.iter().all(|point| point.len() == ring.qkeccak_vars()),
         "every ring claim is on q_keccak"
     );
-    for StackClaim { offset, low_point } in point_claims {
+    for StackClaim { offset, low_point } in &point_claims {
         assert!(
             offset + (1 << low_point.len()) <= 1 << log_n,
             "every claim lies inside the stack"
@@ -94,20 +136,39 @@ pub fn open_batch_mixed_whir_stacked(
         })
         .collect();
 
-    assert_eq!(
-        config.folds[0], INITIAL_FOLDING_FACTOR,
-        "level 0 folds the leaf's lanes"
-    );
     let lane_vars = log_n - INITIAL_FOLDING_FACTOR;
     let (terms, a) = tracing::info_span!("Basis")
-        .in_scope(|| basis::initial_basis(log_n, lane_vars, point_claims, point_lambdas, ring.offset, &rings));
-    whir::open(ps, config, LaneRounds::new(stack, terms, a), prover_data);
+        .in_scope(|| basis::initial_basis(log_n, lane_vars, &point_claims, point_lambdas, ring.offset, &rings));
+    whir::open(ps, &config, LaneRounds::new(stack, terms, a), prover_data);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use primitives::test_rng::Rng;
+
+    /// The OOD value sent is the zero-padded stack's MLE at the sampled point, written out one eq weight at a time.
+    #[test]
+    fn ood_value_is_the_padded_stack_evaluation() {
+        let mut rng = Rng::new(0x919);
+        let (log_n, lane_vars) = (16, 10);
+        let stack: Vec<F64> = (0..13 << lane_vars).map(|_| F64(rng.next_u64())).collect();
+        let mut ps = ProverState::new([1; 4], [2; 4]);
+        let StackClaim { offset, low_point } = commit(&mut ps, &stack, log_n, 1).ood;
+        assert_eq!((offset, low_point.len()), (0, log_n));
+        let naive: F128 = stack
+            .iter()
+            .enumerate()
+            .map(|(j, &word)| {
+                let eq = low_point.iter().enumerate().fold(F128::ONE, |w, (i, &p)| {
+                    w * if (j >> i) & 1 == 1 { p } else { F128::ONE + p }
+                });
+                eq.mul_base(word)
+            })
+            .sum();
+        let sent = *ps.into_proof().stream.last().expect("the value is sent last");
+        assert_eq!(sent, verifier::E::new(naive.c0, naive.c1));
+    }
 
     use crate::ring_switch::RingFold;
     use crate::whir::{Dense, FoldChallenges, FoldRounds};

@@ -5,7 +5,7 @@ use primitives::transcript::ProverState;
 use verifier::PRODUCT_BITS;
 use verifier::VerifierError;
 
-use crate::batch_bench::{batch_instance, batch_transcript, commit_stack, open_commitment};
+use crate::batch_bench::{batch_instance, batch_transcript, open_commitment};
 use crate::keccak::{LANE_VARS, LANES, LOCAL_VARS};
 use crate::witness::{BLOCK, Shape, Witness, run_block};
 
@@ -23,14 +23,13 @@ fn prove(shape: Shape, inputs: &[[u64; LANES]], committed: &[primitives::field::
 
     let mut honest = vec![primitives::field::F64(0); 1 << shape.stack_log()];
     let witness = Witness::generate(shape, inputs, &mut honest);
-    let config = verifier::derive_config(shape.stack_log(), MIN_LOG_INV_RATE).expect("WHIR configuration");
     let mut ps = batch_transcript(LABEL, shape, MIN_LOG_INV_RATE);
-    let (prover_data, ood) = commit_stack(&mut ps, shape, committed, MIN_LOG_INV_RATE);
+    let commitment = pcs::commit(&mut ps, committed, shape.stack_log(), MIN_LOG_INV_RATE);
     let mut output = crate::OutputClaim::of_inputs(shape, inputs, batch_instance(&mut ps, shape));
     output.lanes[7] += lane_error;
     ps.add_scalars(&output.lanes);
     let openings = witness.prove(&mut ps, committed, &output);
-    open_commitment(&mut ps, shape, committed.to_vec(), prover_data, &config, openings, ood);
+    open_commitment(&mut ps, commitment, committed.to_vec(), openings);
     ps.into_proof()
 }
 
@@ -118,13 +117,12 @@ fn spare_slots_must_be_the_committed_ones() {
     let mut folded = committed.clone();
     folded[states] = primitives::field::F64(folded[states].0 ^ 1);
 
-    let config = verifier::derive_config(shape.stack_log(), MIN_LOG_INV_RATE).expect("WHIR configuration");
     let mut ps = batch_transcript(LABEL, shape, MIN_LOG_INV_RATE);
-    let (prover_data, ood) = commit_stack(&mut ps, shape, &committed, MIN_LOG_INV_RATE);
+    let commitment = pcs::commit(&mut ps, &committed, shape.stack_log(), MIN_LOG_INV_RATE);
     let output = crate::OutputClaim::of_inputs(shape, &inputs, batch_instance(&mut ps, shape));
     ps.add_scalars(&output.lanes);
     let openings = witness.prove(&mut ps, &folded, &output);
-    open_commitment(&mut ps, shape, committed, prover_data, &config, openings, ood);
+    open_commitment(&mut ps, commitment, committed, openings);
     verify(shape, &ps.into_proof()).expect_err("a spare slot that was not committed is rejected");
 }
 

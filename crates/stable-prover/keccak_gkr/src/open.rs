@@ -7,7 +7,7 @@
 //! The first claim weighs the bits of a word as the word itself does, so its 64 evaluations
 //! are only ever needed as the one they add up to: the committed polynomial at that point.
 
-use pcs::stack_open::{RingSwitchOpen, StackClaim};
+use pcs::{RingSwitchOpen, StackClaim};
 use primitives::field::{F64, F128};
 use primitives::multilinear::{eq_table, interp, mle_eval};
 use primitives::transcript::ProverState;
