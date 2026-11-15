@@ -139,21 +139,15 @@ pub const LANES: usize = Backend::WIDTH;
 pub fn keccak_f_many(states: &mut [[u64; STATE_LANES]]) {
     let (groups, rest) = states.as_chunks_mut::<LANES>();
     for group in groups {
-        // `words[i]` is lane `i` of every state.
-        let mut words = [[0u64; LANES]; STATE_LANES];
-        for (l, state) in group.iter().enumerate() {
-            for (i, &lane) in state.iter().enumerate() {
-                words[i][l] = lane;
-            }
-        }
-        let mut st: [Backend; STATE_LANES] = core::array::from_fn(|i| Backend::load(&words[i]));
+        // Register `i` holds lane `i` of every state.
+        let mut st: [Backend; STATE_LANES] =
+            core::array::from_fn(|i| Backend::load(&core::array::from_fn::<u64, LANES, _>(|l| group[l][i])));
         permute(&mut st);
         for (i, lane) in st.iter().enumerate() {
-            lane.store(&mut words[i]);
-        }
-        for (l, state) in group.iter_mut().enumerate() {
-            for (i, lane) in state.iter_mut().enumerate() {
-                *lane = words[i][l];
+            let mut words = [0; LANES];
+            lane.store(&mut words);
+            for (state, word) in group.iter_mut().zip(words) {
+                state[i] = word;
             }
         }
     }

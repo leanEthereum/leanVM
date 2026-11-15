@@ -69,6 +69,7 @@ pub fn unified_guest() -> &'static Guest {
 
 /// The guest as prover `P` runs it, assembled once per prover.
 pub(crate) fn assembled<P: Prover>() -> &'static P::Program {
+    // A generic function's statics are shared by all its instantiations, so the cache is keyed by the prover's type.
     static ASSEMBLED: Mutex<Vec<(TypeId, &'static (dyn Any + Send + Sync))>> = Mutex::new(Vec::new());
     let mut cache = ASSEMBLED.lock().unwrap();
     let program = match cache.iter().find(|(id, _)| *id == TypeId::of::<P>()) {

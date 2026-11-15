@@ -1,6 +1,6 @@
 extern crate stable_leanvm_core as leanvm_core;
 
-use super::cells::{ONE, ZERO, count, hash_pair, hash_to_scalars, pack_16_bytes, word};
+use super::cells::{ONE, ZERO, count, hash_to_scalars, pack_16_bytes, word};
 use super::deferred::{DeferredBytecodeClaim, bytecode_sums, bytecode_value, bytecode_vars};
 use super::error::AggregateError;
 use super::guest::{compile_guest, scalar_bytecode};
@@ -11,7 +11,7 @@ use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
 use super::*;
 use crate::protocol::g_pow;
 use isa::Prover;
-use keccak256::hash;
+use keccak256::{hash, hash_pair};
 use lean_compiler::{compile, parse_with_replacements};
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS, Hash, LOG_BLOB_SYMBOLS};
 use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
@@ -369,7 +369,7 @@ fn aggregate_two_to_one() {
     let node = aggregate(&children, vec![], vec![], None, OutputClaims::All, LOG_INV_RATE).expect("node aggregates");
     assert!(node.verify(), "node verifies");
     // `cpu::verify` accepts the same proof of the same statement.
-    let defer = DeferredBytecodeClaim::recompute::<Stable>(node.1.bytecode_point.clone()).unwrap();
+    let defer = DeferredBytecodeClaim::recompute_scalar(node.1.bytecode_point.clone()).unwrap();
     let pi = public_input_bytes(&public_input(&node.0, &defer));
     verifier::verify_execution(scalar_bytecode(), &pi, &node.1.proof).expect("node verifies natively");
     assert_eq!(node.0.lean_xmss.len(), SMALL_LEAF_SIZE + big);
@@ -1062,7 +1062,7 @@ fn aggregate_round_trips_through_the_wire() {
     assert!(received.verify(&node.0), "the receiver's claims verify");
 }
 
-/// The all-zeros fast path in `DeferredBytecodeClaim::recompute` must agree with the
+/// The all-zeros fast path in `DeferredBytecodeClaim::recompute_scalar` must agree with the
 /// full pass it replaces, or every leaf would verify against the wrong
 /// statement.
 #[test]
@@ -1071,21 +1071,6 @@ fn leaf_claim_matches_the_general_path() {
     assert_eq!(
         Some(leaf.bytecode_value),
         scalar_bytecode().evaluate(&leaf.bytecode_point).ok()
-    );
-}
-
-/// The scalar verifier's deferred values are the prover's, away from the leaf shortcut.
-#[test]
-fn scalar_deferred_claim_matches_the_prover() {
-    let mut rng = StdRng::seed_from_u64(7);
-    let mut point = |len: usize| -> Vec<E> {
-        let limbs = (0..len).map(|_| rand::Rng::random::<(u64, u64)>(&mut rng));
-        limbs.map(|(c0, c1)| E::new(c0, c1)).collect()
-    };
-    let bytecode_point = point(bytecode_vars());
-    assert_eq!(
-        DeferredBytecodeClaim::recompute_scalar(bytecode_point.clone()),
-        DeferredBytecodeClaim::recompute::<Stable>(bytecode_point)
     );
 }
 

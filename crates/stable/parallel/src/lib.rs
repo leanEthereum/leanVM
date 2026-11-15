@@ -31,23 +31,6 @@ const CLAIM_DIVISOR: usize = 4;
 /// Largest range claimed in one scheduling step.
 const MAX_CLAIM_BATCH: usize = 1 << 12;
 
-/// Chunk size for a flat fan-out: many chunks per worker, fine enough for the
-/// claim counter to rebalance cores of different speeds, coarse enough to amortize the
-/// dispatch.
-#[must_use]
-#[inline]
-pub fn recommended_chunk_size(n_items: usize) -> usize {
-    n_items
-        .div_ceil(num_threads() * CHUNK_OVERSUBSCRIBE)
-        .max(CHUNK_FLOOR)
-        .min(n_items.max(1))
-}
-
-/// Claims per worker that [`recommended_chunk_size`] aims for, and the smallest
-/// chunk it will hand out.
-const CHUNK_OVERSUBSCRIBE: usize = 32;
-const CHUNK_FLOOR: usize = 64;
-
 thread_local! {
     static WORKER_ID: Cell<usize> = const { Cell::new(0) };
     static IN_TASK: Cell<bool> = const { Cell::new(false) };
@@ -292,7 +275,7 @@ pub fn for_each<F: Fn(usize) + Sync>(n_tasks: usize, f: F) {
 /// callers partition the allocation by item index; every dereference site
 /// restates that.
 #[derive(Debug)]
-pub struct SendPtr<T>(pub *mut T);
+struct SendPtr<T>(*mut T);
 
 // By hand: the derives would demand `T: Clone` and `T: Copy`.
 impl<T> Clone for SendPtr<T> {
@@ -315,7 +298,7 @@ impl<T> SendPtr<T> {
     /// `n` stays inside the allocation, and any write targets a slot no
     /// concurrent task touches.
     #[inline]
-    pub unsafe fn add(&self, n: usize) -> *mut T {
+    unsafe fn add(&self, n: usize) -> *mut T {
         unsafe { self.0.add(n) }
     }
 
@@ -325,7 +308,7 @@ impl<T> SendPtr<T> {
     /// `off`/`len` are in bounds and disjoint from every other concurrent task's
     /// slice, and the underlying buffer outlives `'a`.
     #[inline]
-    pub unsafe fn slice<'a>(&self, off: usize, len: usize) -> &'a mut [T] {
+    unsafe fn slice<'a>(&self, off: usize, len: usize) -> &'a mut [T] {
         unsafe { std::slice::from_raw_parts_mut(self.0.add(off), len) }
     }
 }
@@ -336,15 +319,14 @@ pub fn chunks_mut<T: Send, F>(data: &mut [T], chunk: usize, f: F)
 where
     F: Fn(usize, &mut [T]) + Sync,
 {
-    for_each_chunks_mut([data], [chunk], |i, [sub]| f(i, sub));
+    let view = Chunks::new(data, chunk);
+    // SAFETY: the dispatch runs each task `i` once, and `data` stays borrowed until it returns.
+    for_each(view.count(), |i| f(i, unsafe { view.get(i) }));
 }
 
-/// A `chunks_mut` view that can be handed to tasks: `chunk(i)` is item `i`'s
-/// slice. Composes to any number of buffers, which the zip-based helpers do not:
-/// a kernel writing four tables at two different widths builds one of these per
-/// table and indexes them all by the same item.
+/// A `chunks_mut` view that can be handed to tasks: `get(i)` is item `i`'s slice.
 #[derive(Debug)]
-pub(crate) struct Chunks<T> {
+struct Chunks<T> {
     base: SendPtr<T>,
     width: usize,
     len: usize,
@@ -361,7 +343,7 @@ impl<T> Copy for Chunks<T> {}
 impl<T> Chunks<T> {
     /// View `data` as `len.div_ceil(width)` chunks of `width` (the last shorter).
     #[must_use]
-    pub fn new(data: &mut [T], width: usize) -> Self {
+    fn new(data: &mut [T], width: usize) -> Self {
         assert!(width > 0, "chunk width must be non-zero");
         Self {
             base: SendPtr(data.as_mut_ptr()),
@@ -372,7 +354,7 @@ impl<T> Chunks<T> {
 
     /// Number of chunks.
     #[must_use]
-    pub const fn count(&self) -> usize {
+    const fn count(&self) -> usize {
         self.len.div_ceil(self.width)
     }
 
@@ -383,7 +365,7 @@ impl<T> Chunks<T> {
     /// underlying buffer outlives `'a`. Calling this once per `i` inside a
     /// [`for_each`] body satisfies all three.
     #[inline]
-    pub unsafe fn get<'a>(&self, i: usize) -> &'a mut [T] {
+    unsafe fn get<'a>(&self, i: usize) -> &'a mut [T] {
         let start = i * self.width;
         debug_assert!(start < self.len);
         unsafe { self.base.slice(start, self.width.min(self.len - start)) }
@@ -426,17 +408,6 @@ where
     )
 }
 
-/// [`map_reduce_chunks_mut`] without the reduction: `f(i, chunks)` for every task `i`, in parallel.
-pub(crate) fn for_each_chunks_mut<T: Send, const N: usize, F>(bufs: [&mut [T]; N], widths: [usize; N], f: F)
-where
-    F: Fn(usize, [&mut [T]; N]) + Sync,
-{
-    let views = chunk_views(bufs, widths);
-    let n_tasks = views.iter().map(Chunks::count).max().unwrap_or(0);
-    // SAFETY: the dispatch runs each task `i` once, and `bufs` stays borrowed until it returns.
-    for_each(n_tasks, |i| f(i, unsafe { task_chunks(&views, i) }));
-}
-
 fn chunk_views<T, const N: usize>(bufs: [&mut [T]; N], widths: [usize; N]) -> [Chunks<T>; N] {
     let mut widths = widths.into_iter();
     bufs.map(|buf| Chunks::new(buf, widths.next().expect("one width per buffer")))
@@ -458,39 +429,10 @@ unsafe fn task_chunks<'a, T, const N: usize>(views: &[Chunks<T>; N], i: usize) -
     })
 }
 
-/// Parallel `dst.chunks_mut(chunk).zip(src.chunks(chunk))`, for a kernel that
-/// writes one table while reading another of the same length.
-pub fn chunks_mut_zip<T: Send, S: Sync, F>(dst: &mut [T], src: &[S], chunk: usize, f: F)
-where
-    F: Fn(usize, &mut [T], &[S]) + Sync,
-{
-    assert_eq!(dst.len(), src.len(), "chunks_mut_zip: slices differ in length");
-    chunks_mut(dst, chunk, |i, sub| {
-        let start = i * chunk;
-        f(i, sub, &src[start..start + sub.len()]);
-    });
-}
-
-/// Parallel `data.iter_mut().enumerate().for_each(f)`, chunked by
-/// [`recommended_chunk_size`]. Hands the closure each element's **global** index.
-#[inline]
-pub fn for_each_mut<T: Send, F>(data: &mut [T], f: F)
-where
-    F: Fn(usize, &mut T) + Sync,
-{
-    let chunk = recommended_chunk_size(data.len());
-    chunks_mut(data, chunk, |chunk_index, values| {
-        for (offset, slot) in values.iter_mut().enumerate() {
-            f(chunk_index * chunk + offset, slot);
-        }
-    });
-}
-
 /// Parallel `for (i, slot) in dst.iter_mut().enumerate() { *slot = build(i) }`.
 /// The in-place counterpart of [`map_collect`], which allocates.
-#[inline]
 pub fn fill<T: Send, F: Fn(usize) -> T + Sync>(dst: &mut [T], build: F) {
-    for_each_mut(dst, |i, slot| *slot = build(i));
+    chunks_mut(dst, 1, |i, slot| slot[0] = build(i));
 }
 
 /// `n` copies of `value`, written in parallel: a large buffer's first pass over memory is spread across the pool.

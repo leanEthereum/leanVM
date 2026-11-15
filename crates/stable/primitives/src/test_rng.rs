@@ -1,9 +1,5 @@
-//! One deterministic generator for the whole workspace's tests, so a SIMD
-//! kernel and its scalar oracle see the same stream on every host.
-//!
-//! Exported normally rather than under `#[cfg(test)]`: integration tests in
-//! `pcs`, `keccak_gkr`, `primitives` and `rec_aggregation` are separate crates and
-//! cannot reach a test-only module.
+//! One deterministic generator for the stable tree's tests, so a test sees the same stream on every host. It sits
+//! behind the `test-util` feature rather than `#[cfg(test)]`, so the other crates' tests can reach it.
 
 use rand::{RngCore, SeedableRng, rngs::StdRng};
 
@@ -17,24 +13,12 @@ impl Rng {
         Self(StdRng::seed_from_u64(seed))
     }
 
-    pub fn next_u32(&mut self) -> u32 {
-        self.0.next_u32()
-    }
-
     pub fn next_u64(&mut self) -> u64 {
         self.0.next_u64()
     }
 
-    pub fn next_u8(&mut self) -> u8 {
-        self.next_u32() as u8
-    }
-
-    pub fn bit(&mut self) -> bool {
-        self.next_u64() & 1 != 0
-    }
-
     pub fn bits(&mut self, n: usize) -> Vec<bool> {
-        (0..n).map(|_| self.bit()).collect()
+        (0..n).map(|_| self.next_u64() & 1 != 0).collect()
     }
 
     pub fn ext(&mut self) -> F128 {

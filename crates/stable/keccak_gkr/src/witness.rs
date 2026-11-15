@@ -8,6 +8,7 @@ use primitives::field::F64;
 use primitives::hash::{RC, ROUNDS};
 
 use crate::keccak::{BITS, LANES, along, linear};
+use crate::kernels::xor;
 
 /// Instances a block holds, and the words one position of a block takes.
 pub const BLOCK: usize = 512;
@@ -61,10 +62,6 @@ impl Shape {
     pub(crate) const fn pack_vars(&self) -> usize {
         self.n_log - 4
     }
-    /// Variables the layer sumcheck binds: a pack, then a segment.
-    pub(crate) const fn y_vars(&self) -> usize {
-        self.pack_vars() + self.seg_log()
-    }
     /// Committed lanes per instance: the state each segment starts from.
     pub const fn slots(&self) -> usize {
         LANES * self.segments()
@@ -82,12 +79,13 @@ impl Shape {
     }
 }
 
+/// Every round's state before `chi`, sliced, block by block ([`Witness::layer`]).
 pub struct Witness {
     pub shape: Shape,
-    /// The blocks holding inputs, then, if blocks follow them, the padding block every later one
-    /// equals: each every round's sliced state, round `r` at `r * BLOCK_LEN`, the input state
-    /// being round 0.
+    /// The blocks holding inputs, then the padding block if any block follows them, which every later one equals:
+    /// per block, every round's sliced state, round `r` at `r * BLOCK_LEN`, the input state being round 0.
     pub(crate) blocks: Vec<Vec<u64>>,
+    /// The blocks holding inputs.
     pub(crate) written: usize,
 }
 
@@ -116,11 +114,8 @@ pub(crate) fn transpose64(a: &mut [u64; 64]) {
     }
 }
 
+/// One position of a block.
 type Word = [u64; BLOCK_WORDS];
-
-fn xor(a: Word, b: Word) -> Word {
-    std::array::from_fn(|i| a[i] ^ b[i])
-}
 
 /// Run one block of instances, padded with all-zero inputs. Returns its committed lanes, slot `s`
 /// at `s * BLOCK ..` and a word per instance, slot `s` being lane `s % 25` of the state after
@@ -263,6 +258,11 @@ impl Witness {
     /// the all-zero input.
     pub fn written(&self) -> usize {
         self.written
+    }
+
+    /// The blocks held: those written, then the padding block if any block follows them.
+    pub(crate) fn held(&self) -> usize {
+        self.blocks.len()
     }
 
     /// Block `g` of the state round `round` applies `chi` to, rounds counted from 1, or of the

@@ -1,6 +1,7 @@
 //! A VM proof's one encoding, and its decoding, which unprunes each Merkle phase: both provers' (`fiat_shamir`'s
 //! `Proof::to_bytes`), over the `verifier` crate's proof.
 
+use keccak256::hash_pair;
 use std::collections::BTreeMap;
 use verifier::{E, K, MerklePath, Proof};
 
@@ -15,13 +16,6 @@ const MAX_HEIGHT: usize = 32;
 
 fn hash_words(words: &[K]) -> Hash {
     keccak256::hash(&words.iter().flat_map(|word| word.to_bytes()).collect::<Vec<u8>>())
-}
-
-fn hash_pair(left: &Hash, right: &Hash) -> Hash {
-    let mut pair = [0; 64];
-    pair[..32].copy_from_slice(left);
-    pair[32..].copy_from_slice(right);
-    keccak256::hash(&pair)
 }
 
 /// Every count and size is a little-endian `u32`, every word a little-endian `u64`.

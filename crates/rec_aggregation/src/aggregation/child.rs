@@ -1,10 +1,13 @@
 //! The guest's witness for one child proof, and the opening shapes it shares with the guest's constants.
 
-use super::cells::{ONE, ZERO, count, hash_pair, hash_to_scalars};
+use super::cells::{ONE, ZERO, count, hash_to_scalars};
 use super::deferred::DeferredSubproof;
 use super::error::AggregateError;
 use super::hints::SubHints;
-use crate::protocol::{block_kappa_sources, bus_blocks, col_kappa_sources, column_stack, side_stack, table_logs};
+use crate::protocol::{
+    Block, block_kappa_sources, bus_blocks, col_kappa_sources, column_stack, side_stack, table_logs,
+};
+use keccak256::hash_pair;
 use verifier::{E, K};
 
 /// The stacked opening's shape at one committed size and rate, plus the query packing derived from it. The hint
@@ -65,27 +68,35 @@ pub(super) fn merkle_cap_depth(queries: usize, depth: usize) -> usize {
     depth - (depth - near) / QUERY_WINDOW_BITS * QUERY_WINDOW_BITS
 }
 
-/// The first column of each column group: a maximal run of committed columns, in compact
-/// order, sharing one kappa source. The stacked order (descending kappa, then index) keeps
-/// a group's columns consecutive, since any other column of equal kappa lies outside it.
-pub(super) fn block_groups(sources: &[(usize, usize)], side_starts: &[usize]) -> Vec<usize> {
-    // As `col_groups`, per side: a side's blocks tile its own cube.
-    (0..sources.len())
-        .filter(|&b| side_starts.contains(&b) || sources[b] != sources[b - 1])
-        .collect()
-}
-
+/// The first column of each column group: a maximal run of committed columns, in compact order, sharing one kappa
+/// source. The stacked order (descending kappa, then index) keeps a group's columns consecutive, since any other
+/// column of equal kappa lies outside it.
 pub(super) fn col_groups(sources: &[(usize, usize)]) -> Vec<usize> {
     (0..sources.len())
         .filter(|&c| c == 0 || sources[c] != sources[c - 1])
         .collect()
 }
 
-/// Config + hints for the recursion guest (`guests/lean_ethereum.py`), built
-/// from the layout of an execution of the `2^kbc`-instruction inner program at the
-/// sizes the `summary` the `verifier` crate read out of the child's `proof` announces,
-/// and that proof's Merkle paths, whose positions and sizes its replay pinned.
-/// Nothing here says the child verifies: the guest's run does.
+/// The first block of each block group: as [`col_groups`], over the bus blocks, a group never crossing the start of a
+/// side (`side_starts`), since a side's blocks tile its own cube.
+pub(super) fn block_groups(sources: &[(usize, usize)], side_starts: &[usize]) -> Vec<usize> {
+    (0..sources.len())
+        .filter(|&b| side_starts.contains(&b) || sources[b] != sources[b - 1])
+        .collect()
+}
+
+/// `count(g)` for each run of one group `g` in `groups`, in order. A group that came back after another would be
+/// named twice, which the caller's count of runs catches.
+fn group_runs(groups: impl Iterator<Item = usize>) -> Vec<E> {
+    let mut runs: Vec<usize> = groups.collect();
+    runs.dedup();
+    runs.into_iter().map(count).collect()
+}
+
+/// The guest's witness for verifying one child (`guests/lean_ethereum.py`), built from the layout of an execution of
+/// the `2^kbc`-instruction inner program at the sizes the `summary` the `verifier` crate read out of the child's
+/// `proof` announces, and from that proof's Merkle paths, whose positions and sizes its replay pinned. Nothing here
+/// says the child verifies: the guest's run does.
 pub(super) fn gen_verify(
     kbc: usize,
     public_input: [E; 2],
@@ -95,130 +106,107 @@ pub(super) fn gen_verify(
 ) -> Result<(SubHints, DeferredSubproof), AggregateError> {
     let taus = table_logs(&summary.table_rows);
     let sides = bus_blocks(kbc, summary.log_memory, &taus);
-    let side_layouts = sides.each_ref().map(|blocks| side_stack(blocks));
-    // The guest holds one opening arm per committed size an execution can have, so
-    // a child the native verifier accepts always has one. Fixed capacities: every
-    // buffer/stride placeholder is a global cap so the placeholder map is
-    // SHAPE-INDEPENDENT (the definition of generic). A child that verifies fits them.
-    let fits = side_layouts.iter().all(|&(_, mu)| mu <= MU_CAP) && proof.stream.len() <= STREAM_CAP;
+    // The guest's buffers have fixed capacities, so its constants do not depend on a child's shape. A child that
+    // verifies fits them.
+    let fits = sides.iter().all(|blocks| side_stack(blocks).1 <= MU_CAP) && proof.stream.len() <= STREAM_CAP;
     if !fits {
         return Err(AggregateError::InvalidChild);
     }
-    let (offsets, mu) = column_stack(kbc, summary.log_memory, &taus);
+    let (column_offsets, mu) = column_stack(kbc, summary.log_memory, &taus);
+    let mut stream = proof.stream.clone();
+    stream.resize(STREAM_CAP, ZERO);
 
-    // ---- typed extraction: the proof's stream + the verifier's summary ----
-    // Push and pull share the bytecode point.
-    let bytecode_point = summary.bytecode_point.clone();
+    // The guest replays the proof off the same stream the native verifier reads: every transmitted scalar is already
+    // there in protocol order.
+    let mut hints: SubHints = vec![
+        ("stream", stream),
+        // The table sumcheck's round count, which the guest certifies is the largest of the taus.
+        ("zc_tau_max", vec![count(*taus.iter().max().unwrap())]),
+        // Every table's log height, which the guest certifies against its row count.
+        ("table_logs", taus.iter().map(|&t| count(t)).collect()),
+        ("col_group_order", col_group_order(kbc, &column_offsets)),
+        ("block_group_order", block_group_order(kbc, &sides)),
+    ];
+    hints.extend(merkle_hints(&whir_shape(mu, summary.log_inv_rate), proof));
+    let deferred = DeferredSubproof {
+        public_input,
+        bytecode_point: summary.bytecode_point.clone(),
+        bytecode_value,
+    };
+    Ok((hints, deferred))
+}
 
-    // ---- the stacked opening: config + the opening summary ----
-    let stack = whir_shape(mu, summary.log_inv_rate);
+/// The committed columns in their stacking order (`column_offsets`, from `placements_of`: descending kappa, then
+/// index), each run of a column group ([`col_groups`]) named once. The guest certifies the order before it reads
+/// claims by it.
+fn col_group_order(kbc: usize, column_offsets: &[usize]) -> Vec<E> {
+    let sources = col_kappa_sources(kbc);
+    // Compact index to global column.
+    let committed: Vec<usize> = (0..sources.len()).filter(|&c| sources[c].is_some()).collect();
+    let groups = col_groups(&sources.iter().flatten().copied().collect::<Vec<_>>());
+    let mut stacked: Vec<usize> = (0..committed.len()).collect();
+    stacked.sort_by_key(|&compact| column_offsets[committed[compact]]);
+    let order = group_runs(
+        stacked
+            .into_iter()
+            .map(|compact| groups.partition_point(|&start| start <= compact) - 1),
+    );
+    assert_eq!(order.len(), groups.len(), "a column group's columns are consecutive");
+    order
+}
 
-    // ---- per-sub HINT data (the placeholder map is built once, elsewhere) ----
-    // Per side, the packing order read straight off `leaf::layout`'s offsets:
-    // sort_order[side_base + rank] = g^{global index of the rank-r block}. The
-    // guest certifies it is the native verifier's order (descending kappa, then
-    // ascending index) before deriving offsets from it.
-    let mut sort_order: Vec<E> = Vec::new();
-    let mut gbase = 0usize;
-    let block_sources = block_kappa_sources(kbc);
-    let side_starts: Vec<usize> = sides
-        .iter()
-        .scan(0, |at, blocks| {
-            let start = *at;
-            *at += blocks.len();
-            Some(start)
-        })
-        .chain([block_sources.len()])
-        .collect();
-    let block_groups = block_groups(&block_sources, &side_starts);
-    for (s, blocks) in sides.iter().enumerate() {
+/// Per bus side, its blocks in their stacking order (`side_stack`'s offsets), each run of a block group
+/// ([`block_groups`]) named once. The guest certifies the native verifier's order (descending kappa, then index)
+/// before it derives offsets from it.
+fn block_group_order(kbc: usize, sides: &[Vec<Block>; 3]) -> Vec<E> {
+    let mut side_starts = vec![0];
+    for blocks in sides {
+        side_starts.push(side_starts.last().unwrap() + blocks.len());
+    }
+    let groups = block_groups(&block_kappa_sources(kbc), &side_starts);
+    let mut stacked = Vec::new();
+    for (blocks, start) in sides.iter().zip(&side_starts) {
+        let offsets = side_stack(blocks).0;
         let mut order: Vec<usize> = (0..blocks.len()).collect();
-        order.sort_by_key(|&i| side_layouts[s].0[i]);
-        let mut last_group = usize::MAX;
-        for &i in &order {
-            // g^{global group index}, once per group: its blocks are consecutive.
-            let group = block_groups.partition_point(|&start| start <= gbase + i) - 1;
-            if group != last_group {
-                sort_order.push(count(group));
-                last_group = group;
-            }
-        }
-        gbase += blocks.len();
+        order.sort_by_key(|&i| offsets[i]);
+        stacked.extend(order.into_iter().map(|i| start + i));
     }
-    assert_eq!(
-        sort_order.len(),
-        block_groups.len(),
-        "a block group's blocks are consecutive"
+    // A group never crosses a side, so runs never merge across one.
+    let order = group_runs(
+        stacked
+            .into_iter()
+            .map(|block| groups.partition_point(|&start| start <= block) - 1),
     );
-    // The stacked commitment uses witness::placements_of: committed columns
-    // sorted by descending kappa, then by their native column index. Transport
-    // compact committed-column indices; the guest certifies the permutation,
-    // ordering, and accumulated offsets before using them as claim selectors.
-    let col_sources = col_kappa_sources(kbc);
-    let committed_globals: Vec<usize> = col_sources
-        .iter()
-        .enumerate()
-        .filter_map(|(i, source)| source.map(|_| i))
-        .collect();
-    let mut compact_col = vec![usize::MAX; col_sources.len()];
-    for (compact, &global) in committed_globals.iter().enumerate() {
-        compact_col[global] = compact;
-    }
-    let mut col_order = committed_globals;
-    col_order.sort_by_key(|&global| offsets[global]);
-    // The order by column group (`col_groups`): its columns are consecutive in it.
-    let groups = col_groups(&col_sources.iter().flatten().copied().collect::<Vec<_>>());
-    let group_of = |compact: usize| groups.partition_point(|&start| start <= compact) - 1;
-    let mut col_group_order: Vec<E> = Vec::new();
-    let mut last_group = usize::MAX;
-    for &global in &col_order {
-        let group = group_of(compact_col[global]);
-        if group != last_group {
-            col_group_order.push(count(group));
-            last_group = group;
-        }
-    }
-    assert_eq!(
-        col_group_order.len(),
-        groups.len(),
-        "a column group's columns are consecutive"
-    );
+    assert_eq!(order.len(), groups.len(), "a block group's blocks are consecutive");
+    order
+}
 
-    // ---- Hints for the stacked WHIR opening ----
-    // Share the upper Merkle tree across a level's queries, one cap entry a level. Unknown,
-    // unused subtrees stay opaque; the guest authenticates every cap leaf a query reaches.
-    let mut query_hints = Vec::new();
+/// The stacked WHIR opening's Merkle witness, per level: each query's leaf row and the children of every node it
+/// climbs through below the level's cap, then the cap, every node of the top [`merkle_cap_depth`] levels the queries
+/// reach, and which of its nodes they reach. The upper tree is shared by a level's queries; a subtree no query reaches
+/// stays zero, unread.
+fn merkle_hints(stack: &WhirShape, proof: &verifier::Proof) -> SubHints {
+    let mut hints = Vec::new();
     let levels = stack.queries.iter().zip(&stack.depth);
     for (level, ((&queries, &depth), phase)) in levels.zip(&proof.merkle_openings).enumerate() {
         let cap_depth = merkle_cap_depth(queries, depth);
-        let n = 1 << cap_depth;
         let path_depth = depth - cap_depth;
-        let mut nodes = vec![[0u8; 32]; 2 * n];
-        let mut active = vec![ZERO; n];
+        let mut nodes = vec![[0u8; 32]; 2 << cap_depth];
+        let mut active = vec![ZERO; 1 << cap_depth];
         for opening in phase {
             // Level 0's rows are K lanes, a cell each; deeper ones E words, two lanes a cell.
             let row = if level == 0 {
                 opening.leaf.iter().map(|&x| E::from(x)).collect()
             } else {
-                opening
-                    .leaf
-                    .as_chunks()
-                    .0
-                    .iter()
-                    .map(|&[c0, c1]: &[K; 2]| E::new(c0.0, c1.0))
-                    .collect()
+                let pairs = opening.leaf.as_chunks().0.iter();
+                pairs.map(|&[c0, c1]: &[K; 2]| E::new(c0.0, c1.0)).collect()
             };
-            query_hints.push(("merkle_leaf_rows", row));
+            hints.push(("merkle_leaf_rows", row));
             let mut path_children = Vec::with_capacity(4 * path_depth);
             let leaf: Vec<u8> = opening.leaf.iter().flat_map(|word| word.to_bytes()).collect();
             let mut node = keccak256::hash(&leaf);
             let mut index = (1 << depth) + opening.leaf_index as usize;
             for (height, sibling) in opening.siblings.iter().enumerate() {
-                if height >= path_depth {
-                    nodes[index] = node;
-                    nodes[index ^ 1] = *sibling;
-                    active[index >> 1] = ONE;
-                }
                 let (left, right) = if index & 1 == 0 {
                     (&node, sibling)
                 } else {
@@ -227,43 +215,21 @@ pub(super) fn gen_verify(
                 if height < path_depth {
                     path_children.extend(hash_to_scalars(left));
                     path_children.extend(hash_to_scalars(right));
+                } else {
+                    nodes[index] = node;
+                    nodes[index ^ 1] = *sibling;
+                    active[index >> 1] = ONE;
                 }
                 node = hash_pair(left, right);
                 index >>= 1;
             }
             nodes[1] = node;
-            query_hints.push(("merkle_children", path_children));
+            hints.push(("merkle_children", path_children));
         }
-        query_hints.push(("merkle_caps", nodes.iter().flat_map(hash_to_scalars).collect()));
-        query_hints.push(("merkle_cap_active", active));
+        hints.push(("merkle_caps", nodes.iter().flat_map(hash_to_scalars).collect()));
+        hints.push(("merkle_cap_active", active));
     }
-    let deferred = DeferredSubproof {
-        public_input,
-        bytecode_point,
-        bytecode_value,
-    };
-
-    let mut hints = vec![
-        ("stream", {
-            // The guest replays the proof off the same stream the native verifier
-            // reads: every transmitted scalar (the level-0 OOD value, the fold rounds' tables,
-            // level roots, high parts, OOD values, grind nonces, the final lane, the
-            // closing rounds) is already there in protocol order, so there is nothing
-            // to reassemble.
-            let mut stream = proof.stream.clone();
-            stream.resize(STREAM_CAP, ZERO);
-            stream
-        }),
-        // the table sumcheck's round count: max_t tau_t, certified in-guest as a
-        // maximum (one of the taus, and dominating them all).
-        ("zc_tau_max", vec![count(*taus.iter().max().unwrap())]),
-        // Every table's log height, which the guest certifies against its row count.
-        ("table_logs", taus.iter().map(|&t| count(t)).collect()),
-        ("col_group_order", col_group_order),
-        ("block_group_order", sort_order),
-    ];
-    hints.extend(query_hints);
-    Ok((hints, deferred))
+    hints
 }
 
 /// The guest's baked buffer caps, which `placeholder_map` compiles in and
