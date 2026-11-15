@@ -386,9 +386,10 @@ def bigFiles (j : Nat) (tf : TracedFn) (pf : Placed) : Except String (List (Stri
   let okMod := header s!"B{j}Ok" s!"Entry {j}'s test, from its parts." ++
     String.join ((List.range nParts).map fun m => s!"public import {modBase}.B{j}P{m}\n") ++ opening ++ okItems ++
     s!"\n/-- The checks of entry {j} on its temporaries, parameters and frame. -/\ntheorem small{j} : smallOk {j} pf{j} TL{j} cn{j}_{nC} = true := by\n  decide +kernel\n" ++
+    s!"\n/-- No place of entry {j} is a shift by `g^0`. -/\ntheorem ns{j} : noShift0 pf{j}.locs = true := by\n  decide +kernel\n" ++
     s!"\n/-- The scope walk of entry {j} ends with its trace. -/\ntheorem fin{j} : (match flushAt {tfs}.rets sc{j}_{segs.length} with\n    | .ok s => s.rest.isEmpty\n    | .error _ => false) = true := by\n  decide +kernel\n" ++
     String.join ([4, 5, 6, 7].map fun k => s!"\ntheorem rest{j}_{k} : partsOk [{k}] {j} pf{j} = true := by\n  decide +kernel\n") ++
-    s!"\n/-- **Entry {j}'s test.** -/\ntheorem cplOk_{j} : cplOkAt {j} = true :=\n  cplOk_big (pf := pf{j}) (TL := TL{j}) (C := cn{j}_{nC}) (F := fp{j}_{nC})\n    (S := sc{j}_{segs.length}) (M := sn{j}_{segs.length + 1})\n    (placedAt_cut cut{j}_walk cut{j}_tailOk cut{j}_head)\n    {segChain}\n    small{j}\n    {opsChain "cnt"}\n    {opsChain "fps"}\n    {toChain}\n    {onceChain}\n    {scChain}\n    fin{j}\n    (partsOk_4567 rest{j}_4 rest{j}_5 rest{j}_6 rest{j}_7)\n" ++ closing
+    s!"\n/-- **Entry {j}'s test.** -/\ntheorem cplOk_{j} : cplOkAt {j} = true :=\n  cplOk_big (pf := pf{j}) (TL := TL{j}) (C := cn{j}_{nC}) (F := fp{j}_{nC})\n    (S := sc{j}_{segs.length}) (M := sn{j}_{segs.length + 1})\n    (placedAt_cut cut{j}_walk cut{j}_tailOk cut{j}_head)\n    {segChain}\n    small{j}\n    {opsChain "cnt"}\n    {opsChain "fps"}\n    {toChain}\n    ns{j}\n    {onceChain}\n    {scChain}\n    fin{j}\n    (partsOk_4567 rest{j}_4 rest{j}_5 rest{j}_6 rest{j}_7)\n" ++ closing
   return files ++ [(s!"B{j}Ok", okMod)]
 
 /-- Runs of entries `(a, b)`, each at most `maxDecl` instructions; cut and large entries alone. -/
