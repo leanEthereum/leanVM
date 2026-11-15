@@ -1416,6 +1416,101 @@ theorem stage_next (hmono : PlaceMono ctx) (hnew : PlaceNew ctx)
 
 end Last
 
+section Assemble
+
+variable {κ₀ : ℕ} {Γ : Site κ₀}
+  {Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop} {cl : List Call}
+  {ctx : Backend.Ctx} {I : Inst}
+
+/-- **`OpenW`**: a block entered by an open chain, stage by stage (`stage_next`), its last stage
+(`stage_last`) then the rest by the block lemma; off the path (no invariant at its start) by
+`openOff`. -/
+theorem openW_of {Good : List Stmt → Prop} (hmono : PlaceMono ctx) (hnew : PlaceNew ctx)
+    (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0) (hAg : AgOwn I Ag)
+    (hkw : ∀ k, I.kw k = kwOf Γ k)
+    (hlocB : ∀ q, q ≤ I.ops.length → kwOf Γ (.local q) = Γ.tgt q)
+    (hsub : ∀ x arms rest, Good (.match_ x arms :: rest) → (∀ a ∈ arms, Good a) ∧ Good rest)
+    (hfa : ∀ s rest, Good (s :: rest) → FaAfter I.σ s rest)
+    (hu : ∀ x arms rest, Good (.match_ x arms :: rest) → x ∉ I.tmps)
+    (hafa : ∀ x arms rest, Good (.match_ x arms :: rest) → ∀ j (hj : j < arms.length),
+      ∀ v ∈ pathVals I.σ arms[j] (walk I.σ arms[j]), ∀ run,
+        Atom.frameAddr v run ∉ armsAtoms (arms.drop (j + 1)))
+    (hin : InBlockOf Γ Ag cl ctx I) :
+    OpenW (Γ := Γ) (Ag := Ag) (cl := cl) (ctx := ctx) (I := I) Good := by
+  intro x arms rest
+  induction rest generalizing x arms with
+  | nil =>
+    intro tl hg ihb C st sc sc'' i₀ p₀ o O h join lx entry one sfp firsts stages first Q hsc hw
+      hns hes hcl hinvQ hch hjw hout hlen
+    by_cases hQ : Q
+    swap
+    · refine FBAt.mono (FBAt.dead (Q := fun _ st' => st'.chainIn = none)
+        (wp_mono (openOff hmono x arms _ st O h join lx entry one sfp first firsts stages join hch
+          hout) fun _ _ ⟨a, b, c, _⟩ => ⟨b, c, a⟩)) ?_
+      rintro _ C' st' - - - ⟨-, hc'⟩
+      exact ⟨hc', fun _ _ _ hq => absurd hq hQ, fun _ hq => absurd hq hQ⟩
+    have hinv := hinvQ hQ
+    have hsc0 := hsc
+    rw [scopeBlock] at hsc0
+    split at hsc0
+    · cases hsc0
+    next sc' hsc₁ =>
+    obtain ⟨s₀, s₁, h₀, hx, hsa, hem⟩ := scopeMatch_inv hsc₁
+    obtain ⟨harms, hrest⟩ := hsub x arms _ hg
+    have hin' : ∀ j (hj : j < arms.length), InBlockW Γ Ag cl ctx I arms[j] := fun j hj =>
+      hin _ fun tl' => ihb _ (harms _ (List.getElem_mem hj)) (sizeOf_arm_lt (List.getElem_mem hj)) tl'
+    rw [placeBlock]
+    refine match_preE hI hinv hch h₀ fun b st₂ C₂ hs₂ hop₂ hn₂ _ _ hpk₂ hr₂ hf₂ hvw₂ hrb₂ hloc₂ hch₂
+      hz₂ => ?_
+    cases b
+    · exact stage_last hmono hnew hI hmain hAg hkw hlocB (hu x arms _ hg) hin'
+        (hafa x arms _ hg) (hfa _ _ hg) (ihb _ hrest (by simp) tl) hinv hjw hout hlen h₀ hx hsa hem
+        hsc0 hw hns hes hcl hs₂ hop₂ hn₂ hpk₂ hr₂ hf₂ hvw₂ hrb₂ hloc₂ hch₂ hz₂
+    · exact fun _ => chained_fail (by simp)
+  | cons s rest' ih =>
+    intro tl hg ihb C st sc sc'' i₀ p₀ o O h join lx entry one sfp firsts stages first Q hsc hw
+      hns hes hcl hinvQ hch hjw hout hlen
+    by_cases hQ : Q
+    swap
+    · refine FBAt.mono (FBAt.dead (Q := fun _ st' => st'.chainIn = none)
+        (wp_mono (openOff hmono x arms _ st O h join lx entry one sfp first firsts stages join hch
+          hout) fun _ _ ⟨a, b, c, _⟩ => ⟨b, c, a⟩)) ?_
+      rintro _ C' st' - - - ⟨-, hc'⟩
+      exact ⟨hc', fun _ _ _ hq => absurd hq hQ, fun _ hq => absurd hq hQ⟩
+    have hinv := hinvQ hQ
+    have hsc0 := hsc
+    rw [scopeBlock] at hsc0
+    split at hsc0
+    · cases hsc0
+    next sc' hsc₁ =>
+    obtain ⟨s₀, s₁, h₀, hx, hsa, hem⟩ := scopeMatch_inv hsc₁
+    obtain ⟨harms, hrest⟩ := hsub x arms _ hg
+    have hin' : ∀ j (hj : j < arms.length), InBlockW Γ Ag cl ctx I arms[j] := fun j hj =>
+      hin _ fun tl' => ihb _ (harms _ (List.getElem_mem hj)) (sizeOf_arm_lt (List.getElem_mem hj)) tl'
+    rw [placeBlock]
+    refine match_preE hI hinv hch h₀ fun b st₂ C₂ hs₂ hop₂ hn₂ _ _ hpk₂ hr₂ hf₂ hvw₂ hrb₂ hloc₂ hch₂
+      hz₂ => ?_
+    cases b
+    · exact stage_last hmono hnew hI hmain hAg hkw hlocB (hu x arms _ hg) hin'
+        (hafa x arms _ hg) (hfa _ _ hg) (ihb _ hrest (by simp) tl) hinv hjw hout hlen h₀ hx hsa hem
+        hsc0 hw hns hes hcl hs₂ hop₂ hn₂ hpk₂ hr₂ hf₂ hvw₂ hrb₂ hloc₂ hch₂ hz₂
+    · cases s with
+      | match_ x' arms' =>
+        exact stage_next hmono hnew hI hmain hAg (hu x arms _ hg) hin' (hafa x arms _ hg)
+          (hfa _ _ hg)
+          (fun C st i₀ o firsts stages first Q hw hns hes hcl hinv hch hjw hout hlen =>
+            ih x' arms' tl hrest (fun ss' hg' hlt tl' => ihb ss' hg' (lt_trans hlt (by simp)) tl') C
+              st sc' sc'' i₀ p₀ o O h join lx entry one sfp firsts stages first Q hsc0 hw hns hes hcl
+              hinv hch hjw hout hlen)
+          hinv hjw hout hlen h₀ hx hsa hem hsc0 hw hns hes hcl hs₂ hop₂ hn₂ hpk₂ hr₂ hf₂ hvw₂ hrb₂
+          hloc₂ hch₂ hz₂
+      | _ => exact fun _ => chained_fail (by simp)
+
+end Assemble
+
+/-- info: 'LeanVM.Guest.Backend.Complete.openW_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in #print axioms openW_of
+
 end
 
 end LeanVM.Guest.Backend.Complete
