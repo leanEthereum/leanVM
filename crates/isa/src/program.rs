@@ -2,8 +2,9 @@
 //! the one public table, and that table prepared for the verifier.
 
 use crate::{CompiledProgram, Op};
+use std::any::Any;
 use std::ops::Deref;
-use std::sync::OnceLock;
+use std::sync::{Arc, Mutex, OnceLock};
 use verifier::K;
 use verifier::layout::{BUS_BITS, OP_DEREF, OP_JUMP, OP_KECCAK, OP_MUL, OP_SET, OP_XOR};
 
@@ -20,6 +21,8 @@ pub struct Program {
     compiled: CompiledProgram,
     table: Vec<u64>,
     bytecode: verifier::Bytecode,
+    /// What provers derived from it ([`Program::derived`]), one value a type.
+    derived: Mutex<Vec<Arc<dyn Any + Send + Sync>>>,
 }
 
 /// # Panics
@@ -33,6 +36,7 @@ impl From<CompiledProgram> for Program {
             compiled,
             table,
             bytecode,
+            derived: Mutex::default(),
         }
     }
 }
@@ -61,6 +65,18 @@ impl Program {
     pub fn column(&self, i: usize) -> &[u64] {
         let n = self.prog.len();
         &self.table[(OPCODE_SLOT + i) * n..][..n]
+    }
+
+    /// `derive(self)`, computed on the first call for its type and kept: what a prover would otherwise rebuild for
+    /// every proof of the program, such as the columns in its own field type.
+    pub fn derived<T: Any + Send + Sync>(&self, derive: impl FnOnce(&Self) -> T) -> Arc<T> {
+        let mut derived = self.derived.lock().unwrap();
+        if let Some(value) = derived.iter().find_map(|value| value.clone().downcast().ok()) {
+            return value;
+        }
+        let value = Arc::new(derive(self));
+        derived.push(value.clone());
+        value
     }
 }
 
