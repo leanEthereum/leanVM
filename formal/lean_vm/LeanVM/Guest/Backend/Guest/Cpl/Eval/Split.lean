@@ -168,6 +168,18 @@ def cntStep (set : NMap Unit) (m : NMap ℕ) (o : LOp) : NMap ℕ :=
 theorem cellCounts_eq (set : NMap Unit) (ops : List LOp) :
     cellCounts set ops = (ops.drop 0).foldl (cntStep set) {} := rfl
 
+/-- One instruction's step of `Complete.fpPtrs`. -/
+def fpStep (m : NMap Unit) (o : LOp) : NMap Unit :=
+  match o with
+  | .deref p _ _ .fp => m.insert p ()
+  | _ => m
+
+/-- One instruction's test of `Complete.tmpOpsB`. -/
+def tmpOpOk (set fps : NMap Unit) (o : LOp) : Bool :=
+  (opCells o).all fun c => !set.contains c || match o with
+    | .deref p 0 d .cell => d == c && !set.contains p && !fps.contains p
+    | _ => false
+
 /-! ## The scope walk by runs of statements -/
 
 theorem scopeBlock_append (rc : ℕ) : ∀ (a b : List Stmt) (s : SSt) {s' : SSt},
@@ -271,7 +283,10 @@ theorem tmpsApartB_of {tf : TracedFn} {pf : Placed} {T Ts : NMap Unit} {C : NMap
     (hsome : (Stmt.tmpsList tf.core.body).all (fun t => (cellP pf.locs t).isSome) = true)
     (hone : (Stmt.tmpsList tf.core.body).all (fun t => match cellP pf.locs t with
       | some n => C.get? n == some 1
-      | none => false) = true) :
+      | none => false) = true)
+    (hdc : distinctCells pf.locs (Stmt.tmpsList tf.core.body) {} = true) {F : NMap Unit}
+    (hfp : ((blockOps pf.fn.body 0).drop 0).foldl fpStep {} = F)
+    (hto : ((blockOps pf.fn.body 0).drop 0).all (tmpOpOk Ts F) = true) :
     tmpsApartB tf pf = true := by
   rw [List.drop_zero] at huses
   have hall : ∀ v ∈ Stmt.usesList tf.core.body ++ tf.core.params, (!T.contains v.idx &&
@@ -283,11 +298,13 @@ theorem tmpsApartB_of {tf : TracedFn} {pf : Placed} {T Ts : NMap Unit} {C : NMap
     · exact List.all_eq_true.mp huses v hv
     · exact List.all_eq_true.mp hpar v hv
   have hcnt' : cellCounts Ts (blockOps pf.fn.body 0) = C := (cellCounts_eq _ _).trans hcnt
+  have hfp' : fpPtrs (blockOps pf.fn.body 0) = F := hfp
+  rw [List.drop_zero] at hto
   unfold tmpsApartB
   simp only [nmapSeq_eq]
-  rw [hset, hcnt']
+  rw [hset, hcnt', hfp']
   simp only [Bool.and_eq_true]
-  refine ⟨?_, ?_⟩
+  refine ⟨?_, ⟨?_, hdc⟩, hto⟩
   · unfold freshOnce
     rw [natSeq_eq, hnd, Bool.true_and, List.all_eq_true]
     intro t ht
@@ -368,16 +385,28 @@ theorem seg_end {c : BigC} {b : List Stmt} {k : ℕ} (hk : b.length ≤ k) : seg
   rw [List.drop_eq_nil_of_le hk]
   rfl
 
-theorem cnt_part {b : List PStmt} {set : NMap Unit} {k s : ℕ} {M M' M'' : NMap ℕ}
-    (h₁ : ((blockOpsFrom b 0 k).take s).foldl (cntStep set) M = M')
-    (h₂ : ((blockOps b 0).drop (k + s)).foldl (cntStep set) M' = M'') :
-    ((blockOps b 0).drop k).foldl (cntStep set) M = M'' := by
+theorem ops_part {β : Type} {f : β → LOp → β} {b : List PStmt} {k s : ℕ} {M M' M'' : β}
+    (h₁ : ((blockOpsFrom b 0 k).take s).foldl f M = M')
+    (h₂ : ((blockOps b 0).drop (k + s)).foldl f M' = M'') :
+    ((blockOps b 0).drop k).foldl f M = M'' := by
   rw [blockOpsFrom_eq] at h₁
   exact foldl_part h₁ h₂
 
-theorem cnt_end {b : List PStmt} {set : NMap Unit} {k : ℕ} {M : NMap ℕ} (hk : blockSize b ≤ k) :
-    ((blockOps b 0).drop k).foldl (cntStep set) M = M :=
+theorem ops_end {β : Type} {f : β → LOp → β} {b : List PStmt} {k : ℕ} {M : β} (hk : blockSize b ≤ k) :
+    ((blockOps b 0).drop k).foldl f M = M :=
   foldl_end (List.drop_eq_nil_of_le (by rw [blockOps_length]; exact hk))
+
+theorem opsAll_part {p : LOp → Bool} {b : List PStmt} {k s : ℕ}
+    (h₁ : ((blockOpsFrom b 0 k).take s).all p = true) (h₂ : ((blockOps b 0).drop (k + s)).all p = true) :
+    ((blockOps b 0).drop k).all p = true := by
+  rw [blockOpsFrom_eq] at h₁
+  rw [← List.take_append_drop s ((blockOps b 0).drop k), List.all_append, h₁, drop_drop', h₂]
+  rfl
+
+theorem opsAll_end {p : LOp → Bool} {b : List PStmt} {k : ℕ} (hk : blockSize b ≤ k) :
+    ((blockOps b 0).drop k).all p = true := by
+  rw [List.drop_eq_nil_of_le (by rw [blockOps_length]; exact hk)]
+  rfl
 
 /-- The checks of a large function on its temporaries, parameters and frame, `C` the counts of
 its temporaries' cells. -/
@@ -394,10 +423,11 @@ noncomputable def smallOk (j : ℕ) (pf : Placed) (TL : List V) (C : NMap ℕ) :
     TL.all (fun t => (cellP pf.locs t).isSome) &&
     TL.all (fun t => match cellP pf.locs t with
       | some n => C.get? n == some 1
-      | none => false)
+      | none => false) &&
+    distinctCells pf.locs TL {}
 
 /-- **A large function's test from its parts**: the runs of statements (`hseg`), the checks on its
-temporaries and frame (`hsmall`), the counts of its temporaries' cells by chunks (`hcnt`), the
+temporaries and frame (`hsmall`), the counts of its temporaries' cells, the frame pointers' cells and the instructions' test by chunks (`hcnt`, `hfp`, `hto`), the
 scope walk by runs (`hscope`, `hfin`) and the remaining conjuncts on the placed body (`hrest`). -/
 theorem cplOk_big {j : ℕ} {pf : Placed} {TL : List V} {C : NMap ℕ} {S : SSt}
     (hp : placedAt j = some pf)
@@ -405,6 +435,8 @@ theorem cplOk_big {j : ℕ} {pf : Placed} {TL : List V} {C : NMap ℕ} {S : SSt}
       (guestTraced.getD j default).core.params.length⟩ ((guestTraced.getD j default).core.body.drop 0) TL = true)
     (hsmall : smallOk j pf TL C = true)
     (hcnt : ((blockOps pf.fn.body 0).drop 0).foldl (cntStep (tmpCellSet pf.locs TL)) {} = C)
+    {F : NMap Unit} (hfp : ((blockOps pf.fn.body 0).drop 0).foldl fpStep {} = F)
+    (hto : ((blockOps pf.fn.body 0).drop 0).all (tmpOpOk (tmpCellSet pf.locs TL) F) = true)
     (hscope : scopeBlock (guestTraced.getD j default).rets ((guestTraced.getD j default).core.body.drop 0)
       ⟨(guestTraced.getD j default).trace.toList, addLive {} (guestTraced.getD j default).core.params,
         false⟩ = .ok S)
@@ -425,14 +457,14 @@ theorem cplOk_big {j : ℕ} {pf : Placed} {TL : List V} {C : NMap ℕ} {S : SSt}
     List.isEmpty_iff] at hseg'
   obtain ⟨⟨⟨⟨⟨htl, huses⟩, hrv⟩, hruns⟩, hret⟩, hcalls⟩ := hseg'
   simp only [smallOk, htf, Bool.and_eq_true] at hsmall
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hhead, hpar⟩, hin⟩, hnd⟩, hself⟩, hidx⟩, hT⟩, hparU⟩, hsome⟩, hone⟩ := hsmall
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hhead, hpar⟩, hin⟩, hnd⟩, hself⟩, hidx⟩, hT⟩, hparU⟩, hsome⟩, hone⟩, hdc⟩ := hsmall
   have h0 : staticOk loopsG tf pf (fsWant j) = true := by
     refine staticOk_of (Ts := c.Ts) (by simp only [Bool.and_eq_true]; exact hhead) hpar hret (by rw [htl]; exact hin) (by rw [htl]; exact hnd)
       (by rw [List.drop_zero, hrv]; rfl) (by rw [htl]; rfl) hself (by rw [List.drop_zero]; exact hruns)
   have h3 : tmpsApartB tf pf = true :=
     tmpsApartB_of (T := c.T) (Ts := c.TA) (by rw [htl]; exact hidx) (by rw [htl]; exact hT)
       (by rw [List.drop_zero]; exact huses) hparU (by rw [htl]; rfl) hcnt (by rw [htl]; exact hsome)
-      (by rw [htl]; exact hone)
+      (by rw [htl]; exact hone) (by rw [htl]; exact hdc) hfp hto
   have h1 : scopedB tf = true := scopedB_of hscope hfin
   have h2 : noSelfCallB tf = true := by
     unfold noSelfCallB
