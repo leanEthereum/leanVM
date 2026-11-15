@@ -224,7 +224,7 @@ def alL : List PStmt → List Stmt → Bool
 
 /-- A chain's stages and the core `match`es, arm with arm. -/
 def alStages : List (List (List PStmt)) → List Stmt → Bool
-  | [], _ => true
+  | [], cms => cms.isEmpty
   | st :: sts, .match_ _ arms :: cms => alArms st arms && alStages sts cms
   | _, _ => false
 
