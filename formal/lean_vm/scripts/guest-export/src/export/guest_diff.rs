@@ -180,7 +180,7 @@ fn export(
     out.tag("log_memory");
     out.n(node.proof.stream[0].c0 as usize);
     out.tag("public_input");
-    let defer = DeferredBytecodeClaim::recompute(node.bytecode_point.clone()).expect("a well-formed point");
+    let defer = DeferredBytecodeClaim::recompute(node.bytecode_point.clone());
     out.es(&statement_digest(&claims, &defer));
     out.tag("statement");
     out.statement(&claims, &defer);
@@ -190,7 +190,7 @@ fn export(
     let bytecode = scalar_bytecode();
     for (child_claims, child) in &children {
         out.tag("child");
-        let defer = DeferredBytecodeClaim::recompute(child.bytecode_point.clone()).expect("a well-formed point");
+        let defer = DeferredBytecodeClaim::recompute(child.bytecode_point.clone());
         out.statement(child_claims, &defer);
         let pi = statement_digest(child_claims, &defer);
         let scalar = child.proof.clone();

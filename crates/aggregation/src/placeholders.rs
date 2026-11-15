@@ -786,14 +786,15 @@ fn bytecode_placeholders(ph: &mut Placeholders, sides: &[Vec<Block>; 3], kbc: us
         .flat_map(|b| &b.coords)
         .filter(|c| matches!(c, Coord::Public(_)));
     ph.set("BYTECODE_COLS", public.count() / 2);
-    ph.set("DEFER_SIZE", kbc + N_TUPLE_BITS + 1);
+    let defer_size = kbc + N_TUPLE_BITS + 1;
+    ph.set("DEFER_SIZE", defer_size);
     ph.set("BYTECODE_VARS", kbc + N_TUPLE_BITS);
     let agg_seed = FiatShamirState::<F128>::from_label(RECURSION_AGG_LABEL).capacity_cells();
     for (c, cell) in agg_seed.iter().enumerate() {
         ph.set(&format!("AGG_SEED_{c}"), cell);
     }
     // A child's words: its statement's two, its fresh claim, and its carried claim's cells.
-    let child_words = 2 + (kbc + N_TUPLE_BITS + 1) + (kbc + N_TUPLE_BITS + 1);
+    let child_words = 2 + 2 * defer_size;
     ph.set(
         "AGG_CHILD_PAD",
         child_words.next_multiple_of(RATE_SCALARS) - child_words,

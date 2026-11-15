@@ -116,7 +116,7 @@ pub fn file() -> File {
         })
         .collect();
     let carried: Vec<DeferredBytecodeClaim> = (0..2)
-        .map(|_| DeferredBytecodeClaim::recompute(elements(&mut rng, kbcv)).unwrap())
+        .map(|_| DeferredBytecodeClaim::recompute(elements(&mut rng, kbcv)))
         .collect();
     // Each child's fresh claim, then its carried one: the batch's order, which its sums follow.
     let public_inputs: Vec<[F128; 2]> = subproofs.iter().map(|(public_input, _)| *public_input).collect();

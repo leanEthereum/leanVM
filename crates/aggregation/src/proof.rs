@@ -95,9 +95,7 @@ impl AggregateProof {
         if !is_sorted(claims) {
             return false;
         }
-        let Some(defer) = DeferredBytecodeClaim::recompute(self.bytecode_point.clone()) else {
-            return false;
-        };
+        let defer = DeferredBytecodeClaim::recompute(self.bytecode_point.clone());
         let pi = statement_digest(claims, &defer);
         let verdict = verifier::verify_execution(scalar_bytecode(), &public_input_bytes(&pi), &self.proof);
         if let Err(error) = &verdict {

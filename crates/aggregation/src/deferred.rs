@@ -31,7 +31,7 @@ impl DeferredBytecodeClaim {
     /// What a leaf defers: the all-zeros point, where the value is just the
     /// table's first entry.
     pub(super) fn leaf() -> Self {
-        Self::recompute(vec![F128::ZERO; bytecode_vars()]).expect("the all-zeros point has the right shape")
+        Self::recompute(vec![F128::ZERO; bytecode_vars()])
     }
 
     /// The claim at `bytecode_point`, its value read off the point's [`bytecode_sums`].
@@ -43,12 +43,9 @@ impl DeferredBytecodeClaim {
         }
     }
 
-    /// The claim at `bytecode_point`, evaluated by the `verifier` crate, scalar and single threaded: what a received
-    /// aggregate is checked with. `None` for a point of the wrong length.
-    pub(super) fn recompute(bytecode_point: Vec<F128>) -> Option<Self> {
-        if bytecode_point.len() != bytecode_vars() {
-            return None;
-        }
+    /// The claim at `bytecode_point`, a point of [`bytecode_vars`] coordinates, evaluated by the `verifier` crate,
+    /// scalar and single threaded: what a received aggregate is checked with.
+    pub(super) fn recompute(bytecode_point: Vec<F128>) -> Self {
         // Every leaf defers the all-zeros point, where the bytecode polynomial is just its table's first entry: a
         // leaf is the aggregate people verify most, and the general path is a pass over the whole table.
         let bytecode_value = if bytecode_point.iter().all(|x| *x == F128::ZERO) {
@@ -58,13 +55,13 @@ impl DeferredBytecodeClaim {
             from_scalar(
                 scalar_bytecode()
                     .evaluate(&scalars)
-                    .expect("the point's length was checked"),
+                    .expect("a point of bytecode_vars() coordinates"),
             )
         };
-        Some(Self {
+        Self {
             bytecode_point,
             bytecode_value,
-        })
+        }
     }
 
     /// The cells the statement digest absorbs, in the guest's `defer_stmt` order.
