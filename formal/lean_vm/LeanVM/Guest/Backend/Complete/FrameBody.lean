@@ -509,5 +509,59 @@ theorem frameClauses_of (hsc : Scoped tf) (hta : TmpsApart tf pf)
 
 end Clauses
 
+/-! ## The shared jump tables -/
+
+section Tabs
+
+variable {κ₀ : ℕ} {W : World κ₀}
+
+/-- **Every entry of the layout is inside the code.** -/
+theorem World.ent_lt (hW : W.Compiled) (g : String) : W.ent g < 2 ^ 128 := by
+  have hnd := World.nodup hW
+  have h30 := W.logSize_le
+  have hsz := assemble_size_gt W.fns W.slots
+  rw [hW.2] at hsz
+  have hfold := layout_fold (withTables W.fns W.slots).1 {} {} 0
+  unfold World.ent World.layout layoutOf
+  rw [layout_eq, KMap.getD_eq_getD_getElem?]
+  by_cases hg : g ∈ (withTables W.fns W.slots).1.map (·.name)
+  · obtain ⟨f, hf, rfl⟩ := List.mem_map.mp hg
+    obtain ⟨pre, post, hsplit⟩ := List.append_of_mem hf
+    have hnp : f.name ∉ post.map (·.name) := by
+      have := hnd
+      rw [hsplit, List.map_append, List.map_cons] at this
+      exact (List.nodup_cons.mp (List.nodup_append.mp this).2.1).1
+    have he := (hfold.2.2 pre f post hsplit hnp).1
+    simp only at he ⊢
+    rw [he, Option.getD_some]
+    have : totalSize pre ≤ totalSize (withTables W.fns W.slots).1 := by
+      rw [hsplit, totalSize_append]; omega
+    omega
+  · have he := (hfold.2.1 g hg).1
+    simp only at he ⊢
+    rw [he]
+    simp
+
+/-- **The shared jump tables are in the layout** on every memory holding the jump tables, from a
+state whose tables the final placement's extend. -/
+theorem tabsW_of (hW : W.Compiled) {Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop}
+    (hAg : ∀ σ' Ψ kh κ (L : MemoryImage κ), Ag σ' Ψ kh κ L → JTHolds L W.layout W.slots)
+    {name : String} {st : St} {t' : Tables} (hsh : SharedIn W.slots t')
+    (hle : TablesLe st.tables t') : TabsW (World.cplSite W name) Ag st := by
+  intro fs first hm σ' Ψ kh κ L hA j hj
+  have hm' : (fs, first) ∈ t'.shared := hle.shared.subset hm
+  have hs := hsh (fs, first) hm' j hj
+  have hw : SlotWord W.layout (.entry fs[j]) = some (ofK (addressOfIndex (W.ent fs[j]))) := by
+    have hp : W.layout.PowOk := layout_gpow _ _
+    have hlt : W.ent fs[j] < u128Bound := by
+      have := World.ent_lt hW fs[j]
+      unfold u128Bound
+      omega
+    simp only [SlotWord]
+    exact congrArg some (Layout.immediateWord_pow hp hlt)
+  exact hAg σ' Ψ kh κ L hA _ _ _ hs hw
+
+end Tabs
+
 end
 end LeanVM.Guest.Backend.Complete
