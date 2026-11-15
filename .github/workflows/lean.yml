@@ -251,8 +251,8 @@ jobs:
           name: lean-da-axioms
           path: ${{ runner.temp }}/axioms.txt
 
-  # The quantum random-permutation model, on VCVio's quantum oracle programs: it imports neither the
-  # statement nor the other projects.
+  # The quantum random-permutation model, on VCVio's quantum oracle programs and the statement's
+  # scheme definitions; it imports no other proof project.
   quantum-formalization:
     runs-on: ubuntu-latest
     steps:
@@ -269,8 +269,9 @@ jobs:
           path: |
             formal/quantum/.lake
             !formal/quantum/.lake/packages/mathlib/.lake
-          key: lake-quantum-${{ runner.os }}-${{ hashFiles('formal/quantum/lean-toolchain', 'formal/quantum/lake-manifest.json', 'formal/quantum/lakefile.toml') }}-${{ hashFiles('formal/quantum/**/*.lean') }}
-          restore-keys: lake-quantum-${{ runner.os }}-${{ hashFiles('formal/quantum/lean-toolchain', 'formal/quantum/lake-manifest.json', 'formal/quantum/lakefile.toml') }}-
+            formal/Statement/.lake/build
+          key: lake-quantum-${{ runner.os }}-${{ hashFiles('formal/quantum/lean-toolchain', 'formal/quantum/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/quantum/**/*.lean', 'formal/Statement/**/*.lean') }}
+          restore-keys: lake-quantum-${{ runner.os }}-${{ hashFiles('formal/quantum/lean-toolchain', 'formal/quantum/lake-manifest.json', 'formal/*/lakefile.*') }}-
       # Builds the default target, whose root module checks the main theorems' axioms with
       # `#guard_msgs`.
       - uses: leanprover/lean-action@v1

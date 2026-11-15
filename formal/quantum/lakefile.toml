@@ -8,6 +8,17 @@ autoImplicit = false
 relaxedAutoImplicit = false
 pp.unicode.fun = true
 
+# The statement (`Statement/`): the schemes' definitions the quantum security proofs are about.
+[[require]]
+name = "statement"
+path = "../Statement"
+
+# Pinned as the statement pins it, ahead of VCVio's inherited one.
+[[require]]
+name = "CompPoly"
+git = "https://github.com/Verified-zkEVM/CompPoly"
+rev = "e28da34817c3775cfb935376acf5d416f555d64f"
+
 [[require]]
 name = "mathlib"
 scope = "leanprover-community"
