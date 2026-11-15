@@ -1,4 +1,5 @@
 import LeanVM.Guest.Executor
+import LeanVM.Guest.Bytecode
 import LeanVM.Cli.GuestCase
 import Statement.Prover.Prove
 import LeanVM.Prover.Fast.Prover
@@ -11,6 +12,8 @@ import LeanVM.Facts.Verifier
 `guest_diff` (`scripts/guest-export`, format `leanvm-guest-diff 4`: a real aggregation's seed,
 statement and witness) and, from the statement and the witness alone,
 
+* checks that the case's seed is the deployed one (`deployedSeed guestProgram`, evaluated as
+  `guestArray`), the seed the end theorem's prover runs at;
 * runs the guest (`LeanVM.Guest.guestExecution`: the honest streams, the compiler's hints, the
   statement's executor);
 * with `--rust DIR`, compares the execution with the Rust interpreter's, `DIR/<case>/memory.bin`
@@ -60,6 +63,10 @@ def main (args : List String) : IO UInt32 := do
   let mut ok := true
   for path in cases do
     let c ← readCase path
+    if c.seed != deployedSeed guestArray then
+      IO.println s!"{c.name}: FAIL: the seed is not deployedSeed guestProgram"
+      ok := false
+      continue
     let digest := statementDigest c.seed c.statement
     let (r, time) ← timed fun _ => guestExecution c.seed c.statement c.witness
     match r with
