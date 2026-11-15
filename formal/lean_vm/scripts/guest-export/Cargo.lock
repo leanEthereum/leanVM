@@ -74,7 +74,6 @@ dependencies = [
  "lean_sphincs",
  "lean_xmss",
  "rand",
- "stable_keccak_gkr",
  "stable_lean_vm_core",
  "stable_parallel",
  "stable_pcs",
@@ -307,6 +306,5 @@ version = "0.1.0"
 dependencies = [
  "isa",
  "keccak256",
- "stable_primitives",
  "verifier",
 ]
