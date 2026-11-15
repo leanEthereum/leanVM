@@ -10,11 +10,23 @@ module
 public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P18».Mode0
 public import LeanVM.Guest.Pack.«P18».Mode1
-public import LeanVM.Guest.Pack.«P18».Mode2
-public import LeanVM.Guest.Pack.«P18».Mode3
-public import LeanVM.Guest.Pack.«P18».ModeD0
 
 set_option Elab.async false
+
+namespace LeanVM.Guest.Fn.«rs_eq_run_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `__loop5`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 81) (d := Data.adviceFn81) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«rs_eq_run_loop0»
 
 namespace LeanVM.Guest.Fn.«sel_partial_nibble__L0»
 
@@ -345,18 +357,3 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L4_L10_L20_L5_L1_loop0»
-
-namespace LeanVM.Guest.Fn.«rs_eq_run_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop5`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 81) (d := Data.adviceFn81) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«rs_eq_run_loop0»

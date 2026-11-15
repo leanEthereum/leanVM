@@ -17,10 +17,10 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `verify_sig_lean_sphincs`: its walk from offset 600 goes through to its cut at 1200. -/
+/-- `verify_sig_lean_sphincs`: its walk from offset 2717 goes through to its end. -/
 theorem modeW1 :
-    (Mode.runCode modeEnv modeFun (Mode.winCode code.chunks 600 1200) 600 (Mode.cutOf modeFun
-    600).1 (Mode.cutOf modeFun 600).2).isSome = true := by
+    Mode.runRest modeEnv modeFun (Mode.codeAt code.chunks 2717) 2717 (Mode.cutOf modeFun 2717) =
+    true := by
   decide +kernel
 
 end

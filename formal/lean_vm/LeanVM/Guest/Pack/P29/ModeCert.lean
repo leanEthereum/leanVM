@@ -10,9 +10,7 @@ module
 public import LeanVM.Guest.Mode.CertDefs
 public import LeanVM.Guest.Pack.«P29».Mode0
 public import LeanVM.Guest.Pack.«P29».Mode1
-public import LeanVM.Guest.Pack.«P29».Mode2
 public import LeanVM.Guest.Pack.«P29».ModeH
-public import LeanVM.Guest.Pack.«P29».ModeX
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
@@ -540,9 +538,9 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     (Mode.fa_nil)))))))))))))))))))))
 
 /-- The certificates' walks and hints. -/
-theorem certs_walk («claim_list_digest» : Mode.WalkHyp Fn.«claim_list_digest».modeCert) :
+theorem certs_walk :
     ∀ K ∈ certs, Mode.CertWalk K :=
-  Mode.fa_cons (⟨«claim_list_digest», Fn.«claim_list_digest».modeHintsOk⟩)
+  Mode.fa_cons (⟨Fn.«claim_list_digest».modeOk, Fn.«claim_list_digest».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«main_loop4».modeOk, Fn.«main_loop4».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«eq_prefix_run__L25».modeOk, Fn.«eq_prefix_run__L25».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«block_selector__L7».modeOk, Fn.«block_selector__L7».modeHintsOk⟩)

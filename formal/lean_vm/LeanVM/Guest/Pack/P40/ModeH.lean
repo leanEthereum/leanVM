@@ -12,8 +12,6 @@ public import LeanVM.Guest.Pack.«P40».Mode0
 public import LeanVM.Guest.Pack.«P40».Mode1
 public import LeanVM.Guest.Pack.«P40».Mode2
 public import LeanVM.Guest.Pack.«P40».Mode3
-public import LeanVM.Guest.Pack.«P40».Mode4
-public import LeanVM.Guest.Pack.«P40».ModeD0
 
 set_option Elab.async false
 
@@ -121,6 +119,21 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«claim_list_last__L9»
+
+namespace LeanVM.Guest.Fn.«da_verify_loop1»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `__loop22`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 405) (d := Data.adviceFn405) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«da_verify_loop1»
 
 namespace LeanVM.Guest.Fn.«grind_check__L26»
 
@@ -406,18 +419,3 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«walk_path__L12_L8»
-
-namespace LeanVM.Guest.Fn.«da_verify_loop1»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop22`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 405) (d := Data.adviceFn405) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«da_verify_loop1»

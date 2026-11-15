@@ -11,8 +11,6 @@ public import LeanVM.Guest.Mode.CertDefs
 public import LeanVM.Guest.Pack.«P23».Mode0
 public import LeanVM.Guest.Pack.«P23».Mode1
 public import LeanVM.Guest.Pack.«P23».ModeH
-public import LeanVM.Guest.Pack.«P23».ModeL0
-public import LeanVM.Guest.Pack.«P23».ModeL1
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false

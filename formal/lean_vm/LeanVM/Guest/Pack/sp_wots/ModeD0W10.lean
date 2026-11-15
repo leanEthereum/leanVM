@@ -17,9 +17,9 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `sp_wots`: its walk from offset 22473 goes through to its end. -/
+/-- `sp_wots`: its walk from offset 22469 goes through to its end. -/
 theorem modeW10 :
-    Mode.runRest modeEnv modeFun (Mode.codeAt code.chunks 22473) 22473 (Mode.cutOf modeFun 22473) =
+    Mode.runRest modeEnv modeFun (Mode.codeAt code.chunks 22469) 22469 (Mode.cutOf modeFun 22469) =
     true := by
   decide +kernel
 

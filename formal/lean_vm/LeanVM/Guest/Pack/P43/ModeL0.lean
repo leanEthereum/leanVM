@@ -53,8 +53,6 @@ public import LeanVM.Guest.Pack.«P43».ModeD0W42
 public import LeanVM.Guest.Pack.«P43».ModeD0W43
 public import LeanVM.Guest.Pack.«P43».ModeD0W44
 public import LeanVM.Guest.Pack.«P43».ModeD0W45
-public import LeanVM.Guest.Pack.«P43».ModeD0W46
-public import LeanVM.Guest.Pack.«P43».ModeD0W47
 
 namespace LeanVM.Guest.Fn.«main_loop2»
 
@@ -64,11 +62,11 @@ public section
 
 /-- `__loop2`: its mode walk accepts its code, window by window. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=
-  Mode.walk_of_wins (n := 114219) (by decide +kernel) (List.flatten [[2910, 5724, 8539, 11354,
-    14169, 16984, 19799, 22609, 25424, 28239, 31054, 33869, 36684, 39499, 41355, 44327], [47302,
-    50302, 53289, 56264, 59264, 61470, 63575, 64956, 67126, 69204, 70586, 72729, 74767, 76215,
-    78330, 80331], [81838, 83924, 85891, 87468, 89524, 91463, 93098, 95137, 97037, 98728, 100167,
-    103133, 106108, 109083, 112081]])
+  Mode.walk_of_wins (n := 114219) (by decide +kernel) (List.flatten [[2671, 5338, 8006, 10674,
+    13345, 16015, 18681, 21344, 24009, 25424, 28098, 30767, 33437, 36103, 38770, 41349], [44012,
+    46672, 49332, 51994, 54654, 57314, 59280, 61903, 64524, 67142, 69762, 72376, 74989, 77603,
+    79029, 81646], [84267, 86887, 89507, 92129, 94750, 97367, 98728, 100575, 103168, 105758,
+    108348, 110965, 113575]])
     ⟨by decide, by decide, by decide +kernel, modeW0,
     ⟨by decide, by decide, by decide +kernel, modeW1,
     ⟨by decide, by decide, by decide +kernel, modeW2,
@@ -114,9 +112,7 @@ theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=
     ⟨by decide, by decide, by decide +kernel, modeW42,
     ⟨by decide, by decide, by decide +kernel, modeW43,
     ⟨by decide, by decide, by decide +kernel, modeW44,
-    ⟨by decide, by decide, by decide +kernel, modeW45,
-    ⟨by decide, by decide, by decide +kernel, modeW46,
-    modeW47⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
+    modeW45⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
 
 end
 

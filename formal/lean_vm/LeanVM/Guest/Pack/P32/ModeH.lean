@@ -10,10 +10,23 @@ module
 public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P32».Mode0
 public import LeanVM.Guest.Pack.«P32».Mode1
-public import LeanVM.Guest.Pack.«P32».Mode2
-public import LeanVM.Guest.Pack.«P32».ModeD0
 
 set_option Elab.async false
+
+namespace LeanVM.Guest.Fn.«selector_tables»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `selector_tables`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 17) (d := Data.adviceFn17) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«selector_tables»
 
 namespace LeanVM.Guest.Fn.«block_selector__L31»
 
@@ -314,18 +327,3 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0»
-
-namespace LeanVM.Guest.Fn.«selector_tables»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `selector_tables`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 17) (d := Data.adviceFn17) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«selector_tables»

@@ -10,10 +10,7 @@ module
 public import LeanVM.Guest.Mode.CertDefs
 public import LeanVM.Guest.Pack.«P34».Mode0
 public import LeanVM.Guest.Pack.«P34».Mode1
-public import LeanVM.Guest.Pack.«P34».Mode2
-public import LeanVM.Guest.Pack.«P34».Mode3
 public import LeanVM.Guest.Pack.«P34».ModeH
-public import LeanVM.Guest.Pack.«P34».ModeL0
 public import LeanVM.Guest.Pack.«P34».ModeX
 meta import LeanVM.Guest.KernelLit
 

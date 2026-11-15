@@ -12,8 +12,6 @@ public import LeanVM.Guest.Pack.«P61».Mode0
 public import LeanVM.Guest.Pack.«P61».Mode1
 public import LeanVM.Guest.Pack.«P61».Mode2
 public import LeanVM.Guest.Pack.«P61».Mode3
-public import LeanVM.Guest.Pack.«P61».Mode4
-public import LeanVM.Guest.Pack.«P61».Mode5
 public import LeanVM.Guest.Pack.«P61».ModeH
 meta import LeanVM.Guest.KernelLit
 

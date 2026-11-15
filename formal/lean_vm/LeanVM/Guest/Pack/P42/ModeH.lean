@@ -13,7 +13,7 @@ public import LeanVM.Guest.Pack.«P42».Mode1
 public import LeanVM.Guest.Pack.«P42».Mode2
 public import LeanVM.Guest.Pack.«P42».Mode3
 public import LeanVM.Guest.Pack.«P42».Mode4
-public import LeanVM.Guest.Pack.«P42».ModeX
+public import LeanVM.Guest.Pack.«P42».ModeD0
 
 set_option Elab.async false
 
@@ -31,6 +31,21 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«list_split»
+
+namespace LeanVM.Guest.Fn.«da_column_offsets»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `da_column_offsets`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 33) (d := Data.adviceFn33) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«da_column_offsets»
 
 namespace LeanVM.Guest.Fn.«padding_weight__L5»
 
@@ -76,6 +91,21 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«index_mle__L31»
+
+namespace LeanVM.Guest.Fn.«child_claim_list_mono_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `__loop19`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 385) (d := Data.adviceFn385) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«child_claim_list_mono_loop0»
 
 namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L0»
 
@@ -511,33 +541,3 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«exponent_tables»
-
-namespace LeanVM.Guest.Fn.«da_column_offsets»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `da_column_offsets`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 33) (d := Data.adviceFn33) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«da_column_offsets»
-
-namespace LeanVM.Guest.Fn.«child_claim_list_mono_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop19`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 385) (d := Data.adviceFn385) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«child_claim_list_mono_loop0»

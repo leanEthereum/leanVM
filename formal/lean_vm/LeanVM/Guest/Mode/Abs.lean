@@ -1,6 +1,7 @@
 module
 
 public import LeanVM.Guest.ExecCore
+public import LeanVM.Guest.Mode.Bucket
 public import Statement.Prover.Execute
 
 /-!
@@ -31,7 +32,9 @@ pending edges of a jump go in groups by their targets (`Grp`), a group of three 
 once, so a table jump's arms share one state; the fall-through of a `JUMP` on a sum learns its two
 terms equal (`Abs.learn0`). At a cut (`Fun.cuts`) the walk goes on from given weaker paths and
 pending edges (`cutAt`), so a long function is checked in windows (`Mode/Win.lean`). The states are
-evaluated as they are built (`Abs.force`, `foldlA`), for the kernel. Their meaning is
+evaluated as they are built (`Abs.force`, `foldlA`), for the kernel, and a list is searched for a fact
+by key (`buckets`, `Mode/Bucket.lean`: products, runs by their products' bases, inequalities by their
+exponents' bases), each such search deciding what a scan of the whole list would. Their meaning is
 `Mode/Sem.lean`, their soundness `Mode/Sound*.lean`.
 
 Everything here is structural recursion over `ℕ`, lists and tries, for the kernel.
@@ -196,6 +199,12 @@ structure Rng where
 def Rng.beq (a b : Rng) : Bool :=
   a.q.beq b.q && a.lo.beq b.lo && a.hi.beq b.hi && a.S == b.S && a.d == b.d
 
+/-- A product's key, for lists of facts by key (`buckets`): equal products have equal keys. -/
+def monoKey (m : Mono) : ℕ := (m.k + m.fp) % 4096
+
+/-- A run's key: runs of one product, stride and offset have equal keys. -/
+def rngKey (r : Rng) : ℕ := (r.d + r.q.k) % 4096
+
 /-- Facts that hold when base `x`'s exponent is `j`: heap cells written, runs, runs of pointers,
 exponents in order, heap words. -/
 structure Cnd where
@@ -235,11 +244,13 @@ structure Abs where
   /-- Facts under a condition on a base's exponent (a table call's arms). -/
   c : List Cnd
 
-/-- `k A`, `A` and its tries evaluated first. -/
+/-- `k A`, `A`, its tries and its lists evaluated first. -/
 def Abs.force {β : Type} (A : Abs) (k : Abs → β) : β :=
   match A with
   | ⟨w, v, nz, hv, h, r, lt, pr, xs, p, c⟩ =>
-    w.seq fun w ↦ v.seq fun v ↦ nz.seq fun nz ↦ xs.seq fun xs ↦ k ⟨w, v, nz, hv, h, r, lt, pr, xs, p, c⟩
+    w.seq fun w ↦ v.seq fun v ↦ nz.seq fun nz ↦ xs.seq fun xs ↦ lseq hv fun hv ↦ lseq h fun h ↦
+      lseq r fun r ↦ lseq lt fun lt ↦ lseq pr fun pr ↦ lseq p fun p ↦ lseq c fun c ↦
+        k ⟨w, v, nz, hv, h, r, lt, pr, xs, p, c⟩
 
 /-- `l.foldl f A`, each state evaluated before the next step. -/
 noncomputable def foldlA {α : Type} (f : Abs → α → Abs) (A : Abs) (l : List α) : Abs :=
@@ -286,35 +297,65 @@ def Abs.mono (A : Abs) (o : ℕ) : Option Mono :=
 def Abs.hvGet (A : Abs) (k : Mono) : Option Val :=
   match k.ownCell with
   | some d => if A.hasW d then some ((A.v.get d).getD (.m (.root d))) else none
-  | none => (A.hv.find? fun p ↦ p.1.beq k).map (·.2)
+  | none => ((((buckets (monoKey ·.1) A.hv).get (monoKey k)).getD []).find? fun p ↦ p.1.beq k).map (·.2)
 
 /-- The heap cell `k` holds `x` (recorded unless known). -/
 noncomputable def Abs.addHv (A : Abs) (k : Mono) (x : Val) : Abs :=
   match k.ownCell with
   | some d => A.addV d x
-  | none => if A.hv.any (fun p ↦ p.1.beq k) then A else { A with hv := (k, x) :: A.hv }
+  | none => if anyB (buckets (monoKey ·.1) A.hv) (fun p ↦ p.1.beq k) (monoKey k) then A
+    else { A with hv := (k, x) :: A.hv }
 
 /-- The heap cell `k` written. -/
 noncomputable def Abs.addH (A : Abs) (k : Mono) : Abs :=
   match k.ownCell with
   | some d => A.addW d
-  | none => if A.h.any (·.beq k) then A else { A with h := k :: A.h }
+  | none => if anyB (buckets monoKey A.h) (·.beq k) (monoKey k) then A else { A with h := k :: A.h }
 
 /-- Exponents in order. -/
 def Abs.addLt (A : Abs) (a b : Idx) : Abs := { A with lt := (a, b) :: A.lt }
 
+/-- A base's key. -/
+def baseKey : Base → ℕ
+  | .fr o => 2 * o + 1
+  | .hp q d => 2 * (64 * q + d) + 2
+
+/-- An exponent's key, its base's: inequalities are filed by the exponents a comparison reads them
+through (`Idx.off`, `Idx.sle`), which share their base. -/
+def idxKey : Idx → ℕ
+  | .num _ => 0
+  | .ex x _ => 1 + baseKey x % 4095
+
+/-- An exponent's kind: a constant, a base's exponent, or one plus a positive constant. -/
+def idxKind : Idx → ℕ
+  | .num _ => 0
+  | .ex _ 0 => 1
+  | .ex _ _ => 2
+
 /-- `a ≤ b`, directly, or through a known `p < q` with `b = q + t` and `a ≤ p + 1 + t`. -/
 def Abs.le (A : Abs) (a b : Idx) : Bool :=
-  a.sle b || A.lt.any fun p ↦ match p.2.off b with
-    | some t => a.sle (p.1.succ.shift t)
-    | none => false
+  a.sle b || match b with
+    | .num n => A.lt.any fun p ↦ match p.2.off (.num n) with
+        | some t => a.sle (p.1.succ.shift t)
+        | none => false
+    | .ex x c => anyB (buckets (idxKey ·.2) A.lt) (fun p ↦ match p.2.off (.ex x c) with
+        | some t => a.sle (p.1.succ.shift t)
+        | none => false) (idxKey (.ex x c))
 
 /-- `a < b`, directly, or through a known `p < q` with `a = p + t` and `q + t ≤ b`, or with
 `a + 1 ≤ p` and `q ≤ b + 1`. -/
 def Abs.ltI (A : Abs) (a b : Idx) : Bool :=
-  a.succ.sle b || A.lt.any fun p ↦ (match p.1.off a with
-    | some t => (p.2.shift t).sle b
-    | none => false) || (a.succ.sle p.1 && p.2.sle b.succ)
+  a.succ.sle b || match a, b with
+    | .ex y e, b => anyB (buckets (idxKey ·.1) A.lt) (fun p ↦ (match p.1.off (.ex y e) with
+        | some t => (p.2.shift t).sle b
+        | none => false) || ((Idx.ex y e).succ.sle p.1 && p.2.sle b.succ)) (idxKey (.ex y e))
+    | .num n, b =>
+      anyB (buckets (idxKind ·.1) A.lt) (fun p ↦ (match p.1.off (.num n) with
+        | some t => (p.2.shift t).sle b
+        | none => false) || ((Idx.num n).succ.sle p.1 && p.2.sle b.succ)) 0 ||
+      anyB (buckets (idxKind ·.1) A.lt) (fun p ↦ (match p.1.off (.num n) with
+        | some t => (p.2.shift t).sle b
+        | none => false) || ((Idx.num n).succ.sle p.1 && p.2.sle b.succ)) 2
 
 /-- The exponent `k` names in run `r`, when `k = r.q · x^S · g^(S·c + d)` (`x + c`) or
 `k = r.q · g^(S·c + d)` (`c`). -/
@@ -341,8 +382,21 @@ def Abs.inRng (A : Abs) (k : Mono) (r : Rng) : Bool :=
     | none => false
   at1 r || (0 < r.S && r.S ≤ r.d && at1 r.down)
 
+/-- A product's bases' key, with its power of the frame pointer. -/
+def bsKey (fp : ℕ) (bs : List (Base × ℕ)) : ℕ := bs.foldl (fun a p ↦ (33 * a + baseKey p.1 + 5 * p.2) % 4096) fp % 4096
+
+/-- A run's key, its product's bases'. -/
+def rngQKey (r : Rng) : ℕ := bsKey r.q.fp r.q.bs
+
+/-- A known run holds the heap cell `k`: only a run whose product has `k`'s bases, or all but one of
+them, can (`Rng.idxOf`), so only those are tried. -/
+def Abs.inRuns (A : Abs) (k : Mono) : Bool :=
+  anyB (buckets rngQKey A.r) (A.inRng k) (bsKey k.fp k.bs) ||
+  k.bs.any fun e ↦ anyB (buckets rngQKey A.r) (A.inRng k) (bsKey k.fp (k.bs.filter fun p ↦ !p.1.beq e.1))
+
 /-- The heap cell `k` is a known one or in a known run. -/
-def Abs.coveredHR (A : Abs) (k : Mono) : Bool := A.h.any (·.beq k) || A.r.any (A.inRng k)
+def Abs.coveredHR (A : Abs) (k : Mono) : Bool :=
+  anyB (buckets monoKey A.h) (·.beq k) (monoKey k) || A.inRuns k
 
 /-- Every base of `m` has a word, by the written frame cells and `coveredHR` alone. -/
 def Abs.knownH (A : Abs) (m : Mono) : Bool :=
@@ -360,7 +414,7 @@ and `q` a constant. -/
 def Abs.bound (A : Abs) (hi : Idx) : Option ℕ :=
   match hi with
   | .num n => some n
-  | .ex _ _ => A.lt.foldl (fun acc p ↦ match p.2, p.1.off hi with
+  | .ex _ _ => (((buckets (idxKey ·.1) A.lt).get (idxKey hi)).getD []).foldl (fun acc p ↦ match p.2, p.1.off hi with
       | .num q, some t => minO acc (q + t - 1)
       | _, _ => acc) none
 
@@ -381,9 +435,11 @@ def Abs.entP (A : Abs) (r : Rng) : Bool :=
 
 /-- The exponent of base `b`, when known exactly (the least such, if several). -/
 def Abs.pin (A : Abs) (b : Base) : Option ℕ :=
-  A.lt.foldl (fun acc p ↦ match p with
+  (((buckets (idxKey ·.1) A.lt).get (idxKey (.ex b 0))).getD []).foldl (fun acc p ↦ match p with
     | (.ex b' 0, .num q) =>
-      if b'.beq b && 0 < q && A.lt.any (fun p' ↦ p'.1.beq (.num (q - 1)) && p'.2.beq (.ex b 1)) then
+      if b'.beq b && 0 < q &&
+          anyB (buckets (idxKey ·.2) A.lt) (fun p' ↦ p'.1.beq (.num (q - 1)) && p'.2.beq (.ex b 1))
+            (idxKey (.ex b 1)) then
         minO acc (q - 1)
       else acc
     | _ => acc) none
@@ -425,8 +481,11 @@ def Idx.base? : Idx → Option Base
 def Abs.hasIdx (A : Abs) (i : Idx) : Bool :=
   match i with
   | .num _ => true
-  | .ex b _ => A.lt.any fun p ↦ (match p.1.base? with | some x => x.beq b | none => false) ||
-      (match p.2.base? with | some x => x.beq b | none => false)
+  | .ex b _ =>
+    anyB (buckets (idxKey ·.1) A.lt) (fun p ↦ match p.1.base? with | some x => x.beq b | none => false)
+      (idxKey i) ||
+    anyB (buckets (idxKey ·.2) A.lt) (fun p ↦ match p.2.base? with | some x => x.beq b | none => false)
+      (idxKey i)
 
 /-- A base whose word is known to exist: a written frame cell, or a cell past a written pointer
 cell that the walk knows written. -/
@@ -440,8 +499,9 @@ def Abs.known (A : Abs) (m : Mono) : Bool := m.bs.all fun p ↦ A.knownB p.1
 /-- Every cell of run `r` is known written: it is a known run, a known run holds it, or each of its
 (at most `2^12`) points, from a constant to a known bound, is known written. -/
 def Abs.coveredR (A : Abs) (r : Rng) : Bool :=
-  A.r.any (·.beq r) || A.r.any (fun r' ↦ r'.q.beq r.q && r'.S == r.S && r'.d == r.d && A.le r'.lo r.lo &&
-    A.le r.hi r'.hi && A.hasIdx r.lo && A.hasIdx r.hi) ||
+  anyB (buckets rngKey A.r) (·.beq r) (rngKey r) ||
+  anyB (buckets rngKey A.r) (fun r' ↦ r'.q.beq r.q && r'.S == r.S && r'.d == r.d && A.le r'.lo r.lo &&
+    A.le r.hi r'.hi && A.hasIdx r.lo && A.hasIdx r.hi) (rngKey r) ||
   match r.lo, A.bound r.hi with
   | .num a, some b => decide (b - a ≤ 4096) && A.known r.q &&
       (List.range (b - a)).all fun j ↦ A.covered (r.q.shift (r.S * (a + j) + r.d))
@@ -468,8 +528,8 @@ def Abs.ptrIn (A : Abs) (k : Mono) (os : List ℕ) : Bool :=
 of pointers holds it, or it is one point, or each of its (at most `2^12`) points, from a constant to a
 known bound, is known. -/
 def Abs.coveredP (A : Abs) (r : Rng) (os : List ℕ) : Bool :=
-  A.p.any (fun q ↦ q.1.q.beq r.q && q.1.S == r.S && q.1.d == r.d && A.le q.1.lo r.lo &&
-    A.le r.hi q.1.hi && A.hasIdx r.lo && A.hasIdx r.hi && os.all (q.2.contains ·)) ||
+  anyB (buckets (rngKey ·.1) A.p) (fun q ↦ q.1.q.beq r.q && q.1.S == r.S && q.1.d == r.d && A.le q.1.lo r.lo &&
+    A.le r.hi q.1.hi && A.hasIdx r.lo && A.hasIdx r.hi && os.all (q.2.contains ·)) (rngKey r) ||
   (r.hi.beq r.lo.succ && A.hasIdx r.lo && A.ptrIn r.first os) ||
   match r.lo, A.bound r.hi with
   | .num a, some b => decide (b - a ≤ 4096) && A.known r.q &&
@@ -492,13 +552,23 @@ def interT {α : Type} (eq : α → α → Bool) (a b : List α) : List α :=
   let t := agree eq a.reverse b.reverse
   interL eq (a.take (a.length - t)) b ++ a.drop (a.length - t)
 
+/-- `interL`, `b` scanned by key: equal elements have equal keys. -/
+def interLK {α : Type} (key : α → ℕ) (eq : α → α → Bool) (a b : List α) : List α :=
+  a.filter fun x ↦ anyB (buckets key b) (eq x) (key x)
+
+/-- `interT`, `b` scanned by key. -/
+def interTK {α : Type} (key : α → ℕ) (eq : α → α → Bool) (a b : List α) : List α :=
+  let t := agree eq a.reverse b.reverse
+  interLK key eq (a.take (a.length - t)) b ++ a.drop (a.length - t)
+
 /-- Runs both states know: those both hold, their common tail kept whole, and those one holds and the
 other entails (`entR`). -/
 def interR (A B : Abs) : List Rng :=
   let t := agree Rng.beq A.r.reverse B.r.reverse
-  (A.r.take (A.r.length - t)).filter (fun r ↦ B.r.any (Rng.beq r) || B.entR r) ++
+  (A.r.take (A.r.length - t)).filter (fun r ↦ anyB (buckets rngKey B.r) (Rng.beq r) (rngKey r) || B.entR r) ++
     A.r.drop (A.r.length - t) ++
-    (B.r.take (B.r.length - t)).filter (fun r ↦ !(A.r.any (Rng.beq r)) && A.entR r)
+    (B.r.take (B.r.length - t)).filter (fun r ↦
+      !(anyB (buckets rngKey A.r) (Rng.beq r) (rngKey r)) && A.entR r)
 
 /-- Equality of pairs of exponents, as a `Bool`. -/
 def ltBeq (p q : Idx × Idx) : Bool := p.1.beq q.1 && p.2.beq q.2
@@ -513,9 +583,11 @@ def ptrBeq (p q : Rng × List ℕ) : Bool := p.1.beq q.1 && p.2 == q.2
 holds and the other entails (`entP`). -/
 def interP (A B : Abs) : List (Rng × List ℕ) :=
   let t := agree ptrBeq A.p.reverse B.p.reverse
-  (A.p.take (A.p.length - t)).filter (fun q ↦ B.p.any (ptrBeq q) || B.entP q.1) ++
+  (A.p.take (A.p.length - t)).filter (fun q ↦
+    anyB (buckets (rngKey ·.1) B.p) (ptrBeq q) (rngKey q.1) || B.entP q.1) ++
     A.p.drop (A.p.length - t) ++
-    (B.p.take (B.p.length - t)).filter (fun q ↦ !(A.p.any (ptrBeq q)) && A.entP q.1)
+    (B.p.take (B.p.length - t)).filter (fun q ↦
+      !(anyB (buckets (rngKey ·.1) A.p) (ptrBeq q) (rngKey q.1)) && A.entP q.1)
 
 /-- The conditional facts both lists hold, under the same condition. -/
 def interC (a b : List Cnd) : List Cnd :=
@@ -530,7 +602,7 @@ def interC (a b : List Cnd) : List Cnd :=
 noncomputable def Abs.inter (A B : Abs) : Abs :=
   ⟨Trie.inter (fun _ _ ↦ true) A.w B.w, Trie.inter Val.beq A.v B.v,
     Trie.inter (fun _ _ ↦ true) A.nz B.nz,
-    interT hvBeq A.hv B.hv, interT Mono.beq A.h B.h,
+    interTK (monoKey ·.1) hvBeq A.hv B.hv, interTK monoKey Mono.beq A.h B.h,
     interR A B, interT ltBeq A.lt B.lt, [],
     Trie.inter (fun p q ↦ p.1 == q.1 && p.2 == q.2) A.xs B.xs,
     interP A B, interC A.c B.c⟩
@@ -551,11 +623,12 @@ def Cnd.sub (S A : Cnd) : Bool :=
 /-- Every fact of `S` is one of `A`'s. -/
 noncomputable def Abs.sub (S A : Abs) : Bool :=
   Trie.sub (fun _ _ ↦ true) S.w A.w && Trie.sub Val.beq S.v A.v && Trie.sub (fun _ _ ↦ true) S.nz A.nz &&
-  S.hv.all (fun p ↦ A.hv.any fun q ↦ p.1.beq q.1 && p.2.beq q.2) && S.h.all (fun k ↦ A.h.any (·.beq k)) &&
-  S.r.all (fun r ↦ A.r.any (·.beq r)) && S.lt.all (fun p ↦ A.lt.any fun q ↦ p.1.beq q.1 && p.2.beq q.2) &&
+  S.hv.all (fun p ↦ anyB (buckets (monoKey ·.1) A.hv) (fun q ↦ p.1.beq q.1 && p.2.beq q.2) (monoKey p.1)) &&
+  S.h.all (fun k ↦ anyB (buckets monoKey A.h) (·.beq k) (monoKey k)) &&
+  S.r.all (fun r ↦ anyB (buckets rngKey A.r) (·.beq r) (rngKey r)) && S.lt.all (fun p ↦ A.lt.any fun q ↦ p.1.beq q.1 && p.2.beq q.2) &&
   S.pr.all (fun p ↦ A.pr.any fun q ↦ p.1 == q.1 && p.2.1 == q.2.1 && p.2.2 == q.2.2) &&
   Trie.sub (fun p q ↦ p.1 == q.1 && p.2 == q.2) S.xs A.xs &&
-  S.p.all (fun p ↦ A.p.any fun q ↦ p.1.beq q.1 && p.2 == q.2) &&
+  S.p.all (fun p ↦ anyB (buckets (rngKey ·.1) A.p) (fun q ↦ p.1.beq q.1 && p.2 == q.2) (rngKey p.1)) &&
   S.c.all (fun c ↦ A.c.any c.sub)
 
 /-- Pending edges into later offsets: each target of `ts` (increasing) is entered by every state of
@@ -1127,7 +1200,7 @@ def Abs.assume (A : Abs) : Option Base → ℕ → Abs
         r := c.r ++ A.r
         p := c.p ++ A.p
         lt := c.lt ++ A.lt
-        hv := A.hv ++ c.hv.filter (fun p ↦ !(A.hv.any fun q ↦ q.1.beq p.1)) }
+        hv := A.hv ++ c.hv.filter (fun p ↦ !(anyB (buckets (monoKey ·.1) A.hv) (fun q ↦ q.1.beq p.1) (monoKey p.1))) }
     | none => A
 
 /-- Two or more arms met in `M`: each heap word of the first arm `M` lost, a pointer on every arm, as a
@@ -1135,7 +1208,7 @@ run of one pointer with the cells below 64 past it every arm knows written (a ca
 different words). -/
 noncomputable def armPtrs (M : Abs) : List Abs → List (Rng × List ℕ)
   | B :: X :: Xs => B.hv.filterMap fun p ↦
-      if M.hv.any (hvBeq p) then none else
+      if anyB (buckets (monoKey ·.1) M.hv) (hvBeq p) (monoKey p.1) then none else
       let os := (List.range 64).filter fun t ↦ (B :: X :: Xs).all fun Y ↦ Y.ptrAt p.1 [t]
       if os.isEmpty then none else some (⟨p.1, .num 0, .num 1, 1, 0⟩, os)
   | _ => []
@@ -1160,9 +1233,11 @@ noncomputable def armRuns (x : Base) (Bs : List Abs) : List Rng :=
 
 /-- The facts of `X` not in `B`, under base `x`'s exponent `j`, if any. -/
 def condDiff (B X : Abs) (x : Base) (j : ℕ) : Option Cnd :=
-  let d : Cnd := ⟨x, j, X.h.filter (fun k ↦ !(B.h.any (Mono.beq k))), X.r.filter (fun r ↦ !(B.r.any (Rng.beq r))),
-    X.p.filter (fun p ↦ !(B.p.any (ptrBeq p))), X.lt.filter (fun p ↦ !(B.lt.any (ltBeq p))),
-    X.hv.filter (fun p ↦ !(B.hv.any (hvBeq p)))⟩
+  let d : Cnd := ⟨x, j, X.h.filter (fun k ↦ !(anyB (buckets monoKey B.h) (Mono.beq k) (monoKey k))),
+    X.r.filter (fun r ↦ !(anyB (buckets rngKey B.r) (Rng.beq r) (rngKey r))),
+    X.p.filter (fun p ↦ !(anyB (buckets (rngKey ·.1) B.p) (ptrBeq p) (rngKey p.1))),
+    X.lt.filter (fun p ↦ !(B.lt.any (ltBeq p))),
+    X.hv.filter (fun p ↦ !(anyB (buckets (monoKey ·.1) B.hv) (hvBeq p) (monoKey p.1)))⟩
   if d.h.isEmpty && d.r.isEmpty && d.p.isEmpty && d.lt.isEmpty && d.hv.isEmpty then none else some d
 
 /-- What the caller knows after one of a call's arms returns, each arm's state given: what all know,

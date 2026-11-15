@@ -32,9 +32,6 @@ public section
 /-- **The walks and hints the kernel does not check**, one per function: a walk failing or too
     costly to check (`WalkHyp`), hints too costly to check in one piece (`HintsHyp`). -/
 structure ModeHyps : Prop where
-  «__loop15» : WalkHyp Fn.«claim_list_digest_loop0».modeCert
-  «__loop17» : WalkHyp Fn.«child_claim_list_any_loop0».modeCert
-  «__loop19» : WalkHyp Fn.«child_claim_list_mono_loop0».modeCert
   «__loop23» : WalkHyp Fn.«da_verify_loop2».modeCert
   «__loop25» : WalkHyp Fn.«da_verify_column_loop0».modeCert
   «__loop37» : WalkHyp Fn.«keccak_layer__L1_loop0».modeCert
@@ -43,10 +40,7 @@ structure ModeHyps : Prop where
   «__loop40» : WalkHyp Fn.«keccak_layer__L0_loop1».modeCert
   «__loop6» : WalkHyp Fn.«verify_bus_gkr_loop0».modeCert
   «check_opening_terminal» : WalkHyp Fn.«check_opening_terminal».modeCert
-  «claim_list_digest» : WalkHyp Fn.«claim_list_digest».modeCert
-  «da_column_offsets» : WalkHyp Fn.«da_column_offsets».modeCert
   «da_verify» : WalkHyp Fn.«da_verify».modeCert
-  «exponent_tables» : WalkHyp Fn.«exponent_tables».modeCert
   «keccak_layer__L0» : WalkHyp Fn.«keccak_layer__L0».modeCert
   «keccak_layer__L1» : WalkHyp Fn.«keccak_layer__L1».modeCert
   «main» : WalkHyp Fn.«main».modeCert
@@ -61,13 +55,10 @@ structure ModeHyps : Prop where
   «open_stacked__L7» : WalkHyp Fn.«open_stacked__L7».modeCert
   «open_stacked__L8» : WalkHyp Fn.«open_stacked__L8».modeCert
   «open_stacked__L9» : WalkHyp Fn.«open_stacked__L9».modeCert
-  «rs_eq_run» : WalkHyp Fn.«rs_eq_run».modeCert
   «verify_bus_gkr» : WalkHyp Fn.«verify_bus_gkr».modeCert
   «verify_keccak» : WalkHyp Fn.«verify_keccak».modeCert
   «verify_sub» : WalkHyp Fn.«verify_sub».modeCert
   «verify_tables» : WalkHyp Fn.«verify_tables».modeCert
-  «__loop2 hints» : HintsHyp Fn.«main_loop2».modeCert
-  «sp_wots hints» : HintsHyp Fn.«sp_wots».modeCert
 
 theorem guestGroup_walk0 (h : ModeHyps) : ∀ l ∈ guestGroups[0]!, ∀ K ∈ l, CertWalk K :=
   Mode.fa_cons (ModePack.«P0».certs_walk)
@@ -95,7 +86,7 @@ theorem guestGroup_walk1 (h : ModeHyps) : ∀ l ∈ guestGroups[1]!, ∀ K ∈ l
     (Mode.fa_cons (ModePack.«P26».certs_walk h.«__loop38»)
     (Mode.fa_cons (ModePack.«P27».certs_walk)
     (Mode.fa_cons (ModePack.«P28».certs_walk)
-    (Mode.fa_cons (ModePack.«P29».certs_walk h.«claim_list_digest»)
+    (Mode.fa_cons (ModePack.«P29».certs_walk)
     (Mode.fa_cons (ModePack.«P3».certs_walk h.«verify_keccak»)
     (Mode.fa_cons (ModePack.«P30».certs_walk)
     (Mode.fa_cons (ModePack.«P31».certs_walk)
@@ -109,12 +100,12 @@ theorem guestGroup_walk1 (h : ModeHyps) : ∀ l ∈ guestGroups[1]!, ∀ K ∈ l
 
 theorem guestGroup_walk2 (h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ l, CertWalk K :=
   Mode.fa_cons (ModePack.«P38».certs_walk h.«verify_bus_gkr»)
-    (Mode.fa_cons (ModePack.«P39».certs_walk h.«__loop17»)
-    (Mode.fa_cons (ModePack.«P4».certs_walk h.«__loop15»)
+    (Mode.fa_cons (ModePack.«P39».certs_walk)
+    (Mode.fa_cons (ModePack.«P4».certs_walk)
     (Mode.fa_cons (ModePack.«P40».certs_walk)
     (Mode.fa_cons (ModePack.«P41».certs_walk)
-    (Mode.fa_cons (ModePack.«P42».certs_walk h.«exponent_tables» h.«da_column_offsets» h.«__loop19»)
-    (Mode.fa_cons (ModePack.«P43».certs_walk h.«__loop2 hints»)
+    (Mode.fa_cons (ModePack.«P42».certs_walk)
+    (Mode.fa_cons (ModePack.«P43».certs_walk)
     (Mode.fa_cons (ModePack.«P44».certs_walk)
     (Mode.fa_cons (ModePack.«P45».certs_walk h.«__loop37»)
     (Mode.fa_cons (ModePack.«P46».certs_walk)
@@ -140,7 +131,7 @@ theorem guestGroup_walk3 (h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ l
     (Mode.fa_cons (ModePack.«P61».certs_walk)
     (Mode.fa_cons (ModePack.«P62».certs_walk)
     (Mode.fa_cons (ModePack.«P63».certs_walk)
-    (Mode.fa_cons (ModePack.«P7».certs_walk h.«rs_eq_run»)
+    (Mode.fa_cons (ModePack.«P7».certs_walk)
     (Mode.fa_cons (ModePack.«P8».certs_walk h.«main»)
     (Mode.fa_cons (ModePack.«P9».certs_walk)
     (Mode.fa_nil))))))))))))))))
@@ -157,7 +148,7 @@ theorem guestGroup_walk4 (h : ModeHyps) : ∀ l ∈ guestGroups[4]!, ∀ K ∈ l
     (Mode.fa_cons (ModePack.«open_stacked__L7».certs_walk h.«open_stacked__L7»)
     (Mode.fa_cons (ModePack.«open_stacked__L8».certs_walk h.«open_stacked__L8»)
     (Mode.fa_cons (ModePack.«open_stacked__L9».certs_walk h.«open_stacked__L9»)
-    (Mode.fa_cons (ModePack.«sp_wots».certs_walk h.«sp_wots hints»)
+    (Mode.fa_cons (ModePack.«sp_wots».certs_walk)
     (Mode.fa_cons (ModePack.«verify_merkle_cap__L8».certs_walk)
     (Mode.fa_cons (ModePack.«verify_sig_lean_sphincs».certs_walk)
     (Mode.fa_cons (ModePack.«verify_tables».certs_walk h.«verify_tables»)

@@ -8,11 +8,15 @@
 module
 
 public import LeanVM.Guest.Mode.HintsData
+public import LeanVM.Guest.Mode.HintsSplit
 public import LeanVM.Guest.Pack.«P43».Mode0
 public import LeanVM.Guest.Pack.«P43».Mode1
-public import LeanVM.Guest.Pack.«P43».Mode2
-public import LeanVM.Guest.Pack.«P43».Mode3
 public import LeanVM.Guest.Pack.«P43».ModeD0
+public import LeanVM.Guest.Pack.«P43».ModeH0P0
+public import LeanVM.Guest.Pack.«P43».ModeH0P1
+public import LeanVM.Guest.Pack.«P43».ModeH0P2
+public import LeanVM.Guest.Pack.«P43».ModeH0P3
+public import LeanVM.Guest.Pack.«P43».ModeH0P4
 
 set_option Elab.async false
 
@@ -345,3 +349,24 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0»
+
+namespace LeanVM.Guest.Fn.«main_loop2»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `__loop2`: its walk reads the advice's hints, checked in parts. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_parts (j := 37) (d := Data.adviceFn37) (ws := [(7343, 25000), (14076, 50000),
+    (20793, 75000), (28166, 100000)]) Mode.adviceFns_ok (by decide +kernel)
+    (by decide +kernel)
+    (Mode.hparts_cons (by decide) (by decide) (by decide +kernel) modeHP0
+      (Mode.hparts_cons (by decide) (by decide) (by decide +kernel) modeHP1
+      (Mode.hparts_cons (by decide) (by decide) (by decide +kernel) modeHP2
+      (Mode.hparts_cons (by decide) (by decide) (by decide +kernel) modeHP3
+      (Mode.hparts_nil modeHP4)))))
+
+end
+
+end LeanVM.Guest.Fn.«main_loop2»

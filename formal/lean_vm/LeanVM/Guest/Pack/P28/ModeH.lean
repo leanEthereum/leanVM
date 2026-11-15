@@ -11,11 +11,23 @@ public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P28».Mode0
 public import LeanVM.Guest.Pack.«P28».Mode1
 public import LeanVM.Guest.Pack.«P28».Mode2
-public import LeanVM.Guest.Pack.«P28».Mode3
-public import LeanVM.Guest.Pack.«P28».ModeD0
-public import LeanVM.Guest.Pack.«P28».ModeD1
 
 set_option Elab.async false
+
+namespace LeanVM.Guest.Fn.«shared_selector_tables»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `shared_selector_tables`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 11) (d := Data.adviceFn11) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«shared_selector_tables»
 
 namespace LeanVM.Guest.Fn.«eq_prefix_run__L39»
 
@@ -166,6 +178,21 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«child_claim_list_last__L2»
+
+namespace LeanVM.Guest.Fn.«da_levels__L512_L9»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `da_levels__L512_L9`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 417) (d := Data.adviceFn417) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«da_levels__L512_L9»
 
 namespace LeanVM.Guest.Fn.«da_column_offsets_loop1»
 
@@ -421,33 +448,3 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0»
-
-namespace LeanVM.Guest.Fn.«shared_selector_tables»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `shared_selector_tables`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 11) (d := Data.adviceFn11) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«shared_selector_tables»
-
-namespace LeanVM.Guest.Fn.«da_levels__L512_L9»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `da_levels__L512_L9`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 417) (d := Data.adviceFn417) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L512_L9»

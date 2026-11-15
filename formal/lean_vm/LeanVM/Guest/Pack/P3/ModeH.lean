@@ -10,9 +10,6 @@ module
 public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P3».Mode0
 public import LeanVM.Guest.Pack.«P3».Mode1
-public import LeanVM.Guest.Pack.«P3».Mode2
-public import LeanVM.Guest.Pack.«P3».Mode3
-public import LeanVM.Guest.Pack.«P3».ModeD0
 public import LeanVM.Guest.Pack.«P3».ModeX
 
 set_option Elab.async false
@@ -61,6 +58,21 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«plus_one_run__L29»
+
+namespace LeanVM.Guest.Fn.«da_levels__L1024_L10»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `da_levels__L1024_L10`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 418) (d := Data.adviceFn418) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«da_levels__L1024_L10»
 
 namespace LeanVM.Guest.Fn.«grind_check__L30»
 
@@ -331,21 +343,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«level_residual__L55_L20_L4_L2_loop0»
-
-namespace LeanVM.Guest.Fn.«da_levels__L1024_L10»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `da_levels__L1024_L10`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 418) (d := Data.adviceFn418) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L1024_L10»
 
 namespace LeanVM.Guest.Fn.«verify_keccak»
 

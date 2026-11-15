@@ -14,7 +14,7 @@ public import LeanVM.Guest.Pack.«P42».Mode2
 public import LeanVM.Guest.Pack.«P42».Mode3
 public import LeanVM.Guest.Pack.«P42».Mode4
 public import LeanVM.Guest.Pack.«P42».ModeH
-public import LeanVM.Guest.Pack.«P42».ModeX
+public import LeanVM.Guest.Pack.«P42».ModeL0
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
@@ -938,17 +938,16 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     (Mode.fa_nil)))))))))))))))))))))))))))))))))))
 
 /-- The certificates' walks and hints. -/
-theorem certs_walk («exponent_tables» : Mode.WalkHyp Fn.«exponent_tables».modeCert)
-    («da_column_offsets» : Mode.WalkHyp Fn.«da_column_offsets».modeCert) («__loop19» : Mode.WalkHyp
-    Fn.«child_claim_list_mono_loop0».modeCert) :
+theorem certs_walk :
     ∀ K ∈ certs, Mode.CertWalk K :=
-  Mode.fa_cons (⟨«exponent_tables», Fn.«exponent_tables».modeHintsOk⟩)
+  Mode.fa_cons (⟨Fn.«exponent_tables».modeOk, Fn.«exponent_tables».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«list_split».modeOk, Fn.«list_split».modeHintsOk⟩)
-    (Mode.fa_cons (⟨«da_column_offsets», Fn.«da_column_offsets».modeHintsOk⟩)
+    (Mode.fa_cons (⟨Fn.«da_column_offsets».modeOk, Fn.«da_column_offsets».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«padding_weight__L5».modeOk, Fn.«padding_weight__L5».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«padding_weight__L10».modeOk, Fn.«padding_weight__L10».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«index_mle__L31».modeOk, Fn.«index_mle__L31».modeHintsOk⟩)
-    (Mode.fa_cons (⟨«__loop19», Fn.«child_claim_list_mono_loop0».modeHintsOk⟩)
+    (Mode.fa_cons (⟨Fn.«child_claim_list_mono_loop0».modeOk,
+    Fn.«child_claim_list_mono_loop0».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«child_claim_list_mono_last__L0».modeOk,
     Fn.«child_claim_list_mono_last__L0».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«level_queries__L219_L1_L6_L32_L15_L3_L0_L0_L0_L0».modeOk,

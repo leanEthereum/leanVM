@@ -10,9 +10,7 @@ module
 public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P13».Mode0
 public import LeanVM.Guest.Pack.«P13».Mode1
-public import LeanVM.Guest.Pack.«P13».ModeD0
-public import LeanVM.Guest.Pack.«P13».ModeD1
-public import LeanVM.Guest.Pack.«P13».ModeD2
+public import LeanVM.Guest.Pack.«P13».Mode2
 
 set_option Elab.async false
 
@@ -75,6 +73,36 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«block_selector__L14»
+
+namespace LeanVM.Guest.Fn.«da_factors__L7_L8_L128»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `da_factors__L7_L8_L128`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 423) (d := Data.adviceFn423) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«da_factors__L7_L8_L128»
+
+namespace LeanVM.Guest.Fn.«aggregate_claims_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `__loop33`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 431) (d := Data.adviceFn431) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«aggregate_claims_loop0»
 
 namespace LeanVM.Guest.Fn.«level_residual__L55_L17_L6_L3»
 
@@ -225,36 +253,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«level_positions__L22_L24_L6_loop0»
-
-namespace LeanVM.Guest.Fn.«da_factors__L7_L8_L128»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `da_factors__L7_L8_L128`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 423) (d := Data.adviceFn423) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«da_factors__L7_L8_L128»
-
-namespace LeanVM.Guest.Fn.«aggregate_claims_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop33`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 431) (d := Data.adviceFn431) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«aggregate_claims_loop0»
 
 namespace LeanVM.Guest.Fn.«walk_path__L24_L2»
 

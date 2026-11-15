@@ -11,18 +11,18 @@ public import LeanVM.Guest.Pack.«P4».ModeD0
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«aggregate_claims»
+namespace LeanVM.Guest.Fn.«claim_list_digest_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `aggregate_claims`: its walk from offset 0 goes through to its cut at 48. -/
+/-- `__loop15`: its walk from offset 0 goes through to its cut at 1213. -/
 theorem modeW0 :
-    (Mode.runCode modeEnv modeFun (Mode.winCode code.chunks 0 48) 0 [Mode.entryAbs modeEnv
+    (Mode.runCode modeEnv modeFun (Mode.winCode code.chunks 0 1213) 0 [Mode.entryAbs modeEnv
     modeFun.sig] []).isSome = true := by
   decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«aggregate_claims»
+end LeanVM.Guest.Fn.«claim_list_digest_loop0»

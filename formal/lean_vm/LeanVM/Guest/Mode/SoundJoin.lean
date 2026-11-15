@@ -80,6 +80,24 @@ theorem mem_interT_right {α : Type} {eq : α → α → Bool} (heq : ∀ x y, e
     rw [heq _ _ he]
     exact List.mem_reverse.mp (List.mem_of_mem_take hy)
 
+theorem mem_interTK {α : Type} {key : α → ℕ} {eq : α → α → Bool} {a b : List α} {x : α}
+    (h : x ∈ interTK key eq a b) : x ∈ a := by
+  unfold interTK interLK at h
+  rcases List.mem_append.mp h with h | h
+  · exact List.mem_of_mem_take (List.mem_filter.mp h).1
+  · exact List.mem_of_mem_drop h
+
+theorem mem_interTK_right {α : Type} {key : α → ℕ} {eq : α → α → Bool} (heq : ∀ x y, eq x y = true → x = y)
+    {a b : List α} {x : α} (h : x ∈ interTK key eq a b) : x ∈ b := by
+  unfold interTK interLK at h
+  rcases List.mem_append.mp h with h | h
+  · exact mem_of_anyB heq (List.mem_filter.mp h).2
+  · have hx : x ∈ a.reverse.take (agree eq a.reverse b.reverse) := by
+      rw [List.take_reverse]; exact List.mem_reverse.mpr h
+    obtain ⟨y, hy, he⟩ := forall₂_mem agree_forall₂ hx
+    rw [heq _ _ he]
+    exact List.mem_reverse.mp (List.mem_of_mem_take hy)
+
 theorem pair_beq_eq {α β : Type} {ea : α → α → Bool} {eb : β → β → Bool}
     (ha : ∀ x y, ea x y = true → x = y) (hb : ∀ x y, eb x y = true → x = y) (p q : α × β)
     (h : (ea p.1 q.1 && eb p.2 q.2) = true) : p = q := by
@@ -99,8 +117,7 @@ theorem mem_interR_right {A B : Abs} {r : Rng} (h : r ∈ interR A B) : r ∈ B.
   simp only [List.mem_append, List.mem_filter, Bool.and_eq_true, Bool.not_eq_true',
     Bool.or_eq_true] at h
   rcases h with (⟨-, h | h⟩ | h) | ⟨h, -⟩
-  · obtain ⟨y, hy, he⟩ := List.any_eq_true.mp h
-    rw [Rng.beq_eq he]; exact Or.inl hy
+  · exact Or.inl (mem_of_anyB (fun _ _ h ↦ Rng.beq_eq h) h)
   · exact Or.inr h
   · have hx : r ∈ A.r.reverse.take (agree Rng.beq A.r.reverse B.r.reverse) := by
       rw [List.take_reverse]; exact List.mem_reverse.mpr h
@@ -141,8 +158,7 @@ theorem mem_interP_right {A B : Abs} {q : Rng × List ℕ} (h : q ∈ interP A B
   simp only [List.mem_append, List.mem_filter, Bool.and_eq_true, Bool.not_eq_true',
     Bool.or_eq_true] at h
   rcases h with (⟨-, h | h⟩ | h) | ⟨h, -⟩
-  · obtain ⟨y, hy, he⟩ := List.any_eq_true.mp h
-    rw [ptrBeq_eq _ _ he]; exact Or.inl hy
+  · exact Or.inl (mem_of_anyB ptrBeq_eq h)
   · exact Or.inr h
   · have hx : q ∈ A.p.reverse.take (agree ptrBeq A.p.reverse B.p.reverse) := by
       rw [List.take_reverse]; exact List.mem_reverse.mpr h
@@ -185,8 +201,8 @@ theorem Holds.inter {s : St} {A B : Abs} (hA : Holds s A) : Holds s (A.inter B) 
   w o ho := hA.w o (Exec.Trie.get_inter (fun _ _ _ ↦ rfl) ho).1
   v o x ho := hA.v o x (Exec.Trie.get_inter (fun _ _ h ↦ Val.beq_eq h) ho).1
   nz o ho := hA.nz o (Exec.Trie.get_inter (fun _ _ _ ↦ rfl) ho).1
-  hv p hp := hA.hv p (mem_interT hp)
-  h k hk := hA.h k (mem_interT hk)
+  hv p hp := hA.hv p (mem_interTK hp)
+  h k hk := hA.h k (mem_interTK hk)
   r r hr := (mem_interR hr).elim (hA.r r) (Abs.entR_sound hA)
   lt p hp := hA.lt p (mem_interT hp)
   pr _ hp := nomatch hp
@@ -202,9 +218,9 @@ theorem Holds.inter_right {s : St} {A B : Abs} (hB : Holds s B) : Holds s (A.int
   w o ho := hB.w o (Exec.Trie.get_inter (fun _ _ _ ↦ rfl) ho).2
   v o x ho := hB.v o x (Exec.Trie.get_inter (fun _ _ h ↦ Val.beq_eq h) ho).2
   nz o ho := hB.nz o (Exec.Trie.get_inter (fun _ _ _ ↦ rfl) ho).2
-  hv p hp := hB.hv p (mem_interT_right
+  hv p hp := hB.hv p (mem_interTK_right
     (pair_beq_eq (fun _ _ h ↦ Mono.beq_eq h) (fun _ _ h ↦ Val.beq_eq h)) hp)
-  h k hk := hB.h k (mem_interT_right (fun _ _ h ↦ Mono.beq_eq h) hk)
+  h k hk := hB.h k (mem_interTK_right (fun _ _ h ↦ Mono.beq_eq h) hk)
   r r hr := (mem_interR_right hr).elim (hB.r r) (Abs.entR_sound hB)
   lt p hp := hB.lt p (mem_interT_right
     (pair_beq_eq (fun _ _ h ↦ Idx.beq_eq h) (fun _ _ h ↦ Idx.beq_eq h)) hp)
@@ -263,11 +279,11 @@ theorem Holds.sub {s : St} {S A : Abs} (hA : Holds s A) (h : S.sub A = true) : H
     w := fun o ho ↦ hA.w o (Exec.Trie.get_of_sub (fun _ _ _ ↦ rfl) hw ho)
     v := fun o x ho ↦ hA.v o x (Exec.Trie.get_of_sub (fun _ _ h ↦ Val.beq_eq h) hv ho)
     nz := fun o ho ↦ hA.nz o (Exec.Trie.get_of_sub (fun _ _ _ ↦ rfl) hnz ho)
-    hv := fun p hp ↦ hA.hv p (mem_of_any_beq
+    hv := fun p hp ↦ hA.hv p (mem_of_anyB (eq := fun p q ↦ p.1.beq q.1 && p.2.beq q.2)
       (pair_beq_eq (fun _ _ h ↦ Mono.beq_eq h) (fun _ _ h ↦ Val.beq_eq h)) (hhv p hp))
-    h := fun k hk ↦ hA.h k (mem_of_any_beq (eq := fun x y ↦ y.beq x)
+    h := fun k hk ↦ hA.h k (mem_of_anyB (eq := fun x y ↦ y.beq x)
       (fun _ _ h ↦ (Mono.beq_eq h).symm) (hh k hk))
-    r := fun r hr' ↦ hA.r r (mem_of_any_beq (eq := fun x y ↦ y.beq x)
+    r := fun r hr' ↦ hA.r r (mem_of_anyB (eq := fun x y ↦ y.beq x)
       (fun _ _ h ↦ (Rng.beq_eq h).symm) (hr r hr'))
     lt := fun p hp ↦ hA.lt p (mem_of_any_beq
       (pair_beq_eq (fun _ _ h ↦ Idx.beq_eq h) (fun _ _ h ↦ Idx.beq_eq h)) (hlt p hp))
@@ -277,7 +293,7 @@ theorem Holds.sub {s : St} {S A : Abs} (hA : Holds s A) (h : S.sub A = true) : H
       exact Prod.ext h.1.1 (Prod.ext h.1.2 h.2)) (hpr p hp))
     xs := fun c a b ho ↦ hA.xs c a b (Exec.Trie.get_of_sub (fun p q h ↦ by
       simp only [Bool.and_eq_true, beq_iff_eq] at h; exact Prod.ext h.1 h.2) hxs ho)
-    p := fun q hq ↦ hA.p q (mem_of_any_beq
+    p := fun q hq ↦ hA.p q (mem_of_anyB (eq := fun p q ↦ p.1.beq q.1 && p.2 == q.2)
       (pair_beq_eq (fun _ _ h ↦ Rng.beq_eq h) (fun _ _ h ↦ beq_iff_eq.mp h)) (hp q hq))
     c := fun d hd ↦ by
       obtain ⟨c, hc, hs⟩ := List.any_eq_true.mp (hc d hd)
@@ -403,6 +419,13 @@ theorem Abs.hasIdx_sound {s : St} {A : Abs} (hA : Holds s A) {i : Idx} (h : A.ha
   | num n => exact ⟨n, rfl⟩
   | ex b c =>
     simp only [Abs.hasIdx] at h
+    replace h : A.lt.any (fun p ↦ (match p.1.base? with | some x => x.beq b | none => false) ||
+        (match p.2.base? with | some x => x.beq b | none => false)) = true := by
+      rcases Bool.or_eq_true_iff.mp h with h | h
+      · obtain ⟨p, hm, hh⟩ := List.any_eq_true.mp (any_of_anyB h)
+        exact List.any_eq_true.mpr ⟨p, hm, Bool.or_eq_true_iff.mpr (Or.inl hh)⟩
+      · obtain ⟨p, hm, hh⟩ := List.any_eq_true.mp (any_of_anyB h)
+        exact List.any_eq_true.mpr ⟨p, hm, Bool.or_eq_true_iff.mpr (Or.inr hh)⟩
     obtain ⟨⟨p, q⟩, hm, hh⟩ := List.any_eq_true.mp h
     obtain ⟨xp, xq, hp, hq, -⟩ := hA.lt _ hm
     have key : ∀ i : Idx, (match i.base? with | some x => x.beq b | none => false) = true →
@@ -467,9 +490,9 @@ theorem Abs.coveredR_sound {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF)
   unfold Abs.coveredR at h
   rcases Bool.or_eq_true_iff.mp h with h | h
   rcases Bool.or_eq_true_iff.mp h with h | h
-  · obtain ⟨r', hm, hh⟩ := List.any_eq_true.mp h
+  · obtain ⟨r', hm, hh⟩ := List.any_eq_true.mp (any_of_anyB h)
     rw [← Rng.beq_eq hh]; exact hA.r r' hm
-  · obtain ⟨r', hm, hh⟩ := List.any_eq_true.mp h
+  · obtain ⟨r', hm, hh⟩ := List.any_eq_true.mp (any_of_anyB h)
     simp only [Bool.and_eq_true, beq_iff_eq] at hh
     obtain ⟨⟨⟨⟨⟨⟨hq, hS⟩, hd⟩, hlo⟩, hhi⟩, hklo⟩, hkhi⟩ := hh
     obtain ⟨vq, xlo', xhi', h1, h2, h3, h4⟩ := hA.r r' hm

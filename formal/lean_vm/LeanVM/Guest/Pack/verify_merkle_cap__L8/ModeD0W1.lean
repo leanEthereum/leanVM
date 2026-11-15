@@ -17,10 +17,10 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `verify_merkle_cap__L8`: its walk from offset 600 goes through to its cut at 1193. -/
+/-- `verify_merkle_cap__L8`: its walk from offset 2701 goes through to its end. -/
 theorem modeW1 :
-    (Mode.runCode modeEnv modeFun (Mode.winCode code.chunks 600 1193) 600 (Mode.cutOf modeFun
-    600).1 (Mode.cutOf modeFun 600).2).isSome = true := by
+    Mode.runRest modeEnv modeFun (Mode.codeAt code.chunks 2701) 2701 (Mode.cutOf modeFun 2701) =
+    true := by
   decide +kernel
 
 end

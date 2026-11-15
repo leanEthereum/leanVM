@@ -30,7 +30,7 @@ Each strict form is the plain one. -/
 
 theorem Abs.force_eq {β : Type} (A : Abs) (k : Abs → β) : A.force k = k A := by
   obtain ⟨w, v, nz, hv, h, r, lt, pr, xs, p⟩ := A
-  simp only [Abs.force, Exec.Trie.seq_eq]
+  simp only [Abs.force, Exec.Trie.seq_eq, lseq_eq]
 
 theorem foldlA_eq {α : Type} (f : Abs → α → Abs) : ∀ (A : Abs) (l : List α), foldlA f A l = l.foldl f A
   | _, [] => rfl
@@ -463,7 +463,13 @@ theorem Abs.le_sound {s : St} {A : Abs} (hA : Holds s A) {a b : Idx} (h : A.le a
   unfold Abs.le at h
   rcases Bool.or_eq_true_iff.mp h with h | h
   · exact Idx.sle_sound h hb
-  · obtain ⟨⟨p, q⟩, hm, hh⟩ := List.any_eq_true.mp h
+  · replace h : A.lt.any (fun p ↦ match p.2.off b with
+        | some t => a.sle (p.1.succ.shift t)
+        | none => false) = true := by
+      cases b with
+      | num n => exact h
+      | ex x c => exact any_of_anyB h
+    obtain ⟨⟨p, q⟩, hm, hh⟩ := List.any_eq_true.mp h
     dsimp only at hh
     split at hh
     · rename_i t ht
@@ -481,7 +487,13 @@ theorem Abs.ltI_sound {s : St} {A : Abs} (hA : Holds s A) {a b : Idx} (h : A.ltI
   · obtain ⟨y, hy, hle⟩ := Idx.sle_sound h hb
     obtain ⟨xa, ha, rfl⟩ := Idx.succ_val hy
     exact ⟨xa, ha, by omega⟩
-  · obtain ⟨⟨p, q⟩, hm, hh⟩ := List.any_eq_true.mp h
+  · replace h : A.lt.any (fun (p : Idx × Idx) ↦ (match p.1.off a with
+        | some t => (p.2.shift t).sle b
+        | none => false) || (a.succ.sle p.1 && p.2.sle b.succ)) = true := by
+      cases a with
+      | ex y e => exact any_of_anyB h
+      | num n => rcases Bool.or_eq_true_iff.mp h with h | h <;> exact any_of_anyB h
+    obtain ⟨⟨p, q⟩, hm, hh⟩ := List.any_eq_true.mp h
     dsimp only at hh
     obtain ⟨xp, xq, hp, hq, hlt⟩ := hA.lt _ hm
     rcases Bool.or_eq_true_iff.mp hh with hh | hh
@@ -680,17 +692,24 @@ theorem Abs.inRng_ptr {s : St} {A : Abs} (hA : Holds s A) {k : Mono} {r : Rng} {
   · simp only [Bool.and_eq_true] at h
     exact inRng1_ptr hA hr.down h.2 hk
 
+theorem Abs.inRuns_any {A : Abs} {k : Mono} (h : A.inRuns k = true) : A.r.any (A.inRng k) = true := by
+  unfold Abs.inRuns at h
+  rcases Bool.or_eq_true_iff.mp h with h | h
+  · exact any_of_anyB h
+  · obtain ⟨e, -, he⟩ := List.any_eq_true.mp h
+    exact any_of_anyB he
+
 /-- A heap cell `coveredHR` knows: the cell its word names is written. -/
 theorem Abs.coveredHR_ex {s : St} {A : Abs} (hA : Holds s A) {k : Mono} (h : A.coveredHR k = true)
     {vk : E} (hk : MonoVal s k vk) : ∃ x, Names vk x ∧ s.mem.written x = true := by
   unfold Abs.coveredHR at h
   rcases Bool.or_eq_true_iff.mp h with h | h
-  · obtain ⟨k', hm, hb⟩ := List.any_eq_true.mp h
+  · obtain ⟨k', hm, hb⟩ := List.any_eq_true.mp (any_of_anyB h)
     obtain rfl := Mono.beq_eq hb
     obtain ⟨v, x, h1, h2, h3⟩ := hA.h _ hm
     obtain rfl := h1.unique hk
     exact ⟨x, h2, h3⟩
-  · obtain ⟨r, hm, hb⟩ := List.any_eq_true.mp h
+  · obtain ⟨r, hm, hb⟩ := List.any_eq_true.mp (Abs.inRuns_any h)
     exact Abs.inRng_sound hA (hA.r r hm) hb hk
 
 theorem Idx.beq_eq {a b : Idx} (h : a.beq b = true) : a = b := by
@@ -746,7 +765,7 @@ theorem Abs.bound_sound {s : St} {A : Abs} (hA : Holds s A) {hi : Idx} {b : ℕ}
             obtain rfl := hx'.unique hx
             exact le_min hle (by omega)
         · exact hacc a ha
-    exact key A.lt none (fun _ h ↦ h) (fun _ h ↦ by cases h) b h
+    exact key _ none (fun _ h ↦ mem_buckets h) (fun _ h ↦ by cases h) b h
 
 theorem BsVal.append {s : St} : ∀ {a b : List (Base × ℕ)} {va vb : E}, BsVal s a va → BsVal s b vb →
     BsVal s (a ++ b) (va * vb)
@@ -770,7 +789,9 @@ theorem Abs.pin_sound {s : St} {A : Abs} (hA : Holds s A) {b : Base} {c : ℕ} (
       (∀ a, acc = some a → BaseVal s b (ofK (g ^ a)) ∧ a < 2 ^ 62) →
       ∀ c, l.foldl (fun acc p ↦ match p with
         | (.ex b' 0, .num q) =>
-          if b'.beq b && 0 < q && A.lt.any (fun p' ↦ p'.1.beq (.num (q - 1)) && p'.2.beq (.ex b 1)) then
+          if b'.beq b && 0 < q &&
+              anyB (buckets (idxKey ·.2) A.lt) (fun p' ↦ p'.1.beq (.num (q - 1)) && p'.2.beq (.ex b 1))
+                (idxKey (.ex b 1)) then
             minO acc (q - 1)
           else acc
         | _ => acc) acc = some c → BaseVal s b (ofK (g ^ c)) ∧ c < 2 ^ 62 := by
@@ -788,7 +809,7 @@ theorem Abs.pin_sound {s : St} {A : Abs} (hA : Holds s A) {b : Base} {c : ℕ} (
         · simp only [Bool.and_eq_true, decide_eq_true_eq] at hc'
           obtain ⟨⟨hb, hq⟩, hany⟩ := hc'
           obtain rfl := Base.beq_eq hb
-          obtain ⟨⟨p1, p2⟩, hm, hpp⟩ := List.any_eq_true.mp hany
+          obtain ⟨⟨p1, p2⟩, hm, hpp⟩ := List.any_eq_true.mp (any_of_anyB hany)
           simp only [Bool.and_eq_true] at hpp
           obtain rfl := Idx.beq_eq hpp.1
           obtain rfl := Idx.beq_eq hpp.2
@@ -814,7 +835,7 @@ theorem Abs.pin_sound {s : St} {A : Abs} (hA : Holds s A) {b : Base} {c : ℕ} (
             exact ⟨h0, h0lt⟩
         · exact hacc a ha
       · exact hacc a ha
-  exact (key A.lt none (fun _ h ↦ h) (fun _ h ↦ by cases h) c h).1
+  exact (key _ none (fun _ h ↦ mem_buckets h) (fun _ h ↦ by cases h) c h).1
 
 theorem MonoVal.append {s : St} {m : Mono} {vm : E} (hm : MonoVal s m vm) {p : Base × ℕ} {u : E}
     (hu : BaseVal s p.1 u) : MonoVal s ⟨m.fp, m.k, m.bs ++ [p]⟩ (vm * u ^ p.2) := by

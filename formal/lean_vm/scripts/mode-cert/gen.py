@@ -1,9 +1,10 @@
 """Writes the mode walk's certificates into each pack: `Pack/*/ModeSig.lean`, every function's
 signature (`Mode.Sig`), and `Pack/*/Mode{k}.lean`, every passing function's hints, residuals and
 table sizes (`Mode.Fun`) with the kernel's check of its walk (`Mode.walk`, `Guest/Mode/Abs.lean`).
-A function longer than `WMAX` is checked in windows (`Guest/Mode/Win.lean`): its data and the
-snapshots at its cuts in `ModeD{k}`, each window's check in `ModeD{k}W{m}`, their chain in
-`ModeL{k}`. The signatures and residuals are `infer.py`'s, the snapshots `walk.py`'s states.
+A function whose check is estimated to need more than `KBUDGET` of the kernel's memory
+(`kprofile`) is checked in windows (`Guest/Mode/Win.lean`): its data in `ModeD{k}`, the snapshots at
+its cuts in `ModeD{k}S{j}`, each window's check in `ModeD{k}W{m}`, their chain in `ModeL{k}`. Hints
+too long to check in one piece are checked in parts (`ModeH{q}P{m}`, `Guest/Mode/HintsSplit.lean`). The signatures and residuals are `infer.py`'s, the snapshots `walk.py`'s states.
 `--check` writes nothing and fails when a file differs. `MODE_CERT_CACHE=FILE` keeps the inference
 in `FILE` between runs (development only: stale once the walk, the inference or the guest changes).
 Usage: python3 -I scripts/mode-cert/gen.py [--check] [--only PACK...]"""
@@ -19,30 +20,25 @@ PACKS = os.path.join(I.data.ROOT, 'Pack')
 CHUNK = 2500
 # a literal list longer than this is written as a flattened list of such lists
 LONG = 16
-# a function longer than this, or costlier (`walk.COST`, the kernel's list work, roughly), is checked
-# in windows of at most `2 WIN` instructions and `WCOST`, each cut where the fewest states are pending;
-# a module checks functions of at most `CHUNK` instructions and `WCOST` in all
-WMAX = 2000
-WIN = 1500
-# the estimate misses work on runs and joins, so a window of a function shorter than `LONGW` is at
-# most `SHORTW` instructions
-LONGW = 10000
-SHORTW = 600
-WCOST = 200000
-# a function longer than this has no hints check (`ModeH`): the kernel's walk over its offsets is too
-# costly in one piece
-HMAX = 20000
-# a function whose list work is denser than this per instruction, and more than `XCOST`, is not checked
-XDENSE = 1500
-XCOST = 2000000
+# The kernel's memory on a check, estimated in MB (`kprofile`): `KBASE` a module, `KINS` an
+# instruction, `KRUN` a run a lookup tries (`Abs.inRuns`) per base of the cell, `KARM` a fact of a
+# call's arm (its state after the callee, met with the others), `KSIZE` a fact
+# of the snapshot a window ends at (its cut's check). A module is sized to at most `KBUDGET`; a function
+# one of whose instructions alone needs more than `KHARD` is not checked (`HEAVY`).
+KBASE = 400
+KINS = 1.5
+KRUN = 0.01
+KARM = 0.15
+KSIZE = 0.75
+KBUDGET = 4500
+KHARD = 6000
+# a module's snapshots hold at most this many facts in all (the elaborator's memory)
+SNAPMAX = 20000
+# a function's hints are checked in parts of at most this many offsets
+HPART = 25000
 
 
-# measured: `__loop17`'s windows exceed 3.5 GB however short, the estimate missing its work; `__loop19`'s
-# snapshots time out the elaborator
-MEASURED_HEAVY = {'__loop17', '__loop19'}
-
-
-def checkable(n, fails): return n not in fails and n not in HEAVY and n not in MEASURED_HEAVY
+def checkable(n, fails): return n not in fails and n not in HEAVY
 
 
 def nat(n): return str(n)
@@ -257,8 +253,14 @@ def nsOpen(n, expose=True):
 def nsClose(n): return 'end\n\nend LeanVM.Guest.Fn.«%s»\n' % I.fns[n]['ns']
 
 
-def dataDefs(n, res, cuts=None):
-    """`modeEnv` and `modeFun`, its cuts' snapshots `snap{b}` named in `modeFun`'s trie."""
+def snapDefs(n, cuts):
+    """The snapshots `snap{b}` at a function's cuts."""
+    return ''.join('/-- `%s`: the paths and pending edges at its cut at offset %d. -/\nnoncomputable def snap%d : List Mode.Abs × Mode.Pend :=\n  %s\n\n' % (n, b, b, snapLit(S)) for b, S in sorted(cuts.items()))
+
+
+def dataDefs(n, res, cuts=None, inline=True):
+    """`modeEnv` and `modeFun`, its cuts' snapshots `snap{b}` named in `modeFun`'s trie (defined here when
+    `inline`)."""
     f = I.fns[n]
     sigt = {I.fns[m]['entry']: m for m in calleesOf(n)}
     env = '⟨Data.powTree, Data.jtTrie, %d, %d, %s, %d⟩' % (
@@ -272,8 +274,7 @@ def dataDefs(n, res, cuts=None):
         bigTrie('modeTabs', 'ℕ', f['tabs'], nat, defs), 'true' if n == 'main' else 'false',
         trie({b: b for b in cuts}, lambda b: 'snap%d' % b) if cuts else '.nil')
     out = defs
-    for b, S in sorted((cuts or {}).items()):
-        out.append('/-- `%s`: the paths and pending edges at its cut at offset %d. -/\nnoncomputable def snap%d : List Mode.Abs × Mode.Pend :=\n  %s\n\n' % (n, b, b, snapLit(S)))
+    if inline and cuts: out.append(snapDefs(n, cuts))
     out.append('/-- `%s`: the program its walk shares. -/\nnoncomputable def modeEnv : Mode.Env :=\n  %s\n\n' % (n, env))
     out.append('/-- `%s`: its hints, residuals, table sizes and cuts. -/\nnoncomputable def modeFun : Mode.Fun :=\n  %s\n\n' % (n, fun))
     return ''.join(out)
@@ -292,31 +293,70 @@ def checkFile(p, k, group, sigs, res):
     return ''.join(out)
 
 
-def profile(n, sig, res):
-    """At each offset of a function's walk: the states there and the list work before it."""
-    f = I.fns[n]
-    cnt = [0] * f['count']; acc = [0] * (f['count'] + 1)
-    W.COST[0] = 0
-    def size(i, cur, pend):
-        cnt[i] = len(cur) + sum(len(g[1]) for g in pend); acc[i] = W.COST[0]
-    I.Walk(I.E, f['entry'], f['count'], sig, f['hints'], res, f['tabs'], main=n == 'main').run(f['ops'], probe=size)
-    acc[f['count']] = W.COST[0]
-    return cnt, acc
+def facts(A):
+    """A state's facts held in lists, as a snapshot's size."""
+    return len(A.r) + len(A.h) + len(A.hv) + len(A.lt) + len(A.p)
 
 
-def cutsOf(n, sig, res):
-    """The cuts of a long function, with the paths and pending edges there."""
+def kprofile(n, sig, res):
+    """At each offset of a function's walk: the facts of the paths and pending edges there (`S`), and the
+    kernel's memory its instruction is estimated to need (`C`, MB): `KINS`, and `KRUN` for each run a
+    lookup tries and each base of the cell (`Abs.inRuns` tries the runs over `k`'s bases or all but one
+    of them, a miss each, a hit half of them on average), and `KARM` for each fact of each arm of a
+    call."""
+    f = I.fns[n]; N = f['count']
+    S = [0] * (N + 1); C = [KINS] * N; cur = [0]
+    och = W.Abs.coveredHR
+    def coveredHR(A, k):
+        if k not in A.h:
+            keys = {(k[0], k[2])} | {(k[0], tuple(q for q in k[2] if q[0] != e[0])) for e in k[2]}
+            c = [r for r in A.r if (r[0][0], r[0][2]) in keys]
+            C[cur[0]] += KRUN * (1 + len(k[2])) * (len(c) / 2 if any(A.inRng(k, r) for r in c) else len(c))
+        return och(A, k)
+    def probe(i, sts, pend):
+        cur[0] = i
+        S[i] = sum(facts(A) for A in list(sts) + [B for g in pend for B in g[1]])
+    oac = I.Walk.afterCall
+    def afterCall(w, A, *a):
+        C[cur[0]] += KARM * facts(A)
+        return oac(w, A, *a)
+    W.Abs.coveredHR = coveredHR; I.Walk.afterCall = afterCall
+    try:
+        I.Walk(I.E, f['entry'], N, sig, f['hints'], res, f['tabs'], main=n == 'main').run(f['ops'], probe=probe)
+    finally:
+        W.Abs.coveredHR = och; I.Walk.afterCall = oac
+    return S, C
+
+
+class Heavy(Exception):
+    pass
+
+
+def cutsAt(S, C):
+    """A function's cuts: each window from the previous cut is at most `KBUDGET` with its end cut's
+    check, cut where the fewest facts are pending among the later half of the offsets it may end at; a
+    single instruction at most `KHARD` (else `Heavy`)."""
+    N = len(C); cuts = []; a = 0
+    while KBASE + sum(C[a:]) > KBUDGET:
+        acc = KBASE; cand = []
+        for b in range(a + 1, N):
+            acc += C[b - 1]
+            if acc > KBUDGET: break
+            if acc + KSIZE * S[b] <= KBUDGET: cand.append(b)
+        if cand:
+            lo = cand[len(cand) // 2]
+            b = min((x for x in cand if x >= lo), key=lambda x: (S[x], -x))
+        else:
+            b = a + 1
+            if KBASE + C[a] + (KSIZE * S[b] if b < N else 0) > KHARD: raise Heavy(a)
+            if b == N: break
+        cuts.append(b); a = b
+    return cuts
+
+
+def cutsOf(n, sig, res, cuts):
+    """The paths and pending edges at a function's cuts."""
     f = I.fns[n]
-    cnt, acc = profile(n, sig, res)
-    cuts = []; b = 0; N = f['count']
-    L = 2 * WIN if N > LONGW else SHORTW
-    while b + L // 4 < N and (acc[N] - acc[b] > WCOST or N - b > L):
-        e = b + 1
-        while e < N and e - b < L and acc[e] - acc[b] < WCOST: e += 1
-        if e >= N - L // 8: break
-        lo = max(b + 1, e - max(1, (e - b) // 2))
-        b = min(range(lo, e + 1), key=lambda i: (cnt[i], -i))
-        cuts.append(b)
     snaps = {}
     def rec(i, cur, pend):
         if i in cuts:
@@ -325,18 +365,30 @@ def cutsOf(n, sig, res):
     return snaps
 
 
-def winFiles(p, k, n, sigs, res):
-    """A long function's data and snapshots (`ModeD{k}`), each window's check (`ModeD{k}W{m}`) and
-    their chain (`ModeL{k}`)."""
+def winFiles(p, k, n, sigs, res, cuts):
+    """A long function's data (`ModeD{k}`), the snapshots at its cuts (`ModeD{k}S{j}`, at most `SNAPMAX`
+    facts each), each window's check (`ModeD{k}W{m}`) and their chain (`ModeL{k}`)."""
     f = I.fns[n]
-    snaps = cutsOf(n, sigs[n], res.get(n, {}))
+    snaps = cutsOf(n, sigs[n], res.get(n, {}), cuts)
     bs = sorted(snaps)
     base_ = 'LeanVM.Guest.Pack.«%s».ModeD%d' % (p, k)
     files = {}
-    out = [header(base_, "A long compiled function's mode walk data and the snapshots at its cuts.")]
-    out.append(importLines(imports(p, [n]) | {'LeanVM.Guest.Mode.Win'}))
+    groups = []; size = SNAPMAX
+    for b in bs:
+        z = sum(facts(A) for A in snaps[b][0]) + sum(facts(B) for g in snaps[b][1] for B in g[1])
+        if size + z > SNAPMAX: groups.append([]); size = 0
+        groups[-1].append(b); size += z
+    for j, g in enumerate(groups):
+        out = [header('%sS%d' % (base_, j), "Snapshots at a long compiled function's cuts, for its mode walk.")]
+        out.append('public import LeanVM.Guest.Mode.Abs\n')
+        out.append(nsOpen(n))
+        out.append(snapDefs(n, {b: snaps[b] for b in g}))
+        out.append(nsClose(n))
+        files['ModeD%dS%d.lean' % (k, j)] = ''.join(out)
+    out = [header(base_, "A long compiled function's mode walk data, its cuts' snapshots named.")]
+    out.append(importLines(imports(p, [n]) | {'LeanVM.Guest.Mode.Win'} | {'%sS%d' % (base_, j) for j in range(len(groups))}))
     out.append(nsOpen(n))
-    out.append(dataDefs(n, res, snaps))
+    out.append(dataDefs(n, res, snaps, inline=False))
     out.append(nsClose(n))
     files['ModeD%d.lean' % k] = ''.join(out)
     starts = [0] + bs
@@ -379,18 +431,60 @@ def fnIndex():
 FNIDX = fnIndex()
 
 
-def hintsFile(p, mods, ns):
-    """The pack's functions' hints are the advice's (`Mode.HintsOk`), each checked by the kernel."""
+def hintParts(n):
+    """A long function's hints check in parts: each part's end as (entries before it, offset)."""
+    N = I.fns[n]['count']
+    offs = sorted(I.fns[n]['hints'])
+    return [(sum(1 for o in offs if o < b), b) for b in range(HPART, N, HPART)]
+
+
+def hintsFiles(p, mods, ns, fnMod):
+    """The pack's functions' hints are the advice's (`Mode.HintsOk`), each checked by the kernel
+    (`ModeH`), a function longer than `HPART` in parts (`ModeH{q}P{m}`)."""
+    files = {}
+    parts = {}
+    for q, n in enumerate([n for n in ns if I.fns[n]['count'] > HPART]):
+        j = FNIDX[n]
+        ws = hintParts(n)
+        parts[n] = (q, ws)
+        pts = [(0, 0)] + ws
+        for m, (c, o) in enumerate(pts):
+            mod = 'LeanVM.Guest.Pack.«%s».ModeH%dP%d' % (p, q, m)
+            out = [header(mod, "The kernel's check of part of a long compiled function's hints.")]
+            out.append(importLines({'LeanVM.Guest.Mode.HintsData', 'LeanVM.Guest.Pack.«%s».%s' % (p, fnMod[n])}))
+            out.append('\nset_option Elab.async false\n')
+            out.append(nsOpen(n, False))
+            if m + 1 < len(pts):
+                c2, o2 = pts[m + 1]
+                out.append('/-- `%s`: its hints at offsets %d to %d are the advice\'s. -/\ntheorem modeHP%d :\n    Mode.hintsChk modeFun.hints modeFun.entry ((Data.adviceFn%d.2.2.drop %d).take (%d - %d)) %d (%d - %d) = true := by\n  decide +kernel\n\n' % (
+                    n, o, o2, m, j, c, c2, c, o, o2, o))
+            else:
+                out.append('/-- `%s`: its hints from offset %d are the advice\'s. -/\ntheorem modeHP%d :\n    Mode.hintsChk modeFun.hints modeFun.entry (Data.adviceFn%d.2.2.drop %d) %d (modeFun.len - %d) = true := by\n  decide +kernel\n\n' % (
+                    n, o, m, j, c, o, o))
+            out.append(nsClose(n))
+            files['ModeH%dP%d.lean' % (q, m)] = ''.join(out)
     mod = 'LeanVM.Guest.Pack.«%s».ModeH' % p
     out = [header(mod, "The kernel's checks that compiled functions' mode walks read the advice's hints.")]
-    out.append(importLines({'LeanVM.Guest.Mode.HintsData'} | {'LeanVM.Guest.Pack.«%s».%s' % (p, m) for m in mods}))
+    imps = {'LeanVM.Guest.Mode.HintsData'} | {'LeanVM.Guest.Pack.«%s».%s' % (p, m) for m in mods}
+    if parts: imps |= {'LeanVM.Guest.Mode.HintsSplit'} | {'LeanVM.Guest.Pack.«%s».ModeH%dP%d' % (p, q, m)
+                                                        for q, ws in parts.values() for m in range(len(ws) + 1)}
+    out.append(importLines(imps))
     out.append('\nset_option Elab.async false\n')
     for n in ns:
         out.append(nsOpen(n, False))
         j = FNIDX[n]
-        out.append('/-- `%s`: its walk reads the advice\'s hints. -/\ntheorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=\n  Mode.hintsOk_of_fn (j := %d) (d := Data.adviceFn%d) Mode.adviceFns_ok (by decide +kernel) (by decide +kernel)\n\n' % (n, j, j))
+        if n in parts:
+            q, ws = parts[n]
+            proof = 'Mode.hparts_nil modeHP%d' % len(ws)
+            for m in range(len(ws) - 1, -1, -1):
+                proof = 'Mode.hparts_cons (by decide) (by decide) (by decide +kernel) modeHP%d\n      (%s)' % (m, proof)
+            out.append('/-- `%s`: its walk reads the advice\'s hints, checked in parts. -/\ntheorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=\n  Mode.hintsOk_of_parts (j := %d) (d := Data.adviceFn%d) (ws := %s) Mode.adviceFns_ok (by decide +kernel)\n    (by decide +kernel)\n    (%s)\n\n' % (
+                n, j, j, lst(ws, lambda w: '(%d, %d)' % w), proof))
+        else:
+            out.append('/-- `%s`: its walk reads the advice\'s hints. -/\ntheorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=\n  Mode.hintsOk_of_fn (j := %d) (d := Data.adviceFn%d) Mode.adviceFns_ok (by decide +kernel) (by decide +kernel)\n\n' % (n, j, j))
         out.append(nsClose(n))
-    return ''.join(out)
+    files['ModeH.lean'] = ''.join(out)
+    return files
 
 
 def dataFile(p, ns, R):
@@ -624,38 +718,44 @@ def main(argv):
                 I.E.sigs[f['entry']] = s; sigs[n] = s
         # a callee inferred again for a caller (`infer.narrow`): its last inference
         for n, (s, r) in I.LAST.items(): sigs[n], R[n] = s, r
-        cost = {n: profile(n, sigs[n], R.get(n, {}))[1][-1] for n in I.fns if n not in fails}
+        cost = {n: kprofile(n, sigs[n], R.get(n, {})) for n in I.fns if n not in fails}
         if cache:
             import pickle
             pickle.dump((sigs, fails, R, I.E.sigs, cost), open(cache, 'wb'))
-    HEAVY.update(n for n, c in cost.items() if c > XCOST and c > XDENSE * I.fns[n]['count'])
+    # each function's cuts, none if it fits in `KBUDGET`; too heavy if an instruction alone exceeds `KHARD`
+    cuts = {}
+    for n, (S, C) in cost.items():
+        try: cuts[n] = cutsAt(S, C)
+        except Heavy: HEAVY.add(n)
+    work = {n: sum(C) for n, (S, C) in cost.items()}
     files = {}
     nwin = 0
     walkH = set(); hintsH = set(); packList = {}
     for p, ns in packs().items():
         if only and p not in only: continue
         files[os.path.join(PACKS, p, 'ModeSig.lean')] = sigFile(p, ns, sigs)
-        groups = []; cur = []; size = 0; work = 0; long_ = []
+        groups = []; cur = []; size = 0; mem = KBASE; long_ = []
         for n in ns:
             if not checkable(n, fails): continue
             c = I.fns[n]['count']
-            if c > WMAX or cost[n] > WCOST: long_.append(n); continue
-            if cur and (size + c > CHUNK or work + cost[n] > WCOST): groups.append(cur); cur = []; size = 0; work = 0
-            cur.append(n); size += c; work += cost[n]
+            if cuts[n]: long_.append(n); continue
+            if cur and (size + c > CHUNK or mem + work[n] > KBUDGET): groups.append(cur); cur = []; size = 0; mem = KBASE
+            cur.append(n); size += c; mem += work[n]
         if cur: groups.append(cur)
         for k, g in enumerate(groups):
             files[os.path.join(PACKS, p, 'Mode%d.lean' % k)] = checkFile(p, k, g, sigs, R)
         for k, n in enumerate(long_):
-            for name, text in winFiles(p, k, n, sigs, R).items():
+            for name, text in winFiles(p, k, n, sigs, R, cuts[n]).items():
                 files[os.path.join(PACKS, p, name)] = text; nwin += name.startswith('ModeD') and 'W' in name
         xs = [n for n in ns if not checkable(n, fails)]
         if xs: files[os.path.join(PACKS, p, 'ModeX.lean')] = dataFile(p, xs, R)
         mods = ['Mode%d' % k for k in range(len(groups))] + ['ModeD%d' % k for k in range(len(long_))] + (['ModeX'] if xs else [])
-        hs = [n for n in [n for g in groups for n in g] + long_ + xs if I.fns[n]['count'] <= HMAX]
+        hs = [n for g in groups for n in g] + long_ + xs
+        fnMod = {n: 'Mode%d' % k for k, g in enumerate(groups) for n in g}
+        fnMod.update({n: 'ModeD%d' % k for k, n in enumerate(long_)}); fnMod.update({n: 'ModeX' for n in xs})
         if hs:
-            files[os.path.join(PACKS, p, 'ModeH.lean')] = hintsFile(p, mods, hs)
+            for name, text in hintsFiles(p, mods, hs, fnMod).items(): files[os.path.join(PACKS, p, name)] = text
         walkH.update(xs)
-        hintsH.update(n for n in ns if I.fns[n]['count'] > HMAX)
         cmods = ['Mode%d' % k for k in range(len(groups))] + ['ModeL%d' % k for k in range(len(long_))] + \
             (['ModeX'] if xs else []) + (['ModeH'] if hs else [])
         files[os.path.join(PACKS, p, 'ModeCert.lean')] = certFile(p, ns, cmods, walkH, hintsH)
@@ -679,7 +779,7 @@ def main(argv):
     if check and bad:
         print('stale:', *bad, sep='\n  '); sys.exit(1)
     nck = sum(1 for n in I.fns if checkable(n, fails))
-    print('functions', len(I.fns), 'failing', len(fails), 'checked', nck, 'unchecked', sorted(HEAVY | MEASURED_HEAVY), 'windows', nwin, 'files', len(files),
+    print('functions', len(I.fns), 'failing', len(fails), 'checked', nck, 'unchecked', sorted(HEAVY), 'windows', nwin, 'files', len(files),
           'changed', len(bad) if check else 'written')
     print('failing', sorted(fails))
     print('hypotheses: walks', sorted(walkH), 'hints', sorted(hintsH))

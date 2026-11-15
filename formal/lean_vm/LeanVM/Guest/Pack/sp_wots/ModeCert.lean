@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Mode.CertDefs
+public import LeanVM.Guest.Pack.«sp_wots».ModeH
 public import LeanVM.Guest.Pack.«sp_wots».ModeL0
 meta import LeanVM.Guest.KernelLit
 
@@ -51,9 +52,9 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     (Mode.fa_nil)
 
 /-- The certificates' walks and hints. -/
-theorem certs_walk («sp_wots hints» : Mode.HintsHyp Fn.«sp_wots».modeCert) :
+theorem certs_walk :
     ∀ K ∈ certs, Mode.CertWalk K :=
-  Mode.fa_cons (⟨Fn.«sp_wots».modeOk, «sp_wots hints»⟩)
+  Mode.fa_cons (⟨Fn.«sp_wots».modeOk, Fn.«sp_wots».modeHintsOk⟩)
     (Mode.fa_nil)
 
 end

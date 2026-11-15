@@ -10,8 +10,6 @@ module
 public import LeanVM.Guest.Mode.CertDefs
 public import LeanVM.Guest.Pack.«P43».Mode0
 public import LeanVM.Guest.Pack.«P43».Mode1
-public import LeanVM.Guest.Pack.«P43».Mode2
-public import LeanVM.Guest.Pack.«P43».Mode3
 public import LeanVM.Guest.Pack.«P43».ModeH
 public import LeanVM.Guest.Pack.«P43».ModeL0
 meta import LeanVM.Guest.KernelLit
@@ -591,9 +589,9 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     (Mode.fa_nil)))))))))))))))))))))))
 
 /-- The certificates' walks and hints. -/
-theorem certs_walk («__loop2 hints» : Mode.HintsHyp Fn.«main_loop2».modeCert) :
+theorem certs_walk :
     ∀ K ∈ certs, Mode.CertWalk K :=
-  Mode.fa_cons (⟨Fn.«main_loop2».modeOk, «__loop2 hints»⟩)
+  Mode.fa_cons (⟨Fn.«main_loop2».modeOk, Fn.«main_loop2».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«eq_prefix_run__L23».modeOk, Fn.«eq_prefix_run__L23».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«plus_one_run__L32».modeOk, Fn.«plus_one_run__L32».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«block_selector__L1».modeOk, Fn.«block_selector__L1».modeHintsOk⟩)

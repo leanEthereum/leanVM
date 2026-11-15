@@ -10,9 +10,6 @@ module
 public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P17».Mode0
 public import LeanVM.Guest.Pack.«P17».Mode1
-public import LeanVM.Guest.Pack.«P17».Mode2
-public import LeanVM.Guest.Pack.«P17».Mode3
-public import LeanVM.Guest.Pack.«P17».ModeD0
 public import LeanVM.Guest.Pack.«P17».ModeX
 
 set_option Elab.async false
@@ -136,6 +133,21 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L16»
+
+namespace LeanVM.Guest.Fn.«da_levels__L128_L7»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `da_levels__L128_L7`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 415) (d := Data.adviceFn415) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«da_levels__L128_L7»
 
 namespace LeanVM.Guest.Fn.«level_queries__L37_L0_L4_L16_L16_L4_L0_L0_L0_L0»
 
@@ -391,21 +403,6 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0»
-
-namespace LeanVM.Guest.Fn.«da_levels__L128_L7»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `da_levels__L128_L7`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 415) (d := Data.adviceFn415) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L128_L7»
 
 namespace LeanVM.Guest.Fn.«check_opening_terminal»
 

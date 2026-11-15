@@ -36,11 +36,11 @@ theorem Abs.coveredHR_val {s : St} {A : Abs} (hA : Holds s A) {k : Mono} (h : A.
     ∃ vk, MonoVal s k vk := by
   unfold Abs.coveredHR at h
   rcases Bool.or_eq_true_iff.mp h with h | h
-  · obtain ⟨k', hm, hb⟩ := List.any_eq_true.mp h
+  · obtain ⟨k', hm, hb⟩ := List.any_eq_true.mp (any_of_anyB h)
     obtain rfl := Mono.beq_eq hb
     obtain ⟨v, -, h1, -⟩ := hA.h _ hm
     exact ⟨v, h1⟩
-  · obtain ⟨r, hm, hb⟩ := List.any_eq_true.mp h
+  · obtain ⟨r, hm, hb⟩ := List.any_eq_true.mp (Abs.inRuns_any h)
     exact inRng_valR hA (hA.r r hm) hb
 
 /-- **A heap cell the walk knows written has a word.** -/
@@ -139,7 +139,7 @@ theorem Abs.coveredP_sound {s : St} {A : Abs} (hA : Holds s A) (hfp : s.fp < max
   unfold Abs.coveredP at h
   rcases Bool.or_eq_true_iff.mp h with h | h
   · rcases Bool.or_eq_true_iff.mp h with h | h
-    · obtain ⟨⟨r', os'⟩, hm, hh⟩ := List.any_eq_true.mp h
+    · obtain ⟨⟨r', os'⟩, hm, hh⟩ := List.any_eq_true.mp (any_of_anyB h)
       simp only [Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hh
       obtain ⟨⟨⟨⟨⟨⟨⟨hq, hS⟩, hd⟩, hlo⟩, hhi⟩, hklo⟩, hkhi⟩, hos⟩ := hh
       obtain ⟨vq, xlo', xhi', h1, h2, h3, h4⟩ := hA.p _ hm

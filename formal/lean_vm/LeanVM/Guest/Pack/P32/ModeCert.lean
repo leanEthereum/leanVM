@@ -10,9 +10,7 @@ module
 public import LeanVM.Guest.Mode.CertDefs
 public import LeanVM.Guest.Pack.«P32».Mode0
 public import LeanVM.Guest.Pack.«P32».Mode1
-public import LeanVM.Guest.Pack.«P32».Mode2
 public import LeanVM.Guest.Pack.«P32».ModeH
-public import LeanVM.Guest.Pack.«P32».ModeL0
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false

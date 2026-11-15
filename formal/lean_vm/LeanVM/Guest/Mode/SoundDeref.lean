@@ -96,7 +96,7 @@ theorem loadVal_sound {En : Env} {s : St} {A : Abs} (hH : Holds s A) (hE : EnvOk
         obtain ⟨u, hu, hok⟩ := hH.v d y hvd
         rw [hv] at hu; cases hu; exact hok
     · obtain ⟨p, hp, rfl⟩ := Option.map_eq_some_iff.mp hx
-      have hm := List.mem_of_find?_eq_some hp
+      have hm := mem_buckets (List.mem_of_find?_eq_some hp)
       have hb := List.find?_some hp
       obtain ⟨v', c', w, h1, h2, h3, h4⟩ := hH.hv p hm
       rw [Mono.beq_eq hb] at h1

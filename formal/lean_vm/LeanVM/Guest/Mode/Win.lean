@@ -53,7 +53,7 @@ theorem forceAll_eq {β : Type} : ∀ (l : List Abs) (k : List Abs → β), forc
   | A :: l, k => by
     show A.force (fun A ↦ forceAll l fun l ↦ k (A :: l)) = _
     obtain ⟨w, v, nz, hv, h, r, lt, pr, xs, p⟩ := A
-    simp only [Abs.force, Trie.seq_eq]
+    simp only [Abs.force, Trie.seq_eq, lseq_eq]
     exact forceAll_eq l _
 
 theorem runCode_cons (E : Env) (F : Fun) (ins : OffsetInstruction) (l : List OffsetInstruction) (i : ℕ)

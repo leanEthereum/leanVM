@@ -88,7 +88,7 @@ theorem hvGet_cell {sC sE : St} {A : Abs} {mq : Mono} (F : Frames sC sE mq) (hA 
       obtain ⟨u', h4, h5⟩ := hA.v d _ hv
       rw [hu] at h4; cases h4; exact h5
   · obtain ⟨p, hp, hpx⟩ := Option.map_eq_some_iff.mp h
-    obtain ⟨v0, c, w, h1, h2, h3, h4⟩ := hA.hv p (List.mem_of_find?_eq_some hp)
+    obtain ⟨v0, c, w, h1, h2, h3, h4⟩ := hA.hv p (mem_buckets (List.mem_of_find?_eq_some hp))
     have hb := List.find?_some hp
     rw [Mono.beq_eq hb] at h1
     rw [hpx] at h4
@@ -155,7 +155,7 @@ theorem hvGet_gen {s : St} {A : Abs} (hA : Holds s A) (hfp : s.fp < maxCells) (h
     rw [own_names hfp hd hk hX]
     exact ⟨u, hu', hx⟩
   · obtain ⟨p, hp, hpx⟩ := Option.map_eq_some_iff.mp h
-    obtain ⟨v0, c, w, h1, h2, h3, h4⟩ := hA.hv p (List.mem_of_find?_eq_some hp)
+    obtain ⟨v0, c, w, h1, h2, h3, h4⟩ := hA.hv p (mem_buckets (List.mem_of_find?_eq_some hp))
     have hb := List.find?_some hp
     rw [Mono.beq_eq hb] at h1
     rw [hpx] at h4

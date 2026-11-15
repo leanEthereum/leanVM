@@ -10,10 +10,23 @@ module
 public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P29».Mode0
 public import LeanVM.Guest.Pack.«P29».Mode1
-public import LeanVM.Guest.Pack.«P29».Mode2
-public import LeanVM.Guest.Pack.«P29».ModeX
 
 set_option Elab.async false
+
+namespace LeanVM.Guest.Fn.«claim_list_digest»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `claim_list_digest`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 24) (d := Data.adviceFn24) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«claim_list_digest»
 
 namespace LeanVM.Guest.Fn.«main_loop4»
 
@@ -314,18 +327,3 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«walk_path__L6_L6»
-
-namespace LeanVM.Guest.Fn.«claim_list_digest»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `claim_list_digest`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 24) (d := Data.adviceFn24) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«claim_list_digest»
