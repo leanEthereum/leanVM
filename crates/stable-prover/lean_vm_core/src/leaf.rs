@@ -183,8 +183,7 @@ pub(crate) fn prove_balance(blocks: [&[Block]; N_BUS_TREES], cols: &[&[F64]], ps
 
     let leaves = crate::stage!("Bus leaves", || trees.each_ref().map(|tree| build_leaves(tree, cols)));
     let ones = trees.each_ref().map(padding_runs);
-    let products = crate::stage!("Bus GKR", || gkr::prove_products(leaves, ones, ps));
-    let zeta = products.point;
+    let (zeta, leaf_values) = crate::stage!("Bus GKR", || gkr::prove_products(leaves, ones, ps));
 
     let mut claims = Vec::new();
     let mut forms = std::array::from_fn(|_| TABLE_WIDTHS.map(Form::new).to_vec());
@@ -199,7 +198,7 @@ pub(crate) fn prove_balance(blocks: [&[Block]; N_BUS_TREES], cols: &[&[F64]], ps
         // Completeness only: the verifier derives the tables' share rather than checking it.
         debug_assert_eq!(
             sigmas[s].iter().fold(boundary[s], |acc, &b| acc + b),
-            products.values[s],
+            leaf_values[s],
             "tree {s} must decompose into its leaf value"
         );
     }

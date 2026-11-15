@@ -10,10 +10,11 @@
 //! Every supported rate uses Johnson list decoding with OOD binding ([`verifier::SECURITY_BITS`]). Level 0 takes
 //! its OOD sample right after its root ([`::pcs::commit`]), each deeper commitment one inside the opening.
 
+use ::pcs::Committed;
 use primitives::field::F64;
 use primitives::transcript::ProverState;
 
-pub use ::pcs::{Committed, RingSwitchOpen, StackClaim as SlotClaim, open};
+pub use ::pcs::{StackClaim as SlotClaim, open};
 
 /// `log2` of the lanes a Merkle leaf holds, which is also WHIR's initial folding factor: the level-0 commitment is
 /// reused by the opening, so the two are one knob.

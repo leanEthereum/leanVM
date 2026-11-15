@@ -21,12 +21,6 @@ use primitives::field::{Acc8, F128, F128x8};
 use primitives::multilinear::interp;
 use primitives::transcript::ProverState;
 
-/// The leaf claims a batched grand-product proof ends on: every tree's at one shared point.
-pub(crate) struct Products {
-    pub point: Vec<F128>,
-    pub values: [F128; TREES],
-}
-
 /// Runs of rows known to be the identity, sorted and disjoint.
 pub(crate) type Ones = Vec<Range<usize>>;
 
@@ -45,10 +39,14 @@ pub fn y_grind(step: usize, last: bool) -> u32 {
 
 /// Prove the bus's grand products as one batched radix-four GKR: push, pull, then count. Push and pull have one
 /// product by construction, so one root is sent for both, then the count's. `ones` are each tree's runs of leaves
-/// known to be the identity.
+/// known to be the identity. Returns the leaf claims it ends on: the shared point and every tree's value there.
 ///
 /// Per layer: a grind and the combiner `λ`, the sumcheck rounds, the trees' children, then a grind and `(u_0, u_1)`.
-pub(crate) fn prove_products(leaves: [Vec<F128>; TREES], ones: [Ones; TREES], ps: &mut ProverState) -> Products {
+pub(crate) fn prove_products(
+    leaves: [Vec<F128>; TREES],
+    ones: [Ones; TREES],
+    ps: &mut ProverState,
+) -> (Vec<F128>, [F128; TREES]) {
     let mu = crate::log2_ceil_usize(leaves[0].len());
     assert!(
         leaves.iter().all(|tree| !tree.is_empty() && tree.len() <= 1 << mu),
@@ -108,7 +106,7 @@ pub(crate) fn prove_products(leaves: [Vec<F128>; TREES], ones: [Ones; TREES], ps
             .map(|c| interp(interp(c[0], c[1], u0), interp(c[2], c[3], u0), u1));
         point = [vec![u0, u1], chi].concat();
     }
-    Products { point, values }
+    (point, values)
 }
 
 /// The rows of a level `by` times coarser all of whose rows are in `ones`.
@@ -445,14 +443,14 @@ mod tests {
             });
             balance(&mut leaves);
             let mut ps = ProverState::from_label(b"radix-four-gkr-test");
-            let proved = prove_products(leaves.clone(), Default::default(), &mut ps);
+            let (point, values) = prove_products(leaves.clone(), Default::default(), &mut ps);
             let stream = ps.into_proof().stream;
             assert_eq!(
                 stream[..2],
                 [product(&leaves[0]), product(&leaves[2])].map(|x| to_scalar(&x))
             );
             for lane in 0..3 {
-                assert_eq!(proved.values[lane], mle_eval_e(&leaves[lane], &proved.point));
+                assert_eq!(values[lane], mle_eval_e(&leaves[lane], &point));
             }
         }
     }
@@ -474,8 +472,9 @@ mod tests {
             });
             let mut sparse_ps = ProverState::from_label(b"sparse-radix-four-gkr-test");
             let proved = prove_products(leaves, Default::default(), &mut sparse_ps);
+            let (point, values) = &proved;
             for lane in 0..3 {
-                assert_eq!(proved.values[lane], mle_eval_e(&dense[lane], &proved.point));
+                assert_eq!(values[lane], mle_eval_e(&dense[lane], point));
             }
             let proof = sparse_ps.into_proof();
             assert_eq!(
@@ -483,9 +482,7 @@ mod tests {
                 [product(&dense[0]), product(&dense[2])].map(|x| to_scalar(&x))
             );
             let mut dense_ps = ProverState::from_label(b"sparse-radix-four-gkr-test");
-            let dense_proved = prove_products(dense, Default::default(), &mut dense_ps);
-            assert_eq!(dense_proved.point, proved.point);
-            assert_eq!(dense_proved.values, proved.values);
+            assert_eq!(prove_products(dense, Default::default(), &mut dense_ps), proved);
             assert_eq!(dense_ps.into_proof().stream, proof.stream);
         }
     }
@@ -507,8 +504,7 @@ mod tests {
             balance(&mut leaves);
             let prove = |ones: [Ones; 3]| {
                 let mut ps = ProverState::from_label(b"known-identity-runs");
-                let proved = prove_products(leaves.clone(), ones, &mut ps);
-                (proved.point, proved.values, ps.into_proof().stream)
+                (prove_products(leaves.clone(), ones, &mut ps), ps.into_proof().stream)
             };
             assert!(
                 prove(Default::default()) == prove([0, 1, 2].map(|_| runs.to_vec())),
