@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.Backend.Sound.Cut
 
-  A function's piece from its parts (`Backend.Cut`): the walk glued at its cuts, and the code
-  chunk by chunk.
+  A function's piece from its parts (`Backend.Cut`): the walk glued at its cuts, between top-level
+  statements and between the arms of a `match`, and the code chunk by chunk.
 -/
 
 module
@@ -17,8 +17,14 @@ public import LeanVM.Guest.Backend.Sound.Compiles
 (`placeHead`), each next cut from the one before (`placeBlockN`), and its end `st` from the last
 cut (`placeTail`), and `fnPreOk`, `cutHeadOk` and every `cutChunkOk` hold of `st`, its piece holds:
 `pieceOk … = true`, the very Bool `compiles_of_pieces` reads, with no evaluation of the whole walk.
-The glue is the walk's own structure: `placeBlock` of a block is `placeBlockN` of its first `n`
-statements then `placeBlock` of the rest (`placeBlock_split`).
+The glue is the walk's own structure:
+
+* `placeBlock_split`: a block's walk is its first `n` statements', then the rest's;
+* `placeMatchStmt_eq`: a `match` statement's walk is `matchPre`, then `armsRun` of its arms, then
+  `matchPost` (`placeArms_eq`: `placeArms` is `armsRun`, then the next free cell set past the
+  longest arm); `armsRun_cut`: the arms' run is the first `m` arms' (`armsRunN`), then the rest's;
+* `blockOps`, `blockFills`, `blockSize` are what emission gives (`emitFn_ops`, `emitFn_fills`,
+  `emitFn_size`), so the code and the slots are checked on the placed statements by position.
 -/
 
 namespace LeanVM.Guest.Backend
@@ -33,6 +39,15 @@ theorem P.bind_ok {α β : Type} {m : P α} {f : α → P β} {ctx : Ctx} {st st
   show (do let (a, s) ← m ctx st; f a ctx s : Except String (β × St)) = _
   rw [h]
   rfl
+
+/-- A sequence of walks that succeeds: the first succeeds, then the second from its state. -/
+theorem P.bind_inv {α β : Type} {m : P α} {f : α → P β} {ctx : Ctx} {st st' : St} {b : β}
+    (h : (m >>= f) ctx st = .ok (b, st')) :
+    ∃ a s, m ctx st = .ok (a, s) ∧ f a ctx s = .ok (b, st') := by
+  change (do let (a, s) ← m ctx st; f a ctx s : Except String (β × St)) = _ at h
+  cases hm : m ctx st with
+  | error e => rw [hm] at h; cases h
+  | ok r => rw [hm] at h; exact ⟨r.1, r.2, rfl, h⟩
 
 theorem placeBlock_cons (s : Stmt) (rest : List Stmt) :
     placeBlock (s :: rest) = (do placeStmt s rest; endStmt; placeBlock rest) := by
@@ -77,6 +92,196 @@ theorem placeBody_of_cut {tf : TracedFn} {k : ℕ} {ctx : Ctx} {st st₁ st₂ :
       bind_assoc]
   rw [this, P.bind_ok h₁, h₂]
 
+/-! ## A `match` in parts -/
+
+theorem placeArms_cons (arm : List Stmt) (more : List (List Stmt)) (j n : ℕ) (base : Cell)
+    (exit : ArmExit) :
+    placeArms (arm :: more) j n base exit =
+      (do let r ← armStep arm j n base exit
+          let blocks ← placeArms more (j + 1) n base exit
+          modify fun s => { s with next := max s.next r.2 }
+          pure (r.1 :: blocks)) := by
+  rw [placeArms]
+  cases exit <;> simp only [armStep, bind_assoc, pure_bind]
+
+theorem modify_modify (f g : St → St) :
+    (do modify f; modify g : P Unit) = modify (g ∘ f) := by
+  funext ctx st
+  rfl
+
+/-- **`placeArms` is `armsRun`**, then the next free cell set past the longest arm. -/
+theorem placeArms_eq : ∀ (arms : List (List Stmt)) (j n : ℕ) (base : Cell) (exit : ArmExit),
+    placeArms arms j n base exit =
+      (do let r ← armsRun arms j n base exit
+          modify fun s => { s with next := r.2 }
+          pure r.1)
+  | [], j, n, base, exit => by
+      rw [placeArms, armsRun, pure_bind]
+  | arm :: more, j, n, base, exit => by
+      rw [placeArms_cons, placeArms_eq more, armsRun]
+      simp only [bind_assoc, pure_bind]
+      congr 1
+
+/-- **`placeMatch` in parts**: before the arms, the arms, after them. -/
+theorem placeMatch_eq (x : V) (n : ℕ) (rest : List Stmt) (entered : Option (ℕ × Cell))
+    (chained : Bool) (armsAt : Cell → ArmExit → P (List (List PStmt))) :
+    placeMatch x n rest entered chained armsAt =
+      (do let mc ← matchHeadOf x n rest entered chained
+          let blocks ← armsAt mc.base mc.exit
+          matchTail mc blocks) := by
+  unfold placeMatch matchHeadOf
+  simp only [bind_assoc]
+  congr 1
+  funext r
+  rcases r with ⟨lx, nextSel, sfp, one⟩
+  cases entered with
+  | some p =>
+    rcases p with ⟨first, join⟩
+    cases nextSel with
+    | some q =>
+      rcases q with ⟨x', n'⟩
+      simp only [bind_assoc, pure_bind, matchTail]
+      rfl
+    | none =>
+      simp only [bind_assoc, pure_bind, matchTail]
+      rfl
+  | none =>
+    cases nextSel with
+    | some q =>
+      rcases q with ⟨x', n'⟩
+      simp only [bind_assoc, pure_bind, matchTail]
+    | none => simp only [bind_assoc, pure_bind, matchTail]
+
+/-- **A `match` statement's walk in parts**: before its arms, its arms, after them. -/
+theorem placeMatchStmt_eq (x : V) (arms : List (List Stmt)) (rest : List Stmt) :
+    (do placeStmt (.match_ x arms) rest; endStmt) =
+      (do let mc ← matchPre x arms.length rest
+          let r ← armsRun arms 0 arms.length mc.base mc.exit
+          matchPost mc r.1 r.2) := by
+  rw [placeStmt]
+  simp only [placeMatch_eq, matchPre, matchPost, placeArms_eq, bind_assoc, pure_bind]
+
+/-- **A `match` statement from its parts.** -/
+theorem placeBlockN_match {x : V} {arms : List (List Stmt)} {rest : List Stmt} {ctx : Ctx}
+    {st st₁ st₂ st₃ : St} {mc : MatchHead} {bs : List (List PStmt)} {t : Cell}
+    (hpre : matchPre x arms.length rest ctx st = .ok (mc, st₁))
+    (harms : armsRun arms 0 arms.length mc.base mc.exit ctx st₁ = .ok ((bs, t), st₂))
+    (hpost : matchPost mc bs t ctx st₂ = .ok ((), st₃)) :
+    placeBlockN (.match_ x arms :: rest) 1 ctx st = .ok ((), st₃) := by
+  have hstmt : (do placeStmt (.match_ x arms) rest; endStmt) ctx st = .ok ((), st₃) := by
+    rw [placeMatchStmt_eq, P.bind_ok hpre, P.bind_ok harms]
+    exact hpost
+  have : placeBlockN (.match_ x arms :: rest) 1 =
+      ((do placeStmt (.match_ x arms) rest; endStmt) >>= fun _ => placeBlockN rest 0) := by
+    rw [placeBlockN, bind_assoc]
+  rw [this, P.bind_ok hstmt]
+  cases rest <;> rfl
+
+theorem drop_of_isMatchAt {body : List Stmt} {i : ℕ} (hs : isMatchAt body i = true) :
+    body.drop i = .match_ (selOf (body.getD i default)) (armsOf (body.getD i default)) ::
+      body.drop (i + 1) := by
+  unfold isMatchAt at hs
+  split at hs
+  · next x arms rest h =>
+    have hi : i < body.length := by
+      have := congrArg List.length h
+      simp only [List.length_drop, List.length_cons] at this
+      omega
+    have hget : body.getD i default = .match_ x arms := by
+      rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi, Option.getD_some]
+      have := List.drop_eq_getElem_cons hi
+      rw [h] at this
+      exact (List.cons.inj this).1.symm
+    rw [hget, h, selOf, armsOf]
+    have := List.drop_eq_getElem_cons hi
+    rw [h] at this
+    rw [(List.cons.inj this).2]
+  · cases hs
+
+/-- **Statement `i` of a block, a `match`, from its parts.** -/
+theorem placeBlockN_match_at {body : List Stmt} {i : ℕ} {ctx : Ctx} {st st₁ st₂ st₃ : St}
+    {mc : MatchHead} {bs : List (List PStmt)} {t : Cell} (hs : isMatchAt body i = true)
+    (hpre : matchPre (selOf (body.getD i default)) (armsOf (body.getD i default)).length
+      (body.drop (i + 1)) ctx st = .ok (mc, st₁))
+    (harms : armsRun (armsOf (body.getD i default)) 0 (armsOf (body.getD i default)).length
+      mc.base mc.exit ctx st₁ = .ok ((bs, t), st₂))
+    (hpost : matchPost mc bs t ctx st₂ = .ok ((), st₃)) :
+    placeBlockN (body.drop i) 1 ctx st = .ok ((), st₃) := by
+  rw [drop_of_isMatchAt hs]
+  exact placeBlockN_match hpre harms hpost
+
+/-- The arms' run reaches past `base`. -/
+theorem armsRun_ge : ∀ {arms : List (List Stmt)} {j n : ℕ} {base : Cell} {exit : ArmExit}
+    {ctx : Ctx} {st st' : St} {bs : List (List PStmt)} {t : Cell},
+    armsRun arms j n base exit ctx st = .ok ((bs, t), st') → base ≤ t
+  | [], _, _, _, _, _, _, _, _, _, h => by
+      rw [armsRun] at h
+      cases h
+      exact Nat.le_refl _
+  | _ :: _, _, _, _, _, _, _, _, _, _, h => by
+      rw [armsRun] at h
+      obtain ⟨⟨blk, top⟩, s₁, _, h⟩ := P.bind_inv h
+      obtain ⟨⟨blocks, t'⟩, s₂, h₂, h⟩ := P.bind_inv h
+      cases h
+      exact Nat.le_trans (armsRun_ge h₂) (Nat.le_max_left _ _)
+
+/-- **The arms' run split**: the first `m` arms (`armsRunN`), then the rest. -/
+theorem armsRun_split : ∀ {l : List (List Stmt)} {j m n : ℕ} {base : Cell} {exit : ArmExit}
+    {ctx : Ctx} {st st₁ st₂ : St} {bA bB : List (List PStmt)} {tA tB : Cell},
+    armsRunN l j n base exit m ctx st = .ok ((bA, tA), st₁) →
+    armsRun (l.drop m) (j + m) n base exit ctx st₁ = .ok ((bB, tB), st₂) →
+    armsRun l j n base exit ctx st = .ok ((bA ++ bB, max tB tA), st₂)
+  | [], _, _, _, _, _, _, _, _, _, _, _, _, _, h₁, h₂ => by
+      rw [armsRunN] at h₁
+      cases h₁
+      rw [List.drop_nil, armsRun] at h₂
+      cases h₂
+      rw [armsRun, Nat.max_self]
+      rfl
+  | _ :: _, _, 0, _, _, _, _, _, _, _, _, _, _, _, h₁, h₂ => by
+      rw [armsRunN] at h₁
+      cases h₁
+      rw [List.drop_zero, Nat.add_zero] at h₂
+      rw [List.nil_append, Nat.max_eq_left (armsRun_ge h₂), h₂]
+  | arm :: more, j, m + 1, _, _, _, _, _, _, _, _, _, _, _, h₁, h₂ => by
+      rw [armsRunN] at h₁
+      obtain ⟨⟨blk, top⟩, s₁, hs, h₁⟩ := P.bind_inv h₁
+      obtain ⟨⟨blocks, t'⟩, s₂, hr, h₁⟩ := P.bind_inv h₁
+      cases h₁
+      rw [List.drop_succ_cons, show j + (m + 1) = j + 1 + m by omega] at h₂
+      have ih := armsRun_split hr h₂
+      rw [armsRun, P.bind_ok hs]
+      show (armsRun more (j + 1) _ _ _ >>= _) _ s₁ = _
+      rw [P.bind_ok ih, List.cons_append, ← Nat.max_assoc]
+      rfl
+
+/-- **The arms of a `match` in runs**: the `m` arms from arm `a`, then the arms from `b = a + m`. -/
+theorem armsRun_cut {arms : List (List Stmt)} {a m b n : ℕ} {base : Cell} {exit : ArmExit}
+    {ctx : Ctx} {st st₁ st₂ : St} {bA bB : List (List PStmt)} {tA tB t : Cell}
+    (hb : a + m = b) (ht : max tB tA = t)
+    (h₁ : armsRunN (arms.drop a) a n base exit m ctx st = .ok ((bA, tA), st₁))
+    (h₂ : armsRun (arms.drop b) b n base exit ctx st₁ = .ok ((bB, tB), st₂)) :
+    armsRun (arms.drop a) a n base exit ctx st = .ok ((bA ++ bB, t), st₂) := by
+  subst hb ht
+  rw [← List.drop_drop] at h₂
+  exact armsRun_split h₁ h₂
+
+/-- The arms' run past the last arm. -/
+theorem armsRun_end {arms : List (List Stmt)} {b n : ℕ} {base : Cell} {exit : ArmExit}
+    {ctx : Ctx} {st : St} (h : arms.length ≤ b) :
+    armsRun (arms.drop b) b n base exit ctx st = .ok (([], base), st) := by
+  rw [List.drop_eq_nil_of_le h, armsRun]
+  rfl
+
+/-- The arms' run from arm `0`. -/
+theorem armsRun_drop_zero {arms : List (List Stmt)} {n : ℕ} {base : Cell} {exit : ArmExit}
+    {ctx : Ctx} {st st' : St} {r : List (List PStmt) × Cell}
+    (h : armsRun (arms.drop 0) 0 n base exit ctx st = .ok (r, st')) :
+    armsRun arms 0 n base exit ctx st = .ok (r, st') := by
+  rwa [List.drop_zero] at h
+
+/-! ## The piece from its parts -/
+
 /-- `placeFn` from its walk and its other checks. -/
 theorem placeFn_of_cut {loops : Loops} {sigs : SMap (ℕ × ℕ)} {t : Tables} {tf : TracedFn}
     {st : St} (hpre : fnPreOk loops tf st = true)
@@ -96,6 +301,13 @@ theorem placeFn_of_cut {loops : Loops} {sigs : SMap (ℕ × ℕ)} {t : Tables} {
     · next vs hvs => exact absurd hvs (hne vs)
     · cases hret
 
+/-- A function's resolved code is its statements' instructions by position, resolved. -/
+theorem resolvedFn_emitFn (l : Layout) (pc0 frame : ℕ) (p : PFn) :
+    resolvedFn l pc0 { (emitFn p).1 with frameSize := frame } =
+      (blockOps p.body 0).map (resolveOp l pc0 frame) := by
+  rw [← emitFn_ops]
+  simp [resolvedFn, opsOf]
+
 /-- **A function's piece from its parts**: its placement, `pieceOk`'s comparisons but the code's,
 and its code chunk by chunk. -/
 theorem pieceOk_of_cut {loops : Loops} {sigs : SMap (ℕ × ℕ)} {l : Layout} {t : Tables}
@@ -109,18 +321,23 @@ theorem pieceOk_of_cut {loops : Loops} {sigs : SMap (ℕ × ℕ)} {l : Layout} {
   unfold pieceOk pieceOkWith
   rw [hplace]
   simp only [decide_eq_true_eq] at h3 h7
-  simp only [Bool.and_eq_true, beq_iff_eq, h1, h2, h3, h4, h5, h6, h7, h8, h9, and_true, true_and,
+  have h4' : allPairs fillIs (emitFn pf.fn).2.toList o.fills = true := by
+    rw [emitFn_fills]
+    exact h4
+  have h6' : (emitFn pf.fn).1.code.size = o.size := by rw [emitFn_size, h6]
+  simp only [Bool.and_eq_true, beq_iff_eq, h1, h2, h3, h4', h5, h6', h7, h8, h9, and_true, true_and,
     decide_eq_true_eq, decide_true]
-  have hlen : (resolvedFn l pc0 { (emitFn pf.fn).1 with frameSize := frame }).length = o.size := by
-    simp [resolvedFn, h6]
-  rw [chunked_eq, hlen]
+  rw [resolvedFn_emitFn, chunked_eq]
+  have hlen : ((blockOps pf.fn.body 0).map (resolveOp l pc0 frame)).length = o.size := by
+    rw [List.length_map, blockOps_length, h6]
+  rw [hlen]
   apply List.ext_getElem
   · simp [h10]
   · intro i _ h2'
     have := hchunks i h2'
     simp only [cutChunkOk, decide_eq_true_eq, List.getD_eq_getElem?_getD,
       List.getElem?_eq_getElem h2', Option.getD_some] at this
-    simp [this]
+    simp [← this, List.map_drop, List.map_take]
 
 /-- **Function `j`'s piece from its parts**, as `pieceAt` reads it. -/
 theorem pieceAt_of_cut {loops : Loops} {sigs : SMap (ℕ × ℕ)} {l : Layout} {p : List TracedFn}
@@ -158,6 +375,18 @@ theorem pieceAtWith_of_cut {extra : ℕ → VMap Loc → Bool} {loops : Loops} {
   have h := pieceAt_of_cut h₁ h₂ hhead hchunks
   simp only [cutHeadAt, Bool.and_eq_true] at hhead
   exact pieceOkWith_of_pieceOk h (placeFn_of_cut hhead.1 (placeBody_of_cut h₁ h₂)) hx
+
+/-- **The locations function `j` is placed at, from its parts**: the last state's. -/
+theorem placedLocsAt_of_cutWalk {loops : Loops} {sigs : SMap (ℕ × ℕ)} {p : List TracedFn}
+    {os : List FnOut} {cfs : List CompiledFunction} {j k : ℕ} {st₁ st : St}
+    (h₁ : placeHead (p.getD j default) k (ctxOf loops sigs (p.getD j default))
+      (initSt loops (tablesAt os j) (p.getD j default)) = .ok ((), st₁))
+    (h₂ : placeTail (p.getD j default) k (ctxOf loops sigs (p.getD j default)) st₁ = .ok ((), st))
+    (hhead : cutHeadAt loops p os cfs j st = true) :
+    placedLocsAt loops sigs p os j = st.locs := by
+  simp only [cutHeadAt, Bool.and_eq_true] at hhead
+  rw [placedLocsAt, placeFn_of_cut hhead.1 (placeBody_of_cut h₁ h₂)]
+  rfl
 
 end
 end LeanVM.Guest.Backend
