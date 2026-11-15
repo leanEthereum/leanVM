@@ -78,13 +78,21 @@ theorem cellCounts_get (set : NMap Unit) (ops : List LOp) (n : ℕ) :
 
 variable {tf : TracedFn} {pf : Placed}
 
+theorem TmpsApart.parts (h : TmpsApart tf pf) :
+    apartWith tf pf (Stmt.tmpsList tf.core.body) (tmpCellSet pf.locs (Stmt.tmpsList tf.core.body))
+      (cellCounts (tmpCellSet pf.locs (Stmt.tmpsList tf.core.body)) (blockOps pf.fn.body 0)) =
+      true ∧ distinctCells pf.locs (Stmt.tmpsList tf.core.body) {} = true ∧
+    tmpOpsB (tmpCellSet pf.locs (Stmt.tmpsList tf.core.body)) (fpPtrs (blockOps pf.fn.body 0))
+      (blockOps pf.fn.body 0) = true := by
+  unfold TmpsApart tmpsApartB at h
+  rw [nmapSeq_eq, nmapSeq_eq, nmapSeq_eq, Bool.and_eq_true, Bool.and_eq_true,
+    Bool.and_eq_true] at h
+  exact ⟨h.2.1.1, h.2.1.2, h.2.2⟩
+
 theorem TmpsApart.with (h : TmpsApart tf pf) :
     apartWith tf pf (Stmt.tmpsList tf.core.body) (tmpCellSet pf.locs (Stmt.tmpsList tf.core.body))
       (cellCounts (tmpCellSet pf.locs (Stmt.tmpsList tf.core.body)) (blockOps pf.fn.body 0)) =
-      true := by
-  unfold TmpsApart tmpsApartB at h
-  rw [nmapSeq_eq, nmapSeq_eq, Bool.and_eq_true] at h
-  exact h.2
+      true := h.parts.1
 
 /-- **A temporary has a cell.** -/
 theorem TmpsApart.cell (h : TmpsApart tf pf) {t : V} (ht : t ∈ Stmt.tmpsList tf.core.body) :
@@ -120,6 +128,109 @@ theorem TmpsApart.count (h : TmpsApart tf pf) {t : V} (ht : t ∈ Stmt.tmpsList 
     (blockOps pf.fn.body 0) n
   rw [beq_iff_eq.mp this, hs] at hg
   simpa using hg.symm
+
+theorem distinctCells_spec (locs : VMap Loc) : ∀ (ts : List V) (m : NMap Unit),
+    distinctCells locs ts m = true →
+      (∀ t ∈ ts, ∀ n, cellP locs t = some n → m.contains n = false) ∧
+      ∀ t ∈ ts, ∀ t' ∈ ts, ∀ n, cellP locs t = some n → cellP locs t' = some n → t = t'
+  | [], _, _ => ⟨fun _ h => (nomatch h), fun _ h => (nomatch h)⟩
+  | t :: ts, m, h => by
+      unfold distinctCells at h
+      split at h
+      · next n hn =>
+        rw [Bool.and_eq_true, Bool.not_eq_true'] at h
+        obtain ⟨hm, hrest⟩ := h
+        obtain ⟨ih1, ih2⟩ := distinctCells_spec locs ts _ hrest
+        have hins : ∀ t'' ∈ ts, ∀ n'', cellP locs t'' = some n'' → n'' ≠ n ∧ m.contains n'' = false :=
+          fun t'' ht'' n'' hn'' => by
+            have := ih1 t'' ht'' n'' hn''
+            simp only [NMap.contains, NMap.get?_insert] at this
+            split at this
+            · simp at this
+            · next hne => exact ⟨hne, this⟩
+        refine ⟨fun t' ht' n' hn' => ?_, fun a ha b hb k hka hkb => ?_⟩
+        · rcases List.mem_cons.mp ht' with rfl | ht'
+          · rw [hn] at hn'; cases hn'; exact hm
+          · exact (hins t' ht' n' hn').2
+        · rcases List.mem_cons.mp ha with hat | ha
+          · rcases List.mem_cons.mp hb with hbt | hb
+            · rw [hat, hbt]
+            · rw [hat, hn] at hka
+              exact absurd (Option.some.inj hka).symm (hins b hb k hkb).1
+          · rcases List.mem_cons.mp hb with hbt | hb
+            · rw [hbt, hn] at hkb
+              exact absurd (Option.some.inj hkb).symm (hins a ha k hka).1
+            · exact ih2 a ha b hb k hka hkb
+      · next hn =>
+        obtain ⟨ih1, ih2⟩ := distinctCells_spec locs ts m h
+        refine ⟨fun t' ht' n' hn' => ?_, fun a ha b hb k hka hkb => ?_⟩
+        · rcases List.mem_cons.mp ht' with rfl | ht'
+          · rw [hn] at hn'; cases hn'
+          · exact ih1 t' ht' n' hn'
+        · rcases List.mem_cons.mp ha with hat | ha
+          · rw [hat, hn] at hka; cases hka
+          rcases List.mem_cons.mp hb with hbt | hb
+          · rw [hbt, hn] at hkb; cases hkb
+          exact ih2 a ha b hb k hka hkb
+
+/-- **No two temporaries share a cell.** -/
+theorem TmpsApart.inj (h : TmpsApart tf pf) :
+    ∀ t ∈ Stmt.tmpsList tf.core.body, ∀ t' ∈ Stmt.tmpsList tf.core.body, ∀ n,
+      cellP pf.locs t = some n → cellP pf.locs t' = some n → t = t' :=
+  (distinctCells_spec pf.locs _ _ h.parts.2.1).2
+
+theorem fold_contains_mono (g : NMap Unit → LOp → NMap Unit) (q : ℕ)
+    (hkeep : ∀ m o, m.contains q = true → (g m o).contains q = true)
+    (hadd : ∀ m off d, (g m (.deref q off d .fp)).contains q = true) :
+    ∀ (ops : List LOp) (m : NMap Unit),
+      (m.contains q = true ∨ ∃ off d, LOp.deref q off d .fp ∈ ops) →
+        (ops.foldl g m).contains q = true
+  | [], _, h => by
+      rcases h with h | ⟨_, _, h⟩
+      · exact h
+      · exact nomatch h
+  | o :: os, m, h => by
+      rw [List.foldl_cons]
+      refine fold_contains_mono g q hkeep hadd os _ ?_
+      rcases h with h | ⟨off, d, h⟩
+      · exact Or.inl (hkeep m o h)
+      · rcases List.mem_cons.mp h with rfl | h
+        · exact Or.inl (hadd m off d)
+        · exact Or.inr ⟨off, d, h⟩
+
+/-- A pointer cell through which a `DEREF` stores the frame pointer is in `fpPtrs`. -/
+theorem fpPtrs_contains {ops : List LOp} {q off d : ℕ} (h : LOp.deref q off d .fp ∈ ops) :
+    (fpPtrs ops).contains q = true := by
+  unfold fpPtrs
+  refine fold_contains_mono _ q (fun m o hm => ?_) (fun m off d => ?_) ops {} (Or.inr ⟨off, d, h⟩)
+  · split
+    · simp only [NMap.contains, NMap.get?_insert] at hm ⊢
+      split <;> simp_all
+    · exact hm
+  · simp [NMap.contains, NMap.get?_insert]
+
+/-- **An instruction naming a temporary's cell is a `DEREF` into it at offset `0`, through a
+cell that is no temporary's and through which no `DEREF` stores the frame pointer.** -/
+theorem TmpsApart.ops (h : TmpsApart tf pf) {t : V} (ht : t ∈ Stmt.tmpsList tf.core.body)
+    {c : ℕ} (hc : cellP pf.locs t = some c) {o : LOp} (ho : o ∈ blockOps pf.fn.body 0)
+    (hco : c ∈ opCells o) :
+    ∃ p, o = .deref p 0 c .cell ∧ (∀ t' ∈ Stmt.tmpsList tf.core.body, cellP pf.locs t' ≠ some p) ∧
+      ∀ q off d, LOp.deref q off d .fp ∈ blockOps pf.fn.body 0 → q ≠ p := by
+  have hb := h.parts.2.2
+  simp only [tmpOpsB, List.all_eq_true] at hb
+  have := hb o ho c hco
+  have hs := (tmpCellSet_contains pf.locs (Stmt.tmpsList tf.core.body) c).mpr ⟨t, ht, hc⟩
+  rw [hs, Bool.not_true, Bool.false_or] at this
+  split at this
+  · next p d =>
+    simp only [Bool.and_eq_true, beq_iff_eq, Bool.not_eq_true'] at this
+    obtain ⟨⟨rfl, hp⟩, hf⟩ := this
+    refine ⟨p, rfl, fun t' ht' he => ?_, fun q off d hq he => ?_⟩
+    · have := (tmpCellSet_contains pf.locs (Stmt.tmpsList tf.core.body) p).mpr ⟨t', ht', he⟩
+      rw [hp] at this; cases this
+    · subst he
+      rw [fpPtrs_contains hq] at hf; cases hf
+  · cases this
 
 end
 end LeanVM.Guest.Backend.Complete
