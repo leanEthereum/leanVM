@@ -42,13 +42,10 @@ impl Deref for Column {
     }
 }
 
-/// A compiled program with its bytecode columns and table, computed once.
+/// A compiled program with its bytecode table, computed once.
 #[derive(Debug)]
 pub struct Program {
     compiled: CompiledProgram,
-    /// One word per instruction for each of the opcode and the operand slots, which the provers' bus reads: views
-    /// into `table`.
-    columns: BytecodeColumns,
     /// The stacked bytecode polynomial's evaluations: `2^BUS_BITS` slots of `prog.len()` words, slot `s` holding bus
     /// tuple coordinate `s` of every instruction (the columns from [`OPCODE_SLOT`] on, zeros elsewhere). It is what
     /// the Fiat-Shamir IV hashes and what a deferred bytecode claim evaluates.
@@ -70,16 +67,10 @@ impl From<CompiledProgram> for Program {
                 table[(OPCODE_SLOT + i) * n + pc] = word;
             }
         }
-        let table: Arc<[u64]> = table.into();
-        let columns = std::array::from_fn(|i| Column {
-            table: table.clone(),
-            words: (OPCODE_SLOT + i) * n..(OPCODE_SLOT + i + 1) * n,
-        });
         let bytecode = verifier::Bytecode::new(&table);
         Self {
             compiled,
-            columns,
-            table,
+            table: table.into(),
             bytecode,
         }
     }
@@ -94,9 +85,13 @@ impl Deref for Program {
 }
 
 impl Program {
-    /// The bytecode's public columns, which ride the bus's bytecode blocks.
-    pub fn columns(&self) -> &BytecodeColumns {
-        &self.columns
+    /// The bytecode's public columns, which ride the bus's bytecode blocks: the table's slots from [`OPCODE_SLOT`] on.
+    pub fn columns(&self) -> BytecodeColumns {
+        let n = self.prog.len();
+        std::array::from_fn(|i| Column {
+            table: self.table.clone(),
+            words: (OPCODE_SLOT + i) * n..(OPCODE_SLOT + i + 1) * n,
+        })
     }
 
     /// The stacked bytecode polynomial (§sec:e2e-bc): the columns at their bus tuple coordinates, along `2^BUS_BITS`
