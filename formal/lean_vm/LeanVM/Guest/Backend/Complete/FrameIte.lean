@@ -892,6 +892,14 @@ theorem stmtW_ite (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = true
         subst hnz0
         simp [pathVals, walk, outEs, retVals, pathSels] at hv
 
+/-- **The branch statement** (`IteStmt`, for `bodyW`). -/
+theorem iteStmt (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0)
+    (hRd : ∀ rd, I.Rd rd → ∀ e ∈ I.es, evNT rd I.σ e) (hAg : AgOwn I Ag)
+    (hkw : ∀ k, I.kw k = kwOf Γ k)
+    (hloc : ∀ o q, LOp.set o (.local q) ∈ I.ops → kwOf Γ (.local q) = Γ.tgt q) :
+    IteStmt Γ Ag cl ctx I :=
+  fun _ _ _ _ _ hu hz hnz => stmtW_ite hok hI hmain hRd hAg hkw hloc hu hz hnz
+
 end Main
 
 end
