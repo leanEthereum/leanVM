@@ -1,5 +1,5 @@
-//! One deterministic generator for the stable tree's tests, so a test sees the same stream on every host. It sits
-//! behind the `test-util` feature rather than `#[cfg(test)]`, so the other crates' tests can reach it.
+//! One deterministic generator for the stable tree's tests, so a test sees the same stream on every host; other
+//! crates' tests reach it through the `test-util` feature.
 
 use rand::{RngCore, SeedableRng, rngs::StdRng};
 

@@ -19,4 +19,4 @@ verifier.workspace = true
 test-util = ["dep:rand"]
 
 [dev-dependencies]
-primitives = { package = "stable_primitives", path = ".", features = ["test-util"] }
+rand.workspace = true
