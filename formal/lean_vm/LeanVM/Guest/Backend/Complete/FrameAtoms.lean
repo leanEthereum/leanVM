@@ -119,6 +119,22 @@ theorem load_shift {x : E} {e off : ℕ} {rd : Reader} {d : E}
 
 end Operands
 
+/-- `AtomFAt` without its last two conjuncts (new places, free cells kept), and with the copy
+exception as `Frame.lean` had it at `5fb23fef2`: what the atom lemmas below prove. -/
+def AtomFAt0 (a : Atom) : Prop :=
+  ∀ (ctx : Ctx) (I : Inst) (C : (ℕ → E) → Prop) (st : St) (ok : V → Prop),
+    I.Ok → (ctx.isMain = true → I.fp = 0) → Memory.Ev.atom a ∈ I.es →
+    (∀ rd, I.Rd rd → holdsNT rd I.σ a) →
+    (∀ v ∈ Memory.atomUses a, v ∉ I.tmps) → (∀ t ∈ Memory.atomTmps a, t ∈ I.tmps) →
+    (Fits I st → ∀ p run, a = .frameAddr p run → ∃ r0 base, run.head? = some r0 ∧
+      st.locs[r0]? = some (.cell base) ∧ I.σ p = ofK (addressOfIndex (I.fp + base))) →
+    2 ≤ st.next → VW I C st ok →
+    (∀ v ∈ Memory.atomUses a ++ Memory.atomTmps a, ok v ∨
+      ∃ s, a = .copy v s ∧ st.aliasRun.any (·.contains v) = true) →
+    FAt ctx I C st (placeAtom a) fun _ C' st' =>
+      (Fits I st' → VW I C' st' (fun v => ok v ∨ v ∈ Memory.atomUses a ++ Memory.atomTmps a)) ∧
+        st'.rest = st.rest
+
 section Atoms
 
 variable {ctx : Ctx} {I : Inst} {C : (ℕ → E) → Prop} {st : St}
@@ -215,7 +231,7 @@ theorem atom_ok {a : Atom} {ok : V → Prop}
   fun v hv => (hops v hv).resolve_right fun ⟨s, h, _⟩ => hnc v s h
 
 /-- **`SET` of a constant**: a pooled constant's cell, or the value's cell holding it. -/
-theorem place_const_fat (d : V) (c : E) : AtomFAt (.const d c) := by
+theorem place_const_fat (d : V) (c : E) : AtomFAt0 (.const d c) := by
   intro ctx I C st ok hok _ _ hh _ _ _ h2 hv hops
   have hL := atom_ok hops fun _ _ h => by cases h
   have hev : I.σ d = c := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
@@ -256,7 +272,7 @@ theorem place_const_fat (d : V) (c : E) : AtomFAt (.const d c) := by
     · exact FAt.pure ⟨fun _ => vw_same hv hL (Stronger.refl _) le_rfl rfl, rfl⟩
 
 /-- **`XOR`**: a pooled sum's cell, or the value's cell holding the sum. -/
-theorem place_add_fat (d a b : V) : AtomFAt (.add d a b) := by
+theorem place_add_fat (d a b : V) : AtomFAt0 (.add d a b) := by
   intro ctx I C st ok hok _ _ hh _ _ _ h2 hv hops
   have hL := atom_ok hops fun _ _ h => by cases h
   have hev : I.σ d = I.σ a + I.σ b := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
@@ -302,7 +318,7 @@ theorem place_add_fat (d a b : V) : AtomFAt (.add d a b) := by
 
 /-- **`MUL`**: a pooled product of the factors (an address's shift kept), or the value's cell
 holding the product (a store, a check, a back-solved quotient). -/
-theorem place_mul_fat (d a b : V) : AtomFAt (.mul d a b) := by
+theorem place_mul_fat (d a b : V) : AtomFAt0 (.mul d a b) := by
   intro ctx I C st ok hok _ _ hh _ _ _ h2 hv hops
   have hL := atom_ok hops fun _ _ h => by cases h
   have hev : I.σ d = I.σ a * I.σ b := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
@@ -363,7 +379,7 @@ theorem place_mul_fat (d a b : V) : AtomFAt (.mul d a b) := by
       exact ⟨fun _ => vw_same hv₂ hL (Stronger.refl _) le_rfl rfl, hr₂.trans hr₁⟩
 
 /-- **`assert a == b`**: `MUL` by the pooled `1`, the two words equal in characteristic `2`. -/
-theorem place_assertEq_fat (a b : V) : AtomFAt (.assertEq a b) := by
+theorem place_assertEq_fat (a b : V) : AtomFAt0 (.assertEq a b) := by
   intro ctx I C st ok hok _ _ hh _ _ _ h2 hv hops
   have hL := atom_ok hops fun _ _ h => by cases h
   have hev : I.σ b = I.σ a := by
@@ -389,7 +405,7 @@ theorem place_assertEq_fat (a b : V) : AtomFAt (.assertEq a b) := by
       hr₃.trans (hr₂.trans hr₁)⟩
 
 /-- **`assert a != b`**: `p = x · inv` and `p = 1`. -/
-theorem place_assertNe_fat (x inv p : V) : AtomFAt (.assertNe x inv p) := by
+theorem place_assertNe_fat (x inv p : V) : AtomFAt0 (.assertNe x inv p) := by
   intro ctx I C st ok hok _ _ hh _ _ _ h2 hv hops
   have hL := atom_ok hops fun _ _ h => by cases h
   have hev : I.σ p = I.σ x * I.σ inv ∧ I.σ p = 1 := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
@@ -416,7 +432,7 @@ theorem place_assertNe_fat (x inv p : V) : AtomFAt (.assertNe x inv p) := by
     exact ⟨fun _ => vw_same hv₂ hL (Stronger.refl _) le_rfl rfl, hr₂.trans hr₁⟩
 
 /-- **`assert_in_k`**: a `JUMP` on the pooled `0`. -/
-theorem place_assertInK_fat (a b : V) : AtomFAt (.assertInK a b) := by
+theorem place_assertInK_fat (a b : V) : AtomFAt0 (.assertInK a b) := by
   intro ctx I C st ok hok _ _ hh _ _ _ h2 hv hops
   have hL := atom_ok hops fun _ _ h => by cases h
   have hev : IsInK (I.σ a) ∧ IsInK (I.σ b) := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
@@ -463,7 +479,7 @@ theorem tmpDeref_fat {t pv : V} {lp dst : Cell} {a : Atom} (hes : Memory.Ev.atom
     exact this
 
 /-- **`assert_gpow`**: a load into the touch cell. -/
-theorem place_touch_fat (t p : V) : AtomFAt (.touch t p) := by
+theorem place_touch_fat (t p : V) : AtomFAt0 (.touch t p) := by
   intro ctx I C st ok hok _ hes hh hus hts _ h2 hv hops
   have hL := atom_ok hops fun _ _ h => by cases h
   have hK : IsInK (I.σ p) := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
@@ -482,7 +498,7 @@ theorem place_touch_fat (t p : V) : AtomFAt (.touch t p) := by
   exact ⟨fun _ => vw_same hv₁ hL (Stronger.refl _) (le_of_eq hn.symm) hl, hr.trans hr₁⟩
 
 /-- **A range check**: two loads into its temporaries and `k = x · y`. -/
-theorem place_rangeCheck_fat (x y t1 t2 k : V) : AtomFAt (.rangeCheck x y t1 t2 k) := by
+theorem place_rangeCheck_fat (x y t1 t2 k : V) : AtomFAt0 (.rangeCheck x y t1 t2 k) := by
   intro ctx I C st ok hok _ hes hh hus hts _ h2 hv hops
   have hL := atom_ok hops fun _ _ h => by cases h
   have hev : IsInK (I.σ x) ∧ I.σ k = I.σ x * I.σ y ∧ IsInK (I.σ y) :=
@@ -523,7 +539,7 @@ theorem place_rangeCheck_fat (x y t1 t2 k : V) : AtomFAt (.rangeCheck x y t1 t2 
 
 /-- **A copy**: `MUL` by the pooled `1`, or dropped when both values are one cell of a message run
 read in place (the copy's event giving the destination its word). -/
-theorem place_copy_fat (d s : V) (hds : d ≠ s) : AtomFAt (.copy d s) := by
+theorem place_copy_fat (d s : V) (hds : d ≠ s) : AtomFAt0 (.copy d s) := by
   intro ctx I C st ok hok _ _ hh _ _ _ h2 hv hops
   have hev : I.σ d = I.σ s := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
   have hks : ok s := (hops s (by simp [Memory.atomUses])).resolve_right fun ⟨_, h, _⟩ => by
@@ -661,7 +677,8 @@ theorem pooled_fat {d : V} {find : Scope → Option Cell} {learn : Cell → Scop
 the value's cell (a read, or a store of the value). The value is in a cell: a store of a shifted
 value is open (STATUS finding 2). -/
 theorem place_load_fat (d p : V) (off : ℕ) (ctx : Ctx) (I : Inst) (C : (ℕ → E) → Prop) (st : St)
-    (ok : V → Prop) (hok : I.Ok) (hh : ∀ rd, I.Rd rd → holdsNT rd I.σ (.load d p off))
+    (ok : V → Prop) (hok : I.Ok) (hnd : d ∈ I.named)
+    (hh : ∀ rd, I.Rd rd → holdsNT rd I.σ (.load d p off))
     (hus : ∀ v ∈ Memory.atomUses (.load d p off), v ∉ I.tmps) (h2 : 2 ≤ st.next)
     (hv : VW I C st ok)
     (hops : ∀ v ∈ Memory.atomUses (.load d p off) ++ Memory.atomTmps (.load d p off), ok v ∨
@@ -708,7 +725,7 @@ theorem place_load_fat (d p : V) (off : ℕ) (ctx : Ctx) (I : Inst) (C : (ℕ �
       rw [fw_of_two r2, fw_of_two h2', hw']
       refine ⟨(hload Ψ hΨ rd₀ hrd₀).1, fun ⟨t, ht, htc⟩ => ?_, fun _ rd _ hrd =>
         (hload Ψ hΨ rd hrd).2⟩
-      exact absurd (hok.tsep d _ (by unfold cellP; rw [hdl]) ⟨t, ht, htc⟩) hdt
+      exact absurd (hok.tsep d _ hnd (by unfold cellP; rw [hdl]) ⟨t, ht, htc⟩) hdt
     · refine vw_bind hv₁ (fun v hv' _ => hL v hv') hs' hn' hlo hd0 ⟨o2', o1, fun Ψ hΨ => ?_⟩
       refine how Ψ hΨ fun t ht htc => ?_
       have hI : I.locs[d]? = some (.cell o) := hz.2 d _ (by rw [hlo]; simp)
@@ -721,7 +738,7 @@ theorem place_load_fat (d p : V) (off : ℕ) (ctx : Ctx) (I : Inst) (C : (ℕ �
           cases hx
         · exact hx
       have htI : cellP I.locs t = some o := cellP_mono hz.2 (cellP_mono hle htc)
-      exact hdt (hok.tsep d o (by unfold cellP; rw [hI]) ⟨t, ht, htI⟩)
+      exact hdt (hok.tsep d o hnd (by unfold cellP; rw [hI]) ⟨t, ht, htI⟩)
   · cases hld : st.locs[d]? with
     | none => exact FAt.bind (cellOf_none hld) fun _ _ _ _ _ _ h => h.elim
     | some l =>
@@ -747,7 +764,7 @@ theorem place_load_fat (d p : V) (off : ℕ) (ctx : Ctx) (I : Inst) (C : (ℕ �
       (fun Ψ hΨ _ rd hrd => by
         rw [show Ψ o = I.σ d from hwo Ψ (hs₂ Ψ hΨ)]
         exact (hload Ψ hΨ rd hrd).2)
-      (fun hz _ Ψ _ ⟨t, ht, htc⟩ => absurd (hok.tsep d o (cellP_mono hz.2 hco) ⟨t, ht, htc⟩) hdt))
+      (fun hz _ Ψ _ ⟨t, ht, htc⟩ => absurd (hok.tsep d o hnd (cellP_mono hz.2 hco) ⟨t, ht, htc⟩) hdt))
       fun _ C' st' _ _ _ ⟨hC, hn, hl, hr⟩ => ?_
     subst C'
     exact ⟨fun _ => vw_same hv₂ hL (Stronger.refl _) (le_of_eq hn.symm) hl, hr.trans hr₂⟩
@@ -848,7 +865,7 @@ theorem placeHint_ro (h : Hint) (hok : I.Ok) {ok : V → Prop}
     | (intro v hv; apply hk; subst_vars; simp_all [Memory.hintUses, Memory.destUses])
     | (apply hk; simp_all [Memory.hintUses, Memory.destUses])
 
-theorem place_hint_fat (h : Hint) : AtomFAt (.hint h) := by
+theorem place_hint_fat (h : Hint) : AtomFAt0 (.hint h) := by
   intro ctx I C st ok hok _ _ _ _ _ _ _ hv hops
   have hL := atom_ok hops fun _ _ h => by cases h
   unfold placeAtom
@@ -913,7 +930,7 @@ theorem consecutiveFrom_head {base : ℕ} {cs : List ℕ} {c0 : ℕ}
 
 /-- **`addr(run)`**: the address stays symbolic, the frame's own pointer shifted by the run's
 first cell; or, an address shifted as a value, the product made in a cell. -/
-theorem place_frameAddr_fat (p : V) (run : List V) : AtomFAt (.frameAddr p run) := by
+theorem place_frameAddr_fat (p : V) (run : List V) : AtomFAt0 (.frameAddr p run) := by
   intro ctx I C st ok hok hmain _ _ _ _ hadr h2 hv hops
   have hL := atom_ok hops fun _ _ h => by cases h
   unfold placeAtom
@@ -1047,7 +1064,7 @@ theorem cells13_eq {l : List V} {cs : List Cell} {Ψ : ℕ → E} (hlen : cs.len
 
 /-- **`KECCAK`**: one instruction on the runs of its operands' cells. -/
 theorem place_keccak_fat (ins outs : List V) (inOdd outOdd : Bool) :
-    AtomFAt (.keccak ins outs inOdd outOdd) := by
+    AtomFAt0 (.keccak ins outs inOdd outOdd) := by
   intro ctx I C st ok hok _ _ hh _ _ _ h2 hv hops
   have hL := atom_ok hops fun _ _ h => by cases h
   obtain ⟨_, oc', hoc', hrel⟩ : ins.length = 13 ∧ ∃ outCells : KeccakOutputCells,
@@ -1103,7 +1120,7 @@ theorem place_keccak_fat (ins outs : List V) (inOdd outOdd : Bool) :
 /-- **Every atom but a load and a self copy** on the path (`place_load_fat` covers a load of a
 value in a cell; STATUS findings 1 and 2). -/
 theorem placeAtom_fat (a : Atom) (hc : ∀ d, a ≠ .copy d d) (hl : ∀ d p off, a ≠ .load d p off) :
-    AtomFAt a := by
+    AtomFAt0 a := by
   cases a with
   | const d c => exact place_const_fat d c
   | add d x y => exact place_add_fat d x y
