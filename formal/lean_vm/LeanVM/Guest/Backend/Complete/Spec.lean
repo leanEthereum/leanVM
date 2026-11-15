@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Backend.Sound.Spec
 public import LeanVM.Guest.Backend.Complete.Scoped
+public import LeanVM.Guest.Backend.Complete.Cells
 public import LeanVM.Guest.B2C.Count
 public import LeanVM.Guest.B2C.Types
 public import LeanVM.Guest.Memory.Placed
@@ -55,13 +56,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 
 @[expose] public section
 
-/-! ## Cells and kids -/
-
-/-- A value's cell: `.shifted` and unplaced values have none. -/
-def cellP (locs : VMap Loc) (v : V) : Option ℕ :=
-  match locs[v]? with
-  | some (.cell n) => some n
-  | _ => none
+/-! ## Kids -/
 
 /-- A callee's frame index and the counts of its run. -/
 abbrev Kid := ℕ × (Opcode → ℕ)
@@ -310,7 +305,7 @@ cell's word, or (a frame address or a product kept shifted) a cell's word times 
 range check temporary of the body, on the path or not, is in its cell's word (`TmpsApart` keeps
 its cell from every other use); a registered loop helper's self pointer cell holds its frame; a
 callee's header is in `K`, and a self call (a loop's last) gets this frame's header. -/
-structure FrameClauses (loops : Loops) (TmpsApart : TracedFn → Placed → Prop) (tf : TracedFn)
+structure FrameClauses (loops : Loops) (tf : TracedFn)
     (pf : Placed) (fp : ℕ) (σ : Val) (es : List Ev) (vs : List V) (hdr : E × E)
     (FS : FrameSpec) : Prop where
   cell : ∀ v ∈ readsP tf.core.params tf.core.body σ es vs, ∀ n, cellP pf.locs v = some n →
@@ -349,14 +344,14 @@ memory (of any size) and blind to the temporaries' words, such that on every pat
 hold on some reader its words hold the values the path reads, and on every memory holding the
 frame whose reads agree with the path's events, with the jump tables written and the callees'
 runs, the instructions of the path have their meaning. -/
-def FrameConsistentStmt (TmpsApart : TracedFn → Placed → Prop) : Prop :=
+def FrameConsistentStmt : Prop :=
   ∀ {κ₀ : ℕ} (W : World κ₀), W.Compiled → ∀ tf ∈ W.p, Scoped tf → ∀ pf, World.PlacedAs W tf pf →
   ∀ (fp : ℕ), (tf.core.name = "main" → fp = 0) → ∀ (kfps : List ℕ) (hdr : E × E),
   ∃ FS : Val → FrameSpec, FrameCongr tf pf FS ∧
     ∀ (σ : Val) (es : List Ev) (vs : List V), walk σ tf.core.body = .ret es vs →
       (∀ q ∈ addrs es, σ q.1 = ofK (addressOfIndex (fp + (cellP pf.locs q.2).getD 0))) →
       (∀ rd : Reader, (∀ e ∈ es, e.Holds rd σ) →
-        FrameClauses (loopTable W.p) TmpsApart tf pf fp σ es vs hdr (FS σ)) ∧
+        FrameClauses (loopTable W.p) tf pf fp σ es vs hdr (FS σ)) ∧
       ∀ {κ : ℕ} (L : MemoryImage κ) (ck : List (Opcode → ℕ)),
         FrameOK L (loopTable W.p) tf pf.fn.frameSize fp (FS σ) σ es kfps hdr →
         (∀ e ∈ es, e.Holds L.read σ) → JTHolds L W.layout W.slots →
