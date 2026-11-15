@@ -447,6 +447,84 @@ theorem stagesW_next {C : (ℕ → E) → Prop} {blocks : List (List PStmt)}
 
 end SWords
 
+/-! ## A stage inside the final chain node -/
+
+section Node
+
+variable {κ₀ : ℕ} {Γ : Site κ₀}
+  {Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop} {I : Inst}
+
+theorem stagesFills_append (f : String) : ∀ (firsts : List ℕ) (stages : List (List (List PStmt)))
+    (fs : List ℕ) (ss : List (List (List PStmt))) (pos : ℕ), firsts.length = stages.length →
+    stagesFills f (firsts ++ fs) (stages ++ ss) pos =
+      stagesFills f firsts stages pos ++ stagesFills f fs ss (pos + stagesSize stages)
+  | [], [], fs, ss, pos, _ => by simp [stagesFills, stagesSize]
+  | _ :: firsts, s :: stages, fs, ss, pos, hl => by
+    simp only [List.cons_append, stagesFills, List.headD_cons, List.tail_cons, stagesSize]
+    rw [stagesFills_append f firsts stages fs ss _ (by simpa using hl), List.append_assoc,
+      Nat.add_assoc]
+  | [], _ :: _, _, _, _, hl => by simp at hl
+  | _ :: _, [], _, _, _, hl => by simp at hl
+
+/-- **The final node's instructions**: its join's `SET` at its position, a stage's arms at theirs,
+and the node within the final instructions. -/
+theorem opsIn_node {p₀ : ℕ} {O blk : List PStmt} {h : List LHint} {join lx entry one sfp : ℕ}
+    {fs : List ℕ} {stages more : List (List (List PStmt))} {blocks : List (List PStmt)}
+    (hO : OpsIn I p₀ (blockOps (O ++ [.chain h join lx entry one sfp fs (stages ++ blocks :: more)] ++
+      blk) p₀)) :
+    I.ops[p₀ + blockSize O]? = some (.set join
+        (.local (p₀ + blockSize O + 3 + stagesSize (stages ++ blocks :: more)))) ∧
+      OpsIn I (p₀ + blockSize O + 3 + stagesSize stages)
+        (armsOps blocks (p₀ + blockSize O + 3 + stagesSize stages)) ∧
+      p₀ + blockSize O + 3 + stagesSize (stages ++ blocks :: more) ≤ I.ops.length := by
+  rw [bops_append, bops_append] at hO
+  have h1 := hO.left.right
+  rw [blockOps_length] at h1
+  simp only [blockOps, stmtOps, List.append_nil] at h1
+  have hset := h1 0 (by simp)
+  have hlast := h1 (2 + stagesSize (stages ++ blocks :: more))
+    (by simp [stagesOps_length]; omega)
+  have hS := h1.right
+  simp only [List.length_cons, List.length_nil] at hS
+  rw [stagesOps_append] at hS
+  have hA := hS.right
+  rw [stagesOps_length] at hA
+  simp only [stagesOps] at hA
+  refine ⟨by simpa using hset, ?_, ?_⟩
+  · have := hA.left
+    simpa [Nat.add_assoc] using this
+  · have := (List.getElem?_eq_some_iff.mp hlast).1
+    omega
+
+/-- **The final node's slots**: a stage's table slot `first + j` holds its arm `j`'s position, and
+the slots that arm fills hold theirs. -/
+theorem fills_node {p₀ : ℕ} {O blk : List PStmt} {h : List LHint} {join lx entry one sfp : ℕ}
+    {firsts fs : List ℕ} {first : ℕ} {stages more : List (List (List PStmt))}
+    {blocks : List (List PStmt)} (hl : firsts.length = stages.length)
+    (hF : FillsIn Γ Ag p₀ (O ++ [.chain h join lx entry one sfp (firsts ++ first :: fs)
+      (stages ++ blocks :: more)] ++ blk)) (j : ℕ) (hj : j < blocks.length) :
+    (∀ σ' Ψ kh κ (L : MemoryImage κ), Ag σ' Ψ kh κ L →
+      L.read (addressOfIndex (Γ.l.tablesBase + (first + j))) =
+        some (Γ.tgt (p₀ + blockSize O + 3 + stagesSize stages + armsSize (blocks.take j)))) ∧
+      FillsIn Γ Ag (p₀ + blockSize O + 3 + stagesSize stages + armsSize (blocks.take j))
+        blocks[j] := by
+  have hmem : ∀ f y, y ∈ armsFills f first blocks 0 (p₀ + blockSize O + 3 + stagesSize stages) →
+      y ∈ blockFills f (O ++ [.chain h join lx entry one sfp (firsts ++ first :: fs)
+        (stages ++ blocks :: more)] ++ blk) p₀ := fun f y hy => by
+    rw [blockFills_append, blockFills_append]
+    refine List.mem_append_left _ (List.mem_append_right _ ?_)
+    simp only [blockFills, stmtFills, List.append_nil]
+    rw [stagesFills_append f firsts stages _ _ _ hl]
+    refine List.mem_append_right _ ?_
+    simp only [stagesFills, List.headD_cons, List.tail_cons]
+    exact List.mem_append_left _ (by simpa [Nat.add_assoc] using hy)
+  refine ⟨fun σ' Ψ kh κ L hA => hF "" _ _ (hmem "" _ (by
+      have := armsFills_mem "" first blocks 0 (p₀ + blockSize O + 3 + stagesSize stages) j hj
+      simpa using this)) σ' Ψ kh κ L hA, fun f k i hm => hF f k i (hmem f _
+        (armsFills_blk f first blocks 0 _ j hj hm))⟩
+
+end Node
+
 /-! ## An entered stage -/
 
 section Stage
