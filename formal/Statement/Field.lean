@@ -206,7 +206,7 @@ end LeanVM.Protocol.KeccakHash
 /-! ### The duplex sponge
 
 The Fiat-Shamir sponge of the leanVM verifier and of LeanDA's membership challenges, the Rust's
-(`crates/verifier/src/transcript.rs`, `Sponge`; the prover's `crates/fiat_shamir/src/lib.rs`):
+(`crates/verifier/src/transcript.rs`, `Sponge`; the prover's `crates/fiat_shamir_prover/src/lib.rs`):
 a duplex over a permutation `π` of the Keccak state (deployed: Keccak-f[1600]) in overwrite mode,
 the rate lanes `0..16`, the capacity lanes `16..25`, and up to four absorbed scalars waiting, each
 with a tag, `1` for a scalar the prover sent (`DS_OBSERVE`) and `4` for a proof-of-work nonce

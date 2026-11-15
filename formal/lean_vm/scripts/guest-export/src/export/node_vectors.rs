@@ -135,7 +135,7 @@ pub fn file() -> File {
     let star = hint("bc_star_hint");
     assert_eq!(star.len(), 1);
     // The batching challenge's grind nonce, then each round's `(g1, g_inf)`: a degree-two round grinds nothing.
-    assert!(BATCH_LAM_GRIND_BITS > 0 && fiat_shamir::grinding_bits(2) == 0);
+    assert!(BATCH_LAM_GRIND_BITS > 0 && fiat_shamir_prover::grinding_bits(2) == 0);
     assert_eq!(msgs.len(), 1 + 2 * kbcv);
     let (nonce, msgs) = (msgs[0], &msgs[1..]);
 

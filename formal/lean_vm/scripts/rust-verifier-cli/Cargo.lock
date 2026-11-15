@@ -3,35 +3,10 @@
 version = 4
 
 [[package]]
-name = "keccak256"
-version = "0.1.0"
-
-[[package]]
 name = "leanvm-rust-verify"
 version = "0.0.0"
 dependencies = [
- "stable_fiat_shamir",
  "verifier",
-]
-
-[[package]]
-name = "stable_fiat_shamir"
-version = "0.1.0"
-dependencies = [
- "stable_parallel",
- "stable_primitives",
-]
-
-[[package]]
-name = "stable_parallel"
-version = "0.1.0"
-
-[[package]]
-name = "stable_primitives"
-version = "0.1.0"
-dependencies = [
- "keccak256",
- "stable_parallel",
 ]
 
 [[package]]

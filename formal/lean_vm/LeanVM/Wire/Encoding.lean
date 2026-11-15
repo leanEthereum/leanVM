@@ -1,7 +1,7 @@
 /-
   LeanVM.Wire.Encoding
 
-  The proof's wire encoding, transcribed from leanVM's `crates/fiat_shamir/src/wire.rs`:
+  The proof's wire encoding, transcribed from leanVM's `crates/verifier/src/wire.rs`:
   the decoding `Proof.fromBytes` (`Proof::from_bytes`, `read_phase`) and the
   encoding `Proof.toBytes` (`Proof::to_bytes`, `write_phase`).
 -/
@@ -29,7 +29,7 @@ namespace LeanVM.Protocol.Compile
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.KeccakHash
 
-/-! ## The proof's wire encoding (`crates/fiat_shamir/src/wire.rs`)
+/-! ## The proof's wire encoding (`crates/verifier/src/wire.rs`)
 
 A proof travels as one byte string, `Proof::to_bytes` (`Proof.toBytes`, below), and the verifier
 decodes it, `Proof::from_bytes` (`Proof.fromBytes`, below), then verifies the proof. Every count and
@@ -38,7 +38,7 @@ bytes. A phase travels pruned: the queries' positions, the height, the leaf widt
 the leaf at each distinct position as its last row-width words (the words before are zero in every
 leaf of the phase), and the siblings no other path of the phase gives, bottom level first and left
 to right; decoding recomputes the others by hashing, Keccak-256 over `π` as the verifier hashes
-(`hash_words`, `hash_pair`, `crates/fiat_shamir/src/merkle.rs`). Decoding verifies nothing: it
+(`hash_words`, `hash_pair`, `crates/fiat_shamir_prover/src/merkle.rs`). Decoding verifies nothing: it
 refuses everything but the one encoding of a proof within the bounds below.
 
 The Rust hashes a phase's shared nodes while it reads the phase's siblings; which siblings it reads
@@ -82,7 +82,7 @@ def carriedSiblings (nodes : List ℕ) : List ℕ :=
   nodes.filter fun node ↦ node ^^^ 1 ∉ nodes
 
 /-- The leaf of `leafWords` words whose words after the leading zeros are `row` (`padded`,
-`crates/fiat_shamir/src/merkle.rs`). -/
+`crates/fiat_shamir_prover/src/merkle.rs`). -/
 def paddedLeaf (row : List K) (leafWords : ℕ) : List K :=
   List.replicate (leafWords - row.length) 0 ++ row
 
@@ -261,7 +261,7 @@ namespace LeanVM.Prover
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 
-/-! ## The proof's wire encoding (`Proof::to_bytes`, `crates/fiat_shamir/src/wire.rs`)
+/-! ## The proof's wire encoding (`Proof::to_bytes`, `crates/verifier/src/wire.rs`)
 
 The one encoding of a proof, which `Proof.fromBytes` (above) decodes. It hashes
 nothing: a phase is pruned into the fewest siblings that authenticate all its paths together, a

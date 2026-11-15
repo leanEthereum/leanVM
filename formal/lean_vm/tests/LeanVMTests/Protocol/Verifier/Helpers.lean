@@ -244,7 +244,7 @@ On each input the driver ran `build_layout` and recorded whether it rejected. -/
 #guard (selectorPoint 13 6) =
     [(e 0x1 0x0), (e 0x0 0x0), (e 0x1 0x0), (e 0x1 0x0), (e 0x0 0x0), (e 0x0 0x0)]
 
-/- `grinding_bits`, at the inputs of `fiat_shamir`'s own test -/
+/- `grinding_bits`, at the inputs of `fiat_shamir_prover`'s own test -/
 #guard ([0, 1, 2, 8, 9, 31, 46, 64, 65, 2 ^ 20].map grindingBits) =
     [0, 0, 0, 0, 1, 2, 3, 3, 4, 17]
 

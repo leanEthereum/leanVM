@@ -252,7 +252,7 @@ example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_hol
 
 The end theorems are about structured proofs; the wire encoding is a compression layer
 (`LeanVM/Wire/Encoding.lean`: `Proof.toBytes`, `Proof.fromBytes`, transcriptions of leanVM's
-`crates/fiat_shamir/src/wire.rs`). It is lossless on honest proofs and the only encoding of its
+`crates/verifier/src/wire.rs`). It is lossless on honest proofs and the only encoding of its
 proof:
 
 * `LeanVM.Wire.roundTrip : RoundTripStatement`: a proof whose phases one Merkle tree each opens,

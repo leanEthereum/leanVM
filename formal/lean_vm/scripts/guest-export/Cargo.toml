@@ -19,7 +19,7 @@ build = "build.rs"
 # The overlay's sources (`build.rs` copies `aggregation` into `OUT_DIR`) use these, which
 # cargo-machete, reading this crate's own sources, cannot see.
 [package.metadata.cargo-machete]
-ignored = ["fiat_shamir", "isa", "keccak256", "keccak_gkr", "pcs", "primitives", "tracing"]
+ignored = ["fiat_shamir_prover", "isa", "keccak256", "keccak_gkr", "pcs", "primitives", "tracing"]
 
 [workspace]
 
@@ -35,12 +35,12 @@ path = "src/main.rs"
 isa = { path = "../../../../crates/isa" }
 verifier = { path = "../../../../crates/verifier" }
 keccak256 = { path = "../../../../crates/keccak256" }
+fiat_shamir_prover = { path = "../../../../crates/fiat_shamir_prover" }
 zkdsl_compiler = { path = "../../../../crates/zkdsl_compiler" }
 lean_xmss = { path = "../../../../crates/lean_xmss" }
 lean_sphincs = { path = "../../../../crates/lean_sphincs" }
 lean_da = { path = "../../../../crates/lean_da" }
 lean_vm_core = { package = "stable_lean_vm_core", path = "../../../../crates/stable-prover/lean_vm_core" }
-fiat_shamir = { package = "stable_fiat_shamir", path = "../../../../crates/stable-prover/fiat_shamir" }
 pcs = { package = "stable_pcs", path = "../../../../crates/stable-prover/pcs" }
 keccak_gkr = { package = "stable_keccak_gkr", path = "../../../../crates/stable-prover/keccak_gkr" }
 primitives = { package = "stable_primitives", path = "../../../../crates/stable-prover/primitives" }

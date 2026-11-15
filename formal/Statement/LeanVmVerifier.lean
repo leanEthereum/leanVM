@@ -218,7 +218,7 @@ def securityBits : ℕ := 125
 /-- `grinding_bits(numerator)`: the grind before a verifier message whose round-by-round error is
 `numerator / |E|`, `|E| = 2^128`, the fewest bits that bring it to `2^-securityBits`: the bit
 length of `numerator - 1` (`0` for `numerator ≤ 1`), less `128 - securityBits`, saturating
-(`transcript.rs`; `fiat_shamir::grinding_bits`). -/
+(`transcript.rs`). -/
 def grindingBits (numerator : ℕ) : ℕ :=
   (if numerator ≤ 1 then 0 else Nat.log2 (numerator - 1) + 1) - (128 - securityBits)
 

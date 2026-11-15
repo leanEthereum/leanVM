@@ -3,6 +3,14 @@
 version = 4
 
 [[package]]
+name = "fiat_shamir_prover"
+version = "0.1.0"
+dependencies = [
+ "keccak256",
+ "verifier",
+]
+
+[[package]]
 name = "keccak256"
 version = "0.1.0"
 
@@ -10,26 +18,10 @@ version = "0.1.0"
 name = "leanvm-rust-wire"
 version = "0.0.0"
 dependencies = [
- "stable_fiat_shamir",
- "stable_primitives",
+ "fiat_shamir_prover",
+ "verifier",
 ]
 
 [[package]]
-name = "stable_fiat_shamir"
+name = "verifier"
 version = "0.1.0"
-dependencies = [
- "stable_parallel",
- "stable_primitives",
-]
-
-[[package]]
-name = "stable_parallel"
-version = "0.1.0"
-
-[[package]]
-name = "stable_primitives"
-version = "0.1.0"
-dependencies = [
- "keccak256",
- "stable_parallel",
-]

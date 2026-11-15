@@ -257,7 +257,7 @@ $2^\ell$ the bytecode size, $h_{op}$ the least power of two at least the number 
 instructions of opcode $op$, and $k$ the same for \texttt{KECCAK}, at least $2^9$.
 
 \paragraph{The proof on the wire.} The end statements are about the structured proof. On the wire
-a proof travels as bytes, its one encoding (\lean{crates/stable-prover/fiat_shamir/src/wire.rs}), each phase's
+a proof travels as bytes, its one encoding (\lean{crates/verifier/src/wire.rs}), each phase's
 paths pruned to their positions, their sizes, the distinct leaves and the siblings no other path
 gives; the pruning idea and its first formalization, on leanerVM's \texttt{main} branch, are
 Nicolas Schleicher's (\url{https://github.com/scaraven}). The encoding is a compression layer, outside

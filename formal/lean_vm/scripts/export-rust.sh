@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Prove small guest programs with the leanVM Rust prover and write each proof in the formats the
 # verifiers read (the Lean verifier, `cli/LeanvmVerify.lean`; `crates/verifier`'s `Proof`, as
-# `scripts/rust-verifier-cli` reads it; `crates/stable-prover/fiat_shamir/src/wire.rs`, `Proof::to_bytes`).
+# `scripts/rust-verifier-cli` reads it; `crates/verifier/src/wire.rs`, `Proof::to_bytes`).
 #
 # Usage: scripts/export-rust.sh fixtures|traces <output dir> [--corpus]
 # (`export-verifier-fixtures-rust.sh` and `export-prover-traces-rust.sh` name the two modes.)
@@ -25,8 +25,8 @@
 #   trace.txt             `<log2 cells> <instructions executed> <rate>`;
 #   rust.txt              the Rust prover's wall time in seconds.
 #
-# The proof is the honest proof of the Rust `prove`, its Merkle paths unpruned
-# (`lean_vm_core::cpu::scalar_proof`). The guests (`fixed`) are the program of
+# The proof is the honest proof of the Rust `prove`, a `verifier::Proof`, its Merkle paths
+# unpruned. The guests (`fixed`) are the program of
 # crates/stable-prover/lean_vm_core/tests/verifiers/fixture.rs at 4, 300 and 1000 loop steps,
 # crates/zkdsl_compiler/tests/programs/fibonacci.py, and eight more programs of that suite, three
 # at each of the four rates, read from the source tree. Every proof is verified by the Rust
@@ -71,7 +71,6 @@ lean_vm_core = { package = "stable_lean_vm_core", path = "$checkout/crates/stabl
 zkdsl_compiler = { path = "$checkout/crates/zkdsl_compiler" }
 primitives = { package = "stable_primitives", path = "$checkout/crates/stable-prover/primitives" }
 verifier = { path = "$checkout/crates/verifier" }
-fiat_shamir = { package = "stable_fiat_shamir", path = "$checkout/crates/stable-prover/fiat_shamir" }
 
 [profile.release]
 lto = "thin"
@@ -91,7 +90,7 @@ EOF
 cat >> "$work/src/main.rs" <<'EOF'
 use fixture::chain;
 use zkdsl_compiler::{compile, parse};
-use lean_vm_core::cpu::{Program, prove, public_input_bytes, scalar_proof, verify};
+use lean_vm_core::cpu::{Program, prove, public_input_bytes, verify};
 use primitives::field::F128;
 use std::path::Path;
 
@@ -196,8 +195,7 @@ fn main() {
         let seconds = start.elapsed().as_secs_f64();
         verify(&program, &public_input, &proof).expect("honest proof verifies");
         let wire = proof.to_bytes();
-        assert!(fiat_shamir::transcript::Proof::from_bytes(&wire) == Some(proof.clone()), "the wire round trip");
-        let scalar = scalar_proof(&proof);
+        assert!(verifier::Proof::from_bytes(&wire) == Some(proof.clone()), "the wire round trip");
         let table: Vec<u8> = lean_vm_core::cpu::layout::bytecode_table(&program.prog())
             .iter()
             .flat_map(|w| w.0.to_le_bytes())
@@ -214,8 +212,8 @@ fn main() {
             .collect();
         let u32_bytes = |n: usize| u32::try_from(n).expect("a count fits in u32").to_le_bytes();
         let mut phases = Vec::new();
-        phases.extend(u32_bytes(scalar.merkle_openings.len()));
-        for phase in &scalar.merkle_openings {
+        phases.extend(u32_bytes(proof.merkle_openings.len()));
+        for phase in &proof.merkle_openings {
             phases.extend(u32_bytes(phase.len()));
             for path in phase {
                 phases.extend(path.leaf_index.to_le_bytes());
@@ -234,8 +232,8 @@ fn main() {
                 program.prog().len(),
                 stats.cycles,
                 proof.stream.len(),
-                scalar.merkle_openings.len(),
-                scalar.merkle_openings.iter().map(Vec::len).sum::<usize>(),
+                proof.merkle_openings.len(),
+                proof.merkle_openings.iter().map(Vec::len).sum::<usize>(),
                 wire.len(),
             );
             continue;

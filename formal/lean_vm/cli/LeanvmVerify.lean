@@ -16,7 +16,7 @@ proofs.
   runs `Verifier.verify` (`LeanVM/Facts/Verifier.lean`, the statement's verifier compiled, on the
   program's bytecode words) on it.
 * `lake exe leanvm-verify <bytecode> <public input> <proof wire>`: the proof's one wire encoding
-  (`Proof::to_bytes`, `crates/fiat_shamir/src/wire.rs`, `proof.wire`), decoded with
+  (`Proof::to_bytes`, `crates/verifier/src/wire.rs`, `proof.wire`), decoded with
   `Proof.fromBytes` (`LeanVM/Wire/Encoding.lean`) over Keccak-f[1600], a proof that does not
   decode rejected, as the deployed verifier does, then
   `Verifier.verify` on the decoded proof.

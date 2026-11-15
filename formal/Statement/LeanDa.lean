@@ -149,7 +149,7 @@ position binding holds for every `r`, completeness for `r ≤ maxRows`, code bin
 `1 ≤ r ≤ maxRows`. The algorithms take a permutation `π` of the Keccak state as a parameter and hash with
 Keccak-256 over it (`keccakDigestBytes`, the hash `H` below): the crate's is Keccak-f[1600], the
 hash Keccak-256 (`verifier/src/hash.rs`); in the end statements `π` is the random
-permutation. A digest is 32 bytes, `DigestBytes` (`fiat_shamir::merkle::Hash`).
+permutation. A digest is 32 bytes, `DigestBytes` (`fiat_shamir_prover::merkle::Hash`).
 -/
 
 /-! ### Shapes (`lib.rs`) -/
