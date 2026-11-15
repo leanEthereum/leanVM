@@ -17,7 +17,7 @@ mod encode;
 pub use commit::{BlobCountError, BlobMatrix, Hash, MERKLE_PATH_LEN, root_of_padding_blob, verify_cell};
 
 /// Symbols in one blob, as a logarithm: a blob is 128 KiB.
-pub const LOG_BLOB_SYMBOLS: usize = 13;
+pub use verifier::da::LOG_BLOB_SYMBOLS;
 /// Symbols in one cell, as a logarithm: a cell is 2 KiB.
 pub const LOG_CELL_SYMBOLS: usize = 7;
 /// The matrix's height: at most this many blobs, padded to it with zero rows.

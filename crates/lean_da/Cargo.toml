@@ -13,6 +13,7 @@ keccak256.workspace = true
 pcs = { package = "stable_pcs", path = "../stable_prover/pcs" }
 primitives = { package = "stable_primitives", path = "../stable_prover/primitives" }
 tracing.workspace = true
+verifier.workspace = true
 
 [dev-dependencies]
 rand.workspace = true

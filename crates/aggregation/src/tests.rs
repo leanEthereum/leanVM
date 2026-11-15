@@ -111,9 +111,6 @@ fn run(program: &Program, hints: Hints, public_input: [F128; 2]) -> Result<Execu
     program.execute(public_input)
 }
 
-// The native verifier derives the DA challenge's grind from its own copy of the blob size.
-const _: () = assert!(verifier::da::LOG_BLOB_SYMBOLS == lean_da::LOG_BLOB_SYMBOLS);
-
 #[test]
 fn the_wire_layout_is_pinned() {
     let le = u64::to_le_bytes;

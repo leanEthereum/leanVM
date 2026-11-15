@@ -47,6 +47,7 @@ dependencies = [
  "stable_pcs",
  "stable_primitives",
  "tracing",
+ "verifier",
 ]
 
 [[package]]
