@@ -116,10 +116,10 @@ pub(super) fn butterfly_interleaved_fused_3layer(
                 num_ntts,
                 t,
                 #[inline(always)]
-                |v, t| {
+                |v, t, vectors| {
                     radix8_schedule(
                         #[inline(always)]
-                        |top, bot, k| butterfly_regs(v, top, bot, t[k]),
+                        |top, bot, k| butterfly_regs(v, top, bot, t[k], vectors),
                     );
                 },
             );
@@ -180,7 +180,7 @@ fn fused_sweep_avx512<const N: usize, const T: usize>(
     stride_rows: usize,
     num_ntts: usize,
     twiddles: &[F64; T],
-    kernel: impl Fn(&mut RowVectors<N>, &[Twiddle; T]),
+    kernel: impl Fn(&mut RowVectors<N>, &[Twiddle; T], usize),
 ) {
     fused_rows::<N>(block, src, stride_rows, num_ntts, |src, rows| {
         fused_lanes_avx512(
@@ -188,7 +188,7 @@ fn fused_sweep_avx512<const N: usize, const T: usize>(
             rows,
             twiddles,
             #[inline(always)]
-            |v, t| kernel(v, t),
+            |v, t, vectors| kernel(v, t, vectors),
         )
     });
 }
@@ -265,10 +265,10 @@ pub(super) fn butterfly_interleaved_fused_2layer(
                 num_ntts,
                 t,
                 #[inline(always)]
-                |v, t| {
+                |v, t, vectors| {
                     radix4_schedule(
                         #[inline(always)]
-                        |top, bot, k| butterfly_regs(v, top, bot, t[k]),
+                        |top, bot, k| butterfly_regs(v, top, bot, t[k], vectors),
                     );
                 },
             );
@@ -641,12 +641,12 @@ type Twiddle = (core::arch::x86_64::__m512i, bool);
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
 type RowVectors<const N: usize> = [[core::arch::x86_64::__m512i; LANE_VECTORS]; N];
 
-/// Butterfly rows `top` and `bot` of every vector in flight.
+/// Butterfly rows `top` and `bot` of the first `vectors` vectors in flight.
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
 #[inline]
 #[target_feature(enable = "vpclmulqdq", enable = "avx512f", enable = "avx512bw")]
-fn butterfly_regs<const N: usize>(v: &mut RowVectors<N>, top: usize, bot: usize, (tw, zero): Twiddle) {
-    for k in 0..LANE_VECTORS {
+fn butterfly_regs<const N: usize>(v: &mut RowVectors<N>, top: usize, bot: usize, (tw, zero): Twiddle, vectors: usize) {
+    for k in 0..vectors {
         let (u, w) = (v[top][k], v[bot][k]);
         let new_u = if zero { u } else { mul_xor_avx512(u, w, tw) };
         v[top][k] = new_u;
@@ -659,7 +659,8 @@ fn butterfly_regs<const N: usize>(v: &mut RowVectors<N>, top: usize, bot: usize,
 /// - The vectors load from `src`, or from `rows` when there is none, and store to `rows`.
 /// - A vector is loaded and stored once, however many butterflies `kernel` applies to it.
 /// - The kernel orders its butterflies breadth-first, so the vectors in flight hide each other's latency.
-/// - The last chunk may be short: its vectors past the row's end load as zeros and are not stored.
+/// - The kernel runs on the first `vectors` vectors it is handed: all of them, but in the last chunk only those
+///   that hold lanes. Their lanes past the row's end load as zeros and are not stored.
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
 #[inline]
 #[target_feature(enable = "vpclmulqdq", enable = "avx512f", enable = "avx512bw")]
@@ -667,7 +668,7 @@ fn fused_lanes_avx512<const N: usize, const T: usize>(
     src: Option<[&[F64]; N]>,
     rows: &mut [&mut [F64]; N],
     twiddles: &[F64; T],
-    kernel: impl Fn(&mut RowVectors<N>, &[Twiddle; T]),
+    kernel: impl Fn(&mut RowVectors<N>, &[Twiddle; T], usize),
 ) {
     use core::arch::x86_64::*;
     use primitives::simd::{load, load_prefix, store, store_prefix};
@@ -690,7 +691,7 @@ fn fused_lanes_avx512<const N: usize, const T: usize>(
             }),
             None => std::array::from_fn(|i| std::array::from_fn(|k| load(&*chunks[i], k))),
         };
-        kernel(&mut v, &tw);
+        kernel(&mut v, &tw, LANE_VECTORS);
         for i in 0..N {
             for k in 0..LANE_VECTORS {
                 store(chunks[i], k, v[i][k]);
@@ -700,17 +701,23 @@ fn fused_lanes_avx512<const N: usize, const T: usize>(
     }
     if lane < len {
         let reg = lane / 8;
-        // The lanes of vector `k` of the short chunk: all eight, the row's last few, or none.
-        let n = |k: usize| len.saturating_sub(lane + 8 * k).min(8);
+        // The lanes of vector `k` of the short chunk: all eight, or the row's last few.
+        let n = |k: usize| (len - lane - 8 * k).min(8);
+        let vectors = (len - lane).div_ceil(8);
         let mut v: RowVectors<N> = std::array::from_fn(|i| {
             std::array::from_fn(|k| match &src {
+                _ if k >= vectors => _mm512_setzero_si512(),
                 Some(src) => load_prefix(src[i], reg + k, n(k)),
                 None => load_prefix(&*rows[i], reg + k, n(k)),
             })
         });
-        kernel(&mut v, &tw);
+        // Each count is its own call, so the kernel's loops over the vectors unroll.
+        match vectors {
+            1 => kernel(&mut v, &tw, 1),
+            _ => kernel(&mut v, &tw, LANE_VECTORS),
+        }
         for i in 0..N {
-            for k in 0..LANE_VECTORS {
+            for k in 0..vectors {
                 store_prefix(rows[i], reg + k, n(k), v[i][k]);
             }
         }

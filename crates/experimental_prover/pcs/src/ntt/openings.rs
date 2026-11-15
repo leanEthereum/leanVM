@@ -68,7 +68,10 @@ impl AdditiveNttF64 {
             Codeword::Whole(ref words, plan) => gather_rows(words, plan.num_ntts, positions),
             Codeword::BeforeDeep(ref words, plan) => {
                 let sub_len = plan.sub_len();
-                self.finished_rows(&plan, positions, |_, sub| &words[sub * sub_len..][..sub_len])
+                // A kept message is every sub-block: each is a replica of it.
+                self.finished_rows(&plan, positions, |_, sub| {
+                    &words[(sub * sub_len) % words.len()..][..sub_len]
+                })
             }
             Codeword::Nothing(plan, n_lanes) => {
                 let log_sub = plan.log_sub();

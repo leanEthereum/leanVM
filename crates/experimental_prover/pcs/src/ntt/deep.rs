@@ -13,7 +13,7 @@ use super::window::Window;
 /// The deep pass: layers `deep_start..log_d`, one task of `2^log_task` rows at a time, a run of sub-blocks.
 ///
 /// - It owns the sub-block geometry, and the sink that takes each finished sub-block.
-/// - With a separate message, each sub-block is built in scratch and written out once.
+/// - With a separate message, each sub-block is built in scratch and written out once, if there is a buffer.
 /// - Otherwise the buffer holds the replicas, and the layers run in place.
 /// - With `defer`, an in-place sub-block is finished in scratch and the buffer keeps its pre-deep state.
 /// - Each finished sub-block goes to the sink while it is in L2.
@@ -43,29 +43,28 @@ impl<'s> DeepPass<'s> {
 
     pub(super) fn run(&self, ntt: &AdditiveNttF64, win: &mut Window, src: Source<'_>) {
         match src {
-            Source::Rows(msg) => self.with_message(ntt, win, msg),
+            Source::Rows(msg) => self.with_message(ntt, Some(win), msg),
             _ => self.in_place(ntt, win),
         }
     }
 
-    /// A separate message: build each task in scratch, hash it, then write it out once.
+    /// A separate message: build each task in scratch, hash it, then write it out once into `out`, if given.
     ///
     /// Streamed out whole, the codeword is written without ever being read.
-    fn with_message(&self, ntt: &AdditiveNttF64, win: &mut Window, msg: &[F64]) {
+    pub(super) fn with_message(&self, ntt: &AdditiveNttF64, out: Option<&mut Window>, msg: &[F64]) {
         let Plan {
             log_d,
             num_ntts,
-            start,
             deep_start,
             ..
         } = self.plan;
         let (task_len, outer, log_task, sink) = (self.task_len, self.outer, self.log_task, self.sink);
-        let (base, total) = (win.base(), win.len());
-        let block_len = total >> start;
+        let out = out.map(|win| (win.base(), win.stream()));
+        let block_len = msg.len();
         parallel::for_each_chunk(1 << outer, |lo, hi| {
             with_scratch(task_len, |scratch| {
                 // One fence at the end of the task covers all its streaming stores.
-                let stream = win.stream().then(Stream::new);
+                let stream = out.is_some_and(|(_, stream)| stream).then(Stream::new);
                 for task in lo..hi {
                     // A task sits at the same offset in every replica, or covers whole replicas.
                     //
@@ -81,6 +80,7 @@ impl<'s> DeepPass<'s> {
                     if let Some(f) = sink {
                         f(task << log_task, scratch);
                     }
+                    let Some((base, _)) = out else { continue };
                     // SAFETY: the task's rows lie inside the codeword, and this task alone owns them.
                     let dst = unsafe { std::slice::from_raw_parts_mut(base.add(task * task_len), task_len) };
                     match &stream {
