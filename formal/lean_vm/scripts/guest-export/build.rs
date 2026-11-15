@@ -1,7 +1,6 @@
-//! The overlay: leanVM's `rec_aggregation` sources, copied verbatim into `OUT_DIR` (the guest
-//! with them, so their `include_str!("../guests/lean_ethereum.py")` still resolves), with one
-//! line appended to `aggregation.rs` that declares this crate's `src/export/` as its child
-//! module `lean_export`. Nothing under `crates/` is written.
+//! The overlay: leanVM's `aggregation` crate, its sources copied into `OUT_DIR` (the guest with them, its
+//! `include_str!` pointed at the copy) and compiled as this crate's module `aggregation`, with one line appended to its
+//! root that declares this crate's `src/export/` as its child module `lean_export`. Nothing under `crates/` is written.
 
 use std::path::{Path, PathBuf};
 
@@ -89,51 +88,55 @@ fn main() {
     let leanvm = leanvm
         .canonicalize()
         .unwrap_or_else(|e| panic!("leanVM's tree {}: {e}", leanvm.display()));
-    let crate_dir = leanvm.join("crates/rec_aggregation");
-    let out = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("rec_aggregation");
+    let crate_dir = leanvm.join("crates/aggregation");
+    let out = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("aggregation");
     // A fresh copy: a file leanVM moved or removed must not linger from an earlier pin.
     let _ = std::fs::remove_dir_all(&out);
     copy_dir(&crate_dir.join("src"), &out.join("src"));
-    copy_dir(&crate_dir.join("guests"), &out.join("guests"));
+    copy_dir(&leanvm.join("guests"), &out.join("guests"));
+    // The guest source sits at the repository's root, two levels above the crate: the copy reads it beside itself.
+    let guest = out.join("src/guest.rs");
+    let text = std::fs::read_to_string(&guest).unwrap();
+    let from = r#"include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../guests/lean_ethereum.py"))"#;
+    assert!(text.contains(from), "the guest source is included from the repository's root");
+    std::fs::write(&guest, text.replace(from, r#"include_str!("../guests/lean_ethereum.py")"#)).unwrap();
 
-    let export = manifest.join("src/export/mod.rs");
-    // `aggregation` is a directory module (`aggregation/mod.rs`) since leanVM #670.
-    let aggregation = [out.join("src/aggregation/mod.rs"), out.join("src/aggregation.rs")]
-        .into_iter()
-        .find(|p| p.is_file())
-        .expect("rec_aggregation has an aggregation module");
-    // Since #670 the module's private items live in its submodules: the exporters, a child of
-    // `aggregation`, read them as they read `aggregation.rs`'s, so every top-level item there is
-    // made crate-visible, and so is every field of a struct declared there (a tuple struct's on
-    // its line, a named struct's at four spaces in its block); only the copy, the module's own
-    // `pub` items are unchanged.
-    if aggregation.ends_with("mod.rs") {
-        let mut files = Vec::new();
-        rust_files(aggregation.parent().unwrap(), &mut files);
-        for f in files.iter().filter(|f| **f != aggregation) {
-            let text = std::fs::read_to_string(f).unwrap();
-            let mut in_struct = false;
-            let text: String = text
-                .lines()
-                .map(|l| {
-                    let item = ["fn ", "struct ", "enum ", "const ", "type ", "static ", "trait ", "mod "]
-                        .iter()
-                        .any(|k| l.starts_with(k))
-                        && !l.starts_with("const _");
-                    let l = l.replacen("pub(super) ", "pub(crate) ", 1);
-                    let l = if item { format!("pub(crate) {l}") } else { l };
-                    let l = if in_struct { widen_named_field(&l) } else { widen_tuple_fields(&l) };
-                    if l.starts_with("pub(crate) struct ") && l.ends_with('{') {
-                        in_struct = true;
-                    } else if l.starts_with('}') {
-                        in_struct = false;
-                    }
-                    format!("{l}\n")
-                })
-                .collect();
+    // The crate as this crate's module `aggregation`: `lib.rs` as the module's `mod.rs`, `crate::` paths pointed at
+    // the module. The exporters, a child of it, read its submodules' private items, so every top-level item of a
+    // submodule is made crate-visible, and so is every field of a struct declared there (a tuple struct's on its line,
+    // a named struct's at four spaces in its block); only the copy, the crate's own `pub` items are unchanged.
+    let aggregation = out.join("src/mod.rs");
+    std::fs::rename(out.join("src/lib.rs"), &aggregation).unwrap();
+    let mut files = Vec::new();
+    rust_files(&out.join("src"), &mut files);
+    for f in &files {
+        let text = std::fs::read_to_string(f).unwrap().replace("crate::", "crate::aggregation::");
+        if *f == aggregation {
             std::fs::write(f, text).unwrap();
+            continue;
         }
+        let mut in_struct = false;
+        let text: String = text
+            .lines()
+            .map(|l| {
+                let item = ["fn ", "struct ", "enum ", "const ", "type ", "static ", "trait ", "mod "]
+                    .iter()
+                    .any(|k| l.starts_with(k))
+                    && !l.starts_with("const _");
+                let l = l.replacen("pub(super) ", "pub(crate) ", 1);
+                let l = if item { format!("pub(crate) {l}") } else { l };
+                let l = if in_struct { widen_named_field(&l) } else { widen_tuple_fields(&l) };
+                if l.starts_with("pub(crate) struct ") && l.ends_with('{') {
+                    in_struct = true;
+                } else if l.starts_with('}') {
+                    in_struct = false;
+                }
+                format!("{l}\n")
+            })
+            .collect();
+        std::fs::write(f, text).unwrap();
     }
+    let export = manifest.join("src/export/mod.rs");
     let mut text = std::fs::read_to_string(&aggregation).unwrap();
     text.push_str(&format!(
         "\n// Appended by leanvm-guest-export's build.rs.\n#[path = {:?}]\npub mod lean_export;\n",
@@ -141,12 +144,12 @@ fn main() {
     ));
     std::fs::write(&aggregation, text).unwrap();
 
-    // leanVM's `lean_compiler` as this crate's module `compiler_overlay`, for the exporters that
+    // leanVM's `zkdsl_compiler` as this crate's module `compiler_overlay`, for the exporters that
     // read the parsed guest (`Ast`'s functions are crate-private since leanVM #669): its sources
     // copied, `lib.rs` as the module's `mod.rs`, and `crate::` paths pointed at the module.
     let compiler = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("compiler_overlay");
     let _ = std::fs::remove_dir_all(&compiler);
-    copy_dir(&leanvm.join("crates/lean_compiler/src"), &compiler);
+    copy_dir(&leanvm.join("crates/zkdsl_compiler/src"), &compiler);
     std::fs::rename(compiler.join("lib.rs"), compiler.join("mod.rs")).unwrap();
     let mut files = Vec::new();
     rust_files(&compiler, &mut files);
@@ -159,9 +162,8 @@ fn main() {
     println!("cargo:rustc-env=LEANVM_DIR={}", leanvm.display());
 
     let overlay = format!(
-        "#[path = {:?}]\npub mod aggregation;\n\n#[cfg(feature = \"signers-cache\")]\n#[path = {:?}]\npub mod signers_cache;\n\n#[path = {:?}]\npub mod compiler_overlay;\n",
+        "#[path = {:?}]\npub mod aggregation;\n\n#[path = {:?}]\npub mod compiler_overlay;\n",
         aggregation.display().to_string(),
-        out.join("src/signers_cache.rs").display().to_string(),
         compiler.join("mod.rs").display().to_string()
     );
     std::fs::write(out.join("overlay.rs"), overlay).unwrap();

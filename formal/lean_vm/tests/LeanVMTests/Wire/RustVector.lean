@@ -4,11 +4,10 @@ import Statement.Fast.Keccak
 /-!
 # The wire encoding on the Rust test's vector
 
-The vector of `proof_round_trips_through_its_one_encoding` (`crates/fiat_shamir/src/wire.rs`,
+The vector of `proof_round_trips_through_its_one_encoding` (`crates/verifier/src/wire.rs`,
 leanVM): a tree of four rows `[0, 0, 1]`, `[0, 2, 3]`, `[0, 0, 4]`,
-`[0, 5, 0]`, opened at the queries `3, 1, 3` with leaves of `3` words (`open`,
-`crates/fiat_shamir/src/merkle.rs`: the sibling at level `l` of query `q` is the node
-`(q >> l) ^ 1`), and the stream `[F128::new(1, 2)]`. As the Rust asserts: the encoding is
+`[0, 5, 0]`, opened at the queries `3, 1, 3` with leaves of `3` words (built by the test: the sibling at level `l` of query `q` is the node
+`(q >> l) ^ 1`), and the stream `[E::new(1, 2)]`. As the Rust asserts: the encoding is
 `(4 + 16) + 4 + (4 + 3·4) + 3·4 + 2·2·8 + 2·32 = 148` bytes (the stream; the phase count; the
 queries; three sizes; two rows of two words, the common zero word dropped; two siblings); it
 decodes, with Keccak-256 over Keccak-f[1600], to the proof, whose encoding is the bytes; and one
@@ -30,7 +29,7 @@ open LeanVM.Protocol.Compile
 /-- The rows, `F64` words as their bits. -/
 def rows : List (List K) := [[0, 0, 1], [0, 2, 3], [0, 0, 4], [0, 5, 0]].map (·.map K.ofBits)
 
-/-- `hash_words`: Keccak-256 of the words' bytes. -/
+/-- `hash_leaf` (`crates/verifier/src/merkle.rs`): Keccak-256 of the words' bytes. -/
 def hashWords (words : List K) : Digest := keccak256 (words.flatMap K.toBytes)
 
 /-- `hash_pair`: Keccak-256 of the two digests' bytes. -/

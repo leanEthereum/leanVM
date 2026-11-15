@@ -18,7 +18,7 @@ public import Clean.Utils.Tactics.CircuitProofStart
 # The `XOR` table
 
 At Clean pin `b41c196b`. The columns
-are `crates/leanvm_core/src/tables.rs` (`mod arith`, in that order), the flushes
+are `crates/lean_vm_core/src/tables.rs` (`mod arith`, in that order), the flushes
 `tables.rs` (`Arith::flushes` with `is_xor`), the result coordinates `tables.rs`
 (`arith_result`, the lane-wise sum), all matching specification §7.1
 (`doc/leanvm/body/07-instruction-tables.tex`). There is no constraint: the bus balance is

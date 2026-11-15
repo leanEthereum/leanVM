@@ -118,7 +118,7 @@ A public-coin protocol is \emph{round-by-round (RBR) sound with errors} $(\varep
 
 Interactive soundness error is then at most $\sum_i \varepsilon_i$. After Fiat-Shamir, it is $\max_i \varepsilon_i$ per random-oracle query~\cite{CCHLRR19,BCS16}.
 
-\paragraph{Grinding.}\label{sec:grinding} Before a verifier message, the prover may have to find a proof of work of $b$ bits (\S\ref{sec:e2e-fiat-shamir}), which divides the message's round-by-round error (Definition~\ref{def:rbr}) by $2^b$. Every message is held to $2^{-125}$: one of error $N/|\E|$ grinds $\max(0,\lceil\log_2N\rceil-3)$ bits, hence none for $N\le8$, as for every sumcheck round. The PCS fixes its own grinds (\S\ref{sec:pcs-params}).
+\paragraph{Grinding.}\label{sec:grinding} Before a verifier message, the prover may have to find a proof of work of $b$ bits (\S\ref{sec:e2e-fiat-shamir}), which divides the message's round-by-round error (Definition~\ref{def:rbr}) by $2^b$. Every message is held to $2^{-125}$: one of error $N/|\E|$ grinds $\max(0,\lceil\log_2N\rceil-3)$ bits, hence none for $N\le8$, as for every sumcheck round. The PCS fixes its own grinds.
 
 \begin{definition}[Inner-product commitment scheme]\label{def:ipcs}
 A \emph{weighted claim} about a multilinear $g:\cube{M}\to\K$ is a pair $(W,c)$ asserting $\inner{W}{g}=c$, with $c\in\E$ and the weight $W:\cube{M}\to\E$ \emph{MLE-friendly}: the verifier can evaluate $\mle{W}$ anywhere in $\mathrm{poly}(M)$ operations. An \emph{inner-product commitment scheme} commits to $g$ and later proves any such claim,

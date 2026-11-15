@@ -30,7 +30,7 @@ vector:
   (`bytecodeColumn`, `FixedColumns.lean`) as a list: `2 ^ (logSize + 4)` words, instruction bits
   low, slot bits high, sixteen slots per instruction, the entry at slots 3 to 13.
 * `refCol c`: the verifier's global column number of the instance's column `c`, its position in the
-  instance's global order (`columns`): the memory columns `0 to 2`, `BFCNT` `3`, `QKECCAK` `4`, then
+  instance's global order (`columns`): the memory columns `0 to 2`, `BYTECODE_FINAL_COUNTERS` `3`, `QKECCAK` `4`, then
   the six opcode tables' columns in order. `refCol_*` give the named columns.
 * `buildLayout_eq`: the layout is built from the announced rows (`tableRows`) exactly when the
   sizes are in the windows `buildLayout` checks (`LayoutOk`), and is then `verifierLayout prog s`,
@@ -151,10 +151,10 @@ theorem getElem_columns_pyCol (c : Col) :
 theorem refCol_memCol (i : Fin 3) : refCol (memCol i) = i := by
   revert i; decide +kernel
 
-/-- `BFCNT` is `BYTECODE_FINAL_COUNTERS`. -/
+/-- The instance's `bfcntCol` is the reference's `BYTECODE_FINAL_COUNTERS`. -/
 theorem refCol_bfcntCol : refCol bfcntCol = bytecodeFinalCounters := by decide +kernel
 
-/-- `QKECCAK` is `QKECCAK`. -/
+/-- The instance's `keccakCol` is the reference's `QKECCAK`. -/
 theorem refCol_keccakCol : refCol keccakCol = qkeccak := by decide +kernel
 
 /-- Column `i` of opcode table `j` is the verifier's `GLOBAL_COLUMN_BASES[j] + i`. -/

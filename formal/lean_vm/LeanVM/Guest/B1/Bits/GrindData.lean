@@ -13,7 +13,7 @@ public import LeanVM.Guest.B1.Common.Find
 /-!
 # `grind_check`'s body (TRIAGE #21)
 
-`grind_check(word, tabs, nbits)` (`crates/rec_aggregation/guests/lean_ethereum.py`, G below)
+`grind_check(word, tabs, nbits)` (`guests/lean_ethereum.py`, G below)
 hints the lane `word`'s low limb from bit `nbits` on as `n_win` windows in the exponent, `W = n_win
 - 1` of `WIN_TAB_BITS = 11` bits and a top one of `gcTop b` bits, range checks each
 (`assert_window`, a range check against `g^(2^w - 1)`, `wBound w`), reads each window's pattern

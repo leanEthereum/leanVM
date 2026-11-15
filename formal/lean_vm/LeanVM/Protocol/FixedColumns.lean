@@ -24,7 +24,7 @@ The two columns both parties know, at leanVM revision
   instruction index in the low `logSize` coordinates, the slot in the high four, low bit first.
   The layout follows specification §8.1
   (`doc/leanvm/body/08-end-to-end-protocol.tex`) and
-  `crates/leanvm_core/src/leaf.rs`; the Rust verifier evaluates the same table at
+  `crates/lean_vm_core/src/leaf.rs`; the Rust verifier evaluates the same table at
   `(zeta, alpha)` (`crates/verifier/src/bus.rs`, with `bytecode.rs`; the
   prover-side `bytecode_claim`, `leaf.rs` at `a386121f`, is removed at `127510d1`). The
   content of a slot is `instructionSlots`, the one definition of the encoding, zero slots included.

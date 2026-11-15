@@ -11,7 +11,7 @@ use crate::transcript::{Sponge, grinding_bits};
 
 const LABEL: &[u8] = b"leanDA/rs-membership/v1";
 
-/// `log2(k)`, `k` the blob's symbols (`lean_da::LOG_BLOB_SYMBOLS`).
+/// `log2(k)`, `k` the blob's symbols.
 pub const LOG_BLOB_SYMBOLS: usize = 13;
 
 /// A non-codeword passes for at most `k - 1` values of `z`: the error numerator the grind is for.

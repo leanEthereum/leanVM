@@ -15,7 +15,7 @@ public import Statement.LeanVmGuest
 /-!
 # The guest bytecode
 
-`guest` is `rec_aggregation::unified_guest()`'s bytecode: the compiled functions of
+`guest` is `aggregation::unified_guest()`'s bytecode: the compiled functions of
 `LeanVM.Guest.Data.functions` (generated from leanVM's sources by `scripts/guest-export`, whose
 `--check` fails when they are stale), laid out from pc `0` and padded with `SET fp[0] = 0` to
 `2^19` instructions. A run starts at `(g^0, 1)` in `__jump_tables`, the

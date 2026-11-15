@@ -15,8 +15,8 @@ verifier's `keccak_hash` at leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (a
 independently: run with FIPS 202's padding `0x06` it gives `hashlib.sha3_256` on the same ramps
 (script `vectors.py` of the port). Then `keccakF` on the zero state (Keccak-f[1600]'s
 well-known `f1258f79…`) and on the lanes `0 … 24`; `hash_pair` and `hash_words` on known
-inputs; a 64-byte message as one permutation of its padded block; the hash chain of
-`crates/rec_aggregation/src/hash_chain.rs` (eight `compress` steps from the zero digest); and
+inputs; a 64-byte message as one permutation of its padded block; a hash chain
+(eight `hash_pair(d, d)` steps from the zero digest); and
 the digest encoding's round trip.
 
 `Statement.Fast.Keccak` compiles the hash here (`@[csimp]`); the `"abc"` vector and the zero
@@ -106,7 +106,7 @@ example : keccakF1600 (Vector.replicate 25 0) = keccakFZero := by decide +kernel
 #guard merkleLeafDigest [K.ofBits 1, K.ofBits 2] =
   #v[0x7f99c7cdf41edaab, 0xfd627cf8bdca2ecd, 0x82f07915d8dc54b2, 0x3a8f3df9f4f1347b]
 
-/- The hash chain of `hash_chain.rs`: `compress(d, d)` eight times from the zero digest. -/
+/- A hash chain: `hash_pair(d, d)` eight times from the zero digest. -/
 #guard (List.range 8).foldl (fun d _ ↦ hashPair d d) (Vector.replicate 4 0) =
   #v[0x936b197f5fcc6798, 0x247420637ee2e1ba, 0x49273826f290d245, 0xaf56f739c5fe548b]
 

@@ -33,8 +33,8 @@ size `leanIsaμ prog s ≤ maxMu` (`MAX_STACKED_LOG`; its floor holds by constru
 announcement and used by the commitment, not by the instance.
 
 **The tables.** Nine, in the order of the Rust's global columns
-(`crates/leanvm_core/src/cpu/layout.rs`): the memory columns `MEMORY_0, MEMORY_1, MFCNT`
-at height `2^logMem`; the bytecode finalize count `BFCNT` at `2^prog.logSize`; the Keccak
+(`crates/lean_vm_core/src/cpu/layout.rs`): the memory columns `MEMORY_0, MEMORY_1, MEMORY_FINAL_COUNTERS`
+at height `2^logMem`; the bytecode finalize count `BYTECODE_FINAL_COUNTERS` at `2^prog.logSize`; the Keccak
 reduction's column `QKECCAK` at `2^(τ_KECCAK + 6)` (`layout.rs`, `SLOT_LOG = 6`); then the six
 opcode tables at their log-heights, each `Component.toM3` of its Clean component with leanISA's
 separators, directions and counted channels (`channelSep`, `channelDir`, the memory and bytecode
@@ -46,10 +46,10 @@ leanISA's three remaining components: the verifier's state push `(1, 1)` and pul
 `(g^(N - 1), 1)` (`leanIsaVerifier`), the memory block's seed push `(g^i, 1, m_i)` and finalize
 pull `(g^i, MFCNT_i, m_i)` (`memTable`), and the bytecode block's seed push and finalize pull of
 the program's entries (`bytecodeTable`, with the program's thirteen entry columns known to both
-parties, `Coord.known`; `bytecode_columns`, `layout.rs`). The index column is the verifier's
-(`idxColumn`), as the Rust's `Coord::Index` is.
+parties, `Coord.known`; `Program::stacked_bytecode`, `crates/isa/src/program.rs`). The index column is the
+verifier's (`idxColumn`), as the Rust's `Coord::Index` is.
 
-**The stack** (`crates/leanvm_core/src/witness.rs`). Every committed column has a
+**The stack** (`crates/lean_vm_core/src/witness.rs`). Every committed column has a
 log-size, its table's; the `KECCAK` table's columns `0 … 64` but `14` have none (`IsVirtual`: the
 fifty value lanes and the fourteen columns riding `QKECCAK`'s spare slots; `Placement::VIRTUAL`,
 `witness.rs`; `layout.rs`), so `94` of the `158` columns are committed. The committed
@@ -85,7 +85,7 @@ lanes, their states after twelve rounds (padding steps: the zero state) and thei
 spare columns (`keccakWitness`). `witnessOf prog s q`
 reads a witness off any stack `q`, at the memory size `logMem`: the six opcode tables from their
 rows, the memory block from the memory columns and the index `g^i`, the bytecode block from the
-program and `BFCNT`, the public input from cells `0, 1` of `MEMORY_0, MEMORY_1`; its prover data is
+program and `BYTECODE_FINAL_COUNTERS`, the public input from cells `0, 1` of `MEMORY_0, MEMORY_1`; its prover data is
 derived from the tables (Clean's `withDerivedData`), so its image is the memory block's limbs.
 Clean indexes rows by `u64`: a table that would pass `2^64` rows is read as empty, which
 admissible sizes never ask for (`Sizes.Admissible.logMem_lt`, `rows_le_size`). Both maps are total
@@ -183,7 +183,7 @@ theorem Sizes.minSteps_le (s : Sizes) : Verifier.keccakMinStepsLog ≤ s.τ 5 :=
 /-- The index of opcode table `j` among the instance's tables. -/
 def opIdx (j : Fin 6) : Fin 9 := ⟨j + 3, by omega⟩
 
-/-- The widths: the three memory columns, `BFCNT`, `QKECCAK`, then the opcode tables'. -/
+/-- The widths: the three memory columns, `BYTECODE_FINAL_COUNTERS`, `QKECCAK`, then the opcode tables'. -/
 def width : Fin 9 → ℕ
   | ⟨0, _⟩ => 3
   | ⟨1, _⟩ => 1
@@ -270,10 +270,10 @@ theorem flushes_degree : ∀ j, ∀ f ∈ flushes j, ∀ k, (f.2.get k).totalDeg
 /-- A column of the instance: table `j`, column `i`. -/
 abbrev Col : Type := Σ j : Fin 9, Fin (width j)
 
-/-- Memory column `i`: `MEMORY_0, MEMORY_1, MFCNT`. -/
+/-- Memory column `i`: `MEMORY_0, MEMORY_1, MEMORY_FINAL_COUNTERS`. -/
 def memCol (i : Fin 3) : Col := ⟨⟨0, by decide⟩, i⟩
 
-/-- The bytecode finalize count `BFCNT`. -/
+/-- The bytecode finalize count `BYTECODE_FINAL_COUNTERS`. -/
 def bfcntCol : Col := ⟨⟨1, by decide⟩, ⟨0, by decide⟩⟩
 
 /-- The Keccak reduction's column `QKECCAK`. -/
@@ -290,7 +290,7 @@ def outCol (l : Fin 25) : Col := ⟨opIdx 5, ⟨40 + l, by rw [width_keccak]; om
 
 /-- The column is a `KECCAK` value lane, input or output: not committed in a block of its own
 (`KECCAK_IN … KECCAK_CNT`, `crates/verifier/src/layout.rs`; `KeccakLane::Input`/`Output`,
-`crates/leanvm_core/src/cpu/layout.rs`). -/
+`crates/lean_vm_core/src/cpu/layout.rs`). -/
 def IsLane (c : Col) : Prop := c.1 = opIdx 5 ∧ 15 ≤ c.2.val ∧ c.2.val < 65
 
 instance (c : Col) : Decidable (IsLane c) := inferInstanceAs (Decidable (_ ∧ _))
@@ -299,14 +299,14 @@ instance (c : Col) : Decidable (IsLane c) := inferInstanceAs (Decidable (_ ∧ _
 `0 … 13`: `pc`, `fp`, the operands, the layout flags and the output flags `out_two`, `out_all`),
 which ride the spare slots `50 … 63` of `QKECCAK` (`qkeccak_slot`,
 `crates/verifier/src/layout.rs`;
-`KeccakLane::Slot`, `crates/leanvm_core/src/cpu/layout.rs`). -/
+`KeccakLane::Slot`, `crates/lean_vm_core/src/cpu/layout.rs`). -/
 def IsSpare (c : Col) : Prop := c.1 = opIdx 5 ∧ c.2.val < 14
 
 instance (c : Col) : Decidable (IsSpare c) := inferInstanceAs (Decidable (_ ∧ _))
 
 /-- The column has no block of its own: a `KECCAK` value lane or a column riding a spare slot of
 `QKECCAK`, the `KECCAK` table's columns `0 … 64` but `14` (`free`, committed in a block of its
-own) (the Rust's virtual columns, `keccak_value`, `crates/leanvm_core/src/cpu/layout.rs`). -/
+own) (the Rust's virtual columns, `keccak_value`, `crates/lean_vm_core/src/cpu/layout.rs`). -/
 def IsVirtual (c : Col) : Prop := c.1 = opIdx 5 ∧ c.2.val < 65 ∧ c.2.val ≠ 14
 
 instance (c : Col) : Decidable (IsVirtual c) := inferInstanceAs (Decidable (_ ∧ _))
@@ -487,8 +487,8 @@ def derived (c : Col) : Option (Column (leanIsaμ prog s) → Column (kappa prog
 def coords {S : Shape} {κ : ℕ} (cs : List (Coord S κ)) : Vector (Coord S κ) 16 :=
   Vector.ofFn fun k ↦ cs.getD k (.const 0)
 
-/-- Column `k` of the program's entries, `bytecode_columns` (`layout.rs`): the entry's
-coordinate `k` at every slot, coordinate `3 + k` of the bytecode tuple. -/
+/-- Column `k` of the program's entries, slot `3 + k` of `Program::stacked_bytecode` (`crates/isa/src/program.rs`):
+the entry's coordinate `k` at every slot, coordinate `3 + k` of the bytecode tuple. -/
 def entryColumn (k : Fin 13) : Column prog.logSize :=
   ⟨Vector.ofFn fun i ↦ (busEntry (prog.instructions i))[k]⟩
 
@@ -651,12 +651,12 @@ def opcodeRows (j : Fin 6) : List (Array K) :=
   List.ofFn fun x : Fin (s.rows j) ↦
     Array.ofFn ((leanIsaInstance prog s).row q (opIdx j) (Fin.castLE (s.rows_le j) x))
 
-/-- The memory block's rows: the two limbs, the index `g^x`, the finalize count `MFCNT`. -/
+/-- The memory block's rows: the two limbs, the index `g^x`, the finalize count `MEMORY_FINAL_COUNTERS`. -/
 def memBlockRowsOf : List (Array K) :=
   List.ofFn fun x : Fin (2 ^ s.logMem) ↦ (toElements (⟨#v[cell prog s q (memCol 0) x,
     cell prog s q (memCol 1) x], addressOfIndex x, cell prog s q (memCol 2) x⟩ : MemRow K)).toArray
 
-/-- The bytecode block's rows: the program's, with the finalize counts `BFCNT`. -/
+/-- The bytecode block's rows: the program's, with the finalize counts `BYTECODE_FINAL_COUNTERS`. -/
 def bytecodeBlockRowsOf : List (Array K) :=
   List.ofFn fun i : Fin (2 ^ prog.logSize) ↦
     (toElements (bytecodeRowOf prog i (cell prog s q bfcntCol i))).toArray
@@ -761,7 +761,7 @@ def memTableOf : Air.Flat.Table K :=
       obtain ⟨k, hk⟩ : ∃ k, s.logMem = 64 + k := ⟨s.logMem - 64, by omega⟩
       rw [hk, pow_add, UInt64.toNat_ofNat', Nat.mul_mod_right])
 
-/-- The bytecode block read off the stack: the program's rows, with the finalize counts `BFCNT`. -/
+/-- The bytecode block read off the stack: the program's rows, with the finalize counts `BYTECODE_FINAL_COUNTERS`. -/
 def bytecodeTableOf : Air.Flat.Table K :=
   have h64 : 2 ^ prog.logSize < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num)
     (lt_of_le_of_lt prog.logSize_le (by decide))
@@ -803,7 +803,7 @@ theorem witnessTables_names :
   exact h
 
 /-- The witness a stack carries: the six opcode tables from their rows, the memory and
-bytecode blocks from the memory columns, the program and `BFCNT`, the public input from the first
+bytecode blocks from the memory columns, the program and `BYTECODE_FINAL_COUNTERS`, the public input from the first
 two cells of `MEMORY_0` and `MEMORY_1`. Its prover data is derived from its tables: the image is the
 memory block's limbs. -/
 def witnessOf : EnsembleWitness (leanIsaEnsemble prog s.logMem) where
@@ -848,7 +848,7 @@ theorem memTableOf_table (h : s.logMem < 64) :
     (memTableOf prog s q).table = memBlockRowsOf prog s q := by
   simp [memTableOf, h, tableOf]
 
-/-- The bytecode block read off the stack holds the program's rows with the stack's `BFCNT`. -/
+/-- The bytecode block read off the stack holds the program's rows with the stack's `BYTECODE_FINAL_COUNTERS`. -/
 theorem bytecodeTableOf_table : (bytecodeTableOf prog s q).table = bytecodeBlockRowsOf prog s q :=
   rfl
 
@@ -893,7 +893,7 @@ variable (prog : LeanIsaProgram) (s : Sizes) {κ : ℕ}
 /-- Cell `i` of row `x` of a table, `0` when missing. -/
 def cellOf (t : Air.Flat.Table K) (x i : ℕ) : K := ((t.table[x]?).bind (·[i]?)).getD 0
 
-/-- The memory block's cell of memory column `i`: the limbs at `0, 1`, `MFCNT` at `3`. -/
+/-- The memory block's cell of memory column `i`: the limbs at `0, 1`, `MEMORY_FINAL_COUNTERS` at `3`. -/
 def memRowCell : Fin 3 → ℕ := ![0, 1, 3]
 
 /-- Input lane `l` of row `x` of the `KECCAK` table; a padding row's is zero (`padRow`). -/
@@ -916,7 +916,7 @@ theorem qSlot_spare {c : Col} (h : IsSpare c) :
   split_ifs
   omega
 
-/-- `QKECCAK` of a witness (`crates/leanvm_core/src/keccak.rs`, `cpu/layout.rs`): slot
+/-- `QKECCAK` of a witness (`crates/lean_vm_core/src/keccak.rs`, `cpu/layout.rs`): slot
 `l < 25` of step `x` is input lane `l` of row `x`, slot `25 + l` lane `l` of its state after
 twelve rounds, and slot `50 + k` the row's cell of the `KECCAK` column `spareColumn k`. -/
 def keccakWitness (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Vector K (2 ^ (s.τ 5 + 6)) :=

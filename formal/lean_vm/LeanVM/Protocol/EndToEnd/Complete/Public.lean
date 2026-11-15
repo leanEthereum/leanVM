@@ -34,8 +34,8 @@ leanVM): sample `r`, and claim of memory column `ℓ` at
 * `hPub`: the honest prover receives `r` and sends nothing; it returns the claims at the
   extensions of the two memory limbs at `(r, 0, …, 0)`, the lines through their cells `0, 1`
   (`PublicInput.eval₂Mle_linePoint`).
-* `follows_publicInputPhase`: on a stack satisfying `M3Holds`, its public lines (`MEM_LO` holds
-  `input₀, input₂`, `MEM_HI` holds `input₁, input₃`) make the verifier's
+* `follows_publicInputPhase`: on a stack satisfying `M3Holds`, its public lines (`MEMORY_0` holds
+  `input₀, input₂`, `MEMORY_1` holds `input₁, input₃`) make the verifier's
   claims those values, so they are true claims (`TrueClaim`).
 -/
 

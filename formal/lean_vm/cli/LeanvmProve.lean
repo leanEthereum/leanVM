@@ -27,7 +27,7 @@ the forms of the Rust prover's fixtures, which `leanvm-verify` and the Rust veri
   its `u32` leaf length and that many `u64` words, its `u32` sibling count and that many 32-byte
   digests;
 * `lean_proof.wire`: the proof's one wire encoding, `Proof.toBytes` (`Proof::to_bytes`,
-  `crates/fiat_shamir/src/wire.rs`).
+  `crates/verifier/src/wire.rs`).
 
 It prints the time taken; if the prover makes no proof (`none`), it says so and exits with `1`.
 -/

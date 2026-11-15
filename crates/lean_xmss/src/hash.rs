@@ -1,5 +1,5 @@
 //! The tweakable hash `Th(P, A, M) = Truncate_n(H(P | A | M))`, `H` the leanVM hash
-//! ([`primitives::hash::hash`], Keccak-256), its address and the address types.
+//! ([`keccak256::hash`], Keccak-256), its address and the address types.
 //!
 //! The public parameter and the address are 16 bytes each, as every value hashed
 //! after them is, so a prover whose cells are 16 bytes never has to cut a value in
@@ -12,7 +12,7 @@
 //! node's index `leaf_index >> level`, which also separates the bottom trees; a top
 //! address's is the top tree's own.
 
-use primitives::hash::Hasher;
+use keccak256::Hasher;
 
 use crate::*;
 
@@ -81,17 +81,17 @@ pub fn address(tw: &Tweak) -> [u8; ADDRESS_LEN] {
 /// Permutations the leanVM hash spends on a hash input whose payload is
 /// `payload` bytes: one per 136-byte block, the last holding the padding.
 pub const fn blocks(payload: usize) -> usize {
-    primitives::hash::permutations(PUBLIC_PARAM_LEN + ADDRESS_LEN + payload)
+    keccak256::permutations(PUBLIC_PARAM_LEN + ADDRESS_LEN + payload)
 }
 
 /// A hasher that has absorbed `P | A`.
 pub fn hasher(pp: &PublicParam, tw: &Tweak) -> Hasher {
-    primitives::hash::prefixed_hasher(pp, &address(tw))
+    keccak256::prefixed_hasher(pp, &address(tw))
 }
 
 /// `Th` over a byte payload.
 pub fn th(pp: &PublicParam, tw: &Tweak, payload: &[u8]) -> Digest {
-    primitives::hash::truncate(hasher(pp, tw).update(payload).finalize())
+    keccak256::truncate(hasher(pp, tw).update(payload).finalize())
 }
 
 /// `Th` over a concatenation of digests: a Merkle node or a leaf.

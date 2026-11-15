@@ -257,7 +257,7 @@ $2^\ell$ the bytecode size, $h_{op}$ the least power of two at least the number 
 instructions of opcode $op$, and $k$ the same for \texttt{KECCAK}, at least $2^9$.
 
 \paragraph{The proof on the wire.} The end statements are about the structured proof. On the wire
-a proof travels as bytes, its one encoding (\lean{crates/fiat_shamir/src/wire.rs}), each phase's
+a proof travels as bytes, its one encoding (\lean{crates/verifier/src/wire.rs}), each phase's
 paths pruned to their positions, their sizes, the distinct leaves and the siblings no other path
 gives; the pruning idea and its first formalization, on leanerVM's \texttt{main} branch, are
 Nicolas Schleicher's (\url{https://github.com/scaraven}). The encoding is a compression layer, outside
@@ -336,7 +336,7 @@ $128\,r$ positions.
 
 \paragraph{The commitment.} The committer hashes each row's $128$ cells into a Merkle tree, the
 row's \emph{blob root} (\lean{blobRootWith}), and publishes the root of the Merkle tree over the
-blob roots, the rows padded to \lean{maxRows} with zero codewords (\lean{commitCells}), so every path has $7 + \lean{logMaxRows}$ siblings. To
+blob roots, the rows padded to \lean{maxRows} with zero codewords (\lean{commitCells}), so every path has $7 + \mbox{\lean{logMaxRows}}$ siblings. To
 \emph{open} a position, it gives the cell and its path, in its blob's tree and then in the tree over
 the blob roots; the opening verifies if they hash back to the root (\lean{verifyCellWith}).
 
@@ -441,7 +441,7 @@ marked \lean{lean_vm} are the proofs'.
 \subsection{The objects}
 
 \paragraph{The guest program} $G$ (\lean{LeanVM.Guest.guestProgram}) is leanVM's compiled aggregation
-program (\texttt{crates/rec\_aggregation/guests/lean\_ethereum.py} in this tree),
+program (\texttt{guests/lean\_ethereum.py} in this tree),
 transcribed as generated data (\lean{Statement/Data/}). Its bytecode $B$ has $2^{19}$ instruction
 slots of $16$ words of $\mathbb{F} = \mathrm{GF}(2^{64})$, so $2^{23}$ words
 (\lean{bytecode_length}, in \lean{lean_vm}). Below, $H$ is Keccak-256 and
@@ -474,14 +474,14 @@ satisfies $\widehat{B}(\zeta) = v$ (\lean{DeferredBytecodeClaim.HoldsWithShape})
 \end{itemize}
 
 \paragraph{The statement's digest} under a seed $\sigma$ (\lean{statementDigest},
-\texttt{aggregation/statement.rs}) is
+\texttt{crates/aggregation/src/statement.rs}) is
 \[
 \mathrm{dig}_\sigma(s) = H\big(\sigma \,\|\, H(\enc(\Cx)) \,\|\, H(\enc(\Cs)) \,\|\, \mathit{da} \,\|\, \enc(c)\big),
 \]
 where $\enc(\Cx)$ concatenates, per claim, the key's bytes, a leanXMSS key's root ($16$ bytes)
 then its parameter ($16$), and the message ($32$); $\enc(\Cs)$ likewise, a leanSPHINCS key's bytes
 being $\mathrm{PK.seed}$ then $\mathrm{PK.root}$ (\lean{claimListDigest},
-\texttt{aggregation/statement.rs}); and $\enc(c)$ is the $16$-byte encodings of
+\texttt{crates/aggregation/src/statement.rs}); and $\enc(c)$ is the $16$-byte encodings of
 $z_1, \dots, z_{23}, v$. The lists' lengths are bound by Keccak's padding;
 the deferred claim's encoding carries no length, so deferred claims are told apart only at one
 shape. The guest program's public input is this $32$-byte digest.
@@ -536,10 +536,10 @@ Either way $s$'s deferred claim has the bytecode's shape: its point has $23$ coo
 run on the real Keccak, accepts its proof. Whether that makes them true is the soundness of leanVM
 with Keccak instantiated, which is not proved (Section~\ref{sec:notgive}).
 
-\paragraph{The outer verifier} (\texttt{AggregateProof::verify}, \texttt{aggregation/proof.rs})
-additionally checks that the DA digest is that of its root with the root's membership
-challenge, that the deferred claim holds ($\widehat{B}(\zeta) = v$), and the lists' form
-(sorted, no repeats). Of these, \lean{AggregateSound} below
+\paragraph{The outer verifier} (\texttt{AggregateProof::verify},
+\texttt{crates/aggregation/src/proof.rs}) additionally checks that the DA digest is that of its root
+with the root's membership challenge, that the deferred claim holds ($\widehat{B}(\zeta) = v$), and
+the lists' form (sorted, no repeats). Of these, \lean{AggregateSound} below
 assumes only that the deferred claim holds (\lean{DeferredBytecodeClaim.HoldsWithShape}); no end statement
 models the DA digest's derivation or the lists' form. Without the derivation, the DA condition says
 nothing of the blob: \lean{MatrixWitness.Opens} accepts any challenge the digest binds, $z = 0$

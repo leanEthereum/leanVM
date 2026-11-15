@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Opening.FoldAlg
 
 `opening_queries(cap, flags, lam_inv, coefs, hs, positions, query_win_ptrs, n_iters_g)` with the
 compile-time `(odd, base, folds, leaf_cells, depth, cap_depth, mu, vanish, n_hs, hs_bits, final)`
-(`crates/rec_aggregation/guests/lean_ethereum.py`, `opening_queries` and `opening_query`) runs one
+(`guests/lean_ethereum.py`, `opening_queries` and `opening_query`) runs one
 level's queries of the stacked WHIR opening (`whirLevels`, `Statement/LeanVmVerifier.lean`;
 `crates/verifier/src/whir.rs`, `verify_whir`). Query `k` at the position `q_k` (its word
 `positions[k] = eOfNat q_k` and its windows at `query_win_ptrs[k]`, both `decode_query_windows`'):

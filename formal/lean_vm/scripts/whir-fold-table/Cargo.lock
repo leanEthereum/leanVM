@@ -3,18 +3,49 @@
 version = 4
 
 [[package]]
-name = "fiat_shamir"
+name = "experimental_parallel"
 version = "0.1.0"
 dependencies = [
- "parallel",
- "primitives",
+ "libc",
 ]
+
+[[package]]
+name = "experimental_pcs"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "experimental_primitives",
+ "fiat_shamir_prover",
+ "tracing",
+ "verifier",
+]
+
+[[package]]
+name = "experimental_primitives"
+version = "0.1.0"
+dependencies = [
+ "experimental_parallel",
+ "fiat_shamir_prover",
+ "keccak256",
+]
+
+[[package]]
+name = "fiat_shamir_prover"
+version = "0.1.0"
+dependencies = [
+ "keccak256",
+ "verifier",
+]
+
+[[package]]
+name = "keccak256"
+version = "0.1.0"
 
 [[package]]
 name = "leanvm-whir-fold-table"
 version = "0.0.0"
 dependencies = [
- "pcs",
+ "experimental_pcs",
 ]
 
 [[package]]
@@ -30,34 +61,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 
 [[package]]
-name = "parallel"
-version = "0.1.0"
-dependencies = [
- "libc",
-]
-
-[[package]]
-name = "pcs"
-version = "0.1.0"
-dependencies = [
- "fiat_shamir",
- "parallel",
- "primitives",
- "tracing",
-]
-
-[[package]]
 name = "pin-project-lite"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
-
-[[package]]
-name = "primitives"
-version = "0.1.0"
-dependencies = [
- "parallel",
-]
 
 [[package]]
 name = "proc-macro2"
@@ -124,3 +131,7 @@ name = "unicode-ident"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
+
+[[package]]
+name = "verifier"
+version = "0.1.0"

@@ -27,7 +27,7 @@ import LeanVMTests.Spec.NodeVectors
 * `batch` on no children is inhabited; the outer verifier's membership challenge
   (`membershipChallengeOf`) of a root is not zero.
 * The Rust vectors (`NodeVectors.lean`, written by `scripts/guest-export` from the deployed
-  `crates/rec_aggregation/src/aggregation/` at the guest's shape, `bytecode_vars = 23`): the
+  `crates/aggregation/src/` at the guest's shape, `bytecode_vars = 23`): the
   statement's encodings and the batching of two children's true claims on the guest's stacked
   bytecode are the Spec's, with the permutation as a parameter too (`batchWith`); a batching hint off
   by one, the children swapped, and another seed or no DA claim in the statement change the

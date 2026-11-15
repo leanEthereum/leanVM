@@ -42,6 +42,11 @@ fn byte_buckets(word: u64) -> impl Iterator<Item = u16> {
 }
 
 impl Bytecode {
+    /// The Fiat-Shamir IV every transcript of this program starts from.
+    pub fn fiat_shamir_iv(&self) -> [u8; 32] {
+        self.fiat_shamir_iv.0
+    }
+
     pub fn new(table: &[u64]) -> Self {
         let fiat_shamir_iv = {
             let iv_preimage: Vec<u8> = TAG

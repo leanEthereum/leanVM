@@ -7,7 +7,7 @@
 //! `.keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd outCells` in place of `.blake2s`.
 
 use super::*;
-use leanvm_core::cpu::{DerefMode, Op, OutCells};
+use isa::{DerefMode, Op, OutCells};
 use std::fmt::Write as _;
 
 /// Where the data modules go, relative to `lean_vm/`: the statement's generated data.
@@ -64,8 +64,8 @@ fn header(module: &str, about: &str, imports: &str) -> String {
 const FOOTER: &str = "end\nend LeanVM.Guest.Data\n";
 
 /// The data modules.
-pub fn files(guest: &Program) -> Vec<File> {
-    let prog = guest.prog();
+pub fn files(guest: &isa::CompiledProgram) -> Vec<File> {
+    let prog = &guest.prog;
     let log_size = prog.len().trailing_zeros();
     assert_eq!(prog.len(), 1 << log_size);
     let mut pc = 0;
@@ -79,7 +79,7 @@ pub fn files(guest: &Program) -> Vec<File> {
     assert!(code_len < prog.len());
     for op in &prog[code_len..] {
         assert!(
-            matches!(*op, Op::Set { o: 0, k } if k == F128::ZERO),
+            matches!(*op, Op::Set { o: 0, k } if k == verifier::E::new(0, 0)),
             "the padding is not `SET fp[0] = 0`"
         );
     }

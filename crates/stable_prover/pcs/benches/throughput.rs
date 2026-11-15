@@ -1,0 +1,124 @@
+//! PCS throughput: commits a random witness of `2^PCS_LOG_N` `K` words at inverse rate `2^PCS_LOG_INV_RATE`, with its
+//! OOD sample, opens it, times each phase, and reports GiB/s over the committed data. The passes follow
+//! [`bench::Plan::from_env`] (`BENCH_REPEAT`, `BENCH_COOLDOWN`).
+//!
+//! ```text
+//! PCS_LOG_N          number of variables = log2(witness length)   [default 22]
+//! PCS_LOG_INV_RATE   log2 of the inverse RS rate (rate = 1/2^r)    [default: MIN_LOG_INV_RATE]
+//! PCS_POINT_CLAIMS   point claims, each on its own quarter of the witness after the first [default 1]
+//! PCS_RING_CLAIMS    ring-switched claims on the witness's first half [default 0]
+//! BENCH_TRACING      print the final pass's trace tree (`RUST_LOG` adjusts it)
+//!
+//! PCS_LOG_N=24 PCS_LOG_INV_RATE=1 BENCH_REPEAT=5 cargo bench -p stable_pcs --bench throughput
+//! ```
+//!
+//! The codeword is `2^PCS_LOG_INV_RATE` times the witness, so a large `PCS_LOG_N` needs much memory.
+
+extern crate stable_pcs as pcs;
+use std::hint::black_box;
+use std::time::Instant;
+
+use bench::{Plan, Timing, env_usize};
+use isa::pretty_integer;
+use pcs::{RingSwitchOpen, StackClaim, commit, open};
+use primitives::{field::F64, test_rng::Rng};
+use verifier::MIN_LOG_INV_RATE;
+
+#[global_allocator]
+static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;
+
+fn main() {
+    bench::init_tracing_from_env();
+
+    let log_n = env_usize("PCS_LOG_N", 22);
+    let log_inv_rate = env_usize("PCS_LOG_INV_RATE", MIN_LOG_INV_RATE);
+    verifier::derive_config(log_n, log_inv_rate).expect("WHIR config feasible (try a larger PCS_LOG_N, e.g. >= 16)");
+    let plan = Plan::from_env();
+    let trace_span = tracing::info_span!("PCS throughput", log_n, log_inv_rate).entered();
+
+    // Random F64 witness (the committed polynomial).
+    let mut rng = Rng::new(0x0192_0000 ^ log_n as u64);
+    let n = 1usize << log_n;
+    let witness: Vec<F64> = (0..n).map(|_| F64(rng.next_u64())).collect();
+    // One point claim over the whole witness, then smaller ones on its quarters, and ring claims on its first half.
+    let mut claims = vec![StackClaim {
+        offset: 0,
+        low_point: rng.ext_vec(log_n),
+    }];
+    for c in 1..env_usize("PCS_POINT_CLAIMS", 1) {
+        claims.push(StackClaim {
+            offset: (c % 4) << (log_n - 2),
+            low_point: rng.ext_vec(log_n - 2),
+        });
+    }
+    let ring = RingSwitchOpen {
+        offset: 0,
+        points: (0..env_usize("PCS_RING_CLAIMS", 0))
+            .map(|_| rng.ext_vec(log_n - 1))
+            .collect(),
+    };
+
+    let (mut commit_t, mut open_t) = (Timing::default(), Timing::default());
+    plan.warm_then_measure(|last| {
+        let _quiet = (!last).then(bench::suppress_tracing);
+
+        let mut ps = primitives::transcript::ProverState::from_label(b"pcs-throughput");
+        let t = Instant::now();
+        let committed = tracing::info_span!("Commit").in_scope(|| commit(&mut ps, &witness, log_n, log_inv_rate));
+        commit_t.push(t.elapsed().as_secs_f64());
+
+        let stack = witness.clone();
+        let t = Instant::now();
+        tracing::info_span!("PCS open").in_scope(|| open(&mut ps, committed, stack, &claims, &ring));
+        open_t.push(t.elapsed().as_secs_f64());
+        black_box(ps.into_proof());
+    });
+    // The warmup pass also pushed a sample; drop it.
+    let [commit_t, open_t] = [commit_t, open_t].map(|t| {
+        let mut kept = Timing::default();
+        for &s in &t.samples()[1..] {
+            kept.push(s);
+        }
+        kept
+    });
+    let (commit_s, open_s) = (commit_t.mean(), open_t.mean());
+
+    // Throughput is over the committed data: 2^log_n F64 = 2^log_n * 8 bytes.
+    let data_bytes = (n as f64) * 8.0;
+    let mib = |bytes: f64| bytes / (1u64 << 20) as f64;
+    let gibps = |secs: f64| (data_bytes / (1u64 << 30) as f64) / secs;
+    let codeword_bytes = data_bytes * (1u64 << log_inv_rate) as f64;
+
+    // The trace tree renders when its root span closes: before the report.
+    drop(trace_span);
+
+    println!(
+        "\nPCS throughput: 2^{log_n} variables, rate 1/2^{log_inv_rate}, mean of {}",
+        pretty_integer(plan.repeat)
+    );
+    println!(
+        "  committed data                  : {:>8.1} MiB  ({:>13} F64)",
+        mib(data_bytes),
+        pretty_integer(n)
+    );
+    println!("  RS codeword (encoded)           : {:>8.1} MiB", mib(codeword_bytes));
+    println!("  ------------------------------------------------------------");
+    println!(
+        "  commit                          : {:>8.1} ms   ({:>6.2} GiB/s){}",
+        commit_s * 1e3,
+        gibps(commit_s),
+        commit_t.spread()
+    );
+    println!(
+        "  open                            : {:>8.1} ms   ({:>6.2} GiB/s){}",
+        open_s * 1e3,
+        gibps(open_s),
+        open_t.spread()
+    );
+    println!("  ------------------------------------------------------------");
+    println!(
+        "  commit + open                   : {:>8.1} ms   ({:>6.2} GiB/s)",
+        (commit_s + open_s) * 1e3,
+        gibps(commit_s + open_s),
+    );
+}

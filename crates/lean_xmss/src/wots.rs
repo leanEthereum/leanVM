@@ -6,7 +6,7 @@
 //! zero, so those have no chain, and the other `v` sum to `T`. The signer grinds the
 //! randomizer `R` until it is, one permutation a trial.
 
-use primitives::hash::RATE;
+use keccak256::RATE;
 
 use crate::*;
 
@@ -48,7 +48,7 @@ pub(crate) fn wots_leaf_hash(pp: &PublicParam, layer: usize, e: u32, ends: &[Dig
 /// The digest key `e` on `layer` signs: `Th(P, A, M | R)`, `M` the message at the
 /// bottom and the bottom root at the top.
 pub fn message_digest(pp: &PublicParam, layer: usize, e: u32, randomizer: &Randomizer, message: &[u8]) -> Digest {
-    primitives::hash::truncate(
+    keccak256::truncate(
         hasher(pp, &tweak(TWEAK_MSG, layer_hi(layer, 0), e))
             .update(message)
             .update(randomizer)
@@ -81,14 +81,14 @@ const GRIND_BATCH: usize = 64;
 fn least_trial(input: &[u8], base: u128) -> Option<u64> {
     let at = input.len() - RANDOMIZER_LEN;
     assert!(at.is_multiple_of(8) && at / RATE == input.len() / RATE);
-    let template = primitives::hash::final_state(input);
+    let template = keccak256::final_state(input);
     let (mut values, mut digests) = ([0; GRIND_BATCH], [0; GRIND_BATCH]);
     (0..MAX_RANDOMIZER_TRIALS).step_by(GRIND_BATCH).find_map(|first| {
         let n = (MAX_RANDOMIZER_TRIALS - first).min(GRIND_BATCH as u64) as usize;
         for (c, value) in (first..).zip(&mut values[..n]) {
             *value = base.wrapping_add(u128::from(c));
         }
-        primitives::hash::digest_halves_from(&template, at % RATE / 8, &values[..n], &mut digests[..n]);
+        keccak256::digest_halves_from(&template, at % RATE / 8, &values[..n], &mut digests[..n]);
         digests[..n]
             .iter()
             .position(|&d| is_codeword(d))

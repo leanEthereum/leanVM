@@ -7,6 +7,9 @@
 //! are hand-written in `tests/LeanVMTests/Spec/Node.lean`.
 
 use super::*;
+use lean_vm_core::StableProver;
+use lean_vm_core::cpu::{from_scalar, to_scalar};
+use primitives::field::F128;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use std::fmt::Write as _;
@@ -89,7 +92,7 @@ pub fn file() -> File {
     let xmss_digest = claim_list_digest(xmss_typed.iter().map(lean_xmss_claim_cells));
     let sphincs_digest = claim_list_digest(sphincs_typed.iter().map(lean_sphincs_claim_cells));
     let root = bytes32(&mut rng);
-    let challenge = verifier::da::membership_challenge(&root);
+    let challenge = from_scalar(verifier::da::membership_challenge(&root));
     let da = verifier::da::digest(Some(root));
 
     // A deferred claim of the guest's shape, its value arbitrary (the digest does not care).
@@ -97,39 +100,41 @@ pub fn file() -> File {
         bytecode_point: elements(&mut rng, kbcv),
         bytecode_value: element(&mut rng),
     };
-    let seed = leanvm_core::cpu::fs_seed(unified_guest());
-    let statement = statement_digest(&xmss_typed, &sphincs_typed, da, &defer);
+    let seed = fs_seed();
+    let claims = AggregateClaims { lean_xmss: xmss_typed, lean_sphincs: sphincs_typed, da_commitment: Some(root) };
+    let statement = statement_digest(&claims, &defer);
 
-    // Two children with true claims on the stacked bytecode.
-    let subproofs: Vec<DeferredSubproof> = (0..2)
+    // Two children with true claims on the stacked bytecode: each one's public input and fresh claim.
+    let subproofs: Vec<([F128; 2], DeferredBytecodeClaim)> = (0..2)
         .map(|_| {
             let point = elements(&mut rng, kbcv);
-            let value = mle_eval_par(stacked_bytecode(), &point);
+            let scalars: Vec<_> = point.iter().map(to_scalar).collect();
+            let value = from_scalar(unified_guest().bytecode().evaluate(&scalars).unwrap());
             let canonical = |rng: &mut StdRng| F128::new(rng.random(), rng.random());
-            DeferredSubproof {
-                public_input: [canonical(&mut rng), canonical(&mut rng)],
-                bytecode_point: point,
-                bytecode_value: value,
-            }
+            let public_input = [canonical(&mut rng), canonical(&mut rng)];
+            (public_input, DeferredBytecodeClaim { bytecode_point: point, bytecode_value: value })
         })
         .collect();
     let carried: Vec<DeferredBytecodeClaim> = (0..2)
-        .map(|_| DeferredBytecodeClaim::recompute(elements(&mut rng, kbcv)).unwrap())
+        .map(|_| DeferredBytecodeClaim::recompute(elements(&mut rng, kbcv)))
         .collect();
     // Each child's fresh claim, then its carried one: the batch's order, which its sums follow.
-    let points: Vec<Vec<F128>> = subproofs
+    let public_inputs: Vec<[F128; 2]> = subproofs.iter().map(|(public_input, _)| *public_input).collect();
+    let claims: Vec<DeferredBytecodeClaim> = subproofs
         .iter()
         .zip(&carried)
-        .flat_map(|(subproof, carried)| [subproof.bytecode_point.clone(), carried.bytecode_point.clone()])
+        .flat_map(|((_, fresh), carried)| [fresh.clone(), carried.clone()])
         .collect();
-    let (hints, batched) = aggregate_deferred_claims(&subproofs, &carried, bytecode_sums(&points))
-        .expect("the honest children's deferred values are the bytecode's evaluations");
+    let points: Vec<Vec<F128>> = claims.iter().map(|claim| claim.bytecode_point.clone()).collect();
+    <StableProver as isa::Prover>::init();
+    let sums = bytecode_sums::<StableProver>(&points);
+    let (hints, batched) = aggregate_deferred_claims::<StableProver>(&public_inputs, &claims, sums);
     let hint = |name: &str| &hints.iter().find(|(n, _)| *n == name).unwrap().1;
     let msgs = hint("bc_sumcheck_msgs");
     let star = hint("bc_star_hint");
     assert_eq!(star.len(), 1);
     // The batching challenge's grind nonce, then each round's `(g1, g_inf)`: a degree-two round grinds nothing.
-    assert!(BATCH_LAM_GRIND_BITS > 0 && fiat_shamir::grinding_bits(2) == 0);
+    assert!(BATCH_LAM_GRIND_BITS > 0 && fiat_shamir_prover::grinding_bits(2) == 0);
     assert_eq!(msgs.len(), 1 + 2 * kbcv);
     let (nonce, msgs) = (msgs[0], &msgs[1..]);
 
@@ -162,7 +167,7 @@ pub fn file() -> File {
         out,
         "/-- A DA claim: a root with the membership challenge the Rust derives from it. -/\ndef daClaim : DaClaim := ⟨{}, {}⟩\n",
         digest(&root),
-        e(from_scalar(challenge))
+        e(challenge)
     )
     .unwrap();
     writeln!(out, "/-- The statement's DA field for it (`verifier::da::digest`). -/\ndef daDigest : Digest := {}\n", digest(&da)).unwrap();
@@ -183,12 +188,11 @@ pub fn file() -> File {
     let children: Vec<String> = subproofs
         .iter()
         .zip(&carried)
-        .map(|(s, c)| {
-            let fresh: Vec<F128> = s.bytecode_point.clone();
+        .map(|((public_input, s), c)| {
             format!(
                 "⟨{},\n   ⟨{},\n    {}⟩,\n   ⟨{},\n    {}⟩⟩",
-                cells_digest(&s.public_input),
-                es(&fresh),
+                cells_digest(public_input),
+                es(&s.bytecode_point),
                 e(s.bytecode_value),
                 es(&c.bytecode_point),
                 e(c.bytecode_value)

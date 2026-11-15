@@ -17,7 +17,7 @@ public import Clean.Utils.Tactics.CircuitProofStart
 # The `SET_CONSTANT` table
 
 At Clean pin `b41c196b`. The columns
-are `crates/leanvm_core/src/tables.rs` (`mod set`, in that order) and the flushes
+are `crates/lean_vm_core/src/tables.rs` (`mod set`, in that order) and the flushes
 `tables.rs` (`SetTable::flushes`), matching specification §7.3
 (`doc/leanvm/body/07-instruction-tables.tex`). There is no constraint.
 

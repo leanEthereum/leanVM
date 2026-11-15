@@ -1,15 +1,60 @@
-//! Benchmark CLI for signature and blob proofs, recursion, batched Keccak, and the Fibonacci demo.
+//! Benchmark CLI for signature and blob proofs, recursion, and the Fibonacci demo.
 
 #[global_allocator]
 static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;
 
 use clap::{Parser, Subcommand};
+use experimental_lean_vm_core::ExperimentalProver;
+use stable_lean_vm_core::StableProver;
 
 mod benchmark;
 mod fibonacci;
 mod report;
 
+/// Run the CLI's command on prover `P`.
+fn run<P: isa::Prover>(cli: Cli) {
+    P::init();
+    let plan = bench::Plan::new(cli.repeat, cli.cooldown);
+    if cli.tracing && !matches!(&cli.command, Command::Recursion { .. }) {
+        bench::init_tracing();
+    }
+    match cli.command {
+        Command::Aggregate { xmss, sphincs, blobs } => {
+            benchmark::run_aggregation::<P>(xmss, sphincs, blobs, cli.log_inv_rate, plan);
+        }
+        Command::Recursion {
+            n,
+            xmss_per_leaf,
+            sphincs_per_leaf,
+            blobs_per_leaf,
+            leaf_log_inv_rate,
+        } => {
+            benchmark::run_recursion::<P>(
+                n,
+                xmss_per_leaf,
+                sphincs_per_leaf,
+                blobs_per_leaf,
+                leaf_log_inv_rate.unwrap_or(cli.log_inv_rate),
+                cli.log_inv_rate,
+                cli.tracing,
+                plan,
+            );
+        }
+        Command::Fibonacci { n } => fibonacci::run_fibonacci::<P>(n, cli.log_inv_rate, plan),
+    }
+}
+
+/// Which of the two provers runs.
+#[derive(Clone, Copy, clap::ValueEnum)]
+enum Prover {
+    /// The stable prover.
+    Stable,
+    /// The experimental prover.
+    Experimental,
+}
+
 #[derive(Parser)]
+#[command(name = "leanvm")]
 struct Cli {
     /// WHIR inverse-rate logarithm (1 through 4).
     #[arg(
@@ -36,6 +81,10 @@ struct Cli {
     /// Idle seconds before each measured pass.
     #[arg(long, global = true, default_value_t = 2)]
     cooldown: u64,
+
+    /// The prover to run, before the subcommand.
+    #[arg(long, value_enum)]
+    prover: Prover,
 
     #[command(subcommand)]
     command: Command,
@@ -85,21 +134,6 @@ enum Command {
         )]
         leaf_log_inv_rate: Option<usize>,
     },
-    /// Prove and verify a batch of Keccak-f permutations with the VM's GKR, outside the VM.
-    Hash {
-        /// Log2 of the number of permutations: a committed block the verifiers accept, from the
-        /// least stack (or the reduction's fewest steps, if more) to the largest.
-        #[arg(
-            long,
-            default_value_t = 17,
-            value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(
-                (leanvm_core::pcs::MIN_STACKED_LOG - leanvm_core::keccak::SLOT_LOG)
-                    .max(leanvm_core::keccak::MIN_STEPS.ilog2() as usize) as u64
-                    ..=(leanvm_core::pcs::MAX_STACKED_LOG - leanvm_core::keccak::SLOT_LOG) as u64
-            )
-        )]
-        log_n: usize,
-    },
     /// Prove and verify Fibonacci in the exponent (demo).
     Fibonacci {
         /// Number of recurrence steps.
@@ -110,38 +144,8 @@ enum Command {
 
 fn main() {
     let cli = Cli::parse();
-    parallel::init();
-    let plan = bench::Plan::new(cli.repeat, cli.cooldown);
-    if cli.tracing && !matches!(&cli.command, Command::Recursion { .. }) {
-        bench::init_tracing();
-    }
-    match cli.command {
-        Command::Aggregate { xmss, sphincs, blobs } => {
-            benchmark::run_aggregation(xmss, sphincs, blobs, cli.log_inv_rate, plan);
-        }
-        Command::Recursion {
-            n,
-            xmss_per_leaf,
-            sphincs_per_leaf,
-            blobs_per_leaf,
-            leaf_log_inv_rate,
-        } => {
-            benchmark::run_recursion(
-                n,
-                xmss_per_leaf,
-                sphincs_per_leaf,
-                blobs_per_leaf,
-                leaf_log_inv_rate.unwrap_or(cli.log_inv_rate),
-                cli.log_inv_rate,
-                cli.tracing,
-                plan,
-            );
-        }
-        Command::Hash { log_n } => {
-            keccak_gkr::batch_bench::run(1 << log_n, leanvm_core::keccak::DEPTH, cli.log_inv_rate, plan).print();
-        }
-        Command::Fibonacci { n } => {
-            fibonacci::run_fibonacci(n, cli.log_inv_rate, plan);
-        }
+    match cli.prover {
+        Prover::Stable => run::<StableProver>(cli),
+        Prover::Experimental => run::<ExperimentalProver>(cli),
     }
 }

@@ -21,7 +21,7 @@ extension) at a point the bus phase derives; the verifier checks that claim with
 polynomial (`computedBytecodeValue`). The deferring verifier (`verifyDeferred`), which the Rust
 verifier does not have, instead holds the point and the value to a claim it hands on, as an
 aggregate's in-circuit verifier of its children does
-(`crates/rec_aggregation/guests/lean_ethereum.py`, `verify_sub`).
+(`guests/lean_ethereum.py`, `verify_sub`).
 -/
 
 @[expose] public section
@@ -33,7 +33,7 @@ aggregate's in-circuit verifier of its children does
 The Rust verifier carries its WHIR constants, the ladder geometry (`derive_config`) and the query
 counts (`WHIR_QUERIES`) itself (`crates/verifier/src/whir.rs`); they are the prover's
 (`crates/pcs/src/whir_config.rs`, its ladder `derive_ladder` and `derive_ladder_shape`), as the tests `whir_query_table_matches_the_search` and
-`grinding_constants_match_the_prover` (`crates/leanvm_core/tests/verifiers/whir_query_table.rs`)
+`grinding_constants_match_the_prover` (`crates/lean_vm_core/tests/verifiers/whir_query_table.rs`)
 check, the latter on this file's constants too. The stacking window is `MIN_STACKED_LOG` and
 `MAX_STACKED_LOG` (`crates/verifier/src/layout.rs`). The specification describes the protocol these
 parameters instantiate (Annex B, `fig:protocol`, `doc/leanvm/body/b-polynomial-commitment-scheme.tex`)
@@ -218,7 +218,7 @@ def securityBits : ℕ := 125
 /-- `grinding_bits(numerator)`: the grind before a verifier message whose round-by-round error is
 `numerator / |E|`, `|E| = 2^128`, the fewest bits that bring it to `2^-securityBits`: the bit
 length of `numerator - 1` (`0` for `numerator ≤ 1`), less `128 - securityBits`, saturating
-(`transcript.rs`; `fiat_shamir::grinding_bits`). -/
+(`transcript.rs`). -/
 def grindingBits (numerator : ℕ) : ℕ :=
   (if numerator ≤ 1 then 0 else Nat.log2 (numerator - 1) + 1) - (128 - securityBits)
 

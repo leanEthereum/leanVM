@@ -10,8 +10,8 @@ children carry honest proofs (`GuestCompleteOnHonestChildren`), the honest proof
 rarely refused (`HonestProofRarelyRefused`), and the recursion step, the batching of the
 children's deferred claims, sound in the random-permutation model (`BatchingSound`). The
 soundness side, what a node proves, is `LeanVmGuest.lean`. `lean_ethereum.py` is
-`crates/rec_aggregation/guests/lean_ethereum.py` and `aggregation/<module>.rs` is
-`crates/rec_aggregation/src/aggregation/<module>.rs`.
+`guests/lean_ethereum.py` and `aggregation/<module>.rs` is
+`crates/aggregation/src/<module>.rs`.
 -/
 
 @[expose] public section

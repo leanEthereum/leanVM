@@ -28,9 +28,10 @@ writes `his[w + 1] · g^8 + k` (the top window `k`) where the hinted `his[w]` is
 * `lx_bit`: arm `k`'s bit `r` is the index's bit `8w + r`;
 * `lx_layer_idx`: a layer's index cell (`his[0]`, `his[2] + LX_TOP`) is the index's key with the
   layer's bit;
-* `lxTagCarried`, `lxTagSlot`, `lxTagLog` (`LX_TAG_SLOT`, `LX_TAG_LOG`, `aggregation/placeholders.rs`):
-  chain `i`'s index cell is the zero cell (`i = 0`), `powers[log₂ i]` (a power of two) or carried
-  tag `lxTagSlot i - 1` (`LX_N_TAGS = 51` of them); `lx_tag`: each holds `i`.
+* `lxTagCarried`, `lxTagSlot`, `lxTagLog` (`LX_TAG_SLOT`, `LX_TAG_LOG`,
+  `crates/aggregation/src/placeholders.rs`): chain `i`'s index cell is the zero cell (`i = 0`),
+  `powers[log₂ i]` (a power of two) or carried tag `lxTagSlot i - 1` (`LX_N_TAGS = 51` of them);
+  `lx_tag`: each holds `i`.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -229,7 +230,7 @@ theorem lx_layer_idx {L : Nat} (hL : L < 2 ^ 32) :
 /-! ## The chain indices -/
 
 /-- Whether chain `i`'s index is carried as a tag: neither `0` nor a power of two
-(`aggregation/placeholders.rs`). -/
+(`crates/aggregation/src/placeholders.rs`). -/
 def lxTagCarried (i : Nat) : Bool := i != 0 && (i &&& (i - 1)) != 0
 
 /-- Chain `i`'s tag slot, one past its carried tag (`LX_TAG_SLOT`), `0` if not carried. -/

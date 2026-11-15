@@ -4,6 +4,8 @@
 //! A claim is a weighted sum of the bits of one state per segment: the weight of bit `j` of instance `i` of pack `y`
 //! in segment `m` is `eq(point, (y, m)) * weights[j] * mu[i]`. A pack is sixteen consecutive steps.
 
+use std::ops::{Add, AddAssign};
+
 use crate::field::{E, K, ONE, ZERO};
 use crate::hash::{KECCAK_PI, KECCAK_RC, KECCAK_RHO, ROUNDS, STATE_LANES};
 use crate::layout::K_BITS;
@@ -12,21 +14,24 @@ use crate::transcript::{Transcript, grinding_bits, sumcheck};
 use crate::{VerifierError, require};
 
 const PACK_BITS: usize = 4;
-const PACK: usize = 1 << PACK_BITS;
-const EMBED_BITS: usize = 24;
-const PRODUCT_BITS: usize = 2 * EMBED_BITS - 1;
-const BITS: usize = 64 * STATE_LANES;
-const LOCAL_BITS: usize = 11; // a bit position is z + 64 * lane, in a cube of 2048
-const LANE_BITS: usize = 5;
+pub const PACK: usize = 1 << PACK_BITS;
+pub const EMBED_BITS: usize = 24;
+pub const PRODUCT_BITS: usize = 2 * EMBED_BITS - 1;
+/// The state's bit positions: `j = z + 64 * (x + 5 * y)` is bit `z` of lane `x + 5 * y`.
+pub const BITS: usize = 64 * STATE_LANES;
+/// The variables of the cube a bit position embeds in, `z` low, then the lane.
+pub const LOCAL_BITS: usize = 11;
+/// The variables of a lane's index.
+pub const LANE_BITS: usize = 5;
 
 /// Sixteen bits embed in a binary polynomial of degree at most 23, and a product of two embeddings projects to the
 /// AND of what they embed: each unit vector's embedding, and per bit of the projection the product coefficients it is
 /// the parity of. Derived in `formal/Statement/LeanVmVerifier.lean`.
-const RMFE_EMBED: [u32; PACK] = [
+pub const RMFE_EMBED: [u32; PACK] = [
     0x40c50b, 0x7f79f2, 0x4b4e0a, 0x72740c, 0x5357da, 0x1d1c9e, 0x04be6e, 0x785246, 0x097cdc, 0x109e7e, 0x1f1454,
     0x213cfc, 0x4cfcc8, 0x775770, 0x187386, 0x818a16,
 ];
-const RMFE_PROJECT: [u64; PACK] = [
+pub const RMFE_PROJECT: [u64; PACK] = [
     0x1,
     0x7fffffffffff,
     0x274e9d3a74e9,
@@ -75,20 +80,22 @@ struct Claim {
 }
 
 /// The position `k` columns along from `j`, in the same row and slice.
-fn along(j: usize, k: usize) -> usize {
+#[inline]
+pub fn along(j: usize, k: usize) -> usize {
     let (lane, z) = (j / 64, j % 64);
     64 * ((lane % 5 + k) % 5 + 5 * (lane / 5)) + z
 }
 
 /// The transpose of theta, rho, pi on weight vectors: `<w, L(a)> = <L^T(w), a>`.
-fn linear_transpose(w: &[E]) -> Vec<E> {
-    let mut g = vec![ZERO; BITS]; // the weight each position of theta's output carries
+pub fn linear_transpose<T: Copy + Default + Add<Output = T> + AddAssign>(w: &[T]) -> Vec<T> {
+    assert_eq!(w.len(), BITS);
+    let mut g = [T::default(); BITS]; // the weight each position of theta's output carries
     for lane in 0..STATE_LANES {
         for z in 0..64 {
             g[64 * lane + z] = w[64 * KECCAK_PI[lane] + (z + KECCAK_RHO[lane] as usize) % 64];
         }
     }
-    let mut columns = vec![ZERO; 5 * 64];
+    let mut columns = [T::default(); 5 * 64];
     for (j, &weight) in g.iter().enumerate() {
         columns[64 * (j / 64 % 5) + j % 64] += weight;
     }
@@ -228,7 +235,7 @@ fn open(
 
 /// What the reduction leaves: the committed segment outputs as words at one point of q_keccak, if any segment's
 /// output is committed, and the column's 64 slices at another.
-pub struct KeccakOpenings {
+pub(crate) struct KeccakOpenings {
     pub outputs: Option<(Vec<E>, E)>,
     pub inputs: (Vec<E>, Vec<E>),
 }
@@ -236,7 +243,7 @@ pub struct KeccakOpenings {
 /// The reduction: a random claim on every segment's output at `instance`, `depth` layers down to the committed inputs.
 /// The last segment's output is the permutation's, claimed by `output`, its lanes as words at `instance`; the others
 /// are committed.
-pub fn verify_keccak(
+pub(crate) fn verify_keccak(
     transcript: &mut Transcript,
     shape: KeccakShape,
     instance: &[E],

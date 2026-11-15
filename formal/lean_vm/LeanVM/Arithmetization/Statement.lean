@@ -84,7 +84,7 @@ stacks the read-count columns of the six tables and nothing else, so the finaliz
 the two blocks are outside it, as §6.2 "Nothing checks the finalize counts" says). `Caps w` is
 the M3 part of the announcement checks (`read_public` at `a386121f`; `walk` and
 `build_layout`, `verifier/src/lib.rs` and `verifier/src/layout.rs`, behind the
-wrapper `crates/leanvm_core/src/cpu/mod.rs`), which make eight checks: (1) the
+wrapper `crates/lean_vm_core/src/cpu/mod.rs`), which make eight checks: (1) the
 announced sizes have zero upper limbs (`verifier/src/lib.rs`, the transcript format) and
 (2) the two public words are two-limb words (`cpu/mod.rs`, `[F128; 2]`), both by type here
 (`PublicInput.word0`, `word1`); (3) the bytecode length is a power of two at most `2^32`
@@ -109,12 +109,12 @@ it, three hypotheses of `SatisfiedBy`). The memory block's index column is fixed
 `layout.rs`, `Index`). The prover data is derived from the rows, and the memory
 block, named `"mem"`, holds the limbs in its first two cells, so the image the data names *is* the
 block (`memRows_data`) and `SeedRowsAreTheImage w` is a theorem (§6.2 "Seed" and "Finalize";
-`cpu/layout.rs`, `MEM_LO, MEM_HI` and `MFCNT`, the index and finalize
+`cpu/layout.rs`, `MEMORY_0, MEMORY_1` and `MEMORY_FINAL_COUNTERS`, the index and finalize
 columns free).
 The bytecode block's counter and entry columns are fixed to the program's, so
 `BytecodeRowsAreTheProgram prog w` is a theorem (§8.6 Bus 4: the verifier forms "the program's
 whole share of the two bytecode blocks" itself; `layout.rs`,
-`Coord::Public` and `BFCNT`). The three keep their names as projections of `SatisfiedBy`
+`Coord::Public` and `BYTECODE_FINAL_COUNTERS`). The three keep their names as projections of `SatisfiedBy`
 (`SatisfiedBy.index_columns`, `seed_rows`, `bytecode_rows`); their per-row readings are
 `memRowOf_bindings` and `BytecodeBindings prog`.
 
@@ -341,8 +341,8 @@ def IndexColumnsAreRowIndices (w : EnsembleWitness (leanIsaEnsemble prog κ)) : 
   ∀ i (hi : i < (memBlockRows w).length), (memRowAt w (memBlockRows w)[i]).idx = addressOfIndex i
 
 /-- The memory block's rows are the words of the image the prover data names, in order, for
-some index column `idx` and finalize-count column `cntFin`: the committed columns `MEM_LO,
-MEM_HI` are the image (§6.2 "Seed" and "Finalize"; `cpu/layout.rs`). -/
+some index column `idx` and finalize-count column `cntFin`: the committed columns `MEMORY_0,
+MEMORY_1` are the image (§6.2 "Seed" and "Finalize"; `cpu/layout.rs`). -/
 def SeedRowsAreTheImage (w : EnsembleWitness (leanIsaEnsemble prog κ)) : Prop :=
   ∃ idx cntFin : Fin (2 ^ (imageOf w.data).1) → K,
     memBlockRows w = List.ofFn fun i ↦

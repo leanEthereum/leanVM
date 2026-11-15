@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # Runs leanXMSS aggregation and 16-to-1 recursion at 4 and 8 threads and at the default pool ("full"), and prints a table of
 # proving time and peak RSS per benchmark and thread count.
-# Usage: [BENCH_THREADS="4 8 full"] bins/leanvm/bench.sh [log file]   (default: .build/bench-<timestamp>.log)
+# Usage: [BENCH_THREADS="4 8 full"] bins/leanvm/bench.sh stable|experimental [log file]   (default: .build/bench-<timestamp>.log)
 set -uo pipefail
+
+PROVER=${1:-}
+case $PROVER in stable | experimental) ;; *) echo "usage: bins/leanvm/bench.sh stable|experimental [log file]" >&2; exit 2 ;; esac
 
 cd "$(dirname "$0")/../.."
 mkdir -p .build
-LOG="${1:-$PWD/.build/bench-$(date +%Y%m%d-%H%M%S).log}"
+LOG="${2:-$PWD/.build/bench-$(date +%Y%m%d-%H%M%S).log}"
 RESULTS=$(mktemp)
 OUT=$(mktemp)
 trap 'rm -f "$RESULTS" "$OUT"' EXIT
@@ -26,8 +29,8 @@ run() {
   local label=$1 threads=$2; shift 2
   local pool=(env LEANVM_NUM_THREADS="$threads")
   [ "$threads" = full ] && pool=(env -u LEANVM_NUM_THREADS)
-  echo "=== ${pool[*]:1} leanvm $* --cooldown 5 ===" | tee -a "$LOG"
-  "${pool[@]}" "${CARGO_TARGET_DIR:-target}/release/leanvm" "$@" --cooldown 5 2>&1 | tee "$OUT" | tee -a "$LOG"
+  echo "=== ${pool[*]:1} leanvm --prover $PROVER $* --cooldown 5 ===" | tee -a "$LOG"
+  "${pool[@]}" "${CARGO_TARGET_DIR:-target}/release/leanvm" --prover "$PROVER" "$@" --cooldown 5 2>&1 | tee "$OUT" | tee -a "$LOG"
   printf '%s\t%s\t%s\n' "$label" "$threads" "$(measure)" >>"$RESULTS"
   echo | tee -a "$LOG"
 }

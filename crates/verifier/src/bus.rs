@@ -13,7 +13,7 @@ use crate::{StackClaim, VerifierError, require};
 
 /// The grind before the fingerprint `(weights, beta)`: unequal push and pull multisets pass the product check with
 /// probability at most `2^mu / |E|`, `mu` the push depth.
-fn bus_grinding_bits(mu: usize) -> u32 {
+pub fn bus_grinding_bits(mu: usize) -> u32 {
     grinding_bits(1 << mu)
 }
 

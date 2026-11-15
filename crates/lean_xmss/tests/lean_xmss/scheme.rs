@@ -52,7 +52,7 @@ fn known_answer() {
         "4066673001949b6ff8b9299fd4ea17d28787ad501aafe4b64e2488107b5e3ec3"
     );
     assert_eq!(
-        hex(&primitives::hash::hash(&signature.to_bytes())),
+        hex(&keccak256::hash(&signature.to_bytes())),
         "f10d62beec95e64e1477028252c2c8683695eab9d8787ad8fa722f47b5fd5234"
     );
 }
@@ -66,7 +66,7 @@ fn address_layout() {
     let pp: PublicParam = std::array::from_fn(|i| i as u8 + 1);
     let payload = [9u8; N];
     let input = [&pp[..], &address(&tw), &payload].concat();
-    assert_eq!(th(&pp, &tw, &payload)[..], primitives::hash::hash(&input)[..N]);
+    assert_eq!(th(&pp, &tw, &payload)[..], keccak256::hash(&input)[..N]);
 }
 
 /// Detect changes to the encoding predicate through its grinding cost.

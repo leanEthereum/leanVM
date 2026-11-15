@@ -7,11 +7,21 @@ use crate::multilinear::{log2_strict, multilinear_eval};
 use crate::transcript::{Transcript, sumcheck};
 use crate::{VerifierError, require};
 
-pub(crate) const INITIAL_FOLDING_FACTOR: usize = 6;
-const SUBSEQUENT_FOLDING_FACTOR: usize = 4;
-const RS_DOMAIN_INITIAL_REDUCTION_FACTOR: usize = 3;
-const RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR: usize = 1;
-const RESIDUAL_MAX_LOG: usize = 5;
+/// The smallest `log_inv_rate` a proof can use, its code rate being `2^-log_inv_rate`.
+pub const MIN_LOG_INV_RATE: usize = 1;
+/// The largest `log_inv_rate` a proof can use.
+pub const MAX_LOG_INV_RATE: usize = 4;
+/// Level 0's fold count, which is also the number of lanes a level-0 leaf holds, `2^INITIAL_FOLDING_FACTOR`.
+pub const INITIAL_FOLDING_FACTOR: usize = 6;
+/// Every later level's fold count.
+pub const SUBSEQUENT_FOLDING_FACTOR: usize = 4;
+/// Bits the domain shrinks by after level 0's fold.
+pub const RS_DOMAIN_INITIAL_REDUCTION_FACTOR: usize = 3;
+/// Bits the domain shrinks by after every later fold.
+pub const RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR: usize = 1;
+/// Folding stops once at most this many variables remain: the final level is sent in clear.
+pub const RESIDUAL_MAX_LOG: usize = 5;
+/// Before each level's query message: its positions and, below the final level, the next level's lambda.
 pub const QUERY_GRINDING_BITS: u32 = 17;
 /// Before each fold round's `(alpha, beta)`.
 pub const FOLD_GRINDING_BITS: u32 = 7;
@@ -22,30 +32,30 @@ pub const BATCH_GRINDING_BITS: u32 = 13;
 pub const OOD_GRINDING_BITS: u32 = 15;
 
 #[rustfmt::skip]
-const WHIR_QUERIES: [[&[usize]; MAX_STACKED_LOG - MIN_STACKED_LOG + 1]; 4] = [
+const WHIR_QUERIES: [[&[usize]; MAX_STACKED_LOG - MIN_STACKED_LOG + 1]; MAX_LOG_INV_RATE - MIN_LOG_INV_RATE + 1] = [
     [&[230,60,42], &[225,58,38], &[222,57,35], &[220,56,34], &[219,55,33,27], &[218,55,32,25], &[218,55,32,24], &[218,55,32,23], &[218,55,32,23,20], &[218,55,32,23,19], &[218,55,32,23,18], &[218,55,32,23,18], &[218,55,32,23,18,16], &[218,55,32,23,18,15], &[218,55,32,23,18,15]],
     [&[112,47,35], &[111,46,32], &[110,45,31], &[110,45,29], &[109,44,29,24], &[109,44,28,23], &[109,44,28,22], &[109,44,28,21], &[109,44,28,21,18], &[109,44,28,21,17], &[109,44,28,21,17], &[109,44,28,21,17], &[109,44,28,21,17,15], &[109,44,28,21,17,15], &[109,44,28,21,17,15]],
     [&[74,39,30], &[74,38,28], &[73,37,27], &[73,37,26], &[73,37,25,22], &[73,37,25,20], &[73,37,25,20], &[73,37,25,19], &[73,37,25,19,17], &[73,37,25,19,16], &[73,37,25,19,16], &[73,37,25,19,16], &[73,37,25,19,16,15], &[73,37,25,19,16,14], &[73,37,25,19,16,15]],
     [&[56,33,27], &[55,32,25], &[55,32,24], &[55,32,23], &[55,32,23,20], &[55,32,23,19], &[55,32,23,18], &[55,32,23,18], &[55,32,23,18,16], &[55,32,23,18,15], &[55,32,23,18,15], &[55,32,23,18,15], &[55,32,23,18,15,14], &[55,32,23,18,16,14], &[55,32,23,18,16,14]],
 ];
 
-struct WhirConfig {
-    log_inv_rates: Vec<usize>,
-    folds: Vec<usize>,
-    queries: &'static [usize],
+pub struct WhirConfig {
+    pub log_inv_rates: Vec<usize>,
+    pub folds: Vec<usize>,
+    pub queries: &'static [usize],
 }
 
 /// The tabulated query counts at stacked size `log_n` and rate, `None` outside the admitted shapes.
 #[doc(hidden)]
 pub fn whir_queries(log_n: usize, log_inv_rate: usize) -> Option<&'static [usize]> {
     WHIR_QUERIES
-        .get(log_inv_rate.checked_sub(1)?)?
+        .get(log_inv_rate.checked_sub(MIN_LOG_INV_RATE)?)?
         .get(log_n.checked_sub(MIN_STACKED_LOG)?)
         .copied()
 }
 
 /// The opening shape at this size and rate: the ladder geometry, then the tabulated query counts.
-fn derive_config(log_n: usize, log_inv_rate: usize) -> Result<WhirConfig, VerifierError> {
+pub fn derive_config(log_n: usize, log_inv_rate: usize) -> Result<WhirConfig, VerifierError> {
     let queries = whir_queries(log_n, log_inv_rate).ok_or(VerifierError::WhirShape)?;
     let mut folds = vec![INITIAL_FOLDING_FACTOR];
     let mut log_inv_rates = vec![log_inv_rate];
@@ -89,7 +99,7 @@ fn sample_queries(transcript: &mut Transcript, block_length: u64, count: usize) 
 }
 
 /// The subspace polynomials' normalizers. The subspaces are spanned by powers of x, so every one lies in K.
-fn subspace_roots(log_n: usize) -> Vec<K> {
+pub fn subspace_roots(log_n: usize) -> Vec<K> {
     let mut roots = vec![K(1)];
     let mut layer: Vec<K> = (1..=log_n).map(|i| K(1 << i)).collect();
     for _ in 0..log_n {
@@ -103,20 +113,20 @@ fn subspace_roots(log_n: usize) -> Vec<K> {
 }
 
 /// The normalized subspace polynomials `What_i = W_i / W_i(beta_i)` for `i <= mu`, at points of the RS domain.
-struct Subspace {
+pub struct Subspace {
     roots: Vec<K>,
     inverses: Vec<K>,
 }
 
 impl Subspace {
-    fn new(mu: usize) -> Self {
+    pub fn new(mu: usize) -> Self {
         let roots = subspace_roots(mu);
         let inverses = roots.iter().map(|value| value.inv()).collect();
         Self { roots, inverses }
     }
 
     /// `What_i(x)` for `i <= mu`, by `W_(i+1) = W_i^2 + W_i(beta_i) W_i`.
-    fn at(&self, x: K) -> Vec<K> {
+    pub fn at(&self, x: K) -> Vec<K> {
         let mut basis = x;
         let mut values = Vec::with_capacity(self.roots.len());
         for (&root, &inverse) in self.roots.iter().zip(&self.inverses) {

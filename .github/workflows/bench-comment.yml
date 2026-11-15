@@ -59,4 +59,4 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-        run: python3 .github/scripts/pr_comment.py bench "$HEAD_SHA" runs/*/ab.json
+        run: python3 .github/scripts/pr_comment.py "$HEAD_SHA" runs/*/ab.json

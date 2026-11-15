@@ -82,7 +82,7 @@ def sampleN : ℕ → Script (List E)
 def grindS : Script Unit := grind (ret ())
 
 /-- Pass a proof of work of `bits` bits: nothing at `0` bits, as the verifier's
-`grindProofOfWork` and the Rust's `grind` (`crates/fiat_shamir/src/lib.rs`). -/
+`grindProofOfWork` and the Rust's `grind` (`crates/fiat_shamir_prover/src/lib.rs`). -/
 def grindBits (bits : ℕ) : Script Unit := if bits = 0 then ret () else grindS
 
 /-- Commit a matrix. -/
@@ -114,7 +114,7 @@ def wire : Option E → List E → List E
   | some _, c => c.drop 1
 
 /-- The grind after a round polynomial of these coefficients in the round's mode, for its degree,
-the equality factor included (`add_round_poly`, `crates/fiat_shamir/src/transcript.rs`). -/
+the equality factor included (`add_round_poly`, `crates/fiat_shamir_prover/src/transcript.rs`). -/
 def roundGrind (mode : Option E) (c : List E) : ℕ :=
   grindingBits (c.length - 1 + if mode.isSome then 1 else 0)
 

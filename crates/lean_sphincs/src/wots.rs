@@ -66,7 +66,7 @@ fn wots_leaf_hash(pk_seed: &PkSeed, key: &OtsKey, ends: &[Digest; V]) -> Digest 
 }
 
 /// The hash of `Enc(K, M, c)` before its counter: `PK.seed | ADRS_enc(K) | M`.
-fn encoder(pk_seed: &PkSeed, key: &OtsKey, message: &Digest) -> primitives::hash::Hasher {
+fn encoder(pk_seed: &PkSeed, key: &OtsKey, message: &Digest) -> keccak256::Hasher {
     let mut hasher = hasher(pk_seed, &key.adrs(WOTS_ENC));
     hasher.update(message);
     hasher
@@ -74,8 +74,8 @@ fn encoder(pk_seed: &PkSeed, key: &OtsKey, message: &Digest) -> primitives::hash
 
 /// `Enc(K, M, c)`: `Trunc_n(H(PK.seed | ADRS_enc(K) | M | BE_32(c)))` as a codeword,
 /// or `None` if this counter's digest is not one.
-fn encode(encoder: &primitives::hash::Hasher, c: u32) -> Option<[u8; V]> {
-    codeword(&primitives::hash::truncate(
+fn encode(encoder: &keccak256::Hasher, c: u32) -> Option<[u8; V]> {
+    codeword(&keccak256::truncate(
         encoder.clone().update(&c.to_be_bytes()).finalize(),
     ))
 }

@@ -149,7 +149,7 @@ position binding holds for every `r`, completeness for `r ≤ maxRows`, code bin
 `1 ≤ r ≤ maxRows`. The algorithms take a permutation `π` of the Keccak state as a parameter and hash with
 Keccak-256 over it (`keccakDigestBytes`, the hash `H` below): the crate's is Keccak-f[1600], the
 hash Keccak-256 (`verifier/src/hash.rs`); in the end statements `π` is the random
-permutation. A digest is 32 bytes, `DigestBytes` (`fiat_shamir::merkle::Hash`).
+permutation. A digest is 32 bytes, `DigestBytes` (`fiat_shamir_prover::merkle::Hash`).
 -/
 
 /-! ### Shapes (`lib.rs`) -/
@@ -384,7 +384,7 @@ def openCell (π : KeccakState → KeccakState) {r : ℕ} (cells : Fin (r * 128)
 /-! ### Membership (`verifier/src/da.rs`, the guest program's `da_vector`) -/
 
 /-- The normalized subspace polynomial `Ŵ_j`, vanishing on the span of `e_0 … e_(j-1)` and one
-at `e_j` (CompPoly's `normalizedW`; `subspace_above` tabulates it, the NTT's twiddles). -/
+at `e_j` (CompPoly's `normalizedW`; `vhat` in `aggregation`'s `placeholders.rs` tabulates it, the NTT's twiddles). -/
 noncomputable def normalizedSubspacePolynomial (j : Fin 13) : K[X] :=
   AdditiveNTT.normalizedW (ZMod 2) basis (Fin.castLE (by omega) j)
 
