@@ -102,7 +102,7 @@ fn compute_signer(keys: &Keys, index: usize, message_id: u32) -> LeanXmssSigner 
 }
 
 fn cache_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../target/signers-cache")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/signers-cache")
 }
 
 fn cache_path(message_id: u32) -> PathBuf {

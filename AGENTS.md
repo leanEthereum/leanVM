@@ -102,7 +102,7 @@ The prover's buffers are plain `Vec`s and the libraries impose no allocator. A p
 
 ## The thread pool (`parallel`)
 
-No rayon. Every parallel site is "N independent items, each writing its own disjoint slice", so the pool is a claim counter: `NUM_THREADS - 1` workers plus the dispatcher, both core clusters sharing one queue. Do not add a second pool to a tree (each tree has its own, and a process starts only the one it proves with); the shared crates dispatch through `isa::Prover::map_collect`, on the pool of the prover they are given. Experimental's workers spin then park; stable's wait on a condvar.
+No rayon. Every parallel site is "N independent items, each writing its own disjoint slice", so the pool is a claim counter: `NUM_THREADS - 1` workers plus the dispatcher, both core clusters sharing one queue. Do not add a second pool to a tree (each tree has its own, and a process starts only the one it proves with); the shared crates dispatch through `isa::Prover::map_collect`, on the pool of the prover they are given. Experimental's workers spin then park; stable's spin briefly, then wait on a condvar.
 
 - Nested dispatch panics, because it would deadlock the dispatch lock.
 - One experimental site runs beside the pool: `keccak::while_executing` spawns half the pool's count of plain threads while a program executes, gone before the next dispatch. Stable builds the Keccak witness after execution, in the pool.

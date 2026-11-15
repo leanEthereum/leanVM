@@ -257,6 +257,18 @@ mod tests {
         assert_eq!(matrix.top_root(), root(blob_roots));
     }
 
+    /// Encoding commutes with XOR of payloads.
+    #[test]
+    fn encoding_is_linear() {
+        let (a, b) = (payload(2, 1), payload(2, 7));
+        let sum: Vec<Symbol> = a.iter().zip(&b).map(|(&x, &y)| x ^ y).collect();
+        let row = |blobs: &[Symbol], i| *build(blobs).row(i).unwrap();
+        for i in 0..2 {
+            let (ra, rb, rs) = (row(&a, i), row(&b, i), row(&sum, i));
+            assert!(ra.iter().zip(&rb).zip(&rs).all(|((&x, &y), &z)| x ^ y == z));
+        }
+    }
+
     /// A trailing zero blob commits like padding.
     #[test]
     fn padding_rows_are_the_zero_codeword() {

@@ -84,6 +84,10 @@ fn bytecode_rows() -> Range<usize> {
     ROWS.get_or_init(|| {
         let rows = stacked_bytecode().as_chunks::<BLOCK>().0;
         let per_slot = rows.len() >> N_BYTECODE_SELECTORS;
+        assert!(
+            per_slot.is_multiple_of(8),
+            "a slot is whole groups of rows, as `Prover::combine_rows` may require"
+        );
         let live = |s: &usize| rows[s * per_slot..(s + 1) * per_slot].iter().flatten().any(|&v| v != 0);
         let slots = || 0..1 << N_BYTECODE_SELECTORS;
         let start = slots().find(live).expect("the bytecode is not all zero");

@@ -93,11 +93,16 @@ jobs:
             target: x86_64-unknown-linux-gnu
             runner: ubuntu-latest
             rustflags: -C target-cpu=znver4
-          # The NEON fallbacks, without PMULL or EOR3.
+          # Without AES (so without PMULL): experimental's NEON fallbacks, stable's portable lanes.
           - name: aarch64
             target: aarch64-unknown-linux-gnu
             runner: ubuntu-24.04-arm
             rustflags: -C target-cpu=generic
+          # PMULL without EOR3 (Graviton2): stable's NEON lanes without SHA3.
+          - name: neoverse-n1
+            target: aarch64-unknown-linux-gnu
+            runner: ubuntu-24.04-arm
+            rustflags: -C target-cpu=neoverse-n1 -C target-feature=+aes
           # The NEON kernels, as bench.yml's arm64 testbed builds them.
           - name: neoverse-n2
             target: aarch64-unknown-linux-gnu

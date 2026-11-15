@@ -34,10 +34,12 @@ pub trait Prover: 'static {
     /// `a * b`, faster than the verifier's portable product.
     fn mul(a: E, b: E) -> E;
 
-    /// `Σ_r weights[r] · rows[r]`, over the `weights.len()` rows of `K` words that `rows` holds end to end.
+    /// `Σ_r weights[r] · rows[r]`, over the `weights.len()` rows of `K` words that `rows` holds end to end. A prover
+    /// may require the row count and the row width to be multiples of 8.
     fn combine_rows(rows: &[u64], weights: &[E]) -> Vec<E>;
 
     /// Each row's dot product with `weights`, over the rows of `weights.len()` `K` words that `rows` holds end to end.
+    /// A prover may require the row width to be a multiple of 8.
     fn dot_rows(rows: &[u64], weights: &[E]) -> Vec<E>;
 
     /// Each row of `2^log_k` symbols encoded at rate one half, systematically: each limb of a symbol is the evaluation,
