@@ -19,7 +19,8 @@ database) answers a hash call when the sponge evaluation of its blocks is a path
   (`reaches_of_onPath`).
 * `Memory`, `xmssTgt`, `xmssBad`: the challenger's memory of each signed key's selected
   message-digest input and digest, and the target of a tail (design 3.3): at a chain, leaf or node
-  slot the honest digest, except for the honest tail of an exempted slot (`Ex`, the hardwired honest
+  slot the honest digest for a tail of the honest input's length (`fullTarget`; not the prefixes of
+  a multi-block input), except for the honest tail of an exempted slot (`Ex`, the hardwired honest
   paths); at a message slot of a signed key the selected digest, except for the selected input.
 * `win_imp_bad`: a forgery that verifies with every hash on a path of `D`, against a valid
   transcript of honest signatures and not returned by the signer, puts `D` in
@@ -313,12 +314,18 @@ end View
 /-- **The challenger's memory**: for each signed key, its selected message-digest input and digest. -/
 abbrev Memory := Layer → KeyIndex → Option (HashInput × Digest)
 
-/-- The target of a tail at a chain, leaf or node slot: the honest digest, unless the tail is the
-honest tail of an exempted slot. -/
+/-- The honest digest of slot `s` as the target of a tail `t` of its honest tail's length (the full
+absorbed input of the slot); none for the other tails, such as the prefixes of a multi-block
+input. -/
+def fullTarget (L : HonestTable) (t : List X) (s : Slot) : Option Digest :=
+  if (L.honestTail s).map List.length = some t.length then L.target s else none
+
+/-- The target of a tail at a chain, leaf or node slot: the honest digest for a tail of the honest
+length (`fullTarget`), unless the tail is the honest tail of an exempted slot. -/
 noncomputable def structTgt (L : HonestTable) (Ex : Set Slot) (t : List X) (s : Slot) :
     Option Digest := by
   classical
-  exact if L.honestTail s = some t ∧ s ∈ Ex then none else L.target s
+  exact if L.honestTail s = some t ∧ s ∈ Ex then none else fullTarget L t s
 
 /-- The target of a tail at a slot: `structTgt`, and at the message slot of a signed key its
 selected digest unless the tail is the selected input's (a one-block input, its own tail). -/
@@ -460,6 +467,21 @@ theorem nodeInput_inj {P : PublicParameter} {l : Layer} {e : KeyIndex} {sib sib'
   · exact (nodePayload_injective hp).symm
   · exact nodePayload_injective hp
 
+theorem length_chainInput (P : PublicParameter) (l : Layer) (e : KeyIndex) (i : ChainIndex)
+    (j : ℕ) (v : Digest) : (chainInput P l e i j v).length = 64 := by
+  simp [chainInput, length_thInput, chainPayload, littleEndianBytes]
+
+theorem length_nodeInput (P : PublicParameter) (l : Layer) (e : KeyIndex) (sib : ℕ → Digest)
+    (k : ℕ) (cur : Digest) : (nodeInput P l e sib k cur).length = 64 := by
+  unfold nodeInput
+  split <;> simp [length_thInput, nodePayload, littleEndianBytes]
+
+theorem length_leafInput (P : PublicParameter) (l : Layer) (e : KeyIndex)
+    (E : ChainIndex → Digest) : (leafInput P l e E).length = 32 + 16 * chainCount := by
+  rw [leafInput, length_thInput]
+  exact congrArg (32 + ·) ((length_flatMap_littleEndianBytes (List.ofFn E)).trans
+    (congrArg (16 * ·) (List.length_ofFn (f := E))))
+
 /-! ## Last divergence -/
 
 /-- **Last divergence.** A walk of `n` steps, step `k` querying `u k` (the honest input `w k`) and
@@ -489,22 +511,34 @@ section Hits
 
 variable {L : HonestTable} {Ex : Set Slot} {M : Memory} {D : Dbs X Z}
 
-/-- **A structural hit**: an input on a path at a chain, leaf or node slot whose view digest is the
-slot's honest digest, other than the honest input of an exempted slot. -/
+/-- **A structural hit**: an input on a path at a chain, leaf or node slot, of the length of the
+slot's honest input, whose view digest is the slot's honest digest, other than the honest input of
+an exempted slot. -/
 theorem mem_xmssBad_of_struct (hHeld : ∀ s ∈ Ex, L.HeldIn D s) {u : HashInput} {s : Slot}
     (hu : OnPath L.perm D u)
     (hs : slotOf L.param (absorbTail (viewPerm L.perm D) (blocks u)) = some s)
     (hst : Structural s) (ht : L.target s = some (truncateHash (viewOut L.perm D u)))
-    (hne : L.honestInput s = some u → s ∉ Ex) : D ∈ xmssBad L Ex M := by
+    (hne : L.honestInput s = some u → s ∉ Ex)
+    (hlen : ∀ h0, L.honestInput s = some h0 → h0.length = u.length) : D ∈ xmssBad L Ex M := by
   refine Or.inr ⟨_, _, ?_, reaches_of_onPath hu⟩
-  rw [xmssTgt, hs, Option.bind_some, slotTgt_of_structural hst, structTgt, ite_eq_right, ht]
-  rintro ⟨htail, hEx⟩
-  simp only [HonestTable.honestTail, Option.map_eq_some_iff] at htail
-  obtain ⟨h0, hh0, heq⟩ := htail
-  have hc := absorbTail_congr (π := L.perm) (t := L.keys) (t' := D.fill) (blocks h0)
-    fun e he ↦ SpongeRead.answeredBy_fill (hHeld s hEx h0 hh0 e he)
-  have : h0 = u := blocks_injective (absorbTail_injective (viewPerm L.perm D) (hc.trans heq))
-  exact hne (this ▸ hh0) hEx
+  obtain ⟨h1, hh1⟩ : ∃ h1, L.honestInput s = some h1 := by
+    cases hi : L.honestInput s with
+    | none => simp [HonestTable.target, hi] at ht
+    | some h1 => exact ⟨h1, rfl⟩
+  have hfull : (L.honestTail s).map List.length =
+      some (absorbTail (viewPerm L.perm D) (blocks u)).length := by
+    simp only [HonestTable.honestTail, hh1, Option.map_some, length_absorbTail, length_blocks,
+      hlen h1 hh1]
+  have hnex : ¬(L.honestTail s = some (absorbTail (viewPerm L.perm D) (blocks u)) ∧ s ∈ Ex) := by
+    rintro ⟨htail, hEx⟩
+    simp only [HonestTable.honestTail, Option.map_eq_some_iff] at htail
+    obtain ⟨h0, hh0, heq⟩ := htail
+    have hc := absorbTail_congr (π := L.perm) (t := L.keys) (t' := D.fill) (blocks h0)
+      fun e he ↦ SpongeRead.answeredBy_fill (hHeld s hEx h0 hh0 e he)
+    have : h0 = u := blocks_injective (absorbTail_injective (viewPerm L.perm D) (hc.trans heq))
+    exact hne (this ▸ hh0) hEx
+  rw [xmssTgt, hs, Option.bind_some, slotTgt_of_structural hst, structTgt, ite_eq_right hnex,
+    fullTarget, ite_eq_left hfull, ht]
 
 /-- **An encoding hit**: a one-block input on a path at the message slot of a signed key, other
 than the selected input, whose view digest is the selected digest. -/
@@ -548,11 +582,15 @@ theorem chain_meet (hHeld : ∀ s ∈ Ex, L.HeldIn D s) (hnb : D ∉ xmssBad L E
     intro k hk hfg hne
     apply hnb
     refine mem_xmssBad_of_struct hHeld (queriesSatisfy_chainWalk hQ k hk (by omega))
-      (slotOf_chain _ _ l e ⟨a + k, by omega⟩ i _) trivial ?_ ?_
+      (slotOf_chain _ _ l e ⟨a + k, by omega⟩ i _) trivial ?_ ?_ ?_
     · exact (L.target_eq_some (s := .chain l e ⟨a + k, by omega⟩ i) he rfl).trans
         (congrArg some (hfg.symm.trans (evalWith_chainWalk_succ H _ _ _ _ a k v (by omega))))
     · intro hh
       exact hne (Option.some.inj (hh.symm.trans (HonestTable.honestInput_chain he _ i)))
+    · intro h0 hh0
+      obtain rfl := Option.some.inj ((HonestTable.honestInput_chain he _ i).symm.trans hh0)
+      exact (length_chainInput L.param l e i (a + k) _).trans
+        (length_chainInput L.param l e i (a + k) _).symm
   have hstep : ∀ k, k + 1 < n → u (k + 1) = w (k + 1) → f (k + 1) = g (k + 1) :=
     fun _ _ h ↦ chainInput_inj h
   rcases last_divergence u w f g n hend hstep with ⟨k, hk, hne, hfg⟩ | hall
@@ -630,12 +668,15 @@ theorem path_meet (hHeld : ∀ s ∈ Ex, L.HeldIn D s) (hnb : D ∉ xmssBad L Ex
   · exfalso
     apply hnb
     refine mem_xmssBad_of_struct hHeld (queriesSatisfy_treeFold hQ k hk)
-      (slotOf_nodeInput _ _ he _ hk _) trivial ?_ ?_
+      (slotOf_nodeInput _ _ he _ hk _) trivial ?_ ?_ ?_
     · exact (L.target_eq_some (p := .tree l (k + 1) (e.val / 2 ^ (k + 1))) (inTable_node he hk)
         (by simp [slotOutput])).trans
         (congrArg some (hfg.symm.trans (evalWith_treeFold_succ H _ _ _ _ k v)))
     · intro hh
       exact absurd (Option.some.inj (hh.symm.trans (honestInput_node_path he hk))) hne
+    · intro h0 hh0
+      obtain rfl := Option.some.inj ((honestInput_node_path he hk).symm.trans hh0)
+      exact (length_nodeInput _ _ _ _ _ _).trans (length_nodeInput _ _ _ _ _ _).symm
   · have h0 := (nodeInput_inj (hall 0 (by decide))).1
     change v = L.treeValue l 0 (e.val / 2 ^ 0) at h0
     rw [pow_zero, Nat.div_one] at h0
@@ -786,11 +827,15 @@ theorem layer_meet (hM : ∀ r ∈ log, M.Records L r.1)
   have hE : E = L.endpoints l e := by
     by_contra hne
     apply hnb
-    refine mem_xmssBad_of_struct hHeld hQl (slotOf_leaf _ _ l e E) trivial ?_ ?_
+    refine mem_xmssBad_of_struct hHeld hQl (slotOf_leaf _ _ l e E) trivial ?_ ?_ ?_
     · exact (L.target_eq_some (s := .leaf l e) he rfl).trans (congrArg some hleaf.symm)
     · intro hh
       exact absurd (digestsPayload_injective (thInput_injective _
         (Option.some.inj (hh.symm.trans (HonestTable.honestInput_leaf he)))).2) hne
+    · intro h0 hh0
+      obtain rfl := Option.some.inj ((HonestTable.honestInput_leaf he).symm.trans hh0)
+      exact (length_leafInput L.param l e (L.endpoints l e)).trans
+        (length_leafInput L.param l e E).symm
   -- The chains: the forged values are honest, and the steps leaving them exempted.
   have hchain : ∀ i, part.chainValues i = L.chainValue l e i (x i).val ∧
       ∀ h : (x i).val < chainLength - 1, Slot.chain l e ⟨(x i).val, h⟩ i ∈ Ex := by
