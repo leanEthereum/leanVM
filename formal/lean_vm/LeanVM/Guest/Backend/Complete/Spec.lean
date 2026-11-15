@@ -345,6 +345,7 @@ frame whose reads agree with the path's events, with the jump tables written and
 runs, the instructions of the path have their meaning. -/
 def FrameConsistentStmt : Prop :=
   ∀ {κ₀ : ℕ} (W : World κ₀), W.Compiled → ∀ tf ∈ W.p, Scoped tf → ∀ pf, World.PlacedAs W tf pf →
+  TmpsApart tf pf → NoSelfCall tf →
   ∀ (fp : ℕ), (tf.core.name = "main" → fp = 0) → ∀ (kfps : List ℕ) (hdr : E × E),
   ∃ FS : Val → FrameSpec, FrameCongr tf pf FS ∧
     ∀ (σ : Val) (es : List Ev) (vs : List V), walk σ tf.core.body = .ret es vs →
