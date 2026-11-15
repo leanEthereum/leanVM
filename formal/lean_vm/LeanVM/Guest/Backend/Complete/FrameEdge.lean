@@ -103,6 +103,135 @@ theorem emit_past {s s' : SSt} (h : expectS isEmit "a branch" s = .ok s') :
 
 end Inv
 
+
+/-! ## Placement on and off the path -/
+
+section FB
+
+variable {ctx : Backend.Ctx} {I : Inst} {C : (ℕ → E) → Prop} {st : St}
+
+/-- An action that gives the scope back keeps the constraint's properties in its result. -/
+theorem FBAt.cok {α : Type} {m : P α} {R : α → ((ℕ → E) → Prop) → St → Prop}
+    (h : FBAt ctx I C st m R) (hsc : ∀ a C' st', R a C' st' → st'.scope = st.scope) :
+    FBAt ctx I C st m fun a C' st' => R a C' st' ∧ COk I C' st'.next st'.scope st'.locs :=
+  fun hc => wp_mono (h hc) fun a st' ⟨C', h0, hb, hs, hn, hl, hr⟩ =>
+    ⟨C', h0, hb, hs, hn, hl, hr, ⟨h0, hb, fun Ψ hΨ => by
+      rw [hsc a C' st' hr]; exact (hc.pools Ψ (hs Ψ hΨ)).grow hl,
+      by rw [hsc a C' st' hr]; exact hc.cells.mono hn⟩⟩
+
+theorem FBAt.peek_bind {β : Type} {f : Option Event → P β}
+    {R : β → ((ℕ → E) → Prop) → St → Prop} (h : FBAt ctx I C st (f st.rest.head?) R) :
+    FBAt ctx I C st (peek >>= f) R :=
+  fun hc => wp_bind.mpr (wp_peek.mpr (h hc))
+
+theorem FBAt.fail_bind {α β : Type} {msg : String} {f : α → P β}
+    {R : β → ((ℕ → E) → Prop) → St → Prop} : FBAt ctx I C st ((failP msg : P α) >>= f) R :=
+  fun _ => wp_bind.mpr wp_failP
+
+end FB
+
+/-! ## An inner block on or off the path -/
+
+section Inner
+
+variable {κ₀ : ℕ} {Γ : Site κ₀}
+  {Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop} {cl : List Call}
+  {ctx : Backend.Ctx} {I : Inst}
+
+/-- What an inner block's placement gives whatever the path (`InBlockOff`). -/
+def OffR (b : List Stmt) (st st' : St) (sc' : SSt) : Prop :=
+  st'.rest = sc'.rest ∧ st'.scope = st.scope ∧ st'.out = st.out ∧
+    (st.chainIn = none → st'.chainIn = none) ∧ st.next ≤ st'.next ∧ LocsLe st.locs st'.locs ∧
+    (st.lazy = none → st'.lazy = none ∧
+      (∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest ∨
+        ∃ run, Atom.frameAddr v run ∈ atomsIn b) ∧
+      ((allocsOf st.rest).Nodup →
+        ∀ v ∈ allocsOf st'.rest, st.locs[v]? = none → st'.locs[v]? = none)) ∧ (∀ v ∈ allocsOf st'.rest, v ∈ allocsOf st.rest) ∧
+    ∀ x ∈ st.tables.shared, x ∈ st'.tables.shared
+
+/-- What an inner block's placement gives on the path (`InBlockW`). -/
+def InR (Γ : Site κ₀) (Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop)
+    (cl : List Call) (ctx : Backend.Ctx) (I : Inst) (b : List Stmt) (sc' : SSt) (o : Out)
+    (i₀ p₁ : ℕ) (st : St) (blk : List PStmt) (C' : (ℕ → E) → Prop) (st' : St) : Prop :=
+  st'.out = st.out ∧ st'.scope = st.scope ∧ st'.chainIn = none ∧
+    (∀ es, o = .fall es → Fits I st' → OpsIn I p₁ (blockOps blk p₁) → TabsW Γ Ag st' →
+      FillsIn Γ Ag p₁ blk → WInv ctx I C' st' sc') ∧
+    (Fits I st' → OpsIn I p₁ (blockOps blk p₁) → TabsW Γ Ag st' → FillsIn Γ Ag p₁ blk →
+      BlkW Γ I ctx Ag cl C' blk b [] o i₀ p₁ ∧ RW I C' st' (pathVals I.σ b o))
+
+/-- **An inner block that may be on the path**: on it (its statements so far final, so the
+invariant at its start) as `InBlockW` has it, off it with the constraint kept; whatever the path,
+as `InBlockOff` has it. -/
+theorem inBlock_fb {b : List Stmt} (hb : InBlockW Γ Ag cl ctx I b) {C : (ℕ → E) → Prop}
+    {st : St} {sc sc' : SSt} {i₀ p₁ : ℕ} {o : Out}
+    (hsc : scopeInner ctx.retCells (fun s' => scopeBlock ctx.retCells b s') sc = .ok sc')
+    (hw : walk I.σ b = o) (hns : o ≠ .stuck) (hes : ∀ e ∈ outEs o, e ∈ I.es)
+    (hcl : ∀ j < (calls (outEs o)).length, cl[i₀ + j]? = (calls (outEs o))[j]?)
+    (hr : st.rest = sc.rest) (hf : st.rest.length ≤ ctx.fuel)
+    (hinv : OutOps I st → WInv ctx I C st sc) :
+    FBAt ctx I C st (inBlock (placeBlock b)) fun blk C' st' =>
+      COk I C' st'.next st'.scope st'.locs ∧ OffR b st st' sc' ∧
+      (OutOps I st → InR Γ Ag cl ctx I b sc' o i₀ p₁ st blk C' st') ∧ (¬ OutOps I st → C' = C) := by
+  have hoff : wpP (inBlock (placeBlock b)) ctx st fun _ st' => OffR b st st' sc' :=
+    inBlockOff_ok b st sc sc' hsc hr hf
+  by_cases hO : OutOps I st
+  · refine FBAt.mono (FBAt.cok (FBAt.and_wp (hb C st sc sc' i₀ p₁ o hsc hw hns hes hcl (hinv hO))
+      hoff) fun _ _ _ h => h.1.2.1) fun _ _ _ _ _ _ ⟨⟨hW, ho⟩, hc⟩ =>
+      ⟨hc, ho, fun _ => hW, fun h => absurd hO h⟩
+  · refine FBAt.mono (FBAt.offPath (wp_mono hoff fun _ st' h => ⟨h.2.1, h.2.2.2.2.1,
+      h.2.2.2.2.2.1, h⟩)) fun _ C' _ _ _ _ ⟨hC, hc, h⟩ => ⟨hC ▸ hc, h, fun h' => absurd h' hO,
+      fun _ => hC⟩
+
+end Inner
+
+/-! ## A statement's words after the block's instructions -/
+
+section Words
+
+variable {κ₀ : ℕ} {Γ : Site κ₀}
+  {Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop} {cl : List Call}
+  {ctx : Backend.Ctx} {I : Inst}
+
+theorem FillsIn.drop {p₀ : ℕ} {a b : List PStmt} (h : FillsIn Γ Ag p₀ (a ++ b)) :
+    FillsIn Γ Ag (p₀ + blockSize a) b :=
+  fun f k i hm => h f k i (by rw [blockFills_append]; exact List.mem_append_right _ hm)
+
+theorem OpsAt.last {p₀ : ℕ} {st st' : St} {X : PStmt} (h : OpsAt I p₀ st')
+    (ho : st'.out.toList = st.out.toList ++ [X]) :
+    OpsIn I (p₀ + blockSize st.out.toList) (stmtOps X (p₀ + blockSize st.out.toList)) := by
+  unfold OpsAt at h
+  rw [ho, bops_append] at h
+  have := h.right
+  rw [blockOps_length] at this
+  simpa [blockOps] using this
+
+/-- Straight-line instructions with their words, then a statement with its own. -/
+theorem blkW_ops_X (hok : OpOK Γ I Ag cl) {C : (ℕ → E) → Prop} {ops : List PStmt} {X : PStmt}
+    {bx : Backend.Ctx} {ss tl : List Stmt} {o : Out} {i₀ pos : ℕ}
+    (hW : ∀ s ∈ ops, ∃ h o, s = PStmt.op h o ∧ ∀ Ψ, C Ψ → OpW I Ψ o)
+    (hX : BlkW Γ I bx Ag cl C [X] ss tl o i₀ (pos + blockSize ops)) :
+    BlkW Γ I bx Ag cl C (ops ++ [X]) ss tl o i₀ pos := by
+  obtain ⟨hs, hl, hh, h⟩ := hX
+  refine ⟨hs, hl, hh, fun hp Ψ hΨ σ' hσ kh cs ks next kj kret khalt hbo hcs hks hk => ?_⟩
+  rw [wLc_append _ _ _ _ _ _ _ ops [X] (List.cons_ne_nil _ _)]
+  refine wLc_ops hok hΨ hσ kh ops hW pos
+    (fun o' ho => hbo o' (by rw [bops_append]; exact List.mem_append_left _ ho)) cs ks _ _ kret
+    khalt (h hp Ψ hΨ σ' hσ kh cs ks next kj kret khalt
+      (fun o' ho => hbo o' (by rw [bops_append]; exact List.mem_append_right _ ho)) hcs hks hk)
+
+/-- A state the final placement extends, past a branch whose statement ends its output: the
+states before it, the branch's instructions and slots. -/
+theorem fin_ite {p₀ : ℕ} {st₆ st' stb : St} {X : PStmt} (hF : FinAt Γ I Ag p₀ st')
+    (ho : st'.out.toList = st₆.out.toList ++ [X]) (hn : stb.next ≤ st'.next)
+    (hl : LocsLe stb.locs st'.locs) (ht : ∀ x ∈ stb.tables.shared, x ∈ st'.tables.shared) :
+    Fits I stb ∧ TabsW Γ Ag stb ∧
+      OpsIn I (p₀ + blockSize st₆.out.toList) (stmtOps X (p₀ + blockSize st₆.out.toList)) ∧
+      FillsIn Γ Ag (p₀ + blockSize st₆.out.toList) [X] :=
+  ⟨hF.1.back hn hl, fun fs first hm => hF.2.2.1 fs first (ht _ hm), OpsAt.last hF.2.1 ho,
+    FillsIn.drop (by rw [← ho]; exact hF.2.2.2)⟩
+
+end Words
+
 end
 
 end LeanVM.Guest.Backend.Complete
