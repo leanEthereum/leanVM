@@ -92,5 +92,7 @@ def main (args : List String) : IO UInt32 := do
   IO.println s!"temporaries apart: {okT} of {pls.length} functions ({ntmps} temporaries)"
   let selfCallers := P.filter fun tf => callsSelf tf.core.name tf.core.body
   IO.println s!"functions calling themselves by call or dispatch: {selfCallers.length}"
+  let nsc := (P.filter noSelfCallB).length
+  IO.println s!"noSelfCallB: {nsc} of {P.length} functions"
   for b in (if detail then badT else badT.extract 0 40) do IO.println s!"  {b}"
   return if bad.isEmpty && badT.isEmpty then 0 else 1
