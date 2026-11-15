@@ -148,7 +148,7 @@ theorem emitOp_fat (o : LOp) (h : Fits I st → o ∈ I.ops → ∀ Ψ, C Ψ →
   unfold emitOp takeHints push
   refine wp_bind.mpr (wp_modifyGet.mpr (wp_modify.mpr ?_))
   refine ⟨C, hc, Stronger.refl C, le_rfl, LocsLe.refl _,
-    ⟨[.op st.pending.toList o], by simp, fun hz hops s hs => ?_⟩, rfl, rfl⟩
+    EmitsW.of_ops (ops := [.op st.pending.toList o]) (by simp) fun hz hops s hs => ?_, rfl, rfl⟩
   rw [List.mem_singleton] at hs
   subst hs
   exact ⟨_, _, rfl, h hz (hops _ _ List.mem_cons_self)⟩
@@ -588,9 +588,9 @@ theorem selfFp_fat (hok : I.Ok) (hmain : ctx.isMain = true → I.fp = 0) (h2 : 2
         (fun Ψ hΨ hp => hp.setSelfFp (o := st.next + 1) hΨ.2)
         (fun hs => { hs with selfFp := fun o' h => by cases h; exact ⟨le_trans h2 (Nat.le_succ _), Nat.lt_succ_self _⟩ })
       refine ⟨_, hc₂, fun _ h => h.1.1, ?_, LocsLe.refl _,
-        ⟨[.op (st.pending.push (.resolved (.alloc st.next 1))).toList (.deref st.next 0 0 .fp),
-          .op (#[] : Array LHint).toList (.deref st.next 0 (st.next + 1) .cell)], by simp,
-          fun hz hops s hs => ?_⟩, ?_⟩
+        EmitsW.of_ops (ops := [.op (st.pending.push (.resolved (.alloc st.next 1))).toList
+          (.deref st.next 0 0 .fp), .op (#[] : Array LHint).toList
+          (.deref st.next 0 (st.next + 1) .cell)]) (by simp) fun hz hops s hs => ?_, ?_⟩
       · exact le_trans (Nat.le_succ _) (Nat.le_succ _)
       swap
       · refine ⟨le_trans h2 (Nat.le_succ _), Nat.lt_succ_self _, ?_⟩

@@ -81,6 +81,7 @@ def WalkWordsStmt : Prop :=
       (kfps.length = (calls es).length →
         (isLoopName tf.core.name = true → ∀ kfp, kfps.getLast? = some kfp →
           kfp = fp + pf.fn.frameSize) →
+        (tf.core.name ≠ "main" → IsInK hdr.1 ∧ IsInK hdr.2) →
         (∃ rd : Reader, ∀ e ∈ es, e.Holds rd σ') →
         PathWords W tf pf fp σ' es kfps hdr ⟨patchT (instOf W tf pf fp hdr σ es) Ψ σ', kh⟩)
 
