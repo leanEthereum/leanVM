@@ -325,6 +325,11 @@ fn aggregate_two_to_one() {
     let signers = get_signers(SMALL_LEAF_SIZE + big);
     let left = prove(&[], &signers[..SMALL_LEAF_SIZE], &[]);
     let right = prove(&[], &signers[SMALL_LEAF_SIZE - 3..], &[]);
+    let cover = super::coverage::plan_coverage(&[], &[], &[left.clone(), right.clone()], None).unwrap();
+    assert!(
+        !cover.lean_xmss.children[1].is_sorted_by(|a, b| a < b),
+        "the right list takes the repeated-slot walk"
+    );
     // A child whose claims are out of order, or whose proof the replay cannot walk, is refused before proving.
     let node_of = |left: Node| aggregate(&[left, right.clone()], vec![], vec![], None, OutputClaims::All).err();
     let mut unsorted = left.clone();
