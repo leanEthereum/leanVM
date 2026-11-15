@@ -730,6 +730,41 @@ theorem headCells_fat (wj we : E) (n : ℕ) :
   subst he hst₄ hC₄
   exact FAt.pure ⟨rfl, rfl, rfl, rfl, rfl⟩
 
+/-- **The invariant past a statement's `emit` and its push**: the trace one event on, the
+statement pushed, nothing waiting to be placed. -/
+theorem winv_emit {s s' : SSt} {what : String} (hinv : WInv ctx I C st s)
+    (h : expectS isEmit what s = .ok s') (X : PStmt) :
+    st.rest = .emit :: s'.rest ∧ WInv ctx I C
+      { st with rest := s'.rest, out := st.out.push X, lazy := none, used := [],
+                shift := none } s' := by
+  obtain ⟨ev, hr, he, hl, hd⟩ := expectS_ok h
+  have hev : ev = .emit := by cases ev <;> simp_all [isEmit]
+  subst hev
+  have hst : st.rest = .emit :: s'.rest := by rw [← hinv.rest, hr]
+  have hall : allocsOf st.rest = allocsOf s'.rest := by
+    rw [hst, allocsOf_other (e := Event.emit) (fun _ _ h => nomatch h)]
+  refine ⟨hst, ⟨hinv.cok, rfl, by rw [hl]; exact hinv.vw, hinv.two, hinv.abi, ?_,
+    by rw [hd]; exact hinv.ret, by rw [← hall]; exact hinv.nodup, fun v hv => ?_, hinv.chain,
+    hinv.pnt, rfl⟩⟩
+  · have := hinv.fuel
+    rw [hst] at this
+    simp only [List.length_cons] at this
+    show s'.rest.length ≤ ctx.fuel
+    omega
+  · rw [hl]
+    exact hinv.fresh v (by rw [hall]; exact hv)
+
+/-- **A stage's end**: its `emit`, the chain node pushed, the statement's end. -/
+theorem stageEnd_fbat {X : PStmt} {ev : Event} {es : List Event} {what : String}
+    (hr : st.rest = ev :: es) (he : isEmit ev = true) :
+    FBAt ctx I C st (expect isEmit what >>= fun _ => push X >>= fun _ => endStmt)
+      fun _ C' st' => C' = C ∧
+        st' = { st with rest := es, out := st.out.push X, lazy := none, used := [],
+                        shift := none } := by
+  refine FBAt.bind (FBAt.ofFAt (expect_fat hr he)) (fun _ _ _ h => h.1) ?_
+  rintro _ st₁ C₁ - - - ⟨-, rfl, rfl⟩
+  exact push_end' fun _ => ⟨rfl, rfl⟩
+
 end Cells
 
 end
