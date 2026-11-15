@@ -20,7 +20,7 @@ public section
 
 /-- `open_stacked__L1`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 338) (d := Data.adviceFn338) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 340) (d := Data.adviceFn340) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end

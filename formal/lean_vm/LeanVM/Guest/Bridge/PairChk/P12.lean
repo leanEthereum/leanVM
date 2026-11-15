@@ -11,6 +11,21 @@ public import LeanVM.Guest.Bridge.PairDefs
 public import LeanVM.Guest.Pack.«P12».Bundle
 public import LeanVM.Guest.Pack.«P12».Core
 
+namespace LeanVM.Guest.Fn.«da_pad»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_pad`'s computed hints pass the data check. -/
+theorem pairOk :
+    Bridge.pairChk [] Fn.«da_pad».cert.locs Fn.«da_pad».fs Fn.«da_pad».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_pad»
+
 namespace LeanVM.Guest.Fn.«index_mle__L2»
 
 open LeanVM.Guest
@@ -161,21 +176,6 @@ end
 
 end LeanVM.Guest.Fn.«level_residual__L218_L24_L6_L3»
 
-namespace LeanVM.Guest.Fn.«da_levels__L16_L4_loop1»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_levels__L16_L4_loop1`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«da_levels__L16_L4_loop1».cert.locs Fn.«da_levels__L16_L4_loop1».fs Fn.«da_levels__L16_L4_loop1».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L16_L4_loop1»
-
 namespace LeanVM.Guest.Fn.«level_positions__L6_L15_L3_loop0»
 
 open LeanVM.Guest
@@ -235,6 +235,21 @@ theorem pairOk :
 end
 
 end LeanVM.Guest.Fn.«level_residual__L18_L8_L4_L2_loop0»
+
+namespace LeanVM.Guest.Fn.«da_levels__L16_L4_loop1»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_levels__L16_L4_loop1`'s computed hints pass the data check. -/
+theorem pairOk :
+    Bridge.pairChk [] Fn.«da_levels__L16_L4_loop1».cert.locs Fn.«da_levels__L16_L4_loop1».fs Fn.«da_levels__L16_L4_loop1».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_levels__L16_L4_loop1»
 
 namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1_loop0»
 

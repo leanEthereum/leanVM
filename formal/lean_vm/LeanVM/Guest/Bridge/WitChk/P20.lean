@@ -12,6 +12,20 @@ public import LeanVM.Guest.Bridge.Align.«P20»
 public import LeanVM.Guest.Pack.«P20».Bundle
 public import LeanVM.Guest.Pack.«P20».Core
 
+namespace LeanVM.Guest.Fn.«da_verify_blob»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_verify_blob`'s witness hints pass the data check. -/
+theorem witOk : Bridge.witChk alignCtx Fn.«da_verify_blob».fs Fn.«da_verify_blob».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_verify_blob»
+
 namespace LeanVM.Guest.Fn.«eq_prefix_run__L0»
 
 open LeanVM.Guest
@@ -222,20 +236,6 @@ end
 
 end LeanVM.Guest.Fn.«level_residual__L18_L12_L4_L2»
 
-namespace LeanVM.Guest.Fn.«da_levels__L1024_L10_loop6»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_levels__L1024_L10_loop6`'s witness hints pass the data check. -/
-theorem witOk : Bridge.witChk alignCtx Fn.«da_levels__L1024_L10_loop6».fs Fn.«da_levels__L1024_L10_loop6».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L1024_L10_loop6»
-
 namespace LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0»
 
 open LeanVM.Guest
@@ -347,3 +347,17 @@ theorem witOk : Bridge.witChk alignCtx Fn.«level_residual__L23_L16_L4_L2_loop1�
 end
 
 end LeanVM.Guest.Fn.«level_residual__L23_L16_L4_L2_loop1»
+
+namespace LeanVM.Guest.Fn.«da_levels__L1024_L10_loop6»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_levels__L1024_L10_loop6`'s witness hints pass the data check. -/
+theorem witOk : Bridge.witChk alignCtx Fn.«da_levels__L1024_L10_loop6».fs Fn.«da_levels__L1024_L10_loop6».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_levels__L1024_L10_loop6»

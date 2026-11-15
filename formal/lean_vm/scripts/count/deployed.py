@@ -69,18 +69,18 @@ def numbers(g, certs):
     # claim `13` words and a `__loop15` iteration per `136` claims, `13` and a `__loop16` iteration
     # per `17`.
     v['clC'] = (fs('claim_list_digest') + KS + SB('list_split') + fs(L('claim_list_digest_loop0')) + fs(L('claim_list_digest_loop1')) + v['cl'])
-    # `da_verify`: its frame, `da_row_shape`'s, `da_vector`'s words, the column loop's 128
-    # iterations (each its frame, the column's, the weights' expansion's and the row loop's
-    # phantom) and its untaken tail call's frame, the regions', the trees' and the padding loop's
-    # phantoms (the padding loop's frame when it does not run); per row its region (641), its base
-    # (1), the regions' loop, the column's row loop in each of the 128 columns and the trees' loop
-    # past the padding loop; per padded row the roots (4), the padding loop and the levels: each
-    # static loop's iteration at `SKt`, its run's phantom in the constant.
-    v['dvC'] = (fs('da_verify') + fs('da_row_shape') + SB('da_vector') + fs(L('da_verify_loop0'))
-                + 128 * (fs(L('da_verify_loop1')) + fs('da_verify_column') + SB('da_expand__L7_L8') + fs(L('da_verify_column_loop0')))
-                + fs(L('da_verify_loop1')) + fs(L('da_verify_loop2')) + fs(L('da_verify_loop3')))
-    v['dvS'] = 642 + SKt(L('da_verify_loop0')) + 128 * SKt(L('da_verify_column_loop0')) + max(0, SKt(L('da_verify_loop2')) - SKt(L('da_verify_loop3')))
-    v['dvP'] = 4 + SKt(L('da_verify_loop3')) + v['dlK']
+    # `da_verify`: its frame, `da_row_shape`'s frame, `da_vector`'s and `da_weights`' words, the
+    # blob loop's phantom, the roots' tree's arms' frames, `da_pad`'s and its
+    # loop's phantom (its frame when it does not run); per blob the blob loop's iteration past the
+    # padding loop's; per padded blob the roots (4), the padding loop and the levels: each static
+    # loop's iteration at `SKt`, its run's phantom in the constant.
+    RT = ['da_roots_tree__L%d' % k for k in range(11)]
+    for n in RT: assert n in g.by, n
+    v['rt'] = sum(fs(n) for n in RT)
+    v['dvC'] = (fs('da_verify') + fs('da_row_shape') + SB('da_vector') + SB('da_weights')
+                + fs(L('da_verify_loop0')) + v['rt'] + fs('da_pad') + fs(L('da_pad_loop0')))
+    v['dvS'] = max(0, SKt(L('da_verify_loop0')) - SKt(L('da_pad_loop0')))
+    v['dvP'] = 4 + SKt(L('da_pad_loop0')) + v['dlK']
     # A child's claim list (`B1.Main.ccC`, `ccS`), on either walk (the honest prover takes the gap
     # walk when the list's slots increase): the larger walk's frame, its chain's first record (`15`
     # words at most), the larger loops' frames twice and the larger last digests' frames in the
@@ -172,18 +172,18 @@ theorem ccm_sum : nameSum (fun g => B2C.fs g) B1.Digest.mlNames 17 = %d := by de
         steps = ', '.join(rws) + (',\n    ' if rws and r else '') + r
         return ('theorem %s : %s = %d := by\n  unfold %s\n  rw [%s]\n  decide +kernel\n'
                 % (name, lhs, val, unf, steps))
-    dvc = thm('dvC_eq', 'dvC B2C.fs wSB', v['dvC'], 'dvC', [],
-              fs=['da_verify', 'da_row_shape', L('da_verify_loop0'), L('da_verify_loop1'), 'da_verify_column', L('da_verify_column_loop0'),
-                  L('da_verify_loop2'), L('da_verify_loop3')],
-              sb=['da_vector', 'da_expand__L7_L8'])
+    dvc = thm('dvC_eq', 'dvC B2C.fs wSB', v['dvC'], 'dvC', ['rt_sum'],
+              fs=['da_verify', 'da_row_shape', L('da_verify_loop0'), 'da_pad', L('da_pad_loop0')],
+              sb=['da_vector', 'da_weights'])
     dvs = thm('dvS_eq', 'dvS B2C.fs wSK', v['dvS'], 'dvS B1.Main.iterK', [],
-              fs=[L('da_verify_loop0'), L('da_verify_loop2'), L('da_verify_loop3'), L('da_verify_column_loop0')],
-              sk=[L('da_verify_loop0'), L('da_verify_loop2'), L('da_verify_loop3'), L('da_verify_column_loop0')])
-    dvp = thm('dvP_eq', 'dvP B2C.fs wSB wSK', v['dvP'], 'dvP B1.Main.iterK', ['dlK_eq'], fs=[L('da_verify_loop3')],
-              sk=[L('da_verify_loop3')])
+              fs=[L('da_verify_loop0'), L('da_pad_loop0')], sk=[L('da_verify_loop0'), L('da_pad_loop0')])
+    dvp = thm('dvP_eq', 'dvP B2C.fs wSB wSK', v['dvP'], 'dvP B1.Main.iterK', ['dlK_eq'], fs=[L('da_pad_loop0')],
+              sk=[L('da_pad_loop0')])
     mod('DeployedB', '`da_verify`\'s words: its constant, per row and per padded row.',
         'public import LeanVM.Guest.Count.DeployedA\n',
-        '\n/-- **`da_verify`\'s constant words.** -/\n' + dvc
+        '\n/-- The roots\' tree\'s arms\' frames. -/\ntheorem rt_sum : nameSum (fun g => B2C.fs g) B1.Da.rtNames 11 = %d := by '
+        'decide +kernel\n' % v['rt']
+        + '\n/-- **`da_verify`\'s constant words.** -/\n' + dvc
         + '\n/-- **`da_verify`\'s words per row.** -/\n' + dvs
         + '\n/-- **`da_verify`\'s words per padded row.** -/\n' + dvp)
     body = '\n'.join([

@@ -96,6 +96,20 @@ end
 
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L6»
 
+namespace LeanVM.Guest.Fn.«da_roots_tree__L1»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_roots_tree__L1`'s witness hints pass the data check. -/
+theorem witOk : Bridge.witChk alignCtx Fn.«da_roots_tree__L1».fs Fn.«da_roots_tree__L1».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_roots_tree__L1»
+
 namespace LeanVM.Guest.Fn.«gkr_rounds__L1»
 
 open LeanVM.Guest

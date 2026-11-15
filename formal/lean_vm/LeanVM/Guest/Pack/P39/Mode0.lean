@@ -27,7 +27,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `eq_prefix_run__L1`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨177976, 9, Fn.«eq_prefix_run__L1».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨179490, 9, Fn.«eq_prefix_run__L1».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `eq_prefix_run__L1`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -49,7 +49,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `plus_one_run__L25`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨194473, 78, Fn.«plus_one_run__L25».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨195987, 78, Fn.«plus_one_run__L25».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `plus_one_run__L25`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -71,7 +71,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `block_selector__L16`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨196517, 162, Fn.«block_selector__L16».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨198031, 162, Fn.«block_selector__L16».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `block_selector__L16`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by

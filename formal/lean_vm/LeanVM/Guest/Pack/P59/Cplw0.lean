@@ -12,6 +12,7 @@ public import LeanVM.Guest.Data.Pows
 public import Mathlib.Tactic.IntervalCases
 public import LeanVM.Guest.Pack.«P59».Core
 public import LeanVM.Guest.Pack.«P59».Bundle
+public import LeanVM.Guest.Pack.«P20».Sig
 public import LeanVM.Guest.Pack.«P59».Sig
 
 set_option Elab.async false
@@ -167,11 +168,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `__loop22`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(405, Fn.«da_verify_loop0».sig)]) Data.jtTrie globSem) code Fn.«da_verify_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(32, Fn.«da_verify_blob».sig), (407, Fn.«da_verify_loop0».sig)]) Data.jtTrie globSem) code Fn.«da_verify_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `__loop22`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(405, Fn.«da_verify_loop0».sig)]) Data.jtTrie globSem) code Fn.«da_verify_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(32, Fn.«da_verify_blob».sig), (407, Fn.«da_verify_loop0».sig)]) Data.jtTrie globSem) code Fn.«da_verify_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi

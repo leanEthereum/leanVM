@@ -177,17 +177,17 @@ theorem kcL1_loop (op : Opcode) :
     LoopWeightLe (B2C.ωArm B2C.xmssArmC op) "__loop0" (kcL1 op) := by
   intro rd t args rets a e hn hv hb ha he hae heo
   cases op
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .xor) (j := 34) (by decide +kernel)]; rfl : cntCert .xor "__loop0" = .loop none [] ⟨1, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .xor) (j := 36) (by decide +kernel)]; rfl : cntCert .xor "__loop0" = .loop none [] ⟨1, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .mulNative) (j := 34) (by decide +kernel)]; rfl : cntCert .mulNative "__loop0" = .loop none [] ⟨13, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .mulNative) (j := 36) (by decide +kernel)]; rfl : cntCert .mulNative "__loop0" = .loop none [] ⟨13, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .setConstant) (j := 34) (by decide +kernel)]; rfl : cntCert .setConstant "__loop0" = .loop none [] ⟨4, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .setConstant) (j := 36) (by decide +kernel)]; rfl : cntCert .setConstant "__loop0" = .loop none [] ⟨4, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .deref) (j := 34) (by decide +kernel)]; rfl : cntCert .deref "__loop0" = .loop none [] ⟨0, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .deref) (j := 36) (by decide +kernel)]; rfl : cntCert .deref "__loop0" = .loop none [] ⟨0, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .jump) (j := 34) (by decide +kernel)]; rfl : cntCert .jump "__loop0" = .loop none [] ⟨2, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .jump) (j := 36) (by decide +kernel)]; rfl : cntCert .jump "__loop0" = .loop none [] ⟨2, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .keccak) (j := 34) (by decide +kernel)]; rfl : cntCert .keccak "__loop0" = .loop none [] ⟨0, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .keccak) (j := 36) (by decide +kernel)]; rfl : cntCert .keccak "__loop0" = .loop none [] ⟨0, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
 
 /-- `__loop1`'s instructions per iteration. -/
@@ -204,17 +204,17 @@ theorem kcL2_loop (op : Opcode) :
     LoopWeightLe (B2C.ωArm B2C.xmssArmC op) "__loop1" (kcL2 op) := by
   intro rd t args rets a e hn hv hb ha he hae heo
   cases op
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .xor) (j := 35) (by decide +kernel)]; rfl : cntCert .xor "__loop1" = .loop none [] ⟨1, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .xor) (j := 37) (by decide +kernel)]; rfl : cntCert .xor "__loop1" = .loop none [] ⟨1, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .mulNative) (j := 35) (by decide +kernel)]; rfl : cntCert .mulNative "__loop1" = .loop none [] ⟨13, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .mulNative) (j := 37) (by decide +kernel)]; rfl : cntCert .mulNative "__loop1" = .loop none [] ⟨13, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .setConstant) (j := 35) (by decide +kernel)]; rfl : cntCert .setConstant "__loop1" = .loop none [] ⟨4, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .setConstant) (j := 37) (by decide +kernel)]; rfl : cntCert .setConstant "__loop1" = .loop none [] ⟨4, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .deref) (j := 35) (by decide +kernel)]; rfl : cntCert .deref "__loop1" = .loop none [] ⟨0, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .deref) (j := 37) (by decide +kernel)]; rfl : cntCert .deref "__loop1" = .loop none [] ⟨0, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .jump) (j := 35) (by decide +kernel)]; rfl : cntCert .jump "__loop1" = .loop none [] ⟨2, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .jump) (j := 37) (by decide +kernel)]; rfl : cntCert .jump "__loop1" = .loop none [] ⟨2, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .keccak) (j := 35) (by decide +kernel)]; rfl : cntCert .keccak "__loop1" = .loop none [] ⟨0, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .keccak) (j := 37) (by decide +kernel)]; rfl : cntCert .keccak "__loop1" = .loop none [] ⟨0, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
 
 /-- `__loop2`'s instructions per iteration. -/
@@ -231,17 +231,17 @@ theorem kcL3_loop (op : Opcode) :
     LoopWeightLe (B2C.ωArm B2C.xmssArmC op) "__loop2" (kcL3 op) := by
   intro rd t args rets a e hn hv hb ha he hae heo
   cases op
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .xor) (j := 36) (by decide +kernel)]; rfl : cntCert .xor "__loop2" = .loop none [] ⟨183, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .xor) (j := 38) (by decide +kernel)]; rfl : cntCert .xor "__loop2" = .loop none [] ⟨183, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .mulNative) (j := 36) (by decide +kernel)]; rfl : cntCert .mulNative "__loop2" = .loop none [] ⟨199, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .mulNative) (j := 38) (by decide +kernel)]; rfl : cntCert .mulNative "__loop2" = .loop none [] ⟨199, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .setConstant) (j := 36) (by decide +kernel)]; rfl : cntCert .setConstant "__loop2" = .loop none [] ⟨109, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .setConstant) (j := 38) (by decide +kernel)]; rfl : cntCert .setConstant "__loop2" = .loop none [] ⟨109, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .deref) (j := 36) (by decide +kernel)]; rfl : cntCert .deref "__loop2" = .loop none [] ⟨109, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .deref) (j := 38) (by decide +kernel)]; rfl : cntCert .deref "__loop2" = .loop none [] ⟨109, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .jump) (j := 36) (by decide +kernel)]; rfl : cntCert .jump "__loop2" = .loop none [] ⟨42, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .jump) (j := 38) (by decide +kernel)]; rfl : cntCert .jump "__loop2" = .loop none [] ⟨42, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .keccak) (j := 36) (by decide +kernel)]; rfl : cntCert .keccak "__loop2" = .loop none [] ⟨398, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .keccak) (j := 38) (by decide +kernel)]; rfl : cntCert .keccak "__loop2" = .loop none [] ⟨398, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
 
 /-- `__loop3`'s instructions per iteration. -/
@@ -258,17 +258,17 @@ theorem kcL4_loop (op : Opcode) :
     LoopWeightLe (B2C.ωArm B2C.xmssArmC op) "__loop3" (kcL4 op) := by
   intro rd t args rets a e hn hv hb ha he hae heo
   cases op
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .xor) (j := 37) (by decide +kernel)]; rfl : cntCert .xor "__loop3" = .loop none [] ⟨2084, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .xor) (j := 39) (by decide +kernel)]; rfl : cntCert .xor "__loop3" = .loop none [] ⟨2084, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .mulNative) (j := 37) (by decide +kernel)]; rfl : cntCert .mulNative "__loop3" = .loop none [] ⟨1483, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .mulNative) (j := 39) (by decide +kernel)]; rfl : cntCert .mulNative "__loop3" = .loop none [] ⟨1483, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .setConstant) (j := 37) (by decide +kernel)]; rfl : cntCert .setConstant "__loop3" = .loop none [] ⟨1661, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .setConstant) (j := 39) (by decide +kernel)]; rfl : cntCert .setConstant "__loop3" = .loop none [] ⟨1661, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .deref) (j := 37) (by decide +kernel)]; rfl : cntCert .deref "__loop3" = .loop none [] ⟨290, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .deref) (j := 39) (by decide +kernel)]; rfl : cntCert .deref "__loop3" = .loop none [] ⟨290, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .jump) (j := 37) (by decide +kernel)]; rfl : cntCert .jump "__loop3" = .loop none [] ⟨143, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .jump) (j := 39) (by decide +kernel)]; rfl : cntCert .jump "__loop3" = .loop none [] ⟨143, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
-  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .keccak) (j := 37) (by decide +kernel)]; rfl : cntCert .keccak "__loop3" = .loop none [] ⟨899, []⟩ []) hn hv hb ha he hae heo
+  · exact cnt_weight_le_of_loop (by rw [cntCert_idx (op := .keccak) (j := 39) (by decide +kernel)]; rfl : cntCert .keccak "__loop3" = .loop none [] ⟨899, []⟩ []) hn hv hb ha he hae heo
       (fun _ h => (List.not_mem_nil h).elim)
 
 /-- `aggregate_claims`' instructions: the constant. -/
@@ -302,22 +302,22 @@ theorem kcAgg_le (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List 
     exact ⟨n, h0, h1, ha⟩
   have hx : argExp args 0 = n := by rw [argExp, ha, logG_ofK h1]
   cases op
-  · have := cnt_weight_le_of_stat (by rw [cntCert_idx (op := .xor) (j := 33) (by decide +kernel)]; rfl : cntCert .xor "aggregate_claims" = .stat [(0, 0)] ⟨145, [(0, 1), (0, 3), (0, 49)]⟩ [(.n 36, 0), (.n 103, 0), (.n 192, 0)]) hn hv hb hpre
+  · have := cnt_weight_le_of_stat (by rw [cntCert_idx (op := .xor) (j := 35) (by decide +kernel)]; rfl : cntCert .xor "aggregate_claims" = .stat [(0, 0)] ⟨145, [(0, 1), (0, 3), (0, 49)]⟩ [(.n 36, 0), (.n 103, 0), (.n 192, 0)]) hn hv hb hpre
     simp only [Aff.eval, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hx] at this
     simp only [kcAggC, kcAggD]; omega
-  · have := cnt_weight_le_of_stat (by rw [cntCert_idx (op := .mulNative) (j := 33) (by decide +kernel)]; rfl : cntCert .mulNative "aggregate_claims" = .stat [(0, 0)] ⟨168, [(0, 77), (0, 19), (0, 64)]⟩ [(.n 36, 0), (.n 103, 0), (.n 192, 0)]) hn hv hb hpre
+  · have := cnt_weight_le_of_stat (by rw [cntCert_idx (op := .mulNative) (j := 35) (by decide +kernel)]; rfl : cntCert .mulNative "aggregate_claims" = .stat [(0, 0)] ⟨168, [(0, 77), (0, 19), (0, 64)]⟩ [(.n 36, 0), (.n 103, 0), (.n 192, 0)]) hn hv hb hpre
     simp only [Aff.eval, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hx] at this
     simp only [kcAggC, kcAggD]; omega
-  · have := cnt_weight_le_of_stat (by rw [cntCert_idx (op := .setConstant) (j := 33) (by decide +kernel)]; rfl : cntCert .setConstant "aggregate_claims" = .stat [(0, 0)] ⟨82, [(0, 57), (0, 4), (0, 4)]⟩ [(.n 36, 0), (.n 103, 0), (.n 192, 0)]) hn hv hb hpre
+  · have := cnt_weight_le_of_stat (by rw [cntCert_idx (op := .setConstant) (j := 35) (by decide +kernel)]; rfl : cntCert .setConstant "aggregate_claims" = .stat [(0, 0)] ⟨82, [(0, 57), (0, 4), (0, 4)]⟩ [(.n 36, 0), (.n 103, 0), (.n 192, 0)]) hn hv hb hpre
     simp only [Aff.eval, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hx] at this
     simp only [kcAggC, kcAggD]; omega
-  · have := cnt_weight_le_of_stat (by rw [cntCert_idx (op := .deref) (j := 33) (by decide +kernel)]; rfl : cntCert .deref "aggregate_claims" = .stat [(0, 0)] ⟨242, [(0, 78), (0, 8), (0, 74)]⟩ [(.n 36, 0), (.n 103, 0), (.n 192, 0)]) hn hv hb hpre
+  · have := cnt_weight_le_of_stat (by rw [cntCert_idx (op := .deref) (j := 35) (by decide +kernel)]; rfl : cntCert .deref "aggregate_claims" = .stat [(0, 0)] ⟨242, [(0, 78), (0, 8), (0, 74)]⟩ [(.n 36, 0), (.n 103, 0), (.n 192, 0)]) hn hv hb hpre
     simp only [Aff.eval, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hx] at this
     simp only [kcAggC, kcAggD]; omega
-  · have := cnt_weight_le_of_stat (by rw [cntCert_idx (op := .jump) (j := 33) (by decide +kernel)]; rfl : cntCert .jump "aggregate_claims" = .stat [(0, 0)] ⟨9, [(0, 2), (0, 2), (0, 2)]⟩ [(.n 36, 0), (.n 103, 0), (.n 192, 0)]) hn hv hb hpre
+  · have := cnt_weight_le_of_stat (by rw [cntCert_idx (op := .jump) (j := 35) (by decide +kernel)]; rfl : cntCert .jump "aggregate_claims" = .stat [(0, 0)] ⟨9, [(0, 2), (0, 2), (0, 2)]⟩ [(.n 36, 0), (.n 103, 0), (.n 192, 0)]) hn hv hb hpre
     simp only [Aff.eval, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hx] at this
     simp only [kcAggC, kcAggD]; omega
-  · have := cnt_weight_le_of_stat (by rw [cntCert_idx (op := .keccak) (j := 33) (by decide +kernel)]; rfl : cntCert .keccak "aggregate_claims" = .stat [(0, 0)] ⟨25, [(0, 13), (0, 0), (0, 0)]⟩ [(.n 36, 0), (.n 103, 0), (.n 192, 0)]) hn hv hb hpre
+  · have := cnt_weight_le_of_stat (by rw [cntCert_idx (op := .keccak) (j := 35) (by decide +kernel)]; rfl : cntCert .keccak "aggregate_claims" = .stat [(0, 0)] ⟨25, [(0, 13), (0, 0), (0, 0)]⟩ [(.n 36, 0), (.n 103, 0), (.n 192, 0)]) hn hv hb hpre
     simp only [Aff.eval, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hx] at this
     simp only [kcAggC, kcAggD]; omega
 
@@ -333,19 +333,19 @@ theorem kwSd_totalLe : TotalLe coreProgram B2C.fs "statement_digest" fun _ => 12
 
 /-- **`__loop0`**: at most 18 words per iteration and its run's phantom frame. -/
 theorem kwL1_loopRunLe : LoopRunLe B2C.fs "__loop0" 18 :=
-  kw_loopRunLe_of (by rw [wcertOf_of_idx (j := 34) (by decide +kernel)]; rfl : wcertOf "__loop0" = .loop none [] ⟨18, []⟩ [])
+  kw_loopRunLe_of (by rw [wcertOf_of_idx (j := 36) (by decide +kernel)]; rfl : wcertOf "__loop0" = .loop none [] ⟨18, []⟩ [])
 
 /-- **`__loop1`**: at most 18 words per iteration and its run's phantom frame. -/
 theorem kwL2_loopRunLe : LoopRunLe B2C.fs "__loop1" 18 :=
-  kw_loopRunLe_of (by rw [wcertOf_of_idx (j := 35) (by decide +kernel)]; rfl : wcertOf "__loop1" = .loop none [] ⟨18, []⟩ [])
+  kw_loopRunLe_of (by rw [wcertOf_of_idx (j := 37) (by decide +kernel)]; rfl : wcertOf "__loop1" = .loop none [] ⟨18, []⟩ [])
 
 /-- **`__loop2`**: at most 1551 words per iteration and its run's phantom frame. -/
 theorem kwL3_loopRunLe : LoopRunLe B2C.fs "__loop2" 1551 :=
-  kw_loopRunLe_of (by rw [wcertOf_of_idx (j := 36) (by decide +kernel)]; rfl : wcertOf "__loop2" = .loop none [] ⟨1551, []⟩ [])
+  kw_loopRunLe_of (by rw [wcertOf_of_idx (j := 38) (by decide +kernel)]; rfl : wcertOf "__loop2" = .loop none [] ⟨1551, []⟩ [])
 
 /-- **`__loop3`**: at most 8582 words per iteration and its run's phantom frame. -/
 theorem kwL4_loopRunLe : LoopRunLe B2C.fs "__loop3" 8582 :=
-  kw_loopRunLe_of (by rw [wcertOf_of_idx (j := 37) (by decide +kernel)]; rfl : wcertOf "__loop3" = .loop none [] ⟨8582, []⟩ [])
+  kw_loopRunLe_of (by rw [wcertOf_of_idx (j := 39) (by decide +kernel)]; rfl : wcertOf "__loop3" = .loop none [] ⟨8582, []⟩ [])
 
 end
 end LeanVM.Guest.Count

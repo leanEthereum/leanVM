@@ -25,19 +25,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«open_stacked__L10».core.body = tr
 
 /-- `open_stacked__L10`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«open_stacked__L10».plumb Fn.«open_stacked__L10».core.body Fn.«open_stacked__L10».code.code Data.adviceFn347 = true := by
+    Bridge.curBody alignCtx Fn.«open_stacked__L10».plumb Fn.«open_stacked__L10».core.body Fn.«open_stacked__L10».code.code Data.adviceFn349 = true := by
   decide +kernel
 
 /-- `open_stacked__L10`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«open_stacked__L10».fs [8, 9, 309, 310, 314, 449, 463, 473, 556, 565, 574, 580, 586, 705, 729, 736, 740, 742, 745, 746, 749, 752, 760, 763, 766, 782, 786, 827, 831, 871, 875, 881, 901, 902, 903, 904, 905, 906, 907, 908, 909, 910, 911, 912, 913, 914, 915, 916, 917, 918, 919, 920, 921, 922, 923, 924, 925, 926, 927, 928, 929, 930, 931, 932, 933, 934, 935, 936, 937, 938, 939, 940, 941, 942, 943, 944, 945, 946] Fn.«open_stacked__L10».core.params Fn.«open_stacked__L10».core.body
-      Data.adviceFn347 = true := by
+    Bridge.frChk alignCtx Fn.«open_stacked__L10».fs [8, 9, 311, 312, 316, 450, 464, 474, 557, 566, 575, 581, 587, 706, 730, 737, 741, 743, 746, 747, 750, 753, 761, 764, 767, 783, 787, 828, 832, 872, 876, 882, 902, 903, 904, 905, 906, 907, 908, 909, 910, 911, 912, 913, 914, 915, 916, 917, 918, 919, 920, 921, 922, 923, 924, 925, 926, 927, 928, 929, 930, 931, 932, 933, 934, 935, 936, 937, 938, 939, 940, 941, 942, 943, 944, 945, 946, 947] Fn.«open_stacked__L10».core.params Fn.«open_stacked__L10».core.body
+      Data.adviceFn349 = true := by
   decide +kernel
 
 /-- `open_stacked__L10`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«open_stacked__L10».fs Fn.«open_stacked__L10».core.loop Fn.«open_stacked__L10».plumb Fn.«open_stacked__L10».core.body Fn.«open_stacked__L10».code.code
-      Data.adviceFn347 = true := by
+      Data.adviceFn349 = true := by
   decide +kernel
 
 end

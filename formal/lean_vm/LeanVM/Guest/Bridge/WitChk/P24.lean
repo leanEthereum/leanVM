@@ -180,19 +180,19 @@ end
 
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L15»
 
-namespace LeanVM.Guest.Fn.«da_verify_column_loop0»
+namespace LeanVM.Guest.Fn.«da_roots_tree__L10»
 
 open LeanVM.Guest
 
 public section
 
-/-- `da_verify_column_loop0`'s witness hints pass the data check. -/
-theorem witOk : Bridge.witChk alignCtx Fn.«da_verify_column_loop0».fs Fn.«da_verify_column_loop0».core.body = true := by
+/-- `da_roots_tree__L10`'s witness hints pass the data check. -/
+theorem witOk : Bridge.witChk alignCtx Fn.«da_roots_tree__L10».fs Fn.«da_roots_tree__L10».core.body = true := by
   decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«da_verify_column_loop0»
+end LeanVM.Guest.Fn.«da_roots_tree__L10»
 
 namespace LeanVM.Guest.Fn.«level_queries__L23_L0_L4_L16_L17_L5_L0_L0_L0_L0»
 

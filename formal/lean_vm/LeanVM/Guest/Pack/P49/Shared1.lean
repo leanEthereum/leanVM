@@ -15,24 +15,24 @@ public import LeanVM.Guest.Pack.«P49».Bundle
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L5»
+namespace LeanVM.Guest.Fn.«da_roots_tree__L2»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `child_claim_list_mono_last__L5`, once. -/
-theorem st : shareStaticD Fn.«child_claim_list_mono_last__L5».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+/-- `da_roots_tree__L2`, once. -/
+theorem st : shareStaticD Fn.«da_roots_tree__L2».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `child_claim_list_mono_last__L5`, window 0. -/
-theorem sw0 : shareWinD Fn.«child_claim_list_mono_last__L5».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+/-- `da_roots_tree__L2`, window 0. -/
+theorem sw0 : shareWinD Fn.«da_roots_tree__L2».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
-/-- `child_claim_list_mono_last__L5`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«child_claim_list_mono_last__L5».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+/-- `da_roots_tree__L2`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«da_roots_tree__L2».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
@@ -40,7 +40,7 @@ theorem shareOk : ShareOkD Fn.«child_claim_list_mono_last__L5».core (cert.with
 ⟩
 
 end
-end LeanVM.Guest.Fn.«child_claim_list_mono_last__L5»
+end LeanVM.Guest.Fn.«da_roots_tree__L2»
 
 namespace LeanVM.Guest.Fn.«da_expand__L7_L8»
 

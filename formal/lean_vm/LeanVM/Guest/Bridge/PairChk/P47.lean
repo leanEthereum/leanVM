@@ -221,21 +221,6 @@ end
 
 end LeanVM.Guest.Fn.«level_queries__L32_L0_L4_L16_L26_L2_L0_L0_L0_L0»
 
-namespace LeanVM.Guest.Fn.«da_levels__L256_L8_loop2»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_levels__L256_L8_loop2`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«da_levels__L256_L8_loop2».cert.locs Fn.«da_levels__L256_L8_loop2».fs Fn.«da_levels__L256_L8_loop2».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L256_L8_loop2»
-
 namespace LeanVM.Guest.Fn.«level_residual__L33_L6_L4_L2_loop0»
 
 open LeanVM.Guest
@@ -400,6 +385,21 @@ theorem pairOk :
 end
 
 end LeanVM.Guest.Fn.«level_positions__L44_L25_L7_loop0»
+
+namespace LeanVM.Guest.Fn.«da_levels__L256_L8_loop2»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_levels__L256_L8_loop2`'s computed hints pass the data check. -/
+theorem pairOk :
+    Bridge.pairChk [] Fn.«da_levels__L256_L8_loop2».cert.locs Fn.«da_levels__L256_L8_loop2».fs Fn.«da_levels__L256_L8_loop2».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_levels__L256_L8_loop2»
 
 namespace LeanVM.Guest.Fn.«walk_path__L12_L5»
 

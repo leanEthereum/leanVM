@@ -79,12 +79,12 @@ def da_verify_sound_Spec : Prop :=
 
 /-! ## `da_row_shape` (G:4550-4559, TRIAGE #91) -/
 
-/-- **`da_row_shape(n_blob_g, g_log_pad, g_squares)`**: with the exponent table at `g_squares`,
-`n_blob = g^r` for `1 ≤ r ≤ 1024`, `g_log_pad = g^L` with `2^L` the padded count
-`LeanDa.nPad r`, and the function returns `g^(2^L)` and `g^(2^L - r)`. -/
+/-- **`da_row_shape(n_blob_g, g_log_pad, g_squares)`**: with the exponent table at `g_squares` and
+`g_log_pad = g^L`, `L ≤ 10` (its caller's range check), `n_blob = g^r` for `1 ≤ r ≤ 1024` with
+`2^L` the padded count `LeanDa.nPad r`, and the function returns `g^(2^L)` and `g^(2^L - r)`. -/
 def MeaningDaRowShape (rd : Reader) : List E → List E → Prop
-  | [nb, glp, gsq], rets => SquaresAt rd gsq →
-      ∃ r L, 1 ≤ r ∧ r ≤ LeanDa.maxRows ∧ L ≤ 10 ∧ nb = gen ^ r ∧ glp = gen ^ L ∧
+  | [nb, glp, gsq], rets => SquaresAt rd gsq → ∀ L ≤ 10, glp = gen ^ L →
+      ∃ r, 1 ≤ r ∧ r ≤ LeanDa.maxRows ∧ nb = gen ^ r ∧
         2 ^ L = LeanDa.paddedRowCount r ∧ rets = [gen ^ 2 ^ L, gen ^ (2 ^ L - r)]
   | _, _ => False
 
@@ -140,10 +140,6 @@ theorem find_da_verify :
 theorem find_da_row_shape :
     coreProgram.find? name% «da_row_shape» = some fn% «da_row_shape» :=
   coreProgram_find?_at (j := idx% «da_row_shape») rfl
-
-theorem find_da_verify_column :
-    coreProgram.find? name% «da_verify_column» = some fn% «da_verify_column» :=
-  coreProgram_find?_at (j := idx% «da_verify_column») rfl
 
 theorem find_da_verify_cell :
     coreProgram.find? name% «da_verify_cell» = some fn% «da_verify_cell» :=

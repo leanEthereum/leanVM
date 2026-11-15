@@ -68,6 +68,20 @@ end
 
 end LeanVM.Guest.Fn.«block_selector_tab__L32»
 
+namespace LeanVM.Guest.Fn.«da_pad_loop0»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_pad_loop0`'s witness hints pass the data check. -/
+theorem witOk : Bridge.witChk alignCtx Fn.«da_pad_loop0».fs Fn.«da_pad_loop0».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_pad_loop0»
+
 namespace LeanVM.Guest.Fn.«keccak_layer__L0_loop1»
 
 open LeanVM.Guest

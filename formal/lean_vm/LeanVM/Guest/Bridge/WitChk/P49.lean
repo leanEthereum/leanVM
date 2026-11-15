@@ -12,20 +12,6 @@ public import LeanVM.Guest.Bridge.Align.«P49»
 public import LeanVM.Guest.Pack.«P49».Bundle
 public import LeanVM.Guest.Pack.«P49».Core
 
-namespace LeanVM.Guest.Fn.«da_verify_column»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_verify_column`'s witness hints pass the data check. -/
-theorem witOk : Bridge.witChk alignCtx Fn.«da_verify_column».fs Fn.«da_verify_column».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_verify_column»
-
 namespace LeanVM.Guest.Fn.«padding_weight__L0»
 
 open LeanVM.Guest
@@ -81,6 +67,20 @@ theorem witOk : Bridge.witChk alignCtx Fn.«child_claim_list_mono_last__L5».fs 
 end
 
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L5»
+
+namespace LeanVM.Guest.Fn.«da_roots_tree__L2»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_roots_tree__L2`'s witness hints pass the data check. -/
+theorem witOk : Bridge.witChk alignCtx Fn.«da_roots_tree__L2».fs Fn.«da_roots_tree__L2».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_roots_tree__L2»
 
 namespace LeanVM.Guest.Fn.«da_expand__L7_L8»
 

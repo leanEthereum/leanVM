@@ -608,15 +608,15 @@ noncomputable def modeRes0 : Exec.Trie (List Mode.Res) :=
 
 /-- `__loop18`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node
-    none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node
-    none .nil (.node (some Fn.«child_claim_list_any_loop0».modeSig) .nil .nil))) .nil) .nil))))
-    .nil) .nil) .nil)) .nil) .nil))))), 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none .nil (.node none (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
+    none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
+    (.node (some Fn.«child_claim_list_any_loop0».modeSig) .nil .nil))) .nil)) .nil) .nil) .nil))
+    .nil) .nil) .nil)))) .nil) .nil)), 524287⟩
 
 /-- `__loop18`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨236622, 2466, Fn.«child_claim_list_any_loop0».modeSig, (.node none (.node none (.node none
+  ⟨238136, 2466, Fn.«child_claim_list_any_loop0».modeSig, (.node none (.node none (.node none
     (.node none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node
     (some [(.witnessStack "child_claim_index" 1621 1)]) .nil .nil)) .nil) .nil) (.node none .nil
     (.node none (.node (some [(.witnessStack "child_claim_index" 1045 1)]) .nil .nil) .nil)))

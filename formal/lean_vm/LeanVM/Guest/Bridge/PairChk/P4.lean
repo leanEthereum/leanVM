@@ -116,6 +116,21 @@ end
 
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L2»
 
+namespace LeanVM.Guest.Fn.«da_roots_tree__L5»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_roots_tree__L5`'s computed hints pass the data check. -/
+theorem pairOk :
+    Bridge.pairChk [] Fn.«da_roots_tree__L5».cert.locs Fn.«da_roots_tree__L5».fs Fn.«da_roots_tree__L5».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_roots_tree__L5»
+
 namespace LeanVM.Guest.Fn.«level_residual__L73_L14_L6_L3»
 
 open LeanVM.Guest

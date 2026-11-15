@@ -13,7 +13,7 @@ public import LeanVM.Guest.Memory.GuestMem.Part02
 public import LeanVM.Guest.Memory.GuestMem.Part03
 public import LeanVM.Guest.Memory.GuestMem.Part04
 public import LeanVM.Guest.Memory.GuestMem.Fn19
-public import LeanVM.Guest.Memory.GuestMem.Fn36
+public import LeanVM.Guest.Memory.GuestMem.Fn38
 
 /-!
 # The guest's memory check
@@ -35,28 +35,27 @@ theorem memAll : RangeOk (memF Data.takesT) 0 coreProgram.length := by
   have h0 : RangeOk (memF Data.takesT) 0 18 := memRange_0
   have h1 : RangeOk (memF Data.takesT) 0 19 := h0.append (m := 1) memRange_18
   have h2 : RangeOk (memF Data.takesT) 0 20 := h1.append (m := 1) memRange_19
-  have h3 : RangeOk (memF Data.takesT) 0 36 := h2.append (m := 16) memRange_20
-  have h4 : RangeOk (memF Data.takesT) 0 37 := h3.append (m := 1) memRange_36
-  have h5 : RangeOk (memF Data.takesT) 0 187 := h4.append (m := 150) memRange_37
-  have h6 : RangeOk (memF Data.takesT) 0 337 := h5.append (m := 150) memRange_187
-  have h7 : RangeOk (memF Data.takesT) 0 382 := h6.append (m := 45) memRange_337
-  have h8 : RangeOk (memF Data.takesT) 0 532 := h7.append (m := 150) memRange_382
-  have h9 : RangeOk (memF Data.takesT) 0 682 := h8.append (m := 150) memRange_532
-  have h10 : RangeOk (memF Data.takesT) 0 832 := h9.append (m := 150) memRange_682
-  have h11 : RangeOk (memF Data.takesT) 0 982 := h10.append (m := 150) memRange_832
-  have h12 : RangeOk (memF Data.takesT) 0 1099 := h11.append (m := 117) memRange_982
-  have h13 : RangeOk (memF Data.takesT) 0 1192 := h12.append (m := 93) memRange_1099
-  have h14 : RangeOk (memF Data.takesT) 0 1264 := h13.append (m := 72) memRange_1192
-  have h15 : RangeOk (memF Data.takesT) 0 1344 := h14.append (m := 80) memRange_1264
-  have h16 : RangeOk (memF Data.takesT) 0 1411 := h15.append (m := 67) memRange_1344
-  have h17 : RangeOk (memF Data.takesT) 0 1486 := h16.append (m := 75) memRange_1411
-  have h18 : RangeOk (memF Data.takesT) 0 1514 := h17.append (m := 28) memRange_1486
-  have h19 : RangeOk (memF Data.takesT) 0 1542 := h18.append (m := 28) memRange_1514
-  have h20 : RangeOk (memF Data.takesT) 0 1564 := h19.append (m := 22) memRange_1542
-  have h21 : RangeOk (memF Data.takesT) 0 1585 := h20.append (m := 21) memRange_1564
-  have h22 : RangeOk (memF Data.takesT) 0 1600 := h21.append (m := 15) memRange_1585
-  have h23 : RangeOk (memF Data.takesT) 0 1602 := h22.append (m := 2) memRange_1600
-  rw [coreProgram_length]; exact h23
+  have h3 : RangeOk (memF Data.takesT) 0 38 := h2.append (m := 18) memRange_20
+  have h4 : RangeOk (memF Data.takesT) 0 39 := h3.append (m := 1) memRange_38
+  have h5 : RangeOk (memF Data.takesT) 0 189 := h4.append (m := 150) memRange_39
+  have h6 : RangeOk (memF Data.takesT) 0 339 := h5.append (m := 150) memRange_189
+  have h7 : RangeOk (memF Data.takesT) 0 384 := h6.append (m := 45) memRange_339
+  have h8 : RangeOk (memF Data.takesT) 0 534 := h7.append (m := 150) memRange_384
+  have h9 : RangeOk (memF Data.takesT) 0 684 := h8.append (m := 150) memRange_534
+  have h10 : RangeOk (memF Data.takesT) 0 834 := h9.append (m := 150) memRange_684
+  have h11 : RangeOk (memF Data.takesT) 0 984 := h10.append (m := 150) memRange_834
+  have h12 : RangeOk (memF Data.takesT) 0 1091 := h11.append (m := 107) memRange_984
+  have h13 : RangeOk (memF Data.takesT) 0 1174 := h12.append (m := 83) memRange_1091
+  have h14 : RangeOk (memF Data.takesT) 0 1256 := h13.append (m := 82) memRange_1174
+  have h15 : RangeOk (memF Data.takesT) 0 1318 := h14.append (m := 62) memRange_1256
+  have h16 : RangeOk (memF Data.takesT) 0 1398 := h15.append (m := 80) memRange_1318
+  have h17 : RangeOk (memF Data.takesT) 0 1458 := h16.append (m := 60) memRange_1398
+  have h18 : RangeOk (memF Data.takesT) 0 1526 := h17.append (m := 68) memRange_1458
+  have h19 : RangeOk (memF Data.takesT) 0 1561 := h18.append (m := 35) memRange_1526
+  have h20 : RangeOk (memF Data.takesT) 0 1582 := h19.append (m := 21) memRange_1561
+  have h21 : RangeOk (memF Data.takesT) 0 1598 := h20.append (m := 16) memRange_1582
+  have h22 : RangeOk (memF Data.takesT) 0 1613 := h21.append (m := 15) memRange_1598
+  rw [coreProgram_length]; exact h22
 
 set_option maxRecDepth 100000 in
 /-- **The large functions' temporaries**: those `Data.bigTemps` lists. -/
@@ -64,7 +63,7 @@ theorem bigTemps_spec :
     ∀ p ∈ Data.bigTemps, (Stmt.tmpsList (coreProgram.getD p.1 default).body).map V.idx = p.2 := by
   rw [← List.forall_iff_forall_mem]
   simp only [Data.bigTemps, List.Forall]
-  exact ⟨tmps19, tmps36⟩
+  exact ⟨tmps19, tmps38⟩
 
 end
 end LeanVM.Guest

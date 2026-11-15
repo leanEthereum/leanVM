@@ -86,6 +86,36 @@ end
 
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L1»
 
+namespace LeanVM.Guest.Fn.«da_roots_tree__L6»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_roots_tree__L6`'s computed hints pass the data check. -/
+theorem pairOk :
+    Bridge.pairChk [] Fn.«da_roots_tree__L6».cert.locs Fn.«da_roots_tree__L6».fs Fn.«da_roots_tree__L6».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_roots_tree__L6»
+
+namespace LeanVM.Guest.Fn.«da_verify_blob_loop0»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_verify_blob_loop0`'s computed hints pass the data check. -/
+theorem pairOk :
+    Bridge.pairChk [] Fn.«da_verify_blob_loop0».cert.locs Fn.«da_verify_blob_loop0».fs Fn.«da_verify_blob_loop0».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_verify_blob_loop0»
+
 namespace LeanVM.Guest.Fn.«da_factors__L14_L7_L0»
 
 open LeanVM.Guest
@@ -235,21 +265,6 @@ theorem pairOk :
 end
 
 end LeanVM.Guest.Fn.«level_residual__L32_L19_L4_L2»
-
-namespace LeanVM.Guest.Fn.«da_levels__L512_L9_loop8»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_levels__L512_L9_loop8`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«da_levels__L512_L9_loop8».cert.locs Fn.«da_levels__L512_L9_loop8».fs Fn.«da_levels__L512_L9_loop8».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L512_L9_loop8»
 
 namespace LeanVM.Guest.Fn.«verify_merkle_cap__L5»
 
@@ -460,6 +475,21 @@ theorem pairOk :
 end
 
 end LeanVM.Guest.Fn.«level_residual__L18_L12_L4_L2_loop0»
+
+namespace LeanVM.Guest.Fn.«da_levels__L512_L9_loop8»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_levels__L512_L9_loop8`'s computed hints pass the data check. -/
+theorem pairOk :
+    Bridge.pairChk [] Fn.«da_levels__L512_L9_loop8».cert.locs Fn.«da_levels__L512_L9_loop8».fs Fn.«da_levels__L512_L9_loop8».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_levels__L512_L9_loop8»
 
 namespace LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0»
 

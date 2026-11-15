@@ -20,7 +20,7 @@ public section
 
 /-- `main_loop2`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«main_loop2».plumb Fn.«main_loop2».core.body Fn.«main_loop2».code.code Data.adviceFn37 = true := by
+    Bridge.curBody alignCtx Fn.«main_loop2».plumb Fn.«main_loop2».core.body Fn.«main_loop2».code.code Data.adviceFn39 = true := by
   rw [alignCtxEq]
   decide +kernel
 

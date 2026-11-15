@@ -15,33 +15,6 @@ public import LeanVM.Guest.Pack.«P49».Bundle
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«da_verify_column»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `da_verify_column`, once. -/
-theorem st : shareStaticD Fn.«da_verify_column».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_verify_column`, window 0. -/
-theorem sw0 : shareWinD Fn.«da_verify_column».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `da_verify_column`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«da_verify_column».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«da_verify_column»
-
 namespace LeanVM.Guest.Fn.«padding_weight__L0»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -122,4 +95,31 @@ theorem shareOk : ShareOkD Fn.«block_selector_tab__L29».core (cert.withPows Da
 
 end
 end LeanVM.Guest.Fn.«block_selector_tab__L29»
+
+namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L5»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `child_claim_list_mono_last__L5`, once. -/
+theorem st : shareStaticD Fn.«child_claim_list_mono_last__L5».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `child_claim_list_mono_last__L5`, window 0. -/
+theorem sw0 : shareWinD Fn.«child_claim_list_mono_last__L5».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `child_claim_list_mono_last__L5`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«child_claim_list_mono_last__L5».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«child_claim_list_mono_last__L5»
 

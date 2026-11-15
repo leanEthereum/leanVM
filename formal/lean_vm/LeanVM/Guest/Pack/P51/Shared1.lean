@@ -69,6 +69,33 @@ theorem shareOk : ShareOkD Fn.«child_claim_list_last__L14».core (cert.withPows
 end
 end LeanVM.Guest.Fn.«child_claim_list_last__L14»
 
+namespace LeanVM.Guest.Fn.«da_roots_tree__L8»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `da_roots_tree__L8`, once. -/
+theorem st : shareStaticD Fn.«da_roots_tree__L8».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_roots_tree__L8`, window 0. -/
+theorem sw0 : shareWinD Fn.«da_roots_tree__L8».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `da_roots_tree__L8`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«da_roots_tree__L8».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«da_roots_tree__L8»
+
 namespace LeanVM.Guest.Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -85,34 +112,6 @@ set_option maxRecDepth 100000 in
 theorem sw0 : shareWinD Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
-set_option maxRecDepth 100000 in
-/-- `level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1`, window 1. -/
-theorem sw1 : shareWinD Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
-  decide +kernel
-
-/-- `level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 1 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-  · exact sw1
-⟩
-
 end
 end LeanVM.Guest.Fn.«level_queries__L22_L0_L4_L16_L15_L3_L4_L20_L5_L1»
-
-namespace LeanVM.Guest.Fn.«squeeze_point_from__L17»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `squeeze_point_from__L17`, once. -/
-theorem st : shareStaticD Fn.«squeeze_point_from__L17».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«squeeze_point_from__L17»
 

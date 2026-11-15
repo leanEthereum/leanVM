@@ -41,21 +41,24 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL iterK)
 
 @[expose] public section
 
-/-- **The static bounds `da_verify` rests on**: its loop helpers' runs, `iterK fs SK g` words per
-iteration and the run's phantom frame `fs g` once (`TotalLeOn … LoopPre`: the regions' bases, the
-blobs' trees, the padding, a column's cells, the column offsets' doublings), the DA levels' words
-(`TotalLe`), and the statically bounded callees `da_vector` and `da_expand__L7_L8` within their
-static words (`vecB`, a frame). -/
+/-- **A blob's cell loop's words** from its first cell: `128` iterations and its run's phantom frame. -/
+def cellB (fs SK : String → ℕ) : ℕ :=
+  128 * iterK fs SK name% «da_verify_blob_loop0» + fs name% «da_verify_blob_loop0»
+
+/-- **The static bounds `da_verify` rests on**: its pure loop helpers' runs, `iterK fs SK g` words
+per iteration and the run's phantom frame `fs g` once (`TotalLeOn … LoopPre`: the padding, the
+column offsets' doublings), a blob's cell loop and the DA levels' words (`TotalLe`), a blob loop's
+iteration within `iterK` (its frame, the blob's frame and region, its cell loop and tree), and the
+statically bounded callees `da_vector`, `da_expand__L7_L8` and `da_weights` within their static
+words. -/
 structure DvStaticB (fs : String → ℕ) (SB SK : String → ℕ) : Prop where
-  l17 : TotalLeOn coreProgram fs name% «da_verify_loop0» LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_loop0» + fs name% «da_verify_loop0»)
-  l19 : TotalLeOn coreProgram fs name% «da_verify_loop2» LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_loop2» + fs name% «da_verify_loop2»)
-  l20 : TotalLeOn coreProgram fs name% «da_verify_loop3» LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_loop3» + fs name% «da_verify_loop3»)
-  l21 : TotalLeOn coreProgram fs name% «da_verify_column_loop0» LoopPre
-    (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_verify_column_loop0» + fs
-        name% «da_verify_column_loop0»)
+  pad : TotalLeOn coreProgram fs name% «da_pad_loop0» LoopPre
+    (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_pad_loop0» + fs name% «da_pad_loop0»)
+  cell : TotalLeOn coreProgram fs name% «da_verify_blob_loop0» (fun a => a.getD 0 0 = 1)
+    (fun _ => cellB fs SK)
+  blob : fs name% «da_verify_loop0» + (fs "da_verify_blob" + 641 +
+    (cellB fs SK + SB "da_levels__L128_L7")) ≤
+      iterK fs SK name% «da_verify_loop0»
   off : ∀ b < 7, TotalLeOn coreProgram fs (offLoopName b) LoopPre
     (fun a => logG (a.getD 1 0) * iterK fs SK (offLoopName b) + fs (offLoopName b))
   dl : ∀ j ≤ 10, TotalLe coreProgram fs dlNames[j]! (fun _ => SB dlNames[j]!)
@@ -64,6 +67,7 @@ structure DvStaticB (fs : String → ℕ) (SB SK : String → ℕ) : Prop where
       ((List.range 7).map fun b => 2 ^ b * iterK fs SK (offLoopName b) + fs (offLoopName b)).sum +
         0)))) ≤ SB "da_vector"
   exp : fs "da_expand__L7_L8" ≤ SB "da_expand__L7_L8"
+  ws : fs "da_weights" + 128 + 128 * fs "da_expand__L7_L8" ≤ SB "da_weights"
 
 variable {fs : String → ℕ} {cert : String → V → ℕ}
 
@@ -108,17 +112,17 @@ theorem row_shape_completeAtB (fs : String → ℕ) (cert : String → V → ℕ
   have hpar : (fn% «da_row_shape»).params = [.n 0, .n 1, .n 2] := rfl
   rw [hpar] at hp
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hp
-  have h15 : σ (.n 15) = gen ^ s * gen ^ L := by
-    have := hat (.mul (.n 15) (.n 2) (.n 1)) (by simp [rsAs])
+  have h11 : σ (.n 11) = gen ^ s * gen ^ L := by
+    have := hat (.mul (.n 11) (.n 2) (.n 1)) (by simp [rsAs])
     simp only [Atom.Holds] at this
     rw [this, hp.2.2, hp.2.1]
   refine relAtIn_atoms find_da_row_shape rs_split rs_loop (by decide) (by rw [hpar]; simp [hp])
     hat hr (fun q hq => by
       rw [show rsAs.filterMap atomAddr? = [] by decide] at hq; exact absurd hq List.not_mem_nil) (fun q hq => ?_) (fun i hi => ?_)
-  · have e : rsAs.filterMap atomLoad? = [(.n 15, 0)] := by decide
+  · have e : rsAs.filterMap atomLoad? = [(.n 11, 0)] := by decide
     rw [e, List.mem_singleton] at hq
     subst hq
-    refine ⟨s + L, by rw [h15, ← pow_add, limb0_gen_pow_mul]; rfl, Or.inl ?_⟩
+    refine ⟨s + L, by rw [h11, ← pow_add, limb0_gen_pow_mul]; rfl, Or.inl ?_⟩
     simpa using regionL_of_mem (L := [(s + L, [gen ^ 2 ^ L])]) List.mem_cons_self
       (k := 0) (by simp)
   · obtain ⟨q, hq, -⟩ := hi; simp at hq

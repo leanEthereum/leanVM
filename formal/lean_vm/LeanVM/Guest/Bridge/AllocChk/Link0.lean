@@ -12,6 +12,7 @@ public import LeanVM.Guest.Bridge.AllocChk.«F_main_loop2»
 public import LeanVM.Guest.Bridge.AllocChk.«P0»
 public import LeanVM.Guest.Bridge.AllocChk.«P10»
 public import LeanVM.Guest.Bridge.AllocChk.«P11»
+public import LeanVM.Guest.Bridge.AllocChk.«P12»
 public import LeanVM.Guest.Bridge.AllocChk.«P13»
 public import LeanVM.Guest.Bridge.AllocChk.«P14»
 public import LeanVM.Guest.Bridge.AllocChk.«P15»
@@ -28,7 +29,6 @@ public import LeanVM.Guest.Bridge.AllocChk.«P27»
 public import LeanVM.Guest.Bridge.AllocChk.«P28»
 public import LeanVM.Guest.Bridge.AllocChk.«P29»
 public import LeanVM.Guest.Bridge.AllocChk.«P2»
-public import LeanVM.Guest.Bridge.AllocChk.«P30»
 public import LeanVM.Guest.Bridge.AllocChk.«P32»
 public import LeanVM.Guest.Bridge.AllocChk.«P33»
 public import LeanVM.Guest.Bridge.AllocChk.«P34»
@@ -278,510 +278,510 @@ theorem aok28 : Bridge.AllocJ 28 :=
     Fn.«da_verify».allocShapeOk Fn.«da_verify».curBodyOk Fn.«da_verify».allocOk
 
 theorem fok29 : Bridge.FrJ 29 :=
-  Bridge.frJ_of Checked.code29 Checked.core29 Checked.cert29 Checked.plumbEq29 Bridge.ProgAl.tab29 rfl Checked.fsEq29 Fn.«da_row_shape».frOk
+  Bridge.frJ_of Checked.code29 Checked.core29 Checked.cert29 Checked.plumbEq29 Bridge.ProgAl.tab29 rfl Checked.fsEq29 Fn.«da_weights».frOk
 
 theorem aok29 : Bridge.AllocJ 29 :=
   Bridge.allocJ_of Checked.code29 Checked.core29 Checked.cert29 Checked.plumbEq29 Bridge.ProgAl.tab29 rfl Checked.fsEq29
-    Fn.«da_row_shape».allocShapeOk Fn.«da_row_shape».curBodyOk Fn.«da_row_shape».allocOk
+    Fn.«da_weights».allocShapeOk Fn.«da_weights».curBodyOk Fn.«da_weights».allocOk
 
 theorem fok30 : Bridge.FrJ 30 :=
-  Bridge.frJ_of Checked.code30 Checked.core30 Checked.cert30 Checked.plumbEq30 Bridge.ProgAl.tab30 rfl Checked.fsEq30 Fn.«da_verify_column».frOk
+  Bridge.frJ_of Checked.code30 Checked.core30 Checked.cert30 Checked.plumbEq30 Bridge.ProgAl.tab30 rfl Checked.fsEq30 Fn.«da_pad».frOk
 
 theorem aok30 : Bridge.AllocJ 30 :=
   Bridge.allocJ_of Checked.code30 Checked.core30 Checked.cert30 Checked.plumbEq30 Bridge.ProgAl.tab30 rfl Checked.fsEq30
-    Fn.«da_verify_column».allocShapeOk Fn.«da_verify_column».curBodyOk Fn.«da_verify_column».allocOk
+    Fn.«da_pad».allocShapeOk Fn.«da_pad».curBodyOk Fn.«da_pad».allocOk
 
 theorem fok31 : Bridge.FrJ 31 :=
-  Bridge.frJ_of Checked.code31 Checked.core31 Checked.cert31 Checked.plumbEq31 Bridge.ProgAl.tab31 rfl Checked.fsEq31 Fn.«da_verify_cell».frOk
+  Bridge.frJ_of Checked.code31 Checked.core31 Checked.cert31 Checked.plumbEq31 Bridge.ProgAl.tab31 rfl Checked.fsEq31 Fn.«da_row_shape».frOk
 
 theorem aok31 : Bridge.AllocJ 31 :=
   Bridge.allocJ_of Checked.code31 Checked.core31 Checked.cert31 Checked.plumbEq31 Bridge.ProgAl.tab31 rfl Checked.fsEq31
-    Fn.«da_verify_cell».allocShapeOk Fn.«da_verify_cell».curBodyOk Fn.«da_verify_cell».allocOk
+    Fn.«da_row_shape».allocShapeOk Fn.«da_row_shape».curBodyOk Fn.«da_row_shape».allocOk
 
 theorem fok32 : Bridge.FrJ 32 :=
-  Bridge.frJ_of Checked.code32 Checked.core32 Checked.cert32 Checked.plumbEq32 Bridge.ProgAl.tab32 rfl Checked.fsEq32 Fn.«da_vector».frOk
+  Bridge.frJ_of Checked.code32 Checked.core32 Checked.cert32 Checked.plumbEq32 Bridge.ProgAl.tab32 rfl Checked.fsEq32 Fn.«da_verify_blob».frOk
 
 theorem aok32 : Bridge.AllocJ 32 :=
   Bridge.allocJ_of Checked.code32 Checked.core32 Checked.cert32 Checked.plumbEq32 Bridge.ProgAl.tab32 rfl Checked.fsEq32
-    Fn.«da_vector».allocShapeOk Fn.«da_vector».curBodyOk Fn.«da_vector».allocOk
+    Fn.«da_verify_blob».allocShapeOk Fn.«da_verify_blob».curBodyOk Fn.«da_verify_blob».allocOk
 
 theorem fok33 : Bridge.FrJ 33 :=
-  Bridge.frJ_of Checked.code33 Checked.core33 Checked.cert33 Checked.plumbEq33 Bridge.ProgAl.tab33 rfl Checked.fsEq33 Fn.«da_column_offsets».frOk
+  Bridge.frJ_of Checked.code33 Checked.core33 Checked.cert33 Checked.plumbEq33 Bridge.ProgAl.tab33 rfl Checked.fsEq33 Fn.«da_verify_cell».frOk
 
 theorem aok33 : Bridge.AllocJ 33 :=
   Bridge.allocJ_of Checked.code33 Checked.core33 Checked.cert33 Checked.plumbEq33 Bridge.ProgAl.tab33 rfl Checked.fsEq33
-    Fn.«da_column_offsets».allocShapeOk Fn.«da_column_offsets».curBodyOk Fn.«da_column_offsets».allocOk
+    Fn.«da_verify_cell».allocShapeOk Fn.«da_verify_cell».curBodyOk Fn.«da_verify_cell».allocOk
 
 theorem fok34 : Bridge.FrJ 34 :=
-  Bridge.frJ_of Checked.code34 Checked.core34 Checked.cert34 Checked.plumbEq34 Bridge.ProgAl.tab34 rfl Checked.fsEq34 Fn.«aggregate_claims».frOk
+  Bridge.frJ_of Checked.code34 Checked.core34 Checked.cert34 Checked.plumbEq34 Bridge.ProgAl.tab34 rfl Checked.fsEq34 Fn.«da_vector».frOk
 
 theorem aok34 : Bridge.AllocJ 34 :=
   Bridge.allocJ_of Checked.code34 Checked.core34 Checked.cert34 Checked.plumbEq34 Bridge.ProgAl.tab34 rfl Checked.fsEq34
-    Fn.«aggregate_claims».allocShapeOk Fn.«aggregate_claims».curBodyOk Fn.«aggregate_claims».allocOk
+    Fn.«da_vector».allocShapeOk Fn.«da_vector».curBodyOk Fn.«da_vector».allocOk
 
 theorem fok35 : Bridge.FrJ 35 :=
-  Bridge.frJ_of Checked.code35 Checked.core35 Checked.cert35 Checked.plumbEq35 Bridge.ProgAl.tab35 rfl Checked.fsEq35 Fn.«main_loop0».frOk
+  Bridge.frJ_of Checked.code35 Checked.core35 Checked.cert35 Checked.plumbEq35 Bridge.ProgAl.tab35 rfl Checked.fsEq35 Fn.«da_column_offsets».frOk
 
 theorem aok35 : Bridge.AllocJ 35 :=
   Bridge.allocJ_of Checked.code35 Checked.core35 Checked.cert35 Checked.plumbEq35 Bridge.ProgAl.tab35 rfl Checked.fsEq35
-    Fn.«main_loop0».allocShapeOk Fn.«main_loop0».curBodyOk Fn.«main_loop0».allocOk
+    Fn.«da_column_offsets».allocShapeOk Fn.«da_column_offsets».curBodyOk Fn.«da_column_offsets».allocOk
 
 theorem fok36 : Bridge.FrJ 36 :=
-  Bridge.frJ_of Checked.code36 Checked.core36 Checked.cert36 Checked.plumbEq36 Bridge.ProgAl.tab36 rfl Checked.fsEq36 Fn.«main_loop1».frOk
+  Bridge.frJ_of Checked.code36 Checked.core36 Checked.cert36 Checked.plumbEq36 Bridge.ProgAl.tab36 rfl Checked.fsEq36 Fn.«aggregate_claims».frOk
 
 theorem aok36 : Bridge.AllocJ 36 :=
   Bridge.allocJ_of Checked.code36 Checked.core36 Checked.cert36 Checked.plumbEq36 Bridge.ProgAl.tab36 rfl Checked.fsEq36
-    Fn.«main_loop1».allocShapeOk Fn.«main_loop1».curBodyOk Fn.«main_loop1».allocOk
-
-kernel_rfl fsEq37 : B2C.fsN 37 = Fn.«main_loop2».fs
+    Fn.«aggregate_claims».allocShapeOk Fn.«aggregate_claims».curBodyOk Fn.«aggregate_claims».allocOk
 
 theorem fok37 : Bridge.FrJ 37 :=
-  Bridge.frJ_of Checked.code37 Checked.core37 Checked.cert37 Bridge.ProgAl.plumbEq37 Bridge.ProgAl.tab37 rfl fsEq37 Fn.«main_loop2».frOk
+  Bridge.frJ_of Checked.code37 Checked.core37 Checked.cert37 Checked.plumbEq37 Bridge.ProgAl.tab37 rfl Checked.fsEq37 Fn.«main_loop0».frOk
 
 theorem aok37 : Bridge.AllocJ 37 :=
-  Bridge.allocJ_of Checked.code37 Checked.core37 Checked.cert37 Bridge.ProgAl.plumbEq37 Bridge.ProgAl.tab37 rfl fsEq37
-    Fn.«main_loop2».allocShapeOk Fn.«main_loop2».curBodyOk Fn.«main_loop2».allocOk
+  Bridge.allocJ_of Checked.code37 Checked.core37 Checked.cert37 Checked.plumbEq37 Bridge.ProgAl.tab37 rfl Checked.fsEq37
+    Fn.«main_loop0».allocShapeOk Fn.«main_loop0».curBodyOk Fn.«main_loop0».allocOk
 
 theorem fok38 : Bridge.FrJ 38 :=
-  Bridge.frJ_of Checked.code38 Checked.core38 Checked.cert38 Checked.plumbEq38 Bridge.ProgAl.tab38 rfl Checked.fsEq38 Fn.«main_loop3».frOk
+  Bridge.frJ_of Checked.code38 Checked.core38 Checked.cert38 Checked.plumbEq38 Bridge.ProgAl.tab38 rfl Checked.fsEq38 Fn.«main_loop1».frOk
 
 theorem aok38 : Bridge.AllocJ 38 :=
   Bridge.allocJ_of Checked.code38 Checked.core38 Checked.cert38 Checked.plumbEq38 Bridge.ProgAl.tab38 rfl Checked.fsEq38
-    Fn.«main_loop3».allocShapeOk Fn.«main_loop3».curBodyOk Fn.«main_loop3».allocOk
+    Fn.«main_loop1».allocShapeOk Fn.«main_loop1».curBodyOk Fn.«main_loop1».allocOk
+
+kernel_rfl fsEq39 : B2C.fsN 39 = Fn.«main_loop2».fs
 
 theorem fok39 : Bridge.FrJ 39 :=
-  Bridge.frJ_of Checked.code39 Checked.core39 Checked.cert39 Checked.plumbEq39 Bridge.ProgAl.tab39 rfl Checked.fsEq39 Fn.«main_loop4».frOk
+  Bridge.frJ_of Checked.code39 Checked.core39 Checked.cert39 Bridge.ProgAl.plumbEq39 Bridge.ProgAl.tab39 rfl fsEq39 Fn.«main_loop2».frOk
 
 theorem aok39 : Bridge.AllocJ 39 :=
-  Bridge.allocJ_of Checked.code39 Checked.core39 Checked.cert39 Checked.plumbEq39 Bridge.ProgAl.tab39 rfl Checked.fsEq39
-    Fn.«main_loop4».allocShapeOk Fn.«main_loop4».curBodyOk Fn.«main_loop4».allocOk
+  Bridge.allocJ_of Checked.code39 Checked.core39 Checked.cert39 Bridge.ProgAl.plumbEq39 Bridge.ProgAl.tab39 rfl fsEq39
+    Fn.«main_loop2».allocShapeOk Fn.«main_loop2».curBodyOk Fn.«main_loop2».allocOk
 
 theorem fok40 : Bridge.FrJ 40 :=
-  Bridge.frJ_of Checked.code40 Checked.core40 Checked.cert40 Checked.plumbEq40 Bridge.ProgAl.tab40 rfl Checked.fsEq40 Fn.«eq_prefix_run__L0».frOk
+  Bridge.frJ_of Checked.code40 Checked.core40 Checked.cert40 Checked.plumbEq40 Bridge.ProgAl.tab40 rfl Checked.fsEq40 Fn.«main_loop3».frOk
 
 theorem aok40 : Bridge.AllocJ 40 :=
   Bridge.allocJ_of Checked.code40 Checked.core40 Checked.cert40 Checked.plumbEq40 Bridge.ProgAl.tab40 rfl Checked.fsEq40
-    Fn.«eq_prefix_run__L0».allocShapeOk Fn.«eq_prefix_run__L0».curBodyOk Fn.«eq_prefix_run__L0».allocOk
+    Fn.«main_loop3».allocShapeOk Fn.«main_loop3».curBodyOk Fn.«main_loop3».allocOk
 
 theorem fok41 : Bridge.FrJ 41 :=
-  Bridge.frJ_of Checked.code41 Checked.core41 Checked.cert41 Checked.plumbEq41 Bridge.ProgAl.tab41 rfl Checked.fsEq41 Fn.«eq_prefix_run__L1».frOk
+  Bridge.frJ_of Checked.code41 Checked.core41 Checked.cert41 Checked.plumbEq41 Bridge.ProgAl.tab41 rfl Checked.fsEq41 Fn.«main_loop4».frOk
 
 theorem aok41 : Bridge.AllocJ 41 :=
   Bridge.allocJ_of Checked.code41 Checked.core41 Checked.cert41 Checked.plumbEq41 Bridge.ProgAl.tab41 rfl Checked.fsEq41
-    Fn.«eq_prefix_run__L1».allocShapeOk Fn.«eq_prefix_run__L1».curBodyOk Fn.«eq_prefix_run__L1».allocOk
+    Fn.«main_loop4».allocShapeOk Fn.«main_loop4».curBodyOk Fn.«main_loop4».allocOk
 
 theorem fok42 : Bridge.FrJ 42 :=
-  Bridge.frJ_of Checked.code42 Checked.core42 Checked.cert42 Checked.plumbEq42 Bridge.ProgAl.tab42 rfl Checked.fsEq42 Fn.«eq_prefix_run__L2».frOk
+  Bridge.frJ_of Checked.code42 Checked.core42 Checked.cert42 Checked.plumbEq42 Bridge.ProgAl.tab42 rfl Checked.fsEq42 Fn.«eq_prefix_run__L0».frOk
 
 theorem aok42 : Bridge.AllocJ 42 :=
   Bridge.allocJ_of Checked.code42 Checked.core42 Checked.cert42 Checked.plumbEq42 Bridge.ProgAl.tab42 rfl Checked.fsEq42
-    Fn.«eq_prefix_run__L2».allocShapeOk Fn.«eq_prefix_run__L2».curBodyOk Fn.«eq_prefix_run__L2».allocOk
+    Fn.«eq_prefix_run__L0».allocShapeOk Fn.«eq_prefix_run__L0».curBodyOk Fn.«eq_prefix_run__L0».allocOk
 
 theorem fok43 : Bridge.FrJ 43 :=
-  Bridge.frJ_of Checked.code43 Checked.core43 Checked.cert43 Checked.plumbEq43 Bridge.ProgAl.tab43 rfl Checked.fsEq43 Fn.«eq_prefix_run__L3».frOk
+  Bridge.frJ_of Checked.code43 Checked.core43 Checked.cert43 Checked.plumbEq43 Bridge.ProgAl.tab43 rfl Checked.fsEq43 Fn.«eq_prefix_run__L1».frOk
 
 theorem aok43 : Bridge.AllocJ 43 :=
   Bridge.allocJ_of Checked.code43 Checked.core43 Checked.cert43 Checked.plumbEq43 Bridge.ProgAl.tab43 rfl Checked.fsEq43
-    Fn.«eq_prefix_run__L3».allocShapeOk Fn.«eq_prefix_run__L3».curBodyOk Fn.«eq_prefix_run__L3».allocOk
+    Fn.«eq_prefix_run__L1».allocShapeOk Fn.«eq_prefix_run__L1».curBodyOk Fn.«eq_prefix_run__L1».allocOk
 
 theorem fok44 : Bridge.FrJ 44 :=
-  Bridge.frJ_of Checked.code44 Checked.core44 Checked.cert44 Checked.plumbEq44 Bridge.ProgAl.tab44 rfl Checked.fsEq44 Fn.«eq_prefix_run__L4».frOk
+  Bridge.frJ_of Checked.code44 Checked.core44 Checked.cert44 Checked.plumbEq44 Bridge.ProgAl.tab44 rfl Checked.fsEq44 Fn.«eq_prefix_run__L2».frOk
 
 theorem aok44 : Bridge.AllocJ 44 :=
   Bridge.allocJ_of Checked.code44 Checked.core44 Checked.cert44 Checked.plumbEq44 Bridge.ProgAl.tab44 rfl Checked.fsEq44
-    Fn.«eq_prefix_run__L4».allocShapeOk Fn.«eq_prefix_run__L4».curBodyOk Fn.«eq_prefix_run__L4».allocOk
+    Fn.«eq_prefix_run__L2».allocShapeOk Fn.«eq_prefix_run__L2».curBodyOk Fn.«eq_prefix_run__L2».allocOk
 
 theorem fok45 : Bridge.FrJ 45 :=
-  Bridge.frJ_of Checked.code45 Checked.core45 Checked.cert45 Checked.plumbEq45 Bridge.ProgAl.tab45 rfl Checked.fsEq45 Fn.«eq_prefix_run__L5».frOk
+  Bridge.frJ_of Checked.code45 Checked.core45 Checked.cert45 Checked.plumbEq45 Bridge.ProgAl.tab45 rfl Checked.fsEq45 Fn.«eq_prefix_run__L3».frOk
 
 theorem aok45 : Bridge.AllocJ 45 :=
   Bridge.allocJ_of Checked.code45 Checked.core45 Checked.cert45 Checked.plumbEq45 Bridge.ProgAl.tab45 rfl Checked.fsEq45
-    Fn.«eq_prefix_run__L5».allocShapeOk Fn.«eq_prefix_run__L5».curBodyOk Fn.«eq_prefix_run__L5».allocOk
+    Fn.«eq_prefix_run__L3».allocShapeOk Fn.«eq_prefix_run__L3».curBodyOk Fn.«eq_prefix_run__L3».allocOk
 
 theorem fok46 : Bridge.FrJ 46 :=
-  Bridge.frJ_of Checked.code46 Checked.core46 Checked.cert46 Checked.plumbEq46 Bridge.ProgAl.tab46 rfl Checked.fsEq46 Fn.«eq_prefix_run__L6».frOk
+  Bridge.frJ_of Checked.code46 Checked.core46 Checked.cert46 Checked.plumbEq46 Bridge.ProgAl.tab46 rfl Checked.fsEq46 Fn.«eq_prefix_run__L4».frOk
 
 theorem aok46 : Bridge.AllocJ 46 :=
   Bridge.allocJ_of Checked.code46 Checked.core46 Checked.cert46 Checked.plumbEq46 Bridge.ProgAl.tab46 rfl Checked.fsEq46
-    Fn.«eq_prefix_run__L6».allocShapeOk Fn.«eq_prefix_run__L6».curBodyOk Fn.«eq_prefix_run__L6».allocOk
+    Fn.«eq_prefix_run__L4».allocShapeOk Fn.«eq_prefix_run__L4».curBodyOk Fn.«eq_prefix_run__L4».allocOk
 
 theorem fok47 : Bridge.FrJ 47 :=
-  Bridge.frJ_of Checked.code47 Checked.core47 Checked.cert47 Checked.plumbEq47 Bridge.ProgAl.tab47 rfl Checked.fsEq47 Fn.«eq_prefix_run__L7».frOk
+  Bridge.frJ_of Checked.code47 Checked.core47 Checked.cert47 Checked.plumbEq47 Bridge.ProgAl.tab47 rfl Checked.fsEq47 Fn.«eq_prefix_run__L5».frOk
 
 theorem aok47 : Bridge.AllocJ 47 :=
   Bridge.allocJ_of Checked.code47 Checked.core47 Checked.cert47 Checked.plumbEq47 Bridge.ProgAl.tab47 rfl Checked.fsEq47
-    Fn.«eq_prefix_run__L7».allocShapeOk Fn.«eq_prefix_run__L7».curBodyOk Fn.«eq_prefix_run__L7».allocOk
+    Fn.«eq_prefix_run__L5».allocShapeOk Fn.«eq_prefix_run__L5».curBodyOk Fn.«eq_prefix_run__L5».allocOk
 
 theorem fok48 : Bridge.FrJ 48 :=
-  Bridge.frJ_of Checked.code48 Checked.core48 Checked.cert48 Checked.plumbEq48 Bridge.ProgAl.tab48 rfl Checked.fsEq48 Fn.«eq_prefix_run__L8».frOk
+  Bridge.frJ_of Checked.code48 Checked.core48 Checked.cert48 Checked.plumbEq48 Bridge.ProgAl.tab48 rfl Checked.fsEq48 Fn.«eq_prefix_run__L6».frOk
 
 theorem aok48 : Bridge.AllocJ 48 :=
   Bridge.allocJ_of Checked.code48 Checked.core48 Checked.cert48 Checked.plumbEq48 Bridge.ProgAl.tab48 rfl Checked.fsEq48
-    Fn.«eq_prefix_run__L8».allocShapeOk Fn.«eq_prefix_run__L8».curBodyOk Fn.«eq_prefix_run__L8».allocOk
+    Fn.«eq_prefix_run__L6».allocShapeOk Fn.«eq_prefix_run__L6».curBodyOk Fn.«eq_prefix_run__L6».allocOk
 
 theorem fok49 : Bridge.FrJ 49 :=
-  Bridge.frJ_of Checked.code49 Checked.core49 Checked.cert49 Checked.plumbEq49 Bridge.ProgAl.tab49 rfl Checked.fsEq49 Fn.«eq_prefix_run__L9».frOk
+  Bridge.frJ_of Checked.code49 Checked.core49 Checked.cert49 Checked.plumbEq49 Bridge.ProgAl.tab49 rfl Checked.fsEq49 Fn.«eq_prefix_run__L7».frOk
 
 theorem aok49 : Bridge.AllocJ 49 :=
   Bridge.allocJ_of Checked.code49 Checked.core49 Checked.cert49 Checked.plumbEq49 Bridge.ProgAl.tab49 rfl Checked.fsEq49
-    Fn.«eq_prefix_run__L9».allocShapeOk Fn.«eq_prefix_run__L9».curBodyOk Fn.«eq_prefix_run__L9».allocOk
+    Fn.«eq_prefix_run__L7».allocShapeOk Fn.«eq_prefix_run__L7».curBodyOk Fn.«eq_prefix_run__L7».allocOk
 
 theorem fok50 : Bridge.FrJ 50 :=
-  Bridge.frJ_of Checked.code50 Checked.core50 Checked.cert50 Checked.plumbEq50 Bridge.ProgAl.tab50 rfl Checked.fsEq50 Fn.«eq_prefix_run__L10».frOk
+  Bridge.frJ_of Checked.code50 Checked.core50 Checked.cert50 Checked.plumbEq50 Bridge.ProgAl.tab50 rfl Checked.fsEq50 Fn.«eq_prefix_run__L8».frOk
 
 theorem aok50 : Bridge.AllocJ 50 :=
   Bridge.allocJ_of Checked.code50 Checked.core50 Checked.cert50 Checked.plumbEq50 Bridge.ProgAl.tab50 rfl Checked.fsEq50
-    Fn.«eq_prefix_run__L10».allocShapeOk Fn.«eq_prefix_run__L10».curBodyOk Fn.«eq_prefix_run__L10».allocOk
+    Fn.«eq_prefix_run__L8».allocShapeOk Fn.«eq_prefix_run__L8».curBodyOk Fn.«eq_prefix_run__L8».allocOk
 
 theorem fok51 : Bridge.FrJ 51 :=
-  Bridge.frJ_of Checked.code51 Checked.core51 Checked.cert51 Checked.plumbEq51 Bridge.ProgAl.tab51 rfl Checked.fsEq51 Fn.«eq_prefix_run__L11».frOk
+  Bridge.frJ_of Checked.code51 Checked.core51 Checked.cert51 Checked.plumbEq51 Bridge.ProgAl.tab51 rfl Checked.fsEq51 Fn.«eq_prefix_run__L9».frOk
 
 theorem aok51 : Bridge.AllocJ 51 :=
   Bridge.allocJ_of Checked.code51 Checked.core51 Checked.cert51 Checked.plumbEq51 Bridge.ProgAl.tab51 rfl Checked.fsEq51
-    Fn.«eq_prefix_run__L11».allocShapeOk Fn.«eq_prefix_run__L11».curBodyOk Fn.«eq_prefix_run__L11».allocOk
+    Fn.«eq_prefix_run__L9».allocShapeOk Fn.«eq_prefix_run__L9».curBodyOk Fn.«eq_prefix_run__L9».allocOk
 
 theorem fok52 : Bridge.FrJ 52 :=
-  Bridge.frJ_of Checked.code52 Checked.core52 Checked.cert52 Checked.plumbEq52 Bridge.ProgAl.tab52 rfl Checked.fsEq52 Fn.«eq_prefix_run__L12».frOk
+  Bridge.frJ_of Checked.code52 Checked.core52 Checked.cert52 Checked.plumbEq52 Bridge.ProgAl.tab52 rfl Checked.fsEq52 Fn.«eq_prefix_run__L10».frOk
 
 theorem aok52 : Bridge.AllocJ 52 :=
   Bridge.allocJ_of Checked.code52 Checked.core52 Checked.cert52 Checked.plumbEq52 Bridge.ProgAl.tab52 rfl Checked.fsEq52
-    Fn.«eq_prefix_run__L12».allocShapeOk Fn.«eq_prefix_run__L12».curBodyOk Fn.«eq_prefix_run__L12».allocOk
+    Fn.«eq_prefix_run__L10».allocShapeOk Fn.«eq_prefix_run__L10».curBodyOk Fn.«eq_prefix_run__L10».allocOk
 
 theorem fok53 : Bridge.FrJ 53 :=
-  Bridge.frJ_of Checked.code53 Checked.core53 Checked.cert53 Checked.plumbEq53 Bridge.ProgAl.tab53 rfl Checked.fsEq53 Fn.«eq_prefix_run__L13».frOk
+  Bridge.frJ_of Checked.code53 Checked.core53 Checked.cert53 Checked.plumbEq53 Bridge.ProgAl.tab53 rfl Checked.fsEq53 Fn.«eq_prefix_run__L11».frOk
 
 theorem aok53 : Bridge.AllocJ 53 :=
   Bridge.allocJ_of Checked.code53 Checked.core53 Checked.cert53 Checked.plumbEq53 Bridge.ProgAl.tab53 rfl Checked.fsEq53
-    Fn.«eq_prefix_run__L13».allocShapeOk Fn.«eq_prefix_run__L13».curBodyOk Fn.«eq_prefix_run__L13».allocOk
+    Fn.«eq_prefix_run__L11».allocShapeOk Fn.«eq_prefix_run__L11».curBodyOk Fn.«eq_prefix_run__L11».allocOk
 
 theorem fok54 : Bridge.FrJ 54 :=
-  Bridge.frJ_of Checked.code54 Checked.core54 Checked.cert54 Checked.plumbEq54 Bridge.ProgAl.tab54 rfl Checked.fsEq54 Fn.«eq_prefix_run__L14».frOk
+  Bridge.frJ_of Checked.code54 Checked.core54 Checked.cert54 Checked.plumbEq54 Bridge.ProgAl.tab54 rfl Checked.fsEq54 Fn.«eq_prefix_run__L12».frOk
 
 theorem aok54 : Bridge.AllocJ 54 :=
   Bridge.allocJ_of Checked.code54 Checked.core54 Checked.cert54 Checked.plumbEq54 Bridge.ProgAl.tab54 rfl Checked.fsEq54
-    Fn.«eq_prefix_run__L14».allocShapeOk Fn.«eq_prefix_run__L14».curBodyOk Fn.«eq_prefix_run__L14».allocOk
+    Fn.«eq_prefix_run__L12».allocShapeOk Fn.«eq_prefix_run__L12».curBodyOk Fn.«eq_prefix_run__L12».allocOk
 
 theorem fok55 : Bridge.FrJ 55 :=
-  Bridge.frJ_of Checked.code55 Checked.core55 Checked.cert55 Checked.plumbEq55 Bridge.ProgAl.tab55 rfl Checked.fsEq55 Fn.«eq_prefix_run__L15».frOk
+  Bridge.frJ_of Checked.code55 Checked.core55 Checked.cert55 Checked.plumbEq55 Bridge.ProgAl.tab55 rfl Checked.fsEq55 Fn.«eq_prefix_run__L13».frOk
 
 theorem aok55 : Bridge.AllocJ 55 :=
   Bridge.allocJ_of Checked.code55 Checked.core55 Checked.cert55 Checked.plumbEq55 Bridge.ProgAl.tab55 rfl Checked.fsEq55
-    Fn.«eq_prefix_run__L15».allocShapeOk Fn.«eq_prefix_run__L15».curBodyOk Fn.«eq_prefix_run__L15».allocOk
+    Fn.«eq_prefix_run__L13».allocShapeOk Fn.«eq_prefix_run__L13».curBodyOk Fn.«eq_prefix_run__L13».allocOk
 
 theorem fok56 : Bridge.FrJ 56 :=
-  Bridge.frJ_of Checked.code56 Checked.core56 Checked.cert56 Checked.plumbEq56 Bridge.ProgAl.tab56 rfl Checked.fsEq56 Fn.«eq_prefix_run__L16».frOk
+  Bridge.frJ_of Checked.code56 Checked.core56 Checked.cert56 Checked.plumbEq56 Bridge.ProgAl.tab56 rfl Checked.fsEq56 Fn.«eq_prefix_run__L14».frOk
 
 theorem aok56 : Bridge.AllocJ 56 :=
   Bridge.allocJ_of Checked.code56 Checked.core56 Checked.cert56 Checked.plumbEq56 Bridge.ProgAl.tab56 rfl Checked.fsEq56
-    Fn.«eq_prefix_run__L16».allocShapeOk Fn.«eq_prefix_run__L16».curBodyOk Fn.«eq_prefix_run__L16».allocOk
+    Fn.«eq_prefix_run__L14».allocShapeOk Fn.«eq_prefix_run__L14».curBodyOk Fn.«eq_prefix_run__L14».allocOk
 
 theorem fok57 : Bridge.FrJ 57 :=
-  Bridge.frJ_of Checked.code57 Checked.core57 Checked.cert57 Checked.plumbEq57 Bridge.ProgAl.tab57 rfl Checked.fsEq57 Fn.«eq_prefix_run__L17».frOk
+  Bridge.frJ_of Checked.code57 Checked.core57 Checked.cert57 Checked.plumbEq57 Bridge.ProgAl.tab57 rfl Checked.fsEq57 Fn.«eq_prefix_run__L15».frOk
 
 theorem aok57 : Bridge.AllocJ 57 :=
   Bridge.allocJ_of Checked.code57 Checked.core57 Checked.cert57 Checked.plumbEq57 Bridge.ProgAl.tab57 rfl Checked.fsEq57
-    Fn.«eq_prefix_run__L17».allocShapeOk Fn.«eq_prefix_run__L17».curBodyOk Fn.«eq_prefix_run__L17».allocOk
+    Fn.«eq_prefix_run__L15».allocShapeOk Fn.«eq_prefix_run__L15».curBodyOk Fn.«eq_prefix_run__L15».allocOk
 
 theorem fok58 : Bridge.FrJ 58 :=
-  Bridge.frJ_of Checked.code58 Checked.core58 Checked.cert58 Checked.plumbEq58 Bridge.ProgAl.tab58 rfl Checked.fsEq58 Fn.«eq_prefix_run__L18».frOk
+  Bridge.frJ_of Checked.code58 Checked.core58 Checked.cert58 Checked.plumbEq58 Bridge.ProgAl.tab58 rfl Checked.fsEq58 Fn.«eq_prefix_run__L16».frOk
 
 theorem aok58 : Bridge.AllocJ 58 :=
   Bridge.allocJ_of Checked.code58 Checked.core58 Checked.cert58 Checked.plumbEq58 Bridge.ProgAl.tab58 rfl Checked.fsEq58
-    Fn.«eq_prefix_run__L18».allocShapeOk Fn.«eq_prefix_run__L18».curBodyOk Fn.«eq_prefix_run__L18».allocOk
+    Fn.«eq_prefix_run__L16».allocShapeOk Fn.«eq_prefix_run__L16».curBodyOk Fn.«eq_prefix_run__L16».allocOk
 
 theorem fok59 : Bridge.FrJ 59 :=
-  Bridge.frJ_of Checked.code59 Checked.core59 Checked.cert59 Checked.plumbEq59 Bridge.ProgAl.tab59 rfl Checked.fsEq59 Fn.«eq_prefix_run__L19».frOk
+  Bridge.frJ_of Checked.code59 Checked.core59 Checked.cert59 Checked.plumbEq59 Bridge.ProgAl.tab59 rfl Checked.fsEq59 Fn.«eq_prefix_run__L17».frOk
 
 theorem aok59 : Bridge.AllocJ 59 :=
   Bridge.allocJ_of Checked.code59 Checked.core59 Checked.cert59 Checked.plumbEq59 Bridge.ProgAl.tab59 rfl Checked.fsEq59
-    Fn.«eq_prefix_run__L19».allocShapeOk Fn.«eq_prefix_run__L19».curBodyOk Fn.«eq_prefix_run__L19».allocOk
+    Fn.«eq_prefix_run__L17».allocShapeOk Fn.«eq_prefix_run__L17».curBodyOk Fn.«eq_prefix_run__L17».allocOk
 
 theorem fok60 : Bridge.FrJ 60 :=
-  Bridge.frJ_of Checked.code60 Checked.core60 Checked.cert60 Checked.plumbEq60 Bridge.ProgAl.tab60 rfl Checked.fsEq60 Fn.«eq_prefix_run__L20».frOk
+  Bridge.frJ_of Checked.code60 Checked.core60 Checked.cert60 Checked.plumbEq60 Bridge.ProgAl.tab60 rfl Checked.fsEq60 Fn.«eq_prefix_run__L18».frOk
 
 theorem aok60 : Bridge.AllocJ 60 :=
   Bridge.allocJ_of Checked.code60 Checked.core60 Checked.cert60 Checked.plumbEq60 Bridge.ProgAl.tab60 rfl Checked.fsEq60
-    Fn.«eq_prefix_run__L20».allocShapeOk Fn.«eq_prefix_run__L20».curBodyOk Fn.«eq_prefix_run__L20».allocOk
+    Fn.«eq_prefix_run__L18».allocShapeOk Fn.«eq_prefix_run__L18».curBodyOk Fn.«eq_prefix_run__L18».allocOk
 
 theorem fok61 : Bridge.FrJ 61 :=
-  Bridge.frJ_of Checked.code61 Checked.core61 Checked.cert61 Checked.plumbEq61 Bridge.ProgAl.tab61 rfl Checked.fsEq61 Fn.«eq_prefix_run__L21».frOk
+  Bridge.frJ_of Checked.code61 Checked.core61 Checked.cert61 Checked.plumbEq61 Bridge.ProgAl.tab61 rfl Checked.fsEq61 Fn.«eq_prefix_run__L19».frOk
 
 theorem aok61 : Bridge.AllocJ 61 :=
   Bridge.allocJ_of Checked.code61 Checked.core61 Checked.cert61 Checked.plumbEq61 Bridge.ProgAl.tab61 rfl Checked.fsEq61
-    Fn.«eq_prefix_run__L21».allocShapeOk Fn.«eq_prefix_run__L21».curBodyOk Fn.«eq_prefix_run__L21».allocOk
+    Fn.«eq_prefix_run__L19».allocShapeOk Fn.«eq_prefix_run__L19».curBodyOk Fn.«eq_prefix_run__L19».allocOk
 
 theorem fok62 : Bridge.FrJ 62 :=
-  Bridge.frJ_of Checked.code62 Checked.core62 Checked.cert62 Checked.plumbEq62 Bridge.ProgAl.tab62 rfl Checked.fsEq62 Fn.«eq_prefix_run__L22».frOk
+  Bridge.frJ_of Checked.code62 Checked.core62 Checked.cert62 Checked.plumbEq62 Bridge.ProgAl.tab62 rfl Checked.fsEq62 Fn.«eq_prefix_run__L20».frOk
 
 theorem aok62 : Bridge.AllocJ 62 :=
   Bridge.allocJ_of Checked.code62 Checked.core62 Checked.cert62 Checked.plumbEq62 Bridge.ProgAl.tab62 rfl Checked.fsEq62
-    Fn.«eq_prefix_run__L22».allocShapeOk Fn.«eq_prefix_run__L22».curBodyOk Fn.«eq_prefix_run__L22».allocOk
+    Fn.«eq_prefix_run__L20».allocShapeOk Fn.«eq_prefix_run__L20».curBodyOk Fn.«eq_prefix_run__L20».allocOk
 
 theorem fok63 : Bridge.FrJ 63 :=
-  Bridge.frJ_of Checked.code63 Checked.core63 Checked.cert63 Checked.plumbEq63 Bridge.ProgAl.tab63 rfl Checked.fsEq63 Fn.«eq_prefix_run__L23».frOk
+  Bridge.frJ_of Checked.code63 Checked.core63 Checked.cert63 Checked.plumbEq63 Bridge.ProgAl.tab63 rfl Checked.fsEq63 Fn.«eq_prefix_run__L21».frOk
 
 theorem aok63 : Bridge.AllocJ 63 :=
   Bridge.allocJ_of Checked.code63 Checked.core63 Checked.cert63 Checked.plumbEq63 Bridge.ProgAl.tab63 rfl Checked.fsEq63
-    Fn.«eq_prefix_run__L23».allocShapeOk Fn.«eq_prefix_run__L23».curBodyOk Fn.«eq_prefix_run__L23».allocOk
+    Fn.«eq_prefix_run__L21».allocShapeOk Fn.«eq_prefix_run__L21».curBodyOk Fn.«eq_prefix_run__L21».allocOk
 
 theorem fok64 : Bridge.FrJ 64 :=
-  Bridge.frJ_of Checked.code64 Checked.core64 Checked.cert64 Checked.plumbEq64 Bridge.ProgAl.tab64 rfl Checked.fsEq64 Fn.«eq_prefix_run__L24».frOk
+  Bridge.frJ_of Checked.code64 Checked.core64 Checked.cert64 Checked.plumbEq64 Bridge.ProgAl.tab64 rfl Checked.fsEq64 Fn.«eq_prefix_run__L22».frOk
 
 theorem aok64 : Bridge.AllocJ 64 :=
   Bridge.allocJ_of Checked.code64 Checked.core64 Checked.cert64 Checked.plumbEq64 Bridge.ProgAl.tab64 rfl Checked.fsEq64
-    Fn.«eq_prefix_run__L24».allocShapeOk Fn.«eq_prefix_run__L24».curBodyOk Fn.«eq_prefix_run__L24».allocOk
+    Fn.«eq_prefix_run__L22».allocShapeOk Fn.«eq_prefix_run__L22».curBodyOk Fn.«eq_prefix_run__L22».allocOk
 
 theorem fok65 : Bridge.FrJ 65 :=
-  Bridge.frJ_of Checked.code65 Checked.core65 Checked.cert65 Checked.plumbEq65 Bridge.ProgAl.tab65 rfl Checked.fsEq65 Fn.«eq_prefix_run__L25».frOk
+  Bridge.frJ_of Checked.code65 Checked.core65 Checked.cert65 Checked.plumbEq65 Bridge.ProgAl.tab65 rfl Checked.fsEq65 Fn.«eq_prefix_run__L23».frOk
 
 theorem aok65 : Bridge.AllocJ 65 :=
   Bridge.allocJ_of Checked.code65 Checked.core65 Checked.cert65 Checked.plumbEq65 Bridge.ProgAl.tab65 rfl Checked.fsEq65
-    Fn.«eq_prefix_run__L25».allocShapeOk Fn.«eq_prefix_run__L25».curBodyOk Fn.«eq_prefix_run__L25».allocOk
+    Fn.«eq_prefix_run__L23».allocShapeOk Fn.«eq_prefix_run__L23».curBodyOk Fn.«eq_prefix_run__L23».allocOk
 
 theorem fok66 : Bridge.FrJ 66 :=
-  Bridge.frJ_of Checked.code66 Checked.core66 Checked.cert66 Checked.plumbEq66 Bridge.ProgAl.tab66 rfl Checked.fsEq66 Fn.«eq_prefix_run__L26».frOk
+  Bridge.frJ_of Checked.code66 Checked.core66 Checked.cert66 Checked.plumbEq66 Bridge.ProgAl.tab66 rfl Checked.fsEq66 Fn.«eq_prefix_run__L24».frOk
 
 theorem aok66 : Bridge.AllocJ 66 :=
   Bridge.allocJ_of Checked.code66 Checked.core66 Checked.cert66 Checked.plumbEq66 Bridge.ProgAl.tab66 rfl Checked.fsEq66
-    Fn.«eq_prefix_run__L26».allocShapeOk Fn.«eq_prefix_run__L26».curBodyOk Fn.«eq_prefix_run__L26».allocOk
+    Fn.«eq_prefix_run__L24».allocShapeOk Fn.«eq_prefix_run__L24».curBodyOk Fn.«eq_prefix_run__L24».allocOk
 
 theorem fok67 : Bridge.FrJ 67 :=
-  Bridge.frJ_of Checked.code67 Checked.core67 Checked.cert67 Checked.plumbEq67 Bridge.ProgAl.tab67 rfl Checked.fsEq67 Fn.«eq_prefix_run__L27».frOk
+  Bridge.frJ_of Checked.code67 Checked.core67 Checked.cert67 Checked.plumbEq67 Bridge.ProgAl.tab67 rfl Checked.fsEq67 Fn.«eq_prefix_run__L25».frOk
 
 theorem aok67 : Bridge.AllocJ 67 :=
   Bridge.allocJ_of Checked.code67 Checked.core67 Checked.cert67 Checked.plumbEq67 Bridge.ProgAl.tab67 rfl Checked.fsEq67
-    Fn.«eq_prefix_run__L27».allocShapeOk Fn.«eq_prefix_run__L27».curBodyOk Fn.«eq_prefix_run__L27».allocOk
+    Fn.«eq_prefix_run__L25».allocShapeOk Fn.«eq_prefix_run__L25».curBodyOk Fn.«eq_prefix_run__L25».allocOk
 
 theorem fok68 : Bridge.FrJ 68 :=
-  Bridge.frJ_of Checked.code68 Checked.core68 Checked.cert68 Checked.plumbEq68 Bridge.ProgAl.tab68 rfl Checked.fsEq68 Fn.«eq_prefix_run__L28».frOk
+  Bridge.frJ_of Checked.code68 Checked.core68 Checked.cert68 Checked.plumbEq68 Bridge.ProgAl.tab68 rfl Checked.fsEq68 Fn.«eq_prefix_run__L26».frOk
 
 theorem aok68 : Bridge.AllocJ 68 :=
   Bridge.allocJ_of Checked.code68 Checked.core68 Checked.cert68 Checked.plumbEq68 Bridge.ProgAl.tab68 rfl Checked.fsEq68
-    Fn.«eq_prefix_run__L28».allocShapeOk Fn.«eq_prefix_run__L28».curBodyOk Fn.«eq_prefix_run__L28».allocOk
+    Fn.«eq_prefix_run__L26».allocShapeOk Fn.«eq_prefix_run__L26».curBodyOk Fn.«eq_prefix_run__L26».allocOk
 
 theorem fok69 : Bridge.FrJ 69 :=
-  Bridge.frJ_of Checked.code69 Checked.core69 Checked.cert69 Checked.plumbEq69 Bridge.ProgAl.tab69 rfl Checked.fsEq69 Fn.«eq_prefix_run__L29».frOk
+  Bridge.frJ_of Checked.code69 Checked.core69 Checked.cert69 Checked.plumbEq69 Bridge.ProgAl.tab69 rfl Checked.fsEq69 Fn.«eq_prefix_run__L27».frOk
 
 theorem aok69 : Bridge.AllocJ 69 :=
   Bridge.allocJ_of Checked.code69 Checked.core69 Checked.cert69 Checked.plumbEq69 Bridge.ProgAl.tab69 rfl Checked.fsEq69
-    Fn.«eq_prefix_run__L29».allocShapeOk Fn.«eq_prefix_run__L29».curBodyOk Fn.«eq_prefix_run__L29».allocOk
+    Fn.«eq_prefix_run__L27».allocShapeOk Fn.«eq_prefix_run__L27».curBodyOk Fn.«eq_prefix_run__L27».allocOk
 
 theorem fok70 : Bridge.FrJ 70 :=
-  Bridge.frJ_of Checked.code70 Checked.core70 Checked.cert70 Checked.plumbEq70 Bridge.ProgAl.tab70 rfl Checked.fsEq70 Fn.«eq_prefix_run__L30».frOk
+  Bridge.frJ_of Checked.code70 Checked.core70 Checked.cert70 Checked.plumbEq70 Bridge.ProgAl.tab70 rfl Checked.fsEq70 Fn.«eq_prefix_run__L28».frOk
 
 theorem aok70 : Bridge.AllocJ 70 :=
   Bridge.allocJ_of Checked.code70 Checked.core70 Checked.cert70 Checked.plumbEq70 Bridge.ProgAl.tab70 rfl Checked.fsEq70
-    Fn.«eq_prefix_run__L30».allocShapeOk Fn.«eq_prefix_run__L30».curBodyOk Fn.«eq_prefix_run__L30».allocOk
+    Fn.«eq_prefix_run__L28».allocShapeOk Fn.«eq_prefix_run__L28».curBodyOk Fn.«eq_prefix_run__L28».allocOk
 
 theorem fok71 : Bridge.FrJ 71 :=
-  Bridge.frJ_of Checked.code71 Checked.core71 Checked.cert71 Checked.plumbEq71 Bridge.ProgAl.tab71 rfl Checked.fsEq71 Fn.«eq_prefix_run__L31».frOk
+  Bridge.frJ_of Checked.code71 Checked.core71 Checked.cert71 Checked.plumbEq71 Bridge.ProgAl.tab71 rfl Checked.fsEq71 Fn.«eq_prefix_run__L29».frOk
 
 theorem aok71 : Bridge.AllocJ 71 :=
   Bridge.allocJ_of Checked.code71 Checked.core71 Checked.cert71 Checked.plumbEq71 Bridge.ProgAl.tab71 rfl Checked.fsEq71
-    Fn.«eq_prefix_run__L31».allocShapeOk Fn.«eq_prefix_run__L31».curBodyOk Fn.«eq_prefix_run__L31».allocOk
+    Fn.«eq_prefix_run__L29».allocShapeOk Fn.«eq_prefix_run__L29».curBodyOk Fn.«eq_prefix_run__L29».allocOk
 
 theorem fok72 : Bridge.FrJ 72 :=
-  Bridge.frJ_of Checked.code72 Checked.core72 Checked.cert72 Checked.plumbEq72 Bridge.ProgAl.tab72 rfl Checked.fsEq72 Fn.«eq_prefix_run__L32».frOk
+  Bridge.frJ_of Checked.code72 Checked.core72 Checked.cert72 Checked.plumbEq72 Bridge.ProgAl.tab72 rfl Checked.fsEq72 Fn.«eq_prefix_run__L30».frOk
 
 theorem aok72 : Bridge.AllocJ 72 :=
   Bridge.allocJ_of Checked.code72 Checked.core72 Checked.cert72 Checked.plumbEq72 Bridge.ProgAl.tab72 rfl Checked.fsEq72
-    Fn.«eq_prefix_run__L32».allocShapeOk Fn.«eq_prefix_run__L32».curBodyOk Fn.«eq_prefix_run__L32».allocOk
+    Fn.«eq_prefix_run__L30».allocShapeOk Fn.«eq_prefix_run__L30».curBodyOk Fn.«eq_prefix_run__L30».allocOk
 
 theorem fok73 : Bridge.FrJ 73 :=
-  Bridge.frJ_of Checked.code73 Checked.core73 Checked.cert73 Checked.plumbEq73 Bridge.ProgAl.tab73 rfl Checked.fsEq73 Fn.«eq_prefix_run__L33».frOk
+  Bridge.frJ_of Checked.code73 Checked.core73 Checked.cert73 Checked.plumbEq73 Bridge.ProgAl.tab73 rfl Checked.fsEq73 Fn.«eq_prefix_run__L31».frOk
 
 theorem aok73 : Bridge.AllocJ 73 :=
   Bridge.allocJ_of Checked.code73 Checked.core73 Checked.cert73 Checked.plumbEq73 Bridge.ProgAl.tab73 rfl Checked.fsEq73
-    Fn.«eq_prefix_run__L33».allocShapeOk Fn.«eq_prefix_run__L33».curBodyOk Fn.«eq_prefix_run__L33».allocOk
+    Fn.«eq_prefix_run__L31».allocShapeOk Fn.«eq_prefix_run__L31».curBodyOk Fn.«eq_prefix_run__L31».allocOk
 
 theorem fok74 : Bridge.FrJ 74 :=
-  Bridge.frJ_of Checked.code74 Checked.core74 Checked.cert74 Checked.plumbEq74 Bridge.ProgAl.tab74 rfl Checked.fsEq74 Fn.«eq_prefix_run__L34».frOk
+  Bridge.frJ_of Checked.code74 Checked.core74 Checked.cert74 Checked.plumbEq74 Bridge.ProgAl.tab74 rfl Checked.fsEq74 Fn.«eq_prefix_run__L32».frOk
 
 theorem aok74 : Bridge.AllocJ 74 :=
   Bridge.allocJ_of Checked.code74 Checked.core74 Checked.cert74 Checked.plumbEq74 Bridge.ProgAl.tab74 rfl Checked.fsEq74
-    Fn.«eq_prefix_run__L34».allocShapeOk Fn.«eq_prefix_run__L34».curBodyOk Fn.«eq_prefix_run__L34».allocOk
+    Fn.«eq_prefix_run__L32».allocShapeOk Fn.«eq_prefix_run__L32».curBodyOk Fn.«eq_prefix_run__L32».allocOk
 
 theorem fok75 : Bridge.FrJ 75 :=
-  Bridge.frJ_of Checked.code75 Checked.core75 Checked.cert75 Checked.plumbEq75 Bridge.ProgAl.tab75 rfl Checked.fsEq75 Fn.«eq_prefix_run__L35».frOk
+  Bridge.frJ_of Checked.code75 Checked.core75 Checked.cert75 Checked.plumbEq75 Bridge.ProgAl.tab75 rfl Checked.fsEq75 Fn.«eq_prefix_run__L33».frOk
 
 theorem aok75 : Bridge.AllocJ 75 :=
   Bridge.allocJ_of Checked.code75 Checked.core75 Checked.cert75 Checked.plumbEq75 Bridge.ProgAl.tab75 rfl Checked.fsEq75
-    Fn.«eq_prefix_run__L35».allocShapeOk Fn.«eq_prefix_run__L35».curBodyOk Fn.«eq_prefix_run__L35».allocOk
+    Fn.«eq_prefix_run__L33».allocShapeOk Fn.«eq_prefix_run__L33».curBodyOk Fn.«eq_prefix_run__L33».allocOk
 
 theorem fok76 : Bridge.FrJ 76 :=
-  Bridge.frJ_of Checked.code76 Checked.core76 Checked.cert76 Checked.plumbEq76 Bridge.ProgAl.tab76 rfl Checked.fsEq76 Fn.«eq_prefix_run__L36».frOk
+  Bridge.frJ_of Checked.code76 Checked.core76 Checked.cert76 Checked.plumbEq76 Bridge.ProgAl.tab76 rfl Checked.fsEq76 Fn.«eq_prefix_run__L34».frOk
 
 theorem aok76 : Bridge.AllocJ 76 :=
   Bridge.allocJ_of Checked.code76 Checked.core76 Checked.cert76 Checked.plumbEq76 Bridge.ProgAl.tab76 rfl Checked.fsEq76
-    Fn.«eq_prefix_run__L36».allocShapeOk Fn.«eq_prefix_run__L36».curBodyOk Fn.«eq_prefix_run__L36».allocOk
+    Fn.«eq_prefix_run__L34».allocShapeOk Fn.«eq_prefix_run__L34».curBodyOk Fn.«eq_prefix_run__L34».allocOk
 
 theorem fok77 : Bridge.FrJ 77 :=
-  Bridge.frJ_of Checked.code77 Checked.core77 Checked.cert77 Checked.plumbEq77 Bridge.ProgAl.tab77 rfl Checked.fsEq77 Fn.«eq_prefix_run__L37».frOk
+  Bridge.frJ_of Checked.code77 Checked.core77 Checked.cert77 Checked.plumbEq77 Bridge.ProgAl.tab77 rfl Checked.fsEq77 Fn.«eq_prefix_run__L35».frOk
 
 theorem aok77 : Bridge.AllocJ 77 :=
   Bridge.allocJ_of Checked.code77 Checked.core77 Checked.cert77 Checked.plumbEq77 Bridge.ProgAl.tab77 rfl Checked.fsEq77
-    Fn.«eq_prefix_run__L37».allocShapeOk Fn.«eq_prefix_run__L37».curBodyOk Fn.«eq_prefix_run__L37».allocOk
+    Fn.«eq_prefix_run__L35».allocShapeOk Fn.«eq_prefix_run__L35».curBodyOk Fn.«eq_prefix_run__L35».allocOk
 
 theorem fok78 : Bridge.FrJ 78 :=
-  Bridge.frJ_of Checked.code78 Checked.core78 Checked.cert78 Checked.plumbEq78 Bridge.ProgAl.tab78 rfl Checked.fsEq78 Fn.«eq_prefix_run__L38».frOk
+  Bridge.frJ_of Checked.code78 Checked.core78 Checked.cert78 Checked.plumbEq78 Bridge.ProgAl.tab78 rfl Checked.fsEq78 Fn.«eq_prefix_run__L36».frOk
 
 theorem aok78 : Bridge.AllocJ 78 :=
   Bridge.allocJ_of Checked.code78 Checked.core78 Checked.cert78 Checked.plumbEq78 Bridge.ProgAl.tab78 rfl Checked.fsEq78
-    Fn.«eq_prefix_run__L38».allocShapeOk Fn.«eq_prefix_run__L38».curBodyOk Fn.«eq_prefix_run__L38».allocOk
+    Fn.«eq_prefix_run__L36».allocShapeOk Fn.«eq_prefix_run__L36».curBodyOk Fn.«eq_prefix_run__L36».allocOk
 
 theorem fok79 : Bridge.FrJ 79 :=
-  Bridge.frJ_of Checked.code79 Checked.core79 Checked.cert79 Checked.plumbEq79 Bridge.ProgAl.tab79 rfl Checked.fsEq79 Fn.«eq_prefix_run__L39».frOk
+  Bridge.frJ_of Checked.code79 Checked.core79 Checked.cert79 Checked.plumbEq79 Bridge.ProgAl.tab79 rfl Checked.fsEq79 Fn.«eq_prefix_run__L37».frOk
 
 theorem aok79 : Bridge.AllocJ 79 :=
   Bridge.allocJ_of Checked.code79 Checked.core79 Checked.cert79 Checked.plumbEq79 Bridge.ProgAl.tab79 rfl Checked.fsEq79
-    Fn.«eq_prefix_run__L39».allocShapeOk Fn.«eq_prefix_run__L39».curBodyOk Fn.«eq_prefix_run__L39».allocOk
+    Fn.«eq_prefix_run__L37».allocShapeOk Fn.«eq_prefix_run__L37».curBodyOk Fn.«eq_prefix_run__L37».allocOk
 
 theorem fok80 : Bridge.FrJ 80 :=
-  Bridge.frJ_of Checked.code80 Checked.core80 Checked.cert80 Checked.plumbEq80 Bridge.ProgAl.tab80 rfl Checked.fsEq80 Fn.«eq_prefix_run__L40».frOk
+  Bridge.frJ_of Checked.code80 Checked.core80 Checked.cert80 Checked.plumbEq80 Bridge.ProgAl.tab80 rfl Checked.fsEq80 Fn.«eq_prefix_run__L38».frOk
 
 theorem aok80 : Bridge.AllocJ 80 :=
   Bridge.allocJ_of Checked.code80 Checked.core80 Checked.cert80 Checked.plumbEq80 Bridge.ProgAl.tab80 rfl Checked.fsEq80
-    Fn.«eq_prefix_run__L40».allocShapeOk Fn.«eq_prefix_run__L40».curBodyOk Fn.«eq_prefix_run__L40».allocOk
+    Fn.«eq_prefix_run__L38».allocShapeOk Fn.«eq_prefix_run__L38».curBodyOk Fn.«eq_prefix_run__L38».allocOk
 
 theorem fok81 : Bridge.FrJ 81 :=
-  Bridge.frJ_of Checked.code81 Checked.core81 Checked.cert81 Checked.plumbEq81 Bridge.ProgAl.tab81 rfl Checked.fsEq81 Fn.«rs_eq_run_loop0».frOk
+  Bridge.frJ_of Checked.code81 Checked.core81 Checked.cert81 Checked.plumbEq81 Bridge.ProgAl.tab81 rfl Checked.fsEq81 Fn.«eq_prefix_run__L39».frOk
 
 theorem aok81 : Bridge.AllocJ 81 :=
   Bridge.allocJ_of Checked.code81 Checked.core81 Checked.cert81 Checked.plumbEq81 Bridge.ProgAl.tab81 rfl Checked.fsEq81
-    Fn.«rs_eq_run_loop0».allocShapeOk Fn.«rs_eq_run_loop0».curBodyOk Fn.«rs_eq_run_loop0».allocOk
+    Fn.«eq_prefix_run__L39».allocShapeOk Fn.«eq_prefix_run__L39».curBodyOk Fn.«eq_prefix_run__L39».allocOk
 
 theorem fok82 : Bridge.FrJ 82 :=
-  Bridge.frJ_of Checked.code82 Checked.core82 Checked.cert82 Checked.plumbEq82 Bridge.ProgAl.tab82 rfl Checked.fsEq82 Fn.«rs_eq_rows__L0».frOk
+  Bridge.frJ_of Checked.code82 Checked.core82 Checked.cert82 Checked.plumbEq82 Bridge.ProgAl.tab82 rfl Checked.fsEq82 Fn.«eq_prefix_run__L40».frOk
 
 theorem aok82 : Bridge.AllocJ 82 :=
   Bridge.allocJ_of Checked.code82 Checked.core82 Checked.cert82 Checked.plumbEq82 Bridge.ProgAl.tab82 rfl Checked.fsEq82
-    Fn.«rs_eq_rows__L0».allocShapeOk Fn.«rs_eq_rows__L0».curBodyOk Fn.«rs_eq_rows__L0».allocOk
+    Fn.«eq_prefix_run__L40».allocShapeOk Fn.«eq_prefix_run__L40».curBodyOk Fn.«eq_prefix_run__L40».allocOk
 
 theorem fok83 : Bridge.FrJ 83 :=
-  Bridge.frJ_of Checked.code83 Checked.core83 Checked.cert83 Checked.plumbEq83 Bridge.ProgAl.tab83 rfl Checked.fsEq83 Fn.«rs_eq_rows__L1».frOk
+  Bridge.frJ_of Checked.code83 Checked.core83 Checked.cert83 Checked.plumbEq83 Bridge.ProgAl.tab83 rfl Checked.fsEq83 Fn.«rs_eq_run_loop0».frOk
 
 theorem aok83 : Bridge.AllocJ 83 :=
   Bridge.allocJ_of Checked.code83 Checked.core83 Checked.cert83 Checked.plumbEq83 Bridge.ProgAl.tab83 rfl Checked.fsEq83
-    Fn.«rs_eq_rows__L1».allocShapeOk Fn.«rs_eq_rows__L1».curBodyOk Fn.«rs_eq_rows__L1».allocOk
+    Fn.«rs_eq_run_loop0».allocShapeOk Fn.«rs_eq_run_loop0».curBodyOk Fn.«rs_eq_run_loop0».allocOk
 
 theorem fok84 : Bridge.FrJ 84 :=
-  Bridge.frJ_of Checked.code84 Checked.core84 Checked.cert84 Checked.plumbEq84 Bridge.ProgAl.tab84 rfl Checked.fsEq84 Fn.«rs_eq_rows__L2».frOk
+  Bridge.frJ_of Checked.code84 Checked.core84 Checked.cert84 Checked.plumbEq84 Bridge.ProgAl.tab84 rfl Checked.fsEq84 Fn.«rs_eq_rows__L0».frOk
 
 theorem aok84 : Bridge.AllocJ 84 :=
   Bridge.allocJ_of Checked.code84 Checked.core84 Checked.cert84 Checked.plumbEq84 Bridge.ProgAl.tab84 rfl Checked.fsEq84
-    Fn.«rs_eq_rows__L2».allocShapeOk Fn.«rs_eq_rows__L2».curBodyOk Fn.«rs_eq_rows__L2».allocOk
+    Fn.«rs_eq_rows__L0».allocShapeOk Fn.«rs_eq_rows__L0».curBodyOk Fn.«rs_eq_rows__L0».allocOk
 
 theorem fok85 : Bridge.FrJ 85 :=
-  Bridge.frJ_of Checked.code85 Checked.core85 Checked.cert85 Checked.plumbEq85 Bridge.ProgAl.tab85 rfl Checked.fsEq85 Fn.«rs_eq_rows__L3».frOk
+  Bridge.frJ_of Checked.code85 Checked.core85 Checked.cert85 Checked.plumbEq85 Bridge.ProgAl.tab85 rfl Checked.fsEq85 Fn.«rs_eq_rows__L1».frOk
 
 theorem aok85 : Bridge.AllocJ 85 :=
   Bridge.allocJ_of Checked.code85 Checked.core85 Checked.cert85 Checked.plumbEq85 Bridge.ProgAl.tab85 rfl Checked.fsEq85
-    Fn.«rs_eq_rows__L3».allocShapeOk Fn.«rs_eq_rows__L3».curBodyOk Fn.«rs_eq_rows__L3».allocOk
+    Fn.«rs_eq_rows__L1».allocShapeOk Fn.«rs_eq_rows__L1».curBodyOk Fn.«rs_eq_rows__L1».allocOk
 
 theorem fok86 : Bridge.FrJ 86 :=
-  Bridge.frJ_of Checked.code86 Checked.core86 Checked.cert86 Checked.plumbEq86 Bridge.ProgAl.tab86 rfl Checked.fsEq86 Fn.«rs_eq_rows__L4».frOk
+  Bridge.frJ_of Checked.code86 Checked.core86 Checked.cert86 Checked.plumbEq86 Bridge.ProgAl.tab86 rfl Checked.fsEq86 Fn.«rs_eq_rows__L2».frOk
 
 theorem aok86 : Bridge.AllocJ 86 :=
   Bridge.allocJ_of Checked.code86 Checked.core86 Checked.cert86 Checked.plumbEq86 Bridge.ProgAl.tab86 rfl Checked.fsEq86
-    Fn.«rs_eq_rows__L4».allocShapeOk Fn.«rs_eq_rows__L4».curBodyOk Fn.«rs_eq_rows__L4».allocOk
+    Fn.«rs_eq_rows__L2».allocShapeOk Fn.«rs_eq_rows__L2».curBodyOk Fn.«rs_eq_rows__L2».allocOk
 
 theorem fok87 : Bridge.FrJ 87 :=
-  Bridge.frJ_of Checked.code87 Checked.core87 Checked.cert87 Checked.plumbEq87 Bridge.ProgAl.tab87 rfl Checked.fsEq87 Fn.«rs_eq_rows__L5».frOk
+  Bridge.frJ_of Checked.code87 Checked.core87 Checked.cert87 Checked.plumbEq87 Bridge.ProgAl.tab87 rfl Checked.fsEq87 Fn.«rs_eq_rows__L3».frOk
 
 theorem aok87 : Bridge.AllocJ 87 :=
   Bridge.allocJ_of Checked.code87 Checked.core87 Checked.cert87 Checked.plumbEq87 Bridge.ProgAl.tab87 rfl Checked.fsEq87
-    Fn.«rs_eq_rows__L5».allocShapeOk Fn.«rs_eq_rows__L5».curBodyOk Fn.«rs_eq_rows__L5».allocOk
+    Fn.«rs_eq_rows__L3».allocShapeOk Fn.«rs_eq_rows__L3».curBodyOk Fn.«rs_eq_rows__L3».allocOk
 
 theorem fok88 : Bridge.FrJ 88 :=
-  Bridge.frJ_of Checked.code88 Checked.core88 Checked.cert88 Checked.plumbEq88 Bridge.ProgAl.tab88 rfl Checked.fsEq88 Fn.«rs_eq_rows__L6».frOk
+  Bridge.frJ_of Checked.code88 Checked.core88 Checked.cert88 Checked.plumbEq88 Bridge.ProgAl.tab88 rfl Checked.fsEq88 Fn.«rs_eq_rows__L4».frOk
 
 theorem aok88 : Bridge.AllocJ 88 :=
   Bridge.allocJ_of Checked.code88 Checked.core88 Checked.cert88 Checked.plumbEq88 Bridge.ProgAl.tab88 rfl Checked.fsEq88
-    Fn.«rs_eq_rows__L6».allocShapeOk Fn.«rs_eq_rows__L6».curBodyOk Fn.«rs_eq_rows__L6».allocOk
+    Fn.«rs_eq_rows__L4».allocShapeOk Fn.«rs_eq_rows__L4».curBodyOk Fn.«rs_eq_rows__L4».allocOk
 
 theorem fok89 : Bridge.FrJ 89 :=
-  Bridge.frJ_of Checked.code89 Checked.core89 Checked.cert89 Checked.plumbEq89 Bridge.ProgAl.tab89 rfl Checked.fsEq89 Fn.«rs_eq_rows__L7».frOk
+  Bridge.frJ_of Checked.code89 Checked.core89 Checked.cert89 Checked.plumbEq89 Bridge.ProgAl.tab89 rfl Checked.fsEq89 Fn.«rs_eq_rows__L5».frOk
 
 theorem aok89 : Bridge.AllocJ 89 :=
   Bridge.allocJ_of Checked.code89 Checked.core89 Checked.cert89 Checked.plumbEq89 Bridge.ProgAl.tab89 rfl Checked.fsEq89
-    Fn.«rs_eq_rows__L7».allocShapeOk Fn.«rs_eq_rows__L7».curBodyOk Fn.«rs_eq_rows__L7».allocOk
+    Fn.«rs_eq_rows__L5».allocShapeOk Fn.«rs_eq_rows__L5».curBodyOk Fn.«rs_eq_rows__L5».allocOk
 
 theorem fok90 : Bridge.FrJ 90 :=
-  Bridge.frJ_of Checked.code90 Checked.core90 Checked.cert90 Checked.plumbEq90 Bridge.ProgAl.tab90 rfl Checked.fsEq90 Fn.«grind_check__L7».frOk
+  Bridge.frJ_of Checked.code90 Checked.core90 Checked.cert90 Checked.plumbEq90 Bridge.ProgAl.tab90 rfl Checked.fsEq90 Fn.«rs_eq_rows__L6».frOk
 
 theorem aok90 : Bridge.AllocJ 90 :=
   Bridge.allocJ_of Checked.code90 Checked.core90 Checked.cert90 Checked.plumbEq90 Bridge.ProgAl.tab90 rfl Checked.fsEq90
-    Fn.«grind_check__L7».allocShapeOk Fn.«grind_check__L7».curBodyOk Fn.«grind_check__L7».allocOk
+    Fn.«rs_eq_rows__L6».allocShapeOk Fn.«rs_eq_rows__L6».curBodyOk Fn.«rs_eq_rows__L6».allocOk
 
 theorem fok91 : Bridge.FrJ 91 :=
-  Bridge.frJ_of Checked.code91 Checked.core91 Checked.cert91 Checked.plumbEq91 Bridge.ProgAl.tab91 rfl Checked.fsEq91 Fn.«verify_bus_gkr_loop0».frOk
+  Bridge.frJ_of Checked.code91 Checked.core91 Checked.cert91 Checked.plumbEq91 Bridge.ProgAl.tab91 rfl Checked.fsEq91 Fn.«rs_eq_rows__L7».frOk
 
 theorem aok91 : Bridge.AllocJ 91 :=
   Bridge.allocJ_of Checked.code91 Checked.core91 Checked.cert91 Checked.plumbEq91 Bridge.ProgAl.tab91 rfl Checked.fsEq91
-    Fn.«verify_bus_gkr_loop0».allocShapeOk Fn.«verify_bus_gkr_loop0».curBodyOk Fn.«verify_bus_gkr_loop0».allocOk
+    Fn.«rs_eq_rows__L7».allocShapeOk Fn.«rs_eq_rows__L7».curBodyOk Fn.«rs_eq_rows__L7».allocOk
 
 theorem fok92 : Bridge.FrJ 92 :=
-  Bridge.frJ_of Checked.code92 Checked.core92 Checked.cert92 Checked.plumbEq92 Bridge.ProgAl.tab92 rfl Checked.fsEq92 Fn.«verify_bus_gkr_loop1».frOk
+  Bridge.frJ_of Checked.code92 Checked.core92 Checked.cert92 Checked.plumbEq92 Bridge.ProgAl.tab92 rfl Checked.fsEq92 Fn.«grind_check__L7».frOk
 
 theorem aok92 : Bridge.AllocJ 92 :=
   Bridge.allocJ_of Checked.code92 Checked.core92 Checked.cert92 Checked.plumbEq92 Bridge.ProgAl.tab92 rfl Checked.fsEq92
-    Fn.«verify_bus_gkr_loop1».allocShapeOk Fn.«verify_bus_gkr_loop1».curBodyOk Fn.«verify_bus_gkr_loop1».allocOk
+    Fn.«grind_check__L7».allocShapeOk Fn.«grind_check__L7».curBodyOk Fn.«grind_check__L7».allocOk
 
 theorem fok93 : Bridge.FrJ 93 :=
-  Bridge.frJ_of Checked.code93 Checked.core93 Checked.cert93 Checked.plumbEq93 Bridge.ProgAl.tab93 rfl Checked.fsEq93 Fn.«shared_selector_tables_loop0».frOk
+  Bridge.frJ_of Checked.code93 Checked.core93 Checked.cert93 Checked.plumbEq93 Bridge.ProgAl.tab93 rfl Checked.fsEq93 Fn.«verify_bus_gkr_loop0».frOk
 
 theorem aok93 : Bridge.AllocJ 93 :=
   Bridge.allocJ_of Checked.code93 Checked.core93 Checked.cert93 Checked.plumbEq93 Bridge.ProgAl.tab93 rfl Checked.fsEq93
-    Fn.«shared_selector_tables_loop0».allocShapeOk Fn.«shared_selector_tables_loop0».curBodyOk Fn.«shared_selector_tables_loop0».allocOk
+    Fn.«verify_bus_gkr_loop0».allocShapeOk Fn.«verify_bus_gkr_loop0».curBodyOk Fn.«verify_bus_gkr_loop0».allocOk
 
 theorem fok94 : Bridge.FrJ 94 :=
-  Bridge.frJ_of Checked.code94 Checked.core94 Checked.cert94 Checked.plumbEq94 Bridge.ProgAl.tab94 rfl Checked.fsEq94 Fn.«sel_partial_nibble__L0».frOk
+  Bridge.frJ_of Checked.code94 Checked.core94 Checked.cert94 Checked.plumbEq94 Bridge.ProgAl.tab94 rfl Checked.fsEq94 Fn.«verify_bus_gkr_loop1».frOk
 
 theorem aok94 : Bridge.AllocJ 94 :=
   Bridge.allocJ_of Checked.code94 Checked.core94 Checked.cert94 Checked.plumbEq94 Bridge.ProgAl.tab94 rfl Checked.fsEq94
-    Fn.«sel_partial_nibble__L0».allocShapeOk Fn.«sel_partial_nibble__L0».curBodyOk Fn.«sel_partial_nibble__L0».allocOk
+    Fn.«verify_bus_gkr_loop1».allocShapeOk Fn.«verify_bus_gkr_loop1».curBodyOk Fn.«verify_bus_gkr_loop1».allocOk
 
 theorem fok95 : Bridge.FrJ 95 :=
-  Bridge.frJ_of Checked.code95 Checked.core95 Checked.cert95 Checked.plumbEq95 Bridge.ProgAl.tab95 rfl Checked.fsEq95 Fn.«sel_partial_nibble__L1».frOk
+  Bridge.frJ_of Checked.code95 Checked.core95 Checked.cert95 Checked.plumbEq95 Bridge.ProgAl.tab95 rfl Checked.fsEq95 Fn.«shared_selector_tables_loop0».frOk
 
 theorem aok95 : Bridge.AllocJ 95 :=
   Bridge.allocJ_of Checked.code95 Checked.core95 Checked.cert95 Checked.plumbEq95 Bridge.ProgAl.tab95 rfl Checked.fsEq95
-    Fn.«sel_partial_nibble__L1».allocShapeOk Fn.«sel_partial_nibble__L1».curBodyOk Fn.«sel_partial_nibble__L1».allocOk
+    Fn.«shared_selector_tables_loop0».allocShapeOk Fn.«shared_selector_tables_loop0».curBodyOk Fn.«shared_selector_tables_loop0».allocOk
 
 theorem fok96 : Bridge.FrJ 96 :=
-  Bridge.frJ_of Checked.code96 Checked.core96 Checked.cert96 Checked.plumbEq96 Bridge.ProgAl.tab96 rfl Checked.fsEq96 Fn.«sel_partial_nibble__L2».frOk
+  Bridge.frJ_of Checked.code96 Checked.core96 Checked.cert96 Checked.plumbEq96 Bridge.ProgAl.tab96 rfl Checked.fsEq96 Fn.«sel_partial_nibble__L0».frOk
 
 theorem aok96 : Bridge.AllocJ 96 :=
   Bridge.allocJ_of Checked.code96 Checked.core96 Checked.cert96 Checked.plumbEq96 Bridge.ProgAl.tab96 rfl Checked.fsEq96
-    Fn.«sel_partial_nibble__L2».allocShapeOk Fn.«sel_partial_nibble__L2».curBodyOk Fn.«sel_partial_nibble__L2».allocOk
+    Fn.«sel_partial_nibble__L0».allocShapeOk Fn.«sel_partial_nibble__L0».curBodyOk Fn.«sel_partial_nibble__L0».allocOk
 
 theorem fok97 : Bridge.FrJ 97 :=
-  Bridge.frJ_of Checked.code97 Checked.core97 Checked.cert97 Checked.plumbEq97 Bridge.ProgAl.tab97 rfl Checked.fsEq97 Fn.«sel_partial_nibble__L3».frOk
+  Bridge.frJ_of Checked.code97 Checked.core97 Checked.cert97 Checked.plumbEq97 Bridge.ProgAl.tab97 rfl Checked.fsEq97 Fn.«sel_partial_nibble__L1».frOk
 
 theorem aok97 : Bridge.AllocJ 97 :=
   Bridge.allocJ_of Checked.code97 Checked.core97 Checked.cert97 Checked.plumbEq97 Bridge.ProgAl.tab97 rfl Checked.fsEq97
-    Fn.«sel_partial_nibble__L3».allocShapeOk Fn.«sel_partial_nibble__L3».curBodyOk Fn.«sel_partial_nibble__L3».allocOk
+    Fn.«sel_partial_nibble__L1».allocShapeOk Fn.«sel_partial_nibble__L1».curBodyOk Fn.«sel_partial_nibble__L1».allocOk
 
 theorem fok98 : Bridge.FrJ 98 :=
-  Bridge.frJ_of Checked.code98 Checked.core98 Checked.cert98 Checked.plumbEq98 Bridge.ProgAl.tab98 rfl Checked.fsEq98 Fn.«padding_weight__L0».frOk
+  Bridge.frJ_of Checked.code98 Checked.core98 Checked.cert98 Checked.plumbEq98 Bridge.ProgAl.tab98 rfl Checked.fsEq98 Fn.«sel_partial_nibble__L2».frOk
 
 theorem aok98 : Bridge.AllocJ 98 :=
   Bridge.allocJ_of Checked.code98 Checked.core98 Checked.cert98 Checked.plumbEq98 Bridge.ProgAl.tab98 rfl Checked.fsEq98
-    Fn.«padding_weight__L0».allocShapeOk Fn.«padding_weight__L0».curBodyOk Fn.«padding_weight__L0».allocOk
+    Fn.«sel_partial_nibble__L2».allocShapeOk Fn.«sel_partial_nibble__L2».curBodyOk Fn.«sel_partial_nibble__L2».allocOk
 
 theorem fok99 : Bridge.FrJ 99 :=
-  Bridge.frJ_of Checked.code99 Checked.core99 Checked.cert99 Checked.plumbEq99 Bridge.ProgAl.tab99 rfl Checked.fsEq99 Fn.«padding_weight__L1».frOk
+  Bridge.frJ_of Checked.code99 Checked.core99 Checked.cert99 Checked.plumbEq99 Bridge.ProgAl.tab99 rfl Checked.fsEq99 Fn.«sel_partial_nibble__L3».frOk
 
 theorem aok99 : Bridge.AllocJ 99 :=
   Bridge.allocJ_of Checked.code99 Checked.core99 Checked.cert99 Checked.plumbEq99 Bridge.ProgAl.tab99 rfl Checked.fsEq99
-    Fn.«padding_weight__L1».allocShapeOk Fn.«padding_weight__L1».curBodyOk Fn.«padding_weight__L1».allocOk
+    Fn.«sel_partial_nibble__L3».allocShapeOk Fn.«sel_partial_nibble__L3».curBodyOk Fn.«sel_partial_nibble__L3».allocOk
 
 theorem fok100 : Bridge.FrJ 100 :=
-  Bridge.frJ_of Checked.code100 Checked.core100 Checked.cert100 Checked.plumbEq100 Bridge.ProgAl.tab100 rfl Checked.fsEq100 Fn.«padding_weight__L2».frOk
+  Bridge.frJ_of Checked.code100 Checked.core100 Checked.cert100 Checked.plumbEq100 Bridge.ProgAl.tab100 rfl Checked.fsEq100 Fn.«padding_weight__L0».frOk
 
 theorem aok100 : Bridge.AllocJ 100 :=
   Bridge.allocJ_of Checked.code100 Checked.core100 Checked.cert100 Checked.plumbEq100 Bridge.ProgAl.tab100 rfl Checked.fsEq100
-    Fn.«padding_weight__L2».allocShapeOk Fn.«padding_weight__L2».curBodyOk Fn.«padding_weight__L2».allocOk
+    Fn.«padding_weight__L0».allocShapeOk Fn.«padding_weight__L0».curBodyOk Fn.«padding_weight__L0».allocOk
 
 end
 

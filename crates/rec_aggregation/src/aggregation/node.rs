@@ -314,8 +314,8 @@ pub fn aggregate_with_stats(
         // Padding rows are constants the guest bakes, so only the real rows'
         // symbols ride the stream.
         let (c, m) = (CELL_SYMBOLS, CODEWORD_SYMBOLS);
-        for j in 0..CELLS_PER_ROW {
-            for i in 0..n_rows {
+        for i in 0..n_rows {
+            for j in 0..CELLS_PER_ROW {
                 hints.push(
                     "da_symbols",
                     witness.codewords[i * m + j * c..i * m + (j + 1) * c]
@@ -358,8 +358,8 @@ pub fn aggregate_with_stats(
 /// order it pops them: `main`'s two coverage tables (each scheme's declared claims and duplicates,
 /// four cells a slot), `da_digests`, `child_pi`, `child_fresh`, `child_carried` and `written`;
 /// each claim list's chain (`claim_list_digest`), `None` for an empty list, whose branch allocates
-/// none; with blobs, their regions and the roots over the padded rows (`da_verify`'s `blobs`,
-/// `roots`). A child's follow in [`gen_verify`].
+/// none; with blobs, the roots over the padded rows (`da_verify`'s `roots`). A child's follow in
+/// [`gen_verify`].
 fn heap_sizes(lists: [(usize, usize); 2], children: usize, blob_rows: Option<usize>) -> Vec<Option<usize>> {
     let defer = bytecode_vars() + 1;
     let main = [
@@ -376,9 +376,8 @@ fn heap_sizes(lists: [(usize, usize); 2], children: usize, blob_rows: Option<usi
     (main.map(Some).into_iter()).chain(chains).chain(da.map(Some)).collect()
 }
 
-/// `da_verify`'s `HeapBuf` sizes taken as advice, for `rows` blobs: their regions, each a tree of
-/// `4 * CELLS_PER_ROW` cells and a running sum (the guest's `DA_REGION`), and the tree over the
-/// padded rows' roots, two cells a node.
-pub(super) fn da_heap_sizes(rows: usize) -> [usize; 2] {
-    [rows * (5 * CELLS_PER_ROW + 1), 4 * rows.next_power_of_two()]
+/// `da_verify`'s `HeapBuf` size taken as advice, for `rows` blobs: the tree over the padded rows'
+/// roots, two cells a node.
+pub(super) fn da_heap_sizes(rows: usize) -> [usize; 1] {
+    [4 * rows.next_power_of_two()]
 }

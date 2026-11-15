@@ -38,20 +38,19 @@ import LeanVM.Guest.Pack.«P16».Shared0
 import LeanVM.Guest.Pack.«P34».Shared0
 import LeanVM.Guest.Pack.«P63».Shared0
 import LeanVM.Guest.Pack.«P54».Shared0
-import LeanVM.Guest.Pack.«P49».Shared0
+import LeanVM.Guest.Pack.«P12».Shared0
+import LeanVM.Guest.Pack.«P20».Shared0
 import LeanVM.Guest.Pack.«P7».SharedOk
 import LeanVM.Guest.Pack.«P24».Shared0
 import LeanVM.Guest.Pack.«P4».Shared0
 import LeanVM.Guest.Pack.«P17».SharedOk
 import LeanVM.Guest.Pack.«P62».Shared0
-import LeanVM.Guest.Pack.«P20».Shared0
 import LeanVM.Guest.Pack.«P39».Shared0
 import LeanVM.Guest.Pack.«P58».Shared0
 import LeanVM.Guest.Pack.«P13».Shared0
 import LeanVM.Guest.Pack.«P46».Shared0
 import LeanVM.Guest.Pack.«P1».Shared0
 import LeanVM.Guest.Pack.«P60».Shared0
-import LeanVM.Guest.Pack.«P15».Shared0
 
 namespace LeanVM.Guest.B2C.Shared
 
@@ -144,67 +143,67 @@ theorem ok28 : ShareOk 28 :=
   shareOk_of_link link28 plumbEq28 fsEq28 snapsEq28 rfl (fun h ↦ nomatch h) Fn.«da_verify».shareOk
 
 theorem ok29 : ShareOk 29 :=
-  shareOk_of_link link29 plumbEq29 fsEq29 snapsEq29 rfl (fun h ↦ nomatch h) Fn.«da_row_shape».shareOk
+  shareOk_of_link link29 plumbEq29 fsEq29 snapsEq29 rfl (fun h ↦ nomatch h) Fn.«da_weights».shareOk
 
 theorem ok30 : ShareOk 30 :=
-  shareOk_of_link link30 plumbEq30 fsEq30 snapsEq30 rfl (fun h ↦ nomatch h) Fn.«da_verify_column».shareOk
+  shareOk_of_link link30 plumbEq30 fsEq30 snapsEq30 rfl (fun h ↦ nomatch h) Fn.«da_pad».shareOk
 
 theorem ok31 : ShareOk 31 :=
-  shareOk_of_link link31 plumbEq31 fsEq31 snapsEq31 rfl (fun h ↦ nomatch h) Fn.«da_verify_cell».shareOk
+  shareOk_of_link link31 plumbEq31 fsEq31 snapsEq31 rfl (fun h ↦ nomatch h) Fn.«da_row_shape».shareOk
 
 theorem ok32 : ShareOk 32 :=
-  shareOk_of_link link32 plumbEq32 fsEq32 snapsEq32 rfl (fun h ↦ nomatch h) Fn.«da_vector».shareOk
+  shareOk_of_link link32 plumbEq32 fsEq32 snapsEq32 rfl (fun h ↦ nomatch h) Fn.«da_verify_blob».shareOk
 
 theorem ok33 : ShareOk 33 :=
-  shareOk_of_link link33 plumbEq33 fsEq33 snapsEq33 rfl (fun h ↦ nomatch h) Fn.«da_column_offsets».shareOk
+  shareOk_of_link link33 plumbEq33 fsEq33 snapsEq33 rfl (fun h ↦ nomatch h) Fn.«da_verify_cell».shareOk
 
 theorem ok34 : ShareOk 34 :=
-  shareOk_of_link link34 plumbEq34 fsEq34 snapsEq34 rfl (fun h ↦ nomatch h) Fn.«aggregate_claims».shareOk
+  shareOk_of_link link34 plumbEq34 fsEq34 snapsEq34 rfl (fun h ↦ nomatch h) Fn.«da_vector».shareOk
 
 theorem ok35 : ShareOk 35 :=
-  shareOk_of_link link35 plumbEq35 fsEq35 snapsEq35 rfl (fun h ↦ nomatch h) Fn.«main_loop0».shareOk
+  shareOk_of_link link35 plumbEq35 fsEq35 snapsEq35 rfl (fun h ↦ nomatch h) Fn.«da_column_offsets».shareOk
 
 theorem ok36 : ShareOk 36 :=
-  shareOk_of_link link36 plumbEq36 fsEq36 snapsEq36 rfl (fun h ↦ nomatch h) Fn.«main_loop1».shareOk
+  shareOk_of_link link36 plumbEq36 fsEq36 snapsEq36 rfl (fun h ↦ nomatch h) Fn.«aggregate_claims».shareOk
+
+theorem ok37 : ShareOk 37 :=
+  shareOk_of_link link37 plumbEq37 fsEq37 snapsEq37 rfl (fun h ↦ nomatch h) Fn.«main_loop0».shareOk
 
 theorem ok38 : ShareOk 38 :=
-  shareOk_of_link link38 plumbEq38 fsEq38 snapsEq38 rfl (fun h ↦ nomatch h) Fn.«main_loop3».shareOk
-
-theorem ok39 : ShareOk 39 :=
-  shareOk_of_link link39 plumbEq39 fsEq39 snapsEq39 rfl (fun h ↦ nomatch h) Fn.«main_loop4».shareOk
+  shareOk_of_link link38 plumbEq38 fsEq38 snapsEq38 rfl (fun h ↦ nomatch h) Fn.«main_loop1».shareOk
 
 theorem ok40 : ShareOk 40 :=
-  shareOk_of_link link40 plumbEq40 fsEq40 snapsEq40 rfl (fun h ↦ nomatch h) Fn.«eq_prefix_run__L0».shareOk
+  shareOk_of_link link40 plumbEq40 fsEq40 snapsEq40 rfl (fun h ↦ nomatch h) Fn.«main_loop3».shareOk
 
 theorem ok41 : ShareOk 41 :=
-  shareOk_of_link link41 plumbEq41 fsEq41 snapsEq41 rfl (fun h ↦ nomatch h) Fn.«eq_prefix_run__L1».shareOk
+  shareOk_of_link link41 plumbEq41 fsEq41 snapsEq41 rfl (fun h ↦ nomatch h) Fn.«main_loop4».shareOk
 
 theorem ok42 : ShareOk 42 :=
-  shareOk_of_link link42 plumbEq42 fsEq42 snapsEq42 rfl (fun h ↦ nomatch h) Fn.«eq_prefix_run__L2».shareOk
+  shareOk_of_link link42 plumbEq42 fsEq42 snapsEq42 rfl (fun h ↦ nomatch h) Fn.«eq_prefix_run__L0».shareOk
 
 theorem ok43 : ShareOk 43 :=
-  shareOk_of_link link43 plumbEq43 fsEq43 snapsEq43 rfl (fun h ↦ nomatch h) Fn.«eq_prefix_run__L3».shareOk
+  shareOk_of_link link43 plumbEq43 fsEq43 snapsEq43 rfl (fun h ↦ nomatch h) Fn.«eq_prefix_run__L1».shareOk
 
 theorem ok44 : ShareOk 44 :=
-  shareOk_of_link link44 plumbEq44 fsEq44 snapsEq44 rfl (fun h ↦ nomatch h) Fn.«eq_prefix_run__L4».shareOk
+  shareOk_of_link link44 plumbEq44 fsEq44 snapsEq44 rfl (fun h ↦ nomatch h) Fn.«eq_prefix_run__L2».shareOk
 
 theorem ok45 : ShareOk 45 :=
-  shareOk_of_link link45 plumbEq45 fsEq45 snapsEq45 rfl (fun h ↦ nomatch h) Fn.«eq_prefix_run__L5».shareOk
+  shareOk_of_link link45 plumbEq45 fsEq45 snapsEq45 rfl (fun h ↦ nomatch h) Fn.«eq_prefix_run__L3».shareOk
 
 theorem ok46 : ShareOk 46 :=
-  shareOk_of_link link46 plumbEq46 fsEq46 snapsEq46 rfl (fun h ↦ nomatch h) Fn.«eq_prefix_run__L6».shareOk
+  shareOk_of_link link46 plumbEq46 fsEq46 snapsEq46 rfl (fun h ↦ nomatch h) Fn.«eq_prefix_run__L4».shareOk
 
 theorem ok47 : ShareOk 47 :=
-  shareOk_of_link link47 plumbEq47 fsEq47 snapsEq47 rfl (fun h ↦ nomatch h) Fn.«eq_prefix_run__L7».shareOk
+  shareOk_of_link link47 plumbEq47 fsEq47 snapsEq47 rfl (fun h ↦ nomatch h) Fn.«eq_prefix_run__L5».shareOk
 
 theorem ok48 : ShareOk 48 :=
-  shareOk_of_link link48 plumbEq48 fsEq48 snapsEq48 rfl (fun h ↦ nomatch h) Fn.«eq_prefix_run__L8».shareOk
+  shareOk_of_link link48 plumbEq48 fsEq48 snapsEq48 rfl (fun h ↦ nomatch h) Fn.«eq_prefix_run__L6».shareOk
 
 theorem ok49 : ShareOk 49 :=
-  shareOk_of_link link49 plumbEq49 fsEq49 snapsEq49 rfl (fun h ↦ nomatch h) Fn.«eq_prefix_run__L9».shareOk
+  shareOk_of_link link49 plumbEq49 fsEq49 snapsEq49 rfl (fun h ↦ nomatch h) Fn.«eq_prefix_run__L7».shareOk
 
 theorem ok50 : ShareOk 50 :=
-  shareOk_of_link link50 plumbEq50 fsEq50 snapsEq50 rfl (fun h ↦ nomatch h) Fn.«eq_prefix_run__L10».shareOk
+  shareOk_of_link link50 plumbEq50 fsEq50 snapsEq50 rfl (fun h ↦ nomatch h) Fn.«eq_prefix_run__L8».shareOk
 
 end
 end LeanVM.Guest.B2C.Shared

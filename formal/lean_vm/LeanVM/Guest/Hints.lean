@@ -297,19 +297,19 @@ def sphincsHints (pk : Sphincs.PublicKey) (message : HashSig.Message) (σ : Sphi
 /-! ## LeanDA -/
 
 /-- A blob matrix's hints: the claim's membership challenge, the row count and its padded log, and
-every row's cells, column by column (`aggregation/node.rs:292-317`). The Rust pushes the root's
+every row's cells, row by row (`aggregation/node.rs:292-317`). The Rust pushes the root's
 challenge (`membership_challenge`, `crates/verifier/src/da.rs:14-17`), the claim's on an honest
 node. -/
 def daHints (c : DaClaim) (w : Da.MatrixWitness) : List (String × Entry) :=
   [("da_challenge", [c.membershipChallenge]),
     ("da_shape", [count w.rows.length, count (LeanDa.logPaddedRowCount w.rows.length)])] ++
-    (List.range LeanDa.cellsPerRow).flatMap fun j ↦
-      w.rows.map fun row ↦ ("da_symbols", (LeanDa.listCell row j).map ofK)
+    w.rows.flatMap fun row ↦
+      (List.range LeanDa.cellsPerRow).map fun j ↦ ("da_symbols", (LeanDa.listCell row j).map ofK)
 
-/-- `da_verify`'s advised `HeapBuf` sizes for `rows` blobs: their regions and the tree over the padded
-rows' roots (`da_heap_sizes`, `aggregation/node.rs:379-384`). -/
+/-- `da_verify`'s advised `HeapBuf` size for `rows` blobs: the tree over the padded rows' roots
+(`da_heap_sizes`, `aggregation/node.rs:379-383`). -/
 def daHeapSizes (rows : ℕ) : List ℕ :=
-  [rows * guest_const% DA_REGION, 4 * 2 ^ LeanDa.logPaddedRowCount rows]
+  [4 * 2 ^ LeanDa.logPaddedRowCount rows]
 
 /-! ## A child (`gen_verify`) -/
 

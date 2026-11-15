@@ -21,7 +21,7 @@ theorem alignCellsOk :
   decide +kernel
 
 /-- `main_loop2`: the checks of its alignment but the pass's. -/
-theorem alignPreOk : Bridge.alignPre alignCtxP Data.adviceFn37 = true := by
+theorem alignPreOk : Bridge.alignPre alignCtxP Data.adviceFn39 = true := by
   decide +kernel
 
 /-- `main_loop2`: the last cut is at the end. -/

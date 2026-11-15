@@ -27,7 +27,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `walk_path__L24_L4`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨453049, 2336, Fn.«walk_path__L24_L4».modeSig, (.node (some [(.witnessStack "merkle_children" 7
+  ⟨454692, 2336, Fn.«walk_path__L24_L4».modeSig, (.node (some [(.witnessStack "merkle_children" 7
     96)]) (.node none (.node none (.node (some [(.cellAddress 112 113)]) .nil .nil) .nil) .nil)
     .nil), (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node
     none .nil (.node none .nil (.node none (.node none .nil (.node (some [(.lt (.ex (.hp 4 3) 0)

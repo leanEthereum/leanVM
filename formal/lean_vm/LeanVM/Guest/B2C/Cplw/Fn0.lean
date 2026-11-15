@@ -38,18 +38,17 @@ import LeanVM.Guest.Pack.«P16».Cplw0
 import LeanVM.Guest.Pack.«P34».Cplw0
 import LeanVM.Guest.Pack.«P63».Cplw0
 import LeanVM.Guest.Pack.«P54».Cplw0
-import LeanVM.Guest.Pack.«P49».Cplw0
+import LeanVM.Guest.Pack.«P12».Cplw0
+import LeanVM.Guest.Pack.«P20».Cplw0
 import LeanVM.Guest.Pack.«P24».Cplw0
 import LeanVM.Guest.Pack.«P4».Cplw0
 import LeanVM.Guest.Pack.«P62».Cplw0
-import LeanVM.Guest.Pack.«P20».Cplw0
 import LeanVM.Guest.Pack.«P39».Cplw0
 import LeanVM.Guest.Pack.«P58».Cplw0
 import LeanVM.Guest.Pack.«P13».Cplw0
 import LeanVM.Guest.Pack.«P46».Cplw0
 import LeanVM.Guest.Pack.«P1».Cplw0
 import LeanVM.Guest.Pack.«P60».Cplw0
-import LeanVM.Guest.Pack.«P15».Cplw0
 
 namespace LeanVM.Guest.B2C.Cplw
 
@@ -142,67 +141,67 @@ theorem ok28 : CplOk 28 :=
   cplOk_of_link link28 plumbEq28 fsEq28 partsEq28 armsEq28 rfl Fn.«da_verify».cplOk
 
 theorem ok29 : CplOk 29 :=
-  cplOk_of_link link29 plumbEq29 fsEq29 partsEq29 armsEq29 rfl Fn.«da_row_shape».cplOk
+  cplOk_of_link link29 plumbEq29 fsEq29 partsEq29 armsEq29 rfl Fn.«da_weights».cplOk
 
 theorem ok30 : CplOk 30 :=
-  cplOk_of_link link30 plumbEq30 fsEq30 partsEq30 armsEq30 rfl Fn.«da_verify_column».cplOk
+  cplOk_of_link link30 plumbEq30 fsEq30 partsEq30 armsEq30 rfl Fn.«da_pad».cplOk
 
 theorem ok31 : CplOk 31 :=
-  cplOk_of_link link31 plumbEq31 fsEq31 partsEq31 armsEq31 rfl Fn.«da_verify_cell».cplOk
+  cplOk_of_link link31 plumbEq31 fsEq31 partsEq31 armsEq31 rfl Fn.«da_row_shape».cplOk
 
 theorem ok32 : CplOk 32 :=
-  cplOk_of_link link32 plumbEq32 fsEq32 partsEq32 armsEq32 rfl Fn.«da_vector».cplOk
+  cplOk_of_link link32 plumbEq32 fsEq32 partsEq32 armsEq32 rfl Fn.«da_verify_blob».cplOk
 
 theorem ok33 : CplOk 33 :=
-  cplOk_of_link link33 plumbEq33 fsEq33 partsEq33 armsEq33 rfl Fn.«da_column_offsets».cplOk
+  cplOk_of_link link33 plumbEq33 fsEq33 partsEq33 armsEq33 rfl Fn.«da_verify_cell».cplOk
 
 theorem ok34 : CplOk 34 :=
-  cplOk_of_link link34 plumbEq34 fsEq34 partsEq34 armsEq34 rfl Fn.«aggregate_claims».cplOk
+  cplOk_of_link link34 plumbEq34 fsEq34 partsEq34 armsEq34 rfl Fn.«da_vector».cplOk
 
 theorem ok35 : CplOk 35 :=
-  cplOk_of_link link35 plumbEq35 fsEq35 partsEq35 armsEq35 rfl Fn.«main_loop0».cplOk
+  cplOk_of_link link35 plumbEq35 fsEq35 partsEq35 armsEq35 rfl Fn.«da_column_offsets».cplOk
 
 theorem ok36 : CplOk 36 :=
-  cplOk_of_link link36 plumbEq36 fsEq36 partsEq36 armsEq36 rfl Fn.«main_loop1».cplOk
+  cplOk_of_link link36 plumbEq36 fsEq36 partsEq36 armsEq36 rfl Fn.«aggregate_claims».cplOk
+
+theorem ok37 : CplOk 37 :=
+  cplOk_of_link link37 plumbEq37 fsEq37 partsEq37 armsEq37 rfl Fn.«main_loop0».cplOk
 
 theorem ok38 : CplOk 38 :=
-  cplOk_of_link link38 plumbEq38 fsEq38 partsEq38 armsEq38 rfl Fn.«main_loop3».cplOk
-
-theorem ok39 : CplOk 39 :=
-  cplOk_of_link link39 plumbEq39 fsEq39 partsEq39 armsEq39 rfl Fn.«main_loop4».cplOk
+  cplOk_of_link link38 plumbEq38 fsEq38 partsEq38 armsEq38 rfl Fn.«main_loop1».cplOk
 
 theorem ok40 : CplOk 40 :=
-  cplOk_of_link link40 plumbEq40 fsEq40 partsEq40 armsEq40 rfl Fn.«eq_prefix_run__L0».cplOk
+  cplOk_of_link link40 plumbEq40 fsEq40 partsEq40 armsEq40 rfl Fn.«main_loop3».cplOk
 
 theorem ok41 : CplOk 41 :=
-  cplOk_of_link link41 plumbEq41 fsEq41 partsEq41 armsEq41 rfl Fn.«eq_prefix_run__L1».cplOk
+  cplOk_of_link link41 plumbEq41 fsEq41 partsEq41 armsEq41 rfl Fn.«main_loop4».cplOk
 
 theorem ok42 : CplOk 42 :=
-  cplOk_of_link link42 plumbEq42 fsEq42 partsEq42 armsEq42 rfl Fn.«eq_prefix_run__L2».cplOk
+  cplOk_of_link link42 plumbEq42 fsEq42 partsEq42 armsEq42 rfl Fn.«eq_prefix_run__L0».cplOk
 
 theorem ok43 : CplOk 43 :=
-  cplOk_of_link link43 plumbEq43 fsEq43 partsEq43 armsEq43 rfl Fn.«eq_prefix_run__L3».cplOk
+  cplOk_of_link link43 plumbEq43 fsEq43 partsEq43 armsEq43 rfl Fn.«eq_prefix_run__L1».cplOk
 
 theorem ok44 : CplOk 44 :=
-  cplOk_of_link link44 plumbEq44 fsEq44 partsEq44 armsEq44 rfl Fn.«eq_prefix_run__L4».cplOk
+  cplOk_of_link link44 plumbEq44 fsEq44 partsEq44 armsEq44 rfl Fn.«eq_prefix_run__L2».cplOk
 
 theorem ok45 : CplOk 45 :=
-  cplOk_of_link link45 plumbEq45 fsEq45 partsEq45 armsEq45 rfl Fn.«eq_prefix_run__L5».cplOk
+  cplOk_of_link link45 plumbEq45 fsEq45 partsEq45 armsEq45 rfl Fn.«eq_prefix_run__L3».cplOk
 
 theorem ok46 : CplOk 46 :=
-  cplOk_of_link link46 plumbEq46 fsEq46 partsEq46 armsEq46 rfl Fn.«eq_prefix_run__L6».cplOk
+  cplOk_of_link link46 plumbEq46 fsEq46 partsEq46 armsEq46 rfl Fn.«eq_prefix_run__L4».cplOk
 
 theorem ok47 : CplOk 47 :=
-  cplOk_of_link link47 plumbEq47 fsEq47 partsEq47 armsEq47 rfl Fn.«eq_prefix_run__L7».cplOk
+  cplOk_of_link link47 plumbEq47 fsEq47 partsEq47 armsEq47 rfl Fn.«eq_prefix_run__L5».cplOk
 
 theorem ok48 : CplOk 48 :=
-  cplOk_of_link link48 plumbEq48 fsEq48 partsEq48 armsEq48 rfl Fn.«eq_prefix_run__L8».cplOk
+  cplOk_of_link link48 plumbEq48 fsEq48 partsEq48 armsEq48 rfl Fn.«eq_prefix_run__L6».cplOk
 
 theorem ok49 : CplOk 49 :=
-  cplOk_of_link link49 plumbEq49 fsEq49 partsEq49 armsEq49 rfl Fn.«eq_prefix_run__L9».cplOk
+  cplOk_of_link link49 plumbEq49 fsEq49 partsEq49 armsEq49 rfl Fn.«eq_prefix_run__L7».cplOk
 
 theorem ok50 : CplOk 50 :=
-  cplOk_of_link link50 plumbEq50 fsEq50 partsEq50 armsEq50 rfl Fn.«eq_prefix_run__L10».cplOk
+  cplOk_of_link link50 plumbEq50 fsEq50 partsEq50 armsEq50 rfl Fn.«eq_prefix_run__L8».cplOk
 
 end
 end LeanVM.Guest.B2C.Cplw

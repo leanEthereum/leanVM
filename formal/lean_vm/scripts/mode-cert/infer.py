@@ -1163,6 +1163,8 @@ def infer1(n, named):
     return sig, dict(I.res)
 
 
+__import__('rules_da').install(globals())
+
 if __name__ == '__main__':
     sigs = {}; fails = {}; res = {}
     for n in order:

@@ -12,23 +12,20 @@ public import LeanVM.Guest.Data.Pows
 public import Mathlib.Tactic.IntervalCases
 public import LeanVM.Guest.Pack.«P54».Core
 public import LeanVM.Guest.Pack.«P54».Bundle
+public import LeanVM.Guest.Pack.«P28».Sig
 public import LeanVM.Guest.Pack.«P7».Sig
 public import LeanVM.Guest.Pack.«P24».Sig
 public import LeanVM.Guest.Pack.«P59».Sig
-public import LeanVM.Guest.Pack.«P40».Sig
-public import LeanVM.Guest.Pack.«P33».Sig
-public import LeanVM.Guest.Pack.«P14».Sig
-public import LeanVM.Guest.Pack.«P2».Sig
-public import LeanVM.Guest.Pack.«P10».Sig
-public import LeanVM.Guest.Pack.«P37».Sig
-public import LeanVM.Guest.Pack.«P62».Sig
-public import LeanVM.Guest.Pack.«P58».Sig
-public import LeanVM.Guest.Pack.«P43».Sig
-public import LeanVM.Guest.Pack.«P27».Sig
-public import LeanVM.Guest.Pack.«P17».Sig
-public import LeanVM.Guest.Pack.«P44».Sig
-public import LeanVM.Guest.Pack.«P28».Sig
-public import LeanVM.Guest.Pack.«P3».Sig
+public import LeanVM.Guest.Pack.«P11».Sig
+public import LeanVM.Guest.Pack.«P56».Sig
+public import LeanVM.Guest.Pack.«P49».Sig
+public import LeanVM.Guest.Pack.«P30».Sig
+public import LeanVM.Guest.Pack.«P23».Sig
+public import LeanVM.Guest.Pack.«P4».Sig
+public import LeanVM.Guest.Pack.«P61».Sig
+public import LeanVM.Guest.Pack.«P42».Sig
+public import LeanVM.Guest.Pack.«P51».Sig
+public import LeanVM.Guest.Pack.«P32».Sig
 
 set_option Elab.async false
 
@@ -39,11 +36,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `da_verify`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(29, Fn.«da_row_shape».sig), (32, Fn.«da_vector».sig), (405, Fn.«da_verify_loop0».sig), (406, Fn.«da_verify_loop1».sig), (407, Fn.«da_verify_loop2».sig), (408, Fn.«da_verify_loop3».sig), (409, Fn.«da_levels__L1_L0».sig), (410, Fn.«da_levels__L2_L1».sig), (411, Fn.«da_levels__L4_L2».sig), (412, Fn.«da_levels__L8_L3».sig), (413, Fn.«da_levels__L16_L4».sig), (414, Fn.«da_levels__L32_L5».sig), (415, Fn.«da_levels__L64_L6».sig), (416, Fn.«da_levels__L128_L7».sig), (417, Fn.«da_levels__L256_L8».sig), (418, Fn.«da_levels__L512_L9».sig)] ++ [(419, Fn.«da_levels__L1024_L10».sig)]) Data.jtTrie globSem) code Fn.«da_verify».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(29, Fn.«da_weights».sig), (31, Fn.«da_row_shape».sig), (34, Fn.«da_vector».sig), (407, Fn.«da_verify_loop0».sig), (408, Fn.«da_roots_tree__L0».sig), (409, Fn.«da_roots_tree__L1».sig), (410, Fn.«da_roots_tree__L2».sig), (411, Fn.«da_roots_tree__L3».sig), (412, Fn.«da_roots_tree__L4».sig), (413, Fn.«da_roots_tree__L5».sig), (414, Fn.«da_roots_tree__L6».sig), (415, Fn.«da_roots_tree__L7».sig), (416, Fn.«da_roots_tree__L8».sig), (417, Fn.«da_roots_tree__L9».sig), (418, Fn.«da_roots_tree__L10».sig)]) Data.jtTrie globSem) code Fn.«da_verify».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `da_verify`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(29, Fn.«da_row_shape».sig), (32, Fn.«da_vector».sig), (405, Fn.«da_verify_loop0».sig), (406, Fn.«da_verify_loop1».sig), (407, Fn.«da_verify_loop2».sig), (408, Fn.«da_verify_loop3».sig), (409, Fn.«da_levels__L1_L0».sig), (410, Fn.«da_levels__L2_L1».sig), (411, Fn.«da_levels__L4_L2».sig), (412, Fn.«da_levels__L8_L3».sig), (413, Fn.«da_levels__L16_L4».sig), (414, Fn.«da_levels__L32_L5».sig), (415, Fn.«da_levels__L64_L6».sig), (416, Fn.«da_levels__L128_L7».sig), (417, Fn.«da_levels__L256_L8».sig), (418, Fn.«da_levels__L512_L9».sig)] ++ [(419, Fn.«da_levels__L1024_L10».sig)]) Data.jtTrie globSem) code Fn.«da_verify».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(29, Fn.«da_weights».sig), (31, Fn.«da_row_shape».sig), (34, Fn.«da_vector».sig), (407, Fn.«da_verify_loop0».sig), (408, Fn.«da_roots_tree__L0».sig), (409, Fn.«da_roots_tree__L1».sig), (410, Fn.«da_roots_tree__L2».sig), (411, Fn.«da_roots_tree__L3».sig), (412, Fn.«da_roots_tree__L4».sig), (413, Fn.«da_roots_tree__L5».sig), (414, Fn.«da_roots_tree__L6».sig), (415, Fn.«da_roots_tree__L7».sig), (416, Fn.«da_roots_tree__L8».sig), (417, Fn.«da_roots_tree__L9».sig), (418, Fn.«da_roots_tree__L10».sig)]) Data.jtTrie globSem) code Fn.«da_verify».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi

@@ -25,19 +25,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«open_stacked__L9».core.body = tru
 
 /-- `open_stacked__L9`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«open_stacked__L9».plumb Fn.«open_stacked__L9».core.body Fn.«open_stacked__L9».code.code Data.adviceFn346 = true := by
+    Bridge.curBody alignCtx Fn.«open_stacked__L9».plumb Fn.«open_stacked__L9».core.body Fn.«open_stacked__L9».code.code Data.adviceFn348 = true := by
   decide +kernel
 
 /-- `open_stacked__L9`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«open_stacked__L9».fs [8, 9, 309, 313, 449, 463, 473, 513, 522, 531, 538, 543, 663, 684, 688, 695, 699, 701, 704, 705, 708, 711, 719, 722, 725, 742, 746, 786, 823, 827, 831, 855, 856, 857, 858, 859, 860, 861, 862, 863, 864, 865, 866, 867, 868, 869, 870, 871, 872, 873, 874, 875, 876, 877, 878, 879, 880, 881, 882, 883, 884, 885, 886, 887, 888, 889, 890, 891, 892, 893, 894, 895, 896, 897, 898, 899, 900] Fn.«open_stacked__L9».core.params Fn.«open_stacked__L9».core.body
-      Data.adviceFn346 = true := by
+    Bridge.frChk alignCtx Fn.«open_stacked__L9».fs [8, 9, 311, 315, 450, 464, 474, 514, 523, 532, 539, 544, 664, 685, 689, 696, 700, 702, 705, 706, 709, 712, 720, 723, 726, 743, 747, 787, 824, 828, 832, 856, 857, 858, 859, 860, 861, 862, 863, 864, 865, 866, 867, 868, 869, 870, 871, 872, 873, 874, 875, 876, 877, 878, 879, 880, 881, 882, 883, 884, 885, 886, 887, 888, 889, 890, 891, 892, 893, 894, 895, 896, 897, 898, 899, 900, 901] Fn.«open_stacked__L9».core.params Fn.«open_stacked__L9».core.body
+      Data.adviceFn348 = true := by
   decide +kernel
 
 /-- `open_stacked__L9`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«open_stacked__L9».fs Fn.«open_stacked__L9».core.loop Fn.«open_stacked__L9».plumb Fn.«open_stacked__L9».core.body Fn.«open_stacked__L9».code.code
-      Data.adviceFn346 = true := by
+      Data.adviceFn348 = true := by
   decide +kernel
 
 end

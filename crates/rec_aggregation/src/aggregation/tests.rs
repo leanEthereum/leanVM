@@ -620,8 +620,8 @@ fn da_guest_checks_codeword_membership() {
             "da_shape",
             vec![count(n_rows), count(n_rows.next_power_of_two().ilog2() as usize)],
         );
-        for j in 0..CELLS_PER_ROW {
-            for i in 0..n_rows {
+        for i in 0..n_rows {
+            for j in 0..CELLS_PER_ROW {
                 let start = i * CODEWORD_SYMBOLS + j * CELL_SYMBOLS;
                 hints.push(
                     "da_symbols",

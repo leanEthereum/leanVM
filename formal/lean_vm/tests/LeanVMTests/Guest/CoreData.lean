@@ -26,8 +26,8 @@ example : coreProgram.length = core_count% := coreProgram_length
 example : coreProgram.find? "main" = some Data.core0 :=
   Program.find?_of_indexOf? (j := 0) (by decide +kernel) rfl
 
-example : coreProgram.find? "__loop2" = some Data.core36 :=
-  Program.find?_of_indexOf? (j := 36) (by decide +kernel) rfl
+example : coreProgram.find? "__loop2" = some Data.core38 :=
+  Program.find?_of_indexOf? (j := 38) (by decide +kernel) rfl
 
 example : coreProgram.find? "sp_wots" = some Data.core19 :=
   Program.find?_of_indexOf? (j := 19) (by decide +kernel) rfl
@@ -35,23 +35,23 @@ example : coreProgram.find? "sp_wots" = some Data.core19 :=
 example : coreProgram.find? "verify_sig_lean_sphincs" = some Data.core20 :=
   Program.find?_of_indexOf? (j := 20) (by decide +kernel) rfl
 
-example : coreProgram.find? "squeeze_point_from__L18" = some Data.core641 :=
-  Program.find?_of_indexOf? (j := 641) (by decide +kernel) rfl
+example : coreProgram.find? "squeeze_point_from__L18" = some Data.core642 :=
+  Program.find?_of_indexOf? (j := 642) (by decide +kernel) rfl
 
-example : coreProgram.find? "walk_path__L18_L4" = some Data.core1550 :=
-  Program.find?_of_indexOf? (j := 1550) (by decide +kernel) rfl
+example : coreProgram.find? "walk_path__L18_L4" = some Data.core1561 :=
+  Program.find?_of_indexOf? (j := 1561) (by decide +kernel) rfl
 
 example : Data.core19.name = Data.f20.name := name_eq_compiled (j := 19) rfl rfl
 
 example : Data.core20.name = Data.f21.name := name_eq_compiled (j := 20) rfl rfl
 
-example : Data.core36.name = Data.f37.name := name_eq_compiled (j := 36) rfl rfl
+example : Data.core38.name = Data.f39.name := name_eq_compiled (j := 38) rfl rfl
 
-example : coreProgram.find? "walk_path__L12_L8" = some Data.core1601 :=
-  Program.find?_of_indexOf? (j := 1601) (by decide +kernel) rfl
+example : coreProgram.find? "walk_path__L12_L8" = some Data.core1612 :=
+  Program.find?_of_indexOf? (j := 1612) (by decide +kernel) rfl
 
-example : Data.core1550.name = Data.f1551.name := name_eq_compiled (j := 1550) rfl rfl
+example : Data.core1561.name = Data.f1562.name := name_eq_compiled (j := 1561) rfl rfl
 
-example : Data.core1601.name = Data.f1602.name := name_eq_compiled (j := 1601) rfl rfl
+example : Data.core1612.name = Data.f1613.name := name_eq_compiled (j := 1612) rfl rfl
 
 end LeanVMTests.Guest.CoreData

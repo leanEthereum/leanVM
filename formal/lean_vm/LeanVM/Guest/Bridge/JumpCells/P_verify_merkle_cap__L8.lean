@@ -21,7 +21,7 @@ public section
 
 /-- `verify_merkle_cap__L8`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«verify_merkle_cap__L8».plumb Fn.«verify_merkle_cap__L8».fs (Fn.«verify_merkle_cap__L8».cert.withPows Data.powTree) []
-    Fn.«verify_merkle_cap__L8».core Fn.«verify_merkle_cap__L8».code.code (1237 == 1) = true := by
+    Fn.«verify_merkle_cap__L8».core Fn.«verify_merkle_cap__L8».code.code (1200 == 1) = true := by
   decide +kernel
 
 end

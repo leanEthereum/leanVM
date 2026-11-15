@@ -15,25 +15,6 @@ public import LeanVM.Guest.Pack.«P40».Bundle
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `__loop548`, window 1. -/
-theorem sw1 : shareWinD Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1_loop0».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop548`, window 2. -/
-theorem sw2 : shareWinD Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1_loop0».core (cert.withPows Data.powTree) plumb fs snaps 2 = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1_loop0»
-
 namespace LeanVM.Guest.Fn.«walk_path__L12_L8»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -41,23 +22,13 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L12_L8`, once. -/
-theorem st : shareStaticD Fn.«walk_path__L12_L8».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+/-- `walk_path__L12_L8`, window 3. -/
+theorem sw3 : shareWinD Fn.«walk_path__L12_L8».core (cert.withPows Data.powTree) plumb fs snaps 3 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `walk_path__L12_L8`, window 0. -/
-theorem sw0 : shareWinD Fn.«walk_path__L12_L8».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `walk_path__L12_L8`, window 1. -/
-theorem sw1 : shareWinD Fn.«walk_path__L12_L8».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `walk_path__L12_L8`, window 2. -/
-theorem sw2 : shareWinD Fn.«walk_path__L12_L8».core (cert.withPows Data.powTree) plumb fs snaps 2 = true := by
+/-- `walk_path__L12_L8`, window 4. -/
+theorem sw4 : shareWinD Fn.«walk_path__L12_L8».core (cert.withPows Data.powTree) plumb fs snaps 4 = true := by
   decide +kernel
 
 end

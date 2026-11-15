@@ -49,108 +49,108 @@ open LeanVM.Guest LeanVM.Guest.Exec
 /-- `check_opening_terminal`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
   ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none (.node none (.node
-    none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil
+    (.node (some Fn.«column_selector__L13».modeSig) .nil .nil)) .nil) .nil)))) .nil))) .nil))
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
     (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«column_selector__L7».modeSig) .nil .nil)) .nil) .nil))) .nil)) .nil) .nil) .nil) .nil)
-    (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node
+    Fn.«column_selector__L15».modeSig) .nil .nil)) .nil) .nil)))) .nil)))) .nil)) (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node
     none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«column_selector__L21».modeSig) .nil .nil)) .nil) .nil))) .nil))) .nil)) .nil)) .nil) (.node
-    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none
-    .nil (.node (some Fn.«check_opening_terminal_loop0».modeSig) .nil .nil)) .nil) .nil))) .nil)
-    .nil) .nil))))))) (.node none (.node none (.node none .nil (.node none (.node none (.node none
-    .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node
-    none (.node none (.node none .nil (.node (some Fn.«column_selector__L26».modeSig) .nil .nil))
-    .nil) .nil))) .nil)))) (.node none (.node none .nil (.node none (.node none (.node none .nil
-    (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«column_selector__L2».modeSig) .nil .nil)) .nil) .nil))) .nil) .nil)) .nil)) .nil)) (.node
-    none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
+    Fn.«column_selector__L12».modeSig) .nil .nil)) .nil) .nil)))) .nil))) .nil) (.node none (.node
+    none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node none (.node none .nil (.node (some Fn.«column_selector__L30».modeSig) .nil
+    .nil)) .nil) .nil))))) .nil)) (.node none .nil (.node none .nil (.node none (.node none .nil
     (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«column_selector__L18».modeSig) .nil .nil)) .nil) .nil))) .nil))) .nil) (.node none (.node
-    none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none
-    (.node none .nil (.node (some Fn.«column_selector__L10».modeSig) .nil .nil)) .nil) .nil)))
-    .nil)) .nil) .nil)) .nil))) (.node none .nil (.node none (.node none .nil (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil
-    (.node none (.node none (.node none .nil (.node (some Fn.«column_selector__L23».modeSig) .nil
-    .nil)) .nil) .nil))) .nil))) .nil))) (.node none .nil (.node none (.node none .nil (.node none
-    .nil (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
-    none .nil (.node (some Fn.«column_selector__L5».modeSig) .nil .nil)) .nil) .nil))) .nil)
-    .nil))) .nil)))))) (.node none (.node none (.node none (.node none (.node none (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil
-    (.node none (.node none (.node none .nil (.node (some Fn.«column_selector__L20».modeSig) .nil
-    .nil)) .nil) .nil))) .nil))) .nil)) (.node none (.node none (.node none (.node none .nil (.node
-    none (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«column_selector__L8».modeSig) .nil .nil)) .nil) .nil))) .nil)) .nil) .nil) .nil)) .nil)
-    .nil) (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none
-    (.node none .nil (.node (some Fn.«column_selector__L29».modeSig) .nil .nil)) .nil) .nil)))
-    .nil)))) .nil)) (.node none (.node none (.node none .nil (.node none .nil (.node none (.node
-    none (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«column_selector__L4».modeSig) .nil .nil)) .nil) .nil))) .nil) .nil))) .nil) (.node none
-    .nil (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
-    .nil (.node none (.node none (.node none .nil (.node (some Fn.«column_selector__L24».modeSig)
-    .nil .nil)) .nil) .nil))) .nil))) .nil)))))) (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«column_selector__L14».modeSig) .nil .nil)) .nil) .nil))) .nil)) .nil))) .nil) (.node none
-    (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node
+    Fn.«column_selector__L16».modeSig) .nil .nil)) .nil) .nil)))) .nil))))) (.node none .nil (.node
+    none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node
     none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«column_selector__L12».modeSig) .nil .nil)) .nil) .nil))) .nil)) .nil)) (.node none .nil
-    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node (some
-    Fn.«eq_prefix_chain».modeSig) .nil .nil) .nil) .nil)) .nil)))) (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
-    (.node none (.node none .nil (.node (some Fn.«column_selector__L30».modeSig) .nil .nil)) .nil)
-    .nil))) .nil)))) (.node none .nil (.node none (.node none .nil (.node none (.node none .nil
+    Fn.«column_selector__L14».modeSig) .nil .nil)) .nil) .nil)))) .nil))) .nil)))) (.node none
+    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node
+    (some Fn.«column_selector__L22».modeSig) .nil .nil)) .nil) .nil))))) .nil) (.node none (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none
+    .nil (.node (some Fn.«column_selector__L6».modeSig) .nil .nil)) .nil) .nil)))) .nil) .nil)))
+    .nil)) (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil
+    (.node (some Fn.«column_selector__L28».modeSig) .nil .nil)) .nil) .nil))))) .nil)) .nil) (.node
+    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
     (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«column_selector__L16».modeSig) .nil .nil)) .nil) .nil))) .nil)) .nil))))) (.node none
-    (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node
-    none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«column_selector__L13».modeSig) .nil .nil)) .nil) .nil))) .nil)) .nil)) .nil)) (.node none
-    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«column_selector__L15».modeSig) .nil .nil)) .nil) .nil))) .nil)) .nil))) .nil))) (.node none
-    (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node
-    none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«column_selector__L0».modeSig) .nil .nil)) .nil) .nil))) .nil) .nil)) .nil) .nil) (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node
-    none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«column_selector__L28».modeSig) .nil .nil)) .nil) .nil))) .nil)))) .nil)) .nil) (.node none
-    .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
-    (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«column_selector__L22».modeSig) .nil .nil)) .nil) .nil))) .nil))) (.node none .nil (.node
-    none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none .nil
-    (.node (some Fn.«column_selector__L6».modeSig) .nil .nil)) .nil) .nil))) .nil) .nil))))
-    .nil)))))) (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none
-    .nil (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node
-    none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«column_selector__L1».modeSig) .nil .nil)) .nil) .nil))) .nil) .nil)) .nil) .nil)) (.node
-    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
-    .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«column_selector__L27».modeSig) .nil .nil)) .nil) .nil))) .nil)))) .nil) .nil)))) (.node
-    none .nil (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node
-    none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none
-    .nil (.node (some Fn.«column_selector__L17».modeSig) .nil .nil)) .nil) .nil))) .nil))) .nil)
-    .nil) .nil) (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node
-    none (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«column_selector__L11».modeSig) .nil .nil)) .nil) .nil))) .nil)) .nil) .nil)))) .nil)))
+    Fn.«column_selector__L0».modeSig) .nil .nil)) .nil) .nil))) .nil))))))))) (.node none (.node
+    none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil
+    (.node (some Fn.«column_selector__L29».modeSig) .nil .nil)) .nil) .nil))))) .nil)) .nil))
     (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node (some
-    Fn.«selector_tables».modeSig) .nil .nil))) .nil) .nil)))) .nil) .nil)) (.node none (.node none
-    .nil (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node none
-    .nil (.node none .nil (.node (some Fn.«ring_switch_weight».modeSig) .nil .nil))) .nil) .nil)
-    .nil) .nil) .nil))) (.node none (.node none .nil (.node none (.node none (.node none .nil
-    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
-    none .nil (.node (some Fn.«column_selector__L19».modeSig) .nil .nil)) .nil) .nil))) .nil)))
-    .nil) .nil)) (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
+    Fn.«column_selector__L4».modeSig) .nil .nil)) .nil) .nil)))) .nil) .nil)) .nil) (.node none
+    .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node none (.node none .nil (.node (some Fn.«column_selector__L24».modeSig)
+    .nil .nil)) .nil) .nil))))) .nil) .nil)))) .nil) (.node none (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node none (.node none (.node none .nil (.node (some
+    Fn.«column_selector__L8».modeSig) .nil .nil)) .nil) .nil)))) .nil)) .nil) .nil) (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node none (.node none .nil (.node (some Fn.«column_selector__L20».modeSig) .nil
+    .nil)) .nil) .nil))))) .nil) .nil) .nil))) .nil))) (.node none (.node none (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node
+    (some Fn.«check_opening_terminal_loop0».modeSig) .nil .nil)) .nil) .nil))) .nil))))))) .nil)
+    (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil
+    (.node (some Fn.«column_selector__L21».modeSig) .nil .nil)) .nil) .nil))))) .nil) .nil)) .nil)
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil
     (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«column_selector__L9».modeSig) .nil .nil)) .nil) .nil))) .nil)) .nil) .nil) .nil))))) (.node
-    none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
-    none .nil (.node (some Fn.«column_selector__L25».modeSig) .nil .nil)) .nil) .nil))) .nil))))
-    .nil) .nil) (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
-    none (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
-    Fn.«column_selector__L3».modeSig) .nil .nil)) .nil) .nil))) .nil) .nil)) .nil)))) .nil))))),
-    524287⟩
+    Fn.«column_selector__L7».modeSig) .nil .nil)) .nil) .nil)))) .nil) .nil))))) .nil)) (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none
+    .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none
+    .nil (.node (some Fn.«column_selector__L23».modeSig) .nil .nil)) .nil) .nil))))) .nil) .nil)))
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
+    (.node none (.node none (.node (some Fn.«eq_prefix_chain».modeSig) .nil .nil) .nil) .nil))
+    .nil)))) (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node none (.node none .nil (.node (some
+    Fn.«column_selector__L5».modeSig) .nil .nil)) .nil) .nil)))) .nil) .nil)) .nil))) .nil) (.node
+    none (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node
+    (some Fn.«column_selector__L26».modeSig) .nil .nil)) .nil) .nil))))) .nil)) (.node none (.node
+    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
+    (.node none .nil (.node (some Fn.«column_selector__L2».modeSig) .nil .nil)) .nil) .nil))))
+    .nil) .nil) .nil)) .nil) .nil) (.node none (.node none (.node none (.node none (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
+    (.node none .nil (.node (some Fn.«column_selector__L18».modeSig) .nil .nil)) .nil) .nil)))))
+    .nil) .nil) (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node none (.node none (.node none .nil (.node (some
+    Fn.«column_selector__L10».modeSig) .nil .nil)) .nil) .nil)))) .nil)) .nil)) .nil) .nil)))))
+    (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node
+    none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node none (.node none .nil (.node (some Fn.«column_selector__L3».modeSig)
+    .nil .nil)) .nil) .nil)))) .nil) .nil) .nil))) (.node none .nil (.node none .nil (.node none
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
+    (.node none (.node none .nil (.node (some Fn.«column_selector__L25».modeSig) .nil .nil)) .nil)
+    .nil))))) .nil) .nil)))))) (.node none (.node none (.node none (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node none (.node none .nil (.node (some Fn.«column_selector__L19».modeSig) .nil
+    .nil)) .nil) .nil))))) .nil) .nil) .nil)) (.node none .nil (.node none (.node none (.node none
+    .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
+    (.node none .nil (.node (some Fn.«column_selector__L9».modeSig) .nil .nil)) .nil) .nil))))
+    .nil)) .nil) .nil))) .nil) .nil)) (.node none (.node none (.node none (.node none (.node none
+    .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node none (.node none (.node none .nil (.node (some
+    Fn.«column_selector__L1».modeSig) .nil .nil)) .nil) .nil)))) .nil) .nil) .nil) .nil)) (.node
+    none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node none (.node none .nil (.node (some
+    Fn.«column_selector__L27».modeSig) .nil .nil)) .nil) .nil))))) .nil)) .nil) .nil)) (.node none
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
+    none .nil (.node none .nil (.node (some Fn.«selector_tables».modeSig) .nil .nil))) .nil)
+    .nil)))) .nil) .nil)) (.node none (.node none .nil (.node none .nil (.node none (.node none
+    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node (some
+    Fn.«ring_switch_weight».modeSig) .nil .nil))) .nil) .nil) .nil) .nil) .nil))) .nil)) (.node
+    none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none
+    .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
+    (.node none .nil (.node (some Fn.«column_selector__L11».modeSig) .nil .nil)) .nil) .nil))))
+    .nil)) .nil))) (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil
+    (.node (some Fn.«column_selector__L17».modeSig) .nil .nil)) .nil) .nil)))) .nil)))))))
+    .nil)))), 524287⟩
 
 /-- `check_opening_terminal`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=

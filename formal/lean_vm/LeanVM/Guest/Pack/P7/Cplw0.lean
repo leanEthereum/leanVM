@@ -31,11 +31,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `rs_eq_run`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(81, Fn.«rs_eq_run_loop0».sig), (82, Fn.«rs_eq_rows__L0».sig), (83, Fn.«rs_eq_rows__L1».sig), (84, Fn.«rs_eq_rows__L2».sig), (85, Fn.«rs_eq_rows__L3».sig), (86, Fn.«rs_eq_rows__L4».sig), (87, Fn.«rs_eq_rows__L5».sig), (88, Fn.«rs_eq_rows__L6».sig), (89, Fn.«rs_eq_rows__L7».sig)]) Data.jtTrie globSem) code Fn.«rs_eq_run».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(83, Fn.«rs_eq_run_loop0».sig), (84, Fn.«rs_eq_rows__L0».sig), (85, Fn.«rs_eq_rows__L1».sig), (86, Fn.«rs_eq_rows__L2».sig), (87, Fn.«rs_eq_rows__L3».sig), (88, Fn.«rs_eq_rows__L4».sig), (89, Fn.«rs_eq_rows__L5».sig), (90, Fn.«rs_eq_rows__L6».sig), (91, Fn.«rs_eq_rows__L7».sig)]) Data.jtTrie globSem) code Fn.«rs_eq_run».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `rs_eq_run`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(81, Fn.«rs_eq_run_loop0».sig), (82, Fn.«rs_eq_rows__L0».sig), (83, Fn.«rs_eq_rows__L1».sig), (84, Fn.«rs_eq_rows__L2».sig), (85, Fn.«rs_eq_rows__L3».sig), (86, Fn.«rs_eq_rows__L4».sig), (87, Fn.«rs_eq_rows__L5».sig), (88, Fn.«rs_eq_rows__L6».sig), (89, Fn.«rs_eq_rows__L7».sig)]) Data.jtTrie globSem) code Fn.«rs_eq_run».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(83, Fn.«rs_eq_run_loop0».sig), (84, Fn.«rs_eq_rows__L0».sig), (85, Fn.«rs_eq_rows__L1».sig), (86, Fn.«rs_eq_rows__L2».sig), (87, Fn.«rs_eq_rows__L3».sig), (88, Fn.«rs_eq_rows__L4».sig), (89, Fn.«rs_eq_rows__L5».sig), (90, Fn.«rs_eq_rows__L6».sig), (91, Fn.«rs_eq_rows__L7».sig)]) Data.jtTrie globSem) code Fn.«rs_eq_run».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi

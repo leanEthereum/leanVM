@@ -19,19 +19,19 @@ set_option maxRecDepth 100000
 @[expose] public section
 
 /-- The core indices of `open_stacked__L{c}`, `c < 11`. -/
-def osJ : List ℕ := [336, 337, 338, 339, 340, 341, 342, 343, 344, 345, 346]
+def osJ : List ℕ := [338, 339, 340, 341, 342, 343, 344, 345, 346, 347, 348]
 
 /-- `verify_sub`'s statically bounded callees but its opening arm. -/
 def vsStNames : List String := ["g_power_of_word", "log2_ceil_in_the_exponent__L0_L34", "certify_placement", "log2_ceil_in_the_exponent__L16_L34", "grind_check__L15", "opening_message__L1_L1", "grind_check__L13", "ring_switch_target", "squeeze_point_from__L20", "squeeze_point_from__L21", "squeeze_point_from__L22", "squeeze_point_from__L23", "squeeze_point_from__L24", "squeeze_point_from__L25", "squeeze_point_from__L26", "squeeze_point_from__L27", "squeeze_point_from__L28", "squeeze_point_from__L29", "squeeze_point_from__L30", "bus_grind_check__L0", "bus_grind_check__L1", "bus_grind_check__L2", "bus_grind_check__L3", "bus_grind_check__L4", "bus_grind_check__L5", "bus_grind_check__L6", "bus_grind_check__L7", "bus_grind_check__L8", "bus_grind_check__L9", "bus_grind_check__L10", "bus_grind_check__L11", "bus_grind_check__L12", "bus_grind_check__L13"]
 
 /-- Their core indices. -/
-def vsStJ : List ℕ := [2, 306, 15, 307, 308, 320, 335, 13, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334]
+def vsStJ : List ℕ := [2, 308, 15, 309, 310, 322, 337, 13, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336]
 
 /-- The core indices of `child_claim_list_last__L{k}`, `k < 17`. -/
-def cclJ : List ℕ := [368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384]
+def cclJ : List ℕ := [370, 371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386]
 
 /-- The core indices of `child_claim_list_mono_last__L{k}`, `k < 17`. -/
-def ccmJ : List ℕ := [387, 388, 389, 390, 391, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403]
+def ccmJ : List ℕ := [389, 390, 391, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405]
 
 /-- The core index of `list_split`. -/
 def lsJ : ℕ := 22
@@ -40,10 +40,10 @@ def lsJ : ℕ := 22
 def ccLpNames : List String := ["__loop18", "__loop19", "__loop20", "__loop21"]
 
 /-- Their core indices. -/
-def ccLpJ : List ℕ := [366, 367, 385, 386]
+def ccLpJ : List ℕ := [368, 369, 387, 388]
 
 /-- The core indices of `verify_sub`, `child_claim_list_digest`, `__loop4`, `child_claim_list_any`, `child_claim_list_mono`. -/
-def omJ : List ℕ := [18, 24, 38, 25, 26]
+def omJ : List ℕ := [18, 24, 40, 25, 26]
 
 /-- Their names. -/
 def omNames : List String := ["verify_sub", "child_claim_list_digest", "__loop4", "child_claim_list_any", "child_claim_list_mono"]

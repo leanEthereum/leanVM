@@ -110,17 +110,17 @@ theorem shareOk : ShareOkD Fn.«squeeze_point_from__L28».core (cert.withPows Da
 end
 end LeanVM.Guest.Fn.«squeeze_point_from__L28»
 
-namespace LeanVM.Guest.Fn.«da_verify_loop2»
+namespace LeanVM.Guest.Fn.«grind_check__L3»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop24`, once. -/
-theorem st : shareStaticD Fn.«da_verify_loop2».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+/-- `grind_check__L3`, once. -/
+theorem st : shareStaticD Fn.«grind_check__L3».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 end
-end LeanVM.Guest.Fn.«da_verify_loop2»
+end LeanVM.Guest.Fn.«grind_check__L3»
 

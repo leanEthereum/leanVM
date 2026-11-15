@@ -20,52 +20,55 @@ set_option maxRecDepth 100000
 @[expose] public section
 
 /-- `da_verify`'s statically bounded callees but the DA levels by `L`. -/
-def dvStNames : List String := ["da_row_shape", "da_vector", "da_expand__L7_L8"]
+def dvStNames : List String := ["da_row_shape", "da_vector", "da_weights"]
 
 /-- Their core indices. -/
-def dvStJ : List ℕ := [28, 31, 419]
+def dvStJ : List ℕ := [30, 33, 28]
 
-/-- `da_verify`'s row loops and its columns' row loop. -/
-def dvLpNames : List String := ["__loop22", "__loop24", "__loop25", "__loop26"]
+/-- `da_verify`'s blob loop and the padding loop. -/
+def dvLpNames : List String := ["__loop22", "__loop23"]
 
 /-- Their core indices. -/
-def dvLpJ : List ℕ := [404, 406, 407, 420]
+def dvLpJ : List ℕ := [406, 419]
 
 /-- The core indices of the DA levels `B1.Da.dlNames`, by `L`. -/
-def dlJ : List ℕ := [408, 409, 410, 411, 412, 413, 414, 415, 416, 417, 418]
+def dlJ : List ℕ := [947, 948, 949, 950, 951, 952, 953, 421, 954, 955, 956]
+
+/-- The core indices of the roots' tree's arms `B1.Da.rtNames`, by `L`. -/
+def rtJ : List ℕ := [407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417]
 
 /-- The core indices of `claim_list_last__L{k}`, `k < 17`. -/
-def clJ : List ℕ := [349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365]
+def clJ : List ℕ := [351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367]
 
 /-- `claim_list_digest`'s loops, per `136` and per `17` claims. -/
 def clLpNames : List String := ["__loop16", "__loop17"]
 
 /-- Their core indices. -/
-def clLpJ : List ℕ := [347, 348]
+def clLpJ : List ℕ := [349, 350]
 
 /-- The functions whose frames the counts weigh. -/
-def mvOmNames : List String := ["da_verify", "__loop23", "da_verify_column", "claim_list_digest"]
+def mvOmNames : List String := ["da_verify", "da_pad", "claim_list_digest"]
 
 /-- Their core indices. -/
-def mvOmJ : List ℕ := [27, 405, 29, 23]
+def mvOmJ : List ℕ := [27, 29, 23]
 
 /-- The instructions of `dvStNames`. -/
 def kcDvStT : Opcode → List ℕ
-  | .xor => [1, 1786, 510]
-  | .mulNative => [12, 2367, 513]
-  | .setConstant => [6, 951, 3]
-  | .deref => [9, 3750, 273]
-  | .jump => [1, 270, 1]
+  | .xor => [1, 1786, 65280]
+  | .mulNative => [11, 2367, 65792]
+  | .setConstant => [5, 951, 514]
+  | .deref => [7, 3750, 36096]
+  | .jump => [1, 270, 257]
   | .keccak => [0, 0, 0]
 
 /-- The instructions of `dvLpNames` per iteration. -/
 def kcDvLpT : Opcode → List ℕ
-  | .xor => [1, 135, 1, 514]
-  | .mulNative => [22, 1727, 13, 401]
-  | .setConstant => [5, 1354, 6, 13]
-  | .deref => [2, 815, 2, 267]
-  | .jump => [2, 265, 2, 132]
-  | .keccak => [0, 127, 0, 16]
+  | .xor => [65927, 1]
+  | .mulNative => [52800, 13]
+  | .setConstant => [3149, 6]
+  | .deref => [35002, 2]
+  | .jump => [17164, 2]
+  | .keccak => [2175, 0]
 
 /-- The DA levels' instructions, by `L`. -/
 def kcDlT : Opcode → List ℕ
@@ -96,29 +99,38 @@ def kcClLpT : Opcode → List ℕ
 
 /-- The frame weights of `mvOmNames`. -/
 def mvOmT : Opcode → List ℕ
-  | .xor => [2, 1, 1, 3]
-  | .mulNative => [16, 12, 5, 40]
-  | .setConstant => [8, 6, 3, 9]
-  | .deref => [51, 9, 17, 42]
-  | .jump => [8, 3, 3, 6]
-  | .keccak => [0, 0, 0, 1]
+  | .xor => [1, 1, 3]
+  | .mulNative => [6, 0, 40]
+  | .setConstant => [7, 2, 9]
+  | .deref => [38, 7, 42]
+  | .jump => [6, 2, 6]
+  | .keccak => [0, 0, 1]
+
+/-- The frame weights of the roots' tree's arms, by `L`. -/
+def rtOmT : Opcode → List ℕ
+  | .xor => [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  | .mulNative => [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+  | .setConstant => [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+  | .deref => [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10]
+  | .jump => [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+  | .keccak => [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 /-- `da_verify`'s instructions on `r` rows padded to `2^L` within `kcDvA + kcDvR · r + kcDvP · 2^L`: the constant. -/
 def kcDvA : Opcode → ℕ
-  | .xor => 67325
-  | .mulNative => 70235
-  | .setConstant => 2501
-  | .deref => 42082
-  | .jump => 1175
+  | .xor => 67069
+  | .mulNative => 68178
+  | .setConstant => 1482
+  | .deref => 39908
+  | .jump => 539
   | .keccak => 0
 
 /-- `da_verify`'s instructions: per row. -/
 def kcDvR : Opcode → ℕ
-  | .xor => 65927
-  | .mulNative => 53064
-  | .setConstant => 3017
-  | .deref => 34991
-  | .jump => 17161
+  | .xor => 65926
+  | .mulNative => 52787
+  | .setConstant => 3143
+  | .deref => 35000
+  | .jump => 17162
   | .keccak => 2175
 
 /-- `da_verify`'s instructions: per padded row. -/
@@ -152,15 +164,17 @@ def kcClS : Opcode → ℕ
 noncomputable def mvTabOk (op : Opcode) : Bool :=
   (List.range 3).all (fun i => kvOkB op (dvStJ.getD i 0) (dvStNames.getD i "") &&
     kvSBJ op (dvStJ.getD i 0) == (kcDvStT op).getD i 0) &&
-  (List.range 4).all (fun i => kvOkK op (dvLpJ.getD i 0) (dvLpNames.getD i "") &&
+  (List.range 2).all (fun i => kvOkK op (dvLpJ.getD i 0) (dvLpNames.getD i "") &&
     kvSKJ op (dvLpJ.getD i 0) == (kcDvLpT op).getD i 0) &&
   (List.range 11).all (fun L => kvOkB op (dlJ.getD L 0) (B1.Da.dlNames.getD L "") &&
     kvSBJ op (dlJ.getD L 0) == (kcDlT op).getD L 0) &&
+  (List.range 11).all (fun L => decide ((coreProgram[rtJ.getD L 0]?).map Fn.name = some (B1.Da.rtNames.getD L "")) &&
+    (B2C.plumbOf (rtJ.getD L 0 + 1)).pmax.getD (B2C.opIdx op) 0 == (rtOmT op).getD L 0) &&
   (List.range 17).all (fun k => kvOkB op (clJ.getD k 0) (B1.Digest.clNames.getD k "") &&
     kvSBJ op (clJ.getD k 0) == (kcClT op).getD k 0) &&
   (List.range 2).all (fun i => kvOkK op (clLpJ.getD i 0) (clLpNames.getD i "") &&
     kvSKJ op (clLpJ.getD i 0) == (kcClLpT op).getD i 0) &&
-  (List.range 4).all (fun i => decide ((coreProgram[mvOmJ.getD i 0]?).map Fn.name = some (mvOmNames.getD i "")) &&
+  (List.range 3).all (fun i => decide ((coreProgram[mvOmJ.getD i 0]?).map Fn.name = some (mvOmNames.getD i "")) &&
     (B2C.plumbOf (mvOmJ.getD i 0 + 1)).pmax.getD (B2C.opIdx op) 0 == (mvOmT op).getD i 0)
 
 end

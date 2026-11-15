@@ -22,15 +22,15 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `__loop16`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node
-    none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil
-    (.node (some Fn.«claim_list_digest_loop0».modeSig) .nil .nil))) .nil) .nil)) .nil) .nil) .nil)
-    .nil) .nil))) .nil) .nil)))), 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none .nil (.node none (.node none (.node none
+    (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil (.node
+    none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
+    .nil (.node (some Fn.«claim_list_digest_loop0».modeSig) .nil .nil))) .nil) .nil)) .nil))) .nil)
+    .nil)) .nil)) .nil) .nil) .nil)), 524287⟩
 
 /-- `__loop16`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨233574, 1242, Fn.«claim_list_digest_loop0».modeSig, (.node none .nil (.node none (.node none
+  ⟨235088, 1242, Fn.«claim_list_digest_loop0».modeSig, (.node none .nil (.node none (.node none
     (.node none (.node (some (List.flatten [[(.witnessHeap "claims" 22 0 4), (.witnessHeap "claims"
     22 4 4), (.witnessHeap "claims" 22 8 4), (.witnessHeap "claims" 22 12 4), (.witnessHeap
     "claims" 22 16 4), (.witnessHeap "claims" 22 20 4), (.witnessHeap "claims" 22 24 4),

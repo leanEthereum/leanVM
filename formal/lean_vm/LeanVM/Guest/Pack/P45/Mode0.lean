@@ -49,7 +49,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `eq_prefix_run__L32`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨180580, 164, Fn.«eq_prefix_run__L32».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨182094, 164, Fn.«eq_prefix_run__L32».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `eq_prefix_run__L32`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -71,7 +71,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `grind_check__L7`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨188608, 52, Fn.«grind_check__L7».modeSig, (.node (some [(.windowsExp 2 (.stack 4) 0 7 11 5),
+  ⟨190122, 52, Fn.«grind_check__L7».modeSig, (.node (some [(.windowsExp 2 (.stack 4) 0 7 11 5),
     (.windowsExp 2 (.stack 4) 5 62 2 1)]) .nil .nil), .nil, .nil, false, .nil⟩
 
 /-- `grind_check__L7`: its mode walk accepts its code. -/
@@ -94,7 +94,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `padding_weight__L24`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨191846, 212, Fn.«padding_weight__L24».modeSig, (.node none .nil (.node (some [(.bitDecompose 8
+  ⟨193360, 212, Fn.«padding_weight__L24».modeSig, (.node none .nil (.node (some [(.bitDecompose 8
     (.stack 9) 25)]) .nil .nil)), .nil, .nil, false, .nil⟩
 
 /-- `padding_weight__L24`: its mode walk accepts its code. -/
@@ -117,7 +117,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `plus_one_run__L5`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨193543, 18, Fn.«plus_one_run__L5».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨195057, 18, Fn.«plus_one_run__L5».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `plus_one_run__L5`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -139,7 +139,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `index_mle__L23`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨202275, 117, Fn.«index_mle__L23».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨203789, 117, Fn.«index_mle__L23».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `index_mle__L23`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -161,7 +161,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `keccak_plain_rounds__L6_L0`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨208807, 105, Fn.«keccak_plain_rounds__L6_L0».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨210321, 105, Fn.«keccak_plain_rounds__L6_L0».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `keccak_plain_rounds__L6_L0`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -183,7 +183,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `column_selector__L13`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨210261, 48, Fn.«column_selector__L13».modeSig, (.node (some [(.digitDecomposeExp 2 (.stack 6) 32
+  ⟨211775, 48, Fn.«column_selector__L13».modeSig, (.node (some [(.digitDecomposeExp 2 (.stack 6) 32
     5 4 12 none)]) .nil .nil), (.node none (.node none .nil (.node (some [(.sub ⟨⟨0, 224, [((.fr
     3), 1), ((.fr 6), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 8),
     2, 224⟩])]) .nil .nil)) .nil), .nil, false, .nil⟩
@@ -208,7 +208,7 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `child_claim_list_last__L9`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨240296, 184, Fn.«child_claim_list_last__L9».modeSig, (.node (some [(.witnessStack
+  ⟨241810, 184, Fn.«child_claim_list_last__L9».modeSig, (.node (some [(.witnessStack
     "child_claim_index" 79 1)]) (.node none (.node none (.node none .nil (.node none (.node (some
     [(.witnessStack "child_claim_index" 106 1)]) .nil .nil) .nil)) (.node none .nil (.node none
     .nil (.node none (.node (some [(.witnessStack "child_claim_index" 142 1)]) .nil .nil) .nil))))

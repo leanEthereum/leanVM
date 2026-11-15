@@ -68,604 +68,604 @@ open LeanVM.Guest
 public section
 
 kernel_rfl tab801 : (Bridge.extraOf 801, Bridge.entsOf 801, Bridge.adviceOf 801) =
-    ([], [("__loop367", 364356), ("__loop368", 364926)], Data.adviceFn801)
+    ([], [("__loop316", 363631)], Data.adviceFn801)
 
 theorem ok801 : Bridge.FnAlOk 801 :=
-  Bridge.fnAlOk_of Checked.code801 Checked.core801 Checked.cert801 Checked.plumbEq801 tab801 rfl Fn.«level_residual__L28_L13_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code801 Checked.core801 Checked.cert801 Checked.plumbEq801 tab801 rfl Fn.«level_residual__L32_L17_L4_L2».alignOk
 
 kernel_rfl tab802 : (Bridge.extraOf 802, Bridge.entsOf 802, Bridge.adviceOf 802) =
-    ([], [("__loop369", 365045), ("__loop370", 365615)], Data.adviceFn802)
+    ([], [("__loop317", 364337), ("__loop318", 364907)], Data.adviceFn802)
 
 theorem ok802 : Bridge.FnAlOk 802 :=
-  Bridge.fnAlOk_of Checked.code802 Checked.core802 Checked.cert802 Checked.plumbEq802 tab802 rfl Fn.«level_residual__L25_L13_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code802 Checked.core802 Checked.cert802 Checked.plumbEq802 tab802 rfl Fn.«level_residual__L28_L13_L4_L2».alignOk
 
 kernel_rfl tab803 : (Bridge.extraOf 803, Bridge.entsOf 803, Bridge.adviceOf 803) =
-    ([], [("__loop371", 365734), ("__loop372", 366304)], Data.adviceFn803)
+    ([], [("__loop319", 365026), ("__loop320", 365596)], Data.adviceFn803)
 
 theorem ok803 : Bridge.FnAlOk 803 :=
-  Bridge.fnAlOk_of Checked.code803 Checked.core803 Checked.cert803 Checked.plumbEq803 tab803 rfl Fn.«level_residual__L23_L13_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code803 Checked.core803 Checked.cert803 Checked.plumbEq803 tab803 rfl Fn.«level_residual__L25_L13_L4_L2».alignOk
 
 kernel_rfl tab804 : (Bridge.extraOf 804, Bridge.entsOf 804, Bridge.adviceOf 804) =
-    ([], [("__loop373", 366423), ("__loop374", 366857)], Data.adviceFn804)
+    ([], [("__loop321", 365715), ("__loop322", 366285)], Data.adviceFn804)
 
 theorem ok804 : Bridge.FnAlOk 804 :=
-  Bridge.fnAlOk_of Checked.code804 Checked.core804 Checked.cert804 Checked.plumbEq804 tab804 rfl Fn.«level_residual__L21_L9_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code804 Checked.core804 Checked.cert804 Checked.plumbEq804 tab804 rfl Fn.«level_residual__L23_L13_L4_L2».alignOk
 
 kernel_rfl tab805 : (Bridge.extraOf 805, Bridge.entsOf 805, Bridge.adviceOf 805) =
-    ([], [("__loop375", 366952), ("__loop376", 367386)], Data.adviceFn805)
+    ([], [("__loop323", 366404), ("__loop324", 366838)], Data.adviceFn805)
 
 theorem ok805 : Bridge.FnAlOk 805 :=
-  Bridge.fnAlOk_of Checked.code805 Checked.core805 Checked.cert805 Checked.plumbEq805 tab805 rfl Fn.«level_residual__L19_L9_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code805 Checked.core805 Checked.cert805 Checked.plumbEq805 tab805 rfl Fn.«level_residual__L21_L9_L4_L2».alignOk
 
 kernel_rfl tab806 : (Bridge.extraOf 806, Bridge.entsOf 806, Bridge.adviceOf 806) =
-    ([], [("__loop377", 367481), ("__loop378", 367915)], Data.adviceFn806)
+    ([], [("__loop325", 366933), ("__loop326", 367367)], Data.adviceFn806)
 
 theorem ok806 : Bridge.FnAlOk 806 :=
-  Bridge.fnAlOk_of Checked.code806 Checked.core806 Checked.cert806 Checked.plumbEq806 tab806 rfl Fn.«level_residual__L18_L9_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code806 Checked.core806 Checked.cert806 Checked.plumbEq806 tab806 rfl Fn.«level_residual__L19_L9_L4_L2».alignOk
 
 kernel_rfl tab807 : (Bridge.extraOf 807, Bridge.entsOf 807, Bridge.adviceOf 807) =
-    ([], [("__loop379", 368010), ("decode_query_windows__L23_L5", 330164)], Data.adviceFn807)
+    ([], [("__loop327", 367462), ("__loop328", 367896)], Data.adviceFn807)
 
 theorem ok807 : Bridge.FnAlOk 807 :=
-  Bridge.fnAlOk_of Checked.code807 Checked.core807 Checked.cert807 Checked.plumbEq807 tab807 rfl Fn.«level_positions__L44_L23_L5».alignOk
+  Bridge.fnAlOk_of Checked.code807 Checked.core807 Checked.cert807 Checked.plumbEq807 tab807 rfl Fn.«level_residual__L18_L9_L4_L2».alignOk
 
 kernel_rfl tab808 : (Bridge.extraOf 808, Bridge.entsOf 808, Bridge.adviceOf 808) =
-    ([], [("__loop380", 368058), ("decode_query_windows__L24_L6", 344162)], Data.adviceFn808)
+    ([], [("__loop329", 367991), ("decode_query_windows__L23_L5", 330145)], Data.adviceFn808)
 
 theorem ok808 : Bridge.FnAlOk 808 :=
-  Bridge.fnAlOk_of Checked.code808 Checked.core808 Checked.cert808 Checked.plumbEq808 tab808 rfl Fn.«level_positions__L22_L24_L6».alignOk
+  Bridge.fnAlOk_of Checked.code808 Checked.core808 Checked.cert808 Checked.plumbEq808 tab808 rfl Fn.«level_positions__L44_L23_L5».alignOk
 
 kernel_rfl tab809 : (Bridge.extraOf 809, Bridge.entsOf 809, Bridge.adviceOf 809) =
-    ([], [("__loop381", 368106), ("decode_query_windows__L25_L7", 355913)], Data.adviceFn809)
+    ([], [("__loop330", 368039), ("decode_query_windows__L24_L6", 344143)], Data.adviceFn809)
 
 theorem ok809 : Bridge.FnAlOk 809 :=
-  Bridge.fnAlOk_of Checked.code809 Checked.core809 Checked.cert809 Checked.plumbEq809 tab809 rfl Fn.«level_positions__L15_L25_L7».alignOk
+  Bridge.fnAlOk_of Checked.code809 Checked.core809 Checked.cert809 Checked.plumbEq809 tab809 rfl Fn.«level_positions__L22_L24_L6».alignOk
 
 kernel_rfl tab810 : (Bridge.extraOf 810, Bridge.entsOf 810, Bridge.adviceOf 810) =
-    ([], [("__loop382", 368385), ("decode_query_windows__L26_L2", 368154)], Data.adviceFn810)
+    ([], [("__loop331", 368087), ("decode_query_windows__L25_L7", 355894)], Data.adviceFn810)
 
 theorem ok810 : Bridge.FnAlOk 810 :=
-  Bridge.fnAlOk_of Checked.code810 Checked.core810 Checked.cert810 Checked.plumbEq810 tab810 rfl Fn.«level_positions__L14_L26_L2».alignOk
+  Bridge.fnAlOk_of Checked.code810 Checked.core810 Checked.cert810 Checked.plumbEq810 tab810 rfl Fn.«level_positions__L15_L25_L7».alignOk
 
 kernel_rfl tab811 : (Bridge.extraOf 811, Bridge.entsOf 811, Bridge.adviceOf 811) =
-    ([], [("opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0", 368433), ("verify_merkle_cap__L5", 280349)], Data.adviceFn811)
+    ([], [("__loop332", 368366), ("decode_query_windows__L26_L2", 368135)], Data.adviceFn811)
 
 theorem ok811 : Bridge.FnAlOk 811 :=
-  Bridge.fnAlOk_of Checked.code811 Checked.core811 Checked.cert811 Checked.plumbEq811 tab811 rfl Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code811 Checked.core811 Checked.cert811 Checked.plumbEq811 tab811 rfl Fn.«level_positions__L14_L26_L2».alignOk
 
 kernel_rfl tab812 : (Bridge.extraOf 812, Bridge.entsOf 812, Bridge.adviceOf 812) =
-    ([], [("opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0", 344476), ("verify_merkle_cap__L6", 281015)], Data.adviceFn812)
+    ([], [("opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0", 368414), ("verify_merkle_cap__L5", 280330)], Data.adviceFn812)
 
 theorem ok812 : Bridge.FnAlOk 812 :=
-  Bridge.fnAlOk_of Checked.code812 Checked.core812 Checked.cert812 Checked.plumbEq812 tab812 rfl Fn.«level_queries__L109_L1_L6_L32_L24_L6_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code812 Checked.core812 Checked.cert812 Checked.plumbEq812 tab812 rfl Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab813 : (Bridge.extraOf 813, Bridge.entsOf 813, Bridge.adviceOf 813) =
-    ([], [("opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0", 356217), ("verify_merkle_cap__L7", 283158)], Data.adviceFn813)
+    ([], [("opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0", 344457), ("verify_merkle_cap__L6", 280996)], Data.adviceFn813)
 
 theorem ok813 : Bridge.FnAlOk 813 :=
-  Bridge.fnAlOk_of Checked.code813 Checked.core813 Checked.cert813 Checked.plumbEq813 tab813 rfl Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code813 Checked.core813 Checked.cert813 Checked.plumbEq813 tab813 rfl Fn.«level_queries__L109_L1_L6_L32_L24_L6_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab814 : (Bridge.extraOf 814, Bridge.entsOf 814, Bridge.adviceOf 814) =
-    ([], [("opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0", 368458), ("verify_merkle_cap__L2", 282554)], Data.adviceFn814)
+    ([], [("opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0", 356198), ("verify_merkle_cap__L7", 283139)], Data.adviceFn814)
 
 theorem ok814 : Bridge.FnAlOk 814 :=
-  Bridge.fnAlOk_of Checked.code814 Checked.core814 Checked.cert814 Checked.plumbEq814 tab814 rfl Fn.«level_queries__L55_L1_L6_L32_L26_L2_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code814 Checked.core814 Checked.cert814 Checked.plumbEq814 tab814 rfl Fn.«level_queries__L73_L1_L6_L32_L25_L7_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab815 : (Bridge.extraOf 815, Bridge.entsOf 815, Bridge.adviceOf 815) =
-    ([], [("__loop383", 368778), ("decode_query_windows__L23_L5", 330164)], Data.adviceFn815)
+    ([], [("opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0", 368439), ("verify_merkle_cap__L2", 282535)], Data.adviceFn815)
 
 theorem ok815 : Bridge.FnAlOk 815 :=
-  Bridge.fnAlOk_of Checked.code815 Checked.core815 Checked.cert815 Checked.plumbEq815 tab815 rfl Fn.«level_positions__L9_L23_L5».alignOk
+  Bridge.fnAlOk_of Checked.code815 Checked.core815 Checked.cert815 Checked.plumbEq815 tab815 rfl Fn.«level_queries__L55_L1_L6_L32_L26_L2_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab816 : (Bridge.extraOf 816, Bridge.entsOf 816, Bridge.adviceOf 816) =
-    ([], [("__loop384", 368826), ("decode_query_windows__L24_L6", 344162)], Data.adviceFn816)
+    ([], [("__loop333", 368759), ("decode_query_windows__L23_L5", 330145)], Data.adviceFn816)
 
 theorem ok816 : Bridge.FnAlOk 816 :=
-  Bridge.fnAlOk_of Checked.code816 Checked.core816 Checked.cert816 Checked.plumbEq816 tab816 rfl Fn.«level_positions__L8_L24_L6».alignOk
+  Bridge.fnAlOk_of Checked.code816 Checked.core816 Checked.cert816 Checked.plumbEq816 tab816 rfl Fn.«level_positions__L9_L23_L5».alignOk
 
 kernel_rfl tab817 : (Bridge.extraOf 817, Bridge.entsOf 817, Bridge.adviceOf 817) =
-    ([], [("__loop385", 368874), ("decode_query_windows__L25_L7", 355913)], Data.adviceFn817)
+    ([], [("__loop334", 368807), ("decode_query_windows__L24_L6", 344143)], Data.adviceFn817)
 
 theorem ok817 : Bridge.FnAlOk 817 :=
-  Bridge.fnAlOk_of Checked.code817 Checked.core817 Checked.cert817 Checked.plumbEq817 tab817 rfl Fn.«level_positions__L7_L25_L7».alignOk
+  Bridge.fnAlOk_of Checked.code817 Checked.core817 Checked.cert817 Checked.plumbEq817 tab817 rfl Fn.«level_positions__L8_L24_L6».alignOk
 
 kernel_rfl tab818 : (Bridge.extraOf 818, Bridge.entsOf 818, Bridge.adviceOf 818) =
-    ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", 333741), ("verify_merkle_cap__L4", 279859)], Data.adviceFn818)
+    ([], [("__loop335", 368855), ("decode_query_windows__L25_L7", 355894)], Data.adviceFn818)
 
 theorem ok818 : Bridge.FnAlOk 818 :=
-  Bridge.fnAlOk_of Checked.code818 Checked.core818 Checked.cert818 Checked.plumbEq818 tab818 rfl Fn.«level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code818 Checked.core818 Checked.cert818 Checked.plumbEq818 tab818 rfl Fn.«level_positions__L7_L25_L7».alignOk
 
 kernel_rfl tab819 : (Bridge.extraOf 819, Bridge.entsOf 819, Bridge.adviceOf 819) =
-    ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 344942), ("verify_merkle_cap__L5", 280349)], Data.adviceFn819)
+    ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", 333722), ("verify_merkle_cap__L4", 279840)], Data.adviceFn819)
 
 theorem ok819 : Bridge.FnAlOk 819 :=
-  Bridge.fnAlOk_of Checked.code819 Checked.core819 Checked.cert819 Checked.plumbEq819 tab819 rfl Fn.«level_queries__L44_L0_L4_L16_L23_L5_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code819 Checked.core819 Checked.cert819 Checked.plumbEq819 tab819 rfl Fn.«level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab820 : (Bridge.extraOf 820, Bridge.entsOf 820, Bridge.adviceOf 820) =
-    ([], [("opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", 356681), ("verify_merkle_cap__L6", 281015)], Data.adviceFn820)
+    ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 344923), ("verify_merkle_cap__L5", 280330)], Data.adviceFn820)
 
 theorem ok820 : Bridge.FnAlOk 820 :=
-  Bridge.fnAlOk_of Checked.code820 Checked.core820 Checked.cert820 Checked.plumbEq820 tab820 rfl Fn.«level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code820 Checked.core820 Checked.cert820 Checked.plumbEq820 tab820 rfl Fn.«level_queries__L44_L0_L4_L16_L23_L5_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab821 : (Bridge.extraOf 821, Bridge.entsOf 821, Bridge.adviceOf 821) =
-    ([], [("opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0", 368922), ("verify_merkle_cap__L7", 283158)], Data.adviceFn821)
+    ([], [("opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", 356662), ("verify_merkle_cap__L6", 280996)], Data.adviceFn821)
 
 theorem ok821 : Bridge.FnAlOk 821 :=
-  Bridge.fnAlOk_of Checked.code821 Checked.core821 Checked.cert821 Checked.plumbEq821 tab821 rfl Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code821 Checked.core821 Checked.cert821 Checked.plumbEq821 tab821 rfl Fn.«level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab822 : (Bridge.extraOf 822, Bridge.entsOf 822, Bridge.adviceOf 822) =
-    ([], [("__loop386", 368947), ("decode_query_windows__L22_L4", 319266)], Data.adviceFn822)
+    ([], [("opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0", 368903), ("verify_merkle_cap__L7", 283139)], Data.adviceFn822)
 
 theorem ok822 : Bridge.FnAlOk 822 :=
-  Bridge.fnAlOk_of Checked.code822 Checked.core822 Checked.cert822 Checked.plumbEq822 tab822 rfl Fn.«level_positions__L6_L22_L4».alignOk
+  Bridge.fnAlOk_of Checked.code822 Checked.core822 Checked.cert822 Checked.plumbEq822 tab822 rfl Fn.«level_queries__L32_L0_L4_L16_L25_L7_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab823 : (Bridge.extraOf 823, Bridge.entsOf 823, Bridge.adviceOf 823) =
-    ([], [("__loop387", 368995), ("decode_query_windows__L24_L6", 344162)], Data.adviceFn823)
+    ([], [("__loop336", 368928), ("decode_query_windows__L22_L4", 319247)], Data.adviceFn823)
 
 theorem ok823 : Bridge.FnAlOk 823 :=
-  Bridge.fnAlOk_of Checked.code823 Checked.core823 Checked.cert823 Checked.plumbEq823 tab823 rfl Fn.«level_positions__L5_L24_L6».alignOk
+  Bridge.fnAlOk_of Checked.code823 Checked.core823 Checked.cert823 Checked.plumbEq823 tab823 rfl Fn.«level_positions__L6_L22_L4».alignOk
 
 kernel_rfl tab824 : (Bridge.extraOf 824, Bridge.entsOf 824, Bridge.adviceOf 824) =
-    ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", 333741), ("verify_merkle_cap__L4", 279859)], Data.adviceFn824)
+    ([], [("__loop337", 368976), ("decode_query_windows__L24_L6", 344143)], Data.adviceFn824)
 
 theorem ok824 : Bridge.FnAlOk 824 :=
-  Bridge.fnAlOk_of Checked.code824 Checked.core824 Checked.cert824 Checked.plumbEq824 tab824 rfl Fn.«level_queries__L28_L0_L4_L16_L22_L4_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code824 Checked.core824 Checked.cert824 Checked.plumbEq824 tab824 rfl Fn.«level_positions__L5_L24_L6».alignOk
 
 kernel_rfl tab825 : (Bridge.extraOf 825, Bridge.entsOf 825, Bridge.adviceOf 825) =
-    ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 344942), ("verify_merkle_cap__L5", 280349)], Data.adviceFn825)
+    ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", 333722), ("verify_merkle_cap__L4", 279840)], Data.adviceFn825)
 
 theorem ok825 : Bridge.FnAlOk 825 :=
-  Bridge.fnAlOk_of Checked.code825 Checked.core825 Checked.cert825 Checked.plumbEq825 tab825 rfl Fn.«level_queries__L25_L0_L4_L16_L23_L5_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code825 Checked.core825 Checked.cert825 Checked.plumbEq825 tab825 rfl Fn.«level_queries__L28_L0_L4_L16_L22_L4_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab826 : (Bridge.extraOf 826, Bridge.entsOf 826, Bridge.adviceOf 826) =
-    ([], [("opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", 356681), ("verify_merkle_cap__L6", 281015)], Data.adviceFn826)
+    ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 344923), ("verify_merkle_cap__L5", 280330)], Data.adviceFn826)
 
 theorem ok826 : Bridge.FnAlOk 826 :=
-  Bridge.fnAlOk_of Checked.code826 Checked.core826 Checked.cert826 Checked.plumbEq826 tab826 rfl Fn.«level_queries__L23_L0_L4_L16_L24_L6_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code826 Checked.core826 Checked.cert826 Checked.plumbEq826 tab826 rfl Fn.«level_queries__L25_L0_L4_L16_L23_L5_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab827 : (Bridge.extraOf 827, Bridge.entsOf 827, Bridge.adviceOf 827) =
-    ([], [("__loop388", 369043), ("decode_query_windows__L23_L5", 330164)], Data.adviceFn827)
+    ([], [("opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", 356662), ("verify_merkle_cap__L6", 280996)], Data.adviceFn827)
 
 theorem ok827 : Bridge.FnAlOk 827 :=
-  Bridge.fnAlOk_of Checked.code827 Checked.core827 Checked.cert827 Checked.plumbEq827 tab827 rfl Fn.«level_positions__L4_L23_L5».alignOk
+  Bridge.fnAlOk_of Checked.code827 Checked.core827 Checked.cert827 Checked.plumbEq827 tab827 rfl Fn.«level_queries__L23_L0_L4_L16_L24_L6_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab828 : (Bridge.extraOf 828, Bridge.entsOf 828, Bridge.adviceOf 828) =
-    ([], [("opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0", 320056), ("verify_merkle_cap__L3", 279457)], Data.adviceFn828)
+    ([], [("__loop338", 369024), ("decode_query_windows__L23_L5", 330145)], Data.adviceFn828)
 
 theorem ok828 : Bridge.FnAlOk 828 :=
-  Bridge.fnAlOk_of Checked.code828 Checked.core828 Checked.cert828 Checked.plumbEq828 tab828 rfl Fn.«level_queries__L21_L0_L4_L16_L21_L3_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code828 Checked.core828 Checked.cert828 Checked.plumbEq828 tab828 rfl Fn.«level_positions__L4_L23_L5».alignOk
 
 kernel_rfl tab829 : (Bridge.extraOf 829, Bridge.entsOf 829, Bridge.adviceOf 829) =
-    ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", 333741), ("verify_merkle_cap__L4", 279859)], Data.adviceFn829)
+    ([], [("opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0", 320037), ("verify_merkle_cap__L3", 279438)], Data.adviceFn829)
 
 theorem ok829 : Bridge.FnAlOk 829 :=
-  Bridge.fnAlOk_of Checked.code829 Checked.core829 Checked.cert829 Checked.plumbEq829 tab829 rfl Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code829 Checked.core829 Checked.cert829 Checked.plumbEq829 tab829 rfl Fn.«level_queries__L21_L0_L4_L16_L21_L3_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab830 : (Bridge.extraOf 830, Bridge.entsOf 830, Bridge.adviceOf 830) =
-    ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 344942), ("verify_merkle_cap__L5", 280349)], Data.adviceFn830)
+    ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", 333722), ("verify_merkle_cap__L4", 279840)], Data.adviceFn830)
 
 theorem ok830 : Bridge.FnAlOk 830 :=
-  Bridge.fnAlOk_of Checked.code830 Checked.core830 Checked.cert830 Checked.plumbEq830 tab830 rfl Fn.«level_queries__L18_L0_L4_L16_L23_L5_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code830 Checked.core830 Checked.cert830 Checked.plumbEq830 tab830 rfl Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab831 : (Bridge.extraOf 831, Bridge.entsOf 831, Bridge.adviceOf 831) =
-    ([], [("__loop389", 369091), ("decode_query_windows__L22_L4", 319266)], Data.adviceFn831)
+    ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 344923), ("verify_merkle_cap__L5", 280330)], Data.adviceFn831)
 
 theorem ok831 : Bridge.FnAlOk 831 :=
-  Bridge.fnAlOk_of Checked.code831 Checked.core831 Checked.cert831 Checked.plumbEq831 tab831 rfl Fn.«level_positions__L3_L22_L4».alignOk
+  Bridge.fnAlOk_of Checked.code831 Checked.core831 Checked.cert831 Checked.plumbEq831 tab831 rfl Fn.«level_queries__L18_L0_L4_L16_L23_L5_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab832 : (Bridge.extraOf 832, Bridge.entsOf 832, Bridge.adviceOf 832) =
-    ([], [("opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0", 310648), ("verify_merkle_cap__L2", 282554)], Data.adviceFn832)
+    ([], [("__loop339", 369072), ("decode_query_windows__L22_L4", 319247)], Data.adviceFn832)
 
 theorem ok832 : Bridge.FnAlOk 832 :=
-  Bridge.fnAlOk_of Checked.code832 Checked.core832 Checked.cert832 Checked.plumbEq832 tab832 rfl Fn.«level_queries__L17_L0_L4_L16_L20_L2_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code832 Checked.core832 Checked.cert832 Checked.plumbEq832 tab832 rfl Fn.«level_positions__L3_L22_L4».alignOk
 
 kernel_rfl tab833 : (Bridge.extraOf 833, Bridge.entsOf 833, Bridge.adviceOf 833) =
-    ([], [("opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0", 320056), ("verify_merkle_cap__L3", 279457)], Data.adviceFn833)
+    ([], [("opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0", 310629), ("verify_merkle_cap__L2", 282535)], Data.adviceFn833)
 
 theorem ok833 : Bridge.FnAlOk 833 :=
-  Bridge.fnAlOk_of Checked.code833 Checked.core833 Checked.cert833 Checked.plumbEq833 tab833 rfl Fn.«level_queries__L16_L0_L4_L16_L21_L3_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code833 Checked.core833 Checked.cert833 Checked.plumbEq833 tab833 rfl Fn.«level_queries__L17_L0_L4_L16_L20_L2_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab834 : (Bridge.extraOf 834, Bridge.entsOf 834, Bridge.adviceOf 834) =
-    ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", 333741), ("verify_merkle_cap__L4", 279859)], Data.adviceFn834)
+    ([], [("opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0", 320037), ("verify_merkle_cap__L3", 279438)], Data.adviceFn834)
 
 theorem ok834 : Bridge.FnAlOk 834 :=
-  Bridge.fnAlOk_of Checked.code834 Checked.core834 Checked.cert834 Checked.plumbEq834 tab834 rfl Fn.«level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code834 Checked.core834 Checked.cert834 Checked.plumbEq834 tab834 rfl Fn.«level_queries__L16_L0_L4_L16_L21_L3_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab835 : (Bridge.extraOf 835, Bridge.entsOf 835, Bridge.adviceOf 835) =
-    ([], [("opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1", 369139), ("verify_merkle_cap__L7", 283158)], Data.adviceFn835)
+    ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", 333722), ("verify_merkle_cap__L4", 279840)], Data.adviceFn835)
 
 theorem ok835 : Bridge.FnAlOk 835 :=
-  Bridge.fnAlOk_of Checked.code835 Checked.core835 Checked.cert835 Checked.plumbEq835 tab835 rfl Fn.«level_queries__L15_L0_L4_L16_L19_L7_L2_L8_L3_L1».alignOk
+  Bridge.fnAlOk_of Checked.code835 Checked.core835 Checked.cert835 Checked.plumbEq835 tab835 rfl Fn.«level_queries__L15_L0_L4_L16_L22_L4_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab836 : (Bridge.extraOf 836, Bridge.entsOf 836, Bridge.adviceOf 836) =
-    ([], [("opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1", 369162), ("verify_merkle_cap__L2", 282554)], Data.adviceFn836)
+    ([], [("opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1", 369120), ("verify_merkle_cap__L7", 283139)], Data.adviceFn836)
 
 theorem ok836 : Bridge.FnAlOk 836 :=
-  Bridge.fnAlOk_of Checked.code836 Checked.core836 Checked.cert836 Checked.plumbEq836 tab836 rfl Fn.«level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1».alignOk
+  Bridge.fnAlOk_of Checked.code836 Checked.core836 Checked.cert836 Checked.plumbEq836 tab836 rfl Fn.«level_queries__L15_L0_L4_L16_L19_L7_L2_L8_L3_L1».alignOk
 
 kernel_rfl tab837 : (Bridge.extraOf 837, Bridge.entsOf 837, Bridge.adviceOf 837) =
-    ([], [("opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1", 369185), ("verify_merkle_cap__L3", 279457)], Data.adviceFn837)
+    ([], [("opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1", 369143), ("verify_merkle_cap__L2", 282535)], Data.adviceFn837)
 
 theorem ok837 : Bridge.FnAlOk 837 :=
-  Bridge.fnAlOk_of Checked.code837 Checked.core837 Checked.cert837 Checked.plumbEq837 tab837 rfl Fn.«level_queries__L14_L0_L4_L16_L21_L3_L2_L8_L3_L1».alignOk
+  Bridge.fnAlOk_of Checked.code837 Checked.core837 Checked.cert837 Checked.plumbEq837 tab837 rfl Fn.«level_queries__L15_L0_L4_L16_L20_L2_L2_L8_L3_L1».alignOk
 
 kernel_rfl tab838 : (Bridge.extraOf 838, Bridge.entsOf 838, Bridge.adviceOf 838) =
-    ([], [("__loop390", 369208), ("__loop391", 370126)], Data.adviceFn838)
+    ([], [("opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1", 369166), ("verify_merkle_cap__L3", 279438)], Data.adviceFn838)
 
 theorem ok838 : Bridge.FnAlOk 838 :=
-  Bridge.fnAlOk_of Checked.code838 Checked.core838 Checked.cert838 Checked.plumbEq838 tab838 rfl Fn.«level_residual__L218_L22_L6_L3».alignOk
+  Bridge.fnAlOk_of Checked.code838 Checked.core838 Checked.cert838 Checked.plumbEq838 tab838 rfl Fn.«level_queries__L14_L0_L4_L16_L21_L3_L2_L8_L3_L1».alignOk
 
 kernel_rfl tab839 : (Bridge.extraOf 839, Bridge.entsOf 839, Bridge.adviceOf 839) =
-    ([], [("__loop392", 370306), ("__loop393", 371224)], Data.adviceFn839)
+    ([], [("__loop340", 369189), ("__loop341", 370107)], Data.adviceFn839)
 
 theorem ok839 : Bridge.FnAlOk 839 :=
-  Bridge.fnAlOk_of Checked.code839 Checked.core839 Checked.cert839 Checked.plumbEq839 tab839 rfl Fn.«level_residual__L109_L22_L6_L3».alignOk
+  Bridge.fnAlOk_of Checked.code839 Checked.core839 Checked.cert839 Checked.plumbEq839 tab839 rfl Fn.«level_residual__L218_L22_L6_L3».alignOk
 
 kernel_rfl tab840 : (Bridge.extraOf 840, Bridge.entsOf 840, Bridge.adviceOf 840) =
-    ([], [("__loop394", 371404), ("__loop395", 372322)], Data.adviceFn840)
+    ([], [("__loop342", 370287), ("__loop343", 371205)], Data.adviceFn840)
 
 theorem ok840 : Bridge.FnAlOk 840 :=
-  Bridge.fnAlOk_of Checked.code840 Checked.core840 Checked.cert840 Checked.plumbEq840 tab840 rfl Fn.«level_residual__L73_L22_L6_L3».alignOk
+  Bridge.fnAlOk_of Checked.code840 Checked.core840 Checked.cert840 Checked.plumbEq840 tab840 rfl Fn.«level_residual__L109_L22_L6_L3».alignOk
 
 kernel_rfl tab841 : (Bridge.extraOf 841, Bridge.entsOf 841, Bridge.adviceOf 841) =
-    ([], [("__loop396", 372502), ("__loop397", 373420)], Data.adviceFn841)
+    ([], [("__loop344", 371385), ("__loop345", 372303)], Data.adviceFn841)
 
 theorem ok841 : Bridge.FnAlOk 841 :=
-  Bridge.fnAlOk_of Checked.code841 Checked.core841 Checked.cert841 Checked.plumbEq841 tab841 rfl Fn.«level_residual__L55_L22_L6_L3».alignOk
+  Bridge.fnAlOk_of Checked.code841 Checked.core841 Checked.cert841 Checked.plumbEq841 tab841 rfl Fn.«level_residual__L73_L22_L6_L3».alignOk
 
 kernel_rfl tab842 : (Bridge.extraOf 842, Bridge.entsOf 842, Bridge.adviceOf 842) =
-    ([], [("__loop398", 373600), ("__loop399", 374340)], Data.adviceFn842)
+    ([], [("__loop346", 372483), ("__loop347", 373401)], Data.adviceFn842)
 
 theorem ok842 : Bridge.FnAlOk 842 :=
-  Bridge.fnAlOk_of Checked.code842 Checked.core842 Checked.cert842 Checked.plumbEq842 tab842 rfl Fn.«level_residual__L55_L18_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code842 Checked.core842 Checked.cert842 Checked.plumbEq842 tab842 rfl Fn.«level_residual__L55_L22_L6_L3».alignOk
 
 kernel_rfl tab843 : (Bridge.extraOf 843, Bridge.entsOf 843, Bridge.adviceOf 843) =
-    ([], [("__loop400", 374489), ("__loop401", 375229)], Data.adviceFn843)
+    ([], [("__loop348", 373581), ("__loop349", 374321)], Data.adviceFn843)
 
 theorem ok843 : Bridge.FnAlOk 843 :=
-  Bridge.fnAlOk_of Checked.code843 Checked.core843 Checked.cert843 Checked.plumbEq843 tab843 rfl Fn.«level_residual__L44_L18_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code843 Checked.core843 Checked.cert843 Checked.plumbEq843 tab843 rfl Fn.«level_residual__L55_L18_L4_L2».alignOk
 
 kernel_rfl tab844 : (Bridge.extraOf 844, Bridge.entsOf 844, Bridge.adviceOf 844) =
-    ([], [("__loop402", 375378), ("__loop403", 376118)], Data.adviceFn844)
+    ([], [("__loop350", 374470), ("__loop351", 375210)], Data.adviceFn844)
 
 theorem ok844 : Bridge.FnAlOk 844 :=
-  Bridge.fnAlOk_of Checked.code844 Checked.core844 Checked.cert844 Checked.plumbEq844 tab844 rfl Fn.«level_residual__L37_L18_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code844 Checked.core844 Checked.cert844 Checked.plumbEq844 tab844 rfl Fn.«level_residual__L44_L18_L4_L2».alignOk
 
 kernel_rfl tab845 : (Bridge.extraOf 845, Bridge.entsOf 845, Bridge.adviceOf 845) =
-    ([], [("__loop404", 376267)], Data.adviceFn845)
+    ([], [("__loop352", 375359), ("__loop353", 376099)], Data.adviceFn845)
 
 theorem ok845 : Bridge.FnAlOk 845 :=
-  Bridge.fnAlOk_of Checked.code845 Checked.core845 Checked.cert845 Checked.plumbEq845 tab845 rfl Fn.«level_residual__L32_L18_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code845 Checked.core845 Checked.cert845 Checked.plumbEq845 tab845 rfl Fn.«level_residual__L37_L18_L4_L2».alignOk
 
 kernel_rfl tab846 : (Bridge.extraOf 846, Bridge.entsOf 846, Bridge.adviceOf 846) =
-    ([], [("__loop405", 377007), ("__loop406", 377611)], Data.adviceFn846)
+    ([], [("__loop354", 376248)], Data.adviceFn846)
 
 theorem ok846 : Bridge.FnAlOk 846 :=
-  Bridge.fnAlOk_of Checked.code846 Checked.core846 Checked.cert846 Checked.plumbEq846 tab846 rfl Fn.«level_residual__L28_L14_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code846 Checked.core846 Checked.cert846 Checked.plumbEq846 tab846 rfl Fn.«level_residual__L32_L18_L4_L2».alignOk
 
 kernel_rfl tab847 : (Bridge.extraOf 847, Bridge.entsOf 847, Bridge.adviceOf 847) =
-    ([], [("__loop407", 377736), ("__loop408", 378340)], Data.adviceFn847)
+    ([], [("__loop355", 376988), ("__loop356", 377592)], Data.adviceFn847)
 
 theorem ok847 : Bridge.FnAlOk 847 :=
-  Bridge.fnAlOk_of Checked.code847 Checked.core847 Checked.cert847 Checked.plumbEq847 tab847 rfl Fn.«level_residual__L25_L14_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code847 Checked.core847 Checked.cert847 Checked.plumbEq847 tab847 rfl Fn.«level_residual__L28_L14_L4_L2».alignOk
 
 kernel_rfl tab848 : (Bridge.extraOf 848, Bridge.entsOf 848, Bridge.adviceOf 848) =
-    ([], [("__loop409", 378465), ("__loop410", 379069)], Data.adviceFn848)
+    ([], [("__loop357", 377717), ("__loop358", 378321)], Data.adviceFn848)
 
 theorem ok848 : Bridge.FnAlOk 848 :=
-  Bridge.fnAlOk_of Checked.code848 Checked.core848 Checked.cert848 Checked.plumbEq848 tab848 rfl Fn.«level_residual__L23_L14_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code848 Checked.core848 Checked.cert848 Checked.plumbEq848 tab848 rfl Fn.«level_residual__L25_L14_L4_L2».alignOk
 
 kernel_rfl tab849 : (Bridge.extraOf 849, Bridge.entsOf 849, Bridge.adviceOf 849) =
-    ([], [("__loop411", 379194), ("__loop412", 379662)], Data.adviceFn849)
+    ([], [("__loop359", 378446), ("__loop360", 379050)], Data.adviceFn849)
 
 theorem ok849 : Bridge.FnAlOk 849 :=
-  Bridge.fnAlOk_of Checked.code849 Checked.core849 Checked.cert849 Checked.plumbEq849 tab849 rfl Fn.«level_residual__L21_L10_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code849 Checked.core849 Checked.cert849 Checked.plumbEq849 tab849 rfl Fn.«level_residual__L23_L14_L4_L2».alignOk
 
 kernel_rfl tab850 : (Bridge.extraOf 850, Bridge.entsOf 850, Bridge.adviceOf 850) =
-    ([], [("__loop413", 379763), ("__loop414", 380231)], Data.adviceFn850)
+    ([], [("__loop361", 379175), ("__loop362", 379643)], Data.adviceFn850)
 
 theorem ok850 : Bridge.FnAlOk 850 :=
-  Bridge.fnAlOk_of Checked.code850 Checked.core850 Checked.cert850 Checked.plumbEq850 tab850 rfl Fn.«level_residual__L19_L10_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code850 Checked.core850 Checked.cert850 Checked.plumbEq850 tab850 rfl Fn.«level_residual__L21_L10_L4_L2».alignOk
 
 kernel_rfl tab851 : (Bridge.extraOf 851, Bridge.entsOf 851, Bridge.adviceOf 851) =
-    ([], [("__loop415", 380332), ("__loop416", 380800)], Data.adviceFn851)
+    ([], [("__loop363", 379744), ("__loop364", 380212)], Data.adviceFn851)
 
 theorem ok851 : Bridge.FnAlOk 851 :=
-  Bridge.fnAlOk_of Checked.code851 Checked.core851 Checked.cert851 Checked.plumbEq851 tab851 rfl Fn.«level_residual__L18_L10_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code851 Checked.core851 Checked.cert851 Checked.plumbEq851 tab851 rfl Fn.«level_residual__L19_L10_L4_L2».alignOk
 
 kernel_rfl tab852 : (Bridge.extraOf 852, Bridge.entsOf 852, Bridge.adviceOf 852) =
-    ([], [("__loop417", 380901), ("__loop418", 381233)], Data.adviceFn852)
+    ([], [("__loop365", 380313), ("__loop366", 380781)], Data.adviceFn852)
 
 theorem ok852 : Bridge.FnAlOk 852 :=
-  Bridge.fnAlOk_of Checked.code852 Checked.core852 Checked.cert852 Checked.plumbEq852 tab852 rfl Fn.«level_residual__L17_L6_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code852 Checked.core852 Checked.cert852 Checked.plumbEq852 tab852 rfl Fn.«level_residual__L18_L10_L4_L2».alignOk
 
 kernel_rfl tab853 : (Bridge.extraOf 853, Bridge.entsOf 853, Bridge.adviceOf 853) =
-    ([], [("__loop419", 381310)], Data.adviceFn853)
+    ([], [("__loop367", 380882), ("__loop368", 381214)], Data.adviceFn853)
 
 theorem ok853 : Bridge.FnAlOk 853 :=
-  Bridge.fnAlOk_of Checked.code853 Checked.core853 Checked.cert853 Checked.plumbEq853 tab853 rfl Fn.«level_residual__L16_L6_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code853 Checked.core853 Checked.cert853 Checked.plumbEq853 tab853 rfl Fn.«level_residual__L17_L6_L4_L2».alignOk
 
 kernel_rfl tab854 : (Bridge.extraOf 854, Bridge.entsOf 854, Bridge.adviceOf 854) =
-    ([], [("__loop420", 381642), ("__loop421", 381974)], Data.adviceFn854)
+    ([], [("__loop369", 381291)], Data.adviceFn854)
 
 theorem ok854 : Bridge.FnAlOk 854 :=
-  Bridge.fnAlOk_of Checked.code854 Checked.core854 Checked.cert854 Checked.plumbEq854 tab854 rfl Fn.«level_residual__L15_L6_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code854 Checked.core854 Checked.cert854 Checked.plumbEq854 tab854 rfl Fn.«level_residual__L16_L6_L4_L2».alignOk
 
 kernel_rfl tab855 : (Bridge.extraOf 855, Bridge.entsOf 855, Bridge.adviceOf 855) =
-    ([], [("__loop422", 382051), ("decode_query_windows__L24_L6", 344162)], Data.adviceFn855)
+    ([], [("__loop370", 381623), ("__loop371", 381955)], Data.adviceFn855)
 
 theorem ok855 : Bridge.FnAlOk 855 :=
-  Bridge.fnAlOk_of Checked.code855 Checked.core855 Checked.cert855 Checked.plumbEq855 tab855 rfl Fn.«level_positions__L44_L24_L6».alignOk
+  Bridge.fnAlOk_of Checked.code855 Checked.core855 Checked.cert855 Checked.plumbEq855 tab855 rfl Fn.«level_residual__L15_L6_L4_L2».alignOk
 
 kernel_rfl tab856 : (Bridge.extraOf 856, Bridge.entsOf 856, Bridge.adviceOf 856) =
-    ([], [("__loop423", 382099), ("decode_query_windows__L25_L7", 355913)], Data.adviceFn856)
+    ([], [("__loop372", 382032), ("decode_query_windows__L24_L6", 344143)], Data.adviceFn856)
 
 theorem ok856 : Bridge.FnAlOk 856 :=
-  Bridge.fnAlOk_of Checked.code856 Checked.core856 Checked.cert856 Checked.plumbEq856 tab856 rfl Fn.«level_positions__L22_L25_L7».alignOk
+  Bridge.fnAlOk_of Checked.code856 Checked.core856 Checked.cert856 Checked.plumbEq856 tab856 rfl Fn.«level_positions__L44_L24_L6».alignOk
 
 kernel_rfl tab857 : (Bridge.extraOf 857, Bridge.entsOf 857, Bridge.adviceOf 857) =
-    ([], [("__loop424", 382147), ("decode_query_windows__L26_L2", 368154)], Data.adviceFn857)
+    ([], [("__loop373", 382080), ("decode_query_windows__L25_L7", 355894)], Data.adviceFn857)
 
 theorem ok857 : Bridge.FnAlOk 857 :=
-  Bridge.fnAlOk_of Checked.code857 Checked.core857 Checked.cert857 Checked.plumbEq857 tab857 rfl Fn.«level_positions__L19_L26_L2».alignOk
+  Bridge.fnAlOk_of Checked.code857 Checked.core857 Checked.cert857 Checked.plumbEq857 tab857 rfl Fn.«level_positions__L22_L25_L7».alignOk
 
 kernel_rfl tab858 : (Bridge.extraOf 858, Bridge.entsOf 858, Bridge.adviceOf 858) =
-    ([], [("__loop425", 382434), ("decode_query_windows__L27_L3", 382195)], Data.adviceFn858)
+    ([], [("__loop374", 382128), ("decode_query_windows__L26_L2", 368135)], Data.adviceFn858)
 
 theorem ok858 : Bridge.FnAlOk 858 :=
-  Bridge.fnAlOk_of Checked.code858 Checked.core858 Checked.cert858 Checked.plumbEq858 tab858 rfl Fn.«level_positions__L14_L27_L3».alignOk
+  Bridge.fnAlOk_of Checked.code858 Checked.core858 Checked.cert858 Checked.plumbEq858 tab858 rfl Fn.«level_positions__L19_L26_L2».alignOk
 
 kernel_rfl tab859 : (Bridge.extraOf 859, Bridge.entsOf 859, Bridge.adviceOf 859) =
-    ([], [("opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0", 382482), ("verify_merkle_cap__L6", 281015)], Data.adviceFn859)
+    ([], [("__loop375", 382415), ("decode_query_windows__L27_L3", 382176)], Data.adviceFn859)
 
 theorem ok859 : Bridge.FnAlOk 859 :=
-  Bridge.fnAlOk_of Checked.code859 Checked.core859 Checked.cert859 Checked.plumbEq859 tab859 rfl Fn.«level_queries__L218_L1_L6_L32_L24_L6_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code859 Checked.core859 Checked.cert859 Checked.plumbEq859 tab859 rfl Fn.«level_positions__L14_L27_L3».alignOk
 
 kernel_rfl tab860 : (Bridge.extraOf 860, Bridge.entsOf 860, Bridge.adviceOf 860) =
-    ([], [("opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0", 356217), ("verify_merkle_cap__L7", 283158)], Data.adviceFn860)
+    ([], [("opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0", 382463), ("verify_merkle_cap__L6", 280996)], Data.adviceFn860)
 
 theorem ok860 : Bridge.FnAlOk 860 :=
-  Bridge.fnAlOk_of Checked.code860 Checked.core860 Checked.cert860 Checked.plumbEq860 tab860 rfl Fn.«level_queries__L109_L1_L6_L32_L25_L7_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code860 Checked.core860 Checked.cert860 Checked.plumbEq860 tab860 rfl Fn.«level_queries__L218_L1_L6_L32_L24_L6_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab861 : (Bridge.extraOf 861, Bridge.entsOf 861, Bridge.adviceOf 861) =
-    ([], [("opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0", 368458), ("verify_merkle_cap__L2", 282554)], Data.adviceFn861)
+    ([], [("opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0", 356198), ("verify_merkle_cap__L7", 283139)], Data.adviceFn861)
 
 theorem ok861 : Bridge.FnAlOk 861 :=
-  Bridge.fnAlOk_of Checked.code861 Checked.core861 Checked.cert861 Checked.plumbEq861 tab861 rfl Fn.«level_queries__L73_L1_L6_L32_L26_L2_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code861 Checked.core861 Checked.cert861 Checked.plumbEq861 tab861 rfl Fn.«level_queries__L109_L1_L6_L32_L25_L7_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab862 : (Bridge.extraOf 862, Bridge.entsOf 862, Bridge.adviceOf 862) =
-    ([], [("opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0", 382507), ("verify_merkle_cap__L3", 279457)], Data.adviceFn862)
+    ([], [("opening_queries__L1_L1_L6_L32_L26_L2_L0_L0_L0_L0_L0", 368439), ("verify_merkle_cap__L2", 282535)], Data.adviceFn862)
 
 theorem ok862 : Bridge.FnAlOk 862 :=
-  Bridge.fnAlOk_of Checked.code862 Checked.core862 Checked.cert862 Checked.plumbEq862 tab862 rfl Fn.«level_queries__L55_L1_L6_L32_L27_L3_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code862 Checked.core862 Checked.cert862 Checked.plumbEq862 tab862 rfl Fn.«level_queries__L73_L1_L6_L32_L26_L2_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab863 : (Bridge.extraOf 863, Bridge.entsOf 863, Bridge.adviceOf 863) =
-    ([], [("__loop426", 382827), ("decode_query_windows__L24_L6", 344162)], Data.adviceFn863)
+    ([], [("opening_queries__L1_L1_L6_L32_L27_L3_L0_L0_L0_L0_L0", 382488), ("verify_merkle_cap__L3", 279438)], Data.adviceFn863)
 
 theorem ok863 : Bridge.FnAlOk 863 :=
-  Bridge.fnAlOk_of Checked.code863 Checked.core863 Checked.cert863 Checked.plumbEq863 tab863 rfl Fn.«level_positions__L9_L24_L6».alignOk
+  Bridge.fnAlOk_of Checked.code863 Checked.core863 Checked.cert863 Checked.plumbEq863 tab863 rfl Fn.«level_queries__L55_L1_L6_L32_L27_L3_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab864 : (Bridge.extraOf 864, Bridge.entsOf 864, Bridge.adviceOf 864) =
-    ([], [("__loop427", 382875), ("decode_query_windows__L25_L7", 355913)], Data.adviceFn864)
+    ([], [("__loop376", 382808), ("decode_query_windows__L24_L6", 344143)], Data.adviceFn864)
 
 theorem ok864 : Bridge.FnAlOk 864 :=
-  Bridge.fnAlOk_of Checked.code864 Checked.core864 Checked.cert864 Checked.plumbEq864 tab864 rfl Fn.«level_positions__L8_L25_L7».alignOk
+  Bridge.fnAlOk_of Checked.code864 Checked.core864 Checked.cert864 Checked.plumbEq864 tab864 rfl Fn.«level_positions__L9_L24_L6».alignOk
 
 kernel_rfl tab865 : (Bridge.extraOf 865, Bridge.entsOf 865, Bridge.adviceOf 865) =
-    ([], [("__loop428", 382923), ("decode_query_windows__L26_L2", 368154)], Data.adviceFn865)
+    ([], [("__loop377", 382856), ("decode_query_windows__L25_L7", 355894)], Data.adviceFn865)
 
 theorem ok865 : Bridge.FnAlOk 865 :=
-  Bridge.fnAlOk_of Checked.code865 Checked.core865 Checked.cert865 Checked.plumbEq865 tab865 rfl Fn.«level_positions__L8_L26_L2».alignOk
+  Bridge.fnAlOk_of Checked.code865 Checked.core865 Checked.cert865 Checked.plumbEq865 tab865 rfl Fn.«level_positions__L8_L25_L7».alignOk
 
 kernel_rfl tab866 : (Bridge.extraOf 866, Bridge.entsOf 866, Bridge.adviceOf 866) =
-    ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 344942), ("verify_merkle_cap__L5", 280349)], Data.adviceFn866)
+    ([], [("__loop378", 382904), ("decode_query_windows__L26_L2", 368135)], Data.adviceFn866)
 
 theorem ok866 : Bridge.FnAlOk 866 :=
-  Bridge.fnAlOk_of Checked.code866 Checked.core866 Checked.cert866 Checked.plumbEq866 tab866 rfl Fn.«level_queries__L55_L0_L4_L16_L23_L5_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code866 Checked.core866 Checked.cert866 Checked.plumbEq866 tab866 rfl Fn.«level_positions__L8_L26_L2».alignOk
 
 kernel_rfl tab867 : (Bridge.extraOf 867, Bridge.entsOf 867, Bridge.adviceOf 867) =
-    ([], [("opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", 356681), ("verify_merkle_cap__L6", 281015)], Data.adviceFn867)
+    ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 344923), ("verify_merkle_cap__L5", 280330)], Data.adviceFn867)
 
 theorem ok867 : Bridge.FnAlOk 867 :=
-  Bridge.fnAlOk_of Checked.code867 Checked.core867 Checked.cert867 Checked.plumbEq867 tab867 rfl Fn.«level_queries__L44_L0_L4_L16_L24_L6_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code867 Checked.core867 Checked.cert867 Checked.plumbEq867 tab867 rfl Fn.«level_queries__L55_L0_L4_L16_L23_L5_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab868 : (Bridge.extraOf 868, Bridge.entsOf 868, Bridge.adviceOf 868) =
-    ([], [("opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0", 368922), ("verify_merkle_cap__L7", 283158)], Data.adviceFn868)
+    ([], [("opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", 356662), ("verify_merkle_cap__L6", 280996)], Data.adviceFn868)
 
 theorem ok868 : Bridge.FnAlOk 868 :=
-  Bridge.fnAlOk_of Checked.code868 Checked.core868 Checked.cert868 Checked.plumbEq868 tab868 rfl Fn.«level_queries__L37_L0_L4_L16_L25_L7_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code868 Checked.core868 Checked.cert868 Checked.plumbEq868 tab868 rfl Fn.«level_queries__L44_L0_L4_L16_L24_L6_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab869 : (Bridge.extraOf 869, Bridge.entsOf 869, Bridge.adviceOf 869) =
-    ([], [("opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0", 382971), ("verify_merkle_cap__L2", 282554)], Data.adviceFn869)
+    ([], [("opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0", 368903), ("verify_merkle_cap__L7", 283139)], Data.adviceFn869)
 
 theorem ok869 : Bridge.FnAlOk 869 :=
-  Bridge.fnAlOk_of Checked.code869 Checked.core869 Checked.cert869 Checked.plumbEq869 tab869 rfl Fn.«level_queries__L32_L0_L4_L16_L26_L2_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code869 Checked.core869 Checked.cert869 Checked.plumbEq869 tab869 rfl Fn.«level_queries__L37_L0_L4_L16_L25_L7_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab870 : (Bridge.extraOf 870, Bridge.entsOf 870, Bridge.adviceOf 870) =
-    ([], [("__loop429", 382996), ("decode_query_windows__L23_L5", 330164)], Data.adviceFn870)
+    ([], [("opening_queries__L0_L0_L4_L16_L26_L2_L0_L0_L0_L0_L0", 382952), ("verify_merkle_cap__L2", 282535)], Data.adviceFn870)
 
 theorem ok870 : Bridge.FnAlOk 870 :=
-  Bridge.fnAlOk_of Checked.code870 Checked.core870 Checked.cert870 Checked.plumbEq870 tab870 rfl Fn.«level_positions__L6_L23_L5».alignOk
+  Bridge.fnAlOk_of Checked.code870 Checked.core870 Checked.cert870 Checked.plumbEq870 tab870 rfl Fn.«level_queries__L32_L0_L4_L16_L26_L2_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab871 : (Bridge.extraOf 871, Bridge.entsOf 871, Bridge.adviceOf 871) =
-    ([], [("__loop430", 383044), ("decode_query_windows__L25_L7", 355913)], Data.adviceFn871)
+    ([], [("__loop379", 382977), ("decode_query_windows__L23_L5", 330145)], Data.adviceFn871)
 
 theorem ok871 : Bridge.FnAlOk 871 :=
-  Bridge.fnAlOk_of Checked.code871 Checked.core871 Checked.cert871 Checked.plumbEq871 tab871 rfl Fn.«level_positions__L5_L25_L7».alignOk
+  Bridge.fnAlOk_of Checked.code871 Checked.core871 Checked.cert871 Checked.plumbEq871 tab871 rfl Fn.«level_positions__L6_L23_L5».alignOk
 
 kernel_rfl tab872 : (Bridge.extraOf 872, Bridge.entsOf 872, Bridge.adviceOf 872) =
-    ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 344942), ("verify_merkle_cap__L5", 280349)], Data.adviceFn872)
+    ([], [("__loop380", 383025), ("decode_query_windows__L25_L7", 355894)], Data.adviceFn872)
 
 theorem ok872 : Bridge.FnAlOk 872 :=
-  Bridge.fnAlOk_of Checked.code872 Checked.core872 Checked.cert872 Checked.plumbEq872 tab872 rfl Fn.«level_queries__L28_L0_L4_L16_L23_L5_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code872 Checked.core872 Checked.cert872 Checked.plumbEq872 tab872 rfl Fn.«level_positions__L5_L25_L7».alignOk
 
 kernel_rfl tab873 : (Bridge.extraOf 873, Bridge.entsOf 873, Bridge.adviceOf 873) =
-    ([], [("opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", 356681), ("verify_merkle_cap__L6", 281015)], Data.adviceFn873)
+    ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 344923), ("verify_merkle_cap__L5", 280330)], Data.adviceFn873)
 
 theorem ok873 : Bridge.FnAlOk 873 :=
-  Bridge.fnAlOk_of Checked.code873 Checked.core873 Checked.cert873 Checked.plumbEq873 tab873 rfl Fn.«level_queries__L25_L0_L4_L16_L24_L6_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code873 Checked.core873 Checked.cert873 Checked.plumbEq873 tab873 rfl Fn.«level_queries__L28_L0_L4_L16_L23_L5_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab874 : (Bridge.extraOf 874, Bridge.entsOf 874, Bridge.adviceOf 874) =
-    ([], [("opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0", 368922), ("verify_merkle_cap__L7", 283158)], Data.adviceFn874)
+    ([], [("opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", 356662), ("verify_merkle_cap__L6", 280996)], Data.adviceFn874)
 
 theorem ok874 : Bridge.FnAlOk 874 :=
-  Bridge.fnAlOk_of Checked.code874 Checked.core874 Checked.cert874 Checked.plumbEq874 tab874 rfl Fn.«level_queries__L23_L0_L4_L16_L25_L7_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code874 Checked.core874 Checked.cert874 Checked.plumbEq874 tab874 rfl Fn.«level_queries__L25_L0_L4_L16_L24_L6_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab875 : (Bridge.extraOf 875, Bridge.entsOf 875, Bridge.adviceOf 875) =
-    ([], [("__loop431", 383092), ("decode_query_windows__L24_L6", 344162)], Data.adviceFn875)
+    ([], [("opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0", 368903), ("verify_merkle_cap__L7", 283139)], Data.adviceFn875)
 
 theorem ok875 : Bridge.FnAlOk 875 :=
-  Bridge.fnAlOk_of Checked.code875 Checked.core875 Checked.cert875 Checked.plumbEq875 tab875 rfl Fn.«level_positions__L4_L24_L6».alignOk
+  Bridge.fnAlOk_of Checked.code875 Checked.core875 Checked.cert875 Checked.plumbEq875 tab875 rfl Fn.«level_queries__L23_L0_L4_L16_L25_L7_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab876 : (Bridge.extraOf 876, Bridge.entsOf 876, Bridge.adviceOf 876) =
-    ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", 333741), ("verify_merkle_cap__L4", 279859)], Data.adviceFn876)
+    ([], [("__loop381", 383073), ("decode_query_windows__L24_L6", 344143)], Data.adviceFn876)
 
 theorem ok876 : Bridge.FnAlOk 876 :=
-  Bridge.fnAlOk_of Checked.code876 Checked.core876 Checked.cert876 Checked.plumbEq876 tab876 rfl Fn.«level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code876 Checked.core876 Checked.cert876 Checked.plumbEq876 tab876 rfl Fn.«level_positions__L4_L24_L6».alignOk
 
 kernel_rfl tab877 : (Bridge.extraOf 877, Bridge.entsOf 877, Bridge.adviceOf 877) =
-    ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 344942), ("verify_merkle_cap__L5", 280349)], Data.adviceFn877)
+    ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", 333722), ("verify_merkle_cap__L4", 279840)], Data.adviceFn877)
 
 theorem ok877 : Bridge.FnAlOk 877 :=
-  Bridge.fnAlOk_of Checked.code877 Checked.core877 Checked.cert877 Checked.plumbEq877 tab877 rfl Fn.«level_queries__L19_L0_L4_L16_L23_L5_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code877 Checked.core877 Checked.cert877 Checked.plumbEq877 tab877 rfl Fn.«level_queries__L21_L0_L4_L16_L22_L4_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab878 : (Bridge.extraOf 878, Bridge.entsOf 878, Bridge.adviceOf 878) =
-    ([], [("opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", 356681), ("verify_merkle_cap__L6", 281015)], Data.adviceFn878)
+    ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 344923), ("verify_merkle_cap__L5", 280330)], Data.adviceFn878)
 
 theorem ok878 : Bridge.FnAlOk 878 :=
-  Bridge.fnAlOk_of Checked.code878 Checked.core878 Checked.cert878 Checked.plumbEq878 tab878 rfl Fn.«level_queries__L18_L0_L4_L16_L24_L6_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code878 Checked.core878 Checked.cert878 Checked.plumbEq878 tab878 rfl Fn.«level_queries__L19_L0_L4_L16_L23_L5_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab879 : (Bridge.extraOf 879, Bridge.entsOf 879, Bridge.adviceOf 879) =
-    ([], [("opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0", 320056), ("verify_merkle_cap__L3", 279457)], Data.adviceFn879)
+    ([], [("opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0", 356662), ("verify_merkle_cap__L6", 280996)], Data.adviceFn879)
 
 theorem ok879 : Bridge.FnAlOk 879 :=
-  Bridge.fnAlOk_of Checked.code879 Checked.core879 Checked.cert879 Checked.plumbEq879 tab879 rfl Fn.«level_queries__L17_L0_L4_L16_L21_L3_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code879 Checked.core879 Checked.cert879 Checked.plumbEq879 tab879 rfl Fn.«level_queries__L18_L0_L4_L16_L24_L6_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab880 : (Bridge.extraOf 880, Bridge.entsOf 880, Bridge.adviceOf 880) =
-    ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", 333741), ("verify_merkle_cap__L4", 279859)], Data.adviceFn880)
+    ([], [("opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0", 320037), ("verify_merkle_cap__L3", 279438)], Data.adviceFn880)
 
 theorem ok880 : Bridge.FnAlOk 880 :=
-  Bridge.fnAlOk_of Checked.code880 Checked.core880 Checked.cert880 Checked.plumbEq880 tab880 rfl Fn.«level_queries__L16_L0_L4_L16_L22_L4_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code880 Checked.core880 Checked.cert880 Checked.plumbEq880 tab880 rfl Fn.«level_queries__L17_L0_L4_L16_L21_L3_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab881 : (Bridge.extraOf 881, Bridge.entsOf 881, Bridge.adviceOf 881) =
-    ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 344942), ("verify_merkle_cap__L5", 280349)], Data.adviceFn881)
+    ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0", 333722), ("verify_merkle_cap__L4", 279840)], Data.adviceFn881)
 
 theorem ok881 : Bridge.FnAlOk 881 :=
-  Bridge.fnAlOk_of Checked.code881 Checked.core881 Checked.cert881 Checked.plumbEq881 tab881 rfl Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».alignOk
+  Bridge.fnAlOk_of Checked.code881 Checked.core881 Checked.cert881 Checked.plumbEq881 tab881 rfl Fn.«level_queries__L16_L0_L4_L16_L22_L4_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab882 : (Bridge.extraOf 882, Bridge.entsOf 882, Bridge.adviceOf 882) =
-    ([], [("opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1", 383140), ("verify_merkle_cap__L2", 282554)], Data.adviceFn882)
+    ([], [("opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0", 344923), ("verify_merkle_cap__L5", 280330)], Data.adviceFn882)
 
 theorem ok882 : Bridge.FnAlOk 882 :=
-  Bridge.fnAlOk_of Checked.code882 Checked.core882 Checked.cert882 Checked.plumbEq882 tab882 rfl Fn.«level_queries__L15_L0_L4_L16_L20_L2_L3_L12_L4_L1».alignOk
+  Bridge.fnAlOk_of Checked.code882 Checked.core882 Checked.cert882 Checked.plumbEq882 tab882 rfl Fn.«level_queries__L16_L0_L4_L16_L23_L5_L0_L0_L0_L0».alignOk
 
 kernel_rfl tab883 : (Bridge.extraOf 883, Bridge.entsOf 883, Bridge.adviceOf 883) =
-    ([], [("opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1", 383163), ("verify_merkle_cap__L3", 279457)], Data.adviceFn883)
+    ([], [("opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1", 383121), ("verify_merkle_cap__L2", 282535)], Data.adviceFn883)
 
 theorem ok883 : Bridge.FnAlOk 883 :=
-  Bridge.fnAlOk_of Checked.code883 Checked.core883 Checked.cert883 Checked.plumbEq883 tab883 rfl Fn.«level_queries__L14_L0_L4_L16_L21_L3_L3_L12_L4_L1».alignOk
+  Bridge.fnAlOk_of Checked.code883 Checked.core883 Checked.cert883 Checked.plumbEq883 tab883 rfl Fn.«level_queries__L15_L0_L4_L16_L20_L2_L3_L12_L4_L1».alignOk
 
 kernel_rfl tab884 : (Bridge.extraOf 884, Bridge.entsOf 884, Bridge.adviceOf 884) =
-    ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1", 383186), ("verify_merkle_cap__L4", 279859)], Data.adviceFn884)
+    ([], [("opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1", 383144), ("verify_merkle_cap__L3", 279438)], Data.adviceFn884)
 
 theorem ok884 : Bridge.FnAlOk 884 :=
-  Bridge.fnAlOk_of Checked.code884 Checked.core884 Checked.cert884 Checked.plumbEq884 tab884 rfl Fn.«level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1».alignOk
+  Bridge.fnAlOk_of Checked.code884 Checked.core884 Checked.cert884 Checked.plumbEq884 tab884 rfl Fn.«level_queries__L14_L0_L4_L16_L21_L3_L3_L12_L4_L1».alignOk
 
 kernel_rfl tab885 : (Bridge.extraOf 885, Bridge.entsOf 885, Bridge.adviceOf 885) =
-    ([], [("__loop432", 383209), ("__loop433", 384161)], Data.adviceFn885)
+    ([], [("opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1", 383167), ("verify_merkle_cap__L4", 279840)], Data.adviceFn885)
 
 theorem ok885 : Bridge.FnAlOk 885 :=
-  Bridge.fnAlOk_of Checked.code885 Checked.core885 Checked.cert885 Checked.plumbEq885 tab885 rfl Fn.«level_residual__L218_L23_L6_L3».alignOk
+  Bridge.fnAlOk_of Checked.code885 Checked.core885 Checked.cert885 Checked.plumbEq885 tab885 rfl Fn.«level_queries__L14_L0_L4_L16_L22_L4_L3_L12_L4_L1».alignOk
 
 kernel_rfl tab886 : (Bridge.extraOf 886, Bridge.entsOf 886, Bridge.adviceOf 886) =
-    ([], [("__loop434", 384347), ("__loop435", 385299)], Data.adviceFn886)
+    ([], [("__loop382", 383190), ("__loop383", 384142)], Data.adviceFn886)
 
 theorem ok886 : Bridge.FnAlOk 886 :=
-  Bridge.fnAlOk_of Checked.code886 Checked.core886 Checked.cert886 Checked.plumbEq886 tab886 rfl Fn.«level_residual__L109_L23_L6_L3».alignOk
+  Bridge.fnAlOk_of Checked.code886 Checked.core886 Checked.cert886 Checked.plumbEq886 tab886 rfl Fn.«level_residual__L218_L23_L6_L3».alignOk
 
 kernel_rfl tab887 : (Bridge.extraOf 887, Bridge.entsOf 887, Bridge.adviceOf 887) =
-    ([], [("__loop436", 385485), ("__loop437", 386437)], Data.adviceFn887)
+    ([], [("__loop384", 384328), ("__loop385", 385280)], Data.adviceFn887)
 
 theorem ok887 : Bridge.FnAlOk 887 :=
-  Bridge.fnAlOk_of Checked.code887 Checked.core887 Checked.cert887 Checked.plumbEq887 tab887 rfl Fn.«level_residual__L73_L23_L6_L3».alignOk
+  Bridge.fnAlOk_of Checked.code887 Checked.core887 Checked.cert887 Checked.plumbEq887 tab887 rfl Fn.«level_residual__L109_L23_L6_L3».alignOk
 
 kernel_rfl tab888 : (Bridge.extraOf 888, Bridge.entsOf 888, Bridge.adviceOf 888) =
-    ([], [("__loop438", 386623), ("__loop439", 387575)], Data.adviceFn888)
+    ([], [("__loop386", 385466), ("__loop387", 386418)], Data.adviceFn888)
 
 theorem ok888 : Bridge.FnAlOk 888 :=
-  Bridge.fnAlOk_of Checked.code888 Checked.core888 Checked.cert888 Checked.plumbEq888 tab888 rfl Fn.«level_residual__L55_L23_L6_L3».alignOk
+  Bridge.fnAlOk_of Checked.code888 Checked.core888 Checked.cert888 Checked.plumbEq888 tab888 rfl Fn.«level_residual__L73_L23_L6_L3».alignOk
 
 kernel_rfl tab889 : (Bridge.extraOf 889, Bridge.entsOf 889, Bridge.adviceOf 889) =
-    ([], [("__loop440", 387761), ("__loop441", 388535)], Data.adviceFn889)
+    ([], [("__loop388", 386604), ("__loop389", 387556)], Data.adviceFn889)
 
 theorem ok889 : Bridge.FnAlOk 889 :=
-  Bridge.fnAlOk_of Checked.code889 Checked.core889 Checked.cert889 Checked.plumbEq889 tab889 rfl Fn.«level_residual__L55_L19_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code889 Checked.core889 Checked.cert889 Checked.plumbEq889 tab889 rfl Fn.«level_residual__L55_L23_L6_L3».alignOk
 
 kernel_rfl tab890 : (Bridge.extraOf 890, Bridge.entsOf 890, Bridge.adviceOf 890) =
-    ([], [("__loop442", 388690), ("__loop443", 389464)], Data.adviceFn890)
+    ([], [("__loop390", 387742), ("__loop391", 388516)], Data.adviceFn890)
 
 theorem ok890 : Bridge.FnAlOk 890 :=
-  Bridge.fnAlOk_of Checked.code890 Checked.core890 Checked.cert890 Checked.plumbEq890 tab890 rfl Fn.«level_residual__L44_L19_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code890 Checked.core890 Checked.cert890 Checked.plumbEq890 tab890 rfl Fn.«level_residual__L55_L19_L4_L2».alignOk
 
 kernel_rfl tab891 : (Bridge.extraOf 891, Bridge.entsOf 891, Bridge.adviceOf 891) =
-    ([], [("__loop444", 389619), ("__loop445", 390393)], Data.adviceFn891)
+    ([], [("__loop392", 388671), ("__loop393", 389445)], Data.adviceFn891)
 
 theorem ok891 : Bridge.FnAlOk 891 :=
-  Bridge.fnAlOk_of Checked.code891 Checked.core891 Checked.cert891 Checked.plumbEq891 tab891 rfl Fn.«level_residual__L37_L19_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code891 Checked.core891 Checked.cert891 Checked.plumbEq891 tab891 rfl Fn.«level_residual__L44_L19_L4_L2».alignOk
 
 kernel_rfl tab892 : (Bridge.extraOf 892, Bridge.entsOf 892, Bridge.adviceOf 892) =
-    ([], [("__loop446", 390548)], Data.adviceFn892)
+    ([], [("__loop394", 389600), ("__loop395", 390374)], Data.adviceFn892)
 
 theorem ok892 : Bridge.FnAlOk 892 :=
-  Bridge.fnAlOk_of Checked.code892 Checked.core892 Checked.cert892 Checked.plumbEq892 tab892 rfl Fn.«level_residual__L32_L19_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code892 Checked.core892 Checked.cert892 Checked.plumbEq892 tab892 rfl Fn.«level_residual__L37_L19_L4_L2».alignOk
 
 kernel_rfl tab893 : (Bridge.extraOf 893, Bridge.entsOf 893, Bridge.adviceOf 893) =
-    ([], [("__loop447", 391322), ("__loop448", 391960)], Data.adviceFn893)
+    ([], [("__loop396", 390529)], Data.adviceFn893)
 
 theorem ok893 : Bridge.FnAlOk 893 :=
-  Bridge.fnAlOk_of Checked.code893 Checked.core893 Checked.cert893 Checked.plumbEq893 tab893 rfl Fn.«level_residual__L28_L15_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code893 Checked.core893 Checked.cert893 Checked.plumbEq893 tab893 rfl Fn.«level_residual__L32_L19_L4_L2».alignOk
 
 kernel_rfl tab894 : (Bridge.extraOf 894, Bridge.entsOf 894, Bridge.adviceOf 894) =
-    ([], [("__loop449", 392091), ("__loop450", 392729)], Data.adviceFn894)
+    ([], [("__loop397", 391303), ("__loop398", 391941)], Data.adviceFn894)
 
 theorem ok894 : Bridge.FnAlOk 894 :=
-  Bridge.fnAlOk_of Checked.code894 Checked.core894 Checked.cert894 Checked.plumbEq894 tab894 rfl Fn.«level_residual__L25_L15_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code894 Checked.core894 Checked.cert894 Checked.plumbEq894 tab894 rfl Fn.«level_residual__L28_L15_L4_L2».alignOk
 
 kernel_rfl tab895 : (Bridge.extraOf 895, Bridge.entsOf 895, Bridge.adviceOf 895) =
-    ([], [("__loop451", 392860), ("__loop452", 393498)], Data.adviceFn895)
+    ([], [("__loop399", 392072), ("__loop400", 392710)], Data.adviceFn895)
 
 theorem ok895 : Bridge.FnAlOk 895 :=
-  Bridge.fnAlOk_of Checked.code895 Checked.core895 Checked.cert895 Checked.plumbEq895 tab895 rfl Fn.«level_residual__L23_L15_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code895 Checked.core895 Checked.cert895 Checked.plumbEq895 tab895 rfl Fn.«level_residual__L25_L15_L4_L2».alignOk
 
 kernel_rfl tab896 : (Bridge.extraOf 896, Bridge.entsOf 896, Bridge.adviceOf 896) =
-    ([], [("__loop453", 393629), ("__loop454", 394131)], Data.adviceFn896)
+    ([], [("__loop401", 392841), ("__loop402", 393479)], Data.adviceFn896)
 
 theorem ok896 : Bridge.FnAlOk 896 :=
-  Bridge.fnAlOk_of Checked.code896 Checked.core896 Checked.cert896 Checked.plumbEq896 tab896 rfl Fn.«level_residual__L21_L11_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code896 Checked.core896 Checked.cert896 Checked.plumbEq896 tab896 rfl Fn.«level_residual__L23_L15_L4_L2».alignOk
 
 kernel_rfl tab897 : (Bridge.extraOf 897, Bridge.entsOf 897, Bridge.adviceOf 897) =
-    ([], [("__loop455", 394238), ("__loop456", 394740)], Data.adviceFn897)
+    ([], [("__loop403", 393610), ("__loop404", 394112)], Data.adviceFn897)
 
 theorem ok897 : Bridge.FnAlOk 897 :=
-  Bridge.fnAlOk_of Checked.code897 Checked.core897 Checked.cert897 Checked.plumbEq897 tab897 rfl Fn.«level_residual__L19_L11_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code897 Checked.core897 Checked.cert897 Checked.plumbEq897 tab897 rfl Fn.«level_residual__L21_L11_L4_L2».alignOk
 
 kernel_rfl tab898 : (Bridge.extraOf 898, Bridge.entsOf 898, Bridge.adviceOf 898) =
-    ([], [("__loop457", 394847), ("__loop458", 395349)], Data.adviceFn898)
+    ([], [("__loop405", 394219), ("__loop406", 394721)], Data.adviceFn898)
 
 theorem ok898 : Bridge.FnAlOk 898 :=
-  Bridge.fnAlOk_of Checked.code898 Checked.core898 Checked.cert898 Checked.plumbEq898 tab898 rfl Fn.«level_residual__L18_L11_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code898 Checked.core898 Checked.cert898 Checked.plumbEq898 tab898 rfl Fn.«level_residual__L19_L11_L4_L2».alignOk
 
 kernel_rfl tab899 : (Bridge.extraOf 899, Bridge.entsOf 899, Bridge.adviceOf 899) =
-    ([], [("__loop459", 395456), ("__loop460", 395822)], Data.adviceFn899)
+    ([], [("__loop407", 394828), ("__loop408", 395330)], Data.adviceFn899)
 
 theorem ok899 : Bridge.FnAlOk 899 :=
-  Bridge.fnAlOk_of Checked.code899 Checked.core899 Checked.cert899 Checked.plumbEq899 tab899 rfl Fn.«level_residual__L17_L7_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code899 Checked.core899 Checked.cert899 Checked.plumbEq899 tab899 rfl Fn.«level_residual__L18_L11_L4_L2».alignOk
 
 kernel_rfl tab900 : (Bridge.extraOf 900, Bridge.entsOf 900, Bridge.adviceOf 900) =
-    ([], [("__loop461", 395905)], Data.adviceFn900)
+    ([], [("__loop409", 395437), ("__loop410", 395803)], Data.adviceFn900)
 
 theorem ok900 : Bridge.FnAlOk 900 :=
-  Bridge.fnAlOk_of Checked.code900 Checked.core900 Checked.cert900 Checked.plumbEq900 tab900 rfl Fn.«level_residual__L16_L7_L4_L2».alignOk
+  Bridge.fnAlOk_of Checked.code900 Checked.core900 Checked.cert900 Checked.plumbEq900 tab900 rfl Fn.«level_residual__L17_L7_L4_L2».alignOk
 
 end
 

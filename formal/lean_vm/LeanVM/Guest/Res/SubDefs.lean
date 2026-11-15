@@ -13,6 +13,7 @@ public import LeanVM.Guest.Res.MonoDefs
 public import LeanVM.Guest.Res.ResGiven
 public import LeanVM.Guest.Res.FamDefs
 public import LeanVM.Guest.Res.TermDefs
+public import LeanVM.Guest.Res.RootsDefs
 
 /-!
 # The `sub` residuals' families
@@ -20,8 +21,8 @@ public import LeanVM.Guest.Res.TermDefs
 `subB j x`: residual `x` of function `j` is no `sub` residual, or one of the families
 (`splitB`, `anyResB anyLink`, `monoResB`, those read off the function's code, `subFamB` and
 `termFamB`, the proof stream's reads, `stB`, the runs a split cuts into blocks, `blkB`,
-`verify_tables`' table sumcheck's reads, `vtB`, the runs of a lift, `liftB`, and `verify_keccak`'s
-reads past its layers, `vkStB`).
+`verify_tables`' table sumcheck's reads, `vtB`, the runs of a lift, `liftB`, `verify_keccak`'s
+reads past its layers, `vkStB`, and the roots' tree's reads, `rootsB`).
 `SubOk exc K`: certificate `K` is listed in `exc`, or each of its residuals passes `subB` at its
 function's index, decided per certificate (`subOk_of`).
 `EndExec.resOpen_subOk` (`EndExecRSub`): given `SubOk resExc` of every certificate and the listed
@@ -148,7 +149,8 @@ noncomputable def vkStB (j : ℕ) : Mode.Res → Bool
 noncomputable def subB (j : ℕ) (w : Wit) : Mode.Res → Bool
   | .sub a bs => splitB j (.sub a bs) || anyResB anyLink j (.sub a bs) || monoResB j (.sub a bs) ||
       subFamB j w (.sub a bs) || termFamB j w (.sub a bs) || stB j (.sub a bs) ||
-      blkB j (.sub a bs) || vtB j (.sub a bs) || liftB j (.sub a bs) || vkStB j (.sub a bs)
+      blkB j (.sub a bs) || vtB j (.sub a bs) || liftB j (.sub a bs) || vkStB j (.sub a bs) ||
+      rootsB j (.sub a bs)
   | _ => true
 
 /-- **A certificate's `sub` residuals in the families**: it is listed in `exc`, or each is at its

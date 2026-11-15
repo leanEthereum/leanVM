@@ -21,7 +21,7 @@ public section
 
 /-- `padding_weight__L8`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«padding_weight__L8».plumb Fn.«padding_weight__L8».fs (Fn.«padding_weight__L8».cert.withPows Data.powTree) []
-    Fn.«padding_weight__L8».core Fn.«padding_weight__L8».code.code (106 == 1) = true := by
+    Fn.«padding_weight__L8».core Fn.«padding_weight__L8».code.code (108 == 1) = true := by
   decide +kernel
 
 end
@@ -36,7 +36,7 @@ public section
 
 /-- `block_selector__L32`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«block_selector__L32».plumb Fn.«block_selector__L32».fs (Fn.«block_selector__L32».cert.withPows Data.powTree) []
-    Fn.«block_selector__L32».core Fn.«block_selector__L32».code.code (195 == 1) = true := by
+    Fn.«block_selector__L32».core Fn.«block_selector__L32».code.code (197 == 1) = true := by
   decide +kernel
 
 end
@@ -51,7 +51,7 @@ public section
 
 /-- `block_selector_tab__L7`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«block_selector_tab__L7».plumb Fn.«block_selector_tab__L7».fs (Fn.«block_selector_tab__L7».cert.withPows Data.powTree) []
-    Fn.«block_selector_tab__L7».core Fn.«block_selector_tab__L7».code.code (238 == 1) = true := by
+    Fn.«block_selector_tab__L7».core Fn.«block_selector_tab__L7».code.code (240 == 1) = true := by
   decide +kernel
 
 end
@@ -66,7 +66,7 @@ public section
 
 /-- `block_selector_tab__L21`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«block_selector_tab__L21».plumb Fn.«block_selector_tab__L21».fs (Fn.«block_selector_tab__L21».cert.withPows Data.powTree) []
-    Fn.«block_selector_tab__L21».core Fn.«block_selector_tab__L21».code.code (252 == 1) = true := by
+    Fn.«block_selector_tab__L21».core Fn.«block_selector_tab__L21».code.code (254 == 1) = true := by
   decide +kernel
 
 end
@@ -81,7 +81,7 @@ public section
 
 /-- `claim_list_last__L13`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«claim_list_last__L13».plumb Fn.«claim_list_last__L13».fs (Fn.«claim_list_last__L13».cert.withPows Data.powTree) []
-    Fn.«claim_list_last__L13».core Fn.«claim_list_last__L13».code.code (363 == 1) = true := by
+    Fn.«claim_list_last__L13».core Fn.«claim_list_last__L13».code.code (365 == 1) = true := by
   decide +kernel
 
 end
@@ -96,7 +96,7 @@ public section
 
 /-- `child_claim_list_last__L16`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«child_claim_list_last__L16».plumb Fn.«child_claim_list_last__L16».fs (Fn.«child_claim_list_last__L16».cert.withPows Data.powTree) []
-    Fn.«child_claim_list_last__L16».core Fn.«child_claim_list_last__L16».code.code (385 == 1) = true := by
+    Fn.«child_claim_list_last__L16».core Fn.«child_claim_list_last__L16».code.code (387 == 1) = true := by
   decide +kernel
 
 end
@@ -111,7 +111,7 @@ public section
 
 /-- `squeeze_point_from__L15`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«squeeze_point_from__L15».plumb Fn.«squeeze_point_from__L15».fs (Fn.«squeeze_point_from__L15».cert.withPows Data.powTree) []
-    Fn.«squeeze_point_from__L15».core Fn.«squeeze_point_from__L15».code.code (513 == 1) = true := by
+    Fn.«squeeze_point_from__L15».core Fn.«squeeze_point_from__L15».code.code (514 == 1) = true := by
   decide +kernel
 
 end
@@ -126,7 +126,7 @@ public section
 
 /-- `level_positions__L6_L17_L5`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«level_positions__L6_L17_L5».plumb Fn.«level_positions__L6_L17_L5».fs (Fn.«level_positions__L6_L17_L5».cert.withPows Data.powTree) []
-    Fn.«level_positions__L6_L17_L5».core Fn.«level_positions__L6_L17_L5».code.code (525 == 1) = true := by
+    Fn.«level_positions__L6_L17_L5».core Fn.«level_positions__L6_L17_L5».code.code (526 == 1) = true := by
   decide +kernel
 
 end
@@ -141,7 +141,7 @@ public section
 
 /-- `level_residual__L28_L7_L4_L2`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«level_residual__L28_L7_L4_L2».plumb Fn.«level_residual__L28_L7_L4_L2».fs (Fn.«level_residual__L28_L7_L4_L2».cert.withPows Data.powTree) []
-    Fn.«level_residual__L28_L7_L4_L2».core Fn.«level_residual__L28_L7_L4_L2».code.code (553 == 1) = true := by
+    Fn.«level_residual__L28_L7_L4_L2».core Fn.«level_residual__L28_L7_L4_L2».code.code (554 == 1) = true := by
   decide +kernel
 
 end
@@ -156,7 +156,7 @@ public section
 
 /-- `level_residual__L25_L8_L4_L2`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«level_residual__L25_L8_L4_L2».plumb Fn.«level_residual__L25_L8_L4_L2».fs (Fn.«level_residual__L25_L8_L4_L2».cert.withPows Data.powTree) []
-    Fn.«level_residual__L25_L8_L4_L2».core Fn.«level_residual__L25_L8_L4_L2».code.code (597 == 1) = true := by
+    Fn.«level_residual__L25_L8_L4_L2».core Fn.«level_residual__L25_L8_L4_L2».code.code (598 == 1) = true := by
   decide +kernel
 
 end
@@ -171,7 +171,7 @@ public section
 
 /-- `level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».plumb Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».fs (Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».cert.withPows Data.powTree) []
-    Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».core Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».code.code (607 == 1) = true := by
+    Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».core Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».code.code (608 == 1) = true := by
   decide +kernel
 
 end
@@ -186,7 +186,7 @@ public section
 
 /-- `level_residual__L37_L14_L4_L2`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«level_residual__L37_L14_L4_L2».plumb Fn.«level_residual__L37_L14_L4_L2».fs (Fn.«level_residual__L37_L14_L4_L2».cert.withPows Data.powTree) []
-    Fn.«level_residual__L37_L14_L4_L2».core Fn.«level_residual__L37_L14_L4_L2».code.code (676 == 1) = true := by
+    Fn.«level_residual__L37_L14_L4_L2».core Fn.«level_residual__L37_L14_L4_L2».code.code (677 == 1) = true := by
   decide +kernel
 
 end
@@ -201,7 +201,7 @@ public section
 
 /-- `level_positions__L9_L24_L6`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«level_positions__L9_L24_L6».plumb Fn.«level_positions__L9_L24_L6».fs (Fn.«level_positions__L9_L24_L6».cert.withPows Data.powTree) []
-    Fn.«level_positions__L9_L24_L6».core Fn.«level_positions__L9_L24_L6».code.code (863 == 1) = true := by
+    Fn.«level_positions__L9_L24_L6».core Fn.«level_positions__L9_L24_L6».code.code (864 == 1) = true := by
   decide +kernel
 
 end
@@ -216,27 +216,12 @@ public section
 
 /-- `level_residual__L218_L23_L6_L3`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«level_residual__L218_L23_L6_L3».plumb Fn.«level_residual__L218_L23_L6_L3».fs (Fn.«level_residual__L218_L23_L6_L3».cert.withPows Data.powTree) []
-    Fn.«level_residual__L218_L23_L6_L3».core Fn.«level_residual__L218_L23_L6_L3».code.code (885 == 1) = true := by
+    Fn.«level_residual__L218_L23_L6_L3».core Fn.«level_residual__L218_L23_L6_L3».code.code (886 == 1) = true := by
   decide +kernel
 
 end
 
 end LeanVM.Guest.Fn.«level_residual__L218_L23_L6_L3»
-
-namespace LeanVM.Guest.Fn.«da_levels__L512_L9_loop4»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_levels__L512_L9_loop4`: the jump cells' facts of its data. -/
-theorem jcOk : Bridge.jcDataD Fn.«da_levels__L512_L9_loop4».plumb Fn.«da_levels__L512_L9_loop4».fs (Fn.«da_levels__L512_L9_loop4».cert.withPows Data.powTree) []
-    Fn.«da_levels__L512_L9_loop4».core Fn.«da_levels__L512_L9_loop4».code.code (987 == 1) = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L512_L9_loop4»
 
 namespace LeanVM.Guest.Fn.«level_positions__L7_L15_L3_loop0»
 
@@ -246,7 +231,7 @@ public section
 
 /-- `level_positions__L7_L15_L3_loop0`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«level_positions__L7_L15_L3_loop0».plumb Fn.«level_positions__L7_L15_L3_loop0».fs (Fn.«level_positions__L7_L15_L3_loop0».cert.withPows Data.powTree) []
-    Fn.«level_positions__L7_L15_L3_loop0».core Fn.«level_positions__L7_L15_L3_loop0».code.code (1074 == 1) = true := by
+    Fn.«level_positions__L7_L15_L3_loop0».core Fn.«level_positions__L7_L15_L3_loop0».code.code (1037 == 1) = true := by
   decide +kernel
 
 end
@@ -261,7 +246,7 @@ public section
 
 /-- `level_positions__L5_L18_L6_loop0`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«level_positions__L5_L18_L6_loop0».plumb Fn.«level_positions__L5_L18_L6_loop0».fs (Fn.«level_positions__L5_L18_L6_loop0».cert.withPows Data.powTree) []
-    Fn.«level_positions__L5_L18_L6_loop0».core Fn.«level_positions__L5_L18_L6_loop0».code.code (1077 == 1) = true := by
+    Fn.«level_positions__L5_L18_L6_loop0».core Fn.«level_positions__L5_L18_L6_loop0».code.code (1040 == 1) = true := by
   decide +kernel
 
 end
@@ -276,7 +261,7 @@ public section
 
 /-- `level_positions__L7_L17_L5_loop0`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«level_positions__L7_L17_L5_loop0».plumb Fn.«level_positions__L7_L17_L5_loop0».fs (Fn.«level_positions__L7_L17_L5_loop0».cert.withPows Data.powTree) []
-    Fn.«level_positions__L7_L17_L5_loop0».core Fn.«level_positions__L7_L17_L5_loop0».code.code (1115 == 1) = true := by
+    Fn.«level_positions__L7_L17_L5_loop0».core Fn.«level_positions__L7_L17_L5_loop0».code.code (1078 == 1) = true := by
   decide +kernel
 
 end
@@ -291,7 +276,7 @@ public section
 
 /-- `level_residual__L55_L12_L4_L2_loop1`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«level_residual__L55_L12_L4_L2_loop1».plumb Fn.«level_residual__L55_L12_L4_L2_loop1».fs (Fn.«level_residual__L55_L12_L4_L2_loop1».cert.withPows Data.powTree) []
-    Fn.«level_residual__L55_L12_L4_L2_loop1».core Fn.«level_residual__L55_L12_L4_L2_loop1».code.code (1134 == 1) = true := by
+    Fn.«level_residual__L55_L12_L4_L2_loop1».core Fn.«level_residual__L55_L12_L4_L2_loop1».code.code (1097 == 1) = true := by
   decide +kernel
 
 end
@@ -306,7 +291,7 @@ public section
 
 /-- `level_positions__L7_L19_L7_loop0`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«level_positions__L7_L19_L7_loop0».plumb Fn.«level_positions__L7_L19_L7_loop0».fs (Fn.«level_positions__L7_L19_L7_loop0».cert.withPows Data.powTree) []
-    Fn.«level_positions__L7_L19_L7_loop0».core Fn.«level_positions__L7_L19_L7_loop0».code.code (1156 == 1) = true := by
+    Fn.«level_positions__L7_L19_L7_loop0».core Fn.«level_positions__L7_L19_L7_loop0».code.code (1119 == 1) = true := by
   decide +kernel
 
 end
@@ -321,7 +306,7 @@ public section
 
 /-- `opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0».plumb Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0».fs (Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0».cert.withPows Data.powTree) []
-    Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0».core Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0».code.code (1158 == 1) = true := by
+    Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0».core Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0».code.code (1121 == 1) = true := by
   decide +kernel
 
 end
@@ -336,7 +321,7 @@ public section
 
 /-- `level_residual__L218_L18_L6_L3_loop1`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«level_residual__L218_L18_L6_L3_loop1».plumb Fn.«level_residual__L218_L18_L6_L3_loop1».fs (Fn.«level_residual__L218_L18_L6_L3_loop1».cert.withPows Data.powTree) []
-    Fn.«level_residual__L218_L18_L6_L3_loop1».core Fn.«level_residual__L218_L18_L6_L3_loop1».code.code (1205 == 1) = true := by
+    Fn.«level_residual__L218_L18_L6_L3_loop1».core Fn.«level_residual__L218_L18_L6_L3_loop1».code.code (1168 == 1) = true := by
   decide +kernel
 
 end
@@ -351,7 +336,7 @@ public section
 
 /-- `level_residual__L73_L18_L6_L3_loop0`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«level_residual__L73_L18_L6_L3_loop0».plumb Fn.«level_residual__L73_L18_L6_L3_loop0».fs (Fn.«level_residual__L73_L18_L6_L3_loop0».cert.withPows Data.powTree) []
-    Fn.«level_residual__L73_L18_L6_L3_loop0».core Fn.«level_residual__L73_L18_L6_L3_loop0».code.code (1208 == 1) = true := by
+    Fn.«level_residual__L73_L18_L6_L3_loop0».core Fn.«level_residual__L73_L18_L6_L3_loop0».code.code (1171 == 1) = true := by
   decide +kernel
 
 end
@@ -366,7 +351,7 @@ public section
 
 /-- `level_positions__L37_L21_L3_loop0`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«level_positions__L37_L21_L3_loop0».plumb Fn.«level_positions__L37_L21_L3_loop0».fs (Fn.«level_positions__L37_L21_L3_loop0».cert.withPows Data.powTree) []
-    Fn.«level_positions__L37_L21_L3_loop0».core Fn.«level_positions__L37_L21_L3_loop0».code.code (1277 == 1) = true := by
+    Fn.«level_positions__L37_L21_L3_loop0».core Fn.«level_positions__L37_L21_L3_loop0».code.code (1240 == 1) = true := by
   decide +kernel
 
 end
@@ -381,7 +366,7 @@ public section
 
 /-- `decode_query_windows__L24_L6`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«decode_query_windows__L24_L6».plumb Fn.«decode_query_windows__L24_L6».fs (Fn.«decode_query_windows__L24_L6».cert.withPows Data.powTree) []
-    Fn.«decode_query_windows__L24_L6».core Fn.«decode_query_windows__L24_L6».code.code (1280 == 1) = true := by
+    Fn.«decode_query_windows__L24_L6».core Fn.«decode_query_windows__L24_L6».code.code (1243 == 1) = true := by
   decide +kernel
 
 end
@@ -396,7 +381,7 @@ public section
 
 /-- `level_residual__L218_L20_L6_L3_loop0`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«level_residual__L218_L20_L6_L3_loop0».plumb Fn.«level_residual__L218_L20_L6_L3_loop0».fs (Fn.«level_residual__L218_L20_L6_L3_loop0».cert.withPows Data.powTree) []
-    Fn.«level_residual__L218_L20_L6_L3_loop0».core Fn.«level_residual__L218_L20_L6_L3_loop0».code.code (1294 == 1) = true := by
+    Fn.«level_residual__L218_L20_L6_L3_loop0».core Fn.«level_residual__L218_L20_L6_L3_loop0».code.code (1257 == 1) = true := by
   decide +kernel
 
 end
@@ -411,7 +396,7 @@ public section
 
 /-- `level_residual__L44_L18_L4_L2_loop1`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«level_residual__L44_L18_L4_L2_loop1».plumb Fn.«level_residual__L44_L18_L4_L2_loop1».fs (Fn.«level_residual__L44_L18_L4_L2_loop1».cert.withPows Data.powTree) []
-    Fn.«level_residual__L44_L18_L4_L2_loop1».core Fn.«level_residual__L44_L18_L4_L2_loop1».code.code (1393 == 1) = true := by
+    Fn.«level_residual__L44_L18_L4_L2_loop1».core Fn.«level_residual__L44_L18_L4_L2_loop1».code.code (1356 == 1) = true := by
   decide +kernel
 
 end
@@ -426,7 +411,7 @@ public section
 
 /-- `level_residual__L17_L6_L4_L2_loop0`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«level_residual__L17_L6_L4_L2_loop0».plumb Fn.«level_residual__L17_L6_L4_L2_loop0».fs (Fn.«level_residual__L17_L6_L4_L2_loop0».cert.withPows Data.powTree) []
-    Fn.«level_residual__L17_L6_L4_L2_loop0».core Fn.«level_residual__L17_L6_L4_L2_loop0».code.code (1409 == 1) = true := by
+    Fn.«level_residual__L17_L6_L4_L2_loop0».core Fn.«level_residual__L17_L6_L4_L2_loop0».code.code (1372 == 1) = true := by
   decide +kernel
 
 end
@@ -441,9 +426,24 @@ public section
 
 /-- `level_residual__L19_L12_L4_L2_loop1`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«level_residual__L19_L12_L4_L2_loop1».plumb Fn.«level_residual__L19_L12_L4_L2_loop1».fs (Fn.«level_residual__L19_L12_L4_L2_loop1».cert.withPows Data.powTree) []
-    Fn.«level_residual__L19_L12_L4_L2_loop1».core Fn.«level_residual__L19_L12_L4_L2_loop1».code.code (1503 == 1) = true := by
+    Fn.«level_residual__L19_L12_L4_L2_loop1».core Fn.«level_residual__L19_L12_L4_L2_loop1».code.code (1466 == 1) = true := by
   decide +kernel
 
 end
 
 end LeanVM.Guest.Fn.«level_residual__L19_L12_L4_L2_loop1»
+
+namespace LeanVM.Guest.Fn.«da_levels__L512_L9_loop4»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_levels__L512_L9_loop4`: the jump cells' facts of its data. -/
+theorem jcOk : Bridge.jcDataD Fn.«da_levels__L512_L9_loop4».plumb Fn.«da_levels__L512_L9_loop4».fs (Fn.«da_levels__L512_L9_loop4».cert.withPows Data.powTree) []
+    Fn.«da_levels__L512_L9_loop4».core Fn.«da_levels__L512_L9_loop4».code.code (1505 == 1) = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_levels__L512_L9_loop4»

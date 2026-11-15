@@ -110,20 +110,6 @@ end
 
 end LeanVM.Guest.Fn.«squeeze_point_from__L29»
 
-namespace LeanVM.Guest.Fn.«da_verify_loop3»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_verify_loop3`'s witness hints pass the data check. -/
-theorem witOk : Bridge.witChk alignCtx Fn.«da_verify_loop3».fs Fn.«da_verify_loop3».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_verify_loop3»
-
 namespace LeanVM.Guest.Fn.«grind_check__L2»
 
 open LeanVM.Guest

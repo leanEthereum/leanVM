@@ -10,55 +10,52 @@ module
 public import LeanVM.Guest.Bridge.AllocChk.«P0»
 public import LeanVM.Guest.Bridge.AllocChk.«P10»
 public import LeanVM.Guest.Bridge.AllocChk.«P11»
+public import LeanVM.Guest.Bridge.AllocChk.«P12»
 public import LeanVM.Guest.Bridge.AllocChk.«P13»
 public import LeanVM.Guest.Bridge.AllocChk.«P15»
 public import LeanVM.Guest.Bridge.AllocChk.«P16»
 public import LeanVM.Guest.Bridge.AllocChk.«P17»
 public import LeanVM.Guest.Bridge.AllocChk.«P18»
 public import LeanVM.Guest.Bridge.AllocChk.«P19»
+public import LeanVM.Guest.Bridge.AllocChk.«P1»
 public import LeanVM.Guest.Bridge.AllocChk.«P20»
 public import LeanVM.Guest.Bridge.AllocChk.«P21»
 public import LeanVM.Guest.Bridge.AllocChk.«P22»
-public import LeanVM.Guest.Bridge.AllocChk.«P23»
 public import LeanVM.Guest.Bridge.AllocChk.«P24»
 public import LeanVM.Guest.Bridge.AllocChk.«P25»
 public import LeanVM.Guest.Bridge.AllocChk.«P26»
 public import LeanVM.Guest.Bridge.AllocChk.«P29»
 public import LeanVM.Guest.Bridge.AllocChk.«P30»
+public import LeanVM.Guest.Bridge.AllocChk.«P31»
 public import LeanVM.Guest.Bridge.AllocChk.«P33»
 public import LeanVM.Guest.Bridge.AllocChk.«P34»
 public import LeanVM.Guest.Bridge.AllocChk.«P35»
-public import LeanVM.Guest.Bridge.AllocChk.«P36»
 public import LeanVM.Guest.Bridge.AllocChk.«P37»
-public import LeanVM.Guest.Bridge.AllocChk.«P38»
 public import LeanVM.Guest.Bridge.AllocChk.«P39»
-public import LeanVM.Guest.Bridge.AllocChk.«P3»
 public import LeanVM.Guest.Bridge.AllocChk.«P40»
+public import LeanVM.Guest.Bridge.AllocChk.«P41»
 public import LeanVM.Guest.Bridge.AllocChk.«P42»
 public import LeanVM.Guest.Bridge.AllocChk.«P43»
 public import LeanVM.Guest.Bridge.AllocChk.«P44»
 public import LeanVM.Guest.Bridge.AllocChk.«P45»
 public import LeanVM.Guest.Bridge.AllocChk.«P46»
 public import LeanVM.Guest.Bridge.AllocChk.«P47»
-public import LeanVM.Guest.Bridge.AllocChk.«P48»
 public import LeanVM.Guest.Bridge.AllocChk.«P49»
 public import LeanVM.Guest.Bridge.AllocChk.«P50»
 public import LeanVM.Guest.Bridge.AllocChk.«P51»
 public import LeanVM.Guest.Bridge.AllocChk.«P53»
 public import LeanVM.Guest.Bridge.AllocChk.«P54»
 public import LeanVM.Guest.Bridge.AllocChk.«P55»
+public import LeanVM.Guest.Bridge.AllocChk.«P56»
 public import LeanVM.Guest.Bridge.AllocChk.«P57»
 public import LeanVM.Guest.Bridge.AllocChk.«P58»
 public import LeanVM.Guest.Bridge.AllocChk.«P59»
 public import LeanVM.Guest.Bridge.AllocChk.«P5»
 public import LeanVM.Guest.Bridge.AllocChk.«P60»
 public import LeanVM.Guest.Bridge.AllocChk.«P61»
-public import LeanVM.Guest.Bridge.AllocChk.«P62»
-public import LeanVM.Guest.Bridge.AllocChk.«P63»
 public import LeanVM.Guest.Bridge.AllocChk.«P6»
 public import LeanVM.Guest.Bridge.AllocChk.«P8»
 public import LeanVM.Guest.Bridge.AllocChk.«P9»
-public import LeanVM.Guest.Bridge.AllocChk.«verify_merkle_cap__L8»
 public import LeanVM.Guest.Bridge.AllocLink
 public import LeanVM.Guest.Bridge.ProgAl.Link12
 public import LeanVM.Guest.Checked.Link12
@@ -71,704 +68,704 @@ open LeanVM.Guest
 public section
 
 theorem fok1201 : Bridge.FrJ 1201 :=
-  Bridge.frJ_of Checked.code1201 Checked.core1201 Checked.cert1201 Checked.plumbEq1201 Bridge.ProgAl.tab1201 rfl Checked.fsEq1201 Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1».frOk
+  Bridge.frJ_of Checked.code1201 Checked.core1201 Checked.cert1201 Checked.plumbEq1201 Bridge.ProgAl.tab1201 rfl Checked.fsEq1201 Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0».frOk
 
 theorem aok1201 : Bridge.AllocJ 1201 :=
   Bridge.allocJ_of Checked.code1201 Checked.core1201 Checked.cert1201 Checked.plumbEq1201 Bridge.ProgAl.tab1201 rfl Checked.fsEq1201
-    Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L2_L3_L8_L3_L1».allocOk
+    Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0».allocShapeOk Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0».curBodyOk Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0».allocOk
 
 theorem fok1202 : Bridge.FrJ 1202 :=
-  Bridge.frJ_of Checked.code1202 Checked.core1202 Checked.cert1202 Checked.plumbEq1202 Bridge.ProgAl.tab1202 rfl Checked.fsEq1202 Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1».frOk
+  Bridge.frJ_of Checked.code1202 Checked.core1202 Checked.cert1202 Checked.plumbEq1202 Bridge.ProgAl.tab1202 rfl Checked.fsEq1202 Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0».frOk
 
 theorem aok1202 : Bridge.AllocJ 1202 :=
   Bridge.allocJ_of Checked.code1202 Checked.core1202 Checked.cert1202 Checked.plumbEq1202 Bridge.ProgAl.tab1202 rfl Checked.fsEq1202
-    Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L2_L3_L8_L3_L1».allocOk
+    Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0».allocShapeOk Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0».curBodyOk Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0».allocOk
 
 theorem fok1203 : Bridge.FrJ 1203 :=
-  Bridge.frJ_of Checked.code1203 Checked.core1203 Checked.cert1203 Checked.plumbEq1203 Bridge.ProgAl.tab1203 rfl Checked.fsEq1203 Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1».frOk
+  Bridge.frJ_of Checked.code1203 Checked.core1203 Checked.cert1203 Checked.plumbEq1203 Bridge.ProgAl.tab1203 rfl Checked.fsEq1203 Fn.«level_positions__L8_L20_L2_loop0».frOk
 
 theorem aok1203 : Bridge.AllocJ 1203 :=
   Bridge.allocJ_of Checked.code1203 Checked.core1203 Checked.cert1203 Checked.plumbEq1203 Bridge.ProgAl.tab1203 rfl Checked.fsEq1203
-    Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L2_L3_L8_L3_L1».allocOk
+    Fn.«level_positions__L8_L20_L2_loop0».allocShapeOk Fn.«level_positions__L8_L20_L2_loop0».curBodyOk Fn.«level_positions__L8_L20_L2_loop0».allocOk
 
 theorem fok1204 : Bridge.FrJ 1204 :=
-  Bridge.frJ_of Checked.code1204 Checked.core1204 Checked.cert1204 Checked.plumbEq1204 Bridge.ProgAl.tab1204 rfl Checked.fsEq1204 Fn.«level_residual__L218_L18_L6_L3_loop0».frOk
+  Bridge.frJ_of Checked.code1204 Checked.core1204 Checked.cert1204 Checked.plumbEq1204 Bridge.ProgAl.tab1204 rfl Checked.fsEq1204 Fn.«level_positions__L7_L21_L3_loop0».frOk
 
 theorem aok1204 : Bridge.AllocJ 1204 :=
   Bridge.allocJ_of Checked.code1204 Checked.core1204 Checked.cert1204 Checked.plumbEq1204 Bridge.ProgAl.tab1204 rfl Checked.fsEq1204
-    Fn.«level_residual__L218_L18_L6_L3_loop0».allocShapeOk Fn.«level_residual__L218_L18_L6_L3_loop0».curBodyOk Fn.«level_residual__L218_L18_L6_L3_loop0».allocOk
+    Fn.«level_positions__L7_L21_L3_loop0».allocShapeOk Fn.«level_positions__L7_L21_L3_loop0».curBodyOk Fn.«level_positions__L7_L21_L3_loop0».allocOk
 
 theorem fok1205 : Bridge.FrJ 1205 :=
-  Bridge.frJ_of Checked.code1205 Checked.core1205 Checked.cert1205 Checked.plumbEq1205 Bridge.ProgAl.tab1205 rfl Checked.fsEq1205 Fn.«level_residual__L218_L18_L6_L3_loop1».frOk
+  Bridge.frJ_of Checked.code1205 Checked.core1205 Checked.cert1205 Checked.plumbEq1205 Bridge.ProgAl.tab1205 rfl Checked.fsEq1205 Fn.«level_positions__L7_L22_L4_loop0».frOk
 
 theorem aok1205 : Bridge.AllocJ 1205 :=
   Bridge.allocJ_of Checked.code1205 Checked.core1205 Checked.cert1205 Checked.plumbEq1205 Bridge.ProgAl.tab1205 rfl Checked.fsEq1205
-    Fn.«level_residual__L218_L18_L6_L3_loop1».allocShapeOk Fn.«level_residual__L218_L18_L6_L3_loop1».curBodyOk Fn.«level_residual__L218_L18_L6_L3_loop1».allocOk
+    Fn.«level_positions__L7_L22_L4_loop0».allocShapeOk Fn.«level_positions__L7_L22_L4_loop0».curBodyOk Fn.«level_positions__L7_L22_L4_loop0».allocOk
 
 theorem fok1206 : Bridge.FrJ 1206 :=
-  Bridge.frJ_of Checked.code1206 Checked.core1206 Checked.cert1206 Checked.plumbEq1206 Bridge.ProgAl.tab1206 rfl Checked.fsEq1206 Fn.«level_residual__L109_L18_L6_L3_loop0».frOk
+  Bridge.frJ_of Checked.code1206 Checked.core1206 Checked.cert1206 Checked.plumbEq1206 Bridge.ProgAl.tab1206 rfl Checked.fsEq1206 Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0».frOk
 
 theorem aok1206 : Bridge.AllocJ 1206 :=
   Bridge.allocJ_of Checked.code1206 Checked.core1206 Checked.cert1206 Checked.plumbEq1206 Bridge.ProgAl.tab1206 rfl Checked.fsEq1206
-    Fn.«level_residual__L109_L18_L6_L3_loop0».allocShapeOk Fn.«level_residual__L109_L18_L6_L3_loop0».curBodyOk Fn.«level_residual__L109_L18_L6_L3_loop0».allocOk
+    Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0».allocOk
 
 theorem fok1207 : Bridge.FrJ 1207 :=
-  Bridge.frJ_of Checked.code1207 Checked.core1207 Checked.cert1207 Checked.plumbEq1207 Bridge.ProgAl.tab1207 rfl Checked.fsEq1207 Fn.«level_residual__L109_L18_L6_L3_loop1».frOk
+  Bridge.frJ_of Checked.code1207 Checked.core1207 Checked.cert1207 Checked.plumbEq1207 Bridge.ProgAl.tab1207 rfl Checked.fsEq1207 Fn.«level_positions__L5_L20_L2_loop0».frOk
 
 theorem aok1207 : Bridge.AllocJ 1207 :=
   Bridge.allocJ_of Checked.code1207 Checked.core1207 Checked.cert1207 Checked.plumbEq1207 Bridge.ProgAl.tab1207 rfl Checked.fsEq1207
-    Fn.«level_residual__L109_L18_L6_L3_loop1».allocShapeOk Fn.«level_residual__L109_L18_L6_L3_loop1».curBodyOk Fn.«level_residual__L109_L18_L6_L3_loop1».allocOk
+    Fn.«level_positions__L5_L20_L2_loop0».allocShapeOk Fn.«level_positions__L5_L20_L2_loop0».curBodyOk Fn.«level_positions__L5_L20_L2_loop0».allocOk
 
 theorem fok1208 : Bridge.FrJ 1208 :=
-  Bridge.frJ_of Checked.code1208 Checked.core1208 Checked.cert1208 Checked.plumbEq1208 Bridge.ProgAl.tab1208 rfl Checked.fsEq1208 Fn.«level_residual__L73_L18_L6_L3_loop0».frOk
+  Bridge.frJ_of Checked.code1208 Checked.core1208 Checked.cert1208 Checked.plumbEq1208 Bridge.ProgAl.tab1208 rfl Checked.fsEq1208 Fn.«level_positions__L4_L21_L3_loop0».frOk
 
 theorem aok1208 : Bridge.AllocJ 1208 :=
   Bridge.allocJ_of Checked.code1208 Checked.core1208 Checked.cert1208 Checked.plumbEq1208 Bridge.ProgAl.tab1208 rfl Checked.fsEq1208
-    Fn.«level_residual__L73_L18_L6_L3_loop0».allocShapeOk Fn.«level_residual__L73_L18_L6_L3_loop0».curBodyOk Fn.«level_residual__L73_L18_L6_L3_loop0».allocOk
+    Fn.«level_positions__L4_L21_L3_loop0».allocShapeOk Fn.«level_positions__L4_L21_L3_loop0».curBodyOk Fn.«level_positions__L4_L21_L3_loop0».allocOk
 
 theorem fok1209 : Bridge.FrJ 1209 :=
-  Bridge.frJ_of Checked.code1209 Checked.core1209 Checked.cert1209 Checked.plumbEq1209 Bridge.ProgAl.tab1209 rfl Checked.fsEq1209 Fn.«level_residual__L73_L18_L6_L3_loop1».frOk
+  Bridge.frJ_of Checked.code1209 Checked.core1209 Checked.cert1209 Checked.plumbEq1209 Bridge.ProgAl.tab1209 rfl Checked.fsEq1209 Fn.«level_positions__L3_L20_L2_loop0».frOk
 
 theorem aok1209 : Bridge.AllocJ 1209 :=
   Bridge.allocJ_of Checked.code1209 Checked.core1209 Checked.cert1209 Checked.plumbEq1209 Bridge.ProgAl.tab1209 rfl Checked.fsEq1209
-    Fn.«level_residual__L73_L18_L6_L3_loop1».allocShapeOk Fn.«level_residual__L73_L18_L6_L3_loop1».curBodyOk Fn.«level_residual__L73_L18_L6_L3_loop1».allocOk
+    Fn.«level_positions__L3_L20_L2_loop0».allocShapeOk Fn.«level_positions__L3_L20_L2_loop0».curBodyOk Fn.«level_positions__L3_L20_L2_loop0».allocOk
 
 theorem fok1210 : Bridge.FrJ 1210 :=
-  Bridge.frJ_of Checked.code1210 Checked.core1210 Checked.cert1210 Checked.plumbEq1210 Bridge.ProgAl.tab1210 rfl Checked.fsEq1210 Fn.«level_residual__L55_L18_L6_L3_loop0».frOk
+  Bridge.frJ_of Checked.code1210 Checked.core1210 Checked.cert1210 Checked.plumbEq1210 Bridge.ProgAl.tab1210 rfl Checked.fsEq1210 Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1».frOk
 
 theorem aok1210 : Bridge.AllocJ 1210 :=
   Bridge.allocJ_of Checked.code1210 Checked.core1210 Checked.cert1210 Checked.plumbEq1210 Bridge.ProgAl.tab1210 rfl Checked.fsEq1210
-    Fn.«level_residual__L55_L18_L6_L3_loop0».allocShapeOk Fn.«level_residual__L55_L18_L6_L3_loop0».curBodyOk Fn.«level_residual__L55_L18_L6_L3_loop0».allocOk
+    Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1».allocOk
 
 theorem fok1211 : Bridge.FrJ 1211 :=
-  Bridge.frJ_of Checked.code1211 Checked.core1211 Checked.cert1211 Checked.plumbEq1211 Bridge.ProgAl.tab1211 rfl Checked.fsEq1211 Fn.«level_residual__L55_L18_L6_L3_loop1».frOk
+  Bridge.frJ_of Checked.code1211 Checked.core1211 Checked.cert1211 Checked.plumbEq1211 Bridge.ProgAl.tab1211 rfl Checked.fsEq1211 Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1».frOk
 
 theorem aok1211 : Bridge.AllocJ 1211 :=
   Bridge.allocJ_of Checked.code1211 Checked.core1211 Checked.cert1211 Checked.plumbEq1211 Bridge.ProgAl.tab1211 rfl Checked.fsEq1211
-    Fn.«level_residual__L55_L18_L6_L3_loop1».allocShapeOk Fn.«level_residual__L55_L18_L6_L3_loop1».curBodyOk Fn.«level_residual__L55_L18_L6_L3_loop1».allocOk
+    Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1».allocOk
 
 theorem fok1212 : Bridge.FrJ 1212 :=
-  Bridge.frJ_of Checked.code1212 Checked.core1212 Checked.cert1212 Checked.plumbEq1212 Bridge.ProgAl.tab1212 rfl Checked.fsEq1212 Fn.«level_residual__L55_L14_L4_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1212 Checked.core1212 Checked.cert1212 Checked.plumbEq1212 Bridge.ProgAl.tab1212 rfl Checked.fsEq1212 Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1».frOk
 
 theorem aok1212 : Bridge.AllocJ 1212 :=
   Bridge.allocJ_of Checked.code1212 Checked.core1212 Checked.cert1212 Checked.plumbEq1212 Bridge.ProgAl.tab1212 rfl Checked.fsEq1212
-    Fn.«level_residual__L55_L14_L4_L2_loop0».allocShapeOk Fn.«level_residual__L55_L14_L4_L2_loop0».curBodyOk Fn.«level_residual__L55_L14_L4_L2_loop0».allocOk
+    Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1».allocOk
 
 theorem fok1213 : Bridge.FrJ 1213 :=
-  Bridge.frJ_of Checked.code1213 Checked.core1213 Checked.cert1213 Checked.plumbEq1213 Bridge.ProgAl.tab1213 rfl Checked.fsEq1213 Fn.«level_residual__L55_L14_L4_L2_loop1».frOk
+  Bridge.frJ_of Checked.code1213 Checked.core1213 Checked.cert1213 Checked.plumbEq1213 Bridge.ProgAl.tab1213 rfl Checked.fsEq1213 Fn.«level_residual__L218_L19_L6_L3_loop0».frOk
 
 theorem aok1213 : Bridge.AllocJ 1213 :=
   Bridge.allocJ_of Checked.code1213 Checked.core1213 Checked.cert1213 Checked.plumbEq1213 Bridge.ProgAl.tab1213 rfl Checked.fsEq1213
-    Fn.«level_residual__L55_L14_L4_L2_loop1».allocShapeOk Fn.«level_residual__L55_L14_L4_L2_loop1».curBodyOk Fn.«level_residual__L55_L14_L4_L2_loop1».allocOk
+    Fn.«level_residual__L218_L19_L6_L3_loop0».allocShapeOk Fn.«level_residual__L218_L19_L6_L3_loop0».curBodyOk Fn.«level_residual__L218_L19_L6_L3_loop0».allocOk
 
 theorem fok1214 : Bridge.FrJ 1214 :=
-  Bridge.frJ_of Checked.code1214 Checked.core1214 Checked.cert1214 Checked.plumbEq1214 Bridge.ProgAl.tab1214 rfl Checked.fsEq1214 Fn.«level_residual__L44_L14_L4_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1214 Checked.core1214 Checked.cert1214 Checked.plumbEq1214 Bridge.ProgAl.tab1214 rfl Checked.fsEq1214 Fn.«level_residual__L218_L19_L6_L3_loop1».frOk
 
 theorem aok1214 : Bridge.AllocJ 1214 :=
   Bridge.allocJ_of Checked.code1214 Checked.core1214 Checked.cert1214 Checked.plumbEq1214 Bridge.ProgAl.tab1214 rfl Checked.fsEq1214
-    Fn.«level_residual__L44_L14_L4_L2_loop0».allocShapeOk Fn.«level_residual__L44_L14_L4_L2_loop0».curBodyOk Fn.«level_residual__L44_L14_L4_L2_loop0».allocOk
+    Fn.«level_residual__L218_L19_L6_L3_loop1».allocShapeOk Fn.«level_residual__L218_L19_L6_L3_loop1».curBodyOk Fn.«level_residual__L218_L19_L6_L3_loop1».allocOk
 
 theorem fok1215 : Bridge.FrJ 1215 :=
-  Bridge.frJ_of Checked.code1215 Checked.core1215 Checked.cert1215 Checked.plumbEq1215 Bridge.ProgAl.tab1215 rfl Checked.fsEq1215 Fn.«level_residual__L44_L14_L4_L2_loop1».frOk
+  Bridge.frJ_of Checked.code1215 Checked.core1215 Checked.cert1215 Checked.plumbEq1215 Bridge.ProgAl.tab1215 rfl Checked.fsEq1215 Fn.«level_residual__L109_L19_L6_L3_loop0».frOk
 
 theorem aok1215 : Bridge.AllocJ 1215 :=
   Bridge.allocJ_of Checked.code1215 Checked.core1215 Checked.cert1215 Checked.plumbEq1215 Bridge.ProgAl.tab1215 rfl Checked.fsEq1215
-    Fn.«level_residual__L44_L14_L4_L2_loop1».allocShapeOk Fn.«level_residual__L44_L14_L4_L2_loop1».curBodyOk Fn.«level_residual__L44_L14_L4_L2_loop1».allocOk
+    Fn.«level_residual__L109_L19_L6_L3_loop0».allocShapeOk Fn.«level_residual__L109_L19_L6_L3_loop0».curBodyOk Fn.«level_residual__L109_L19_L6_L3_loop0».allocOk
 
 theorem fok1216 : Bridge.FrJ 1216 :=
-  Bridge.frJ_of Checked.code1216 Checked.core1216 Checked.cert1216 Checked.plumbEq1216 Bridge.ProgAl.tab1216 rfl Checked.fsEq1216 Fn.«level_residual__L37_L14_L4_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1216 Checked.core1216 Checked.cert1216 Checked.plumbEq1216 Bridge.ProgAl.tab1216 rfl Checked.fsEq1216 Fn.«level_residual__L109_L19_L6_L3_loop1».frOk
 
 theorem aok1216 : Bridge.AllocJ 1216 :=
   Bridge.allocJ_of Checked.code1216 Checked.core1216 Checked.cert1216 Checked.plumbEq1216 Bridge.ProgAl.tab1216 rfl Checked.fsEq1216
-    Fn.«level_residual__L37_L14_L4_L2_loop0».allocShapeOk Fn.«level_residual__L37_L14_L4_L2_loop0».curBodyOk Fn.«level_residual__L37_L14_L4_L2_loop0».allocOk
+    Fn.«level_residual__L109_L19_L6_L3_loop1».allocShapeOk Fn.«level_residual__L109_L19_L6_L3_loop1».curBodyOk Fn.«level_residual__L109_L19_L6_L3_loop1».allocOk
 
 theorem fok1217 : Bridge.FrJ 1217 :=
-  Bridge.frJ_of Checked.code1217 Checked.core1217 Checked.cert1217 Checked.plumbEq1217 Bridge.ProgAl.tab1217 rfl Checked.fsEq1217 Fn.«level_residual__L37_L14_L4_L2_loop1».frOk
+  Bridge.frJ_of Checked.code1217 Checked.core1217 Checked.cert1217 Checked.plumbEq1217 Bridge.ProgAl.tab1217 rfl Checked.fsEq1217 Fn.«level_residual__L73_L19_L6_L3_loop0».frOk
 
 theorem aok1217 : Bridge.AllocJ 1217 :=
   Bridge.allocJ_of Checked.code1217 Checked.core1217 Checked.cert1217 Checked.plumbEq1217 Bridge.ProgAl.tab1217 rfl Checked.fsEq1217
-    Fn.«level_residual__L37_L14_L4_L2_loop1».allocShapeOk Fn.«level_residual__L37_L14_L4_L2_loop1».curBodyOk Fn.«level_residual__L37_L14_L4_L2_loop1».allocOk
+    Fn.«level_residual__L73_L19_L6_L3_loop0».allocShapeOk Fn.«level_residual__L73_L19_L6_L3_loop0».curBodyOk Fn.«level_residual__L73_L19_L6_L3_loop0».allocOk
 
 theorem fok1218 : Bridge.FrJ 1218 :=
-  Bridge.frJ_of Checked.code1218 Checked.core1218 Checked.cert1218 Checked.plumbEq1218 Bridge.ProgAl.tab1218 rfl Checked.fsEq1218 Fn.«level_residual__L32_L14_L4_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1218 Checked.core1218 Checked.cert1218 Checked.plumbEq1218 Bridge.ProgAl.tab1218 rfl Checked.fsEq1218 Fn.«level_residual__L73_L19_L6_L3_loop1».frOk
 
 theorem aok1218 : Bridge.AllocJ 1218 :=
   Bridge.allocJ_of Checked.code1218 Checked.core1218 Checked.cert1218 Checked.plumbEq1218 Bridge.ProgAl.tab1218 rfl Checked.fsEq1218
-    Fn.«level_residual__L32_L14_L4_L2_loop0».allocShapeOk Fn.«level_residual__L32_L14_L4_L2_loop0».curBodyOk Fn.«level_residual__L32_L14_L4_L2_loop0».allocOk
+    Fn.«level_residual__L73_L19_L6_L3_loop1».allocShapeOk Fn.«level_residual__L73_L19_L6_L3_loop1».curBodyOk Fn.«level_residual__L73_L19_L6_L3_loop1».allocOk
 
 theorem fok1219 : Bridge.FrJ 1219 :=
-  Bridge.frJ_of Checked.code1219 Checked.core1219 Checked.cert1219 Checked.plumbEq1219 Bridge.ProgAl.tab1219 rfl Checked.fsEq1219 Fn.«level_residual__L28_L10_L4_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1219 Checked.core1219 Checked.cert1219 Checked.plumbEq1219 Bridge.ProgAl.tab1219 rfl Checked.fsEq1219 Fn.«level_residual__L55_L19_L6_L3_loop0».frOk
 
 theorem aok1219 : Bridge.AllocJ 1219 :=
   Bridge.allocJ_of Checked.code1219 Checked.core1219 Checked.cert1219 Checked.plumbEq1219 Bridge.ProgAl.tab1219 rfl Checked.fsEq1219
-    Fn.«level_residual__L28_L10_L4_L2_loop0».allocShapeOk Fn.«level_residual__L28_L10_L4_L2_loop0».curBodyOk Fn.«level_residual__L28_L10_L4_L2_loop0».allocOk
+    Fn.«level_residual__L55_L19_L6_L3_loop0».allocShapeOk Fn.«level_residual__L55_L19_L6_L3_loop0».curBodyOk Fn.«level_residual__L55_L19_L6_L3_loop0».allocOk
 
 theorem fok1220 : Bridge.FrJ 1220 :=
-  Bridge.frJ_of Checked.code1220 Checked.core1220 Checked.cert1220 Checked.plumbEq1220 Bridge.ProgAl.tab1220 rfl Checked.fsEq1220 Fn.«level_residual__L28_L10_L4_L2_loop1».frOk
+  Bridge.frJ_of Checked.code1220 Checked.core1220 Checked.cert1220 Checked.plumbEq1220 Bridge.ProgAl.tab1220 rfl Checked.fsEq1220 Fn.«level_residual__L55_L19_L6_L3_loop1».frOk
 
 theorem aok1220 : Bridge.AllocJ 1220 :=
   Bridge.allocJ_of Checked.code1220 Checked.core1220 Checked.cert1220 Checked.plumbEq1220 Bridge.ProgAl.tab1220 rfl Checked.fsEq1220
-    Fn.«level_residual__L28_L10_L4_L2_loop1».allocShapeOk Fn.«level_residual__L28_L10_L4_L2_loop1».curBodyOk Fn.«level_residual__L28_L10_L4_L2_loop1».allocOk
+    Fn.«level_residual__L55_L19_L6_L3_loop1».allocShapeOk Fn.«level_residual__L55_L19_L6_L3_loop1».curBodyOk Fn.«level_residual__L55_L19_L6_L3_loop1».allocOk
 
 theorem fok1221 : Bridge.FrJ 1221 :=
-  Bridge.frJ_of Checked.code1221 Checked.core1221 Checked.cert1221 Checked.plumbEq1221 Bridge.ProgAl.tab1221 rfl Checked.fsEq1221 Fn.«level_residual__L25_L10_L4_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1221 Checked.core1221 Checked.cert1221 Checked.plumbEq1221 Bridge.ProgAl.tab1221 rfl Checked.fsEq1221 Fn.«level_residual__L55_L15_L4_L2_loop0».frOk
 
 theorem aok1221 : Bridge.AllocJ 1221 :=
   Bridge.allocJ_of Checked.code1221 Checked.core1221 Checked.cert1221 Checked.plumbEq1221 Bridge.ProgAl.tab1221 rfl Checked.fsEq1221
-    Fn.«level_residual__L25_L10_L4_L2_loop0».allocShapeOk Fn.«level_residual__L25_L10_L4_L2_loop0».curBodyOk Fn.«level_residual__L25_L10_L4_L2_loop0».allocOk
+    Fn.«level_residual__L55_L15_L4_L2_loop0».allocShapeOk Fn.«level_residual__L55_L15_L4_L2_loop0».curBodyOk Fn.«level_residual__L55_L15_L4_L2_loop0».allocOk
 
 theorem fok1222 : Bridge.FrJ 1222 :=
-  Bridge.frJ_of Checked.code1222 Checked.core1222 Checked.cert1222 Checked.plumbEq1222 Bridge.ProgAl.tab1222 rfl Checked.fsEq1222 Fn.«level_residual__L25_L10_L4_L2_loop1».frOk
+  Bridge.frJ_of Checked.code1222 Checked.core1222 Checked.cert1222 Checked.plumbEq1222 Bridge.ProgAl.tab1222 rfl Checked.fsEq1222 Fn.«level_residual__L55_L15_L4_L2_loop1».frOk
 
 theorem aok1222 : Bridge.AllocJ 1222 :=
   Bridge.allocJ_of Checked.code1222 Checked.core1222 Checked.cert1222 Checked.plumbEq1222 Bridge.ProgAl.tab1222 rfl Checked.fsEq1222
-    Fn.«level_residual__L25_L10_L4_L2_loop1».allocShapeOk Fn.«level_residual__L25_L10_L4_L2_loop1».curBodyOk Fn.«level_residual__L25_L10_L4_L2_loop1».allocOk
+    Fn.«level_residual__L55_L15_L4_L2_loop1».allocShapeOk Fn.«level_residual__L55_L15_L4_L2_loop1».curBodyOk Fn.«level_residual__L55_L15_L4_L2_loop1».allocOk
 
 theorem fok1223 : Bridge.FrJ 1223 :=
-  Bridge.frJ_of Checked.code1223 Checked.core1223 Checked.cert1223 Checked.plumbEq1223 Bridge.ProgAl.tab1223 rfl Checked.fsEq1223 Fn.«level_residual__L23_L10_L4_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1223 Checked.core1223 Checked.cert1223 Checked.plumbEq1223 Bridge.ProgAl.tab1223 rfl Checked.fsEq1223 Fn.«level_residual__L44_L15_L4_L2_loop0».frOk
 
 theorem aok1223 : Bridge.AllocJ 1223 :=
   Bridge.allocJ_of Checked.code1223 Checked.core1223 Checked.cert1223 Checked.plumbEq1223 Bridge.ProgAl.tab1223 rfl Checked.fsEq1223
-    Fn.«level_residual__L23_L10_L4_L2_loop0».allocShapeOk Fn.«level_residual__L23_L10_L4_L2_loop0».curBodyOk Fn.«level_residual__L23_L10_L4_L2_loop0».allocOk
+    Fn.«level_residual__L44_L15_L4_L2_loop0».allocShapeOk Fn.«level_residual__L44_L15_L4_L2_loop0».curBodyOk Fn.«level_residual__L44_L15_L4_L2_loop0».allocOk
 
 theorem fok1224 : Bridge.FrJ 1224 :=
-  Bridge.frJ_of Checked.code1224 Checked.core1224 Checked.cert1224 Checked.plumbEq1224 Bridge.ProgAl.tab1224 rfl Checked.fsEq1224 Fn.«level_residual__L23_L10_L4_L2_loop1».frOk
+  Bridge.frJ_of Checked.code1224 Checked.core1224 Checked.cert1224 Checked.plumbEq1224 Bridge.ProgAl.tab1224 rfl Checked.fsEq1224 Fn.«level_residual__L44_L15_L4_L2_loop1».frOk
 
 theorem aok1224 : Bridge.AllocJ 1224 :=
   Bridge.allocJ_of Checked.code1224 Checked.core1224 Checked.cert1224 Checked.plumbEq1224 Bridge.ProgAl.tab1224 rfl Checked.fsEq1224
-    Fn.«level_residual__L23_L10_L4_L2_loop1».allocShapeOk Fn.«level_residual__L23_L10_L4_L2_loop1».curBodyOk Fn.«level_residual__L23_L10_L4_L2_loop1».allocOk
+    Fn.«level_residual__L44_L15_L4_L2_loop1».allocShapeOk Fn.«level_residual__L44_L15_L4_L2_loop1».curBodyOk Fn.«level_residual__L44_L15_L4_L2_loop1».allocOk
 
 theorem fok1225 : Bridge.FrJ 1225 :=
-  Bridge.frJ_of Checked.code1225 Checked.core1225 Checked.cert1225 Checked.plumbEq1225 Bridge.ProgAl.tab1225 rfl Checked.fsEq1225 Fn.«level_residual__L21_L6_L4_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1225 Checked.core1225 Checked.cert1225 Checked.plumbEq1225 Bridge.ProgAl.tab1225 rfl Checked.fsEq1225 Fn.«level_residual__L37_L15_L4_L2_loop0».frOk
 
 theorem aok1225 : Bridge.AllocJ 1225 :=
   Bridge.allocJ_of Checked.code1225 Checked.core1225 Checked.cert1225 Checked.plumbEq1225 Bridge.ProgAl.tab1225 rfl Checked.fsEq1225
-    Fn.«level_residual__L21_L6_L4_L2_loop0».allocShapeOk Fn.«level_residual__L21_L6_L4_L2_loop0».curBodyOk Fn.«level_residual__L21_L6_L4_L2_loop0».allocOk
+    Fn.«level_residual__L37_L15_L4_L2_loop0».allocShapeOk Fn.«level_residual__L37_L15_L4_L2_loop0».curBodyOk Fn.«level_residual__L37_L15_L4_L2_loop0».allocOk
 
 theorem fok1226 : Bridge.FrJ 1226 :=
-  Bridge.frJ_of Checked.code1226 Checked.core1226 Checked.cert1226 Checked.plumbEq1226 Bridge.ProgAl.tab1226 rfl Checked.fsEq1226 Fn.«level_residual__L21_L6_L4_L2_loop1».frOk
+  Bridge.frJ_of Checked.code1226 Checked.core1226 Checked.cert1226 Checked.plumbEq1226 Bridge.ProgAl.tab1226 rfl Checked.fsEq1226 Fn.«level_residual__L37_L15_L4_L2_loop1».frOk
 
 theorem aok1226 : Bridge.AllocJ 1226 :=
   Bridge.allocJ_of Checked.code1226 Checked.core1226 Checked.cert1226 Checked.plumbEq1226 Bridge.ProgAl.tab1226 rfl Checked.fsEq1226
-    Fn.«level_residual__L21_L6_L4_L2_loop1».allocShapeOk Fn.«level_residual__L21_L6_L4_L2_loop1».curBodyOk Fn.«level_residual__L21_L6_L4_L2_loop1».allocOk
+    Fn.«level_residual__L37_L15_L4_L2_loop1».allocShapeOk Fn.«level_residual__L37_L15_L4_L2_loop1».curBodyOk Fn.«level_residual__L37_L15_L4_L2_loop1».allocOk
 
 theorem fok1227 : Bridge.FrJ 1227 :=
-  Bridge.frJ_of Checked.code1227 Checked.core1227 Checked.cert1227 Checked.plumbEq1227 Bridge.ProgAl.tab1227 rfl Checked.fsEq1227 Fn.«level_residual__L19_L6_L4_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1227 Checked.core1227 Checked.cert1227 Checked.plumbEq1227 Bridge.ProgAl.tab1227 rfl Checked.fsEq1227 Fn.«level_residual__L32_L15_L4_L2_loop0».frOk
 
 theorem aok1227 : Bridge.AllocJ 1227 :=
   Bridge.allocJ_of Checked.code1227 Checked.core1227 Checked.cert1227 Checked.plumbEq1227 Bridge.ProgAl.tab1227 rfl Checked.fsEq1227
-    Fn.«level_residual__L19_L6_L4_L2_loop0».allocShapeOk Fn.«level_residual__L19_L6_L4_L2_loop0».curBodyOk Fn.«level_residual__L19_L6_L4_L2_loop0».allocOk
+    Fn.«level_residual__L32_L15_L4_L2_loop0».allocShapeOk Fn.«level_residual__L32_L15_L4_L2_loop0».curBodyOk Fn.«level_residual__L32_L15_L4_L2_loop0».allocOk
 
 theorem fok1228 : Bridge.FrJ 1228 :=
-  Bridge.frJ_of Checked.code1228 Checked.core1228 Checked.cert1228 Checked.plumbEq1228 Bridge.ProgAl.tab1228 rfl Checked.fsEq1228 Fn.«level_residual__L19_L6_L4_L2_loop1».frOk
+  Bridge.frJ_of Checked.code1228 Checked.core1228 Checked.cert1228 Checked.plumbEq1228 Bridge.ProgAl.tab1228 rfl Checked.fsEq1228 Fn.«level_residual__L28_L11_L4_L2_loop0».frOk
 
 theorem aok1228 : Bridge.AllocJ 1228 :=
   Bridge.allocJ_of Checked.code1228 Checked.core1228 Checked.cert1228 Checked.plumbEq1228 Bridge.ProgAl.tab1228 rfl Checked.fsEq1228
-    Fn.«level_residual__L19_L6_L4_L2_loop1».allocShapeOk Fn.«level_residual__L19_L6_L4_L2_loop1».curBodyOk Fn.«level_residual__L19_L6_L4_L2_loop1».allocOk
+    Fn.«level_residual__L28_L11_L4_L2_loop0».allocShapeOk Fn.«level_residual__L28_L11_L4_L2_loop0».curBodyOk Fn.«level_residual__L28_L11_L4_L2_loop0».allocOk
 
 theorem fok1229 : Bridge.FrJ 1229 :=
-  Bridge.frJ_of Checked.code1229 Checked.core1229 Checked.cert1229 Checked.plumbEq1229 Bridge.ProgAl.tab1229 rfl Checked.fsEq1229 Fn.«level_residual__L18_L6_L4_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1229 Checked.core1229 Checked.cert1229 Checked.plumbEq1229 Bridge.ProgAl.tab1229 rfl Checked.fsEq1229 Fn.«level_residual__L28_L11_L4_L2_loop1».frOk
 
 theorem aok1229 : Bridge.AllocJ 1229 :=
   Bridge.allocJ_of Checked.code1229 Checked.core1229 Checked.cert1229 Checked.plumbEq1229 Bridge.ProgAl.tab1229 rfl Checked.fsEq1229
-    Fn.«level_residual__L18_L6_L4_L2_loop0».allocShapeOk Fn.«level_residual__L18_L6_L4_L2_loop0».curBodyOk Fn.«level_residual__L18_L6_L4_L2_loop0».allocOk
+    Fn.«level_residual__L28_L11_L4_L2_loop1».allocShapeOk Fn.«level_residual__L28_L11_L4_L2_loop1».curBodyOk Fn.«level_residual__L28_L11_L4_L2_loop1».allocOk
 
 theorem fok1230 : Bridge.FrJ 1230 :=
-  Bridge.frJ_of Checked.code1230 Checked.core1230 Checked.cert1230 Checked.plumbEq1230 Bridge.ProgAl.tab1230 rfl Checked.fsEq1230 Fn.«level_residual__L18_L6_L4_L2_loop1».frOk
+  Bridge.frJ_of Checked.code1230 Checked.core1230 Checked.cert1230 Checked.plumbEq1230 Bridge.ProgAl.tab1230 rfl Checked.fsEq1230 Fn.«level_residual__L25_L11_L4_L2_loop0».frOk
 
 theorem aok1230 : Bridge.AllocJ 1230 :=
   Bridge.allocJ_of Checked.code1230 Checked.core1230 Checked.cert1230 Checked.plumbEq1230 Bridge.ProgAl.tab1230 rfl Checked.fsEq1230
-    Fn.«level_residual__L18_L6_L4_L2_loop1».allocShapeOk Fn.«level_residual__L18_L6_L4_L2_loop1».curBodyOk Fn.«level_residual__L18_L6_L4_L2_loop1».allocOk
+    Fn.«level_residual__L25_L11_L4_L2_loop0».allocShapeOk Fn.«level_residual__L25_L11_L4_L2_loop0».curBodyOk Fn.«level_residual__L25_L11_L4_L2_loop0».allocOk
 
 theorem fok1231 : Bridge.FrJ 1231 :=
-  Bridge.frJ_of Checked.code1231 Checked.core1231 Checked.cert1231 Checked.plumbEq1231 Bridge.ProgAl.tab1231 rfl Checked.fsEq1231 Fn.«decode_query_windows__L20_L8».frOk
+  Bridge.frJ_of Checked.code1231 Checked.core1231 Checked.cert1231 Checked.plumbEq1231 Bridge.ProgAl.tab1231 rfl Checked.fsEq1231 Fn.«level_residual__L25_L11_L4_L2_loop1».frOk
 
 theorem aok1231 : Bridge.AllocJ 1231 :=
   Bridge.allocJ_of Checked.code1231 Checked.core1231 Checked.cert1231 Checked.plumbEq1231 Bridge.ProgAl.tab1231 rfl Checked.fsEq1231
-    Fn.«decode_query_windows__L20_L8».allocShapeOk Fn.«decode_query_windows__L20_L8».curBodyOk Fn.«decode_query_windows__L20_L8».allocOk
+    Fn.«level_residual__L25_L11_L4_L2_loop1».allocShapeOk Fn.«level_residual__L25_L11_L4_L2_loop1».curBodyOk Fn.«level_residual__L25_L11_L4_L2_loop1».allocOk
 
 theorem fok1232 : Bridge.FrJ 1232 :=
-  Bridge.frJ_of Checked.code1232 Checked.core1232 Checked.cert1232 Checked.plumbEq1232 Bridge.ProgAl.tab1232 rfl Checked.fsEq1232 Fn.«level_positions__L37_L20_L8_loop0».frOk
+  Bridge.frJ_of Checked.code1232 Checked.core1232 Checked.cert1232 Checked.plumbEq1232 Bridge.ProgAl.tab1232 rfl Checked.fsEq1232 Fn.«level_residual__L23_L11_L4_L2_loop0».frOk
 
 theorem aok1232 : Bridge.AllocJ 1232 :=
   Bridge.allocJ_of Checked.code1232 Checked.core1232 Checked.cert1232 Checked.plumbEq1232 Bridge.ProgAl.tab1232 rfl Checked.fsEq1232
-    Fn.«level_positions__L37_L20_L8_loop0».allocShapeOk Fn.«level_positions__L37_L20_L8_loop0».curBodyOk Fn.«level_positions__L37_L20_L8_loop0».allocOk
+    Fn.«level_residual__L23_L11_L4_L2_loop0».allocShapeOk Fn.«level_residual__L23_L11_L4_L2_loop0».curBodyOk Fn.«level_residual__L23_L11_L4_L2_loop0».allocOk
 
 theorem fok1233 : Bridge.FrJ 1233 :=
-  Bridge.frJ_of Checked.code1233 Checked.core1233 Checked.cert1233 Checked.plumbEq1233 Bridge.ProgAl.tab1233 rfl Checked.fsEq1233 Fn.«level_positions__L19_L21_L3_loop0».frOk
+  Bridge.frJ_of Checked.code1233 Checked.core1233 Checked.cert1233 Checked.plumbEq1233 Bridge.ProgAl.tab1233 rfl Checked.fsEq1233 Fn.«level_residual__L23_L11_L4_L2_loop1».frOk
 
 theorem aok1233 : Bridge.AllocJ 1233 :=
   Bridge.allocJ_of Checked.code1233 Checked.core1233 Checked.cert1233 Checked.plumbEq1233 Bridge.ProgAl.tab1233 rfl Checked.fsEq1233
-    Fn.«level_positions__L19_L21_L3_loop0».allocShapeOk Fn.«level_positions__L19_L21_L3_loop0».curBodyOk Fn.«level_positions__L19_L21_L3_loop0».allocOk
+    Fn.«level_residual__L23_L11_L4_L2_loop1».allocShapeOk Fn.«level_residual__L23_L11_L4_L2_loop1».curBodyOk Fn.«level_residual__L23_L11_L4_L2_loop1».allocOk
 
 theorem fok1234 : Bridge.FrJ 1234 :=
-  Bridge.frJ_of Checked.code1234 Checked.core1234 Checked.cert1234 Checked.plumbEq1234 Bridge.ProgAl.tab1234 rfl Checked.fsEq1234 Fn.«level_positions__L15_L22_L4_loop0».frOk
+  Bridge.frJ_of Checked.code1234 Checked.core1234 Checked.cert1234 Checked.plumbEq1234 Bridge.ProgAl.tab1234 rfl Checked.fsEq1234 Fn.«level_residual__L21_L7_L4_L2_loop0».frOk
 
 theorem aok1234 : Bridge.AllocJ 1234 :=
   Bridge.allocJ_of Checked.code1234 Checked.core1234 Checked.cert1234 Checked.plumbEq1234 Bridge.ProgAl.tab1234 rfl Checked.fsEq1234
-    Fn.«level_positions__L15_L22_L4_loop0».allocShapeOk Fn.«level_positions__L15_L22_L4_loop0».curBodyOk Fn.«level_positions__L15_L22_L4_loop0».allocOk
+    Fn.«level_residual__L21_L7_L4_L2_loop0».allocShapeOk Fn.«level_residual__L21_L7_L4_L2_loop0».curBodyOk Fn.«level_residual__L21_L7_L4_L2_loop0».allocOk
 
 theorem fok1235 : Bridge.FrJ 1235 :=
-  Bridge.frJ_of Checked.code1235 Checked.core1235 Checked.cert1235 Checked.plumbEq1235 Bridge.ProgAl.tab1235 rfl Checked.fsEq1235 Fn.«decode_query_windows__L23_L5».frOk
+  Bridge.frJ_of Checked.code1235 Checked.core1235 Checked.cert1235 Checked.plumbEq1235 Bridge.ProgAl.tab1235 rfl Checked.fsEq1235 Fn.«level_residual__L21_L7_L4_L2_loop1».frOk
 
 theorem aok1235 : Bridge.AllocJ 1235 :=
   Bridge.allocJ_of Checked.code1235 Checked.core1235 Checked.cert1235 Checked.plumbEq1235 Bridge.ProgAl.tab1235 rfl Checked.fsEq1235
-    Fn.«decode_query_windows__L23_L5».allocShapeOk Fn.«decode_query_windows__L23_L5».curBodyOk Fn.«decode_query_windows__L23_L5».allocOk
+    Fn.«level_residual__L21_L7_L4_L2_loop1».allocShapeOk Fn.«level_residual__L21_L7_L4_L2_loop1».curBodyOk Fn.«level_residual__L21_L7_L4_L2_loop1».allocOk
 
 theorem fok1236 : Bridge.FrJ 1236 :=
-  Bridge.frJ_of Checked.code1236 Checked.core1236 Checked.cert1236 Checked.plumbEq1236 Bridge.ProgAl.tab1236 rfl Checked.fsEq1236 Fn.«level_positions__L11_L23_L5_loop0».frOk
+  Bridge.frJ_of Checked.code1236 Checked.core1236 Checked.cert1236 Checked.plumbEq1236 Bridge.ProgAl.tab1236 rfl Checked.fsEq1236 Fn.«level_residual__L19_L7_L4_L2_loop0».frOk
 
 theorem aok1236 : Bridge.AllocJ 1236 :=
   Bridge.allocJ_of Checked.code1236 Checked.core1236 Checked.cert1236 Checked.plumbEq1236 Bridge.ProgAl.tab1236 rfl Checked.fsEq1236
-    Fn.«level_positions__L11_L23_L5_loop0».allocShapeOk Fn.«level_positions__L11_L23_L5_loop0».curBodyOk Fn.«level_positions__L11_L23_L5_loop0».allocOk
+    Fn.«level_residual__L19_L7_L4_L2_loop0».allocShapeOk Fn.«level_residual__L19_L7_L4_L2_loop0».curBodyOk Fn.«level_residual__L19_L7_L4_L2_loop0».allocOk
 
 theorem fok1237 : Bridge.FrJ 1237 :=
-  Bridge.frJ_of Checked.code1237 Checked.core1237 Checked.cert1237 Checked.plumbEq1237 Bridge.ProgAl.tab1237 rfl Checked.fsEq1237 Fn.«verify_merkle_cap__L8».frOk
+  Bridge.frJ_of Checked.code1237 Checked.core1237 Checked.cert1237 Checked.plumbEq1237 Bridge.ProgAl.tab1237 rfl Checked.fsEq1237 Fn.«level_residual__L19_L7_L4_L2_loop1».frOk
 
 theorem aok1237 : Bridge.AllocJ 1237 :=
   Bridge.allocJ_of Checked.code1237 Checked.core1237 Checked.cert1237 Checked.plumbEq1237 Bridge.ProgAl.tab1237 rfl Checked.fsEq1237
-    Fn.«verify_merkle_cap__L8».allocShapeOk Fn.«verify_merkle_cap__L8».curBodyOk Fn.«verify_merkle_cap__L8».allocOk
+    Fn.«level_residual__L19_L7_L4_L2_loop1».allocShapeOk Fn.«level_residual__L19_L7_L4_L2_loop1».curBodyOk Fn.«level_residual__L19_L7_L4_L2_loop1».allocOk
 
 theorem fok1238 : Bridge.FrJ 1238 :=
-  Bridge.frJ_of Checked.code1238 Checked.core1238 Checked.cert1238 Checked.plumbEq1238 Bridge.ProgAl.tab1238 rfl Checked.fsEq1238 Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0».frOk
+  Bridge.frJ_of Checked.code1238 Checked.core1238 Checked.cert1238 Checked.plumbEq1238 Bridge.ProgAl.tab1238 rfl Checked.fsEq1238 Fn.«level_residual__L18_L7_L4_L2_loop0».frOk
 
 theorem aok1238 : Bridge.AllocJ 1238 :=
   Bridge.allocJ_of Checked.code1238 Checked.core1238 Checked.cert1238 Checked.plumbEq1238 Bridge.ProgAl.tab1238 rfl Checked.fsEq1238
-    Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0».allocShapeOk Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0».curBodyOk Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0».allocOk
+    Fn.«level_residual__L18_L7_L4_L2_loop0».allocShapeOk Fn.«level_residual__L18_L7_L4_L2_loop0».curBodyOk Fn.«level_residual__L18_L7_L4_L2_loop0».allocOk
 
 theorem fok1239 : Bridge.FrJ 1239 :=
-  Bridge.frJ_of Checked.code1239 Checked.core1239 Checked.cert1239 Checked.plumbEq1239 Bridge.ProgAl.tab1239 rfl Checked.fsEq1239 Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0».frOk
+  Bridge.frJ_of Checked.code1239 Checked.core1239 Checked.cert1239 Checked.plumbEq1239 Bridge.ProgAl.tab1239 rfl Checked.fsEq1239 Fn.«level_residual__L18_L7_L4_L2_loop1».frOk
 
 theorem aok1239 : Bridge.AllocJ 1239 :=
   Bridge.allocJ_of Checked.code1239 Checked.core1239 Checked.cert1239 Checked.plumbEq1239 Bridge.ProgAl.tab1239 rfl Checked.fsEq1239
-    Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0».allocShapeOk Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0».curBodyOk Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0».allocOk
+    Fn.«level_residual__L18_L7_L4_L2_loop1».allocShapeOk Fn.«level_residual__L18_L7_L4_L2_loop1».curBodyOk Fn.«level_residual__L18_L7_L4_L2_loop1».allocOk
 
 theorem fok1240 : Bridge.FrJ 1240 :=
-  Bridge.frJ_of Checked.code1240 Checked.core1240 Checked.cert1240 Checked.plumbEq1240 Bridge.ProgAl.tab1240 rfl Checked.fsEq1240 Fn.«level_positions__L8_L20_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1240 Checked.core1240 Checked.cert1240 Checked.plumbEq1240 Bridge.ProgAl.tab1240 rfl Checked.fsEq1240 Fn.«level_positions__L37_L21_L3_loop0».frOk
 
 theorem aok1240 : Bridge.AllocJ 1240 :=
   Bridge.allocJ_of Checked.code1240 Checked.core1240 Checked.cert1240 Checked.plumbEq1240 Bridge.ProgAl.tab1240 rfl Checked.fsEq1240
-    Fn.«level_positions__L8_L20_L2_loop0».allocShapeOk Fn.«level_positions__L8_L20_L2_loop0».curBodyOk Fn.«level_positions__L8_L20_L2_loop0».allocOk
+    Fn.«level_positions__L37_L21_L3_loop0».allocShapeOk Fn.«level_positions__L37_L21_L3_loop0».curBodyOk Fn.«level_positions__L37_L21_L3_loop0».allocOk
 
 theorem fok1241 : Bridge.FrJ 1241 :=
-  Bridge.frJ_of Checked.code1241 Checked.core1241 Checked.cert1241 Checked.plumbEq1241 Bridge.ProgAl.tab1241 rfl Checked.fsEq1241 Fn.«level_positions__L7_L21_L3_loop0».frOk
+  Bridge.frJ_of Checked.code1241 Checked.core1241 Checked.cert1241 Checked.plumbEq1241 Bridge.ProgAl.tab1241 rfl Checked.fsEq1241 Fn.«level_positions__L22_L22_L4_loop0».frOk
 
 theorem aok1241 : Bridge.AllocJ 1241 :=
   Bridge.allocJ_of Checked.code1241 Checked.core1241 Checked.cert1241 Checked.plumbEq1241 Bridge.ProgAl.tab1241 rfl Checked.fsEq1241
-    Fn.«level_positions__L7_L21_L3_loop0».allocShapeOk Fn.«level_positions__L7_L21_L3_loop0».curBodyOk Fn.«level_positions__L7_L21_L3_loop0».allocOk
+    Fn.«level_positions__L22_L22_L4_loop0».allocShapeOk Fn.«level_positions__L22_L22_L4_loop0».curBodyOk Fn.«level_positions__L22_L22_L4_loop0».allocOk
 
 theorem fok1242 : Bridge.FrJ 1242 :=
-  Bridge.frJ_of Checked.code1242 Checked.core1242 Checked.cert1242 Checked.plumbEq1242 Bridge.ProgAl.tab1242 rfl Checked.fsEq1242 Fn.«level_positions__L7_L22_L4_loop0».frOk
+  Bridge.frJ_of Checked.code1242 Checked.core1242 Checked.cert1242 Checked.plumbEq1242 Bridge.ProgAl.tab1242 rfl Checked.fsEq1242 Fn.«level_positions__L15_L23_L5_loop0».frOk
 
 theorem aok1242 : Bridge.AllocJ 1242 :=
   Bridge.allocJ_of Checked.code1242 Checked.core1242 Checked.cert1242 Checked.plumbEq1242 Bridge.ProgAl.tab1242 rfl Checked.fsEq1242
-    Fn.«level_positions__L7_L22_L4_loop0».allocShapeOk Fn.«level_positions__L7_L22_L4_loop0».curBodyOk Fn.«level_positions__L7_L22_L4_loop0».allocOk
+    Fn.«level_positions__L15_L23_L5_loop0».allocShapeOk Fn.«level_positions__L15_L23_L5_loop0».curBodyOk Fn.«level_positions__L15_L23_L5_loop0».allocOk
 
 theorem fok1243 : Bridge.FrJ 1243 :=
-  Bridge.frJ_of Checked.code1243 Checked.core1243 Checked.cert1243 Checked.plumbEq1243 Bridge.ProgAl.tab1243 rfl Checked.fsEq1243 Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0».frOk
+  Bridge.frJ_of Checked.code1243 Checked.core1243 Checked.cert1243 Checked.plumbEq1243 Bridge.ProgAl.tab1243 rfl Checked.fsEq1243 Fn.«decode_query_windows__L24_L6».frOk
 
 theorem aok1243 : Bridge.AllocJ 1243 :=
   Bridge.allocJ_of Checked.code1243 Checked.core1243 Checked.cert1243 Checked.plumbEq1243 Bridge.ProgAl.tab1243 rfl Checked.fsEq1243
-    Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0».allocOk
+    Fn.«decode_query_windows__L24_L6».allocShapeOk Fn.«decode_query_windows__L24_L6».curBodyOk Fn.«decode_query_windows__L24_L6».allocOk
 
 theorem fok1244 : Bridge.FrJ 1244 :=
-  Bridge.frJ_of Checked.code1244 Checked.core1244 Checked.cert1244 Checked.plumbEq1244 Bridge.ProgAl.tab1244 rfl Checked.fsEq1244 Fn.«level_positions__L5_L20_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1244 Checked.core1244 Checked.cert1244 Checked.plumbEq1244 Bridge.ProgAl.tab1244 rfl Checked.fsEq1244 Fn.«level_positions__L11_L24_L6_loop0».frOk
 
 theorem aok1244 : Bridge.AllocJ 1244 :=
   Bridge.allocJ_of Checked.code1244 Checked.core1244 Checked.cert1244 Checked.plumbEq1244 Bridge.ProgAl.tab1244 rfl Checked.fsEq1244
-    Fn.«level_positions__L5_L20_L2_loop0».allocShapeOk Fn.«level_positions__L5_L20_L2_loop0».curBodyOk Fn.«level_positions__L5_L20_L2_loop0».allocOk
+    Fn.«level_positions__L11_L24_L6_loop0».allocShapeOk Fn.«level_positions__L11_L24_L6_loop0».curBodyOk Fn.«level_positions__L11_L24_L6_loop0».allocOk
 
 theorem fok1245 : Bridge.FrJ 1245 :=
-  Bridge.frJ_of Checked.code1245 Checked.core1245 Checked.cert1245 Checked.plumbEq1245 Bridge.ProgAl.tab1245 rfl Checked.fsEq1245 Fn.«level_positions__L4_L21_L3_loop0».frOk
+  Bridge.frJ_of Checked.code1245 Checked.core1245 Checked.cert1245 Checked.plumbEq1245 Bridge.ProgAl.tab1245 rfl Checked.fsEq1245 Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0».frOk
 
 theorem aok1245 : Bridge.AllocJ 1245 :=
   Bridge.allocJ_of Checked.code1245 Checked.core1245 Checked.cert1245 Checked.plumbEq1245 Bridge.ProgAl.tab1245 rfl Checked.fsEq1245
-    Fn.«level_positions__L4_L21_L3_loop0».allocShapeOk Fn.«level_positions__L4_L21_L3_loop0».curBodyOk Fn.«level_positions__L4_L21_L3_loop0».allocOk
+    Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0».allocShapeOk Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0».curBodyOk Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0».allocOk
 
 theorem fok1246 : Bridge.FrJ 1246 :=
-  Bridge.frJ_of Checked.code1246 Checked.core1246 Checked.cert1246 Checked.plumbEq1246 Bridge.ProgAl.tab1246 rfl Checked.fsEq1246 Fn.«level_positions__L3_L20_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1246 Checked.core1246 Checked.cert1246 Checked.plumbEq1246 Bridge.ProgAl.tab1246 rfl Checked.fsEq1246 Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0».frOk
 
 theorem aok1246 : Bridge.AllocJ 1246 :=
   Bridge.allocJ_of Checked.code1246 Checked.core1246 Checked.cert1246 Checked.plumbEq1246 Bridge.ProgAl.tab1246 rfl Checked.fsEq1246
-    Fn.«level_positions__L3_L20_L2_loop0».allocShapeOk Fn.«level_positions__L3_L20_L2_loop0».curBodyOk Fn.«level_positions__L3_L20_L2_loop0».allocOk
+    Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0».allocShapeOk Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0».curBodyOk Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0».allocOk
 
 theorem fok1247 : Bridge.FrJ 1247 :=
-  Bridge.frJ_of Checked.code1247 Checked.core1247 Checked.cert1247 Checked.plumbEq1247 Bridge.ProgAl.tab1247 rfl Checked.fsEq1247 Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1».frOk
+  Bridge.frJ_of Checked.code1247 Checked.core1247 Checked.cert1247 Checked.plumbEq1247 Bridge.ProgAl.tab1247 rfl Checked.fsEq1247 Fn.«level_positions__L8_L21_L3_loop0».frOk
 
 theorem aok1247 : Bridge.AllocJ 1247 :=
   Bridge.allocJ_of Checked.code1247 Checked.core1247 Checked.cert1247 Checked.plumbEq1247 Bridge.ProgAl.tab1247 rfl Checked.fsEq1247
-    Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1».allocOk
+    Fn.«level_positions__L8_L21_L3_loop0».allocShapeOk Fn.«level_positions__L8_L21_L3_loop0».curBodyOk Fn.«level_positions__L8_L21_L3_loop0».allocOk
 
 theorem fok1248 : Bridge.FrJ 1248 :=
-  Bridge.frJ_of Checked.code1248 Checked.core1248 Checked.cert1248 Checked.plumbEq1248 Bridge.ProgAl.tab1248 rfl Checked.fsEq1248 Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1».frOk
+  Bridge.frJ_of Checked.code1248 Checked.core1248 Checked.cert1248 Checked.plumbEq1248 Bridge.ProgAl.tab1248 rfl Checked.fsEq1248 Fn.«level_positions__L8_L22_L4_loop0».frOk
 
 theorem aok1248 : Bridge.AllocJ 1248 :=
   Bridge.allocJ_of Checked.code1248 Checked.core1248 Checked.cert1248 Checked.plumbEq1248 Bridge.ProgAl.tab1248 rfl Checked.fsEq1248
-    Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1».allocOk
+    Fn.«level_positions__L8_L22_L4_loop0».allocShapeOk Fn.«level_positions__L8_L22_L4_loop0».curBodyOk Fn.«level_positions__L8_L22_L4_loop0».allocOk
 
 theorem fok1249 : Bridge.FrJ 1249 :=
-  Bridge.frJ_of Checked.code1249 Checked.core1249 Checked.cert1249 Checked.plumbEq1249 Bridge.ProgAl.tab1249 rfl Checked.fsEq1249 Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1».frOk
+  Bridge.frJ_of Checked.code1249 Checked.core1249 Checked.cert1249 Checked.plumbEq1249 Bridge.ProgAl.tab1249 rfl Checked.fsEq1249 Fn.«level_positions__L7_L23_L5_loop0».frOk
 
 theorem aok1249 : Bridge.AllocJ 1249 :=
   Bridge.allocJ_of Checked.code1249 Checked.core1249 Checked.cert1249 Checked.plumbEq1249 Bridge.ProgAl.tab1249 rfl Checked.fsEq1249
-    Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1».allocOk
+    Fn.«level_positions__L7_L23_L5_loop0».allocShapeOk Fn.«level_positions__L7_L23_L5_loop0».curBodyOk Fn.«level_positions__L7_L23_L5_loop0».allocOk
 
 theorem fok1250 : Bridge.FrJ 1250 :=
-  Bridge.frJ_of Checked.code1250 Checked.core1250 Checked.cert1250 Checked.plumbEq1250 Bridge.ProgAl.tab1250 rfl Checked.fsEq1250 Fn.«level_residual__L218_L19_L6_L3_loop0».frOk
+  Bridge.frJ_of Checked.code1250 Checked.core1250 Checked.cert1250 Checked.plumbEq1250 Bridge.ProgAl.tab1250 rfl Checked.fsEq1250 Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».frOk
 
 theorem aok1250 : Bridge.AllocJ 1250 :=
   Bridge.allocJ_of Checked.code1250 Checked.core1250 Checked.cert1250 Checked.plumbEq1250 Bridge.ProgAl.tab1250 rfl Checked.fsEq1250
-    Fn.«level_residual__L218_L19_L6_L3_loop0».allocShapeOk Fn.«level_residual__L218_L19_L6_L3_loop0».curBodyOk Fn.«level_residual__L218_L19_L6_L3_loop0».allocOk
+    Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».allocOk
 
 theorem fok1251 : Bridge.FrJ 1251 :=
-  Bridge.frJ_of Checked.code1251 Checked.core1251 Checked.cert1251 Checked.plumbEq1251 Bridge.ProgAl.tab1251 rfl Checked.fsEq1251 Fn.«level_residual__L218_L19_L6_L3_loop1».frOk
+  Bridge.frJ_of Checked.code1251 Checked.core1251 Checked.cert1251 Checked.plumbEq1251 Bridge.ProgAl.tab1251 rfl Checked.fsEq1251 Fn.«level_positions__L5_L21_L3_loop0».frOk
 
 theorem aok1251 : Bridge.AllocJ 1251 :=
   Bridge.allocJ_of Checked.code1251 Checked.core1251 Checked.cert1251 Checked.plumbEq1251 Bridge.ProgAl.tab1251 rfl Checked.fsEq1251
-    Fn.«level_residual__L218_L19_L6_L3_loop1».allocShapeOk Fn.«level_residual__L218_L19_L6_L3_loop1».curBodyOk Fn.«level_residual__L218_L19_L6_L3_loop1».allocOk
+    Fn.«level_positions__L5_L21_L3_loop0».allocShapeOk Fn.«level_positions__L5_L21_L3_loop0».curBodyOk Fn.«level_positions__L5_L21_L3_loop0».allocOk
 
 theorem fok1252 : Bridge.FrJ 1252 :=
-  Bridge.frJ_of Checked.code1252 Checked.core1252 Checked.cert1252 Checked.plumbEq1252 Bridge.ProgAl.tab1252 rfl Checked.fsEq1252 Fn.«level_residual__L109_L19_L6_L3_loop0».frOk
+  Bridge.frJ_of Checked.code1252 Checked.core1252 Checked.cert1252 Checked.plumbEq1252 Bridge.ProgAl.tab1252 rfl Checked.fsEq1252 Fn.«level_positions__L5_L22_L4_loop0».frOk
 
 theorem aok1252 : Bridge.AllocJ 1252 :=
   Bridge.allocJ_of Checked.code1252 Checked.core1252 Checked.cert1252 Checked.plumbEq1252 Bridge.ProgAl.tab1252 rfl Checked.fsEq1252
-    Fn.«level_residual__L109_L19_L6_L3_loop0».allocShapeOk Fn.«level_residual__L109_L19_L6_L3_loop0».curBodyOk Fn.«level_residual__L109_L19_L6_L3_loop0».allocOk
+    Fn.«level_positions__L5_L22_L4_loop0».allocShapeOk Fn.«level_positions__L5_L22_L4_loop0».curBodyOk Fn.«level_positions__L5_L22_L4_loop0».allocOk
 
 theorem fok1253 : Bridge.FrJ 1253 :=
-  Bridge.frJ_of Checked.code1253 Checked.core1253 Checked.cert1253 Checked.plumbEq1253 Bridge.ProgAl.tab1253 rfl Checked.fsEq1253 Fn.«level_residual__L109_L19_L6_L3_loop1».frOk
+  Bridge.frJ_of Checked.code1253 Checked.core1253 Checked.cert1253 Checked.plumbEq1253 Bridge.ProgAl.tab1253 rfl Checked.fsEq1253 Fn.«level_positions__L3_L21_L3_loop0».frOk
 
 theorem aok1253 : Bridge.AllocJ 1253 :=
   Bridge.allocJ_of Checked.code1253 Checked.core1253 Checked.cert1253 Checked.plumbEq1253 Bridge.ProgAl.tab1253 rfl Checked.fsEq1253
-    Fn.«level_residual__L109_L19_L6_L3_loop1».allocShapeOk Fn.«level_residual__L109_L19_L6_L3_loop1».curBodyOk Fn.«level_residual__L109_L19_L6_L3_loop1».allocOk
+    Fn.«level_positions__L3_L21_L3_loop0».allocShapeOk Fn.«level_positions__L3_L21_L3_loop0».curBodyOk Fn.«level_positions__L3_L21_L3_loop0».allocOk
 
 theorem fok1254 : Bridge.FrJ 1254 :=
-  Bridge.frJ_of Checked.code1254 Checked.core1254 Checked.cert1254 Checked.plumbEq1254 Bridge.ProgAl.tab1254 rfl Checked.fsEq1254 Fn.«level_residual__L73_L19_L6_L3_loop0».frOk
+  Bridge.frJ_of Checked.code1254 Checked.core1254 Checked.cert1254 Checked.plumbEq1254 Bridge.ProgAl.tab1254 rfl Checked.fsEq1254 Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1».frOk
 
 theorem aok1254 : Bridge.AllocJ 1254 :=
   Bridge.allocJ_of Checked.code1254 Checked.core1254 Checked.cert1254 Checked.plumbEq1254 Bridge.ProgAl.tab1254 rfl Checked.fsEq1254
-    Fn.«level_residual__L73_L19_L6_L3_loop0».allocShapeOk Fn.«level_residual__L73_L19_L6_L3_loop0».curBodyOk Fn.«level_residual__L73_L19_L6_L3_loop0».allocOk
+    Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1».allocOk
 
 theorem fok1255 : Bridge.FrJ 1255 :=
-  Bridge.frJ_of Checked.code1255 Checked.core1255 Checked.cert1255 Checked.plumbEq1255 Bridge.ProgAl.tab1255 rfl Checked.fsEq1255 Fn.«level_residual__L73_L19_L6_L3_loop1».frOk
+  Bridge.frJ_of Checked.code1255 Checked.core1255 Checked.cert1255 Checked.plumbEq1255 Bridge.ProgAl.tab1255 rfl Checked.fsEq1255 Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1».frOk
 
 theorem aok1255 : Bridge.AllocJ 1255 :=
   Bridge.allocJ_of Checked.code1255 Checked.core1255 Checked.cert1255 Checked.plumbEq1255 Bridge.ProgAl.tab1255 rfl Checked.fsEq1255
-    Fn.«level_residual__L73_L19_L6_L3_loop1».allocShapeOk Fn.«level_residual__L73_L19_L6_L3_loop1».curBodyOk Fn.«level_residual__L73_L19_L6_L3_loop1».allocOk
+    Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1».allocOk
 
 theorem fok1256 : Bridge.FrJ 1256 :=
-  Bridge.frJ_of Checked.code1256 Checked.core1256 Checked.cert1256 Checked.plumbEq1256 Bridge.ProgAl.tab1256 rfl Checked.fsEq1256 Fn.«level_residual__L55_L19_L6_L3_loop0».frOk
+  Bridge.frJ_of Checked.code1256 Checked.core1256 Checked.cert1256 Checked.plumbEq1256 Bridge.ProgAl.tab1256 rfl Checked.fsEq1256 Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1».frOk
 
 theorem aok1256 : Bridge.AllocJ 1256 :=
   Bridge.allocJ_of Checked.code1256 Checked.core1256 Checked.cert1256 Checked.plumbEq1256 Bridge.ProgAl.tab1256 rfl Checked.fsEq1256
-    Fn.«level_residual__L55_L19_L6_L3_loop0».allocShapeOk Fn.«level_residual__L55_L19_L6_L3_loop0».curBodyOk Fn.«level_residual__L55_L19_L6_L3_loop0».allocOk
+    Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1».allocOk
 
 theorem fok1257 : Bridge.FrJ 1257 :=
-  Bridge.frJ_of Checked.code1257 Checked.core1257 Checked.cert1257 Checked.plumbEq1257 Bridge.ProgAl.tab1257 rfl Checked.fsEq1257 Fn.«level_residual__L55_L19_L6_L3_loop1».frOk
+  Bridge.frJ_of Checked.code1257 Checked.core1257 Checked.cert1257 Checked.plumbEq1257 Bridge.ProgAl.tab1257 rfl Checked.fsEq1257 Fn.«level_residual__L218_L20_L6_L3_loop0».frOk
 
 theorem aok1257 : Bridge.AllocJ 1257 :=
   Bridge.allocJ_of Checked.code1257 Checked.core1257 Checked.cert1257 Checked.plumbEq1257 Bridge.ProgAl.tab1257 rfl Checked.fsEq1257
-    Fn.«level_residual__L55_L19_L6_L3_loop1».allocShapeOk Fn.«level_residual__L55_L19_L6_L3_loop1».curBodyOk Fn.«level_residual__L55_L19_L6_L3_loop1».allocOk
+    Fn.«level_residual__L218_L20_L6_L3_loop0».allocShapeOk Fn.«level_residual__L218_L20_L6_L3_loop0».curBodyOk Fn.«level_residual__L218_L20_L6_L3_loop0».allocOk
 
 theorem fok1258 : Bridge.FrJ 1258 :=
-  Bridge.frJ_of Checked.code1258 Checked.core1258 Checked.cert1258 Checked.plumbEq1258 Bridge.ProgAl.tab1258 rfl Checked.fsEq1258 Fn.«level_residual__L55_L15_L4_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1258 Checked.core1258 Checked.cert1258 Checked.plumbEq1258 Bridge.ProgAl.tab1258 rfl Checked.fsEq1258 Fn.«level_residual__L218_L20_L6_L3_loop1».frOk
 
 theorem aok1258 : Bridge.AllocJ 1258 :=
   Bridge.allocJ_of Checked.code1258 Checked.core1258 Checked.cert1258 Checked.plumbEq1258 Bridge.ProgAl.tab1258 rfl Checked.fsEq1258
-    Fn.«level_residual__L55_L15_L4_L2_loop0».allocShapeOk Fn.«level_residual__L55_L15_L4_L2_loop0».curBodyOk Fn.«level_residual__L55_L15_L4_L2_loop0».allocOk
+    Fn.«level_residual__L218_L20_L6_L3_loop1».allocShapeOk Fn.«level_residual__L218_L20_L6_L3_loop1».curBodyOk Fn.«level_residual__L218_L20_L6_L3_loop1».allocOk
 
 theorem fok1259 : Bridge.FrJ 1259 :=
-  Bridge.frJ_of Checked.code1259 Checked.core1259 Checked.cert1259 Checked.plumbEq1259 Bridge.ProgAl.tab1259 rfl Checked.fsEq1259 Fn.«level_residual__L55_L15_L4_L2_loop1».frOk
+  Bridge.frJ_of Checked.code1259 Checked.core1259 Checked.cert1259 Checked.plumbEq1259 Bridge.ProgAl.tab1259 rfl Checked.fsEq1259 Fn.«level_residual__L109_L20_L6_L3_loop0».frOk
 
 theorem aok1259 : Bridge.AllocJ 1259 :=
   Bridge.allocJ_of Checked.code1259 Checked.core1259 Checked.cert1259 Checked.plumbEq1259 Bridge.ProgAl.tab1259 rfl Checked.fsEq1259
-    Fn.«level_residual__L55_L15_L4_L2_loop1».allocShapeOk Fn.«level_residual__L55_L15_L4_L2_loop1».curBodyOk Fn.«level_residual__L55_L15_L4_L2_loop1».allocOk
+    Fn.«level_residual__L109_L20_L6_L3_loop0».allocShapeOk Fn.«level_residual__L109_L20_L6_L3_loop0».curBodyOk Fn.«level_residual__L109_L20_L6_L3_loop0».allocOk
 
 theorem fok1260 : Bridge.FrJ 1260 :=
-  Bridge.frJ_of Checked.code1260 Checked.core1260 Checked.cert1260 Checked.plumbEq1260 Bridge.ProgAl.tab1260 rfl Checked.fsEq1260 Fn.«level_residual__L44_L15_L4_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1260 Checked.core1260 Checked.cert1260 Checked.plumbEq1260 Bridge.ProgAl.tab1260 rfl Checked.fsEq1260 Fn.«level_residual__L109_L20_L6_L3_loop1».frOk
 
 theorem aok1260 : Bridge.AllocJ 1260 :=
   Bridge.allocJ_of Checked.code1260 Checked.core1260 Checked.cert1260 Checked.plumbEq1260 Bridge.ProgAl.tab1260 rfl Checked.fsEq1260
-    Fn.«level_residual__L44_L15_L4_L2_loop0».allocShapeOk Fn.«level_residual__L44_L15_L4_L2_loop0».curBodyOk Fn.«level_residual__L44_L15_L4_L2_loop0».allocOk
+    Fn.«level_residual__L109_L20_L6_L3_loop1».allocShapeOk Fn.«level_residual__L109_L20_L6_L3_loop1».curBodyOk Fn.«level_residual__L109_L20_L6_L3_loop1».allocOk
 
 theorem fok1261 : Bridge.FrJ 1261 :=
-  Bridge.frJ_of Checked.code1261 Checked.core1261 Checked.cert1261 Checked.plumbEq1261 Bridge.ProgAl.tab1261 rfl Checked.fsEq1261 Fn.«level_residual__L44_L15_L4_L2_loop1».frOk
+  Bridge.frJ_of Checked.code1261 Checked.core1261 Checked.cert1261 Checked.plumbEq1261 Bridge.ProgAl.tab1261 rfl Checked.fsEq1261 Fn.«level_residual__L73_L20_L6_L3_loop0».frOk
 
 theorem aok1261 : Bridge.AllocJ 1261 :=
   Bridge.allocJ_of Checked.code1261 Checked.core1261 Checked.cert1261 Checked.plumbEq1261 Bridge.ProgAl.tab1261 rfl Checked.fsEq1261
-    Fn.«level_residual__L44_L15_L4_L2_loop1».allocShapeOk Fn.«level_residual__L44_L15_L4_L2_loop1».curBodyOk Fn.«level_residual__L44_L15_L4_L2_loop1».allocOk
+    Fn.«level_residual__L73_L20_L6_L3_loop0».allocShapeOk Fn.«level_residual__L73_L20_L6_L3_loop0».curBodyOk Fn.«level_residual__L73_L20_L6_L3_loop0».allocOk
 
 theorem fok1262 : Bridge.FrJ 1262 :=
-  Bridge.frJ_of Checked.code1262 Checked.core1262 Checked.cert1262 Checked.plumbEq1262 Bridge.ProgAl.tab1262 rfl Checked.fsEq1262 Fn.«level_residual__L37_L15_L4_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1262 Checked.core1262 Checked.cert1262 Checked.plumbEq1262 Bridge.ProgAl.tab1262 rfl Checked.fsEq1262 Fn.«level_residual__L73_L20_L6_L3_loop1».frOk
 
 theorem aok1262 : Bridge.AllocJ 1262 :=
   Bridge.allocJ_of Checked.code1262 Checked.core1262 Checked.cert1262 Checked.plumbEq1262 Bridge.ProgAl.tab1262 rfl Checked.fsEq1262
-    Fn.«level_residual__L37_L15_L4_L2_loop0».allocShapeOk Fn.«level_residual__L37_L15_L4_L2_loop0».curBodyOk Fn.«level_residual__L37_L15_L4_L2_loop0».allocOk
+    Fn.«level_residual__L73_L20_L6_L3_loop1».allocShapeOk Fn.«level_residual__L73_L20_L6_L3_loop1».curBodyOk Fn.«level_residual__L73_L20_L6_L3_loop1».allocOk
 
 theorem fok1263 : Bridge.FrJ 1263 :=
-  Bridge.frJ_of Checked.code1263 Checked.core1263 Checked.cert1263 Checked.plumbEq1263 Bridge.ProgAl.tab1263 rfl Checked.fsEq1263 Fn.«level_residual__L37_L15_L4_L2_loop1».frOk
+  Bridge.frJ_of Checked.code1263 Checked.core1263 Checked.cert1263 Checked.plumbEq1263 Bridge.ProgAl.tab1263 rfl Checked.fsEq1263 Fn.«level_residual__L55_L20_L6_L3_loop0».frOk
 
 theorem aok1263 : Bridge.AllocJ 1263 :=
   Bridge.allocJ_of Checked.code1263 Checked.core1263 Checked.cert1263 Checked.plumbEq1263 Bridge.ProgAl.tab1263 rfl Checked.fsEq1263
-    Fn.«level_residual__L37_L15_L4_L2_loop1».allocShapeOk Fn.«level_residual__L37_L15_L4_L2_loop1».curBodyOk Fn.«level_residual__L37_L15_L4_L2_loop1».allocOk
+    Fn.«level_residual__L55_L20_L6_L3_loop0».allocShapeOk Fn.«level_residual__L55_L20_L6_L3_loop0».curBodyOk Fn.«level_residual__L55_L20_L6_L3_loop0».allocOk
 
 theorem fok1264 : Bridge.FrJ 1264 :=
-  Bridge.frJ_of Checked.code1264 Checked.core1264 Checked.cert1264 Checked.plumbEq1264 Bridge.ProgAl.tab1264 rfl Checked.fsEq1264 Fn.«level_residual__L32_L15_L4_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1264 Checked.core1264 Checked.cert1264 Checked.plumbEq1264 Bridge.ProgAl.tab1264 rfl Checked.fsEq1264 Fn.«level_residual__L55_L20_L6_L3_loop1».frOk
 
 theorem aok1264 : Bridge.AllocJ 1264 :=
   Bridge.allocJ_of Checked.code1264 Checked.core1264 Checked.cert1264 Checked.plumbEq1264 Bridge.ProgAl.tab1264 rfl Checked.fsEq1264
-    Fn.«level_residual__L32_L15_L4_L2_loop0».allocShapeOk Fn.«level_residual__L32_L15_L4_L2_loop0».curBodyOk Fn.«level_residual__L32_L15_L4_L2_loop0».allocOk
+    Fn.«level_residual__L55_L20_L6_L3_loop1».allocShapeOk Fn.«level_residual__L55_L20_L6_L3_loop1».curBodyOk Fn.«level_residual__L55_L20_L6_L3_loop1».allocOk
 
 theorem fok1265 : Bridge.FrJ 1265 :=
-  Bridge.frJ_of Checked.code1265 Checked.core1265 Checked.cert1265 Checked.plumbEq1265 Bridge.ProgAl.tab1265 rfl Checked.fsEq1265 Fn.«level_residual__L28_L11_L4_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1265 Checked.core1265 Checked.cert1265 Checked.plumbEq1265 Bridge.ProgAl.tab1265 rfl Checked.fsEq1265 Fn.«level_residual__L55_L16_L4_L2_loop0».frOk
 
 theorem aok1265 : Bridge.AllocJ 1265 :=
   Bridge.allocJ_of Checked.code1265 Checked.core1265 Checked.cert1265 Checked.plumbEq1265 Bridge.ProgAl.tab1265 rfl Checked.fsEq1265
-    Fn.«level_residual__L28_L11_L4_L2_loop0».allocShapeOk Fn.«level_residual__L28_L11_L4_L2_loop0».curBodyOk Fn.«level_residual__L28_L11_L4_L2_loop0».allocOk
+    Fn.«level_residual__L55_L16_L4_L2_loop0».allocShapeOk Fn.«level_residual__L55_L16_L4_L2_loop0».curBodyOk Fn.«level_residual__L55_L16_L4_L2_loop0».allocOk
 
 theorem fok1266 : Bridge.FrJ 1266 :=
-  Bridge.frJ_of Checked.code1266 Checked.core1266 Checked.cert1266 Checked.plumbEq1266 Bridge.ProgAl.tab1266 rfl Checked.fsEq1266 Fn.«level_residual__L28_L11_L4_L2_loop1».frOk
+  Bridge.frJ_of Checked.code1266 Checked.core1266 Checked.cert1266 Checked.plumbEq1266 Bridge.ProgAl.tab1266 rfl Checked.fsEq1266 Fn.«level_residual__L55_L16_L4_L2_loop1».frOk
 
 theorem aok1266 : Bridge.AllocJ 1266 :=
   Bridge.allocJ_of Checked.code1266 Checked.core1266 Checked.cert1266 Checked.plumbEq1266 Bridge.ProgAl.tab1266 rfl Checked.fsEq1266
-    Fn.«level_residual__L28_L11_L4_L2_loop1».allocShapeOk Fn.«level_residual__L28_L11_L4_L2_loop1».curBodyOk Fn.«level_residual__L28_L11_L4_L2_loop1».allocOk
+    Fn.«level_residual__L55_L16_L4_L2_loop1».allocShapeOk Fn.«level_residual__L55_L16_L4_L2_loop1».curBodyOk Fn.«level_residual__L55_L16_L4_L2_loop1».allocOk
 
 theorem fok1267 : Bridge.FrJ 1267 :=
-  Bridge.frJ_of Checked.code1267 Checked.core1267 Checked.cert1267 Checked.plumbEq1267 Bridge.ProgAl.tab1267 rfl Checked.fsEq1267 Fn.«level_residual__L25_L11_L4_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1267 Checked.core1267 Checked.cert1267 Checked.plumbEq1267 Bridge.ProgAl.tab1267 rfl Checked.fsEq1267 Fn.«level_residual__L44_L16_L4_L2_loop0».frOk
 
 theorem aok1267 : Bridge.AllocJ 1267 :=
   Bridge.allocJ_of Checked.code1267 Checked.core1267 Checked.cert1267 Checked.plumbEq1267 Bridge.ProgAl.tab1267 rfl Checked.fsEq1267
-    Fn.«level_residual__L25_L11_L4_L2_loop0».allocShapeOk Fn.«level_residual__L25_L11_L4_L2_loop0».curBodyOk Fn.«level_residual__L25_L11_L4_L2_loop0».allocOk
+    Fn.«level_residual__L44_L16_L4_L2_loop0».allocShapeOk Fn.«level_residual__L44_L16_L4_L2_loop0».curBodyOk Fn.«level_residual__L44_L16_L4_L2_loop0».allocOk
 
 theorem fok1268 : Bridge.FrJ 1268 :=
-  Bridge.frJ_of Checked.code1268 Checked.core1268 Checked.cert1268 Checked.plumbEq1268 Bridge.ProgAl.tab1268 rfl Checked.fsEq1268 Fn.«level_residual__L25_L11_L4_L2_loop1».frOk
+  Bridge.frJ_of Checked.code1268 Checked.core1268 Checked.cert1268 Checked.plumbEq1268 Bridge.ProgAl.tab1268 rfl Checked.fsEq1268 Fn.«level_residual__L44_L16_L4_L2_loop1».frOk
 
 theorem aok1268 : Bridge.AllocJ 1268 :=
   Bridge.allocJ_of Checked.code1268 Checked.core1268 Checked.cert1268 Checked.plumbEq1268 Bridge.ProgAl.tab1268 rfl Checked.fsEq1268
-    Fn.«level_residual__L25_L11_L4_L2_loop1».allocShapeOk Fn.«level_residual__L25_L11_L4_L2_loop1».curBodyOk Fn.«level_residual__L25_L11_L4_L2_loop1».allocOk
+    Fn.«level_residual__L44_L16_L4_L2_loop1».allocShapeOk Fn.«level_residual__L44_L16_L4_L2_loop1».curBodyOk Fn.«level_residual__L44_L16_L4_L2_loop1».allocOk
 
 theorem fok1269 : Bridge.FrJ 1269 :=
-  Bridge.frJ_of Checked.code1269 Checked.core1269 Checked.cert1269 Checked.plumbEq1269 Bridge.ProgAl.tab1269 rfl Checked.fsEq1269 Fn.«level_residual__L23_L11_L4_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1269 Checked.core1269 Checked.cert1269 Checked.plumbEq1269 Bridge.ProgAl.tab1269 rfl Checked.fsEq1269 Fn.«level_residual__L37_L16_L4_L2_loop0».frOk
 
 theorem aok1269 : Bridge.AllocJ 1269 :=
   Bridge.allocJ_of Checked.code1269 Checked.core1269 Checked.cert1269 Checked.plumbEq1269 Bridge.ProgAl.tab1269 rfl Checked.fsEq1269
-    Fn.«level_residual__L23_L11_L4_L2_loop0».allocShapeOk Fn.«level_residual__L23_L11_L4_L2_loop0».curBodyOk Fn.«level_residual__L23_L11_L4_L2_loop0».allocOk
+    Fn.«level_residual__L37_L16_L4_L2_loop0».allocShapeOk Fn.«level_residual__L37_L16_L4_L2_loop0».curBodyOk Fn.«level_residual__L37_L16_L4_L2_loop0».allocOk
 
 theorem fok1270 : Bridge.FrJ 1270 :=
-  Bridge.frJ_of Checked.code1270 Checked.core1270 Checked.cert1270 Checked.plumbEq1270 Bridge.ProgAl.tab1270 rfl Checked.fsEq1270 Fn.«level_residual__L23_L11_L4_L2_loop1».frOk
+  Bridge.frJ_of Checked.code1270 Checked.core1270 Checked.cert1270 Checked.plumbEq1270 Bridge.ProgAl.tab1270 rfl Checked.fsEq1270 Fn.«level_residual__L37_L16_L4_L2_loop1».frOk
 
 theorem aok1270 : Bridge.AllocJ 1270 :=
   Bridge.allocJ_of Checked.code1270 Checked.core1270 Checked.cert1270 Checked.plumbEq1270 Bridge.ProgAl.tab1270 rfl Checked.fsEq1270
-    Fn.«level_residual__L23_L11_L4_L2_loop1».allocShapeOk Fn.«level_residual__L23_L11_L4_L2_loop1».curBodyOk Fn.«level_residual__L23_L11_L4_L2_loop1».allocOk
+    Fn.«level_residual__L37_L16_L4_L2_loop1».allocShapeOk Fn.«level_residual__L37_L16_L4_L2_loop1».curBodyOk Fn.«level_residual__L37_L16_L4_L2_loop1».allocOk
 
 theorem fok1271 : Bridge.FrJ 1271 :=
-  Bridge.frJ_of Checked.code1271 Checked.core1271 Checked.cert1271 Checked.plumbEq1271 Bridge.ProgAl.tab1271 rfl Checked.fsEq1271 Fn.«level_residual__L21_L7_L4_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1271 Checked.core1271 Checked.cert1271 Checked.plumbEq1271 Bridge.ProgAl.tab1271 rfl Checked.fsEq1271 Fn.«level_residual__L32_L16_L4_L2_loop0».frOk
 
 theorem aok1271 : Bridge.AllocJ 1271 :=
   Bridge.allocJ_of Checked.code1271 Checked.core1271 Checked.cert1271 Checked.plumbEq1271 Bridge.ProgAl.tab1271 rfl Checked.fsEq1271
-    Fn.«level_residual__L21_L7_L4_L2_loop0».allocShapeOk Fn.«level_residual__L21_L7_L4_L2_loop0».curBodyOk Fn.«level_residual__L21_L7_L4_L2_loop0».allocOk
+    Fn.«level_residual__L32_L16_L4_L2_loop0».allocShapeOk Fn.«level_residual__L32_L16_L4_L2_loop0».curBodyOk Fn.«level_residual__L32_L16_L4_L2_loop0».allocOk
 
 theorem fok1272 : Bridge.FrJ 1272 :=
-  Bridge.frJ_of Checked.code1272 Checked.core1272 Checked.cert1272 Checked.plumbEq1272 Bridge.ProgAl.tab1272 rfl Checked.fsEq1272 Fn.«level_residual__L21_L7_L4_L2_loop1».frOk
+  Bridge.frJ_of Checked.code1272 Checked.core1272 Checked.cert1272 Checked.plumbEq1272 Bridge.ProgAl.tab1272 rfl Checked.fsEq1272 Fn.«level_residual__L28_L12_L4_L2_loop0».frOk
 
 theorem aok1272 : Bridge.AllocJ 1272 :=
   Bridge.allocJ_of Checked.code1272 Checked.core1272 Checked.cert1272 Checked.plumbEq1272 Bridge.ProgAl.tab1272 rfl Checked.fsEq1272
-    Fn.«level_residual__L21_L7_L4_L2_loop1».allocShapeOk Fn.«level_residual__L21_L7_L4_L2_loop1».curBodyOk Fn.«level_residual__L21_L7_L4_L2_loop1».allocOk
+    Fn.«level_residual__L28_L12_L4_L2_loop0».allocShapeOk Fn.«level_residual__L28_L12_L4_L2_loop0».curBodyOk Fn.«level_residual__L28_L12_L4_L2_loop0».allocOk
 
 theorem fok1273 : Bridge.FrJ 1273 :=
-  Bridge.frJ_of Checked.code1273 Checked.core1273 Checked.cert1273 Checked.plumbEq1273 Bridge.ProgAl.tab1273 rfl Checked.fsEq1273 Fn.«level_residual__L19_L7_L4_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1273 Checked.core1273 Checked.cert1273 Checked.plumbEq1273 Bridge.ProgAl.tab1273 rfl Checked.fsEq1273 Fn.«level_residual__L28_L12_L4_L2_loop1».frOk
 
 theorem aok1273 : Bridge.AllocJ 1273 :=
   Bridge.allocJ_of Checked.code1273 Checked.core1273 Checked.cert1273 Checked.plumbEq1273 Bridge.ProgAl.tab1273 rfl Checked.fsEq1273
-    Fn.«level_residual__L19_L7_L4_L2_loop0».allocShapeOk Fn.«level_residual__L19_L7_L4_L2_loop0».curBodyOk Fn.«level_residual__L19_L7_L4_L2_loop0».allocOk
+    Fn.«level_residual__L28_L12_L4_L2_loop1».allocShapeOk Fn.«level_residual__L28_L12_L4_L2_loop1».curBodyOk Fn.«level_residual__L28_L12_L4_L2_loop1».allocOk
 
 theorem fok1274 : Bridge.FrJ 1274 :=
-  Bridge.frJ_of Checked.code1274 Checked.core1274 Checked.cert1274 Checked.plumbEq1274 Bridge.ProgAl.tab1274 rfl Checked.fsEq1274 Fn.«level_residual__L19_L7_L4_L2_loop1».frOk
+  Bridge.frJ_of Checked.code1274 Checked.core1274 Checked.cert1274 Checked.plumbEq1274 Bridge.ProgAl.tab1274 rfl Checked.fsEq1274 Fn.«level_residual__L25_L12_L4_L2_loop0».frOk
 
 theorem aok1274 : Bridge.AllocJ 1274 :=
   Bridge.allocJ_of Checked.code1274 Checked.core1274 Checked.cert1274 Checked.plumbEq1274 Bridge.ProgAl.tab1274 rfl Checked.fsEq1274
-    Fn.«level_residual__L19_L7_L4_L2_loop1».allocShapeOk Fn.«level_residual__L19_L7_L4_L2_loop1».curBodyOk Fn.«level_residual__L19_L7_L4_L2_loop1».allocOk
+    Fn.«level_residual__L25_L12_L4_L2_loop0».allocShapeOk Fn.«level_residual__L25_L12_L4_L2_loop0».curBodyOk Fn.«level_residual__L25_L12_L4_L2_loop0».allocOk
 
 theorem fok1275 : Bridge.FrJ 1275 :=
-  Bridge.frJ_of Checked.code1275 Checked.core1275 Checked.cert1275 Checked.plumbEq1275 Bridge.ProgAl.tab1275 rfl Checked.fsEq1275 Fn.«level_residual__L18_L7_L4_L2_loop0».frOk
+  Bridge.frJ_of Checked.code1275 Checked.core1275 Checked.cert1275 Checked.plumbEq1275 Bridge.ProgAl.tab1275 rfl Checked.fsEq1275 Fn.«level_residual__L25_L12_L4_L2_loop1».frOk
 
 theorem aok1275 : Bridge.AllocJ 1275 :=
   Bridge.allocJ_of Checked.code1275 Checked.core1275 Checked.cert1275 Checked.plumbEq1275 Bridge.ProgAl.tab1275 rfl Checked.fsEq1275
-    Fn.«level_residual__L18_L7_L4_L2_loop0».allocShapeOk Fn.«level_residual__L18_L7_L4_L2_loop0».curBodyOk Fn.«level_residual__L18_L7_L4_L2_loop0».allocOk
+    Fn.«level_residual__L25_L12_L4_L2_loop1».allocShapeOk Fn.«level_residual__L25_L12_L4_L2_loop1».curBodyOk Fn.«level_residual__L25_L12_L4_L2_loop1».allocOk
 
 theorem fok1276 : Bridge.FrJ 1276 :=
-  Bridge.frJ_of Checked.code1276 Checked.core1276 Checked.cert1276 Checked.plumbEq1276 Bridge.ProgAl.tab1276 rfl Checked.fsEq1276 Fn.«level_residual__L18_L7_L4_L2_loop1».frOk
+  Bridge.frJ_of Checked.code1276 Checked.core1276 Checked.cert1276 Checked.plumbEq1276 Bridge.ProgAl.tab1276 rfl Checked.fsEq1276 Fn.«level_residual__L23_L12_L4_L2_loop0».frOk
 
 theorem aok1276 : Bridge.AllocJ 1276 :=
   Bridge.allocJ_of Checked.code1276 Checked.core1276 Checked.cert1276 Checked.plumbEq1276 Bridge.ProgAl.tab1276 rfl Checked.fsEq1276
-    Fn.«level_residual__L18_L7_L4_L2_loop1».allocShapeOk Fn.«level_residual__L18_L7_L4_L2_loop1».curBodyOk Fn.«level_residual__L18_L7_L4_L2_loop1».allocOk
+    Fn.«level_residual__L23_L12_L4_L2_loop0».allocShapeOk Fn.«level_residual__L23_L12_L4_L2_loop0».curBodyOk Fn.«level_residual__L23_L12_L4_L2_loop0».allocOk
 
 theorem fok1277 : Bridge.FrJ 1277 :=
-  Bridge.frJ_of Checked.code1277 Checked.core1277 Checked.cert1277 Checked.plumbEq1277 Bridge.ProgAl.tab1277 rfl Checked.fsEq1277 Fn.«level_positions__L37_L21_L3_loop0».frOk
+  Bridge.frJ_of Checked.code1277 Checked.core1277 Checked.cert1277 Checked.plumbEq1277 Bridge.ProgAl.tab1277 rfl Checked.fsEq1277 Fn.«level_residual__L23_L12_L4_L2_loop1».frOk
 
 theorem aok1277 : Bridge.AllocJ 1277 :=
   Bridge.allocJ_of Checked.code1277 Checked.core1277 Checked.cert1277 Checked.plumbEq1277 Bridge.ProgAl.tab1277 rfl Checked.fsEq1277
-    Fn.«level_positions__L37_L21_L3_loop0».allocShapeOk Fn.«level_positions__L37_L21_L3_loop0».curBodyOk Fn.«level_positions__L37_L21_L3_loop0».allocOk
+    Fn.«level_residual__L23_L12_L4_L2_loop1».allocShapeOk Fn.«level_residual__L23_L12_L4_L2_loop1».curBodyOk Fn.«level_residual__L23_L12_L4_L2_loop1».allocOk
 
 theorem fok1278 : Bridge.FrJ 1278 :=
-  Bridge.frJ_of Checked.code1278 Checked.core1278 Checked.cert1278 Checked.plumbEq1278 Bridge.ProgAl.tab1278 rfl Checked.fsEq1278 Fn.«level_positions__L22_L22_L4_loop0».frOk
+  Bridge.frJ_of Checked.code1278 Checked.core1278 Checked.cert1278 Checked.plumbEq1278 Bridge.ProgAl.tab1278 rfl Checked.fsEq1278 Fn.«level_residual__L21_L8_L4_L2_loop0».frOk
 
 theorem aok1278 : Bridge.AllocJ 1278 :=
   Bridge.allocJ_of Checked.code1278 Checked.core1278 Checked.cert1278 Checked.plumbEq1278 Bridge.ProgAl.tab1278 rfl Checked.fsEq1278
-    Fn.«level_positions__L22_L22_L4_loop0».allocShapeOk Fn.«level_positions__L22_L22_L4_loop0».curBodyOk Fn.«level_positions__L22_L22_L4_loop0».allocOk
+    Fn.«level_residual__L21_L8_L4_L2_loop0».allocShapeOk Fn.«level_residual__L21_L8_L4_L2_loop0».curBodyOk Fn.«level_residual__L21_L8_L4_L2_loop0».allocOk
 
 theorem fok1279 : Bridge.FrJ 1279 :=
-  Bridge.frJ_of Checked.code1279 Checked.core1279 Checked.cert1279 Checked.plumbEq1279 Bridge.ProgAl.tab1279 rfl Checked.fsEq1279 Fn.«level_positions__L15_L23_L5_loop0».frOk
+  Bridge.frJ_of Checked.code1279 Checked.core1279 Checked.cert1279 Checked.plumbEq1279 Bridge.ProgAl.tab1279 rfl Checked.fsEq1279 Fn.«level_residual__L21_L8_L4_L2_loop1».frOk
 
 theorem aok1279 : Bridge.AllocJ 1279 :=
   Bridge.allocJ_of Checked.code1279 Checked.core1279 Checked.cert1279 Checked.plumbEq1279 Bridge.ProgAl.tab1279 rfl Checked.fsEq1279
-    Fn.«level_positions__L15_L23_L5_loop0».allocShapeOk Fn.«level_positions__L15_L23_L5_loop0».curBodyOk Fn.«level_positions__L15_L23_L5_loop0».allocOk
+    Fn.«level_residual__L21_L8_L4_L2_loop1».allocShapeOk Fn.«level_residual__L21_L8_L4_L2_loop1».curBodyOk Fn.«level_residual__L21_L8_L4_L2_loop1».allocOk
 
 theorem fok1280 : Bridge.FrJ 1280 :=
-  Bridge.frJ_of Checked.code1280 Checked.core1280 Checked.cert1280 Checked.plumbEq1280 Bridge.ProgAl.tab1280 rfl Checked.fsEq1280 Fn.«decode_query_windows__L24_L6».frOk
+  Bridge.frJ_of Checked.code1280 Checked.core1280 Checked.cert1280 Checked.plumbEq1280 Bridge.ProgAl.tab1280 rfl Checked.fsEq1280 Fn.«level_residual__L19_L8_L4_L2_loop0».frOk
 
 theorem aok1280 : Bridge.AllocJ 1280 :=
   Bridge.allocJ_of Checked.code1280 Checked.core1280 Checked.cert1280 Checked.plumbEq1280 Bridge.ProgAl.tab1280 rfl Checked.fsEq1280
-    Fn.«decode_query_windows__L24_L6».allocShapeOk Fn.«decode_query_windows__L24_L6».curBodyOk Fn.«decode_query_windows__L24_L6».allocOk
+    Fn.«level_residual__L19_L8_L4_L2_loop0».allocShapeOk Fn.«level_residual__L19_L8_L4_L2_loop0».curBodyOk Fn.«level_residual__L19_L8_L4_L2_loop0».allocOk
 
 theorem fok1281 : Bridge.FrJ 1281 :=
-  Bridge.frJ_of Checked.code1281 Checked.core1281 Checked.cert1281 Checked.plumbEq1281 Bridge.ProgAl.tab1281 rfl Checked.fsEq1281 Fn.«level_positions__L11_L24_L6_loop0».frOk
+  Bridge.frJ_of Checked.code1281 Checked.core1281 Checked.cert1281 Checked.plumbEq1281 Bridge.ProgAl.tab1281 rfl Checked.fsEq1281 Fn.«level_residual__L19_L8_L4_L2_loop1».frOk
 
 theorem aok1281 : Bridge.AllocJ 1281 :=
   Bridge.allocJ_of Checked.code1281 Checked.core1281 Checked.cert1281 Checked.plumbEq1281 Bridge.ProgAl.tab1281 rfl Checked.fsEq1281
-    Fn.«level_positions__L11_L24_L6_loop0».allocShapeOk Fn.«level_positions__L11_L24_L6_loop0».curBodyOk Fn.«level_positions__L11_L24_L6_loop0».allocOk
+    Fn.«level_residual__L19_L8_L4_L2_loop1».allocShapeOk Fn.«level_residual__L19_L8_L4_L2_loop1».curBodyOk Fn.«level_residual__L19_L8_L4_L2_loop1».allocOk
 
 theorem fok1282 : Bridge.FrJ 1282 :=
-  Bridge.frJ_of Checked.code1282 Checked.core1282 Checked.cert1282 Checked.plumbEq1282 Bridge.ProgAl.tab1282 rfl Checked.fsEq1282 Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0».frOk
+  Bridge.frJ_of Checked.code1282 Checked.core1282 Checked.cert1282 Checked.plumbEq1282 Bridge.ProgAl.tab1282 rfl Checked.fsEq1282 Fn.«level_residual__L18_L8_L4_L2_loop0».frOk
 
 theorem aok1282 : Bridge.AllocJ 1282 :=
   Bridge.allocJ_of Checked.code1282 Checked.core1282 Checked.cert1282 Checked.plumbEq1282 Bridge.ProgAl.tab1282 rfl Checked.fsEq1282
-    Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0».allocShapeOk Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0».curBodyOk Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0».allocOk
+    Fn.«level_residual__L18_L8_L4_L2_loop0».allocShapeOk Fn.«level_residual__L18_L8_L4_L2_loop0».curBodyOk Fn.«level_residual__L18_L8_L4_L2_loop0».allocOk
 
 theorem fok1283 : Bridge.FrJ 1283 :=
-  Bridge.frJ_of Checked.code1283 Checked.core1283 Checked.cert1283 Checked.plumbEq1283 Bridge.ProgAl.tab1283 rfl Checked.fsEq1283 Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0».frOk
+  Bridge.frJ_of Checked.code1283 Checked.core1283 Checked.cert1283 Checked.plumbEq1283 Bridge.ProgAl.tab1283 rfl Checked.fsEq1283 Fn.«level_residual__L18_L8_L4_L2_loop1».frOk
 
 theorem aok1283 : Bridge.AllocJ 1283 :=
   Bridge.allocJ_of Checked.code1283 Checked.core1283 Checked.cert1283 Checked.plumbEq1283 Bridge.ProgAl.tab1283 rfl Checked.fsEq1283
-    Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0».allocShapeOk Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0».curBodyOk Fn.«opening_queries__L1_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0».allocOk
+    Fn.«level_residual__L18_L8_L4_L2_loop1».allocShapeOk Fn.«level_residual__L18_L8_L4_L2_loop1».curBodyOk Fn.«level_residual__L18_L8_L4_L2_loop1».allocOk
 
 theorem fok1284 : Bridge.FrJ 1284 :=
-  Bridge.frJ_of Checked.code1284 Checked.core1284 Checked.cert1284 Checked.plumbEq1284 Bridge.ProgAl.tab1284 rfl Checked.fsEq1284 Fn.«level_positions__L8_L21_L3_loop0».frOk
+  Bridge.frJ_of Checked.code1284 Checked.core1284 Checked.cert1284 Checked.plumbEq1284 Bridge.ProgAl.tab1284 rfl Checked.fsEq1284 Fn.«level_positions__L44_L22_L4_loop0».frOk
 
 theorem aok1284 : Bridge.AllocJ 1284 :=
   Bridge.allocJ_of Checked.code1284 Checked.core1284 Checked.cert1284 Checked.plumbEq1284 Bridge.ProgAl.tab1284 rfl Checked.fsEq1284
-    Fn.«level_positions__L8_L21_L3_loop0».allocShapeOk Fn.«level_positions__L8_L21_L3_loop0».curBodyOk Fn.«level_positions__L8_L21_L3_loop0».allocOk
+    Fn.«level_positions__L44_L22_L4_loop0».allocShapeOk Fn.«level_positions__L44_L22_L4_loop0».curBodyOk Fn.«level_positions__L44_L22_L4_loop0».allocOk
 
 theorem fok1285 : Bridge.FrJ 1285 :=
-  Bridge.frJ_of Checked.code1285 Checked.core1285 Checked.cert1285 Checked.plumbEq1285 Bridge.ProgAl.tab1285 rfl Checked.fsEq1285 Fn.«level_positions__L8_L22_L4_loop0».frOk
+  Bridge.frJ_of Checked.code1285 Checked.core1285 Checked.cert1285 Checked.plumbEq1285 Bridge.ProgAl.tab1285 rfl Checked.fsEq1285 Fn.«level_positions__L22_L23_L5_loop0».frOk
 
 theorem aok1285 : Bridge.AllocJ 1285 :=
   Bridge.allocJ_of Checked.code1285 Checked.core1285 Checked.cert1285 Checked.plumbEq1285 Bridge.ProgAl.tab1285 rfl Checked.fsEq1285
-    Fn.«level_positions__L8_L22_L4_loop0».allocShapeOk Fn.«level_positions__L8_L22_L4_loop0».curBodyOk Fn.«level_positions__L8_L22_L4_loop0».allocOk
+    Fn.«level_positions__L22_L23_L5_loop0».allocShapeOk Fn.«level_positions__L22_L23_L5_loop0».curBodyOk Fn.«level_positions__L22_L23_L5_loop0».allocOk
 
 theorem fok1286 : Bridge.FrJ 1286 :=
-  Bridge.frJ_of Checked.code1286 Checked.core1286 Checked.cert1286 Checked.plumbEq1286 Bridge.ProgAl.tab1286 rfl Checked.fsEq1286 Fn.«level_positions__L7_L23_L5_loop0».frOk
+  Bridge.frJ_of Checked.code1286 Checked.core1286 Checked.cert1286 Checked.plumbEq1286 Bridge.ProgAl.tab1286 rfl Checked.fsEq1286 Fn.«level_positions__L15_L24_L6_loop0».frOk
 
 theorem aok1286 : Bridge.AllocJ 1286 :=
   Bridge.allocJ_of Checked.code1286 Checked.core1286 Checked.cert1286 Checked.plumbEq1286 Bridge.ProgAl.tab1286 rfl Checked.fsEq1286
-    Fn.«level_positions__L7_L23_L5_loop0».allocShapeOk Fn.«level_positions__L7_L23_L5_loop0».curBodyOk Fn.«level_positions__L7_L23_L5_loop0».allocOk
+    Fn.«level_positions__L15_L24_L6_loop0».allocShapeOk Fn.«level_positions__L15_L24_L6_loop0».curBodyOk Fn.«level_positions__L15_L24_L6_loop0».allocOk
 
 theorem fok1287 : Bridge.FrJ 1287 :=
-  Bridge.frJ_of Checked.code1287 Checked.core1287 Checked.cert1287 Checked.plumbEq1287 Bridge.ProgAl.tab1287 rfl Checked.fsEq1287 Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».frOk
+  Bridge.frJ_of Checked.code1287 Checked.core1287 Checked.cert1287 Checked.plumbEq1287 Bridge.ProgAl.tab1287 rfl Checked.fsEq1287 Fn.«decode_query_windows__L25_L7».frOk
 
 theorem aok1287 : Bridge.AllocJ 1287 :=
   Bridge.allocJ_of Checked.code1287 Checked.core1287 Checked.cert1287 Checked.plumbEq1287 Bridge.ProgAl.tab1287 rfl Checked.fsEq1287
-    Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».allocOk
+    Fn.«decode_query_windows__L25_L7».allocShapeOk Fn.«decode_query_windows__L25_L7».curBodyOk Fn.«decode_query_windows__L25_L7».allocOk
 
 theorem fok1288 : Bridge.FrJ 1288 :=
-  Bridge.frJ_of Checked.code1288 Checked.core1288 Checked.cert1288 Checked.plumbEq1288 Bridge.ProgAl.tab1288 rfl Checked.fsEq1288 Fn.«level_positions__L5_L21_L3_loop0».frOk
+  Bridge.frJ_of Checked.code1288 Checked.core1288 Checked.cert1288 Checked.plumbEq1288 Bridge.ProgAl.tab1288 rfl Checked.fsEq1288 Fn.«level_positions__L11_L25_L7_loop0».frOk
 
 theorem aok1288 : Bridge.AllocJ 1288 :=
   Bridge.allocJ_of Checked.code1288 Checked.core1288 Checked.cert1288 Checked.plumbEq1288 Bridge.ProgAl.tab1288 rfl Checked.fsEq1288
-    Fn.«level_positions__L5_L21_L3_loop0».allocShapeOk Fn.«level_positions__L5_L21_L3_loop0».curBodyOk Fn.«level_positions__L5_L21_L3_loop0».allocOk
+    Fn.«level_positions__L11_L25_L7_loop0».allocShapeOk Fn.«level_positions__L11_L25_L7_loop0».curBodyOk Fn.«level_positions__L11_L25_L7_loop0».allocOk
 
 theorem fok1289 : Bridge.FrJ 1289 :=
-  Bridge.frJ_of Checked.code1289 Checked.core1289 Checked.cert1289 Checked.plumbEq1289 Bridge.ProgAl.tab1289 rfl Checked.fsEq1289 Fn.«level_positions__L5_L22_L4_loop0».frOk
+  Bridge.frJ_of Checked.code1289 Checked.core1289 Checked.cert1289 Checked.plumbEq1289 Bridge.ProgAl.tab1289 rfl Checked.fsEq1289 Fn.«opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0».frOk
 
 theorem aok1289 : Bridge.AllocJ 1289 :=
   Bridge.allocJ_of Checked.code1289 Checked.core1289 Checked.cert1289 Checked.plumbEq1289 Bridge.ProgAl.tab1289 rfl Checked.fsEq1289
-    Fn.«level_positions__L5_L22_L4_loop0».allocShapeOk Fn.«level_positions__L5_L22_L4_loop0».curBodyOk Fn.«level_positions__L5_L22_L4_loop0».allocOk
+    Fn.«opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0».allocShapeOk Fn.«opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0».curBodyOk Fn.«opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0».allocOk
 
 theorem fok1290 : Bridge.FrJ 1290 :=
-  Bridge.frJ_of Checked.code1290 Checked.core1290 Checked.cert1290 Checked.plumbEq1290 Bridge.ProgAl.tab1290 rfl Checked.fsEq1290 Fn.«level_positions__L3_L21_L3_loop0».frOk
+  Bridge.frJ_of Checked.code1290 Checked.core1290 Checked.cert1290 Checked.plumbEq1290 Bridge.ProgAl.tab1290 rfl Checked.fsEq1290 Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0».frOk
 
 theorem aok1290 : Bridge.AllocJ 1290 :=
   Bridge.allocJ_of Checked.code1290 Checked.core1290 Checked.cert1290 Checked.plumbEq1290 Bridge.ProgAl.tab1290 rfl Checked.fsEq1290
-    Fn.«level_positions__L3_L21_L3_loop0».allocShapeOk Fn.«level_positions__L3_L21_L3_loop0».curBodyOk Fn.«level_positions__L3_L21_L3_loop0».allocOk
+    Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0».allocShapeOk Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0».curBodyOk Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0».allocOk
 
 theorem fok1291 : Bridge.FrJ 1291 :=
-  Bridge.frJ_of Checked.code1291 Checked.core1291 Checked.cert1291 Checked.plumbEq1291 Bridge.ProgAl.tab1291 rfl Checked.fsEq1291 Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1».frOk
+  Bridge.frJ_of Checked.code1291 Checked.core1291 Checked.cert1291 Checked.plumbEq1291 Bridge.ProgAl.tab1291 rfl Checked.fsEq1291 Fn.«level_positions__L9_L22_L4_loop0».frOk
 
 theorem aok1291 : Bridge.AllocJ 1291 :=
   Bridge.allocJ_of Checked.code1291 Checked.core1291 Checked.cert1291 Checked.plumbEq1291 Bridge.ProgAl.tab1291 rfl Checked.fsEq1291
-    Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1».allocOk
+    Fn.«level_positions__L9_L22_L4_loop0».allocShapeOk Fn.«level_positions__L9_L22_L4_loop0».curBodyOk Fn.«level_positions__L9_L22_L4_loop0».allocOk
 
 theorem fok1292 : Bridge.FrJ 1292 :=
-  Bridge.frJ_of Checked.code1292 Checked.core1292 Checked.cert1292 Checked.plumbEq1292 Bridge.ProgAl.tab1292 rfl Checked.fsEq1292 Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1».frOk
+  Bridge.frJ_of Checked.code1292 Checked.core1292 Checked.cert1292 Checked.plumbEq1292 Bridge.ProgAl.tab1292 rfl Checked.fsEq1292 Fn.«level_positions__L8_L23_L5_loop0».frOk
 
 theorem aok1292 : Bridge.AllocJ 1292 :=
   Bridge.allocJ_of Checked.code1292 Checked.core1292 Checked.cert1292 Checked.plumbEq1292 Bridge.ProgAl.tab1292 rfl Checked.fsEq1292
-    Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L4_L10_L20_L5_L1».allocOk
+    Fn.«level_positions__L8_L23_L5_loop0».allocShapeOk Fn.«level_positions__L8_L23_L5_loop0».curBodyOk Fn.«level_positions__L8_L23_L5_loop0».allocOk
 
 theorem fok1293 : Bridge.FrJ 1293 :=
-  Bridge.frJ_of Checked.code1293 Checked.core1293 Checked.cert1293 Checked.plumbEq1293 Bridge.ProgAl.tab1293 rfl Checked.fsEq1293 Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1».frOk
+  Bridge.frJ_of Checked.code1293 Checked.core1293 Checked.cert1293 Checked.plumbEq1293 Bridge.ProgAl.tab1293 rfl Checked.fsEq1293 Fn.«level_positions__L7_L24_L6_loop0».frOk
 
 theorem aok1293 : Bridge.AllocJ 1293 :=
   Bridge.allocJ_of Checked.code1293 Checked.core1293 Checked.cert1293 Checked.plumbEq1293 Bridge.ProgAl.tab1293 rfl Checked.fsEq1293
-    Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1».allocOk
+    Fn.«level_positions__L7_L24_L6_loop0».allocShapeOk Fn.«level_positions__L7_L24_L6_loop0».curBodyOk Fn.«level_positions__L7_L24_L6_loop0».allocOk
 
 theorem fok1294 : Bridge.FrJ 1294 :=
-  Bridge.frJ_of Checked.code1294 Checked.core1294 Checked.cert1294 Checked.plumbEq1294 Bridge.ProgAl.tab1294 rfl Checked.fsEq1294 Fn.«level_residual__L218_L20_L6_L3_loop0».frOk
+  Bridge.frJ_of Checked.code1294 Checked.core1294 Checked.cert1294 Checked.plumbEq1294 Bridge.ProgAl.tab1294 rfl Checked.fsEq1294 Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0».frOk
 
 theorem aok1294 : Bridge.AllocJ 1294 :=
   Bridge.allocJ_of Checked.code1294 Checked.core1294 Checked.cert1294 Checked.plumbEq1294 Bridge.ProgAl.tab1294 rfl Checked.fsEq1294
-    Fn.«level_residual__L218_L20_L6_L3_loop0».allocShapeOk Fn.«level_residual__L218_L20_L6_L3_loop0».curBodyOk Fn.«level_residual__L218_L20_L6_L3_loop0».allocOk
+    Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0».allocOk
 
 theorem fok1295 : Bridge.FrJ 1295 :=
-  Bridge.frJ_of Checked.code1295 Checked.core1295 Checked.cert1295 Checked.plumbEq1295 Bridge.ProgAl.tab1295 rfl Checked.fsEq1295 Fn.«level_residual__L218_L20_L6_L3_loop1».frOk
+  Bridge.frJ_of Checked.code1295 Checked.core1295 Checked.cert1295 Checked.plumbEq1295 Bridge.ProgAl.tab1295 rfl Checked.fsEq1295 Fn.«level_positions__L5_L23_L5_loop0».frOk
 
 theorem aok1295 : Bridge.AllocJ 1295 :=
   Bridge.allocJ_of Checked.code1295 Checked.core1295 Checked.cert1295 Checked.plumbEq1295 Bridge.ProgAl.tab1295 rfl Checked.fsEq1295
-    Fn.«level_residual__L218_L20_L6_L3_loop1».allocShapeOk Fn.«level_residual__L218_L20_L6_L3_loop1».curBodyOk Fn.«level_residual__L218_L20_L6_L3_loop1».allocOk
+    Fn.«level_positions__L5_L23_L5_loop0».allocShapeOk Fn.«level_positions__L5_L23_L5_loop0».curBodyOk Fn.«level_positions__L5_L23_L5_loop0».allocOk
 
 theorem fok1296 : Bridge.FrJ 1296 :=
-  Bridge.frJ_of Checked.code1296 Checked.core1296 Checked.cert1296 Checked.plumbEq1296 Bridge.ProgAl.tab1296 rfl Checked.fsEq1296 Fn.«level_residual__L109_L20_L6_L3_loop0».frOk
+  Bridge.frJ_of Checked.code1296 Checked.core1296 Checked.cert1296 Checked.plumbEq1296 Bridge.ProgAl.tab1296 rfl Checked.fsEq1296 Fn.«level_positions__L4_L22_L4_loop0».frOk
 
 theorem aok1296 : Bridge.AllocJ 1296 :=
   Bridge.allocJ_of Checked.code1296 Checked.core1296 Checked.cert1296 Checked.plumbEq1296 Bridge.ProgAl.tab1296 rfl Checked.fsEq1296
-    Fn.«level_residual__L109_L20_L6_L3_loop0».allocShapeOk Fn.«level_residual__L109_L20_L6_L3_loop0».curBodyOk Fn.«level_residual__L109_L20_L6_L3_loop0».allocOk
+    Fn.«level_positions__L4_L22_L4_loop0».allocShapeOk Fn.«level_positions__L4_L22_L4_loop0».curBodyOk Fn.«level_positions__L4_L22_L4_loop0».allocOk
 
 theorem fok1297 : Bridge.FrJ 1297 :=
-  Bridge.frJ_of Checked.code1297 Checked.core1297 Checked.cert1297 Checked.plumbEq1297 Bridge.ProgAl.tab1297 rfl Checked.fsEq1297 Fn.«level_residual__L109_L20_L6_L3_loop1».frOk
+  Bridge.frJ_of Checked.code1297 Checked.core1297 Checked.cert1297 Checked.plumbEq1297 Bridge.ProgAl.tab1297 rfl Checked.fsEq1297 Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1».frOk
 
 theorem aok1297 : Bridge.AllocJ 1297 :=
   Bridge.allocJ_of Checked.code1297 Checked.core1297 Checked.cert1297 Checked.plumbEq1297 Bridge.ProgAl.tab1297 rfl Checked.fsEq1297
-    Fn.«level_residual__L109_L20_L6_L3_loop1».allocShapeOk Fn.«level_residual__L109_L20_L6_L3_loop1».curBodyOk Fn.«level_residual__L109_L20_L6_L3_loop1».allocOk
+    Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L5_L15_L36_L6_L1».allocOk
 
 theorem fok1298 : Bridge.FrJ 1298 :=
-  Bridge.frJ_of Checked.code1298 Checked.core1298 Checked.cert1298 Checked.plumbEq1298 Bridge.ProgAl.tab1298 rfl Checked.fsEq1298 Fn.«level_residual__L73_L20_L6_L3_loop0».frOk
+  Bridge.frJ_of Checked.code1298 Checked.core1298 Checked.cert1298 Checked.plumbEq1298 Bridge.ProgAl.tab1298 rfl Checked.fsEq1298 Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1».frOk
 
 theorem aok1298 : Bridge.AllocJ 1298 :=
   Bridge.allocJ_of Checked.code1298 Checked.core1298 Checked.cert1298 Checked.plumbEq1298 Bridge.ProgAl.tab1298 rfl Checked.fsEq1298
-    Fn.«level_residual__L73_L20_L6_L3_loop0».allocShapeOk Fn.«level_residual__L73_L20_L6_L3_loop0».curBodyOk Fn.«level_residual__L73_L20_L6_L3_loop0».allocOk
+    Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L5_L15_L36_L6_L1».allocOk
 
 theorem fok1299 : Bridge.FrJ 1299 :=
-  Bridge.frJ_of Checked.code1299 Checked.core1299 Checked.cert1299 Checked.plumbEq1299 Bridge.ProgAl.tab1299 rfl Checked.fsEq1299 Fn.«level_residual__L73_L20_L6_L3_loop1».frOk
+  Bridge.frJ_of Checked.code1299 Checked.core1299 Checked.cert1299 Checked.plumbEq1299 Bridge.ProgAl.tab1299 rfl Checked.fsEq1299 Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1».frOk
 
 theorem aok1299 : Bridge.AllocJ 1299 :=
   Bridge.allocJ_of Checked.code1299 Checked.core1299 Checked.cert1299 Checked.plumbEq1299 Bridge.ProgAl.tab1299 rfl Checked.fsEq1299
-    Fn.«level_residual__L73_L20_L6_L3_loop1».allocShapeOk Fn.«level_residual__L73_L20_L6_L3_loop1».curBodyOk Fn.«level_residual__L73_L20_L6_L3_loop1».allocOk
+    Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1».allocShapeOk Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1».curBodyOk Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1».allocOk
 
 theorem fok1300 : Bridge.FrJ 1300 :=
-  Bridge.frJ_of Checked.code1300 Checked.core1300 Checked.cert1300 Checked.plumbEq1300 Bridge.ProgAl.tab1300 rfl Checked.fsEq1300 Fn.«level_residual__L55_L20_L6_L3_loop0».frOk
+  Bridge.frJ_of Checked.code1300 Checked.core1300 Checked.cert1300 Checked.plumbEq1300 Bridge.ProgAl.tab1300 rfl Checked.fsEq1300 Fn.«level_residual__L218_L21_L6_L3_loop0».frOk
 
 theorem aok1300 : Bridge.AllocJ 1300 :=
   Bridge.allocJ_of Checked.code1300 Checked.core1300 Checked.cert1300 Checked.plumbEq1300 Bridge.ProgAl.tab1300 rfl Checked.fsEq1300
-    Fn.«level_residual__L55_L20_L6_L3_loop0».allocShapeOk Fn.«level_residual__L55_L20_L6_L3_loop0».curBodyOk Fn.«level_residual__L55_L20_L6_L3_loop0».allocOk
+    Fn.«level_residual__L218_L21_L6_L3_loop0».allocShapeOk Fn.«level_residual__L218_L21_L6_L3_loop0».curBodyOk Fn.«level_residual__L218_L21_L6_L3_loop0».allocOk
 
 end
 

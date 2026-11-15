@@ -22,7 +22,7 @@ open LeanVM.Parameters LeanVM.Semantics Core Memory
 @[expose] public section
 
 /-- `B2C.xmssArmC` at function `j`, by `Opcode`'s index. -/
-def cntArmJ (j : ℕ) : Vec := if j = 36 then [57, 84, 66, 28, 34, 380] else []
+def cntArmJ (j : ℕ) : Vec := if j = 38 then [57, 84, 66, 28, 34, 380] else []
 
 /-- Function `j`'s frame weights, if certified, are its `pathMax` and arms, `pl` its plumbing. -/
 def cntOmOk (j : ℕ) (pl : B2C.Plumb) : Bool :=
@@ -36,8 +36,8 @@ theorem cnt_plumbs_length : Data.plumbs.length = coreProgram.length + 1 := by
   rw [coreProgram_length]; decide +kernel
 
 theorem cnt_name_xmss {j : ℕ} (hj : j < coreProgram.length) :
-    coreProgram[j].name = "__loop2" ↔ j = 36 := by
-  have hx : (coreProgram[36]?).map Fn.name = some "__loop2" := by decide +kernel
+    coreProgram[j].name = "__loop2" ↔ j = 38 := by
+  have hx : (coreProgram[38]?).map Fn.name = some "__loop2" := by decide +kernel
   constructor
   · intro h
     have := coreIdx_getElem hj
@@ -77,7 +77,7 @@ theorem cntOm_eq {j : ℕ} (hj : j < coreProgram.length) (hc : Data.cntJ j ≠ .
     unfold B2C.ωArm B2C.pathMax
     rw [cnt_idxOf hj]
     dsimp only
-    by_cases hx : j = 36
+    by_cases hx : j = 38
     · subst hx
       simp only [(cnt_name_xmss hj).mpr rfl, ↓reduceIte]
       cases op <;> rfl

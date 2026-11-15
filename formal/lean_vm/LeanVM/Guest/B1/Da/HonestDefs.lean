@@ -92,8 +92,12 @@ def expRunVals (root : E) (F Z S : ℕ → E) (top D : ℕ) : List E :=
     else 0
 
 /-- `da_expand` returns a pointer to its tree's leaves, word `2^D` of its run. -/
+def expOutAt (root : E) (F Z S : ℕ → E) (top D b : ℕ) : List E → Layout → Prop := fun rets Lo =>
+  rets = [gen ^ (b + 2 ^ D)] ∧ (b, expRunVals root F Z S top D) ∈ Lo
+
+/-- `da_expand` returns its run at its leaves, somewhere. -/
 def expOut (root : E) (F Z S : ℕ → E) (top D : ℕ) : List E → Layout → Prop := fun rets Lo =>
-  ∃ b, rets = [gen ^ (b + 2 ^ D)] ∧ (b, expRunVals root F Z S top D) ∈ Lo
+  ∃ b, expOutAt root F Z S top D b rets Lo
 
 /-- `da_column_offsets` returns a pointer to its buffer. -/
 def offOut (Z : ℕ → E) : List E → Layout → Prop := fun rets Lo =>

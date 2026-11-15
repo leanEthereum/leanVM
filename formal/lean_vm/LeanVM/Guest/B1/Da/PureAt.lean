@@ -15,8 +15,8 @@ public import LeanVM.Guest.Data.NameStrings
 /-!
 # The pure callees
 
-`daPureSet`: the cell check, `da_verify`'s loops over the blobs, the columns' row loop, the
-column offsets' doubling loops, the trees' `da_levels` and their level loops. `daPure`: it places
+`daPureSet`: the cell check, a blob's cell loop, the padding and its loop, the column offsets'
+doubling loops, the trees' `da_levels` and their level loops, the roots' tree's arms. `daPure`: it places
 nothing and calls only its own members (kernel evaluation).
 -/
 
@@ -59,17 +59,16 @@ def lvlLoops : List String :=
       name% «da_levels__L1024_L10_loop6», name% «da_levels__L1024_L10_loop7»,
       name% «da_levels__L1024_L10_loop8», name% «da_levels__L1024_L10_loop9»]
 
-/-- **The pure callees of `da_verify`**: the cell check, the loops over the blobs
-(`da_verify_loop0`, `da_verify_loop2`, `da_verify_loop3`), the columns' row loop
-(`da_verify_column_loop0`), the offsets' doubling loops
-(`da_column_offsets_loop0` to `da_column_offsets_loop6`), the DA levels and their loops. -/
+/-- **The pure callees of `da_verify`**: the cell check, a blob's cell loop
+(`da_verify_blob_loop0`), the padding (`da_pad`, `da_pad_loop0`), the offsets' doubling loops
+(`da_column_offsets_loop0` to `da_column_offsets_loop6`), the DA levels and their loops, the roots'
+tree's arms. -/
 def daPureSet : List String :=
-  ["da_verify_cell", name% «da_verify_loop0», name% «da_verify_loop2», name% «da_verify_loop3»,
-      name% «da_verify_column_loop0», name% «da_column_offsets_loop0»,
-      name% «da_column_offsets_loop1»,
+  ["da_verify_cell", name% «da_verify_blob_loop0», "da_pad", name% «da_pad_loop0»,
+      name% «da_column_offsets_loop0», name% «da_column_offsets_loop1»,
     name% «da_column_offsets_loop2», name% «da_column_offsets_loop3»,
         name% «da_column_offsets_loop4», name% «da_column_offsets_loop5»,
-        name% «da_column_offsets_loop6»] ++ dlNames ++ lvlLoops
+        name% «da_column_offsets_loop6»] ++ dlNames ++ lvlLoops ++ rtNames
 
 /-- Every member's body places nothing and calls members only. -/
 noncomputable def daPureOk : Bool :=

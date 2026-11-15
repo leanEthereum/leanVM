@@ -10,6 +10,17 @@ module
 public import LeanVM.Guest.B2C.Cpl
 import LeanVM.Guest.Checked.Fn32
 import LeanVM.Guest.Checked.Link16
+import LeanVM.Guest.Pack.«P21».Cplw5
+import LeanVM.Guest.Pack.«P35».Cplw4
+import LeanVM.Guest.Pack.«P43».Cplw3
+import LeanVM.Guest.Pack.«P27».Cplw3
+import LeanVM.Guest.Pack.«P36».CplwOk
+import LeanVM.Guest.Pack.«P44».Cplw3
+import LeanVM.Guest.Pack.«P57».Cplw3
+import LeanVM.Guest.Pack.«P27».Cplw4
+import LeanVM.Guest.Pack.«P17».Cplw4
+import LeanVM.Guest.Pack.«P54».Cplw5
+import LeanVM.Guest.Pack.«P10».Cplw3
 import LeanVM.Guest.Pack.«P29».Cplw3
 import LeanVM.Guest.Pack.«P40».Cplw4
 
@@ -20,10 +31,43 @@ open LeanVM.Guest.Checked
 @[expose] public section
 
 theorem ok1601 : CplOk 1601 :=
-  cplOk_of_link link1601 plumbEq1601 fsEq1601 partsEq1601 armsEq1601 rfl Fn.«walk_path__L6_L6».cplOk
+  cplOk_of_link link1601 plumbEq1601 fsEq1601 partsEq1601 armsEq1601 rfl Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1_loop0».cplOk
 
 theorem ok1602 : CplOk 1602 :=
-  cplOk_of_link link1602 plumbEq1602 fsEq1602 partsEq1602 armsEq1602 rfl Fn.«walk_path__L12_L8».cplOk
+  cplOk_of_link link1602 plumbEq1602 fsEq1602 partsEq1602 armsEq1602 rfl Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1_loop0».cplOk
+
+theorem ok1603 : CplOk 1603 :=
+  cplOk_of_link link1603 plumbEq1603 fsEq1603 partsEq1603 armsEq1603 rfl Fn.«opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».cplOk
+
+theorem ok1604 : CplOk 1604 :=
+  cplOk_of_link link1604 plumbEq1604 fsEq1604 partsEq1604 armsEq1604 rfl Fn.«walk_path__L24_L4».cplOk
+
+theorem ok1605 : CplOk 1605 :=
+  cplOk_of_link link1605 plumbEq1605 fsEq1605 partsEq1605 armsEq1605 rfl Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0_loop0».cplOk
+
+theorem ok1606 : CplOk 1606 :=
+  cplOk_of_link link1606 plumbEq1606 fsEq1606 partsEq1606 armsEq1606 rfl Fn.«opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0».cplOk
+
+theorem ok1607 : CplOk 1607 :=
+  cplOk_of_link link1607 plumbEq1607 fsEq1607 partsEq1607 armsEq1607 rfl Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0».cplOk
+
+theorem ok1608 : CplOk 1608 :=
+  cplOk_of_link link1608 plumbEq1608 fsEq1608 partsEq1608 armsEq1608 rfl Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1_loop0».cplOk
+
+theorem ok1609 : CplOk 1609 :=
+  cplOk_of_link link1609 plumbEq1609 fsEq1609 partsEq1609 armsEq1609 rfl Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0».cplOk
+
+theorem ok1610 : CplOk 1610 :=
+  cplOk_of_link link1610 plumbEq1610 fsEq1610 partsEq1610 armsEq1610 rfl Fn.«walk_path__L12_L2».cplOk
+
+theorem ok1611 : CplOk 1611 :=
+  cplOk_of_link link1611 plumbEq1611 fsEq1611 partsEq1611 armsEq1611 rfl Fn.«walk_path__L6_L7».cplOk
+
+theorem ok1612 : CplOk 1612 :=
+  cplOk_of_link link1612 plumbEq1612 fsEq1612 partsEq1612 armsEq1612 rfl Fn.«walk_path__L6_L6».cplOk
+
+theorem ok1613 : CplOk 1613 :=
+  cplOk_of_link link1613 plumbEq1613 fsEq1613 partsEq1613 armsEq1613 rfl Fn.«walk_path__L12_L8».cplOk
 
 end
 end LeanVM.Guest.B2C.Cplw

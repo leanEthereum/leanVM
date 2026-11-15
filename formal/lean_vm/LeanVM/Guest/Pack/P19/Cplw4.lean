@@ -24,16 +24,16 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop447`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(1446, Fn.«level_residual__L28_L15_L4_L2_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L28_L15_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+/-- `__loop397`, window 0, part 0. -/
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(1409, Fn.«level_residual__L28_L15_L4_L2_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L28_L15_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
-/-- `__loop447`, window 0, part 1. -/
-theorem cw0_1 : cplWinD (Glob.ofSigs ([(1446, Fn.«level_residual__L28_L15_L4_L2_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L28_L15_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 1 = true := by
+/-- `__loop397`, window 0, part 1. -/
+theorem cw0_1 : cplWinD (Glob.ofSigs ([(1409, Fn.«level_residual__L28_L15_L4_L2_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L28_L15_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 1 = true := by
   decide +kernel
 
-/-- `__loop447`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(1446, Fn.«level_residual__L28_L15_L4_L2_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L28_L15_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+/-- `__loop397`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs ([(1409, Fn.«level_residual__L28_L15_L4_L2_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L28_L15_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -47,30 +47,54 @@ theorem cplOk : CplOkD (Glob.ofSigs ([(1446, Fn.«level_residual__L28_L15_L4_L2_
 end
 end LeanVM.Guest.Fn.«level_residual__L28_L15_L4_L2_loop0»
 
+namespace LeanVM.Guest.Fn.«da_levels__L64_L6_loop3»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+/-- `__loop471`, window 0, part 0. -/
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(1490, Fn.«da_levels__L64_L6_loop3».sig)]) Data.jtTrie globSem) code Fn.«da_levels__L64_L6_loop3».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+  decide +kernel
+
+/-- `__loop471`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs ([(1490, Fn.«da_levels__L64_L6_loop3».sig)]) Data.jtTrie globSem) code Fn.«da_levels__L64_L6_loop3».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+  intro i hi k hk
+  have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nPartsD parts 0 = 1 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw0_0
+
+end
+end LeanVM.Guest.Fn.«da_levels__L64_L6_loop3»
+
 namespace LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop543`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(1557, Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».sig), (1602, Fn.«walk_path__L12_L8».sig)]) Data.jtTrie globSem) code Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+/-- `__loop541`, window 0, part 0. -/
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(1568, Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».sig), (1613, Fn.«walk_path__L12_L8».sig)]) Data.jtTrie globSem) code Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
-/-- `__loop543`, window 1, part 0. -/
-theorem cw1_0 : cplWinD (Glob.ofSigs ([(1557, Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».sig), (1602, Fn.«walk_path__L12_L8».sig)]) Data.jtTrie globSem) code Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 1 0 = true := by
+/-- `__loop541`, window 1, part 0. -/
+theorem cw1_0 : cplWinD (Glob.ofSigs ([(1568, Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».sig), (1613, Fn.«walk_path__L12_L8».sig)]) Data.jtTrie globSem) code Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 1 0 = true := by
   decide +kernel
 
-/-- `__loop543`, window 2, part 0. -/
-theorem cw2_0 : cplWinD (Glob.ofSigs ([(1557, Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».sig), (1602, Fn.«walk_path__L12_L8».sig)]) Data.jtTrie globSem) code Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 2 0 = true := by
+/-- `__loop541`, window 2, part 0. -/
+theorem cw2_0 : cplWinD (Glob.ofSigs ([(1568, Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».sig), (1613, Fn.«walk_path__L12_L8».sig)]) Data.jtTrie globSem) code Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 2 0 = true := by
   decide +kernel
 
-/-- `__loop543`, window 3, part 0. -/
-theorem cw3_0 : cplWinD (Glob.ofSigs ([(1557, Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».sig), (1602, Fn.«walk_path__L12_L8».sig)]) Data.jtTrie globSem) code Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 3 0 = true := by
+/-- `__loop541`, window 3, part 0. -/
+theorem cw3_0 : cplWinD (Glob.ofSigs ([(1568, Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».sig), (1613, Fn.«walk_path__L12_L8».sig)]) Data.jtTrie globSem) code Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 3 0 = true := by
   decide +kernel
 
-/-- `__loop543`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(1557, Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».sig), (1602, Fn.«walk_path__L12_L8».sig)]) Data.jtTrie globSem) code Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+/-- `__loop541`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs ([(1568, Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».sig), (1613, Fn.«walk_path__L12_L8».sig)]) Data.jtTrie globSem) code Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 3 := by decide +kernel
   rw [hc] at hi
@@ -101,12 +125,8 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop549`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(1543, Fn.«walk_path__L18_L3».sig), (1564, Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem) code Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
-  decide +kernel
-
-/-- `__loop549`, window 1, part 0. -/
-theorem cw1_0 : cplWinD (Glob.ofSigs ([(1543, Fn.«walk_path__L18_L3».sig), (1564, Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem) code Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 1 0 = true := by
+/-- `__loop547`, window 0, part 0. -/
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(1554, Fn.«walk_path__L18_L3».sig), (1575, Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem) code Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 end

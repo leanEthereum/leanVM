@@ -11,9 +11,9 @@ public import LeanVM.Guest.B1.Main.Loops
 /-!
 # `da_row_shape` (G:4550-4559)
 
-`da_row_shape(n_blob_g, g_log_pad, g_squares)`: `n_blob_g ≠ 1` (an inverse),
-`n_blob_g = g^r` with `r ≤ 1024`, `g_log_pad = g^L` with `L ≤ 10` (range checks against
-`g^1024`, `g^10`), `n_pad_g = g_squares[L] = g^(2^L)`, `gap_g = n_pad_g / n_blob_g = g^d`
+`da_row_shape(n_blob_g, g_log_pad, g_squares)`, its caller having range-checked `g_log_pad = g^L`,
+`L ≤ 10`: `n_blob_g ≠ 1` (an inverse), `n_blob_g = g^r` with `r ≤ 1024` (a range check against
+`g^1024`), `n_pad_g = g_squares[L] = g^(2^L)`, `gap_g = n_pad_g / n_blob_g = g^d`
 (`d ≤ 1024`), and `n_blob_g² = f · n_pad_g · g` with `f = g^e`, `e ≤ 1023`. So
 `r + d = 2^L` and `2r = e + 2^L + 1`: `2^(L-1) < r ≤ 2^L`, the padded count `LeanDa.nPad r`.
 -/
@@ -71,15 +71,15 @@ def rsOk (fn : Fn) : Bool :=
   decide (fn.params = [.n 0, .n 1, .n 2]) &&
   match splitBody fn.body with
   | some (A, vs) =>
-    decide (vs = [.n 30, .n 31]) &&
+    decide (vs = [.n 26, .n 27]) &&
     A.any (isConstAt (.n 3) 1 0) && A.any (isAddAt (.n 4) (.n 0) (.n 3)) && A.any (isNeAt (.n 4)) &&
-    rcConstOk A (.n 0) 281474976776218 && rcConstOk A (.n 1) 1024 &&
-    A.any (isMulAt (.n 15) (.n 2) (.n 1)) && A.any (isLoadAt (.n 16) (.n 15) 0) &&
-    A.any (isMulAt (.n 16) (.n 17) (.n 0)) && rcConstOk A (.n 17) 281474976776218 &&
-    A.any (isMulAt (.n 23) (.n 0) (.n 0)) && A.any (isConstAt (.n 24) 2 0) &&
-    A.any (isMulAt (.n 25) (.n 16) (.n 24)) && A.any (isMulAt (.n 23) (.n 26) (.n 25)) &&
-    rcConstOk A (.n 26) 140737488388109 &&
-    A.any (isCopyAt (.n 30) (.n 16)) && A.any (isCopyAt (.n 31) (.n 17))
+    rcConstOk A (.n 0) 281474976776218 &&
+    A.any (isMulAt (.n 11) (.n 2) (.n 1)) && A.any (isLoadAt (.n 12) (.n 11) 0) &&
+    A.any (isMulAt (.n 12) (.n 13) (.n 0)) && rcConstOk A (.n 13) 281474976776218 &&
+    A.any (isMulAt (.n 19) (.n 0) (.n 0)) && A.any (isConstAt (.n 20) 2 0) &&
+    A.any (isMulAt (.n 21) (.n 12) (.n 20)) && A.any (isMulAt (.n 19) (.n 22) (.n 21)) &&
+    rcConstOk A (.n 22) 140737488388109 &&
+    A.any (isCopyAt (.n 26) (.n 12)) && A.any (isCopyAt (.n 27) (.n 13))
   | none => false
 
 set_option maxRecDepth 100000 in
@@ -109,20 +109,19 @@ theorem da_row_shape_holds : da_row_shape_sound_Spec := by
   split at hok
   · rename_i A vs hsp
     simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
-    obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨rfl, hc3⟩, ha4⟩, hne⟩, hr0⟩, hr1⟩, hm15⟩, hl16⟩, hm16⟩, hr17⟩, hm23⟩,
+    obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨rfl, hc3⟩, ha4⟩, hne⟩, hr0⟩, hm15⟩, hl16⟩, hm16⟩, hr17⟩, hm23⟩,
       hc24⟩, hm25⟩, hm23'⟩, hr26⟩, hcp30⟩, hcp31⟩ := hok
     rw [splitBody_eq hsp, holdsList_atoms_ret] at hb
     obtain ⟨hat, hret⟩ := hb
     rw [hparams] at hpar
     subst hpar
     simp only [List.map_cons, List.map_nil, MeaningDaRowShape]
-    intro hsq
+    intro hsq L hL h1
     obtain ⟨r, hr, h0⟩ := rcConst_sound hm (by norm_num) word_g1024 hr0 hat
-    obtain ⟨L, hL, h1⟩ := rcConst_sound hm (by norm_num) word_g10 hr1 hat
     obtain ⟨d, hd, h17⟩ := rcConst_sound hm (by norm_num) word_g1024 hr17 hat
     obtain ⟨e, he, h26⟩ := rcConst_sound hm (by norm_num) word_g1023 hr26 hat
     -- n_pad = g^(2^L)
-    have h16 : σ (.n 16) = gen ^ 2 ^ L := by
+    have h16 : σ (.n 12) = gen ^ 2 ^ L := by
       have hl := load_sound hl16 hat
       rw [mulAt_sound hm15 hat, h1] at hl
       exact loadHolds_unique ((loadHolds_mul_gen_pow rd _ L 0 _).mp hl) (hsq L (by omega))
@@ -148,9 +147,8 @@ theorem da_row_shape_holds : da_row_shape_sound_Spec := by
       have := ne_sound hne hat
       rw [add_sound ha4 hat, h0, hr0', pow_zero, const_sound hc3 hat, word_one] at this
       exact this (e_add_eq_zero_iff.mpr rfl)
-    refine ⟨r, L, by omega, by unfold LeanDa.maxRows; omega, hL, h0, h1,
-      (nPad_of (by omega) (by omega)).symm, ?_⟩
-    have hret' : [σ (.n 30), σ (.n 31)] = rets := hret
+    refine ⟨r, by omega, by unfold LeanDa.maxRows; omega, h0, (nPad_of (by omega) (by omega)).symm, ?_⟩
+    have hret' : [σ (.n 26), σ (.n 27)] = rets := hret
     rw [← hret', copy_sound hcp30 hat, copy_sound hcp31 hat, h16, h17, show d = 2 ^ L - r by omega]
   · exact absurd hok (by simp)
 

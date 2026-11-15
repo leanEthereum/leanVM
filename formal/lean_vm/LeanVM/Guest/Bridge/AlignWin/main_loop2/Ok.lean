@@ -64,7 +64,7 @@ theorem alignCtxEq : alignCtx = alignCtxP := by
   rw [alignCtx, alignCtxP, Bridge.ofData_eq_ofPacked, hp, ha]
 
 /-- `main_loop2` aligns with its body. -/
-theorem alignOk : Bridge.alignOk alignCtx Fn.«main_loop2».core.body Fn.«main_loop2».code.code Data.adviceFn37 = true := by
+theorem alignOk : Bridge.alignOk alignCtx Fn.«main_loop2».core.body Fn.«main_loop2».code.code Data.adviceFn39 = true := by
   rw [alignCtxEq]
   exact Bridge.alignOk_of_chainS alignPreOk rfl rfl (cs := [alignC1, alignC2, alignC3, alignC4, alignC5, alignC6, alignC7, alignC8, alignC9, alignC10, alignC11, alignC12, alignC13, alignC14, alignC15, alignC16, alignC17, alignC18, alignC19, alignC20, alignC21, alignC22, alignC23, alignC24, alignC25, alignC26, alignC27, alignC28])
     (And.intro alignWin0 (And.intro alignWin1 (And.intro alignWin2 (And.intro alignWin3 (And.intro alignWin4 (And.intro alignWin5 (And.intro alignWin6 (And.intro alignWin7 (And.intro alignWin8 (And.intro alignWin9 (And.intro alignWin10 (And.intro alignWin11 (And.intro alignWin12 (And.intro alignWin13 (And.intro alignWin14 (And.intro alignWin15 (And.intro alignWin16 (And.intro alignWin17 (And.intro alignWin18 (And.intro alignWin19 (And.intro alignWin20 (And.intro alignWin21 (And.intro alignWin22 (And.intro alignWin23 (And.intro alignWin24 (And.intro alignWin25 (And.intro alignWin26 (And.intro alignWin27 alignEndOk))))))))))))))))))))))))))))

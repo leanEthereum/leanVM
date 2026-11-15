@@ -73,49 +73,39 @@ theorem rows_gap_le {a b r P : ℕ} (h : r ≤ P) : r * a + (P - r) * b ≤ r * 
     rw [Nat.sub_eq_zero_of_le hab, Nat.mul_zero, Nat.zero_add]
     omega
 
-/-- `da_verify`'s constant words: its frame, `da_row_shape`'s, `da_vector`'s, the column loop's
-`128` iterations (each its frame, the column's, the weights' expansion's and the row loop's
-phantom frame) and its untaken tail call's frame, the regions' and the trees' loops' phantom
-frames, the padding loop's (or its frame when it does not run): a static loop helper's run is
-charged its phantom frame once, here, and `iterK fs SK g` per iteration. -/
+/-- `da_verify`'s constant words: its frame, `da_row_shape`'s frame, `da_vector`'s and `da_weights`'
+words, the blob loop's phantom frame, the roots' tree's arms' frames,
+`da_pad`'s and its loop's phantom frame (or its frame when it does not run): a static loop helper's
+run is charged its phantom frame once, here, and `iterK fs SK g` per iteration. -/
 def dvC : ℕ :=
-  fs "da_verify" + fs "da_row_shape" + SB "da_vector" + fs name% «da_verify_loop0» +
-    128 * (fs name% «da_verify_loop1» + fs "da_verify_column" + SB "da_expand__L7_L8" + fs
-        name% «da_verify_column_loop0») +
-    fs name% «da_verify_loop1» + fs name% «da_verify_loop2» + fs name% «da_verify_loop3»
+  fs "da_verify" + fs "da_row_shape" + SB "da_vector" + SB "da_weights" +
+    fs name% «da_verify_loop0» + nameSum fs Da.rtNames 11 + fs "da_pad" + fs name% «da_pad_loop0»
 
-/-- `da_verify`'s words per blob: its region (`641`) and base, the regions' loop, the column's
-row loop in each of the `128` columns, the trees' loop past the padding loop, each an
-iteration's words (`iterK`). -/
-def dvS : ℕ :=
-  642 + iterK fs SK name% «da_verify_loop0» + 128 * iterK fs SK name% «da_verify_column_loop0» +
-    (iterK fs SK name% «da_verify_loop2» - iterK fs SK name% «da_verify_loop3»)
+/-- `da_verify`'s words per blob: the blob loop's iteration past the padding loop's
+(`iterK`). -/
+def dvS : ℕ := iterK fs SK name% «da_verify_loop0» - iterK fs SK name% «da_pad_loop0»
 
 /-- `da_verify`'s words per padded blob: the roots (`4`), the padding loop's iteration, the
 levels. -/
-def dvP : ℕ := 4 + iterK fs SK name% «da_verify_loop3» + dlK SB
+def dvP : ℕ := 4 + iterK fs SK name% «da_pad_loop0» + dlK SB
 
 theorem dvB_le {r L : ℕ} (hr : r ≤ 2 ^ L) (hL : L < 11) :
     Da.dvB fs SB SK r L ≤ dvC fs SB + r * dvS fs SK + 2 ^ L * dvP fs SB SK := by
-  unfold Da.dvB Da.dvKB Da.clB Da.colB dvC dvS dvP Da.dvSizes
-  generalize iterK fs SK name% «da_verify_loop0» = k21
-  generalize iterK fs SK name% «da_verify_loop2» = k23
-  generalize iterK fs SK name% «da_verify_loop3» = k24
-  generalize iterK fs SK name% «da_verify_column_loop0» = k25
-  have h20 : (if 2 ^ L - r ≠ 0 then (2 ^ L - r) * k24 + fs name% «da_verify_loop3» else fs
-      name% «da_verify_loop3») ≤
-      (2 ^ L - r) * k24 + fs name% «da_verify_loop3» := by
+  have hrt : fs (Da.rtName L) ≤ nameSum fs Da.rtNames 11 := by
+    have h := le_nameSum (g := fs) (names := Da.rtNames) hL
+    have e : Da.rtNames[L]! = Da.rtName L := by
+      simp [Da.rtNames, hL]
+    rwa [e] at h
+  unfold Da.dvB Da.dvKB Da.rtB Da.padB dvC dvS dvP Da.dvSizes
+  generalize iterK fs SK name% «da_verify_loop0» = k1
+  generalize iterK fs SK name% «da_pad_loop0» = kp
+  have hp : (if 2 ^ L - r ≠ 0 then (2 ^ L - r) * kp + fs name% «da_pad_loop0» else fs
+      name% «da_pad_loop0») ≤ (2 ^ L - r) * kp + fs name% «da_pad_loop0» := by
     split <;> omega
-  have hg := rows_gap_le (a := k23) (b := k24) hr
+  have hg := rows_gap_le (a := k1) (b := kp) hr
   have hd := dl_le SB hL
   simp only [List.sum_cons, List.sum_nil]
-  have e : r * (642 + k21 + 128 * k25 + (k23 - k24)) =
-      642 * r + r * k21 + 128 * (r * k25) + r * (k23 - k24) := by ring
-  have e' : 2 ^ L * (4 + k24 + dlK SB) = 4 * 2 ^ L + 2 ^ L * k24 + dlK SB * 2 ^ L := by ring
-  have e'' : 128 * (fs name% «da_verify_loop1» + (fs "da_verify_column" + SB "da_expand__L7_L8" +
-      (r * k25 + fs name% «da_verify_column_loop0»))) = 128 * (fs name% «da_verify_loop1» + fs
-          "da_verify_column" +
-      SB "da_expand__L7_L8" + fs name% «da_verify_column_loop0») + 128 * (r * k25) := by ring
+  have e : 2 ^ L * (4 + kp + dlK SB) = 4 * 2 ^ L + 2 ^ L * kp + dlK SB * 2 ^ L := by ring
   omega
 
 /-! ## The claim lists

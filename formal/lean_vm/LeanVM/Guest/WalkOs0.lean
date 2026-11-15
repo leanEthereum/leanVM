@@ -17,13 +17,13 @@ namespace LeanVM.Guest.End
 @[expose] public section
 
 /-- `open_stacked__L0`. -/
-theorem walk_337 : CutsKnown 337 := os_cutsKnown osOk_337
+theorem walk_339 : CutsKnown 339 := os_cutsKnown osOk_339
 
 /-- `open_stacked__L1`. -/
-theorem walk_338 : CutsKnown 338 := os_cutsKnown osOk_338
+theorem walk_340 : CutsKnown 340 := os_cutsKnown osOk_340
 
 /-- `open_stacked__L2`. -/
-theorem walk_339 : CutsKnown 339 := os_cutsKnown osOk_339
+theorem walk_341 : CutsKnown 341 := os_cutsKnown osOk_341
 
 end
 end LeanVM.Guest.End

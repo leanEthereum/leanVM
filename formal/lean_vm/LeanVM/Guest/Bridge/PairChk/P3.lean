@@ -71,21 +71,6 @@ end
 
 end LeanVM.Guest.Fn.«plus_one_run__L29»
 
-namespace LeanVM.Guest.Fn.«da_levels__L1024_L10»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_levels__L1024_L10`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«da_levels__L1024_L10».cert.locs Fn.«da_levels__L1024_L10».fs Fn.«da_levels__L1024_L10».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L1024_L10»
-
 namespace LeanVM.Guest.Fn.«grind_check__L30»
 
 open LeanVM.Guest
@@ -236,35 +221,20 @@ end
 
 end LeanVM.Guest.Fn.«level_queries__L25_L0_L4_L16_L25_L7_L0_L0_L0_L0»
 
-namespace LeanVM.Guest.Fn.«da_levels__L8_L3_loop0»
+namespace LeanVM.Guest.Fn.«da_levels__L1024_L10»
 
 open LeanVM.Guest
 
 public section
 
-/-- `da_levels__L8_L3_loop0`'s computed hints pass the data check. -/
+/-- `da_levels__L1024_L10`'s computed hints pass the data check. -/
 theorem pairOk :
-    Bridge.pairChk [] Fn.«da_levels__L8_L3_loop0».cert.locs Fn.«da_levels__L8_L3_loop0».fs Fn.«da_levels__L8_L3_loop0».core.body = true := by
+    Bridge.pairChk [] Fn.«da_levels__L1024_L10».cert.locs Fn.«da_levels__L1024_L10».fs Fn.«da_levels__L1024_L10».core.body = true := by
   decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«da_levels__L8_L3_loop0»
-
-namespace LeanVM.Guest.Fn.«da_levels__L32_L5_loop3»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_levels__L32_L5_loop3`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«da_levels__L32_L5_loop3».cert.locs Fn.«da_levels__L32_L5_loop3».fs Fn.«da_levels__L32_L5_loop3».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L32_L5_loop3»
+end LeanVM.Guest.Fn.«da_levels__L1024_L10»
 
 namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1»
 
@@ -355,3 +325,33 @@ theorem pairOk :
 end
 
 end LeanVM.Guest.Fn.«level_residual__L55_L20_L4_L2_loop0»
+
+namespace LeanVM.Guest.Fn.«da_levels__L8_L3_loop0»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_levels__L8_L3_loop0`'s computed hints pass the data check. -/
+theorem pairOk :
+    Bridge.pairChk [] Fn.«da_levels__L8_L3_loop0».cert.locs Fn.«da_levels__L8_L3_loop0».fs Fn.«da_levels__L8_L3_loop0».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_levels__L8_L3_loop0»
+
+namespace LeanVM.Guest.Fn.«da_levels__L32_L5_loop3»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_levels__L32_L5_loop3`'s computed hints pass the data check. -/
+theorem pairOk :
+    Bridge.pairChk [] Fn.«da_levels__L32_L5_loop3».cert.locs Fn.«da_levels__L32_L5_loop3».fs Fn.«da_levels__L32_L5_loop3».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_levels__L32_L5_loop3»

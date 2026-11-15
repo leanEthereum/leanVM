@@ -110,20 +110,6 @@ end
 
 end LeanVM.Guest.Fn.«bus_grind_check__L1»
 
-namespace LeanVM.Guest.Fn.«da_levels__L8_L3»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_levels__L8_L3`'s witness hints pass the data check. -/
-theorem witOk : Bridge.witChk alignCtx Fn.«da_levels__L8_L3».fs Fn.«da_levels__L8_L3».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L8_L3»
-
 namespace LeanVM.Guest.Fn.«level_queries__L23_L0_L4_L16_L18_L6_L0_L0_L0_L0»
 
 open LeanVM.Guest
@@ -249,6 +235,20 @@ theorem witOk : Bridge.witChk alignCtx Fn.«level_residual__L55_L20_L4_L2».fs F
 end
 
 end LeanVM.Guest.Fn.«level_residual__L55_L20_L4_L2»
+
+namespace LeanVM.Guest.Fn.«da_levels__L8_L3»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_levels__L8_L3`'s witness hints pass the data check. -/
+theorem witOk : Bridge.witChk alignCtx Fn.«da_levels__L8_L3».fs Fn.«da_levels__L8_L3».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_levels__L8_L3»
 
 namespace LeanVM.Guest.Fn.«decode_query_windows__L19_L7»
 

@@ -32,11 +32,9 @@ public section
 /-- **The walks and hints the kernel does not check**, one per function: a walk failing or too
     costly to check (`WalkHyp`), hints too costly to check in one piece (`HintsHyp`). -/
 structure ModeHyps : Prop where
-  «__loop24» : WalkHyp Fn.«da_verify_loop2».modeCert
-  «__loop26» : WalkHyp Fn.«da_verify_column_loop0».modeCert
   «__loop6» : WalkHyp Fn.«verify_bus_gkr_loop0».modeCert
   «check_opening_terminal» : WalkHyp Fn.«check_opening_terminal».modeCert
-  «da_verify» : WalkHyp Fn.«da_verify».modeCert
+  «da_weights» : WalkHyp Fn.«da_weights».modeCert
   «main» : WalkHyp Fn.«main».modeCert
   «open_stacked__L0» : WalkHyp Fn.«open_stacked__L0».modeCert
   «open_stacked__L1» : WalkHyp Fn.«open_stacked__L1».modeCert
@@ -74,17 +72,17 @@ theorem guestGroup_walk0 (h : ModeHyps) : ∀ l ∈ guestGroups[0]!, ∀ K ∈ l
 
 theorem guestGroup_walk1 (h : ModeHyps) : ∀ l ∈ guestGroups[1]!, ∀ K ∈ l, CertWalk K :=
   Mode.fa_cons (ModePack.«P23».certs_walk)
-    (Mode.fa_cons (ModePack.«P24».certs_walk h.«__loop26»)
+    (Mode.fa_cons (ModePack.«P24».certs_walk)
     (Mode.fa_cons (ModePack.«P25».certs_walk)
     (Mode.fa_cons (ModePack.«P26».certs_walk)
     (Mode.fa_cons (ModePack.«P27».certs_walk)
-    (Mode.fa_cons (ModePack.«P28».certs_walk)
+    (Mode.fa_cons (ModePack.«P28».certs_walk h.«da_weights»)
     (Mode.fa_cons (ModePack.«P29».certs_walk)
     (Mode.fa_cons (ModePack.«P3».certs_walk)
     (Mode.fa_cons (ModePack.«P30».certs_walk)
     (Mode.fa_cons (ModePack.«P31».certs_walk)
     (Mode.fa_cons (ModePack.«P32».certs_walk)
-    (Mode.fa_cons (ModePack.«P33».certs_walk h.«verify_sub» h.«__loop24»)
+    (Mode.fa_cons (ModePack.«P33».certs_walk h.«verify_sub»)
     (Mode.fa_cons (ModePack.«P34».certs_walk)
     (Mode.fa_cons (ModePack.«P35».certs_walk)
     (Mode.fa_cons (ModePack.«P36».certs_walk)
@@ -113,7 +111,7 @@ theorem guestGroup_walk2 (h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ l
 theorem guestGroup_walk3 (h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ l, CertWalk K :=
   Mode.fa_cons (ModePack.«P52».certs_walk)
     (Mode.fa_cons (ModePack.«P53».certs_walk)
-    (Mode.fa_cons (ModePack.«P54».certs_walk h.«da_verify»)
+    (Mode.fa_cons (ModePack.«P54».certs_walk)
     (Mode.fa_cons (ModePack.«P55».certs_walk)
     (Mode.fa_cons (ModePack.«P56».certs_walk)
     (Mode.fa_cons (ModePack.«P57».certs_walk)

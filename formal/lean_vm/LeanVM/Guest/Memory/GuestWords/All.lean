@@ -30,8 +30,9 @@ public import LeanVM.Guest.Memory.GuestWords.Part19
 public import LeanVM.Guest.Memory.GuestWords.Part20
 public import LeanVM.Guest.Memory.GuestWords.Part21
 public import LeanVM.Guest.Memory.GuestWords.Part22
+public import LeanVM.Guest.Memory.GuestWords.Part23
 public import LeanVM.Guest.Memory.GuestWords.Fn19
-public import LeanVM.Guest.Memory.GuestWords.Fn36
+public import LeanVM.Guest.Memory.GuestWords.Fn38
 
 namespace LeanVM.Guest.Memory
 
@@ -42,7 +43,7 @@ public section
 /-- **Every function passes.** -/
 theorem w_all : RangeOk (chkS true Data.wcertJ Data.womegaJ) 0 coreProgram.length := by
   rw [coreProgram_length]
-  have h := ((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((wRange_0.append wRange_16).append wRange_19).append wRange_20).append wRange_36).append wRange_37).append wRange_87).append wRange_143).append wRange_206).append wRange_268).append wRange_336).append wRange_337).append wRange_338).append wRange_339).append wRange_340).append wRange_341).append wRange_342).append wRange_343).append wRange_344).append wRange_345).append wRange_346).append wRange_347).append wRange_384).append wRange_416).append wRange_436).append wRange_490).append wRange_539).append wRange_589).append wRange_638).append wRange_685).append wRange_731).append wRange_777).append wRange_823).append wRange_869).append wRange_915).append wRange_971).append wRange_1018).append wRange_1049).append wRange_1075).append wRange_1098).append wRange_1127).append wRange_1146).append wRange_1172).append wRange_1196).append wRange_1215).append wRange_1236).append wRange_1255).append wRange_1272).append wRange_1299).append wRange_1314).append wRange_1340).append wRange_1353).append wRange_1381).append wRange_1393).append wRange_1411).append wRange_1436).append wRange_1449).append wRange_1478).append wRange_1490).append wRange_1505).append wRange_1514).append wRange_1531).append wRange_1542).append wRange_1551).append wRange_1564).append wRange_1574).append wRange_1585).append wRange_1592).append wRange_1601)
+  have h := ((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((wRange_0.append wRange_16).append wRange_19).append wRange_20).append wRange_28).append wRange_29).append wRange_38).append wRange_39).append wRange_89).append wRange_145).append wRange_208).append wRange_270).append wRange_338).append wRange_339).append wRange_340).append wRange_341).append wRange_342).append wRange_343).append wRange_344).append wRange_345).append wRange_346).append wRange_347).append wRange_348).append wRange_349).append wRange_386).append wRange_420).append wRange_456).append wRange_511).append wRange_561).append wRange_611).append wRange_659).append wRange_706).append wRange_752).append wRange_798).append wRange_844).append wRange_890).append wRange_936).append wRange_972).append wRange_1006).append wRange_1025).append wRange_1053).append wRange_1077).append wRange_1100).append wRange_1129).append wRange_1145).append wRange_1172).append wRange_1190).append wRange_1214).append wRange_1228).append wRange_1258).append wRange_1271).append wRange_1299).append wRange_1311).append wRange_1332).append wRange_1352).append wRange_1367).append wRange_1395).append wRange_1407).append wRange_1426).append wRange_1448).append wRange_1462).append wRange_1510).append wRange_1525).append wRange_1542).append wRange_1553).append wRange_1562).append wRange_1575).append wRange_1585).append wRange_1596).append wRange_1603).append wRange_1612)
   exact h
 
 end

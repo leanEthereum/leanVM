@@ -21,7 +21,7 @@ public section
 /-- `main_loop2`'s frame hints reserve their callees' frames. -/
 theorem frOk :
     Bridge.frChk alignCtx Fn.«main_loop2».fs [] Fn.«main_loop2».core.params Fn.«main_loop2».core.body
-      Data.adviceFn37 = true := by
+      Data.adviceFn39 = true := by
   rw [alignCtxEq]
   decide +kernel
 

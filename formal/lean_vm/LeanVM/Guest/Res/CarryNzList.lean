@@ -60,7 +60,6 @@ def carriedNz : List (String × Nat) := [
 
 /-- **The callee words nonzero in `K`**: callee, position among its parameters then its returns. -/
 def nzUp : List (String × Nat) := [
-  ("da_row_shape", 0),
   ("da_row_shape", 3),
   ("eq_prefix_chain", 4),
   ("keccak_plain_rounds__L6_L0", 9),

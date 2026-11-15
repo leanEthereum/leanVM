@@ -163,11 +163,11 @@ theorem cs_fs_le : ∀ κ < 31, B2C.fs (Tables.lName "column_selector" κ) ≤ 1
   rw [fsB_idx hname]
   exact hF
 
-/-- The rows' specializations: core functions `81 + r`, constant words certificates within
+/-- The rows' specializations: core functions `idx% «rs_eq_rows__L0» + r`, constant words certificates within
 `1489`. -/
 theorem rsRows_ok : (List.range 8).all (fun r =>
-    decide ((coreProgram[81 + r]?).map Fn.name = some (rsEqRowsNames.getD r "")) &&
-      certLe 1489 (Data.wcertJ (81 + r))) = true := by
+    decide ((coreProgram[idx% «rs_eq_rows__L0» + r]?).map Fn.name = some (rsEqRowsNames.getD r "")) &&
+      certLe 1489 (Data.wcertJ (idx% «rs_eq_rows__L0» + r))) = true := by
   decide +kernel
 
 /-- **Each `rs_eq_rows__L{r}`, `r < 8`, within `1489` words.** -/

@@ -11,6 +11,7 @@ public import LeanVM.Guest.Bridge.ProgAl.Link0
 public import LeanVM.Guest.Bridge.WitChk.«P0»
 public import LeanVM.Guest.Bridge.WitChk.«P10»
 public import LeanVM.Guest.Bridge.WitChk.«P11»
+public import LeanVM.Guest.Bridge.WitChk.«P12»
 public import LeanVM.Guest.Bridge.WitChk.«P13»
 public import LeanVM.Guest.Bridge.WitChk.«P14»
 public import LeanVM.Guest.Bridge.WitChk.«P15»
@@ -27,7 +28,6 @@ public import LeanVM.Guest.Bridge.WitChk.«P27»
 public import LeanVM.Guest.Bridge.WitChk.«P28»
 public import LeanVM.Guest.Bridge.WitChk.«P29»
 public import LeanVM.Guest.Bridge.WitChk.«P2»
-public import LeanVM.Guest.Bridge.WitChk.«P30»
 public import LeanVM.Guest.Bridge.WitChk.«P32»
 public import LeanVM.Guest.Bridge.WitChk.«P33»
 public import LeanVM.Guest.Bridge.WitChk.«P34»
@@ -192,293 +192,293 @@ theorem wok28 : Bridge.WitJ 28 :=
 
 theorem wok29 : Bridge.WitJ 29 :=
   Bridge.witJ_of Checked.code29 Checked.core29 Checked.cert29 Checked.plumbEq29 Bridge.ProgAl.tab29 rfl Checked.fsEq29
-    Fn.«da_row_shape».witOk
+    Fn.«da_weights».witOk
 
 theorem wok30 : Bridge.WitJ 30 :=
   Bridge.witJ_of Checked.code30 Checked.core30 Checked.cert30 Checked.plumbEq30 Bridge.ProgAl.tab30 rfl Checked.fsEq30
-    Fn.«da_verify_column».witOk
+    Fn.«da_pad».witOk
 
 theorem wok31 : Bridge.WitJ 31 :=
   Bridge.witJ_of Checked.code31 Checked.core31 Checked.cert31 Checked.plumbEq31 Bridge.ProgAl.tab31 rfl Checked.fsEq31
-    Fn.«da_verify_cell».witOk
+    Fn.«da_row_shape».witOk
 
 theorem wok32 : Bridge.WitJ 32 :=
   Bridge.witJ_of Checked.code32 Checked.core32 Checked.cert32 Checked.plumbEq32 Bridge.ProgAl.tab32 rfl Checked.fsEq32
-    Fn.«da_vector».witOk
+    Fn.«da_verify_blob».witOk
 
 theorem wok33 : Bridge.WitJ 33 :=
   Bridge.witJ_of Checked.code33 Checked.core33 Checked.cert33 Checked.plumbEq33 Bridge.ProgAl.tab33 rfl Checked.fsEq33
-    Fn.«da_column_offsets».witOk
+    Fn.«da_verify_cell».witOk
 
 theorem wok34 : Bridge.WitJ 34 :=
   Bridge.witJ_of Checked.code34 Checked.core34 Checked.cert34 Checked.plumbEq34 Bridge.ProgAl.tab34 rfl Checked.fsEq34
-    Fn.«aggregate_claims».witOk
+    Fn.«da_vector».witOk
 
 theorem wok35 : Bridge.WitJ 35 :=
   Bridge.witJ_of Checked.code35 Checked.core35 Checked.cert35 Checked.plumbEq35 Bridge.ProgAl.tab35 rfl Checked.fsEq35
-    Fn.«main_loop0».witOk
+    Fn.«da_column_offsets».witOk
 
 theorem wok36 : Bridge.WitJ 36 :=
   Bridge.witJ_of Checked.code36 Checked.core36 Checked.cert36 Checked.plumbEq36 Bridge.ProgAl.tab36 rfl Checked.fsEq36
-    Fn.«main_loop1».witOk
-
-kernel_rfl fsEq37 : B2C.fsN 37 = Fn.«main_loop2».fs
+    Fn.«aggregate_claims».witOk
 
 theorem wok37 : Bridge.WitJ 37 :=
-  Bridge.witJ_of Checked.code37 Checked.core37 Checked.cert37 Bridge.ProgAl.plumbEq37 Bridge.ProgAl.tab37 rfl fsEq37
-    Fn.«main_loop2».witOk
+  Bridge.witJ_of Checked.code37 Checked.core37 Checked.cert37 Checked.plumbEq37 Bridge.ProgAl.tab37 rfl Checked.fsEq37
+    Fn.«main_loop0».witOk
 
 theorem wok38 : Bridge.WitJ 38 :=
   Bridge.witJ_of Checked.code38 Checked.core38 Checked.cert38 Checked.plumbEq38 Bridge.ProgAl.tab38 rfl Checked.fsEq38
-    Fn.«main_loop3».witOk
+    Fn.«main_loop1».witOk
+
+kernel_rfl fsEq39 : B2C.fsN 39 = Fn.«main_loop2».fs
 
 theorem wok39 : Bridge.WitJ 39 :=
-  Bridge.witJ_of Checked.code39 Checked.core39 Checked.cert39 Checked.plumbEq39 Bridge.ProgAl.tab39 rfl Checked.fsEq39
-    Fn.«main_loop4».witOk
+  Bridge.witJ_of Checked.code39 Checked.core39 Checked.cert39 Bridge.ProgAl.plumbEq39 Bridge.ProgAl.tab39 rfl fsEq39
+    Fn.«main_loop2».witOk
 
 theorem wok40 : Bridge.WitJ 40 :=
   Bridge.witJ_of Checked.code40 Checked.core40 Checked.cert40 Checked.plumbEq40 Bridge.ProgAl.tab40 rfl Checked.fsEq40
-    Fn.«eq_prefix_run__L0».witOk
+    Fn.«main_loop3».witOk
 
 theorem wok41 : Bridge.WitJ 41 :=
   Bridge.witJ_of Checked.code41 Checked.core41 Checked.cert41 Checked.plumbEq41 Bridge.ProgAl.tab41 rfl Checked.fsEq41
-    Fn.«eq_prefix_run__L1».witOk
+    Fn.«main_loop4».witOk
 
 theorem wok42 : Bridge.WitJ 42 :=
   Bridge.witJ_of Checked.code42 Checked.core42 Checked.cert42 Checked.plumbEq42 Bridge.ProgAl.tab42 rfl Checked.fsEq42
-    Fn.«eq_prefix_run__L2».witOk
+    Fn.«eq_prefix_run__L0».witOk
 
 theorem wok43 : Bridge.WitJ 43 :=
   Bridge.witJ_of Checked.code43 Checked.core43 Checked.cert43 Checked.plumbEq43 Bridge.ProgAl.tab43 rfl Checked.fsEq43
-    Fn.«eq_prefix_run__L3».witOk
+    Fn.«eq_prefix_run__L1».witOk
 
 theorem wok44 : Bridge.WitJ 44 :=
   Bridge.witJ_of Checked.code44 Checked.core44 Checked.cert44 Checked.plumbEq44 Bridge.ProgAl.tab44 rfl Checked.fsEq44
-    Fn.«eq_prefix_run__L4».witOk
+    Fn.«eq_prefix_run__L2».witOk
 
 theorem wok45 : Bridge.WitJ 45 :=
   Bridge.witJ_of Checked.code45 Checked.core45 Checked.cert45 Checked.plumbEq45 Bridge.ProgAl.tab45 rfl Checked.fsEq45
-    Fn.«eq_prefix_run__L5».witOk
+    Fn.«eq_prefix_run__L3».witOk
 
 theorem wok46 : Bridge.WitJ 46 :=
   Bridge.witJ_of Checked.code46 Checked.core46 Checked.cert46 Checked.plumbEq46 Bridge.ProgAl.tab46 rfl Checked.fsEq46
-    Fn.«eq_prefix_run__L6».witOk
+    Fn.«eq_prefix_run__L4».witOk
 
 theorem wok47 : Bridge.WitJ 47 :=
   Bridge.witJ_of Checked.code47 Checked.core47 Checked.cert47 Checked.plumbEq47 Bridge.ProgAl.tab47 rfl Checked.fsEq47
-    Fn.«eq_prefix_run__L7».witOk
+    Fn.«eq_prefix_run__L5».witOk
 
 theorem wok48 : Bridge.WitJ 48 :=
   Bridge.witJ_of Checked.code48 Checked.core48 Checked.cert48 Checked.plumbEq48 Bridge.ProgAl.tab48 rfl Checked.fsEq48
-    Fn.«eq_prefix_run__L8».witOk
+    Fn.«eq_prefix_run__L6».witOk
 
 theorem wok49 : Bridge.WitJ 49 :=
   Bridge.witJ_of Checked.code49 Checked.core49 Checked.cert49 Checked.plumbEq49 Bridge.ProgAl.tab49 rfl Checked.fsEq49
-    Fn.«eq_prefix_run__L9».witOk
+    Fn.«eq_prefix_run__L7».witOk
 
 theorem wok50 : Bridge.WitJ 50 :=
   Bridge.witJ_of Checked.code50 Checked.core50 Checked.cert50 Checked.plumbEq50 Bridge.ProgAl.tab50 rfl Checked.fsEq50
-    Fn.«eq_prefix_run__L10».witOk
+    Fn.«eq_prefix_run__L8».witOk
 
 theorem wok51 : Bridge.WitJ 51 :=
   Bridge.witJ_of Checked.code51 Checked.core51 Checked.cert51 Checked.plumbEq51 Bridge.ProgAl.tab51 rfl Checked.fsEq51
-    Fn.«eq_prefix_run__L11».witOk
+    Fn.«eq_prefix_run__L9».witOk
 
 theorem wok52 : Bridge.WitJ 52 :=
   Bridge.witJ_of Checked.code52 Checked.core52 Checked.cert52 Checked.plumbEq52 Bridge.ProgAl.tab52 rfl Checked.fsEq52
-    Fn.«eq_prefix_run__L12».witOk
+    Fn.«eq_prefix_run__L10».witOk
 
 theorem wok53 : Bridge.WitJ 53 :=
   Bridge.witJ_of Checked.code53 Checked.core53 Checked.cert53 Checked.plumbEq53 Bridge.ProgAl.tab53 rfl Checked.fsEq53
-    Fn.«eq_prefix_run__L13».witOk
+    Fn.«eq_prefix_run__L11».witOk
 
 theorem wok54 : Bridge.WitJ 54 :=
   Bridge.witJ_of Checked.code54 Checked.core54 Checked.cert54 Checked.plumbEq54 Bridge.ProgAl.tab54 rfl Checked.fsEq54
-    Fn.«eq_prefix_run__L14».witOk
+    Fn.«eq_prefix_run__L12».witOk
 
 theorem wok55 : Bridge.WitJ 55 :=
   Bridge.witJ_of Checked.code55 Checked.core55 Checked.cert55 Checked.plumbEq55 Bridge.ProgAl.tab55 rfl Checked.fsEq55
-    Fn.«eq_prefix_run__L15».witOk
+    Fn.«eq_prefix_run__L13».witOk
 
 theorem wok56 : Bridge.WitJ 56 :=
   Bridge.witJ_of Checked.code56 Checked.core56 Checked.cert56 Checked.plumbEq56 Bridge.ProgAl.tab56 rfl Checked.fsEq56
-    Fn.«eq_prefix_run__L16».witOk
+    Fn.«eq_prefix_run__L14».witOk
 
 theorem wok57 : Bridge.WitJ 57 :=
   Bridge.witJ_of Checked.code57 Checked.core57 Checked.cert57 Checked.plumbEq57 Bridge.ProgAl.tab57 rfl Checked.fsEq57
-    Fn.«eq_prefix_run__L17».witOk
+    Fn.«eq_prefix_run__L15».witOk
 
 theorem wok58 : Bridge.WitJ 58 :=
   Bridge.witJ_of Checked.code58 Checked.core58 Checked.cert58 Checked.plumbEq58 Bridge.ProgAl.tab58 rfl Checked.fsEq58
-    Fn.«eq_prefix_run__L18».witOk
+    Fn.«eq_prefix_run__L16».witOk
 
 theorem wok59 : Bridge.WitJ 59 :=
   Bridge.witJ_of Checked.code59 Checked.core59 Checked.cert59 Checked.plumbEq59 Bridge.ProgAl.tab59 rfl Checked.fsEq59
-    Fn.«eq_prefix_run__L19».witOk
+    Fn.«eq_prefix_run__L17».witOk
 
 theorem wok60 : Bridge.WitJ 60 :=
   Bridge.witJ_of Checked.code60 Checked.core60 Checked.cert60 Checked.plumbEq60 Bridge.ProgAl.tab60 rfl Checked.fsEq60
-    Fn.«eq_prefix_run__L20».witOk
+    Fn.«eq_prefix_run__L18».witOk
 
 theorem wok61 : Bridge.WitJ 61 :=
   Bridge.witJ_of Checked.code61 Checked.core61 Checked.cert61 Checked.plumbEq61 Bridge.ProgAl.tab61 rfl Checked.fsEq61
-    Fn.«eq_prefix_run__L21».witOk
+    Fn.«eq_prefix_run__L19».witOk
 
 theorem wok62 : Bridge.WitJ 62 :=
   Bridge.witJ_of Checked.code62 Checked.core62 Checked.cert62 Checked.plumbEq62 Bridge.ProgAl.tab62 rfl Checked.fsEq62
-    Fn.«eq_prefix_run__L22».witOk
+    Fn.«eq_prefix_run__L20».witOk
 
 theorem wok63 : Bridge.WitJ 63 :=
   Bridge.witJ_of Checked.code63 Checked.core63 Checked.cert63 Checked.plumbEq63 Bridge.ProgAl.tab63 rfl Checked.fsEq63
-    Fn.«eq_prefix_run__L23».witOk
+    Fn.«eq_prefix_run__L21».witOk
 
 theorem wok64 : Bridge.WitJ 64 :=
   Bridge.witJ_of Checked.code64 Checked.core64 Checked.cert64 Checked.plumbEq64 Bridge.ProgAl.tab64 rfl Checked.fsEq64
-    Fn.«eq_prefix_run__L24».witOk
+    Fn.«eq_prefix_run__L22».witOk
 
 theorem wok65 : Bridge.WitJ 65 :=
   Bridge.witJ_of Checked.code65 Checked.core65 Checked.cert65 Checked.plumbEq65 Bridge.ProgAl.tab65 rfl Checked.fsEq65
-    Fn.«eq_prefix_run__L25».witOk
+    Fn.«eq_prefix_run__L23».witOk
 
 theorem wok66 : Bridge.WitJ 66 :=
   Bridge.witJ_of Checked.code66 Checked.core66 Checked.cert66 Checked.plumbEq66 Bridge.ProgAl.tab66 rfl Checked.fsEq66
-    Fn.«eq_prefix_run__L26».witOk
+    Fn.«eq_prefix_run__L24».witOk
 
 theorem wok67 : Bridge.WitJ 67 :=
   Bridge.witJ_of Checked.code67 Checked.core67 Checked.cert67 Checked.plumbEq67 Bridge.ProgAl.tab67 rfl Checked.fsEq67
-    Fn.«eq_prefix_run__L27».witOk
+    Fn.«eq_prefix_run__L25».witOk
 
 theorem wok68 : Bridge.WitJ 68 :=
   Bridge.witJ_of Checked.code68 Checked.core68 Checked.cert68 Checked.plumbEq68 Bridge.ProgAl.tab68 rfl Checked.fsEq68
-    Fn.«eq_prefix_run__L28».witOk
+    Fn.«eq_prefix_run__L26».witOk
 
 theorem wok69 : Bridge.WitJ 69 :=
   Bridge.witJ_of Checked.code69 Checked.core69 Checked.cert69 Checked.plumbEq69 Bridge.ProgAl.tab69 rfl Checked.fsEq69
-    Fn.«eq_prefix_run__L29».witOk
+    Fn.«eq_prefix_run__L27».witOk
 
 theorem wok70 : Bridge.WitJ 70 :=
   Bridge.witJ_of Checked.code70 Checked.core70 Checked.cert70 Checked.plumbEq70 Bridge.ProgAl.tab70 rfl Checked.fsEq70
-    Fn.«eq_prefix_run__L30».witOk
+    Fn.«eq_prefix_run__L28».witOk
 
 theorem wok71 : Bridge.WitJ 71 :=
   Bridge.witJ_of Checked.code71 Checked.core71 Checked.cert71 Checked.plumbEq71 Bridge.ProgAl.tab71 rfl Checked.fsEq71
-    Fn.«eq_prefix_run__L31».witOk
+    Fn.«eq_prefix_run__L29».witOk
 
 theorem wok72 : Bridge.WitJ 72 :=
   Bridge.witJ_of Checked.code72 Checked.core72 Checked.cert72 Checked.plumbEq72 Bridge.ProgAl.tab72 rfl Checked.fsEq72
-    Fn.«eq_prefix_run__L32».witOk
+    Fn.«eq_prefix_run__L30».witOk
 
 theorem wok73 : Bridge.WitJ 73 :=
   Bridge.witJ_of Checked.code73 Checked.core73 Checked.cert73 Checked.plumbEq73 Bridge.ProgAl.tab73 rfl Checked.fsEq73
-    Fn.«eq_prefix_run__L33».witOk
+    Fn.«eq_prefix_run__L31».witOk
 
 theorem wok74 : Bridge.WitJ 74 :=
   Bridge.witJ_of Checked.code74 Checked.core74 Checked.cert74 Checked.plumbEq74 Bridge.ProgAl.tab74 rfl Checked.fsEq74
-    Fn.«eq_prefix_run__L34».witOk
+    Fn.«eq_prefix_run__L32».witOk
 
 theorem wok75 : Bridge.WitJ 75 :=
   Bridge.witJ_of Checked.code75 Checked.core75 Checked.cert75 Checked.plumbEq75 Bridge.ProgAl.tab75 rfl Checked.fsEq75
-    Fn.«eq_prefix_run__L35».witOk
+    Fn.«eq_prefix_run__L33».witOk
 
 theorem wok76 : Bridge.WitJ 76 :=
   Bridge.witJ_of Checked.code76 Checked.core76 Checked.cert76 Checked.plumbEq76 Bridge.ProgAl.tab76 rfl Checked.fsEq76
-    Fn.«eq_prefix_run__L36».witOk
+    Fn.«eq_prefix_run__L34».witOk
 
 theorem wok77 : Bridge.WitJ 77 :=
   Bridge.witJ_of Checked.code77 Checked.core77 Checked.cert77 Checked.plumbEq77 Bridge.ProgAl.tab77 rfl Checked.fsEq77
-    Fn.«eq_prefix_run__L37».witOk
+    Fn.«eq_prefix_run__L35».witOk
 
 theorem wok78 : Bridge.WitJ 78 :=
   Bridge.witJ_of Checked.code78 Checked.core78 Checked.cert78 Checked.plumbEq78 Bridge.ProgAl.tab78 rfl Checked.fsEq78
-    Fn.«eq_prefix_run__L38».witOk
+    Fn.«eq_prefix_run__L36».witOk
 
 theorem wok79 : Bridge.WitJ 79 :=
   Bridge.witJ_of Checked.code79 Checked.core79 Checked.cert79 Checked.plumbEq79 Bridge.ProgAl.tab79 rfl Checked.fsEq79
-    Fn.«eq_prefix_run__L39».witOk
+    Fn.«eq_prefix_run__L37».witOk
 
 theorem wok80 : Bridge.WitJ 80 :=
   Bridge.witJ_of Checked.code80 Checked.core80 Checked.cert80 Checked.plumbEq80 Bridge.ProgAl.tab80 rfl Checked.fsEq80
-    Fn.«eq_prefix_run__L40».witOk
+    Fn.«eq_prefix_run__L38».witOk
 
 theorem wok81 : Bridge.WitJ 81 :=
   Bridge.witJ_of Checked.code81 Checked.core81 Checked.cert81 Checked.plumbEq81 Bridge.ProgAl.tab81 rfl Checked.fsEq81
-    Fn.«rs_eq_run_loop0».witOk
+    Fn.«eq_prefix_run__L39».witOk
 
 theorem wok82 : Bridge.WitJ 82 :=
   Bridge.witJ_of Checked.code82 Checked.core82 Checked.cert82 Checked.plumbEq82 Bridge.ProgAl.tab82 rfl Checked.fsEq82
-    Fn.«rs_eq_rows__L0».witOk
+    Fn.«eq_prefix_run__L40».witOk
 
 theorem wok83 : Bridge.WitJ 83 :=
   Bridge.witJ_of Checked.code83 Checked.core83 Checked.cert83 Checked.plumbEq83 Bridge.ProgAl.tab83 rfl Checked.fsEq83
-    Fn.«rs_eq_rows__L1».witOk
+    Fn.«rs_eq_run_loop0».witOk
 
 theorem wok84 : Bridge.WitJ 84 :=
   Bridge.witJ_of Checked.code84 Checked.core84 Checked.cert84 Checked.plumbEq84 Bridge.ProgAl.tab84 rfl Checked.fsEq84
-    Fn.«rs_eq_rows__L2».witOk
+    Fn.«rs_eq_rows__L0».witOk
 
 theorem wok85 : Bridge.WitJ 85 :=
   Bridge.witJ_of Checked.code85 Checked.core85 Checked.cert85 Checked.plumbEq85 Bridge.ProgAl.tab85 rfl Checked.fsEq85
-    Fn.«rs_eq_rows__L3».witOk
+    Fn.«rs_eq_rows__L1».witOk
 
 theorem wok86 : Bridge.WitJ 86 :=
   Bridge.witJ_of Checked.code86 Checked.core86 Checked.cert86 Checked.plumbEq86 Bridge.ProgAl.tab86 rfl Checked.fsEq86
-    Fn.«rs_eq_rows__L4».witOk
+    Fn.«rs_eq_rows__L2».witOk
 
 theorem wok87 : Bridge.WitJ 87 :=
   Bridge.witJ_of Checked.code87 Checked.core87 Checked.cert87 Checked.plumbEq87 Bridge.ProgAl.tab87 rfl Checked.fsEq87
-    Fn.«rs_eq_rows__L5».witOk
+    Fn.«rs_eq_rows__L3».witOk
 
 theorem wok88 : Bridge.WitJ 88 :=
   Bridge.witJ_of Checked.code88 Checked.core88 Checked.cert88 Checked.plumbEq88 Bridge.ProgAl.tab88 rfl Checked.fsEq88
-    Fn.«rs_eq_rows__L6».witOk
+    Fn.«rs_eq_rows__L4».witOk
 
 theorem wok89 : Bridge.WitJ 89 :=
   Bridge.witJ_of Checked.code89 Checked.core89 Checked.cert89 Checked.plumbEq89 Bridge.ProgAl.tab89 rfl Checked.fsEq89
-    Fn.«rs_eq_rows__L7».witOk
+    Fn.«rs_eq_rows__L5».witOk
 
 theorem wok90 : Bridge.WitJ 90 :=
   Bridge.witJ_of Checked.code90 Checked.core90 Checked.cert90 Checked.plumbEq90 Bridge.ProgAl.tab90 rfl Checked.fsEq90
-    Fn.«grind_check__L7».witOk
+    Fn.«rs_eq_rows__L6».witOk
 
 theorem wok91 : Bridge.WitJ 91 :=
   Bridge.witJ_of Checked.code91 Checked.core91 Checked.cert91 Checked.plumbEq91 Bridge.ProgAl.tab91 rfl Checked.fsEq91
-    Fn.«verify_bus_gkr_loop0».witOk
+    Fn.«rs_eq_rows__L7».witOk
 
 theorem wok92 : Bridge.WitJ 92 :=
   Bridge.witJ_of Checked.code92 Checked.core92 Checked.cert92 Checked.plumbEq92 Bridge.ProgAl.tab92 rfl Checked.fsEq92
-    Fn.«verify_bus_gkr_loop1».witOk
+    Fn.«grind_check__L7».witOk
 
 theorem wok93 : Bridge.WitJ 93 :=
   Bridge.witJ_of Checked.code93 Checked.core93 Checked.cert93 Checked.plumbEq93 Bridge.ProgAl.tab93 rfl Checked.fsEq93
-    Fn.«shared_selector_tables_loop0».witOk
+    Fn.«verify_bus_gkr_loop0».witOk
 
 theorem wok94 : Bridge.WitJ 94 :=
   Bridge.witJ_of Checked.code94 Checked.core94 Checked.cert94 Checked.plumbEq94 Bridge.ProgAl.tab94 rfl Checked.fsEq94
-    Fn.«sel_partial_nibble__L0».witOk
+    Fn.«verify_bus_gkr_loop1».witOk
 
 theorem wok95 : Bridge.WitJ 95 :=
   Bridge.witJ_of Checked.code95 Checked.core95 Checked.cert95 Checked.plumbEq95 Bridge.ProgAl.tab95 rfl Checked.fsEq95
-    Fn.«sel_partial_nibble__L1».witOk
+    Fn.«shared_selector_tables_loop0».witOk
 
 theorem wok96 : Bridge.WitJ 96 :=
   Bridge.witJ_of Checked.code96 Checked.core96 Checked.cert96 Checked.plumbEq96 Bridge.ProgAl.tab96 rfl Checked.fsEq96
-    Fn.«sel_partial_nibble__L2».witOk
+    Fn.«sel_partial_nibble__L0».witOk
 
 theorem wok97 : Bridge.WitJ 97 :=
   Bridge.witJ_of Checked.code97 Checked.core97 Checked.cert97 Checked.plumbEq97 Bridge.ProgAl.tab97 rfl Checked.fsEq97
-    Fn.«sel_partial_nibble__L3».witOk
+    Fn.«sel_partial_nibble__L1».witOk
 
 theorem wok98 : Bridge.WitJ 98 :=
   Bridge.witJ_of Checked.code98 Checked.core98 Checked.cert98 Checked.plumbEq98 Bridge.ProgAl.tab98 rfl Checked.fsEq98
-    Fn.«padding_weight__L0».witOk
+    Fn.«sel_partial_nibble__L2».witOk
 
 theorem wok99 : Bridge.WitJ 99 :=
   Bridge.witJ_of Checked.code99 Checked.core99 Checked.cert99 Checked.plumbEq99 Bridge.ProgAl.tab99 rfl Checked.fsEq99
-    Fn.«padding_weight__L1».witOk
+    Fn.«sel_partial_nibble__L3».witOk
 
 theorem wok100 : Bridge.WitJ 100 :=
   Bridge.witJ_of Checked.code100 Checked.core100 Checked.cert100 Checked.plumbEq100 Bridge.ProgAl.tab100 rfl Checked.fsEq100
-    Fn.«padding_weight__L2».witOk
+    Fn.«padding_weight__L0».witOk
 
 end
 

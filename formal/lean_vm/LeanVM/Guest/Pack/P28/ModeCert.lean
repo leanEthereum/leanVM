@@ -12,6 +12,7 @@ public import LeanVM.Guest.Pack.«P28».Mode0
 public import LeanVM.Guest.Pack.«P28».Mode1
 public import LeanVM.Guest.Pack.«P28».Mode2
 public import LeanVM.Guest.Pack.«P28».ModeH
+public import LeanVM.Guest.Pack.«P28».ModeX
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
@@ -28,12 +29,28 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `shared_selector_tables`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(188911,
-    Fn.«shared_selector_tables_loop0».modeSig), (189047, Fn.«sel_partial_nibble__L1».modeSig),
-    (189067, Fn.«sel_partial_nibble__L2».modeSig), (189108, Fn.«sel_partial_nibble__L3».modeSig),
-    (189044, Fn.«sel_partial_nibble__L0».modeSig)]
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(190561, Fn.«sel_partial_nibble__L1».modeSig),
+    (190425, Fn.«shared_selector_tables_loop0».modeSig), (190581,
+    Fn.«sel_partial_nibble__L2».modeSig), (190622, Fn.«sel_partial_nibble__L3».modeSig), (190558,
+    Fn.«sel_partial_nibble__L0».modeSig)]
 
 end LeanVM.Guest.Fn.«shared_selector_tables»
+
+namespace LeanVM.Guest.Fn.«da_weights»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `da_weights`: its mode walk certificate. -/
+noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
+
+end
+
+/-- `da_weights`: the callee signatures its walk reads. -/
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(248957, Fn.«da_expand__L7_L8».modeSig)]
+
+end LeanVM.Guest.Fn.«da_weights»
 
 namespace LeanVM.Guest.Fn.«eq_prefix_run__L39»
 
@@ -195,41 +212,19 @@ kernel_rfl modeSigs : modeCert.E.sigs.entries = []
 
 end LeanVM.Guest.Fn.«child_claim_list_last__L2»
 
-namespace LeanVM.Guest.Fn.«da_levels__L512_L9»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `da_levels__L512_L9`: its mode walk certificate. -/
-noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
-
-end
-
-/-- `da_levels__L512_L9`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(277791, Fn.«da_levels__L512_L9_loop8».modeSig),
-    (277651, Fn.«da_levels__L512_L9_loop4».modeSig), (277513,
-    Fn.«da_levels__L512_L9_loop0».modeSig), (277721, Fn.«da_levels__L512_L9_loop6».modeSig),
-    (277581, Fn.«da_levels__L512_L9_loop2».modeSig), (277616,
-    Fn.«da_levels__L512_L9_loop3».modeSig), (277756, Fn.«da_levels__L512_L9_loop7».modeSig),
-    (277546, Fn.«da_levels__L512_L9_loop1».modeSig), (277686,
-    Fn.«da_levels__L512_L9_loop5».modeSig)]
-
-end LeanVM.Guest.Fn.«da_levels__L512_L9»
-
 namespace LeanVM.Guest.Fn.«da_column_offsets_loop1»
 
 open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop28`: its mode walk certificate. -/
+/-- `__loop26`: its mode walk certificate. -/
 noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
 
 end
 
-/-- `__loop28`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(251504, Fn.«da_column_offsets_loop1».modeSig)]
+/-- `__loop26`: the callee signatures its walk reads. -/
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(252627, Fn.«da_column_offsets_loop1».modeSig)]
 
 end LeanVM.Guest.Fn.«da_column_offsets_loop1»
 
@@ -245,8 +240,8 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `level_residual__L218_L19_L6_L3`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(333985,
-    Fn.«level_residual__L218_L19_L6_L3_loop0».modeSig), (334801,
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(333966,
+    Fn.«level_residual__L218_L19_L6_L3_loop0».modeSig), (334782,
     Fn.«level_residual__L218_L19_L6_L3_loop1».modeSig)]
 
 end LeanVM.Guest.Fn.«level_residual__L218_L19_L6_L3»
@@ -263,8 +258,8 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `level_positions__L8_L22_L4`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(319266,
-    Fn.«decode_query_windows__L22_L4».modeSig), (344846,
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(319247,
+    Fn.«decode_query_windows__L22_L4».modeSig), (344827,
     Fn.«level_positions__L8_L22_L4_loop0».modeSig)]
 
 end LeanVM.Guest.Fn.«level_positions__L8_L22_L4»
@@ -281,9 +276,8 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(345161,
-    Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1».modeSig), (282554,
-    Fn.«verify_merkle_cap__L2».modeSig)]
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(282535, Fn.«verify_merkle_cap__L2».modeSig),
+    (345142, Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L4_L10_L20_L5_L1».modeSig)]
 
 end LeanVM.Guest.Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1»
 
@@ -299,27 +293,33 @@ noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatt
 end
 
 /-- `level_positions__L28_L26_L2`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(396319,
-    Fn.«level_positions__L28_L26_L2_loop0».modeSig), (368154,
-    Fn.«decode_query_windows__L26_L2».modeSig)]
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(368135,
+    Fn.«decode_query_windows__L26_L2».modeSig), (396300,
+    Fn.«level_positions__L28_L26_L2_loop0».modeSig)]
 
 end LeanVM.Guest.Fn.«level_positions__L28_L26_L2»
 
-namespace LeanVM.Guest.Fn.«da_levels__L256_L8_loop3»
+namespace LeanVM.Guest.Fn.«da_levels__L512_L9»
 
 open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop73`: its mode walk certificate. -/
+/-- `da_levels__L512_L9`: its mode walk certificate. -/
 noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
 
 end
 
-/-- `__loop73`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(277338, Fn.«da_levels__L256_L8_loop3».modeSig)]
+/-- `da_levels__L512_L9`: the callee signatures its walk reads. -/
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(412287, Fn.«da_levels__L512_L9_loop4».modeSig),
+    (412427, Fn.«da_levels__L512_L9_loop8».modeSig), (412217,
+    Fn.«da_levels__L512_L9_loop2».modeSig), (412357, Fn.«da_levels__L512_L9_loop6».modeSig),
+    (412149, Fn.«da_levels__L512_L9_loop0».modeSig), (412392,
+    Fn.«da_levels__L512_L9_loop7».modeSig), (412252, Fn.«da_levels__L512_L9_loop3».modeSig),
+    (412322, Fn.«da_levels__L512_L9_loop5».modeSig), (412182,
+    Fn.«da_levels__L512_L9_loop1».modeSig)]
 
-end LeanVM.Guest.Fn.«da_levels__L256_L8_loop3»
+end LeanVM.Guest.Fn.«da_levels__L512_L9»
 
 namespace LeanVM.Guest.Fn.«decode_query_windows__L18_L6»
 
@@ -343,13 +343,13 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop129`: its mode walk certificate. -/
+/-- `__loop79`: its mode walk certificate. -/
 noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
 
 end
 
-/-- `__loop129`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(290788,
+/-- `__loop79`: the callee signatures its walk reads. -/
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(290769,
     Fn.«level_residual__L33_L6_L4_L2_loop1».modeSig)]
 
 end LeanVM.Guest.Fn.«level_residual__L33_L6_L4_L2_loop1»
@@ -360,13 +360,13 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop155`: its mode walk certificate. -/
+/-- `__loop105`: its mode walk certificate. -/
 noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
 
 end
 
-/-- `__loop155`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(297062,
+/-- `__loop105`: the callee signatures its walk reads. -/
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(297043,
     Fn.«level_residual__L55_L11_L4_L2_loop1».modeSig)]
 
 end LeanVM.Guest.Fn.«level_residual__L55_L11_L4_L2_loop1»
@@ -377,13 +377,13 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop212`: its mode walk certificate. -/
+/-- `__loop162`: its mode walk certificate. -/
 noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
 
 end
 
-/-- `__loop212`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(311764,
+/-- `__loop162`: the callee signatures its walk reads. -/
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(311745,
     Fn.«level_residual__L109_L17_L6_L3_loop0».modeSig)]
 
 end LeanVM.Guest.Fn.«level_residual__L109_L17_L6_L3_loop0»
@@ -394,13 +394,13 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop396`: its mode walk certificate. -/
+/-- `__loop346`: its mode walk certificate. -/
 noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
 
 end
 
-/-- `__loop396`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(372502,
+/-- `__loop346`: the callee signatures its walk reads. -/
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(372483,
     Fn.«level_residual__L55_L22_L6_L3_loop0».modeSig)]
 
 end LeanVM.Guest.Fn.«level_residual__L55_L22_L6_L3_loop0»
@@ -411,16 +411,32 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop456`: its mode walk certificate. -/
+/-- `__loop406`: its mode walk certificate. -/
 noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
 
 end
 
-/-- `__loop456`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(394740,
+/-- `__loop406`: the callee signatures its walk reads. -/
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(394721,
     Fn.«level_residual__L19_L11_L4_L2_loop1».modeSig)]
 
 end LeanVM.Guest.Fn.«level_residual__L19_L11_L4_L2_loop1»
+
+namespace LeanVM.Guest.Fn.«da_levels__L256_L8_loop3»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `__loop477`: its mode walk certificate. -/
+noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
+
+end
+
+/-- `__loop477`: the callee signatures its walk reads. -/
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(411974, Fn.«da_levels__L256_L8_loop3».modeSig)]
+
+end LeanVM.Guest.Fn.«da_levels__L256_L8_loop3»
 
 namespace LeanVM.Guest.Fn.«walk_path__L12_L4»
 
@@ -444,14 +460,15 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop528`: its mode walk certificate. -/
+/-- `__loop526`: its mode walk certificate. -/
 noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
 
 end
 
-/-- `__loop528`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(412949, Fn.«walk_path__L12_L4».modeSig), (425782,
-    Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0».modeSig)]
+/-- `__loop526`: the callee signatures its walk reads. -/
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(427425,
+    Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0».modeSig), (414592,
+    Fn.«walk_path__L12_L4».modeSig)]
 
 end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0»
 
@@ -461,14 +478,15 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop546`: its mode walk certificate. -/
+/-- `__loop544`: its mode walk certificate. -/
 noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
 
 end
 
-/-- `__loop546`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(414731, Fn.«walk_path__L12_L5».modeSig), (436598,
-    Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».modeSig)]
+/-- `__loop544`: the callee signatures its walk reads. -/
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(438241,
+    Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».modeSig), (416374,
+    Fn.«walk_path__L12_L5».modeSig)]
 
 end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0»
 
@@ -478,14 +496,15 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop552`: its mode walk certificate. -/
+/-- `__loop550`: its mode walk certificate. -/
 noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
 
 end
 
-/-- `__loop552`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(416513, Fn.«walk_path__L12_L6».modeSig), (440094,
-    Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».modeSig)]
+/-- `__loop550`: the callee signatures its walk reads. -/
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(441737,
+    Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».modeSig), (418156,
+    Fn.«walk_path__L12_L6».modeSig)]
 
 end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0»
 
@@ -495,14 +514,14 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop564`: its mode walk certificate. -/
+/-- `__loop562`: its mode walk certificate. -/
 noncomputable def modeCert : Mode.Cert := ⟨modeEnv, modeFun, code.chunks.flatten⟩
 
 end
 
-/-- `__loop564`: the callee signatures its walk reads. -/
-kernel_rfl modeSigs : modeCert.E.sigs.entries = [(447989,
-    Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».modeSig), (419917,
+/-- `__loop562`: the callee signatures its walk reads. -/
+kernel_rfl modeSigs : modeCert.E.sigs.entries = [(449632,
+    Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».modeSig), (421560,
     Fn.«walk_path__L12_L7».modeSig)]
 
 end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0»
@@ -515,20 +534,21 @@ open LeanVM.Guest
 
 /-- The pack's certificates. -/
 noncomputable def certs : List Mode.Cert :=
-  (List.flatten [[Fn.«shared_selector_tables».modeCert, Fn.«eq_prefix_run__L39».modeCert,
-    Fn.«rs_eq_rows__L3».modeCert, Fn.«index_mle__L11».modeCert, Fn.«index_mle__L28».modeCert,
-    Fn.«column_selector__L18».modeCert, Fn.«column_selector__L21».modeCert,
-    Fn.«squeeze_point_from__L27».modeCert, Fn.«opening_message__L1_L1».modeCert,
-    Fn.«claim_list_last__L5».modeCert, Fn.«child_claim_list_last__L2».modeCert,
-    Fn.«da_levels__L512_L9».modeCert, Fn.«da_column_offsets_loop1».modeCert,
+  (List.flatten [[Fn.«shared_selector_tables».modeCert, Fn.«da_weights».modeCert,
+    Fn.«eq_prefix_run__L39».modeCert, Fn.«rs_eq_rows__L3».modeCert, Fn.«index_mle__L11».modeCert,
+    Fn.«index_mle__L28».modeCert, Fn.«column_selector__L18».modeCert,
+    Fn.«column_selector__L21».modeCert, Fn.«squeeze_point_from__L27».modeCert,
+    Fn.«opening_message__L1_L1».modeCert, Fn.«claim_list_last__L5».modeCert,
+    Fn.«child_claim_list_last__L2».modeCert, Fn.«da_column_offsets_loop1».modeCert,
     Fn.«level_residual__L218_L19_L6_L3».modeCert, Fn.«level_positions__L8_L22_L4».modeCert,
     Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».modeCert],
-    [Fn.«level_positions__L28_L26_L2».modeCert, Fn.«da_levels__L256_L8_loop3».modeCert,
+    [Fn.«level_positions__L28_L26_L2».modeCert, Fn.«da_levels__L512_L9».modeCert,
     Fn.«decode_query_windows__L18_L6».modeCert, Fn.«level_residual__L33_L6_L4_L2_loop1».modeCert,
     Fn.«level_residual__L55_L11_L4_L2_loop1».modeCert,
     Fn.«level_residual__L109_L17_L6_L3_loop0».modeCert,
     Fn.«level_residual__L55_L22_L6_L3_loop0».modeCert,
-    Fn.«level_residual__L19_L11_L4_L2_loop1».modeCert, Fn.«walk_path__L12_L4».modeCert,
+    Fn.«level_residual__L19_L11_L4_L2_loop1».modeCert, Fn.«da_levels__L256_L8_loop3».modeCert,
+    Fn.«walk_path__L12_L4».modeCert,
     Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0».modeCert,
     Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».modeCert,
     Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».modeCert,
@@ -540,46 +560,45 @@ public section
 
 theorem mem0 : Fn.«shared_selector_tables».modeCert ∈ certs := List.mem_cons_self
 
-theorem mem1 : Fn.«eq_prefix_run__L39».modeCert ∈ certs := List.mem_cons_of_mem _
-    (List.mem_cons_self)
+theorem mem1 : Fn.«da_weights».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_self)
 
-theorem mem2 : Fn.«rs_eq_rows__L3».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_self))
+theorem mem2 : Fn.«eq_prefix_run__L39».modeCert ∈ certs := List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_self))
 
-theorem mem3 : Fn.«index_mle__L11».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem
+theorem mem3 : Fn.«rs_eq_rows__L3».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_self)))
 
-theorem mem4 : Fn.«index_mle__L28».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem
+theorem mem4 : Fn.«index_mle__L11».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))
 
-theorem mem5 : Fn.«column_selector__L18».modeCert ∈ certs := List.mem_cons_of_mem _
-    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+theorem mem5 : Fn.«index_mle__L28».modeCert ∈ certs := List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))))
 
-theorem mem6 : Fn.«column_selector__L21».modeCert ∈ certs := List.mem_cons_of_mem _
+theorem mem6 : Fn.«column_selector__L18».modeCert ∈ certs := List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_self))))))
 
-theorem mem7 : Fn.«squeeze_point_from__L27».modeCert ∈ certs := List.mem_cons_of_mem _
+theorem mem7 : Fn.«column_selector__L21».modeCert ∈ certs := List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))
 
-theorem mem8 : Fn.«opening_message__L1_L1».modeCert ∈ certs := List.mem_cons_of_mem _
+theorem mem8 : Fn.«squeeze_point_from__L27».modeCert ∈ certs := List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self))))))))
 
-theorem mem9 : Fn.«claim_list_last__L5».modeCert ∈ certs := List.mem_cons_of_mem _
+theorem mem9 : Fn.«opening_message__L1_L1».modeCert ∈ certs := List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))))))))
 
-theorem mem10 : Fn.«child_claim_list_last__L2».modeCert ∈ certs := List.mem_cons_of_mem _
+theorem mem10 : Fn.«claim_list_last__L5».modeCert ∈ certs := List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))
 
-theorem mem11 : Fn.«da_levels__L512_L9».modeCert ∈ certs := List.mem_cons_of_mem _
+theorem mem11 : Fn.«child_claim_list_last__L2».modeCert ∈ certs := List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))
@@ -616,7 +635,7 @@ theorem mem16 : Fn.«level_positions__L28_L26_L2».modeCert ∈ certs := List.me
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self))))))))))))))))
 
-theorem mem17 : Fn.«da_levels__L256_L8_loop3».modeCert ∈ certs := List.mem_cons_of_mem _
+theorem mem17 : Fn.«da_levels__L512_L9».modeCert ∈ certs := List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
@@ -669,7 +688,7 @@ theorem mem23 : Fn.«level_residual__L19_L11_L4_L2_loop1».modeCert ∈ certs :=
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))))))))))))
 
-theorem mem24 : Fn.«walk_path__L12_L4».modeCert ∈ certs := List.mem_cons_of_mem _
+theorem mem24 : Fn.«da_levels__L256_L8_loop3».modeCert ∈ certs := List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
@@ -678,35 +697,45 @@ theorem mem24 : Fn.«walk_path__L12_L4».modeCert ∈ certs := List.mem_cons_of_
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self))))))))))))))))))))))))
 
-theorem mem25 : Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0».modeCert ∈ certs
+theorem mem25 : Fn.«walk_path__L12_L4».modeCert ∈ certs := List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_self)))))))))))))))))))))))))
+
+theorem mem26 : Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0».modeCert ∈ certs
     := List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
     _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))))))))))))))
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))))))))))))))))))
 
-theorem mem26 : Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».modeCert ∈ certs :=
+theorem mem27 : Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».modeCert ∈ certs :=
     List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self))))))))))))))))))))))))))
-
-theorem mem27 : Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».modeCert ∈ certs
-    := List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
-    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
+    (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_self)))))))))))))))))))))))))))
 
-theorem mem28 : Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».modeCert ∈ certs :=
+theorem mem28 : Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».modeCert ∈ certs
+    := List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem
+    _ (List.mem_cons_self))))))))))))))))))))))))))))
+
+theorem mem29 : Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».modeCert ∈ certs :=
     List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
@@ -714,7 +743,7 @@ theorem mem28 : Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0»
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
     (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
-    (List.mem_cons_self))))))))))))))))))))))))))))
+    (List.mem_cons_of_mem _ (List.mem_cons_self)))))))))))))))))))))))))))))
 
 /-- The certificates' static facts. -/
 theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
@@ -747,12 +776,14 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
     (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
     (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
-    (Mode.fa_nil)))))))))))))))))))))))))))))
+    (Mode.fa_cons (⟨by decide +kernel, rfl, rfl⟩)
+    (Mode.fa_nil))))))))))))))))))))))))))))))
 
 /-- The certificates' walks and hints. -/
-theorem certs_walk :
+theorem certs_walk («da_weights» : Mode.WalkHyp Fn.«da_weights».modeCert) :
     ∀ K ∈ certs, Mode.CertWalk K :=
   Mode.fa_cons (⟨Fn.«shared_selector_tables».modeOk, Fn.«shared_selector_tables».modeHintsOk⟩)
+    (Mode.fa_cons (⟨«da_weights», Fn.«da_weights».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«eq_prefix_run__L39».modeOk, Fn.«eq_prefix_run__L39».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«rs_eq_rows__L3».modeOk, Fn.«rs_eq_rows__L3».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«index_mle__L11».modeOk, Fn.«index_mle__L11».modeHintsOk⟩)
@@ -764,7 +795,6 @@ theorem certs_walk :
     (Mode.fa_cons (⟨Fn.«claim_list_last__L5».modeOk, Fn.«claim_list_last__L5».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«child_claim_list_last__L2».modeOk,
     Fn.«child_claim_list_last__L2».modeHintsOk⟩)
-    (Mode.fa_cons (⟨Fn.«da_levels__L512_L9».modeOk, Fn.«da_levels__L512_L9».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«da_column_offsets_loop1».modeOk, Fn.«da_column_offsets_loop1».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«level_residual__L218_L19_L6_L3».modeOk,
     Fn.«level_residual__L218_L19_L6_L3».modeHintsOk⟩)
@@ -774,8 +804,7 @@ theorem certs_walk :
     Fn.«level_queries__L15_L0_L4_L16_L20_L2_L4_L20_L5_L1».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«level_positions__L28_L26_L2».modeOk,
     Fn.«level_positions__L28_L26_L2».modeHintsOk⟩)
-    (Mode.fa_cons (⟨Fn.«da_levels__L256_L8_loop3».modeOk,
-    Fn.«da_levels__L256_L8_loop3».modeHintsOk⟩)
+    (Mode.fa_cons (⟨Fn.«da_levels__L512_L9».modeOk, Fn.«da_levels__L512_L9».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«decode_query_windows__L18_L6».modeOk,
     Fn.«decode_query_windows__L18_L6».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«level_residual__L33_L6_L4_L2_loop1».modeOk,
@@ -788,6 +817,8 @@ theorem certs_walk :
     Fn.«level_residual__L55_L22_L6_L3_loop0».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«level_residual__L19_L11_L4_L2_loop1».modeOk,
     Fn.«level_residual__L19_L11_L4_L2_loop1».modeHintsOk⟩)
+    (Mode.fa_cons (⟨Fn.«da_levels__L256_L8_loop3».modeOk,
+    Fn.«da_levels__L256_L8_loop3».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«walk_path__L12_L4».modeOk, Fn.«walk_path__L12_L4».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0».modeOk,
     Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0».modeHintsOk⟩)
@@ -797,7 +828,7 @@ theorem certs_walk :
     Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».modeOk,
     Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».modeHintsOk⟩)
-    (Mode.fa_nil)))))))))))))))))))))))))))))
+    (Mode.fa_nil))))))))))))))))))))))))))))))
 
 end
 

@@ -111,8 +111,7 @@ theorem main_heap_honest (hl : GuestLimits s w) {Pvs : ℕ → Tree → Prop} {b
       have hL : Da.wLog p.2 ≤ 5 := by
         rw [Da.wLog, LeanDa.logPaddedRowCount]
         exact (Nat.clog_mono_right 2 hr).trans (by decide)
-      rw [dvNH_heap htv hT, advEntry_count rfl (by omega),
-        advEntry_count rfl (by
+      rw [dvNH_heap htv hT, advEntry_count rfl (by
           have := Nat.pow_le_pow_right (show 0 < 2 by decide) hL
           omega)]
       simp [Hints.daHeapSizes, Da.wLog, Nat.mul_comm]

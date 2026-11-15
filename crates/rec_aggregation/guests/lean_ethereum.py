@@ -4525,43 +4525,55 @@ def da_verify(g_squares):
     hint_witness(shape, "da_shape")  # n_blob, then log2 of the padded count
     n_blob_g = shape[0]
     g_log_pad = shape[1]
+    assert log(g_log_pad) < DA_LOG_MAX_ROWS + 1
     n_pad_g, gap_g = da_row_shape(n_blob_g, g_log_pad, g_squares)
 
     # The challenge, hashed below as its two lanes and two zero ones.
     z = hint_witness("da_challenge")
     zs, top_leaves, cell_factors, offsets = da_vector(z)
 
-    # A blob's region: its tree, then its running sum, a fresh write-once cell per column.
-    blobs = HeapBuf(n_blob_g ** DA_REGION)
-    rowbase = HeapBuf(n_blob_g)
-    for xi in mul_range(1, n_blob_g):
-        base = blobs * (xi ** DA_REGION)
-        rowbase[xi] = base
-        base[GEN ** DA_SUM] = 0
-
-    for xb in mul_range(1, GEN ** DA_CELLS):
-        da_verify_column(xb, n_blob_g, rowbase, zs, top_leaves, cell_factors, offsets)
+    weights = da_weights(top_leaves, cell_factors, zs, offsets)
 
     roots = HeapBuf(n_pad_g ** 4)
     for xi in mul_range(1, n_blob_g):
-        base = rowbase[xi]
-        assert base[GEN ** (DA_SUM + DA_CELLS)] == 0
-        b0, b1 = da_levels(base, DA_CELLS, DA_BLOCK_BITS)
+        b0, b1 = da_verify_blob(weights)
         slot = roots * (xi ** 2)
         slot[1] = b0
         slot[GEN] = b1
+    r0, r1 = match(log(g_log_pad), range(0, DA_TREE_ARMS), lambda k: da_roots_tree(roots, n_blob_g, gap_g, k))
+    return r0, r1, z
+
+
+def da_weights(top_leaves, cell_factors, zs, offsets):
+    # Column h's weights, once for every blob: the tree inside a cell expanded from the
+    # column's leaf of the tree above, its factors shifted by the column's offsets. Unrolled,
+    # so each pointer is into a callee's frame placed by this function.
+    weights = HeapBuf(DA_CELLS)
+    for h in unroll(0, DA_CELLS):
+        weights[GEN ** h] = da_expand(top_leaves[GEN ** h], cell_factors, zs, offsets * GEN ** (DA_LOG_CELL * h), DA_LOG_CELL - 1, DA_LOG_CELL)
+    return weights
+
+
+def da_roots_tree(roots, n_blob_g, gap_g, k: Const):
+    # The tree over the padded rows' roots, 2^k leaves: the blobs' roots, then gap_g
+    # padding blobs' roots.
+    da_pad(roots, n_blob_g, gap_g)
+    r0, r1 = da_levels(roots, 2 ** k, k)
+    return r0, r1
+
+
+def da_pad(roots, n_blob_g, gap_g):
     for xd in mul_range(1, gap_g):
         pad = roots * (n_blob_g ** 2) * (xd ** 2)
         pad[1] = DA_PAD_BLOB_0
         pad[GEN] = DA_PAD_BLOB_1
-    r0, r1 = match(log(g_log_pad), range(0, DA_TREE_ARMS), lambda k: da_levels(roots, 2 ** k, k))
-    return r0, r1, z
+    return
 
 
 def da_row_shape(n_blob_g, g_log_pad, g_squares):
+    # The caller bounds g_log_pad.
     assert n_blob_g != 1
     assert log(n_blob_g) < DA_MAX_ROWS + 1
-    assert log(g_log_pad) < DA_LOG_MAX_ROWS + 1
     n_pad_g = g_squares[g_log_pad]
     # n_blob <= n_pad < 2*n_blob: both differences must be nonnegative.
     gap_g = n_pad_g / n_blob_g
@@ -4570,21 +4582,22 @@ def da_row_shape(n_blob_g, g_log_pad, g_squares):
     return n_pad_g, gap_g
 
 
-def da_verify_column(xb, n_blob_g, rowbase, zs, top_leaves, cell_factors, offsets):
-    # Column log(xb) of every blob: its weights expand the tree inside a cell from the
-    # column's leaf of the tree above; a cell's digest is leaf log(xb) of its blob's tree,
-    # and its inner product with the weights joins its blob's running sum.
-    lvals = da_expand(top_leaves[xb], cell_factors, zs, offsets * xb ** DA_LOG_CELL, DA_LOG_CELL - 1, DA_LOG_CELL)
-    xb2 = xb * xb
-    for xi in mul_range(1, n_blob_g):
-        d0, d1, s = da_verify_cell(lvals)
-        base = rowbase[xi]
+def da_verify_blob(weights):
+    # One blob, cell by cell: cell log(xb)'s digest is leaf log(xb) of the blob's tree, and
+    # its inner product with the column's weights joins the running sum. Returns the blob's
+    # root. Its region: its tree, then its running sum, a fresh write-once cell per column.
+    base = HeapBuf(DA_REGION)
+    base[GEN ** DA_SUM] = 0
+    for xb in mul_range(1, GEN ** DA_CELLS):
+        d0, d1, s = da_verify_cell(weights[xb])
         chain = base * xb
         chain[GEN ** (DA_SUM + 1)] = chain[GEN ** DA_SUM] + s
-        leaf = base * xb2
+        leaf = base * (xb * xb)
         leaf[1] = d0
         leaf[GEN] = d1
-    return
+    assert base[GEN ** (DA_SUM + DA_CELLS)] == 0
+    b0, b1 = da_levels(base, DA_CELLS, DA_BLOCK_BITS)
+    return b0, b1
 
 
 def da_verify_cell(lvals):

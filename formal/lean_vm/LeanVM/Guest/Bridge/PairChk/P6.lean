@@ -206,21 +206,6 @@ end
 
 end LeanVM.Guest.Fn.«level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0»
 
-namespace LeanVM.Guest.Fn.«da_levels__L512_L9_loop5»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_levels__L512_L9_loop5`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«da_levels__L512_L9_loop5».cert.locs Fn.«da_levels__L512_L9_loop5».fs Fn.«da_levels__L512_L9_loop5».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L512_L9_loop5»
-
 namespace LeanVM.Guest.Fn.«decode_query_windows__L15_L3»
 
 open LeanVM.Guest
@@ -355,3 +340,18 @@ theorem pairOk :
 end
 
 end LeanVM.Guest.Fn.«level_residual__L19_L12_L4_L2_loop0»
+
+namespace LeanVM.Guest.Fn.«da_levels__L512_L9_loop5»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_levels__L512_L9_loop5`'s computed hints pass the data check. -/
+theorem pairOk :
+    Bridge.pairChk [] Fn.«da_levels__L512_L9_loop5».cert.locs Fn.«da_levels__L512_L9_loop5».fs Fn.«da_levels__L512_L9_loop5».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_levels__L512_L9_loop5»

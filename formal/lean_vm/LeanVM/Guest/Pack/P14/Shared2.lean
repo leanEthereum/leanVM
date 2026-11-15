@@ -15,33 +15,6 @@ public import LeanVM.Guest.Pack.«P14».Bundle
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«grind_check__L2»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `grind_check__L2`, once. -/
-theorem st : shareStaticD Fn.«grind_check__L2».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `grind_check__L2`, window 0. -/
-theorem sw0 : shareWinD Fn.«grind_check__L2».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `grind_check__L2`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«grind_check__L2».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«grind_check__L2»
-
 namespace LeanVM.Guest.Fn.«grind_check__L24»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -122,4 +95,31 @@ theorem shareOk : ShareOkD Fn.«level_residual__L37_L20_L4_L2».core (cert.withP
 
 end
 end LeanVM.Guest.Fn.«level_residual__L37_L20_L4_L2»
+
+namespace LeanVM.Guest.Fn.«decode_query_windows__L17_L5»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `decode_query_windows__L17_L5`, once. -/
+theorem st : shareStaticD Fn.«decode_query_windows__L17_L5».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `decode_query_windows__L17_L5`, window 0. -/
+theorem sw0 : shareWinD Fn.«decode_query_windows__L17_L5».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `decode_query_windows__L17_L5`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«decode_query_windows__L17_L5».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«decode_query_windows__L17_L5»
 

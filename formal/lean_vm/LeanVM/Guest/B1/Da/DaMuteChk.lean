@@ -15,11 +15,11 @@ open LeanVM.Guest.Core LeanVM.Guest.Memory
 
 @[expose] public section
 
-theorem dl_noWit : dlNames.all (noWitCallee idx% «da_verify») = true := by decide +kernel
+theorem rt_noWit : rtNames.all (noWitCallee idx% «da_verify») = true := by decide +kernel
 
-/-- **A level arm of `da_verify` pops nothing.** -/
-theorem daLevels_noWit {L : ℕ} (hL : L ≤ 10) : noWitS (daLevelsName L) = true :=
-  noWitS_of_callee (List.all_eq_true.mp dl_noWit _ (List.mem_map.mpr ⟨L, List.mem_range.mpr (by omega), rfl⟩))
+/-- **A roots' tree's arm of `da_verify` pops nothing.** -/
+theorem rt_noWitS {L : ℕ} (hL : L ≤ 10) : noWitS (rtName L) = true :=
+  noWitS_of_callee (List.all_eq_true.mp rt_noWit _ (List.mem_map.mpr ⟨L, List.mem_range.mpr (by omega), rfl⟩))
 
 end
 end LeanVM.Guest.B1.Da

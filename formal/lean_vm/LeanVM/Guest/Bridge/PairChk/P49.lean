@@ -11,21 +11,6 @@ public import LeanVM.Guest.Bridge.PairDefs
 public import LeanVM.Guest.Pack.«P49».Bundle
 public import LeanVM.Guest.Pack.«P49».Core
 
-namespace LeanVM.Guest.Fn.«da_verify_column»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_verify_column`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«da_verify_column».cert.locs Fn.«da_verify_column».fs Fn.«da_verify_column».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_verify_column»
-
 namespace LeanVM.Guest.Fn.«padding_weight__L0»
 
 open LeanVM.Guest
@@ -85,6 +70,21 @@ theorem pairOk :
 end
 
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L5»
+
+namespace LeanVM.Guest.Fn.«da_roots_tree__L2»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_roots_tree__L2`'s computed hints pass the data check. -/
+theorem pairOk :
+    Bridge.pairChk [] Fn.«da_roots_tree__L2».cert.locs Fn.«da_roots_tree__L2».fs Fn.«da_roots_tree__L2».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_roots_tree__L2»
 
 namespace LeanVM.Guest.Fn.«da_expand__L7_L8»
 

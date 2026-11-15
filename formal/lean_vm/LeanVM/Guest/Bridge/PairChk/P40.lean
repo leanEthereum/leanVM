@@ -116,21 +116,6 @@ end
 
 end LeanVM.Guest.Fn.«claim_list_last__L9»
 
-namespace LeanVM.Guest.Fn.«da_verify_loop1»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_verify_loop1`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«da_verify_loop1».cert.locs Fn.«da_verify_loop1».fs Fn.«da_verify_loop1».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_verify_loop1»
-
 namespace LeanVM.Guest.Fn.«grind_check__L26»
 
 open LeanVM.Guest

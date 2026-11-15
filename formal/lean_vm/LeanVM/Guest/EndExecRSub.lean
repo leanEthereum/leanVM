@@ -14,6 +14,7 @@ public import LeanVM.Guest.EndExecRBlk
 public import LeanVM.Guest.EndExecRVtB
 public import LeanVM.Guest.EndExecRLift
 public import LeanVM.Guest.EndExecRVkSt
+public import LeanVM.Guest.EndExecRRt
 
 /-!
 # The families' residuals at the honest frames
@@ -24,8 +25,8 @@ certificate's `sub` residuals in the families (`Res.SubOk`) leave none open but 
 certificates': those read off the function's code (`subFam_top`), and `check_opening_terminal`'s
 (`dim_top`, its dimension facts from `TermFront`) and `column_selector`'s (`cs_top`, its arguments
 from the terminal's dispatch, `csQ_all`), the proof stream's reads (`st_top`), the runs a split cuts into blocks (`blk_top`),
-`verify_tables`' table sumcheck's reads (`vt_top`), the runs of a lift (`lift_top`) and
-`verify_keccak`'s reads past its layers (`vkSt_top`).
+`verify_tables`' table sumcheck's reads (`vt_top`), the runs of a lift (`lift_top`),
+`verify_keccak`'s reads past its layers (`vkSt_top`) and the roots' tree's reads (`roots_top`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -74,7 +75,7 @@ theorem resOpen_subOk {Ks : List Mode.Cert} {A : String → Bridge.FnAl} (hok : 
     rw [hg, Option.getD_some] at hx
     have hf := List.all_eq_true.mp (allV_get hall hg) _ hx
     simp only [subB, hs, ha, hm, Bool.false_or, Bool.or_eq_true] at hf
-    rcases hf with (((((hf | hf) | hf) | hf) | hf) | hf) | hf
+    rcases hf with ((((((hf | hf) | hf) | hf) | hf) | hf) | hf) | hf
     · exact subFam_top t hr hW hf
     · exact termFam_top t hr hW hf
     · exact st_top t hr hf
@@ -82,6 +83,7 @@ theorem resOpen_subOk {Ks : List Mode.Cert} {A : String → Bridge.FnAl} (hok : 
     · exact vt_top t hr hf
     · exact lift_top t hr hf
     · exact vkSt_top t hr hf
+    · exact roots_top t hr hf
 
 end
 

@@ -63,7 +63,7 @@ parts_bridge=(bridge) targets_bridge=()
 parts_memory=(memory) targets_memory=(guest-memory)
 parts_res=(res) targets_res=()
 parts_whir=(whir_data whir_mat_plan walk_known whir_queries) targets_whir=(guest-core)
-parts_count=(count_gen count_vsos) targets_count=()
+parts_count=(count_gen count_vsos count_loops) targets_count=()
 parts_tables=(tables) targets_tables=(LeanVM.Guest.Fast.WhirTemplate LeanVM.Guest.B1.Opening.QueriesT
   LeanVM.Guest.Memory.GuestCallees)
 parts_decoder=(decoder) targets_decoder=(LeanVM.Guest.Glob LeanVM.Cost.Decoder.GuestTables)
@@ -141,8 +141,6 @@ part_memory() {
 }
 
 part_res() {
-  step "res: the loop helpers' entries (scripts/res-cert/loops.py)"
-  python3 -I scripts/res-cert/loops.py "${check[@]}"
   step "res: the certificates' termination facts (scripts/res-cert/term.py)"
   python3 -I scripts/res-cert/term.py "${check[@]}"
   step "res: the residuals' families (scripts/res-cert/sel.py)"
@@ -187,6 +185,12 @@ part_count_gen() {
 part_count_vsos() {
   step "count families (scripts/count/vsos.py)"
   in_place count/vsos.py python3 -I scripts/count/vsos.py .
+}
+
+# After `count/gen.py`, which writes the `Memory/GuestCallees.lean` it reads.
+part_count_loops() {
+  step "count: the loop helpers' entries (scripts/res-cert/loops.py)"
+  python3 -I scripts/res-cert/loops.py "${check[@]}"
 }
 
 part_tables() {

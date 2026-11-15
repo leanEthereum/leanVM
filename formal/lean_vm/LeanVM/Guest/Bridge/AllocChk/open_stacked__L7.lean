@@ -25,19 +25,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«open_stacked__L7».core.body = tru
 
 /-- `open_stacked__L7`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«open_stacked__L7».plumb Fn.«open_stacked__L7».core.body Fn.«open_stacked__L7».code.code Data.adviceFn344 = true := by
+    Bridge.curBody alignCtx Fn.«open_stacked__L7».plumb Fn.«open_stacked__L7».core.body Fn.«open_stacked__L7».code.code Data.adviceFn346 = true := by
   decide +kernel
 
 /-- `open_stacked__L7`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«open_stacked__L7».fs [8, 9, 309, 311, 449, 463, 473, 599, 603, 608, 612, 616, 617, 618, 622, 623, 624, 628, 629, 637, 641, 659, 663, 701, 705, 741, 742, 746, 767, 768, 769, 770, 771, 772, 773, 774, 775, 776, 777, 778, 779, 780, 781, 782, 783, 784, 785, 786, 787, 788, 789, 790, 791, 792, 793, 794, 795, 796, 797, 798, 799, 800, 801, 802, 803, 804, 805, 806] Fn.«open_stacked__L7».core.params Fn.«open_stacked__L7».core.body
-      Data.adviceFn344 = true := by
+    Bridge.frChk alignCtx Fn.«open_stacked__L7».fs [8, 9, 311, 313, 450, 464, 474, 600, 604, 609, 613, 617, 618, 619, 623, 624, 625, 629, 630, 638, 642, 660, 664, 702, 706, 742, 743, 747, 768, 769, 770, 771, 772, 773, 774, 775, 776, 777, 778, 779, 780, 781, 782, 783, 784, 785, 786, 787, 788, 789, 790, 791, 792, 793, 794, 795, 796, 797, 798, 799, 800, 801, 802, 803, 804, 805, 806, 807] Fn.«open_stacked__L7».core.params Fn.«open_stacked__L7».core.body
+      Data.adviceFn346 = true := by
   decide +kernel
 
 /-- `open_stacked__L7`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«open_stacked__L7».fs Fn.«open_stacked__L7».core.loop Fn.«open_stacked__L7».plumb Fn.«open_stacked__L7».core.body Fn.«open_stacked__L7».code.code
-      Data.adviceFn344 = true := by
+      Data.adviceFn346 = true := by
   decide +kernel
 
 end

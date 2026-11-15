@@ -90,9 +90,9 @@ theorem clHonest_heap {n : ℕ} {t : Tree} {args rets : List E} (hv : t.Valid co
   rw [heapPops_own cld_noAdvBut cld_name hv]
   rfl
 
-/-- **`da_verify` of honest shape pops its two advised buffers' sizes.** -/
+/-- **`da_verify` of honest shape pops its advised buffer's size.** -/
 theorem dvNH_heap {r L : ℕ} {t : Tree} {args rets : List E} (hv : t.Valid coreProgram rd args rets)
-    (h : Da.dvNH r L t) : t.heapPops heapSlots = [advEntry (Da.dvSizes r L) 0, advEntry (Da.dvSizes r L) 2] := by
+    (h : Da.dvNH r L t) : t.heapPops heapSlots = [advEntry (Da.dvSizes r L) 0] := by
   obtain ⟨σ', ks, rfl, -⟩ := h
   rw [heapPops_own dv_noAdvBut dv_name hv]
   rfl

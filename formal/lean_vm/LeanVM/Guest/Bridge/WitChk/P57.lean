@@ -152,20 +152,6 @@ end
 
 end LeanVM.Guest.Fn.«level_queries__L15_L0_L4_L16_L20_L2_L3_L12_L4_L1»
 
-namespace LeanVM.Guest.Fn.«da_levels__L64_L6_loop1»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_levels__L64_L6_loop1`'s witness hints pass the data check. -/
-theorem witOk : Bridge.witChk alignCtx Fn.«da_levels__L64_L6_loop1».fs Fn.«da_levels__L64_L6_loop1».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L64_L6_loop1»
-
 namespace LeanVM.Guest.Fn.«level_residual__L25_L7_L4_L2_loop0»
 
 open LeanVM.Guest
@@ -333,6 +319,20 @@ theorem witOk : Bridge.witChk alignCtx Fn.«level_residual__L23_L14_L4_L2_loop0�
 end
 
 end LeanVM.Guest.Fn.«level_residual__L23_L14_L4_L2_loop0»
+
+namespace LeanVM.Guest.Fn.«da_levels__L64_L6_loop1»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_levels__L64_L6_loop1`'s witness hints pass the data check. -/
+theorem witOk : Bridge.witChk alignCtx Fn.«da_levels__L64_L6_loop1».fs Fn.«da_levels__L64_L6_loop1».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_levels__L64_L6_loop1»
 
 namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0»
 

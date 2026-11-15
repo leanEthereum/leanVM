@@ -54,10 +54,10 @@ def sRawPop (s : NodeStatement) (w : NodeWitness) (d0 : LeanSphincsClaim × Sphi
   ("sp_raw_index", [gen ^ (slotsOf (sPlan s w)).getD j 0]) ::
     Sig.spSegPops ((hRawS s w).getD j d0).1.1 ((hRawS s w).getD j d0).1.2 ((hRawS s w).getD j d0).2
 
-/-- **`da_verify`'s honest entries**: its shape, its challenge, its columns' cells. -/
+/-- **`da_verify`'s honest entries**: its shape, its challenge, its blobs' cells. -/
 def daPopsH (w : NodeWitness) : List Pop :=
   (w.daMatrix.map fun p => ("da_shape", [gen ^ p.2.rows.length, gen ^ Da.wLog p.2]) ::
-    ("da_challenge", [p.1.membershipChallenge]) :: (List.range 128).flatMap (Da.daColPops p.2)).getD []
+    ("da_challenge", [p.1.membershipChallenge]) :: Da.daSymPops p.2).getD []
 
 /-- **The raw leanXMSS signatures' entries.** -/
 def xRawPops (s : NodeStatement) (w : NodeWitness) : List Pop :=

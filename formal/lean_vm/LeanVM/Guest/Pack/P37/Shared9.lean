@@ -15,17 +15,17 @@ public import LeanVM.Guest.Pack.«P37».Bundle
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«level_residual__L109_L24_L6_L3_loop1»
+namespace LeanVM.Guest.Fn.«da_levels__L512_L9_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop476`, window 0. -/
-theorem sw0 : shareWinD Fn.«level_residual__L109_L24_L6_L3_loop1».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+/-- `__loop482`, window 0. -/
+theorem sw0 : shareWinD Fn.«da_levels__L512_L9_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
 end
-end LeanVM.Guest.Fn.«level_residual__L109_L24_L6_L3_loop1»
+end LeanVM.Guest.Fn.«da_levels__L512_L9_loop0»
 

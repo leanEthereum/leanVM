@@ -15,6 +15,33 @@ public import LeanVM.Guest.Pack.«P20».Bundle
 
 set_option Elab.async false
 
+namespace LeanVM.Guest.Fn.«da_verify_blob»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `da_verify_blob`, once. -/
+theorem st : shareStaticD Fn.«da_verify_blob».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_verify_blob`, window 0. -/
+theorem sw0 : shareWinD Fn.«da_verify_blob».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `da_verify_blob`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«da_verify_blob».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«da_verify_blob»
+
 namespace LeanVM.Guest.Fn.«eq_prefix_run__L0»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -95,31 +122,4 @@ theorem shareOk : ShareOkD Fn.«block_selector__L17».core (cert.withPows Data.p
 
 end
 end LeanVM.Guest.Fn.«block_selector__L17»
-
-namespace LeanVM.Guest.Fn.«child_claim_list_any_loop1»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `__loop19`, once. -/
-theorem st : shareStaticD Fn.«child_claim_list_any_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop19`, window 0. -/
-theorem sw0 : shareWinD Fn.«child_claim_list_any_loop1».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `__loop19`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«child_claim_list_any_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«child_claim_list_any_loop1»
 

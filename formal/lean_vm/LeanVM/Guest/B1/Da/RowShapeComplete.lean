@@ -15,7 +15,8 @@ public import LeanVM.Guest.B1.Digest.CompleteSmall
 
 On a memory image (its range checks read below `2^16`) with the exponent table at `g_squares`,
 `da_row_shape(g^r, g^L, g_squares)` holds for `1 ≤ r ≤ 1024` and `2^L = LeanDa.nPad r`, returning
-`g^(2^L)` and `g^(2^L - r)`: the hinted inverse of `g^r + 1` (nonzero, `r ≠ 0`), the quotients
+`g^(2^L)` and `g^(2^L - r)` (its caller range-checks `L`): the hinted inverse of `g^r + 1`
+(nonzero, `r ≠ 0`), the quotients
 `g^(2^L - r)` and `g^(2r - 2^L - 1)`, every range check within its bound.
 -/
 
@@ -38,16 +39,14 @@ theorem da_row_shape_body : Fn.body fn% «da_row_shape» = [
     .atom (.hint (.inverse (.n 4) (.n 5))), .atom (.assertNe (.n 4) (.n 5) (.n 6)),
     .atom (.const (.n 7) (word 281474976776218 0)),
     .atom (.rangeCheck (.n 0) (.n 8) (.n 9) (.n 10) (.n 7)),
-    .atom (.const (.n 11) (word 1024 0)),
-    .atom (.rangeCheck (.n 1) (.n 12) (.n 13) (.n 14) (.n 11)),
-    .atom (.mul (.n 15) (.n 2) (.n 1)), .atom (.load (.n 16) (.n 15) 0),
-    .atom (.mul (.n 16) (.n 17) (.n 0)), .atom (.const (.n 18) (word 281474976776218 0)),
-    .atom (.rangeCheck (.n 17) (.n 19) (.n 20) (.n 21) (.n 18)),
-    .atom (.const (.n 22) (word 140737488388109 0)), .atom (.mul (.n 23) (.n 0) (.n 0)),
-    .atom (.const (.n 24) (word 2 0)), .atom (.mul (.n 25) (.n 16) (.n 24)),
-    .atom (.mul (.n 23) (.n 26) (.n 25)),
-    .atom (.rangeCheck (.n 26) (.n 27) (.n 28) (.n 29) (.n 22)),
-    .atom (.copy (.n 30) (.n 16)), .atom (.copy (.n 31) (.n 17)), .ret [.n 30, .n 31]] :=
+    .atom (.mul (.n 11) (.n 2) (.n 1)), .atom (.load (.n 12) (.n 11) 0),
+    .atom (.mul (.n 12) (.n 13) (.n 0)), .atom (.const (.n 14) (word 281474976776218 0)),
+    .atom (.rangeCheck (.n 13) (.n 15) (.n 16) (.n 17) (.n 14)),
+    .atom (.const (.n 18) (word 140737488388109 0)), .atom (.mul (.n 19) (.n 0) (.n 0)),
+    .atom (.const (.n 20) (word 2 0)), .atom (.mul (.n 21) (.n 12) (.n 20)),
+    .atom (.mul (.n 19) (.n 22) (.n 21)),
+    .atom (.rangeCheck (.n 22) (.n 23) (.n 24) (.n 25) (.n 18)),
+    .atom (.copy (.n 26) (.n 12)), .atom (.copy (.n 27) (.n 13)), .ret [.n 26, .n 27]] :=
   stmtsEqb_sound (by decide +kernel)
 
 /-- The padded count is between `r` and `2r`. -/
@@ -85,7 +84,6 @@ theorem da_row_shape_complete' (rd : Reader) (hm : Sig.MemOK rd (2 ^ 16)) (gsq :
     calc 2 ^ L ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) hL10
       _ = 1024 := by norm_num
   obtain ⟨t9, t10, h9, e8, h10⟩ := rc_holds' hm (k := r) (K := 1024) (by omega) (by norm_num)
-  obtain ⟨t13, t14, h13, e12, h14⟩ := rc_holds' hm (k := L) (K := 10) (by omega) (by norm_num)
   obtain ⟨t20, t21, h20, e19, h21⟩ := rc_holds' hm (k := 2 ^ L - r) (K := 1024) (by omega)
     (by norm_num)
   obtain ⟨t28, t29, h28, e27, h29⟩ := rc_holds' hm (k := 2 * r - 2 ^ L - 1) (K := 1023) (by omega)
@@ -97,7 +95,7 @@ theorem da_row_shape_complete' (rd : Reader) (hm : Sig.MemOK rd (2 ^ 16)) (gsq :
     omega
   refine (rel_iff_sem find_da_row_shape _ _).mpr ⟨Val.ofArgs [gen ^ r, gen ^ L, gsq, word 1 0,
     gen ^ r + word 1 0, (gen ^ r + word 1 0)⁻¹, (gen ^ r + word 1 0) * (gen ^ r + word 1 0)⁻¹,
-    word 281474976776218 0, gen ^ (1024 - r), t9, t10, word 1024 0, gen ^ (10 - L), t13, t14,
+    word 281474976776218 0, gen ^ (1024 - r), t9, t10,
     gsq * gen ^ L, gen ^ 2 ^ L, gen ^ (2 ^ L - r), word 281474976776218 0,
     gen ^ (1024 - (2 ^ L - r)), t20, t21, word 140737488388109 0, gen ^ r * gen ^ r, word 2 0,
     gen ^ 2 ^ L * word 2 0, gen ^ (2 * r - 2 ^ L - 1), gen ^ (1023 - (2 * r - 2 ^ L - 1)), t28, t29,
@@ -106,7 +104,7 @@ theorem da_row_shape_complete' (rd : Reader) (hm : Sig.MemOK rd (2 ^ 16)) (gsq :
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, ofArgs_n,
     List.getD_cons_succ, List.getD_cons_zero]
   refine ⟨trivial, trivial, trivial, ⟨trivial, mul_inv_cancel₀ hne⟩, trivial,
-    ⟨h9, by rw [word_g1024]; exact e8, h10⟩, trivial, ⟨h13, by rw [word_g10]; exact e12, h14⟩,
+    ⟨h9, by rw [word_g1024]; exact e8, h10⟩,
     trivial, ?_, ?_, trivial, ⟨h20, by rw [word_g1024]; exact e19, h21⟩, trivial, trivial, trivial,
     trivial, ?_, ⟨h28, by rw [word_g1023]; exact e27, h29⟩, trivial, trivial, trivial⟩
   · rw [loadHolds_mul_gen_pow, Nat.add_zero]; exact hsq

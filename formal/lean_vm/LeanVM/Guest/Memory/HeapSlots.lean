@@ -35,7 +35,7 @@ def heapSlots (f : String) : List ℕ :=
   match f with
   | "main" => [0, 1, 4, 5, 6, 7, 8]
   | "claim_list_digest" => [0]
-  | "da_verify" => [0, 2]
+  | "da_verify" => [0]
   | "verify_sub" => [5]
   | "verify_tables" => [108, 109, 111]
   | _ => []

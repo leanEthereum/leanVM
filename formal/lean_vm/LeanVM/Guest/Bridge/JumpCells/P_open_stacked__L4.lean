@@ -21,7 +21,7 @@ public section
 
 /-- `open_stacked__L4`: the jump cells' facts of its data. -/
 theorem jcOk : Bridge.jcDataD Fn.«open_stacked__L4».plumb Fn.«open_stacked__L4».fs (Fn.«open_stacked__L4».cert.withPows Data.powTree) []
-    Fn.«open_stacked__L4».core Fn.«open_stacked__L4».code.code (341 == 1) = true := by
+    Fn.«open_stacked__L4».core Fn.«open_stacked__L4».code.code (343 == 1) = true := by
   decide +kernel
 
 end

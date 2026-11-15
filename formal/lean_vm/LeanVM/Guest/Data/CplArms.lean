@@ -23,8 +23,8 @@ set_option maxRecDepth 100000
 
 @[expose] public section
 
-/-- Function 37's counted `match` 0: its arms' counts. -/
-def cplArms37_0 : List (List ℕ) :=
+/-- Function 39's counted `match` 0: its arms' counts. -/
+def cplArms39_0 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 0, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -282,8 +282,8 @@ def cplArms37_0 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 1: its arms' counts. -/
-def cplArms37_1 : List (List ℕ) :=
+/-- Function 39's counted `match` 1: its arms' counts. -/
+def cplArms39_1 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -541,8 +541,8 @@ def cplArms37_1 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 2: its arms' counts. -/
-def cplArms37_2 : List (List ℕ) :=
+/-- Function 39's counted `match` 2: its arms' counts. -/
+def cplArms39_2 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -800,8 +800,8 @@ def cplArms37_2 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 3: its arms' counts. -/
-def cplArms37_3 : List (List ℕ) :=
+/-- Function 39's counted `match` 3: its arms' counts. -/
+def cplArms39_3 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -1059,8 +1059,8 @@ def cplArms37_3 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 4: its arms' counts. -/
-def cplArms37_4 : List (List ℕ) :=
+/-- Function 39's counted `match` 4: its arms' counts. -/
+def cplArms39_4 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -1318,8 +1318,8 @@ def cplArms37_4 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 5: its arms' counts. -/
-def cplArms37_5 : List (List ℕ) :=
+/-- Function 39's counted `match` 5: its arms' counts. -/
+def cplArms39_5 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -1577,8 +1577,8 @@ def cplArms37_5 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 6: its arms' counts. -/
-def cplArms37_6 : List (List ℕ) :=
+/-- Function 39's counted `match` 6: its arms' counts. -/
+def cplArms39_6 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -1836,8 +1836,8 @@ def cplArms37_6 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 7: its arms' counts. -/
-def cplArms37_7 : List (List ℕ) :=
+/-- Function 39's counted `match` 7: its arms' counts. -/
+def cplArms39_7 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 0, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -2095,8 +2095,8 @@ def cplArms37_7 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 8: its arms' counts. -/
-def cplArms37_8 : List (List ℕ) :=
+/-- Function 39's counted `match` 8: its arms' counts. -/
+def cplArms39_8 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -2354,8 +2354,8 @@ def cplArms37_8 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 9: its arms' counts. -/
-def cplArms37_9 : List (List ℕ) :=
+/-- Function 39's counted `match` 9: its arms' counts. -/
+def cplArms39_9 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -2613,8 +2613,8 @@ def cplArms37_9 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 10: its arms' counts. -/
-def cplArms37_10 : List (List ℕ) :=
+/-- Function 39's counted `match` 10: its arms' counts. -/
+def cplArms39_10 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -2872,8 +2872,8 @@ def cplArms37_10 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 11: its arms' counts. -/
-def cplArms37_11 : List (List ℕ) :=
+/-- Function 39's counted `match` 11: its arms' counts. -/
+def cplArms39_11 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -3131,8 +3131,8 @@ def cplArms37_11 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 12: its arms' counts. -/
-def cplArms37_12 : List (List ℕ) :=
+/-- Function 39's counted `match` 12: its arms' counts. -/
+def cplArms39_12 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -3390,8 +3390,8 @@ def cplArms37_12 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 13: its arms' counts. -/
-def cplArms37_13 : List (List ℕ) :=
+/-- Function 39's counted `match` 13: its arms' counts. -/
+def cplArms39_13 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -3649,8 +3649,8 @@ def cplArms37_13 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 14: its arms' counts. -/
-def cplArms37_14 : List (List ℕ) :=
+/-- Function 39's counted `match` 14: its arms' counts. -/
+def cplArms39_14 : List (List ℕ) :=
   ([0, 2, 0, 0, 1, 6] ::
     [1, 1, 1, 0, 1, 5] ::
     [1, 1, 1, 0, 1, 4] ::
@@ -3908,8 +3908,8 @@ def cplArms37_14 : List (List ℕ) :=
     [1, 1, 1, 0, 1, 1] ::
     [1, 1, 1, 0, 0, 0] :: [])
 
-/-- Function 37's counted `match` 15: its arms' counts. -/
-def cplArms37_15 : List (List ℕ) :=
+/-- Function 39's counted `match` 15: its arms' counts. -/
+def cplArms39_15 : List (List ℕ) :=
   ([8, 8, 8, 0, 1, 8] ::
     [9, 8, 8, 0, 1, 8] ::
     [9, 8, 9, 0, 1, 8] ::
@@ -4167,8 +4167,8 @@ def cplArms37_15 : List (List ℕ) :=
     [9, 8, 9, 0, 1, 8] ::
     [9, 8, 9, 0, 0, 8] :: [])
 
-/-- Function 37's counted `match` 16: its arms' counts. -/
-def cplArms37_16 : List (List ℕ) :=
+/-- Function 39's counted `match` 16: its arms' counts. -/
+def cplArms39_16 : List (List ℕ) :=
   ([8, 8, 8, 0, 1, 8] ::
     [9, 8, 8, 0, 1, 8] ::
     [9, 8, 9, 0, 1, 8] ::
@@ -4426,8 +4426,8 @@ def cplArms37_16 : List (List ℕ) :=
     [9, 8, 9, 0, 1, 8] ::
     [9, 8, 9, 0, 0, 8] :: [])
 
-/-- Function 37's counted `match` 17: its arms' counts. -/
-def cplArms37_17 : List (List ℕ) :=
+/-- Function 39's counted `match` 17: its arms' counts. -/
+def cplArms39_17 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 0, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -4685,8 +4685,8 @@ def cplArms37_17 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 18: its arms' counts. -/
-def cplArms37_18 : List (List ℕ) :=
+/-- Function 39's counted `match` 18: its arms' counts. -/
+def cplArms39_18 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -4944,8 +4944,8 @@ def cplArms37_18 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 19: its arms' counts. -/
-def cplArms37_19 : List (List ℕ) :=
+/-- Function 39's counted `match` 19: its arms' counts. -/
+def cplArms39_19 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -5203,8 +5203,8 @@ def cplArms37_19 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 20: its arms' counts. -/
-def cplArms37_20 : List (List ℕ) :=
+/-- Function 39's counted `match` 20: its arms' counts. -/
+def cplArms39_20 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -5462,8 +5462,8 @@ def cplArms37_20 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 21: its arms' counts. -/
-def cplArms37_21 : List (List ℕ) :=
+/-- Function 39's counted `match` 21: its arms' counts. -/
+def cplArms39_21 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -5721,8 +5721,8 @@ def cplArms37_21 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 22: its arms' counts. -/
-def cplArms37_22 : List (List ℕ) :=
+/-- Function 39's counted `match` 22: its arms' counts. -/
+def cplArms39_22 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -5980,8 +5980,8 @@ def cplArms37_22 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 23: its arms' counts. -/
-def cplArms37_23 : List (List ℕ) :=
+/-- Function 39's counted `match` 23: its arms' counts. -/
+def cplArms39_23 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -6239,8 +6239,8 @@ def cplArms37_23 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 24: its arms' counts. -/
-def cplArms37_24 : List (List ℕ) :=
+/-- Function 39's counted `match` 24: its arms' counts. -/
+def cplArms39_24 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 0, 1, 1, 11] ::
     [1, 1, 0, 1, 1, 10] ::
@@ -6498,8 +6498,8 @@ def cplArms37_24 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 25: its arms' counts. -/
-def cplArms37_25 : List (List ℕ) :=
+/-- Function 39's counted `match` 25: its arms' counts. -/
+def cplArms39_25 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -6757,8 +6757,8 @@ def cplArms37_25 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 26: its arms' counts. -/
-def cplArms37_26 : List (List ℕ) :=
+/-- Function 39's counted `match` 26: its arms' counts. -/
+def cplArms39_26 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -7016,8 +7016,8 @@ def cplArms37_26 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 27: its arms' counts. -/
-def cplArms37_27 : List (List ℕ) :=
+/-- Function 39's counted `match` 27: its arms' counts. -/
+def cplArms39_27 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -7275,8 +7275,8 @@ def cplArms37_27 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 28: its arms' counts. -/
-def cplArms37_28 : List (List ℕ) :=
+/-- Function 39's counted `match` 28: its arms' counts. -/
+def cplArms39_28 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -7534,8 +7534,8 @@ def cplArms37_28 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 29: its arms' counts. -/
-def cplArms37_29 : List (List ℕ) :=
+/-- Function 39's counted `match` 29: its arms' counts. -/
+def cplArms39_29 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -7793,8 +7793,8 @@ def cplArms37_29 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 30: its arms' counts. -/
-def cplArms37_30 : List (List ℕ) :=
+/-- Function 39's counted `match` 30: its arms' counts. -/
+def cplArms39_30 : List (List ℕ) :=
   ([0, 2, 0, 1, 1, 12] ::
     [1, 1, 1, 1, 1, 11] ::
     [1, 1, 1, 1, 1, 10] ::
@@ -8052,8 +8052,8 @@ def cplArms37_30 : List (List ℕ) :=
     [1, 1, 1, 1, 1, 1] ::
     [1, 1, 1, 1, 1, 0] :: [])
 
-/-- Function 37's counted `match` 31: its arms' counts. -/
-def cplArms37_31 : List (List ℕ) :=
+/-- Function 39's counted `match` 31: its arms' counts. -/
+def cplArms39_31 : List (List ℕ) :=
   ([0, 2, 0, 0, 1, 6] ::
     [1, 1, 1, 0, 1, 5] ::
     [1, 1, 1, 0, 1, 4] ::
@@ -8311,8 +8311,8 @@ def cplArms37_31 : List (List ℕ) :=
     [1, 1, 1, 0, 1, 1] ::
     [1, 1, 1, 0, 0, 0] :: [])
 
-/-- Function 37's counted `match` 32: its arms' counts. -/
-def cplArms37_32 : List (List ℕ) :=
+/-- Function 39's counted `match` 32: its arms' counts. -/
+def cplArms39_32 : List (List ℕ) :=
   ([8, 8, 8, 0, 1, 8] ::
     [9, 8, 8, 0, 1, 8] ::
     [9, 8, 9, 0, 1, 8] ::
@@ -8570,8 +8570,8 @@ def cplArms37_32 : List (List ℕ) :=
     [9, 8, 9, 0, 1, 8] ::
     [9, 8, 9, 0, 0, 8] :: [])
 
-/-- Function 37's counted `match` 33: its arms' counts. -/
-def cplArms37_33 : List (List ℕ) :=
+/-- Function 39's counted `match` 33: its arms' counts. -/
+def cplArms39_33 : List (List ℕ) :=
   ([0, 0, 9, 0, 1, 8] ::
     [0, 0, 9, 0, 1, 8] ::
     [0, 0, 9, 0, 1, 8] ::
@@ -8830,7 +8830,7 @@ def cplArms37_33 : List (List ℕ) :=
     [0, 0, 9, 0, 0, 8] :: [])
 
 /-- The function whose `match`es count their arms separately (`0`: none). -/
-def armFn : ℕ := 37
+def armFn : ℕ := 39
 
 /-- The most a path through its body passes of those arms, per opcode, in the order of `Opcode`. -/
 def armMax : List ℕ := [57, 84, 66, 28, 34, 380]
@@ -8874,7 +8874,9 @@ def cplArms : List (List (ℕ × List (List ℕ))) := [
   [],
   [],
   [],
-  [(110, cplArms37_0), (111, cplArms37_1), (112, cplArms37_2), (113, cplArms37_3), (114, cplArms37_4), (115, cplArms37_5), (116, cplArms37_6), (117, cplArms37_7), (118, cplArms37_8), (119, cplArms37_9), (120, cplArms37_10), (121, cplArms37_11), (122, cplArms37_12), (123, cplArms37_13), (124, cplArms37_14), (71, cplArms37_15), (72, cplArms37_16), (62618, cplArms37_17), (62619, cplArms37_18), (62620, cplArms37_19), (62621, cplArms37_20), (62622, cplArms37_21), (62623, cplArms37_22), (62624, cplArms37_23), (62625, cplArms37_24), (62626, cplArms37_25), (62627, cplArms37_26), (62628, cplArms37_27), (62629, cplArms37_28), (62630, cplArms37_29), (62631, cplArms37_30), (62632, cplArms37_31), (73, cplArms37_32), (74, cplArms37_33)]]
+  [],
+  [],
+  [(110, cplArms39_0), (111, cplArms39_1), (112, cplArms39_2), (113, cplArms39_3), (114, cplArms39_4), (115, cplArms39_5), (116, cplArms39_6), (117, cplArms39_7), (118, cplArms39_8), (119, cplArms39_9), (120, cplArms39_10), (121, cplArms39_11), (122, cplArms39_12), (123, cplArms39_13), (124, cplArms39_14), (71, cplArms39_15), (72, cplArms39_16), (62618, cplArms39_17), (62619, cplArms39_18), (62620, cplArms39_19), (62621, cplArms39_20), (62622, cplArms39_21), (62623, cplArms39_22), (62624, cplArms39_23), (62625, cplArms39_24), (62626, cplArms39_25), (62627, cplArms39_26), (62628, cplArms39_27), (62629, cplArms39_28), (62630, cplArms39_29), (62631, cplArms39_30), (62632, cplArms39_31), (73, cplArms39_32), (74, cplArms39_33)]]
 
 end
 end LeanVM.Guest.Data

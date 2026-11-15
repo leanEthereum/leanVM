@@ -25,34 +25,35 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `__loop6`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node (some Fn.«gkr_rounds__L6».modeSig) .nil .nil))))) .nil) .nil) .nil)))) .nil)
-    .nil))) (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
-    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node none .nil (.node (some Fn.«gkr_rounds__L2».modeSig) .nil .nil))))) .nil) .nil)
-    .nil)) .nil))) .nil) .nil) .nil))) (.node none (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
-    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    (some Fn.«verify_bus_gkr_loop0_loop0».modeSig) .nil .nil))))) .nil) .nil) .nil) .nil))) (.node
-    none .nil (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node
-    none .nil (.node none .nil (.node none (.node (some Fn.«verify_bus_gkr_loop0».modeSig) .nil
-    .nil) .nil)))) .nil) .nil) .nil) .nil) .nil))))) .nil)) (.node none (.node none (.node none
-    (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
-    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    (some Fn.«gkr_rounds__L0».modeSig) .nil .nil))))) .nil) .nil) .nil)) .nil))) .nil) (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«gkr_rounds__L4».modeSig) .nil .nil))))) .nil) .nil) .nil))) .nil) .nil) .nil)) (.node none
-    .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
-    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    (some Fn.«gkr_rounds__L1».modeSig) .nil .nil))))) .nil) .nil)) .nil) .nil) .nil)) .nil)))
-    .nil))), 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
+    .nil (.node (some Fn.«verify_bus_gkr_loop0_loop0».modeSig) .nil .nil))))) .nil) .nil))) .nil)
+    .nil) .nil) .nil))) .nil) (.node none .nil (.node none (.node none (.node none .nil (.node none
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«gkr_rounds__L0».modeSig) .nil .nil))))) .nil) .nil)))) .nil) .nil)) (.node none .nil (.node
+    none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«gkr_rounds__L4».modeSig) .nil .nil))))) .nil) .nil)))) .nil)))) (.node none .nil (.node
+    none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«gkr_rounds__L1».modeSig) .nil .nil))))) .nil)) .nil) .nil) .nil)) .nil)))))) (.node none
+    (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none
+    .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node none .nil (.node (some Fn.«gkr_rounds__L2».modeSig) .nil .nil)))))
+    .nil) .nil)))) .nil) .nil)) .nil)) (.node none .nil (.node none .nil (.node none .nil (.node
+    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«gkr_rounds__L6».modeSig) .nil .nil))))) .nil) .nil)))))))))) (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none
+    .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node (some Fn.«verify_bus_gkr_loop0».modeSig) .nil .nil) .nil)))) .nil)
+    .nil))) .nil))) .nil)))))), 524287⟩
 
 /-- `__loop6`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨188660, 231, Fn.«verify_bus_gkr_loop0».modeSig, (.node none (.node none .nil (.node none (.node
+  ⟨190174, 231, Fn.«verify_bus_gkr_loop0».modeSig, (.node none (.node none .nil (.node none (.node
     none .nil (.node none (.node none (.node (some [(.alloc 89 68)]) .nil .nil) .nil) .nil)) .nil))
     (.node none (.node none (.node none .nil (.node none .nil (.node (some [(.allocArm 80 70 [7,
     119, 221, 323])]) .nil .nil))) .nil) (.node none (.node none .nil (.node none (.node (some

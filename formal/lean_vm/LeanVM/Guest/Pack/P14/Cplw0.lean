@@ -58,11 +58,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `eq_prefix_chain`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(40, Fn.«eq_prefix_run__L0».sig), (41, Fn.«eq_prefix_run__L1».sig), (42, Fn.«eq_prefix_run__L2».sig), (43, Fn.«eq_prefix_run__L3».sig), (44, Fn.«eq_prefix_run__L4».sig), (45, Fn.«eq_prefix_run__L5».sig), (46, Fn.«eq_prefix_run__L6».sig), (47, Fn.«eq_prefix_run__L7».sig), (48, Fn.«eq_prefix_run__L8».sig), (49, Fn.«eq_prefix_run__L9».sig), (50, Fn.«eq_prefix_run__L10».sig), (51, Fn.«eq_prefix_run__L11».sig), (52, Fn.«eq_prefix_run__L12».sig), (53, Fn.«eq_prefix_run__L13».sig), (54, Fn.«eq_prefix_run__L14».sig), (55, Fn.«eq_prefix_run__L15».sig)] ++ [(56, Fn.«eq_prefix_run__L16».sig), (57, Fn.«eq_prefix_run__L17».sig), (58, Fn.«eq_prefix_run__L18».sig), (59, Fn.«eq_prefix_run__L19».sig), (60, Fn.«eq_prefix_run__L20».sig), (61, Fn.«eq_prefix_run__L21».sig), (62, Fn.«eq_prefix_run__L22».sig), (63, Fn.«eq_prefix_run__L23».sig), (64, Fn.«eq_prefix_run__L24».sig), (65, Fn.«eq_prefix_run__L25».sig), (66, Fn.«eq_prefix_run__L26».sig), (67, Fn.«eq_prefix_run__L27».sig), (68, Fn.«eq_prefix_run__L28».sig), (69, Fn.«eq_prefix_run__L29».sig), (70, Fn.«eq_prefix_run__L30».sig), (71, Fn.«eq_prefix_run__L31».sig)] ++ [(72, Fn.«eq_prefix_run__L32».sig), (73, Fn.«eq_prefix_run__L33».sig), (74, Fn.«eq_prefix_run__L34».sig), (75, Fn.«eq_prefix_run__L35».sig), (76, Fn.«eq_prefix_run__L36».sig), (77, Fn.«eq_prefix_run__L37».sig), (78, Fn.«eq_prefix_run__L38».sig), (79, Fn.«eq_prefix_run__L39».sig), (80, Fn.«eq_prefix_run__L40».sig)]) Data.jtTrie globSem) code Fn.«eq_prefix_chain».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(42, Fn.«eq_prefix_run__L0».sig), (43, Fn.«eq_prefix_run__L1».sig), (44, Fn.«eq_prefix_run__L2».sig), (45, Fn.«eq_prefix_run__L3».sig), (46, Fn.«eq_prefix_run__L4».sig), (47, Fn.«eq_prefix_run__L5».sig), (48, Fn.«eq_prefix_run__L6».sig), (49, Fn.«eq_prefix_run__L7».sig), (50, Fn.«eq_prefix_run__L8».sig), (51, Fn.«eq_prefix_run__L9».sig), (52, Fn.«eq_prefix_run__L10».sig), (53, Fn.«eq_prefix_run__L11».sig), (54, Fn.«eq_prefix_run__L12».sig), (55, Fn.«eq_prefix_run__L13».sig), (56, Fn.«eq_prefix_run__L14».sig), (57, Fn.«eq_prefix_run__L15».sig)] ++ [(58, Fn.«eq_prefix_run__L16».sig), (59, Fn.«eq_prefix_run__L17».sig), (60, Fn.«eq_prefix_run__L18».sig), (61, Fn.«eq_prefix_run__L19».sig), (62, Fn.«eq_prefix_run__L20».sig), (63, Fn.«eq_prefix_run__L21».sig), (64, Fn.«eq_prefix_run__L22».sig), (65, Fn.«eq_prefix_run__L23».sig), (66, Fn.«eq_prefix_run__L24».sig), (67, Fn.«eq_prefix_run__L25».sig), (68, Fn.«eq_prefix_run__L26».sig), (69, Fn.«eq_prefix_run__L27».sig), (70, Fn.«eq_prefix_run__L28».sig), (71, Fn.«eq_prefix_run__L29».sig), (72, Fn.«eq_prefix_run__L30».sig), (73, Fn.«eq_prefix_run__L31».sig)] ++ [(74, Fn.«eq_prefix_run__L32».sig), (75, Fn.«eq_prefix_run__L33».sig), (76, Fn.«eq_prefix_run__L34».sig), (77, Fn.«eq_prefix_run__L35».sig), (78, Fn.«eq_prefix_run__L36».sig), (79, Fn.«eq_prefix_run__L37».sig), (80, Fn.«eq_prefix_run__L38».sig), (81, Fn.«eq_prefix_run__L39».sig), (82, Fn.«eq_prefix_run__L40».sig)]) Data.jtTrie globSem) code Fn.«eq_prefix_chain».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `eq_prefix_chain`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(40, Fn.«eq_prefix_run__L0».sig), (41, Fn.«eq_prefix_run__L1».sig), (42, Fn.«eq_prefix_run__L2».sig), (43, Fn.«eq_prefix_run__L3».sig), (44, Fn.«eq_prefix_run__L4».sig), (45, Fn.«eq_prefix_run__L5».sig), (46, Fn.«eq_prefix_run__L6».sig), (47, Fn.«eq_prefix_run__L7».sig), (48, Fn.«eq_prefix_run__L8».sig), (49, Fn.«eq_prefix_run__L9».sig), (50, Fn.«eq_prefix_run__L10».sig), (51, Fn.«eq_prefix_run__L11».sig), (52, Fn.«eq_prefix_run__L12».sig), (53, Fn.«eq_prefix_run__L13».sig), (54, Fn.«eq_prefix_run__L14».sig), (55, Fn.«eq_prefix_run__L15».sig)] ++ [(56, Fn.«eq_prefix_run__L16».sig), (57, Fn.«eq_prefix_run__L17».sig), (58, Fn.«eq_prefix_run__L18».sig), (59, Fn.«eq_prefix_run__L19».sig), (60, Fn.«eq_prefix_run__L20».sig), (61, Fn.«eq_prefix_run__L21».sig), (62, Fn.«eq_prefix_run__L22».sig), (63, Fn.«eq_prefix_run__L23».sig), (64, Fn.«eq_prefix_run__L24».sig), (65, Fn.«eq_prefix_run__L25».sig), (66, Fn.«eq_prefix_run__L26».sig), (67, Fn.«eq_prefix_run__L27».sig), (68, Fn.«eq_prefix_run__L28».sig), (69, Fn.«eq_prefix_run__L29».sig), (70, Fn.«eq_prefix_run__L30».sig), (71, Fn.«eq_prefix_run__L31».sig)] ++ [(72, Fn.«eq_prefix_run__L32».sig), (73, Fn.«eq_prefix_run__L33».sig), (74, Fn.«eq_prefix_run__L34».sig), (75, Fn.«eq_prefix_run__L35».sig), (76, Fn.«eq_prefix_run__L36».sig), (77, Fn.«eq_prefix_run__L37».sig), (78, Fn.«eq_prefix_run__L38».sig), (79, Fn.«eq_prefix_run__L39».sig), (80, Fn.«eq_prefix_run__L40».sig)]) Data.jtTrie globSem) code Fn.«eq_prefix_chain».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(42, Fn.«eq_prefix_run__L0».sig), (43, Fn.«eq_prefix_run__L1».sig), (44, Fn.«eq_prefix_run__L2».sig), (45, Fn.«eq_prefix_run__L3».sig), (46, Fn.«eq_prefix_run__L4».sig), (47, Fn.«eq_prefix_run__L5».sig), (48, Fn.«eq_prefix_run__L6».sig), (49, Fn.«eq_prefix_run__L7».sig), (50, Fn.«eq_prefix_run__L8».sig), (51, Fn.«eq_prefix_run__L9».sig), (52, Fn.«eq_prefix_run__L10».sig), (53, Fn.«eq_prefix_run__L11».sig), (54, Fn.«eq_prefix_run__L12».sig), (55, Fn.«eq_prefix_run__L13».sig), (56, Fn.«eq_prefix_run__L14».sig), (57, Fn.«eq_prefix_run__L15».sig)] ++ [(58, Fn.«eq_prefix_run__L16».sig), (59, Fn.«eq_prefix_run__L17».sig), (60, Fn.«eq_prefix_run__L18».sig), (61, Fn.«eq_prefix_run__L19».sig), (62, Fn.«eq_prefix_run__L20».sig), (63, Fn.«eq_prefix_run__L21».sig), (64, Fn.«eq_prefix_run__L22».sig), (65, Fn.«eq_prefix_run__L23».sig), (66, Fn.«eq_prefix_run__L24».sig), (67, Fn.«eq_prefix_run__L25».sig), (68, Fn.«eq_prefix_run__L26».sig), (69, Fn.«eq_prefix_run__L27».sig), (70, Fn.«eq_prefix_run__L28».sig), (71, Fn.«eq_prefix_run__L29».sig), (72, Fn.«eq_prefix_run__L30».sig), (73, Fn.«eq_prefix_run__L31».sig)] ++ [(74, Fn.«eq_prefix_run__L32».sig), (75, Fn.«eq_prefix_run__L33».sig), (76, Fn.«eq_prefix_run__L34».sig), (77, Fn.«eq_prefix_run__L35».sig), (78, Fn.«eq_prefix_run__L36».sig), (79, Fn.«eq_prefix_run__L37».sig), (80, Fn.«eq_prefix_run__L38».sig), (81, Fn.«eq_prefix_run__L39».sig), (82, Fn.«eq_prefix_run__L40».sig)]) Data.jtTrie globSem) code Fn.«eq_prefix_chain».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -219,18 +219,18 @@ theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«squeeze_po
 end
 end LeanVM.Guest.Fn.«squeeze_point_from__L29»
 
-namespace LeanVM.Guest.Fn.«da_verify_loop3»
+namespace LeanVM.Guest.Fn.«grind_check__L2»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop25`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(408, Fn.«da_verify_loop3».sig)]) Data.jtTrie globSem) code Fn.«da_verify_loop3».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+/-- `grind_check__L2`, window 0, part 0. -/
+theorem cw0_0 : cplWinD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«grind_check__L2».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
-/-- `__loop25`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(408, Fn.«da_verify_loop3».sig)]) Data.jtTrie globSem) code Fn.«da_verify_loop3».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+/-- `grind_check__L2`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs [] Data.jtTrie globSem) code Fn.«grind_check__L2».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -241,5 +241,5 @@ theorem cplOk : CplOkD (Glob.ofSigs ([(408, Fn.«da_verify_loop3».sig)]) Data.j
     · exact cw0_0
 
 end
-end LeanVM.Guest.Fn.«da_verify_loop3»
+end LeanVM.Guest.Fn.«grind_check__L2»
 
