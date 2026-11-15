@@ -819,19 +819,22 @@ theorem FBAt.bind_end {C : (ℕ → E) → Prop} {st : St} {m : P Unit} {g : PUn
   have := FBAt.bind hm hR hf
   rwa [bind_assoc] at this
 
-/-- **A loop's closing tail call and the return after it, on the path**: the block
-`[callIf c f args, ret []]` of the function `f` itself, which the layout does not register. -/
-theorem blockW_tailIf (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0)
-    (hRd : ∀ rd, I.Rd rd → ∀ e ∈ I.es, evNT rd I.σ e)
-    (hAg : AgOwn I Ag) (hK : AgKids ctx I Ag cl)
-    (hkw : ∀ g, I.kw (.entry g) = kwOf Γ (.entry g))
-    (hent : ∀ g, kwOf Γ (.entry g) = ofK (addressOfIndex (Γ.ent g)))
-    (hmN : ctx.isMain = true → ctx.name = "main")
-    (hhdr : ctx.isMain = false → IsInK I.hdr.1 ∧ IsInK I.hdr.2)
-    (hkend : IsInK (I.kw .endSentinel))
-    {c : V} {f : String} {args : List V} {tl : List Stmt}
-    (hself : f = ctx.name) (hreg : ((ctx.loops[f]?).any (·.registered)) = false)
-    (hu : ∀ v ∈ c :: args, v ∉ I.tmps) :
+/-- **A loop's closing call and the return after it, on the path**: the block
+`[callIf c f args, ret []]`, the call's placement keeping the invariant and laying words given the
+frame's return (`hst`). -/
+theorem blockW_selfIf (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0)
+    (hAg : AgOwn I Ag) (hhdr : ctx.isMain = false → IsInK I.hdr.1 ∧ IsInK I.hdr.2)
+    (hkend : IsInK (I.kw .endSentinel)) {c : V} {f : String} {args : List V} {tl : List Stmt}
+    (hst : ∀ (C : (ℕ → E) → Prop) (st : St) (sc sc' : SSt) (i₀ : ℕ),
+      scopeStmt ctx.retCells (.callIf c f args) sc = .ok sc' →
+      (∀ e ∈ [Memory.Ev.inK c, if I.σ c = 0 then .skip f args else .call f args []],
+        e ∈ I.es) →
+      cl[i₀]? = some ⟨f, args, [], decide (I.σ c ≠ 0)⟩ → WInv ctx I C st sc →
+      FBAt ctx I C st (placeStmt (.callIf c f args) [.ret []] >>= fun _ => endStmt)
+        fun _ C' st' => WInv ctx I C' st' sc' ∧
+          (Fits I st' → ∃ blk, st'.out.toList = st.out.toList ++ blk ∧
+            BlkWK Γ I ctx.isMain Ag cl C' blk [.callIf c f args] ([.ret []] ++ tl)
+              (.fall [.inK c, if I.σ c = 0 then .skip f args else .call f args []]) i₀)) :
     BlockW Γ Ag cl ctx I (placeBlock [.callIf c f args, .ret []]) [.callIf c f args, .ret []]
       tl := by
   intro C st s s' i₀ o hsc hw _ hes hcl hinv
@@ -854,8 +857,8 @@ theorem blockW_tailIf (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = 
     have := hcl 0 (by simp only [outEs]; omega)
     by_cases h : I.σ c = 0 <;> simpa [outEs, calls, Ev.call?, h, List.filterMap_cons] using this
   simp only [placeBlock, bind_pure_unit]
-  refine FBAt.bind_end (tailIf_fbat (tl := tl) hok hI hRd hAg hK hkw hent hmN hself hreg hu hsc₁
-    (fun e he => hes e he) hcl0 hinv) (fun _ _ _ h => h.1.cok)
+  refine FBAt.bind_end (hst C st s sc₁ i₀ hsc₁ (fun e he => hes e he) hcl0 hinv)
+    (fun _ _ _ h => h.1.cok)
     fun _ st₁ C₁ hs₁ hn₁ hl₁ ⟨hW₁, hB₁⟩ => ?_
   refine FBAt.mono (stmtW_ret' (rest := []) (tl := tl) hok hI hmain hAg hhdr hkend C₁ st₁ sc₁ sc₂
     (i₀ + 1) (.ret [] []) hsc₂ ⟨sc₂, rfl⟩ rfl (fun h => nomatch h)
@@ -871,6 +874,278 @@ theorem blockW_tailIf (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = 
     by rw [hc1]; simpa using hb₂
   have := BlkWK.append_ret (hb₁.mono hs₂) hb₂'
   simpa using this
+
+/-- **A loop's closing tail call and the return after it, on the path**: the block
+`[callIf c f args, ret []]` of the function `f` itself, which the layout does not register. -/
+theorem blockW_tailIf (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0)
+    (hRd : ∀ rd, I.Rd rd → ∀ e ∈ I.es, evNT rd I.σ e)
+    (hAg : AgOwn I Ag) (hK : AgKids ctx I Ag cl)
+    (hkw : ∀ g, I.kw (.entry g) = kwOf Γ (.entry g))
+    (hent : ∀ g, kwOf Γ (.entry g) = ofK (addressOfIndex (Γ.ent g)))
+    (hmN : ctx.isMain = true → ctx.name = "main")
+    (hhdr : ctx.isMain = false → IsInK I.hdr.1 ∧ IsInK I.hdr.2)
+    (hkend : IsInK (I.kw .endSentinel))
+    {c : V} {f : String} {args : List V} {tl : List Stmt}
+    (hself : f = ctx.name) (hreg : ((ctx.loops[f]?).any (·.registered)) = false)
+    (hu : ∀ v ∈ c :: args, v ∉ I.tmps) :
+    BlockW Γ Ag cl ctx I (placeBlock [.callIf c f args, .ret []]) [.callIf c f args, .ret []]
+      tl :=
+  blockW_selfIf hok hI hmain hAg hhdr hkend fun _ _ _ _ _ hsc hes hcl hinv =>
+    tailIf_fbat hok hI hRd hAg hK hkw hent hmN hself hreg hu hsc hes hcl hinv
+
+/-- **A registered loop helper's closing call on the path** (`loopNext`), before the return that
+ends its block: the condition's and the arguments' cells, the frame's own pointer times the frame
+size (the next frame, right after this one), the entry, the pooled `1`; the invariant after it,
+its words given the frame's return: the entry, the arguments, the next frame's self pointer and
+this frame's header copied into the next frame, the jump on the condition. -/
+theorem loopNext_fbat (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0)
+    (hRd : ∀ rd, I.Rd rd → ∀ e ∈ I.es, evNT rd I.σ e)
+    (hAg : AgOwn I Ag) (hK : AgKids ctx I Ag cl)
+    (hkw : ∀ g, I.kw (.entry g) = kwOf Γ (.entry g))
+    (hent : ∀ g, kwOf Γ (.entry g) = ofK (addressOfIndex (Γ.ent g)))
+    (hmN : ctx.isMain = true → ctx.name = "main")
+    (hframe : Γ.frame = I.size) (hlh : I.loopH = true)
+    (hselfK : ∀ (i : ℕ) (c : Call) (kfp : ℕ), cl[i]? = some c → c.f = ctx.name →
+      I.kf[i]? = some kfp →
+      kfp = I.fp + I.size)
+    {c : V} {f : String} {args : List V} {tl : List Stmt}
+    (hself : f = ctx.name) (hreg : ((ctx.loops[f]?).any (·.registered)) = true)
+    (hu : ∀ v ∈ c :: args, v ∉ I.tmps)
+    {C : (ℕ → E) → Prop} {st : St} {sc sc' : SSt} {i₀ : ℕ}
+    (hsc : scopeStmt ctx.retCells (.callIf c f args) sc = .ok sc')
+    (hes : ∀ e ∈ [Memory.Ev.inK c, if I.σ c = 0 then .skip f args else .call f args []],
+      e ∈ I.es)
+    (hcl : cl[i₀]? = some ⟨f, args, [], decide (I.σ c ≠ 0)⟩)
+    (hinv : WInv ctx I C st sc) :
+    FBAt ctx I C st (placeStmt (.callIf c f args) [.ret []] >>= fun _ => endStmt)
+      fun _ C' st' => WInv ctx I C' st' sc' ∧
+        (Fits I st' → ∃ blk, st'.out.toList = st.out.toList ++ blk ∧
+          BlkWK Γ I ctx.isMain Ag cl C' blk [.callIf c f args] ([.ret []] ++ tl)
+            (.fall [.inK c, if I.σ c = 0 then .skip f args else .call f args []]) i₀) := by
+  simp only [scopeStmt] at hsc
+  have hown := (scopeFlat_inv hsc).choose_spec.2.2.2.2
+  have hcp : ∀ (k : ℕ) (d x : V),
+      (∀ j < k, ∃ b, (Stmt.callIf c f args :: [Stmt.ret []])[j]? = some (Stmt.atom b)) →
+      (Stmt.callIf c f args :: [Stmt.ret []])[k]? = some (Stmt.atom (.copy d x)) →
+      (sc.live.contains x = true ∨ st.locs[x]? = none) ∧ I.σ d = I.σ x := by
+    intro k d x hj hk
+    cases k with
+    | zero => simp at hk
+    | succ k =>
+      obtain ⟨b, hb⟩ := hj 0 (Nat.succ_pos _)
+      simp at hb
+  have hInK : IsInK (I.σ c) := by
+    obtain ⟨rd, hrd⟩ := hI.rd
+    have := hRd rd hrd (.inK c) (hes _ (by simp))
+    simpa [evNT, Ev.Holds] using this
+  have hself' : (f == ctx.name) = true := by simp [hself]
+  refine FBAt.mono (FBAt.and_wp (R := fun _ C' st' =>
+    VW I C' st' (fun v => sc'.live.contains v = true) ∧ st'.rest = sc'.rest ∧
+    (sc'.retDone = false → RetBlind ctx C') ∧
+    (∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf (flushSeg st.rest) ∨
+      sc'.live.contains v = true) ∧ COk I C' st'.next st'.scope st'.locs ∧
+    (Fits I st' → ∃ blk, st'.out.toList = st.out.toList ++ blk ∧
+      BlkWK Γ I ctx.isMain Ag cl C' blk [.callIf c f args] ([.ret []] ++ tl)
+        (.fall [.inK c, if I.σ c = 0 then .skip f args else .call f args []]) i₀)) ?_
+    (chainKeep_callIf' st)) ?_
+  rotate_left
+  · rintro _ C' st' _ hn _ ⟨⟨h1, h2, h3, h4, hcok, h6⟩, hch⟩
+    have hch' : st'.chainIn = none := by rw [hch]; exact hinv.chain
+    exact ⟨winv_flat hsc hinv hcok hn h2 h1 h3 h4 hch', h6⟩
+  rw [placeStmt]
+  simp only [bind_assoc]
+  refine FBAt.fat_bind (begin_fat flushSeg_lock hI hsc hinv hcp)
+    fun _ st₁ C₁ hs₁ hn₁ hl₁ _ hE₁ ⟨hr₁, hvw₁, hrb₁, hloc₁⟩ => ?_
+  refine FBAt.read_bind ?_
+  split
+  · simp only [bind_assoc]
+    exact fun _ => wp_bind.mpr wp_failP
+  next hcal =>
+  have hfm : f ≠ "main" := by
+    intro h
+    simp [isCallee, h] at hcal
+  have hnm : ctx.isMain = false := by
+    cases hm : ctx.isMain
+    · rfl
+    · exact absurd (hself.trans (hmN hm)) hfm
+  simp only [bind_assoc]
+  refine FBAt.fat_bind (cellOf_fat c hI hvw₁ (hown c List.mem_cons_self))
+    fun lc st₂ C₂ hs₂ hn₂ hl₂ _ hE₂ ⟨hc2, hclt, hlo₂, hr₂, hcw, hkb₂⟩ => ?_
+  have hE₂' := hE₁.step hE₂ hs₂ hn₂ hl₂
+  refine FBAt.fat_bind (mapM_cellOf_lt hI args st₂ C₂ (hvw₁.step hs₂ hn₂ hlo₂)
+    fun v hv => hown v (List.mem_cons_of_mem _ hv))
+    fun las st₃ C₃ hs₃ hn₃ hl₃ _ hE₃ ⟨hlo₃, hr₃, hlen₃, hlas, hkb₃⟩ => ?_
+  have hE₃' := hE₂'.step hE₃ hs₃ hn₃ hl₃
+  refine FBAt.read_bind ?_
+  simp only [hself', ↓reduceIte, Bool.true_and]
+  split
+  · simp only [bind_assoc]
+    exact fun _ => wp_bind.mpr wp_failP
+  simp only [bind_assoc]
+  have h23 : st₂.next ≤ st₃.next := hn₃
+  have h2₃ : 2 ≤ st₃.next := le_trans hinv.two (le_trans hn₁ (le_trans hn₂ hn₃))
+  refine FBAt.fat_bind (selfFp_fat hI hmain h2₃)
+    fun ofp st₄ C₄ hs₄ hn₄ hl₄ _ hE₄ ⟨ho2, holt, hlo₄, hr₄, hoΨ, hkb₄⟩ => ?_
+  have hE₄' := hE₃'.step hE₄ hs₄ hn₄ hl₄
+  refine FBAt.fat_bind (fresh_fat (fun _ => I.kw .frameSize) (wblind_const _ _))
+    fun scale st₅ C₅ hs₅ hn₅ hl₅ hcok₅ hE₅ ⟨hsc₅, hst₅, hC₅⟩ => ?_
+  have hE₅' := hE₄'.step hE₅ hs₅ hn₅ hl₅
+  subst hsc₅ hst₅ hC₅
+  have h2₄ : 2 ≤ st₄.next := le_trans h2₃ hn₄
+  refine FBAt.fat_bind (emitOp_fat (.set st₄.next .frameSize) fun _ _ Ψ hΨ => by
+      show fw I Ψ st₄.next = I.kw .frameSize
+      rw [fw_of_two h2₄]
+      exact hΨ.2)
+    fun _ st₆ C₆ hs₆ hn₆ hl₆ _ hE₆ ⟨hC₆, hst₆⟩ => ?_
+  have hE₆' := hE₅'.step hE₆ hs₆ hn₆ hl₆
+  subst hC₆ hst₆
+  unfold pushHint
+  refine FBAt.fat_bind (FAt.modify rfl rfl rfl id)
+    fun _ st₇ C₇ hs₇ hn₇ hl₇ hcok₇ hE₇ ⟨hC₇, hst₇⟩ => ?_
+  have hE₇' := hE₆'.step hE₇ hs₇ hn₇ hl₇
+  subst hC₇ hst₇
+  refine FBAt.fat_bind (mulCell_fat ho2 (Nat.lt_succ_of_lt holt) h2₄ (Nat.lt_succ_self _))
+    fun nfp st₈ C₈ hs₈ hn₈ hl₈ _ hE₈ ⟨hn2, hnlt, hlo₈, hr₈, hnΨ, hkb₈⟩ => ?_
+  have hE₈' := hE₇'.step hE₈ hs₈ hn₈ hl₈
+  refine FBAt.fat_bind (fresh_fat (fun _ => I.kw (.entry f)) (wblind_const _ _))
+    fun entry st₉ C₉ hs₉ hn₉ hl₉ _ hE₉ ⟨hentry, hst₉, hC₉⟩ => ?_
+  have hE₉' := hE₈'.step hE₉ hs₉ hn₉ hl₉
+  subst hentry hst₉ hC₉
+  have h2₈ : 2 ≤ st₈.next := le_trans hn2 hnlt.le
+  unfold oneCell
+  refine FBAt.fat_bind (constCell_fatB (1, 0) (hI.kconst 1 0) (le_trans h2₈ (Nat.le_succ _)))
+    fun one st₁₀ C₁₀ hs₁₀ hn₁₀ hl₁₀ _ hE₁₀ ⟨ho2', hon, hlo₁₀, hr₁₀, hoΨ1, hkb₁₀⟩ => ?_
+  have hE₁₀' := hE₉'.step hE₁₀ hs₁₀ hn₁₀ hl₁₀
+  refine FBAt.fat_bind takeHints_fat fun hints st₁₁ C₁₁ hs₁₁ hn₁₁ hl₁₁ _ hE₁₁ ⟨hC₁₁, hst₁₁⟩ => ?_
+  have hE₁₁' := hE₁₀'.step hE₁₁ hs₁₁ hn₁₁ hl₁₁
+  subst hC₁₁ hst₁₁
+  refine push_end' fun hc => ?_
+  have hlo : st₁₀.locs = st₁.locs := hlo₁₀.trans (hlo₈.trans (hlo₄.trans (hlo₃.trans hlo₂)))
+  have h34 : st₃.next ≤ st₄.next := hn₄
+  have h48 : st₄.next + 1 ≤ st₈.next := hn₈
+  have h810 : st₈.next + 1 ≤ st₁₀.next := hn₁₀
+  have hn1 : st₁.next ≤ st₁₀.next :=
+    le_trans hn₂ (le_trans hn₃ (le_trans h34 (le_trans (Nat.le_succ _)
+      (le_trans h48 (le_trans (Nat.le_succ _) h810)))))
+  refine ⟨hvw₁.step (fun Ψ h => hs₂ Ψ (hs₃ Ψ (hs₄ Ψ (hs₈ Ψ (hs₁₀ Ψ h).1).1))) hn1 hlo,
+    hr₁₀.trans (hr₈.trans (hr₄.trans (hr₃.trans (hr₂.trans hr₁)))),
+    fun hr => RetBlind.keep (hrb₁ hr) (le_trans hinv.abi hn₁) fun c' hc' hb => ?_,
+    fun v hv => (hloc₁ v (by rw [← hlo]; exact hv)).elim Or.inl fun h => Or.inr (Or.inl h),
+    hc, fun hF => ?_⟩
+  · have hc4 : c' < st₄.next := lt_of_lt_of_le hc' (le_trans hn₂ (le_trans hn₃ h34))
+    have hc8 : c' < st₈.next := lt_of_lt_of_le (Nat.lt_succ_of_lt hc4) h48
+    have b5 := blindAt_assign (w := I.kw .frameSize)
+      (hkb₄ c' (lt_of_lt_of_le hc' (le_trans hn₂ hn₃))
+        (hkb₃ c' (lt_of_lt_of_le hc' hn₂) (hkb₂ c' hc' hb))) (Nat.ne_of_lt hc4)
+    have b8 := hkb₈ c' (Nat.lt_succ_of_lt hc4)
+      (fixed_ne hcok₇.sat b5 (fun Ψ h => hoΨ Ψ h.1)).symm (Nat.ne_of_lt hc4) b5
+    exact hkb₁₀ c' (Nat.lt_succ_of_lt hc8) (blindAt_assign b8 (Nat.ne_of_lt hc8))
+  obtain ⟨ops, hops, hopsW⟩ := hE₁₁'
+  have hF₁₁ : Fits I { st₁₀ with pending := #[] } := ⟨hF.1, hF.2⟩
+  have hsz : st₁₀.next ≤ I.size := hF.1
+  refine ⟨ops ++ [.loopNext hints f nfp st₈.next lc one las],
+    by have hops' : st₁₀.out.toList = st.out.toList ++ ops := hops
+       simp [hops'], ?_⟩
+  refine blkWK_ops_ctl hok (fun _ => [I.hdr])
+    (fun _ => by by_cases h : I.σ c = 0 <;> simp [outEs, calls, Ev.call?, h, List.filterMap_cons])
+    (hopsW hF₁₁)
+    fun Ψ hΨ σ' hσ kh cs pos ks next kj kret khalt hXo hcs hks hk hKr => ?_
+  have hkr : kret := by simpa [hnm] using hKr
+  obtain ⟨-, hks⟩ := hks
+  obtain ⟨⟨kfp, hks0, hkf⟩, -, hkh⟩ := hks 0 (by
+    by_cases h : I.σ c = 0 <;> simp [outEs, calls, Ev.call?, h, List.filterMap_cons])
+  simp only [Nat.add_zero, List.getD_cons_zero] at hks0 hkf hkh
+  obtain ⟨ks', rfl⟩ : ∃ ks', ks = (i₀, kfp) :: ks' := by
+    cases ks with
+    | nil => simp at hks0
+    | cons p ks' =>
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at hks0
+      exact ⟨ks', by rw [hks0]⟩
+  have hcs' : ctrlSplit cs = some (.callIf c f args, [.ret []] ++ tl) := by rw [hcs]; rfl
+  have hr : Rds (Ag σ' Ψ kh) I.fp I.size (fwd I.hdr ⟨patchT I Ψ σ', kh⟩) :=
+    fun κ L hL n hn => hAg σ' Ψ kh κ L hL n hn
+  have hkfp : kfp = I.fp + I.size := hselfK i₀ _ kfp hcl hself hkf
+  have hΨ9 := hs₁₀ Ψ hΨ
+  have hΨ5 := hs₈ Ψ hΨ9.1
+  have hset : LOp.set st₈.next (.entry f) ∈ I.ops := hXo _ (by simp [stmtOps, loopPre])
+  have hjmp : LOp.jump lc st₈.next nfp ∈ I.ops := hXo _ (by simp [stmtOps])
+  have hnop : LOp.mulNextFrame nfp one (argBase + las.length) ∈ I.ops :=
+    hXo _ (by simp [stmtOps, loopPre])
+  have hetc : ¬ I.tc st₈.next := not_tc_of hI hset (by simp [opCells]) fun _ h => nomatch h
+  have hntc : ¬ I.tc nfp := not_tc_of hI hnop (by simp [opCells]) fun _ h => nomatch h
+  have hotc : ¬ I.tc one := not_tc_of hI hnop (by simp [opCells]) fun _ h => nomatch h
+  have hctc : ¬ I.tc lc := not_tc_of hI hjmp (by simp [opCells]) fun _ h => nomatch h
+  have hσc : σ' c = I.σ c := hσ c (hu c List.mem_cons_self)
+  have hfc : fwd I.hdr ⟨patchT I Ψ σ', kh⟩ lc = I.σ c :=
+    (fwd_patchT hc2 hctc).trans (hcw Ψ (hs₃ Ψ (hs₄ Ψ hΨ5.1)))
+  have hfe : fwd I.hdr ⟨patchT I Ψ σ', kh⟩ st₈.next = ofK (addressOfIndex (Γ.ent f)) :=
+    (fwd_patchT h2₈ hetc).trans (hΨ9.2.trans ((hkw f).trans (hent f)))
+  have hfo : fwd I.hdr ⟨patchT I Ψ σ', kh⟩ one = 1 :=
+    (fwd_patchT ho2' hotc).trans ((hoΨ1 Ψ hΨ).trans word_one)
+  have hfn : fwd I.hdr ⟨patchT I Ψ σ', kh⟩ nfp = ofK (addressOfIndex kfp) := by
+    rw [fwd_patchT hn2 hntc, hnΨ Ψ hΨ9.1, hoΨ Ψ hΨ5.1, hΨ5.2, hI.ksize hlh, hkfp, Inst.fpw,
+      ofK_gpow_add]
+  have hlas' : ∀ k (hk : k < las.length) (hk' : k < args.length), las[k] < I.size ∧
+      fwd I.hdr ⟨patchT I Ψ σ', kh⟩ las[k] = σ' args[k] := by
+    intro k hk hk'
+    obtain ⟨h2, hlt, hw⟩ := hlas k hk hk'
+    have ho : LOp.mulNextFrame las[k] one (argBase + k) ∈ I.ops := hXo _ (by
+      simp only [stmtOps, loopPre, List.mem_append, List.mem_map]
+      exact Or.inl (Or.inl (Or.inr ⟨(las[k], k),
+        List.mk_mem_zipIdx_iff_getElem?.mpr (by simp), rfl⟩)))
+    have htc : ¬ I.tc las[k] := not_tc_of hI ho (by simp [opCells]) fun _ h => nomatch h
+    refine ⟨by comega, (fwd_patchT h2 htc).trans ((hw Ψ (hs₄ Ψ hΨ5.1)).trans ?_)⟩
+    exact (hσ _ (hu _ (List.mem_cons_of_mem _ (List.getElem_mem _)))).symm
+  have hnext : next ([.ret []] ++ tl) ks' := by
+    have := hk ([.ret []] ++ tl) rfl
+    by_cases h : I.σ c = 0 <;> simpa [outEs, calls, Ev.call?, h, List.filterMap_cons] using this
+  have hadr : ∀ x, I.fp + (Γ.frame + x) = kfp + x := fun x => by rw [hframe, hkfp]; omega
+  simp only [wLc, wS, hcs']
+  refine ⟨loopPre_segW hr (by comega) (by comega) (by comega) (by comega) hfo
+    ((fwd_patchT h2₈ hetc).trans (hΨ9.2.trans (hkw f)))
+    (fun k hk => ⟨(hlas' k hk (hlen₃ ▸ hk)).1, fun κ L hL => by
+      rw [(hlas' k hk (hlen₃ ▸ hk)).2, hadr]
+      exact (hK σ' Ψ kh κ L hL i₀ _ kfp hcl hkf).2.2.1 k (hlen₃ ▸ hk)⟩)
+    (fun κ L hL => by
+      rw [hfn, hadr]
+      have := (hK σ' Ψ kh κ L hL i₀ _ kfp hcl hkf).2.2.2.1 hreg
+      simpa [hlen₃, argBase] using this)
+    (fun κ L hL => by
+      have := hK σ' Ψ kh κ L hL i₀ _ kfp hcl hkf
+      rw [hkh] at this
+      rw [hadr, hadr]
+      exact ⟨by simpa [fwd] using this.2.1, by simpa [fwd] using this.1⟩),
+    jw_of hr (by comega) (by comega) (by comega) (by rw [hfc]; exact hInK)
+      (by rw [hfe]; exact (isInK_iff _).mpr ⟨_, rfl⟩)
+      (by rw [hfn]; exact (isInK_iff _).mpr ⟨_, rfl⟩)
+      (fun h0 => ⟨fun ht => ht (by rw [hσc, ← hfc]; exact h0), hnext⟩)
+      fun h0 => ?_⟩
+  have hc0 : I.σ c ≠ 0 := fun h => h0 (hfc.trans h)
+  exact ⟨show σ' c ≠ 0 by rw [hσc]; exact hc0,
+    ⟨⟨_, hcl, rfl, by simp [hc0]⟩, hfe, hfn, hkh⟩, hkr⟩
+
+/-- **A registered loop helper's closing call and the return after it, on the path**: the block
+`[callIf c f args, ret []]` of the loop helper `f` itself. -/
+theorem blockW_loopNext (hok : OpOK Γ I Ag cl) (hI : I.Ok)
+    (hmain : ctx.isMain = true → I.fp = 0)
+    (hRd : ∀ rd, I.Rd rd → ∀ e ∈ I.es, evNT rd I.σ e)
+    (hAg : AgOwn I Ag) (hK : AgKids ctx I Ag cl)
+    (hkw : ∀ g, I.kw (.entry g) = kwOf Γ (.entry g))
+    (hent : ∀ g, kwOf Γ (.entry g) = ofK (addressOfIndex (Γ.ent g)))
+    (hmN : ctx.isMain = true → ctx.name = "main")
+    (hhdr : ctx.isMain = false → IsInK I.hdr.1 ∧ IsInK I.hdr.2)
+    (hkend : IsInK (I.kw .endSentinel))
+    (hframe : Γ.frame = I.size) (hlh : I.loopH = true)
+    (hselfK : ∀ (i : ℕ) (c : Call) (kfp : ℕ), cl[i]? = some c → c.f = ctx.name →
+      I.kf[i]? = some kfp → kfp = I.fp + I.size)
+    {c : V} {f : String} {args : List V} {tl : List Stmt}
+    (hself : f = ctx.name) (hreg : ((ctx.loops[f]?).any (·.registered)) = true)
+    (hu : ∀ v ∈ c :: args, v ∉ I.tmps) :
+    BlockW Γ Ag cl ctx I (placeBlock [.callIf c f args, .ret []]) [.callIf c f args, .ret []]
+      tl :=
+  blockW_selfIf hok hI hmain hAg hhdr hkend fun _ _ _ _ _ hsc hes hcl hinv =>
+    loopNext_fbat hok hI hmain hRd hAg hK hkw hent hmN hframe hlh hselfK hself hreg hu hsc hes
+      hcl hinv
 
 end Words
 
