@@ -175,7 +175,8 @@ class Infer:
             if r2 is not None and self.armRun(('run', r2), A): return True
             if r2 is not None and ifaceMono(f, r2[0]) and ifaceIdx(f, r2[1]) and ifaceIdx(f, r2[2]) and r2[0][2]:
                 self.preR.add(r2); self.new = True; A.r.add(r2); return True
-            return r2 is not None and (self.linSub(r2, i, A) or self.narrow(name, r, r2, A))
+            return r2 is not None and (self.linSub(r2, i, A) or self.splitPre(r2, i, A) or self.downSub(r2, i, A) or
+                                       self.blkRun(r2, i, A) or self.narrow(name, r, r2, A))
         if kind == 'entry':
             name, o, A, cs, lnk = rest
             for c in cs:
@@ -377,6 +378,138 @@ class Infer:
             return True
         return False
 
+    def copyPre(self, w):
+        """A loop copying a word it loads from `k` to a cell over the interface at its counter: `k`'s cells a
+        precondition, so the copy writes. `k = Q·x^S·g^c`, `x` the counter: `Q`'s run of stride `S` over the
+        counter's range; `k = Q·[y]·g^c`, `y` another word: `Q`'s run up to the bound, the read inside it
+        (`Res.sub`)."""
+        f = self.f
+        if f['name'] not in isloop: return False
+        got = False
+        for c, (k, i0) in sorted(w.lnk.items(), key=str):
+            if k is None or k[0] != 0 or not k[2]: continue
+            if not any(c in cs and k2 != k and k2[0] == 0 and ifaceMono(f, k2) and dict(k2[2]).get(('fr', 2))
+                       for k2, cs in w.lnks.items()): continue
+            dk = dict(k[2])
+            Q = (0, 0, tuple(x for x in k[2] if x[0] != ('fr', 2)))
+            if dk.get(('fr', 2)) and Q[2] and ifaceMono(f, Q):
+                r = (Q, ('ex', ('fr', 2), 0), BOUND[f['name']], dk[('fr', 2)], k[1])
+                if r not in self.preR: self.preR.add(r); got = True
+                continue
+            for y, e in k[2]:
+                Q = (0, 0, tuple(x for x in k[2] if x[0] != y))
+                if e != 1 or not Q[2] or not ifaceMono(f, Q) or ifaceBase(f, y): continue
+                r = (Q, ('num', 0), BOUND[f['name']], 1, 0)
+                if r not in self.preR: self.preR.add(r); got = True
+                a = (k, ('num', 0), ('num', 1), 1, 0)
+                if ('sub', a, [r]) not in self.res[i0]: self.res[i0].append(('sub', a, [r])); got = True
+                break
+        if got: self.new = True
+        return got
+
+    def splits(self, A):
+        """The function's splits `[n] = [s]^K·[r]`, `K >= 2`: a write-once assertion `MUL` of cells whose
+        words multiply to `[s]^K·[r]` into the cell `n`."""
+        out = []; seen = set()
+        for op, a in self.f['ops']:
+            if op in ('xor', 'mul'): x = a[2]
+            elif op == 'set': x = a[0]
+            else: continue
+            if op == 'mul' and x in seen:
+                ma, mb = A.mono(a[0]), A.mono(a[1])
+                if ma is not None and mb is not None:
+                    m = mul(ma, mb)
+                    if m[0] == 0 and m[1] == 0 and len(m[2]) == 2:
+                        for (bs, K), (br, er) in (m[2], m[2][::-1]):
+                            if K >= 2 and er == 1: out.append((bs, br, x, K))
+            seen.add(x)
+        return out
+
+    def blkWhole(self, Q, i0, A):
+        """`Q·[0, [n])`, `Q` written in the blocks of a split `[n] = [s]^K·[r]`: inside them (`Res.sub`)."""
+        for s, r, n, K in self.splits(A):
+            bs = [(Q, ('num', 0), ('ex', s, 0), K, t) for t in range(K)] + \
+                [(mul(Q, (0, 0, ((s, K),))), ('num', 0), ('ex', r, 0), 1, 0)]
+            if not all(A.coveredR(b) for b in bs): continue
+            a = (Q, ('num', 0), ('ex', ('fr', n), 0), 1, 0)
+            self.addRes(i0, ('sub', a, bs)); A.r.add(a)
+            return a
+        return None
+
+    def blkRun(self, r2, i, A):
+        """A run of stride 1 from `0` over a table written in the blocks of a split: inside the whole
+        run (`blkWhole`, `Res.sub`)."""
+        q, lo, hi, S, d = r2
+        if q[0] != 0 or q[1] != 0 or lo != ('num', 0) or S != 1 or d != 0 or hi[0] != 'ex' or not q[2]: return False
+        a = self.blkWhole(q, i, A)
+        if a is None: return False
+        self.addRes(i, ('sub', r2, [a])); A.r.add(r2)
+        return True
+
+    def blkPoint(self, k, i0, A):
+        """A cell `Q·x·g^c` over a table written in the blocks of a split: the whole run inside them
+        (`blkWhole`), then the cell inside it (`runPoint`)."""
+        if k[0] != 0 or len(k[2]) < 2: return False
+        for B, e in k[2]:
+            Q = (0, 0, tuple(y for y in k[2] if y[0] != B))
+            if e == 1 and Q[2] and self.blkWhole(Q, i0, A) is not None: return self.runPoint(k, i0, A)
+        return False
+
+    def invShift(self, v):
+        """`t` when the immediate `v` is `g^-t`, `t <= 64`."""
+        x = v
+        for t in range(1, 65):
+            x <<= 1
+            if x >> 64: x ^= (1 << 64) | 0b11011
+            if x == 1: return t
+        return None
+
+    def downSub(self, r2, i, A):
+        """A run of stride 1 over `Q·g^c` up to `[h]`'s exponent, `[h] = [p]·g^-t` by the code, `p` a parameter,
+        `c <= t`: inside `Q·[0, [p])` (`Res.sub`), that run a precondition."""
+        f = self.f
+        q, lo, hi, S, d = r2
+        if q[0] != 0 or S != 1 or lo != ('num', 0) or hi[0] != 'ex' or hi[2] != 0 or hi[1][0] != 'fr': return False
+        Q = (0, 0, q[2])
+        if not q[2] or not ifaceMono(f, Q): return False
+        h = hi[1][1]
+        sets = {a[0]: a[1] for op, a in f['ops'] if op == 'set' and a[2] == 0}
+        for op, a in f['ops']:
+            if op != 'mul' or a[2] != h: continue
+            for p, c in ((a[0], a[1]), (a[1], a[0])):
+                t = self.invShift(sets[c]) if c in sets else None
+                if p in params(f) and t is not None and q[1] + d <= t:
+                    b = (Q, ('num', 0), ('ex', ('fr', p), 0), 1, 0)
+                    if b not in self.preR: self.preR.add(b); self.new = True
+                    A.r.add(b); self.addRes(i, ('sub', r2, [b])); A.r.add(r2)
+                    return True
+        return False
+
+    def splitPre(self, r2, i, A):
+        """A block of a split `[n] = [s]^K·[r]` (`splits`): the run of stride `K` from `d < K` up to `[s]`'s
+        exponent, or of stride 1 past `[s]^K` up to `[r]`'s, over `Q`: inside `Q·[0, [n])` (`Res.sub`). That run
+        known, or `[n] = [m]·g^c` and `Q·[0, [m])` known with the `c` cells past it (`Res.sub`)."""
+        q, lo, hi, S, d = r2
+        if q[0] != 0 or q[1] != 0 or lo != ('num', 0) or hi[0] != 'ex' or hi[2] != 0: return False
+        for s, r, n, K in self.splits(A):
+            Q = None
+            if hi[1] == s and S == K and d < K: Q = q
+            elif hi[1] == r and S == 1 and d == 0:
+                Q = (0, 0, removeBs((s, K), q[2])) if removeBs((s, K), q[2]) is not None else None
+            if Q is None or not Q[2]: continue
+            b = (Q, ('num', 0), ('ex', ('fr', n), 0), 1, 0)
+            if not A.coveredR(b):
+                mn = A.mono(n)
+                if mn is None or mn[0] != 0 or not (0 < mn[1] <= 64) or len(mn[2]) != 1 or mn[2][0][1] != 1: continue
+                m = mn[2][0][0]
+                b1 = (Q, ('num', 0), ('ex', m, 0), 1, 0)
+                b2 = (mul(Q, (0, 0, ((m, 1),))), ('num', 0), ('num', mn[1]), 1, 0)
+                if not (A.coveredR(b1) and A.coveredR(b2)): continue
+                self.addRes(i, ('sub', b, [b1, b2])); A.r.add(b)
+            self.addRes(i, ('sub', r2, [b])); A.r.add(r2)
+            return True
+        return False
+
     def shiftSub(self, r2, i, A):
         """A run `Q·x·[0, [c])` of stride 1, `x` a word `[b]` the code multiplies by `[c]` into `[p]`: inside
         `Q·[0, [p])` (`Res.sub`), that run known or, `Q` over the interface and `p` a parameter, a
@@ -437,8 +570,13 @@ class Infer:
         f = self.f
         if k[0] == 0 and len(k[2]) == 1 and k[2][0][1] == 1 and k[2][0][0][0] == 'fr' and self.w is not None:
             c = k[2][0][0][1]
-            if c in self.w.ld and self.pkey(self.w.ld[c], k[1], A):
-                A.h.add(k); return True
+            if c in self.w.ld:
+                # in a loop the stream is passed to, a cursor loaded from the loop's record: inside the stream
+                if f['name'] in isloop and f['name'] in STREAMS and depth == 0 and \
+                        dict(self.w.ld[c][2]).get(('fr', 2)) and self.streamRead(k, i0, A):
+                    return True
+                if self.pkey(self.w.ld[c], k[1], A):
+                    A.h.add(k); return True
         # a jump table load through an unbounded selector: residual bound
         if (i0 + 1) in f['tabs'] and k[0] == 0 and len(k[2]) == 1 and k[2][0][1] == 1 and k[1] in REGION:
             x = k[2][0][0]
@@ -538,7 +676,8 @@ class Infer:
                         a = ((0, k[1], k[2]), ('num', 0), ('num', 1), 1, 0)
                         self.preR.add(r); A.r.add(r); self.addRes(i0, ('sub', a, [r])); A.r.add(a); return True
                     self.preR.add(r); self.new = True; A.r.add(r); return True
-        return self.permBlock(k, i0, A) or self.runPoint(k, i0, A) or self.streamRead(k, i0, A)
+        return self.permBlock(k, i0, A) or self.runPoint(k, i0, A) or self.blkPoint(k, i0, A) or \
+            self.streamRead(k, i0, A)
 
     def streamRead(self, k, i0, A):
         """A cell past one pointer, in a function the proof stream is passed to: inside the stream (`Res.sub`),
@@ -677,14 +816,22 @@ def mkSig(f, pre, preR, ret=(), post=(), postR=(), postL=(), preP=None, postP=()
                ret, sorted(post), sorted(postR), sorted(postL), preP, sorted(postP), sorted(postLP), sorted(retV))
 
 
-def renameRet(f, A, m):
-    """A product over the walk's bases in the function's own terms (parameters, return cells)."""
+def renameRet(f, A, m, heap=False):
+    """A product over the walk's bases in the function's own terms (parameters, return cells), and with
+    `heap`, an own word stored at `[p]·g^d`, `p` a parameter, as that cell's (`hp p d`)."""
     rets = range(2 + f.get('nargs', 0), 2 + f.get('nargs', 0) + f.get('nret', 0))
     ren = {}
     for r in rets:
         x = A.v.get(r)
         if x and x[0] == 'm' and x[1][0] == 0 and x[1][1] == 0 and len(x[1][2]) == 1 and x[1][2][0][1] == 1:
             ren.setdefault(x[1][2][0][0], ('fr', r))
+    if heap:
+        ps = params(f)
+        for k, x in sorted(A.hv.items(), key=str):
+            if k[0] == 0 and len(k[2]) == 1 and k[2][0][1] == 1 and k[2][0][0][0] == 'fr' and k[2][0][0][1] in ps and \
+                    x[0] == 'm' and x[1][0] == 0 and x[1][1] == 0 and len(x[1][2]) == 1 and x[1][2][0][1] == 1 and \
+                    x[1][2][0][0][0] == 'fr' and x[1][2][0][0][1] not in ps:
+                ren.setdefault(x[1][2][0][0], ('hp', k[2][0][0][1], k[1]))
     bs = tuple(sorted((ren.get(b, b), e) for b, e in m[2]))
     return (m[0], m[1], bs)
 
@@ -907,7 +1054,7 @@ def infer1(n, named):
                         continue
                 raise
             continue
-        if not I.new and not I.splitRes(w) and not I.armCopies(w): break
+        if not I.new and not I.splitRes(w) and not I.armCopies(w) and not I.copyPre(w): break
     else:
         raise Fail(('nofix',))
     # posts
@@ -916,12 +1063,13 @@ def infer1(n, named):
     ret = [o for o in rets if all(o in A.w for A in w.rets)] if w.rets else rets
     post = None; postR = None
     for A in w.rets:
-        ks = {renameRet(f, A, k) for k in A.h}
+        # an own buffer's cells and runs through the parameter cell it is stored at (`keccak_layer`'s point)
+        ks = {renameRet(f, A, k, True) for k in A.h}
         ks = {k for k in ks if okIface(f, k)}
         post = ks if post is None else post & ks
         rs = set()
         for (q, lo, hi, S, d) in A.r:
-            q2 = renameRet(f, A, q)
+            q2 = renameRet(f, A, q, True)
             if okIface(f, q2) and ifaceIdx(f, lo) and ifaceIdx(f, hi): rs.add((q2, lo, hi, S, d))
         postR = rs if postR is None else postR & rs
     post = post or set(); postR = postR or set()
