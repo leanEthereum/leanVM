@@ -855,6 +855,136 @@ theorem place_hint_fat (h : Hint) : AtomFAt (.hint h) := by
   exact FAt.mono (placeHint_ro h hok (fun v hv' => hL v (by simp [Memory.atomUses, hv'])) C st hv)
     fun _ C' st' hs hn _ ⟨hlo, hr⟩ => ⟨fun _ => vw_same hv hL hs hn hlo, hr⟩
 
+/-! ## Frame addresses -/
+
+/-- The cells of a run of values, the state unchanged. -/
+theorem mapM_cellAt : ∀ (l : List V) (st : St), wpP (l.mapM cellAt) ctx st fun cs st' =>
+    st' = st ∧ cs.length = l.length ∧
+      ∀ c0 r0, l.head? = some r0 → cs.head? = some c0 → st.locs[r0]? = some (.cell c0)
+  | [], st => by
+      rw [List.mapM_nil]
+      exact wp_pure.mpr ⟨rfl, rfl, fun _ _ h => nomatch h⟩
+  | v :: l, st => by
+      rw [List.mapM_cons]
+      unfold cellAt
+      refine wp_bind.mpr (wp_bind.mpr (wp_get.mpr ?_))
+      split
+      · next c hc =>
+        refine wp_pure.mpr (wp_bind.mpr (wp_mono (mapM_cellAt l st) fun cs st' ⟨he, hlen, _⟩ =>
+          wp_pure.mpr ⟨he, by simp [hlen], fun c0 r0 h1 h2 => ?_⟩))
+        cases h1
+        cases h2
+        exact hc
+      · exact wp_failP
+
+theorem mapM_cellAt_fat (l : List V) :
+    FAt ctx I C st (l.mapM cellAt) (fun cs C' st' => C' = C ∧ st' = st ∧ cs.length = l.length ∧
+      ∀ c0 r0, l.head? = some r0 → cs.head? = some c0 → st.locs[r0]? = some (.cell c0)) :=
+  fun hc => wp_mono (mapM_cellAt l st) fun _ st' ⟨he, hlen, h⟩ => by
+    subst he
+    exact ⟨C, hc, Stronger.refl C, le_rfl, LocsLe.refl _, EmitsW.refl _, rfl, rfl, hlen, h⟩
+
+/-- The cell `isSelfFp` accepts holds the frame's own pointer. -/
+theorem isSelfFp_fat (n : Cell) (hmain : ctx.isMain = true → I.fp = 0) :
+    FAt ctx I C st (isSelfFp n) (fun b C' st' => C' = C ∧ st' = st ∧
+      (b = true → COk I C st.next st.scope st.locs → 2 ≤ n ∧ n < st.next ∧
+        ∀ Ψ, C Ψ → Ψ n = I.fpw)) := by
+  unfold isSelfFp
+  refine FAt.read_bind ?_
+  split
+  · next hm =>
+    refine FAt.get_bind (FAt.pure ⟨rfl, rfl, fun hb hc => ?_⟩)
+    have hn : st.scope.consts.get? (1, 0) = some n := eq_of_beq hb
+    refine ⟨(hc.cells.consts _ n hn).1, (hc.cells.consts _ n hn).2, fun Ψ hΨ => ?_⟩
+    rw [(hc.pools Ψ hΨ).consts _ n hn, word_one, Inst.fpw, hmain hm, ofK_gpow_zero]
+  · refine FAt.get_bind (FAt.pure ⟨rfl, rfl, fun hb hc => ?_⟩)
+    have hn : st.scope.selfFp = some n := eq_of_beq hb
+    exact ⟨(hc.cells.selfFp n hn).1, (hc.cells.selfFp n hn).2,
+      fun Ψ hΨ => (hc.pools Ψ hΨ).selfFp n hn⟩
+
+theorem consecutiveFrom_head {base : ℕ} {cs : List ℕ} {c0 : ℕ}
+    (h : consecutiveFrom base cs = true) (h0 : cs.head? = some c0) : c0 = base := by
+  cases cs with
+  | nil => cases h0
+  | cons c cs =>
+    cases h0
+    have := consecutiveFrom_getElem h 0 (by simp)
+    simpa using this
+
+/-- **`addr(run)`**: the address stays symbolic, the frame's own pointer shifted by the run's
+first cell; or, an address shifted as a value, the product made in a cell. -/
+theorem place_frameAddr_fat (p : V) (run : List V) : AtomFAt (.frameAddr p run) := by
+  intro ctx I C st ok hok hmain _ _ _ _ hadr h2 hv hops
+  have hL := atom_ok hops fun _ _ h => by cases h
+  unfold placeAtom
+  dsimp only
+  refine FAt.bind (isLazy_fat p .addr) fun z st₀ C₀ _ _ _ ⟨hC₀, hst₀⟩ => ?_
+  subst C₀ st₀
+  split
+  · split
+    · next r0 hr0 =>
+      refine FAt.bind (cellAt_fat r0) fun base st₁ C₁ _ _ _ ⟨hC₁, hst₁, hb⟩ => ?_
+      subst C₁ st₁
+      refine FAt.bind (mapM_cellAt_fat run) fun cs st₁ C₁ _ _ _ ⟨hC₁, hst₁, _⟩ => ?_
+      subst C₁ st₁
+      refine FAt.guard fun _ => ?_
+      refine FAt.bind (selfFp_fat hok hmain h2)
+        fun sf st₂ C₂ hs₂ hn₂ _ ⟨sf2, sf1, hlo₂, hr₂, hsf⟩ => ?_
+      refine FAt.mono (bindTo_fat p _) fun _ C' st' _ _ hl' ⟨hC, hst, hd0⟩ => ?_
+      subst C' st'
+      refine ⟨fun hz => vw_bind (hv.step hs₂ hn₂ hlo₂) (fun v hv' _ => hL v hv')
+        (Stronger.refl _) le_rfl rfl hd0 ⟨sf2, sf1, fun Ψ hΨ => ?_⟩, hr₂⟩
+      obtain ⟨r0', base', hr0', hb', hσ⟩ := hadr (hz.back hn₂ (by
+        rw [← hlo₂]; exact hl')) p run rfl
+      rw [hr0] at hr0'
+      cases hr0'
+      rw [hb] at hb'
+      cases hb'
+      show Ψ sf * ofK (addressOfIndex base) = I.σ p
+      rw [hsf Ψ hΨ, Inst.fpw, ofK_gpow_add, hσ]
+    · exact FAt.fail
+  · refine FAt.get_bind ?_
+    split
+    · next c exp hsh =>
+      refine FAt.get_bind ?_
+      split
+      · next n e hn =>
+        refine FAt.withCOk fun hc => ?_
+        refine FAt.bind (isSelfFp_fat n hmain) fun b st₁ C₁ _ _ _ ⟨hC₁, hst₁, hb⟩ => ?_
+        subst C₁ st₁
+        refine FAt.guard fun hnb => ?_
+        have hb' : b = true := by simpa using hnb
+        obtain ⟨n2, n1, hwn⟩ := hb hb' hc
+        refine FAt.bind (mapM_cellAt_fat run) fun cs st₁ C₁ _ _ _ ⟨hC₁, hst₁, hlen, hcs⟩ => ?_
+        subst C₁ st₁
+        refine FAt.guard fun hcons => ?_
+        have hcons' : consecutiveFrom (e + exp) cs = true := by simpa using hcons
+        refine FAt.bind (materialize_fat n (e + exp) hok n2 n1)
+          fun o st₂ C₂ hs₂ hn₂ _ ⟨o2, o1, hlo₂, hr₂, how, _⟩ => ?_
+        refine FAt.mono (bindTo_fat p _) fun _ C' st' _ _ hl' ⟨hC, hst, hd0⟩ => ?_
+        subst C' st'
+        refine ⟨fun hz => vw_bind (hv.step hs₂ hn₂ hlo₂) (fun v hv' _ => hL v hv')
+          (Stronger.refl _) le_rfl rfl hd0 ⟨o2, o1, fun Ψ hΨ => ?_⟩, hr₂⟩
+        obtain ⟨r0, base, hr0, hb0, hσ⟩ := hadr (hz.back hn₂ (by
+          rw [← hlo₂]; exact hl')) p run rfl
+        have hcs0 : ∃ c0, cs.head? = some c0 := by
+          cases run with
+          | nil => cases hr0
+          | cons r rs =>
+            -- `cs` has the run's length
+            cases cs with
+            | nil => cases hlen
+            | cons c0 _ => exact ⟨c0, rfl⟩
+        obtain ⟨c0, hc0⟩ := hcs0
+        have := hcs c0 r0 hr0 hc0
+        rw [hb0] at this
+        cases this
+        rw [consecutiveFrom_head hcons' hc0] at hσ
+        show Ψ o = I.σ p
+        rw [how Ψ hΨ, hwn Ψ (hs₂ Ψ hΨ), Inst.fpw, ofK_gpow_add, hσ]
+      · exact FAt.fail
+    · exact FAt.fail
+
 end Atoms
 
 end
