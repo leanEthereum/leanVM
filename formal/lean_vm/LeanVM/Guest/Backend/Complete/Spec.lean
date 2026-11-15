@@ -386,8 +386,9 @@ noncomputable def opsS (σ : Val) : PStmt → List Stmt → (Opcode → ℕ) × 
   | .call _ c, cs =>
       match ctrlSplit cs with
       | some (s, rest) =>
-          (opsCnt (callPre c) + jumpCnt + opsCnt (callRets c.nfp c.args.length c.rets), rest,
-            if c.tail = true ∧ callTaken σ s then false else true)
+          if c.tail = true ∧ callTaken σ s then (opsCnt (callPre c) + jumpCnt, rest, false)
+          else (opsCnt (callPre c) + jumpCnt + opsCnt (callRets c.nfp c.args.length c.rets), rest,
+            true)
       | none => (0, [], false)
   | .loopNext _ callee nfp entry _ one args, cs =>
       match ctrlSplit cs with
