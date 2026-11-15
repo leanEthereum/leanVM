@@ -43,11 +43,3 @@ pub(super) fn hash_to_scalars(hash: &[u8; 32]) -> [E; 2] {
     let w: [u64; 4] = std::array::from_fn(|i| u64::from_le_bytes(hash[8 * i..8 * i + 8].try_into().unwrap()));
     [E::new(w[0], w[1]), E::new(w[2], w[3])]
 }
-
-/// The parent of two Merkle nodes.
-pub(super) fn hash_pair(left: &[u8; 32], right: &[u8; 32]) -> [u8; 32] {
-    let mut pair = [0; 64];
-    pair[..32].copy_from_slice(left);
-    pair[32..].copy_from_slice(right);
-    keccak256::hash(&pair)
-}

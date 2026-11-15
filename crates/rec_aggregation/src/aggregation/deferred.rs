@@ -27,40 +27,32 @@ impl DeferredBytecodeClaim {
     /// What a leaf defers: the all-zeros point, where the value is just the
     /// table's first entry.
     pub(super) fn leaf() -> Self {
-        Self::evaluate(vec![ZERO; bytecode_vars()], |_| {
-            unreachable!("the all-zeros point is read off the table")
-        })
-        .expect("the all-zeros point has the right shape")
+        Self::recompute_scalar(vec![ZERO; bytecode_vars()]).expect("the all-zeros point has the right shape")
     }
 
-    /// Evaluate the stacked bytecode at `bytecode_point`, on the prover's field kernels and thread pool.
-    pub(super) fn recompute<P: Prover>(bytecode_point: Vec<E>) -> Option<Self> {
-        Self::evaluate(bytecode_point, |point| {
-            let _span = tracing::info_span!("bytecode mle").entered();
-            bytecode_value::<P>(&bytecode_sums::<P>(&[point.to_vec()])[0], point)
-        })
+    /// The claim at `bytecode_point`, its value read off the point's [`bytecode_sums`].
+    pub(super) fn from_sums<P: Prover>(bytecode_point: Vec<E>, sums: &[E]) -> Self {
+        let bytecode_value = bytecode_value::<P>(sums, &bytecode_point);
+        Self {
+            bytecode_point,
+            bytecode_value,
+        }
     }
 
-    /// [`Self::recompute`] in the `verifier` crate: scalar and single threaded, what a received aggregate is checked with.
+    /// The claim at `bytecode_point`, evaluated by the `verifier` crate, scalar and single threaded: what a received
+    /// aggregate is checked with. `None` for a point of the wrong length.
     pub(super) fn recompute_scalar(bytecode_point: Vec<E>) -> Option<Self> {
-        Self::evaluate(bytecode_point, |point| {
-            scalar_bytecode()
-                .evaluate(point)
-                .expect("the point's length was checked")
-        })
-    }
-
-    fn evaluate(bytecode_point: Vec<E>, bytecode_at: impl FnOnce(&[E]) -> E) -> Option<Self> {
         if bytecode_point.len() != bytecode_vars() {
             return None;
         }
-        // Every leaf defers the all-zeros point, where the bytecode polynomial is
-        // just its table's first entry. Worth special-casing: the general path is
-        // a pass over 2^23 entries, and a leaf is the aggregate people verify most.
+        // Every leaf defers the all-zeros point, where the bytecode polynomial is just its table's first entry: a
+        // leaf is the aggregate people verify most, and the general path is a pass over the whole table.
         let bytecode_value = if bytecode_point.iter().all(|x| *x == ZERO) {
             E::from(K(stacked_bytecode()[0]))
         } else {
-            bytecode_at(&bytecode_point)
+            scalar_bytecode()
+                .evaluate(&bytecode_point)
+                .expect("the point's length was checked")
         };
         Some(Self {
             bytecode_point,
@@ -255,9 +247,9 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
 
     let _span = tracing::info_span!("Bytecode batch", vars = kbcv).entered();
     // Powers of one challenge: child i's fresh claim takes lam^(2i), its carried one lam^(2i+1).
-    let lam_nonce = grind(&mut transcript, BATCH_LAM_GRIND_BITS);
+    let nonce = grind(&mut transcript, BATCH_LAM_GRIND_BITS);
     let lam = transcript.sample();
-    let gbc: Vec<E> = std::iter::successors(Some(ONE), |&power| Some(P::mul(power, lam)))
+    let powers: Vec<E> = std::iter::successors(Some(ONE), |&power| Some(P::mul(power, lam)))
         .take(2 * child_count)
         .collect();
     let points: Vec<Vec<E>> = subproofs
@@ -270,61 +262,69 @@ pub(super) fn aggregate_deferred_claims<P: Prover>(
         .zip(carried_claims)
         .flat_map(|(subproof, carried)| [subproof.bytecode_value, carried.bytecode_value])
         .collect();
-    let mut brun = gbc.iter().zip(&values).fold(ZERO, |acc, (&g, &v)| acc + P::mul(g, v));
-    let mut bscr: Vec<E> = lam_nonce.map(|nonce| E::new(nonce, 0)).into_iter().collect();
-    let mut r_bc = Vec::new();
+    // The running claim: the claims' values weighed by their powers.
+    let mut claim = powers
+        .iter()
+        .zip(&values)
+        .fold(ZERO, |acc, (&g, &v)| acc + P::mul(g, v));
+    let mut messages: Vec<E> = nonce.map(|nonce| E::new(nonce, 0)).into_iter().collect();
+    let mut challenges = Vec::new();
     // The low rounds, on each claim's sums against its `eq` on the low rows, scaled by its power of `lam`.
     assert_eq!(sums.len(), points.len(), "sums for every claim");
-    let mut eq_lo: Vec<Vec<E>> = points
+    let mut low_weights: Vec<Vec<E>> = points
         .iter()
-        .zip(&gbc)
-        .map(|(point, &lambda)| {
-            eq_table::<P>(&point[..BLOCK_VARS])
-                .into_iter()
-                .map(|eq| P::mul(lambda, eq))
-                .collect()
+        .zip(&powers)
+        .map(|(point, &power)| {
+            let eq = eq_table::<P>(&point[..BLOCK_VARS]);
+            eq.into_iter().map(|eq| P::mul(power, eq)).collect()
         })
         .collect();
     for _ in 0..BLOCK_VARS {
-        let msg = sums.iter().zip(&eq_lo).fold((ZERO, ZERO), |acc, (sums, eq_lo)| {
-            let (g1, gi) = round_msg::<P>(sums, eq_lo);
-            (acc.0 + g1, acc.1 + gi)
-        });
-        let r = absorb_round::<P>(&mut transcript, &mut bscr, &mut r_bc, &mut brun, msg);
-        for table in sums.iter_mut().chain(&mut eq_lo) {
+        let msg = sums
+            .iter()
+            .zip(&low_weights)
+            .fold((ZERO, ZERO), |acc, (sums, weights)| {
+                let (g1, gi) = round_msg::<P>(sums, weights);
+                (acc.0 + g1, acc.1 + gi)
+            });
+        let r = absorb_round::<P>(&mut transcript, &mut messages, &mut challenges, &mut claim, msg);
+        for table in sums.iter_mut().chain(&mut low_weights) {
             fold_lsb::<P>(table, r);
         }
     }
     // The rest: every row against the low challenges, zero outside the populated ones, and each claim's `eq` on
     // the rows, scaled by what its low rows left.
     let (table, live) = (stacked_bytecode(), bytecode_rows());
-    let mut bt = vec![ZERO; table.len() / BLOCK];
-    let dots = P::dot_rows(&table[live.start * BLOCK..live.end * BLOCK], &eq_table::<P>(&r_bc));
-    bt[live].copy_from_slice(&dots);
-    let mut wt = vec![ZERO; bt.len()];
-    for (point, eq_lo) in points.iter().zip(&eq_lo) {
-        for (weight, eq) in wt.iter_mut().zip(eq_table::<P>(&point[BLOCK_VARS..])) {
-            *weight += P::mul(eq_lo[0], eq);
+    let mut rows = vec![ZERO; table.len() / BLOCK];
+    let dots = P::dot_rows(
+        &table[live.start * BLOCK..live.end * BLOCK],
+        &eq_table::<P>(&challenges),
+    );
+    rows[live].copy_from_slice(&dots);
+    let mut weights = vec![ZERO; rows.len()];
+    for (point, low_weight) in points.iter().zip(&low_weights) {
+        for (weight, eq) in weights.iter_mut().zip(eq_table::<P>(&point[BLOCK_VARS..])) {
+            *weight += P::mul(low_weight[0], eq);
         }
     }
     for _ in BLOCK_VARS..kbcv {
-        let msg = round_msg::<P>(&bt, &wt);
-        let r = absorb_round::<P>(&mut transcript, &mut bscr, &mut r_bc, &mut brun, msg);
-        fold_lsb::<P>(&mut bt, r);
-        fold_lsb::<P>(&mut wt, r);
+        let msg = round_msg::<P>(&rows, &weights);
+        let r = absorb_round::<P>(&mut transcript, &mut messages, &mut challenges, &mut claim, msg);
+        fold_lsb::<P>(&mut rows, r);
+        fold_lsb::<P>(&mut weights, r);
     }
-    let v_bc = bt[0];
-    if brun != P::mul(v_bc, wt[0]) {
+    let value = rows[0];
+    if claim != P::mul(value, weights[0]) {
         return None;
     }
 
     drop(_span);
-    let hints = vec![("bc_sumcheck_msgs", bscr), ("bc_star_hint", vec![v_bc])];
+    let hints = vec![("bc_sumcheck_msgs", messages), ("bc_star_hint", vec![value])];
     Some((
         hints,
         DeferredBytecodeClaim {
-            bytecode_point: r_bc,
-            bytecode_value: v_bc,
+            bytecode_point: challenges,
+            bytecode_value: value,
         },
     ))
 }
