@@ -111,12 +111,13 @@ theorem assign_sat {C : (ℕ → E) → Prop} {n o : ℕ} {w : (ℕ → E) → E
   refine ⟨Function.update Ψ o (w Ψ), hC Ψ o _ ho h, ?_⟩
   rw [Function.update_self, hw Ψ o _ le_rfl]
 
-/-- A constraint the walk of a path keeps: satisfiable, blind from `n` on, and every frame word
-it allows keeps the pools of `sc`. -/
+/-- A constraint the walk of a path keeps: satisfiable, blind from `n` on, every frame word it
+allows keeps the pools of `sc`, and the pools' cells are past the header and below `n`. -/
 structure COk (I : Inst) (C : (ℕ → E) → Prop) (n : ℕ) (sc : Scope) : Prop where
   sat : ∃ Ψ, C Ψ
   blind : Blind C n
   pools : ∀ Ψ, C Ψ → PoolW I Ψ sc
+  cells : ScopeGood n sc
 
 /-- The constraint `C'` is `C` or stronger. -/
 def Stronger (C' C : (ℕ → E) → Prop) : Prop := ∀ Ψ, C' Ψ → C Ψ
@@ -228,20 +229,49 @@ def OpW (I : Inst) (Ψ : ℕ → E) : LOp → Prop
 /-! ## The on-path specification of a placement action -/
 
 /-- The statements a walk emitted on the path from `st` to `st'`: straight-line instructions
-only, each of whose relation holds on every frame word the constraint allows. -/
+only, each of whose relation holds on every frame word the constraint allows, once the frame
+holds every cell given out (`st'.next ≤ I.size`). -/
 def EmitsW (I : Inst) (C : (ℕ → E) → Prop) (st st' : St) : Prop :=
   ∃ ops : List PStmt, st'.out.toList = st.out.toList ++ ops ∧
-    ∀ s ∈ ops, ∃ h o, s = PStmt.op h o ∧ ∀ Ψ, C Ψ → OpW I Ψ o
+    (st'.next ≤ I.size → ∀ s ∈ ops, ∃ h o, s = PStmt.op h o ∧ ∀ Ψ, C Ψ → OpW I Ψ o)
 
 /-- **On `σ`'s path, every success of `m` from `st`** strengthens the constraint keeping it
 satisfiable, blind from the next free cell on and true of the pools; emits straight-line
 instructions whose relations the new constraint gives; does not move the next free cell back;
-and its result satisfies `R` under the new constraint. -/
+and its result satisfies `R` under the new constraint and the final state. -/
 def FAt {α : Type} (ctx : Ctx) (I : Inst) (C : (ℕ → E) → Prop) (st : St) (m : P α)
-    (R : α → ((ℕ → E) → Prop) → Prop) : Prop :=
+    (R : α → ((ℕ → E) → Prop) → St → Prop) : Prop :=
   COk I C st.next st.scope →
   wpP m ctx st fun a st' => ∃ C', COk I C' st'.next st'.scope ∧ Stronger C' C ∧
-    st.next ≤ st'.next ∧ EmitsW I C' st st' ∧ R a C'
+    st.next ≤ st'.next ∧ EmitsW I C' st st' ∧ R a C' st'
+
+/-- **The words of the values the walk knows on the path** (`ok`): each placed one is past the
+header and below the next free cell, and its place holds its word under the constraint. -/
+def VW (I : Inst) (C : (ℕ → E) → Prop) (st : St) (ok : V → Prop) : Prop :=
+  ∀ v l, ok v → st.locs[v]? = some l →
+    2 ≤ locBase l ∧ locBase l < st.next ∧ ∀ Ψ, C Ψ → locW Ψ l = I.σ v
+
+/-- What the walk takes of an instance: some reader holds the path's events, and the layout
+resolves a `SET` constant to its word and the frame size to `g^size`. -/
+structure Inst.Ok (I : Inst) : Prop where
+  rd : ∃ rd, I.Rd rd
+  kconst : ∀ x y, I.kw (.const x y) = Guest.word x y
+  ksize : I.kw .frameSize = ofK (addressOfIndex I.size)
+
+/-- **The shape of an atom on the path** (`FrameAtoms.lean`): from a state whose known values
+include the atom's (a copy dropped into a sponge alias apart), its event on every reader of the
+path, an address's word being the frame address of its run's first cell, placing the atom keeps
+the known values' words, knows the atom's values, keeps the places and leaves the trace. -/
+def AtomFAt (a : Atom) : Prop :=
+  ∀ (ctx : Ctx) (I : Inst) (C : (ℕ → E) → Prop) (st : St) (ok : V → Prop),
+    I.Ok → (ctx.isMain = true → I.fp = 0) → (∀ rd, I.Rd rd → a.Holds rd I.σ) →
+    (∀ p run r0 base, a = .frameAddr p run → run.head? = some r0 →
+      st.locs[r0]? = some (.cell base) → I.σ p = ofK (addressOfIndex (I.fp + base))) →
+    2 ≤ st.next → VW I C st ok →
+    (∀ v ∈ Memory.atomUses a ++ Memory.atomTmps a, ok v ∨ ∃ s, a = .copy v s) →
+    FAt ctx I C st (placeAtom a) fun _ C' st' =>
+      VW I C' st' (fun v => ok v ∨ v ∈ Memory.atomUses a ++ Memory.atomTmps a) ∧
+        st'.rest = st.rest ∧ ∀ (v : V) (l : Loc), st.locs[v]? = some l → st'.locs[v]? = some l
 
 /-! ## Primitives on the path -/
 
@@ -249,67 +279,74 @@ section Prims
 
 variable {ctx : Ctx} {I : Inst} {C : (ℕ → E) → Prop} {st : St}
 
-theorem EmitsW.refl (st : St) : EmitsW I C st st := ⟨[], by simp, fun _ h => nomatch h⟩
+theorem EmitsW.refl (st : St) : EmitsW I C st st := ⟨[], by simp, fun _ _ h => nomatch h⟩
 
 theorem EmitsW.mono {C' : (ℕ → E) → Prop} {st st' : St} (h : EmitsW I C st st')
     (hs : Stronger C' C) : EmitsW I C' st st' := by
   obtain ⟨ops, ho, hops⟩ := h
-  exact ⟨ops, ho, fun s hs' => by
-    obtain ⟨hh, o, rfl, hw⟩ := hops s hs'
+  exact ⟨ops, ho, fun hz s hs' => by
+    obtain ⟨hh, o, rfl, hw⟩ := hops hz s hs'
     exact ⟨hh, o, rfl, fun Ψ hΨ => hw Ψ (hs Ψ hΨ)⟩⟩
 
-theorem EmitsW.trans {st₁ st₂ st₃ : St} (h₁ : EmitsW I C st₁ st₂) (h₂ : EmitsW I C st₂ st₃) :
-    EmitsW I C st₁ st₃ := by
+theorem EmitsW.trans {st₁ st₂ st₃ : St} (h₁ : EmitsW I C st₁ st₂) (h₂ : EmitsW I C st₂ st₃)
+    (hn : st₂.next ≤ st₃.next) : EmitsW I C st₁ st₃ := by
   obtain ⟨ops₁, ho₁, hops₁⟩ := h₁
   obtain ⟨ops₂, ho₂, hops₂⟩ := h₂
-  refine ⟨ops₁ ++ ops₂, by rw [ho₂, ho₁, List.append_assoc], fun s hs => ?_⟩
+  refine ⟨ops₁ ++ ops₂, by rw [ho₂, ho₁, List.append_assoc], fun hz s hs => ?_⟩
   rcases List.mem_append.mp hs with hs | hs
-  · exact hops₁ s hs
-  · exact hops₂ s hs
+  · exact hops₁ (le_trans hn hz) s hs
+  · exact hops₂ hz s hs
 
-theorem FAt.pure {α : Type} {a : α} {R : α → ((ℕ → E) → Prop) → Prop} (h : R a C) :
+theorem FAt.pure {α : Type} {a : α} {R : α → ((ℕ → E) → Prop) → St → Prop} (h : R a C st) :
     FAt ctx I C st (Pure.pure a) R :=
   fun hc => wp_pure.mpr ⟨C, hc, Stronger.refl C, le_rfl, EmitsW.refl st, h⟩
 
-theorem FAt.bind {α β : Type} {m : P α} {f : α → P β} {R₁ : α → ((ℕ → E) → Prop) → Prop}
-    {R₂ : β → ((ℕ → E) → Prop) → Prop} (hm : FAt ctx I C st m R₁)
-    (hf : ∀ a st' C', Stronger C' C → st.next ≤ st'.next → R₁ a C' → FAt ctx I C' st' (f a) R₂) :
+theorem FAt.bind {α β : Type} {m : P α} {f : α → P β} {R₁ : α → ((ℕ → E) → Prop) → St → Prop}
+    {R₂ : β → ((ℕ → E) → Prop) → St → Prop} (hm : FAt ctx I C st m R₁)
+    (hf : ∀ a st' C', Stronger C' C → st.next ≤ st'.next → R₁ a C' st' →
+      FAt ctx I C' st' (f a) R₂) :
     FAt ctx I C st (m >>= f) R₂ := by
   intro hc
   refine wp_bind.mpr fun a st₁ he b st₂ he' => ?_
   obtain ⟨C₁, hc₁, hs₁, hn₁, he₁, hr₁⟩ := hm hc a st₁ he
   obtain ⟨C₂, hc₂, hs₂, hn₂, he₂, hr₂⟩ := hf a st₁ C₁ hs₁ hn₁ hr₁ hc₁ b st₂ he'
-  exact ⟨C₂, hc₂, hs₁.trans hs₂, le_trans hn₁ hn₂, (he₁.mono hs₂).trans he₂, hr₂⟩
+  exact ⟨C₂, hc₂, hs₁.trans hs₂, le_trans hn₁ hn₂, (he₁.mono hs₂).trans he₂ hn₂, hr₂⟩
 
-theorem FAt.get_bind {β : Type} {f : St → P β} {R : β → ((ℕ → E) → Prop) → Prop}
+theorem FAt.get_bind {β : Type} {f : St → P β} {R : β → ((ℕ → E) → Prop) → St → Prop}
     (h : FAt ctx I C st (f st) R) : FAt ctx I C st (get >>= f) R :=
   fun hc => wp_bind.mpr (wp_get.mpr (h hc))
 
 /-- A step that changes nothing the walk on the path reads. -/
-theorem FAt.quiet {g : St → St} {R : PUnit → ((ℕ → E) → Prop) → Prop}
+theorem FAt.quiet {g : St → St} {R : PUnit → ((ℕ → E) → Prop) → St → Prop}
     (hn : (g st).next = st.next) (hs : (g st).scope = st.scope) (ho : (g st).out = st.out)
-    (hr : R ⟨⟩ C) : FAt ctx I C st (modify g) R := fun hc =>
+    (hr : R ⟨⟩ C (g st)) : FAt ctx I C st (modify g) R := fun hc =>
   wp_modify.mpr ⟨C, by rw [hn, hs]; exact hc, Stronger.refl C, le_of_eq hn.symm,
-    ⟨[], by rw [ho]; simp, fun _ h => nomatch h⟩, hr⟩
+    ⟨[], by rw [ho]; simp, fun _ _ h => nomatch h⟩, hr⟩
 
-/-- **A pooled constant on the path**: its cell holds the constant. -/
+/-- **A pooled constant on the path**: its cell, a good cell, holds the constant; the values'
+places and the trace are as they were. -/
 theorem constCell_fat (k : ℕ × ℕ) (hkw : I.kw (.const k.1 k.2) = Guest.word k.1 k.2)
     (h2 : 2 ≤ st.next) :
-    FAt ctx I C st (constCell k) (fun o C' => ∀ Ψ, C' Ψ → Ψ o = Guest.word k.1 k.2) := by
+    FAt ctx I C st (constCell k) (fun o C' st' => 2 ≤ o ∧ o < st'.next ∧ st'.locs = st.locs ∧
+      st'.rest = st.rest ∧ ∀ Ψ, C' Ψ → Ψ o = Guest.word k.1 k.2) := by
   intro hc
   unfold constCell fresh emitOp takeHints push
   refine wp_bind.mpr (wp_get.mpr ?_)
   split
   · next o ho =>
     exact wp_pure.mpr ⟨C, hc, Stronger.refl C, le_rfl, EmitsW.refl st,
+      (hc.cells.consts k o ho).1, (hc.cells.consts k o ho).2, rfl, rfl,
       fun Ψ hΨ => (hc.pools Ψ hΨ).consts k o ho⟩
   · refine wp_bind.mpr (wp_modifyGet.mpr (wp_bind.mpr (wp_bind.mpr (wp_modifyGet.mpr
       (wp_modify.mpr (wp_bind.mpr (wp_modify.mpr (wp_pure.mpr ?_))))))))
     have hw : WBlind (fun _ => Guest.word k.1 k.2) st.next := wblind_const _ _
+    have hg : GoodCell (st.next + 1) st.next := ⟨h2, Nat.lt_succ_self _⟩
+    have hsc := hc.cells.mono (Nat.le_succ st.next)
     refine ⟨fun Ψ => C Ψ ∧ Ψ st.next = Guest.word k.1 k.2, ⟨assign_sat hc.blind hw le_rfl hc.sat,
-      assign_blind hc.blind hw le_rfl, fun Ψ hΨ => (hc.pools Ψ hΨ.1).insertConst hΨ.2⟩,
-      fun Ψ h => h.1, Nat.le_succ _, ?_, fun Ψ h => h.2⟩
-    refine ⟨[.op st.pending.toList (.set st.next (.const k.1 k.2))], by simp, fun s' hs' => ?_⟩
+      assign_blind hc.blind hw le_rfl, fun Ψ hΨ => (hc.pools Ψ hΨ.1).insertConst hΨ.2,
+      { hsc with consts := pmap_insert_imp hsc.consts hg }⟩,
+      fun Ψ h => h.1, Nat.le_succ _, ?_, h2, Nat.lt_succ_self _, rfl, rfl, fun Ψ h => h.2⟩
+    refine ⟨[.op st.pending.toList (.set st.next (.const k.1 k.2))], by simp, fun _ s' hs' => ?_⟩
     rw [List.mem_singleton] at hs'
     subst hs'
     refine ⟨_, _, rfl, fun Ψ hΨ => ?_⟩
