@@ -55,6 +55,8 @@ noncomputable def instOf {κ₀ : ℕ} (W : World κ₀) (tf : TracedFn) (pf : P
   locs := pf.locs
   es := es
   ops := blockOps pf.fn.body 0
+  named := Stmt.usesList tf.core.body ++ tf.core.params
+  loopH := ((loopTable W.p)[tf.core.name]?).any (·.registered)
 
 open Classical in
 /-- The frame words `Ψ` with each temporary's cell holding the temporary's word under `σ`. -/
@@ -75,7 +77,10 @@ def WalkWordsStmt : Prop :=
       (∀ rd : Reader, (∀ e ∈ es, e.Holds rd σ') →
         FrameClauses (loopTable W.p) tf pf fp σ' es vs hdr
           ⟨patchT (instOf W tf pf fp hdr σ es) Ψ σ', kh⟩) ∧
-      (kfps.length = (calls es).length → (∃ rd : Reader, ∀ e ∈ es, e.Holds rd σ') →
+      (kfps.length = (calls es).length →
+        (isLoopName tf.core.name = true → ∀ kfp, kfps.getLast? = some kfp →
+          kfp = fp + pf.fn.frameSize) →
+        (∃ rd : Reader, ∀ e ∈ es, e.Holds rd σ') →
         PathWords W tf pf fp σ' es kfps hdr ⟨patchT (instOf W tf pf fp hdr σ es) Ψ σ', kh⟩)
 
 end

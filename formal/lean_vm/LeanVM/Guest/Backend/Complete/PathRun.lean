@@ -427,8 +427,8 @@ theorem frameConsistent_of (hW : FrameWordsStmt) (hR : PathRunStmt) : FrameConsi
   intro κ₀ W hc tf htf hsc pf hpl hta hns fp hfp kfps hdr
   obtain ⟨FS, hcg, h⟩ := hW W hc tf htf hsc pf hpl hta hns fp hfp kfps hdr
   refine ⟨FS, hcg, fun σ es vs hw ha => ⟨(h σ es vs hw ha).1, fun L ck hok hev hjt hk => ?_⟩⟩
-  exact hR W hc tf htf pf hpl fp σ es kfps hdr (FS σ) ((h σ es vs hw ha).2 hok.len ⟨L.read, hev⟩)
-    L ck hok hev hjt hk
+  exact hR W hc tf htf pf hpl fp σ es kfps hdr (FS σ)
+    ((h σ es vs hw ha).2 hok.len hok.tail ⟨L.read, hev⟩) L ck hok hev hjt hk
 
 /-- **The frame is consistent, given the frame side.** -/
 theorem frameConsistent_of_words (hW : FrameWordsStmt) : FrameConsistentStmt :=

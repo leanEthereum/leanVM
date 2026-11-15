@@ -199,3 +199,11 @@ srcDir = "cli"
 name = "guest-cplframe"
 root = "GuestCplFrame"
 srcDir = "cli"
+
+# The per-function checks of the guest's completeness instance through the back end
+# (cli/GuestCplGuest.lean): run on the tables `scripts/cpl-crosscheck --tables-only` writes; not a
+# default target.
+[[lean_exe]]
+name = "guest-cplguest"
+root = "GuestCplGuest"
+srcDir = "cli"
