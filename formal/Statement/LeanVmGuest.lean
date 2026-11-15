@@ -63,14 +63,15 @@ open LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 /-! ## The claims -/
 
 /-- A leanXMSS key and a message it signed, at a leaf index the claim does not record
-(`LeanXmssClaim`, `aggregation/src/lib.rs`). -/
+(`LeanXmssClaim`, `crates/aggregation/src/lib.rs`). -/
 abbrev LeanXmssClaim : Type := HashSig.PublicKey × HashSig.Message
 
-/-- A leanSPHINCS key and a message it signed (`LeanSphincsClaim`, `aggregation/src/lib.rs`). -/
+/-- A leanSPHINCS key and a message it signed (`LeanSphincsClaim`,
+`crates/aggregation/src/lib.rs`). -/
 abbrev LeanSphincsClaim : Type := Sphincs.PublicKey × HashSig.Message
 
 /-- **A DA claim**: a blob matrix's Merkle root (an aggregate's claims' `da_commitment`,
-`aggregation/proof.rs`) and the membership challenge whose dual codeword its rows are
+`crates/aggregation/src/proof.rs`) and the membership challenge whose dual codeword its rows are
 orthogonal to. A statement carries the claim's digest (`daClaimDigest`). -/
 structure DaClaim where
   /-- The matrix's Merkle root: the commitment to its codewords. -/
@@ -111,7 +112,7 @@ def xmssPublicKeyBytes (publicKey : HashSig.PublicKey) : List UInt8 :=
 
 /-- A claim as the `64` bytes its list hashes: the key's bytes (`to_bytes`, by `publicKeyBytes`),
 then the message (`claim_cells`, `lean_xmss_claim_cells`, `lean_sphincs_claim_cells`,
-`aggregation/statement.rs`). -/
+`crates/aggregation/src/statement.rs`). -/
 def claimBytes {PublicKey : Type} (publicKeyBytes : PublicKey → List UInt8)
     (claim : PublicKey × HashSig.Message) : List UInt8 :=
   publicKeyBytes claim.1 ++ HashSig.littleEndianBytes 32 claim.2
@@ -124,7 +125,7 @@ def claimListPreimage {PublicKey : Type} (publicKeyBytes : PublicKey → List UI
 
 /-- The digest of a list of leanXMSS claims (`publicKeyBytes = xmssPublicKeyBytes`) or of
 leanSPHINCS claims (`Sphincs.PublicKey.toBytes`) (`claim_list_digest`,
-`aggregation/statement.rs`, `lean_ethereum.py`). -/
+`crates/aggregation/src/statement.rs`, `lean_ethereum.py`). -/
 def claimListDigest {PublicKey : Type} (publicKeyBytes : PublicKey → List UInt8)
     (claims : List (PublicKey × HashSig.Message)) : Digest :=
   keccak256 (claimListPreimage publicKeyBytes claims)
@@ -149,7 +150,7 @@ def statementPreimage (seed : Digest) (statement : NodeStatement) : List UInt8 :
     statement.deferredClaim.cells.flatMap E.toBytes
 
 /-- **The statement's digest under `seed`**, a node's public input (`statement_digest`,
-`aggregation/statement.rs`, `lean_ethereum.py`). The cells carry no lengths: the
+`crates/aggregation/src/statement.rs`, `lean_ethereum.py`). The cells carry no lengths: the
 digest tells two deferred claims apart only at one shape. -/
 def statementDigest (seed : Digest) (statement : NodeStatement) : Digest :=
   keccak256 (statementPreimage seed statement)
@@ -199,22 +200,23 @@ structure NodeWitness where
   batchingHints : BatchingHints
 
 /-- The deferred claim has the shape of the bytecode `bytecode`: a point of `log₂` of its length
-(`bytecode_vars`, `aggregation/src/deferred.rs`; `BYTECODE_VARS`, `lean_ethereum.py`). -/
+(`bytecode_vars`, `crates/aggregation/src/deferred.rs`; `BYTECODE_VARS`, `lean_ethereum.py`). -/
 def DeferredBytecodeClaim.HasBytecodeShape (bytecode : List K) (claim : DeferredBytecodeClaim) : Prop :=
   claim.bytecodePoint.length = Nat.log2 bytecode.length
 
 /-- What a leaf defers: the bytecode at the all-zero point (`DeferredBytecodeClaim::leaf`,
-`aggregation/src/deferred.rs`; `main`'s leaf branch, `lean_ethereum.py`). The value is
+`crates/aggregation/src/deferred.rs`; `main`'s leaf branch, `lean_ethereum.py`). The value is
 the outer verifier's to check. -/
 def DeferredBytecodeClaim.HasZeroPoint (bytecode : List K) (claim : DeferredBytecodeClaim) : Prop :=
   claim.bytecodePoint = List.replicate (Nat.log2 bytecode.length) 0
 
 /-- **The deferred claim is true** of the bytecode `bytecode`: it has the shape, and the value is
 the bytecode's multilinear extension at the point (`DeferredBytecodeClaim::recompute_scalar`,
-`aggregation/src/deferred.rs`). The length being `2 ^ len` is part of it: `HasBytecodeShape` reads
-`Nat.log2` of the length, which a bytecode of other length shares, and the extension is of
+`crates/aggregation/src/deferred.rs`). The length being `2 ^ len` is part of it: `HasBytecodeShape`
+reads `Nat.log2` of the length, which a bytecode of other length shares, and the extension is of
 `2 ^ len` values. Stronger than `BytecodeClaim.Holds` (the value only). The deployed outer verifier
-checks it of the root's deferred claim (`AggregateProof::verify`, `aggregation/proof.rs`). -/
+checks it of the root's deferred claim (`AggregateProof::verify`,
+`crates/aggregation/src/proof.rs`). -/
 def DeferredBytecodeClaim.HoldsWithShape (bytecode : List K) (claim : DeferredBytecodeClaim) : Prop :=
   claim.HasBytecodeShape bytecode ∧ 2 ^ claim.bytecodePoint.length = bytecode.length ∧
     multilinearEval (bytecode.map ofK) claim.bytecodePoint = claim.bytecodeValue

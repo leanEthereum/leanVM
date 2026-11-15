@@ -7,8 +7,8 @@ public import LeanVM.Parameters.Isa
 
 Kernel checks that the six codes are the words `1, 2, 4, 8, 16, 32`, bits `0` to `5` since `g = x`,
 in the order of `crates/lean_vm_core/src/tables.rs`, and that the caps carry the values of
-`cpu/mod.rs`, `crates/verifier/src/layout.rs` and `crates/flock/src/hash.rs`. The
-caps are checked against each other so that an announcement at the floor is admissible.
+`crates/verifier/src/layout.rs` (`MIN_LOG_MEMORY`, `MAX_LOG_MEMORY`, `MAX_TABLE_LOG`,
+`MAX_LOG_BYTECODE`). The caps are checked against each other so that an announcement at the floor is admissible.
 -/
 
 namespace LeanVMTests.Parameters

@@ -462,7 +462,7 @@ Operands:
 
 If `out` was already written, the statement *asserts* the result equals it, write-once turning the hash into a verification, which is exactly what a signature verifier wants.
 
-The permutation is proven by a GKR over the Keccak rounds (`crates/keccak_gkr`); one instruction is one permutation.
+The permutation is proven by a GKR over the Keccak rounds (each prover tree's `keccak_gkr`); one instruction is one permutation.
 
 ## Hints: `hint_witness(dest, "name")`
 

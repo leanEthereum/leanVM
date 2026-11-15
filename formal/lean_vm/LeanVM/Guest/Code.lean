@@ -13,7 +13,7 @@ public import Statement.LeanIsa
 /-!
 # Offset-form bytecode
 
-The compiler's `Op` (`crates/lean_vm_core/src/cpu/isa.rs`) names a frame cell by its offset `o`,
+The compiler's `Op` (`crates/isa/src/lib.rs`) names a frame cell by its offset `o`,
 whose bytecode slot is `g^o` (`crates/lean_vm_core/src/cpu/layout.rs`), and holds a `SET`
 immediate as three `u64` limbs. `OffsetInstruction` is that form, and
 `OffsetInstruction.toLeanIsaInstruction` its meaning in

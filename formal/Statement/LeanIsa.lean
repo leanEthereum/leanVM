@@ -108,7 +108,7 @@ inductive DerefMode
 
 /-- How many of a `KECCAK`'s thirteen output cells it writes, from the first on: the first, the
 first two (a 256-bit digest), or all thirteen (a state a later block reads) (`OutCells`,
-`crates/lean_vm_core/src/cpu/isa.rs`). The program fixes it, never the prover. -/
+`crates/isa/src/lib.rs`). The program fixes it, never the prover. -/
 inductive KeccakOutputCells
   /-- The first output cell. -/
   | one
@@ -119,7 +119,7 @@ inductive KeccakOutputCells
   deriving DecidableEq
 
 /-- The number of output cells written: `1`, `2` or `13` (`OutCells::cells`,
-`crates/lean_vm_core/src/cpu/isa.rs`). -/
+`crates/isa/src/lib.rs`). -/
 def KeccakOutputCells.cellCount : KeccakOutputCells → ℕ
   | .one => 1
   | .two => 2
@@ -419,7 +419,7 @@ open LeanVM.Parameters LeanVM.Semantics
 /-! ## The bytecode encoding (specification §8.1) -/
 
 /-- The `DEREF` store-mode flags `(f_pc, f_fp)`: `cell ↦ (0, 0)`, `pc ↦ (1, 0)`, `fp ↦ (0, 1)`
-(`crates/lean_vm_core/src/cpu/isa.rs`; specification §7.4). -/
+(`crates/isa/src/lib.rs`; specification §7.4). -/
 def derefFlags : DerefMode → K × K
   | .cell => (0, 0)
   | .pc => (1, 0)
@@ -431,7 +431,7 @@ def layoutFlagWord (b : Bool) : K := if b then 1 else 0
 
 /-- `KECCAK`'s output flags `(out_two, out_all)`: whether output cell `1` is written, and whether
 cells `2` to `12` are: `one ↦ (0, 0)`, `two ↦ (1, 0)`, `all ↦ (1, 1)` (`OutCells::flags`,
-`crates/lean_vm_core/src/cpu/isa.rs`; `cpu/layout.rs`). -/
+`crates/isa/src/lib.rs`; `crates/lean_vm_core/src/cpu/layout.rs`). -/
 def keccakOutputFlags (outCells : KeccakOutputCells) : K × K :=
   (layoutFlagWord (outCells != .one), layoutFlagWord (outCells == .all))
 
@@ -506,7 +506,7 @@ inductive OffsetInstruction
   `fp[cap + k]` (`k < 4`), in that order, hold a Keccak state in the layout `inOdd`, and the
   cells `fp[out + k]` (`k < outCells.cellCount`) hold the first `outCells.cellCount` of the
   thirteen cells of its Keccak-f[1600] in the layout `outOdd` (`KeccakCellsRelation`;
-  `Op::Keccak`, `crates/lean_vm_core/src/cpu/isa.rs`). -/
+  `Op::Keccak`, `crates/isa/src/lib.rs`). -/
   | keccak (m0 m1 m2 m3 tail b8 cap out : ℕ) (inOdd outOdd : Bool) (outCells : KeccakOutputCells)
   deriving DecidableEq
 

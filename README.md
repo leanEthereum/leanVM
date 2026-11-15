@@ -30,7 +30,7 @@
     <td align="right"><b>140 ms</b></td>
   </tr>
   <tr>
-    <td><a href="#hashing">proving KECCAK</a></td>
+    <td><a href="#proving-keccak">proving KECCAK</a></td>
     <td align="right"><b>700K/s</b></td>
   </tr>
   <tr>
@@ -63,7 +63,7 @@ The Rust prover exists twice, proving the same protocol with the same proof byte
  * `crates/stable-prover`: plain, portable, safe code, as short as the protocol allows, slower
  * `crates/experimental-prover`: the optimized prover (NEON, AVX2, AVX-512, cache-aware kernels), where performance work lands
 
-Both are verified by the one verifier in `crates/verifier`, and share the zkDSL compiler, the signature schemes, LeanDA, the public API (`crates/lean_vm`, with the experimental prover behind its `experimental-prover` feature) and the whole aggregation (`crates/aggregation` and its guest), which is generic over the `isa::Prover` trait each prover implements. The benchmarks below are the experimental prover's; add `--prover stable` to any command for the other.
+Both are verified by the one verifier in `crates/verifier`, and share the zkDSL compiler, the signature schemes, LeanDA, the public API (`crates/lean_vm`, with the experimental prover behind its `experimental-prover` feature) and the whole aggregation (`crates/aggregation` and its guest), which is generic over the `isa::Prover` trait each prover implements. The benchmarks below are the experimental prover's; for the stable one, add `--prover stable` to a `cargo leanvm` command, or bench `stable_keccak_gkr` instead of `experimental_keccak_gkr`.
 
 ## benchmarks
 
