@@ -1362,6 +1362,20 @@ theorem sharedTable_fat {C : (ℕ → E) → Prop} {st : St} (fs : List String) 
   FAt.ofSame (wp_mono (sharedTable_wp fs) fun _ _ ⟨a, b, c, d, e, f, g⟩ =>
     ⟨a, b, c, by rw [d]; exact LocsLe.refl _, rfl, a, c, d, e, f, g⟩)
 
+/-- A statement the final placement has last in its block's output so far ends within it. -/
+theorem opsAt_end {p₀ : ℕ} {st : St} {pre : List PStmt} {X : PStmt} (h : OpsAt I p₀ st)
+    (ho : st.out.toList = pre ++ [X]) (hne : 0 < stmtSize X) :
+    p₀ + blockSize pre + stmtSize X ≤ I.ops.length := by
+  unfold OpsAt at h
+  rw [ho, bops_append] at h
+  have h' := h.right
+  rw [blockOps_length] at h'
+  have hl : (blockOps [X] (p₀ + blockSize pre)).length = stmtSize X := by
+    rw [blockOps_length]; simp [blockSize]
+  have hi := h' (stmtSize X - 1) (by omega)
+  have := (List.getElem?_eq_some_iff.mp hi).1
+  omega
+
 /-- **A fused `match` of calls on the path** (`dispatch`): the statement's flush and `emit`, the
 arguments' and the returns' cells, the selector's cell, the pooled `1`, the next frame pointer
 (word `g^kf[i₀]`), the join (word the return pc, the instruction after the jump), the shared
@@ -1371,7 +1385,7 @@ the selector, the jump, the returns read back. -/
 theorem stmtW_dispatch (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
     (hAg : AgOwn I Ag) (hK : AgKids ctx I Ag cl)
     (hkw : ∀ k, I.kw k = kwOf Γ k)
-    (hloc : ∀ o q, LOp.set o (.local q) ∈ I.ops → kwOf Γ (.local q) = Γ.tgt q)
+    (hlocB : ∀ q, q ≤ I.ops.length → kwOf Γ (.local q) = Γ.tgt q)
     {x : V} {fs : List String} {args rets : List V} {rest tl : List Stmt}
     (hns : ∀ g ∈ fs, g ≠ ctx.name) (hu : ∀ v ∈ x :: (args ++ rets), v ∉ I.tmps) :
     StmtW Γ Ag cl ctx I (.dispatch x fs args rets) rest tl := by
@@ -1494,6 +1508,13 @@ theorem stmtW_dispatch (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
   have hops' : st₈.out.toList = st.out.toList ++ ops := hops
   have hpos : p₀ + blockSize st.out.toList + blockSize ops = p₀ + blockSize st₄.out.toList := by
     rw [Nat.add_assoc, ← bsize_append, ← hops', hout8]
+  have hend := opsAt_end hO (pre := st.out.toList ++ ops)
+    (X := .dispatch hints fs st₄.next (st₄.next + 1) lx st₈.next one tb las lrs)
+    (by simp [hops']) (by simp [stmtSize])
+  have hq : p₀ + blockSize st₄.out.toList + las.length + 5 ≤ I.ops.length := by
+    rw [bsize_append, ← Nat.add_assoc, hpos] at hend
+    simp only [stmtSize] at hend
+    omega
   refine ⟨ops ++ [.dispatch hints fs st₄.next (st₄.next + 1) lx st₈.next one tb las lrs],
     by simp [hops'], ?_⟩
   refine blkW_ops_ctl' hok [(Γ.tgt (p₀ + blockSize st.out.toList + blockSize ops + las.length + 5),
@@ -1585,7 +1606,7 @@ theorem stmtW_dispatch (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
       have := hK σ' Ψ kh κ L hL i₀ _ kfp hcl0 hkf
       rw [hkh] at this
       refine ⟨?_, this.2.1⟩
-      rw [this.1, hfj, hkw, hloc _ _ hjset])
+      rw [this.1, hfj, hkw, hlocB _ hq])
     (hfx.trans hxj)
     (fun κ L hL => by rw [hfe]; exact hT fs tb hsh8 σ' Ψ kh κ L hL j hj),
    jw_of hr (by comega) (by comega) (by comega) (by rw [hfo]; exact h1K)
