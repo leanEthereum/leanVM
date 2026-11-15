@@ -150,7 +150,11 @@ impl F128 {
         #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
         {
             let [s0, s1] = self.to_limbs().map(square_wide);
-            F128Unreduced::from_wide([s0 ^ s1, s1 << 1]).reduce()
+            // The spreads come out of integer registers, so the reduction stays in them.
+            Self {
+                c0: reduce(s0 ^ s1),
+                c1: reduce(s1 << 1),
+            }
         }
     }
 
@@ -427,7 +431,15 @@ impl F128Unreduced {
         {
             aarch64::reduce(self)
         }
-        #[cfg(not(all(target_arch = "aarch64", target_feature = "aes")))]
+        #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq", target_feature = "ssse3"))]
+        {
+            // SAFETY: ssse3 is enabled at compile time.
+            unsafe { x86_64::reduce(self) }
+        }
+        #[cfg(not(any(
+            all(target_arch = "aarch64", target_feature = "aes"),
+            all(target_arch = "x86_64", target_feature = "pclmulqdq", target_feature = "ssse3")
+        )))]
         {
             let [c0, c1] = self
                 .coeffs
@@ -731,7 +743,7 @@ pub mod x86_64 {
 
     /// `g(spill)` per top nibble `n` of a high word, in each 128-bit lane (see `G_SPILL`'s 512-bit
     /// form): `spill = n ^ n>>1 ^ n>>3` are the bits that `g(hi)` pushes past x^63.
-    #[cfg(target_feature = "avx2")]
+    #[cfg(target_feature = "ssse3")]
     static G_SPILL_256: [u8; 32] = {
         let mut t = [0u8; 32];
         let mut i = 0;
@@ -743,6 +755,30 @@ pub mod x86_64 {
         }
         t
     };
+
+    /// Both coefficients of an unreduced element, reduced in one register: the shifts and the lookup of
+    /// `reduce_lanes256` on two qwords. [`crate::field::gf2_64::reduce`] would move four words to integer
+    /// registers and two back.
+    ///
+    /// # Safety
+    ///
+    /// Requires the `ssse3` target feature.
+    #[cfg(target_feature = "ssse3")]
+    #[inline]
+    #[target_feature(enable = "ssse3")]
+    pub fn reduce(u: F128Unreduced) -> F128 {
+        let [d0, d1] = u.coeffs.map(bits::<[u64; 2], __m128i>);
+        let (lo, hi) = (_mm_unpacklo_epi64(d0, d1), _mm_unpackhi_epi64(d0, d1));
+        // SAFETY: a 16-byte read of a 32-byte static.
+        let table = unsafe { _mm_loadu_si128(G_SPILL_256.as_ptr().cast()) };
+        let g_spill = _mm_shuffle_epi8(table, _mm_srli_epi64::<60>(hi));
+        let z = _mm_xor_si128(hi, _mm_slli_epi64::<1>(hi));
+        let [c0, c1] = bits::<__m128i, [u64; 2]>(_mm_xor_si128(
+            _mm_xor_si128(lo, z),
+            _mm_xor_si128(g_spill, _mm_slli_epi64::<3>(z)),
+        ));
+        F128 { c0, c1 }
+    }
 
     /// Lane-wise base reduction: qword `i` of the result is the reduction of `hi[i] * x^64 + lo[i]`.
     ///
