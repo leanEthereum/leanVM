@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.EndExecRCp
 
-  `certify_placement`'s residuals at its honest frames: rank `1`'s key nonzero, and the hinted
-  group order onto the nine groups, so its ranks write every cell of `group_base`.
+  `certify_placement`'s residuals at its honest frames: a rank's key nonzero, and the hinted group
+  order onto the nine groups, so its ranks write every cell of `group_base`.
 -/
 
 module
@@ -26,8 +26,9 @@ the next.
 
 The keys strictly descend (`cp_desc`), so the ranks' keys are distinct, and the keys being the
 words of their groups' cells, the ranks' groups are (`Value.cover_of_writeOnce`): nine ranks into
-nine groups, onto. The divisor at offset `152` is rank `1`'s key; the run at offset `275` is
-`group_base[0 .. 9)`, each cell `g^k` that of the rank `r` with `π r = k`.
+nine groups, onto. Each residual is one of the shapes `Res.cpAcc` takes, wherever the walk puts
+it (`Res.cp_res`): a divisor is a rank's key; the run is `group_base[0 .. 9)`, each cell `g^k` that
+of the rank `r` with `π r = k`.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -179,7 +180,7 @@ theorem resCp_alignA : ResCert alignA Fn.«certify_placement».modeCert := by
   intro r hr i hi e j t x hx hin
   have hres := LeanVM.Guest.Res.cp_res i hi x hx
   obtain ⟨hj0, hent0⟩ := LeanVM.Guest.Res.cp_idx
-  obtain ⟨c155, c136, c137, hfs⟩ := LeanVM.Guest.Res.cp_cells
+  have hcells := LeanVM.Guest.Res.cp_cells
   have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size
   -- the frame's function
   obtain ⟨ia, rfl, hia, hna, hfa, hca, -, -, h1a, hlta⟩ := fn_of_idx t.idx
@@ -191,7 +192,7 @@ theorem resCp_alignA : ResCert alignA Fn.«certify_placement».modeCert := by
     rw [this, hent0]
   obtain rfl : ia = ib := by omega
   have hname : e.I.t.name = "certify_placement" := by rw [← hna, hnb]
-  rw [← hjj] at c155 c136 c137 hfs
+  rw [← hjj] at hcells hres
   -- the instance's body at its valuation, and its exponent tables
   obtain ⟨f0, bufs, kids, hnode⟩ := t.node
   have hf0 : f0 = "certify_placement" := by rw [← hname, hnode]; rfl
@@ -212,22 +213,27 @@ theorem resCp_alignA : ResCert alignA Fn.«certify_placement».modeCert := by
       2 ≤ cellJ (ia + 1) v → cellJ (ia + 1) v < fsN (ia + 1) →
       refMem r.img (e.I.fp + cellJ (ia + 1) v) = e.σ v := fun a ha v hv h2 hlt ↦
     t.cell hr hF (namedOf_atom (lead_on_path hw ha) hv) h2 hlt
-  rcases hres with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
-  · -- rank `1`'s key, the word at its group's cell
-    show refMem r.img (e.I.fp + 141) ≠ 0
-    rw [← c155, hcell (.load (.n 155) (.n 154) 0) (by decide +kernel) (.n 155) (by decide) (by omega)
-      (by omega)]
-    obtain ⟨⟨gi, hgi, hg⟩, hld, -⟩ := hf 1 (by omega)
-    rw [show cpRB 1 = 149 from rfl, show cpRK 1 = 155 from rfl] at *
-    rw [hg, tb_loadHolds_mul_gen_pow, Nat.add_zero] at hld
+  have hcellV : ∀ a ∈ leadAtoms (cpPre ++ [.ret [.n 406, .n 407]]), ∀ v ∈ atomUses a, v ∈ LeanVM.Guest.Res.cpVals →
+      refMem r.img (e.I.fp + cellJ (ia + 1) v) = e.σ v := fun a ha v hv hv' ↦
+    hcell a ha v hv (hcells v hv').1 (hcells v hv').2
+  simp only [LeanVM.Guest.Res.cpAcc, Bool.or_eq_true, List.any_eq_true, List.mem_range, beq_iff_eq] at hres
+  rcases hres with ⟨r1, hr1, rfl⟩ | rfl
+  · -- rank `r1 + 1`'s key, the word at its group's cell
+    have hatom : ∀ r < 8, Atom.load (.n (137 + 18 * (r + 1))) (.n (136 + 18 * (r + 1))) 0 ∈
+        leadAtoms (cpPre ++ [.ret [.n 406, .n 407]]) := by decide +kernel
+    show refMem r.img (e.I.fp + cellJ (ia + 1) (.n (137 + 18 * (r1 + 1)))) ≠ 0
+    rw [hcellV _ (hatom r1 hr1) _ (by simp [atomUses])
+      (List.mem_append_left _ (List.mem_map.mpr ⟨r1, List.mem_range.mpr hr1, rfl⟩))]
+    obtain ⟨⟨gi, hgi, hg⟩, hld, -⟩ := hf (r1 + 1) (by omega)
+    have eK : cpRK (r1 + 1) = 137 + 18 * (r1 + 1) := by simp only [cpRK, Nat.add_one_ne_zero, ↓reduceIte]
+    rw [eK, hg, tb_loadHolds_mul_gen_pow, Nat.add_zero] at hld
     obtain ⟨K, hK0, hKl⟩ := hK gi hgi
     rw [tb_loadHolds_unique hld hKl]
     exact hK0
   · -- `group_base[0 .. 9)`: cell `g^k` the rank's whose group is `k`
     obtain ⟨π, hπ, hon⟩ := cp_onto hK hf
-    have e136 := hcell (.load (.n 138) (.n 136) 0) (by decide +kernel) (.n 136) (by decide) (by omega)
-      (by omega)
-    rw [c136] at e136
+    have e136 := hcellV (.load (.n 138) (.n 136) 0) (by decide +kernel) (.n 136) (by decide)
+      (by decide)
     refine ⟨0, 9, rfl, rfl, fun vq hvq k _ hk ↦ ?_⟩
     obtain ⟨r0, hr0, hπr⟩ := hon k hk
     refine ⟨_, List.mem_map.mpr ⟨r0, List.mem_range.mpr hr0, rfl⟩,
