@@ -608,9 +608,10 @@ what is left is the frame address fact, the straight-line and call statements, t
 theorem bodyW_of (body : List Stmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
     (hfa : ∀ s rest, InBody body (s :: rest) → FaAfter I.σ s rest)
     (hflat : FlatW Γ Ag cl ctx I (InBody body)) (hself : SelfW Γ Ag cl ctx I (InBody body))
+    (hcu : ∀ c z nz rest, InBody body (.ite c z nz :: rest) → c ∉ I.tmps)
     (hite : IteStmt Γ Ag cl ctx I) (hmatch : MatchW Γ Ag cl ctx I (InBody body))
     (tl : List Stmt) : BlockW Γ Ag cl ctx I (placeBlock body) body tl :=
-  bodyW body placeMono placeNew_ok hfa hflat hself (inBlockOf hok hI) hite hmatch tl
+  bodyW body placeMono placeNew_ok hfa hflat hself hcu (inBlockOf hok hI) hite hmatch tl
 
 end Inner
 
