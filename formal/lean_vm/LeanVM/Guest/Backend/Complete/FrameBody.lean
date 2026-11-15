@@ -202,3 +202,91 @@ theorem winv_init (hS : Scoped tf)
       | true => exact absurd (hparam v h) hnv
 
 end Init
+
+/-! ## The selectors a path reads -/
+
+section Sels
+
+variable {σ σ' : Val}
+
+mutual
+/-- The selectors on a statement's path depend only on its uses. -/
+theorem sels1_congr : ∀ (s : Stmt), (∀ v ∈ Stmt.uses s, σ' v = σ v) → sels1 σ' s = sels1 σ s
+  | .atom _, _ => rfl
+  | .ite c z n, h => by
+      simp only [Stmt.uses, List.mem_cons, List.mem_append] at h
+      rw [sels1, sels1, h c (Or.inl rfl), pathSels_congr z fun v hv => h v (Or.inr (Or.inl hv)),
+        pathSels_congr n fun v hv => h v (Or.inr (Or.inr hv))]
+  | .match_ x arms, h => by
+      simp only [Stmt.uses, List.mem_cons] at h
+      rw [sels1, sels1, armSels_congr x (h x (Or.inl rfl)) arms 0 fun v hv => h v (Or.inr hv)]
+  | .call .., _ => rfl
+  | .callIf .., _ => rfl
+  | .dispatch .., _ => rfl
+  | .ret _, _ => rfl
+
+/-- The selectors on a block's path depend only on its uses. -/
+theorem pathSels_congr : ∀ (ss : List Stmt), (∀ v ∈ Stmt.usesList ss, σ' v = σ v) →
+    pathSels σ' ss = pathSels σ ss
+  | [], _ => rfl
+  | s :: ss, h => by
+      simp only [Stmt.usesList, List.mem_append] at h
+      rw [pathSels, pathSels, walk1_congr s fun v hv => h v (Or.inl hv),
+        sels1_congr s fun v hv => h v (Or.inl hv), pathSels_congr ss fun v hv => h v (Or.inr hv)]
+
+theorem armSels_congr (x : V) (hx : σ' x = σ x) : ∀ (arms : List (List Stmt)) (j : ℕ),
+    (∀ v ∈ Stmt.usesArms arms, σ' v = σ v) → armSels σ' x j arms = armSels σ x j arms
+  | [], _, _ => rfl
+  | a :: as, j, h => by
+      simp only [Stmt.usesArms, List.mem_append] at h
+      rw [armSels, armSels, hx, pathSels_congr a fun v hv => h v (Or.inl hv),
+        armSels_congr x hx as (j + 1) fun v hv => h v (Or.inr hv)]
+end
+
+mutual
+/-- The selectors on a statement's path are among its uses. -/
+theorem sels1_sub : ∀ (s : Stmt), ∀ v ∈ sels1 σ s, v ∈ Stmt.uses s
+  | .atom _, _, h => by simp [sels1] at h
+  | .ite c z n, v, h => by
+      simp only [sels1] at h
+      simp only [Stmt.uses, List.mem_cons, List.mem_append]
+      split at h
+      · exact Or.inr (Or.inl (pathSels_sub z v h))
+      · exact Or.inr (Or.inr (pathSels_sub n v h))
+  | .match_ x arms, v, h => by
+      simp only [sels1, List.mem_cons] at h
+      simp only [Stmt.uses, List.mem_cons]
+      rcases h with h | h
+      · exact Or.inl h
+      · exact Or.inr (armSels_sub x arms 0 v h)
+  | .call .., _, h => by simp [sels1] at h
+  | .callIf .., _, h => by simp [sels1] at h
+  | .dispatch x .., v, h => by
+      simp only [sels1, List.mem_singleton] at h
+      simp [Stmt.uses, h]
+  | .ret _, _, h => by simp [sels1] at h
+
+/-- The selectors on a block's path are among its uses. -/
+theorem pathSels_sub : ∀ (ss : List Stmt), ∀ v ∈ pathSels σ ss, v ∈ Stmt.usesList ss
+  | [], _, h => by simp [pathSels] at h
+  | s :: ss, v, h => by
+      simp only [pathSels] at h
+      simp only [Stmt.usesList, List.mem_append]
+      split at h
+      · rcases List.mem_append.mp h with h | h
+        · exact Or.inl (sels1_sub s v h)
+        · exact Or.inr (pathSels_sub ss v h)
+      · exact Or.inl (sels1_sub s v h)
+
+theorem armSels_sub (x : V) : ∀ (arms : List (List Stmt)) (j : ℕ),
+    ∀ v ∈ armSels σ x j arms, v ∈ Stmt.usesArms arms
+  | [], _, _, h => by simp [armSels] at h
+  | a :: as, j, v, h => by
+      simp only [armSels] at h
+      simp only [Stmt.usesArms, List.mem_append]
+      split at h
+      · exact Or.inl (pathSels_sub a v h)
+      · exact Or.inr (armSels_sub x as (j + 1) v h)
+end
+
+end Sels
