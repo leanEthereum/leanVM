@@ -26,8 +26,7 @@ parameter, a loop helper's counter is a power of `g` (`TopAt.ctr`, `Res.insts_ct
 parameter is nonzero at every honest instance (`NzVal`, B1's).
 
 `resTop_of_ok`: `ResTop` from `ResOk` of every certificate, the listed certificates' residuals
-(`ResCert`), the `sub` family's and the exponent facts' order residuals (`ResOpen`) and the listed
-parameters' `NzVal`.
+(`ResCert`), the `sub` family's (`ResOpen`) and the listed parameters' `NzVal`.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -276,13 +275,11 @@ def ResOpen (Ks : List Mode.Cert) (A : String → FnAl) (p : ℕ → Mode.Res �
     ∀ x ∈ (K.F.res.get i).getD [], p j x → RIn (refMem r.img) e.I.fp x → RRes (refMem r.img) e.I.fp x
 
 /-- **`ResTop` by family**: every certificate's residuals in the families, the listed ones', the
-splits, the other `sub` residuals', the order residuals the exponent facts bound and the listed
-parameters' nonzero values given. -/
+splits, the other `sub` residuals' and the listed parameters' nonzero values given. -/
 theorem resTop_of_ok {Ks exc : List Mode.Cert} {nzs : List (String × V)} {A : String → FnAl}
     (hok : ∀ K ∈ Ks, ResOk exc nzs K) (hexc : ∀ K ∈ exc, ResCert A K)
     (hsp : ∀ p ∈ Res.splits, SplitAt A p.1 p.2.1 p.2.2.1 p.2.2.2.1 p.2.2.2.2)
     (hsub : ResOpen Ks A fun j x ↦ (∃ a bs, x = .sub a bs) ∧ Res.splitB j x = false)
-    (hexp : ResOpen Ks A fun j x ↦ Res.ltExpB j x = true)
     (hnz : ∀ p ∈ nzs, NzVal p.1 p.2) : ResTop Ks A := by
   intro r hr K hK i hi e j t x hx hin
   rcases hok K hK with hK' | ⟨j0, hj0, hent, hall⟩
@@ -300,11 +297,7 @@ theorem resTop_of_ok {Ks exc : List Mode.Cert} {nzs : List (String × V)} {A : S
     have hf := List.all_eq_true.mp (allV_get hall hg) x hx
     cases x with
     | name o => exact rres_name
-    | lt a b =>
-      simp only [famB, Bool.or_eq_true] at hf
-      rcases hf with hf | hf
-      · exact ltSel_top t hr hf hin
-      · exact hexp r hr K hK i hi e j t _ (by rw [hg]; exact hx) hf hin
+    | lt a b => exact ltSel_top t hr hf hin
     | sub a bs =>
       cases hs : Res.splitB j (.sub a bs) with
       | true => exact split_top t hr hsp hs
