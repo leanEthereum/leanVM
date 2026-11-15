@@ -194,16 +194,31 @@ def RW (I : Inst) (C : (ℕ → E) → Prop) (st : St) (vs : List V) : Prop :=
   ∀ v ∈ vs, v ∉ allocsOf st.rest ∧ (v ∉ I.tmps → ∀ l, st.locs[v]? = some l →
     2 ≤ locBase l ∧ locBase l < st.next ∧ ∀ Ψ, C Ψ → locW Ψ l = I.σ v)
 
+/-- **The shared jump tables the walk has made hold on every memory `Ag` admits**: slot
+`first + j` of the table of the callees `fs` holds the entry of `fs[j]` (CplFrameCalls' finding
+on dispatch: the walk's tables are the final layout's). -/
+def TabsW {κ₀ : ℕ} (Γ : Site κ₀) (Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) →
+    MemoryImage κ → Prop) (st : St) : Prop :=
+  ∀ fs first, (fs, first) ∈ st.tables.shared → ∀ σ' Ψ kh κ (L : MemoryImage κ), Ag σ' Ψ kh κ L →
+    ∀ j (hj : j < fs.length), L.read (addressOfIndex (Γ.l.tablesBase + (first + j))) =
+      some (ofK (addressOfIndex (Γ.ent fs[j])))
+
+/-- **A state the final placement extends**: its cells and places final, the current block's
+instructions so far (from the absolute position `p₀`) final, its shared tables in the layout. -/
+def FinAt {κ₀ : ℕ} (Γ : Site κ₀) (I : Inst) (Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) →
+    MemoryImage κ → Prop) (p₀ : ℕ) (st : St) : Prop :=
+  Fits I st ∧ OpsAt I p₀ st ∧ TabsW Γ Ag st
+
 /-- **What a block's placement on the path gives**, from `st` to `st'` for the core statements
 `ss` (followed by `tl`) with path `o`, calls from `i₀`, the current block's placed statements
-starting at the absolute position `p₀`: once the final placement extends `st'` and has the
-instructions placed so far, the invariant if the path falls through, the statements laid with
-their words (`BlkW`) and the words of the values the path read (`RW`). -/
+starting at the absolute position `p₀`: once the final placement extends `st'` (`FinAt`), the
+invariant if the path falls through, the statements laid with their words (`BlkW`) and the words
+of the values the path read (`RW`). -/
 def BlockOut {κ₀ : ℕ} (Γ : Site κ₀) (Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) →
     MemoryImage κ → Prop) (cl : List Call) (ctx : Ctx) (I : Inst) (st : St) (s' : SSt)
     (ss tl : List Stmt) (o : Out) (i₀ p₀ : ℕ) (C' : (ℕ → E) → Prop) (st' : St) : Prop :=
-  (∀ es, o = .fall es → Fits I st' → OpsAt I p₀ st' → WInv ctx I C' st' s') ∧
-    st'.chainIn = none ∧ (Fits I st' → OpsAt I p₀ st' → ∃ blk,
+  (∀ es, o = .fall es → FinAt Γ I Ag p₀ st' → WInv ctx I C' st' s') ∧
+    st'.chainIn = none ∧ (FinAt Γ I Ag p₀ st' → ∃ blk,
       st'.out.toList = st.out.toList ++ blk ∧
       BlkW Γ I ctx Ag cl C' blk ss tl o i₀ (p₀ + blockSize st.out.toList) ∧
       RW I C' st' (pathVals I.σ ss o))
@@ -523,6 +538,14 @@ theorem OpsAt.back {p₀ : ℕ} {st st' : St} {blk : List PStmt} (h : OpsAt I p�
 theorem OpsAt.outOps {p₀ : ℕ} {st : St} (h : OpsAt I p₀ st) : OutOps I st := fun _ _ hm =>
   h _ (op_mem_blockOps _ p₀ hm)
 
+/-- A state before one the final placement extends, with fewer instructions and tables. -/
+theorem FinAt.back {κ₀ : ℕ} {Γ : Site κ₀}
+    {Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop} {p₀ : ℕ} {st st' : St}
+    {blk : List PStmt} (h : FinAt Γ I Ag p₀ st') (hn : st.next ≤ st'.next)
+    (hl : LocsLe st.locs st'.locs) (ho : st'.out.toList = st.out.toList ++ blk)
+    (ht : ∀ x ∈ st.tables.shared, x ∈ st'.tables.shared) : FinAt Γ I Ag p₀ st :=
+  ⟨h.1.back hn hl, h.2.1.back ho, fun fs first hm => h.2.2 fs first (ht _ hm)⟩
+
 /-- The values `vs` but temporaries placed, in the frame below the next free cell, their places
 holding their words under the constraint. -/
 def PW (I : Inst) (C : (ℕ → E) → Prop) (st : St) (vs : List V) : Prop :=
@@ -588,7 +611,7 @@ theorem BlockW.nil (tl : List Stmt) : BlockW Γ Ag cl ctx I (placeBlock []) [] t
   rw [walk] at hw
   subst hw
   rw [placeBlock]
-  refine FBAt.pure ⟨fun _ _ _ _ => hinv, hinv.chain, fun _ _ => ⟨[], by simp, ⟨[],
+  refine FBAt.pure ⟨fun _ _ _ => hinv, hinv.chain, fun _ => ⟨[], by simp, ⟨[],
     by simp [outEs, calls], HsOk.nil _ _ _,
     fun _ Ψ _ σ' _ kh cs ks next kj kret khalt _ hcs _ hk => ?_⟩,
     by rw [pathVals_nil]; exact fun v hv => nomatch hv⟩⟩
@@ -646,8 +669,14 @@ def PlaceMono (ctx : Ctx) : Prop :=
 primitives' agent): the values a path already read stay unplaced or keep their places. -/
 def PlaceNew (ctx : Ctx) : Prop :=
   ∀ (ss : List Stmt) (st : St), wpP (placeBlock ss) ctx st fun _ st' =>
-    (∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest) ∧
-    ∀ v ∈ allocsOf st'.rest, v ∈ allocsOf st.rest
+    (st.lazy = none → ∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest) ∧
+    (∀ v ∈ allocsOf st'.rest, v ∈ allocsOf st.rest) ∧
+    ∀ x ∈ st.tables.shared, x ∈ st'.tables.shared
+
+/-- A statement's end clears the value waiting to be placed. -/
+theorem end_lazy {α : Type} (m : P α) (st : St) :
+    wpP (m >>= fun _ => endStmt) ctx st fun _ st' => st'.lazy = none :=
+  wp_bind.mpr fun _ _ _ => by unfold endStmt; exact wp_modify.mpr rfl
 
 theorem outEs_pre {o : Out} (h : o ≠ .stuck) (es : List Ev) :
     outEs (o.pre es) = es ++ outEs o := by
@@ -696,18 +725,19 @@ theorem BlockW.cons (hmono : PlaceMono ctx) (hnew : PlaceNew ctx) {s : Stmt} {re
     subst hw
     refine FBAt.mono (FBAt.bind_dead (Q := fun st₁ _ st₂ => (st₁.chainIn = none →
         st₂.chainIn = none ∧ ∃ blk, st₂.out.toList = st₁.out.toList ++ blk) ∧
-        (∀ v, st₂.locs[v]? ≠ none → st₁.locs[v]? ≠ none ∨ v ∈ allocsOf st₁.rest) ∧
-        ∀ v ∈ allocsOf st₂.rest, v ∈ allocsOf st₁.rest)
-      (h₁ C st sc sc₁ i₀ p₀ _ hsc₁ ⟨sc'', hsc⟩ ho₁ (by simp) hes hcl
-      (fun _ h => nomatch h) hinv) fun _ st₁ a s h =>
+        ((st₁.lazy = none → ∀ v, st₂.locs[v]? ≠ none → st₁.locs[v]? ≠ none ∨
+          v ∈ allocsOf st₁.rest) ∧ (∀ v ∈ allocsOf st₂.rest, v ∈ allocsOf st₁.rest) ∧
+          ∀ x ∈ st₁.tables.shared, x ∈ st₂.tables.shared))
+      (FBAt.and_wp (h₁ C st sc sc₁ i₀ p₀ _ hsc₁ ⟨sc'', hsc⟩ ho₁ (by simp) hes hcl
+      (fun _ h => nomatch h) hinv) (end_lazy _ st)) fun _ st₁ a s h =>
         let ⟨h1, h2, h3⟩ := hmono rest st₁ a s h
         ⟨h1, h2, h3, hnew rest st₁ a s h⟩) ?_
-    rintro _ C' st₂ - - - ⟨_, st₁, ⟨-, hc₁, hw₁⟩, ⟨hq, hnw, hrr⟩, hn₂, hl₂⟩
+    rintro _ C' st₂ - - - ⟨_, st₁, ⟨⟨-, hc₁, hw₁⟩, hlz⟩, ⟨hq, hnw, hrr, htb⟩, hn₂, hl₂⟩
     obtain ⟨hc₂, blk₂, ho₂⟩ := hq hc₁
-    refine ⟨(fun _ h => nomatch h), hc₂, fun hfit hops => ?_⟩
-    obtain ⟨blk₁, ho₁', hb₁, hrw⟩ := hw₁ (hfit.back hn₂ hl₂) (hops.back ho₂)
+    refine ⟨(fun _ h => nomatch h), hc₂, fun hfin => ?_⟩
+    obtain ⟨blk₁, ho₁', hb₁, hrw⟩ := hw₁ (hfin.back hn₂ hl₂ ho₂ htb)
     exact ⟨blk₁ ++ blk₂, by rw [ho₂, ho₁', List.append_assoc], BlkW.append_ret hb₁,
-      by rw [pathVals_ret ho₁]; exact hrw.grow (Stronger.refl _) hn₂ hl₂ hnw hrr⟩
+      by rw [pathVals_ret ho₁]; exact hrw.grow (Stronger.refl _) hn₂ hl₂ (hnw hlz) hrr⟩
   | fall es₁ =>
     rw [ho₁] at hw
     simp only [Out.seq] at hw
@@ -715,9 +745,10 @@ theorem BlockW.cons (hmono : PlaceMono ctx) (hnew : PlaceNew ctx) {s : Stmt} {re
     have hes' : outEs o = es₁ ++ outEs (walk I.σ rest) := by rw [← hw, outEs_pre hns₂]
     have hc' : calls (outEs o) = calls es₁ ++ calls (outEs (walk I.σ rest)) := by
       rw [hes', calls_append']
-    refine FBAt.bind_if (fun st₁ => Fits I st₁ ∧ OpsAt I p₀ st₁)
-      (Q := fun st₁ _ st₂ => st₁.chainIn = none →
-        st₂.chainIn = none ∧ ∃ blk, st₂.out.toList = st₁.out.toList ++ blk)
+    refine FBAt.bind_if (FinAt Γ I Ag p₀)
+      (Q := fun st₁ _ st₂ => (st₁.chainIn = none →
+        st₂.chainIn = none ∧ ∃ blk, st₂.out.toList = st₁.out.toList ++ blk) ∧
+        ∀ x ∈ st₁.tables.shared, x ∈ st₂.tables.shared)
       (h₁ C st sc sc₁ i₀ p₀ _ hsc₁ ⟨sc'', hsc⟩ ho₁ (by simp)
       (fun e he => hes e (by rw [hes']; exact List.mem_append_left _ he))
       (fun j hj => by
@@ -726,34 +757,39 @@ theorem BlockW.cons (hmono : PlaceMono ctx) (hnew : PlaceNew ctx) {s : Stmt} {re
         exact List.getElem?_append_left hj)
       (fun _ _ k a hj hk => hes _ (by
         rw [hes']; exact List.mem_append_right _ (atom_onPath I.σ rest k a hj hk hns₂))) hinv)
-      (fun _ st₁ => hmono rest st₁) (fun _ _ _ hr hF => (hr.1 es₁ rfl hF.1 hF.2).cok)
+      (fun _ st₁ a s h =>
+        let ⟨h1, h2, h3⟩ := hmono rest st₁ a s h
+        ⟨h1, h2, h3, (hnew rest st₁ a s h).2.2⟩)
+      (fun _ _ _ hr hF => (hr.1 es₁ rfl hF).cok)
       (fun _ st₁ C₁ hs₁ _ _ ⟨hw₁, _, hb₁⟩ hF => ?_)
-      (fun _ C₁ st₁ _ st₂ ⟨_, hc₁, _⟩ hF hn₂ hl₂ hq => by
+      (fun _ C₁ st₁ _ st₂ ⟨_, hc₁, _⟩ hF hn₂ hl₂ ⟨hq, htb⟩ => by
         obtain ⟨hc₂, blk, ho⟩ := hq hc₁
-        exact ⟨fun _ _ hF₂ hO₂ => absurd ⟨hF₂.back hn₂ hl₂, hO₂.back ho⟩ hF, hc₂,
-          fun hF₂ hO₂ => absurd ⟨hF₂.back hn₂ hl₂, hO₂.back ho⟩ hF⟩)
+        exact ⟨fun _ _ hF₂ => absurd (hF₂.back hn₂ hl₂ ho htb) hF, hc₂,
+          fun hF₂ => absurd (hF₂.back hn₂ hl₂ ho htb) hF⟩)
+    have hW₁ := hw₁ es₁ rfl hF
     refine FBAt.mono (FBAt.and_wp (h₂ C₁ st₁ sc₁ sc'' (i₀ + (calls es₁).length) p₀ _ hsc rfl hns₂
       (fun e he => hes e (by rw [hes']; exact List.mem_append_right _ he))
       (fun j hj => by
         rw [Nat.add_assoc, hcl _ (by rw [hc', List.length_append]; omega), hc',
           List.getElem?_append_right (by omega)]
-        simp) (hw₁ es₁ rfl hF.1 hF.2)) (hnew rest st₁)) ?_
-    rintro _ C₂ st₂ hs₂ hn₂ hl₂ ⟨⟨hw₂, hc₂, hb₂⟩, hnw, hrr⟩
-    refine ⟨fun es he hF₂ hO₂ => ?_, hc₂, fun hfit hops => ?_⟩
+        simp) hW₁) (hnew rest st₁)) ?_
+    rintro _ C₂ st₂ hs₂ hn₂ hl₂ ⟨⟨hw₂, hc₂, hb₂⟩, hnw, hrr, htb⟩
+    refine ⟨fun es he hF₂ => ?_, hc₂, fun hfin => ?_⟩
     · obtain ⟨es₂, h⟩ : ∃ es₂, walk I.σ rest = .fall es₂ := by
         cases h : walk I.σ rest with
         | fall es₂ => exact ⟨es₂, rfl⟩
         | ret es₂ vs => rw [← hw, h] at he; nomatch he
         | stuck => exact absurd h hns₂
-      exact hw₂ es₂ h hF₂ hO₂
-    · obtain ⟨blk₂, ho₂, hb₂', hrw₂⟩ := hb₂ hfit hops
-      obtain ⟨blk₁, ho₁', hb₁', hrw₁⟩ := hb₁ (hfit.back hn₂ hl₂) (hops.back ho₂)
+      exact hw₂ es₂ h hF₂
+    · obtain ⟨blk₂, ho₂, hb₂', hrw₂⟩ := hb₂ hfin
+      obtain ⟨blk₁, ho₁', hb₁', hrw₁⟩ := hb₁ (hfin.back hn₂ hl₂ ho₂ htb)
       refine ⟨blk₁ ++ blk₂, by rw [ho₂, ho₁', List.append_assoc], ?_, ?_⟩
       · rw [← hw]
         rw [ho₁', bsize_append, ← Nat.add_assoc] at hb₂'
         exact BlkW.append_fall (hb₁'.mono hs₂) hb₂'
       · rw [← hw]
-        exact ((hrw₁.grow hs₂ hn₂ hl₂ hnw hrr).append hrw₂).anti (pathVals_fall ho₁ hns₂)
+        exact ((hrw₁.grow hs₂ hn₂ hl₂ (hnw hW₁.lazy) hrr).append hrw₂).anti
+          (pathVals_fall ho₁ hns₂)
 
 end BlockCons
 
