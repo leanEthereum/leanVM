@@ -11,6 +11,7 @@ public import LeanVM.Guest.Backend.Complete.FrameInst
 public import LeanVM.Guest.Backend.Complete.FrameStmt
 public import LeanVM.Guest.Backend.Complete.FrameLocs
 public import LeanVM.Guest.Backend.Complete.FrameOut
+public import LeanVM.Guest.Backend.Complete.FrameNew
 
 /-!
 # A function's walk
@@ -293,10 +294,22 @@ end Sels
 
 /-! ## The statements the function level takes -/
 
-/-- **A flush places no value but those its trace makes** (the flush analogue of `PlaceNew`). -/
-def FlushNew : Prop :=
-  ∀ (ctx : Ctx) (st : St) (up : List Stmt), wpP (flush up) ctx st fun _ st' =>
-    ∀ v, st'.locs[v]? ≠ none → st.locs[v]? ≠ none ∨ v ∈ allocsOf st.rest
+/-- **A block of statements leaves no value waiting to be placed**: each statement ends by
+clearing it. -/
+theorem placeBlock_lazy {ctx : Ctx} : ∀ (s : Stmt) (rest : List Stmt) (st : St),
+    wpP (placeBlock (s :: rest)) ctx st fun _ st' => st'.lazy = none
+  | s, [], st => by
+      rw [placeBlock]
+      refine wp_bind.mpr fun _ _ _ => wp_bind.mpr fun _ st₁ he => ?_
+      have h1 : st₁.lazy = none := by
+        unfold endStmt at he
+        cases he
+        rfl
+      rw [placeBlock]
+      exact wp_pure.mpr h1
+  | s, r :: rs, st => by
+      rw [placeBlock]
+      exact wp_bind.mpr fun _ _ _ => wp_bind.mpr fun _ st₁ _ => placeBlock_lazy r rs st₁
 
 /-- The walk's instance of a path with the callee frames `kfps`. -/
 noncomputable def instK {κ₀ : ℕ} (W : World κ₀) (tf : TracedFn) (pf : Placed) (fp : ℕ)
@@ -563,6 +576,74 @@ theorem tabsW_of (hW : W.Compiled) {Ag : Val → (ℕ → E) → (ℕ → E × E
 
 end Tabs
 
+/-! ## The positions jump table slots point to -/
+
+mutual
+theorem stmtFills_lt (f : String) : ∀ (s : PStmt) (pos k i : ℕ), (k, KVal.at f i) ∈ stmtFills f s pos →
+    i ≤ pos + stmtSize s
+  | .ite _ _ _ _ zero hasElse _ _ nonzero, pos, k, i, h => by
+      simp only [stmtFills, List.mem_append] at h
+      simp only [stmtSize]
+      rcases h with h | h
+      · have := blockFills_lt f zero (pos + 2) k i h
+        omega
+      · cases hasElse
+        · simp at h
+        · simp only [↓reduceIte] at h
+          have := blockFills_lt f nonzero _ k i h
+          simp only [elseAt, ↓reduceIte] at this
+          simp only [↓reduceIte]
+          omega
+  | .chain _ _ _ _ _ _ firsts stages, pos, k, i, h => by
+      simp only [stmtFills] at h
+      simp only [stmtSize]
+      have := stagesFills_lt f firsts stages (pos + 3) k i h
+      omega
+  | .op .., _, _, _, h => by simp [stmtFills] at h
+  | .call .., _, _, _, h => by simp [stmtFills] at h
+  | .loopNext .., _, _, _, h => by simp [stmtFills] at h
+  | .dispatch .., _, _, _, h => by simp [stmtFills] at h
+  | .ret .., _, _, _, h => by simp [stmtFills] at h
+  | .halt .., _, _, _, h => by simp [stmtFills] at h
+
+theorem blockFills_lt (f : String) : ∀ (b : List PStmt) (pos k i : ℕ),
+    (k, KVal.at f i) ∈ blockFills f b pos → i ≤ pos + blockSize b
+  | [], _, _, _, h => by simp [blockFills] at h
+  | s :: ss, pos, k, i, h => by
+      simp only [blockFills, List.mem_append] at h
+      simp only [blockSize]
+      rcases h with h | h
+      · have := stmtFills_lt f s pos k i h
+        omega
+      · have := blockFills_lt f ss _ k i h
+        omega
+
+theorem armsFills_lt (f : String) (first : ℕ) : ∀ (as : List (List PStmt)) (j pos k i : ℕ),
+    (k, KVal.at f i) ∈ armsFills f first as j pos → i ≤ pos + armsSize as
+  | [], _, _, _, _, h => by simp [armsFills] at h
+  | a :: as, j, pos, k, i, h => by
+      simp only [armsFills, List.mem_cons, List.mem_append, Prod.mk.injEq, KVal.at.injEq] at h
+      simp only [armsSize]
+      rcases h with ⟨-, -, rfl⟩ | h | h
+      · omega
+      · have := blockFills_lt f a pos k i h
+        omega
+      · have := armsFills_lt f first as (j + 1) _ k i h
+        omega
+
+theorem stagesFills_lt (f : String) : ∀ (firsts : List ℕ) (sts : List (List (List PStmt)))
+    (pos k i : ℕ), (k, KVal.at f i) ∈ stagesFills f firsts sts pos → i ≤ pos + stagesSize sts
+  | _, [], _, _, _, h => by simp [stagesFills] at h
+  | firsts, st :: sts, pos, k, i, h => by
+      simp only [stagesFills, List.mem_append] at h
+      simp only [stagesSize]
+      rcases h with h | h
+      · have := armsFills_lt f _ st 0 pos k i h
+        omega
+      · have := stagesFills_lt f firsts.tail sts _ k i h
+        omega
+end
+
 /-! ## The function level -/
 
 /-- A scoped function's scope walk passes its body. -/
@@ -582,11 +663,15 @@ theorem scoped_body {tf : TracedFn} (h : Scoped tf) : ∃ s', scopeBlock tf.rets
 /-- **The walk's statement from the block lemma at the body**: the walk of the function's
 placement on the path gives the frame words (`Ψ` from the final constraint), the callee headers
 (from the body's words), the clauses and the path's words. -/
-theorem walkWords_of_body (hbody : BodyW) (hfn : FlushNew) : WalkWordsStmt := by
+theorem walkWords_of_body (hbody : BodyW) : WalkWordsStmt := by
   intro κ₀ W hc tf htf hsc pf hpl hta hns fp hfp kfps hdr σ es vs hw ha hrd
   obtain ⟨pre, post, f, hat⟩ := fnAt_of_placedAs hc htf hpl
   obtain ⟨ti, ti', hplace, hshared⟩ := hat.placed
-  obtain ⟨stf, hrun, hpfeq, htab, -, hreg0, -⟩ := placeFn_ok hplace
+  obtain ⟨stf, hrun, hpfeq, htab, -, hreg0, vsl, hlast⟩ := placeFn_ok hplace
+  obtain ⟨s₀, rest₀, hbd₀⟩ : ∃ s rest, tf.core.body = s :: rest := by
+    cases h : tf.core.body with
+    | nil => rw [h] at hlast; cases hlast
+    | cons s rest => exact ⟨s, rest, rfl⟩
   have hB := hbody W hc tf htf hsc pf hpl hta hns fp hfp kfps hdr σ es vs hw ha hrd
   have hfresh := hta.fresh
   have hwI : walk (instK W tf pf fp hdr σ es kfps).σ tf.core.body = .ret es vs := by
@@ -615,11 +700,15 @@ theorem walkWords_of_body (hbody : BodyW) (hfn : FlushNew) : WalkWordsStmt := by
     (I := instK W tf pf fp hdr σ es kfps) (L₁ := st₁.locs) hsc
     (fun v l h => (hL₁ v l h).resolve_left fun h' => by simp [initSt] at h')
   rw [← he₁] at hwinv
-  refine wp_bind.mpr (wp_mono (hB _ st₁ _ s' 0 0 (.ret es vs) hscope hwI (by simp)
-    (fun e he => he) (fun j _ => by simp [outEs]) hwinv hwinv.cok) fun _ st₂ hst₂ => ?_)
-  obtain ⟨C', hsat, -, hstr, hn₂, hl₂, hout⟩ := hst₂
+  have hlz : wpP (placeBlock tf.core.body) (ctxOf (loopTable W.p) (sigTable W.p) tf) st₁
+      fun _ st' => st'.lazy = none := by
+    rw [hbd₀]
+    exact placeBlock_lazy s₀ rest₀ st₁
+  refine wp_bind.mpr (wp_mono (wp_and (hB _ st₁ _ s' 0 0 (.ret es vs) hscope hwI (by simp)
+    (fun e he => he) (fun j _ => by simp [outEs]) hwinv hwinv.cok) hlz) fun _ st₂ hst₂ => ?_)
+  obtain ⟨⟨C', hsat, -, hstr, hn₂, hl₂, hout⟩, hlz₂⟩ := hst₂
   refine wp_bind.mpr fun _ st₃ he₃ => ?_
-  have hnew := hfn _ st₂ [] () st₃ he₃
+  have hnew := flushNew [] st₂ hlz₂ () st₃ he₃
   obtain ⟨hn₃, hl₃⟩ := flush_mono (ctx := ctxOf (loopTable W.p) (sigTable W.p) tf) (st := st₂)
     (up := []) () st₃ he₃
   obtain ⟨ops, hops, -, -, hsame, -⟩ := flush_spec (Γ := World.cplSite W tf.core.name) (fp := 1)
@@ -633,7 +722,7 @@ theorem walkWords_of_body (hbody : BodyW) (hfn : FlushNew) : WalkWordsStmt := by
   have hbody₂ : pf.fn.body = st₂.out.toList ++ ops := by rw [hbd, hops]
   have hfin : FinAt (World.cplSite W tf.core.name) (instK W tf pf fp hdr σ es kfps)
       (agK W tf pf fp hdr es kfps (instK W tf pf fp hdr σ es kfps)) 0 st₂ := by
-    refine ⟨⟨?_, ?_⟩, ?_, ?_⟩
+    refine ⟨⟨?_, ?_⟩, ?_, ?_, ?_⟩
     · show st₂.next ≤ pf.fn.frameSize
       rw [hsz]; exact hn₃
     · show LocsLe st₂.locs pf.locs
@@ -646,6 +735,27 @@ theorem walkWords_of_body (hbody : BodyW) (hfn : FlushNew) : WalkWordsStmt := by
     · refine tabsW_of hc (fun _ _ _ _ _ hA => hA.2.2.2.2) hshared ?_
       rw [← htb, hsame.tables]
       exact TablesLe.refl _
+    · refine FillsIn.of_name tf.core.name fun k i hm σ' Ψ kh κ L hA => ?_
+      have hm' : (k, KVal.at tf.core.name i) ∈ blockFills tf.core.name pf.fn.body 0 := by
+        rw [hbody₂, blockFills_append]
+        exact List.mem_append_left _ hm
+      have hsl := hat.fills _ hm'
+      have hi : i ≤ blockSize pf.fn.body := by
+        have := blockFills_lt _ _ 0 k i hm'
+        omega
+      obtain ⟨hent, hfit, hsize⟩ := hat.entry hc
+      have h30 := W.logSize_le
+      have hp : W.layout.PowOk := layout_gpow _ _
+      have hlt : W.layout.entry.getD tf.core.name 0 + i < u128Bound := by
+        have : W.ent tf.core.name + i < u128Bound := by
+          unfold u128Bound
+          omega
+        exact this
+      have hsw : SlotWord W.layout (KVal.at tf.core.name i) =
+          some ((World.cplSite W tf.core.name).tgt i) := by
+        simp only [SlotWord]
+        exact congrArg some (Layout.immediateWord_pow hp hlt)
+      exact hA.2.2.2.2 _ _ _ hsl hsw
   obtain ⟨-, -, hblk⟩ := hout
   obtain ⟨blk, hblk_out, ⟨hs, hlen, hhs, hW⟩, hrw⟩ := hblk hfin
   rw [hout₁, List.nil_append] at hblk_out
@@ -703,8 +813,8 @@ theorem walkWords_of_body (hbody : BodyW) (hfn : FlushNew) : WalkWordsStmt := by
       exact hW hprem Ψ hΨ σ' hS _ _ _ _ _ _ _ hops₂ hcs hks hk
 
 /-- **The frame side's statement from the block lemma at the body.** -/
-theorem frameWords_of_body (hbody : BodyW) (hfn : FlushNew) : FrameWordsStmt :=
-  frameWords_of_walk (walkWords_of_body hbody hfn)
+theorem frameWords_of_body (hbody : BodyW) : FrameWordsStmt :=
+  frameWords_of_walk (walkWords_of_body hbody)
 
 /-- info: 'LeanVM.Guest.Backend.Complete.frameWords_of_body' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in #print axioms frameWords_of_body
