@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.Backend.Guest.B2.Eval.D03
 
-  `dataOk` of functions `244` to `324`, decided by the kernel.
+  `dataOk` of functions `235` to `312`, decided by the kernel.
 -/
 
 module
@@ -13,12 +13,12 @@ namespace LeanVM.Guest.Backend.B2
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- **The certificate data of functions `244` to `284` agree with the back end's.** -/
-theorem dataOk_03a : (List.range' 244 41).all dataOk = true := by decide +kernel
+/-- **The certificate data of functions `235` to `273` agree with the back end's.** -/
+theorem dataOk_03a : (List.range' 235 39).all dataOk = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- **The certificate data of functions `285` to `324` agree with the back end's.** -/
-theorem dataOk_03b : (List.range' 285 40).all dataOk = true := by decide +kernel
+/-- **The certificate data of functions `274` to `312` agree with the back end's.** -/
+theorem dataOk_03b : (List.range' 274 39).all dataOk = true := by decide +kernel
 
 end
 end LeanVM.Guest.Backend.B2
