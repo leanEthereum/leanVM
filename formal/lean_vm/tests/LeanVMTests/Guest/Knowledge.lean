@@ -12,7 +12,7 @@ import LeanVM.Guest.EndRpm
   of it exists for almost every public input.
 -/
 
-open LeanVM LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Check
+open LeanVM LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 open LeanVM.Guest.End LeanVM.Node LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Guest.B1
 
 /-- info: 'LeanVM.Guest.End.guest_knowledge_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -54,18 +54,23 @@ open LeanVM.Guest.End LeanVM.Node LeanVM.Protocol LeanVM.Protocol.KeccakHash Lea
 /-! ## The decoder reads `main`'s frame -/
 
 example (W : Val → Reader → FrameMap → NodeWitness) {κ : ℕ} (L : MemoryImage κ) :
-    (decodeWith W L).seed = B1.Main.decSeed (valG L 1 (certOf 1)) := rfl
+    (decodeWith W L).seed = B1.Main.decSeed (Located.mainVal L) := rfl
 
 example (W : Val → Reader → FrameMap → NodeWitness) {κ : ℕ} (L : MemoryImage κ) :
-    (decodeWith W L).statement = B1.Main.decStmt (valG L 1 (certOf 1)) L.read := rfl
+    (decodeWith W L).statement = B1.Main.decStmt (Located.mainVal L) L.read := rfl
 
 example (W : Val → Reader → FrameMap → NodeWitness) {κ : ℕ} (L : MemoryImage κ) :
-    (decodeWith W L).witness = W (valG L 1 (certOf 1)) L.read (Located.frameV L) := rfl
+    (decodeWith W L).witness = W (Located.mainVal L) L.read (Located.frameV L) := rfl
 
-/-- A call's valuation in the frame map is the valuation of the call's frame. -/
+/-- `main`'s valuation is the back end's valuation by places at `main`'s frame `fp = 1`. -/
+example {κ : ℕ} (L : MemoryImage κ) :
+    Located.mainVal L = (Located.guestW L).vf "main" 1 := rfl
+
+/-- A call's valuation in the frame map is the back end's valuation by places of the call's
+frame. -/
 example {κ : ℕ} (L : MemoryImage κ) (f : String) (args rets : List E) :
-    Located.frameV L f args rets = frameVal L certByName f (addressOfIndex (Located.frameOf L f args
-        rets)) :=
+    Located.frameV L f args rets =
+      (Located.guestW L).vf f (addressOfIndex (Located.frameOf L f args rets)) :=
   rfl
 
 /-! ## The named form implies the existential one -/

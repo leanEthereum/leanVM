@@ -2,10 +2,9 @@ module
 
 public import LeanVM.Cost.Decoder.Frames
 public import LeanVM.Guest.Located.Replay
-public import LeanVM.Guest.Glob
-public import LeanVM.Cost.Decoder.GuestTables
+public import LeanVM.Cost.Decoder.GuestPlaces
 import all LeanVM.Guest.Located.Replay
-import all LeanVM.Guest.Glob
+import all LeanVM.Guest.PlaceCode
 
 /-!
 # The guest decoder's compiled chain: the witness and `main`'s valuation
@@ -16,8 +15,8 @@ import all LeanVM.Guest.Glob
   `decWitStaged` (`Staged.lean`) with each callee's witness off its frame (`Frames.lean`), by
   partial application; `Guest.Fast.decWitN` is the deployed decoder's witness at the frame map
   keyed by index (`decWitN_eq`, `decode_eq_numbered`);
-* **`main`'s valuation** off the reader (`mainVal`: `EndFinal.mainValWith`'s word, by the
-  certificate's cells, read off the literal table `guestLocs`).
+* **`main`'s valuation** off the reader (`mainVal`: `EndFinal.mainValWith`'s word, by the back
+  end's places, read off the literal table `guestPlaces`).
 -/
 
 namespace LeanVM.Cost.Decoder
@@ -41,27 +40,54 @@ noncomputable def decWitNStaged (D : LeanVM.Extraction.Fast.DiscreteLogTables) (
 cost_compile wordWithC := LeanVM.Guest.Located.wordWith
 cost_compile decWitNC := decWitNStaged
 
-/-! ## The guest's table of certificates' cells, held once -/
+/-! ## A place's word
 
-/-- **The guest's frame cells**, a function of no argument whose body is the literal
-(`guestLocsLit`, `Rule.literalNatArrays`): every use of `guestLocs` calls it
-(`guestLocs_eq_table`), so the program holds the table once, however many readers read it. -/
-def guestLocsTable : Array (Array ℕ) := guestLocsLit
+`Guest.placeWith rd fp c`, the word place code `c` names at the frame `fp`, compiled as
+`placeWord`: the cell's word read once, a shifted place's product by `g^e` limb by limb (`mulK`).
+-/
 
-theorem guestLocs_eq_table : guestLocs = guestLocsTable := rfl
+open LeanVM.Guest.Located in
+/-- **The word place code `c` names** at the frame `fp` (`Guest.placeWith`), as the decoder
+computes it. -/
+def placeWord (rd : Reader) (fp : K) (c : ℕ) : E :=
+  if c = 0 then 0
+  else if c < 2 ^ 20 then wordWith rd fp c
+  else mulK (wordWith rd fp (c % 2 ^ 20)) (addressOfIndex (c / 2 ^ 20 - 1))
+
+theorem placeWith_eq_placeWord (rd : Reader) (fp : K) (c : ℕ) :
+    LeanVM.Guest.placeWith rd fp c = placeWord rd fp c := by
+  unfold LeanVM.Guest.placeWith placeWord LeanVM.Guest.Located.wordWith mulK
+  split_ifs
+  · rfl
+  · rfl
+  · rw [LeanVM.Guest.Value.eq_ofLimbs ((rd (fp * addressOfIndex (c % 2 ^ 20))).getD 0),
+      LeanVM.Guest.Value.ofLimbs_mul_ofK]
+    simp only [LeanVM.Guest.Value.ofLimbs_limb0, LeanVM.Guest.Value.ofLimbs_limb1]
 
 set_option maxRecDepth 100000 in
-cost_compile guestLocsTableC := guestLocsTable
-cost_rewrite guestLocs_eq_table
+cost_compile placeWordC := placeWord
+cost_rewrite placeWith_eq_placeWord
+
+/-! ## The guest's table of places, held once -/
+
+/-- **The guest's place codes**, a function of no argument whose body is the literal
+(`guestPlacesLit`, `Rule.literalNatArrays`): every use of `guestPlaces` calls it
+(`guestPlaces_eq_table`), so the program holds the table once, however many readers read it. -/
+def guestPlacesTable : Array (Array ℕ) := guestPlacesLit
+
+theorem guestPlaces_eq_table : guestPlaces = guestPlacesTable := rfl
+
+set_option maxRecDepth 100000 in
+cost_compile guestPlacesTableC := guestPlacesTable
+cost_rewrite guestPlaces_eq_table
 
 /-! ## `main`'s valuation -/
 
-/-- The word of `main`'s value `v` at `fp = 1`, read with `rd`: its cell's location read off
-`main`'s row of the guest's table of certificates' cells (`guestLocs`, the literal held once,
-`guestLocsTable`), in `O(1)` whatever `v` (`Equations.lean`: `mainVal_eq_cert`, the certificate's
-cells `cert1_w0_0 ++ cert1_w1_0`, and `mainVal_eq`). -/
+/-- The word of `main`'s value `v` at `fp = 1`, read with `rd`: its place read off `main`'s row of
+the guest's table of places (`guestPlaces`, the literal held once, `guestPlacesTable`), in `O(1)`
+whatever `v` (`Equations.lean`: `mainVal_eq`). -/
 def mainVal (rd : Reader) (v : V) : E :=
-  LeanVM.Guest.Located.wordWith rd 1 ((guestLocs.getD 1 #[]).getD v.idx 0)
+  LeanVM.Guest.placeWith rd 1 ((guestPlaces.getD 1 #[]).getD v.idx 0)
 
 cost_compile mainValC := mainVal
 

@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Cost.Decoder.PreTable
+public import LeanVM.Cost.Decoder.Ends
 public import LeanVM.Cost.Decoder.GuestTables
 public import LeanVM.Guest.Fast.FramesN
 
@@ -9,9 +9,12 @@ public import LeanVM.Guest.Fast.FramesN
 
 `Guest.Fast.frameVFastN pre states rd` (`Fast/FramesN.lean`): the entry table of the replayed
 states (`Located.entryTable`: from a call's key to the frame of the first state that entered its
-callee, the precondition `pre` holding there), and each call's frame read through the callee's
-certificate. Restated with the guest's tables (`GuestTables.lean`, literals of the program) and
+callee, the test `pre` passing there), and each call's frame read by the callee's places. Restated
+with the guest's tables (`GuestTables.lean`, `GuestPlaces.lean`, literals of the program) and
 staged:
+
+* `Located.selfTest`, the test the decoder files a state under (`selfTestC`): a callee, and a
+  registered loop helper's self pointer (`guestRegistered`, a literal);
 
 * `pcTableT`: the functions entered at each pc, from `guestEntries` (computed once by the caller
   and passed: a closed constant compiled in place would be recomputed at each use);
@@ -20,7 +23,7 @@ staged:
 * **the compiled table, one sorted array** (`entryArrayT`): every pair the states file, sorted by
   key stably, each key's first kept; `frameAtA table rd j args rets v`, the frame map, one binary
   search of the call's key, its last argument the value `v` (the frame map is the closure
-  `frameAtA table rd`), the cells from `guestLocs`;
+  `frameAtA table rd`), the places from `guestPlaces`;
 * the same table by insertions (`fileOne`, `fileStateT`, `entryTableT`, a sorted map with a
   presence lookup per filing) and its frame map (`frameAt`): definitions only, not compiled, the
   specification the sorted array is proved equal to.
@@ -65,9 +68,9 @@ def entryTableT (pcT : SortedMap ℕ (List ℕ)) (pre : ℕ → K → Bool) (sta
     (rd : Reader) : SortedMap CallKey K :=
   states.foldl (fileStateT pcT pre rd) .empty
 
-/-- The word of value `v` in function `j`'s frame at `fp`. -/
+/-- The word of value `v` in function `j`'s frame at `fp`, by its place. -/
 def frameWordAt (rd : Reader) (fp : K) (j : ℕ) (v : V) : E :=
-  wordWith rd fp ((guestLocs.getD (canonIndex j) #[]).getD v.idx 0)
+  placeWith rd fp ((guestPlaces.getD (canonIndex j) #[]).getD v.idx 0)
 
 /-- **The frame map**, its last argument the value read: the call of function `canonIndex j`
 looked up in the entry table, its frame's word of `v`; `0` if the call was not entered. -/
@@ -97,6 +100,8 @@ cost_compile wordCodeC := wordCode
 cost_compile callKeyC := callKey
 cost_compile wordsWithC := wordsWith
 cost_compile isFunctionIndexC := isFunctionIndex
+set_option maxRecDepth 100000 in
+cost_compile selfTestC := selfTest
 
 set_option maxRecDepth 100000 in
 cost_compile addEntryC := addEntry
