@@ -169,7 +169,7 @@ pub fn run_recursion<P: Prover>(
     );
     let started = std::time::Instant::now();
     let guest_instructions = aggregation::unified_guest().code_len();
-    let compile_time = started.elapsed();
+    let load_time = started.elapsed();
     if let Some(out) = std::env::var_os(LEAVES_OUT) {
         return write_leaves::<P>(
             n,
@@ -195,10 +195,10 @@ pub fn run_recursion<P: Prover>(
     });
 
     println!(
-        "aggregation bytecode: {} instructions (2^{} padded), compiled in {} s",
+        "aggregation bytecode: {} instructions (2^{} padded), loaded in {} s",
         pretty_integer(guest_instructions),
         aggregation::unified_guest().prog.len().trailing_zeros(),
-        pretty_f64(compile_time.as_secs_f64())
+        pretty_f64(load_time.as_secs_f64())
     );
     let mut inputs = Vec::new();
     if per_leaf > 0 || lean_sphincs_per_leaf > 0 {

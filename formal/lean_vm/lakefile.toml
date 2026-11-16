@@ -169,6 +169,14 @@ name = "guest-backend"
 root = "GuestBackend"
 srcDir = "cli"
 
+# The guest the Rust prover loads (cli/GuestArtifact.lean): the back end's compilation of the guest's
+# source at the fixed point on its own size, with its Fiat-Shamir IV, written to or checked against
+# `guests/lean_ethereum.compiled` (`scripts/guest-artifact` drives it); not a default target.
+[[lean_exe]]
+name = "guest-artifact"
+root = "GuestArtifact"
+srcDir = "cli"
+
 # The guest as the back end's input with `coreProgram`'s functions (cli/GuestTraced.lean): writes the
 # traces of `LeanVM/Guest/Backend/Guest/`, or checks them and the back end's output on them; not a
 # default target.

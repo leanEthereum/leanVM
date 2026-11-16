@@ -7,8 +7,7 @@
 
 use super::*;
 use crate::compiler_overlay::{
-    Ast, Expr, ForBound, Func, LtBound, ParamKind, Shape, Stmt, StmtKind, compile, parse, parse_const,
-    parse_with_constants,
+    Ast, Expr, ForBound, Func, LtBound, ParamKind, Shape, Stmt, StmtKind, parse, parse_const, parse_with_constants,
 };
 use std::fmt::Write as _;
 
@@ -156,7 +155,7 @@ fn func_at(f: &Func, indent: usize) -> String {
     )
 }
 
-fn render(ast: &Ast, consts: &[(String, String)], kbc: usize) -> String {
+fn render(ast: &Ast, consts: &[(String, String)], kbc: usize, input: &str) -> String {
     let mut out = String::new();
     writeln!(
         out,
@@ -168,7 +167,9 @@ fn render(ast: &Ast, consts: &[(String, String)], kbc: usize) -> String {
          (`placeholder_map`, at the bytecode's log size `bytecodeLog`): one definition\nper \
          function, then the constant arrays and the program. The global constants come first, `const_NAME`, the\nliterals the compiler substitutes for them.\n-/\n\nnamespace LeanVM.Guest.Data\n\n\
          open LeanVM.Guest.Source\n\n@[expose] public section\n\n/-- The log size of the bytecode \
-         the placeholders are computed for. -/\ndef bytecodeLog : Nat := {kbc}\n"
+         the placeholders are computed for. -/\ndef bytecodeLog : Nat := {kbc}\n\n\
+         /-- The digest of the source and the placeholders (`aggregation`'s `input_digest`), which the compiled \
+         guest carries\n(`guests/lean_ethereum.compiled`). -/\ndef inputDigest : String := \"{input}\"\n"
     )
     .unwrap();
     for (name, value) in consts {
@@ -280,22 +281,15 @@ fn render_programs() -> String {
     out
 }
 
-
-/// `Source.lean` and `Programs.lean`.
-pub fn files() -> Vec<File> {
-    let kbc = guest().prog.len().trailing_zeros() as usize;
-    let (ast, consts) = parse_with_constants(GUEST_SOURCE, &placeholder_map(kbc))
-        .expect("the repository aggregation guest must parse");
-    // The AST is the one the deployed bytecode was compiled from.
-    let recompiled = compile(&ast);
-    assert!(
-        recompiled.prog.iter().map(bytecode::lean_op).eq(guest().prog.iter().map(bytecode::lean_op)),
-        "the exported AST does not compile to the deployed guest"
-    );
+/// `Source.lean`, with the placeholders at the log size `kbc`, and `Programs.lean`.
+pub fn files(kbc: usize) -> Vec<File> {
+    let replacements = placeholder_map(kbc);
+    let (ast, consts) =
+        parse_with_constants(GUEST_SOURCE, &replacements).expect("the repository aggregation guest must parse");
     vec![
         File {
             path: "LeanVM/Guest/Data/Source.lean".into(),
-            text: render(&ast, &consts, kbc),
+            text: render(&ast, &consts, kbc, &hex(&input_digest(&replacements))),
         },
         File {
             path: "tests/LeanVMTests/Guest/Programs.lean".into(),

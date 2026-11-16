@@ -6,7 +6,7 @@ Usage: python3 -I roundtrip.py <lean_vm dir> <disasm.txt>, the dump from
 Parses `Statement/Data/Bytecode*.lean` (the function table and every chunk), reassembles the
 padded program, renders it in `zkdsl_compiler::disassemble`'s format (g-powers of `K`,
 `x^64 = x^4 + x^3 + x + 1`) and compares line by line with the `DBG_DISASM` dump the Rust
-`compile_guest` wrote, function boundaries included. Independent of the exporter's own code.
+`unified_guest` wrote of the guest it loaded, function boundaries included. Independent of the exporter's own code.
 """
 
 import re
