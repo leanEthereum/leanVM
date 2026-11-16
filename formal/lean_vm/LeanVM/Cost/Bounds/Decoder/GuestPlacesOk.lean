@@ -32,7 +32,7 @@ open LeanVM.Cost.Decoder
 public section
 
 /-- A list holds a test from `a` on if it holds the `n` entries from `a` and the rest. -/
-theorem all_of_drop {α : Type} (p : α → Bool) (l : List α) (a n : ℕ)
+theorem all_of_drop {α : Type} (p : α → Bool) (l : List α) (a n : Nat)
     (h1 : ((l.drop a).take n).all p = true) (h2 : (l.drop (a + n)).all p = true) :
     (l.drop a).all p = true := by
   rw [← List.take_append_drop n (l.drop a), List.all_append, Bool.and_eq_true, List.drop_drop]

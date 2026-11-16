@@ -17,6 +17,7 @@ import LeanVM.Cost.Bounds.Decoder.GuestPlacesOk.Split0
 import LeanVM.Cost.Bounds.Decoder.GuestPlacesOk.Split1
 import LeanVM.Cost.Bounds.Decoder.GuestPlacesOk.Split2
 import LeanVM.Cost.Bounds.Decoder.GuestPlacesOk.Split3
+import Lean.Elab.Command
 
 /-! **The guest tables' chunk evaluations read the tables alone.** Each chunk of the place codes'
 bound (`Bounds/Decoder/GuestPlacesOk/*.lean`) is a kernel evaluation of some functions' codes,

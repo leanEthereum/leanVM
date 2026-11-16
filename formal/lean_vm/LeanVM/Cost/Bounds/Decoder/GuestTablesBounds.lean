@@ -1,6 +1,7 @@
 module
 
 public import LeanVM.Cost.Decoder.GuestTables
+public import Mathlib.Data.List.Nodup
 
 /-!
 # Bound: the guest's tables, their largest entries, by evaluation
@@ -14,7 +15,7 @@ often an entry pc repeats (never: they increase, a linear check). The entry tabl
 
 namespace LeanVM.Cost.Bounds
 
-open LeanVM.Cost.Decoder LeanVM.Guest
+open LeanVM.Cost.Decoder
 
 public section
 
