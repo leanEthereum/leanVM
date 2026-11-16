@@ -138,7 +138,7 @@ def vsCountT : Opcode → List ℕ
   | .jump => [26306, 26108, 26064, 26366, 27036, 27546, 27410, 27304, 27634, 27764, 28004]
   | .keccak => [7401, 7452, 7502, 7557, 8028, 8333, 9705, 9843, 10254, 10308, 10446]
 
-/-- **The tables check** against the `V` certificates and `B2C.plumbOf`. -/
+/-- **The tables check** against the `V` certificates and `Deployed.pmaxOf`. -/
 noncomputable def vsTabOk (op : Opcode) : Bool :=
   (List.range 11).all (fun c => kvOkB op (osJ.getD c 0) ("open_stacked__L" ++ B1.Whir.natStr c) &&
     kvSBJ op (osJ.getD c 0) == (kcOsT op).getD c 0) &&
@@ -152,7 +152,7 @@ noncomputable def vsTabOk (op : Opcode) : Bool :=
   (List.range 4).all (fun i => kvOkK op (ccLpJ.getD i 0) (ccLpNames.getD i "") &&
     kvSKJ op (ccLpJ.getD i 0) == (kcCcLpT op).getD i 0) &&
   (List.range 5).all (fun i => decide ((coreProgram[omJ.getD i 0]?).map Fn.name = some (omNames.getD i "")) &&
-    (B2C.plumbOf (omJ.getD i 0 + 1)).pmax.getD (B2C.opIdx op) 0 == (omT op).getD i 0)
+    (Deployed.pmaxOf (omJ.getD i 0 + 1)).getD (Deployed.opIdx op) 0 == (omT op).getD i 0)
 
 end
 end LeanVM.Guest.Count

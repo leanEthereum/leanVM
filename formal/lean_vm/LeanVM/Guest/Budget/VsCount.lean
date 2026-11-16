@@ -73,7 +73,7 @@ theorem vsTab_ok (op : Opcode) : vsTabOk op = true := by
 /-- A table's entry is a `WeightLe` bound. -/
 theorem weightLe_tab {op : Opcode} {j n : ℕ} {f : String}
     (h : (kvOkB op j f && kvSBJ op j == n) = true) :
-    WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op) f fun _ => n := by
+    WeightLe coreProgram (Deployed.ωArm Deployed.xmssArmC op) f fun _ => n := by
   simp only [Bool.and_eq_true, beq_iff_eq] at h
   obtain ⟨hok, hv⟩ := h
   have hw := kvSB_weightLe hok
@@ -85,7 +85,7 @@ theorem weightLe_tab {op : Opcode} {j n : ℕ} {f : String}
 /-- A table's entry is a `LoopWeightLe` bound. -/
 theorem loopWeightLe_tab {op : Opcode} {j n : ℕ} {f : String}
     (h : (kvOkK op j f && kvSKJ op j == n) = true) :
-    LoopWeightLe (B2C.ωArm B2C.xmssArmC op) f n := by
+    LoopWeightLe (Deployed.ωArm Deployed.xmssArmC op) f n := by
   simp only [Bool.and_eq_true, beq_iff_eq] at h
   obtain ⟨hok, hv⟩ := h
   have hw := kvSK_loop hok
@@ -105,7 +105,7 @@ theorem vsTab_parts (op : Opcode) :
     (∀ i < 4, (kvOkK op (ccLpJ.getD i 0) (ccLpNames.getD i "") &&
       kvSKJ op (ccLpJ.getD i 0) == (kcCcLpT op).getD i 0) = true) ∧
     (∀ i < 5, decide ((coreProgram[omJ.getD i 0]?).map Fn.name = some (omNames.getD i "")) = true ∧
-      (B2C.plumbOf (omJ.getD i 0 + 1)).pmax.getD (B2C.opIdx op) 0 = (omT op).getD i 0) := by
+      (Deployed.pmaxOf (omJ.getD i 0 + 1)).getD (Deployed.opIdx op) 0 = (omT op).getD i 0) := by
   have h := vsTab_ok op
   simp only [vsTabOk, Bool.and_eq_true, List.all_eq_true, List.mem_range, beq_iff_eq] at h
   obtain ⟨⟨⟨⟨⟨⟨⟨h1, h2⟩, h3⟩, -⟩, h4a⟩, h4b⟩, h5⟩, h6⟩ := h
@@ -118,25 +118,25 @@ theorem vsTab_parts (op : Opcode) :
 
 /-- **The opening arm `c`.** -/
 theorem kcOs_weightLe (op : Opcode) {c : ℕ} (hc : c < 11) :
-    WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op) ("open_stacked__L" ++ B1.Whir.natStr c)
+    WeightLe coreProgram (Deployed.ωArm Deployed.xmssArmC op) ("open_stacked__L" ++ B1.Whir.natStr c)
       fun _ => (kcOsT op).getD c 0 :=
   weightLe_tab ((vsTab_parts op).1 c hc)
 
 /-- **`verify_sub`'s static callees.** -/
 theorem vsSt_weightLe (op : Opcode) {i : ℕ} (hi : i < 33) :
-    WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op) (vsStNames.getD i "")
+    WeightLe coreProgram (Deployed.ωArm Deployed.xmssArmC op) (vsStNames.getD i "")
       fun _ => (kcVsStT op).getD i 0 :=
   weightLe_tab ((vsTab_parts op).2.1 i hi)
 
 /-- **`child_claim_list_last__L{k}`.** -/
 theorem ccl_weightLe (op : Opcode) {k : ℕ} (hk : k < 17) :
-    WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op) ("child_claim_list_last__L" ++ B1.Whir.natStr k)
+    WeightLe coreProgram (Deployed.ωArm Deployed.xmssArmC op) ("child_claim_list_last__L" ++ B1.Whir.natStr k)
       fun _ => (kcCclT op).getD k 0 :=
   weightLe_tab ((vsTab_parts op).2.2.1 k hk)
 
 /-- **`list_split`.** -/
 theorem ls_weightLe (op : Opcode) :
-    WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op) "list_split" fun _ => kcLs op :=
+    WeightLe coreProgram (Deployed.ωArm Deployed.xmssArmC op) "list_split" fun _ => kcLs op :=
   weightLe_tab (vsTab_parts op).2.2.2.1
 
 /-- `child_claim_list_any`'s loops' instructions per iteration: `child_claim_list_any_loop0` per `136` claims,
@@ -147,17 +147,17 @@ def kcL17 (op : Opcode) : ℕ := (kcCcLpT op).getD 0 0
 def kcL18 (op : Opcode) : ℕ := (kcCcLpT op).getD 1 0
 
 /-- **`child_claim_list_any_loop0`, per iteration.** -/
-theorem l17_loop (op : Opcode) : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) (name% child_claim_list_any_loop0) (kcL17 op) :=
+theorem l17_loop (op : Opcode) : LoopWeightLe (Deployed.ωArm Deployed.xmssArmC op) (name% child_claim_list_any_loop0) (kcL17 op) :=
   loopWeightLe_tab (by simpa [ccLpNames, kcL17] using (vsTab_parts op).2.2.2.2.1 0 (by norm_num))
 
 /-- **`child_claim_list_any_loop1`, per iteration.** -/
-theorem l18_loop (op : Opcode) : LoopWeightLe (B2C.ωArm B2C.xmssArmC op) (name% child_claim_list_any_loop1) (kcL18 op) :=
+theorem l18_loop (op : Opcode) : LoopWeightLe (Deployed.ωArm Deployed.xmssArmC op) (name% child_claim_list_any_loop1) (kcL18 op) :=
   loopWeightLe_tab (by simpa [ccLpNames, kcL18] using (vsTab_parts op).2.2.2.2.1 1 (by norm_num))
 
 /-- **The frame weights** of `verify_sub`, `child_claim_list_digest`, `main_loop4`,
 `child_claim_list_any`, `child_claim_list_mono`. -/
 theorem om_eq (op : Opcode) {i : ℕ} (hi : i < 5) :
-    B2C.ωArm B2C.xmssArmC op (omNames.getD i "") = (omT op).getD i 0 := by
+    Deployed.ωArm Deployed.xmssArmC op (omNames.getD i "") = (omT op).getD i 0 := by
   obtain ⟨hn, hv⟩ := (vsTab_parts op).2.2.2.2.2 i hi
   rw [ωArm_idx (decide_eq_true_eq.mp hn) (by interval_cases i <;> decide), hv]
 
@@ -190,9 +190,9 @@ theorem le_vsBgMax (op : Opcode) {j : ℕ} (hj : j < 14) :
 /-- **`verify_sub`'s instructions of `op`**: a node of B1-d's shape at `Count.vsWordsOs` (`vsTs`)
 weighs at most its frame's weight and `vsWs op (μ - 20) (vsBsAt vsWordsOs Bvk μ r)`. -/
 theorem vs_weight_le (op : Opcode) {μ r d : ℕ} (hμ1 : 20 ≤ μ) (hμ2 : μ ≤ 30) (hd : d < 14) {Bvk : ℕ} {rd : Reader} {t : Tree} {args rets : List E}
-    (h : FlatShape coreProgram "verify_sub" (B1.VerifySub.vsTs B2C.fs vsWordsOs Bvk μ r d) t)
+    (h : FlatShape coreProgram "verify_sub" (B1.VerifySub.vsTs Deployed.fs vsWordsOs Bvk μ r d) t)
     (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) :
-    t.weight (B2C.ωArm B2C.xmssArmC op) ≤ B2C.ωArm B2C.xmssArmC op "verify_sub" +
+    t.weight (Deployed.ωArm Deployed.xmssArmC op) ≤ Deployed.ωArm Deployed.xmssArmC op "verify_sub" +
       (vsWs op (μ - 20) (B1.VerifySub.vsBsAt vsWordsOs Bvk μ r)).sum := by
   refine FlatShape.weight_le _ _ h hv hb
     (by simp [B1.VerifySub.vsTs, B1.namedP, B1.VerifySub.vsNames, B1.VerifySub.vsBsAt,
@@ -244,11 +244,11 @@ theorem vsWs_mono (op : Opcode) (c : ℕ) {Bs Bs' : List ℕ} (h9 : Bs.getD 9 0 
 words: at most `vsCountT op` at the arm `μ - 20`. -/
 theorem vs_weight_le_vsTs (op : Opcode) {Bvk μ r d : ℕ} (hμ1 : 20 ≤ μ) (hμ2 : μ ≤ 30)
     (hd : d < 14)
-    (h5 : B1.VerifySub.vbgMax B2C.fs vsWords.K29 vsWords.R vsWords.K8 ≤ 39767) (h7 : Bvk ≤ 56391)
+    (h5 : B1.VerifySub.vbgMax Deployed.fs vsWords.K29 vsWords.R vsWords.K8 ≤ 39767) (h7 : Bvk ≤ 56391)
     {rd : Reader} {t : Tree} {args rets : List E}
-    (h : FlatShape coreProgram "verify_sub" (B1.VerifySub.vsTs B2C.fs vsWordsOs Bvk μ r d) t)
+    (h : FlatShape coreProgram "verify_sub" (B1.VerifySub.vsTs Deployed.fs vsWordsOs Bvk μ r d) t)
     (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) :
-    t.weight (B2C.ωArm B2C.xmssArmC op) ≤ (vsCountT op).getD (μ - 20) 0 := by
+    t.weight (Deployed.ωArm Deployed.xmssArmC op) ≤ (vsCountT op).getD (μ - 20) 0 := by
   have h1 := vs_weight_le op hμ1 hμ2 hd h hv hb
   have h2 := vsWs_mono op (μ - 20) (Bs := B1.VerifySub.vsBsAt vsWordsOs Bvk μ r)
     (Bs' := vsBs0) h5 h7

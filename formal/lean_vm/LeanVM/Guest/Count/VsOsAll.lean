@@ -75,7 +75,7 @@ theorem osNames_ok {m : ℕ} (hm : m < B1.osArms) :
   exacts [osNames_ok_0, osNames_ok_1, osNames_ok_2, osNames_ok_3, osNames_ok_4, osNames_ok_5, osNames_ok_6, osNames_ok_7, osNames_ok_8, osNames_ok_9, osNames_ok_10]
 
 /-- **Every arm's callees within `wSB`.** -/
-theorem osLeafBounds : B1.OsLeafBounds B2C.fs wSB := fun _ hm f hf =>
+theorem osLeafBounds : B1.OsLeafBounds Deployed.fs wSB := fun _ hm f hf =>
   wSB_totalLe (List.all_eq_true.mp (osNames_ok hm) f hf)
 
 end

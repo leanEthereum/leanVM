@@ -11,6 +11,7 @@ public import LeanVM.Guest.Backend.Guest.Cpl.Jt
 public import LeanVM.Guest.Backend.Guest.Cpl.Budget
 public import LeanVM.Guest.Backend.Complete.PathRun
 public import LeanVM.Guest.B2C.KRetemp
+public import LeanVM.Guest.B2C.DeployedEq
 
 /-!
 # Completeness through the back end
@@ -69,9 +70,11 @@ theorem guest_complete_backend (hFW : Complete.FrameWordsStmt) (hok : CplOkAll) 
     GuestCompleteWithin (deployedBudgetB (vsBoundAt Count.vsWordsOs vkBound)) :=
   have hB := b2HypsG hok (Complete.frameConsistent_of_words hFW)
   guest_complete_at (H := HG) (C := CG)
-    (fun _ hm => ⟨hm, kFactsAllG hok, B2C.cntRetemp coreProgram_fresh, fun _ _ _ _ ht => tableG hok ht,
-      b2_completeG hB, b2_countG hB⟩)
-    (runsFitG hok) (runsConsecG hok)
+    (fun _ hm => by
+      rw [← B2C.fs_deployed, ← B2C.cnt_deployed] at hm ⊢
+      exact ⟨hm, kFactsAllG hok, B2C.cntRetemp coreProgram_fresh, fun _ _ _ _ ht => tableG hok ht,
+        b2_completeG hB, b2_countG hB⟩)
+    (by rw [← B2C.fs_deployed]; exact runsFitG hok) (runsConsecG hok)
 
 end
 end LeanVM.Guest.Backend.Cpl

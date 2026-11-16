@@ -148,7 +148,7 @@ def kcClS : Opcode → ℕ
   | .jump => 1
   | .keccak => 1
 
-/-- **The tables check** against the `V` certificates and `B2C.plumbOf`. -/
+/-- **The tables check** against the `V` certificates and `Deployed.pmaxOf`. -/
 noncomputable def mvTabOk (op : Opcode) : Bool :=
   (List.range 3).all (fun i => kvOkB op (dvStJ.getD i 0) (dvStNames.getD i "") &&
     kvSBJ op (dvStJ.getD i 0) == (kcDvStT op).getD i 0) &&
@@ -160,7 +160,7 @@ noncomputable def mvTabOk (op : Opcode) : Bool :=
   (List.range 2).all (fun i => kvOkK op (clLpJ.getD i 0) (clLpNames.getD i "") &&
     kvSKJ op (clLpJ.getD i 0) == (kcClLpT op).getD i 0) &&
   (List.range 4).all (fun i => decide ((coreProgram[mvOmJ.getD i 0]?).map Fn.name = some (mvOmNames.getD i "")) &&
-    (B2C.plumbOf (mvOmJ.getD i 0 + 1)).pmax.getD (B2C.opIdx op) 0 == (mvOmT op).getD i 0)
+    (Deployed.pmaxOf (mvOmJ.getD i 0 + 1)).getD (Deployed.opIdx op) 0 == (mvOmT op).getD i 0)
 
 end
 end LeanVM.Guest.Count

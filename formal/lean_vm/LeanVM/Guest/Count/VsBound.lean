@@ -25,9 +25,9 @@ theorem bg_eq : vsWords.Bg = 49 := by
 
 set_option maxRecDepth 100000 in
 /-- The frames `verify_sub`'s bound names. -/
-theorem vs_frames : B2C.fs "verify_sub" = 2022 ∧ B2C.fs "log2_ceil_in_the_exponent__L0_L34" = 35 ∧
-    B2C.fs "assert_small_g_power" = 68 ∧ B2C.fs "ring_switch_target" = 268 ∧
-    B2C.fs "certify_placement" = 356 ∧ B2C.fs "log2_ceil_in_the_exponent__L16_L34" = 36 := by
+theorem vs_frames : Deployed.fs "verify_sub" = 2022 ∧ Deployed.fs "log2_ceil_in_the_exponent__L0_L34" = 35 ∧
+    Deployed.fs "assert_small_g_power" = 68 ∧ Deployed.fs "ring_switch_target" = 268 ∧
+    Deployed.fs "certify_placement" = 356 ∧ Deployed.fs "log2_ceil_in_the_exponent__L16_L34" = 36 := by
   rw [← fsFast_eq]; decide +kernel
 
 set_option maxRecDepth 100000 in
@@ -39,7 +39,7 @@ theorem vs_static : wSB "grind_check__L15" = 53 ∧ wSB "opening_message__L1_L1"
 
 set_option maxRecDepth 100000 in
 /-- The bus grind dispatch's largest arm with its grind check's frame. -/
-theorem busGrindMax_eq : B1.VerifySub.busGrindMax B2C.fs = 61 := by
+theorem busGrindMax_eq : B1.VerifySub.busGrindMax Deployed.fs = 61 := by
   unfold B1.VerifySub.busGrindMax
   rw [← fsFast_eq]; decide +kernel
 
