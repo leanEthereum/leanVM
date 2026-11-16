@@ -40,8 +40,7 @@ recorded mass `cwRecPre + recBadPre`.
 * **The hardwired moves** (`hwMoveW_le_offHeadW`, `hwMovePre_le_offHeadPre`): on HwHeads'
   honest-heads invariant (`forallQueries_hwHeads_prefixR`) a hardwired trial head cannot occur
   (the analogue of `hwHeadPre = 0`), so `hwMovePre ≤ offHeadPre`.
-* **The prefix's linear charge** (`encE_le`): at data with `PermGood π 18`, for `q ≤ 2^64`, with the
-  prefix's calls inside a hardwired table,
+* **The prefix's linear charge** (`encE_le`): at data with `PermGood π 18`, for `q ≤ 2^64`,
   `E ≤ encEC q + 2 encBeta q (cwRecPre + recBadPre) + 2 encGamma q (kfPre + recJPre)`.
 -/
 
@@ -1394,13 +1393,13 @@ theorem encRPre_le_cntEP (pol : DigestPolicy) (p : Pub) (v : (s : HPos) → XD s
     exact totalWeight_calls_le (prefixR pol A p v) (clsCalls_prefixR hperm hsign pol p v)
 
 /-- **The refined joint count on the challenge prefix**: at data with `PermGood π 18`, for
-`q ≤ 2^64`, with the prefix's calls inside a hardwired table, at most `2^15 (6q + progCap)` plus
-`2^15` times the charges: `3C` per unit of the codeword-recorded mass (`cwRecPre`,
-`C = nW progCap + 6q + clsCap`), `3` per unit of the off-head mass (`offHeadPre`), `kapS` per `k`,
-`k'` sponge call, `kapR6` per read call and `potCap` per unit of the program jump weight, at most
-`kfPre + recJPre` (EncPorts' `totalWeight_kJumpW_le`). -/
+`q ≤ 2^64`, at most `2^15 (6q + progCap)` plus `2^15` times the charges: `3C` per unit of the
+codeword-recorded mass (`cwRecPre`, `C = nW progCap + 6q + clsCap`), `3` per unit of the off-head
+mass (`offHeadPre`), `kapS` per `k`, `k'` sponge call, `kapR6` per read call and `potCap` per unit
+of the program jump weight, at most `kfPre + recJPre` (EncPorts' `totalWeight_kJumpW_le` at RecJ's
+`keyHw p`, `staysInR_keyHw`). -/
 theorem cntEP_le (hq : q ≤ 2 ^ 64) (pol : DigestPolicy) (p : Pub) (v : (s : HPos) → XD s)
-    (hπ : PermGood p.perm 18) {Wt : Hw X Z} (hW : StaysInR pol A p v Wt) :
+    (hπ : PermGood p.perm 18) :
     cntEP pol A p v ≤ 2 ^ 15 * ((6 * q + progCap : ℕ) : ℝ≥0∞) + 2 ^ 15 *
       (ENNReal.ofReal (3 * ((nW progCap + (6 * q + clsCap) : ℕ) : ℝ)) * cwRecPre pol A p v +
         3 * offHeadPre pol A p v +
@@ -1475,11 +1474,11 @@ theorem cntEP_le (hq : q ≤ 2 ^ 64) (pol : DigestPolicy) (p : Pub) (v : (s : HP
             · exact zero_le
             · exact le_rfl) (prefixR pol A p v) initR_posSemidef).trans
         (totalWeight_calls_le (prefixR pol A p v) (clsCalls_prefixR hperm hsign pol p v))
-    obtain ⟨W, hWW, hxW⟩ := hW
+    obtain ⟨W, hWW, hxW⟩ := staysInR_keyHw pol A p v
     have hJ : (runtimeR m0R).totalWeight .instruments wJ (prefixR pol A p v) initR ≤
         kfPre pol A p v + recJPre pol A p v :=
       totalWeight_kJumpW_le trialUpd (evData p v) m0R .instruments () (prefixR pol A p v)
-        (progCap_add_le hq) Wt (advCalls_prefixR hperm hsign pol p v)
+        (progCap_add_le hq) (keyHw p) (advCalls_prefixR hperm hsign pol p v)
         (clsCalls_prefixR hperm hsign pol p v) (okChg_prefixR pol p v)
         (progCalls_prefixR hperm hsign pol p v) W hWW hxW
     have hX : (runtimeR m0R).totalWeight .instruments wX (prefixR pol A p v) initR ≤
@@ -1526,12 +1525,10 @@ theorem cntEP_le (hq : q ≤ 2 ^ 64) (pol : DigestPolicy) (p : Pub) (v : (s : HP
     · exact zero_le
 
 /-- **The refined Enc term, linear in the flip-value recorded mass** (`encRPre_le_cntEP`,
-`cntEP_le`): at data with `PermGood π 18`, for `q ≤ 2^64`, with the prefix's calls inside a
-hardwired table,
+`cntEP_le`): at data with `PermGood π 18`, for `q ≤ 2^64`,
 `encRPre ≤ E₀ q + β q (cwRecPre + recBadPre) + γ q (kfPre + recJPre) + δ offHeadPre`. -/
 theorem encRPre_le_lin (hq : q ≤ 2 ^ 64) (pol : DigestPolicy) (p : Pub)
-    (v : (s : HPos) → XD s) (hπ : PermGood p.perm 18) {Wt : Hw X Z}
-    (hW : StaysInR pol A p v Wt) :
+    (v : (s : HPos) → XD s) (hπ : PermGood p.perm 18) :
     encRPre pol A p v ≤ encE0 q + encBeta q * (cwRecPre pol A p v + recBadPre pol A p v) +
       encGamma q * (kfPre pol A p v + recJPre pol A p v) + encDelta * offHeadPre pol A p v := by
   have h1 := encRPre_le_cntEP hperm hsign pol p v
@@ -1542,7 +1539,7 @@ theorem encRPre_le_lin (hq : q ≤ 2 ^ 64) (pol : DigestPolicy) (p : Pub)
         (ENNReal.ofReal (kapS (6 * q + clsCap) progCap) * ((6 * q : ℕ) : ℝ≥0∞) +
           ENNReal.ofReal (kapR6 (6 * q + clsCap) progCap) * (clsCap : ℝ≥0∞) +
           (potCap (6 * q + clsCap) progCap : ℝ≥0∞) * (kfPre pol A p v + recJPre pol A p v))) :=
-    (cntEP_le hperm hsign hq pol p v hπ hW).trans (add_le_add le_rfl
+    (cntEP_le hperm hsign hq pol p v hπ).trans (add_le_add le_rfl
       (mul_le_mul_of_nonneg_left (add_le_add (add_le_add
         (mul_le_mul_of_nonneg_left le_self_add zero_le) le_rfl) le_rfl) zero_le))
   refine h1.trans ((add_le_add (add_le_add (mul_le_mul_of_nonneg_left h3 zero_le) le_rfl)
@@ -2232,16 +2229,14 @@ theorem hwMovePre_le_offHeadPre (pol : DigestPolicy) :
   · exact zero_le
 
 /-- **The prefix's linear charge** (CostRefined's `twPR_le` Enc term
-`E = 2 encRPre + hwMovePre + kapRR clsCap`): at data with `PermGood π 18`, for `q ≤ 2^64`, with
-the prefix's calls inside a hardwired table (RecJ's `StaysInR`), for every digest policy,
-`E ≤ encEC q + 2 β q (cwRecPre + recBadPre) + 2 γ q (kfPre + recJPre)` (`β = encBeta`,
-`γ = encGamma`; no hardwired-head term: `hwMovePre_le_offHeadPre`). -/
-theorem encE_le (hq : q ≤ 2 ^ 64) (pol : DigestPolicy) (hπ : PermGood p.perm 18) {Wt : Hw X Z}
-    (hW : StaysInR pol A p v Wt) :
+`E = 2 encRPre + hwMovePre + kapRR clsCap`): at data with `PermGood π 18`, for `q ≤ 2^64`, for
+every digest policy, `E ≤ encEC q + 2 β q (cwRecPre + recBadPre) + 2 γ q (kfPre + recJPre)`
+(`β = encBeta`, `γ = encGamma`; no hardwired-head term: `hwMovePre_le_offHeadPre`). -/
+theorem encE_le (hq : q ≤ 2 ^ 64) (pol : DigestPolicy) (hπ : PermGood p.perm 18) :
     2 * encRPre pol A p v + hwMovePre pol A p v + ENNReal.ofReal kapRR * (clsCap : ℝ≥0∞) ≤
       encEC q + 2 * encBeta q * (cwRecPre pol A p v + recBadPre pol A p v) +
         2 * encGamma q * (kfPre pol A p v + recJPre pol A p v) := by
-  have h1 := encRPre_le_lin hperm hsign hq pol p v hπ hW
+  have h1 := encRPre_le_lin hperm hsign hq pol p v hπ
   have h2 := offHeadPre_le p v hperm hsign pol
   have h3 : hwMovePre pol A p v ≤ ENNReal.ofReal (2 / Fintype.card Z) * (clsCap : ℝ≥0∞) :=
     (hwMovePre_le_offHeadPre p v hperm hsign pol).trans h2

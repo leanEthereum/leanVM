@@ -26,7 +26,8 @@ count with explicit charges (`totalWeight_cntGW_le_calls`), as leanXMSS's
 * **Programs** (`RecJ`, `KJump`, `encPot_progMap_le`): off the jump states a program raises the
   potential by at most one; the jump states are a hardwired cell with another value, a target-free
   fresh flip (`FlipK`, `FlipK'`) or `RecJ` (a bad union made bad by the database value at the
-  programmed cell); inside a hardwired table they split into `kfW` and `recJW` (`kJumpW_le`).
+  programmed cell); inside the `k`, `k'` cells of a hardwired table (`HwLeK`, `ProgOfK`) they
+  split into `kfW` and `recJW` (`kJumpW_le`).
 * **The port invariant of a run** (`PortInv`, `forallQueries_portInv`): with at most `n` sponge,
   `K` classical and `P` program calls, and only `EncReadOk` reads (the trial reads and `k`, `k'`
   reads keeping the memory, charge `okChg` of budget `0`), every call has database grade at most
@@ -404,14 +405,25 @@ noncomputable def kfW (π : Equiv.Perm (X × Z)) (P T : ℕ) :
   | .programK' y a, σ => diagMass (kfSet' π P T y a) σ
   | .programH _ _, _ => 0
 
+/-- **`W`'s hardwired `k`, `k'` cells are `Wt`'s**, with their values (`HwLe` without the `h`
+cells). -/
+def HwLeK (W Wt : Hw X Z) : Prop :=
+  (∀ x a, W.2.1 x = some a → Wt.2.1 x = some a) ∧ ∀ x a, W.2.2 x = some a → Wt.2.2 x = some a
+
+/-- **A program of a `k` or `k'` cell of `Wt` with its value**; `h` programs are free. -/
+def ProgOfK (Wt : Hw X Z) : HwProg X Z → Prop
+  | .programH _ _ => True
+  | .programK x a => Wt.2.1 x = some a
+  | .programK' x a => Wt.2.2 x = some a
+
 omit [DecidableEq M] in
-/-- **The jump states split**: inside a hardwired table `Wt` with a port programming its value,
-at most `P` hardwired cells per function and at most `T - P` database entries, a jump state is a
-target-free fresh flip (`kfSet`, `kfSet'`) or a `RecJ` state. -/
+/-- **The jump states split**: at states whose hardwired `k`, `k'` cells are a table `Wt`'s, with a
+port programming a `k`, `k'` cell with its `Wt` value, at most `P` hardwired cells per function and
+at most `T - P` database entries, a jump state is a target-free fresh flip (`kfSet`, `kfSet'`) or a
+`RecJ` state. -/
 theorem kJumpW_le (d : EvData) {P T : ℕ} {Wt : Hw X Z} (c : HwProg X Z)
     {σ : Matrix (Unit × HwReg X Z M) (Unit × HwReg X Z M) ℂ} (hσ : σ.PosSemidef)
-    (hc : ProgOf Wt c)
-    (hsupp : ∀ q, σ q q ≠ 0 → Quantum.Sponge.HwLe q.2.2.1 Wt ∧
+    (hsupp : ∀ q, σ q q ≠ 0 → ProgOfK Wt c ∧ HwLeK q.2.2.1 Wt ∧
       dbGrade q.2.2.1 ≤ P ∧ P + dbGrade q.2.1 ≤ T) :
     kJumpW d c σ ≤ kfW d.perm P T c σ + recJW d c σ := by
   classical
@@ -437,20 +449,22 @@ theorem kJumpW_le (d : EvData) {P T : ℕ} {Wt : Hw X Z} (c : HwProg X Z)
     rw [diagMass_empty]
   | programK y a =>
     refine key (kfSet d.perm P T y a) fun q h0 h ↦ ?_
-    obtain ⟨hW, hg1, hg2⟩ := hsupp q h0
+    obtain ⟨hc, hW, hg1, hg2⟩ := hsupp q h0
     rcases h with ⟨h1, h2⟩ | hF | hR
     · obtain ⟨b, hb⟩ := Option.ne_none_iff_exists'.mp h1
-      have h3 : Wt.2.1 y = some b := hW.2.1 y b hb
-      exact absurd (hb.trans (Option.some.inj (h3.symm.trans hc) ▸ rfl)) h2
+      have hc' : Wt.2.1 y = some a := hc
+      have h3 : Wt.2.1 y = some b := hW.1 y b hb
+      exact absurd (hb.trans (Option.some.inj (h3.symm.trans hc') ▸ rfl)) h2
     · exact .inl ⟨hF, hg1, hg2⟩
     · exact .inr hR
   | programK' y a =>
     refine key (kfSet' d.perm P T y a) fun q h0 h ↦ ?_
-    obtain ⟨hW, hg1, hg2⟩ := hsupp q h0
+    obtain ⟨hc, hW, hg1, hg2⟩ := hsupp q h0
     rcases h with ⟨h1, h2⟩ | hF | hR
     · obtain ⟨b, hb⟩ := Option.ne_none_iff_exists'.mp h1
-      have h3 : Wt.2.2 y = some b := hW.2.2 y b hb
-      exact absurd (hb.trans (Option.some.inj (h3.symm.trans hc) ▸ rfl)) h2
+      have hc' : Wt.2.2 y = some a := hc
+      have h3 : Wt.2.2 y = some b := hW.2 y b hb
+      exact absurd (hb.trans (Option.some.inj (h3.symm.trans hc') ▸ rfl)) h2
     · exact .inl ⟨hF, hg1, hg2⟩
     · exact .inr hR
 
@@ -1014,16 +1028,16 @@ theorem totalWeight_encW_le (B' : Set (HwReg X Z (Finset S × M'))) [DecidablePr
   · exact zero_le
 
 omit [Fintype S] [DecidableEq S] [Fintype M'] [DecidableEq M'] in
-/-- The program ports of `runtimeR` program cells of `Wt` with their values; the other ports are
-free. -/
+/-- The program ports of `runtimeR` program `k`, `k'` cells of `Wt` with their values
+(`ProgOfK`); the other ports, and the `h` programs, are free. -/
 def ProgPort (Wt : Hw X Z) : (recHwSpec X Z S M').Port → Prop
-  | .inl (.inr c) => ProgOf Wt c
+  | .inl (.inr c) => ProgOfK Wt c
   | _ => True
 
 /-- **The jump weight of a run splits** into the target-free fresh flips and the `RecJ` weight
-(`kJumpW_le`): if the calls of the run stay inside a hardwired table `Wt` (a called program port
-programs a cell of `Wt` with its value, the presented operator vanishes off `HwLe · Wt`), with
-`P + n + K ≤ T`. -/
+(`kJumpW_le`): if the calls of the run stay inside the `k`, `k'` cells of a hardwired table `Wt`
+(the presented operator vanishes where the port is no `ProgPort Wt` or the hardwired `k`, `k'`
+cells are not `Wt`'s), with `P + n + K ≤ T`. -/
 theorem totalWeight_kJumpW_le (d : EvData) (m₀ : Finset S × M') (I : Λ.Interp) {B : Type}
     [Fintype B] [DecidableEq B] (u : B) (x : QuantumComp Λ (recHwSpec X Z S M') Ω (QReg.of B))
     {n K P T : ℕ} (hT : P + (n + K) ≤ T) (Wt : Hw X Z)
@@ -1037,8 +1051,7 @@ theorem totalWeight_kJumpW_le (d : EvData) (m₀ : Finset S × M') (I : Λ.Inter
     (W : ∀ (i : (recHwSpec X Z S M').Port) (E : QReg),
       Matrix (((recHwSpec X Z S M').In i × (runtimeR (X := X) (Z := Z) m₀).D) × E)
         (((recHwSpec X Z S M').In i × (runtimeR (X := X) (Z := Z) m₀).D) × E) ℂ → Prop)
-    (hW : ∀ i E σ, W i E σ → ProgPort Wt i ∧
-      ∀ a, ¬ Quantum.Sponge.HwLe a.1.2.2.1 Wt → σ a a = 0)
+    (hW : ∀ i E σ, W i E σ → ∀ a, ¬(ProgPort Wt i ∧ HwLeK a.1.2.2.1 Wt) → σ a a = 0)
     (hxW : (runtimeR m₀).ForallQueries I W x
       ((SubState.basis u).matrix ⊗ₖ (runtimeR (X := X) (Z := Z) m₀).init.matrix)) :
     (runtimeR m₀).totalWeight I (extWeight (hwCost (fun _ _ ↦ 0) (kJumpW d))) x
@@ -1052,11 +1065,11 @@ theorem totalWeight_kJumpW_le (d : EvData) (m₀ : Finset S × M') (I : Λ.Inter
     ((SubState.basis u).prod (runtimeR (X := X) (Z := Z) m₀).init).posSemidef
   obtain ⟨Q, hQ, hx⟩ := forallQueries_portInv (EncReadOk updOf) m₀ I u x hn hK hok hP
   refine (totalWeight_le_of_forallQueries (runtimeR m₀) I
-    (fun i τ ↦ PortInv (EncReadOk updOf) (n + K) P m₀ i τ ∧ ProgPort Wt i ∧
-      ∀ a, ¬ Quantum.Sponge.HwLe a.2.2.1 Wt → τ a a = 0)
+    (fun i τ ↦ PortInv (EncReadOk updOf) (n + K) P m₀ i τ ∧
+      ∀ a, ¬(ProgPort Wt i ∧ HwLeK a.2.2.1 Wt) → τ a a = 0)
     (P := fun i E σ ↦ Q i E σ ∧ W i E σ)
-    (fun i E σ h ↦ ⟨hQ i E σ h.1, (hW i E σ h.2).1, fun a ha ↦
-      traceRight_diag_eq_zero fun e ↦ (hW i E σ h.2).2 (a, e) ha⟩)
+    (fun i E σ h ↦ ⟨hQ i E σ h.1, fun a ha ↦
+      traceRight_diag_eq_zero fun e ↦ hW i E σ h.2 (a, e) ha⟩)
     (w' := fun i σ ↦ extWeight (hwCost (fun _ _ ↦ 0) (kfW d.perm P T)) i σ +
       extWeight (hwCost (fun _ _ ↦ 0) (recJW d)) i σ)
     (fun i σ hσ hI ↦ ?_) x hρ (forallQueries_and hx hxW)).trans_eq
@@ -1064,11 +1077,13 @@ theorem totalWeight_kJumpW_le (d : EvData) (m₀ : Finset S × M') (I : Λ.Inter
   rcases i with ((p | c) | c) | T'
   · exact zero_le
   · exact zero_le
-  · refine kJumpW_le d c hσ hI.2.1 fun a ha ↦ ⟨?_, (hI.1.2.1 a a ha).1.2, ?_⟩
-    · by_contra h
-      exact ha (hI.2.2 a h)
-    · have h1 : dbGrade a.2.1 ≤ n + K := (hI.1.2.1 a a ha).1.1
-      omega
+  · refine kJumpW_le (Wt := Wt) d c hσ fun a ha ↦ ?_
+    have hk : ProgPort Wt (.inl (.inr c) : (recHwSpec X Z S M').Port) ∧ HwLeK a.2.2.1 Wt := by
+      by_contra h
+      exact ha (hI.2 a h)
+    refine ⟨hk.1, hk.2, (hI.1.2.1 a a ha).1.2, ?_⟩
+    have h1 : dbGrade a.2.1 ≤ n + K := (hI.1.2.1 a a ha).1.1
+    omega
   · exact zero_le
 
 end joint

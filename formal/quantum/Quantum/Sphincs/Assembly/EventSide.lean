@@ -302,10 +302,10 @@ def pubES (par : PublicParameter) (perm : Equiv.Perm (X × Z)) (hk : Z → X)
 
 /-- **The good data of the event side** at keys and hidden values `θ = ((k, k'), v)`: HConflict's
 `HZLoad` (a property of the keys), PrefixFacts' `PathsDisjoint`, `HmsgSep`, `HmsgHSep`,
-HConflict's `HSelfSep`, `TrialsOff`, ProgSafe's `NoHmsgHead`, and RecJ's `StaysInR` (the prefix's
-calls inside a hardwired table). -/
+HConflict's `HSelfSep`, `TrialsOff` and ProgSafe's `NoHmsgHead` (static: no adversary; the
+prefix's calls stay inside RecJ's `keyHw` for every adversary, `staysInR_keyHw`). -/
 structure GoodES (par : PublicParameter) (perm : Equiv.Perm (X × Z)) (hk : Z → X)
-    (A : SAdversary) (θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s)) : Prop where
+    (θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s)) : Prop where
   load : HZLoad (pubES par perm hk θ.1)
   disj : PathsDisjoint (pubES par perm hk θ.1).xw (pubES par perm hk θ.1).keys.1 (valsOf θ.2)
   sep : HmsgSep (pubES par perm hk θ.1) θ.2
@@ -313,12 +313,11 @@ structure GoodES (par : PublicParameter) (perm : Equiv.Perm (X × Z)) (hk : Z �
   self : HSelfSep (pubES par perm hk θ.1) θ.2
   off : TrialsOff (pubES par perm hk θ.1).xw (pubES par perm hk θ.1).keys.1 (valsOf θ.2)
   head : NoHmsgHead (pubES par perm hk θ.1) θ.2
-  stays : ∃ Wt, StaysInR strPol A (pubES par perm hk θ.1) θ.2 Wt
 
 /-- `GoodES`, decided classically. -/
 noncomputable instance instDecidablePredGoodES (par : PublicParameter)
-    (perm : Equiv.Perm (X × Z)) (hk : Z → X) (A : SAdversary) :
-    DecidablePred (GoodES par perm hk A) :=
+    (perm : Equiv.Perm (X × Z)) (hk : Z → X) :
+    DecidablePred (GoodES par perm hk) :=
   Classical.decPred _
 
 /-- `Bad (evData p v) N`, decided as CostRun's `BadR`. -/
@@ -405,12 +404,12 @@ set_option synthInstance.maxSize 2000 in
 /-- **The averaged fresh flips of the game** (KeyLazy's `uavg_kW_le`), over the keys and the
 hidden values, on the good data: at most `kfCapS`. -/
 theorem uavg_kW_goodES (hq : q ≤ 2 ^ 64) :
-    uavg (fun θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) ↦ if GoodES par perm hk A θ then
+    uavg (fun θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) ↦ if GoodES par perm hk θ then
       kW (Bad (S := HPos) (evData (pubES par perm hk θ.1) θ.2) progCap) m0R
         (realizeT θ.2 (gameT Selections cwUpd strPol (pubES par perm hk θ.1) A)) initR
       else 0) ≤ kfCapS := by
   have h := uavg_kW_le hperm hsign (Q := Unit) (fun _ ↦ par) (fun _ ↦ perm) (fun _ ↦ hk)
-    (fun _ w ↦ w) (fun θ ↦ GoodES par perm hk A θ.2) (fun _ _ ↦ hπ) (progCap_add_le hq) cwUpd
+    (fun _ w ↦ w) (fun θ ↦ GoodES par perm hk θ.2) (fun _ _ ↦ hπ) (progCap_add_le hq) cwUpd
     strPol
   exact (uavg_snd_marg (K := Unit) _).symm.trans_le h
 
@@ -418,17 +417,17 @@ set_option synthInstance.maxSize 2000 in
 /-- **The averaged target-free fresh flips of the prefix** (KeyLazy's `uavg_kfPre_le`), on the
 good data: at most `kfCapS`. -/
 theorem uavg_kfPre_goodES :
-    uavg (fun θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) ↦ if GoodES par perm hk A θ then
+    uavg (fun θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) ↦ if GoodES par perm hk θ then
       kfPre strPol A (pubES par perm hk θ.1) θ.2 else 0) ≤ kfCapS := by
   have h := uavg_kfPre_le hperm hsign (Q := Unit) (fun _ ↦ par) (fun _ ↦ perm) (fun _ ↦ hk)
-    (fun _ w ↦ w) (fun θ ↦ GoodES par perm hk A θ.2) (fun _ _ ↦ hπ) strPol
+    (fun _ w ↦ w) (fun θ ↦ GoodES par perm hk θ.2) (fun _ _ ↦ hπ) strPol
   exact (uavg_snd_marg (K := Unit) _).symm.trans_le h
 
 set_option synthInstance.maxSize 2000 in
 /-- **The averaged program flips of the prefix** (ProgSafe's `progW_le_kW_gameT` with
 `uavg_kW_goodES`): at most `kfCapS`. -/
 theorem uavg_progPreR_goodES (hq : q ≤ 2 ^ 64) :
-    uavg (fun θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) ↦ if GoodES par perm hk A θ then
+    uavg (fun θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) ↦ if GoodES par perm hk θ then
       progPreR strPol A (pubES par perm hk θ.1) θ.2 else 0) ≤ kfCapS := by
   refine uavg_ite_le_of_le _ (fun θ hθ ↦ ?_) (uavg_kW_goodES hperm hsign par perm hk hπ hq)
   refine (progPreR_le_progW_es (A := A) (pubES par perm hk θ.1) θ.2).trans ?_
@@ -444,12 +443,12 @@ set_option synthInstance.maxSize 2000 in
 searches `CwReView` at every pair of keys: at most `cwRevTau q ε`. -/
 theorem uavg_cwRecPre_goodES {ε : ℝ≥0∞}
     (hre : ∀ kk, CwReView strPol A (pubES par perm hk kk) ε) :
-    uavg (fun θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) ↦ if GoodES par perm hk A θ then
+    uavg (fun θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) ↦ if GoodES par perm hk θ then
       cwRecPre strPol A (pubES par perm hk θ.1) θ.2 else 0) ≤ cwRevTau q ε := by
   refine (uavg_mono (g := fun θ ↦ if TrialsOff (pubES par perm hk θ.1).xw
     (pubES par perm hk θ.1).keys.1 (valsOf θ.2) then cwRecPre strPol A (pubES par perm hk θ.1) θ.2
       else 0) fun θ ↦ ?_).trans ?_
-  · by_cases hg : GoodES par perm hk A θ
+  · by_cases hg : GoodES par perm hk θ
     · rw [ite_eq_left hg, ite_eq_left hg.off]
     · rw [ite_eq_right hg]
       exact zero_le
@@ -461,11 +460,11 @@ set_option synthInstance.maxSize 2000 in
 /-- **The averaged flip-value recorded mass** on the good data: at most `flipCapS q ε`. -/
 theorem uavg_flipMass_goodES {ε : ℝ≥0∞}
     (hre : ∀ kk, CwReView strPol A (pubES par perm hk kk) ε) :
-    uavg (fun θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) ↦ if GoodES par perm hk A θ then
+    uavg (fun θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) ↦ if GoodES par perm hk θ then
       cwRecPre strPol A (pubES par perm hk θ.1) θ.2 + recBadPre strPol A (pubES par perm hk θ.1) θ.2
       else 0) ≤ flipCapS q ε := by
   have hb : RecBadAvg strPol A (fun θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) ↦
-      pubES par perm hk θ.1) (fun θ ↦ θ.2) (GoodES par perm hk A) recBadCapS :=
+      pubES par perm hk θ.1) (fun θ ↦ θ.2) (GoodES par perm hk) recBadCapS :=
     recBadAvg_of_parts hperm hsign strPol _ _ _
       (decHitAvg hperm hsign strPol _ _ _ fun _ hθ ↦ ⟨hθ.off, hπ⟩)
       (recOffAvg hperm hsign strPol _ _ _)
@@ -476,13 +475,13 @@ set_option synthInstance.maxSize 2000 in
 `uavg_ite_cost_le_add_sph`): at most `clsBoundS q ε`. -/
 theorem uavg_twPR_le_es (hq : q ≤ 2 ^ 64) {ε : ℝ≥0∞}
     (hre : ∀ kk, CwReView strPol A (pubES par perm hk kk) ε) :
-    uavg (fun θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) ↦ if GoodES par perm hk A θ then
+    uavg (fun θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) ↦ if GoodES par perm hk θ then
       twPR strPol A (pubES par perm hk θ.1) θ.2 else 0) ≤ clsBoundS q ε := by
   have hkf := uavg_kfPre_goodES hperm hsign par perm hk hπ
   have hrj := uavg_recJPre_le hperm hsign hq strPol
     (fun θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) ↦ pubES par perm hk θ.1) (fun θ ↦ θ.2)
-    (GoodES par perm hk A) (fun _ hθ ↦ ⟨hπ, hθ.stays⟩) hkf
-  have htw : ∀ θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s), GoodES par perm hk A θ →
+    (GoodES par perm hk) (fun _ _ ↦ hπ) hkf
+  have htw : ∀ θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s), GoodES par perm hk θ →
       twPR strPol A (pubES par perm hk θ.1) θ.2 ≤
         ((2 * encRPre strPol A (pubES par perm hk θ.1) θ.2 +
           hwMovePre strPol A (pubES par perm hk θ.1) θ.2 +
@@ -491,16 +490,15 @@ theorem uavg_twPR_le_es (hq : q ≤ 2 ^ 64) {ε : ℝ≥0∞}
             recBadPre strPol A (pubES par perm hk θ.1) θ.2) ^ (2⁻¹ : ℝ)) ^ 2 +
           progPreR strPol A (pubES par perm hk θ.1) θ.2 := fun θ _ ↦
     twPR_le hperm hsign hq strPol (pubES par perm hk θ.1) θ.2 hπ
-  have hE : ∀ θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s), GoodES par perm hk A θ →
+  have hE : ∀ θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s), GoodES par perm hk θ →
       2 * encRPre strPol A (pubES par perm hk θ.1) θ.2 +
           hwMovePre strPol A (pubES par perm hk θ.1) θ.2 +
             ENNReal.ofReal kapRR * (clsCap : ℝ≥0∞) ≤
         encEC q + 2 * encBeta q * (cwRecPre strPol A (pubES par perm hk θ.1) θ.2 +
             recBadPre strPol A (pubES par perm hk θ.1) θ.2) +
           2 * encGamma q * (kfPre strPol A (pubES par perm hk θ.1) θ.2 +
-            recJPre strPol A (pubES par perm hk θ.1) θ.2) := fun θ hθ ↦ by
-    obtain ⟨Wt, hW⟩ := hθ.stays
-    exact encE_le (pubES par perm hk θ.1) θ.2 hperm hsign hq strPol hπ hW
+            recJPre strPol A (pubES par perm hk θ.1) θ.2) := fun θ _ ↦
+    encE_le (pubES par perm hk θ.1) θ.2 hperm hsign hq strPol hπ
   exact uavg_ite_cost_le_add_sph htw hE (uavg_flipMass_goodES hperm hsign par perm hk hπ hre)
     (uavg_ite_add_le hkf hrj) (uavg_progPreR_goodES hperm hsign par perm hk hπ hq)
 
@@ -510,19 +508,19 @@ set_option synthInstance.maxSize 2000 in
 /-- **The averaged conflict mass** (HConflict's `uavg_hConflictMassP_le` at every pair of keys
 with `HZLoad`): at most `hConflictCap N` plus the fraction of the data off `GoodES`. -/
 theorem uavg_hConflict_goodES :
-    uavg (fun θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) ↦ if GoodES par perm hk A θ then
+    uavg (fun θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) ↦ if GoodES par perm hk θ then
       hConflictMass m0R A (pubES par perm hk θ.1) θ.2 else 0) ≤
       ENNReal.ofReal (hConflictCap signatureLimit) +
-        uavg (fun θ ↦ if GoodES par perm hk A θ then (0 : ℝ≥0∞) else 1) := by
+        uavg (fun θ ↦ if GoodES par perm hk θ then (0 : ℝ≥0∞) else 1) := by
   refine (uavg_mono (g := fun θ ↦ if HZLoad (pubES par perm hk θ.1) then
     hConflictMassP ((∅ : Finset HPos), m0) A (pubES par perm hk θ.1) θ.2 else 0)
     fun θ ↦ ?_).trans ?_
-  · by_cases hg : GoodES par perm hk A θ
+  · by_cases hg : GoodES par perm hk θ
     · rw [ite_eq_left hg, ite_eq_left hg.load]
       rfl
     · rw [ite_eq_right hg]
       exact zero_le
-  rw [uavg_prod_iter, uavg_prod_iter (fun θ ↦ if GoodES par perm hk A θ then (0 : ℝ≥0∞) else 1),
+  rw [uavg_prod_iter, uavg_prod_iter (fun θ ↦ if GoodES par perm hk θ then (0 : ℝ≥0∞) else 1),
     ← uavg_const (Θ := (X → Z) × (X → Z)) (ENNReal.ofReal (hConflictCap signatureLimit)),
     ← uavg_add]
   refine uavg_mono fun kk ↦ ?_
@@ -546,8 +544,8 @@ theorem uavg_p2R_le_es (hq : q ≤ 2 ^ 64) {ε : ℝ≥0∞}
     (hre : ∀ kk, CwReView strPol A (pubES par perm hk kk) ε) :
     uavg (fun θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) ↦
       p2R strPol A (pubES par perm hk θ.1) θ.2) ≤
-      eventTermS q ε + 2 * uavg (fun θ ↦ if GoodES par perm hk A θ then (0 : ℝ≥0∞) else 1) := by
-  set G := GoodES par perm hk A
+      eventTermS q ε + 2 * uavg (fun θ ↦ if GoodES par perm hk θ then (0 : ℝ≥0∞) else 1) := by
+  set G := GoodES par perm hk
   set twg : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) → ℝ≥0∞ := fun θ ↦
     if G θ then twPR strPol A (pubES par perm hk θ.1) θ.2 else 0
   set hitg : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) → ℝ≥0∞ := fun θ ↦
@@ -615,7 +613,7 @@ theorem uavg_p2R_msgPol_le_es (hq : q ≤ 2 ^ 64) {ε : ℝ≥0∞}
     (hre : ∀ kk, CwReView strPol A (pubES par perm hk kk) ε) :
     uavg (fun θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) ↦
       p2R msgPol A (pubES par perm hk θ.1) θ.2) ≤
-      eventTermS q ε + 2 * uavg (fun θ ↦ if GoodES par perm hk A θ then (0 : ℝ≥0∞) else 1) := by
+      eventTermS q ε + 2 * uavg (fun θ ↦ if GoodES par perm hk θ then (0 : ℝ≥0∞) else 1) := by
   have e : ∀ kk : (X → Z) × (X → Z), uavg (p2R msgPol A (pubES par perm hk kk)) =
       uavg (p2R strPol A (pubES par perm hk kk)) := fun kk ↦ uavg_p2R_msgPol_eq_strPol A _
   have h := uavg_p2R_le_es hperm hsign par perm hk hπ hq hre
@@ -629,7 +627,7 @@ theorem uavg_p2R_le_es' (hq : q ≤ 2 ^ 64) :
     uavg (fun θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) ↦
       p2R strPol A (pubES par perm hk θ.1) θ.2) ≤
       eventTermS q cfEps +
-        2 * uavg (fun θ ↦ if GoodES par perm hk A θ then (0 : ℝ≥0∞) else 1) :=
+        2 * uavg (fun θ ↦ if GoodES par perm hk θ then (0 : ℝ≥0∞) else 1) :=
   uavg_p2R_le_es hperm hsign par perm hk hπ hq fun _ ↦
     cwReView_cf hperm hsign strPol valFree_strPol _ hπ
 
@@ -640,7 +638,7 @@ theorem uavg_p2R_msgPol_le_es' (hq : q ≤ 2 ^ 64) :
     uavg (fun θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) ↦
       p2R msgPol A (pubES par perm hk θ.1) θ.2) ≤
       eventTermS q cfEps +
-        2 * uavg (fun θ ↦ if GoodES par perm hk A θ then (0 : ℝ≥0∞) else 1) :=
+        2 * uavg (fun θ ↦ if GoodES par perm hk θ then (0 : ℝ≥0∞) else 1) :=
   uavg_p2R_msgPol_le_es hperm hsign par perm hk hπ hq fun _ ↦
     cwReView_cf hperm hsign strPol valFree_strPol _ hπ
 

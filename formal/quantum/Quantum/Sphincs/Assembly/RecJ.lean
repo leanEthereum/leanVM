@@ -2,6 +2,7 @@ module
 
 public import Quantum.Sphincs.Assembly.EncPorts
 public import Quantum.Sphincs.Assembly.CostRun
+public import Quantum.Sphincs.Assembly.ProgSafe
 public import Quantum.Xmss.Assembly.RecJ
 
 @[expose] public section
@@ -20,13 +21,16 @@ program steps).
 * **The ports** (`hS_rj`, `hR_rj`, `recJW_add_prog_rj`): on EncPorts' port invariant `PortInv` of a
   run with at most `n` sponge, `K` classical and `P` program calls, a sponge call raises the
   potential by at most `rjS (n + K) P`, a read by at most `rjR (n + K) P` per unit of trace (a trial
-  read keeps it), a program inside a hardwired table pays its `RecJ` weight out of the potential up
-  to `rjN P` times the target-free fresh flips; record ports keep it.
+  read keeps it), a program at hardwired `k`, `k'` cells of a table pays its `RecJ` weight out of
+  the potential up to `rjN P` times the target-free fresh flips; record ports keep it.
 * **The run** (`totalWeight_recJW_le`): the `RecJ` weight is at most
   `n rjS + K rjR + rjN P · kfW`-total (the potential starts at `0`).
+* **The key table** (`keyHw`, `staysInR_keyHw`): every template port programs a `k`, `k'` cell
+  with the public key's value (ProgSafe's `KeyPort`), so along the challenge prefix the hardwired
+  `k`, `k'` cells are always the public keys' (`StaysIn` at `keyHw p`), for every adversary,
+  digest policy and data.
 * **The prefix** (`recJPre`, `kfPre`, `recJPre_le`): on `prefixR pol A p v`, at data with
-  `PermGood π 18`, for `q ≤ 2^64` and calls staying inside a hardwired table (`StaysIn`):
-  `recJPre ≤ 6q rjS + clsCap rjR + rjN progCap · kfPre`.
+  `PermGood π 18`, for `q ≤ 2^64`: `recJPre ≤ 6q rjS + clsCap rjR + rjN progCap · kfPre`.
 * **The average** (`uavg_recJPre_le`, `recCapS`, `rjS_le`, `rjR_le`, `recCapS_le`): over a finite
   family of template data, from the averaged `kfPre` bound `κ`: at most
   `recCapS q κ ≤ 2^-36 + 2^43 κ` for `q ≤ 2^64`.
@@ -43,7 +47,7 @@ open Quantum QuantumRuntime Quantum.Sponge Sphincs
 open Quantum.Xmss (X Z extProgCharge card_X)
 open Quantum.Xmss.Hybrid (uavg uavg_mono diagMass diagMass_empty totalWeight_chargeTrace_le
   totalWeight_le_totalWeight totalWeight_add_weight totalWeight_const_mul_weight)
-open Quantum.Xmss.Assembly (recHwSpec recSpec runtimeR extWeight extCls ProgOf hwKs recPotN
+open Quantum.Xmss.Assembly (recHwSpec recSpec runtimeR extWeight extCls hwKs recPotN
   recPotN_le recPotN_of_good portInst_recLev_k portInst_recLev_k' portInst_recLev_h
   recPotN_progK_le recPotN_progK'_le recPotN_progK_add_one_le recPotN_progK'_add_one_le
   recPotN_progH recPotN_offCell tsum_potential_readH_le ofReal_ind_add_le readPort
@@ -173,12 +177,13 @@ theorem hR_rj (updOf : TrialPt → Finset S × M' → Option X → Finset S × M
       (add_le_add le_rfl (le_of_eq hfin))
 
 open scoped Classical in
-/-- **The program ports**: inside a hardwired table `Wt`, a program pays its `RecJ` weight out of
-the potential, up to `rjN P` times the target-free fresh flips (`kfW`). -/
+/-- **The program ports**: at states whose hardwired `k`, `k'` cells are a table `Wt`'s, with a port
+programming a `k`, `k'` cell with its `Wt` value, a program pays its `RecJ` weight out of the
+potential, up to `rjN P` times the target-free fresh flips (`kfW`). -/
 theorem recJW_add_prog_rj (d : EvData) {P T : ℕ} {Wt : Hw X Z} (c : HwProg X Z)
     {σ : Matrix (Unit × HwReg X Z (Finset S × M')) (Unit × HwReg X Z (Finset S × M')) ℂ}
-    (hσ : σ.PosSemidef) (hc : ProgOf Wt c)
-    (hsupp : ∀ q, σ q q ≠ 0 → Quantum.Sponge.HwLe q.2.2.1 Wt ∧
+    (hσ : σ.PosSemidef)
+    (hsupp : ∀ q, σ q q ≠ 0 → ProgOfK Wt c ∧ HwLeK q.2.2.1 Wt ∧
       dbGrade q.2.2.1 ≤ P ∧ P + dbGrade q.2.1 ≤ T) :
     recJW d c σ + ∑' r, potential (diagPot fun s ↦ √(recPotN d.perm (rjN P) s : ℝ))
         (MatrixMap.conj (hwProgKraus c r) σ) ≤
@@ -207,11 +212,12 @@ theorem recJW_add_prog_rj (d : EvData) {P T : ℕ} {Wt : Hw X Z} (c : HwProg X Z
       (fun q ↦ (recPotN d.perm (rjN P) (progMap (.programK y a) q.2) : ℝ)) (fun q ↦ hφ0 q.2)
       (fun q ↦ hφ0 _) (rjN P) (fun q h0 hR ↦ ?_) (fun q h0 hq ↦ ?_) (fun q h0 ↦ ?_)
     all_goals
-      obtain ⟨hW, hg1, hg2⟩ := hsupp q (hne q h0)
+      obtain ⟨hc, hW, hg1, hg2⟩ := hsupp q (hne q h0)
       have hWa : q.2.2.1.2.1 y ≠ none → q.2.2.1.2.1 y = some a := fun h1 ↦ by
         obtain ⟨b, hb⟩ := Option.ne_none_iff_exists'.mp h1
-        have h3 : Wt.2.1 y = some b := hW.2.1 y b hb
-        exact hb.trans (congrArg some (Option.some.inj (h3.symm.trans hc)))
+        have hc' : Wt.2.1 y = some a := hc
+        have h3 : Wt.2.1 y = some b := hW.1 y b hb
+        exact hb.trans (congrArg some (Option.some.inj (h3.symm.trans hc')))
       have hle := recPotN_progK_le d.perm (rjN P) y a q.2 hWa
     · exact_mod_cast recPotN_progK_add_one_le d.perm (rjN P) y a (hwKs_lt_rjN hg1) hR.1 hR.2.1
     · rw [ite_eq_right fun hF ↦ hq ⟨hF, hg1, hg2⟩, add_zero] at hle
@@ -226,11 +232,12 @@ theorem recJW_add_prog_rj (d : EvData) {P T : ℕ} {Wt : Hw X Z} (c : HwProg X Z
       (fun q ↦ (recPotN d.perm (rjN P) (progMap (.programK' y a) q.2) : ℝ)) (fun q ↦ hφ0 q.2)
       (fun q ↦ hφ0 _) (rjN P) (fun q h0 hR ↦ ?_) (fun q h0 hq ↦ ?_) (fun q h0 ↦ ?_)
     all_goals
-      obtain ⟨hW, hg1, hg2⟩ := hsupp q (hne q h0)
+      obtain ⟨hc, hW, hg1, hg2⟩ := hsupp q (hne q h0)
       have hWa : q.2.2.1.2.2 y ≠ none → q.2.2.1.2.2 y = some a := fun h1 ↦ by
         obtain ⟨b, hb⟩ := Option.ne_none_iff_exists'.mp h1
-        have h3 : Wt.2.2 y = some b := hW.2.2 y b hb
-        exact hb.trans (congrArg some (Option.some.inj (h3.symm.trans hc)))
+        have hc' : Wt.2.2 y = some a := hc
+        have h3 : Wt.2.2 y = some b := hW.2 y b hb
+        exact hb.trans (congrArg some (Option.some.inj (h3.symm.trans hc')))
       have hle := recPotN_progK'_le d.perm (rjN P) y a q.2 hWa
     · exact_mod_cast recPotN_progK'_add_one_le d.perm (rjN P) y a (hwKs_lt_rjN hg1) hR.1 hR.2.1
     · rw [ite_eq_right fun hF ↦ hq ⟨hF, hg1, hg2⟩, add_zero] at hle
@@ -250,9 +257,10 @@ variable {S : Type} [Fintype S] [DecidableEq S] {M' : Type} [Fintype M'] [Decida
   (updOf : TrialPt → Finset S × M' → Option X → Finset S × M')
   {Λ : LocalSig.{u, v}} {Ω : QReg → Type w}
 
-/-- **The calls of a run stay inside a hardwired table `Wt`**: a called program port programs a
-cell of `Wt` with its value, and the presented operator vanishes off `HwLe · Wt` (the hypothesis
-`W`, `hW`, `hxW` of EncPorts' `totalWeight_kJumpW_le`). -/
+/-- **The calls of a run stay inside the `k`, `k'` cells of a hardwired table `Wt`**: the presented
+operator vanishes where the port is no `ProgPort Wt` (a program of a `k`, `k'` cell with another
+value than `Wt`'s) or the hardwired `k`, `k'` cells are not `Wt`'s (the hypothesis `W`, `hW`, `hxW`
+of EncPorts' `totalWeight_kJumpW_le`). -/
 def StaysIn (m₀ : Finset S × M') (I : Λ.Interp) {A : QReg} (Wt : Hw X Z)
     (x : QuantumComp Λ (recHwSpec X Z S M') Ω A)
     (ρ : Matrix (A × (runtimeR (X := X) (Z := Z) m₀).D) (A × (runtimeR (X := X) (Z := Z) m₀).D) ℂ) :
@@ -260,14 +268,14 @@ def StaysIn (m₀ : Finset S × M') (I : Λ.Interp) {A : QReg} (Wt : Hw X Z)
   ∃ W : ∀ (i : (recHwSpec X Z S M').Port) (E : QReg),
       Matrix (((recHwSpec X Z S M').In i × (runtimeR (X := X) (Z := Z) m₀).D) × E)
         (((recHwSpec X Z S M').In i × (runtimeR (X := X) (Z := Z) m₀).D) × E) ℂ → Prop,
-    (∀ i E σ, W i E σ → ProgPort Wt i ∧
-      ∀ a, ¬ Quantum.Sponge.HwLe a.1.2.2.1 Wt → σ a a = 0) ∧
+    (∀ i E σ, W i E σ → ∀ a, ¬(ProgPort Wt i ∧ HwLeK a.1.2.2.1 Wt) → σ a a = 0) ∧
     (runtimeR m₀).ForallQueries I W x ρ
 
 /-- **The `RecJ` weight of a run**: from a basis state beside the initial register, with at most `n`
-sponge, `K` classical and `P` program calls, only `EncReadOk` reads, calls inside a hardwired table
-`Wt` and `P + n + K ≤ T`, at data with `PermGood π 18`, at most `rjS (n + K) P` per sponge call,
-`rjR (n + K) P` per classical call and `rjN P` times the target-free fresh flips `kfW`. -/
+sponge, `K` classical and `P` program calls, only `EncReadOk` reads, calls inside the `k`, `k'`
+cells of a hardwired table `Wt` and `P + n + K ≤ T`, at data with `PermGood π 18`, at most
+`rjS (n + K) P` per sponge call, `rjR (n + K) P` per classical call and `rjN P` times the
+target-free fresh flips `kfW`. -/
 theorem totalWeight_recJW_le (d : EvData) (hπ : PermGood d.perm 18) (m₀ : Finset S × M')
     (I : Λ.Interp) {B : Type} [Fintype B] [DecidableEq B] (u : B)
     (x : QuantumComp Λ (recHwSpec X Z S M') Ω (QReg.of B)) {n K P T : ℕ}
@@ -311,14 +319,14 @@ theorem totalWeight_recJW_le (d : EvData) (hπ : PermGood d.perm 18) (m₀ : Fin
     extWeight (hwCost (fun _ _ ↦ 0) (kfW d.perm P T)) with hwK
   have h := totalWeight_le_potential_of_forallQueries (runtimeR m₀) I Kp
     (fun i E σ ↦ Q i E σ ∧ W i E σ)
-    (fun i τ ↦ PortInv (EncReadOk updOf) (n + K) P m₀ i τ ∧ ProgPort Wt i ∧
-      ∀ a, ¬ Quantum.Sponge.HwLe a.2.2.1 Wt → τ a a = 0)
-    (fun i E σ h ↦ ⟨hQ i E σ h.1, (hWW i E σ h.2).1, fun a ha ↦
-      traceRight_diag_eq_zero fun e ↦ (hWW i E σ h.2).2 (a, e) ha⟩)
+    (fun i τ ↦ PortInv (EncReadOk updOf) (n + K) P m₀ i τ ∧
+      ∀ a, ¬(ProgPort Wt i ∧ HwLeK a.2.2.1 Wt) → τ a a = 0)
+    (fun i E σ h ↦ ⟨hQ i E σ h.1, fun a ha ↦
+      traceRight_diag_eq_zero fun e ↦ hWW i E σ h.2 (a, e) ha⟩)
     (extWeight (hwCost (fun _ _ ↦ 0) (recJW d)))
     (fun i σ ↦ ENNReal.ofReal (rjS (n + K) P) * wS i σ +
       (ENNReal.ofReal (rjR (n + K) P) * wR i σ + (rjN P : ℝ≥0∞) * wK i σ))
-    (fun i σ hσ hI ↦ ?_) x hρ (forallQueries_and hx hxW)
+    (fun i σ hσ hI ↦ ?_) x hρ (Quantum.Xmss.Assembly.forallQueries_and hx hxW)
   · have hgood : Good d.perm (union (hwEmpty X Z)
         ((Database.empty, Database.empty, Database.empty) : DbReg X Z)) :=
       (good_congr (U := union (hwEmpty X Z)
@@ -401,11 +409,13 @@ theorem totalWeight_recJW_le (d : EvData) (hπ : PermGood d.perm 18) (m₀ : Fin
           (ENNReal.ofReal (rjR (n + K) P) * 0 + (rjN P : ℝ≥0∞) * kfW d.perm P T c σ))
       simp only [Nat.cast_zero, zero_mul, mul_zero, zero_add]
       refine (add_le_add le_rfl (le_of_eq (tsum_congr fun r ↦ congrArg _ (hb r)))).trans
-        (recJW_add_prog_rj d c hσ hI.2.1 fun a ha ↦ ⟨?_, (hI.1.2.1 a a ha).1.2, ?_⟩)
-      · by_contra h
-        exact ha (hI.2.2 a h)
-      · have h1 : dbGrade a.2.1 ≤ n + K := (hI.1.2.1 a a ha).1.1
-        omega
+        (recJW_add_prog_rj (Wt := Wt) d c hσ fun a ha ↦ ?_)
+      have hk : ProgPort Wt (.inl (.inr c) : (recHwSpec X Z S M').Port) ∧
+          HwLeK a.2.2.1 Wt := by
+        by_contra h
+        exact ha (hI.2 a h)
+      have h1 : dbGrade a.2.1 ≤ n + K := (hI.1.2.1 a a ha).1.1
+      exact ⟨hk.1, hk.2, (hI.1.2.1 a a ha).1.2, by omega⟩
     · show (0 : ℝ≥0∞) + ∑' r, potential Kp (((runtimeR m₀).step (.inr T')).branch r σ) ≤
         potential Kp σ + (ENNReal.ofReal (rjS (n + K) P) *
           (((0 : ℕ) : ℝ≥0∞) * ENNReal.ofReal σ.trace.re) +
@@ -414,6 +424,110 @@ theorem totalWeight_recJW_le (d : EvData) (hπ : PermGood d.perm 18) (m₀ : Fin
       exact tsum_potential_recStep_diag hφ0 (fun _ _ _ _ _ ↦ rfl) T' hσ
 
 end run
+
+/-! ## The key table -/
+
+section keyTable
+
+/-- **The public keys' table**: the `k`, `k'` cells with the public keys' values, no `h` cell. -/
+def keyHw (pub : Pub) : Hw X Z :=
+  (fun _ ↦ none, fun x ↦ some (pub.keys.2.1 x), fun x ↦ some (pub.keys.2.2 x))
+
+/-- Hardwired `k`, `k'` cells holding the public keys' values are `keyHw`'s. -/
+theorem hwLeK_keyHw {pub : Pub} {W : Hw X Z} (h : KeyHeld pub W) : HwLeK W (keyHw pub) :=
+  ⟨fun x a hx ↦ (congrArg some (h.1 x a hx)).symm, fun x a hx ↦ (congrArg some (h.2 x a hx)).symm⟩
+
+variable {M : Type} [Fintype M] [DecidableEq M] {L : LocalSig.{u, v}} {Ω : QReg → Type w}
+
+omit [Fintype M] [DecidableEq M] in
+/-- A program port with the public keys' values is a `ProgPort` of `keyHw`. -/
+theorem progPort_keyHw {pub : Pub} {c : HwProg X Z} (h : KeyPort pub c) :
+    ProgPort (keyHw pub) (.inl (.inr c) : (recHwSpec X Z HPos M).Port) := by
+  cases c with
+  | programH z a => trivial
+  | programK x a => exact (congrArg some h).symm
+  | programK' x a => exact (congrArg some h).symm
+
+variable (pub : Pub)
+
+/-- **The presented states hold the public keys' `k`, `k'` values at a port of `keyHw`.** -/
+def keySupp (m₀ : Finset HPos × M) (i : (recHwSpec X Z HPos M).Port) (E : QReg)
+    (σ : Matrix (((recHwSpec X Z HPos M).In i × (runtimeR (X := X) (Z := Z) m₀).D) × E)
+      (((recHwSpec X Z HPos M).In i × (runtimeR (X := X) (Z := Z) m₀).D) × E) ℂ) : Prop :=
+  ∀ a, ¬(ProgPort (keyHw pub) i ∧ HwLeK a.1.2.2.1 (keyHw pub)) → σ a a = 0
+
+/-- One call of a realized program, from the states `KeyAll pub C` to `KeyAll pub C'`. -/
+theorem forallQueries_queryBind_keyHw (m₀ : Finset HPos × M) (I : L.Interp) {A : QReg}
+    (i : (recHwSpec X Z HPos M).Port) (E : QReg) (ℓ : A ≃ (recHwSpec X Z HPos M).In i × E)
+    (k' : (recHwSpec X Z HPos M).Result i → QuantumComp L (recHwSpec X Z HPos M) Ω
+      (QReg.of ((recHwSpec X Z HPos M).Out i × E)))
+    {C C' : Set (HwProg X Z)}
+    (hpre : ∀ r : HwReg X Z (Finset HPos × M), KeyAll pub C r → ProgPort (keyHw pub) i)
+    (hstep : StepR m₀ i (KeyAll pub C) (KeyAll pub C'))
+    (hk : ∀ r ρ', QuerySupportedOn (fun m : QReg.of ((recHwSpec X Z HPos M).Out i × E) ×
+        (runtimeR m₀).D ↦ m.2) {s | KeyAll pub C' s} ρ' →
+      (runtimeR m₀).ForallQueries I (keySupp pub m₀) (k' r) ρ')
+    (ρ : Matrix (A × (runtimeR m₀).D) (A × (runtimeR m₀).D) ℂ)
+    (hρ : QuerySupportedOn (fun m : A × (runtimeR m₀).D ↦ m.2) {s | KeyAll pub C s} ρ) :
+    (runtimeR m₀).ForallQueries I (keySupp pub m₀) (QuantumComp.queryBind i E ℓ k') ρ :=
+  forallQueries_queryBind_of_stepR (Sup := keySupp pub m₀) (P := KeyAll pub C)
+    (P' := KeyAll pub C') m₀ I i E ℓ k'
+    (fun _ hρ a ha ↦ relabel_diag_eq_zero_of_supp m₀ E ℓ hρ a fun h ↦
+      ha ⟨hpre _ h, hwLeK_keyHw h.1⟩)
+    hstep hk ρ hρ
+
+/-- **The realized program of a template whose program ports program the public keys' values in
+batch order presents only states whose hardwired `k`, `k'` cells are `keyHw`'s**, at ports of
+`keyHw`. -/
+theorem forallQueries_keyHw_of_hb (m₀ : Finset HPos × M) (I : L.Interp)
+    (v : (s : HPos) → XD s) {A : QReg} (y : QuantumComp L (SSpec M) Ω A) :
+    ∀ C C', HB (fun c _ ↦ KeyPort pub c) v y C C' →
+      ∀ ρ : Matrix (A × (runtimeR m₀).D) (A × (runtimeR m₀).D) ℂ,
+      QuerySupportedOn (fun m : A × (runtimeR m₀).D ↦ m.2) {s | KeyAll pub C s} ρ →
+      (runtimeR m₀).ForallQueries I (keySupp pub m₀) (Quantum.Xmss.Assembly.realizeT v y) ρ := by
+  induction y using QuantumComp.inductionOn with
+  | pure _ _ => intro _ _ _ _ _; trivial
+  | primBind _ o k ih =>
+    intro C C' hy ρ hρ b
+    exact ih b C C' (hy.2 (ULift.up b)) _ (QuerySupportedOn.amplify_snd (q := fun s ↦ s) hρ _)
+  | queryBind _ i E ℓ k ih =>
+    intro C C' hy ρ hρ
+    rcases i with ((i | c) | ⟨p, hp⟩) | T
+    · exact forallQueries_queryBind_keyHw pub m₀ I (.inl (.inl (.inl i))) E ℓ
+        (fun r ↦ Quantum.Xmss.Assembly.realizeT v (k r)) (fun _ _ ↦ trivial)
+        (stepKA_sponge pub m₀ i C) (fun r ↦ ih r C C' (hy.2 (ULift.up r))) ρ hρ
+    · exact forallQueries_queryBind_keyHw pub m₀ I (.inl (.inl (.inr c.1))) E ℓ
+        (fun r ↦ Quantum.Xmss.Assembly.realizeT v (k r)) (fun _ _ ↦ trivial)
+        (stepKA_read pub m₀ c C) (fun r ↦ ih r C C' (hy.2 (ULift.up r))) ρ hρ
+    · cases p with
+      | programH T₀ c =>
+        exact forallQueries_queryBind_keyHw pub m₀ I
+          (.inl (.inr ((Quantum.Xmss.Hybrid.LazyProg.programH T₀ c).realize v))) E ℓ
+          (fun r ↦ Quantum.Xmss.Assembly.realizeT v (k r))
+          (fun r hr ↦ progPort_keyHw (hy.1 r hr.2))
+          (stepKA_prog pub m₀ fun r hr ↦ hy.1 r hr.2)
+          (fun r ↦ ih r _ C' (hy.2 (ULift.up r))) ρ hρ
+      | programK T₀ c =>
+        exact forallQueries_queryBind_keyHw pub m₀ I
+          (.inl (.inr ((Quantum.Xmss.Hybrid.LazyProg.programK T₀ c).realize v))) E ℓ
+          (fun r ↦ Quantum.Xmss.Assembly.realizeT v (k r))
+          (fun r hr ↦ progPort_keyHw (hy.1 r hr.2))
+          (stepKA_prog pub m₀ fun r hr ↦ hy.1 r hr.2)
+          (fun r ↦ ih r _ C' (hy.2 (ULift.up r))) ρ hρ
+      | programK' T₀ c =>
+        exact forallQueries_queryBind_keyHw pub m₀ I
+          (.inl (.inr ((Quantum.Xmss.Hybrid.LazyProg.programK' T₀ c).realize v))) E ℓ
+          (fun r ↦ Quantum.Xmss.Assembly.realizeT v (k r))
+          (fun r hr ↦ progPort_keyHw (hy.1 r hr.2))
+          (stepKA_prog pub m₀ fun r hr ↦ hy.1 r hr.2)
+          (fun r ↦ ih r _ C' (hy.2 (ULift.up r))) ρ hρ
+    · exact forallQueries_queryBind_keyHw pub m₀ I (.inr T) E ℓ
+        (fun m ↦ Quantum.Xmss.Assembly.realizeT v (k (Quantum.Xmss.Hybrid.restrictTo T v, m)))
+        (fun _ _ ↦ trivial) (stepKA_rec pub m₀ T C)
+        (fun m ↦ ih (Quantum.Xmss.Hybrid.restrictTo T v, m) _ C'
+          (hy.2 (ULift.up (Quantum.Xmss.Hybrid.restrictTo T v, m)))) ρ hρ
+
+end keyTable
 
 /-! ## The challenge prefix -/
 
@@ -432,10 +546,25 @@ noncomputable def kfPre (pol : DigestPolicy) (A : SAdversary) (p : Pub)
   (runtimeR m0R).totalWeight .instruments
     (extWeight (hwCost (fun _ _ ↦ 0) (kfW p.perm progCap (2 ^ 68)))) (prefixR pol A p v) initR
 
-/-- The prefix's calls stay inside the hardwired table `Wt`. -/
+/-- The prefix's calls stay inside the `k`, `k'` cells of the hardwired table `Wt`. -/
 def StaysInR (pol : DigestPolicy) (A : SAdversary) (p : Pub) (v : (s : HPos) → XD s)
     (Wt : Hw X Z) : Prop :=
   StaysIn m0R .instruments Wt (prefixR pol A p v) initR
+
+/-- **The prefix's calls stay inside the public keys' table**, for every adversary, digest policy
+and data: every template port programs a `k`, `k'` cell with the public key's value. -/
+theorem staysInR_keyHw (pol : DigestPolicy) (A : SAdversary) (p : Pub)
+    (v : (s : HPos) → XD s) : StaysInR pol A p v (keyHw p) :=
+  ⟨keySupp p m0R, fun _ _ _ h ↦ h, forallQueries_keyHw_of_hb p m0R .instruments v _ ∅ ∅
+    (hb_prefixT (fun c _ ↦ KeyPort p c) v p
+      (fun _ _ ↦ by
+        intro _ _ _ _
+        exact ⟨rfl, fun _ ↦ ⟨rfl, fun _ ↦ trivial⟩⟩)
+      (fun _ _ _ _ ↦ by
+        intro _ _ _ _
+        exact ⟨rfl, fun _ ↦ ⟨rfl, fun _ ↦ trivial⟩⟩) cwUpd pol A) initR
+    ((querySupportedOn_init_keyHeld p m0R (A := QReg.of Unit) (SubState.basis ()).matrix).imp
+      fun _ h ↦ ⟨h, fun c hc ↦ absurd hc (Set.notMem_empty c)⟩)⟩
 
 /-- EncPorts' port charge of `EncReadOk` for the trial update is at most CostRun's `bR`. -/
 theorem okChg_encReadOk_le_bR (i : (recHwSpec X Z HPos Selections).Port) :
@@ -474,22 +603,22 @@ variable {q : ℕ} {A : SAdversary}
 include hperm hsign
 
 /-- **The `RecJ` weight of the challenge prefix**: at data with `PermGood π 18`, for `q ≤ 2^64`,
-with the prefix's calls inside a hardwired table, at most `rjS` per sponge call, `rjR` per
-classical call and `rjN progCap` times the target-free fresh flips `kfPre`, for every digest
-policy. -/
+at most `rjS` per sponge call, `rjR` per classical call and `rjN progCap` times the target-free
+fresh flips `kfPre`, for every digest policy (the calls stay inside `keyHw p`:
+`staysInR_keyHw`). -/
 theorem recJPre_le (hq : q ≤ 2 ^ 64) (pol : DigestPolicy) (p : Pub) (v : (s : HPos) → XD s)
-    (hπ : PermGood p.perm 18) {Wt : Hw X Z} (hW : StaysInR pol A p v Wt) :
+    (hπ : PermGood p.perm 18) :
     recJPre pol A p v ≤ ((6 * q : ℕ) * ENNReal.ofReal (rjS (6 * q + clsCap) progCap) +
       (clsCap : ℝ≥0∞) * ENNReal.ofReal (rjR (6 * q + clsCap) progCap)) +
       (rjN progCap : ℝ≥0∞) * kfPre pol A p v :=
   totalWeight_recJW_le trialUpd (evData p v) hπ m0R .instruments () (prefixR pol A p v)
-    (progCap_add_le hq) Wt (advCalls_prefixR hperm hsign pol p v)
+    (progCap_add_le hq) (keyHw p) (advCalls_prefixR hperm hsign pol p v)
     (clsCalls_prefixR hperm hsign pol p v)
     (isChargeBound_mono_charge (fun _ a ↦ by
       rcases a with o | ⟨i, E, ℓ⟩
       · exact le_rfl
       · exact okChg_encReadOk_le_bR i) (chgB_prefixR pol A p v))
-    (progCalls_prefixR hperm hsign pol p v) hW
+    (progCalls_prefixR hperm hsign pol p v) (staysInR_keyHw pol A p v)
 
 /-- **The bound on the averaged `RecJ` weight** from the averaged `kfPre` bound `κ`. -/
 noncomputable def recCapS (q : ℕ) (κ : ℝ≥0∞) : ℝ≥0∞ :=
@@ -497,16 +626,14 @@ noncomputable def recCapS (q : ℕ) (κ : ℝ≥0∞) : ℝ≥0∞ :=
     (clsCap : ℝ≥0∞) * ENNReal.ofReal (rjR (6 * q + clsCap) progCap)) + (rjN progCap : ℝ≥0∞) * κ
 
 /-- **The averaged `RecJ` weight of the challenge prefix**: over a finite family of template data
-`(P θ, V θ)` and a good set on which `PermGood π 18` holds and the prefix's calls stay inside a
-hardwired table, from the averaged bound `κ` of `kfPre`, at most `recCapS q κ`. -/
+`(P θ, V θ)` and a good set on which `PermGood π 18` holds, from the averaged bound `κ` of `kfPre`,
+at most `recCapS q κ`. -/
 theorem uavg_recJPre_le (hq : q ≤ 2 ^ 64) (pol : DigestPolicy) {Θ : Type} [Fintype Θ]
     (P : Θ → Pub) (V : Θ → (s : HPos) → XD s) (good : Θ → Prop) [DecidablePred good]
-    (hgood : ∀ θ, good θ → PermGood (P θ).perm 18 ∧ ∃ Wt, StaysInR pol A (P θ) (V θ) Wt)
+    (hgood : ∀ θ, good θ → PermGood (P θ).perm 18)
     {κ : ℝ≥0∞} (hkf : uavg (fun θ ↦ if good θ then kfPre pol A (P θ) (V θ) else 0) ≤ κ) :
     uavg (fun θ ↦ if good θ then recJPre pol A (P θ) (V θ) else 0) ≤ recCapS q κ :=
-  uavg_ite_le_add_mul (fun θ hθ ↦ by
-    obtain ⟨hπ, Wt, hW⟩ := hgood θ hθ
-    exact recJPre_le hperm hsign hq pol (P θ) (V θ) hπ hW) hkf
+  uavg_ite_le_add_mul (fun θ hθ ↦ recJPre_le hperm hsign hq pol (P θ) (V θ) (hgood θ hθ)) hkf
 
 end prefixRJ
 
