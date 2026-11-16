@@ -4,7 +4,7 @@
 #
 #   scripts/regen-guest.sh                 # write
 #   scripts/regen-guest.sh --check         # write nothing, fail if any file is stale
-#   scripts/regen-guest.sh --from STEP     # resume at STEP: export core changes vt cert deployed memory whir count tables decoder backend
+#   scripts/regen-guest.sh --from STEP     # resume at STEP: export core changes vt deployed memory whir count tables decoder backend
 #   scripts/regen-guest.sh --jobs N        # the Lean builds' job cap (lake-build.py's --jobs)
 #
 # Run from anywhere; it works in lean_vm. Each step's generator reads only what the steps before it
@@ -30,7 +30,7 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-steps=(export core changes vt cert deployed memory whir count tables decoder backend)
+steps=(export core changes vt deployed memory whir count tables decoder backend)
 case " ${steps[*]} " in *" $from "*) ;; *) echo "unknown step $from: one of ${steps[*]}" >&2; exit 2 ;; esac
 step() { printf '\n==> [%dm%02ds] %s\n' $((SECONDS / 60)) $((SECONDS % 60)) "$*"; }
 capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
@@ -55,13 +55,12 @@ in_place() {
 
 # Each step's parts, and the Lean targets they run.
 parts_export=(export) targets_export=()
-parts_core=(core_ir core_names core_vsat) targets_core=(guest-core)
+parts_core=(core_ir core_names) targets_core=(guest-core)
 parts_changes=(changes) targets_changes=()
 parts_vt=(vt) targets_vt=()
-parts_cert=(cert) targets_cert=(guest-cert)
 parts_deployed=(deployed) targets_deployed=(guest-tables)
 parts_memory=(memory) targets_memory=(guest-memory)
-parts_whir=(whir_data whir_mat_plan walk_known whir_queries) targets_whir=(guest-core)
+parts_whir=(whir_data whir_mat_plan whir_queries) targets_whir=(guest-core)
 parts_count=(count_gen count_vsos) targets_count=()
 parts_tables=(tables) targets_tables=(LeanVM.Guest.Fast.WhirTemplate LeanVM.Guest.B1.Opening.QueriesT
   LeanVM.Guest.Memory.GuestCallees)
@@ -97,11 +96,6 @@ part_core_names() {
   python3 -I scripts/core-names-modulus "${check[@]}"
 }
 
-part_core_vsat() {
-  step "core: where verify_sub's obligations sit (VsAt)"
-  python3 -I scripts/vs-at "${check[@]}"
-}
-
 part_changes() {
   [ ${#check[@]} -eq 0 ] && [ -d .lake/guest-before ] || return 0
   step "changes: the functions whose bodies changed, and the modules that read them (guest-changes)"
@@ -111,11 +105,6 @@ part_changes() {
 part_vt() {
   step "vt: verify_tables' templates and their twins (scripts/b1c-vt/all.py)"
   python3 -I scripts/b1c-vt/all.py "${check[@]}"
-}
-
-part_cert() {
-  step "cert: the certificates (guest-cert)"
-  gen guest-cert
 }
 
 part_deployed() {
@@ -136,11 +125,6 @@ part_whir_data() {
 part_whir_mat_plan() {
   step "whir: the matrices' plan (whir-mat-plan)"
   python3 -I scripts/whir-mat-plan "${check[@]}"
-}
-
-part_walk_known() {
-  step "whir: the walks' obligations (walk-known-all)"
-  python3 -I scripts/walk-known-all "${check[@]}"
 }
 
 part_whir_queries() {

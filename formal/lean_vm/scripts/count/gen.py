@@ -80,7 +80,7 @@ class G:
         self.D = os.path.join(lv, 'LeanVM', 'Guest', 'Data')
         self.LD = os.path.join(lv, 'LeanVM', 'Guest', 'Memory')
         self.fns = core.load(self.D, cache)
-        checker.set_pows(core.load_pows(self.D))
+        checker.set_pows(core.pows())
         self.pm = core.load_pmax(self.D)
         self.fsz = core.load_frame_sizes(self.D)
         self.arms = core.load_cpl_arms(self.D)

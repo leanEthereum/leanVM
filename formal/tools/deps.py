@@ -174,7 +174,7 @@ def read_times():
 
 
 def family(m):
-    """`LeanVM.Guest.B2C.Cplw.C24_0_0` is `LeanVM.Guest.B2C.Cplw`: a module's directory."""
+    """`LeanVM.Guest.Backend.Guest.Cpl.Eval.R0` is `LeanVM.Guest.Backend.Guest.Cpl.Eval`: a module's directory."""
     parts = m.split(".")
     return ".".join(parts[:-1]) or m
 
