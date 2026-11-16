@@ -1,6 +1,7 @@
 import LeanVM.Guest.Data.Source
 import Statement.Data.Bytecode
 import LeanVM.Guest.Backend.Invariants
+import LeanVM.Guest.Backend.Text
 import LeanVM.Guest.Interp
 import LeanVMTests.Guest.Programs
 
@@ -19,11 +20,10 @@ Run from `lean_vm`.
 * `lake exe guest-backend functions [N]` is the comparison with every function resolved at the
   statement's layout, so that each function is compared on its own: the count of identical
   functions and instructions when the programs differ, and the first `N` that differ.
-* `lake exe guest-backend export guest FILE` and `export programs DIR [--check]` write the guest,
-  and the compiler's test programs (`LeanVMTests.Guest.Programs`), in the line format of
-  `crates/isa/src/text.rs`, which the Rust tests compare with the Rust compiler's
-  output (`crates/zkdsl_compiler/tests/suite/lean_backend.rs`, `aggregation`'s
-  `lean_backend_guest`).
+* `lake exe guest-backend export programs DIR [--check]` writes the compiler's test programs
+  (`LeanVMTests.Guest.Programs`) in the line format of `crates/isa/src/text.rs`, which the Rust
+  tests compare with the Rust compiler's output (`crates/zkdsl_compiler/tests/suite/lean_backend.rs`).
+  The guest itself is written by `lake exe guest-artifact` (`cli/GuestArtifact.lean`).
 * `lake exe guest-backend time` prints the time of each pass on the guest.
 * `lake exe guest-backend core NAME` prints a function's core IR, and `show NAME` its code beside
   the statement's.
@@ -48,56 +48,6 @@ def reference : Reference :=
     code := Data.functions.foldl (init := #[]) fun acc f =>
       acc ++ ((List.range f.instructionCount).map f.instructionAt).toArray,
     logSize := Data.logSize }
-
-/-! ## Rendering -/
-
-def showOp : OffsetInstruction → String
-  | .xor a b c => s!"X {a} {b} {c}"
-  | .mul a b c => s!"M {a} {b} {c}"
-  | .set o k0 k1 => s!"S {o} {k0} {k1}"
-  | .deref o1 o2 o3 mode =>
-      let m := match mode with
-        | .cell => 0
-        | .pc => 1
-        | .fp => 2
-      s!"D {o1} {o2} {o3} {m}"
-  | .jump oc od of => s!"J {oc} {od} {of}"
-  | .keccak m0 m1 m2 m3 tail b8 cap out inOdd outOdd outCells =>
-      s!"K {m0} {m1} {m2} {m3} {tail} {b8} {cap} {out} {inOdd.toNat} {outOdd.toNat} {outCells.cellCount}"
-
-def showBits : BitsDest → String
-  | .stack b => s!"stack {b}"
-  | .heap p => s!"heap {p}"
-
-/-- A hint's line. -/
-def showHint (pc : Nat) : RHint → String
-  | .frameAddress offset => s!"H {pc} frame {offset}"
-  | .allocFrames ptr size bound inv tail => s!"H {pc} frames {ptr} {size} {bound} {inv} {tail}"
-  | .alloc ptr size => s!"H {pc} alloc {ptr} {size}"
-  | .allocDyn ptr size => s!"H {pc} allocdyn {ptr} {size}"
-  | .witnessStack s base len => s!"H {pc} wstack {s} {base} {len}"
-  | .witnessHeap s ptr lo len => s!"H {pc} wheap {s} {ptr} {lo} {len}"
-  | .log2Ceil bits dst nbits floor => s!"H {pc} log2 {showBits bits} {dst} {nbits} {floor}"
-  | .bitDecompose v bits nbits => s!"H {pc} bits {v} {showBits bits} {nbits}"
-  | .bitDecomposeExp v bits nbits => s!"H {pc} bitsexp {v} {showBits bits} {nbits}"
-  | .digitDecomposeExp v dst nbits ndigits digitBits start sc =>
-      let sc := match sc with
-        | some c => s!"{c}"
-        | none => "-"
-      s!"H {pc} digits {v} {showBits dst} {nbits} {ndigits} {digitBits} {start} {sc}"
-  | .windowsExp v dest skip start width count =>
-      s!"H {pc} windows {v} {showBits dest} {skip} {start} {width} {count}"
-  | .fieldLimbs v base len => s!"H {pc} limbs {v} {base} {len}"
-  | .inverse v dst => s!"H {pc} inverse {v} {dst}"
-
-/-- A program in the line format of `crates/isa/src/text.rs` (`CompiledProgram::__to_text`):
-its padded size, `main`'s frame, a line a function, a line an instruction before the padding, a
-line a hint in pc order. -/
-def render (c : Assembled) : String :=
-  let head := #[s!"size {c.size}", s!"main_frame {c.mainFrame}"]
-  let fns := c.fns.map fun (name, entry, len) => s!"F {name} {entry} {len}"
-  let hints := c.hints.flatMap fun (pc, hs) => (hs.map (showHint pc)).toArray
-  "\n".intercalate (head ++ fns ++ c.code.map showOp ++ hints).toList ++ "\n"
 
 /-! ## The comparison -/
 
@@ -232,12 +182,6 @@ def core (name : String) : IO UInt32 := do
   IO.println (Interp.showFn f.core)
   return 0
 
-def exportGuest (file : String) : IO UInt32 := do
-  let ours ← orThrow (Backend.compile Data.guest)
-  IO.FS.writeFile file (render ours)
-  IO.println s!"{file}: {ours.code.size} instructions, size {ours.size}, main frame {ours.mainFrame}"
-  return 0
-
 def exportPrograms (dir : String) (checkOnly : Bool) : IO UInt32 := do
   let mut failed := false
   for t in LeanVMTests.Guest.Programs.all do
@@ -315,11 +259,10 @@ def main (args : List String) : IO UInt32 := do
   | "functions" :: rest => GuestBackend.functions rest
   | ["show", name] => GuestBackend.show name
   | ["core", name] => GuestBackend.core name
-  | ["export", "guest", file] => GuestBackend.exportGuest file
   | ["export", "programs", dir] => GuestBackend.exportPrograms dir false
   | ["export", "programs", dir, "--check"] => GuestBackend.exportPrograms dir true
   | ["time"] => GuestBackend.time
   | ["coverage"] => GuestBackend.coverage
   | _ =>
-      IO.eprintln "usage: guest-backend check | functions [N] | show NAME | core NAME | export guest FILE | export programs DIR [--check] | time | coverage"
+      IO.eprintln "usage: guest-backend check | functions [N] | show NAME | core NAME | export programs DIR [--check] | time | coverage"
       return 2
