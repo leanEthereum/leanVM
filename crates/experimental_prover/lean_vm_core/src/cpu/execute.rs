@@ -26,8 +26,6 @@ pub struct Execution {
     /// and an arithmetic back-solve writes its operand before reading it.
     pub unconstrained_reads: Vec<u32>,
     pub(crate) trace: Trace, // rows + final access-count columns, emitted in the same walk
-    /// `g^0, g^1, ..` as far as the run indexed them: every pc, frame base and cell it reached.
-    pub(crate) gpow: Vec<F64>,
 }
 
 impl Execution {
@@ -74,7 +72,7 @@ impl Cell {
 /// image grows without moving what it holds. Cells past the last page are unwritten
 /// and never accessed.
 pub struct Memory {
-    pages: Vec<Box<[Cell]>>,
+    pages: Vec<Box<[Cell; PAGE]>>,
     len: usize,
 }
 
@@ -360,7 +358,7 @@ pub(crate) fn execute_with(
     // The memory's pages, grown as the run reaches them. Every method on the hot
     // path is `#[inline(always)]`: they sit in the interpreter's opcode loop.
     struct Mem<'a> {
-        pages: Vec<Box<[Cell]>>,
+        pages: Vec<Box<[Cell; PAGE]>>,
         /// One past the highest cell accessed or reserved: every cell below it is
         /// in a page.
         used: usize,
@@ -396,13 +394,14 @@ pub(crate) fn execute_with(
             while self.pages.len() <= idx >> PAGE_LOG {
                 // SAFETY: all zero is a valid `Cell`, the unwritten one.
                 self.pages
-                    .push(unsafe { Box::<[Cell]>::new_zeroed_slice(PAGE).assume_init() });
+                    .push(unsafe { Box::<[Cell; PAGE]>::new_zeroed().assume_init() });
             }
         }
-        /// Cell `c`, which `ensure` has covered.
+        /// Cell `c`, covered first.
         #[inline(always)]
         fn at(&mut self, c: u32) -> &mut Cell {
             let c = c as usize;
+            self.ensure(c);
             &mut self.pages[c >> PAGE_LOG][c & (PAGE - 1)]
         }
         #[inline(always)]
@@ -420,18 +419,20 @@ pub(crate) fn execute_with(
         fn get(&self, cell: u32) -> F128 {
             self.covered(cell).map_or(F128::ZERO, |c| c.word)
         }
-        // An instruction's read. An unwritten cell reads as ZERO, which is then written
-        // there: the row is filled from the final image, which has to agree.
+        // An instruction's read: the word and the access count before it, which it
+        // advances. An unwritten cell reads as ZERO, which is then written there: the
+        // row is filled from the final image, which has to agree.
         #[inline(always)]
-        fn read(&mut self, cell: u32) -> F128 {
-            self.ensure(cell as usize);
+        fn read(&mut self, cell: u32) -> (F128, u32) {
             let c = self.at(cell);
-            let word = c.word;
-            if c.state != State::Written {
-                c.state = State::Written;
+            let (word, count, fresh) = (c.word, c.count, c.state != State::Written);
+            c.state = State::Written;
+            c.count = count + 1;
+            self.counts = self.counts.max(count + 1);
+            if fresh {
                 self.unwritten_reads.push(cell);
             }
-            word
+            (word, count)
         }
         // Write-once store, carried to every cell linked to this one.
         #[inline(always)]
@@ -441,10 +442,15 @@ pub(crate) fn execute_with(
             }
             Ok(())
         }
+        // An instruction's write: `put`, then the access count before it, which it advances.
+        #[inline(always)]
+        fn put_counted(&mut self, cell: u32, v: F128) -> Result<u32, ExecError> {
+            self.put(cell, v)?;
+            Ok(self.bump_access_count(cell))
+        }
         // `put` on one cell; whether it was linked.
         #[inline(always)]
         fn store(&mut self, cell: u32, v: F128) -> Result<bool, ExecError> {
-            self.ensure(cell as usize);
             let c = self.at(cell);
             let s = c.state;
             if s == State::Written && c.word != v {
@@ -468,7 +474,6 @@ pub(crate) fn execute_with(
         }
         fn link(&mut self, a: u32, b: u32) {
             for (x, y) in [(a, b), (b, a)] {
-                self.ensure(x as usize);
                 let c = self.at(x);
                 if c.state == State::Unwritten {
                     c.state = State::Linked;
@@ -490,7 +495,6 @@ pub(crate) fn execute_with(
         // exponent. A run makes fewer than `2^32` accesses in all, so it cannot wrap.
         #[inline(always)]
         fn bump_access_count(&mut self, cell: u32) -> u32 {
-            self.ensure(cell as usize);
             let c = self.at(cell);
             let count = c.count;
             c.count = count + 1;
@@ -811,13 +815,12 @@ pub(crate) fn execute_with(
                         m.put(if ha { ab } else { aa }, m.get(ac) * vk.inv())?;
                     }
                 }
-                let va = m.read(aa);
-                let vb = m.read(ab);
+                // Each access advances its cell's count, in flush order, so a cell two
+                // operands alias still pairs each access with its own count.
+                let (va, ra) = m.read(aa);
+                let (vb, rb) = m.read(ab);
                 let vc = if is_xor { va + vb } else { va * vb };
-                m.put(ac, vc)?;
-                let ra = m.bump_access_count(aa);
-                let rb = m.bump_access_count(ab);
-                let rc = m.bump_access_count(ac);
+                let rc = m.put_counted(ac, vc)?;
                 let row = Xrow {
                     pc,
                     fp,
@@ -834,9 +837,7 @@ pub(crate) fn execute_with(
                 pc += 1;
             }
             Op::Set { o, k } => {
-                let a = at(fp, o)?;
-                m.put(a, super::from_scalar(k))?;
-                let r = m.bump_access_count(a);
+                let r = m.put_counted(at(fp, o)?, super::from_scalar(k))?;
                 set.push(Srow {
                     pc,
                     fp,
@@ -847,7 +848,7 @@ pub(crate) fn execute_with(
             }
             Op::Deref { o1, o2, o3, mode } => {
                 let a1 = at(fp, o1)?;
-                let p = m.read(a1);
+                let (p, r1) = m.read(a1);
                 let p_addr = p.as_base().ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
                 let base = g.log(p_addr).ok_or_else(|| fail(Fault::WildPointer { value: p }))?;
                 let a2 = at(base, o2)?;
@@ -879,7 +880,6 @@ pub(crate) fn execute_with(
                         m.put(a2, v)?;
                     }
                 }
-                let r1 = m.bump_access_count(a1);
                 let r2 = m.bump_access_count(a2);
                 let r3 = m.bump_access_count(a3);
                 deref.push(Drow {
@@ -900,16 +900,16 @@ pub(crate) fn execute_with(
                 // otherwise not balance. A guest branches on g-powers; the one
                 // idiom that once branched on a word, `assert a != b`, takes an
                 // inverse hint instead (§sec:prog-div-ne).
-                let c = in_k("JUMP condition", m.read(ac)).map_err(fail)?;
-                let d = in_k("JUMP target", m.read(ad)).map_err(fail)?;
-                let f = in_k("JUMP fp", m.read(af)).map_err(fail)?;
+                let (c, rc) = m.read(ac);
+                let c = in_k("JUMP condition", c).map_err(fail)?;
+                let (d, rd) = m.read(ad);
+                let d = in_k("JUMP target", d).map_err(fail)?;
+                let (f, rf) = m.read(af);
+                let f = in_k("JUMP fp", f).map_err(fail)?;
                 // The is-nonzero witness `w = c⁻¹` is never used for control
                 // flow, only recorded as a witness column, so it is not
                 // computed here at all: `JumpTable::fill` batch-inverts every
                 // row's condition at once (§the trace rows in `cpu::trace`).
-                let rc = m.bump_access_count(ac);
-                let rd = m.bump_access_count(ad);
-                let rf = m.bump_access_count(af);
                 let taken = !c.is_zero();
                 jump.push(Jrow {
                     pc,
@@ -944,7 +944,13 @@ pub(crate) fn execute_with(
                     let (offset, step) = k.cell_parts(c);
                     *cell = at(at(fp, offset)?, step)?;
                 }
-                let input: [F128; STATE_CELLS] = std::array::from_fn(|c| m.read(cells[c]));
+                // The counts in flush order, so a cell two operands alias still pairs each
+                // access with its own count. A cell not written keeps count 0.
+                let mut r = [0; ROW_CELLS];
+                let mut input = [F128::ZERO; STATE_CELLS];
+                for c in 0..STATE_CELLS {
+                    (input[c], r[c]) = m.read(cells[c]);
+                }
                 // No table constraint covers the output (the relation is proven
                 // by the Keccak reduction, §keccak); the interpreter still computes it so
                 // the output cells are consistent for any later read.
@@ -953,14 +959,8 @@ pub(crate) fn execute_with(
                 primitives::hash::keccak_f(&mut lanes);
                 let written = STATE_CELLS + k.out_cells.cells();
                 let output = crate::keccak::cells_of_state(&lanes, k.out_odd);
-                for (&cell, &v) in cells[STATE_CELLS..written].iter().zip(&output) {
-                    m.put(cell, v)?;
-                }
-                // In flush order, so a cell two operands alias still pairs each
-                // read with its own count. A cell not written keeps count 0.
-                let mut r = [0; ROW_CELLS];
-                for (count, &cell) in r.iter_mut().zip(&cells[..written]) {
-                    *count = m.bump_access_count(cell);
+                for c in STATE_CELLS..written {
+                    r[c] = m.put_counted(cells[c], output[c - STATE_CELLS])?;
                 }
                 keccak.push(Krow {
                     pc,
@@ -1040,6 +1040,5 @@ pub(crate) fn execute_with(
         mem_used,
         unconstrained_reads: m.unwritten_reads,
         trace,
-        gpow: g.into_powers(),
     })
 }

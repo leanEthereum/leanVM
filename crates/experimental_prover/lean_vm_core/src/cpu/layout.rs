@@ -367,12 +367,8 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout, keccak_block
     let sch = schema();
     // g^0..g^{span-1}, so every pc/frame/operand/count fill is an O(1) lookup instead
     // of an O(log) power: a frame base or an operand is below the cells the run used.
-    // The run's own table covers them unless a count outgrew it.
     let span = exec.mem_used.max(bytecode_size).max(tr.counts);
-    let gpow = match exec.gpow.get(..span) {
-        Some(gpow) => std::borrow::Cow::Borrowed(gpow),
-        None => std::borrow::Cow::Owned(primitives::field::g_powers(span)),
-    };
+    let gpow = primitives::field::g_powers(span);
 
     // `l`, the public layout (flush/count blocks, placements, boundary, taus), is a pure
     // function of the program, the announced sizes and the public input, so the prover
