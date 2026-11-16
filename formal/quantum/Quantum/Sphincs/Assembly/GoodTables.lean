@@ -1,5 +1,6 @@
 module
 
+public import Quantum.Sphincs.Assembly.ChgRevStatic
 public import Quantum.Sphincs.Assembly.HmsgCoversMass
 public import Quantum.Sphincs.Hybrid.Masked
 
@@ -13,7 +14,8 @@ The masked hybrid (`Quantum.Sphincs.Hybrid.Masked`) masks the masses by ReparamF
 `S₀` on the template data `(p, v)`.
 
 * **The static condition of the masses** (`SphStatic`): HmsgCovers' `HStatic` (HmsgCoversMass'
-  `hSt`) and `TrialsOff` (`hOff`) at the template data. GoodES's conditions stay on the event side.
+  `hSt`), `TrialsOff` (`hOff`) and ChgRevStatic's `ChgStatic` (the digest blocks' capacities) at
+  the template data. GoodES's conditions stay on the event side.
 * **The bad fraction** (`stageFrac_sphStatic_le`): `stageFrac (SrcS SphStatic) ≤ 2^-197 + 2^-400 +
   2^-277 + staticFrac` (MassSources' `goodT_posM_bad_frac_le_keccak`: ReparamFull's
   `2^-197 + 2^-400`, SrcBad's `2^-277`), with `staticFrac` the fraction of the coordinates whose
@@ -25,9 +27,11 @@ open scoped ENNReal
 namespace Quantum.Sphincs.Assembly
 
 /-- **The static condition of the masses** at the template data: HmsgCovers' `HStatic` (the
-`H_msg` rates injective, at most five `H_msg` inputs per capacity) and `TrialsOff`. -/
+`H_msg` rates injective, at most five `H_msg` inputs per capacity), `TrialsOff` and
+ChgRevStatic's `ChgStatic`. -/
 def SphStatic (p : PP) (v : (s : HPos) → XD s) : Prop :=
-  HStatic (pubP p) (rootV v) ∧ TrialsOff (pubP p).xw (pubP p).keys.1 (valsOf v)
+  HStatic (pubP p) (rootV v) ∧ TrialsOff (pubP p).xw (pubP p).keys.1 (valsOf v) ∧
+    ChgStatic (pubP p) (rootV v)
 
 open scoped Classical in
 /-- **The static fraction**: the coordinates of the reparametrization whose template data are off

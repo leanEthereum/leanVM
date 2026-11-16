@@ -1,6 +1,6 @@
 module
 
-public import Quantum.Sphincs.Assembly.ReparamFull
+public import Quantum.Sphincs.Assembly.ChgRevStatic
 
 @[expose] public section
 
@@ -15,16 +15,18 @@ the averaging needs (`Quantum.Sphincs.Assembly.ChgRevBound`).
   `totalWeight_le_mismatch` with the record mass replaced by the mass of the record calls meeting
   `B` from a label avoiding `B` (`revFirst`, Mismatch's `revSet`), which is what its proof gives.
   A record of a coordinate already in the label is never charged.
-* **The charged coordinates read off the coordinates** `x = (p, (v, k))` (`chgBK x`): a message
-  `M` is charged (`MsgChg`) if its randomizer label is non-first at the randomizer stage's
-  capacities (`RChg`, `rCapK`: the never-revealed coins of `k`), or one of its digest labels
-  `(M, i)` is charged at the capacities of the public keys at the `H_msg` blocks under the hidden
-  root and randomizers (`DChg`, `capD`): a label of smaller rank at the same capacity, or a
-  randomizer-stage or `SK.seed`-keyed capacity (`ExtK`). Both `.rnd M` and `.dig M i` of a
-  charged message are charged, so a digest record of `M` (after its randomizer's record) is never
-  a first meeting.
+* **The charged coordinates read off the coordinates** `x = (p, (v, k))` (`chgBK x`): the
+  randomizer and both digests of a charged message `M` (`MsgChg`). The charges paid over the
+  never-revealed part (`KChg`, `kPartK`): its randomizer label is non-first at the randomizer
+  stage's capacities (`RChg`, `rCapK`: the never-revealed coins of `k`), or a digest label of `M`
+  is at a randomizer-stage or `SK.seed`-keyed capacity (`ExtChg`, `ExtK`). The charges paid over
+  the hidden randomizers (`VChg`, `dPartK`): a digest label of `M` shares its capacity with another
+  message's (`XChg`, symmetric, so both messages are charged) or the two labels of `M` share one
+  (`SelfChg`), at the capacities of the public keys at the `H_msg` blocks under the hidden root and
+  randomizers (`capD`).
 * `chgB_subset_chgBK`: on `FullD t`, `chgB t ⊆ chgBK (fullE t)` (`rCellH_eq_rCapK`: the table's
-  randomizer capacities are `rCapK`; `dChg_of_mem_dBX`: DigestStage's charged labels are `DChg`).
+  randomizer capacities are `rCapK`; `dChg_of_mem_dBX`: DigestStage's charged labels are `DChg`,
+  whose messages are charged, `msgChg_of_dChg`).
 -/
 
 open Matrix IPFunctor
@@ -194,71 +196,103 @@ def DChg (x : CX) (a : DLab) : Prop :=
 def RChg (p : PP) (k : KK) (M : Message) : Prop :=
   ∃ M', rOrd M' < rOrd M ∧ rCapK p k M' = rCapK p k M
 
-/-- **A charged message**: its randomizer label or one of its digest labels is charged. -/
+/-- **A digest label of `M` at an extra capacity** (at its hidden randomizer). -/
+def ExtChg (x : CX) (M : Message) : Prop :=
+  ∃ i, ExtK x.1 x.2.2 (capD x.1 (rootV x.2.1) (M, i) (x.2.1 (.rnd M)))
+
+/-- **A digest label of `M` sharing its capacity with another message's** at their hidden
+randomizers. The relation is symmetric: both messages are charged. -/
+def XChg (p : PP) (v : (s : HPos) → XD s) (M : Message) : Prop :=
+  ∃ i, ∃ b : DLab, b.1 ≠ M ∧
+    capD p (rootV v) b (v (.rnd b.1)) = capD p (rootV v) (M, i) (v (.rnd M))
+
+/-- **The two digest labels of `M` at one capacity** (at its hidden randomizer). -/
+def SelfChg (p : PP) (v : (s : HPos) → XD s) (M : Message) : Prop :=
+  capD p (rootV v) (M, 0) (v (.rnd M)) = capD p (rootV v) (M, 1) (v (.rnd M))
+
+/-- The charges paid over the never-revealed part: a non-first randomizer label or an extra
+capacity. -/
+def KChg (x : CX) (M : Message) : Prop :=
+  RChg x.1 x.2.2 M ∨ ExtChg x M
+
+/-- The charges paid over the hidden randomizers: label collisions. -/
+def VChg (p : PP) (v : (s : HPos) → XD s) (M : Message) : Prop :=
+  XChg p v M ∨ SelfChg p v M
+
+/-- **A charged message.** -/
 def MsgChg (x : CX) (M : Message) : Prop :=
-  RChg x.1 x.2.2 M ∨ ∃ i, DChg x (M, i)
+  KChg x M ∨ VChg x.1 x.2.1 M
 
-/-- The charged coordinates: the randomizer and both digests of a charged message. -/
-def IsChgK (x : CX) : HPos → Prop
-  | .rnd M => MsgChg x M
-  | .dig M _ => MsgChg x M
+/-- The randomizer and the digests of the messages of `Q`. -/
+def IsOfMsg (Q : Message → Prop) : HPos → Prop
+  | .rnd M => Q M
+  | .dig M _ => Q M
   | _ => False
 
 open scoped Classical in
-/-- **The charged coordinates** as a finite set. Irreducible: membership does not unfold the
-enumeration of the coordinates. -/
+/-- **The randomizer and digest coordinates of the messages of `Q`** as a finite set.
+Irreducible: membership does not unfold the enumeration of the coordinates. -/
 @[irreducible]
+noncomputable def msgPos (Q : Message → Prop) : Finset HPos :=
+  Finset.univ.filter (IsOfMsg Q)
+
+theorem mem_msgPos {Q : Message → Prop} {s : HPos} : s ∈ msgPos Q ↔ IsOfMsg Q s := by
+  unfold msgPos
+  simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+
+theorem msgPos_mono {Q Q' : Message → Prop} (h : ∀ M, Q M → Q' M) : msgPos Q ⊆ msgPos Q' := by
+  intro s hs
+  have h' := mem_msgPos.mp hs
+  refine mem_msgPos.mpr ?_
+  cases s with
+  | rnd M => exact h M h'
+  | dig M i => exact h M h'
+  | val q => exact h'.elim
+  | str j i => exact h'.elim
+  | asg M j => exact h'.elim
+
+theorem msgPos_subset_union (Q Q' : Message → Prop) :
+    msgPos (fun M ↦ Q M ∨ Q' M) ⊆ msgPos Q ∪ msgPos Q' := by
+  intro s hs
+  have h' := mem_msgPos.mp hs
+  rw [Finset.mem_union, mem_msgPos, mem_msgPos]
+  cases s with
+  | rnd M => exact h'
+  | dig M i => exact h'
+  | val q => exact h'.elim
+  | str j i => exact h'.elim
+  | asg M j => exact h'.elim
+
+/-- **The charged coordinates**: the randomizer and both digests of a charged message. -/
 noncomputable def chgBK (x : CX) : Finset HPos :=
-  Finset.univ.filter (IsChgK x)
+  msgPos (MsgChg x)
 
-theorem mem_chgBK {x : CX} {s : HPos} : s ∈ chgBK x ↔ IsChgK x s := by
-  unfold chgBK
-  simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+theorem mem_chgBK {x : CX} {s : HPos} : s ∈ chgBK x ↔ IsOfMsg (MsgChg x) s :=
+  mem_msgPos
 
-/-- The randomizer coordinate of a randomizer or `H_msg` coordinate's message. -/
-def toRnd : HPos → HPos
-  | .rnd M => .rnd M
-  | .dig M _ => .rnd M
-  | s => s
+/-- **The never-revealed part's charged coordinates.** -/
+noncomputable def kPartK (x : CX) : Finset HPos :=
+  msgPos (KChg x)
 
-/-- The coordinates of the messages with a non-first randomizer label. -/
-def IsRK (p : PP) (k : KK) : HPos → Prop
-  | .rnd M => RChg p k M
-  | .dig M _ => RChg p k M
-  | _ => False
-
-/-- The coordinates of the messages with a charged digest label. -/
-def IsDK (x : CX) : HPos → Prop
-  | .rnd M => ∃ i, DChg x (M, i)
-  | .dig M _ => ∃ i, DChg x (M, i)
-  | _ => False
-
-open scoped Classical in
-/-- **The randomizer part** of the charged coordinates (a function of `p` and the never-revealed
-part only). Irreducible like `chgBK`. -/
-@[irreducible]
-noncomputable def rPartK (p : PP) (k : KK) : Finset HPos :=
-  Finset.univ.filter (IsRK p k)
-
-open scoped Classical in
-/-- **The digest part** of the charged coordinates. Irreducible like `chgBK`. -/
-@[irreducible]
-noncomputable def dPartK (x : CX) : Finset HPos :=
-  Finset.univ.filter (IsDK x)
-
-theorem mem_rPartK {p : PP} {k : KK} {s : HPos} : s ∈ rPartK p k ↔ IsRK p k s := by
-  unfold rPartK
-  simp only [Finset.mem_filter, Finset.mem_univ, true_and]
-
-theorem mem_dPartK {x : CX} {s : HPos} : s ∈ dPartK x ↔ IsDK x s := by
-  unfold dPartK
-  simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+/-- **The hidden randomizers' charged coordinates** (a function of `p` and the hidden values). -/
+noncomputable def dPartK (p : PP) (v : (s : HPos) → XD s) : Finset HPos :=
+  msgPos (VChg p v)
 
 /-- The charged coordinates are the two parts'. -/
-theorem chgBK_subset_parts (x : CX) : chgBK x ⊆ rPartK x.1 x.2.2 ∪ dPartK x := by
-  intro s hs
-  have h := mem_chgBK.mp hs
-  rw [Finset.mem_union, mem_rPartK, mem_dPartK]
+theorem chgBK_subset_parts (x : CX) : chgBK x ⊆ kPartK x ∪ dPartK x.1 x.2.1 :=
+  msgPos_subset_union _ _
+
+/-- The hidden randomizers' part is charged. -/
+theorem dPartK_subset_chgBK (x : CX) : dPartK x.1 x.2.1 ⊆ chgBK x :=
+  msgPos_mono fun _ h ↦ Or.inr h
+
+/-- The message of a randomizer or digest coordinate. -/
+def msgOfPos : HPos → Message
+  | .rnd M => M
+  | .dig M _ => M
+  | _ => 0
+
+theorem isOfMsg_msgOfPos {Q : Message → Prop} {s : HPos} (h : IsOfMsg Q s) : Q (msgOfPos s) := by
   cases s with
   | rnd M => exact h
   | dig M i => exact h
@@ -266,87 +300,26 @@ theorem chgBK_subset_parts (x : CX) : chgBK x ⊆ rPartK x.1 x.2.2 ∪ dPartK x 
   | str j i => exact h.elim
   | asg M j => exact h.elim
 
-/-- The digest part is charged. -/
-theorem dPartK_subset_chgBK (x : CX) : dPartK x ⊆ chgBK x := by
-  intro s hs
-  have h := mem_dPartK.mp hs
-  refine mem_chgBK.mpr ?_
-  cases s with
-  | rnd M => exact Or.inr h
-  | dig M i => exact Or.inr h
-  | val q => exact h.elim
-  | str j i => exact h.elim
-  | asg M j => exact h.elim
-
-/-- **A randomizer hitting a charge** of a digest label of `M`: at one of its calls the capacity
-is an extra capacity, another message's label's capacity (at its hidden randomizer), or the two
-calls' capacities agree. It does not read the hidden randomizer of `M`. -/
-def Hit (x : CX) (M : Message) (R : Randomizer) : Prop :=
-  ∃ i : DigestCall, ExtK x.1 x.2.2 (capD x.1 (rootV x.2.1) (M, i) R) ∨
-    (∃ b : DLab, b.1 ≠ M ∧
-      capD x.1 (rootV x.2.1) b (x.2.1 (.rnd b.1)) = capD x.1 (rootV x.2.1) (M, i) R) ∨
-    capD x.1 (rootV x.2.1) (M, 0) R = capD x.1 (rootV x.2.1) (M, 1) R
-
-open scoped Classical in
-/-- **The randomizers hitting a charge** of `M`. Irreducible: membership does not unfold the
-enumeration of the randomizers. -/
-@[irreducible]
-noncomputable def badR (x : CX) (M : Message) : Finset Randomizer :=
-  Finset.univ.filter (Hit x M)
-
-theorem mem_badR {x : CX} {M : Message} {R : Randomizer} : R ∈ badR x M ↔ Hit x M R := by
-  unfold badR
-  simp only [Finset.mem_filter, Finset.mem_univ, true_and]
-
-/-- **Typical coordinates**: every message has at most three randomizers hitting a charge. -/
-def Typ (x : CX) : Prop :=
-  ∀ M, (badR x M).card ≤ 3
-
 /-- Two distinct calls are the two calls. -/
 theorem digestCall_pair {a b : DigestCall} (h : a ≠ b) : (a = 0 ∧ b = 1) ∨ (a = 1 ∧ b = 0) := by
   revert a b
   decide
 
-/-- **A charged digest label's randomizer hits a charge.** -/
-theorem hit_of_dChg {x : CX} {M : Message} {i : DigestCall} (h : DChg x (M, i)) :
-    Hit x M (x.2.1 (.rnd M)) := by
+/-- **A charged digest label's message is charged.** -/
+theorem msgChg_of_dChg {x : CX} {M : Message} {i : DigestCall} (h : DChg x (M, i)) :
+    MsgChg x M := by
   rcases h with ⟨⟨M', j⟩, hb, he⟩ | he
   · by_cases hbM : M' = M
     · subst hbM
       have hji : j ≠ i := fun e ↦ by
         subst e
         exact lt_irrefl _ hb
-      refine ⟨i, Or.inr (Or.inr ?_)⟩
+      refine Or.inr (Or.inr ?_)
       rcases digestCall_pair hji with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
       · exact he
       · exact he.symm
-    · exact ⟨i, Or.inr (Or.inl ⟨(M', j), hbM, he⟩)⟩
-  · exact ⟨i, Or.inl he⟩
-
-/-- `Hit` does not read the hidden randomizer of `M`. -/
-theorem hit_update {x : CX} {M : Message} {R : Randomizer} (d : XD (.rnd M)) :
-    Hit (x.1, (Function.update x.2.1 (.rnd M) d, x.2.2)) M R ↔ Hit x M R := by
-  have hroot : rootV (Function.update x.2.1 (.rnd M) d) = rootV x.2.1 :=
-    Function.update_of_ne (by simp) _ _
-  have hb : ∀ b : DLab, b.1 ≠ M →
-      Function.update x.2.1 (.rnd M) d (.rnd b.1) = x.2.1 (.rnd b.1) := fun b hb ↦
-    Function.update_of_ne (by simpa using hb) _ _
-  unfold Hit
-  simp only [hroot]
-  constructor
-  · rintro ⟨i, h | ⟨b, hbM, he⟩ | h⟩
-    · exact ⟨i, Or.inl h⟩
-    · exact ⟨i, Or.inr (Or.inl ⟨b, hbM, (hb b hbM).symm ▸ he⟩)⟩
-    · exact ⟨i, Or.inr (Or.inr h)⟩
-  · rintro ⟨i, h | ⟨b, hbM, he⟩ | h⟩
-    · exact ⟨i, Or.inl h⟩
-    · exact ⟨i, Or.inr (Or.inl ⟨b, hbM, (hb b hbM) ▸ he⟩)⟩
-    · exact ⟨i, Or.inr (Or.inr h)⟩
-
-theorem badR_update {x : CX} {M : Message} (d : XD (.rnd M)) :
-    badR (x.1, (Function.update x.2.1 (.rnd M) d, x.2.2)) M = badR x M := by
-  ext R
-  rw [mem_badR, mem_badR, hit_update]
+    · exact Or.inr (Or.inl ⟨i, (M', j), hbM, he⟩)
+  · exact Or.inl (Or.inr ⟨i, he⟩)
 
 end charges
 
@@ -478,11 +451,11 @@ theorem chgB_subset_chgBK (ht : FullD t) : chgB t ⊆ chgBK (fullE t) := by
   have hs' := mem_chgB.mp hs
   refine mem_chgBK.mpr ?_
   cases s with
-  | rnd M => exact Or.inl (rChg_of_mem_rB ht.1 hs')
+  | rnd M => exact Or.inl (Or.inl (rChg_of_mem_rB ht.1 hs'))
   | dig M i =>
     rcases hs' with h | h
-    · exact Or.inl (rChg_of_mem_rB ht.1 h)
-    · refine Or.inr ⟨i, ?_⟩
+    · exact Or.inl (Or.inl (rChg_of_mem_rB ht.1 h))
+    · refine msgChg_of_dChg (i := i) ?_
       rw [fullE_eq]
       exact dChg_of_mem_dBX (yOf t) ht.2.2.2.1 h
   | val q => exact hs'.elim

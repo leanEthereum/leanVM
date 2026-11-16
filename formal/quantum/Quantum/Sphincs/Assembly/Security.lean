@@ -124,7 +124,7 @@ theorem winProb_le_sphincsQrpmBound (hq : q ≤ 2 ^ 64) (h : SphOpen) :
   have hw := winProb_le_masked hperm hsign hq (SrcS SphStatic) (fun t ↦ fullCovH (tabOf t))
     (fun t ↦ fullCovK (tabOf t)) (fun t ↦ fullCovK' (tabOf t)) hcov_sph _ _
     (hS_sph' A hperm hsign SphStatic fun _ _ h ↦ h.1)
-    (hRd_sph' A hperm hsign SphStatic (fun _ _ h ↦ h.1) fun _ _ h ↦ h.2)
+    (hRd_sph' A hperm hsign SphStatic (fun _ _ h ↦ h.1) fun _ _ h ↦ h.2.1)
   have hst := stageFrac_le_stageCap h
   have hc := h.hChg q A hperm hsign hq
   have hwc := h.hWin q A hperm hsign hq
