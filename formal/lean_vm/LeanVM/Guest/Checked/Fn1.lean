@@ -107,8 +107,6 @@ public import LeanVM.Guest.Pack.«P11».Bundle
 public import LeanVM.Guest.Pack.«P11».Sig
 public import LeanVM.Guest.Pack.«P54».Sig
 public import LeanVM.Guest.Pack.«P49».Sig
-public import LeanVM.Guest.Pack.«P23».Sig
-public import LeanVM.Guest.Pack.«P61».Sig
 public import LeanVM.Guest.Pack.«P56».Sig
 public import LeanVM.Guest.Pack.«P56».Core
 public import LeanVM.Guest.Pack.«P56».Bundle
@@ -674,31 +672,20 @@ theorem ok92 : CheckOk 92 := checkOk_one (by decide +kernel) w92_0
 
 theorem plain92 : Plain 92 := plain_of_nil (by decide +kernel)
 
-theorem link93 : Link 93 (Glob.ofSigs ([(93, Fn.«verify_bus_gkr_loop0».sig), (439, Fn.«verify_bus_gkr_loop0_loop0».sig), (440, Fn.«gkr_rounds__L0».sig), (441, Fn.«gkr_rounds__L2».sig), (442, Fn.«gkr_rounds__L4».sig), (443, Fn.«gkr_rounds__L6».sig), (444, Fn.«gkr_rounds__L1».sig)]) Data.jtTrie globSem)
+theorem link93 : Link 93 (Glob.ofSigs ([(93, Fn.«verify_bus_gkr_loop0».sig), (439, Fn.«verify_bus_gkr_loop0_loop0».sig), (440, Fn.«gkr_rounds__L2».sig), (441, Fn.«gkr_rounds__L1».sig)]) Data.jtTrie globSem)
     Fn.«verify_bus_gkr_loop0».code Fn.«verify_bus_gkr_loop0».core (Fn.«verify_bus_gkr_loop0».cert.withPows Data.powTree) :=
   Link.of code93 core93 cert93 
     (SigsOk.cons sig93 rfl 
     (SigsOk.cons sig439 rfl 
     (SigsOk.cons sig440 rfl 
-    (SigsOk.cons sig441 rfl 
-    (SigsOk.cons sig442 rfl 
-    (SigsOk.cons sig443 rfl 
-    (SigsOk.cons sig444 rfl SigsOk.nil)))))))
+    (SigsOk.cons sig441 rfl SigsOk.nil))))
     (by decide +kernel)
 
 theorem w93_0 : WinOk 93 0 := link93.win rfl Fn.«verify_bus_gkr_loop0».w0
 
-theorem w93_1 : WinOk 93 1 := link93.win rfl Fn.«verify_bus_gkr_loop0».w1
+theorem ok93 : CheckOk 93 := checkOk_one (by decide +kernel) w93_0
 
-theorem w93_2 : WinOk 93 2 := link93.win rfl Fn.«verify_bus_gkr_loop0».w2
-
-theorem ok93 : CheckOk 93 := fun i hi ↦ by
-  have h : (certOf 93).cuts.length = 2 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w93_0
-  · exact w93_1
-  · exact w93_2
+theorem plain93 : Plain 93 := plain_of_nil (by decide +kernel)
 
 theorem link94 : Link 94 (Glob.ofSigs ([(94, Fn.«verify_bus_gkr_loop1».sig)]) Data.jtTrie globSem)
     Fn.«verify_bus_gkr_loop1».code Fn.«verify_bus_gkr_loop1».core (Fn.«verify_bus_gkr_loop1».cert.withPows Data.powTree) :=

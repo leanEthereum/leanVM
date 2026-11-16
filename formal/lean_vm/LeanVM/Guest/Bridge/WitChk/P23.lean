@@ -110,20 +110,6 @@ end
 
 end LeanVM.Guest.Fn.«da_roots_tree__L4»
 
-namespace LeanVM.Guest.Fn.«gkr_rounds__L4»
-
-open LeanVM.Guest
-
-public section
-
-/-- `gkr_rounds__L4`'s witness hints pass the data check. -/
-theorem witOk : Bridge.witChk alignCtx Fn.«gkr_rounds__L4».fs Fn.«gkr_rounds__L4».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«gkr_rounds__L4»
-
 namespace LeanVM.Guest.Fn.«level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0»
 
 open LeanVM.Guest

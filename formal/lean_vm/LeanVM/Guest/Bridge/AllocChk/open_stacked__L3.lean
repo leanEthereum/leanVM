@@ -30,7 +30,7 @@ theorem curBodyOk :
 
 /-- `open_stacked__L3`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«open_stacked__L3».fs [8, 9, 311, 450, 464, 474, 488, 496, 533, 534, 576, 582, 600, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 616, 617, 618, 619, 620, 621, 622, 623, 624, 625, 626, 627, 628, 629, 630, 631, 632, 633, 634, 635, 636, 637, 638, 639, 640, 641, 642] Fn.«open_stacked__L3».core.params Fn.«open_stacked__L3».core.body
+    Bridge.frChk alignCtx Fn.«open_stacked__L3».fs [8, 9, 311, 447, 461, 471, 485, 493, 530, 531, 573, 579, 597, 598, 599, 600, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 616, 617, 618, 619, 620, 621, 622, 623, 624, 625, 626, 627, 628, 629, 630, 631, 632, 633, 634, 635, 636, 637, 638, 639] Fn.«open_stacked__L3».core.params Fn.«open_stacked__L3».core.body
       Data.adviceFn342 = true := by
   decide +kernel
 

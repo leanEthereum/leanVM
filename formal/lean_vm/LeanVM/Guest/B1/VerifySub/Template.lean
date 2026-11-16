@@ -197,7 +197,7 @@ def vsFpwT : List Stmt :=
 /-- The bus's GKR, the tables, the Keccak reduction (G:3624-3635). -/
 def vsCallsT : List Stmt :=
   vsTabsT 560 561 ++
-  [vsCall "verify_bus_gkr" [554, 555, 556, 557, 558, 320, 253, 254, 561] ((List.range 7).map (562 + ·)),
+  [vsCall "verify_bus_gkr" [554, 555, 556, 557, 558, 320, 253, 254, 561, 25] ((List.range 7).map (562 + ·)),
     vsAlloc 569 34, vsAlloc 570 4] ++ vsTabsT 571 572 ++
   [vsCall "verify_tables" [562, 563, 564, 565, 566, 567, 0, 1, 254, 253, 71, 26, 4, 335, 559, 6,
       569, 568, 572, 570, 25] ((List.range 10).map (573 + ·)),

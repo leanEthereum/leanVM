@@ -36,57 +36,58 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `da_verify`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none (.node none (.node
-    none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none
-    .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_roots_tree__L4».modeSig) .nil .nil)))) .nil) .nil))) .nil) .nil) .nil) .nil) .nil) .nil)
-    (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node none .nil
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, (.node none (.node none .nil (.node none (.node none
     (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node (some Fn.«da_roots_tree__L8».modeSig) .nil .nil)))) .nil) .nil))) .nil) .nil) .nil))
-    .nil) (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node (some Fn.«da_roots_tree__L0».modeSig) .nil .nil)))) .nil) .nil)) .nil)))) .nil))))
-    (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node none (.node
-    none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node (some Fn.«da_roots_tree__L6».modeSig) .nil .nil)))) .nil) .nil))) .nil) .nil)
-    .nil) .nil)) .nil) (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
-    none (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node (some Fn.«da_roots_tree__L10».modeSig) .nil .nil)))) .nil) .nil)))
+    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node (some Fn.«da_verify_loop0».modeSig) .nil .nil)))) .nil) .nil)) .nil)))) .nil)
+    .nil)) (.node none (.node none (.node none (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«da_vector».modeSig) .nil .nil)))))) .nil) .nil) .nil) .nil) .nil) .nil)) (.node none .nil
+    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil
+    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«da_row_shape».modeSig) .nil .nil)))) .nil))) .nil)) .nil)))))) (.node none (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none
+    (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node (some Fn.«da_roots_tree__L10».modeSig) .nil .nil)))) .nil) .nil)))
     .nil) .nil) .nil))) (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
     .nil (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil
     (.node none .nil (.node (some Fn.«da_roots_tree__L2».modeSig) .nil .nil)))) .nil) .nil))
-    .nil))))) .nil)))) (.node none (.node none (.node none .nil (.node none (.node none (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none
-    .nil (.node none .nil (.node none .nil (.node (some Fn.«da_roots_tree__L5».modeSig) .nil
-    .nil)))) .nil) .nil))) .nil) .nil) .nil) .nil) .nil)) (.node none (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_roots_tree__L1».modeSig) .nil .nil)))) .nil) .nil)) .nil))))) .nil) (.node none (.node
-    none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_roots_tree__L9».modeSig) .nil .nil)))) .nil) .nil))) .nil) .nil) .nil)) .nil))) (.node
-    none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none (.node
-    none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node (some Fn.«da_roots_tree__L7».modeSig) .nil .nil)))) .nil) .nil))) .nil) .nil)
+    .nil))))) .nil)) (.node none .nil (.node none (.node none (.node none (.node none (.node none
+    (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node (some Fn.«da_roots_tree__L6».modeSig) .nil .nil)))) .nil) .nil))) .nil)
+    .nil) .nil) .nil) .nil))) (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«da_roots_tree__L4».modeSig) .nil .nil)))) .nil) .nil)) .nil))))))) (.node none (.node none
+    .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
+    .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«da_roots_tree__L0».modeSig) .nil .nil)))) .nil) .nil)) .nil)))) .nil)) (.node none .nil
     (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node (some Fn.«da_weights».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil)) .nil)))
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
-    .nil (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node (some Fn.«da_roots_tree__L3».modeSig) .nil .nil)))) .nil) .nil))
-    .nil)))))) .nil)))) (.node none (.node none (.node none (.node none .nil (.node none (.node
-    none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none .nil (.node none .nil (.node (some Fn.«da_vector».modeSig) .nil .nil)))))) .nil)
-    .nil) .nil) .nil) .nil)) .nil) (.node none (.node none (.node none (.node none .nil (.node none
-    .nil (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node (some Fn.«da_row_shape».modeSig) .nil .nil)))) .nil))) .nil)))
-    .nil) .nil) (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node (some Fn.«da_verify_loop0».modeSig) .nil .nil)))) .nil) .nil))
-    .nil)))) .nil) .nil)))) .nil)), 524287⟩
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«da_roots_tree__L8».modeSig) .nil .nil)))) .nil) .nil))) .nil) .nil) .nil) .nil))))) (.node
+    none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node (some Fn.«da_roots_tree__L3».modeSig) .nil .nil))))
+    .nil) .nil)) .nil)))))) .nil) (.node none (.node none .nil (.node none (.node none (.node none
+    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node (some Fn.«da_roots_tree__L7».modeSig) .nil .nil)))) .nil)
+    .nil))) .nil) .nil) .nil) .nil)) .nil)) (.node none (.node none (.node none (.node none (.node
+    none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node (some Fn.«da_roots_tree__L5».modeSig) .nil
+    .nil)))) .nil) .nil))) .nil) .nil) .nil) .nil) .nil) .nil) (.node none (.node none (.node none
+    .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«da_roots_tree__L9».modeSig) .nil .nil)))) .nil) .nil))) .nil) .nil) .nil)) (.node none
+    (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node (some Fn.«da_weights».modeSig) .nil .nil)))) .nil) .nil) .nil)
+    .nil)) .nil)) (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node (some Fn.«da_roots_tree__L1».modeSig) .nil .nil)))) .nil) .nil)) .nil))))
+    .nil))))))), 524287⟩
 
 /-- `da_verify`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨61563, 58, Fn.«da_verify».modeSig, (.node (some [(.witnessStack "da_shape" 6 2)]) (.node none
+  ⟨61556, 58, Fn.«da_verify».modeSig, (.node (some [(.witnessStack "da_shape" 6 2)]) (.node none
     (.node none (.node none (.node (some [(.alloc 22 37)]) .nil .nil) .nil) .nil) .nil) (.node none
     (.node none (.node none .nil (.node (some [(.alloc 25 649)]) .nil .nil)) (.node none (.node
     none (.node (some [(.allocFrames 31 20 6 (LeanVM.Parameters.K.ofBits 0x1) 20)]) .nil .nil)

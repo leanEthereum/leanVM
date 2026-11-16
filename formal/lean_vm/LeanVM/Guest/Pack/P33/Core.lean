@@ -6330,7 +6330,7 @@ noncomputable def c0 : List Core.Stmt := (
   .atom (.copy (.n 559) (.n 546)) ::
   .atom (.const (.n 560) (word 133823759239872512 0)) ::
   .atom (.mul (.n 561) (.n 4) (.n 560)) ::
-  .call "verify_bus_gkr" [.n 554, .n 555, .n 556, .n 557, .n 558, .n 320, .n 253, .n 254, .n 561] [.n 562, .n 563, .n 564, .n 565, .n 566, .n 567, .n 568] ::
+  .call "verify_bus_gkr" [.n 554, .n 555, .n 556, .n 557, .n 558, .n 320, .n 253, .n 254, .n 561, .n 25] [.n 562, .n 563, .n 564, .n 565, .n 566, .n 567, .n 568] ::
   .atom (.hint (.alloc (.n 569) 34)) ::
   .atom (.hint (.alloc (.n 570) 4)) ::
   .atom (.const (.n 571) (word 133823759239872512 0)) ::

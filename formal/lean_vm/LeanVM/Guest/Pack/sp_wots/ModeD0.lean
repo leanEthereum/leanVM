@@ -3549,11 +3549,11 @@ noncomputable def modeHints6 : Exec.Trie (List LeanVM.Prover.Exec.Hint) :=
 
 /-- `sp_wots`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
 
 /-- `sp_wots`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨33526, 23713, Fn.«sp_wots».modeSig, (.node none (.node none modeHints1 (.node none modeHints2
+  ⟨33519, 23713, Fn.«sp_wots».modeSig, (.node none (.node none modeHints1 (.node none modeHints2
     modeHints3)) (.node none modeHints4 (.node none modeHints5 modeHints6))), .nil, (.node none
     (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none
     .nil (.node none (.node none (.node none (.node (some 64) .nil .nil) .nil) .nil) .nil))) .nil)

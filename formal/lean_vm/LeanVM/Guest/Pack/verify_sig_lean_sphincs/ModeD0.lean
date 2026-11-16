@@ -23,14 +23,14 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `verify_sig_lean_sphincs`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
-    none .nil (.node none (.node none (.node none (.node none (.node none (.node (some
-    Fn.«sp_wots».modeSig) .nil .nil) .nil) .nil) .nil) .nil) .nil)) .nil))))) .nil)))), 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, (.node none (.node none (.node none (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
+    (.node none (.node none (.node none (.node none (.node none (.node (some Fn.«sp_wots».modeSig)
+    .nil .nil) .nil) .nil) .nil) .nil) .nil)) .nil))))) .nil) .nil) .nil) .nil), 524287⟩
 
 /-- `verify_sig_lean_sphincs`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨57239, 3887, Fn.«verify_sig_lean_sphincs».modeSig, (.node none (.node none (.node none (.node
+  ⟨57232, 3887, Fn.«verify_sig_lean_sphincs».modeSig, (.node none (.node none (.node none (.node
     none (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none
     .nil (.node (some [(.witnessStack "siblings" 4965 2)]) .nil .nil))) .nil) (.node none (.node
     none .nil (.node none (.node (some [(.witnessStack "sp_fors_nodes" 3672 2)]) .nil .nil) .nil))

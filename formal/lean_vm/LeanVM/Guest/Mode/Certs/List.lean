@@ -1432,23 +1432,12 @@ end
 
 end LeanVM.Guest.Fn.«da_roots_tree__L0»
 
-namespace LeanVM.Guest.Fn.«gkr_rounds__L0»
-
-public section
-
-theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem5
-
-end
-
-end LeanVM.Guest.Fn.«gkr_rounds__L0»
-
 namespace LeanVM.Guest.Fn.«level_positions__L11_L18_L6»
 
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem6
+  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem5
 
 end
 
@@ -1459,7 +1448,7 @@ namespace LeanVM.Guest.Fn.«level_positions__L13_L19_L7»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem7
+  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem6
 
 end
 
@@ -1470,7 +1459,7 @@ namespace LeanVM.Guest.Fn.«level_positions__L10_L20_L2»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem8
+  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem7
 
 end
 
@@ -1481,7 +1470,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L37_L12_L4_L2»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem9
+  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem8
 
 end
 
@@ -1492,7 +1481,7 @@ namespace LeanVM.Guest.Fn.«level_queries__L23_L0_L4_L16_L15_L3_L5_L36_L6_L1»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem10
+  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem9
 
 end
 
@@ -1503,7 +1492,7 @@ namespace LeanVM.Guest.Fn.«level_queries__L32_L0_L4_L16_L21_L3_L0_L0_L0_L0»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem11
+  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem10
 
 end
 
@@ -1514,7 +1503,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L73_L20_L6_L3»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem12
+  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem11
 
 end
 
@@ -1525,7 +1514,7 @@ namespace LeanVM.Guest.Fn.«da_levels__L128_L7_loop1»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem13
+  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem12
 
 end
 
@@ -1536,7 +1525,7 @@ namespace LeanVM.Guest.Fn.«verify_merkle_cap__L3»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem14
+  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem13
 
 end
 
@@ -1547,7 +1536,7 @@ namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem15
+  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem14
 
 end
 
@@ -1558,7 +1547,7 @@ namespace LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0�
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem16
+  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem15
 
 end
 
@@ -1569,7 +1558,7 @@ namespace LeanVM.Guest.Fn.«level_positions__L4_L21_L3_loop0»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem17
+  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem16
 
 end
 
@@ -1580,7 +1569,7 @@ namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L3_L6_L12_L4_L1
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem18
+  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem17
 
 end
 
@@ -1591,7 +1580,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L44_L16_L4_L2_loop1»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem19
+  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem18
 
 end
 
@@ -1602,7 +1591,7 @@ namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0�
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem20
+  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem19
 
 end
 
@@ -1613,7 +1602,7 @@ namespace LeanVM.Guest.Fn.«level_positions__L22_L25_L7_loop0»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem21
+  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem20
 
 end
 
@@ -1624,7 +1613,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L109_L23_L6_L3_loop0»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem22
+  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem21
 
 end
 
@@ -1635,7 +1624,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L25_L15_L4_L2_loop1»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem23
+  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem22
 
 end
 
@@ -1646,7 +1635,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L17_L8_L4_L2_loop0»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem24
+  Mode.mem_flatten_of Mode.guestPacks_mem3 ModePack.«P11».mem23
 
 end
 
@@ -5040,23 +5029,12 @@ end
 
 end LeanVM.Guest.Fn.«da_roots_tree__L4»
 
-namespace LeanVM.Guest.Fn.«gkr_rounds__L4»
-
-public section
-
-theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem7
-
-end
-
-end LeanVM.Guest.Fn.«gkr_rounds__L4»
-
 namespace LeanVM.Guest.Fn.«level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0»
 
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem8
+  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem7
 
 end
 
@@ -5067,7 +5045,7 @@ namespace LeanVM.Guest.Fn.«level_queries__L44_L0_L4_L16_L18_L6_L0_L0_L0_L0»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem9
+  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem8
 
 end
 
@@ -5078,7 +5056,7 @@ namespace LeanVM.Guest.Fn.«level_queries__L37_L0_L4_L16_L19_L7_L0_L0_L0_L0»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem10
+  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem9
 
 end
 
@@ -5089,7 +5067,7 @@ namespace LeanVM.Guest.Fn.«level_positions__L4_L19_L7»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem11
+  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem10
 
 end
 
@@ -5100,7 +5078,7 @@ namespace LeanVM.Guest.Fn.«level_queries__L73_L1_L6_L32_L22_L4_L0_L0_L0_L0»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem12
+  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem11
 
 end
 
@@ -5111,7 +5089,7 @@ namespace LeanVM.Guest.Fn.«level_queries__L23_L0_L4_L16_L24_L6_L0_L0_L0_L0»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem13
+  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem12
 
 end
 
@@ -5122,7 +5100,7 @@ namespace LeanVM.Guest.Fn.«level_queries__L21_L0_L4_L16_L21_L3_L0_L0_L0_L0»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem14
+  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem13
 
 end
 
@@ -5133,7 +5111,7 @@ namespace LeanVM.Guest.Fn.«da_levels__L128_L7_loop5»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem15
+  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem14
 
 end
 
@@ -5144,7 +5122,7 @@ namespace LeanVM.Guest.Fn.«verify_merkle_cap__L7»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem16
+  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem15
 
 end
 
@@ -5155,7 +5133,7 @@ namespace LeanVM.Guest.Fn.«level_positions__L3_L14_L2_loop0»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem17
+  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem16
 
 end
 
@@ -5166,7 +5144,7 @@ namespace LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0�
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem18
+  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem17
 
 end
 
@@ -5177,7 +5155,7 @@ namespace LeanVM.Guest.Fn.«level_positions__L15_L22_L4_loop0»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem19
+  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem18
 
 end
 
@@ -5188,7 +5166,7 @@ namespace LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0_
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem20
+  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem19
 
 end
 
@@ -5199,7 +5177,7 @@ namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0_
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem21
+  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem20
 
 end
 
@@ -5210,7 +5188,7 @@ namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0_
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem22
+  Mode.mem_flatten_of Mode.guestPacks_mem16 ModePack.«P23».mem21
 
 end
 
@@ -16579,23 +16557,12 @@ end
 
 end LeanVM.Guest.Fn.«da_factors__L14_L7_L0»
 
-namespace LeanVM.Guest.Fn.«gkr_rounds__L6»
-
-public section
-
-theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem8
-
-end
-
-end LeanVM.Guest.Fn.«gkr_rounds__L6»
-
 namespace LeanVM.Guest.Fn.«level_positions__L28_L15_L3»
 
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem9
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem8
 
 end
 
@@ -16606,7 +16573,7 @@ namespace LeanVM.Guest.Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem10
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem9
 
 end
 
@@ -16617,7 +16584,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L37_L10_L4_L2»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem11
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem10
 
 end
 
@@ -16628,7 +16595,7 @@ namespace LeanVM.Guest.Fn.«squeeze_point_from__L19»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem12
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem11
 
 end
 
@@ -16639,7 +16606,7 @@ namespace LeanVM.Guest.Fn.«level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem13
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem12
 
 end
 
@@ -16650,7 +16617,7 @@ namespace LeanVM.Guest.Fn.«level_positions__L14_L26_L2»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem14
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem13
 
 end
 
@@ -16661,7 +16628,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L109_L22_L6_L3»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem15
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem14
 
 end
 
@@ -16672,7 +16639,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L32_L19_L4_L2»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem16
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem15
 
 end
 
@@ -16683,7 +16650,7 @@ namespace LeanVM.Guest.Fn.«verify_merkle_cap__L5»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem17
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem16
 
 end
 
@@ -16694,7 +16661,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L219_L14_L6_L3_loop0»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem18
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem17
 
 end
 
@@ -16705,7 +16672,7 @@ namespace LeanVM.Guest.Fn.«level_positions__L32_L17_L5_loop0»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem19
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem18
 
 end
 
@@ -16716,7 +16683,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L23_L9_L4_L2_loop0»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem20
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem19
 
 end
 
@@ -16727,7 +16694,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L44_L14_L4_L2_loop1»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem21
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem20
 
 end
 
@@ -16738,7 +16705,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L73_L19_L6_L3_loop1»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem22
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem21
 
 end
 
@@ -16749,7 +16716,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L218_L21_L6_L3_loop1»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem23
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem22
 
 end
 
@@ -16760,7 +16727,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L109_L21_L6_L3_loop0»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem24
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem23
 
 end
 
@@ -16771,7 +16738,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L55_L17_L4_L2_loop0»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem25
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem24
 
 end
 
@@ -16782,7 +16749,7 @@ namespace LeanVM.Guest.Fn.«level_positions__L4_L24_L6_loop0»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem26
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem25
 
 end
 
@@ -16793,7 +16760,7 @@ namespace LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0�
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem27
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem26
 
 end
 
@@ -16804,7 +16771,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L55_L24_L6_L3_loop1»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem28
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem27
 
 end
 
@@ -16815,7 +16782,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L21_L12_L4_L2_loop0»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem29
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem28
 
 end
 
@@ -16826,7 +16793,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L18_L12_L4_L2_loop0»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem30
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem29
 
 end
 
@@ -16837,7 +16804,7 @@ namespace LeanVM.Guest.Fn.«da_levels__L512_L9_loop8»
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem31
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem30
 
 end
 
@@ -16848,7 +16815,7 @@ namespace LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem32
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem31
 
 end
 
@@ -16859,7 +16826,7 @@ namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0_
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem33
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem32
 
 end
 
@@ -16870,7 +16837,7 @@ namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L
 public section
 
 theorem modeCert_in : modeCert ∈ Mode.guestCerts :=
-  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem34
+  Mode.mem_flatten_of Mode.guestPacks_mem58 ModePack.«P61».mem33
 
 end
 

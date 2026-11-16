@@ -26,14 +26,11 @@ A function's precondition names tuples of its frame cells in relations by tag (`
 * `tagTabs = 2^21`: `WinTabs` on `[tabs]`, the window table `open_stacked__L{m}` takes as an
   argument (`lean_ethereum.py:1572`), which its decodes and grinds read.
 
-* `tagGkr = 2^20`: `GkrPar` on `[layers, x, start_g, k_mod_next]`, `verify_bus_gkr`'s
-  radix-four layer loop `verify_bus_gkr_loop0` (`lean_ethereum.py:1970-2053`): the parity word
-  `layer[g^LAYER_PARITY]` of layer `x` it dispatches on, and the table `k_mod_next` that steps it.
 * `lqTag n odd base d cd`, from `2^21`: `OqMainWins` on `[win_ptrs]` at `n_iters_g = g^n`, the
   windows `level_queries` hands `opening_queries` (`lean_ethereum.py`, `level_queries`), which
   `open_stacked` assumes at the rate's arm of its dispatch (`Check.selTag`, below `2^26`).
 
-`walkSem t` is the relation of a walk tag `2 ≤ t < tagGkr`, decoded by `walkKind`, `walkOdd`, `walkD`,
+`walkSem t` is the relation of a walk tag `2 ≤ t < 2^21`, decoded by `walkKind`, `walkOdd`, `walkD`,
 `walkCd`. The certificates' generator (`cli/GuestCert.lean`) writes the tags.
 -/
 
@@ -70,9 +67,6 @@ def walkSem (t : ℕ) (rd : Reader) (ws : List E) : Prop :=
 with `odd = 1`, which no deeper loop has (a deeper loop's specialization has `odd = 0`). -/
 def winsTag (d cd : ℕ) : ℕ := walkTag 0 1 d cd
 
-/-- The tag of `GkrPar`, above every walk tag. -/
-def tagGkr : ℕ := 2 ^ 20
-
 /-- The tag of `level_queries`' windows: the walk `walkTag (2 + base) odd d cd` (`OqMainWins`) on
 `[t]` at `N = g^n`; with `d < 64` the walk tag is below `2^16`, and with `n < 992` the tag below
 `2^26`. -/
@@ -90,17 +84,9 @@ def lqSem (t : ℕ) (rd : Reader) (ws : List E) : Prop :=
   B1.OqMainWins rd (walkD (lqWalk t)) (walkCd (lqWalk t)) (walkOdd (lqWalk t)) (walkKind (lqWalk t) - 2)
     (ws.getD 0 0) (gen ^ lqN t)
 
-/-- The tag of `WinTabs` (`ExpTables.lean`), above `tagGkr` and below every `level_queries` tag:
+/-- The tag of `WinTabs` (`ExpTables.lean`), above every walk tag and below every `level_queries` tag:
 `open_stacked`'s window table `tabs`, which `verify_sub` hands it. -/
 def tagTabs : ℕ := 2 ^ 21
-
-/-- **`verify_bus_gkr_loop0`'s parity obligation** on `layers`, the iteration `x`, `start_g` and `k_mod_next`:
-`k_mod_next[g^r]`, `r < 4`, if read, is `g^e`, `e < 4`; and the parity word `layer[g^12]` of
-layer `x`, `layer = layers·(x²·start_g)^13` (`LAYER_SLOTS = 13`, `LAYER_PARITY = 12`), if read,
-is `g^e`, `e < 4`. -/
-def GkrPar (rd : Reader) (layers x startG kmn : E) : Prop :=
-  (∀ r < 4, ∀ v, LoadHolds rd kmn r v → ∃ e < 4, v = ofK (addressOfIndex e)) ∧
-    ∀ p, LoadHolds rd (layers * (x * x * startG) ^ 13) 12 p → ∃ e < 4, p = ofK (addressOfIndex e)
 
 theorem walkTag_lt {kind odd d cd : ℕ} (hk : kind < 4) (ho : odd < 2) (hc : cd < 64) (hd : d < 64) :
     walkTag kind odd d cd < 2 ^ 16 := by

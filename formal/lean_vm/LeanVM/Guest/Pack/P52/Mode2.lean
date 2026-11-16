@@ -23,11 +23,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `walk_path__L18_L6`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
 
 /-- `walk_path__L18_L6`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨439274, 1757, Fn.«walk_path__L18_L6».modeSig, (.node (some [(.witnessStack "merkle_children" 7
+  ⟨438756, 1757, Fn.«walk_path__L18_L6».modeSig, (.node (some [(.witnessStack "merkle_children" 7
     72)]) (.node none (.node none (.node (some [(.cellAddress 112 113)]) .nil .nil) .nil) .nil)
     .nil), (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
     (.node none .nil (.node none (.node none (.node (some [(.lt (.ex (.hp 4 1) 0) (.num 64))]) .nil

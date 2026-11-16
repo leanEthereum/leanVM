@@ -35,11 +35,11 @@ theorem mainSig_ok : Fn.«main».modeSig.entry = [0, 1] ∧ Fn.«main».modeSig.
 
 /-- **`MainOk` from `main`'s signature**, entry and the guest's table. -/
 theorem mainOk_of {Km : Mode.Cert} {E0 : Mode.Env} (hsig : Km.F.sig = Fn.«main».modeSig)
-    (hent : Km.F.entry = 13937) (hpows : E0.pows = Data.powTree) (hjt : E0.jt = Data.jtTrie)
-    (hlo : E0.jtLo = 430) (hhi : E0.jtHi = 14367) : MainOk Km E0 := by
+    (hent : Km.F.entry = Data.f0.instructionCount) (hpows : E0.pows = Data.powTree) (hjt : E0.jt = Data.jtTrie)
+    (hlo : E0.jtLo = 430) (hhi : E0.jtHi = 430 + Data.f0.instructionCount) : MainOk Km E0 := by
   obtain ⟨h1, h2, h3, h4, h5⟩ := mainSig_ok
   have hmc := mainCells_eq
-  have hpl := proLen_eq
+  have hpl : proLen = Data.f0.instructionCount := rfl
   exact ⟨by omega, hpows, hjt, by omega, by omega,
     fun o ho ↦ by rw [hsig, h1] at ho; simp at ho; omega, hsig ▸ h2, hsig ▸ h3, hsig ▸ h4, hsig ▸ h5⟩
 

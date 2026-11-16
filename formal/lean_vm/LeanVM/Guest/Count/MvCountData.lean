@@ -32,7 +32,7 @@ def dvLpNames : List String := ["__loop22", "__loop23"]
 def dvLpJ : List ℕ := [406, 419]
 
 /-- The core indices of the DA levels `B1.Da.dlNames`, by `L`. -/
-def dlJ : List ℕ := [947, 948, 949, 950, 951, 952, 953, 421, 954, 955, 956]
+def dlJ : List ℕ := [944, 945, 946, 947, 948, 949, 950, 421, 951, 952, 953]
 
 /-- The core indices of the roots' tree's arms `B1.Da.rtNames`, by `L`. -/
 def rtJ : List ℕ := [407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417]

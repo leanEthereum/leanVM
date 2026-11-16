@@ -86,21 +86,6 @@ end
 
 end LeanVM.Guest.Fn.«da_roots_tree__L0»
 
-namespace LeanVM.Guest.Fn.«gkr_rounds__L0»
-
-open LeanVM.Guest
-
-public section
-
-/-- `gkr_rounds__L0`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«gkr_rounds__L0».cert.locs Fn.«gkr_rounds__L0».fs Fn.«gkr_rounds__L0».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«gkr_rounds__L0»
-
 namespace LeanVM.Guest.Fn.«level_positions__L11_L18_L6»
 
 open LeanVM.Guest

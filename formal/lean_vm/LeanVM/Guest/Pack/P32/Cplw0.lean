@@ -192,11 +192,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `da_roots_tree__L9`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(30, Fn.«da_pad».sig), (956, Fn.«da_levels__L512_L9».sig)]) Data.jtTrie globSem) code Fn.«da_roots_tree__L9».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(30, Fn.«da_pad».sig), (953, Fn.«da_levels__L512_L9».sig)]) Data.jtTrie globSem) code Fn.«da_roots_tree__L9».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `da_roots_tree__L9`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(30, Fn.«da_pad».sig), (956, Fn.«da_levels__L512_L9».sig)]) Data.jtTrie globSem) code Fn.«da_roots_tree__L9».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(30, Fn.«da_pad».sig), (953, Fn.«da_levels__L512_L9».sig)]) Data.jtTrie globSem) code Fn.«da_roots_tree__L9».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi

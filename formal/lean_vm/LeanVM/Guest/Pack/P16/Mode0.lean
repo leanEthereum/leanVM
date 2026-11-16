@@ -30,21 +30,20 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `child_claim_list_digest`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none (.node none (.node
-    none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node (some
-    Fn.«list_split».modeSig) .nil .nil))) .nil))))) .nil) .nil) .nil)) (.node none .nil (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node none (.node none .nil (.node none .nil (.node (some
-    Fn.«child_claim_list_any».modeSig) .nil .nil))) .nil))))))) .nil))) .nil) (.node none (.node
-    none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none (.node
-    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«child_claim_list_mono».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil) .nil) .nil))) .nil)
-    .nil)) .nil), 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, (.node none .nil (.node none (.node none (.node none
+    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
+    .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+    (some Fn.«child_claim_list_any».modeSig) .nil .nil))) .nil))))))) .nil)) (.node none (.node
+    none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node none .nil (.node none .nil (.node (some Fn.«list_split».modeSig) .nil
+    .nil))) .nil))))) .nil) .nil) .nil) .nil)) .nil) (.node none (.node none .nil (.node none
+    (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node (some Fn.«child_claim_list_mono».modeSig)
+    .nil .nil)))) .nil) .nil) .nil) .nil) .nil) .nil)) .nil)) .nil))), 524287⟩
 
 /-- `child_claim_list_digest`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨61337, 62, Fn.«child_claim_list_digest».modeSig, (.node none (.node none (.node none (.node none
+  ⟨61330, 62, Fn.«child_claim_list_digest».modeSig, (.node none (.node none (.node none (.node none
     .nil (.node (some [(.witnessStack "child_mono" 28 1)]) .nil .nil)) .nil) (.node none .nil
     (.node none .nil (.node none (.node (some [(.alloc 39 59)]) .nil .nil) .nil)))) (.node (some
     [(.cellAddress 13 14)]) (.node none (.node none (.node (some [(.alloc 26 34)]) .nil .nil) .nil)
@@ -66,11 +65,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `rs_eq_rows__L7`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
 
 /-- `rs_eq_rows__L7`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨188638, 1484, Fn.«rs_eq_rows__L7».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨188631, 1484, Fn.«rs_eq_rows__L7».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `rs_eq_rows__L7`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -88,11 +87,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `index_mle__L15`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
 
 /-- `index_mle__L15`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨203033, 77, Fn.«index_mle__L15».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨203022, 77, Fn.«index_mle__L15».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `index_mle__L15`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -110,11 +109,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `column_selector__L25`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
 
 /-- `column_selector__L25`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨212216, 21, Fn.«column_selector__L25».modeSig, (.node (some [(.digitDecomposeExp 2 (.stack 6) 32
+  ⟨212205, 21, Fn.«column_selector__L25».modeSig, (.node (some [(.digitDecomposeExp 2 (.stack 6) 32
     2 4 24 none)]) .nil .nil), (.node none (.node none .nil (.node (some [(.sub ⟨⟨0, 416, [((.fr
     3), 1), ((.fr 6), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 8),
     2, 416⟩])]) .nil .nil)) .nil), .nil, false, .nil⟩
@@ -135,11 +134,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `squeeze_point_from__L23`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
 
 /-- `squeeze_point_from__L23`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨212690, 89, Fn.«squeeze_point_from__L23».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨212679, 89, Fn.«squeeze_point_from__L23».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `squeeze_point_from__L23`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -157,11 +156,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `claim_list_last__L1`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
 
 /-- `claim_list_last__L1`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨236558, 36, Fn.«claim_list_last__L1».modeSig, (.node (some [(.witnessHeap "claims" 3 0 4)]) .nil
+  ⟨236547, 36, Fn.«claim_list_last__L1».modeSig, (.node (some [(.witnessHeap "claims" 3 0 4)]) .nil
     .nil), .nil, .nil, false, .nil⟩
 
 /-- `claim_list_last__L1`: its mode walk accepts its code. -/
@@ -180,11 +179,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `child_claim_list_last__L6`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
 
 /-- `child_claim_list_last__L6`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨241365, 130, Fn.«child_claim_list_last__L6».modeSig, (.node (some [(.witnessStack
+  ⟨241354, 130, Fn.«child_claim_list_last__L6».modeSig, (.node (some [(.witnessStack
     "child_claim_index" 79 1)]) (.node none (.node none (.node none .nil (.node none (.node (some
     [(.witnessStack "child_claim_index" 106 1)]) .nil .nil) .nil)) .nil) (.node none (.node none
     (.node none (.node none (.node (some [(.witnessStack "child_claim_index" 124 1)]) .nil .nil)
@@ -235,15 +234,15 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `__loop30`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none .nil (.node none
-    (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, (.node none .nil (.node none (.node none (.node none .nil
+    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
     (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil
     (.node none .nil (.node (some Fn.«da_column_offsets_loop5».modeSig) .nil .nil)))) .nil)))
-    .nil)))) .nil)) .nil) .nil)) .nil) .nil), 524287⟩
+    .nil)))) .nil) .nil))) .nil) .nil)), 524287⟩
 
 /-- `__loop30`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨252835, 52, Fn.«da_column_offsets_loop5».modeSig, (.node none .nil (.node none (.node none
+  ⟨252824, 52, Fn.«da_column_offsets_loop5».modeSig, (.node none .nil (.node none (.node none
     (.node none .nil (.node none (.node (some [(.frameAddress 42)]) .nil .nil) .nil)) .nil) .nil)),
     .nil, .nil, false, .nil⟩
 
@@ -263,20 +262,20 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `level_queries__L73_L1_L6_L32_L17_L5_L0_L0_L0_L0`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none .nil (.node none (.node none .nil (.node none
-    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none (.node none
-    (.node (some Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».modeSig) .nil .nil) .nil)
-    .nil) .nil)) .nil) .nil)) .nil) .nil) .nil) .nil))) .nil) .nil)) (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none
-    (.node (some Fn.«verify_merkle_cap__L5».modeSig) .nil .nil) .nil) .nil) .nil)) .nil) .nil)
-    .nil)))) .nil) .nil) .nil) .nil)) .nil))), 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, (.node none .nil (.node none (.node none .nil (.node none
+    (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil
+    (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node
+    (some Fn.«verify_merkle_cap__L5».modeSig) .nil .nil) .nil) .nil) .nil)) .nil) .nil) .nil))
+    .nil)) .nil) .nil) .nil) .nil) .nil)) (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node (some
+    Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».modeSig) .nil .nil) .nil) .nil) .nil))
+    .nil) .nil) .nil))) .nil) .nil)) .nil)))))), 524287⟩
 
 /-- `level_queries__L73_L1_L6_L32_L17_L5_L0_L0_L0_L0`: its hints, residuals, table sizes and cuts.
     -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨257755, 38, Fn.«level_queries__L73_L1_L6_L32_L17_L5_L0_L0_L0_L0».modeSig, (.node none (.node
+  ⟨257237, 38, Fn.«level_queries__L73_L1_L6_L32_L17_L5_L0_L0_L0_L0».modeSig, (.node none (.node
     (some [(.allocDyn 13 12), (.witnessHeap "merkle_caps" 13 0 128)]) .nil (.node none .nil (.node
     (some [(.alloc 23 380)]) .nil .nil))) (.node (some [(.allocDyn 15 14), (.witnessHeap
     "merkle_cap_active" 15 0 32)]) (.node (some [(.alloc 18 230)]) .nil .nil) .nil)), .nil, .nil,
@@ -298,20 +297,20 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none .nil (.node none (.node none .nil (.node none
-    (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node
-    none (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none (.node
-    none (.node (some Fn.«verify_merkle_cap__L6».modeSig) .nil .nil) .nil) .nil) .nil)) .nil)
-    .nil)) .nil) .nil))) .nil)) .nil) (.node none .nil (.node none .nil (.node none (.node none
-    .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none .nil (.node none (.node none (.node none (.node (some
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none
+    .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node none (.node none (.node (some
     Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0».modeSig) .nil .nil) .nil) .nil)
-    .nil))))) .nil) .nil) .nil)) .nil))))) .nil)), 524287⟩
+    .nil)))) .nil))) .nil)) .nil))) (.node none .nil (.node none (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none (.node
+    none .nil (.node none (.node none (.node none (.node (some Fn.«verify_merkle_cap__L6».modeSig)
+    .nil .nil) .nil) .nil) .nil)) .nil) .nil) .nil))))) .nil) .nil)))))), 524287⟩
 
 /-- `level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0`: its hints, residuals, table sizes and cuts.
     -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨260172, 35, Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeSig, (.node none (.node
+  ⟨259654, 35, Fn.«level_queries__L32_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeSig, (.node none (.node
     (some [(.allocDyn 13 12), (.witnessHeap "merkle_caps" 13 0 256)]) .nil (.node none .nil (.node
     (some [(.alloc 23 21)]) .nil .nil))) (.node (some [(.allocDyn 15 14), (.witnessHeap
     "merkle_cap_active" 15 0 64)]) (.node (some [(.alloc 18 454)]) .nil .nil) .nil)), .nil, .nil,

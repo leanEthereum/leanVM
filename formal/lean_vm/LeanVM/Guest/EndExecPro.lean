@@ -53,9 +53,9 @@ structure MainOk (Km : Mode.Cert) (E0 : Mode.Env) : Prop where
   preR : Km.F.sig.preR = []
   preP : Km.F.sig.preP = []
 
-theorem proLen_eq : proLen = 13937 := by
+theorem proLen_eq : proLen = 13933 := by
   have := jt_span
-  show Data.f0.instructionCount = 13937
+  show Data.f0.instructionCount = 13933
   omega
 
 theorem mainCells_eq : Data.mainCells = 430 := jt_span.1
@@ -65,7 +65,7 @@ theorem f0_mem : Data.f0 ∈ Data.functions := List.mem_cons_self
 theorem f0_entry' : Data.f0.entryPc = 0 := rfl
 
 /-- Every pc the advice gives hints at is past the prologue. -/
-theorem adviceHints_ge : Data.adviceHints.all (fun p ↦ decide (13937 ≤ p.1)) = true := by
+theorem adviceHints_ge : Data.adviceHints.all (fun p ↦ decide (13933 ≤ p.1)) = true := by
   decide +kernel
 
 /-- **No hint in the prologue.** -/

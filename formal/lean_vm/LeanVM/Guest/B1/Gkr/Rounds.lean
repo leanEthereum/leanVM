@@ -17,15 +17,14 @@ import LeanVM.Guest.Data.Source
 # Rounds between records
 
 A round record (`ROUND_FS = 0`, `ROUND_CURSOR = 5`, `ROUND_CLAIM = 6`, fields `862` words apart)
-carries a sponge's capacity, a stream cursor and a claim. `TbGkrRoundsOut n rd rec pt` (B1-a's
-`MeaningGkrRounds`, copied): from the record at `rec`, `n` rounds read `4n` words at its cursor,
-their eq factors at `pt[0 .. n]`, store their challenges at `pt[42 ..]`, and the record at
-`rec·g^n` carries the sponge, the cursor and the claim after them (`gkrRun`).
+carries a sponge's capacity, a stream cursor and a claim. `TbGkrRoundsOut n s rd rec pt` (B1-a's
+`GkrRoundsOut`, its cursor in the record): from the record at `rec`, `n` rounds read `4n` words at
+its cursor, their eq factors at `pt[0 .. n]`, store their challenges at `pt[42 ..]`, and the
+record at `rec·g^s` carries the sponge, the cursor and the claim after them (`gkrRun`). A call of
+`gkr_rounds` and an iteration of the layer loop's inner loop each move one record (`s = 1`).
 
 * `tb_gkrRun_append`: rounds run in sequence;
-* `gkrRoundsOut_append`: two runs of rounds, the second from the first's last record, are one;
-* `l29_holds`: `da_column_offsets_loop1` holds at `g^0` exactly-below `half = g^h` gives the `4h`
-  rounds from the record at `head`.
+* `gkrRoundsOut_append`: two runs of rounds, the second from the first's last record, are one.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -43,23 +42,27 @@ abbrev gkCap : ℕ := guest_const% GKR_ROUNDS_CAP
 def TbCapAt (rd : Reader) (rec : E) (off stride : ℕ) (cap : List E) : Prop :=
   cap.length = 5 ∧ ∀ j (hj : j < cap.length), LoadHolds rd rec (off + j * stride) cap[j]
 
-/-- **`n` GKR rounds between records** (B1-a's `MeaningGkrRounds`, on its arguments). -/
-def TbGkrRoundsOut (n : ℕ) (rd : Reader) (rec pt : E) : Prop :=
+/-- **`n` GKR rounds between records `s` apart** (B1-a's `GkrRoundsOut` at `s = 1`, its cursor in
+the record). -/
+def TbGkrRoundsOut (n s : ℕ) (rd : Reader) (rec pt : E) : Prop :=
   ∃ (cap : List E) (cur claim : E) (cs : List (List E)) (es : List E),
     TbCapAt rd rec 0 gkCap cap ∧
     LoadHolds rd rec (5 * gkCap) cur ∧ LoadHolds rd rec (6 * gkCap) claim ∧
     cs.length = n ∧ (∀ c ∈ cs, c.length = 4) ∧ TbReadsAt rd cur cs.flatten ∧
     es.length = n ∧ TbReadsAt rd pt es ∧
     TbReadsAt rd (pt * gen ^ 42) (gkrRun cs es claim ⟨cap, []⟩).1 ∧
-    TbCapAt rd rec n gkCap (gkrRun cs es claim ⟨cap, []⟩).2.2.cap ∧
-    LoadHolds rd rec (n + 5 * gkCap) (cur * gen ^ (4 * n)) ∧
-    LoadHolds rd rec (n + 6 * gkCap) (gkrRun cs es claim ⟨cap, []⟩).2.1
+    TbCapAt rd rec s gkCap (gkrRun cs es claim ⟨cap, []⟩).2.2.cap ∧
+    LoadHolds rd rec (s + 5 * gkCap) (cur * gen ^ (4 * n)) ∧
+    LoadHolds rd rec (s + 6 * gkCap) (gkrRun cs es claim ⟨cap, []⟩).2.1
 
-/-- `gkr_rounds__L{n}`, `n ∈ {1, 2, 4, 6}`, is sound (B1-a's `gkr_rounds_Spec`, in this direction;
-B1-a proves it). -/
+/-- `gkr_rounds__L{n}`, `n ∈ {1, 2}`, is sound (B1-a's `gkr_rounds_Spec`, in this direction;
+B1-a proves it): on the cursor its record carries, its rounds move one record, and an odd count
+ends the row of challenges with a zero. -/
 def tb_gkr_rounds_Spec : Prop :=
-  ∀ n ∈ gkrRoundsCounts, ∀ (rd : Reader) (rec pt tabs : E) (rets : List E),
-    coreProgram.Rel rd (gkrRoundsName n) [rec, pt, tabs] rets → TbGkrRoundsOut n rd rec pt
+  ∀ n ∈ gkrRoundsCounts, ∀ (rd : Reader) (rec pt cur tabs stream : E) (rets : List E),
+    coreProgram.Rel rd (gkrRoundsName n) [rec, pt, cur, tabs, stream] rets →
+      LoadHolds rd rec (5 * gkCap) cur →
+      TbGkrRoundsOut n 1 rd rec pt ∧ (n % 2 = 1 → LoadHolds rd pt (42 + n) 0)
 
 /-! ## Rounds in sequence -/
 
@@ -119,12 +122,12 @@ theorem tb_gkrRun_eta (cs : List (List E)) (es : List E) (claim : E) (cap : List
   have := tb_gkrRun_pend cs es claim ⟨cap, pend⟩ hp
   rw [← this]
 
-/-- **Rounds in sequence**: `n1` rounds from `rec`, then `n2` from `rec·g^n1`, are `n1 + n2`
-rounds from `rec`. -/
-theorem gkrRoundsOut_append {rd : Reader} {n1 n2 : ℕ} {rec pt : E}
-    (h1 : TbGkrRoundsOut n1 rd rec pt)
-    (h2 : TbGkrRoundsOut n2 rd (rec * gen ^ n1) (pt * gen ^ n1)) :
-    TbGkrRoundsOut (n1 + n2) rd rec pt := by
+/-- **Rounds in sequence**: `n1` rounds from `rec` to `rec·g^s1`, then `n2` from there to
+`s2` further, are `n1 + n2` rounds from `rec` to `rec·g^(s1 + s2)`. -/
+theorem gkrRoundsOut_append {rd : Reader} {n1 n2 s1 s2 : ℕ} {rec pt : E}
+    (h1 : TbGkrRoundsOut n1 s1 rd rec pt)
+    (h2 : TbGkrRoundsOut n2 s2 rd (rec * gen ^ s1) (pt * gen ^ n1)) :
+    TbGkrRoundsOut (n1 + n2) (s1 + s2) rd rec pt := by
   obtain ⟨cap, cur, claim, cs1, es1, hc, hcur, hcl, hl1, h4, hr1, he1, hre1, hch1, hc1, hu1,
     hcl1⟩ := h1
   obtain ⟨cap2, cur2, claim2, cs2, es2, hc2, hcur2, hcl2, hl2, h42, hr2, he2, hre2, hch2, hc2',
@@ -154,12 +157,12 @@ theorem gkrRoundsOut_append {rd : Reader} {n1 n2 : ℕ} {rec pt : E}
     rw [tbCapAt_mul_gen_pow] at hc2'
     exact hc2'
   · rw [tb_loadHolds_mul_gen_pow] at hu2
-    rw [show n1 + n2 + 5 * gkCap = n1 + (n2 + 5 * gkCap) by ring,
+    rw [show s1 + s2 + 5 * gkCap = s1 + (s2 + 5 * gkCap) by ring,
       show cur * gen ^ (4 * (n1 + n2)) = cur * gen ^ (4 * n1) * gen ^ (4 * n2) by ring]
     exact hu2
   · rw [tb_loadHolds_mul_gen_pow] at hcl2'
     rw [hrun, tb_gkrRun_eta cs1 es1 claim cap rfl,
-      show n1 + n2 + 6 * gkCap = n1 + (n2 + 6 * gkCap) by ring]
+      show s1 + s2 + 6 * gkCap = s1 + (s2 + 6 * gkCap) by ring]
     exact hcl2'
 
 end

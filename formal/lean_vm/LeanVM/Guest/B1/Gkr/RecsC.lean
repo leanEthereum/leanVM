@@ -12,10 +12,12 @@ public import LeanVM.Guest.B1.Gkr.Rounds
 /-!
 # Round records, completely
 
-`RecsAt rd rec cur cs es claim s`: record `r ≤ n` at `rec·g^r` carries the capacity, the cursor
-`4r` words on and the claim after the first `r` rounds of `gkrRun cs es claim s`. `recs_rounds`:
-with the rounds' words at the cursor, the eq factors at `pt` and the challenges at `pt[42 ..]`,
-any `k` consecutive rounds from round `a` are `TbGkrRoundsOut k` at `rec·g^a`, `pt·g^a`.
+`RecAt rd rec cur cs es claim s r`: the record at `rec` carries the capacity, the cursor `4r` words
+on and the claim after the first `r` rounds of `gkrRun cs es claim s`. `recs_rounds`: with the
+rounds' words at the cursor, the eq factors at `pt` and the challenges at `pt[42 ..]`, the `k`
+rounds from round `a`, between a record after `a` rounds and one `t` records on after `a + k`, are
+`TbGkrRoundsOut k t`. `LyRecs`: a layer's records, record `y ≤ j` after `2y` rounds and record
+`j + 1` after all of them.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -25,14 +27,20 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- **The round records**: record `r ≤ n` carries the sponge's capacity, the cursor and the claim
-after the first `r` rounds. -/
-def RecsAt (rd : Reader) (rec cur : E) (cs : List (List E)) (es : List E) (claim : E) (s : Fs) :
-    Prop :=
-  ∀ r ≤ cs.length,
-    TbCapAt rd (rec * gen ^ r) 0 gkCap (gkrRun (cs.take r) (es.take r) claim s).2.2.cap ∧
-      LoadHolds rd (rec * gen ^ r) (5 * gkCap) (cur * gen ^ (4 * r)) ∧
-      LoadHolds rd (rec * gen ^ r) (6 * gkCap) (gkrRun (cs.take r) (es.take r) claim s).2.1
+/-- **A round record** after the first `r` rounds: the sponge's capacity, the cursor and the
+claim. -/
+def RecAt (rd : Reader) (rec cur : E) (cs : List (List E)) (es : List E) (claim : E) (s : Fs)
+    (r : ℕ) : Prop :=
+  TbCapAt rd rec 0 gkCap (gkrRun (cs.take r) (es.take r) claim s).2.2.cap ∧
+    LoadHolds rd rec (5 * gkCap) (cur * gen ^ (4 * r)) ∧
+    LoadHolds rd rec (6 * gkCap) (gkrRun (cs.take r) (es.take r) claim s).2.1
+
+/-- **A layer's round records** from `head`: record `y ≤ j` after `2y` rounds, record `j + 1`
+after all of them. -/
+def LyRecs (rd : Reader) (head cur : E) (cs : List (List E)) (es : List E) (claim : E) (s : Fs)
+    (j : ℕ) : Prop :=
+  (∀ y ≤ j, RecAt rd (head * gen ^ y) cur cs es claim s (2 * y)) ∧
+    RecAt rd (head * gen ^ (j + 1)) cur cs es claim s cs.length
 
 theorem tb_gkrRun_take_add (cs : List (List E)) (es : List E) (claim : E) (s : Fs) (a k : ℕ)
     (hl : cs.length = es.length) :
@@ -58,13 +66,14 @@ theorem tbReadsAt_drop_take {rd : Reader} {p : E} {xs : List E} (h : TbReadsAt r
   rw [List.length_take] at h2
   exact h2.1
 
-/-- **Consecutive rounds among the records** are `gkr_rounds`' meaning. -/
+/-- **Rounds between two records** are `gkr_rounds`' meaning. -/
 theorem recs_rounds {rd : Reader} {rec cur pt claim : E} {cs : List (List E)} {es : List E}
-    {s : Fs} (hR : RecsAt rd rec cur cs es claim s) (hp : s.pend = [])
-    (hl : cs.length = es.length) (h4 : ∀ c ∈ cs, c.length = 4) (hx : TbReadsAt rd cur cs.flatten)
-    (he : TbReadsAt rd pt es) (hch : TbReadsAt rd (pt * gen ^ 42) (gkrRun cs es claim s).1)
-    {a k : ℕ} (hak : a + k ≤ cs.length) :
-    TbGkrRoundsOut k rd (rec * gen ^ a) (pt * gen ^ a) := by
+    {s : Fs} (hp : s.pend = []) (hl : cs.length = es.length) (h4 : ∀ c ∈ cs, c.length = 4)
+    (hx : TbReadsAt rd cur cs.flatten) (he : TbReadsAt rd pt es)
+    (hch : TbReadsAt rd (pt * gen ^ 42) (gkrRun cs es claim s).1)
+    {a k t : ℕ} (hak : a + k ≤ cs.length) (hR1 : RecAt rd rec cur cs es claim s a)
+    (hR2 : RecAt rd (rec * gen ^ t) cur cs es claim s (a + k)) :
+    TbGkrRoundsOut k t rd rec (pt * gen ^ a) := by
   set r1 := gkrRun (cs.take a) (es.take a) claim s with hr1
   have hp1 : r1.2.2 = ⟨r1.2.2.cap, []⟩ := by
     have := tb_gkrRun_pend (cs.take a) (es.take a) claim s hp
@@ -75,8 +84,8 @@ theorem recs_rounds {rd : Reader} {rec cur pt claim : E} {cs : List (List E)} {e
   set r2 := gkrRun cs2 es2 r1.2.1 r1.2.2 with hr2
   have hsplit := tb_gkrRun_take_add cs es claim s a k hl
   rw [← hr1, ← hr2] at hsplit
-  obtain ⟨c0, u0, l0⟩ := hR a (by omega)
-  obtain ⟨c1, u1, l1⟩ := hR (a + k) hak
+  obtain ⟨c0, u0, l0⟩ := hR1
+  obtain ⟨c1, u1, l1⟩ := hR2
   rw [hsplit] at c1 l1
   rw [← hr1] at c0 l0
   have hc2 : cs2.length = k := by simp [cs2]; omega
@@ -112,16 +121,14 @@ theorem recs_rounds {rd : Reader} {rec cur pt claim : E} {cs : List (List E)} {e
       rw [hr1, tb_gkrRun_length _ _ _ _ (by simp [hl])]; simp; omega
     rw [hl1, show pt * gen ^ 42 * gen ^ a = pt * gen ^ a * gen ^ 42 by ring] at hch
     exact hch.2.1
-  · rw [← hp1, tbCapAt_mul_gen_pow]
+  · rw [← hp1]
     rw [tbCapAt_mul_gen_pow, Nat.add_zero] at c1
     exact c1
-  · rw [tb_loadHolds_mul_gen_pow] at u1 ⊢
-    rw [show a + (k + 5 * gkCap) = a + k + 5 * gkCap by ring,
-      show cur * gen ^ (4 * a) * gen ^ (4 * k) = cur * gen ^ (4 * (a + k)) by ring]
+  · rw [tb_loadHolds_mul_gen_pow] at u1
+    rw [show cur * gen ^ (4 * a) * gen ^ (4 * k) = cur * gen ^ (4 * (a + k)) by ring]
     exact u1
-  · rw [← hp1, tb_loadHolds_mul_gen_pow]
+  · rw [← hp1]
     rw [tb_loadHolds_mul_gen_pow] at l1
-    rw [show a + (k + 6 * gkCap) = a + k + 6 * gkCap by ring]
     exact l1
 
 end

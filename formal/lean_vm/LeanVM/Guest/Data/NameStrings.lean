@@ -22,7 +22,7 @@ set_option linter.all false
 
 @[expose] public section
 
-abbrev coreCount : Nat := 1613
+abbrev coreCount : Nat := 1610
 
 namespace N
 abbrev «main» : String := "main"
@@ -464,10 +464,7 @@ abbrev «batch_sumcheck__L23» : String := "batch_sumcheck__L23"
 abbrev «aggregate_claims_loop2» : String := "__loop34"
 abbrev «rs_eq_rows__L8» : String := "rs_eq_rows__L8"
 abbrev «verify_bus_gkr_loop0_loop0» : String := "__loop35"
-abbrev «gkr_rounds__L0» : String := "gkr_rounds__L0"
 abbrev «gkr_rounds__L2» : String := "gkr_rounds__L2"
-abbrev «gkr_rounds__L4» : String := "gkr_rounds__L4"
-abbrev «gkr_rounds__L6» : String := "gkr_rounds__L6"
 abbrev «gkr_rounds__L1» : String := "gkr_rounds__L1"
 abbrev «grind_check__L3» : String := "grind_check__L3"
 abbrev «keccak_layer__L1_loop0» : String := "__loop36"

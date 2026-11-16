@@ -76,11 +76,8 @@ ROUND_SLOTS = 7
 LAYER_FS = 0
 LAYER_CURSOR = 5
 LAYER_VALS = 6  # the trees' claims, N_GKR_TREES of them
-LAYER_ROW = 9
-LAYER_POS = 10
-LAYER_HALF = 11  # g^(k // 4) at radix-four layer k
-LAYER_PARITY = 12  # g^(k % 4)
-LAYER_SLOTS = 13
+LAYER_POS = 9
+LAYER_SLOTS = 10
 
 # ---------------------------------------------------- the bus: sides and blocks
 # Bus sides, whose blocks the layout gives, and the GKR's trees, one a side: push and
@@ -1106,15 +1103,14 @@ def sumcheck_round4(rd, msg_cursor, claim, tabs):
     return msg_cursor, c0 + y * (claim + y1 * (c2 + y1 * c3)), y
 
 
-def gkr_rounds(rd, pt, tabs, n: Const):
-    # n GKR rounds, from the round record at `rd` (fields GKR_ROUNDS_CAP apart) to the
-    # one n further. The prover sends every coefficient but c0, which the round's
-    # pulled-out eq factor leaves fixed: c0 + r (c1 + ... + c4) == claim, r being the
-    # previous point's coordinate pt[q], then the round's grind; the challenge goes to
-    # pt[MU_CAP + 2 + q].
+def gkr_rounds(rd, pt, cur, tabs, stream, n: Const):
+    # n GKR rounds, from the round record at `rd` (fields GKR_ROUNDS_CAP apart; its stream
+    # cursor `cur` into `stream`) to the next one. The prover sends every coefficient but c0, which the round's pulled-out eq
+    # factor leaves fixed: c0 + r (c1 + ... + c4) == claim, r being the previous point's
+    # coordinate pt[q], then the round's grind; the challenge goes to pt[MU_CAP + 2 + q].
+    # An odd n ends the row of challenges with a zero cell.
     if const(n != 0):
         sp = fs_load(rd, ROUND_FS, GKR_ROUNDS_CAP)
-        cur = rd[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)]
         claim = rd[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)]
         for q in unroll(0, n):
             rate = StackBuf(8)
@@ -1126,7 +1122,9 @@ def gkr_rounds(rd, pt, tabs, n: Const):
             c0 = claim + pt[GEN ** q] * (c1 + c2 + c3 + c4)
             pt[GEN ** (MU_CAP + 2 + q)] = rk
             claim = c0 + rk * (c1 + rk * (c2 + rk * (c3 + rk * c4)))
-        rd_next = rd * GEN ** n
+        if const(n % 2 == 1):
+            pt[GEN ** (MU_CAP + 2 + n)] = 0
+        rd_next = rd * GEN
         fs_store(rd_next, ROUND_FS, GKR_ROUNDS_CAP, sp)
         rd_next[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)] = cur
         rd_next[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)] = claim
@@ -1864,7 +1862,7 @@ def gkr_y_grind(out, cur_out, sp, rate, cursor, tabs, last: Const):
     return 0
 
 
-def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs):
+def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs, stream):
     # ONE GKR grand product over the N_GKR_TREES trees (push, pull, then count), batched by powers of a combiner. Push and pull have
     # equal depth (matched blocks) and the count tree is padded with identity leaves
     # up to it (product unchanged), so a single sumcheck serves them all. Radix four
@@ -1890,11 +1888,6 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs):
     assert root_count != 0  # count-tree root nonzero: no read count self-cancels
     sp, lam, cursor = fs_grind_squeeze(sp, rate, 2, cursor, tabs, GKR_COMBINER_GRIND_BITS)
     claim = gkr_combine(vals, lam)
-    # k % 4 and its carry into k // 4 as layer k becomes k + 1, by g^(k % 4).
-    k_mod_next = HeapBuf(8)
-    for r in unroll(0, 4):
-        k_mod_next[GEN ** r] = GEN ** ((r + 1) % 4)
-        k_mod_next[GEN ** (4 + r)] = GEN ** ((r + 1) // 4)
     # Past the root-most layer, (depth - 1) // 2 radix-four layers; and g exactly when
     # the depth is odd.
     loop_bounds = HeapBuf(COUNT_BITS)
@@ -1914,6 +1907,9 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs):
             else:
                 last_layer[GEN ** depth] = GEN ** 0
     nextrow = gkr_pts * GEN ** MU_CAP
+    # The root-most layer's record: binary layer 1 for an odd depth, else 2.
+    start_g = GEN ** 2 / odd_g
+    nxt = layers * start_g ** LAYER_SLOTS
     if odd_g != 1:
         # The binary root layer: two children a tree, y one coordinate.
         evals = StackBuf(2 * N_GKR_TREES)
@@ -1921,15 +1917,12 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs):
         gkr_product_check(evals, lam, claim, 2)
         sp, c0, cursor = fs_grind_squeeze(sp, rate, (2 * N_GKR_TREES + 3) % 4 + 1, cursor, tabs, GKR_Y1_GRIND_BITS)
         nextrow[GEN ** 0] = c0
-        nxt = layers * GEN ** LAYER_SLOTS
+        nextrow[GEN ** 1] = 0
         fs_store(nxt, LAYER_FS, 1, sp)
         nxt[GEN ** LAYER_CURSOR] = cursor
         for t in unroll(0, N_GKR_TREES):
             nxt[GEN ** (LAYER_VALS + t)] = evals[2 * t] + c0 * (evals[2 * t] + evals[2 * t + 1])
-        nxt[GEN ** LAYER_ROW] = nextrow
         nxt[GEN ** LAYER_POS] = GEN
-        nxt[GEN ** LAYER_HALF] = GEN ** 0
-        nxt[GEN ** LAYER_PARITY] = GEN ** 0
     else:
         # The radix-four root layer: four children a tree, y two coordinates.
         evals = StackBuf(4 * N_GKR_TREES)
@@ -1940,21 +1933,19 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs):
         sp, c1 = squeeze(sp, no_rate, 0)
         nextrow[GEN ** 0] = c0
         nextrow[GEN ** 1] = c1
-        nxt = layers * GEN ** (2 * LAYER_SLOTS)
         fs_store(nxt, LAYER_FS, 1, sp)
         nxt[GEN ** LAYER_CURSOR] = cursor
         for t in unroll(0, N_GKR_TREES):
             lo = evals[4 * t] + c0 * (evals[4 * t] + evals[4 * t + 1])
             hi = evals[4 * t + 2] + c0 * (evals[4 * t + 2] + evals[4 * t + 3])
             nxt[GEN ** (LAYER_VALS + t)] = lo + c1 * (lo + hi)
-        nxt[GEN ** LAYER_ROW] = nextrow
         nxt[GEN ** LAYER_POS] = GEN
-        nxt[GEN ** LAYER_HALF] = GEN ** 0
-        nxt[GEN ** LAYER_PARITY] = GEN
     # Radix-four layer k (from 1 for an even depth) sits at binary layer 2k + odd, its
-    # record's index, and runs that many rounds.
-    start_g = GEN ** 2 / odd_g
-    for x_pair in mul_range(1, loop_bounds[g_bus_mu]):
+    # record's index, and runs that many rounds. It reads row k + 1 of the point triangle and
+    # fills row k + 2, a row holding its point's coordinates from cell 0 and, at an odd length,
+    # a zero cell more: k + 1 pairs of cells.
+    n_pairs = loop_bounds[g_bus_mu]
+    for x_pair in mul_range(1, n_pairs):
         sq = x_pair * x_pair
         x_layer = sq * start_g
         layer = layers * x_layer ** LAYER_SLOTS
@@ -1964,8 +1955,8 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs):
         layer_vals = StackBuf(N_GKR_TREES)
         for t in unroll(0, N_GKR_TREES):
             layer_vals[t] = layer[GEN ** (LAYER_VALS + t)]
-        point_row = layer[GEN ** LAYER_ROW]
         round_pos = layer[GEN ** LAYER_POS]
+        point_row = gkr_pts * (x_pair * GEN) ** MU_CAP
         nextrow = point_row * GEN ** MU_CAP
         # Round i's record keeps field k at rounds * g^(k GKR_ROUNDS_CAP + i), so a
         # round's record is one product away from the counter.
@@ -1973,18 +1964,14 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs):
         fs_store(head, ROUND_FS, GKR_ROUNDS_CAP, layer_sp)
         head[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)] = layer_cur
         head[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)] = gkr_combine(layer_vals, layer_lam)
-        # 2k rounds, or 2k + 1 when the depth is odd: eight a loop step, the state
-        # between them staying in the frame, then 2 (k % 4), then the odd one.
-        half = layer[GEN ** LAYER_HALF]
-        parity = layer[GEN ** LAYER_PARITY]
-        for x8 in mul_range(1, half):
-            step = x8 ** 8
-            rd = head * step
-            pt = point_row * step
+        # 2k + 2 - odd rounds: k pairs, a record each, then the last one or two.
+        for y in mul_range(1, x_pair):
+            rd = head * y
+            pt = point_row * y * y
             round_sp = fs_load(rd, ROUND_FS, GKR_ROUNDS_CAP)
             cur = rd[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)]
             claim = rd[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)]
-            for q in unroll(0, 8):
+            for q in unroll(0, 2):
                 # As in gkr_rounds.
                 rate = StackBuf(8)
                 c1, cur = fs_next(rate, 0, cur)
@@ -1993,19 +1980,19 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs):
                 c4, cur = fs_next(rate, 3, cur)
                 round_sp, rk, cur = fs_grind_squeeze(round_sp, rate, 4, cur, tabs, ROUND5_GRIND_BITS)
                 c0 = claim + pt[GEN ** q] * (c1 + c2 + c3 + c4)
-                pt[GEN ** (MU_CAP + 2 + q)] = rk  # nextrow[round * g^2]
+                pt[GEN ** (MU_CAP + 2 + q)] = rk
                 claim = c0 + rk * (c1 + rk * (c2 + rk * (c3 + rk * c4)))
-            rd_next = rd * GEN ** 8
+            rd_next = rd * GEN
             fs_store(rd_next, ROUND_FS, GKR_ROUNDS_CAP, round_sp)
             rd_next[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)] = cur
             rd_next[GEN ** (ROUND_CLAIM * GKR_ROUNDS_CAP)] = claim
-        octet = half ** 8
-        rem_head = head * octet
-        rem_row = point_row * octet
-        done = match(log(parity), range(0, 4), lambda r: gkr_rounds(rem_head, rem_row, tabs, 2 * r))
+        rd_last = head * x_pair
+        last_cur = rd_last[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)]
         if odd_g != 1:
-            done = gkr_rounds(head * sq, point_row * sq, tabs, 1)
-        tail = head * x_layer
+            done = gkr_rounds(rd_last, point_row * sq, last_cur, tabs, stream, 1)
+        else:
+            done = gkr_rounds(rd_last, point_row * sq, last_cur, tabs, stream, 2)
+        tail = head * x_pair * GEN
         tail_sp = fs_load(tail, ROUND_FS, GKR_ROUNDS_CAP)
         tcur = tail[GEN ** (ROUND_CURSOR * GKR_ROUNDS_CAP)]
         evals = StackBuf(4 * N_GKR_TREES)  # the four children of each tree, in tree order
@@ -2033,13 +2020,10 @@ def verify_bus_gkr(fs0, fs1, fs2, fs3, fs4, cursor, g_bus_mu, zeta, tabs):
             lo = evals[4 * t] + c0 * (evals[4 * t] + evals[4 * t + 1])
             hi = evals[4 * t + 2] + c0 * (evals[4 * t + 2] + evals[4 * t + 3])
             nxt[GEN ** (LAYER_VALS + t)] = lo + c1 * (lo + hi)
-        nxt[GEN ** LAYER_ROW] = nextrow
-        nxt[GEN ** LAYER_POS] = round_pos * x_layer * GEN
-        nxt[GEN ** LAYER_HALF] = half * k_mod_next[GEN ** 4 * parity]
-        nxt[GEN ** LAYER_PARITY] = k_mod_next[parity]
-    last = layers * g_bus_mu ** LAYER_SLOTS
+        nxt[GEN ** LAYER_POS] = round_pos * x_pair * GEN ** 2
+    last = layers * (n_pairs * n_pairs * start_g) ** LAYER_SLOTS  # binary layer g_bus_mu
     cursor = last[GEN ** LAYER_CURSOR]
-    final_point_row = last[GEN ** LAYER_ROW]
+    final_point_row = gkr_pts * (n_pairs * GEN) ** MU_CAP
     for xt in mul_range(1, g_bus_mu):
         zeta[xt] = final_point_row[xt]  # the ONE shared point
     leaves = HeapBuf(N_GKR_TREES)
@@ -3632,7 +3616,7 @@ def verify_sub(pi_0, pi_1, seed_0, seed_1, g_squares, defer_out):
     sp, beta = squeeze(sp, no_rate, 0)
 
     # ---- ONE GKR grand product: every tree batched ----
-    fs0, fs1, fs2, fs3, fs4, cursor, gkr_leaves = verify_bus_gkr(sp[8], sp[9], sp[10], sp[11], sp[12], cursor, g_bus_mu, zeta, tabs)
+    fs0, fs1, fs2, fs3, fs4, cursor, gkr_leaves = verify_bus_gkr(sp[8], sp[9], sp[10], sp[11], sp[12], cursor, g_bus_mu, zeta, tabs, stream)
 
     # ---- the bus leaves, the table sumcheck, and the public-input claim ----
     chi = HeapBuf(SIZE_BITS)  # chi[i] = the challenge that bound variable i

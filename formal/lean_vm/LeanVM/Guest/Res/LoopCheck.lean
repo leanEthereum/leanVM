@@ -87,26 +87,26 @@ theorem termAll : RangeOk (fun _ fn => termChk fn) 0 coreProgram.length := by
   have h22 : RangeOk (fun _ fn => termChk fn) 0 572 := h21.append (m := 150) termRange_422
   have h23 : RangeOk (fun _ fn => termChk fn) 0 722 := h22.append (m := 150) termRange_572
   have h24 : RangeOk (fun _ fn => termChk fn) 0 872 := h23.append (m := 150) termRange_722
-  have h25 : RangeOk (fun _ fn => termChk fn) 0 1021 := h24.append (m := 149) termRange_872
-  have h26 : RangeOk (fun _ fn => termChk fn) 0 1093 := h25.append (m := 72) termRange_1021
-  have h27 : RangeOk (fun _ fn => termChk fn) 0 1146 := h26.append (m := 53) termRange_1093
-  have h28 : RangeOk (fun _ fn => termChk fn) 0 1199 := h27.append (m := 53) termRange_1146
-  have h29 : RangeOk (fun _ fn => termChk fn) 0 1200 := h28.append (m := 1) termRange_1199
-  have h30 : RangeOk (fun _ fn => termChk fn) 0 1260 := h29.append (m := 60) termRange_1200
-  have h31 : RangeOk (fun _ fn => termChk fn) 0 1307 := h30.append (m := 47) termRange_1260
-  have h32 : RangeOk (fun _ fn => termChk fn) 0 1354 := h31.append (m := 47) termRange_1307
-  have h33 : RangeOk (fun _ fn => termChk fn) 0 1401 := h32.append (m := 47) termRange_1354
-  have h34 : RangeOk (fun _ fn => termChk fn) 0 1447 := h33.append (m := 46) termRange_1401
-  have h35 : RangeOk (fun _ fn => termChk fn) 0 1519 := h34.append (m := 72) termRange_1447
-  have h36 : RangeOk (fun _ fn => termChk fn) 0 1525 := h35.append (m := 6) termRange_1519
-  have h37 : RangeOk (fun _ fn => termChk fn) 0 1545 := h36.append (m := 20) termRange_1525
-  have h38 : RangeOk (fun _ fn => termChk fn) 0 1561 := h37.append (m := 16) termRange_1545
-  have h39 : RangeOk (fun _ fn => termChk fn) 0 1575 := h38.append (m := 14) termRange_1561
-  have h40 : RangeOk (fun _ fn => termChk fn) 0 1589 := h39.append (m := 14) termRange_1575
-  have h41 : RangeOk (fun _ fn => termChk fn) 0 1596 := h40.append (m := 7) termRange_1589
-  have h42 : RangeOk (fun _ fn => termChk fn) 0 1603 := h41.append (m := 7) termRange_1596
-  have h43 : RangeOk (fun _ fn => termChk fn) 0 1612 := h42.append (m := 9) termRange_1603
-  have h44 : RangeOk (fun _ fn => termChk fn) 0 1613 := h43.append (m := 1) termRange_1612
+  have h25 : RangeOk (fun _ fn => termChk fn) 0 1018 := h24.append (m := 146) termRange_872
+  have h26 : RangeOk (fun _ fn => termChk fn) 0 1090 := h25.append (m := 72) termRange_1018
+  have h27 : RangeOk (fun _ fn => termChk fn) 0 1143 := h26.append (m := 53) termRange_1090
+  have h28 : RangeOk (fun _ fn => termChk fn) 0 1196 := h27.append (m := 53) termRange_1143
+  have h29 : RangeOk (fun _ fn => termChk fn) 0 1197 := h28.append (m := 1) termRange_1196
+  have h30 : RangeOk (fun _ fn => termChk fn) 0 1257 := h29.append (m := 60) termRange_1197
+  have h31 : RangeOk (fun _ fn => termChk fn) 0 1304 := h30.append (m := 47) termRange_1257
+  have h32 : RangeOk (fun _ fn => termChk fn) 0 1351 := h31.append (m := 47) termRange_1304
+  have h33 : RangeOk (fun _ fn => termChk fn) 0 1398 := h32.append (m := 47) termRange_1351
+  have h34 : RangeOk (fun _ fn => termChk fn) 0 1444 := h33.append (m := 46) termRange_1398
+  have h35 : RangeOk (fun _ fn => termChk fn) 0 1516 := h34.append (m := 72) termRange_1444
+  have h36 : RangeOk (fun _ fn => termChk fn) 0 1522 := h35.append (m := 6) termRange_1516
+  have h37 : RangeOk (fun _ fn => termChk fn) 0 1542 := h36.append (m := 20) termRange_1522
+  have h38 : RangeOk (fun _ fn => termChk fn) 0 1558 := h37.append (m := 16) termRange_1542
+  have h39 : RangeOk (fun _ fn => termChk fn) 0 1572 := h38.append (m := 14) termRange_1558
+  have h40 : RangeOk (fun _ fn => termChk fn) 0 1586 := h39.append (m := 14) termRange_1572
+  have h41 : RangeOk (fun _ fn => termChk fn) 0 1593 := h40.append (m := 7) termRange_1586
+  have h42 : RangeOk (fun _ fn => termChk fn) 0 1600 := h41.append (m := 7) termRange_1593
+  have h43 : RangeOk (fun _ fn => termChk fn) 0 1609 := h42.append (m := 9) termRange_1600
+  have h44 : RangeOk (fun _ fn => termChk fn) 0 1610 := h43.append (m := 1) termRange_1609
   rw [coreProgram_length]; exact h44
 
 end

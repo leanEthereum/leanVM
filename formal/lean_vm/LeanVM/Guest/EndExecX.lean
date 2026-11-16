@@ -256,13 +256,13 @@ theorem keep_X {Y : Ref → St → Prop} {A : String → FnAl} (hP : ProgAl gues
 /-- **The tracks' invariant at the executor's initial state.** -/
 theorem init_X {Y : Ref → St → Prop} (hY : InitY Y) {r : Ref} (hr : r.Ok) {C : Ctx} {m : Mem}
     (hC : Ctx.of guestProgram r.adv = .ok C) (hm : initMem r.adv r.input = .ok m) : XOf Y r (initSt C r.adv m) := by
-  refine ⟨Or.inl ⟨by rw [proLen_eq]; show 0 < 13937; norm_num, rfl, rfl⟩, ?_, hY r hr C m hC hm⟩
+  refine ⟨Or.inl ⟨by rw [proLen_eq]; show 0 < 13933; norm_num, rfl, rfl⟩, ?_, hY r hr C m hC hm⟩
   show m.used ≤ _
   unfold initMem at hm
   obtain ⟨m0, h0, h1⟩ := bind_ok.mp hm
   rw [put_used h1, put_used h0]
   have h23 : 2 ^ 23 ≤ 2 ^ r.κ := Nat.pow_le_pow_right (by norm_num) (Memory.twentyThree_le_logMem _)
-  have hmf : r.adv.mainFrame = 14367 := rfl
+  have hmf : r.adv.mainFrame = 14363 := rfl
   simp only [hmf]
   norm_num at h23 ⊢
   omega

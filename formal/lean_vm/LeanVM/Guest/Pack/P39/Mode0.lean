@@ -23,11 +23,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `eq_prefix_run__L1`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
 
 /-- `eq_prefix_run__L1`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨179490, 9, Fn.«eq_prefix_run__L1».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨179483, 9, Fn.«eq_prefix_run__L1».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `eq_prefix_run__L1`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -45,11 +45,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `plus_one_run__L25`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
 
 /-- `plus_one_run__L25`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨195987, 78, Fn.«plus_one_run__L25».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨195976, 78, Fn.«plus_one_run__L25».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `plus_one_run__L25`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -67,11 +67,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `block_selector__L16`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
 
 /-- `block_selector__L16`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨198031, 162, Fn.«block_selector__L16».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨198020, 162, Fn.«block_selector__L16».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `block_selector__L16`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by

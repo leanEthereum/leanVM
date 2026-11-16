@@ -19,7 +19,7 @@ namespace LeanVM.Guest.Fn.«eq_prefix_run__L7»
 /-- `eq_prefix_run__L7`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"eq_prefix_run__L7", 179619, 4, 1, [], [],
+  ⟨"eq_prefix_run__L7", 179612, 4, 1, [], [],
     [], [], []⟩
 end
 end LeanVM.Guest.Fn.«eq_prefix_run__L7»
@@ -31,7 +31,7 @@ namespace LeanVM.Guest.Fn.«plus_one_run__L23»
 /-- `plus_one_run__L23`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"plus_one_run__L23", 195840, 2, 1, [], [],
+  ⟨"plus_one_run__L23", 195829, 2, 1, [], [],
     [], [], []⟩
 end
 end LeanVM.Guest.Fn.«plus_one_run__L23»
@@ -43,7 +43,7 @@ namespace LeanVM.Guest.Fn.«block_selector__L10»
 /-- `block_selector__L10`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"block_selector__L10", 197269, 3, 2, [], [],
+  ⟨"block_selector__L10", 197258, 3, 2, [], [],
     [], [], []⟩
 end
 end LeanVM.Guest.Fn.«block_selector__L10»
@@ -55,7 +55,7 @@ namespace LeanVM.Guest.Fn.«verify_tables_loop0»
 /-- `__loop9`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"__loop9", 207006, 6, 0, [(8, (.fpg 0))], [],
+  ⟨"__loop9", 206995, 6, 0, [(8, (.fpg 0))], [],
     [], [], []⟩
 end
 end LeanVM.Guest.Fn.«verify_tables_loop0»
@@ -67,7 +67,7 @@ namespace LeanVM.Guest.Fn.«verify_keccak_loop1»
 /-- `__loop12`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"__loop12", 210426, 4, 0, [(6, (.fpg 0))], [],
+  ⟨"__loop12", 210415, 4, 0, [(6, (.fpg 0))], [],
     [], [], []⟩
 end
 end LeanVM.Guest.Fn.«verify_keccak_loop1»
@@ -79,7 +79,7 @@ namespace LeanVM.Guest.Fn.«level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1»
 /-- `level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1", 258837, 6, 4, [], [],
+  ⟨"level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1", 258319, 6, 4, [], [],
     [], [], [(3546132, [7])]⟩
 end
 end LeanVM.Guest.Fn.«level_queries__L22_L0_L4_L16_L14_L2_L2_L8_L3_L1»
@@ -91,7 +91,7 @@ namespace LeanVM.Guest.Fn.«squeeze_point_from__L8»
 /-- `squeeze_point_from__L8`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"squeeze_point_from__L8", 262001, 7, 5, [], [],
+  ⟨"squeeze_point_from__L8", 261483, 7, 5, [], [],
     [], [], []⟩
 end
 end LeanVM.Guest.Fn.«squeeze_point_from__L8»
@@ -103,7 +103,7 @@ namespace LeanVM.Guest.Fn.«fold_final_msg__L4»
 /-- `fold_final_msg__L4`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"fold_final_msg__L4", 262524, 2, 1, [], [],
+  ⟨"fold_final_msg__L4", 262006, 2, 1, [], [],
     [], [], []⟩
 end
 end LeanVM.Guest.Fn.«fold_final_msg__L4»
@@ -115,7 +115,7 @@ namespace LeanVM.Guest.Fn.«level_positions__L7_L23_L5»
 /-- `level_positions__L7_L23_L5`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"level_positions__L7_L23_L5", 268970, 9, 5, [], [],
+  ⟨"level_positions__L7_L23_L5", 268452, 9, 5, [], [],
     [], [], [(2097152, [10])]⟩
 end
 end LeanVM.Guest.Fn.«level_positions__L7_L23_L5»
@@ -127,7 +127,7 @@ namespace LeanVM.Guest.Fn.«level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0»
 /-- `level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0", 270498, 6, 4, [], [],
+  ⟨"level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0", 269980, 6, 4, [], [],
     [], [], [(3879489, [7])]⟩
 end
 end LeanVM.Guest.Fn.«level_queries__L55_L1_L6_L32_L25_L7_L0_L0_L0_L0»
@@ -139,7 +139,7 @@ namespace LeanVM.Guest.Fn.«level_positions__L14_L28_L4»
 /-- `level_positions__L14_L28_L4`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"level_positions__L14_L28_L4", 275685, 9, 5, [], [],
+  ⟨"level_positions__L14_L28_L4", 275167, 9, 5, [], [],
     [], [], [(2097152, [10])]⟩
 end
 end LeanVM.Guest.Fn.«level_positions__L14_L28_L4»
@@ -151,7 +151,7 @@ namespace LeanVM.Guest.Fn.«level_positions__L10_L26_L2»
 /-- `level_positions__L10_L26_L2`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"level_positions__L10_L26_L2", 275927, 9, 5, [], [],
+  ⟨"level_positions__L10_L26_L2", 275409, 9, 5, [], [],
     [], [], [(2097152, [10])]⟩
 end
 end LeanVM.Guest.Fn.«level_positions__L10_L26_L2»
@@ -163,7 +163,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L44_L10_L4_L2_loop1»
 /-- `__loop74`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"__loop74", 289299, 7, 0, [(9, (.fpg 0))], [],
+  ⟨"__loop74", 288781, 7, 0, [(9, (.fpg 0))], [],
     [], [], []⟩
 end
 end LeanVM.Guest.Fn.«level_residual__L44_L10_L4_L2_loop1»
@@ -175,7 +175,7 @@ namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1
 /-- `opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1", 293223, 8, 1, [], [],
+  ⟨"opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1", 292705, 8, 1, [], [],
     [], [], [(7708, [8, 9])]⟩
 end
 end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L3_L6_L12_L4_L1»
@@ -187,7 +187,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L218_L15_L6_L3_loop0»
 /-- `__loop96`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"__loop96", 293269, 7, 0, [(9, (.fpg 0))], [],
+  ⟨"__loop96", 292751, 7, 0, [(9, (.fpg 0))], [],
     [], [], []⟩
 end
 end LeanVM.Guest.Fn.«level_residual__L218_L15_L6_L3_loop0»
@@ -199,7 +199,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L73_L15_L6_L3_loop1»
 /-- `__loop101`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"__loop101", 295585, 7, 0, [(9, (.fpg 0))], [],
+  ⟨"__loop101", 295067, 7, 0, [(9, (.fpg 0))], [],
     [], [], []⟩
 end
 end LeanVM.Guest.Fn.«level_residual__L73_L15_L6_L3_loop1»
@@ -211,7 +211,7 @@ namespace LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0�
 /-- `opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0", 310107, 8, 1, [], [],
+  ⟨"opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0", 309589, 8, 1, [], [],
     [], [], [(10785, [8, 9])]⟩
 end
 end LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0»
@@ -223,7 +223,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L19_L8_L4_L2_loop0»
 /-- `__loop289`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"__loop289", 354772, 7, 0, [(9, (.fpg 0))], [],
+  ⟨"__loop289", 354254, 7, 0, [(9, (.fpg 0))], [],
     [], [], []⟩
 end
 end LeanVM.Guest.Fn.«level_residual__L19_L8_L4_L2_loop0»
@@ -235,7 +235,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L25_L13_L4_L2_loop1»
 /-- `__loop320`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"__loop320", 365596, 7, 0, [(9, (.fpg 0))], [],
+  ⟨"__loop320", 365078, 7, 0, [(9, (.fpg 0))], [],
     [], [], []⟩
 end
 end LeanVM.Guest.Fn.«level_residual__L25_L13_L4_L2_loop1»
@@ -247,7 +247,7 @@ namespace LeanVM.Guest.Fn.«level_positions__L44_L24_L6_loop0»
 /-- `__loop372`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"__loop372", 382032, 6, 0, [(8, (.fpg 0))], [],
+  ⟨"__loop372", 381514, 6, 0, [(8, (.fpg 0))], [],
     [], [], []⟩
 end
 end LeanVM.Guest.Fn.«level_positions__L44_L24_L6_loop0»
@@ -259,7 +259,7 @@ namespace LeanVM.Guest.Fn.«da_levels__L1024_L10_loop1»
 /-- `__loop492`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"__loop492", 412495, 3, 0, [(5, (.fpg 0))], [],
+  ⟨"__loop492", 411977, 3, 0, [(5, (.fpg 0))], [],
     [], [], []⟩
 end
 end LeanVM.Guest.Fn.«da_levels__L1024_L10_loop1»
@@ -271,7 +271,7 @@ namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0_
 /-- `__loop523`: name, entry, arguments, return words, entry environment, bounds, memory and
 semantic relations it assumes. -/
 def sig : Check.Sig :=
-  ⟨"__loop523", 426981, 10, 0, [(12, (.fpg 0))], [],
+  ⟨"__loop523", 426463, 10, 0, [(12, (.fpg 0))], [],
     [], [], [(9786, [5, 2, 3]), (1, [2, 3])]⟩
 end
 end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0_loop0»

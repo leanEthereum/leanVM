@@ -60,7 +60,7 @@ def vsCallSkL : List (Option V × (String ⊕ (V × List String)) × List V × L
     (none, .inl "opening_message__L1_L1", vsNs [305, 306, 307, 308, 309, 312, 310],
       vsNs [313, 314, 315, 316, 317, 318, 319, 320]),
     (none, .inr (.n 322, vsBgNames), vsNs [314, 328], vsNs [329]),
-    (none, .inl "verify_bus_gkr", vsNs [554, 555, 556, 557, 558, 320, 253, 254, 561],
+    (none, .inl "verify_bus_gkr", vsNs [554, 555, 556, 557, 558, 320, 253, 254, 561, 25],
       vsNs [562, 563, 564, 565, 566, 567, 568]),
     (none, .inl "verify_tables", vsNs [562, 563, 564, 565, 566, 567, 0, 1, 254, 253, 71, 26, 4,
       335, 559, 6, 569, 568, 572, 570, 25], vsNs [573, 574, 575, 576, 577, 578, 579, 580, 581, 582]),
@@ -496,13 +496,16 @@ theorem vs_callsMatch {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed
     obtain ⟨b9, hr9, -⟩ := O.o9
     obtain ⟨-, -, hc4, -, -, -⟩ := S.gkr_inv hbl
     refine ⟨rfl, rfl, fun _ ↦ ⟨?_, vs_rets' hl bs outs (j := 9) (by norm_num) rfl (by rw [hr9]; simp [hc4])⟩⟩
-    show (vsNs [554, 555, 556, 557, 558]).map σ ++ [σ (.n 320), σ (.n 253), σ (.n 254), σ (.n 561)] =
-      S.s3.cap ++ [ptr (ChildSegs.cG bs), gen ^ S.d, ptr (vb bs 5), ptr sqE * gen ^ winTabAt]
+    show (vsNs [554, 555, 556, 557, 558]).map σ ++
+        [σ (.n 320), σ (.n 253), σ (.n 254), σ (.n 561), σ (.n 25)] =
+      S.s3.cap ++ [ptr (ChildSegs.cG bs), gen ^ S.d, ptr (vb bs 5), ptr sqE * gen ^ winTabAt,
+        ptr (vb bs 1)]
     rw [show (vsNs [554, 555, 556, 557, 558]).map σ = [σ (.n 554), σ (.n 555), σ (.n 556),
       σ (.n 557), σ (.n 558)] from rfl, V.s3cap,
       pr (j := 7) (k := 7) (a := 320) (by norm_num) (by decide) rfl, O.o7,
       show σ (.n 253) = gen ^ S.d from (vs_w hl (a := 253) (by decide)).trans (vs_w253 hbl S O),
-      pa (i := 5) (a := 254) (by norm_num) rfl, V.tabs 561 (by simp)]
+      pa (i := 5) (a := 254) (by norm_num) rfl, V.tabs 561 (by simp),
+      pa (i := 1) (a := 25) (by norm_num) rfl]
     simp only [capOf, List.cons_append, List.nil_append, List.getD_cons_succ, List.getD_cons_zero]
     rw [mul_assoc, ← pow_add, ← vs_ptr_add]
     rfl

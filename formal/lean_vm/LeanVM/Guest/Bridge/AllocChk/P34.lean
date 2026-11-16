@@ -149,19 +149,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«keccak_layer__L0_loop0».core.body
 
 /-- `keccak_layer__L0_loop0`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«keccak_layer__L0_loop0».plumb Fn.«keccak_layer__L0_loop0».core.body Fn.«keccak_layer__L0_loop0».code.code Data.adviceFn448 = true := by
+    Bridge.curBody alignCtx Fn.«keccak_layer__L0_loop0».plumb Fn.«keccak_layer__L0_loop0».core.body Fn.«keccak_layer__L0_loop0».code.code Data.adviceFn445 = true := by
   decide +kernel
 
 /-- `keccak_layer__L0_loop0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
     Bridge.frChk alignCtx Fn.«keccak_layer__L0_loop0».fs [] Fn.«keccak_layer__L0_loop0».core.params Fn.«keccak_layer__L0_loop0».core.body
-      Data.adviceFn448 = true := by
+      Data.adviceFn445 = true := by
   decide +kernel
 
 /-- `keccak_layer__L0_loop0`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«keccak_layer__L0_loop0».fs Fn.«keccak_layer__L0_loop0».core.loop Fn.«keccak_layer__L0_loop0».plumb Fn.«keccak_layer__L0_loop0».core.body Fn.«keccak_layer__L0_loop0».code.code
-      Data.adviceFn448 = true := by
+      Data.adviceFn445 = true := by
   decide +kernel
 
 end
@@ -180,19 +180,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_residual__L32_L10_L4_L2».co
 
 /-- `level_residual__L32_L10_L4_L2`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_residual__L32_L10_L4_L2».plumb Fn.«level_residual__L32_L10_L4_L2».core.body Fn.«level_residual__L32_L10_L4_L2».code.code Data.adviceFn509 = true := by
+    Bridge.curBody alignCtx Fn.«level_residual__L32_L10_L4_L2».plumb Fn.«level_residual__L32_L10_L4_L2».core.body Fn.«level_residual__L32_L10_L4_L2».code.code Data.adviceFn506 = true := by
   decide +kernel
 
 /-- `level_residual__L32_L10_L4_L2`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_residual__L32_L10_L4_L2».fs [1021] Fn.«level_residual__L32_L10_L4_L2».core.params Fn.«level_residual__L32_L10_L4_L2».core.body
-      Data.adviceFn509 = true := by
+    Bridge.frChk alignCtx Fn.«level_residual__L32_L10_L4_L2».fs [1018] Fn.«level_residual__L32_L10_L4_L2».core.params Fn.«level_residual__L32_L10_L4_L2».core.body
+      Data.adviceFn506 = true := by
   decide +kernel
 
 /-- `level_residual__L32_L10_L4_L2`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_residual__L32_L10_L4_L2».fs Fn.«level_residual__L32_L10_L4_L2».core.loop Fn.«level_residual__L32_L10_L4_L2».plumb Fn.«level_residual__L32_L10_L4_L2».core.body Fn.«level_residual__L32_L10_L4_L2».code.code
-      Data.adviceFn509 = true := by
+      Data.adviceFn506 = true := by
   decide +kernel
 
 end
@@ -211,19 +211,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_queries__L19_L0_L4_L16_L16_L
 
 /-- `level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».plumb Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».core.body Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».code.code Data.adviceFn543 = true := by
+    Bridge.curBody alignCtx Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».plumb Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».core.body Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».code.code Data.adviceFn540 = true := by
   decide +kernel
 
 /-- `level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».fs [975, 1047] Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».core.params Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».core.body
-      Data.adviceFn543 = true := by
+    Bridge.frChk alignCtx Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».fs [972, 1044] Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».core.params Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».core.body
+      Data.adviceFn540 = true := by
   decide +kernel
 
 /-- `level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».fs Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».core.loop Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».plumb Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».core.body Fn.«level_queries__L19_L0_L4_L16_L16_L4_L3_L12_L4_L1».code.code
-      Data.adviceFn543 = true := by
+      Data.adviceFn540 = true := by
   decide +kernel
 
 end
@@ -242,19 +242,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_positions__L13_L21_L3».core
 
 /-- `level_positions__L13_L21_L3`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_positions__L13_L21_L3».plumb Fn.«level_positions__L13_L21_L3».core.body Fn.«level_positions__L13_L21_L3».code.code Data.adviceFn646 = true := by
+    Bridge.curBody alignCtx Fn.«level_positions__L13_L21_L3».plumb Fn.«level_positions__L13_L21_L3».core.body Fn.«level_positions__L13_L21_L3».code.code Data.adviceFn643 = true := by
   decide +kernel
 
 /-- `level_positions__L13_L21_L3`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_positions__L13_L21_L3».fs [1113, 1152] Fn.«level_positions__L13_L21_L3».core.params Fn.«level_positions__L13_L21_L3».core.body
-      Data.adviceFn646 = true := by
+    Bridge.frChk alignCtx Fn.«level_positions__L13_L21_L3».fs [1110, 1149] Fn.«level_positions__L13_L21_L3».core.params Fn.«level_positions__L13_L21_L3».core.body
+      Data.adviceFn643 = true := by
   decide +kernel
 
 /-- `level_positions__L13_L21_L3`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_positions__L13_L21_L3».fs Fn.«level_positions__L13_L21_L3».core.loop Fn.«level_positions__L13_L21_L3».plumb Fn.«level_positions__L13_L21_L3».core.body Fn.«level_positions__L13_L21_L3».code.code
-      Data.adviceFn646 = true := by
+      Data.adviceFn643 = true := by
   decide +kernel
 
 end
@@ -273,19 +273,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_positions__L5_L19_L7».core.
 
 /-- `level_positions__L5_L19_L7`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_positions__L5_L19_L7».plumb Fn.«level_positions__L5_L19_L7».core.body Fn.«level_positions__L5_L19_L7».code.code Data.adviceFn659 = true := by
+    Bridge.curBody alignCtx Fn.«level_positions__L5_L19_L7».plumb Fn.«level_positions__L5_L19_L7».core.body Fn.«level_positions__L5_L19_L7».code.code Data.adviceFn656 = true := by
   decide +kernel
 
 /-- `level_positions__L5_L19_L7`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_positions__L5_L19_L7».fs [1033, 1161] Fn.«level_positions__L5_L19_L7».core.params Fn.«level_positions__L5_L19_L7».core.body
-      Data.adviceFn659 = true := by
+    Bridge.frChk alignCtx Fn.«level_positions__L5_L19_L7».fs [1030, 1158] Fn.«level_positions__L5_L19_L7».core.params Fn.«level_positions__L5_L19_L7».core.body
+      Data.adviceFn656 = true := by
   decide +kernel
 
 /-- `level_positions__L5_L19_L7`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_positions__L5_L19_L7».fs Fn.«level_positions__L5_L19_L7».core.loop Fn.«level_positions__L5_L19_L7».plumb Fn.«level_positions__L5_L19_L7».core.body Fn.«level_positions__L5_L19_L7».code.code
-      Data.adviceFn659 = true := by
+      Data.adviceFn656 = true := by
   decide +kernel
 
 end
@@ -304,19 +304,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_queries__L18_L0_L4_L16_L19_L
 
 /-- `level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».plumb Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».core.body Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».code.code Data.adviceFn667 = true := by
+    Bridge.curBody alignCtx Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».plumb Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».core.body Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».code.code Data.adviceFn664 = true := by
   decide +kernel
 
 /-- `level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».fs [996, 1081] Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».core.params Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».core.body
-      Data.adviceFn667 = true := by
+    Bridge.frChk alignCtx Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».fs [993, 1078] Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».core.params Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».core.body
+      Data.adviceFn664 = true := by
   decide +kernel
 
 /-- `level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».fs Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».core.loop Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».plumb Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».core.body Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».code.code
-      Data.adviceFn667 = true := by
+      Data.adviceFn664 = true := by
   decide +kernel
 
 end
@@ -335,19 +335,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_queries__L17_L0_L4_L16_L17_L
 
 /-- `level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».plumb Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».core.body Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».code.code Data.adviceFn710 = true := by
+    Bridge.curBody alignCtx Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».plumb Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».core.body Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».code.code Data.adviceFn707 = true := by
   decide +kernel
 
 /-- `level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».fs [977, 1210] Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».core.params Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».core.body
-      Data.adviceFn710 = true := by
+    Bridge.frChk alignCtx Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».fs [974, 1207] Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».core.params Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».core.body
+      Data.adviceFn707 = true := by
   decide +kernel
 
 /-- `level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».fs Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».core.loop Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».plumb Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».core.body Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».code.code
-      Data.adviceFn710 = true := by
+      Data.adviceFn707 = true := by
   decide +kernel
 
 end
@@ -366,19 +366,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_residual__L28_L11_L4_L2».co
 
 /-- `level_residual__L28_L11_L4_L2`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_residual__L28_L11_L4_L2».plumb Fn.«level_residual__L28_L11_L4_L2».core.body Fn.«level_residual__L28_L11_L4_L2».code.code Data.adviceFn721 = true := by
+    Bridge.curBody alignCtx Fn.«level_residual__L28_L11_L4_L2».plumb Fn.«level_residual__L28_L11_L4_L2».core.body Fn.«level_residual__L28_L11_L4_L2».code.code Data.adviceFn718 = true := by
   decide +kernel
 
 /-- `level_residual__L28_L11_L4_L2`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_residual__L28_L11_L4_L2».fs [1228, 1229] Fn.«level_residual__L28_L11_L4_L2».core.params Fn.«level_residual__L28_L11_L4_L2».core.body
-      Data.adviceFn721 = true := by
+    Bridge.frChk alignCtx Fn.«level_residual__L28_L11_L4_L2».fs [1225, 1226] Fn.«level_residual__L28_L11_L4_L2».core.params Fn.«level_residual__L28_L11_L4_L2».core.body
+      Data.adviceFn718 = true := by
   decide +kernel
 
 /-- `level_residual__L28_L11_L4_L2`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_residual__L28_L11_L4_L2».fs Fn.«level_residual__L28_L11_L4_L2».core.loop Fn.«level_residual__L28_L11_L4_L2».plumb Fn.«level_residual__L28_L11_L4_L2».core.body Fn.«level_residual__L28_L11_L4_L2».code.code
-      Data.adviceFn721 = true := by
+      Data.adviceFn718 = true := by
   decide +kernel
 
 end
@@ -397,19 +397,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_queries__L218_L1_L6_L32_L23_
 
 /-- `level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».plumb Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».core.body Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».code.code Data.adviceFn812 = true := by
+    Bridge.curBody alignCtx Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».plumb Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».core.body Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».code.code Data.adviceFn809 = true := by
   decide +kernel
 
 /-- `level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».fs [977, 1332] Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».core.params Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».core.body
-      Data.adviceFn812 = true := by
+    Bridge.frChk alignCtx Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».fs [974, 1329] Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».core.params Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».core.body
+      Data.adviceFn809 = true := by
   decide +kernel
 
 /-- `level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».fs Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».core.loop Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».plumb Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».core.body Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».code.code
-      Data.adviceFn812 = true := by
+      Data.adviceFn809 = true := by
   decide +kernel
 
 end
@@ -428,19 +428,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_residual__L37_L19_L4_L2».co
 
 /-- `level_residual__L37_L19_L4_L2`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_residual__L37_L19_L4_L2».plumb Fn.«level_residual__L37_L19_L4_L2».core.body Fn.«level_residual__L37_L19_L4_L2».code.code Data.adviceFn892 = true := by
+    Bridge.curBody alignCtx Fn.«level_residual__L37_L19_L4_L2».plumb Fn.«level_residual__L37_L19_L4_L2».core.body Fn.«level_residual__L37_L19_L4_L2».code.code Data.adviceFn889 = true := by
   decide +kernel
 
 /-- `level_residual__L37_L19_L4_L2`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_residual__L37_L19_L4_L2».fs [1406, 1407] Fn.«level_residual__L37_L19_L4_L2».core.params Fn.«level_residual__L37_L19_L4_L2».core.body
-      Data.adviceFn892 = true := by
+    Bridge.frChk alignCtx Fn.«level_residual__L37_L19_L4_L2».fs [1403, 1404] Fn.«level_residual__L37_L19_L4_L2».core.params Fn.«level_residual__L37_L19_L4_L2».core.body
+      Data.adviceFn889 = true := by
   decide +kernel
 
 /-- `level_residual__L37_L19_L4_L2`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_residual__L37_L19_L4_L2».fs Fn.«level_residual__L37_L19_L4_L2».core.loop Fn.«level_residual__L37_L19_L4_L2».plumb Fn.«level_residual__L37_L19_L4_L2».core.body Fn.«level_residual__L37_L19_L4_L2».code.code
-      Data.adviceFn892 = true := by
+      Data.adviceFn889 = true := by
   decide +kernel
 
 end
@@ -459,19 +459,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_residual__L23_L16_L4_L2».co
 
 /-- `level_residual__L23_L16_L4_L2`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_residual__L23_L16_L4_L2».plumb Fn.«level_residual__L23_L16_L4_L2».core.body Fn.«level_residual__L23_L16_L4_L2».code.code Data.adviceFn942 = true := by
+    Bridge.curBody alignCtx Fn.«level_residual__L23_L16_L4_L2».plumb Fn.«level_residual__L23_L16_L4_L2».core.body Fn.«level_residual__L23_L16_L4_L2».code.code Data.adviceFn939 = true := by
   decide +kernel
 
 /-- `level_residual__L23_L16_L4_L2`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_residual__L23_L16_L4_L2».fs [1461, 1462] Fn.«level_residual__L23_L16_L4_L2».core.params Fn.«level_residual__L23_L16_L4_L2».core.body
-      Data.adviceFn942 = true := by
+    Bridge.frChk alignCtx Fn.«level_residual__L23_L16_L4_L2».fs [1458, 1459] Fn.«level_residual__L23_L16_L4_L2».core.params Fn.«level_residual__L23_L16_L4_L2».core.body
+      Data.adviceFn939 = true := by
   decide +kernel
 
 /-- `level_residual__L23_L16_L4_L2`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_residual__L23_L16_L4_L2».fs Fn.«level_residual__L23_L16_L4_L2».core.loop Fn.«level_residual__L23_L16_L4_L2».plumb Fn.«level_residual__L23_L16_L4_L2».core.body Fn.«level_residual__L23_L16_L4_L2».code.code
-      Data.adviceFn942 = true := by
+      Data.adviceFn939 = true := by
   decide +kernel
 
 end
@@ -490,19 +490,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_positions__L4_L15_L3_loop0»
 
 /-- `level_positions__L4_L15_L3_loop0`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_positions__L4_L15_L3_loop0».plumb Fn.«level_positions__L4_L15_L3_loop0».core.body Fn.«level_positions__L4_L15_L3_loop0».code.code Data.adviceFn994 = true := by
+    Bridge.curBody alignCtx Fn.«level_positions__L4_L15_L3_loop0».plumb Fn.«level_positions__L4_L15_L3_loop0».core.body Fn.«level_positions__L4_L15_L3_loop0».code.code Data.adviceFn991 = true := by
   decide +kernel
 
 /-- `level_positions__L4_L15_L3_loop0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_positions__L4_L15_L3_loop0».fs [965] Fn.«level_positions__L4_L15_L3_loop0».core.params Fn.«level_positions__L4_L15_L3_loop0».core.body
-      Data.adviceFn994 = true := by
+    Bridge.frChk alignCtx Fn.«level_positions__L4_L15_L3_loop0».fs [962] Fn.«level_positions__L4_L15_L3_loop0».core.params Fn.«level_positions__L4_L15_L3_loop0».core.body
+      Data.adviceFn991 = true := by
   decide +kernel
 
 /-- `level_positions__L4_L15_L3_loop0`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_positions__L4_L15_L3_loop0».fs Fn.«level_positions__L4_L15_L3_loop0».core.loop Fn.«level_positions__L4_L15_L3_loop0».plumb Fn.«level_positions__L4_L15_L3_loop0».core.body Fn.«level_positions__L4_L15_L3_loop0».code.code
-      Data.adviceFn994 = true := by
+      Data.adviceFn991 = true := by
   decide +kernel
 
 end
@@ -521,19 +521,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_residual__L109_L14_L6_L3_loo
 
 /-- `level_residual__L109_L14_L6_L3_loop1`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_residual__L109_L14_L6_L3_loop1».plumb Fn.«level_residual__L109_L14_L6_L3_loop1».core.body Fn.«level_residual__L109_L14_L6_L3_loop1».code.code Data.adviceFn1010 = true := by
+    Bridge.curBody alignCtx Fn.«level_residual__L109_L14_L6_L3_loop1».plumb Fn.«level_residual__L109_L14_L6_L3_loop1».core.body Fn.«level_residual__L109_L14_L6_L3_loop1».code.code Data.adviceFn1007 = true := by
   decide +kernel
 
 /-- `level_residual__L109_L14_L6_L3_loop1`'s frame hints reserve their callees' frames. -/
 theorem frOk :
     Bridge.frChk alignCtx Fn.«level_residual__L109_L14_L6_L3_loop1».fs [] Fn.«level_residual__L109_L14_L6_L3_loop1».core.params Fn.«level_residual__L109_L14_L6_L3_loop1».core.body
-      Data.adviceFn1010 = true := by
+      Data.adviceFn1007 = true := by
   decide +kernel
 
 /-- `level_residual__L109_L14_L6_L3_loop1`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_residual__L109_L14_L6_L3_loop1».fs Fn.«level_residual__L109_L14_L6_L3_loop1».core.loop Fn.«level_residual__L109_L14_L6_L3_loop1».plumb Fn.«level_residual__L109_L14_L6_L3_loop1».core.body Fn.«level_residual__L109_L14_L6_L3_loop1».code.code
-      Data.adviceFn1010 = true := by
+      Data.adviceFn1007 = true := by
   decide +kernel
 
 end
@@ -552,19 +552,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_positions__L28_L16_L4_loop0�
 
 /-- `level_positions__L28_L16_L4_loop0`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_positions__L28_L16_L4_loop0».plumb Fn.«level_positions__L28_L16_L4_loop0».core.body Fn.«level_positions__L28_L16_L4_loop0».code.code Data.adviceFn1030 = true := by
+    Bridge.curBody alignCtx Fn.«level_positions__L28_L16_L4_loop0».plumb Fn.«level_positions__L28_L16_L4_loop0».core.body Fn.«level_positions__L28_L16_L4_loop0».code.code Data.adviceFn1027 = true := by
   decide +kernel
 
 /-- `level_positions__L28_L16_L4_loop0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_positions__L28_L16_L4_loop0».fs [967] Fn.«level_positions__L28_L16_L4_loop0».core.params Fn.«level_positions__L28_L16_L4_loop0».core.body
-      Data.adviceFn1030 = true := by
+    Bridge.frChk alignCtx Fn.«level_positions__L28_L16_L4_loop0».fs [964] Fn.«level_positions__L28_L16_L4_loop0».core.params Fn.«level_positions__L28_L16_L4_loop0».core.body
+      Data.adviceFn1027 = true := by
   decide +kernel
 
 /-- `level_positions__L28_L16_L4_loop0`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_positions__L28_L16_L4_loop0».fs Fn.«level_positions__L28_L16_L4_loop0».core.loop Fn.«level_positions__L28_L16_L4_loop0».plumb Fn.«level_positions__L28_L16_L4_loop0».core.body Fn.«level_positions__L28_L16_L4_loop0».code.code
-      Data.adviceFn1030 = true := by
+      Data.adviceFn1027 = true := by
   decide +kernel
 
 end
@@ -583,19 +583,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_positions__L6_L18_L6_loop0»
 
 /-- `level_positions__L6_L18_L6_loop0`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_positions__L6_L18_L6_loop0».plumb Fn.«level_positions__L6_L18_L6_loop0».core.body Fn.«level_positions__L6_L18_L6_loop0».code.code Data.adviceFn1079 = true := by
+    Bridge.curBody alignCtx Fn.«level_positions__L6_L18_L6_loop0».plumb Fn.«level_positions__L6_L18_L6_loop0».core.body Fn.«level_positions__L6_L18_L6_loop0».code.code Data.adviceFn1076 = true := by
   decide +kernel
 
 /-- `level_positions__L6_L18_L6_loop0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_positions__L6_L18_L6_loop0».fs [971] Fn.«level_positions__L6_L18_L6_loop0».core.params Fn.«level_positions__L6_L18_L6_loop0».core.body
-      Data.adviceFn1079 = true := by
+    Bridge.frChk alignCtx Fn.«level_positions__L6_L18_L6_loop0».fs [968] Fn.«level_positions__L6_L18_L6_loop0».core.params Fn.«level_positions__L6_L18_L6_loop0».core.body
+      Data.adviceFn1076 = true := by
   decide +kernel
 
 /-- `level_positions__L6_L18_L6_loop0`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_positions__L6_L18_L6_loop0».fs Fn.«level_positions__L6_L18_L6_loop0».core.loop Fn.«level_positions__L6_L18_L6_loop0».plumb Fn.«level_positions__L6_L18_L6_loop0».core.body Fn.«level_positions__L6_L18_L6_loop0».code.code
-      Data.adviceFn1079 = true := by
+      Data.adviceFn1076 = true := by
   decide +kernel
 
 end
@@ -614,19 +614,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_residual__L23_L8_L4_L2_loop0
 
 /-- `level_residual__L23_L8_L4_L2_loop0`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_residual__L23_L8_L4_L2_loop0».plumb Fn.«level_residual__L23_L8_L4_L2_loop0».core.body Fn.«level_residual__L23_L8_L4_L2_loop0».code.code Data.adviceFn1108 = true := by
+    Bridge.curBody alignCtx Fn.«level_residual__L23_L8_L4_L2_loop0».plumb Fn.«level_residual__L23_L8_L4_L2_loop0».core.body Fn.«level_residual__L23_L8_L4_L2_loop0».code.code Data.adviceFn1105 = true := by
   decide +kernel
 
 /-- `level_residual__L23_L8_L4_L2_loop0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
     Bridge.frChk alignCtx Fn.«level_residual__L23_L8_L4_L2_loop0».fs [] Fn.«level_residual__L23_L8_L4_L2_loop0».core.params Fn.«level_residual__L23_L8_L4_L2_loop0».core.body
-      Data.adviceFn1108 = true := by
+      Data.adviceFn1105 = true := by
   decide +kernel
 
 /-- `level_residual__L23_L8_L4_L2_loop0`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_residual__L23_L8_L4_L2_loop0».fs Fn.«level_residual__L23_L8_L4_L2_loop0».core.loop Fn.«level_residual__L23_L8_L4_L2_loop0».plumb Fn.«level_residual__L23_L8_L4_L2_loop0».core.body Fn.«level_residual__L23_L8_L4_L2_loop0».code.code
-      Data.adviceFn1108 = true := by
+      Data.adviceFn1105 = true := by
   decide +kernel
 
 end
@@ -645,19 +645,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_residual__L23_L10_L4_L2_loop
 
 /-- `level_residual__L23_L10_L4_L2_loop1`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_residual__L23_L10_L4_L2_loop1».plumb Fn.«level_residual__L23_L10_L4_L2_loop1».core.body Fn.«level_residual__L23_L10_L4_L2_loop1».code.code Data.adviceFn1187 = true := by
+    Bridge.curBody alignCtx Fn.«level_residual__L23_L10_L4_L2_loop1».plumb Fn.«level_residual__L23_L10_L4_L2_loop1».core.body Fn.«level_residual__L23_L10_L4_L2_loop1».code.code Data.adviceFn1184 = true := by
   decide +kernel
 
 /-- `level_residual__L23_L10_L4_L2_loop1`'s frame hints reserve their callees' frames. -/
 theorem frOk :
     Bridge.frChk alignCtx Fn.«level_residual__L23_L10_L4_L2_loop1».fs [] Fn.«level_residual__L23_L10_L4_L2_loop1».core.params Fn.«level_residual__L23_L10_L4_L2_loop1».core.body
-      Data.adviceFn1187 = true := by
+      Data.adviceFn1184 = true := by
   decide +kernel
 
 /-- `level_residual__L23_L10_L4_L2_loop1`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_residual__L23_L10_L4_L2_loop1».fs Fn.«level_residual__L23_L10_L4_L2_loop1».core.loop Fn.«level_residual__L23_L10_L4_L2_loop1».plumb Fn.«level_residual__L23_L10_L4_L2_loop1».core.body Fn.«level_residual__L23_L10_L4_L2_loop1».code.code
-      Data.adviceFn1187 = true := by
+      Data.adviceFn1184 = true := by
   decide +kernel
 
 end
@@ -676,19 +676,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_residual__L109_L19_L6_L3_loo
 
 /-- `level_residual__L109_L19_L6_L3_loop0`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_residual__L109_L19_L6_L3_loop0».plumb Fn.«level_residual__L109_L19_L6_L3_loop0».core.body Fn.«level_residual__L109_L19_L6_L3_loop0».code.code Data.adviceFn1215 = true := by
+    Bridge.curBody alignCtx Fn.«level_residual__L109_L19_L6_L3_loop0».plumb Fn.«level_residual__L109_L19_L6_L3_loop0».core.body Fn.«level_residual__L109_L19_L6_L3_loop0».code.code Data.adviceFn1212 = true := by
   decide +kernel
 
 /-- `level_residual__L109_L19_L6_L3_loop0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
     Bridge.frChk alignCtx Fn.«level_residual__L109_L19_L6_L3_loop0».fs [] Fn.«level_residual__L109_L19_L6_L3_loop0».core.params Fn.«level_residual__L109_L19_L6_L3_loop0».core.body
-      Data.adviceFn1215 = true := by
+      Data.adviceFn1212 = true := by
   decide +kernel
 
 /-- `level_residual__L109_L19_L6_L3_loop0`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_residual__L109_L19_L6_L3_loop0».fs Fn.«level_residual__L109_L19_L6_L3_loop0».core.loop Fn.«level_residual__L109_L19_L6_L3_loop0».plumb Fn.«level_residual__L109_L19_L6_L3_loop0».core.body Fn.«level_residual__L109_L19_L6_L3_loop0».code.code
-      Data.adviceFn1215 = true := by
+      Data.adviceFn1212 = true := by
   decide +kernel
 
 end
@@ -707,19 +707,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_residual__L55_L16_L4_L2_loop
 
 /-- `level_residual__L55_L16_L4_L2_loop0`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_residual__L55_L16_L4_L2_loop0».plumb Fn.«level_residual__L55_L16_L4_L2_loop0».core.body Fn.«level_residual__L55_L16_L4_L2_loop0».code.code Data.adviceFn1265 = true := by
+    Bridge.curBody alignCtx Fn.«level_residual__L55_L16_L4_L2_loop0».plumb Fn.«level_residual__L55_L16_L4_L2_loop0».core.body Fn.«level_residual__L55_L16_L4_L2_loop0».code.code Data.adviceFn1262 = true := by
   decide +kernel
 
 /-- `level_residual__L55_L16_L4_L2_loop0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
     Bridge.frChk alignCtx Fn.«level_residual__L55_L16_L4_L2_loop0».fs [] Fn.«level_residual__L55_L16_L4_L2_loop0».core.params Fn.«level_residual__L55_L16_L4_L2_loop0».core.body
-      Data.adviceFn1265 = true := by
+      Data.adviceFn1262 = true := by
   decide +kernel
 
 /-- `level_residual__L55_L16_L4_L2_loop0`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_residual__L55_L16_L4_L2_loop0».fs Fn.«level_residual__L55_L16_L4_L2_loop0».core.loop Fn.«level_residual__L55_L16_L4_L2_loop0».plumb Fn.«level_residual__L55_L16_L4_L2_loop0».core.body Fn.«level_residual__L55_L16_L4_L2_loop0».code.code
-      Data.adviceFn1265 = true := by
+      Data.adviceFn1262 = true := by
   decide +kernel
 
 end
@@ -738,19 +738,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_positions__L7_L24_L6_loop0»
 
 /-- `level_positions__L7_L24_L6_loop0`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_positions__L7_L24_L6_loop0».plumb Fn.«level_positions__L7_L24_L6_loop0».core.body Fn.«level_positions__L7_L24_L6_loop0».code.code Data.adviceFn1293 = true := by
+    Bridge.curBody alignCtx Fn.«level_positions__L7_L24_L6_loop0».plumb Fn.«level_positions__L7_L24_L6_loop0».core.body Fn.«level_positions__L7_L24_L6_loop0».code.code Data.adviceFn1290 = true := by
   decide +kernel
 
 /-- `level_positions__L7_L24_L6_loop0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_positions__L7_L24_L6_loop0».fs [1243] Fn.«level_positions__L7_L24_L6_loop0».core.params Fn.«level_positions__L7_L24_L6_loop0».core.body
-      Data.adviceFn1293 = true := by
+    Bridge.frChk alignCtx Fn.«level_positions__L7_L24_L6_loop0».fs [1240] Fn.«level_positions__L7_L24_L6_loop0».core.params Fn.«level_positions__L7_L24_L6_loop0».core.body
+      Data.adviceFn1290 = true := by
   decide +kernel
 
 /-- `level_positions__L7_L24_L6_loop0`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_positions__L7_L24_L6_loop0».fs Fn.«level_positions__L7_L24_L6_loop0».core.loop Fn.«level_positions__L7_L24_L6_loop0».plumb Fn.«level_positions__L7_L24_L6_loop0».core.body Fn.«level_positions__L7_L24_L6_loop0».code.code
-      Data.adviceFn1293 = true := by
+      Data.adviceFn1290 = true := by
   decide +kernel
 
 end
@@ -769,19 +769,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_positions__L5_L23_L5_loop0»
 
 /-- `level_positions__L5_L23_L5_loop0`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_positions__L5_L23_L5_loop0».plumb Fn.«level_positions__L5_L23_L5_loop0».core.body Fn.«level_positions__L5_L23_L5_loop0».code.code Data.adviceFn1295 = true := by
+    Bridge.curBody alignCtx Fn.«level_positions__L5_L23_L5_loop0».plumb Fn.«level_positions__L5_L23_L5_loop0».core.body Fn.«level_positions__L5_L23_L5_loop0».code.code Data.adviceFn1292 = true := by
   decide +kernel
 
 /-- `level_positions__L5_L23_L5_loop0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_positions__L5_L23_L5_loop0».fs [1198] Fn.«level_positions__L5_L23_L5_loop0».core.params Fn.«level_positions__L5_L23_L5_loop0».core.body
-      Data.adviceFn1295 = true := by
+    Bridge.frChk alignCtx Fn.«level_positions__L5_L23_L5_loop0».fs [1195] Fn.«level_positions__L5_L23_L5_loop0».core.params Fn.«level_positions__L5_L23_L5_loop0».core.body
+      Data.adviceFn1292 = true := by
   decide +kernel
 
 /-- `level_positions__L5_L23_L5_loop0`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_positions__L5_L23_L5_loop0».fs Fn.«level_positions__L5_L23_L5_loop0».core.loop Fn.«level_positions__L5_L23_L5_loop0».plumb Fn.«level_positions__L5_L23_L5_loop0».core.body Fn.«level_positions__L5_L23_L5_loop0».code.code
-      Data.adviceFn1295 = true := by
+      Data.adviceFn1292 = true := by
   decide +kernel
 
 end
@@ -800,19 +800,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_residual__L55_L21_L6_L3_loop
 
 /-- `level_residual__L55_L21_L6_L3_loop1`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_residual__L55_L21_L6_L3_loop1».plumb Fn.«level_residual__L55_L21_L6_L3_loop1».core.body Fn.«level_residual__L55_L21_L6_L3_loop1».code.code Data.adviceFn1307 = true := by
+    Bridge.curBody alignCtx Fn.«level_residual__L55_L21_L6_L3_loop1».plumb Fn.«level_residual__L55_L21_L6_L3_loop1».core.body Fn.«level_residual__L55_L21_L6_L3_loop1».code.code Data.adviceFn1304 = true := by
   decide +kernel
 
 /-- `level_residual__L55_L21_L6_L3_loop1`'s frame hints reserve their callees' frames. -/
 theorem frOk :
     Bridge.frChk alignCtx Fn.«level_residual__L55_L21_L6_L3_loop1».fs [] Fn.«level_residual__L55_L21_L6_L3_loop1».core.params Fn.«level_residual__L55_L21_L6_L3_loop1».core.body
-      Data.adviceFn1307 = true := by
+      Data.adviceFn1304 = true := by
   decide +kernel
 
 /-- `level_residual__L55_L21_L6_L3_loop1`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_residual__L55_L21_L6_L3_loop1».fs Fn.«level_residual__L55_L21_L6_L3_loop1».core.loop Fn.«level_residual__L55_L21_L6_L3_loop1».plumb Fn.«level_residual__L55_L21_L6_L3_loop1».core.body Fn.«level_residual__L55_L21_L6_L3_loop1».code.code
-      Data.adviceFn1307 = true := by
+      Data.adviceFn1304 = true := by
   decide +kernel
 
 end
@@ -831,19 +831,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_positions__L9_L25_L7_loop0»
 
 /-- `level_positions__L9_L25_L7_loop0`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_positions__L9_L25_L7_loop0».plumb Fn.«level_positions__L9_L25_L7_loop0».core.body Fn.«level_positions__L9_L25_L7_loop0».code.code Data.adviceFn1431 = true := by
+    Bridge.curBody alignCtx Fn.«level_positions__L9_L25_L7_loop0».plumb Fn.«level_positions__L9_L25_L7_loop0».core.body Fn.«level_positions__L9_L25_L7_loop0».code.code Data.adviceFn1428 = true := by
   decide +kernel
 
 /-- `level_positions__L9_L25_L7_loop0`'s frame hints reserve their callees' frames. -/
 theorem frOk :
-    Bridge.frChk alignCtx Fn.«level_positions__L9_L25_L7_loop0».fs [1287] Fn.«level_positions__L9_L25_L7_loop0».core.params Fn.«level_positions__L9_L25_L7_loop0».core.body
-      Data.adviceFn1431 = true := by
+    Bridge.frChk alignCtx Fn.«level_positions__L9_L25_L7_loop0».fs [1284] Fn.«level_positions__L9_L25_L7_loop0».core.params Fn.«level_positions__L9_L25_L7_loop0».core.body
+      Data.adviceFn1428 = true := by
   decide +kernel
 
 /-- `level_positions__L9_L25_L7_loop0`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_positions__L9_L25_L7_loop0».fs Fn.«level_positions__L9_L25_L7_loop0».core.loop Fn.«level_positions__L9_L25_L7_loop0».plumb Fn.«level_positions__L9_L25_L7_loop0».core.body Fn.«level_positions__L9_L25_L7_loop0».code.code
-      Data.adviceFn1431 = true := by
+      Data.adviceFn1428 = true := by
   decide +kernel
 
 end
@@ -862,19 +862,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«level_residual__L218_L24_L6_L3_loo
 
 /-- `level_residual__L218_L24_L6_L3_loop1`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«level_residual__L218_L24_L6_L3_loop1».plumb Fn.«level_residual__L218_L24_L6_L3_loop1».core.body Fn.«level_residual__L218_L24_L6_L3_loop1».code.code Data.adviceFn1443 = true := by
+    Bridge.curBody alignCtx Fn.«level_residual__L218_L24_L6_L3_loop1».plumb Fn.«level_residual__L218_L24_L6_L3_loop1».core.body Fn.«level_residual__L218_L24_L6_L3_loop1».code.code Data.adviceFn1440 = true := by
   decide +kernel
 
 /-- `level_residual__L218_L24_L6_L3_loop1`'s frame hints reserve their callees' frames. -/
 theorem frOk :
     Bridge.frChk alignCtx Fn.«level_residual__L218_L24_L6_L3_loop1».fs [] Fn.«level_residual__L218_L24_L6_L3_loop1».core.params Fn.«level_residual__L218_L24_L6_L3_loop1».core.body
-      Data.adviceFn1443 = true := by
+      Data.adviceFn1440 = true := by
   decide +kernel
 
 /-- `level_residual__L218_L24_L6_L3_loop1`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«level_residual__L218_L24_L6_L3_loop1».fs Fn.«level_residual__L218_L24_L6_L3_loop1».core.loop Fn.«level_residual__L218_L24_L6_L3_loop1».plumb Fn.«level_residual__L218_L24_L6_L3_loop1».core.body Fn.«level_residual__L218_L24_L6_L3_loop1».code.code
-      Data.adviceFn1443 = true := by
+      Data.adviceFn1440 = true := by
   decide +kernel
 
 end
@@ -893,19 +893,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«da_levels__L32_L5_loop4».core.bod
 
 /-- `da_levels__L32_L5_loop4`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«da_levels__L32_L5_loop4».plumb Fn.«da_levels__L32_L5_loop4».core.body Fn.«da_levels__L32_L5_loop4».code.code Data.adviceFn1486 = true := by
+    Bridge.curBody alignCtx Fn.«da_levels__L32_L5_loop4».plumb Fn.«da_levels__L32_L5_loop4».core.body Fn.«da_levels__L32_L5_loop4».code.code Data.adviceFn1483 = true := by
   decide +kernel
 
 /-- `da_levels__L32_L5_loop4`'s frame hints reserve their callees' frames. -/
 theorem frOk :
     Bridge.frChk alignCtx Fn.«da_levels__L32_L5_loop4».fs [] Fn.«da_levels__L32_L5_loop4».core.params Fn.«da_levels__L32_L5_loop4».core.body
-      Data.adviceFn1486 = true := by
+      Data.adviceFn1483 = true := by
   decide +kernel
 
 /-- `da_levels__L32_L5_loop4`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«da_levels__L32_L5_loop4».fs Fn.«da_levels__L32_L5_loop4».core.loop Fn.«da_levels__L32_L5_loop4».plumb Fn.«da_levels__L32_L5_loop4».core.body Fn.«da_levels__L32_L5_loop4».code.code
-      Data.adviceFn1486 = true := by
+      Data.adviceFn1483 = true := by
   decide +kernel
 
 end

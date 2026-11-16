@@ -22,11 +22,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `verify_merkle_cap__L8`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
 
 /-- `verify_merkle_cap__L8`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨330419, 2810, Fn.«verify_merkle_cap__L8».modeSig, (.node none .nil (.node none .nil (.node none
+  ⟨329901, 2810, Fn.«verify_merkle_cap__L8».modeSig, (.node none .nil (.node none .nil (.node none
     .nil (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node
     (some [(.cellAddress 1035 1036)]) .nil .nil) .nil) .nil) .nil) .nil) .nil) .nil) .nil)))),
     .nil, .nil, false, (.node none (.node none .nil (.node none .nil (.node none .nil (.node none

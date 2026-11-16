@@ -37,6 +37,10 @@ KBUDGET = 4500
 KHARD = 12500
 # a module's snapshots hold at most this many facts in all (the elaborator's memory)
 SNAPMAX = 20000
+# a snapshot whose literal is longer than this many characters is written as a def per state, each
+# list longer than `SNAPCH` as defs of that many (the elaborator's heartbeats per def)
+SNAPLIT = 400000
+SNAPCH = 256
 # a long function's windows are chained in links of this many
 LINK = 32
 # a function's hints are checked in parts of at most this many offsets
@@ -258,9 +262,47 @@ def nsOpen(n, expose=True):
 def nsClose(n): return 'end\n\nend LeanVM.Guest.Fn.«%s»\n' % I.fns[n]['ns']
 
 
+def absSplit(A, name, defs):
+    """`absLit`, each list longer than `SNAPCH` written as defs of `SNAPCH` elements named `name`."""
+    def part(xs, f, ty, fld):
+        xs = list(xs)
+        if len(xs) <= SNAPCH: return lst(xs, f)
+        ns = []
+        for j in range(0, len(xs), SNAPCH):
+            ns.append('%s%s%d' % (name, fld, j // SNAPCH))
+            defs.append('noncomputable def %s : %s :=\n  %s\n\n' % (ns[-1], ty, lst(xs[j:j + SNAPCH], f)))
+        return '(List.flatten %s)' % lst(ns, str)
+    return '⟨%s⟩' % ', '.join([
+        trie({o: 1 for o in A.w}, unit), trie(A.v, val), trie({o: 1 for o in A.nz}, unit),
+        part(sorted(A.hv.items()), lambda p: '(%s, %s)' % (mono(p[0]), val(p[1])), 'List (Mode.Mono × Mode.Val)', 'hv'),
+        part(sorted(A.h), mono, 'List Mode.Mono', 'h'), part(sorted(A.r), rng, 'List Mode.Rng', 'r'),
+        part(sorted(A.lt), lambda p: '(%s, %s)' % (idx(p[0]), idx(p[1])), 'List (Mode.Idx × Mode.Idx)', 'lt'),
+        lst(A.pr, lambda t: '(%d, %d, %d)' % t), trie(A.xs, lambda p: '(%d, %d)' % p),
+        part(sorted(A.p), ptr, 'List (Mode.Rng × List ℕ)', 'p'), part(sorted(A.c.items()), cnd, 'List Mode.Cnd', 'c')])
+
+
+def snapDef(n, b, S):
+    """The snapshot `snap{b}`; one too long for the elaborator to take as one literal (`SNAPLIT`), as a
+    def per state and per part of its long lists."""
+    text = snapLit(S)
+    doc = '/-- `%s`: the paths and pending edges at its cut at offset %d. -/\n' % (n, b)
+    if len(text) <= SNAPLIT:
+        return doc + 'noncomputable def snap%d : List Mode.Abs × Mode.Pend :=\n  %s\n\n' % (b, text)
+    cur, pend = S
+    defs = []
+    def st(A, nm):
+        defs.append('noncomputable def %s : Mode.Abs :=\n  %s\n\n' % (nm, absSplit(A, nm + '_', defs)))
+        return nm
+    cs = [st(A, 'snap%da%d' % (b, i)) for i, A in enumerate(cur)]
+    ps = ['⟨%s, %s, %s⟩' % (lst(g[0], nat), lst([st(B, 'snap%dp%d_%d' % (b, k, i)) for i, B in enumerate(g[1])], str),
+          'true' if g[2] else 'false') for k, g in enumerate(pend)]
+    return ''.join(defs) + doc + 'noncomputable def snap%d : List Mode.Abs × Mode.Pend :=\n  (%s, %s)\n\n' % (
+        b, lst(cs, str), lst(ps, str))
+
+
 def snapDefs(n, cuts):
     """The snapshots `snap{b}` at a function's cuts."""
-    return ''.join('/-- `%s`: the paths and pending edges at its cut at offset %d. -/\nnoncomputable def snap%d : List Mode.Abs × Mode.Pend :=\n  %s\n\n' % (n, b, b, snapLit(S)) for b, S in sorted(cuts.items()))
+    return ''.join(snapDef(n, b, S) for b, S in sorted(cuts.items()))
 
 
 def dataDefs(n, res, cuts=None, inline=True):
@@ -307,8 +349,8 @@ def kprofile(n, sig, res):
     """At each offset of a function's walk: the facts of the paths and pending edges there (`S`), and the
     kernel's memory its instruction is estimated to need (`C`, MB): `KINS`, and `KRUN` for each run a
     lookup tries and each base of the cell (`Abs.inRuns` tries the runs over `k`'s bases or all but one
-    of them, a miss each, a hit half of them on average), and for each arm of a call `KARM` and `KADD`
-    for each fact it adds."""
+    of them, a miss each, a hit half of them on average; none for a run of one point that is the cell,
+    which `ptKey` finds at once), and for each arm of a call `KARM` and `KADD` for each fact it adds."""
     f = I.fns[n]; N = f['count']
     S = [0] * (N + 1); C = [KINS] * N; cur = [0]
     och = W.Abs.coveredHR
@@ -316,7 +358,8 @@ def kprofile(n, sig, res):
         if k not in A.h:
             keys = {(k[0], k[2])} | {(k[0], tuple(q for q in k[2] if q[0] != e[0])) for e in k[2]}
             c = [r for r in A.r if (r[0][0], r[0][2]) in keys]
-            C[cur[0]] += KRUN * (1 + len(k[2])) * (len(c) / 2 if any(A.inRng(k, r) for r in c) else len(c))
+            if not any(onePt(r) == k for r in c):
+                C[cur[0]] += KRUN * (1 + len(k[2])) * (len(c) / 2 if any(A.inRng(k, r) for r in c) else len(c))
         return och(A, k)
     def probe(i, sts, pend):
         cur[0] = i
@@ -332,6 +375,13 @@ def kprofile(n, sig, res):
     finally:
         W.Abs.coveredHR = och; I.Walk.afterCall = oac
     return S, C
+
+
+def onePt(r):
+    """A run's cell, if it is one point between constants (`ptKey`: `Abs.inRuns` finds it at once)."""
+    q, lo, hi, S, d = r
+    if lo[0] == 'num' and hi[0] == 'num' and hi[1] == lo[1] + 1: return W.shift(q, S * lo[1] + d)
+    return None
 
 
 class Heavy(Exception):

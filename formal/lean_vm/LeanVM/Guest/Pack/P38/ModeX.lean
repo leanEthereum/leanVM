@@ -22,28 +22,28 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `verify_bus_gkr`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none .nil (.node none .nil (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
     (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node none (.node (some Fn.«verify_bus_gkr_loop1».modeSig) .nil .nil) .nil)))) .nil)
-    .nil)))))) .nil) .nil) .nil))) (.node none .nil (.node none .nil (.node none .nil (.node none
-    .nil (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
+    (.node none (.node (some Fn.«verify_bus_gkr_loop0».modeSig) .nil .nil) .nil)))) .nil) .nil)))
+    .nil))) .nil))) .nil) .nil) (.node none .nil (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
     .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
-    (.node (some Fn.«verify_bus_gkr_loop0».modeSig) .nil .nil) .nil)))) .nil) .nil))) .nil)))
-    .nil)))))), 524287⟩
+    (.node (some Fn.«verify_bus_gkr_loop1».modeSig) .nil .nil) .nil)))) .nil) .nil))))) .nil))))
+    .nil))), 524287⟩
 
 /-- `verify_bus_gkr`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨19570, 367, Fn.«verify_bus_gkr».modeSig, (.node none (.node none (.node none (.node (some
-    [(.allocDyn 25 24), (.alloc 26 6034), (.alloc 27 1640)]) .nil .nil) (.node none (.node none
-    .nil (.node (some [(.alloc 90 33), (.alloc 91 33)]) .nil .nil)) .nil)) (.node none (.node none
-    (.node none (.node none (.node none .nil (.node none (.node (some [(.alloc 413 3),
-    (.allocFrames 400 303 398 (LeanVM.Parameters.K.ofBits 0x1) 303)]) .nil .nil) .nil)) .nil) .nil)
-    (.node none (.node (some [(.alloc 87 8)]) .nil .nil) (.node none (.node none .nil (.node none
-    (.node (some [(.allocFrames 411 17 8 (LeanVM.Parameters.K.ofBits 0x1) 17)]) .nil .nil) .nil))
-    .nil))) .nil)) (.node none (.node none .nil (.node none (.node none (.node none (.node none
-    (.node (some [(.cellAddress 107 108)]) .nil .nil) .nil) .nil) .nil) (.node (some [(.inverse 57
-    58)]) .nil .nil))) .nil)), .nil, .nil, false, .nil⟩
+  ⟨19566, 363, Fn.«verify_bus_gkr».modeSig, (.node none (.node none (.node none .nil (.node none
+    .nil (.node (some [(.inverse 57 58)]) .nil .nil))) (.node none (.node none (.node none (.node
+    none (.node none (.node (some [(.cellAddress 112 113)]) .nil .nil) .nil) .nil) .nil) .nil)
+    (.node none (.node none .nil (.node none (.node none .nil (.node none (.node (some
+    [(.allocFrames 419 17 8 (LeanVM.Parameters.K.ofBits 0x1) 17)]) .nil .nil) .nil)) .nil)) .nil)))
+    (.node none (.node none (.node none .nil (.node none (.node (some [(.alloc 87 33), (.alloc 88
+    33)]) .nil .nil) .nil)) (.node none (.node none .nil (.node none .nil (.node none (.node none
+    (.node (some [(.alloc 421 3), (.allocFrames 400 298 398 (LeanVM.Parameters.K.ofBits 0x1) 298)])
+    .nil .nil) .nil) .nil))) .nil)) (.node (some [(.allocDyn 25 24), (.alloc 26 6034), (.alloc 27
+    1640)]) .nil .nil))), .nil, .nil, false, .nil⟩
 
 end
 

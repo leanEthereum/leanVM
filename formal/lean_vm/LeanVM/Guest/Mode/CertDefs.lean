@@ -75,10 +75,13 @@ noncomputable def tailRetB (K : Cert) : Bool :=
 def loopRngB (G : Sig) : Bool :=
   (G.postL ++ G.postLP.map (·.1)).all fun r ↦ decide ((r.lo, r.hi) ∈ G.term)
 
+/-- The jump table's end: `__jump_tables`' slots, from `main`'s `430` cells on. -/
+abbrev jtEnd : ℕ := 430 + Data.f0.instructionCount
+
 /-- The certificate's facts the kernel decides: its length, a code, an entry past `__jump_tables`'s, the guest's jump table and
 halting pc, a loop's tail call and runs, its termination facts' cells. -/
 noncomputable def staticB (K : Cert) : Bool :=
-  K.F.len == K.code.length && 0 < K.code.length && 0 < K.F.entry && K.E.jtLo == 430 && K.E.jtHi == 14367 &&
+  K.F.len == K.code.length && 0 < K.code.length && 0 < K.F.entry && K.E.jtLo == 430 && K.E.jtHi == jtEnd &&
     K.E.halt == 524287 && tailRetB K && loopRngB K.F.sig && termFr K.F.sig
 
 /-- **A certificate's static facts**: `staticB`, and the guest's powers and jump table. -/

@@ -29,33 +29,6 @@ theorem sw1 : shareWinD Fn.«da_factors__L14_L7_L0».core (cert.withPows Data.po
 end
 end LeanVM.Guest.Fn.«da_factors__L14_L7_L0»
 
-namespace LeanVM.Guest.Fn.«gkr_rounds__L6»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `gkr_rounds__L6`, once. -/
-theorem st : shareStaticD Fn.«gkr_rounds__L6».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `gkr_rounds__L6`, window 0. -/
-theorem sw0 : shareWinD Fn.«gkr_rounds__L6».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `gkr_rounds__L6`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«gkr_rounds__L6».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«gkr_rounds__L6»
-
 namespace LeanVM.Guest.Fn.«level_positions__L28_L15_L3»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -115,4 +88,31 @@ theorem shareOk : ShareOkD Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1�
 
 end
 end LeanVM.Guest.Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1»
+
+namespace LeanVM.Guest.Fn.«level_residual__L37_L10_L4_L2»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `level_residual__L37_L10_L4_L2`, once. -/
+theorem st : shareStaticD Fn.«level_residual__L37_L10_L4_L2».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `level_residual__L37_L10_L4_L2`, window 0. -/
+theorem sw0 : shareWinD Fn.«level_residual__L37_L10_L4_L2».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `level_residual__L37_L10_L4_L2`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«level_residual__L37_L10_L4_L2».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«level_residual__L37_L10_L4_L2»
 

@@ -98,7 +98,7 @@ structure VsWords (fs : String → ℕ) : Type where
   K8 : ℕ
   h29 : TotalLeOn coreProgram fs name% «verify_bus_gkr_loop0_loop0» LoopPre
     (fun a ↦ logG (a.getD 1 0) * K29 + fs name% «verify_bus_gkr_loop0_loop0»)
-  hR : ∀ n ∈ [0, 1, 2, 4, 6], TotalLe coreProgram fs (Tables.lName "gkr_rounds" n) (fun _ ↦ R)
+  hR : ∀ n ∈ [1, 2], TotalLe coreProgram fs (Tables.lName "gkr_rounds" n) (fun _ ↦ R)
   h8 : TotalLeOn coreProgram fs name% «verify_bus_gkr_loop1» LoopPre (fun a ↦ logG (a.getD 1 0) *
       K8 + fs name% «verify_bus_gkr_loop1»)
   Kf : String → ℕ

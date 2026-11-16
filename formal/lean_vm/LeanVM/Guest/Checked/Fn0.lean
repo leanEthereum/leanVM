@@ -464,14 +464,9 @@ theorem link10 : Link 10 (Glob.ofSigs ([(93, Fn.«verify_bus_gkr_loop0».sig), (
 
 theorem w10_0 : WinOk 10 0 := link10.win rfl Fn.«verify_bus_gkr».w0
 
-theorem w10_1 : WinOk 10 1 := link10.win rfl Fn.«verify_bus_gkr».w1
+theorem ok10 : CheckOk 10 := checkOk_one (by decide +kernel) w10_0
 
-theorem ok10 : CheckOk 10 := fun i hi ↦ by
-  have h : (certOf 10).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w10_0
-  · exact w10_1
+theorem plain10 : Plain 10 := plain_of_nil (by decide +kernel)
 
 theorem link11 : Link 11 (Glob.ofSigs ([(95, Fn.«shared_selector_tables_loop0».sig), (96, Fn.«sel_partial_nibble__L0».sig), (97, Fn.«sel_partial_nibble__L1».sig), (98, Fn.«sel_partial_nibble__L2».sig), (99, Fn.«sel_partial_nibble__L3».sig)]) Data.jtTrie globSem)
     Fn.«shared_selector_tables».code Fn.«shared_selector_tables».core (Fn.«shared_selector_tables».cert.withPows Data.powTree) :=

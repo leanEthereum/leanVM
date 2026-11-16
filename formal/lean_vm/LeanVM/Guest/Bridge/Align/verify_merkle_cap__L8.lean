@@ -37,7 +37,7 @@ theorem alignCellsOk :
 
 /-- `verify_merkle_cap__L8` aligns with its body. -/
 theorem alignOk :
-    Bridge.alignOk alignCtx Fn.«verify_merkle_cap__L8».core.body Fn.«verify_merkle_cap__L8».code.code Data.adviceFn1200 = true := by
+    Bridge.alignOk alignCtx Fn.«verify_merkle_cap__L8».core.body Fn.«verify_merkle_cap__L8».code.code Data.adviceFn1197 = true := by
   decide +kernel
 
 end

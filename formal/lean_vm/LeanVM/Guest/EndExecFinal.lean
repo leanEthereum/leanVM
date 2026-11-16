@@ -98,7 +98,7 @@ theorem execGaps_of (O : OpenGaps) :
       simp only [Res.resExc, List.mem_cons, List.not_mem_nil, or_false] at hK
       rcases hK with rfl | rfl
       · exact resCld_alignA
-      · exact resCp_alignA) nzVal_lce0 nzVal_lce16)
+      · exact resCp_alignA))
     termNode_guest Bridge.progAl Bridge.alignA_main alLayout_alignA jumpCells_at Mode.guestCerts_entry_ne
     (derefPow_all _)
     (hintsUsed_alignA sizesAt_guest allocReady_guest (witCells_alignA witPtrRes_guest) fun _ _ h ↦ h)

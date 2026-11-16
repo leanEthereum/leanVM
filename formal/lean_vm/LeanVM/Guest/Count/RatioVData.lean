@@ -21,13 +21,13 @@ set_option maxRecDepth 100000
 
 /-- Indices of the functions `verify_bus_gkr` reaches, part 0. -/
 def krVbgJ0 : List ℕ := [9, 92,
-    93, 438, 439, 440, 441, 442, 443]
+    93, 438, 439, 440]
 /-- The core indices of the functions `verify_bus_gkr`'s paths reach. -/
 def krVbgJ : List ℕ := krVbgJ0
 
 /-- Their calls, by index, part 0. -/
 def krVbgCL0 : List (ℕ × List ℕ) := [(9, [92, 93]),
-    (92, [438, 439, 440, 441, 442, 443, 92]), (93, [93]), (438, [438])]
+    (92, [438, 439, 440, 92]), (93, [93]), (438, [438])]
 /-- Their calls, by index. -/
 def krVbgCL : List (ℕ × List ℕ) := krVbgCL0
 
@@ -36,26 +36,26 @@ def krVbgC (i : ℕ) : List ℕ := (krVbgCL.lookup i).getD []
 
 /-- `verify_bus_gkr`'s ratios, in thousandths. -/
 def krVbgA : Opcode → ℕ
-  | .xor => 149
+  | .xor => 134
   | .mulNative => 648
-  | .setConstant => 286
-  | .deref => 341
-  | .jump => 143
-  | .keccak => 19
+  | .setConstant => 236
+  | .deref => 309
+  | .jump => 118
+  | .keccak => 17
 
 /-! ## `verify_keccak` -/
 
 /-- Indices of the functions `verify_keccak` reaches, part 0. -/
 def krVkJ0 : List ℕ := [12, 268,
-    269, 270, 271, 272, 273, 274, 444, 445, 446, 447, 448]
+    269, 270, 271, 272, 273, 274, 441, 442, 443, 444, 445]
 /-- The core indices of the functions `verify_keccak`'s paths reach. -/
 def krVkJ : List ℕ := krVkJ0
 
 /-- Their calls, by index, part 0. -/
 def krVkCL0 : List (ℕ × List ℕ) := [
     (12, [268, 269, 270, 270, 270, 270, 270, 270, 270, 270, 270, 270, 270, 271, 272, 273, 271, 274]),
-    (268, [268]), (269, [444, 445, 446]), (270, [444, 447, 448]), (272, [272]), (274, [274]),
-    (445, [445]), (446, [446]), (447, [447]), (448, [448])]
+    (268, [268]), (269, [441, 442, 443]), (270, [441, 444, 445]), (272, [272]), (274, [274]),
+    (442, [442]), (443, [443]), (444, [444]), (445, [445])]
 /-- Their calls, by index. -/
 def krVkCL : List (ℕ × List ℕ) := krVkCL0
 

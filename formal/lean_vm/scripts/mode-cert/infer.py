@@ -9,7 +9,10 @@ import data
 P = data.load()
 fns, HINTS, POWS, JT = P['fns'], P['hints'], P['pows'], P['jt']
 byentry = {f['entry']: f for f in fns.values()}
-JT_LO, JT_HI, HALT = 430, 14367, 2 ** 19 - 1
+JT_LO, HALT = 430, 2 ** 19 - 1
+# the jump table's end: past its last slot (`__jump_tables` writes the slots from JT_LO on)
+JT_HI = max(JT) + 1
+assert sorted(JT) == list(range(JT_LO, JT_HI))
 
 
 def conv(op, a):
@@ -684,6 +687,8 @@ class Infer:
         the stream's run a precondition (held by a caller or, in a loop, by the function that runs it)."""
         st = STREAMS.get(self.f['name'])
         if st is None or k[0] != 0 or len(k[2]) != 1 or k[2][0][1] != 1 or k[2][0][0] == st: return False
+        # a buffer this function allocates is not the stream
+        if k[2][0][0][0] == 'fr' and k[2][0][0][1] in allocs(self.f): return False
         b = ((0, 0, ((st, 1),)), ('num', 0), ('num', STREAM_CAP), 1, 0)
         if st[0] == 'hp' or st[1] in params(self.f):
             if b not in self.preR: self.preR.add(b); self.new = True
@@ -722,6 +727,14 @@ class Infer:
         a = ((0, c, k[2]), ('num', 0), ('num', 1), 1, 0)
         r = ('sub', a, [(q, ('num', lo), ('num', hi), 1, c)])
         self.addRes(i0, r); self.prunable.append((i0, r)); A.r.add(a); return True
+
+
+def allocs(f):
+    """The frame cells whose words this function's allocation hints write."""
+    if 'allocs' not in f:
+        f['allocs'] = {h[1] for hs in f['hints'].values() for h in hs
+                       if h[0] in ('al', 'ad', 'aa', 'af') or (h[0] == 'lt' and h[2] == 'e')}
+    return f['allocs']
 
 
 def statMono(f):
@@ -908,7 +921,9 @@ STRIDES = set()
 # functions that pass with residuals outside the families `Res/SelDefs.lean` and `Res/SubDefs.lean` accept,
 # held as failing (their callees' narrowings undone) until those families take them; by stable name, a loop's
 # its caller's and its rank, so a guest edit renumbering the loops leaves it unchanged
-HELD_NS = set()
+HELD_NS = {'claim_list_digest', 'log2_ceil_in_the_exponent__L0_L34', 'log2_ceil_in_the_exponent__L16_L34', 'main',
+           'verify_bus_gkr', 'verify_bus_gkr_loop0', 'verify_bus_gkr_loop0_loop0', 'verify_keccak', 'verify_sub',
+           'verify_tables'}
 HELD = {f['name'] for f in fns.values() if f['ns'] in HELD_NS}
 assert len(HELD) == len(HELD_NS), HELD_NS - {fns[n]['ns'] for n in HELD}
 
@@ -1164,6 +1179,7 @@ def infer1(n, named):
 
 
 __import__('rules_da').install(globals())
+__import__('rules_fix').install(globals())
 
 if __name__ == '__main__':
     sigs = {}; fails = {}; res = {}

@@ -187,7 +187,7 @@ open LeanVM.Guest LeanVM.Guest.EndExec
 public section
 
 theorem certs_term : ∀ K ∈ certs, TermOk K :=
-  Mode.fa_cons (termOk_of (j := 1200) (by decide +kernel))
+  Mode.fa_cons (termOk_of (j := 1197) (by decide +kernel))
     (Mode.fa_nil)
 
 end

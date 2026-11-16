@@ -22,11 +22,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `exponent_tables`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
 
 /-- `exponent_tables`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨14770, 4490, Fn.«exponent_tables».modeSig, (.node (some [(.alloc 3 2284)]) .nil .nil), .nil,
+  ⟨14766, 4490, Fn.«exponent_tables».modeSig, (.node (some [(.alloc 3 2284)]) .nil .nil), .nil,
     .nil, false, (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
     none .nil (.node none .nil (.node none (.node none .nil (.node (some snap891) .nil .nil))
     .nil)))))) .nil) (.node none .nil (.node none (.node none (.node none (.node none .nil (.node

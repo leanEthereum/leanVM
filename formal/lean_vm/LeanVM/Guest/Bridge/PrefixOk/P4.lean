@@ -125,7 +125,7 @@ theorem bridgeCellsOk :
 
 /-- `level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0` is in the hint bridge's prefix class. -/
 theorem bridgePrefixOk :
-    Bridge.prefixOk bridgeLoc Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0».core.body Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0».code.code Data.adviceFn830 = true := by
+    Bridge.prefixOk bridgeLoc Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0».core.body Fn.«level_queries__L19_L0_L4_L16_L22_L4_L0_L0_L0_L0».code.code Data.adviceFn827 = true := by
   decide +kernel
 
 end
@@ -155,7 +155,7 @@ theorem bridgeCellsOk :
 
 /-- `level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0` is in the hint bridge's prefix class. -/
 theorem bridgePrefixOk :
-    Bridge.prefixOk bridgeLoc Fn.«level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0».core.body Fn.«level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0».code.code Data.adviceFn821 = true := by
+    Bridge.prefixOk bridgeLoc Fn.«level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0».core.body Fn.«level_queries__L37_L0_L4_L16_L24_L6_L0_L0_L0_L0».code.code Data.adviceFn818 = true := by
   decide +kernel
 
 end
@@ -185,7 +185,7 @@ theorem bridgeCellsOk :
 
 /-- `level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0` is in the hint bridge's prefix class. -/
 theorem bridgePrefixOk :
-    Bridge.prefixOk bridgeLoc Fn.«level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0».core.body Fn.«level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0».code.code Data.adviceFn819 = true := by
+    Bridge.prefixOk bridgeLoc Fn.«level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0».core.body Fn.«level_queries__L55_L0_L4_L16_L22_L4_L0_L0_L0_L0».code.code Data.adviceFn816 = true := by
   decide +kernel
 
 end
@@ -215,7 +215,7 @@ theorem bridgeCellsOk :
 
 /-- `opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1_loop0` is in the hint bridge's prefix class. -/
 theorem bridgePrefixOk :
-    Bridge.prefixOk bridgeLoc Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1_loop0».core.body Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1_loop0».code.code Data.adviceFn1549 = true := by
+    Bridge.prefixOk bridgeLoc Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1_loop0».core.body Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L4_L10_L20_L5_L1_loop0».code.code Data.adviceFn1546 = true := by
   decide +kernel
 
 end

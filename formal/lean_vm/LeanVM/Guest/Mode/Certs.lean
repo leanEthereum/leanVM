@@ -32,10 +32,14 @@ public section
 /-- **The walks and hints the kernel does not check**, one per function: a walk failing or too
     costly to check (`WalkHyp`), hints too costly to check in one piece (`HintsHyp`). -/
 structure ModeHyps : Prop where
+  «__loop35» : WalkHyp Fn.«verify_bus_gkr_loop0_loop0».modeCert
   «__loop6» : WalkHyp Fn.«verify_bus_gkr_loop0».modeCert
-  «da_weights» : WalkHyp Fn.«da_weights».modeCert
+  «claim_list_digest» : WalkHyp Fn.«claim_list_digest».modeCert
+  «log2_ceil_in_the_exponent__L0_L34» : WalkHyp Fn.«log2_ceil_in_the_exponent__L0_L34».modeCert
+  «log2_ceil_in_the_exponent__L16_L34» : WalkHyp Fn.«log2_ceil_in_the_exponent__L16_L34».modeCert
   «main» : WalkHyp Fn.«main».modeCert
   «verify_bus_gkr» : WalkHyp Fn.«verify_bus_gkr».modeCert
+  «verify_keccak» : WalkHyp Fn.«verify_keccak».modeCert
   «verify_sub» : WalkHyp Fn.«verify_sub».modeCert
   «verify_tables» : WalkHyp Fn.«verify_tables».modeCert
 
@@ -60,13 +64,13 @@ theorem guestGroup_walk0 (h : ModeHyps) : ∀ l ∈ guestGroups[0]!, ∀ K ∈ l
 
 theorem guestGroup_walk1 (h : ModeHyps) : ∀ l ∈ guestGroups[1]!, ∀ K ∈ l, CertWalk K :=
   Mode.fa_cons (ModePack.«P23».certs_walk)
-    (Mode.fa_cons (ModePack.«P24».certs_walk)
+    (Mode.fa_cons (ModePack.«P24».certs_walk h.«log2_ceil_in_the_exponent__L16_L34»)
     (Mode.fa_cons (ModePack.«P25».certs_walk)
     (Mode.fa_cons (ModePack.«P26».certs_walk)
     (Mode.fa_cons (ModePack.«P27».certs_walk)
-    (Mode.fa_cons (ModePack.«P28».certs_walk h.«da_weights»)
-    (Mode.fa_cons (ModePack.«P29».certs_walk)
-    (Mode.fa_cons (ModePack.«P3».certs_walk)
+    (Mode.fa_cons (ModePack.«P28».certs_walk)
+    (Mode.fa_cons (ModePack.«P29».certs_walk h.«claim_list_digest»)
+    (Mode.fa_cons (ModePack.«P3».certs_walk h.«verify_keccak»)
     (Mode.fa_cons (ModePack.«P30».certs_walk)
     (Mode.fa_cons (ModePack.«P31».certs_walk)
     (Mode.fa_cons (ModePack.«P32».certs_walk)
@@ -99,10 +103,10 @@ theorem guestGroup_walk2 (h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ l
 theorem guestGroup_walk3 (h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ l, CertWalk K :=
   Mode.fa_cons (ModePack.«P52».certs_walk)
     (Mode.fa_cons (ModePack.«P53».certs_walk)
-    (Mode.fa_cons (ModePack.«P54».certs_walk)
+    (Mode.fa_cons (ModePack.«P54».certs_walk h.«__loop35»)
     (Mode.fa_cons (ModePack.«P55».certs_walk)
     (Mode.fa_cons (ModePack.«P56».certs_walk)
-    (Mode.fa_cons (ModePack.«P57».certs_walk)
+    (Mode.fa_cons (ModePack.«P57».certs_walk h.«log2_ceil_in_the_exponent__L0_L34»)
     (Mode.fa_cons (ModePack.«P58».certs_walk)
     (Mode.fa_cons (ModePack.«P59».certs_walk)
     (Mode.fa_cons (ModePack.«P6».certs_walk)

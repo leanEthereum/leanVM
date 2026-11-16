@@ -24,9 +24,7 @@ noncomputable def resExc : List Mode.Cert := [
 
 /-- The parameters whose nonzero values the divisor residuals need, by function. -/
 def nzVals : List (String × V) := [
-  ("child_claim_list_mono_last__L0", .n 1),
-  ("log2_ceil_in_the_exponent__L0_L34", .n 0),
-  ("log2_ceil_in_the_exponent__L16_L34", .n 0)]
+  ("child_claim_list_mono_last__L0", .n 1)]
 
 end
 

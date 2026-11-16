@@ -468,31 +468,31 @@ theorem ok266 : Bridge.FnAlOk 266 :=
   Bridge.fnAlOk_of Checked.code266 Checked.core266 Checked.cert266 Checked.plumbEq266 tab266 rfl Fn.«block_selector_tab__L33».alignOk
 
 kernel_rfl tab267 : (Bridge.extraOf 267, Bridge.entsOf 267, Bridge.adviceOf 267) =
-    ([], [("__loop9", 207006), ("sumcheck_round4", 19440)], Data.adviceFn267)
+    ([], [("__loop9", 206995), ("sumcheck_round4", 19436)], Data.adviceFn267)
 
 theorem ok267 : Bridge.FnAlOk 267 :=
   Bridge.fnAlOk_of Checked.code267 Checked.core267 Checked.cert267 Checked.plumbEq267 tab267 rfl Fn.«verify_tables_loop0».alignOk
 
 kernel_rfl tab268 : (Bridge.extraOf 268, Bridge.entsOf 268, Bridge.adviceOf 268) =
-    ([], [("__loop10", 207050)], Data.adviceFn268)
+    ([], [("__loop10", 207039)], Data.adviceFn268)
 
 theorem ok268 : Bridge.FnAlOk 268 :=
   Bridge.fnAlOk_of Checked.code268 Checked.core268 Checked.cert268 Checked.plumbEq268 tab268 rfl Fn.«verify_tables_loop1».alignOk
 
 kernel_rfl tab269 : (Bridge.extraOf 269, Bridge.entsOf 269, Bridge.adviceOf 269) =
-    ([], [("__loop11", 207074)], Data.adviceFn269)
+    ([], [("__loop11", 207063)], Data.adviceFn269)
 
 theorem ok269 : Bridge.FnAlOk 269 :=
   Bridge.fnAlOk_of Checked.code269 Checked.core269 Checked.cert269 Checked.plumbEq269 tab269 rfl Fn.«verify_keccak_loop0».alignOk
 
 kernel_rfl tab270 : (Bridge.extraOf 270, Bridge.entsOf 270, Bridge.adviceOf 270) =
-    ([], [("__loop36", 256289), ("__loop37", 256496), ("grind_check__L3", 256237)], Data.adviceFn270)
+    ([], [("__loop36", 255771), ("__loop37", 255978), ("grind_check__L3", 255719)], Data.adviceFn270)
 
 theorem ok270 : Bridge.FnAlOk 270 :=
   Bridge.fnAlOk_of Checked.code270 Checked.core270 Checked.cert270 Checked.plumbEq270 tab270 rfl Fn.«keccak_layer__L1».alignOk
 
 kernel_rfl tab271 : (Bridge.extraOf 271, Bridge.entsOf 271, Bridge.adviceOf 271) =
-    ([], [("__loop38", 256560), ("__loop39", 256767), ("grind_check__L3", 256237)], Data.adviceFn271)
+    ([], [("__loop38", 256042), ("__loop39", 256249), ("grind_check__L3", 255719)], Data.adviceFn271)
 
 theorem ok271 : Bridge.FnAlOk 271 :=
   Bridge.fnAlOk_of Checked.code271 Checked.core271 Checked.cert271 Checked.plumbEq271 tab271 rfl Fn.«keccak_layer__L0».alignOk
@@ -504,7 +504,7 @@ theorem ok272 : Bridge.FnAlOk 272 :=
   Bridge.fnAlOk_of Checked.code272 Checked.core272 Checked.cert272 Checked.plumbEq272 tab272 rfl Fn.«keccak_plain_rounds__L6_L0».alignOk
 
 kernel_rfl tab273 : (Bridge.extraOf 273, Bridge.entsOf 273, Bridge.adviceOf 273) =
-    ([], [("__loop12", 210426)], Data.adviceFn273)
+    ([], [("__loop12", 210415)], Data.adviceFn273)
 
 theorem ok273 : Bridge.FnAlOk 273 :=
   Bridge.fnAlOk_of Checked.code273 Checked.core273 Checked.cert273 Checked.plumbEq273 tab273 rfl Fn.«verify_keccak_loop1».alignOk
@@ -516,19 +516,19 @@ theorem ok274 : Bridge.FnAlOk 274 :=
   Bridge.fnAlOk_of Checked.code274 Checked.core274 Checked.cert274 Checked.plumbEq274 tab274 rfl Fn.«keccak_plain_rounds__L4_L1».alignOk
 
 kernel_rfl tab275 : (Bridge.extraOf 275, Bridge.entsOf 275, Bridge.adviceOf 275) =
-    ([], [("__loop13", 210527)], Data.adviceFn275)
+    ([], [("__loop13", 210516)], Data.adviceFn275)
 
 theorem ok275 : Bridge.FnAlOk 275 :=
   Bridge.fnAlOk_of Checked.code275 Checked.core275 Checked.cert275 Checked.plumbEq275 tab275 rfl Fn.«verify_keccak_loop2».alignOk
 
 kernel_rfl tab276 : (Bridge.extraOf 276, Bridge.entsOf 276, Bridge.adviceOf 276) =
-    ([], [("__loop14", 210547)], Data.adviceFn276)
+    ([], [("__loop14", 210536)], Data.adviceFn276)
 
 theorem ok276 : Bridge.FnAlOk 276 :=
   Bridge.fnAlOk_of Checked.code276 Checked.core276 Checked.cert276 Checked.plumbEq276 tab276 rfl Fn.«ring_switch_target_loop0».alignOk
 
 kernel_rfl tab277 : (Bridge.extraOf 277, Bridge.entsOf 277, Bridge.adviceOf 277) =
-    ([], [("__loop15", 210913)], Data.adviceFn277)
+    ([], [("__loop15", 210902)], Data.adviceFn277)
 
 theorem ok277 : Bridge.FnAlOk 277 :=
   Bridge.fnAlOk_of Checked.code277 Checked.core277 Checked.cert277 Checked.plumbEq277 tab277 rfl Fn.«check_opening_terminal_loop0».alignOk

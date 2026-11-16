@@ -283,53 +283,54 @@ namespace core
 
 /-- `gkr_rounds__L1`: the body. -/
 noncomputable def body : List Core.Stmt := (
-  .atom (.load (.n 3) (.n 0) 0) ::
-  .atom (.load (.n 4) (.n 0) 862) ::
-  .atom (.load (.n 5) (.n 0) 1724) ::
-  .atom (.load (.n 6) (.n 0) 2586) ::
-  .atom (.load (.n 7) (.n 0) 3448) ::
-  .atom (.load (.n 8) (.n 0) 4310) ::
-  .atom (.load (.n 9) (.n 0) 5172) ::
-  .atom (.load (.n 10) (.n 8) 0) ::
-  .atom (.copy (.n 11) (.n 10)) ::
-  .atom (.const (.n 12) (word 0 1)) ::
-  .atom (.load (.n 13) (.n 8) 1) ::
-  .atom (.copy (.n 14) (.n 13)) ::
-  .atom (.const (.n 15) (word 0 1)) ::
-  .atom (.load (.n 16) (.n 8) 2) ::
-  .atom (.copy (.n 17) (.n 16)) ::
-  .atom (.const (.n 18) (word 0 1)) ::
-  .atom (.load (.n 19) (.n 8) 3) ::
-  .atom (.copy (.n 20) (.n 19)) ::
-  .atom (.const (.n 21) (word 0 1)) ::
-  .atom (.keccak [.n 11, .n 12, .n 14, .n 15, .n 17, .n 18, .n 20, .n 21, .n 3, .n 4, .n 5, .n 6, .n 7] [.n 22, .n 23, .n 24, .n 25, .n 26, .n 27, .n 28, .n 29, .n 30, .n 31, .n 32, .n 33, .n 34] false false) ::
-  .atom (.copy (.n 35) (.n 22)) ::
-  .atom (.load (.n 36) (.n 1) 0) ::
-  .atom (.add (.n 37) (.n 10) (.n 13)) ::
-  .atom (.add (.n 38) (.n 37) (.n 16)) ::
-  .atom (.add (.n 39) (.n 38) (.n 19)) ::
-  .atom (.mul (.n 40) (.n 36) (.n 39)) ::
-  .atom (.add (.n 41) (.n 9) (.n 40)) ::
-  .atom (.load (.n 35) (.n 1) 42) ::
-  .atom (.mul (.n 42) (.n 35) (.n 19)) ::
-  .atom (.add (.n 43) (.n 16) (.n 42)) ::
-  .atom (.mul (.n 44) (.n 35) (.n 43)) ::
-  .atom (.add (.n 45) (.n 13) (.n 44)) ::
-  .atom (.mul (.n 46) (.n 35) (.n 45)) ::
-  .atom (.add (.n 47) (.n 10) (.n 46)) ::
-  .atom (.mul (.n 48) (.n 35) (.n 47)) ::
-  .atom (.add (.n 49) (.n 41) (.n 48)) ::
-  .atom (.load (.n 30) (.n 0) 1) ::
-  .atom (.load (.n 31) (.n 0) 863) ::
-  .atom (.load (.n 32) (.n 0) 1725) ::
-  .atom (.load (.n 33) (.n 0) 2587) ::
-  .atom (.load (.n 34) (.n 0) 3449) ::
-  .atom (.const (.n 50) (word 16 0)) ::
-  .atom (.mul (.n 51) (.n 8) (.n 50)) ::
-  .atom (.load (.n 51) (.n 0) 4311) ::
-  .atom (.load (.n 49) (.n 0) 5173) ::
-  .atom (.const (.n 52) (word 0 0)) ::
-  .ret [.n 52] ::
+  .atom (.load (.n 5) (.n 0) 0) ::
+  .atom (.load (.n 6) (.n 0) 862) ::
+  .atom (.load (.n 7) (.n 0) 1724) ::
+  .atom (.load (.n 8) (.n 0) 2586) ::
+  .atom (.load (.n 9) (.n 0) 3448) ::
+  .atom (.load (.n 10) (.n 0) 5172) ::
+  .atom (.load (.n 11) (.n 2) 0) ::
+  .atom (.copy (.n 12) (.n 11)) ::
+  .atom (.const (.n 13) (word 0 1)) ::
+  .atom (.load (.n 14) (.n 2) 1) ::
+  .atom (.copy (.n 15) (.n 14)) ::
+  .atom (.const (.n 16) (word 0 1)) ::
+  .atom (.load (.n 17) (.n 2) 2) ::
+  .atom (.copy (.n 18) (.n 17)) ::
+  .atom (.const (.n 19) (word 0 1)) ::
+  .atom (.load (.n 20) (.n 2) 3) ::
+  .atom (.copy (.n 21) (.n 20)) ::
+  .atom (.const (.n 22) (word 0 1)) ::
+  .atom (.keccak [.n 12, .n 13, .n 15, .n 16, .n 18, .n 19, .n 21, .n 22, .n 5, .n 6, .n 7, .n 8, .n 9] [.n 23, .n 24, .n 25, .n 26, .n 27, .n 28, .n 29, .n 30, .n 31, .n 32, .n 33, .n 34, .n 35] false false) ::
+  .atom (.copy (.n 36) (.n 23)) ::
+  .atom (.load (.n 37) (.n 1) 0) ::
+  .atom (.add (.n 38) (.n 11) (.n 14)) ::
+  .atom (.add (.n 39) (.n 38) (.n 17)) ::
+  .atom (.add (.n 40) (.n 39) (.n 20)) ::
+  .atom (.mul (.n 41) (.n 37) (.n 40)) ::
+  .atom (.add (.n 42) (.n 10) (.n 41)) ::
+  .atom (.load (.n 36) (.n 1) 42) ::
+  .atom (.mul (.n 43) (.n 36) (.n 20)) ::
+  .atom (.add (.n 44) (.n 17) (.n 43)) ::
+  .atom (.mul (.n 45) (.n 36) (.n 44)) ::
+  .atom (.add (.n 46) (.n 14) (.n 45)) ::
+  .atom (.mul (.n 47) (.n 36) (.n 46)) ::
+  .atom (.add (.n 48) (.n 11) (.n 47)) ::
+  .atom (.mul (.n 49) (.n 36) (.n 48)) ::
+  .atom (.add (.n 50) (.n 42) (.n 49)) ::
+  .atom (.const (.n 51) (word 0 0)) ::
+  .atom (.load (.n 51) (.n 1) 43) ::
+  .atom (.load (.n 31) (.n 0) 1) ::
+  .atom (.load (.n 32) (.n 0) 863) ::
+  .atom (.load (.n 33) (.n 0) 1725) ::
+  .atom (.load (.n 34) (.n 0) 2587) ::
+  .atom (.load (.n 35) (.n 0) 3449) ::
+  .atom (.const (.n 52) (word 16 0)) ::
+  .atom (.mul (.n 53) (.n 2) (.n 52)) ::
+  .atom (.load (.n 53) (.n 0) 4311) ::
+  .atom (.load (.n 50) (.n 0) 5173) ::
+  .atom (.const (.n 54) (word 0 0)) ::
+  .ret [.n 54] ::
   [])
 
 end core
@@ -337,7 +338,7 @@ end core
 /-- `gkr_rounds__L1`. -/
 noncomputable def core : Core.Fn where
   name := "gkr_rounds__L1"
-  params := [.n 0, .n 1, .n 2]
+  params := [.n 0, .n 1, .n 2, .n 3, .n 4]
   body := core.body
 
 end

@@ -41,73 +41,73 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `child_claim_list_mono`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none (.node none (.node
-    none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil
-    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    (some Fn.«child_claim_list_mono_last__L11».modeSig) .nil .nil)))) .nil) .nil) .nil))) .nil)
-    .nil) .nil)) .nil) .nil) .nil) (.node none (.node none (.node none .nil (.node none (.node none
-    .nil (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node
-    none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«child_claim_list_mono_loop1».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil) .nil) .nil)
-    .nil)) .nil)) (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node
-    none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node (some Fn.«child_claim_list_mono_last__L10».modeSig) .nil .nil)))) .nil)
-    .nil) .nil)) .nil)) .nil))) .nil)) .nil)) (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
-    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    (some Fn.«child_claim_list_mono_last__L7».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil))))
-    .nil)) (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none
-    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«child_claim_list_mono_last__L3».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil)) .nil) .nil)
-    .nil) .nil)) (.node none (.node none (.node none .nil (.node none (.node none (.node none
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node (some Fn.«child_claim_list_mono_loop0».modeSig) .nil .nil))) .nil))))
-    .nil) .nil) .nil) .nil)) .nil) (.node none .nil (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
-    none .nil (.node none .nil (.node (some Fn.«child_claim_list_mono_last__L13».modeSig) .nil
-    .nil)))) .nil) .nil) .nil))))) .nil)))) (.node none (.node none (.node none (.node none (.node
-    none .nil (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node
-    none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«child_claim_list_mono_last__L0».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil) .nil)))
-    .nil) (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, (.node none (.node none (.node none (.node none (.node
+    none (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node
     none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«child_claim_list_mono_last__L12».modeSig) .nil .nil)))) .nil) .nil) .nil))) .nil)))) .nil)
-    (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none
-    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
-    (.node (some Fn.«child_claim_list_mono_last__L16».modeSig) .nil .nil)))) .nil) .nil)) .nil))
-    (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node (some Fn.«child_claim_list_mono_last__L15».modeSig) .nil .nil))))
-    .nil) .nil)) .nil) .nil))) .nil) .nil) .nil))) (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none (.node
+    Fn.«child_claim_list_mono_last__L8».modeSig) .nil .nil)))) .nil) .nil) .nil)) .nil) .nil) .nil)
+    .nil)) (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node none
+    .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«child_claim_list_mono_last__L14».modeSig) .nil .nil)))) .nil) .nil)) .nil) .nil) .nil))
+    .nil) (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
     none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«child_claim_list_mono_last__L9».modeSig) .nil .nil)))) .nil) .nil) .nil)) .nil) .nil)))
-    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none
-    (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«child_claim_list_mono_last__L1».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil) .nil)))
-    (.node none (.node none (.node none .nil (.node none (.node none (.node none (.node none (.node
-    none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«child_claim_list_mono_last__L4».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil)) .nil)
-    .nil))) .nil) (.node none (.node none .nil (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node (some Fn.«child_claim_list_mono_last__L8».modeSig) .nil .nil)))) .nil) .nil)
-    .nil)) .nil) .nil) .nil) .nil)) (.node none (.node none (.node none .nil (.node none (.node
-    none (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node (some Fn.«child_claim_list_mono_last__L14».modeSig) .nil .nil)))) .nil)
-    .nil)) .nil) .nil) .nil)) .nil) (.node none (.node none .nil (.node none (.node none .nil
+    Fn.«child_claim_list_mono_last__L5».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil)) .nil))
+    .nil))) (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
     (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node (some Fn.«child_claim_list_mono_last__L5».modeSig) .nil .nil)))) .nil) .nil) .nil)
-    .nil)) .nil)) .nil)))) (.node none (.node none (.node none .nil (.node none (.node none (.node
-    none .nil (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node (some Fn.«child_claim_list_mono_last__L6».modeSig)
-    .nil .nil)))) .nil) .nil) .nil) .nil))) .nil) .nil)) (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node none
+    .nil (.node (some Fn.«child_claim_list_mono_last__L1».modeSig) .nil .nil)))) .nil) .nil) .nil)
+    .nil) .nil))) (.node none (.node none (.node none .nil (.node none (.node none (.node none
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«child_claim_list_mono_last__L4».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil)) .nil)
+    .nil)) (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none (.node
+    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«child_claim_list_mono_last__L9».modeSig) .nil .nil)))) .nil) .nil) .nil)) .nil) .nil))
+    .nil)))) (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node (some Fn.«child_claim_list_mono_last__L2».modeSig) .nil .nil))))
+    .nil) .nil) .nil) .nil) .nil)))) .nil) (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node (some Fn.«child_claim_list_mono_last__L6».modeSig) .nil .nil))))
+    .nil) .nil) .nil) .nil))) .nil) .nil) .nil)))) (.node none (.node none (.node none (.node none
+    (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node
+    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«child_claim_list_mono_last__L16».modeSig) .nil .nil)))) .nil) .nil)) .nil)) (.node none
+    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node (some Fn.«child_claim_list_mono_last__L15».modeSig) .nil .nil)))) .nil) .nil))
+    .nil) .nil))) .nil) .nil) .nil) (.node none .nil (.node none (.node none .nil (.node none .nil
+    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none
     .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«child_claim_list_mono_last__L2».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil) .nil))))
-    .nil)) .nil)))), 524287⟩
+    Fn.«child_claim_list_mono_last__L12».modeSig) .nil .nil)))) .nil) .nil) .nil))) .nil))) (.node
+    none .nil (.node none (.node none .nil (.node none (.node none (.node none (.node none (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«child_claim_list_mono_last__L0».modeSig) .nil .nil)))) .nil) .nil) .nil) .nil) .nil))
+    .nil))))) (.node none (.node none (.node none (.node none (.node none (.node none (.node none
+    .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    none .nil (.node (some Fn.«child_claim_list_mono_last__L3».modeSig) .nil .nil)))) .nil) .nil)
+    .nil) .nil)) .nil) .nil) .nil) .nil) (.node none (.node none (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node (some Fn.«child_claim_list_mono_last__L7».modeSig) .nil .nil))))
+    .nil) .nil) .nil) .nil)))) .nil) .nil)) (.node none (.node none .nil (.node none (.node none
+    .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«child_claim_list_mono_last__L13».modeSig) .nil .nil)))) .nil) .nil) .nil))))) .nil)) (.node
+    none .nil (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node
+    none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node (some
+    Fn.«child_claim_list_mono_loop0».modeSig) .nil .nil))) .nil)))) .nil) .nil) .nil) .nil)
+    .nil)))))) (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«child_claim_list_mono_last__L11».modeSig) .nil .nil)))) .nil) .nil) .nil))) .nil) .nil)
+    .nil) .nil)) .nil)) (.node none .nil (.node none (.node none (.node none (.node none .nil
+    (.node none (.node none (.node none (.node none (.node none (.node none (.node none (.node none
+    .nil (.node none .nil (.node none .nil (.node (some Fn.«child_claim_list_mono_loop1».modeSig)
+    .nil .nil)))) .nil) .nil) .nil) .nil) .nil) .nil) .nil)) .nil) .nil) (.node none .nil (.node
+    none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none
+    (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«child_claim_list_mono_last__L10».modeSig) .nil .nil)))) .nil) .nil) .nil)) .nil)) .nil))
+    .nil)))))), 524287⟩
 
 /-- `child_claim_list_mono`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨61489, 74, Fn.«child_claim_list_mono».modeSig, (.node none (.node none .nil (.node none (.node
+  ⟨61482, 74, Fn.«child_claim_list_mono».modeSig, (.node none (.node none .nil (.node none (.node
     (some [(.allocDyn 20 19)]) .nil .nil) (.node none .nil (.node none (.node (some [(.allocFrames
     34 386 7 (LeanVM.Parameters.K.ofBits 0x1) 386)]) .nil .nil) .nil)))) (.node none (.node none
     .nil (.node none .nil (.node (some [(.allocFrames 24 2808 6 (LeanVM.Parameters.K.ofBits 0x1)
@@ -134,11 +134,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `sel_partial_nibble__L3`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
 
 /-- `sel_partial_nibble__L3`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨190622, 68, Fn.«sel_partial_nibble__L3».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨190611, 68, Fn.«sel_partial_nibble__L3».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `sel_partial_nibble__L3`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -156,11 +156,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `block_selector_tab__L1`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
 
 /-- `block_selector_tab__L1`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨205355, 13, Fn.«block_selector_tab__L1».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨205344, 13, Fn.«block_selector_tab__L1».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `block_selector_tab__L1`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -178,11 +178,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `block_selector_tab__L27`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
 
 /-- `block_selector_tab__L27`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨206430, 74, Fn.«block_selector_tab__L27».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨206419, 74, Fn.«block_selector_tab__L27».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `block_selector_tab__L27`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -200,11 +200,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `claim_list_last__L15`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
 
 /-- `claim_list_last__L15`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨237814, 156, Fn.«claim_list_last__L15».modeSig, (.node (some [(.witnessHeap "claims" 3 0 4),
+  ⟨237803, 156, Fn.«claim_list_last__L15».modeSig, (.node (some [(.witnessHeap "claims" 3 0 4),
     (.witnessHeap "claims" 3 4 4), (.witnessHeap "claims" 3 8 4), (.witnessHeap "claims" 3 12 4),
     (.witnessHeap "claims" 3 16 4), (.witnessHeap "claims" 3 20 4), (.witnessHeap "claims" 3 24 4),
     (.witnessHeap "claims" 3 28 4), (.witnessHeap "claims" 3 32 4), (.witnessHeap "claims" 3 36 4),
@@ -228,11 +228,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `child_claim_list_last__L10`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
 
 /-- `child_claim_list_last__L10`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨241994, 202, Fn.«child_claim_list_last__L10».modeSig, (.node (some [(.witnessStack
+  ⟨241983, 202, Fn.«child_claim_list_last__L10».modeSig, (.node (some [(.witnessStack
     "child_claim_index" 79 1)]) (.node none (.node none (.node none .nil (.node none (.node (some
     [(.witnessStack "child_claim_index" 106 1)]) .nil .nil) .nil)) (.node none .nil (.node none
     .nil (.node none (.node (some [(.witnessStack "child_claim_index" 142 1)]) .nil .nil) .nil))))
@@ -305,11 +305,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `opening_message__L6_L1`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
 
 /-- `opening_message__L6_L1`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨257832, 48, Fn.«opening_message__L6_L1».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨257314, 48, Fn.«opening_message__L6_L1».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `opening_message__L6_L1`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -327,19 +327,19 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `level_positions__L6_L16_L4`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none .nil (.node none .nil (.node none
-    (.node none (.node none .nil (.node none (.node none (.node none (.node none (.node none (.node
-    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, (.node none (.node none (.node none (.node none (.node
+    none (.node none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil
+    (.node none (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node
     none (.node (some Fn.«level_positions__L6_L16_L4_loop0».modeSig) .nil .nil) .nil) .nil)
-    .nil))))) .nil) .nil) .nil) .nil) .nil)) .nil) .nil))) (.node none .nil (.node none (.node none
-    .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
-    (.node none (.node none (.node none (.node (some Fn.«decode_query_windows__L16_L4».modeSig)
-    .nil .nil) .nil) .nil) .nil) .nil)))))))))) .nil)) .nil))), 524287⟩
+    .nil)))) .nil))) .nil) .nil) .nil)) .nil) .nil) .nil) .nil) (.node none (.node none .nil (.node
+    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
+    none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node
+    none (.node none (.node none (.node (some Fn.«decode_query_windows__L16_L4».modeSig) .nil .nil)
+    .nil) .nil) .nil) .nil))))) .nil))))) .nil) .nil)) .nil)), 524287⟩
 
 /-- `level_positions__L6_L16_L4`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨259933, 42, Fn.«level_positions__L6_L16_L4».modeSig, (.node none (.node (some [(.allocDyn 17
+  ⟨259415, 42, Fn.«level_positions__L6_L16_L4».modeSig, (.node none (.node (some [(.allocDyn 17
     16)]) (.node none .nil (.node none (.node (some [(.allocFrames 24 60 22
     (LeanVM.Parameters.K.ofBits 0x800000000000000d) 60)]) .nil .nil) .nil)) .nil) (.node none
     (.node none (.node (some [(.alloc 18 294)]) .nil .nil) .nil) .nil)), .nil, .nil, false, .nil⟩
@@ -360,11 +360,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `squeeze_point_from__L13`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
 
 /-- `squeeze_point_from__L13`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨263494, 59, Fn.«squeeze_point_from__L13».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨262976, 59, Fn.«squeeze_point_from__L13».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `squeeze_point_from__L13`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by

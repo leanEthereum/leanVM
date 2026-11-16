@@ -62,26 +62,18 @@ theorem sp_totalLe : ∀ j < 4,
   · rw [show B1.Tables.lName "sel_partial_nibble" 3 = "sel_partial_nibble__L3" by decide]
     exact totalLe_mono (wSB_totalLe (j := wIdx "sel_partial_nibble__L3") (by decide +kernel)) (by unfold kSp; omega)
 
-/-- The gkr rounds' words (`gkr_rounds__L{0,1,2,4,6}`), at most. -/
-noncomputable def kGr : ℕ :=
-  max (max (wSB "gkr_rounds__L0") (wSB "gkr_rounds__L1"))
-    (max (max (wSB "gkr_rounds__L2") (wSB "gkr_rounds__L4")) (wSB "gkr_rounds__L6"))
+/-- The gkr rounds' words (`gkr_rounds__L{1,2}`), at most. -/
+noncomputable def kGr : ℕ := max (wSB "gkr_rounds__L1") (wSB "gkr_rounds__L2")
 
-theorem gr_totalLe : ∀ n ∈ [0, 1, 2, 4, 6],
+theorem gr_totalLe : ∀ n ∈ [1, 2],
     TotalLe coreProgram B2C.fs (B1.Tables.lName "gkr_rounds" n) (fun _ => kGr) := by
   intro n hn
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hn
-  rcases hn with rfl | rfl | rfl | rfl | rfl
-  · rw [show B1.Tables.lName "gkr_rounds" 0 = "gkr_rounds__L0" by decide]
-    exact totalLe_mono (wSB_totalLe (j := wIdx "gkr_rounds__L0") (by decide +kernel)) (by unfold kGr; omega)
+  rcases hn with rfl | rfl
   · rw [show B1.Tables.lName "gkr_rounds" 1 = "gkr_rounds__L1" by decide]
     exact totalLe_mono (wSB_totalLe (j := wIdx "gkr_rounds__L1") (by decide +kernel)) (by unfold kGr; omega)
   · rw [show B1.Tables.lName "gkr_rounds" 2 = "gkr_rounds__L2" by decide]
     exact totalLe_mono (wSB_totalLe (j := wIdx "gkr_rounds__L2") (by decide +kernel)) (by unfold kGr; omega)
-  · rw [show B1.Tables.lName "gkr_rounds" 4 = "gkr_rounds__L4" by decide]
-    exact totalLe_mono (wSB_totalLe (j := wIdx "gkr_rounds__L4") (by decide +kernel)) (by unfold kGr; omega)
-  · rw [show B1.Tables.lName "gkr_rounds" 6 = "gkr_rounds__L6" by decide]
-    exact totalLe_mono (wSB_totalLe (j := wIdx "gkr_rounds__L6") (by decide +kernel)) (by unfold kGr; omega)
 
 /-! ## The weights of `verify_tables`' and the terminal's callees -/
 

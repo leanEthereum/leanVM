@@ -23,16 +23,15 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `__loop390`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none
-    .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node (some
-    Fn.«level_residual__L55_L19_L4_L2_loop0».modeSig) .nil .nil) .nil))))) .nil)) .nil)) .nil))
-    .nil) .nil)))))), 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, (.node none .nil (.node none (.node none (.node none .nil
+    (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none (.node none
+    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node (some Fn.«level_residual__L55_L19_L4_L2_loop0».modeSig) .nil .nil)
+    .nil))))) .nil)) .nil) .nil) .nil)) .nil) .nil))) .nil) .nil)), 524287⟩
 
 /-- `__loop390`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨387742, 774, Fn.«level_residual__L55_L19_L4_L2_loop0».modeSig, (.node none .nil (.node none
+  ⟨387224, 774, Fn.«level_residual__L55_L19_L4_L2_loop0».modeSig, (.node none .nil (.node none
     (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none
     .nil (.node none (.node (some [(.frameAddress 890)]) .nil .nil) .nil)))))) .nil) .nil)), .nil,
     .nil, false, .nil⟩
@@ -53,11 +52,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `decode_query_windows__L28_L4`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
 
 /-- `decode_query_windows__L28_L4`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨396396, 239, Fn.«decode_query_windows__L28_L4».modeSig, (.node (some [(.cellAddress 42 43)])
+  ⟨395878, 239, Fn.«decode_query_windows__L28_L4».modeSig, (.node (some [(.cellAddress 42 43)])
     (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node (some
     [(.windowsExp 2 (.stack 6) 22 108 1 1)]) .nil .nil)) .nil) (.node none (.node (some
     [(.windowsExp 2 (.stack 6) 10 52 1 1)]) .nil .nil) .nil)) .nil) (.node none (.node none (.node

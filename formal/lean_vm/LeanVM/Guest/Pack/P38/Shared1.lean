@@ -15,20 +15,6 @@ public import LeanVM.Guest.Pack.«P38».Bundle
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«column_selector__L7»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `column_selector__L7`, window 0. -/
-theorem sw0 : shareWinD Fn.«column_selector__L7».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-end
-end LeanVM.Guest.Fn.«column_selector__L7»
-
 namespace LeanVM.Guest.Fn.«column_selector__L30»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -115,4 +101,18 @@ theorem shareOk : ShareOkD Fn.«batch_sumcheck__L23».core (cert.withPows Data.p
 
 end
 end LeanVM.Guest.Fn.«batch_sumcheck__L23»
+
+namespace LeanVM.Guest.Fn.«grind_check__L19»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `grind_check__L19`, once. -/
+theorem st : shareStaticD Fn.«grind_check__L19».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+end
+end LeanVM.Guest.Fn.«grind_check__L19»
 

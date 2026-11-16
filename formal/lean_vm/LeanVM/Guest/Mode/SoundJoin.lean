@@ -547,6 +547,66 @@ theorem Abs.known_val {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF) (hu :
   exact ⟨_, w, hw, rfl⟩
 
 /-- **A run the walk knows written is.** -/
+theorem reachStep_lt {q : Mono} {o o' : ℕ} : ∀ {l : List Rng} {m : ℕ}, o' < l.foldl (reachStep q o) m →
+    o' < m ∨ ∃ r ∈ l, ∃ a b, r.lo = .num a ∧ r.hi = .num b ∧ r.S = 1 ∧ r.q.fp = q.fp ∧ r.q.bs = q.bs ∧
+      r.q.k + r.d + a ≤ o ∧ o' < r.q.k + r.d + b
+  | [], _, h => Or.inl h
+  | r :: l, m, h => by
+    rw [List.foldl_cons] at h
+    rcases reachStep_lt (l := l) h with h | ⟨r', hr', hx⟩
+    · unfold reachStep at h
+      split at h
+      · rename_i a b ha hb
+        split_ifs at h with hc
+        · simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hc
+          rcases lt_max_iff.mp h with h | h
+          · exact Or.inl h
+          · exact Or.inr ⟨r, List.mem_cons_self .., a, b, ha, hb, hc.1.1.1.1, hc.1.1.1.2, bsBeq_eq hc.1.1.2,
+              hc.1.2, h⟩
+        · exact Or.inl h
+      · exact Or.inl h
+    · exact Or.inr ⟨r', List.mem_cons_of_mem _ hr', hx⟩
+
+/-- A cell from `o` to below `reach` is in a known run, so written. -/
+theorem Abs.reach_cell {s : St} {A : Abs} (hA : Holds s A) {q : Mono} {o o' : ℕ} (h1 : o ≤ o')
+    (h2 : o' < A.reach q o) {v : E} (hv : MonoVal s ⟨q.fp, o', q.bs⟩ v) :
+    ∃ x, Names v x ∧ s.mem.written x = true := by
+  unfold Abs.reach at h2
+  rcases reachStep_lt h2 with h | ⟨r, hm, a, b, ha, hb, hS, hfp, hbs, hlo, hhi⟩
+  · omega
+  · have hm' : r ∈ A.r := (List.mem_filter.mp (mem_buckets hm)).1
+    obtain ⟨vq, xlo, xhi, hq, hxlo, hxhi, h4⟩ := hA.r r hm'
+    rw [ha] at hxlo
+    rw [hb] at hxhi
+    simp only [IdxVal] at hxlo hxhi
+    subst hxlo hxhi
+    obtain ⟨x, hx, hw⟩ := h4 (o' - r.q.k - r.d) (by omega) (by omega)
+    have e : r.q.shift (r.S * (o' - r.q.k - r.d) + r.d) = ⟨q.fp, o', q.bs⟩ := by
+      rw [hS]
+      simp only [Mono.shift, Mono.mk.injEq]
+      exact ⟨hfp, by omega, hbs⟩
+    rw [← e] at hv
+    rw [hv.unique (hq.shift _)]
+    exact ⟨x, hx, hw⟩
+
+/-- **`coverC`**: each cell from `o` to below `e` is written. -/
+theorem Abs.coverC_sound {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF) (hu : s.mem.used ≤ maxCells)
+    {q : Mono} : ∀ {f o e : ℕ}, A.coverC q f o e = true → ∀ o' : ℕ, o ≤ o' → o' < e →
+      ∀ v : E, MonoVal s ⟨q.fp, o', q.bs⟩ v → ∃ x, Names v x ∧ s.mem.written x = true
+  | 0, _, _, h => by simp [Abs.coverC] at h
+  | f + 1, o, e, h => by
+    intro o' h1 h2 v hv
+    simp only [Abs.coverC] at h
+    split_ifs at h with he hr
+    · omega
+    · by_cases ho : o' < A.reach q o
+      · exact Abs.reach_cell hA h1 ho hv
+      · exact Abs.coverC_sound hA hwf hu h o' (by omega) h2 v hv
+    · simp only [Bool.and_eq_true] at h
+      rcases Nat.eq_or_lt_of_le h1 with rfl | h1
+      · exact Abs.covered_ex hA hwf hu h.1 hv
+      · exact Abs.coverC_sound hA hwf hu h.2 o' (by omega) h2 v hv
+
 theorem Abs.coveredR_sound {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF)
     (hu : s.mem.used ≤ maxCells) {r : Rng} (h : A.coveredR r = true) : RW s r := by
   unfold Abs.coveredR at h
@@ -574,6 +634,16 @@ theorem Abs.coveredR_sound {s : St} {A : Abs} (hA : Holds s A) (hwf : s.mem.WF)
       obtain ⟨vq, hvq⟩ := Abs.known_val hA hwf hu hq
       obtain ⟨xhi, hxhi, hle⟩ := Abs.bound_sound hA hb
       refine ⟨vq, a, xhi, hvq, by rw [hlo]; rfl, hxhi, fun j hj1 hj2 ↦ ?_⟩
+      rcases Bool.or_eq_true_iff.mp hall with hc | hall
+      · simp only [Bool.and_eq_true, beq_iff_eq] at hc
+        obtain ⟨hS, hc⟩ := hc
+        have hv := hvq.shift (r.S * j + r.d)
+        have e : r.q.shift (r.S * j + r.d) = ⟨r.q.fp, r.q.k + a + r.d + (j - a), r.q.bs⟩ := by
+          rw [hS]
+          simp only [Mono.shift, Mono.mk.injEq, true_and, and_true]
+          omega
+        rw [e] at hv
+        exact Abs.coverC_sound hA hwf hu hc _ (by omega) (by omega) _ hv
       have hc := List.all_eq_true.mp hall (j - a) (List.mem_range.mpr (by omega))
       have := Abs.covered_ex hA hwf hu hc (hvq.shift _)
       rwa [show r.S * (a + (j - a)) + r.d = r.S * j + r.d by congr 2; omega] at this

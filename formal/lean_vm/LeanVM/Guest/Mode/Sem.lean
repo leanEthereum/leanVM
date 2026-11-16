@@ -691,7 +691,10 @@ theorem Abs.inRng_ptr {s : St} {A : Abs} (hA : Holds s A) {k : Mono} {r : Rng} {
 
 theorem Abs.inRuns_any {A : Abs} {k : Mono} (h : A.inRuns k = true) : A.r.any (A.inRng k) = true := by
   unfold Abs.inRuns at h
-  rcases Bool.or_eq_true_iff.mp h with h | h
+  simp only [Bool.or_eq_true] at h
+  rcases h with (h | h) | h
+  · obtain ⟨r, hm, hb⟩ := List.any_eq_true.mp (any_of_anyB h)
+    exact List.any_eq_true.mpr ⟨r, (List.mem_filter.mp hm).1, hb⟩
   · exact any_of_anyB h
   · obtain ⟨e, -, he⟩ := List.any_eq_true.mp h
     exact any_of_anyB he

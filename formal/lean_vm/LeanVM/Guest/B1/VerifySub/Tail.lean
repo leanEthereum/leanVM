@@ -41,7 +41,7 @@ theorem word_g101 : word 3710851743744 0 = gen ^ 101 := by
 theorem vsCallsT_holds (h : Stmt.HoldsList C rd σ vsCallsT next kret) :
     σ (.n 561) = σ (.n 4) * gen ^ winTabAt ∧
     C "verify_bus_gkr" [σ (.n 554), σ (.n 555), σ (.n 556), σ (.n 557), σ (.n 558), σ (.n 320),
-      σ (.n 253), σ (.n 254), σ (.n 561)]
+      σ (.n 253), σ (.n 254), σ (.n 561), σ (.n 25)]
       [σ (.n 562), σ (.n 563), σ (.n 564), σ (.n 565), σ (.n 566), σ (.n 567), σ (.n 568)] ∧
     σ (.n 572) = σ (.n 4) * gen ^ winTabAt ∧
     C "verify_tables" [σ (.n 562), σ (.n 563), σ (.n 564), σ (.n 565), σ (.n 566), σ (.n 567),

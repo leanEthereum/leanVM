@@ -73,802 +73,802 @@ public section
 
 kernel_rfl adv1401 : Data.adviceFns[1401]? = some Data.adviceFn1401
 
-kernel_rfl len1401 : Data.adviceFn1401.2.1 = Fn.«level_residual__L55_L23_L6_L3_loop1».code.instructionCount
+kernel_rfl len1401 : Data.adviceFn1401.2.1 = Fn.«level_residual__L44_L19_L4_L2_loop0».code.instructionCount
 
 theorem pok1401 : Bridge.PairJ 1401 :=
-  Bridge.pairJ_of Checked.code1401 Checked.core1401 Checked.cert1401 Bridge.ProgAl.tab1401 Checked.fsEq1401 Fn.«level_residual__L55_L23_L6_L3_loop1».pairOk
+  Bridge.pairJ_of Checked.code1401 Checked.core1401 Checked.cert1401 Bridge.ProgAl.tab1401 Checked.fsEq1401 Fn.«level_residual__L44_L19_L4_L2_loop0».pairOk
     adv1401 len1401
 
 kernel_rfl adv1402 : Data.adviceFns[1402]? = some Data.adviceFn1402
 
-kernel_rfl len1402 : Data.adviceFn1402.2.1 = Fn.«level_residual__L55_L19_L4_L2_loop0».code.instructionCount
+kernel_rfl len1402 : Data.adviceFn1402.2.1 = Fn.«level_residual__L44_L19_L4_L2_loop1».code.instructionCount
 
 theorem pok1402 : Bridge.PairJ 1402 :=
-  Bridge.pairJ_of Checked.code1402 Checked.core1402 Checked.cert1402 Bridge.ProgAl.tab1402 Checked.fsEq1402 Fn.«level_residual__L55_L19_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1402 Checked.core1402 Checked.cert1402 Bridge.ProgAl.tab1402 Checked.fsEq1402 Fn.«level_residual__L44_L19_L4_L2_loop1».pairOk
     adv1402 len1402
 
 kernel_rfl adv1403 : Data.adviceFns[1403]? = some Data.adviceFn1403
 
-kernel_rfl len1403 : Data.adviceFn1403.2.1 = Fn.«level_residual__L55_L19_L4_L2_loop1».code.instructionCount
+kernel_rfl len1403 : Data.adviceFn1403.2.1 = Fn.«level_residual__L37_L19_L4_L2_loop0».code.instructionCount
 
 theorem pok1403 : Bridge.PairJ 1403 :=
-  Bridge.pairJ_of Checked.code1403 Checked.core1403 Checked.cert1403 Bridge.ProgAl.tab1403 Checked.fsEq1403 Fn.«level_residual__L55_L19_L4_L2_loop1».pairOk
+  Bridge.pairJ_of Checked.code1403 Checked.core1403 Checked.cert1403 Bridge.ProgAl.tab1403 Checked.fsEq1403 Fn.«level_residual__L37_L19_L4_L2_loop0».pairOk
     adv1403 len1403
 
 kernel_rfl adv1404 : Data.adviceFns[1404]? = some Data.adviceFn1404
 
-kernel_rfl len1404 : Data.adviceFn1404.2.1 = Fn.«level_residual__L44_L19_L4_L2_loop0».code.instructionCount
+kernel_rfl len1404 : Data.adviceFn1404.2.1 = Fn.«level_residual__L37_L19_L4_L2_loop1».code.instructionCount
 
 theorem pok1404 : Bridge.PairJ 1404 :=
-  Bridge.pairJ_of Checked.code1404 Checked.core1404 Checked.cert1404 Bridge.ProgAl.tab1404 Checked.fsEq1404 Fn.«level_residual__L44_L19_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1404 Checked.core1404 Checked.cert1404 Bridge.ProgAl.tab1404 Checked.fsEq1404 Fn.«level_residual__L37_L19_L4_L2_loop1».pairOk
     adv1404 len1404
 
 kernel_rfl adv1405 : Data.adviceFns[1405]? = some Data.adviceFn1405
 
-kernel_rfl len1405 : Data.adviceFn1405.2.1 = Fn.«level_residual__L44_L19_L4_L2_loop1».code.instructionCount
+kernel_rfl len1405 : Data.adviceFn1405.2.1 = Fn.«level_residual__L32_L19_L4_L2_loop0».code.instructionCount
 
 theorem pok1405 : Bridge.PairJ 1405 :=
-  Bridge.pairJ_of Checked.code1405 Checked.core1405 Checked.cert1405 Bridge.ProgAl.tab1405 Checked.fsEq1405 Fn.«level_residual__L44_L19_L4_L2_loop1».pairOk
+  Bridge.pairJ_of Checked.code1405 Checked.core1405 Checked.cert1405 Bridge.ProgAl.tab1405 Checked.fsEq1405 Fn.«level_residual__L32_L19_L4_L2_loop0».pairOk
     adv1405 len1405
 
 kernel_rfl adv1406 : Data.adviceFns[1406]? = some Data.adviceFn1406
 
-kernel_rfl len1406 : Data.adviceFn1406.2.1 = Fn.«level_residual__L37_L19_L4_L2_loop0».code.instructionCount
+kernel_rfl len1406 : Data.adviceFn1406.2.1 = Fn.«level_residual__L28_L15_L4_L2_loop0».code.instructionCount
 
 theorem pok1406 : Bridge.PairJ 1406 :=
-  Bridge.pairJ_of Checked.code1406 Checked.core1406 Checked.cert1406 Bridge.ProgAl.tab1406 Checked.fsEq1406 Fn.«level_residual__L37_L19_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1406 Checked.core1406 Checked.cert1406 Bridge.ProgAl.tab1406 Checked.fsEq1406 Fn.«level_residual__L28_L15_L4_L2_loop0».pairOk
     adv1406 len1406
 
 kernel_rfl adv1407 : Data.adviceFns[1407]? = some Data.adviceFn1407
 
-kernel_rfl len1407 : Data.adviceFn1407.2.1 = Fn.«level_residual__L37_L19_L4_L2_loop1».code.instructionCount
+kernel_rfl len1407 : Data.adviceFn1407.2.1 = Fn.«level_residual__L28_L15_L4_L2_loop1».code.instructionCount
 
 theorem pok1407 : Bridge.PairJ 1407 :=
-  Bridge.pairJ_of Checked.code1407 Checked.core1407 Checked.cert1407 Bridge.ProgAl.tab1407 Checked.fsEq1407 Fn.«level_residual__L37_L19_L4_L2_loop1».pairOk
+  Bridge.pairJ_of Checked.code1407 Checked.core1407 Checked.cert1407 Bridge.ProgAl.tab1407 Checked.fsEq1407 Fn.«level_residual__L28_L15_L4_L2_loop1».pairOk
     adv1407 len1407
 
 kernel_rfl adv1408 : Data.adviceFns[1408]? = some Data.adviceFn1408
 
-kernel_rfl len1408 : Data.adviceFn1408.2.1 = Fn.«level_residual__L32_L19_L4_L2_loop0».code.instructionCount
+kernel_rfl len1408 : Data.adviceFn1408.2.1 = Fn.«level_residual__L25_L15_L4_L2_loop0».code.instructionCount
 
 theorem pok1408 : Bridge.PairJ 1408 :=
-  Bridge.pairJ_of Checked.code1408 Checked.core1408 Checked.cert1408 Bridge.ProgAl.tab1408 Checked.fsEq1408 Fn.«level_residual__L32_L19_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1408 Checked.core1408 Checked.cert1408 Bridge.ProgAl.tab1408 Checked.fsEq1408 Fn.«level_residual__L25_L15_L4_L2_loop0».pairOk
     adv1408 len1408
 
 kernel_rfl adv1409 : Data.adviceFns[1409]? = some Data.adviceFn1409
 
-kernel_rfl len1409 : Data.adviceFn1409.2.1 = Fn.«level_residual__L28_L15_L4_L2_loop0».code.instructionCount
+kernel_rfl len1409 : Data.adviceFn1409.2.1 = Fn.«level_residual__L25_L15_L4_L2_loop1».code.instructionCount
 
 theorem pok1409 : Bridge.PairJ 1409 :=
-  Bridge.pairJ_of Checked.code1409 Checked.core1409 Checked.cert1409 Bridge.ProgAl.tab1409 Checked.fsEq1409 Fn.«level_residual__L28_L15_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1409 Checked.core1409 Checked.cert1409 Bridge.ProgAl.tab1409 Checked.fsEq1409 Fn.«level_residual__L25_L15_L4_L2_loop1».pairOk
     adv1409 len1409
 
 kernel_rfl adv1410 : Data.adviceFns[1410]? = some Data.adviceFn1410
 
-kernel_rfl len1410 : Data.adviceFn1410.2.1 = Fn.«level_residual__L28_L15_L4_L2_loop1».code.instructionCount
+kernel_rfl len1410 : Data.adviceFn1410.2.1 = Fn.«level_residual__L23_L15_L4_L2_loop0».code.instructionCount
 
 theorem pok1410 : Bridge.PairJ 1410 :=
-  Bridge.pairJ_of Checked.code1410 Checked.core1410 Checked.cert1410 Bridge.ProgAl.tab1410 Checked.fsEq1410 Fn.«level_residual__L28_L15_L4_L2_loop1».pairOk
+  Bridge.pairJ_of Checked.code1410 Checked.core1410 Checked.cert1410 Bridge.ProgAl.tab1410 Checked.fsEq1410 Fn.«level_residual__L23_L15_L4_L2_loop0».pairOk
     adv1410 len1410
 
 kernel_rfl adv1411 : Data.adviceFns[1411]? = some Data.adviceFn1411
 
-kernel_rfl len1411 : Data.adviceFn1411.2.1 = Fn.«level_residual__L25_L15_L4_L2_loop0».code.instructionCount
+kernel_rfl len1411 : Data.adviceFn1411.2.1 = Fn.«level_residual__L23_L15_L4_L2_loop1».code.instructionCount
 
 theorem pok1411 : Bridge.PairJ 1411 :=
-  Bridge.pairJ_of Checked.code1411 Checked.core1411 Checked.cert1411 Bridge.ProgAl.tab1411 Checked.fsEq1411 Fn.«level_residual__L25_L15_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1411 Checked.core1411 Checked.cert1411 Bridge.ProgAl.tab1411 Checked.fsEq1411 Fn.«level_residual__L23_L15_L4_L2_loop1».pairOk
     adv1411 len1411
 
 kernel_rfl adv1412 : Data.adviceFns[1412]? = some Data.adviceFn1412
 
-kernel_rfl len1412 : Data.adviceFn1412.2.1 = Fn.«level_residual__L25_L15_L4_L2_loop1».code.instructionCount
+kernel_rfl len1412 : Data.adviceFn1412.2.1 = Fn.«level_residual__L21_L11_L4_L2_loop0».code.instructionCount
 
 theorem pok1412 : Bridge.PairJ 1412 :=
-  Bridge.pairJ_of Checked.code1412 Checked.core1412 Checked.cert1412 Bridge.ProgAl.tab1412 Checked.fsEq1412 Fn.«level_residual__L25_L15_L4_L2_loop1».pairOk
+  Bridge.pairJ_of Checked.code1412 Checked.core1412 Checked.cert1412 Bridge.ProgAl.tab1412 Checked.fsEq1412 Fn.«level_residual__L21_L11_L4_L2_loop0».pairOk
     adv1412 len1412
 
 kernel_rfl adv1413 : Data.adviceFns[1413]? = some Data.adviceFn1413
 
-kernel_rfl len1413 : Data.adviceFn1413.2.1 = Fn.«level_residual__L23_L15_L4_L2_loop0».code.instructionCount
+kernel_rfl len1413 : Data.adviceFn1413.2.1 = Fn.«level_residual__L21_L11_L4_L2_loop1».code.instructionCount
 
 theorem pok1413 : Bridge.PairJ 1413 :=
-  Bridge.pairJ_of Checked.code1413 Checked.core1413 Checked.cert1413 Bridge.ProgAl.tab1413 Checked.fsEq1413 Fn.«level_residual__L23_L15_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1413 Checked.core1413 Checked.cert1413 Bridge.ProgAl.tab1413 Checked.fsEq1413 Fn.«level_residual__L21_L11_L4_L2_loop1».pairOk
     adv1413 len1413
 
 kernel_rfl adv1414 : Data.adviceFns[1414]? = some Data.adviceFn1414
 
-kernel_rfl len1414 : Data.adviceFn1414.2.1 = Fn.«level_residual__L23_L15_L4_L2_loop1».code.instructionCount
+kernel_rfl len1414 : Data.adviceFn1414.2.1 = Fn.«level_residual__L19_L11_L4_L2_loop0».code.instructionCount
 
 theorem pok1414 : Bridge.PairJ 1414 :=
-  Bridge.pairJ_of Checked.code1414 Checked.core1414 Checked.cert1414 Bridge.ProgAl.tab1414 Checked.fsEq1414 Fn.«level_residual__L23_L15_L4_L2_loop1».pairOk
+  Bridge.pairJ_of Checked.code1414 Checked.core1414 Checked.cert1414 Bridge.ProgAl.tab1414 Checked.fsEq1414 Fn.«level_residual__L19_L11_L4_L2_loop0».pairOk
     adv1414 len1414
 
 kernel_rfl adv1415 : Data.adviceFns[1415]? = some Data.adviceFn1415
 
-kernel_rfl len1415 : Data.adviceFn1415.2.1 = Fn.«level_residual__L21_L11_L4_L2_loop0».code.instructionCount
+kernel_rfl len1415 : Data.adviceFn1415.2.1 = Fn.«level_residual__L19_L11_L4_L2_loop1».code.instructionCount
 
 theorem pok1415 : Bridge.PairJ 1415 :=
-  Bridge.pairJ_of Checked.code1415 Checked.core1415 Checked.cert1415 Bridge.ProgAl.tab1415 Checked.fsEq1415 Fn.«level_residual__L21_L11_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1415 Checked.core1415 Checked.cert1415 Bridge.ProgAl.tab1415 Checked.fsEq1415 Fn.«level_residual__L19_L11_L4_L2_loop1».pairOk
     adv1415 len1415
 
 kernel_rfl adv1416 : Data.adviceFns[1416]? = some Data.adviceFn1416
 
-kernel_rfl len1416 : Data.adviceFn1416.2.1 = Fn.«level_residual__L21_L11_L4_L2_loop1».code.instructionCount
+kernel_rfl len1416 : Data.adviceFn1416.2.1 = Fn.«level_residual__L18_L11_L4_L2_loop0».code.instructionCount
 
 theorem pok1416 : Bridge.PairJ 1416 :=
-  Bridge.pairJ_of Checked.code1416 Checked.core1416 Checked.cert1416 Bridge.ProgAl.tab1416 Checked.fsEq1416 Fn.«level_residual__L21_L11_L4_L2_loop1».pairOk
+  Bridge.pairJ_of Checked.code1416 Checked.core1416 Checked.cert1416 Bridge.ProgAl.tab1416 Checked.fsEq1416 Fn.«level_residual__L18_L11_L4_L2_loop0».pairOk
     adv1416 len1416
 
 kernel_rfl adv1417 : Data.adviceFns[1417]? = some Data.adviceFn1417
 
-kernel_rfl len1417 : Data.adviceFn1417.2.1 = Fn.«level_residual__L19_L11_L4_L2_loop0».code.instructionCount
+kernel_rfl len1417 : Data.adviceFn1417.2.1 = Fn.«level_residual__L18_L11_L4_L2_loop1».code.instructionCount
 
 theorem pok1417 : Bridge.PairJ 1417 :=
-  Bridge.pairJ_of Checked.code1417 Checked.core1417 Checked.cert1417 Bridge.ProgAl.tab1417 Checked.fsEq1417 Fn.«level_residual__L19_L11_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1417 Checked.core1417 Checked.cert1417 Bridge.ProgAl.tab1417 Checked.fsEq1417 Fn.«level_residual__L18_L11_L4_L2_loop1».pairOk
     adv1417 len1417
 
 kernel_rfl adv1418 : Data.adviceFns[1418]? = some Data.adviceFn1418
 
-kernel_rfl len1418 : Data.adviceFn1418.2.1 = Fn.«level_residual__L19_L11_L4_L2_loop1».code.instructionCount
+kernel_rfl len1418 : Data.adviceFn1418.2.1 = Fn.«level_residual__L17_L7_L4_L2_loop0».code.instructionCount
 
 theorem pok1418 : Bridge.PairJ 1418 :=
-  Bridge.pairJ_of Checked.code1418 Checked.core1418 Checked.cert1418 Bridge.ProgAl.tab1418 Checked.fsEq1418 Fn.«level_residual__L19_L11_L4_L2_loop1».pairOk
+  Bridge.pairJ_of Checked.code1418 Checked.core1418 Checked.cert1418 Bridge.ProgAl.tab1418 Checked.fsEq1418 Fn.«level_residual__L17_L7_L4_L2_loop0».pairOk
     adv1418 len1418
 
 kernel_rfl adv1419 : Data.adviceFns[1419]? = some Data.adviceFn1419
 
-kernel_rfl len1419 : Data.adviceFn1419.2.1 = Fn.«level_residual__L18_L11_L4_L2_loop0».code.instructionCount
+kernel_rfl len1419 : Data.adviceFn1419.2.1 = Fn.«level_residual__L17_L7_L4_L2_loop1».code.instructionCount
 
 theorem pok1419 : Bridge.PairJ 1419 :=
-  Bridge.pairJ_of Checked.code1419 Checked.core1419 Checked.cert1419 Bridge.ProgAl.tab1419 Checked.fsEq1419 Fn.«level_residual__L18_L11_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1419 Checked.core1419 Checked.cert1419 Bridge.ProgAl.tab1419 Checked.fsEq1419 Fn.«level_residual__L17_L7_L4_L2_loop1».pairOk
     adv1419 len1419
 
 kernel_rfl adv1420 : Data.adviceFns[1420]? = some Data.adviceFn1420
 
-kernel_rfl len1420 : Data.adviceFn1420.2.1 = Fn.«level_residual__L18_L11_L4_L2_loop1».code.instructionCount
+kernel_rfl len1420 : Data.adviceFn1420.2.1 = Fn.«level_residual__L16_L7_L4_L2_loop0».code.instructionCount
 
 theorem pok1420 : Bridge.PairJ 1420 :=
-  Bridge.pairJ_of Checked.code1420 Checked.core1420 Checked.cert1420 Bridge.ProgAl.tab1420 Checked.fsEq1420 Fn.«level_residual__L18_L11_L4_L2_loop1».pairOk
+  Bridge.pairJ_of Checked.code1420 Checked.core1420 Checked.cert1420 Bridge.ProgAl.tab1420 Checked.fsEq1420 Fn.«level_residual__L16_L7_L4_L2_loop0».pairOk
     adv1420 len1420
 
 kernel_rfl adv1421 : Data.adviceFns[1421]? = some Data.adviceFn1421
 
-kernel_rfl len1421 : Data.adviceFn1421.2.1 = Fn.«level_residual__L17_L7_L4_L2_loop0».code.instructionCount
+kernel_rfl len1421 : Data.adviceFn1421.2.1 = Fn.«level_positions__L44_L25_L7_loop0».code.instructionCount
 
 theorem pok1421 : Bridge.PairJ 1421 :=
-  Bridge.pairJ_of Checked.code1421 Checked.core1421 Checked.cert1421 Bridge.ProgAl.tab1421 Checked.fsEq1421 Fn.«level_residual__L17_L7_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1421 Checked.core1421 Checked.cert1421 Bridge.ProgAl.tab1421 Checked.fsEq1421 Fn.«level_positions__L44_L25_L7_loop0».pairOk
     adv1421 len1421
 
 kernel_rfl adv1422 : Data.adviceFns[1422]? = some Data.adviceFn1422
 
-kernel_rfl len1422 : Data.adviceFn1422.2.1 = Fn.«level_residual__L17_L7_L4_L2_loop1».code.instructionCount
+kernel_rfl len1422 : Data.adviceFn1422.2.1 = Fn.«level_positions__L28_L26_L2_loop0».code.instructionCount
 
 theorem pok1422 : Bridge.PairJ 1422 :=
-  Bridge.pairJ_of Checked.code1422 Checked.core1422 Checked.cert1422 Bridge.ProgAl.tab1422 Checked.fsEq1422 Fn.«level_residual__L17_L7_L4_L2_loop1».pairOk
+  Bridge.pairJ_of Checked.code1422 Checked.core1422 Checked.cert1422 Bridge.ProgAl.tab1422 Checked.fsEq1422 Fn.«level_positions__L28_L26_L2_loop0».pairOk
     adv1422 len1422
 
 kernel_rfl adv1423 : Data.adviceFns[1423]? = some Data.adviceFn1423
 
-kernel_rfl len1423 : Data.adviceFn1423.2.1 = Fn.«level_residual__L16_L7_L4_L2_loop0».code.instructionCount
+kernel_rfl len1423 : Data.adviceFn1423.2.1 = Fn.«level_positions__L19_L27_L3_loop0».code.instructionCount
 
 theorem pok1423 : Bridge.PairJ 1423 :=
-  Bridge.pairJ_of Checked.code1423 Checked.core1423 Checked.cert1423 Bridge.ProgAl.tab1423 Checked.fsEq1423 Fn.«level_residual__L16_L7_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1423 Checked.core1423 Checked.cert1423 Bridge.ProgAl.tab1423 Checked.fsEq1423 Fn.«level_positions__L19_L27_L3_loop0».pairOk
     adv1423 len1423
 
 kernel_rfl adv1424 : Data.adviceFns[1424]? = some Data.adviceFn1424
 
-kernel_rfl len1424 : Data.adviceFn1424.2.1 = Fn.«level_positions__L44_L25_L7_loop0».code.instructionCount
+kernel_rfl len1424 : Data.adviceFn1424.2.1 = Fn.«decode_query_windows__L28_L4».code.instructionCount
 
 theorem pok1424 : Bridge.PairJ 1424 :=
-  Bridge.pairJ_of Checked.code1424 Checked.core1424 Checked.cert1424 Bridge.ProgAl.tab1424 Checked.fsEq1424 Fn.«level_positions__L44_L25_L7_loop0».pairOk
+  Bridge.pairJ_of Checked.code1424 Checked.core1424 Checked.cert1424 Bridge.ProgAl.tab1424 Checked.fsEq1424 Fn.«decode_query_windows__L28_L4».pairOk
     adv1424 len1424
 
 kernel_rfl adv1425 : Data.adviceFns[1425]? = some Data.adviceFn1425
 
-kernel_rfl len1425 : Data.adviceFn1425.2.1 = Fn.«level_positions__L28_L26_L2_loop0».code.instructionCount
+kernel_rfl len1425 : Data.adviceFn1425.2.1 = Fn.«level_positions__L14_L28_L4_loop0».code.instructionCount
 
 theorem pok1425 : Bridge.PairJ 1425 :=
-  Bridge.pairJ_of Checked.code1425 Checked.core1425 Checked.cert1425 Bridge.ProgAl.tab1425 Checked.fsEq1425 Fn.«level_positions__L28_L26_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1425 Checked.core1425 Checked.cert1425 Bridge.ProgAl.tab1425 Checked.fsEq1425 Fn.«level_positions__L14_L28_L4_loop0».pairOk
     adv1425 len1425
 
 kernel_rfl adv1426 : Data.adviceFns[1426]? = some Data.adviceFn1426
 
-kernel_rfl len1426 : Data.adviceFn1426.2.1 = Fn.«level_positions__L19_L27_L3_loop0».code.instructionCount
+kernel_rfl len1426 : Data.adviceFn1426.2.1 = Fn.«opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0».code.instructionCount
 
 theorem pok1426 : Bridge.PairJ 1426 :=
-  Bridge.pairJ_of Checked.code1426 Checked.core1426 Checked.cert1426 Bridge.ProgAl.tab1426 Checked.fsEq1426 Fn.«level_positions__L19_L27_L3_loop0».pairOk
+  Bridge.pairJ_of Checked.code1426 Checked.core1426 Checked.cert1426 Bridge.ProgAl.tab1426 Checked.fsEq1426 Fn.«opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0».pairOk
     adv1426 len1426
 
 kernel_rfl adv1427 : Data.adviceFns[1427]? = some Data.adviceFn1427
 
-kernel_rfl len1427 : Data.adviceFn1427.2.1 = Fn.«decode_query_windows__L28_L4».code.instructionCount
+kernel_rfl len1427 : Data.adviceFn1427.2.1 = Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0».code.instructionCount
 
 theorem pok1427 : Bridge.PairJ 1427 :=
-  Bridge.pairJ_of Checked.code1427 Checked.core1427 Checked.cert1427 Bridge.ProgAl.tab1427 Checked.fsEq1427 Fn.«decode_query_windows__L28_L4».pairOk
+  Bridge.pairJ_of Checked.code1427 Checked.core1427 Checked.cert1427 Bridge.ProgAl.tab1427 Checked.fsEq1427 Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0».pairOk
     adv1427 len1427
 
 kernel_rfl adv1428 : Data.adviceFns[1428]? = some Data.adviceFn1428
 
-kernel_rfl len1428 : Data.adviceFn1428.2.1 = Fn.«level_positions__L14_L28_L4_loop0».code.instructionCount
+kernel_rfl len1428 : Data.adviceFn1428.2.1 = Fn.«level_positions__L9_L25_L7_loop0».code.instructionCount
 
 theorem pok1428 : Bridge.PairJ 1428 :=
-  Bridge.pairJ_of Checked.code1428 Checked.core1428 Checked.cert1428 Bridge.ProgAl.tab1428 Checked.fsEq1428 Fn.«level_positions__L14_L28_L4_loop0».pairOk
+  Bridge.pairJ_of Checked.code1428 Checked.core1428 Checked.cert1428 Bridge.ProgAl.tab1428 Checked.fsEq1428 Fn.«level_positions__L9_L25_L7_loop0».pairOk
     adv1428 len1428
 
 kernel_rfl adv1429 : Data.adviceFns[1429]? = some Data.adviceFn1429
 
-kernel_rfl len1429 : Data.adviceFn1429.2.1 = Fn.«opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0».code.instructionCount
+kernel_rfl len1429 : Data.adviceFn1429.2.1 = Fn.«level_positions__L10_L26_L2_loop0».code.instructionCount
 
 theorem pok1429 : Bridge.PairJ 1429 :=
-  Bridge.pairJ_of Checked.code1429 Checked.core1429 Checked.cert1429 Bridge.ProgAl.tab1429 Checked.fsEq1429 Fn.«opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0».pairOk
+  Bridge.pairJ_of Checked.code1429 Checked.core1429 Checked.cert1429 Bridge.ProgAl.tab1429 Checked.fsEq1429 Fn.«level_positions__L10_L26_L2_loop0».pairOk
     adv1429 len1429
 
 kernel_rfl adv1430 : Data.adviceFns[1430]? = some Data.adviceFn1430
 
-kernel_rfl len1430 : Data.adviceFn1430.2.1 = Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0».code.instructionCount
+kernel_rfl len1430 : Data.adviceFn1430.2.1 = Fn.«level_positions__L8_L27_L3_loop0».code.instructionCount
 
 theorem pok1430 : Bridge.PairJ 1430 :=
-  Bridge.pairJ_of Checked.code1430 Checked.core1430 Checked.cert1430 Bridge.ProgAl.tab1430 Checked.fsEq1430 Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0».pairOk
+  Bridge.pairJ_of Checked.code1430 Checked.core1430 Checked.cert1430 Bridge.ProgAl.tab1430 Checked.fsEq1430 Fn.«level_positions__L8_L27_L3_loop0».pairOk
     adv1430 len1430
 
 kernel_rfl adv1431 : Data.adviceFns[1431]? = some Data.adviceFn1431
 
-kernel_rfl len1431 : Data.adviceFn1431.2.1 = Fn.«level_positions__L9_L25_L7_loop0».code.instructionCount
+kernel_rfl len1431 : Data.adviceFn1431.2.1 = Fn.«opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0».code.instructionCount
 
 theorem pok1431 : Bridge.PairJ 1431 :=
-  Bridge.pairJ_of Checked.code1431 Checked.core1431 Checked.cert1431 Bridge.ProgAl.tab1431 Checked.fsEq1431 Fn.«level_positions__L9_L25_L7_loop0».pairOk
+  Bridge.pairJ_of Checked.code1431 Checked.core1431 Checked.cert1431 Bridge.ProgAl.tab1431 Checked.fsEq1431 Fn.«opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0».pairOk
     adv1431 len1431
 
 kernel_rfl adv1432 : Data.adviceFns[1432]? = some Data.adviceFn1432
 
-kernel_rfl len1432 : Data.adviceFn1432.2.1 = Fn.«level_positions__L10_L26_L2_loop0».code.instructionCount
+kernel_rfl len1432 : Data.adviceFn1432.2.1 = Fn.«level_positions__L6_L24_L6_loop0».code.instructionCount
 
 theorem pok1432 : Bridge.PairJ 1432 :=
-  Bridge.pairJ_of Checked.code1432 Checked.core1432 Checked.cert1432 Bridge.ProgAl.tab1432 Checked.fsEq1432 Fn.«level_positions__L10_L26_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1432 Checked.core1432 Checked.cert1432 Bridge.ProgAl.tab1432 Checked.fsEq1432 Fn.«level_positions__L6_L24_L6_loop0».pairOk
     adv1432 len1432
 
 kernel_rfl adv1433 : Data.adviceFns[1433]? = some Data.adviceFn1433
 
-kernel_rfl len1433 : Data.adviceFn1433.2.1 = Fn.«level_positions__L8_L27_L3_loop0».code.instructionCount
+kernel_rfl len1433 : Data.adviceFn1433.2.1 = Fn.«level_positions__L6_L26_L2_loop0».code.instructionCount
 
 theorem pok1433 : Bridge.PairJ 1433 :=
-  Bridge.pairJ_of Checked.code1433 Checked.core1433 Checked.cert1433 Bridge.ProgAl.tab1433 Checked.fsEq1433 Fn.«level_positions__L8_L27_L3_loop0».pairOk
+  Bridge.pairJ_of Checked.code1433 Checked.core1433 Checked.cert1433 Bridge.ProgAl.tab1433 Checked.fsEq1433 Fn.«level_positions__L6_L26_L2_loop0».pairOk
     adv1433 len1433
 
 kernel_rfl adv1434 : Data.adviceFns[1434]? = some Data.adviceFn1434
 
-kernel_rfl len1434 : Data.adviceFn1434.2.1 = Fn.«opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0».code.instructionCount
+kernel_rfl len1434 : Data.adviceFn1434.2.1 = Fn.«level_positions__L4_L25_L7_loop0».code.instructionCount
 
 theorem pok1434 : Bridge.PairJ 1434 :=
-  Bridge.pairJ_of Checked.code1434 Checked.core1434 Checked.cert1434 Bridge.ProgAl.tab1434 Checked.fsEq1434 Fn.«opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0».pairOk
+  Bridge.pairJ_of Checked.code1434 Checked.core1434 Checked.cert1434 Bridge.ProgAl.tab1434 Checked.fsEq1434 Fn.«level_positions__L4_L25_L7_loop0».pairOk
     adv1434 len1434
 
 kernel_rfl adv1435 : Data.adviceFns[1435]? = some Data.adviceFn1435
 
-kernel_rfl len1435 : Data.adviceFn1435.2.1 = Fn.«level_positions__L6_L24_L6_loop0».code.instructionCount
+kernel_rfl len1435 : Data.adviceFn1435.2.1 = Fn.«level_positions__L3_L23_L5_loop0».code.instructionCount
 
 theorem pok1435 : Bridge.PairJ 1435 :=
-  Bridge.pairJ_of Checked.code1435 Checked.core1435 Checked.cert1435 Bridge.ProgAl.tab1435 Checked.fsEq1435 Fn.«level_positions__L6_L24_L6_loop0».pairOk
+  Bridge.pairJ_of Checked.code1435 Checked.core1435 Checked.cert1435 Bridge.ProgAl.tab1435 Checked.fsEq1435 Fn.«level_positions__L3_L23_L5_loop0».pairOk
     adv1435 len1435
 
 kernel_rfl adv1436 : Data.adviceFns[1436]? = some Data.adviceFn1436
 
-kernel_rfl len1436 : Data.adviceFn1436.2.1 = Fn.«level_positions__L6_L26_L2_loop0».code.instructionCount
+kernel_rfl len1436 : Data.adviceFn1436.2.1 = Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1».code.instructionCount
 
 theorem pok1436 : Bridge.PairJ 1436 :=
-  Bridge.pairJ_of Checked.code1436 Checked.core1436 Checked.cert1436 Bridge.ProgAl.tab1436 Checked.fsEq1436 Fn.«level_positions__L6_L26_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1436 Checked.core1436 Checked.cert1436 Bridge.ProgAl.tab1436 Checked.fsEq1436 Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1».pairOk
     adv1436 len1436
 
 kernel_rfl adv1437 : Data.adviceFns[1437]? = some Data.adviceFn1437
 
-kernel_rfl len1437 : Data.adviceFn1437.2.1 = Fn.«level_positions__L4_L25_L7_loop0».code.instructionCount
+kernel_rfl len1437 : Data.adviceFn1437.2.1 = Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1».code.instructionCount
 
 theorem pok1437 : Bridge.PairJ 1437 :=
-  Bridge.pairJ_of Checked.code1437 Checked.core1437 Checked.cert1437 Bridge.ProgAl.tab1437 Checked.fsEq1437 Fn.«level_positions__L4_L25_L7_loop0».pairOk
+  Bridge.pairJ_of Checked.code1437 Checked.core1437 Checked.cert1437 Bridge.ProgAl.tab1437 Checked.fsEq1437 Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1».pairOk
     adv1437 len1437
 
 kernel_rfl adv1438 : Data.adviceFns[1438]? = some Data.adviceFn1438
 
-kernel_rfl len1438 : Data.adviceFn1438.2.1 = Fn.«level_positions__L3_L23_L5_loop0».code.instructionCount
+kernel_rfl len1438 : Data.adviceFn1438.2.1 = Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1».code.instructionCount
 
 theorem pok1438 : Bridge.PairJ 1438 :=
-  Bridge.pairJ_of Checked.code1438 Checked.core1438 Checked.cert1438 Bridge.ProgAl.tab1438 Checked.fsEq1438 Fn.«level_positions__L3_L23_L5_loop0».pairOk
+  Bridge.pairJ_of Checked.code1438 Checked.core1438 Checked.cert1438 Bridge.ProgAl.tab1438 Checked.fsEq1438 Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1».pairOk
     adv1438 len1438
 
 kernel_rfl adv1439 : Data.adviceFns[1439]? = some Data.adviceFn1439
 
-kernel_rfl len1439 : Data.adviceFn1439.2.1 = Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1».code.instructionCount
+kernel_rfl len1439 : Data.adviceFn1439.2.1 = Fn.«level_residual__L218_L24_L6_L3_loop0».code.instructionCount
 
 theorem pok1439 : Bridge.PairJ 1439 :=
-  Bridge.pairJ_of Checked.code1439 Checked.core1439 Checked.cert1439 Bridge.ProgAl.tab1439 Checked.fsEq1439 Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1».pairOk
+  Bridge.pairJ_of Checked.code1439 Checked.core1439 Checked.cert1439 Bridge.ProgAl.tab1439 Checked.fsEq1439 Fn.«level_residual__L218_L24_L6_L3_loop0».pairOk
     adv1439 len1439
 
 kernel_rfl adv1440 : Data.adviceFns[1440]? = some Data.adviceFn1440
 
-kernel_rfl len1440 : Data.adviceFn1440.2.1 = Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1».code.instructionCount
+kernel_rfl len1440 : Data.adviceFn1440.2.1 = Fn.«level_residual__L218_L24_L6_L3_loop1».code.instructionCount
 
 theorem pok1440 : Bridge.PairJ 1440 :=
-  Bridge.pairJ_of Checked.code1440 Checked.core1440 Checked.cert1440 Bridge.ProgAl.tab1440 Checked.fsEq1440 Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1».pairOk
+  Bridge.pairJ_of Checked.code1440 Checked.core1440 Checked.cert1440 Bridge.ProgAl.tab1440 Checked.fsEq1440 Fn.«level_residual__L218_L24_L6_L3_loop1».pairOk
     adv1440 len1440
 
 kernel_rfl adv1441 : Data.adviceFns[1441]? = some Data.adviceFn1441
 
-kernel_rfl len1441 : Data.adviceFn1441.2.1 = Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1».code.instructionCount
+kernel_rfl len1441 : Data.adviceFn1441.2.1 = Fn.«level_residual__L109_L24_L6_L3_loop0».code.instructionCount
 
 theorem pok1441 : Bridge.PairJ 1441 :=
-  Bridge.pairJ_of Checked.code1441 Checked.core1441 Checked.cert1441 Bridge.ProgAl.tab1441 Checked.fsEq1441 Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1».pairOk
+  Bridge.pairJ_of Checked.code1441 Checked.core1441 Checked.cert1441 Bridge.ProgAl.tab1441 Checked.fsEq1441 Fn.«level_residual__L109_L24_L6_L3_loop0».pairOk
     adv1441 len1441
 
 kernel_rfl adv1442 : Data.adviceFns[1442]? = some Data.adviceFn1442
 
-kernel_rfl len1442 : Data.adviceFn1442.2.1 = Fn.«level_residual__L218_L24_L6_L3_loop0».code.instructionCount
+kernel_rfl len1442 : Data.adviceFn1442.2.1 = Fn.«level_residual__L109_L24_L6_L3_loop1».code.instructionCount
 
 theorem pok1442 : Bridge.PairJ 1442 :=
-  Bridge.pairJ_of Checked.code1442 Checked.core1442 Checked.cert1442 Bridge.ProgAl.tab1442 Checked.fsEq1442 Fn.«level_residual__L218_L24_L6_L3_loop0».pairOk
+  Bridge.pairJ_of Checked.code1442 Checked.core1442 Checked.cert1442 Bridge.ProgAl.tab1442 Checked.fsEq1442 Fn.«level_residual__L109_L24_L6_L3_loop1».pairOk
     adv1442 len1442
 
 kernel_rfl adv1443 : Data.adviceFns[1443]? = some Data.adviceFn1443
 
-kernel_rfl len1443 : Data.adviceFn1443.2.1 = Fn.«level_residual__L218_L24_L6_L3_loop1».code.instructionCount
+kernel_rfl len1443 : Data.adviceFn1443.2.1 = Fn.«level_residual__L73_L24_L6_L3_loop0».code.instructionCount
 
 theorem pok1443 : Bridge.PairJ 1443 :=
-  Bridge.pairJ_of Checked.code1443 Checked.core1443 Checked.cert1443 Bridge.ProgAl.tab1443 Checked.fsEq1443 Fn.«level_residual__L218_L24_L6_L3_loop1».pairOk
+  Bridge.pairJ_of Checked.code1443 Checked.core1443 Checked.cert1443 Bridge.ProgAl.tab1443 Checked.fsEq1443 Fn.«level_residual__L73_L24_L6_L3_loop0».pairOk
     adv1443 len1443
 
 kernel_rfl adv1444 : Data.adviceFns[1444]? = some Data.adviceFn1444
 
-kernel_rfl len1444 : Data.adviceFn1444.2.1 = Fn.«level_residual__L109_L24_L6_L3_loop0».code.instructionCount
+kernel_rfl len1444 : Data.adviceFn1444.2.1 = Fn.«level_residual__L73_L24_L6_L3_loop1».code.instructionCount
 
 theorem pok1444 : Bridge.PairJ 1444 :=
-  Bridge.pairJ_of Checked.code1444 Checked.core1444 Checked.cert1444 Bridge.ProgAl.tab1444 Checked.fsEq1444 Fn.«level_residual__L109_L24_L6_L3_loop0».pairOk
+  Bridge.pairJ_of Checked.code1444 Checked.core1444 Checked.cert1444 Bridge.ProgAl.tab1444 Checked.fsEq1444 Fn.«level_residual__L73_L24_L6_L3_loop1».pairOk
     adv1444 len1444
 
 kernel_rfl adv1445 : Data.adviceFns[1445]? = some Data.adviceFn1445
 
-kernel_rfl len1445 : Data.adviceFn1445.2.1 = Fn.«level_residual__L109_L24_L6_L3_loop1».code.instructionCount
+kernel_rfl len1445 : Data.adviceFn1445.2.1 = Fn.«level_residual__L55_L24_L6_L3_loop0».code.instructionCount
 
 theorem pok1445 : Bridge.PairJ 1445 :=
-  Bridge.pairJ_of Checked.code1445 Checked.core1445 Checked.cert1445 Bridge.ProgAl.tab1445 Checked.fsEq1445 Fn.«level_residual__L109_L24_L6_L3_loop1».pairOk
+  Bridge.pairJ_of Checked.code1445 Checked.core1445 Checked.cert1445 Bridge.ProgAl.tab1445 Checked.fsEq1445 Fn.«level_residual__L55_L24_L6_L3_loop0».pairOk
     adv1445 len1445
 
 kernel_rfl adv1446 : Data.adviceFns[1446]? = some Data.adviceFn1446
 
-kernel_rfl len1446 : Data.adviceFn1446.2.1 = Fn.«level_residual__L73_L24_L6_L3_loop0».code.instructionCount
+kernel_rfl len1446 : Data.adviceFn1446.2.1 = Fn.«level_residual__L55_L24_L6_L3_loop1».code.instructionCount
 
 theorem pok1446 : Bridge.PairJ 1446 :=
-  Bridge.pairJ_of Checked.code1446 Checked.core1446 Checked.cert1446 Bridge.ProgAl.tab1446 Checked.fsEq1446 Fn.«level_residual__L73_L24_L6_L3_loop0».pairOk
+  Bridge.pairJ_of Checked.code1446 Checked.core1446 Checked.cert1446 Bridge.ProgAl.tab1446 Checked.fsEq1446 Fn.«level_residual__L55_L24_L6_L3_loop1».pairOk
     adv1446 len1446
 
 kernel_rfl adv1447 : Data.adviceFns[1447]? = some Data.adviceFn1447
 
-kernel_rfl len1447 : Data.adviceFn1447.2.1 = Fn.«level_residual__L73_L24_L6_L3_loop1».code.instructionCount
+kernel_rfl len1447 : Data.adviceFn1447.2.1 = Fn.«level_residual__L55_L20_L4_L2_loop0».code.instructionCount
 
 theorem pok1447 : Bridge.PairJ 1447 :=
-  Bridge.pairJ_of Checked.code1447 Checked.core1447 Checked.cert1447 Bridge.ProgAl.tab1447 Checked.fsEq1447 Fn.«level_residual__L73_L24_L6_L3_loop1».pairOk
+  Bridge.pairJ_of Checked.code1447 Checked.core1447 Checked.cert1447 Bridge.ProgAl.tab1447 Checked.fsEq1447 Fn.«level_residual__L55_L20_L4_L2_loop0».pairOk
     adv1447 len1447
 
 kernel_rfl adv1448 : Data.adviceFns[1448]? = some Data.adviceFn1448
 
-kernel_rfl len1448 : Data.adviceFn1448.2.1 = Fn.«level_residual__L55_L24_L6_L3_loop0».code.instructionCount
+kernel_rfl len1448 : Data.adviceFn1448.2.1 = Fn.«level_residual__L55_L20_L4_L2_loop1».code.instructionCount
 
 theorem pok1448 : Bridge.PairJ 1448 :=
-  Bridge.pairJ_of Checked.code1448 Checked.core1448 Checked.cert1448 Bridge.ProgAl.tab1448 Checked.fsEq1448 Fn.«level_residual__L55_L24_L6_L3_loop0».pairOk
+  Bridge.pairJ_of Checked.code1448 Checked.core1448 Checked.cert1448 Bridge.ProgAl.tab1448 Checked.fsEq1448 Fn.«level_residual__L55_L20_L4_L2_loop1».pairOk
     adv1448 len1448
 
 kernel_rfl adv1449 : Data.adviceFns[1449]? = some Data.adviceFn1449
 
-kernel_rfl len1449 : Data.adviceFn1449.2.1 = Fn.«level_residual__L55_L24_L6_L3_loop1».code.instructionCount
+kernel_rfl len1449 : Data.adviceFn1449.2.1 = Fn.«level_residual__L44_L20_L4_L2_loop0».code.instructionCount
 
 theorem pok1449 : Bridge.PairJ 1449 :=
-  Bridge.pairJ_of Checked.code1449 Checked.core1449 Checked.cert1449 Bridge.ProgAl.tab1449 Checked.fsEq1449 Fn.«level_residual__L55_L24_L6_L3_loop1».pairOk
+  Bridge.pairJ_of Checked.code1449 Checked.core1449 Checked.cert1449 Bridge.ProgAl.tab1449 Checked.fsEq1449 Fn.«level_residual__L44_L20_L4_L2_loop0».pairOk
     adv1449 len1449
 
 kernel_rfl adv1450 : Data.adviceFns[1450]? = some Data.adviceFn1450
 
-kernel_rfl len1450 : Data.adviceFn1450.2.1 = Fn.«level_residual__L55_L20_L4_L2_loop0».code.instructionCount
+kernel_rfl len1450 : Data.adviceFn1450.2.1 = Fn.«level_residual__L44_L20_L4_L2_loop1».code.instructionCount
 
 theorem pok1450 : Bridge.PairJ 1450 :=
-  Bridge.pairJ_of Checked.code1450 Checked.core1450 Checked.cert1450 Bridge.ProgAl.tab1450 Checked.fsEq1450 Fn.«level_residual__L55_L20_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1450 Checked.core1450 Checked.cert1450 Bridge.ProgAl.tab1450 Checked.fsEq1450 Fn.«level_residual__L44_L20_L4_L2_loop1».pairOk
     adv1450 len1450
 
 kernel_rfl adv1451 : Data.adviceFns[1451]? = some Data.adviceFn1451
 
-kernel_rfl len1451 : Data.adviceFn1451.2.1 = Fn.«level_residual__L55_L20_L4_L2_loop1».code.instructionCount
+kernel_rfl len1451 : Data.adviceFn1451.2.1 = Fn.«level_residual__L37_L20_L4_L2_loop0».code.instructionCount
 
 theorem pok1451 : Bridge.PairJ 1451 :=
-  Bridge.pairJ_of Checked.code1451 Checked.core1451 Checked.cert1451 Bridge.ProgAl.tab1451 Checked.fsEq1451 Fn.«level_residual__L55_L20_L4_L2_loop1».pairOk
+  Bridge.pairJ_of Checked.code1451 Checked.core1451 Checked.cert1451 Bridge.ProgAl.tab1451 Checked.fsEq1451 Fn.«level_residual__L37_L20_L4_L2_loop0».pairOk
     adv1451 len1451
 
 kernel_rfl adv1452 : Data.adviceFns[1452]? = some Data.adviceFn1452
 
-kernel_rfl len1452 : Data.adviceFn1452.2.1 = Fn.«level_residual__L44_L20_L4_L2_loop0».code.instructionCount
+kernel_rfl len1452 : Data.adviceFn1452.2.1 = Fn.«level_residual__L37_L20_L4_L2_loop1».code.instructionCount
 
 theorem pok1452 : Bridge.PairJ 1452 :=
-  Bridge.pairJ_of Checked.code1452 Checked.core1452 Checked.cert1452 Bridge.ProgAl.tab1452 Checked.fsEq1452 Fn.«level_residual__L44_L20_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1452 Checked.core1452 Checked.cert1452 Bridge.ProgAl.tab1452 Checked.fsEq1452 Fn.«level_residual__L37_L20_L4_L2_loop1».pairOk
     adv1452 len1452
 
 kernel_rfl adv1453 : Data.adviceFns[1453]? = some Data.adviceFn1453
 
-kernel_rfl len1453 : Data.adviceFn1453.2.1 = Fn.«level_residual__L44_L20_L4_L2_loop1».code.instructionCount
+kernel_rfl len1453 : Data.adviceFn1453.2.1 = Fn.«level_residual__L32_L20_L4_L2_loop0».code.instructionCount
 
 theorem pok1453 : Bridge.PairJ 1453 :=
-  Bridge.pairJ_of Checked.code1453 Checked.core1453 Checked.cert1453 Bridge.ProgAl.tab1453 Checked.fsEq1453 Fn.«level_residual__L44_L20_L4_L2_loop1».pairOk
+  Bridge.pairJ_of Checked.code1453 Checked.core1453 Checked.cert1453 Bridge.ProgAl.tab1453 Checked.fsEq1453 Fn.«level_residual__L32_L20_L4_L2_loop0».pairOk
     adv1453 len1453
 
 kernel_rfl adv1454 : Data.adviceFns[1454]? = some Data.adviceFn1454
 
-kernel_rfl len1454 : Data.adviceFn1454.2.1 = Fn.«level_residual__L37_L20_L4_L2_loop0».code.instructionCount
+kernel_rfl len1454 : Data.adviceFn1454.2.1 = Fn.«level_residual__L28_L16_L4_L2_loop0».code.instructionCount
 
 theorem pok1454 : Bridge.PairJ 1454 :=
-  Bridge.pairJ_of Checked.code1454 Checked.core1454 Checked.cert1454 Bridge.ProgAl.tab1454 Checked.fsEq1454 Fn.«level_residual__L37_L20_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1454 Checked.core1454 Checked.cert1454 Bridge.ProgAl.tab1454 Checked.fsEq1454 Fn.«level_residual__L28_L16_L4_L2_loop0».pairOk
     adv1454 len1454
 
 kernel_rfl adv1455 : Data.adviceFns[1455]? = some Data.adviceFn1455
 
-kernel_rfl len1455 : Data.adviceFn1455.2.1 = Fn.«level_residual__L37_L20_L4_L2_loop1».code.instructionCount
+kernel_rfl len1455 : Data.adviceFn1455.2.1 = Fn.«level_residual__L28_L16_L4_L2_loop1».code.instructionCount
 
 theorem pok1455 : Bridge.PairJ 1455 :=
-  Bridge.pairJ_of Checked.code1455 Checked.core1455 Checked.cert1455 Bridge.ProgAl.tab1455 Checked.fsEq1455 Fn.«level_residual__L37_L20_L4_L2_loop1».pairOk
+  Bridge.pairJ_of Checked.code1455 Checked.core1455 Checked.cert1455 Bridge.ProgAl.tab1455 Checked.fsEq1455 Fn.«level_residual__L28_L16_L4_L2_loop1».pairOk
     adv1455 len1455
 
 kernel_rfl adv1456 : Data.adviceFns[1456]? = some Data.adviceFn1456
 
-kernel_rfl len1456 : Data.adviceFn1456.2.1 = Fn.«level_residual__L32_L20_L4_L2_loop0».code.instructionCount
+kernel_rfl len1456 : Data.adviceFn1456.2.1 = Fn.«level_residual__L25_L16_L4_L2_loop0».code.instructionCount
 
 theorem pok1456 : Bridge.PairJ 1456 :=
-  Bridge.pairJ_of Checked.code1456 Checked.core1456 Checked.cert1456 Bridge.ProgAl.tab1456 Checked.fsEq1456 Fn.«level_residual__L32_L20_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1456 Checked.core1456 Checked.cert1456 Bridge.ProgAl.tab1456 Checked.fsEq1456 Fn.«level_residual__L25_L16_L4_L2_loop0».pairOk
     adv1456 len1456
 
 kernel_rfl adv1457 : Data.adviceFns[1457]? = some Data.adviceFn1457
 
-kernel_rfl len1457 : Data.adviceFn1457.2.1 = Fn.«level_residual__L28_L16_L4_L2_loop0».code.instructionCount
+kernel_rfl len1457 : Data.adviceFn1457.2.1 = Fn.«level_residual__L25_L16_L4_L2_loop1».code.instructionCount
 
 theorem pok1457 : Bridge.PairJ 1457 :=
-  Bridge.pairJ_of Checked.code1457 Checked.core1457 Checked.cert1457 Bridge.ProgAl.tab1457 Checked.fsEq1457 Fn.«level_residual__L28_L16_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1457 Checked.core1457 Checked.cert1457 Bridge.ProgAl.tab1457 Checked.fsEq1457 Fn.«level_residual__L25_L16_L4_L2_loop1».pairOk
     adv1457 len1457
 
 kernel_rfl adv1458 : Data.adviceFns[1458]? = some Data.adviceFn1458
 
-kernel_rfl len1458 : Data.adviceFn1458.2.1 = Fn.«level_residual__L28_L16_L4_L2_loop1».code.instructionCount
+kernel_rfl len1458 : Data.adviceFn1458.2.1 = Fn.«level_residual__L23_L16_L4_L2_loop0».code.instructionCount
 
 theorem pok1458 : Bridge.PairJ 1458 :=
-  Bridge.pairJ_of Checked.code1458 Checked.core1458 Checked.cert1458 Bridge.ProgAl.tab1458 Checked.fsEq1458 Fn.«level_residual__L28_L16_L4_L2_loop1».pairOk
+  Bridge.pairJ_of Checked.code1458 Checked.core1458 Checked.cert1458 Bridge.ProgAl.tab1458 Checked.fsEq1458 Fn.«level_residual__L23_L16_L4_L2_loop0».pairOk
     adv1458 len1458
 
 kernel_rfl adv1459 : Data.adviceFns[1459]? = some Data.adviceFn1459
 
-kernel_rfl len1459 : Data.adviceFn1459.2.1 = Fn.«level_residual__L25_L16_L4_L2_loop0».code.instructionCount
+kernel_rfl len1459 : Data.adviceFn1459.2.1 = Fn.«level_residual__L23_L16_L4_L2_loop1».code.instructionCount
 
 theorem pok1459 : Bridge.PairJ 1459 :=
-  Bridge.pairJ_of Checked.code1459 Checked.core1459 Checked.cert1459 Bridge.ProgAl.tab1459 Checked.fsEq1459 Fn.«level_residual__L25_L16_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1459 Checked.core1459 Checked.cert1459 Bridge.ProgAl.tab1459 Checked.fsEq1459 Fn.«level_residual__L23_L16_L4_L2_loop1».pairOk
     adv1459 len1459
 
 kernel_rfl adv1460 : Data.adviceFns[1460]? = some Data.adviceFn1460
 
-kernel_rfl len1460 : Data.adviceFn1460.2.1 = Fn.«level_residual__L25_L16_L4_L2_loop1».code.instructionCount
+kernel_rfl len1460 : Data.adviceFn1460.2.1 = Fn.«level_residual__L21_L12_L4_L2_loop0».code.instructionCount
 
 theorem pok1460 : Bridge.PairJ 1460 :=
-  Bridge.pairJ_of Checked.code1460 Checked.core1460 Checked.cert1460 Bridge.ProgAl.tab1460 Checked.fsEq1460 Fn.«level_residual__L25_L16_L4_L2_loop1».pairOk
+  Bridge.pairJ_of Checked.code1460 Checked.core1460 Checked.cert1460 Bridge.ProgAl.tab1460 Checked.fsEq1460 Fn.«level_residual__L21_L12_L4_L2_loop0».pairOk
     adv1460 len1460
 
 kernel_rfl adv1461 : Data.adviceFns[1461]? = some Data.adviceFn1461
 
-kernel_rfl len1461 : Data.adviceFn1461.2.1 = Fn.«level_residual__L23_L16_L4_L2_loop0».code.instructionCount
+kernel_rfl len1461 : Data.adviceFn1461.2.1 = Fn.«level_residual__L21_L12_L4_L2_loop1».code.instructionCount
 
 theorem pok1461 : Bridge.PairJ 1461 :=
-  Bridge.pairJ_of Checked.code1461 Checked.core1461 Checked.cert1461 Bridge.ProgAl.tab1461 Checked.fsEq1461 Fn.«level_residual__L23_L16_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1461 Checked.core1461 Checked.cert1461 Bridge.ProgAl.tab1461 Checked.fsEq1461 Fn.«level_residual__L21_L12_L4_L2_loop1».pairOk
     adv1461 len1461
 
 kernel_rfl adv1462 : Data.adviceFns[1462]? = some Data.adviceFn1462
 
-kernel_rfl len1462 : Data.adviceFn1462.2.1 = Fn.«level_residual__L23_L16_L4_L2_loop1».code.instructionCount
+kernel_rfl len1462 : Data.adviceFn1462.2.1 = Fn.«level_residual__L19_L12_L4_L2_loop0».code.instructionCount
 
 theorem pok1462 : Bridge.PairJ 1462 :=
-  Bridge.pairJ_of Checked.code1462 Checked.core1462 Checked.cert1462 Bridge.ProgAl.tab1462 Checked.fsEq1462 Fn.«level_residual__L23_L16_L4_L2_loop1».pairOk
+  Bridge.pairJ_of Checked.code1462 Checked.core1462 Checked.cert1462 Bridge.ProgAl.tab1462 Checked.fsEq1462 Fn.«level_residual__L19_L12_L4_L2_loop0».pairOk
     adv1462 len1462
 
 kernel_rfl adv1463 : Data.adviceFns[1463]? = some Data.adviceFn1463
 
-kernel_rfl len1463 : Data.adviceFn1463.2.1 = Fn.«level_residual__L21_L12_L4_L2_loop0».code.instructionCount
+kernel_rfl len1463 : Data.adviceFn1463.2.1 = Fn.«level_residual__L19_L12_L4_L2_loop1».code.instructionCount
 
 theorem pok1463 : Bridge.PairJ 1463 :=
-  Bridge.pairJ_of Checked.code1463 Checked.core1463 Checked.cert1463 Bridge.ProgAl.tab1463 Checked.fsEq1463 Fn.«level_residual__L21_L12_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1463 Checked.core1463 Checked.cert1463 Bridge.ProgAl.tab1463 Checked.fsEq1463 Fn.«level_residual__L19_L12_L4_L2_loop1».pairOk
     adv1463 len1463
 
 kernel_rfl adv1464 : Data.adviceFns[1464]? = some Data.adviceFn1464
 
-kernel_rfl len1464 : Data.adviceFn1464.2.1 = Fn.«level_residual__L21_L12_L4_L2_loop1».code.instructionCount
+kernel_rfl len1464 : Data.adviceFn1464.2.1 = Fn.«level_residual__L18_L12_L4_L2_loop0».code.instructionCount
 
 theorem pok1464 : Bridge.PairJ 1464 :=
-  Bridge.pairJ_of Checked.code1464 Checked.core1464 Checked.cert1464 Bridge.ProgAl.tab1464 Checked.fsEq1464 Fn.«level_residual__L21_L12_L4_L2_loop1».pairOk
+  Bridge.pairJ_of Checked.code1464 Checked.core1464 Checked.cert1464 Bridge.ProgAl.tab1464 Checked.fsEq1464 Fn.«level_residual__L18_L12_L4_L2_loop0».pairOk
     adv1464 len1464
 
 kernel_rfl adv1465 : Data.adviceFns[1465]? = some Data.adviceFn1465
 
-kernel_rfl len1465 : Data.adviceFn1465.2.1 = Fn.«level_residual__L19_L12_L4_L2_loop0».code.instructionCount
+kernel_rfl len1465 : Data.adviceFn1465.2.1 = Fn.«level_residual__L18_L12_L4_L2_loop1».code.instructionCount
 
 theorem pok1465 : Bridge.PairJ 1465 :=
-  Bridge.pairJ_of Checked.code1465 Checked.core1465 Checked.cert1465 Bridge.ProgAl.tab1465 Checked.fsEq1465 Fn.«level_residual__L19_L12_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1465 Checked.core1465 Checked.cert1465 Bridge.ProgAl.tab1465 Checked.fsEq1465 Fn.«level_residual__L18_L12_L4_L2_loop1».pairOk
     adv1465 len1465
 
 kernel_rfl adv1466 : Data.adviceFns[1466]? = some Data.adviceFn1466
 
-kernel_rfl len1466 : Data.adviceFn1466.2.1 = Fn.«level_residual__L19_L12_L4_L2_loop1».code.instructionCount
+kernel_rfl len1466 : Data.adviceFn1466.2.1 = Fn.«level_residual__L17_L8_L4_L2_loop0».code.instructionCount
 
 theorem pok1466 : Bridge.PairJ 1466 :=
-  Bridge.pairJ_of Checked.code1466 Checked.core1466 Checked.cert1466 Bridge.ProgAl.tab1466 Checked.fsEq1466 Fn.«level_residual__L19_L12_L4_L2_loop1».pairOk
+  Bridge.pairJ_of Checked.code1466 Checked.core1466 Checked.cert1466 Bridge.ProgAl.tab1466 Checked.fsEq1466 Fn.«level_residual__L17_L8_L4_L2_loop0».pairOk
     adv1466 len1466
 
 kernel_rfl adv1467 : Data.adviceFns[1467]? = some Data.adviceFn1467
 
-kernel_rfl len1467 : Data.adviceFn1467.2.1 = Fn.«level_residual__L18_L12_L4_L2_loop0».code.instructionCount
+kernel_rfl len1467 : Data.adviceFn1467.2.1 = Fn.«level_residual__L17_L8_L4_L2_loop1».code.instructionCount
 
 theorem pok1467 : Bridge.PairJ 1467 :=
-  Bridge.pairJ_of Checked.code1467 Checked.core1467 Checked.cert1467 Bridge.ProgAl.tab1467 Checked.fsEq1467 Fn.«level_residual__L18_L12_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1467 Checked.core1467 Checked.cert1467 Bridge.ProgAl.tab1467 Checked.fsEq1467 Fn.«level_residual__L17_L8_L4_L2_loop1».pairOk
     adv1467 len1467
 
 kernel_rfl adv1468 : Data.adviceFns[1468]? = some Data.adviceFn1468
 
-kernel_rfl len1468 : Data.adviceFn1468.2.1 = Fn.«level_residual__L18_L12_L4_L2_loop1».code.instructionCount
+kernel_rfl len1468 : Data.adviceFn1468.2.1 = Fn.«level_residual__L16_L8_L4_L2_loop0».code.instructionCount
 
 theorem pok1468 : Bridge.PairJ 1468 :=
-  Bridge.pairJ_of Checked.code1468 Checked.core1468 Checked.cert1468 Bridge.ProgAl.tab1468 Checked.fsEq1468 Fn.«level_residual__L18_L12_L4_L2_loop1».pairOk
+  Bridge.pairJ_of Checked.code1468 Checked.core1468 Checked.cert1468 Bridge.ProgAl.tab1468 Checked.fsEq1468 Fn.«level_residual__L16_L8_L4_L2_loop0».pairOk
     adv1468 len1468
 
 kernel_rfl adv1469 : Data.adviceFns[1469]? = some Data.adviceFn1469
 
-kernel_rfl len1469 : Data.adviceFn1469.2.1 = Fn.«level_residual__L17_L8_L4_L2_loop0».code.instructionCount
+kernel_rfl len1469 : Data.adviceFn1469.2.1 = Fn.«da_levels__L2_L1_loop0».code.instructionCount
 
 theorem pok1469 : Bridge.PairJ 1469 :=
-  Bridge.pairJ_of Checked.code1469 Checked.core1469 Checked.cert1469 Bridge.ProgAl.tab1469 Checked.fsEq1469 Fn.«level_residual__L17_L8_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1469 Checked.core1469 Checked.cert1469 Bridge.ProgAl.tab1469 Checked.fsEq1469 Fn.«da_levels__L2_L1_loop0».pairOk
     adv1469 len1469
 
 kernel_rfl adv1470 : Data.adviceFns[1470]? = some Data.adviceFn1470
 
-kernel_rfl len1470 : Data.adviceFn1470.2.1 = Fn.«level_residual__L17_L8_L4_L2_loop1».code.instructionCount
+kernel_rfl len1470 : Data.adviceFn1470.2.1 = Fn.«da_levels__L4_L2_loop0».code.instructionCount
 
 theorem pok1470 : Bridge.PairJ 1470 :=
-  Bridge.pairJ_of Checked.code1470 Checked.core1470 Checked.cert1470 Bridge.ProgAl.tab1470 Checked.fsEq1470 Fn.«level_residual__L17_L8_L4_L2_loop1».pairOk
+  Bridge.pairJ_of Checked.code1470 Checked.core1470 Checked.cert1470 Bridge.ProgAl.tab1470 Checked.fsEq1470 Fn.«da_levels__L4_L2_loop0».pairOk
     adv1470 len1470
 
 kernel_rfl adv1471 : Data.adviceFns[1471]? = some Data.adviceFn1471
 
-kernel_rfl len1471 : Data.adviceFn1471.2.1 = Fn.«level_residual__L16_L8_L4_L2_loop0».code.instructionCount
+kernel_rfl len1471 : Data.adviceFn1471.2.1 = Fn.«da_levels__L4_L2_loop1».code.instructionCount
 
 theorem pok1471 : Bridge.PairJ 1471 :=
-  Bridge.pairJ_of Checked.code1471 Checked.core1471 Checked.cert1471 Bridge.ProgAl.tab1471 Checked.fsEq1471 Fn.«level_residual__L16_L8_L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1471 Checked.core1471 Checked.cert1471 Bridge.ProgAl.tab1471 Checked.fsEq1471 Fn.«da_levels__L4_L2_loop1».pairOk
     adv1471 len1471
 
 kernel_rfl adv1472 : Data.adviceFns[1472]? = some Data.adviceFn1472
 
-kernel_rfl len1472 : Data.adviceFn1472.2.1 = Fn.«da_levels__L2_L1_loop0».code.instructionCount
+kernel_rfl len1472 : Data.adviceFn1472.2.1 = Fn.«da_levels__L8_L3_loop0».code.instructionCount
 
 theorem pok1472 : Bridge.PairJ 1472 :=
-  Bridge.pairJ_of Checked.code1472 Checked.core1472 Checked.cert1472 Bridge.ProgAl.tab1472 Checked.fsEq1472 Fn.«da_levels__L2_L1_loop0».pairOk
+  Bridge.pairJ_of Checked.code1472 Checked.core1472 Checked.cert1472 Bridge.ProgAl.tab1472 Checked.fsEq1472 Fn.«da_levels__L8_L3_loop0».pairOk
     adv1472 len1472
 
 kernel_rfl adv1473 : Data.adviceFns[1473]? = some Data.adviceFn1473
 
-kernel_rfl len1473 : Data.adviceFn1473.2.1 = Fn.«da_levels__L4_L2_loop0».code.instructionCount
+kernel_rfl len1473 : Data.adviceFn1473.2.1 = Fn.«da_levels__L8_L3_loop1».code.instructionCount
 
 theorem pok1473 : Bridge.PairJ 1473 :=
-  Bridge.pairJ_of Checked.code1473 Checked.core1473 Checked.cert1473 Bridge.ProgAl.tab1473 Checked.fsEq1473 Fn.«da_levels__L4_L2_loop0».pairOk
+  Bridge.pairJ_of Checked.code1473 Checked.core1473 Checked.cert1473 Bridge.ProgAl.tab1473 Checked.fsEq1473 Fn.«da_levels__L8_L3_loop1».pairOk
     adv1473 len1473
 
 kernel_rfl adv1474 : Data.adviceFns[1474]? = some Data.adviceFn1474
 
-kernel_rfl len1474 : Data.adviceFn1474.2.1 = Fn.«da_levels__L4_L2_loop1».code.instructionCount
+kernel_rfl len1474 : Data.adviceFn1474.2.1 = Fn.«da_levels__L8_L3_loop2».code.instructionCount
 
 theorem pok1474 : Bridge.PairJ 1474 :=
-  Bridge.pairJ_of Checked.code1474 Checked.core1474 Checked.cert1474 Bridge.ProgAl.tab1474 Checked.fsEq1474 Fn.«da_levels__L4_L2_loop1».pairOk
+  Bridge.pairJ_of Checked.code1474 Checked.core1474 Checked.cert1474 Bridge.ProgAl.tab1474 Checked.fsEq1474 Fn.«da_levels__L8_L3_loop2».pairOk
     adv1474 len1474
 
 kernel_rfl adv1475 : Data.adviceFns[1475]? = some Data.adviceFn1475
 
-kernel_rfl len1475 : Data.adviceFn1475.2.1 = Fn.«da_levels__L8_L3_loop0».code.instructionCount
+kernel_rfl len1475 : Data.adviceFn1475.2.1 = Fn.«da_levels__L16_L4_loop0».code.instructionCount
 
 theorem pok1475 : Bridge.PairJ 1475 :=
-  Bridge.pairJ_of Checked.code1475 Checked.core1475 Checked.cert1475 Bridge.ProgAl.tab1475 Checked.fsEq1475 Fn.«da_levels__L8_L3_loop0».pairOk
+  Bridge.pairJ_of Checked.code1475 Checked.core1475 Checked.cert1475 Bridge.ProgAl.tab1475 Checked.fsEq1475 Fn.«da_levels__L16_L4_loop0».pairOk
     adv1475 len1475
 
 kernel_rfl adv1476 : Data.adviceFns[1476]? = some Data.adviceFn1476
 
-kernel_rfl len1476 : Data.adviceFn1476.2.1 = Fn.«da_levels__L8_L3_loop1».code.instructionCount
+kernel_rfl len1476 : Data.adviceFn1476.2.1 = Fn.«da_levels__L16_L4_loop1».code.instructionCount
 
 theorem pok1476 : Bridge.PairJ 1476 :=
-  Bridge.pairJ_of Checked.code1476 Checked.core1476 Checked.cert1476 Bridge.ProgAl.tab1476 Checked.fsEq1476 Fn.«da_levels__L8_L3_loop1».pairOk
+  Bridge.pairJ_of Checked.code1476 Checked.core1476 Checked.cert1476 Bridge.ProgAl.tab1476 Checked.fsEq1476 Fn.«da_levels__L16_L4_loop1».pairOk
     adv1476 len1476
 
 kernel_rfl adv1477 : Data.adviceFns[1477]? = some Data.adviceFn1477
 
-kernel_rfl len1477 : Data.adviceFn1477.2.1 = Fn.«da_levels__L8_L3_loop2».code.instructionCount
+kernel_rfl len1477 : Data.adviceFn1477.2.1 = Fn.«da_levels__L16_L4_loop2».code.instructionCount
 
 theorem pok1477 : Bridge.PairJ 1477 :=
-  Bridge.pairJ_of Checked.code1477 Checked.core1477 Checked.cert1477 Bridge.ProgAl.tab1477 Checked.fsEq1477 Fn.«da_levels__L8_L3_loop2».pairOk
+  Bridge.pairJ_of Checked.code1477 Checked.core1477 Checked.cert1477 Bridge.ProgAl.tab1477 Checked.fsEq1477 Fn.«da_levels__L16_L4_loop2».pairOk
     adv1477 len1477
 
 kernel_rfl adv1478 : Data.adviceFns[1478]? = some Data.adviceFn1478
 
-kernel_rfl len1478 : Data.adviceFn1478.2.1 = Fn.«da_levels__L16_L4_loop0».code.instructionCount
+kernel_rfl len1478 : Data.adviceFn1478.2.1 = Fn.«da_levels__L16_L4_loop3».code.instructionCount
 
 theorem pok1478 : Bridge.PairJ 1478 :=
-  Bridge.pairJ_of Checked.code1478 Checked.core1478 Checked.cert1478 Bridge.ProgAl.tab1478 Checked.fsEq1478 Fn.«da_levels__L16_L4_loop0».pairOk
+  Bridge.pairJ_of Checked.code1478 Checked.core1478 Checked.cert1478 Bridge.ProgAl.tab1478 Checked.fsEq1478 Fn.«da_levels__L16_L4_loop3».pairOk
     adv1478 len1478
 
 kernel_rfl adv1479 : Data.adviceFns[1479]? = some Data.adviceFn1479
 
-kernel_rfl len1479 : Data.adviceFn1479.2.1 = Fn.«da_levels__L16_L4_loop1».code.instructionCount
+kernel_rfl len1479 : Data.adviceFn1479.2.1 = Fn.«da_levels__L32_L5_loop0».code.instructionCount
 
 theorem pok1479 : Bridge.PairJ 1479 :=
-  Bridge.pairJ_of Checked.code1479 Checked.core1479 Checked.cert1479 Bridge.ProgAl.tab1479 Checked.fsEq1479 Fn.«da_levels__L16_L4_loop1».pairOk
+  Bridge.pairJ_of Checked.code1479 Checked.core1479 Checked.cert1479 Bridge.ProgAl.tab1479 Checked.fsEq1479 Fn.«da_levels__L32_L5_loop0».pairOk
     adv1479 len1479
 
 kernel_rfl adv1480 : Data.adviceFns[1480]? = some Data.adviceFn1480
 
-kernel_rfl len1480 : Data.adviceFn1480.2.1 = Fn.«da_levels__L16_L4_loop2».code.instructionCount
+kernel_rfl len1480 : Data.adviceFn1480.2.1 = Fn.«da_levels__L32_L5_loop1».code.instructionCount
 
 theorem pok1480 : Bridge.PairJ 1480 :=
-  Bridge.pairJ_of Checked.code1480 Checked.core1480 Checked.cert1480 Bridge.ProgAl.tab1480 Checked.fsEq1480 Fn.«da_levels__L16_L4_loop2».pairOk
+  Bridge.pairJ_of Checked.code1480 Checked.core1480 Checked.cert1480 Bridge.ProgAl.tab1480 Checked.fsEq1480 Fn.«da_levels__L32_L5_loop1».pairOk
     adv1480 len1480
 
 kernel_rfl adv1481 : Data.adviceFns[1481]? = some Data.adviceFn1481
 
-kernel_rfl len1481 : Data.adviceFn1481.2.1 = Fn.«da_levels__L16_L4_loop3».code.instructionCount
+kernel_rfl len1481 : Data.adviceFn1481.2.1 = Fn.«da_levels__L32_L5_loop2».code.instructionCount
 
 theorem pok1481 : Bridge.PairJ 1481 :=
-  Bridge.pairJ_of Checked.code1481 Checked.core1481 Checked.cert1481 Bridge.ProgAl.tab1481 Checked.fsEq1481 Fn.«da_levels__L16_L4_loop3».pairOk
+  Bridge.pairJ_of Checked.code1481 Checked.core1481 Checked.cert1481 Bridge.ProgAl.tab1481 Checked.fsEq1481 Fn.«da_levels__L32_L5_loop2».pairOk
     adv1481 len1481
 
 kernel_rfl adv1482 : Data.adviceFns[1482]? = some Data.adviceFn1482
 
-kernel_rfl len1482 : Data.adviceFn1482.2.1 = Fn.«da_levels__L32_L5_loop0».code.instructionCount
+kernel_rfl len1482 : Data.adviceFn1482.2.1 = Fn.«da_levels__L32_L5_loop3».code.instructionCount
 
 theorem pok1482 : Bridge.PairJ 1482 :=
-  Bridge.pairJ_of Checked.code1482 Checked.core1482 Checked.cert1482 Bridge.ProgAl.tab1482 Checked.fsEq1482 Fn.«da_levels__L32_L5_loop0».pairOk
+  Bridge.pairJ_of Checked.code1482 Checked.core1482 Checked.cert1482 Bridge.ProgAl.tab1482 Checked.fsEq1482 Fn.«da_levels__L32_L5_loop3».pairOk
     adv1482 len1482
 
 kernel_rfl adv1483 : Data.adviceFns[1483]? = some Data.adviceFn1483
 
-kernel_rfl len1483 : Data.adviceFn1483.2.1 = Fn.«da_levels__L32_L5_loop1».code.instructionCount
+kernel_rfl len1483 : Data.adviceFn1483.2.1 = Fn.«da_levels__L32_L5_loop4».code.instructionCount
 
 theorem pok1483 : Bridge.PairJ 1483 :=
-  Bridge.pairJ_of Checked.code1483 Checked.core1483 Checked.cert1483 Bridge.ProgAl.tab1483 Checked.fsEq1483 Fn.«da_levels__L32_L5_loop1».pairOk
+  Bridge.pairJ_of Checked.code1483 Checked.core1483 Checked.cert1483 Bridge.ProgAl.tab1483 Checked.fsEq1483 Fn.«da_levels__L32_L5_loop4».pairOk
     adv1483 len1483
 
 kernel_rfl adv1484 : Data.adviceFns[1484]? = some Data.adviceFn1484
 
-kernel_rfl len1484 : Data.adviceFn1484.2.1 = Fn.«da_levels__L32_L5_loop2».code.instructionCount
+kernel_rfl len1484 : Data.adviceFn1484.2.1 = Fn.«da_levels__L64_L6_loop0».code.instructionCount
 
 theorem pok1484 : Bridge.PairJ 1484 :=
-  Bridge.pairJ_of Checked.code1484 Checked.core1484 Checked.cert1484 Bridge.ProgAl.tab1484 Checked.fsEq1484 Fn.«da_levels__L32_L5_loop2».pairOk
+  Bridge.pairJ_of Checked.code1484 Checked.core1484 Checked.cert1484 Bridge.ProgAl.tab1484 Checked.fsEq1484 Fn.«da_levels__L64_L6_loop0».pairOk
     adv1484 len1484
 
 kernel_rfl adv1485 : Data.adviceFns[1485]? = some Data.adviceFn1485
 
-kernel_rfl len1485 : Data.adviceFn1485.2.1 = Fn.«da_levels__L32_L5_loop3».code.instructionCount
+kernel_rfl len1485 : Data.adviceFn1485.2.1 = Fn.«da_levels__L64_L6_loop1».code.instructionCount
 
 theorem pok1485 : Bridge.PairJ 1485 :=
-  Bridge.pairJ_of Checked.code1485 Checked.core1485 Checked.cert1485 Bridge.ProgAl.tab1485 Checked.fsEq1485 Fn.«da_levels__L32_L5_loop3».pairOk
+  Bridge.pairJ_of Checked.code1485 Checked.core1485 Checked.cert1485 Bridge.ProgAl.tab1485 Checked.fsEq1485 Fn.«da_levels__L64_L6_loop1».pairOk
     adv1485 len1485
 
 kernel_rfl adv1486 : Data.adviceFns[1486]? = some Data.adviceFn1486
 
-kernel_rfl len1486 : Data.adviceFn1486.2.1 = Fn.«da_levels__L32_L5_loop4».code.instructionCount
+kernel_rfl len1486 : Data.adviceFn1486.2.1 = Fn.«da_levels__L64_L6_loop2».code.instructionCount
 
 theorem pok1486 : Bridge.PairJ 1486 :=
-  Bridge.pairJ_of Checked.code1486 Checked.core1486 Checked.cert1486 Bridge.ProgAl.tab1486 Checked.fsEq1486 Fn.«da_levels__L32_L5_loop4».pairOk
+  Bridge.pairJ_of Checked.code1486 Checked.core1486 Checked.cert1486 Bridge.ProgAl.tab1486 Checked.fsEq1486 Fn.«da_levels__L64_L6_loop2».pairOk
     adv1486 len1486
 
 kernel_rfl adv1487 : Data.adviceFns[1487]? = some Data.adviceFn1487
 
-kernel_rfl len1487 : Data.adviceFn1487.2.1 = Fn.«da_levels__L64_L6_loop0».code.instructionCount
+kernel_rfl len1487 : Data.adviceFn1487.2.1 = Fn.«da_levels__L64_L6_loop3».code.instructionCount
 
 theorem pok1487 : Bridge.PairJ 1487 :=
-  Bridge.pairJ_of Checked.code1487 Checked.core1487 Checked.cert1487 Bridge.ProgAl.tab1487 Checked.fsEq1487 Fn.«da_levels__L64_L6_loop0».pairOk
+  Bridge.pairJ_of Checked.code1487 Checked.core1487 Checked.cert1487 Bridge.ProgAl.tab1487 Checked.fsEq1487 Fn.«da_levels__L64_L6_loop3».pairOk
     adv1487 len1487
 
 kernel_rfl adv1488 : Data.adviceFns[1488]? = some Data.adviceFn1488
 
-kernel_rfl len1488 : Data.adviceFn1488.2.1 = Fn.«da_levels__L64_L6_loop1».code.instructionCount
+kernel_rfl len1488 : Data.adviceFn1488.2.1 = Fn.«da_levels__L64_L6_loop4».code.instructionCount
 
 theorem pok1488 : Bridge.PairJ 1488 :=
-  Bridge.pairJ_of Checked.code1488 Checked.core1488 Checked.cert1488 Bridge.ProgAl.tab1488 Checked.fsEq1488 Fn.«da_levels__L64_L6_loop1».pairOk
+  Bridge.pairJ_of Checked.code1488 Checked.core1488 Checked.cert1488 Bridge.ProgAl.tab1488 Checked.fsEq1488 Fn.«da_levels__L64_L6_loop4».pairOk
     adv1488 len1488
 
 kernel_rfl adv1489 : Data.adviceFns[1489]? = some Data.adviceFn1489
 
-kernel_rfl len1489 : Data.adviceFn1489.2.1 = Fn.«da_levels__L64_L6_loop2».code.instructionCount
+kernel_rfl len1489 : Data.adviceFn1489.2.1 = Fn.«da_levels__L64_L6_loop5».code.instructionCount
 
 theorem pok1489 : Bridge.PairJ 1489 :=
-  Bridge.pairJ_of Checked.code1489 Checked.core1489 Checked.cert1489 Bridge.ProgAl.tab1489 Checked.fsEq1489 Fn.«da_levels__L64_L6_loop2».pairOk
+  Bridge.pairJ_of Checked.code1489 Checked.core1489 Checked.cert1489 Bridge.ProgAl.tab1489 Checked.fsEq1489 Fn.«da_levels__L64_L6_loop5».pairOk
     adv1489 len1489
 
 kernel_rfl adv1490 : Data.adviceFns[1490]? = some Data.adviceFn1490
 
-kernel_rfl len1490 : Data.adviceFn1490.2.1 = Fn.«da_levels__L64_L6_loop3».code.instructionCount
+kernel_rfl len1490 : Data.adviceFn1490.2.1 = Fn.«da_levels__L256_L8_loop0».code.instructionCount
 
 theorem pok1490 : Bridge.PairJ 1490 :=
-  Bridge.pairJ_of Checked.code1490 Checked.core1490 Checked.cert1490 Bridge.ProgAl.tab1490 Checked.fsEq1490 Fn.«da_levels__L64_L6_loop3».pairOk
+  Bridge.pairJ_of Checked.code1490 Checked.core1490 Checked.cert1490 Bridge.ProgAl.tab1490 Checked.fsEq1490 Fn.«da_levels__L256_L8_loop0».pairOk
     adv1490 len1490
 
 kernel_rfl adv1491 : Data.adviceFns[1491]? = some Data.adviceFn1491
 
-kernel_rfl len1491 : Data.adviceFn1491.2.1 = Fn.«da_levels__L64_L6_loop4».code.instructionCount
+kernel_rfl len1491 : Data.adviceFn1491.2.1 = Fn.«da_levels__L256_L8_loop1».code.instructionCount
 
 theorem pok1491 : Bridge.PairJ 1491 :=
-  Bridge.pairJ_of Checked.code1491 Checked.core1491 Checked.cert1491 Bridge.ProgAl.tab1491 Checked.fsEq1491 Fn.«da_levels__L64_L6_loop4».pairOk
+  Bridge.pairJ_of Checked.code1491 Checked.core1491 Checked.cert1491 Bridge.ProgAl.tab1491 Checked.fsEq1491 Fn.«da_levels__L256_L8_loop1».pairOk
     adv1491 len1491
 
 kernel_rfl adv1492 : Data.adviceFns[1492]? = some Data.adviceFn1492
 
-kernel_rfl len1492 : Data.adviceFn1492.2.1 = Fn.«da_levels__L64_L6_loop5».code.instructionCount
+kernel_rfl len1492 : Data.adviceFn1492.2.1 = Fn.«da_levels__L256_L8_loop2».code.instructionCount
 
 theorem pok1492 : Bridge.PairJ 1492 :=
-  Bridge.pairJ_of Checked.code1492 Checked.core1492 Checked.cert1492 Bridge.ProgAl.tab1492 Checked.fsEq1492 Fn.«da_levels__L64_L6_loop5».pairOk
+  Bridge.pairJ_of Checked.code1492 Checked.core1492 Checked.cert1492 Bridge.ProgAl.tab1492 Checked.fsEq1492 Fn.«da_levels__L256_L8_loop2».pairOk
     adv1492 len1492
 
 kernel_rfl adv1493 : Data.adviceFns[1493]? = some Data.adviceFn1493
 
-kernel_rfl len1493 : Data.adviceFn1493.2.1 = Fn.«da_levels__L256_L8_loop0».code.instructionCount
+kernel_rfl len1493 : Data.adviceFn1493.2.1 = Fn.«da_levels__L256_L8_loop3».code.instructionCount
 
 theorem pok1493 : Bridge.PairJ 1493 :=
-  Bridge.pairJ_of Checked.code1493 Checked.core1493 Checked.cert1493 Bridge.ProgAl.tab1493 Checked.fsEq1493 Fn.«da_levels__L256_L8_loop0».pairOk
+  Bridge.pairJ_of Checked.code1493 Checked.core1493 Checked.cert1493 Bridge.ProgAl.tab1493 Checked.fsEq1493 Fn.«da_levels__L256_L8_loop3».pairOk
     adv1493 len1493
 
 kernel_rfl adv1494 : Data.adviceFns[1494]? = some Data.adviceFn1494
 
-kernel_rfl len1494 : Data.adviceFn1494.2.1 = Fn.«da_levels__L256_L8_loop1».code.instructionCount
+kernel_rfl len1494 : Data.adviceFn1494.2.1 = Fn.«da_levels__L256_L8_loop4».code.instructionCount
 
 theorem pok1494 : Bridge.PairJ 1494 :=
-  Bridge.pairJ_of Checked.code1494 Checked.core1494 Checked.cert1494 Bridge.ProgAl.tab1494 Checked.fsEq1494 Fn.«da_levels__L256_L8_loop1».pairOk
+  Bridge.pairJ_of Checked.code1494 Checked.core1494 Checked.cert1494 Bridge.ProgAl.tab1494 Checked.fsEq1494 Fn.«da_levels__L256_L8_loop4».pairOk
     adv1494 len1494
 
 kernel_rfl adv1495 : Data.adviceFns[1495]? = some Data.adviceFn1495
 
-kernel_rfl len1495 : Data.adviceFn1495.2.1 = Fn.«da_levels__L256_L8_loop2».code.instructionCount
+kernel_rfl len1495 : Data.adviceFn1495.2.1 = Fn.«da_levels__L256_L8_loop5».code.instructionCount
 
 theorem pok1495 : Bridge.PairJ 1495 :=
-  Bridge.pairJ_of Checked.code1495 Checked.core1495 Checked.cert1495 Bridge.ProgAl.tab1495 Checked.fsEq1495 Fn.«da_levels__L256_L8_loop2».pairOk
+  Bridge.pairJ_of Checked.code1495 Checked.core1495 Checked.cert1495 Bridge.ProgAl.tab1495 Checked.fsEq1495 Fn.«da_levels__L256_L8_loop5».pairOk
     adv1495 len1495
 
 kernel_rfl adv1496 : Data.adviceFns[1496]? = some Data.adviceFn1496
 
-kernel_rfl len1496 : Data.adviceFn1496.2.1 = Fn.«da_levels__L256_L8_loop3».code.instructionCount
+kernel_rfl len1496 : Data.adviceFn1496.2.1 = Fn.«da_levels__L256_L8_loop6».code.instructionCount
 
 theorem pok1496 : Bridge.PairJ 1496 :=
-  Bridge.pairJ_of Checked.code1496 Checked.core1496 Checked.cert1496 Bridge.ProgAl.tab1496 Checked.fsEq1496 Fn.«da_levels__L256_L8_loop3».pairOk
+  Bridge.pairJ_of Checked.code1496 Checked.core1496 Checked.cert1496 Bridge.ProgAl.tab1496 Checked.fsEq1496 Fn.«da_levels__L256_L8_loop6».pairOk
     adv1496 len1496
 
 kernel_rfl adv1497 : Data.adviceFns[1497]? = some Data.adviceFn1497
 
-kernel_rfl len1497 : Data.adviceFn1497.2.1 = Fn.«da_levels__L256_L8_loop4».code.instructionCount
+kernel_rfl len1497 : Data.adviceFn1497.2.1 = Fn.«da_levels__L256_L8_loop7».code.instructionCount
 
 theorem pok1497 : Bridge.PairJ 1497 :=
-  Bridge.pairJ_of Checked.code1497 Checked.core1497 Checked.cert1497 Bridge.ProgAl.tab1497 Checked.fsEq1497 Fn.«da_levels__L256_L8_loop4».pairOk
+  Bridge.pairJ_of Checked.code1497 Checked.core1497 Checked.cert1497 Bridge.ProgAl.tab1497 Checked.fsEq1497 Fn.«da_levels__L256_L8_loop7».pairOk
     adv1497 len1497
 
 kernel_rfl adv1498 : Data.adviceFns[1498]? = some Data.adviceFn1498
 
-kernel_rfl len1498 : Data.adviceFn1498.2.1 = Fn.«da_levels__L256_L8_loop5».code.instructionCount
+kernel_rfl len1498 : Data.adviceFn1498.2.1 = Fn.«da_levels__L512_L9_loop0».code.instructionCount
 
 theorem pok1498 : Bridge.PairJ 1498 :=
-  Bridge.pairJ_of Checked.code1498 Checked.core1498 Checked.cert1498 Bridge.ProgAl.tab1498 Checked.fsEq1498 Fn.«da_levels__L256_L8_loop5».pairOk
+  Bridge.pairJ_of Checked.code1498 Checked.core1498 Checked.cert1498 Bridge.ProgAl.tab1498 Checked.fsEq1498 Fn.«da_levels__L512_L9_loop0».pairOk
     adv1498 len1498
 
 kernel_rfl adv1499 : Data.adviceFns[1499]? = some Data.adviceFn1499
 
-kernel_rfl len1499 : Data.adviceFn1499.2.1 = Fn.«da_levels__L256_L8_loop6».code.instructionCount
+kernel_rfl len1499 : Data.adviceFn1499.2.1 = Fn.«da_levels__L512_L9_loop1».code.instructionCount
 
 theorem pok1499 : Bridge.PairJ 1499 :=
-  Bridge.pairJ_of Checked.code1499 Checked.core1499 Checked.cert1499 Bridge.ProgAl.tab1499 Checked.fsEq1499 Fn.«da_levels__L256_L8_loop6».pairOk
+  Bridge.pairJ_of Checked.code1499 Checked.core1499 Checked.cert1499 Bridge.ProgAl.tab1499 Checked.fsEq1499 Fn.«da_levels__L512_L9_loop1».pairOk
     adv1499 len1499
 
 kernel_rfl adv1500 : Data.adviceFns[1500]? = some Data.adviceFn1500
 
-kernel_rfl len1500 : Data.adviceFn1500.2.1 = Fn.«da_levels__L256_L8_loop7».code.instructionCount
+kernel_rfl len1500 : Data.adviceFn1500.2.1 = Fn.«da_levels__L512_L9_loop2».code.instructionCount
 
 theorem pok1500 : Bridge.PairJ 1500 :=
-  Bridge.pairJ_of Checked.code1500 Checked.core1500 Checked.cert1500 Bridge.ProgAl.tab1500 Checked.fsEq1500 Fn.«da_levels__L256_L8_loop7».pairOk
+  Bridge.pairJ_of Checked.code1500 Checked.core1500 Checked.cert1500 Bridge.ProgAl.tab1500 Checked.fsEq1500 Fn.«da_levels__L512_L9_loop2».pairOk
     adv1500 len1500
 
 end

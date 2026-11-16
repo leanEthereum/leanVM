@@ -33941,14 +33941,14 @@ noncomputable def modeTabs56 : Exec.Trie (ℕ) :=
 
 /-- `__loop2`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14367, (.node none (.node none (.node none (.node none (.node
-    none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node
+  ⟨Data.powTree, Data.jtTrie, 430, 14363, (.node none .nil (.node none (.node none (.node none .nil
+    (.node none (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node
     none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«main_loop2».modeSig) .nil .nil))))))) .nil) .nil)))) .nil) .nil) .nil) .nil), 524287⟩
+    Fn.«main_loop2».modeSig) .nil .nil))))))) .nil) .nil))) .nil)) .nil) .nil)), 524287⟩
 
 /-- `__loop2`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨65135, 114219, Fn.«main_loop2».modeSig, (.node (some [(.witnessStack "raw_index" 59 1)]) (.node
+  ⟨65128, 114219, Fn.«main_loop2».modeSig, (.node (some [(.witnessStack "raw_index" 59 1)]) (.node
     none (.node none (.node none (.node none (.node none modeHints0 modeHints1) (.node none
     modeHints2 modeHints3)) (.node none (.node none modeHints4 modeHints5) (.node none modeHints6
     modeHints7))) (.node (some [(.witnessStack "lx_index" 70 4), (.witnessStack "lx_windows" 74

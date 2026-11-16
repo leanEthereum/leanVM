@@ -25,19 +25,19 @@ theorem allocShapeOk : Bridge.allocShape Fn.«verify_merkle_cap__L8».core.body 
 
 /-- `verify_merkle_cap__L8`'s body has its buffer hints' atoms and no `match` arm target pending. -/
 theorem curBodyOk :
-    Bridge.curBody alignCtx Fn.«verify_merkle_cap__L8».plumb Fn.«verify_merkle_cap__L8».core.body Fn.«verify_merkle_cap__L8».code.code Data.adviceFn1200 = true := by
+    Bridge.curBody alignCtx Fn.«verify_merkle_cap__L8».plumb Fn.«verify_merkle_cap__L8».core.body Fn.«verify_merkle_cap__L8».code.code Data.adviceFn1197 = true := by
   decide +kernel
 
 /-- `verify_merkle_cap__L8`'s frame hints reserve their callees' frames. -/
 theorem frOk :
     Bridge.frChk alignCtx Fn.«verify_merkle_cap__L8».fs [] Fn.«verify_merkle_cap__L8».core.params Fn.«verify_merkle_cap__L8».core.body
-      Data.adviceFn1200 = true := by
+      Data.adviceFn1197 = true := by
   decide +kernel
 
 /-- `verify_merkle_cap__L8`'s allocation hints pass the check. -/
 theorem allocOk :
     Bridge.allocRest alignCtx Fn.«verify_merkle_cap__L8».fs Fn.«verify_merkle_cap__L8».core.loop Fn.«verify_merkle_cap__L8».plumb Fn.«verify_merkle_cap__L8».core.body Fn.«verify_merkle_cap__L8».code.code
-      Data.adviceFn1200 = true := by
+      Data.adviceFn1197 = true := by
   decide +kernel
 
 end

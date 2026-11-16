@@ -10,13 +10,10 @@ module
 public import LeanVM.Guest.Bridge.ProgAl.Link16
 public import LeanVM.Guest.Bridge.WitChk.«P10»
 public import LeanVM.Guest.Bridge.WitChk.«P17»
-public import LeanVM.Guest.Bridge.WitChk.«P21»
 public import LeanVM.Guest.Bridge.WitChk.«P27»
 public import LeanVM.Guest.Bridge.WitChk.«P29»
-public import LeanVM.Guest.Bridge.WitChk.«P35»
 public import LeanVM.Guest.Bridge.WitChk.«P36»
 public import LeanVM.Guest.Bridge.WitChk.«P40»
-public import LeanVM.Guest.Bridge.WitChk.«P43»
 public import LeanVM.Guest.Bridge.WitChk.«P44»
 public import LeanVM.Guest.Bridge.WitChk.«P54»
 public import LeanVM.Guest.Bridge.WitChk.«P57»
@@ -32,54 +29,42 @@ public section
 
 theorem wok1601 : Bridge.WitJ 1601 :=
   Bridge.witJ_of Checked.code1601 Checked.core1601 Checked.cert1601 Checked.plumbEq1601 Bridge.ProgAl.tab1601 rfl Checked.fsEq1601
-    Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1_loop0».witOk
+    Fn.«walk_path__L24_L4».witOk
 
 theorem wok1602 : Bridge.WitJ 1602 :=
   Bridge.witJ_of Checked.code1602 Checked.core1602 Checked.cert1602 Checked.plumbEq1602 Bridge.ProgAl.tab1602 rfl Checked.fsEq1602
-    Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1_loop0».witOk
+    Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0_loop0».witOk
 
 theorem wok1603 : Bridge.WitJ 1603 :=
   Bridge.witJ_of Checked.code1603 Checked.core1603 Checked.cert1603 Checked.plumbEq1603 Bridge.ProgAl.tab1603 rfl Checked.fsEq1603
-    Fn.«opening_queries__L0_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».witOk
+    Fn.«opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0».witOk
 
 theorem wok1604 : Bridge.WitJ 1604 :=
   Bridge.witJ_of Checked.code1604 Checked.core1604 Checked.cert1604 Checked.plumbEq1604 Bridge.ProgAl.tab1604 rfl Checked.fsEq1604
-    Fn.«walk_path__L24_L4».witOk
+    Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0».witOk
 
 theorem wok1605 : Bridge.WitJ 1605 :=
   Bridge.witJ_of Checked.code1605 Checked.core1605 Checked.cert1605 Checked.plumbEq1605 Bridge.ProgAl.tab1605 rfl Checked.fsEq1605
-    Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0_loop0».witOk
+    Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1_loop0».witOk
 
 theorem wok1606 : Bridge.WitJ 1606 :=
   Bridge.witJ_of Checked.code1606 Checked.core1606 Checked.cert1606 Checked.plumbEq1606 Bridge.ProgAl.tab1606 rfl Checked.fsEq1606
-    Fn.«opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0».witOk
+    Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0».witOk
 
 theorem wok1607 : Bridge.WitJ 1607 :=
   Bridge.witJ_of Checked.code1607 Checked.core1607 Checked.cert1607 Checked.plumbEq1607 Bridge.ProgAl.tab1607 rfl Checked.fsEq1607
-    Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0».witOk
+    Fn.«walk_path__L12_L2».witOk
 
 theorem wok1608 : Bridge.WitJ 1608 :=
   Bridge.witJ_of Checked.code1608 Checked.core1608 Checked.cert1608 Checked.plumbEq1608 Bridge.ProgAl.tab1608 rfl Checked.fsEq1608
-    Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L4_L10_L20_L5_L1_loop0».witOk
+    Fn.«walk_path__L6_L7».witOk
 
 theorem wok1609 : Bridge.WitJ 1609 :=
   Bridge.witJ_of Checked.code1609 Checked.core1609 Checked.cert1609 Checked.plumbEq1609 Bridge.ProgAl.tab1609 rfl Checked.fsEq1609
-    Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0».witOk
+    Fn.«walk_path__L6_L6».witOk
 
 theorem wok1610 : Bridge.WitJ 1610 :=
   Bridge.witJ_of Checked.code1610 Checked.core1610 Checked.cert1610 Checked.plumbEq1610 Bridge.ProgAl.tab1610 rfl Checked.fsEq1610
-    Fn.«walk_path__L12_L2».witOk
-
-theorem wok1611 : Bridge.WitJ 1611 :=
-  Bridge.witJ_of Checked.code1611 Checked.core1611 Checked.cert1611 Checked.plumbEq1611 Bridge.ProgAl.tab1611 rfl Checked.fsEq1611
-    Fn.«walk_path__L6_L7».witOk
-
-theorem wok1612 : Bridge.WitJ 1612 :=
-  Bridge.witJ_of Checked.code1612 Checked.core1612 Checked.cert1612 Checked.plumbEq1612 Bridge.ProgAl.tab1612 rfl Checked.fsEq1612
-    Fn.«walk_path__L6_L6».witOk
-
-theorem wok1613 : Bridge.WitJ 1613 :=
-  Bridge.witJ_of Checked.code1613 Checked.core1613 Checked.cert1613 Checked.plumbEq1613 Bridge.ProgAl.tab1613 rfl Checked.fsEq1613
     Fn.«walk_path__L12_L8».witOk
 
 end

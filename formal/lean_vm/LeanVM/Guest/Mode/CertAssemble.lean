@@ -19,12 +19,12 @@ open LeanVM.Guest LeanVM.Guest.Exec LeanVM.Guest.EndExec
 @[expose] public section
 
 /-- The guest's program as every certificate's environment has it, but the signatures. -/
-noncomputable def guestE0 : Env := ⟨Data.powTree, Data.jtTrie, 430, 14367, .nil, 524287⟩
+noncomputable def guestE0 : Env := ⟨Data.powTree, Data.jtTrie, 430, jtEnd, .nil, 524287⟩
 
 theorem jt_guest : ∀ d e, Data.jtTrie.get d = some e → e < 2 ^ 62 := jt_lt_of (by decide +kernel)
 
 theorem staticB_spec {K : Cert} (h : staticB K = true) :
-    K.F.len = K.code.length ∧ 0 < K.code.length ∧ 0 < K.F.entry ∧ K.E.jtLo = 430 ∧ K.E.jtHi = 14367 ∧
+    K.F.len = K.code.length ∧ 0 < K.code.length ∧ 0 < K.F.entry ∧ K.E.jtLo = 430 ∧ K.E.jtHi = jtEnd ∧
       K.E.halt = 524287 ∧ tailRetB K = true ∧ loopRngB K.F.sig = true ∧ termFr K.F.sig = true := by
   simpa only [staticB, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq, and_assoc] using h
 
@@ -69,7 +69,7 @@ theorem entry_ne_zero {Ks : List Cert} (hst : ∀ K ∈ Ks, CertSt K) : ∀ K �
   fun K hK ↦ Nat.pos_iff_ne_zero.1 (staticB_spec (hst K hK).b).2.2.1
 
 /-- **`main`'s certificate starts as the prologue leaves it.** -/
-theorem mainOk_guest {Km : Cert} (hsig : Km.F.sig = Fn.«main».modeSig) (hent : Km.F.entry = 13937) :
+theorem mainOk_guest {Km : Cert} (hsig : Km.F.sig = Fn.«main».modeSig) (hent : Km.F.entry = Data.f0.instructionCount) :
     MainOk Km guestE0 :=
   mainOk_of hsig hent rfl rfl rfl rfl
 

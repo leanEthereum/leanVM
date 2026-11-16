@@ -31,24 +31,12 @@ set_option maxRecDepth 100000 in
 theorem sw0 : shareWinD Fn.«verify_bus_gkr_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
-set_option maxRecDepth 100000 in
-/-- `__loop6`, window 1. -/
-theorem sw1 : shareWinD Fn.«verify_bus_gkr_loop0».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop6`, window 2. -/
-theorem sw2 : shareWinD Fn.«verify_bus_gkr_loop0».core (cert.withPows Data.powTree) plumb fs snaps 2 = true := by
-  decide +kernel
-
 /-- `__loop6`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«verify_bus_gkr_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 2 := by decide +kernel
+  have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · exact sw0
-  · exact sw1
-  · exact sw2
 ⟩
 
 end
@@ -107,4 +95,31 @@ theorem shareOk : ShareOkD Fn.«padding_weight__L17».core (cert.withPows Data.p
 
 end
 end LeanVM.Guest.Fn.«padding_weight__L17»
+
+namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L7»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `child_claim_list_mono_last__L7`, once. -/
+theorem st : shareStaticD Fn.«child_claim_list_mono_last__L7».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `child_claim_list_mono_last__L7`, window 0. -/
+theorem sw0 : shareWinD Fn.«child_claim_list_mono_last__L7».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+/-- `child_claim_list_mono_last__L7`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«child_claim_list_mono_last__L7».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+⟩
+
+end
+end LeanVM.Guest.Fn.«child_claim_list_mono_last__L7»
 

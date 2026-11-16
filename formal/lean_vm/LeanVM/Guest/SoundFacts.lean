@@ -88,7 +88,7 @@ theorem semRel_exp (rd : Reader) (ws : List E) :
 /-- **`open_stacked`'s window table's tag**: tag `tagTabs` of `glob` on one word is `B1.WinTabs`. -/
 theorem semRel_tabs (rd : Reader) (ws : List E) :
     SemRel glob tagTabs rd ws ↔ B1.WinTabs rd (ws.getD 0 0) := by
-  simp [SemRel, SemRel0, tagNe, glob, globSem, tagTabs, tagGkr]
+  simp [SemRel, SemRel0, tagNe, glob, globSem, tagTabs]
 
 /-- Every function's semantic tuples are on its argument cells `2 ..< 2 + nargs`, decided. -/
 noncomputable def sigSemArgsB : Bool :=

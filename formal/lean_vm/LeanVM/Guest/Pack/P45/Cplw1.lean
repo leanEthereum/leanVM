@@ -89,11 +89,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `__loop36`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(446, Fn.«keccak_layer__L1_loop0».sig)]) Data.jtTrie globSem) code Fn.«keccak_layer__L1_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(443, Fn.«keccak_layer__L1_loop0».sig)]) Data.jtTrie globSem) code Fn.«keccak_layer__L1_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `__loop36`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(446, Fn.«keccak_layer__L1_loop0».sig)]) Data.jtTrie globSem) code Fn.«keccak_layer__L1_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(443, Fn.«keccak_layer__L1_loop0».sig)]) Data.jtTrie globSem) code Fn.«keccak_layer__L1_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -137,11 +137,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `level_residual__L55_L10_L4_L2`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(1015, Fn.«level_residual__L55_L10_L4_L2_loop0».sig), (1016, Fn.«level_residual__L55_L10_L4_L2_loop1».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L55_L10_L4_L2».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(1012, Fn.«level_residual__L55_L10_L4_L2_loop0».sig), (1013, Fn.«level_residual__L55_L10_L4_L2_loop1».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L55_L10_L4_L2».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `level_residual__L55_L10_L4_L2`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(1015, Fn.«level_residual__L55_L10_L4_L2_loop0».sig), (1016, Fn.«level_residual__L55_L10_L4_L2_loop1».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L55_L10_L4_L2».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(1012, Fn.«level_residual__L55_L10_L4_L2_loop0».sig), (1013, Fn.«level_residual__L55_L10_L4_L2_loop1».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L55_L10_L4_L2».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -161,11 +161,11 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `level_residual__L73_L17_L6_L3`, window 0, part 0. -/
-theorem cw0_0 : cplWinD (Glob.ofSigs ([(1132, Fn.«level_residual__L73_L17_L6_L3_loop0».sig), (1133, Fn.«level_residual__L73_L17_L6_L3_loop1».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L73_L17_L6_L3».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
+theorem cw0_0 : cplWinD (Glob.ofSigs ([(1129, Fn.«level_residual__L73_L17_L6_L3_loop0».sig), (1130, Fn.«level_residual__L73_L17_L6_L3_loop1».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L73_L17_L6_L3».core (cert.withPows Data.powTree) plumb fs parts arms false 0 0 = true := by
   decide +kernel
 
 /-- `level_residual__L73_L17_L6_L3`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(1132, Fn.«level_residual__L73_L17_L6_L3_loop0».sig), (1133, Fn.«level_residual__L73_L17_L6_L3_loop1».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L73_L17_L6_L3».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(1129, Fn.«level_residual__L73_L17_L6_L3_loop0».sig), (1130, Fn.«level_residual__L73_L17_L6_L3_loop1».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L73_L17_L6_L3».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi

@@ -402,9 +402,24 @@ def bsKey (fp : ℕ) (bs : List (Base × ℕ)) : ℕ := bs.foldl (fun a p ↦ (3
 /-- A run's key, its product's bases'. -/
 def rngQKey (r : Rng) : ℕ := bsKey r.q.fp r.q.bs
 
-/-- A known run holds the heap cell `k`: only a run whose product has `k`'s bases, or all but one of
-them, can (`Rng.idxOf`), so only those are tried. -/
+/-- A run's key for its cell, if it is one point between constants (`monoKey` of the cell), else
+`4096`, no cell's. -/
+def ptKey (r : Rng) : ℕ :=
+  match r.lo, r.hi with
+  | .num a, .num b => if b == a + 1 then monoKey (r.q.shift (r.S * a + r.d)) else 4096
+  | _, _ => 4096
+
+/-- A run of one point between constants. -/
+def Rng.isPt (r : Rng) : Bool :=
+  match r.lo, r.hi with
+  | .num a, .num b => b == a + 1
+  | _, _ => false
+
+/-- A known run holds the heap cell `k`: a run of one point that is `k`'s cell is tried first (by
+`ptKey`); otherwise only a run whose product has `k`'s bases, or all but one of them, can
+(`Rng.idxOf`), so only those are tried. -/
 def Abs.inRuns (A : Abs) (k : Mono) : Bool :=
+  anyB (buckets ptKey (A.r.filter Rng.isPt)) (A.inRng k) (monoKey k) ||
   anyB (buckets rngQKey A.r) (A.inRng k) (bsKey k.fp k.bs) ||
   k.bs.any fun e ↦ anyB (buckets rngQKey A.r) (A.inRng k) (bsKey k.fp (k.bs.filter fun p ↦ !p.1.beq e.1))
 
@@ -515,15 +530,47 @@ def Abs.knownB (A : Abs) : Base → Bool
 /-- A product whose word is known to exist. -/
 def Abs.known (A : Abs) (m : Mono) : Bool := m.bs.all fun p ↦ A.knownB p.1
 
+/-- A run of stride `1` and constant bounds, of two points or more. -/
+def Rng.isSeg (r : Rng) : Bool :=
+  r.S == 1 && match r.lo, r.hi with
+    | .num a, .num b => a + 1 < b
+    | _, _ => false
+
+/-- `reach`'s step: the end of run `r` if it has stride `1` and constant bounds, is over `q`'s bases
+and holds the cell `⟨q.fp, o, q.bs⟩`, and is past `m`. -/
+def reachStep (q : Mono) (o m : ℕ) (r : Rng) : ℕ :=
+  match r.lo, r.hi with
+  | .num a, .num b =>
+    if r.S == 1 && r.q.fp == q.fp && bsBeq r.q.bs q.bs && r.q.k + r.d + a ≤ o && o < r.q.k + r.d + b then
+      max m (r.q.k + r.d + b)
+    else m
+  | _, _ => m
+
+/-- The end, past offset `o`, of a known run of stride `1` and constant bounds over `q`'s bases that
+holds the cell `⟨q.fp, o, q.bs⟩`, the farthest such (of two points or more); `o` if none. -/
+def Abs.reach (A : Abs) (q : Mono) (o : ℕ) : ℕ :=
+  ((((buckets rngQKey (A.r.filter Rng.isSeg)).get (bsKey q.fp q.bs)).getD []).foldl (reachStep q o) o)
+
+/-- Every cell `⟨q.fp, o', q.bs⟩` for `o ≤ o' < e` is known written: from each, a known run of stride
+`1` and constant bounds holding it to its end (`reach`), else that cell alone (`covered`). -/
+def Abs.coverC (A : Abs) (q : Mono) : ℕ → ℕ → ℕ → Bool
+  | 0, _, _ => false
+  | f + 1, o, e =>
+    if e ≤ o then true else
+    if o < A.reach q o then A.coverC q f (A.reach q o) e
+    else A.covered ⟨q.fp, o, q.bs⟩ && A.coverC q f (o + 1) e
+
 /-- Every cell of run `r` is known written: it is a known run, a known run holds it, or each of its
-(at most `2^12`) points, from a constant to a known bound, is known written. -/
+(at most `2^12`) points, from a constant to a known bound, is known written (for stride `1`, a run
+at a time where known runs hold them, `coverC`). -/
 def Abs.coveredR (A : Abs) (r : Rng) : Bool :=
   anyB (buckets rngKey A.r) (·.beq r) (rngKey r) ||
   anyB (buckets rngKey A.r) (fun r' ↦ r'.q.beq r.q && r'.S == r.S && r'.d == r.d && A.le r'.lo r.lo &&
     A.le r.hi r'.hi && A.hasIdx r.lo && A.hasIdx r.hi) (rngKey r) ||
   match r.lo, A.bound r.hi with
   | .num a, some b => decide (b - a ≤ 4096) && A.known r.q &&
-      (List.range (b - a)).all fun j ↦ A.covered (r.q.shift (r.S * (a + j) + r.d))
+      ((r.S == 1 && A.coverC r.q (b - a + 1) (r.q.k + a + r.d) (r.q.k + b + r.d)) ||
+        (List.range (b - a)).all fun j ↦ A.covered (r.q.shift (r.S * (a + j) + r.d)))
   | _, _ => false
 
 /-- A loop's run's point at its counter's start: the product `q·x^S·g^(S·c + d)` for `lo = x + c`. -/

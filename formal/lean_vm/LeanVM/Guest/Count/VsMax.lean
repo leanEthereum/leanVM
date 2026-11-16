@@ -19,7 +19,7 @@ namespace LeanVM.Guest.Count
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem vbgMax_eq : B1.VerifySub.vbgMax B2C.fs vsWords.K29 vsWords.R vsWords.K8 = 39767 := by
+theorem vbgMax_eq : B1.VerifySub.vbgMax B2C.fs vsWords.K29 vsWords.R vsWords.K8 = 31525 := by
   unfold B1.VerifySub.vbgMax
   dsimp only [vsWords, kGr]
   rw [← fsFast_eq, ← wSBFast_eq, ← wSKFast_eq]

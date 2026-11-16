@@ -113,17 +113,13 @@ theorem guestCerts_sub : ∀ K ∈ guestCerts, SubOk resExc K :=
 
 /-- **The residuals at the honest frames**, for the mode walk's certificates: from the listed
 certificates' residuals and the nonzero values not proved here. -/
-theorem resTop_guestF {A : String → Bridge.FnAl} (hexc : ∀ K ∈ resExc, ResCert A K)
-    (hnz0 : NzVal "log2_ceil_in_the_exponent__L0_L34" (.n 0))
-    (hnz1 : NzVal "log2_ceil_in_the_exponent__L16_L34" (.n 0)) :
+theorem resTop_guestF {A : String → Bridge.FnAl} (hexc : ∀ K ∈ resExc, ResCert A K) :
     ResTop guestCerts A :=
   resTop_guestM hexc (resOpen_subOk guestCerts_sub hexc) resOpen_ltExp (by
     intro p hp
     simp only [nzVals, List.mem_cons, List.not_mem_nil, or_false] at hp
-    rcases hp with rfl | rfl | rfl
-    · exact nzVal_ml0 mono_ok
-    · exact hnz0
-    · exact hnz1)
+    rcases hp with rfl
+    · exact nzVal_ml0 mono_ok)
 
 end
 

@@ -16,7 +16,7 @@ open Core Memory
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-theorem memRange_1598 : RangeOk (memF Data.takesT) 1598 15 := by
+theorem memRange_1595 : RangeOk (memF Data.takesT) 1595 15 := by
   unfold RangeOk; decide +kernel
 
 end

@@ -145,7 +145,7 @@ public section
 
 /-- `level_queries__L219_L1_L6_L32_L15_L3_L0_L0_L0_L0`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 470) (d := Data.adviceFn470) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 467) (d := Data.adviceFn467) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -160,7 +160,7 @@ public section
 
 /-- `level_residual__L33_L6_L4_L2`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 510) (d := Data.adviceFn510) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 507) (d := Data.adviceFn507) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -175,7 +175,7 @@ public section
 
 /-- `level_residual__L55_L11_L4_L2`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 549) (d := Data.adviceFn549) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 546) (d := Data.adviceFn546) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -190,7 +190,7 @@ public section
 
 /-- `squeeze_point_from__L18`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 643) (d := Data.adviceFn643) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 640) (d := Data.adviceFn640) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -205,7 +205,7 @@ public section
 
 /-- `level_positions__L19_L20_L2`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 645) (d := Data.adviceFn645) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 642) (d := Data.adviceFn642) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -220,7 +220,7 @@ public section
 
 /-- `level_positions__L11_L24_L6`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 730) (d := Data.adviceFn730) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 727) (d := Data.adviceFn727) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -235,7 +235,7 @@ public section
 
 /-- `level_queries__L55_L0_L4_L16_L21_L3_L0_L0_L0_L0`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 779) (d := Data.adviceFn779) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 776) (d := Data.adviceFn776) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -250,7 +250,7 @@ public section
 
 /-- `level_queries__L19_L0_L4_L16_L21_L3_L0_L0_L0_L0`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 789) (d := Data.adviceFn789) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 786) (d := Data.adviceFn786) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -265,7 +265,7 @@ public section
 
 /-- `level_queries__L17_L0_L4_L16_L20_L2_L0_L0_L0_L0`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 833) (d := Data.adviceFn833) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 830) (d := Data.adviceFn830) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -280,7 +280,7 @@ public section
 
 /-- `level_residual__L19_L11_L4_L2`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 898) (d := Data.adviceFn898) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 895) (d := Data.adviceFn895) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -295,7 +295,7 @@ public section
 
 /-- `level_positions__L44_L25_L7`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 902) (d := Data.adviceFn902) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 899) (d := Data.adviceFn899) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -310,7 +310,7 @@ public section
 
 /-- `level_queries__L218_L1_L6_L32_L25_L7_L0_L0_L0_L0`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 906) (d := Data.adviceFn906) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 903) (d := Data.adviceFn903) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -325,7 +325,7 @@ public section
 
 /-- `__loop46`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 964) (d := Data.adviceFn964) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 961) (d := Data.adviceFn961) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -340,7 +340,7 @@ public section
 
 /-- `verify_merkle_cap__L4`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 975) (d := Data.adviceFn975) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 972) (d := Data.adviceFn972) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -355,7 +355,7 @@ public section
 
 /-- `__loop64`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1008) (d := Data.adviceFn1008) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 1005) (d := Data.adviceFn1005) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -370,7 +370,7 @@ public section
 
 /-- `__loop91`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1038) (d := Data.adviceFn1038) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 1035) (d := Data.adviceFn1035) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -385,7 +385,7 @@ public section
 
 /-- `__loop181`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1149) (d := Data.adviceFn1149) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 1146) (d := Data.adviceFn1146) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -400,7 +400,7 @@ public section
 
 /-- `__loop202`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1177) (d := Data.adviceFn1177) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 1174) (d := Data.adviceFn1174) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -415,7 +415,7 @@ public section
 
 /-- `__loop233`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1217) (d := Data.adviceFn1217) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 1214) (d := Data.adviceFn1214) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -430,7 +430,7 @@ public section
 
 /-- `__loop302`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1300) (d := Data.adviceFn1300) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 1297) (d := Data.adviceFn1297) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -445,7 +445,7 @@ public section
 
 /-- `__loop305`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1303) (d := Data.adviceFn1303) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 1300) (d := Data.adviceFn1300) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -460,7 +460,7 @@ public section
 
 /-- `__loop311`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1309) (d := Data.adviceFn1309) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 1306) (d := Data.adviceFn1306) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -475,7 +475,7 @@ public section
 
 /-- `opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1332) (d := Data.adviceFn1332) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 1329) (d := Data.adviceFn1329) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -490,7 +490,7 @@ public section
 
 /-- `__loop429`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1448) (d := Data.adviceFn1448) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 1445) (d := Data.adviceFn1445) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -505,7 +505,7 @@ public section
 
 /-- `__loop445`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1464) (d := Data.adviceFn1464) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 1461) (d := Data.adviceFn1461) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -520,7 +520,7 @@ public section
 
 /-- `__loop449`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1468) (d := Data.adviceFn1468) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 1465) (d := Data.adviceFn1465) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -535,7 +535,7 @@ public section
 
 /-- `__loop566`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1598) (d := Data.adviceFn1598) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 1595) (d := Data.adviceFn1595) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
