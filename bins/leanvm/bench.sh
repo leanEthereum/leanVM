@@ -44,6 +44,9 @@ for t in "${THREADS[@]}"; do
   run "aggregate, 1400 leanXMSS, rate 2" "$t" aggregate --xmss 1400 --log-inv-rate 2 --repeat 3
 done
 for t in "${THREADS[@]}"; do
+  run "aggregate, 500 leanSPHINCS, rate 1" "$t" aggregate --sphincs 500 --log-inv-rate 1 --repeat 3
+done
+for t in "${THREADS[@]}"; do
   run "aggregate, 32 leanDA blobs, rate 1" "$t" aggregate --blobs 32 --log-inv-rate 1 --repeat 3
 done
 for t in "${THREADS[@]}"; do
