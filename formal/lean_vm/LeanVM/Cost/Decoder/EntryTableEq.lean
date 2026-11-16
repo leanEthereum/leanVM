@@ -1,14 +1,13 @@
 module
 
 public import LeanVM.Cost.Decoder.EntryTable
-public import LeanVM.Cost.Decoder.GuestTablesCheck
 import all LeanVM.Protocol.Extraction.Fast.SortedMap
 
 /-!
 # The replayed frame map, restated, is the deployed one
 
-At the guest's tables (`GuestTablesCheck.lean`): `pcTableT = pcTable`, `entryTableT pcTable =
-entryTable`, and **`frameAt_eq`**: the closure `frameAt (entryTableT pcTableT pre states rd) rd`
+At the guest's tables, which the replay's definitions read too: `pcTableT = pcTable`,
+`entryTableT pcTable = entryTable`, and **`frameAt_eq`**: the closure `frameAt (entryTableT pcTableT pre states rd) rd`
 is `Guest.Fast.frameVFastN pre states rd`, the frame map of the deployed decoder keyed by index
 (`decode_eq_numbered`).
 
@@ -29,28 +28,14 @@ attribute [local instance] lexOrd
 
 @[expose] public section
 
-theorem foldl_congr_mem {α β : Type} {f g : α → β → α} :
-    ∀ (l : List β) (a : α), (∀ a, ∀ b ∈ l, f a b = g a b) → l.foldl f a = l.foldl g a
-  | [], _, _ => rfl
-  | b :: l, a, h => by
-    rw [List.foldl_cons, List.foldl_cons, h a b List.mem_cons_self]
-    exact foldl_congr_mem l _ fun a b hb ↦ h a b (List.mem_cons_of_mem _ hb)
-
 /-- **The table of entries is the guest's.** -/
-theorem pcTableT_eq : pcTableT = pcTable := by
-  unfold pcTableT pcTable
-  refine foldl_congr_mem _ _ fun m j hj ↦ ?_
-  rw [addEntry, guestEntries_eq j (List.mem_range.mp hj)]
+theorem pcTableT_eq : pcTableT = pcTable := rfl
 
-theorem entryKeyT_eq (rd : Reader) (r : Registers K) {j : ℕ} (hj : j < nFns) :
-    entryKeyT rd r j = entryKey rd r j := by
-  rw [entryKeyT, entryKey, guestArgCounts_eq j hj, guestRetCounts_eq j hj]
+theorem entryKeyT_eq (rd : Reader) (r : Registers K) (j : ℕ) :
+    entryKeyT rd r j = entryKey rd r j := rfl
 
 theorem fileStateT_eq (pre : ℕ → K → Bool) (rd : Reader) (m : SortedMap CallKey K)
-    (r : Registers K) : fileStateT pcTableT pre rd m r = fileState pre rd m r := by
-  rw [fileStateT, fileState, pcTableT_eq]
-  refine foldl_congr_mem _ _ fun m j hj ↦ ?_
-  rw [fileOne, entryKeyT_eq rd r (mem_pcTable.mp hj).1]
+    (r : Registers K) : fileStateT pcTableT pre rd m r = fileState pre rd m r := rfl
 
 /-- **The entry table is the guest's.** -/
 theorem entryTableT_eq (pre : ℕ → K → Bool) (states : List (Registers K)) (rd : Reader) :
@@ -74,13 +59,7 @@ theorem frameAt_eq (pre : ℕ → K → Bool) (states : List (Registers K)) (rd 
   funext j args rets v
   rw [entryTableT_eq]
   unfold frameAt frameVFastN
-  cases (entryTable pre states rd).get? (callKey (canonIndex j) args rets) with
-  | none => rfl
-  | some fp =>
-    show wordWith rd fp ((guestLocs.getD (canonIndex j) #[]).getD v.idx 0) = _
-    have h (a : Array ℕ) (i : ℕ) : a.getD i 0 = a.toList.getD i 0 := by
-      simp [Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD]
-    rw [h, guestLocs_eq (canonIndex_lt j)]
+  cases (entryTable pre states rd).get? (callKey (canonIndex j) args rets) <;> rfl
 
 /-! ## The entry table as one sorted array -/
 

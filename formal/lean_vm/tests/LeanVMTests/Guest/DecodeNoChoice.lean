@@ -17,7 +17,7 @@ schemes it imports (`LeanVM`, `LeanXmss`, `Sphincs`, `LeanDa`).
   and B1's exponent of a power of `g` by a search (`B1.Main.indexSearch`).
 * **Positive controls.** The traversal reaches the replay through the extractor's address tables
   (`Located.statesTable`, `Extraction.Fast.stepTable`, the machine's step `Semantics.executeWith`),
-  the entries' table (`Located.entryTable`), the decided precondition `Located.preTest`, and
+  the entries' table (`Located.entryTable`), the decided self test `Located.selfTest`, and
   B1-d's child proof `VerifySub.piOfW`, not the replay through the hash-map index
   (`Located.statesIn`, `Extraction.powIndex`), which the proofs use; and it flags a definition that does choose (`Semantics.addressIndex?`, the
   address index by `Classical.choose`, which `decode` does not use).
@@ -83,11 +83,11 @@ run_meta do
 
 /-! ## Positive controls -/
 
-/-- info: statesTable: true, stepTable: true, executeWith: true, entryTable: true, preTest: true, piOfW: true, powIndex: false, statesIn: false -/
+/-- info: statesTable: true, stepTable: true, executeWith: true, entryTable: true, selfTest: true, piOfW: true, powIndex: false, statesIn: false -/
 #guard_msgs in
 run_meta do
   let (seen, _) ← traverse ``LeanVM.Guest.End.decode classical.contains
-  logInfo s!"statesTable: {seen.contains ``LeanVM.Guest.Located.statesTable}, stepTable: {seen.contains ``LeanVM.Extraction.Fast.stepTable}, executeWith: {seen.contains ``LeanVM.Semantics.executeWith}, entryTable: {seen.contains ``LeanVM.Guest.Located.entryTable}, preTest: {seen.contains ``LeanVM.Guest.Located.preTest}, piOfW: {seen.contains ``LeanVM.Guest.B1.VerifySub.piOfW}, powIndex: {seen.contains ``LeanVM.Extraction.powIndex}, statesIn: {seen.contains ``LeanVM.Guest.Located.statesIn}"
+  logInfo s!"statesTable: {seen.contains ``LeanVM.Guest.Located.statesTable}, stepTable: {seen.contains ``LeanVM.Extraction.Fast.stepTable}, executeWith: {seen.contains ``LeanVM.Semantics.executeWith}, entryTable: {seen.contains ``LeanVM.Guest.Located.entryTable}, selfTest: {seen.contains ``LeanVM.Guest.Located.selfTest}, piOfW: {seen.contains ``LeanVM.Guest.B1.VerifySub.piOfW}, powIndex: {seen.contains ``LeanVM.Extraction.powIndex}, statesIn: {seen.contains ``LeanVM.Guest.Located.statesIn}"
 
 /-- info: [LeanVM.Semantics.addressIndex? uses Classical.choose] -/
 #guard_msgs in
