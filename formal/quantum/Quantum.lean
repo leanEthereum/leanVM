@@ -78,6 +78,7 @@ import Quantum.Xmss.Assembly.RecJ
 import Quantum.Xmss.Assembly.CostRefined
 import Quantum.Xmss.Assembly.CwRec
 import Quantum.Sponge.Oracle.Hardwired.Persistence
+import Quantum.Xmss.Assembly.EncRefined
 import Quantum.Xmss.Hybrid.SchemeSplit
 import Quantum.Xmss.Hybrid.CoinStage
 import Quantum.Xmss.Hybrid.R0Stage
