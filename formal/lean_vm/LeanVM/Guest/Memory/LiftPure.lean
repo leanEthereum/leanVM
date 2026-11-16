@@ -284,8 +284,8 @@ def armsAtoms : List (List Stmt) → List Atom
 end
 
 /-- **Every frame run fits its frame**: a `frameAddr` run of a function's body has its cells, from
-the certificate's cell of its first value on, within the function's frame. The certificates'
-fact, discharged for the deployed instance from the checker's (`B2C.FnStatic`). -/
+the value cell of its first value on, within the function's frame. A fact of the placement,
+discharged for the deployed instance by the back end's static test (`Backend.Cpl.runsFitG`). -/
 def RunsFit (fs : String → ℕ) (cert : String → V → ℕ) : Prop :=
   ∀ f fn, coreProgram.find? f = some fn → ∀ p r rs, Atom.frameAddr p (r :: rs) ∈ blockAtoms fn.body →
     cert f r + (rs.length + 1) ≤ fs f

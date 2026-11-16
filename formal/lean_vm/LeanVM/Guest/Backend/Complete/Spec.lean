@@ -222,7 +222,7 @@ def CplBody (tf : TracedFn) (pf : Placed) (fp : ℕ) (σ : Val) (kids : List Kid
 
 /-- The callees on a path run: each call entered, from its callee's entry at its frame to the
 return registers that frame holds, executing `ck[i] op` instructions of each opcode, its returns
-left in its frame after its arguments (`B2C.KidsRun` on the program's own code). -/
+left in its frame after its arguments. -/
 def KidsRunP (σ : Val) (es : List Ev) (kfps : List ℕ) (ck : List (Opcode → ℕ)) : Prop :=
   ck.length = (calls es).length ∧ ∀ (i : ℕ) (c : Call) (kfp : ℕ), (calls es)[i]? = some c →
     kfps[i]? = some kfp → c.taken = true →
@@ -447,18 +447,18 @@ section Cost
 open Classical
 
 mutual
-/-- The separately counted arms a statement's path passes, under `σ` (`B2C.cost1`). -/
+/-- The separately counted arms a statement's path passes, under `σ` (`Deployed.cost1`). -/
 noncomputable def cost1 (acs : List (ℕ × List (List ℕ))) (σ : Val) : Stmt → Opcode → ℕ
   | .ite c z n => if σ c = 0 then armsCost acs σ z else armsCost acs σ n
   | .match_ x arms => costArms acs σ x (armRaw acs x.idx) 0 arms
   | _ => 0
 
-/-- The separately counted arms a block's path passes, under `σ` (`B2C.costW`). -/
+/-- The separately counted arms a block's path passes, under `σ` (`Deployed.costW`). -/
 noncomputable def armsCost (acs : List (ℕ × List (List ℕ))) (σ : Val) : List Stmt → Opcode → ℕ
   | [] => 0
   | s :: ss => cost1 acs σ s + armsCost acs σ ss
 
-/-- The arm `σ` picks, from arm `k` on, its count if counted separately (`B2C.costArms`). -/
+/-- The arm `σ` picks, from arm `k` on, its count if counted separately (`Deployed.costArms`). -/
 noncomputable def costArms (acs : List (ℕ × List (List ℕ))) (σ : Val) (x : V)
     (key : Option (List (List ℕ))) : ℕ → List (List Stmt) → Opcode → ℕ
   | _, [] => 0

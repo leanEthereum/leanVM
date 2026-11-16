@@ -61,10 +61,10 @@ theorem readIn_powIndex {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) :
     readIn (powIndex κ) L = L.read :=
   funext fun a ↦ by rw [readIn, gLogIn_powIndex hκ]; rfl
 
-/-- The word in cell `o` of the frame `fp`, read with `rd`, `0` if none (`Check.wd`). -/
+/-- The word in cell `o` of the frame `fp`, read with `rd`, `0` if none (`Backend.wd`). -/
 def wordWith (rd : Reader) (fp : K) (o : ℕ) : E := (rd (fp * addressOfIndex o)).getD 0
 
-/-- The `n` words of the frame `fp` from cell `o`, read with `rd` (`Check.frameWords`). -/
+/-- The `n` words of the frame `fp` from cell `o`, read with `rd` (`Backend.frameWords`). -/
 def wordsWith (rd : Reader) (fp : K) (o n : ℕ) : List E := (List.range n).map fun i ↦ wordWith rd fp (o + i)
 
 /-! ## The run, replayed -/

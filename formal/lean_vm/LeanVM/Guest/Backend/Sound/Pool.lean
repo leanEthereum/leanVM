@@ -17,7 +17,7 @@ public import LeanVM.Guest.CoreLoc
 
 * `wd L fp o` is the word of frame cell `o` (`0` if the cell is no memory), and `valP L fp locs`
   the valuation by places: a value is the word of its cell, or for an `addr` pointer the word of
-  its cell times `g^exp`. It replaces the certificates' `valG`.
+  its cell times `g^exp`.
 * `holds_*`: what `Guest.Holds` of each resolved instruction says about `wd`. The memory is one
   fixed image, so a fact about a cell, once an instruction has checked it, stays.
 * `PoolOK`: every entry of a scope's pools names a cell that holds the pooled relation (P3). It

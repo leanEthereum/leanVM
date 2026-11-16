@@ -117,7 +117,7 @@ syntax (name := kernelLit) (docComment)? "kernel_lit " ident " : " term " := " t
 
 /-- `kernel_rfl x : a = b` adds `theorem x : a = b` by `rfl` (`private kernel_rfl`, a private one),
 checked by the kernel alone: the elaborator's unifier walks a long list one recursive call per
-element (`coreOf j`, `certOf j` far into the guest's functions), where the kernel does not. -/
+element (`coreOf j` far into the guest's functions), where the kernel does not. -/
 syntax (name := kernelRfl) (docComment)? ("private ")? "kernel_rfl " ident " : " term : command
 
 @[command_elab kernelRfl] def elabKernelRfl : CommandElab := fun stx => do

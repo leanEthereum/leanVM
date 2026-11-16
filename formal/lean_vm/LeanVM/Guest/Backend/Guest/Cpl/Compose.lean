@@ -17,8 +17,7 @@ public import LeanVM.Guest.Memory.SizeTotal
 /-!
 # B2's composition at an instance
 
-The certificates' completeness composed their per-function runs, which read their frames at the
-certificates' cells, into `End`'s `b2` and `count`. The composition does not look at what a
+The composition of the per-function runs into `End`'s `b2` and `count` does not look at what a
 frame holds: here it is stated for any predicate `FH L j fp σ es vs kfps hdr` on an instance's
 frame, and any honest memory `honest coreProgram fs H C`. `CplRunG FH j` asks function `j`'s
 counted run on every frame holding `FH`; `B2HypsG FH H C cert` asks it of every function, `FH` of
