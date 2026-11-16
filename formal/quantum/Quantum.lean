@@ -97,6 +97,8 @@ import Quantum.Xmss.Assembly.GameT
 import Quantum.Xmss.Assembly.RecordDrop
 import Quantum.Sphincs.Keccak
 import Quantum.Sphincs.Coverage
+import Quantum.Sphincs.Codeword
+import Quantum.Sphincs.CoverStream
 
 /-! Security against quantum adversaries in the quantum random-permutation model (`Quantum.Model`),
 on VCVio's quantum oracle programs (`VCVio.Quantum`): the sponge's collision and preimage
