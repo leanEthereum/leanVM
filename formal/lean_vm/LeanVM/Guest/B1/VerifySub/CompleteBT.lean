@@ -24,7 +24,7 @@ The callees' names, bounds and predicates are `VerifySub/BoundsB`'s (`vsNames`, 
 the bound at its announced stack log and rate (`childShape`), by a node of `vsTsAny`
 (`completeAt_flatDepRBP` with `vs_obligations` and `vs_kidsDepBP`), given `verify_keccak`'s bounded
 completeness (`open_stacked`'s is `open_stacked_completeAtB`).
-`verify_sub_completeBT_fs`: at `B2C.fs`, `verify_keccak` within `vkBound`.
+`verify_sub_completeBT_fs`: at `Deployed.fs`, `verify_keccak` within `vkBound`.
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -84,8 +84,8 @@ theorem verify_sub_completeBT {bytecode : List K} (hbl : bytecode.length = 2 ^ 2
 /-- **`verify_sub` is complete within its own bound by its callees' trees** at the deployed frame
 sizes, `verify_keccak` within `vkBound`. -/
 theorem verify_sub_completeBT_fs {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
-    {cert : String → V → ℕ} (hrf : Lift.RunsFit LeanVM.Guest.B2C.fs cert)
-    (hcons : RunsConsec cert) (W : VsWordsOs LeanVM.Guest.B2C.fs) {κ : ℕ} (hκ : 16 ≤ κ)
+    {cert : String → V → ℕ} (hrf : Lift.RunsFit LeanVM.Guest.Deployed.fs cert)
+    (hcons : RunsConsec cert) (W : VsWordsOs LeanVM.Guest.Deployed.fs) {κ : ℕ} (hκ : 16 ≤ κ)
     (seed : Digest) (c : Child) (sqE outE : ℕ) (Lin : Main.Layout)
     (hmu : ∀ layout r, Verifier.announcedLayoutAndRate bytecode c.proof.stream = some (layout, r) →
       Coverage.minChildStackLog ≤ layout.stackLog)
@@ -96,8 +96,8 @@ theorem verify_sub_completeBT_fs {bytecode : List K} (hbl : bytecode.length = 2 
       (statementDigest seed c.statement)) (Coverage.childVerifierStart seed c),
       Limits.OpeningsAgree b.1 b.2)
     (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin) :
-    CompleteAtDTB LeanVM.Guest.B2C.fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
-      (vsTsAny LeanVM.Guest.B2C.fs W vkBound (childShape bytecode c).1 (childShape bytecode c).2)
+    CompleteAtDTB LeanVM.Guest.Deployed.fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
+      (vsTsAny LeanVM.Guest.Deployed.fs W vkBound (childShape bytecode c).1 (childShape bytecode c).2)
       (vsBoundAt W vkBound (childShape bytecode c).1 (childShape bytecode c).2) :=
   verify_sub_completeBT hbl hrf hcons W hκ (verify_keccak_completeAtB_fs (by omega)) seed c sqE
     outE Lin hmu hst hrz hcaps hexp hout

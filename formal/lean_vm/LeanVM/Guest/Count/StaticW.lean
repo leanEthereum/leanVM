@@ -3,7 +3,7 @@
 
   The instruction counts of `verify_tables`' and `check_opening_terminal`'s statically bounded
   callees, `verify_tables_loop0`, `shared_selector_tables_loop0` and `check_opening_terminal_loop0`, by name, read off the `W` count certificates
-  (`Memory/GuestCnt`), per opcode at `B2C.ωArm B2C.xmssArmC op`.
+  (`Memory/GuestCnt`), per opcode at `Deployed.ωArm Deployed.xmssArmC op`.
 -/
 
 module
@@ -33,9 +33,9 @@ noncomputable def kuCert (op : Opcode) : String → Cert := cntCert op
 /-- The `W` certificates counting `op`'s instructions, by core index. -/
 noncomputable def kuCertJ (op : Opcode) : ℕ → Cert := cntCertJ op
 
-/-- **The `W` certificates counting `op`'s instructions check** at `B2C.ωArm B2C.xmssArmC op`. -/
+/-- **The `W` certificates counting `op`'s instructions check** at `Deployed.ωArm Deployed.xmssArmC op`. -/
 theorem ku_checked (op : Opcode) :
-    Checked coreProgram false (kuCert op) (B2C.ωArm B2C.xmssArmC op) :=
+    Checked coreProgram false (kuCert op) (Deployed.ωArm Deployed.xmssArmC op) :=
   cnt_checked op
 
 theorem kuCert_idx {op : Opcode} {j : ℕ} {f : String} (h : (coreProgram[j]?).map Fn.name = some f) :
@@ -85,7 +85,7 @@ noncomputable def kuOkK (op : Opcode) (j : ℕ) (f : String) : Bool :=
 
 /-- **`f`'s instructions of `op` within `kuSB op f`.** -/
 theorem kuSB_weightLe {op : Opcode} {j : ℕ} {f : String} (h : kuOkB op j f = true) :
-    WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op) f fun _ => kuSB op f := by
+    WeightLe coreProgram (Deployed.ωArm Deployed.xmssArmC op) f fun _ => kuSB op f := by
   simp only [kuOkB, Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨hn, hk⟩ := h
   have hc := kuCert_idx (op := op) hn
@@ -102,7 +102,7 @@ theorem kuSB_weightLe {op : Opcode} {j : ℕ} {f : String} (h : kuOkB op j f = t
 
 /-- **Loop helper `f`'s instructions of `op` within `kuSK op f` per iteration.** -/
 theorem kuSK_loop {op : Opcode} {j : ℕ} {f : String} (h : kuOkK op j f = true) :
-    LoopWeightLe (B2C.ωArm B2C.xmssArmC op) f (kuSK op f) := by
+    LoopWeightLe (Deployed.ωArm Deployed.xmssArmC op) f (kuSK op f) := by
   simp only [kuOkK, Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨hn, hk⟩ := h
   have hc := kuCert_idx (op := op) hn
