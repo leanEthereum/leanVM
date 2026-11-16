@@ -13,6 +13,7 @@ public import Quantum.Xmss.Assembly.PathsDisjoint
 public import Quantum.Xmss.Assembly.CostJoint
 public import Quantum.Xmss.Assembly.TrialHitUniform
 public import Quantum.Xmss.Assembly.EncPorts
+public import Quantum.Xmss.Assembly.HTrial
 public import Quantum.Xmss.Hybrid.GradedMasked
 
 @[expose] public section
@@ -31,11 +32,14 @@ challenge prefix `prefixR A L` followed by the verification (`gameR_eq`).
    (`p1T_eq_p1K`) and **record ports** (`p1K_eq_p1R`, RecordDrop).
 2. **The masked graded hybrid** (GradedMasked's `uavg_win_runtime1R_le_graded_total_masked_pad`
    with `covers_fullHw`): `runtime1R` against `runtimeR` on the canonical game, the masses averaged
-   over ReparamR0's good set `r0G treeQ 18` of the padded table and its bad fraction `2^-174` paid
-   once (`r0G_frac_le_keccak`). Sponge ports: `uavg_mask_spongeMass_le_xmssR0` at `r0E`,
-   `6q κ` with `κ = kappaS = 2^-128 + 2^-189` (`spongeConst_le_keccak`). Read ports:
-   `uavg_mask_readMass_le_xmssR0` at `r0E`, `trialTau q + 2^-117` (`readConst_le_keccak`), the
-   randomizer trials' term the debt `htrial`.
+   over the good set `maskG` (ReparamR0's `r0G treeQ 18` of the padded table with HTrial's
+   `TrialHidGood` at its public datum and hidden values) and its bad fraction `2^-174 + 2^-400`
+   paid once (`r0G_frac_le_keccak`, `trialHidGood_r0G_frac_le_keccak`). Sponge ports:
+   `uavg_mask_spongeMass_le_xmssR0` at `r0E`, `6q κ` with `κ = kappaS = 2^-128 + 2^-189`
+   (`spongeConst_le_keccak`). Read ports: TrialSource's `uavg_mask_readMass_le_xmssR0_good` at
+   `r0E`, `htrialTau (2 clsCap) + 2^-117` (`readConst_le_keccak`), the randomizer trials' term
+   HTrial's `sum_trialMass_le` with the recorded trial cells `trialRecW` at most `2` per read call
+   (`sum_trialRecW_le`).
 3. **End** (PrefixFacts' `endReads_wGame_trialHit`, on the good tables `GoodL = TableGood ∧
    TrialsOff`): the win is at most the event `BadR L progCap` at the end of the game, the read
    error `readTerm` and the trial-hit mass, averaged at most `trialCap = 2^-399` (TrialHit's
@@ -60,14 +64,13 @@ challenge prefix `prefixR A L` followed by the verification (`gameR_eq`).
    (`trialsOff_frac_le_keccak`, `2^-173`) and `HonestPathsDisjoint` (`uavg_not_pathsDisjoint_le`,
    `2^-170`, PathsDisjoint).
 
-`qrpmBound q = (√eventTerm + hybTerm)² + 2^-174` with
+`qrpmBound q = (√eventTerm + hybTerm)² + 2^-174 + 2^-400` with
 `eventTerm = (advTerm + verTerm + √(clsBound + verLin))² + readTerm + trialCap + goodTerm` and
-`hybTerm = √(4 · 6q · 6q κ) + √(trialTau q + 2^-117)`. For `q > 2^64` the bound is at least `1`
-(`one_le_qrpmBound`), so the debts are needed only for `q ≤ 2^64`.
+`hybTerm = √(4 · 6q · 6q κ) + √(htrialTau (2 clsCap) + 2^-117)`. For `q > 2^64` the bound is at
+least `1` (`one_le_qrpmBound`), so the debts are needed only for `q ≤ 2^64`.
 
 | Debt | Statement | Target | Owner |
 |---|---|---|---|
-| `htrial` | trials' hidden read mass per public datum (GradedMasked's form) | `trialTau q` | TrialSource |
 | `recJ` | averaged `RecJ` weight of the prefix's `k`, `k'` program calls on `GoodL` | `recJCap` | RecJ |
 | `restMass` | averaged `massPre` on `GoodL` | `massCap q` | refined per-port costs |
 -/
@@ -386,26 +389,23 @@ noncomputable def eventTerm (q : ℕ) : ℝ≥0∞ :=
 noncomputable def kappaS : ℝ≥0∞ :=
   (2 ^ 128 : ℝ≥0∞)⁻¹ + (2 ^ 189 : ℝ≥0∞)⁻¹
 
-/-- The target of the randomizer trials' hidden read mass per public datum (debt `htrial`):
-`clsCap · 2^-460` for fresh trial cells plus `2^-128 massCap q` for trial cells the adversary
-recorded (their hidden positions still carry 128-bit hidden digests). -/
-noncomputable def trialTau (q : ℕ) : ℝ≥0∞ :=
-  (clsCap : ℝ≥0∞) * (2 ^ 460 : ℝ≥0∞)⁻¹ + (2 ^ 128 : ℝ≥0∞)⁻¹ * massCap q
-
-/-- The masked hidden mass at the read ports: `trialTau q + 2^-117` (`readConst_le_keccak`). -/
-noncomputable def readCap (q : ℕ) : ℝ≥0∞ :=
-  trialTau q + ENNReal.ofReal (1 / 2 ^ 117)
+/-- The masked hidden mass at the read ports: the randomizer trials' `htrialTau (2 clsCap)`
+(HTrial: the recorded trial cells weigh at most `2` per read call) plus `2^-117`
+(`readConst_le_keccak`). -/
+noncomputable def readCap : ℝ≥0∞ :=
+  htrialTau (2 * clsCap) + ENNReal.ofReal (1 / 2 ^ 117)
 
 /-- The target of the masked graded hybrid: `√(4 · 6q · μ) + √ν` with the sponge-port mass
-`μ = 6q κ` over at most `6q` sponge calls and the read-port mass `ν = readCap q`. -/
+`μ = 6q κ` over at most `6q` sponge calls and the read-port mass `ν = readCap`. -/
 noncomputable def hybTerm (q : ℕ) : ℝ≥0∞ :=
   (4 * (((6 * q : ℕ) : ℝ≥0∞) * (((6 * q : ℕ) : ℝ≥0∞) * kappaS))) ^ (2⁻¹ : ℝ) +
-    readCap q ^ (2⁻¹ : ℝ)
+    readCap ^ (2⁻¹ : ℝ)
 
-/-- The bad fraction of ReparamR0's good set, paid once by the masked hybrid: `2^-174`. -/
-noncomputable def r0Term : ℝ≥0∞ := ENNReal.ofReal (1 / 2 ^ 174)
+/-- The bad fraction of the masked hybrid's good set `maskG`, paid once: ReparamR0's `2^-174` and
+HTrial's `2^-400`. -/
+noncomputable def r0Term : ℝ≥0∞ := ENNReal.ofReal (1 / 2 ^ 174) + ENNReal.ofReal (1 / 2 ^ 400)
 
-/-- **The leanXMSS QRPM bound**: `(√eventTerm + hybTerm)² + 2^-174`. -/
+/-- **The leanXMSS QRPM bound**: `(√eventTerm + hybTerm)² + 2^-174 + 2^-400`. -/
 noncomputable def qrpmBound (q : ℕ) : ℝ≥0∞ :=
   (eventTerm q ^ (2⁻¹ : ℝ) + hybTerm q) ^ 2 + r0Term
 
@@ -418,14 +418,6 @@ open scoped Classical in
 permutation calls and at most `lifetime` signing requests (needed for `q ≤ 2^64` only: above,
 `qrpmBound q ≥ 1`). Every other link is a committed theorem (see the module docstring). -/
 structure XmssQrpmDebts (q : ℕ) (A : Adversary (X × Z)) where
-  /-- **The randomizer trials' hidden read mass** (GradedMasked's `htrial` at ReparamR0's public
-  data): per public datum, summed over the hidden values, the hidden mass of the challenge
-  prefix's reads is at most `trialTau q` per hidden value. -/
-  htrial : ∀ p : RP, ∑ v : HPos → Digest, (runtimeR m0R).totalWeight .instruments
-    (portMass (fun i ↦ readRecPort Selections i = true) (hidH (pubR p) fun s ↦ v (.inl s))
-      (hidK (pubR p) fun s ↦ v (.inl s)) (hidK' (pubR p) fun s ↦ v (.inl s)))
-    (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR ≤
-      trialTau q * Fintype.card (HPos → Digest)
   /-- **The `RecJ` weight** of the prefix's `k`, `k'` program calls (EncPorts' `recJPre`: a
   program call on a bad union that the database's value at the programmed cell makes bad),
   averaged over the good tables. -/
@@ -528,57 +520,168 @@ theorem uavg_not_goodL_le :
   exact add_le_add (add_le_add uavg_not_permGood_le uavg_not_pathsDisjoint_le)
     uavg_not_trialsOff_le
 
+/-- **The good set of the masked hybrid**: ReparamR0's `r0G treeQ 18` and HTrial's
+`TrialHidGood` at the public datum and hidden values of `r0E`. -/
+def maskG (t : HonestTable × RE) : Prop :=
+  r0G treeQ 18 t ∧ TrialHidGood (pubR (r0E t).1) (r0E t).2.1
+
+/-- `maskG`, decided classically. -/
+noncomputable instance instDecidablePredMaskG : DecidablePred maskG :=
+  Classical.decPred _
+
+/-- A filter covered by two filters has at most their total card. -/
+theorem card_filter_le_add {α : Type*} [Fintype α] (P Q R : α → Prop) [DecidablePred P]
+    [DecidablePred Q] [DecidablePred R] (h : ∀ a, P a → Q a ∨ R a) :
+    (Finset.univ.filter P).card ≤ (Finset.univ.filter Q).card + (Finset.univ.filter R).card := by
+  classical
+  refine (Finset.card_le_card fun a ha ↦ ?_).trans (Finset.card_union_le _ _)
+  rw [Finset.mem_filter] at ha
+  rw [Finset.mem_union, Finset.mem_filter, Finset.mem_filter]
+  rcases h a ha.2 with h | h
+  · exact Or.inl ⟨ha.1, h⟩
+  · exact Or.inr ⟨ha.1, h⟩
+
+/-- **The bad fraction of `maskG`**: at most `2^-174 + 2^-400` (`r0G_frac_le_keccak`,
+`trialHidGood_r0G_frac_le_keccak`). -/
+theorem maskG_frac_le :
+    (Fintype.card (HonestTable × RE) : ℝ≥0∞)⁻¹ * (Finset.univ.filter fun t ↦ ¬maskG t).card ≤
+      r0Term := by
+  refine le_trans ?_ (add_le_add r0G_frac_le_keccak trialHidGood_r0G_frac_le_keccak)
+  rw [← mul_add, ← Nat.cast_add]
+  refine mul_le_mul_of_nonneg_left (Nat.cast_le.mpr (card_filter_le_add _ _ _ fun t h ↦ ?_))
+    zero_le
+  by_cases h0 : r0G treeQ 18 t
+  · exact Or.inr ⟨h0, fun h' ↦ h ⟨h0, h'⟩⟩
+  · exact Or.inl h0
+
+/-- A value plus an average of values, each at most `D`, is at most `2 D`. -/
+theorem add_sum_avg_le {Y : Type} [Fintype Y] [Nonempty Y] {a D : ℝ≥0∞} {f : Y → ℝ≥0∞}
+    (ha : a ≤ D) (hf : ∀ y, f y ≤ D) :
+    a + ∑ y, (Fintype.card Y : ℝ≥0∞)⁻¹ * f y ≤ 2 * D := by
+  calc a + ∑ y, (Fintype.card Y : ℝ≥0∞)⁻¹ * f y ≤ D + ∑ _y : Y, (Fintype.card Y : ℝ≥0∞)⁻¹ * D :=
+        add_le_add ha (Finset.sum_le_sum fun y _ ↦ mul_le_mul_of_nonneg_left (hf y) zero_le)
+    _ = 2 * D := by
+      rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, ← mul_assoc,
+        ENNReal.mul_inv_cancel (Nat.cast_ne_zero.mpr Fintype.card_ne_zero)
+          (ENNReal.natCast_ne_top _), one_mul, two_mul]
+
+open scoped ComplexOrder in
+/-- The diagonal mass of a `k`-read port's input set is at most the trace at the read and record
+ports, and `0` elsewhere. -/
+theorem diagMass_readKSet_le (G : X → Set (HwReg X Z Mem)) (Inv : HwReg X Z Mem → Prop)
+    (i : (recHwSpec X Z HPos Selections).Port)
+    {σ : Matrix ((recHwSpec X Z HPos Selections).In i × QReg.of (HwReg X Z Mem))
+      ((recHwSpec X Z HPos Selections).In i × QReg.of (HwReg X Z Mem)) ℂ}
+    (hσ : σ.PosSemidef) :
+    diagMass (readKSet G Inv i) σ ≤
+      if readRecPort Selections i = true then ENNReal.ofReal σ.trace.re else 0 := by
+  rcases i with ((p | c) | c) | T
+  · exact le_of_eq_of_le (Finset.sum_eq_zero fun a _ ↦
+      Set.indicator_of_notMem (Set.notMem_empty a) _) zero_le
+  · exact (diagMass_le_trace _ hσ).trans_eq (ite_eq_left rfl).symm
+  · exact le_of_eq_of_le (Finset.sum_eq_zero fun a _ ↦
+      Set.indicator_of_notMem (Set.notMem_empty a) _) zero_le
+  · exact le_of_eq_of_le (Finset.sum_eq_zero fun a _ ↦
+      Set.indicator_of_notMem (Set.notMem_empty a) _) zero_le
+
+open scoped ComplexOrder in
+/-- **The recorded trial cells per call** (HTrial's `trialRecW`): a diagonal mass plus an average
+of diagonal masses, at most `2` times the trace at the read and record ports. -/
+theorem trialRecW_le (π : Equiv.Perm (X × Z)) (i : (recHwSpec X Z HPos Selections).Port)
+    (σ : Matrix ((recHwSpec X Z HPos Selections).In i × QReg.of (HwReg X Z Mem))
+      ((recHwSpec X Z HPos Selections).In i × QReg.of (HwReg X Z Mem)) ℂ)
+    (hσ : σ.PosSemidef) :
+    trialRecW (M := Selections) π i σ ≤
+      2 * if readRecPort Selections i = true then ENNReal.ofReal σ.trace.re else 0 :=
+  add_sum_avg_le (diagMass_readKSet_le _ _ i hσ) fun _ ↦ diagMass_readKSet_le _ _ i hσ
+
 variable {q : ℕ} {A : Adversary (X × Z)}
   (hperm : ∀ pk, IPFunctor.IFreeM.IsChargeBound (A pk) (cmdCharge permCharge) q)
   (hsign : ∀ pk, IPFunctor.IFreeM.IsChargeBound (A pk) (cmdCharge signCharge) lifetime)
 include hperm hsign
 
+/-- **HTrial's `hrec` with `R = 2 clsCap`**: the recorded trial cells along the challenge prefix
+weigh at most `2` per read call (`trialRecW_le`), at most `clsCap` read calls. -/
+theorem sum_trialRecW_le (pub : Pub) :
+    ∑ v : HPos → Digest, (runtimeR m0R).totalWeight .instruments
+      (trialRecW (M := Selections) pub.perm) (realizeT v (prefixT Selections cwUpd pub A)) initR ≤
+        2 * (clsCap : ℝ≥0∞) * Fintype.card (HPos → Digest) := by
+  have hv : ∀ v : HPos → Digest, (runtimeR m0R).totalWeight .instruments
+      (trialRecW (M := Selections) pub.perm) (realizeT v (prefixT Selections cwUpd pub A)) initR ≤
+        2 * (clsCap : ℝ≥0∞) := fun v ↦ by
+    have hN : IPFunctor.IFreeM.IsChargeBound (realizeT v (prefixT Selections cwUpd pub A))
+        (portCharge fun i ↦ if readRecPort Selections i = true then 1 else 0) clsCap := by
+      have h := hN_readRec cwUpd A hperm hsign pub v
+      rw [gameT_eq_prefixT_bind, realizeT_bind₂] at h
+      exact isChargeBound_of_bind₂ h
+    refine ((totalWeight_le_totalWeight (runtimeR m0R) .instruments
+      (w' := fun i σ ↦ 2 * if readRecPort Selections i = true then ENNReal.ofReal σ.trace.re
+        else 0) (fun i σ hσ ↦ trialRecW_le _ i σ hσ) _ initR_posSemidef).trans_eq
+      (totalWeight_const_mul_weight (runtimeR m0R) .instruments 2
+        (fun i σ ↦ if readRecPort Selections i = true then ENNReal.ofReal σ.trace.re else 0) _
+        initR)).trans (mul_le_mul_of_nonneg_left ?_ zero_le)
+    exact (totalWeight_trace_le_of_isChargeBound' (runtimeR m0R) .instruments
+      (fun i ↦ readRecPort Selections i = true) _ hN initR_posSemidef).trans
+      ((mul_le_mul_of_nonneg_left ofReal_trace_initR_le_one zero_le).trans_eq (mul_one _))
+  calc ∑ v : HPos → Digest, (runtimeR m0R).totalWeight .instruments
+        (trialRecW (M := Selections) pub.perm) (realizeT v (prefixT Selections cwUpd pub A)) initR
+      ≤ ∑ _v : HPos → Digest, 2 * (clsCap : ℝ≥0∞) := Finset.sum_le_sum fun v _ ↦ hv v
+    _ = 2 * (clsCap : ℝ≥0∞) * Fintype.card (HPos → Digest) := by
+      rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_comm]
+
 set_option exponentiation.threshold 1024 in
 /-- **The masked sponge-port mass** (`uavg_mask_spongeMass_le_xmssR0` at ReparamR0's `r0E`,
-`r0G treeQ 18`, SeedStage's seed families): at most `6q · kappaS` over the good set. -/
+`maskG`, SeedStage's seed families): at most `6q · kappaS` over the good set. -/
 theorem uavg_mask_spongeMass_le :
-    uavg (fun t : HonestTable × RE ↦ if r0G treeQ 18 t then (runtimeR m0R).totalWeight
+    uavg (fun t : HonestTable × RE ↦ if maskG t then (runtimeR m0R).totalWeight
       .instruments (spongeMass (coverH t.1) (coverK t.1) (coverK' t.1)) (gameR A t.1) initR
         else 0) ≤ ((6 * q : ℕ) : ℝ≥0∞) * kappaS :=
   (uavg_mask_spongeMass_le_xmssR0 cwUpd A hperm hsign m0R initR initR_posSemidef
-    ofReal_trace_initR_le_one (Hybrid.querySupportedOn_initR m0R _) r0E (r0G treeQ 18)
-    (r0E_injOn treeQ 18) card_r0E_le pubR parR permR 18
-    (fun _ ht ↦ hgame_r0E cwUpd A hashesSlots_treeQ ht) (fun _ ht ↦ r0E_hpath hashesSlots_treeQ ht)
-    (fun _ ht ↦ r0E_hr0 ht) (fun p k ↦ seedHSlots (permR p) (parR p) k.1 k.2.1)
+    ofReal_trace_initR_le_one (Hybrid.querySupportedOn_initR m0R _) r0E maskG
+    ((r0E_injOn treeQ 18).mono fun _ ht ↦ ht.1) card_r0E_le pubR parR permR 18
+    (fun _ ht ↦ hgame_r0E cwUpd A hashesSlots_treeQ ht.1)
+    (fun _ ht ↦ r0E_hpath hashesSlots_treeQ ht.1)
+    (fun _ ht ↦ r0E_hr0 ht.1) (fun p k ↦ seedHSlots (permR p) (parR p) k.1 k.2.1)
     (fun p k ↦ seedK'Slots 18 (permR p) (parR p) k.1 k.2.1) (seedEps 18)
-    (fun _ ht ↦ r0E_hseed ht) (fun p z ↦ sum_indicator_seedHSlots_le 18 (permR p) (parR p) z)
+    (fun _ ht ↦ r0E_hseed ht.1) (fun p z ↦ sum_indicator_seedHSlots_le 18 (permR p) (parR p) z)
     (fun p y ↦ sum_indicator_seedK'Slots_le 18 (permR p) (parR p) y)).trans
     (mul_le_mul_of_nonneg_left (spongeConst_le_keccak
       (seedEps_le_keccak.trans (ENNReal.ofReal_le_ofReal (by norm_num)))) zero_le)
 
 set_option exponentiation.threshold 1024 in
-/-- **The masked read-port mass** (`uavg_mask_readMass_le_xmssR0` at ReparamR0's `r0E`, with the
-trials' term `htrial`): at most `readCap q` over the good set. -/
-theorem uavg_mask_readMass_le (d : XmssQrpmDebts q A) :
-    uavg (fun t : HonestTable × RE ↦ if r0G treeQ 18 t then (runtimeR m0R).totalWeight
+/-- **The masked read-port mass** (TrialSource's `uavg_mask_readMass_le_xmssR0_good` at
+ReparamR0's `r0E` on `maskG`, the trials' term HTrial's `sum_trialMass_le` with
+`sum_trialRecW_le`): at most `readCap` over the good set. -/
+theorem uavg_mask_readMass_le :
+    uavg (fun t : HonestTable × RE ↦ if maskG t then (runtimeR m0R).totalWeight
       .instruments (readMass (coverH t.1) (coverK t.1) (coverK' t.1)) (gameR A t.1) initR
-        else 0) ≤ readCap q := by
-  refine (uavg_mask_readMass_le_xmssR0 cwUpd A hperm hsign m0R initR initR_posSemidef
-    ofReal_trace_initR_le_one (Hybrid.querySupportedOn_initR m0R _) r0E (r0G treeQ 18)
-    (r0E_injOn treeQ 18) card_r0E_le pubR parR permR 18
-    (fun _ ht ↦ hgame_r0E cwUpd A hashesSlots_treeQ ht) (fun _ ht ↦ r0E_hpath hashesSlots_treeQ ht)
-    (fun _ ht ↦ r0E_hr0 ht) (fun p k ↦ seedHSlots (permR p) (parR p) k.1 k.2.1)
+        else 0) ≤ readCap := by
+  refine (uavg_mask_readMass_le_xmssR0_good cwUpd A hperm hsign m0R initR initR_posSemidef
+    ofReal_trace_initR_le_one (Hybrid.querySupportedOn_initR m0R _) r0E maskG
+    ((r0E_injOn treeQ 18).mono fun _ ht ↦ ht.1) card_r0E_le pubR parR permR 18
+    (fun _ ht ↦ hgame_r0E cwUpd A hashesSlots_treeQ ht.1)
+    (fun _ ht ↦ r0E_hpath hashesSlots_treeQ ht.1)
+    (fun _ ht ↦ r0E_hr0 ht.1) (fun p k ↦ seedHSlots (permR p) (parR p) k.1 k.2.1)
     (fun p k ↦ seedK'Slots 18 (permR p) (parR p) k.1 k.2.1) (seedEps 18)
-    (fun _ ht ↦ r0E_hseed ht) (fun p z ↦ sum_indicator_seedHSlots_le 18 (permR p) (parR p) z)
-    (fun p y ↦ sum_indicator_seedK'Slots_le 18 (permR p) (parR p) y) (trialTau q)
-    d.htrial).trans ?_
+    (fun _ ht ↦ r0E_hseed ht.1) (fun p z ↦ sum_indicator_seedHSlots_le 18 (permR p) (parR p) z)
+    (fun p y ↦ sum_indicator_seedK'Slots_le 18 (permR p) (parR p) y)
+    (fun p v ↦ TrialHidGood (pubR p) v) (fun _ ht ↦ ht.2) (htrialTau (2 * clsCap))
+    fun p ↦ sum_trialMass_le cwUpd A hperm hsign m0R (pubR p) initR initR_posSemidef
+      ofReal_trace_initR_le_one (Hybrid.querySupportedOn_initR m0R _)
+      (noBot_init m0R (SubState.basis ()).matrix) (2 * clsCap)
+      (sum_trialRecW_le hperm hsign (pubR p))).trans ?_
   rw [add_assoc]
   exact add_le_add le_rfl (readConst_le_keccak
     (seedEps_le_keccak.trans (ENNReal.ofReal_le_ofReal (by norm_num))))
 
 /-- **The masked graded hybrid with record ports**, averaged over the table. -/
-theorem uavg_p1R_le (d : XmssQrpmDebts q A) :
+theorem uavg_p1R_le :
     uavg (p1R A fullHw) ≤ (uavg (p2R (gameR A)) ^ (2⁻¹ : ℝ) + hybTerm q) ^ 2 + r0Term := by
   refine (uavg_win_runtime1R_le_graded_total_masked_pad .instruments fullHw coverH coverK coverK'
     covers_fullHw m0R (gameR A) (fun _ ↦ SubState.basis ()) (fun _ ↦ winObs)
-    (measurableSet_singleton true) (6 * q) (advCalls_gameR hperm hsign) (r0G treeQ 18) _ _
-    (uavg_mask_spongeMass_le hperm hsign) (uavg_mask_readMass_le hperm hsign d)).trans ?_
-  refine add_le_add (le_of_eq ?_) r0G_frac_le_keccak
+    (measurableSet_singleton true) (6 * q) (advCalls_gameR hperm hsign) maskG _ _
+    (uavg_mask_spongeMass_le hperm hsign) (uavg_mask_readMass_le hperm hsign)).trans ?_
+  refine add_le_add (le_of_eq ?_) maskG_frac_le
   rw [hybTerm, add_assoc]
   rfl
 
@@ -785,7 +888,7 @@ theorem winProb_le_qrpmBound (d : XmssQrpmDebts q A) (hq : q ≤ 2 ^ 64) :
     congrArg uavg (funext fun L ↦ (p1T_eq_p1K A tableLe_fullHw L).trans (p1K_eq_p1R A fullHw L))
   calc winProb keccakStateEquiv A = uavg (p1T A fullHw) := winProb_eq_uavg_full A
     _ = uavg (p1R A fullHw) := hK
-    _ ≤ (uavg (p2R (gameR A)) ^ (2⁻¹ : ℝ) + hybTerm q) ^ 2 + r0Term := uavg_p1R_le hperm hsign d
+    _ ≤ (uavg (p2R (gameR A)) ^ (2⁻¹ : ℝ) + hybTerm q) ^ 2 + r0Term := uavg_p1R_le hperm hsign
     _ ≤ (eventTerm q ^ (2⁻¹ : ℝ) + hybTerm q) ^ 2 + r0Term := by
       gcongr
       exact uavg_p2R_le hperm hsign hq d
