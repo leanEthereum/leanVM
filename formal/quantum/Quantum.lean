@@ -48,6 +48,7 @@ import Quantum.Xmss.Assembly.SrcBad
 import Quantum.Xmss.Assembly.FullTable
 import Quantum.Xmss.Assembly.CostRun
 import Quantum.Xmss.Assembly.CostJoint
+import Quantum.Xmss.Assembly.MassesR0
 import Quantum.Xmss.Hybrid.SchemeSplit
 import Quantum.Xmss.Hybrid.CoinStage
 import Quantum.Xmss.Hybrid.R0Stage
