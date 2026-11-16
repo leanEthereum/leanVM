@@ -61,8 +61,10 @@ namespace Quantum.Xmss.Assembly
 open Quantum QuantumRuntime Quantum.Sponge Quantum.Xmss Quantum.Xmss.Hybrid HashSig LeanXmss
   LeanXmss.RandomPermutationModel Common Common.SufCma
 
-/- Instance search for the memory `Finset ValPos × Selections` exceeds the default size. -/
-set_option synthInstance.maxSize 1000
+/- Instance search for the memory `Finset ValPos × Selections` exceeds the default size: found once
+here, the same term the search would build. -/
+set_option synthInstance.maxSize 1000 in
+local instance memDecEq : DecidableEq (Finset ValPos × Selections) := inferInstance
 
 /-! ## Averages over a table split into three coordinates -/
 
@@ -658,8 +660,9 @@ theorem winProb_le_qrpmBound (d : XmssQrpmDebts q A) :
       · exact d.hybridSum
 
 /-- **leanXMSS is quantum SUF-CMA secure in the QRPM** with bound `qrpmBound`, given the open
-debts of every adversary within the budgets. -/
-theorem leanXmss_qrpm_security
+debts of every adversary within the budgets. Conditional: the unconditional theorem constructs the
+debts. -/
+theorem leanXmss_qrpm_security_of_debts
     (hd : ∀ q (A : Adversary (X × Z)),
       (∀ pk, IPFunctor.IFreeM.IsChargeBound (A pk) (cmdCharge permCharge) q) →
       (∀ pk, IPFunctor.IFreeM.IsChargeBound (A pk) (cmdCharge signCharge) lifetime) →
