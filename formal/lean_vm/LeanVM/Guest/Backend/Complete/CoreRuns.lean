@@ -316,15 +316,14 @@ variable {loops : Loops} {sigs : SMap (ℕ × ℕ)} {t t' : Tables} {tf : Traced
 /-- **A placed function's `frameAddr` runs are in consecutive cells.** -/
 theorem placeFn_runs (h : placeFn loops sigs t tf = .ok (pf, t')) {p : V} {run : List V}
     (ha : Atom.frameAddr p run ∈ lAtomsK tf.core.body) :
-    ∃ b, ∀ k (hk : k < run.length), cellP pf.locs run[k] = some (b + k) := by
+    ∃ b, ∀ k (hk : k < run.length), pf.locs[run[k]]? = some (.cell (b + k)) := by
   obtain ⟨st', hrun, rfl, -, -, -, -⟩ := placeFn_ok h
   have hw : wpP (placeBody tf) (ctxOf loops sigs tf) (initSt loops t tf)
       fun _ s => RunIn run s.locs := by
     unfold placeBody
     exact wp_pass fun _ _ => wp_estF (blockFa _ _ p run ha) fun _ _ =>
       MonoAt.bind flush_mono fun _ _ _ => by mono_straight
-  obtain ⟨b, hb⟩ := hw () st' hrun
-  exact ⟨b, fun k hk => by simp [cellP, hb k hk]⟩
+  exact hw () st' hrun
 
 end Fn
 
