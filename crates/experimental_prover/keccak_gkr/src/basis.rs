@@ -69,7 +69,7 @@ impl PowerBasis {
 }
 
 /// The sum of every subset of eight weights, indexed by the byte whose bits pick it.
-pub fn byte_sums(weights: &[F128; 8]) -> [F128; 256] {
+fn byte_sums(weights: &[F128; 8]) -> [F128; 256] {
     let mut t = [F128::ZERO; 256];
     for (bit, &w) in weights.iter().enumerate() {
         for byte in 1usize << bit..2 << bit {
