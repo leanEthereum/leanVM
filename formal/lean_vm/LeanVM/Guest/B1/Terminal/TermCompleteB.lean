@@ -22,7 +22,7 @@ public import LeanVM.Guest.Data.NameStrings
     + (fs "selector_tables" + 512) + 94·Bcs + (fs "ring_switch_weight" + 2240 + Brs)`
 
 (`completeAt_flatDepRB`, the callees within `termBs`, `termKids_completeB`). The pure callees'
-words are fs-generic hypotheses, in the forms the words certificates give at `B2C.fs`:
+words are fs-generic hypotheses, in the forms the words certificates give at `Deployed.fs`:
 
 * `hEqc`: `eq_prefix_chain` within `Beqc` (`TotalLe`, constant; its certificate: `184`), four calls;
 * `hL15`: `check_opening_terminal_loop0`'s run within `K15` per unit of its end's exponent and its

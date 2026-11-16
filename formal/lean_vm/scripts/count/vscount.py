@@ -191,7 +191,7 @@ def write(g, OPS):
     o.append(opdef('kcTermW', 'The terminal\'s instructions (`B1.VerifySub.termWB Count.vsWords`).', lambda k: vsc.termW[k]))
     o.append(opdefl('vsCountT', '`verify_sub`\'s instructions at the arm `c`, its two ratio-bounded callees '
                     'within `%d`, `%d` words.' % (RB[0][1], RB[1][1]), lambda k: [vsc(k, c) for c in range(A)]))
-    o.append('''/-- **The tables check** against the `V` certificates and `B2C.plumbOf`. -/
+    o.append('''/-- **The tables check** against the `V` certificates and `Deployed.pmaxOf`. -/
 noncomputable def vsTabOk (op : Opcode) : Bool :=
   (List.range @A@).all (fun c => kvOkB op (osJ.getD c 0) ("open_stacked__L" ++ B1.Whir.natStr c) &&
     kvSBJ op (osJ.getD c 0) == (kcOsT op).getD c 0) &&
@@ -205,7 +205,7 @@ noncomputable def vsTabOk (op : Opcode) : Bool :=
   (List.range 4).all (fun i => kvOkK op (ccLpJ.getD i 0) (ccLpNames.getD i "") &&
     kvSKJ op (ccLpJ.getD i 0) == (kcCcLpT op).getD i 0) &&
   (List.range 5).all (fun i => decide ((coreProgram[omJ.getD i 0]?).map Fn.name = some (omNames.getD i "")) &&
-    (B2C.plumbOf (omJ.getD i 0 + 1)).pmax.getD (B2C.opIdx op) 0 == (omT op).getD i 0)
+    (Deployed.pmaxOf (omJ.getD i 0 + 1)).getD (Deployed.opIdx op) 0 == (omT op).getD i 0)
 '''.replace('@A@', str(A)) % len(VS_ST))
     open(os.path.join(D, 'VsCountData.lean'), 'w', encoding='utf-8').write(
         HDR % ('VsCountData', 'The instruction counts of `verify_sub`\'s and `child_claim_list_digest`\'s static callees, per opcode.',
@@ -323,7 +323,7 @@ def write_main(g, OPS):
     o.append(opdef('kcClA', '`claim_list_digest`\'s instructions on `n` claims within `kcClA + kcClS · n`: the constant.',
                    lambda k: cl_aff(k)[0]))
     o.append(opdef('kcClS', '`claim_list_digest`\'s instructions: per claim.', lambda k: cl_aff(k)[1]))
-    o.append('''/-- **The tables check** against the `V` certificates and `B2C.plumbOf`. -/
+    o.append('''/-- **The tables check** against the `V` certificates and `Deployed.pmaxOf`. -/
 noncomputable def mvTabOk (op : Opcode) : Bool :=
   (List.range 3).all (fun i => kvOkB op (dvStJ.getD i 0) (dvStNames.getD i "") &&
     kvSBJ op (dvStJ.getD i 0) == (kcDvStT op).getD i 0) &&
@@ -335,7 +335,7 @@ noncomputable def mvTabOk (op : Opcode) : Bool :=
   (List.range 2).all (fun i => kvOkK op (clLpJ.getD i 0) (clLpNames.getD i "") &&
     kvSKJ op (clLpJ.getD i 0) == (kcClLpT op).getD i 0) &&
   (List.range 4).all (fun i => decide ((coreProgram[mvOmJ.getD i 0]?).map Fn.name = some (mvOmNames.getD i "")) &&
-    (B2C.plumbOf (mvOmJ.getD i 0 + 1)).pmax.getD (B2C.opIdx op) 0 == (mvOmT op).getD i 0)
+    (Deployed.pmaxOf (mvOmJ.getD i 0 + 1)).getD (Deployed.opIdx op) 0 == (mvOmT op).getD i 0)
 ''')
     open(os.path.join(D, 'MvCountData.lean'), 'w', encoding='utf-8').write(
         HDR % ('MvCountData', 'The instruction counts of `main`\'s `da_verify`\'s and `claim_list_digest`\'s callees, per opcode.',

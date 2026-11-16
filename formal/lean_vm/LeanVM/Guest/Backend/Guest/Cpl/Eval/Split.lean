@@ -68,8 +68,9 @@ noncomputable def cplParts (i : ℕ) (pf : Placed) : List Bool :=
     tmpsApartB (guestTraced.getD i default) pf,
     alL pf.fn.body (guestTraced.getD i default).core.body,
     natsDistinct ((armsP (keyedOf i) (guestTraced.getD i default) pf).map (·.1)),
-    decide (ofCnt (pmaxP (keyedOf i) pf) = (B2C.plumbOf (i + 1)).pmax),
-    decide (armsP (keyedOf i) (guestTraced.getD i default) pf = Cpl.armsOf i)]
+    decide (ofCnt (pmaxP (keyedOf i) pf) = Deployed.Data.pmax.getD (i + 1) []),
+    decide (armsP (keyedOf i) (guestTraced.getD i default) pf = Cpl.armsOf i),
+    placesOk (guestTraced.getD i default).core pf.locs (placesRow i)]
 
 /-- The conjuncts `ks` of the test hold. -/
 noncomputable def partsOk (ks : List ℕ) (i : ℕ) (pf : Placed) : Bool := ks.all fun k => (cplParts i pf).getD k false
@@ -88,15 +89,15 @@ theorem any_app {a b : List ℕ} {i : ℕ} (ha : (placedAt i).any (partsOk a i) 
     rw [h] at ha hb
     exact partsOk_app ha hb
 
-theorem cplOkWith_of_parts {i : ℕ} {pf : Placed} (h : partsOk [0, 1, 2, 3, 4, 5, 6, 7] i pf = true) :
+theorem cplOkWith_of_parts {i : ℕ} {pf : Placed} (h : partsOk [0, 1, 2, 3, 4, 5, 6, 7, 8] i pf = true) :
     cplOkWith i pf = true := by
   simp only [partsOk, cplParts, List.all_cons, List.all_nil, List.getD_cons_zero,
     List.getD_cons_succ, Bool.and_true, Bool.and_eq_true] at h
-  obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7⟩ := h
-  simp only [cplOkWith, h0, h1, h2, h3, h4, h5, h6, h7, Bool.and_self]
+  obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, h8⟩ := h
+  simp only [cplOkWith, h0, h1, h2, h3, h4, h5, h6, h7, h8, Bool.and_self]
 
 /-- **Entry `i` by groups of conjuncts**, each group placing it. -/
-theorem cplOkAt_of_any {i : ℕ} (h : (placedAt i).any (partsOk [0, 1, 2, 3, 4, 5, 6, 7] i) = true) :
+theorem cplOkAt_of_any {i : ℕ} (h : (placedAt i).any (partsOk [0, 1, 2, 3, 4, 5, 6, 7, 8] i) = true) :
     cplOkAt i = true := by
   cases hp : placedAt i with
   | none => rw [hp] at h; cases h
@@ -106,34 +107,35 @@ theorem cplOkAt_of_any {i : ℕ} (h : (placedAt i).any (partsOk [0, 1, 2, 3, 4, 
 
 /-- **Entry `i` by two groups of conjuncts**, each placing it. -/
 theorem cplOkAt_of_two {i : ℕ} (h₁ : (placedAt i).any (partsOk [0, 1, 2] i) = true)
-    (h₂ : (placedAt i).any (partsOk [3, 4, 5, 6, 7] i) = true) : cplOkAt i = true :=
+    (h₂ : (placedAt i).any (partsOk [3, 4, 5, 6, 7, 8] i) = true) : cplOkAt i = true :=
   cplOkAt_of_any (any_app h₁ h₂)
 
-/-- The conjuncts `[4, 5, 6, 7]` one by one. -/
-theorem partsOk_4567 {i : ℕ} {pf : Placed} (h₄ : partsOk [4] i pf = true) (h₅ : partsOk [5] i pf = true)
-    (h₆ : partsOk [6] i pf = true) (h₇ : partsOk [7] i pf = true) : partsOk [4, 5, 6, 7] i pf = true :=
-  partsOk_app h₄ (partsOk_app h₅ (partsOk_app h₆ h₇))
+/-- The conjuncts `[4, 5, 6, 7, 8]` one by one. -/
+theorem partsOk_45678 {i : ℕ} {pf : Placed} (h₄ : partsOk [4] i pf = true) (h₅ : partsOk [5] i pf = true)
+    (h₆ : partsOk [6] i pf = true) (h₇ : partsOk [7] i pf = true) (h₈ : partsOk [8] i pf = true) :
+    partsOk [4, 5, 6, 7, 8] i pf = true :=
+  partsOk_app h₄ (partsOk_app h₅ (partsOk_app h₆ (partsOk_app h₇ h₈)))
 
 /-- **Entry `i` on its placed function written out**, by two groups of conjuncts. -/
 theorem cplOkAt_of_with_two {i : ℕ} {pf : Placed} (hp : placedAt i = some pf)
-    (h₁ : partsOk [0, 1, 2] i pf = true) (h₂ : partsOk [3, 4, 5, 6, 7] i pf = true) : cplOkAt i = true :=
+    (h₁ : partsOk [0, 1, 2] i pf = true) (h₂ : partsOk [3, 4, 5, 6, 7, 8] i pf = true) : cplOkAt i = true :=
   cplOkAt_of hp (cplOkWith_of_parts (partsOk_app h₁ h₂))
 
 /-- The conjuncts in five groups. -/
 theorem partsOk_five {i : ℕ} {pf : Placed} (h₀ : partsOk [0] i pf = true) (h₁ : partsOk [1] i pf = true)
     (h₂ : partsOk [2] i pf = true) (h₃ : partsOk [3] i pf = true)
-    (h₄ : partsOk [4, 5, 6, 7] i pf = true) : partsOk [0, 1, 2, 3, 4, 5, 6, 7] i pf = true :=
+    (h₄ : partsOk [4, 5, 6, 7, 8] i pf = true) : partsOk [0, 1, 2, 3, 4, 5, 6, 7, 8] i pf = true :=
   partsOk_app h₀ (partsOk_app h₁ (partsOk_app h₂ (partsOk_app h₃ h₄)))
 
 /-- **Entry `i` on its placed function written out**, by five groups of conjuncts. -/
 theorem cplOkAt_of_five {i : ℕ} {pf : Placed} (hp : placedAt i = some pf) (h₀ : partsOk [0] i pf = true)
     (h₁ : partsOk [1] i pf = true) (h₂ : partsOk [2] i pf = true) (h₃ : partsOk [3] i pf = true)
-    (h₄ : partsOk [4, 5, 6, 7] i pf = true) : cplOkAt i = true :=
+    (h₄ : partsOk [4, 5, 6, 7, 8] i pf = true) : cplOkAt i = true :=
   cplOkAt_of hp (cplOkWith_of_parts (partsOk_five h₀ h₁ h₂ h₃ h₄))
 
 /-- **Entry `i` on its placed function written out.** -/
 theorem cplOkAt_of_with {i : ℕ} {pf : Placed} (hp : placedAt i = some pf)
-    (h : partsOk [0, 1, 2, 3, 4, 5, 6, 7] i pf = true) : cplOkAt i = true :=
+    (h : partsOk [0, 1, 2, 3, 4, 5, 6, 7, 8] i pf = true) : cplOkAt i = true :=
   cplOkAt_of hp (cplOkWith_of_parts h)
 
 /-- **A function the pieces place in parts**: its placed function is the last state's. -/
@@ -515,12 +517,12 @@ theorem cplOk_big {j : ℕ} {pf : Placed} {TL : List V} {C : NMap ℕ} {S : SSt}
     (hfin : (match flushAt (guestTraced.getD j default).rets S with
       | .ok s => s.rest.isEmpty
       | .error _ => false) = true)
-    (hrest : partsOk [4, 5, 6, 7] j pf = true) : cplOkAt j = true := by
+    (hrest : partsOk [4, 5, 6, 7, 8] j pf = true) : cplOkAt j = true := by
   generalize htf : guestTraced.getD j default = tf at hseg hsmall ho hscope hfin
   have hrest' := hrest
   simp only [partsOk, cplParts, List.all_cons, List.all_nil, List.getD_cons_zero,
     List.getD_cons_succ, Bool.and_true, Bool.and_eq_true] at hrest'
-  obtain ⟨r4, r5, r6, r7⟩ := hrest'
+  obtain ⟨r4, r5, r6, r7, r8⟩ := hrest'
   rw [htf] at r4 r5 r7
   set c : BigC := ⟨tf.core.name, pf.locs, TL, fsWant j, tf.core.params.length⟩ with hc
   rw [List.drop_zero] at hseg
@@ -545,7 +547,7 @@ theorem cplOk_big {j : ℕ} {pf : Placed} {TL : List V} {C : NMap ℕ} {S : SSt}
   subst htf
   exact cplOkAt_of hp (cplOkWith_of_parts (by
     simp only [partsOk, cplParts, List.all_cons, List.all_nil, List.getD_cons_zero,
-      List.getD_cons_succ, h0, h1, h2, h3, r4, r5, r6, r7, Bool.and_self]))
+      List.getD_cons_succ, h0, h1, h2, h3, r4, r5, r6, r7, r8, Bool.and_self]))
 
 /-! ## A `match` of a large function by runs of arms -/
 
