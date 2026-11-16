@@ -47,7 +47,6 @@ public import LeanVM.Guest.Pack.«open_stacked__L3».ModeD0W36
 public import LeanVM.Guest.Pack.«open_stacked__L3».ModeD0W37
 public import LeanVM.Guest.Pack.«open_stacked__L3».ModeD0W38
 public import LeanVM.Guest.Pack.«open_stacked__L3».ModeD0W39
-public import LeanVM.Guest.Pack.«open_stacked__L3».ModeD0W40
 
 namespace LeanVM.Guest.Fn.«open_stacked__L3»
 
@@ -55,10 +54,19 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `open_stacked__L3`: its windows from offset 1476 go through. -/
+/-- `open_stacked__L3`: its cuts from its 32-th on. -/
+def modeCuts32 : List ℕ :=
+  1492 :: 1494 :: 1495 :: 1505 :: 1511 :: 1513 :: 1514 :: []
+
+/-- `open_stacked__L3`: its cuts from its 0-th on. -/
+def modeCuts0 : List ℕ :=
+  155 :: 291 :: 406 :: 456 :: 483 :: 594 :: 665 :: 710 :: 752 :: 821 :: 861 :: 872 :: 877 :: 881
+    :: 882 :: 953 :: 988 :: 1006 :: 1014 :: 1018 :: 1020 :: 1021 :: 1249 :: 1365 :: 1421 :: 1450 ::
+    1463 :: 1470 :: 1473 :: 1475 :: 1476 :: 1486 :: modeCuts32
+
+/-- `open_stacked__L3`: its windows from offset 1486 go through. -/
 theorem modeC32 :
-    Mode.WinsOk modeEnv modeFun code.chunks 1687 1476 (Mode.cutOf modeFun 1476) [1486, 1492, 1494,
-    1495, 1505, 1511, 1513, 1514] :=
+    Mode.WinsOk modeEnv modeFun code.chunks 1687 1486 (Mode.cutOf modeFun 1486) modeCuts32 :=
   ⟨by decide, by decide, by decide +kernel, modeW32,
     ⟨by decide, by decide, by decide +kernel, modeW33,
     ⟨by decide, by decide, by decide +kernel, modeW34,
@@ -66,15 +74,11 @@ theorem modeC32 :
     ⟨by decide, by decide, by decide +kernel, modeW36,
     ⟨by decide, by decide, by decide +kernel, modeW37,
     ⟨by decide, by decide, by decide +kernel, modeW38,
-    ⟨by decide, by decide, by decide +kernel, modeW39,
-    modeW40⟩⟩⟩⟩⟩⟩⟩⟩
+    modeW39⟩⟩⟩⟩⟩⟩⟩
 
 /-- `open_stacked__L3`: its mode walk accepts its code, window by window. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=
-  Mode.walk_of_wins (n := 1687) (by decide +kernel) (List.flatten [[231, 349, 437, 483, 571, 634,
-    684, 710, 730, 746, 821, 861, 872, 877, 881, 882], [953, 988, 1006, 1014, 1018, 1020, 1021,
-    1249, 1365, 1421, 1450, 1463, 1470, 1473, 1475, 1476], [1486, 1492, 1494, 1495, 1505, 1511,
-    1513, 1514]])
+  Mode.walk_of_wins (n := 1687) (by decide +kernel) modeCuts0
     ⟨by decide, by decide, by decide +kernel, modeW0,
     ⟨by decide, by decide, by decide +kernel, modeW1,
     ⟨by decide, by decide, by decide +kernel, modeW2,

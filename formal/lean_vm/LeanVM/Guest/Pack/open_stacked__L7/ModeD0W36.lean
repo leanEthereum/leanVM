@@ -17,10 +17,10 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `open_stacked__L7`: its walk from offset 1609 goes through to its cut at 1719. -/
+/-- `open_stacked__L7`: its walk from offset 1817 goes through to its cut at 1819. -/
 theorem modeW36 :
-    (Mode.runCode modeEnv modeFun (Mode.winCode code.chunks 1609 1719) 1609 (Mode.cutOf modeFun
-    1609).1 (Mode.cutOf modeFun 1609).2).isSome = true := by
+    (Mode.runCode modeEnv modeFun (Mode.winCode code.chunks 1817 1819) 1817 (Mode.cutOf modeFun
+    1817).1 (Mode.cutOf modeFun 1817).2).isSome = true := by
   decide +kernel
 
 end

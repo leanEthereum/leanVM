@@ -33,7 +33,6 @@ public section
     costly to check (`WalkHyp`), hints too costly to check in one piece (`HintsHyp`). -/
 structure ModeHyps : Prop where
   «__loop6» : WalkHyp Fn.«verify_bus_gkr_loop0».modeCert
-  «check_opening_terminal» : WalkHyp Fn.«check_opening_terminal».modeCert
   «da_weights» : WalkHyp Fn.«da_weights».modeCert
   «main» : WalkHyp Fn.«main».modeCert
   «verify_bus_gkr» : WalkHyp Fn.«verify_bus_gkr».modeCert
@@ -50,7 +49,7 @@ theorem guestGroup_walk0 (h : ModeHyps) : ∀ l ∈ guestGroups[0]!, ∀ K ∈ l
     (Mode.fa_cons (ModePack.«P14».certs_walk)
     (Mode.fa_cons (ModePack.«P15».certs_walk)
     (Mode.fa_cons (ModePack.«P16».certs_walk)
-    (Mode.fa_cons (ModePack.«P17».certs_walk h.«check_opening_terminal»)
+    (Mode.fa_cons (ModePack.«P17».certs_walk)
     (Mode.fa_cons (ModePack.«P18».certs_walk)
     (Mode.fa_cons (ModePack.«P19».certs_walk)
     (Mode.fa_cons (ModePack.«P2».certs_walk)

@@ -25,10 +25,13 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
+/-- `sp_wots`: its cuts from its 0-th on. -/
+def modeCuts0 : List ℕ :=
+  2238 :: 4486 :: 6734 :: 8982 :: 11229 :: 13477 :: 15725 :: 17973 :: 20221 :: 22469 :: []
+
 /-- `sp_wots`: its mode walk accepts its code, window by window. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=
-  Mode.walk_of_wins (n := 23713) (by decide +kernel) [2238, 4486, 6734, 8982, 11229, 13477, 15725,
-    17973, 20221, 22469]
+  Mode.walk_of_wins (n := 23713) (by decide +kernel) modeCuts0
     ⟨by decide, by decide, by decide +kernel, modeW0,
     ⟨by decide, by decide, by decide +kernel, modeW1,
     ⟨by decide, by decide, by decide +kernel, modeW2,

@@ -73,12 +73,6 @@ public import LeanVM.Guest.Pack.«open_stacked__L10».ModeD0W62
 public import LeanVM.Guest.Pack.«open_stacked__L10».ModeD0W63
 public import LeanVM.Guest.Pack.«open_stacked__L10».ModeD0W64
 public import LeanVM.Guest.Pack.«open_stacked__L10».ModeD0W65
-public import LeanVM.Guest.Pack.«open_stacked__L10».ModeD0W66
-public import LeanVM.Guest.Pack.«open_stacked__L10».ModeD0W67
-public import LeanVM.Guest.Pack.«open_stacked__L10».ModeD0W68
-public import LeanVM.Guest.Pack.«open_stacked__L10».ModeD0W69
-public import LeanVM.Guest.Pack.«open_stacked__L10».ModeD0W70
-public import LeanVM.Guest.Pack.«open_stacked__L10».ModeD0W71
 
 namespace LeanVM.Guest.Fn.«open_stacked__L10»
 
@@ -86,25 +80,31 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `open_stacked__L10`: its windows from offset 2129 go through. -/
-theorem modeC64 :
-    Mode.WinsOk modeEnv modeFun code.chunks 2496 2129 (Mode.cutOf modeFun 2129) [2135, 2137, 2138,
-    2148, 2154, 2156, 2157] :=
-  ⟨by decide, by decide, by decide +kernel, modeW64,
-    ⟨by decide, by decide, by decide +kernel, modeW65,
-    ⟨by decide, by decide, by decide +kernel, modeW66,
-    ⟨by decide, by decide, by decide +kernel, modeW67,
-    ⟨by decide, by decide, by decide +kernel, modeW68,
-    ⟨by decide, by decide, by decide +kernel, modeW69,
-    ⟨by decide, by decide, by decide +kernel, modeW70,
-    modeW71⟩⟩⟩⟩⟩⟩⟩
+/-- `open_stacked__L10`: its cuts from its 64-th on. -/
+def modeCuts64 : List ℕ :=
+  2157 :: []
 
-/-- `open_stacked__L10`: its windows from offset 1188 go through. -/
+/-- `open_stacked__L10`: its cuts from its 32-th on. -/
+def modeCuts32 : List ℕ :=
+  1336 :: 1337 :: 1380 :: 1401 :: 1411 :: 1417 :: 1419 :: 1420 :: 1756 :: 1920 :: 2005 :: 2045 ::
+    2065 :: 2073 :: 2078 :: 2080 :: 2081 :: 2091 :: 2097 :: 2099 :: 2100 :: 2110 :: 2116 :: 2118 ::
+    2119 :: 2129 :: 2135 :: 2137 :: 2138 :: 2148 :: 2154 :: 2156 :: modeCuts64
+
+/-- `open_stacked__L10`: its cuts from its 0-th on. -/
+def modeCuts0 : List ℕ :=
+  170 :: 321 :: 415 :: 491 :: 595 :: 666 :: 711 :: 782 :: 852 :: 893 :: 938 :: 950 :: 956 :: 960
+    :: 961 :: 1055 :: 1102 :: 1128 :: 1139 :: 1144 :: 1148 :: 1149 :: 1172 :: 1180 :: 1185 :: 1187
+    :: 1188 :: 1263 :: 1300 :: 1319 :: 1328 :: 1334 :: modeCuts32
+
+/-- `open_stacked__L10`: its windows from offset 2156 go through. -/
+theorem modeC64 :
+    Mode.WinsOk modeEnv modeFun code.chunks 2496 2156 (Mode.cutOf modeFun 2156) modeCuts64 :=
+  ⟨by decide, by decide, by decide +kernel, modeW64,
+    modeW65⟩
+
+/-- `open_stacked__L10`: its windows from offset 1334 go through. -/
 theorem modeC32 :
-    Mode.WinsOk modeEnv modeFun code.chunks 2496 1188 (Mode.cutOf modeFun 1188) (List.flatten
-    [[1263, 1300, 1319, 1328, 1334, 1336, 1337, 1380, 1401, 1411, 1417, 1419, 1420, 1536, 1810,
-    1950], [2020, 2055, 2068, 2075, 2078, 2080, 2081, 2091, 2097, 2099, 2100, 2110, 2116, 2118,
-    2119, 2129], [2135, 2137, 2138, 2148, 2154, 2156, 2157]]) :=
+    Mode.WinsOk modeEnv modeFun code.chunks 2496 1334 (Mode.cutOf modeFun 1334) modeCuts32 :=
   ⟨by decide, by decide, by decide +kernel, modeW32,
     ⟨by decide, by decide, by decide +kernel, modeW33,
     ⟨by decide, by decide, by decide +kernel, modeW34,
@@ -141,12 +141,7 @@ theorem modeC32 :
 
 /-- `open_stacked__L10`: its mode walk accepts its code, window by window. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=
-  Mode.walk_of_wins (n := 2496) (by decide +kernel) (List.flatten [[250, 379, 446, 504, 597, 666,
-    711, 762, 843, 893, 908, 915, 919, 921, 922, 945], [953, 958, 960, 961, 1055, 1102, 1128, 1139,
-    1144, 1148, 1149, 1172, 1180, 1185, 1187, 1188], [1263, 1300, 1319, 1328, 1334, 1336, 1337,
-    1380, 1401, 1411, 1417, 1419, 1420, 1536, 1810, 1950], [2020, 2055, 2068, 2075, 2078, 2080,
-    2081, 2091, 2097, 2099, 2100, 2110, 2116, 2118, 2119, 2129], [2135, 2137, 2138, 2148, 2154,
-    2156, 2157]])
+  Mode.walk_of_wins (n := 2496) (by decide +kernel) modeCuts0
     ⟨by decide, by decide, by decide +kernel, modeW0,
     ⟨by decide, by decide, by decide +kernel, modeW1,
     ⟨by decide, by decide, by decide +kernel, modeW2,

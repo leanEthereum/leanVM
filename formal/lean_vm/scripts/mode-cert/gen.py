@@ -8,7 +8,7 @@ too long to check in one piece are checked in parts (`ModeH{q}P{m}`, `Guest/Mode
 `--check` writes nothing and fails when a file differs. `MODE_CERT_CACHE=FILE` keeps the inference
 in `FILE` between runs (development only: stale once the walk, the inference or the guest changes).
 Usage: python3 -I scripts/mode-cert/gen.py [--check] [--only PACK...]"""
-import sys, os, collections
+import sys, os, collections, textwrap
 sys.setrecursionlimit(100000)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import infer as I
@@ -21,16 +21,17 @@ CHUNK = 2500
 # a literal list longer than this is written as a flattened list of such lists
 LONG = 16
 # The kernel's memory on a check, estimated in MB (`kprofile`): `KBASE` a module, `KINS` an
-# instruction, `KRUN` a run a lookup tries (`Abs.inRuns`) per base of the cell, `KARM` a fact of a
-# call's arm (its state after the callee, met with the others), `KSIZE` a fact
-# of the snapshot a window ends at (its cut's check). A module is sized to at most `KBUDGET`; a function
-# one of whose instructions alone needs more than `KHARD` is not checked (`HEAVY`). The model overcounts
-# a table call's arms (`KARM`, `KRUN`), so `KHARD` is set from the kernel's measured peak on such calls, a
+# instruction, `KRUN` a run a lookup tries (`Abs.inRuns`) per base of the cell, `KARM` a call's arm and
+# `KADD` each fact it adds to the state before the call (the arms are met by what they add: the state
+# before is a tail they share), `KSIZE` a fact of the snapshot a window ends at (its cut's check). A
+# module is sized to at most `KBUDGET`; a function one of whose instructions alone needs more than
+# `KHARD` is not checked (`HEAVY`). `KHARD` is set from the kernel's measured peak on table calls, a
 # margin below the 8 GB a check may take.
 KBASE = 400
 KINS = 1.5
 KRUN = 0.01
-KARM = 0.15
+KARM = 105
+KADD = 1.6
 KSIZE = 0.75
 KBUDGET = 4500
 KHARD = 12500
@@ -306,8 +307,8 @@ def kprofile(n, sig, res):
     """At each offset of a function's walk: the facts of the paths and pending edges there (`S`), and the
     kernel's memory its instruction is estimated to need (`C`, MB): `KINS`, and `KRUN` for each run a
     lookup tries and each base of the cell (`Abs.inRuns` tries the runs over `k`'s bases or all but one
-    of them, a miss each, a hit half of them on average), and `KARM` for each fact of each arm of a
-    call."""
+    of them, a miss each, a hit half of them on average), and for each arm of a call `KARM` and `KADD`
+    for each fact it adds."""
     f = I.fns[n]; N = f['count']
     S = [0] * (N + 1); C = [KINS] * N; cur = [0]
     och = W.Abs.coveredHR
@@ -322,8 +323,9 @@ def kprofile(n, sig, res):
         S[i] = sum(facts(A) for A in list(sts) + [B for g in pend for B in g[1]])
     oac = I.Walk.afterCall
     def afterCall(w, A, *a):
-        C[cur[0]] += KARM * facts(A)
-        return oac(w, A, *a)
+        B = oac(w, A, *a)
+        C[cur[0]] += KARM + KADD * max(0, facts(B) - facts(A))
+        return B
     W.Abs.coveredHR = coveredHR; I.Walk.afterCall = afterCall
     try:
         I.Walk(I.E, f['entry'], N, sig, f['hints'], res, f['tabs'], main=n == 'main').run(f['ops'], probe=probe)
@@ -416,16 +418,23 @@ def winFiles(p, k, n, sigs, res, cuts):
     out.append(''.join('public import %sW%d\n' % (base_, m) for m in range(len(starts))))
     out.append(nsOpen(n, False))
     # the chain in links of `LINK` windows, each from the windows after it (a deeper term exceeds the
-    # elaborator's recursion depth)
+    # elaborator's recursion depth); each link's cuts a constant ending in the next link's, so that
+    # a link's statement is its successor's without comparing their lists (written last first)
+    for m in reversed(range(0, len(bs), LINK)):
+        seg = bs[m:m + LINK]
+        rest = 'modeCuts%d' % (m + LINK) if m + LINK < len(bs) else '[]'
+        body = ' :: '.join(nat(x) for x in seg) + ' :: ' + rest
+        out.append('/-- `%s`: its cuts from its %d-th on. -/\ndef modeCuts%d : List ℕ :=\n  %s\n\n' % (
+            n, m, m, '\n    '.join(textwrap.wrap(body, 96, break_long_words=False, break_on_hyphens=False))))
     proof = 'modeW%d' % len(bs)
     for m in range(len(bs) - 1, -1, -1):
         proof = '⟨by decide, by decide, by decide +kernel, modeW%d,\n    %s⟩' % (m, proof)
         if m and m % LINK == 0:
-            out.append('/-- `%s`: its windows from offset %d go through. -/\ntheorem modeC%d :\n    Mode.WinsOk modeEnv modeFun code.chunks %d %d (Mode.cutOf modeFun %d) %s :=\n  %s\n\n' % (
-                n, starts[m], m, f['count'], starts[m], starts[m], lst(bs[m:], nat), proof))
+            out.append('/-- `%s`: its windows from offset %d go through. -/\ntheorem modeC%d :\n    Mode.WinsOk modeEnv modeFun code.chunks %d %d (Mode.cutOf modeFun %d) modeCuts%d :=\n  %s\n\n' % (
+                n, starts[m], m, f['count'], starts[m], starts[m], m, proof))
             proof = 'modeC%d' % m
-    out.append('/-- `%s`: its mode walk accepts its code, window by window. -/\ntheorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=\n  Mode.walk_of_wins (n := %d) (by decide +kernel) %s\n    %s\n\n' % (
-        n, f['count'], lst(bs, nat), proof))
+    out.append('/-- `%s`: its mode walk accepts its code, window by window. -/\ntheorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=\n  Mode.walk_of_wins (n := %d) (by decide +kernel) modeCuts0\n    %s\n\n' % (
+        n, f['count'], proof))
     out.append(nsClose(n))
     files['ModeL%d.lean' % k] = ''.join(out)
     return files

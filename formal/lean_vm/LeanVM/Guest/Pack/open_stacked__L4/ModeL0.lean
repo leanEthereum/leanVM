@@ -68,11 +68,20 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
+/-- `open_stacked__L4`: its cuts from its 32-th on. -/
+def modeCuts32 : List ℕ :=
+  1151 :: 1380 :: 1492 :: 1547 :: 1577 :: 1588 :: 1593 :: 1597 :: 1598 :: 1608 :: 1614 :: 1616 ::
+    1617 :: 1627 :: 1633 :: 1635 :: 1636 :: 1646 :: 1652 :: 1654 :: 1655 :: []
+
+/-- `open_stacked__L4`: its cuts from its 0-th on. -/
+def modeCuts0 : List ℕ :=
+  169 :: 320 :: 415 :: 461 :: 500 :: 598 :: 666 :: 711 :: 762 :: 843 :: 893 :: 908 :: 915 :: 919
+    :: 921 :: 922 :: 945 :: 953 :: 958 :: 960 :: 961 :: 1036 :: 1073 :: 1092 :: 1101 :: 1107 :: 1109
+    :: 1110 :: 1132 :: 1142 :: 1148 :: 1150 :: modeCuts32
+
 /-- `open_stacked__L4`: its windows from offset 1150 go through. -/
 theorem modeC32 :
-    Mode.WinsOk modeEnv modeFun code.chunks 1865 1150 (Mode.cutOf modeFun 1150) (List.flatten
-    [[1151, 1380, 1492, 1547, 1577, 1588, 1593, 1597, 1598, 1608, 1614, 1616, 1617, 1627, 1633,
-    1635], [1636, 1646, 1652, 1654, 1655]]) :=
+    Mode.WinsOk modeEnv modeFun code.chunks 1865 1150 (Mode.cutOf modeFun 1150) modeCuts32 :=
   ⟨by decide, by decide, by decide +kernel, modeW32,
     ⟨by decide, by decide, by decide +kernel, modeW33,
     ⟨by decide, by decide, by decide +kernel, modeW34,
@@ -98,10 +107,7 @@ theorem modeC32 :
 
 /-- `open_stacked__L4`: its mode walk accepts its code, window by window. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=
-  Mode.walk_of_wins (n := 1865) (by decide +kernel) (List.flatten [[249, 375, 446, 494, 595, 646,
-    690, 714, 740, 831, 877, 901, 912, 917, 921, 922], [945, 953, 958, 960, 961, 1036, 1073, 1092,
-    1101, 1107, 1109, 1110, 1132, 1142, 1148, 1150], [1151, 1380, 1492, 1547, 1577, 1588, 1593,
-    1597, 1598, 1608, 1614, 1616, 1617, 1627, 1633, 1635], [1636, 1646, 1652, 1654, 1655]])
+  Mode.walk_of_wins (n := 1865) (by decide +kernel) modeCuts0
     ⟨by decide, by decide, by decide +kernel, modeW0,
     ⟨by decide, by decide, by decide +kernel, modeW1,
     ⟨by decide, by decide, by decide +kernel, modeW2,

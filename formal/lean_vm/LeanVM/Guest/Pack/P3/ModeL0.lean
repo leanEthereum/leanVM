@@ -14,8 +14,6 @@ public import LeanVM.Guest.Pack.«P3».ModeD0W3
 public import LeanVM.Guest.Pack.«P3».ModeD0W4
 public import LeanVM.Guest.Pack.«P3».ModeD0W5
 public import LeanVM.Guest.Pack.«P3».ModeD0W6
-public import LeanVM.Guest.Pack.«P3».ModeD0W7
-public import LeanVM.Guest.Pack.«P3».ModeD0W8
 
 namespace LeanVM.Guest.Fn.«verify_keccak»
 
@@ -23,18 +21,20 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
+/-- `verify_keccak`: its cuts from its 0-th on. -/
+def modeCuts0 : List ℕ :=
+  372 :: 510 :: 629 :: 725 :: 815 :: 1202 :: []
+
 /-- `verify_keccak`: its mode walk accepts its code, window by window. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=
-  Mode.walk_of_wins (n := 3258) (by decide +kernel) [372, 532, 635, 719, 796, 863, 910, 1211]
+  Mode.walk_of_wins (n := 3258) (by decide +kernel) modeCuts0
     ⟨by decide, by decide, by decide +kernel, modeW0,
     ⟨by decide, by decide, by decide +kernel, modeW1,
     ⟨by decide, by decide, by decide +kernel, modeW2,
     ⟨by decide, by decide, by decide +kernel, modeW3,
     ⟨by decide, by decide, by decide +kernel, modeW4,
     ⟨by decide, by decide, by decide +kernel, modeW5,
-    ⟨by decide, by decide, by decide +kernel, modeW6,
-    ⟨by decide, by decide, by decide +kernel, modeW7,
-    modeW8⟩⟩⟩⟩⟩⟩⟩⟩
+    modeW6⟩⟩⟩⟩⟩⟩
 
 end
 

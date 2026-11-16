@@ -16,11 +16,12 @@ public import LeanVM.Guest.Pack.«P12».Mode0
 public import LeanVM.Guest.Pack.«P13».Mode2
 public import LeanVM.Guest.Pack.«P16».Mode0
 public import LeanVM.Guest.Pack.«P17».Mode0
+public import LeanVM.Guest.Pack.«P17».ModeD0
 public import LeanVM.Guest.Pack.«P18».Mode0
 public import LeanVM.Guest.Pack.«P1».Mode0
 public import LeanVM.Guest.Pack.«P20».Mode0
 public import LeanVM.Guest.Pack.«P21».Mode0
-public import LeanVM.Guest.Pack.«P21».Mode1
+public import LeanVM.Guest.Pack.«P21».Mode2
 public import LeanVM.Guest.Pack.«P23».Mode0
 public import LeanVM.Guest.Pack.«P24».Mode0
 public import LeanVM.Guest.Pack.«P25».Mode0
@@ -31,6 +32,7 @@ public import LeanVM.Guest.Pack.«P28».Mode0
 public import LeanVM.Guest.Pack.«P28».Mode2
 public import LeanVM.Guest.Pack.«P29».Mode0
 public import LeanVM.Guest.Pack.«P29».Mode1
+public import LeanVM.Guest.Pack.«P29».ModeD0
 public import LeanVM.Guest.Pack.«P2».Mode0
 public import LeanVM.Guest.Pack.«P2».Mode1
 public import LeanVM.Guest.Pack.«P30».Mode0
@@ -51,7 +53,7 @@ public import LeanVM.Guest.Pack.«P43».Mode0
 public import LeanVM.Guest.Pack.«P44».Mode0
 public import LeanVM.Guest.Pack.«P45».Mode0
 public import LeanVM.Guest.Pack.«P45».Mode1
-public import LeanVM.Guest.Pack.«P45».Mode3
+public import LeanVM.Guest.Pack.«P45».Mode4
 public import LeanVM.Guest.Pack.«P46».Mode0
 public import LeanVM.Guest.Pack.«P47».Mode0
 public import LeanVM.Guest.Pack.«P47».Mode2
@@ -65,16 +67,17 @@ public import LeanVM.Guest.Pack.«P53».Mode0
 public import LeanVM.Guest.Pack.«P54».Mode0
 public import LeanVM.Guest.Pack.«P54».Mode2
 public import LeanVM.Guest.Pack.«P55».Mode0
+public import LeanVM.Guest.Pack.«P55».Mode1
 public import LeanVM.Guest.Pack.«P56».Mode0
 public import LeanVM.Guest.Pack.«P57».Mode0
-public import LeanVM.Guest.Pack.«P58».Mode1
+public import LeanVM.Guest.Pack.«P58».Mode2
 public import LeanVM.Guest.Pack.«P59».Mode0
 public import LeanVM.Guest.Pack.«P59».Mode2
 public import LeanVM.Guest.Pack.«P5».Mode0
 public import LeanVM.Guest.Pack.«P61».Mode0
 public import LeanVM.Guest.Pack.«P63».Mode0
 public import LeanVM.Guest.Pack.«P7».Mode0
-public import LeanVM.Guest.Pack.«P7».Mode2
+public import LeanVM.Guest.Pack.«P7».Mode3
 public import LeanVM.Guest.Pack.«P7».ModeD0
 public import LeanVM.Guest.Pack.«P9».Mode0
 public import LeanVM.Guest.Pack.«P9».Mode2
@@ -93,7 +96,7 @@ public import LeanVM.Guest.Pack.«open_stacked__L9».ModeD0
 /-!
 # The residuals' families, checked on the guest's data
 
-`nzMul_guest`: each nonzero residual of a kernel-checked function sits at a `MUL` as its divisor (`nz_mul`, `resRef_obl`: its product cell nonzero on the reference). `ltWin_guest`: each order residual of a `walk_path` specialization `walk_path__L{p}_L{c}` bounds a window of its `wins` argument (frame cell `4`): the exponent of the word `k < (p + 5) / 6` cells past it below `64` (`obl_win`, `rwins_of_winsAt`). `ltFr_guest`: each order residual of the listed functions bounds a frame cell's exponent. `famOk_guest`: every residual of the listed functions has an obligation of its own (`Obl`, `oblFam`). The functions with a residual outside the families: `certify_placement`, `column_selector__L1`, `column_selector__L10`, `column_selector__L11`, `column_selector__L13`, `column_selector__L14`, `column_selector__L15`, `column_selector__L17`, `column_selector__L18`, `column_selector__L19`, `column_selector__L2`, `column_selector__L21`, `column_selector__L22`, `column_selector__L23`, `column_selector__L25`, `column_selector__L26`, `column_selector__L27`, `column_selector__L29`, `column_selector__L3`, `column_selector__L30`, `column_selector__L5`, `column_selector__L6`, `column_selector__L7`, `column_selector__L9`, `da_roots_tree__L0`, `da_roots_tree__L1`, `da_roots_tree__L10`, `da_roots_tree__L2`, `da_roots_tree__L3`, `da_roots_tree__L4`, `da_roots_tree__L5`, `da_roots_tree__L6`, `da_roots_tree__L7`, `da_roots_tree__L8`, `da_roots_tree__L9`, `rs_eq_run`, `shared_selector_tables`, `verify_keccak`.
+`nzMul_guest`: each nonzero residual of a kernel-checked function sits at a `MUL` as its divisor (`nz_mul`, `resRef_obl`: its product cell nonzero on the reference). `ltWin_guest`: each order residual of a `walk_path` specialization `walk_path__L{p}_L{c}` bounds a window of its `wins` argument (frame cell `4`): the exponent of the word `k < (p + 5) / 6` cells past it below `64` (`obl_win`, `rwins_of_winsAt`). `ltFr_guest`: each order residual of the listed functions bounds a frame cell's exponent. `famOk_guest`: every residual of the listed functions has an obligation of its own (`Obl`, `oblFam`). The functions with a residual outside the families: `certify_placement`, `check_opening_terminal`, `column_selector__L1`, `column_selector__L10`, `column_selector__L11`, `column_selector__L13`, `column_selector__L14`, `column_selector__L15`, `column_selector__L17`, `column_selector__L18`, `column_selector__L19`, `column_selector__L2`, `column_selector__L21`, `column_selector__L22`, `column_selector__L23`, `column_selector__L25`, `column_selector__L26`, `column_selector__L27`, `column_selector__L29`, `column_selector__L3`, `column_selector__L30`, `column_selector__L5`, `column_selector__L6`, `column_selector__L7`, `column_selector__L9`, `da_roots_tree__L0`, `da_roots_tree__L1`, `da_roots_tree__L10`, `da_roots_tree__L2`, `da_roots_tree__L3`, `da_roots_tree__L4`, `da_roots_tree__L5`, `da_roots_tree__L6`, `da_roots_tree__L7`, `da_roots_tree__L8`, `da_roots_tree__L9`, `rs_eq_run`, `shared_selector_tables`, `verify_keccak`.
 -/
 
 namespace LeanVM.Guest.Mode

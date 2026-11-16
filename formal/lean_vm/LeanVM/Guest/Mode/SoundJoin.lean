@@ -44,22 +44,6 @@ theorem mem_interT {α : Type} {eq : α → α → Bool} {a b : List α} {x : α
   · exact List.mem_of_mem_take (mem_interL h)
   · exact List.mem_of_mem_drop h
 
-theorem agree_forall₂ {α : Type} {eq : α → α → Bool} : ∀ {a b : List α},
-    List.Forall₂ (fun x y ↦ eq x y = true) (a.take (agree eq a b)) (b.take (agree eq a b))
-  | [], _ => by simp [agree]
-  | _ :: _, [] => by simp [agree]
-  | x :: xs, y :: ys => by
-    unfold agree
-    split_ifs with he
-    · simp only [List.take_succ_cons]
-      exact List.Forall₂.cons he agree_forall₂
-    · simp
-
-theorem mem_interL_right {α : Type} {eq : α → α → Bool} (heq : ∀ x y, eq x y = true → x = y)
-    {a b : List α} {x : α} (h : x ∈ interL eq a b) : x ∈ b := by
-  obtain ⟨y, hy, he⟩ := List.any_eq_true.mp (List.mem_filter.mp h).2
-  rwa [heq x y he]
-
 theorem forall₂_mem {α : Type} {R : α → α → Prop} : ∀ {l₁ l₂ : List α}, List.Forall₂ R l₁ l₂ →
     ∀ {x}, x ∈ l₁ → ∃ y ∈ l₂, R x y
   | _, _, .nil, _, h => by cases h
@@ -69,16 +53,79 @@ theorem forall₂_mem {α : Type} {R : α → α → Prop} : ∀ {l₁ l₂ : Li
     · obtain ⟨y, hy, hxy⟩ := forall₂_mem ht h
       exact ⟨y, List.mem_cons_of_mem _ hy, hxy⟩
 
+theorem lbeq_forall₂ {α : Type} {eq : α → α → Bool} : ∀ {a b : List α}, lbeq eq a b = true →
+    List.Forall₂ (fun x y ↦ eq x y = true) a b
+  | [], [], _ => .nil
+  | [], _ :: _, h => by simp [lbeq] at h
+  | _ :: _, [], h => by simp [lbeq] at h
+  | x :: xs, y :: ys, h => by
+    simp only [lbeq, Bool.and_eq_true] at h
+    exact .cons h.1 (lbeq_forall₂ h.2)
+
+theorem tailGo_ok {α : Type} {eq : α → α → Bool} {a b : List α} :
+    ∀ {f lo : ℕ} (hi : ℕ), sufOk eq a b lo = true → sufOk eq a b (tailGo eq a b f lo hi) = true
+  | 0, _, _, h => h
+  | f + 1, lo, hi, h => by
+    unfold tailGo
+    split_ifs with h1 h2
+    · exact tailGo_ok _ h2
+    · exact tailGo_ok _ h
+    · exact h
+
+theorem tailLen_ok {α : Type} (eq : α → α → Bool) (a b : List α) : sufOk eq a b (tailLen eq a b) = true := by
+  unfold tailLen
+  split_ifs with h
+  · exact h
+  · exact tailGo_ok _ (by simp [sufOk, lbeq])
+
+/-- An element of the tail `a` shares with `b` is one of `b`'s. -/
+theorem mem_tail {α : Type} {eq : α → α → Bool} {a b : List α} {x : α}
+    (h : x ∈ a.drop (a.length - tailLen eq a b)) : ∃ y ∈ b, eq x y = true := by
+  obtain ⟨y, hy, he⟩ := forall₂_mem (lbeq_forall₂ (tailLen_ok eq a b)) h
+  exact ⟨y, List.mem_of_mem_drop hy, he⟩
+
+theorem mem_tail_eq {α : Type} {eq : α → α → Bool} (heq : ∀ x y, eq x y = true → x = y) {a b : List α}
+    {x : α} (h : x ∈ a.drop (a.length - tailLen eq a b)) : x ∈ b := by
+  obtain ⟨y, hy, he⟩ := mem_tail h
+  rwa [heq _ _ he]
+
+theorem mem_heads {α : Type} {eq : α → α → Bool} {a b : List α} {x : α} (h : x ∈ heads eq a b) : x ∈ a :=
+  List.mem_of_mem_take h
+
+theorem tailAll_le {α : Type} {eq : α → α → Bool} {L : List α} :
+    ∀ {Ls : List (List α)} {t : ℕ}, (Ls.foldl (fun t l ↦ min t (tailLen eq L l)) t ≤ t) ∧
+      ∀ l ∈ Ls, Ls.foldl (fun t l ↦ min t (tailLen eq L l)) t ≤ tailLen eq L l
+  | [], _ => ⟨le_refl _, fun _ h ↦ nomatch h⟩
+  | l :: Ls, t => by
+    obtain ⟨h1, h2⟩ := tailAll_le (eq := eq) (L := L) (Ls := Ls) (t := min t (tailLen eq L l))
+    refine ⟨h1.trans (min_le_left _ _), fun l' hl' ↦ ?_⟩
+    rcases List.mem_cons.mp hl' with rfl | hl'
+    · exact h1.trans (min_le_right _ _)
+    · exact h2 l' hl'
+
+/-- An element of the tail `L` shares with every list of `Ls` is one of each. -/
+theorem mem_tailAll {α : Type} {eq : α → α → Bool} (heq : ∀ x y, eq x y = true → x = y) {L : List α}
+    {Ls : List (List α)} {l : List α} (hl : l ∈ Ls) {x : α}
+    (h : x ∈ L.drop (L.length - tailAll eq L Ls)) : x ∈ l := by
+  have ht : tailAll eq L Ls ≤ tailLen eq L l := tailAll_le.2 l hl
+  refine mem_tail_eq heq (a := L) ?_
+  have e : L.drop (L.length - tailAll eq L Ls) =
+      (L.drop (L.length - tailLen eq L l)).drop ((L.length - tailAll eq L Ls) - (L.length - tailLen eq L l)) := by
+    rw [List.drop_drop]; congr 1; omega
+  rw [e] at h
+  exact List.mem_of_mem_drop h
+
+theorem mem_interL_right {α : Type} {eq : α → α → Bool} (heq : ∀ x y, eq x y = true → x = y)
+    {a b : List α} {x : α} (h : x ∈ interL eq a b) : x ∈ b := by
+  obtain ⟨y, hy, he⟩ := List.any_eq_true.mp (List.mem_filter.mp h).2
+  rwa [heq x y he]
+
 theorem mem_interT_right {α : Type} {eq : α → α → Bool} (heq : ∀ x y, eq x y = true → x = y)
     {a b : List α} {x : α} (h : x ∈ interT eq a b) : x ∈ b := by
   unfold interT at h
   rcases List.mem_append.mp h with h | h
   · exact mem_interL_right heq h
-  · have hx : x ∈ a.reverse.take (agree eq a.reverse b.reverse) := by
-      rw [List.take_reverse]; exact List.mem_reverse.mpr h
-    obtain ⟨y, hy, he⟩ := forall₂_mem agree_forall₂ hx
-    rw [heq _ _ he]
-    exact List.mem_reverse.mp (List.mem_of_mem_take hy)
+  · exact mem_tail_eq heq h
 
 theorem mem_interTK {α : Type} {key : α → ℕ} {eq : α → α → Bool} {a b : List α} {x : α}
     (h : x ∈ interTK key eq a b) : x ∈ a := by
@@ -92,11 +139,7 @@ theorem mem_interTK_right {α : Type} {key : α → ℕ} {eq : α → α → Boo
   unfold interTK interLK at h
   rcases List.mem_append.mp h with h | h
   · exact mem_of_anyB heq (List.mem_filter.mp h).2
-  · have hx : x ∈ a.reverse.take (agree eq a.reverse b.reverse) := by
-      rw [List.take_reverse]; exact List.mem_reverse.mpr h
-    obtain ⟨y, hy, he⟩ := forall₂_mem agree_forall₂ hx
-    rw [heq _ _ he]
-    exact List.mem_reverse.mp (List.mem_of_mem_take hy)
+  · exact mem_tail_eq heq h
 
 theorem pair_beq_eq {α β : Type} {ea : α → α → Bool} {eb : β → β → Bool}
     (ha : ∀ x y, ea x y = true → x = y) (hb : ∀ x y, eb x y = true → x = y) (p q : α × β)
@@ -120,11 +163,7 @@ theorem mem_interR_right {A B : Abs} {r : Rng} (h : r ∈ interR A B) : r ∈ B.
   · exact Or.inl (mem_of_anyB (fun _ _ h ↦ Rng.beq_eq h) h)
   · exact Or.inr h
   · exact Or.inl (List.mem_of_mem_take h)
-  · have hx : r ∈ A.r.reverse.take (agree Rng.beq A.r.reverse B.r.reverse) := by
-      rw [List.take_reverse]; exact List.mem_reverse.mpr h
-    obtain ⟨y, hy, he⟩ := forall₂_mem agree_forall₂ hx
-    rw [Rng.beq_eq he]
-    exact Or.inl (List.mem_reverse.mp (List.mem_of_mem_take hy))
+  · exact Or.inl (mem_tail_eq (fun _ _ h ↦ Rng.beq_eq h) h)
 
 /-- Facts under a condition, each among another's under the same condition. -/
 def CndLe (d c : Cnd) : Prop :=
@@ -161,11 +200,7 @@ theorem mem_interP_right {A B : Abs} {q : Rng × List ℕ} (h : q ∈ interP A B
   · exact Or.inl (mem_of_anyB ptrBeq_eq h)
   · exact Or.inr h
   · exact Or.inl (List.mem_of_mem_take h)
-  · have hx : q ∈ A.p.reverse.take (agree ptrBeq A.p.reverse B.p.reverse) := by
-      rw [List.take_reverse]; exact List.mem_reverse.mpr h
-    obtain ⟨y, hy, he⟩ := forall₂_mem agree_forall₂ hx
-    rw [ptrBeq_eq _ _ he]
-    exact Or.inl (List.mem_reverse.mp (List.mem_of_mem_take hy))
+  · exact Or.inl (mem_tail_eq ptrBeq_eq h)
 
 theorem ltBeq_eq (p q : Idx × Idx) (h : ltBeq p q = true) : p = q := by
   simp only [ltBeq, Bool.and_eq_true] at h
@@ -175,9 +210,9 @@ theorem hvBeq_eq (p q : Mono × Val) (h : hvBeq p q = true) : p = q := by
   simp only [hvBeq, Bool.and_eq_true] at h
   exact Prod.ext (Mono.beq_eq h.1) (Val.beq_eq h.2)
 
-theorem mem_interC {a b : List Cnd} {d : Cnd} (h : d ∈ interC a b) :
+theorem mem_interC0 {a b : List Cnd} {d : Cnd} (h : d ∈ interC0 a b) :
     (∃ c ∈ a, CndLe d c) ∧ ∃ c ∈ b, CndLe d c := by
-  unfold interC at h
+  unfold interC0 at h
   obtain ⟨c, hc, hd⟩ := List.mem_filterMap.mp h
   split at hd
   · rename_i c' hc'
@@ -195,6 +230,33 @@ theorem mem_interC {a b : List Cnd} {d : Cnd} (h : d ∈ interC a b) :
       fun _ h ↦ mem_interL_right ptrBeq_eq h, fun _ h ↦ mem_interL_right ltBeq_eq h,
       fun _ h ↦ mem_interL_right hvBeq_eq h⟩⟩
   · cases hd
+
+theorem lbeq_eq {α : Type} {eq : α → α → Bool} (heq : ∀ x y, eq x y = true → x = y) {a b : List α}
+    (h : lbeq eq a b = true) : a = b := by
+  have hf := lbeq_forall₂ h
+  clear h
+  induction hf with
+  | nil => rfl
+  | cons hxy _ ih => rw [heq _ _ hxy, ih]
+
+theorem cndBeq_eq (c d : Cnd) (h : cndBeq c d = true) : c = d := by
+  obtain ⟨x, j, h1, r, p, lt, hv⟩ := c
+  obtain ⟨x', j', h1', r', p', lt', hv'⟩ := d
+  simp only [cndBeq, Bool.and_eq_true, beq_iff_eq] at h
+  obtain ⟨⟨⟨⟨⟨⟨hx, hj⟩, hh⟩, hr⟩, hp⟩, hlt⟩, hhv⟩ := h
+  rw [Base.beq_eq hx, hj, lbeq_eq (fun _ _ h ↦ Mono.beq_eq h) hh, lbeq_eq (fun _ _ h ↦ Rng.beq_eq h) hr,
+    lbeq_eq ptrBeq_eq hp, lbeq_eq ltBeq_eq hlt, lbeq_eq hvBeq_eq hhv]
+
+theorem CndLe.refl (c : Cnd) : CndLe c c :=
+  ⟨rfl, rfl, fun _ h ↦ h, fun _ h ↦ h, fun _ h ↦ h, fun _ h ↦ h, fun _ h ↦ h⟩
+
+theorem mem_interC {a b : List Cnd} {d : Cnd} (h : d ∈ interC a b) :
+    (∃ c ∈ a, CndLe d c) ∧ ∃ c ∈ b, CndLe d c := by
+  unfold interC at h
+  rcases List.mem_append.mp h with h | h
+  · obtain ⟨⟨c, hc, hl⟩, hb⟩ := mem_interC0 h
+    exact ⟨⟨c, List.mem_of_mem_take hc, hl⟩, hb⟩
+  · exact ⟨⟨d, List.mem_of_mem_drop h, CndLe.refl d⟩, ⟨d, mem_tail_eq cndBeq_eq h, CndLe.refl d⟩⟩
 
 /-- **A join is sound**: what both know holds where the first holds. -/
 theorem Holds.inter {s : St} {A B : Abs} (hA : Holds s A) : Holds s (A.inter B) where
@@ -285,7 +347,7 @@ theorem Holds.sub {s : St} {S A : Abs} (hA : Holds s A) (h : S.sub A = true) : H
       (fun _ _ h ↦ (Mono.beq_eq h).symm) (hh k hk))
     r := fun r hr' ↦ hA.r r (mem_of_anyB (eq := fun x y ↦ y.beq x)
       (fun _ _ h ↦ (Rng.beq_eq h).symm) (hr r hr'))
-    lt := fun p hp ↦ hA.lt p (mem_of_any_beq
+    lt := fun p hp ↦ hA.lt p (mem_of_anyB (eq := fun p q ↦ p.1.beq q.1 && p.2.beq q.2)
       (pair_beq_eq (fun _ _ h ↦ Idx.beq_eq h) (fun _ _ h ↦ Idx.beq_eq h)) (hlt p hp))
     pr := fun p hp ↦ hA.pr p (mem_of_any_beq
       (eq := fun p q ↦ p.1 == q.1 && p.2.1 == q.2.1 && p.2.2 == q.2.2) (fun x y h ↦ by
@@ -296,7 +358,7 @@ theorem Holds.sub {s : St} {S A : Abs} (hA : Holds s A) (h : S.sub A = true) : H
     p := fun q hq ↦ hA.p q (mem_of_anyB (eq := fun p q ↦ p.1.beq q.1 && p.2 == q.2)
       (pair_beq_eq (fun _ _ h ↦ Rng.beq_eq h) (fun _ _ h ↦ beq_iff_eq.mp h)) (hp q hq))
     c := fun d hd ↦ by
-      obtain ⟨c, hc, hs⟩ := List.any_eq_true.mp (hc d hd)
+      obtain ⟨c, hc, hs⟩ := List.any_eq_true.mp (any_of_anyB (hc d hd))
       unfold Cnd.sub at hs
       simp only [Bool.and_eq_true, beq_iff_eq, List.all_eq_true] at hs
       obtain ⟨⟨⟨⟨⟨⟨hx, hj⟩, hh⟩, hr⟩, hp⟩, hlt⟩, hhv⟩ := hs

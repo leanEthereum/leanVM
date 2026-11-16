@@ -374,62 +374,60 @@ noncomputable def modeFun : Mode.Fun :=
     .nil)) (.node none (.node none .nil (.node none .nil (.node none (.node (some 4) .nil .nil)
     .nil))) .nil)))))), false, (.node none (.node none (.node none (.node none (.node none (.node
     none (.node none .nil (.node none (.node none .nil (.node none .nil (.node (some snap1855) .nil
-    .nil))) (.node none .nil (.node (some snap959) .nil .nil)))) (.node none .nil (.node none .nil
-    (.node none (.node none (.node (some snap1247) .nil .nil) .nil) .nil)))) (.node none .nil
-    (.node none (.node none (.node none .nil (.node none .nil (.node (some snap1839) .nil .nil)))
-    .nil) .nil))) (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil
-    (.node (some snap1799) .nil .nil))) .nil) .nil) (.node none .nil (.node (some snap231) .nil
-    .nil))) (.node none (.node none (.node none (.node none .nil (.node none .nil (.node (some
-    snap1815) .nil .nil))) .nil) (.node none (.node none (.node none (.node (some snap1111) .nil
-    .nil) .nil) .nil) .nil)) (.node none (.node none .nil (.node (some snap439) (.node none .nil
-    (.node (some snap1719) .nil .nil)) .nil)) .nil)))) (.node none (.node none .nil (.node none
-    (.node none .nil (.node none .nil (.node none (.node none (.node (some snap1235) .nil .nil)
-    .nil) .nil))) .nil)) (.node none .nil (.node none (.node none (.node none (.node none .nil
-    (.node none .nil (.node (some snap1819) .nil .nil))) (.node none (.node (some snap667) .nil
-    .nil) (.node (some snap923) .nil .nil))) (.node none .nil (.node none (.node none (.node (some
-    snap1243) .nil .nil) .nil) .nil))) .nil)))) (.node none (.node none (.node none (.node none
-    (.node none .nil (.node none (.node none .nil (.node none .nil (.node (some snap1857) .nil
-    .nil))) (.node none (.node none (.node (some snap1217) .nil .nil) .nil) (.node (some snap961)
-    .nil .nil)))) (.node none .nil (.node none .nil (.node none (.node none (.node (some snap1249)
-    .nil .nil) .nil) .nil)))) (.node none .nil (.node none .nil (.node none (.node none .nil (.node
-    none (.node (some snap1393) .nil .nil) .nil)) .nil)))) (.node none (.node none (.node none .nil
-    (.node none (.node none (.node none .nil (.node (some snap1609) .nil .nil)) .nil) .nil)) .nil)
-    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node (some
-    snap1849) .nil .nil))) .nil) .nil)))) (.node none (.node none (.node none (.node none .nil
-    (.node none (.node none (.node none (.node (some snap1093) .nil .nil) .nil) .nil) .nil)) .nil)
-    (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node (some
-    snap1877) .nil .nil))) .nil)) .nil)) (.node none (.node none (.node none (.node none (.node
-    none (.node none (.node (some snap1037) .nil .nil) .nil) .nil) (.node none .nil (.node (some
-    snap909) .nil .nil))) .nil) .nil) .nil)))) (.node none (.node none (.node none .nil (.node none
-    (.node none (.node none .nil (.node none .nil (.node none (.node (some snap712) .nil .nil)
-    .nil))) .nil) (.node none (.node none (.node none .nil (.node none .nil (.node (some snap920)
-    .nil .nil))) .nil) .nil))) (.node none (.node none .nil (.node none (.node none (.node none
-    .nil (.node none .nil (.node (some snap916) .nil .nil))) (.node none (.node none (.node (some
-    snap596) (.node (some snap1108) .nil .nil) .nil) (.node none .nil (.node (some snap1876) .nil
-    .nil))) .nil)) .nil)) (.node none (.node none (.node none .nil (.node none (.node none .nil
-    (.node (some snap844) .nil (.node (some snap1868) .nil .nil))) .nil)) (.node none (.node none
-    (.node none .nil (.node none .nil (.node (some snap1836) .nil .nil))) .nil) (.node none .nil
-    (.node (some snap492) .nil .nil)))) (.node none (.node none (.node none (.node none .nil (.node
-    none .nil (.node (some snap1820) .nil .nil))) .nil) .nil) .nil)))) (.node none (.node none
+    .nil))) .nil)) (.node none .nil (.node none .nil (.node none (.node none (.node (some snap1247)
+    .nil .nil) .nil) .nil)))) (.node none (.node none (.node none (.node none .nil (.node (some
+    snap783) .nil (.node (some snap1807) .nil .nil))) .nil) .nil) (.node none (.node none (.node
+    none .nil (.node none .nil (.node (some snap1839) .nil .nil))) .nil) .nil))) (.node none .nil
+    (.node none (.node none .nil (.node none (.node none (.node none (.node (some snap1111) .nil
+    .nil) .nil) .nil) .nil)) (.node none (.node none .nil (.node none .nil (.node (some snap951)
+    .nil .nil))) .nil)))) (.node none (.node none .nil (.node none (.node none .nil (.node none
+    .nil (.node none (.node none (.node (some snap1235) .nil .nil) .nil) .nil))) .nil)) (.node none
+    (.node none .nil (.node none (.node none .nil (.node none .nil (.node (some snap939) .nil
+    .nil))) .nil)) (.node none (.node none (.node none (.node none .nil (.node none .nil (.node
+    (some snap1819) .nil .nil))) (.node none (.node (some snap667) .nil .nil) .nil)) (.node none
+    .nil (.node none (.node none (.node (some snap1243) .nil .nil) .nil) .nil))) .nil)))) (.node
+    none (.node none (.node none (.node none (.node none .nil (.node none (.node (some snap321)
+    .nil (.node none .nil (.node (some snap1857) .nil .nil))) (.node none (.node none (.node (some
+    snap1217) .nil .nil) .nil) (.node (some snap961) .nil .nil)))) (.node none .nil (.node none
+    .nil (.node none (.node none (.node (some snap1249) .nil .nil) .nil) .nil)))) .nil) (.node none
+    .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node (some
+    snap1817) .nil .nil))) .nil) .nil) (.node none (.node none (.node none .nil (.node none .nil
+    (.node (some snap1849) .nil .nil))) .nil) .nil)))) (.node none (.node none (.node none (.node
+    none .nil (.node none (.node none (.node none (.node (some snap1093) .nil .nil) .nil) .nil)
+    .nil)) (.node none .nil (.node none .nil (.node (some snap485) .nil .nil)))) (.node none (.node
+    none .nil (.node none (.node none .nil (.node (some snap853) .nil (.node (some snap1877) .nil
+    .nil))) .nil)) .nil)) (.node none (.node none (.node none (.node none (.node none (.node none
+    (.node (some snap1037) .nil .nil) .nil) .nil) .nil) .nil) .nil) (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node (some snap957) .nil .nil))) (.node none .nil (.node
+    none (.node none .nil (.node (some snap1789) .nil .nil)) .nil)))))))) (.node none (.node none
+    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node (some snap416)
+    .nil .nil)) .nil)) .nil) (.node none (.node none (.node none .nil (.node none .nil (.node none
+    (.node (some snap712) .nil .nil) .nil))) .nil) .nil)) (.node none (.node none (.node none
+    (.node none (.node none (.node none (.node none .nil (.node (some snap1540) .nil .nil)) .nil)
+    .nil) .nil) .nil) (.node none (.node none (.node none .nil (.node none (.node none .nil (.node
+    (some snap1684) .nil .nil)) .nil)) (.node none (.node none (.node (some snap596) (.node (some
+    snap1108) .nil .nil) .nil) (.node none .nil (.node (some snap1876) .nil .nil))) .nil)) .nil))
     (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node
-    (some snap1858) .nil .nil))) (.node none .nil (.node (some snap962) .nil .nil)))) (.node none
-    .nil (.node none .nil (.node none (.node none (.node (some snap1250) .nil .nil) .nil) .nil))))
-    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node (some snap1810)
-    .nil .nil))) .nil) (.node none (.node none .nil (.node none .nil (.node (some snap1874) .nil
-    .nil))) .nil)) (.node none (.node none (.node none (.node none (.node (some snap1074) .nil
-    .nil) .nil) .nil) (.node none .nil (.node (some snap946) .nil .nil))) (.node none .nil (.node
-    none (.node (some snap754) .nil .nil) .nil))))) (.node none .nil (.node none (.node none (.node
-    none .nil (.node none .nil (.node (some snap922) .nil .nil))) .nil) (.node none (.node none
-    .nil (.node none .nil (.node (some snap954) .nil .nil))) .nil)))) (.node none (.node none
-    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node (some
-    snap1830) .nil .nil))) .nil) .nil)) (.node none (.node none .nil (.node none (.node none (.node
-    none (.node (some snap1110) .nil .nil) .nil) .nil) .nil)) .nil)) (.node none (.node none (.node
-    none .nil (.node none (.node none (.node none (.node (some snap1102) .nil .nil) .nil) .nil)
-    .nil)) (.node none (.node none (.node none .nil (.node none .nil (.node (some snap1838) .nil
-    .nil))) .nil) (.node none .nil (.node none (.node none .nil (.node (some snap1774) .nil .nil))
-    .nil)))) (.node none (.node none (.node none .nil (.node none (.node none (.node (some
-    snap1182) .nil .nil) .nil) .nil)) (.node none (.node (some snap350) .nil .nil) .nil)) (.node
-    none .nil (.node none (.node none .nil (.node (some snap894) .nil .nil)) .nil))))))))⟩
+    (some snap1868) .nil .nil))) .nil)) (.node none (.node none (.node none .nil (.node none .nil
+    (.node (some snap1836) .nil .nil))) .nil) .nil)) (.node none (.node none (.node none (.node
+    none .nil (.node none .nil (.node (some snap1820) .nil .nil))) .nil) .nil) .nil)))) (.node none
+    (.node none (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none
+    .nil (.node (some snap1858) .nil .nil))) (.node none .nil (.node (some snap962) .nil .nil))))
+    (.node none .nil (.node none .nil (.node none (.node none (.node (some snap1250) .nil .nil)
+    .nil) .nil)))) (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
+    (.node (some snap1874) .nil .nil))) .nil)) (.node none (.node none (.node none (.node none
+    (.node (some snap1074) .nil .nil) .nil) .nil) .nil) .nil))) (.node none (.node none .nil (.node
+    none (.node (some snap170) .nil .nil) .nil)) (.node none (.node none .nil (.node none .nil
+    (.node none (.node none .nil (.node (some snap1754) .nil .nil)) .nil))) .nil))) (.node none
+    (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node
+    (some snap1830) .nil .nil))) .nil) .nil)) (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node (some snap1814) .nil .nil))) .nil) (.node none (.node none (.node none
+    (.node (some snap1110) .nil .nil) .nil) .nil) .nil)) .nil)) (.node none (.node none (.node none
+    .nil (.node none (.node none (.node none (.node (some snap1102) .nil .nil) .nil) .nil) .nil))
+    (.node none (.node none (.node none .nil (.node none .nil (.node (some snap1838) .nil .nil)))
+    .nil) .nil)) (.node none (.node none (.node none .nil (.node none (.node none (.node (some
+    snap1182) .nil .nil) .nil) .nil)) .nil) (.node none .nil (.node none (.node none .nil (.node
+    (some snap894) .nil .nil)) .nil))))))))⟩
 
 end
 

@@ -10,23 +10,9 @@ module
 public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P14».Mode0
 public import LeanVM.Guest.Pack.«P14».Mode1
+public import LeanVM.Guest.Pack.«P14».ModeD0
 
 set_option Elab.async false
-
-namespace LeanVM.Guest.Fn.«eq_prefix_chain»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `eq_prefix_chain`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 5) (d := Data.adviceFn5) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«eq_prefix_chain»
 
 namespace LeanVM.Guest.Fn.«eq_prefix_run__L37»
 
@@ -297,3 +283,18 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«level_residual__L16_L8_L4_L2_loop0»
+
+namespace LeanVM.Guest.Fn.«eq_prefix_chain»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `eq_prefix_chain`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 5) (d := Data.adviceFn5) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«eq_prefix_chain»

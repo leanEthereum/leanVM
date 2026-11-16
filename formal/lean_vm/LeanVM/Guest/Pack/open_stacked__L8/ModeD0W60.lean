@@ -17,10 +17,10 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `open_stacked__L8`: its walk from offset 2002 goes through to its cut at 2003. -/
+/-- `open_stacked__L8`: its walk from offset 2019 goes through to its cut at 2021. -/
 theorem modeW60 :
-    (Mode.runCode modeEnv modeFun (Mode.winCode code.chunks 2002 2003) 2002 (Mode.cutOf modeFun
-    2002).1 (Mode.cutOf modeFun 2002).2).isSome = true := by
+    (Mode.runCode modeEnv modeFun (Mode.winCode code.chunks 2019 2021) 2019 (Mode.cutOf modeFun
+    2019).1 (Mode.cutOf modeFun 2019).2).isSome = true := by
   decide +kernel
 
 end

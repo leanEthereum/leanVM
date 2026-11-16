@@ -60,10 +60,21 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
+/-- `__loop2`: its cuts from its 32-th on. -/
+def modeCuts32 : List ℕ :=
+  84267 :: 86887 :: 89507 :: 92129 :: 94750 :: 97367 :: 98728 :: 100575 :: 103168 :: 105758 ::
+    108348 :: 110965 :: 113575 :: []
+
+/-- `__loop2`: its cuts from its 0-th on. -/
+def modeCuts0 : List ℕ :=
+  2671 :: 5338 :: 8006 :: 10674 :: 13345 :: 16015 :: 18681 :: 21344 :: 24009 :: 25424 :: 28098 ::
+    30767 :: 33437 :: 36103 :: 38770 :: 41349 :: 44012 :: 46672 :: 49332 :: 51994 :: 54654 :: 57314
+    :: 59280 :: 61903 :: 64524 :: 67142 :: 69762 :: 72376 :: 74989 :: 77603 :: 79029 :: 81646 ::
+    modeCuts32
+
 /-- `__loop2`: its windows from offset 81646 go through. -/
 theorem modeC32 :
-    Mode.WinsOk modeEnv modeFun code.chunks 114219 81646 (Mode.cutOf modeFun 81646) [84267, 86887,
-    89507, 92129, 94750, 97367, 98728, 100575, 103168, 105758, 108348, 110965, 113575] :=
+    Mode.WinsOk modeEnv modeFun code.chunks 114219 81646 (Mode.cutOf modeFun 81646) modeCuts32 :=
   ⟨by decide, by decide, by decide +kernel, modeW32,
     ⟨by decide, by decide, by decide +kernel, modeW33,
     ⟨by decide, by decide, by decide +kernel, modeW34,
@@ -81,11 +92,7 @@ theorem modeC32 :
 
 /-- `__loop2`: its mode walk accepts its code, window by window. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=
-  Mode.walk_of_wins (n := 114219) (by decide +kernel) (List.flatten [[2671, 5338, 8006, 10674,
-    13345, 16015, 18681, 21344, 24009, 25424, 28098, 30767, 33437, 36103, 38770, 41349], [44012,
-    46672, 49332, 51994, 54654, 57314, 59280, 61903, 64524, 67142, 69762, 72376, 74989, 77603,
-    79029, 81646], [84267, 86887, 89507, 92129, 94750, 97367, 98728, 100575, 103168, 105758,
-    108348, 110965, 113575]])
+  Mode.walk_of_wins (n := 114219) (by decide +kernel) modeCuts0
     ⟨by decide, by decide, by decide +kernel, modeW0,
     ⟨by decide, by decide, by decide +kernel, modeW1,
     ⟨by decide, by decide, by decide +kernel, modeW2,

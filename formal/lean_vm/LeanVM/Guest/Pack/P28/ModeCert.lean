@@ -11,6 +11,7 @@ public import LeanVM.Guest.Mode.CertDefs
 public import LeanVM.Guest.Pack.«P28».Mode0
 public import LeanVM.Guest.Pack.«P28».Mode1
 public import LeanVM.Guest.Pack.«P28».Mode2
+public import LeanVM.Guest.Pack.«P28».Mode3
 public import LeanVM.Guest.Pack.«P28».ModeH
 public import LeanVM.Guest.Pack.«P28».ModeX
 meta import LeanVM.Guest.KernelLit

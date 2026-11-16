@@ -283,7 +283,27 @@ theorem armRuns_sound {s : St} {x : Base} {Bs : List Abs} {j : ℕ} {X : Abs} (h
   split_ifs at hr
   · simp at hr
   split at hr
-  · obtain ⟨r0, -, hr0⟩ := List.mem_filterMap.mp hr
+  · rename_i L _
+    rcases List.mem_append.mp hr with hr | hr
+    swap
+    · obtain ⟨r0, hm, hr0⟩ := List.mem_filterMap.mp hr
+      have hX0 : r0 ∈ X.r :=
+        mem_tailAll (fun _ _ h ↦ Rng.beq_eq h) (List.mem_map.mpr ⟨X, List.mem_of_getElem? hj, rfl⟩) hm
+      obtain ⟨vq, xlo, xhi, hq, hlo, hhi, hw⟩ := hX.r r0 hX0
+      unfold armRunT at hr0
+      split at hr0
+      · rename_i a b hla hhb
+        split_ifs at hr0 with hn
+        cases hr0
+        rw [hla] at hlo
+        rw [hhb] at hhi
+        have hjl : j < Bs.length := (List.getElem?_eq_some_iff.mp hj).1
+        obtain ⟨v, e, hv, hve, he, hje⟩ := hi
+        refine ⟨vq, xlo, e + (b - (Bs.length - 1)), hq, hlo, ⟨v, e, hv, hve, he, rfl⟩, fun i h1 h2 ↦ hw i h1 ?_⟩
+        simp only [IdxVal] at hhi hje
+        omega
+      · simp at hr0
+    obtain ⟨r0, -, hr0⟩ := List.mem_filterMap.mp hr
     unfold armRun1 at hr0
     split at hr0
     · rename_i a b _ _
@@ -345,9 +365,9 @@ theorem armsMeet_sound {s : St} {sel : Option Base} {Bs : List Abs} {j : ℕ} {X
           rw [hj] at this
           exact (Option.some.inj this).symm
         subst hYX
-        exact ⟨fun k hk ↦ hX.h k (mem_filter_sub hk), fun r hr ↦ hX.r r (mem_filter_sub hr),
-          fun q hq ↦ hX.p q (mem_filter_sub hq), fun p hp ↦ hX.lt p (mem_filter_sub hp),
-          fun p hp ↦ hX.hv p (mem_filter_sub hp)⟩
+        exact ⟨fun k hk ↦ hX.h k (mem_heads (mem_filter_sub hk)), fun r hr ↦ hX.r r (mem_heads (mem_filter_sub hr)),
+          fun q hq ↦ hX.p q (mem_heads (mem_filter_sub hq)), fun p hp ↦ hX.lt p (mem_heads (mem_filter_sub hp)),
+          fun p hp ↦ hX.hv p (mem_heads (mem_filter_sub hp))⟩
       · exact hM.c d (mem_filter_sub hd)
 
 /-- **A return's registers**: a frame whose header names `r` and `fp` returns there. -/

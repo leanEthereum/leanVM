@@ -45,10 +45,6 @@ public import LeanVM.Guest.Pack.«open_stacked__L2».ModeD0W34
 public import LeanVM.Guest.Pack.«open_stacked__L2».ModeD0W35
 public import LeanVM.Guest.Pack.«open_stacked__L2».ModeD0W36
 public import LeanVM.Guest.Pack.«open_stacked__L2».ModeD0W37
-public import LeanVM.Guest.Pack.«open_stacked__L2».ModeD0W38
-public import LeanVM.Guest.Pack.«open_stacked__L2».ModeD0W39
-public import LeanVM.Guest.Pack.«open_stacked__L2».ModeD0W40
-public import LeanVM.Guest.Pack.«open_stacked__L2».ModeD0W41
 
 namespace LeanVM.Guest.Fn.«open_stacked__L2»
 
@@ -56,27 +52,29 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `open_stacked__L2`: its windows from offset 1384 go through. -/
+/-- `open_stacked__L2`: its cuts from its 32-th on. -/
+def modeCuts32 : List ℕ :=
+  1404 :: 1414 :: 1420 :: 1422 :: 1423 :: []
+
+/-- `open_stacked__L2`: its cuts from its 0-th on. -/
+def modeCuts0 : List ℕ :=
+  155 :: 291 :: 407 :: 457 :: 484 :: 595 :: 666 :: 711 :: 740 :: 822 :: 862 :: 873 :: 878 :: 882
+    :: 883 :: 926 :: 947 :: 957 :: 963 :: 965 :: 966 :: 1176 :: 1284 :: 1335 :: 1364 :: 1375 :: 1380
+    :: 1384 :: 1385 :: 1395 :: 1401 :: 1403 :: modeCuts32
+
+/-- `open_stacked__L2`: its windows from offset 1403 go through. -/
 theorem modeC32 :
-    Mode.WinsOk modeEnv modeFun code.chunks 1584 1384 (Mode.cutOf modeFun 1384) [1385, 1395, 1401,
-    1403, 1404, 1414, 1420, 1422, 1423] :=
+    Mode.WinsOk modeEnv modeFun code.chunks 1584 1403 (Mode.cutOf modeFun 1403) modeCuts32 :=
   ⟨by decide, by decide, by decide +kernel, modeW32,
     ⟨by decide, by decide, by decide +kernel, modeW33,
     ⟨by decide, by decide, by decide +kernel, modeW34,
     ⟨by decide, by decide, by decide +kernel, modeW35,
     ⟨by decide, by decide, by decide +kernel, modeW36,
-    ⟨by decide, by decide, by decide +kernel, modeW37,
-    ⟨by decide, by decide, by decide +kernel, modeW38,
-    ⟨by decide, by decide, by decide +kernel, modeW39,
-    ⟨by decide, by decide, by decide +kernel, modeW40,
-    modeW41⟩⟩⟩⟩⟩⟩⟩⟩⟩
+    modeW37⟩⟩⟩⟩⟩
 
 /-- `open_stacked__L2`: its mode walk accepts its code, window by window. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=
-  Mode.walk_of_wins (n := 1584) (by decide +kernel) (List.flatten [[249, 366, 438, 484, 572, 635,
-    685, 711, 723, 729, 733, 734, 809, 846, 865, 874], [880, 882, 883, 926, 947, 957, 963, 965,
-    966, 1176, 1284, 1335, 1364, 1375, 1380, 1384], [1385, 1395, 1401, 1403, 1404, 1414, 1420,
-    1422, 1423]])
+  Mode.walk_of_wins (n := 1584) (by decide +kernel) modeCuts0
     ⟨by decide, by decide, by decide +kernel, modeW0,
     ⟨by decide, by decide, by decide +kernel, modeW1,
     ⟨by decide, by decide, by decide +kernel, modeW2,

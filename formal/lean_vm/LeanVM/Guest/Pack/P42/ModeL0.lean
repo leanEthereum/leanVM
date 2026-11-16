@@ -18,9 +18,13 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
+/-- `exponent_tables`: its cuts from its 0-th on. -/
+def modeCuts0 : List ℕ :=
+  891 :: 1634 :: 2254 :: []
+
 /-- `exponent_tables`: its mode walk accepts its code, window by window. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=
-  Mode.walk_of_wins (n := 4490) (by decide +kernel) [891, 1634, 2254]
+  Mode.walk_of_wins (n := 4490) (by decide +kernel) modeCuts0
     ⟨by decide, by decide, by decide +kernel, modeW0,
     ⟨by decide, by decide, by decide +kernel, modeW1,
     ⟨by decide, by decide, by decide +kernel, modeW2,

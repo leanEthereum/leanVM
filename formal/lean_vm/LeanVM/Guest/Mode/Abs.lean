@@ -560,15 +560,38 @@ def Abs.coveredP (A : Abs) (r : Rng) (os : List ℕ) : Bool :=
 /-- Pairs both lists hold. -/
 def interL {α : Type} (eq : α → α → Bool) (a b : List α) : List α := a.filter fun x ↦ b.any (eq x)
 
-/-- How many leading elements two lists agree on. -/
-def agree {α : Type} (eq : α → α → Bool) : List α → List α → ℕ
-  | x :: xs, y :: ys => if eq x y then agree eq xs ys + 1 else 0
-  | _, _ => 0
+/-- Two lists equal elementwise, by `eq`. -/
+def lbeq {α : Type} (eq : α → α → Bool) (a : List α) : List α → Bool :=
+  List.rec (motive := fun _ ↦ List α → Bool) (fun b ↦ b.isEmpty)
+    (fun x _ ih b ↦ match b with
+      | [] => false
+      | y :: ys => eq x y && ih ys) a
 
-/-- Pairs both lists hold, their longest common tail kept whole: two states from one path share most
-of their facts, as a tail. -/
+/-- The last `t` elements of two lists agree. -/
+def sufOk {α : Type} (eq : α → α → Bool) (a b : List α) (t : ℕ) : Bool :=
+  lbeq eq (a.drop (a.length - t)) (b.drop (b.length - t))
+
+/-- A common tail's length between `lo`, whose tails agree, and `hi`, by bisection. -/
+def tailGo {α : Type} (eq : α → α → Bool) (a b : List α) : ℕ → ℕ → ℕ → ℕ
+  | 0, lo, _ => lo
+  | f + 1, lo, hi =>
+    if lo < hi then
+      if sufOk eq a b ((lo + hi + 1) / 2) then tailGo eq a b f ((lo + hi + 1) / 2) hi
+      else tailGo eq a b f lo ((lo + hi + 1) / 2 - 1)
+    else lo
+
+/-- The length of a tail two lists share: states of one path, or a call's arms, share most of their
+facts as a tail, the same terms, so the kernel compares it once. -/
+def tailLen {α : Type} (eq : α → α → Bool) (a b : List α) : ℕ :=
+  if sufOk eq a b (min a.length b.length) then min a.length b.length
+  else tailGo eq a b 24 0 (min a.length b.length - 1)
+
+/-- The elements of `a` before the tail it shares with `b`. -/
+def heads {α : Type} (eq : α → α → Bool) (a b : List α) : List α := a.take (a.length - tailLen eq a b)
+
+/-- Pairs both lists hold, their common tail kept whole. -/
 def interT {α : Type} (eq : α → α → Bool) (a b : List α) : List α :=
-  let t := agree eq a.reverse b.reverse
+  let t := tailLen eq a b
   interL eq (a.take (a.length - t)) b ++ a.drop (a.length - t)
 
 /-- `interL`, `b` scanned by key: equal elements have equal keys. -/
@@ -577,13 +600,13 @@ def interLK {α : Type} (key : α → ℕ) (eq : α → α → Bool) (a b : List
 
 /-- `interT`, `b` scanned by key. -/
 def interTK {α : Type} (key : α → ℕ) (eq : α → α → Bool) (a b : List α) : List α :=
-  let t := agree eq a.reverse b.reverse
+  let t := tailLen eq a b
   interLK key eq (a.take (a.length - t)) b ++ a.drop (a.length - t)
 
 /-- Runs both states know: those both hold, their common tail kept whole, and those one holds and the
 other entails (`entR`). -/
 def interR (A B : Abs) : List Rng :=
-  let t := agree Rng.beq A.r.reverse B.r.reverse
+  let t := tailLen Rng.beq A.r B.r
   (A.r.take (A.r.length - t)).filter (fun r ↦ anyB (buckets rngKey B.r) (Rng.beq r) (rngKey r) || B.entR r) ++
     (B.r.take (B.r.length - t)).filter (fun r ↦
       !(anyB (buckets rngKey A.r) (Rng.beq r) (rngKey r)) && A.entR r) ++
@@ -601,7 +624,7 @@ def ptrBeq (p q : Rng × List ℕ) : Bool := p.1.beq q.1 && p.2 == q.2
 /-- Runs of pointers both states know: those both hold, their common tail kept whole, and those one
 holds and the other entails (`entP`). -/
 def interP (A B : Abs) : List (Rng × List ℕ) :=
-  let t := agree ptrBeq A.p.reverse B.p.reverse
+  let t := tailLen ptrBeq A.p B.p
   (A.p.take (A.p.length - t)).filter (fun q ↦
     anyB (buckets (rngKey ·.1) B.p) (ptrBeq q) (rngKey q.1) || B.entP q.1) ++
     (B.p.take (B.p.length - t)).filter (fun q ↦
@@ -611,14 +634,24 @@ def interP (A B : Abs) : List (Rng × List ℕ) :=
 /-- A condition's key: conditions on one base's exponent being one value have equal keys. -/
 def cndKey (c : Cnd) : ℕ := (baseKey c.x + 7 * c.j) % 4096
 
-/-- The conditional facts both lists hold, under the same condition. -/
-def interC (a b : List Cnd) : List Cnd :=
+/-- Equality of conditional facts, as a `Bool`. -/
+def cndBeq (c d : Cnd) : Bool :=
+  c.x.beq d.x && c.j == d.j && lbeq Mono.beq c.h d.h && lbeq Rng.beq c.r d.r && lbeq ptrBeq c.p d.p &&
+    lbeq ltBeq c.lt d.lt && lbeq hvBeq c.hv d.hv
+
+/-- The conditional facts of `a` both lists hold, under the same condition. -/
+def interC0 (a b : List Cnd) : List Cnd :=
   a.filterMap fun c ↦ match (((buckets cndKey b).get (cndKey c)).getD []).find? (fun c' ↦ c'.x.beq c.x && c'.j == c.j) with
     | some c' =>
       let d : Cnd := ⟨c.x, c.j, interL Mono.beq c.h c'.h, interL Rng.beq c.r c'.r, interL ptrBeq c.p c'.p,
         interL ltBeq c.lt c'.lt, interL hvBeq c.hv c'.hv⟩
       if d.h.isEmpty && d.r.isEmpty && d.p.isEmpty && d.lt.isEmpty && d.hv.isEmpty then none else some d
     | none => none
+
+/-- The conditional facts both lists hold, under the same condition, their common tail kept whole. -/
+def interC (a b : List Cnd) : List Cnd :=
+  let t := tailLen cndBeq a b
+  interC0 (a.take (a.length - t)) b ++ a.drop (a.length - t)
 
 /-- What two states both know. -/
 noncomputable def Abs.inter (A B : Abs) : Abs :=
@@ -629,11 +662,11 @@ noncomputable def Abs.inter (A B : Abs) : Abs :=
     Trie.inter (fun p q ↦ p.1 == q.1 && p.2 == q.2) A.xs B.xs,
     interP A B, interC A.c B.c⟩
 
-/-- `A.inter B`, its lists' spines evaluated. -/
+/-- `A.inter B`, its lists evaluated to their first cells: their tails stay shared terms. -/
 noncomputable def Abs.interS (A B : Abs) : Abs :=
   match A.inter B with
   | ⟨w, v, nz, hv, h, r, lt, pr, xs, p, c⟩ =>
-    listSeq hv fun hv ↦ listSeq h fun h ↦ listSeq r fun r ↦ listSeq lt fun lt ↦ listSeq p fun p ↦
+    lseq hv fun hv ↦ lseq h fun h ↦ lseq r fun r ↦ lseq lt fun lt ↦ lseq p fun p ↦
       ⟨w, v, nz, hv, h, r, lt, pr, xs, p, c⟩
 
 /-- Every fact of `S` is one of `A`'s, under the same condition. -/
@@ -642,16 +675,23 @@ def Cnd.sub (S A : Cnd) : Bool :=
     S.p.all (fun p ↦ A.p.any (ptrBeq p)) && S.lt.all (fun p ↦ A.lt.any (ltBeq p)) &&
     S.hv.all (fun p ↦ A.hv.any (hvBeq p))
 
+/-- A product's key by its bases and offset: equal products have equal keys. -/
+def monoKeyE (m : Mono) : ℕ := (bsKey m.fp m.bs + 61 * m.k) % 4096
+
+/-- A run's key by all its fields: equal runs have equal keys. -/
+def rngKeyE (r : Rng) : ℕ := (monoKeyE r.q + 7 * idxKey r.lo + 13 * idxKey r.hi + 29 * r.S + 3 * r.d) % 4096
+
 /-- Every fact of `S` is one of `A`'s. -/
 noncomputable def Abs.sub (S A : Abs) : Bool :=
   Trie.sub (fun _ _ ↦ true) S.w A.w && Trie.sub Val.beq S.v A.v && Trie.sub (fun _ _ ↦ true) S.nz A.nz &&
-  S.hv.all (fun p ↦ anyB (buckets (monoKey ·.1) A.hv) (fun q ↦ p.1.beq q.1 && p.2.beq q.2) (monoKey p.1)) &&
-  S.h.all (fun k ↦ anyB (buckets monoKey A.h) (·.beq k) (monoKey k)) &&
-  S.r.all (fun r ↦ anyB (buckets rngKey A.r) (·.beq r) (rngKey r)) && S.lt.all (fun p ↦ A.lt.any fun q ↦ p.1.beq q.1 && p.2.beq q.2) &&
+  S.hv.all (fun p ↦ anyB (buckets (monoKeyE ·.1) A.hv) (fun q ↦ p.1.beq q.1 && p.2.beq q.2) (monoKeyE p.1)) &&
+  S.h.all (fun k ↦ anyB (buckets monoKeyE A.h) (·.beq k) (monoKeyE k)) &&
+  S.r.all (fun r ↦ anyB (buckets rngKeyE A.r) (·.beq r) (rngKeyE r)) &&
+  S.lt.all (fun p ↦ anyB (buckets leKey A.lt) (fun q ↦ p.1.beq q.1 && p.2.beq q.2) (leKey p)) &&
   S.pr.all (fun p ↦ A.pr.any fun q ↦ p.1 == q.1 && p.2.1 == q.2.1 && p.2.2 == q.2.2) &&
   Trie.sub (fun p q ↦ p.1 == q.1 && p.2 == q.2) S.xs A.xs &&
   S.p.all (fun p ↦ anyB (buckets (rngKey ·.1) A.p) (fun q ↦ p.1.beq q.1 && p.2 == q.2) (rngKey p.1)) &&
-  S.c.all (fun c ↦ A.c.any c.sub)
+  S.c.all (fun c ↦ anyB (buckets cndKey A.c) c.sub (cndKey c))
 
 /-- Pending edges into later offsets: each target of `ts` (increasing) is entered by every state of
 `Bs`; `m`: `Bs` is one state, the meet of at least three. -/
@@ -1225,11 +1265,11 @@ def Abs.assume (A : Abs) : Option Base → ℕ → Abs
         hv := A.hv ++ c.hv.filter (fun p ↦ !(anyB (buckets (monoKey ·.1) A.hv) (fun q ↦ q.1.beq p.1) (monoKey p.1))) }
     | none => A
 
-/-- Two or more arms met in `M`: each heap word of the first arm `M` lost, a pointer on every arm, as a
+/-- Two or more arms met in `M`: each heap word of the first arm `M` lost (none of the tail they share), a pointer on every arm, as a
 run of one pointer with the cells below 64 past it every arm knows written (a call's arms returning
 different words). -/
 noncomputable def armPtrs (M : Abs) : List Abs → List (Rng × List ℕ)
-  | B :: X :: Xs => B.hv.filterMap fun p ↦
+  | B :: X :: Xs => (heads hvBeq B.hv M.hv).filterMap fun p ↦
       if anyB (buckets (monoKey ·.1) M.hv) (hvBeq p) (monoKey p.1) then none else
       let os := (List.range 64).filter fun t ↦ (B :: X :: Xs).all fun Y ↦ Y.ptrAt p.1 [t]
       if os.isEmpty then none else some (⟨p.1, .num 0, .num 1, 1, 0⟩, os)
@@ -1245,21 +1285,36 @@ noncomputable def armRun1 (x : Base) (Bs : List Abs) (r : Rng) : Option Rng :=
         | none => false) then some ⟨r.q, .num a, .ex x (b - (Bs.length - 1)), r.S, r.d⟩ else none
   | _, _ => none
 
+/-- The length of a tail `L` shares with each list of `Ls`. -/
+def tailAll {α : Type} (eq : α → α → Bool) (L : List α) (Ls : List (List α)) : ℕ :=
+  Ls.foldl (fun t l ↦ min t (tailLen eq L l)) L.length
+
+/-- `armRun1` for a run every arm knows, of constant bounds: every arm `j` knows it up to `j + (b - n)`. -/
+def armRunT (x : Base) (n : ℕ) (r : Rng) : Option Rng :=
+  match r.lo, r.hi with
+  | .num a, .num b => if n ≤ b then some ⟨r.q, .num a, .ex x (b - n), r.S, r.d⟩ else none
+  | _, _ => none
+
 /-- Two or more arms of a table call on base `x` met: each run the last knows that every arm `j` knows up
-to its index plus a constant, as a run up to the selector's exponent plus it (`armRun1`). -/
+to its index plus a constant, as a run up to the selector's exponent plus it (`armRun1`; `armRunT` for
+the tail all arms share). -/
 noncomputable def armRuns (x : Base) (Bs : List Abs) : List Rng :=
   if Bs.length < 2 then [] else
   match Bs.getLast? with
-  | some L => L.r.filterMap (armRun1 x Bs)
+  | some L =>
+    let t := tailAll Rng.beq L.r (Bs.map (·.r))
+    (L.r.take (L.r.length - t)).filterMap (armRun1 x Bs) ++
+      (L.r.drop (L.r.length - t)).filterMap (armRunT x (Bs.length - 1))
   | none => []
 
-/-- The facts of `X` not in `B`, under base `x`'s exponent `j`, if any. -/
+/-- The facts of `X` not in `B`, under base `x`'s exponent `j`, if any (none of the tail they share). -/
 def condDiff (B X : Abs) (x : Base) (j : ℕ) : Option Cnd :=
-  let d : Cnd := ⟨x, j, X.h.filter (fun k ↦ !(anyB (buckets monoKey B.h) (Mono.beq k) (monoKey k))),
-    X.r.filter (fun r ↦ !(anyB (buckets rngKey B.r) (Rng.beq r) (rngKey r))),
-    X.p.filter (fun p ↦ !(anyB (buckets (rngKey ·.1) B.p) (ptrBeq p) (rngKey p.1))),
-    X.lt.filter (fun p ↦ !(B.lt.any (ltBeq p))),
-    X.hv.filter (fun p ↦ !(anyB (buckets (monoKey ·.1) B.hv) (hvBeq p) (monoKey p.1)))⟩
+  let d : Cnd := ⟨x, j,
+    (heads Mono.beq X.h B.h).filter (fun k ↦ !(anyB (buckets monoKey B.h) (Mono.beq k) (monoKey k))),
+    (heads Rng.beq X.r B.r).filter (fun r ↦ !(anyB (buckets rngKey B.r) (Rng.beq r) (rngKey r))),
+    (heads ptrBeq X.p B.p).filter (fun p ↦ !(anyB (buckets (rngKey ·.1) B.p) (ptrBeq p) (rngKey p.1))),
+    (heads ltBeq X.lt B.lt).filter (fun p ↦ !(B.lt.any (ltBeq p))),
+    (heads hvBeq X.hv B.hv).filter (fun p ↦ !(anyB (buckets (monoKey ·.1) B.hv) (hvBeq p) (monoKey p.1)))⟩
   if d.h.isEmpty && d.r.isEmpty && d.p.isEmpty && d.lt.isEmpty && d.hv.isEmpty then none else some d
 
 /-- What the caller knows after one of a call's arms returns, each arm's state given: what all know,

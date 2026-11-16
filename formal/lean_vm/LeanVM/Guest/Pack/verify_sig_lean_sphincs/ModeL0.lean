@@ -16,9 +16,13 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
+/-- `verify_sig_lean_sphincs`: its cuts from its 0-th on. -/
+def modeCuts0 : List ℕ :=
+  2717 :: []
+
 /-- `verify_sig_lean_sphincs`: its mode walk accepts its code, window by window. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=
-  Mode.walk_of_wins (n := 3887) (by decide +kernel) [2717]
+  Mode.walk_of_wins (n := 3887) (by decide +kernel) modeCuts0
     ⟨by decide, by decide, by decide +kernel, modeW0,
     modeW1⟩
 

@@ -12,6 +12,7 @@ public import LeanVM.Guest.Pack.«P45».Mode0
 public import LeanVM.Guest.Pack.«P45».Mode1
 public import LeanVM.Guest.Pack.«P45».Mode2
 public import LeanVM.Guest.Pack.«P45».Mode3
+public import LeanVM.Guest.Pack.«P45».Mode4
 
 set_option Elab.async false
 

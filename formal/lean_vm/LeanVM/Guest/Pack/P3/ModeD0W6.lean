@@ -17,10 +17,10 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `verify_keccak`: its walk from offset 863 goes through to its cut at 910. -/
+/-- `verify_keccak`: its walk from offset 1202 goes through to its end. -/
 theorem modeW6 :
-    (Mode.runCode modeEnv modeFun (Mode.winCode code.chunks 863 910) 863 (Mode.cutOf modeFun 863).1
-    (Mode.cutOf modeFun 863).2).isSome = true := by
+    Mode.runRest modeEnv modeFun (Mode.codeAt code.chunks 1202) 1202 (Mode.cutOf modeFun 1202) =
+    true := by
   decide +kernel
 
 end

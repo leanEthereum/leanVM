@@ -52,7 +52,7 @@ theorem Abs.interS_eq (A B : Abs) : A.interS B = A.inter B := by
   unfold Abs.interS
   generalize A.inter B = C
   obtain ⟨w, v, nz, hv, h, r, lt, pr, xs, p⟩ := C
-  simp only [listSeq_id]
+  simp only [lseq_eq]
 
 /-! ## Words -/
 
