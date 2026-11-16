@@ -11,6 +11,7 @@ module
 
 public import LeanVM.Guest.EndKnow
 public import LeanVM.Guest.Located.ReplayFast
+public import LeanVM.Guest.Located.Places
 public import LeanVM.Guest.B1.VerifySub.Sound
 
 /-!

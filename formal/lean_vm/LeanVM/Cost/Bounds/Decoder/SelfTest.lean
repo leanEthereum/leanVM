@@ -193,7 +193,7 @@ theorem selfTest_cost (hP : Includes P selfTestC.costDeps) (j : ℕ) (hj : j < 2
   rw [limbs_of_lt hj, limbs_of_lt (by unfold LeanVM.Guest.nFns; norm_num : LeanVM.Guest.nFns < 2 ^ 64),
     limbs_of_lt hreg, limbs_of_lt (by omega : 2 + guestArgCounts.getD j 0 < 2 ^ 64),
     limbs_of_lt (by omega : guestArgCounts.getD j 0 < 2 ^ 64)]
-  split_ifs <;> simp only [max_self] <;> omega
+  split_ifs <;> (try simp only [max_self]) <;> omega
 
 end Reads
 

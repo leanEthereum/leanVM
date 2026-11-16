@@ -178,7 +178,7 @@ def bound_files(rows, names, limit):
                f"`{limit}` codes (`GuestPlacesOk/*.lean`, a module each), combined.")
         + BOUND_NS +
         "/-- A list holds a test from `a` on if it holds the `n` entries from `a` and the rest. -/\n"
-        "theorem all_of_drop {α : Type} (p : α → Bool) (l : List α) (a n : ℕ)\n"
+        "theorem all_of_drop {α : Type} (p : α → Bool) (l : List α) (a n : Nat)\n"
         "    (h1 : ((l.drop a).take n).all p = true) (h2 : (l.drop (a + n)).all p = true) :\n"
         "    (l.drop a).all p = true := by\n"
         "  rw [← List.take_append_drop n (l.drop a), List.all_append, Bool.and_eq_true, List.drop_drop]\n"
@@ -215,6 +215,7 @@ def bound_files(rows, names, limit):
     files[BOUND_FIREWALL] = (
         f"/-\n  {HEADER}\n-/\n\n"
         + "".join(f"import LeanVM.Cost.Bounds.Decoder.GuestPlacesOk.{m}\n" for m in mods)
+        + "import Lean.Elab.Command\n"
         + "\n/-! **The guest tables' chunk evaluations read the tables alone.** Each chunk of the place codes'\n"
         "bound (`Bounds/Decoder/GuestPlacesOk/*.lean`) is a kernel evaluation of some functions' codes,\n"
         "and a module is rebuilt whenever anything it imports changes. So they import only the table\n"
