@@ -1,6 +1,6 @@
 module
 
-public import Quantum.Xmss.Assembly.Security
+public import Quantum.Xmss.Assembly.GameR
 public import Quantum.Xmss.Assembly.GameTCalls
 
 @[expose] public section
@@ -8,13 +8,13 @@ public import Quantum.Xmss.Assembly.GameTCalls
 /-!
 # Classical calls and the flip terms of the `k`, `k'` reads along a run
 
-Security's classical-cost totals for a generic event-bound program `x` of `runtimeR m0R` with its
+GameR's classical-cost totals for a generic event-bound program `x` of `runtimeR m0R` with its
 charge bounds as hypotheses (the canonical instances are the challenge prefix `prefixR A L` and the
 whole game `gameR A L`).
 
 * **The trace-weighted classical calls** (`totalWeight_calls_le`): with at most `K` classical
   calls (reads, programs, records) on every path, the traces of the inputs of the read and
-  program calls add up to at most `K` (Mismatch's `totalWeight_chargeTrace_le`). Security's
+  program calls add up to at most `K` (Mismatch's `totalWeight_chargeTrace_le`). GameR's
   `callTot` is at most `clsCap` (`callTot_le_clsCap`).
 * **The database grade at the calls** (`forallQueries_of_charge_step`,
   `querySupportedOn_runtimeR_step`): every port of `runtimeR` raises the largest database by at
@@ -605,7 +605,7 @@ noncomputable abbrev epsWt (L : HonestTable) :
         ((recHwSpec X Z HPos Selections).In i × (runtimeR (X := X) (Z := Z) m0R).D) ℂ → ℝ≥0∞ :=
   extWeight (hwCost (epsW Prod.snd trialUpd (BadR L progCap) L) fun _ _ ↦ 0)
 
-/-- The trace weight of the read and program ports (Security's `callTot` weight). -/
+/-- The trace weight of the read and program ports (GameR's `callTot` weight). -/
 noncomputable abbrev callWt :
     ∀ i : (recHwSpec X Z HPos Selections).Port,
       Matrix ((recHwSpec X Z HPos Selections).In i × (runtimeR (X := X) (Z := Z) m0R).D)
@@ -929,7 +929,7 @@ variable {q : ℕ} {A : Adversary (X × Z)}
   (hsign : ∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge signCharge) lifetime)
 include hperm hsign
 
-/-- **Security's `callTot`** (over the game): at most `clsCap` (`clsCalls_gameR`). -/
+/-- **GameR's `callTot`** (over the game): at most `clsCap` (`clsCalls_gameR`). -/
 theorem callTot_le_clsCap (L : HonestTable) : callTot A L ≤ clsCap :=
   totalWeight_calls_le (gameR A L) (clsCalls_gameR hperm hsign L)
 

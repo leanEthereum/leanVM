@@ -46,6 +46,7 @@ import Quantum.Xmss.Assembly.GameTCalls
 import Quantum.Xmss.Assembly.MassSources
 import Quantum.Xmss.Assembly.SrcBad
 import Quantum.Xmss.Assembly.FullTable
+import Quantum.Xmss.Assembly.GameR
 import Quantum.Xmss.Assembly.CostRun
 import Quantum.Xmss.Assembly.CostJoint
 import Quantum.Xmss.Assembly.MassesR0

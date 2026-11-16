@@ -39,7 +39,7 @@ read cell and a state with no decompressed `⊥` there, like a sponge call:
   `ewR (gameR A) L ≤ (advTerm q + verTerm q + √(twP A L + verLin q))²` on `PermGood` tables,
   with `verTerm q = 3 verifyBlocks √(verEps q)` and
   `verLin q = 3 verifyBlocks (verEps q + 2/|X| + 2/|Z|)`. The prefix's costs are among the game's
-  (`totalWeight_le_bind₂`, `twP_le_twR`), so the bound holds with Security's `twR`
+  (`totalWeight_le_bind₂`, `twP_le_twR`), so the bound holds with GameR's `twR`
   (`ewR_le_sqrt_twR`).
 * **Keccak sizes** (`verEps_le`, `verTerm_le`, `verLin_le`): for `q ≤ 2^64`, `verEps q ≤ 2^-128`
   (the `h` fraction `2^960 / 2^1088`; the capacity terms `3 · 18 (T+1)³ / 2^512` with `T < 2^68`
@@ -899,7 +899,7 @@ theorem twP_le_twR (A : Adversary (X × Z)) (L : HonestTable) : twP A L ≤ twR 
   rw [gameR_eq]
   exact totalWeight_le_bind₂ (runtimeR m0R) .instruments _ (prefixR A L) _ initR
 
-/-- **`ewR_le_sqrt` with Security's game-wide classical cost `twR`**:
+/-- **`ewR_le_sqrt` with GameR's game-wide classical cost `twR`**:
 `ewR (gameR A) L ≤ (advTerm q + verTerm q + √(twR A L + verLin q))²` on `PermGood` tables. -/
 theorem ewR_le_sqrt_twR (L : HonestTable) (hπ : PermGood L.perm 18) :
     ewR (gameR A) L ≤ (advTerm q + verTerm q + (twR A L + verLin q) ^ (2⁻¹ : ℝ)) ^ 2 :=
