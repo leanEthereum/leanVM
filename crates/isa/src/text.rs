@@ -1,6 +1,7 @@
-//! A line format for a [`CompiledProgram`]: its bytecode before the padding, its hints, `main`'s frame and its function
-//! ranges. It is what `formal/lean_vm`'s `lake exe guest-backend export` writes of a program compiled in Lean, so
-//! a test can compare the two compilers' output as text and run what the Lean one produced.
+//! A line format for a [`CompiledProgram`]: its bytecode before the padding, its hints, `main`'s frame, its function
+//! ranges and its source lines. It is what `formal/lean_vm`'s `lake exe guest-backend export` and `lake exe
+//! guest-artifact` write of a program compiled in Lean, so a test can compare the two compilers' output as text and
+//! run what the Lean one produced.
 //!
 //! ```text
 //! size <slots>
@@ -13,9 +14,9 @@
 //! J <oc> <od> <of>
 //! K <m0> <m1> <m2> <m3> <tail> <b8> <cap> <out> <in_odd> <out_odd> <cells>
 //! H <pc> <kind> <fields>                      one line a hint, in pc order
+//! L <pc> <line>                               the source line from `pc` on (`src_lines`): at pc 0 and wherever it
+//!                                             changes, none for a program without source lines
 //! ```
-//!
-//! The source lines are not part of it.
 
 use std::collections::HashMap;
 use std::fmt::Write;
@@ -295,6 +296,11 @@ impl CompiledProgram {
                 writeln!(out, "H {pc} {}", hint_line(hint)).unwrap();
             }
         }
+        for (pc, &line) in self.src_lines.iter().enumerate() {
+            if pc == 0 || self.src_lines[pc - 1] != line {
+                writeln!(out, "L {pc} {line}").unwrap();
+            }
+        }
         out
     }
 }
@@ -306,6 +312,7 @@ impl Program {
         let (mut size, mut main_frame) = (None, None);
         let (mut prog, mut fn_ranges) = (Vec::new(), Vec::new());
         let mut hints: HashMap<u32, Vec<RHint>> = HashMap::new();
+        let mut lines: Vec<(usize, u32)> = Vec::new();
         for line in text.lines() {
             let mut rest = line.split(' ');
             let tag = rest.next().unwrap_or("");
@@ -315,6 +322,7 @@ impl Program {
                 "main_frame" => main_frame = Some(fields.num()?),
                 "F" => fn_ranges.push((fields.word()?.to_string(), fields.num()?, fields.num()?)),
                 "H" => hints.entry(fields.num()?).or_default().push(fields.hint()?),
+                "L" => lines.push((fields.num()?, fields.num()?)),
                 _ => prog.push(fields.op(tag)?),
             }
         }
@@ -323,13 +331,21 @@ impl Program {
         if !size.is_power_of_two() || prog.len() >= size {
             return Err(format!("{} instructions do not fit {size} slots", prog.len()));
         }
+        let mut src_lines = Vec::new();
+        for (i, &(pc, line)) in lines.iter().enumerate() {
+            let end = lines.get(i + 1).map_or(prog.len(), |next| next.0);
+            if pc != src_lines.len() || end < pc || end > prog.len() {
+                return Err(format!("`L {pc} {line}` is out of order or past the code"));
+            }
+            src_lines.resize(end, line);
+        }
         prog.resize(size, Op::Set { o: 0, k: E::new(0, 0) });
         Ok(Self::from(CompiledProgram {
             prog,
             hints,
             main_frame,
             fn_ranges,
-            src_lines: Vec::new(),
+            src_lines,
         }))
     }
 }
@@ -338,7 +354,7 @@ impl Program {
 mod tests {
     use super::*;
 
-    /// Every instruction and every hint kind survives the format.
+    /// Every instruction, every hint kind and the source lines survive the format.
     #[test]
     fn text_round_trips() {
         let text = "size 16\nmain_frame 9\nF main 0 6\n\
@@ -346,9 +362,10 @@ mod tests {
                     H 0 frame 7\nH 0 frames 1 2 3 4 5\nH 1 alloc 1 2\nH 1 allocdyn 1 2\nH 2 wstack s 1 2\n\
                     H 2 wheap s 1 2 3\nH 3 log2 stack 1 2 3 4\nH 3 bits 1 heap 2 3\nH 3 bitsexp 1 stack 2 3\n\
                     H 4 digits 1 stack 2 3 4 5 6 -\nH 4 digits 1 heap 2 3 4 5 6 7\nH 4 windows 1 stack 2 3 4 5 6\n\
-                    H 5 limbs 1 2 3\nH 5 inverse 1 2\nH 5 print 1 a label\n";
+                    H 5 limbs 1 2 3\nH 5 inverse 1 2\nH 5 print 1 a label\nL 0 0\nL 2 7\nL 5 9\n";
         let program = Program::__from_text(text).unwrap();
         assert_eq!(program.__to_text(), text);
         assert_eq!(program.prog.len(), 16);
+        assert_eq!(program.src_lines, [0, 0, 7, 7, 7, 9]);
     }
 }

@@ -15,8 +15,9 @@ public import LeanVM.Guest.Backend.Trace
 # Expansion, traced
 
 `LeanVM.Guest.Expand`, definition for definition, with the state's `trace` recording each value
-made, each statement emitted and each branch entered (`Backend.Event`). `expandFn` returns the
-trace beside the core function, which is `Expand.expandFn`'s.
+made, each statement emitted and each branch entered (`Backend.Event`), and its `lines` the source
+line of each statement begun. `expandFn` returns the trace and the lines beside the core function,
+which is `Expand.expandFn`'s.
 -/
 
 namespace LeanVM.Guest.Backend.ExpandTrace
@@ -124,6 +125,8 @@ structure St where
   loopCtr : Nat
   /-- The allocation trace. -/
   trace : Array Event := #[]
+  /-- The source lines: `(n, line)`, the statement at `line` begun when the trace held `n` events. -/
+  lines : Array (Nat × Nat) := #[]
   deriving Inhabited
 
 /-- The lowering monad. -/
@@ -1209,7 +1212,9 @@ def tryInline : Nat → String → List Expr → List V → M Bool
     let savedRet := (← get).inlineRet
     modify fun st => { st with inlineRet := some dsts, inlineCalls := callee :: st.inlineCalls }
     let site ← fresh .site
+    let savedLine := ((← get).lines.back?.map (·.2)).getD 0
     withSeg (.i callee site.tag) (stmts n body)
+    modify fun st => { st with lines := st.lines.push (st.trace.size, savedLine) }
     modify fun st => { st with inlineRet := savedRet, names := saved,
                                inlineCalls := st.inlineCalls.drop 1 }
     return true
@@ -1745,6 +1750,7 @@ def lowerHintWitness : Nat → Expr → String → M Unit
 def stmtKind : Nat → Nat → StmtKind → M Unit
   | 0, _, _ => fail "expansion fuel exhausted"
   | n + 1, line, k => do
+    modify fun st => { st with lines := st.lines.push (st.trace.size, line) }
     match k with
     | .let_ name e => do
         match e with
@@ -1895,11 +1901,11 @@ def lowerFunc (f : Func) : M Unit := do
 every function queued before (it decides which specializations are new) and `loopBase` the
 number of loops lowered before. -/
 def expandFn (p : Program) (f : Func) (queue : Array Func := #[]) (loopBase : Nat := 0) :
-    Except String (Core.Fn × Array Func × Nat × Array Event) := do
+    Except String (Core.Fn × Array Func × Nat × Array Event × Array (Nat × Nat)) := do
   if let some q := f.params.find? (fun q => p.constArrays.any (·.1 == q.name)) then
     throw s!"`{f.name}`: parameter `{q.name}` collides with a top-level constant array"
   let ((), st) ← (lowerFunc f).run (initState p f queue loopBase)
-  return (⟨f.name, (paramBindings f).2, st.out.toList⟩, st.queue, st.loopCtr, st.trace)
+  return (⟨f.name, (paramBindings f).2, st.out.toList⟩, st.queue, st.loopCtr, st.trace, st.lines)
 
 /-- The specialization of `f` at these `Const` arguments, as the compiler queues it. -/
 def specializeFn (f : Func) (constArgs : List Expr) : Except String Func := do
@@ -1909,9 +1915,10 @@ def specializeFn (f : Func) (constArgs : List Expr) : Except String Func := do
   return { name := specName f.name substs, params := f.params.filter (·.kind != .const),
            returnShapes := f.returnShapes, body := substBody f.body substs, inline := false }
 
-/-- The compiler's queue (`compile`), at most `fuel` functions. -/
-def expandQueue (p : Program) : Nat → Nat → Array Func → Nat → Array Backend.TracedFn →
-    Except String (Array Backend.TracedFn)
+/-- The compiler's queue (`compile`), at most `fuel` functions, each with its source lines. -/
+def expandQueue (p : Program) : Nat → Nat → Array Func → Nat →
+    Array (Backend.TracedFn × Array (Nat × Nat)) →
+    Except String (Array (Backend.TracedFn × Array (Nat × Nat)))
   | 0, _, _, _, _ => throw "too many functions"
   | budget + 1, i, queue, loopCtr, out =>
       match queue[i]? with
@@ -1919,9 +1926,9 @@ def expandQueue (p : Program) : Nat → Nat → Array Func → Nat → Array Bac
       | some f =>
           if f.hasConstParams || f.inline then expandQueue p budget (i + 1) queue loopCtr out
           else do
-            let (fn, queue, loopCtr, trace) ← expandFn p f queue loopCtr
+            let (fn, queue, loopCtr, trace, lines) ← expandFn p f queue loopCtr
             expandQueue p budget (i + 1) queue loopCtr (out.push
-              ⟨fn, trace, (f.returnShapes.map Shape.cells).sum, Backend.loopSource f⟩)
+              (⟨fn, trace, (f.returnShapes.map Shape.cells).sum, Backend.loopSource f⟩, lines))
 
 /-- Every function the compiler lowers, in its order, `main` first: its core function, its trace
 and what the back end reads of its source as queued. -/
@@ -1929,6 +1936,14 @@ def expandProgram (p : Program) : Except String (List Backend.TracedFn) := do
   let some main := p.funcs.find? (·.name == "main") | throw "program needs a `main`"
   if main.hasConstParams then throw "main cannot take Const parameters"
   if main.inline then throw "main cannot be `@inline`"
+  let queue := #[main] ++ (p.funcs.filter (·.name != "main")).toArray
+  return (← expandQueue p 1000000 0 queue 0 #[]).toList.map (·.1)
+
+/-- `expandProgram` with each function's source lines (`St.lines`), which only the line pass reads
+(`Backend.Lines`). -/
+def expandProgramLines (p : Program) :
+    Except String (List (Backend.TracedFn × Array (Nat × Nat))) := do
+  let some main := p.funcs.find? (·.name == "main") | throw "program needs a `main`"
   let queue := #[main] ++ (p.funcs.filter (·.name != "main")).toArray
   return (← expandQueue p 1000000 0 queue 0 #[]).toList
 
