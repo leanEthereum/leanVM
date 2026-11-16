@@ -144,6 +144,10 @@ theorem nth_eq_getElem? {α : Type} {l : List α} {n : ℕ} (d : α) (h : n < l.
     | zero => rfl
     | succ n => exact ih (Nat.lt_of_succ_lt_succ h)
 
+theorem nth_eq {α : Type} {l : List α} {n : ℕ} {d : α} (h : n < l.length) : listElementOrDefault l n
+    d = l[n] :=
+  Option.some.inj ((nth_eq_getElem? d h).symm.trans (List.getElem?_eq_getElem h))
+
 /-- Well-chunked code has the stated length, and `chunkAt` reads it. -/
 theorem chunked_spec {C : ℕ} (hC : 0 < C) {cs : List (List OffsetInstruction)} {n : ℕ}
     (h : chunked C cs n = true) :

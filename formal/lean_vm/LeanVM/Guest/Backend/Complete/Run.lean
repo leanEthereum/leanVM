@@ -28,7 +28,6 @@ of its blocks as hypotheses.
 namespace LeanVM.Guest.Backend.Complete
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
-open LeanVM.Guest.B2C (RunC)
 
 @[expose] public section
 
@@ -168,7 +167,7 @@ theorem op_runC (hL : Loaded prog Γ code) {pos : ℕ} {o : LOp} (hat : code[pos
       (lopCnt o) := by
   obtain ⟨hf, hpc⟩ := hL.at hat
   rw [← lopCnt_R Γ o]
-  exact B2C.runC_fallThrough hf hpc (by rw [Γ.R_isJump, hj]) h
+  exact runC_fallThrough hf hpc (by rw [Γ.R_isJump, hj]) h
 
 /-- Through a `JUMP` whose cells hold words of `K`: on to the next instruction at a zero
 condition, else to the words of its target cells. -/
@@ -182,9 +181,9 @@ theorem jump_runC (hL : Loaded prog Γ code) {pos oc od of : ℕ} {fall : Prop}
   obtain ⟨hf, hpc⟩ := hL.at hat
   obtain ⟨c, d, f, hc, hd, hf', hcK, hdK, hfK, hfall, htaken⟩ := h
   by_cases h0 : c = 0
-  · refine Or.inl ⟨hfall h0, B2C.runC_jump hf hpc ⟨c, d, f, hc, hd, hf', hcK, hdK, hfK, ?_⟩⟩
+  · refine Or.inl ⟨hfall h0, runC_jump hf hpc ⟨c, d, f, hc, hd, hf', hcK, hdK, hfK, ?_⟩⟩
     simp [h0]
-  · refine Or.inr ⟨d, f, htaken h0, B2C.runC_jump hf hpc ⟨c, d, f, hc, hd, hf', hcK, hdK, hfK, ?_⟩⟩
+  · refine Or.inr ⟨d, f, htaken h0, runC_jump hf hpc ⟨c, d, f, hc, hd, hf', hcK, hdK, hfK, ?_⟩⟩
     simp [h0]
 
 /-- Through straight-line instructions that hold, counted. -/
