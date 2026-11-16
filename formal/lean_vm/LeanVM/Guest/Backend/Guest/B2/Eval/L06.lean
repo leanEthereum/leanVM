@@ -19,12 +19,8 @@ open GuestPiece
 
 @[expose] public section
 
-/-- The places of entries 21 to 31 (`statement_digest` to `da_vector`, 1958 instructions) agree with the cells. -/
-theorem locsOk_21_32 : (List.range' 21 11).all (fun i => locsOkAt i (placedLocs i)) = true := by
-  decide +kernel
-
-/-- The places of entries 32 to 35 (`da_column_offsets` to `__loop1`, 537 instructions) agree with the cells. -/
-theorem locsOk_32_36 : (List.range' 32 4).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 21 to 35 (`statement_digest` to `__loop1`, 1687 instructions) agree with the cells. -/
+theorem locsOk_21_36 : (List.range' 21 15).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
 end

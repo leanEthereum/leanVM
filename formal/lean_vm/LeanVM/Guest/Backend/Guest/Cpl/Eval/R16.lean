@@ -21,40 +21,40 @@ open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.Backend Lea
 
 @[expose] public section
 
-/-- The test of entries 741 to 764 (`level_queries__L28_L0_L4_L16_L20_L2_L0_L0_L0_L0` to `level_residual__L18_L8_L4_L2`, 968 instructions). -/
-theorem cplOk_741_765 : (List.range' 741 24).all cplOkAt = true := by
+/-- The test of entries 780 to 802 (`level_queries__L15_L0_L4_L16_L21_L3_L5_L36_L6_L1` to `level_queries__L55_L1_L6_L32_L26_L2_L0_L0_L0_L0`, 967 instructions). -/
+theorem cplOk_780_803 : (List.range' 780 23).all cplOkAt = true := by
   decide +kernel
 
-/-- The test of entries 765 to 789 (`level_positions__L44_L22_L4` to `level_queries__L16_L0_L4_L16_L20_L2_L5_L36_L6_L1`, 968 instructions). -/
-theorem cplOk_765_790 : (List.range' 765 25).all cplOkAt = true := by
+/-- The test of entries 803 to 827 (`level_positions__L9_L23_L5` to `level_residual__L109_L22_L6_L3`, 960 instructions). -/
+theorem cplOk_803_828 : (List.range' 803 25).all cplOkAt = true := by
   decide +kernel
 
-/-- The test of entries 790 to 812 (`level_queries__L15_L0_L4_L16_L21_L3_L5_L36_L6_L1` to `level_queries__L55_L1_L6_L32_L26_L2_L0_L0_L0_L0`, 967 instructions). -/
-theorem cplOk_790_813 : (List.range' 790 23).all cplOkAt = true := by
+/-- The test of entries 828 to 851 (`level_residual__L73_L22_L6_L3` to `level_positions__L9_L24_L6`, 997 instructions). -/
+theorem cplOk_828_852 : (List.range' 828 24).all cplOkAt = true := by
   decide +kernel
 
-/-- The test of entries 813 to 837 (`level_positions__L9_L23_L5` to `level_residual__L109_L22_L6_L3`, 960 instructions). -/
-theorem cplOk_813_838 : (List.range' 813 25).all cplOkAt = true := by
+/-- The test of entries 852 to 876 (`level_positions__L8_L25_L7` to `level_residual__L55_L23_L6_L3`, 962 instructions). -/
+theorem cplOk_852_877 : (List.range' 852 25).all cplOkAt = true := by
   decide +kernel
 
-/-- The test of entries 838 to 861 (`level_residual__L73_L22_L6_L3` to `level_positions__L9_L24_L6`, 997 instructions). -/
-theorem cplOk_838_862 : (List.range' 838 24).all cplOkAt = true := by
+/-- The test of entries 877 to 900 (`level_residual__L55_L19_L4_L2` to `level_queries__L55_L0_L4_L16_L24_L6_L0_L0_L0_L0`, 985 instructions). -/
+theorem cplOk_877_901 : (List.range' 877 24).all cplOkAt = true := by
   decide +kernel
 
-/-- The test of entries 862 to 886 (`level_positions__L8_L25_L7` to `level_residual__L55_L23_L6_L3`, 962 instructions). -/
-theorem cplOk_862_887 : (List.range' 862 25).all cplOkAt = true := by
+/-- The test of entries 901 to 925 (`level_queries__L44_L0_L4_L16_L25_L7_L0_L0_L0_L0` to `level_residual__L37_L20_L4_L2`, 983 instructions). -/
+theorem cplOk_901_926 : (List.range' 901 25).all cplOkAt = true := by
   decide +kernel
 
-/-- The test of entries 887 to 910 (`level_residual__L55_L19_L4_L2` to `level_queries__L55_L0_L4_L16_L24_L6_L0_L0_L0_L0`, 985 instructions). -/
-theorem cplOk_887_911 : (List.range' 887 24).all cplOkAt = true := by
+/-- The test of entries 926 to 942 (`level_residual__L32_L20_L4_L2` to `__loop46`, 957 instructions). -/
+theorem cplOk_926_943 : (List.range' 926 17).all cplOkAt = true := by
   decide +kernel
 
-/-- The test of entries 911 to 935 (`level_queries__L44_L0_L4_L16_L25_L7_L0_L0_L0_L0` to `level_residual__L37_L20_L4_L2`, 983 instructions). -/
-theorem cplOk_911_936 : (List.range' 911 25).all cplOkAt = true := by
+/-- The test of entries 943 to 948 (`decode_query_windows__L16_L4` to `__loop49`, 932 instructions). -/
+theorem cplOk_943_949 : (List.range' 943 6).all cplOkAt = true := by
   decide +kernel
 
-/-- The test of entries 936 to 962 (`level_residual__L32_L20_L4_L2` to `__loop58`, 977 instructions). -/
-theorem cplOk_936_963 : (List.range' 936 27).all cplOkAt = true := by
+/-- The test of entries 949 to 952 (`verify_merkle_cap__L3` to `opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0`, 892 instructions). -/
+theorem cplOk_949_953 : (List.range' 949 4).all cplOkAt = true := by
   decide +kernel
 
 end

@@ -88,7 +88,7 @@ theorem cplOkWith_of {i : ℕ} {pf : Placed} (hp : placedAt i = some pf) (h : cp
   exact h
 
 /-- **The per-function test passes for every entry** of the guest. -/
-def CplOkAll : Prop := ∀ i < 1601, cplOkAt i = true
+def CplOkAll : Prop := ∀ i < 1549, cplOkAt i = true
 
 /-- **What the per-function test says.** -/
 structure CplFacts (i : ℕ) (pf : Placed) : Prop where
