@@ -13,22 +13,23 @@ import LeanVM.Cost.DecoderSize.Names1
 import LeanVM.Cost.Decoder.GuestTablesCheck
 
 /-! **The decoder's table checks read the tables alone.** The kernel evaluations of the guest
-decoder's tables' sizes (`DecoderSize/Rows*.lean`, `Names*.lean`) are split into chunks, each
-under the memory a module may take, and with the tables' equality with the guest's signatures and
-certificates (`Decoder/GuestTablesCheck.lean`), a module is rebuilt whenever anything it imports
-changes. So they import only the tables (`Decoder/GuestTables.lean`), the definitions of the sizes
-(`DecoderSize/Rows.lean`) and the statement, and, for the equality, the guest's signatures and
-certificates (`Guest/Glob.lean`): none of the cost compiler, the compiled decoder or the guest's
-proofs. This module, which imports them alone, fails to build if their imports reach any other
-`LeanVM.Cost` module, or the guest's proofs (`LeanVM.Guest.B1`, `LeanVM.Guest.Located`,
-`LeanVM.Protocol`). -/
+decoder's table of places' size (`DecoderSize/Rows*.lean`, `Names*.lean`) are split into chunks,
+each under the memory a module may take, and with the tables' equalities with the guest's entries
+and arguments (`Decoder/GuestTablesCheck.lean`), a module is rebuilt whenever anything it imports
+changes. So they import only the tables (`Decoder/GuestTables.lean`, `Decoder/GuestPlaces.lean`
+and its rows), the definitions of the sizes (`DecoderSize/Rows.lean`) and the statement, and, for
+the equalities, the guest's core data (`Guest/CoreData.lean`): none of the cost compiler, the
+compiled decoder or the guest's proofs. This module, which imports them alone, fails to build if
+their imports reach any other `LeanVM.Cost` module, or the guest's proofs (`LeanVM.Guest.B1`,
+`LeanVM.Guest.Located`, `LeanVM.Protocol`). -/
 
 open Lean Elab Command in
 #eval show CommandElabM Unit from do
-  let allowed := [`LeanVM.Cost.Decoder.GuestTables, `LeanVM.Cost.DecoderSize.Rows,
-    `LeanVM.Cost.Decoder.GuestTablesCheck]
+  let allowed := [`LeanVM.Cost.Decoder.GuestTables, `LeanVM.Cost.Decoder.GuestPlaces,
+    `LeanVM.Cost.DecoderSize.Rows, `LeanVM.Cost.Decoder.GuestTablesCheck]
   let chunk (m : Name) : Bool :=
-    m.getPrefix == `LeanVM.Cost.DecoderSize && m != `LeanVM.Cost.DecoderSize.Locs
+    (m.getPrefix == `LeanVM.Cost.DecoderSize && m != `LeanVM.Cost.DecoderSize.Places) ||
+      m.getPrefix == `LeanVM.Cost.Decoder.GuestPlaces
   let forbidden := [`LeanVM.Guest.B1, `LeanVM.Guest.Located, `LeanVM.Protocol]
   let reached := (← getEnv).header.moduleNames.filter fun m ↦
     ((`LeanVM.Cost).isPrefixOf m && !allowed.contains m && !chunk m &&

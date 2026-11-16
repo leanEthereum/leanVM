@@ -9,7 +9,7 @@ public import LeanVM.Guest.EndFinal
 
 `decode` (`Guest/EndFinal.lean`) reads `main`'s witness through the replayed frame map
 `Located.frameVFast`, keyed by the callee's name: it looks the call up in the entry table at the
-name's index (`nameIndex`) and reads the frame through the certificate of that name.
+name's index (`nameIndex`) and reads the frame by that function's places (`guestPlaces`).
 
 * `frameVFastN pre states rd j` (`Fast/FramesN.lean`): the same lookup keyed by the index `j`;
 * `decWitN_eq`: `main`'s witness off the restated readers, at the frame map re-keyed by index, is
@@ -47,7 +47,7 @@ theorem decode_eq_numbered {dl : K → Option ℕ} (hdl : DiscreteLogSpec dl) {�
         replayFuel ⟨addressOfIndex 0, 1⟩
       let σ := End.mainValWith rd
       ⟨B1.Main.decSeed σ, B1.Main.decStmt σ rd,
-        decWitN σ rd (frameVFastN (preTest rd) states rd) (cursorLenWith dl)⟩ := by
+        decWitN σ rd (frameVFastN (selfTest rd) states rd) (cursorLenWith dl)⟩ := by
   have hV (pre : ℕ → K → Bool) (states : List (Registers K)) (rd : Reader) :
       frameVFastN pre states rd = fun j ↦ frameVFast pre states rd (decoderFunctionName j) :=
     funext (frameVFastN_eq pre states rd)

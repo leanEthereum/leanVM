@@ -6,7 +6,7 @@ module
 
 public import LeanVM.Cost.DecoderSize.Rows
 
-/-! The sizes of the guest's frame cells' rows `0 … 36`, by evaluation. -/
+/-! The sizes of the guest's place codes' rows `0 … 36`, by evaluation. -/
 
 namespace LeanVM.Cost.Decoder
 

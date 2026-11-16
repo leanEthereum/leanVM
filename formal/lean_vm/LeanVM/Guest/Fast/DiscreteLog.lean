@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.Fast.DiscreteLog
 
-  The decoder's discrete-logarithm readers through the computable `discreteLog`: the
-  precondition test, B1's `gLog` and `verify_sub`'s `cursorLen`.
+  The decoder's discrete-logarithm readers through the computable `discreteLog`: B1's `gLog` and
+  `verify_sub`'s `cursorLen`.
 -/
 
 module
@@ -18,15 +18,14 @@ public import LeanVM.Guest.B1.VerifySub.Proof
 **`discreteLog_discreteLogSpec`**: `DiscreteLogSpec discreteLog` (`Located/ReplayFast.lean`).
 Plugged into the readers written over a logarithm:
 
-* `preTest_eq_discreteLog`: `preTest = preTestWith discreteLog`;
 * `gLog_eq_discreteLog`: `B1.Main.gLog = gLogWith discreteLog`;
 * `cursorLen_eq_discreteLog`: `VerifySub.cursorLen = cursorLenWith discreteLog`. `cursorLen`
   scans `n ≤ 2^32` for `q = p · gen^n`; `cursorLenWith dl` divides `q` by `p` on `p`'s first
   nonzero limb (`limbQuot`), takes `dl` of the quotient and checks `n ≤ 2^32` and `q = p · g^n`
   limb by limb; `cursorLenWith_eq`: given any `DiscreteLogSpec dl`, it is `cursorLen`.
 
-`preTest`, `gLog` and `cursorLen` are not compiled code (noncomputable, or a
-`2^32`-step scan), so these are plain equations, not `@[csimp]` lemmas.
+`gLog` and `cursorLen` are not compiled code (a `2^34`-entry search, a `2^32`-step scan), so
+these are plain equations, not `@[csimp]` lemmas.
 
 `cursorLenWith` reads `dl`'s result through `Option.filter` and `Option.getD`, not a `match`
 (`discreteLogWith`'s note).
@@ -44,10 +43,7 @@ open LeanVM.Guest.Value LeanVM.Guest.B1 LeanVM.Guest.Located
 theorem discreteLog_discreteLogSpec : DiscreteLogSpec discreteLog :=
   fun _ _ ↦ discreteLog_eq_some_iff
 
-/-! ## The precondition and `gLog` -/
-
-theorem preTest_eq_discreteLog : preTest = preTestWith discreteLog :=
-  (preTestWith_eq discreteLog_discreteLogSpec).symm
+/-! ## `gLog` -/
 
 theorem gLog_eq_discreteLog : B1.Main.gLog = gLogWith discreteLog :=
   (gLogWith_eq discreteLog_discreteLogSpec).symm

@@ -175,11 +175,10 @@ test_runs runs := [
   ("mainValC", fun _ ↦
     runOn (mainValC.costDeps ++ smallReaderC.costDeps) mainValC.costIdx
       [rdVal, encodeValue (V.n 47)] == some (encodeValue (mainVal smallReader (V.n 47)))),
-  -- read off the literal table, the certificate's cells
-  ("main's values, off the certificate's cells", fun _ ↦
+  -- read off the literal table, the back end's places of `main`'s values
+  ("main's values, off the table of places", fun _ ↦
     (List.range 430).all fun i ↦ mainVal smallReader (V.n i) ==
-      LeanVM.Guest.Located.wordWith smallReader 1
-        ((LeanVM.Guest.Fn.«main».cert_w0_0 ++ LeanVM.Guest.Fn.«main».cert_w1_0).getD (V.n i).idx 0)),
+      LeanVM.Guest.placeWith smallReader 1 ((guestPlaces.getD 1 #[]).getD (V.n i).idx 0)),
   -- The statement off `main`'s frame: no declared claim (`gLog 1 = 0`), the DA digest at slot `0`
   -- of `da_digests = 1`, the deferred claim at `defer_stmt = 1`. (`decStmt` is `noncomputable` in
   -- Lean: its value is written out.)
