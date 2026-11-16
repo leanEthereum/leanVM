@@ -18,7 +18,7 @@ public import Quantum.Xmss.Assembly.RecJ
 public import Quantum.Xmss.Assembly.HwHeads
 public import Quantum.Xmss.Assembly.RecBadMass
 public import Quantum.Xmss.Assembly.RecHitB
-public import Quantum.Xmss.Assembly.CwRev
+public import Quantum.Xmss.Assembly.CwReFail
 public import Quantum.Xmss.Assembly.RecOffDecHit
 public import Quantum.Xmss.Hybrid.GradedMasked
 
@@ -60,8 +60,8 @@ challenge prefix `prefixR A L` followed by the verification (`gameR_eq`).
    `hwHeadPre = 0` (HwHeads' `hwHeadPre_eq_zero_all`), `kfPre ≤ kfGame` averaged by KeyLazy on
    KeysReparam's `keyE` (`uavg_kfTot_le_r0`, `progBound`) and the `RecJ` weight by RecJ's
    `uavg_recJPre_le_two_pow` (`recJCap = 2^-35`). The mass `m` averaged over `GoodL`:
-   `cwRecPre` by CwRev's `uavg_cwRecPre_all_le_rev` (debt `cwReFail`), `recBadPre` by RecBadMass's
-   `recBadAvg_of_parts` from RecOffDecHit's `decHitAvg_goodL` (`2^-74`), RecHitB's
+   `cwRecPre` by CwReFail's `uavg_cwRecPre_all_le_rev'` (failed searches `2^-110`), `recBadPre`
+   by RecBadMass's `recBadAvg_of_parts` from RecOffDecHit's `decHitAvg_goodL` (`2^-74`), RecHitB's
    `recHitBAvg_of_dec` (debt `decHitB`) and RecOffDecHit's `recOffAvg`: `flipMassCap q`. All
    averaged by `uavg_ite_cost_le_add`. The programs: `progPreR ≤ progTot` and ProgSafe's
    `uavg_progTot_le_kTot` with KeyLazy's `uavg_kTot_le` on a reparametrization exposing the keys
@@ -77,7 +77,6 @@ least `1` (`one_le_qrpmBound`), so the debts are needed only for `q ≤ 2^64`.
 
 | Debt | Statement | Target | Owner |
 |---|---|---|---|
-| `cwReFail` | `CwReView A`: reveals of a label whose earlier search failed | `cwReEps q` | CwReFail |
 | `decHitB` | `DecHitBAvg A GoodL`: decompressed other-label digest hits | `2^-60` | RecHitB's route |
 -/
 
@@ -292,20 +291,12 @@ noncomputable def progBound : ℝ≥0∞ :=
 (`uavg_recJPre_le_two_pow`, `q ≤ 2^64`): `2^-35`. -/
 noncomputable def recJCap : ℝ≥0∞ := (2 ^ 35 : ℝ≥0∞)⁻¹
 
-/-- **The target of `CwReView`** (debt `cwReFail`): `2^-100 + 12q · 2^-128` per hidden value for
-the reveals of a label whose earlier search ran all its trials without a codeword while the key
-stayed unselected. A failed search needs nearly all of its `2^32` trials to fail: the fresh ones
-fail with `(1 - ρ)` each, and the bases with many recorded trial blocks cost their share of the
-recorded blocks of unrevealed labels, at most `6q` in total. -/
-noncomputable def cwReEps (q : ℕ) : ℝ≥0∞ :=
-  ENNReal.ofReal (1 / 2 ^ 100) + ((12 * q : ℕ) : ℝ≥0∞) * ENNReal.ofReal (1 / 2 ^ 128)
-
-/-- **The codeword-recorded mass of the prefix, averaged over all tables** (CwRev's
-`uavg_cwRecPre_all_le_rev` at `cwReEps q`): the first runs `2^-94 · 6q`, the failed searches
-`4 · 2^32 · cwReEps q`, the fresh trial reads `cwFreshEps (6q + clsCap) · clsCap`, `cwJunk` and the
-static `clsCap · 2^-400`. -/
+/-- **The codeword-recorded mass of the prefix, averaged over all tables** (CwReFail's
+`uavg_cwRecPre_all_le_rev'`): the first runs `2^-94 · 6q`, the failed searches
+`4 · 2^32 · cwReEpsC` (`cwReEpsC = 2^-110`), the fresh trial reads
+`cwFreshEps (6q + clsCap) · clsCap`, `cwJunk` and the static `clsCap · 2^-400`. -/
 noncomputable def cwRecCap (q : ℕ) : ℝ≥0∞ :=
-  cwRevTau q (cwReEps q) + cwJunk + clsCap * ENNReal.ofReal (1 / 2 ^ 400)
+  cwRevTau q cwReEpsC + cwJunk + clsCap * ENNReal.ofReal (1 / 2 ^ 400)
 
 /-- **The decompressed re-grind hits** (RecOffDecHit's `decHitAvg_goodL`): `2^-74`. -/
 noncomputable def decHitTau : ℝ≥0∞ := ENNReal.ofReal (1 / 2 ^ 74)
@@ -388,10 +379,6 @@ section debts
 permutation calls and at most `lifetime` signing requests (needed for `q ≤ 2^64` only: above,
 `qrpmBound q ≥ 1`). Every other link is a committed theorem (see the module docstring). -/
 structure XmssQrpmDebts (q : ℕ) (A : Adversary (X × Z)) where
-  /-- **Failed searches at the reveals** (CwRev): the mass at a reveal of a label already revealed
-  whose key is still unselected, summed over the hidden values, is at most `cwReEps q` per
-  value. -/
-  cwReFail : CwReView A (cwReEps q)
   /-- **The decompressed other-label digest hits** (RecHitB), averaged over the good tables. -/
   decHitB : DecHitBAvg A GoodL decHitBTau
 
@@ -721,12 +708,12 @@ theorem uavg_kfTot_le_r0 :
   gcongr
   exact keyE_bad_le
 
-/-- **The flip-value recorded mass**, averaged over the good tables: CwRev's
-`uavg_cwRecPre_all_le_rev` (debt `cwReFail`) and RecBadMass's `recBadAvg_of_parts` with
-RecOffDecHit's `decHitAvg_goodL`, `recOffAvg` and RecHitB's `recHitBAvg_of_dec` (debt `decHitB`). -/
+/-- **The flip-value recorded mass**, averaged over the good tables: CwReFail's
+`uavg_cwRecPre_all_le_rev'` and RecBadMass's `recBadAvg_of_parts` with RecOffDecHit's
+`decHitAvg_goodL`, `recOffAvg` and RecHitB's `recHitBAvg_of_dec` (debt `decHitB`). -/
 theorem uavg_flipMass_le (d : XmssQrpmDebts q A) :
     uavg (fun L ↦ if GoodL L then cwRecPre A L + recBadPre A L else 0) ≤ flipMassCap q := by
-  have hc : uavg (cwRecPre A) ≤ cwRecCap q := uavg_cwRecPre_all_le_rev hperm hsign d.cwReFail
+  have hc : uavg (cwRecPre A) ≤ cwRecCap q := uavg_cwRecPre_all_le_rev' hperm hsign
   have hb : RecBadAvg A GoodL recBadCap := recBadAvg_of_parts hperm hsign GoodL
     (decHitAvg_goodL hperm hsign) (recHitBAvg_of_dec hperm hsign GoodL d.decHitB)
     (recOffAvg hperm hsign GoodL)

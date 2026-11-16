@@ -31,11 +31,10 @@ unselected (`cwTD`). Here that charge is split by the state's label at the revea
   of the in-table slots; off trial blocks (`HwTrialOff`, from `TrialHidGood` and `SrcGood`,
   `hwTrialOff_of_trialHidGood`) the charge vanishes.
 * **Repeated reveals** (`reRevW`, `CwReView`): a reveal of an already revealed label with its key
-  unselected (the earlier search failed), charged `4 · 2^32` times its mass, the remaining
-  hypothesis.
-* **Assembly** (`cwRevView_of`, `sum_cwRecT_good_le`, `uavg_cwRecPre_all_le_rev`): RestMass's
-  average with the good set `r0G ∧ TrialHidGood`, at most
-  `cwRevTau q ε + cwJunk + clsCap · 2^-400`.
+  unselected (the earlier search failed), charged `4 · 2^32` times its mass, the hypothesis
+  discharged by CwReFail.
+* **Assembly** (`sum_cwRecT_good_le`, `uavg_cwRecPre_all_le_rev`): RestMass's average with the
+  good set `r0G ∧ TrialHidGood`, at most `cwRevTau q ε + cwJunk + clsCap · 2^-400`.
 -/
 
 universe u v w w₁ u₁ v₁
@@ -1213,19 +1212,6 @@ noncomputable def reRevW :
   | .inr T, σ => reRevO (cwRevLab T) σ
   | _, _ => 0
 
-/-- **The hardwired trial blocks at first reveals** (summed over the hidden values, at most `R` per
-hidden value). -/
-def CwHwView (A : Adversary (X × Z)) (R : ℝ≥0∞) : Prop :=
-  ∀ p : RP, ∑ v : HPos → Digest, (runtimeR m0R).totalWeight .instruments
-    (hwRevW (pubR p).param v) (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR ≤
-      R * Fintype.card (HPos → Digest)
-
-/-- **The failed searches**: the mass at the repeated reveals with the key unselected, summed
-over the hidden values, at most `ε` per hidden value. -/
-def CwReView (A : Adversary (X × Z)) (ε : ℝ≥0∞) : Prop :=
-  ∀ p : RP, ∑ v : HPos → Digest, (runtimeR m0R).totalWeight .instruments reRevW
-    (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR ≤ ε * Fintype.card (HPos → Digest)
-
 /-- A diagonal mass of a set covered by three sets. -/
 theorem diagMass_le_three {α : Type} [Fintype α] {S A B C : Set α}
     (h : ∀ a ∈ S, a ∈ A ∨ a ∈ B ∨ a ∈ C) (σ : Matrix α α ℂ) :
@@ -1286,57 +1272,6 @@ theorem cwRevW_le (v : HPos → Digest) (i : (recHwSpec X Z HPos Selections).Por
         _ = _ := by
             rw [Finset.sum_add_distrib, Finset.sum_add_distrib, Finset.sum_const, Finset.card_univ,
               Fintype.card_prod, Fintype.card_fin, Fintype.card_fin, nsmul_eq_mul]
-
-variable {q : ℕ} {A : Adversary (X × Z)}
-  (hperm : ∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge permCharge) q)
-  (hsign : ∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge signCharge) lifetime)
-include hperm hsign
-
-/-- **`CwRevView` from the hardwired trial blocks and the failed searches**: the first reveals
-give `revFirstC · 6q` (`Ψ`, the recorded trial blocks of unrevealed labels, through Disclose's
-view lemma), the hardwired blocks `R`, the repeated reveals `4 · 2^32 ε`. -/
-theorem cwRevView_of {R ε : ℝ≥0∞} (hhw : CwHwView A R) (hre : CwReView A ε) :
-    CwRevView A (revFirstC * (6 * q) + R + ((randomizerAttemptLimit * 4 : ℕ) : ℝ≥0∞) * ε) := by
-  intro p
-  set c : ℝ≥0∞ := ((randomizerAttemptLimit * 4 : ℕ) : ℝ≥0∞)
-  set P := (pubR p).param
-  have hv : ∀ v : HPos → Digest, (runtimeR m0R).totalWeight .instruments (cwRevW P v)
-      (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR ≤
-      (runtimeR m0R).totalWeight .instruments (firstW P v)
-          (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR +
-        (runtimeR m0R).totalWeight .instruments (hwRevW P v)
-          (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR +
-        c * (runtimeR m0R).totalWeight .instruments reRevW
-          (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR := fun v ↦ by
-    refine (totalWeight_le_totalWeight (runtimeR m0R) .instruments
-      (w' := fun i σ ↦ (firstW P v i σ + hwRevW P v i σ) + c * reRevW i σ)
-      (fun i σ _ ↦ cwRevW_le P v i σ) _ initR_posSemidef).trans (le_of_eq
-        ((totalWeight_add_weight (runtimeR m0R) .instruments
-          (fun i σ ↦ firstW P v i σ + hwRevW P v i σ) (fun i σ ↦ c * reRevW i σ) _ initR).trans ?_))
-    exact congrArg₂ (· + ·) (totalWeight_add_weight (runtimeR m0R) .instruments (firstW P v)
-      (hwRevW P v) _ initR) (totalWeight_const_mul_weight (runtimeR m0R) .instruments c reRevW _
-        initR)
-  calc ∑ v : HPos → Digest, (runtimeR m0R).totalWeight .instruments (cwRevW P v)
-        (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR
-      ≤ ∑ v : HPos → Digest, ((runtimeR m0R).totalWeight .instruments (firstW P v)
-          (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR +
-        (runtimeR m0R).totalWeight .instruments (hwRevW P v)
-          (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR +
-        c * (runtimeR m0R).totalWeight .instruments reRevW
-          (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR) :=
-        Finset.sum_le_sum fun v _ ↦ hv v
-    _ = ∑ v : HPos → Digest, (runtimeR m0R).totalWeight .instruments (firstW P v)
-          (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR +
-        ∑ v : HPos → Digest, (runtimeR m0R).totalWeight .instruments (hwRevW P v)
-          (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR +
-        c * ∑ v : HPos → Digest, (runtimeR m0R).totalWeight .instruments reRevW
-          (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR := by
-        rw [Finset.sum_add_distrib, Finset.sum_add_distrib, Finset.mul_sum]
-    _ ≤ revFirstC * (6 * q) * Fintype.card (HPos → Digest) +
-        R * Fintype.card (HPos → Digest) + c * (ε * Fintype.card (HPos → Digest)) :=
-        add_le_add (add_le_add (sum_totalWeight_firstW_le hperm hsign (pubR p)) (hhw p))
-          (mul_le_mul' le_rfl (hre p))
-    _ = _ := by ring
 
 end assemble
 
@@ -1693,6 +1628,15 @@ noncomputable def cwRevTau (q : ℕ) (ε : ℝ≥0∞) : ℝ≥0∞ :=
   revFirstC * (6 * q) + ((randomizerAttemptLimit * 4 : ℕ) : ℝ≥0∞) * ε +
     ENNReal.ofReal (cwFreshEps (6 * q + clsCap)) * clsCap
 
+/-- **The failed searches**: on a `PermGood` permutation, the mass at the repeated reveals with
+the key unselected, summed over the hidden values off trial blocks, at most `ε` per hidden
+value. -/
+def CwReView (A : Adversary (X × Z)) (ε : ℝ≥0∞) : Prop :=
+  ∀ p : RP, PermGood (pubR p).perm 18 → ∑ v : HPos → Digest,
+    (if HwTrialOff (pubR p) (fun q ↦ v (.inl q)) then (runtimeR m0R).totalWeight .instruments
+      reRevW (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR else 0) ≤
+      ε * Fintype.card (HPos → Digest)
+
 variable {q : ℕ} {A : Adversary (X × Z)}
   (hperm : ∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge permCharge) q)
   (hsign : ∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge signCharge) lifetime)
@@ -1735,7 +1679,8 @@ theorem totalWeight_cwRevW_le_good (pub : Pub) (v : HPos → Digest)
 
 /-- **The codeword-recorded mass on the hidden values off trial blocks**, summed over the hidden
 values: at most `cwRevTau q ε` per hidden value, given the failed searches `CwReView A ε`. -/
-theorem sum_cwRecT_good_le {ε : ℝ≥0∞} (hre : CwReView A ε) (p : RP) :
+theorem sum_cwRecT_good_le {ε : ℝ≥0∞} (hre : CwReView A ε) (p : RP)
+    (hπ : PermGood (pubR p).perm 18) :
     ∑ v : HPos → Digest, (if HwTrialOff (pubR p) (fun q ↦ v (.inl q)) then
       cwRecT A (pubR p) v else 0) ≤ cwRevTau q ε * Fintype.card (HPos → Digest) := by
   set c : ℝ≥0∞ := ((randomizerAttemptLimit * 4 : ℕ) : ℝ≥0∞)
@@ -1744,8 +1689,9 @@ theorem sum_cwRecT_good_le {ε : ℝ≥0∞} (hre : CwReView A ε) (p : RP) :
       cwRecT A (pubR p) v else 0) ≤
       F + ((runtimeR m0R).totalWeight .instruments (firstW (pubR p).param v)
           (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR +
-        c * (runtimeR m0R).totalWeight .instruments reRevW
-          (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR) := fun v ↦ by
+        c * (if HwTrialOff (pubR p) (fun q ↦ v (.inl q)) then (runtimeR m0R).totalWeight
+          .instruments reRevW (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR
+            else 0)) := fun v ↦ by
     split_ifs with hoff
     · exact (cwRecT_le_rev hperm hsign (pubR p) v).trans
         (add_le_add le_rfl (totalWeight_cwRevW_le_good (pubR p) v hoff))
@@ -1754,21 +1700,23 @@ theorem sum_cwRecT_good_le {ε : ℝ≥0∞} (hre : CwReView A ε) (p : RP) :
         cwRecT A (pubR p) v else 0)
       ≤ ∑ v : HPos → Digest, (F + ((runtimeR m0R).totalWeight .instruments
           (firstW (pubR p).param v) (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR +
-        c * (runtimeR m0R).totalWeight .instruments reRevW
-          (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR)) :=
+        c * (if HwTrialOff (pubR p) (fun q ↦ v (.inl q)) then (runtimeR m0R).totalWeight
+          .instruments reRevW (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR
+            else 0))) :=
         Finset.sum_le_sum fun v _ ↦ hv v
     _ = F * Fintype.card (HPos → Digest) +
         (∑ v : HPos → Digest, (runtimeR m0R).totalWeight .instruments (firstW (pubR p).param v)
           (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR +
-        c * ∑ v : HPos → Digest, (runtimeR m0R).totalWeight .instruments reRevW
-          (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR) := by
+        c * ∑ v : HPos → Digest, (if HwTrialOff (pubR p) (fun q ↦ v (.inl q)) then
+          (runtimeR m0R).totalWeight .instruments reRevW
+            (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR else 0)) := by
         rw [Finset.sum_add_distrib, Finset.sum_add_distrib, Finset.mul_sum, Finset.sum_const,
           Finset.card_univ, nsmul_eq_mul, mul_comm]
     _ ≤ F * Fintype.card (HPos → Digest) +
         (revFirstC * (6 * q) * Fintype.card (HPos → Digest) +
           c * (ε * Fintype.card (HPos → Digest))) :=
         add_le_add le_rfl (add_le_add (sum_totalWeight_firstW_le hperm hsign (pubR p))
-          (mul_le_mul' le_rfl (hre p)))
+          (mul_le_mul' le_rfl (hre p hπ)))
     _ = _ := by
         unfold cwRevTau
         ring
@@ -1794,7 +1742,8 @@ theorem uavg_cwRecPre_all_le_rev {ε : ℝ≥0∞} (hre : CwReView A ε) :
   set G : HonestTable × RE → Prop := fun t ↦
     r0G treeQ 18 t ∧ TrialHidGood (pubR (r0E t).1) (r0E t).2.1
   set g : RP → (HPos → Digest) × (RK × RW) → ℝ≥0∞ := fun p w ↦
-    (if HwTrialOff (pubR p) (fun q ↦ w.1 (.inl q)) then cwDiagT A (pubR p) w.1 else 0) +
+    (if PermGood (permR p) 18 ∧ HwTrialOff (pubR p) (fun q ↦ w.1 (.inl q)) then
+      cwDiagT A (pubR p) w.1 else 0) +
       N * revW m0R .instruments (r0Bk (permR p) (parR p) w.2.1)
         (realizeT w.1 (prefixT Selections cwUpd (pubR p) A)) initR
   have hQ : ∀ i : (recHwSpec X Z HPos Selections).Port, ¬ readRecPort Selections i = true →
@@ -1809,9 +1758,13 @@ theorem uavg_cwRecPre_all_le_rev {ε : ℝ≥0∞} (hre : CwReView A ε) :
     have hsg : SrcGood (pubR (r0E t).1) (fun q ↦ (r0E t).2.1 (.inl q)) := ht.1.2.2.2
     have hoff : HwTrialOff (pubR (r0E t).1) (fun q ↦ (r0E t).2.1 (.inl q)) :=
       hwTrialOff_of_trialHidGood ht.2 hsg
-    show cwRecPre A t.1 ≤ (if HwTrialOff (pubR (r0E t).1) (fun q ↦ (r0E t).2.1 (.inl q)) then
+    have hπ : PermGood (permR (r0E t).1) 18 := by
+      rw [permR_r0E]
+      exact ht.1.2.1
+    show cwRecPre A t.1 ≤ (if PermGood (permR (r0E t).1) 18 ∧
+      HwTrialOff (pubR (r0E t).1) (fun q ↦ (r0E t).2.1 (.inl q)) then
       cwDiagT A (pubR (r0E t).1) (r0E t).2.1 else 0) + _
-    rw [ite_eq_left hoff]
+    rw [ite_eq_left ⟨hπ, hoff⟩]
     calc cwRecPre A t.1 = cwDiagT A (pubOf t.1) (valueAt t.1) :=
           (cwDiagT_eq _ _ _).symm
       _ = (runtimeR m0R).totalWeight .instruments (fun i ↦ diagMass (cwSet i))
@@ -1837,30 +1790,38 @@ theorem uavg_cwRecPre_all_le_rev {ε : ℝ≥0∞} (hre : CwReView A ε) :
         zero_le).trans_eq (mul_one _)) zero_le)
   have hg : ∀ p, ∑ w, g p w ≤ (τ + N * (((2 * lifetime : ℕ) : ℝ≥0∞) * εR)) *
       Fintype.card ((HPos → Digest) × (RK × RW)) := fun p ↦ by
-    have hv : ∑ v : HPos → Digest, (if HwTrialOff (pubR p) (fun q ↦ v (.inl q)) then
-        cwDiagT A (pubR p) v else 0) ≤ τ * Fintype.card (HPos → Digest) := by
-      refine le_of_eq_of_le (Finset.sum_congr rfl fun v _ ↦ ?_)
-        (sum_cwRecT_good_le hperm hsign hre p)
-      rw [cwDiagT_eq]
+    have hv : ∑ v : HPos → Digest, (if PermGood (permR p) 18 ∧
+        HwTrialOff (pubR p) (fun q ↦ v (.inl q)) then cwDiagT A (pubR p) v else 0) ≤
+        τ * Fintype.card (HPos → Digest) := by
+      by_cases hπ : PermGood (permR p) 18
+      · refine le_of_eq_of_le (Finset.sum_congr rfl fun v _ ↦ ?_)
+          (sum_cwRecT_good_le hperm hsign hre p hπ)
+        rw [cwDiagT_eq]
+        exact if_congr (and_iff_right hπ) rfl rfl
+      · exact (Finset.sum_eq_zero fun v _ ↦ ite_eq_right fun h ↦ hπ h.1).trans_le zero_le
     rw [Fintype.sum_prod_type]
     calc ∑ v : HPos → Digest, ∑ k : RK × RW, g p (v, k)
         = ∑ v : HPos → Digest, (Fintype.card (RK × RW) *
-            (if HwTrialOff (pubR p) (fun q ↦ v (.inl q)) then cwDiagT A (pubR p) v else 0) +
+            (if PermGood (permR p) 18 ∧ HwTrialOff (pubR p) (fun q ↦ v (.inl q)) then
+              cwDiagT A (pubR p) v else 0) +
             N * ∑ k : RK × RW, revW m0R .instruments (r0Bk (permR p) (parR p) k.1)
               (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR) := by
           refine Finset.sum_congr rfl fun v _ ↦ ?_
           dsimp only [g]
           exact sum_const_add_mul_eq
-            (if HwTrialOff (pubR p) (fun q ↦ v (.inl q)) then cwDiagT A (pubR p) v else 0) N
+            (if PermGood (permR p) 18 ∧ HwTrialOff (pubR p) (fun q ↦ v (.inl q)) then
+              cwDiagT A (pubR p) v else 0) N
             (fun k : RK × RW ↦ revW m0R .instruments (r0Bk (permR p) (parR p) k.1)
               (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR)
       _ ≤ ∑ v : HPos → Digest, (Fintype.card (RK × RW) *
-            (if HwTrialOff (pubR p) (fun q ↦ v (.inl q)) then cwDiagT A (pubR p) v else 0) +
+            (if PermGood (permR p) 18 ∧ HwTrialOff (pubR p) (fun q ↦ v (.inl q)) then
+              cwDiagT A (pubR p) v else 0) +
             N * (Fintype.card (RK × RW) * (((2 * lifetime : ℕ) : ℝ≥0∞) * εR))) :=
           Finset.sum_le_sum fun v _ ↦ add_le_add le_rfl
             (mul_le_mul_of_nonneg_left (hrev p v) zero_le)
       _ = Fintype.card (RK × RW) * ∑ v : HPos → Digest,
-            (if HwTrialOff (pubR p) (fun q ↦ v (.inl q)) then cwDiagT A (pubR p) v else 0) +
+            (if PermGood (permR p) 18 ∧ HwTrialOff (pubR p) (fun q ↦ v (.inl q)) then
+              cwDiagT A (pubR p) v else 0) +
             Fintype.card (HPos → Digest) *
               (N * (Fintype.card (RK × RW) * (((2 * lifetime : ℕ) : ℝ≥0∞) * εR))) := by
           rw [Finset.sum_add_distrib, ← Finset.mul_sum, Finset.sum_const, Finset.card_univ,

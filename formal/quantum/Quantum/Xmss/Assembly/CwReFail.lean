@@ -9,8 +9,8 @@ public import Quantum.Sponge.Oracle.Hardwired.Persistence
 /-!
 # The failed searches
 
-CwRev's remaining hypothesis `CwReView A ε`: the mass at the repeated reveals of a label whose key
-is still unselected.
+CwRev's hypothesis `CwReView A ε`, proved here at `ε = cwReEpsC = 2^-110`: the mass at the
+repeated reveals of a label whose key is still unselected.
 
 * **Modes that see the stop** (`stRdNx`, `CwMode.Rest`, `RevOk`, `modedP_prefixR_st`): CwRec's
   search modes, except that a trial's `h`-read whose digest is a codeword ends the search (the
@@ -31,6 +31,10 @@ is still unselected.
   `N (G |K'| + |H|) / |Z| + N² / |Z| + (g / |X|)^N` of the tables, `g = |X| - cwCount 2^960`.
 * **The in-table cells** (`slotHw`, `k'CellsV`, `hCellsV`, `card_k'CellsV_le`, `card_hCellsV_le`):
   the intended `W₀`, at most `8 · 498 · 2^32` cells of each kind.
+* **The bound** (`totalWeight_reRevW_le_frac`, `frac_failDb_le`, `failFrac_le_keccak`,
+  `cwReView_slot`, `uavg_cwRecPre_all_le_rev'`): per hidden value off trial blocks, `2 lifetime`
+  records times the failure fraction, `|J| (N (18 |K'| + |H|) + N²) / |Z| + |J| (1 - ρ_c)^N`
+  with `N = 2^32`, `ρ_c ≥ 2^-21`: at most `2^-110`.
 -/
 
 universe u v w w' w₁
@@ -2223,6 +2227,133 @@ theorem frac_failDb_le (pub : Pub) (v : HPos → Digest) (hπ : PermGood pub.per
     _ = Fintype.card RLabel * c := by
         rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
 end slotCells
+
+/-! ## The failed searches at Keccak's sizes -/
+
+section numbers
+
+open HashSig HashSig.OverPermutation LeanXmss Common Common.SufCma
+  LeanXmss.RandomPermutationModel
+
+/-- **All `N` trials fail** off `c` codeword values among `b`, with `ρ ≤ c / b`: at most
+`exp (-ρ N)` (over abstract numbers). -/
+theorem natCast_pow_sub_div_le_exp (b c N : ℕ) (hcb : c ≤ b) (hb : 0 < b) (ρ : ℝ)
+    (hρ : ρ ≤ (c : ℝ) / b) :
+    (((b - c) ^ N : ℕ) : ℝ≥0∞) / ((b ^ N : ℕ) : ℝ≥0∞) ≤ ENNReal.ofReal (Real.exp (-(ρ * N))) := by
+  rw [R0.natCast_div_eq_ofReal _ _ (pow_pos hb N)]
+  apply ENNReal.ofReal_le_ofReal
+  have hb' : (0 : ℝ) < b := by exact_mod_cast hb
+  have hx : ((b : ℝ) - c) / b = 1 - c / b := by rw [sub_div, div_self hb'.ne']
+  have h0 : 0 ≤ ((b : ℝ) - c) / b :=
+    div_nonneg (sub_nonneg.mpr (by exact_mod_cast hcb)) hb'.le
+  rw [Nat.cast_pow, Nat.cast_pow, Nat.cast_sub hcb, ← div_pow]
+  calc (((b : ℝ) - c) / b) ^ N ≤ Real.exp (-ρ) ^ N :=
+        pow_le_pow_left₀ h0 (by rw [hx]; linarith [Real.add_one_le_exp (-ρ)]) N
+    _ = Real.exp (-(ρ * N)) := by
+        rw [← Real.exp_nat_mul]
+        congr 1
+        ring
+
+set_option exponentiation.threshold 4096 in
+/-- `2^32` trials at codeword fraction `2^-21` all fail with probability at most `2^-2048`. -/
+theorem exp_neg_trials_le :
+    Real.exp (-((2 ^ 21 : ℝ)⁻¹ * (randomizerAttemptLimit : ℝ))) ≤ 1 / 2 ^ 2048 := by
+  have h1 : (2 ^ 21 : ℝ)⁻¹ * (randomizerAttemptLimit : ℝ) = 2048 := by
+    norm_num [randomizerAttemptLimit]
+  rw [h1, Real.exp_neg, one_div]
+  refine inv_anti₀ (by positivity) ?_
+  calc (2 : ℝ) ^ 2048 ≤ Real.exp 1 ^ 2048 :=
+        pow_le_pow_left₀ (by norm_num) (by linarith [Real.add_one_le_exp (1 : ℝ)]) _
+    _ = Real.exp 2048 := by
+        rw [← Real.exp_nat_mul]
+        norm_num
+
+/-- The codeword values of a trial cell are at most all its values. -/
+theorem cwCount_mul_le_card_X : cwCount * 2 ^ 960 ≤ Fintype.card X := by
+  rw [← card_codeword_trunc128 0]
+  exact (Finset.card_filter_le _ _).trans_eq Finset.card_univ
+
+/-- **The failed-search constant**: `2^-110` per hidden value. -/
+noncomputable def cwReEpsC : ℝ≥0∞ := ENNReal.ofReal (1 / 2 ^ 110)
+
+set_option exponentiation.threshold 4096 in
+/-- **The failure fraction at Keccak's sizes**: `2 lifetime` records times `frac_failDb_le`'s
+bound, at most `2^-110` (`|J| = 2^288 + 2^160`, `|Z| = 2^512`, the all-fail term at most
+`2^-2048`). -/
+theorem failFrac_le_keccak :
+    ((2 * lifetime : ℕ) : ℝ≥0∞) * (Fintype.card RLabel *
+      (((randomizerAttemptLimit * (18 * (8 * (498 * 2 ^ 32)) + 8 * (498 * 2 ^ 32)) +
+        randomizerAttemptLimit * randomizerAttemptLimit : ℕ) : ℝ≥0∞) / Fintype.card Z +
+          (((Fintype.card X - cwCount * 2 ^ 960) ^ randomizerAttemptLimit : ℕ) : ℝ≥0∞) /
+            ((Fintype.card X ^ randomizerAttemptLimit : ℕ) : ℝ≥0∞))) ≤ cwReEpsC := by
+  have h2 := (natCast_pow_sub_div_le_exp (Fintype.card X) (cwCount * 2 ^ 960)
+    randomizerAttemptLimit cwCount_mul_le_card_X Fintype.card_pos (2 ^ 21 : ℝ)⁻¹
+      (inv_two_pow_21_le_rhoCw.trans_eq cwCount_mul_div_card_X.symm)).trans
+    (ENNReal.ofReal_le_ofReal exp_neg_trials_le)
+  refine (mul_le_mul' le_rfl (mul_le_mul' le_rfl (add_le_add
+    (R0.natCast_div_eq_ofReal _ _ Fintype.card_pos).le h2))).trans ?_
+  rw [R0.card_cap, card_tmplRLabel, ← ENNReal.ofReal_natCast (2 * lifetime),
+    ← ENNReal.ofReal_natCast (2 ^ 288 + 2 ^ 160),
+    ← ENNReal.ofReal_add (by positivity) (by positivity),
+    ← ENNReal.ofReal_mul (by positivity), ← ENNReal.ofReal_mul (by positivity), cwReEpsC]
+  apply ENNReal.ofReal_le_ofReal
+  push_cast
+  norm_num [lifetime, layerCount, layerHeight, randomizerAttemptLimit]
+
+end numbers
+
+section final
+
+open HashSig HashSig.OverPermutation LeanXmss Common Common.SufCma
+  LeanXmss.RandomPermutationModel
+
+variable {q : ℕ} {A : Adversary (X × Z)}
+  (hperm : ∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge permCharge) q)
+  (hsign : ∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge signCharge) lifetime)
+include hperm hsign
+
+open scoped Classical in
+/-- **The repeated-reveal masses at one hidden value**: at most `2 lifetime` times the fraction
+of the total tables failing a search off `slotHw` (`totalWeight_reRevW_le`,
+`potential_hwDecProj_init`). -/
+theorem totalWeight_reRevW_le_frac (pub : Pub) (v : HPos → Digest) :
+    (runtimeR m0R).totalWeight .instruments reRevW (realizeT v (prefixT Selections cwUpd pub A))
+        initR ≤ ((2 * lifetime : ℕ) : ℝ≥0∞) *
+      (((Finset.univ.filter fun t ↦
+        FailDb pub.perm pub.param (slotHw pub fun q ↦ v (.inl q)) v (ofFunDbs t)).card : ℝ≥0∞) /
+          Fintype.card ((Z → X) × (X → Z) × (X → Z))) := by
+  refine (totalWeight_reRevW_le pub A (progsC_prefixT_slotHw pub v A)
+    (hR_prefixT hperm hsign pub v)).trans (mul_le_mul' le_rfl ?_)
+  refine (le_of_eq (potential_hwDecProj_init m0R
+    (failSet pub.perm pub.param (slotHw pub fun q ↦ v (.inl q)) v)
+    (FailDb pub.perm pub.param (slotHw pub fun q ↦ v (.inl q)) v) (fun _ ↦ Iff.rfl) _
+    ?_)).trans ?_
+  · exact (SubState.basis _).posSemidef
+  · exact (mul_le_mul' (ENNReal.ofReal_le_one.mpr (SubState.basis _).trace_re_le_one)
+      le_rfl).trans_eq (one_mul _)
+
+/-- **The failed searches** (`CwReView` at `cwReEpsC = 2^-110`): per hidden value off trial
+blocks, `totalWeight_reRevW_le_frac`, `frac_failDb_le` and `failFrac_le_keccak`. -/
+theorem cwReView_slot : CwReView A cwReEpsC := by
+  intro p hπ
+  calc ∑ v : HPos → Digest, (if HwTrialOff (pubR p) (fun q ↦ v (.inl q)) then
+        (runtimeR m0R).totalWeight .instruments reRevW
+          (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR else 0)
+      ≤ ∑ _v : HPos → Digest, cwReEpsC := Finset.sum_le_sum fun v _ ↦ by
+        split_ifs with hoff
+        · exact (totalWeight_reRevW_le_frac hperm hsign (pubR p) v).trans
+            ((mul_le_mul' le_rfl (frac_failDb_le (pubR p) v hπ hoff)).trans failFrac_le_keccak)
+        · exact zero_le
+    _ = cwReEpsC * Fintype.card (HPos → Digest) := by
+        rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_comm]
+
+/-- **The averaged codeword-recorded mass** over all tables, unconditionally (CwRev's
+`uavg_cwRecPre_all_le_rev` with `cwReView_slot`). -/
+theorem uavg_cwRecPre_all_le_rev' :
+    uavg (cwRecPre A) ≤ cwRevTau q cwReEpsC + cwJunk + clsCap * ENNReal.ofReal (1 / 2 ^ 400) :=
+  uavg_cwRecPre_all_le_rev hperm hsign (cwReView_slot hperm hsign)
+
+end final
 
 end Quantum.Xmss.Assembly
 
