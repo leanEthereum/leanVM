@@ -640,7 +640,7 @@ def DecHitAvg (A : Adversary (X × Z)) (good : HonestTable → Prop) [DecidableP
   uavg (fun L ↦ if good L then decHitAPre A L else 0) ≤ τ
 
 /-- **The remaining bound of the other labels**: over a good set, the average of `recHitBPre` is at
-most `τ` (the hidden randomizer base, CwRecView-type). -/
+most `τ` (`0` without leaf reuse: Assembly.NoReuse's `recHitBAvg_zero`). -/
 def RecHitBAvg (A : Adversary (X × Z)) (good : HonestTable → Prop) [DecidablePred good]
     (τ : ℝ≥0∞) : Prop :=
   uavg (fun L ↦ if good L then recHitBPre A L else 0) ≤ τ

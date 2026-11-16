@@ -17,7 +17,7 @@ public import Quantum.Xmss.Assembly.HTrial
 public import Quantum.Xmss.Assembly.RecJ
 public import Quantum.Xmss.Assembly.HwHeads
 public import Quantum.Xmss.Assembly.RecBadMass
-public import Quantum.Xmss.Assembly.RecHitB
+public import Quantum.Xmss.Assembly.NoReuse
 public import Quantum.Xmss.Assembly.CwReFail
 public import Quantum.Xmss.Assembly.RecOffDecHit
 public import Quantum.Xmss.Hybrid.GradedMasked
@@ -25,15 +25,16 @@ public import Quantum.Xmss.Hybrid.GradedMasked
 @[expose] public section
 
 /-!
-# leanXMSS is quantum SUF-CMA secure in the QRPM, from its open debts
+# leanXMSS is quantum SUF-CMA secure in the QRPM
 
-The assembly of the chain of games (design, sections 2 and 9). Every step is a committed theorem;
-every link that the committed theorems do not provide is a field of `XmssQrpmDebts q A`, stated as
-exactly the missing link. The averages are over the uniform honest table `L : HonestTable`
-(keys, `π`, master seed). The canonical runtime-2 game is GameR's
+The assembly of the chain of games (design, sections 2 and 9). The averages are over the uniform
+honest table `L : HonestTable` (keys, `π`, master seed). The canonical runtime-2 game is GameR's
 `gameR A L = realizeT (valueAt L) (gameT Selections cwUpd (pubOf L) A)` against `runtimeR m0R`, its
 challenge prefix `prefixR A L` followed by the verification (`gameR_eq`).
 
+0. **No leaf reuse** (NoReuse's `winProb_le_winProb_refuse`): a run that requests a leaf twice
+   loses, so the adversary that refuses its own reused requests wins at least as often, within the
+   same budgets (`isChargeBound_refuse`) and with no reused leaf (`noLeafReuse_refuse`).
 1. **G0 to runtime 1 with the full table** (FullTable's `winProb_eq_uavg_full`), **program ports**
    (`p1T_eq_p1K`) and **record ports** (`p1K_eq_p1R`, RecordDrop).
 2. **The masked graded hybrid** (GradedMasked's `uavg_win_runtime1R_le_graded_total_masked_pad`
@@ -61,9 +62,10 @@ challenge prefix `prefixR A L` followed by the verification (`gameR_eq`).
    KeysReparam's `keyE` (`uavg_kfTot_le_r0`, `progBound`) and the `RecJ` weight by RecJ's
    `uavg_recJPre_le_two_pow` (`recJCap = 2^-35`). The mass `m` averaged over `GoodL`:
    `cwRecPre` by CwReFail's `uavg_cwRecPre_all_le_rev'` (failed searches `2^-110`), `recBadPre`
-   by RecBadMass's `recBadAvg_of_parts` from RecOffDecHit's `decHitAvg_goodL` (`2^-74`), RecHitB's
-   `recHitBAvg_of_dec` (debt `decHitB`) and RecOffDecHit's `recOffAvg`: `flipMassCap q`. All
-   averaged by `uavg_ite_cost_le_add`. The programs: `progPreR ≤ progTot` and ProgSafe's
+   by RecBadMass's `recBadAvg_of_parts` from RecOffDecHit's `decHitAvg_goodL` (`2^-74`),
+   Assembly.NoReuse's `recHitBAvg_zero` (without leaf reuse a key has one label, so no other label
+   hits its selected digest) and RecOffDecHit's `recOffAvg`: `flipMassCap q`. All averaged by
+   `uavg_ite_cost_le_add`. The programs: `progPreR ≤ progTot` and ProgSafe's
    `uavg_progTot_le_kTot` with KeyLazy's `uavg_kTot_le` on a reparametrization exposing the keys
    (`uavg_kTot_le_r0`, KeysReparam): `progBound`.
 6. **Good tables**: `PermGood` (`prob_not_permGood_keccak`, `2^-777`), `TrialsOff`
@@ -73,11 +75,7 @@ challenge prefix `prefixR A L` followed by the verification (`gameR_eq`).
 `qrpmBound q = (√eventTerm + hybTerm)² + 2^-174 + 2^-400` with
 `eventTerm = (advTerm + verTerm + √(clsBound + verLin))² + readTerm + trialCap + goodTerm` and
 `hybTerm = √(4 · 6q · 6q κ) + √(htrialTau (2 clsCap) + 2^-117)`. For `q > 2^64` the bound is at
-least `1` (`one_le_qrpmBound`), so the debts are needed only for `q ≤ 2^64`.
-
-| Debt | Statement | Target | Owner |
-|---|---|---|---|
-| `decHitB` | `DecHitBAvg A GoodL`: decompressed other-label digest hits | `2^-60` | RecHitB's route |
+least `1` (`one_le_qrpmBound`).
 -/
 
 open MeasureTheory Matrix
@@ -301,19 +299,14 @@ noncomputable def cwRecCap (q : ℕ) : ℝ≥0∞ :=
 /-- **The decompressed re-grind hits** (RecOffDecHit's `decHitAvg_goodL`): `2^-74`. -/
 noncomputable def decHitTau : ℝ≥0∞ := ENNReal.ofReal (1 / 2 ^ 74)
 
-/-- **The target of `DecHitBAvg`** (debt `decHitB`): `2^-60`, a clean power of two above the
-estimate `2 lifetime · 2^-107` (one possible hit of the selected codeword digest per label run,
-over at least `2^107` codeword digests). -/
-noncomputable def decHitBTau : ℝ≥0∞ := ENNReal.ofReal (1 / 2 ^ 60)
-
 /-- **The recorded trial cells off the trial's path** (RecOffDecHit's `recOffAvg`): `2/|Z|` per
 trial read, `2^-511 clsCap`. -/
 noncomputable def recOffTau : ℝ≥0∞ := ENNReal.ofReal (2 / Fintype.card Z) * (clsCap : ℝ≥0∞)
 
 /-- **The `RecBad` mass of the prefix, averaged over the good tables** (`recBadAvg_of_parts` with
-`recHitBAvg_of_dec`): `2 decHitTau + recConv + (2 decHitBTau + recConv) + recOffTau`. -/
+`recHitBAvg_zero`): `2 decHitTau + recConv + 0 + recOffTau`. -/
 noncomputable def recBadCap : ℝ≥0∞ :=
-  2 * decHitTau + recConv + (2 * decHitBTau + recConv) + recOffTau
+  2 * decHitTau + recConv + 0 + recOffTau
 
 /-- **The flip-value recorded mass** `cwRecPre + recBadPre`, averaged over the good tables. -/
 noncomputable def flipMassCap (q : ℕ) : ℝ≥0∞ := cwRecCap q + recBadCap
@@ -370,19 +363,6 @@ noncomputable def r0Term : ℝ≥0∞ := ENNReal.ofReal (1 / 2 ^ 174) + ENNReal.
 /-- **The leanXMSS QRPM bound**: `(√eventTerm + hybTerm)² + 2^-174 + 2^-400`. -/
 noncomputable def qrpmBound (q : ℕ) : ℝ≥0∞ :=
   (eventTerm q ^ (2⁻¹ : ℝ) + hybTerm q) ^ 2 + r0Term
-
-/-! ## The debts -/
-
-section debts
-
-/-- **The open debts of the leanXMSS QRPM proof**, for an adversary `A` making at most `q`
-permutation calls and at most `lifetime` signing requests (needed for `q ≤ 2^64` only: above,
-`qrpmBound q ≥ 1`). Every other link is a committed theorem (see the module docstring). -/
-structure XmssQrpmDebts (q : ℕ) (A : Adversary (X × Z)) where
-  /-- **The decompressed other-label digest hits** (RecHitB), averaged over the good tables. -/
-  decHitB : DecHitBAvg A GoodL decHitBTau
-
-end debts
 
 /-! ## The proof -/
 
@@ -710,13 +690,12 @@ theorem uavg_kfTot_le_r0 :
 
 /-- **The flip-value recorded mass**, averaged over the good tables: CwReFail's
 `uavg_cwRecPre_all_le_rev'` and RecBadMass's `recBadAvg_of_parts` with RecOffDecHit's
-`decHitAvg_goodL`, `recOffAvg` and RecHitB's `recHitBAvg_of_dec` (debt `decHitB`). -/
-theorem uavg_flipMass_le (d : XmssQrpmDebts q A) :
+`decHitAvg_goodL`, `recOffAvg` and Assembly.NoReuse's `recHitBAvg_zero`. -/
+theorem uavg_flipMass_le (hleaf : NoLeafReuse A) :
     uavg (fun L ↦ if GoodL L then cwRecPre A L + recBadPre A L else 0) ≤ flipMassCap q := by
   have hc : uavg (cwRecPre A) ≤ cwRecCap q := uavg_cwRecPre_all_le_rev' hperm hsign
   have hb : RecBadAvg A GoodL recBadCap := recBadAvg_of_parts hperm hsign GoodL
-    (decHitAvg_goodL hperm hsign) (recHitBAvg_of_dec hperm hsign GoodL d.decHitB)
-    (recOffAvg hperm hsign GoodL)
+    (decHitAvg_goodL hperm hsign) (recHitBAvg_zero hleaf GoodL) (recOffAvg hperm hsign GoodL)
   refine (uavg_mono (g := fun L ↦ cwRecPre A L + if GoodL L then recBadPre A L else 0)
     fun L ↦ ?_).trans ?_
   · by_cases hg : GoodL L
@@ -740,7 +719,7 @@ theorem encE_le_good (hq : q ≤ 2 ^ 64) (L : HonestTable) (hg : GoodL L) :
 
 /-- **The prefix's refined classical costs**, averaged over the good tables (`twPR_le`,
 `encE_le_good`, `uavg_ite_cost_le_add`): at most `clsBound q`. -/
-theorem uavg_twPR_le (hq : q ≤ 2 ^ 64) (d : XmssQrpmDebts q A) :
+theorem uavg_twPR_le (hq : q ≤ 2 ^ 64) (hleaf : NoLeafReuse A) :
     uavg (fun L ↦ if GoodL L then twPR A L else 0) ≤ clsBound q := by
   have hr : uavg (fun L ↦ if GoodL L then kfGame A L + recJPre A L else 0) ≤
       progBound + recJCap := by
@@ -753,7 +732,7 @@ theorem uavg_twPR_le (hq : q ≤ 2 ^ 64) (d : XmssQrpmDebts q A) :
     · rw [uavg_add]
       exact add_le_add (uavg_kfTot_le_r0 hperm hsign) (uavg_recJPre_le_two_pow hperm hsign hq)
   exact uavg_ite_cost_le_add (fun L hg ↦ twPR_le hperm hsign hq L hg.1.1)
-    (encE_le_good hperm hsign hq) (uavg_flipMass_le hperm hsign d) hr
+    (encE_le_good hperm hsign hq) (uavg_flipMass_le hperm hsign hleaf) hr
     (uavg_progPreR_le hperm hsign hq)
 
 /-- **Runtime 2's win at a good table** (PrefixFacts' `endReads_wGame_trialHit`, CostRefined's
@@ -767,7 +746,7 @@ theorem p2R_le_good (L : HonestTable) (hg : GoodL L) :
   exact ewR_le_sqrt_ref hperm hsign L hg.1.1
 
 /-- **Runtime 2's win probability**, averaged over the table. -/
-theorem uavg_p2R_le (hq : q ≤ 2 ^ 64) (d : XmssQrpmDebts q A) :
+theorem uavg_p2R_le (hq : q ≤ 2 ^ 64) (hleaf : NoLeafReuse A) :
     uavg (p2R (gameR A)) ≤ eventTerm q := by
   set twg : HonestTable → ℝ≥0∞ := fun L ↦ if GoodL L then twPR A L else 0
   set hitg : HonestTable → ℝ≥0∞ := fun L ↦ if GoodL L then trialHitMass m0R A L else 0
@@ -780,7 +759,7 @@ theorem uavg_p2R_le (hq : q ≤ 2 ^ 64) (d : XmssQrpmDebts q A) :
       exact p2R_le_good hperm hsign L hg
     · simp only [bad, hg, ↓reduceIte]
       exact (QuantumRuntime.outcomeLawWith_le_one _ _ _ _ _ _).trans le_add_self
-  have htw : uavg twg ≤ clsBound q := uavg_twPR_le hperm hsign hq d
+  have htw : uavg twg ≤ clsBound q := uavg_twPR_le hperm hsign hq hleaf
   have hJ : uavg (fun L ↦ (advTerm q + verTerm q + (twg L + verLin q) ^ (2⁻¹ : ℝ)) ^ 2) ≤
       (advTerm q + verTerm q + (uavg twg + verLin q) ^ (2⁻¹ : ℝ)) ^ 2 := by
     have h := uavg_sq_add_sqrt_le (advTerm q + verTerm q) (fun L ↦ twg L + verLin q)
@@ -799,8 +778,8 @@ theorem uavg_p2R_le (hq : q ≤ 2 ^ 64) (d : XmssQrpmDebts q A) :
       unfold eventTerm
       gcongr
 
-/-- **The leanXMSS bound for one adversary**, from its debts. -/
-theorem winProb_le_qrpmBound (d : XmssQrpmDebts q A) (hq : q ≤ 2 ^ 64) :
+/-- **The leanXMSS bound for one adversary without leaf reuse.** -/
+theorem winProb_le_qrpmBound (hleaf : NoLeafReuse A) (hq : q ≤ 2 ^ 64) :
     winProb keccakStateEquiv A ≤ qrpmBound q := by
   have hK : uavg (p1T A fullHw) = uavg (p1R A fullHw) :=
     congrArg uavg (funext fun L ↦ (p1T_eq_p1K A tableLe_fullHw L).trans (p1K_eq_p1R A fullHw L))
@@ -809,7 +788,7 @@ theorem winProb_le_qrpmBound (d : XmssQrpmDebts q A) (hq : q ≤ 2 ^ 64) :
     _ ≤ (uavg (p2R (gameR A)) ^ (2⁻¹ : ℝ) + hybTerm q) ^ 2 + r0Term := uavg_p1R_le hperm hsign
     _ ≤ (eventTerm q ^ (2⁻¹ : ℝ) + hybTerm q) ^ 2 + r0Term := by
       gcongr
-      exact uavg_p2R_le hperm hsign hq d
+      exact uavg_p2R_le hperm hsign hq hleaf
 
 omit hperm hsign in
 /-- The win probability is at most `1`. -/
@@ -843,17 +822,17 @@ theorem one_le_qrpmBound (hq : 2 ^ 64 < q) : 1 ≤ qrpmBound q := by
   exact (one_le_pow₀ (h2.trans le_add_self)).trans le_self_add
 
 omit hperm hsign in
-/-- **leanXMSS is quantum SUF-CMA secure in the QRPM** with bound `qrpmBound`, given the open
-debts of every adversary within the budgets making at most `2^64` permutation calls (above, the
-bound is at least `1`). Conditional: the unconditional theorem constructs the debts. -/
-theorem leanXmss_qrpm_security_of_debts
-    (hd : ∀ q (A : Adversary (X × Z)),
-      (∀ pk, IPFunctor.IFreeM.IsChargeBound (A pk) (cmdCharge permCharge) q) →
-      (∀ pk, IPFunctor.IFreeM.IsChargeBound (A pk) (cmdCharge signCharge) lifetime) →
-      q ≤ 2 ^ 64 → XmssQrpmDebts q A) :
-    QuantumStronglyUnforgeable keccakStateEquiv qrpmBound := fun q A hq hs ↦
-  if hle : q ≤ 2 ^ 64 then winProb_le_qrpmBound hq hs (hd q A hq hs hle) hle
-  else (winProb_le_one A).trans (one_le_qrpmBound (not_le.mp hle))
+/-- **leanXMSS is quantum SUF-CMA secure in the QRPM** with bound `qrpmBound`: an adversary making
+at most `q` permutation calls and at most `lifetime` signing requests forges with probability at
+most `qrpmBound q`. Refusing reused leaves does not lower the win probability and keeps the budgets
+(NoReuse); above `2^64` calls the bound is at least `1`. -/
+theorem leanXmss_qrpm_security : QuantumStronglyUnforgeable keccakStateEquiv qrpmBound :=
+  fun q A hq hs ↦
+    if hle : q ≤ 2 ^ 64 then
+      (winProb_le_winProb_refuse keccakStateEquiv A).trans
+        (winProb_le_qrpmBound (fun pk ↦ isChargeBound_refuse (hq pk))
+          (fun pk ↦ isChargeBound_refuse (hs pk)) (noLeafReuse_refuse A) hle)
+    else (winProb_le_one A).trans (one_le_qrpmBound (not_le.mp hle))
 
 end proof
 

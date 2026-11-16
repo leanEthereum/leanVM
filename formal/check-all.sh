@@ -162,7 +162,7 @@ quantum() {
   axioms quantum Quantum Quantum.qrpmEvalDistMap_eq_spongePerm Quantum.Sponge.qrpm_sponge_collision_le \
     Quantum.Sponge.qrpm_sponge_preimage_le Quantum.Sponge.keccak256_qrpm_collision_le \
     Quantum.Sponge.keccak256_qrpm_preimage_le Quantum.qrpmEvalDistMap_toQuantumAt_qrpmImpl \
-    Quantum.Xmss.winProb_classicalAdversary
+    Quantum.Xmss.winProb_classicalAdversary Quantum.Xmss.Assembly.leanXmss_qrpm_security
 }
 
 # Every lean_vm executable, in one build.

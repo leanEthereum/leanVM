@@ -81,12 +81,11 @@ import Quantum.Sponge.Oracle.Hardwired.Persistence
 import Quantum.Xmss.Assembly.EncRefined
 import Quantum.Xmss.Assembly.RecBadMass
 import Quantum.Xmss.Assembly.HwHeads
-import Quantum.Xmss.Assembly.RecHitB
 import Quantum.Xmss.Assembly.CwRev
 import Quantum.Xmss.Assembly.RecOffDecHit
-import Quantum.Xmss.Assembly.DecHitB
 import Quantum.Xmss.Assembly.CwReFail
 import Quantum.Xmss.NoReuse
+import Quantum.Xmss.Assembly.NoReuse
 import Quantum.Xmss.Hybrid.SchemeSplit
 import Quantum.Xmss.Hybrid.CoinStage
 import Quantum.Xmss.Hybrid.R0Stage
@@ -101,10 +100,11 @@ import Quantum.Sphincs.Coverage
 /-! Security against quantum adversaries in the quantum random-permutation model (`Quantum.Model`),
 on VCVio's quantum oracle programs (`VCVio.Quantum`): the sponge's collision and preimage
 resistance against an adversary making `q` superposition calls to `π` and `π⁻¹`
-(`Quantum.Sponge.qrpm_sponge_collision_le`, `Quantum.Sponge.qrpm_sponge_preimage_le`), and their
+(`Quantum.Sponge.qrpm_sponge_collision_le`, `Quantum.Sponge.qrpm_sponge_preimage_le`), their
 values at Keccak-256's sizes (`Quantum.Sponge.keccak256_qrpm_collision_le`,
-`Quantum.Sponge.keccak256_qrpm_preimage_le`). The build fails if the axiom footprint of the main
-theorems ever grows beyond Lean's three standard axioms. -/
+`Quantum.Sponge.keccak256_qrpm_preimage_le`), and leanXMSS's strong unforgeability against quantum
+adversaries (`Quantum.Xmss.Assembly.leanXmss_qrpm_security`). The build fails if the axiom
+footprint of the main theorems ever grows beyond Lean's three standard axioms. -/
 
 /-- info: 'Quantum.qrpmEvalDistMap_eq_spongePerm' depends on axioms:
 [propext, Classical.choice, Quot.sound] -/
@@ -140,3 +140,8 @@ theorems ever grows beyond Lean's three standard axioms. -/
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Quantum.Xmss.winProb_classicalAdversary
+
+/-- info: 'Quantum.Xmss.Assembly.leanXmss_qrpm_security' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Xmss.Assembly.leanXmss_qrpm_security
