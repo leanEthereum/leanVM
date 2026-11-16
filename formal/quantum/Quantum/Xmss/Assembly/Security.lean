@@ -1,6 +1,6 @@
 module
 
-public import Quantum.Xmss.Assembly.TableComp
+public import Quantum.Xmss.Assembly.FullTable
 public import Quantum.Xmss.Assembly.Runtime1
 public import Quantum.Xmss.Assembly.Costs
 public import Quantum.Xmss.Assembly.GameTCalls
@@ -27,51 +27,48 @@ register has the memory `Mem = Finset HPos × Selections`: the template's memory
 selections. The canonical runtime-2 game is
 `gameR A L = realizeT (valueAt L) (gameT Selections cwUpd (pubOf L) A)` (Template; each
 randomizer trial's `h`-read records a codeword selection with EncCost's `cwUpd`), run against
-`runtimeR m0R` (runtime 2 with record ports). It is its challenge prefix
-`prefixR A L = realizeT (valueAt L) (prefixT Selections cwUpd (pubOf L) A)` followed by the
-verification (`gameR_eq`, Template's `gameT_eq_prefixT_bind`); the prefix is the event-bound
-program, the verification's reads are final reads.
+`runtimeR m0R` (runtime 2 with record ports); it is the event-bound program. It is its challenge
+prefix `prefixR A L = realizeT (valueAt L) (prefixT Selections cwUpd (pubOf L) A)` followed by the
+verification (`gameR_eq`, Template's `gameT_eq_prefixT_bind`).
 
-1. **G0 to runtime 1** (`winProb_eq_uavg`): `winProb_eq_runtime1` (TableComp) with the `tableLaw`
-   mixture written as the average over the table.
-2. **Grind-only reads** (debt `readsT`): S5's runtime 1 on `gameReads` against the same runtime
-   on the grind-only game `gameReadsT Unit (pubOf L) (valueAt L) A` (GameT) with the table `Lt L`
-   hardwired (`Lt L` extends `tableHw L`: debt `tableLe`).
-3. **Program ports** (`p1T_eq_p1K`: `evalDistMap_runtime1_eq_spongeHardwiredReadRuntime` with
+1. **G0 to runtime 1 with the full table** (FullTable's `winProb_eq_uavg_full`): G0 is the table
+   average of runtime 1 with the full honest table `fullHw L` hardwired, running the grind-only game
+   `gameReadsT Unit (pubOf L) (valueAt L) A` (GameT); `fullHw L` extends `tableHw L`
+   (`tableLe_fullHw`).
+2. **Program ports** (`p1T_eq_p1K`: `evalDistMap_runtime1_eq_spongeHardwiredReadRuntime` with
    `dropsTo_gameD`, `progsOf_tableHw`, `ProgsOf.mono`): the game `gameD Unit (pubOf L) (valueAt L) A`
    with its program calls (record ports dropped) against Kraus's runtime 1.
-4. **Record ports** (`p1K_eq_p1R`: `dropRec_gameT`, `evalDistMap_runtime1R_eq`, RecordDrop): the
+3. **Record ports** (`p1K_eq_p1R`: `dropRec_gameT`, `evalDistMap_runtime1R_eq`, RecordDrop): the
    canonical game against runtime 1 with record ports (`runtime1R`) is `gameD` against runtime 1.
-5. **The graded hybrid** (`uavg_win_runtime1R_le_graded_total`, Graded; debts `covers`,
+4. **The graded hybrid** (`uavg_win_runtime1R_le_graded_total`, Graded; debts `covers`,
    `hybSponge`, `hybRead`, with `advCalls_gameR`): `runtime1R` against `runtimeR` on the canonical
    game, paying `√(4 · 6q · μ)` for the hidden mass `μ ≤ 6q κ` at the sponge ports (`κ = kappaS`) and
    `√ν` for the hidden mass `ν ≤ clsCap κ_read` at the read ports (`κ_read = kappaR`). The Disclose
    part for the 128-bit `k`-cells is `uavg_hiddenK_digest_le` (from `viewByOn_gameT`, for
    `runtimeR`).
-6. **End** (debt `endReads`, with `dbGrade_le_progCap_extend` and `progCalls_gameR`): the
+5. **End** (debt `endReads`, with `dbGrade_le_progCap_extend` and `progCalls_gameR`): the
    verification's reads are the final reads; with the classification (`win_imp_bad`) they put a win
    of `gameR A` in the event `BadR L progCap` (Events' `Bad` on the selections) at the end of the
-   prefix `prefixR A`, up to the read error `readTerm` (EndReads' `endReads_of_winDecomp`, with the
-   game `gameR A L` and the event-bound program `prefixR A L`). A verification read can read the
-   adversary's own forgery path, so it would cost up to `1` in the event bound; it is paid by the
-   read error instead.
-7. **The event bound** (`eventWeight_runtimeR_le` on `BadR L progCap` at the end of `prefixR A`,
+   game, up to the read error `readTerm` (EndReads' `endReads_of_winDecomp`).
+6. **The event bound** (`eventWeight_runtimeR_le` on `BadR L progCap` at the end of `gameR A`,
    `labelFree_badR`, with `freshBound_slice_bad`, `upClosed_slice_bad`, `empty_not_mem_bad` and the
    flip costs `potential_hwReadKraus_le`, `potential_hwProgKraus_le`), for `PermGood L.perm 18`.
    The game's call counts are GameTCalls' (`advCalls_gameR`, `clsCalls_gameR`, `progCalls_gameR`
    from the adversary's budgets); the prefix's follow by `isChargeBound_of_bind₂`
    (`advCalls_prefixR`, `clsCalls_prefixR`).
-8. **Classical costs** along the prefix (CostLift: `flipCost_le_ports`, `totalWeight_le_lin`,
+7. **Classical costs** along the game (CostLift: `flipCost_le_ports`, `totalWeight_le_lin`,
    `le_sq_add_of_forall_lin`; debts `encJoint`, `restMass`, `readEps`, `callsW`, `progRest`): the
    read projectors are CostLift's `PRm` (the selection reads of each randomizer trial's `h`-read,
    the empty read cell on the other read ports), the program projectors `0`. Along the run of the
-   prefix the total flip cost is at most `(√encEpsTot + √massTot)² + progTot`: the codeword flips
+   game the total flip cost is at most `(√encEpsTot + √massTot)² + progTot`: the codeword flips
    of all trials of all keys (state-weighted, at most `2^-128 cntTot`) with the flip terms `ε, ε'`
    of the other reads, the recorded mass of the reads and the programs. With the joint count
    `cntTot ≤ 2^22 (6q + progCap)`, the read flip terms per unit of the trace-weighted call count
-   `callTot ≤ callCap` (no verification reads), the recorded mass and the programs averaged, the
-   total, averaged over the good tables, is at most `clsBound q`.
-9. **Permutation goodness** (`prob_not_permGood_keccak`): the bad tables weigh at most `2^-777`.
+   `callTot ≤ callCap`, the recorded mass and the programs averaged, the total, averaged over the
+   good tables, is at most `clsBound q`. The verification's reads are in the run: with the current
+   read projectors (the empty read cell) their flip terms are not small (`readEps`, `restMass`
+   wait on a refined read cost).
+8. **Permutation goodness** (`prob_not_permGood_keccak`): the bad tables weigh at most `2^-777`.
 
 `qrpmBound q = (√eventTerm + hybTerm)²` with
 `eventTerm = (∑_{n < 6q} √(6 εₙ) + √clsBound)² + readError + 2^-777` and
@@ -109,19 +106,6 @@ theorem sum_of_equiv (e : Θ ≃ S × P × K) (F : Θ → ℝ≥0∞) :
     ∑ θ, F θ = ∑ s, ∑ p, ∑ k, F (e.symm (s, p, k)) := by
   rw [← e.symm.sum_comp, Fintype.sum_prod_type]
   simp only [Fintype.sum_prod_type]
-
-/-- **The `tableLaw` mixture is the table average.** Averaging over `s`, `p` the `tableLaw` mixture
-of the data `g s p k` over uniform `k` is the uniform average over `Θ ≃ S × P × K`. -/
-theorem avg_tableLaw_eq_uavg {β : Type*} [DecidableEq β] (e : Θ ≃ S × P × K)
-    (g : S → P → K → β) (R : P → β → ℝ≥0∞) :
-    (Fintype.card S : ℝ≥0∞)⁻¹ * ∑ s, (Fintype.card P : ℝ≥0∞)⁻¹ * ∑ p,
-        ∑ b ∈ Finset.univ.image (g s p), tableLaw (g s p) b * R p b =
-      uavg (fun θ ↦ R (e θ).2.1 (g (e θ).1 (e θ).2.1 (e θ).2.2)) := by
-  have h1 : ∀ s p, ∑ b ∈ Finset.univ.image (g s p), tableLaw (g s p) b * R p b =
-      ∑ k, (Fintype.card K : ℝ≥0∞)⁻¹ * R p (g s p k) := fun s p ↦ by
-    simpa only [smul_eq_mul] using (sum_uniform_comp_eq_sum_tableLaw (g s p) (R p)).symm
-  simp only [h1, uavg, card_inv_of_equiv e, sum_of_equiv e, Equiv.apply_symm_apply,
-    Finset.mul_sum, mul_assoc]
 
 /-- The average of a function of the middle coordinate. -/
 theorem uavg_comp_snd_fst [Nonempty S] [Nonempty K] (e : Θ ≃ S × P × K) (h : P → ℝ≥0∞) :
@@ -171,9 +155,6 @@ end avg
 
 section game
 
-/-- Equality of secret keys, decided classically for TableComp (not a global instance). -/
-noncomputable local instance secretKeyDecEq : DecidableEq SecretKey := Classical.decEq _
-
 /-- The memory of the runtimes: the template's label and Events' selections. -/
 abbrev Mem : Type := Finset HPos × Selections
 
@@ -195,22 +176,6 @@ def tableSplit : HonestTable ≃ MasterSeed × Equiv.Perm (X × Z) × SpongeKeys
 
 /-- The game's win bit. -/
 def winObs (p : Σ u, QuantumComp₂.Leaf (QReg.of Unit) Bool u) : Bool := p.2.2
-
-/-- The win probability of S5's runtime 1 on the game's reads `gameReads`, at the table `L`. -/
-noncomputable def p1S5 (A : Adversary (X × Z)) (L : HonestTable) : ℝ≥0∞ :=
-  runtime1Law Unit () A (SubState.basis ()) winObs L.perm
-    (honestEval L.keys L.perm (schemeWithHashFromSeed.keygen L.masterSeed)) {true}
-
-theorem card_masterSeed_ennreal : (Fintype.card MasterSeed : ℝ≥0∞) = 2 ^ 256 := by
-  rw [card_masterSeed, Nat.cast_pow, Nat.cast_ofNat]
-
-/-- **G0 is the table average of runtime 1** (`winProb_eq_runtime1`). -/
-theorem winProb_eq_uavg (A : Adversary (X × Z)) :
-    winProb keccakStateEquiv A = uavg (p1S5 A) := by
-  rw [winProb_eq_runtime1 (M := Unit) () A, ← card_masterSeed_ennreal]
-  exact avg_tableLaw_eq_uavg tableSplit
-    (fun S0 π t ↦ honestEval t π (schemeWithHashFromSeed.keygen S0))
-    (fun π b ↦ runtime1Law Unit () A (SubState.basis ()) winObs π b {true})
 
 /-- **The canonical runtime-2 game** of the table `L` (Template): the template game at the public
 data `pubOf L`, realized at the hidden values `valueAt L`, the trials' `h`-reads updating the
@@ -285,7 +250,7 @@ noncomputable def p2R
   (runtimeR m0R).evalDistMap .instruments (x2 L) (SubState.basis ()) winObs {true}
 
 /-- The weight of the event `BadR L progCap` at the end of the run of `x2 L` in `runtimeR`
-(canonically the challenge prefix `prefixR A`). -/
+(canonically the game `gameR A`). -/
 noncomputable def ewR {α : Type}
     (x2 : HonestTable → QComp (recHwSpec X Z HPos Selections) (QReg.of Unit) (QReg.of Unit) α)
     (L : HonestTable) : ℝ≥0∞ :=
@@ -312,15 +277,15 @@ noncomputable def dPof (L : HonestTable) (c : HwProg X Z)
     (σ : Matrix (Unit × HwReg X Z Mem) (Unit × HwReg X Z Mem) ℂ) : ℝ≥0∞ :=
   flipCost (BadR L progCap) (hwProgKraus c) 0 σ
 
-/-- A cost summed along the run of the challenge prefix `prefixR A L` in `runtimeR` (record ports:
+/-- A cost summed along the run of the canonical game `gameR A L` in `runtimeR` (record ports:
 `0`). -/
 noncomputable def costTot (A : Adversary (X × Z))
     (dR : HwRead X Z Mem → Matrix (Unit × HwReg X Z Mem) (Unit × HwReg X Z Mem) ℂ → ℝ≥0∞)
     (dP : HwProg X Z → Matrix (Unit × HwReg X Z Mem) (Unit × HwReg X Z Mem) ℂ → ℝ≥0∞)
     (L : HonestTable) : ℝ≥0∞ :=
-  (runtimeR m0R).totalWeight .instruments (extWeight (hwCost dR dP)) (prefixR A L) initR
+  (runtimeR m0R).totalWeight .instruments (extWeight (hwCost dR dP)) (gameR A L) initR
 
-/-- The total classical (flip) cost of the run of the challenge prefix. -/
+/-- The total classical (flip) cost of the run of the game. -/
 noncomputable def twR (A : Adversary (X × Z)) (L : HonestTable) : ℝ≥0∞ :=
   costTot A (dRof L) (dPof L) L
 
@@ -461,11 +426,11 @@ entry at a key's message prefix matches a given trial with probability `2^-128` 
 noncomputable def massCap (q : ℕ) : ℝ≥0∞ :=
   ((18 * q * 2 ^ 21 : ℕ) : ℝ≥0∞) * (2 ^ 128 : ℝ≥0∞)⁻¹
 
-/-- **The cap of the trace-weighted classical-call count of the challenge prefix**: per signing
-request the two layers' trials (three reads each, at most `1 / ρ_c ≤ 2^21` trials by survival) and
-the `reqCells` program calls (record calls cost nothing). The verification's reads are not in the
-prefix. -/
-def callCap : ℕ := lifetime * (6 * 2 ^ 21 + reqCells)
+/-- **The cap of the trace-weighted classical-call count of the game**: per signing request the
+two layers' trials (three reads each, at most `1 / ρ_c ≤ 2^21` trials by survival) and the
+`reqCells` program calls (record calls cost nothing), and the verification's three reads per block.
+-/
+def callCap : ℕ := lifetime * (6 * 2 ^ 21 + reqCells) + 3 * verifyBlocks
 
 /-- The flip terms of the reads other than the selecting reads: `2^-300` per unit of call weight
 (capacity scale: a filled `k`, `k'` cell flips the event for `(T+1)((T+1)T + 2T) G` of the `2^512`
@@ -521,24 +486,17 @@ section debts
 attribute [local instance] badRDec
 
 /-- **The open debts of the leanXMSS QRPM proof**, for an adversary `A` making at most `q`
-permutation calls and at most `lifetime` signing requests. Data: runtime 1's table `Lt` and the
-hidden sets `H` (honest values and the seed-keyed cells). The event-bound program is the challenge
-prefix `prefixR A`; the classical costs (`encJoint`, `restMass`, `readEps`, `callsW`, `progRest`)
-are along the prefix. The call counts are theorems from the budgets (`advCalls_gameR`,
-`clsCalls_gameR`, `progCalls_gameR`, GameTCalls). -/
+permutation calls and at most `lifetime` signing requests. Data: the hidden sets `H` (honest
+values and the seed-keyed cells). The event-bound program is the canonical game `gameR A`; the
+classical costs (`encJoint`, `restMass`, `readEps`, `callsW`, `progRest`) are along it. Runtime 1's
+table is FullTable's `fullHw` (`tableLe_fullHw`, `winProb_eq_uavg_full`); the call counts are
+theorems from the budgets (`advCalls_gameR`, `clsCalls_gameR`, `progCalls_gameR`, GameTCalls). -/
 structure XmssQrpmDebts (q : ℕ) (A : Adversary (X × Z)) where
-  /-- Runtime 1's hardwired table (GameT's `tableHw L`, possibly extended). -/
-  Lt : HonestTable → Hw X Z
-  /-- **GameT**: runtime 1's table contains the cells the game programs, with their values. -/
-  tableLe : ∀ L, HwLe (tableHw L) (Lt L)
   Hh : HonestTable → Set Z
   Hk : HonestTable → Set X
   Hk' : HonestTable → Set X
-  /-- **GameT**: S5's runtime 1 on `gameReads` is at most (by lazy sampling over the table, equal
-  to) S5's runtime 1 on the grind-only game. -/
-  readsT : uavg (p1S5 A) ≤ uavg (p1T A Lt)
   /-- **Template/Reparam**: the hidden sets cover runtime 1's table (the seed-keyed cells inside). -/
-  covers : ∀ L, Covers (Lt L) (Hh L) (Hk L) (Hk' L)
+  covers : ∀ L, Covers (fullHw L) (Hh L) (Hk L) (Hk' L)
   /-- **The graded hybrid, sponge ports** (Disclose with `viewByOn_gameT`, Seed, CoinStage,
   CoinPath): the hidden mass at the sponge ports, summed over the calls, averaged over the table. -/
   hybSponge : uavg (fun L ↦ (runtimeR m0R).totalWeight .instruments
@@ -547,27 +505,28 @@ structure XmssQrpmDebts (q : ℕ) (A : Adversary (X × Z)) where
   ports, summed over the calls, averaged over the table. -/
   hybRead : uavg (fun L ↦ (runtimeR m0R).totalWeight .instruments
     (readMass (Hh L) (Hk L) (Hk' L)) (gameR A L) initR) ≤ (clsCap : ℝ≥0∞) * kappaR
-  /-- **End** (EndReads' `endReads_of_winDecomp` with `x := gameR A L`, `x₀ := prefixR A L`): on
-  runs whose final hardwired cells are at most `progCap`, the verification's reads (the final
-  reads) and the classification `win_imp_bad` bound the win of the game by the event
-  `BadR L progCap` at the end of the challenge prefix plus the read error. -/
-  endReads : ∀ L, GradeCap m0R (gameR A L) → p2R (gameR A) L ≤ ewR (prefixR A) L + readTerm
+  /-- **End** (EndReads' `endReads_of_winDecomp` with `x := gameR A L`): on runs whose final
+  hardwired cells are at most `progCap`, the verification's reads (the final reads) and the
+  classification `win_imp_bad` bound the win of the game by the event `BadR L progCap` at the end
+  of the game plus the read error. -/
+  endReads : ∀ L, GradeCap m0R (gameR A L) → p2R (gameR A) L ≤ ewR (gameR A) L + readTerm
   /-- **The cross-key potential** (open): on good tables, the state-weighted counts of the
-  selecting reads of all trials of all keys, summed along the prefix, are at most `encCap q`. Its
+  selecting reads of all trials of all keys, summed along the game, are at most `encCap q`. Its
   proof is the potential `∑_{k unselected} msgCwCount(·, k)` (at most the message-slot cells,
   `sum_msgCwCount_le`): it grows by at most one per adversary call and per program call, and a
   trial read of key `k` removes `msgCwCount(·, k)` with probability `ρ_c` on its selection reads
   (`survive_getSelectRead_le`). -/
   encJoint : ∀ L, PermGood L.perm 18 → cntTot A L ≤ encCap q
-  /-- **The recorded mass** (open): the weight off the selection reads at the reads (the read
-  cell recorded or hardwired), summed along the run, averaged over the good tables (`massCap`: the
-  hidden randomizer base, survival, the adversary's entries). -/
+  /-- **The recorded mass** (open; with the current read projectors the verification's reads of
+  recorded cells count): the weight off the selection reads at the reads (the read cell recorded or
+  hardwired), summed along the run, averaged over the good tables (`massCap`: the hidden randomizer
+  base, survival, the adversary's entries). -/
   restMass : uavg (fun L ↦ if PermGood L.perm 18 then massTot A L else 0) ≤ massCap q
   /-- **The flip terms of the other reads** (open: a `CellRead` for the `k`, `k'` read ports, as
-  FlipCost's `cellRead_readH`, with the count of `card_flip_programK_le` for a filled cell):
-  capacity scale per unit of call weight. -/
+  FlipCost's `cellRead_readH`, with the count of `card_flip_programK_le` for a filled cell; the
+  verification's reads need a refined read cost): capacity scale per unit of call weight. -/
   readEps : ∀ L, PermGood L.perm 18 → epsTot A L ≤ (2 ^ 300 : ℝ≥0∞)⁻¹ * callTot A L
-  /-- **The trace-weighted classical calls of the prefix** (open): survival sums of the trials
+  /-- **The trace-weighted classical calls of the game** (open): survival sums of the trials
   (EncCost's `survive_*`) and the programs. -/
   callsW : ∀ L, PermGood L.perm 18 → callTot A L ≤ callCap
   /-- **The programs** (open: the view of the programmed honest value, and reprogrammed cells):
@@ -656,8 +615,8 @@ theorem progCalls_gameR (L : HonestTable) :
 
 /-- **The graded hybrid with record ports**, averaged over the table. -/
 theorem uavg_p1R_le (d : XmssQrpmDebts q A) :
-    uavg (p1R A d.Lt) ≤ (uavg (p2R (gameR A)) ^ (2⁻¹ : ℝ) + hybTerm q) ^ 2 := by
-  refine (uavg_win_runtime1R_le_graded_total .instruments d.Lt d.Hh d.Hk d.Hk' d.covers m0R
+    uavg (p1R A fullHw) ≤ (uavg (p2R (gameR A)) ^ (2⁻¹ : ℝ) + hybTerm q) ^ 2 := by
+  refine (uavg_win_runtime1R_le_graded_total .instruments fullHw d.Hh d.Hk d.Hk' d.covers m0R
     (gameR A) (fun _ ↦ SubState.basis ()) (fun _ ↦ winObs) (measurableSet_singleton true) (6 * q)
     (advCalls_gameR hperm hsign) _ _ d.hybSponge d.hybRead).trans_eq ?_
   rw [hybTerm, add_assoc]
@@ -692,9 +651,9 @@ theorem clsCalls_prefixR (L : HonestTable) :
   rw [gameR_eq] at h
   exact isChargeBound_of_bind₂ h
 
-/-- **The event bound** at the end of the challenge prefix, at a good table. -/
+/-- **The event bound** at the end of the game, at a good table. -/
 theorem ewR_le (L : HonestTable) (hπ : PermGood L.perm 18) :
-    ewR (prefixR A) L ≤ (advTerm q + twR A L ^ (2⁻¹ : ℝ)) ^ 2 :=
+    ewR (gameR A) L ≤ (advTerm q + twR A L ^ (2⁻¹ : ℝ)) ^ 2 :=
   eventWeight_runtimeR_le (q := 6 * q) (K := clsCap) (BadR L progCap) (labelFree_badR L progCap)
     (fun W m ↦ upClosed_slice_bad W m.2) m0R (empty_not_mem_bad m0) advEps
     (fun n _ ↦ advEps_ne_top n)
@@ -705,7 +664,7 @@ theorem ewR_le (L : HonestTable) (hπ : PermGood L.perm 18) :
       c σ hσ)
     (fun c σ hσ ↦ potential_hwProgKraus_le (BadR L progCap) (fun _ ↦ 0)
       (fun _ ↦ conjTranspose_zero) (fun _ ↦ mul_zero 0) c σ hσ)
-    .instruments (prefixR A L) (advCalls_prefixR hperm hsign L) (clsCalls_prefixR hperm hsign L)
+    .instruments (gameR A L) (advCalls_gameR hperm hsign L) (clsCalls_gameR hperm hsign L)
     (SubState.basis ())
 
 omit hperm hsign in
@@ -723,7 +682,7 @@ theorem twR_le (A : Adversary (X × Z)) (L : HonestTable) :
       trialUpd (fun m s ↦ (m.1, s)) (fun _ _ ↦ rfl) (BadR L progCap) (N := progCap)
       (fun _ ↦ Iff.rfl) (fun t m v ↦ liftUpd_cases (sel := fun s ↦ cwSel s t.l t.e t.x t.xi v)
         (cwUpd_some t.l t.e t.x t.xi m.2 v)) c hs hσ).trans_eq (add_zero _).symm)
-    (prefixR A L) initR_posSemidef
+    (gameR A L) initR_posSemidef
 
 omit hperm hsign in
 /-- **The codeword flips and the other reads' flip terms** at a good table: at most
@@ -733,7 +692,7 @@ theorem encEpsTot_le (d : XmssQrpmDebts q A) (L : HonestTable) (hπ : PermGood L
   refine (totalWeight_le_add (runtimeR m0R) .instruments _ _ _ _ 1
     (extWeight_hwCost_le_add _ _ _ _ _ fun c _ hσ ↦ add_le_add
       (encW_le_cntW Prod.snd trialUpd (BadR L progCap) L c hσ) (one_mul _).ge)
-    (prefixR A L) initR_posSemidef).trans ?_
+    (gameR A L) initR_posSemidef).trans ?_
   rw [one_mul]
   refine add_le_add ?_ ((d.readEps L hπ).trans ?_)
   · unfold encTerm
@@ -795,11 +754,10 @@ theorem uavg_p2R_le (d : XmssQrpmDebts q A) : uavg (p2R (gameR A)) ≤ eventTerm
 /-- **The leanXMSS bound for one adversary**, from its debts. -/
 theorem winProb_le_qrpmBound (d : XmssQrpmDebts q A) :
     winProb keccakStateEquiv A ≤ qrpmBound q := by
-  have hK : uavg (p1T A d.Lt) = uavg (p1R A d.Lt) :=
-    congrArg uavg (funext fun L ↦ (p1T_eq_p1K A d.tableLe L).trans (p1K_eq_p1R A d.Lt L))
-  calc winProb keccakStateEquiv A = uavg (p1S5 A) := winProb_eq_uavg A
-    _ ≤ uavg (p1T A d.Lt) := d.readsT
-    _ = uavg (p1R A d.Lt) := hK
+  have hK : uavg (p1T A fullHw) = uavg (p1R A fullHw) :=
+    congrArg uavg (funext fun L ↦ (p1T_eq_p1K A tableLe_fullHw L).trans (p1K_eq_p1R A fullHw L))
+  calc winProb keccakStateEquiv A = uavg (p1T A fullHw) := winProb_eq_uavg_full A
+    _ = uavg (p1R A fullHw) := hK
     _ ≤ (uavg (p2R (gameR A)) ^ (2⁻¹ : ℝ) + hybTerm q) ^ 2 := uavg_p1R_le hperm hsign d
     _ ≤ (eventTerm q ^ (2⁻¹ : ℝ) + hybTerm q) ^ 2 := by
       gcongr
