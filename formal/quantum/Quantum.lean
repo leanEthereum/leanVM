@@ -85,6 +85,7 @@ import Quantum.Xmss.Assembly.RecHitB
 import Quantum.Xmss.Assembly.CwRev
 import Quantum.Xmss.Assembly.RecOffDecHit
 import Quantum.Xmss.Assembly.DecHitB
+import Quantum.Xmss.Assembly.CwReFail
 import Quantum.Xmss.Hybrid.SchemeSplit
 import Quantum.Xmss.Hybrid.CoinStage
 import Quantum.Xmss.Hybrid.R0Stage
