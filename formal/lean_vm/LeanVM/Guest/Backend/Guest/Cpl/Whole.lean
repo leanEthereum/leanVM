@@ -38,7 +38,7 @@ theorem guestConds : ∀ tf ∈ W0.p, Complete.FnConds W0 tf := by
   intro tf htf
   rw [W0_p] at htf
   obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp htf
-  have hi' : i < 1549 := GuestPiece.guestTraced_length ▸ hi
+  have hi' : i < core_count% := GuestPiece.guestTraced_length ▸ hi
   obtain ⟨hat, hpa, -⟩ := guest_placed hi
   have hF := cplOkWith_spec (cplOkWith_of hat (CplEval.cplOkAll i hi'))
   rw [← List.getD_eq_getElem _ default hi]

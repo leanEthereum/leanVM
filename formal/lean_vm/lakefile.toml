@@ -223,6 +223,14 @@ name = "guest-cpleval"
 root = "GuestCplEval"
 srcDir = "cli"
 
+# The guest's data of the back end's soundness obligations (cli/GuestOblGen.lean): writes
+# `Obl/GuestXTab.lean`, `Obl/Eval/`, and `xTab`, `guestXIdx`, `vsIdx` in `Obl/GuestX.lean` and
+# `Obl/GuestTab.lean` (`--check` compares); run under `lake env`. Not a default target.
+[[lean_exe]]
+name = "guest-oblgen"
+root = "GuestOblGen"
+srcDir = "cli"
+
 # The pointer discipline and the load shapes of the guest's core functions
 # (cli/GuestPtrCheck.lean); not a default target.
 [[lean_exe]]
