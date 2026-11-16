@@ -1,8 +1,6 @@
 import LeanVM.Guest.Backend.Guest.Input
 import LeanVM.Guest.Backend.Guest.Cpl.Static
 import LeanVM.Guest.Data.NameStrings
-import LeanVM.Guest.Data.FrameSizes
-import LeanVM.Guest.Data.CplArms
 
 /-!
 # `guest-tables`: the back end's tables of the guest
@@ -21,10 +19,7 @@ writes, by compiled function index `j` (`j = i + 1` for entry `i` of the input, 
   whether it is a registered loop helper, and its place codes, one per value index (`placeCode`).
 
 `lake exe guest-tables [--check]` writes `Deployed/Data.lean`, or with `--check` writes nothing and
-fails when it differs. `lake exe guest-tables --compare TABLES [--detail]` compares the back end's
-tables with the certificate tables (`Data.frameSizes`, `mainCells`, `jtSlots`, `Data.cplArms`,
-`armFn`, `armMax`, imported; the plumbs' `pmax`, the certificates' cells and self pointer cells,
-read from the text `scripts/cpl-crosscheck --tables-only` writes) and lists every difference.
+fails when it differs.
 -/
 
 open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Backend LeanVM.Guest.Backend.GuestInput
@@ -53,7 +48,7 @@ def placeRow (tf : TracedFn) (pf : Placed) : Except String (List (Option Nat)) :
       | none => throw s!"{pf.fn.name}: value {k}'s place has no code"
 
 /-- The most a path through `ss` passes of the separately counted arms `acs`, at opcode `k`
-(`B2C.costMaxW`). -/
+(`Deployed.costMaxW`). -/
 partial def armMaxW (acs : List (Nat × List (List Nat))) (k : Nat) : List Stmt → Nat
   | [] => 0
   | .ite _ z n :: ss => max (armMaxW acs k z) (armMaxW acs k n) + armMaxW acs k ss
@@ -158,124 +153,6 @@ def decoderText (o : Out) : String :=
   String.join (o.placeCodes.zipIdx.map fun (r, j) =>
     s!"row {j}" ++ String.join (r.map (s!" {·}")) ++ "\n")
 
-/-! ## The comparison with the certificate tables -/
-
-/-- What the certificate tables' text gives of each function: its pmax, its cells, its self
-pointer cells (`F`, `M`, `L`, `E` lines). -/
-structure Cert where
-  pmax : List Nat := []
-  cells : List Nat := []
-  env : List Nat := []
-  deriving Inhabited
-
-def certsOf (text : String) : Std.HashMap Nat Cert := Id.run do
-  let mut m : Std.HashMap Nat Cert := {}
-  let mut cur : Option Nat := none
-  for line in text.splitOn "\n" do
-    let nums (rest : List String) := rest.filterMap String.toNat?
-    match line.splitOn " " with
-    | "F" :: j :: _ => cur := j.toNat?; if let some j := cur then m := m.insert j {}
-    | "M" :: rest => if let some j := cur then m := m.modify j ({ · with pmax := nums rest })
-    | "L" :: rest => if let some j := cur then m := m.modify j ({ · with cells := nums rest })
-    | "E" :: rest => if let some j := cur then m := m.modify j ({ · with env := nums rest })
-    | _ => pure ()
-  return m
-
-/-- What first defines value `v` in `ss`, by the kind of its atom. -/
-partial def defKind (v : V) : List Stmt → Option String
-  | [] => none
-  | .atom a :: ss =>
-    let here := match a with
-      | .const d _ => if d == v then some "constant" else none
-      | .frameAddr p _ => if p == v then some "frame address" else none
-      | .hint _ => if (Stmt.valsList [.atom a]).contains v then some "hint output" else none
-      | .add d _ _ | .mul d _ _ | .copy d _ | .load d _ _ => if d == v then some "computed" else none
-      | _ => none
-    here <|> defKind v ss
-  | .ite _ z n :: ss => defKind v z <|> defKind v n <|> defKind v ss
-  | .match_ _ arms :: ss => arms.findSome? (defKind v) <|> defKind v ss
-  | _ :: ss => defKind v ss
-
-def compare (P : List TracedFn) (o : Out) (certs : Std.HashMap Nat Cert) (detail : Bool) :
-    IO UInt32 := do
-  let n := P.length + 1
-  let name (j : Nat) : String := if j == 0 then "__jump_tables" else (P.getD (j - 1) default).core.name
-  let mut bad := 0
-  let report (what : String) (diffs : List String) : IO Nat := do
-    IO.println s!"{what}: {if diffs.isEmpty then "equal" else s!"{diffs.length} differ"}"
-    for d in (if detail then diffs else diffs.take 20) do IO.println s!"  {d}"
-    if !detail && diffs.length > 20 then IO.println s!"  ... {diffs.length - 20} more (--detail)"
-    return diffs.length
-  -- frame sizes, main's cells, the jump tables
-  let fsDiffs := (List.range (max o.frameSizes.length Data.frameSizes.length)).filterMap fun j =>
-    let a := o.frameSizes[j]?
-    let b := Data.frameSizes[j]?
-    if a == b then none else some s!"{j} {name j}: back end {a}, certificates {b}"
-  bad := bad + (← report s!"frameSizes ({o.frameSizes.length} entries)" fsDiffs)
-  bad := bad + (← report s!"mainCells ({o.mainCells})"
-    (if o.mainCells == Data.mainCells then [] else [s!"certificates {Data.mainCells}"]))
-  bad := bad + (← report s!"jtSlots ({o.jtSlots})"
-    (if o.jtSlots == Data.jtSlots then [] else [s!"certificates {Data.jtSlots}"]))
-  -- path maxima
-  let pmDiffs := (List.range n).filterMap fun j =>
-    let a := o.pmax.getD j []
-    let b := ((certs.get? j).map (·.pmax)).getD []
-    if a == b then none else some s!"{j} {name j}: back end {a}, certificates {b}"
-  bad := bad + (← report s!"pmax ({o.pmax.length} entries)" pmDiffs)
-  -- arms
-  bad := bad + (← report s!"armFn ({o.armFn})"
-    (if o.armFn == Data.armFn then [] else [s!"certificates {Data.armFn}"]))
-  bad := bad + (← report s!"armMax ({o.armMax})"
-    (if o.armMax == Data.armMax then [] else [s!"certificates {Data.armMax}"]))
-  let armDiffs := (List.range (max o.arms.length Data.cplArms.length)).filterMap fun j =>
-    let a := o.arms.getD j []
-    let b := Data.cplArms.getD j []
-    if a == b then none else
-      some s!"{j} {name j}: back end {a.length} matches {a.map (·.1)}, certificates {b.length} matches {b.map (·.1)}"
-  bad := bad + (← report s!"arms ({(o.arms.getD o.armFn []).length} matches)" armDiffs)
-  -- registered loop helpers against the self pointer cells
-  let regDiffs := (List.range n).filterMap fun j =>
-    let a := o.registered.getD j false
-    let env := ((certs.get? j).map (·.env)).getD []
-    let na := if j == 0 then 0 else (P.getD (j - 1) default).core.params.length
-    let b := env == [2 + na]
-    if a == b && (b || env.isEmpty) then none
-    else some s!"{j} {name j}: back end registered {a}, certificate's self pointer cells {env}"
-  bad := bad + (← report s!"registered ({(o.registered.filter id).length} functions)" regDiffs)
-  -- places against cells, by what the back end does with the value
-  let mut lenDiffs : Array String := #[]
-  let mut valDiffs : Array String := #[]
-  let mut kinds : Std.HashMap String Nat := {}
-  let mut same := 0
-  let mut total := 0
-  for j in List.range n do
-    let a := o.places.getD j []
-    let b := ((certs.get? j).map (·.cells)).getD []
-    if a.length != b.length then
-      lenDiffs := lenDiffs.push s!"{j} {name j}: back end {a.length} values, certificate {b.length}"
-    for k in List.range (max a.length b.length) do
-      total := total + 1
-      let pa := a[k]?
-      let cb := b[k]?
-      if pa.map (·.getD 0) == cb then same := same + 1
-      else
-        let body := if j == 0 then [] else (P.getD (j - 1) default).core.body
-        let dk := (defKind (V.n k) body).getD "not defined by an atom"
-        let (kind, what) := match pa with
-          | some (some c) =>
-              if c < 2 ^ 20 then ("another cell", s!"cell {c}")
-              else ("shifted", s!"cell {c % 2 ^ 20} shifted by g^{c / 2 ^ 20 - 1}")
-          | some none => ("no place", "no place")
-          | none => ("no index", "no index")
-        let key := s!"{kind} ({dk})"
-        kinds := kinds.insert key ((kinds.getD key 0) + 1)
-        valDiffs := valDiffs.push s!"{j} {name j} value {k} ({dk}): back end {what}, certificate cell {cb}"
-  bad := bad + (← report "places' row lengths" lenDiffs.toList)
-  let byKind := ", ".intercalate (kinds.toList.mergeSort (·.1 ≤ ·.1) |>.map fun (k, c) => s!"{k} {c}")
-  let _ ← report s!"places ({same} of {total} value indices equal to the certificates' cells; differing: {byKind})"
-    valDiffs.toList
-  return if bad == 0 then 0 else 1
-
 end GuestTables
 
 open GuestTables in
@@ -283,8 +160,6 @@ def main (args : List String) : IO UInt32 := do
   let P ← input
   let o ← orThrow (tablesOf P)
   match args with
-  | ["--compare", path] | ["--compare", path, "--detail"] =>
-      compare P o (certsOf (← IO.FS.readFile path)) (args.contains "--detail")
   | ["--decoder-inputs", path] =>
       IO.FS.writeFile path (decoderText o)
       IO.println s!"{o.places.length} functions -> {path}"
@@ -301,5 +176,5 @@ def main (args : List String) : IO UInt32 := do
       IO.println s!"{outPath}: {o.frameSizes.length} functions, main's cells {o.mainCells}, {o.jtSlots} slots, arms of function {o.armFn}"
       return 0
   | _ =>
-      IO.eprintln "usage: guest-tables [--check] | --decoder-inputs FILE | --compare TABLES [--detail]"
+      IO.eprintln "usage: guest-tables [--check] | --decoder-inputs FILE"
       return 2
