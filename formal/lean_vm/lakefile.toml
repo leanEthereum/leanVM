@@ -229,6 +229,7 @@ srcDir = "cli"
 [[lean_exe]]
 name = "guest-tables"
 root = "GuestTables"
+srcDir = "cli"
 
 # The guest's data of the back end's soundness obligations (cli/GuestOblGen.lean): writes
 # `Obl/GuestXTab.lean`, `Obl/Eval/`, and `xTab`, `guestXIdx`, `vsIdx` in `Obl/GuestX.lean` and
