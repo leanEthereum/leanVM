@@ -81,6 +81,30 @@ theorem ofReal_trace_initR_le_one : ENNReal.ofReal initR.trace.re ≤ 1 :=
   ENNReal.ofReal_le_one.mpr
     ((SubState.basis ()).prod (runtimeR (X := X) (Z := Z) m0R).init).trace_re_le_one
 
+/-- **The trace-weighted classical calls of a program** of runtime 2 with record ports at any
+memory, from an initial state of trace at most one: with at most `K` classical calls (reads,
+programs, records) on every path, the traces of the inputs of the read and program calls add up to
+at most `K`. -/
+theorem totalWeight_calls_le_of {S M' : Type} [Fintype S] [DecidableEq S] [Fintype M']
+    [DecidableEq M'] (m₀ : Finset S × M') {Ω : QReg → Type}
+    {ρ : Matrix (QReg.of Unit × QReg.of (HwReg X Z (Finset S × M')))
+      (QReg.of Unit × QReg.of (HwReg X Z (Finset S × M'))) ℂ} (hρ : ρ.PosSemidef)
+    (htr : ENNReal.ofReal ρ.trace.re ≤ 1)
+    (x : QuantumComp LocalSig.instruments.{0} (recHwSpec X Z S M') Ω (QReg.of Unit))
+    {K : ℕ} (hK : IFreeM.IsChargeBound x
+      (portCharge fun i ↦ if extCls X Z (Finset S × M') (recSpec S M') i then 1 else 0) K) :
+    (runtimeR m₀).totalWeight .instruments (extWeight (hwCost
+      (fun _ σ ↦ ENNReal.ofReal σ.trace.re) fun _ σ ↦ ENNReal.ofReal σ.trace.re)) x ρ ≤ K := by
+  refine (totalWeight_le_totalWeight (runtimeR m₀) .instruments
+    (w' := fun i σ ↦ ((if extCls X Z (Finset S × M') (recSpec S M') i then 1 else 0 : ℕ) : ℝ≥0∞) *
+      ENNReal.ofReal σ.trace.re) (fun i σ _ ↦ ?_) x hρ).trans ?_
+  · rcases i with ((p | c) | c) | T <;> simp [extWeight, sumWeight, hwCost, extCls, hwCls]
+    all_goals exact le_of_eq rfl
+  · refine (totalWeight_chargeTrace_le (runtimeR m₀) .instruments _ x hK hρ).trans ?_
+    calc (K : ℝ≥0∞) * ENNReal.ofReal ρ.trace.re ≤ K * 1 := by
+          gcongr
+      _ = K := mul_one _
+
 /-- **The trace-weighted classical calls of a program**: with at most `K` classical calls (reads,
 programs, records) on every path, the traces of the inputs of the read and program calls add up to
 at most `K`. -/
@@ -89,18 +113,8 @@ theorem totalWeight_calls_le {Ω : QReg → Type}
     {K : ℕ} (hK : IFreeM.IsChargeBound x
       (portCharge fun i ↦ if extCls X Z Mem (recSpec HPos Selections) i then 1 else 0) K) :
     (runtimeR m0R).totalWeight .instruments (extWeight (hwCost
-      (fun _ σ ↦ ENNReal.ofReal σ.trace.re) fun _ σ ↦ ENNReal.ofReal σ.trace.re)) x initR ≤ K := by
-  refine (totalWeight_le_totalWeight (runtimeR m0R) .instruments
-    (w' := fun i σ ↦ ((if extCls X Z Mem (recSpec HPos Selections) i then 1 else 0 : ℕ) : ℝ≥0∞) *
-      ENNReal.ofReal σ.trace.re) (fun i σ _ ↦ ?_) x initR_posSemidef).trans ?_
-  · rcases i with ((p | c) | c) | T <;> simp [extWeight, sumWeight, hwCost, extCls, hwCls]
-    all_goals exact le_of_eq rfl
-  · refine (totalWeight_chargeTrace_le (runtimeR m0R) .instruments _ x hK
-      initR_posSemidef).trans ?_
-    calc (K : ℝ≥0∞) * ENNReal.ofReal initR.trace.re ≤ K * 1 := by
-          gcongr
-          exact ofReal_trace_initR_le_one
-      _ = K := mul_one _
+      (fun _ σ ↦ ENNReal.ofReal σ.trace.re) fun _ σ ↦ ENNReal.ofReal σ.trace.re)) x initR ≤ K :=
+  totalWeight_calls_le_of m0R initR_posSemidef ofReal_trace_initR_le_one x hK
 
 end calls
 
@@ -153,13 +167,14 @@ end grade
 
 /-- **Every port of `runtimeR` raises the database grade by at most one**: those of runtime 2
 (`querySupportedOn_spongeHardwiredRuntime_step`), and the record ports, which keep the databases. -/
-theorem querySupportedOn_runtimeR_step (m₀ : Mem) (i : (recHwSpec X Z HPos Selections).Port)
-    (r : (recHwSpec X Z HPos Selections).Result i) (t : ℕ)
-    (σ : Matrix ((recHwSpec X Z HPos Selections).In i × (runtimeR (X := X) (Z := Z) m₀).D)
-      ((recHwSpec X Z HPos Selections).In i × (runtimeR (X := X) (Z := Z) m₀).D) ℂ)
-    (hσ : QuerySupportedOn (fun q : (recHwSpec X Z HPos Selections).In i ×
+theorem querySupportedOn_runtimeR_step {S M' : Type} [Fintype S] [DecidableEq S] [Fintype M']
+    [DecidableEq M'] (m₀ : Finset S × M') (i : (recHwSpec X Z S M').Port)
+    (r : (recHwSpec X Z S M').Result i) (t : ℕ)
+    (σ : Matrix ((recHwSpec X Z S M').In i × (runtimeR (X := X) (Z := Z) m₀).D)
+      ((recHwSpec X Z S M').In i × (runtimeR (X := X) (Z := Z) m₀).D) ℂ)
+    (hσ : QuerySupportedOn (fun q : (recHwSpec X Z S M').In i ×
       (runtimeR (X := X) (Z := Z) m₀).D ↦ dbGrade q.2.1) (Set.Iic t) σ) :
-    QuerySupportedOn (fun q : (recHwSpec X Z HPos Selections).Out i ×
+    QuerySupportedOn (fun q : (recHwSpec X Z S M').Out i ×
       (runtimeR (X := X) (Z := Z) m₀).D ↦ dbGrade q.2.1) (Set.Iic (t + 1))
         (((runtimeR (X := X) (Z := Z) m₀).step i).branch r σ) := by
   rcases i with i | j
@@ -445,7 +460,8 @@ theorem capK'_le : capK' ≤ 2 ^ 211 := by
 
 /-- Two flip terms below `C / |Z| · tr σ` with `C ≤ 2^211` sum to at most `2^-300 tr σ`. -/
 theorem ofReal_add_le_of_cap {a a' E : ℝ} {C : ℕ} (hC : C ≤ 2 ^ 211)
-    {σ : Matrix (Unit × HwReg X Z Mem) (Unit × HwReg X Z Mem) ℂ} (hσ : σ.PosSemidef)
+    {M : Type} [Fintype M] {σ : Matrix (Unit × HwReg X Z M) (Unit × HwReg X Z M) ℂ}
+    (hσ : σ.PosSemidef)
     (ha : a ≤ E) (ha' : a' ≤ E) (hE : E ≤ C / Fintype.card Z * σ.trace.re) :
     ENNReal.ofReal a + ENNReal.ofReal a' ≤ (2 ^ 300 : ℝ≥0∞)⁻¹ * ENNReal.ofReal σ.trace.re := by
   have htr : 0 ≤ σ.trace.re := (Complex.nonneg_iff.1 hσ.trace_nonneg).1
@@ -624,9 +640,10 @@ noncomputable def epsRestWt (L : HonestTable) :
   fun i σ ↦ if bR i = 0 then 0 else epsWt L i σ
 
 /-- Every program is within budget `0` of the zero port charge. -/
-theorem isChargeBound_portCharge_zero {Ω : QReg → Type}
-    (x : QuantumComp LocalSig.instruments.{0} (recHwSpec X Z HPos Selections) Ω (QReg.of Unit)) :
-    IFreeM.IsChargeBound x (portCharge fun _ : (recHwSpec X Z HPos Selections).Port ↦ 0) 0 :=
+theorem isChargeBound_portCharge_zero {S M' : Type} [Fintype S] [DecidableEq S] [Fintype M']
+    [DecidableEq M'] {Ω : QReg → Type}
+    (x : QuantumComp LocalSig.instruments.{0} (recHwSpec X Z S M') Ω (QReg.of Unit)) :
+    IFreeM.IsChargeBound x (portCharge fun _ : (recHwSpec X Z S M').Port ↦ 0) 0 :=
   isChargeBound_mono_charge (fun _ a ↦ by cases a <;> exact le_rfl) (isChargeBound_zero x)
 
 /-- **The flip terms of the reads along a run.** A program of `runtimeR m0R` with at most `n`
@@ -958,25 +975,37 @@ end readEps
 
 section progs
 
+/-- **The trace-weighted program calls of a program** of runtime 2 with record ports at any
+memory, from an initial state of trace at most one: with at most `K` program calls on every path,
+the traces of the inputs of the program calls add up to at most `K`. -/
+theorem totalWeight_progs_le_of {S M' : Type} [Fintype S] [DecidableEq S] [Fintype M']
+    [DecidableEq M'] (m₀ : Finset S × M') {Ω : QReg → Type}
+    {ρ : Matrix (QReg.of Unit × QReg.of (HwReg X Z (Finset S × M')))
+      (QReg.of Unit × QReg.of (HwReg X Z (Finset S × M'))) ℂ} (hρ : ρ.PosSemidef)
+    (htr : ENNReal.ofReal ρ.trace.re ≤ 1)
+    (x : QuantumComp LocalSig.instruments.{0} (recHwSpec X Z S M') Ω (QReg.of Unit))
+    {K : ℕ} (hK : IFreeM.IsChargeBound x (progChargeR S M') K) :
+    (runtimeR m₀).totalWeight .instruments (extWeight (hwCost (fun _ _ ↦ 0)
+      fun _ σ ↦ ENNReal.ofReal σ.trace.re)) x ρ ≤ K := by
+  refine (totalWeight_le_totalWeight (runtimeR m₀) .instruments
+    (w' := fun i σ ↦ (extProgCharge X Z (Finset S × M') (recSpec S M') i : ℝ≥0∞) *
+      ENNReal.ofReal σ.trace.re) (fun i σ _ ↦ ?_) x hρ).trans ?_
+  · rcases i with ((p | c) | c) | T <;> simp [extWeight, sumWeight, hwCost, extProgCharge,
+      progCharge]
+    exact le_of_eq rfl
+  · refine (totalWeight_chargeTrace_le (runtimeR m₀) .instruments _ x hK hρ).trans ?_
+    calc (K : ℝ≥0∞) * ENNReal.ofReal ρ.trace.re ≤ K * 1 := by
+          gcongr
+      _ = K := mul_one _
+
 /-- **The trace-weighted program calls of a program**: with at most `K` program calls on every
 path, the traces of the inputs of the program calls add up to at most `K`. -/
 theorem totalWeight_progs_le {Ω : QReg → Type}
     (x : QuantumComp LocalSig.instruments.{0} (recHwSpec X Z HPos Selections) Ω (QReg.of Unit))
     {K : ℕ} (hK : IFreeM.IsChargeBound x (progChargeR HPos Selections) K) :
     (runtimeR m0R).totalWeight .instruments (extWeight (hwCost (fun _ _ ↦ 0)
-      fun _ σ ↦ ENNReal.ofReal σ.trace.re)) x initR ≤ K := by
-  refine (totalWeight_le_totalWeight (runtimeR m0R) .instruments
-    (w' := fun i σ ↦ (extProgCharge X Z Mem (recSpec HPos Selections) i : ℝ≥0∞) *
-      ENNReal.ofReal σ.trace.re) (fun i σ _ ↦ ?_) x initR_posSemidef).trans ?_
-  · rcases i with ((p | c) | c) | T <;> simp [extWeight, sumWeight, hwCost, extProgCharge,
-      progCharge]
-    exact le_of_eq rfl
-  · refine (totalWeight_chargeTrace_le (runtimeR m0R) .instruments _ x hK
-      initR_posSemidef).trans ?_
-    calc (K : ℝ≥0∞) * ENNReal.ofReal initR.trace.re ≤ K * 1 := by
-          gcongr
-          exact ofReal_trace_initR_le_one
-      _ = K := mul_one _
+      fun _ σ ↦ ENNReal.ofReal σ.trace.re)) x initR ≤ K :=
+  totalWeight_progs_le_of m0R initR_posSemidef ofReal_trace_initR_le_one x hK
 
 /-- **`progRest` from the view bound of the programs.** For event-bound programs `x L` with at
 most `progCap` program calls, if the averaged program flip costs `f` are at most `2^-128` per unit
