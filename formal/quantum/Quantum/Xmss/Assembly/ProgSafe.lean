@@ -728,7 +728,7 @@ theorem forallQueries_queryBind_of_stepC (I : Λ.Interp) {A : QReg}
       {s : HwReg X Z Mem | AllHw C s.2.1} ρ) :
     (runtimeR m0R).ForallQueries I (bSupp L) (QuantumComp.queryBind i E ℓ k') ρ :=
   ⟨fun a ha ↦ relabel_diag_eq_zero_of_supp m0R E ℓ hρ a fun hC ↦ ha (hpre _ hC), fun r ↦
-    hk r _ (querySupportedOn_queryStep (runtimeR m0R) (fun s ↦ s) i r (hstep r) E ℓ hρ)⟩
+    hk r _ (Hybrid.querySupportedOn_queryStep (runtimeR m0R) (fun s ↦ s) i r (hstep r) E ℓ hρ)⟩
 
 /-- **The realized program of a template whose program ports are safe in batch order presents
 only states where the called port is safe once inside `tableHw L`.** -/
