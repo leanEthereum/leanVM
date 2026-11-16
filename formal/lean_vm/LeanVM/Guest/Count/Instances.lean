@@ -20,7 +20,7 @@ import LeanVM.Guest.Data.Source
 /-!
 # The budget's static hypotheses
 
-Words at `B2C.fs` by name (`Count.Words`): `wSB f`, `f`'s constant, and `wSK f`, a loop helper's
+Words at `Deployed.fs` by name (`Count.Words`): `wSB f`, `f`'s constant, and `wSK f`, a loop helper's
 words per iteration with its run's phantom frame, which every call site of `main`'s side charges
 once (`iterK_totalLeOn`), each function found by `wIdx` (a loop helper by `idx%`) and checked by
 `decide +kernel`.
@@ -32,17 +32,17 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory Le
 
 @[expose] public section
 
-/-- **A loop helper's run at `B2C.fs`**: `B1.Main.iterK` (`wSKt`) words per iteration and its
+/-- **A loop helper's run at `Deployed.fs`**: `B1.Main.iterK` (`wSKt`) words per iteration and its
 phantom frame once. -/
 theorem iterK_totalLeOn {j : ℕ} {f : String} (h : wOkK j f = true) :
-    TotalLeOn coreProgram B2C.fs f LoopPre
-      fun a => logG (a.getD 1 0) * B1.Main.iterK B2C.fs wSK f + B2C.fs f := by
+    TotalLeOn coreProgram Deployed.fs f LoopPre
+      fun a => logG (a.getD 1 0) * B1.Main.iterK Deployed.fs wSK f + Deployed.fs f := by
   unfold B1.Main.iterK
   rw [← wSKt_eq]
   exact wSKt_totalLeOn h
 
 /-- **`main`'s statically bounded callees' words.** -/
-theorem mainStaticsMain : B1.Main.MainStaticsMain B2C.fs wSB wSK where
+theorem mainStaticsMain : B1.Main.MainStaticsMain Deployed.fs wSB wSK where
   l1 := iterK_totalLeOn (j := idx% main_loop0) (by decide +kernel)
   l2 := iterK_totalLeOn (j := idx% main_loop1) (by decide +kernel)
   l3 := iterK_totalLeOn (j := idx% main_loop2) (by decide +kernel)
@@ -60,19 +60,19 @@ theorem offLoops_ok :
 
 /-- **`da_vector`'s words within its static bound**: its frame and buffers, its callees' frames
 and buffers, the doublings' iterations and their runs' phantom frames. -/
-theorem vec_le : B2C.fs "da_vector" + 28 + (B2C.fs "da_factors__L13_L7_L0" + 128 +
-    (B2C.fs "da_expand__L13_L7" + (B2C.fs "da_factors__L6_L7_L128" + 128 +
-      (B2C.fs "da_column_offsets" + 945 +
-        ((List.range 7).map fun b => 2 ^ b * B1.Main.iterK B2C.fs wSK (B1.Da.offLoopName b) +
-          B2C.fs (B1.Da.offLoopName b)).sum + 0)))) ≤
+theorem vec_le : Deployed.fs "da_vector" + 28 + (Deployed.fs "da_factors__L13_L7_L0" + 128 +
+    (Deployed.fs "da_expand__L13_L7" + (Deployed.fs "da_factors__L6_L7_L128" + 128 +
+      (Deployed.fs "da_column_offsets" + 945 +
+        ((List.range 7).map fun b => 2 ^ b * B1.Main.iterK Deployed.fs wSK (B1.Da.offLoopName b) +
+          Deployed.fs (B1.Da.offLoopName b)).sum + 0)))) ≤
     wSB "da_vector" := by
   unfold B1.Main.iterK
   decide +kernel
 
-theorem exp_le : B2C.fs "da_expand__L6_L7" ≤ wSB "da_expand__L6_L7" := by decide +kernel
+theorem exp_le : Deployed.fs "da_expand__L6_L7" ≤ wSB "da_expand__L6_L7" := by decide +kernel
 
 /-- **`da_verify`'s static bounds**, at the deployed frame sizes. -/
-theorem dvStatic : B1.Da.DvStaticB B2C.fs wSB wSK where
+theorem dvStatic : B1.Da.DvStaticB Deployed.fs wSB wSK where
   l17 := iterK_totalLeOn (j := idx% da_verify_loop0) (by decide +kernel)
   l19 := iterK_totalLeOn (j := idx% da_verify_loop2) (by decide +kernel)
   l20 := iterK_totalLeOn (j := idx% da_verify_loop3) (by decide +kernel)
@@ -87,8 +87,8 @@ theorem clNames_ok :
     (List.range 17).all (fun k => wOkB (wIdx B1.Digest.clNames[k]!) B1.Digest.clNames[k]!) = true := by
   decide +kernel
 
-/-- **The words of the static callees of `main`'s non-static callees**, at `B2C.fs`. -/
-theorem mainStatics : B1.Main.MainStatics B2C.fs wSB wSK where
+/-- **The words of the static callees of `main`'s non-static callees**, at `Deployed.fs`. -/
+theorem mainStatics : B1.Main.MainStatics Deployed.fs wSB wSK where
   main := mainStaticsMain
   dv := dvStatic
   ls := wSB_totalLe (j := wIdx "list_split") (by decide +kernel)

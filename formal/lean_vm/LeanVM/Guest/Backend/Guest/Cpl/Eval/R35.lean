@@ -92,7 +92,7 @@ kernel_rfl place1504 : placedAt 1504 = some plc1504
 theorem cplOkL_1504_0 : partsOk [0, 1, 2] 1504 plc1504 = true := by
   decide +kernel
 
-theorem cplOkL_1504_1 : partsOk [3, 4, 5, 6, 7] 1504 plc1504 = true := by
+theorem cplOkL_1504_1 : partsOk [3, 4, 5, 6, 7, 8] 1504 plc1504 = true := by
   decide +kernel
 
 /-- The test of entries 1504 to 1504 (`walk_path__L18_L5`, 1757 instructions). -/
@@ -178,7 +178,7 @@ kernel_rfl place1511 : placedAt 1511 = some plc1511
 theorem cplOkL_1511_0 : partsOk [0, 1, 2] 1511 plc1511 = true := by
   decide +kernel
 
-theorem cplOkL_1511_1 : partsOk [3, 4, 5, 6, 7] 1511 plc1511 = true := by
+theorem cplOkL_1511_1 : partsOk [3, 4, 5, 6, 7, 8] 1511 plc1511 = true := by
   decide +kernel
 
 /-- The test of entries 1511 to 1511 (`walk_path__L18_L6`, 1757 instructions). -/
@@ -264,7 +264,7 @@ kernel_rfl place1518 : placedAt 1518 = some plc1518
 theorem cplOkL_1518_0 : partsOk [0, 1, 2] 1518 plc1518 = true := by
   decide +kernel
 
-theorem cplOkL_1518_1 : partsOk [3, 4, 5, 6, 7] 1518 plc1518 = true := by
+theorem cplOkL_1518_1 : partsOk [3, 4, 5, 6, 7, 8] 1518 plc1518 = true := by
   decide +kernel
 
 /-- The test of entries 1518 to 1518 (`walk_path__L18_L7`, 1757 instructions). -/

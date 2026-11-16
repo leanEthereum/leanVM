@@ -80,7 +80,7 @@ kernel_rfl place384 : placedAt 384 = some plc384
 theorem cplOkL_384_0 : partsOk [0, 1, 2] 384 plc384 = true := by
   decide +kernel
 
-theorem cplOkL_384_1 : partsOk [3, 4, 5, 6, 7] 384 plc384 = true := by
+theorem cplOkL_384_1 : partsOk [3, 4, 5, 6, 7, 8] 384 plc384 = true := by
   decide +kernel
 
 /-- The test of entries 384 to 384 (`__loop19`, 2057 instructions). -/

@@ -60,7 +60,7 @@ kernel_rfl place87 : placedAt 87 = some plc87
 theorem cplOkL_87_0 : partsOk [0, 1, 2] 87 plc87 = true := by
   decide +kernel
 
-theorem cplOkL_87_1 : partsOk [3, 4, 5, 6, 7] 87 plc87 = true := by
+theorem cplOkL_87_1 : partsOk [3, 4, 5, 6, 7, 8] 87 plc87 = true := by
   decide +kernel
 
 /-- The test of entries 87 to 87 (`rs_eq_rows__L6`, 1291 instructions). -/
@@ -110,7 +110,7 @@ kernel_rfl place88 : placedAt 88 = some plc88
 theorem cplOkL_88_0 : partsOk [0, 1, 2] 88 plc88 = true := by
   decide +kernel
 
-theorem cplOkL_88_1 : partsOk [3, 4, 5, 6, 7] 88 plc88 = true := by
+theorem cplOkL_88_1 : partsOk [3, 4, 5, 6, 7, 8] 88 plc88 = true := by
   decide +kernel
 
 /-- The test of entries 88 to 88 (`rs_eq_rows__L7`, 1484 instructions). -/

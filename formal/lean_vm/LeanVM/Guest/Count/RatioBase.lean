@@ -8,9 +8,8 @@
 module
 
 public import LeanVM.Guest.CoreRef
-public import LeanVM.Guest.B2C.Cells
+public import LeanVM.Guest.Deployed
 public import LeanVM.Guest.Memory.WeightRatio
-public import LeanVM.Guest.B2C.ArmBound
 public import LeanVM.Guest.Memory.GuestIdx
 
 /-!
@@ -18,7 +17,7 @@ public import LeanVM.Guest.Memory.GuestIdx
 
 `krIn J` is the set of the core functions of indices `J`. `krClosedAt J C i` checks that the calls
 of function `i` are the functions of indices `C i`, all in `J`; `krRatioAt A i` that function `i`
-has at most `A op / 1000` of `op`'s instructions (`B2C.pathMax`) per frame word (`B2C.fs`), read
+has at most `A op / 1000` of `op`'s instructions (`Deployed.pathMax`) per frame word (`Deployed.fs`), read
 from the compiled data by index. Both are decided over `J`, by index, comparing no names but the
 calls'. `kr_weight`: then every valid tree of a function of `J` counts at most `A op / 1000` of
 `op`'s instructions per word it allocates.
@@ -26,7 +25,7 @@ calls'. `kr_weight`: then every valid tree of a function of `J` counts at most `
 
 namespace LeanVM.Guest.Count
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.B2C
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.Deployed
 
 @[expose] public section
 
@@ -44,7 +43,7 @@ noncomputable def krClosedAt (J : List ℕ) (C : ℕ → List ℕ) (i : ℕ) : B
 /-- Function `i` within the ratios `A op / 1000`. -/
 noncomputable def krRatioAt (A : Opcode → ℕ) (i : ℕ) : Bool :=
   [Opcode.xor, .mulNative, .setConstant, .deref, .jump, .keccak].all fun op =>
-    Nat.ble (1000 * (plumbOf (i + 1)).pmax.getD (opIdx op) 0) (A op * fsN (i + 1))
+    Nat.ble (1000 * (pmaxOf (i + 1)).getD (opIdx op) 0) (A op * fsN (i + 1))
 
 theorem kr_all_append {p : ℕ → Bool} {l1 l2 : List ℕ} (h1 : l1.all p = true) (h2 : l2.all p = true) :
     (l1 ++ l2).all p = true := by
@@ -52,7 +51,7 @@ theorem kr_all_append {p : ℕ → Bool} {l1 l2 : List ℕ} (h1 : l1.all p = tru
 
 theorem kr_idxOf {i : ℕ} (hi : i < coreProgram.length) : idxOf coreProgram[i].name = some (i + 1) := by
   unfold idxOf
-  rw [coreProgram_indexOf?_getElem hi]
+  rw [indexOf?_getElem hi]
   rfl
 
 theorem kr_of_in {J : List ℕ} {g : String} (h : krIn J g) :

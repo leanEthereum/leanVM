@@ -68,7 +68,7 @@ kernel_rfl place343 : placedAt 343 = some plc343
 theorem cplOkL_343_0 : partsOk [0, 1, 2] 343 plc343 = true := by
   decide +kernel
 
-theorem cplOkL_343_1 : partsOk [3, 4, 5, 6, 7] 343 plc343 = true := by
+theorem cplOkL_343_1 : partsOk [3, 4, 5, 6, 7, 8] 343 plc343 = true := by
   decide +kernel
 
 /-- The test of entries 343 to 343 (`open_stacked__L8`, 2321 instructions). -/
@@ -122,7 +122,7 @@ kernel_rfl place344 : placedAt 344 = some plc344
 theorem cplOkL_344_0 : partsOk [0, 1, 2] 344 plc344 = true := by
   decide +kernel
 
-theorem cplOkL_344_1 : partsOk [3, 4, 5, 6, 7] 344 plc344 = true := by
+theorem cplOkL_344_1 : partsOk [3, 4, 5, 6, 7, 8] 344 plc344 = true := by
   decide +kernel
 
 /-- The test of entries 344 to 344 (`open_stacked__L9`, 2401 instructions). -/
@@ -176,7 +176,7 @@ kernel_rfl place345 : placedAt 345 = some plc345
 theorem cplOkL_345_0 : partsOk [0, 1, 2] 345 plc345 = true := by
   decide +kernel
 
-theorem cplOkL_345_1 : partsOk [3, 4, 5, 6, 7] 345 plc345 = true := by
+theorem cplOkL_345_1 : partsOk [3, 4, 5, 6, 7, 8] 345 plc345 = true := by
   decide +kernel
 
 /-- The test of entries 345 to 345 (`open_stacked__L10`, 2496 instructions). -/
@@ -226,7 +226,7 @@ kernel_rfl place346 : placedAt 346 = some plc346
 theorem cplOkL_346_0 : partsOk [0, 1, 2] 346 plc346 = true := by
   decide +kernel
 
-theorem cplOkL_346_1 : partsOk [3, 4, 5, 6, 7] 346 plc346 = true := by
+theorem cplOkL_346_1 : partsOk [3, 4, 5, 6, 7, 8] 346 plc346 = true := by
   decide +kernel
 
 /-- The test of entries 346 to 346 (`__loop15`, 1242 instructions). -/

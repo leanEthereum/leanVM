@@ -116,7 +116,7 @@ kernel_rfl place1525 : placedAt 1525 = some plc1525
 theorem cplOkL_1525_0 : partsOk [0, 1, 2] 1525 plc1525 = true := by
   decide +kernel
 
-theorem cplOkL_1525_1 : partsOk [3, 4, 5, 6, 7] 1525 plc1525 = true := by
+theorem cplOkL_1525_1 : partsOk [3, 4, 5, 6, 7, 8] 1525 plc1525 = true := by
   decide +kernel
 
 /-- The test of entries 1525 to 1525 (`walk_path__L24_L2`, 2336 instructions). -/
@@ -214,7 +214,7 @@ kernel_rfl place1532 : placedAt 1532 = some plc1532
 theorem cplOkL_1532_0 : partsOk [0, 1, 2] 1532 plc1532 = true := by
   decide +kernel
 
-theorem cplOkL_1532_1 : partsOk [3, 4, 5, 6, 7] 1532 plc1532 = true := by
+theorem cplOkL_1532_1 : partsOk [3, 4, 5, 6, 7, 8] 1532 plc1532 = true := by
   decide +kernel
 
 /-- The test of entries 1532 to 1532 (`walk_path__L24_L3`, 2336 instructions). -/

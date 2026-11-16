@@ -72,7 +72,7 @@ kernel_rfl place1176 : placedAt 1176 = some plc1176
 theorem cplOkL_1176_0 : partsOk [0, 1, 2] 1176 plc1176 = true := by
   decide +kernel
 
-theorem cplOkL_1176_1 : partsOk [3, 4, 5, 6, 7] 1176 plc1176 = true := by
+theorem cplOkL_1176_1 : partsOk [3, 4, 5, 6, 7, 8] 1176 plc1176 = true := by
   decide +kernel
 
 /-- The test of entries 1176 to 1176 (`verify_merkle_cap__L8`, 2810 instructions). -/

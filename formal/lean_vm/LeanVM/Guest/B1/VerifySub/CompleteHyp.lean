@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Main.VerifySubGoals
 /-!
 # `VsCompleteHyp`, discharged
 
-`vsCompleteHyp_fs`: at the deployed frame sizes `B2C.fs`, for certificates whose runs fit their
+`vsCompleteHyp_fs`: at the deployed frame sizes `Deployed.fs`, for certificates whose runs fit their
 frames with consecutive cells, `verify_sub` is complete on every child `VsChildOk` holds of, by a
 tree of `vsTsAny` within `vsBoundAt W vkBound` at its announced stack log and rate
 (`verify_sub_completeBT_fs`), and that shape is an opening arm (`child_segments`).
@@ -26,12 +26,12 @@ open LeanVM.Node LeanVM.Guest.Memory
 
 @[expose] public section
 
-/-- **`verify_sub`'s completeness hypothesis of main's goals, discharged** at `B2C.fs`. -/
+/-- **`verify_sub`'s completeness hypothesis of main's goals, discharged** at `Deployed.fs`. -/
 theorem vsCompleteHyp_fs {bytecode : List K} (hbl : bytecode.length = 2 ^ 23)
-    {cert : String → V → ℕ} (hrf : Lift.RunsFit LeanVM.Guest.B2C.fs cert)
-    (hcons : RunsConsec cert) (W : VsWordsOs LeanVM.Guest.B2C.fs) :
-    Main.VsCompleteHyp bytecode LeanVM.Guest.B2C.fs cert 16
-      (vsTsAny LeanVM.Guest.B2C.fs W vkBound) (vsBoundAt W vkBound) where
+    {cert : String → V → ℕ} (hrf : Lift.RunsFit LeanVM.Guest.Deployed.fs cert)
+    (hcons : RunsConsec cert) (W : VsWordsOs LeanVM.Guest.Deployed.fs) :
+    Main.VsCompleteHyp bytecode LeanVM.Guest.Deployed.fs cert 16
+      (vsTsAny LeanVM.Guest.Deployed.fs W vkBound) (vsBoundAt W vkBound) where
   complete seed c sqE outE Lin hc hexp hout :=
     verify_sub_completeBT_fs hbl hrf hcons W le_rfl seed c sqE outE Lin hc.1 hc.2.1 hc.2.2.1
       hc.2.2.2 hexp hout

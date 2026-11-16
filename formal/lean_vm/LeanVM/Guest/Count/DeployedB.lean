@@ -18,7 +18,7 @@ open LeanVM.Guest.B1.Main (nameSum dlK clC clS ccC ccS dvC dvS dvP l5A0 l5A1 l5A
 @[expose] public section
 
 /-- **`da_verify`'s constant words.** -/
-theorem dvC_eq : dvC B2C.fs wSB = 102597 := by
+theorem dvC_eq : dvC Deployed.fs wSB = 102597 := by
   unfold dvC
   rw [fs_idx (j := 27) (f := "da_verify") (by decide +kernel),
     fs_idx (j := 28) (f := "da_padding") (by decide +kernel),
@@ -33,7 +33,7 @@ theorem dvC_eq : dvC B2C.fs wSB = 102597 := by
   decide +kernel
 
 /-- **`da_verify`'s words per row.** -/
-theorem dvS_eq : dvS B2C.fs wSK = 117216 := by
+theorem dvS_eq : dvS Deployed.fs wSK = 117216 := by
   unfold dvS B1.Main.iterK
   rw [fs_idx (j := 403) (f := "__loop21") (by decide +kernel),
     fs_idx (j := 405) (f := "__loop23") (by decide +kernel),
@@ -46,7 +46,7 @@ theorem dvS_eq : dvS B2C.fs wSK = 117216 := by
   decide +kernel
 
 /-- **`da_verify`'s words per padded row.** -/
-theorem dvP_eq : dvP B2C.fs wSB wSK = 65 := by
+theorem dvP_eq : dvP Deployed.fs wSB wSK = 65 := by
   unfold dvP B1.Main.iterK
   rw [dlK_eq,
     fs_idx (j := 406) (f := "__loop24") (by decide +kernel),

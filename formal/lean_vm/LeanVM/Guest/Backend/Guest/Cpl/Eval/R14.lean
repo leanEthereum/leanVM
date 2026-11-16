@@ -64,7 +64,7 @@ kernel_rfl place425 : placedAt 425 = some plc425
 theorem cplOkL_425_0 : partsOk [0, 1, 2] 425 plc425 = true := by
   decide +kernel
 
-theorem cplOkL_425_1 : partsOk [3, 4, 5, 6, 7] 425 plc425 = true := by
+theorem cplOkL_425_1 : partsOk [3, 4, 5, 6, 7, 8] 425 plc425 = true := by
   decide +kernel
 
 /-- The test of entries 425 to 425 (`rs_eq_rows__L8`, 1677 instructions). -/

@@ -50,8 +50,8 @@ set_option maxRecDepth 100000 in
 set_option maxHeartbeats 40000000 in
 /-- **`verify_tables`' weight bound at the deployed instance.** -/
 theorem vtWB_eq (op : Opcode) : B1.VerifySub.vtWB vsWords op = kcVtW op := by
-  show B2C.ωArm B2C.xmssArmC op "verify_tables" + (B1.Tables.vtBs (kuSB op)
-    (B2C.ωArm B2C.xmssArmC op "shared_selector_tables" + 15 * kuSK op (name% shared_selector_tables_loop0) + kSpW op)
+  show Deployed.ωArm Deployed.xmssArmC op "verify_tables" + (B1.Tables.vtBs (kuSB op)
+    (Deployed.ωArm Deployed.xmssArmC op "shared_selector_tables" + 15 * kuSK op (name% shared_selector_tables_loop0) + kSpW op)
     (32 * kuSK op (name% verify_tables_loop0))).sum = kcVtW op
   rw [ωArm_idx (j := idx% verify_tables) (by decide +kernel) (by decide),
     ωArm_idx (j := idx% shared_selector_tables) (by decide +kernel) (by decide)]
@@ -63,11 +63,11 @@ set_option maxRecDepth 100000 in
 set_option maxHeartbeats 40000000 in
 /-- **The terminal's weight bound at the deployed instance.** -/
 theorem termWB_eq (op : Opcode) : B1.VerifySub.termWB vsWords op = kcTermW op := by
-  show B2C.ωArm B2C.xmssArmC op "check_opening_terminal" +
+  show Deployed.ωArm Deployed.xmssArmC op "check_opening_terminal" +
     (B1.VerifySub.termWs (fun op => kuSB op "eq_prefix_chain")
-      (fun op => krVl15A op * max (B2C.fs (name% check_opening_terminal_loop0)) (32 * 38) / 1000)
+      (fun op => krVl15A op * max (Deployed.fs (name% check_opening_terminal_loop0)) (32 * 38) / 1000)
       (fun op => kuSB op "selector_tables") kCsW
-      (fun op => krVrswA op * (B2C.fs "ring_switch_weight" + 2240 + 16433) / 1000) op).sum =
+      (fun op => krVrswA op * (Deployed.fs "ring_switch_weight" + 2240 + 16433) / 1000) op).sum =
     kcTermW op
   rw [ωArm_idx (j := idx% check_opening_terminal) (by decide +kernel) (by decide)]
   unfold kCsW

@@ -80,7 +80,7 @@ kernel_rfl place266 : placedAt 266 = some plc266
 theorem cplOkL_266_0 : partsOk [0, 1, 2] 266 plc266 = true := by
   decide +kernel
 
-theorem cplOkL_266_1 : partsOk [3, 4, 5, 6, 7] 266 plc266 = true := by
+theorem cplOkL_266_1 : partsOk [3, 4, 5, 6, 7, 8] 266 plc266 = true := by
   decide +kernel
 
 /-- The test of entries 266 to 266 (`keccak_layer__L1`, 1449 instructions). -/
@@ -138,7 +138,7 @@ kernel_rfl place267 : placedAt 267 = some plc267
 theorem cplOkL_267_0 : partsOk [0, 1, 2] 267 plc267 = true := by
   decide +kernel
 
-theorem cplOkL_267_1 : partsOk [3, 4, 5, 6, 7] 267 plc267 = true := by
+theorem cplOkL_267_1 : partsOk [3, 4, 5, 6, 7, 8] 267 plc267 = true := by
   decide +kernel
 
 /-- The test of entries 267 to 267 (`keccak_layer__L0`, 1778 instructions). -/
