@@ -31,10 +31,9 @@ Security's debt `endReads`, reduced to a decomposition of the winning runs (`Win
   `x` is at most the event weight of an event-bound program `x₀` plus the read error, given
   operators covering the win, one per run of the final reads, recorded in the decompressed basis
   and in the event in the compressed basis, whose event weights are part of `x₀`'s. For the game,
-  `x₀` is the challenge prefix and the final reads are the verification's.
+  `x₀` is the game itself and the final reads are the verification's.
 
-Not here: the construction of `WinDecomp` for the canonical game on good tables (`TableGood`),
-along Template's `gameT_eq_prefixT_bind`.
+The construction of `WinDecomp` for the canonical game is WinDecomp's `endReads_wGame`.
 -/
 
 open OracleComp OracleSpec
@@ -72,16 +71,17 @@ def selSignature (req : SigningRequest) : Option Signature :=
         (littleEndianBytes 16 (L.bottomRoot req.leafIndex))).map fun top ↦
       ⟨req.leafIndex, fun lay ↦ if lay = bottomLayer then bottom else top⟩
 
-/-- The positions the signature of a request with the selection `S` discloses. -/
+/-- The positions the signature of a request with the selection `S` discloses, layer by layer: a
+layer with a selection is disclosed even when the other layer's search fails (the runtime-2 signer
+reveals and hardwires a layer as soon as its search succeeds). -/
 def selDisclosedBy (req : SigningRequest) : Set Pos :=
-  match S bottomLayer (keyIndexOnLayer req.leafIndex bottomLayer)
-      (littleEndianBytes 32 req.message),
-    S topLayer (keyIndexOnLayer req.leafIndex topLayer)
-      (littleEndianBytes 16 (L.bottomRoot req.leafIndex)) with
-  | some bottom, some top =>
-      layerDisclosed bottomLayer (keyIndexOnLayer req.leafIndex bottomLayer) bottom.2 ∪
-        layerDisclosed topLayer (keyIndexOnLayer req.leafIndex topLayer) top.2
-  | _, _ => ∅
+  (S bottomLayer (keyIndexOnLayer req.leafIndex bottomLayer)
+      (littleEndianBytes 32 req.message)).elim ∅
+      (fun bottom ↦ layerDisclosed bottomLayer (keyIndexOnLayer req.leafIndex bottomLayer)
+        bottom.2) ∪
+    (S topLayer (keyIndexOnLayer req.leafIndex topLayer)
+      (littleEndianBytes 16 (L.bottomRoot req.leafIndex))).elim ∅
+      (fun top ↦ layerDisclosed topLayer (keyIndexOnLayer req.leafIndex topLayer) top.2)
 
 /-- The positions disclosed after the requests `reqs` with the selection `S`. -/
 def selDisclosures (reqs : List SigningRequest) : Set Pos :=
@@ -90,10 +90,6 @@ def selDisclosures (reqs : List SigningRequest) : Set Pos :=
 /-- The honest signatures are those of the honest selection. -/
 theorem selSignature_select (req : SigningRequest) :
     L.selSignature L.select req = L.signature req :=
-  rfl
-
-theorem selDisclosures_select (reqs : List SigningRequest) :
-    L.selDisclosures L.select reqs = L.disclosures reqs :=
   rfl
 
 end HonestTable
@@ -130,20 +126,27 @@ theorem exists_signed_of_known_sel {reqs : List SigningRequest} {l : Layer} {e :
   obtain ⟨req, hreq, hd⟩ := hm
   refine ⟨req, hreq, ?_⟩
   unfold HonestTable.selDisclosedBy at hd
-  rcases hb : S bottomLayer (keyIndexOnLayer req.leafIndex bottomLayer)
-      (littleEndianBytes 32 req.message) with _ | b <;>
-    rcases ht : S topLayer (keyIndexOnLayer req.leafIndex topLayer)
-      (littleEndianBytes 16 (L.bottomRoot req.leafIndex)) with _ | tp <;>
-    simp only [hb, ht, Set.mem_empty_iff_false] at hd
-  rcases hd with (⟨i', hi'⟩ | ⟨lv, hlv⟩) | (⟨i', hi'⟩ | ⟨lv, hlv⟩)
-  · simp only [Pos.chain.injEq] at hi'
-    obtain ⟨rfl, rfl, rfl, rfl⟩ := hi'
-    exact ⟨rfl, b, by rw [layerMessage_bottom]; exact hb, hj'⟩
-  · cases hlv
-  · simp only [Pos.chain.injEq] at hi'
-    obtain ⟨rfl, rfl, rfl, rfl⟩ := hi'
-    exact ⟨rfl, tp, by rw [layerMessage_top]; exact ht, hj'⟩
-  · cases hlv
+  rcases hd with hd | hd
+  · rcases hb : S bottomLayer (keyIndexOnLayer req.leafIndex bottomLayer)
+        (littleEndianBytes 32 req.message) with _ | b
+    · rw [hb] at hd
+      exact absurd hd (Set.notMem_empty _)
+    · rw [hb] at hd
+      rcases hd with ⟨i', hi'⟩ | ⟨lv, hlv⟩
+      · simp only [Pos.chain.injEq] at hi'
+        obtain ⟨rfl, rfl, rfl, rfl⟩ := hi'
+        exact ⟨rfl, b, by rw [layerMessage_bottom]; exact hb, hj'⟩
+      · cases hlv
+  · rcases ht : S topLayer (keyIndexOnLayer req.leafIndex topLayer)
+        (littleEndianBytes 16 (L.bottomRoot req.leafIndex)) with _ | tp
+    · rw [ht] at hd
+      exact absurd hd (Set.notMem_empty _)
+    · rw [ht] at hd
+      rcases hd with ⟨i', hi'⟩ | ⟨lv, hlv⟩
+      · simp only [Pos.chain.injEq] at hi'
+        obtain ⟨rfl, rfl, rfl, rfl⟩ := hi'
+        exact ⟨rfl, tp, by rw [layerMessage_top]; exact ht, hj'⟩
+      · cases hlv
 
 variable {Ex : Set Slot} {M : Memory} {D : Dbs X Z} {log : QueryLog SigningOracleSpec}
 
@@ -402,6 +405,8 @@ namespace Quantum.Xmss.Assembly
 open Quantum Quantum.Sponge Matrix
 open scoped Kronecker ComplexOrder
 
+universe u v
+
 section conjReg
 
 variable {spec : QuantumOracleSpec.{0, 0}} (R : QuantumRuntime spec) (C : Matrix R.D R.D ℂ)
@@ -452,7 +457,7 @@ theorem conjReg_branch (i : spec.Port) (r : spec.Result i) :
 
 /-- **Simulation in the conjugated basis**: running in `conjReg` from the conjugated operator is
 the conjugated run. -/
-theorem run_conjReg {L : LocalSig.{0, 0}} (I : L.Interp) {W : QReg → Type} {A : QReg}
+theorem run_conjReg {L : LocalSig.{u, v}} (I : L.Interp) {W : QReg → Type} {A : QReg}
     (x : QuantumComp L spec W A) (p : Σ u, W u) (ρ : Matrix (A × R.D) (A × R.D) ℂ) :
     ((conjReg R C hC hCh).run I x).branch p
         (MatrixMap.conj ((1 : Matrix A A ℂ) ⊗ₖ C) ρ) =
@@ -502,7 +507,7 @@ theorem querySupportedOn_run
     (hR : ∀ i r (σ : Matrix (spec.In i × R.D) (spec.In i × R.D) ℂ),
       QuerySupportedOn (fun m : spec.In i × R.D ↦ m.2) P σ →
         QuerySupportedOn (fun m : spec.Out i × R.D ↦ m.2) P ((R.step i).branch r σ))
-    {L : LocalSig.{0, 0}} (I : L.Interp) {W : QReg → Type} {A : QReg}
+    {L : LocalSig.{u, v}} (I : L.Interp) {W : QReg → Type} {A : QReg}
     (x : QuantumComp L spec W A) {ρ : Matrix (A × R.D) (A × R.D) ℂ}
     (hρ : QuerySupportedOn (fun m : A × R.D ↦ m.2) P ρ) (p : Σ u, W u) :
     QuerySupportedOn (fun m : p.1 × R.D ↦ m.2) P ((R.run I x).branch p ρ) := by
@@ -917,7 +922,7 @@ from `ρ ⊗ init`, the state in the decompressed basis is supported on register
 have no empty cell. Sponge ports and reads keep the decompressed databases; a program call resets
 its cell to the compressed `⊥`, the uniform superposition of the values; a record call keeps
 them. -/
-theorem noBot_runtimeR (m₀ : Finset S × M) {L : LocalSig.{0, 0}} (I : L.Interp)
+theorem noBot_runtimeR (m₀ : Finset S × M) {L : LocalSig.{u, v}} (I : L.Interp)
     {W : QReg → Type} {A : QReg} (x : QuantumComp L (recHwSpec X Z S M) W A)
     (ρ : Matrix A A ℂ) (p : Σ u, W u) :
     QuerySupportedOn (fun m : p.1 × HwReg X Z (Finset S × M) ↦ m.2) {s | NoBot s}
@@ -1197,9 +1202,10 @@ is covered by operators `σ i` (one per run of the final reads, with its log `lo
 which, in the decompressed basis, has no empty cell and its view holds the log (the reads were
 decompressed-basis measurements returning the log), and, in the compressed basis, is supported
 on registers where a view holding the log is in `Bad`; their event weights are part of the event
-weight of the event-bound program `x₀`. For the game, `x = x₀ >>= verify` with `x₀` the challenge
-prefix: the final reads are the verification's, paid by the read error (`readsRecorded`), not by
-the event bound. -/
+weight of the event-bound program `x₀`. For the canonical game, `x₀ = x`: the event is measured
+at the end of the game, after the verification's reads (a fresh verification read can create a
+hit, which no read error pays; the event bound must price those reads). The reads' recording is
+paid by the read error (`readsRecorded`). -/
 structure WinDecomp (m₀ : Finset S × M)
     (x : QComp (recHwSpec X Z S M) (QReg.of Unit) (QReg.of Unit) Bool)
     {α : Type} (x₀ : QComp (recHwSpec X Z S M) (QReg.of Unit) (QReg.of Unit) α)
@@ -1313,7 +1319,7 @@ section endReads
 variable {S : Type} [Fintype S] [DecidableEq S] [DecidableEq Selections]
 
 /-- **`endReads` from a decomposition of the winning runs** (Security's debt, restated for any
-label type `S`, game `x` and event-bound program `x₀`, canonically the challenge prefix): the win
+label type `S`, game `x` and event-bound program `x₀`, canonically the game itself): the win
 weight of `x` in `runtimeR m₀` is at most the event weight of `BadRS L progCap` at the end of `x₀`
 plus the read error of the verification's `verifyBlocks` reads of each function, given a
 `WinDecomp`. The `bad` field of the decomposition follows from `bad_of_winFacts`. -/
