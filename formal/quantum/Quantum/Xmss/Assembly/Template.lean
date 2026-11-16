@@ -53,11 +53,12 @@ starts included, and tree values), at the table `L` the function `valueAt L`. Pu
 structural slot (chain step, leaf, node) the honest path's cells are functions of the public data
 and the values at `slotNeed s` (payload and output positions): `roundK`, `roundK'` read `k`, `k'`
 of the public keys; `roundH` reads `h`, except at the last round, where the value is corrected by
-`embed128` so that the output digest is the value at the output position. The correction is meant
-to vanish at `pubOf L` and `valueAt L`, and, with the public `h` reparametrized at the honest output
-capacities (`h z - embed128 (trunc128 (rate + h z))`, the output digest zeroed), to give the table's
-value back: the reparametrization `Θ ≃ P × V` on the tables whose honest paths do not share these
-cells. Neither is proved here.
+`embed128` so that the output digest is the value at the output position. The rate's group is XOR,
+so the correction XORs the wanted digest with the current one: the output digest is then the value
+at the output position whatever the public `h` holds there. It vanishes at `pubOf L` and
+`valueAt L`, and with the public `h` reparametrized at the honest output capacities (the output
+digest zeroed) it gives the table's value back: the reparametrization `Θ ≃ P × V` on the tables
+whose honest paths do not share these cells (`Quantum.Xmss.Assembly.Reparam`).
 
 * `gameT M pub A`: reveal the root, run the adversary on the public key against `challengeT`
   (local operations and permutation calls simulated given `π`, so the adversary's calls are sponge
@@ -236,6 +237,13 @@ theorem revealStep_branch (T : Finset S) (v : (s : S) → D s)
     (r : RevealVals D T × (Finset S × M)) :
     (revealStep (X := X) (Z := Z) T v).branch r = MatrixMap.conj (revealKraus T v r) :=
   rfl
+
+omit [Fintype S] [∀ s, Fintype (D s)] [Fintype M] in
+/-- A record of `T` moves the memory `m` to `(m.1 ∪ T, m.2)` and keeps the hardwired cells. -/
+theorem recKraus_ne_zero {T : Finset S} {m : Finset S × M} {u u' : Unit}
+    {s s' : HwReg X Z (Finset S × M)} (h : recKraus T m (u', s') (u, s) ≠ 0) :
+    s'.2 = (s.2.1, (s.2.2.1 ∪ T, s.2.2.2)) :=
+  (clsKraus_ne_zero_cls (one_kronecker_ne_zero h).2).2
 
 omit [Fintype S] [∀ s, Fintype (D s)] [Fintype M] in
 /-- A reveal moves the memory `m` to `(m.1 ∪ T, m.2)` and returns the values of `v` on `T`. -/
@@ -1038,14 +1046,14 @@ def roundK' (pub : Pub) (s : Slot) (f : ValPos → Digest) (j : ℕ) : X × Z :=
   (p.1, pub.keys.2.2 p.1)
 
 /-- The `h`-cell of round `j`, with its value: the public `h` value, except at the last round,
-where it is corrected so that the digest of the output rate is the value at the slot's output
-position. With `pub = pubOf L` and `f = valueAt L` the correction vanishes. -/
+where it is corrected (by XOR, the rate's group) so that the digest of the output rate is the value
+at the slot's output position. With `pub = pubOf L` and `f = valueAt L` the correction vanishes. -/
 def roundH (pub : Pub) (s : Slot) (f : ValPos → Digest) (j : ℕ) : Z × X :=
   let msg := blocks (slotInput pub s f)
   let p := midAt pub (stateAt pub msg j) (msg.getD j 0)
   let z := p.2 + pub.keys.2.2 p.1
   let w := pub.keys.1 z
-  if j + 1 = nBlocks pub s then (z, w + embed128 (f (slotOutPos s) - trunc128 (p.1 + w)))
+  if j + 1 = nBlocks pub s then (z, w + embed128 (f (slotOutPos s) ^^^ trunc128 (p.1 + w)))
   else (z, w)
 
 /-- The values revealed on `T`, extended by `0`. -/
