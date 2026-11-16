@@ -16,7 +16,7 @@ public import LeanVM.Guest.Backend.Complete.PathOps
 
 `cplRun_B`: on a memory holding the jump tables and the frame `FHB` asks, the frame family
 `famB` (`famB_ok`) gives the instructions' meaning (`CplBody`), `fnCompleteStmt` the counted run
-within `pathOps` and the callees' counts, `pathOpsStmt` (with `FnConds.aligned` and `keyedB`'s
+within `pathOps` and the callees' counts, `pathOpsStmt` (on an aligned body, with `keyedB`'s
 distinct selectors) the bound `fnCost`, and the returns are the family's words at the return
 cells (`placed_rets`, `FrameClauses.cell`, `FrameOK.own`).
 -/
@@ -57,20 +57,21 @@ theorem cplRun_B (hW : W.Compiled) (hC : ∀ tf ∈ W.p, FnConds W tf) (keyed : 
   have hlen : kfps.length = ck.length := by rw [hfok.len, hK.1]
   have hzip : (kfps.zip ck).map Prod.snd = ck := List.map_snd_zip (by omega)
   refine ⟨r, c, hr, hrunC, fun op => ?_, fun k hk => ?_⟩
-  · have hops := pathOpsStmt tf pf (hCt.aligned pf hpa) (World.keyedB keyed tf pf)
-      (keyedB_nodup keyed tf pf) σ es vs hw op
-    have hsum : ((kfps.zip ck).map (·.2 op)).sum = (ck.map (· op)).sum := by
+  · have hsum : ((kfps.zip ck).map (·.2 op)).sum = (ck.map (· op)).sum := by
       conv_rhs => rw [← hzip, List.map_map]
       rfl
-    have hfc : W.fnCost keyed tf.core.name σ op = pmaxP (World.keyedB keyed tf pf) pf op +
-        armsCost (armsP (World.keyedB keyed tf pf) tf pf) σ tf.core.body op := by
-      unfold World.fnCost
-      rw [hfo]
     have := hle op
     rw [hsum] at this
     show c op ≤ W.fnCost keyed tf.core.name σ op + _
-    rw [hfc]
-    omega
+    unfold World.fnCost
+    rw [hfo]
+    dsimp only
+    split
+    · next hal =>
+      have hops := pathOpsStmt tf pf hal (World.keyedB keyed tf pf)
+        (keyedB_nodup keyed tf pf) σ es vs hw op
+      omega
+    · omega
   · have hrk := placed_rets hW htf hpa hw k hk
     have hcellv := hcl'.cell vs[k] (by simp [readsP, List.getElem_mem]) _ hrk
     have := hfok.own _ hcellv.1 hcellv.2.1

@@ -15,8 +15,8 @@ public import LeanVM.Guest.Backend.Guest.Cpl.Placed
 # Whole-program completeness at the guest
 
 `guestConds`: every function of the guest passes the per-function conditions of
-`ProgramCompleteStmt`, from the per-function test `cplOkAll` (its scoped, no-self-call,
-temporaries-apart and alignment components and its static test's loop component). Then
+`ProgramCompleteStmt`, from the per-function test `cplOkAll` (its scoped, no-self-call and
+temporaries-apart components and its static test's loop component). Then
 `guest_run_complete` is `program_complete` at `W0`, the guest compiled by the back end
 (`guest_compiles`), counting no arms separately.
 -/
@@ -43,8 +43,7 @@ theorem guestConds : ∀ tf ∈ W0.p, Complete.FnConds W0 tf := by
   have hF := cplOkWith_spec (cplOkWith_of hat (CplEval.cplOkAll i hi'))
   rw [← List.getD_eq_getElem _ default hi]
   exact ⟨hF.isScoped, hF.noSelf, hF.sfacts.loop,
-    fun pf hp => placedAs_unique W0_compiled hpa hp ▸ hF.apart,
-    fun pf hp => placedAs_unique W0_compiled hpa hp ▸ hF.aligned⟩
+    fun pf hp => placedAs_unique W0_compiled hpa hp ▸ hF.apart⟩
 
 /-- **The guest is complete through the back end**: on the honest memory of every run of its
 core IR at the back end's frame sizes and cells, the compiled guest runs from `main`'s entry at

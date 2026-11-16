@@ -34,7 +34,9 @@ on some reader, placed by the bump allocator from word `0`, its `HeapBuf`s those
 **The budget** (`World.progCost`): each instance that runs costs its function's placed path
 maxima `pmaxP` and the separately counted arms its path passes (`armsCost`), summed over the call
 tree. Which functions count their arms separately is a free choice `keyed`; a choice whose arms
-are not on distinct selectors is ignored (`World.keyedB`).
+are not on distinct selectors is ignored (`World.keyedB`). A function whose placed body does not
+pair up with its core body (`alL`; placement is expected always to pair them, `PlaceAlignedStmt`)
+costs its path's instructions `pathOps` instead, so that the statement asks no alignment.
 
 **The statement** (`ProgramCompleteStmt`): for a compiled program whose every function passes the
 decidable per-function conditions, on the honest memory of every such run, the emitted bytecode
@@ -189,12 +191,15 @@ def keyedB (keyed : String → Bool) (tf : TracedFn) (pf : Placed) : Bool :=
   keyed tf.core.name && decide (((armsP true tf pf).map (·.1)).Nodup)
 
 /-- **What an instance of `f` with valuation `σ` costs** of opcode `op`, besides its callees: its
-placed path maxima and the separately counted arms its path passes. -/
+placed path maxima and the separately counted arms its path passes; its path's instructions if
+its placed body does not pair up with its core body. -/
 noncomputable def fnCost (keyed : String → Bool) (f : String) (σ : Val) (op : Opcode) : ℕ :=
   match W.fnOf f with
   | some (tf, pf) =>
-      pmaxP (keyedB keyed tf pf) pf op +
-        armsCost (armsP (keyedB keyed tf pf) tf pf) σ tf.core.body op
+      if alL pf.fn.body tf.core.body then
+        pmaxP (keyedB keyed tf pf) pf op +
+          armsCost (armsP (keyedB keyed tf pf) tf pf) σ tf.core.body op
+      else pathOps σ tf pf op
   | none => 0
 
 /-- **The budget** of opcode `op` for the run `T`. -/
@@ -213,13 +218,12 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 /-! ## The statement -/
 
 /-- **The decidable per-function conditions**: scoped, no direct self call, a loop helper exactly
-when named one, and its placement's temporaries apart and paired with its core body. -/
+when named one, and its placement's temporaries apart. -/
 structure FnConds {κ₀ : ℕ} (W : World κ₀) (tf : TracedFn) : Prop where
   isScoped : Scoped tf
   noSelf : NoSelfCall tf
   loopNamed : isLoopName tf.core.name = tf.core.loop
   tmps : ∀ pf, World.PlacedAs W tf pf → TmpsApart tf pf
-  aligned : ∀ pf, World.PlacedAs W tf pf → Aligned tf pf
 
 /-- **Whole-program completeness**: for a compiled program whose every function passes the
 per-function conditions, on the honest memory of every run `T` of `main` at the back end's frame
