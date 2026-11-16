@@ -67,6 +67,8 @@ import Quantum.Xmss.Assembly.KeysReparam
 import Quantum.Xmss.Assembly.EncPotential
 import Quantum.Xmss.Assembly.PathsDisjoint
 import Quantum.Xmss.Assembly.TrialHit
+import Quantum.Xmss.Assembly.TrialSource
+import Quantum.Sponge.Oracle.Hardwired.DecUniform
 import Quantum.Xmss.Hybrid.SchemeSplit
 import Quantum.Xmss.Hybrid.CoinStage
 import Quantum.Xmss.Hybrid.R0Stage
