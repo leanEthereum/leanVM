@@ -7,6 +7,7 @@
 mod pretty;
 mod program;
 mod prover;
+mod text;
 
 pub use pretty::{pretty_f64, pretty_integer};
 pub use program::{Program, g_pow};
