@@ -480,8 +480,8 @@ theorem cplRunG (hok : CplOkAll) (hFC : Complete.FrameConsistentStmt) (hjt : JTC
     have hpc : pathCount (i + 1) σ op =
         Complete.pmaxP (keyedOf i) (placedG i) op +
           Complete.armsCost (Complete.armsP (keyedOf i) (tfG i) (placedG i)) σ (tfG i).core.body op := by
-      rw [pathCount, ← E.facts.pmax, getD_ofCnt, E.facts.arms, armsCost_eq, hcore]
-      rfl
+      rw [pathCount, B2C.pmax_deployed, Deployed.pmaxOf, ← E.facts.pmax, getD_ofCnt, E.facts.arms,
+        armsCost_eq, hcore, armsOf, B2C.cplArms_deployed]
     have := hle op
     rw [hsum] at this
     rw [hpc]

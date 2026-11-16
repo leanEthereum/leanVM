@@ -88,7 +88,7 @@ kernel_rfl place12 : placedAt 12 = some plc12
 theorem cplOkL_12_0 : partsOk [0, 1, 2] 12 plc12 = true := by
   decide +kernel
 
-theorem cplOkL_12_1 : partsOk [3, 4, 5, 6, 7] 12 plc12 = true := by
+theorem cplOkL_12_1 : partsOk [3, 4, 5, 6, 7, 8] 12 plc12 = true := by
   decide +kernel
 
 /-- The test of entries 12 to 12 (`verify_keccak`, 3246 instructions). -/
@@ -154,7 +154,7 @@ kernel_rfl place17 : placedAt 17 = some plc17
 theorem cplOkL_17_0 : partsOk [0, 1, 2] 17 plc17 = true := by
   decide +kernel
 
-theorem cplOkL_17_1 : partsOk [3, 4, 5, 6, 7] 17 plc17 = true := by
+theorem cplOkL_17_1 : partsOk [3, 4, 5, 6, 7, 8] 17 plc17 = true := by
   decide +kernel
 
 /-- The test of entries 17 to 17 (`check_opening_terminal`, 1724 instructions). -/
@@ -208,7 +208,7 @@ kernel_rfl place18 : placedAt 18 = some plc18
 theorem cplOkL_18_0 : partsOk [0, 1, 2] 18 plc18 = true := by
   decide +kernel
 
-theorem cplOkL_18_1 : partsOk [3, 4, 5, 6, 7] 18 plc18 = true := by
+theorem cplOkL_18_1 : partsOk [3, 4, 5, 6, 7, 8] 18 plc18 = true := by
   decide +kernel
 
 /-- The test of entries 18 to 18 (`verify_sub`, 1683 instructions). -/

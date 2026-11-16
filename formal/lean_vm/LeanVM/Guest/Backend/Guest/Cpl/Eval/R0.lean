@@ -100,7 +100,7 @@ kernel_rfl place1 : placedAt 1 = some plc1
 theorem cplOkL_1_0 : partsOk [0, 1, 2] 1 plc1 = true := by
   decide +kernel
 
-theorem cplOkL_1_1 : partsOk [3, 4, 5, 6, 7] 1 plc1 = true := by
+theorem cplOkL_1_1 : partsOk [3, 4, 5, 6, 7, 8] 1 plc1 = true := by
   decide +kernel
 
 /-- The test of entries 1 to 1 (`exponent_tables`, 4490 instructions). -/

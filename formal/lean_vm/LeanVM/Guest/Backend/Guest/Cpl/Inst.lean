@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.Backend.Guest.Cpl.Placed
+public import LeanVM.Guest.B2C.DeployedEq
 public import LeanVM.Guest.Backend.Guest.Cpl.Insts
 public import LeanVM.Guest.Backend.Complete.InFrameFn
 public import LeanVM.Guest.B2C.Table
@@ -211,7 +212,13 @@ theorem tmps_tfG {f : String} {i : ℕ} (F : FnAt f i) :
     coreProgram.temps f = Stmt.tmpsList (tfG i).core.body := by
   rw [F.temps, F.core]
 
+/-- The completeness instance's frame size of entry `i` is the certificates' (`B2C.fs`'s). -/
+theorem fsWant_cert (i : ℕ) : fsWant i = if i = 0 then Data.mainCells else max 2 (fsAt (i + 1)) := by
+  rw [B2C.fsAt_deployed]
+  rfl
+
 theorem fsWant_le (i : ℕ) : fsWant i ≤ fsN (i + 1) := by
+  rw [fsWant_cert]
   rcases i with _ | i
   · show Data.mainCells ≤ mainFrame
     unfold mainFrame; omega
@@ -219,6 +226,7 @@ theorem fsWant_le (i : ℕ) : fsWant i ≤ fsN (i + 1) := by
     simp
 
 theorem fsWant_eq {i : ℕ} (h : i ≠ 0) : fsWant i = fsN (i + 1) := by
+  rw [fsWant_cert]
   rcases i with _ | i
   · exact absurd rfl h
   · show max 2 (fsAt (i + 1 + 1)) = (bif Nat.beq (i + 1 + 1) 1 then mainFrame else max 2 (fsAt (i + 1 + 1)))
@@ -532,7 +540,7 @@ theorem tableG (hok : CplOkAll) {I : Inst} {σ : Val} {bufs : List ℕ} {kids : 
       obtain ⟨c, hc, -, hn⟩ := E.facts.sfacts.tmpIn t htm
       dsimp only
       rw [F.cert, hc]
-      simpa [fsWant] using hn
+      simpa [fsWant_cert] using hn
     rcases List.mem_append.mp hx with hx | hx
     · obtain ⟨p, r, rs, he, k, hk, rfl⟩ := mem_runsG hx
       obtain ⟨i', hix', ha⟩ := events_atomG ht he

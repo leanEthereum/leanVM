@@ -76,7 +76,7 @@ kernel_rfl place972 : placedAt 972 = some plc972
 theorem cplOkL_972_0 : partsOk [0, 1, 2] 972 plc972 = true := by
   decide +kernel
 
-theorem cplOkL_972_1 : partsOk [3, 4, 5, 6, 7] 972 plc972 = true := by
+theorem cplOkL_972_1 : partsOk [3, 4, 5, 6, 7, 8] 972 plc972 = true := by
   decide +kernel
 
 /-- The test of entries 972 to 972 (`verify_merkle_cap__L7`, 1402 instructions). -/

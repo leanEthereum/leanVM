@@ -11,6 +11,9 @@ public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B19Ns
 public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B19P0
 public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B19P1
 public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B19P2
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B19Pl0
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B19Pl1
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B19Pl2
 
 set_option Elab.async false
 set_option maxRecDepth 100000
@@ -44,6 +47,19 @@ theorem rest19_6 : partsOk [6] 19 pf19 = true := by
 theorem rest19_7 : partsOk [7] 19 pf19 = true := by
   decide +kernel
 
+/-- Entry 19's places, by parts. -/
+theorem rest19_8 : partsOk [8] 19 pf19 = true :=
+  places_big plk19
+    (codesFrom_part plc19_0 (codesFrom_part plc19_1 (codesFrom_end (k := 32768) (by rw [pln19]; decide))))
+    pln19 plp19
+    (all_part valsList_append plv19_0
+    (all_part valsList_append plv19_1
+    (all_part valsList_append plv19_2
+    (all_part valsList_append plv19_3
+    (all_part valsList_append plv19_4
+    (all_part valsList_append plv19_5
+    (all_end (g := Stmt.valsList) rfl (k := 210) (by decide +kernel))))))))
+
 /-- **Entry 19's test.** -/
 theorem cplOk_19 : cplOkAt 19 = true :=
   cplOk_big (pf := pf19) (TL := TL19) (C := cn19_1) (F := fp19_1)
@@ -58,7 +74,7 @@ theorem cplOk_19 : cplOkAt 19 = true :=
     (once_part once19_0 rst19_0 (once_part once19_1 rst19_1 (once_part once19_2 rst19_2 (once_part once19_3 rst19_3 (once_part once19_4 rst19_4 once19_5)))))
     (scope_part scope19_0 (scope_part scope19_1 (scope_part scope19_2 (scope_part scope19_3 (scope_part scope19_4 (scope_end (k := 210) (by decide +kernel)))))))
     fin19
-    (partsOk_4567 rest19_4 rest19_5 rest19_6 rest19_7)
+    (partsOk_45678 rest19_4 rest19_5 rest19_6 rest19_7 rest19_8)
 
 end
 end LeanVM.Guest.Backend.CplEval

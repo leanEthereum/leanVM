@@ -88,7 +88,7 @@ kernel_rfl place86 : placedAt 86 = some plc86
 theorem cplOkL_86_0 : partsOk [0, 1, 2] 86 plc86 = true := by
   decide +kernel
 
-theorem cplOkL_86_1 : partsOk [3, 4, 5, 6, 7] 86 plc86 = true := by
+theorem cplOkL_86_1 : partsOk [3, 4, 5, 6, 7, 8] 86 plc86 = true := by
   decide +kernel
 
 /-- The test of entries 86 to 86 (`rs_eq_rows__L5`, 1098 instructions). -/

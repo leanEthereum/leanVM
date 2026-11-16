@@ -34,7 +34,7 @@ theorem cplOkC_20_2 : partsOk [2] 20 (placedOf (guestTraced.getD 20 default) cut
 theorem cplOkC_20_3 : partsOk [3] 20 (placedOf (guestTraced.getD 20 default) cut20_end).1 = true := by
   decide +kernel
 
-theorem cplOkC_20_4 : partsOk [4, 5, 6, 7] 20 (placedOf (guestTraced.getD 20 default) cut20_end).1 = true := by
+theorem cplOkC_20_4 : partsOk [4, 5, 6, 7, 8] 20 (placedOf (guestTraced.getD 20 default) cut20_end).1 = true := by
   decide +kernel
 
 /-- The test of entries 20 to 20 (`verify_sig_lean_sphincs`, 3887 instructions). -/

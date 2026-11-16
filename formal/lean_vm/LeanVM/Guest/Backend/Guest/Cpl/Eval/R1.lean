@@ -34,7 +34,7 @@ theorem cplOkC_11_2 : partsOk [2] 11 (placedOf (guestTraced.getD 11 default) cut
 theorem cplOkC_11_3 : partsOk [3] 11 (placedOf (guestTraced.getD 11 default) cut11_end).1 = true := by
   decide +kernel
 
-theorem cplOkC_11_4 : partsOk [4, 5, 6, 7] 11 (placedOf (guestTraced.getD 11 default) cut11_end).1 = true := by
+theorem cplOkC_11_4 : partsOk [4, 5, 6, 7, 8] 11 (placedOf (guestTraced.getD 11 default) cut11_end).1 = true := by
   decide +kernel
 
 /-- The test of entries 11 to 11 (`verify_tables`, 5231 instructions). -/

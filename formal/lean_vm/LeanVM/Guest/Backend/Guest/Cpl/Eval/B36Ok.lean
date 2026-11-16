@@ -24,6 +24,26 @@ public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36P12
 public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36P13
 public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36P14
 public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36P15
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36Pl0
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36Pl1
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36Pl2
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36Pl3
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36Pl4
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36Pl5
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36Pl6
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36Pl7
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36Pl8
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36Pl9
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36Pl10
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36Pl11
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36Pl12
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36Pl13
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36Pl14
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36Pl15
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36Pl16
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36Pl17
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36Pl18
+public import LeanVM.Guest.Backend.Guest.Cpl.Eval.B36Pl19
 
 set_option Elab.async false
 set_option maxRecDepth 100000
@@ -101,6 +121,54 @@ theorem rest36_6 : partsOk [6] 36 pf36 = true := by
 theorem rest36_7 : partsOk [7] 36 pf36 = true := by
   decide +kernel
 
+/-- Entry 36's places, by parts. -/
+theorem rest36_8 : partsOk [8] 36 pf36 = true :=
+  places_big plk36
+    (codesFrom_part plc36_0 (codesFrom_part plc36_1 (codesFrom_part plc36_2 (codesFrom_part plc36_3 (codesFrom_part plc36_4 (codesFrom_part plc36_5 (codesFrom_part plc36_6 (codesFrom_part plc36_7 (codesFrom_end (k := 131072) (by rw [pln36]; decide))))))))))
+    pln36 plp36
+    (all_part valsList_append plv36_0
+    (all_part valsList_append plv36_1
+    (all_part valsList_append plv36_2
+    (all_part valsList_append plv36_3
+    (all_part valsList_append plv36_4
+    (all_part valsList_append plv36_5
+    (all_part valsList_append plv36_6
+    (all_part valsList_append plv36_7
+    (all_part valsList_append plv36_8
+    (all_part valsList_append plv36_9
+    (all_part valsList_append plv36_10
+    (all_part valsList_append plv36_11
+    (all_part valsList_append plv36_12
+    (all_part valsList_append plv36_13
+    (all_part valsList_append plv36_14
+    (all_part valsList_append (vals_match plm36_15 plx36_15
+      (valsArms_part pla36_15_0 (valsArms_part pla36_15_1 (valsArms_end (k := 256) (by decide +kernel)))))
+    (all_part valsList_append plv36_16
+    (all_part valsList_append (vals_match plm36_17 plx36_17
+      (valsArms_part pla36_17_0 (valsArms_part pla36_17_1 (valsArms_end (k := 256) (by decide +kernel)))))
+    (all_part valsList_append plv36_18
+    (all_part valsList_append plv36_19
+    (all_part valsList_append plv36_20
+    (all_part valsList_append plv36_21
+    (all_part valsList_append plv36_22
+    (all_part valsList_append plv36_23
+    (all_part valsList_append plv36_24
+    (all_part valsList_append plv36_25
+    (all_part valsList_append plv36_26
+    (all_part valsList_append plv36_27
+    (all_part valsList_append plv36_28
+    (all_part valsList_append plv36_29
+    (all_part valsList_append plv36_30
+    (all_part valsList_append plv36_31
+    (all_part valsList_append plv36_32
+    (all_part valsList_append (vals_match plm36_33 plx36_33
+      (valsArms_part pla36_33_0 (valsArms_part pla36_33_1 (valsArms_end (k := 256) (by decide +kernel)))))
+    (all_part valsList_append plv36_34
+    (all_part valsList_append (vals_match plm36_35 plx36_35
+      (valsArms_part pla36_35_0 (valsArms_part pla36_35_1 (valsArms_end (k := 256) (by decide +kernel)))))
+    (all_part valsList_append plv36_36
+    (all_end (g := Stmt.valsList) rfl (k := 329) (by decide +kernel)))))))))))))))))))))))))))))))))))))))
+
 /-- **Entry 36's test.** -/
 theorem cplOk_36 : cplOkAt 36 = true :=
   cplOk_big (pf := pf36) (TL := TL36) (C := cn36_4) (F := fp36_4)
@@ -115,7 +183,7 @@ theorem cplOk_36 : cplOkAt 36 = true :=
     (once_part once36_0 rst36_0 (once_part once36_1 rst36_1 (once_part once36_2 rst36_2 (once_part once36_3 rst36_3 (once_part once36_4 rst36_4 (once_part once36_5 rst36_5 (once_part once36_6 rst36_6 (once_part once36_7 rst36_7 (once_part once36_8 rst36_8 (once_part once36_9 rst36_9 (once_part once36_10 rst36_10 (once_part once36_11 rst36_11 (once_part once36_12 rst36_12 (once_part once36_13 rst36_13 (once_part once36_14 rst36_14 (once_part once36_15 rst36_15 (once_part once36_16 rst36_16 (once_part once36_17 rst36_17 (once_part once36_18 rst36_18 (once_part once36_19 rst36_19 (once_part once36_20 rst36_20 (once_part once36_21 rst36_21 (once_part once36_22 rst36_22 (once_part once36_23 rst36_23 (once_part once36_24 rst36_24 (once_part once36_25 rst36_25 (once_part once36_26 rst36_26 (once_part once36_27 rst36_27 (once_part once36_28 rst36_28 (once_part once36_29 rst36_29 (once_part once36_30 rst36_30 (once_part once36_31 rst36_31 (once_part once36_32 rst36_32 (once_part once36_33 rst36_33 (once_part once36_34 rst36_34 (once_part once36_35 rst36_35 (once_part once36_36 rst36_36 once36_37)))))))))))))))))))))))))))))))))))))
     (scope_part scope36_0 (scope_part scope36_1 (scope_part scope36_2 (scope_part scope36_3 (scope_part scope36_4 (scope_part scope36_5 (scope_part scope36_6 (scope_part scope36_7 (scope_part scope36_8 (scope_part scope36_9 (scope_part scope36_10 (scope_part scope36_11 (scope_part scope36_12 (scope_part scope36_13 (scope_part scope36_14 (scope_part scope36_15 (scope_part scope36_16 (scope_part scope36_17 (scope_part scope36_18 (scope_part scope36_19 (scope_part scope36_20 (scope_part scope36_21 (scope_part scope36_22 (scope_part scope36_23 (scope_part scope36_24 (scope_part scope36_25 (scope_part scope36_26 (scope_part scope36_27 (scope_part scope36_28 (scope_part scope36_29 (scope_part scope36_30 (scope_part scope36_31 (scope_part scope36_32 (scope_part scope36_33 (scope_part scope36_34 (scope_part scope36_35 (scope_part scope36_36 (scope_end (k := 329) (by decide +kernel)))))))))))))))))))))))))))))))))))))))
     fin36
-    (partsOk_4567 rest36_4 rest36_5 rest36_6 rest36_7)
+    (partsOk_45678 rest36_4 rest36_5 rest36_6 rest36_7 rest36_8)
 
 end
 end LeanVM.Guest.Backend.CplEval

@@ -88,7 +88,7 @@ kernel_rfl place365 : placedAt 365 = some plc365
 theorem cplOkL_365_0 : partsOk [0, 1, 2] 365 plc365 = true := by
   decide +kernel
 
-theorem cplOkL_365_1 : partsOk [3, 4, 5, 6, 7] 365 plc365 = true := by
+theorem cplOkL_365_1 : partsOk [3, 4, 5, 6, 7, 8] 365 plc365 = true := by
   decide +kernel
 
 /-- The test of entries 365 to 365 (`__loop17`, 2466 instructions). -/

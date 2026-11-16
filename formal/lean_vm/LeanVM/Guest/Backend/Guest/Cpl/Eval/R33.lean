@@ -88,7 +88,7 @@ kernel_rfl place1473 : placedAt 1473 = some plc1473
 theorem cplOkL_1473_0 : partsOk [0, 1, 2] 1473 plc1473 = true := by
   decide +kernel
 
-theorem cplOkL_1473_1 : partsOk [3, 4, 5, 6, 7] 1473 plc1473 = true := by
+theorem cplOkL_1473_1 : partsOk [3, 4, 5, 6, 7, 8] 1473 plc1473 = true := by
   decide +kernel
 
 /-- The test of entries 1473 to 1473 (`walk_path__L12_L7`, 1178 instructions). -/
@@ -174,7 +174,7 @@ kernel_rfl place1481 : placedAt 1481 = some plc1481
 theorem cplOkL_1481_0 : partsOk [0, 1, 2] 1481 plc1481 = true := by
   decide +kernel
 
-theorem cplOkL_1481_1 : partsOk [3, 4, 5, 6, 7] 1481 plc1481 = true := by
+theorem cplOkL_1481_1 : partsOk [3, 4, 5, 6, 7, 8] 1481 plc1481 = true := by
   decide +kernel
 
 /-- The test of entries 1481 to 1481 (`walk_path__L18_L2`, 1757 instructions). -/

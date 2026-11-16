@@ -1,5 +1,5 @@
 import LeanVM.Guest.Backend.Guest.Input
-import LeanVM.Guest.Backend.Guest.Cpl.Eval.Split
+import LeanVM.Guest.Backend.Guest.Cpl.Eval.Places
 
 /-!
 # `guest-cpleval`: the kernel's per-function completeness checks of the guest
@@ -14,11 +14,12 @@ and writes the modules in which the kernel decides `Cpl.cplOkAt i` for every ent
   (`CplEval.partsOk`); the entries `cutEntries`, which the pieces place in parts, on the placed
   function their walk's last state gives (`placedOf … cut{j}_end`, `CplEval.placedAt_cut`), with
   no placement run;
-* `B{j}.lean`, `B{j}P{m}.lean`, `B{j}Ok.lean` for the entries `bigEntries`: the temporaries of
-  each run of top-level statements, the scope walk's state after each run and the counts of the
-  temporaries' cells after each chunk of instructions written out (`B{j}`), the run checks
-  (`CplEval.segOk`), the walk's and the counts' steps (`B{j}P{m}`), and their assembly
-  (`CplEval.cplOk_big`, `B{j}Ok`).
+* `B{j}.lean`, `B{j}P{m}.lean`, `B{j}Pl{m}.lean`, `B{j}Ok.lean` for the entries `bigEntries`: the
+  temporaries of each run of top-level statements, the scope walk's state after each run and the
+  counts of the temporaries' cells after each chunk of instructions written out (`B{j}`), the run
+  checks (`CplEval.segOk`), the walk's and the counts' steps (`B{j}P{m}`), the places conjunct by
+  chunks of codes and runs of values (`B{j}Pl{m}`, `Eval/Places.lean`), and their assembly
+  (`CplEval.cplOk_big`, `CplEval.places_big`, `B{j}Ok`).
 
 `lake exe guest-cpleval --check` writes nothing and fails when a file differs. Every state written
 out is computed here natively; the kernel checks each step.
@@ -46,6 +47,12 @@ def maxData : Nat := 700000
 /-- The depth of the subtrees of a big entry's places checked apart, and how many a module. -/
 def nsDepth : Nat := 3
 def nsPerModule : Nat := 2
+/-- A big entry's place codes checked per declaration. -/
+def maxCodes : Nat := 16384
+/-- A big entry's values named per declaration of the places check. -/
+def maxVals : Nat := 30000
+/-- A big entry's places modules: their budget in codes and values named. -/
+def maxPlModule : Nat := 70000
 
 def evalDir : System.FilePath := "LeanVM/Guest/Backend/Guest/Cpl/Eval"
 def modBase : String := "LeanVM.Guest.Backend.Guest.Cpl.Eval"
@@ -194,19 +201,58 @@ structure Seg where
   m : Nat
   w : Nat
 
-/-- Runs of statements of weight at most `maxSeg` (a heavier statement alone). -/
-def segsOf (ws : List Nat) : List Seg := Id.run do
+/-- Runs of items of weight at most `budget` (a heavier item alone). -/
+def segsBy (budget : Nat) (ws : List Nat) : List Seg := Id.run do
   let mut out : Array Seg := #[]
   let mut a := 0
   let mut acc := 0
   for (w, k) in ws.zipIdx do
-    if k > a && acc + w > maxSeg then
+    if k > a && acc + w > budget then
       out := out.push ⟨a, k - a, acc⟩
       a := k
       acc := 0
     acc := acc + w
   out := out.push ⟨a, ws.length - a, acc⟩
   return out.toList
+
+/-- Runs of statements of weight at most `maxSeg` (a heavier statement alone). -/
+def segsOf (ws : List Nat) : List Seg := segsBy maxSeg ws
+
+/-- A big entry's places check by parts (`CplEval.places_big`): its declarations with their
+weights, and the proof of `partsOk [8] j pf{j}` from them. -/
+def placesParts (j : Nat) (tf : TracedFn) : List (Nat × String) × String := Id.run do
+  let tfs := tfOf j
+  let body := tf.core.body
+  let N := (LeanVM.Cost.Decoder.guestPlacesList.getD (j + 1) []).length
+  let mut items : Array (Nat × String) := #[(1, s!"\n/-- The places of entry {j} are values `⟨[], 0, k⟩`. -/\ntheorem plk{j} : keysNumbered pf{j}.locs.t = true := by\n  decide +kernel\n\n/-- Entry {j}'s row of place codes. -/\ntheorem pln{j} : (placesRow {j}).length = {N} := by\n  decide +kernel\n\n/-- Entry {j}'s parameters have place codes. -/\ntheorem plp{j} : {tfs}.core.params.all (valBelow {N}) = true := by\n  decide +kernel\n")]
+  let nc := (N + maxCodes - 1) / maxCodes
+  for q in List.range nc do
+    let a := q * maxCodes
+    items := items.push (maxCodes, s!"\n/-- The codes of entry {j}'s values {a} to {min N (a + maxCodes) - 1}. -/\ntheorem plc{j}_{q} : codesFrom pf{j}.locs {a} (((placesRow {j}).drop {a}).take {maxCodes}) = true := by\n  decide +kernel\n")
+  let codesChain := (List.range nc).foldr (fun q acc => s!"(codesFrom_part plc{j}_{q} {acc})")
+    s!"(codesFrom_end (k := {nc * maxCodes}) (by rw [pln{j}]; decide))"
+  let segs := segsBy maxVals (body.map fun st => (Stmt.valsList [st]).length)
+  let mut steps : Array String := #[]
+  for (g, k) in segs.zipIdx do
+    let arms? : Option (List (List Stmt)) := match body[g.a]? with
+      | some (.match_ _ arms) => if g.m == 1 && g.w > maxVals then some arms else none
+      | _ => none
+    match arms? with
+    | none =>
+      items := items.push (g.w, s!"\n/-- The values statements {g.a} to {g.a + g.m - 1} of entry {j} name have place codes. -/\ntheorem plv{j}_{k} : (Stmt.valsList (({tfs}.core.body.drop {g.a}).take {g.m})).all (valBelow {N}) = true := by\n  decide +kernel\n")
+      steps := steps.push s!"plv{j}_{k}"
+    | some arms =>
+      let armsAt := s!"(armsOf ({tfs}.core.body.getD {g.a} default))"
+      items := items.push (1, s!"\ntheorem plm{j}_{k} : isMatchAt {tfs}.core.body {g.a} = true := by\n  decide +kernel\n\ntheorem plx{j}_{k} : valBelow {N} (selOf ({tfs}.core.body.getD {g.a} default)) = true := by\n  decide +kernel\n")
+      let runs := segsBy maxVals (arms.map fun a => (Stmt.valsList a).length)
+      for (r, ri) in runs.zipIdx do
+        items := items.push (r.w, s!"\n/-- The values arms {r.a} to {r.a + r.m - 1} of statement {g.a} of entry {j} name have place codes. -/\ntheorem pla{j}_{k}_{ri} : (Stmt.valsArms (({armsAt}.drop {r.a}).take {r.m})).all (valBelow {N}) = true := by\n  decide +kernel\n")
+      let armsChain := runs.zipIdx.foldr (fun (_, ri) acc => s!"(valsArms_part pla{j}_{k}_{ri} {acc})")
+        s!"(valsArms_end (k := {arms.length}) (by decide +kernel))"
+      steps := steps.push s!"(vals_match plm{j}_{k} plx{j}_{k}\n      {armsChain})"
+  let valsChain := steps.toList.foldr (fun s acc => s!"(all_part valsList_append {s}\n    {acc})")
+    s!"(all_end (g := Stmt.valsList) rfl (k := {body.length}) (by decide +kernel))"
+  return (items.toList, s!"places_big plk{j}\n    {codesChain}\n    pln{j} plp{j}\n    {valsChain}")
 
 /-- The proof that the subtree `t` at depth `d`, number `q`, has no shift by `g^0`, from the leaves'. -/
 def nsNode (j : Nat) (leafName : Nat → String) (d q : Nat) (t : String) : String :=
@@ -406,14 +452,32 @@ def bigFiles (j : Nat) (tf : TracedFn) (pf : Placed) : Except String (List (Stri
   let nsMod := header s!"B{j}Ns" s!"No place of entry {j} is a shift by `g^0`." ++
     String.join ((List.range nsLeafMods.length).map fun m => s!"public import {modBase}.B{j}Ns{m}\n") ++ opening ++
     s!"\n/-- No place of entry {j} is a shift by `g^0`. -/\ntheorem ns{j} : noShift0 pf{j}.locs = true := by\n  rw [noShift0_eq]\n  exact {nsNode j leafName 0 0 s!"pf{j}.locs.t"}\n" ++ closing
+  -- the places conjunct by parts, in modules of at most `maxPlModule`
+  let (plItems, plProof) := placesParts j tf
+  let mut plMods : Array String := #[]
+  let mut plCur := ""
+  let mut plW := 0
+  for (w, thm) in plItems do
+    if plW > 0 && plW + w > maxPlModule then
+      plMods := plMods.push plCur
+      plCur := ""
+      plW := 0
+    plCur := plCur ++ thm
+    plW := plW + w
+  plMods := plMods.push plCur
+  let plFiles := plMods.toList.zipIdx.map fun (t, m) =>
+    (s!"B{j}Pl{m}", header s!"B{j}Pl{m}" s!"The kernel's places check of entry {j}, by parts." ++
+      s!"public import {modBase}.B{j}\npublic import {modBase}.Places\n" ++ opening ++ t ++ closing)
   let okMod := header s!"B{j}Ok" s!"Entry {j}'s test, from its parts." ++
     s!"public import {modBase}.B{j}Ns\n" ++
-    String.join ((List.range nParts).map fun m => s!"public import {modBase}.B{j}P{m}\n") ++ opening ++ okItems ++
+    String.join ((List.range nParts).map fun m => s!"public import {modBase}.B{j}P{m}\n") ++
+    String.join ((List.range plMods.size).map fun m => s!"public import {modBase}.B{j}Pl{m}\n") ++ opening ++ okItems ++
     s!"\n/-- The checks of entry {j} on its temporaries, parameters and frame. -/\ntheorem small{j} : smallOk {j} pf{j} TL{j} cn{j}_{nC} = true := by\n  decide +kernel\n" ++
     s!"\n/-- The scope walk of entry {j} ends with its trace. -/\ntheorem fin{j} : (match flushAt {tfs}.rets sc{j}_{segs.length} with\n    | .ok s => s.rest.isEmpty\n    | .error _ => false) = true := by\n  decide +kernel\n" ++
     String.join ([4, 5, 6, 7].map fun k => s!"\ntheorem rest{j}_{k} : partsOk [{k}] {j} pf{j} = true := by\n  decide +kernel\n") ++
-    s!"\n/-- **Entry {j}'s test.** -/\ntheorem cplOk_{j} : cplOkAt {j} = true :=\n  cplOk_big (pf := pf{j}) (TL := TL{j}) (C := cn{j}_{nC}) (F := fp{j}_{nC})\n    (S := sc{j}_{segs.length}) (M := sn{j}_{segs.length + 1})\n    (placedAt_cut cut{j}_walk cut{j}_tailOk cut{j}_head)\n    {segChain}\n    small{j}\n    {opsChain "cnt"}\n    {opsChain "fps"}\n    {toChain}\n    ns{j}\n    {onceChain}\n    {scChain}\n    fin{j}\n    (partsOk_4567 rest{j}_4 rest{j}_5 rest{j}_6 rest{j}_7)\n" ++ closing
-  return files ++ nsLeafMods ++ [(s!"B{j}Ns", nsMod), (s!"B{j}Ok", okMod)]
+    s!"\n/-- Entry {j}'s places, by parts. -/\ntheorem rest{j}_8 : partsOk [8] {j} pf{j} = true :=\n  {plProof}\n" ++
+    s!"\n/-- **Entry {j}'s test.** -/\ntheorem cplOk_{j} : cplOkAt {j} = true :=\n  cplOk_big (pf := pf{j}) (TL := TL{j}) (C := cn{j}_{nC}) (F := fp{j}_{nC})\n    (S := sc{j}_{segs.length}) (M := sn{j}_{segs.length + 1})\n    (placedAt_cut cut{j}_walk cut{j}_tailOk cut{j}_head)\n    {segChain}\n    small{j}\n    {opsChain "cnt"}\n    {opsChain "fps"}\n    {toChain}\n    ns{j}\n    {onceChain}\n    {scChain}\n    fin{j}\n    (partsOk_45678 rest{j}_4 rest{j}_5 rest{j}_6 rest{j}_7 rest{j}_8)\n" ++ closing
+  return files ++ nsLeafMods ++ plFiles ++ [(s!"B{j}Ns", nsMod), (s!"B{j}Ok", okMod)]
 
 /-- Runs of entries `(a, b)`, each at most `maxDecl` instructions; cut and large entries alone. -/
 def runsOf (sizes : Array Nat) : List (Nat × Nat) := Id.run do
@@ -443,7 +507,7 @@ def runThm (pls : List Placed) (sizes : Array Nat) (names : Array String) (a b :
   let doc := s!"\n/-- The test of entries {a} to {b - 1} ({what}, {n} instructions). -/\n"
   if cutEntries.contains a then
     let pf := s!"(placedOf {tfOf a} cut{a}_end).1"
-    let groups := ["[0]", "[1]", "[2]", "[3]", "[4, 5, 6, 7]"]
+    let groups := ["[0]", "[1]", "[2]", "[3]", "[4, 5, 6, 7, 8]"]
     String.join (groups.zipIdx.map fun (g, q) =>
       s!"\ntheorem cplOkC_{a}_{q} : partsOk {g} {a} {pf} = true := by\n  decide +kernel\n") ++
       doc ++ s!"theorem cplOk_{a}_{b} : (List.range' {a} 1).all cplOkAt = true :=\n  range_one (f := cplOkAt) (cplOkAt_of_five (placedAt_cut cut{a}_walk cut{a}_tailOk cut{a}_head)\n    cplOkC_{a}_0 cplOkC_{a}_1 cplOkC_{a}_2 cplOkC_{a}_3 cplOkC_{a}_4)\n"
@@ -454,10 +518,10 @@ def runThm (pls : List Placed) (sizes : Array Nat) (names : Array String) (a b :
       chunkedDefs s!"The places of entry {a}." s!"pll{a}" "(V × Loc)" locs ++
       s!"\n/-- Entry {a} placed. -/\nstate_lit plc{a} : Placed :=\n  \{ fn := \{ name := {tfOf a}.core.name, body := plb{a}, frameSize := {pf.fn.frameSize} },\n    locs := KMap.insertAll \{} pll{a} }\n" ++
       s!"\n/-- The placement of entry {a}. -/\nkernel_rfl place{a} : placedAt {a} = some plc{a}\n" ++
-      s!"\ntheorem cplOkL_{a}_0 : partsOk [0, 1, 2] {a} plc{a} = true := by\n  decide +kernel\n\ntheorem cplOkL_{a}_1 : partsOk [3, 4, 5, 6, 7] {a} plc{a} = true := by\n  decide +kernel\n" ++
+      s!"\ntheorem cplOkL_{a}_0 : partsOk [0, 1, 2] {a} plc{a} = true := by\n  decide +kernel\n\ntheorem cplOkL_{a}_1 : partsOk [3, 4, 5, 6, 7, 8] {a} plc{a} = true := by\n  decide +kernel\n" ++
       doc ++ s!"theorem cplOk_{a}_{b} : (List.range' {a} 1).all cplOkAt = true :=\n  range_one (f := cplOkAt) (cplOkAt_of_with_two place{a} cplOkL_{a}_0 cplOkL_{a}_1)\n"
   else if false then
-    s!"\ntheorem cplOkG_{a}_0 : (placedAt {a}).any (partsOk [0, 1, 2] {a}) = true := by\n  decide +kernel\n\ntheorem cplOkG_{a}_1 : (placedAt {a}).any (partsOk [3, 4, 5, 6, 7] {a}) = true := by\n  decide +kernel\n" ++
+    s!"\ntheorem cplOkG_{a}_0 : (placedAt {a}).any (partsOk [0, 1, 2] {a}) = true := by\n  decide +kernel\n\ntheorem cplOkG_{a}_1 : (placedAt {a}).any (partsOk [3, 4, 5, 6, 7, 8] {a}) = true := by\n  decide +kernel\n" ++
       doc ++ s!"theorem cplOk_{a}_{b} : (List.range' {a} 1).all cplOkAt = true :=\n  range_one (f := cplOkAt) (cplOkAt_of_two cplOkG_{a}_0 cplOkG_{a}_1)\n"
   else
     doc ++ s!"theorem cplOk_{a}_{b} : (List.range' {a} {b - a}).all cplOkAt = true := by\n  decide +kernel\n"
@@ -529,7 +593,7 @@ def main (args : List String) : IO UInt32 := do
   -- write or check
   let existing ← (System.FilePath.readDir evalDir).map fun es => es.filterMap fun e =>
     let s := e.fileName
-    if s.endsWith ".lean" && s != "Split.lean" then some (String.ofList (s.toList.take (s.length - 5))) else none
+    if s.endsWith ".lean" && s != "Split.lean" && s != "Places.lean" then some (String.ofList (s.toList.take (s.length - 5))) else none
   let mut bad : Array String := #[]
   for (m, t) in files do
     let p := evalDir / s!"{m}.lean"
