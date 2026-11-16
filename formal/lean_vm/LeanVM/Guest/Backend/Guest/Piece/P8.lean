@@ -19,49 +19,49 @@ open LeanVM.Guest.Backend
 
 @[expose] public section
 
-/-- The pieces of functions 1015 to 1030 (`opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0` to `__loop107`, 1445 instructions). -/
-theorem pieces_1015_1031 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 1015 1031 = true := by
+/-- The pieces of functions 982 to 986 (`opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1` to `__loop65`, 1579 instructions). -/
+theorem pieces_982_987 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 982 987 = true := by
   decide +kernel
 
-/-- The pieces of functions 1031 to 1040 (`verify_merkle_cap__L7` to `opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1`, 1988 instructions). -/
-theorem pieces_1031_1041 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 1031 1041 = true := by
+/-- The pieces of functions 987 to 990 (`__loop66` to `__loop69`, 1556 instructions). -/
+theorem pieces_987_991 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 987 991 = true := by
   decide +kernel
 
-/-- The pieces of functions 1041 to 1045 (`opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1` to `__loop115`, 1579 instructions). -/
-theorem pieces_1041_1046 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 1041 1046 = true := by
+/-- The pieces of functions 991 to 996 (`__loop70` to `__loop75`, 1707 instructions). -/
+theorem pieces_991_997 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 991 997 = true := by
   decide +kernel
 
-/-- The pieces of functions 1046 to 1049 (`__loop116` to `__loop119`, 1556 instructions). -/
-theorem pieces_1046_1050 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 1046 1050 = true := by
+/-- The pieces of functions 997 to 1003 (`__loop76` to `__loop82`, 1695 instructions). -/
+theorem pieces_997_1004 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 997 1004 = true := by
   decide +kernel
 
-/-- The pieces of functions 1050 to 1055 (`__loop120` to `__loop125`, 1707 instructions). -/
-theorem pieces_1050_1056 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 1050 1056 = true := by
+/-- The pieces of functions 1004 to 1023 (`__loop83` to `opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1`, 1605 instructions). -/
+theorem pieces_1004_1024 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 1004 1024 = true := by
   decide +kernel
 
-/-- The pieces of functions 1056 to 1062 (`__loop126` to `__loop132`, 1695 instructions). -/
-theorem pieces_1056_1063 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 1056 1063 = true := by
+/-- The pieces of functions 1024 to 1027 (`__loop95` to `__loop98`, 1636 instructions). -/
+theorem pieces_1024_1028 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 1024 1028 = true := by
   decide +kernel
 
-/-- The pieces of functions 1063 to 1082 (`__loop133` to `opening_queries__L0_L0_L4_L16_L16_L4_L3_L6_L12_L4_L1`, 1605 instructions). -/
-theorem pieces_1063_1083 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 1063 1083 = true := by
+/-- The pieces of functions 1028 to 1031 (`__loop99` to `__loop102`, 1636 instructions). -/
+theorem pieces_1028_1032 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 1028 1032 = true := by
   decide +kernel
 
-/-- The pieces of functions 1083 to 1086 (`__loop145` to `__loop148`, 1636 instructions). -/
-theorem pieces_1083_1087 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 1083 1087 = true := by
+/-- The pieces of functions 1032 to 1037 (`__loop103` to `__loop108`, 1827 instructions). -/
+theorem pieces_1032_1038 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 1032 1038 = true := by
   decide +kernel
 
-/-- The pieces of functions 1087 to 1090 (`__loop149` to `__loop152`, 1636 instructions). -/
-theorem pieces_1087_1091 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 1087 1091 = true := by
+/-- The pieces of functions 1038 to 1043 (`__loop109` to `__loop114`, 1766 instructions). -/
+theorem pieces_1038_1044 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 1038 1044 = true := by
   decide +kernel
 
 end

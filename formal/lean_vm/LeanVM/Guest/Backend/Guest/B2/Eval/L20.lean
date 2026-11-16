@@ -19,36 +19,36 @@ open GuestPiece
 
 @[expose] public section
 
-/-- The places of entries 429 to 434 (`__loop32` to `__loop35`, 947 instructions) agree with the cells. -/
-theorem locsOk_429_435 : (List.range' 429 6).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 425 to 427 (`rs_eq_rows__L8` to `gkr_rounds__L0`, 1950 instructions) agree with the cells. -/
+theorem locsOk_425_428 : (List.range' 425 3).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 435 to 437 (`rs_eq_rows__L8` to `gkr_rounds__L0`, 1950 instructions) agree with the cells. -/
-theorem locsOk_435_438 : (List.range' 435 3).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 428 to 458 (`gkr_rounds__L2` to `level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0`, 1971 instructions) agree with the cells. -/
+theorem locsOk_428_459 : (List.range' 428 31).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 438 to 468 (`gkr_rounds__L2` to `level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0`, 1971 instructions) agree with the cells. -/
-theorem locsOk_438_469 : (List.range' 438 31).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 459 to 506 (`level_queries__L73_L1_L6_L32_L17_L5_L0_L0_L0_L0` to `level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0`, 1966 instructions) agree with the cells. -/
+theorem locsOk_459_507 : (List.range' 459 48).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 469 to 516 (`level_queries__L73_L1_L6_L32_L17_L5_L0_L0_L0_L0` to `level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0`, 1966 instructions) agree with the cells. -/
-theorem locsOk_469_517 : (List.range' 469 48).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 507 to 553 (`level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0` to `squeeze_point_from__L12`, 1964 instructions) agree with the cells. -/
+theorem locsOk_507_554 : (List.range' 507 47).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 517 to 563 (`level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0` to `squeeze_point_from__L12`, 1964 instructions) agree with the cells. -/
-theorem locsOk_517_564 : (List.range' 517 47).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 554 to 599 (`level_positions__L7_L16_L4` to `level_positions__L7_L19_L7`, 1994 instructions) agree with the cells. -/
+theorem locsOk_554_600 : (List.range' 554 46).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 564 to 609 (`level_positions__L7_L16_L4` to `level_positions__L7_L19_L7`, 1994 instructions) agree with the cells. -/
-theorem locsOk_564_610 : (List.range' 564 46).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 600 to 642 (`level_positions__L6_L20_L2` to `level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0`, 1993 instructions) agree with the cells. -/
+theorem locsOk_600_643 : (List.range' 600 43).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 610 to 652 (`level_positions__L6_L20_L2` to `level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0`, 1993 instructions) agree with the cells. -/
-theorem locsOk_610_653 : (List.range' 610 43).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 643 to 691 (`level_queries__L44_L0_L4_L16_L19_L7_L0_L0_L0_L0` to `level_queries__L25_L0_L4_L16_L20_L2_L0_L0_L0_L0`, 1992 instructions) agree with the cells. -/
+theorem locsOk_643_692 : (List.range' 643 49).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
-/-- The places of entries 653 to 701 (`level_queries__L44_L0_L4_L16_L19_L7_L0_L0_L0_L0` to `level_queries__L25_L0_L4_L16_L20_L2_L0_L0_L0_L0`, 1992 instructions) agree with the cells. -/
-theorem locsOk_653_702 : (List.range' 653 49).all (fun i => locsOkAt i (placedLocs i)) = true := by
+/-- The places of entries 692 to 741 (`level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0` to `level_residual__L218_L20_L6_L3`, 1987 instructions) agree with the cells. -/
+theorem locsOk_692_742 : (List.range' 692 50).all (fun i => locsOkAt i (placedLocs i)) = true := by
   decide +kernel
 
 end

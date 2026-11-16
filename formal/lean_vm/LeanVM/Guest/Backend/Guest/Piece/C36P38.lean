@@ -22,11 +22,11 @@ open LeanVM.Guest.Core LeanVM.Guest.Backend
 
 kernel_rfl cut36_p74 :
     armsRunN ((armsOf ((guestTraced.getD 36 default).core.body.getD 176 default)).drop 205) 205 (armsOf ((guestTraced.getD 36 default).core.body.getD 176 default)).length 796
-      (⟨75, 794, 5793, (some ([], 795)), (ArmExit.join 794 101 58), 796, 101, 58⟩ : MatchHead).exit 51 ctx36 cut36_74 =
+      (⟨75, 794, 5782, (some ([], 795)), (ArmExit.join 794 101 58), 796, 101, 58⟩ : MatchHead).exit 51 ctx36 cut36_74 =
       .ok ((cut36_75_b, 836), cut36_75)
 
 kernel_rfl cut36_p75 :
-    matchPost (⟨75, 794, 5793, (some ([], 795)), (ArmExit.join 794 101 58), 796, 101, 58⟩ : MatchHead) (cut36_71_b ++ (cut36_72_b ++ (cut36_73_b ++ (cut36_74_b ++ (cut36_75_b ++ []))))) 836 ctx36 cut36_75 =
+    matchPost (⟨75, 794, 5782, (some ([], 795)), (ArmExit.join 794 101 58), 796, 101, 58⟩ : MatchHead) (cut36_71_b ++ (cut36_72_b ++ (cut36_73_b ++ (cut36_74_b ++ (cut36_75_b ++ []))))) 836 ctx36 cut36_75 =
       .ok ((), cut36_76)
 
 kernel_rfl cut36_p76 :
@@ -39,7 +39,7 @@ theorem cut36_len222 : (armsOf ((guestTraced.getD 36 default).core.body.getD 222
 
 kernel_rfl cut36_p77 :
     matchPre (selOf ((guestTraced.getD 36 default).core.body.getD 222 default)) (armsOf ((guestTraced.getD 36 default).core.body.getD 222 default)).length ((guestTraced.getD 36 default).core.body.drop 223) ctx36 cut36_77 =
-      .ok ((⟨1018, 1080, 6049, (some ([], 1081)), (ArmExit.next 1019 6305 101 58), 1082, 101, 58⟩ : MatchHead), cut36_78)
+      .ok ((⟨1018, 1080, 6038, (some ([], 1081)), (ArmExit.next 1019 6294 101 58), 1082, 101, 58⟩ : MatchHead), cut36_78)
 
 end
 end LeanVM.Guest.Backend.GuestPiece

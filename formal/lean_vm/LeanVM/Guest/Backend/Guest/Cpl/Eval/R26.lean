@@ -21,52 +21,56 @@ open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.Backend Lea
 
 @[expose] public section
 
-/-- The test of entries 1311 to 1312 (`__loop334` to `__loop335`, 649 instructions). -/
-theorem cplOk_1311_1313 : (List.range' 1311 2).all cplOkAt = true := by
+/-- The test of entries 1276 to 1276 (`__loop301`, 884 instructions). -/
+theorem cplOk_1276_1277 : (List.range' 1276 1).all cplOkAt = true := by
   decide +kernel
 
-/-- The test of entries 1313 to 1316 (`__loop336` to `__loop339`, 978 instructions). -/
-theorem cplOk_1313_1317 : (List.range' 1313 4).all cplOkAt = true := by
+/-- The test of entries 1277 to 1277 (`__loop302`, 174 instructions). -/
+theorem cplOk_1277_1278 : (List.range' 1277 1).all cplOkAt = true := by
   decide +kernel
 
-/-- The test of entries 1317 to 1324 (`__loop340` to `opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0`, 937 instructions). -/
-theorem cplOk_1317_1325 : (List.range' 1317 8).all cplOkAt = true := by
+/-- The test of entries 1278 to 1278 (`__loop303`, 884 instructions). -/
+theorem cplOk_1278_1279 : (List.range' 1278 1).all cplOkAt = true := by
   decide +kernel
 
-/-- The test of entries 1325 to 1334 (`opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0` to `opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1`, 654 instructions). -/
-theorem cplOk_1325_1335 : (List.range' 1325 10).all cplOkAt = true := by
+/-- The test of entries 1279 to 1279 (`__loop304`, 174 instructions). -/
+theorem cplOk_1279_1280 : (List.range' 1279 1).all cplOkAt = true := by
   decide +kernel
 
-/-- The test of entries 1335 to 1335 (`__loop351`, 884 instructions). -/
-theorem cplOk_1335_1336 : (List.range' 1335 1).all cplOkAt = true := by
+/-- The test of entries 1280 to 1280 (`__loop305`, 884 instructions). -/
+theorem cplOk_1280_1281 : (List.range' 1280 1).all cplOkAt = true := by
   decide +kernel
 
-/-- The test of entries 1336 to 1336 (`__loop352`, 174 instructions). -/
-theorem cplOk_1336_1337 : (List.range' 1336 1).all cplOkAt = true := by
+/-- The test of entries 1281 to 1281 (`__loop306`, 174 instructions). -/
+theorem cplOk_1281_1282 : (List.range' 1281 1).all cplOkAt = true := by
   decide +kernel
 
-/-- The test of entries 1337 to 1337 (`__loop353`, 884 instructions). -/
-theorem cplOk_1337_1338 : (List.range' 1337 1).all cplOkAt = true := by
+/-- The test of entries 1282 to 1282 (`__loop307`, 884 instructions). -/
+theorem cplOk_1282_1283 : (List.range' 1282 1).all cplOkAt = true := by
   decide +kernel
 
-/-- The test of entries 1338 to 1338 (`__loop354`, 174 instructions). -/
-theorem cplOk_1338_1339 : (List.range' 1338 1).all cplOkAt = true := by
+/-- The test of entries 1283 to 1284 (`__loop308` to `__loop309`, 880 instructions). -/
+theorem cplOk_1283_1285 : (List.range' 1283 2).all cplOkAt = true := by
   decide +kernel
 
-/-- The test of entries 1339 to 1339 (`__loop355`, 884 instructions). -/
-theorem cplOk_1339_1340 : (List.range' 1339 1).all cplOkAt = true := by
+/-- The test of entries 1285 to 1287 (`__loop310` to `__loop312`, 992 instructions). -/
+theorem cplOk_1285_1288 : (List.range' 1285 3).all cplOkAt = true := by
   decide +kernel
 
-/-- The test of entries 1340 to 1340 (`__loop356`, 174 instructions). -/
-theorem cplOk_1340_1341 : (List.range' 1340 1).all cplOkAt = true := by
+/-- The test of entries 1288 to 1289 (`__loop313` to `__loop314`, 849 instructions). -/
+theorem cplOk_1288_1290 : (List.range' 1288 2).all cplOkAt = true := by
   decide +kernel
 
-/-- The test of entries 1341 to 1341 (`__loop357`, 884 instructions). -/
-theorem cplOk_1341_1342 : (List.range' 1341 1).all cplOkAt = true := by
+/-- The test of entries 1290 to 1290 (`__loop315`, 706 instructions). -/
+theorem cplOk_1290_1291 : (List.range' 1290 1).all cplOkAt = true := by
   decide +kernel
 
-/-- The test of entries 1342 to 1343 (`__loop358` to `__loop359`, 880 instructions). -/
-theorem cplOk_1342_1344 : (List.range' 1342 2).all cplOkAt = true := by
+/-- The test of entries 1291 to 1292 (`__loop316` to `__loop317`, 689 instructions). -/
+theorem cplOk_1291_1293 : (List.range' 1291 2).all cplOkAt = true := by
+  decide +kernel
+
+/-- The test of entries 1293 to 1294 (`__loop318` to `__loop319`, 689 instructions). -/
+theorem cplOk_1293_1295 : (List.range' 1293 2).all cplOkAt = true := by
   decide +kernel
 
 end
