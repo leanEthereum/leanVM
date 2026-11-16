@@ -15,8 +15,7 @@ public import LeanVM.Guest.Backend.Guest.Cpl.Eval.All
 # The end, certificate free
 
 `guest_complete_backend` at the frame side's words (`Complete.frameWords`) and the evaluated
-per-function test (`CplEval.cplOkAll`): `Budget.guest_complete`'s statement with the budget's copy
-`deployedBudgetB` (`Link.lean` identifies it with `Budget.deployedBudget`), in a cone that holds
+per-function test (`CplEval.cplOkAll`): `Budget.guest_complete`'s statement, in a cone that holds
 none of the per-function certificate checks.
 -/
 
@@ -30,7 +29,7 @@ open LeanVM.Guest.B1.VerifySub (vsBoundAt vkBound)
 
 /-- **The guest is complete within the deployed budget**, through the back end, no hypothesis. -/
 theorem guest_complete_backend_end :
-    GuestCompleteWithin (deployedBudgetB (vsBoundAt Count.vsWordsOs vkBound)) :=
+    GuestCompleteWithin (deployedBudget (vsBoundAt Count.vsWordsOs vkBound)) :=
   guest_complete_backend Complete.frameWords CplEval.cplOkAll
 
 end

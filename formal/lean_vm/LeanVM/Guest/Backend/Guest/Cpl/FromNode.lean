@@ -34,8 +34,8 @@ open LeanVM.Guest.B1 (LowDef)
 open LeanVM.Guest.B1.Main (imageOf memL_imageOf imageOf_hdr dischargeAddr)
 open LeanVM.Guest.B1.VerifySub (vsBoundAt vkBound)
 
-/-- The guest's jump table has `Data.jtSlots` slots. -/
-kernel_rfl slotsG_size : slotsG.size = Data.jtSlots
+/-- The guest's jump table has `Deployed.Data.jtSlots` slots. -/
+kernel_rfl slotsG_size : slotsG.size = Deployed.Data.jtSlots
 
 @[expose] public section
 
@@ -44,7 +44,6 @@ theorem W0_core : W0.core = coreProgram := guestWorld_core
 /-- **The back end's layout agrees with the deployed frame sizes and the back end's cells** on
 every function of the guest. -/
 theorem W0_agree : Complete.AgreeOn coreProgram Deployed.fs W0.fsB certG W0.cellB := by
-  rw [← B2C.fs_deployed]
   intro g fn hf
   obtain ⟨i, hix⟩ := ix_of_find hf
   have F := fnAt hix
@@ -90,9 +89,7 @@ theorem coreRun_of_main {cnt : Tree → Opcode → ℕ} {b : End.Budget}
       ∃ (T : Tree) (M : MemoryImage (logMem (T.total W0.fsB))),
         CoreRun (hdrOf (statementDigest seed s)) T M ∧ T.total W0.fsB ≤ b.words.eval (work s w) := by
   intro seed s w hrel hlim hok hbs
-  rw [← B2C.fs_deployed] at hm
-  have hA : Complete.AgreeOn coreProgram B2C.fs W0.fsB certG W0.cellB := by
-    rw [B2C.fs_deployed]; exact W0_agree
+  have hA := W0_agree
   obtain ⟨N, L, hcons, hin, hN, hNb, hrelL⟩ := hm seed s w hrel hlim hok hbs
   set hdr := hdrOf (statementDigest seed s) with hhdr
   have h64 : logMem N < 64 := by have := logMem_le_maxLogMem hN; unfold maxLogMem at this; omega
@@ -130,12 +127,11 @@ deployed budget within `2^30` words, B1's tree of `main` at the back end's cells
 the statement's public input, within the deployed budget's words. -/
 theorem guest_core_run : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w →
     ChildrenOk bytecode seed w →
-    (deployedBudgetB (vsBoundAt Count.vsWordsOs vkBound)).size (work s w) ≤ 2 ^ 30 →
+    (Budget.deployedBudget (vsBoundAt Count.vsWordsOs vkBound)).size (work s w) ≤ 2 ^ 30 →
     ∃ (T : Tree) (M : MemoryImage (logMem (T.total W0.fsB))),
       CoreRun (hdrOf (statementDigest seed s)) T M ∧
-        T.total W0.fsB ≤ (deployedBudgetB (vsBoundAt Count.vsWordsOs vkBound)).words.eval (work s w) :=
-  coreRun_of_main (mainComplete_at (B2C.fs_deployed ▸ runsFitG CplEval.cplOkAll)
-    (runsConsecG CplEval.cplOkAll))
+        T.total W0.fsB ≤ (Budget.deployedBudget (vsBoundAt Count.vsWordsOs vkBound)).words.eval (work s w) :=
+  coreRun_of_main (mainComplete_at (runsFitG CplEval.cplOkAll) (runsConsecG CplEval.cplOkAll))
 
 /-- **The compiled guest runs for every node relation**: within the deployed limits and the
 deployed budget within `2^30` words, there is a tree of `main` within the budget's words whose
@@ -143,9 +139,9 @@ temporaries re-chosen give an honest memory on which the compiled guest runs fro
 to the final registers, within each running instance's placed path maxima. -/
 theorem guest_run_from_node : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w →
     ChildrenOk bytecode seed w →
-    (deployedBudgetB (vsBoundAt Count.vsWordsOs vkBound)).size (work s w) ≤ 2 ^ 30 →
+    (Budget.deployedBudget (vsBoundAt Count.vsWordsOs vkBound)).size (work s w) ≤ 2 ^ 30 →
     ∃ (T : Tree) (ν : ℕ → String → Val → V → E) (c : Opcode → ℕ), T.name = "main" ∧
-      T.total W0.fsB ≤ (deployedBudgetB (vsBoundAt Count.vsWordsOs vkBound)).words.eval (work s w) ∧
+      T.total W0.fsB ≤ (Budget.deployedBudget (vsBoundAt Count.vsWordsOs vkBound)).words.eval (work s w) ∧
       RunC W0.prog (W0.honestB (hdrOf (statementDigest seed s)) (T.retemp W0.core W0.fsB ν 0))
         ⟨addressOfIndex (W0.ent "main"), 1⟩ (Registers.final W0.prog) c ∧
       ∀ op, c op ≤ W0.progCost (fun _ => false) (T.retemp W0.core W0.fsB ν 0) op := by

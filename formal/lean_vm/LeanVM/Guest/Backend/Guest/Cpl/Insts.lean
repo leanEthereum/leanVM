@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B2C.Cells
+public import LeanVM.Guest.Deployed
 public import LeanVM.Guest.Memory.Retemp
 public import LeanVM.Guest.Memory.Discharge
 public import LeanVM.Guest.Memory.SizeTotal
@@ -15,8 +15,8 @@ public import LeanVM.Guest.Memory.SizeTotal
 /-!
 # The instances at any headers
 
-`B2C/Frame.lean` and `B2C/KRetemp.lean` prove these at the certificates' headers `B2C.H`; the proofs
-read of the headers only that they are some function of the instance, so here they are stated for
+The certificates' completeness proved these at their headers; the proofs read of the headers only
+that they are some function of the instance, so here they are stated for
 any `H`. `kid_inst`: the `i`-th callee of a node's path is an instance at its `i`-th callee frame
 with header `H I i`; `honest_hdrK`: when every `H I i` is of `K`, every instance but `main`'s
 returns to registers of `K`; `reInst_of_honest`: when `H` does not see the temporaries, an
@@ -27,7 +27,7 @@ whose candidates all carry one word holds it.
 namespace LeanVM.Guest.Backend.Cpl
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
-open LeanVM.Guest.B2C
+open LeanVM.Guest.Deployed
 
 @[expose] public section
 
@@ -236,7 +236,7 @@ theorem honest_hdrK (hK : ∀ I i, KHdr (H I i)) {hdr : E × E} {T : Tree} (hT :
 /-! ## Re-chosen temporaries -/
 
 /-- An instance with its tree's temporaries re-chosen, at the same frame, header and callees'
-frames (`B2C.reInst`). -/
+frames. -/
 noncomputable def reInst (ν : ℕ → String → Val → V → E) (I : Inst) : Inst :=
   ⟨I.t.retemp coreProgram fs ν I.fp, I.fp, I.hdr, I.kidFps, I.bufBases⟩
 
