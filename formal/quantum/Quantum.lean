@@ -37,6 +37,7 @@ import Quantum.Xmss.Hybrid.CoinsHiding
 import Quantum.Xmss.Hybrid.CoinPath
 import Quantum.Xmss.Assembly.RecordPorts
 import Quantum.Xmss.Hybrid.SchemeSplit
+import Quantum.Xmss.Assembly.Security
 import Quantum.Sphincs.Keccak
 import Quantum.Sphincs.Coverage
 
