@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.Backend.Sound.Obl.GuestX
 public import LeanVM.Guest.Renumber
+public import LeanVM.Guest.Data.NameStrings
 
 /-!
 # The guest's table
@@ -31,13 +32,17 @@ each other (`Guest/B2/Sig.lean`).
 * `list_split`: return `2` below `g^17`; `log2_ceil_in_the_exponent__L0_L34`: return `0` below
   `g^34`;
 * relation `0`, the exponent table and its window section (B1's `ExpTables`, `ExpWinTab`):
-  `exponent_tables` returns one, `main_loop4` (compiled `__loop4`) takes it as argument `14` and
-  `verify_sub` as argument `4`, where B1's bounds on `dims_g` and `kappa_base`
-  (`vsDimsKnown0_holds`, `vsKnown_holds`) and its window table read it;
+  `exponent_tables` returns one, `main_loop4` takes it as argument `14` and `verify_sub` as
+  argument `4`, where B1's bounds on `dims_g` and `kappa_base` (`vsDimsKnown0_holds`,
+  `vsKnown_holds`) and its window table read it;
 * `ext`: the functions of `xTab` (`Obl.GuestX`), whose preconditions are relations between their
   arguments and memory, not of the table's form.
 
-`pows`: `g^255`, the bound of `main_loop2`'s (compiled `__loop2`) range checks.
+`pows`: `g^255`, the bound of `main_loop2`'s range checks.
+
+`guestXIdx` and `vsIdx` are written by `lake exe guest-oblgen` (`cli/GuestOblGen.lean`), which
+checks that every key of `guestTab` names a function of the guest and that `level_positions`,
+`walk_path` and `open_stacked` have an entry each.
 -/
 
 namespace LeanVM.Guest.Backend.Obl
@@ -48,8 +53,8 @@ namespace LeanVM.Guest.Backend.Obl
 is `g^e` with `e < n`, for `n < 2^16`. -/
 def memRel (c n : Nat) : Nat := 2 ^ 32 + c * 2 ^ 16 + n
 
-/-- **The guest's table.** Every key is a literal: comparing strings is the costly step of
-evaluating the analysis in the kernel. -/
+/-- **The guest's table.** Every key is a literal (`name% s` elaborates to one): comparing strings
+is the costly step of evaluating the analysis in the kernel. -/
 def guestTab : Tab where
   sigs := [
     ("verify_tables", { pre := [(9, 34)], mem := [(10, 0, 34)], xpre := [(10, memRel 0 34)] }),
@@ -62,7 +67,7 @@ def guestTab : Tab where
     ("list_split", { post := [(3, 17)] }),
     ("log2_ceil_in_the_exponent__L0_L34", { post := [(2, 34)] }),
     ("exponent_tables", { xpost := [(0, 0)] }),
-    ("__loop4", { xpre := [(14, 0)] }),
+    (name% «main_loop4», { xpre := [(14, 0)] }),
     ("verify_sub", { xpre := [(4, 0)] }),
     ("level_positions__L10_L19_L7", { xpre := [(8, 1)] }),
     ("level_positions__L10_L20_L2", { xpre := [(8, 1)] }),
@@ -214,10 +219,9 @@ def guestTab : Tab where
   pows := [(9223372036854810629, 255)]
 
 /-- The functions (by index in `coreProgram`) the analysis checks with `ext` sites and facts
-(`chkFnX`) instead of `chkFn`: `verify_bus_gkr` (9) and `verify_bus_gkr_loop0` (`__loop6`, 90),
-`open_stacked__L0` to `__L10`, the `191` `level_queries` specializations, the `76` `opening_queries`
-specializations and their `76` loop helpers, the callers of `ext` functions and those whose
-selectors their own `ext` precondition bounds. -/
+(`chkFnX`) instead of `chkFn`: `verify_bus_gkr` and `verify_bus_gkr_loop0`, the `open_stacked`,
+`level_queries` and `opening_queries` specializations and the latter's loop helpers (`GuestXTab`),
+the callers of `ext` functions and those whose selectors their own `ext` precondition bounds. -/
 def guestXIdx : List Nat :=
   [9, 90, 335, 336, 337, 338, 339, 340, 341, 342, 343, 344, 345, 457, 458, 459, 460, 467, 468, 469,
   470, 476, 477, 478, 479, 484, 485, 486, 487, 506, 507, 508, 509, 515, 516, 517, 518, 522, 523,
