@@ -27,6 +27,14 @@ open LeanVM LeanVM.Guest LeanVM.Guest.End LeanVM.Node LeanVM.Semantics
 #guard_msgs in
 #print axioms LeanVM.Guest.Located.placesAgree
 
+/-- info: 'LeanVM.Guest.End.mainBodyP_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.End.mainBodyP_of
+
+/-- info: 'LeanVM.Guest.End.decode_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.End.decode_eq
+
 /-- info: 'LeanVM.Guest.B1.VerifySub.verify_sub_sound_w' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.B1.VerifySub.verify_sub_sound_w
