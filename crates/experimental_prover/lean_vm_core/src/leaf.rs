@@ -117,35 +117,46 @@ pub fn layout(blocks: &[Block]) -> Layout {
     }
 }
 
-/// A non-constant coordinate as `(source, coefficient)`: its leaf contribution is
-/// the mixed product `coeff · source(z)` with `source(z) ∈ K`, `coeff ∈ E`.
-/// `GCol` folds the `g^k` factor into the coefficient.
-enum Term<'a> {
-    Col(usize, F128),
-    Prod(usize, usize, F128),
-    Index(F128),
-    Public(&'a [F64], F128),
+/// What a leaf term reads at row `z`, in `K`: a column (the stacked bytecode's numbered after
+/// the committed ones), the product of two, or the index column `g^z`.
+#[derive(Clone, Copy, PartialEq)]
+enum Source {
+    Col(usize),
+    Prod(usize, usize),
+    Index,
 }
 
-/// Flatten one coordinate into leaf terms at coefficient `w`. A [`Coord::Sum`]
-/// spreads its children over the SAME `w`: they are one coordinate, so they share
-/// its `α`-power.
-fn push_terms<'a>(c: &Coord, w: F128, public: &[&'a [F64]], terms: &mut Vec<Term<'a>>, constant: &mut F128) {
-    match c {
-        Coord::Const(v) => *constant += w.mul_base(*v),
-        Coord::Col(i) => terms.push(Term::Col(*i, w)),
-        Coord::GCol(i, k) => terms.push(Term::Col(*i, w.mul_base(g_pow(*k as usize)))),
-        Coord::Prod(i, j, k) => {
-            // A sum's products of one pair (a gated count's) share one term.
-            let v = w.mul_base(g_pow(*k as usize));
-            match terms.last_mut() {
-                Some(Term::Prod(a, b, u)) if (*a, *b) == (*i, *j) => *u += v,
-                _ => terms.push(Term::Prod(*i, *j, v)),
+/// A non-constant coordinate as `(source, coefficient)`: its leaf contribution is
+/// the mixed product `coeff · source(z)` with `coeff ∈ E`.
+/// `GCol` folds the `g^k` factor into the coefficient.
+type Term = (Source, F128);
+
+/// Add a term to a formula's, summed into the one of the same source, which a zero sum drops.
+fn add_term(terms: &mut Vec<Term>, (source, coeff): Term) {
+    match terms.iter().position(|t| t.0 == source) {
+        Some(i) => {
+            terms[i].1 += coeff;
+            if terms[i].1 == F128::ZERO {
+                terms.swap_remove(i);
             }
         }
-        Coord::Index => terms.push(Term::Index(w)),
-        Coord::Public(s) => terms.push(Term::Public(public[*s], w)),
-        Coord::Sum(cs) => {
+        None => terms.push((source, coeff)),
+    }
+}
+
+/// Flatten one coordinate into leaf terms at coefficient `w`, the stacked bytecode's
+/// columns numbered from `public`. A [`Coord::Sum`] spreads its children over the
+/// SAME `w`: they are one coordinate, so they share its `α`-power.
+fn push_terms(c: &Coord, w: F128, public: usize, terms: &mut Vec<Term>, constant: &mut F128) {
+    let g = |k: u32| w.mul_base(g_pow(k as usize));
+    match *c {
+        Coord::Const(v) => *constant += w.mul_base(v),
+        Coord::Col(i) => add_term(terms, (Source::Col(i), w)),
+        Coord::GCol(i, k) => add_term(terms, (Source::Col(i), g(k))),
+        Coord::Prod(i, j, k) => add_term(terms, (Source::Prod(i, j), g(k))),
+        Coord::Index => add_term(terms, (Source::Index, w)),
+        Coord::Public(s) => add_term(terms, (Source::Col(public + s), w)),
+        Coord::Sum(ref cs) => {
             for c in cs {
                 push_terms(c, w, public, terms, constant);
             }
@@ -155,16 +166,34 @@ fn push_terms<'a>(c: &Coord, w: F128, public: &[&'a [F64]], terms: &mut Vec<Term
 
 /// One block's leaf formula: `const_part + Σ terms(z)` on its real rows, the identity
 /// on its padding rows.
-struct LeafBlock<'a> {
+#[derive(Clone)]
+struct LeafBlock {
     side: usize,
     offset: usize,
     kappa: usize,
     rows: usize,
     const_part: F128,
-    terms: Vec<Term<'a>>,
+    terms: Vec<Term>,
+    /// Whether [`fill`](Self::fill) adds the leaves onto the previous block's, this formula being their
+    /// [`delta`](Self::delta).
+    onto: bool,
 }
 
-impl LeafBlock<'_> {
+impl LeafBlock {
+    /// `other`'s formula less this one's, for a block of the same shape: shared terms cancel.
+    fn delta(&self, other: &Self) -> Self {
+        let mut terms = self.terms.clone();
+        for &t in &other.terms {
+            add_term(&mut terms, t);
+        }
+        Self {
+            const_part: self.const_part + other.const_part,
+            terms,
+            onto: true,
+            ..*other
+        }
+    }
+
     /// The leaf of real row `z`, whose index column value `g^z` is `index`.
     #[inline]
     fn leaf(&self, z: usize, cols: &[&[F64]], index: F64) -> F128 {
@@ -173,18 +202,18 @@ impl LeafBlock<'_> {
         // reduction tail), one combined reduction per row at the end,
         // bit-identical to summing reduced `mul_base` terms.
         let mut acc = F128Unreduced::ZERO;
-        for t in &self.terms {
-            acc ^= match t {
-                Term::Col(i, c) => c.mul_base_unreduced(cols[*i][z]),
-                Term::Prod(i, j, c) => c.mul_base_unreduced(cols[*i][z] * cols[*j][z]),
-                Term::Index(c) => c.mul_base_unreduced(index),
-                Term::Public(vals, c) => c.mul_base_unreduced(vals[z]),
-            };
+        for &(source, c) in &self.terms {
+            acc ^= c.mul_base_unreduced(match source {
+                Source::Col(i) => cols[i][z],
+                Source::Prod(i, j) => cols[i][z] * cols[j][z],
+                Source::Index => index,
+            });
         }
         self.const_part + acc.reduce()
     }
 
-    /// The leaves of rows `z0..z0 + out.len()`.
+    /// The leaves of rows `z0..z0 + out.len()`, or with [`onto`](Self::onto) the previous
+    /// block's there plus this formula's.
     fn fill(&self, z0: usize, out: &mut [F128], cols: &[&[F64]]) {
         let real = self.rows.saturating_sub(z0).min(out.len());
         let (real_out, padding) = out.split_at_mut(real);
@@ -196,7 +225,8 @@ impl LeafBlock<'_> {
         let done = 0;
         let mut index = g_pow(z0 + done);
         for (i, slot) in real_out.iter_mut().enumerate().skip(done) {
-            *slot = self.leaf(z0 + i, cols, index);
+            let leaf = self.leaf(z0 + i, cols, index);
+            *slot = if self.onto { *slot + leaf } else { leaf };
             index = mul_by_g(index);
         }
     }
@@ -210,28 +240,22 @@ impl LeafBlock<'_> {
         // `g^z` for the `N` rows, stepped by `g^N`.
         let mut index = K::new(std::array::from_fn(|i| g_pow(z0 + i)));
         let step = K::splat(g_pow(N));
-        let coeffs: Vec<E> = self
-            .terms
-            .iter()
-            .map(|t| match t {
-                Term::Col(_, c) | Term::Prod(_, _, c) | Term::Index(c) | Term::Public(_, c) => E::splat(*c),
-            })
-            .collect();
+        let coeffs: Vec<E> = self.terms.iter().map(|&(_, c)| E::splat(c)).collect();
         let constant = E::splat(self.const_part);
         let (chunks, _) = out.as_chunks_mut::<N>();
         for (k, slot) in chunks.iter_mut().enumerate() {
             let z = z0 + N * k;
             let mut acc = Mixed::ZERO;
-            for (t, &c) in self.terms.iter().zip(&coeffs) {
-                match t {
-                    Term::Col(i, _) => acc.add(c, load(cols[*i], z)),
-                    Term::Prod(i, j, _) => acc.add(c, load(cols[*i], z) * load(cols[*j], z)),
-                    Term::Index(_) => acc.add(c, index),
-                    Term::Public(vals, _) => acc.add(c, load(vals, z)),
+            for (&(source, _), &c) in self.terms.iter().zip(&coeffs) {
+                match source {
+                    Source::Col(i) => acc.add(c, load(cols[i], z)),
+                    Source::Prod(i, j) => acc.add(c, load(cols[i], z) * load(cols[j], z)),
+                    Source::Index => acc.add(c, index),
                 }
             }
             index = index * step;
-            (acc.reduce() + constant).store(slot);
+            let leaves = acc.reduce() + constant;
+            if self.onto { leaves + E::load(slot) } else { leaves }.store(slot);
         }
         N * chunks.len()
     }
@@ -286,6 +310,9 @@ pub(crate) fn build_leaves(
     /// whole sixteen-tuples.
     const CHUNKED: usize = 4;
 
+    // A term reads the stacked bytecode's columns after the committed ones.
+    let committed = cols.len();
+    let cols = &[cols, public].concat();
     let mut blocks: Vec<LeafBlock> = Vec::new();
     let mut lens = [1usize; N_BUS_TREES];
     for (side, &(side_blocks, lay, w, beta)) in sides.iter().enumerate() {
@@ -303,7 +330,7 @@ pub(crate) fn build_leaves(
             let mut const_part = beta;
             let mut terms: Vec<Term> = Vec::with_capacity(blk.coords.len());
             for (i, c) in blk.coords.iter().enumerate() {
-                push_terms(c, w[i], public, &mut terms, &mut const_part);
+                push_terms(c, w[i], committed, &mut terms, &mut const_part);
             }
             blocks.push(LeafBlock {
                 side,
@@ -312,6 +339,7 @@ pub(crate) fn build_leaves(
                 rows: blk.rows,
                 const_part,
                 terms,
+                onto: false,
             });
         }
         debug_assert!(lens[side] <= 1usize << lay.mu);
@@ -332,9 +360,22 @@ pub(crate) fn build_leaves(
         .collect();
     shapes.sort_unstable();
     shapes.dedup();
-    let groups: Vec<Vec<&LeafBlock>> = shapes
+    let groups: Vec<Vec<LeafBlock>> = shapes
         .iter()
-        .map(|&shape| blocks.iter().filter(|b| (b.kappa, b.rows) == shape).collect())
+        .map(|&shape| {
+            let mut group: Vec<&LeafBlock> = blocks.iter().filter(|b| (b.kappa, b.rows) == shape).collect();
+            // By offset, an interaction's pull block follows its push block, laid out alike, whose
+            // formula differs from its own in a coordinate or two: filled onto the push's leaves as
+            // their delta, it forms the products they share once.
+            group.sort_by_key(|b| b.offset);
+            let mut filled = vec![group[0].clone()];
+            for pair in group.windows(2) {
+                let delta = pair[0].delta(pair[1]);
+                let cheaper = delta.terms.len() < pair[1].terms.len();
+                filled.push(if cheaper { delta } else { pair[1].clone() });
+            }
+            filled
+        })
         .collect();
     let tasks: Vec<(usize, Range<usize>)> = shapes
         .iter()
@@ -359,6 +400,7 @@ pub(crate) fn build_leaves(
         for z0 in rows.clone().step_by(CHUNK) {
             let len = CHUNK.min(rows.len());
             let (leaves, fours, sixteens) = (&mut stage[..len], &mut stage4[..len / 4], &mut stage16[..len / 16]);
+            // In order: an `onto` block adds onto the previous block's leaves, still in `leaves`.
             for blk in &groups[group] {
                 blk.fill(z0, leaves, cols);
                 // Past the block's real rows every leaf, and so every tuple's product, is the identity.
