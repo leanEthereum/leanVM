@@ -44,19 +44,19 @@ theorem pieces_385_399 :
     piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 385 399 = true := by
   decide +kernel
 
-/-- The pieces of functions 399 to 417 (`child_claim_list_mono_last__L13` to `da_levels__L1024_L10`, 1709 instructions). -/
-theorem pieces_399_418 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 399 418 = true := by
+/-- The pieces of functions 399 to 409 (`child_claim_list_mono_last__L13` to `__loop25`, 1862 instructions). -/
+theorem pieces_399_410 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 399 410 = true := by
   decide +kernel
 
-/-- The pieces of functions 418 to 420 (`da_expand__L7_L8` to `da_factors__L14_L7_L0`, 1847 instructions). -/
-theorem pieces_418_421 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 418 421 = true := by
+/-- The pieces of functions 410 to 418 (`da_factors__L13_L7_L0` to `__loop31`, 1968 instructions). -/
+theorem pieces_410_419 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 410 419 = true := by
   decide +kernel
 
-/-- The pieces of functions 421 to 428 (`da_expand__L14_L7` to `__loop31`, 1986 instructions). -/
-theorem pieces_421_429 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 421 429 = true := by
+/-- The pieces of functions 419 to 424 (`__loop32` to `__loop35`, 944 instructions). -/
+theorem pieces_419_425 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 419 425 = true := by
   decide +kernel
 
 end

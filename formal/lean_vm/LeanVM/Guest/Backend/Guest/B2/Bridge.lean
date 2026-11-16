@@ -294,7 +294,7 @@ theorem sigPost_of (h : GuestCompiles fns slots) (hκ : minLogMem ≤ κ ∧ κ 
     {a r : List E} (hC : (WG).C f a r) : SigPost (guestTab.sig f) (a ++ r) := by
   have hW := guestWorld_compiled (L := L) (U := guestU L.read) h
   have hW' : (WG).core = coreProgram := guestWorld_core
-  have hlen : coreProgram.length = 1601 := core_length
+  have hlen : coreProgram.length = 1549 := core_length
   have hxp : ∀ f a r, (WG).core.Rel L.read f a r →
       XPost guestRel L.read (guestTab.sig f) (a ++ r) := by
     intro f a r h p hp _

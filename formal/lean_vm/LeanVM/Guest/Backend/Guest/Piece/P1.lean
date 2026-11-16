@@ -19,14 +19,9 @@ open LeanVM.Guest.Backend
 
 @[expose] public section
 
-/-- The pieces of functions 21 to 31 (`statement_digest` to `da_vector`, 1958 instructions). -/
-theorem pieces_21_32 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 21 32 = true := by
-  decide +kernel
-
-/-- The pieces of functions 32 to 35 (`da_column_offsets` to `__loop1`, 537 instructions). -/
-theorem pieces_32_36 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 32 36 = true := by
+/-- The pieces of functions 21 to 35 (`statement_digest` to `__loop1`, 1687 instructions). -/
+theorem pieces_21_36 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 21 36 = true := by
   decide +kernel
 
 /-- The pieces of functions 37 to 65 (`__loop3` to `eq_prefix_run__L26`, 1995 instructions). -/

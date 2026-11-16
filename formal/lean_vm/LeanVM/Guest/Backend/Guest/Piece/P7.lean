@@ -19,44 +19,44 @@ open LeanVM.Guest.Backend
 
 @[expose] public section
 
-/-- The pieces of functions 702 to 751 (`level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0` to `level_residual__L218_L20_L6_L3`, 1987 instructions). -/
-theorem pieces_702_752 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 702 752 = true := by
+/-- The pieces of functions 742 to 790 (`level_residual__L109_L20_L6_L3` to `level_residual__L25_L13_L4_L2`, 1993 instructions). -/
+theorem pieces_742_791 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 742 791 = true := by
   decide +kernel
 
-/-- The pieces of functions 752 to 800 (`level_residual__L109_L20_L6_L3` to `level_residual__L25_L13_L4_L2`, 1993 instructions). -/
-theorem pieces_752_801 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 752 801 = true := by
+/-- The pieces of functions 791 to 839 (`level_residual__L23_L13_L4_L2` to `level_residual__L18_L10_L4_L2`, 1977 instructions). -/
+theorem pieces_791_840 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 791 840 = true := by
   decide +kernel
 
-/-- The pieces of functions 801 to 849 (`level_residual__L23_L13_L4_L2` to `level_residual__L18_L10_L4_L2`, 1977 instructions). -/
-theorem pieces_801_850 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 801 850 = true := by
+/-- The pieces of functions 840 to 889 (`level_residual__L17_L6_L4_L2` to `level_positions__L44_L25_L7`, 1980 instructions). -/
+theorem pieces_840_890 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 840 890 = true := by
   decide +kernel
 
-/-- The pieces of functions 850 to 899 (`level_residual__L17_L6_L4_L2` to `level_positions__L44_L25_L7`, 1980 instructions). -/
-theorem pieces_850_900 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 850 900 = true := by
+/-- The pieces of functions 890 to 938 (`level_positions__L28_L26_L2` to `__loop43`, 1968 instructions). -/
+theorem pieces_890_939 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 890 939 = true := by
   decide +kernel
 
-/-- The pieces of functions 900 to 950 (`level_positions__L28_L26_L2` to `__loop46`, 1995 instructions). -/
-theorem pieces_900_951 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 900 951 = true := by
+/-- The pieces of functions 939 to 951 (`__loop44` to `verify_merkle_cap__L4`, 1925 instructions). -/
+theorem pieces_939_952 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 939 952 = true := by
   decide +kernel
 
-/-- The pieces of functions 951 to 999 (`__loop47` to `__loop95`, 1701 instructions). -/
-theorem pieces_951_1000 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 951 1000 = true := by
+/-- The pieces of functions 952 to 955 (`opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0` to `verify_merkle_cap__L6`, 1684 instructions). -/
+theorem pieces_952_956 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 952 956 = true := by
   decide +kernel
 
-/-- The pieces of functions 1000 to 1010 (`decode_query_windows__L15_L3` to `verify_merkle_cap__L4`, 1855 instructions). -/
-theorem pieces_1000_1011 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 1000 1011 = true := by
+/-- The pieces of functions 956 to 971 (`opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0` to `__loop57`, 1445 instructions). -/
+theorem pieces_956_972 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 956 972 = true := by
   decide +kernel
 
-/-- The pieces of functions 1011 to 1014 (`opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0` to `verify_merkle_cap__L6`, 1684 instructions). -/
-theorem pieces_1011_1015 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 1011 1015 = true := by
+/-- The pieces of functions 972 to 981 (`verify_merkle_cap__L7` to `opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1`, 1988 instructions). -/
+theorem pieces_972_982 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 972 982 = true := by
   decide +kernel
 
 end

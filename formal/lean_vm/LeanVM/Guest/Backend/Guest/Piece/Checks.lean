@@ -18,7 +18,7 @@ open LeanVM.Guest.Backend
 
 @[expose] public section
 
-theorem guestTraced_length : guestTraced.length = 1601 := by decide +kernel
+theorem guestTraced_length : guestTraced.length = 1549 := by decide +kernel
 
 theorem outs_length : outsG.length = guestTraced.length := by decide +kernel
 
