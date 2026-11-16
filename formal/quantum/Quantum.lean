@@ -56,6 +56,7 @@ import Quantum.Xmss.Assembly.GameCongr
 import Quantum.Xmss.Hybrid.SeedStage
 import Quantum.Xmss.Assembly.ProgSafe
 import Quantum.Xmss.Assembly.ReparamR0
+import Quantum.Xmss.Hybrid.GradedMasked
 import Quantum.Xmss.Hybrid.SchemeSplit
 import Quantum.Xmss.Hybrid.CoinStage
 import Quantum.Xmss.Hybrid.R0Stage
