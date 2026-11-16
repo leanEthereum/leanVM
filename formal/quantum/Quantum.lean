@@ -24,6 +24,7 @@ import Quantum.Xmss.Hybrid.View
 import Quantum.Xmss.Hybrid.Disclose
 import Quantum.Xmss.GameReads
 import Quantum.Xmss.FlipCost
+import Quantum.Xmss.Hybrid.Seed
 import Quantum.Sphincs.Keccak
 import Quantum.Sphincs.Coverage
 
