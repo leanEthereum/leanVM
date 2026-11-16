@@ -30,6 +30,7 @@ import Quantum.Xmss.Assembly.TableComp
 import Quantum.Xmss.Hybrid.SchemeSeed
 import Quantum.Xmss.Assembly.Costs
 import Quantum.Xmss.EncCost
+import Quantum.Xmss.Hybrid.Coins
 import Quantum.Sphincs.Keccak
 import Quantum.Sphincs.Coverage
 
