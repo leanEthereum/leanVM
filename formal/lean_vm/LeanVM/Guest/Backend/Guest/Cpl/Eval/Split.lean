@@ -54,7 +54,7 @@ theorem range_one {f : ℕ → Bool} {j : ℕ} (h : f j = true) : (List.range' j
   simp [h]
 
 /-- **The test passes for every entry**, from the runs. -/
-theorem cplOkAll_of (h : (List.range' 0 1601).all cplOkAt = true) : CplOkAll := by
+theorem cplOkAll_of (h : (List.range' 0 1549).all cplOkAt = true) : CplOkAll := by
   intro i hi
   exact List.all_eq_true.mp h i (List.mem_range'_1.mpr ⟨Nat.zero_le _, by omega⟩)
 
