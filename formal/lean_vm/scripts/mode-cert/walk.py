@@ -835,6 +835,11 @@ class Walk:
                         t = ioff(p, a2) if a2 is not None else None
                         ok = t is not None and t > 0 and b2 == q
                     self.need(ok, 'termstep', i, p, q, A)
+                # its guarantees at return are the next iteration's (`retStay`)
+                self.need(not G.ret and not G.retV, 'stayFrame', i)
+                for m in G.post: self.need(self.trMono(A, own(e), m) == m, 'stay', i, m, A)
+                for r in G.postR + [r for r, os in G.postP]:
+                    self.need(self.trRngUp(A, own(e), r) == r, 'stayR', i, r, A)
                 self.loopOk(A, i)
                 self.tails.append((A.copy(), e, md[1], i))
                 return ('out', A)

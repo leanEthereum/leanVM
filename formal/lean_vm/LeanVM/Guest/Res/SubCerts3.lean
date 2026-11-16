@@ -570,7 +570,7 @@ open LeanVM.Guest LeanVM.Guest.Res
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 1) (w := ⟨[], []⟩) (by decide +kernel))
+  Mode.fa_cons (subOk_of (j := 1) (w := ⟨[.touch (.n 8) (.n 0), .touch (.n 9) (.n 1), .touch (.n 11) (.n 3), .touch (.n 12) (.n 4), .const (.n 14) (word 65536 0), .rangeCheck (.n 6) (.n 15) (.n 16) (.n 17) (.n 14), .mul (.n 22) (.n 0) (.n 1), .mul (.n 23) (.n 3) (.n 4)], []⟩) (by decide +kernel))
     (Mode.fa_cons (subOk_of (j := 46) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_cons (subOk_of (j := 150) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_cons (subOk_of (j := 151) (w := ⟨[], []⟩) (by decide +kernel))

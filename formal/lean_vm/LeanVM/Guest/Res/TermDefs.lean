@@ -133,7 +133,9 @@ def stCallers : List (String × String) :=
     (name% «da_roots_tree__L4», name% «da_verify»), (name% «da_roots_tree__L5», name% «da_verify»),
     (name% «da_roots_tree__L6», name% «da_verify»), (name% «da_roots_tree__L7», name% «da_verify»),
     (name% «da_roots_tree__L8», name% «da_verify»), (name% «da_roots_tree__L9», name% «da_verify»),
-    (name% «da_roots_tree__L10», name% «da_verify»)]
+    (name% «da_roots_tree__L10», name% «da_verify»),
+    (name% «verify_bus_gkr», name% «verify_sub»), (name% «verify_bus_gkr_loop0», name% «verify_bus_gkr»),
+    (name% «verify_bus_gkr_loop0_loop0», name% «verify_bus_gkr_loop0»)]
 
 /-- **The callees whose facts are carried and their callers** (`Res.callersG`): `check_opening_terminal`
 called by `verify_sub`, each `column_selector__L{κ}` by `check_opening_terminal`, and `stCallers`. -/

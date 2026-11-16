@@ -25,14 +25,8 @@ theorem jt_guest : ∀ d e, Data.jtTrie.get d = some e → e < 2 ^ 62 := jt_lt_o
 
 theorem staticB_spec {K : Cert} (h : staticB K = true) :
     K.F.len = K.code.length ∧ 0 < K.code.length ∧ 0 < K.F.entry ∧ K.E.jtLo = 430 ∧ K.E.jtHi = jtEnd ∧
-      K.E.halt = 524287 ∧ tailRetB K = true ∧ loopRngB K.F.sig = true ∧ termFr K.F.sig = true := by
+      K.E.halt = 524287 ∧ loopRngB K.F.sig = true ∧ termFr K.F.sig = true := by
   simpa only [staticB, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq, and_assoc] using h
-
-theorem tailRet_of {K : Cert} (h : tailRetB K = true) :
-    ∀ G, K.E.sigs.get K.F.entry = some G → RetEmpty G := fun G hG ↦ by
-  unfold tailRetB at h
-  rw [hG] at h
-  simpa only [retEmptyB, Bool.and_eq_true, List.isEmpty_iff, RetEmpty, and_assoc] using h
 
 theorem loopRng_of {G : Sig} (h : loopRngB G = true) :
     ∀ r ∈ G.postL ++ G.postLP.map (·.1), (r.lo, r.hi) ∈ G.term := fun r hr ↦
@@ -59,10 +53,9 @@ theorem modeCerts_of {Ks : List Cert} {Km : Cert} (hst : ∀ K ∈ Ks, CertSt K)
   mainF := hmF
   mainRet := not_ret_of hmR
   mainTerm := hmT
-  tailRet K hK := tailRet_of (staticB_spec (hst K hK).b).2.2.2.2.2.2.1
-  loopRng K hK := loopRng_of (staticB_spec (hst K hK).b).2.2.2.2.2.2.2.1
+  loopRng K hK := loopRng_of (staticB_spec (hst K hK).b).2.2.2.2.2.2.1
   endOk K hK _ _ h := preAt_end_cur (hw K hK).1 le_rfl h
-  termFr K hK := (staticB_spec (hst K hK).b).2.2.2.2.2.2.2.2
+  termFr K hK := (staticB_spec (hst K hK).b).2.2.2.2.2.2.2
 
 /-- No certificate's entry is `__jump_tables`'s (`entryNode_X`). -/
 theorem entry_ne_zero {Ks : List Cert} (hst : ∀ K ∈ Ks, CertSt K) : ∀ K ∈ Ks, K.F.entry ≠ 0 :=

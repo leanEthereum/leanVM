@@ -489,7 +489,7 @@ theorem tailOk_sound {En : Env} {s sE : St} {A : Abs} {e : ℕ} {G : Sig} (hA : 
         ∃ r', trRngUp A (.own e) r = some r' ∧ r' = ⟨r.q, r.lo.succ, r.hi, r.S, r.d⟩ := by
   unfold tailOk at h
   simp only [Bool.and_eq_true, List.all_eq_true] at h
-  obtain ⟨⟨⟨hent, hhd⟩, hts⟩, hL⟩ := h
+  obtain ⟨⟨⟨⟨hent, hhd⟩, hts⟩, hL⟩, -⟩ := h
   have F := Frames.own hfp hwf hu hm hE hEfp
   refine ⟨entryOk_sound F hA hent hjt hT, hts, fun o ho ↦ ?_, fun r hr ↦ ?_⟩
   · unfold headerOk at hhd

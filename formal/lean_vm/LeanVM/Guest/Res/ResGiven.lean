@@ -7,6 +7,7 @@
 
 module
 
+public import LeanVM.Guest.Pack.«P11».ModeCert
 public import LeanVM.Guest.Pack.«P24».ModeCert
 public import LeanVM.Guest.Pack.«P29».ModeCert
 public import LeanVM.Guest.Pack.«P51».ModeCert
@@ -24,7 +25,8 @@ noncomputable def resExc : List Mode.Cert := [
   Fn.«claim_list_digest».modeCert,
   Fn.«certify_placement».modeCert,
   Fn.«log2_ceil_in_the_exponent__L0_L34».modeCert,
-  Fn.«log2_ceil_in_the_exponent__L16_L34».modeCert]
+  Fn.«log2_ceil_in_the_exponent__L16_L34».modeCert,
+  Fn.«verify_bus_gkr_loop0».modeCert]
 
 /-- The parameters whose nonzero values the divisor residuals need, by function. -/
 def nzVals : List (String × V) := [

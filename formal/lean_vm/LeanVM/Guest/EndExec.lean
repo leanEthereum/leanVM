@@ -138,7 +138,6 @@ structure ModeCerts (Ks : List Mode.Cert) (Km : Mode.Cert) (E0 : Mode.Env) : Pro
   mainF : Km.F.main = true
   mainRet : ∀ (i c : ℕ), Km.code[i]? ≠ some (OffsetInstruction.jump c 0 1)
   mainTerm : Km.F.sig.term = []
-  tailRet : ∀ K ∈ Ks, ∀ G, K.E.sigs.get K.F.entry = some G → RetEmpty G
   loopRng : ∀ K ∈ Ks, ∀ r ∈ K.F.sig.postL ++ K.F.sig.postLP.map (·.1), (r.lo, r.hi) ∈ K.F.sig.term
   endOk : ∀ K ∈ Ks, ∀ cur pend, preAt K.E K.F K.code K.code.length = some (cur, pend) → cur = []
   termFr : ∀ K ∈ Ks, Mode.termFr K.F.sig = true
@@ -161,7 +160,6 @@ theorem progOk_of {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} (h : Mo
   mainF := h.mainF
   mainRet := h.mainRet
   mainTerm := h.mainTerm
-  tailRet := h.tailRet
   loopRng := h.loopRng
   endOk := h.endOk
 

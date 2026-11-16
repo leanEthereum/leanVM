@@ -15,7 +15,8 @@ the last one's naming the bound (the loop exits), every iteration's entry has it
 
 `loop_step`: at a tail call the walk accepts, the next iteration's run and this iteration's point
 (written on every path, `loopOk`) give this iteration's run; `RW.last`, the exiting iteration's;
-`loop_stepP`, `PW.last`, the same for runs of pointers.
+`loop_stepP`, `PW.last`, the same for runs of pointers. `retStay_sound`: the next iteration's
+guarantees at return are this one's.
 -/
 
 namespace LeanVM.Guest.Mode
@@ -173,6 +174,36 @@ theorem loop_step {s sN : St} {A : Abs} {e : ℕ} (hA : Holds s A) (F : Frames s
     {r : Rng} (hst : trRngUp A (.own e) r = some ⟨r.q, r.lo.succ, r.hi, r.S, r.d⟩) (hn : RW sN r)
     (hp : HW s r.first) : RW s r :=
   RW.cons (RW.trUp F hA hst hn) hp
+
+/-! ## Guarantees at return -/
+
+/-- **A loop's guarantees at return, one iteration**: at a tail call the walk accepts (`retStay`),
+the next iteration's guarantees (its frame `fp·g^e`) are this one's. -/
+theorem retStay_sound {s sN : St} {A : Abs} {e : ℕ} {G : Sig} (hA : Holds s A)
+    (F : Frames s sN (.own e)) (h : retStay A e G = true) (hR : RetHolds sN G) : RetHolds s G := by
+  unfold retStay at h
+  simp only [Bool.and_eq_true, List.isEmpty_iff, List.all_eq_true] at h
+  obtain ⟨⟨⟨⟨h0, h1⟩, hp⟩, hr⟩, hq⟩ := h
+  refine ⟨by simp [h0], fun m hm ↦ ?_, fun r hm ↦ ?_, fun q hm ↦ ?_, by simp [h1]⟩
+  · have := hp m hm
+    split at this
+    · rename_i k hk
+      obtain rfl := Mono.beq_eq this
+      obtain ⟨v, x, h2, h3, h4⟩ := hR.2.1 _ hm
+      exact ⟨v, x, (trMono_iff F hA hk v).mp h2, h3, F.mem ▸ h4⟩
+    · cases this
+  · have := hr r hm
+    split at this
+    · rename_i r' hr'
+      obtain rfl := Rng.beq_eq this
+      exact RW.trUp F hA hr' (hR.2.2.1 _ hm)
+    · cases this
+  · have := hq q hm
+    split at this
+    · rename_i r' hr'
+      obtain rfl := Rng.beq_eq this
+      exact PW.trUp F hA hr' (hR.2.2.2.1 _ hm)
+    · cases this
 
 end
 

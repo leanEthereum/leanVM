@@ -122,7 +122,7 @@ open LeanVM.Guest LeanVM.Guest.Res
 public section
 
 theorem certs_res : ∀ K ∈ certs, ResOk resExc nzVals K :=
-  Mode.fa_cons (resOk_of (j := 93) (by decide +kernel))
+  Mode.fa_cons (resOk_exc (by simp [resExc]))
     (Mode.fa_cons (resOk_of (j := 102) (by decide +kernel))
     (Mode.fa_cons (resOk_of (j := 117) (by decide +kernel))
     (Mode.fa_cons (resOk_of (j := 397) (by decide +kernel))

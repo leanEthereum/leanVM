@@ -16,6 +16,7 @@ public import LeanVM.Guest.Res.TermDefs
 public import LeanVM.Guest.Res.RootsDefs
 public import LeanVM.Guest.Res.TileDefs
 public import LeanVM.Guest.Res.ExpDefs
+public import LeanVM.Guest.Res.GkrDefs
 
 /-!
 # The `sub` residuals' families
@@ -27,7 +28,8 @@ public import LeanVM.Guest.Res.ExpDefs
 reads past its layers, `vkStB`, the roots' tree's reads, `rootsB`, the tiles, `tileFamB`, a lift
 read back, `liftBackB`, the same cells named one index up, `ordShiftB`, `verify_tables`' reads past
 its table sumcheck, `vtStB`, the runs a product's factors bound, `expFamB`, and `verify_tables`' groups'
-bases, `vtGrpB`).
+bases, `vtGrpB`, and `verify_sub`'s exponent facts' families, `vsB`, `verify_bus_gkr`'s pair loop's reads of the stream,
+`gkrStB`, and its final point row's copy, `vbgRowB`).
 `SubOk exc K`: certificate `K` is listed in `exc`, or each of its residuals passes `subB` at its
 function's index, decided per certificate (`subOk_of`).
 `EndExec.resOpen_subOk` (`EndExecRSub`): given `SubOk resExc` of every certificate and the listed
@@ -180,7 +182,8 @@ noncomputable def subB (j : ℕ) (w : Wit) : Mode.Res → Bool
       subFamB j w (.sub a bs) || termFamB j w (.sub a bs) || stB j (.sub a bs) ||
       blkB j (.sub a bs) || vtB j (.sub a bs) || liftB j (.sub a bs) || vkStB j (.sub a bs) ||
       rootsB j (.sub a bs) || tileFamB j w (.sub a bs) || liftBackB j (.sub a bs) || ordShiftB j w (.sub a bs) ||
-      vtStB j (.sub a bs) || expFamB j w (.sub a bs) || vtGrpB j (.sub a bs)
+      vtStB j (.sub a bs) || expFamB j w (.sub a bs) || vtGrpB j (.sub a bs) || vsB j (.sub a bs) ||
+      gkrStB j (.sub a bs) || vbgRowB j (.sub a bs)
   | _ => true
 
 /-- **A certificate's `sub` residuals in the families**: it is listed in `exc`, or each is at its

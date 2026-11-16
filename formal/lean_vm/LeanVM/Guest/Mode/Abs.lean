@@ -1434,13 +1434,28 @@ def headerOk (A : Abs) (e : ℕ) : Bool :=
     | some (.m x), some y => x.beq y
     | _, _ => false
 
+/-- What a loop guarantees at return is the same at the frame `fp·g^e` it tail-calls: nothing in its own
+frame, and each heap fact translated to itself, over bases the tail call passes on unchanged. -/
+def retStay (A : Abs) (e : ℕ) (G : Sig) : Bool :=
+  G.ret.isEmpty && G.retV.isEmpty &&
+  G.post.all (fun m ↦ match trMono A (.own e) m with
+    | some k => k.beq m
+    | none => false) &&
+  G.postR.all (fun r ↦ match trRngUp A (.own e) r with
+    | some r' => r'.beq r
+    | none => false) &&
+  G.postP.all fun q ↦ match trRngUp A (.own e) q.1 with
+    | some r' => r'.beq q.1
+    | none => false
+
 /-- A loop's tail call into frame `fp·g^e` of callee `G`: its entry from this state, its header this
-frame's, its counters moved up, and each run it accumulates the next iteration's from one further. -/
+frame's, its counters moved up, each run it accumulates the next iteration's from one further, and
+its guarantees at return the next iteration's (`retStay`). -/
 def tailOk (A : Abs) (e : ℕ) (G : Sig) : Bool :=
-  entryOk A (.own e) G && headerOk A e && termStep A e G && (G.postL ++ G.postLP.map (·.1)).all fun r ↦
+  entryOk A (.own e) G && headerOk A e && termStep A e G && (G.postL ++ G.postLP.map (·.1)).all (fun r ↦
     match trRngUp A (.own e) r with
     | some r' => r'.beq ⟨r.q, r.lo.succ, r.hi, r.S, r.d⟩
-    | none => false
+    | none => false) && retStay A e G
 
 /-- **A `JUMP` at offset `i`** (`[c]`, `[d]`, `[f]`): what it needs, and where it goes. The state
 after it is the state at its successors (a call's return point gets `afterCall`'s). -/

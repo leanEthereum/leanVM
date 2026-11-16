@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.EndExecFinal
 
-  The executor's completeness on the guest and the composed prover's proof accepted, modulo the
-  facts still open (`OpenGaps`): every proved part wired into `ExecGaps`.
+  The executor's completeness on the guest and the composed prover's proof accepted: every proved
+  part wired into `ExecGaps`. No open fact is left (`openGaps`).
 -/
 
 import LeanVM.Guest.EndExecHonest
@@ -24,9 +24,10 @@ import LeanVM.Guest.Budget.MainExact
 import LeanVM.Guest.EndExecW
 import LeanVM.Guest.EndExecRCld
 import LeanVM.Guest.EndExecRCp
+import LeanVM.Guest.EndExecRGkrC
 
 /-!
-# The end theorem modulo the open facts
+# The end theorem
 
 The certificates are the mode walk's (`Mode.guestCerts`, `main`'s, `Mode.guestE0`), the alignment
 the deployed one (`Bridge.alignA`), and the hint tracks' invariant `YFin`: the witness streams'
@@ -42,7 +43,7 @@ cursor (`YCur`) and the bump pointer (`YAlloc`), each kept by a step given the o
 (`hintsUsed_alignA`), the tracks kept
 (`keepY_alignA`, `keepY_allocA_guest`) and started (`initY_cur`, `initY_alloc`), the residuals
 (`resTop_guestF`) and the termination facts (`termNode_guest`). `guest_prover_complete_of` is
-`guest_prover_complete` from `OpenGaps`.
+`guest_prover_complete` from `OpenGaps`, which `openGaps` proves: the kernel checks every walk.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -78,14 +79,16 @@ theorem InitY.and {Y₁ Y₂ : Ref → St → Prop} (h₁ : InitY Y₁) (h₂ : 
 bump pointer. -/
 abbrev YFin (r : Ref) (s : St) : Prop := YCur alignA r s ∧ YAlloc alignA r s
 
-/-! ## What is still open -/
+/-! ## The open facts (none left) -/
 
 /-- **The facts the executor's completeness on the guest still rests on.** -/
 structure OpenGaps : Prop where
-  /-- Mode walk track: the walks (`walk … = true`) of the five functions `infer.py` holds as failing
-  (`HELD_NS`) until families take their residuals: `main`, `verify_sub`, `verify_bus_gkr` and its two
-  loops. False as stated. -/
+  /-- Mode walk track: the walks (`walk … = true`) the kernel does not check (`Mode.ModeHyps`,
+  generated from `infer.py`'s `HELD_NS`, now empty). -/
   modeHyps : Mode.ModeHyps
+
+/-- **No open fact is left**: the kernel checks every walk, so `Mode.ModeHyps` has no field. -/
+theorem openGaps : OpenGaps := ⟨⟨⟩⟩
 
 /-! ## The assembly -/
 
@@ -98,11 +101,12 @@ theorem execGaps_of (O : OpenGaps) :
     (hintComputed_alignA extraRef_alignA)
     (resTop_guestF (fun K hK ↦ by
       simp only [Res.resExc, List.mem_cons, List.not_mem_nil, or_false] at hK
-      rcases hK with rfl | rfl | rfl | rfl
+      rcases hK with rfl | rfl | rfl | rfl | rfl
       · exact resCld_alignA
       · exact resCp_alignA
       · exact resLce0_alignA
-      · exact resLce16_alignA))
+      · exact resLce16_alignA
+      · exact resLy_alignA))
     termNode_guest Bridge.progAl Bridge.alignA_main alLayout_alignA jumpCells_at Mode.guestCerts_entry_ne
     (derefPow_all _)
     (hintsUsed_alignA sizesAt_guest allocReady_guest (witCells_alignA witPtrRes_guest) fun _ _ h ↦ h)

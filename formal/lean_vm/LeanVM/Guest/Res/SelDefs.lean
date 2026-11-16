@@ -12,6 +12,7 @@ public import LeanVM.Guest.B2C.Cells
 public import LeanVM.Guest.Mode.Step
 public meta import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.Res.ParamRef
+public import LeanVM.Guest.Res.EfDefs
 import LeanVM.Guest.Data.Source
 
 /-!
@@ -29,7 +30,7 @@ top-level atom before it loads from `[q]·g^k` (`scanHp_sound`). `ltSelB j r`: r
 a bound of function `j`'s body, its cell inside the frame (`2 ≤ cell < fsN j`, where the
 completeness check reads it).
 
-`ltExpB j r`: residual `r` is `[B] + t < N`, `B` named by an exponent fact (`expFacts`: a listed
+`ltFactB j r`: residual `r` is `[B] + t < N`, `B` named by an exponent fact (`expFacts`: a listed
 parameter's word, or the word read through it, is `g^e`, `e` below a bound `b`), `b + t ≤ N`.
 
 `splitB j r`: residual `r` is a run inside another over the same product, both read off a split
@@ -193,14 +194,18 @@ noncomputable def expOf (j : ℕ) (B : Mode.Base) : Option (V × ℕ) :=
 
 /-- **An order residual bounded by an exponent fact** (F7, F8): `[B] + t < N`, `B` named by a fact of
 bound `b`, `b + t ≤ N`. -/
-noncomputable def ltExpB (j : ℕ) : Mode.Res → Bool
+noncomputable def ltFactB (j : ℕ) : Mode.Res → Bool
   | .lt (.ex B t) (.num N) => match expOf j B with
     | some (p, b) => inFr j (cellJ j p) && decide (b ≤ 2 ^ 33) && decide (N ≤ 2 ^ 33) && decide (b + t ≤ N)
     | none => false
   | _ => false
 
+/-- **An order residual an exponent fact bounds** (`ltFactB`), or `verify_sub`'s exponent facts decide
+(`vsB`). -/
+noncomputable def ltExpB (j : ℕ) (x : Mode.Res) : Bool := ltFactB j x || vsB j x
+
 /-- A residual the families take at function `j`: a name, a selector's bound (`ltSelB`) or one an
-exponent fact gives (`ltExpB`), a run inside others, or a nonzero divisor at a parameter (`nzB`). -/
+exponent fact gives or `verify_sub`'s exponent facts decide (`ltExpB`), a run inside others, or a nonzero divisor at a parameter (`nzB`). -/
 noncomputable def famB (nzs : List (String × V)) (j : ℕ) : Mode.Res → Bool
   | .name _ => true
   | .lt a b => ltSelB j (.lt a b) || ltExpB j (.lt a b)

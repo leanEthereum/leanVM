@@ -31,9 +31,6 @@ def stOf (m : Mem) (fp : ℕ) : St := ⟨m, Dlog.empty, 0, fp, 0, ∅, 0⟩
 /-- The signature's termination facts hold at frame `fp`. -/
 def TermAt (m : Mem) (fp : ℕ) (G : Sig) : Prop := ∀ p ∈ G.term, LTF (stOf m fp) p.1 p.2
 
-/-- A signature guarantees nothing at return but its loop's runs. -/
-def RetEmpty (G : Sig) : Prop := G.ret = [] ∧ G.post = [] ∧ G.postR = [] ∧ G.postP = [] ∧ G.retV = []
-
 /-- A loop's earlier iteration: its frame, the walk's state at its tail call, the next frame's
 offset. -/
 structure Iter where
@@ -51,7 +48,7 @@ structure IterOk (m : Mem) (Kc : Cert) (it : Iter) (nx : ℕ) : Prop where
   runs : ∀ r ∈ Kc.F.sig.postL ++ Kc.F.sig.postLP.map (·.1),
     trRngUp it.A (.own it.e) r = some ⟨r.q, r.lo.succ, r.hi, r.S, r.d⟩
   term : TermAt m it.fp Kc.F.sig
-  ret : RetEmpty Kc.F.sig
+  stay : retStay it.A it.e Kc.F.sig = true
 
 /-- The iterations below frame `top` chain down to the first frame `fp0`, the latest first. -/
 def Chain (m : Mem) (K : Cert) : List Iter → ℕ → ℕ → Prop
@@ -114,8 +111,7 @@ def StartMain (Km : Cert) (E0 : Env) (s : St) : Prop :=
 
 /-- **The certificates**: each one's walk tied to the executor, their entries distinct, the
 signatures each names its callee's, their program the same, `main` never returning or called, a
-function tail-calling itself guaranteeing only its runs, which range over its termination facts, and
-no walk falling through its function's end. -/
+loop's runs ranging over its termination facts, and no walk falling through its function's end. -/
 structure ProgOk (prog : LeanIsaProgram) (C : Ctx) (Ks : List Cert) (Km : Cert) (E0 : Env) :
     Prop where
   ok : ∀ K ∈ Ks, CertOk C K
@@ -132,7 +128,6 @@ structure ProgOk (prog : LeanIsaProgram) (C : Ctx) (Ks : List Cert) (Km : Cert) 
   mainF : Km.F.main = true
   mainRet : ∀ (i c : ℕ), Km.code[i]? ≠ some (OffsetInstruction.jump c 0 1)
   mainTerm : Km.F.sig.term = []
-  tailRet : ∀ K ∈ Ks, ∀ G, K.E.sigs.get K.F.entry = some G → RetEmpty G
   loopRng : ∀ K ∈ Ks, ∀ r ∈ K.F.sig.postL ++ K.F.sig.postLP.map (·.1), (r.lo, r.hi) ∈ K.F.sig.term
   endOk : ∀ K ∈ Ks, ∀ cur pend, preAt K.E K.F K.code K.code.length = some (cur, pend) → cur = []
 
@@ -163,7 +158,7 @@ theorem TermAt.mono {m m' : Mem} (hle : m ≤ m') {fp : ℕ} {G : Sig} (h : Term
 theorem IterOk.mono {m m' : Mem} (hle : m ≤ m') {K : Cert} {it : Iter} {nx : ℕ}
     (h : IterOk m K it nx) : IterOk m' K it nx :=
   ⟨Holds.mono (s := stOf m it.fp) (s' := stOf m' it.fp) hle rfl h.holds, h.next, h.fp, h.nx, h.loop,
-    h.runs, h.term.mono hle, h.ret⟩
+    h.runs, h.term.mono hle, h.stay⟩
 
 theorem Chain.mono {m m' : Mem} (hle : m ≤ m') {K : Cert} :
     ∀ {its : List Iter} {top fp0 : ℕ}, Chain m K its top fp0 → Chain m' K its top fp0
@@ -243,16 +238,6 @@ theorem Chain.term {m : Mem} {K : Cert} :
   | [], _, _, h, ht => h ▸ ht
   | _ :: _, _, _, ⟨h1, h2⟩, _ => Chain.term h2 h1.term
 
-theorem retHolds_empty {s : St} {G : Sig} (h : RetEmpty G) : RetHolds s G := by
-  obtain ⟨h1, h2, h3, h4, h5⟩ := h
-  refine ⟨?_, ?_, ?_, ?_, ?_⟩ <;> intro x hx <;> simp_all
-
-theorem Chain.ret {m : Mem} {K : Cert} :
-    ∀ {its : List Iter} {top fp0 : ℕ}, Chain m K its top fp0 → RetHolds (stOf m top) K.F.sig →
-      RetHolds (stOf m fp0) K.F.sig
-  | [], _, _, h, ht => h ▸ ht
-  | _ :: _, _, _, ⟨h1, _⟩, _ => retHolds_empty h1.ret
-
 /-- The frame `nx`, the next iteration's, as a callee's of iteration `it`'s. -/
 theorem IterOk.frames {m : Mem} {K : Cert} {it : Iter} {nx : ℕ} (h : IterOk m K it nx)
     (hwf : m.WF) (hu : m.used ≤ maxCells) : Frames (stOf m it.fp) (stOf m nx) (.own it.e) := by
@@ -260,6 +245,14 @@ theorem IterOk.frames {m : Mem} {K : Cert} {it : Iter} {nx : ℕ} (h : IterOk m 
   change MonoVal (stOf m it.fp) (.own it.e) (ofK (g ^ (it.fp + it.e))) at hm
   rw [← h.next] at hm
   exact ⟨rfl, hm, h.nx, h.fp, hwf, hu⟩
+
+/-- **A loop's guarantees at return, down its iterations**: each iteration returns where its tail
+call's does, and its guarantees are the next one's (`retStay`). -/
+theorem Chain.ret {m : Mem} {K : Cert} (hwf : m.WF) (hu : m.used ≤ maxCells) :
+    ∀ {its : List Iter} {top fp0 : ℕ}, Chain m K its top fp0 → RetHolds (stOf m top) K.F.sig →
+      RetHolds (stOf m fp0) K.F.sig
+  | [], _, _, h, ht => h ▸ ht
+  | _ :: _, _, _, ⟨h1, h2⟩, ht => Chain.ret hwf hu h2 (retStay_sound h1.holds (h1.frames hwf hu) h1.stay ht)
 
 /-- **A loop's runs, down its iterations**: the runs at the top frame give them at the first. -/
 theorem Chain.runs {m : Mem} {K : Cert} (hwf : m.WF) (hu : m.used ≤ maxCells) :

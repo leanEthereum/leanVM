@@ -101,7 +101,7 @@ theorem ret_stack {prog : LeanIsaProgram} {C : Ctx} {Ks : List Cert} {Km : Cert}
   obtain ⟨hL0, hLP0⟩ := hch.runs hf'.agree.wf hf'.agree.used
     (fun r hr ↦ RW.mono (s := s1) (s' := stOf s'.mem a.fp) hle' hfpa (hL r hr))
     (fun q hq ↦ PW.mono (s := s1) (s' := stOf s'.mem a.fp) hle' hfpa (hLP q hq))
-  have hR0 := hch.ret (RetHolds.mono (s := s1) (s' := stOf s'.mem a.fp) hle' hfpa hR)
+  have hR0 := hch.ret hf'.agree.wf hf'.agree.used (RetHolds.mono (s := s1) (s' := stOf s'.mem a.fp) hle' hfpa hR)
   have hT0 := hch.term (ha.term.mono hle)
   have hat := hres s'.mem (Mem.le_trans hm0 hle) hf'.agree.wf hf'.agree.used (hch.fp0 ha.fp) hb.fp
     hR0 hL0 hLP0 hT0
@@ -143,7 +143,7 @@ theorem tail_stack {prog : LeanIsaProgram} {C : Ctx} {Ks : List Cert} {Km : Cert
     ⟨rfl, hmq, hf'.fp, hs1.fp, hf'.agree.wf, hf'.agree.used⟩
   unfold tailOk at htail
   simp only [Bool.and_eq_true, List.all_eq_true] at htail
-  obtain ⟨⟨⟨hent, hhd⟩, -⟩, hL⟩ := htail
+  obtain ⟨⟨⟨⟨hent, hhd⟩, -⟩, hL⟩, hst⟩ := htail
   have hle : s.mem ≤ s'.mem := Mem.le_trans hle1 hle'
   obtain ⟨-, -, e3, e4, -⟩ := P.env a.K ha.mem
   have hW := entryW_sound F hAC (entryW_of_entryOk hent)
@@ -182,7 +182,7 @@ theorem tail_stack {prog : LeanIsaProgram} {C : Ctx} {Ks : List Cert} {Km : Cert
   have e1 : u1 = ofK (g ^ b.fp) :=
     Option.some.inj (hu1.symm.trans (by rw [← hfpa]; exact hle.get _ _ h1))
   have hit : IterOk s'.mem a.K ⟨s1.fp, A, e⟩ s'.fp :=
-    ⟨hAC, hq, hs1.fp, hf'.fp, hloop, hruns, hfpa ▸ ha.term.mono hle, P.tailRet a.K ha.mem _ hG⟩
+    ⟨hAC, hq, hs1.fp, hf'.fp, hloop, hruns, hfpa ▸ ha.term.mono hle, hst⟩
   refine ⟨⟨a.K, ⟨s1.fp, A, e⟩ :: a.its, s'.fp, a.fp0⟩, b :: rest, 0,
     ⟨ha.mem, ⟨hit, hfpa ▸ ha.chain.mono hle⟩, hTE, hf'.fp⟩, rfl, P.ne a.K ha.mem, by simp [hpc'],
     atOff_zero (holds_stOf.mpr hEn), hmain', r, e0 ▸ hu0', e1 ▸ hu1', hsp.mono hle, hb.mono hle,

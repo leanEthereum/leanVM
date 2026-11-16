@@ -32,17 +32,12 @@ public section
 /-- **The walks and hints the kernel does not check**, one per function: a walk failing or too
     costly to check (`WalkHyp`), hints too costly to check in one piece (`HintsHyp`). -/
 structure ModeHyps : Prop where
-  «__loop35» : WalkHyp Fn.«verify_bus_gkr_loop0_loop0».modeCert
-  «__loop6» : WalkHyp Fn.«verify_bus_gkr_loop0».modeCert
-  «main» : WalkHyp Fn.«main».modeCert
-  «verify_bus_gkr» : WalkHyp Fn.«verify_bus_gkr».modeCert
-  «verify_sub» : WalkHyp Fn.«verify_sub».modeCert
 
-theorem guestGroup_walk0 (h : ModeHyps) : ∀ l ∈ guestGroups[0]!, ∀ K ∈ l, CertWalk K :=
+theorem guestGroup_walk0 (_h : ModeHyps) : ∀ l ∈ guestGroups[0]!, ∀ K ∈ l, CertWalk K :=
   Mode.fa_cons (ModePack.«P0».certs_walk)
     (Mode.fa_cons (ModePack.«P1».certs_walk)
     (Mode.fa_cons (ModePack.«P10».certs_walk)
-    (Mode.fa_cons (ModePack.«P11».certs_walk h.«__loop6»)
+    (Mode.fa_cons (ModePack.«P11».certs_walk)
     (Mode.fa_cons (ModePack.«P12».certs_walk)
     (Mode.fa_cons (ModePack.«P13».certs_walk)
     (Mode.fa_cons (ModePack.«P14».certs_walk)
@@ -57,7 +52,7 @@ theorem guestGroup_walk0 (h : ModeHyps) : ∀ l ∈ guestGroups[0]!, ∀ K ∈ l
     (Mode.fa_cons (ModePack.«P22».certs_walk)
     (Mode.fa_nil))))))))))))))))
 
-theorem guestGroup_walk1 (h : ModeHyps) : ∀ l ∈ guestGroups[1]!, ∀ K ∈ l, CertWalk K :=
+theorem guestGroup_walk1 (_h : ModeHyps) : ∀ l ∈ guestGroups[1]!, ∀ K ∈ l, CertWalk K :=
   Mode.fa_cons (ModePack.«P23».certs_walk)
     (Mode.fa_cons (ModePack.«P24».certs_walk)
     (Mode.fa_cons (ModePack.«P25».certs_walk)
@@ -69,15 +64,15 @@ theorem guestGroup_walk1 (h : ModeHyps) : ∀ l ∈ guestGroups[1]!, ∀ K ∈ l
     (Mode.fa_cons (ModePack.«P30».certs_walk)
     (Mode.fa_cons (ModePack.«P31».certs_walk)
     (Mode.fa_cons (ModePack.«P32».certs_walk)
-    (Mode.fa_cons (ModePack.«P33».certs_walk h.«verify_sub»)
+    (Mode.fa_cons (ModePack.«P33».certs_walk)
     (Mode.fa_cons (ModePack.«P34».certs_walk)
     (Mode.fa_cons (ModePack.«P35».certs_walk)
     (Mode.fa_cons (ModePack.«P36».certs_walk)
     (Mode.fa_cons (ModePack.«P37».certs_walk)
     (Mode.fa_nil))))))))))))))))
 
-theorem guestGroup_walk2 (h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ l, CertWalk K :=
-  Mode.fa_cons (ModePack.«P38».certs_walk h.«verify_bus_gkr»)
+theorem guestGroup_walk2 (_h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ l, CertWalk K :=
+  Mode.fa_cons (ModePack.«P38».certs_walk)
     (Mode.fa_cons (ModePack.«P39».certs_walk)
     (Mode.fa_cons (ModePack.«P4».certs_walk)
     (Mode.fa_cons (ModePack.«P40».certs_walk)
@@ -95,10 +90,10 @@ theorem guestGroup_walk2 (h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ l
     (Mode.fa_cons (ModePack.«P51».certs_walk)
     (Mode.fa_nil))))))))))))))))
 
-theorem guestGroup_walk3 (h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ l, CertWalk K :=
+theorem guestGroup_walk3 (_h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ l, CertWalk K :=
   Mode.fa_cons (ModePack.«P52».certs_walk)
     (Mode.fa_cons (ModePack.«P53».certs_walk)
-    (Mode.fa_cons (ModePack.«P54».certs_walk h.«__loop35»)
+    (Mode.fa_cons (ModePack.«P54».certs_walk)
     (Mode.fa_cons (ModePack.«P55».certs_walk)
     (Mode.fa_cons (ModePack.«P56».certs_walk)
     (Mode.fa_cons (ModePack.«P57».certs_walk)
@@ -110,7 +105,7 @@ theorem guestGroup_walk3 (h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ l
     (Mode.fa_cons (ModePack.«P62».certs_walk)
     (Mode.fa_cons (ModePack.«P63».certs_walk)
     (Mode.fa_cons (ModePack.«P7».certs_walk)
-    (Mode.fa_cons (ModePack.«P8».certs_walk h.«main»)
+    (Mode.fa_cons (ModePack.«P8».certs_walk)
     (Mode.fa_cons (ModePack.«P9».certs_walk)
     (Mode.fa_nil))))))))))))))))
 

@@ -122,7 +122,7 @@ open LeanVM.Guest LeanVM.Guest.Res
 public section
 
 theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
-  Mode.fa_cons (subOk_of (j := 93) (w := ⟨[], []⟩) (by decide +kernel))
+  Mode.fa_cons (subOk_exc (by simp [resExc]))
     (Mode.fa_cons (subOk_of (j := 102) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_cons (subOk_of (j := 117) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_cons (subOk_of (j := 397) (w := ⟨[], []⟩) (by decide +kernel))

@@ -13,7 +13,6 @@ public import LeanVM.Guest.Pack.«P54».Mode1
 public import LeanVM.Guest.Pack.«P54».Mode2
 public import LeanVM.Guest.Pack.«P54».ModeH
 public import LeanVM.Guest.Pack.«P54».ModeL0
-public import LeanVM.Guest.Pack.«P54».ModeX
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
@@ -791,7 +790,7 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     (Mode.fa_nil))))))))))))))))))))))))))))))
 
 /-- The certificates' walks and hints. -/
-theorem certs_walk («__loop35» : Mode.WalkHyp Fn.«verify_bus_gkr_loop0_loop0».modeCert) :
+theorem certs_walk :
     ∀ K ∈ certs, Mode.CertWalk K :=
   Mode.fa_cons (⟨Fn.«da_verify».modeOk, Fn.«da_verify».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«rs_eq_rows__L5».modeOk, Fn.«rs_eq_rows__L5».modeHintsOk⟩)
@@ -803,7 +802,8 @@ theorem certs_walk («__loop35» : Mode.WalkHyp Fn.«verify_bus_gkr_loop0_loop0�
     (Mode.fa_cons (⟨Fn.«claim_list_last__L3».modeOk, Fn.«claim_list_last__L3».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«child_claim_list_last__L4».modeOk,
     Fn.«child_claim_list_last__L4».modeHintsOk⟩)
-    (Mode.fa_cons (⟨«__loop35», Fn.«verify_bus_gkr_loop0_loop0».modeHintsOk⟩)
+    (Mode.fa_cons (⟨Fn.«verify_bus_gkr_loop0_loop0».modeOk,
+    Fn.«verify_bus_gkr_loop0_loop0».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«level_residual__L55_L16_L6_L3».modeOk,
     Fn.«level_residual__L55_L16_L6_L3».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«level_residual__L55_L15_L4_L2».modeOk,

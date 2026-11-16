@@ -33,7 +33,7 @@ namespace LeanVM.Guest.EndExec
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Mode LeanVM.Guest.Core LeanVM.Guest.Memory
 open LeanVM.Guest.B2C (idxOf entryOf FrameHolds fsN fn_of_idx cellJ namedOf)
 open LeanVM.Guest.Bridge (FnAl)
-open LeanVM.Guest.Res (Wit witOk constOf powOf inFr expFacts expOf baseAt ltExpB dimFacts dimShape dimB
+open LeanVM.Guest.Res (Wit witOk constOf powOf inFr expFacts expOf baseAt ltFactB dimFacts dimShape dimB
   claimPairs busPairs tabPairs TermFront)
 open LeanVM.Protocol.Verifier (gen Layout BusResult ColumnClaim)
 open LeanVM.Prover.Exec
@@ -314,10 +314,10 @@ theorem expBase_top (t : TopAt A r K i e j) (hr : r.Ok) (hE : ExpQ r e.I)
 
 /-- **F7, F8 at an honest frame.** -/
 theorem ltExp_top (t : TopAt A r K i e j) (hr : r.Ok) (hE : ExpQ r e.I)
-    {x : Mode.Res} (hx : ltExpB j x = true) : RRes (refMem r.img) e.I.fp x := by
+    {x : Mode.Res} (hx : ltFactB j x = true) : RRes (refMem r.img) e.I.fp x := by
   match x, hx with
   | .lt (.ex B tt) (.num N), hx =>
-    simp only [ltExpB] at hx
+    simp only [ltFactB] at hx
     cases hB : expOf j B with
     | none => rw [hB] at hx; cases hx
     | some pb =>
@@ -327,11 +327,11 @@ theorem ltExp_top (t : TopAt A r K i e j) (hr : r.Ok) (hE : ExpQ r e.I)
       obtain ⟨⟨⟨hin, hb⟩, hN⟩, hlt⟩ := hx
       obtain ⟨κ, hκ, hR⟩ := expBase_top t hr hE hB hin
       exact ⟨κ + tt, N, ⟨_, κ, hR, by rw [ofK_gpow], by omega, rfl⟩, rfl, by omega⟩
-  | .lt (.ex _ _) (.ex _ _), hx => simp [ltExpB] at hx
-  | .lt (.num _) _, hx => simp [ltExpB] at hx
-  | .sub _ _, hx => simp [ltExpB] at hx
-  | .nz _, hx => simp [ltExpB] at hx
-  | .name _, hx => simp [ltExpB] at hx
+  | .lt (.ex _ _) (.ex _ _), hx => simp [ltFactB] at hx
+  | .lt (.num _) _, hx => simp [ltFactB] at hx
+  | .sub _ _, hx => simp [ltFactB] at hx
+  | .nz _, hx => simp [ltFactB] at hx
+  | .name _, hx => simp [ltFactB] at hx
 
 theorem dimShape_eq {a b : Rng} {B : Base} {o t : ℕ} (h : dimShape a b = some (B, o, t)) :
     ∃ T, a.q.bs = [(.fr T, 1), (B, 1)] ∧ b.q.bs = [(.fr T, 1)] ∧ b.hi = .ex (.fr o) t := by

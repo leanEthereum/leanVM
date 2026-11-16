@@ -17,6 +17,8 @@ public import LeanVM.Guest.EndExecRVkSt
 public import LeanVM.Guest.EndExecRRt
 public import LeanVM.Guest.EndExecRCld
 public import LeanVM.Guest.EndExecRVtSt
+public import LeanVM.Guest.EndExecRVs
+public import LeanVM.Guest.EndExecRGkr
 public import LeanVM.Guest.EndExecRVtP
 public import LeanVM.Guest.EndExecRExp
 public import LeanVM.Guest.EndExecRVtG
@@ -50,6 +52,10 @@ public section
 theorem resOpen_ltExp {Ks : List Mode.Cert} {A : String → Bridge.FnAl} :
     ResOpen Ks A fun j x ↦ ltExpB j x = true := by
   intro r hr K hK i hi e j t x hx hp hin
+  simp only [ltExpB, Bool.or_eq_true] at hp
+  rcases hp with hp | hp
+  swap
+  · exact vs_top t hr hp hin
   exact ltExp_top t hr (expQ_of_termQ (termQ_all hr e.I t.inst) (expQv_all hr e.I t.inst)) hp
 
 /-- **`check_opening_terminal`'s and `column_selector`'s families at an honest frame.** -/
@@ -83,7 +89,7 @@ theorem resOpen_subOk {Ks : List Mode.Cert} {A : String → Bridge.FnAl} (hok : 
     rw [hg, Option.getD_some] at hx
     have hf := List.all_eq_true.mp (allV_get hall hg) _ hx
     simp only [subB, hs, ha, hm, Bool.false_or, Bool.or_eq_true] at hf
-    rcases hf with ((((((((((((hf | hf) | hf) | hf) | hf) | hf) | hf) | hf) | hf) | hf) | hf) | hf) | hf) | hf
+    rcases hf with (((((((((((((((hf | hf) | hf) | hf) | hf) | hf) | hf) | hf) | hf) | hf) | hf) | hf) | hf) | hf) | hf) | hf) | hf
     · exact subFam_top t hr hW hf
     · exact termFam_top t hr hW hf
     · exact st_top t hr hf
@@ -98,6 +104,9 @@ theorem resOpen_subOk {Ks : List Mode.Cert} {A : String → Bridge.FnAl} (hok : 
     · exact vtSt_top t hr hf
     · exact expFam_top t hr hW hf
     · exact vtGrp_top t hr hf
+    · exact vs_top t hr hf hin
+    · exact gkrSt_top t hr hf
+    · exact vbgRow_top t hr hf
 
 end
 

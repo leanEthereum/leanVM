@@ -392,6 +392,13 @@ def ptsLt(I, inf, i, r2, A):
     return True
 
 
+def retPtsLt(I, inf, i, r2, A):
+    """`ptsLt` first for a run over a returned buffer (`[[q]·g^k]`, `check_opening_terminal`'s `point1`, which every
+    `open_stacked` arm returns written over its first `SIZE_BITS + SLOT_LOG` cells), before its returned run's
+    shifted bound (`selShift`, `soleBound`) whose order no fact gives."""
+    return bool(r2[0][2]) and all(b[0] == 'hp' for b, _ in r2[0][2]) and ptsLt(I, inf, i, r2, A)
+
+
 def headPoint(I, inf, k, i, A):
     """A cell `Q·g^c` of a known run `(Q, [0, e(b) + c'), S, d)` (`c = S j + d`) whose bound no fact places past
     `j` (`verify_sub`'s `z_vals` at the Keccak input point's coordinate `6`, inside the run up to `tau + 6`;
@@ -903,7 +910,8 @@ def install(I):
             name, r, r2, A = rest
             if r2 is not None and not (isinstance(name, tuple) and name[0] == 'tail') and \
                     (boundSub(I, self, i, r2, A) or tileSub(I, self, i, r2, A) or rowCopy(I, self, i, r2, A) or
-                     ltCover(I, self, i, r2, A) or soleBound(I, self, i, r2, A) or ptsTile(I, self, i, r2, A) or
+                     ltCover(I, self, i, r2, A) or retPtsLt(I, self, i, r2, A) or soleBound(I, self, i, r2, A) or
+                     ptsTile(I, self, i, r2, A) or
                      selShift(I, self, i, r2, A) or ptsLt(I, self, i, r2, A) or ordSub(I, self, i, r2, A)):
                 return True
             # a single point (`headPoint`)
