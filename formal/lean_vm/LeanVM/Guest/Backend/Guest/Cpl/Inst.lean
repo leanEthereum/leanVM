@@ -188,10 +188,10 @@ theorem fnAt {f : String} {i : ℕ} (hix : coreProgram.indexOf? f = some i) : Fn
   have hj : idxOf f = some (i + 1) := by unfold idxOf; rw [hix]; rfl
   obtain ⟨i', he, hi, hn, hf, hc, hfs, -, -, h2⟩ := fn_of_idx hj
   obtain rfl : i = i' := by omega
-  have hi' : i < guestTraced.length := lt_of_lt_of_eq hi B2.guestTraced_length.symm
+  have hi' : i < guestTraced.length := lt_of_lt_of_eq hi guestTraced_length.symm
   have hcore : (tfG i).core = coreOf (i + 1) := by
     show (guestTraced.getD i default).core = _
-    rw [List.getD_eq_getElem _ _ hi', B2.guestTraced_getElem hi']
+    rw [List.getD_eq_getElem _ _ hi', guestTraced_getElem hi']
   exact ⟨hi, by rw [hc]; exact hf, hcore, by rw [hc]; exact hn, hfs,
     by rw [Program.temps, hf, hc], fun v => by unfold certG; rw [hix], h2⟩
 
@@ -233,7 +233,7 @@ structure EntryOk (i : ℕ) : Prop where
   inFrame : ∀ v n, Complete.cellP (placedG i).locs v = some n → 2 ≤ n ∧ n < fsWant i
 
 theorem entryOk (hok : CplOkAll) {i : ℕ} (hi : i < coreProgram.length) : EntryOk i := by
-  have hi' : i < guestTraced.length := lt_of_lt_of_eq hi B2.guestTraced_length.symm
+  have hi' : i < guestTraced.length := lt_of_lt_of_eq hi guestTraced_length.symm
   obtain ⟨hat, hpa, t', hpf⟩ := guest_placed hi'
   have hF := cplOkWith_spec (cplOkWith_of hat (hok i (coreProgram_length ▸ hi)))
   refine ⟨hF, ⟨t', hpf⟩, hpa, fun v n hv => ?_⟩

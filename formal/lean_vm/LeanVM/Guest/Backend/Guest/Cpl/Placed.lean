@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.Backend.Guest.Cpl.At
 public import LeanVM.Guest.Backend.Guest.Compiled
-public import LeanVM.Guest.Backend.Guest.B2.Facts
+public import LeanVM.Guest.Backend.Guest.Facts
 public import LeanVM.Guest.Backend.Complete.Spec
 
 /-!

@@ -1,14 +1,12 @@
 /-
-  LeanVM.Guest.Backend.Guest.B2.Facts
+  LeanVM.Guest.Backend.Guest.Facts
 
-  What the bridge from the back end to the certificates' contracts reads of the guest's world:
-  halting runs along a reach, function `j` of the bytecode as the back end lays it out, the back
-  end's input by index, and its loop table.
+  The guest's world by function index: halting runs along a reach, function `j` of the bytecode as
+  the back end lays it out, the back end's input by index, and its loop table.
 -/
 
 module
 
-public import LeanVM.Guest.Backend.Guest.B2.Data
 public import LeanVM.Guest.Logic
 public import LeanVM.Guest.NameIndex
 public import LeanVM.Guest.CoreNames
@@ -22,16 +20,22 @@ public import LeanVM.Guest.Backend.Guest.World
 * `ent_eq`: given `GuestCompiles`, the back end's entry of function `j`'s name is the entry pc of
   `fnOf j` (`Data.functions`), and `fnOf j` is named as `coreOf j` (`fn_names`, decided).
 * `guestTraced_getElem`, `mem_guestTraced`: entry `j - 1` of the back end's input is `coreOf j`
-  with `infoOf j`.
+  with `infoOf j` (`tfOf j`, `tf_eq`).
 * `registered_iff`: a function is a registered loop helper exactly when its name is a loop
   helper's and its `loopSource` says so.
+
+The names live in `LeanVM.Guest`, beside `fnOf` and `coreOf`: `LeanVM.Guest.Backend.infoOf` is the
+placement's (`Backend/Piece.lean`).
 -/
 
-namespace LeanVM.Guest.Backend.B2
+namespace LeanVM.Guest
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Backend
 
 @[expose] public section
+
+/-- What the back end's input holds of function `j ≥ 1` besides its core function. -/
+def infoOf (j : ℕ) : Array Event × Nat × Bool × Option Nat := GuestData.guestInfo.getD (j - 1) default
 
 /-! ## Halting runs -/
 
@@ -72,13 +76,13 @@ theorem coreProgram_length_succ : coreProgram.length + 1 = nFns := by
 
 theorem fnOf_mem {j : ℕ} (h : j < nFns) : fnOf j ∈ Data.functions := by
   unfold fnOf
-  rw [Check.nth_eq (functions_length ▸ h)]
+  rw [nth_eq (functions_length ▸ h)]
   exact List.getElem_mem _
 
 theorem coreOf_eq {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) :
     coreOf j = coreProgram[j - 1]'(by have := coreProgram_length_succ; omega) := by
   unfold coreOf
-  exact Check.nth_eq _
+  exact nth_eq _
 
 theorem coreOf_find {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) :
     coreProgram.find? (coreOf j).name = some (coreOf j) := by
@@ -109,7 +113,7 @@ theorem fn_names {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) :
       List.getElem?_eq_getElem hF, List.getElem?_eq_getElem hl, Option.map_some,
       Option.some.injEq] at e
     unfold fnOf
-    rw [Check.nth_eq hF, coreOf_eq h1 h2]
+    rw [nth_eq hF, coreOf_eq h1 h2]
     exact e
   · have := List.all_eq_true.mp params_small_all _ (List.getElem_mem hl)
     rw [coreOf_eq h1 h2]
@@ -249,7 +253,7 @@ theorem ent_fnOf (h : GuestCompiles fns slots) {j : ℕ} (hj : j < nFns) :
   have hf : fnOf j = (assemble fns slots).fnOf
       (wt[j].name, 0 + totalSize (wt.take j), wt[j].code.size) := by
     unfold fnOf
-    rw [Check.nth_eq (functions_length ▸ hj)]
+    rw [nth_eq (functions_length ▸ hj)]
     have hj' : j < ((rangesFrom wt 0).map (assemble fns slots).fnOf).length := by
       rw [List.length_map, rangesFrom_length]; exact hlen
     simp only [hfun, List.getElem_map]
@@ -277,22 +281,21 @@ theorem guestTraced_nodup (L : MemoryImage κ) (h : GuestCompiles fns slots) :
     (guestTraced.map (·.core.name)).Nodup :=
   (World.names (guestWorld_compiled (L := L) (U := fun _ _ => True) h)).2.1
 
-/-! ## The executor's tries -/
+/-! ## The functions of the back end's input -/
 
-/-- A read of the key just stored, within the trie's depth. -/
-theorem trie_get_set {α : Type} (a : α) : ∀ (d : ℕ) (t : Exec.Trie α) (n : ℕ), n + 1 < 2 ^ d →
-    (t.set a d n).get n = some a
-  | 0, _, n, h => absurd h (by simp)
-  | d + 1, t, n, h => by
-      rw [Exec.Trie.set_succ, pow_succ] at *
-      by_cases h0 : n = 0
-      · rw [ite_eq_left h0, Exec.Trie.get_node, ite_eq_left h0]
-      · rw [ite_eq_right h0]
-        by_cases h1 : n % 2 = 1
-        · rw [ite_eq_left h1, Exec.Trie.get_node, ite_eq_right h0, ite_eq_left h1]
-          exact trie_get_set a d _ _ (by omega)
-        · rw [ite_eq_right h1, Exec.Trie.get_node, ite_eq_right h0, ite_eq_right h1]
-          exact trie_get_set a d _ _ (by omega)
+/-- Function `j` as the back end's input holds it. -/
+noncomputable abbrev tfOf (j : ℕ) : TracedFn :=
+  ⟨coreOf j, (infoOf j).1, (infoOf j).2.1, (infoOf j).2.2⟩
+
+theorem tf_eq (L : MemoryImage κ) (h : GuestCompiles fns slots) {tf : TracedFn}
+    (htf : tf ∈ guestTraced) {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns)
+    (hn : tf.core.name = (coreOf j).name) : tf = tfOf j :=
+  eq_of_name (guestTraced_nodup L h) htf (getElem_mem_guestTraced h1 h2) hn
+
+theorem name_ne_main {j : ℕ} (h2 : 2 ≤ j) (hj : j < nFns) : (coreOf j).name ≠ "main" := by
+  intro he
+  have := coreOf_name_inj (j' := 1) (by omega) hj le_rfl (by decide) (he.trans core0_main.1.symm)
+  omega
 
 end
-end LeanVM.Guest.Backend.B2
+end LeanVM.Guest

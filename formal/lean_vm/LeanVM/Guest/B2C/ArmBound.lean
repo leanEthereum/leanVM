@@ -37,7 +37,7 @@ mutual
 /-- The separately counted arms a statement can pass, at most. -/
 def costMax1 (acs : List (ℕ × List (List ℕ))) (op : Opcode) : Stmt → ℕ
   | .ite _ z n => max (costMaxW acs op z) (costMaxW acs op n)
-  | .match_ x arms => keyMax (armRaw acs x.idx) op + costMaxArms acs op arms
+  | .match_ x arms => keyMax (Backend.Complete.armRaw acs x.idx) op + costMaxArms acs op arms
   | _ => 0
 
 /-- The separately counted arms a block can pass, at most. -/
@@ -73,7 +73,7 @@ theorem cost1_le_max : ∀ s : Stmt, cost1 acs σ s op ≤ costMax1 acs op s
     · exact (costW_le_max n).trans (le_max_right _ _)
   | .match_ x arms => by
     rw [cost1, costMax1]
-    exact costArms_le_max x arms 0 (armRaw acs x.idx)
+    exact costArms_le_max x arms 0 (Backend.Complete.armRaw acs x.idx)
   | .call .. => Nat.zero_le _
   | .callIf .. => Nat.zero_le _
   | .dispatch .. => Nat.zero_le _
@@ -168,7 +168,7 @@ mutual
 /-- `costMax1` at every opcode. -/
 def costMaxC1 (acs : List (ℕ × List (List ℕ))) : Stmt → C6
   | .ite _ z n => (costMaxCW acs z).max (costMaxCW acs n)
-  | .match_ x arms => (keyMaxC (armRaw acs x.idx)).add (costMaxCArms acs arms)
+  | .match_ x arms => (keyMaxC (Backend.Complete.armRaw acs x.idx)).add (costMaxCArms acs arms)
   | _ => C6.zero
 
 /-- `costMaxW` at every opcode. -/

@@ -228,7 +228,7 @@ theorem tbl_armsZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {v : V} {a
         cwArms X o' succ v (armSt (armKeyD X.acs v.idx) se) (armKeyD X.acs v.idx) as ts c0 u0 1 = some (c, u) ∧
         r = .chain o' succ (armCnt (armKeyD X.acs v.idx) se c) u))
     (hok : r.ok = true) : WOut H r o ebef W0 xc (.match_ v (a0 :: as) :: ss) := by
-  have hkr : armKeyD X.acs v.idx = (armRaw X.acs v.idx).map (fun cs ↦ cs.map Cnt.ofList) := rfl
+  have hkr : armKeyD X.acs v.idx = (Backend.Complete.armRaw X.acs v.idx).map (fun cs ↦ cs.map Cnt.ofList) := rfl
   generalize armKeyD X.acs v.idx = key at hs0 hr hkr
   have hnr : Stmt.noRet (.match_ v (a0 :: as)) = true := by
     rcases hshape with h | ⟨h, -, -⟩
@@ -242,7 +242,7 @@ theorem tbl_armsZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {v : V} {a
     · exact h
     · exact absurd (show o = .stuck by rw [hw0, h]; rfl) hs
   obtain ⟨k, hka, hvk, hwk, hcost⟩ :=
-    tbl_walkArmsC (acs := X.acs) (key := armRaw X.acs v.idx) (a0 :: as) 0 hwa
+    tbl_walkArmsC (acs := X.acs) (key := Backend.Complete.armRaw X.acs v.idx) (a0 :: as) 0 hwa
   rw [Nat.zero_add] at hvk hcost
   have hw' : o = (walk σ ss).pre e1 := by rw [hw0, hwa]; rfl
   have hst' : walk σ ss ≠ .stuck := fun h ↦ hs (by rw [hw', h]; rfl)
@@ -264,7 +264,7 @@ theorem tbl_armsZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {v : V} {a
   have hnm0' : ∀ n, (armSt key se).nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs := by
     rw [hse'n]; exact hnm0
   let xa : Opcode → ℕ := fun op ↦ xc op + (se.cnt.get op - (armSt key se).cnt.get op)
-  have hc1 : cost1 X.acs σ (.match_ v (a0 :: as)) = costArms X.acs σ v (armRaw X.acs v.idx) 0 (a0 :: as) :=
+  have hc1 : cost1 X.acs σ (.match_ v (a0 :: as)) = costArms X.acs σ v (Backend.Complete.armRaw X.acs v.idx) 0 (a0 :: as) :=
     rfl
   -- the counts: an arm's within the match's
   have hcnt : ∀ (c ck' : Cnt), (∀ op, ck'.get op ≤ c.get op) → armChkK key k ck' = true → ∀ op,
@@ -276,7 +276,7 @@ theorem tbl_armsZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) {v : V} {a
     simp only [Pi.add_apply, xa]
     cases key with
     | none =>
-      have hraw : armRaw X.acs v.idx = none := Option.map_eq_none_iff.mp hkr.symm
+      have hraw : Backend.Complete.armRaw X.acs v.idx = none := Option.map_eq_none_iff.mp hkr.symm
       rw [hraw]
       simp only [armCnt, armSt, Nat.sub_self, Nat.add_zero]
       omega
@@ -396,7 +396,7 @@ theorem walk_matchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : V) 
     · exact h
     · exact absurd (show o = .stuck by rw [hw0, h]; rfl) hs
   obtain ⟨k0, hka0, hvk0, -, -⟩ :=
-    tbl_walkArmsC (acs := X.acs) (key := armRaw X.acs v.idx) (a0 :: as) 0 hwa
+    tbl_walkArmsC (acs := X.acs) (key := Backend.Complete.armRaw X.acs v.idx) (a0 :: as) 0 hwa
   rw [Nat.zero_add] at hvk0
   have hkt0 : k0 < (t0 :: ts).length := by simpa [hl] using hka0
   obtain ⟨hslot0, harm0⟩ := hsel' k0 hkt0 hvk0

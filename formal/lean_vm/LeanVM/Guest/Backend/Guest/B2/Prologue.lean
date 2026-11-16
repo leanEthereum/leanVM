@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.Bytecode
-public import LeanVM.Guest.Backend.Guest.B2.Facts
+public import LeanVM.Guest.Backend.Guest.Facts
 public import LeanVM.Guest.Backend.Guest.B2.Locs
 
 /-!

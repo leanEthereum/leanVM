@@ -73,9 +73,5 @@ structure Snap where
   keys : List (ℕ × ℕ × List ℕ)
   deriving Repr
 
-/-- The arms' counts of the `match` on `x`, if counted separately. -/
-def armRaw (acs : List (ℕ × List (List ℕ))) (x : ℕ) : Option (List (List ℕ)) :=
-  (acs.find? fun p ↦ Nat.beq p.1 x).map (·.2)
-
 end
 end LeanVM.Guest.B2C
