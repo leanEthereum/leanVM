@@ -136,6 +136,7 @@ import Quantum.Sphincs.Assembly.EncRefined
 import Quantum.Sphincs.Assembly.KeysReparam
 import Quantum.Sphincs.Assembly.RecOffDecHit
 import Quantum.Sphincs.Assembly.HConflict
+import Quantum.Sphincs.Assembly.CwRev
 
 /-! Security against quantum adversaries in the quantum random-permutation model (`Quantum.Model`),
 on VCVio's quantum oracle programs (`VCVio.Quantum`): the sponge's collision and preimage
