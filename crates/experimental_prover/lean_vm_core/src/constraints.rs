@@ -72,12 +72,14 @@ pub fn xi_offsets(n_constraints: impl Iterator<Item = usize>) -> Vec<usize> {
 /// A linear form over a table's columns, as `(column, coefficient)` terms.
 type Lin = Vec<(usize, F128)>;
 
-/// Blocks of eight rows per task of [`expand`], which reads both halves of each.
-const TASK_BLOCKS: usize = 128;
+/// Blocks of eight rows per task of [`expand`], which reads a task's rows in both halves one column at a
+/// time: the columns start at multiples of their power-of-two length, so a block's rows across them share
+/// cache sets.
+const TASK_BLOCKS: usize = 16;
 
 /// Blocks per quarter per task of [`fold_and_message`], which reads four quarters: few enough that the
 /// middle rounds still spread over the pool.
-const FOLD_BLOCKS: usize = TASK_BLOCKS / 4;
+const FOLD_BLOCKS: usize = 32;
 
 /// A table's summand `P(v) = constant + lin(v) + Σ_g v[left_g] · right_g(v)`, its products grouped
 /// by a shared column. Its homogeneous quadratic part is `Q(v) = Σ_g v[left_g] · right_g(v)`.
@@ -215,7 +217,7 @@ fn expand(form: &Form, cols: &[&[F64]], eqr: &[F128], half: usize) -> (State, [F
         let p1 = message_small(form, &state, eqr, half, true)[0];
         return (state, [p0, p1, quadratic]);
     }
-    let blocks = half / 8;
+    let (blocks, n) = (half / 8, cols.len());
     let zero = F64x8::from_array(&[F64::ZERO; 8]);
     let mut acc = [Prod8::ZERO; 3];
     // SAFETY: every task writes all `width` entries of each of its blocks in both halves.
@@ -225,15 +227,18 @@ fn expand(form: &Form, cols: &[&[F64]], eqr: &[F128], half: usize) -> (State, [F
             acc = parallel::map_reduce_chunks_mut(
                 [lows, highs],
                 [TASK_BLOCKS * width; 2],
-                || (vec![zero; cols.len()], vec![zero; cols.len()]),
+                || vec![zero; 2 * n * TASK_BLOCKS],
                 || [Prod8::ZERO; 3],
-                |(lo_k, hi_k), acc, t, [lows, highs]| {
-                    let outs = lows.chunks_exact_mut(width).zip(highs.chunks_exact_mut(width));
-                    for (b, (lo, hi)) in task_blocks(t, blocks, TASK_BLOCKS).zip(outs) {
-                        let i = 8 * b;
-                        for &c in &form.used {
-                            (lo_k[c], hi_k[c]) = (load_k(cols[c], i), load_k(cols[c], i + half));
+                |vals, acc, t, [lows, highs]| {
+                    let rows = task_blocks(t, blocks, TASK_BLOCKS).map(|b| 8 * b);
+                    for &c in &form.used {
+                        for (v, i) in vals.chunks_exact_mut(2 * n).zip(rows.clone()) {
+                            (v[c], v[n + c]) = (load_k(cols[c], i), load_k(cols[c], i + half));
                         }
+                    }
+                    let outs = lows.chunks_exact_mut(width).zip(highs.chunks_exact_mut(width));
+                    for ((i, (lo, hi)), v) in rows.zip(outs).zip(vals.chunks_exact(2 * n)) {
+                        let (lo_k, hi_k) = v.split_at(n);
                         entries(lo_k, lo);
                         entries(hi_k, hi);
                         let (mut p0, mut p1, mut slope) = (Prod8::ZERO, Prod8::ZERO, Prod8::ZERO);
