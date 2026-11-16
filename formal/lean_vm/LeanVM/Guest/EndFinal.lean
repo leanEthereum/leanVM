@@ -9,33 +9,36 @@
 
 module
 
-public import LeanVM.Guest.EndSound
+public import LeanVM.Guest.EndKnow
 public import LeanVM.Guest.Located.ReplayFast
+public import LeanVM.Guest.Located.Places
+public import LeanVM.Guest.B1.VerifySub.Sound
 
 /-!
 # The guest's soundness
 
 `decode` reads, off a memory `L`, through the sorted table of its `2^κ` addresses
 (`Located.readTable`, `Extraction.Fast.powTable`, the extractor's binary search), the seed and
-the statement from `main`'s frame (`fp = 1`, the words of `main`'s certificate's cells,
-`mainValWith`) and the witness `B1.Main.decWitV` off `main`'s valuation, the memory and the
-**replayed** frame map (`Located.replayFrameV`): the run from `(g^0, 1)` stepped through the
-tables (`Located.statesTable`, the extractor's `stepTable`), each call given the valuation of the first frame at which the run
-entered its callee (the entries indexed once, `Located.frameVFast`), its precondition holding
-there (decided, `Located.preTest`) and its argument and return cells holding the call's words.
-So each leanXMSS and leanSPHINCS signature is read off the frame of its check, the DA matrix off
-`da_verify`'s and its callees' frames, each child's proof off its `verify_sub` frame and the
-memory (`VerifySub.vsPiOf`: the stream words `verify_sub` reads, the openings `open_stacked`'s
-queries hash), the batching's hints off `aggregate_claims`' frame and the memory. It chooses
-nothing: it is computed by the compiled decoder program, a cost-machine program with no classical
-choice (`Cost/Decoder/TopEq.lean`, `decTop_eq`). That it runs no verifier, only the machine
-(whose `KECCAK` instruction checks Keccak-f[1600]), is checked by a test alone,
-`tests/LeanVMTests/Guest/DecodeNoChoice.lean`, which follows every definition it unfolds to.
+the statement from `main`'s frame (`fp = 1`, the words of `main`'s places there, `mainValWith`,
+read off the back end's table of places `Cost.Decoder.guestPlaces`) and the witness
+`B1.Main.decWitV` off `main`'s valuation, the memory and the **replayed** frame map
+(`Located.replayFrameV`): the run from `(g^0, 1)` stepped through the tables
+(`Located.statesTable`, the extractor's `stepTable`), each call given the valuation by places of
+the first frame at which the run entered its callee (the entries indexed once,
+`Located.frameVFast`), its self test passing there (decided, `Located.selfTest`) and its argument
+and return words the call's. So each leanXMSS and leanSPHINCS signature is read off the frame of
+its check, the DA matrix off `da_verify`'s and its callees' frames, each child's proof off its
+`verify_sub` frame and the memory (`VerifySub.vsPiOf`: the stream words `verify_sub` reads, the
+openings `open_stacked`'s queries hash), the batching's hints off `aggregate_claims`' frame and
+the memory. It chooses nothing: it is computed by the compiled decoder program, a cost-machine
+program with no classical choice (`Cost/Decoder/TopEq.lean`, `decTop_eq`). That it runs no
+verifier, only the machine (whose `KECCAK` instruction checks Keccak-f[1600]), is checked by a test
+alone, `tests/LeanVMTests/Guest/DecodeNoChoice.lean`, which follows every definition it unfolds to.
 
 * `guest_knowledge : MemoryGuestKnowledge guest decode`: every valid execution of the guest on a
   public input decodes to a statement of that input's digest under the decoded seed, and a witness
-  holding it (`NodeRelation`). B2 locates every call of `main` at a frame the run entered
-  (`Check.EnteredAt`), so the located relation unfolds along the replayed frame map
+  holding it (`NodeRelation`). The back end locates every call of `main` at a frame the run
+  entered (`World.Entered`), so the located relation unfolds along the replayed frame map
   (`Located.unfoldsV_replay`), and B1 applies to it.
 * `decode_eq`: on a memory of fewer than `2^64` words, `decode` is `decodeV`'s reading with the
   replayed frame map in place of `Located.frameV`.
@@ -46,27 +49,27 @@ choice (`Cost/Decoder/TopEq.lean`, `decTop_eq`). That it runs no verifier, only 
   not decode to the deployed seed, `s` and a witness holding it, nor give a Keccak-256 collision
   among `collisionCandidates`, with probability at most the bound of `KnowledgeSoundness`.
 * `decode_binds`: a consumer whose statement `s₀` (its deferred claim of the bytecode's shape) has,
-  under the seed
-  `iv`, the public input's digest learns that the decoded seed and statement are `iv` and `s₀`,
+  under the
+  seed `iv`, the public input's digest learns that the decoded seed and statement are `iv` and `s₀`,
   or holds an explicit Keccak-256 collision.
 
-They rest on B2 (`b2SoundL`: the kernel-checked certificates, `VsDimsKnown`, `VsKnown` and
-the walks' obligations) and B1 (`B1.Main.main_sound_V_of_sub` with
-`VerifySub.verify_sub_sound_w`), with the walks' obligations proved (`endPending_proved`,
-`EndSound.lean`).
+They rest on B2, the back end's correctness at the guest (`End.mainBodyL_of`, `End.globSpec`:
+`Backend.contracts` given `Backend.guest_compiles`), the places decoded from the table
+(`Located.placesAgree`), and B1 (`B1.Main.main_sound_V_of_sub` with
+`VerifySub.verify_sub_sound_w`).
 -/
 
 namespace LeanVM.Guest.End
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Check LeanVM.Node
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Node
 open LeanVM.Guest.B1 LeanVM.Guest.B1.Digest LeanVM.Protocol LeanVM.Protocol.KeccakHash
 open scoped ENNReal
 
 @[expose] public section
 
-/-- The words of `main`'s certificate's cells at `fp = 1`, read with `rd` (`Check.valG`). -/
-noncomputable def mainValWith (rd : Reader) : Val :=
-  fun v ↦ Located.wordWith rd 1 ((certOf 1).locs.getD v.idx 0)
+/-- The words of `main`'s places at `fp = 1`, read with `rd` off the back end's table of places. -/
+def mainValWith (rd : Reader) : Val :=
+  fun v ↦ placeWith rd 1 ((Cost.Decoder.guestPlaces.getD 1 #[]).getD v.idx 0)
 
 /-- **The guest's decoder**, by replay: through the sorted table of the memory's addresses
 (`Extraction.Fast.powTable`, the extractor's), the seed and the statement off `main`'s frame, the
@@ -79,20 +82,31 @@ noncomputable def decode : MemoryDecoder := fun {κ} L ↦
     Located.replayFuel ⟨addressOfIndex 0, 1⟩
   let σ := mainValWith rd
   ⟨B1.Main.decSeed σ, B1.Main.decStmt σ rd,
-    B1.Main.decWitV σ rd (Located.frameVFast (Located.preTest rd) states rd) VerifySub.vsPiOf⟩
+    B1.Main.decWitV σ rd (Located.frameVFast (Located.selfTest rd) states rd) VerifySub.vsPiOf⟩
 
 /-- On a memory of fewer than `2^64` words, the decoder reads `main`'s frame and the memory as
-`decodeV` does, with the replayed frame map. -/
+`decodeV` does, with `main`'s row of the table of places and the replayed frame map. -/
 theorem decode_eq {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) :
-    decode L = ⟨B1.Main.decSeed (valG L 1 (certOf 1)),
-      B1.Main.decStmt (valG L 1 (certOf 1)) L.read,
-      B1.Main.decWitV (valG L 1 (certOf 1)) L.read (Located.replayFrameV L) VerifySub.vsPiOf⟩ := by
-  have hV : Located.frameVFast (Located.preTest L.read)
+    decode L = ⟨B1.Main.decSeed (mainValWith L.read), B1.Main.decStmt (mainValWith L.read) L.read,
+      B1.Main.decWitV (mainValWith L.read) L.read (Located.replayFrameV L) VerifySub.vsPiOf⟩ := by
+  have hV : Located.frameVFast (Located.selfTest L.read)
       (Located.statesIn (Extraction.powIndex κ) (Extraction.powIndex guestProgram.logSize) guestProgram L
         Located.replayFuel ⟨addressOfIndex 0, 1⟩) L.read = Located.replayFrameV L := by
     rw [Located.replayFrameV, Located.readIn_powIndex hκ, Located.frameVWith_eq_frameVFast]
   simp only [decode, Located.readTable_powTable hκ, Located.statesTable_eq hκ, hV]
-  rfl
+
+/-- **B2 at `main`, read off the table**: on a valid execution, `main`'s body under its row of the
+table of places at `fp = 1`, its calls located, and the public input's cells. -/
+theorem mainBodyP_of (hpa : Located.PlacesAgree) {input : PublicInput} {t : Execution guestProgram}
+    (hv : ValidExecution guestProgram input t) :
+    Stmt.HoldsList (Located.RLg t.memory) t.memory.read (mainValWith t.memory.read) Data.core0.body
+      False (fun rs ↦ rs = []) ∧
+    LoadHolds t.memory.read 1 0 (digestHalves (publicInputDigest input)).1 ∧
+    LoadHolds t.memory.read 1 1 (digestHalves (publicInputDigest input)).2 := by
+  obtain ⟨hb, h0, h1⟩ := mainBodyL_of hv
+  have hagree := hpa 1 le_rfl (by decide) t.memory 1
+  rw [coreOf_one, core0_main.1] at hagree
+  exact ⟨(B1.Sig.holdsList_congr _ (fun v hv => hagree v (List.mem_append_right _ hv)) _ _).mpr hb, h0, h1⟩
 
 /-- **Soundness of the deployed guest, its witness named**: every valid execution of the guest on
 a public input decodes, from its memory, to a statement of the input's digest under the decoded
@@ -105,12 +119,12 @@ theorem guest_knowledge : MemoryGuestKnowledge guestProgram decode := by
     omega
   show ExplainsPublicInput guestProgram input (decode t.memory)
   rw [decode_eq hκ]
-  obtain ⟨hb, h0, h1⟩ := mainBodyL_of (b2SoundL endPending_proved) hv
+  obtain ⟨hb, h0, h1⟩ := mainBodyP_of Located.placesAgree hv
   have hm : MemOk t.memory.read :=
     ⟨t.logMemorySize, hv.1.1, hv.1.2.1.trans (by decide), t.memory, rfl⟩
   exact B1.Main.main_sound_V_of_sub (B1.VerifySub.verify_sub_sound_w bytecode) bytecode_length
     t.memory.read hm _ _
-    (Located.unfoldsV_replay (b2SoundL endPending_proved) hv) (Located.rlg_le_rel t.memory) _ _
+    (Located.unfoldsV_replay Located.placesAgree hv) (Located.rlg_le_rel t.memory) _ _
     h0 h1 hb
 
 /-- **What a consumer learns**: a valid execution of the guest on the digest of its statement
@@ -134,9 +148,7 @@ theorem guest_sound (input : PublicInput) (t : Execution guestProgram)
     (hv : ValidExecution guestProgram input t) :
     ∃ seed s, statementDigest seed s = publicInputDigest input ∧ s.deferredClaim.HasBytecodeShape bytecode ∧
       ∃ w, NodeRelation bytecode seed s w :=
-  guest_sound_of (soundHyps_of_sub (b2SoundL endPending_proved)
-    (B1.VerifySub.verify_sub_sound_w bytecode)) input t
-    hv
+  guest_sound_of (soundHyps_of_sub (B1.VerifySub.verify_sub_sound_w bytecode)) input t hv
 
 end
 end LeanVM.Guest.End

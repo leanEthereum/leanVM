@@ -1,9 +1,8 @@
 /-
   LeanVM.Guest.Located.ReplayFast
 
-  The replayed frame map, indexed: the run's entries in a sorted table built once, and the
-  precondition's and B1's exponents by a discrete logarithm, each proved equal to the definition
-  it replaces.
+  The replayed frame map, indexed: the run's entries in a sorted table built once, and B1's
+  exponents by a discrete logarithm, each proved equal to the definition it replaces.
 -/
 
 module
@@ -17,8 +16,7 @@ public import LeanVM.Protocol.Extraction.Fast.Address
 # The replayed frame map, indexed
 
 `frameVWith states rd` finds a call's frame by scanning the replayed states, each against every
-function (`firstEntered`); `preTest` decides a bound `∃ e < n, w = g^e` by trying every `e`, and
-B1's `gLog` searches the `2^34` powers. Here:
+function (`firstEntered`), and B1's `gLog` searches the `2^34` powers. Here:
 
 * **The address tables.** `readTable`, `statesTable`: the memory read and the run stepped
   through the extractor's sorted address tables (`Extraction.Fast.powTable`, binary search,
@@ -30,19 +28,17 @@ B1's `gLog` searches the `2^34` powers. Here:
   `nameIndex`, the words by their limbs, `callKey`) to the frame of the first state at which
   function `j` was entered on those words with `pre` holding, a sorted map
   (`Extraction.Fast.SortedMap`, the extractor's) built in one pass over the states.
-  `entryTable_get?`: with `pre = preTest rd` it answers as `firstEntered`. `frameVFast`, the frame
+  `entryTable_get?`: with `pre = selfTest rd` it answers as `firstEntered`. `frameVFast`, the frame
   map reading the table, and **`frameVWith_eq_frameVFast`**: it is `frameVWith`.
 * **A discrete logarithm.** `DiscreteLogSpec dl`: `dl x = some n` exactly when `x = g^n`,
-  `n < 2^64 − 1` (the order of `g`). Given one, `∃ e < n, g^e = x` is `dl x < n`
-  (`exists_lt_gpow_iff`), so `preTestWith dl` (`preTestWith_eq`) and `gLogWith dl`
-  (`gLogWith_eq`) are `preTest` and `B1.Main.gLog`. The proved `discreteLog` plugs in by these
-  equations (`Guest/Fast/DiscreteLog.lean`).
+  `n < 2^64 − 1` (the order of `g`). Given one, `gLogWith dl` is `B1.Main.gLog` (`gLogWith_eq`).
+  The proved `discreteLog` plugs in by this equation (`Guest/Fast/DiscreteLog.lean`).
 -/
 
 namespace LeanVM.Guest.Located
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Check
-open LeanVM.Guest.Exec LeanVM.Guest.B1 LeanVM.Extraction LeanVM.Extraction.Fast
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Guest.B1 LeanVM.Extraction LeanVM.Extraction.Fast LeanVM.Cost.Decoder
 
 @[expose] public section
 
@@ -95,101 +91,9 @@ order `2^64 − 1` of `g`. -/
 def DiscreteLogSpec (dl : K → Option ℕ) : Prop :=
   ∀ x n, dl x = some n ↔ addressOfIndex n = x ∧ n < 2 ^ 64 - 1
 
-theorem gpow_mod_order (e : ℕ) : addressOfIndex (e % (2 ^ 64 - 1)) = addressOfIndex e := by
-  show Parameters.g ^ _ = Parameters.g ^ _
-  rw [← orderOf_g, pow_mod_orderOf]
-
 section Log
 
 variable {dl : K → Option ℕ}
-
-/-- With a discrete logarithm, `x` is a power `g^e` with `e < n` exactly when its logarithm is
-below `n`. -/
-theorem exists_lt_gpow_iff (hdl : DiscreteLogSpec dl) (x : K) (n : ℕ) :
-    (∃ e < n, addressOfIndex e = x) ↔ ∃ m, dl x = some m ∧ m < n := by
-  constructor
-  · rintro ⟨e, he, rfl⟩
-    exact ⟨e % (2 ^ 64 - 1), (hdl _ _).mpr ⟨gpow_mod_order e, Nat.mod_lt _ (by norm_num)⟩,
-      lt_of_le_of_lt (Nat.mod_le _ _) he⟩
-  · rintro ⟨m, hm, hmn⟩
-    exact ⟨m, hmn, ((hdl _ _).mp hm).1⟩
-
-/-- `w` is the word `g^e` of some `e < n`, by the logarithm. -/
-def isPowBelow (dl : K → Option ℕ) (w : E) (n : ℕ) : Bool :=
-  decide (IsInK w) && match dl (w.limb 0) with
-    | some m => decide (m < n)
-    | none => false
-
-theorem isPowBelow_iff (hdl : DiscreteLogSpec dl) (w : E) (n : ℕ) :
-    isPowBelow dl w n = true ↔ ∃ e < n, w = ofK (addressOfIndex e) := by
-  unfold isPowBelow
-  rw [Bool.and_eq_true, decide_eq_true_iff]
-  constructor
-  · rintro ⟨hK, h⟩
-    rcases hm : dl (w.limb 0) with _ | m
-    · rw [hm] at h; cases h
-    · rw [hm, decide_eq_true_iff] at h
-      refine ⟨m, h, ?_⟩
-      rw [eq_ofK_limb hK, ((hdl _ _).mp hm).1]
-  · rintro ⟨e, he, rfl⟩
-    refine ⟨(isInK_iff _).mpr ⟨_, rfl⟩, ?_⟩
-    obtain ⟨m, hm, hmn⟩ := (exists_lt_gpow_iff hdl (addressOfIndex e) n).mp ⟨e, he, rfl⟩
-    have h0 : (ofK (addressOfIndex e)).limb 0 = addressOfIndex e := by simp [limb_ofK]
-    rw [h0, hm]
-    exact decide_eq_true hmn
-
-theorem any_range_pow_iff (hdl : DiscreteLogSpec dl) (o : Option E) (n : ℕ) :
-    ((List.range n).any fun e ↦ decide (o = some (ofK (addressOfIndex e)))) =
-      match o with
-      | some w => isPowBelow dl w n
-      | none => false := by
-  rcases o with _ | w
-  · simp
-  · apply Bool.eq_iff_iff.mpr
-    rw [isPowBelow_iff hdl, List.any_eq_true]
-    simp only [List.mem_range, decide_eq_true_eq, Option.some.injEq]
-
-/-- The bounds hold (`bndTest`), by the logarithm. -/
-def bndTestWith (dl : K → Option ℕ) (rd : Reader) (fp : K) (bnd : List (ℕ × ℕ)) : Bool :=
-  bnd.all fun p ↦ match rd (fp * addressOfIndex p.1) with
-    | some w => isPowBelow dl w p.2
-    | none => false
-
-/-- The memory bounds hold (`memTest`), by the logarithm. -/
-def memTestWith (dl : K → Option ℕ) (rd : Reader) (fp : K) (mem : List (ℕ × ℕ × ℕ)) : Bool :=
-  mem.all fun m ↦ match rd (fp * addressOfIndex m.1) with
-    | some p => decide (IsInK p) && match rd (p.limb 0 * addressOfIndex m.2.1) with
-      | some w => isPowBelow dl w m.2.2
-      | none => false
-    | none => false
-
-/-- **Function `j`'s precondition, decided by the logarithm** (`preTest`). -/
-noncomputable def preTestWith (dl : K → Option ℕ) (rd : Reader) (j : ℕ) (fp : K) : Bool :=
-  glob.good j && envTest rd fp (glob.sig j).env && bndTestWith dl rd fp (glob.sig j).pre &&
-    memTestWith dl rd fp (glob.sig j).mem
-
-theorem bndTestWith_eq (hdl : DiscreteLogSpec dl) : bndTestWith dl = bndTest := by
-  funext rd fp bnd
-  unfold bndTestWith bndTest
-  congr 1
-  funext p
-  rw [any_range_pow_iff hdl]
-
-theorem memTestWith_eq (hdl : DiscreteLogSpec dl) : memTestWith dl = memTest := by
-  funext rd fp mem
-  unfold memTestWith memTest
-  congr 1
-  funext m
-  cases rd (fp * addressOfIndex m.1) with
-  | none => rfl
-  | some p =>
-    show (decide (IsInK p) && _) = (decide (IsInK p) && _)
-    rw [any_range_pow_iff hdl]
-
-/-- **By the logarithm, the precondition's test is `preTest`.** -/
-theorem preTestWith_eq (hdl : DiscreteLogSpec dl) : preTestWith dl = preTest := by
-  funext rd j fp
-  rw [preTestWith, preTest, bndTestWith_eq hdl, memTestWith_eq hdl]
 
 /-- B1's exponent of a power of `g` below `2^34` (`B1.Main.gLog`), by the logarithm. -/
 def gLogWith (dl : K → Option ℕ) (x : E) : ℕ :=
@@ -258,16 +162,11 @@ theorem callKey_eq_iff {j j' : ℕ} {args args' rets rets' : List E} :
     callKey j args rets = callKey j' args' rets' ↔ j = j' ∧ args = args' ∧ rets = rets' := by
   simp only [callKey, Prod.mk.injEq, (List.map_injective_iff.mpr wordCode_injective).eq_iff]
 
-/-- A callee's name is `f` exactly when its index is `f`'s (the names are distinct). -/
-theorem name_eq_iff {j : ℕ} (hj : glob.good j = true) (f : String) :
-    (glob.sig j).name = f ↔ j = nameIndex f := by
-  have hj' : 2 ≤ j ∧ j < nFns := by simpa [glob, good] using hj
-  have hl : j - 1 < coreProgram.length := by
-    have := coreProgram_length; simp only [nFns] at hj'; omega
-  have hname : (glob.sig j).name = coreProgram[j - 1].name := by
-    show (coreOf j).name = _
-    rw [coreOf, nth_eq hl]
-  rw [hname, nameIndex]
+/-- A function's name is `f` exactly when its index is `f`'s (the names are distinct). -/
+theorem name_eq_iff {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) (f : String) :
+    (coreOf j).name = f ↔ j = nameIndex f := by
+  have hl : j - 1 < coreProgram.length := by have := coreProgram_length_succ; omega
+  rw [coreOf_eq h1 h2, nameIndex]
   constructor
   · rintro rfl
     rw [findIdx_name_of_nodup coreProgram_names_nodup hl]
@@ -283,9 +182,9 @@ theorem name_eq_iff {j : ℕ} (hj : glob.good j = true) (f : String) :
 def addAt (m : SortedMap ℕ (List ℕ)) (k j : ℕ) : SortedMap ℕ (List ℕ) := m.insert k (j :: m.getD k [])
 
 /-- **The functions entered at each pc**: the code of function `j`'s entry to `j`, `j < nFns`. -/
-noncomputable def pcTable : SortedMap ℕ (List ℕ) :=
-  (List.range nFns).foldl (fun m j ↦ addAt m (laneCode (addressOfIndex (glob.sig j).entry))
-      j) .empty
+def pcTable : SortedMap ℕ (List ℕ) :=
+  (List.range nFns).foldl (fun m j ↦ addAt m (laneCode (addressOfIndex (guestEntries.getD j 0))) j)
+    .empty
 
 theorem mem_foldl_addAt (c : ℕ → ℕ) (k j : ℕ) :
     ∀ (js : List ℕ) (m : SortedMap ℕ (List ℕ)),
@@ -319,26 +218,26 @@ theorem mem_foldl_addAt (c : ℕ → ℕ) (k j : ℕ) :
 
 /-- The functions the table gives at a pc are those entered there. -/
 theorem mem_pcTable {pc : K} {j : ℕ} :
-    j ∈ pcTable.getD (laneCode pc) [] ↔ j < nFns ∧ pc = addressOfIndex (glob.sig j).entry := by
+    j ∈ pcTable.getD (laneCode pc) [] ↔ j < nFns ∧ pc = addressOfIndex (guestEntries.getD j 0) := by
   rw [pcTable, mem_foldl_addAt, SortedMap.getD_empty, List.mem_range]
   simp only [List.not_mem_nil, false_or]
   exact and_congr_right fun _ ↦ ⟨fun h ↦ (laneCode_injective h).symm, fun h ↦ h ▸ rfl⟩
 
 /-- The key under which state `r`, at function `j`'s entry, files its frame. -/
-noncomputable def entryKey (rd : Reader) (r : Registers K) (j : ℕ) : CallKey :=
-  callKey j (wordsWith rd r.fp 2 (glob.sig j).nargs)
-    (wordsWith rd r.fp (2 + (glob.sig j).nargs) (glob.sig j).nret)
+def entryKey (rd : Reader) (r : Registers K) (j : ℕ) : CallKey :=
+  callKey j (wordsWith rd r.fp 2 (guestArgCounts.getD j 0))
+    (wordsWith rd r.fp (2 + guestArgCounts.getD j 0) (guestRetCounts.getD j 0))
 
 /-- The table with state `r` filed: under the key of each function entered at `r` whose test `pre`
 holds there, `r`'s frame, unless the key has one. -/
-noncomputable def fileState (pre : ℕ → K → Bool) (rd : Reader) (m : SortedMap CallKey K)
+def fileState (pre : ℕ → K → Bool) (rd : Reader) (m : SortedMap CallKey K)
     (r : Registers K) : SortedMap CallKey K :=
   (pcTable.getD (laneCode r.pc) []).foldl
     (fun m j ↦ if pre j r.fp then insertIfNew m (entryKey rd r j) r.fp else m) m
 
 /-- **The entries of the states, indexed**: from a call's key to the frame of the first state at
 which a function of that key was entered, `pre` holding. -/
-noncomputable def entryTable (pre : ℕ → K → Bool) (states : List (Registers K)) (rd : Reader) :
+def entryTable (pre : ℕ → K → Bool) (states : List (Registers K)) (rd : Reader) :
     SortedMap CallKey K :=
   states.foldl (fileState pre rd) .empty
 
@@ -360,7 +259,7 @@ theorem get?_insertIfNew (m : SortedMap CallKey K) (k k' : CallKey) (v : K) :
     · simp [hx]
 
 /-- What state `r` files under `k`. -/
-noncomputable def stateHit (pre : ℕ → K → Bool) (rd : Reader) (r : Registers K) (k : CallKey) :
+def stateHit (pre : ℕ → K → Bool) (rd : Reader) (r : Registers K) (k : CallKey) :
     Option K :=
   if (pcTable.getD (laneCode r.pc) []).any (fun j ↦ pre j r.fp && decide (entryKey rd r j = k))
   then some r.fp else none
@@ -399,9 +298,14 @@ theorem get?_entryTable_foldl (pre : ℕ → K → Bool) (rd : Reader) (k : Call
     · rw [ite_eq_right hA]
       cases m.get? k <;> rfl
 
+/-- A passing self test names a function `2 ≤ j < nFns`. -/
+theorem selfTest_range {rd : Reader} {j : ℕ} {fp : K} (h : selfTest rd j fp = true) : 2 ≤ j ∧ j < nFns := by
+  simp only [selfTest, Bool.and_eq_true, decide_eq_true_eq] at h
+  exact h.1
+
 theorem any_entry_eq (rd : Reader) (r : Registers K) (f : String) (args rets : List E) :
     ((pcTable.getD (laneCode r.pc) []).any fun j ↦
-        preTest rd j r.fp && decide (entryKey rd r j = callKey (nameIndex f) args rets)) =
+        selfTest rd j r.fp && decide (entryKey rd r j = callKey (nameIndex f) args rets)) =
       (List.range nFns).any (enteredTest rd f args rets r) := by
   apply Bool.eq_iff_iff.mpr
   rw [List.any_eq_true, List.any_eq_true]
@@ -410,30 +314,28 @@ theorem any_entry_eq (rd : Reader) (r : Registers K) (f : String) (args rets : L
     obtain ⟨hj, hpc⟩ := mem_pcTable.mp hj
     rw [Bool.and_eq_true, decide_eq_true_iff, entryKey, callKey_eq_iff] at h
     obtain ⟨hp, hn, ha, hr⟩ := h
-    have hgood : glob.good j = true := by
-      simp only [preTest, Bool.and_eq_true] at hp; exact hp.1.1.1
+    have hr2 := selfTest_range hp
     refine ⟨j, List.mem_range.mpr hj, ?_⟩
     simp only [enteredTest, Bool.and_eq_true]
-    exact ⟨⟨⟨⟨decide_eq_true hpc, decide_eq_true ((name_eq_iff hgood f).mpr hn)⟩, hp⟩,
+    exact ⟨⟨⟨⟨decide_eq_true hpc, decide_eq_true ((name_eq_iff (by omega) hr2.2 f).mpr hn)⟩, hp⟩,
       decide_eq_true ha⟩, decide_eq_true hr⟩
   · rintro ⟨j, hj, h⟩
     simp only [enteredTest, Bool.and_eq_true] at h
     obtain ⟨⟨⟨⟨hpc, hn⟩, hp⟩, ha⟩, hr⟩ := h
-    have hgood : glob.good j = true := by
-      simp only [preTest, Bool.and_eq_true] at hp; exact hp.1.1.1
+    have hr2 := selfTest_range hp
     refine ⟨j, mem_pcTable.mpr ⟨List.mem_range.mp hj, of_decide_eq_true hpc⟩, ?_⟩
     rw [Bool.and_eq_true, decide_eq_true_iff, entryKey, callKey_eq_iff]
-    exact ⟨hp, (name_eq_iff hgood f).mp (of_decide_eq_true hn), of_decide_eq_true ha,
+    exact ⟨hp, (name_eq_iff (by omega) hr2.2 f).mp (of_decide_eq_true hn), of_decide_eq_true ha,
       of_decide_eq_true hr⟩
 
 /-- **The table answers as `firstEntered`**, its test the precondition's. -/
 theorem entryTable_get? (states : List (Registers K)) (rd : Reader) (f : String) (args rets : List E) :
-    (entryTable (preTest rd) states rd).get? (callKey (nameIndex f) args rets) =
+    (entryTable (selfTest rd) states rd).get? (callKey (nameIndex f) args rets) =
       firstEntered states rd f args rets := by
   unfold entryTable firstEntered
   rw [get?_entryTable_foldl, SortedMap.get?_empty, Option.none_or]
   refine congrArg (fun F ↦ List.findSome? F states) (funext fun r ↦ ?_)
-  show stateHit (preTest rd) rd r (callKey (nameIndex f) args rets) = _
+  show stateHit (selfTest rd) rd r (callKey (nameIndex f) args rets) = _
   unfold stateHit
   rw [any_entry_eq]
 
@@ -443,12 +345,12 @@ noncomputable def frameVFast (pre : ℕ → K → Bool) (states : List (Register
     FrameMap :=
   let table := entryTable pre states rd
   fun f args rets ↦ match table.get? (callKey (nameIndex f) args rets) with
-    | some fp => fun v ↦ wordWith rd fp ((certByName f).locs.getD v.idx 0)
+    | some fp => fun v ↦ placeWith rd fp ((guestPlaces.getD (nameIndex f) #[]).getD v.idx 0)
     | none => fun _ ↦ 0
 
 /-- **The frame map reads the table**, built once from the states. -/
 theorem frameVWith_eq_frameVFast (states : List (Registers K)) (rd : Reader) :
-    frameVWith states rd = frameVFast (preTest rd) states rd := by
+    frameVWith states rd = frameVFast (selfTest rd) states rd := by
   funext f args rets
   simp only [frameVFast, frameVWith, entryTable_get?]
   rfl

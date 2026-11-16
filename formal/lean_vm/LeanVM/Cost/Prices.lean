@@ -125,7 +125,7 @@ A closed-form upper bound that `lean_vm` proves on the compiled decoder's price
 (`Cost/Bounds/Guest/Budget.lean`), as `extractorPrice` is the extractor's: a price per step of the
 run, the address tables at the run's `κ` and `ℓ`, and a constant. Per step, the decoder replays the
 step (`runnerStepPrice`) and files the state in its table of function entries
-(`guestDecoderStateFilingPrice`: the precondition test of each function entered there, at most two,
+(`guestDecoderStateFilingPrice`: the test of each function entered there, at most two,
 and its share of one stable sort of at most `2·(steps + 1)` pairs, whose price grows as
 `log(steps)`). The constant is the price of reading the witness at the counts and the cursors a
 valid execution bounds: the decoder reads its counts off the memory, and the guest program's own
@@ -181,7 +181,9 @@ The literals (`7093`, `41252`, `17722`, `15305468`, `4343`, `4373`, `1584`, the 
 and the other constants below) are the bounds `lean_vm` proves of the compiled decoder's parts
 (`topConst_le`, `addressTablesPrice_eq`, `entryArrayStatePrice_eq`, `frameAtAPrice_le`,
 `Cost/Bounds/`); a reviewer checks only their size. They are the deployed guest program's (its
-tables of preconditions and entries, its frames), not those of any program of `2^ℓ` instructions:
+tables of entries and places, its frames; `17722` and the per-state `269`-read test price were the
+former table of preconditions' and its test's, and stay as slack above the self test that replaced
+them), not those of any program of `2^ℓ` instructions:
 the budget's constants are `LeanVM.Guest.guestProgram`'s, and `GuestKnowledgeSoundness`'s `guest` is only ever that
 program. -/
 
@@ -193,10 +195,10 @@ def guestDecoderEntryTableKeyExponent (steps : ℕ) : ℕ := Nat.log2 (2 * (step
 def guestDecoderEntryTablePositionLimbs (exponent : ℕ) : ℕ :=
   LeanVM.Cost.limbsBelowTwoPow (exponent + 1)
 
-/-- A function's precondition test at a state: `269` memory reads (`1271` each), `99` bounds of
-logarithms (`706` each: a scan of the lanes of the generator's powers, no discrete logarithm),
-and `24834 + 11` for the rest of the test (its checks over the deployed table of preconditions,
-the powers of the generator read off a table, `preTestAt_cost_deployed`, and the call). -/
+/-- A function's test at a state, as the budget prices it: `269` memory reads (`1271` each), `99`
+bounds of logarithms (`706` each) and `24834 + 11`, the former precondition test's price. The
+decoder's self test (a registered loop helper's own pointer, `selfTest_cost`) costs at most
+`2·1271 + 1104` of it. -/
 def guestDecoderPreconditionPrice : ℕ := 269 * 1271 + 99 * 706 + 24834 + 11
 
 /-- Filing one state of the run in the entry table, a sorted array: a lookup of its pc (`7093`),

@@ -14,7 +14,7 @@ public import LeanVM.Cost.DecoderSize.Rows5
 public import LeanVM.Cost.DecoderSize.Names0
 public import LeanVM.Cost.DecoderSize.Names1
 
-/-! The size of the guest's frame cells, the chunks' sizes summed (`DecoderSize/Rows*.lean`,
+/-! The size of the guest's place codes, the chunks' sizes summed (`DecoderSize/Rows*.lean`,
 `Names*.lean`): every row's encoding's size, the table's literal less its array and `Term.literal`
 (`Cost/DecoderSize.lean`). -/
 
@@ -24,9 +24,9 @@ namespace LeanVM.Cost.Decoder
 
 set_option maxRecDepth 100000 in
 /-- **The rows' sizes**, summed. -/
-theorem guestLocsList_rowSize : (guestLocsList.map rowSize).sum = 517352 := by
-  have hl : guestLocsList.length = 1550 := by decide +kernel
-  have hn : guestLocsRow37.length = 41 := by decide +kernel
+theorem guestPlacesList_rowSize : (guestPlacesList.map rowSize).sum = 517352 := by
+  have hl : guestPlacesList.length = 1550 := by decide +kernel
+  have hn : guestPlacesRow37.length = 118 := by decide +kernel
   rw [sum_rowSize_eq_rowsSize, hl]
   have s0 := rowsSize_split 0 37 1513 37 1550 rfl rfl
   have c0 := rowsSize_0_37
@@ -42,15 +42,15 @@ theorem guestLocsList_rowSize : (guestLocsList.map rowSize).sum = 517352 := by
   have s6 := rowsSize_split 1467 83 0 1550 83 rfl rfl
   have c6 := rowsSize_1467_83
   have e := rowsSize_zero 1550
-  have g : guestLocsList.getD 37 [] = guestLocsRow37.flatten := rfl
+  have g : guestPlacesList.getD 37 [] = guestPlacesRow37.flatten := rfl
   have r := rowsSize_one (a := 37) (by omega)
   rw [g] at r
   rw [rowSize_flatten, hn] at r
-  have t0 := namesSize_split guestLocsRow37 0 23 18 23 41 rfl rfl
-  have d0 := namesSize_0_23
-  have t1 := namesSize_split guestLocsRow37 23 18 0 41 18 rfl rfl
-  have d1 := namesSize_23_18
-  have f := namesSize_zero guestLocsRow37 41
+  have t0 := namesSize_split guestPlacesRow37 0 68 50 68 118 rfl rfl
+  have d0 := namesSize_0_68
+  have t1 := namesSize_split guestPlacesRow37 68 50 0 118 50 rfl rfl
+  have d1 := namesSize_68_50
+  have f := namesSize_zero guestPlacesRow37 118
   omega
 
 end

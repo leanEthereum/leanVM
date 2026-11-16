@@ -9,13 +9,12 @@ The decoder's top on the program, `κ` and the memory vector (`Ends.lean`'s inpu
 point-free, each step a function of its own, each closure a partial application, each table built
 once and passed down:
 
-* `decTop prog κ mem`: the logarithm's tables (`discreteLogTables`), the preconditions
-  (`Guest.Fast.preTable`, a literal), the generator's powers (`genPows`), the readers' tables
+* `decTop prog κ mem`: the logarithm's tables (`discreteLogTables`), the readers' tables
   (`Guest.Fast.readerTabs`), the table of entries (`pcTableT`), the address tables
   (`decoderTables`);
 * `decTopTables`: the reader (`memReader memT mem`) and the replay (`replayStatesOf`);
 * `decTopStates`: `main`'s valuation (`mainVal rd`) and the entry table, one sorted array
-  (`entryArrayT`, the precondition `preTestAt D T Pw rd`);
+  (`entryArrayT`, the self test `Located.selfTest rd`);
 * `decTopFrames`: the witness (`decWitNStaged`, the frame map `frameAtA table rd`, the leanSPHINCS
   reader looking its frames up once `sphincsAtFrameT`, the cursor's length `cursorLength D`) and the decoding (`decoderOutput D`: the seed, the statement
   `decStmtD D`, `decodedOf`).
@@ -77,24 +76,23 @@ noncomputable def decTopFrames (D : DiscreteLogTables) (R : ReaderTabs) (rd : Re
     (sphincsAtFrameT R table rd σ) (cursorLength D))
 
 /-- The decoding off the reader and the replayed states. -/
-noncomputable def decTopStates (D : DiscreteLogTables) (T : Array (Option FnPre)) (Pw : Array E)
-    (R : ReaderTabs) (pcT : SortedMap ℕ (List ℕ)) (rd : Reader) (states : List (Registers K)) :
+noncomputable def decTopStates (D : DiscreteLogTables) (R : ReaderTabs)
+    (pcT : SortedMap ℕ (List ℕ)) (rd : Reader) (states : List (Registers K)) :
     SeedStatementAndWitness :=
-  decTopFrames D R rd (mainVal rd) (entryArrayT pcT (preTestAt D T Pw rd) states rd)
+  decTopFrames D R rd (mainVal rd) (entryArrayT pcT (selfTest rd) states rd)
 
 /-- The decoding off the address tables and the memory. -/
-noncomputable def decTopTables (D : DiscreteLogTables) (T : Array (Option FnPre)) (Pw : Array E)
-    (R : ReaderTabs) (pcT : SortedMap ℕ (List ℕ)) (tabs : Array (ℕ × ℕ) × Array (ℕ × ℕ))
+noncomputable def decTopTables (D : DiscreteLogTables) (R : ReaderTabs)
+    (pcT : SortedMap ℕ (List ℕ)) (tabs : Array (ℕ × ℕ) × Array (ℕ × ℕ))
     (prog : LeanVM.Semantics.LeanIsaProgram) {κ : ℕ} (mem : Vector E (2 ^ κ)) :
         SeedStatementAndWitness :=
-  decTopStates D T Pw R pcT (memReader tabs.1 mem) (replayStatesOf tabs.1 tabs.2 prog mem)
+  decTopStates D R pcT (memReader tabs.1 mem) (replayStatesOf tabs.1 tabs.2 prog mem)
 
 /-- **The decoder's top**: the decoding of an execution of `prog`, its memory the vector `mem` of
 `2^κ` words. -/
 noncomputable def decTop (prog : LeanVM.Semantics.LeanIsaProgram) (κ : ℕ) (mem : Vector E (2 ^ κ)) :
     SeedStatementAndWitness :=
-  decTopTables discreteLogTables preTable genPows readerTabs pcTableT (decoderTables prog κ) prog
-    mem
+  decTopTables discreteLogTables readerTabs pcTableT (decoderTables prog κ) prog mem
 
 /-! The baby-step tables' parts, under names of their own (the bounds name them). -/
 cost_compile powPairsByC measure fun _ n _ _ ↦ n := powPairsBy
