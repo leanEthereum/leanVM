@@ -20,3 +20,8 @@ J 12 16 12
 H 0 wstack m 2 1
 H 1 allocdyn 4 3
 H 1 wheap vals 4 0 4
+L 0 16
+L 1 18
+L 8 20
+L 10 21
+L 14 22

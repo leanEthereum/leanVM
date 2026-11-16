@@ -26,3 +26,10 @@ H 0 wstack r 2 2
 H 7 alloc 10 4
 H 7 wheap h 10 0 3
 H 12 wheap r 10 3 1
+L 0 18
+L 4 19
+L 7 22
+L 12 24
+L 15 26
+L 16 27
+L 19 28

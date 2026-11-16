@@ -6,9 +6,10 @@
 Run from `lean_vm`. The generated module is `Expand.lean` with the edits below and nothing else: `fresh` and
 `freshRun` take the `Kind` of the value they make and record it, a statement's emission and the bounds of a branch
 or an arm are recorded, and five places say what the core IR does not (an address used as a value, an address
-shifted, a chained `match`, a hint's offset, the trace returned). No edit changes a statement the expansion emits:
-`guest-backend check` compares the two expansions' core functions. `--check` writes nothing and fails when the
-module is stale.
+shifted, a chained `match`, a hint's offset, the trace returned). Each statement begun also records its source line
+beside the trace (`lines`, read only by `expandProgramLines` and the line pass `Backend/Lines.lean`). No edit changes
+a statement the expansion emits: `guest-backend check` compares the two expansions' core functions. `--check`
+writes nothing and fails when the module is stale.
 
 Each edit is a literal replacement that must match `Expand.lean` exactly the stated number of times, so a change to
 `Expand.lean` that moves one fails here rather than silently dropping it. The same edits made in `Expand.lean`
@@ -38,8 +39,9 @@ public import LeanVM.Guest.Backend.Trace
 # Expansion, traced
 
 `LeanVM.Guest.Expand`, definition for definition, with the state's `trace` recording each value
-made, each statement emitted and each branch entered (`Backend.Event`). `expandFn` returns the
-trace beside the core function, which is `Expand.expandFn`'s.
+made, each statement emitted and each branch entered (`Backend.Event`), and its `lines` the source
+line of each statement begun. `expandFn` returns the trace and the lines beside the core function,
+which is `Expand.expandFn`'s.
 -/
 
 namespace LeanVM.Guest.Backend.ExpandTrace
@@ -53,7 +55,13 @@ open LeanVM.Guest.Backend (Kind Event)
 EDITS = [
     # the state and the two allocators
     ("  queue : Array Func\n  loopCtr : Nat\n  deriving Inhabited",
-     "  queue : Array Func\n  loopCtr : Nat\n  /-- The allocation trace. -/\n  trace : Array Event := #[]\n  deriving Inhabited", 1),
+     "  queue : Array Func\n  loopCtr : Nat\n  /-- The allocation trace. -/\n  trace : Array Event := #[]\n"
+     "  /-- The source lines: `(n, line)`, the statement at `line` begun when the trace held `n` events. -/\n"
+     "  lines : Array (Nat × Nat) := #[]\n  deriving Inhabited", 1),
+    # a statement's line (`stmt` sets `cur_line`)
+    ("  | n + 1, line, k => do\n    match k with\n",
+     "  | n + 1, line, k => do\n    modify fun st => { st with lines := st.lines.push (st.trace.size, line) }\n"
+     "    match k with\n", 1),
     ("def fresh : M V := do\n  let st ← get\n  set { st with tag := st.tag + 1 }\n",
      "def fresh (kind : Kind := .cell) : M V := do\n  let st ← get\n"
      "  set { st with tag := st.tag + 1, trace := st.trace.push (.alloc [⟨st.path, st.tag, 0⟩] kind) }\n", 1),
@@ -88,6 +96,11 @@ EDITS = [
     ("      let p ← fresh\n      emitFrameAddr p cells\n", "      let p ← fresh .addr\n      emitFrameAddr p cells\n", 1),
     # values that are no cell of their own
     ("    let site ← fresh\n", "    let site ← fresh .site\n", 1),
+    # an `@inline` body moves the line into the callee, and the caller's comes back after it (`try_inline`)
+    ("    let site ← fresh .site\n    withSeg (.i callee site.tag) (stmts n body)\n",
+     "    let site ← fresh .site\n    let savedLine := ((← get).lines.back?.map (·.2)).getD 0\n"
+     "    withSeg (.i callee site.tag) (stmts n body)\n"
+     "    modify fun st => { st with lines := st.lines.push (st.trace.size, savedLine) }\n", 1),
     ("    let rets ← freshRun (c.returnShapes.map Shape.cells).sum",
      "    let rets ← freshRun (c.returnShapes.map Shape.cells).sum .ret", 1),
     ("  let o ← freshRun 5\n", "  let o ← freshRun 5 .padRun\n", 1),
@@ -110,24 +123,35 @@ EDITS = [
     ("        emitHint (.windowsExp value start width count dest)",
      "        logEvent (.note skip)\n        emitHint (.windowsExp value start width count dest)", 1),
     # the trace returned
-    ("    Except String (Core.Fn × Array Func × Nat) := do", "    Except String (Core.Fn × Array Func × Nat × Array Event) := do", 1),
+    ("    Except String (Core.Fn × Array Func × Nat) := do",
+     "    Except String (Core.Fn × Array Func × Nat × Array Event × Array (Nat × Nat)) := do", 1),
     ("  return (⟨f.name, (paramBindings f).2, st.out.toList⟩, st.queue, st.loopCtr)",
-     "  return (⟨f.name, (paramBindings f).2, st.out.toList⟩, st.queue, st.loopCtr, st.trace)", 1),
+     "  return (⟨f.name, (paramBindings f).2, st.out.toList⟩, st.queue, st.loopCtr, st.trace, st.lines)", 1),
     ("/-- The compiler's queue (`compile`), at most `fuel` functions. -/\n"
      "def expandQueue (p : Program) : Nat → Nat → Array Func → Nat → Array Core.Fn →\n"
      "    Except String (Array Core.Fn)",
-     "/-- The compiler's queue (`compile`), at most `fuel` functions. -/\n"
-     "def expandQueue (p : Program) : Nat → Nat → Array Func → Nat → Array Backend.TracedFn →\n"
-     "    Except String (Array Backend.TracedFn)", 1),
+     "/-- The compiler's queue (`compile`), at most `fuel` functions, each with its source lines. -/\n"
+     "def expandQueue (p : Program) : Nat → Nat → Array Func → Nat →\n"
+     "    Array (Backend.TracedFn × Array (Nat × Nat)) →\n"
+     "    Except String (Array (Backend.TracedFn × Array (Nat × Nat)))", 1),
     ("            let (fn, queue, loopCtr) ← expandFn p f queue loopCtr\n"
      "            expandQueue p budget (i + 1) queue loopCtr (out.push fn)",
-     "            let (fn, queue, loopCtr, trace) ← expandFn p f queue loopCtr\n"
+     "            let (fn, queue, loopCtr, trace, lines) ← expandFn p f queue loopCtr\n"
      "            expandQueue p budget (i + 1) queue loopCtr (out.push\n"
-     "              ⟨fn, trace, (f.returnShapes.map Shape.cells).sum, Backend.loopSource f⟩)", 1),
+     "              (⟨fn, trace, (f.returnShapes.map Shape.cells).sum, Backend.loopSource f⟩, lines))", 1),
     ("/-- Every function the compiler lowers, in its order: `main` first. -/\n"
      "def expandProgram (p : Program) : Except String Core.Program := do",
      "/-- Every function the compiler lowers, in its order, `main` first: its core function, its trace\n"
      "and what the back end reads of its source as queued. -/\ndef expandProgram (p : Program) : Except String (List Backend.TracedFn) := do", 1),
+    ("  return (← expandQueue p 1000000 0 queue 0 #[]).toList\n",
+     "  return (← expandQueue p 1000000 0 queue 0 #[]).toList.map (·.1)\n\n"
+     "/-- `expandProgram` with each function's source lines (`St.lines`), which only the line pass reads\n"
+     "(`Backend.Lines`). -/\n"
+     "def expandProgramLines (p : Program) :\n"
+     "    Except String (List (Backend.TracedFn × Array (Nat × Nat))) := do\n"
+     "  let some main := p.funcs.find? (·.name == \"main\") | throw \"program needs a `main`\"\n"
+     "  let queue := #[main] ++ (p.funcs.filter (·.name != \"main\")).toArray\n"
+     "  return (← expandQueue p 1000000 0 queue 0 #[]).toList\n", 1),
     ("\nend\nend LeanVM.Guest.Expand\n", "\nend\nend LeanVM.Guest.Backend.ExpandTrace\n", 1),
 ]
 

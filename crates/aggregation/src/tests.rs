@@ -814,8 +814,8 @@ fn compile_guest(kbc: usize) -> CompiledProgram {
 }
 
 /// The guest the back end written in Lean compiled (`guests/lean_ethereum.compiled`) is the one this crate's compiler
-/// gives at the same size: the same bytecode, hints, `main` frame and function ranges, so the same fixed point and
-/// the same Fiat-Shamir IV.
+/// gives at the same size: the same bytecode, hints, `main` frame, function ranges and source line of every
+/// instruction, so the same fixed point, the same Fiat-Shamir IV and the same sites in a failure report.
 #[test]
 fn the_artefact_is_the_rust_compilers_guest() {
     let lean = unified_guest();
