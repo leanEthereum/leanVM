@@ -5,7 +5,7 @@ public import Quantum.Sphincs.Assembly.WinDecomp
 public import Quantum.Sphincs.Assembly.EventRef
 public import Quantum.Sphincs.Assembly.EncRefined
 public import Quantum.Sphincs.Assembly.RecOffDecHit
-public import Quantum.Sphincs.Assembly.CwRev
+public import Quantum.Sphincs.Assembly.CwReFail
 public import Quantum.Sphincs.Assembly.KeyLazy
 public import Quantum.Sphincs.Assembly.TrialHitUniform
 public import Quantum.Sphincs.Assembly.HConflict
@@ -37,7 +37,8 @@ KeyLazy's fresh `k`, `k'` flips are), the win probability `p2R strPol` is at mos
   `recBadAvg_of_parts` with RecOffDecHit's `decHitAvg`, `recOffAvg`, RecJ's `uavg_recJPre_le`,
   KeyLazy's `uavg_kfPre_le`, `uavg_kW_le` and ProgSafe's `progW_le_kW_gameT`.
 * **The bound** (`uavg_p2R_le_es`), with TrialHitUniform's trial-hit mass and HConflict's
-  `uavg_hConflictMassP_le`.
+  `uavg_hConflictMassP_le`; with CwReFail's `cwReView_cf` (`ε = cfEps = 2^-157`) without
+  hypothesis on the failed searches (`uavg_p2R_le_es'`, `uavg_p2R_msgPol_le_es'`).
 -/
 
 open Matrix IPFunctor
@@ -620,6 +621,28 @@ theorem uavg_p2R_msgPol_le_es (hq : q ≤ 2 ^ 64) {ε : ℝ≥0∞}
   have h := uavg_p2R_le_es hperm hsign par perm hk hπ hq hre
   rw [uavg_prod_iter] at h ⊢
   exact (congrArg uavg (funext e)).trans_le h
+
+set_option synthInstance.maxSize 2000 in
+/-- **leanSPHINCS's event side, averaged, without hypothesis on the failed searches**
+(`uavg_p2R_le_es` with CwReFail's `cwReView_cf`, `ε = cfEps = 2^-157`). -/
+theorem uavg_p2R_le_es' (hq : q ≤ 2 ^ 64) :
+    uavg (fun θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) ↦
+      p2R strPol A (pubES par perm hk θ.1) θ.2) ≤
+      eventTermS q cfEps +
+        2 * uavg (fun θ ↦ if GoodES par perm hk A θ then (0 : ℝ≥0∞) else 1) :=
+  uavg_p2R_le_es hperm hsign par perm hk hπ hq fun _ ↦
+    cwReView_cf hperm hsign strPol valFree_strPol _ hπ
+
+set_option synthInstance.maxSize 2000 in
+/-- **The event side at `msgPol`, without hypothesis on the failed searches**
+(`uavg_p2R_msgPol_le_es` with `cwReView_cf`). -/
+theorem uavg_p2R_msgPol_le_es' (hq : q ≤ 2 ^ 64) :
+    uavg (fun θ : ((X → Z) × (X → Z)) × ((s : HPos) → XD s) ↦
+      p2R msgPol A (pubES par perm hk θ.1) θ.2) ≤
+      eventTermS q cfEps +
+        2 * uavg (fun θ ↦ if GoodES par perm hk A θ then (0 : ℝ≥0∞) else 1) :=
+  uavg_p2R_msgPol_le_es hperm hsign par perm hk hπ hq fun _ ↦
+    cwReView_cf hperm hsign strPol valFree_strPol _ hπ
 
 end proof
 
