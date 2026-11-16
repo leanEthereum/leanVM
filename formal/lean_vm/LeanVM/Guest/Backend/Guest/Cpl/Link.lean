@@ -14,10 +14,8 @@ public import LeanVM.Guest.Backend.Guest.Cpl.Eval.All
 /-!
 # The link to `Budget.guest_complete`'s statement
 
-`guest_complete_backend` is stated with `deployedBudgetB`, a copy of `Budget.deployedBudget`, so
-that its cone holds no module of the existing completeness proof. This module, which nothing in
-that cone imports, identifies the two budgets and restates the theorem with exactly
-`Budget.guest_complete`'s statement.
+`guest_complete_link` is `guest_complete_backend` under its name in this module; the theorems
+below reduce its hypotheses.
 -/
 
 namespace LeanVM.Guest.Backend.Cpl
@@ -28,16 +26,12 @@ open LeanVM.Guest.B1.VerifySub (vsBoundAt vkBound)
 
 @[expose] public section
 
-/-- The copy of the deployed budget is the deployed budget. -/
-theorem deployedBudgetB_eq (Bvf : ℕ → ℕ → ℕ) : deployedBudgetB Bvf = deployedBudget Bvf := rfl
-
 /-- **The guest is complete within the deployed budget** (`Budget.guest_complete`'s statement),
 through the back end, given the frame side of its completeness and the per-function test of
 every entry. -/
 theorem guest_complete_link (hFW : Complete.FrameWordsStmt) (hok : CplOkAll) :
-    GuestCompleteWithin (deployedBudget (vsBoundAt Count.vsWordsOs vkBound)) := by
-  rw [← deployedBudgetB_eq]
-  exact guest_complete_backend hFW hok
+    GuestCompleteWithin (deployedBudget (vsBoundAt Count.vsWordsOs vkBound)) :=
+  guest_complete_backend hFW hok
 
 /-- **The guest is complete within the deployed budget**, the frame side reduced to its chains of
 `match`es (`ChainBody`), given the per-function test. -/

@@ -30,7 +30,7 @@ and the per-function test's counts. The jump tables are written when `main`'s ta
 namespace LeanVM.Guest.Backend.Cpl
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory GuestPiece
-open LeanVM.Guest.B2C
+open LeanVM.Guest.Deployed
 
 @[expose] public section
 
@@ -195,11 +195,11 @@ theorem node_at (hok : CplOkAll) (hFC : Complete.FrameConsistentStmt)
           rfl
       · by_cases hi0 : i = 0
         · simp only [hi0, ↓reduceIte] at hx
-          have hlo : Data.mainCells ≤ x.1 := by
+          have hlo : Deployed.Data.mainCells ≤ x.1 := by
             have := tableCells_offsets ▸ List.mem_map_of_mem (f := Prod.fst) hx
             rw [List.mem_range'_1] at this
             exact this.1
-          have hn0 : n < Data.mainCells := by
+          have hn0 : n < Deployed.Data.mainCells := by
             rw [E.facts.sfacts.frame] at hn
             subst hi0
             exact hn
@@ -384,26 +384,26 @@ theorem opIx_eq : Complete.opIx = opIdx := by
 
 mutual
 theorem cost1_eq (acs : List (ℕ × List (List ℕ))) (σ : Val) :
-    ∀ s : Stmt, Complete.cost1 acs σ s = B2C.cost1 acs σ s
+    ∀ s : Stmt, Complete.cost1 acs σ s = Deployed.cost1 acs σ s
   | .atom _ => rfl
-  | .ite _ z n => by rw [Complete.cost1, B2C.cost1, armsCost_eq acs σ z, armsCost_eq acs σ n]
-  | .match_ x arms => by rw [Complete.cost1, B2C.cost1, costArms_eq acs σ x _ 0 arms]
+  | .ite _ z n => by rw [Complete.cost1, Deployed.cost1, armsCost_eq acs σ z, armsCost_eq acs σ n]
+  | .match_ x arms => by rw [Complete.cost1, Deployed.cost1, costArms_eq acs σ x _ 0 arms]
   | .call .. => rfl
   | .callIf .. => rfl
   | .dispatch .. => rfl
   | .ret _ => rfl
 
 theorem armsCost_eq (acs : List (ℕ × List (List ℕ))) (σ : Val) :
-    ∀ ss : List Stmt, Complete.armsCost acs σ ss = B2C.costW acs σ ss
+    ∀ ss : List Stmt, Complete.armsCost acs σ ss = Deployed.costW acs σ ss
   | [] => rfl
-  | s :: ss => by rw [Complete.armsCost, B2C.costW, cost1_eq acs σ s, armsCost_eq acs σ ss]
+  | s :: ss => by rw [Complete.armsCost, Deployed.costW, cost1_eq acs σ s, armsCost_eq acs σ ss]
 
 theorem costArms_eq (acs : List (ℕ × List (List ℕ))) (σ : Val) (x : V)
     (key : Option (List (List ℕ))) : ∀ (k : ℕ) (arms : List (List Stmt)),
-      Complete.costArms acs σ x key k arms = B2C.costArms acs σ x key k arms
+      Complete.costArms acs σ x key k arms = Deployed.costArms acs σ x key k arms
   | _, [] => rfl
   | k, a :: as => by
-    rw [Complete.costArms, B2C.costArms, armsCost_eq acs σ a, costArms_eq acs σ x key (k + 1) as,
+    rw [Complete.costArms, Deployed.costArms, armsCost_eq acs σ a, costArms_eq acs σ x key (k + 1) as,
       opIx_eq]
     by_cases hx : σ x = ofK (addressOfIndex k)
     · simp only [hx, ↓reduceIte]
@@ -480,8 +480,8 @@ theorem cplRunG (hok : CplOkAll) (hFC : Complete.FrameConsistentStmt) (hjt : JTC
     have hpc : pathCount (i + 1) σ op =
         Complete.pmaxP (keyedOf i) (placedG i) op +
           Complete.armsCost (Complete.armsP (keyedOf i) (tfG i) (placedG i)) σ (tfG i).core.body op := by
-      rw [pathCount, B2C.pmax_deployed, Deployed.pmaxOf, ← E.facts.pmax, getD_ofCnt, E.facts.arms,
-        armsCost_eq, hcore, armsOf, B2C.cplArms_deployed]
+      rw [pathCount, Deployed.pmaxOf, ← E.facts.pmax, getD_ofCnt, E.facts.arms, armsCost_eq, hcore]
+      rfl
     have := hle op
     rw [hsum] at this
     rw [hpc]

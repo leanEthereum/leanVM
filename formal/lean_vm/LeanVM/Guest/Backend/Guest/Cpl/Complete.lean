@@ -10,16 +10,14 @@ module
 public import LeanVM.Guest.Backend.Guest.Cpl.Jt
 public import LeanVM.Guest.Backend.Guest.Cpl.Budget
 public import LeanVM.Guest.Backend.Complete.PathRun
-public import LeanVM.Guest.B2C.KRetemp
-public import LeanVM.Guest.B2C.DeployedEq
 
 /-!
 # Completeness through the back end
 
-`guest_complete_backend` is `Budget.guest_complete`'s statement (`deployedBudgetB` is
-`Budget.deployedBudget`'s body) at the instance `HG CG certG` of `Inst.lean`: B2's composition
-(`b2_completeG`, `b2_countG`) on `cplRunG` and `frameG`, the checker's facts `kFactsAllG`, the
-counts' invariance `B2C.cntRetemp`, the frame runs' facts `runsFitG`, `runsConsecG`, and the jump
+`guest_complete_backend` is `Budget.guest_complete`'s statement at the instance `HG CG certG` of
+`Inst.lean`: B2's composition (`b2_completeG`, `b2_countG`) on `cplRunG` and `frameG`, the
+checker's facts `kFactsAllG`, the counts' invariance `Deployed.cntRetemp`, the frame runs' facts
+`runsFitG`, `runsConsecG`, and the jump
 table's cells `jtCells`. It rests on the frame side of the back end's completeness
 (`Complete.FrameWordsStmt`) and the per-function test passing for every entry (`CplOkAll`).
 -/
@@ -27,7 +25,6 @@ table's cells `jtCells`. It rests on the frame side of the back end's completene
 namespace LeanVM.Guest.Backend.Cpl
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory GuestPiece
-open LeanVM.Guest.B2C
 open LeanVM.Guest.Completeness LeanVM.Guest.Budget
 open LeanVM.Guest.End (GuestCompleteWithin)
 open LeanVM.Guest.B1.VerifySub (vsBoundAt vkBound)
@@ -35,7 +32,7 @@ open LeanVM.Guest.B1.VerifySub (vsBoundAt vkBound)
 @[expose] public section
 
 /-- **Every frame run fits its frame** at the back end's cells. -/
-theorem runsFitG (hok : CplOkAll) : Lift.RunsFit B2C.fs certG := by
+theorem runsFitG (hok : CplOkAll) : Lift.RunsFit Deployed.fs certG := by
   intro f fn hf p r rs ha
   obtain ⟨i, hix⟩ := ix_of_find hf
   have F := fnAt hix
@@ -67,14 +64,12 @@ theorem b2HypsG (hok : CplOkAll) (hFC : Complete.FrameConsistentStmt) :
 side of the back end's completeness and the per-function test of every entry
 (`Budget.guest_complete`'s statement). -/
 theorem guest_complete_backend (hFW : Complete.FrameWordsStmt) (hok : CplOkAll) :
-    GuestCompleteWithin (deployedBudgetB (vsBoundAt Count.vsWordsOs vkBound)) :=
+    GuestCompleteWithin (deployedBudget (vsBoundAt Count.vsWordsOs vkBound)) :=
   have hB := b2HypsG hok (Complete.frameConsistent_of_words hFW)
   guest_complete_at (H := HG) (C := CG)
-    (fun _ hm => by
-      rw [← B2C.fs_deployed, ← B2C.cnt_deployed] at hm ⊢
-      exact ⟨hm, kFactsAllG hok, B2C.cntRetemp coreProgram_fresh, fun _ _ _ _ ht => tableG hok ht,
-        b2_completeG hB, b2_countG hB⟩)
-    (by rw [← B2C.fs_deployed]; exact runsFitG hok) (runsConsecG hok)
+    (fun _ hm => ⟨hm, kFactsAllG hok, Deployed.cntRetemp coreProgram_fresh, fun _ _ _ _ ht => tableG hok ht,
+      b2_completeG hB, b2_countG hB⟩)
+    (runsFitG hok) (runsConsecG hok)
 
 end
 end LeanVM.Guest.Backend.Cpl
