@@ -27,4 +27,4 @@ The public key is `PK.seed`, then `PK.root`:
 A seed of any length other than 32 bytes is rejected.
 
 These cases pin the key derivation of the specification, so two implementations of it agree byte for byte.
-`key_gen_known_answer` is the known answer of leanVM's Rust implementation, and the suite checks it against that value.
+`key_gen_known_answer` is the known answer of an independent implementation, and the suite checks it against that value.

@@ -30,4 +30,4 @@ The cases named `zeroed` set the secret of FORS tree 0, or the last sibling of t
 `wrong_pk_seed` and `wrong_root` flip one bit of `PK.seed` and of `PK.root` in the public key.
 
 The valid cases come from the `sign` cases, and the public keys from the `key_gen` cases.
-The `zeroed` cases start from the known answer of leanVM's Rust implementation, the same bytes as `verify_valid_known_answer`.
+The `zeroed` cases start from the known answer of an independent implementation, the same bytes as `verify_valid_known_answer`.
