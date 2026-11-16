@@ -1,17 +1,25 @@
 #!/usr/bin/env python3
-"""Write lean_vm/LeanVM/Cost/Decoder/GuestTables.lean: the guest decoder's literal tables.
+"""Write the guest decoder's literal tables: lean_vm/LeanVM/Cost/Decoder/GuestTables.lean and
+lean_vm/LeanVM/Cost/Decoder/GuestPlaces.lean, with its row modules GuestPlaces/Rows*.lean.
 
-For each compiled function `j < nFns`: its entry pc (`(fnOf j).entryPc`), its number of arguments
-(`(coreOf j).params.length`), of return words (`(certOf j).nret`), and its certificate's frame
-cells (`(certOf j).locs`, by reference to the certificate data `Fn.«name».cert_w{i}_{k}`). Read off
-the generated sources (the core IR through `scripts/coredata.py`, `Data/Cert.lean`, the packs'
-`Pack/<pack>/Bundle.lean`, the stable names of `Data/Names.lean`) and an entry list
+For each compiled function `j < nFns`, `GuestTables.lean` holds its entry pc (`(fnOf j).entryPc`),
+its number of arguments (`(coreOf j).params.length`), of return words (the back end's input,
+`GuestData.guestInfo`), and its certificate's frame cells (`(certOf j).locs`, by reference to the
+certificate data `Fn.«name».cert_w{i}_{k}`), the cells the decoder reads until it reads places;
+`GuestPlaces.lean` holds the back end's place of each of its values (`guestPlaces`, one code per
+value index: the cell `c` as `c`, the cell `c` shifted by `g^e` as `c + 2^20 * (e + 1)`) and
+whether it is a registered loop helper (`guestRegistered`, `1` or `0`).
+
+Read off the generated sources (the core IR through `scripts/coredata.py`, `Data/Cert.lean`, the
+packs' `Pack/<pack>/Bundle.lean`, the stable names of `Data/Names.lean`), an entry list
 (`--entries FILE`, `(List.range nFns).map fun j ↦ (fnOf j).entryPc`, the line `entries: …` that
 `lake env lean scripts/decoder-tables-entries.lean` prints after `lake build LeanVM.Guest.Glob`, as
-`scripts/regen-guest.sh` runs it, or `decoder-tables-inputs.lean` once the tables are built);
-`Cost/Decoder/GuestTablesCheck.lean` proves the tables equal to their definitions in the kernel.
-`python3 -I scripts/decoder-tables --entries FILE`, from any directory (the paths are lean_vm's);
-`--check` fails when the file differs (`check-all.sh` and the CI run it).
+`scripts/regen-guest.sh` runs it, or `decoder-tables-inputs.lean` once the tables are built) and
+the back end's tables (`--backend FILE`, which `lake exe guest-tables --decoder-inputs FILE`
+writes); `Cost/Decoder/GuestTablesCheck.lean` proves `GuestTables.lean` equal to its definitions
+in the kernel. `python3 -I scripts/decoder-tables --entries FILE --backend FILE`, from any
+directory (the paths are lean_vm's); `--check` fails when a file differs (`check-all.sh` and the CI
+run it).
 """
 import argparse, glob, os, re, sys
 from pathlib import Path
@@ -19,8 +27,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import coredata
 
 N = None  # the number of compiled functions: the entry list's length, the certificates'
-PART = 512  # rows per part of `guestLocsList`
+PART = 512  # rows per part of `guestLocsList` and `guestPlacesList`
+ROW = 1024  # place codes per definition `guestPlaces{j}_{k}` (one literal of a whole part exceeds the heartbeats)
 OUT = "LeanVM/Cost/Decoder/GuestTables.lean"
+OUT_PLACES = "LeanVM/Cost/Decoder/GuestPlaces.lean"
+ROWS_DIR = "LeanVM/Cost/Decoder/GuestPlaces"
+MODULE_CODES = 65536  # place codes per row module (the whole table in one module passes 8 GB)
 
 
 def cores():
@@ -40,19 +52,15 @@ def keys():
     return {int(k) + 1: n for n, k in re.findall(r"^abbrev «([^»]*)» : Nat := (\d+)$", sec, re.M)}
 
 
-def cert_body(s, name):
+def cert_cells(s, name):
     m = re.search(r"noncomputable def " + name + r" : Check\.Cert where\n(.*?)(?=\n\n|\Z)", s, re.S)
-    body = m.group(1)
-    cells = re.search(r"  cells := \[(.*?)\]\n  ins :=", body, re.S).group(1)
-    names = [c.strip() for c in cells.split(",") if c.strip()]
-    nret = int(re.search(r"  nret := (\d+)", body).group(1))
-    return names, nret
+    cells = re.search(r"  cells := \[(.*?)\]\n  ins :=", m.group(1), re.S).group(1)
+    return [c.strip() for c in cells.split(",") if c.strip()]
 
 
 def certs():
-    """Each function's certificate's cells' lists, as references, and its return count."""
-    names, nret = cert_body(open("LeanVM/Guest/Data/Cert.lean").read(), "cert0")
-    out = {0: ([f"Data.{n}" for n in names], nret)}
+    """Each function's certificate's cells' lists, as references."""
+    out = {0: [f"Data.{n}" for n in cert_cells(open("LeanVM/Guest/Data/Cert.lean").read(), "cert0")]}
     # each function's block of its pack's data (`Pack/<pack>/Bundle.lean`), by stable name
     blocks = {}
     for f in glob.glob("LeanVM/Guest/Pack/*/Bundle.lean"):
@@ -60,65 +68,60 @@ def certs():
                              open(f).read(), re.S | re.M):
             blocks[m.group(1)] = m.group(2)
     for j, key in keys().items():
-        names, nret = cert_body(blocks[key], "cert")
-        out[j] = ([n if n == "[]" else f"Fn.«{key}».{n}" for n in names], nret)
+        out[j] = [n if n == "[]" else f"Fn.«{key}».{n}" for n in cert_cells(blocks[key], "cert")]
     return out
 
 
-def ref(n):
-    """A window's cells: its data list, or an empty window's literal `[]`."""
-    return n
+def backend(path):
+    """The back end's return counts, registered flags and place codes, by function."""
+    rets, reg, rows = None, None, {}
+    for line in open(path).read().splitlines():
+        w = line.split()
+        if not w:
+            continue
+        if w[0] == "rets":
+            rets = [int(x) for x in w[1:]]
+        elif w[0] == "registered":
+            reg = [int(x) for x in w[1:]]
+        elif w[0] == "row":
+            rows[int(w[1])] = [int(x) for x in w[2:]]
+    assert rets is not None and reg is not None, path
+    return rets, reg, [rows[j] for j in range(len(rows))]
 
 
 def chunks(xs, n):
     return [xs[i:i + n] for i in range(0, len(xs), n)]
 
 
-def nat_array(name, doc, xs):
+def nat_array(name, doc, xs, nat="ℕ"):
     rows = ",\n    ".join(", ".join(str(x) for x in c) for c in chunks(xs, 10))
-    return (f"/-- {doc} -/\ndef {name}List : List ℕ := [\n    {rows}]\n\n"
+    return (f"/-- {doc} -/\ndef {name}List : List {nat} := [\n    {rows}]\n\n"
             f"/-- {doc} An array (reducible: the compiler's literal rule reads its list). -/\n"
-            f"abbrev {name} : Array ℕ := {name}List.toArray\n")
+            f"abbrev {name} : Array {nat} := {name}List.toArray\n")
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--entries", required=True)
-    ap.add_argument("--check", action="store_true")
-    ap.add_argument("--split-rows", default=None,
-                    help="rows whose cells' lists get a name of their own, checked by chunks (default: the "
-                         "function with the most lists, `guestLocsSplit`)")
-    a = ap.parse_args()
-    global N
-    entries = [int(x) for x in re.findall(r"\d+", open(a.entries).read())]
-    os.chdir(Path(__file__).resolve().parent.parent)
-    co, ce = cores(), certs()
-    N = len(entries)
-    assert N == len(ce), (N, len(ce))
-    args = [co[max(j - 1, 0)] for j in range(N)]
-    rets = [ce[j][1] for j in range(N)]
-    if a.split_rows is None:
-        split = [max(range(N), key=lambda j: len(ce[j][0]))]
-    else:
-        split = [int(x) for x in a.split_rows.split(",") if x]
+def nat_list(xs):
+    return "[" + ", ".join(str(x) for x in xs) + "]"
+
+
+def tables_text(entries, args, rets, ce, split):
     locs = []
     rowdefs = ""
     for j in range(N):
-        names = ce[j][0]
+        names = ce[j]
         if j in split:
             rowdefs += (f"/-- Function {j}'s certificate's cells, list by list. -/\n"
                         f"def guestLocsRow{j} : List (List ℕ) := [\n    "
-                        + ",\n    ".join(ref(n) for n in names) + "]\n\n")
+                        + ",\n    ".join(names) + "]\n\n")
             locs.append(f"guestLocsRow{j}.flatten")
         else:
-            locs.append("[]" if not names else
-                        "[" + ", ".join(ref(n) for n in names) + "].flatten")
+            locs.append("[]" if not names else "[" + ", ".join(names) + "].flatten")
     parts = chunks(locs, PART)
     locs_parts = "".join(
         f"/-- Functions {i * PART} to {i * PART + len(p) - 1}'s frame cells. -/\n"
         f"def guestLocsList{i} : List (List ℕ) := [\n    " + ",\n    ".join(p) + "]\n\n"
         for i, p in enumerate(parts))
-    text = f'''/-
+    return f'''/-
   LeanVM.Cost.Decoder.GuestTables
 
   Generated by `scripts/decoder-tables` from the guest's generated data; do not edit.
@@ -166,11 +169,129 @@ end
 
 end LeanVM.Cost.Decoder
 '''
+
+
+def rows_module(m, first, last, defs):
+    return f'''/-
+  LeanVM.Cost.Decoder.GuestPlaces.Rows{m}
+
+  Generated by `scripts/decoder-tables` from the back end's placement of the guest; do not edit.
+  Functions {first} to {last}'s place codes (`GuestPlaces.lean`).
+-/
+
+module
+
+namespace LeanVM.Cost.Decoder
+
+@[expose] public section
+
+{defs}end
+
+end LeanVM.Cost.Decoder
+'''
+
+
+def places_files(reg, rows):
+    """`GuestPlaces.lean` and its row modules `GuestPlaces/Rows{m}.lean`, as (path, text)."""
+    mods = []  # each row module's (first function, last function, definitions' text, codes)
+    items = []
+    for j, r in enumerate(rows):
+        names = []
+        for k, c in enumerate(chunks(r, ROW)):
+            d = (f"/-- Function {j}'s place codes {k * ROW} to {k * ROW + len(c) - 1}. -/\n"
+                 f"def guestPlaces{j}_{k} : List Nat := {nat_list(c)}\n\n")
+            if not mods or mods[-1][3] + len(c) > MODULE_CODES:
+                mods.append([j, j, "", 0])
+            mods[-1][1] = j
+            mods[-1][2] += d
+            mods[-1][3] += len(c)
+            names.append(f"guestPlaces{j}_{k}")
+        items.append("[]" if not names else names[0] if len(names) == 1 else
+                     "[" + ", ".join(names) + "].flatten")
+    parts = chunks(items, PART)
+    places_parts = "".join(
+        f"/-- Functions {i * PART} to {i * PART + len(p) - 1}'s place codes. -/\n"
+        f"def guestPlacesList{i} : List (List Nat) := [\n    " + ",\n    ".join(p) + "]\n\n"
+        for i, p in enumerate(parts))
+    imports = "".join(f"public import LeanVM.Cost.Decoder.GuestPlaces.Rows{m}\n" for m in range(len(mods)))
+    main = f'''/-
+  LeanVM.Cost.Decoder.GuestPlaces
+
+  Generated by `scripts/decoder-tables` from the back end's placement of the guest
+  (`lake exe guest-tables --decoder-inputs`); do not edit.
+-/
+
+module
+
+{imports}
+/-!
+# The guest decoder's places
+
+For each of the guest's {N} compiled functions `j` (`0` is `__jump_tables`, function `j ≥ 1` entry
+`j - 1` of the back end's input): whether it is a registered loop helper, whose self pointer is
+the cell past its arguments, and the back end's place of each of its values, one code per value
+index: the cell `c` as `c`, the cell `c` shifted by `g^e` (`Loc.shifted c e`) as
+`c + 2^20 * (e + 1)`; an index of no place as `0`. The codes are defined by runs of at most {ROW}
+in the modules `GuestPlaces/Rows*.lean`.
+-/
+
+namespace LeanVM.Cost.Decoder
+
+@[expose] public section
+
+{nat_array("guestRegistered", "Each function's registered flag: `1` for a registered loop helper, else `0`.", reg, "Nat")}
+{places_parts}/-- Each function's place codes, as lists: the parts'. -/
+def guestPlacesList : List (List Nat) :=
+    {" ++ ".join(f"guestPlacesList{i}" for i in range(len(parts)))}
+
+/-- Each function's place codes, as arrays: the decoder's literal (reducible: the compiler's
+literal rule reads its list). -/
+abbrev guestPlacesLit : Array (Array Nat) := (guestPlacesList.map List.toArray).toArray
+
+/-- Each function's place codes, as arrays. -/
+def guestPlaces : Array (Array Nat) := guestPlacesLit
+
+end
+
+end LeanVM.Cost.Decoder
+'''
+    return [(OUT_PLACES, main)] + [(f"{ROWS_DIR}/Rows{m}.lean", rows_module(m, a, b, d))
+                                   for m, (a, b, d, _) in enumerate(mods)]
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--entries", required=True)
+    ap.add_argument("--backend", required=True)
+    ap.add_argument("--check", action="store_true")
+    ap.add_argument("--split-rows", default=None,
+                    help="rows whose cells' lists get a name of their own, checked by chunks (default: the "
+                         "function with the most lists, `guestLocsSplit`)")
+    a = ap.parse_args()
+    global N
+    entries = [int(x) for x in re.findall(r"\d+", open(a.entries).read())]
+    rets, reg, rows = backend(a.backend)
+    os.chdir(Path(__file__).resolve().parent.parent)
+    co, ce = cores(), certs()
+    N = len(entries)
+    assert N == len(ce) == len(rets) == len(reg) == len(rows), (N, len(ce), len(rets), len(reg), len(rows))
+    args = [co[max(j - 1, 0)] for j in range(N)]
+    if a.split_rows is None:
+        split = [max(range(N), key=lambda j: len(ce[j]))]
+    else:
+        split = [int(x) for x in a.split_rows.split(",") if x]
+    files = [(OUT, tables_text(entries, args, rets, ce, split))] + places_files(reg, rows)
+    old = set(glob.glob(f"{ROWS_DIR}/Rows*.lean")) - {p for p, _ in files}
     if a.check:
-        if open(OUT).read() != text:
-            sys.exit(f"{OUT} is stale: run scripts/decoder-tables")
+        stale = [p for p, t in files if not os.path.exists(p) or open(p).read() != t] + sorted(old)
+        if stale:
+            sys.exit(f"stale: {', '.join(stale)}: run scripts/decoder-tables")
         return
-    open(OUT, "w").write(text)
+    os.makedirs(ROWS_DIR, exist_ok=True)
+    for p, t in files:
+        open(p, "w").write(t)
+    for p in old:
+        os.remove(p)
 
 
 main()
