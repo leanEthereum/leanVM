@@ -293,12 +293,13 @@ noncomputable def progBound : ℝ≥0∞ :=
 (`uavg_recJPre_le_two_pow`, `q ≤ 2^64`): `2^-35`. -/
 noncomputable def recJCap : ℝ≥0∞ := (2 ^ 35 : ℝ≥0∞)⁻¹
 
-/-- **The target of `CwReView`** (debt `cwReFail`, placeholder shape): `2^-100 + 6q · 2^-150` per
-hidden value for the reveals of a label whose earlier search ran all its trials without a codeword
-while the key stayed unselected (at most `2 lifetime` reveals, each needing a failed search of
-`2^32` trials; the adversary's calls may disturb the searches). -/
+/-- **The target of `CwReView`** (debt `cwReFail`): `2^-100 + 12q · 2^-128` per hidden value for
+the reveals of a label whose earlier search ran all its trials without a codeword while the key
+stayed unselected. A failed search needs nearly all of its `2^32` trials to fail: the fresh ones
+fail with `(1 - ρ)` each, and the bases with many recorded trial blocks cost their share of the
+recorded blocks of unrevealed labels, at most `6q` in total. -/
 noncomputable def cwReEps (q : ℕ) : ℝ≥0∞ :=
-  ENNReal.ofReal (1 / 2 ^ 100) + ((6 * q : ℕ) : ℝ≥0∞) * ENNReal.ofReal (1 / 2 ^ 150)
+  ENNReal.ofReal (1 / 2 ^ 100) + ((12 * q : ℕ) : ℝ≥0∞) * ENNReal.ofReal (1 / 2 ^ 128)
 
 /-- **The codeword-recorded mass of the prefix, averaged over all tables** (CwRev's
 `uavg_cwRecPre_all_le_rev` at `cwReEps q`): the first runs `2^-94 · 6q`, the failed searches
