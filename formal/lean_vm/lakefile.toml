@@ -215,6 +215,14 @@ name = "guest-cpleval"
 root = "GuestCplEval"
 srcDir = "cli"
 
+# The back end's tables of the guest (cli/GuestTables.lean): writes LeanVM/Guest/Deployed/Data.lean
+# (`--check` compares) and the input of `scripts/decoder-tables` (`--decoder-inputs FILE`), or
+# compares the tables with the certificate tables (`--compare TABLES`). Not a default target.
+[[lean_exe]]
+name = "guest-tables"
+root = "GuestTables"
+srcDir = "cli"
+
 # The pointer discipline and the load shapes of the guest's core functions
 # (cli/GuestPtrCheck.lean); not a default target.
 [[lean_exe]]
