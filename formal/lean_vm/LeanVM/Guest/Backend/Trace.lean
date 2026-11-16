@@ -32,8 +32,8 @@ it. So the following are gone from the core IR, and each moves cells:
 
 The trace (`Event`) is the expansion's record of them, in the order it runs: one `alloc` a
 `fresh` or `freshRun`, with how the lowering treats it (`Kind`), one `emit` a core statement, and
-`enter`, `leave` around a branch or an arm. `Backend.ExpandTrace` is `Expand` recording it, and
-`Place` walks a core function and its trace together.
+`enter`, `leave` around a branch or an arm. `Expand` records it (`Expand.expandProgramTraced`),
+and `Place` walks a core function and its trace together.
 
 The trace is advice. Placement takes from it when a value's cells are taken, how many, and
 whether a pool is asked, never what an instruction relates: every cell is the next free one or a

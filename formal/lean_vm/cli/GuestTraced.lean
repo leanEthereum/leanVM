@@ -7,7 +7,7 @@ import LeanVM.Guest.Backend.Guest.Input
 Run from `lean_vm`.
 
 `lake exe guest-traced` expands the guest's source with its allocation trace
-(`Backend.ExpandTrace.expandProgram Data.guest`) and writes, for each function `j`, its trace with
+(`Expand.expandProgramTraced Data.guest`) and writes, for each function `j`, its trace with
 every value renamed as `coreProgram` names it: a value of the core function becomes its number in
 `Fn.renumber` (`V.n i`), and a value only the trace names (a cell no statement reads) the next
 number past them, in the order the trace makes it. The core functions themselves are not written:
