@@ -16,11 +16,12 @@ decompressed basis.
 
 * **What one recorded `h` value can do** (`tgt_eq_of_emptied`, `recBad_cases`): goodness reads only
   `k`, `k'`, so emptying the cell keeps the union good; the event then needs a tail reaching its
-  target through `z`. If the trial's own one-block tail reaches `z` with the trial's rate in the
-  union (`TrialOn`), goodness makes it the only tail at `z`, so the recorded value `v` hits the
-  target of the trial's tail: `xmssTgtHw L W m [x] = some (trunc128 (xi + v))` (`RecHit`; the
-  target of a message-slot tail is the selected digest of its key unless the tail is the selected
-  input's). Otherwise the trial's own path is missing from the union (`RecOff`).
+  target through `z`. If the trial's own one-block tail reaches `z` in the union with a rate of the
+  trial's digest (`TrialOn`; `trialOf` names a trial only up to it), goodness makes it the only
+  tail at `z`, so the recorded value `v` hits the target of the trial's tail:
+  `xmssTgtHw L W m [x] = some (trunc128 (xi + v))` (`RecHit`; the target of a message-slot tail is
+  the selected digest of its key unless the tail is the selected input's). Otherwise the trial's
+  own path is missing from the union (`RecOff`).
 * **Re-grind or not** (`SameGrind`, `RegrindSel`, `RecHitA`, `RecHitB`): the key's selection was
   made by a trial of the same label (block of the same message, same base: a re-grind of a selected
   key), or not (another label of the same key, e.g. a bottom key signing a second message).
@@ -47,7 +48,8 @@ The remaining bounds and their routes:
 * `RecOffAvg`: right after the trial's `k`- and `k'`-reads with outcomes `a`, `c` the decompressed
   cells hold `a`, `c`; the compressed cell is empty or holds another value with weight at most
   `2 / |Z|` each (the overlap of `C |a⟩` with `|a⟩` is `1 - 1/|Z|`), so about `4 / |Z|` per read.
-  It also needs `trialOf trialUpd` to return the program's trial (`trialUpd` injective).
+  `trialOf trialUpd` names the program's trial up to its rate's digest (EncRefined's
+  `trialUpd_inj`), which `TrialOn` allows.
 -/
 
 open Matrix IPFunctor
@@ -290,10 +292,20 @@ section split
 
 attribute [local instance] badRDec
 
-/-- The trial's own one-block tail `[t.x]` reaches the read cell `z` with the trial's rate `t.xi`
-in the union of the hardwired and the database cells. -/
+/-- Adding a value keeps the agreement of two rates' digests. -/
+private theorem rb_trunc128_add_congr {a b : X} (h : trunc128 a = trunc128 b) (v : X) :
+    trunc128 (a + v) = trunc128 (b + v) := by
+  rw [trunc128_eq, trunc128_eq] at h
+  rw [trunc128_eq, trunc128_eq]
+  have h' := (bitsEquiv 128).symm.injective h
+  refine congrArg (bitsEquiv 128).symm (funext fun j ↦ ?_)
+  rw [Pi.add_apply, Pi.add_apply, congrFun h' j]
+
+/-- The trial's own one-block tail `[t.x]` reaches the read cell `z` in the union of the hardwired
+and the database cells, with a rate of the trial's digest (`trialOf` names a trial only up to its
+rate's digest). -/
 def TrialOn (L : HonestTable) (z : Z) (t : TrialPt) (s : HwReg X Z Mem) : Prop :=
-  IsHeadTail L.perm (union s.2.1 s.1) [t.x] z t.xi
+  ∃ xi, trunc128 xi = trunc128 t.xi ∧ IsHeadTail L.perm (union s.2.1 s.1) [t.x] z xi
 
 /-- **A recorded value hitting the target of the trial's tail**: the cell `z` not hardwired, recorded
 with a value `v` that makes the trial's tail `[t.x]` reach its target. -/
@@ -316,7 +328,9 @@ theorem recBad_cases {L : HonestTable} {z : Z} (t : TrialPt) {s : HwReg X Z Mem}
     have hb' : (s.1, s.2.1, s.2.2.2) ∈ Bad L progCap := hb
     have hnb' : ((Function.update s.1.1 z none, s.1.2.1, s.1.2.2), s.2.1, s.2.2.2) ∉
         Bad L progCap := hnb
-    exact .inl ⟨hW, v, hv, tgt_eq_of_emptied hW hv hb' hnb' hon⟩
+    obtain ⟨xi, hxi, hht⟩ := hon
+    refine .inl ⟨hW, v, hv, ?_⟩
+    rw [tgt_eq_of_emptied hW hv hb' hnb' hht, rb_trunc128_add_congr hxi v]
   · exact .inr ⟨hW, hD, hon⟩
 
 /-- Two blocks of the same randomizer search: the trials `i` and `j` of the label `lab` from the
