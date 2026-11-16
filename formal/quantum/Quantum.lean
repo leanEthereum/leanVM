@@ -76,6 +76,7 @@ import Quantum.Xmss.Assembly.HTrial
 import Quantum.Xmss.Assembly.GoodTables
 import Quantum.Xmss.Assembly.RecJ
 import Quantum.Xmss.Assembly.CostRefined
+import Quantum.Xmss.Assembly.CwRec
 import Quantum.Xmss.Hybrid.SchemeSplit
 import Quantum.Xmss.Hybrid.CoinStage
 import Quantum.Xmss.Hybrid.R0Stage
