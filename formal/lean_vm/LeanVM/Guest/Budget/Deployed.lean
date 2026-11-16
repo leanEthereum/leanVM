@@ -14,7 +14,7 @@ public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.Budget.Final
 public import LeanVM.Guest.B2C.B2Final
 public import LeanVM.Guest.B2C.RunsFit
-public import LeanVM.Guest.B2C.CntWeight
+public import LeanVM.Guest.B2C.DeployedEq
 public import LeanVM.Guest.B1.Sig.XmssSegComplete
 public import LeanVM.Guest.B1.Sig.SphincsCompleteHolds
 public import LeanVM.Guest.AcceptableChild
@@ -35,20 +35,26 @@ theorem guest_complete_budget {SB SK : String → ℕ} {Pvs : NodeWitness → �
     (C : Opcode → ℕ)
     (hC : ∀ op σ bufs kids rd args rets,
       (Memory.Tree.node name% «main_loop2» σ bufs kids).Valid coreProgram rd args rets →
-        B2C.costW (listElementOrDefault Data.cplArms (fn_idx% «main_loop2») []) σ (coreOf (fn_idx% «main_loop2»)).body op ≤ C op)
-    (H : ∀ op, MainCounts (B2C.ωArm C op) B2C.fs) (hS : MainStatics B2C.fs SB SK)
+        Deployed.costW (listElementOrDefault Deployed.Data.arms (fn_idx% «main_loop2») []) σ (coreOf (fn_idx% «main_loop2»)).body op ≤ C op)
+    (H : ∀ op, MainCounts (Deployed.ωArm C op) Deployed.fs) (hS : MainStatics Deployed.fs SB SK)
     (hV : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w →
       ChildrenOk bytecode seed w →
-      VerifySubGoalsTB B2C.fs B2C.cert 0 seed s w (Pvs w) (childBv Bvf w))
+      VerifySubGoalsTB Deployed.fs B2C.cert 0 seed s w (Pvs w) (childBv Bvf w))
     (c5 s5 : Opcode → ℕ) (v5 : Opcode → ℕ → ℕ → ℕ)
     (h5 : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ∀ op (rd : Reader)
       (t : Tree) (args rets : List E), t.name = name% main_loop4 → t.Valid coreProgram rd args rets →
       t.BufsOk coreProgram → (mainPredsH s w (hDvNH w) (Pvs w)).T5 t →
-        t.weight (B2C.ωArm C op) ≤ l5Lin (c5 op) (s5 op) (v5 op) (End.work s w)) :
-    GuestCompleteWithin (mainBudget B2C.fs SB SK Bvf (B2C.ωArm C) H c5 s5 v5 B2C.jtSets) :=
-  B2C.guest_complete_b2c (mainComplete_budget B2C.fs B2C.cert B2C.cnt (B2C.ωArm C) B2C.jtSets H
+        t.weight (Deployed.ωArm C op) ≤ l5Lin (c5 op) (s5 op) (v5 op) (End.work s w)) :
+    GuestCompleteWithin (mainBudget Deployed.fs SB SK Bvf (Deployed.ωArm C) H c5 s5 v5 Deployed.jtSets) := by
+  revert H hS hV h5
+  rw [← B2C.fs_deployed, ← B2C.ωArm_deployed, ← B2C.jtSets_deployed]
+  intro H hS hV h5
+  exact B2C.guest_complete_b2c (mainComplete_budget B2C.fs B2C.cert B2C.cnt (B2C.ωArm C) B2C.jtSets H
     (B2C.two_le_fs _) B1.Sig.verify_lean_xmss_complete_holds
-    B1.Sig.sphincs_complete B2C.runsFit hS hV (B2C.cnt_le_weight_arm C hC)
+    B1.Sig.sphincs_complete B2C.runsFit hS hV
+    (B2C.cnt_le_weight_arm C fun op σ bufs kids rd args rets hv => by
+      rw [B2C.costW_deployed, B2C.cplArms_deployed]
+      exact hC op σ bufs kids rd args rets hv)
     c5 s5 v5 h5)
 
 end

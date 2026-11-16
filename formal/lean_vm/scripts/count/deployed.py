@@ -37,12 +37,9 @@ end LeanVM.Guest.Count
 
 
 def jt_sets(lv):
-    """`B2C.jtSets .setConstant`: `main`'s jump table's `SET`s (`Data.jtSlots`, `Data/FrameSizes.lean`)."""
-    import re
-    t = open(os.path.join(lv, 'LeanVM', 'Guest', 'Data', 'FrameSizes.lean'), encoding='utf-8').read()
-    m = re.search(r'abbrev jtSlots : ℕ := (\d+)', t)
-    assert m, 'Data.jtSlots not found'
-    return int(m.group(1))
+    """`Deployed.jtSets .setConstant`: `main`'s jump table's `SET`s (`Deployed.Data.jtSlots`)."""
+    import core
+    return core.load_scalar(os.path.join(lv, 'LeanVM', 'Guest', 'Data'), 'jtSlots')
 
 
 def numbers(g, certs):
@@ -130,7 +127,7 @@ OPS_ = None
 
 
 def idx_rw(g, fs=(), sb=(), sk=()):
-    """Rewrites of `B2C.fs`, `wSB`, `wSK` at the named functions by their core indices."""
+    """Rewrites of `Deployed.fs`, `wSB`, `wSK` at the named functions by their core indices."""
     out = ['fs_idx (j := %d) (f := "%s") (by decide +kernel)' % (g.by[n], n) for n in dict.fromkeys(fs)]
     out += ['wSB_idx (j := %d) (f := "%s") (by decide +kernel)' % (g.by[n], n) for n in dict.fromkeys(sb)]
     out += ['wSK_idx (j := %d) (f := "%s") (by decide +kernel)' % (g.by[n], n) for n in dict.fromkeys(sk)]
@@ -155,21 +152,21 @@ theorem dlK_eq : dlK wSB = %d := by decide +kernel
 theorem cl_sum : nameSum wSB B1.Digest.clNames 17 = %d := by decide +kernel
 
 /-- The children's claim lists' last digests' frames. -/
-theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = %d := by decide +kernel
+theorem ccl_sum : nameSum (fun g => Deployed.fs g) B1.Digest.cclNames 17 = %d := by decide +kernel
 ''' % (v['cl'], v['ccl']))
     def thm(name, lhs, val, unf, rws, fs=(), sb=(), sk=()):
         r = idx_rw(g, fs, sb, sk)
         steps = ', '.join(rws) + (',\n    ' if rws and r else '') + r
         return ('theorem %s : %s = %d := by\n  unfold %s\n  rw [%s]\n  decide +kernel\n'
                 % (name, lhs, val, unf, steps))
-    dvc = thm('dvC_eq', 'dvC B2C.fs wSB', v['dvC'], 'dvC', [],
+    dvc = thm('dvC_eq', 'dvC Deployed.fs wSB', v['dvC'], 'dvC', [],
               fs=['da_verify', 'da_padding', L('da_verify_loop0'), L('da_verify_loop1'), 'da_verify_column', L('da_verify_column_loop0'),
                   L('da_verify_loop2'), L('da_verify_loop3')],
               sb=['da_vector', 'da_expand__L6_L7'])
-    dvs = thm('dvS_eq', 'dvS B2C.fs wSK', v['dvS'], 'dvS B1.Main.iterK', [],
+    dvs = thm('dvS_eq', 'dvS Deployed.fs wSK', v['dvS'], 'dvS B1.Main.iterK', [],
               fs=[L('da_verify_loop0'), L('da_verify_loop2'), L('da_verify_loop3'), L('da_verify_column_loop0')],
               sk=[L('da_verify_loop0'), L('da_verify_loop2'), L('da_verify_loop3'), L('da_verify_column_loop0')])
-    dvp = thm('dvP_eq', 'dvP B2C.fs wSB wSK', v['dvP'], 'dvP B1.Main.iterK', ['dlK_eq'], fs=[L('da_verify_loop3')],
+    dvp = thm('dvP_eq', 'dvP Deployed.fs wSB wSK', v['dvP'], 'dvP B1.Main.iterK', ['dlK_eq'], fs=[L('da_verify_loop3')],
               sk=[L('da_verify_loop3')])
     mod('DeployedB', '`da_verify`\'s words: its constant, per row and per padded row.',
         'public import LeanVM.Guest.Count.DeployedA\n',
@@ -177,20 +174,20 @@ theorem ccl_sum : nameSum (fun g => B2C.fs g) B1.Digest.cclNames 17 = %d := by d
         + '\n/-- **`da_verify`\'s words per row.** -/\n' + dvs
         + '\n/-- **`da_verify`\'s words per padded row.** -/\n' + dvp)
     body = '\n'.join([
-        thm('clC_eq', 'clC B2C.fs wSB', v['clC'], 'clC', ['cl_sum'], fs=['claim_list_digest', L('claim_list_digest_loop0'), L('claim_list_digest_loop1')],
+        thm('clC_eq', 'clC Deployed.fs wSB', v['clC'], 'clC', ['cl_sum'], fs=['claim_list_digest', L('claim_list_digest_loop0'), L('claim_list_digest_loop1')],
             sb=['list_split']),
-        thm('ccC_eq', 'ccC B2C.fs wSB', v['ccC'], 'ccC', ['ccl_sum'],
+        thm('ccC_eq', 'ccC Deployed.fs wSB', v['ccC'], 'ccC', ['ccl_sum'],
             fs=['child_claim_list_digest', 'child_claim_list_any', L('child_claim_list_any_loop0'), L('child_claim_list_any_loop1')],
             sb=['list_split']),
-        thm('l5A0_eq', 'l5A0 B2C.fs', v['l5A0'], 'l5A0', [], fs=[L('main_loop4')]),
-        thm('clS_eq', 'clS B2C.fs wSK', v['clS'], 'clS B1.Main.iterK', [], fs=[L('claim_list_digest_loop0'), L('claim_list_digest_loop1')],
+        thm('l5A0_eq', 'l5A0 Deployed.fs', v['l5A0'], 'l5A0', [], fs=[L('main_loop4')]),
+        thm('clS_eq', 'clS Deployed.fs wSK', v['clS'], 'clS B1.Main.iterK', [], fs=[L('claim_list_digest_loop0'), L('claim_list_digest_loop1')],
             sk=[L('claim_list_digest_loop0'), L('claim_list_digest_loop1')]),
-        thm('l5A1_eq', 'l5A1 B2C.fs wSB', v['l5A1'], 'l5A1', ['ccC_eq'],
+        thm('l5A1_eq', 'l5A1 Deployed.fs wSB', v['l5A1'], 'l5A1', ['ccC_eq'],
             fs=[L('main_loop4')], sb=['statement_digest']),
-        thm('l5A2_eq', 'l5A2 B2C.fs', v['l5A2'], 'l5A2 ccS', [], fs=[L('child_claim_list_any_loop0'), L('child_claim_list_any_loop1')]),
-        thm('agA0_eq', 'agA0 B2C.fs wSB', v['agA0'], 'agA0', [], fs=['aggregate_claims'],
+        thm('l5A2_eq', 'l5A2 Deployed.fs', v['l5A2'], 'l5A2 ccS', [], fs=[L('child_claim_list_any_loop0'), L('child_claim_list_any_loop1')]),
+        thm('agA0_eq', 'agA0 Deployed.fs wSB', v['agA0'], 'agA0', [], fs=['aggregate_claims'],
             sb=['grind_check__L2', 'batch_sumcheck__L23']),
-        thm('agA1_eq', 'agA1 B2C.fs wSK', v['agA1'], 'agA1 B1.Main.iterK', [],
+        thm('agA1_eq', 'agA1 Deployed.fs wSK', v['agA1'], 'agA1 B1.Main.iterK', [],
             fs=[L('aggregate_claims_loop0'), L('aggregate_claims_loop1'), L('aggregate_claims_loop2')], sk=[L('aggregate_claims_loop0'), L('aggregate_claims_loop1'), L('aggregate_claims_loop2')])])
     mod('DeployedC', 'The claim lists\', the children\'s loop\'s and `aggregate_claims`\' words.',
         'public import LeanVM.Guest.Count.DeployedA2\n', '\n' + body)
@@ -222,7 +219,7 @@ set_option maxRecDepth 100000 in
 theorem deployedBudget_instrs (Bvf : ℕ → ℕ → ℕ) (op : Opcode) :
     (Budget.deployedBudget Bvf).instrs op = deployedInstrs op := by
   simp only [Budget.deployedBudget, Budget.mainBudget, Budget.mainInstrs]
-  cases op <;> simp only [deployedInstrs, mainCounts, kcExp, kcSd, kcL1, kcL2, kcL3, kcL4, kcAggC, kcAggD, kcClA, kcClS, kcDvA, kcDvR, kcDvP, B2C.jtSets] <;> congr 1
+  cases op <;> simp only [deployedInstrs, mainCounts, kcExp, kcSd, kcL1, kcL2, kcL3, kcL4, kcAggC, kcAggD, kcClA, kcClS, kcDvA, kcDvR, kcDvP, Deployed.jtSets] <;> congr 1
 '''
     mod('Deployed', 'The numbers of the deployed budget: `deployedBudget_words`, `deployedBudget_instrs`.',
         'public import LeanVM.Guest.Count.DeployedB\npublic import LeanVM.Guest.Count.DeployedC\n', body)
@@ -236,9 +233,9 @@ FAST = '''/-
   LeanVM.Guest.Count.Fast
 
   Generated by `scripts/count/gen.py`; do not edit.
-  `B2C.fs`, `wSB` and `wSK` by the core index of the name (`wNameIdx`), equal to them
+  `Deployed.fs`, `wSB` and `wSK` by the core index of the name (`wNameIdx`), equal to them
   (`fsFast_eq`, `wSBFast_eq`, `wSKFast_eq`): the kernel evaluates a name's entry in a few steps
-  where `B2C.fs` and `wcertOf` compare it with the names before it.
+  where `Deployed.fs` and `wcertOf` compare it with the names before it.
 -/
 
 module
@@ -250,11 +247,11 @@ open LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest LeanVM.Guest.Data
 
 @[expose] public section
 
-/-- `B2C.fs`, by the tree where it has the name. -/
+/-- `Deployed.fs`, by the tree where it has the name. -/
 noncomputable def fsFast (f : String) : ℕ :=
   match wNameIdx f with
   | some j => womegaJ j
-  | none => B2C.fs f
+  | none => Deployed.fs f
 
 /-- `wSB`, by the tree where it has the name. -/
 noncomputable def wSBFast (f : String) : ℕ :=
@@ -268,7 +265,7 @@ noncomputable def wSKFast (f : String) : ℕ :=
   | some j => wSKJ j
   | none => wSK f
 
-theorem fsFast_eq : fsFast = B2C.fs := by
+theorem fsFast_eq : fsFast = Deployed.fs := by
   funext f
   unfold fsFast
   rcases h : wNameIdx f with _ | j

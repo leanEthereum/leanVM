@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.Count.VsWords
 
-  `verify_sub`'s callees' words at the deployed frame sizes (`VsWords B2C.fs`), from the words
+  `verify_sub`'s callees' words at the deployed frame sizes (`VsWords Deployed.fs`), from the words
   certificates (`wSB`, `wSK`), B1-d's terminal words (`TermWordsFs`) and B1-c's
   `shared_selector_tables` bound (`ss_totalLeOn`); `verify_tables`' and the terminal's callees'
   weights from the `W` count certificates (`kuSB`, `kuSK`), `ss_weightLeOn` and the ratios of
@@ -29,7 +29,7 @@ theorem vtPairs_names : B1.Tables.vtKidS.filter (fun g => g != (name% verify_tab
     vtPairs.map Prod.fst := by decide +kernel
 
 theorem vt_kids_totalLe : ∀ g ∈ B1.Tables.vtKidS, g ≠ (name% verify_tables_loop0) → g ≠ (name% shared_selector_tables_loop0) →
-    g ≠ "shared_selector_tables" → TotalLe coreProgram B2C.fs g (fun _ => wSB g) := by
+    g ≠ "shared_selector_tables" → TotalLe coreProgram Deployed.fs g (fun _ => wSB g) := by
   intro g hg h1 h3 h2
   have hm : g ∈ vtPairs.map Prod.fst := by
     rw [← vtPairs_names, List.mem_filter]
@@ -42,12 +42,12 @@ noncomputable def kSp : ℕ :=
   max (max (wSB "sel_partial_nibble__L0") (wSB "sel_partial_nibble__L1"))
     (max (wSB "sel_partial_nibble__L2") (wSB "sel_partial_nibble__L3"))
 
-theorem totalLe_mono {f : String} {B B' : ℕ} (h : TotalLe coreProgram B2C.fs f fun _ => B)
-    (hB : B ≤ B') : TotalLe coreProgram B2C.fs f fun _ => B' :=
+theorem totalLe_mono {f : String} {B B' : ℕ} (h : TotalLe coreProgram Deployed.fs f fun _ => B)
+    (hB : B ≤ B') : TotalLe coreProgram Deployed.fs f fun _ => B' :=
   fun rd t args rets hn hv hb => (h rd t args rets hn hv hb).trans hB
 
 theorem sp_totalLe : ∀ j < 4,
-    TotalLe coreProgram B2C.fs (B1.Tables.lName "sel_partial_nibble" j) (fun _ => kSp) := by
+    TotalLe coreProgram Deployed.fs (B1.Tables.lName "sel_partial_nibble" j) (fun _ => kSp) := by
   intro j hj
   interval_cases j
   · rw [show B1.Tables.lName "sel_partial_nibble" 0 = "sel_partial_nibble__L0" by decide]
@@ -65,7 +65,7 @@ noncomputable def kGr : ℕ :=
     (max (max (wSB "gkr_rounds__L2") (wSB "gkr_rounds__L4")) (wSB "gkr_rounds__L6"))
 
 theorem gr_totalLe : ∀ n ∈ [0, 1, 2, 4, 6],
-    TotalLe coreProgram B2C.fs (B1.Tables.lName "gkr_rounds" n) (fun _ => kGr) := by
+    TotalLe coreProgram Deployed.fs (B1.Tables.lName "gkr_rounds" n) (fun _ => kGr) := by
   intro n hn
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hn
   rcases hn with rfl | rfl | rfl | rfl | rfl
@@ -87,7 +87,7 @@ theorem vtPairs_okW (op : Opcode) : (vtPairs.all fun p => kuOkB op p.2 p.1) = tr
 
 theorem vt_kids_weightLe (op : Opcode) : ∀ g ∈ B1.Tables.vtKidS, g ≠ (name% verify_tables_loop0) → g ≠ (name% shared_selector_tables_loop0) →
     g ≠ "shared_selector_tables" →
-      WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op) g (fun _ => kuSB op g) := by
+      WeightLe coreProgram (Deployed.ωArm Deployed.xmssArmC op) g (fun _ => kuSB op g) := by
   intro g hg h1 h3 h2
   have hm : g ∈ vtPairs.map Prod.fst := by
     rw [← vtPairs_names, List.mem_filter]
@@ -110,7 +110,7 @@ theorem weightLe_mono {ω : String → ℕ} {f : String} {B B' : ℕ}
   fun rd t args rets hn hv hb => (h rd t args rets hn hv hb).trans hB
 
 set_option maxHeartbeats 800000 in
-theorem sp_weightLe (op : Opcode) : ∀ j < 4, WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op)
+theorem sp_weightLe (op : Opcode) : ∀ j < 4, WeightLe coreProgram (Deployed.ωArm Deployed.xmssArmC op)
     (B1.Tables.lName "sel_partial_nibble" j) (fun _ => kSpW op) := by
   intro j hj
   interval_cases j
@@ -131,7 +131,7 @@ theorem cs_okW (op : Opcode) : (List.range 31).all (fun κ =>
     kuOkB op (idx% column_selector__L0 + κ) (B1.Tables.lName "column_selector" κ)) = true := by
   cases op <;> decide +kernel
 
-theorem cs_weightLe (op : Opcode) : ∀ κ < 31, WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op)
+theorem cs_weightLe (op : Opcode) : ∀ κ < 31, WeightLe coreProgram (Deployed.ωArm Deployed.xmssArmC op)
     (B1.Tables.lName "column_selector" κ) (fun _ => kCsW op) := by
   intro κ hκ
   refine weightLe_mono (kuSB_weightLe (List.all_eq_true.mp (cs_okW op) κ (List.mem_range.mpr hκ))) ?_
@@ -144,27 +144,27 @@ theorem ratio_le {w A t B : ℕ} (h : 1000 * w ≤ A * t) (ht : t ≤ B) : w ≤
 /-- `verify_sub`'s statically bounded callees (`vsStaticS`), each found by `wIdx` and checked. -/
 theorem st_ok : (B1.VerifySub.vsStaticS.all fun g => wOkB (wIdx g) g) = true := by decide +kernel
 
-theorem st_totalLe : ∀ g ∈ B1.VerifySub.vsStaticS, TotalLe coreProgram B2C.fs g (fun _ => wSB g) :=
+theorem st_totalLe : ∀ g ∈ B1.VerifySub.vsStaticS, TotalLe coreProgram Deployed.fs g (fun _ => wSB g) :=
   fun g hg => wSB_totalLe (List.all_eq_true.mp st_ok g hg)
 
-/-- **`verify_sub`'s callees' words at `B2C.fs`.** -/
-noncomputable def vsWords : B1.VerifySub.VsWords B2C.fs where
+/-- **`verify_sub`'s callees' words at `Deployed.fs`.** -/
+noncomputable def vsWords : B1.VerifySub.VsWords Deployed.fs where
   Bg := wSB "g_power_of_word"
   hg := wSB_totalLe (j := wIdx "g_power_of_word") (by decide +kernel)
   Kst := wSB
   hst := st_totalLe
-  K29 := wSK (name% verify_bus_gkr_loop0_loop0) - B2C.fs (name% verify_bus_gkr_loop0_loop0)
+  K29 := wSK (name% verify_bus_gkr_loop0_loop0) - Deployed.fs (name% verify_bus_gkr_loop0_loop0)
   R := kGr
-  K8 := wSK (name% verify_bus_gkr_loop1) - B2C.fs (name% verify_bus_gkr_loop1)
+  K8 := wSK (name% verify_bus_gkr_loop1) - Deployed.fs (name% verify_bus_gkr_loop1)
   h29 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := idx% verify_bus_gkr_loop0_loop0) (by decide +kernel)
   hR := gr_totalLe
   h8 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := idx% verify_bus_gkr_loop1) (by decide +kernel)
   Kf := wSB
-  Ksh := B2C.fs "shared_selector_tables" +
-    (B2C.fs (name% shared_selector_tables_loop0) + 15 * (wSK (name% shared_selector_tables_loop0) - B2C.fs (name% shared_selector_tables_loop0))) + kSp
-  K10 := wSK (name% verify_tables_loop0) - B2C.fs (name% verify_tables_loop0)
+  Ksh := Deployed.fs "shared_selector_tables" +
+    (Deployed.fs (name% shared_selector_tables_loop0) + 15 * (wSK (name% shared_selector_tables_loop0) - Deployed.fs (name% shared_selector_tables_loop0))) + kSp
+  K10 := wSK (name% verify_tables_loop0) - Deployed.fs (name% verify_tables_loop0)
   hKf := vt_kids_totalLe
-  hsh := B1.Tables.ss_totalLeOn (wSK (name% shared_selector_tables_loop0) - B2C.fs (name% shared_selector_tables_loop0)) kSp
+  hsh := B1.Tables.ss_totalLeOn (wSK (name% shared_selector_tables_loop0) - Deployed.fs (name% shared_selector_tables_loop0)) kSp
     (by simpa only [wSKt_eq] using wSKt_totalLeOn (j := idx% shared_selector_tables_loop0) (by decide +kernel)) sp_totalLe
   h10 := by simpa only [wSKt_eq] using wSKt_totalLeOn (j := idx% verify_tables_loop0) (by decide +kernel)
   B14 := 3204
@@ -177,9 +177,9 @@ noncomputable def vsWords : B1.VerifySub.VsWords B2C.fs where
   hL15 := B1.VerifySub.l15_totalLeOn_fs
   hCsF := B1.VerifySub.cs_fs_le
   hrs := B1.VerifySub.rs_totalLeOn_fs
-  ωv := fun op => B2C.ωArm B2C.xmssArmC op
+  ωv := fun op => Deployed.ωArm Deployed.xmssArmC op
   Kvw := kuSB
-  Wss := fun op => B2C.ωArm B2C.xmssArmC op "shared_selector_tables" + 15 * kuSK op (name% shared_selector_tables_loop0) +
+  Wss := fun op => Deployed.ωArm Deployed.xmssArmC op "shared_selector_tables" + 15 * kuSK op (name% shared_selector_tables_loop0) +
     kSpW op
   Kw10 := fun op => kuSK op (name% verify_tables_loop0)
   hKvw := vt_kids_weightLe
@@ -187,10 +187,10 @@ noncomputable def vsWords : B1.VerifySub.VsWords B2C.fs where
     (loopW_of (kuSK_loop (j := idx% shared_selector_tables_loop0) (by cases op <;> decide +kernel))) (sp_weightLe op)
   h10w := fun op => loopW_of (kuSK_loop (j := idx% verify_tables_loop0) (by cases op <;> decide +kernel))
   Weqc := fun op => kuSB op "eq_prefix_chain"
-  W15 := fun op => krVl15A op * max (B2C.fs (name% check_opening_terminal_loop0)) (32 * 38) / 1000
+  W15 := fun op => krVl15A op * max (Deployed.fs (name% check_opening_terminal_loop0)) (32 * 38) / 1000
   Wst := fun op => kuSB op "selector_tables"
   Wcs := kCsW
-  Wrsw := fun op => krVrswA op * (B2C.fs "ring_switch_weight" + 2240 + 16433) / 1000
+  Wrsw := fun op => krVrswA op * (Deployed.fs "ring_switch_weight" + 2240 + 16433) / 1000
   hEqcW := fun op => kuSB_weightLe (j := wIdx "eq_prefix_chain") (by cases op <;> decide +kernel)
   hStW := fun op => kuSB_weightLe (j := wIdx "selector_tables") (by cases op <;> decide +kernel)
   hCsW := cs_weightLe
