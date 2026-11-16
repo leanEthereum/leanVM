@@ -27,11 +27,14 @@ Security's debt `endReads`, reduced to a decomposition of the winning runs (`Win
   databases with no empty cell whose view holds a log has weight at least `1 - readError` on the
   compressed databases whose view holds the log (`hw_sandwich` in the decompressed basis,
   `goodReg_mul_agreeReg_mul_goodReg`).
-* **The reduction** (`win_le_of_winDecomp`, `endReads_of_winDecomp`): the win weight is at most
-  the event weight plus the read error, given operators covering the win, one per run of the
-  final reads, recorded in the decompressed basis and in the event in the compressed basis.
+* **The reduction** (`win_le_of_winDecomp`, `endReads_of_winDecomp`): the win weight of a program
+  `x` is at most the event weight of an event-bound program `x₀` plus the read error, given
+  operators covering the win, one per run of the final reads, recorded in the decompressed basis
+  and in the event in the compressed basis, whose event weights are part of `x₀`'s. For the game,
+  `x₀` is the challenge prefix and the final reads are the verification's.
 
-Not here: the construction of `WinDecomp` for the canonical game on good tables (`TableGood`).
+Not here: the construction of `WinDecomp` for the canonical game on good tables (`TableGood`),
+along Template's `gameT_eq_prefixT_bind`.
 -/
 
 open OracleComp OracleSpec
@@ -1194,9 +1197,12 @@ is covered by operators `σ i` (one per run of the final reads, with its log `lo
 which, in the decompressed basis, has no empty cell and its view holds the log (the reads were
 decompressed-basis measurements returning the log), and, in the compressed basis, is supported
 on registers where a view holding the log is in `Bad`; their event weights are part of the event
-weight of the run. -/
+weight of the event-bound program `x₀`. For the game, `x = x₀ >>= verify` with `x₀` the challenge
+prefix: the final reads are the verification's, paid by the read error (`readsRecorded`), not by
+the event bound. -/
 structure WinDecomp (m₀ : Finset S × M)
     (x : QComp (recHwSpec X Z S M) (QReg.of Unit) (QReg.of Unit) Bool)
+    {α : Type} (x₀ : QComp (recHwSpec X Z S M) (QReg.of Unit) (QReg.of Unit) α)
     (Bad : Set (HwReg X Z (Finset S × M))) [DecidablePred (· ∈ Bad)] (lh lk lk' : ℕ) where
   /-- The runs of the final reads. -/
   ι : Type
@@ -1219,7 +1225,7 @@ structure WinDecomp (m₀ : Finset S × M)
     ∑' i, ENNReal.ofReal (σ i).trace.re
   event : ∑' i, ENNReal.ofReal
       (MatrixMap.conj ((1 : Matrix Unit Unit ℂ) ⊗ₖ hwProjector Bad) (σ i)).trace.re ≤
-    (runtimeR m₀).eventWeight .instruments (hwProjector Bad) x
+    (runtimeR m₀).eventWeight .instruments (hwProjector Bad) x₀
       ((SubState.basis ()).matrix ⊗ₖ (runtimeR (X := X) (Z := Z) m₀).init.matrix)
   mass : ∑' i, ENNReal.ofReal (σ i).trace.re ≤ 1
 
@@ -1261,14 +1267,15 @@ theorem trace_agree_le_trace_bad {M' : Type} [Fintype M'] [DecidableEq M']
     · simp [ha, hy ha]
     · by_cases hB : y.2 ∈ Bad <;> simp [ha, hB, hnn]
 
-/-- **The win weight is at most the event weight plus the read error**, given a decomposition of
-the winning runs along the final reads. -/
+/-- **The win weight is at most the event weight of `x₀` plus the read error**, given a
+decomposition of the winning runs of `x` along the final reads. -/
 theorem win_le_of_winDecomp {m₀ : Finset S × M}
     {x : QComp (recHwSpec X Z S M) (QReg.of Unit) (QReg.of Unit) Bool}
+    {α : Type} {x₀ : QComp (recHwSpec X Z S M) (QReg.of Unit) (QReg.of Unit) α}
     {Bad : Set (HwReg X Z (Finset S × M))} [DecidablePred (· ∈ Bad)] {lh lk lk' : ℕ}
-    (d : WinDecomp m₀ x Bad lh lk lk') :
+    (d : WinDecomp m₀ x x₀ Bad lh lk lk') :
     (runtimeR m₀).evalDistMap .instruments x (SubState.basis ()) winBit {true} ≤
-      (runtimeR m₀).eventWeight .instruments (hwProjector Bad) x
+      (runtimeR m₀).eventWeight .instruments (hwProjector Bad) x₀
           ((SubState.basis ()).matrix ⊗ₖ (runtimeR (X := X) (Z := Z) m₀).init.matrix) +
         ENNReal.ofReal (readError X Z lh lk lk') := by
   set err := readError X Z lh lk lk'
@@ -1306,15 +1313,17 @@ section endReads
 variable {S : Type} [Fintype S] [DecidableEq S] [DecidableEq Selections]
 
 /-- **`endReads` from a decomposition of the winning runs** (Security's debt, restated for any
-label type `S` and program `x`): the win weight in `runtimeR m₀` is at most the event weight of
-`BadRS L progCap` plus the read error of the verification's `verifyBlocks` reads of each function,
-given a `WinDecomp`. The `bad` field of the decomposition follows from `bad_of_winFacts`. -/
+label type `S`, game `x` and event-bound program `x₀`, canonically the challenge prefix): the win
+weight of `x` in `runtimeR m₀` is at most the event weight of `BadRS L progCap` at the end of `x₀`
+plus the read error of the verification's `verifyBlocks` reads of each function, given a
+`WinDecomp`. The `bad` field of the decomposition follows from `bad_of_winFacts`. -/
 theorem endReads_of_winDecomp (L : HonestTable) (m₀ : Finset S × Selections)
     (x : QComp (recHwSpec X Z S Selections) (QReg.of Unit) (QReg.of Unit) Bool)
+    {α : Type} (x₀ : QComp (recHwSpec X Z S Selections) (QReg.of Unit) (QReg.of Unit) α)
     [DecidablePred (· ∈ BadRS (S := S) L progCap)]
-    (d : WinDecomp m₀ x (BadRS L progCap) verifyBlocks verifyBlocks verifyBlocks) :
+    (d : WinDecomp m₀ x x₀ (BadRS L progCap) verifyBlocks verifyBlocks verifyBlocks) :
     (runtimeR m₀).evalDistMap .instruments x (SubState.basis ()) winBit {true} ≤
-      (runtimeR m₀).eventWeight .instruments (hwProjector (BadRS L progCap)) x
+      (runtimeR m₀).eventWeight .instruments (hwProjector (BadRS L progCap)) x₀
           ((SubState.basis ()).matrix ⊗ₖ (runtimeR (X := X) (Z := Z) m₀).init.matrix) +
         ENNReal.ofReal (readError X Z verifyBlocks verifyBlocks verifyBlocks) :=
   win_le_of_winDecomp d

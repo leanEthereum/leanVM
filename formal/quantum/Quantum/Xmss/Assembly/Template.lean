@@ -74,9 +74,14 @@ whose honest paths do not share these cells (`Quantum.Xmss.Assembly.Reparam`).
   the program ports of those slots' honest paths (`slotPorts`, three per block). `signT` signs the
   labels `botLabel r` and `topLabel r` (the bottom root revealed by the bottom signature). Every
   request reprograms its slots, also those already public.
-* `disc_gameT`: the game reveals before it programs. `viewBy_gameT`, `viewByOn_gameT`: the
-  lazy-sampling property of the realized games for `runtimeR` and the memory label, at every call,
-  for every initial state not depending on `v`.
+* `gameT_eq_prefixT_bind`: `gameT` is the challenge prefix `prefixT` (the root's reveal and the
+  challenged adversary, returning the public key, the forgery and the transcript) followed by
+  `verifyT` (the verification's reads and the winning condition): the event bound runs on the
+  prefix, the verification's reads are final reads (`isChargeBound_of_bind₂` bounds the prefix's
+  calls by the game's).
+* `disc_gameT`, `disc_prefixT`: the game and its prefix reveal before they program.
+  `viewBy_gameT`, `viewByOn_gameT`: the lazy-sampling property of the realized games for
+  `runtimeR` and the memory label, at every call, for every initial state not depending on `v`.
 
 Not here: that `realizeT (valueAt L) (gameT M upd (pubOf L) A)` is the runtime-2 game of the table
 `L`, the reparametrization's good set, and the record ports in runtime 1 (where they act alike) and
@@ -835,6 +840,34 @@ theorem viewBy_runtimeR_of_disc {L : LocalSig.{u, v}} (I : L.Interp) (m₀ : Fin
 
 end disc
 
+/-! ## Charge bounds of a prefix -/
+
+section prefixCharge
+
+/-- **A charge bound of a sequence bounds its first part**: every path of `x` is the start of a
+path of `x.bind k`. -/
+theorem isChargeBound_of_bind {L : LocalSig.{u, v}} {spec : QuantumOracleSpec.{0, 0}}
+    {Ω : QReg → Type w} {Ω' : QReg → Type w₁} {A : QReg} {x : QuantumComp L spec Ω A}
+    {k : ∀ u, Ω u → QuantumComp L spec Ω' u}
+    {c : (s : QReg) → (QuantumComp.toIPFunctor L spec).A s → ℕ} {n : ℕ}
+    (h : IPFunctor.IFreeM.IsChargeBound (x.bind k) c n) : IPFunctor.IFreeM.IsChargeBound x c n := by
+  induction x using IPFunctor.IFreeM.inductionOn generalizing n with
+  | pure _ _ => trivial
+  | liftBind _ _ _ ih => exact ⟨h.1, fun b ↦ ih b (h.2 b)⟩
+
+/-- `isChargeBound_of_bind` for programs with fixed final registers. -/
+theorem isChargeBound_of_bind₂ {L : LocalSig.{u, v}} {spec : QuantumOracleSpec.{0, 0}}
+    {A B C : QReg} {α : Type w} {β : Type w₁} {x : QuantumComp₂ L spec A B α}
+    {k : α → QuantumComp₂ L spec B C β}
+    {c : (s : QReg) → (QuantumComp.toIPFunctor L spec).A s → ℕ} {n : ℕ}
+    (h : IPFunctor.IFreeM.IsChargeBound (x.bind k) c n) :
+    IPFunctor.IFreeM.IsChargeBound x c n := by
+  induction x using IPFunctor.IFreeM.inductionOn generalizing n with
+  | pure _ _ => trivial
+  | liftBind _ _ _ ih => exact ⟨h.1, fun b ↦ ih b (h.2 b)⟩
+
+end prefixCharge
+
 /-! ## Calls of the template ports -/
 
 section calls
@@ -861,6 +894,14 @@ noncomputable def progThen {B C : QReg} {α : Type} (p : LazyProg X Z S D) (hp :
     (.inl (.inr ⟨p, hp⟩)) B (Equiv.uniqueProd B Unit).symm fun _ ↦
       (QComp.act (A := QReg.of ((tmplSpec X Z S D M good).Out (.inl (.inr ⟨p, hp⟩)) × B)) (B := B)
         (SubInstrument.relabel (Equiv.uniqueProd B Unit))).bind fun _ ↦ k
+
+omit [DecidableEq S] in
+/-- Sequencing after a reveal sequences its continuation. -/
+theorem revealThen_bind {B C E : QReg} {α β : Type} (T : Finset S)
+    (k : RevealVals D T × (Finset S × M) → QComp (tmplSpec X Z S D M good) B C α)
+    (f : α → QComp (tmplSpec X Z S D M good) C E β) :
+    (revealThen good T k).bind f = revealThen good T fun r ↦ (k r).bind f :=
+  rfl
 
 /-- A read port of runtime 2 with an inner memory `M`, on the memory `Finset S × M`: the label
 stays. -/
@@ -1327,6 +1368,30 @@ noncomputable def gameT (pub : Pub) (A : Adversary (X × Z)) :
         ⟨extendVals r₀.1 rootPos, pub.param⟩ run.1)).map Prod.fst)).bind fun verified ↦
         QuantumComp₂.pure (sufCmaScheme.winningCondition run.2 run.1 && verified)
 
+/-- **The challenge prefix of the game**: reveal the root and run the adversary on the public key
+against the challenger of runtime 2 with its signing transcript; return the public key, the
+forgery and the transcript. -/
+noncomputable def prefixT (pub : Pub) (A : Adversary (X × Z)) :
+    QComp (XSpec M) (QReg.of Unit) (QReg.of Unit) (PublicKey × (Forgery × SignLog)) :=
+  revealThen goodAll {.inl rootPos} fun r₀ ↦
+    (challengedT M upd pub (withSignLog (A ⟨extendVals r₀.1 rootPos, pub.param⟩))).bind fun run ↦
+      QuantumComp₂.pure (⟨extendVals r₀.1 rootPos, pub.param⟩, run)
+
+/-- **The verification of the game**: verify the forgery under the public key through read ports
+and return the winning condition. -/
+noncomputable def verifyT (pub : Pub) (x : PublicKey × (Forgery × SignLog)) :
+    QComp (XSpec M) (QReg.of Unit) (QReg.of Unit) Bool :=
+  (readLiftQ goodAll ((readsProgram M pub.perm _ (schemeWithHashFromSeed.verify x.1 x.2.1)).map
+    Prod.fst)).bind fun verified ↦
+    QuantumComp₂.pure (sufCmaScheme.winningCondition x.2.2 x.2.1 && verified)
+
+omit [Fintype M] [DecidableEq M] in
+/-- **The game is its challenge prefix, then the verification.** -/
+theorem gameT_eq_prefixT_bind (pub : Pub) (A : Adversary (X × Z)) :
+    gameT M upd pub A = (prefixT M upd pub A).bind (verifyT M pub) := by
+  simp only [gameT, prefixT, revealThen_bind, QuantumComp₂.bind_assoc, QuantumComp₂.pure_bind]
+  rfl
+
 /-! ### The game reveals before it programs -/
 
 omit [Fintype M] [DecidableEq M] in
@@ -1385,6 +1450,13 @@ theorem disc_gameT (pub : Pub) (A : Adversary (X × Z)) (T : Finset HPos) :
     Disc (gameT M upd pub A) T :=
   disc_revealThen _ _ T fun _ ↦ disc₂_bind _ _ (disc_substitute _ (disc_challengeT M upd pub) _ _)
     fun _ _ _ ↦ disc₂_bind _ _ (disc_readLift _ _) fun _ _ _ ↦ trivial
+
+omit [Fintype M] [DecidableEq M] in
+/-- The challenge prefix reveals before it programs. -/
+theorem disc_prefixT (pub : Pub) (A : Adversary (X × Z)) (T : Finset HPos) :
+    Disc (prefixT M upd pub A) T :=
+  disc_revealThen _ _ T fun _ ↦ disc₂_bind _ _ (disc_substitute _ (disc_challengeT M upd pub) _ _)
+    fun _ _ _ ↦ trivial
 
 /-- **The lazy-sampling property of the runtime-2 game.** For every initial state that does not
 depend on the hidden values, the realized games satisfy `ViewBy` for runtime 2 with record ports

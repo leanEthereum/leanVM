@@ -2,6 +2,7 @@ module
 
 public import Quantum.Xmss.Assembly.Masses
 public import Quantum.Xmss.Assembly.Costs
+public import Quantum.Xmss.Hybrid.Mismatch
 
 @[expose] public section
 
@@ -29,6 +30,8 @@ datum `pub` (nothing depends on how `pubP` is built).
 * **The read mass** (`readMass_eq_portMass`): the hidden sets are empty at the program and record
   ports, so `readMass` is `portMass` of the read and record ports (`readRecPort`); `hinv` holds
   there, not at the program ports (where `readMass`'s `Q = extCls` would ask it).
+* **The reads keep the label** (`keepsLab_gameT`, `keepsLab_prefixT`): Mismatch's `KeepsLab`,
+  per component as `Disc`.
 * **Charges by kind** (`tCharge`, `rCharge`: `a` per sponge call, `b` per read, `c` per program
   call, `d` per reveal or record): per component `isChargeBound_simulate` (`6a` per permutation
   call), `chg_readsProgram` (`3b` per block), `chg_grindR`, `chg_signLayerT` (`layerCalls`),
@@ -880,6 +883,65 @@ theorem hinv_gameT {P : Type} (pubP : P → Pub) {Q : (recHwSpec X Z HPos M).Por
   fun p v ↦ forallQueries_gameT upd hQ m₀ (pubP p) A v ρ hρ
 
 end hinv
+
+/-! ## The game's reads keep the label
+
+Mismatch's `KeepsLab` for the template game and its challenge prefix: every read is a lifted
+read of runtime 1 (`keepsLab_readLift`), the other ports impose nothing. -/
+
+section keepsLab
+
+variable {M : Type} (upd : TrialUpd M)
+
+theorem keepsLab_progPorts (B : QReg) (ps : List (LazyProg X Z HPos XD)) :
+    KeepsLab (progPorts M B ps) := by
+  induction ps with
+  | nil => trivial
+  | cons p ps ih => exact keepsLab_progThen p trivial _ ih
+
+theorem keepsLab_progSlots (pub : Pub) (B : QReg) (ss : List Slot) :
+    KeepsLab (progSlots M pub B ss) := by
+  induction ss with
+  | nil => trivial
+  | cons s ss ih => exact keepsLab₂_bind _ _ (keepsLab_progPorts B _) fun _ ↦ ih
+
+theorem keepsLab_signLayerT (pub : Pub) (B : QReg) (lab : RLabel) :
+    KeepsLab (signLayerT M upd pub B lab) := by
+  refine keepsLab_revealThen _ _ fun _ ↦ keepsLab₂_bind _ _ (keepsLab_readLift _) fun g ↦ ?_
+  rcases g with _ | ⟨ρ, x⟩
+  · trivial
+  · exact keepsLab_revealThen _ _ fun _ ↦ keepsLab₂_bind _ _ (keepsLab_progSlots pub B _)
+      fun _ ↦ trivial
+
+theorem keepsLab_signT (pub : Pub) (B : QReg) (r : SigningRequest) :
+    KeepsLab (signT M upd pub B r) := by
+  refine keepsLab₂_bind _ _ (keepsLab_signLayerT upd pub B _) fun b ↦ ?_
+  rcases b with _ | ⟨bottom, f⟩
+  · trivial
+  · refine keepsLab₂_bind _ _ (keepsLab_signLayerT upd pub B _) fun t ↦ ?_
+    rcases t with _ | ⟨top, _⟩ <;> trivial
+
+theorem keepsLab_challengeT (pub : Pub) (A : QReg)
+    (c : QuantumComp.Cmd LocalSig.instruments.{0} (advSpec (X × Z)) A) :
+    KeepsLab (challengeT M upd pub A c) := by
+  rcases c with o | ⟨p | r, E, ℓ⟩
+  · exact keepsLab_readLift _
+  · exact keepsLab_readLift _
+  · exact keepsLab_bind _ _ (keepsLab₂_bind _ _ (keepsLab_act _) fun _ ↦
+      keepsLab_signT upd pub _ r) fun _ _ ↦ trivial
+
+/-- **The game's reads keep the label** (Mismatch's `KeepsLab`). -/
+theorem keepsLab_gameT (pub : Pub) (A : Adversary (X × Z)) : KeepsLab (gameT M upd pub A) :=
+  keepsLab_revealThen _ _ fun _ ↦ keepsLab₂_bind _ _
+    (keepsLab_substitute _ (keepsLab_challengeT upd pub) _) fun _ ↦
+      keepsLab₂_bind _ _ (keepsLab_readLift _) fun _ ↦ trivial
+
+/-- The challenge prefix's reads keep the label. -/
+theorem keepsLab_prefixT (pub : Pub) (A : Adversary (X × Z)) : KeepsLab (prefixT M upd pub A) :=
+  keepsLab_revealThen _ _ fun _ ↦ keepsLab₂_bind _ _
+    (keepsLab_substitute _ (keepsLab_challengeT upd pub) _) fun _ ↦ trivial
+
+end keepsLab
 
 /-! ## The ports of the read mass
 
