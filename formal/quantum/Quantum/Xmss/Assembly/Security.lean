@@ -6,6 +6,7 @@ public import Quantum.Xmss.Assembly.ProgView
 public import Quantum.Xmss.Assembly.ProgSafe
 public import Quantum.Xmss.Assembly.EventSqrt
 public import Quantum.Xmss.Assembly.KeyLazy
+public import Quantum.Xmss.Assembly.KeysReparam
 public import Quantum.Xmss.Assembly.PrefixFacts
 public import Quantum.Xmss.Assembly.TrialsOff
 public import Quantum.Xmss.Assembly.CostJoint
@@ -59,7 +60,6 @@ challenge prefix `prefixR A L` followed by the verification (`gameR_eq`).
 | `htrial` | trials' hidden read mass per public datum (GradedMasked's form) | `trialTau q` | TrialSource |
 | `trialHit` | averaged trial-hit mass on `GoodL` | `trialCap = 2^-380` | TrialSource |
 | `pathsDisjoint` | fraction of tables without `HonestPathsDisjoint` | `disjCap = 2^-170` | open |
-| `keys` | KeyLazy's reparametrization with the keys as coordinates | bad `keyBadCap = 2^-170` | open |
 | `encJoint` | `cntPre ≤ encCapA q + encCapB q · massPre` on `GoodL` | | EncPotential |
 | `restMass` | averaged `massPre` on `GoodL` | `massCap q` | EncPotential |
 -/
@@ -263,44 +263,6 @@ def GoodL (L : HonestTable) : Prop :=
 noncomputable instance instDecidablePredGoodL : DecidablePred GoodL :=
   Classical.decPred _
 
-/-- **A reparametrization exposing the keys** (KeyLazy's hypotheses of `uavg_kTot_le`): the table,
-padded by `E`, is mapped by `e` to public data `Q`, the keys `(k, k')` and hidden data `V`,
-injectively on a good set `G`, with `|Q| |(X → Z)²| |V| ≤ |table| |E|`; on `G` the game at the
-table is `gameKK` at the public datum, the hidden data and the keys, with the table's `π`; the
-bad fraction of `G` is at most `keyBadCap`. -/
-structure KeysReparam (A : Adversary (X × Z)) where
-  /-- The pad. -/
-  E : Type
-  /-- The public data. -/
-  Q : Type
-  /-- The hidden data. -/
-  V : Type
-  [instFintypeE : Fintype E]
-  [instNonemptyE : Nonempty E]
-  [instFintypeQ : Fintype Q]
-  [instFintypeV : Fintype V]
-  /-- The reparametrization. -/
-  e : HonestTable × E → Q × (((X → Z) × (X → Z)) × V)
-  /-- The good set. -/
-  G : HonestTable × E → Prop
-  [instDecidablePredG : DecidablePred G]
-  hinj : Set.InjOn e {t | G t}
-  hcard : Fintype.card Q * Fintype.card (((X → Z) × (X → Z)) × V) ≤
-    Fintype.card (HonestTable × E)
-  /-- The public parameter of the public data. -/
-  par : Q → PublicParameter
-  /-- The permutation of the public data. -/
-  perm : Q → Equiv.Perm (X × Z)
-  /-- The `h` key of the public data. -/
-  hk : Q → Z → X
-  /-- The hidden values of the hidden data. -/
-  val : V → HPos → Digest
-  hgame : ∀ t, G t → gameR A t.1 = gameKK A (par (e t).1) (perm (e t).1) (hk (e t).1)
-    (val (e t).2.2) (e t).2.1.1 (e t).2.1.2
-  hπ : ∀ t, G t → perm (e t).1 = t.1.perm
-  hbad : (Fintype.card (HonestTable × E) : ℝ≥0∞)⁻¹ * (Finset.univ.filter fun t ↦ ¬G t).card ≤
-    (2 ^ 170 : ℝ≥0∞)⁻¹
-
 /-! ## The bound -/
 
 /-- The constant part of the joint count of the selecting reads: `2^22 (6q + progCap)`, the
@@ -322,7 +284,7 @@ prefix matches a given trial with probability `2^-128`, the trials of a key weig
 noncomputable def massCap (q : ℕ) : ℝ≥0∞ :=
   ((18 * q * 2 ^ 21 : ℕ) : ℝ≥0∞) * (2 ^ 128 : ℝ≥0∞)⁻¹
 
-/-- The bad fraction of the keys' reparametrization (`KeysReparam.hbad`): `2^-170`. -/
+/-- The bad fraction of the keys' reparametrization (`keyE_bad_le`): `2^-170`. -/
 noncomputable def keyBadCap : ℝ≥0∞ := (2 ^ 170 : ℝ≥0∞)⁻¹
 
 /-- **The programs** (ProgSafe, KeyLazy): `progCap (2^-301 + keyBadCap)`. -/
@@ -405,8 +367,6 @@ structure XmssQrpmDebts (q : ℕ) (A : Adversary (X × Z)) where
   trialHit : uavg (fun L ↦ if GoodL L then trialHitMass m0R A L else 0) ≤ trialCap
   /-- **Honest paths share no cell** except on a fraction `disjCap` of the tables. -/
   pathsDisjoint : uavg (fun L : HonestTable ↦ if HonestPathsDisjoint L then 0 else 1) ≤ disjCap
-  /-- **The keys as coordinates** (KeyLazy's `uavg_kTot_le`): the fresh `k`, `k'` program flips. -/
-  keys : KeysReparam A
   /-- **The cross-key potential** on the prefix: the joint count of the selecting reads is at
   most `encCapA q` plus `encCapB q` per unit of recorded mass. -/
   encJoint : ∀ L, GoodL L → cntPre A L ≤ (encCapA q : ℝ≥0∞) + (encCapB q : ℝ≥0∞) * massPre A L
@@ -419,8 +379,7 @@ end debts
 
 section proof
 
-attribute [local instance] badRDec KeysReparam.instFintypeE KeysReparam.instNonemptyE
-  KeysReparam.instFintypeQ KeysReparam.instFintypeV KeysReparam.instDecidablePredG
+attribute [local instance] badRDec
 
 /-- The permutations that are not `PermGood π 18` weigh at most `2^-777` among the tables. -/
 theorem uavg_not_permGood_le :
@@ -579,11 +538,10 @@ theorem encEpsPre_le (hq : q ≤ 2 ^ 64) (L : HonestTable) (hπ : PermGood L.per
   exact totalWeight_calls_le (prefixR A L) (clsCalls_prefixR hperm hsign L)
 
 /-- **The programs**, averaged over the good tables: ProgSafe's `uavg_progTot_le_kTot` with
-KeyLazy's `uavg_kTot_le` on the keys' reparametrization. -/
-theorem uavg_progPre_le (hq : q ≤ 2 ^ 64) (d : XmssQrpmDebts q A) :
+KeysReparam's `uavg_kTot_le_r0` (KeyLazy on ReparamR0's reparametrization, keys split off). -/
+theorem uavg_progPre_le (hq : q ≤ 2 ^ 64) :
     uavg (fun L ↦ if GoodL L then progPre A L else 0) ≤ progBound := by
-  have hk := uavg_kTot_le hperm hsign hq d.keys.e d.keys.G d.keys.hinj d.keys.hcard d.keys.par
-    d.keys.perm d.keys.hk d.keys.val d.keys.hgame d.keys.hπ
+  have hk := uavg_kTot_le_r0 hperm hsign hq
   refine (uavg_mono fun L ↦ ?_).trans ((uavg_progTot_le_kTot hk).trans ?_)
   · by_cases hg : GoodL L
     · rw [ite_eq_left hg, ite_eq_left hg.1.1]
@@ -591,8 +549,7 @@ theorem uavg_progPre_le (hq : q ≤ 2 ^ 64) (d : XmssQrpmDebts q A) :
     · rw [ite_eq_right hg]
       exact zero_le
   · unfold progBound keyBadCap
-    gcongr
-    exact d.keys.hbad
+    exact le_rfl
 
 /-- **The prefix's classical costs**, averaged over the good tables (CostJoint's
 `uavg_ite_cost_le`): at most `clsBound q`. -/
@@ -610,7 +567,7 @@ theorem uavg_twP_le (hq : q ≤ 2 ^ 64) (d : XmssQrpmDebts q A) :
           gcongr
           exact d.encJoint L hg
       _ = (encK * encCapA q + epsCap) + encK * encCapB q * massPre A L := by ring
-  exact uavg_ite_cost_le htw hE d.restMass (uavg_progPre_le hperm hsign hq d)
+  exact uavg_ite_cost_le htw hE d.restMass (uavg_progPre_le hperm hsign hq)
 
 /-- **Runtime 2's win at a good table** (PrefixFacts' `endReads_wGame_trialHit`, EventSqrt's
 `ewR_le_sqrt`). -/
