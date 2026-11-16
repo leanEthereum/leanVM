@@ -31,12 +31,13 @@ most `3 * keygenBlocks`, `3 * signBlocks`, `3 * verifyBlocks` reads
 **The cap.** In the hardwired runtime only the program ports change the hardwired cells, each by
 one cell, so after `K` program calls every reachable state has `dbGrade W ≤ dbGrade W₀ + K`
 (`dbGrade_le_of_programs`). Runtime 2 programs the three cells (`k`, `k'`, `h`) of every block of
-the honest input of every slot made public by the signatures (`slotCells`: `3` for a chain step
-or a node, `24` for a leaf). The public slots of the disclosures of `reqs` lie in the slots of the
-two keys of each request (`public_disclosures_subset`): all their chain steps, their leaves and the
-`16` nodes on their paths, `1188` cells per request (`sum_slotCells_le_of_subset_public`). With at
-most `2^32` requests from `W₀ = ∅`, every reachable state has `dbGrade W ≤ progCap = 1188 · 2^32`
-(`dbGrade_le_progCap`).
+the honest input of each slot a signature makes public (`slotCells`: `3` for a chain step or a
+node, `24` for a leaf), repeats included. These slots lie in the slots of the request's two keys
+(`keySlots`: all chain steps, the leaf and the `16` nodes on the path; `public_disclosures_subset`),
+so a request makes at most `1188` program calls (`sum_slotCells_le_of_subset_keySlots`,
+`sum_slotCells_le_of_subset_public`). With at most `2^32` requests from `W₀ = ∅`, every reachable
+state has `dbGrade W ≤ progCap = 1188 · 2^32` (`dbGrade_le_progCap`; with further ports that keep
+the hardwired cells, such as record ports, `dbGrade_le_progCap_extend`).
 -/
 
 open OracleComp OracleSpec Matrix IPFunctor
@@ -886,6 +887,12 @@ theorem sum_slotCells_keySlots_le (l : Layer) (e : KeyIndex) :
       (Finset.sum_image_le_of_nonneg fun _ _ ↦ Nat.zero_le _) _))).trans ?_
   simp [slotCells, Finset.card_univ, chainCount, chainLength, winternitzBits, layerHeight]
 
+/-- **Program calls of one layer's signature**: programming the cells of any slots of the key
+(repeats included) takes at most `594` calls, so a request takes at most `reqCells`. -/
+theorem sum_slotCells_le_of_subset_keySlots {l : Layer} {e : KeyIndex} {F : Finset Slot}
+    (hF : F ⊆ keySlots l e) : ∑ s ∈ F, slotCells s ≤ 594 :=
+  (Finset.sum_le_sum_of_subset hF).trans (sum_slotCells_keySlots_le l e)
+
 /-- The cells of one request: `1188`, `594` per layer. -/
 def reqCells : ℕ := 1188
 
@@ -923,6 +930,78 @@ theorem dbGrade_le_progCap {X₁ Z₁ : Type} [Fintype X₁] [DecidableEq X₁] 
           (Database.empty, Database.empty, Database.empty) m₀).init.matrix)) :=
   (Sponge.dbGrade_le_of_programs _ m₀ I hx ρ p).mono (Set.Iic_subset_Iic.2 (by
     simp [Sponge.dbGrade, Database.size_empty, hK]))
+
+section extend
+
+variable {X₁ Z₁ : Type} [Fintype X₁] [DecidableEq X₁] [Fintype Z₁] [DecidableEq Z₁]
+  {M : Type} [Fintype M] [DecidableEq M] {P P' : Type} [Fintype P] [DecidableEq P] [Fintype P']
+  [DecidableEq P']
+
+omit [DecidableEq M] [DecidableEq P] [Fintype P'] [DecidableEq P'] in
+/-- An operator whose nonzero entries keep the hardwired cells keeps the grade of the hardwired
+cells (for example a classical port that only updates the memory). -/
+theorem querySupportedOn_conj_of_hw_eq {K : Matrix (P' × Sponge.HwReg X₁ Z₁ M)
+      (P × Sponge.HwReg X₁ Z₁ M) ℂ}
+    (hK : ∀ a a' s s', K (a', s') (a, s) ≠ 0 → s'.2.1 = s.2.1) {n : ℕ}
+    {σ : Matrix (P × Sponge.HwReg X₁ Z₁ M) (P × Sponge.HwReg X₁ Z₁ M) ℂ}
+    (hσ : QuerySupportedOn (fun q : P × Sponge.HwReg X₁ Z₁ M ↦ Sponge.dbGrade q.2.2.1)
+      (Set.Iic n) σ) :
+    QuerySupportedOn (fun q : P' × Sponge.HwReg X₁ Z₁ M ↦ Sponge.dbGrade q.2.2.1) (Set.Iic n)
+      (MatrixMap.conj K σ) :=
+  QuerySupportedOn.conj hσ fun q' q hk hq ↦ by
+    rw [Set.mem_Iic] at hq ⊢
+    rw [hK q.1 q'.1 q.2 q'.2 hk]
+    exact hq
+
+variable [AddCommGroup X₁] [AddCommGroup Z₁] [Nonempty X₁] [Nonempty Z₁]
+
+variable (X₁ Z₁ M) in
+/-- The program charge on runtime 2 extended by further ports `t`: one per program call, the
+other ports (sponge, read, and the extension's) free. -/
+def extProgCharge (t : QuantumOracleSpec.{0, 0}) : ((Sponge.hwSpec X₁ Z₁ M).sum t).Port → ℕ
+  | .inl i => Sponge.progCharge X₁ Z₁ M i
+  | .inr _ => 0
+
+variable {L : LocalSig.{uL, vL}} {W : QReg → Type w} {A : QReg}
+
+/-- **The cap for runtime 2 extended by ports keeping the hardwired cells** (such as record
+ports): a program making at most `K ≤ progCap` program calls on every path ends, on every branch,
+supported on `dbGrade W ≤ progCap`. -/
+theorem dbGrade_le_progCap_extend {t : QuantumOracleSpec.{0, 0}} (m₀ : M)
+    (step' : ∀ j : t.Port, SubInstrument (t.In j × (Hybrid.runtime2 X₁ Z₁ m₀).D)
+      (t.Out j × (Hybrid.runtime2 X₁ Z₁ m₀).D) (t.Result j))
+    (hstep' : ∀ j r n (σ : Matrix (t.In j × (Hybrid.runtime2 X₁ Z₁ m₀).D)
+        (t.In j × (Hybrid.runtime2 X₁ Z₁ m₀).D) ℂ),
+      QuerySupportedOn (fun q : t.In j × (Hybrid.runtime2 X₁ Z₁ m₀).D ↦ Sponge.dbGrade q.2.2.1)
+        (Set.Iic n) σ →
+      QuerySupportedOn (fun q : t.Out j × (Hybrid.runtime2 X₁ Z₁ m₀).D ↦ Sponge.dbGrade q.2.2.1)
+        (Set.Iic n) ((step' j).branch r σ))
+    (I : L.Interp) {x : QuantumComp L ((Sponge.hwSpec X₁ Z₁ M).sum t) W A} {K : ℕ}
+    (hx : IFreeM.IsChargeBound x (Sponge.portCharge (extProgCharge X₁ Z₁ M t)) K)
+    (hK : K ≤ progCap) (ρ : SubState A) (p : Σ u, W u) :
+    QuerySupportedOn (fun s : p.1 × Sponge.HwReg X₁ Z₁ M ↦ Sponge.dbGrade s.2.2.1)
+      (Set.Iic progCap)
+      ((((Hybrid.runtime2 X₁ Z₁ m₀).extend step').run I x).branch p
+        (ρ.matrix ⊗ₖ (Hybrid.runtime2 X₁ Z₁ m₀).init.matrix)) := by
+  have hgrade : QuerySupportedOn (fun m : A × Sponge.HwReg X₁ Z₁ M ↦ Sponge.dbGrade m.2.2.1)
+      (Set.Iic 0) (ρ.matrix ⊗ₖ (Hybrid.runtime2 X₁ Z₁ m₀).init.matrix) := by
+    intro m m' hm
+    change (ρ.matrix ⊗ₖ (SubState.basis (((Database.empty, Database.empty, Database.empty),
+      Sponge.hwEmpty X₁ Z₁, m₀) : Sponge.HwReg X₁ Z₁ M)).matrix) m m' ≠ 0 at hm
+    rw [SubState.matrix_basis, kroneckerMap_apply] at hm
+    have h := right_ne_zero_of_mul hm
+    rw [Matrix.single_apply] at h
+    split_ifs at h with he
+    · constructor <;> simp [← he.1, ← he.2, Sponge.hwEmpty, Sponge.dbGrade, Database.size_empty]
+    · exact False.elim (h rfl)
+  refine (QuerySupportedOn.run_of_charge_step ((Hybrid.runtime2 X₁ Z₁ m₀).extend step')
+    (fun s : Sponge.HwReg X₁ Z₁ M ↦ Sponge.dbGrade s.2.1) (extProgCharge X₁ Z₁ M t)
+    (fun i r n σ hσ ↦ ?_) I hx hgrade p).mono (Set.Iic_subset_Iic.2 (by omega))
+  rcases i with i | j
+  · exact Sponge.querySupportedOn_hw_step (Sponge.hwEmpty X₁ Z₁) m₀ i r n σ hσ
+  · exact hstep' j r n σ hσ
+
+end extend
 
 end Quantum.Xmss
 
