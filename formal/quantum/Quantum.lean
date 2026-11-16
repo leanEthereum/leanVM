@@ -52,6 +52,7 @@ import Quantum.Xmss.Assembly.MassesR0
 import Quantum.Xmss.Assembly.ProgView
 import Quantum.Xmss.Assembly.WinDecomp
 import Quantum.Sponge.Oracle.Hardwired.ReadCost
+import Quantum.Xmss.Assembly.GameCongr
 import Quantum.Xmss.Hybrid.SchemeSplit
 import Quantum.Xmss.Hybrid.CoinStage
 import Quantum.Xmss.Hybrid.R0Stage
