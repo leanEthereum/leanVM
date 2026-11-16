@@ -15,8 +15,7 @@ Run from `lean_vm`.
   (`Statement/Data/`, `LeanVM.Guest.guestProgram`): the compiled functions against
   `Data.functions`, value for value (`Assembled.toFunctions`), and every slot of the program, the
   padding included (`instructionAtPc`). It fails on any difference and names the first. It
-  also evaluates the back end's invariants (`Backend.invariants`) and compares the traced
-  expansion's core functions with `Expand.expandProgram`'s.
+  also evaluates the back end's invariants (`Backend.invariants`).
 * `lake exe guest-backend functions [N]` is the comparison with every function resolved at the
   statement's layout, so that each function is compared on its own: the count of identical
   functions and instructions when the programs differ, and the first `N` that differ.
@@ -53,7 +52,7 @@ def reference : Reference :=
 /-! ## The comparison -/
 
 def guestCore : IO (List TracedFn) :=
-  match ExpandTrace.expandProgram Data.guest with
+  match Expand.expandProgramTraced Data.guest with
   | .ok P => pure P
   | .error e => throw (IO.userError s!"expansion failed: {e}")
 
@@ -104,13 +103,10 @@ def report (ref : Reference) (ours : Assembled) (limit : Nat) : IO Bool := do
   if bad.size > limit then IO.println s!"  … and {bad.size - limit} more"
   return bad.isEmpty && ours.code.size == ref.code.size && ours.size == 2 ^ ref.logSize
 
-/-- The checks that need no reference: the traced expansion against `Expand`, and the back
-end's invariants. -/
+/-- The checks that need no reference: the back end's invariants. -/
 def selfChecks (name : String) (p : Source.Program) : IO Bool := do
-  let traced ← orThrow (ExpandTrace.expandProgram p)
-  let core ← orThrow (Expand.expandProgram p)
+  let traced ← orThrow (Expand.expandProgramTraced p)
   let checks ← orThrow (invariants traced)
-  let checks := ("the traced expansion's core functions are Expand's", sameCore traced core) :: checks
   for (what, ok) in checks do
     unless ok do IO.println s!"{name}: FAILED: {what}"
   return checks.all (·.2)
@@ -132,7 +128,7 @@ def firstDifference (ours : Assembled) : Option Nat :=
 def check : IO UInt32 := do
   let ref := reference
   let sound ← selfChecks "guest" Data.guest
-  if sound then IO.println "the traced expansion is Expand's, and the back end's invariants hold"
+  if sound then IO.println "the back end's invariants hold"
   let ours ← orThrow (Backend.compile Data.guest)
   let same ← report ref ours 20
   let sized := ours.size == 2 ^ Data.logSize && ours.code.size == Data.codeLen && sameFunctions ours

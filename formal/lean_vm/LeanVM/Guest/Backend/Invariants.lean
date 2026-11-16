@@ -26,8 +26,6 @@ states for every program what the check finds of one.
 * **Assembly** (`laidOut`, `Layout.Consecutive`): the functions lie one after another from pc
   `0`, as `LeanVM.Guest.consecutive` asks of `Statement/Data/`, and the code fits the padded size
   with the halting slot left.
-* **The front end** (`sameCore`, `TraceFaithful`): the traced expansion's core functions are
-  `Expand.expandProgram`'s.
 -/
 
 namespace LeanVM.Guest.Backend
@@ -126,10 +124,6 @@ def invariants (p : List TracedFn) : Except String (List (String × Bool)) := do
     ("every cell is in its frame", withTabs.all Lowered.withinFrame),
     ("every jump table slot is filled once", tablesFilled lowered tables.len fills tables.entries),
     ("the functions are laid out one after another", a.laidOut)]
-
-/-- Whether two expansions give the same core functions. -/
-def sameCore (traced : List TracedFn) (core : Core.Program) : Bool :=
-  traced.map (·.core) == core
 
 /-- Every compiled program passes every check. -/
 def InvariantsHold : Prop :=
