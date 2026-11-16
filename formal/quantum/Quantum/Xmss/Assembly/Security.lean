@@ -1,6 +1,7 @@
 module
 
-public import Quantum.Xmss.Assembly.FullTable
+public import Quantum.Xmss.Assembly.ReparamR0
+public import Quantum.Xmss.Assembly.WinDecomp
 public import Quantum.Xmss.Assembly.Runtime1
 public import Quantum.Xmss.Assembly.Costs
 public import Quantum.Xmss.Assembly.GameTCalls
@@ -40,12 +41,13 @@ verification (`gameR_eq`, Template's `gameT_eq_prefixT_bind`).
    with its program calls (record ports dropped) against Kraus's runtime 1.
 3. **Record ports** (`p1K_eq_p1R`: `dropRec_gameT`, `evalDistMap_runtime1R_eq`, RecordDrop): the
    canonical game against runtime 1 with record ports (`runtime1R`) is `gameD` against runtime 1.
-4. **The graded hybrid** (`uavg_win_runtime1R_le_graded_total`, Graded; debts `covers`,
-   `hybSponge`, `hybRead`, with `advCalls_gameR`): `runtime1R` against `runtimeR` on the canonical
-   game, paying `√(4 · 6q · μ)` for the hidden mass `μ ≤ 6q κ` at the sponge ports (`κ = kappaS`) and
-   `√ν` for the hidden mass `ν ≤ clsCap κ_read` at the read ports (`κ_read = kappaR`). The Disclose
-   part for the 128-bit `k`-cells is `uavg_hiddenK_digest_le` (from `viewByOn_gameT`, for
-   `runtimeR`).
+4. **The graded hybrid** (`uavg_win_runtime1R_le_graded_total`, Graded; debts `covers`, `hybRead`,
+   with `advCalls_gameR` and `hybSponge_le`): `runtime1R` against `runtimeR` on the canonical game,
+   with the hidden sets `coverH`, `coverK`, `coverK'` (the honest, seed and randomizer-base paths'
+   cells, MassesR0), paying `√(4 · 6q · μ)` for the hidden mass `μ ≤ 6q κ` at the sponge ports
+   (`κ = kappaS`; ReparamR0's `uavg_spongeMass_le_r0E`, every hypothesis discharged) and `√ν` for
+   the hidden mass `ν ≤ clsCap κ_read` at the read ports (`κ_read = kappaR`). The Disclose part for
+   the 128-bit `k`-cells is `uavg_hiddenK_digest_le` (from `viewByOn_gameT`, for `runtimeR`).
 5. **End** (debt `endReads`, with `dbGrade_le_progCap_extend` and `progCalls_gameR`): the
    verification's reads are the final reads; with the classification (`win_imp_bad`) they put a win
    of `gameR A` in the event `BadR L progCap` (Events' `Bad` on the selections) at the end of the
@@ -163,13 +165,9 @@ end avg
 
 section game
 
-/-- The memory of the runtimes: the template's label and Events' selections. -/
+/-- The memory of the runtimes: the template's label and Events' selections (its decidable
+equality is WinDecomp's `winMemDecEq`). -/
 abbrev Mem : Type := Finset HPos × Selections
-
-/- Instance search for `Mem` exceeds the default size: found once here, the same term the search
-would build, for every consumer of `Mem`. -/
-set_option synthInstance.maxSize 1000 in
-instance memDecEq : DecidableEq Mem := inferInstance
 
 /-- No selection recorded. -/
 def m0 : Selections := fun _ _ ↦ none
@@ -467,10 +465,11 @@ noncomputable def permTerm : ℝ≥0∞ := ENNReal.ofReal (1 / 2 ^ 777)
 noncomputable def eventTerm (q : ℕ) : ℝ≥0∞ :=
   (advTerm q + clsBound q ^ (2⁻¹ : ℝ)) ^ 2 + readTerm + permTerm
 
-/-- The target per sponge call of the hidden mass at the sponge ports: `2^-128 + 2^-200` (a 128-bit
-honest value, plus the capacity-scale and seed-hiding terms). -/
+/-- The target per sponge call of the hidden mass at the sponge ports: `2^-128 + 2^-172` (a 128-bit
+honest value; the seed, randomizer-base and mismatch terms `2^-469 + 2^-219 + 2^-190` and the bad
+tables' `2^-174`, ReparamR0's `uavg_spongeMass_le_r0E`). -/
 noncomputable def kappaS : ℝ≥0∞ :=
-  (2 ^ 128 : ℝ≥0∞)⁻¹ + (2 ^ 200 : ℝ≥0∞)⁻¹
+  (2 ^ 128 : ℝ≥0∞)⁻¹ + (2 ^ 172 : ℝ≥0∞)⁻¹
 
 /-- The target per classical call of the hidden mass at the read ports: `2^-300` (to be justified
 by Disclose at the read ports). -/
@@ -487,6 +486,17 @@ noncomputable def hybTerm (q : ℕ) : ℝ≥0∞ :=
 noncomputable def qrpmBound (q : ℕ) : ℝ≥0∞ :=
   (eventTerm q ^ (2⁻¹ : ℝ) + hybTerm q) ^ 2
 
+/-! ## The hidden sets -/
+
+/-- The hidden `h`-cells: the honest paths', the seed paths' and the randomizer-base paths'. -/
+def coverH (L : HonestTable) : Set Z := pathH L ∪ seedH L ∪ r0H L
+
+/-- The hidden `k`-cells: the honest paths', the seed paths' and the randomizer-base paths'. -/
+def coverK (L : HonestTable) : Set X := pathK L ∪ seedK L ∪ r0K L
+
+/-- The hidden `k'`-cells: the honest paths', the seed paths' and the randomizer-base paths'. -/
+def coverK' (L : HonestTable) : Set X := pathK' L ∪ seedK' L ∪ r0K' L
+
 /-! ## The debts -/
 
 section debts
@@ -495,29 +505,24 @@ attribute [local instance] badRDec
 
 /-- **The open debts of the leanXMSS QRPM proof**, for an adversary `A` making at most `q`
 permutation calls and at most `lifetime` signing requests (needed for `q ≤ 2^64` only: above,
-`qrpmBound q ≥ 1`). Data: the hidden sets `H` (honest values and the seed-keyed cells) and the
-residual read flip terms `verifEps`. The event-bound program is the canonical game `gameR A`; the
+`qrpmBound q ≥ 1`). Data: the residual read flip terms `verifEps`. The hidden sets are
+`coverH`, `coverK`, `coverK'` (MassesR0's families); the sponge-port hybrid mass is a theorem
+(`hybSponge_le`, ReparamR0). The event-bound program is the canonical game `gameR A`; the
 classical costs (`encJoint`, `restMass`, `readEps`, `verifEpsBound`, `callsW`, `progRest`) are
 along it. Runtime 1's table is FullTable's `fullHw` (`tableLe_fullHw`, `winProb_eq_uavg_full`);
 the call counts are theorems from the budgets (`advCalls_gameR`, `clsCalls_gameR`,
 `progCalls_gameR`, GameTCalls). -/
 structure XmssQrpmDebts (q : ℕ) (A : Adversary (X × Z)) where
-  Hh : HonestTable → Set Z
-  Hk : HonestTable → Set X
-  Hk' : HonestTable → Set X
   /-- The flip terms of the game's reads that are not `ReadOk` (the verification's `h`-reads),
   summed along the run: CostRun's `totalWeight (epsRestWt L) (gameR A L) initR`. -/
   verifEps : HonestTable → ℝ≥0∞
-  /-- **Template/Reparam**: the hidden sets cover runtime 1's table (the seed-keyed cells inside). -/
-  covers : ∀ L, Covers (fullHw L) (Hh L) (Hk L) (Hk' L)
-  /-- **The graded hybrid, sponge ports** (Disclose with `viewByOn_gameT`, Seed, CoinStage,
-  CoinPath): the hidden mass at the sponge ports, summed over the calls, averaged over the table. -/
-  hybSponge : uavg (fun L ↦ (runtimeR m0R).totalWeight .instruments
-    (spongeMass (Hh L) (Hk L) (Hk' L)) (gameR A L) initR) ≤ ((6 * q : ℕ) : ℝ≥0∞) * kappaS
+  /-- **Covers** (open; MassesR0's `covers_r0`): every cell of runtime 1's table (a read of the
+  full honest computation) is an honest path's, a seed path's or a randomizer-base path's. -/
+  covers : ∀ L, Covers (fullHw L) (coverH L) (coverK L) (coverK' L)
   /-- **The graded hybrid, read ports** (Disclose at the read ports): the hidden mass at the read
   ports, summed over the calls, averaged over the table. -/
   hybRead : uavg (fun L ↦ (runtimeR m0R).totalWeight .instruments
-    (readMass (Hh L) (Hk L) (Hk' L)) (gameR A L) initR) ≤ (clsCap : ℝ≥0∞) * kappaR
+    (readMass (coverH L) (coverK L) (coverK' L)) (gameR A L) initR) ≤ (clsCap : ℝ≥0∞) * kappaR
   /-- **End** (EndReads' `endReads_of_winDecomp` with `x := gameR A L`): on runs whose final
   hardwired cells are at most `progCap`, the verification's reads (the final reads) and the
   classification `win_imp_bad` bound the win of the game by the event `BadR L progCap` at the end
@@ -627,12 +632,50 @@ theorem progCalls_gameR (L : HonestTable) :
     IPFunctor.IFreeM.IsChargeBound (gameR A L) (progChargeR HPos Selections) progCap :=
   hN_prog cwUpd A hperm hsign (pubOf L) (valueAt L)
 
+omit hperm hsign in
+open scoped ComplexOrder in
+theorem initR_posSemidef : initR.PosSemidef :=
+  ((SubState.basis ()).prod (runtimeR (X := X) (Z := Z) m0R).init).posSemidef
+
+omit hperm hsign in
+set_option exponentiation.threshold 1024 in
+/-- ReparamR0's constants per sponge call, with the bad tables' fraction: at most `kappaS`
+(`2^-469 + 2^-219 + 2^-190 + 2^-174 ≤ 2^-172`). -/
+theorem spongeRest_le :
+    seedEps 18 + (r0Eps 18 + (((2 * lifetime : ℕ) : ℝ≥0∞) *
+        ((Fintype.card RLabel : ℝ≥0∞) / Fintype.card Z) + ENNReal.ofReal (1 / 2 ^ 174))) ≤
+      (2 ^ 172 : ℝ≥0∞)⁻¹ := by
+  have h172 : ENNReal.ofReal (1 / 2 ^ 172) = (2 ^ 172 : ℝ≥0∞)⁻¹ := by
+    rw [one_div, ENNReal.ofReal_inv_of_pos (by positivity), ENNReal.ofReal_pow (by norm_num)]
+    norm_num
+  refine (add_le_ofReal (by positivity) (by positivity) seedEps_le_keccak
+    (add_le_ofReal (by positivity) (by positivity) r0Eps_le_keccak
+      (add_le_ofReal (by positivity) (by positivity) revTerm_le_keccak le_rfl))).trans ?_
+  rw [← h172]
+  exact ENNReal.ofReal_le_ofReal (by norm_num)
+
+/-- **The graded hybrid, sponge ports** (ReparamR0's `uavg_spongeMass_le_r0E`): the hidden mass at
+the sponge ports, summed over the calls, averaged over the table, is at most `6q · kappaS`. -/
+theorem hybSponge_le :
+    uavg (fun L ↦ (runtimeR m0R).totalWeight .instruments
+      (spongeMass (coverH L) (coverK L) (coverK' L)) (gameR A L) initR) ≤
+        ((6 * q : ℕ) : ℝ≥0∞) * kappaS := by
+  have hρ1 : ENNReal.ofReal initR.trace.re ≤ 1 := ENNReal.ofReal_le_one.mpr
+    ((SubState.basis ()).prod (runtimeR (X := X) (Z := Z) m0R).init).trace_re_le_one
+  refine (uavg_spongeMass_le_r0E cwUpd A hperm hsign m0R initR initR_posSemidef hρ1
+    (querySupportedOn_initR m0R _)).trans ?_
+  rw [← mul_add]
+  refine mul_le_mul_of_nonneg_left ?_ zero_le
+  unfold kappaS
+  simp only [add_assoc]
+  exact add_le_add le_rfl spongeRest_le
+
 /-- **The graded hybrid with record ports**, averaged over the table. -/
 theorem uavg_p1R_le (d : XmssQrpmDebts q A) :
     uavg (p1R A fullHw) ≤ (uavg (p2R (gameR A)) ^ (2⁻¹ : ℝ) + hybTerm q) ^ 2 := by
-  refine (uavg_win_runtime1R_le_graded_total .instruments fullHw d.Hh d.Hk d.Hk' d.covers m0R
-    (gameR A) (fun _ ↦ SubState.basis ()) (fun _ ↦ winObs) (measurableSet_singleton true) (6 * q)
-    (advCalls_gameR hperm hsign) _ _ d.hybSponge d.hybRead).trans_eq ?_
+  refine (uavg_win_runtime1R_le_graded_total .instruments fullHw coverH coverK coverK' d.covers
+    m0R (gameR A) (fun _ ↦ SubState.basis ()) (fun _ ↦ winObs) (measurableSet_singleton true)
+    (6 * q) (advCalls_gameR hperm hsign) _ _ (hybSponge_le hperm hsign) d.hybRead).trans_eq ?_
   rw [hybTerm, add_assoc]
   rfl
 
@@ -680,11 +723,6 @@ theorem ewR_le (L : HonestTable) (hπ : PermGood L.perm 18) :
       (fun _ ↦ conjTranspose_zero) (fun _ ↦ mul_zero 0) c σ hσ)
     .instruments (gameR A L) (advCalls_gameR hperm hsign L) (clsCalls_gameR hperm hsign L)
     (SubState.basis ())
-
-omit hperm hsign in
-open scoped ComplexOrder in
-theorem initR_posSemidef : initR.PosSemidef :=
-  ((SubState.basis ()).prod (runtimeR (X := X) (Z := Z) m0R).init).posSemidef
 
 omit hperm hsign in
 /-- **The classical costs** at a table: `(√encEpsTot + √massTot)² + progTot` (CostLift's per-port
