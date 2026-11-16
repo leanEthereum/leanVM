@@ -802,3 +802,26 @@ fn malformed_raw_signatures_are_errors() {
         );
     }
 }
+
+/// The guest as the back end written in Lean compiles it (`formal/lean_vm/LeanVM/Guest/Backend`) is the guest this
+/// crate compiles: the same bytecode, hints, `main` frame and function ranges, and so the same Fiat-Shamir IV. The
+/// Lean compiler's output is too large to check in: `formal/lean_vm/scripts/backend-diff` writes it
+/// (`lake exe guest-backend export guest`) and runs this test on it.
+#[test]
+#[ignore = "needs LEAN_BACKEND_GUEST, the file `lake exe guest-backend export guest` wrote"]
+fn lean_backend_guest() {
+    let path = std::env::var("LEAN_BACKEND_GUEST").expect("LEAN_BACKEND_GUEST names the Lean compiler's output");
+    let lean = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{path}: {e}"));
+    let rust = unified_guest().__to_text();
+    if let Some((line, (ours, theirs))) = rust.lines().zip(lean.lines()).enumerate().find(|(_, (a, b))| a != b) {
+        panic!("line {}: this crate compiles `{ours}`, Lean `{theirs}`", line + 1);
+    }
+    assert_eq!(rust.lines().count(), lean.lines().count());
+    // What Lean compiled, loaded, is the guest: the IV hashes every instruction.
+    let loaded = Program::__from_text(&lean).unwrap();
+    assert_eq!(loaded.__to_text(), rust);
+    assert_eq!(
+        loaded.bytecode().fiat_shamir_iv(),
+        unified_guest().bytecode().fiat_shamir_iv()
+    );
+}

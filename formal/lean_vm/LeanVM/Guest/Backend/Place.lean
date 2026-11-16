@@ -1,0 +1,981 @@
+/-
+  LeanVM.Guest.Backend.Place
+
+  Cell placement: a core function to its placed function, every value in the frame cell the Rust
+  lowering gives it (`crates/zkdsl_compiler/src/lower.rs`, `lower/*.rs`).
+-/
+
+module
+
+public import LeanVM.Guest.Backend.Ir
+public import LeanVM.Guest.Backend.Trace
+public import LeanVM.Guest.Word
+public import LeanVM.Guest.Backend.Map
+public import LeanVM.Guest.Backend.Pow
+
+/-!
+# Placement
+
+`placeFn` walks a core function once, with its allocation trace (`Trace`), as `lower_func` walks
+the source, and keeps what the lowering keeps: the next free cell (`next`, a bump allocator that
+a `match` rewinds for each arm), the place of every value made so far (`locs`), the pools of the
+current scope (`Scope`: constants, pure results, loads, shifted pointers, the frame's own
+pointer), which revert at the end of a branch or an arm, the hints waiting for the next
+instruction, and the jump tables' length.
+
+**The walk.** The trace lists what the expansion did in order, so the two are read together: a
+core statement is its `emit` event, a branch or an arm the events from its `enter` to its `leave`.
+Before each statement and at the end of each block, `flush` takes the cells of the values made
+since (`Event.alloc`), in the trace's order: a `Kind.cell` value takes the next free cells now.
+Then the statement takes the cells of its own plumbing (a pooled `1`, a callee's frame pointer and
+entry, a jump target), which are in no trace because they are no value.
+
+**Pools.** A `Kind.pooled` value is the result of the statement that follows it, and the lowering
+asks a pool first: `const` (`const_cell`), `add` and `mul` (`pure`), `load` (`load_cells`). On a
+hit the value is placed in the pooled cell and nothing is emitted; on a miss it takes the next
+free cell, the instruction is emitted and the pool learns it. A statement whose result has its
+cells already writes them and asks no pool (`expr_into`, a store, `xor_byte`).
+
+**Addresses.** An `addr` pointer is held in no cell (`Loc.shifted`): a `DEREF` through it folds
+its offset into the immediate, and it becomes a product only where it is used as a value
+(`Event.use`, `Event.shift`; `materialize`).
+
+Invariants a placement is meant to maintain, the statements a correctness proof starts from (none
+is proved here):
+
+* `locs` only grows, and a value's place never changes;
+* a cell below `next` is never given to two `Kind.cell` values of one path of the control flow
+  (the arms of a `match` share cells, one arm running);
+* two values share a cell only through a pool, whose entry was written by an instruction that
+  runs before the reuse on every path, the scope reverting at each join: so they hold one word;
+* `(placeFn …).frameSize` is past every cell the placed statements name.
+
+Placement fails, rather than guess, when the trace and the core function part (`expect`) or a
+statement names a value the trace gave no cell (`cellAt`).
+-/
+
+namespace LeanVM.Guest.Backend
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
+
+@[expose] public section
+
+/-- Where a value is. -/
+inductive Loc where
+  | cell (n : Cell)
+  /-- In no cell: the word of cell `n` times `g^exp`. An `addr` pointer is the frame pointer's
+  cell shifted by its run's offset (`stack_addr`). -/
+  | shifted (n : Cell) (exp : Nat)
+  deriving Inhabited
+
+/-- A pool keyed by a pair. -/
+abbrev Pool := PMap Cell
+
+/-- What a branch may not have run (`Scope`, without the name bindings). -/
+structure Scope where
+  /-- Constants by their limbs (`const_cells`). -/
+  consts : Pool := {}
+  /-- `XOR`s by their sorted operands (`pure_cells`). -/
+  xors : Pool := {}
+  /-- `MUL`s by their sorted operands (`pure_cells`). -/
+  muls : Pool := {}
+  /-- Loads by pointer cell and offset (`load_cells`). -/
+  loads : Pool := {}
+  /-- Shifted pointers by base cell: `(exp, cell)` (`mat_cells`). -/
+  mats : NMap (List (Nat × Cell)) := {}
+  /-- The cell holding this frame's pointer (`self_fp_off`). -/
+  selfFp : Option Cell := none
+  deriving Inhabited
+
+/-- A `mul_range` helper, as the lowering's `loop_bounds` holds it. -/
+structure LoopInfo where
+  /-- Its frames are reserved in one run. -/
+  registered : Bool
+  /-- The exponent of a constant exit bound. -/
+  hi : Option Nat
+  deriving Inhabited
+
+/-- The program's loop helpers. -/
+abbrev Loops := SMap LoopInfo
+
+/-- Whether a function is a loop helper, by the compiler's name for it: it starts with `__loop`,
+compared byte by byte (`String.startsWith` is no definition the kernel unfolds in a module). -/
+def isLoopName (f : String) : Bool :=
+  f.toByteArray.data.toList.take 6 == "__loop".toByteArray.data.toList
+
+/-- The program's loop helpers (`loop_bounds`). -/
+def loopTable (fns : List TracedFn) : Loops :=
+  fns.foldl (init := {}) fun table tf =>
+    if isLoopName tf.core.name then
+      let (registered, hi) := tf.loop
+      table.insert tf.core.name ⟨registered, hi⟩
+    else table
+
+/-- The function being placed. -/
+structure Ctx where
+  name : String
+  isMain : Bool
+  /-- Its argument cells (`Abi::arg_cells`). -/
+  argCells : Nat
+  /-- Its return cells. -/
+  retCells : Nat
+  loops : Loops
+  /-- The argument and return cells of every function of the program. -/
+  sigs : SMap (Nat × Nat)
+  /-- The length of its trace: the most events one `flush` passes. -/
+  fuel : Nat
+
+/-- The jump tables' state, threaded through the program (`JumpTables`). -/
+structure Tables where
+  /-- The slots given out so far. -/
+  len : Nat := 0
+  /-- The table of each dispatched call's callees (`shared`), the last made first. -/
+  shared : List (List String × Nat) := []
+  deriving Inhabited
+
+/-- The slots of the shared tables, `(slot, callee)`, in the order the tables were made. -/
+def Tables.entries (t : Tables) : Array (Nat × String) :=
+  (t.shared.reverse.flatMap fun (cs, first) => cs.zipIdx.map fun (c, j) => (first + j, c)).toArray
+
+/-- The placement state. -/
+structure St where
+  next : Cell
+  locs : VMap Loc := {}
+  scope : Scope := {}
+  pending : Array LHint := #[]
+  out : Rev PStmt := {}
+  tables : Tables
+  /-- The trace from the event the walk is at. -/
+  rest : List Event := []
+  /-- The value the next statement makes, a pool asked first or an `addr` pointer. -/
+  lazy : Option (V × Kind) := none
+  /-- The values wanted in a cell by the next statement (`Event.use`). -/
+  used : List V := []
+  /-- The pointer and shift of the next `addr` value (`Event.shift`). -/
+  shift : Option (V × Nat) := none
+  /-- The next `match` chains into the one after it (`Event.chain`). -/
+  chain : Bool := false
+  /-- The offset of the next `hint_windows_exponent` (`Event.note`). -/
+  note : Nat := 0
+  /-- Set for a `match` the previous one's arms dispatch into: its table and the join cell. -/
+  chainIn : Option (Nat × Cell) := none
+  /-- The padding run being set. -/
+  padRun : Option (List V) := none
+  /-- The message run read in place, whose copies are dropped. -/
+  aliasRun : Option (List V) := none
+  /-- The constant of each value a `SET` made. -/
+  constOf : VMap (Nat × Nat) := {}
+
+/-- The placement monad. -/
+abbrev P := ReaderT Ctx (StateT St (Except String))
+
+/-- A placement error, naming the function. -/
+def failP {α : Type} (msg : String) : P α := do
+  throw s!"in {(← read).name}: {msg}"
+
+/-! ## Cells -/
+
+/-- The next cell (`fresh`). -/
+def fresh : P Cell :=
+  modifyGet fun s => (s.next, { s with next := s.next + 1 })
+
+/-- Queue a hint for the next instruction. -/
+def pushHint (h : LHint) : P Unit :=
+  modify fun s => { s with pending := s.pending.push h }
+
+/-- The hints waiting, for the instruction about to be emitted. -/
+def takeHints : P (List LHint) :=
+  modifyGet fun s => (s.pending.toList, { s with pending := #[] })
+
+/-- Emit a placed statement. -/
+def push (s : PStmt) : P Unit :=
+  modify fun st => { st with out := st.out.push s }
+
+/-- Emit one instruction, with the hints waiting (`emit`). -/
+def emitOp (o : LOp) : P Unit := do
+  let hints ← takeHints
+  push (.op hints o)
+
+/-- Give a value its place. A value is placed once: its place never changes. -/
+def bindTo (v : V) (l : Loc) : P Unit := do
+  if (← get).locs.contains v then failP "a value placed twice"
+  modify fun s => { s with locs := s.locs.insert v l }
+
+/-- Place the values of a run in the cells from `base`. -/
+def bindRun (vs : List V) (base : Cell) : P Unit :=
+  vs.zipIdx.forM fun (v, k) => bindTo v (.cell (base + k))
+
+/-- Place a run in the next free cells (`alloc_stack`). -/
+def takeRun (vs : List V) : P Unit := do
+  let base := (← get).next
+  bindRun vs base
+  modify fun s => { s with next := base + vs.length }
+
+/-- The cell of a value held in one. -/
+def cellAt (v : V) : P Cell := do
+  match (← get).locs[v]? with
+  | some (.cell n) => pure n
+  | _ => failP "a value with no cell"
+
+/-- Whether the statement being placed makes this value (`Kind.pooled`, `Kind.addr`). -/
+def isLazy (v : V) (kind : Kind) : P Bool :=
+  return (← get).lazy == some (v, kind)
+
+/-! ## Pools -/
+
+/-- The sorted pair of a commutative operation's operands. -/
+def sorted (a b : Cell) : Nat × Nat := (min a b, max a b)
+
+/-- Whether the cells are the consecutive ones from `base`. -/
+def consecutiveFrom (base : Cell) (cs : List Cell) : Bool :=
+  cs.zipIdx.all fun (c, k) => c == base + k
+
+/-- A cell holding the constant of these limbs (`const_cell`). -/
+def constCell (k : Nat × Nat) : P Cell := do
+  match (← get).scope.consts.get? k with
+  | some o => pure o
+  | none =>
+      let o ← fresh
+      emitOp (.set o (.const k.1 k.2))
+      modify fun s => { s with scope.consts := s.scope.consts.insert k o }
+      pure o
+
+/-- A cell holding `1` (`one`). -/
+def oneCell : P Cell := constCell (1, 0)
+
+/-- A cell holding `0` (`zero`). -/
+def zeroCell : P Cell := constCell (0, 0)
+
+/-- The cell holding `a · b` (`pure`). -/
+def mulCell (a b : Cell) : P Cell := do
+  match (← get).scope.muls.get? (sorted a b) with
+  | some o => pure o
+  | none =>
+      let o ← fresh
+      emitOp (.mul a b o)
+      modify fun s => { s with scope.muls := s.scope.muls.insert (sorted a b) o }
+      pure o
+
+/-- A `DEREF` of a cell: it is a load the scope remembers (`deref`). -/
+def emitDeref (ptr : Cell) (off : Nat) (dst : Cell) : P Unit := do
+  emitOp (.deref ptr off dst .cell)
+  modify fun s => { s with scope.loads := s.scope.loads.insertIfNew (ptr, off) dst }
+
+/-- A cell holding this frame's pointer (`self_fp`): in `main` the cell holding `1`; else read
+back from a one-cell buffer the pointer is stored to. -/
+def selfFp : P Cell := do
+  if (← read).isMain then return ← oneCell
+  match (← get).scope.selfFp with
+  | some o => pure o
+  | none =>
+      let q ← fresh
+      pushHint (.resolved (.alloc q 1))
+      emitOp (.deref q 0 0 .fp)
+      let o ← fresh
+      emitOp (.deref q 0 o .cell)
+      modify fun s => { s with scope.selfFp := some o }
+      pure o
+
+/-- Whether cell `n` is the one the scope reads this frame's pointer from (`selfFp`). -/
+def isSelfFp (n : Cell) : P Bool := do
+  if (← read).isMain then return (← get).scope.consts.get? (1, 0) == some n
+  return (← get).scope.selfFp == some n
+
+/-- The limbs of `g^e`. -/
+def gpowLimbs (e : Nat) : Nat × Nat := (gpowBits e, 0)
+
+/-- The β-immediate cap (`FOLD_MAX`). -/
+def foldMaxExp : Nat := 2 ^ 16
+
+/-- The nearest shifted pointer below `exp` whose distance to it is a constant already set: none
+if `g^exp` itself is set. -/
+def matPick (sc : Scope) (c : Cell) (exp : Nat) (mats : List (Nat × Cell)) : Option (Nat × Cell) :=
+  if sc.consts.contains (gpowLimbs exp) then none
+  else ((0, c) :: mats).foldl (init := none) fun best x =>
+    if x.1 < exp && sc.consts.contains (gpowLimbs (exp - x.1)) && best.all (·.1 ≤ x.1) then some x
+    else best
+
+/-- The cell a shifted pointer is made from and the shift still to apply: the pointer `c` and
+`exp`, or the nearest product below, among `mats`, whose distance is a constant already set. -/
+def matStart (sc : Scope) (c : Cell) (exp : Nat) (mats : List (Nat × Cell)) : Cell × Nat :=
+  match matPick sc c exp mats with
+  | some (e, src) => (src, exp - e)
+  | none => (c, exp)
+
+/-- A cell holding `c · g^exp` for the pointer in cell `c` (`materialize`): `c` itself, a
+product made before, or a product from `c` or the nearest shifted pointer below whose distance is
+a constant already set. -/
+def materialize (c : Cell) (exp : Nat) : P Cell := do
+  if exp = 0 then return c
+  if 2 ^ 128 ≤ exp then failP "a shift past the compiler's exponents"
+  let sc := (← get).scope
+  let mats := (sc.mats.get? c).getD []
+  if let some (_, o) := mats.find? (·.1 == exp) then return o
+  let (src, dist) := matStart sc c exp mats
+  let k ← constCell (gpowLimbs dist)
+  let o ← mulCell src k
+  modify fun s => { s with scope.mats := s.scope.mats.insert c (mats ++ [(exp, o)]) }
+  pure o
+
+/-- The cell of a value an instruction reads: an address is the product made of it. -/
+def cellOf (v : V) : P Cell := do
+  match (← get).locs[v]? with
+  | some (.cell n) => pure n
+  | some (.shifted n exp) => materialize n exp
+  | none => failP "a value with no place"
+
+/-- A value as a factor: a cell and the shift still to apply, an address not wanted in a cell
+keeping its shift for the `DEREF` that reads through the product (`heap_addr`). -/
+def factor (v : V) : P (Cell × Nat) := do
+  let st ← get
+  match st.locs[v]? with
+  | some (.shifted n exp) => if st.used.contains v then return (← materialize n exp, 0) else return (n, exp)
+  | _ => return (← cellOf v, 0)
+
+/-- The pointer cell and offset of a `DEREF` through `p · g^off`: an address folds its shift into
+the immediate (`heap_base`). -/
+def pointer (p : V) (off : Nat) : P (Cell × Nat) := do
+  let (n, exp) ← factor p
+  if exp != 0 && foldMaxExp < exp + off then failP "a frame address past the largest DEREF immediate"
+  return (n, exp + off)
+
+/-- The cell of a result the lowering takes from a pool: the pooled cell under `find`, or the
+next free cell, which `mk` writes and `learn` records. -/
+def pooledCell (find : Scope → Option Cell) (learn : Cell → Scope → Scope) (mk : Cell → LOp) :
+    P Cell := do
+  match find (← get).scope with
+  | some o => pure o
+  | none =>
+      let o ← fresh
+      emitOp (mk o)
+      modify fun s => { s with scope := learn o s.scope }
+      pure o
+
+/-- Place a value this statement makes from a pool. -/
+def pooled (d : V) (find : Scope → Option Cell) (learn : Cell → Scope → Scope) (mk : Cell → LOp) :
+    P Unit := do
+  bindTo d (.cell (← pooledCell find learn mk))
+
+/-! ## The trace -/
+
+/-- The event the walk is at. -/
+def peek : P (Option Event) := do
+  return (← get).rest.head?
+
+/-- Pass the event the walk is at. -/
+def advance : P Unit :=
+  modify fun s => { s with rest := s.rest.tail }
+
+/-- Four message cells already in consecutive frame cells are read in place (`sponge_run`): the
+next statements copy them into the run `vs`, cell by cell. -/
+def spongeInPlace (vs : List V) (upcoming : List Stmt) : P (Option Cell) := do
+  let st ← get
+  let srcs := (upcoming.take vs.length).zipIdx.filterMap fun
+    | (.atom (.copy d s), k) =>
+        if vs[k]? == some d then
+          match st.locs[s]? with
+          | some (.cell n) => some n
+          | _ => none
+        else none
+    | _ => none
+  match srcs with
+  | [] => return none
+  | base :: _ =>
+      return if vs.length != 0 && srcs.length == vs.length &&
+          srcs.zipIdx.all (fun (n, k) => n == base + k)
+        then some base else none
+
+/-- A value is made (`Event.alloc`). -/
+def onAlloc (vs : List V) (kind : Kind) (upcoming : List Stmt) : P Unit := do
+  match kind with
+  | .cell => takeRun vs
+  | .pooled | .addr => modify fun s => { s with lazy := vs.head?.map (·, kind) }
+  | .site => pure ()
+  | .ret => bindRun vs (2 + (← read).argCells)
+  | .padRun =>
+      takeRun vs
+      modify fun s => { s with padRun := some vs }
+  | .spongeRun =>
+      match ← spongeInPlace vs upcoming with
+      | some base =>
+          bindRun vs base
+          modify fun s => { s with aliasRun := some vs }
+      | none => takeRun vs
+
+/-- Take the cells of the values made before the next statement or the end of the block; at most
+`fuel` events. `upcoming` are the statements from the next one on. -/
+def flushN (upcoming : List Stmt) : Nat → P Unit
+  | 0 => pure ()
+  | fuel + 1 => do
+      match ← peek with
+      | some (.alloc vs kind) =>
+          advance
+          onAlloc vs kind upcoming
+          flushN upcoming fuel
+      | some (.use v) =>
+          advance
+          if let some (.shifted n exp) := (← get).locs[v]? then discard <| materialize n exp
+          modify fun s => { s with used := v :: s.used }
+          flushN upcoming fuel
+      | some (.shift v exp) =>
+          advance
+          modify fun s => { s with shift := some (v, exp) }
+          flushN upcoming fuel
+      | some .chain =>
+          advance
+          modify fun s => { s with chain := true }
+          flushN upcoming fuel
+      | some (.note n) =>
+          advance
+          modify fun s => { s with note := n }
+          flushN upcoming fuel
+      | _ => pure ()
+
+/-- `flushN`, to the next statement or block. -/
+def flush (upcoming : List Stmt) : P Unit := do
+  flushN upcoming (← read).fuel
+
+/-- Pass the event `e`, which the walk must be at. -/
+def expect (e : Event → Bool) (what : String) : P Unit := do
+  match ← peek with
+  | some ev => if e ev then advance else failP s!"the trace is not at {what}"
+  | none => failP s!"the trace ends before {what}"
+
+def isEmit : Event → Bool
+  | .emit => true
+  | _ => false
+
+def isEnter : Event → Bool
+  | .enter => true
+  | _ => false
+
+def isLeave : Event → Bool
+  | .leave => true
+  | _ => false
+
+/-- A statement begins: the values made before it, then its own `emit`. -/
+def beginStmt (upcoming : List Stmt) : P Unit := do
+  flush upcoming
+  expect isEmit "a statement"
+
+/-- A statement ends. -/
+def endStmt : P Unit :=
+  modify fun s => { s with lazy := none, used := [], shift := none }
+
+/-! ## Atoms -/
+
+/-- A hint's destination as the cells it names. -/
+def destBits : Dest → P BitsDest
+  | .stack cells => do
+      match cells.head? with
+      | some c => return .stack (← cellAt c)
+      | none => failP "a hint with no destination"
+  | .heap p _ _ => return .heap (← cellOf p)
+
+/-- A hint (`RHint`), queued for the next instruction. -/
+def placeHint : Hint → P Unit
+  | .witness s (.stack cells) => do
+      match cells.head? with
+      | some c => pushHint (.resolved (.witnessStack s (← cellAt c) cells.length))
+      | none => failP "a witness with no destination"
+  | .witness s (.heap p off len) => do
+      let (ptr, lo) ← pointer p off
+      pushHint (.resolved (.witnessHeap s ptr lo len))
+  | .bits value start nbits dest => do
+      if start != 0 then failP "hint_decompose_bits from a later bit has no runtime hint"
+      let b ← destBits dest
+      pushHint (.resolved (.bitDecompose (← cellOf value) b nbits))
+  | .bitsExp value nbits dest => do
+      let b ← destBits dest
+      pushHint (.resolved (.bitDecomposeExp (← cellOf value) b nbits))
+  | .digitsExp value nbits ndigits digitBits start startCell dest => do
+      let b ← destBits dest
+      let v ← cellOf value
+      let sc ← startCell.mapM cellOf
+      pushHint (.resolved (.digitDecomposeExp v b nbits ndigits digitBits start sc))
+  | .windowsExp value start width count dest => do
+      -- The expansion folded the hint's `at` into `dest`: the trace's note gives it back.
+      let skip := (← get).note
+      let b ← match dest with
+        | .stack cells =>
+            match cells.head? with
+            | some c => pure (BitsDest.stack ((← cellAt c) - skip))
+            | none => failP "a hint with no destination"
+        | .heap p _ _ => pure (BitsDest.heap (← cellOf p))
+      pushHint (.resolved (.windowsExp (← cellOf value) b skip start width count))
+  | .limbs value dest => do
+      let v ← cellOf value
+      match dest.head? with
+      | some c => pushHint (.resolved (.fieldLimbs v (← cellAt c) dest.length))
+      | none => failP "a hint with no destination"
+  | .log2Ceil bits nbits floor dst => do
+      let b ← destBits bits
+      pushHint (.resolved (.log2Ceil b (← cellAt dst) nbits floor))
+  | .inverse x dst => do
+      let lx ← cellOf x
+      pushHint (.resolved (.inverse lx (← cellAt dst)))
+  | .alloc d size => do
+      pushHint (.resolved (.alloc (← cellAt d) size))
+  | .allocDyn d size => do
+      let ls ← cellOf size
+      pushHint (.resolved (.allocDyn (← cellAt d) ls))
+
+/-- An atom. -/
+def placeAtom (a : Atom) : P Unit := do
+  match a with
+  | .const d c =>
+      let k := limbsOf c
+      modify fun s => { s with constOf := s.constOf.insert d k }
+      if ← isLazy d .pooled then
+        pooled d (·.consts.get? k) (fun o sc => { sc with consts := sc.consts.insert k o })
+          (fun o => .set o (.const k.1 k.2))
+      else
+        let o ← cellAt d
+        emitOp (.set o (.const k.1 k.2))
+        -- The padding run's cells are pooled constants too (`keccak_pad_run`).
+        if (← get).padRun.any (·.contains d) then
+          modify fun s => { s with scope.consts := s.scope.consts.insertIfNew k o }
+  | .add d a b =>
+      let la ← cellOf a
+      let lb ← cellOf b
+      if ← isLazy d .pooled then
+        pooled d (·.xors.get? (sorted la lb))
+          (fun o sc => { sc with xors := sc.xors.insert (sorted la lb) o })
+          (fun o => .xor la lb o)
+      else
+        emitOp (.xor la lb (← cellAt d))
+  | .mul d a b =>
+      if ← isLazy d .pooled then
+        let (la, ea) ← factor a
+        let (lb, eb) ← factor b
+        let o ← pooledCell (·.muls.get? (sorted la lb))
+          (fun o sc => { sc with muls := sc.muls.insert (sorted la lb) o })
+          (fun o => .mul la lb o)
+        bindTo d (if ea + eb == 0 then .cell o else .shifted o (ea + eb))
+      else
+        -- A store, or a division `d = a · b` whose quotient `a` is the fresh cell.
+        let la ← cellOf a
+        let lb ← cellOf b
+        emitOp (.mul la lb (← cellAt d))
+  | .copy d s =>
+      let ls ← cellOf s
+      if (← get).aliasRun.any (·.contains d) then
+        -- The copy is dropped: both values are one cell.
+        if (← cellAt d) != ls then failP "a dropped copy between two cells"
+        return
+      let one ← oneCell
+      emitOp (.mul ls one (← cellAt d))
+  | .load d p off =>
+      if ← isLazy d .pooled then
+        let (ptr, o2) ← pointer p off
+        pooled d (·.loads.get? (ptr, o2))
+          (fun o sc => { sc with loads := sc.loads.insertIfNew (ptr, o2) o })
+          (fun o => .deref ptr o2 o .cell)
+      else
+        -- A read into a cell given, or a store of the value `d`.
+        let o ← cellOf d
+        let (ptr, o2) ← pointer p off
+        emitDeref ptr o2 o
+  | .assertEq a b =>
+      let la ← cellOf a
+      let lb ← cellOf b
+      let one ← oneCell
+      emitOp (.mul la one lb)
+  | .assertNe x inv p =>
+      let lx ← cellOf x
+      let li ← cellOf inv
+      let lp ← cellAt p
+      emitOp (.mul lx li lp)
+      emitOp (.set lp (.const 1 0))
+  | .rangeCheck x y t1 t2 k =>
+      let lk ← cellOf k
+      let lx ← cellOf x
+      let ly ← cellAt y
+      emitDeref lx 0 (← cellAt t1)
+      emitOp (.mul lx ly lk)
+      emitDeref ly 0 (← cellAt t2)
+  | .assertInK a b =>
+      let la ← cellOf a
+      let lb ← cellOf b
+      let zeroAt ← zeroCell
+      emitOp (.jump zeroAt la lb)
+  | .keccak ins outs inOdd outOdd =>
+      let cs ← ins.mapM cellOf
+      let los ← outs.mapM cellAt
+      let some out := los.head? | failP "a KECCAK with no output"
+      let c := fun (i : Nat) => cs.getD i 0
+      -- The instruction reads the runs from `tail` and `cap` and writes the run from `out`.
+      if !(cs.length == 13 && consecutiveFrom (c 4) ((cs.drop 4).take 4) &&
+          consecutiveFrom (c 9) ((cs.drop 9).take 4) && consecutiveFrom out los &&
+          (los.length == 1 || los.length == 2 || los.length == 13)) then
+        failP "a KECCAK whose cells are not its runs"
+      let outCells : KeccakOutputCells :=
+        if los.length == 1 then .one else if los.length == 2 then .two else .all
+      emitOp (.keccak (c 0) (c 1) (c 2) (c 3) (c 4) (c 8) (c 9) out inOdd outOdd outCells)
+  | .frameAddr p run =>
+      if ← isLazy p .addr then
+        -- `addr(run)`: the address stays symbolic (`stack_addr`).
+        let some r0 := run.head? | failP "addr of no cell"
+        let base ← cellAt r0
+        if !consecutiveFrom base (← run.mapM cellAt) then failP "addr of cells that are no run"
+        bindTo p (.shifted (← selfFp) base)
+      else
+        -- An `addr` pointer shifted, as a value (`materialize`).
+        match (← get).shift with
+        | some (c, exp) =>
+            match (← get).locs[c]? with
+            | some (.shifted n e) =>
+                if !(← isSelfFp n) then failP "a shifted pointer that is no frame address"
+                if !consecutiveFrom (e + exp) (← run.mapM cellAt) then
+                  failP "addr of cells that are no run"
+                bindTo p (.cell (← materialize n (e + exp)))
+            | _ => failP "a shifted pointer that is no address"
+        | none => failP "an address with no pointer"
+  | .hint h => placeHint h
+  | .touch t p =>
+      let lp ← cellOf p
+      emitDeref lp 0 (← cellAt t)
+
+/-! ## Statements -/
+
+/-- Run `m` on the block the walk is at, into a block of its own with a scope of its own
+(`scoped`): the pools revert after it, and a hint still waiting at its end gets an anchor. -/
+def inBlock (m : P Unit) : P (List PStmt) := do
+  expect isEnter "a block"
+  let st ← get
+  let (out, scope) := (st.out, st.scope)
+  set { st with out := {} }
+  m
+  flush []
+  expect isLeave "the end of a block"
+  if !(← get).pending.isEmpty then
+    let o ← fresh
+    emitOp (.set o (.const 0 0))
+  let st ← get
+  set { st with out, scope }
+  return st.out.toList
+
+/-- A table of `n` fresh slots (`slots.extend`). -/
+def allocTable (n : Nat) : P Nat :=
+  modifyGet fun s => (s.tables.len, { s with tables.len := s.tables.len + n })
+
+/-- The table of a dispatched call's callees, shared by every call to the same ones. -/
+def sharedTable (callees : List String) : P Nat := do
+  let st ← get
+  match st.tables.shared.find? (·.1 == callees) with
+  | some (_, first) => pure first
+  | none =>
+      let first := st.tables.len
+      set { st with tables := {
+        len := first + callees.length,
+        shared := (callees, first) :: st.tables.shared } }
+      pure first
+
+/-- The exponent `k < limit` with `g^k` the word of these limbs. -/
+def smallLog (limit : Nat) (limbs : Nat × Nat) : Option Nat :=
+  if limbs.2 != 0 then none else go limit 0 1
+where
+  /-- `x` is the bits of `g^k`, its products on words in `ℕ` (`mulN`). -/
+  go : Nat → Nat → Nat → Option Nat
+    | 0, _, _ => none
+    | fuel + 1, k, x =>
+        if (K.ofBits x).toBitVec.toNat == limbs.1 then some k
+        else go fuel (k + 1) (mulN x g.toBitVec.toNat)
+
+/-- The largest loop start looked for. -/
+def loopLogLimit : Nat := 2 ^ 20
+
+/-- The frames to reserve for a call into the loop helper `f` (`AllocLoopFrames`), from the
+arguments of the call: the first is the constant `g^lo`, the second the runtime bound if the
+loop has one. -/
+def loopCount (f : String) (args : List V) (cells : List Cell) : P (Option LoopCount) := do
+  let ctx ← read
+  match ctx.loops[f]? with
+  | some li =>
+      if !li.registered then return none
+      let st ← get
+      let lo := (args.head?.bind fun a => st.constOf[a]?).bind (smallLog loopLogLimit)
+      match lo, li.hi with
+      | some lo, some hi => return some (.constant (hi - lo + 1))
+      | some lo, none => return some (.bound (cells.getD 1 0) lo)
+      | none, _ => failP s!"the start of loop {f} is not a constant power of g"
+  | none => return none
+
+/-- A call (`lower_call`), its arguments and returns placed. -/
+def placeCall (f : String) (argVs : List V) (args rets : List Cell) (cond : Option Cell)
+    (tail : Bool) : P Unit := do
+  let nfp ← fresh
+  let entry ← fresh
+  let oc ← match cond with
+    | some c => pure c
+    | none => oneCell
+  let hints ← takeHints
+  let loop ← loopCount f argVs args
+  push (.call hints { callee := f, nfp, entry, oc, args, rets, loop, tail })
+
+/-- A callee is a function of the program other than `main`, of this many argument and return
+cells. -/
+def isCallee (sigs : SMap (Nat × Nat)) (nargs nrets : Nat) (f : String) : Bool :=
+  f != "main" && decide (sigs[f]? = some (nargs, nrets))
+
+/-- How an arm of a `match` leaves: to the join, or through the next `match`'s table. -/
+inductive ArmExit where
+  | join (join one sfp : Cell)
+  | next (x : Cell) (first : Nat) (one sfp : Cell)
+
+/-- The cells a `match` jumps with: its selector's, the next `match`'s selector's and arm count
+if these arms dispatch into it (`chain_next`), the frame pointer's and the pooled `1`. -/
+def matchCells (x : V) (rest : List Stmt) (chained : Bool) :
+    P (Cell × Option (Cell × Nat) × Cell × Cell) := do
+  let lx ← cellOf x
+  let nextSel ← if chained then
+      match rest with
+      | .match_ x' arms' :: _ => pure (some (← cellOf x', arms'.length))
+      | _ => failP "a chained match followed by no match"
+    else pure none
+  let sfp ← selfFp
+  let one ← oneCell
+  pure (lx, nextSel, sfp, one)
+
+/-- A `match` of `n` arms after the values made before it: `entered` is the table and the join
+cell of the chain it is a stage of, if the `match` before it dispatches into it, `chained` says
+its own arms dispatch into the `match` after it, and `armsAt base exit` places its arms from the
+cell `base` on, each leaving by `exit`. -/
+def placeMatch (x : V) (n : Nat) (rest : List Stmt) (entered : Option (Nat × Cell))
+    (chained : Bool) (armsAt : Cell → ArmExit → P (List (List PStmt))) : P Unit := do
+  let (lx, nextSel, sfp, one) ← matchCells x rest chained
+  let (join, first, head) ← match entered with
+    | some (first, join) => pure (join, first, none)
+    | none => do
+        let join ← fresh
+        let hints ← takeHints
+        let first ← allocTable n
+        let entry ← fresh
+        pure (join, first, some (hints, entry))
+  let exit ← match nextSel with
+    | some (x', n') => do pure (ArmExit.next x' (← allocTable n') one sfp)
+    | none => pure (ArmExit.join join one sfp)
+  let base := (← get).next
+  let blocks ← armsAt base exit
+  expect isEmit "a match"
+  match head with
+  | some (hints, entry) => push (.chain hints join lx entry one sfp [first] [blocks])
+  | none =>
+      -- An entered `match` is one more stage of the chain before it.
+      let st ← get
+      match st.out.back? with
+      | some (.chain h j x e o s firsts stages) =>
+          let node := PStmt.chain h j x e o s (firsts ++ [first]) (stages ++ [blocks])
+          set { st with out := st.out.pop.push node }
+      | _ => failP "a chained match follows no match"
+  match exit with
+  | .next _ nf _ _ => modify fun s => { s with chainIn := some (nf, join) }
+  | .join .. => pure ()
+
+mutual
+/-- A block. -/
+def placeBlock : List Stmt → P Unit
+  | [] => pure ()
+  | s :: rest => do
+      placeStmt s rest
+      endStmt
+      placeBlock rest
+
+/-- A statement, `rest` the statements after it in its block. -/
+def placeStmt : Stmt → List Stmt → P Unit
+  | .atom a, rest => do
+      beginStmt (.atom a :: rest)
+      placeAtom a
+  | .ite c z nz, _ => do
+      flush []
+      let lc ← cellOf c
+      let sfp ← selfFp
+      let one ← oneCell
+      let bdest ← fresh
+      let hints ← takeHints
+      let zeroBlk ← inBlock (placeBlock z)
+      -- An `else` block is in the trace even when it emits nothing.
+      match ← peek with
+      | some .enter =>
+          let edest ← fresh
+          let nonzero ← inBlock (placeBlock nz)
+          expect isEmit "a branch"
+          push (.ite hints lc bdest sfp zeroBlk true edest one nonzero)
+      | _ =>
+          if !nz.isEmpty then failP "an else block the trace does not enter"
+          expect isEmit "a branch"
+          push (.ite hints lc bdest sfp zeroBlk false 0 0 [])
+  | .match_ x arms, rest => do
+      flush []
+      let st ← get
+      set { st with chainIn := none, chain := false }
+      placeMatch x arms.length rest st.chainIn st.chain fun base exit =>
+        placeArms arms 0 arms.length base exit
+  | .call f args rets, rest => do
+      beginStmt (.call f args rets :: rest)
+      if !isCallee (← read).sigs args.length rets.length f then failP s!"a call of {f}, no such function"
+      let las ← args.mapM cellOf
+      let lrs ← rets.mapM cellAt
+      placeCall f args las lrs none false
+  | .callIf c f args, rest => do
+      beginStmt (.callIf c f args :: rest)
+      if !isCallee (← read).sigs args.length 0 f then failP s!"a call of {f}, no such function"
+      let lc ← cellOf c
+      let las ← args.mapM cellOf
+      let ctx ← read
+      let self := f == ctx.name
+      if self then
+        -- The callee returns for this frame: nothing but the `return` may follow.
+        match rest with
+        | [.ret []] => pure ()
+        | _ => failP "a loop's closing call that does not end its function"
+        if ctx.retCells != 0 then failP "a loop helper that returns cells"
+      if self && (ctx.loops[f]?).any (·.registered) then
+        -- The next frame of the run (`lower_call`, the loop arm).
+        let ownFp ← selfFp
+        let scale ← fresh
+        emitOp (.set scale .frameSize)
+        pushHint .nextFrameAddress
+        let nfp ← mulCell ownFp scale
+        let entry ← fresh
+        let one ← oneCell
+        let hints ← takeHints
+        push (.loopNext hints f nfp entry lc one las)
+      else placeCall f args las [] (some lc) self
+  | .dispatch x fs args rets, rest => do
+      beginStmt (.dispatch x fs args rets :: rest)
+      let ctx ← read
+      if fs.any (fun f => (ctx.loops[f]?).any (·.registered)) then
+        failP "a dispatch into a registered loop"
+      if !fs.all (isCallee ctx.sigs args.length rets.length) then
+        failP "a dispatch into no function"
+      let las ← args.mapM cellOf
+      let lrs ← rets.mapM cellAt
+      let lx ← cellOf x
+      let one ← oneCell
+      let nfp ← fresh
+      let hints ← takeHints
+      let joinCell ← fresh
+      let first ← sharedTable fs
+      let entry ← fresh
+      push (.dispatch hints fs nfp joinCell lx entry one first las lrs)
+  | .ret vs, rest => do
+      beginStmt (.ret vs :: rest)
+      let ctx ← read
+      if (← vs.mapM cellAt) != (List.range ctx.retCells).map (2 + ctx.argCells + ·) then
+        failP "a return of cells that are not the return area"
+      let one ← oneCell
+      if (← read).isMain then
+        let dest ← fresh
+        let hints ← takeHints
+        push (.halt hints one dest)
+      else
+        let hints ← takeHints
+        push (.ret hints one)
+
+/-- The arms of a `match` from arm `j` of `n`, each from the cell `base` on (one arm runs, so
+they share their cells) and in a scope of its own; `next` ends past the longest. -/
+def placeArms : List (List Stmt) → Nat → Nat → Cell → ArmExit → P (List (List PStmt))
+  | [], _, _, base, _ => do
+      modify fun s => { s with next := base }
+      pure []
+  | arm :: more, j, n, base, exit => do
+      modify fun s => { s with next := base }
+      let blk ← inBlock (placeBlock arm)
+      let leave ← match exit with
+        | .next x first one sfp => do
+            let e ← fresh
+            pure [PStmt.op [] (.slot x first e), .op [] (.jump one e sfp)]
+        | .join join one sfp =>
+            pure (if j + 1 != n then [PStmt.op [] (.jump one join sfp)] else [])
+      let top := (← get).next
+      let blocks ← placeArms more (j + 1) n base exit
+      modify fun s => { s with next := max s.next top }
+      pure ((blk ++ leave) :: blocks)
+end
+
+/-! ## Functions -/
+
+/-- A placed function with the place of each of its values: the valuation a correctness proof
+reads the frame with, and what a certificate of the existing checker calls its cells
+(`Check.Cert.locs`). -/
+structure Placed where
+  fn : PFn
+  locs : VMap Loc
+
+/-- A function's argument and return cells. -/
+def sigOf (tf : TracedFn) : Nat × Nat :=
+  (tf.core.params.length, tf.rets)
+
+/-- The argument and return cells of the program's functions. -/
+def sigTable (fns : List TracedFn) : SMap (Nat × Nat) :=
+  fns.foldl (init := {}) fun m tf => m.insert tf.core.name (sigOf tf)
+
+/-- The walk of a function: its parameters in the argument cells, then its body. -/
+def placeBody (tf : TracedFn) : P Unit := do
+  tf.core.params.zipIdx.forM fun (v, k) => bindTo v (.cell (2 + k))
+  placeBlock tf.core.body
+  flush []
+  if !(← get).rest.isEmpty then failP "the trace goes on past the function"
+
+/-- The context a function is walked in. -/
+def ctxOf (loops : Loops) (sigs : SMap (Nat × Nat)) (tf : TracedFn) : Ctx :=
+  { name := tf.core.name, isMain := tf.core.name == "main", argCells := (sigOf tf).1,
+    retCells := (sigOf tf).2, loops, sigs, fuel := tf.trace.size }
+
+/-- The state a function's walk starts from: cells `0` and `1` hold the return target, then the
+arguments, then the return cells, then a registered loop's own frame pointer, then the locals. -/
+def initSt (loops : Loops) (tables : Tables) (tf : TracedFn) : St :=
+  let loopFrame := (loops[tf.core.name]?).any (·.registered)
+  let abiEnd := 2 + (sigOf tf).1 + (sigOf tf).2
+  { next := abiEnd + (if loopFrame then 1 else 0), tables, rest := tf.trace.toList,
+    scope := { selfFp := if loopFrame then some abiEnd else none } }
+
+/-- Place a function (`lower_func`). -/
+def placeFn (loops : Loops) (sigs : SMap (Nat × Nat)) (tables : Tables)
+    (tf : TracedFn) : Except String (Placed × Tables) :=
+  if (loops[tf.core.name]?).any (·.registered) && (sigOf tf).2 != 0 then
+    .error s!"in {tf.core.name}: a loop helper that returns cells"
+  else
+    match tf.core.body.getLast? with
+    | some (.ret _) =>
+        match placeBody tf (ctxOf loops sigs tf) (initSt loops tables tf) with
+        | .error e => .error e
+        | .ok ((), st) =>
+            if 2 ^ 64 ≤ st.next then .error s!"in {tf.core.name}: a frame past the address space"
+            else .ok (⟨{ name := tf.core.name, body := st.out.toList, frameSize := st.next },
+              st.locs⟩, st.tables)
+    | _ => .error s!"in {tf.core.name}: a body that does not end in a return"
+
+/-- Place the functions in order: the jump tables grow as the lowering reaches each `match`,
+and a shared table once made stays. -/
+def placeFns (loops : Loops) (sigs : SMap (Nat × Nat)) :
+    List TracedFn → Tables → Except String (List Placed × Tables)
+  | [], tables => .ok ([], tables)
+  | tf :: rest, tables =>
+      match placeFn loops sigs tables tf with
+      | .error e => .error e
+      | .ok (pf, tables') =>
+          match placeFns loops sigs rest tables' with
+          | .error e => .error e
+          | .ok (pfs, tables'') => .ok (pf :: pfs, tables'')
+
+/-- Whether the names are distinct, by a map of the names seen. -/
+def namesDistinct (l : List String) : Bool :=
+  go l {}
+where
+  go : List String → SMap Unit → Bool
+    | [], _ => true
+    | n :: ns, seen => !seen.contains n && go ns (seen.insert n ())
+
+/-- Place a program, `main` first, its functions of distinct names. -/
+def placeProgram (p : List TracedFn) : Except String (List Placed × Tables) :=
+  if (p.map (·.core.name)).head? != some "main" then .error "the first function is not main"
+  else if (p.map (·.core.name)).contains "__jump_tables" then
+    .error "a function named __jump_tables"
+  else if !namesDistinct (p.map (·.core.name)) then .error "two functions of one name"
+  else if ((loopTable p)["main"]?).any (·.registered) then .error "main is a loop helper"
+  else placeFns (loopTable p) (sigTable p) p {}
+
+end
+end LeanVM.Guest.Backend
