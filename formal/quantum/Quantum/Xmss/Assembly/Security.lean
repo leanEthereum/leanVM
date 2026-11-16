@@ -61,11 +61,6 @@ namespace Quantum.Xmss.Assembly
 open Quantum QuantumRuntime Quantum.Sponge Quantum.Xmss Quantum.Xmss.Hybrid HashSig LeanXmss
   LeanXmss.RandomPermutationModel Common Common.SufCma
 
-/- Instance search for the memory `Finset ValPos × Selections` exceeds the default size: found once
-here, the same term the search would build. -/
-set_option synthInstance.maxSize 1000 in
-local instance memDecEq : DecidableEq (Finset ValPos × Selections) := inferInstance
-
 /-! ## Averages over a table split into three coordinates -/
 
 section avg
@@ -156,6 +151,11 @@ noncomputable local instance secretKeyDecEq : DecidableEq SecretKey := Classical
 
 /-- The memory of the runtimes: the template's label and Events' selections. -/
 abbrev Mem : Type := Finset ValPos × Selections
+
+/- Instance search for `Mem` exceeds the default size: found once here, the same term the search
+would build, for every consumer of `Mem`. -/
+set_option synthInstance.maxSize 1000 in
+instance memDecEq : DecidableEq Mem := inferInstance
 
 /-- No selection recorded. -/
 def m0 : Selections := fun _ _ ↦ none
