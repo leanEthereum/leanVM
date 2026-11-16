@@ -21,12 +21,12 @@ and `f = fun p ↦ p.2.2`.
 
 **From the realized template to the read program.**
 * `DropRec S x y`: `x` over `recHwSpec X Z S M` is `y` over `hwSpec X Z Unit` with record calls
-  inserted, its reads updating the memory (any update) where `y`'s keep it. Not proved here: the
-  structural fact `DropRec ValPos (realizeT v (gameT M upd pub A)) (gameD Unit pub v A)` (the
-  tools: `ReadsRel` and its `bind`/`map`/`act` lemmas, `realizeT_bind₂`, `readLift_bind₂`,
+  inserted, its reads updating the memory (any update) where `y`'s keep it. The tools here
+  (`ReadsRel` and its `bind`/`map`/`act` lemmas, `realizeT_bind₂`, `readLift_bind₂`,
   `dropRec_realizeT_substitute`, `dropRec_readLift_liftOrdinary`, `dropRec_revealThen`,
-  `dropRec_progSlots`) and the simulation `(runtime1R X Z W m₀).evalDistMap x = (runtime1 X Z W
-  ()).evalDistMap y` for `DropRec S x y` (forgetting the memory register, which is classical).
+  `dropRec_progSlots`) give, in RecordDrop, the structural fact
+  `dropRec_gameT : DropRec ValPos (realizeT v (gameT M upd pub A)) (gameD Unit pub v A)` and the
+  simulation `evalDistMap_runtime1R_eq` (forgetting the memory register, which is classical).
 * `dropsTo_gameD`: if every program call hardwires a cell of `W` with its `W` value
   (`ProgsOf W pub v`), `gameD` is `gameReadsT` with program calls inserted (Runtime1's `DropsTo`).
   `progsOf_tableHw`: at `pubOf L`, `valueAt L` this holds for `tableHw L`, the cells of the honest
