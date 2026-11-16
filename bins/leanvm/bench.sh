@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Runs leanXMSS aggregation and 16-to-1 recursion at 4 and 8 threads and at the default pool ("full"), and prints a table of
+# Runs leanXMSS and leanDA aggregation, plus 16-to-1 recursion, at 4 and 8 threads and at the default pool ("full"),
+# and prints a table of
 # proving time and peak RSS per benchmark and thread count.
 # Usage: [BENCH_THREADS="4 8 full"] bins/leanvm/bench.sh stable|experimental [log file]   (default: .build/bench-<timestamp>.log)
 set -uo pipefail
@@ -41,6 +42,9 @@ cargo build --release -p leanvm-cli || exit 1
 
 for t in "${THREADS[@]}"; do
   run "aggregate, 1400 leanXMSS, rate 2" "$t" aggregate --xmss 1400 --log-inv-rate 2 --repeat 3
+done
+for t in "${THREADS[@]}"; do
+  run "aggregate, 32 leanDA blobs, rate 1" "$t" aggregate --blobs 32 --log-inv-rate 1 --repeat 3
 done
 for t in "${THREADS[@]}"; do
   run "recursion 16 to 1, 1400 leanXMSS/leaf, leaf rate 2, rate 1" "$t" \
