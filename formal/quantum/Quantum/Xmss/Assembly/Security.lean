@@ -14,6 +14,7 @@ public import Quantum.Xmss.Assembly.CostJoint
 public import Quantum.Xmss.Assembly.TrialHitUniform
 public import Quantum.Xmss.Assembly.EncPorts
 public import Quantum.Xmss.Assembly.HTrial
+public import Quantum.Xmss.Assembly.RecJ
 public import Quantum.Xmss.Hybrid.GradedMasked
 
 @[expose] public section
@@ -56,7 +57,8 @@ challenge prefix `prefixR A L` followed by the verification (`gameR_eq`).
    `restMass`), `2^22 (6q kapS + clsCap kapR)` for the sponge and read charges and `2^22 potCap` per
    unit of the program jump weight, which splits (`kJumpPre_le`, `kfPre_le`) into the game's fresh
    `k`, `k'` flips (KeyLazy on KeysReparam's `keyE`: `uavg_kfTot_le_r0`, `progBound`) and the
-   `RecJ` weight (debt `recJ`); averaged by `uavg_ite_cost_le_add` into `encCapA q`.
+   `RecJ` weight (RecJ's `uavg_recJPre_le_two_pow`, `recJCap = 2^-35`); averaged by
+   `uavg_ite_cost_le_add` into `encCapA q`.
    The programs: `progPre ≤ progTot` and ProgSafe's `uavg_progTot_le_kTot` with KeyLazy's
    `uavg_kTot_le` on a reparametrization exposing the keys (`uavg_kTot_le_r0`, KeysReparam):
    `progBound`.
@@ -71,7 +73,6 @@ least `1` (`one_le_qrpmBound`), so the debts are needed only for `q ≤ 2^64`.
 
 | Debt | Statement | Target | Owner |
 |---|---|---|---|
-| `recJ` | averaged `RecJ` weight of the prefix's `k`, `k'` program calls on `GoodL` | `recJCap` | RecJ |
 | `restMass` | averaged `massPre` on `GoodL` | `massCap q` | refined per-port costs |
 -/
 
@@ -300,15 +301,6 @@ noncomputable def progPre (A : Adversary (X × Z)) (L : HonestTable) : ℝ≥0�
 
 end prefixCosts
 
-/-- **The good tables of the event side**: EndReads' `TableGood` (`PermGood π 18`, honest paths
-sharing no cell) and no top-layer trial block a programmable `k`-cell (`TrialsOff`). -/
-def GoodL (L : HonestTable) : Prop :=
-  TableGood L ∧ TrialsOff L
-
-/-- The good tables, decided classically. -/
-noncomputable instance instDecidablePredGoodL : DecidablePred GoodL :=
-  Classical.decPred _
-
 /-! ## The bound -/
 
 /-- The bad fraction of the keys' reparametrization (`keyE_bad_le`): `2^-170`. -/
@@ -319,9 +311,9 @@ noncomputable def keyBadCap : ℝ≥0∞ := (2 ^ 170 : ℝ≥0∞)⁻¹
 noncomputable def progBound : ℝ≥0∞ :=
   (2 ^ 301 : ℝ≥0∞)⁻¹ * progCap + progCap * keyBadCap
 
-/-- The target of the averaged `RecJ` weight of the prefix's program calls (debt `recJ`):
-`2^-190`. -/
-noncomputable def recJCap : ℝ≥0∞ := (2 ^ 190 : ℝ≥0∞)⁻¹
+/-- The averaged `RecJ` weight of the prefix's program calls over the good tables
+(`uavg_recJPre_le_two_pow`, `q ≤ 2^64`): `2^-35`. -/
+noncomputable def recJCap : ℝ≥0∞ := (2 ^ 35 : ℝ≥0∞)⁻¹
 
 /-- **The constant part of the joint count of the selecting reads** (EncPorts' `cntGP_le`,
 averaged): `2^22 (6q + progCap)`, the cross-key potential (one per adversary call and per program
@@ -418,10 +410,6 @@ open scoped Classical in
 permutation calls and at most `lifetime` signing requests (needed for `q ≤ 2^64` only: above,
 `qrpmBound q ≥ 1`). Every other link is a committed theorem (see the module docstring). -/
 structure XmssQrpmDebts (q : ℕ) (A : Adversary (X × Z)) where
-  /-- **The `RecJ` weight** of the prefix's `k`, `k'` program calls (EncPorts' `recJPre`: a
-  program call on a bad union that the database's value at the programmed cell makes bad),
-  averaged over the good tables. -/
-  recJ : uavg (fun L ↦ if GoodL L then recJPre A L else 0) ≤ recJCap
   /-- **The recorded mass** of the prefix's reads, averaged over the good tables. -/
   restMass : uavg (fun L ↦ if GoodL L then massPre A L else 0) ≤ massCap q
 
@@ -825,7 +813,7 @@ theorem uavg_twP_le (hq : q ≤ 2 ^ 64) (d : XmssQrpmDebts q A) :
       · rw [ite_eq_right hg]
         exact zero_le
     · rw [uavg_add]
-      exact add_le_add (uavg_kfTot_le_r0 hperm hsign) d.recJ
+      exact add_le_add (uavg_kfTot_le_r0 hperm hsign) (uavg_recJPre_le_two_pow hperm hsign hq)
   have he : (encK * (2 ^ 22 * ((6 * q + progCap : ℕ) : ℝ≥0∞) +
         2 ^ 22 * (((6 * q : ℕ) : ℝ≥0∞) * ENNReal.ofReal (kapS q) +
           (clsCap : ℝ≥0∞) * ENNReal.ofReal (kapR q))) + epsCap) +

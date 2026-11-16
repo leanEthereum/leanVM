@@ -73,6 +73,7 @@ import Quantum.Xmss.Assembly.TrialHitUniform
 import Quantum.Xmss.Assembly.RestMass
 import Quantum.Xmss.Assembly.EncPorts
 import Quantum.Xmss.Assembly.HTrial
+import Quantum.Xmss.Assembly.GoodTables
 import Quantum.Xmss.Assembly.RecJ
 import Quantum.Xmss.Hybrid.SchemeSplit
 import Quantum.Xmss.Hybrid.CoinStage

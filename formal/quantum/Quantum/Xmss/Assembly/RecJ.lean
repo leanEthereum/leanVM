@@ -1,6 +1,9 @@
 module
 
-public import Quantum.Xmss.Assembly.Security
+public import Quantum.Xmss.Assembly.GoodTables
+public import Quantum.Xmss.Assembly.EncPorts
+public import Quantum.Xmss.Assembly.KeysReparam
+public import Quantum.Xmss.Hybrid.GradedMasked
 
 @[expose] public section
 
