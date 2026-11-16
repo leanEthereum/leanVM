@@ -474,36 +474,36 @@ the hidden values (`hgame`, Reparam's `rounds_fwd`), and the hidden sets lie in 
 invariant `Inv`, on which the hidden cells have sources weighing at most `κ` (`Sources`, for every
 public datum). With at most `N` calls of the ports `Q`, the averaged total hidden mass is at most
 `N κ` plus `N` times the bad fraction. -/
-theorem uavg_totalWeight_portMass_le (Q : (recHwSpec X Z ValPos M).Port → Prop) [DecidablePred Q]
-    (A : Adversary (X × Z)) (m₀ : Finset ValPos × M)
-    (ρ : Matrix (QReg.of Unit × QReg.of (HwReg X Z (Finset ValPos × M)))
-      (QReg.of Unit × QReg.of (HwReg X Z (Finset ValPos × M))) ℂ) (hρ : ρ.PosSemidef)
+theorem uavg_totalWeight_portMass_le (Q : (recHwSpec X Z HPos M).Port → Prop) [DecidablePred Q]
+    (A : Adversary (X × Z)) (m₀ : Finset HPos × M)
+    (ρ : Matrix (QReg.of Unit × QReg.of (HwReg X Z (Finset HPos × M)))
+      (QReg.of Unit × QReg.of (HwReg X Z (Finset HPos × M))) ℂ) (hρ : ρ.PosSemidef)
     (hρ1 : ENNReal.ofReal ρ.trace.re ≤ 1)
     (Hh : HonestTable → Set Z) (Hk Hk' : HonestTable → Set X)
     {E P : Type} [Fintype E] [Nonempty E] [Fintype P]
-    (e : HonestTable × E → P × (ValPos → Digest)) (G : HonestTable × E → Prop) [DecidablePred G]
+    (e : HonestTable × E → P × (HPos → Digest)) (G : HonestTable × E → Prop) [DecidablePred G]
     (hinj : Set.InjOn e {t | G t})
-    (hcard : Fintype.card P * Fintype.card (ValPos → Digest) ≤ Fintype.card (HonestTable × E))
+    (hcard : Fintype.card P * Fintype.card (HPos → Digest) ≤ Fintype.card (HonestTable × E))
     (pubP : P → Pub)
     (hgame : ∀ t, G t → realizeT (valueAt t.1) (gameT M upd (pubOf t.1) A) =
       realizeT (e t).2 (gameT M upd (pubP (e t).1) A))
-    (Hhv : P → (ValPos → Digest) → Set Z) (Hkv Hk'v : P → (ValPos → Digest) → Set X)
+    (Hhv : P → (HPos → Digest) → Set Z) (Hkv Hk'v : P → (HPos → Digest) → Set X)
     (hsub : ∀ t, G t → Hh t.1 ⊆ Hhv (e t).1 (e t).2 ∧ Hk t.1 ⊆ Hkv (e t).1 (e t).2 ∧
       Hk' t.1 ⊆ Hk'v (e t).1 (e t).2)
-    (Inv : P → (ValPos → Digest) → HwReg X Z (Finset ValPos × M) → Prop)
+    (Inv : P → (HPos → Digest) → HwReg X Z (Finset HPos × M) → Prop)
     (hinv : ∀ p v, (runtimeR m₀).ForallQueries LocalSig.Interp.instruments
       (invSupp (runtimeR m₀) Q (Inv p v)) (realizeT v (gameT M upd (pubP p) A)) ρ)
     (κ : ℝ≥0∞)
-    (src : ∀ p, Sources X Z ValPos M ValPos XD (fun r ↦ r.2.2.1) (Inv p) (Hhv p) (Hkv p)
+    (src : ∀ p, Sources X Z HPos M HPos XD (fun r ↦ r.2.2.1) (Inv p) (Hhv p) (Hkv p)
       (Hk'v p) κ)
-    {N : ℕ} (hN : ∀ (pub : Pub) (v : ValPos → Digest),
+    {N : ℕ} (hN : ∀ (pub : Pub) (v : HPos → Digest),
       IFreeM.IsChargeBound (realizeT v (gameT M upd pub A))
         (portCharge fun i ↦ if Q i then 1 else 0) N) :
     uavg (fun L : HonestTable ↦ (runtimeR m₀).totalWeight LocalSig.Interp.instruments
       (portMass Q (Hh L) (Hk L) (Hk' L)) (realizeT (valueAt L) (gameT M upd (pubOf L) A)) ρ) ≤
       N * κ + N * ((Fintype.card (HonestTable × E) : ℝ≥0∞)⁻¹ *
         (Finset.univ.filter fun t ↦ ¬G t).card) := by
-  have hbound : ∀ (pub : Pub) (v : ValPos → Digest) (Hh₀ : Set Z) (Hk₀ Hk'₀ : Set X),
+  have hbound : ∀ (pub : Pub) (v : HPos → Digest) (Hh₀ : Set Z) (Hk₀ Hk'₀ : Set X),
       (runtimeR m₀).totalWeight LocalSig.Interp.instruments (portMass Q Hh₀ Hk₀ Hk'₀)
         (realizeT v (gameT M upd pub A)) ρ ≤ N :=
     fun pub v Hh₀ Hk₀ Hk'₀ ↦ (totalWeight_portMass_le _ Q m₀ Hh₀ Hk₀ Hk'₀ _ hρ (hN pub v)).trans
@@ -519,78 +519,78 @@ theorem uavg_totalWeight_portMass_le (Q : (recHwSpec X Z ValPos M).Port → Prop
       (fun r ↦ r.2.2.1) (fun v ↦ realizeT v (gameT M upd (pubP p) A)) (fun _ ↦ ρ) (fun _ ↦ hρ)
       (fun j ↦ viewByOn_gameT M upd (pubP p) A m₀ ρ j) (Inv p) (hinv p) (Hhv p) (Hkv p)
       (Hk'v p) κ (src p) (fun v ↦ hN (pubP p) v)).trans ?_
-    calc κ * (N * ∑ _v : ValPos → Digest, ENNReal.ofReal ρ.trace.re)
-        ≤ κ * (N * ∑ _v : ValPos → Digest, (1 : ℝ≥0∞)) := by gcongr
-      _ = κ * N * Fintype.card (ValPos → Digest) := by
+    calc κ * (N * ∑ _v : HPos → Digest, ENNReal.ofReal ρ.trace.re)
+        ≤ κ * (N * ∑ _v : HPos → Digest, (1 : ℝ≥0∞)) := by gcongr
+      _ = κ * N * Fintype.card (HPos → Digest) := by
           rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one, mul_assoc]
   · rw [mul_comm κ]
 
 /-- **`hybSponge`**: the averaged total hidden mass at the sponge ports (`spongeMass`) of the
 realized template game with at most `N` sponge calls (`6 q` for `q` adversary calls) is at most
 `N (κ + bad)`. -/
-theorem uavg_spongeMass_le (A : Adversary (X × Z)) (m₀ : Finset ValPos × M)
-    (ρ : Matrix (QReg.of Unit × QReg.of (HwReg X Z (Finset ValPos × M)))
-      (QReg.of Unit × QReg.of (HwReg X Z (Finset ValPos × M))) ℂ) (hρ : ρ.PosSemidef)
+theorem uavg_spongeMass_le (A : Adversary (X × Z)) (m₀ : Finset HPos × M)
+    (ρ : Matrix (QReg.of Unit × QReg.of (HwReg X Z (Finset HPos × M)))
+      (QReg.of Unit × QReg.of (HwReg X Z (Finset HPos × M))) ℂ) (hρ : ρ.PosSemidef)
     (hρ1 : ENNReal.ofReal ρ.trace.re ≤ 1)
     (Hh : HonestTable → Set Z) (Hk Hk' : HonestTable → Set X)
     {E P : Type} [Fintype E] [Nonempty E] [Fintype P]
-    (e : HonestTable × E → P × (ValPos → Digest)) (G : HonestTable × E → Prop) [DecidablePred G]
+    (e : HonestTable × E → P × (HPos → Digest)) (G : HonestTable × E → Prop) [DecidablePred G]
     (hinj : Set.InjOn e {t | G t})
-    (hcard : Fintype.card P * Fintype.card (ValPos → Digest) ≤ Fintype.card (HonestTable × E))
+    (hcard : Fintype.card P * Fintype.card (HPos → Digest) ≤ Fintype.card (HonestTable × E))
     (pubP : P → Pub)
     (hgame : ∀ t, G t → realizeT (valueAt t.1) (gameT M upd (pubOf t.1) A) =
       realizeT (e t).2 (gameT M upd (pubP (e t).1) A))
-    (Hhv : P → (ValPos → Digest) → Set Z) (Hkv Hk'v : P → (ValPos → Digest) → Set X)
+    (Hhv : P → (HPos → Digest) → Set Z) (Hkv Hk'v : P → (HPos → Digest) → Set X)
     (hsub : ∀ t, G t → Hh t.1 ⊆ Hhv (e t).1 (e t).2 ∧ Hk t.1 ⊆ Hkv (e t).1 (e t).2 ∧
       Hk' t.1 ⊆ Hk'v (e t).1 (e t).2)
-    (Inv : P → (ValPos → Digest) → HwReg X Z (Finset ValPos × M) → Prop)
+    (Inv : P → (HPos → Digest) → HwReg X Z (Finset HPos × M) → Prop)
     (hinv : ∀ p v, (runtimeR m₀).ForallQueries LocalSig.Interp.instruments
-      (invSupp (runtimeR m₀) (fun i ↦ extCls X Z (Finset ValPos × M) (recSpec ValPos M) i = false)
+      (invSupp (runtimeR m₀) (fun i ↦ extCls X Z (Finset HPos × M) (recSpec HPos M) i = false)
         (Inv p v)) (realizeT v (gameT M upd (pubP p) A)) ρ)
     (κ : ℝ≥0∞)
-    (src : ∀ p, Sources X Z ValPos M ValPos XD (fun r ↦ r.2.2.1) (Inv p) (Hhv p) (Hkv p)
+    (src : ∀ p, Sources X Z HPos M HPos XD (fun r ↦ r.2.2.1) (Inv p) (Hhv p) (Hkv p)
       (Hk'v p) κ)
-    {N : ℕ} (hN : ∀ (pub : Pub) (v : ValPos → Digest),
+    {N : ℕ} (hN : ∀ (pub : Pub) (v : HPos → Digest),
       IFreeM.IsChargeBound (realizeT v (gameT M upd pub A))
-        (portCharge fun i ↦ if extCls X Z (Finset ValPos × M) (recSpec ValPos M) i then 0 else 1)
+        (portCharge fun i ↦ if extCls X Z (Finset HPos × M) (recSpec HPos M) i then 0 else 1)
         N) :
     uavg (fun L : HonestTable ↦ (runtimeR m₀).totalWeight LocalSig.Interp.instruments
       (spongeMass (Hh L) (Hk L) (Hk' L)) (realizeT (valueAt L) (gameT M upd (pubOf L) A)) ρ) ≤
       N * κ + N * ((Fintype.card (HonestTable × E) : ℝ≥0∞)⁻¹ *
         (Finset.univ.filter fun t ↦ ¬G t).card) := by
-  have hc : (fun i ↦ if extCls X Z (Finset ValPos × M) (recSpec ValPos M) i = false then 1 else 0) =
-      fun i ↦ if extCls X Z (Finset ValPos × M) (recSpec ValPos M) i then 0 else 1 :=
-    funext fun i ↦ by cases extCls X Z (Finset ValPos × M) (recSpec ValPos M) i <;> rfl
+  have hc : (fun i ↦ if extCls X Z (Finset HPos × M) (recSpec HPos M) i = false then 1 else 0) =
+      fun i ↦ if extCls X Z (Finset HPos × M) (recSpec HPos M) i then 0 else 1 :=
+    funext fun i ↦ by cases extCls X Z (Finset HPos × M) (recSpec HPos M) i <;> rfl
   exact uavg_totalWeight_portMass_le upd _ A m₀ ρ hρ hρ1 Hh Hk Hk' e G hinj hcard pubP hgame Hhv
     Hkv Hk'v hsub Inv hinv κ src fun pub v ↦ by rw [hc]; exact hN pub v
 
 /-- **`hybRead`**: the averaged total hidden mass at the read ports (`readMass`) of the realized
 template game with at most `N` classical calls (`clsCap`) is at most `N (κ + bad)`. -/
-theorem uavg_readMass_le (A : Adversary (X × Z)) (m₀ : Finset ValPos × M)
-    (ρ : Matrix (QReg.of Unit × QReg.of (HwReg X Z (Finset ValPos × M)))
-      (QReg.of Unit × QReg.of (HwReg X Z (Finset ValPos × M))) ℂ) (hρ : ρ.PosSemidef)
+theorem uavg_readMass_le (A : Adversary (X × Z)) (m₀ : Finset HPos × M)
+    (ρ : Matrix (QReg.of Unit × QReg.of (HwReg X Z (Finset HPos × M)))
+      (QReg.of Unit × QReg.of (HwReg X Z (Finset HPos × M))) ℂ) (hρ : ρ.PosSemidef)
     (hρ1 : ENNReal.ofReal ρ.trace.re ≤ 1)
     (Hh : HonestTable → Set Z) (Hk Hk' : HonestTable → Set X)
     {E P : Type} [Fintype E] [Nonempty E] [Fintype P]
-    (e : HonestTable × E → P × (ValPos → Digest)) (G : HonestTable × E → Prop) [DecidablePred G]
+    (e : HonestTable × E → P × (HPos → Digest)) (G : HonestTable × E → Prop) [DecidablePred G]
     (hinj : Set.InjOn e {t | G t})
-    (hcard : Fintype.card P * Fintype.card (ValPos → Digest) ≤ Fintype.card (HonestTable × E))
+    (hcard : Fintype.card P * Fintype.card (HPos → Digest) ≤ Fintype.card (HonestTable × E))
     (pubP : P → Pub)
     (hgame : ∀ t, G t → realizeT (valueAt t.1) (gameT M upd (pubOf t.1) A) =
       realizeT (e t).2 (gameT M upd (pubP (e t).1) A))
-    (Hhv : P → (ValPos → Digest) → Set Z) (Hkv Hk'v : P → (ValPos → Digest) → Set X)
+    (Hhv : P → (HPos → Digest) → Set Z) (Hkv Hk'v : P → (HPos → Digest) → Set X)
     (hsub : ∀ t, G t → Hh t.1 ⊆ Hhv (e t).1 (e t).2 ∧ Hk t.1 ⊆ Hkv (e t).1 (e t).2 ∧
       Hk' t.1 ⊆ Hk'v (e t).1 (e t).2)
-    (Inv : P → (ValPos → Digest) → HwReg X Z (Finset ValPos × M) → Prop)
+    (Inv : P → (HPos → Digest) → HwReg X Z (Finset HPos × M) → Prop)
     (hinv : ∀ p v, (runtimeR m₀).ForallQueries LocalSig.Interp.instruments
-      (invSupp (runtimeR m₀) (fun i ↦ extCls X Z (Finset ValPos × M) (recSpec ValPos M) i = true)
+      (invSupp (runtimeR m₀) (fun i ↦ extCls X Z (Finset HPos × M) (recSpec HPos M) i = true)
         (Inv p v)) (realizeT v (gameT M upd (pubP p) A)) ρ)
     (κ : ℝ≥0∞)
-    (src : ∀ p, Sources X Z ValPos M ValPos XD (fun r ↦ r.2.2.1) (Inv p) (Hhv p) (Hkv p)
+    (src : ∀ p, Sources X Z HPos M HPos XD (fun r ↦ r.2.2.1) (Inv p) (Hhv p) (Hkv p)
       (Hk'v p) κ)
-    {N : ℕ} (hN : ∀ (pub : Pub) (v : ValPos → Digest),
+    {N : ℕ} (hN : ∀ (pub : Pub) (v : HPos → Digest),
       IFreeM.IsChargeBound (realizeT v (gameT M upd pub A))
-        (portCharge fun i ↦ if extCls X Z (Finset ValPos × M) (recSpec ValPos M) i then 1 else 0)
+        (portCharge fun i ↦ if extCls X Z (Finset HPos × M) (recSpec HPos M) i then 1 else 0)
         N) :
     uavg (fun L : HonestTable ↦ (runtimeR m₀).totalWeight LocalSig.Interp.instruments
       (readMass (Hh L) (Hk L) (Hk' L)) (realizeT (valueAt L) (gameT M upd (pubOf L) A)) ρ) ≤

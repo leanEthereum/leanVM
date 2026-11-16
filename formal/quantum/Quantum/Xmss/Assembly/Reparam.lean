@@ -61,8 +61,7 @@ payloads). `DigestFix` is the digest of a cell value (`dig r w`, the digest of t
   and the hidden values of `fwd` are those at the table's own data (`rounds_congr`), which are the
   table's honest cells (`roundH_table`: the correction vanishes).
 * `xVal_wOf`, `pubOf_eq`: for an honest table `L` with its chain starts in the pad, the table's
-  values on `xI` are `valueAt L`, and `pubOf L` is `xPub (wOf L) L.keys.1` with `L`'s randomizer
-  bases.
+  values on `xI` are `valuePos L`, and `pubOf L` is `xPub (wOf L) L.keys.1`.
 * `xGood_bad_frac_le`: the bad fraction is at most the bad permutations, the one-block output-cell
   collisions `|xI₁|² (G + 1) / |Z|` (`card_mul_capColl_le`; chain steps and nodes are one block,
   `outCap_one`, with distinct first blocks, `cellOf_injOn`), and the fraction of public
@@ -919,9 +918,9 @@ def xRank : ValPos → ℕ
 abbrev XW : Type :=
   PublicParameter × Equiv.Perm (X × Z) × (X → Z) × (X → Z)
 
-/-- The template's public data of a table (randomizer bases `0`: the paths do not read them). -/
+/-- The template's public data of a table. -/
 def xPub (w : XW) (h : Z → X) : Pub :=
-  ⟨w.1, w.2.1, (h, w.2.2.1, w.2.2.2), fun _ _ _ ↦ 0⟩
+  ⟨w.1, w.2.1, (h, w.2.2.1, w.2.2.2)⟩
 
 /-- The digest of an input under the table's sponge. -/
 def xDig (w : XW) (h : Z → X) (input : HashInput) : Digest :=
@@ -1366,10 +1365,8 @@ theorem rounds_fwd {h : Z → X} {u : ValPos → Digest} {w : XW} (hθ : XGood (
 def wOf (L : HonestTable) : XW :=
   (L.param, L.perm, L.keys.2.1, L.keys.2.2)
 
-/-- **The public data of an honest table is `pubOf` up to the randomizer bases**, which the paths
-do not read. -/
-theorem pubOf_eq (L : HonestTable) :
-    pubOf L = { xPub (wOf L) L.keys.1 with rbase := L.randomizerBase } :=
+/-- **The public data of an honest table is `xPub` at its data.** -/
+theorem pubOf_eq (L : HonestTable) : pubOf L = xPub (wOf L) L.keys.1 :=
   rfl
 
 theorem xDig_wOf (L : HonestTable) (input : HashInput) :
@@ -1414,13 +1411,13 @@ theorem treeV_wOf (L : HonestTable) (u : ValPos → Digest) (l : Layer)
       L.treeValue_succ]
     rfl
 
-/-- **The hidden coordinate is `valueAt`**: for an honest table with its chain starts in the pad,
-the table's values at the in-table output positions are `valueAt L` (so `fwd`'s hidden
+/-- **The hidden coordinate is `valuePos`**: for an honest table with its chain starts in the pad,
+the table's values at the in-table output positions are `valuePos L` (so `fwd`'s hidden
 coordinate is, `fwd_snd`). -/
 theorem xVal_wOf (L : HonestTable) (u : ValPos → Digest)
     (hu : ∀ l (e : KeyIndex) i, e.val < keyCount l →
       u (.chain l e i ⟨0, by decide⟩) = L.chainStart l e i) {p : ValPos} (hp : InPos p) :
-    xVal (wOf L) L.keys.1 u p = valueAt L p := by
+    xVal (wOf L) L.keys.1 u p = valuePos L p := by
   cases p with
   | chain l e i j =>
     rw [xVal_chain _ _ _ i hp.2, chainV_wOf L u (hu l e i hp.2)]
@@ -1517,7 +1514,7 @@ theorem slotOf_cellOf (P : PublicParameter) (v : ValPos → Digest) {p : ValPos}
     (hl : ¬IsLeafPos p) : slotOf P [cellOf P v p] = some (outSlot p) := by
   have hlen : (blocks (thInput P (slotFields (outSlot p)) (slotPayload v (outSlot p)))).length =
       1 :=
-    (length_blocks_slotInput ⟨P, Equiv.refl _, (0, 0, 0), fun _ _ _ ↦ 0⟩ (outSlot p) v).trans
+    (length_blocks_slotInput ⟨P, Equiv.refl _, (0, 0, 0)⟩ (outSlot p) v).trans
       (nBlocks_of_one _ hl)
   refine slotOf_single hlen ?_
   cases p with

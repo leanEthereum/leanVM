@@ -62,10 +62,11 @@ def IsInput (q : ValPos) : Slot → Prop
 variable (M : Type) in
 /-- **The invariant at the sponge and read calls**: an in-table slot (`InTable`) with a disclosed
 input has all its cells at `(pub, v)` hardwired. -/
-def SlotInv (pub : Pub) (v : ValPos → Digest) (r : HwReg X Z (Finset ValPos × M)) : Prop :=
-  ∀ s, InTable s → ∀ q, IsInput q s → q ∈ r.2.2.1 → ∀ j < nBlocks pub s,
-    r.2.1.2.1 (roundK pub s v j).1 ≠ none ∧ r.2.1.2.2 (roundK' pub s v j).1 ≠ none ∧
-      r.2.1.1 (roundH pub s v j).1 ≠ none
+def SlotInv (pub : Pub) (v : HPos → Digest) (r : HwReg X Z (Finset HPos × M)) : Prop :=
+  ∀ s, InTable s → ∀ q, IsInput q s → .inl q ∈ r.2.2.1 → ∀ j < nBlocks pub s,
+    r.2.1.2.1 (roundK pub s (fun p ↦ v (.inl p)) j).1 ≠ none ∧
+      r.2.1.2.2 (roundK' pub s (fun p ↦ v (.inl p)) j).1 ≠ none ∧
+      r.2.1.1 (roundH pub s (fun p ↦ v (.inl p)) j).1 ≠ none
 
 end inv
 
@@ -245,47 +246,53 @@ variable {M : Type}
 
 /-- **The invariant with pending program ports `C`**: an in-table slot with a disclosed input has
 each of its realized program ports hardwired or pending. -/
-def InvP (pub : Pub) (v : ValPos → Digest) (C : Set (HwProg X Z))
-    (r : HwReg X Z (Finset ValPos × M)) : Prop :=
-  ∀ s, InTable s → ∀ q, IsInput q s → q ∈ r.2.2.1 → ∀ p ∈ slotPorts pub s,
+def InvP (pub : Pub) (v : HPos → Digest) (C : Set (HwProg X Z))
+    (r : HwReg X Z (Finset HPos × M)) : Prop :=
+  ∀ s, InTable s → ∀ q, IsInput q s → .inl q ∈ r.2.2.1 → ∀ p ∈ slotPorts pub s,
     CellHardwired (p.realize v) r.2.1 ∨ p.realize v ∈ C
 
 /-- The realized program ports of the in-table slots with an input in `T`. -/
-def revealSet (pub : Pub) (v : ValPos → Digest) (T : Finset ValPos) : Set (HwProg X Z) :=
-  {c | ∃ s, InTable s ∧ (∃ q, IsInput q s ∧ q ∈ T) ∧ ∃ p ∈ slotPorts pub s, p.realize v = c}
+def revealSet (pub : Pub) (v : HPos → Digest) (T : Finset HPos) : Set (HwProg X Z) :=
+  {c | ∃ s, InTable s ∧ (∃ q, IsInput q s ∧ .inl q ∈ T) ∧ ∃ p ∈ slotPorts pub s, p.realize v = c}
 
 /-- The realized program ports of the slots `ss`. -/
-def portsOf (pub : Pub) (v : ValPos → Digest) (ss : List Slot) : Set (HwProg X Z) :=
+def portsOf (pub : Pub) (v : HPos → Digest) (ss : List Slot) : Set (HwProg X Z) :=
   {c | ∃ s ∈ ss, ∃ p ∈ slotPorts pub s, p.realize v = c}
 
-theorem revealSet_layerNeed_subset (pub : Pub) (v : ValPos → Digest) (l : Layer) (e : KeyIndex)
-    (x : Encoding) : revealSet pub v (layerNeed l e x) ⊆ portsOf pub v (layerSlots l e x) := by
+theorem revealSet_layerNeed_subset (pub : Pub) (v : HPos → Digest) (l : Layer) (e : KeyIndex)
+    (x : Encoding) :
+    revealSet pub v (inlSet (layerNeed l e x)) ⊆ portsOf pub v (layerSlots l e x) := by
   rintro c ⟨s, hs, ⟨q, hq, hn⟩, hp⟩
-  exact ⟨s, mem_layerSlots_of_isInput hs hq hn, hp⟩
+  exact ⟨s, mem_layerSlots_of_isInput hs hq (inl_mem_inlSet.mp hn), hp⟩
 
-theorem revealSet_rootPos (pub : Pub) (v : ValPos → Digest) :
-    revealSet pub v {rootPos} ⊆ ∅ := by
+theorem revealSet_rootPos (pub : Pub) (v : HPos → Digest) :
+    revealSet pub v {.inl rootPos} ⊆ ∅ := by
   rintro c ⟨s, hs, ⟨q, hq, hn⟩, -⟩
-  rw [Finset.mem_singleton] at hn
-  subst hn
+  obtain rfl := Sum.inl_injective (Finset.mem_singleton.mp hn)
   exact not_isInput_rootPos hs hq
 
-theorem invP_mono {pub : Pub} {v : ValPos → Digest} {C C' : Set (HwProg X Z)} (h : C ⊆ C')
-    {r : HwReg X Z (Finset ValPos × M)} (hr : InvP pub v C r) : InvP pub v C' r :=
+/-- A randomizer base is no slot's input. -/
+theorem revealSet_inr (pub : Pub) (v : HPos → Digest) (lab : RLabel) :
+    revealSet pub v {.inr lab} ⊆ ∅ := by
+  rintro c ⟨s, -, ⟨q, -, hn⟩, -⟩
+  exact absurd (Finset.mem_singleton.mp hn) Sum.inl_ne_inr
+
+theorem invP_mono {pub : Pub} {v : HPos → Digest} {C C' : Set (HwProg X Z)} (h : C ⊆ C')
+    {r : HwReg X Z (Finset HPos × M)} (hr : InvP pub v C r) : InvP pub v C' r :=
   fun s hs q hq hl p hp ↦ (hr s hs q hq hl p hp).imp_right fun hc ↦ h hc
 
-theorem invP_of_eq {pub : Pub} {v : ValPos → Digest} {C : Set (HwProg X Z)}
-    {r r' : HwReg X Z (Finset ValPos × M)} (h1 : r'.2.1 = r.2.1) (h2 : r'.2.2.1 = r.2.2.1)
+theorem invP_of_eq {pub : Pub} {v : HPos → Digest} {C : Set (HwProg X Z)}
+    {r r' : HwReg X Z (Finset HPos × M)} (h1 : r'.2.1 = r.2.1) (h2 : r'.2.2.1 = r.2.2.1)
     (hr : InvP pub v C r) : InvP pub v C r' := by
   intro s hs q hq hl p hp
   rw [h1]
   exact hr s hs q hq (h2 ▸ hl) p hp
 
-theorem invP_of_label_empty {pub : Pub} {v : ValPos → Digest} {C : Set (HwProg X Z)}
-    {r : HwReg X Z (Finset ValPos × M)} (h : r.2.2.1 = ∅) : InvP pub v C r := by
+theorem invP_of_label_empty {pub : Pub} {v : HPos → Digest} {C : Set (HwProg X Z)}
+    {r : HwReg X Z (Finset HPos × M)} (h : r.2.2.1 = ∅) : InvP pub v C r := by
   intro s _ q _ hl
   rw [h] at hl
-  exact absurd hl (Finset.notMem_empty q)
+  exact absurd hl (Finset.notMem_empty _)
 
 theorem update_some_ne_none {α β : Type*} [DecidableEq α] (f : α → Option β) (a : α) (b : β) :
     Function.update f a (some b) a ≠ none := by
@@ -329,8 +336,8 @@ theorem cellHardwired_progUpdate {X₁ Z₁ : Type} [DecidableEq X₁] [Decidabl
     | programK' y' a' => exact update_some_ne_none_of y a h
 
 /-- A program port hardwires its cell and keeps the others: it leaves the pending set. -/
-theorem invP_prog {pub : Pub} {v : ValPos → Digest} {C : Set (HwProg X Z)} (c : HwProg X Z)
-    {r r' : HwReg X Z (Finset ValPos × M)} (h : r'.2 = (progUpdate c r.2.1, r.2.2))
+theorem invP_prog {pub : Pub} {v : HPos → Digest} {C : Set (HwProg X Z)} (c : HwProg X Z)
+    {r r' : HwReg X Z (Finset HPos × M)} (h : r'.2 = (progUpdate c r.2.1, r.2.2))
     (hr : InvP pub v C r) : InvP pub v (C \ {c}) r' := by
   intro s hs q hq hl p hp
   rw [h] at hl ⊢
@@ -342,8 +349,8 @@ theorem invP_prog {pub : Pub} {v : ValPos → Digest} {C : Set (HwProg X Z)} (c 
     · exact Or.inr ⟨hc, he⟩
 
 /-- A reveal of `T` adds the ports of the slots with an input in `T` to the pending set. -/
-theorem invP_reveal {pub : Pub} {v : ValPos → Digest} {C : Set (HwProg X Z)} (T : Finset ValPos)
-    {r r' : HwReg X Z (Finset ValPos × M)} (h : r'.2 = (r.2.1, (r.2.2.1 ∪ T, r.2.2.2)))
+theorem invP_reveal {pub : Pub} {v : HPos → Digest} {C : Set (HwProg X Z)} (T : Finset HPos)
+    {r r' : HwReg X Z (Finset HPos × M)} (h : r'.2 = (r.2.1, (r.2.2.1 ∪ T, r.2.2.2)))
     (hr : InvP pub v C r) : InvP pub v (C ∪ revealSet pub v T) r' := by
   intro s hs q hq hl p hp
   rw [h] at hl ⊢
@@ -384,35 +391,33 @@ theorem slotOutPos_mem_slotNeed {s : Slot} (hs : InTable s) : slotOutPos s ∈ s
   | param => exact hs.elim
   | seed => exact hs.elim
 
-theorem extendVals_restrictTo_of_mem {T : Finset ValPos} {p : ValPos} (h : p ∈ T)
-    (v : ValPos → Digest) : extendVals (restrictTo T v) p = v p := by
-  rw [extendVals, dite_eq_left h]
-  rfl
-
 /-- **No pending port is the invariant**: the realized program ports are the honest round cells. -/
-theorem slotInv_of_invP {pub : Pub} {v : ValPos → Digest} {r : HwReg X Z (Finset ValPos × M)}
+theorem slotInv_of_invP {pub : Pub} {v : HPos → Digest} {r : HwReg X Z (Finset HPos × M)}
     (h : InvP pub v ∅ r) : SlotInv M pub v r := by
   intro s hs q hq hl j hj
-  have hv : ∀ q ∈ slotNeed s, extendVals (restrictTo (slotNeed s) v) q = v q :=
-    fun q hq ↦ extendVals_restrictTo_of_mem hq v
+  have hv : ∀ q ∈ slotNeed s, extendVals (restrictTo (inlSet (slotNeed s)) v) q = v (.inl q) :=
+    fun q hq ↦ extendVals_restrictTo (inl_mem_inlSet.mpr hq) v
   have hin : ∀ c ∈ slotPorts pub s, CellHardwired (c.realize v) r.2.1 := fun c hc ↦
     (h s hs q hq hl c hc).resolve_right (Set.notMem_empty _)
-  have hmem : ∀ p ∈ [LazyProg.programK (slotNeed s) fun w ↦ roundK pub s (extendVals w) j,
-      .programK' (slotNeed s) fun w ↦ roundK' pub s (extendVals w) j,
-      .programH (slotNeed s) fun w ↦ roundH pub s (extendVals w) j], p ∈ slotPorts pub s :=
+  have hmem : ∀ p ∈ [LazyProg.programK (inlSet (slotNeed s)) fun w ↦ roundK pub s (extendVals w) j,
+      .programK' (inlSet (slotNeed s)) fun w ↦ roundK' pub s (extendVals w) j,
+      .programH (inlSet (slotNeed s)) fun w ↦ roundH pub s (extendVals w) j], p ∈ slotPorts pub s :=
     fun p hp ↦ List.mem_flatMap.2 ⟨j, List.mem_range.2 hj, hp⟩
-  have hK := hin (.programK (slotNeed s) fun w ↦ roundK pub s (extendVals w) j)
+  have hK := hin (.programK (inlSet (slotNeed s)) fun w ↦ roundK pub s (extendVals w) j)
     (hmem _ (by simp))
-  have hK' := hin (.programK' (slotNeed s) fun w ↦ roundK' pub s (extendVals w) j)
+  have hK' := hin (.programK' (inlSet (slotNeed s)) fun w ↦ roundK' pub s (extendVals w) j)
     (hmem _ (by simp))
-  have hH := hin (.programH (slotNeed s) fun w ↦ roundH pub s (extendVals w) j)
+  have hH := hin (.programH (inlSet (slotNeed s)) fun w ↦ roundH pub s (extendVals w) j)
     (hmem _ (by simp))
   simp only [LazyProg.realize, CellHardwired] at hK hK' hH
-  have e1 : roundK pub s (extendVals (restrictTo (slotNeed s) v)) j = roundK pub s v j := by
+  have e1 : roundK pub s (extendVals (restrictTo (inlSet (slotNeed s)) v)) j =
+      roundK pub s (fun p ↦ v (.inl p)) j := by
     simp only [roundK, slotInput_eq_of_need pub hv]
-  have e2 : roundK' pub s (extendVals (restrictTo (slotNeed s) v)) j = roundK' pub s v j := by
+  have e2 : roundK' pub s (extendVals (restrictTo (inlSet (slotNeed s)) v)) j =
+      roundK' pub s (fun p ↦ v (.inl p)) j := by
     simp only [roundK', slotInput_eq_of_need pub hv]
-  have e3 : roundH pub s (extendVals (restrictTo (slotNeed s) v)) j = roundH pub s v j := by
+  have e3 : roundH pub s (extendVals (restrictTo (inlSet (slotNeed s)) v)) j =
+      roundH pub s (fun p ↦ v (.inl p)) j := by
     simp only [roundH, slotInput_eq_of_need pub hv, hv _ (slotOutPos_mem_slotNeed hs)]
   rw [e1] at hK
   rw [e2] at hK'
@@ -428,19 +433,19 @@ section steps
 variable {M : Type} [Fintype M] [DecidableEq M]
 
 /-- A read port whose memory update keeps the memory label (Template's `liftRead`). -/
-def LabKeep : HwRead X Z (Finset ValPos × M) → Prop
+def LabKeep : HwRead X Z (Finset HPos × M) → Prop
   | .readH _ u => ∀ m o, (u m o).1 = m.1
   | .readK _ u => ∀ m o, (u m o).1 = m.1
   | .readK' _ u => ∀ m o, (u m o).1 = m.1
 
 omit [Fintype M] [DecidableEq M] in
-theorem labKeep_liftRead (c : HwRead X Z M) : LabKeep (liftRead (S := ValPos) c) := by
+theorem labKeep_liftRead (c : HwRead X Z M) : LabKeep (liftRead (S := HPos) c) := by
   cases c <;> intro _ _ <;> rfl
 
 omit [Fintype M] in
 /-- A read port keeping the label keeps the hardwired cells and the label. -/
-theorem hwReadKraus_ne_zero_keep {c : HwRead X Z (Finset ValPos × M)} (hc : LabKeep c)
-    (r : c.Result) {u u' : Unit} {s s' : HwReg X Z (Finset ValPos × M)}
+theorem hwReadKraus_ne_zero_keep {c : HwRead X Z (Finset HPos × M)} (hc : LabKeep c)
+    (r : c.Result) {u u' : Unit} {s s' : HwReg X Z (Finset HPos × M)}
     (h : hwReadKraus c r (u', s') (u, s) ≠ 0) : s'.2.1 = s.2.1 ∧ s'.2.2.1 = s.2.2.1 := by
   cases c with
   | readH z upd =>
@@ -461,14 +466,14 @@ theorem hwReadKraus_ne_zero_keep {c : HwRead X Z (Finset ValPos × M)} (hc : Lab
 
 /-- A step of `runtimeR` at port `i` carries support on the pending invariant `C` to support on
 the pending invariant `C'`. -/
-def StepInv (m₀ : Finset ValPos × M) (pub : Pub) (v : ValPos → Digest)
-    (i : (recHwSpec X Z ValPos M).Port) (C C' : Set (HwProg X Z)) : Prop :=
-  ∀ r σ, QuerySupportedOn (fun m : (recHwSpec X Z ValPos M).In i × (runtimeR m₀).D ↦ m.2)
+def StepInv (m₀ : Finset HPos × M) (pub : Pub) (v : HPos → Digest)
+    (i : (recHwSpec X Z HPos M).Port) (C C' : Set (HwProg X Z)) : Prop :=
+  ∀ r σ, QuerySupportedOn (fun m : (recHwSpec X Z HPos M).In i × (runtimeR m₀).D ↦ m.2)
       {s | InvP pub v C s} σ →
-    QuerySupportedOn (fun m : (recHwSpec X Z ValPos M).Out i × (runtimeR m₀).D ↦ m.2)
+    QuerySupportedOn (fun m : (recHwSpec X Z HPos M).Out i × (runtimeR m₀).D ↦ m.2)
       {s | InvP pub v C' s} (((runtimeR m₀).step i).branch r σ)
 
-theorem stepInv_sponge (m₀ : Finset ValPos × M) (pub : Pub) (v : ValPos → Digest)
+theorem stepInv_sponge (m₀ : Finset HPos × M) (pub : Pub) (v : HPos → Digest)
     (i : SpongePort) (C : Set (HwProg X Z)) : StepInv m₀ pub v (.inl (.inl (.inl i))) C C := by
   intro r σ hσ
   have hb : ((runtimeR m₀).step (.inl (.inl (.inl i)))).branch r σ =
@@ -479,8 +484,8 @@ theorem stepInv_sponge (m₀ : Finset ValPos × M) (pub : Pub) (v : ValPos → D
     have he := snd_eq_of_spongeHardwired_U_ne_zero (hwEmpty X Z) m₀ i q.1 q'.1 q.2 q'.2 hK
     exact invP_of_eq (congrArg Prod.fst he) (congrArg (fun t ↦ t.2.1) he) hq
 
-theorem stepInv_read (m₀ : Finset ValPos × M) (pub : Pub) (v : ValPos → Digest)
-    (c : {c : HwRead X Z (Finset ValPos × M) // ReadMono (memLab X Z ValPos M) c})
+theorem stepInv_read (m₀ : Finset HPos × M) (pub : Pub) (v : HPos → Digest)
+    (c : {c : HwRead X Z (Finset HPos × M) // ReadMono (memLab X Z HPos M) c})
     (hc : LabKeep c.1) (C : Set (HwProg X Z)) :
     StepInv m₀ pub v (.inl (.inl (.inr c.1))) C C := by
   intro r σ hσ
@@ -493,7 +498,7 @@ theorem stepInv_read (m₀ : Finset ValPos × M) (pub : Pub) (v : ValPos → Dig
       (s' := q'.2) hK
     exact invP_of_eq h1 h2 hq
 
-theorem stepInv_prog (m₀ : Finset ValPos × M) (pub : Pub) (v : ValPos → Digest)
+theorem stepInv_prog (m₀ : Finset HPos × M) (pub : Pub) (v : HPos → Digest)
     (c : HwProg X Z) (C : Set (HwProg X Z)) : StepInv m₀ pub v (.inl (.inr c)) C (C \ {c}) := by
   intro r σ hσ
   have hb : ((runtimeR m₀).step (.inl (.inr c))).branch r σ =
@@ -504,25 +509,25 @@ theorem stepInv_prog (m₀ : Finset ValPos × M) (pub : Pub) (v : ValPos → Dig
     invP_prog c (hwProgKraus_ne_zero_snd c r (u := q.1) (s := q.2) (u' := q'.1) (s' := q'.2) hK)
       hq
 
-theorem stepInv_rec (m₀ : Finset ValPos × M) (pub : Pub) (v : ValPos → Digest)
-    (T : Finset ValPos) (C : Set (HwProg X Z)) :
+theorem stepInv_rec (m₀ : Finset HPos × M) (pub : Pub) (v : HPos → Digest)
+    (T : Finset HPos) (C : Set (HwProg X Z)) :
     StepInv m₀ pub v (.inr T) C (C ∪ revealSet pub v T) := by
   intro r σ hσ
   exact QuerySupportedOn.conj hσ fun q' q hK hq ↦
     invP_reveal T (recKraus_ne_zero (u := q.1) (s := q.2) (u' := q'.1) (s' := q'.2) hK) hq
 
 /-- An operator supported on the invariant presents, at a call, no diagonal mass outside it. -/
-theorem relabel_diag_eq_zero (m₀ : Finset ValPos × M) {pub : Pub} {v : ValPos → Digest}
-    {A : QReg} {i : (recHwSpec X Z ValPos M).Port} (E : QReg)
-    (ℓ : A ≃ (recHwSpec X Z ValPos M).In i × E) {ρ : Matrix (A × (runtimeR m₀).D)
+theorem relabel_diag_eq_zero (m₀ : Finset HPos × M) {pub : Pub} {v : HPos → Digest}
+    {A : QReg} {i : (recHwSpec X Z HPos M).Port} (E : QReg)
+    (ℓ : A ≃ (recHwSpec X Z HPos M).In i × E) {ρ : Matrix (A × (runtimeR m₀).D)
       (A × (runtimeR m₀).D) ℂ}
     (hρ : QuerySupportedOn (fun m : A × (runtimeR m₀).D ↦ m.2) {s | InvP pub v ∅ s} ρ)
-    (a : ((recHwSpec X Z ValPos M).In i × (runtimeR m₀).D) × E) (ha : ¬SlotInv M pub v a.1.2) :
+    (a : ((recHwSpec X Z HPos M).In i × (runtimeR m₀).D) × E) (ha : ¬SlotInv M pub v a.1.2) :
     (SubInstrument.relabel (QuantumRuntime.queryEquivIn ℓ (runtimeR m₀).D)).branch () ρ a a =
       0 := by
   by_contra h
   have h₁ := (hρ.branch_relabel (QuantumRuntime.queryEquivIn ℓ (runtimeR m₀).D)).imp
-    (q' := fun m : ((recHwSpec X Z ValPos M).In i × (runtimeR m₀).D) × E ↦ m.1.2)
+    (q' := fun m : ((recHwSpec X Z HPos M).In i × (runtimeR m₀).D) × E ↦ m.1.2)
     (S' := {s | InvP pub v ∅ s}) fun m hm ↦ by
       obtain ⟨y, rfl⟩ := (QuantumRuntime.queryEquivIn ℓ (runtimeR m₀).D).surjective m
       rwa [Function.comp_apply, Equiv.symm_apply_apply] at hm
@@ -548,7 +553,7 @@ def portPre : (XSpec M).Port → Set (HwProg X Z) → Prop
   | .inr _, C => C = ∅
 
 /-- The pending set after a call. -/
-def portPost (pub : Pub) (v : ValPos → Digest) :
+def portPost (pub : Pub) (v : HPos → Digest) :
     (XSpec M).Port → Set (HwProg X Z) → Set (HwProg X Z)
   | .inl (.inl (.inl _)), C => C
   | .inl (.inl (.inr _)), C => C
@@ -561,13 +566,13 @@ def cmdPre {A : QReg} : QuantumComp.Cmd L (XSpec M) A → Set (HwProg X Z) → P
   | .query i _ _, C => portPre i C
 
 /-- The pending set after a command. -/
-def cmdPost (pub : Pub) (v : ValPos → Digest) {A : QReg} :
+def cmdPost (pub : Pub) (v : HPos → Digest) {A : QReg} :
     QuantumComp.Cmd L (XSpec M) A → Set (HwProg X Z) → Set (HwProg X Z)
   | .prim _, C => C
   | .query i _ _, C => portPost pub v i C
 
 /-- **A template that keeps the invariant**, from the pending set `C` to the pending set `C'`. -/
-def HP (pub : Pub) (v : ValPos → Digest) :
+def HP (pub : Pub) (v : HPos → Digest) :
     {A : QReg} → IFreeM (QuantumComp.toIPFunctor L (XSpec M)) Ω A → Set (HwProg X Z) →
       Set (HwProg X Z) → Prop
   | _, .pure _, C, C' => C ⊆ C'
@@ -584,7 +589,7 @@ theorem cmdPre_anti {A : QReg} (c : QuantumComp.Cmd L (XSpec M) A) {C D : Set (H
   · exact Set.subset_empty_iff.1 (h ▸ hD)
 
 omit [Fintype M] [DecidableEq M] in
-theorem cmdPost_mono (pub : Pub) (v : ValPos → Digest) {A : QReg}
+theorem cmdPost_mono (pub : Pub) (v : HPos → Digest) {A : QReg}
     (c : QuantumComp.Cmd L (XSpec M) A) {C D : Set (HwProg X Z)} (hD : D ⊆ C) :
     cmdPost pub v c D ⊆ cmdPost pub v c C := by
   rcases c with o | ⟨((i | c) | p) | T, E, ℓ⟩
@@ -594,7 +599,7 @@ theorem cmdPost_mono (pub : Pub) (v : ValPos → Digest) {A : QReg}
   · exact Set.sdiff_subset_sdiff_left hD
   · exact Set.union_subset_union_left _ hD
 
-variable (pub : Pub) (v : ValPos → Digest)
+variable (pub : Pub) (v : HPos → Digest)
 
 omit [Fintype M] [DecidableEq M] in
 theorem hp_mono {A : QReg} (y : IFreeM (QuantumComp.toIPFunctor L (XSpec M)) Ω A)
@@ -673,21 +678,21 @@ theorem hp_act {A B : QReg} {α : Type} (p : SubInstrument A B α) (C : Set (HwP
 
 omit [Fintype M] [DecidableEq M] in
 /-- A reveal with nothing pending makes the ports of the slots with an input in `T` pending. -/
-theorem hp_revealThen {B B' : QReg} {α : Type} (T : Finset ValPos)
-    (k : RevealVals XD T × (Finset ValPos × M) → QComp (XSpec M) B B' α) {C' : Set (HwProg X Z)}
+theorem hp_revealThen {B B' : QReg} {α : Type} (T : Finset HPos)
+    (k : RevealVals XD T × (Finset HPos × M) → QComp (XSpec M) B B' α) {C' : Set (HwProg X Z)}
     (hk : ∀ r, HP pub v (k r) (revealSet pub v T) C') :
     HP pub v (revealThen goodAll T k) ∅ C' :=
   ⟨rfl, fun r ↦ hp₂_bind pub v _ _ (hp_act pub v _ _) fun _ ↦
     hp_mono pub v _ (hk r.down) (Set.empty_union _).le subset_rfl⟩
 
 omit [Fintype M] [DecidableEq M] in
-theorem hp_progThen {B B' : QReg} {α : Type} (p : LazyProg X Z ValPos XD) (hp : goodAll p)
+theorem hp_progThen {B B' : QReg} {α : Type} (p : LazyProg X Z HPos XD) (hp : goodAll p)
     (k : QComp (XSpec M) B B' α) {C C' : Set (HwProg X Z)}
     (hk : HP pub v k (C \ {p.realize v}) C') : HP pub v (progThen p hp k) C C' :=
   ⟨trivial, fun _ ↦ hp₂_bind pub v _ _ (hp_act pub v _ _) fun _ ↦ hk⟩
 
 omit [Fintype M] [DecidableEq M] in
-theorem hp_progPorts (B : QReg) (ps : List (LazyProg X Z ValPos XD)) (C : Set (HwProg X Z)) :
+theorem hp_progPorts (B : QReg) (ps : List (LazyProg X Z HPos XD)) (C : Set (HwProg X Z)) :
     HP pub v (progPorts M B ps) C (C \ {c | ∃ p ∈ ps, p.realize v = c}) := by
   induction ps generalizing C with
   | nil => exact fun c hc ↦ ⟨hc, fun ⟨_, hp, _⟩ ↦ absurd hp List.not_mem_nil⟩
@@ -718,25 +723,27 @@ theorem hp_progSlots (B : QReg) (ss : List Slot) (C : Set (HwProg X Z)) :
 variable (upd : TrialUpd M)
 
 omit [Fintype M] [DecidableEq M] in
-/-- **A layer signature keeps the invariant**: the randomizer search reads, the reveal of
-`layerNeed` makes the ports of the slots with a revealed input pending, and those slots are the
-signature's slots, which it then programs. -/
-theorem hp_signLayerT (B : QReg) (l : Layer) (e : KeyIndex) (message : HashInput) :
-    HP pub v (signLayerT M upd pub B l e message) ∅ ∅ := by
-  refine hp₂_bind pub v _ _ (hp_readLift pub v _) fun g ↦ ?_
+/-- **A layer signature keeps the invariant**: the reveal of the randomizer base makes nothing
+pending (it is no slot's input), the randomizer search reads, the reveal of `layerNeed` makes the
+ports of the slots with a revealed input pending, and those slots are the signature's slots, which
+it then programs. -/
+theorem hp_signLayerT (B : QReg) (lab : RLabel) :
+    HP pub v (signLayerT M upd pub B lab) ∅ ∅ := by
+  refine hp_revealThen pub v _ _ fun _ ↦ hp_mono pub v _
+    (hp₂_bind pub v _ _ (hp_readLift pub v _) fun g ↦ ?_) (revealSet_inr pub v lab) subset_rfl
   rcases g with _ | ⟨ρ, x⟩
   · exact subset_rfl
   · refine hp_revealThen pub v _ _ fun r ↦
       hp₂_bind pub v _ _ (hp_progSlots pub v B _ _) fun _ ↦ ?_
     rintro c ⟨hc, hn⟩
-    exact hn (revealSet_layerNeed_subset pub v l e x hc)
+    exact hn (revealSet_layerNeed_subset pub v _ _ x hc)
 
 omit [Fintype M] [DecidableEq M] in
 theorem hp_signT (B : QReg) (r : SigningRequest) : HP pub v (signT M upd pub B r) ∅ ∅ := by
-  refine hp₂_bind pub v _ _ (hp_signLayerT pub v upd B _ _ _) fun b ↦ ?_
+  refine hp₂_bind pub v _ _ (hp_signLayerT pub v upd B _) fun b ↦ ?_
   rcases b with _ | ⟨bottom, f⟩
   · exact subset_rfl
-  · refine hp₂_bind pub v _ _ (hp_signLayerT pub v upd B _ _ _) fun t ↦ ?_
+  · refine hp₂_bind pub v _ _ (hp_signLayerT pub v upd B _) fun t ↦ ?_
     rcases t with _ | ⟨top, _⟩ <;> exact subset_rfl
 
 omit [Fintype M] [DecidableEq M] in
@@ -768,13 +775,13 @@ section hinv
 variable {M : Type} [Fintype M] [DecidableEq M] {L : LocalSig.{u, v}} {Ω : QReg → Type w}
 
 /-- One call of a realized program on the pending invariant. -/
-theorem forallQueries_queryBind_of_step {Q : (recHwSpec X Z ValPos M).Port → Prop}
-    (m₀ : Finset ValPos × M) (I : L.Interp) (pub : Pub) (v : ValPos → Digest) {A : QReg}
-    (i : (recHwSpec X Z ValPos M).Port) (E : QReg) (ℓ : A ≃ (recHwSpec X Z ValPos M).In i × E)
-    (k' : (recHwSpec X Z ValPos M).Result i → QuantumComp L (recHwSpec X Z ValPos M) Ω
-      (QReg.of ((recHwSpec X Z ValPos M).Out i × E)))
+theorem forallQueries_queryBind_of_step {Q : (recHwSpec X Z HPos M).Port → Prop}
+    (m₀ : Finset HPos × M) (I : L.Interp) (pub : Pub) (v : HPos → Digest) {A : QReg}
+    (i : (recHwSpec X Z HPos M).Port) (E : QReg) (ℓ : A ≃ (recHwSpec X Z HPos M).In i × E)
+    (k' : (recHwSpec X Z HPos M).Result i → QuantumComp L (recHwSpec X Z HPos M) Ω
+      (QReg.of ((recHwSpec X Z HPos M).Out i × E)))
     {C C' : Set (HwProg X Z)} (hpre : Q i → C = ∅) (hstep : StepInv m₀ pub v i C C')
-    (hk : ∀ r ρ', QuerySupportedOn (fun m : QReg.of ((recHwSpec X Z ValPos M).Out i × E) ×
+    (hk : ∀ r ρ', QuerySupportedOn (fun m : QReg.of ((recHwSpec X Z HPos M).Out i × E) ×
         (runtimeR m₀).D ↦ m.2) {s | InvP pub v C' s} ρ' →
       (runtimeR m₀).ForallQueries I (invSupp (runtimeR m₀) Q (SlotInv M pub v)) (k' r) ρ')
     (ρ : Matrix (A × (runtimeR m₀).D) (A × (runtimeR m₀).D) ℂ)
@@ -786,9 +793,9 @@ theorem forallQueries_queryBind_of_step {Q : (recHwSpec X Z ValPos M).Port → P
 
 /-- **The realized program of a template keeping the invariant presents, at every call of the
 ports `Q` (no program port), only states of the invariant.** -/
-theorem forallQueries_of_hp {Q : (recHwSpec X Z ValPos M).Port → Prop}
-    (hQ : ∀ c, ¬Q (.inl (.inr c))) (m₀ : Finset ValPos × M) (I : L.Interp) (pub : Pub)
-    (v : ValPos → Digest) {A : QReg} (y : QuantumComp L (XSpec M) Ω A) :
+theorem forallQueries_of_hp {Q : (recHwSpec X Z HPos M).Port → Prop}
+    (hQ : ∀ c, ¬Q (.inl (.inr c))) (m₀ : Finset HPos × M) (I : L.Interp) (pub : Pub)
+    (v : HPos → Digest) {A : QReg} (y : QuantumComp L (XSpec M) Ω A) :
     ∀ C C', HP pub v y C C' → ∀ ρ : Matrix (A × (runtimeR m₀).D) (A × (runtimeR m₀).D) ℂ,
       QuerySupportedOn (fun m : A × (runtimeR m₀).D ↦ m.2) {s | InvP pub v C s} ρ →
       (runtimeR m₀).ForallQueries I (invSupp (runtimeR m₀) Q (SlotInv M pub v))
@@ -828,18 +835,18 @@ theorem forallQueries_of_hp {Q : (recHwSpec X Z ValPos M).Port → Prop}
         (fun m ↦ ih (restrictTo T v, m) _ C' (hy.2 (ULift.up (restrictTo T v, m)))) ρ hρ
 
 /-- An initial state whose memory label is empty is on the invariant. -/
-theorem querySupportedOn_init (m₀ : Finset ValPos × M) (hm₀ : m₀.1 = ∅) {A : QReg}
+theorem querySupportedOn_init (m₀ : Finset HPos × M) (hm₀ : m₀.1 = ∅) {A : QReg}
     (σ : Matrix A A ℂ) :
-    QuerySupportedOn (fun a : A × QReg.of (HwReg X Z (Finset ValPos × M)) ↦ a.2.2.2.1) {∅}
+    QuerySupportedOn (fun a : A × QReg.of (HwReg X Z (Finset HPos × M)) ↦ a.2.2.2.1) {∅}
       (σ ⊗ₖ (runtimeR (X := X) (Z := Z) m₀).init.matrix) := by
   intro a b h
   change (σ ⊗ₖ (SubState.basis (((Database.empty, Database.empty, Database.empty),
-    hwEmpty X Z, m₀) : HwReg X Z (Finset ValPos × M))).matrix) a b ≠ 0 at h
+    hwEmpty X Z, m₀) : HwReg X Z (Finset HPos × M))).matrix) a b ≠ 0 at h
   rw [SubState.matrix_basis, kroneckerMap_apply] at h
   have h' := right_ne_zero_of_mul h
   rw [Matrix.single_apply] at h'
   split_ifs at h' with he
-  · show a.2.2.2.1 ∈ ({∅} : Set (Finset ValPos)) ∧ b.2.2.2.1 ∈ ({∅} : Set (Finset ValPos))
+  · show a.2.2.2.1 ∈ ({∅} : Set (Finset HPos)) ∧ b.2.2.2.1 ∈ ({∅} : Set (Finset HPos))
     rw [← he.1, ← he.2]
     exact ⟨hm₀, hm₀⟩
   · exact absurd rfl h'
@@ -848,12 +855,12 @@ variable (upd : TrialUpd M)
 
 /-- **`hinv` for the realized template game**, at every public datum: from states with an empty
 memory label, every call of ports `Q` that are not program ports sees the invariant `SlotInv`. -/
-theorem forallQueries_gameT {Q : (recHwSpec X Z ValPos M).Port → Prop}
-    (hQ : ∀ c, ¬Q (.inl (.inr c))) (m₀ : Finset ValPos × M) (pub : Pub) (A : Adversary (X × Z))
-    (v : ValPos → Digest)
-    (ρ : Matrix (QReg.of Unit × QReg.of (HwReg X Z (Finset ValPos × M)))
-      (QReg.of Unit × QReg.of (HwReg X Z (Finset ValPos × M))) ℂ)
-    (hρ : QuerySupportedOn (fun a : QReg.of Unit × QReg.of (HwReg X Z (Finset ValPos × M)) ↦
+theorem forallQueries_gameT {Q : (recHwSpec X Z HPos M).Port → Prop}
+    (hQ : ∀ c, ¬Q (.inl (.inr c))) (m₀ : Finset HPos × M) (pub : Pub) (A : Adversary (X × Z))
+    (v : HPos → Digest)
+    (ρ : Matrix (QReg.of Unit × QReg.of (HwReg X Z (Finset HPos × M)))
+      (QReg.of Unit × QReg.of (HwReg X Z (Finset HPos × M))) ℂ)
+    (hρ : QuerySupportedOn (fun a : QReg.of Unit × QReg.of (HwReg X Z (Finset HPos × M)) ↦
       a.2.2.2.1) {∅} ρ) :
     (runtimeR m₀).ForallQueries LocalSig.Interp.instruments
       (invSupp (runtimeR m₀) Q (SlotInv M pub v)) (realizeT v (gameT M upd pub A)) ρ :=
@@ -861,11 +868,11 @@ theorem forallQueries_gameT {Q : (recHwSpec X Z ValPos M).Port → Prop}
     (hρ.imp fun _ ha ↦ invP_of_label_empty (Set.mem_singleton_iff.1 ha))
 
 /-- **Masses' `hinv`** with `Inv p v := SlotInv M (pubP p) v`, for any `pubP`. -/
-theorem hinv_gameT {P : Type} (pubP : P → Pub) {Q : (recHwSpec X Z ValPos M).Port → Prop}
-    (hQ : ∀ c, ¬Q (.inl (.inr c))) (m₀ : Finset ValPos × M) (A : Adversary (X × Z))
-    (ρ : Matrix (QReg.of Unit × QReg.of (HwReg X Z (Finset ValPos × M)))
-      (QReg.of Unit × QReg.of (HwReg X Z (Finset ValPos × M))) ℂ)
-    (hρ : QuerySupportedOn (fun a : QReg.of Unit × QReg.of (HwReg X Z (Finset ValPos × M)) ↦
+theorem hinv_gameT {P : Type} (pubP : P → Pub) {Q : (recHwSpec X Z HPos M).Port → Prop}
+    (hQ : ∀ c, ¬Q (.inl (.inr c))) (m₀ : Finset HPos × M) (A : Adversary (X × Z))
+    (ρ : Matrix (QReg.of Unit × QReg.of (HwReg X Z (Finset HPos × M)))
+      (QReg.of Unit × QReg.of (HwReg X Z (Finset HPos × M))) ℂ)
+    (hρ : QuerySupportedOn (fun a : QReg.of Unit × QReg.of (HwReg X Z (Finset HPos × M)) ↦
       a.2.2.2.1) {∅} ρ) :
     ∀ p v, (runtimeR m₀).ForallQueries LocalSig.Interp.instruments
       (invSupp (runtimeR m₀) Q ((fun p v ↦ SlotInv M (pubP p) v) p v))
@@ -886,7 +893,7 @@ variable {M : Type} [Fintype M] [DecidableEq M]
 
 variable (M) in
 /-- The read and record ports of runtime 2 with record ports. -/
-def readRecPort : (recHwSpec X Z ValPos M).Port → Bool
+def readRecPort : (recHwSpec X Z HPos M).Port → Bool
   | .inl (.inl (.inr _)) => true
   | .inr _ => true
   | _ => false
@@ -897,7 +904,7 @@ theorem readRecPort_prog (c : HwProg X Z) : ¬readRecPort M (.inl (.inr c)) = tr
 
 /-- **The read mass is the hidden mass at the read and record ports.** -/
 theorem readMass_eq_portMass (Hh : Set Z) (Hk Hk' : Set X) :
-    readMass (S := ValPos) (M' := M) Hh Hk Hk' =
+    readMass (S := HPos) (M' := M) Hh Hk Hk' =
       portMass (fun i ↦ readRecPort M i = true) Hh Hk Hk' := by
   funext i σ
   rcases i with ((i | c) | c) | T
@@ -925,7 +932,7 @@ def tCharge (a b c d : ℕ) : (XSpec M).Port → ℕ
 
 variable (M) in
 /-- The same charge on runtime 2 with record ports (a reveal realizes as a record call). -/
-def rCharge (a b c d : ℕ) : (recHwSpec X Z ValPos M).Port → ℕ
+def rCharge (a b c d : ℕ) : (recHwSpec X Z HPos M).Port → ℕ
   | .inl (.inl (.inl _)) => a
   | .inl (.inl (.inr _)) => b
   | .inl (.inr _) => c
@@ -941,7 +948,7 @@ variable (a b c d : ℕ)
 
 omit [Fintype M] [DecidableEq M] in
 /-- **Realizing keeps the charges by kind.** -/
-theorem isChargeBound_realizeT (v : ValPos → Digest) {A : QReg} {y : QuantumComp L (XSpec M) Ω A}
+theorem isChargeBound_realizeT (v : HPos → Digest) {A : QReg} {y : QuantumComp L (XSpec M) Ω A}
     {n : ℕ} (h : IFreeM.IsChargeBound y (portCharge (tCharge M a b c d)) n) :
     IFreeM.IsChargeBound (realizeT v y) (portCharge (rCharge M a b c d)) n := by
   refine IFreeM.IsChargeBound.mapLens (tmplLens v) ?_
@@ -1146,8 +1153,8 @@ theorem chg_grindR (pub : Pub) (B : QReg) (l : Layer) (e : KeyIndex) {message : 
     · exact chg_grindR pub B l e hm base n (trial + 1)
 
 omit [Fintype M] [DecidableEq M] in
-theorem chg_revealThen {B B' : QReg} {α : Type} (T : Finset ValPos)
-    (k : RevealVals XD T × (Finset ValPos × M) → QComp (XSpec M) B B' α) {n : ℕ}
+theorem chg_revealThen {B B' : QReg} {α : Type} (T : Finset HPos)
+    (k : RevealVals XD T × (Finset HPos × M) → QComp (XSpec M) B B' α) {n : ℕ}
     (hk : ∀ r, IFreeM.IsChargeBound (k r) (portCharge (tCharge M a b c d)) n) :
     IFreeM.IsChargeBound (revealThen goodAll T k) (portCharge (tCharge M a b c d)) (d + n) := by
   refine (isChargeBound_portCharge_queryBind_iff _ _ _ _ _ _).mpr ⟨Nat.le_add_right d n, fun r ↦ ?_⟩
@@ -1156,7 +1163,7 @@ theorem chg_revealThen {B B' : QReg} {α : Type} (T : Finset ValPos)
     (FreeM₂.isChargeBound_bind (n₁ := 0) (chg_act _ _ 0) fun _ ↦ hk r) (Nat.zero_add n).le
 
 omit [Fintype M] [DecidableEq M] in
-theorem chg_progThen {B B' : QReg} {α : Type} (p : LazyProg X Z ValPos XD) (hp : goodAll p)
+theorem chg_progThen {B B' : QReg} {α : Type} (p : LazyProg X Z HPos XD) (hp : goodAll p)
     (k : QComp (XSpec M) B B' α) {n : ℕ}
     (hk : IFreeM.IsChargeBound k (portCharge (tCharge M a b c d)) n) :
     IFreeM.IsChargeBound (progThen p hp k) (portCharge (tCharge M a b c d)) (c + n) := by
@@ -1166,7 +1173,7 @@ theorem chg_progThen {B B' : QReg} {α : Type} (p : LazyProg X Z ValPos XD) (hp 
     (FreeM₂.isChargeBound_bind (n₁ := 0) (chg_act _ _ 0) fun _ ↦ hk) (Nat.zero_add n).le
 
 omit [Fintype M] [DecidableEq M] in
-theorem chg_progPorts (B : QReg) (ps : List (LazyProg X Z ValPos XD)) :
+theorem chg_progPorts (B : QReg) (ps : List (LazyProg X Z HPos XD)) :
     IFreeM.IsChargeBound (progPorts M B ps) (portCharge (tCharge M a b c d)) (c * ps.length) := by
   induction ps with
   | nil => trivial
@@ -1240,27 +1247,33 @@ theorem sum_length_slotPorts_layerSlots_le (pub : Pub) (l : Layer) (e : KeyIndex
   have hH : layerHeight = 16 := rfl
   omega
 
-/-- The calls of one layer signature by kind: the randomizer search's reads, one reveal and the
-program calls. -/
+/-- The calls of one layer signature by kind: the randomizer base's reveal, the randomizer
+search's reads, one reveal and the program calls. -/
 def layerCalls (b c d : ℕ) : ℕ :=
-  randomizerAttemptLimit * (3 * b) + (d + c * 594)
+  d + (randomizerAttemptLimit * (3 * b) + (d + c * 594))
+
+/-- A label's message is at most `32` bytes. -/
+theorem RLabel.length_msg_le (lab : RLabel) : lab.msg.length ≤ 32 := by
+  rcases lab with ⟨_, m⟩ | ⟨_, d⟩
+  · exact (XmssCost.littleEndianBytes_length _ _).le
+  · exact (XmssCost.littleEndianBytes_length _ _).le.trans (by norm_num)
 
 omit [Fintype M] [DecidableEq M] in
 /-- **A layer signature's calls.** -/
-theorem chg_signLayerT (pub : Pub) (B : QReg) (l : Layer) (e : KeyIndex) {message : HashInput}
-    (hm : message.length ≤ 32) :
-    IFreeM.IsChargeBound (signLayerT M upd pub B l e message) (portCharge (tCharge M a b c d))
+theorem chg_signLayerT (pub : Pub) (B : QReg) (lab : RLabel) :
+    IFreeM.IsChargeBound (signLayerT M upd pub B lab) (portCharge (tCharge M a b c d))
       (layerCalls b c d) := by
   unfold signLayerT
+  refine chg_revealThen a b c d _ _ fun _ ↦ ?_
   refine FreeM₂.isChargeBound_bind (isChargeBound_readLift a b c d
-    (chg_grindR a b upd pub B l e hm _ _ _)) fun g ↦ ?_
+    (chg_grindR a b upd pub B lab.layer lab.key (RLabel.length_msg_le lab) _ _ _)) fun g ↦ ?_
   rcases g with _ | ⟨ρ, x⟩
   · trivial
   · refine chg_revealThen a b c d _ _ fun r ↦ ?_
     refine IFreeM.IsChargeBound.mono (FreeM₂.isChargeBound_bind (n₂ := 0)
       (chg_progSlots a b c d pub B _) fun _ ↦ trivial) ?_
     rw [Nat.add_zero]
-    exact Nat.mul_le_mul_left c (sum_length_slotPorts_layerSlots_le pub l e x)
+    exact Nat.mul_le_mul_left c (sum_length_slotPorts_layerSlots_le pub lab.layer lab.key x)
 
 omit [Fintype M] [DecidableEq M] in
 /-- **A signature's calls**: two layer signatures. -/
@@ -1269,13 +1282,11 @@ theorem chg_signT (pub : Pub) (B : QReg) (r : SigningRequest) :
       (2 * layerCalls b c d) := by
   unfold signT
   refine IFreeM.IsChargeBound.mono (FreeM₂.isChargeBound_bind (n₂ := layerCalls b c d)
-    (chg_signLayerT a b c d upd pub B _ _ (XmssCost.littleEndianBytes_length _ _).le)
-    fun t ↦ ?_) (le_of_eq (by omega))
+    (chg_signLayerT a b c d upd pub B _) fun t ↦ ?_) (le_of_eq (by omega))
   rcases t with _ | ⟨bottom, f⟩
   · trivial
   · refine IFreeM.IsChargeBound.mono (FreeM₂.isChargeBound_bind (n₂ := 0)
-      (chg_signLayerT a b c d upd pub B _ _
-        ((XmssCost.littleEndianBytes_length _ _).le.trans (by norm_num))) fun t ↦ ?_) le_rfl
+      (chg_signLayerT a b c d upd pub B _) fun t ↦ ?_) le_rfl
     rcases t with _ | ⟨top, _⟩ <;> trivial
 
 /-- The source charge of the adversary's commands: `α` per permutation call, `β` per signing
@@ -1341,7 +1352,7 @@ and at most `lifetime` signing requests on every path, at every public datum and
 theorem chg_realizeT_gameT (A : Adversary (X × Z)) {q : ℕ}
     (hperm : ∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge permCharge) q)
     (hsign : ∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge signCharge) lifetime)
-    (pub : Pub) (v : ValPos → Digest) :
+    (pub : Pub) (v : HPos → Digest) :
     IFreeM.IsChargeBound (realizeT v (gameT M upd pub A)) (portCharge (rCharge M a b c d))
       (gameCalls a b c d q) :=
   isChargeBound_realizeT a b c d v
@@ -1360,11 +1371,11 @@ include hperm hsign
 
 omit [Fintype M] [DecidableEq M] in
 /-- **`hN` at the sponge ports**: at most `6q` sponge calls. -/
-theorem hN_sponge (pub : Pub) (v : ValPos → Digest) :
+theorem hN_sponge (pub : Pub) (v : HPos → Digest) :
     IFreeM.IsChargeBound (realizeT v (gameT M upd pub A))
-      (portCharge fun i ↦ if extCls X Z (Finset ValPos × M) (recSpec ValPos M) i then 0 else 1)
+      (portCharge fun i ↦ if extCls X Z (Finset HPos × M) (recSpec HPos M) i then 0 else 1)
       (6 * q) := by
-  have he : (fun i ↦ if extCls X Z (Finset ValPos × M) (recSpec ValPos M) i then 0 else 1) =
+  have he : (fun i ↦ if extCls X Z (Finset HPos × M) (recSpec HPos M) i then 0 else 1) =
       rCharge M 1 0 0 0 := by
     funext i
     rcases i with ((i | c) | c) | T <;> rfl
@@ -1384,11 +1395,11 @@ theorem gameCalls_cls_le (q : ℕ) :
 omit [Fintype M] [DecidableEq M] in
 /-- **`hN` at the classical ports** (reads, program and record calls): at most Security's
 `clsCap = 3 (signBlocks · lifetime + verifyBlocks) + 2 progCap`. -/
-theorem hN_cls (pub : Pub) (v : ValPos → Digest) :
+theorem hN_cls (pub : Pub) (v : HPos → Digest) :
     IFreeM.IsChargeBound (realizeT v (gameT M upd pub A))
-      (portCharge fun i ↦ if extCls X Z (Finset ValPos × M) (recSpec ValPos M) i then 1 else 0)
+      (portCharge fun i ↦ if extCls X Z (Finset HPos × M) (recSpec HPos M) i then 1 else 0)
       (3 * (signBlocks * lifetime + verifyBlocks) + 2 * progCap) := by
-  have he : (fun i ↦ if extCls X Z (Finset ValPos × M) (recSpec ValPos M) i then 1 else 0) =
+  have he : (fun i ↦ if extCls X Z (Finset HPos × M) (recSpec HPos M) i then 1 else 0) =
       rCharge M 0 1 1 1 := by
     funext i
     rcases i with ((i | c) | c) | T <;> rfl
@@ -1399,7 +1410,7 @@ theorem hN_cls (pub : Pub) (v : ValPos → Digest) :
 omit [Fintype M] [DecidableEq M] in
 /-- **`hN` at the read and record ports** (`readRecPort`, the ports of the read mass on which the
 invariant holds): at most `clsCap`. -/
-theorem hN_readRec (pub : Pub) (v : ValPos → Digest) :
+theorem hN_readRec (pub : Pub) (v : HPos → Digest) :
     IFreeM.IsChargeBound (realizeT v (gameT M upd pub A))
       (portCharge fun i ↦ if readRecPort M i = true then 1 else 0)
       (3 * (signBlocks * lifetime + verifyBlocks) + 2 * progCap) := by
@@ -1415,10 +1426,10 @@ theorem hN_readRec (pub : Pub) (v : ValPos → Digest) :
 
 omit [Fintype M] [DecidableEq M] in
 /-- **`hN` at the program ports**: at most `progCap` program calls. -/
-theorem hN_prog (pub : Pub) (v : ValPos → Digest) :
+theorem hN_prog (pub : Pub) (v : HPos → Digest) :
     IFreeM.IsChargeBound (realizeT v (gameT M upd pub A))
-      (portCharge (extProgCharge X Z (Finset ValPos × M) (recSpec ValPos M))) progCap := by
-  have he : extProgCharge X Z (Finset ValPos × M) (recSpec ValPos M) = rCharge M 0 0 1 0 := by
+      (portCharge (extProgCharge X Z (Finset HPos × M) (recSpec HPos M))) progCap := by
+  have he : extProgCharge X Z (Finset HPos × M) (recSpec HPos M) = rCharge M 0 0 1 0 := by
     funext i
     rcases i with ((i | c) | c) | T <;> rfl
   rw [he]

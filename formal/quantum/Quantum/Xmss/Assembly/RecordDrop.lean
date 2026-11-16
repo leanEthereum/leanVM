@@ -8,11 +8,11 @@ public import Quantum.Xmss.Assembly.GameT
 # Dropping the record ports of the canonical game
 
 The canonical runtime-2 game `realizeT v (gameT M upd pub A)` (Template) runs over `recHwSpec`:
-memory `Finset ValPos × M`, record ports, and trial reads that update the inner memory with `upd`.
+memory `Finset HPos × M`, record ports, and trial reads that update the inner memory with `upd`.
 Its program `gameD Unit pub v A` over `hwSpec` with memory `Unit` (GameT) drops the record calls
 and keeps the memory on every read.
 
-* `dropRec_gameT`: `DropRec ValPos (realizeT v (gameT M upd pub A)) (gameD Unit pub v A)`, by the
+* `dropRec_gameT`: `DropRec HPos (realizeT v (gameT M upd pub A)) (gameD Unit pub v A)`, by the
   structure of the two programs (`ReadsRel` for the read programs: one read at a time,
   `readsRel_readH_bind`, then the sponge rounds, the trials, the randomizer search and the
   verification's reads).
@@ -228,7 +228,7 @@ end xreads
 
 section game
 
-variable {M : Type} (upd : TrialUpd M) (v : ValPos → Digest)
+variable {M : Type} (upd : TrialUpd M) (v : HPos → Digest)
 
 /-- **The randomizer search at memories `M` and `Unit`.** -/
 theorem readsRel_grindR (pub : Pub) (B : QReg) (l : Layer) (e : KeyIndex) (message : HashInput)
@@ -244,12 +244,13 @@ theorem readsRel_grindR (pub : Pub) (B : QReg) (l : Layer) (e : KeyIndex) (messa
     | none => exact readsRel_grindR pub B l e message base n (trial + 1)
     | some x => exact readsRel_pure v _
 
-theorem dropRec_signLayerT (pub : Pub) (B : QReg) (l : Layer) (e : KeyIndex)
-    (message : HashInput) :
-    DropRec ValPos (realizeT v (signLayerT M upd pub B l e message))
-      (signLayerD Unit pub v B l e message) := by
-  rw [signLayerT, signLayerD, realizeT_bind₂]
-  refine DropRec.bind₂ (readsRel_grindR upd v pub B l e message _ _ _) fun g ↦ ?_
+theorem dropRec_signLayerT (pub : Pub) (B : QReg) (lab : RLabel) :
+    DropRec HPos (realizeT v (signLayerT M upd pub B lab)) (signLayerD Unit pub v B lab) := by
+  rw [signLayerT]
+  refine dropRec_revealThen v _ _ fun _ ↦ ?_
+  dsimp only
+  rw [extendBase_restrictTo (Finset.mem_singleton_self _), signLayerD, realizeT_bind₂]
+  refine DropRec.bind₂ (readsRel_grindR upd v pub B lab.layer lab.key lab.msg _ _ _) fun g ↦ ?_
   rcases g with _ | ⟨ρ, x⟩
   · exact DropRec.pure _
   · refine dropRec_revealThen v _ _ fun _ ↦ ?_
@@ -257,27 +258,27 @@ theorem dropRec_signLayerT (pub : Pub) (B : QReg) (l : Layer) (e : KeyIndex)
     exact DropRec.bind₂ (dropRec_progSlots v pub B _) fun _ ↦ DropRec.pure _
 
 theorem dropRec_signT (pub : Pub) (B : QReg) (r : SigningRequest) :
-    DropRec ValPos (realizeT v (signT M upd pub B r)) (signWith B (signLayerD Unit pub v B) r) := by
+    DropRec HPos (realizeT v (signT M upd pub B r)) (signWith B (signLayerD Unit pub v B) r) := by
   rw [signT, signWith, realizeT_bind₂]
-  refine DropRec.bind₂ (dropRec_signLayerT upd v pub B _ _ _) fun b ↦ ?_
+  refine DropRec.bind₂ (dropRec_signLayerT upd v pub B _) fun b ↦ ?_
   rcases b with _ | ⟨bottom, f⟩
   · exact DropRec.pure _
   · dsimp only
     rw [realizeT_bind₂]
-    refine DropRec.bind₂ (dropRec_signLayerT upd v pub B _ _ _) fun t ↦ ?_
+    refine DropRec.bind₂ (dropRec_signLayerT upd v pub B _) fun t ↦ ?_
     rcases t with _ | ⟨top, _⟩
     · exact DropRec.pure _
     · exact DropRec.pure _
 
 theorem dropRec_signAt (pub : Pub) (r : SigningRequest) (E : QReg) {A : QReg}
     (ℓ : A ≃ (advSpec (X × Z)).In (.sign r) × E) :
-    DropRec ValPos (realizeT v (signAt M upd pub r E ℓ)) (signAtD Unit pub v r E ℓ) := by
+    DropRec HPos (realizeT v (signAt M upd pub r E ℓ)) (signAtD Unit pub v r E ℓ) := by
   rw [signAt, signAtD, signAtWith]
   exact dropRec_realizeT_act_bind v _ fun _ ↦ dropRec_signT upd v pub _ r
 
 theorem dropRec_challengeT (pub : Pub) (A : QReg)
     (c : (QuantumComp.toIPFunctor LocalSig.instruments.{0} (advSpec (X × Z))).A A) :
-    DropRec ValPos (realizeT v (challengeT M upd pub A c)) (challengeD Unit pub v A c) := by
+    DropRec HPos (realizeT v (challengeT M upd pub A c)) (challengeD Unit pub v A c) := by
   rcases c with o | ⟨p | r, E, ℓ⟩
   · exact dropRec_readLift_liftOrdinary v _
   · exact dropRec_readLift_liftOrdinary v _
@@ -286,7 +287,7 @@ theorem dropRec_challengeT (pub : Pub) (A : QReg)
 /-- **The realized game drops to `gameD`**: with its record calls removed and its reads keeping
 the memory `Unit`, the canonical game is `gameD Unit pub v A`. -/
 theorem dropRec_gameT (pub : Pub) (A : Adversary (X × Z)) :
-    DropRec ValPos (realizeT v (gameT M upd pub A)) (gameD Unit pub v A) := by
+    DropRec HPos (realizeT v (gameT M upd pub A)) (gameD Unit pub v A) := by
   refine dropRec_revealThen v _ _ fun _ ↦ ?_
   dsimp only
   rw [realizeT_bind₂, gameD]

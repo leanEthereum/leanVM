@@ -38,7 +38,7 @@ runtime 2 the hidden masses vanish on the program ports, so `ViewByOn` for the o
   block, the payload's first two 16-byte values); `honestCell L s` (the first block of slot `s`'s
   honest input) names its slot (`slotOfBlock_honestCell`) and carries the honest input values:
   the chain value for a chain step, the first chain end for a leaf, both children for a node.
-  `ValPos`: the positions of the honest 128-bit values (chain positions, tree values), `valueAt L`.
+  `ValPos`: the positions of the honest 128-bit values (chain positions, tree values), `valuePos L`.
   `cellSrc P T x`: the position and value a first block names for the disclosed positions `T` (a
   node names its right child when its left one is disclosed); `cellSrc_honestCell_chain`,
   `cellSrc_honestCell_leaf`, `cellSrc_honestCell_node`: on the honest first blocks it names the
@@ -779,7 +779,7 @@ def cellSrc (P : PublicParameter) (T : Finset ValPos) (x : X) : Option (ValPos �
 variable (L : HonestTable)
 
 /-- The honest value at a position. -/
-def valueAt : ValPos → Digest
+def valuePos : ValPos → Digest
   | .chain l e i j => L.chainValue l e i j.val
   | .tree l level index => L.treeValue l level.val index.val
 
@@ -827,7 +827,7 @@ theorem cellSrc_honestCell_chain (T : Finset ValPos) (l : Layer) (e : KeyIndex)
     (step : ChainStep) (i : ChainIndex) (he : e.val < keyCount l) :
     cellSrc L.param T (honestCell L (.chain l e step i)) =
       some (.chain l e i ⟨step.val, chainStep_lt step⟩,
-        valueAt L (.chain l e i ⟨step.val, chainStep_lt step⟩)) := by
+        valuePos L (.chain l e i ⟨step.val, chainStep_lt step⟩)) := by
   rw [cellSrc, slotOfBlock_honestCell L (s := .chain l e step i) he,
     payloadLo_honestCell_chain]
   rfl
@@ -837,7 +837,7 @@ theorem cellSrc_honestCell_leaf (T : Finset ValPos) (l : Layer) (e : KeyIndex)
     (he : e.val < keyCount l) :
     cellSrc L.param T (honestCell L (.leaf l e)) =
       some (.chain l e ⟨0, by decide⟩ ⟨chainLength - 1, chainLength_pred_lt⟩,
-        valueAt L (.chain l e ⟨0, by decide⟩ ⟨chainLength - 1, chainLength_pred_lt⟩)) := by
+        valuePos L (.chain l e ⟨0, by decide⟩ ⟨chainLength - 1, chainLength_pred_lt⟩)) := by
   rw [cellSrc, slotOfBlock_honestCell L (s := .leaf l e) he, payloadLo_honestCell_leaf]
   rfl
 
@@ -847,7 +847,7 @@ when both children are. -/
 theorem cellSrc_honestCell_node (T : Finset ValPos) (l : Layer) (level index : ℕ)
     (hs : InTable (.node l level index)) :
     ∃ q, cellSrc L.param T (honestCell L (.node l level index)) = some q ∧
-      q.2 = valueAt L q.1 ∧
+      q.2 = valuePos L q.1 ∧
       (q.1 ∈ T → ∀ (h₁ : level - 1 < layerHeight + 1) (h₂ : 2 * index + 1 < 2 ^ 32),
         ValPos.tree l ⟨level - 1, h₁⟩ ⟨2 * index, by omega⟩ ∈ T ∧
           ValPos.tree l ⟨level - 1, h₁⟩ ⟨2 * index + 1, h₂⟩ ∈ T) := by

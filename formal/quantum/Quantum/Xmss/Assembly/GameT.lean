@@ -15,9 +15,9 @@ the initial memory `m₀ = (T₀, m)` (label `T₀`, canonically `∅`) and an a
 game of `L` is
 `(runtimeR m₀).evalDistMap .instruments (realizeT (valueAt L) (gameT M upd (pubOf L) A)) ρ f`:
 runtime 2 (no hardwired cell at the start) extended by the record ports, running the template
-game with `L`'s public data `pubOf L` (parameter, `π`, keys, randomizer bases), realized at `L`'s
-hidden values `valueAt L`. Its winning probability observes `{true}` with `ρ = SubState.basis ()`
-and `f = fun p ↦ p.2.2`.
+game with `L`'s public data `pubOf L` (parameter, `π`, keys), realized at `L`'s hidden values
+`valueAt L` (honest values and randomizer bases). Its winning probability observes `{true}` with
+`ρ = SubState.basis ()` and `f = fun p ↦ p.2.2`.
 
 **From the realized template to the read program.**
 * `DropRec S x y`: `x` over `recHwSpec X Z S M` is `y` over `hwSpec X Z Unit` with record calls
@@ -25,7 +25,7 @@ and `f = fun p ↦ p.2.2`.
   (`ReadsRel` and its `bind`/`map`/`act` lemmas, `realizeT_bind₂`, `readLift_bind₂`,
   `dropRec_realizeT_substitute`, `dropRec_readLift_liftOrdinary`, `dropRec_revealThen`,
   `dropRec_progSlots`) give, in RecordDrop, the structural fact
-  `dropRec_gameT : DropRec ValPos (realizeT v (gameT M upd pub A)) (gameD Unit pub v A)` and the
+  `dropRec_gameT : DropRec HPos (realizeT v (gameT M upd pub A)) (gameD Unit pub v A)` and the
   simulation `evalDistMap_runtime1R_eq` (forgetting the memory register, which is classical).
 * `dropsTo_gameD`: if every program call hardwires a cell of `W` with its `W` value
   (`ProgsOf W pub v`), `gameD` is `gameReadsT` with program calls inserted (Runtime1's `DropsTo`).
@@ -41,8 +41,9 @@ and `f = fun p ↦ p.2.2`.
 same simulated adversary calls, verification reads and winning condition. The signer of
 `gameReads` is `signReads`, the read program of the whole signer (scheme seed rederivation, the
 randomizer base, the trials, the chain starts and openings, the bottom tree's path and root); the
-signer of `gameReadsT` is `signAtR`, which reads only the trials (`grindR`, the base from
-`pubOf L`) and takes the opened chain values, the paths and the bottom root from `valueAt L`.
+signer of `gameReadsT` is `signAtR`, which reads only the trials (`grindR`, the base
+`valueAt L (.inr lab)`) and takes the opened chain values, the paths and the bottom root from
+`valueAt L`.
 * Against the honest functions (`spongeFnReadRuntime X Z L.keys (hwEmpty X Z) m`) every read is
   deterministic and both signers return `L.signature r` (`readsTo_signWithR`), so the laws agree
   (`evalDistMap_gameReads_eq_gameReadsT`) and the QRPM game at `L` has the law of `gameReadsT`
@@ -54,11 +55,10 @@ signer of `gameReadsT` is `signAtR`, which reads only the trials (`grindR`, the 
   With the step above, the missing theorem is TableLaw's `spongeEvalDistMap_eq_tableLaw` applied to
   `gameReadsT` and an honest computation `full` (in place of key generation) such that, for every
   `t` and `L t = ⟨t, π, S0⟩`: (a) `gameReadsT M (pubOf (L t)) (valueAt (L t)) A = y (honestEval t π
-  full)` for some `y` (the result of `full` determines the parameter, the randomizer base of every
-  message, and `valueAt (L t)`; `gameReadsT` does not read `pub.keys`), and (b)
+  full)` for some `y` (the result of `full` determines the parameter and `valueAt (L t)`, the
+  randomizer bases included; `gameReadsT` does not read `pub.keys`), and (b)
   `HwLe (tableHw (L t)) (readsHw (honestEval t π full).2)`. Not constructed here: `full` (both
-  layers' trees, the scheme seed and parameter, the randomizer bases of all messages, or,
-  following Seed's correction, the bases read per request as coin cells, Coins) and (a), (b).
+  layers' trees, the scheme seed and parameter, the randomizer bases of all labels) and (a), (b).
 -/
 
 open Matrix
@@ -469,12 +469,12 @@ theorem blocks_slotInput_length (pub : Pub) (s : Slot) (f : ValPos → Digest) :
   simp only [nBlocks, length_blocks, slotInput, thInput, hasherInput, List.length_append,
     slotPayload_length_congr f (fun _ ↦ 0) s]
 
-theorem valueAt_cpos (L : HonestTable) (l : Layer) (e : KeyIndex) (i : ChainIndex) (j : ℕ) :
-    valueAt L (cpos l e i j) = L.chainValue l e i (j % chainLength) :=
+theorem valuePos_cpos (L : HonestTable) (l : Layer) (e : KeyIndex) (i : ChainIndex) (j : ℕ) :
+    valuePos L (cpos l e i j) = L.chainValue l e i (j % chainLength) :=
   rfl
 
-theorem valueAt_tpos (L : HonestTable) (l : Layer) (level index : ℕ) :
-    valueAt L (tpos l level index) = L.treeValue l (level % (layerHeight + 1)) (index % 2 ^ 32) :=
+theorem valuePos_tpos (L : HonestTable) (l : Layer) (level index : ℕ) :
+    valuePos L (tpos l level index) = L.treeValue l (level % (layerHeight + 1)) (index % 2 ^ 32) :=
   rfl
 
 /-- The slots of a layer signature: chain steps, the leaf, the nodes on the path. -/
@@ -516,41 +516,41 @@ theorem slotOutPos_mem {l : Layer} {e : KeyIndex} {w : Encoding} {s : Slot}
 
 /-- Values agreeing with the table on `slotNeed s` give the honest payload. -/
 theorem slotPayload_eq (L : HonestTable) {l : Layer} {e : KeyIndex} {w : Encoding} {s : Slot}
-    (hs : s ∈ layerSlots l e w) {f : ValPos → Digest} (hf : ∀ q ∈ slotNeed s, f q = valueAt L q) :
+    (hs : s ∈ layerSlots l e w) {f : ValPos → Digest} (hf : ∀ q ∈ slotNeed s, f q = valuePos L q) :
     slotPayload f s = L.payload s := by
   rcases mem_layerSlots hs with ⟨step, i, rfl⟩ | rfl | ⟨lev, hlev, rfl⟩
-  · rw [slotPayload, hf _ (Finset.mem_insert_self _ _), valueAt_cpos,
+  · rw [slotPayload, hf _ (Finset.mem_insert_self _ _), valuePos_cpos,
       Nat.mod_eq_of_lt (Nat.lt_of_succ_lt (step_add_one_lt step))]
     rfl
   · show digestsPayload _ = digestsPayload _
     congr 1
     funext i
     rw [hf _ (Finset.mem_insert_of_mem (Finset.mem_image_of_mem _ (Finset.mem_univ i))),
-      valueAt_cpos, Nat.mod_eq_of_lt chainLength_pred_lt]
+      valuePos_cpos, Nat.mod_eq_of_lt chainLength_pred_lt]
     rfl
   · have h0 := hf _ (Finset.mem_insert_self _ _)
     have h1 := hf _ (Finset.mem_insert_of_mem (Finset.mem_insert_self _ _))
     have hi := two_mul_div_add_one_lt e lev
-    rw [slotPayload, h0, h1, valueAt_tpos, valueAt_tpos, Nat.add_sub_cancel,
+    rw [slotPayload, h0, h1, valuePos_tpos, valuePos_tpos, Nat.add_sub_cancel,
       Nat.mod_eq_of_lt (show lev < layerHeight + 1 by omega),
       Nat.mod_eq_of_lt (show 2 * (e.val / 2 ^ (lev + 1)) < 2 ^ 32 by norm_num; omega),
       Nat.mod_eq_of_lt (show 2 * (e.val / 2 ^ (lev + 1)) + 1 < 2 ^ 32 by norm_num; omega)]
     simp only [HonestTable.payload, Nat.add_sub_cancel]
 
 /-- The value at a slot's output position is the digest of its honest input. -/
-theorem valueAt_slotOutPos (L : HonestTable) {l : Layer} {e : KeyIndex} {w : Encoding} {s : Slot}
+theorem valuePos_slotOutPos (L : HonestTable) {l : Layer} {e : KeyIndex} {w : Encoding} {s : Slot}
     (hs : s ∈ layerSlots l e w) :
-    valueAt L (slotOutPos s) = L.digest (thInput L.param (slotFields s) (L.payload s)) := by
+    valuePos L (slotOutPos s) = L.digest (thInput L.param (slotFields s) (L.payload s)) := by
   rcases mem_layerSlots hs with ⟨step, i, rfl⟩ | rfl | ⟨lev, hlev, rfl⟩
-  · rw [slotOutPos, valueAt_cpos, Nat.mod_eq_of_lt (step_add_one_lt step),
+  · rw [slotOutPos, valuePos_cpos, Nat.mod_eq_of_lt (step_add_one_lt step),
       HonestTable.chainValue_succ]
     rfl
-  · rw [slotOutPos, valueAt_tpos, Nat.zero_mod,
+  · rw [slotOutPos, valuePos_tpos, Nat.zero_mod,
       Nat.mod_eq_of_lt (show e.val < 2 ^ 32 from keyIndex_lt e), HonestTable.treeValue,
       leafKey_val]
     rfl
   · have he := keyIndex_lt e
-    rw [slotOutPos, valueAt_tpos, Nat.mod_eq_of_lt (show lev + 1 < layerHeight + 1 by omega),
+    rw [slotOutPos, valuePos_tpos, Nat.mod_eq_of_lt (show lev + 1 < layerHeight + 1 by omega),
       Nat.mod_eq_of_lt (show e.val / 2 ^ (lev + 1) < 2 ^ 32 by
         norm_num; exact (Nat.div_le_self _ _).trans_lt he),
       HonestTable.treeValue_succ]
@@ -560,15 +560,15 @@ theorem valueAt_slotOutPos (L : HonestTable) {l : Layer} {e : KeyIndex} {w : Enc
 `h`-cell of every round of a layer signature's slot holds its `L.keys` value. -/
 theorem roundH_snd (L : HonestTable) {l : Layer} {e : KeyIndex} {w : Encoding} {s : Slot}
     (hs : s ∈ layerSlots l e w) (j : ℕ) :
-    (roundH (pubOf L) s (extendVals (restrictTo (slotNeed s) (valueAt L))) j).2 =
-      L.keys.1 (roundH (pubOf L) s (extendVals (restrictTo (slotNeed s) (valueAt L))) j).1 := by
-  set f := extendVals (restrictTo (slotNeed s) (valueAt L)) with hf_def
-  have hf : ∀ q ∈ slotNeed s, f q = valueAt L q := fun q hq ↦ by
-    rw [hf_def, extendVals, dite_eq_left hq]
+    (roundH (pubOf L) s (extendVals (restrictTo (inlSet (slotNeed s)) (valueAt L))) j).2 =
+      L.keys.1 (roundH (pubOf L) s (extendVals (restrictTo (inlSet (slotNeed s)) (valueAt L))) j).1 := by
+  set f := extendVals (restrictTo (inlSet (slotNeed s)) (valueAt L)) with hf_def
+  have hf : ∀ q ∈ slotNeed s, f q = valuePos L q := fun q hq ↦ by
+    rw [hf_def, extendVals_restrictTo (inl_mem_inlSet.mpr hq)]
     rfl
   have hout : f (slotOutPos s) = trunc128 (spongeHash (spongePerm (pubOf L).keys (pubOf L).perm)
       (blocks (slotInput (pubOf L) s f))) := by
-    rw [hf _ (slotOutPos_mem hs), valueAt_slotOutPos L hs, slotInput, slotPayload_eq L hs hf]
+    rw [hf _ (slotOutPos_mem hs), valuePos_slotOutPos L hs, slotInput, slotPayload_eq L hs hf]
     exact (L.trunc128_spongeHash _).symm
   have hlen := blocks_slotInput_length (pubOf L) s f
   dsimp only [roundH]
@@ -632,61 +632,56 @@ def liftReadQ {A B : QReg} {α : Type} (y : QComp (hwReadSpec X Z M) A B α) :
   liftReadProg y
 
 /-- The program calls of the template ports `ps` realized at `v`. -/
-noncomputable def progPortsD (v : ValPos → Digest) (B : QReg) :
-    List (LazyProg X Z ValPos XD) → QComp (hwSpec X Z M) B B Unit
+noncomputable def progPortsD (v : HPos → Digest) (B : QReg) :
+    List (LazyProg X Z HPos XD) → QComp (hwSpec X Z M) B B Unit
   | [] => QuantumComp₂.pure ()
   | p :: ps => (progCall (p.realize v) B).bind fun _ ↦ progPortsD v B ps
 
 /-- The program calls of the honest paths of the slots `ss`, realized at `v`. -/
-noncomputable def progSlotsD (pub : Pub) (v : ValPos → Digest) (B : QReg) :
+noncomputable def progSlotsD (pub : Pub) (v : HPos → Digest) (B : QReg) :
     List Slot → QComp (hwSpec X Z M) B B Unit
   | [] => QuantumComp₂.pure ()
   | s :: ss => (progPortsD M v B (slotPorts pub s)).bind fun _ ↦ progSlotsD pub v B ss
 
 /-- A layer signature with randomizer `ρ` and codeword `x` read from the values `v` revealed on
 `layerNeed l e x`, with those values. -/
-def layerSig (v : ValPos → Digest) (l : Layer) (e : KeyIndex) (ρ : Randomizer) (x : Encoding) :
+def layerSig (v : HPos → Digest) (l : Layer) (e : KeyIndex) (ρ : Randomizer) (x : Encoding) :
     Option (LayerSignature × (ValPos → Digest)) :=
-  some (⟨ρ, fun i ↦ extendVals (restrictTo (layerNeed l e x) v) (cpos l e i (x i).val),
-    fun level ↦ extendVals (restrictTo (layerNeed l e x) v) (siblingPos l e level)⟩,
-    extendVals (restrictTo (layerNeed l e x) v))
+  some (⟨ρ, fun i ↦ extendVals (restrictTo (inlSet (layerNeed l e x)) v) (cpos l e i (x i).val),
+    fun level ↦ extendVals (restrictTo (inlSet (layerNeed l e x)) v) (siblingPos l e level)⟩,
+    extendVals (restrictTo (inlSet (layerNeed l e x)) v))
 
-/-- **A layer signature, realized with its reveal dropped**: the randomizer search through read
-ports (keeping the memory), then the program calls of the slots the signature makes public. -/
-noncomputable def signLayerD (pub : Pub) (v : ValPos → Digest) (B : QReg) (l : Layer)
-    (e : KeyIndex) (message : HashInput) :
+/-- **A layer signature, realized with its reveals dropped**: the randomizer search through read
+ports (keeping the memory) from the base `v (.inr lab)`, then the program calls of the slots the
+signature makes public. -/
+noncomputable def signLayerD (pub : Pub) (v : HPos → Digest) (B : QReg) (lab : RLabel) :
     QComp (hwSpec X Z M) B B (Option (LayerSignature × (ValPos → Digest))) :=
-  (liftReadQ M (grindR M (keepUpd M) pub B l e message (pub.rbase l e message)
+  (liftReadQ M (grindR M (keepUpd M) pub B lab.layer lab.key lab.msg (v (.inr lab))
     randomizerAttemptLimit 0)).bind fun g ↦
     match g with
     | none => QuantumComp₂.pure none
-    | some (ρ, x) => (progSlotsD M pub v B (layerSlots l e x)).bind fun _ ↦
-        QuantumComp₂.pure (layerSig v l e ρ x)
+    | some (ρ, x) => (progSlotsD M pub v B (layerSlots lab.layer lab.key x)).bind fun _ ↦
+        QuantumComp₂.pure (layerSig v lab.layer lab.key ρ x)
 
-/-- **A layer signature as reads**: the randomizer search through read ports; the opened chain
-values and the path are the values `v`. -/
-noncomputable def signLayerR (pub : Pub) (v : ValPos → Digest) (B : QReg) (l : Layer)
-    (e : KeyIndex) (message : HashInput) :
+/-- **A layer signature as reads**: the randomizer search through read ports from the base
+`v (.inr lab)`; the opened chain values and the path are the values `v`. -/
+noncomputable def signLayerR (pub : Pub) (v : HPos → Digest) (B : QReg) (lab : RLabel) :
     QComp (hwReadSpec X Z M) B B (Option (LayerSignature × (ValPos → Digest))) :=
-  (grindR M (keepUpd M) pub B l e message (pub.rbase l e message) randomizerAttemptLimit
+  (grindR M (keepUpd M) pub B lab.layer lab.key lab.msg (v (.inr lab)) randomizerAttemptLimit
     0).bind fun g ↦
     match g with
     | none => QuantumComp₂.pure none
-    | some (ρ, x) => QuantumComp₂.pure (layerSig v l e ρ x)
+    | some (ρ, x) => QuantumComp₂.pure (layerSig v lab.layer lab.key ρ x)
 
 /-- Two layer signatures as `signT` combines them. -/
 noncomputable def signWith {spec : QuantumOracleSpec.{0, 0}} (B : QReg)
-    (layer : Layer → KeyIndex → HashInput →
-      QComp spec B B (Option (LayerSignature × (ValPos → Digest))))
+    (layer : RLabel → QComp spec B B (Option (LayerSignature × (ValPos → Digest))))
     (r : SigningRequest) : QComp spec B B (Option Signature) :=
-  (layer bottomLayer (keyIndexOnLayer r.leafIndex bottomLayer)
-    (littleEndianBytes 32 r.message)).bind fun b ↦
+  (layer (botLabel r)).bind fun b ↦
     match b with
     | none => QuantumComp₂.pure none
     | some (bottom, f) =>
-      (layer topLayer (keyIndexOnLayer r.leafIndex topLayer)
-        (littleEndianBytes 16 (f (tpos bottomLayer layerHeight
-          (keyIndexOnLayer r.leafIndex topLayer).val)))).bind fun t ↦
+      (layer (topLabel r (f (botRootPos r)))).bind fun t ↦
         match t with
         | none => QuantumComp₂.pure none
         | some (top, _) => QuantumComp₂.pure
@@ -701,13 +696,13 @@ noncomputable def signAtWith {spec : QuantumOracleSpec.{0, 0}}
     (SubInstrument.relabel ℓ)).bind fun _ ↦ sgn _ r
 
 /-- The signing answer of the realized game with its reveals dropped. -/
-noncomputable def signAtD (pub : Pub) (v : ValPos → Digest) (r : SigningRequest) (E : QReg)
+noncomputable def signAtD (pub : Pub) (v : HPos → Digest) (r : SigningRequest) (E : QReg)
     {A : QReg} (ℓ : A ≃ (advSpec (X × Z)).In (.sign r) × E) :
     QComp (hwSpec X Z M) A (QReg.of ((advSpec (X × Z)).Out (.sign r) × E)) (Option Signature) :=
   signAtWith (fun B ↦ signWith B (signLayerD M pub v B)) r E ℓ
 
 /-- The signing answer as reads, the values from `v`. -/
-noncomputable def signAtR (pub : Pub) (v : ValPos → Digest) (r : SigningRequest) (E : QReg)
+noncomputable def signAtR (pub : Pub) (v : HPos → Digest) (r : SigningRequest) (E : QReg)
     {A : QReg} (ℓ : A ≃ (advSpec (X × Z)).In (.sign r) × E) :
     QComp (hwReadSpec X Z M) A (QReg.of ((advSpec (X × Z)).Out (.sign r) × E))
       (Option Signature) :=
@@ -715,7 +710,7 @@ noncomputable def signAtR (pub : Pub) (v : ValPos → Digest) (r : SigningReques
 
 /-- **The challenger of the realized game with its reveals dropped**: as `challengeT`, with the
 reads lifted to `hwSpec` and a signing request answered by `signAtD`. -/
-noncomputable def challengeD (pub : Pub) (v : ValPos → Digest) :
+noncomputable def challengeD (pub : Pub) (v : HPos → Digest) :
     IPFunctor.CommandSubstitution
       (QuantumComp.toIPFunctor LocalSig.instruments.{0} (advSpec (X × Z)))
       (QuantumComp.toIPFunctor LocalSig.instruments.{0} (hwSpec X Z M))
@@ -746,12 +741,12 @@ noncomputable def challengeWith (π : Equiv.Perm (X × Z)) (sk : SecretKey)
       QuantumComp.bind (sgn r E ℓ) fun _ l ↦ QuantumComp.pure ⟨ULift.up l.2, l.1.symm⟩
 
 /-- The public key the template game reveals: the root value of `v` and the parameter. -/
-def pkOf (pub : Pub) (v : ValPos → Digest) : PublicKey :=
-  ⟨extendVals (restrictTo {rootPos} v) rootPos, pub.param⟩
+def pkOf (pub : Pub) (v : HPos → Digest) : PublicKey :=
+  ⟨extendVals (restrictTo {.inl rootPos} v) rootPos, pub.param⟩
 
 /-- **The realized template game with its reveals dropped** (over `hwSpec`): the adversary on
 `pkOf pub v` against `challengeD`, verification through read ports, the winning condition. -/
-noncomputable def gameD (pub : Pub) (v : ValPos → Digest) (A : Adversary (X × Z)) :
+noncomputable def gameD (pub : Pub) (v : HPos → Digest) (A : Adversary (X × Z)) :
     QComp (hwSpec X Z M) (QReg.of Unit) (QReg.of Unit) Bool :=
   QuantumComp₂.bind
     (IPFunctor.IFreeM.substitute (challengeD M pub v) (withSignLog (A (pkOf pub v))))
@@ -775,7 +770,7 @@ noncomputable def gameReadsWith (π : Equiv.Perm (X × Z)) (sk : SecretKey)
 /-- **The game's reads with the grind-only signer** (`gameReadsT`): `gameReadsWith` with the
 signer `signAtR`, which reads only the randomizer trials and takes chain values and paths from
 `v`. -/
-noncomputable def gameReadsT (pub : Pub) (v : ValPos → Digest) (A : Adversary (X × Z)) :
+noncomputable def gameReadsT (pub : Pub) (v : HPos → Digest) (A : Adversary (X × Z)) :
     QComp (hwReadSpec X Z M) (QReg.of Unit) (QReg.of Unit) Bool :=
   gameReadsWith M pub.perm (noKey pub) (signAtR M pub v) (pkOf pub v) A
 
@@ -787,9 +782,9 @@ section drops
 
 variable {M : Type} (W : Hw X Z)
 
-theorem dropsTo_progPortsD (v : ValPos → Digest) (B : QReg) {C : QReg} {α : Type}
+theorem dropsTo_progPortsD (v : HPos → Digest) (B : QReg) {C : QReg} {α : Type}
     {x : QComp (hwSpec X Z M) B C α} {y : QComp (hwReadSpec X Z M) B C α} (hx : DropsTo W x y) :
-    ∀ ps : List (LazyProg X Z ValPos XD), (∀ p ∈ ps, ProgOf W (p.realize v)) →
+    ∀ ps : List (LazyProg X Z HPos XD), (∀ p ∈ ps, ProgOf W (p.realize v)) →
       DropsTo W ((progPortsD M v B ps).bind fun _ ↦ x) y
   | [], _ => hx
   | p :: ps, h => by
@@ -797,7 +792,7 @@ theorem dropsTo_progPortsD (v : ValPos → Digest) (B : QReg) {C : QReg} {α : T
     exact DropsTo.progCall_bind _ (h p List.mem_cons_self)
       (dropsTo_progPortsD v B hx ps fun q hq ↦ h q (List.mem_cons_of_mem _ hq))
 
-theorem dropsTo_progSlotsD (pub : Pub) (v : ValPos → Digest) (B : QReg) {C : QReg} {α : Type}
+theorem dropsTo_progSlotsD (pub : Pub) (v : HPos → Digest) (B : QReg) {C : QReg} {α : Type}
     {x : QComp (hwSpec X Z M) B C α} {y : QComp (hwReadSpec X Z M) B C α} (hx : DropsTo W x y) :
     ∀ ss : List Slot, (∀ s ∈ ss, ∀ p ∈ slotPorts pub s, ProgOf W (p.realize v)) →
       DropsTo W ((progSlotsD M pub v B ss).bind fun _ ↦ x) y
@@ -810,42 +805,40 @@ theorem dropsTo_progSlotsD (pub : Pub) (v : ValPos → Digest) (B : QReg) {C : Q
 
 /-- Every program port the game calls at `pub`, `v` (in-table keys) programs a cell of `W` with
 its `W` value. -/
-def ProgsOf (pub : Pub) (v : ValPos → Digest) : Prop :=
+def ProgsOf (pub : Pub) (v : HPos → Digest) : Prop :=
   ∀ (l : Layer) (e : KeyIndex) (x : Encoding), e.val < keyCount l → ∀ s ∈ layerSlots l e x,
     ∀ p ∈ slotPorts pub s, ProgOf W (p.realize v)
 
 variable {W}
 
-theorem dropsTo_signLayerD {pub : Pub} {v : ValPos → Digest} (h : ProgsOf W pub v) (B : QReg)
-    (l : Layer) (e : KeyIndex) (message : HashInput) (he : e.val < keyCount l) :
-    DropsTo W (signLayerD M pub v B l e message) (signLayerR M pub v B l e message) := by
+theorem dropsTo_signLayerD {pub : Pub} {v : HPos → Digest} (h : ProgsOf W pub v) (B : QReg)
+    (lab : RLabel) (he : lab.key.val < keyCount lab.layer) :
+    DropsTo W (signLayerD M pub v B lab) (signLayerR M pub v B lab) := by
   refine DropsTo.bind₂ (dropsTo_liftReadProg W _) fun g ↦ ?_
   rcases g with _ | ⟨ρ, x⟩
   · exact DropsTo.pure _
-  · exact dropsTo_progSlotsD W pub v B (DropsTo.pure _) _ (h l e x he)
+  · exact dropsTo_progSlotsD W pub v B (DropsTo.pure _) _ (h lab.layer lab.key x he)
 
 theorem dropsTo_signWith (B : QReg)
-    {layerD : Layer → KeyIndex → HashInput →
-      QComp (hwSpec X Z M) B B (Option (LayerSignature × (ValPos → Digest)))}
-    {layerR : Layer → KeyIndex → HashInput →
-      QComp (hwReadSpec X Z M) B B (Option (LayerSignature × (ValPos → Digest)))}
-    (h : ∀ l e message, e.val < keyCount l → DropsTo W (layerD l e message) (layerR l e message))
+    {layerD : RLabel → QComp (hwSpec X Z M) B B (Option (LayerSignature × (ValPos → Digest)))}
+    {layerR : RLabel → QComp (hwReadSpec X Z M) B B (Option (LayerSignature × (ValPos → Digest)))}
+    (h : ∀ lab, lab.key.val < keyCount lab.layer → DropsTo W (layerD lab) (layerR lab))
     (r : SigningRequest) : DropsTo W (signWith B layerD r) (signWith B layerR r) := by
-  refine DropsTo.bind₂ (h _ _ _ (keyIndexOnLayer_lt _ _)) fun b ↦ ?_
+  refine DropsTo.bind₂ (h (botLabel r) (keyIndexOnLayer_lt r.leafIndex bottomLayer)) fun b ↦ ?_
   rcases b with _ | ⟨bottom, f⟩
   · exact DropsTo.pure _
-  · refine DropsTo.bind₂ (h _ _ _ (keyIndexOnLayer_lt _ _)) fun t ↦ ?_
+  · refine DropsTo.bind₂ (h (topLabel r _) (keyIndexOnLayer_lt r.leafIndex topLayer)) fun t ↦ ?_
     rcases t with _ | ⟨top, _⟩
     · exact DropsTo.pure _
     · exact DropsTo.pure _
 
-theorem dropsTo_signAtD {pub : Pub} {v : ValPos → Digest} (h : ProgsOf W pub v)
+theorem dropsTo_signAtD {pub : Pub} {v : HPos → Digest} (h : ProgsOf W pub v)
     (r : SigningRequest) (E : QReg) {A : QReg} (ℓ : A ≃ (advSpec (X × Z)).In (.sign r) × E) :
     DropsTo W (signAtD M pub v r E ℓ) (signAtR M pub v r E ℓ) := by
   rw [signAtD, signAtR, signAtWith, signAtWith, QComp.act_bind, QComp.act_bind]
   exact DropsTo.prim _ fun _ ↦ dropsTo_signWith _ (dropsTo_signLayerD h _) r
 
-theorem dropsTo_challengeD {pub : Pub} {v : ValPos → Digest} (h : ProgsOf W pub v) (A : QReg)
+theorem dropsTo_challengeD {pub : Pub} {v : HPos → Digest} (h : ProgsOf W pub v) (A : QReg)
     (c : (QuantumComp.toIPFunctor LocalSig.instruments.{0} (advSpec (X × Z))).A A) :
     DropsTo W (challengeD M pub v A c)
       (challengeWith M pub.perm (noKey pub) (signAtR M pub v) A c) := by
@@ -856,7 +849,7 @@ theorem dropsTo_challengeD {pub : Pub} {v : ValPos → Digest} (h : ProgsOf W pu
 
 /-- **The realized game with its reveals dropped is its read program with program calls
 inserted**, when every program call hardwires a cell of `W` with its `W` value. -/
-theorem dropsTo_gameD {pub : Pub} {v : ValPos → Digest} (h : ProgsOf W pub v)
+theorem dropsTo_gameD {pub : Pub} {v : HPos → Digest} (h : ProgsOf W pub v)
     (A : Adversary (X × Z)) : DropsTo W (gameD M pub v A) (gameReadsT M pub v A) :=
   DropsTo.bind₂ (dropsTo_substitute W (dropsTo_challengeD h) _) fun _ ↦
     DropsTo.bind₂ (dropsTo_liftReadProg W _) fun _ ↦ DropsTo.pure _
@@ -887,7 +880,7 @@ theorem progOf_mono {W' : Hw X Z} (hW : HwLe W W') {c : HwProg X Z} (hc : ProgOf
       exact absurd h0 (Option.some_ne_none a)
     · rw [← h0, hc']
 
-theorem ProgsOf.mono {W' : Hw X Z} (hW : HwLe W W') {pub : Pub} {v : ValPos → Digest}
+theorem ProgsOf.mono {W' : Hw X Z} (hW : HwLe W W') {pub : Pub} {v : HPos → Digest}
     (h : ProgsOf W pub v) : ProgsOf W' pub v :=
   fun l e x he s hs p hp ↦ progOf_mono hW (h l e x he s hs p hp)
 
@@ -930,7 +923,8 @@ theorem gameReads_honest (L : HonestTable) (A : Adversary (X × Z)) :
 
 /-- The public key the template game reveals at `L` is `L`'s. -/
 theorem pkOf_pubOf (L : HonestTable) : pkOf (pubOf L) (valueAt L) = L.publicKey := by
-  simp only [pkOf, extendVals, restrictTo, HonestTable.publicKey, pubOf, rootPos, tpos, valueAt]
+  rw [pkOf, extendVals_restrictTo (Finset.mem_singleton_self _)]
+  simp only [valueAt_inl, HonestTable.publicKey, pubOf, rootPos, tpos, valuePos]
   rfl
 
 /-- **`gameReadsT` at `L`** is `gameReadsWith` at `L`'s keys with the grind-only signer
@@ -948,19 +942,19 @@ end signer
 
 section records
 
-variable {M : Type} (v : ValPos → Digest)
+variable {M : Type} (v : HPos → Digest)
 
-theorem dropRec_revealThen {B C : QReg} {α : Type} (T : Finset ValPos)
-    (k : RevealVals XD T × (Finset ValPos × M) → QComp (XSpec M) B C α)
+theorem dropRec_revealThen {B C : QReg} {α : Type} (T : Finset HPos)
+    (k : RevealVals XD T × (Finset HPos × M) → QComp (XSpec M) B C α)
     {y : QComp (hwSpec X Z Unit) B C α}
-    (h : ∀ r, DropRec ValPos (realizeT v (k (restrictTo T v, r))) y) :
-    DropRec ValPos (realizeT v (revealThen goodAll T k)) y :=
+    (h : ∀ r, DropRec HPos (realizeT v (k (restrictTo T v, r))) y) :
+    DropRec HPos (realizeT v (revealThen goodAll T k)) y :=
   DropRec.record T B _ _ (fun a ↦ Equiv.apply_symm_apply _ a) h
 
-theorem dropRec_progThen {B C : QReg} {α : Type} (p : LazyProg X Z ValPos XD)
+theorem dropRec_progThen {B C : QReg} {α : Type} (p : LazyProg X Z HPos XD)
     {k : QComp (XSpec M) B C α} {y : QComp (hwSpec X Z Unit) B C α}
-    (h : DropRec ValPos (realizeT v k) y) :
-    DropRec ValPos (realizeT v (progThen p trivial k))
+    (h : DropRec HPos (realizeT v k) y) :
+    DropRec HPos (realizeT v (progThen p trivial k))
       ((progCall (p.realize v) B).bind fun _ ↦ y) :=
   DropRec.prog (p.realize v) B (Equiv.uniqueProd B Unit).symm
     (k := fun _ ↦ QuantumComp.primBind (L := LocalSig.instruments.{0})
@@ -970,14 +964,14 @@ theorem dropRec_progThen {B C : QReg} {α : Type} (p : LazyProg X Z ValPos XD)
     fun _ ↦ DropRec.prim _ fun _ ↦ h
 
 theorem dropRec_progPorts (B : QReg) :
-    ∀ ps : List (LazyProg X Z ValPos XD),
-      DropRec ValPos (realizeT v (progPorts M B ps)) (progPortsD Unit v B ps)
+    ∀ ps : List (LazyProg X Z HPos XD),
+      DropRec HPos (realizeT v (progPorts M B ps)) (progPortsD Unit v B ps)
   | [] => DropRec.pure _
   | p :: ps => dropRec_progThen v p (dropRec_progPorts B ps)
 
 theorem dropRec_progSlots (pub : Pub) (B : QReg) :
     ∀ ss : List Slot,
-      DropRec ValPos (realizeT v (progSlots M pub B ss)) (progSlotsD Unit pub v B ss)
+      DropRec HPos (realizeT v (progSlots M pub B ss)) (progSlotsD Unit pub v B ss)
   | [] => DropRec.pure _
   | s :: ss => by
     rw [progSlots, progSlotsD, realizeT_bind₂]
@@ -1022,11 +1016,6 @@ theorem readsTo_grindR (l : Layer) (e : KeyIndex) (message : HashInput) (base : 
     | none => exact readsTo_grindR l e message base n (trial + 1)
     | some x => exact readsTo_pure _
 
-theorem extendVals_restrictTo {T : Finset ValPos} {p : ValPos} (h : p ∈ T)
-    (f : ValPos → Digest) : extendVals (restrictTo T f) p = f p := by
-  rw [extendVals, dite_eq_left h]
-  rfl
-
 theorem cpos_mem_layerNeed (l : Layer) (e : KeyIndex) (x : Encoding) (i : ChainIndex) :
     cpos l e i (x i).val ∈ layerNeed l e x :=
   Finset.mem_union_left _ (Finset.mem_union_right _
@@ -1040,38 +1029,39 @@ theorem siblingPos_mem_layerNeed (l : Layer) (e : KeyIndex) (x : Encoding)
 theorem layerSig_valueAt (l : Layer) (e : KeyIndex) (ρ : Randomizer) (x : Encoding) :
     layerSig (valueAt L) l e ρ x =
       some (⟨ρ, fun i ↦ L.chainValue l e i (x i).val, L.authPath l e⟩,
-        extendVals (restrictTo (layerNeed l e x) (valueAt L))) := by
-  have hc : ∀ i, extendVals (restrictTo (layerNeed l e x) (valueAt L)) (cpos l e i (x i).val) =
-      L.chainValue l e i (x i).val := fun i ↦ by
-    rw [extendVals_restrictTo (cpos_mem_layerNeed l e x i), valueAt_cpos,
-      Nat.mod_eq_of_lt (x i).isLt]
-  have hs : ∀ level, extendVals (restrictTo (layerNeed l e x) (valueAt L)) (siblingPos l e level) =
-      L.authPath l e level := fun level ↦ by
+        extendVals (restrictTo (inlSet (layerNeed l e x)) (valueAt L))) := by
+  have hc : ∀ i, extendVals (restrictTo (inlSet (layerNeed l e x)) (valueAt L))
+      (cpos l e i (x i).val) = L.chainValue l e i (x i).val := fun i ↦ by
+    rw [extendVals_restrictTo (inl_mem_inlSet.mpr (cpos_mem_layerNeed l e x i)), valueAt_inl,
+      valuePos_cpos, Nat.mod_eq_of_lt (x i).isLt]
+  have hs : ∀ level, extendVals (restrictTo (inlSet (layerNeed l e x)) (valueAt L))
+      (siblingPos l e level) = L.authPath l e level := fun level ↦ by
     have hlt : Nat.xor (e.val / 2 ^ level.val) 1 < 2 ^ 32 :=
       Nat.xor_lt_two_pow ((Nat.div_le_self _ _).trans_lt (keyIndex_lt e)) (by norm_num)
-    rw [extendVals_restrictTo (siblingPos_mem_layerNeed l e x level), siblingPos, valueAt_tpos,
+    rw [extendVals_restrictTo (inl_mem_inlSet.mpr (siblingPos_mem_layerNeed l e x level)),
+      valueAt_inl, siblingPos, valuePos_tpos,
       Nat.mod_eq_of_lt (show level.val < layerHeight + 1 by have := level.isLt; omega),
       Nat.mod_eq_of_lt hlt]
     rfl
   simp only [layerSig, hc, hs]
 
 /-- The value a layer signature of the grind-only signer returns at `L`. -/
-def layerValue (l : Layer) (e : KeyIndex) (message : HashInput) :
-    Option (LayerSignature × (ValPos → Digest)) :=
-  match L.select l e message with
+def layerValue (lab : RLabel) : Option (LayerSignature × (ValPos → Digest)) :=
+  match L.select lab.layer lab.key lab.msg with
   | none => none
-  | some (ρ, x) => layerSig (valueAt L) l e ρ x
+  | some (ρ, x) => layerSig (valueAt L) lab.layer lab.key ρ x
 
-theorem readsTo_signLayerR (l : Layer) (e : KeyIndex) (message : HashInput) :
-    ReadsTo L.keys (hwEmpty X Z) m (signLayerR M (pubOf L) (valueAt L) B l e message)
-      (layerValue L l e message) := by
+theorem readsTo_signLayerR (lab : RLabel) :
+    ReadsTo L.keys (hwEmpty X Z) m (signLayerR M (pubOf L) (valueAt L) B lab)
+      (layerValue L lab) := by
   rw [signLayerR]
-  refine (readsTo_grindR L l e message _ _ _).bind ?_
-  show ReadsTo _ _ _ (match L.select l e message with
+  refine (readsTo_grindR L lab.layer lab.key lab.msg _ _ _).bind ?_
+  show ReadsTo _ _ _ (match L.select lab.layer lab.key lab.msg with
     | none => QuantumComp₂.pure none
-    | some (ρ, x) => QuantumComp₂.pure (layerSig (valueAt L) l e ρ x)) (layerValue L l e message)
+    | some (ρ, x) => QuantumComp₂.pure (layerSig (valueAt L) lab.layer lab.key ρ x))
+      (layerValue L lab)
   rw [layerValue]
-  rcases L.select l e message with _ | ⟨ρ, x⟩
+  rcases L.select lab.layer lab.key lab.msg with _ | ⟨ρ, x⟩
   · exact readsTo_pure _
   · exact readsTo_pure _
 
@@ -1091,10 +1081,10 @@ theorem bottomRoot_mem_layerNeed (idx : LeafIndex) (x : Encoding) :
   refine Finset.mem_union_left _ (Finset.mem_union_left _ (slotNeed_subset_needUnion hs ?_))
   exact Finset.mem_insert_of_mem (Finset.mem_insert_of_mem (Finset.mem_singleton_self _))
 
-theorem valueAt_bottomRoot (idx : LeafIndex) :
-    valueAt L (tpos bottomLayer layerHeight (keyIndexOnLayer idx topLayer).val) =
+theorem valuePos_bottomRoot (idx : LeafIndex) :
+    valuePos L (tpos bottomLayer layerHeight (keyIndexOnLayer idx topLayer).val) =
       L.bottomRoot idx := by
-  rw [valueAt_tpos, Nat.mod_eq_of_lt (Nat.lt_succ_self _), Nat.mod_eq_of_lt
+  rw [valuePos_tpos, Nat.mod_eq_of_lt (Nat.lt_succ_self _), Nat.mod_eq_of_lt
     (show (keyIndexOnLayer idx topLayer).val < 2 ^ 32 from keyIndex_lt _)]
   rfl
 
@@ -1103,8 +1093,9 @@ theorem readsTo_signWithR (r : SigningRequest) :
     ReadsTo L.keys (hwEmpty X Z) m (signWith B (signLayerR M (pubOf L) (valueAt L) B) r)
       (L.signature r) := by
   rw [signWith]
-  refine (readsTo_signLayerR L _ _ _).bind ?_
+  refine (readsTo_signLayerR L _).bind ?_
   rw [layerValue]
+  dsimp only [botLabel, RLabel.layer, RLabel.key, RLabel.msg]
   rcases hb : L.select bottomLayer (keyIndexOnLayer r.leafIndex bottomLayer)
     (littleEndianBytes 32 r.message) with _ | ⟨ρ, x⟩
   · have h : L.signature r = none := by
@@ -1114,10 +1105,12 @@ theorem readsTo_signWithR (r : SigningRequest) :
     exact readsTo_pure _
   · dsimp only
     rw [layerSig_valueAt]
-    dsimp only
-    rw [extendVals_restrictTo (bottomRoot_mem_layerNeed r.leafIndex x), valueAt_bottomRoot]
-    refine (readsTo_signLayerR L _ _ _).bind ?_
+    dsimp only [botRootPos]
+    rw [extendVals_restrictTo (inl_mem_inlSet.mpr (bottomRoot_mem_layerNeed r.leafIndex x)),
+      valueAt_inl, valuePos_bottomRoot]
+    refine (readsTo_signLayerR L _).bind ?_
     rw [layerValue]
+    dsimp only [topLabel, RLabel.layer, RLabel.key, RLabel.msg]
     rcases ht : L.select topLayer (keyIndexOnLayer r.leafIndex topLayer)
       (littleEndianBytes 16 (L.bottomRoot r.leafIndex)) with _ | ⟨ρ', x'⟩
     · have h : L.signature r = none := by
@@ -1263,7 +1256,7 @@ variable (M : Type) [Fintype M] [DecidableEq M]
 /-- **The canonical runtime-2 game of the table `L`**: runtime 2 with record ports, from the
 memory `m₀`, running the template game with `L`'s public data, realized at `L`'s hidden values, its
 trials' `h`-reads updating the memory with `upd`. -/
-noncomputable def runtime2Law (upd : TrialUpd M) (m₀ : Finset ValPos × M) (L : HonestTable)
+noncomputable def runtime2Law (upd : TrialUpd M) (m₀ : Finset HPos × M) (L : HonestTable)
     (A : Adversary (X × Z)) (ρ : SubState (QReg.of Unit)) {γ : Type*} [MeasurableSpace γ]
     (f : (Σ u, QuantumComp₂.Leaf (QReg.of Unit) Bool u) → γ) : Measure γ :=
   (runtimeR m₀).evalDistMap .instruments (realizeT (valueAt L) (gameT M upd (pubOf L) A)) ρ f

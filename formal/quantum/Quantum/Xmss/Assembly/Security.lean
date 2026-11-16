@@ -22,7 +22,7 @@ The assembly of the chain of games (design, sections 2 and 9). Every step is a c
 every link that the committed theorems do not provide is a field of `XmssQrpmDebts q A`, stated as
 exactly the missing link. The averages are over the uniform honest table `L : HonestTable`
 (keys, `π`, master seed). Steps 1 to 3 run with the inner memory `Unit`; the canonical game's
-register has the memory `Mem = Finset ValPos × Selections`: the template's memory label and Events'
+register has the memory `Mem = Finset HPos × Selections`: the template's memory label and Events'
 selections. The canonical runtime-2 game is
 `gameR A L = realizeT (valueAt L) (gameT Selections cwUpd (pubOf L) A)` (Template; each
 randomizer trial's `h`-read records a codeword selection with EncCost's `cwUpd`), run against
@@ -165,7 +165,7 @@ section game
 noncomputable local instance secretKeyDecEq : DecidableEq SecretKey := Classical.decEq _
 
 /-- The memory of the runtimes: the template's label and Events' selections. -/
-abbrev Mem : Type := Finset ValPos × Selections
+abbrev Mem : Type := Finset HPos × Selections
 
 /- Instance search for `Mem` exceeds the default size: found once here, the same term the search
 would build, for every consumer of `Mem`. -/
@@ -206,7 +206,7 @@ theorem winProb_eq_uavg (A : Adversary (X × Z)) :
 data `pubOf L`, realized at the hidden values `valueAt L`, the trials' `h`-reads updating the
 selections with `cwUpd`. -/
 noncomputable def gameR (A : Adversary (X × Z)) (L : HonestTable) :
-    QComp (recHwSpec X Z ValPos Selections) (QReg.of Unit) (QReg.of Unit) Bool :=
+    QComp (recHwSpec X Z HPos Selections) (QReg.of Unit) (QReg.of Unit) Bool :=
   realizeT (valueAt L) (gameT Selections cwUpd (pubOf L) A)
 
 /-- The initial state of the runtimes with record ports, beside the adversary's trivial register. -/
@@ -255,14 +255,14 @@ noncomputable def p2CR (A : Adversary (X × Z)) (Lc : HonestTable → Hw X Z) (L
 
 /-- `runtimeR` running `x2 L`. -/
 noncomputable def p2R
-    (x2 : HonestTable → QComp (recHwSpec X Z ValPos Selections) (QReg.of Unit) (QReg.of Unit)
+    (x2 : HonestTable → QComp (recHwSpec X Z HPos Selections) (QReg.of Unit) (QReg.of Unit)
       Bool)
     (L : HonestTable) : ℝ≥0∞ :=
   (runtimeR m0R).evalDistMap .instruments (x2 L) (SubState.basis ()) winObs {true}
 
 /-- The weight of the event `BadR L progCap` at the end of the run of `x2 L` in `runtimeR`. -/
 noncomputable def ewR
-    (x2 : HonestTable → QComp (recHwSpec X Z ValPos Selections) (QReg.of Unit) (QReg.of Unit)
+    (x2 : HonestTable → QComp (recHwSpec X Z HPos Selections) (QReg.of Unit) (QReg.of Unit)
       Bool)
     (L : HonestTable) : ℝ≥0∞ :=
   (runtimeR m0R).eventWeight .instruments (hwProjector (BadR L progCap)) (x2 L) initR
@@ -523,12 +523,12 @@ structure XmssQrpmDebts (q : ℕ) (A : Adversary (X × Z)) where
   endReads : ∀ L, GradeCap m0R (gameR A L) → p2R (gameR A) L ≤ ewR (gameR A) L + readTerm
   /-- **Simulation**: the canonical game makes at most `6q` sponge calls. -/
   advCalls : ∀ L, IPFunctor.IFreeM.IsChargeBound (gameR A L)
-    (portCharge fun i ↦ if extCls X Z Mem (recSpec ValPos Selections) i then 0 else 1) (6 * q)
+    (portCharge fun i ↦ if extCls X Z Mem (recSpec HPos Selections) i then 0 else 1) (6 * q)
   /-- **Costs**: at most `clsCap` classical calls (reads, programs, records). -/
   clsCalls : ∀ L, IPFunctor.IFreeM.IsChargeBound (gameR A L)
-    (portCharge fun i ↦ if extCls X Z Mem (recSpec ValPos Selections) i then 1 else 0) clsCap
+    (portCharge fun i ↦ if extCls X Z Mem (recSpec HPos Selections) i then 1 else 0) clsCap
   /-- **Costs/Template**: at most `progCap` program calls. -/
-  progCalls : ∀ L, IPFunctor.IFreeM.IsChargeBound (gameR A L) (progChargeR ValPos Selections)
+  progCalls : ∀ L, IPFunctor.IFreeM.IsChargeBound (gameR A L) (progChargeR HPos Selections)
     progCap
   /-- **The cross-key potential** (open): on good tables, the state-weighted counts of the
   selecting reads of all trials of all keys, summed along the run, are at most `encCap q`. Its proof
@@ -572,7 +572,7 @@ theorem advEps_ne_top (n : ℕ) : advEps n ≠ ⊤ := by
       (ENNReal.div_ne_top (ENNReal.natCast_ne_top _) hZ))
 
 /-- `BadR` does not read the memory label. -/
-theorem labelFree_badR (L : HonestTable) (N : ℕ) : LabelFree X Z ValPos Selections (BadR L N) :=
+theorem labelFree_badR (L : HonestTable) (N : ℕ) : LabelFree X Z HPos Selections (BadR L N) :=
   fun _ _ _ _ _ ↦ Iff.rfl
 
 /-- The permutations that are not `PermGood π 18` weigh at most `2^-777` among the tables. -/
@@ -756,13 +756,13 @@ section disclose
 
 /-- **The 128-bit hidden `k`-cells of the canonical game, per call** (Disclose with
 `viewByOn_gameT`, through `uavg_hiddenK_digest_runtimeR_le`). For a reparametrization
-`e : HonestTable ≃ P × (ValPos → Digest)` of the table into public data and the hidden honest
-values, and hidden `k`-cells `HkV p v` each naming an undisclosed position whose value it carries,
+`e : HonestTable ≃ P × (HPos → Digest)` of the table into public data and the hidden values,
+and hidden `k`-cells `HkV p v` each naming an undisclosed position whose value it carries,
 the hidden mass of the `j`-th call of the realized template game against `runtimeR`, averaged over
 the table, is at most `2^-128`. -/
 theorem uavg_hiddenK_digest_le {P : Type} [Fintype P] (A : Adversary (X × Z))
-    (e : HonestTable ≃ P × (ValPos → Digest)) (pubP : P → Pub)
-    (HkV : P → (ValPos → Digest) → Set X) (src : P → X → HwReg X Z Mem → ValPos)
+    (e : HonestTable ≃ P × (HPos → Digest)) (pubP : P → Pub)
+    (HkV : P → (HPos → Digest) → Set X) (src : P → X → HwReg X Z Mem → HPos)
     (val : P → X → HwReg X Z Mem → Digest)
     (hk : ∀ p v y r, y ∈ HkV p v → r.2.1.2.1 y = none →
       src p y r ∉ r.2.2.1 ∧ v (src p y r) = val p y r) (j : ℕ) :

@@ -47,11 +47,13 @@ lifted so that their updates keep the label (`liftRead`, `readMono_liftRead`, `r
 is replaced by `Disc`, since hardwiring never records anything in the memory; initial states that do
 not depend on `v` are lazy (`lazy_const`).
 
-**leanXMSS.** Hidden values: `S = ValPos`, `D = XD` (a digest per position: chain values, chain
-starts included, and tree values), at the table `L` the function `valueAt L`. Public data (`Pub`,
-`pubOf L`): the public parameter, `π`, the keys `(h, k, k')`, and the randomizer bases `R0`. At a
-structural slot (chain step, leaf, node) the honest path's cells are functions of the public data
-and the values at `slotNeed s` (payload and output positions): `roundK`, `roundK'` read `k`, `k'`
+**leanXMSS.** Hidden values: `S = HPos = ValPos ⊕ RLabel`, `D = XD` (a digest per coordinate:
+chain values, chain starts included, and tree values at the positions `ValPos`; the randomizer base
+`R0` of each label `RLabel`, a key with its message), at the table `L` the function `valueAt L`
+(`valuePos L` on `.inl`). Public data (`Pub`, `pubOf L`): the public parameter, `π`, the keys
+`(h, k, k')`. At a structural slot (chain step, leaf, node) the honest path's cells are functions
+of the public data and the values at `slotNeed s` (payload and output positions, as `.inl`
+coordinates `inlSet`): `roundK`, `roundK'` read `k`, `k'`
 of the public keys; `roundH` reads `h`, except at the last round, where the value is corrected by
 `embed128` so that the output digest is the value at the output position. The rate's group is XOR,
 so the correction XORs the wanted digest with the current one: the output digest is then the value
@@ -63,14 +65,15 @@ whose honest paths do not share these cells (`Quantum.Xmss.Assembly.Reparam`).
 * `gameT M upd pub A`: reveal the root, run the adversary on the public key against `challengeT`
   (local operations and permutation calls simulated given `π`, so the adversary's calls are sponge
   ports; a signing request answered by `signT`), verify the forgery through read ports
-  (`readsProgram`), return the winning condition. `signLayerT`: the randomizer search through read
-  ports (`grindR`, with the base `R0` from the public data; each trial's `h`-reads update the
-  memory with `upd l e b xi`, `b` the block and `xi` the rate after `π`: EncCost's `cwUpd` at the
-  memory `Selections`, `keepUpd` to keep it), then one reveal of `layerNeed` (the
-  coordinates of the slots the signature makes public, `layerSlots`: chain steps from the opened
-  positions, the leaf, the nodes on the path; the opened positions; the path) and the program
-  ports of those slots' honest paths (`slotPorts`, three per block). Every request reprograms its
-  slots, also those already public.
+  (`readsProgram`), return the winning condition. `signLayerT lab`: reveal the label's
+  randomizer base `.inr lab`, the randomizer search from it through read ports (`grindR`; each
+  trial's `h`-reads update the memory with `upd l e b xi`, `b` the block and `xi` the rate after
+  `π`: EncCost's `cwUpd` at the memory `Selections`, `keepUpd` to keep it), then one reveal of
+  `layerNeed` (the coordinates of the slots the signature makes public, `layerSlots`: chain steps
+  from the opened positions, the leaf, the nodes on the path; the opened positions; the path) and
+  the program ports of those slots' honest paths (`slotPorts`, three per block). `signT` signs the
+  labels `botLabel r` and `topLabel r` (the bottom root revealed by the bottom signature). Every
+  request reprograms its slots, also those already public.
 * `disc_gameT`: the game reveals before it programs. `viewBy_gameT`, `viewByOn_gameT`: the
   lazy-sampling property of the realized games for `runtimeR` and the memory label, at every call,
   for every initial state not depending on `v`.
@@ -942,31 +945,91 @@ end calls
 
 /-! ## leanXMSS as a template
 
-The hidden values are the honest 128-bit values at the positions `ValPos` (`valueAt L`); the
-public part of the table is `Pub`. -/
+The hidden coordinates `HPos` are the honest 128-bit values at the positions `ValPos` and the
+randomizer bases at the labels `RLabel` (`valueAt L`); the public part of the table is `Pub`. -/
 
 section xmss
 
 open HashSig HashSig.OverPermutation LeanXmss Common Common.SufCma
   LeanXmss.RandomPermutationModel
 
-/-- leanXMSS's hidden values: a digest per position. -/
-abbrev XD : ValPos → Type :=
+/-- A randomizer-base label: a bottom key with a request message, or a top key with a bottom
+root. -/
+abbrev RLabel : Type := (KeyIndex × Message) ⊕ (KeyIndex × Digest)
+
+/-- The layer of a label. -/
+def RLabel.layer : RLabel → Layer
+  | .inl _ => bottomLayer
+  | .inr _ => topLayer
+
+/-- The key of a label. -/
+def RLabel.key : RLabel → KeyIndex
+  | .inl (e, _) => e
+  | .inr (e, _) => e
+
+/-- The message bytes of a label: `32` bytes at the bottom, `16` at the top. -/
+def RLabel.msg : RLabel → HashInput
+  | .inl (_, m) => littleEndianBytes 32 m
+  | .inr (_, d) => littleEndianBytes 16 d
+
+/-- **leanXMSS's hidden coordinates**: the honest 128-bit values and the randomizer bases. -/
+abbrev HPos : Type := ValPos ⊕ RLabel
+
+/-- leanXMSS's hidden values: a digest per coordinate. -/
+abbrev XD : HPos → Type :=
   fun _ ↦ Digest
 
+/-- **The hidden values of a table**: the honest values at the positions, the randomizer bases at
+the labels. -/
+def valueAt (L : HonestTable) : HPos → Digest :=
+  Sum.elim (valuePos L) fun lab ↦ L.randomizerBase lab.layer lab.key lab.msg
+
+@[simp]
+theorem valueAt_inl (L : HonestTable) (p : ValPos) : valueAt L (.inl p) = valuePos L p :=
+  rfl
+
+@[simp]
+theorem valueAt_inr (L : HonestTable) (lab : RLabel) :
+    valueAt L (.inr lab) = L.randomizerBase lab.layer lab.key lab.msg :=
+  rfl
+
+/-- Value positions as hidden coordinates. -/
+def inlSet (T : Finset ValPos) : Finset HPos :=
+  T.map Function.Embedding.inl
+
+@[simp]
+theorem inl_mem_inlSet {T : Finset ValPos} {p : ValPos} : (.inl p : HPos) ∈ inlSet T ↔ p ∈ T := by
+  simp [inlSet]
+
+@[simp]
+theorem inr_not_mem_inlSet {T : Finset ValPos} {lab : RLabel} : (.inr lab : HPos) ∉ inlSet T := by
+  simp [inlSet]
+
+theorem inlSet_mono {T T' : Finset ValPos} (h : T ⊆ T') : inlSet T ⊆ inlSet T' :=
+  Finset.map_subset_map.mpr h
+
 /-- Every template program port is allowed. -/
-def goodAll : LazyProg X Z ValPos XD → Prop :=
+def goodAll : LazyProg X Z HPos XD → Prop :=
   fun _ ↦ True
+
+/- Instance search for `HPos` and the registers over `Finset HPos` exceeds the default size: found
+once here, the same terms the search would build. -/
+set_option synthInstance.maxSize 1000 in
+instance hposDecEq : DecidableEq HPos := inferInstance
+
+set_option synthInstance.maxSize 1000 in
+instance hwRegHPosDecEq {M : Type} [DecidableEq M] : DecidableEq (HwReg X Z (Finset HPos × M)) :=
+  inferInstance
 
 variable (M : Type) [Fintype M] [DecidableEq M]
 
 /-- leanXMSS's template signature, with inner memory `M`. -/
 abbrev XSpec : QuantumOracleSpec.{0, 0} :=
-  tmplSpec X Z ValPos XD M goodAll
+  tmplSpec X Z HPos XD M goodAll
 
-/-- **The public part of the table**: the public parameter, the permutation `π`, the keys
+/-- **The public part of the table**: the public parameter, the permutation `π`, and the keys
 `t = (h, k, k')` (with `h` at the honest output capacities of the structural slots reparametrized,
-see `roundH`), and the randomizer bases `R0` (seed-level data, coins of the challenger). -/
+see `roundH`). The randomizer bases are hidden values (`.inr` coordinates). -/
 structure Pub where
   /-- The public parameter `P`. -/
   param : PublicParameter
@@ -974,12 +1037,10 @@ structure Pub where
   perm : Equiv.Perm (X × Z)
   /-- The keys `(h, k, k')`. -/
   keys : SpongeKeys X Z
-  /-- The randomizer bases `R0(l, e, M)`. -/
-  rbase : Layer → KeyIndex → HashInput → Randomizer
 
 /-- The public part of a table: the hidden values are `valueAt L`. -/
 def pubOf (L : HonestTable) : Pub :=
-  ⟨L.param, L.perm, L.keys, L.randomizerBase⟩
+  ⟨L.param, L.perm, L.keys⟩
 
 /-- Position `j` of chain `i` of key `e` of layer `l` (indices reduced into range). -/
 def cpos (l : Layer) (e : KeyIndex) (i : ChainIndex) (j : ℕ) : ValPos :=
@@ -1049,7 +1110,7 @@ def roundK' (pub : Pub) (s : Slot) (f : ValPos → Digest) (j : ℕ) : X × Z :=
 
 /-- The `h`-cell of round `j`, with its value: the public `h` value, except at the last round,
 where it is corrected (by XOR, the rate's group) so that the digest of the output rate is the value
-at the slot's output position. With `pub = pubOf L` and `f = valueAt L` the correction vanishes. -/
+at the slot's output position. With `pub = pubOf L` and `f = valuePos L` the correction vanishes. -/
 def roundH (pub : Pub) (s : Slot) (f : ValPos → Digest) (j : ℕ) : Z × X :=
   let msg := blocks (slotInput pub s f)
   let p := midAt pub (stateAt pub msg j) (msg.getD j 0)
@@ -1058,20 +1119,34 @@ def roundH (pub : Pub) (s : Slot) (f : ValPos → Digest) (j : ℕ) : Z × X :=
   if j + 1 = nBlocks pub s then (z, w + embed128 (f (slotOutPos s) ^^^ trunc128 (p.1 + w)))
   else (z, w)
 
-/-- The values revealed on `T`, extended by `0`. -/
-def extendVals {T : Finset ValPos} (w : RevealVals XD T) (p : ValPos) : Digest :=
-  if h : p ∈ T then w ⟨p, h⟩ else 0
+/-- The values revealed on `T` at the value positions, extended by `0`. -/
+def extendVals {T : Finset HPos} (w : RevealVals XD T) (p : ValPos) : Digest :=
+  if h : .inl p ∈ T then w ⟨.inl p, h⟩ else 0
+
+/-- The randomizer base revealed on `T` at a label, `0` if not revealed. -/
+def extendBase {T : Finset HPos} (w : RevealVals XD T) (lab : RLabel) : Digest :=
+  if h : .inr lab ∈ T then w ⟨.inr lab, h⟩ else 0
+
+theorem extendVals_restrictTo {T : Finset HPos} {p : ValPos} (h : .inl p ∈ T)
+    (f : HPos → Digest) : extendVals (restrictTo T f) p = f (.inl p) := by
+  rw [extendVals, dite_eq_left h]
+  rfl
+
+theorem extendBase_restrictTo {T : Finset HPos} {lab : RLabel} (h : .inr lab ∈ T)
+    (f : HPos → Digest) : extendBase (restrictTo T f) lab = f (.inr lab) := by
+  rw [extendBase, dite_eq_left h]
+  rfl
 
 /-- **The program ports of a structural slot**: the `k`, `k'`, `h` cells of every round of its
 honest path, with their values, functions of the values at `slotNeed s`. -/
-def slotPorts (pub : Pub) (s : Slot) : List (LazyProg X Z ValPos XD) :=
+def slotPorts (pub : Pub) (s : Slot) : List (LazyProg X Z HPos XD) :=
   (List.range (nBlocks pub s)).flatMap fun j ↦
-    [.programK (slotNeed s) fun w ↦ roundK pub s (extendVals w) j,
-      .programK' (slotNeed s) fun w ↦ roundK' pub s (extendVals w) j,
-      .programH (slotNeed s) fun w ↦ roundH pub s (extendVals w) j]
+    [.programK (inlSet (slotNeed s)) fun w ↦ roundK pub s (extendVals w) j,
+      .programK' (inlSet (slotNeed s)) fun w ↦ roundK' pub s (extendVals w) j,
+      .programH (inlSet (slotNeed s)) fun w ↦ roundH pub s (extendVals w) j]
 
-theorem need_of_mem_slotPorts {pub : Pub} {s : Slot} {p : LazyProg X Z ValPos XD}
-    (h : p ∈ slotPorts pub s) : p.need = slotNeed s := by
+theorem need_of_mem_slotPorts {pub : Pub} {s : Slot} {p : LazyProg X Z HPos XD}
+    (h : p ∈ slotPorts pub s) : p.need = inlSet (slotNeed s) := by
   simp only [slotPorts, List.mem_flatMap, List.mem_range, List.mem_cons, List.not_mem_nil,
     or_false] at h
   obtain ⟨j, -, h | h | h⟩ := h <;> subst h <;> rfl
@@ -1108,7 +1183,7 @@ def layerNeed (l : Layer) (e : KeyIndex) (x : Encoding) : Finset ValPos :=
     Finset.univ.image (siblingPos l e)
 
 /-- Call the program ports `ps` in order. -/
-noncomputable def progPorts (B : QReg) : List (LazyProg X Z ValPos XD) → QComp (XSpec M) B B Unit
+noncomputable def progPorts (B : QReg) : List (LazyProg X Z HPos XD) → QComp (XSpec M) B B Unit
   | [] => QuantumComp₂.pure ()
   | p :: ps => progThen p trivial (progPorts B ps)
 
@@ -1163,33 +1238,43 @@ noncomputable def grindR (pub : Pub) (B : QReg) (l : Layer) (e : KeyIndex) (mess
       | some x => QuantumComp₂.pure (some (base + BitVec.ofNat digestBits trial, x))
       | none => grindR pub B l e message base n (trial + 1)
 
-/-- **A layer signature in runtime 2**: the randomizer search through reads; then reveal the
-layer's coordinates, hardwire the honest paths of the slots it makes public, and read the opened
-chain values and the path from the revealed values. Also returns the revealed values. -/
-noncomputable def signLayerT (pub : Pub) (B : QReg) (l : Layer) (e : KeyIndex)
-    (message : HashInput) :
+/-- **A layer signature in runtime 2** for the label `lab`: reveal its randomizer base, the
+randomizer search from it through reads; then reveal the layer's coordinates, hardwire the honest
+paths of the slots it makes public, and read the opened chain values and the path from the
+revealed values. Also returns the revealed values. -/
+noncomputable def signLayerT (pub : Pub) (B : QReg) (lab : RLabel) :
     QComp (XSpec M) B B (Option (LayerSignature × (ValPos → Digest))) :=
-  (readLiftQ goodAll (grindR M upd pub B l e message (pub.rbase l e message) randomizerAttemptLimit
-    0)).bind fun g ↦
+  revealThen goodAll {.inr lab} fun r₀ ↦
+  (readLiftQ goodAll (grindR M upd pub B lab.layer lab.key lab.msg (extendBase r₀.1 lab)
+    randomizerAttemptLimit 0)).bind fun g ↦
     match g with
     | none => QuantumComp₂.pure none
-    | some (ρ, x) => revealThen goodAll (layerNeed l e x) fun r ↦
-        (progSlots M pub B (layerSlots l e x)).bind fun _ ↦
-          QuantumComp₂.pure (some (⟨ρ, fun i ↦ extendVals r.1 (cpos l e i (x i).val),
-            fun level ↦ extendVals r.1 (siblingPos l e level)⟩, extendVals r.1))
+    | some (ρ, x) => revealThen goodAll (inlSet (layerNeed lab.layer lab.key x)) fun r ↦
+        (progSlots M pub B (layerSlots lab.layer lab.key x)).bind fun _ ↦
+          QuantumComp₂.pure (some (⟨ρ, fun i ↦ extendVals r.1 (cpos lab.layer lab.key i (x i).val),
+            fun level ↦ extendVals r.1 (siblingPos lab.layer lab.key level)⟩, extendVals r.1))
+
+/-- The label of a signing request's bottom layer signature: its key and message. -/
+def botLabel (r : SigningRequest) : RLabel :=
+  .inl (keyIndexOnLayer r.leafIndex bottomLayer, r.message)
+
+/-- The label of a signing request's top layer signature: its key and the bottom root `d`. -/
+def topLabel (r : SigningRequest) (d : Digest) : RLabel :=
+  .inr (keyIndexOnLayer r.leafIndex topLayer, d)
+
+/-- The position of the bottom root under a signing request's top key. -/
+def botRootPos (r : SigningRequest) : ValPos :=
+  tpos bottomLayer layerHeight (keyIndexOnLayer r.leafIndex topLayer).val
 
 /-- **A signature in runtime 2**, as `signWithSchemeSeed`: the bottom layer signs the message, the
 top layer the bottom root, read from the bottom layer's revealed values. -/
 noncomputable def signT (pub : Pub) (B : QReg) (r : SigningRequest) :
     QComp (XSpec M) B B (Option Signature) :=
-  (signLayerT M upd pub B bottomLayer (keyIndexOnLayer r.leafIndex bottomLayer)
-    (littleEndianBytes 32 r.message)).bind fun b ↦
+  (signLayerT M upd pub B (botLabel r)).bind fun b ↦
     match b with
     | none => QuantumComp₂.pure none
     | some (bottom, f) =>
-      (signLayerT M upd pub B topLayer (keyIndexOnLayer r.leafIndex topLayer)
-        (littleEndianBytes 16 (f (tpos bottomLayer layerHeight
-          (keyIndexOnLayer r.leafIndex topLayer).val)))).bind fun t ↦
+      (signLayerT M upd pub B (topLabel r (f (botRootPos r)))).bind fun t ↦
         match t with
         | none => QuantumComp₂.pure none
         | some (top, _) => QuantumComp₂.pure
@@ -1236,7 +1321,7 @@ on the public key against the challenger of runtime 2 with its signing transcrip
 winning condition. `realizeT v (gameT M upd pub A)` is the game at the hidden values `v`. -/
 noncomputable def gameT (pub : Pub) (A : Adversary (X × Z)) :
     QComp (XSpec M) (QReg.of Unit) (QReg.of Unit) Bool :=
-  revealThen goodAll {rootPos} fun r₀ ↦
+  revealThen goodAll {.inl rootPos} fun r₀ ↦
     (challengedT M upd pub (withSignLog (A ⟨extendVals r₀.1 rootPos, pub.param⟩))).bind fun run ↦
       (readLiftQ goodAll ((readsProgram M pub.perm _ (schemeWithHashFromSeed.verify
         ⟨extendVals r₀.1 rootPos, pub.param⟩ run.1)).map Prod.fst)).bind fun verified ↦
@@ -1245,7 +1330,7 @@ noncomputable def gameT (pub : Pub) (A : Adversary (X × Z)) :
 /-! ### The game reveals before it programs -/
 
 omit [Fintype M] [DecidableEq M] in
-theorem disc_progPorts (B : QReg) (ps : List (LazyProg X Z ValPos XD)) (T : Finset ValPos)
+theorem disc_progPorts (B : QReg) (ps : List (LazyProg X Z HPos XD)) (T : Finset HPos)
     (h : ∀ p ∈ ps, p.need ⊆ T) : Disc (progPorts M B ps) T := by
   induction ps with
   | nil => trivial
@@ -1254,8 +1339,8 @@ theorem disc_progPorts (B : QReg) (ps : List (LazyProg X Z ValPos XD)) (T : Fins
       (ih fun q hq ↦ h q (List.mem_cons_of_mem _ hq))
 
 omit [Fintype M] [DecidableEq M] in
-theorem disc_progSlots (pub : Pub) (B : QReg) (ss : List Slot) (T : Finset ValPos)
-    (h : ∀ s ∈ ss, slotNeed s ⊆ T) : Disc (progSlots M pub B ss) T := by
+theorem disc_progSlots (pub : Pub) (B : QReg) (ss : List Slot) (T : Finset HPos)
+    (h : ∀ s ∈ ss, inlSet (slotNeed s) ⊆ T) : Disc (progSlots M pub B ss) T := by
   induction ss generalizing T with
   | nil => trivial
   | cons s ss ih =>
@@ -1265,28 +1350,28 @@ theorem disc_progSlots (pub : Pub) (B : QReg) (ss : List Slot) (T : Finset ValPo
     exact h s List.mem_cons_self
 
 omit [Fintype M] [DecidableEq M] in
-theorem disc_signLayerT (pub : Pub) (B : QReg) (l : Layer) (e : KeyIndex) (message : HashInput)
-    (T : Finset ValPos) : Disc (signLayerT M upd pub B l e message) T := by
-  refine disc₂_bind _ _ (disc_readLift _ _) fun g T' _ ↦ ?_
+theorem disc_signLayerT (pub : Pub) (B : QReg) (lab : RLabel) (T : Finset HPos) :
+    Disc (signLayerT M upd pub B lab) T := by
+  refine disc_revealThen _ _ T fun _ ↦ disc₂_bind _ _ (disc_readLift _ _) fun g T' _ ↦ ?_
   rcases g with _ | ⟨ρ, x⟩
   · trivial
   · refine disc_revealThen _ _ T' fun r ↦ disc₂_bind _ _ (disc_progSlots M pub B _ _ fun s hs ↦ ?_)
       fun _ _ _ ↦ trivial
-    exact (slotNeed_subset_needUnion hs).trans (Finset.subset_union_left.trans
-      (Finset.subset_union_left.trans Finset.subset_union_right))
+    exact (inlSet_mono ((slotNeed_subset_needUnion hs).trans (Finset.subset_union_left.trans
+      Finset.subset_union_left))).trans Finset.subset_union_right
 
 omit [Fintype M] [DecidableEq M] in
-theorem disc_signT (pub : Pub) (B : QReg) (r : SigningRequest) (T : Finset ValPos) :
+theorem disc_signT (pub : Pub) (B : QReg) (r : SigningRequest) (T : Finset HPos) :
     Disc (signT M upd pub B r) T := by
-  refine disc₂_bind _ _ (disc_signLayerT M upd pub B _ _ _ T) fun b T' _ ↦ ?_
+  refine disc₂_bind _ _ (disc_signLayerT M upd pub B _ T) fun b T' _ ↦ ?_
   rcases b with _ | ⟨bottom, f⟩
   · trivial
-  · refine disc₂_bind _ _ (disc_signLayerT M upd pub B _ _ _ T') fun t _ _ ↦ ?_
+  · refine disc₂_bind _ _ (disc_signLayerT M upd pub B _ T') fun t _ _ ↦ ?_
     rcases t with _ | ⟨top, _⟩ <;> trivial
 
 omit [Fintype M] [DecidableEq M] in
 theorem disc_challengeT (pub : Pub) (A : QReg) (c : QuantumComp.Cmd LocalSig.instruments.{0}
-    (advSpec (X × Z)) A) (T : Finset ValPos) : Disc (challengeT M upd pub A c) T := by
+    (advSpec (X × Z)) A) (T : Finset HPos) : Disc (challengeT M upd pub A c) T := by
   rcases c with o | ⟨p | r, E, ℓ⟩
   · exact disc_readLift _ _
   · exact disc_readLift _ _
@@ -1296,7 +1381,7 @@ theorem disc_challengeT (pub : Pub) (A : QReg) (c : QuantumComp.Cmd LocalSig.ins
 omit [Fintype M] [DecidableEq M] in
 /-- **The game reveals before it programs**: every program port hardwires a cell of a slot whose
 coordinates the layer signature revealed just before. -/
-theorem disc_gameT (pub : Pub) (A : Adversary (X × Z)) (T : Finset ValPos) :
+theorem disc_gameT (pub : Pub) (A : Adversary (X × Z)) (T : Finset HPos) :
     Disc (gameT M upd pub A) T :=
   disc_revealThen _ _ T fun _ ↦ disc₂_bind _ _ (disc_substitute _ (disc_challengeT M upd pub) _ _)
     fun _ _ _ ↦ disc₂_bind _ _ (disc_readLift _ _) fun _ _ _ ↦ trivial
@@ -1304,9 +1389,9 @@ theorem disc_gameT (pub : Pub) (A : Adversary (X × Z)) (T : Finset ValPos) :
 /-- **The lazy-sampling property of the runtime-2 game.** For every initial state that does not
 depend on the hidden values, the realized games satisfy `ViewBy` for runtime 2 with record ports
 and the memory label, at every call. -/
-theorem viewBy_gameT (pub : Pub) (A : Adversary (X × Z)) (m₀ : Finset ValPos × M)
-    (ρ : Matrix (QReg.of Unit × QReg.of (HwReg X Z (Finset ValPos × M)))
-      (QReg.of Unit × QReg.of (HwReg X Z (Finset ValPos × M))) ℂ) (j : ℕ) :
+theorem viewBy_gameT (pub : Pub) (A : Adversary (X × Z)) (m₀ : Finset HPos × M)
+    (ρ : Matrix (QReg.of Unit × QReg.of (HwReg X Z (Finset HPos × M)))
+      (QReg.of Unit × QReg.of (HwReg X Z (Finset HPos × M))) ℂ) (j : ℕ) :
     ViewBy (runtimeR m₀) LocalSig.Interp.instruments (fun r ↦ r.2.2.1)
       (fun v ↦ realizeT v (gameT M upd pub A)) (fun _ ↦ ρ) j :=
   viewBy_runtimeR_of_disc _ m₀ (gameT M upd pub A) ∅ (disc_gameT M upd pub A ∅) (fun _ ↦ ρ)
@@ -1314,9 +1399,9 @@ theorem viewBy_gameT (pub : Pub) (A : Adversary (X × Z)) (m₀ : Finset ValPos 
 
 /-- **`ViewByOn` for the runtime-2 game**, the `hview` hypothesis of `Disclose`'s mass bounds for
 the weights vanishing on the program ports. -/
-theorem viewByOn_gameT (pub : Pub) (A : Adversary (X × Z)) (m₀ : Finset ValPos × M)
-    (ρ : Matrix (QReg.of Unit × QReg.of (HwReg X Z (Finset ValPos × M)))
-      (QReg.of Unit × QReg.of (HwReg X Z (Finset ValPos × M))) ℂ) (j : ℕ) :
+theorem viewByOn_gameT (pub : Pub) (A : Adversary (X × Z)) (m₀ : Finset HPos × M)
+    (ρ : Matrix (QReg.of Unit × QReg.of (HwReg X Z (Finset HPos × M)))
+      (QReg.of Unit × QReg.of (HwReg X Z (Finset HPos × M))) ℂ) (j : ℕ) :
     ViewByOn (runtimeR m₀) LocalSig.Interp.instruments (fun i ↦ i.isLeft = true)
       (fun r ↦ r.2.2.1) (fun v ↦ realizeT v (gameT M upd pub A)) (fun _ ↦ ρ) j :=
   (viewBy_gameT M upd pub A m₀ ρ j).viewByOn _
