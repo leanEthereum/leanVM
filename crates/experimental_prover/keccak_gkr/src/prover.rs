@@ -15,7 +15,7 @@ use primitives::multilinear::{eq_table, interp, poly_eval};
 use primitives::transcript::ProverState;
 use verifier::keccak::{BITS, LOCAL_BITS, along, linear_transpose};
 
-use crate::basis::{PolyEval, add_mul, carry};
+use crate::basis::{PolyEval, add_mul};
 use crate::kernels::{GROUP, MIXED, PACKS, SKIP, SkipBlock, TERNARY, embed, mixed_points, products, slot};
 use crate::power::{Element, PowerField, get, set};
 use crate::protocol::{Claim, chi_weights, mu_at};
@@ -363,15 +363,15 @@ impl Layer<'_> {
         let (nb, written) = (self.witness.shape.n_blocks(), self.witness.written());
         let mixed = parallel::map_reduce_with_state(
             self.rounds.len() * written,
-            SkipBlock::new,
+            || SkipBlock::new(weights),
             || vec![[0u64; 5]; MIXED],
             |skip, total, task| {
                 let (segment, g) = (task / written, task % written);
                 let (row, block) = (g + nb * segment, self.witness.layer(self.rounds[segment], g));
-                skip.run(block, weights);
+                skip.run(block);
                 for half in 0..2 {
                     for (i, total) in total.iter_mut().enumerate() {
-                        add_mul(total, &carry::<2, 3>(&skip.get(slot(half, i))), &groups[2 * row + half]);
+                        add_mul(total, &skip.get(slot(half, i)), &groups[2 * row + half]);
                     }
                 }
             },
@@ -462,7 +462,7 @@ impl Layer<'_> {
                         for j in 0..BITS {
                             let sums = crate::kernels::fold_groups(&embed(words(block, j)), &fold);
                             for (wide, sum) in wide.as_chunks_mut::<{ 3 * BITS }>().0[..halves].iter_mut().zip(&sums) {
-                                let sum: [u64; 3] = carry(sum);
+                                let sum: [u64; 3] = crate::basis::carry(sum);
                                 for (k, &word) in sum.iter().enumerate() {
                                     wide[k * BITS + j] = word;
                                 }

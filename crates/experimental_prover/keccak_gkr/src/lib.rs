@@ -85,6 +85,10 @@
 //! `U`'s weighted bit sums are outer products: with GFNI (x86-64), one affine byte map per byte
 //! of eight positions' weights applied to bit-transposed products (`products_gfni`); elsewhere,
 //! the positions grouped by each byte of their weight (`prover`'s digit buckets).
+//!
+//! The four rounds' sums are binary polynomials of degree at most 173. With AVX-512 and GFNI they
+//! are taken on residues modulo 24 irreducibles of degree 8, where a product is a byte product
+//! (`skip_gfni`).
 
 use primitives::field::{F64, F128, F128Unreduced};
 use primitives::hash::STATE_LANES;
@@ -106,13 +110,13 @@ mod products_gfni;
 mod protocol;
 mod prover;
 pub mod rmfe;
-#[cfg(all(
-    target_arch = "x86_64",
-    target_feature = "avx512f",
-    target_feature = "avx512bw",
-    target_feature = "gfni"
-))]
-mod table_gfni;
+cfg_select! {
+    all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512bw", target_feature = "gfni") => {
+        mod skip_gfni;
+        mod table_gfni;
+    }
+    _ => {}
+}
 pub mod witness;
 
 #[cfg(test)]
