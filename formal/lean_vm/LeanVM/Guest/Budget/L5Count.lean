@@ -64,11 +64,11 @@ theorem ccl_ne {k : ℕ} (hk : k < 17) :
 /-- **`child_claim_list_any`'s instructions** on a tree of honest shape (`anyHonest n`). -/
 theorem any_weight_le (op : Opcode) {n : ℕ} (hn : n / 136 < 2 ^ 64 - 1) {rd : Reader} {t : Tree}
     {args rets : List E} (h : B1.Digest.anyHonest n t) (hv : t.Valid coreProgram rd args rets)
-    (hb : t.BufsOk coreProgram) : t.weight (B2C.ωArm B2C.xmssArmC op) ≤ anyW op n := by
+    (hb : t.BufsOk coreProgram) : t.weight (Deployed.ωArm Deployed.xmssArmC op) ≤ anyW op n := by
   let W : Call → ℕ := fun c =>
     if c.f = (name% child_claim_list_any_loop0) then n / 136 * kcL17 op
     else if c.f = (name% child_claim_list_any_loop1) then n % 136 / 17 * kcL18 op else (kcCclT op).getD (n % 17) 0
-  obtain ⟨σ, -, hle⟩ := NodeHonest.weight_le (B2C.ωArm B2C.xmssArmC op) (fun _ => W) h hv hb
+  obtain ⟨σ, -, hle⟩ := NodeHonest.weight_le (Deployed.ωArm Deployed.xmssArmC op) (fun _ => W) h hv hb
     (by
       intro σ hQ c T hmem ht t' rets' hn' hv' hb' _
       obtain ⟨h4, h5, -, -, h33, h51⟩ := hQ
@@ -113,9 +113,9 @@ theorem any_weight_le (op : Opcode) {n : ℕ} (hn : n / 136 < 2 ^ 64 - 1) {rd : 
 `child_claim_list_any` walk). -/
 theorem ccl_weight_le (op : Opcode) {n : ℕ} (hn : n / 17 < 2 ^ 64 - 1) {rd : Reader} {t : Tree}
     {args rets : List E} (h : ccHonest n t) (hv : t.Valid coreProgram rd args rets)
-    (hb : t.BufsOk coreProgram) : t.weight (B2C.ωArm B2C.xmssArmC op) ≤ ccW op n := by
+    (hb : t.BufsOk coreProgram) : t.weight (Deployed.ωArm Deployed.xmssArmC op) ≤ ccW op n := by
   let W : Call → ℕ := fun c => if c.f = "list_split" then kcLs op else anyW op n
-  obtain ⟨σ, -, hle⟩ := NodeHonest.weight_le (B2C.ωArm B2C.xmssArmC op) (fun _ => W) h hv hb
+  obtain ⟨σ, -, hle⟩ := NodeHonest.weight_le (Deployed.ωArm Deployed.xmssArmC op) (fun _ => W) h hv hb
     (by
       intro σ _ c T hmem _ t' rets' hn' hv' hb' hT'
       by_cases h0 : n = 0
@@ -165,11 +165,11 @@ theorem l5_weight_le (op : Opcode) {ex es X S : ℕ → ℕ} {Pvs : ℕ → Tree
     (N : ℕ) (hX : ∀ c, X c / 17 < 2 ^ 64 - 1) (hS : ∀ c, S c / 17 < 2 ^ 64 - 1)
     (hV : ∀ c, c < N → ∀ (rd : Reader) (t : Tree) (args rets : List E), Pvs c t →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-        t.weight (B2C.ωArm B2C.xmssArmC op) ≤ V c) :
+        t.weight (Deployed.ωArm Deployed.xmssArmC op) ≤ V c) :
     ∀ m c (rd : Reader) (t : Tree) (args rets : List E), c + m ≤ N →
       L5From ex es (fun c => ccHonest (X c)) (fun c => ccHonest (S c)) Pvs m c t →
       t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-        t.weight (B2C.ωArm B2C.xmssArmC op) ≤ iterSum (l5B op X S V) c m
+        t.weight (Deployed.ωArm Deployed.xmssArmC op) ≤ iterSum (l5B op X S V) c m
   | 0, _, _, _, _, _, _, h, _, _ => h.elim
   | m + 1, c, rd, t, args, rets, hN, h, hv, hb => by
     obtain ⟨σ, bufs, ks, rfl, -, -, hcalls, hKT⟩ := h
@@ -178,7 +178,7 @@ theorem l5_weight_le (op : Opcode) {ex es X S : ℕ → ℕ} {Pvs : ℕ → Tree
     have he := l5_walk hf hw
     subst he
     rw [hcalls] at hk
-    have hk' := kids_weight_leL (B2C.ωArm B2C.xmssArmC op) (l5CallList σ)
+    have hk' := kids_weight_leL (Deployed.ωArm Deployed.xmssArmC op) (l5CallList σ)
       (l5Ts (ccHonest (X c)) (ccHonest (S c)) (Pvs c)
         (L5From ex es (fun c => ccHonest (X c)) (fun c => ccHonest (S c)) Pvs m (c + 1)))
       [ccW op (X c), ccW op (S c), kcSd op, V c, iterSum (l5B op X S V) (c + 1) m] ks hk hb.2 hKT
@@ -262,9 +262,9 @@ def vsCnt (op : Opcode) (μ _r : ℕ) : ℕ := (vsCountT op).getD (μ - 20) 0
 theorem vs_weight_le_deployed (op : Opcode) {μ r d : ℕ} (hμ1 : 20 ≤ μ) (hμ2 : μ ≤ 30)
     (hd : d < 14) {rd : Reader} {t : Tree} {args rets : List E}
     (h : FlatShape coreProgram "verify_sub"
-      (B1.VerifySub.vsTs B2C.fs Count.vsWordsOs B1.VerifySub.vkBound μ r d) t)
+      (B1.VerifySub.vsTs Deployed.fs Count.vsWordsOs B1.VerifySub.vkBound μ r d) t)
     (hv : t.Valid coreProgram rd args rets) (hb : t.BufsOk coreProgram) :
-    t.weight (B2C.ωArm B2C.xmssArmC op) ≤ vsCnt op μ r :=
+    t.weight (Deployed.ωArm Deployed.xmssArmC op) ≤ vsCnt op μ r :=
   vs_weight_le_vsTs op hμ1 hμ2 hd (vbgMax_eq.trans_le (by norm_num)) (vkBound_eq.trans_le (by norm_num))
     h hv hb
 
@@ -314,17 +314,17 @@ theorem l5_honest_weight_le (op : Opcode) {s : NodeStatement} {w : NodeWitness}
     {Pd : Tree → Prop} {Pvs : ℕ → Tree → Prop} (hl : GuestLimits s w)
     (hPv : ∀ c (hc : c < w.children.length) (rd : Reader) (t : Tree) (args rets : List E),
       Pvs c t → t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-        t.weight (B2C.ωArm B2C.xmssArmC op) ≤
+        t.weight (Deployed.ωArm Deployed.xmssArmC op) ≤
           vsCnt op (childShape End.bytecode w.children[c]).1 (childShape End.bytecode w.children[c]).2)
     {rd : Reader} {t : Tree} {args rets : List E} (hv : t.Valid coreProgram rd args rets)
     (hb : t.BufsOk coreProgram) (hT : (B1.Main.mainPredsH s w Pd Pvs).T5 t) :
-    t.weight (B2C.ωArm B2C.xmssArmC op) ≤ l5Lin (l5C op) (ccS op) (vsCnt op) (End.work s w) := by
+    t.weight (Deployed.ωArm Deployed.xmssArmC op) ≤ l5Lin (l5C op) (ccS op) (vsCnt op) (End.work s w) := by
   let L : List ℕ := w.children.map fun ch =>
     vsCnt op (childShape End.bytecode ch).1 (childShape End.bytecode ch).2
   let V : ℕ → ℕ := fun c => L.getD c 0
   have hV : ∀ c, c < w.children.length → ∀ (rd : Reader) (t : Tree) (args rets : List E),
       Pvs c t → t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
-        t.weight (B2C.ωArm B2C.xmssArmC op) ≤ V c := by
+        t.weight (Deployed.ωArm Deployed.xmssArmC op) ≤ V c := by
     intro c hc rd t args rets hP hv hb
     have := hPv c hc rd t args rets hP hv hb
     simp only [V, L]
