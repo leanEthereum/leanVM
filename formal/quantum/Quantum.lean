@@ -37,6 +37,7 @@ import Quantum.Xmss.Hybrid.CoinsHiding
 import Quantum.Xmss.Hybrid.CoinPath
 import Quantum.Xmss.Assembly.RecordPorts
 import Quantum.Xmss.Hybrid.Graded
+import Quantum.Xmss.Hybrid.Mismatch
 import Quantum.Xmss.Assembly.Masses
 import Quantum.Xmss.Assembly.CostLift
 import Quantum.Xmss.Assembly.PathBad
