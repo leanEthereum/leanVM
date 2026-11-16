@@ -15,7 +15,7 @@ public import LeanVM.Guest.Memory.Image
 /-!
 # Placing a call tree
 
-Frame sizes are a parameter `fs` (the compiler's, from the certificate). A call instance of `f`
+Frame sizes are a parameter `fs` (the compiler's, from its placement). A call instance of `f`
 placed at word `fp` occupies, in order: its frame `[fp, fp + fs f)`, then its `HeapBuf`s one
 after another, then its callees' regions in call order, each subtree contiguous. So a subtree
 of `total` words occupies `[fp, fp + total)`, and an instance's `HeapBuf` pointers depend only
@@ -36,7 +36,7 @@ after them only the first `tail` cells of the untaken call's frame (`RHint::Allo
 `0 ..< 2 + arguments + 1`, all its caller writes there), a dispatch's frame at the largest arm's
 size, a `HeapBuf` when its hint runs. Here a phantom takes its callee's whole frame (`fs f`
 words), more than the Rust's `tail`: the honest memory writes in it only what its caller writes
-(`B2C.phantomE`: the parameters and the self frame pointer cells, which the checker confirms the
+(the parameters and the self frame pointer cells, which the back end's static test confirms the
 caller's code writes: the cells the compiler's `tail` counts), and the rest are words nothing
 writes, which the ISA permits; the model allocates `fs f - tail` words more per loop run than the
 Rust. Completeness needs only disjointness, which this order gives by construction; soundness

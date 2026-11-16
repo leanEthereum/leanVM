@@ -2,32 +2,29 @@
   LeanVM.Guest.Pow
 
   Powers of `g` for the kernel: `g^e` as the product of five table entries, one per hexadecimal
-  digit of `e`, and the check of a search tree of powers by it.
+  digit of `e`.
 -/
 
 module
 
-public import LeanVM.Guest.ExecCore
-public import LeanVM.Guest.Data.Pows
+public import LeanVM.Guest.Backend.Pow
 
 /-!
 # Powers of `g` by digits
 
 The kernel evaluates `gpow e` by square-and-multiply, some thirty products of `K` for an
 exponent of the guest's code size. `gpowW e` takes five, one per hexadecimal digit of `e < 2^20`,
-from the table `Data.gtab` of the words `g^(d·16^w)` (`gw_eq`, decided once), so that
-`PowTree.OkW`, the check of every pair of a search tree by `gpowW`, costs a fraction of
-`PowTree.Ok`, which it implies (`PowTree.ok_of_okW`).
+from the back end's table `Backend.gtab` of the words `g^(d·16^w)` (`gw_eq`, decided once).
 -/
 
 namespace LeanVM.Guest.Pow
 
-open LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Exec
+open LeanVM.Parameters LeanVM.Guest
 
 @[expose] public section
 
 /-- `g^(d·16^w)`, from the table. -/
-def gw (w d : ℕ) : K := K.ofBits (listElementOrDefault (listElementOrDefault Data.gtab w []) d 0)
+def gw (w d : ℕ) : K := K.ofBits (listElementOrDefault (listElementOrDefault Backend.gtab w []) d 0)
 
 /-- `g^e` for `e < 2^20`, by the hexadecimal digits of `e`. -/
 def gpowW (e : ℕ) : K :=
@@ -124,7 +121,7 @@ theorem ofBits_mulN (a b : ℕ) : K.ofBits (mulN a b) = K.ofBits a * K.ofBits b 
   rfl
 
 /-- `gw` as a word in `ℕ`. -/
-def gwN (w d : ℕ) : ℕ := listElementOrDefault (listElementOrDefault Data.gtab w []) d 0
+def gwN (w d : ℕ) : ℕ := listElementOrDefault (listElementOrDefault Backend.gtab w []) d 0
 
 /-- `gpowW` on words in `ℕ`. -/
 def gpowN (e : ℕ) : ℕ :=
@@ -138,48 +135,3 @@ theorem ofBits_gpowN (e : ℕ) : K.ofBits (gpowN e) = gpowW e := by
 
 end
 end LeanVM.Guest.Pow
-
-namespace LeanVM.Guest.Exec
-
-open LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Pow
-
-@[expose] public section
-
-/-- Every pair of the tree is a power of `g` below `2^20`, by digits. -/
-def PowTree.OkW : PowTree → Prop
-  | .leaf => True
-  | .node k e l r => e < 2 ^ 20 ∧ K.ofBits k = gpowW e ∧ l.OkW ∧ r.OkW
-
-/-- `PowTree.OkW` is decided pair by pair. -/
-def PowTree.decOkW : (t : PowTree) → Decidable t.OkW
-  | .leaf => isTrue trivial
-  | .node k e l r =>
-    haveI := PowTree.decOkW l
-    haveI := PowTree.decOkW r
-    inferInstanceAs (Decidable (e < 2 ^ 20 ∧ K.ofBits k = gpowW e ∧ l.OkW ∧ r.OkW))
-
-instance (t : PowTree) : Decidable t.OkW := PowTree.decOkW t
-
-/-- `PowTree.OkW` as a `Bool`, on words in `ℕ` (`gpowN`). -/
-def PowTree.okWB : PowTree → Bool
-  | .leaf => true
-  | .node k e l r => Nat.blt e 1048576 && Nat.beq k (gpowN e) && l.okWB && r.okWB
-
-/-- A pair checked on words is a power of `g` by digits. -/
-theorem gpowW_of_beq {k e : ℕ} (h : Nat.beq k (gpowN e) = true) : K.ofBits k = gpowW e := by
-  rw [Nat.eq_of_beq_eq_true h, ofBits_gpowN]
-
-/-- **`PowTree.OkW`, decided on words.** -/
-theorem PowTree.okW_of_okWB : ∀ {t : PowTree}, t.okWB = true → t.OkW
-  | .leaf, _ => trivial
-  | .node _ _ _ _, h => by
-    simp only [okWB, Bool.and_eq_true, Nat.blt_eq] at h
-    obtain ⟨⟨⟨he, hk⟩, hl⟩, hr⟩ := h
-    exact ⟨he, gpowW_of_beq hk, okW_of_okWB hl, okW_of_okWB hr⟩
-
-theorem PowTree.ok_of_okW : ∀ {t : PowTree}, t.OkW → t.Ok
-  | .leaf, _ => trivial
-  | .node _ _ _ _, ⟨he, hk, hl, hr⟩ => ⟨hk.trans (gpowW_eq he), ok_of_okW hl, ok_of_okW hr⟩
-
-end
-end LeanVM.Guest.Exec

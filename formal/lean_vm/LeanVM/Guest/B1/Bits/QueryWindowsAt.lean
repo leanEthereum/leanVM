@@ -73,7 +73,7 @@ def QwDecodeAtD (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (d
           (fs name) name [w, pos, ptrs, tabs] []
 
 /-- **Every frame run's cells are consecutive**: value `k` of a `frameAddr` run of a function's
-body sits `k` cells past the run's first. The certificates' fact (`B2C.FnStatic.run`), as
+body sits `k` cells past the run's first. A fact of the placement (`Backend.Cpl.runsConsecG`), as
 `Lift.RunsFit` is. -/
 def RunsConsec (cert : String → V → ℕ) : Prop :=
   ∀ f fn, coreProgram.find? f = some fn → ∀ p r rs,

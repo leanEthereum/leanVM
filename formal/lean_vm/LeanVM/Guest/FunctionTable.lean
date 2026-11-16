@@ -14,8 +14,7 @@ public import LeanVM.Guest.Code
 
 `functions_wellChunked`: every compiled function's chunks hold exactly its instructions, checked
 once by the kernel. Apart from `Bytecode.lean` (the program `guest`, which imports the statement
-of the guest), so that the symbolic executor's fetch (`ExecC.lean`), and with it the kernel-checked
-certificates, do not import that statement.
+of the guest).
 -/
 
 namespace LeanVM.Guest

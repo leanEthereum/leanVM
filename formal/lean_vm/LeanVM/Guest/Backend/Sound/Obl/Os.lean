@@ -24,8 +24,6 @@ window pointers, which the `level_queries` arm gets as its argument `5` (the sam
 same product of one value by a constant: `sameVal`): B1's `QueryWinsOk`, so
 `OqMainWins` at `g^n` (`oqMainWins_of_queryWinsOk`), the callee's `XSpec.lq n w`, when the
 decodes cover the walk (`lpCovers`). `osSiteOk` decides a pair of sites, `os_obl` gives `OblFn`.
-`queryWinsOk_of_lp` and `lp_walk` restate `Guest/WalkOsPre.lean`'s, which its certificate
-context imports.
 -/
 
 namespace LeanVM.Guest.Backend.Obl

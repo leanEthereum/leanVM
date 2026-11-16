@@ -15,7 +15,7 @@ public import LeanVM.Guest.WalkTags
 
 `verify_bus_gkr_loop0`'s iteration `x` dispatches `gkr_rounds__L{2r}` on `parity = layer[g^12]`,
 `layer = layers·(x²·start_g)^13` (`LAYER_SLOTS = 13`, `LAYER_PARITY = 12`).
-The checker of the certificates bounds the dispatch's selector by the obligation `GkrPar` on the
+The guest's precondition bounds the dispatch's selector by the obligation `GkrPar` on the
 loop's arguments `[layers, x, start_g, k_mod_next]` (`WalkTags.lean`): every `k_mod_next[g^r]`,
 `r < 4`, and the parity word of layer `x`, if read, are `g^e`, `e < 4`.
 

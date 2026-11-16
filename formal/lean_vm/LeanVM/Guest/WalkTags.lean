@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.WalkTags
 
-  The tags of the guest's semantic relations (`Glob.sem`), and the relations of the windowed
+  The tags of the guest's semantic relations, and the relations of the windowed
   Merkle walk's tags.
 -/
 
@@ -12,10 +12,10 @@ public import LeanVM.Guest.WalkWindows
 /-!
 # The tags of the semantic relations
 
-A function's precondition names tuples of its frame cells in relations by tag (`Check.Sig.sem`):
+A function's precondition names tuples of its frame cells in relations by tag:
 
 * `0`: the exponent table (`B1.ExpTables`) at the tuple's one word (`verify_sub`, `main_loop4`);
-* `1` (`Check.tagNe`): the two words differ, the checker's own (a loop's `x ≠ N`);
+* `1`: the two words differ (a loop's `x ≠ N`);
 * `walkTag kind odd d cd`: the windows `opening_queries`' walk dispatches on, specialization
   `(odd, base, depth d, cap_depth cd)` (`lean_ethereum.py`): `kind` `0`
   `WinWalk` on `[t, x, N]` (a deeper loop, `odd = 0`), `1` `WinWalk2` on `[t, x, N]` (a level-0 loop),
@@ -31,10 +31,10 @@ A function's precondition names tuples of its frame cells in relations by tag (`
   `layer[g^LAYER_PARITY]` of layer `x` it dispatches on, and the table `k_mod_next` that steps it.
 * `lqTag n odd base d cd`, from `2^21`: `OqMainWins` on `[win_ptrs]` at `n_iters_g = g^n`, the
   windows `level_queries` hands `opening_queries` (`lean_ethereum.py`, `level_queries`), which
-  `open_stacked` assumes at the rate's arm of its dispatch (`Check.selTag`, below `2^26`).
+  `open_stacked` assumes at the rate's arm of its dispatch (below `2^26`).
 
 `walkSem t` is the relation of a walk tag `2 ≤ t < tagGkr`, decoded by `walkKind`, `walkOdd`, `walkD`,
-`walkCd`. The certificates' generator (`cli/GuestCert.lean`) writes the tags.
+`walkCd`.
 -/
 
 namespace LeanVM.Guest

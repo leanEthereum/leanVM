@@ -10,8 +10,8 @@ import Mathlib.Data.List.GetD
 The decoder reads the witness off the frames of the functions that checked it, through a frame
 map keyed by the function's name (`FrameMap`, `B1/Main/Frames.lean`). Its readers, made programs
 of the cost machine, key it by a number instead (`NFrames`): **the function's index**, one past
-its position in `coreProgram` (`main` is `1`), the index `certOf` and the replayed frame map's
-entry table (`Located/ReplayFast.lean`) use, `nameIndex f` for the function named `f` (`nFns` for
+its position in `coreProgram` (`main` is `1`), the index the replayed frame map's
+entry table (`Located/ReplayFast.lean`) uses, `nameIndex f` for the function named `f` (`nFns` for
 no function, `Guest/NameIndex.lean`).
 
 * `decoderFunctionName j`: the name of function `j` (`main`'s off the indices `1 ..< nFns`);

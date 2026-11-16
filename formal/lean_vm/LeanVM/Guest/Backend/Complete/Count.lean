@@ -16,8 +16,7 @@ public import LeanVM.Guest.Backend.Sound.Ops
 `pmaxP keyed pf` is the most instructions of each opcode a path through a placed body to a
 return runs; for a separately counted function (`keyed`) the arms of its top-level chains are
 left out, and `armsP` lists each such stage's arms' counts with its core selector's number, as
-`Plumb.pmax` and `Data.cplArms` hold them. They are computable, so the guest checks them against
-its tables by evaluation (`lake exe guest-cplcheck`).
+`Deployed.Data.pmax` and `Deployed.Data.arms` hold them (`lake exe guest-tables` writes them).
 -/
 
 namespace LeanVM.Guest.Backend.Complete
@@ -130,7 +129,7 @@ to a return runs, a separately counted function's top-level chains' arms exclude
 def pmaxP (keyed : Bool) (pf : Placed) : Opcode → ℕ :=
   ((pmL keyed true pf.fn.body).ret).getD 0
 
-/-- An opcode's position in `Opcode`'s order (`B2C.opIdx`). -/
+/-- An opcode's position in `Opcode`'s order (`Deployed.opIdx`). -/
 def opIx : Opcode → ℕ
   | .xor => 0
   | .mulNative => 1
@@ -169,7 +168,7 @@ def armsGo (keyed : Bool) : List PStmt → List Stmt → List (ℕ × List (List
       | some (_, rest) => armsGo keyed ps rest
       | none => []
 
-/-- **The separately counted arms of a function** (`Data.cplArms`' format), none if it is not
+/-- **The separately counted arms of a function** (`Deployed.Data.arms`' format), none if it is not
 separately counted. -/
 def armsP (keyed : Bool) (tf : TracedFn) (pf : Placed) : List (ℕ × List (List ℕ)) :=
   if keyed then armsGo keyed pf.fn.body tf.core.body else []
