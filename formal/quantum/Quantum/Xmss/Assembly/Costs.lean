@@ -1,6 +1,5 @@
 module
 
-public import Quantum.Xmss.Game
 public import Quantum.Xmss.Events
 public import Quantum.Xmss.Hybrid.Seed
 public import Common.XmssCost
@@ -46,6 +45,8 @@ open scoped Kronecker
 universe w u₁ v₁ uL vL
 
 /-! ## The honest costs -/
+
+open Quantum.SufCma
 
 namespace Quantum.Xmss
 
@@ -374,8 +375,9 @@ theorem isTotalQueryBound_game_concrete {S : Type} [Fintype S] [DecidableEq S] [
     (e : LeanVM.Semantics.KeccakState ≃ S) (S0 : MasterSeed) {A : Adversary S} {q n : ℕ}
     (hperm : ∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge permCharge) q)
     (hsignq : ∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge signCharge) n) :
-    (game e S0 A).IsTotalQueryBound (13893633 + (q + 9048424824 * n) + 398) :=
-  isTotalQueryBound_game e S0 (sufCmaScheme_generateKeys_cost S0) sufCmaScheme_sign_cost
+    (game sufCmaScheme e S0 A).IsTotalQueryBound (13893633 + (q + 9048424824 * n) + 398) :=
+  isTotalQueryBound_game sufCmaScheme e S0 (sufCmaScheme_generateKeys_cost S0)
+    sufCmaScheme_sign_cost
     sufCmaScheme_verify_cost hperm hsignq
 
 /-! ### Honest reads -/

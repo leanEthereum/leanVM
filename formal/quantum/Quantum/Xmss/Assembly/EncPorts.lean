@@ -52,6 +52,8 @@ universe u v w
 open Matrix IPFunctor
 open scoped ENNReal Kronecker ComplexOrder
 
+open Quantum.SufCma
+
 namespace Quantum.Sponge
 
 open Quantum OracleSpec

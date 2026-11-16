@@ -41,6 +41,8 @@ after `schemeSplit`.
 
 open scoped ENNReal
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Hybrid
 
 open Quantum Quantum.Sponge

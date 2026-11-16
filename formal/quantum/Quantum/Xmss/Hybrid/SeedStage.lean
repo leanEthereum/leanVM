@@ -46,6 +46,8 @@ keeps everything `r0Split` produces except the keys `k`, `k'` at the seed paths'
 
 open scoped ENNReal
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Hybrid
 
 open Quantum Quantum.Sponge

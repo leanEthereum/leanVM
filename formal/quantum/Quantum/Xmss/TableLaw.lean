@@ -1,7 +1,7 @@
 module
 
 public import Quantum.Sponge.Oracle.Hardwired
-public import Quantum.Xmss.HonestTable
+public import Quantum.SufCma.Trace
 
 @[expose] public section
 
@@ -409,9 +409,10 @@ end runtime
 
 end Quantum.Sponge
 
-namespace Quantum.Xmss
+namespace Quantum.SufCma
 
-open Quantum Quantum.Sponge
+open Quantum Quantum.Sponge Common.SufCma
+open Quantum.Xmss (X Z)
 
 /-! ## The cells of the honest reads -/
 
@@ -563,7 +564,7 @@ theorem spongeReads_answeredBy (t : SpongeKeys X Z) (msg : List X) :
 
 /-- Every read of the honest evaluation is answered by its functions. -/
 theorem honestEval_answeredBy (t : SpongeKeys X Z) {α : Type}
-    (x : OracleComp LeanXmss.HashSpec α) : ∀ e ∈ (honestEval t π x).2, e.AnsweredBy t := by
+    (x : OracleComp SchemeHashSpec α) : ∀ e ∈ (honestEval t π x).2, e.AnsweredBy t := by
   intro e he
   rw [snd_honestEval, List.mem_flatMap] at he
   obtain ⟨input, -, he⟩ := he
@@ -571,7 +572,7 @@ theorem honestEval_answeredBy (t : SpongeKeys X Z) {α : Type}
 
 /-- **The honest evaluation is determined by the values of its cells**: functions agree with the
 cells it reads under `t` exactly when they give the same evaluation and reads. -/
-theorem consistent_readsHw_honestEval_iff {α : Type} (x : OracleComp LeanXmss.HashSpec α)
+theorem consistent_readsHw_honestEval_iff {α : Type} (x : OracleComp SchemeHashSpec α)
     (t t' : SpongeKeys X Z) :
     Consistent (readsHw (honestEval t π x).2) t' ↔ honestEval t' π x = honestEval t π x := by
   rw [consistent_readsHw_iff (honestEval_answeredBy π t x)]
@@ -592,7 +593,7 @@ adaptively during the run), against the classical reads of `t`. Averaged over un
 has the law of the mixture, over the law `tableLaw` of the honest evaluation, of runtime 1
 started with the honest cells and their values hardwired (`readsHw`), running `y`. -/
 theorem spongeEvalDistMap_eq_tableLaw {γ : Type*} [MeasurableSpace γ] {α : Type} [DecidableEq α]
-    (x : OracleComp LeanXmss.HashSpec α) (m₀ : M) (I : L.Interp)
+    (x : OracleComp SchemeHashSpec α) (m₀ : M) (I : L.Interp)
     (y : α × List (SpongeRead X Z) → QuantumComp L (hwReadSpec X Z M) W A) (ρ : SubState A)
     (f : (Σ u, W u) → γ) :
     ∑ t : SpongeKeys X Z, (Fintype.card (SpongeKeys X Z) : ℝ≥0∞)⁻¹ •
@@ -607,7 +608,7 @@ theorem spongeEvalDistMap_eq_tableLaw {γ : Type*} [MeasurableSpace γ] {α : Ty
 written as the average over uniform `t` of runtime 1 started with the honest cells of `t`
 hardwired. -/
 theorem spongeEvalDistMap_eq_avg_runtime1 {γ : Type*} [MeasurableSpace γ] {α : Type}
-    (x : OracleComp LeanXmss.HashSpec α) (m₀ : M) (I : L.Interp)
+    (x : OracleComp SchemeHashSpec α) (m₀ : M) (I : L.Interp)
     (y : α × List (SpongeRead X Z) → QuantumComp L (hwReadSpec X Z M) W A) (ρ : SubState A)
     (f : (Σ u, W u) → γ) :
     ∑ t : SpongeKeys X Z, (Fintype.card (SpongeKeys X Z) : ℝ≥0∞)⁻¹ •
@@ -621,7 +622,7 @@ theorem spongeEvalDistMap_eq_avg_runtime1 {γ : Type*} [MeasurableSpace γ] {α 
 /-- **G2 is runtime 1, sponge ports only**: as `spongeEvalDistMap_eq_tableLaw` for a program over
 the sponge ports (no further honest reads), run against the oracles of `t`. -/
 theorem spongeEvalDistMap_eq_tableLaw_sponge {γ : Type*} [MeasurableSpace γ] {α : Type}
-    [DecidableEq α] (x : OracleComp LeanXmss.HashSpec α) (m₀ : M) (I : L.Interp)
+    [DecidableEq α] (x : OracleComp SchemeHashSpec α) (m₀ : M) (I : L.Interp)
     (y : α × List (SpongeRead X Z) → QuantumComp L (spongeSpec X Z) W A) (ρ : SubState A)
     (f : (Σ u, W u) → γ) :
     ∑ t : SpongeKeys X Z, (Fintype.card (SpongeKeys X Z) : ℝ≥0∞)⁻¹ •
@@ -632,6 +633,6 @@ theorem spongeEvalDistMap_eq_tableLaw_sponge {γ : Type*} [MeasurableSpace γ] {
   evalDistMap_avg_eq_tableLaw_sponge (fun t ↦ honestEval t π x) (fun b ↦ readsHw b.2)
     (consistent_readsHw_honestEval_iff π x) m₀ I y ρ f
 
-end Quantum.Xmss
+end Quantum.SufCma
 
 end

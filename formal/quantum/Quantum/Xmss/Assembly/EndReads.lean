@@ -38,6 +38,8 @@ The construction of `WinDecomp` for the canonical game is WinDecomp's `endReads_
 
 open OracleComp OracleSpec
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss
 
 open Quantum.Sponge HashSig HashSig.OverPermutation LeanXmss Common Common.SufCma

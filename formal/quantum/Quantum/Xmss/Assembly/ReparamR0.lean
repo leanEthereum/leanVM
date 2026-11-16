@@ -58,6 +58,8 @@ of the padded table into public data, hidden values `HPos → Digest` and a neve
 open IPFunctor Matrix
 open scoped ENNReal ComplexOrder
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Assembly
 
 open Quantum QuantumRuntime Quantum.Sponge Quantum.Xmss Quantum.Xmss.Hybrid HashSig LeanXmss

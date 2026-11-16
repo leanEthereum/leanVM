@@ -42,6 +42,8 @@ universe u v w w'
 open IPFunctor Matrix
 open scoped ENNReal ComplexOrder Kronecker
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Assembly
 
 open Quantum QuantumRuntime Quantum.Sponge Quantum.Xmss.Hybrid

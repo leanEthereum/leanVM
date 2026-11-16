@@ -36,6 +36,8 @@ paths bounds it by PathBad's `N² / |X| + N² (G + 1) / |Z|`.
 
 open scoped ENNReal
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Assembly
 
 open Quantum Quantum.Sponge Quantum.Xmss.Hybrid

@@ -38,6 +38,8 @@ public). They hold in the decompressed basis (PrefixRun's `HT₂` semantics), of
 open Matrix
 open scoped ENNReal Kronecker
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Assembly
 
 open Quantum QuantumRuntime Quantum.Sponge Quantum.Xmss Quantum.Xmss.Hybrid

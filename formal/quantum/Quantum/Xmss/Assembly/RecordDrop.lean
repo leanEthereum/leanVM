@@ -31,6 +31,8 @@ open scoped Kronecker
 
 universe w
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Assembly
 
 open Quantum QuantumRuntime Quantum.Sponge Quantum.Xmss.Hybrid

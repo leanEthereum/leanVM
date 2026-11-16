@@ -162,7 +162,7 @@ quantum() {
   axioms quantum Quantum Quantum.qrpmEvalDistMap_eq_spongePerm Quantum.Sponge.qrpm_sponge_collision_le \
     Quantum.Sponge.qrpm_sponge_preimage_le Quantum.Sponge.keccak256_qrpm_collision_le \
     Quantum.Sponge.keccak256_qrpm_preimage_le Quantum.qrpmEvalDistMap_toQuantumAt_qrpmImpl \
-    Quantum.Xmss.winProb_classicalAdversary Quantum.Xmss.Assembly.leanXmss_qrpm_security \
+    Quantum.SufCma.winProb_classicalAdversary Quantum.Xmss.Assembly.leanXmss_qrpm_security \
     Quantum.Xmss.Assembly.qrpmBound_le Quantum.Xmss.Assembly.qrpmBound_two_pow_30_le \
     Quantum.Xmss.Assembly.qrpmBound_two_pow_50_le
 }

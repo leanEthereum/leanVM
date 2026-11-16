@@ -1,6 +1,6 @@
 module
 
-public import Quantum.Xmss.Game
+public import Quantum.Xmss.HonestTable
 
 @[expose] public section
 
@@ -22,7 +22,8 @@ the signer, and wins at least as often as `A`.
 * `noLeafReuse_refuse`: `refuse A` never reuses a leaf.
 * `isChargeBound_refuse`: `refuse A` keeps every charge bound of `A` (a refused request becomes
   a local operation, which costs nothing).
-* `winProb_le_winProb_refuse`: `winProb e A ≤ winProb e (refuse A)`. Per permutation, by
+* `winProb_le_winProb_refuse`: `winProb sufCmaScheme e A ≤ winProb sufCmaScheme e (refuse A)`.
+  Per permutation, by
   induction over the adversary's tree with its transcript: at a reused request every leaf of the
   game below has a transcript with a repeated leaf, so it returns `false`; elsewhere both games
   make the same command.
@@ -35,7 +36,7 @@ universe u v u₁ v₁ w w₁
 
 namespace Quantum.Xmss
 
-open LeanXmss HashSig Common Common.SufCma LeanXmss.RandomPermutationModel
+open LeanXmss HashSig Common Common.SufCma LeanXmss.RandomPermutationModel Quantum.SufCma
 open LeanVM.Semantics (KeccakState)
 
 /-! ## Leaf charges and refused requests -/
@@ -49,7 +50,7 @@ section refuse
 variable {S : Type} [Fintype S] [DecidableEq S]
 
 /-- The charge of the requests of leaf `ℓ`: one per request of `ℓ`, nothing otherwise. -/
-def leafCharge (ℓ : LeafIndex) : AdvPort → ℕ
+def leafCharge (ℓ : LeafIndex) : AdvPort SigningRequest → ℕ
   | .perm _ => 0
   | .sign r => if r.leafIndex = ℓ then 1 else 0
 
@@ -104,7 +105,7 @@ end sign
 
 /-- Refusing keeps every charge bound: a refused request becomes a local operation, which costs
 nothing. -/
-theorem isChargeBound_refuseFrom {X : QReg → Type} {c : AdvPort → ℕ} {A : QReg}
+theorem isChargeBound_refuseFrom {X : QReg → Type} {c : AdvPort SigningRequest → ℕ} {A : QReg}
     (x : IFreeM (AdvP S) X A) (F : Finset LeafIndex) {n : ℕ}
     (h : IFreeM.IsChargeBound x (cmdCharge c) n) :
     IFreeM.IsChargeBound (refuseFrom F x) (cmdCharge c) n := by
@@ -151,7 +152,8 @@ theorem noLeafReuse_refuse (A : Adversary S) : NoLeafReuse (refuse A) := fun pk 
 
 /-- **`refuse A` keeps every charge bound of `A`**, in particular its permutation calls
 (`permCharge`) and signing requests (`signCharge`). -/
-theorem isChargeBound_refuse {c : AdvPort → ℕ} {n : ℕ} {A : Adversary S} {pk : PublicKey}
+theorem isChargeBound_refuse {c : AdvPort SigningRequest → ℕ} {n : ℕ} {A : Adversary S}
+    {pk : PublicKey}
     (h : IFreeM.IsChargeBound (A pk) (cmdCharge c) n) :
     IFreeM.IsChargeBound (refuse A pk) (cmdCharge c) n :=
   isChargeBound_refuseFrom (A pk) ∅ h
@@ -274,11 +276,14 @@ theorem obsWeight_challenged_liftBind_le {A B C : QReg} {γ β : Type} (c : (Adv
     {next next' : (b : (AdvP S).B A c) →
       IFreeM (AdvP S) (QuantumComp₂.Leaf B γ) ((AdvP S).src A c b)}
     {k : γ → QComp (qrpmSpec S) B C β} {g : (Σ u, QuantumComp₂.Leaf C β u) → ℝ≥0∞}
-    (h : ∀ b σ, obsWeight (R.run .instruments ((challenged e sk (next b)).bind k)) σ g ≤
-      obsWeight (R.run .instruments ((challenged e sk (next' b)).bind k)) σ g)
+    (h : ∀ b σ,
+      obsWeight (R.run .instruments ((challenged sufCmaScheme e sk (next b)).bind k)) σ g ≤
+        obsWeight (R.run .instruments ((challenged sufCmaScheme e sk (next' b)).bind k)) σ g)
     (ρ : SubState (A × R.D)) :
-    obsWeight (R.run .instruments ((challenged e sk (IFreeM.liftBind c next)).bind k)) ρ g ≤
-      obsWeight (R.run .instruments ((challenged e sk (IFreeM.liftBind c next')).bind k)) ρ g := by
+    obsWeight (R.run .instruments
+        ((challenged sufCmaScheme e sk (IFreeM.liftBind c next)).bind k)) ρ g ≤
+      obsWeight (R.run .instruments
+        ((challenged sufCmaScheme e sk (IFreeM.liftBind c next')).bind k)) ρ g := by
   simp only [challenged, IFreeM.substitute_liftBind, QuantumComp₂.bind, FreeM₂.bind,
     IFreeM.bind_assoc]
   rw [obsWeight_run_bind, obsWeight_run_bind]
@@ -291,10 +296,11 @@ each of its answers. -/
 theorem obsWeight_challenged_liftBind_eq_zero {A B C : QReg} {γ β : Type} (c : (AdvP S).A A)
     {next : (b : (AdvP S).B A c) → IFreeM (AdvP S) (QuantumComp₂.Leaf B γ) ((AdvP S).src A c b)}
     {k : γ → QComp (qrpmSpec S) B C β} {g : (Σ u, QuantumComp₂.Leaf C β u) → ℝ≥0∞}
-    (h : ∀ b σ, obsWeight (R.run .instruments ((challenged e sk (next b)).bind k)) σ g = 0)
+    (h : ∀ b σ,
+      obsWeight (R.run .instruments ((challenged sufCmaScheme e sk (next b)).bind k)) σ g = 0)
     (ρ : SubState (A × R.D)) :
-    obsWeight (R.run .instruments ((challenged e sk (IFreeM.liftBind c next)).bind k)) ρ g =
-      0 := by
+    obsWeight (R.run .instruments
+        ((challenged sufCmaScheme e sk (IFreeM.liftBind c next)).bind k)) ρ g = 0 := by
   simp only [challenged, IFreeM.substitute_liftBind, QuantumComp₂.bind, FreeM₂.bind,
     IFreeM.bind_assoc]
   rw [obsWeight_run_bind]
@@ -312,7 +318,8 @@ theorem obsWeight_reused
       obsWeight (R.run .instruments (k (a, log))) σ g = 0)
     {A : QReg} (x : IFreeM (AdvP S) (QuantumComp₂.Leaf B α) A)
     (log : SignLog) (hlog : ¬SigningTranscript.NoLeafIndexReused log) (ρ : SubState (A × R.D)) :
-    obsWeight (R.run .instruments ((challenged e sk (logSigns signLeaf x log)).bind k)) ρ g = 0 := by
+    obsWeight (R.run .instruments
+      ((challenged sufCmaScheme e sk (logSigns signLeaf x log)).bind k)) ρ g = 0 := by
   induction x using IFreeM.inductionOn generalizing log with
   | pure A v =>
     obtain ⟨rfl, a⟩ := v
@@ -330,9 +337,10 @@ theorem obsWeight_le_refuseFrom
     {A : QReg} (x : IFreeM (AdvP S) (QuantumComp₂.Leaf B α) A)
     (log : SignLog) (F : Finset LeafIndex) (hF : ∀ ℓ ∈ F, ℓ ∈ log.map fun q ↦ q.1.leafIndex)
     (ρ : SubState (A × R.D)) :
-    obsWeight (R.run .instruments ((challenged e sk (logSigns signLeaf x log)).bind k)) ρ g ≤
+    obsWeight (R.run .instruments
+        ((challenged sufCmaScheme e sk (logSigns signLeaf x log)).bind k)) ρ g ≤
       obsWeight (R.run .instruments
-        ((challenged e sk (logSigns signLeaf (refuseFrom F x) log)).bind k)) ρ g := by
+        ((challenged sufCmaScheme e sk (logSigns signLeaf (refuseFrom F x) log)).bind k)) ρ g := by
   induction x using IFreeM.inductionOn generalizing log F with
   | pure _ _ => exact le_rfl
   | liftBind A c next ih =>
@@ -365,9 +373,9 @@ theorem obsWeight_verify_reused (pk : PublicKey) (a : Forgery) {log : SignLog}
 /-- **Per runtime, `refuse A` wins the game with at least the weight of `A`.** -/
 theorem obsWeight_game_le (S0 : MasterSeed) (A : Adversary S)
     (σ : SubState (QReg.of Unit × R.D)) :
-    obsWeight (R.run .instruments (game e S0 A)) σ
+    obsWeight (R.run .instruments (game sufCmaScheme e S0 A)) σ
         (fun p ↦ ({true} : Set Bool).indicator 1 p.2.2) ≤
-      obsWeight (R.run .instruments (game e S0 (refuse A))) σ
+      obsWeight (R.run .instruments (game sufCmaScheme e S0 (refuse A))) σ
         (fun p ↦ ({true} : Set Bool).indicator 1 p.2.2) := by
   unfold game
   rw [obsWeight_run_bind₂, obsWeight_run_bind₂]
@@ -377,10 +385,11 @@ theorem obsWeight_game_le (S0 : MasterSeed) (A : Adversary S)
   exact obsWeight_verify_reused e R keys.1 a h σ'
 
 /-- **Refusing reused leaves does not lower the winning probability.** -/
-theorem winProb_le_winProb_refuse (A : Adversary S) : winProb e A ≤ winProb e (refuse A) := by
+theorem winProb_le_winProb_refuse (A : Adversary S) :
+    winProb sufCmaScheme e A ≤ winProb sufCmaScheme e (refuse A) := by
   have hs : MeasurableSet ({true} : Set Bool) := measurableSet_singleton true
   unfold winProb qrpmEvalDistMap
-  refine mul_le_mul_right (Finset.sum_le_sum fun S0 _ ↦ ?_) _
+  refine Finset.sum_le_sum fun S0 _ ↦ mul_le_mul_right ?_ _
   refine (sampledEvalDistMap_apply _ _ _ _ _ hs).trans_le
     ((Finset.sum_le_sum fun φ _ ↦ mul_le_mul_right ?_ _).trans_eq
       (sampledEvalDistMap_apply _ _ _ _ _ hs).symm)

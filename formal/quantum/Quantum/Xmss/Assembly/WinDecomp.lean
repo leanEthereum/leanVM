@@ -42,6 +42,8 @@ at the end of the game, given the prefix invariant off `E` (`PrefixWinFactsOff`,
 open Matrix OracleSpec
 open scoped Kronecker ComplexOrder ENNReal
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Assembly
 
 open Quantum QuantumRuntime Quantum.Sponge Quantum.Xmss.Hybrid

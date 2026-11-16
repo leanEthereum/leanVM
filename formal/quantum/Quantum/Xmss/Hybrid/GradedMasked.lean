@@ -46,6 +46,8 @@ open scoped ENNReal ComplexOrder Kronecker
 
 universe u v w
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Hybrid
 
 open Quantum QuantumRuntime Quantum.Sponge Quantum.Xmss.Assembly

@@ -27,6 +27,8 @@ every branch is supported on the registers of the postcondition.
 open Matrix
 open scoped Kronecker
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Assembly
 
 open Quantum QuantumRuntime Quantum.Sponge Quantum.Xmss.Hybrid

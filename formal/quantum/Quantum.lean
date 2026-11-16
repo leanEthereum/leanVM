@@ -10,11 +10,12 @@ import Quantum.Sponge.Reads.Single
 import Quantum.Sponge.Keccak
 import Quantum.Sponge.Assembly.Collision
 import Quantum.Sponge.Target
-import Quantum.Xmss.Game
+import Quantum.SufCma.Game
+import Quantum.SufCma.Trace
 import Quantum.Xmss.Keccak
 import Quantum.Xmss.HonestTable
 import Quantum.Classical
-import Quantum.Xmss.Classical
+import Quantum.SufCma.Classical
 import Quantum.Sponge.Oracle.Hardwired
 import Quantum.Xmss.Classify
 import Quantum.Xmss.TableLaw
@@ -140,10 +141,10 @@ footprint of the main theorems ever grows beyond Lean's three standard axioms. -
 #guard_msgs (whitespace := lax) in
 #print axioms Quantum.qrpmEvalDistMap_toQuantumAt_qrpmImpl
 
-/-- info: 'Quantum.Xmss.winProb_classicalAdversary' depends on axioms:
+/-- info: 'Quantum.SufCma.winProb_classicalAdversary' depends on axioms:
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms Quantum.Xmss.winProb_classicalAdversary
+#print axioms Quantum.SufCma.winProb_classicalAdversary
 
 /-- info: 'Quantum.Xmss.Assembly.leanXmss_qrpm_security' depends on axioms:
 [propext, Classical.choice, Quot.sound] -/

@@ -47,6 +47,8 @@ fraction. `uavg_totalWeight_portMass_le_reparam` is Masses' bound with all of th
 open scoped ENNReal ComplexOrder
 open IPFunctor
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Assembly
 
 open Quantum QuantumRuntime Quantum.Sponge Quantum.Xmss Quantum.Xmss.Hybrid HashSig LeanXmss

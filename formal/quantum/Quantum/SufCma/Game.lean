@@ -1,6 +1,5 @@
 module
 
-public import Statement.LeanXmss
 public import Statement.SufCma
 public import Quantum.Model
 public import VCVio.Quantum.Oracle.ClassicalCalls
@@ -10,14 +9,15 @@ public import PolyFun.IPFunctor.Free.Bound.Substitution
 @[expose] public section
 
 /-!
-# The SUF-CMA game of leanXMSS against quantum adversaries, in the QRPM
+# The SUF-CMA game of a signature scheme against quantum adversaries, in the QRPM
 
 The adversary calls a uniform permutation `φ` of the Keccak state in both directions on
 superpositions (the ports `.perm p`) and asks classical signing requests (one port `.sign r` per
-request `r`, so the request is classical by construction). The challenger runs the statement's
-leanXMSS (`LeanXmss.RandomPermutationModel.sufCmaScheme`: key generation, signing, verification
-and winning condition, unchanged) as classical algorithms whose permutation calls are classical
-basis calls of the QRPM ports (`permImpl`), and logs the signing transcript (`withSignLog`).
+request `r : Req`, so the request is classical by construction). The challenger runs a scheme of
+the statement's game (`Common.SufCma.Scheme Seed PK SK Req Resp F`: key generation, signing,
+verification and winning condition, unchanged) as classical algorithms whose permutation calls
+are classical basis calls of the QRPM ports (`permImpl`), and logs the signing transcript
+(`withSignLog`).
 
 The QRPM state type `S` is a parameter with an equivalence `e : KeccakState ≃ S`: the statement's
 `π` is `e.symm ∘ φ ∘ e`. The oracle unitary adds `φ x` into the response register
@@ -25,11 +25,12 @@ The QRPM state type `S` is a parameter with an equivalence `e : KeccakState ≃ 
 sponge's `X × Z` with `X`, `Z` vectors over `ZMod 2`, where addition is XOR and every element is
 its own inverse.
 
-* `game e S0 A`: key generation from the seed `S0`, the adversary with every signing request
+* `game sch e S0 A`: key generation from the seed `S0`, the adversary with every signing request
   answered by the signer (`challenge`), then the verification of the forgery.
-* `winProb e A`: the winning probability, averaged over the uniform seed and `φ`.
-* `QuantumStronglyUnforgeable e bound`: every adversary making at most `q` permutation calls and
-  at most `lifetime` signing requests on every path wins with probability at most `bound q`.
+* `winProb sch e A`: the winning probability, averaged over the scheme's seed law and `φ`.
+* `QuantumStronglyUnforgeable sch e limit bound`: every adversary making at most `q` permutation
+  calls and at most `limit` signing requests on every path wins with probability at most
+  `bound q`.
 
 ## Main statements
 
@@ -38,10 +39,12 @@ its own inverse.
   most `q + sc · n` calls of `φ`, `φ⁻¹` when the adversary makes `q` permutation calls and `n`
   signing requests and each signature costs at most `sc` calls; the game adds key generation and
   verification.
+* `winProb_eq_uniform`: for a uniform seed, the winning probability is the uniform average over
+  the seeds.
 
 For an adversary whose permutation calls are classical, this game has the winning probability of
 the statement's `forgeryGame` under `runWithRandomPermutation`
-(`Quantum.Xmss.winProb_classicalAdversary`).
+(`Quantum.SufCma.winProb_classicalAdversary`).
 -/
 
 open IPFunctor OracleComp OracleSpec
@@ -49,29 +52,29 @@ open scoped ENNReal
 
 universe u v w w₁
 
-namespace Quantum.Xmss
+namespace Quantum.SufCma
 
-open LeanXmss HashSig Common Common.SufCma LeanXmss.RandomPermutationModel
+open Common Common.SufCma
 open LeanVM.Semantics (KeccakState)
 
 /-! ## The adversary -/
 
 /-- The adversary's ports: the permutation in either direction, and one classical signing port
 per request. -/
-inductive AdvPort where
+inductive AdvPort (Req : Type) where
   /-- A call of `φ` or `φ⁻¹`. -/
   | perm (p : PermutationPort)
   /-- The signing request `r`. -/
-  | sign (r : SigningRequest)
+  | sign (r : Req)
 
-variable (S : Type) [Fintype S] [DecidableEq S]
+variable (PK Req Resp F : Type) (S : Type) [Fintype S] [DecidableEq S]
 
 /-- The adversary's signature: a permutation port acts on the register `S × S` (query input,
 then response) and reports nothing; a signing port acts on no register and reports the
-signature. -/
+signer's answer. -/
 @[reducible]
 def advSpec : QuantumOracleSpec.{0, 0} where
-  Port := AdvPort
+  Port := AdvPort Req
   In
     | .perm _ => QReg.of (S × S)
     | .sign _ => QReg.of Unit
@@ -80,84 +83,88 @@ def advSpec : QuantumOracleSpec.{0, 0} where
     | .sign _ => QReg.of Unit
   Result
     | .perm _ => Unit
-    | .sign _ => Option Signature
+    | .sign _ => Resp
 
 /-- A quantum SUF-CMA adversary: from the public key, a program over `advSpec` that keeps its
 own registers across calls and returns a claimed forgery. -/
-abbrev Adversary := PublicKey → QComp (advSpec S) (QReg.of Unit) (QReg.of Unit) Forgery
+abbrev Adversary := PK → QComp (advSpec Req Resp S) (QReg.of Unit) (QReg.of Unit) F
+
+variable {PK Req Resp F S}
 
 /-- A permutation call costs one, a signing request nothing. -/
-def permCharge : AdvPort → ℕ
+def permCharge : AdvPort Req → ℕ
   | .perm _ => 1
   | .sign _ => 0
 
 /-- A signing request costs one, a permutation call nothing. -/
-def signCharge : AdvPort → ℕ
+def signCharge : AdvPort Req → ℕ
   | .perm _ => 0
   | .sign _ => 1
 
-variable {S}
-
 /-- A charge on ports as a charge on commands, for `IPFunctor.IFreeM.IsChargeBound`: a call of
 port `i` costs `c i`, a local operation nothing. -/
-def cmdCharge {L : LocalSig.{u, v}} (c : AdvPort → ℕ) (A : QReg) :
-    QuantumComp.Cmd L (advSpec S) A → ℕ
+def cmdCharge {L : LocalSig.{u, v}} (c : AdvPort Req → ℕ) (A : QReg) :
+    QuantumComp.Cmd L (advSpec Req Resp S) A → ℕ
   | .prim _ => 0
   | .query i _ _ => c i
 
 /-! ## The signing transcript -/
 
+variable (Req Resp) in
 /-- The signing transcript: each request with its answer, in order. -/
-abbrev SignLog := QueryLog SigningOracleSpec
+abbrev SignLog := QueryLog (Req →ₒ Resp)
 
 /-- The transcript after a command answered `b`: a signing request appends itself and its
 answer. -/
 def logAfter {L : LocalSig.{u, v}} {A : QReg} :
-    (c : QuantumComp.Cmd L (advSpec S) A) → c.Resp → SignLog → SignLog
+    (c : QuantumComp.Cmd L (advSpec Req Resp S) A) → c.Resp → SignLog Req Resp →
+      SignLog Req Resp
   | .query (.sign r) _ _, b, log => log ++ [⟨r, b.down⟩]
   | _, _, log => log
 
 /-- Run a program and keep its signing transcript, starting from `log`: the same commands, the
 transcript threaded along each path and handed to the leaf map `leaf` at the end. -/
 def logSigns {L : LocalSig.{u, v}} {X : QReg → Type w} {Y : QReg → Type w₁}
-    (leaf : ∀ u, X u → SignLog → Y u) :
-    {A : QReg} → IFreeM (QuantumComp.toIPFunctor L (advSpec S)) X A → SignLog →
-      IFreeM (QuantumComp.toIPFunctor L (advSpec S)) Y A
+    (leaf : ∀ u, X u → SignLog Req Resp → Y u) :
+    {A : QReg} → IFreeM (QuantumComp.toIPFunctor L (advSpec Req Resp S)) X A →
+      SignLog Req Resp → IFreeM (QuantumComp.toIPFunctor L (advSpec Req Resp S)) Y A
   | _, .pure x, log => .pure (leaf _ x log)
   | _, .liftBind c next, log => .liftBind c fun b ↦ logSigns leaf (next b) (logAfter c b log)
 
 /-- **The program with its signing transcript**: the same commands; the leaf also returns the
 signing requests and their answers, in order. -/
 def withSignLog {L : LocalSig.{u, v}} {A B : QReg} {α : Type w}
-    (x : QuantumComp₂ L (advSpec S) A B α) : QuantumComp₂ L (advSpec S) A B (α × SignLog) :=
+    (x : QuantumComp₂ L (advSpec Req Resp S) A B α) :
+    QuantumComp₂ L (advSpec Req Resp S) A B (α × SignLog Req Resp) :=
   logSigns (fun _ l log ↦ ⟨l.1, (l.2, log)⟩) x []
 
 /-- Keeping the transcript keeps every roll bound: the commands are the same. -/
 theorem isRollBound_logSigns {L : LocalSig.{u, v}} {X : QReg → Type w} {Y : QReg → Type w₁}
-    {β : Type*} {canRoll : (A : QReg) → QuantumComp.Cmd L (advSpec S) A → β → Prop}
-    {cost : (A : QReg) → QuantumComp.Cmd L (advSpec S) A → β → β}
-    (leaf : ∀ u, X u → SignLog → Y u) {A : QReg}
-    (x : IFreeM (QuantumComp.toIPFunctor L (advSpec S)) X A) (log : SignLog) {b : β}
-    (hx : IFreeM.IsRollBound x b canRoll cost) :
+    {β : Type*} {canRoll : (A : QReg) → QuantumComp.Cmd L (advSpec Req Resp S) A → β → Prop}
+    {cost : (A : QReg) → QuantumComp.Cmd L (advSpec Req Resp S) A → β → β}
+    (leaf : ∀ u, X u → SignLog Req Resp → Y u) {A : QReg}
+    (x : IFreeM (QuantumComp.toIPFunctor L (advSpec Req Resp S)) X A) (log : SignLog Req Resp)
+    {b : β} (hx : IFreeM.IsRollBound x b canRoll cost) :
     IFreeM.IsRollBound (logSigns leaf x log) b canRoll cost := by
   induction x using IFreeM.inductionOn generalizing log b with
   | pure _ _ => trivial
   | liftBind _ c next ih => exact ⟨hx.1, fun r ↦ ih r _ (hx.2 r)⟩
 
 /-- Keeping the signing transcript keeps losslessness. -/
-theorem lossless_withSignLog {A B : QReg} {α : Type} {x : QComp (advSpec S) A B α}
+theorem lossless_withSignLog {A B : QReg} {α : Type} {x : QComp (advSpec Req Resp S) A B α}
     (hx : x.Lossless .instruments) : (withSignLog x).Lossless .instruments :=
   isRollBound_logSigns _ x [] hx
 
 /-- Keeping the signing transcript keeps every charge bound. -/
-theorem isChargeBound_withSignLog {A B : QReg} {α : Type} {x : QComp (advSpec S) A B α}
-    {c : AdvPort → ℕ} {n : ℕ} (hx : IFreeM.IsChargeBound x (cmdCharge c) n) :
+theorem isChargeBound_withSignLog {A B : QReg} {α : Type} {x : QComp (advSpec Req Resp S) A B α}
+    {c : AdvPort Req → ℕ} {n : ℕ} (hx : IFreeM.IsChargeBound x (cmdCharge c) n) :
     IFreeM.IsChargeBound (withSignLog x) (cmdCharge c) n :=
   isRollBound_logSigns _ x [] hx
 
 /-! ## The challenger -/
 
-variable [AddCommGroup S] (e : KeccakState ≃ S)
+variable {Seed SK : Type} (sch : Scheme Seed PK SK Req Resp F) [AddCommGroup S]
+  (e : KeccakState ≃ S)
 
 /-- **The statement's oracles, by classical calls of the QRPM ports** beside the held register
 `B`: coins by uniform coins, `π s` by a basis call of `φ` at `e s` read back through `e`, and
@@ -171,52 +178,64 @@ noncomputable def permImpl (B : QReg) :
       ((e s, 0) : S × S) fun o _ ↦ e.symm (o : S × S).2
 
 /-- The answer to the signing request `r` with the adversary's register `A ≃ Unit × E` held:
-relabel the register, then run the statement's signer with `permImpl`. -/
-noncomputable def signTree (sk : SecretKey) (r : SigningRequest) (E : QReg) {A : QReg}
-    (ℓ : A ≃ (advSpec S).In (.sign r) × E) :
-    QComp (qrpmSpec S) A (QReg.of ((advSpec S).Out (.sign r) × E)) (Option Signature) :=
-  (QComp.act (B := QReg.of ((advSpec S).Out (.sign r) × E)) (SubInstrument.relabel ℓ)).bind
-    fun _ ↦ (sufCmaScheme.sign sk r).toQuantumAt (permImpl e _)
+relabel the register, then run the scheme's signer with `permImpl`. -/
+noncomputable def signTree (sk : SK) (r : Req) (E : QReg) {A : QReg}
+    (ℓ : A ≃ (advSpec Req Resp S).In (.sign r) × E) :
+    QComp (qrpmSpec S) A (QReg.of ((advSpec Req Resp S).Out (.sign r) × E)) Resp :=
+  (QComp.act (B := QReg.of ((advSpec Req Resp S).Out (.sign r) × E))
+    (SubInstrument.relabel ℓ)).bind fun _ ↦ (sch.sign sk r).toQuantumAt (permImpl e _)
 
 /-- **The challenger**: a local operation stays, a permutation call becomes the same call of
 `qrpmSpec S`, and a signing request is answered by the signer (`signTree`). -/
-noncomputable def challenge (sk : SecretKey) :
-    CommandSubstitution (QuantumComp.toIPFunctor LocalSig.instruments.{0} (advSpec S))
+noncomputable def challenge (sk : SK) :
+    CommandSubstitution (QuantumComp.toIPFunctor LocalSig.instruments.{0} (advSpec Req Resp S))
       (QuantumComp.toIPFunctor LocalSig.instruments.{0} (qrpmSpec S))
   | _, .prim o => QuantumComp.primBind o fun b ↦ QuantumComp.pure ⟨ULift.up b, rfl⟩
   | _, .query (.perm p) E ℓ =>
       QuantumComp.queryBind (spec := qrpmSpec S) p E ℓ fun r ↦ QuantumComp.pure ⟨ULift.up r, rfl⟩
   | _, .query (.sign r) E ℓ =>
-      QuantumComp.bind (signTree e sk r E ℓ) fun _ l ↦ QuantumComp.pure ⟨ULift.up l.2, l.1.symm⟩
+      QuantumComp.bind (signTree sch e sk r E ℓ) fun _ l ↦
+        QuantumComp.pure ⟨ULift.up l.2, l.1.symm⟩
 
 /-- The adversary's program with the challenger substituted, on `qrpmSpec S`. -/
-noncomputable def challenged (sk : SecretKey) {A B : QReg} {α : Type}
-    (x : QComp (advSpec S) A B α) : QComp (qrpmSpec S) A B α :=
-  IFreeM.substitute (challenge e sk) x
+noncomputable def challenged (sk : SK) {A B : QReg} {α : Type}
+    (x : QComp (advSpec Req Resp S) A B α) : QComp (qrpmSpec S) A B α :=
+  IFreeM.substitute (challenge sch e sk) x
 
-/-- **The quantum SUF-CMA game** at the seed `S0`, as `Common.SufCma.forgeryGame` for
-`sufCmaScheme`: key generation, the adversary against the challenger with its signing transcript,
-the verification of its forgery, and the scheme's winning condition. -/
-noncomputable def game (S0 : MasterSeed) (A : Adversary S) :
+/-- **The quantum SUF-CMA game** at the seed `S0`, as `Common.SufCma.forgeryGame` for `sch`: key
+generation, the adversary against the challenger with its signing transcript, the verification of
+its forgery, and the scheme's winning condition. -/
+noncomputable def game (S0 : Seed) (A : Adversary PK Req Resp F S) :
     QComp (qrpmSpec S) (QReg.of Unit) (QReg.of Unit) Bool :=
-  ((sufCmaScheme.generateKeys S0).toQuantumAt (permImpl e _)).bind fun keys ↦
-    (challenged e keys.2 (withSignLog (A keys.1))).bind fun run ↦
-      ((sufCmaScheme.verify keys.1 run.1).toQuantumAt (permImpl e _)).bind fun verified ↦
-        QuantumComp₂.pure (sufCmaScheme.winningCondition run.2 run.1 && verified)
+  ((sch.generateKeys S0).toQuantumAt (permImpl e _)).bind fun keys ↦
+    (challenged sch e keys.2 (withSignLog (A keys.1))).bind fun run ↦
+      ((sch.verify keys.1 run.1).toQuantumAt (permImpl e _)).bind fun verified ↦
+        QuantumComp₂.pure (sch.winningCondition run.2 run.1 && verified)
 
 /-- **The winning probability**: the game's probability of returning `true` in the QRPM,
-averaged over the uniform seed. -/
-noncomputable def winProb (A : Adversary S) : ℝ≥0∞ :=
-  (2 ^ 256 : ℝ≥0∞)⁻¹ * ∑ S0 : MasterSeed,
-    qrpmEvalDistMap .instruments (game e S0 A) (SubState.basis ()) (fun _ p ↦ p.2.2) {true}
+averaged over the scheme's seed law. -/
+noncomputable def winProb [Fintype Seed] (A : Adversary PK Req Resp F S) : ℝ≥0∞ :=
+  ∑ S0 : Seed, Pr{let s ← sch.sampleSeed}[s = S0] *
+    qrpmEvalDistMap .instruments (game sch e S0 A) (SubState.basis ()) (fun _ p ↦ p.2.2) {true}
 
-/-- **SUF-CMA of leanXMSS against quantum adversaries in the QRPM**: every adversary that makes
-at most `q` calls of `φ` and `φ⁻¹` and at most `lifetime = 2^32` signing requests on every path
-wins with probability at most `bound q`. The signer's, key generation's and verification's calls
-are not charged. -/
-def QuantumStronglyUnforgeable (bound : ℕ → ℝ≥0∞) : Prop :=
-  ∀ q (A : Adversary S), (∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge permCharge) q) →
-    (∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge signCharge) lifetime) → winProb e A ≤ bound q
+/-- **SUF-CMA of `sch` against quantum adversaries in the QRPM**: every adversary that makes at
+most `q` calls of `φ` and `φ⁻¹` and at most `limit` signing requests on every path wins with
+probability at most `bound q`. The signer's, key generation's and verification's calls are not
+charged. -/
+def QuantumStronglyUnforgeable [Fintype Seed] (limit : ℕ) (bound : ℕ → ℝ≥0∞) : Prop :=
+  ∀ q (A : Adversary PK Req Resp F S),
+    (∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge permCharge) q) →
+    (∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge signCharge) limit) → winProb sch e A ≤ bound q
+
+/-- **A uniform seed**: the winning probability is the uniform average over the seeds of the
+game's winning probability. -/
+theorem winProb_eq_uniform [Fintype Seed] {c : ℝ≥0∞}
+    (hseed : ∀ S0, Pr{let s ← sch.sampleSeed}[s = S0] = c) (A : Adversary PK Req Resp F S) :
+    winProb sch e A = c * ∑ S0 : Seed,
+      qrpmEvalDistMap .instruments (game sch e S0 A) (SubState.basis ()) (fun _ p ↦ p.2.2)
+        {true} := by
+  rw [winProb, Finset.mul_sum]
+  exact Finset.sum_congr rfl fun S0 _ ↦ by rw [hseed]
 
 /-! ## Losslessness -/
 
@@ -228,17 +247,18 @@ theorem lossless_permImpl (B : QReg) (t : RandomPermutationOracles.Domain) :
     QComp.lossless_callBasis _ _ _ _]
 
 /-- The signer's answer is lossless. -/
-theorem lossless_signTree (sk : SecretKey) (r : SigningRequest) (E : QReg) {A : QReg}
-    (ℓ : A ≃ (advSpec S).In (.sign r) × E) : (signTree e sk r E ℓ).Lossless .instruments :=
+theorem lossless_signTree (sk : SK) (r : Req) (E : QReg) {A : QReg}
+    (ℓ : A ≃ (advSpec Req Resp S).In (.sign r) × E) :
+    (signTree sch e sk r E ℓ).Lossless .instruments :=
   QuantumComp₂.lossless_bind (QComp.lossless_act (SubInstrument.lossless_relabel _)) fun _ ↦
     lossless_toQuantumAt (lossless_permImpl e _) _
 
 /-- The challenger keeps losslessness. -/
-theorem lossless_substitute_challenge (sk : SecretKey) {X : QReg → Type} {A : QReg}
-    (x : QuantumComp LocalSig.instruments.{0} (advSpec S) X A)
+theorem lossless_substitute_challenge (sk : SK) {X : QReg → Type} {A : QReg}
+    (x : QuantumComp LocalSig.instruments.{0} (advSpec Req Resp S) X A)
     (hx : x.Lossless .instruments) :
     QuantumComp.Lossless (spec := qrpmSpec S) LocalSig.Interp.instruments
-      (IFreeM.substitute (challenge e sk) x) := by
+      (IFreeM.substitute (challenge sch e sk) x) := by
   induction x using IFreeM.inductionOn with
   | pure _ _ => trivial
   | liftBind A c next ih =>
@@ -247,16 +267,16 @@ theorem lossless_substitute_challenge (sk : SecretKey) {X : QReg → Type} {A : 
     · rcases c with o | ⟨p | r, E, ℓ⟩
       · exact (QuantumComp.lossless_primBind_iff _ _).mpr ⟨hx.1, fun _ ↦ trivial⟩
       · exact (QuantumComp.lossless_queryBind_iff _ _ _ _).mpr fun _ ↦ trivial
-      · exact QuantumComp.Lossless.bind (lossless_signTree e sk r E ℓ) fun _ _ ↦ trivial
+      · exact QuantumComp.Lossless.bind (lossless_signTree sch e sk r E ℓ) fun _ _ ↦ trivial
     · subst h
       exact ih b (hx.2 b)
 
 /-- **The game of a lossless adversary is lossless.** -/
-theorem lossless_game (S0 : MasterSeed) {A : Adversary S}
-    (hA : ∀ pk, (A pk).Lossless .instruments) : (game e S0 A).Lossless .instruments :=
+theorem lossless_game (S0 : Seed) {A : Adversary PK Req Resp F S}
+    (hA : ∀ pk, (A pk).Lossless .instruments) : (game sch e S0 A).Lossless .instruments :=
   QuantumComp₂.lossless_bind (lossless_toQuantumAt (lossless_permImpl e _) _) fun keys ↦
     QuantumComp₂.lossless_bind
-      (lossless_substitute_challenge e keys.2 _ (lossless_withSignLog (hA keys.1)))
+      (lossless_substitute_challenge sch e keys.2 _ (lossless_withSignLog (hA keys.1)))
       fun _ ↦ QuantumComp₂.lossless_bind (lossless_toQuantumAt (lossless_permImpl e _) _)
         fun _ ↦ QuantumComp₂.lossless_pure _
 
@@ -329,19 +349,19 @@ theorem _root_.IPFunctor.IFreeM.IsChargeBound.add {I : Type*} {P : IPFunctor.End
 /-- **The challenged adversary's calls.** An adversary making at most `q` permutation calls and
 at most `n` signing requests on every path, against a signer making at most `sc` permutation
 calls per signature, makes at most `q + sc * n` calls of `φ` and `φ⁻¹` on every path. -/
-theorem isTotalQueryBound_challenged (sk : SecretKey) {q n sc : ℕ}
-    (hsign : ∀ r, QueryCostAtMost (sufCmaScheme.sign sk r) permutationCallCost sc)
-    {A B : QReg} {α : Type} {x : QComp (advSpec S) A B α}
+theorem isTotalQueryBound_challenged (sk : SK) {q n sc : ℕ}
+    (hsign : ∀ r, QueryCostAtMost (sch.sign sk r) permutationCallCost sc)
+    {A B : QReg} {α : Type} {x : QComp (advSpec Req Resp S) A B α}
     (hperm : IFreeM.IsChargeBound x (cmdCharge permCharge) q)
     (hsignq : IFreeM.IsChargeBound x (cmdCharge signCharge) n) :
-    (challenged e sk x).IsTotalQueryBound (q + sc * n) := by
-  refine IFreeM.IsChargeBound.substitute (challenge e sk) (fun A c ↦ ?_)
+    (challenged sch e sk x).IsTotalQueryBound (q + sc * n) := by
+  refine IFreeM.IsChargeBound.substitute (challenge sch e sk) (fun A c ↦ ?_)
     (hperm.add (hsignq.mul sc))
   rcases c with o | ⟨p | r, E, ℓ⟩
   · exact (QuantumComp.isTotalQueryBound_primBind_iff _ _ _).mpr fun _ ↦ trivial
   · exact (QuantumComp.isTotalQueryBound_queryBind_iff _ _ _ _ _).mpr
       ⟨by simp [cmdCharge, permCharge, signCharge], fun _ ↦ trivial⟩
-  · have ht : (signTree e sk r E ℓ).IsTotalQueryBound (0 + sc) :=
+  · have ht : (signTree sch e sk r E ℓ).IsTotalQueryBound (0 + sc) :=
       FreeM₂.isChargeBound_bind (isTotalQueryBound_act _ 0) fun _ ↦
         isTotalQueryBound_toQuantumAt_permImpl e _ (hsign r)
     refine IFreeM.IsChargeBound.mono (n₁ := 0 + sc + 0) ?_
@@ -350,24 +370,24 @@ theorem isTotalQueryBound_challenged (sk : SecretKey) {q n sc : ℕ}
 
 /-- **The game's calls**: key generation's `kc`, the challenged adversary's `q + sc * n`, and
 verification's `vc`. -/
-theorem isTotalQueryBound_game (S0 : MasterSeed) {A : Adversary S} {q n kc sc vc : ℕ}
-    (hkeygen : QueryCostAtMost (sufCmaScheme.generateKeys S0) permutationCallCost kc)
-    (hsign : ∀ sk r, QueryCostAtMost (sufCmaScheme.sign sk r) permutationCallCost sc)
-    (hverify : ∀ pk f, QueryCostAtMost (sufCmaScheme.verify pk f) permutationCallCost vc)
+theorem isTotalQueryBound_game (S0 : Seed) {A : Adversary PK Req Resp F S} {q n kc sc vc : ℕ}
+    (hkeygen : QueryCostAtMost (sch.generateKeys S0) permutationCallCost kc)
+    (hsign : ∀ sk r, QueryCostAtMost (sch.sign sk r) permutationCallCost sc)
+    (hverify : ∀ pk f, QueryCostAtMost (sch.verify pk f) permutationCallCost vc)
     (hperm : ∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge permCharge) q)
     (hsignq : ∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge signCharge) n) :
-    (game e S0 A).IsTotalQueryBound (kc + (q + sc * n) + vc) := by
+    (game sch e S0 A).IsTotalQueryBound (kc + (q + sc * n) + vc) := by
   refine QuantumComp.IsTotalQueryBound.mono (n := kc + ((q + sc * n) + (vc + 0))) ?_ (by omega)
   unfold game
   refine FreeM₂.isChargeBound_bind (isTotalQueryBound_toQuantumAt_permImpl e _ hkeygen)
     fun keys ↦ ?_
-  refine FreeM₂.isChargeBound_bind (isTotalQueryBound_challenged e keys.2 (hsign keys.2)
+  refine FreeM₂.isChargeBound_bind (isTotalQueryBound_challenged sch e keys.2 (hsign keys.2)
     (isChargeBound_withSignLog (hperm keys.1)) (isChargeBound_withSignLog (hsignq keys.1)))
     fun run ↦ ?_
   exact FreeM₂.isChargeBound_bind
     (isTotalQueryBound_toQuantumAt_permImpl e _ (hverify keys.1 run.1))
     fun _ ↦ IFreeM.isChargeBound_pure _ _
 
-end Quantum.Xmss
+end Quantum.SufCma
 
 end

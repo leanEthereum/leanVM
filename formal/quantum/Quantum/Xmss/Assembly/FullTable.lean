@@ -33,6 +33,8 @@ randomizer base, tabulated over their (huge) finite index types (`tabulate`, thr
 open MeasureTheory
 open scoped ENNReal
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Assembly
 
 open Quantum QuantumRuntime Quantum.Sponge Quantum.Xmss Quantum.Xmss.Hybrid HashSig LeanXmss
@@ -548,7 +550,7 @@ noncomputable def p1F (A : Adversary (X × Z)) (L : HonestTable) : ℝ≥0∞ :=
 
 theorem readsLaw_eq (A : Adversary (X × Z)) (L : HonestTable) :
     (spongeFnReadRuntime X Z L.keys (hwEmpty X Z) ()).evalDistMap .instruments
-        (gameReads Unit L.perm A (honestEval L.keys L.perm
+        (gameReads Unit L.perm sufCmaScheme schemeWithHashFromSeed A (honestEval L.keys L.perm
           (schemeWithHashFromSeed.keygen L.masterSeed))) (SubState.basis ()) (fun p ↦ p.2.2) =
       (spongeFnReadRuntime X Z L.keys (hwEmpty X Z) ()).evalDistMap .instruments
         (yT A L.perm (honestEval L.keys L.perm (fullComp L.masterSeed))) (SubState.basis ())
@@ -568,7 +570,8 @@ the average over `t` of the read runtime on `gameReads` after honest key generat
 theorem sum_reads_eq_fullLaw (A : Adversary (X × Z)) (S0 : MasterSeed) (π : Equiv.Perm (X × Z)) :
     ∑ t : SpongeKeys X Z, (Fintype.card (SpongeKeys X Z) : ℝ≥0∞)⁻¹ •
         (spongeFnReadRuntime X Z t (hwEmpty X Z) ()).evalDistMap .instruments
-          (gameReads Unit π A (honestEval t π (schemeWithHashFromSeed.keygen S0)))
+          (gameReads Unit π sufCmaScheme schemeWithHashFromSeed A
+            (honestEval t π (schemeWithHashFromSeed.keygen S0)))
           (SubState.basis ()) (fun p ↦ p.2.2) =
       ∑ t : SpongeKeys X Z, (Fintype.card (SpongeKeys X Z) : ℝ≥0∞)⁻¹ • fullLaw A ⟨t, π, S0⟩ :=
   calc _ = ∑ t : SpongeKeys X Z, (Fintype.card (SpongeKeys X Z) : ℝ≥0∞)⁻¹ •
@@ -598,15 +601,17 @@ noncomputable def fullLawPT (A : Adversary (X × Z)) (S0 : MasterSeed) (π : Equ
 
 /-- The win probability at a master seed, as the average over `π` and `t` of `fullLawPT`. -/
 theorem prob_game_eq_avg_fullLawPT (A : Adversary (X × Z)) (S0 : MasterSeed) :
-    qrpmEvalDistMap .instruments (game keccakStateEquiv S0 A) (SubState.basis ())
+    qrpmEvalDistMap .instruments (game sufCmaScheme keccakStateEquiv S0 A) (SubState.basis ())
         (fun _ p ↦ p.2.2) {true} =
       (Fintype.card (Equiv.Perm (X × Z)) : ℝ≥0∞)⁻¹ * ∑ π ∈ Finset.univ,
         ∑ t ∈ univK π, keysW π t * fullLawPT A S0 π t {true} := by
-  have hμ : qrpmEvalDistMap .instruments (game keccakStateEquiv S0 A) (SubState.basis ())
+  have hμ : qrpmEvalDistMap .instruments (game sufCmaScheme keccakStateEquiv S0 A)
+        (SubState.basis ())
         (fun _ p ↦ p.2.2) =
       (Fintype.card (Equiv.Perm (X × Z)) : ℝ≥0∞)⁻¹ • ∑ π ∈ Finset.univ,
         ∑ t ∈ univK π, keysW π t • fullLawPT A S0 π t :=
-    (qrpm_game_eq_reads (M := Unit) () S0 A (SubState.basis ()) fun p ↦ p.2.2).trans
+    (qrpm_game_eq_reads (M := Unit) sufCmaScheme schemeWithHashFromSeed scheme_eq () S0 A
+        (SubState.basis ()) fun p ↦ p.2.2).trans
       (congrArg (HSMul.hSMul _) (Finset.sum_congr rfl fun π _ ↦
         (sum_reads_eq_fullLaw A S0 π).trans (Finset.sum_congr (rfl : Finset.univ = univK π)
           fun t _ ↦ congr_arg₂ HSMul.hSMul (rfl : _ = keysW π t)
@@ -617,14 +622,14 @@ theorem prob_game_eq_avg_fullLawPT (A : Adversary (X × Z)) (S0 : MasterSeed) :
 /-- **G0 is the table average of runtime 1 with the full table hardwired, running the grind-only
 game** (Security's `readsT` as an equality, with `Lt := fullHw`). -/
 theorem winProb_eq_uavg_full (A : Adversary (X × Z)) :
-    winProb keccakStateEquiv A = uavg (fun L ↦
+    winProb sufCmaScheme keccakStateEquiv A = uavg (fun L ↦
       (spongeHardwiredReadRuntime X Z (fullHw L) ()).evalDistMap .instruments
         (gameReadsT Unit (pubOf L) (valueAt L) A) (SubState.basis ()) (fun p ↦ p.2.2) {true}) :=
-  calc winProb keccakStateEquiv A
+  calc winProb sufCmaScheme keccakStateEquiv A
       = (Fintype.card MasterSeed : ℝ≥0∞)⁻¹ * ∑ S0 : MasterSeed,
-          qrpmEvalDistMap .instruments (game keccakStateEquiv S0 A) (SubState.basis ())
-            (fun _ p ↦ p.2.2) {true} := by
-        rw [winProb, card_masterSeed, Nat.cast_pow, Nat.cast_ofNat]
+          qrpmEvalDistMap .instruments (game sufCmaScheme keccakStateEquiv S0 A)
+            (SubState.basis ()) (fun _ p ↦ p.2.2) {true} := by
+        rw [winProb_eq, card_masterSeed, Nat.cast_pow, Nat.cast_ofNat]
     _ = (Fintype.card MasterSeed : ℝ≥0∞)⁻¹ * ∑ S0 : MasterSeed,
           ((Fintype.card (Equiv.Perm (X × Z)) : ℝ≥0∞)⁻¹ * ∑ π ∈ Finset.univ,
             ∑ t ∈ univK π, keysW π t * fullLawPT A S0 π t {true}) :=

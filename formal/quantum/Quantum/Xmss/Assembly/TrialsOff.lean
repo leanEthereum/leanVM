@@ -39,6 +39,8 @@ while a trial block's address is a message digest's (type `12`, `not_inTable_of_
 
 open scoped ENNReal
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Assembly
 
 open Quantum Quantum.Sponge Quantum.Xmss.Hybrid

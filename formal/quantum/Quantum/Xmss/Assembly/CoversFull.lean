@@ -24,6 +24,8 @@ MassesR0's `covers_r0`).
   (`coinCellK`).
 -/
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Assembly
 
 open Quantum Quantum.Sponge Quantum.Xmss Quantum.Xmss.Hybrid HashSig LeanXmss

@@ -95,6 +95,8 @@ open scoped ENNReal ComplexOrder Kronecker
 
 universe u v w w₁
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Assembly
 
 open Quantum QuantumRuntime Quantum.Sponge Quantum.Xmss.Hybrid
@@ -1339,10 +1341,10 @@ noncomputable def challengeT (pub : Pub) :
     IPFunctor.CommandSubstitution (QuantumComp.toIPFunctor LocalSig.instruments.{0} (advSpec (X × Z)))
       (QuantumComp.toIPFunctor LocalSig.instruments.{0} (XSpec M))
   | A, .prim o => readLift goodAll ((simulate LocalSig.Interp.instruments pub.perm
-      (challenge keccakStateEquiv (noKey pub) A (.prim o))).liftOrdinary
+      (challenge sufCmaScheme keccakStateEquiv (noKey pub) A (.prim o))).liftOrdinary
         (t := hwReadCmdSpec X Z M))
   | A, .query (.perm p) E ℓ => readLift goodAll ((simulate LocalSig.Interp.instruments pub.perm
-      (challenge keccakStateEquiv (noKey pub) A (.query (.perm p) E ℓ))).liftOrdinary
+      (challenge sufCmaScheme keccakStateEquiv (noKey pub) A (.query (.perm p) E ℓ))).liftOrdinary
         (t := hwReadCmdSpec X Z M))
   | _, .query (.sign r) E ℓ =>
       QuantumComp.bind (signAt M upd pub r E ℓ) fun _ l ↦ QuantumComp.pure ⟨ULift.up l.2, l.1.symm⟩

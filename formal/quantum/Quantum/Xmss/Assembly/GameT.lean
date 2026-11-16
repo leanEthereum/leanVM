@@ -66,6 +66,8 @@ open scoped Kronecker
 
 universe w
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Assembly
 
 open Quantum QuantumRuntime Quantum.Sponge Quantum.Xmss.Hybrid
@@ -715,10 +717,10 @@ noncomputable def challengeD (pub : Pub) (v : HPos → Digest) :
       (QuantumComp.toIPFunctor LocalSig.instruments.{0} (advSpec (X × Z)))
       (QuantumComp.toIPFunctor LocalSig.instruments.{0} (hwSpec X Z M))
   | A, .prim o => liftReadProg ((simulate LocalSig.Interp.instruments pub.perm
-      (challenge keccakStateEquiv (noKey pub) A (.prim o))).liftOrdinary
+      (challenge sufCmaScheme keccakStateEquiv (noKey pub) A (.prim o))).liftOrdinary
         (t := hwReadCmdSpec X Z M))
   | A, .query (.perm p) E ℓ => liftReadProg ((simulate LocalSig.Interp.instruments pub.perm
-      (challenge keccakStateEquiv (noKey pub) A (.query (.perm p) E ℓ))).liftOrdinary
+      (challenge sufCmaScheme keccakStateEquiv (noKey pub) A (.query (.perm p) E ℓ))).liftOrdinary
         (t := hwReadCmdSpec X Z M))
   | _, .query (.sign r) E ℓ =>
       QuantumComp.bind (signAtD M pub v r E ℓ) fun _ l ↦ QuantumComp.pure ⟨ULift.up l.2, l.1.symm⟩
@@ -734,9 +736,9 @@ noncomputable def challengeWith (π : Equiv.Perm (X × Z)) (sk : SecretKey)
       (QuantumComp.toIPFunctor LocalSig.instruments.{0} (advSpec (X × Z)))
       (QuantumComp.toIPFunctor LocalSig.instruments.{0} (hwReadSpec X Z M))
   | A, .prim o => (simulate LocalSig.Interp.instruments π
-      (challenge keccakStateEquiv sk A (.prim o))).liftOrdinary
+      (challenge sufCmaScheme keccakStateEquiv sk A (.prim o))).liftOrdinary
   | A, .query (.perm p) E ℓ => (simulate LocalSig.Interp.instruments π
-      (challenge keccakStateEquiv sk A (.query (.perm p) E ℓ))).liftOrdinary
+      (challenge sufCmaScheme keccakStateEquiv sk A (.query (.perm p) E ℓ))).liftOrdinary
   | _, .query (.sign r) E ℓ =>
       QuantumComp.bind (sgn r E ℓ) fun _ l ↦ QuantumComp.pure ⟨ULift.up l.2, l.1.symm⟩
 
@@ -898,7 +900,8 @@ variable (M : Type)
 
 /-- `challengeReads` is `challengeWith` with the signer `signReads`. -/
 theorem challengeReads_eq (π : Equiv.Perm (X × Z)) (sk : SecretKey) :
-    challengeReads M π sk = challengeWith M π sk (fun r E _ ℓ ↦ signReads M π sk r E ℓ) := by
+    challengeReads M π sufCmaScheme schemeWithHashFromSeed sk =
+      challengeWith M π sk (fun r E _ ℓ ↦ signReads M π schemeWithHashFromSeed sk r E ℓ) := by
   funext A c
   rcases c with o | ⟨p | r, E, ℓ⟩ <;> rfl
 
@@ -915,8 +918,10 @@ theorem challengeWith_sk (π : Equiv.Perm (X × Z)) (sk sk' : SecretKey)
 /-- **`gameReads` from the honest key generation of `L`** is `gameReadsWith` at `L`'s keys with
 the signer `signReads` (the read program of `schemeWithHashFromSeed.sign L.secretKey`). -/
 theorem gameReads_honest (L : HonestTable) (A : Adversary (X × Z)) :
-    gameReads M L.perm A (honestEval L.keys L.perm (schemeWithHashFromSeed.keygen L.masterSeed)) =
-      gameReadsWith M L.perm L.secretKey (fun r E _ ℓ ↦ signReads M L.perm L.secretKey r E ℓ)
+    gameReads M L.perm sufCmaScheme schemeWithHashFromSeed A
+        (honestEval L.keys L.perm (schemeWithHashFromSeed.keygen L.masterSeed)) =
+      gameReadsWith M L.perm L.secretKey
+        (fun r E _ ℓ ↦ signReads M L.perm schemeWithHashFromSeed L.secretKey r E ℓ)
         L.publicKey A := by
   rw [gameReads, challengedReads, L.fst_honestEval_keygen, challengeReads_eq]
   rfl
@@ -1155,21 +1160,21 @@ theorem intertwines_challengeR (A : QReg)
         A c // (QuantumComp.toIPFunctor LocalSig.instruments.{0} (advSpec (X × Z))).src A c b =
           u} ↦ (hwAt (hwEmpty X Z) m).amplifyLeft p.1)
       ((permutationRuntime (spongePerm L.keys L.perm)).run .instruments
-        (challenge keccakStateEquiv L.secretKey A c))
+        (challenge sufCmaScheme keccakStateEquiv L.secretKey A c))
       ((spongeFnReadRuntime X Z L.keys (hwEmpty X Z) m).run .instruments
         (challengeWith M L.perm L.secretKey (signAtR M (pubOf L) (valueAt L)) A c)) := by
   rcases c with o | ⟨p | r, E, ℓ⟩
   · have h := intertwines_simulate L.perm L.keys (hwEmpty X Z) m
-      (challenge keccakStateEquiv L.secretKey A (.prim o))
+      (challenge sufCmaScheme keccakStateEquiv L.secretKey A (.prim o))
     rw [overwrite_hwEmpty] at h
     exact h
   · have h := intertwines_simulate L.perm L.keys (hwEmpty X Z) m
-      (challenge keccakStateEquiv L.secretKey A (.query (.perm p) E ℓ))
+      (challenge sufCmaScheme keccakStateEquiv L.secretKey A (.query (.perm p) E ℓ))
     rw [overwrite_hwEmpty] at h
     exact h
   · change DSubInstrument.Intertwines _ _
       ((permutationRuntime (spongePerm L.keys L.perm)).run .instruments
-        (QuantumComp.bind (signTree keccakStateEquiv L.secretKey r E ℓ) _))
+        (QuantumComp.bind (signTree sufCmaScheme keccakStateEquiv L.secretKey r E ℓ) _))
       ((spongeFnReadRuntime X Z L.keys (hwEmpty X Z) m).run .instruments
         (QuantumComp.bind (signAtR M (pubOf L) (valueAt L) r E ℓ) _))
     refine intertwines_run_bind (R₁ := permutationRuntime (spongePerm L.keys L.perm))
@@ -1192,7 +1197,7 @@ theorem intertwines_game_gameReadsT (A : Adversary (X × Z)) :
     DSubInstrument.Intertwines ((hwAt (hwEmpty X Z) m).amplifyLeft (QReg.of Unit))
       (fun _ ↦ (hwAt (hwEmpty X Z) m).amplifyLeft (QReg.of Unit))
       ((permutationRuntime (spongePerm L.keys L.perm)).run₂ .instruments
-        (game keccakStateEquiv L.masterSeed A))
+        (game sufCmaScheme keccakStateEquiv L.masterSeed A))
       ((spongeFnReadRuntime X Z L.keys (hwEmpty X Z) m).run₂ .instruments
         (gameReadsT M (pubOf L) (valueAt L) A)) := by
   rw [gameReadsT_pubOf, game, run₂_bind_of_classicalOn_pure
@@ -1222,7 +1227,7 @@ functions `L.keys` read through read ports. -/
 theorem evalDistMap_game_eq_gameReadsT (A : Adversary (X × Z)) (ρ : SubState (QReg.of Unit))
     {γ : Type*} [MeasurableSpace γ] (f : (Σ u, QuantumComp₂.Leaf (QReg.of Unit) Bool u) → γ) :
     (permutationRuntime (spongePerm L.keys L.perm)).evalDistMap .instruments
-        (game keccakStateEquiv L.masterSeed A) ρ f =
+        (game sufCmaScheme keccakStateEquiv L.masterSeed A) ρ f =
       (spongeFnReadRuntime X Z L.keys (hwEmpty X Z) m).evalDistMap .instruments
         (gameReadsT M (pubOf L) (valueAt L) A) ρ f :=
   evalDistMap_eq_of_intertwines (R₁ := permutationRuntime (spongePerm L.keys L.perm))
@@ -1235,11 +1240,12 @@ the honest key generation of `L` and `gameReadsT` at `L` (G2 for both signers). 
 theorem evalDistMap_gameReads_eq_gameReadsT (A : Adversary (X × Z)) (ρ : SubState (QReg.of Unit))
     {γ : Type*} [MeasurableSpace γ] (f : (Σ u, QuantumComp₂.Leaf (QReg.of Unit) Bool u) → γ) :
     (spongeFnReadRuntime X Z L.keys (hwEmpty X Z) m).evalDistMap .instruments
-        (gameReads M L.perm A
+        (gameReads M L.perm sufCmaScheme schemeWithHashFromSeed A
           (honestEval L.keys L.perm (schemeWithHashFromSeed.keygen L.masterSeed))) ρ f =
       (spongeFnReadRuntime X Z L.keys (hwEmpty X Z) m).evalDistMap .instruments
         (gameReadsT M (pubOf L) (valueAt L) A) ρ f := by
-  have h := evalDistMap_game_eq_reads L.keys (hwEmpty X Z) m L.perm L.masterSeed A ρ f
+  have h := evalDistMap_game_eq_reads L.keys (hwEmpty X Z) m L.perm sufCmaScheme
+    schemeWithHashFromSeed scheme_eq L.masterSeed A ρ f
   rw [overwrite_hwEmpty] at h
   exact h.symm.trans (evalDistMap_game_eq_gameReadsT L m A ρ f)
 

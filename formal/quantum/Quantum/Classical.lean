@@ -26,8 +26,8 @@ Two facts tie the quantum random-permutation model (`Quantum.Model`) to the clas
   `x` runs against `R` as the sampler `pa`, each branch the probability of its value times the
   fixed map `Φ`; it is closed under sequencing (`ClassicalOn.bind`) and passes through
   `OracleComp.toQuantumAt` (`classicalOn_toQuantumAt`). The classical calls `qrpmImpl e B` (coins,
-  then basis calls of `φ` and `φ⁻¹` at `e t`, read back through `e`, as `Xmss.permImpl` makes them)
-  run against `permutationRuntime φ` as the fixed permutation `e⁻¹ φ e`
+  then basis calls of `φ` and `φ⁻¹` at `e t`, read back through `e`, as `SufCma.permImpl` makes
+  them) run against `permutationRuntime φ` as the fixed permutation `e⁻¹ φ e`
   (`classicalOn_qrpmImpl`). With the first fact, a program that runs classically against every
   `φ` has in the QRPM the distribution of its classical algorithm under the lazily sampled
   permutation (`qrpmEvalDistMap_of_classicalOn`), in particular every classical algorithm run by
@@ -542,7 +542,7 @@ variable {T : Type} [DecidableEq T]
 
 /-- **The model's oracles by classical calls of the QRPM** beside a held register `B`, through an
 equivalence `e : T ≃ S`: coins by uniform coins, `π t` by a basis call of `φ` at `e t` read back
-through `e`, and `π⁻¹` likewise with `φ⁻¹`. At `T = KeccakState` it is `Xmss.permImpl`. -/
+through `e`, and `π⁻¹` likewise with `φ⁻¹`. At `T = KeccakState` it is `SufCma.permImpl`. -/
 noncomputable def qrpmImpl (e : T ≃ S) (B : QReg) :
     QueryImpl (unifSpec + permutationOracleSpec T) (QComp (qrpmSpec S) B B)
   | .inl n => QComp.coinImpl (qrpmSpec S) B n

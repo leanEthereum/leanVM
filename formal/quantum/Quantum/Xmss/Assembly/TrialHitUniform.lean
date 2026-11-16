@@ -20,6 +20,8 @@ on the tables with `TrialsOff` and `PermGood 18`.
 open Matrix
 open scoped ENNReal Kronecker ComplexOrder
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Assembly
 
 open Quantum QuantumRuntime Quantum.Sponge Quantum.Xmss Quantum.Xmss.Hybrid

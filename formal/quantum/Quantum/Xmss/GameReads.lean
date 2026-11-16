@@ -1,7 +1,7 @@
 module
 
 public import Quantum.Xmss.TableLaw
-public import Quantum.Xmss.Classical
+public import Quantum.SufCma.Classical
 public import Quantum.Sponge.Simulate
 
 @[expose] public section
@@ -17,7 +17,7 @@ generation, each signature, verification) are classical, and each is one evaluat
 classical read ports `HwRead` of runtime 1, each sponge round three reads (`k`, `k'`, `h`).
 
 * `readCall c B`: one read port beside a held register `B`. `readsProgram π B x`: a hash-query
-  computation (`OracleComp LeanXmss.HashSpec`) with every hash the sponge evaluation through read
+  computation (`OracleComp SchemeHashSpec`) with every hash the sponge evaluation through read
   ports (`rdRound`, three reads per block), logging its reads.
 * `ReadsTo t W m x a₀`: against `spongeFnReadRuntime X Z t W m`, from any state of its held
   register beside the block `(W, m)` of the classical register (`hwAt W m`), the program returns
@@ -28,7 +28,9 @@ classical read ports `HwRead` of runtime 1, each sponge round three reads (`k`, 
   identity. A classical forward call of the honest scheme, simulated, returns
   `statePerm (spongePerm t π) s` with certainty; its read program, the three reads of one round,
   returns the same state and logs the round's reads.
-* `challengeReads`, `gameReads π A b`: the game after key generation (its honest result `b.1`),
+* `challengeReads`, `gameReads π sch Sch A b`: for a scheme `sch` of the statement's game and its
+  hash-query form `Sch` (`sch = Sch.overPermutation`), the game after key generation (its honest
+  result `b.1`),
   with the adversary's local operations and permutation calls simulated and lifted to the read
   signature, every signing request answered by the read program of the signer, and verification
   as a read program.
@@ -734,10 +736,10 @@ end block
 
 end Quantum.Sponge
 
-namespace Quantum.Xmss
+namespace Quantum.SufCma
 
-open Quantum Quantum.Sponge LeanXmss HashSig Common Common.SufCma
-  LeanXmss.RandomPermutationModel
+open Quantum Quantum.Sponge HashSig Common Common.SufCma
+open Quantum.Xmss (X Z keccakStateEquiv blocks out256)
 open LeanVM.Semantics (KeccakState)
 
 variable {M : Type} [Fintype M] [DecidableEq M]
@@ -749,14 +751,14 @@ variable (M) in
 through logged read ports of `h`, `k`, `k'` (three per block), as `readHash` does with the
 functions. -/
 noncomputable def readsImpl (π : Equiv.Perm (X × Z)) (B : QReg) :
-    QueryImpl LeanXmss.HashSpec (StateT (List (SpongeRead X Z)) (QComp (hwReadSpec X Z M) B B)) :=
+    QueryImpl SchemeHashSpec (StateT (List (SpongeRead X Z)) (QComp (hwReadSpec X Z M) B B)) :=
   fun input ↦ out256 <$> (fun s : X × Z ↦ s.1) <$> (blocks input).foldlM (rdRound M π B) (0, 0)
 
 variable (M) in
 /-- **A hash-query computation as a program of read ports**: every hash the sponge evaluation
 through read ports beside `B`; its result and its reads. -/
 noncomputable def readsProgram (π : Equiv.Perm (X × Z)) (B : QReg) {α : Type}
-    (x : OracleComp LeanXmss.HashSpec α) :
+    (x : OracleComp SchemeHashSpec α) :
     QComp (hwReadSpec X Z M) B B (α × List (SpongeRead X Z)) :=
   (simulateQ (readsImpl M π B) x).run []
 
@@ -766,7 +768,7 @@ theorem readsToS_readsImpl (input : HashInput) :
     ReadsToS t W m (readsImpl M π B input) (readHash (overwrite W t) π input) :=
   ((readsToS_foldlM π (blocks input) (0, 0)).map fun s ↦ s.1).map out256
 
-theorem readsToS_simulateQ {α : Type} (x : OracleComp LeanXmss.HashSpec α) :
+theorem readsToS_simulateQ {α : Type} (x : OracleComp SchemeHashSpec α) :
     ReadsToS t W m (simulateQ (readsImpl M π B) x) (simulateQ (readHash (overwrite W t) π) x) := by
   induction x using OracleComp.inductionOn with
   | pure a =>
@@ -779,13 +781,13 @@ theorem readsToS_simulateQ {α : Type} (x : OracleComp LeanXmss.HashSpec α) :
 /-- **The read program returns the honest evaluation with certainty**: against
 `spongeFnReadRuntime X Z t W m` on the block `(W, m)`, the read program of `x` returns
 `honestEval (overwrite W t) π x`, the result of `x` with the honest hash and its read log. -/
-theorem readsTo_readsProgram {α : Type} (x : OracleComp LeanXmss.HashSpec α) :
+theorem readsTo_readsProgram {α : Type} (x : OracleComp SchemeHashSpec α) :
     ReadsTo t W m (readsProgram M π B x) (honestEval (overwrite W t) π x) :=
   readsToS_simulateQ π x []
 
 /-- `readsTo_readsProgram` without hardwired cells: the read program returns `honestEval t π x`
 on the block `(∅, m)`. -/
-theorem readsTo_readsProgram_hwEmpty {α : Type} (x : OracleComp LeanXmss.HashSpec α) :
+theorem readsTo_readsProgram_hwEmpty {α : Type} (x : OracleComp SchemeHashSpec α) :
     ReadsTo t (hwEmpty X Z) m (readsProgram M π B x) (honestEval t π x) :=
   readsTo_readsProgram π x
 
@@ -841,47 +843,50 @@ theorem readsTo_permReads (s : KeccakState) :
 
 /-! ## The challenger with honest reads -/
 
+variable {Seed PK SK Req Resp F : Type} (sch : Scheme Seed PK SK Req Resp F)
+  (Sch : SchemeWithHash Seed PK SK Req Resp F)
+
 variable (M) in
 /-- The signer's answer to the request `r` as reads: relabel the adversary's register, then run
 the read program of the hash-query signer. -/
-noncomputable def signReads (sk : SecretKey) (r : SigningRequest) (E : QReg) {A : QReg}
-    (ℓ : A ≃ (advSpec (X × Z)).In (.sign r) × E) :
-    QComp (hwReadSpec X Z M) A (QReg.of ((advSpec (X × Z)).Out (.sign r) × E))
-      (Option Signature) :=
-  (QComp.act (B := QReg.of ((advSpec (X × Z)).Out (.sign r) × E)) (SubInstrument.relabel ℓ)).bind
-    fun _ ↦ (readsProgram M π _ (schemeWithHashFromSeed.sign sk r)).map Prod.fst
+noncomputable def signReads (sk : SK) (r : Req) (E : QReg) {A : QReg}
+    (ℓ : A ≃ (advSpec Req Resp (X × Z)).In (.sign r) × E) :
+    QComp (hwReadSpec X Z M) A (QReg.of ((advSpec Req Resp (X × Z)).Out (.sign r) × E)) Resp :=
+  (QComp.act (B := QReg.of ((advSpec Req Resp (X × Z)).Out (.sign r) × E))
+    (SubInstrument.relabel ℓ)).bind fun _ ↦ (readsProgram M π _ (Sch.sign sk r)).map Prod.fst
 
 variable (M) in
 /-- **The challenger with honest reads**: a local operation and a permutation call are the
 challenger's, simulated given `π` and lifted to the read signature; a signing request is
 answered by the read program of the signer (`signReads`). -/
-noncomputable def challengeReads (sk : SecretKey) :
-    CommandSubstitution (QuantumComp.toIPFunctor LocalSig.instruments.{0} (advSpec (X × Z)))
+noncomputable def challengeReads (sk : SK) :
+    CommandSubstitution
+      (QuantumComp.toIPFunctor LocalSig.instruments.{0} (advSpec Req Resp (X × Z)))
       (QuantumComp.toIPFunctor LocalSig.instruments.{0} (hwReadSpec X Z M))
   | A, .prim o => (simulate LocalSig.Interp.instruments π
-      (challenge keccakStateEquiv sk A (.prim o))).liftOrdinary
+      (challenge sch keccakStateEquiv sk A (.prim o))).liftOrdinary
   | A, .query (.perm p) E ℓ => (simulate LocalSig.Interp.instruments π
-      (challenge keccakStateEquiv sk A (.query (.perm p) E ℓ))).liftOrdinary
+      (challenge sch keccakStateEquiv sk A (.query (.perm p) E ℓ))).liftOrdinary
   | _, .query (.sign r) E ℓ =>
-      QuantumComp.bind (signReads M π sk r E ℓ) fun _ l ↦
+      QuantumComp.bind (signReads M π Sch sk r E ℓ) fun _ l ↦
         QuantumComp.pure ⟨ULift.up l.2, l.1.symm⟩
 
 variable (M) in
 /-- The adversary's program with the challenger with honest reads substituted. -/
-noncomputable def challengedReads (sk : SecretKey) {A B : QReg} {α : Type}
-    (x : QComp (advSpec (X × Z)) A B α) : QComp (hwReadSpec X Z M) A B α :=
-  IFreeM.substitute (challengeReads M π sk) x
+noncomputable def challengedReads (sk : SK) {A B : QReg} {α : Type}
+    (x : QComp (advSpec Req Resp (X × Z)) A B α) : QComp (hwReadSpec X Z M) A B α :=
+  IFreeM.substitute (challengeReads M π sch Sch sk) x
 
 variable (M) in
 /-- **G2 with honest reads, after key generation**: from the keys `b.1` (the result of the honest
 evaluation `b` of key generation), the adversary against `challengeReads` with its signing
 transcript, the verification of its forgery as a read program, and the winning condition. -/
-noncomputable def gameReads (A : Adversary (X × Z))
-    (b : (PublicKey × SecretKey) × List (SpongeRead X Z)) :
+noncomputable def gameReads (A : Adversary PK Req Resp F (X × Z))
+    (b : (PK × SK) × List (SpongeRead X Z)) :
     QComp (hwReadSpec X Z M) (QReg.of Unit) (QReg.of Unit) Bool :=
-  (challengedReads M π b.1.2 (withSignLog (A b.1.1))).bind fun run ↦
-    ((readsProgram M π _ (schemeWithHashFromSeed.verify b.1.1 run.1)).map Prod.fst).bind
-      fun verified ↦ QuantumComp₂.pure (sufCmaScheme.winningCondition run.2 run.1 && verified)
+  (challengedReads M π sch Sch b.1.2 (withSignLog (A b.1.1))).bind fun run ↦
+    ((readsProgram M π _ (Sch.verify b.1.1 run.1)).map Prod.fst).bind
+      fun verified ↦ QuantumComp₂.pure (sch.winningCondition run.2 run.1 && verified)
 
 /-! ## The game and its reads intertwine -/
 
@@ -918,24 +923,27 @@ theorem classicalOn_toQuantumAt_permImpl (B : QReg) {α : Type}
   rw [permImpl_eq_qrpmImpl]
   exact classicalOn_toQuantumAt_qrpmImpl keccakStateEquiv B (spongePerm t π) oa
 
-/-- **The challenger and the challenger with honest reads intertwine on every command.** -/
-theorem intertwines_challenge (sk : SecretKey) (A : QReg)
-    (c : (QuantumComp.toIPFunctor LocalSig.instruments.{0} (advSpec (X × Z))).A A) :
+/-- **The challenger and the challenger with honest reads intertwine on every command**, for a
+scheme `sch` that is the hash-query scheme `Sch` over `π`. -/
+theorem intertwines_challenge (hsch : sch = Sch.overPermutation) (sk : SK) (A : QReg)
+    (c : (QuantumComp.toIPFunctor LocalSig.instruments.{0} (advSpec Req Resp (X × Z))).A A) :
     DSubInstrument.Intertwines ((hwAt W m).amplifyLeft A)
-      (fun p : Σ u, {b : (QuantumComp.toIPFunctor LocalSig.instruments.{0} (advSpec (X × Z))).B
-        A c // (QuantumComp.toIPFunctor LocalSig.instruments.{0} (advSpec (X × Z))).src A c b =
+      (fun p : Σ u, {b : (QuantumComp.toIPFunctor LocalSig.instruments.{0}
+          (advSpec Req Resp (X × Z))).B A c //
+        (QuantumComp.toIPFunctor LocalSig.instruments.{0} (advSpec Req Resp (X × Z))).src A c b =
           u} ↦ (hwAt W m).amplifyLeft p.1)
       ((permutationRuntime (spongePerm (overwrite W t) π)).run .instruments
-        (challenge keccakStateEquiv sk A c))
-      ((spongeFnReadRuntime X Z t W m).run .instruments (challengeReads M π sk A c)) := by
+        (challenge sch keccakStateEquiv sk A c))
+      ((spongeFnReadRuntime X Z t W m).run .instruments (challengeReads M π sch Sch sk A c)) := by
+  subst hsch
   rcases c with o | ⟨p | r, E, ℓ⟩
   · exact intertwines_simulate π t W m _
   · exact intertwines_simulate π t W m _
   · change DSubInstrument.Intertwines _ _
       ((permutationRuntime (spongePerm (overwrite W t) π)).run .instruments
-        (QuantumComp.bind (signTree keccakStateEquiv sk r E ℓ) _))
+        (QuantumComp.bind (signTree Sch.overPermutation keccakStateEquiv sk r E ℓ) _))
       ((spongeFnReadRuntime X Z t W m).run .instruments
-        (QuantumComp.bind (signReads M π sk r E ℓ) _))
+        (QuantumComp.bind (signReads M π Sch sk r E ℓ) _))
     refine intertwines_run_bind (R₁ := permutationRuntime (spongePerm (overwrite W t) π))
       (R₂ := spongeFnReadRuntime X Z t W m) (V := hwAt W m)
       (intertwines_run_of_run₂ (R₁ := permutationRuntime (spongePerm (overwrite W t) π))
@@ -943,126 +951,130 @@ theorem intertwines_challenge (sk : SecretKey) (A : QReg)
     · rw [signTree, signReads]
       refine intertwines_run₂_act_bind (R₁ := permutationRuntime (spongePerm (overwrite W t) π))
         (R₂ := spongeFnReadRuntime X Z t W m) (V := hwAt W m) (A := A)
-        (B := QReg.of ((advSpec (X × Z)).Out (.sign r) × E)) _
+        (B := QReg.of ((advSpec Req Resp (X × Z)).Out (.sign r) × E)) _
         fun _ ↦ ?_
       refine intertwines_of_classicalOn_readsTo t W m π ?_
-        ((readsTo_readsProgram π (schemeWithHashFromSeed.sign sk r)).map Prod.fst)
+        ((readsTo_readsProgram π (Sch.sign sk r)).map Prod.fst)
       exact (classicalOn_toQuantumAt_permImpl (overwrite W t) π _ _).congr
-        (simulateQ_sign (overwrite W t) π _ (fun _ ↦ rfl) sk r) rfl
+        (simulateQ_overPermutation_sign (overwrite W t) π _ Sch (fun _ ↦ rfl) sk r) rfl
     · exact intertwines_run_pure (R₁ := permutationRuntime (spongePerm (overwrite W t) π))
         (R₂ := spongeFnReadRuntime X Z t W m) (V := hwAt W m) _
 
 /-- **The game and its reads intertwine** on the block `(W, m)`: against
 `φ = spongePerm (overwrite W t) π`, the game runs as `gameReads` after the honest evaluation of
 key generation runs against `spongeFnReadRuntime X Z t W m`. -/
-theorem intertwines_game (S0 : MasterSeed) (A : Adversary (X × Z)) :
+theorem intertwines_game (hsch : sch = Sch.overPermutation) (S0 : Seed)
+    (A : Adversary PK Req Resp F (X × Z)) :
     DSubInstrument.Intertwines ((hwAt W m).amplifyLeft (QReg.of Unit))
       (fun _ ↦ (hwAt W m).amplifyLeft (QReg.of Unit))
       ((permutationRuntime (spongePerm (overwrite W t) π)).run₂ .instruments
-        (game keccakStateEquiv S0 A))
+        (game sch keccakStateEquiv S0 A))
       ((spongeFnReadRuntime X Z t W m).run₂ .instruments
-        (gameReads M π A (honestEval (overwrite W t) π (schemeWithHashFromSeed.keygen S0)))) := by
+        (gameReads M π sch Sch A (honestEval (overwrite W t) π (Sch.keygen S0)))) := by
+  subst hsch
   rw [game, run₂_bind_of_classicalOn_pure ((classicalOn_toQuantumAt_permImpl (overwrite W t) π _
-    _).congr (simulateQ_generateKeys (overwrite W t) π _ (fun _ ↦ rfl) S0) rfl)]
+    _).congr (simulateQ_overPermutation_generateKeys (overwrite W t) π _ Sch (fun _ ↦ rfl) S0)
+    rfl)]
   dsimp only
   refine intertwines_run₂_bind (R₁ := permutationRuntime (spongePerm (overwrite W t) π))
     (R₂ := spongeFnReadRuntime X Z t W m) (V := hwAt W m)
-    (intertwines_run₂_of_run (intertwines_substitute (spec₀ := advSpec (X × Z))
+    (intertwines_run₂_of_run (intertwines_substitute (spec₀ := advSpec Req Resp (X × Z))
       (R₁ := permutationRuntime (spongePerm (overwrite W t) π))
       (R₂ := spongeFnReadRuntime X Z t W m) (V := hwAt W m)
-      (fun A c ↦ intertwines_challenge t W m π
-        (honestEval (overwrite W t) π (schemeWithHashFromSeed.keygen S0)).1.2 A c) _))
+      (fun A c ↦ intertwines_challenge t W m π _ Sch rfl
+        (honestEval (overwrite W t) π (Sch.keygen S0)).1.2 A c) _))
     fun run ↦ ?_
   refine intertwines_run₂_bind (R₁ := permutationRuntime (spongePerm (overwrite W t) π))
     (R₂ := spongeFnReadRuntime X Z t W m) (V := hwAt W m)
     (intertwines_of_classicalOn_readsTo t W m π ?_
-      ((readsTo_readsProgram π (schemeWithHashFromSeed.verify _ run.1)).map Prod.fst))
+      ((readsTo_readsProgram π (Sch.verify _ run.1)).map Prod.fst))
     fun _ ↦ intertwines_run₂_pure _
   exact (classicalOn_toQuantumAt_permImpl (overwrite W t) π _ _).congr
-    (simulateQ_verify (overwrite W t) π _ (fun _ ↦ rfl) _ run.1) rfl
+    (simulateQ_overPermutation_verify (overwrite W t) π _ Sch (fun _ ↦ rfl) _ run.1) rfl
 
 /-- **G1 → G2 at fixed `t` and `π`**: against `φ = spongePerm (overwrite W t) π`, the game has the
 law of its reads `gameReads` against `spongeFnReadRuntime X Z t W m`, after the honest evaluation
 of key generation. -/
-theorem evalDistMap_game_eq_reads (S0 : MasterSeed) (A : Adversary (X × Z))
-    (ρ : SubState (QReg.of Unit)) {γ : Type*} [MeasurableSpace γ]
-    (f : (Σ u, QuantumComp₂.Leaf (QReg.of Unit) Bool u) → γ) :
+theorem evalDistMap_game_eq_reads (hsch : sch = Sch.overPermutation) (S0 : Seed)
+    (A : Adversary PK Req Resp F (X × Z)) (ρ : SubState (QReg.of Unit)) {γ : Type*}
+    [MeasurableSpace γ] (f : (Σ u, QuantumComp₂.Leaf (QReg.of Unit) Bool u) → γ) :
     (permutationRuntime (spongePerm (overwrite W t) π)).evalDistMap .instruments
-        (game keccakStateEquiv S0 A) ρ f =
+        (game sch keccakStateEquiv S0 A) ρ f =
       (spongeFnReadRuntime X Z t W m).evalDistMap .instruments
-        (gameReads M π A (honestEval (overwrite W t) π (schemeWithHashFromSeed.keygen S0))) ρ f :=
+        (gameReads M π sch Sch A (honestEval (overwrite W t) π (Sch.keygen S0))) ρ f :=
   evalDistMap_eq_of_intertwines (R₁ := permutationRuntime (spongePerm (overwrite W t) π))
     (R₂ := spongeFnReadRuntime X Z t W m) (K := hwCol W m) (conjTranspose_hwCol_mul_self W m)
-    (hwAt_basis W m) (intertwines_run_of_run₂ (intertwines_game t W m π S0 A)) ρ f
+    (hwAt_basis W m) (intertwines_run_of_run₂ (intertwines_game t W m π sch Sch hsch S0 A)) ρ f
 
 /-- **G1 → G2 at fixed `t` and `π`, after the simulation**: against the oracles of `t`, the
 simulated game has the law of its reads against the classical reads of `t` without hardwired
 cells. -/
-theorem evalDistMap_simulate_game_eq_reads (m₀ : M) (S0 : MasterSeed) (A : Adversary (X × Z))
-    (ρ : SubState (QReg.of Unit)) {γ : Type*} [MeasurableSpace γ]
-    (f : (Σ u, QuantumComp₂.Leaf (QReg.of Unit) Bool u) → γ) :
+theorem evalDistMap_simulate_game_eq_reads (hsch : sch = Sch.overPermutation) (m₀ : M) (S0 : Seed)
+    (A : Adversary PK Req Resp F (X × Z)) (ρ : SubState (QReg.of Unit)) {γ : Type*}
+    [MeasurableSpace γ] (f : (Σ u, QuantumComp₂.Leaf (QReg.of Unit) Bool u) → γ) :
     (spongeFnRuntime t.1 t.2.1 t.2.2).evalDistMap .instruments
-        (simulate .instruments π (game keccakStateEquiv S0 A)) ρ f =
+        (simulate .instruments π (game sch keccakStateEquiv S0 A)) ρ f =
       (spongeFnReadRuntime X Z t (hwEmpty X Z) m₀).evalDistMap .instruments
-        (gameReads M π A (honestEval t π (schemeWithHashFromSeed.keygen S0))) ρ f := by
-  have h := evalDistMap_game_eq_reads t (hwEmpty X Z) m₀ π S0 A ρ f
+        (gameReads M π sch Sch A (honestEval t π (Sch.keygen S0))) ρ f := by
+  have h := evalDistMap_game_eq_reads t (hwEmpty X Z) m₀ π sch Sch hsch S0 A ρ f
   rw [overwrite_hwEmpty] at h
   exact (evalDistMap_simulate .instruments π t _ ρ f).trans h
 
 variable (M) in
 /-- The law of the game's reads after key generation, against the classical reads of `k`
 without hardwired cells. -/
-noncomputable def gameReadsLaw (m₀ : M) (S0 : MasterSeed) (A : Adversary (X × Z))
+noncomputable def gameReadsLaw (m₀ : M) (S0 : Seed) (A : Adversary PK Req Resp F (X × Z))
     (ρ : SubState (QReg.of Unit)) {γ : Type*} [MeasurableSpace γ]
     (f : (Σ u, QuantumComp₂.Leaf (QReg.of Unit) Bool u) → γ) (k : SpongeKeys X Z) : Measure γ :=
   (spongeFnReadRuntime X Z k (hwEmpty X Z) m₀).evalDistMap .instruments
-    (gameReads M π A (honestEval k π (schemeWithHashFromSeed.keygen S0))) ρ f
+    (gameReads M π sch Sch A (honestEval k π (Sch.keygen S0))) ρ f
 
 /-- **G1 → G2 at fixed `π`**: the uniform-function experiment of the simulated game is the
 average over uniform `t` of the laws of its reads. -/
-theorem spongeEvalDistMap_simulate_game_eq_reads (m₀ : M) (S0 : MasterSeed)
-    (A : Adversary (X × Z)) (ρ : SubState (QReg.of Unit)) {γ : Type*} [MeasurableSpace γ]
-    (f : (Σ u, QuantumComp₂.Leaf (QReg.of Unit) Bool u) → γ) :
-    spongeEvalDistMap .instruments (simulate .instruments π (game keccakStateEquiv S0 A)) ρ
+theorem spongeEvalDistMap_simulate_game_eq_reads (hsch : sch = Sch.overPermutation) (m₀ : M)
+    (S0 : Seed) (A : Adversary PK Req Resp F (X × Z)) (ρ : SubState (QReg.of Unit)) {γ : Type*}
+    [MeasurableSpace γ] (f : (Σ u, QuantumComp₂.Leaf (QReg.of Unit) Bool u) → γ) :
+    spongeEvalDistMap .instruments (simulate .instruments π (game sch keccakStateEquiv S0 A)) ρ
         (fun _ ↦ f) =
       ∑ t : SpongeKeys X Z, (Fintype.card (SpongeKeys X Z) : ℝ≥0∞)⁻¹ •
         (spongeFnReadRuntime X Z t (hwEmpty X Z) m₀).evalDistMap .instruments
-          (gameReads M π A (honestEval t π (schemeWithHashFromSeed.keygen S0))) ρ f := by
+          (gameReads M π sch Sch A (honestEval t π (Sch.keygen S0))) ρ f := by
   refine (spongeEvalDistMap_eq_sum_smul LocalSig.Interp.instruments
-    (simulate .instruments π (game keccakStateEquiv S0 A)) ρ f (gameReadsLaw M π m₀ S0 A ρ f)
-    fun k ↦ evalDistMap_simulate_game_eq_reads k π m₀ S0 A ρ f).trans ?_
+    (simulate .instruments π (game sch keccakStateEquiv S0 A)) ρ f
+    (gameReadsLaw M π sch Sch m₀ S0 A ρ f)
+    fun k ↦ evalDistMap_simulate_game_eq_reads k π sch Sch hsch m₀ S0 A ρ f).trans ?_
   exact Finset.sum_congr rfl fun _ _ ↦
     congr_arg₂ HSMul.hSMul (congrArg (fun n : ℕ ↦ (n : ℝ≥0∞)⁻¹) rfl) rfl
 
 variable (M) in
 /-- The average over uniform `t` of the laws of the game's reads, at `p`. -/
-noncomputable def gameReadsAvg (m₀ : M) (S0 : MasterSeed) (A : Adversary (X × Z))
+noncomputable def gameReadsAvg (m₀ : M) (S0 : Seed) (A : Adversary PK Req Resp F (X × Z))
     (ρ : SubState (QReg.of Unit)) {γ : Type*} [MeasurableSpace γ]
     (f : (Σ u, QuantumComp₂.Leaf (QReg.of Unit) Bool u) → γ) (p : Equiv.Perm (X × Z)) :
     Measure γ :=
   ∑ t : SpongeKeys X Z, (Fintype.card (SpongeKeys X Z) : ℝ≥0∞)⁻¹ •
     (spongeFnReadRuntime X Z t (hwEmpty X Z) m₀).evalDistMap .instruments
-      (gameReads M p A (honestEval t p (schemeWithHashFromSeed.keygen S0))) ρ f
+      (gameReads M p sch Sch A (honestEval t p (Sch.keygen S0))) ρ f
 
 /-- **The game in the QRPM is the average of its reads (G1 → G2)**: the quantum SUF-CMA game's
 observed law is the average over `π` and uniform `t` of the law, against the classical reads of
 `t` (`spongeFnReadRuntime` without hardwired cells), of `gameReads π A b` after the honest
 evaluation `b = honestEval t π (keygen S0)` of key generation: the left-hand side of
 `spongeEvalDistMap_eq_tableLaw` with `x` the key generation and `y = gameReads π A`. -/
-theorem qrpm_game_eq_reads (m₀ : M) (S0 : MasterSeed) (A : Adversary (X × Z))
-    (ρ : SubState (QReg.of Unit)) {γ : Type*} [MeasurableSpace γ]
-    (f : (Σ u, QuantumComp₂.Leaf (QReg.of Unit) Bool u) → γ) :
-    qrpmEvalDistMap .instruments (game keccakStateEquiv S0 A) ρ (fun _ ↦ f) =
+theorem qrpm_game_eq_reads (hsch : sch = Sch.overPermutation) (m₀ : M) (S0 : Seed)
+    (A : Adversary PK Req Resp F (X × Z)) (ρ : SubState (QReg.of Unit)) {γ : Type*}
+    [MeasurableSpace γ] (f : (Σ u, QuantumComp₂.Leaf (QReg.of Unit) Bool u) → γ) :
+    qrpmEvalDistMap .instruments (game sch keccakStateEquiv S0 A) ρ (fun _ ↦ f) =
       (Fintype.card (Equiv.Perm (X × Z)) : ℝ≥0∞)⁻¹ • ∑ π : Equiv.Perm (X × Z),
         ∑ t : SpongeKeys X Z, (Fintype.card (SpongeKeys X Z) : ℝ≥0∞)⁻¹ •
           (spongeFnReadRuntime X Z t (hwEmpty X Z) m₀).evalDistMap .instruments
-            (gameReads M π A (honestEval t π (schemeWithHashFromSeed.keygen S0))) ρ f := by
-  refine (qrpmEvalDistMap_eq_sum_smul LocalSig.Interp.instruments (game keccakStateEquiv S0 A) ρ
-    f (gameReadsAvg M m₀ S0 A ρ f)
-    fun p ↦ spongeEvalDistMap_simulate_game_eq_reads p m₀ S0 A ρ f).trans ?_
+            (gameReads M π sch Sch A (honestEval t π (Sch.keygen S0))) ρ f := by
+  refine (qrpmEvalDistMap_eq_sum_smul LocalSig.Interp.instruments
+    (game sch keccakStateEquiv S0 A) ρ f (gameReadsAvg M sch Sch m₀ S0 A ρ f)
+    fun p ↦ spongeEvalDistMap_simulate_game_eq_reads p sch Sch hsch m₀ S0 A ρ f).trans ?_
   exact congr_arg₂ HSMul.hSMul (congrArg (fun n : ℕ ↦ (n : ℝ≥0∞)⁻¹) rfl)
     (Finset.sum_congr rfl fun _ _ ↦ rfl)
 
-end Quantum.Xmss
+end Quantum.SufCma
 
 end

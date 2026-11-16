@@ -49,6 +49,8 @@ open scoped ENNReal ComplexOrder
 
 universe u v w u₁ v₁
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Hybrid
 
 open Quantum QuantumRuntime

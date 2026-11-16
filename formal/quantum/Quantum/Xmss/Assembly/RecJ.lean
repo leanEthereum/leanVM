@@ -42,6 +42,8 @@ program call) would reach about `progCap 2^-168`.
 open Matrix IPFunctor
 open scoped ENNReal Kronecker ComplexOrder
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Assembly
 
 open Quantum QuantumRuntime Quantum.Sponge Quantum.Xmss Quantum.Xmss.Hybrid HashSig LeanXmss

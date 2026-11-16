@@ -44,6 +44,8 @@ Three exchanges, composed after `schemeSplit`, move these values into slots:
 
 open scoped ENNReal
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Hybrid
 
 open Quantum Quantum.Sponge

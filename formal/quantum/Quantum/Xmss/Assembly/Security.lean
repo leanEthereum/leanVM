@@ -81,6 +81,8 @@ least `1` (`one_le_qrpmBound`).
 open MeasureTheory Matrix
 open scoped ENNReal Kronecker
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Assembly
 
 open Quantum QuantumRuntime Quantum.Sponge Quantum.Xmss Quantum.Xmss.Hybrid HashSig LeanXmss
@@ -780,10 +782,10 @@ theorem uavg_p2R_le (hq : q ≤ 2 ^ 64) (hleaf : NoLeafReuse A) :
 
 /-- **The leanXMSS bound for one adversary without leaf reuse.** -/
 theorem winProb_le_qrpmBound (hleaf : NoLeafReuse A) (hq : q ≤ 2 ^ 64) :
-    winProb keccakStateEquiv A ≤ qrpmBound q := by
+    winProb sufCmaScheme keccakStateEquiv A ≤ qrpmBound q := by
   have hK : uavg (p1T A fullHw) = uavg (p1R A fullHw) :=
     congrArg uavg (funext fun L ↦ (p1T_eq_p1K A tableLe_fullHw L).trans (p1K_eq_p1R A fullHw L))
-  calc winProb keccakStateEquiv A = uavg (p1T A fullHw) := winProb_eq_uavg_full A
+  calc winProb sufCmaScheme keccakStateEquiv A = uavg (p1T A fullHw) := winProb_eq_uavg_full A
     _ = uavg (p1R A fullHw) := hK
     _ ≤ (uavg (p2R (gameR A)) ^ (2⁻¹ : ℝ) + hybTerm q) ^ 2 + r0Term := uavg_p1R_le hperm hsign
     _ ≤ (eventTerm q ^ (2⁻¹ : ℝ) + hybTerm q) ^ 2 + r0Term := by
@@ -792,7 +794,7 @@ theorem winProb_le_qrpmBound (hleaf : NoLeafReuse A) (hq : q ≤ 2 ^ 64) :
 
 omit hperm hsign in
 /-- The win probability is at most `1`. -/
-theorem winProb_le_one (A : Adversary (X × Z)) : winProb keccakStateEquiv A ≤ 1 := by
+theorem winProb_le_one (A : Adversary (X × Z)) : winProb sufCmaScheme keccakStateEquiv A ≤ 1 := by
   rw [winProb_eq_uavg_full A]
   refine (uavg_mono (g := fun _ ↦ (1 : ℝ≥0∞)) fun _ ↦ ?_).trans (uavg_const 1).le
   exact QuantumRuntime.outcomeLawWith_le_one _ _ _ _ _ _
@@ -826,7 +828,8 @@ omit hperm hsign in
 at most `q` permutation calls and at most `lifetime` signing requests forges with probability at
 most `qrpmBound q`. Refusing reused leaves does not lower the win probability and keeps the budgets
 (NoReuse); above `2^64` calls the bound is at least `1`. -/
-theorem leanXmss_qrpm_security : QuantumStronglyUnforgeable keccakStateEquiv qrpmBound :=
+theorem leanXmss_qrpm_security :
+    QuantumStronglyUnforgeable sufCmaScheme keccakStateEquiv lifetime qrpmBound :=
   fun q A hq hs ↦
     if hle : q ≤ 2 ^ 64 then
       (winProb_le_winProb_refuse keccakStateEquiv A).trans

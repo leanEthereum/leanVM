@@ -32,6 +32,8 @@ Reparam's on the positions and the table's randomizer bases on the labels.
   off the non-first labels when `e`'s randomizer bases are the table's there.
 -/
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Assembly
 
 open Quantum Quantum.Sponge Quantum.Xmss Quantum.Xmss.Hybrid HashSig LeanXmss

@@ -43,6 +43,8 @@ verification (`gameR_eq`, Template's `gameT_eq_prefixT_bind`).
 open MeasureTheory Matrix
 open scoped ENNReal Kronecker
 
+open Quantum.SufCma
+
 namespace Quantum.Xmss.Assembly
 
 open Quantum QuantumRuntime Quantum.Sponge Quantum.Xmss Quantum.Xmss.Hybrid HashSig LeanXmss

@@ -57,6 +57,8 @@ open scoped ENNReal Kronecker ComplexOrder
 
 /-! ## What one recorded `h` value can do -/
 
+open Quantum.SufCma
+
 namespace Quantum.Sponge
 
 open Quantum
