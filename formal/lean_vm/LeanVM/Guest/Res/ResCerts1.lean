@@ -62,7 +62,7 @@ theorem certs_res : ∀ K ∈ certs, ResOk resExc nzVals K :=
     (Mode.fa_cons (resOk_of (j := 165) (by decide +kernel))
     (Mode.fa_cons (resOk_of (j := 191) (by decide +kernel))
     (Mode.fa_cons (resOk_of (j := 250) (by decide +kernel))
-    (Mode.fa_cons (resOk_of (j := 310) (by decide +kernel))
+    (Mode.fa_cons (resOk_exc (by simp [resExc]))
     (Mode.fa_cons (resOk_of (j := 327) (by decide +kernel))
     (Mode.fa_cons (resOk_of (j := 338) (by decide +kernel))
     (Mode.fa_cons (resOk_of (j := 405) (by decide +kernel))

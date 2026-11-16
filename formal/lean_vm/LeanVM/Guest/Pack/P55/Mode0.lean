@@ -15,7 +15,6 @@ public import LeanVM.Guest.Pack.«P34».ModeSig
 public import LeanVM.Guest.Pack.«P53».ModeSig
 public import LeanVM.Guest.Pack.«P55».Bundle
 public import LeanVM.Guest.Pack.«P55».ModeSig
-public import LeanVM.Guest.Pack.«P7».ModeSig
 
 set_option Elab.async false
 
@@ -97,7 +96,26 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `block_selector_tab__L12`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨205593, 33, Fn.«block_selector_tab__L12».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨205593, 33, Fn.«block_selector_tab__L12».modeSig, .nil, (.node (some [(.sub ⟨⟨0, 0, [((.fr 3),
+    1)]⟩, (.num 0), (.num 12), 8, 0⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 1), (.num 13), 8,
+    18446744073709551607⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 12), 8, 1⟩ [⟨⟨0, 0,
+    [((.fr 3), 1)]⟩, (.num 1), (.num 13), 8, 18446744073709551608⟩]), (.sub ⟨⟨0, 0, [((.fr 3),
+    1)]⟩, (.num 0), (.num 12), 8, 2⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 1), (.num 13), 8,
+    18446744073709551609⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 12), 8, 3⟩ [⟨⟨0, 0,
+    [((.fr 3), 1)]⟩, (.num 1), (.num 13), 8, 18446744073709551610⟩]), (.sub ⟨⟨0, 0, [((.fr 3),
+    1)]⟩, (.num 0), (.num 12), 8, 4⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 1), (.num 13), 8,
+    18446744073709551611⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 12), 8, 5⟩ [⟨⟨0, 0,
+    [((.fr 3), 1)]⟩, (.num 1), (.num 13), 8, 18446744073709551612⟩]), (.sub ⟨⟨0, 0, [((.fr 3),
+    1)]⟩, (.num 0), (.num 12), 8, 6⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 1), (.num 13), 8,
+    18446744073709551613⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 12), 8, 7⟩ [⟨⟨0, 0,
+    [((.fr 3), 1)]⟩, (.num 1), (.num 13), 8, 18446744073709551614⟩]), (.sub ⟨⟨0, 0, [((.fr 4),
+    1)]⟩, (.num 0), (.num 12), 4, 0⟩ [⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 1), (.num 13), 4,
+    18446744073709551611⟩]), (.sub ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 12), 4, 1⟩ [⟨⟨0, 0,
+    [((.fr 4), 1)]⟩, (.num 1), (.num 13), 4, 18446744073709551612⟩]), (.sub ⟨⟨0, 0, [((.fr 4),
+    1)]⟩, (.num 0), (.num 12), 4, 2⟩ [⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 1), (.num 13), 4,
+    18446744073709551613⟩]), (.sub ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 12), 4, 3⟩ [⟨⟨0, 0,
+    [((.fr 4), 1)]⟩, (.num 1), (.num 13), 4, 18446744073709551614⟩])]) .nil .nil), .nil, false,
+    .nil⟩
 
 /-- `block_selector_tab__L12`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -255,30 +273,3 @@ theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
 end
 
 end LeanVM.Guest.Fn.«column_selector__L8»
-
-namespace LeanVM.Guest.Fn.«bus_grind_check__L6»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `bus_grind_check__L6`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14363, (.node none (.node none .nil (.node none (.node none
-    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
-    none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node
-    none .nil (.node (some Fn.«grind_check__L23».modeSig) .nil .nil))))) .nil)) .nil)) .nil) .nil)
-    .nil))) .nil) .nil)) .nil), 524287⟩
-
-/-- `bus_grind_check__L6`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨213559, 9, Fn.«bus_grind_check__L6».modeSig, (.node none .nil (.node (some [(.alloc 5 46)]) .nil
-    .nil)), .nil, .nil, false, .nil⟩
-
-/-- `bus_grind_check__L6`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«bus_grind_check__L6»

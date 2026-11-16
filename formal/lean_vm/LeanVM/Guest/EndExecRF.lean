@@ -144,8 +144,8 @@ theorem TopAt.wit (t : TopAt A r K i e j) (hr : r.Ok) (hW : witOk j w = true) :
       (∀ ev ∈ e.pre ++ e.es, ev.Holds r.img.read e.σ) ∧ (∀ a ∈ w.as, Ev.atom a ∈ e.pre ++ e.es) ∧
       ∀ p ∈ w.ss, ∃ x < p.2, e.σ p.1 = ofK (addressOfIndex x) := by
   obtain ⟨vs, hw, hF, hev⟩ := t.events hr
-  simp only [witOk, Bool.and_eq_true, List.all_eq_true, List.contains_iff_mem] at hW
-  exact ⟨vs, hw, hF, hev, fun a ha ↦ topAtoms_on_path hw (hW.1 a ha),
+  simp only [witOk, Bool.and_eq_true, List.all_eq_true, List.contains_iff_mem, List.isSublist_iff_sublist] at hW
+  exact ⟨vs, hw, hF, hev, fun a ha ↦ topAtoms_on_path hw (hW.1.subset ha),
     fun p hp ↦ topSels_sound hw (hW.2 p hp)⟩
 
 /-- **A bounded cell at an honest frame** holds `g^e`, `e < N`. -/

@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.Mode.CertDefs
 public import LeanVM.Guest.Pack.«verify_tables».ModeH
-public import LeanVM.Guest.Pack.«verify_tables».ModeX
+public import LeanVM.Guest.Pack.«verify_tables».ModeL0
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
@@ -138,9 +138,9 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     (Mode.fa_nil)
 
 /-- The certificates' walks and hints. -/
-theorem certs_walk («verify_tables» : Mode.WalkHyp Fn.«verify_tables».modeCert) :
+theorem certs_walk :
     ∀ K ∈ certs, Mode.CertWalk K :=
-  Mode.fa_cons (⟨«verify_tables», Fn.«verify_tables».modeHintsOk⟩)
+  Mode.fa_cons (⟨Fn.«verify_tables».modeOk, Fn.«verify_tables».modeHintsOk⟩)
     (Mode.fa_nil)
 
 end

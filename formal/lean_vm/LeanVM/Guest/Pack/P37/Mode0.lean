@@ -110,7 +110,25 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `block_selector_tab__L3`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨205370, 13, Fn.«block_selector_tab__L3».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨205370, 13, Fn.«block_selector_tab__L3».modeSig, .nil, (.node (some [(.sub ⟨⟨0, 0, [((.fr 3),
+    1)]⟩, (.num 0), (.num 2), 8, 0⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 1), (.num 3), 8,
+    18446744073709551607⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 2), 8, 1⟩ [⟨⟨0, 0,
+    [((.fr 3), 1)]⟩, (.num 1), (.num 3), 8, 18446744073709551608⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩,
+    (.num 0), (.num 2), 8, 2⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 1), (.num 3), 8,
+    18446744073709551609⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 2), 8, 3⟩ [⟨⟨0, 0,
+    [((.fr 3), 1)]⟩, (.num 1), (.num 3), 8, 18446744073709551610⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩,
+    (.num 0), (.num 2), 8, 4⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 1), (.num 3), 8,
+    18446744073709551611⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 2), 8, 5⟩ [⟨⟨0, 0,
+    [((.fr 3), 1)]⟩, (.num 1), (.num 3), 8, 18446744073709551612⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩,
+    (.num 0), (.num 2), 8, 6⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 1), (.num 3), 8,
+    18446744073709551613⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 2), 8, 7⟩ [⟨⟨0, 0,
+    [((.fr 3), 1)]⟩, (.num 1), (.num 3), 8, 18446744073709551614⟩]), (.sub ⟨⟨0, 0, [((.fr 4), 1)]⟩,
+    (.num 0), (.num 2), 4, 0⟩ [⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 1), (.num 3), 4,
+    18446744073709551611⟩]), (.sub ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 2), 4, 1⟩ [⟨⟨0, 0,
+    [((.fr 4), 1)]⟩, (.num 1), (.num 3), 4, 18446744073709551612⟩]), (.sub ⟨⟨0, 0, [((.fr 4), 1)]⟩,
+    (.num 0), (.num 2), 4, 2⟩ [⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 1), (.num 3), 4,
+    18446744073709551613⟩]), (.sub ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 2), 4, 3⟩ [⟨⟨0, 0,
+    [((.fr 4), 1)]⟩, (.num 1), (.num 3), 4, 18446744073709551614⟩])]) .nil .nil), .nil, false, .nil⟩
 
 /-- `block_selector_tab__L3`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -132,7 +150,26 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `block_selector_tab__L25`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨206271, 74, Fn.«block_selector_tab__L25».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨206271, 74, Fn.«block_selector_tab__L25».modeSig, .nil, (.node (some [(.sub ⟨⟨0, 0, [((.fr 3),
+    1)]⟩, (.num 0), (.num 25), 8, 0⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 1), (.num 26), 8,
+    18446744073709551607⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 25), 8, 1⟩ [⟨⟨0, 0,
+    [((.fr 3), 1)]⟩, (.num 1), (.num 26), 8, 18446744073709551608⟩]), (.sub ⟨⟨0, 0, [((.fr 3),
+    1)]⟩, (.num 0), (.num 25), 8, 2⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 1), (.num 26), 8,
+    18446744073709551609⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 25), 8, 3⟩ [⟨⟨0, 0,
+    [((.fr 3), 1)]⟩, (.num 1), (.num 26), 8, 18446744073709551610⟩]), (.sub ⟨⟨0, 0, [((.fr 3),
+    1)]⟩, (.num 0), (.num 25), 8, 4⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 1), (.num 26), 8,
+    18446744073709551611⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 25), 8, 5⟩ [⟨⟨0, 0,
+    [((.fr 3), 1)]⟩, (.num 1), (.num 26), 8, 18446744073709551612⟩]), (.sub ⟨⟨0, 0, [((.fr 3),
+    1)]⟩, (.num 0), (.num 25), 8, 6⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 1), (.num 26), 8,
+    18446744073709551613⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 25), 8, 7⟩ [⟨⟨0, 0,
+    [((.fr 3), 1)]⟩, (.num 1), (.num 26), 8, 18446744073709551614⟩]), (.sub ⟨⟨0, 0, [((.fr 4),
+    1)]⟩, (.num 0), (.num 25), 4, 0⟩ [⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 1), (.num 26), 4,
+    18446744073709551611⟩]), (.sub ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 25), 4, 1⟩ [⟨⟨0, 0,
+    [((.fr 4), 1)]⟩, (.num 1), (.num 26), 4, 18446744073709551612⟩]), (.sub ⟨⟨0, 0, [((.fr 4),
+    1)]⟩, (.num 0), (.num 25), 4, 2⟩ [⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 1), (.num 26), 4,
+    18446744073709551613⟩]), (.sub ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 25), 4, 3⟩ [⟨⟨0, 0,
+    [((.fr 4), 1)]⟩, (.num 1), (.num 26), 4, 18446744073709551614⟩])]) .nil .nil), .nil, false,
+    .nil⟩
 
 /-- `block_selector_tab__L25`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by

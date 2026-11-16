@@ -220,7 +220,7 @@ theorem certs_sub : ∀ K ∈ certs, SubOk resExc K :=
   Mode.fa_cons (subOk_of (j := 71) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_cons (subOk_of (j := 204) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_cons (subOk_of (j := 284) (w := ⟨[], []⟩) (by decide +kernel))
-    (Mode.fa_cons (subOk_of (j := 309) (w := ⟨[], []⟩) (by decide +kernel))
+    (Mode.fa_cons (subOk_exc (by simp [resExc]))
     (Mode.fa_cons (subOk_of (j := 332) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_cons (subOk_of (j := 448) (w := ⟨[], []⟩) (by decide +kernel))
     (Mode.fa_cons (subOk_of (j := 530) (w := ⟨[], []⟩) (by decide +kernel))

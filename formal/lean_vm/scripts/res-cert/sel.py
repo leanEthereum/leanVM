@@ -2,7 +2,8 @@
 (`Res.ResOk`, decided at the function's index by `Res.resOk_of`), but the certificates of `EXC`;
 and `ResTop guestCerts` from them (`EndExec.resTop_of_ok`). `Guest/Res/ResGiven.lean` lists `EXC`'s
 certificates (`resExc`) and the parameters whose nonzero values the divisor residuals need
-(`nzVals`: each `nz o` residual's parameter `o - 2`, but a loop helper's counter). The
+(`nzVals`: each `nz o` residual's parameter `o - 2`, but a loop helper's counter, or past the
+parameters a value at cell `o` a top-level atom names). The
 certificates, their packs, groups and function indices are those `term.py` reads, the residuals
 the walks' checks `mode-cert/gen.py` wrote (`Pack/*/Mode{k}.lean`, `ModeD{k}.lean`, `ModeX.lean`).
 `--check` writes nothing and fails when a file differs.
@@ -18,8 +19,10 @@ import data
 
 OUT = term.OUT
 # the certificates whose residuals the families leave: `claim_list_digest`'s dispatch sits in a branch,
-# `certify_placement`'s divisor is no parameter
-EXC = ['claim_list_digest', 'certify_placement']
+# `certify_placement`'s divisor is no parameter, `log2_ceil_in_the_exponent`'s order residual is
+# branch-held (`EndExecRLce`)
+EXC = ['claim_list_digest', 'certify_placement', 'log2_ceil_in_the_exponent__L0_L34',
+       'log2_ceil_in_the_exponent__L16_L34']
 
 
 def residuals():
@@ -40,15 +43,25 @@ def residuals():
 
 
 def nzVals():
-    """The parameters `(function, k)` whose nonzero values the divisor residuals need."""
+    """The values `(function, v)` whose nonzero words the divisor residuals need: a parameter `o - 2`, but a
+    loop helper's counter, or past the parameters the first value at cell `o` a top-level atom names
+    (`Res.topUses`)."""
     F = residuals(); D = data.load()
     core = {f['ns']: f['name'] for f in D['fns'].values()}
-    out = []
+    nargs = {f['ns']: f['nargs'] for f in D['fns'].values()}
+    out = []; B = None
     for n in sorted(F):
         if n in EXC: continue
         for o in sorted({r[1] for rs in F[n].values() for r in rs if r[0] == 'nz'}):
             if core[n].startswith('__loop') and o == 2: continue
-            out.append((core[n], o - 2))
+            if o - 2 < nargs[n]:
+                out.append((core[n], o - 2)); continue
+            import wit
+            if B is None: B = wit.bc.bundles(); T = wit.bc.core_texts()
+            locs = B[n]['locs']
+            vs = [v for a in wit.top(T[n])[0] for v in a[1:-1] if isinstance(v, int) and v < len(locs) and locs[v] == o]
+            assert vs, (n, o)
+            out.append((core[n], vs[0]))
     return out
 
 

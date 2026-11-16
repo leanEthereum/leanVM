@@ -15,6 +15,11 @@ public import LeanVM.Guest.EndExecRVtB
 public import LeanVM.Guest.EndExecRLift
 public import LeanVM.Guest.EndExecRVkSt
 public import LeanVM.Guest.EndExecRRt
+public import LeanVM.Guest.EndExecRCld
+public import LeanVM.Guest.EndExecRVtSt
+public import LeanVM.Guest.EndExecRVtP
+public import LeanVM.Guest.EndExecRExp
+public import LeanVM.Guest.EndExecRVtG
 
 /-!
 # The families' residuals at the honest frames
@@ -26,7 +31,10 @@ certificates': those read off the function's code (`subFam_top`), and `check_ope
 (`dim_top`, its dimension facts from `TermFront`) and `column_selector`'s (`cs_top`, its arguments
 from the terminal's dispatch, `csQ_all`), the proof stream's reads (`st_top`), the runs a split cuts into blocks (`blk_top`),
 `verify_tables`' table sumcheck's reads (`vt_top`), the runs of a lift (`lift_top`),
-`verify_keccak`'s reads past its layers (`vkSt_top`) and the roots' tree's reads (`roots_top`).
+`verify_keccak`'s reads past its layers (`vkSt_top`), the roots' tree's reads (`roots_top`), the
+tiles (`tileFam_top`), a lift read back (`liftBack_top`), the same cells named one index up
+(`ordShift_top`), `verify_tables`' reads past its table sumcheck (`vtSt_top`), the runs a product's
+factors bound (`expFam_top`), and `verify_tables`' groups' bases (`vtGrp_top`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -42,7 +50,7 @@ public section
 theorem resOpen_ltExp {Ks : List Mode.Cert} {A : String → Bridge.FnAl} :
     ResOpen Ks A fun j x ↦ ltExpB j x = true := by
   intro r hr K hK i hi e j t x hx hp hin
-  exact ltExp_top t hr (expQ_of_termQ (termQ_all hr e.I t.inst)) hp
+  exact ltExp_top t hr (expQ_of_termQ (termQ_all hr e.I t.inst) (expQv_all hr e.I t.inst)) hp
 
 /-- **`check_opening_terminal`'s and `column_selector`'s families at an honest frame.** -/
 theorem termFam_top {A : String → Bridge.FnAl} {r : Ref} {K : Mode.Cert} {i : ℕ} {e : Bridge.Ent} {j : ℕ}
@@ -75,7 +83,7 @@ theorem resOpen_subOk {Ks : List Mode.Cert} {A : String → Bridge.FnAl} (hok : 
     rw [hg, Option.getD_some] at hx
     have hf := List.all_eq_true.mp (allV_get hall hg) _ hx
     simp only [subB, hs, ha, hm, Bool.false_or, Bool.or_eq_true] at hf
-    rcases hf with ((((((hf | hf) | hf) | hf) | hf) | hf) | hf) | hf
+    rcases hf with ((((((((((((hf | hf) | hf) | hf) | hf) | hf) | hf) | hf) | hf) | hf) | hf) | hf) | hf) | hf
     · exact subFam_top t hr hW hf
     · exact termFam_top t hr hW hf
     · exact st_top t hr hf
@@ -84,6 +92,12 @@ theorem resOpen_subOk {Ks : List Mode.Cert} {A : String → Bridge.FnAl} (hok : 
     · exact lift_top t hr hf
     · exact vkSt_top t hr hf
     · exact roots_top t hr hf
+    · exact tileFam_top t hr hW hf
+    · exact liftBack_top t hr hf
+    · exact ordShift_top t hr hW hf hin
+    · exact vtSt_top t hr hf
+    · exact expFam_top t hr hW hf
+    · exact vtGrp_top t hr hf
 
 end
 

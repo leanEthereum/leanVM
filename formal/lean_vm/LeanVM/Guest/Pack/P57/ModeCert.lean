@@ -12,7 +12,6 @@ public import LeanVM.Guest.Pack.«P57».Mode0
 public import LeanVM.Guest.Pack.«P57».Mode1
 public import LeanVM.Guest.Pack.«P57».Mode2
 public import LeanVM.Guest.Pack.«P57».ModeH
-public import LeanVM.Guest.Pack.«P57».ModeX
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
@@ -618,13 +617,12 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     (Mode.fa_nil))))))))))))))))))))))))
 
 /-- The certificates' walks and hints. -/
-theorem certs_walk («log2_ceil_in_the_exponent__L0_L34» : Mode.WalkHyp
-    Fn.«log2_ceil_in_the_exponent__L0_L34».modeCert) :
+theorem certs_walk :
     ∀ K ∈ certs, Mode.CertWalk K :=
   Mode.fa_cons (⟨Fn.«eq_prefix_run__L29».modeOk, Fn.«eq_prefix_run__L29».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«index_mle__L5».modeOk, Fn.«index_mle__L5».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«column_selector__L6».modeOk, Fn.«column_selector__L6».modeHintsOk⟩)
-    (Mode.fa_cons (⟨«log2_ceil_in_the_exponent__L0_L34»,
+    (Mode.fa_cons (⟨Fn.«log2_ceil_in_the_exponent__L0_L34».modeOk,
     Fn.«log2_ceil_in_the_exponent__L0_L34».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«bus_grind_check__L8».modeOk, Fn.«bus_grind_check__L8».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«grind_check__L18».modeOk, Fn.«grind_check__L18».modeHintsOk⟩)

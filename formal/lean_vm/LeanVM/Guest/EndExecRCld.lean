@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.EndExecRCld
 
-  `claim_list_digest`'s residual at its honest frames: the dispatch's selector, `list_split`'s
-  `rest`, read through the callee's frame, below `17`.
+  `claim_list_digest`'s residuals at its honest frames: the dispatch's selector, `list_split`'s
+  `rest`, read through the callee's frame, below `17`, and the tiles of its count by the split.
 -/
 
 module
@@ -11,6 +11,7 @@ public import LeanVM.Guest.EndExecW
 public import LeanVM.Guest.EndExecRA
 public import LeanVM.Guest.Res.CldChk
 public import LeanVM.Guest.B1.Digest.ClaimList
+public import LeanVM.Guest.EndExecRTile
 
 /-!
 # `claim_list_digest`'s residual
@@ -22,6 +23,12 @@ claim (`dispatch_call`), and the path took the branch (the empty list's calls no
 call is `list_split`'s: cell `23` holds the callee's frame pointer (`FrameHolds.site`,
 `Res.cld_site`), the callee's frame holds its last return `rest` at cell `5` (`FrameHolds.val`,
 `Res.ls_cell`, `Res.ls_ret`), and `rest = g^c`, `c < 17` (`list_split_sound`).
+
+Its tiles (`Res.tileListB`) are of its count `n_g` into `list_split`'s returns: `tile_cld`, at every
+honest frame, `n_g = 1` (the test `n_g + 1 = 0`, `Res.cld_wit`), or the nonempty list's branch,
+whose first call is `list_split`'s (`cld_else_calls`), its returns `g^a`, `g^b`, `g^c` at cells `3`,
+`4`, `5` of the callee's frame and `n_g = g^(136a + 17b + c)` (`list_split_sound`). `tiles_ok`,
+`tileFam_top`: the tile families at the honest frames.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -104,10 +111,24 @@ theorem walk_call_cons {σ : Core.Val} (f : String) (args rets : List V) (ps : L
     Memory.walk σ (.call f args rets :: ps) = (Memory.walk σ ps).pre [.call f args rets] := by
   rw [Memory.walk, Memory.walk1, Out.seq]
 
+/-- **The nonempty list's branch first calls `list_split`**, on its test. -/
+theorem cld_else_calls {σ : Core.Val} {es : List Ev} {vs : List V}
+    (hw : Memory.walk σ (Fn.body fn% «claim_list_digest») = .ret es vs) (h3 : σ (.n 3) ≠ 0) :
+    (calls es)[0]? = some Res.cldSplit := by
+  rw [B1.Digest.claim_list_digest_shape, Bridge.walk_atom_cons, Bridge.walk_atom_cons, Bridge.walk_ite_cons,
+    Bridge.out_pre_pre, Bridge.out_pre_pre] at hw
+  rw [ite_eq_right h3, ← List.take_append_drop 1 B1.Digest.cl23Else, cl_else_head] at hw
+  simp only [List.singleton_append] at hw
+  obtain ⟨es', hw', rfl⟩ := Bridge.pre_eq_ret hw
+  rw [List.cons_append, walk_call_cons] at hw'
+  obtain ⟨es'', -, rfl⟩ := Bridge.pre_eq_ret hw'
+  rfl
+
 /-- **The nonempty list's branch first calls `list_split`.** -/
 theorem cld_calls {σ : Core.Val} {es : List Ev} {vs : List V}
     (hw : Memory.walk σ (Fn.body fn% «claim_list_digest») = .ret es vs) {g : String} {args rets : List V}
     (hg : Ev.call g args rets ∈ es) : (calls es)[0]? = some Res.cldSplit := by
+  have hw0 := hw
   rw [B1.Digest.claim_list_digest_shape, Bridge.walk_atom_cons, Bridge.walk_atom_cons, Bridge.walk_ite_cons,
     Bridge.out_pre_pre, Bridge.out_pre_pre] at hw
   by_cases h3 : σ (.n 3) = 0
@@ -121,17 +142,142 @@ theorem cld_calls {σ : Core.Val} {es : List Ev} {vs : List V}
     have := walk_callees _ hc
     rw [cl_zero_callees] at this
     cases this
-  · rw [ite_eq_right h3, ← List.take_append_drop 1 B1.Digest.cl23Else, cl_else_head] at hw
-    simp only [List.singleton_append] at hw
-    obtain ⟨es', hw', rfl⟩ := Bridge.pre_eq_ret hw
-    rw [List.cons_append, walk_call_cons] at hw'
-    obtain ⟨es'', -, rfl⟩ := Bridge.pre_eq_ret hw'
-    rfl
+  · exact cld_else_calls hw0 h3
 
-/-- **`claim_list_digest`'s residual at its honest frames.** -/
+/-- **`claim_list_digest`'s count at its honest frames**: `n_g = 1`, or `list_split`'s frame (cell
+`23`) holds `g^a`, `g^b`, `g^c` at cells `3`, `4`, `5` and `n_g = g^(136a + 17b + c)`. -/
+theorem tile_cld {A : String → Bridge.FnAl} : TileAt A fn_idx% «claim_list_digest» (.fr 3)
+    [(.hp 23 3, 136), (.hp 23 4, 17), (.hp 23 5, 1)] := by
+  intro r K i e hr t
+  obtain ⟨hj0, -, -⟩ := Res.cld_idx
+  -- the frame's function
+  obtain ⟨ia, hja, hia, hna, hfa, hca, -⟩ := fn_of_idx t.idx
+  obtain ⟨ib, hjb, hib, hnb, -⟩ := fn_of_idx hj0
+  obtain rfl : ia = ib := by omega
+  have hname : e.I.t.name = "claim_list_digest" := by rw [← hna, hnb]
+  have hfn : e.fn = fn% «claim_list_digest» := by
+    rw [← t.fn, hca]; exact Option.some.inj (hfa.symm.trans (hname ▸ B1.Digest.find_claim_list_digest))
+  obtain ⟨vs, hw, hF, hev⟩ := t.events hr
+  have hw' : Memory.walk e.σ (Fn.body fn% «claim_list_digest») = .ret (e.pre ++ e.es) vs := by
+    rw [← hfn, ← t.fn]; exact hw
+  have hfb := t.fb
+  -- the count's cell
+  obtain ⟨hc3, hfs3, hp1⟩ := Res.cld_n1
+  have hn1 := t.cell hr hF (x := .n 1) (List.mem_append_left _ (List.mem_append_left _ hp1))
+    (by rw [hc3]; norm_num) (by rw [hc3]; exact hfs3)
+  rw [hc3] at hn1
+  by_cases h3 : e.σ (.n 3) = 0
+  · -- `n_g = 1`
+    obtain ⟨-, -, -, -, hwa, -⟩ := t.wit hr Res.cld_wit
+    have c2 : e.σ (.n 2) = word 1 0 := hev _ (hwa (.const (.n 2) (word 1 0)) (by simp))
+    have a3 : e.σ (.n 3) = e.σ (.n 1) + e.σ (.n 2) := hev _ (hwa (.add (.n 3) (.n 1) (.n 2)) (by simp))
+    have h1 : e.σ (.n 1) = 1 := by rw [a3, c2, B1.word_one] at h3; exact Value.e_add_eq_zero_iff.mp h3
+    refine ⟨0, by norm_num, ?_, Or.inl rfl⟩
+    change refMem r.img (e.I.fp + 3) = _
+    rw [hn1, h1, pow_zero, ofK_one_E]
+  · -- the nonempty list's branch: `list_split`'s call
+    have hc0 := cld_else_calls hw' h3
+    obtain ⟨kfp, hkfp⟩ : ∃ kfp, e.I.kidFps[0]? = some kfp := by
+      have hl := hF.len
+      have : 0 < (calls (e.pre ++ e.es)).length := by
+        rcases h : calls (e.pre ++ e.es) with _ | _
+        · rw [h] at hc0; cases hc0
+        · simp
+      exact ⟨e.I.kidFps[0], List.getElem?_eq_getElem (by omega)⟩
+    obtain ⟨hsq, hfs23⟩ := Res.cld_site
+    obtain ⟨s, hs, hsq'⟩ := Option.map_eq_some_iff.mp hsq
+    have h23 := (hF.site 0 _ kfp s hc0 hkfp hs).1 (by omega) (by rw [hsq']; exact hfs23)
+    rw [hsq'] at h23
+    obtain ⟨-, hm23⟩ := ref_read hr (by omega) h23
+    -- the callee
+    obtain ⟨f0, bufs, kids, hnode⟩ := t.node
+    obtain ⟨args0, rets0, hv⟩ := inst_valid' hr t.inst hnode
+    obtain ⟨fn', hf', -, es', vs'', hw'', -, -, hk⟩ := hv
+    have hf0 : f0 = "claim_list_digest" := by rw [← hname, hnode]; rfl
+    subst hf0
+    obtain rfl : fn' = fn% «claim_list_digest» := Option.some.inj (hf'.symm.trans B1.Digest.find_claim_list_digest)
+    rw [hw'] at hw''
+    obtain ⟨rfl, -⟩ := Out.ret.inj hw''
+    obtain ⟨k, hk0⟩ := kidsValid_some hk hc0
+    obtain ⟨hkn, hkv, -⟩ := Res.kidsValid_at hk hc0 hk0
+    have hkv' := hkv rfl
+    have hI' : e.I ∈ r.T.insts B2C.fs coreProgram.loop B2C.H (0, r.T.block B2C.fs coreProgram.loop) r.hdr := t.inst
+    obtain ⟨J, hJ, hJt, hJfp, -⟩ := insts_kid r.T _ r.hdr e.I hI' 0 k (by rw [hnode]; exact hk0)
+    rw [hkfp, Option.some.injEq] at hJfp
+    subst hJfp
+    have hrel := Tree.Valid.rel _ hkv'
+    rw [hkn] at hrel
+    cases k with
+    | phantom => exact hkv'.elim
+    | node fk σJ bufsJ kidsJ =>
+      obtain ⟨hls, hcell, hfs5⟩ := Res.ls_cell
+      obtain ⟨hc28, hc29⟩ := Res.ls_cells
+      obtain ⟨il, hil, hil', hnl, hfl, hcl, -, -, -, -⟩ := fn_of_idx hls
+      simp only [Tree.name] at hkn
+      subst hkn
+      obtain ⟨fnJ, hfJ, -, esJ, vsJ, hwJ, hvsJ, -, -⟩ := hkv'
+      obtain rfl : fnJ = coreProgram[il] := Option.some.inj (hfJ.symm.trans hfl)
+      rw [← hcl] at hwJ
+      have hvs := retLast_sound Res.ls_ret hwJ
+      subst hvs
+      simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hvsJ
+      obtain ⟨h28, h29, h30⟩ := hvsJ
+      have hFJ := inst_frame hr hJ hJt hls hwJ
+      have hJb := inst_fb hr hJ (by rw [hJt]; rfl) hls
+      have hrd3 := hFJ.val (.n 28) (List.mem_append_right _ (by simp)) (by omega) (by omega)
+      have hrd4 := hFJ.val (.n 29) (List.mem_append_right _ (by simp)) (by omega) (by omega)
+      have hrd5 := hFJ.val (.n 30) (List.mem_append_right _ (by simp)) (by omega) (by omega)
+      rw [hc28] at hrd3
+      rw [hc29] at hrd4
+      rw [hcell] at hrd5
+      obtain ⟨hlt3, hm3⟩ := ref_read hr (by omega) hrd3
+      obtain ⟨hlt4, hm4⟩ := ref_read hr (by omega) hrd4
+      obtain ⟨hlt5, hm5⟩ := ref_read hr (by omega) hrd5
+      -- the split
+      obtain ⟨a, ha, b, hb, c, hc, hng, hrets⟩ := B1.Digest.list_split_sound _ (ref_memOk hr) _ _ hrel
+      simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hrets
+      obtain ⟨h12, h13, h14⟩ := hrets
+      have hb' : b < 8 := by simpa [B1.Digest.bigGroups] using hb
+      have hc' : c < 17 := by simpa [B1.Digest.claimGroup] using hc
+      have hp23 : (refMem r.img (e.I.fp + 23)).limb 0 = Parameters.g ^ J.fp := by
+        rw [hm23]; simp [limb_ofK, addressOfIndex]
+      refine ⟨136 * a + 17 * b + c, by omega, ?_, Or.inr ⟨[a, b, c],
+        ⟨⟨_, names_shift hp23 hlt3, by rw [hm3, h28, h12, Value.gen_pow_eq_ofK]⟩, by omega,
+          ⟨_, names_shift hp23 hlt4, by rw [hm4, h29, h13, Value.gen_pow_eq_ofK]⟩, by omega,
+          ⟨_, names_shift hp23 hlt5, by rw [hm5, h30, h14, Value.gen_pow_eq_ofK]⟩, by omega, trivial⟩,
+        by simp only [partsSum]; omega⟩⟩
+      change refMem r.img (e.I.fp + 3) = _
+      rw [hn1, hng, Value.gen_pow_eq_ofK]
+
+/-- **The frames' tiles' sums at the honest frames.** -/
+theorem tiles_ok {A : String → Bridge.FnAl} : ∀ p ∈ Res.tiles, TileAt A p.1 p.2.1 p.2.2 := by
+  simp only [Res.tiles, List.mem_cons, List.not_mem_nil, or_false, forall_eq]
+  exact tile_cld
+
+/-- **The tile families at an honest frame.** -/
+theorem tileFam_top {A : String → Bridge.FnAl} {r : Ref} {K : Mode.Cert} {i : ℕ} {e : Bridge.Ent} {j : ℕ}
+    {w : Res.Wit} (t : TopAt A r K i e j) (hr : r.Ok) (hW : Res.witOk j w = true) {x : Mode.Res}
+    (hx : Res.tileFamB j w x = true) : RRes (refMem r.img) e.I.fp x :=
+  tileFam_top_of tiles_ok t hr hW hx
+
+/-- The function of `claim_list_digest`'s honest frames. -/
+theorem cld_j {r : Ref} {i : ℕ} {e : Bridge.Ent} {j : ℕ}
+    (t : TopAt alignA r Fn.«claim_list_digest».modeCert i e j) : j = fn_idx% «claim_list_digest» := by
+  obtain ⟨hj0, hent0, -⟩ := Res.cld_idx
+  obtain ⟨ia, rfl, -, -, -, -, -, -, -, hlta⟩ := fn_of_idx t.idx
+  obtain ⟨ib, hib, -, -, -, -, -, -, -, hltb⟩ := fn_of_idx hj0
+  refine fnOf_entry_inj hlta hltb ?_
+  have := t.entry
+  simp only [entryOf, t.idx] at this
+  rw [this, hent0]
+
+/-- **`claim_list_digest`'s residuals at its honest frames.** -/
 theorem resCld_alignA : ResCert alignA Fn.«claim_list_digest».modeCert := by
   intro r hr i hi e j t x hx hin
-  obtain ⟨rfl, rfl⟩ := Res.cld_res i hi x hx
+  rcases Res.cld_res i hi x hx with ⟨rfl, rfl⟩ | htl
+  swap
+  · obtain rfl := cld_j t
+    exact tileList_top tiles_ok t hr htl
   obtain ⟨hj0, hent0, hentA⟩ := Res.cld_idx
   have hκ := logMemorySize_le_28 (e := r.exec) hr.size
   -- the frame's function

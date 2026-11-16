@@ -696,26 +696,200 @@ def seedRuns(I, n, named, sig, res, infer1):
     many constant points over the same buffer among them (`pre`), which reads before the run's demand added
     (`verify_tables`' `padding_weight` arms read `zeta[..tau)` before `plus_one_run` asks for `zeta` up to
     the bus depth): the inference again from those runs, `armRun` then placing the arms' reads inside
-    them. Kept if it walks with fewer points."""
+    them. The same for any run of constant length over that buffer (`preR`): an arm reached first on a
+    path that bounds a base of its read's product (`shared_selector_tables`' arms past a skipped loop,
+    `q = 1`) asks for `Q·g^c` unconditionally, where from the run `armFirst` places it inside the run up to
+    the selector. Kept if it walks with fewer points and constant runs over those buffers."""
     if n in I['isloop'] or n in SEED: return None
     pts = {}
     for m in sig.pre:
         if m[0] == 0 and len(m[2]) == 1 and m[2][0][1] == 1: pts.setdefault(m[2], []).append(m)
-    seeds = {R for R in sig.preR if R[1] == ('num', 0) and R[3] == 1 and R[4] == 0 and R[2][0] == 'ex' and
-             R[2][1][0] == 'fr' and R[0][1] == 0 and len(pts.get(R[0][2], [])) >= SEED_MIN}
+    ps = I['params'](I['fns'][n])
+
+    def consts(s, qs):
+        return sum(1 for R in s.preR if R[0][1] == 0 and R[0][2] in qs and R[1] == ('num', 0) and R[2][0] == 'num')
+
+    def isRun(R):
+        return R[1] == ('num', 0) and R[3] == 1 and R[4] == 0 and R[2][0] == 'ex' and R[2][1][0] == 'fr' and \
+            R[0][1] == 0
+
+    seeds = {R for R in sig.preR if isRun(R) and
+             (len(pts.get(R[0][2], [])) >= SEED_MIN or (R[2][1][1] in ps and consts(sig, {R[0][2]})))}
     if not seeds: return None
+    qs = {R[0][2] for R in seeds}
     SEED[n] = seeds
     try:
         sig2, res2 = infer1(n, named)
     except Fail as e:
         SEEDLOG[n] = ('fail', str(e.args[0][:3])[:300])
         del SEED[n]; return None
-    SEEDLOG[n] = (len(sig.pre), len(sig2.pre))
-    if len(sig2.pre) >= len(sig.pre):
+    c1, c2 = consts(sig, qs), consts(sig2, qs)
+    SEEDLOG[n] = (len(sig.pre), len(sig2.pre), c1, c2)
+    if len(sig2.pre) > len(sig.pre) or len(sig2.pre) + c2 >= len(sig.pre) + c1:
         del SEED[n]; return None
     APPLIED.setdefault('seedRuns', set()).add(n)
     return sig2, res2
 
+
+# arm name -> (the runs its inference starts from, its residuals at offset 0, the parameter products they are
+# over) (`armForm`)
+ARMSEED = {}
+ARMFORM_DBG = __import__('os').environ.get('ARMFORM_DBG')
+
+
+def _armCells(r):
+    """A run between constants' cell offsets past its product (`None` if a bound is not a constant)."""
+    q, lo, hi, S, d = r
+    if lo[0] != 'num' or hi[0] != 'num': return None
+    return [q[1] + S * j + d for j in range(lo[1], hi[1])]
+
+
+def _shifted(q, lo, hi, S, d):
+    """The same cells, the run's index one up and its offset `S` down (named `g^(ORD - S + d)`)."""
+    return (q, (lo[0], lo[1] + 1) if lo[0] == 'num' else (lo[0], lo[1], lo[2] + 1),
+            (hi[0], hi[1] + 1) if hi[0] == 'num' else (hi[0], hi[1], hi[2] + 1), S, ORD - S + d)
+
+
+def armForm(I, n, sig, res):
+    """A table call's arm `j` reading cells of a parameter's buffer below `S·j`, which its caller holds only as
+    `S` runs of stride `S` up to the selector's exponent, `(Q, [0, e(x)), S, ρ)` for each `ρ < S`
+    (`verify_tables`' shared selector tables, read by the `block_selector_tab` arms), each cell a lookup per arm:
+    the arm's preconditions over that buffer as `S` runs `(P, [1, m + 1), S, ORD - S + ρ)`, the cells
+    `P·g^(S·i + ρ)` for `i < m`, `S·m` past the last cell it reads, its residuals `Res.sub` at its entry naming
+    them from `0`, `(P, [0, m), S, ρ)`; the caller's residuals `Res.sub` at the call naming its runs the same way,
+    `(Q, [1, e(x) + 1), S, ORD - S + ρ)`, which hold the arm's at once (`Abs.coveredR`'s containment: `m <= j`
+    from the selector's exponent `j`, `j < e(x) + 1`). The arm's guarantees over those buffers dropped (it only
+    reads them). Kept if the arms and the caller walk."""
+    f = I['fns'][n]
+    if not f['tabs']: return False
+    Walk = I['Walk']; fns = I['fns']; byentry = I['byentry']
+    seen = {}
+    oe = Walk.entryOk
+
+    def entryOk(w, A, mq, G, i, name):
+        if w.cursel is not None and G.pc in byentry: seen.setdefault((i, G.pc), (A, mq, w, w.cursel))
+        return oe(w, A, mq, G, i, name)
+    Walk.entryOk = entryOk
+    try:
+        _walk(I, n, sig, res)
+    except Fail as e:
+        if ARMFORM_DBG: print('armForm: walk fails', str(e.args[0][:3])[:300])
+        return False
+    finally:
+        Walk.entryOk = oe
+    want = {}; cres = {}
+    for (i, pc), (A, mq, w, x) in sorted(seen.items(), key=str):
+        a = byentry[pc]['name']
+        if a in I['isloop'] or any(a in I['calls'][y] for y in I['calls'] if y != n): continue
+        G = I['E'].sigs[pc]
+        if a in ARMSEED: G = None
+        by = {}
+        for r in (G.preR if G else []):
+            q = r[0]
+            if r[3] != 1 or q[0] != 0 or len(q[2]) != 1 or q[2][0][1] != 1 or q[2][0][0][0] != 'fr': continue
+            cs = _armCells(r)
+            if cs is None: continue
+            by.setdefault((0, 0, q[2]), []).append(cs)
+        for m in (G.pre if G else []):
+            if m[0] == 0 and len(m[2]) == 1 and m[2][0][1] == 1 and (0, 0, m[2]) in by: by[(0, 0, m[2])].append([m[1]])
+        if G is None:
+            seeds, rs0, Ps = ARMSEED[a]; got = True
+            for r in seeds:
+                c2 = w.trRngDown(A, mq, r)
+                R = (c2[0], ('num', 0), ('ex', x, 0), c2[3], c2[4] - ORD + c2[3]) if c2 else None
+                if R is None or R not in A.r: got = False; break
+                cres.setdefault(i, set()).add(('sub', _shifted(*R), (R,)))
+            if not got and ARMFORM_DBG: print('armForm: seeded arm not held', i, a)
+            continue
+        seeds = set(); rs0 = []; Ps = set()
+        for P, xs in by.items():
+            Q = w.trMono(A, mq, P)
+            if Q is None: continue
+            Ss = sorted({R[3] for R in A.r if R[0] == Q and R[3] >= 2 and R[1] == ('num', 0) and R[2] == ('ex', x, 0)})
+            top = max(c for cs in xs for c in cs)
+            j = None
+            for p_, q_ in A.lt:
+                if q_ == ('ex', x, 1) and p_[0] == 'num': j = p_[1] if j is None else max(j, p_[1])
+            for S in Ss:
+                m = top // S + 1
+                if j is None or m > j: continue
+                Rs = [(Q, ('num', 0), ('ex', x, 0), S, rho) for rho in range(S)]
+                if not all(R in A.r for R in Rs): continue
+                for rho, R in enumerate(Rs):
+                    seeds.add(_shifted(P, ('num', 0), ('num', m), S, rho))
+                    rs0.append(('sub', (P, ('num', 0), ('num', m), S, rho), [_shifted(P, ('num', 0), ('num', m), S, rho)]))
+                    cres.setdefault(i, set()).add(('sub', _shifted(*R), (R,)))
+                Ps.add(P)
+                break
+        if seeds: want[a] = (frozenset(seeds), rs0, frozenset(Ps))
+        if ARMFORM_DBG: print('armForm:', i, a, len(by), len(seeds))
+    if not want and not cres: return False
+    old = {a: (ARMSEED.get(a), I['LAST'].get(a), I['E'].sigs[fns[a]['entry']]) for a in want}
+    oldres = {k: list(v) for k, v in res.items()}
+    try:
+        for a, sd in sorted(want.items()):
+            ARMSEED[a] = sd
+            G = I['infer'](a)[0]
+            if not set(G.preR) <= sd[0]: raise Fail(('armForm', a, sorted(set(G.preR) - sd[0], key=str)[:3]))
+        # the caller's residuals, each at the first call needing it
+        done = set()
+        for i in sorted(cres):
+            for r in sorted(cres[i], key=str):
+                if r[1] in done: continue
+                done.add(r[1])
+                r = ('sub', r[1], list(r[2]))
+                if r not in res.setdefault(i, []): res[i].append(r)
+        try:
+            _walk(I, n, sig, res)
+        except Fail:
+            # at every call
+            for i in sorted(cres):
+                for r in sorted(cres[i], key=str):
+                    r = ('sub', r[1], list(r[2]))
+                    if r not in res[i]: res[i].append(r)
+            _walk(I, n, sig, res)
+    except Fail as e:
+        if ARMFORM_DBG: print('armForm: fails after', str(e.args[0][:4])[:400])
+        for a, (s0, l0, g0) in old.items():
+            if s0 is None: ARMSEED.pop(a, None)
+            else: ARMSEED[a] = s0
+            if l0 is not None: I['LAST'][a] = l0
+            I['E'].sigs[fns[a]['entry']] = g0
+        res.clear(); res.update(oldres)
+        return False
+    APPLIED.setdefault('armForm', set()).add(n)
+    return True
+
+
+def armShift(I, inf, i, r2, A):
+    """A table call's arm's precondition `armForm` gave, `(Q, [l, m), S, ORD - S + ρ)`, `l >= 1`, the caller
+    holding `(Q, [0, e(x)), S, ρ)` up to the selector `x`: the residual `Res.sub` naming that run so,
+    `(Q, [1, e(x) + 1), S, ORD - S + ρ)` (the same cells), which holds the arm's (a caller inferred again
+    after its arms were)."""
+    q, lo, hi, S, d = r2
+    x = inf.w.cursel if inf.w is not None else None
+    if x is None or lo[0] != 'num' or lo[1] < 1 or hi[0] != 'num' or S < 2 or not (ORD - S <= d < ORD): return False
+    R = (q, ('num', 0), ('ex', x, 0), S, d - ORD + S)
+    if R not in A.r: return False
+    a = _shifted(*R)
+    A.r.add(a)
+    if not A.coveredR(r2):
+        A.r.discard(a); return False
+    inf.addRes(i, ('sub', a, [R]))
+    APPLIED.setdefault('armShift', set()).add(inf.f['name'])
+    return True
+
+
+def armFormPost(n, sig):
+    """An arm `armForm` seeded: its guarantees over the buffers it only reads, and those that repeat its
+    preconditions, dropped (its caller held them; kept, each would be a fact of the arm's condition at every
+    call, `condOf`)."""
+    Ps = ARMSEED[n][2]
+    pre = set(sig.pre)
+    sig.postR = [r for r in sig.postR if (0, 0, r[0][2]) not in Ps and r not in sig.preR and
+                 not (r[1][0] == 'num' and r[2][0] == 'num' and
+                      all(shift(r[0], r[3] * j + r[4]) in pre for j in range(r[1][1], r[2][1])))]
+    sig.post = [m for m in sig.post if (0, 0, m[2]) not in Ps and m not in pre]
 
 def install(I):
     """Hook the rules into `infer.py`'s namespace `I`."""
@@ -749,6 +923,11 @@ def install(I):
         return False
 
     def demand3(self, kind, i, *rest):
+        # an `armForm` arm's precondition first: `ordSub` would take it for one unconditional run
+        if kind == 'preR':
+            name, r, r2, A = rest
+            if r2 is not None and not (isinstance(name, tuple) and name[0] == 'tail') and armShift(I, self, i, r2, A):
+                return True
         # a table call's arm reading inside a run up to the selector (`armSub`) before the cell's own
         # justifications (`Infer.key`), which hold of one arm's reads but not of every arm's
         if kind == 'pre' and self.w is not None and self.w.cursel is not None:
@@ -779,6 +958,10 @@ def install(I):
     def init2(self, f):
         init(self, f)
         self.preR |= SEED.get(f['name'], set())
+        if f['name'] in ARMSEED:
+            self.preR |= set(ARMSEED[f['name']][0])
+            for r in ARMSEED[f['name']][1]:
+                if r not in self.res[0]: self.res[0].append(r)
 
     Infer.__init__ = init2
 
@@ -790,6 +973,7 @@ def install(I):
     def infer1c(n, named):
         armBlocks(I, I['fns'][n])
         sig, res = infer1s(n, named)
+        if n in ARMSEED: armFormPost(n, sig)
         retRun(I, n, sig, res)
         exitRows(I, n, sig, res)
         retIdx(I, n, sig, res)
@@ -807,4 +991,9 @@ def install(I):
             sig, res = infer1(n, named)
         return sig, res
 
-    I['infer1'] = infer1c
+    def infer1f(n, named):
+        sig, res = infer1c(n, named)
+        armForm(I, n, sig, res)
+        return sig, res
+
+    I['infer1'] = infer1f

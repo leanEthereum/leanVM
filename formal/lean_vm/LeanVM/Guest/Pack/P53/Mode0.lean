@@ -104,7 +104,26 @@ noncomputable def modeEnv : Mode.Env :=
 
 /-- `block_selector_tab__L32`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨206818, 83, Fn.«block_selector_tab__L32».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨206818, 83, Fn.«block_selector_tab__L32».modeSig, .nil, (.node (some [(.sub ⟨⟨0, 0, [((.fr 3),
+    1)]⟩, (.num 0), (.num 32), 8, 0⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 1), (.num 33), 8,
+    18446744073709551607⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 32), 8, 1⟩ [⟨⟨0, 0,
+    [((.fr 3), 1)]⟩, (.num 1), (.num 33), 8, 18446744073709551608⟩]), (.sub ⟨⟨0, 0, [((.fr 3),
+    1)]⟩, (.num 0), (.num 32), 8, 2⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 1), (.num 33), 8,
+    18446744073709551609⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 32), 8, 3⟩ [⟨⟨0, 0,
+    [((.fr 3), 1)]⟩, (.num 1), (.num 33), 8, 18446744073709551610⟩]), (.sub ⟨⟨0, 0, [((.fr 3),
+    1)]⟩, (.num 0), (.num 32), 8, 4⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 1), (.num 33), 8,
+    18446744073709551611⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 32), 8, 5⟩ [⟨⟨0, 0,
+    [((.fr 3), 1)]⟩, (.num 1), (.num 33), 8, 18446744073709551612⟩]), (.sub ⟨⟨0, 0, [((.fr 3),
+    1)]⟩, (.num 0), (.num 32), 8, 6⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 1), (.num 33), 8,
+    18446744073709551613⟩]), (.sub ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 32), 8, 7⟩ [⟨⟨0, 0,
+    [((.fr 3), 1)]⟩, (.num 1), (.num 33), 8, 18446744073709551614⟩]), (.sub ⟨⟨0, 0, [((.fr 4),
+    1)]⟩, (.num 0), (.num 32), 4, 0⟩ [⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 1), (.num 33), 4,
+    18446744073709551611⟩]), (.sub ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 32), 4, 1⟩ [⟨⟨0, 0,
+    [((.fr 4), 1)]⟩, (.num 1), (.num 33), 4, 18446744073709551612⟩]), (.sub ⟨⟨0, 0, [((.fr 4),
+    1)]⟩, (.num 0), (.num 32), 4, 2⟩ [⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 1), (.num 33), 4,
+    18446744073709551613⟩]), (.sub ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.num 32), 4, 3⟩ [⟨⟨0, 0,
+    [((.fr 4), 1)]⟩, (.num 1), (.num 33), 4, 18446744073709551614⟩])]) .nil .nil), .nil, false,
+    .nil⟩
 
 /-- `block_selector_tab__L32`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by

@@ -11,7 +11,6 @@ public import LeanVM.Guest.Mode.HintsData
 public import LeanVM.Guest.Pack.«P57».Mode0
 public import LeanVM.Guest.Pack.«P57».Mode1
 public import LeanVM.Guest.Pack.«P57».Mode2
-public import LeanVM.Guest.Pack.«P57».ModeX
 
 set_option Elab.async false
 
@@ -59,6 +58,21 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«column_selector__L6»
+
+namespace LeanVM.Guest.Fn.«log2_ceil_in_the_exponent__L0_L34»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+public section
+
+/-- `log2_ceil_in_the_exponent__L0_L34`: its walk reads the advice's hints. -/
+theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
+  Mode.hintsOk_of_fn (j := 309) (d := Data.adviceFn309) Mode.adviceFns_ok (by decide +kernel) (by
+    decide +kernel)
+
+end
+
+end LeanVM.Guest.Fn.«log2_ceil_in_the_exponent__L0_L34»
 
 namespace LeanVM.Guest.Fn.«bus_grind_check__L8»
 
@@ -359,18 +373,3 @@ theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
 end
 
 end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0»
-
-namespace LeanVM.Guest.Fn.«log2_ceil_in_the_exponent__L0_L34»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `log2_ceil_in_the_exponent__L0_L34`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 309) (d := Data.adviceFn309) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«log2_ceil_in_the_exponent__L0_L34»

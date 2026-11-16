@@ -125,11 +125,21 @@ noncomputable def ltSelB (j : ℕ) : Mode.Res → Bool
 /-- A loop helper's counter, its first parameter. -/
 noncomputable def ctrOf (j : ℕ) : Option V := if (coreOf j).loop then (coreOf j).params.head? else none
 
-/-- **A nonzero divisor at a parameter**: residual `nz o` is the cell, inside the frame, of a
-parameter `v` of function `j`, its loop counter or listed with the function's name in `nzs`. -/
+/-- **Value `v` is named before any `ret`**: a top-level atom of the block before its first
+statement that may return uses it. -/
+noncomputable def topUses (v : V) : List Stmt → Bool
+  | [] => false
+  | s :: ss => (match s with
+      | .atom a => decide (v ∈ atomUses a)
+      | _ => false) || (Memory.Stmt.noRet s && topUses v ss)
+
+/-- **A nonzero divisor at a parameter or a named value**: residual `nz o` is the cell, inside the
+frame, of a parameter `v` of function `j`, its loop counter or listed with the function's name in
+`nzs`, or of a value listed so that a top-level atom names (`topUses`). -/
 noncomputable def nzB (nzs : List (String × V)) (j o : ℕ) : Bool :=
-  decide (2 ≤ o) && decide (o < fsN j) && (coreOf j).params.any fun v ↦
-    cellJ j v == o && (ctrOf j == some v || decide (((coreOf j).name, v) ∈ nzs))
+  decide (2 ≤ o) && decide (o < fsN j) && ((coreOf j).params.any (fun v ↦
+    cellJ j v == o && (ctrOf j == some v || decide (((coreOf j).name, v) ∈ nzs))) ||
+    nzs.any fun p ↦ p.1 == (coreOf j).name && cellJ j p.2 == o && topUses p.2 (coreOf j).body)
 
 /-- **The frames' splits**: function `j`, values `s`, `r`, `n` and a stride `S` with `n = s^S·r`,
 `s` and `r` powers of `g` (each one's bits hinted and pinned, `bitsExp`). -/
@@ -157,12 +167,14 @@ noncomputable def inFr (j o : ℕ) : Bool := decide (2 ≤ o) && decide (o < fsN
 
 /-- **Exponent facts at listed parameters**: function, parameter, offset (`none`: its word; `some k`:
 the word read at `[parameter]·g^k`), bound; `check_opening_terminal`'s `tau_keccak_g` and
-`kappa_base`'s words, which `verify_sub` hands it (`Res.TermFront`). -/
+`kappa_base`'s words, which `verify_sub` hands it (`Res.TermFront`); `verify_tables`' `g_bus_mu` and
+`dims_g`'s first word, which its precondition bounds (`EndExec.VtPQ`). -/
 def expFacts : List (String × ℕ × Option ℕ × ℕ) :=
   [(name% «check_opening_terminal», param% check_opening_terminal "tau_keccak_g", none, 31),
     (name% «check_opening_terminal», param% check_opening_terminal "kappa_base", some 0, 1)] ++
-  (List.range 7).map fun k ↦
-    (name% «check_opening_terminal», param% check_opening_terminal "kappa_base", some (k + 1), 31)
+  ((List.range 7).map fun k ↦
+    (name% «check_opening_terminal», param% check_opening_terminal "kappa_base", some (k + 1), 31)) ++
+  [(name% «verify_tables», 9, none, 33), (name% «verify_tables», 10, some 0, 33)]
 
 /-- Parameter `p`'s fact at offset `o` names base `B` of function `j`. -/
 noncomputable def baseAt (j : ℕ) (p : V) : Option ℕ → Mode.Base → Bool
@@ -273,6 +285,26 @@ theorem walk1_ne_stuck {s : Stmt} {ss : List Stmt} {es : List Ev} {vs : List V}
   intro h1
   rw [walk, h1] at h
   simp [Out.seq] at h
+
+/-- **A value `topUses` names is named on every returning path.** -/
+theorem topUses_sound {v : V} :
+    ∀ {ss : List Stmt} {es : List Ev} {vs : List V}, topUses v ss = true → walk σ ss = .ret es vs →
+      ∃ a, Ev.atom a ∈ es ∧ v ∈ atomUses a
+  | [], _, _, h, _ => by simp [topUses] at h
+  | s :: ss, es, vs, h, hw => by
+    simp only [topUses, Bool.or_eq_true, Bool.and_eq_true] at h
+    rcases h with h | ⟨hn, h⟩
+    · cases s with
+      | atom a =>
+        simp only [decide_eq_true_eq] at h
+        obtain ⟨es1, es2, h1, -, rfl⟩ := walk_cons_noRet (s := .atom a) rfl hw
+        simp only [walk1, Out.fall.injEq] at h1
+        subst h1
+        exact ⟨a, List.mem_cons_self, h⟩
+      | _ => simp at h
+    · obtain ⟨es1, es2, -, h2, rfl⟩ := walk_cons_noRet hn hw
+      obtain ⟨a, ha, hv⟩ := topUses_sound h h2
+      exact ⟨a, List.mem_append_right _ ha, hv⟩
 
 /-- **A frame cell's selector on a returning path**: some value of cell `o`, named, is `g^e`,
 `e < N`. -/

@@ -54,6 +54,12 @@ def ExpQ (r : Ref) (J : Inst) : Prop :=
   ∀ f σ bufs kids, J.t = .node f σ bufs kids → ∀ fn, coreProgram.find? f = some fn → ∀ c ∈ expFacts,
     c.1 = f → ∀ v, fn.params[c.2.1]? = some v → ExpH r.img.read c.2.2.1 c.2.2.2 (σ v)
 
+/-- **The exponent facts of the functions but `check_opening_terminal`** at an instance. -/
+def ExpQv (r : Ref) (J : Inst) : Prop :=
+  ∀ f σ bufs kids, J.t = .node f σ bufs kids → ∀ fn, coreProgram.find? f = some fn → ∀ c ∈ expFacts,
+    c.1 = f → c.1 ≠ name% «check_opening_terminal» → ∀ v, fn.params[c.2.1]? = some v →
+      ExpH r.img.read c.2.2.1 c.2.2.2 (σ v)
+
 /-- **The dimension facts at an instance.** -/
 def DimQ (r : Ref) (J : Inst) : Prop :=
   ∀ f σ bufs kids, J.t = .node f σ bufs kids → ∀ fn, coreProgram.find? f = some fn → ∀ c ∈ dimFacts,
@@ -77,15 +83,18 @@ theorem term_fn {fn : Fn} (hf : coreProgram.find? name% «check_opening_terminal
   obtain rfl : fn = fn' := Option.some.inj (hf.symm.trans hf')
   exact hp
 
-theorem expFacts_cot {c : String × ℕ × Option ℕ × ℕ} (hc : c ∈ expFacts) :
+theorem expFacts_cot {c : String × ℕ × Option ℕ × ℕ} (hc : c ∈ expFacts)
+    (hn : c.1 = name% «check_opening_terminal») :
     c.1 = name% «check_opening_terminal» ∧ ((c.2.1 = 7 ∧ c.2.2.1 = none ∧ c.2.2.2 = 31) ∨
       ∃ k < 8, c.2.1 = 8 ∧ c.2.2.1 = some k ∧ c.2.2.2 = if k = 0 then 1 else 31) := by
   simp only [expFacts, List.mem_append, List.mem_cons, List.mem_map, List.mem_range,
     List.not_mem_nil, or_false] at hc
-  rcases hc with (rfl | rfl) | ⟨k, hk, rfl⟩
+  rcases hc with ((rfl | rfl) | ⟨k, hk, rfl⟩) | rfl | rfl
   · exact ⟨rfl, Or.inl ⟨rfl, rfl, rfl⟩⟩
   · exact ⟨rfl, Or.inr ⟨0, by omega, rfl, rfl, rfl⟩⟩
   · exact ⟨rfl, Or.inr ⟨k + 1, by omega, rfl, rfl, by simp⟩⟩
+  · exact absurd hn (by decide)
+  · exact absurd hn (by decide)
 
 theorem dimFacts_cot {c : String × ℕ × ℕ × List (ℕ × ℕ)} (hc : c ∈ dimFacts) :
     c.1 = name% «check_opening_terminal» ∧ c.2.1 = 8 ∧
@@ -115,11 +124,11 @@ theorem kb_load {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) {kb : E}
 
 /-- **The exponent facts from `TermFront`.** -/
 theorem expH_of_front (hT : TermFront rd (B1.VerifySub.termParams.map σ)) {c : String × ℕ × Option ℕ × ℕ}
-    (hc : c ∈ expFacts) {v : V} (hv : B1.VerifySub.termParams[c.2.1]? = some v) :
-    ExpH rd c.2.2.1 c.2.2.2 (σ v) := by
+    (hc : c ∈ expFacts) (hn : c.1 = name% «check_opening_terminal») {v : V}
+    (hv : B1.VerifySub.termParams[c.2.1]? = some v) : ExpH rd c.2.2.1 c.2.2.2 (σ v) := by
   simp only [B1.VerifySub.termParams, List.map_cons, List.map_nil, TermFront] at hT
   obtain ⟨lm, hs, layout, bus, claims, hl, h31, hm30, -, -, -, hkb, -, htau, -⟩ := hT
-  obtain ⟨-, ⟨hp, ho, hb⟩ | ⟨k, hk, hp, ho, hb⟩⟩ := expFacts_cot hc
+  obtain ⟨-, ⟨hp, ho, hb⟩ | ⟨k, hk, hp, ho, hb⟩⟩ := expFacts_cot hc hn
   · rw [hp] at hv
     obtain rfl : v = .n 7 := by simpa [B1.VerifySub.termParams] using hv.symm
     rw [ho, hb]
@@ -200,16 +209,19 @@ end
 
 variable {r : Ref}
 
-/-- **The exponent facts at an instance with `TermQ`.** -/
-theorem expQ_of_termQ {J : Inst} (h : TermQ r J) : ExpQ r J := by
+/-- **The exponent facts at an instance with `TermQ`**, given those of the other functions. -/
+theorem expQ_of_termQ {J : Inst} (h : TermQ r J) (hvt : ExpQv r J) : ExpQ r J := by
   intro f σ bufs kids hJ fn hf c hc hcf v hv
-  obtain ⟨hc1, -⟩ := expFacts_cot hc
+  by_cases hn : c.1 = name% «check_opening_terminal»
+  swap
+  · exact hvt f σ bufs kids hJ fn hf c hc hcf hn v hv
+  obtain ⟨hc1, -⟩ := expFacts_cot hc hn
   rw [hc1] at hcf
   subst hcf
   have hp := term_fn hf
   have hT := h _ σ bufs kids hJ rfl fn hf
   rw [hp] at hT hv
-  exact expH_of_front hT hc hv
+  exact expH_of_front hT hc hn hv
 
 /-- **The dimension facts at an instance with `TermQ`.** -/
 theorem dimQ_of_termQ {J : Inst} (h : TermQ r J) : DimQ r J := by

@@ -118,8 +118,10 @@ theorem resTop_guestF {A : String → Bridge.FnAl} (hexc : ∀ K ∈ resExc, Res
   resTop_guestM hexc (resOpen_subOk guestCerts_sub hexc) resOpen_ltExp (by
     intro p hp
     simp only [nzVals, List.mem_cons, List.not_mem_nil, or_false] at hp
-    rcases hp with rfl
-    · exact nzVal_ml0 mono_ok)
+    rcases hp with rfl | rfl | rfl
+    · exact nzVal_ml0 mono_ok
+    · exact nzVal_vt133
+    · exact nzVal_vt430)
 
 end
 

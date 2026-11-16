@@ -1,7 +1,9 @@
 """The witnesses of the `sub` families read off a function's own code (`Res.Wit`, `Res/FamDefs.lean`): for
 each residual a family takes, the top-level atoms and selectors of the function's body its check reads,
 mirroring `Res.shiftB`, `Res.sideB`, `Res.runB` (`cellLt`, `eqCells`, `mulBy`, `holdsBase`,
-`sideRead`, `mulConst`) and `Res.dimB` (`lowOk`). The kernel
+`sideRead`, `mulConst`), `Res.dimB` (`lowOk`), `Res.mulTileB`, `Res.extB` (`cellPow`, `mulCells`) and
+`Res.expFamB` (`kVal`, `pw0`, `pw`, `eqX`, `mulX`, `Res/ExpDefs.lean`), and `Res.ordShiftB`'s bounds
+(`idxPow`). The kernel
 checks the witness (`Res.witOk`) and the family on it, so a witness found here is only a hint. The proof
 stream's reads (`Res.stB`) need none.
 """
@@ -64,6 +66,8 @@ def atom_of(e):
         return ('load', v(a[0]), v(a[1]), a[2], txt)
     if h == '.rangeCheck':
         return ('rangeCheck', v(a[0]), v(a[1]), v(a[2]), v(a[3]), v(a[4]), txt)
+    if h == '.touch':
+        return ('touch', v(a[0]), v(a[1]), txt)
     uses = []
     for x in a:
         try:
@@ -165,6 +169,31 @@ def insert_bs(be, bs):
     return [b] + insert_bs(be, bs[1:])
 
 
+_POWS = None
+
+
+def pow_of(txt, one=False):
+    """`Res.powOf` of a `const` atom's word, the guest's powers' (`Data.powTree`); with `one`, `Res.powOf1`,
+    `1`'s exponent too."""
+    global _POWS
+    import re
+    m = re.search(r'\(word (\d+) (\d+)\)\s*$', txt)
+    if not m or int(m.group(2)) != 0:
+        return None
+    w = int(m.group(1))
+    if one and w == 1:
+        return 0
+    if _POWS is None:
+        sys.path.insert(0, os.path.join(HERE, '..', 'mode-cert'))
+        import data
+        _POWS = data.load()['pows']
+    return _POWS.get(w)
+
+
+def pow_of1(txt):
+    return pow_of(txt, True)
+
+
 # ---- the families' witnesses ---------------------------------------------------------------------------------
 
 class Fn:
@@ -212,6 +241,35 @@ class Fn:
                     self.psels.append((x, n))
                 got = True
         return got
+
+    def cell_pow(self, o):
+        """`cellPow`: cell `o` bounded (`cellLt`), or touched."""
+        if self.cell_lt(o):
+            return True
+        for a in self.atoms:
+            if a[0] == 'touch' and self.cell(a[2]) == o:
+                self.pick(a)
+                return True
+        return False
+
+    def mul_tile(self, a, b, c):
+        """`Res.mulTileB`: `[p] = [x]·[y]` a top-level product, `[x]` and `[y]` powers of `g`."""
+        def fr(i):
+            return i[1][1] if i[0] == 'ex' and i[1][0] == 'fr' and i[2] == 0 else None
+        p, x, y = fr(a[2]), fr(b[2]), fr(c[2])
+        if p is None or x is None or y is None:
+            return False
+        for m in self.atoms:
+            if m[0] == 'mul' and self.cell(m[1]) == p and sorted((self.cell(m[2]), self.cell(m[3]))) == sorted((x, y)):
+                if self.cell_pow(x) and self.cell_pow(y):
+                    self.pick(m)
+                    return True
+        return False
+
+    def ext(self, a):
+        """`Res.extB`: the bound `[o] + 1`, `[o]` a power of `g`."""
+        hi = a[2]
+        return hi[0] == 'ex' and hi[1][0] == 'fr' and hi[2] == 1 and self.cell_pow(hi[1][1])
 
     def eq_cells(self, c):
         cs = [c]
@@ -310,8 +368,170 @@ class Fn:
                 return True
         return False
 
+    # ---- `Res.expFamB`: runs a product's factors bound ----
+
+    def cell_lt_n(self, o, N):
+        """`cellLt j w o N`, its bound checked."""
+        for a in self.atoms:
+            if a[0] == 'rangeCheck' and self.cell(a[1]) == o:
+                c = self.const_of(a[5])
+                if c:
+                    z = pow_of(c[-1])
+                    if z is not None and z + 1 <= N and z + 1 <= 2 ** 33:
+                        self.pick(a); self.pick(c)
+                        return True
+        for (x, n) in self.sels:
+            if self.cell(x) == o and n <= N:
+                use = next((a for a in self.atoms if x in a[1:-1]), None)
+                if use is not None:
+                    self.pick(use)
+                if (x, n) not in self.psels:
+                    self.psels.append((x, n))
+                return True
+        return False
+
+    def kval1(self, o):
+        for a in self.atoms:
+            if a[0] == 'const' and self.cell(a[1]) == o:
+                z = pow_of1(a[-1])
+                if z is not None:
+                    self.pick(a)
+                    return z
+        return None
+
+    def kval(self, o):
+        z = self.kval1(o)
+        if z is not None:
+            return z
+        for m in self.atoms:
+            if m[0] == 'mul' and self.cell(m[1]) == o:
+                zx, zy = self.kval1(self.cell(m[2])), self.kval1(self.cell(m[3]))
+                if zx is not None and zy is not None:
+                    self.pick(m)
+                    return zx + zy
+        return None
+
+    def pw0(self, o):
+        if self.cell_lt_n(o, 2 ** 39):
+            return True
+        z = self.kval(o)
+        return z is not None and z < 2 ** 39
+
+    def muls(self):
+        return [(m, self.cell(m[1]), self.cell(m[2]), self.cell(m[3])) for m in self.atoms if m[0] == 'mul']
+
+    def pw(self, o):
+        if self.pw0(o):
+            return True
+        for a in self.atoms:
+            if a[0] == 'copy':
+                d, s_ = self.cell(a[1]), self.cell(a[2])
+                if (d == o and self.pw0(s_)) or (s_ == o and self.pw0(d)):
+                    self.pick(a)
+                    return True
+        for m, P, X, Y in self.muls():
+            if P == o and self.pw0(X) and self.pw0(Y):
+                self.pick(m)
+                return True
+            if X == o and self.pw0(Y):
+                for m2, P2, X2, Y2 in self.muls():
+                    if P2 == P and Y2 == Y and self.pw0(X2):
+                        self.pick(m); self.pick(m2)
+                        return True
+        return False
+
+    def eqx(self, a, b):
+        if a == b:
+            return True
+        for at in self.atoms:
+            if at[0] == 'copy':
+                d, s_ = self.cell(at[1]), self.cell(at[2])
+                if (d, s_) in ((a, b), (b, a)):
+                    self.pick(at)
+                    return True
+        for m, P, X, Y in self.muls():
+            if (P, X) in ((a, b), (b, a)) and self.kval(Y) == 0:
+                self.pick(m)
+                return True
+        return False
+
+    def mulx(self, okP, okU, okV):
+        for m, P, X, Y in self.muls():
+            if okP(P) and ((okU(X) and okV(Y)) or (okU(Y) and okV(X))):
+                self.pick(m)
+                return True
+        return False
+
+    def exp_hi(self, hi):
+        if hi[0] == 'ex' and hi[1][0] == 'fr' and hi[2] == 0:
+            return lambda P: self.eqx(P, hi[1][1])
+        if hi[0] == 'num':
+            return lambda P: self.cell_lt_n(P, hi[1] + 1)
+        return None
+
+    def exp_shift(self, a, b):
+        if not (a[2][0] == 'ex' and a[2][1][0] == 'fr' and a[2][2] == 0):
+            return False
+        c = a[2][1][1]
+        okP = self.exp_hi(b[2])
+        if okP is None or a[1] != ('num', 0) or b[1] != ('num', 0) or a[3] != 1 or b[3] != 1 or a[4] != b[4] \
+                or a[0][0] != b[0][0] or not self.pw(c):
+            return False
+        (_, k, bs), (_, bk, bbs) = a[0], b[0]
+        if k == bk:
+            for B, e in bs:
+                if e == 1 and bs == insert_bs((B, 1), bbs) and \
+                        self.mulx(okP, lambda u: self.eqx(u, c), lambda v: self.holds_base(v, B) and self.pw(v)):
+                    return True
+        if bs == bbs and bk <= k < bk + 2 ** 39:
+            return self.mulx(okP, lambda u: self.eqx(u, c), lambda v: self.kval(v) == k - bk)
+        return False
+
+    def exp_fac(self, a, b):
+        if a[2][0] != 'ex' or a[2][2] != 0 or b[2][0] != 'ex' or b[2][1][0] != 'fr' or b[2][2] != 0 or a[1][0] != 'num':
+            return False
+        X, p = a[2][1], b[2][1][1]
+        if a[0] != b[0] or a[1] != b[1] or a[3] != b[3] or a[4] != b[4]:
+            return False
+        return self.mulx(lambda P: self.eqx(P, p), lambda u: self.holds_base(u, X) and self.pw(u), self.pw)
+
+    def exp_pt(self, a, b):
+        if b[2][0] != 'ex' or b[2][1][0] != 'fr' or b[2][2] < 1:
+            return False
+        p = b[2][1][1]
+        if a[1] != ('num', 0) or a[2] != ('num', 1) or b[1] != ('num', 0) or b[3] != 1 or a[4] != b[4] \
+                or a[0][0] != b[0][0] or a[0][1] != b[0][1]:
+            return False
+        for B, e in a[0][2]:
+            if e == 1 and a[0][2] == insert_bs((B, 1), b[0][2]) and \
+                    self.mulx(lambda P: self.eqx(P, p), lambda u: self.holds_base(u, B) and self.pw(u), self.pw):
+                return True
+        return False
+
+    def ord_shift(self, a, b):
+        """`Res.ordShiftB`'s shape, its exponents' frame cells bounded by `pw` where they are (`idxPow`; a
+        selector's base needs no atom)."""
+        def succ(i):
+            return ('num', i[1] + 1) if i[0] == 'num' else ('ex', i[1], i[2] + 1)
+        for x, y in ((a, b), (b, a)):
+            if x[0] == y[0] and x[3] == y[3] and x[1] == succ(y[1]) and x[2] == succ(y[2]) and \
+                    x[4] + x[3] == y[4] + 2 ** 64 - 1:
+                for i in (y[1], y[2]):
+                    if i[0] == 'ex' and i[1][0] == 'fr':
+                        self.pw(i[1][1])
+                return True
+        return False
+
+    def exp(self, a, b):
+        return self.exp_shift(a, b) or self.exp_fac(a, b) or self.exp_pt(a, b)
+
     def lean(self):
-        return '⟨[%s], [%s]⟩' % (', '.join(self.picked), ', '.join('(.n %d, %d)' % p for p in self.psels))
+        """The witness, its atoms in their order among the top-level atoms (`witOk` checks a sublist)."""
+        pos = {}
+        for k, a in enumerate(self.atoms):
+            pos.setdefault(a[-1], k)
+        picked = sorted(set(self.picked), key=lambda t: pos[t])
+        return '⟨[%s], [%s]⟩' % (', '.join(picked), ', '.join('(.n %d, %d)' % p for p in self.psels))
 
 
 def witnesses(residuals):
@@ -321,7 +541,7 @@ def witnesses(residuals):
     out = {}
     tabs = tab_params()
     for n, rs in residuals.items():
-        subs = [r for l in rs.values() for r in l if r[0] == 'sub' and len(r[2]) == 1]
+        subs = [r for l in rs.values() for r in l if r[0] == 'sub' and len(r[2]) in (1, 2)]
         if not subs:
             continue
         if texts is None:
@@ -331,11 +551,17 @@ def witnesses(residuals):
         f = Fn(n, texts[n], B[n]['locs'], set(tabs.get(n, ())))
         for r in subs:
             try:
-                a, b = rng(r[1]), rng(r[2][0])
+                rs2 = [rng(x) for x in r[2]]
+                a = rng(r[1])
             except (ValueError, IndexError, TypeError):
                 continue
             snap = (list(f.picked), list(f.psels))
-            if not (f.shift(a, b) or f.side(a, b) or f.run(a, b) or (n in DIM_FNS and f.dim(a, b))):
+            if len(rs2) == 2:
+                ok = f.mul_tile(a, rs2[0], rs2[1]) or f.ext(a)
+            else:
+                b = rs2[0]
+                ok = f.shift(a, b) or f.side(a, b) or f.run(a, b) or (n in DIM_FNS and f.dim(a, b)) or f.exp(a, b) or f.ord_shift(a, b)
+            if not ok:
                 f.picked, f.psels = snap
         if f.picked or f.psels:
             out[n] = f.lean()

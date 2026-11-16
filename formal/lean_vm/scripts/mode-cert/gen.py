@@ -748,8 +748,9 @@ def assemblyFiles(packList, walkH, hintsH, R):
         return 'ModePack.«%s».certs_walk%s' % (p, a)
     G = [pk[i:i + GROUP] for i in range(0, len(pk), GROUP)]
     for g, ps in enumerate(G):
-        out.append('theorem guestGroup_walk%d (h : ModeHyps) : ∀ l ∈ guestGroups[%d]!, ∀ K ∈ l, CertWalk K :=\n  %s\n\n' % (
-            g, g, chain([packWalk(p) for p in ps])))
+        body = chain([packWalk(p) for p in ps])
+        out.append('theorem guestGroup_walk%d (%s : ModeHyps) : ∀ l ∈ guestGroups[%d]!, ∀ K ∈ l, CertWalk K :=\n  %s\n\n' % (
+            g, 'h' if ' h.' in body else '_h', g, body))
     def two(f):
         return 'fa_flatten (fa_flatten (%s))' % chain(['(%s)' % chain([f % p for p in ps]) for ps in G])
     out.append('theorem guestCerts_walk (h : ModeHyps) : ∀ K ∈ guestCerts, CertWalk K :=\n  fa_flatten (fa_flatten (%s))\n\n' % chain(

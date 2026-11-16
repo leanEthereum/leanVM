@@ -14,6 +14,8 @@ public import LeanVM.Guest.Res.ResGiven
 public import LeanVM.Guest.Res.FamDefs
 public import LeanVM.Guest.Res.TermDefs
 public import LeanVM.Guest.Res.RootsDefs
+public import LeanVM.Guest.Res.TileDefs
+public import LeanVM.Guest.Res.ExpDefs
 
 /-!
 # The `sub` residuals' families
@@ -22,7 +24,10 @@ public import LeanVM.Guest.Res.RootsDefs
 (`splitB`, `anyResB anyLink`, `monoResB`, those read off the function's code, `subFamB` and
 `termFamB`, the proof stream's reads, `stB`, the runs a split cuts into blocks, `blkB`,
 `verify_tables`' table sumcheck's reads, `vtB`, the runs of a lift, `liftB`, `verify_keccak`'s
-reads past its layers, `vkStB`, and the roots' tree's reads, `rootsB`).
+reads past its layers, `vkStB`, the roots' tree's reads, `rootsB`, the tiles, `tileFamB`, a lift
+read back, `liftBackB`, the same cells named one index up, `ordShiftB`, `verify_tables`' reads past
+its table sumcheck, `vtStB`, the runs a product's factors bound, `expFamB`, and `verify_tables`' groups'
+bases, `vtGrpB`).
 `SubOk exc K`: certificate `K` is listed in `exc`, or each of its residuals passes `subB` at its
 function's index, decided per certificate (`subOk_of`).
 `EndExec.resOpen_subOk` (`EndExecRSub`): given `SubOk resExc` of every certificate and the listed
@@ -75,6 +80,26 @@ noncomputable def vtB (j : ℕ) : Mode.Res → Bool
           decide (Mode.Res.sub a bs = stResB (.hp 19 3) (.hp 1 22) a.q.k))) ||
       ((coreOf j).name == name% «verify_tables_loop1» && decide (Mode.Res.sub a bs = vtcRes))
   | _ => false
+
+/-- **`verify_tables`' reads past its table sumcheck's last record's cursor** (cell `2910`) inside its
+stream (`[22]`), below `153` words. -/
+noncomputable def vtStB (j : ℕ) : Mode.Res → Bool
+  | .sub a bs => (coreOf j).name == name% «verify_tables» && decide (a.q.k < 153) &&
+      decide (Mode.Res.sub a bs = stRes 2910 (.fr 22) a.q.k)
+  | _ => false
+
+/-! ## `verify_tables`' groups -/
+
+/-- A side's groups' bases `[58]·g^[G0, G0 + m)`, each read through a rank's group
+`[58]·[[59]·g^(G0 + k)]`. -/
+def vtGrpRes (G0 m : ℕ) : Mode.Res :=
+  .sub ⟨⟨0, 0, [(.fr 58, 1)]⟩, .num G0, .num (G0 + m), 1, 0⟩
+    ((List.range m).map fun k ↦ ⟨⟨0, 0, [(.fr 58, 1), (.hp 59 (G0 + k), 1)]⟩, .num 0, .num 1, 1, 0⟩)
+
+/-- **`verify_tables`' groups' bases, read in group order**, at function `j`: the ranks of a side
+name each of its groups, the push side's `9` and the count side's `6`. -/
+noncomputable def vtGrpB (j : ℕ) (x : Mode.Res) : Bool :=
+  (coreOf j).name == name% «verify_tables» && (decide (x = vtGrpRes 0 9) || decide (x = vtGrpRes 18 6))
 
 /-! ## Runs cut into blocks by a split -/
 
@@ -129,6 +154,10 @@ def liftShape (u v k : ℕ) : Mode.Res → Bool
 noncomputable def liftB (j : ℕ) (x : Mode.Res) : Bool :=
   lifts.any fun p ↦ p.1 == j && liftShape (cellJ j p.2.1) (cellJ j p.2.2.1) p.2.2.2 x
 
+/-- **A run of a lift read back** (`liftBack`): of function `j`'s frame (`lifts`). -/
+noncomputable def liftBackB (j : ℕ) (x : Mode.Res) : Bool :=
+  lifts.any fun p ↦ p.1 == j && liftBack (cellJ j p.2.1) (cellJ j p.2.2.1) p.2.2.2 x
+
 /-! ## `verify_keccak`'s reads past its layers -/
 
 /-- **`verify_keccak`'s reads past a layer's returned cursor**: the cell of the layer's frame pointer
@@ -150,7 +179,8 @@ noncomputable def subB (j : ℕ) (w : Wit) : Mode.Res → Bool
   | .sub a bs => splitB j (.sub a bs) || anyResB anyLink j (.sub a bs) || monoResB j (.sub a bs) ||
       subFamB j w (.sub a bs) || termFamB j w (.sub a bs) || stB j (.sub a bs) ||
       blkB j (.sub a bs) || vtB j (.sub a bs) || liftB j (.sub a bs) || vkStB j (.sub a bs) ||
-      rootsB j (.sub a bs)
+      rootsB j (.sub a bs) || tileFamB j w (.sub a bs) || liftBackB j (.sub a bs) || ordShiftB j w (.sub a bs) ||
+      vtStB j (.sub a bs) || expFamB j w (.sub a bs) || vtGrpB j (.sub a bs)
   | _ => true
 
 /-- **A certificate's `sub` residuals in the families**: it is listed in `exc`, or each is at its

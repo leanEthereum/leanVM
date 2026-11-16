@@ -77,10 +77,10 @@ structure Wit where
   as : List Atom
   ss : List (V × ℕ)
 
-/-- The witness's atoms are top-level atoms of function `j`'s body and its selectors top-level
-selectors. -/
+/-- The witness's atoms are top-level atoms of function `j`'s body, in their order (one pass), and
+its selectors top-level selectors. -/
 noncomputable def witOk (j : ℕ) (w : Wit) : Bool :=
-  w.as.all (fun a => (topAtoms (coreOf j).body).contains a) &&
+  w.as.isSublist (topAtoms (coreOf j).body) &&
     w.ss.all fun p => (topSels (coreOf j).body).contains p
 
 /-- **Cell `o` of function `j` holds `g^e`, `e < N`**: inside the frame, a value of the cell range

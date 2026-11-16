@@ -7,8 +7,10 @@
 
 module
 
+public import LeanVM.Guest.Pack.«P24».ModeCert
 public import LeanVM.Guest.Pack.«P29».ModeCert
 public import LeanVM.Guest.Pack.«P51».ModeCert
+public import LeanVM.Guest.Pack.«P57».ModeCert
 public import LeanVM.Guest.Res.SelDefs
 
 namespace LeanVM.Guest.Res
@@ -20,11 +22,15 @@ open LeanVM.Guest LeanVM.Guest.Core
 /-- The certificates whose residuals are given whole. -/
 noncomputable def resExc : List Mode.Cert := [
   Fn.«claim_list_digest».modeCert,
-  Fn.«certify_placement».modeCert]
+  Fn.«certify_placement».modeCert,
+  Fn.«log2_ceil_in_the_exponent__L0_L34».modeCert,
+  Fn.«log2_ceil_in_the_exponent__L16_L34».modeCert]
 
 /-- The parameters whose nonzero values the divisor residuals need, by function. -/
 def nzVals : List (String × V) := [
-  ("child_claim_list_mono_last__L0", .n 1)]
+  ("child_claim_list_mono_last__L0", .n 1),
+  ("verify_tables", .n 133),
+  ("verify_tables", .n 430)]
 
 end
 

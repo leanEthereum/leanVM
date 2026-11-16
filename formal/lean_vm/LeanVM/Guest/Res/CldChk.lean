@@ -10,14 +10,17 @@ module
 public import LeanVM.Guest.Bridge.ProgAlDefs
 public import LeanVM.Guest.B2C.Cells
 public import LeanVM.Guest.Pack.«P29».ModeCert
+public import LeanVM.Guest.Res.TileDefs
 
 /-!
 # `claim_list_digest`'s residual: the checks
 
-Its certificate's only residual is `[[23]·g^5] < 17` at offset `99` (`cld_res`), where its alignment
-reaches the dispatch on `rest` past atoms (`cld_al`, `headDispatch`). Cell `23` holds the callee
-frame pointer of its call of `list_split` (`cld_site`), whose last return `.n 30` (`ls_ret`,
-`retLast`) is at cell `5` (`ls_cell`).
+Its certificate's residuals are `[[23]·g^5] < 17` at offset `99` and the tiles of its count
+(`Res.tileListB`, `cld_res`). At `99` its alignment reaches the dispatch on `rest` past atoms
+(`cld_al`, `headDispatch`). Cell `23` holds the callee frame pointer of its call of `list_split`
+(`cld_site`), whose returns `.n 28`, `.n 29`, `.n 30` (`ls_ret`, `retLast`) are at cells `3`, `4`,
+`5` (`ls_cell`, `ls_cells`); its count `.n 1` at cell `3` (`cld_n1`); the test `n_g = 1` its first
+atoms (`cld_wit`).
 -/
 
 namespace LeanVM.Guest.Res
@@ -49,7 +52,8 @@ end
 public section
 
 theorem cld_res : ∀ i < Fn.«claim_list_digest».modeCert.code.length,
-    ∀ x ∈ (Fn.«claim_list_digest».modeCert.F.res.get i).getD [], i = 99 ∧ x = cldRes := by
+    ∀ x ∈ (Fn.«claim_list_digest».modeCert.F.res.get i).getD [],
+      (i = 99 ∧ x = cldRes) ∨ tileListB fn_idx% «claim_list_digest» x = true := by
   decide +kernel
 
 theorem cld_idx : B2C.idxOf "claim_list_digest" = some fn_idx% «claim_list_digest» ∧
@@ -69,6 +73,17 @@ theorem ls_cell : B2C.idxOf "list_split" = some fn_idx% «list_split» ∧
   decide +kernel
 
 theorem ls_ret : retLast (coreOf fn_idx% «list_split»).body = some [.n 28, .n 29, .n 30] := by
+  decide +kernel
+
+theorem ls_cells : B2C.cellJ fn_idx% «list_split» (.n 28) = 3 ∧ B2C.cellJ fn_idx% «list_split» (.n 29) = 4 := by
+  decide +kernel
+
+theorem cld_n1 : B2C.cellJ fn_idx% «claim_list_digest» (.n 1) = 3 ∧ 3 < B2C.fsN fn_idx% «claim_list_digest» ∧
+    Core.V.n 1 ∈ (coreOf fn_idx% «claim_list_digest»).params := by
+  decide +kernel
+
+theorem cld_wit : witOk fn_idx% «claim_list_digest»
+    ⟨[.const (.n 2) (word 1 0), .add (.n 3) (.n 1) (.n 2)], []⟩ = true := by
   decide +kernel
 
 end

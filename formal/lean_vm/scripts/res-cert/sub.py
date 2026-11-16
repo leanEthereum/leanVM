@@ -5,7 +5,7 @@ or a read of the proof stream at a site of `Res.stSites` or a run a split cuts i
 `Res.blkB`, which need none), decided at the function's index by `Res.subOk_of`, but the
 certificates of `sel.EXC`; and
 `ResTop guestCerts` from the listed certificates' residuals (`EndExec.resOpen_subOk`) and the listed
-parameters' nonzero values but those of `PROVED`. The certificates, their packs, groups and function
+values' nonzero words but those of `PROVED`. The certificates, their packs, groups and function
 indices are those `term.py` reads.
 `--check` writes nothing and fails when a file differs.
 Usage: python3 -I scripts/res-cert/sub.py [--check]"""
@@ -19,7 +19,8 @@ import wit
 
 OUT = term.OUT
 # the nonzero values proved here, by their proofs
-PROVED = {('child_claim_list_mono_last__L0', 1): 'nzVal_ml0 mono_ok'}
+PROVED = {('child_claim_list_mono_last__L0', 1): 'nzVal_ml0 mono_ok', ('verify_tables', 133): 'nzVal_vt133',
+          ('verify_tables', 430): 'nzVal_vt430'}
 
 
 def header(mod, what):

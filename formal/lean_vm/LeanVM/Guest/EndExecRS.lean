@@ -155,7 +155,19 @@ parameter `NzVal` gives. -/
 theorem nzPar_top (t : TopAt A r K i e j) (hr : r.Ok) {nzs : List (String × V)} (hnz : ∀ p ∈ nzs, NzVal p.1 p.2)
     {o : ℕ} (h : Res.nzB nzs j o = true) : RRes (refMem r.img) e.I.fp (.nz o) := by
   simp only [Res.nzB, Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true, Bool.or_eq_true, beq_iff_eq] at h
-  obtain ⟨⟨h2, hlt⟩, v, hv, rfl, hv'⟩ := h
+  obtain ⟨⟨h2, hlt⟩, ⟨v, hv, rfl, hv'⟩ | ⟨⟨f, v⟩, hp, ⟨hf, rfl⟩, ht⟩⟩ := h
+  swap
+  · -- a listed value a top-level atom names
+    obtain ⟨vs, hw, hF, -⟩ := t.events hr
+    obtain ⟨a, ha, hva⟩ := Res.topUses_sound ht hw
+    show refMem r.img (e.I.fp + cellJ j v) ≠ 0
+    rw [t.cell hr hF (namedOf_atom ha hva) h2 hlt]
+    obtain ⟨f', bufs, kids, hn⟩ := t.node
+    obtain ⟨i', rfl, hi', hname, -, hc, -⟩ := fn_of_idx t.idx
+    simp only at hf
+    rw [hc, hname, hn] at hf
+    subst hf
+    exact hnz _ hp r hr e.I t.inst e.σ bufs kids hn
   obtain ⟨vs, -, hF, -⟩ := t.events hr
   show refMem r.img (e.I.fp + cellJ j v) ≠ 0
   rw [t.cell hr hF (List.mem_append_left _ (List.mem_append_left _ hv)) h2 hlt]

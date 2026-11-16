@@ -86,7 +86,7 @@ theorem vt_xi {rd : Reader} {σ : Val} (h : VtH rd σ) :
     rw [hC]
 
 /-- **The table sumcheck.** -/
-theorem vt_zc_run {rd : Reader} {σ : Val} (h : VtH rd σ) {n : ℕ} (hn : n < 33)
+theorem vt_zc_run {rd : Reader} {σ : Val} (h : VtH rd σ) {n : ℕ} (hn : n < 34)
     (hgn : σ (.n 2545) = gen ^ n) :
     σ (.n 2621) = σ (.n 2611) ^ 2 * σ (.n 2443) + σ (.n 2611) ^ 3 * σ (.n 2489) +
       σ (.n 2611) ^ 4 * σ (.n 2544) ∧

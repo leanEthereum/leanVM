@@ -10,6 +10,7 @@ import LeanVM.Guest.EndExecR
 import LeanVM.Guest.Mode.Certs
 import LeanVM.Guest.Res.SubCerts
 import LeanVM.Guest.Res.TermCerts
+import LeanVM.Guest.EndExecRLce
 import LeanVM.Guest.EndExecYDeployed
 import LeanVM.Guest.EndExecYWitCells
 import LeanVM.Guest.EndExecYShape
@@ -81,8 +82,9 @@ abbrev YFin (r : Ref) (s : St) : Prop := YCur alignA r s ∧ YAlloc alignA r s
 
 /-- **The facts the executor's completeness on the guest still rests on.** -/
 structure OpenGaps : Prop where
-  /-- Mode walk track: the walks (`walk … = true`) of the 30 functions the kernel does not check
-  and the hints (`HintsOk`) of `main_loop2` and `sp_wots`. False as stated: 12 of the walks fail. -/
+  /-- Mode walk track: the walks (`walk … = true`) of the five functions `infer.py` holds as failing
+  (`HELD_NS`) until families take their residuals: `main`, `verify_sub`, `verify_bus_gkr` and its two
+  loops. False as stated. -/
   modeHyps : Mode.ModeHyps
 
 /-! ## The assembly -/
@@ -96,9 +98,11 @@ theorem execGaps_of (O : OpenGaps) :
     (hintComputed_alignA extraRef_alignA)
     (resTop_guestF (fun K hK ↦ by
       simp only [Res.resExc, List.mem_cons, List.not_mem_nil, or_false] at hK
-      rcases hK with rfl | rfl
+      rcases hK with rfl | rfl | rfl | rfl
       · exact resCld_alignA
-      · exact resCp_alignA))
+      · exact resCp_alignA
+      · exact resLce0_alignA
+      · exact resLce16_alignA))
     termNode_guest Bridge.progAl Bridge.alignA_main alLayout_alignA jumpCells_at Mode.guestCerts_entry_ne
     (derefPow_all _)
     (hintsUsed_alignA sizesAt_guest allocReady_guest (witCells_alignA witPtrRes_guest) fun _ _ h ↦ h)

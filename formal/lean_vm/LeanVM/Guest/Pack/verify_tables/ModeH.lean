@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.Mode.HintsData
-public import LeanVM.Guest.Pack.«verify_tables».ModeX
+public import LeanVM.Guest.Pack.«verify_tables».ModeD0
 
 set_option Elab.async false
 

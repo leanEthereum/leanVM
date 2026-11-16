@@ -148,6 +148,11 @@ structure VsFront (bytecode : List K) (C : CallRel) (rd : Reader) (σ : Val) : T
   hkc : C "verify_keccak" [σ (.n 573), σ (.n 574), σ (.n 575), σ (.n 576), σ (.n 577), σ (.n 578),
     σ (.n 583), σ (.n 569), σ (.n 587), σ (.n 584), σ (.n 585), σ (.n 589), σ (.n 25)]
     [σ (.n 590), σ (.n 591), σ (.n 592), σ (.n 593), σ (.n 594), σ (.n 595), σ (.n 596)]
+  -- what `verify_tables` is called under
+  hTP : Tables.TablesPre pi logMem weights r.2.1 r.2.2 rd
+    [σ (.n 562), σ (.n 563), σ (.n 564), σ (.n 565), σ (.n 566), σ (.n 567), σ (.n 0), σ (.n 1),
+      σ (.n 254), σ (.n 253), σ (.n 71), σ (.n 26), σ (.n 4), σ (.n 335), σ (.n 559), σ (.n 6),
+      σ (.n 569), σ (.n 568), σ (.n 572), σ (.n 570), σ (.n 25)]
 
 /-! ## Facts the assembly ties the sections with -/
 
@@ -364,7 +369,8 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (L : MemoryImage κ) {C : CallRel}
       h583 := h583,
       h587 := h587,
       h589 := h589,
-      hkc := hkc }⟩, ?_⟩
+      hkc := hkc,
+      hTP := hTP }⟩, ?_⟩
   simpa only [vsBackT, holdsList_append] using hb
 
 end
