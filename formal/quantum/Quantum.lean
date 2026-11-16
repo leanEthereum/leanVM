@@ -90,6 +90,7 @@ import Quantum.Xmss.Hybrid.SchemeSplit
 import Quantum.Xmss.Hybrid.CoinStage
 import Quantum.Xmss.Hybrid.R0Stage
 import Quantum.Xmss.Assembly.Security
+import Quantum.Xmss.Assembly.BoundValue
 import Quantum.Xmss.Assembly.CoinsEvent
 import Quantum.Xmss.Assembly.Reparam
 import Quantum.Xmss.Assembly.GameT
@@ -145,3 +146,18 @@ footprint of the main theorems ever grows beyond Lean's three standard axioms. -
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Quantum.Xmss.Assembly.leanXmss_qrpm_security
+
+/-- info: 'Quantum.Xmss.Assembly.qrpmBound_le' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Xmss.Assembly.qrpmBound_le
+
+/-- info: 'Quantum.Xmss.Assembly.qrpmBound_two_pow_30_le' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Xmss.Assembly.qrpmBound_two_pow_30_le
+
+/-- info: 'Quantum.Xmss.Assembly.qrpmBound_two_pow_50_le' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Xmss.Assembly.qrpmBound_two_pow_50_le
