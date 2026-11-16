@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Guest.B2C.Cells
-public import LeanVM.Guest.B2C.Count
+public import LeanVM.Guest.RunCount
 public import LeanVM.Guest.JumpTable
 public import LeanVM.Guest.Memory.GuestMainFree
 public import LeanVM.Guest.Memory.SizeTotal

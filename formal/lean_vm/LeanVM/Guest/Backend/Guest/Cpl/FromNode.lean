@@ -141,7 +141,7 @@ theorem guest_run_from_node : ∀ seed s w, NodeRelation bytecode seed s w → G
     (deployedBudgetB (vsBoundAt Count.vsWordsOs vkBound)).size (work s w) ≤ 2 ^ 30 →
     ∃ (T : Tree) (ν : ℕ → String → Val → V → E) (c : Opcode → ℕ), T.name = "main" ∧
       T.total W0.fsB ≤ (deployedBudgetB (vsBoundAt Count.vsWordsOs vkBound)).words.eval (work s w) ∧
-      B2C.RunC W0.prog (W0.honestB (hdrOf (statementDigest seed s)) (T.retemp W0.core W0.fsB ν 0))
+      RunC W0.prog (W0.honestB (hdrOf (statementDigest seed s)) (T.retemp W0.core W0.fsB ν 0))
         ⟨addressOfIndex (W0.ent "main"), 1⟩ (Registers.final W0.prog) c ∧
       ∀ op, c op ≤ W0.progCost (fun _ => false) (T.retemp W0.core W0.fsB ν 0) op := by
   intro seed s w hrel hlim hok hbs

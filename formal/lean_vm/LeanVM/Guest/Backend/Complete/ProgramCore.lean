@@ -55,7 +55,7 @@ def ProgramCompleteCoreStmt : Prop :=
       T.total W.fsB ≤ 2 ^ 30 →
       (∀ q ∈ T.eqns W.core, ∃ i : Fin (2 ^ logMem (T.total W.fsB)), q.1 = addressOfIndex i) →
       ∃ ν : ℕ → String → Val → V → E, ∃ c : Opcode → ℕ,
-        B2C.RunC W.prog (W.honestB hdr (T.retemp W.core W.fsB ν 0))
+        RunC W.prog (W.honestB hdr (T.retemp W.core W.fsB ν 0))
           ⟨addressOfIndex (W.ent "main"), 1⟩ (Registers.final W.prog) c ∧
         ∀ op, c op ≤ W.progCost keyed (T.retemp W.core W.fsB ν 0) op
 
