@@ -19,44 +19,44 @@ open LeanVM.Guest.Backend
 
 @[expose] public section
 
-/-- The pieces of functions 429 to 434 (`__loop32` to `__loop35`, 947 instructions). -/
-theorem pieces_429_435 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 429 435 = true := by
+/-- The pieces of functions 425 to 427 (`rs_eq_rows__L8` to `gkr_rounds__L0`, 1950 instructions). -/
+theorem pieces_425_428 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 425 428 = true := by
   decide +kernel
 
-/-- The pieces of functions 435 to 437 (`rs_eq_rows__L8` to `gkr_rounds__L0`, 1950 instructions). -/
-theorem pieces_435_438 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 435 438 = true := by
+/-- The pieces of functions 428 to 458 (`gkr_rounds__L2` to `level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0`, 1971 instructions). -/
+theorem pieces_428_459 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 428 459 = true := by
   decide +kernel
 
-/-- The pieces of functions 438 to 468 (`gkr_rounds__L2` to `level_queries__L109_L1_L6_L32_L16_L4_L0_L0_L0_L0`, 1971 instructions). -/
-theorem pieces_438_469 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 438 469 = true := by
+/-- The pieces of functions 459 to 506 (`level_queries__L73_L1_L6_L32_L17_L5_L0_L0_L0_L0` to `level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0`, 1966 instructions). -/
+theorem pieces_459_507 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 459 507 = true := by
   decide +kernel
 
-/-- The pieces of functions 469 to 516 (`level_queries__L73_L1_L6_L32_L17_L5_L0_L0_L0_L0` to `level_queries__L218_L1_L6_L32_L16_L4_L0_L0_L0_L0`, 1966 instructions). -/
-theorem pieces_469_517 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 469 517 = true := by
+/-- The pieces of functions 507 to 553 (`level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0` to `squeeze_point_from__L12`, 1964 instructions). -/
+theorem pieces_507_554 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 507 554 = true := by
   decide +kernel
 
-/-- The pieces of functions 517 to 563 (`level_queries__L109_L1_L6_L32_L17_L5_L0_L0_L0_L0` to `squeeze_point_from__L12`, 1964 instructions). -/
-theorem pieces_517_564 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 517 564 = true := by
+/-- The pieces of functions 554 to 599 (`level_positions__L7_L16_L4` to `level_positions__L7_L19_L7`, 1994 instructions). -/
+theorem pieces_554_600 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 554 600 = true := by
   decide +kernel
 
-/-- The pieces of functions 564 to 609 (`level_positions__L7_L16_L4` to `level_positions__L7_L19_L7`, 1994 instructions). -/
-theorem pieces_564_610 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 564 610 = true := by
+/-- The pieces of functions 600 to 642 (`level_positions__L6_L20_L2` to `level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0`, 1993 instructions). -/
+theorem pieces_600_643 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 600 643 = true := by
   decide +kernel
 
-/-- The pieces of functions 610 to 652 (`level_positions__L6_L20_L2` to `level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0`, 1993 instructions). -/
-theorem pieces_610_653 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 610 653 = true := by
+/-- The pieces of functions 643 to 691 (`level_queries__L44_L0_L4_L16_L19_L7_L0_L0_L0_L0` to `level_queries__L25_L0_L4_L16_L20_L2_L0_L0_L0_L0`, 1992 instructions). -/
+theorem pieces_643_692 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 643 692 = true := by
   decide +kernel
 
-/-- The pieces of functions 653 to 701 (`level_queries__L44_L0_L4_L16_L19_L7_L0_L0_L0_L0` to `level_queries__L25_L0_L4_L16_L20_L2_L0_L0_L0_L0`, 1992 instructions). -/
-theorem pieces_653_702 :
-    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 653 702 = true := by
+/-- The pieces of functions 692 to 741 (`level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0` to `level_residual__L218_L20_L6_L3`, 1987 instructions). -/
+theorem pieces_692_742 :
+    piecesIn loopsG sigsG layG guestTraced outsG Data.functions.tail 692 742 = true := by
   decide +kernel
 
 end

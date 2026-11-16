@@ -29,8 +29,8 @@ theorem vs_fn : (Data.coreFunctions.getD vsIdx default).name = "verify_sub" ∧
 /-- `verify_sub` takes the exponent table as argument `4`. -/
 theorem vs_xpre : (guestTab.sig "verify_sub").xpre = [(4, 0)] := by decide +kernel
 
-/-- The guest's core program has `1601` functions. -/
-theorem core_length : Data.coreFunctions.length = 1601 := by decide +kernel
+/-- The guest's core program has `1549` functions. -/
+theorem core_length : Data.coreFunctions.length = 1549 := by decide +kernel
 
 /-- Only `exponent_tables` has an `xpost`: its return is in relation `0`. -/
 theorem guestTab_xpost : ∀ p ∈ guestTab.sigs, p.2.xpost ≠ [] →
@@ -38,7 +38,7 @@ theorem guestTab_xpost : ∀ p ∈ guestTab.sigs, p.2.xpost ≠ [] →
   decide +kernel
 
 /-- The functions with a postcondition. -/
-def postNames : List String := ["list_split", "log2_ceil_in_the_exponent__L0_L34", "da_row_shape"]
+def postNames : List String := ["list_split", "log2_ceil_in_the_exponent__L0_L34"]
 
 /-- Only `postNames` have a postcondition. -/
 theorem guestTab_post : ∀ p ∈ guestTab.sigs, p.2.post ≠ [] → p.1 ∈ postNames := by

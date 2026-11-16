@@ -22,7 +22,7 @@ open LeanVM.Guest.Core LeanVM.Guest.Backend
 
 kernel_rfl cut36_p139 :
     armsRunN ((armsOf ((guestTraced.getD 36 default).core.body.getD 315 default)).drop 52) 52 (armsOf ((guestTraced.getD 36 default).core.body.getD 315 default)).length 1475
-      (⟨76, 1473, 9889, (some ([], 1474)), (ArmExit.join 1473 101 58), 1475, 101, 58⟩ : MatchHead).exit 51 ctx36 cut36_139 =
+      (⟨76, 1473, 9878, (some ([], 1474)), (ArmExit.join 1473 101 58), 1475, 101, 58⟩ : MatchHead).exit 51 ctx36 cut36_139 =
       .ok ((cut36_140_b, 1515), cut36_140)
 
 end

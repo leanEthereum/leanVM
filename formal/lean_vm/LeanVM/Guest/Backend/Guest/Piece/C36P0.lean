@@ -39,11 +39,11 @@ theorem cut36_len79 : (armsOf ((guestTraced.getD 36 default).core.body.getD 79 d
 
 kernel_rfl cut36_p1 :
     matchPre (selOf ((guestTraced.getD 36 default).core.body.getD 79 default)) (armsOf ((guestTraced.getD 36 default).core.body.getD 79 default)).length ((guestTraced.getD 36 default).core.body.drop 80) ctx36 cut36_1 =
-      .ok ((⟨288, 352, 1697, (some ([], 353)), (ArmExit.next 289 1953 101 58), 354, 101, 58⟩ : MatchHead), cut36_2)
+      .ok ((⟨288, 352, 1686, (some ([], 353)), (ArmExit.next 289 1942 101 58), 354, 101, 58⟩ : MatchHead), cut36_2)
 
 kernel_rfl cut36_p2 :
     armsRunN ((armsOf ((guestTraced.getD 36 default).core.body.getD 79 default)).drop 0) 0 (armsOf ((guestTraced.getD 36 default).core.body.getD 79 default)).length 354
-      (⟨288, 352, 1697, (some ([], 353)), (ArmExit.next 289 1953 101 58), 354, 101, 58⟩ : MatchHead).exit 115 ctx36 cut36_2 =
+      (⟨288, 352, 1686, (some ([], 353)), (ArmExit.next 289 1942 101 58), 354, 101, 58⟩ : MatchHead).exit 115 ctx36 cut36_2 =
       .ok ((cut36_3_b, 360), cut36_3)
 
 end
