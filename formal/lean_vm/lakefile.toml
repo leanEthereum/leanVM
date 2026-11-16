@@ -214,3 +214,10 @@ srcDir = "cli"
 name = "guest-cpleval"
 root = "GuestCplEval"
 srcDir = "cli"
+
+# The pointer discipline and the load shapes of the guest's core functions
+# (cli/GuestPtrCheck.lean); not a default target.
+[[lean_exe]]
+name = "guest-ptrcheck"
+root = "GuestPtrCheck"
+srcDir = "cli"
