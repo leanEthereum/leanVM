@@ -391,7 +391,7 @@ pub(crate) fn build(program: &Program, exec: &Execution, l: Layout, keccak_block
     let steps = 1 << l.taus[verifier::layout::OP_KECCAK];
     let mut virt: Vec<(usize, Vec<F64>)> = (0..sch.n)
         .filter(|&i| matches!(keccak_value(i), Some(KeccakLane::Output(_))))
-        // SAFETY: `FillCtx::cols_at` writes every row of every window it is given, and
+        // SAFETY: `FillCtx::runs` writes every row of every window it is given, and
         // `fill_table` asserts each table wrote all of its windows.
         .map(|i| (i, unsafe { primitives::uninit_vec::<F64>(steps) }))
         .collect();
