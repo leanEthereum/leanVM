@@ -597,18 +597,18 @@ theorem pmL_false_top : ∀ ps : List PStmt, pmL false true ps = pmL false false
   | s :: ss => by rw [pmL, pmL, pmS_false_top, pmL_false_top ss]
 
 theorem find?_key {acs : List (ℕ × List (List ℕ))} (hnd : (acs.map (·.1)).Nodup) :
-    ∀ p ∈ acs, B2C.armRaw acs p.1 = some p.2 := by
+    ∀ p ∈ acs, armRaw acs p.1 = some p.2 := by
   induction acs with
   | nil => intro p hp; exact absurd hp (List.not_mem_nil)
   | cons q acs ih =>
       intro p hp
       rw [List.map_cons, List.nodup_cons] at hnd
-      unfold B2C.armRaw
+      unfold armRaw
       rcases List.mem_cons.mp hp with rfl | hp'
       · simp
       · have hne : q.1 ≠ p.1 := fun e => hnd.1 (e ▸ List.mem_map_of_mem hp')
         have := ih hnd.2 p hp'
-        unfold B2C.armRaw at this
+        unfold armRaw at this
         rw [List.find?_cons_of_neg (by simpa [Nat.beq_eq] using hne)]
         exact this
 
@@ -676,7 +676,7 @@ theorem arA : ∀ (xv : V) (pas : List (List PStmt)), ArA (σ := σ) acs xv pas
 /-- The stages of a top-level chain of a separately counted function. -/
 def StA (sts : List (List (List PStmt))) : Prop :=
   ∀ cms : List Stmt, alStages sts cms = true → NS (walk σ cms) →
-    (∀ p ∈ stageCnts true cms sts, B2C.armRaw acs p.1 = some p.2) →
+    (∀ p ∈ stageCnts true cms sts, armRaw acs p.1 = some p.2) →
     ((opsStages σ sts cms).2 = true → (∃ es, walk σ cms = .fall es) ∧
       cleA (opsStages σ sts cms).1 (armsCost acs σ cms) (pmStages true true sts).fall) ∧
     ((opsStages σ sts cms).2 = false →
@@ -698,7 +698,7 @@ theorem stA : ∀ sts : List (List (List PStmt)), StA (σ := σ) acs sts
             simp only [alStages, Bool.and_eq_true] at hal
             simp only [stageCnts, List.mem_cons, forall_eq_or_imp] at hH
             rw [walk_cons, walk1] at hns
-            have hkey : B2C.armRaw acs xv.idx = some (armCnts true st) := hH.1
+            have hkey : armRaw acs xv.idx = some (armCnts true st) := hH.1
             obtain ⟨hat, haf⟩ := arA acs xv st arms 0 (armCnts true st) hal.1 (ns_seq hns)
               (fun i hi => by
                 rw [Nat.zero_add, armCnts, led_listElementOrDefault _ _ _ (by simpa using hi)]
@@ -762,7 +762,7 @@ theorem armsGo_cons_ctrl {s : PStmt} {ss : List PStmt} {cs : List Stmt} {c : Stm
 /-- A top-level block of a separately counted function. -/
 def TOk (ps : List PStmt) : Prop :=
   ∀ cs : List Stmt, alL ps cs = true → NS (walk σ cs) →
-    (∀ p ∈ armsGo true ps cs, B2C.armRaw acs p.1 = some p.2) →
+    (∀ p ∈ armsGo true ps cs, armRaw acs p.1 = some p.2) →
     ((opsL σ ps cs).2 = true → (∃ es, walk σ cs = .fall es) ∧
       cleA (opsL σ ps cs).1 (armsCost acs σ cs) (pmL true true ps).fall) ∧
     ((opsL σ ps cs).2 = false → cleA (opsL σ ps cs).1 (armsCost acs σ cs) (pmL true true ps).ret)
@@ -770,10 +770,10 @@ def TOk (ps : List PStmt) : Prop :=
 /-- One statement then the block, given the statement's part. -/
 theorem tcons {s : PStmt} {ss : List PStmt} (hss : TOk (σ := σ) acs ss)
     (hstep : ∀ cs, alS s cs (fun cs' => alL ss cs') = true → NS (walk σ cs) →
-      (∀ p ∈ armsGo true (s :: ss) cs, B2C.armRaw acs p.1 = some p.2) →
+      (∀ p ∈ armsGo true (s :: ss) cs, armRaw acs p.1 = some p.2) →
       ((opsS σ s cs).2.2 = true → alL ss (opsS σ s cs).2.1 = true ∧
         (∃ es, walk σ cs = (walk σ (opsS σ s cs).2.1).pre es) ∧
-        (∀ p ∈ armsGo true ss (opsS σ s cs).2.1, B2C.armRaw acs p.1 = some p.2) ∧
+        (∀ p ∈ armsGo true ss (opsS σ s cs).2.1, armRaw acs p.1 = some p.2) ∧
         ∃ sl, (∀ op, sl op + armsCost acs σ (opsS σ s cs).2.1 op ≤ armsCost acs σ cs op) ∧
           cleA (opsS σ s cs).1 sl (pmS true true s).fall) ∧
       ((opsS σ s cs).2.2 = false → cleA (opsS σ s cs).1 (armsCost acs σ cs) (pmS true true s).ret)) :

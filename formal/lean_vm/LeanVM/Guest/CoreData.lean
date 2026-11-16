@@ -36,7 +36,10 @@ noncomputable: it is a term for the kernel and the proofs, never compiled.
   (`B1/Common/Find.lean`) instead, from `coreProgram[j]? = some f` and the names' distinctness
   (`CoreNames.lean`);
 * `name_eq_compiled`: function `j` has the name of compiled function `j + 1` of
-  `Data.functions`, after `__jump_tables`.
+  `Data.functions`, after `__jump_tables`;
+* by compiled index: `fnOf j` is compiled function `j` (`Data.functions`, `__jump_tables` at `0`,
+  `main` at `1`, `nFns` of them) and `coreOf j` its core IR function (`coreProgram`, which starts
+  at `main`).
 -/
 
 namespace LeanVM.Guest
@@ -59,6 +62,17 @@ theorem name_eq_compiled {j : Nat} {f : Fn} {c : CompiledFunction} (hf : corePro
   have h := congrArg (·[j]?) names_eq
   simp only [List.getElem?_map, hf, List.getElem?_tail, hc, Option.map_some] at h
   exact Option.some.inj h
+
+/-- The number of compiled functions. -/
+def nFns : ℕ := fn_count%
+
+instance : Inhabited CompiledFunction := ⟨⟨"", 0, 0, []⟩⟩
+
+/-- Compiled function `j`. -/
+def fnOf (j : ℕ) : CompiledFunction := listElementOrDefault Data.functions j default
+
+/-- The core IR function of compiled function `j ≥ 1`. -/
+noncomputable def coreOf (j : ℕ) : Core.Fn := listElementOrDefault coreProgram (j - 1) default
 
 end
 end LeanVM.Guest

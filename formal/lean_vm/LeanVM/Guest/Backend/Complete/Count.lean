@@ -174,6 +174,10 @@ separately counted. -/
 def armsP (keyed : Bool) (tf : TracedFn) (pf : Placed) : List (ℕ × List (List ℕ)) :=
   if keyed then armsGo keyed pf.fn.body tf.core.body else []
 
+/-- The arms' counts of the `match` on `x`, if counted separately. -/
+def armRaw (acs : List (ℕ × List (List ℕ))) (x : ℕ) : Option (List (List ℕ)) :=
+  (acs.find? fun p ↦ Nat.beq p.1 x).map (·.2)
+
 /-! ## Alignment of the placed body with the core body -/
 
 mutual

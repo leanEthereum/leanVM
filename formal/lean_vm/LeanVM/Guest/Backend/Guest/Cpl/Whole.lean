@@ -51,7 +51,7 @@ frame `g^0` to the final registers, within each running instance's placed path m
 over the call tree. -/
 theorem guest_run_complete : ∀ (hdr : E × E) (rd : Reader) (T : Tree), T.name = "main" →
     HonestAt W0.core W0.fsB W0.hdrB W0.cellsB hdr T W0.cellB rd [] [] →
-    ∃ c : Opcode → ℕ, B2C.RunC W0.prog (W0.honestB hdr T) ⟨addressOfIndex (W0.ent "main"), 1⟩
+    ∃ c : Opcode → ℕ, RunC W0.prog (W0.honestB hdr T) ⟨addressOfIndex (W0.ent "main"), 1⟩
       (Registers.final W0.prog) c ∧ ∀ op, c op ≤ W0.progCost (fun _ => false) T op :=
   Complete.program_complete W0 W0_compiled guestConds (fun _ => false)
 

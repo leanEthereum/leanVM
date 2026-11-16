@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.Glob
 public import LeanVM.Guest.Backend.Guest.World
+public import LeanVM.Guest.Backend.Guest.Facts
 public import LeanVM.Guest.Backend.Guest.B2.Sig
 
 /-!
@@ -34,9 +35,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 open LeanVM.Guest.Check LeanVM.Guest.Exec
 
 @[expose] public section
-
-/-- What the back end's input holds of function `j ≥ 1` besides its core function. -/
-def infoOf (j : ℕ) : Array Event × Nat × Bool × Option Nat := GuestData.guestInfo.getD (j - 1) default
 
 /-- What a caller knows of compiled function `j` (`Guest.sigOf`, the certificate's signature). -/
 noncomputable abbrev csig (j : ℕ) : Check.Sig := LeanVM.Guest.sigOf j

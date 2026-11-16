@@ -98,10 +98,6 @@ theorem BndHolds.append {b₁ b₂ : List (ℕ × ℕ)} (h₁ : BndHolds L fp b�
   · exact h₁ p hp
   · exact h₂ p hp
 
-theorem nth_eq {α : Type} {l : List α} {n : ℕ} {d : α} (h : n < l.length) : listElementOrDefault l n
-    d = l[n] :=
-  Option.some.inj ((nth_eq_getElem? d h).symm.trans (List.getElem?_eq_getElem h))
-
 theorem limb_ofK0 (a : K) : (ofK a).limb 0 = a := by simp
 
 theorem char2 (a b : E) : a + (a + b) = b := by

@@ -12,6 +12,7 @@ public import LeanVM.Guest.CheckView
 public import LeanVM.Guest.B2C.Types
 public import LeanVM.Guest.Memory.Fresh
 public import LeanVM.Guest.Renumber
+public import LeanVM.Guest.Backend.Complete.Count
 
 /-!
 # The completeness check
@@ -549,7 +550,7 @@ def nvVals : List V → ℕ → ℕ
 
 /-- The arms' counts of the `match` on `x`, if counted separately. -/
 def armKeyD (acs : List (ℕ × List (List ℕ))) (x : ℕ) : Option (List Cnt) :=
-  (armRaw acs x).map fun cs ↦ cs.map Cnt.ofList
+  (Backend.Complete.armRaw acs x).map fun cs ↦ cs.map Cnt.ofList
 
 /-- Arm `k` within its count, if counted separately. -/
 def armChkK (key : Option (List Cnt)) (k : ℕ) (c : Cnt) : Bool :=

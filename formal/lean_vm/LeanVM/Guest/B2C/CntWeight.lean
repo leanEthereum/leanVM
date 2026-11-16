@@ -103,7 +103,7 @@ theorem cost1_nil (σ : Val) : ∀ s : Stmt, cost1 [] σ s = 0
   | .ret _ => rfl
 
 theorem costArms_nil (σ : Val) (x : V) : ∀ (k : ℕ) (arms : List (List Stmt)),
-    costArms [] σ x (armRaw [] x.idx) k arms = 0
+    costArms [] σ x (Backend.Complete.armRaw [] x.idx) k arms = 0
   | _, [] => by rw [costArms]
   | k, a :: as => by
     rw [costArms]

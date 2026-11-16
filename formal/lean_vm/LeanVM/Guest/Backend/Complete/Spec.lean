@@ -11,8 +11,7 @@ public import LeanVM.Guest.Backend.Sound.Spec
 public import LeanVM.Guest.Backend.Complete.Scoped
 public import LeanVM.Guest.Backend.Complete.Cells
 public import LeanVM.Guest.Backend.Complete.Count
-public import LeanVM.Guest.B2C.Count
-public import LeanVM.Guest.B2C.Types
+public import LeanVM.Guest.RunCount
 public import LeanVM.Guest.Memory.Placed
 
 /-!
@@ -67,7 +66,7 @@ its frame holds. -/
 def KidRuns {κ : ℕ} (prog : LeanIsaProgram) (L : MemoryImage κ) (ent kfp : ℕ) (ck : Opcode → ℕ)
     (r : Registers K) : Prop :=
   retRegs L (addressOfIndex kfp) = some r ∧
-    B2C.RunC prog L ⟨addressOfIndex ent, addressOfIndex kfp⟩ r ck
+    RunC prog L ⟨addressOfIndex ent, addressOfIndex kfp⟩ r ck
 
 /-- Whether the call a core statement makes is entered under `σ`. -/
 def callTaken (σ : Val) : Stmt → Prop
@@ -451,7 +450,7 @@ mutual
 /-- The separately counted arms a statement's path passes, under `σ` (`B2C.cost1`). -/
 noncomputable def cost1 (acs : List (ℕ × List (List ℕ))) (σ : Val) : Stmt → Opcode → ℕ
   | .ite c z n => if σ c = 0 then armsCost acs σ z else armsCost acs σ n
-  | .match_ x arms => costArms acs σ x (B2C.armRaw acs x.idx) 0 arms
+  | .match_ x arms => costArms acs σ x (armRaw acs x.idx) 0 arms
   | _ => 0
 
 /-- The separately counted arms a block's path passes, under `σ` (`B2C.costW`). -/
@@ -482,7 +481,7 @@ def World.FnComplete {κ : ℕ} (W : World κ) (tf : TracedFn) : Prop :=
     ∃ (r : Registers K) (c : Opcode → ℕ),
       (if tf.core.name = "main" then r = Registers.final W.prog
         else retRegs W.L (addressOfIndex fp) = some r) ∧
-      B2C.RunC W.prog W.L ⟨addressOfIndex (W.ent tf.core.name), addressOfIndex fp⟩ r c ∧
+      RunC W.prog W.L ⟨addressOfIndex (W.ent tf.core.name), addressOfIndex fp⟩ r c ∧
       ∀ op, c op ≤ pathOps σ tf pf op + (kids.map (·.2 op)).sum
 
 /-- `fnComplete`'s statement: every function of a compiled program. -/
