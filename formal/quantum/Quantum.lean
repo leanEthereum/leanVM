@@ -117,6 +117,11 @@ import Quantum.Sphincs.Assembly.Reparam
 import Quantum.Sphincs.Assembly.FullTable
 import Quantum.Sphincs.Hybrid.DigestStage
 import Quantum.Sphincs.Assembly.GameTCalls
+import Quantum.Sphincs.Assembly.GameT
+import Quantum.Sphincs.Assembly.RecordDrop
+import Quantum.Sphincs.Assembly.Costs
+import Quantum.Sphincs.Assembly.GameR
+import Quantum.Sphincs.Game
 
 /-! Security against quantum adversaries in the quantum random-permutation model (`Quantum.Model`),
 on VCVio's quantum oracle programs (`VCVio.Quantum`): the sponge's collision and preimage
