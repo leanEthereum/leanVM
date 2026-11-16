@@ -5,11 +5,11 @@
   scripts/decoder-tables-inputs.lean` (`check-all.sh` and the CI split the lines and run both
   scripts' `--check`).
 -/
-import LeanVM.Cost.Decoder.GuestTables
-import LeanVM.Guest.Glob
+import LeanVM.Cost.Decoder.GuestPlaces
+import LeanVM.Guest.CoreData
 
 open LeanVM.Guest LeanVM.Cost.Decoder
 
 #eval IO.println s!"entries: {(List.range nFns).map fun j ↦ (fnOf j).entryPc}"
-#eval IO.println s!"rows: {guestLocsList.map List.length}"
-#eval IO.println s!"split: {guestLocsSplit.map List.length}"
+#eval IO.println s!"rows: {guestPlacesList.map List.length}"
+#eval IO.println s!"split: {guestPlacesSplit.map List.length}"

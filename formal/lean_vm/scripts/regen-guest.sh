@@ -65,7 +65,7 @@ parts_whir=(whir_data whir_mat_plan walk_known whir_queries) targets_whir=(guest
 parts_count=(count_gen count_vsos) targets_count=()
 parts_tables=(tables) targets_tables=(LeanVM.Guest.Fast.WhirTemplate LeanVM.Guest.B1.Opening.QueriesT
   LeanVM.Guest.Memory.GuestCallees)
-parts_decoder=(decoder) targets_decoder=(LeanVM.Guest.Glob LeanVM.Cost.Decoder.GuestTables guest-tables)
+parts_decoder=(decoder) targets_decoder=(LeanVM.Guest.CoreData LeanVM.Cost.Decoder.GuestPlaces guest-tables)
 parts_backend=(backend_obl) targets_backend=(guest-oblgen LeanVM.Guest.CoreData
   LeanVM.Guest.B1.Opening.Interface)
 
@@ -170,7 +170,7 @@ part_decoder() {
   step "decoder tables and their chunks"
   local d=$tmp/decoder
   mkdir -p "$d"
-  lakebuild LeanVM.Guest.Glob guest-tables
+  lakebuild LeanVM.Guest.CoreData guest-tables
   capped lake env lean scripts/decoder-tables-entries.lean | sed -n "s/^entries: //p" > "$d/entries.txt"
   capped .lake/build/bin/guest-tables --decoder-inputs "$d/backend.txt"
   python3 -I scripts/decoder-tables --entries "$d/entries.txt" --backend "$d/backend.txt" "${check[@]}"
