@@ -4,7 +4,7 @@
 #
 #   scripts/regen-guest.sh                 # write
 #   scripts/regen-guest.sh --check         # write nothing, fail if any file is stale
-#   scripts/regen-guest.sh --from STEP     # resume at STEP: export core changes vt cert memory whir count tables decoder
+#   scripts/regen-guest.sh --from STEP     # resume at STEP: export core changes vt cert deployed memory whir count tables decoder
 #   scripts/regen-guest.sh --jobs N        # the Lean builds' job cap (lake-build.py's --jobs)
 #
 # Run from anywhere; it works in lean_vm. Each step's generator reads only what the steps before it
@@ -29,7 +29,7 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-steps=(export core changes vt cert memory whir count tables decoder)
+steps=(export core changes vt cert deployed memory whir count tables decoder)
 case " ${steps[*]} " in *" $from "*) ;; *) echo "unknown step $from: one of ${steps[*]}" >&2; exit 2 ;; esac
 step() { printf '\n==> [%dm%02ds] %s\n' $((SECONDS / 60)) $((SECONDS % 60)) "$*"; }
 capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
@@ -58,12 +58,13 @@ parts_core=(core_ir core_names core_vsat) targets_core=(guest-core)
 parts_changes=(changes) targets_changes=()
 parts_vt=(vt) targets_vt=()
 parts_cert=(cert) targets_cert=(guest-cert)
+parts_deployed=(deployed) targets_deployed=(guest-tables)
 parts_memory=(memory) targets_memory=(guest-memory)
 parts_whir=(whir_data whir_mat_plan walk_known whir_queries) targets_whir=(guest-core)
 parts_count=(count_gen count_vsos) targets_count=()
 parts_tables=(tables) targets_tables=(LeanVM.Guest.Fast.WhirTemplate LeanVM.Guest.B1.Opening.QueriesT
   LeanVM.Guest.Memory.GuestCallees)
-parts_decoder=(decoder) targets_decoder=(LeanVM.Guest.Glob LeanVM.Cost.Decoder.GuestTables)
+parts_decoder=(decoder) targets_decoder=(LeanVM.Guest.Glob LeanVM.Cost.Decoder.GuestTables guest-tables)
 
 part_export() {
   step "export: the compiled guest (guest-artifact), then bytecode, source, programs (guest-export, from leanVM's sources)"
@@ -110,6 +111,11 @@ part_cert() {
   gen guest-cert
 }
 
+part_deployed() {
+  step "deployed: the back end's tables of the guest (guest-tables)"
+  gen guest-tables
+}
+
 part_memory() {
   step "memory: the memory layer's checks (guest-memory)"
   gen guest-memory
@@ -152,13 +158,15 @@ part_tables() {
 }
 
 part_decoder() {
-  # The tables are written from the guest's entries, and their chunks from the tables just written.
+  # The tables are written from the guest's entries and the back end's places, and their chunks from
+  # the tables just written.
   step "decoder tables and their chunks"
   local d=$tmp/decoder
   mkdir -p "$d"
-  lakebuild LeanVM.Guest.Glob
+  lakebuild LeanVM.Guest.Glob guest-tables
   capped lake env lean scripts/decoder-tables-entries.lean | sed -n "s/^entries: //p" > "$d/entries.txt"
-  python3 -I scripts/decoder-tables --entries "$d/entries.txt" "${check[@]}"
+  capped .lake/build/bin/guest-tables --decoder-inputs "$d/backend.txt"
+  python3 -I scripts/decoder-tables --entries "$d/entries.txt" --backend "$d/backend.txt" "${check[@]}"
   lakebuild LeanVM.Cost.Decoder.GuestTables
   capped lake env lean scripts/decoder-tables-inputs.lean > "$d/in.txt"
   for k in rows split; do sed -n "s/^$k: //p" "$d/in.txt" > "$d/$k.txt"; done
