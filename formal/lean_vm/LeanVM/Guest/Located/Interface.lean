@@ -32,9 +32,10 @@ The convention B1 states its witnesses in (agreed between B1-b, B1-d, B1-f and t
 * every witness is an explicit function of the valuation of the function that checks it and of
   `V`, every hypothesis on a callee quantifies over the calls of `C`.
 
-On a memory `L` the located relation `RLg L` unfolds along `frameV L`, the valuation of the
-call's frame (`unfoldsV_RL`), so a statement for every such `C` and `V` gives one about the
-decoded witness. `MainSoundV bytecode W` is that statement for `main`, with the witness
+On a memory `L` the located relation `RLg L` (the back end's `World.C`) unfolds along `frameV L`,
+the valuation by places of the call's frame (`unfoldsV_RL`), so a statement for every such `C`
+and `V` gives one about the decoded witness. `MainSoundV bytecode W` is that statement for
+`main`, with the witness
 `W σ rd V` (B1-f's `decWitV σ rd V piOf`, with B1-d's child proof `piOf`): on a memory image whose
 public input cells hold the digest `D`, a run of `main`'s body over `C` gives the seed
 `decSeed σ` and the statement `decStmt σ rd` of digest `D`, and `W σ rd V` holds them.
@@ -42,7 +43,7 @@ public input cells hold the digest `D`, a run of `main`'s body over `C` gives th
 
 namespace LeanVM.Guest.Located
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Check
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
 open LeanVM.Guest.B1 LeanVM.Guest.B1.Main LeanVM.Guest.B1.Digest
 
