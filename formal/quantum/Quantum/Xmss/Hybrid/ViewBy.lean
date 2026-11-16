@@ -26,7 +26,8 @@ through the label of the output (`lazyMap_conj`).
   above `need i` (`CallSupp`, as VCVio's `ForallQueries`), the `j`-th call weights agree at hidden
   values agreeing on `T`, for weights reading only the entries labelled inside `T`;
   `queryWeight_diagMass_eq_of_lazy` for diagonal masses of sets labelled `T`.
-* `ViewByOn`: `ViewBy` for the weights vanishing outside a set of ports; `ViewBy.viewByOn`.
+* `forallQueries_of_forall`: a predicate true of every operator holds at every call. `ViewByOn`
+  (in `Disclose`) is `ViewBy` for the weights vanishing outside a set of ports.
 
 **Runtime 2.** The label `lab : Hw X Z × M → Finset S` reads the classical data (the hardwired
 cells and the memory); hardwiring a cell must never lower it. A template program over
@@ -44,7 +45,8 @@ sponge ports act block by block on the classical data and a program port's Kraus
   itself a function of `v`, and `ViewBy` asks for every weight on the program ports.
 * `viewByOn_runtime2_realize`: with self-disclosing program ports (`SelfDisc`: hardwiring the cell
   records its coordinates in the label), `ViewByOn` for the weights vanishing on the program ports,
-  with no hypothesis on the run. The hidden masses of `Disclose` vanish on the program ports.
+  with no hypothesis on the run. This discharges the `hview` hypotheses of the runtime-2 lemmas of
+  `Disclose` (`sum_queryWeight_hiddenMass_le` and its instances).
 -/
 
 open Matrix
@@ -338,25 +340,6 @@ theorem forallQueries_of_forall
   | primBind _ o k ih => exact (forallQueries_primBind_iff I o k ρ).mpr fun b ↦ ih b _
   | queryBind _ i E ℓ k ih =>
     exact (forallQueries_queryBind_iff I i E ℓ k ρ).mpr ⟨hP _ _ _, fun r ↦ ih r _⟩
-
-/-- **The lazy-sampling property on some ports**: `ViewBy` for the weights that vanish on the ports
-outside `P`. -/
-def ViewByOn {A : QReg} (P : spec.Port → Prop) (lab : R.D → Finset S)
-    (x : ((s : S) → D s) → QuantumComp L spec Ω A)
-    (ρ : ((s : S) → D s) → Matrix (A × R.D) (A × R.D) ℂ) (j : ℕ) : Prop :=
-  ∀ (T : Finset S) (v v' : (s : S) → D s), Agree T v v' →
-    ∀ C : ∀ i, Set (spec.In i × R.D), (∀ i p, p ∈ C i → lab p.2 = T) → (∀ i, ¬ P i → C i = ∅) →
-      R.queryWeight I (fun i ↦ diagMass (C i)) (x v) (ρ v) j =
-        R.queryWeight I (fun i ↦ diagMass (C i)) (x v') (ρ v') j
-
-variable {R I}
-
-/-- The lazy-sampling property gives it on every set of ports. -/
-theorem ViewBy.viewByOn {A : QReg} {lab : R.D → Finset S}
-    {x : ((s : S) → D s) → QuantumComp L spec Ω A}
-    {ρ : ((s : S) → D s) → Matrix (A × R.D) (A × R.D) ℂ} {j : ℕ} (h : ViewBy R I lab x ρ j)
-    (P : spec.Port → Prop) : ViewByOn R I P lab x ρ j :=
-  fun T v v' hv C hC _ ↦ h T v v' hv C hC
 
 end viewOn
 

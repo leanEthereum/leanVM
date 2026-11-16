@@ -14,9 +14,11 @@ hidden paths.
 **Lazy sampling.** The table is reparametrized into public data and hidden values
 `v : (s : S) → D s`, independent and uniform. The register carries a classical label
 `lab : R.D → Finset S`, the coordinates disclosed so far. The lazy-sampling property of the game is
-`ViewBy`: the part of the input of the `j`-th call on the register states labelled `T` (every
-diagonal mass of a set of such states) depends on the hidden values only through their
-coordinates in `T`. Disclosure is adaptive: which coordinates are in `T` depends on the run.
+`ViewByOn` (for the weights vanishing outside a set `P` of ports): the part of the input of the
+`j`-th call on the register states labelled `T` (every diagonal mass of a set of such states)
+depends on the hidden values only through their coordinates in `T`. Disclosure is adaptive: which
+coordinates are in `T` depends on the run. `ViewBy` asks it of every weight (`ViewBy.viewByOn`); for
+runtime 2 the hidden masses vanish on the program ports, so `ViewByOn` for the other ports suffices.
 
 * `sum_queryWeight_view_le` (**the adaptive view lemma**): if every input state `p` in the set
   `C v i` names coordinates `srcs i p`, one of which is undisclosed (`∉ lab p.2`) and has its hidden
@@ -283,13 +285,31 @@ def ViewBy (lab : R.D → Finset S) (x : ((s : S) → D s) → QuantumComp L spe
       R.queryWeight I (fun i ↦ diagMass (C i)) (x v) (ρ v) j =
         R.queryWeight I (fun i ↦ diagMass (C i)) (x v') (ρ v') j
 
+/-- **The lazy-sampling property on some ports**: `ViewBy` for the weights that vanish on the ports
+outside `P`. -/
+def ViewByOn (P : spec.Port → Prop) (lab : R.D → Finset S)
+    (x : ((s : S) → D s) → QuantumComp L spec Ω A)
+    (ρ : ((s : S) → D s) → Matrix (A × R.D) (A × R.D) ℂ) (j : ℕ) : Prop :=
+  ∀ (T : Finset S) (v v' : (s : S) → D s), Agree T v v' →
+    ∀ C : ∀ i, Set (spec.In i × R.D), (∀ i p, p ∈ C i → lab p.2 = T) → (∀ i, ¬ P i → C i = ∅) →
+      R.queryWeight I (fun i ↦ diagMass (C i)) (x v) (ρ v) j =
+        R.queryWeight I (fun i ↦ diagMass (C i)) (x v') (ρ v') j
+
+omit [Fintype S] [DecidableEq S] [∀ s, Fintype (D s)] [∀ s, DecidableEq (D s)] in
+variable {R I} in
+/-- The lazy-sampling property gives it on every set of ports. -/
+theorem ViewBy.viewByOn {lab : R.D → Finset S} {x : ((s : S) → D s) → QuantumComp L spec Ω A}
+    {ρ : ((s : S) → D s) → Matrix (A × R.D) (A × R.D) ℂ} {j : ℕ} (h : ViewBy R I lab x ρ j)
+    (P : spec.Port → Prop) : ViewByOn R I P lab x ρ j :=
+  fun T v v' hv C hC _ ↦ h T v v' hv C hC
+
 /-- **The view lemma at one label.** The masses at the states labelled `T` of the sets `C v`, summed
 over the hidden values, are at most `κ` times the masses of all states labelled `T`. -/
 theorem sum_queryWeight_cut_le [∀ s, Nonempty (D s)] (lab : R.D → Finset S)
     (x : ((s : S) → D s) → QuantumComp L spec Ω A)
     (ρ : ((s : S) → D s) → Matrix (A × R.D) (A × R.D) ℂ) (hρ : ∀ v, (ρ v).PosSemidef) (j : ℕ)
-    (hview : ViewBy R I lab x ρ j)
-    (C : ((s : S) → D s) → ∀ i, Set (spec.In i × R.D))
+    (P : spec.Port → Prop) (hview : ViewByOn R I P lab x ρ j)
+    (C : ((s : S) → D s) → ∀ i, Set (spec.In i × R.D)) (hCP : ∀ v i, ¬ P i → C v i = ∅)
     (srcs : ∀ i, spec.In i × R.D → Finset S)
     (F : ∀ i, spec.In i × R.D → (s : S) → ((s : S) → D s) → Finset (D s))
     (hF : ∀ i p s v d, F i p s (Function.update v s d) = F i p s v)
@@ -326,7 +346,8 @@ theorem sum_queryWeight_cut_le [∀ s, Nonempty (D s)] (lab : R.D → Finset S)
       intro u
       by_cases h : Agree T v u
       · simp only [h, ↓reduceIte]
-        exact (hview T v u h (fun i ↦ C u i ∩ {p | lab p.2 = T}) fun i p hp ↦ hp.2).symm
+        exact (hview T v u h (fun i ↦ C u i ∩ {p | lab p.2 = T}) (fun i p hp ↦ hp.2)
+          fun i hi ↦ by rw [hCP u i hi, Set.empty_inter]).symm
       · simp only [h, ↓reduceIte]
         exact (queryWeight_zero_weight R I (x v) (ρ v) j).symm
     simp only [hstep]
@@ -361,8 +382,8 @@ most `κ`. -/
 theorem sum_queryWeight_view_le [∀ s, Nonempty (D s)] (lab : R.D → Finset S)
     (x : ((s : S) → D s) → QuantumComp L spec Ω A)
     (ρ : ((s : S) → D s) → Matrix (A × R.D) (A × R.D) ℂ) (hρ : ∀ v, (ρ v).PosSemidef) (j : ℕ)
-    (hview : ViewBy R I lab x ρ j)
-    (C : ((s : S) → D s) → ∀ i, Set (spec.In i × R.D))
+    (P : spec.Port → Prop) (hview : ViewByOn R I P lab x ρ j)
+    (C : ((s : S) → D s) → ∀ i, Set (spec.In i × R.D)) (hCP : ∀ v i, ¬ P i → C v i = ∅)
     (srcs : ∀ i, spec.In i × R.D → Finset S)
     (F : ∀ i, spec.In i × R.D → (s : S) → ((s : S) → D s) → Finset (D s))
     (hF : ∀ i p s v d, F i p s (Function.update v s d) = F i p s v)
@@ -382,7 +403,7 @@ theorem sum_queryWeight_view_le [∀ s, Nonempty (D s)] (lab : R.D → Finset S)
   have hT : ∀ T, ∑ v, R.queryWeight I (fun i ↦ diagMass (C v i ∩ {p | lab p.2 = T})) (x v)
       (ρ v) j ≤ κ * ∑ v, R.queryWeight I (fun i ↦ diagMass {p : spec.In i × R.D | lab p.2 = T})
         (x v) (ρ v) j :=
-    fun T ↦ sum_queryWeight_cut_le R I lab x ρ hρ j hview C srcs F hF hsrc κ hκ T
+    fun T ↦ sum_queryWeight_cut_le R I lab x ρ hρ j P hview C hCP srcs F hF hsrc κ hκ T
   have htr : ∀ v, ∑ T, R.queryWeight I (fun i ↦ diagMass {p : spec.In i × R.D | lab p.2 = T})
       (x v) (ρ v) j ≤ ENNReal.ofReal (ρ v).trace.re := fun v ↦ by
     rw [← queryWeight_fintype_sum]
@@ -491,7 +512,8 @@ theorem sum_queryWeight_hiddenMass_le {D : S → Type} [∀ s, Fintype (D s)]
     [∀ s, DecidableEq (D s)] [∀ s, Nonempty (D s)] (m₀ : M) (lab : HwReg X Z M → Finset S)
     (x : ((s : S) → D s) → QuantumComp L (hwSpec X Z M) Ω A)
     (ρ : ((s : S) → D s) → Matrix (A × QReg.of (HwReg X Z M)) (A × QReg.of (HwReg X Z M)) ℂ)
-    (hρ : ∀ v, (ρ v).PosSemidef) (j : ℕ) (hview : ViewBy (runtime2 X Z m₀) I lab x ρ j)
+    (hρ : ∀ v, (ρ v).PosSemidef) (j : ℕ)
+    (hview : ViewByOn (runtime2 X Z m₀) I (fun i ↦ i.isLeft = true) lab x ρ j)
     (Hh : ((s : S) → D s) → Set Z) (Hk Hk' : ((s : S) → D s) → Set X)
     (sh : Z → HwReg X Z M → Finset S) (sk sk' : X → HwReg X Z M → Finset S)
     (Fh : Z → HwReg X Z M → (s : S) → ((s : S) → D s) → Finset (D s))
@@ -514,8 +536,9 @@ theorem sum_queryWeight_hiddenMass_le {D : S → Type} [∀ s, Fintype (D s)]
     ∑ v, (runtime2 X Z m₀).queryWeight I (hiddenMass (Hh v) (Hk v) (Hk' v)) (x v) (ρ v) j ≤
       κ * ∑ v, ENNReal.ofReal (ρ v).trace.re := by
   simp only [hiddenMass_eq_diagMass]
-  refine sum_queryWeight_view_le (runtime2 X Z m₀) I lab x ρ hρ j hview
-    (fun v ↦ hidSet (Hh v) (Hk v) (Hk' v)) (liftCells sh sk sk' ∅)
+  refine sum_queryWeight_view_le (runtime2 X Z m₀) I lab x ρ hρ j _ hview
+    (fun v ↦ hidSet (Hh v) (Hk v) (Hk' v))
+    (fun v i hi ↦ by rcases i with i | c; exacts [absurd rfl hi, rfl]) (liftCells sh sk sk' ∅)
     (liftCells Fh Fk Fk' fun _ _ ↦ ∅) (fun i p s v d ↦ ?_) (fun v i p hp ↦ ?_) κ
     (fun i p v ↦ ?_)
   · rcases i with ((_ | _ | _) | (⟨z, upd⟩ | ⟨y, upd⟩ | ⟨y, upd⟩)) | c
@@ -551,7 +574,8 @@ theorem sum_queryWeight_hiddenK_digest_le (m₀ : M) (lab : HwReg X Z M → Fins
     (ρ : (S → HashSig.Digest) →
       Matrix (A × QReg.of (HwReg X Z M)) (A × QReg.of (HwReg X Z M)) ℂ)
     (hρ : ∀ v, (ρ v).PosSemidef) (j : ℕ)
-    (hview : ViewBy (D := fun _ : S ↦ HashSig.Digest) (runtime2 X Z m₀) I lab x ρ j)
+    (hview : ViewByOn (D := fun _ : S ↦ HashSig.Digest) (runtime2 X Z m₀) I
+      (fun i ↦ i.isLeft = true) lab x ρ j)
     (Hk : (S → HashSig.Digest) → Set X) (src : X → HwReg X Z M → S)
     (val : X → HwReg X Z M → HashSig.Digest)
     (hk : ∀ v y r, y ∈ Hk v → r.2.1.2.1 y = none → src y r ∉ lab r ∧ v (src y r) = val y r) :
@@ -588,7 +612,8 @@ theorem sum_queryWeight_hiddenK'_le (m₀ : M) (π : Equiv.Perm (X × Z)) {G : �
     (x : (S → Z) → QuantumComp L (hwSpec X Z M) Ω A)
     (ρ : (S → Z) → Matrix (A × QReg.of (HwReg X Z M)) (A × QReg.of (HwReg X Z M)) ℂ)
     (hρ : ∀ v, (ρ v).PosSemidef) (j : ℕ)
-    (hview : ViewBy (D := fun _ : S ↦ Z) (runtime2 X Z m₀) I lab x ρ j)
+    (hview : ViewByOn (D := fun _ : S ↦ Z) (runtime2 X Z m₀) I (fun i ↦ i.isLeft = true) lab x
+      ρ j)
     (Hk' : (S → Z) → Set X) (y : S → (S → Z) → X) (c : S → (S → Z) → Z)
     (hy : ∀ s v d, y s (Function.update v s d) = y s v)
     (hc : ∀ s v d, c s (Function.update v s d) = c s v)
@@ -624,7 +649,8 @@ theorem sum_queryWeight_hiddenH_le (m₀ : M) (lab : HwReg X Z M → Finset S)
     (x : (S → Z) → QuantumComp L (hwSpec X Z M) Ω A)
     (ρ : (S → Z) → Matrix (A × QReg.of (HwReg X Z M)) (A × QReg.of (HwReg X Z M)) ℂ)
     (hρ : ∀ v, (ρ v).PosSemidef) (j : ℕ)
-    (hview : ViewBy (D := fun _ : S ↦ Z) (runtime2 X Z m₀) I lab x ρ j)
+    (hview : ViewByOn (D := fun _ : S ↦ Z) (runtime2 X Z m₀) I (fun i ↦ i.isLeft = true) lab x
+      ρ j)
     (Hh : (S → Z) → Set Z) (w : S → (S → Z) → Z)
     (hw : ∀ s v d, w s (Function.update v s d) = w s v)
     (hh : ∀ v z r, z ∈ Hh v → r.2.1.1 z = none → ∃ s, s ∉ lab r ∧ w s v + v s = z) :
@@ -649,7 +675,8 @@ theorem sum_queryWeight_hiddenKNext_le (m₀ : M) (lab : HwReg X Z M → Finset 
     (x : (S → X) → QuantumComp L (hwSpec X Z M) Ω A)
     (ρ : (S → X) → Matrix (A × QReg.of (HwReg X Z M)) (A × QReg.of (HwReg X Z M)) ℂ)
     (hρ : ∀ v, (ρ v).PosSemidef) (j : ℕ)
-    (hview : ViewBy (D := fun _ : S ↦ X) (runtime2 X Z m₀) I lab x ρ j)
+    (hview : ViewByOn (D := fun _ : S ↦ X) (runtime2 X Z m₀) I (fun i ↦ i.isLeft = true) lab x
+      ρ j)
     (Hk : (S → X) → Set X) (u : S → (S → X) → X)
     (hu : ∀ s v d, u s (Function.update v s d) = u s v)
     (hk : ∀ v y r, y ∈ Hk v → r.2.1.2.1 y = none → ∃ s, s ∉ lab r ∧ u s v + v s = y) :
