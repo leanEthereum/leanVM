@@ -13,6 +13,12 @@ pp.unicode.fun = true
 name = "statement"
 path = "../Statement"
 
+# The classical model's facts (`Common.Model`, `Common.WithHashBridge`) and the scheme cost
+# combinators (`Common.XmssCost`, `Common.Rerun`), reused by the quantum proofs.
+[[require]]
+name = "common"
+path = "../common"
+
 # leanXMSS's target-sum codeword lemmas (`XmssSecurity.Proof.EncodingLemmas`), reused by the quantum
 # proof; import the modules used, never the umbrella `XmssSecurity`.
 [[require]]

@@ -153,7 +153,8 @@ lean_da() {
 }
 
 # The quantum random-permutation model, on VCVio's quantum oracle programs, the statement's scheme
-# definitions and leanXMSS's codeword lemmas; `together` leaves it out.
+# definitions, common's model facts and cost combinators, and leanXMSS's codeword lemmas; `together`
+# leaves it out.
 quantum() {
   no_escapes quantum
   cache_get quantum
