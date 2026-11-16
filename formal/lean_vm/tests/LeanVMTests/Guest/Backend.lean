@@ -4,27 +4,26 @@ import LeanVMTests.Guest.Programs
 /-!
 # The back end on the compiler's test programs
 
-Every `crates/zkdsl_compiler/tests/programs/*.py` compiles through `Expand` and the back end, its
-traced expansion gives `Expand`'s core functions and the back end's invariants hold of it
-(`Backend.invariants`); and the sizes of the compiled programs are pinned. That each is the Rust
-compiler's program, instruction for instruction and hint for hint, is the Rust test
-`crates/zkdsl_compiler/tests/suite/lean_backend.rs` on the exports `lake exe guest-backend export
-programs` writes; the whole guest is `lake exe guest-backend check`.
+Every `crates/zkdsl_compiler/tests/programs/*.py` compiles through `Expand` and the back end, and
+the back end's invariants hold of its traced expansion (`Backend.invariants`); and the sizes of
+the compiled programs are pinned. That each is the Rust compiler's program, instruction for
+instruction and hint for hint, is the Rust test `crates/zkdsl_compiler/tests/suite/lean_backend.rs`
+on the exports `lake exe guest-backend export programs` writes; the whole guest is
+`lake exe guest-backend check`.
 -/
 
 open LeanVM.Guest LeanVM.Guest.Backend LeanVM.Semantics
 
 namespace LeanVMTests.Guest.Backend
 
-/-- The traced expansion is `Expand`'s and the back end's invariants hold. -/
+/-- The back end's invariants hold of the traced expansion. -/
 def checksPass (p : Source.Program) : Bool :=
-  match ExpandTrace.expandProgram p, Expand.expandProgram p with
-  | .ok traced, .ok core =>
-      sameCore traced core &&
-        match invariants traced with
-        | .ok checks => checks.all (·.2)
-        | .error _ => false
-  | _, _ => false
+  match Expand.expandProgramTraced p with
+  | .ok traced =>
+      match invariants traced with
+      | .ok checks => checks.all (·.2)
+      | .error _ => false
+  | .error _ => false
 
 #guard LeanVMTests.Guest.Programs.all.all fun t => checksPass t.program
 

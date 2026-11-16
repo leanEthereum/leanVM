@@ -18,9 +18,9 @@ emitted (`cur_line`, `lower.rs`; `CompiledProgram::src_lines`), so a failed `ass
 line. The back end's passes carry no lines, and adding them would change the definitions its
 proofs and its kernel-checked pieces are about, so the lines come from a pass of their own.
 
-* The traced expansion records, with each statement it begins (`stmtKind`, where the Rust
-  `stmt` sets `cur_line`), the length of the trace so far (`ExpandTrace.expandProgramLines`): so
-  each event of the trace has a line, that of the statement begun last before it.
+* The expansion records, with each statement it begins (`stmtKind`, where the Rust `stmt` sets
+  `cur_line`), the length of the trace so far (`Expand.expandProgramLines`): so each event of the
+  trace has a line, that of the statement begun last before it.
 * `placeBlockL` walks a function as `Place.placeBlock` does, calling Place's own steps for
   everything but the statements that hold blocks (a branch, a `match`), whose walks it repeats,
   and gives each placed statement the line of an event (`LTree`): a statement the line of its
@@ -287,9 +287,9 @@ def placeFnsL (loops : Loops) (sigs : SMap (Nat × Nat)) :
 the padding, `0` for the jump tables. Fails when the walk here placed a function otherwise than
 `Backend.compile`. -/
 def compileLines (p : Source.Program) : Except String (Assembled × Array Nat) := do
-  let c ← Backend.compile p
-  let fns ← ExpandTrace.expandProgramLines p
+  let fns ← Expand.expandProgramLines p
   let traced := fns.map (·.1)
+  let c ← compileTraced traced
   let (placed, tables) ← placeFnsL (loopTable traced) (sigTable traced) fns {}
   let pfs := placed.map (·.1)
   let slots := tableSlots tables.len (fillsOf pfs).toArray tables.entries

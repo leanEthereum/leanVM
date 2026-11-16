@@ -8,7 +8,6 @@
 module
 
 public import LeanVM.Guest.Expand
-public import LeanVM.Guest.Backend.ExpandTrace
 public import LeanVM.Guest.Backend.Place
 public import LeanVM.Guest.Backend.Assemble
 
@@ -17,11 +16,11 @@ public import LeanVM.Guest.Backend.Assemble
 
 `compile` is `zkdsl_compiler::compile` (`crates/zkdsl_compiler/src/lib.rs`) as four functions:
 
-    Source.Program ─ExpandTrace.expandProgram→ List TracedFn ─placeProgram→ List PFn
+    Source.Program ─Expand.expandProgramTraced→ List TracedFn ─placeProgram→ List PFn
       ─emitFn→ List Lowered, jump table slots ─assemble→ Assembled
 
-The first is the front end, `Expand.expandProgram`, recording its allocation trace
-(`TraceFaithful`); the other three are the back end, `compileTraced`.
+The first is the front end, `Expand`, with the allocation trace it records; the other three are
+the back end, `compileTraced`.
 `cli/GuestBackend.lean` runs it compiled on the guest's source and compares the result with
 `Statement/Data/`, instruction for instruction.
 -/
@@ -57,13 +56,7 @@ def compileTraced (p : List TracedFn) : Except String Assembled := do
 
 /-- The compiler: a zkDSL program to its assembled program. -/
 def compile (p : Source.Program) : Except String Assembled := do
-  compileTraced (← ExpandTrace.expandProgram p)
-
-/-- The traced expansion's core functions are the expansion's: the back end compiles the core IR
-`Expand.expandProgram` gives. `guest-backend check` tests it on the guest. -/
-def TraceFaithful : Prop :=
-  ∀ p : Source.Program,
-    (ExpandTrace.expandProgram p).map (·.map (·.core)) = Expand.expandProgram p
+  compileTraced (← Expand.expandProgramTraced p)
 
 end
 end LeanVM.Guest.Backend

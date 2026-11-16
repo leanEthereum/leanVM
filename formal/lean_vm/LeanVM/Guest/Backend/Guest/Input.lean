@@ -64,14 +64,10 @@ def orThrow {α : Type} : Except String α → IO α
   | .ok a => pure a
   | .error e => throw (IO.userError e)
 
-/-- The traced input: the traced expansion renamed, after checking that its core functions are
-`Expand`'s, renumbered as `guest-core` writes them. -/
+/-- The traced input: the traced expansion renamed. Its core functions are `Expand.expandProgram`'s,
+the same pass, renumbered as `guest-core` writes them. -/
 def input : IO (List TracedFn) := do
-  let P ← orThrow (ExpandTrace.expandProgram Data.guest)
-  let core ← orThrow (Expand.expandProgram Data.guest)
-  unless P.map (·.core) == core do
-    throw (IO.userError "the traced expansion's core functions are not Expand's")
-  return renamed P
+  return renamed (← orThrow (Expand.expandProgramTraced Data.guest))
 
 end
 end LeanVM.Guest.Backend.GuestInput

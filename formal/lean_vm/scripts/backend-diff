@@ -4,26 +4,24 @@
 #
 #   scripts/backend-diff
 #
-# 1. `scripts/expand-trace --check`: the traced expansion is `Expand.lean` with its recorded edits.
-# 2. `lake exe guest-backend check`: the guest's source, through `Expand` and the back end, is the
-#    statement's program (`Data.functions`, and every slot of `assemble Data.functions`); the back
-#    end's invariants hold of it, and the traced expansion's core functions are `Expand`'s.
-# 3. `lake exe guest-backend export programs … --check`: the test programs' checked-in exports
+# 1. `lake exe guest-backend check`: the guest's source, through `Expand` and the back end, is the
+#    statement's program (`Data.functions`, and every slot of `assemble Data.functions`), and the
+#    back end's invariants hold of it.
+# 2. `lake exe guest-backend export programs … --check`: the test programs' checked-in exports
 #    (`crates/zkdsl_compiler/tests/suite/lean_backend/`) are current; `lake exe guest-traced --check`:
 #    the guest's traced input (`Backend/Guest/`) is current, and the back end compiles it to the
 #    statement's program; `lake exe guest-pieces --check` and `test --check`: the kernel's checks of
 #    the guest's compilation (`Backend/Guest/Piece/`, `Compiled.lean`) and of a test program are
 #    current, each evaluated natively.
-# 4. `scripts/guest-artifact --check`: the compiled guest the Rust prover loads
+# 3. `scripts/guest-artifact --check`: the compiled guest the Rust prover loads
 #    (`guests/lean_ethereum.compiled`) is the back end's output at the fixed point.
-# 5. `cargo test -p zkdsl_compiler --test suite lean_backend`: each test program is the Rust
+# 4. `cargo test -p zkdsl_compiler --test suite lean_backend`: each test program is the Rust
 #    compiler's program, hints included, and runs on the Rust VM; `aggregation`'s
 #    `the_artefact_is_the_rust_compilers_guest`: the compiled guest is the Rust compiler's at its
 #    size, bytecode, hints, `main` frame and function ranges.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-python3 -I scripts/expand-trace --check
 lake build guest-backend
 lake exe guest-backend check
 lake exe guest-backend export programs ../../crates/zkdsl_compiler/tests/suite/lean_backend --check
