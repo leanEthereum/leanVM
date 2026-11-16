@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Guest.Source
 public import LeanVM.Guest.Core
+public import LeanVM.Guest.Backend.Trace
 
 /-!
 # Expansion
@@ -62,12 +63,20 @@ message cells are used in place (`sponge_run`) only when they are one run of the
 (`V.adjacent`), where the compiler also uses four cells that its allocator happened to place one
 after another (the guest's `fs_perm_pending`, four loads in a row): there the expansion copies
 them into a fresh run, and the placement puts each copy in the cell it copies.
+
+The expansion also records what the back end needs and the core IR does not keep: the allocation
+trace (`Backend.Event`, `Backend/Trace.lean`), each value made with its `Kind`, each statement
+emitted, each branch and arm entered and left, and what the core IR drops (an address used as a
+value, an address shifted, a chained `match`, a hint's offset); and beside it the source line of
+each statement begun (`St.lines`). Neither is read to decide a statement: `expandProgramTraced` is
+the back end's input, and `expandProgram`, its core functions, the same pass.
 -/
 
 namespace LeanVM.Guest.Expand
 
 open LeanVM.Parameters LeanVM.Guest.Source
 open LeanVM.Guest.Core (V Seg Atom Hint Dest)
+open LeanVM.Guest.Backend (Kind Event)
 
 @[expose] public section
 
@@ -166,6 +175,10 @@ structure St where
   /-- Every function queued so far, originals first. -/
   queue : Array Func
   loopCtr : Nat
+  /-- The allocation trace. -/
+  trace : Array Event := #[]
+  /-- The source lines: `(n, line)`, the statement at `line` begun when the trace held `n` events. -/
+  lines : Array (Nat × Nat) := #[]
   deriving Inhabited
 
 /-- The lowering monad. -/
@@ -181,31 +194,38 @@ def fail {α : Type} (msg : String) : M α := do
 def ctx : M Ctx := return (← get).ctx
 
 /-- A fresh value at the current position. -/
-def fresh : M V := do
+def fresh (kind : Kind := .cell) : M V := do
   let st ← get
-  set { st with tag := st.tag + 1 }
+  set { st with tag := st.tag + 1, trace := st.trace.push (.alloc [⟨st.path, st.tag, 0⟩] kind) }
   return ⟨st.path, st.tag, 0⟩
 
 /-- `n` fresh consecutive cells (`alloc_stack`). -/
-def freshRun (n : Nat) : M (List V) := do
+def freshRun (n : Nat) (kind : Kind := .cell) : M (List V) := do
   let st ← get
-  set { st with tag := st.tag + 1 }
+  set { st with
+    tag := st.tag + 1
+    trace := st.trace.push (.alloc ((List.range n).map fun k => ⟨st.path, st.tag, k⟩) kind) }
   return (List.range n).map fun k => ⟨st.path, st.tag, k⟩
 
 /-- Emit a statement: it carries instructions, so a pending hint fires on it. -/
 def emit (s : Core.Stmt) : M Unit :=
-  modify fun st => { st with out := st.out.push s, pending := false }
+  modify fun st => { st with out := st.out.push s, pending := false, trace := st.trace.push .emit }
 
 /-- Emit an atom. -/
 def emitAtom (a : Atom) : M Unit := emit (.atom a)
 
 /-- Emit a hint, pending until the next instruction. -/
 def emitHint (h : Hint) : M Unit :=
-  modify fun st => { st with out := st.out.push (.atom (.hint h)), pending := true }
+  modify fun st => { st with out := st.out.push (.atom (.hint h)), pending := true,
+                             trace := st.trace.push .emit }
 
 /-- Emit an `addr`, which is no instruction of its own. -/
 def emitFrameAddr (p : V) (run : List V) : M Unit :=
-  modify fun st => { st with out := st.out.push (.atom (.frameAddr p run)) }
+  modify fun st => { st with out := st.out.push (.atom (.frameAddr p run)), trace := st.trace.push .emit }
+
+/-- Record a step of the expansion. -/
+def logEvent (e : Event) : M Unit :=
+  modify fun st => { st with trace := st.trace.push e }
 
 /-- Run `m` at the position `seg` below the current one. -/
 def withSeg {α : Type} (seg : Seg) (m : M α) : M α := do
@@ -479,20 +499,20 @@ def hasConst (c : E) : M Bool := return (← get).consts.contains c
 
 /-- A fresh value holding `c` (`const_cell`). -/
 def constCell (c : E) : M V := do
-  let o ← fresh
+  let o ← fresh .pooled
   emitAtom (.const o c)
   poolConst c
   return o
 
 /-- A pure `XOR` or `MUL` into a fresh value (`pure`). -/
 def pureAdd (a b : V) : M V := do
-  let o ← fresh
+  let o ← fresh .pooled
   emitAtom (.add o a b)
   return o
 
 /-- `pure` for `MUL`. -/
 def pureMul (a b : V) : M V := do
-  let o ← fresh
+  let o ← fresh .pooled
   emitAtom (.mul o a b)
   return o
 
@@ -515,14 +535,17 @@ from `c` and `g^exp` (`mem.rs`, `materialize`). The compiler hands a second mate
 the same `c·g^exp` the first's cell; here it is the first's atoms again, on fresh values. -/
 def materialize (ga : GAddr) : M V := do
   match ga.base, ga.exp with
-  | some c, 0 => return c
+  | some c, 0 => do
+      logEvent (.use c)
+      return c
   | none, exp => constCell (gpowE exp)
   | some c, exp => do
       -- An `addr` pointer shifted: the compiler's base is its own frame pointer and the run's
       -- offset (`stack_addr`), which this expansion does not place, so the shifted pointer is the
       -- `addr` of the run from cell `exp` on.
       if let some (_, cells) := (← get).addrRuns.find? (·.1 == c) then
-        let p ← fresh
+        logEvent (.shift c exp)
+        let p ← fresh .pooled
         emitFrameAddr p (cells.drop exp)
         return p
       let mats ← matsOf c
@@ -560,7 +583,7 @@ def stackAddr (args : List Expr) : M GAddr := do
   match ← stackOf a with
   | none => fail "addr() names a frame run, so it takes a StackBuf"
   | some cells => do
-      let p ← fresh
+      let p ← fresh .addr
       emitFrameAddr p cells
       modify fun st => { st with addrRuns := (p, cells) :: st.addrRuns }
       return ⟨some p, 0, some cells.length⟩
@@ -733,7 +756,7 @@ def isRun : List V → Bool
 ending at a cell boundary its window from `0`. -/
 def keccakPadRun : M (List V) := do
   if let some o := (← get).keccakPad then return o
-  let o ← freshRun 5
+  let o ← freshRun 5 .padRun
   for (v, k) in o.zipIdx do
     emitAtom (.const v (if k = 0 then keccakPadValue else 0))
     poolConst (if k = 0 then keccakPadValue else 0)
@@ -778,7 +801,7 @@ def spongeRun (cells : List SpongeCell) : M (List V) := do
   if cells.all (·.isZero) then return (← keccakPadRun).drop 1
   if let .const c :: rest := cells then
     if c == keccakPadValue && rest.all (·.isZero) then return (← keccakPadRun).take 4
-  let t ← freshRun cells.length
+  let t ← freshRun cells.length .spongeRun
   for (c, d) in cells.zip t do
     match c with
     | .zero => emitAtom (.const d 0)
@@ -980,7 +1003,7 @@ def expr : Nat → Expr → M V
     | .index arr idx => do
         if let some c ← frameCell arr idx then return c
         let (ptr, o2) ← heapAddr n arr idx
-        let dst ← fresh
+        let dst ← fresh .pooled
         emitAtom (.load dst ptr o2)
         return dst
     | .sub .. | .div .. | .mod .. => fail "`-`, `//`, `%` are compile-time only"
@@ -1240,8 +1263,10 @@ def tryInline : Nat → String → List Expr → List V → M Bool
       modify fun st => { st with names := (p, ⟨b, none⟩) :: st.names.filter (·.1 != p) }
     let savedRet := (← get).inlineRet
     modify fun st => { st with inlineRet := some dsts, inlineCalls := callee :: st.inlineCalls }
-    let site ← fresh
+    let site ← fresh .site
+    let savedLine := ((← get).lines.back?.map (·.2)).getD 0
     withSeg (.i callee site.tag) (stmts n body)
+    modify fun st => { st with lines := st.lines.push (st.trace.size, savedLine) }
     modify fun st => { st with inlineRet := savedRet, names := saved,
                                inlineCalls := st.inlineCalls.drop 1 }
     return true
@@ -1268,7 +1293,7 @@ def lowerReturn : Nat → List Expr → M Unit
     if c.isMain then return
     if es.length != c.returnShapes.length then
       fail s!"function returns {es.length} values here, but its ABI declares {c.returnShapes.length}"
-    let rets ← freshRun (c.returnShapes.map Shape.cells).sum
+    let rets ← freshRun (c.returnShapes.map Shape.cells).sum .ret
     let mut pos := 0
     for (e, shape) in es.zip c.returnShapes do
       match shape with
@@ -1288,9 +1313,11 @@ def branch : Nat → Seg → List Source.Stmt → M (List Core.Stmt)
     let saved := (← get).names
     let pad := (← get).keccakPad
     let (consts, mats) := ((← get).consts, (← get).mats)
+    logEvent .enter
     let ((), _, blk) ← capture <| withSeg seg do
       stmts n body
       if (← get).pending then anchor
+    logEvent .leave
     modify fun st => { st with names := saved, keccakPad := pad, consts, mats }
     return blk
 
@@ -1356,7 +1383,7 @@ def lowerAssertLt : Nat → Expr → LtBound → M Unit
           | _ => do
               let bcell ← expr n b
               let inv ← constCell (ofK gInv)
-              let c ← fresh
+              let c ← fresh .pooled
               emitAtom (.mul c bcell inv)
               pure c
     let x ← expr n e
@@ -1397,6 +1424,7 @@ def lowerMatch : Nat → List Expr → Expr → List Expr → M Unit
       | some c => pure c
       | none => expr n x
     let (rcells, binds) ← retTargets targets
+    if chainNext.isSome then logEvent .chain
     -- Arms that are all `@inline` calls: the padding run and a two-to-one hash's closing lane
     -- are set once above the dispatch (`lower_match`), unless the match is entered.
     if chainIn.isNone && (← arms.allM isInlineArm) then
@@ -1407,6 +1435,7 @@ def lowerMatch : Nat → List Expr → Expr → List Expr → M Unit
       let saved := (← get).names
       let pad := (← get).keccakPad
       let (consts, mats) := ((← get).consts, (← get).mats)
+      logEvent .enter
       let ((), _, blk) ← capture do
         withSeg (.a j) do
           match rcells with
@@ -1428,6 +1457,7 @@ def lowerMatch : Nat → List Expr → Expr → List Expr → M Unit
                       copy c rc
                   | .scalar => pure ()
           if (← get).pending then anchor
+      logEvent .leave
       modify fun st => { st with names := saved, keccakPad := pad, consts, mats }
       blocks := blocks.push blk
     emit (.match_ xo blocks.toList)
@@ -1543,6 +1573,7 @@ def lowerBuiltin : Nat → String → List Expr → M Bool
         let dest : Dest := match dest with
           | .stack cells => .stack (cells.drop skip)
           | .heap p off len => .heap p (off + skip) (len - skip)
+        logEvent (.note skip)
         emitHint (.windowsExp value start width count dest)
         return true
     | "hint_decompose_digits_exponent" => do
@@ -1771,6 +1802,7 @@ def lowerHintWitness : Nat → Expr → String → M Unit
 def stmtKind : Nat → Nat → StmtKind → M Unit
   | 0, _, _ => fail "expansion fuel exhausted"
   | n + 1, line, k => do
+    modify fun st => { st with lines := st.lines.push (st.trace.size, line) }
     match k with
     | .let_ name e => do
         match e with
@@ -1921,11 +1953,11 @@ def lowerFunc (f : Func) : M Unit := do
 every function queued before (it decides which specializations are new) and `loopBase` the
 number of loops lowered before. -/
 def expandFn (p : Program) (f : Func) (queue : Array Func := #[]) (loopBase : Nat := 0) :
-    Except String (Core.Fn × Array Func × Nat) := do
+    Except String (Core.Fn × Array Func × Nat × Array Event × Array (Nat × Nat)) := do
   if let some q := f.params.find? (fun q => p.constArrays.any (·.1 == q.name)) then
     throw s!"`{f.name}`: parameter `{q.name}` collides with a top-level constant array"
   let ((), st) ← (lowerFunc f).run (initState p f queue loopBase)
-  return (⟨f.name, (paramBindings f).2, st.out.toList⟩, st.queue, st.loopCtr)
+  return (⟨f.name, (paramBindings f).2, st.out.toList⟩, st.queue, st.loopCtr, st.trace, st.lines)
 
 /-- The specialization of `f` at these `Const` arguments, as the compiler queues it. -/
 def specializeFn (f : Func) (constArgs : List Expr) : Except String Func := do
@@ -1935,9 +1967,11 @@ def specializeFn (f : Func) (constArgs : List Expr) : Except String Func := do
   return { name := specName f.name substs, params := f.params.filter (·.kind != .const),
            returnShapes := f.returnShapes, body := substBody f.body substs, inline := false }
 
-/-- The compiler's queue (`compile`), at most `fuel` functions. -/
-def expandQueue (p : Program) : Nat → Nat → Array Func → Nat → Array Core.Fn →
-    Except String (Array Core.Fn)
+/-- The compiler's queue (`compile`), at most `fuel` functions, each with its trace and its source
+lines. -/
+def expandQueue (p : Program) : Nat → Nat → Array Func → Nat →
+    Array (Backend.TracedFn × Array (Nat × Nat)) →
+    Except String (Array (Backend.TracedFn × Array (Nat × Nat)))
   | 0, _, _, _, _ => throw "too many functions"
   | budget + 1, i, queue, loopCtr, out =>
       match queue[i]? with
@@ -1945,16 +1979,28 @@ def expandQueue (p : Program) : Nat → Nat → Array Func → Nat → Array Cor
       | some f =>
           if f.hasConstParams || f.inline then expandQueue p budget (i + 1) queue loopCtr out
           else do
-            let (fn, queue, loopCtr) ← expandFn p f queue loopCtr
-            expandQueue p budget (i + 1) queue loopCtr (out.push fn)
+            let (fn, queue, loopCtr, trace, lines) ← expandFn p f queue loopCtr
+            expandQueue p budget (i + 1) queue loopCtr (out.push
+              (⟨fn, trace, (f.returnShapes.map Shape.cells).sum, Backend.loopSource f⟩, lines))
 
-/-- Every function the compiler lowers, in its order: `main` first. -/
-def expandProgram (p : Program) : Except String Core.Program := do
+/-- Every function the compiler lowers, in its order, `main` first: its core function, its trace
+and what the back end reads of its source as queued (`Backend.TracedFn`), and the source lines
+(`St.lines`), which only the line pass reads (`Backend.Lines`). -/
+def expandProgramLines (p : Program) :
+    Except String (List (Backend.TracedFn × Array (Nat × Nat))) := do
   let some main := p.funcs.find? (·.name == "main") | throw "program needs a `main`"
   if main.hasConstParams then throw "main cannot take Const parameters"
   if main.inline then throw "main cannot be `@inline`"
   let queue := #[main] ++ (p.funcs.filter (·.name != "main")).toArray
   return (← expandQueue p 1000000 0 queue 0 #[]).toList
+
+/-- Every function the compiler lowers, in its order, with its trace: the back end's input. -/
+def expandProgramTraced (p : Program) : Except String (List Backend.TracedFn) :=
+  (expandProgramLines p).map (·.map (·.1))
+
+/-- Every function the compiler lowers, in its order: `main` first. -/
+def expandProgram (p : Program) : Except String Core.Program :=
+  (expandProgramTraced p).map (·.map (·.core))
 
 end
 end LeanVM.Guest.Expand
