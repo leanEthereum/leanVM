@@ -112,6 +112,7 @@ import Quantum.Sphincs.Hybrid.Seed
 import Quantum.Sphincs.Hybrid.Disclose
 import Quantum.Sphincs.Classify
 import Quantum.Sphincs.Assembly.Template.Exempt
+import Quantum.Sphincs.Hybrid.RStage
 
 /-! Security against quantum adversaries in the quantum random-permutation model (`Quantum.Model`),
 on VCVio's quantum oracle programs (`VCVio.Quantum`): the sponge's collision and preimage
