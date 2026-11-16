@@ -10,11 +10,9 @@ public import Quantum.Sphincs.Assembly.ReparamFull.Coords
 What the stages of `Quantum.Sphincs.Assembly.ReparamFull.Coords` do, in the projections later
 proofs read.
 
-* **The fix-ups** (`dHiE_spec`, `rHiE_spec`, `sHiE_spec`): each replaces `h` and its slots; the
-  slots keep their first `256` bits; at a fixed capacity the new `h` value has the bits from `256`
-  on of the slot plus the shift; elsewhere `h` is kept. `dUndo_setHC`: undoing the digest stage's
-  `k`- and `k'`-stages after its `h`-stage and the digest fix leaves the coordinates before the
-  digest stage with the new `h` and digest slots.
+* **The fix-ups** (`rHiE_spec`, `sHiE_spec`): each replaces `h` and its slots; the slots keep
+  their first `256` bits; at a fixed capacity the new `h` value has the bits from `256` on of the
+  slot plus the shift; elsewhere `h` is kept.
 * **SchemeSplit's slots** (`skSlotsX_schemeSplit`): when the hidden capacities are distinct, the
   slot of each `SK.seed`-keyed path is its rate plus the table's `h` at its capacity.
 -/
@@ -24,40 +22,19 @@ open HashSig (Digest HashOutput Message PublicParameter Randomizer MasterSeed tr
 open Quantum.Xmss (X Z out256 trunc128)
 open Common.SufCma (SchemeHashSpec)
 open Quantum.Xmss.Hybrid (CoinSlots IsFirst capOf rateOf xch xch_snd_mk)
-open Quantum.Sphincs.Hybrid (DSt DTab DF PubSlots Secret SeedKS SkIdx Tab dLabOrd DLab rOrd pStageK
-  rCell dLabCell dLabMsg dSplit dPre dGood mem_dGood rGood mem_rGood rSplit rSplit_keys_eq
+open Quantum.Sphincs.Hybrid (DSt DTab DF PubSlots Secret SeedKS SkIdx Tab DLab rOrd
+  rCell dPre dGood mem_dGood rGood mem_rGood rSplit rSplit_keys_eq
   pCellK_rSplit pCellH_rSplit pCellK' rCellK rCellK' rCellH cellP rSplit_slots rSplit_snd
   rSplit_perm rSplit_coords rCell_injective skCell_ne_rCell schemeSplit_keys_snd
-  pStageK' pStageHOn skCell posOf schemeSplit schemeSplit_of_injective posOf_schemeSplit
+  skCell posOf schemeSplit schemeSplit_of_injective posOf_schemeSplit
   schemeSplit_transfer pubParam pCellH pCellK slot0 slot1 capR capP posB shB wB hA out256_slot0
-  skCell_none skCell_some_none skCell_some_some prfKeyCell pubSeedCell secretCell pStages_spec
-  dSplit_apply dCellP_injective dLabCell_injective rB mem_rB)
+  skCell_none skCell_some_none skCell_some_some prfKeyCell pubSeedCell secretCell rB mem_rB)
 
 namespace Quantum.Sphincs.Assembly
 
 /-! ## The fix-ups -/
 
 section fixes
-
-/-- The digest labels' rates read off the coordinates. -/
-def dShY (y : DS) (a : DLab) : X :=
-  (y.1.1.1.2 (pCellK dcP y a, y.1.2.1 a)).1
-
-/-- **The digest fix**: `h` and the digest slots replaced; the slots keep their first `256` bits;
-at the first labels' capacities `h` takes the bits from `256` on of the slot plus the rate. -/
-theorem dHiE_spec (y : DS) :
-    ∃ (h' : Z → X) (hc' : DLab → X), dHiE y = setHC y h' hc' ∧
-      (∀ a, out256 (hc' a) = out256 (y.1.2.2.2 a)) ∧
-      (∀ a, IsFirst dLabOrd (pCellH dcP y) a →
-        h' (pCellH dcP y a) = hiMix (y.1.1.1.1.1 (pCellH dcP y a)) (y.1.2.2.2 a + dShY y a)) ∧
-      ∀ z, (∀ a, IsFirst dLabOrd (pCellH dcP y) a → pCellH dcP y a ≠ z) →
-        h' z = y.1.1.1.1.1 z := by
-  obtain ⟨h', u', he, h1, h2, -, h4⟩ := hiStageOn_spec dFW dPosW dShW dFW_inj y.1.1.1.1.1
-    y.1.2.2.2 (dView y).2
-  refine ⟨h', u', ?_, h1, fun a ha ↦ (h2 a ha).2, h4⟩
-  show dView.symm (hiStageOn dFW dPosW dShW dFW_inj ((y.1.1.1.1.1, y.1.2.2.2), (dView y).2)) = _
-  rw [he]
-  rfl
 
 /-- `h` and the randomizer slots replaced. -/
 def setHR (y : DS) (h : Z → X) (rhc : Message → X) : DS :=
@@ -145,26 +122,6 @@ theorem setHS_prf (y : DS) (h : Z → X) (sl : SkIdx → X) :
     (setHS y h sl).2.2.2 = out256 (sl none) :=
   rfl
 
-/-- **Undoing the digest stage's `k`- and `k'`-stages** after its `h`-stage. -/
-theorem dUndo_setHC (y : DS) (h : Z → X) (hc : DLab → X) :
-    dUndo (setHC (pStageK' dcP (pStageK dcP y)) h hc) = setHC y h hc := by
-  refine (Equiv.symm_apply_eq _).mpr ?_
-  rw [Equiv.trans_apply, pStageK_setHC, pStageK'_setHC]
-
-/-- The digest stage is its `k`- and `k'`-stages with new `h` and digest slots. -/
-theorem dSplit_eq_setHC (θ : DTab Message DLab) :
-    dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ =
-      setHC (pStageK' dcP (pStageK dcP (dPre rCell rOrd θ)))
-        (dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ).1.1.1.1.1
-        (dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ).1.2.2.2 := by
-  obtain ⟨h, hc, he⟩ := pStageHOn_exists_setHC dcP dLabOrd
-    (pStageK' dcP (pStageK dcP (dPre rCell rOrd θ)))
-  have e : dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ =
-      pStageHOn dcP dLabOrd (pStageK' dcP (pStageK dcP (dPre rCell rOrd θ))) :=
-    rfl
-  rw [e, he]
-  rfl
-
 end fixes
 
 /-! ## SchemeSplit's slots -/
@@ -228,49 +185,32 @@ end scheme
 
 section composite
 
-/-- **The stages after the digest stage, in coordinates**: `dFull` is the coordinates before the
-digest stage with new `h` and digest slots (digest fix and undoing), then new `h` and randomizer
-slots (randomizer fix), then new `h` and SchemeSplit's slots (scheme fix). -/
+/-- **The stages before Reparam, in coordinates**: `dFull` is the coordinates before the digest
+stage with new `h` and randomizer slots (randomizer fix), then new `h` and SchemeSplit's slots
+(scheme fix). -/
 theorem dFull_eq (θ : DTab Message DLab) :
-    ∃ (h₃ : Z → X) (hc₃ : DLab → X) (h₅ : Z → X) (rhc₅ : Message → X) (h₆ : Z → X)
-      (sl₆ : SkIdx → X),
-      dFull θ = setHS (setHR (setHC (dPre rCell rOrd θ) h₃ hc₃) h₅ rhc₅) h₆ sl₆ ∧
-      (∀ a, out256 (hc₃ a) = out256 ((dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ).1.2.2.2 a)) ∧
-      (∀ a, IsFirst dLabOrd (pCellH dcP (dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ)) a →
-        h₃ (pCellH dcP (dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ) a) =
-          hiMix ((dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ).1.1.1.1.1
-            (pCellH dcP (dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ) a))
-            ((dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ).1.2.2.2 a +
-              dShY (dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ) a)) ∧
-      (∀ z, (∀ a, IsFirst dLabOrd (pCellH dcP (dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ)) a →
-          pCellH dcP (dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ) a ≠ z) →
-        h₃ z = (dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ).1.1.1.1.1 z) ∧
+    ∃ (h₅ : Z → X) (rhc₅ : Message → X) (h₆ : Z → X) (sl₆ : SkIdx → X),
+      dFull θ = setHS (setHR (dPre rCell rOrd θ) h₅ rhc₅) h₆ sl₆ ∧
       (∀ M, out256 (rhc₅ M) = out256 ((dPre rCell rOrd θ).2.1.2.2 M)) ∧
-      (∀ M, IsFirst rOrd (rPosY (setHC (dPre rCell rOrd θ) h₃ hc₃)) M →
-        h₅ (rPosY (setHC (dPre rCell rOrd θ) h₃ hc₃) M) =
-          hiMix (h₃ (rPosY (setHC (dPre rCell rOrd θ) h₃ hc₃) M))
-            ((dPre rCell rOrd θ).2.1.2.2 M + rShY (setHC (dPre rCell rOrd θ) h₃ hc₃) M)) ∧
-      (∀ z, (∀ M, IsFirst rOrd (rPosY (setHC (dPre rCell rOrd θ) h₃ hc₃)) M →
-          rPosY (setHC (dPre rCell rOrd θ) h₃ hc₃) M ≠ z) → h₅ z = h₃ z) ∧
-      (∀ a, out256 (sl₆ a) =
-        out256 (skSlots (setHR (setHC (dPre rCell rOrd θ) h₃ hc₃) h₅ rhc₅) a)) ∧
-      (Function.Injective (sPosY (setHR (setHC (dPre rCell rOrd θ) h₃ hc₃) h₅ rhc₅)) → ∀ a,
-        h₆ (sPosY (setHR (setHC (dPre rCell rOrd θ) h₃ hc₃) h₅ rhc₅) a) =
-          hiMix (h₅ (sPosY (setHR (setHC (dPre rCell rOrd θ) h₃ hc₃) h₅ rhc₅) a))
-            (skSlots (setHR (setHC (dPre rCell rOrd θ) h₃ hc₃) h₅ rhc₅) a +
-              sShY (setHR (setHC (dPre rCell rOrd θ) h₃ hc₃) h₅ rhc₅) a)) ∧
-      ∀ z, (Function.Injective (sPosY (setHR (setHC (dPre rCell rOrd θ) h₃ hc₃) h₅ rhc₅)) →
-          ∀ a, sPosY (setHR (setHC (dPre rCell rOrd θ) h₃ hc₃) h₅ rhc₅) a ≠ z) → h₆ z = h₅ z := by
-  obtain ⟨h₃, hc₃, e3, f31, f32, f33⟩ := dHiE_spec (dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ)
-  have e4 : dUndo (dHiE (dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ)) =
-      setHC (dPre rCell rOrd θ) h₃ hc₃ := by
-    rw [e3, dSplit_eq_setHC, setHC_setHC, dUndo_setHC]
-  obtain ⟨h₅, rhc₅, e5, f51, f52, f53⟩ := rHiE_spec (setHC (dPre rCell rOrd θ) h₃ hc₃)
-  obtain ⟨h₆, sl₆, e6, f61, f62, f63⟩ :=
-    sHiE_spec (setHR (setHC (dPre rCell rOrd θ) h₃ hc₃) h₅ rhc₅)
-  refine ⟨h₃, hc₃, h₅, rhc₅, h₆, sl₆, ?_, f31, f32, f33, f51, f52, f53, f61, f62, f63⟩
-  show sHiE (rHiE (dUndo (dHiE (dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ)))) = _
-  rw [e4, e5, e6]
+      (∀ M, IsFirst rOrd (rPosY (dPre rCell rOrd θ)) M →
+        h₅ (rPosY (dPre rCell rOrd θ) M) =
+          hiMix ((dPre rCell rOrd θ).1.1.1.1.1 (rPosY (dPre rCell rOrd θ) M))
+            ((dPre rCell rOrd θ).2.1.2.2 M + rShY (dPre rCell rOrd θ) M)) ∧
+      (∀ z, (∀ M, IsFirst rOrd (rPosY (dPre rCell rOrd θ)) M →
+          rPosY (dPre rCell rOrd θ) M ≠ z) → h₅ z = (dPre rCell rOrd θ).1.1.1.1.1 z) ∧
+      (∀ a, out256 (sl₆ a) = out256 (skSlots (setHR (dPre rCell rOrd θ) h₅ rhc₅) a)) ∧
+      (Function.Injective (sPosY (setHR (dPre rCell rOrd θ) h₅ rhc₅)) → ∀ a,
+        h₆ (sPosY (setHR (dPre rCell rOrd θ) h₅ rhc₅) a) =
+          hiMix (h₅ (sPosY (setHR (dPre rCell rOrd θ) h₅ rhc₅) a))
+            (skSlots (setHR (dPre rCell rOrd θ) h₅ rhc₅) a +
+              sShY (setHR (dPre rCell rOrd θ) h₅ rhc₅) a)) ∧
+      ∀ z, (Function.Injective (sPosY (setHR (dPre rCell rOrd θ) h₅ rhc₅)) →
+          ∀ a, sPosY (setHR (dPre rCell rOrd θ) h₅ rhc₅) a ≠ z) → h₆ z = h₅ z := by
+  obtain ⟨h₅, rhc₅, e5, f51, f52, f53⟩ := rHiE_spec (dPre rCell rOrd θ)
+  obtain ⟨h₆, sl₆, e6, f61, f62, f63⟩ := sHiE_spec (setHR (dPre rCell rOrd θ) h₅ rhc₅)
+  refine ⟨h₅, rhc₅, h₆, sl₆, ?_, f51, f52, f53, f61, f62, f63⟩
+  show sHiE (rHiE (dPre rCell rOrd θ)) = _
+  rw [e5, e6]
 
 end composite
 
@@ -320,19 +260,6 @@ theorem dPre_secret (θ : DTab Message DLab) :
 
 end proj
 
-/-! ## The digest stage's capacities -/
-
-/-- The digest labels' capacities before the digest stage (at the randomizer stage's keys). -/
-noncomputable def capD (θ : DTab Message DLab) (a : DLab) : Z :=
-  capOf (rSplit rCell rOrd θ.1).1.1.1.1.2.1 (rSplit rCell rOrd θ.1).1.1.1.1.2.2
-    (rSplit rCell rOrd θ.1).1.1.1.2
-    (dcP (rSplit rCell rOrd θ.1).1.1.2 ((rSplit rCell rOrd θ.1).1.2, (rSplit rCell rOrd θ.1).2) a)
-
-/-- The digest labels' rates before the digest stage. -/
-noncomputable def rateD (θ : DTab Message DLab) (a : DLab) : X :=
-  rateOf (rSplit rCell rOrd θ.1).1.1.1.1.2.1 (rSplit rCell rOrd θ.1).1.1.1.2
-    (dcP (rSplit rCell rOrd θ.1).1.1.2 ((rSplit rCell rOrd θ.1).1.2, (rSplit rCell rOrd θ.1).2) a)
-
 /-! ## The stages on the good set -/
 
 section good
@@ -348,12 +275,12 @@ theorem add_add_cancel_X (r w : X) : r + w + r = w := by
 
 variable {ι : Type} {β : ι → Type}
   {Q : ∀ i, PublicParameter → (KeygenDomain → HashOutput) → OracleComp SchemeHashSpec (β i)}
-  {θ : DTab Message DLab} (hθ : θ ∈ dGood rCell rOrd dLabCell dLabMsg dLabOrd Q)
+  {θ : DTab Message DLab} (hθ : θ ∈ dGood (J := DLab) rCell rOrd Q)
 
 include hθ
 
 theorem rGood_of_dGood : θ.1 ∈ rGood rCell rOrd Q :=
-  ((mem_dGood rCell rOrd dLabCell dLabMsg dLabOrd).mp hθ).1
+  ((mem_dGood rCell rOrd).mp hθ).1
 
 /-- On the good set the hidden capacities are distinct. -/
 theorem posOf_injective_of_dGood :
@@ -417,13 +344,13 @@ theorem rRate_ne_seedRate_of_dGood (M : Message) (b : SkIdx) :
     rCellK' rCell θ.1.1.1 M ≠
       rateOf θ.1.1.1.keys.2.1 θ.1.1.1.perm (skCell θ.1.1.1.publicSeed θ.1.1.1.secretSeed b) := by
   have hR := rGood_of_dGood hθ
-  have hrate := ((mem_dGood rCell rOrd dLabCell dLabMsg dLabOrd).mp hθ).2.1
+  have hrate := ((mem_dGood rCell rOrd).mp hθ).2
   have hP : trunc128 (rSplit rCell rOrd θ.1).1.1.2.2.1 = θ.1.1.1.publicSeed := by
     rw [rSplit_slots]
     exact trunc128_slot1_of_dGood hθ
   have hS := rSplit_snd rCell rOrd θ.1
   intro h
-  have e := hrate (a₁ := Sum.inr (Sum.inl M)) (a₂ := Sum.inr (Sum.inr b))
+  have e := hrate (a₁ := Sum.inl M) (a₂ := Sum.inr b)
   refine absurd (e ?_) (by simp)
   show ((rSplit rCell rOrd θ.1).1.1.1.2 (rCell M (trunc128 (rSplit rCell rOrd θ.1).1.1.2.2.1)
       (rSplit rCell rOrd θ.1).2.2, (rSplit rCell rOrd θ.1).1.2.1 M)).1 =
@@ -433,44 +360,6 @@ theorem rRate_ne_seedRate_of_dGood (M : Message) (b : SkIdx) :
   rw [hP, hS, (rSplit_coords rCell_injective hR).2.1 M,
     rSplit_k_of_dGood hθ _ fun M' h' ↦ skCell_ne_rCell _ _ b M' _ h'.symm, rSplit_perm]
   exact h
-
-/-- **The digest stage on the good set**: it keeps `h` off the digest capacities, its capacities
-and rates read off the coordinates are `capD`, `rateD`, and the slot of a first label holds the
-block's output. -/
-theorem dSplit_good :
-    (∀ z, (∀ a, capD θ a ≠ z) → (dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ).1.1.1.1.1 z =
-      (rSplit rCell rOrd θ.1).1.1.1.1.1 z) ∧
-    (∀ a, pCellH dcP (dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ) a = capD θ a) ∧
-    (∀ a, dShY (dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ) a = rateD θ a) ∧
-    ∀ a, IsFirst dLabOrd (capD θ) a → (dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ).1.2.2.2 a =
-      rateD θ a + (rSplit rCell rOrd θ.1).1.1.1.1.1 (capD θ a) := by
-  have hrate := ((mem_dGood rCell rOrd dLabCell dLabMsg dLabOrd).mp hθ).2.1
-  have hrD : Function.Injective fun a ↦ rateOf (rSplit rCell rOrd θ.1).1.1.1.1.2.1
-      (rSplit rCell rOrd θ.1).1.1.1.2
-      (dcP (rSplit rCell rOrd θ.1).1.1.2
-        ((rSplit rCell rOrd θ.1).1.2, (rSplit rCell rOrd θ.1).2) a) :=
-    fun a b hab ↦ Sum.inl_injective (hrate (a₁ := Sum.inl a) (a₂ := Sum.inl b) hab)
-  obtain ⟨h₂, k₂, k'₂, cs₂, hE, f6, f⟩ := pStages_spec dcP dLabOrd
-    (rSplit rCell rOrd θ.1).1.1.1.1 (rSplit rCell rOrd θ.1).1.1.1.2 (rSplit rCell rOrd θ.1).1.1.2
-    θ.2 ((rSplit rCell rOrd θ.1).1.2, (rSplit rCell rOrd θ.1).2)
-  obtain ⟨f1, f2, f3, -, -, -⟩ := f (dCellP_injective dLabCell_injective _ _) hrD
-  have hD : dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ =
-      (((((h₂, k₂, k'₂), (rSplit rCell rOrd θ.1).1.1.1.2), (rSplit rCell rOrd θ.1).1.1.2), cs₂),
-        ((rSplit rCell rOrd θ.1).1.2, (rSplit rCell rOrd θ.1).2)) :=
-    (dSplit_apply rCell rOrd dLabCell dLabMsg dLabOrd θ).trans hE
-  have hcap : ∀ a, ((rSplit rCell rOrd θ.1).1.1.1.2
-      (dcP (rSplit rCell rOrd θ.1).1.1.2 ((rSplit rCell rOrd θ.1).1.2, (rSplit rCell rOrd θ.1).2) a,
-        cs₂.1 a)).2 + cs₂.2.1 a = capD θ a := fun a ↦ by
-    rw [f1 a, f2 a]
-    rfl
-  rw [hD]
-  refine ⟨fun z hz ↦ f6 z fun a h ↦ hz a ((hcap a).symm.trans h), hcap, fun a ↦ ?_,
-    fun a ha ↦ f3 a ha⟩
-  show ((rSplit rCell rOrd θ.1).1.1.1.2
-    (dcP (rSplit rCell rOrd θ.1).1.1.2 ((rSplit rCell rOrd θ.1).1.2, (rSplit rCell rOrd θ.1).2) a,
-      cs₂.1 a)).1 = _
-  rw [f1 a]
-  rfl
 
 /-- The `SK.seed`-keyed capacities after the randomizer stage are the hidden capacities. -/
 theorem capOf_rSplit_seed (a : SkIdx) :
@@ -500,15 +389,14 @@ theorem rateOf_rSplit_seed (a : SkIdx) :
   rw [rSplit_perm, rSplit_k_of_dGood hθ _ fun M h ↦ skCell_ne_rCell _ _ a M _ h.symm]
 
 /-- The randomizer fix's capacities are the table's randomizer capacities. -/
-theorem rPosY_good (h₃ : Z → X) (hc₃ : DLab → X) :
-    rPosY (setHC (dPre rCell rOrd θ) h₃ hc₃) = rCellH rCell θ.1.1.1 := by
+theorem rPosY_good : rPosY (dPre rCell rOrd θ) = rCellH rCell θ.1.1.1 := by
   funext M
   show pCellH (cellP rCell) (rSplit rCell rOrd θ.1) M = _
   exact pCellH_rSplit rCell_injective (rGood_of_dGood hθ) M
 
 /-- The randomizer fix's shifts are the table's randomizer rates. -/
-theorem rShY_good (h₃ : Z → X) (hc₃ : DLab → X) (M : Message) :
-    rShY (setHC (dPre rCell rOrd θ) h₃ hc₃) M =
+theorem rShY_good (M : Message) :
+    rShY (dPre rCell rOrd θ) M =
       rateOf θ.1.1.1.keys.2.1 θ.1.1.1.perm (rCellK rCell θ.1.1.1 M) := by
   have hR := rGood_of_dGood hθ
   show ((rSplit rCell rOrd θ.1).1.1.1.2 (pCellK (cellP rCell) (rSplit rCell rOrd θ.1) M,
@@ -517,38 +405,37 @@ theorem rShY_good (h₃ : Z → X) (hc₃ : DLab → X) (M : Message) :
   rfl
 
 /-- The scheme fix's capacities are the hidden capacities. -/
-theorem sPosY_good (h₃ : Z → X) (hc₃ : DLab → X) (h₅ : Z → X) (rhc₅ : Message → X) (a : SkIdx) :
-    sPosY (setHR (setHC (dPre rCell rOrd θ) h₃ hc₃) h₅ rhc₅) a =
+theorem sPosY_good (h₅ : Z → X) (rhc₅ : Message → X) (a : SkIdx) :
+    sPosY (setHR (dPre rCell rOrd θ) h₅ rhc₅) a =
       posOf (schemeSplit θ.1.1).1 (schemeSplit θ.1.1).2 a := by
   have hP : trunc128 (rSplit rCell rOrd θ.1).1.1.2.2.1 = θ.1.1.1.publicSeed := by
     rw [rSplit_slots]
     exact trunc128_slot1_of_dGood hθ
   have hS : (rSplit rCell rOrd θ.1).2.1 = θ.1.1.1.secretSeed := by
     rw [rSplit_snd]
-  simp only [sPosY, setHR_kk', setHR_perm, setHR_slots, setHR_secret, setHC_kk', setHC_perm,
-    setHC_e, setHC_f, dPre_kk', dPre_perm, dPre_slots, dPre_secret]
+  simp only [sPosY, setHR_kk', setHR_perm, setHR_slots, setHR_secret, dPre_kk', dPre_perm,
+    dPre_slots, dPre_secret]
   rw [hP, hS]
   exact capOf_rSplit_seed hθ a
 
 /-- The scheme fix's shifts are the table's `SK.seed`-keyed rates. -/
-theorem sShY_good (h₃ : Z → X) (hc₃ : DLab → X) (h₅ : Z → X) (rhc₅ : Message → X) (a : SkIdx) :
-    sShY (setHR (setHC (dPre rCell rOrd θ) h₃ hc₃) h₅ rhc₅) a =
+theorem sShY_good (h₅ : Z → X) (rhc₅ : Message → X) (a : SkIdx) :
+    sShY (setHR (dPre rCell rOrd θ) h₅ rhc₅) a =
       rateOf θ.1.1.1.keys.2.1 θ.1.1.1.perm (skCell θ.1.1.1.publicSeed θ.1.1.1.secretSeed a) := by
   have hP : trunc128 (rSplit rCell rOrd θ.1).1.1.2.2.1 = θ.1.1.1.publicSeed := by
     rw [rSplit_slots]
     exact trunc128_slot1_of_dGood hθ
   have hS : (rSplit rCell rOrd θ.1).2.1 = θ.1.1.1.secretSeed := by
     rw [rSplit_snd]
-  simp only [sShY, setHR_kk', setHR_perm, setHR_slots, setHR_secret, setHC_kk', setHC_perm,
-    setHC_e, setHC_f, dPre_kk', dPre_perm, dPre_slots, dPre_secret]
+  simp only [sShY, setHR_kk', setHR_perm, setHR_slots, setHR_secret, dPre_kk', dPre_perm,
+    dPre_slots, dPre_secret]
   rw [hP, hS]
   exact rateOf_rSplit_seed hθ a
 
 omit hθ in
 /-- The scheme fix's slots are SchemeSplit's. -/
-theorem skSlots_good (h₃ : Z → X) (hc₃ : DLab → X) (h₅ : Z → X) (rhc₅ : Message → X)
-    (a : SkIdx) :
-    skSlots (setHR (setHC (dPre rCell rOrd θ) h₃ hc₃) h₅ rhc₅) a =
+theorem skSlots_good (h₅ : Z → X) (rhc₅ : Message → X) (a : SkIdx) :
+    skSlots (setHR (dPre rCell rOrd θ) h₅ rhc₅) a =
       skSlotsX (schemeSplit θ.1.1) a := by
   have hsl := rSplit_slots rCell rOrd θ.1
   have hS : (rSplit rCell rOrd θ.1).2 = (schemeSplit θ.1.1).2 := by
@@ -564,11 +451,9 @@ theorem skSlots_good (h₃ : Z → X) (hc₃ : DLab → X) (h₅ : Z → X) (rhc
 
 /-- **The bits of `h` from `256` on are the table's** after the stages. -/
 theorem dFull_hiEq (z : Z) : HiEq ((dFull θ).1.1.1.1.1 z) (θ.1.1.1.keys.1 z) := by
-  obtain ⟨h₃, hc₃, h₅, rhc₅, h₆, sl₆, e, -, f32, f33, -, f52, f53, -, f62, f63⟩ := dFull_eq θ
-  obtain ⟨d1, d2, d3, d4⟩ := dSplit_good hθ
-  have hpc : pCellH dcP (dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ) = capD θ := funext d2
-  have hsp := sPosY_good hθ h₃ hc₃ h₅ rhc₅
-  have hsinj : Function.Injective (sPosY (setHR (setHC (dPre rCell rOrd θ) h₃ hc₃) h₅ rhc₅)) :=
+  obtain ⟨h₅, rhc₅, h₆, sl₆, e, -, f52, f53, -, f62, f63⟩ := dFull_eq θ
+  have hsp := sPosY_good hθ h₅ rhc₅
+  have hsinj : Function.Injective (sPosY (setHR (dPre rCell rOrd θ) h₅ rhc₅)) :=
     fun a b h ↦ posOf_injective_of_dGood hθ ((hsp a).symm.trans (h.trans (hsp b)))
   rw [e, setHS_h]
   by_cases hS : ∃ a, posOf (schemeSplit θ.1.1).1 (schemeSplit θ.1.1).2 a = z
@@ -590,60 +475,46 @@ theorem dFull_hiEq (z : Z) : HiEq ((dFull θ).1.1.1.1.1 z) (θ.1.1.1.keys.1 z) :
     · have hR' : ∀ M, rCellH rCell θ.1.1.1 M ≠ z := fun M h ↦ by
         obtain ⟨M', hM', he⟩ := Quantum.Xmss.Hybrid.exists_isFirst rOrd (rCellH rCell θ.1.1.1) M
         exact hR ⟨M', hM', he.trans h⟩
-      rw [f53 z fun M _ h ↦ hR ⟨M, ‹_›, h⟩]
-      rw [hpc] at f32 f33
-      have hy : (rSplit rCell rOrd θ.1).1.1.1.1.1 z = θ.1.1.1.keys.1 z :=
-        (rSplit_h_of_dGood hθ z hR').trans (schemeSplit_h_of_dGood hθ z hS')
-      by_cases hD : ∃ a, IsFirst dLabOrd (capD θ) a ∧ capD θ a = z
-      · obtain ⟨a, ha, rfl⟩ := hD
-        rw [f32 a ha, d4 a ha, ← d3 a, add_add_cancel_X, hy]
-        exact hiEq_hiMix _ _
-      · have hD' : ∀ a, capD θ a ≠ z := fun a h ↦ by
-          obtain ⟨a', ha', he⟩ := Quantum.Xmss.Hybrid.exists_isFirst dLabOrd (capD θ) a
-          exact hD ⟨a', ha', he.trans h⟩
-        rw [f33 z fun a _ h ↦ hD' a h, d1 z hD', hy]
-        exact HiEq.refl _
+      rw [f53 z fun M _ h ↦ hR ⟨M, ‹_›, h⟩, dPre_h,
+        (rSplit_h_of_dGood hθ z hR').trans (schemeSplit_h_of_dGood hθ z hS')]
+      exact HiEq.refl _
 
 /-- **Off the staged capacities `h` is the table's** after the stages. -/
 theorem dFull_h_eq (z : Z) (hS : ∀ a, posOf (schemeSplit θ.1.1).1 (schemeSplit θ.1.1).2 a ≠ z)
-    (hR : ∀ M, rCellH rCell θ.1.1.1 M ≠ z) (hD : ∀ a, capD θ a ≠ z) :
+    (hR : ∀ M, rCellH rCell θ.1.1.1 M ≠ z) :
     (dFull θ).1.1.1.1.1 z = θ.1.1.1.keys.1 z := by
-  obtain ⟨h₃, hc₃, h₅, rhc₅, h₆, sl₆, e, -, -, f33, -, -, f53, -, -, f63⟩ := dFull_eq θ
-  obtain ⟨d1, d2, -, -⟩ := dSplit_good hθ
-  have hsp := sPosY_good hθ h₃ hc₃ h₅ rhc₅
+  obtain ⟨h₅, rhc₅, h₆, sl₆, e, -, -, f53, -, -, f63⟩ := dFull_eq θ
+  have hsp := sPosY_good hθ h₅ rhc₅
   rw [e, setHS_h, f63 z fun _ a h ↦ hS a ((hsp a).symm.trans h)]
-  rw [f53 z fun M _ h ↦ hR M ((congrFun (rPosY_good hθ h₃ hc₃) M).symm.trans h)]
-  rw [f33 z fun a _ h ↦ hD a ((d2 a).symm.trans h), d1 z hD]
+  rw [f53 z fun M _ h ↦ hR M ((congrFun (rPosY_good hθ) M).symm.trans h)]
   exact (rSplit_h_of_dGood hθ z hR).trans (schemeSplit_h_of_dGood hθ z hS)
 
 omit hθ in
 /-- **The stages keep the randomizer stage's `k` and `k'`.** -/
 theorem dFull_kk' : (dFull θ).1.1.1.1.2 = (rSplit rCell rOrd θ.1).1.1.1.1.2 := by
-  obtain ⟨h₃, hc₃, h₅, rhc₅, h₆, sl₆, e, -⟩ := dFull_eq θ
-  rw [e, setHS_kk', setHR_kk', setHC_kk', dPre_kk']
+  obtain ⟨h₅, rhc₅, h₆, sl₆, e, -⟩ := dFull_eq θ
+  rw [e, setHS_kk', setHR_kk', dPre_kk']
 
 omit hθ in
 /-- The stages keep `π`. -/
 theorem dFull_perm : (dFull θ).1.1.1.2 = θ.1.1.1.perm := by
-  obtain ⟨h₃, hc₃, h₅, rhc₅, h₆, sl₆, e, -⟩ := dFull_eq θ
-  rw [e, setHS_perm, setHR_perm, setHC_perm, dPre_perm, rSplit_perm]
+  obtain ⟨h₅, rhc₅, h₆, sl₆, e, -⟩ := dFull_eq θ
+  rw [e, setHS_perm, setHR_perm, dPre_perm, rSplit_perm]
 
 omit hθ in
 /-- The randomizer slots keep their first `256` bits. -/
 theorem dFull_rhc (M : Message) :
     out256 ((dFull θ).2.1.2.2 M) = out256 ((rSplit rCell rOrd θ.1).1.2.2.2 M) := by
-  obtain ⟨h₃, hc₃, h₅, rhc₅, h₆, sl₆, e, -, -, -, f51, -⟩ := dFull_eq θ
+  obtain ⟨h₅, rhc₅, h₆, sl₆, e, f51, -⟩ := dFull_eq θ
   rw [e, setHS_rc]
   exact f51 M
 
 omit hθ in
-/-- The digest slots keep their first `256` bits. -/
-theorem dFull_dhc (a : DLab) :
-    out256 ((dFull θ).1.2.2.2 a) =
-      out256 ((dSplit rCell rOrd dLabCell dLabMsg dLabOrd θ).1.2.2.2 a) := by
-  obtain ⟨h₃, hc₃, h₅, rhc₅, h₆, sl₆, e, f31, -⟩ := dFull_eq θ
+/-- The stages keep the digest coin slots. -/
+theorem dFull_dc : (dFull θ).1.2 = θ.2 := by
+  obtain ⟨h₅, rhc₅, h₆, sl₆, e, -⟩ := dFull_eq θ
   rw [e, setHS_dc]
-  exact f31 a
+  rfl
 
 omit hθ in
 /-- **The stages keep the coin slots' `k`- and `k'`-parts**: the digest stage's pads and the
@@ -651,7 +522,7 @@ randomizer stage's. -/
 theorem dFull_coins : (dFull θ).1.2.1 = θ.2.1 ∧ (dFull θ).1.2.2.1 = θ.2.2.1 ∧
     (dFull θ).2.1.1 = (rSplit rCell rOrd θ.1).1.2.1 ∧
     (dFull θ).2.1.2.1 = (rSplit rCell rOrd θ.1).1.2.2.1 := by
-  obtain ⟨h₃, hc₃, h₅, rhc₅, h₆, sl₆, e, -⟩ := dFull_eq θ
+  obtain ⟨h₅, rhc₅, h₆, sl₆, e, -⟩ := dFull_eq θ
   rw [e]
   exact ⟨rfl, rfl, rfl, rfl⟩
 
@@ -659,8 +530,8 @@ omit hθ in
 /-- SchemeSplit's slots keep their first `256` bits through the stages. -/
 theorem dFull_out256_skSlots (a : SkIdx) :
     out256 (skSlots (dFull θ) a) = out256 (skSlotsX (schemeSplit θ.1.1) a) := by
-  obtain ⟨h₃, hc₃, h₅, rhc₅, h₆, sl₆, e, -, -, -, -, -, -, f61, -⟩ := dFull_eq θ
-  rw [← skSlots_good h₃ hc₃ h₅ rhc₅ a, ← f61 a, e]
+  obtain ⟨h₅, rhc₅, h₆, sl₆, e, -, -, -, f61, -⟩ := dFull_eq θ
+  rw [← skSlots_good h₅ rhc₅ a, ← f61 a, e]
   rcases a with _ | _ | d
   · show out256 (outSplit.symm (out256 (sl₆ none), (outSplit (sl₆ none)).2)) = _
     rw [← Quantum.Sphincs.outSplit_fst (outSplit.symm _), Equiv.apply_symm_apply]
@@ -684,10 +555,10 @@ theorem dFull_sec (d : KeygenDomain) :
 omit hθ in
 /-- **The stages keep `(SK.seed, SK.prf)`.** -/
 theorem dFull_secret : (dFull θ).2.2 = (θ.1.1.1.secretSeed, θ.1.1.1.prfKey) := by
-  obtain ⟨h₃, hc₃, h₅, rhc₅, h₆, sl₆, e, -⟩ := dFull_eq θ
+  obtain ⟨h₅, rhc₅, h₆, sl₆, e, -⟩ := dFull_eq θ
   have hp := dFull_out256_skSlots (θ := θ) none
   have hS : (dFull θ).2.2.1 = θ.1.1.1.secretSeed := by
-    rw [e, setHS_seed, setHR_secret, setHC_f, dPre_secret, rSplit_snd]
+    rw [e, setHS_seed, setHR_secret, dPre_secret, rSplit_snd]
   have hprf : (dFull θ).2.2.2 = θ.1.1.1.prfKey := by
     have h1 : (dFull θ).2.2.2 = out256 (skSlots (dFull θ) none) := by
       rw [e]

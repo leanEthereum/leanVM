@@ -105,7 +105,7 @@ open scoped Classical in
 /-- **The bad fraction**: `fullG_frac_le_keccak`. -/
 theorem keyE_bad_le (S : PP → ((s : HPos) → XD s) → Prop) :
     (Fintype.card FT : ℝ≥0∞)⁻¹ * (Finset.univ.filter fun t ↦ ¬FullG S t).card ≤
-      ENNReal.ofReal (1 / 2 ^ 77) + ENNReal.ofReal (1 / 2 ^ 400) +
+      ENNReal.ofReal (1 / 2 ^ 197) + ENNReal.ofReal (1 / 2 ^ 400) +
         (Fintype.card YS : ℝ≥0∞)⁻¹ *
           (Finset.univ.filter fun y : YS ↦ ¬S (psiE y).1 (psiE y).2.1).card :=
   fullG_frac_le_keccak S

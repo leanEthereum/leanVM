@@ -29,7 +29,7 @@ Masses' hypotheses on the hidden values for leanSPHINCS's canonical runtime-2 ga
   (`sum_indicator_seedHK_le`, `sum_indicator_seedK'K_le`).
 * **The good set** `MassG S`: ReparamFull's `FullG` with source goodness added to the static
   condition. `goodT_posM_bad_frac_le`: its bad fraction is ReparamFull's (a parameter `fullGFrac`,
-  `2^-77 + 2^-400` by `fullG_frac_le_keccak`), SrcBad's `2^-277` and the static condition's.
+  `2^-197 + 2^-400` by `fullG_frac_le_keccak`), SrcBad's `2^-277` and the static condition's.
 * **`hsub` for the in-table paths** (`tabPaths_subset_hid`): on the good set the table's path
   cells (`tabPathH`, ...) lie in the hidden sets at the reparametrized data.
 * **The averaged bound** (`uavg_totalWeight_portMass_le_sph`): for ports `Q` other than the program
@@ -591,9 +591,9 @@ theorem goodT_posM_bad_frac_le (S : PP → ((s : HPos) → XD s) → Prop) {full
 
 open scoped Classical in
 /-- **The bad fraction at Keccak's sizes** (with ReparamFull's current `fullG_frac_le_keccak`):
-`2^-77 + 2^-400 + 2^-277` and the static condition's fraction. -/
+`2^-197 + 2^-400 + 2^-277` and the static condition's fraction. -/
 theorem goodT_posM_bad_frac_le_keccak (S : PP → ((s : HPos) → XD s) → Prop) :
-    massGFrac S ≤ ENNReal.ofReal (1 / 2 ^ 77) + ENNReal.ofReal (1 / 2 ^ 400) +
+    massGFrac S ≤ ENNReal.ofReal (1 / 2 ^ 197) + ENNReal.ofReal (1 / 2 ^ 400) +
       ENNReal.ofReal (1 / 2 ^ 277) + (Fintype.card YS : ℝ≥0∞)⁻¹ *
         (Finset.univ.filter fun y : YS ↦ ¬S (psiE y).1 (psiE y).2.1).card :=
   goodT_posM_bad_frac_le S (fullG_frac_le_keccak (SrcS S))
@@ -672,17 +672,18 @@ theorem tabPaths_subset_hid {S : PP → ((s : HPos) → XD s) → Prop} {t : FT}
       tabPathK (tabOf t) ⊆ hidK (pubP (fullE t).1) (fullE t).2.1 ∧
       tabPathK' (tabOf t) ⊆ hidK' (pubP (fullE t).1) (fullE t).2.1 := by
   have hsrc := ht.2.2.1
+  have hD := fullD_of_core ht.1
   refine ⟨?_, ?_, ?_⟩
   · rintro _ ⟨s, hs, j, hj, rfl⟩
-    obtain ⟨j', hj', e⟩ := (cells_of_ports_eq hs (slotPorts_agree ht.1.1 ht.1.2.2.2 hs) hj).2.2
+    obtain ⟨j', hj', e⟩ := (cells_of_ports_eq hs (slotPorts_agree hD hs) hj).2.2
     rw [valsOf_trueV] at e
     exact ⟨hsrc, s, hs, j', hj', e⟩
   · rintro _ ⟨s, hs, j, hj, rfl⟩
-    obtain ⟨j', hj', e⟩ := (cells_of_ports_eq hs (slotPorts_agree ht.1.1 ht.1.2.2.2 hs) hj).1
+    obtain ⟨j', hj', e⟩ := (cells_of_ports_eq hs (slotPorts_agree hD hs) hj).1
     rw [valsOf_trueV] at e
     exact ⟨hsrc, s, hs, j', hj', e⟩
   · rintro _ ⟨s, hs, j, hj, rfl⟩
-    obtain ⟨j', hj', e⟩ := (cells_of_ports_eq hs (slotPorts_agree ht.1.1 ht.1.2.2.2 hs) hj).2.1
+    obtain ⟨j', hj', e⟩ := (cells_of_ports_eq hs (slotPorts_agree hD hs) hj).2.1
     rw [valsOf_trueV] at e
     exact ⟨hsrc, s, hs, j', hj', e⟩
 

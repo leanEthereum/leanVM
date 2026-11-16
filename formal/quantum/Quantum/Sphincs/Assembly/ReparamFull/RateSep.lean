@@ -87,31 +87,33 @@ def sepCell (P : PublicParameter) (s : Secret) : Message ⊕ SkIdx → X :=
 
 /-- Every `H_msg` path at every root and randomizer has a rate apart from them. -/
 def HRateSep (x : Pub × Secret) : Prop :=
-  ∀ (a : DLab) (R : Randomizer) (b : Message ⊕ SkIdx),
-    rateOf x.1.1.1.2.1 x.1.1.2 (dLabCell a (pubParam x.1) R) ≠
+  ∀ (a : Digest × DLab) (R : Randomizer) (b : Message ⊕ SkIdx),
+    rateOf x.1.1.1.2.1 x.1.1.2 (dLabCell a.2 (pubParam x.1) a.1 R) ≠
       rateOf x.1.1.1.2.1 x.1.1.2 (sepCell (pubParam x.1) x.2 b)
 
 /-- An `H_msg` path's input point at the coordinates other than `π`. -/
-def hPt (r : SpongeKeys X Z × PubSlots × Secret) (aR : DLab × Randomizer) : X × Z :=
-  (dLabCell aR.1 (trunc128 r.2.1.2.1) aR.2, r.1.2.1 (dLabCell aR.1 (trunc128 r.2.1.2.1) aR.2))
+def hPt (r : SpongeKeys X Z × PubSlots × Secret) (aR : (Digest × DLab) × Randomizer) : X × Z :=
+  (dLabCell aR.1.2 (trunc128 r.2.1.2.1) aR.1.1 aR.2,
+    r.1.2.1 (dLabCell aR.1.2 (trunc128 r.2.1.2.1) aR.1.1 aR.2))
 
 /-- A randomizer-stage or `SK.seed`-keyed input point at the coordinates other than `π`. -/
 def sPt (r : SpongeKeys X Z × PubSlots × Secret) (b : Message ⊕ SkIdx) : X × Z :=
   (sepCell (trunc128 r.2.1.2.1) r.2.2 b, r.1.2.1 (sepCell (trunc128 r.2.1.2.1) r.2.2 b))
 
-theorem hPt_ne_sPt (r : SpongeKeys X Z × PubSlots × Secret) (aR : DLab × Randomizer)
+theorem hPt_ne_sPt (r : SpongeKeys X Z × PubSlots × Secret) (aR : (Digest × DLab) × Randomizer)
     (b : Message ⊕ SkIdx) : hPt r aR ≠ sPt r b := by
   intro h
-  have h1 : dLabCell aR.1 (trunc128 r.2.1.2.1) aR.2 = sepCell (trunc128 r.2.1.2.1) r.2.2 b :=
+  have h1 : dLabCell aR.1.2 (trunc128 r.2.1.2.1) aR.1.1 aR.2 =
+      sepCell (trunc128 r.2.1.2.1) r.2.2 b :=
     congrArg Prod.fst h
   rcases b with M | b
-  · exact rCell_ne_dLabCell M _ _ aR.1 _ aR.2 h1.symm
-  · exact skCell_ne_dLabCell _ _ b aR.1 _ aR.2 h1.symm
+  · exact rCell_ne_dLabCell M _ _ aR.1.2 _ _ aR.2 h1.symm
+  · exact skCell_ne_dLabCell _ _ b aR.1.2 _ _ aR.2 h1.symm
 
 theorem rateOf_dLabCell_coordPi (π : Equiv.Perm (X × Z)) (r : SpongeKeys X Z × PubSlots × Secret)
-    (a : DLab) (R : Randomizer) :
+    (a : Digest × DLab) (R : Randomizer) :
     rateOf (coordPi (π, r)).1.1.1.2.1 (coordPi (π, r)).1.1.2
-      (dLabCell a (pubParam (coordPi (π, r)).1) R) = (π (hPt r (a, R))).1 :=
+      (dLabCell a.2 (pubParam (coordPi (π, r)).1) a.1 R) = (π (hPt r (a, R))).1 :=
   rfl
 
 theorem rateOf_sepCell_coordPi (π : Equiv.Perm (X × Z)) (r : SpongeKeys X Z × PubSlots × Secret)
@@ -138,12 +140,12 @@ theorem notSepInd_coordPi_le (π : Equiv.Perm (X × Z)) (r : SpongeKeys X Z × P
       if ∃ aR b, (π (hPt r aR)).1 = (π (sPt r b)).1 then 1 else 0 :=
   ite_one_le_ite_one (exists_of_not_hRateSep π r)
 
-/-- **Averaged over `π`**: at most `|DLab × Randomizer| |Message ⊕ SkIdx| / |X|` of the
+/-- **Averaged over `π`**: at most `|Digest × DLab × Randomizer| |Message ⊕ SkIdx| / |X|` of the
 coordinates fail `HRateSep`. -/
 theorem card_mul_sum_notSepInd_le :
     Fintype.card X * ∑ x : Pub × Secret, notSepInd x ≤
       Fintype.card (Pub × Secret) *
-        (Fintype.card (DLab × Randomizer) * Fintype.card (Message ⊕ SkIdx)) := by
+        (Fintype.card ((Digest × DLab) × Randomizer) * Fintype.card (Message ⊕ SkIdx)) := by
   refine Quantum.Xmss.Hybrid.card_mul_sum_equiv_prod_le coordPi _ _ notSepInd fun r ↦ ?_
   refine le_trans (Nat.mul_le_mul_left _ ?_)
     (card_mul_card_filter_rate_cross_le (hPt r) (sPt r) (hPt_ne_sPt r))
@@ -151,7 +153,7 @@ theorem card_mul_sum_notSepInd_le :
   exact Finset.sum_le_sum fun π _ ↦ notSepInd_coordPi_le π r
 
 set_option exponentiation.threshold 4096 in
-theorem card_dLab_randomizer : Fintype.card (DLab × Randomizer) = 2 ^ 513 := by
+theorem card_dLab_randomizer : Fintype.card ((Digest × DLab) × Randomizer) = 2 ^ 513 := by
   simp only [DLab, Fintype.card_prod, Fintype.card_fin, Quantum.Xmss.Hybrid.R0.card_bitVec_eq]
   norm_num [HashSig.digestBits, digestCallCount]
 
@@ -160,10 +162,10 @@ theorem card_sepIdx_le : Fintype.card (Message ⊕ SkIdx) ≤ 2 ^ 256 + 2 ^ 44 :
   exact Nat.add_le_add_left card_skIdx_le _
 
 set_option exponentiation.threshold 4096 in
-/-- `|DLab × Randomizer| |Message ⊕ SkIdx| / |X| ≤ 2^-318`. -/
+/-- `|Digest × DLab × Randomizer| |Message ⊕ SkIdx| / |X| ≤ 2^-318`. -/
 theorem hRateSepTerm_le_keccak :
-    ((Fintype.card (DLab × Randomizer) * Fintype.card (Message ⊕ SkIdx) : ℕ) : ℝ≥0∞) /
-        Fintype.card X ≤ ENNReal.ofReal (1 / 2 ^ 318) := by
+    ((Fintype.card ((Digest × DLab) × Randomizer) * Fintype.card (Message ⊕ SkIdx) : ℕ) :
+        ℝ≥0∞) / Fintype.card X ≤ ENNReal.ofReal (1 / 2 ^ 318) := by
   have hK := Nat.mul_le_mul card_dLab_randomizer.le card_sepIdx_le
   refine (ENNReal.div_le_div_right (Nat.cast_le.mpr hK) _).trans ?_
   rw [Quantum.Xmss.Hybrid.R0.card_rate,
@@ -184,7 +186,7 @@ theorem hRateSep_frac_le_keccak :
     exact Finset.sum_congr rfl fun _ _ ↦ rfl
   have hc : Fintype.card X * ∑ t : Tab, notSepInd (schemeSplit t) ≤
       Fintype.card Tab *
-        (Fintype.card (DLab × Randomizer) * Fintype.card (Message ⊕ SkIdx)) :=
+        (Fintype.card ((Digest × DLab) × Randomizer) * Fintype.card (Message ⊕ SkIdx)) :=
     Quantum.Xmss.Hybrid.card_mul_sum_equiv_le schemeSplit notSepInd _ _ card_mul_sum_notSepInd_le
   rw [hsum]
   have h := Quantum.Xmss.Hybrid.natCast_le_mul_div_of_mul_le Fintype.card_ne_zero hc
@@ -198,18 +200,18 @@ theorem hRateSep_frac_le_keccak :
 table's own keys, `π`, `PK.seed`, `SK.seed` and `SK.prf`. -/
 theorem hRateSep_table {t : Tab}
     (hinj : Function.Injective (posOf (schemeSplit t).1 (schemeSplit t).2))
-    (h : HRateSep (schemeSplit t)) (a : DLab) (R : Randomizer) :
-    (∀ M, rateOf t.1.keys.2.1 t.1.perm (dLabCell a t.1.publicSeed R) ≠
+    (h : HRateSep (schemeSplit t)) (a : DLab) (root : Digest) (R : Randomizer) :
+    (∀ M, rateOf t.1.keys.2.1 t.1.perm (dLabCell a t.1.publicSeed root R) ≠
         rateOf t.1.keys.2.1 t.1.perm (rCell M t.1.publicSeed t.1.prfKey)) ∧
-      ∀ b, rateOf t.1.keys.2.1 t.1.perm (dLabCell a t.1.publicSeed R) ≠
+      ∀ b, rateOf t.1.keys.2.1 t.1.perm (dLabCell a t.1.publicSeed root R) ≠
         rateOf t.1.keys.2.1 t.1.perm (skCell t.1.publicSeed t.1.secretSeed b) := by
   have hP := (schemeSplit_transfer t hinj).1
   have hk : (schemeSplit t).1.1.1.2.1 = t.1.keys.2.1 := congrArg Prod.fst (schemeSplit_keys_snd t)
-  have h' : ∀ b, rateOf t.1.keys.2.1 t.1.perm (dLabCell a t.1.publicSeed R) ≠
+  have h' : ∀ b, rateOf t.1.keys.2.1 t.1.perm (dLabCell a t.1.publicSeed root R) ≠
       rateOf t.1.keys.2.1 t.1.perm
         (sepCell t.1.publicSeed (t.1.secretSeed, t.1.prfKey) b) := by
     intro b
-    have hb := h a R b
+    have hb := h (root, a) R b
     rwa [hP, hk, schemeSplit_perm, schemeSplit_snd] at hb
   exact ⟨fun M ↦ h' (Sum.inl M), fun b ↦ h' (Sum.inr b)⟩
 

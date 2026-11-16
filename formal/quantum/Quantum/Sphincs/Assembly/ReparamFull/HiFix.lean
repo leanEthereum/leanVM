@@ -28,7 +28,8 @@ open Quantum Quantum.Sponge
 open HashSig (Digest HashOutput)
 open Quantum.Xmss (X Z out256 bitOf bitOf_xor bitOf_decide_eq_one getLsbD_out256)
 open Quantum.Xmss.Assembly (embed128)
-open Quantum.Sphincs.Hybrid (PSt pStageK pStageK' pStageHOn pStageHOn_spec)
+open Quantum.Sphincs.Hybrid (PSt pStageK pStageK' pStageHOn pStageHOn_spec pStages pCellH pCellK)
+open Quantum.Xmss.Hybrid (IsFirst isFirst_inj)
 
 namespace Quantum.Sphincs.Assembly
 
@@ -254,6 +255,108 @@ theorem pStageHOn_exists_setHC (ord : J ↪ ℕ) (y : PSt E F J) :
   exact ⟨h₂, hc₂, eH⟩
 
 end setHC
+
+/-! ## The path stages with the fix-up and the undoing of the `k`- and `k'`-stages -/
+
+section pFull
+
+variable {E F J : Type} (c : E → F → J → X) (ord : J ↪ ℕ)
+
+/-- The data the fix-up keeps: `k`, `k'`, `π`, `E`, the `k`- and `k'`-coins, and `F`. -/
+abbrev PW (E F J : Type) : Type :=
+  (X → Z) × (X → Z) × Equiv.Perm (X × Z) × E × (J → Z) × (J → Z) × F
+
+/-- The fix-up's view: `h` with the `h`-slots, and the rest. -/
+def pView : PSt E F J ≃ ((Z → X) × (J → X)) × PW E F J where
+  toFun y := ((y.1.1.1.1.1, y.1.2.2.2),
+    (y.1.1.1.1.2.1, y.1.1.1.1.2.2, y.1.1.1.2, y.1.1.2, y.1.2.1, y.1.2.2.1, y.2))
+  invFun p := (((((p.1.1, p.2.1, p.2.2.1), p.2.2.2.1), p.2.2.2.2.1),
+    (p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.1.2)), p.2.2.2.2.2.2.2)
+  left_inv _ := rfl
+  right_inv _ := rfl
+
+/-- The labels' capacities from the kept data (`pCellH`). -/
+def pPosW (w : PW E F J) (_ : J → HashOutput) (a : J) : Z :=
+  (w.2.2.1 (c w.2.2.2.1 w.2.2.2.2.2.2 a, w.2.2.2.2.1 a)).2 + w.2.2.2.2.2.1 a
+
+/-- The labels' rates from the kept data. -/
+def pShW (w : PW E F J) (_ : J → HashOutput) (a : J) : X :=
+  (w.2.2.1 (c w.2.2.2.1 w.2.2.2.2.2.2 a, w.2.2.2.2.1 a)).1
+
+/-- The first labels. -/
+def pFW (w : PW E F J) (lo : J → HashOutput) (a : J) : Prop :=
+  IsFirst ord (pPosW c w lo) a
+
+theorem pFW_inj (w : PW E F J) (lo : J → HashOutput) (a b : J) (ha : pFW c ord w lo a)
+    (hb : pFW c ord w lo b) (h : pPosW c w lo a = pPosW c w lo b) : a = b :=
+  isFirst_inj ord (pPosW c w lo) a b ha hb h
+
+/-- **The fix-up**: at the first labels, the bits of `h` from `256` on are given back. -/
+noncomputable def pHiE : PSt E F J ≃ PSt E F J :=
+  pView.trans ((hiStageOn (pFW c ord) (pPosW c) (pShW c) (pFW_inj c ord)).trans pView.symm)
+
+/-- **The undoing of the `k`- and `k'`-stages.** -/
+noncomputable def pUndo : PSt E F J ≃ PSt E F J :=
+  ((pStageK c).trans (pStageK' c)).symm
+
+/-- **The full stage**: the path stages, the fix-up, the undoing of the `k`- and `k'`-stages. Only
+`h` and the `h`-slots change. -/
+noncomputable def pFull : PSt E F J ≃ PSt E F J :=
+  (pStages c ord).trans ((pHiE c ord).trans (pUndo c))
+
+/-- The labels' rates read off the coordinates. -/
+def pShY (y : PSt E F J) (a : J) : X :=
+  (y.1.1.1.2 (pCellK c y a, y.1.2.1 a)).1
+
+/-- **The fix-up**: `h` and the slots replaced; the slots keep their first `256` bits; at the
+first labels' capacities `h` takes the bits from `256` on of the slot plus the rate. -/
+theorem pHiE_spec (y : PSt E F J) :
+    ∃ (h' : Z → X) (hc' : J → X), pHiE c ord y = setHC y h' hc' ∧
+      (∀ a, out256 (hc' a) = out256 (y.1.2.2.2 a)) ∧
+      (∀ a, IsFirst ord (pCellH c y) a →
+        h' (pCellH c y a) = hiMix (y.1.1.1.1.1 (pCellH c y a)) (y.1.2.2.2 a + pShY c y a)) ∧
+      ∀ z, (∀ a, IsFirst ord (pCellH c y) a → pCellH c y a ≠ z) → h' z = y.1.1.1.1.1 z := by
+  obtain ⟨h', u', he, h1, h2, -, h4⟩ := hiStageOn_spec (pFW c ord) (pPosW c) (pShW c)
+    (pFW_inj c ord) y.1.1.1.1.1 y.1.2.2.2 (pView y).2
+  refine ⟨h', u', ?_, h1, fun a ha ↦ (h2 a ha).2, h4⟩
+  show pView.symm (hiStageOn (pFW c ord) (pPosW c) (pShW c) (pFW_inj c ord)
+    ((y.1.1.1.1.1, y.1.2.2.2), (pView y).2)) = _
+  rw [he]
+  rfl
+
+/-- **Undoing the `k`- and `k'`-stages** after the `h`-stage. -/
+theorem pUndo_setHC (y : PSt E F J) (h : Z → X) (hc : J → X) :
+    pUndo c (setHC (pStageK' c (pStageK c y)) h hc) = setHC y h hc := by
+  refine (Equiv.symm_apply_eq _).mpr ?_
+  rw [Equiv.trans_apply, pStageK_setHC, pStageK'_setHC]
+
+/-- The path stages are their `k`- and `k'`-stages with new `h` and slots. -/
+theorem pStages_eq_setHC (x : PSt E F J) :
+    pStages c ord x = setHC (pStageK' c (pStageK c x)) (pStages c ord x).1.1.1.1.1
+      (pStages c ord x).1.2.2.2 := by
+  obtain ⟨h, hc, he⟩ := pStageHOn_exists_setHC c ord (pStageK' c (pStageK c x))
+  have e : pStages c ord x = pStageHOn c ord (pStageK' c (pStageK c x)) := rfl
+  rw [e, he]
+  rfl
+
+/-- **The full stage** is the coordinates with new `h` and slots: the slots keep the first `256`
+bits of the path stages' slots; at the first labels' capacities `h` is the fix-up's value, and
+elsewhere the path stages' `h`. -/
+theorem pFull_eq (x : PSt E F J) :
+    ∃ (h₃ : Z → X) (hc₃ : J → X), pFull c ord x = setHC x h₃ hc₃ ∧
+      (∀ a, out256 (hc₃ a) = out256 ((pStages c ord x).1.2.2.2 a)) ∧
+      (∀ a, IsFirst ord (pCellH c (pStages c ord x)) a →
+        h₃ (pCellH c (pStages c ord x) a) =
+          hiMix ((pStages c ord x).1.1.1.1.1 (pCellH c (pStages c ord x) a))
+            ((pStages c ord x).1.2.2.2 a + pShY c (pStages c ord x) a)) ∧
+      ∀ z, (∀ a, IsFirst ord (pCellH c (pStages c ord x)) a → pCellH c (pStages c ord x) a ≠ z) →
+        h₃ z = (pStages c ord x).1.1.1.1.1 z := by
+  obtain ⟨h₃, hc₃, e3, f1, f2, f3⟩ := pHiE_spec c ord (pStages c ord x)
+  refine ⟨h₃, hc₃, ?_, f1, f2, f3⟩
+  show pUndo c (pHiE c ord (pStages c ord x)) = _
+  rw [e3, pStages_eq_setHC c ord x, setHC_setHC, pUndo_setHC]
+
+end pFull
 
 end Quantum.Sphincs.Assembly
 

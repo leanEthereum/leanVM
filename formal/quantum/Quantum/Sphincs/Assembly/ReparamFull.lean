@@ -14,25 +14,28 @@ part, with the canonical game at a table equal to the canonical game at the publ
 pieces:
 
 * `ReparamFull.HiFix`: the fix-up exchange `hiStageOn` (the bits of `h` from `256` on), `cor256`
-  against agreeing high bits (`cor256_eq_of_hiEq`), the path stages' `setHC`.
-* `ReparamFull.Coords`: the padded tables `FT`, the stages `stagesE` (DigestStage's `dSplit`, the
-  digest, randomizer and scheme fix-ups, the undoing of the digest stage's `k`- and `k'`-stages,
-  SeedStage's `seedKStages`, the secrets' exchange with Reparam's pad), Reparam's table `phiE`,
-  the final coordinates `psiE` (the hidden value `.dig M i` is the first `256` bits of the digest
-  slot `(PK.root, M, i)`, `PK.root` the hidden value at `rootPos`), the reparametrization `fullE`,
-  `fullE_injOn`, `coordEquiv`.
+  against agreeing high bits (`cor256_eq_of_hiEq`), the path stages' `setHC`, and `pFull` (the
+  path stages, the fix-up and the undoing of the `k`- and `k'`-stages).
+* `ReparamFull.Coords`: the padded tables `FT`, the stages before Reparam `stagesE` (the
+  randomizer stage, the randomizer and scheme fix-ups, SeedStage's `seedKStages`, the secrets'
+  exchange with Reparam's pad), Reparam's table `phiE`, the digest stage `dLast` after Reparam
+  (`pFull` at the labels `(M, i)`, keyed by the hidden root at `rootPos`), the final coordinates
+  `psiE` (the hidden value `.dig M i` is the first `256` bits of the digest slot `(M, i)`), the
+  reparametrization `fullE`, `fullE_injOn`, `coordEquiv`.
 * `ReparamFull.Facts`, `ReparamFull.Table`: on the stage good set (`StageGood`: `dGood` and
   `seedKGood` for the computations `compQ` of `ReparamFull.Comp`, with `rCell` as SeedStage's label
   family, so `hsep` and `SeedRateInj` cover the randomizer stage), the public keys agree with the
   table's on its in-table paths (`pathKeys_of_stageGood`), the pad holds the table's secrets
   (`pads_of_stageGood`), the hidden values are the table's (`val_fullE`, `rnd_fullE` at a first
-  message, `dig_fullE` at an uncharged label), the public `h` agrees with the table's from bit
-  `256` on (`hiEq_pubP`).
+  message).
+* `ReparamFull.DStage`: the digest stage's good set `DGoodYS` and its facts (`dig_fullE` at an
+  uncharged label `dBX`, `hiEq_pubP`, `cells_pubP_eq`, `pathsAvoid_pubP`).
 * `ReparamFull.Game`: `hgame_fullE`, through GameCongr's `realizeT_gameT_congr`; the `H_msg`
   ports need `HRateSep` (`ReparamFull.RateSep`: every `H_msg` rate apart from the randomizer and
   `SK.seed`-keyed rates, `2^-318`).
-* `ReparamFull.Bad`: the good set `FullG S` (with PathsDisjoint's `PathsDisjoint` and a static
-  slot `S` for SP-PF1's good-data conditions), `pathsAvoid_fullE`, `fullG_frac_le_keccak`.
+* `ReparamFull.DBad`, `ReparamFull.Bad`: the digest stage's bad fraction; the good set `FullG S`
+  (with PathsDisjoint's `PathsDisjoint` and a static slot `S` for SP-PF1's good-data conditions),
+  `pathsAvoid_fullE`, `fullG_frac_le_keccak`.
 
 Here: the coordinates are as many as the padded tables (`card_coords`), and the average
 corollary's hypotheses in one statement (`fullE_spec`).
@@ -41,7 +44,7 @@ corollary's hypotheses in one statement (`fullE_spec`).
 open scoped ENNReal
 
 open Quantum Quantum.Sponge Sphincs
-open HashSig (Message HashOutput)
+open HashSig (Message)
 open Quantum.Xmss (X Z)
 open Quantum.Xmss.Assembly (XW)
 open Quantum.Xmss.Hybrid (Agree)
@@ -60,7 +63,7 @@ open scoped Classical in
 noncomputable instance instFintypeKK : Fintype KK :=
   inferInstanceAs (Fintype (Hybrid.Secret × Hybrid.SeedKS × (Message → Z) × (Message → Z) ×
     (Message → Fin 960 → ZMod 2) × (Hybrid.DLab → Z) × (Hybrid.DLab → Z) ×
-    (Hybrid.DLab → Fin 832 → ZMod 2) × (NZ → Message × DigestCall → HashOutput)))
+    (Hybrid.DLab → Fin 832 → ZMod 2)))
 
 noncomputable instance instFintypeHidVals : Fintype ((s : HPos) → XD s) :=
   Pi.instFintype

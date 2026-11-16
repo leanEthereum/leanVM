@@ -18,9 +18,8 @@ computations `compQ`), the coordinates of `fullE` carry the table's data:
   in-table path (`cells_mem_compQ`).
 * `pads_of_stageGood`: Reparam's pad holds the table's secrets at the secret positions.
 * The hidden values (`fullE t`): `val_fullE` (the table's at the live positions, so `PK.root`),
-  `rnd_fullE` (the table's randomizer at a first message), `dig_fullE` (the table's `H_msg` output
-  at a first message and an uncharged label).
-* `hiEq_pubP`: the public `h` agrees with the table's from bit `256` on everywhere.
+  `rnd_fullE` (the table's randomizer at a first message). The digest stage after Reparam
+  (`dLast_eq`) keeps everything but `h` and the digest slots.
 -/
 
 open Quantum Quantum.Sponge Sphincs
@@ -30,14 +29,14 @@ open Common.SufCma (SchemeHashSpec)
 open Quantum.Xmss.Hybrid (CoinSlots IsFirst capOf rateOf r0SlotEquiv r0SlotEquiv_fst kCells k'Cells
   hCells)
 open Quantum.Xmss.Assembly (fwd fwd_fst_snd fwd_snd fwd_fst_fst setAt XW)
-open Quantum.Sphincs.Hybrid (DTab Secret SeedKS SkIdx Tab DLab rCell rOrd dLabCell dLabMsg dLabOrd
-  skCell posOf schemeSplit dSplit dGood mem_dGood rGood mem_rGood rSplit pCellK_rSplit pCellH_rSplit
-  rCellK rCellK' rCellH rB dBX dCoord seedKStages seedKStages_spec' seedKGood mem_seedKGood
+open Quantum.Sphincs.Hybrid (DTab Secret SeedKS SkIdx Tab DLab rCell rOrd
+  skCell posOf schemeSplit dGood mem_dGood rGood mem_rGood rSplit pCellK_rSplit pCellH_rSplit
+  rCellK rCellK' rCellH rB seedKStages seedKStages_spec' seedKGood mem_seedKGood
   seedKGood_paths seedKSplit seedKSplit_slots seedKSplit_secret seedKSplit_coords
-  schemeData_eq_pubData_seedKSplit schemeData_eq_pubData_rSplit schemeData_eq_pubData_dSplit
+  schemeData_eq_pubData_seedKSplit schemeData_eq_pubData_rSplit
   schemeData_eq_of_mem mem_schemeGood schemeData pubData qReads secHash secret_eq_secHash
-  randomizer_eq_rCoord digest_eq_dCoord rCell_injective skCell_ne_rCell dLabCell_injective
-  seedCellK seedCellK' rSplit_perm)
+  randomizer_eq_rCoord rCell_injective skCell_ne_rCell
+  seedCellK seedCellK' rSplit_perm dLabOrd)
 
 namespace Quantum.Sphincs.Assembly
 
@@ -108,7 +107,7 @@ def rCellS (M : Message) (P : PublicParameter) (s : Secret) : X :=
 /-- **The stage good set**: DigestStage's and SeedStage's good sets for the computations
 `compQ`. -/
 def StageGood (t : FT) : Prop :=
-  t.1.1.1 ∈ dGood rCell rOrd dLabCell dLabMsg dLabOrd compQ ∧
+  t.1.1.1 ∈ dGood (J := DLab) rCell rOrd compQ ∧
     (t.1.1.1.1.1, t.1.1.2) ∈ seedKGood rCellS compQ
 
 variable {t : FT} (ht : StageGood t)
@@ -129,18 +128,6 @@ theorem rReads_of_stageGood (i : CIdx) (M : Message) :
   rw [pCellK'_rSplit_of_dGood ht.1] at h2
   rw [pCellH_rSplit rCell_injective hR] at h3
   refine ⟨?_, ?_, ?_⟩ <;> rw [hsd] <;> assumption
-
-/-- The digest stage's reads miss the in-table paths' `h`-cells. -/
-theorem dReads_of_stageGood (i : CIdx) (a : DLab) :
-    capD t.1.1.1 a ∉ hCells (schemeData compQ (tabOf t) i).2 := by
-  have hd := ht.1
-  obtain ⟨-, -, hread⟩ := (mem_dGood rCell rOrd dLabCell dLabMsg dLabOrd).mp hd
-  have hsd := schemeData_eq_pubData_dSplit rCell rOrd dLabCell dLabMsg dLabOrd rCell_injective
-    dLabCell_injective hd
-  have h3 := (hread i a).2.2
-  rw [(dSplit_good hd).2.1 a] at h3
-  rw [hsd]
-  exact h3
 
 /-- The hidden capacities miss the in-table paths' `h`-cells. -/
 theorem sReads_of_stageGood (i : CIdx) (a : SkIdx) :
@@ -255,7 +242,6 @@ theorem pathKeys_of_stageGood : PathKeys (tabOf t) (phiE t).1.2 (phiE t).1.1.1 :
   rw [hPre_eq]
   exact dFull_h_eq ht.1 _ (fun a h ↦ sReads_of_stageGood ht i a (h ▸ mh))
     (fun M h ↦ (rReads_of_stageGood ht i M).2.2 (h ▸ mh))
-    (fun a h ↦ dReads_of_stageGood ht i a (h ▸ mh))
 
 omit ht in
 /-- The table's value at a secret's position is the secret. -/
@@ -274,9 +260,23 @@ theorem pads_of_stageGood (q : ValPos) (hq : SecretPos q) :
   rfl
 
 omit ht in
+/-- **The digest stage keeps everything but `h` and the digest slots.** -/
+theorem dLast_eq (y : (((Z → X) × XW) × (ValPos → Digest)) × RestF) :
+    ∃ (h₃ : Z → X) (hc₃ : DLab → X),
+      dLast y = (((h₃, y.1.1.2), y.1.2), (y.2.1, (y.2.2.1.1, y.2.2.1.2.1, hc₃), y.2.2.2)) := by
+  obtain ⟨h₃, hc₃, e, -⟩ := pFull_eq dcY dLabOrd (yView y)
+  refine ⟨h₃, hc₃, ?_⟩
+  show yView.symm (pFull dcY dLabOrd (yView y)) = _
+  rw [e]
+  rfl
+
+omit ht in
 /-- The hidden values at the positions are Reparam's values. -/
 theorem fullE_val (q : ValPos) :
-    (fullE t).2.1 (.val q) = sVal (phiE t).1.2 (phiE t).1.1.1 (phiE t).1.1.2 q :=
+    (fullE t).2.1 (.val q) = sVal (phiE t).1.2 (phiE t).1.1.1 (phiE t).1.1.2 q := by
+  obtain ⟨h₃, hc₃, e⟩ := dLast_eq (yOf t)
+  show (psiE (dLast (yOf t))).2.1 (.val q) = _
+  rw [e]
   rfl
 
 /-- **The hidden values at the live positions are the table's.** -/
@@ -290,25 +290,15 @@ theorem root_fullE : (fullE t).2.1 (.val rootPos) = (tabOf t).root :=
 /-- **The hidden randomizer of a first message is the table's.** -/
 theorem rnd_fullE (M : Message) (hM : M ∉ rB rCell rOrd (tabOf t)) :
     (fullE t).2.1 (.rnd M) = (tabOf t).randomizer M := by
+  obtain ⟨h₃, hc₃, e⟩ := dLast_eq (yOf t)
   obtain ⟨k₂, k'₂, sk₂, -, he2, -⟩ := phiE_spec t
+  show (psiE (dLast (yOf t))).2.1 (.rnd M) = _
+  rw [e]
   show truncateHash (out256 ((phiE t).2.2.2.1.2.2 M)) = _
   rw [he2]
   show truncateHash (out256 ((dFull t.1.1.1).2.1.2.2 M)) = _
   rw [dFull_rhc]
   exact (randomizer_eq_rCoord (rGood_of_dGood ht.1) M hM).symm
-
-/-- **The hidden `H_msg` output of a first message at an uncharged label is the table's.** -/
-theorem dig_fullE (M : Message) (i : DigestCall) (hM : M ∉ rB rCell rOrd (tabOf t))
-    (ha : ((tabOf t).root, M, i) ∉
-      dBX rCell dLabCell dLabMsg dLabOrd (dSplit rCell rOrd dLabCell dLabMsg dLabOrd t.1.1.1)) :
-    (fullE t).2.1 (.dig M i) = (tabOf t).digestOutput M i := by
-  obtain ⟨k₂, k'₂, sk₂, -, he2, -⟩ := phiE_spec t
-  have hr : (fwd sphFix sO (phiE t).1).2 rootPos = (tabOf t).root := root_fullE ht
-  show out256 ((phiE t).2.2.1.2.2 ((fwd sphFix sO (phiE t).1).2 rootPos, M, i)) = _
-  rw [hr, he2]
-  show out256 ((dFull t.1.1.1).1.2.2.2 ((tabOf t).root, M, i)) = _
-  rw [dFull_dhc]
-  exact (digest_eq_dCoord ht.1 M i hM ha).symm
 
 omit ht in
 /-- `fwd`'s public `h` agrees with the table's `h` from bit `256` on. -/
@@ -324,9 +314,6 @@ theorem hiEq_fwd (θ : RTabS) (z : Z) : HiEq ((fwd sphFix sO θ).1.1 z) (θ.1.1 
     exact HiEq.refl _
   · exact HiEq.refl _
 
-/-- **The public `h` agrees with the table's from bit `256` on.** -/
-theorem hiEq_pubP (z : Z) : HiEq ((pubP (fullE t).1).keys.1 z) ((tabOf t).keys.1 z) :=
-  (hiEq_fwd (phiE t).1 z).trans (by rw [hPre_eq]; exact dFull_hiEq ht.1 z)
 
 end good
 
