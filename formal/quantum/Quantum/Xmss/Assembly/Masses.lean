@@ -434,11 +434,11 @@ section xmss
 open HashSig HashSig.OverPermutation LeanXmss Common Common.SufCma
   LeanXmss.RandomPermutationModel
 
-/-- **The program ports of the honest paths** the template game calls at the table `L`, realized
-(GameT's `progSet`, the same set). -/
+/-- **The program ports of the honest paths** the template game calls at the table `L` (in-table
+keys), realized (GameT's `progSet`, the same set). -/
 def pathProgs (L : HonestTable) : Set (HwProg X Z) :=
-  {c | ∃ (l : Layer) (e : KeyIndex) (w : Encoding) (s : Slot), s ∈ layerSlots l e w ∧
-    ∃ p ∈ slotPorts (pubOf L) s, p.realize (valueAt L) = c}
+  {c | ∃ (l : Layer) (e : KeyIndex) (w : Encoding) (s : Slot), e.val < keyCount l ∧
+    s ∈ layerSlots l e w ∧ ∃ p ∈ slotPorts (pubOf L) s, p.realize (valueAt L) = c}
 
 /-- The `h`-cells of the honest paths. -/
 def pathH (L : HonestTable) : Set Z :=

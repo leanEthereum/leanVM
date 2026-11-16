@@ -577,10 +577,11 @@ theorem roundH_snd (L : HonestTable) {l : Layer} {e : KeyIndex} {w : Encoding} {
     rfl
   · rfl
 
-/-- The program ports the template game calls at the table `L`, realized. -/
+/-- The program ports the template game calls at the table `L` (in-table keys, as `signT` signs),
+realized. -/
 def progSet (L : HonestTable) : Set (HwProg X Z) :=
-  {c | ∃ (l : Layer) (e : KeyIndex) (w : Encoding) (s : Slot), s ∈ layerSlots l e w ∧
-    ∃ p ∈ slotPorts (pubOf L) s, p.realize (valueAt L) = c}
+  {c | ∃ (l : Layer) (e : KeyIndex) (w : Encoding) (s : Slot), e.val < keyCount l ∧
+    s ∈ layerSlots l e w ∧ ∃ p ∈ slotPorts (pubOf L) s, p.realize (valueAt L) = c}
 
 open Classical in
 /-- **The table's cells the game programs**: the cells of the honest paths of every slot a layer
@@ -609,7 +610,7 @@ theorem tableHw_snd_snd {L : HonestTable} {x : X} {a : Z} (h : HwProg.programK' 
 theorem progOf_tableHw (L : HonestTable) {c : HwProg X Z} (hc : c ∈ progSet L) :
     ProgOf (tableHw L) c := by
   have hc' := hc
-  obtain ⟨l, e, w, s, hs, p, hp, hpc⟩ := hc
+  obtain ⟨l, e, w, s, -, hs, p, hp, hpc⟩ := hc
   simp only [slotPorts, List.mem_flatMap, List.mem_range, List.mem_cons, List.not_mem_nil,
     or_false] at hp
   obtain ⟨j, -, rfl | rfl | rfl⟩ := hp <;> subst hpc
@@ -807,32 +808,33 @@ theorem dropsTo_progSlotsD (pub : Pub) (v : ValPos → Digest) (B : QReg) {C : Q
       (dropsTo_progSlotsD pub v B hx ss fun t ht ↦ h t (List.mem_cons_of_mem _ ht)) _
       (h s List.mem_cons_self)
 
-/-- Every program port the game calls at `pub`, `v` programs a cell of `W` with its `W` value. -/
+/-- Every program port the game calls at `pub`, `v` (in-table keys) programs a cell of `W` with
+its `W` value. -/
 def ProgsOf (pub : Pub) (v : ValPos → Digest) : Prop :=
-  ∀ (l : Layer) (e : KeyIndex) (x : Encoding), ∀ s ∈ layerSlots l e x, ∀ p ∈ slotPorts pub s,
-    ProgOf W (p.realize v)
+  ∀ (l : Layer) (e : KeyIndex) (x : Encoding), e.val < keyCount l → ∀ s ∈ layerSlots l e x,
+    ∀ p ∈ slotPorts pub s, ProgOf W (p.realize v)
 
 variable {W}
 
 theorem dropsTo_signLayerD {pub : Pub} {v : ValPos → Digest} (h : ProgsOf W pub v) (B : QReg)
-    (l : Layer) (e : KeyIndex) (message : HashInput) :
+    (l : Layer) (e : KeyIndex) (message : HashInput) (he : e.val < keyCount l) :
     DropsTo W (signLayerD M pub v B l e message) (signLayerR M pub v B l e message) := by
   refine DropsTo.bind₂ (dropsTo_liftReadProg W _) fun g ↦ ?_
   rcases g with _ | ⟨ρ, x⟩
   · exact DropsTo.pure _
-  · exact dropsTo_progSlotsD W pub v B (DropsTo.pure _) _ (h l e x)
+  · exact dropsTo_progSlotsD W pub v B (DropsTo.pure _) _ (h l e x he)
 
 theorem dropsTo_signWith (B : QReg)
     {layerD : Layer → KeyIndex → HashInput →
       QComp (hwSpec X Z M) B B (Option (LayerSignature × (ValPos → Digest)))}
     {layerR : Layer → KeyIndex → HashInput →
       QComp (hwReadSpec X Z M) B B (Option (LayerSignature × (ValPos → Digest)))}
-    (h : ∀ l e message, DropsTo W (layerD l e message) (layerR l e message))
+    (h : ∀ l e message, e.val < keyCount l → DropsTo W (layerD l e message) (layerR l e message))
     (r : SigningRequest) : DropsTo W (signWith B layerD r) (signWith B layerR r) := by
-  refine DropsTo.bind₂ (h _ _ _) fun b ↦ ?_
+  refine DropsTo.bind₂ (h _ _ _ (keyIndexOnLayer_lt _ _)) fun b ↦ ?_
   rcases b with _ | ⟨bottom, f⟩
   · exact DropsTo.pure _
-  · refine DropsTo.bind₂ (h _ _ _) fun t ↦ ?_
+  · refine DropsTo.bind₂ (h _ _ _ (keyIndexOnLayer_lt _ _)) fun t ↦ ?_
     rcases t with _ | ⟨top, _⟩
     · exact DropsTo.pure _
     · exact DropsTo.pure _
@@ -887,11 +889,11 @@ theorem progOf_mono {W' : Hw X Z} (hW : HwLe W W') {c : HwProg X Z} (hc : ProgOf
 
 theorem ProgsOf.mono {W' : Hw X Z} (hW : HwLe W W') {pub : Pub} {v : ValPos → Digest}
     (h : ProgsOf W pub v) : ProgsOf W' pub v :=
-  fun l e x s hs p hp ↦ progOf_mono hW (h l e x s hs p hp)
+  fun l e x he s hs p hp ↦ progOf_mono hW (h l e x he s hs p hp)
 
 /-- **At the table, the game programs cells of `tableHw L` with their values.** -/
 theorem progsOf_tableHw (L : HonestTable) : ProgsOf (tableHw L) (pubOf L) (valueAt L) :=
-  fun l e x s hs p hp ↦ progOf_tableHw L ⟨l, e, x, s, hs, p, hp, rfl⟩
+  fun l e x he s hs p hp ↦ progOf_tableHw L ⟨l, e, x, s, he, hs, p, hp, rfl⟩
 
 end drops
 
