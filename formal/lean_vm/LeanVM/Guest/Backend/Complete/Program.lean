@@ -234,7 +234,7 @@ def ProgramCompleteStmt : Prop :=
     ∀ (keyed : String → Bool) (hdr : E × E) (rd : Reader) (T : Tree), T.name = "main" →
       HonestAt W.core W.fsB W.hdrB W.cellsB hdr T W.cellB rd [] [] →
       ∃ c : Opcode → ℕ,
-        B2C.RunC W.prog (W.honestB hdr T) ⟨addressOfIndex (W.ent "main"), 1⟩
+        RunC W.prog (W.honestB hdr T) ⟨addressOfIndex (W.ent "main"), 1⟩
           (Registers.final W.prog) c ∧
         ∀ op, c op ≤ W.progCost keyed T op
 

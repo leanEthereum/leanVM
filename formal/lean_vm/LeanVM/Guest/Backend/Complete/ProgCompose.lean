@@ -24,7 +24,6 @@ registers within the call tree's cost.
 namespace LeanVM.Guest.Backend.Complete
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
-open LeanVM.Guest.B2C (RunC)
 
 @[expose] public section
 

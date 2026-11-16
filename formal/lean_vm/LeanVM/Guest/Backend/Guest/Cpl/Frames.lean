@@ -55,7 +55,7 @@ theorem FSG_ok (hok : CplOkAll) (hFC : Complete.FrameConsistentStmt) {i : ℕ}
     (hi : i < coreProgram.length) {fp : ℕ} (hm : (tfG i).core.name = "main" → fp = 0) (kfps : List ℕ)
     (hdr : E × E) : FSOk i fp kfps hdr (FSG i fp kfps hdr) := by
   have E := entryOk hok hi
-  have hi' : i < guestTraced.length := lt_of_lt_of_eq hi B2.guestTraced_length.symm
+  have hi' : i < guestTraced.length := lt_of_lt_of_eq hi guestTraced_length.symm
   have hex : ∃ FS, FSOk i fp kfps hdr FS :=
     hFC W0 W0_compiled (tfG i) (tf_mem hi') E.facts.isScoped (placedG i) E.placedAs E.facts.apart
       E.facts.noSelf fp hm kfps hdr
@@ -81,20 +81,20 @@ theorem withL_placedAs {κ κ' : ℕ} (W : World κ) (L : MemoryImage κ') {tf :
   h
 
 theorem tfG_core {i : ℕ} (hi : i < coreProgram.length) : (tfG i).core = coreOf (i + 1) := by
-  have hi' : i < guestTraced.length := lt_of_lt_of_eq hi B2.guestTraced_length.symm
+  have hi' : i < guestTraced.length := lt_of_lt_of_eq hi guestTraced_length.symm
   show (guestTraced.getD i default).core = _
-  rw [List.getD_eq_getElem _ _ hi', B2.guestTraced_getElem hi']
+  rw [List.getD_eq_getElem _ _ hi', guestTraced_getElem hi']
 
 theorem name_main {i : ℕ} (hi : i < coreProgram.length) : (tfG i).core.name = "main" ↔ i = 0 := by
   rw [tfG_core hi]
   constructor
   · intro h
-    have := B2.coreOf_name_inj (j := i + 1) (j' := 1) (by omega)
-      (lt_of_lt_of_eq (Nat.add_lt_add_right hi 1) B2.coreProgram_length_succ) le_rfl (by decide)
-      (h.trans (B2.coreOf_one ▸ B2.core0_main.1).symm)
+    have := coreOf_name_inj (j := i + 1) (j' := 1) (by omega)
+      (lt_of_lt_of_eq (Nat.add_lt_add_right hi 1) coreProgram_length_succ) le_rfl (by decide)
+      (h.trans (coreOf_one ▸ core0_main.1).symm)
     omega
   · rintro rfl
-    exact B2.coreOf_one ▸ B2.core0_main.1
+    exact coreOf_one ▸ core0_main.1
 
 theorem main_not_loopG : coreProgram.loop "main" = false := by decide +kernel
 
@@ -420,8 +420,8 @@ theorem cplRunG (hok : CplOkAll) (hFC : Complete.FrameConsistentStmt) (hjt : JTC
   intro j h1 h2 κ L _ htab fp hfp σ es vs hw hev kfps hdr hF ck hK
   obtain ⟨i, rfl⟩ : ∃ i, j = i + 1 := ⟨j - 1, by omega⟩
   have hi : i < coreProgram.length :=
-    Nat.lt_of_add_lt_add_right (lt_of_lt_of_eq h2 B2.coreProgram_length_succ.symm)
-  have hi' : i < guestTraced.length := lt_of_lt_of_eq hi B2.guestTraced_length.symm
+    Nat.lt_of_add_lt_add_right (lt_of_lt_of_eq h2 coreProgram_length_succ.symm)
+  have hi' : i < guestTraced.length := lt_of_lt_of_eq hi guestTraced_length.symm
   have E := entryOk hok hi
   have hcore := tfG_core hi
   have hm : (tfG i).core.name = "main" → fp = 0 := fun hn => hfp (by
@@ -437,7 +437,7 @@ theorem cplRunG (hok : CplOkAll) (hFC : Complete.FrameConsistentStmt) (hjt : JTC
   have hprog : W.prog = guestProgram :=
     (withL_prog W0 L).trans (guestWorld_prog guest_compiles : W0.prog = guestProgram)
   have hent : ∀ ic, ic + 1 < nFns → W.ent (coreOf (ic + 1)).name = (fnOf (ic + 1)).entryPc :=
-    fun ic hic => (withL_ent W0 L _).trans (B2.ent_eq guest_compiles (by omega) hic : W0.ent _ = _)
+    fun ic hic => (withL_ent W0 L _).trans (ent_eq guest_compiles (by omega) hic : W0.ent _ = _)
   have hJT : JTHolds L W0.layout W0.slots := fun s k w hs hk => by
     obtain ⟨q, hq, ha, hqw⟩ := hjt s k w hs hk
     rw [← ha, ← hqw]
@@ -449,7 +449,7 @@ theorem cplRunG (hok : CplOkAll) (hFC : Complete.FrameConsistentStmt) (hjt : JTC
     obtain ⟨ic, hixc⟩ := hcallees c (List.mem_of_getElem? hc)
     have Fc := fnAt hixc
     have hjc : idxOf c.f = some (ic + 1) := by unfold idxOf; rw [hixc]; rfl
-    show B2C.RunC W.prog L ⟨addressOfIndex (W.ent c.f), addressOfIndex kfp⟩ r (ck.getD i' 0)
+    show RunC W.prog L ⟨addressOfIndex (W.ent c.f), addressOfIndex kfp⟩ r (ck.getD i' 0)
     rw [hprog, ← Fc.name, hent ic Fc.nfns, ← entryOf_of hjc]
     exact hrc
   have hbody := hrun L ck hfok hev hJT hKP

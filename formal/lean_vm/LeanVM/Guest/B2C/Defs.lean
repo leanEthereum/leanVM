@@ -15,6 +15,7 @@ public import LeanVM.Guest.Glob
 public import LeanVM.Guest.Frames
 public import LeanVM.Guest.Data.Plumb
 public import LeanVM.Guest.Data.CplArms
+public import LeanVM.Guest.Backend.Complete.Count
 
 /-!
 # The honest memory's frames
@@ -197,7 +198,7 @@ mutual
 /-- The separately counted arms a statement's path passes, under `σ`. -/
 noncomputable def cost1 (acs : List (ℕ × List (List ℕ))) (σ : Val) : Stmt → Opcode → ℕ
   | .ite c z n => if σ c = 0 then costW acs σ z else costW acs σ n
-  | .match_ x arms => costArms acs σ x (armRaw acs x.idx) 0 arms
+  | .match_ x arms => costArms acs σ x (Backend.Complete.armRaw acs x.idx) 0 arms
   | _ => 0
 
 /-- The separately counted arms a block's path passes, under `σ`. -/
