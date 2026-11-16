@@ -43,28 +43,29 @@ open Quantum Quantum.Sponge Quantum.Xmss Quantum.Xmss.Hybrid HashSig LeanXmss
 
 section comb
 
-variable {M : Type}
+variable {S : Type} {D : S → Type} {good : LazyProg X Z S D → Prop} {M : Type}
 
-theorem realizeT_bind₂_congr {A B C : QReg} {α β : Type} {v v' : HPos → Digest}
-    {x x' : QComp (XSpec M) A B α} {k k' : α → QComp (XSpec M) B C β}
+theorem realizeT_bind₂_congr {A B C : QReg} {α β : Type} {v v' : (s : S) → D s}
+    {x x' : QComp (tmplSpec X Z S D M good) A B α}
+    {k k' : α → QComp (tmplSpec X Z S D M good) B C β}
     (hx : realizeT v x = realizeT v' x') (hk : ∀ a, realizeT v (k a) = realizeT v' (k' a)) :
     realizeT v (x.bind k) = realizeT v' (x'.bind k') := by
   rw [realizeT_bind₂, realizeT_bind₂, hx]
   exact congrArg (QuantumComp₂.bind (realizeT v' x')) (funext hk)
 
-theorem realizeT_bind_congr {Ω Ω' : QReg → Type} {A : QReg} {v v' : HPos → Digest}
-    {x x' : QuantumComp LocalSig.instruments.{0} (XSpec M) Ω A}
-    {g g' : ∀ u, Ω u → QuantumComp LocalSig.instruments.{0} (XSpec M) Ω' u}
+theorem realizeT_bind_congr {Ω Ω' : QReg → Type} {A : QReg} {v v' : (s : S) → D s}
+    {x x' : QuantumComp LocalSig.instruments.{0} (tmplSpec X Z S D M good) Ω A}
+    {g g' : ∀ u, Ω u → QuantumComp LocalSig.instruments.{0} (tmplSpec X Z S D M good) Ω' u}
     (hx : realizeT v x = realizeT v' x') (hg : ∀ u a, realizeT v (g u a) = realizeT v' (g' u a)) :
     realizeT v (x.bind g) = realizeT v' (x'.bind g') := by
   rw [realizeT_bind, realizeT_bind, hx]
   simp only [hg]
 
 /-- A reveal, realized: the record port of `T`, continuing with the values of `v` on `T`. -/
-theorem realizeT_revealThen_eq (v : HPos → Digest) {B C : QReg} {α : Type} (T : Finset HPos)
-    (k : RevealVals XD T × (Finset HPos × M) → QComp (XSpec M) B C α) :
-    realizeT v (revealThen goodAll T k) =
-      QuantumComp.queryBind (L := LocalSig.instruments.{0}) (spec := recHwSpec X Z HPos M) (.inr T)
+theorem realizeT_revealThen_eq (v : (s : S) → D s) {B C : QReg} {α : Type} (T : Finset S)
+    (k : RevealVals D T × (Finset S × M) → QComp (tmplSpec X Z S D M good) B C α) :
+    realizeT v (revealThen good T k) =
+      QuantumComp.queryBind (L := LocalSig.instruments.{0}) (spec := recHwSpec X Z S M) (.inr T)
         B (Equiv.uniqueProd B Unit).symm fun r ↦
           QuantumComp.primBind (L := LocalSig.instruments.{0})
             ⟨Unit, fun _ ↦ B, SubInstrument.relabel (Equiv.uniqueProd B Unit)⟩ fun _ ↦
@@ -72,35 +73,36 @@ theorem realizeT_revealThen_eq (v : HPos → Digest) {B C : QReg} {α : Type} (T
   rfl
 
 /-- **Reveals at values agreeing on the revealed coordinates** realize alike. -/
-theorem realizeT_revealThen_congr {B C : QReg} {α : Type} {v v' : HPos → Digest} (T : Finset HPos)
-    (hT : Agree T v v') {k k' : RevealVals XD T × (Finset HPos × M) → QComp (XSpec M) B C α}
+theorem realizeT_revealThen_congr {B C : QReg} {α : Type} {v v' : (s : S) → D s}
+    (T : Finset S) (hT : Agree T v v')
+    {k k' : RevealVals D T × (Finset S × M) → QComp (tmplSpec X Z S D M good) B C α}
     (hk : ∀ r, realizeT v (k r) = realizeT v' (k' r)) :
-    realizeT v (revealThen goodAll T k) = realizeT v' (revealThen goodAll T k') := by
+    realizeT v (revealThen good T k) = realizeT v' (revealThen good T k') := by
   rw [realizeT_revealThen_eq, realizeT_revealThen_eq, ← restrictTo_eq hT]
   simp only [hk]
 
 /-- A realized program port `c` beside `B`, then `K`. -/
 noncomputable def progR (B : QReg) {C : QReg} {α : Type} (c : HwProg X Z)
-    (K : QuantumComp LocalSig.instruments.{0} (recHwSpec X Z HPos M) (QuantumComp₂.Leaf C α) B) :
-    QuantumComp LocalSig.instruments.{0} (recHwSpec X Z HPos M) (QuantumComp₂.Leaf C α) B :=
-  QuantumComp.queryBind (L := LocalSig.instruments.{0}) (spec := recHwSpec X Z HPos M)
+    (K : QuantumComp LocalSig.instruments.{0} (recHwSpec X Z S M) (QuantumComp₂.Leaf C α) B) :
+    QuantumComp LocalSig.instruments.{0} (recHwSpec X Z S M) (QuantumComp₂.Leaf C α) B :=
+  QuantumComp.queryBind (L := LocalSig.instruments.{0}) (spec := recHwSpec X Z S M)
     (.inl (.inr c)) B (Equiv.uniqueProd B Unit).symm fun _ ↦
       QuantumComp.primBind (L := LocalSig.instruments.{0})
         ⟨Unit, fun _ ↦ B, SubInstrument.relabel (Equiv.uniqueProd B Unit)⟩ fun _ ↦ K
 
 /-- A program port, realized: the program port it realizes at `v`. -/
-theorem realizeT_progThen_eq (v : HPos → Digest) {B C : QReg} {α : Type}
-    (p : LazyProg X Z HPos XD) (k : QComp (XSpec M) B C α) :
-    realizeT v (progThen p trivial k) = progR B (p.realize v) (realizeT v k) :=
+theorem realizeT_progThen_eq (v : (s : S) → D s) {B C : QReg} {α : Type}
+    (p : LazyProg X Z S D) {hp : good p} (k : QComp (tmplSpec X Z S D M good) B C α) :
+    realizeT v (progThen p hp k) = progR B (p.realize v) (realizeT v k) :=
   rfl
 
 /-- **Reads never see the hidden values**: a lifted read program realizes alike at all values. -/
-theorem realizeT_readLift_indep (v v' : HPos → Digest) {Ω : QReg → Type} {A : QReg}
+theorem realizeT_readLift_indep (v v' : (s : S) → D s) {Ω : QReg → Type} {A : QReg}
     (y : QuantumComp LocalSig.instruments.{0} (hwReadSpec X Z M) Ω A) :
-    realizeT v (readLift goodAll y) = realizeT v' (readLift goodAll y) := by
-  show IPFunctor.IFreeM.mapLens (tmplLens v) (IPFunctor.IFreeM.mapLens (readLens goodAll) y) =
-    IPFunctor.IFreeM.mapLens (tmplLens v') (IPFunctor.IFreeM.mapLens (readLens goodAll) y)
-  rw [← IPFunctor.IFreeM.substitute_toSubstitution (readLens goodAll) y,
+    realizeT v (readLift good y) = realizeT v' (readLift good y) := by
+  show IPFunctor.IFreeM.mapLens (tmplLens v) (IPFunctor.IFreeM.mapLens (readLens good) y) =
+    IPFunctor.IFreeM.mapLens (tmplLens v') (IPFunctor.IFreeM.mapLens (readLens good) y)
+  rw [← IPFunctor.IFreeM.substitute_toSubstitution (readLens good) y,
     ← IPFunctor.IFreeM.substitute_toSubstitution (tmplLens v),
     ← IPFunctor.IFreeM.substitute_toSubstitution (tmplLens v')]
   refine ((substitute_substitute _ _ y).trans ?_).trans (substitute_substitute _ _ y).symm
@@ -116,8 +118,8 @@ theorem realizeT_progPorts_congr {v v' : HPos → Digest} (B : QReg) :
   | _ :: _, [], h => (List.cons_ne_nil _ _ h).elim
   | p :: ps, p' :: ps', h => by
     simp only [List.map_cons, List.cons.injEq] at h
-    rw [progPorts, progPorts, realizeT_progThen_eq, realizeT_progThen_eq,
-      realizeT_progPorts_congr B h.2, h.1]
+    rw [progPorts, progPorts]
+    exact congrArg₂ (progR B) h.1 (realizeT_progPorts_congr B h.2)
 
 theorem realizeT_progSlots_congr {pub pub' : Pub} {v v' : HPos → Digest} (B : QReg) :
     ∀ ss : List Slot,
