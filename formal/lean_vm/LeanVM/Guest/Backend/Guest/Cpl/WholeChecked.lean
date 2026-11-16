@@ -37,7 +37,7 @@ theorem guest_core_complete_checked : ∀ (hdr : E × E) (T : Tree)
     T.total W0.fsB ≤ 2 ^ 30 →
     (∀ q ∈ T.eqns W0.core, ∃ i : Fin (2 ^ logMem (T.total W0.fsB)), q.1 = addressOfIndex i) →
     ∃ ν : ℕ → String → Val → V → E, ∃ c : Opcode → ℕ,
-      B2C.RunC W0.prog (W0.honestB hdr (T.retemp W0.core W0.fsB ν 0))
+      RunC W0.prog (W0.honestB hdr (T.retemp W0.core W0.fsB ν 0))
         ⟨addressOfIndex (W0.ent "main"), 1⟩ (Registers.final W0.prog) c ∧
       ∀ op, c op ≤ W0.progCost (fun _ => false) (T.retemp W0.core W0.fsB ν 0) op :=
   Complete.program_complete_checked W0 guest_compileChecked W0_compiled.2 (fun _ => false)

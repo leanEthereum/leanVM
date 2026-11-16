@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.Backend.Guest.World
+public import LeanVM.Guest.Backend.Guest.Facts
 public import LeanVM.Guest.Backend.Sound.Obl.GuestB1
 
 /-!
@@ -23,7 +24,9 @@ public import LeanVM.Guest.Backend.Sound.Obl.GuestB1
 * `guest_main_body`: the same as `main`'s body `Data.core0.body` under the valuation by places at
   frame `1`, returning nothing, its calls located (`World.C`): the certificate-free analogue of
   `B2SoundL`'s statement about `main`;
-* `guest_main_rel`: `coreProgram.Rel L.read "main" [] []`.
+* `guest_main_rel`: `coreProgram.Rel L.read "main" [] []`;
+* `registered_tfOf`: function `j` is a registered loop helper of the guest's world exactly when
+  its name is a loop helper's and its `loopSource` says so.
 -/
 
 namespace LeanVM.Guest.Backend
@@ -97,6 +100,14 @@ theorem guest_main_rel (h : GuestCompiles fns slots) (hκ : minLogMem ≤ κ ∧
   rw [guestWorld_core] at hr
   simp only [sigOf, core0_name.2, List.length_nil, frameWords, List.range_zero, List.map_nil] at hr
   exact hr
+
+theorem registered_tfOf (h : GuestCompiles fns slots) {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) :
+    (guestEnd fns slots L).registered (coreOf j).name ↔
+      (isLoopName (coreOf j).name && (infoOf j).2.2.1) = true := by
+  have := registered_iff (guestTraced_nodup L h) (getElem_mem_guestTraced h1 h2)
+  dsimp only [tfOf] at this
+  show ((loopTable guestTraced)[(coreOf j).name]?).any (·.registered) = true ↔ _
+  rw [this]
 
 end
 end LeanVM.Guest.Backend

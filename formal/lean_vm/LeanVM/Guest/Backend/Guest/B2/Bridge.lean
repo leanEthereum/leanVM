@@ -12,7 +12,8 @@ public import LeanVM.Guest.CertName
 public import LeanVM.Guest.Backend.Guest.End
 public import LeanVM.Guest.Backend.Guest.B2.Agree
 public import LeanVM.Guest.Backend.Guest.B2.DataAll
-public import LeanVM.Guest.Backend.Guest.B2.Facts
+public import LeanVM.Guest.Backend.Guest.Facts
+public import LeanVM.Guest.Backend.Guest.Places
 public import LeanVM.Guest.Backend.Guest.B2.Pow
 public import LeanVM.Guest.Backend.Guest.B2.Eval.Res
 
@@ -45,34 +46,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Gu
 
 @[expose] public section
 
-/-! ## The guest's places and the two hypotheses -/
-
-/-- The back end's input for the guest as a world on the empty memory: what places its values
-(`World.locs`) reads of a world is its input. -/
-noncomputable def gWorld : World 0 :=
-  ⟨guestTraced, [], #[], 0, Nat.zero_le _, fun _ => 0, fun _ _ => True⟩
-
-/-- **The places of the guest function `g`'s values**: `placeProgram guestTraced`'s. -/
-noncomputable def gLocs (g : String) : VMap Loc := gWorld.locs g
-
-theorem locs_of_p {κ κ' : ℕ} {W : World κ} {W' : World κ'} (h : W.p = W'.p) (g : String) :
-    W.locs g = W'.locs g := by
-  unfold World.locs World.placed
-  rw [h]
-
-theorem gWorld_p : gWorld.p = guestTraced := rfl
-
-theorem world_locs {κ : ℕ} {fns : List Lowered} {slots : Array KVal} {L : MemoryImage κ}
-    {U : String → List E → Prop} (g : String) : (guestWorld fns slots L U).locs g = gLocs g :=
-  locs_of_p (guestWorld_p.trans gWorld_p.symm) g
-
-/-- The guest world's valuation of `g` at `fp` is the valuation by `gLocs g`. -/
-theorem vf_eq {κ : ℕ} {fns : List Lowered} {slots : Array KVal} {L : MemoryImage κ}
-    {U : String → List E → Prop} (g : String) (fp : K) :
-    (guestWorld fns slots L U).vf g fp = valP L fp (gLocs g) := by
-  unfold World.vf
-  rw [world_locs]
-  rfl
+/-! ## The hypothesis on places -/
 
 /-- **Every function's places compare with its certificate's cells** (`Agree.fnOk`), one test per
 function on its placed locations. -/
@@ -109,6 +83,23 @@ theorem transport (hagree : LocsAgree) {j k : ℕ} {fp : K} (h1 : 1 ≤ j)
   have := Agree.fnOk_sound (A := agreeWith (gLocs (coreOf j).name) j) (L := L) (fp := fp)
     (locs := gLocs (coreOf j).name) (fun _ => rfl) (residualFacts L j k fp h1 h2 hs) (hagree j h1 h2)
   rwa [valC_eq h1 h2] at this
+
+/-! ## The executor's tries -/
+
+/-- A read of the key just stored, within the trie's depth. -/
+theorem trie_get_set {α : Type} (a : α) : ∀ (d : ℕ) (t : Exec.Trie α) (n : ℕ), n + 1 < 2 ^ d →
+    (t.set a d n).get n = some a
+  | 0, _, n, h => absurd h (by simp)
+  | d + 1, t, n, h => by
+      rw [Exec.Trie.set_succ, pow_succ] at *
+      by_cases h0 : n = 0
+      · rw [ite_eq_left h0, Exec.Trie.get_node, ite_eq_left h0]
+      · rw [ite_eq_right h0]
+        by_cases h1 : n % 2 = 1
+        · rw [ite_eq_left h1, Exec.Trie.get_node, ite_eq_right h0, ite_eq_left h1]
+          exact trie_get_set a d _ _ (by omega)
+        · rw [ite_eq_right h1, Exec.Trie.get_node, ite_eq_right h0, ite_eq_right h1]
+          exact trie_get_set a d _ _ (by omega)
 
 /-! ## Entry environments -/
 
@@ -165,28 +156,7 @@ variable {fns : List Lowered} {slots : Array KVal}
 /-- The guest's world on `L`. -/
 local notation "WG" => guestEnd fns slots L
 
-/-- Function `j` as the back end's input holds it. -/
-noncomputable abbrev tfOf (j : ℕ) : TracedFn :=
-  ⟨coreOf j, (infoOf j).1, (infoOf j).2.1, (infoOf j).2.2⟩
-
-theorem registered_tfOf (h : GuestCompiles fns slots) {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) :
-    (WG).registered (coreOf j).name ↔ (isLoopName (coreOf j).name && (infoOf j).2.2.1) = true := by
-  have := registered_iff (guestTraced_nodup L h) (getElem_mem_guestTraced h1 h2)
-  dsimp only [tfOf] at this
-  show ((loopTable guestTraced)[(coreOf j).name]?).any (·.registered) = true ↔ _
-  rw [this]
-
-theorem tf_eq (L : MemoryImage κ) (h : GuestCompiles fns slots) {tf : TracedFn}
-    (htf : tf ∈ guestTraced) {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns)
-    (hn : tf.core.name = (coreOf j).name) : tf = tfOf j :=
-  eq_of_name (guestTraced_nodup L h) htf (getElem_mem_guestTraced h1 h2) hn
-
 theorem sig_nargs (j : ℕ) : (glob.sig j).nargs = (coreOf j).params.length := rfl
-
-theorem name_ne_main {j : ℕ} (h2 : 2 ≤ j) (hj : j < nFns) : (coreOf j).name ≠ "main" := by
-  intro he
-  have := coreOf_name_inj (j' := 1) (by omega) hj le_rfl (by decide) (he.trans core0_main.1.symm)
-  omega
 
 /-- A halting run from `(g^0, 1)` writes the jump table the certificates read. -/
 theorem jtHolds_glob {k : ℕ} (hs : Safe guestProgram L k ⟨addressOfIndex 0, 1⟩) : Check.JTHolds glob L :=
