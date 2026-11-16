@@ -44,6 +44,7 @@ import Quantum.Xmss.Assembly.PathBad
 import Quantum.Xmss.Assembly.EndReads
 import Quantum.Xmss.Assembly.GameTCalls
 import Quantum.Xmss.Assembly.MassSources
+import Quantum.Xmss.Assembly.SrcBad
 import Quantum.Xmss.Hybrid.SchemeSplit
 import Quantum.Xmss.Hybrid.CoinStage
 import Quantum.Xmss.Hybrid.R0Stage
