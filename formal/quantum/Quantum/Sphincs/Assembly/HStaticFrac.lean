@@ -396,7 +396,7 @@ def HTStatic (p : PP) (v : (s : HPos) → XD s) : Prop :=
 
 set_option exponentiation.threshold 4096 in
 open scoped Classical in
-/-- **The static fraction** (Security's `SphOpen.hFrac`): at most `2^-127` (`HStatic` and
+/-- **The static fraction** (Security's `stageFrac_le_stageCap`): at most `2^-127` (`HStatic` and
 `TrialsOff` `2^-249`, ChgRevStatic's `ChgStatic` `2^-128 + 2^-199`). -/
 theorem staticFrac_le : staticFrac ≤ ENNReal.ofReal (1 / 2 ^ 127) := by
   have hc := card_filter_le_add_of_imp (fun y : YS ↦ ¬SphStatic (psiE y).1 (psiE y).2.1)

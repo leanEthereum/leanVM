@@ -164,7 +164,9 @@ quantum() {
     Quantum.Sponge.keccak256_qrpm_preimage_le Quantum.qrpmEvalDistMap_toQuantumAt_qrpmImpl \
     Quantum.SufCma.winProb_classicalAdversary Quantum.Xmss.Assembly.leanXmss_qrpm_security \
     Quantum.Xmss.Assembly.qrpmBound_le Quantum.Xmss.Assembly.qrpmBound_two_pow_30_le \
-    Quantum.Xmss.Assembly.qrpmBound_two_pow_50_le
+    Quantum.Xmss.Assembly.qrpmBound_two_pow_50_le Quantum.Sphincs.Assembly.leanSphincs_qrpm_security \
+    Quantum.Sphincs.Assembly.sphincsQrpmBound_le Quantum.Sphincs.Assembly.sphincsQrpmBound_two_pow_30_le \
+    Quantum.Sphincs.Assembly.sphincsQrpmBound_two_pow_40_le
 }
 
 # Every lean_vm executable, in one build.

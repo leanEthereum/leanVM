@@ -152,15 +152,17 @@ import Quantum.Sphincs.Assembly.Masses
 import Quantum.Sphincs.Assembly.HmsgCoversMass
 import Quantum.Sphincs.Assembly.BoundValue
 import Quantum.Sphincs.Assembly.HStaticFrac
+import Quantum.Sphincs.Assembly.ChgRevAvg
 
 /-! Security against quantum adversaries in the quantum random-permutation model (`Quantum.Model`),
 on VCVio's quantum oracle programs (`VCVio.Quantum`): the sponge's collision and preimage
 resistance against an adversary making `q` superposition calls to `π` and `π⁻¹`
 (`Quantum.Sponge.qrpm_sponge_collision_le`, `Quantum.Sponge.qrpm_sponge_preimage_le`), their
 values at Keccak-256's sizes (`Quantum.Sponge.keccak256_qrpm_collision_le`,
-`Quantum.Sponge.keccak256_qrpm_preimage_le`), and leanXMSS's strong unforgeability against quantum
-adversaries (`Quantum.Xmss.Assembly.leanXmss_qrpm_security`). The build fails if the axiom
-footprint of the main theorems ever grows beyond Lean's three standard axioms. -/
+`Quantum.Sponge.keccak256_qrpm_preimage_le`), and leanXMSS's and leanSPHINCS's strong
+unforgeability against quantum adversaries (`Quantum.Xmss.Assembly.leanXmss_qrpm_security`,
+`Quantum.Sphincs.Assembly.leanSphincs_qrpm_security`). The build fails if the axiom footprint of
+the main theorems ever grows beyond Lean's three standard axioms. -/
 
 /-- info: 'Quantum.qrpmEvalDistMap_eq_spongePerm' depends on axioms:
 [propext, Classical.choice, Quot.sound] -/
@@ -216,3 +218,23 @@ footprint of the main theorems ever grows beyond Lean's three standard axioms. -
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Quantum.Xmss.Assembly.qrpmBound_two_pow_50_le
+
+/-- info: 'Quantum.Sphincs.Assembly.leanSphincs_qrpm_security' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Sphincs.Assembly.leanSphincs_qrpm_security
+
+/-- info: 'Quantum.Sphincs.Assembly.sphincsQrpmBound_le' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Sphincs.Assembly.sphincsQrpmBound_le
+
+/-- info: 'Quantum.Sphincs.Assembly.sphincsQrpmBound_two_pow_30_le' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Sphincs.Assembly.sphincsQrpmBound_two_pow_30_le
+
+/-- info: 'Quantum.Sphincs.Assembly.sphincsQrpmBound_two_pow_40_le' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Sphincs.Assembly.sphincsQrpmBound_two_pow_40_le

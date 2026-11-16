@@ -37,9 +37,9 @@ Masses' hypotheses on the hidden values for leanSPHINCS's canonical runtime-2 ga
   good set) in `hidH ∪ Hhk` (and likewise for `k`, `k'`) is at most
   `N (2^-128 + εK) + N · chgRevAvg + N · massGFrac`. `hgame_fullE` holds off the charged
   coordinates `chgB t` only, so Mismatch's record mass of `chgB t` enters as the named average
-  `chgRevAvg` (the record mass at `fullE`'s data, over the good set). It is not bounded here: the
-  charged digest labels depend on the public `k`, `k'` at the `H_msg` cells, so Mismatch's averaging
-  over a never-revealed coordinate does not apply to them.
+  `chgRevAvg` (the first-meeting record mass at `fullE`'s data, over the good set), bounded in
+  `Quantum.Sphincs.Assembly.ChgRevAvg` (`chgRevAvg_le`: `3 signatureLimit (epsK + cD)` times the
+  trace on static data satisfying ChgRevStatic's `ChgStatic`, `≤ 2^-215`).
 -/
 
 open IPFunctor Matrix
@@ -992,7 +992,7 @@ theorem sum_totalWeight_portMass_le_sph (hQ : ∀ c, ¬Q (.inl (.inr c))) (hρ :
 open scoped Classical in
 /-- **Masses' bound for leanSPHINCS** (the table average): at most
 `N (2^-128 + εK) + N · chgRevAvg + N · massGFrac`. The bad fraction `massGFrac S` is bounded by
-`goodT_posM_bad_frac_le`; the mismatch term `chgRevAvg A ρ S` is left open. -/
+`goodT_posM_bad_frac_le`; the mismatch term `chgRevAvg A ρ S` by ChgRevAvg's `chgRevAvg_le`. -/
 theorem uavg_totalWeight_portMass_le_sph (hQ : ∀ c, ¬Q (.inl (.inr c))) (hρ : ρ.PosSemidef)
     (hρ1 : ENNReal.ofReal ρ.trace.re ≤ 1)
     (hs : QuerySupportedOn (fun p : QReg.of Unit × QReg.of (HwReg X Z (Mem HPos)) ↦ p.2.2.2.1)

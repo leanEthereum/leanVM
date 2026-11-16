@@ -1,12 +1,13 @@
 module
 
-public import Quantum.Sphincs.Assembly.GoodTables
+public import Quantum.Sphincs.Assembly.ChgRevAvg
+public import Quantum.Sphincs.Assembly.HStaticFrac
 public import Quantum.Sphincs.Game
 
 @[expose] public section
 
 /-!
-# leanSPHINCS is quantum SUF-CMA secure in the QRPM, given the open bounds
+# leanSPHINCS is quantum SUF-CMA secure in the QRPM
 
 The assembly of the chain (`Quantum.Sphincs.Hybrid.Masked`'s `winProb_le_masked`): G0 is runtime 1
 with the full table, the masked graded hybrid against runtime 2 on the canonical game at `msgPol`
@@ -16,16 +17,16 @@ with the masses masked by `FullG (SrcS SphStatic)` (Masses' `hcov_sph`, HmsgCove
 bad fraction of the mask is `stageFrac (SrcS SphStatic) ≤ 2^-197 + 2^-400 + 2^-277 + staticFrac`
 (GoodTables).
 
-* **The open bounds** (`SphOpen`): the masses' mismatch term `chgRevAvg ≤ 2^-200` (`hChg`), the
-  win's mismatch term `winChgAvg ≤ 2^-90` (`hWin`), both for `q ≤ 2^64`, and the static fraction
-  `staticFrac ≤ 2^-127` (`hFrac`).
+* **The mismatch terms and the static fraction**: the masses' `chgRevAvg ≤ 2^-200`
+  (ChgRevAvg's `chgRevAvg_le_cap`), the win's `winChgAvg ≤ 2^-90` (`winChgAvg_le_cap`) and
+  `staticFrac ≤ 2^-127` (HStaticFrac's `staticFrac_le`).
 * **The bound** (`sphincsQrpmBound q = (√eventTermSph q + hybTermS q kappaSph readCapS)² +
   stageCap`) with `eventTermSph q = eventTermS q cfEps + 2 goodESCap + 2^-777 + 2^-90 + stageCap`,
   `kappaSph = 2^-128 + kkEps + kappaH + 2^-200`, `readCapS = trialTau (2 clsCap) + 2^-128 · 3
   verifyBlocks + clsCap (kkEps + kappaH + 2^-200)` and `stageCap = 2^-197 + 2^-400 + 2^-277 +
   2^-127`. For `q > 2^64` the bound is at least `1` (`one_le_sphincsQrpmBound`).
 * **The theorems**: `winProb_le_sphincsQrpmBound` (one adversary, `q ≤ 2^64`) and
-  `leanSphincs_qrpm_security_of : SphOpen → LeanSphincsQrpmSecurity sphincsQrpmBound`.
+  `leanSphincs_qrpm_security : LeanSphincsQrpmSecurity sphincsQrpmBound`.
 -/
 
 open IPFunctor
@@ -79,24 +80,6 @@ noncomputable def sphincsQrpmBound (q : ℕ) : ℝ≥0∞ :=
 
 end bound
 
-/-! ## The open bounds -/
-
-/-- **The bounds left open**: the two mismatch terms at the static condition `SphStatic` and the
-static fraction. -/
-structure SphOpen : Prop where
-  /-- The masses' mismatch term. -/
-  hChg : ∀ (q : ℕ) (A : SAdversary),
-    (∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge permCharge) q) →
-    (∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge signCharge) signatureLimit) → q ≤ 2 ^ 64 →
-    chgRevAvg A initR SphStatic ≤ chgRevCap
-  /-- The win's mismatch term. -/
-  hWin : ∀ (q : ℕ) (A : SAdversary),
-    (∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge permCharge) q) →
-    (∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge signCharge) signatureLimit) → q ≤ 2 ^ 64 →
-    winChgAvg A (SrcS SphStatic) ≤ winChgCap
-  /-- The static fraction. -/
-  hFrac : staticFrac ≤ ENNReal.ofReal (1 / 2 ^ 127)
-
 /-! ## The proof -/
 
 section proof
@@ -107,9 +90,9 @@ theorem hybTermS_mono (q : ℕ) {κ κ' ν ν' : ℝ≥0∞} (hκ : κ ≤ κ') 
   exact add_le_add (ENNReal.rpow_le_rpow (by gcongr) (by norm_num))
     (ENNReal.rpow_le_rpow hν (by norm_num))
 
-/-- The masked hybrid's bad fraction under the open bounds: at most `stageCap`. -/
-theorem stageFrac_le_stageCap (h : SphOpen) : stageFrac (SrcS SphStatic) ≤ stageCap :=
-  stageFrac_sphStatic_le.trans (add_le_add le_rfl h.hFrac)
+/-- The masked hybrid's bad fraction: at most `stageCap`. -/
+theorem stageFrac_le_stageCap : stageFrac (SrcS SphStatic) ≤ stageCap :=
+  stageFrac_sphStatic_le.trans (add_le_add le_rfl staticFrac_le)
 
 variable {q : ℕ} {A : SAdversary}
   (hperm : ∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge permCharge) q)
@@ -117,17 +100,17 @@ variable {q : ℕ} {A : SAdversary}
 include hperm hsign
 
 /-- **The leanSPHINCS bound for one adversary** (`winProb_le_masked` with Masses' `hcov_sph`,
-HmsgCoversMass' `hS_sph'`, `hRd_sph'` at the static condition `SphStatic`, the open bounds
-`SphOpen`). -/
-theorem winProb_le_sphincsQrpmBound (hq : q ≤ 2 ^ 64) (h : SphOpen) :
+HmsgCoversMass' `hS_sph'`, `hRd_sph'` at the static condition `SphStatic`, and the mismatch
+terms' caps). -/
+theorem winProb_le_sphincsQrpmBound (hq : q ≤ 2 ^ 64) :
     winProb RandomPermutationModel.sufCmaScheme keccakStateEquiv A ≤ sphincsQrpmBound q := by
   have hw := winProb_le_masked hperm hsign hq (SrcS SphStatic) (fun t ↦ fullCovH (tabOf t))
     (fun t ↦ fullCovK (tabOf t)) (fun t ↦ fullCovK' (tabOf t)) hcov_sph _ _
     (hS_sph' A hperm hsign SphStatic fun _ _ h ↦ h.1)
     (hRd_sph' A hperm hsign SphStatic (fun _ _ h ↦ h.1) fun _ _ h ↦ h.2.1)
-  have hst := stageFrac_le_stageCap h
-  have hc := h.hChg q A hperm hsign hq
-  have hwc := h.hWin q A hperm hsign hq
+  have hst := stageFrac_le_stageCap
+  have hc : chgRevAvg A initR SphStatic ≤ chgRevCap := chgRevAvg_le_cap A hsign
+  have hwc : winChgAvg A (SrcS SphStatic) ≤ winChgCap := winChgAvg_le_cap A hsign
   refine hw.trans (add_le_add (pow_le_pow_left₀ zero_le (add_le_add
     (ENNReal.rpow_le_rpow ?_ (by norm_num)) (hybTermS_mono q ?_ ?_)) 2) hst)
   · unfold eventTermSph
@@ -169,15 +152,14 @@ theorem one_le_sphincsQrpmBound (hq : 2 ^ 64 < q) : 1 ≤ sphincsQrpmBound q := 
   exact (one_le_pow₀ (h2.trans le_add_self)).trans le_self_add
 
 omit hperm hsign in
-/-- **leanSPHINCS is quantum SUF-CMA secure in the QRPM** with bound `sphincsQrpmBound`, given the
-open bounds `SphOpen`: an adversary making at most `q` permutation calls and at most
-`signatureLimit` signing requests forges with probability at most `sphincsQrpmBound q`; above
-`2^64` calls the bound is at least `1`. -/
-theorem leanSphincs_qrpm_security_of (h : SphOpen) :
-    LeanSphincsQrpmSecurity sphincsQrpmBound := by
+/-- **leanSPHINCS is quantum SUF-CMA secure in the QRPM** with bound `sphincsQrpmBound`: an
+adversary making at most `q` permutation calls and at most `signatureLimit` signing requests
+forges with probability at most `sphincsQrpmBound q`; above `2^64` calls the bound is at least
+`1`. -/
+theorem leanSphincs_qrpm_security : LeanSphincsQrpmSecurity sphincsQrpmBound := by
   intro q A hq hs
   by_cases hle : q ≤ 2 ^ 64
-  · exact winProb_le_sphincsQrpmBound hq hs hle h
+  · exact winProb_le_sphincsQrpmBound hq hs hle
   · exact (winProb_le_one_sph A).trans (one_le_sphincsQrpmBound (not_le.mp hle))
 
 end proof
