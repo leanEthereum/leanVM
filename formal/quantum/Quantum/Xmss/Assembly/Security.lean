@@ -11,6 +11,7 @@ public import Quantum.Xmss.Assembly.PrefixFacts
 public import Quantum.Xmss.Assembly.TrialsOff
 public import Quantum.Xmss.Assembly.PathsDisjoint
 public import Quantum.Xmss.Assembly.CostJoint
+public import Quantum.Xmss.Assembly.TrialHitUniform
 public import Quantum.Xmss.Hybrid.GradedMasked
 
 @[expose] public section
@@ -36,7 +37,8 @@ challenge prefix `prefixR A L` followed by the verification (`gameR_eq`).
    randomizer trials' term the debt `htrial`.
 3. **End** (PrefixFacts' `endReads_wGame_trialHit`, on the good tables `GoodL = TableGood ∧
    TrialsOff`): the win is at most the event `BadR L progCap` at the end of the game, the read
-   error `readTerm` and the trial-hit mass (debt `trialHit`, averaged: `trialCap`).
+   error `readTerm` and the trial-hit mass, averaged at most `trialCap = 2^-399` (TrialHit's
+   `uavg_trialHitMass_le` with TrialHitUniform's `decUniformHyp`).
 4. **The event bound** (EventSqrt's `ewR_le_sqrt`, `PermGood`): `(advTerm q + verTerm q +
    √(twP + verLin q))²`, the verification's reads graded like sponge calls and the challenge
    prefix's classical costs `twP` linear.
@@ -61,7 +63,6 @@ challenge prefix `prefixR A L` followed by the verification (`gameR_eq`).
 | Debt | Statement | Target | Owner |
 |---|---|---|---|
 | `htrial` | trials' hidden read mass per public datum (GradedMasked's form) | `trialTau q` | TrialSource |
-| `trialHit` | averaged trial-hit mass on `GoodL` | `trialCap = 2^-380` | TrialSource |
 | `encJoint` | `cntPre ≤ encCapA q + encCapB q · massPre` on `GoodL` | | EncPotential |
 | `restMass` | averaged `massPre` on `GoodL` | `massCap q` | EncPotential |
 -/
@@ -313,8 +314,8 @@ noncomputable def disjCap : ℝ≥0∞ := (2 ^ 170 : ℝ≥0∞)⁻¹
 noncomputable def goodTerm : ℝ≥0∞ :=
   permTerm + disjCap + ENNReal.ofReal (1 / 2 ^ 173)
 
-/-- The target of the averaged trial-hit mass (debt `trialHit`): `2^-380`. -/
-noncomputable def trialCap : ℝ≥0∞ := (2 ^ 380 : ℝ≥0∞)⁻¹
+/-- The bound on the averaged trial-hit mass (`uavg_trialHitMass_le_of_good`): `2^-399`. -/
+noncomputable def trialCap : ℝ≥0∞ := ENNReal.ofReal (1 / 2 ^ 399)
 
 /-- The bound on runtime 2's win probability. -/
 noncomputable def eventTerm (q : ℕ) : ℝ≥0∞ :=
@@ -365,8 +366,6 @@ structure XmssQrpmDebts (q : ℕ) (A : Adversary (X × Z)) where
       (hidK (pubR p) fun s ↦ v (.inl s)) (hidK' (pubR p) fun s ↦ v (.inl s)))
     (realizeT v (prefixT Selections cwUpd (pubR p) A)) initR ≤
       trialTau q * Fintype.card (HPos → Digest)
-  /-- **The trial-hit mass** (PrefixFacts' `trialHitMass`), averaged over the good tables. -/
-  trialHit : uavg (fun L ↦ if GoodL L then trialHitMass m0R A L else 0) ≤ trialCap
   /-- **The cross-key potential** on the prefix: the joint count of the selecting reads is at
   most `encCapA q` plus `encCapB q` per unit of recorded mass. -/
   encJoint : ∀ L, GoodL L → cntPre A L ≤ (encCapA q : ℝ≥0∞) + (encCapB q : ℝ≥0∞) * massPre A L
@@ -607,7 +606,8 @@ theorem uavg_p2R_le (hq : q ≤ 2 ^ 64) (d : XmssQrpmDebts q A) :
       rw [uavg_add, uavg_add, uavg_add, uavg_const]
     _ ≤ (advTerm q + verTerm q + (uavg twg + verLin q) ^ (2⁻¹ : ℝ)) ^ 2 + readTerm + trialCap +
           goodTerm :=
-      add_le_add (add_le_add (add_le_add hJ le_rfl) d.trialHit) uavg_not_goodL_le
+      add_le_add (add_le_add (add_le_add hJ le_rfl)
+        (uavg_trialHitMass_le_of_good m0R A GoodL fun _ h ↦ ⟨h.2, h.1.1⟩)) uavg_not_goodL_le
     _ ≤ eventTerm q := by
       unfold eventTerm
       gcongr
