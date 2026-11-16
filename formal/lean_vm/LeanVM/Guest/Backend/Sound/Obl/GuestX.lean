@@ -15,8 +15,8 @@ public import LeanVM.Guest.WalkTags
 The preconditions not of the table's form (`Obl.Sig`) are relations between a function's arguments
 and memory, B1's (`WalkWindows.lean`, `WalkTags.lean`):
 
-* `gkr`: `verify_bus_gkr_loop0` (compiled `__loop6`), `GkrPar` on its `[layers, x, start_g,
-  k_mod_next]` (arguments `3, 0, 2, 9`): the parity words its dispatch reads;
+* `gkr`: `verify_bus_gkr_loop0`, `GkrPar` on its `[layers, x, start_g, k_mod_next]` (arguments
+  `3, 0, 2, 9`): the parity words its dispatch reads;
 * `loop w`: a loop helper of `opening_queries` on `[x, N, positions, qptrs, …]`, the walk from `x`
   to `N` (`WinWalk2` at level `0`, `base = 1`, else `WinWalk`) on `qptrs` and `x ≠ N`;
 * `main w`: an `opening_queries` specialization, `OqMainWins` on its window pointers `qptrs`
@@ -25,8 +25,9 @@ and memory, B1's (`WalkWindows.lean`, `WalkTags.lean`):
   at `N = g^n`, what it hands its `opening_queries` with `N` set to `g^n` (`n` the loop's
   iterations: the queries but an odd first, halved at level `0`).
 
-`w` is the walk's shape: depth `d`, cap depth `cd`, `odd`, `base`. `xTab` lists the functions,
-`guestX` is the precondition `UOf` takes for them.
+`w` is the walk's shape: depth `d`, cap depth `cd`, `odd`, `base`. `xTab` lists the functions
+(written by `lake exe guest-oblgen`, from `GuestXTab`'s families), `guestX` is the precondition
+`UOf` takes for them.
 -/
 
 namespace LeanVM.Guest.Backend.Obl
