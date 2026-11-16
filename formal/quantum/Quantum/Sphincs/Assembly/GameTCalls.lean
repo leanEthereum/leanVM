@@ -1583,23 +1583,25 @@ theorem slotBlk_hmsg_restrictTo (pol : DigestPolicy) (T : Finset HPos) (msg : Me
     subst hp
     exact extendVals_restrictTo (by simp [hmsgNeed]) v]
 
-/-- **The ports of an `H_msg` call**, in order. -/
+/-- **The ports of an `H_msg` call**, in order (at the message's randomizer `v (.rnd msg)`). -/
 theorem hb_hmsgPorts (B : QReg) (pol : DigestPolicy) (T : Finset HPos) (msg : Message)
     (i : DigestCall)
-    (hmsg : ∀ R y, BatchOk pub ok (slotBlk pub.seed (.hmsg R msg i) (valsOf v)) (cor256 y) 1)
+    (hmsg : ∀ y, BatchOk pub ok (slotBlk pub.seed (.hmsg (v (.rnd msg)) msg i) (valsOf v))
+      (cor256 y) 1)
     (C : Set (HwProg X Z)) : HB ok v (progPorts M B (hmsgPorts pub pol T msg i)) C ∅ := by
   refine hb_pathPorts ok v pub B _ _ _ _ ?_ C
-  rw [slotBlk_hmsg_restrictTo]
-  exact hmsg _ _
+  rw [slotBlk_hmsg_restrictTo, extendRnd_restrictTo (T := hmsgNeed pol T msg i) (msg := msg)
+    (by simp [hmsgNeed]) v]
+  exact hmsg _
 
 /-- **The ports of both `H_msg` calls.** -/
 theorem hb_digestPorts (B : QReg) (pol : DigestPolicy) (T : Finset HPos) (msg : Message)
-    (hmsg : ∀ R msg i y, BatchOk pub ok (slotBlk pub.seed (.hmsg R msg i) (valsOf v))
+    (hmsg : ∀ msg i y, BatchOk pub ok (slotBlk pub.seed (.hmsg (v (.rnd msg)) msg i) (valsOf v))
       (cor256 y) 1)
     (C : Set (HwProg X Z)) : HB ok v (progPorts M B (digestPorts pub pol T msg)) C ∅ := by
   rw [digestPorts, progPorts_append]
-  exact hb₂_bind ok v _ _ (hb_hmsgPorts ok v pub B pol T msg 0 (fun R y ↦ hmsg R msg 0 y) C)
-    fun _ ↦ hb_hmsgPorts ok v pub B pol T msg 1 (fun R y ↦ hmsg R msg 1 y) ∅
+  exact hb₂_bind ok v _ _ (hb_hmsgPorts ok v pub B pol T msg 0 (fun y ↦ hmsg msg 0 y) C)
+    fun _ ↦ hb_hmsgPorts ok v pub B pol T msg 1 (fun y ↦ hmsg msg 1 y) ∅
 
 theorem hb_progSlots (B : QReg) (ss : List Slot)
     (h : ∀ s ∈ ss, ∀ C, HB ok v (progPorts M B (slotPorts pub s)) C ∅)
@@ -1613,7 +1615,8 @@ theorem hb_progSlots (B : QReg) (ss : List Slot)
 variable
   (hslot : ∀ s, InTable s → BatchOk pub ok (slotBlk pub.seed s (valsOf v))
     (cor128 (valsOf v (slotOutPos s))) (nBlk pub.seed s))
-  (hmsg : ∀ R msg i y, BatchOk pub ok (slotBlk pub.seed (.hmsg R msg i) (valsOf v)) (cor256 y) 1)
+  (hmsg : ∀ msg i y, BatchOk pub ok (slotBlk pub.seed (.hmsg (v (.rnd msg)) msg i) (valsOf v))
+    (cor256 y) 1)
 
 include hslot in
 /-- **A FORS opening's ports**, slot by slot. -/
@@ -1799,7 +1802,7 @@ theorem forallQueries_progSupp_gameT (ok : HwProg X Z → HwReg X Z (Finset HPos
       (QReg.of Unit × (runtimeR (X := X) (Z := Z) m₀).D) ℂ)
     (hslot : ∀ s, InTable s → BatchOk pub ok (slotBlk pub.seed s (valsOf v))
       (cor128 (valsOf v (slotOutPos s))) (nBlk pub.seed s))
-    (hmsg : ∀ R msg i y, BatchOk pub ok (slotBlk pub.seed (.hmsg R msg i) (valsOf v))
+    (hmsg : ∀ msg i y, BatchOk pub ok (slotBlk pub.seed (.hmsg (v (.rnd msg)) msg i) (valsOf v))
       (cor256 y) 1) :
     (runtimeR m₀).ForallQueries LocalSig.Interp.instruments (progSupp m₀ ok)
       (realizeT v (gameT M upd pol pub A)) ρ :=
