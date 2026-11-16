@@ -293,12 +293,12 @@ def namesFile : String :=
   "theorem checks_ok : progChecks guestTraced loopsG = true := by decide +kernel\n\n" ++
   "end\nend LeanVM.Guest.Backend.GuestPiece\n"
 
-def checksFile (logSize : Nat) : String :=
+def checksFile (count logSize : Nat) : String :=
   header "LeanVM.Guest.Backend.Guest.Piece.Checks" "The kernel's checks of the guest's names, slots and sizes." ++
   "\nmodule\n\npublic import LeanVM.Guest.Backend.Guest.Piece.Layout\npublic import Statement.Data.Bytecode\n\n" ++
   "set_option maxRecDepth 100000\n\n" ++
   "namespace LeanVM.Guest.Backend.GuestPiece\n\nopen LeanVM.Guest.Backend\n\n@[expose] public section\n\n" ++
-  "theorem guestTraced_length : guestTraced.length = 1601 := by decide +kernel\n\n" ++
+  s!"theorem guestTraced_length : guestTraced.length = {count} := by decide +kernel\n\n" ++
   "theorem outs_length : outsG.length = guestTraced.length := by decide +kernel\n\n" ++
   "theorem cfs_length : Data.functions.tail.length = guestTraced.length := by decide +kernel\n\n" ++
   "theorem slots_ok : slotsOk outsG = true := by decide +kernel\n\n" ++
@@ -1068,7 +1068,7 @@ def files (P : List TracedFn) (outs : List FnOut) (extra : Option Extra) :
   out := out.push (pieceDir / "Tables.lean", tablesFile loops (sigTable P))
   out := out.push (pieceDir / "Layout.lean",
     layoutFile (layoutInfo (infoOfOuts P outs) (baseOf outs)) (slotsOfOuts P outs))
-  out := out.push (pieceDir / "Checks.lean", checksFile Data.logSize)
+  out := out.push (pieceDir / "Checks.lean", checksFile P.length Data.logSize)
   out := out.push (pieceDir / "Names.lean", namesFile)
   for (m, k) in mods.zipIdx do
     out := out.push (pieceDir / s!"P{k}.lean", pieceFile k m names sizes extra)
