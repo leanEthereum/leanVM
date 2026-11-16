@@ -11,6 +11,7 @@ public import LeanVM.Guest.Logic
 public import LeanVM.Guest.NameIndex
 public import LeanVM.Guest.CoreNames
 public import LeanVM.Guest.Backend.Guest.World
+public import Mathlib.Data.List.GetD
 
 /-!
 # The guest's world, by function index
@@ -242,19 +243,19 @@ theorem ent_fnOf (h : GuestCompiles fns slots) {j : ℕ} (hj : j < nFns) :
   have hnd := World.nodup hW
   simp only [guestWorld] at hnd
   generalize hwt : (withTables fns slots).1 = wt at hnd
-  have hr : (assemble fns slots).fns.toList = rangesFrom wt 0 := by
+  have hr : (Backend.assemble fns slots).fns.toList = rangesFrom wt 0 := by
     rw [← hwt, assemble_def, assembleAt_fns]
-  have hfun : Data.functions = (rangesFrom wt 0).map (assemble fns slots).fnOf := by
+  have hfun : Data.functions = (rangesFrom wt 0).map (Backend.assemble fns slots).fnOf := by
     rw [← h.2.1, toFunctions_eq, hr]
   have hlen : j < wt.length := by
     have := congrArg List.length hfun
     rw [List.length_map, rangesFrom_length, functions_length] at this
     omega
-  have hf : fnOf j = (assemble fns slots).fnOf
+  have hf : fnOf j = (Backend.assemble fns slots).fnOf
       (wt[j].name, 0 + totalSize (wt.take j), wt[j].code.size) := by
     unfold fnOf
     rw [nth_eq (functions_length ▸ hj)]
-    have hj' : j < ((rangesFrom wt 0).map (assemble fns slots).fnOf).length := by
+    have hj' : j < ((rangesFrom wt 0).map (Backend.assemble fns slots).fnOf).length := by
       rw [List.length_map, rangesFrom_length]; exact hlen
     simp only [hfun, List.getElem_map]
     congr 1
