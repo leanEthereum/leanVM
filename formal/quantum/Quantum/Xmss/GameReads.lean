@@ -361,7 +361,7 @@ def readAnswer (t : (Z → X) × (X → Z) × (X → Z)) (W : Hw X Z) (m : M) :
   | .readK' x _ => (some ((overwrite W t).2.2 x), m)
 
 /-- The results of a read have decidable equality. -/
-instance (c : HwRead X Z M) : DecidableEq c.Result := by
+instance instDecidableEqHwReadResult (c : HwRead X Z M) : DecidableEq c.Result := by
   cases c <;> exact inferInstanceAs (DecidableEq (Option _ × M))
 
 omit [Fintype M] in
