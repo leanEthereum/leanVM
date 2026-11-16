@@ -41,6 +41,7 @@ import Quantum.Xmss.Hybrid.CoinStage
 import Quantum.Xmss.Assembly.Security
 import Quantum.Xmss.Assembly.CoinsEvent
 import Quantum.Xmss.Assembly.Reparam
+import Quantum.Xmss.Assembly.GameT
 import Quantum.Sphincs.Keccak
 import Quantum.Sphincs.Coverage
 

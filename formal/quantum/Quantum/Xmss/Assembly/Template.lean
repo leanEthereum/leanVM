@@ -60,11 +60,13 @@ at the output position whatever the public `h` holds there. It vanishes at `pubO
 digest zeroed) it gives the table's value back: the reparametrization `Θ ≃ P × V` on the tables
 whose honest paths do not share these cells (`Quantum.Xmss.Assembly.Reparam`).
 
-* `gameT M pub A`: reveal the root, run the adversary on the public key against `challengeT`
+* `gameT M upd pub A`: reveal the root, run the adversary on the public key against `challengeT`
   (local operations and permutation calls simulated given `π`, so the adversary's calls are sponge
   ports; a signing request answered by `signT`), verify the forgery through read ports
   (`readsProgram`), return the winning condition. `signLayerT`: the randomizer search through read
-  ports (`grindR`, with the base `R0` from the public data), then one reveal of `layerNeed` (the
+  ports (`grindR`, with the base `R0` from the public data; each trial's `h`-reads update the
+  memory with `upd l e b xi`, `b` the block and `xi` the rate after `π`: EncCost's `cwUpd` at the
+  memory `Selections`, `keepUpd` to keep it), then one reveal of `layerNeed` (the
   coordinates of the slots the signature makes public, `layerSlots`: chain steps from the opened
   positions, the leaf, the nodes on the path; the opened positions; the path) and the program
   ports of those slots' honest paths (`slotPorts`, three per block). Every request reprograms its
@@ -73,7 +75,7 @@ whose honest paths do not share these cells (`Quantum.Xmss.Assembly.Reparam`).
   lazy-sampling property of the realized games for `runtimeR` and the memory label, at every call,
   for every initial state not depending on `v`.
 
-Not here: that `realizeT (valueAt L) (gameT M (pubOf L) A)` is the runtime-2 game of the table
+Not here: that `realizeT (valueAt L) (gameT M upd (pubOf L) A)` is the runtime-2 game of the table
 `L`, the reparametrization's good set, and the record ports in runtime 1 (where they act alike) and
 in the event bound (where they change neither the databases nor the hardwired cells). `Disclose`'s
 runtime-2 mass bounds are stated for `runtime2`; for `runtimeR` use `sum_queryWeight_view_le` with
@@ -1115,18 +1117,47 @@ noncomputable def progSlots (pub : Pub) (B : QReg) : List Slot → QComp (XSpec 
   | [] => QuantumComp₂.pure ()
   | s :: ss => (progPorts M B (slotPorts pub s)).bind fun _ ↦ progSlots pub B ss
 
-/-- Hash an input through runtime 1's read ports (`readsImpl`). -/
-noncomputable def hashR (π : Equiv.Perm (X × Z)) (B : QReg) (input : HashInput) :
-    QComp (hwReadSpec X Z M) B B HashOutput :=
-  (readsImpl M π B input).run' []
+/-- **The memory update of a randomizer trial's final `h`-read**, for key `e` of layer `l`, from
+the block `b` and the rate `xi` after `π` (EncCost's `cwUpd` at the memory `Selections`). -/
+abbrev TrialUpd : Type :=
+  Layer → KeyIndex → X → X → M → Option X → M
+
+/-- The trial update that keeps the memory. -/
+def keepUpd : TrialUpd M :=
+  fun _ _ _ _ ↦ keepMem
+
+/-- Read `h` at `z` through its read port beside `B`, updating the memory with `u`, logged. -/
+noncomputable def rdHU (B : QReg) (z : Z) (u : M → Option X → M) :
+    StateT (List (SpongeRead X Z)) (QComp (hwReadSpec X Z M) B B) X :=
+  fun log ↦ (readCall (.readH z u) B).bind fun r ↦
+    QuantumComp₂.pure (r.1.getD 0, log ++ [.h z (r.1.getD 0)])
+
+/-- **A sponge round through read ports whose `h`-read updates the memory** with `u b xi`, `b` the
+block and `xi` the rate after `π` (as `rdRound`, which keeps the memory). -/
+noncomputable def rdRoundU (u : X → X → M → Option X → M) (π : Equiv.Perm (X × Z)) (B : QReg)
+    (s : X × Z) (b : X) : StateT (List (SpongeRead X Z)) (QComp (hwReadSpec X Z M) B B) (X × Z) := do
+  let xp := s.1 + b
+  let a ← rdK B xp
+  let p := π (xp, s.2 + a)
+  let c ← rdK' B p.1
+  let w ← rdHU M B (p.2 + c) (u b p.1)
+  pure (p.1 + w, p.2 + c)
+
+/-- **A randomizer trial's hash through read ports**: as `readsImpl`, the `h`-reads updating the
+memory with `u` (EncCost prices each trial read with this update). -/
+noncomputable def hashTrial (u : X → X → M → Option X → M) (π : Equiv.Perm (X × Z)) (B : QReg)
+    (input : HashInput) : QComp (hwReadSpec X Z M) B B HashOutput :=
+  (out256 <$> (fun s : X × Z ↦ s.1) <$> (blocks input).foldlM (rdRoundU M u π B) (0, 0)).run' []
+
+variable (upd : TrialUpd M)
 
 /-- **The randomizer search through read ports**, as `otsSignFrom` until a codeword: trials
-`R0 + c`, message digests read. -/
+`R0 + c`, message digests read, each trial's `h`-reads updating the memory with `upd l e`. -/
 noncomputable def grindR (pub : Pub) (B : QReg) (l : Layer) (e : KeyIndex) (message : HashInput)
     (base : Randomizer) : ℕ → ℕ → QComp (hwReadSpec X Z M) B B (Option (Randomizer × Encoding))
   | 0, _ => QuantumComp₂.pure none
   | n + 1, trial =>
-    (hashR M pub.perm B (thInput pub.param (hashDomainFields (.message l e))
+    (hashTrial M (upd l e) pub.perm B (thInput pub.param (hashDomainFields (.message l e))
       (message ++ littleEndianBytes 16 (base + BitVec.ofNat digestBits trial)))).bind fun out ↦
       match Codeword.decode (truncateHash out) with
       | some x => QuantumComp₂.pure (some (base + BitVec.ofNat digestBits trial, x))
@@ -1138,7 +1169,7 @@ chain values and the path from the revealed values. Also returns the revealed va
 noncomputable def signLayerT (pub : Pub) (B : QReg) (l : Layer) (e : KeyIndex)
     (message : HashInput) :
     QComp (XSpec M) B B (Option (LayerSignature × (ValPos → Digest))) :=
-  (readLiftQ goodAll (grindR M pub B l e message (pub.rbase l e message) randomizerAttemptLimit
+  (readLiftQ goodAll (grindR M upd pub B l e message (pub.rbase l e message) randomizerAttemptLimit
     0)).bind fun g ↦
     match g with
     | none => QuantumComp₂.pure none
@@ -1151,12 +1182,12 @@ noncomputable def signLayerT (pub : Pub) (B : QReg) (l : Layer) (e : KeyIndex)
 top layer the bottom root, read from the bottom layer's revealed values. -/
 noncomputable def signT (pub : Pub) (B : QReg) (r : SigningRequest) :
     QComp (XSpec M) B B (Option Signature) :=
-  (signLayerT M pub B bottomLayer (keyIndexOnLayer r.leafIndex bottomLayer)
+  (signLayerT M upd pub B bottomLayer (keyIndexOnLayer r.leafIndex bottomLayer)
     (littleEndianBytes 32 r.message)).bind fun b ↦
     match b with
     | none => QuantumComp₂.pure none
     | some (bottom, f) =>
-      (signLayerT M pub B topLayer (keyIndexOnLayer r.leafIndex topLayer)
+      (signLayerT M upd pub B topLayer (keyIndexOnLayer r.leafIndex topLayer)
         (littleEndianBytes 16 (f (tpos bottomLayer layerHeight
           (keyIndexOnLayer r.leafIndex topLayer).val)))).bind fun t ↦
         match t with
@@ -1169,7 +1200,7 @@ noncomputable def signAt (pub : Pub) (r : SigningRequest) (E : QReg) {A : QReg}
     (ℓ : A ≃ (advSpec (X × Z)).In (.sign r) × E) :
     QComp (XSpec M) A (QReg.of ((advSpec (X × Z)).Out (.sign r) × E)) (Option Signature) :=
   (QComp.act (spec := XSpec M) (B := QReg.of ((advSpec (X × Z)).Out (.sign r) × E))
-    (SubInstrument.relabel ℓ)).bind fun _ ↦ signT M pub _ r
+    (SubInstrument.relabel ℓ)).bind fun _ ↦ signT M upd pub _ r
 
 /-- A secret key carrying only the public parameter: the challenger's permutation calls do not
 read the key. -/
@@ -1188,25 +1219,25 @@ noncomputable def challengeT (pub : Pub) :
       (challenge keccakStateEquiv (noKey pub) A (.query (.perm p) E ℓ))).liftOrdinary
         (t := hwReadCmdSpec X Z M))
   | _, .query (.sign r) E ℓ =>
-      QuantumComp.bind (signAt M pub r E ℓ) fun _ l ↦ QuantumComp.pure ⟨ULift.up l.2, l.1.symm⟩
+      QuantumComp.bind (signAt M upd pub r E ℓ) fun _ l ↦ QuantumComp.pure ⟨ULift.up l.2, l.1.symm⟩
 
 /-- The adversary's program against the challenger of runtime 2. -/
 noncomputable def challengedT (pub : Pub) {A B : QReg} {α : Type}
     (x : QComp (advSpec (X × Z)) A B α) : QComp (XSpec M) A B α :=
-  IPFunctor.IFreeM.substitute (challengeT M pub) x
+  IPFunctor.IFreeM.substitute (challengeT M upd pub) x
 
 /-- The position of the public key's root. -/
 def rootPos : ValPos :=
   tpos topLayer layerHeight 0
 
 /-- **The SUF-CMA game as runtime 2 runs it, as a template**: reveal the root, run the adversary
-on the public key against the challenger of runtime 2 with its signing transcript, verify the
-forgery through read ports, and return the winning condition. `realizeT v (gameT M pub A)` is the
-game at the hidden values `v`. -/
+on the public key against the challenger of runtime 2 with its signing transcript (the trials'
+`h`-reads updating the memory with `upd`), verify the forgery through read ports, and return the
+winning condition. `realizeT v (gameT M upd pub A)` is the game at the hidden values `v`. -/
 noncomputable def gameT (pub : Pub) (A : Adversary (X × Z)) :
     QComp (XSpec M) (QReg.of Unit) (QReg.of Unit) Bool :=
   revealThen goodAll {rootPos} fun r₀ ↦
-    (challengedT M pub (withSignLog (A ⟨extendVals r₀.1 rootPos, pub.param⟩))).bind fun run ↦
+    (challengedT M upd pub (withSignLog (A ⟨extendVals r₀.1 rootPos, pub.param⟩))).bind fun run ↦
       (readLiftQ goodAll ((readsProgram M pub.perm _ (schemeWithHashFromSeed.verify
         ⟨extendVals r₀.1 rootPos, pub.param⟩ run.1)).map Prod.fst)).bind fun verified ↦
         QuantumComp₂.pure (sufCmaScheme.winningCondition run.2 run.1 && verified)
@@ -1235,7 +1266,7 @@ theorem disc_progSlots (pub : Pub) (B : QReg) (ss : List Slot) (T : Finset ValPo
 
 omit [Fintype M] [DecidableEq M] in
 theorem disc_signLayerT (pub : Pub) (B : QReg) (l : Layer) (e : KeyIndex) (message : HashInput)
-    (T : Finset ValPos) : Disc (signLayerT M pub B l e message) T := by
+    (T : Finset ValPos) : Disc (signLayerT M upd pub B l e message) T := by
   refine disc₂_bind _ _ (disc_readLift _ _) fun g T' _ ↦ ?_
   rcases g with _ | ⟨ρ, x⟩
   · trivial
@@ -1246,28 +1277,28 @@ theorem disc_signLayerT (pub : Pub) (B : QReg) (l : Layer) (e : KeyIndex) (messa
 
 omit [Fintype M] [DecidableEq M] in
 theorem disc_signT (pub : Pub) (B : QReg) (r : SigningRequest) (T : Finset ValPos) :
-    Disc (signT M pub B r) T := by
-  refine disc₂_bind _ _ (disc_signLayerT M pub B _ _ _ T) fun b T' _ ↦ ?_
+    Disc (signT M upd pub B r) T := by
+  refine disc₂_bind _ _ (disc_signLayerT M upd pub B _ _ _ T) fun b T' _ ↦ ?_
   rcases b with _ | ⟨bottom, f⟩
   · trivial
-  · refine disc₂_bind _ _ (disc_signLayerT M pub B _ _ _ T') fun t _ _ ↦ ?_
+  · refine disc₂_bind _ _ (disc_signLayerT M upd pub B _ _ _ T') fun t _ _ ↦ ?_
     rcases t with _ | ⟨top, _⟩ <;> trivial
 
 omit [Fintype M] [DecidableEq M] in
 theorem disc_challengeT (pub : Pub) (A : QReg) (c : QuantumComp.Cmd LocalSig.instruments.{0}
-    (advSpec (X × Z)) A) (T : Finset ValPos) : Disc (challengeT M pub A c) T := by
+    (advSpec (X × Z)) A) (T : Finset ValPos) : Disc (challengeT M upd pub A c) T := by
   rcases c with o | ⟨p | r, E, ℓ⟩
   · exact disc_readLift _ _
   · exact disc_readLift _ _
-  · exact disc_bind _ _ (disc₂_bind _ _ (disc_act _ _) fun _ T' _ ↦ disc_signT M pub _ r T')
+  · exact disc_bind _ _ (disc₂_bind _ _ (disc_act _ _) fun _ T' _ ↦ disc_signT M upd pub _ r T')
       fun _ _ _ _ ↦ trivial
 
 omit [Fintype M] [DecidableEq M] in
 /-- **The game reveals before it programs**: every program port hardwires a cell of a slot whose
 coordinates the layer signature revealed just before. -/
 theorem disc_gameT (pub : Pub) (A : Adversary (X × Z)) (T : Finset ValPos) :
-    Disc (gameT M pub A) T :=
-  disc_revealThen _ _ T fun _ ↦ disc₂_bind _ _ (disc_substitute _ (disc_challengeT M pub) _ _)
+    Disc (gameT M upd pub A) T :=
+  disc_revealThen _ _ T fun _ ↦ disc₂_bind _ _ (disc_substitute _ (disc_challengeT M upd pub) _ _)
     fun _ _ _ ↦ disc₂_bind _ _ (disc_readLift _ _) fun _ _ _ ↦ trivial
 
 /-- **The lazy-sampling property of the runtime-2 game.** For every initial state that does not
@@ -1277,8 +1308,8 @@ theorem viewBy_gameT (pub : Pub) (A : Adversary (X × Z)) (m₀ : Finset ValPos 
     (ρ : Matrix (QReg.of Unit × QReg.of (HwReg X Z (Finset ValPos × M)))
       (QReg.of Unit × QReg.of (HwReg X Z (Finset ValPos × M))) ℂ) (j : ℕ) :
     ViewBy (runtimeR m₀) LocalSig.Interp.instruments (fun r ↦ r.2.2.1)
-      (fun v ↦ realizeT v (gameT M pub A)) (fun _ ↦ ρ) j :=
-  viewBy_runtimeR_of_disc _ m₀ (gameT M pub A) ∅ (disc_gameT M pub A ∅) (fun _ ↦ ρ)
+      (fun v ↦ realizeT v (gameT M upd pub A)) (fun _ ↦ ρ) j :=
+  viewBy_runtimeR_of_disc _ m₀ (gameT M upd pub A) ∅ (disc_gameT M upd pub A ∅) (fun _ ↦ ρ)
     (lazy_const _ ρ) (fun _ ↦ suppAt_empty _ ρ) j
 
 /-- **`ViewByOn` for the runtime-2 game**, the `hview` hypothesis of `Disclose`'s mass bounds for
@@ -1287,8 +1318,8 @@ theorem viewByOn_gameT (pub : Pub) (A : Adversary (X × Z)) (m₀ : Finset ValPo
     (ρ : Matrix (QReg.of Unit × QReg.of (HwReg X Z (Finset ValPos × M)))
       (QReg.of Unit × QReg.of (HwReg X Z (Finset ValPos × M))) ℂ) (j : ℕ) :
     ViewByOn (runtimeR m₀) LocalSig.Interp.instruments (fun i ↦ i.isLeft = true)
-      (fun r ↦ r.2.2.1) (fun v ↦ realizeT v (gameT M pub A)) (fun _ ↦ ρ) j :=
-  (viewBy_gameT M pub A m₀ ρ j).viewByOn _
+      (fun r ↦ r.2.2.1) (fun v ↦ realizeT v (gameT M upd pub A)) (fun _ ↦ ρ) j :=
+  (viewBy_gameT M upd pub A m₀ ρ j).viewByOn _
 
 end xmss
 

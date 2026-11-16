@@ -20,7 +20,8 @@ every link that the committed theorems do not provide is a field of `XmssQrpmDeb
 exactly the missing link. The averages are over the uniform honest table `L : HonestTable`
 (keys, `π`, master seed). The register's memory is `Mem = Finset ValPos × Selections`: the
 template's memory label and Events' selections. The canonical runtime-2 game is
-`gameR A L = realizeT (valueAt L) (gameT Selections (pubOf L) A)` (Template), run against
+`gameR A L = realizeT (valueAt L) (gameT Selections cwUpd (pubOf L) A)` (Template; each
+randomizer trial's `h`-read records a codeword selection with EncCost's `cwUpd`), run against
 `runtimeR m₀R` (runtime 2 with record ports).
 
 1. **G0 to runtime 1** (`winProb_eq_uavg`): `winProb_eq_runtime1` (TableComp) with the `tableLaw`
@@ -188,10 +189,11 @@ theorem winProb_eq_uavg (A : Adversary (X × Z)) :
     (fun π b ↦ runtime1Law Mem m0R A (SubState.basis ()) winObs π b {true})
 
 /-- **The canonical runtime-2 game** of the table `L` (Template): the template game at the public
-data `pubOf L`, realized at the hidden values `valueAt L`. -/
+data `pubOf L`, realized at the hidden values `valueAt L`, the trials' `h`-reads updating the
+selections with `cwUpd`. -/
 noncomputable def gameR (A : Adversary (X × Z)) (L : HonestTable) :
     QComp (recHwSpec X Z ValPos Selections) (QReg.of Unit) (QReg.of Unit) Bool :=
-  realizeT (valueAt L) (gameT Selections (pubOf L) A)
+  realizeT (valueAt L) (gameT Selections cwUpd (pubOf L) A)
 
 /-- The initial state of the runtimes with record ports, beside the adversary's trivial register. -/
 noncomputable def initR : Matrix (QReg.of Unit × QReg.of (HwReg X Z Mem))
@@ -690,10 +692,11 @@ theorem uavg_hiddenK_digest_le {P : Type} [Fintype P] (A : Adversary (X × Z))
       src p y r ∉ r.2.2.1 ∧ v (src p y r) = val p y r) (j : ℕ) :
     uavg (fun L ↦ (runtimeR m0R).queryWeight .instruments
       (extWeight (hiddenMass ∅ (HkV (e L).1 (e L).2) ∅))
-      (realizeT (e L).2 (gameT Selections (pubP (e L).1) A)) initR j) ≤ (2 ^ 128 : ℝ≥0∞)⁻¹ :=
+      (realizeT (e L).2 (gameT Selections cwUpd (pubP (e L).1) A)) initR j) ≤
+        (2 ^ 128 : ℝ≥0∞)⁻¹ :=
   uavg_hiddenK_digest_runtimeR_le e m0R (fun r ↦ r.2.2.1)
-    (fun p v ↦ realizeT v (gameT Selections (pubP p) A)) (SubState.basis ()) j
-    (fun p ↦ viewByOn_gameT Selections (pubP p) A m0R initR j) HkV src val hk
+    (fun p v ↦ realizeT v (gameT Selections cwUpd (pubP p) A)) (SubState.basis ()) j
+    (fun p ↦ viewByOn_gameT Selections cwUpd (pubP p) A m0R initR j) HkV src val hk
 
 end disclose
 
