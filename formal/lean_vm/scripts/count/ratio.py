@@ -22,7 +22,7 @@ module
 %s
 namespace LeanVM.Guest.Count
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.B2C
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.Deployed
 
 set_option maxRecDepth 100000
 
@@ -34,7 +34,7 @@ DOC = '''/-!
 # Counts within a ratio of the words
 
 For each function, `kr*J` lists the core indices of the functions its paths reach, `kr*C` their
-calls by index (`krClosedAt`), and `kr*A op` the largest `B2C.pathMax g op / B2C.fs g` over them,
+calls by index (`krClosedAt`), and `kr*A op` the largest `Deployed.pathMax g op / Deployed.fs g` over them,
 in thousandths, rounded up (`krRatioAt`); both decided in chunks of the indices. `kr*_weight`:
 every valid tree of the function counts at most `kr*A op / 1000` of `op`'s instructions per word
 it allocates.

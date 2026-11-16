@@ -3,7 +3,7 @@
 
   The instruction counts of `verify_sub`'s statically bounded callees and of
   `child_claim_list_digest`'s callees, by name, read off the `V` count certificates
-  (`Memory/GuestCnt`), per opcode at `B2C.ωArm B2C.xmssArmC op`.
+  (`Memory/GuestCnt`), per opcode at `Deployed.ωArm Deployed.xmssArmC op`.
 -/
 
 module
@@ -35,9 +35,9 @@ noncomputable def kvCert (op : Opcode) : String → Cert := cntCert op
 /-- The `V` certificates counting `op`'s instructions, by core index. -/
 noncomputable def kvCertJ (op : Opcode) : ℕ → Cert := cntCertJ op
 
-/-- **The `V` certificates counting `op`'s instructions check** at `B2C.ωArm B2C.xmssArmC op`. -/
+/-- **The `V` certificates counting `op`'s instructions check** at `Deployed.ωArm Deployed.xmssArmC op`. -/
 theorem kv_checked (op : Opcode) :
-    Checked coreProgram false (kvCert op) (B2C.ωArm B2C.xmssArmC op) :=
+    Checked coreProgram false (kvCert op) (Deployed.ωArm Deployed.xmssArmC op) :=
   cnt_checked op
 
 theorem kvCert_idx {op : Opcode} {j : ℕ} {f : String} (h : (coreProgram[j]?).map Fn.name = some f) :
@@ -87,7 +87,7 @@ noncomputable def kvOkK (op : Opcode) (j : ℕ) (f : String) : Bool :=
 
 /-- **`f`'s instructions of `op` within `kvSB op f`.** -/
 theorem kvSB_weightLe {op : Opcode} {j : ℕ} {f : String} (h : kvOkB op j f = true) :
-    WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op) f fun _ => kvSB op f := by
+    WeightLe coreProgram (Deployed.ωArm Deployed.xmssArmC op) f fun _ => kvSB op f := by
   simp only [kvOkB, Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨hn, hk⟩ := h
   have hc := kvCert_idx (op := op) hn
@@ -104,7 +104,7 @@ theorem kvSB_weightLe {op : Opcode} {j : ℕ} {f : String} (h : kvOkB op j f = t
 
 /-- **Loop helper `f`'s instructions of `op` within `kvSK op f` per iteration.** -/
 theorem kvSK_loop {op : Opcode} {j : ℕ} {f : String} (h : kvOkK op j f = true) :
-    LoopWeightLe (B2C.ωArm B2C.xmssArmC op) f (kvSK op f) := by
+    LoopWeightLe (Deployed.ωArm Deployed.xmssArmC op) f (kvSK op f) := by
   simp only [kvOkK, Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨hn, hk⟩ := h
   have hc := kvCert_idx (op := op) hn
@@ -122,10 +122,10 @@ theorem kvSK_loop {op : Opcode} {j : ℕ} {f : String} (h : kvOkK op j f = true)
       (fun _ h => (List.not_mem_nil h).elim)
     simpa [Aff.eval] using this
 
-/-- **A frame's weight by its core index**: `B2C.pathMax`'s entry, but at `main_loop2`. -/
+/-- **A frame's weight by its core index**: `Deployed.pathMax`'s entry, but at `main_loop2`. -/
 theorem ωArm_idx {C : Opcode → ℕ} {op : Opcode} {j : ℕ} {f : String}
     (h : (coreProgram[j]?).map Fn.name = some f) (hx : f ≠ (name% main_loop2)) :
-    B2C.ωArm C op f = (B2C.plumbOf (j + 1)).pmax.getD (B2C.opIdx op) 0 := by
+    Deployed.ωArm C op f = (Deployed.pmaxOf (j + 1)).getD (Deployed.opIdx op) 0 := by
   rcases hj : coreProgram[j]? with _ | fn
   · rw [hj] at h; cases h
   · rw [hj] at h
@@ -133,7 +133,7 @@ theorem ωArm_idx {C : Opcode → ℕ} {op : Opcode} {j : ℕ} {f : String}
     simp only [Option.map_some, Option.some.injEq] at h
     have hi := cnt_idxOf hlt
     rw [hfn, h] at hi
-    unfold B2C.ωArm B2C.pathMax
+    unfold Deployed.ωArm Deployed.pathMax
     rw [hi]
     simp [hx]
 

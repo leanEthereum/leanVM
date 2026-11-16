@@ -51,6 +51,8 @@ noncomputable def idxOf (f : String) : Option ℕ := (coreProgram.indexOf? f).ma
 /-- The back end's frame size of compiled function `j` (`main`'s without the jump table). -/
 def fsAt (j : ℕ) : ℕ := Data.frameSizes.getD j 0
 
+theorem frameSizes_length : Data.frameSizes.length = fn_count% := by decide +kernel
+
 /-- `main`'s frame: its cells and the jump table after them. -/
 def mainFrame : ℕ := Data.mainCells + Data.jtSlots
 
@@ -250,6 +252,18 @@ theorem indexOf?_spec {f : String} {i : ℕ} (h : coreProgram.indexOf? f = some 
   rw [List.findIdx?_eq_some_iff_getElem] at h
   obtain ⟨hi, he, -⟩ := h
   exact ⟨hi, by simpa using he⟩
+
+/-- Core function `j` is the first of its name. -/
+theorem indexOf?_getElem {j : ℕ} (h : j < coreProgram.length) :
+    coreProgram.indexOf? coreProgram[j].name = some j := by
+  unfold Program.indexOf?
+  rw [List.findIdx?_eq_some_iff_getElem]
+  refine ⟨h, by simp, fun i hij ↦ ?_⟩
+  simp only [beq_iff_eq]
+  intro he
+  have := (List.Nodup.getElem_inj_iff coreProgram_names_nodup (i := i) (j := j)
+    (hi := by simp; omega) (hj := by simp; omega)).mp (by simpa using he)
+  omega
 
 theorem find?_none {f : String} (h : coreProgram.indexOf? f = none) : coreProgram.find? f = none := by
   unfold Program.indexOf? at h

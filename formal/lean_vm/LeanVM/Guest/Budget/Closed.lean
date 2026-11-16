@@ -13,6 +13,7 @@ public import LeanVM.Guest.Count.VsWordsOs
 public import LeanVM.Guest.B1.Main.VerifySubGoals
 public import LeanVM.Guest.B1.VerifySub.CompleteHyp
 public import LeanVM.Guest.B2C.RunsConsec
+public import LeanVM.Guest.B2C.DeployedEq
 
 namespace LeanVM.Guest.Budget
 
@@ -31,16 +32,17 @@ def deployedVsT (w : NodeWitness) (c : ℕ) (t : Tree) : Prop :=
   ∀ hc : c < w.children.length,
     (childShape bytecode w.children[c]).1 - B1.Whir.minOpenLog < B1.Whir.openArms ∧
       (20 ≤ (childShape bytecode w.children[c]).1 ∧ (childShape bytecode w.children[c]).1 ≤ 30 ∧
-        vsTsAny B2C.fs Count.vsWordsOs vkBound (childShape bytecode w.children[c]).1
+        vsTsAny Deployed.fs Count.vsWordsOs vkBound (childShape bytecode w.children[c]).1
           (childShape bytecode w.children[c]).2 t)
 
 /-- **`verify_sub`'s completeness at the deployed instance**, in `VerifySubGoals`' form
 (`vsCompleteHyp_fs`), its tree also at a stack log in `[20, 30]` (`VsCompleteHyp.shape`). -/
 theorem vsCompleteHyp_deployed :
-    B1.Main.VsCompleteHyp bytecode B2C.fs B2C.cert 16
-      (fun μ r t => 20 ≤ μ ∧ μ ≤ 30 ∧ vsTsAny B2C.fs Count.vsWordsOs vkBound μ r t)
+    B1.Main.VsCompleteHyp bytecode Deployed.fs B2C.cert 16
+      (fun μ r t => 20 ≤ μ ∧ μ ≤ 30 ∧ vsTsAny Deployed.fs Count.vsWordsOs vkBound μ r t)
       (vsBoundAt Count.vsWordsOs vkBound) :=
-  let h := B1.VerifySub.vsCompleteHyp_fs bytecode_length B2C.runsFit B2C.runsConsec Count.vsWordsOs
+  let h := B1.VerifySub.vsCompleteHyp_fs bytecode_length (B2C.fs_deployed ▸ B2C.runsFit) B2C.runsConsec
+    Count.vsWordsOs
   { complete := fun seed c sqE outE Lin hok hexp hout =>
       (h.complete seed c sqE outE Lin hok hexp hout).mono le_rfl
         fun _ ht => ⟨(h.shape seed c hok).1, (h.shape seed c hok).2.1, ht⟩
@@ -51,7 +53,7 @@ Count.vsWordsOs vkBound` at its announced stack log and rate, by a tree of `depl
 theorem verifySubGoals_deployed {seed : LeanVM.Protocol.Digest}
     {s : NodeStatement} {w : NodeWitness}
     (hr : NodeRelation bytecode seed s w) (hok : ChildrenOk bytecode seed w) :
-    VerifySubGoalsTB B2C.fs B2C.cert 0 seed s w (deployedVsT w)
+    VerifySubGoalsTB Deployed.fs B2C.cert 0 seed s w (deployedVsT w)
       (childBv (vsBoundAt Count.vsWordsOs vkBound) w) :=
   B1.Main.verifySubGoalsTB_of bytecode_length vsCompleteHyp_deployed hr hok
 

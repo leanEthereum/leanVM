@@ -9,9 +9,9 @@ written under `LeanVM/Guest/`. `CMD` is one of
 * `callees`: `Memory/GuestCallees.lean` and `Memory/GuestCalleesOk.lean`, every function's name
   and callees' indices, which the families' checks look their call sites up by (`Memory/Family`);
 * `words`: `Memory/GuestWords/` and `Memory/GuestWords.lean`, the certificates counting words at
-  the deployed frame sizes `B2C.fs`, over every function;
+  the deployed frame sizes `Deployed.fs`, over every function;
 * `cnt`: `Memory/GuestCnt/` and `Memory/GuestCnt.lean`, the certificates counting each opcode's
-  instructions at `B2C.ωArm B2C.xmssArmC op` (`pathMax`, and `__loop2`'s separately counted arms),
+  instructions at `Deployed.ωArm Deployed.xmssArmC op` (`pathMax`, and `__loop2`'s separately counted arms),
   one vector certificate per function (`Memory/StaticVec`), over the closure of `ROOTS` (`main`'s
   statically bounded callees), `VROOTS` (`verify_sub`'s, each child's opening arm among them, and
   `child_claim_list_digest`'s callees) and `WROOTS` (`verify_tables`' and
@@ -91,10 +91,8 @@ class G:
         for j, a in enumerate(self.arms):
             assert not a or j == self.xj + 1, 'only __loop2 counts arms separately'
         self.C = [self.arm_max(k) for k in range(6)]
-        lean = open(os.path.join(self.D, 'CplArms.lean'), encoding='utf-8').read()
-        m = re.search(r'def armMax : List ℕ := \[([\d, ]*)\]', lean)
-        assert m and [int(x) for x in m.group(1).split(',')] == self.C, \
-            'Data.armMax (B2C.xmssArmC) is not %s: rerun guest-cert' % self.C
+        assert core.load_arm_max(self.D) == self.C, \
+            'Deployed.Data.armMax (Deployed.xmssArmC) is not %s: rerun guest-tables' % self.C
         # `main`'s frame: its cells, then the jump table `__jump_tables` writes (one `SET` per slot).
         bc = open(os.path.join(lv, '..', 'Statement', 'Data', 'Bytecode.lean'), encoding='utf-8').read()
         self.jt_sets = int(re.search(r'⟨"__jump_tables", 0, (\d+),', bc).group(1))
@@ -103,10 +101,9 @@ class G:
                           open(os.path.join(lv, '..', 'Statement', 'Data', 'Bytecode00.lean'), encoding='utf-8').read())
         assert first and int(first.group(1)) == self.jt_base, 'the jump table does not start at main\'s frame size'
         self.main_frame = self.jt_base + self.jt_sets
-        frames = open(os.path.join(self.D, 'FrameSizes.lean'), encoding='utf-8').read()
-        assert 'abbrev mainCells : ℕ := %d\n' % self.jt_base in frames and \
-            'abbrev jtSlots : ℕ := %d\n' % self.jt_sets in frames, \
-            'Data.mainCells, Data.jtSlots (B2C.mainFrame, B2C.jtSets) are not %d, %d: rerun guest-cert' % (
+        assert core.load_scalar(self.D, 'mainCells') == self.jt_base and \
+            core.load_scalar(self.D, 'jtSlots') == self.jt_sets, \
+            'Deployed.Data.mainCells, jtSlots (Deployed.mainFrame, Deployed.jtSets) are not %d, %d: rerun guest-tables' % (
                 self.jt_base, self.jt_sets)
 
     def family(self, prefix):
@@ -128,7 +125,7 @@ class G:
         return out
 
     def arm_max(self, k):
-        """`B2C.costMaxW` of `__loop2`'s body at opcode `k`."""
+        """`Deployed.costMaxW` of `__loop2`'s body at opcode `k`."""
         acs = self.arms[self.xj + 1] if self.xj + 1 < len(self.arms) else []
         def key(x):
             for p in acs:
@@ -142,12 +139,12 @@ class G:
         return mw(self.fns[self.xj]['body'])
 
     def omega_cnt(self, k):
-        """`B2C.ωArm B2C.xmssArmC op` by name, `op` the `k`-th opcode."""
+        """`Deployed.ωArm Deployed.xmssArmC op` by name, `op` the `k`-th opcode."""
         return {f['name']: self.pm[i + 1][k] + (self.C[k] if i == self.xj else 0)
                 for i, f in self.fns.items()}
 
     def fs_words(self):
-        """`B2C.fs` by name."""
+        """`Deployed.fs` by name."""
         return {f['name']: (self.main_frame if i == 0 else max(2, self.fsz[i + 1]))
                 for i, f in self.fns.items()}
 
@@ -328,7 +325,7 @@ def cmd_static(g, wcert=None, fams=None):
             c = certs[P][n]; assert c[0] == 'stat' and c[1] == [] and c[2][1] == [], (n, c); vals[k] = c[2][0]
         o.append(opdef('kc' + N, '`%s`\'s instructions.' % n, vals))
         s = ('/-- **`%s`\'s instructions.** -/\ntheorem kc%s_weightLe (op : Opcode) :\n'
-             '    WeightLe coreProgram (B2C.ωArm B2C.xmssArmC op) "%s" fun _ => kc%s op := by\n  cases op\n' % (n, N, n, N))
+             '    WeightLe coreProgram (Deployed.ωArm Deployed.xmssArmC op) "%s" fun _ => kc%s op := by\n  cases op\n' % (n, N, n, N))
         for lop, P, k in OPS:
             s += '  · exact cnt_weightLe %s\n' % hcf(P, n, certs[P][n])
         o.append(s)
@@ -339,7 +336,7 @@ def cmd_static(g, wcert=None, fams=None):
             assert c[0] == 'loop' and c[1] is None and c[2] == [] and c[3][1] == [], (n, c); vals[k] = c[3][0]
         o.append(opdef('kc' + N, '`%s`\'s instructions per iteration.' % n, vals))
         s = ('/-- **`%s`\'s instructions.** -/\ntheorem kc%s_loop (op : Opcode) :\n'
-             '    LoopWeightLe (B2C.ωArm B2C.xmssArmC op) "%s" (kc%s op) := by\n'
+             '    LoopWeightLe (Deployed.ωArm Deployed.xmssArmC op) "%s" (kc%s op) := by\n'
              '  intro rd t args rets a e hn hv hb ha he hae heo\n  cases op\n' % (n, N, n, N))
         for lop, P, k in OPS:
             s += ('  · exact cnt_weight_le_of_loop %s hn hv hb ha he hae heo\n'
@@ -356,7 +353,7 @@ def cmd_static(g, wcert=None, fams=None):
 theorem kcAgg_le (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List E) (n : ℕ),
     t.name = "aggregate_claims" → t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
       args.getD 0 0 = ofK (addressOfIndex n) → 0 < n → n < 2 ^ 64 - 1 →
-        t.weight (B2C.ωArm B2C.xmssArmC op) ≤ kcAggC op + kcAggD op * n := by
+        t.weight (Deployed.ωArm Deployed.xmssArmC op) ≤ kcAggC op + kcAggD op * n := by
   intro rd t args rets n hn hv hb ha h0 h1
   have hpre : ArgsPre [(0, 0)] args := by
     intro q hq
@@ -371,19 +368,19 @@ theorem kcAgg_le (op : Opcode) : ∀ (rd : Reader) (t : Tree) (args rets : List 
         s += '    simp only [Aff.eval, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, hx] at this\n'
         s += '    simp only [kcAggC, kcAggD]; omega\n'
     o.append(s)
-    o.append('/-! ## Words at the frame sizes `B2C.fs` -/\n')
+    o.append('/-! ## Words at the frame sizes `Deployed.fs` -/\n')
     for N, n in CONST_ROOTS:
         c = wcert.get(n)
         if c is None or not (c[0] == 'stat' and c[1] == [] and c[2][1] == []):
             o.append('-- `%s`: no constant words certificate.\n' % n); continue
-        o.append('/-- **`%s`**: at most %d words. -/\ntheorem kw%s_totalLe : TotalLe coreProgram B2C.fs "%s" fun _ => %d :=\n'
+        o.append('/-- **`%s`**: at most %d words. -/\ntheorem kw%s_totalLe : TotalLe coreProgram Deployed.fs "%s" fun _ => %d :=\n'
                  '  fs_totalLe %s\n' % (n, c[2][0], N, n, c[2][0], hcf(None, n, c, 'w')))
     for N, n in LOOP_ROOTS:
         c = wcert.get(n)
         if c is None or not (c[0] == 'loop' and c[1] is None and c[2] == [] and c[3][1] == []):
             o.append('-- `%s`: no words certificate per iteration.\n' % n); continue
         o.append('/-- **`%s`**: at most %d words per iteration and its run\'s phantom frame. -/\n'
-                 'theorem kw%s_loopRunLe : LoopRunLe B2C.fs "%s" %d :=\n'
+                 'theorem kw%s_loopRunLe : LoopRunLe Deployed.fs "%s" %d :=\n'
                  '  kw_loopRunLe_of %s\n' % (n, c[3][0], N, n, c[3][0], hcf(None, n, c, 'w')))
     o.append('end\nend LeanVM.Guest.Count\n')
     path = os.path.join(g.lv, 'LeanVM', 'Guest', 'Count', 'Static.lean')
@@ -430,7 +427,7 @@ def show(c):
 
 def cmd_report(g):
     wcert = g.words_certs()
-    print('functions', g.N, '; __loop2 arms (B2C.xmssArmC):', g.C)
+    print('functions', g.N, '; __loop2 arms (Deployed.xmssArmC):', g.C)
     print('words: certified %d of %d; not: %s' % (len(wcert), g.N,
           [f['name'] for i, f in sorted(g.fns.items()) if f['name'] not in wcert]))
     allc = []
