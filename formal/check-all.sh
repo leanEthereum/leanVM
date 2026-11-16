@@ -153,7 +153,7 @@ lean_da() {
 }
 
 # Every lean_vm executable, in one build.
-EXES=(node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove test-runs)
+EXES=(node-vectors guest-core guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove test-runs)
 
 # The six projects' targets and lean_vm's executables in one build from lean_vm, whose workspace holds the other
 # five, so that their modules build beside lean_vm's instead of one project after another. The projects' own builds

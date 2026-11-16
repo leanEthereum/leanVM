@@ -84,7 +84,7 @@ def table(fns):
 def hand_written():
     for root in ROOTS:
         for p in sorted(root.rglob("*.lean")):
-            if "Guest/Data/" in str(p) or "Guest/Pack/" in str(p) or "/Checked/" in str(p):
+            if "Guest/Data/" in str(p) or "Guest/Pack/" in str(p):
                 continue
             text = p.read_text(encoding="utf-8")
             head = text[:text.find("-/") + 2]  # a generated module says so in its header

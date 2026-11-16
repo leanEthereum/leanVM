@@ -1,7 +1,6 @@
-"""The generated guest data, read into Python: the core IR (`Data/Core*.lean`), the powers of `g`
-the constants name (`Data/Pows.lean`), and the back end's tables (`Deployed/Data.lean`, written by
-`lake exe guest-tables`): each compiled function's `pmax`, the frame sizes and the separately
-counted arms.
+"""The generated guest data, read into Python: the core IR (`Data/Core*.lean`) and the back end's
+tables (`Deployed/Data.lean`, written by `lake exe guest-tables`): each compiled function's `pmax`,
+the frame sizes and the separately counted arms; and the powers of `g` below `2^20` (`pows`).
 
 Every loader takes the data directory, `lean_vm/LeanVM/Guest/Data/`. A function is a dict
 `name`, `params` (value indices), `body` (statements as tuples: `('atom', kind, args)`,
@@ -163,11 +162,15 @@ def load(D, cache=None):
     return fns
 
 
-def load_pows(D):
-    """`Data/Pows.lean`'s powers of `g`: the word's limb 0 to its exponent."""
-    s = open(os.path.join(D, 'Pows.lean'), encoding='utf-8').read()
-    s = s.split('def gtab')[0]
-    return {int(k): int(e) for k, e in re.findall(r'\.node (\d+) (\d+)', s)}
+def pows():
+    """The powers `g^e`, `e < 2^20`, by their word's limb 0 to `e`: `g` is `X` in `GF(2^64)`, so
+    `g^(e+1)` is `g^e` shifted by one bit, reduced by `X^64 = X^4 + X^3 + X + 1` (`27`, the entry
+    `g^64` of `Backend/Pow.lean`'s `gtab`)."""
+    out, x = {}, 1
+    for e in range(1 << 20):
+        out.setdefault(x, e)
+        x = ((x << 1) & 0xFFFFFFFFFFFFFFFF) ^ (27 if x >> 63 else 0)
+    return out
 
 
 def deployed_data(D):
