@@ -80,6 +80,7 @@ import Quantum.Xmss.Assembly.CwRec
 import Quantum.Sponge.Oracle.Hardwired.Persistence
 import Quantum.Xmss.Assembly.EncRefined
 import Quantum.Xmss.Assembly.RecBadMass
+import Quantum.Xmss.Assembly.HwHeads
 import Quantum.Xmss.Hybrid.SchemeSplit
 import Quantum.Xmss.Hybrid.CoinStage
 import Quantum.Xmss.Hybrid.R0Stage
