@@ -41,6 +41,7 @@ import Quantum.Xmss.Assembly.Masses
 import Quantum.Xmss.Assembly.CostLift
 import Quantum.Xmss.Assembly.PathBad
 import Quantum.Xmss.Assembly.EndReads
+import Quantum.Xmss.Assembly.GameTCalls
 import Quantum.Xmss.Hybrid.SchemeSplit
 import Quantum.Xmss.Hybrid.CoinStage
 import Quantum.Xmss.Assembly.Security
