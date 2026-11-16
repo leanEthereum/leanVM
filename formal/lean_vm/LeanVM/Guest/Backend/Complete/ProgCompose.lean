@@ -62,8 +62,8 @@ structure ComposeHyps {κ₀ : ℕ} (W : World κ₀) (FH : FrameP) (ω : String
   run : ∀ tf ∈ W.p, CplRunW W FH ω tf
   frame : ∀ hdr (rd : Reader) (T : Tree), T.name = "main" →
     HonestAt W.core fs H C hdr T cert rd [] [] → ∀ I ∈ honestInsts W.core fs H hdr T,
-    ∀ f σ bufs kids, I.t = .node f σ bufs kids → ∀ tf ∈ W.p, tf.core.name = f →
-    ∀ es vs, walk σ tf.core.body = .ret es vs →
+    ∀ f σ bufs kids, I.t = .node f σ bufs kids → (f = "main" → I.fp = 0) → ∀ tf ∈ W.p,
+    tf.core.name = f → ∀ es vs, walk σ tf.core.body = .ret es vs →
       FH (honest W.core fs H C hdr T) f I.fp σ es vs I.kidFps I.hdr
   jt : ∀ hdr (rd : Reader) (T : Tree), T.name = "main" →
     HonestAt W.core fs H C hdr T cert rd [] [] →
@@ -181,7 +181,8 @@ theorem inst_runsW : ∀ n, ∀ I ∈ honestInsts W.core fs H hdr T, I.t.total f
     · rw [hti] at hv
       obtain ⟨fn, hf, hpar, es, vs, hw, hrets, hev, hk⟩ := hv
       obtain ⟨tf, htf, rfl, hnm⟩ := core_find hf
-      have hF := h.frame hdr rd T hname hH I hI f σ bufs kids hti tf htf hnm es vs hw
+      have hF := h.frame hdr rd T hname hH I hI f σ bufs kids hti
+        (fun h1 => hm (by rw [hti]; exact h1)) tf htf hnm es vs hw
       have hkv := kidsValid_getW hk
       have hkids : I.t.kids = kids := by rw [hti]; rfl
       have h2 : 2 ≤ fs f := by

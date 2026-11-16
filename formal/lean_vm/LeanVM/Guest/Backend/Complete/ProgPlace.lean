@@ -85,7 +85,7 @@ theorem wp_estC {m : P α} {f : α → P β} {st : St} {p : Prop} (hm : wpP m ct
     wpP (m >>= f) ctx st fun _ _ => p :=
   wp_bind.mpr (wp_mono hm fun _ _ h => fun _ _ _ => h)
 
-theorem mapM_cellAt : ∀ (vs : List V) (st : St), wpP (vs.mapM cellAt) ctx st fun cs st' =>
+theorem mapM_cellAtR : ∀ (vs : List V) (st : St), wpP (vs.mapM cellAt) ctx st fun cs st' =>
     st' = st ∧ cs.length = vs.length ∧
       ∀ k (hk : k < vs.length) (hk' : k < cs.length), st.locs[vs[k]]? = some (.cell cs[k])
   | [], st => wp_pure.mpr ⟨rfl, rfl, fun k hk => absurd hk (by simp)⟩
@@ -96,7 +96,7 @@ theorem mapM_cellAt : ∀ (vs : List V) (st : St), wpP (vs.mapM cellAt) ctx st f
     refine wp_bind.mpr (wp_get.mpr ?_)
     split
     · next n hn =>
-      refine wp_pure.mpr (wp_bind.mpr (wp_mono (mapM_cellAt vs st)
+      refine wp_pure.mpr (wp_bind.mpr (wp_mono (mapM_cellAtR vs st)
         fun cs st' ⟨he, hl, hc⟩ => wp_pure.mpr ⟨he, by simp [hl], fun k hk hk' => ?_⟩))
       cases k with
       | zero => simpa using hn
@@ -200,7 +200,7 @@ theorem stmtR : ∀ (s : Stmt) (rest : List Stmt) (st : St), ∀ vs ∈ retS s,
       rw [placeStmt]
       refine wp_pass fun _ _ => ?_
       refine wp_bind.mpr (wp_read.mpr ?_)
-      refine wp_bind.mpr (wp_mono (mapM_cellAt vs _) fun cs s ⟨hs, hl, hc⟩ => ?_)
+      refine wp_bind.mpr (wp_mono (mapM_cellAtR vs _) fun cs s ⟨hs, hl, hc⟩ => ?_)
       dsimp only
       split
       · exact wp_bind.mpr wp_failP
