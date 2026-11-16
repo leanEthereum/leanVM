@@ -169,27 +169,6 @@ theorem map_realize_slotPorts_eq {pub pub' : Pub} {v v' : HPos → Digest}
   obtain ⟨e1, e2, e3⟩ := h j (List.mem_range.mp hj)
   rw [e1, e2, e3]
 
-/-- The coordinates of a slot are its inputs and its output position. -/
-theorem mem_slotNeed {q : ValPos} {s : Slot} (hq : q ∈ slotNeed s) :
-    IsInput q s ∨ q = slotOutPos s := by
-  cases s with
-  | chain l e step i =>
-    rcases Finset.mem_insert.mp hq with rfl | hq
-    · exact Or.inl rfl
-    · exact Or.inr (Finset.mem_singleton.mp hq)
-  | leaf l e =>
-    rcases Finset.mem_insert.mp hq with rfl | hq
-    · exact Or.inr rfl
-    · obtain ⟨i, -, rfl⟩ := Finset.mem_image.mp hq
-      exact Or.inl ⟨i, rfl⟩
-  | node l level index =>
-    rcases Finset.mem_insert.mp hq with rfl | hq
-    · exact Or.inl (Or.inl rfl)
-    rcases Finset.mem_insert.mp hq with rfl | hq
-    · exact Or.inl (Or.inr rfl)
-    · exact Or.inr (Finset.mem_singleton.mp hq)
-  | _ => exact absurd hq (Finset.notMem_empty q)
-
 /-- An `h`-round reads the values only at the slot's coordinates (its output position among
 them). -/
 theorem roundH_congr_of_need (pub : Pub) {s : Slot} {f f' : ValPos → Digest}
@@ -305,51 +284,6 @@ end congr
 /-! ## The reparametrized public datum -/
 
 section reparam
-
-/-- The root position is in the table. -/
-theorem inPos_rootPos : InPos rootPos := by
-  show 0 % 2 ^ 32 < 2 ^ (keyBits topLayer - layerHeight % (layerHeight + 1))
-  rw [Nat.zero_mod]
-  exact Nat.two_pow_pos _
-
-/-- The authentication-path siblings of an in-range key are in the table. -/
-theorem inPos_siblingPos {l : Layer} {e : KeyIndex} (he : e.val < keyCount l)
-    (level : Fin layerHeight) : InPos (siblingPos l e level) := by
-  have hkb := le_keyBits l
-  have hkb' := keyBits_le l
-  have hlev := level.isLt
-  have hlh : layerHeight = 16 := rfl
-  have he' : e.val < 2 ^ keyBits l := he
-  have hdiv : e.val / 2 ^ level.val < 2 ^ (keyBits l - level.val) := by
-    rw [Nat.div_lt_iff_lt_mul (Nat.two_pow_pos _), ← pow_add, Nat.sub_add_cancel (by omega)]
-    exact he'
-  have hx : Nat.xor (e.val / 2 ^ level.val) 1 < 2 ^ (keyBits l - level.val) :=
-    Nat.xor_lt_two_pow hdiv (lt_of_lt_of_le (by norm_num : 1 < 2 ^ 1)
-      (Nat.pow_le_pow_right (by norm_num) (by omega)))
-  have h32 : 2 ^ (keyBits l - level.val) ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) (by omega)
-  show Nat.xor (e.val / 2 ^ level.val) 1 % 2 ^ 32 <
-    2 ^ (keyBits l - level.val % (layerHeight + 1))
-  rw [Nat.mod_eq_of_lt (by omega : level.val < layerHeight + 1), Nat.mod_eq_of_lt (by omega)]
-  exact hx
-
-/-- **The positions a layer signature by an in-range key reveals are in the table, or chain
-starts.** -/
-theorem layerNeed_good {l : Layer} {e : KeyIndex} {x : Encoding} (he : e.val < keyCount l)
-    {q : ValPos} (hq : q ∈ layerNeed l e x) :
-    InPos q ∨ ∃ l' e' i, q = .chain l' e' i ⟨0, by decide⟩ := by
-  rcases Finset.mem_union.mp hq with hq | hq
-  · rcases Finset.mem_union.mp hq with hq | hq
-    · obtain ⟨s, hs, hqs⟩ := mem_needUnion hq
-      have hsIn := inTable_of_mem_layerSlots he hs
-      rcases mem_slotNeed hqs with hin | rfl
-      · exact inPos_or_start hsIn hin
-      · exact Or.inl (inPos_slotOutPos hsIn)
-    · obtain ⟨i, -, rfl⟩ := Finset.mem_image.mp hq
-      by_cases h0 : (x i).val % chainLength = 0
-      · exact Or.inr ⟨l, e, i, congrArg (ValPos.chain l e i) (Fin.ext h0)⟩
-      · exact Or.inl ⟨Nat.one_le_iff_ne_zero.mpr h0, he⟩
-  · obtain ⟨level, -, rfl⟩ := Finset.mem_image.mp hq
-    exact Or.inl (inPos_siblingPos he level)
 
 /-- **Reparam's values are the table's** at the in-table positions and the chain starts, for
 Reparam's table `((h, u), wOf L)` with `L`'s chain starts in the pad and `h` agreeing with `L`'s on

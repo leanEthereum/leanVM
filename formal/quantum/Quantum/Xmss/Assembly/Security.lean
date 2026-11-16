@@ -1,6 +1,7 @@
 module
 
 public import Quantum.Xmss.Assembly.ReparamR0
+public import Quantum.Xmss.Assembly.CoversFull
 public import Quantum.Xmss.Assembly.WinDecomp
 public import Quantum.Xmss.Assembly.Runtime1
 public import Quantum.Xmss.Assembly.Costs
@@ -41,8 +42,9 @@ verification (`gameR_eq`, Template's `gameT_eq_prefixT_bind`).
    with its program calls (record ports dropped) against Kraus's runtime 1.
 3. **Record ports** (`p1K_eq_p1R`: `dropRec_gameT`, `evalDistMap_runtime1R_eq`, RecordDrop): the
    canonical game against runtime 1 with record ports (`runtime1R`) is `gameD` against runtime 1.
-4. **The graded hybrid** (`uavg_win_runtime1R_le_graded_total`, Graded; debts `covers`, `hybRead`,
-   with `advCalls_gameR` and `hybSponge_le`): `runtime1R` against `runtimeR` on the canonical game,
+4. **The graded hybrid** (`uavg_win_runtime1R_le_graded_total`, Graded; `covers_fullHw`; debt
+   `hybRead`, with `advCalls_gameR` and `hybSponge_le`): `runtime1R` against `runtimeR` on the
+   canonical game,
    with the hidden sets `coverH`, `coverK`, `coverK'` (the honest, seed and randomizer-base paths'
    cells, MassesR0), paying `√(4 · 6q · μ)` for the hidden mass `μ ≤ 6q κ` at the sponge ports
    (`κ = kappaS`; ReparamR0's `uavg_spongeMass_le_r0E`, every hypothesis discharged) and `√ν` for
@@ -486,17 +488,6 @@ noncomputable def hybTerm (q : ℕ) : ℝ≥0∞ :=
 noncomputable def qrpmBound (q : ℕ) : ℝ≥0∞ :=
   (eventTerm q ^ (2⁻¹ : ℝ) + hybTerm q) ^ 2
 
-/-! ## The hidden sets -/
-
-/-- The hidden `h`-cells: the honest paths', the seed paths' and the randomizer-base paths'. -/
-def coverH (L : HonestTable) : Set Z := pathH L ∪ seedH L ∪ r0H L
-
-/-- The hidden `k`-cells: the honest paths', the seed paths' and the randomizer-base paths'. -/
-def coverK (L : HonestTable) : Set X := pathK L ∪ seedK L ∪ r0K L
-
-/-- The hidden `k'`-cells: the honest paths', the seed paths' and the randomizer-base paths'. -/
-def coverK' (L : HonestTable) : Set X := pathK' L ∪ seedK' L ∪ r0K' L
-
 /-! ## The debts -/
 
 section debts
@@ -506,8 +497,9 @@ attribute [local instance] badRDec
 /-- **The open debts of the leanXMSS QRPM proof**, for an adversary `A` making at most `q`
 permutation calls and at most `lifetime` signing requests (needed for `q ≤ 2^64` only: above,
 `qrpmBound q ≥ 1`). Data: the residual read flip terms `verifEps`. The hidden sets are
-`coverH`, `coverK`, `coverK'` (MassesR0's families); the sponge-port hybrid mass is a theorem
-(`hybSponge_le`, ReparamR0). The event-bound program is the canonical game `gameR A`; the
+`coverH`, `coverK`, `coverK'` (MassesR0's families, CoversFull), which cover runtime 1's table
+(`covers_fullHw`); the sponge-port hybrid mass is a theorem (`hybSponge_le`, ReparamR0). The
+event-bound program is the canonical game `gameR A`; the
 classical costs (`encJoint`, `restMass`, `readEps`, `verifEpsBound`, `callsW`, `progRest`) are
 along it. Runtime 1's table is FullTable's `fullHw` (`tableLe_fullHw`, `winProb_eq_uavg_full`);
 the call counts are theorems from the budgets (`advCalls_gameR`, `clsCalls_gameR`,
@@ -516,9 +508,6 @@ structure XmssQrpmDebts (q : ℕ) (A : Adversary (X × Z)) where
   /-- The flip terms of the game's reads that are not `ReadOk` (the verification's `h`-reads),
   summed along the run: CostRun's `totalWeight (epsRestWt L) (gameR A L) initR`. -/
   verifEps : HonestTable → ℝ≥0∞
-  /-- **Covers** (open; MassesR0's `covers_r0`): every cell of runtime 1's table (a read of the
-  full honest computation) is an honest path's, a seed path's or a randomizer-base path's. -/
-  covers : ∀ L, Covers (fullHw L) (coverH L) (coverK L) (coverK' L)
   /-- **The graded hybrid, read ports** (Disclose at the read ports): the hidden mass at the read
   ports, summed over the calls, averaged over the table. -/
   hybRead : uavg (fun L ↦ (runtimeR m0R).totalWeight .instruments
@@ -673,7 +662,8 @@ theorem hybSponge_le :
 /-- **The graded hybrid with record ports**, averaged over the table. -/
 theorem uavg_p1R_le (d : XmssQrpmDebts q A) :
     uavg (p1R A fullHw) ≤ (uavg (p2R (gameR A)) ^ (2⁻¹ : ℝ) + hybTerm q) ^ 2 := by
-  refine (uavg_win_runtime1R_le_graded_total .instruments fullHw coverH coverK coverK' d.covers
+  refine (uavg_win_runtime1R_le_graded_total .instruments fullHw coverH coverK coverK'
+    covers_fullHw
     m0R (gameR A) (fun _ ↦ SubState.basis ()) (fun _ ↦ winObs) (measurableSet_singleton true)
     (6 * q) (advCalls_gameR hperm hsign) _ _ (hybSponge_le hperm hsign) d.hybRead).trans_eq ?_
   rw [hybTerm, add_assoc]
