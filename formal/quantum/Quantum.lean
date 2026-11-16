@@ -65,6 +65,8 @@ import Quantum.Xmss.Assembly.TrialsOff
 import Quantum.Xmss.Assembly.KeyLazy
 import Quantum.Xmss.Assembly.KeysReparam
 import Quantum.Xmss.Assembly.EncPotential
+import Quantum.Xmss.Assembly.PathsDisjoint
+import Quantum.Xmss.Assembly.TrialHit
 import Quantum.Xmss.Hybrid.SchemeSplit
 import Quantum.Xmss.Hybrid.CoinStage
 import Quantum.Xmss.Hybrid.R0Stage

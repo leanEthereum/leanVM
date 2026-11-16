@@ -9,6 +9,7 @@ public import Quantum.Xmss.Assembly.KeyLazy
 public import Quantum.Xmss.Assembly.KeysReparam
 public import Quantum.Xmss.Assembly.PrefixFacts
 public import Quantum.Xmss.Assembly.TrialsOff
+public import Quantum.Xmss.Assembly.PathsDisjoint
 public import Quantum.Xmss.Assembly.CostJoint
 public import Quantum.Xmss.Hybrid.GradedMasked
 
@@ -46,9 +47,11 @@ challenge prefix `prefixR A L` followed by the verification (`gameR_eq`).
    The codeword flips are `2^-128 cntPre` (`encW_le_cntW`) with the joint count (debt `encJoint`)
    linear in the recorded mass (debt `restMass`), averaged by CostJoint's `uavg_ite_cost_le`.
    The programs: `progPre ≤ progTot` and ProgSafe's `uavg_progTot_le_kTot` with KeyLazy's
-   `uavg_kTot_le` on a reparametrization exposing the keys (debt `keys`): `progBound`.
+   `uavg_kTot_le` on a reparametrization exposing the keys (`uavg_kTot_le_r0`, KeysReparam):
+   `progBound`.
 6. **Good tables**: `PermGood` (`prob_not_permGood_keccak`, `2^-777`), `TrialsOff`
-   (`trialsOff_frac_le_keccak`, `2^-173`) and `HonestPathsDisjoint` (debt `pathsDisjoint`).
+   (`trialsOff_frac_le_keccak`, `2^-173`) and `HonestPathsDisjoint` (`uavg_not_pathsDisjoint_le`,
+   `2^-170`, PathsDisjoint).
 
 `qrpmBound q = (√eventTerm + hybTerm)² + 2^-174` with
 `eventTerm = (advTerm + verTerm + √(clsBound + verLin))² + readTerm + trialCap + goodTerm` and
@@ -59,7 +62,6 @@ challenge prefix `prefixR A L` followed by the verification (`gameR_eq`).
 |---|---|---|---|
 | `htrial` | trials' hidden read mass per public datum (GradedMasked's form) | `trialTau q` | TrialSource |
 | `trialHit` | averaged trial-hit mass on `GoodL` | `trialCap = 2^-380` | TrialSource |
-| `pathsDisjoint` | fraction of tables without `HonestPathsDisjoint` | `disjCap = 2^-170` | open |
 | `encJoint` | `cntPre ≤ encCapA q + encCapB q · massPre` on `GoodL` | | EncPotential |
 | `restMass` | averaged `massPre` on `GoodL` | `massCap q` | EncPotential |
 -/
@@ -365,8 +367,6 @@ structure XmssQrpmDebts (q : ℕ) (A : Adversary (X × Z)) where
       trialTau q * Fintype.card (HPos → Digest)
   /-- **The trial-hit mass** (PrefixFacts' `trialHitMass`), averaged over the good tables. -/
   trialHit : uavg (fun L ↦ if GoodL L then trialHitMass m0R A L else 0) ≤ trialCap
-  /-- **Honest paths share no cell** except on a fraction `disjCap` of the tables. -/
-  pathsDisjoint : uavg (fun L : HonestTable ↦ if HonestPathsDisjoint L then 0 else 1) ≤ disjCap
   /-- **The cross-key potential** on the prefix: the joint count of the selecting reads is at
   most `encCapA q` plus `encCapB q` per unit of recorded mass. -/
   encJoint : ∀ L, GoodL L → cntPre A L ≤ (encCapA q : ℝ≥0∞) + (encCapB q : ℝ≥0∞) * massPre A L
@@ -440,7 +440,7 @@ theorem progPre_le_progTot (A : Adversary (X × Z)) (L : HonestTable) :
   exact totalWeight_le_bind₂ (runtimeR m0R) .instruments _ (prefixR A L) _ initR
 
 /-- **The fraction of the tables off `GoodL`**: at most `goodTerm`. -/
-theorem uavg_not_goodL_le {q : ℕ} {A : Adversary (X × Z)} (d : XmssQrpmDebts q A) :
+theorem uavg_not_goodL_le :
     uavg (fun L ↦ if GoodL L then (0 : ℝ≥0∞) else 1) ≤ goodTerm := by
   classical
   have hpt : ∀ L : HonestTable, (if GoodL L then (0 : ℝ≥0∞) else 1) ≤
@@ -465,7 +465,8 @@ theorem uavg_not_goodL_le {q : ℕ} {A : Adversary (X × Z)} (d : XmssQrpmDebts 
         exact le_add_self
   refine (uavg_mono hpt).trans ?_
   rw [uavg_add, uavg_add]
-  exact add_le_add (add_le_add uavg_not_permGood_le d.pathsDisjoint) uavg_not_trialsOff_le
+  exact add_le_add (add_le_add uavg_not_permGood_le uavg_not_pathsDisjoint_le)
+    uavg_not_trialsOff_le
 
 variable {q : ℕ} {A : Adversary (X × Z)}
   (hperm : ∀ pk, IPFunctor.IFreeM.IsChargeBound (A pk) (cmdCharge permCharge) q)
@@ -606,7 +607,7 @@ theorem uavg_p2R_le (hq : q ≤ 2 ^ 64) (d : XmssQrpmDebts q A) :
       rw [uavg_add, uavg_add, uavg_add, uavg_const]
     _ ≤ (advTerm q + verTerm q + (uavg twg + verLin q) ^ (2⁻¹ : ℝ)) ^ 2 + readTerm + trialCap +
           goodTerm :=
-      add_le_add (add_le_add (add_le_add hJ le_rfl) d.trialHit) (uavg_not_goodL_le d)
+      add_le_add (add_le_add (add_le_add hJ le_rfl) d.trialHit) uavg_not_goodL_le
     _ ≤ eventTerm q := by
       unfold eventTerm
       gcongr
