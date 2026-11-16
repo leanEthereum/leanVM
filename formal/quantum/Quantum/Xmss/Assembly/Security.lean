@@ -3,6 +3,7 @@ module
 public import Quantum.Xmss.Assembly.TableComp
 public import Quantum.Xmss.Assembly.Runtime1
 public import Quantum.Xmss.Assembly.Costs
+public import Quantum.Xmss.Assembly.GameTCalls
 public import Quantum.Xmss.Assembly.RecordPorts
 public import Quantum.Xmss.Assembly.RecordDrop
 public import Quantum.Xmss.Assembly.CostLift
@@ -42,22 +43,24 @@ program, the verification's reads are final reads.
 4. **Record ports** (`p1K_eq_p1R`: `dropRec_gameT`, `evalDistMap_runtime1R_eq`, RecordDrop): the
    canonical game against runtime 1 with record ports (`runtime1R`) is `gameD` against runtime 1.
 5. **The graded hybrid** (`uavg_win_runtime1R_le_graded_total`, Graded; debts `covers`,
-   `hybSponge`, `hybRead`, with `advCalls`): `runtime1R` against `runtimeR` on the canonical game,
-   paying `√(4 · 6q · μ)` for the hidden mass `μ ≤ 6q κ` at the sponge ports (`κ = kappaS`) and
+   `hybSponge`, `hybRead`, with `advCalls_gameR`): `runtime1R` against `runtimeR` on the canonical
+   game, paying `√(4 · 6q · μ)` for the hidden mass `μ ≤ 6q κ` at the sponge ports (`κ = kappaS`) and
    `√ν` for the hidden mass `ν ≤ clsCap κ_read` at the read ports (`κ_read = kappaR`). The Disclose
    part for the 128-bit `k`-cells is `uavg_hiddenK_digest_le` (from `viewByOn_gameT`, for
    `runtimeR`).
-6. **End** (debt `endReads`, with `dbGrade_le_progCap_extend`): the verification's reads are the
-   final reads; with the classification (`win_imp_bad`) they put a win of `gameR A` in the event
-   `BadR L progCap` (Events' `Bad` on the selections) at the end of the prefix `prefixR A`, up to
-   the read error `readTerm` (EndReads' `endReads_of_winDecomp`, with the game `gameR A L` and the
-   event-bound program `prefixR A L`). A verification read can read the adversary's own forgery
-   path, so it would cost up to `1` in the event bound; it is paid by the read error instead.
+6. **End** (debt `endReads`, with `dbGrade_le_progCap_extend` and `progCalls_gameR`): the
+   verification's reads are the final reads; with the classification (`win_imp_bad`) they put a win
+   of `gameR A` in the event `BadR L progCap` (Events' `Bad` on the selections) at the end of the
+   prefix `prefixR A`, up to the read error `readTerm` (EndReads' `endReads_of_winDecomp`, with the
+   game `gameR A L` and the event-bound program `prefixR A L`). A verification read can read the
+   adversary's own forgery path, so it would cost up to `1` in the event bound; it is paid by the
+   read error instead.
 7. **The event bound** (`eventWeight_runtimeR_le` on `BadR L progCap` at the end of `prefixR A`,
    `labelFree_badR`, with `freshBound_slice_bad`, `upClosed_slice_bad`, `empty_not_mem_bad` and the
    flip costs `potential_hwReadKraus_le`, `potential_hwProgKraus_le`), for `PermGood L.perm 18`.
-   The prefix's call counts follow from the game's (`advCalls`, `clsCalls`) by
-   `isChargeBound_of_bind₂` (`advCalls_prefixR`, `clsCalls_prefixR`).
+   The game's call counts are GameTCalls' (`advCalls_gameR`, `clsCalls_gameR`, `progCalls_gameR`
+   from the adversary's budgets); the prefix's follow by `isChargeBound_of_bind₂`
+   (`advCalls_prefixR`, `clsCalls_prefixR`).
 8. **Classical costs** along the prefix (CostLift: `flipCost_le_ports`, `totalWeight_le_lin`,
    `le_sq_add_of_forall_lin`; debts `encJoint`, `restMass`, `readEps`, `callsW`, `progRest`): the
    read projectors are CostLift's `PRm` (the selection reads of each randomizer trial's `h`-read,
@@ -518,10 +521,11 @@ section debts
 attribute [local instance] badRDec
 
 /-- **The open debts of the leanXMSS QRPM proof**, for an adversary `A` making at most `q`
-permutation calls. Data: runtime 1's table `Lt` and the hidden sets `H` (honest values and the
-seed-keyed cells). The event-bound program is the challenge prefix `prefixR A`; the call counts
-are of the whole game `gameR A`, the prefix's follow (`advCalls_prefixR`, `clsCalls_prefixR`); the
-classical costs (`encJoint`, `restMass`, `readEps`, `callsW`, `progRest`) are along the prefix. -/
+permutation calls and at most `lifetime` signing requests. Data: runtime 1's table `Lt` and the
+hidden sets `H` (honest values and the seed-keyed cells). The event-bound program is the challenge
+prefix `prefixR A`; the classical costs (`encJoint`, `restMass`, `readEps`, `callsW`, `progRest`)
+are along the prefix. The call counts are theorems from the budgets (`advCalls_gameR`,
+`clsCalls_gameR`, `progCalls_gameR`, GameTCalls). -/
 structure XmssQrpmDebts (q : ℕ) (A : Adversary (X × Z)) where
   /-- Runtime 1's hardwired table (GameT's `tableHw L`, possibly extended). -/
   Lt : HonestTable → Hw X Z
@@ -548,15 +552,6 @@ structure XmssQrpmDebts (q : ℕ) (A : Adversary (X × Z)) where
   reads) and the classification `win_imp_bad` bound the win of the game by the event
   `BadR L progCap` at the end of the challenge prefix plus the read error. -/
   endReads : ∀ L, GradeCap m0R (gameR A L) → p2R (gameR A) L ≤ ewR (prefixR A) L + readTerm
-  /-- **Simulation**: the canonical game makes at most `6q` sponge calls. -/
-  advCalls : ∀ L, IPFunctor.IFreeM.IsChargeBound (gameR A L)
-    (portCharge fun i ↦ if extCls X Z Mem (recSpec HPos Selections) i then 0 else 1) (6 * q)
-  /-- **Costs**: at most `clsCap` classical calls (reads, programs, records). -/
-  clsCalls : ∀ L, IPFunctor.IFreeM.IsChargeBound (gameR A L)
-    (portCharge fun i ↦ if extCls X Z Mem (recSpec HPos Selections) i then 1 else 0) clsCap
-  /-- **Costs/Template**: at most `progCap` program calls. -/
-  progCalls : ∀ L, IPFunctor.IFreeM.IsChargeBound (gameR A L) (progChargeR HPos Selections)
-    progCap
   /-- **The cross-key potential** (open): on good tables, the state-weighted counts of the
   selecting reads of all trials of all keys, summed along the prefix, are at most `encCap q`. Its
   proof is the potential `∑_{k unselected} msgCwCount(·, k)` (at most the message-slot cells,
@@ -635,16 +630,40 @@ theorem p1K_eq_p1R (A : Adversary (X × Z)) (Lt : HonestTable → Hw X Z) (L : H
       (SubState.basis ()) winObs)).symm
 
 variable {q : ℕ} {A : Adversary (X × Z)}
+  (hperm : ∀ pk, IPFunctor.IFreeM.IsChargeBound (A pk) (cmdCharge permCharge) q)
+  (hsign : ∀ pk, IPFunctor.IFreeM.IsChargeBound (A pk) (cmdCharge signCharge) lifetime)
+include hperm hsign
+
+/-- **The canonical game's sponge calls**: at most `6q` (GameTCalls' `hN_sponge`). -/
+theorem advCalls_gameR (L : HonestTable) :
+    IPFunctor.IFreeM.IsChargeBound (gameR A L)
+      (portCharge fun i ↦ if extCls X Z Mem (recSpec HPos Selections) i then 0 else 1)
+      (6 * q) :=
+  hN_sponge cwUpd A hperm hsign (pubOf L) (valueAt L)
+
+/-- **The canonical game's classical calls** (reads, programs, records): at most `clsCap`
+(GameTCalls' `hN_cls`). -/
+theorem clsCalls_gameR (L : HonestTable) :
+    IPFunctor.IFreeM.IsChargeBound (gameR A L)
+      (portCharge fun i ↦ if extCls X Z Mem (recSpec HPos Selections) i then 1 else 0)
+      clsCap :=
+  hN_cls cwUpd A hperm hsign (pubOf L) (valueAt L)
+
+/-- **The canonical game's program calls**: at most `progCap` (GameTCalls' `hN_prog`). -/
+theorem progCalls_gameR (L : HonestTable) :
+    IPFunctor.IFreeM.IsChargeBound (gameR A L) (progChargeR HPos Selections) progCap :=
+  hN_prog cwUpd A hperm hsign (pubOf L) (valueAt L)
 
 /-- **The graded hybrid with record ports**, averaged over the table. -/
 theorem uavg_p1R_le (d : XmssQrpmDebts q A) :
     uavg (p1R A d.Lt) ≤ (uavg (p2R (gameR A)) ^ (2⁻¹ : ℝ) + hybTerm q) ^ 2 := by
   refine (uavg_win_runtime1R_le_graded_total .instruments d.Lt d.Hh d.Hk d.Hk' d.covers m0R
     (gameR A) (fun _ ↦ SubState.basis ()) (fun _ ↦ winObs) (measurableSet_singleton true) (6 * q)
-    d.advCalls _ _ d.hybSponge d.hybRead).trans_eq ?_
+    (advCalls_gameR hperm hsign) _ _ d.hybSponge d.hybRead).trans_eq ?_
   rw [hybTerm, add_assoc]
   rfl
 
+omit hperm hsign in
 /-- S4's fresh bound for the slices of `BadR` (those of `Bad`, the label ignored). -/
 theorem freshBound_slice_badR (L : HonestTable) (hπ : PermGood L.perm 18) (T : ℕ) (W : Hw X Z)
     (m : Mem) :
@@ -655,26 +674,26 @@ theorem freshBound_slice_badR (L : HonestTable) (hπ : PermGood L.perm 18) (T : 
   · ext D
     exact Iff.rfl
 
-/-- **The prefix's sponge calls**: at most the game's (`advCalls`). -/
-theorem advCalls_prefixR (d : XmssQrpmDebts q A) (L : HonestTable) :
+/-- **The prefix's sponge calls**: at most the game's (`advCalls_gameR`). -/
+theorem advCalls_prefixR (L : HonestTable) :
     IPFunctor.IFreeM.IsChargeBound (prefixR A L)
       (portCharge fun i ↦ if extCls X Z Mem (recSpec HPos Selections) i then 0 else 1)
       (6 * q) := by
-  have h := d.advCalls L
+  have h := advCalls_gameR hperm hsign L
   rw [gameR_eq] at h
   exact isChargeBound_of_bind₂ h
 
-/-- **The prefix's classical calls**: at most the game's (`clsCalls`). -/
-theorem clsCalls_prefixR (d : XmssQrpmDebts q A) (L : HonestTable) :
+/-- **The prefix's classical calls**: at most the game's (`clsCalls_gameR`). -/
+theorem clsCalls_prefixR (L : HonestTable) :
     IPFunctor.IFreeM.IsChargeBound (prefixR A L)
       (portCharge fun i ↦ if extCls X Z Mem (recSpec HPos Selections) i then 1 else 0)
       clsCap := by
-  have h := d.clsCalls L
+  have h := clsCalls_gameR hperm hsign L
   rw [gameR_eq] at h
   exact isChargeBound_of_bind₂ h
 
 /-- **The event bound** at the end of the challenge prefix, at a good table. -/
-theorem ewR_le (d : XmssQrpmDebts q A) (L : HonestTable) (hπ : PermGood L.perm 18) :
+theorem ewR_le (L : HonestTable) (hπ : PermGood L.perm 18) :
     ewR (prefixR A) L ≤ (advTerm q + twR A L ^ (2⁻¹ : ℝ)) ^ 2 :=
   eventWeight_runtimeR_le (q := 6 * q) (K := clsCap) (BadR L progCap) (labelFree_badR L progCap)
     (fun W m ↦ upClosed_slice_bad W m.2) m0R (empty_not_mem_bad m0) advEps
@@ -686,12 +705,15 @@ theorem ewR_le (d : XmssQrpmDebts q A) (L : HonestTable) (hπ : PermGood L.perm 
       c σ hσ)
     (fun c σ hσ ↦ potential_hwProgKraus_le (BadR L progCap) (fun _ ↦ 0)
       (fun _ ↦ conjTranspose_zero) (fun _ ↦ mul_zero 0) c σ hσ)
-    .instruments (prefixR A L) (advCalls_prefixR d L) (clsCalls_prefixR d L) (SubState.basis ())
+    .instruments (prefixR A L) (advCalls_prefixR hperm hsign L) (clsCalls_prefixR hperm hsign L)
+    (SubState.basis ())
 
+omit hperm hsign in
 open scoped ComplexOrder in
 theorem initR_posSemidef : initR.PosSemidef :=
   ((SubState.basis ()).prod (runtimeR (X := X) (Z := Z) m0R).init).posSemidef
 
+omit hperm hsign in
 /-- **The classical costs** at a table: `(√encEpsTot + √massTot)² + progTot` (CostLift's per-port
 split `flipCost_le_ports`, linear along the run, optimized over the split). -/
 theorem twR_le (A : Adversary (X × Z)) (L : HonestTable) :
@@ -703,6 +725,7 @@ theorem twR_le (A : Adversary (X × Z)) (L : HonestTable) :
         (cwUpd_some t.l t.e t.x t.xi m.2 v)) c hs hσ).trans_eq (add_zero _).symm)
     (prefixR A L) initR_posSemidef
 
+omit hperm hsign in
 /-- **The codeword flips and the other reads' flip terms** at a good table: at most
 `encTerm q + epsCap` (`encW_le_cntW`, `encJoint`, `readEps`, `callsW`). -/
 theorem encEpsTot_le (d : XmssQrpmDebts q A) (L : HonestTable) (hπ : PermGood L.perm 18) :
@@ -728,8 +751,8 @@ theorem uavg_p2R_le (d : XmssQrpmDebts q A) : uavg (p2R (gameR A)) ≤ eventTerm
   have hpt : ∀ L, p2R (gameR A) L ≤ (advTerm q + twg L ^ (2⁻¹ : ℝ)) ^ 2 + readTerm + bad L := by
     intro L
     by_cases hπ : PermGood L.perm 18
-    · have hg := gradeCap_of m0R (d.progCalls L) le_rfl
-      have h := (d.endReads L hg).trans (add_le_add (ewR_le d L hπ) le_rfl)
+    · have hg := gradeCap_of m0R (progCalls_gameR hperm hsign L) le_rfl
+      have h := (d.endReads L hg).trans (add_le_add (ewR_le hperm hsign L hπ) le_rfl)
       simp only [twg, bad, hπ, ↓reduceIte, add_zero]
       exact h
     · simp only [bad, hπ, ↓reduceIte]
@@ -777,11 +800,12 @@ theorem winProb_le_qrpmBound (d : XmssQrpmDebts q A) :
   calc winProb keccakStateEquiv A = uavg (p1S5 A) := winProb_eq_uavg A
     _ ≤ uavg (p1T A d.Lt) := d.readsT
     _ = uavg (p1R A d.Lt) := hK
-    _ ≤ (uavg (p2R (gameR A)) ^ (2⁻¹ : ℝ) + hybTerm q) ^ 2 := uavg_p1R_le d
+    _ ≤ (uavg (p2R (gameR A)) ^ (2⁻¹ : ℝ) + hybTerm q) ^ 2 := uavg_p1R_le hperm hsign d
     _ ≤ (eventTerm q ^ (2⁻¹ : ℝ) + hybTerm q) ^ 2 := by
       gcongr
-      exact uavg_p2R_le d
+      exact uavg_p2R_le hperm hsign d
 
+omit hperm hsign in
 /-- **leanXMSS is quantum SUF-CMA secure in the QRPM** with bound `qrpmBound`, given the open
 debts of every adversary within the budgets. Conditional: the unconditional theorem constructs the
 debts. -/
@@ -791,7 +815,7 @@ theorem leanXmss_qrpm_security_of_debts
       (∀ pk, IPFunctor.IFreeM.IsChargeBound (A pk) (cmdCharge signCharge) lifetime) →
       XmssQrpmDebts q A) :
     QuantumStronglyUnforgeable keccakStateEquiv qrpmBound :=
-  fun q A hq hs ↦ winProb_le_qrpmBound (hd q A hq hs)
+  fun q A hq hs ↦ winProb_le_qrpmBound hq hs (hd q A hq hs)
 
 end proof
 
