@@ -4,7 +4,7 @@
 #
 #   scripts/regen-guest.sh                 # write
 #   scripts/regen-guest.sh --check         # write nothing, fail if any file is stale
-#   scripts/regen-guest.sh --from STEP     # resume at STEP: export core changes vt cert deployed memory whir count tables decoder
+#   scripts/regen-guest.sh --from STEP     # resume at STEP: export core changes vt cert deployed memory whir count tables decoder backend
 #   scripts/regen-guest.sh --jobs N        # the Lean builds' job cap (lake-build.py's --jobs)
 #
 # Run from anywhere; it works in lean_vm. Each step's generator reads only what the steps before it
@@ -16,7 +16,8 @@
 # were removed since the last export, with the hand-written modules that read them: the proofs to
 # adapt. Not regenerated here: the verifier fixtures (`scripts/export-verifier-fixtures-rust.sh`,
 # after a protocol change) and the fold rounds' table (`scripts/whir-fold-table`, after a change to
-# WHIR's folding).
+# WHIR's folding). The `backend` step writes the Lean back end's guest data: the soundness
+# obligations' tables and evaluation modules (`guest-oblgen`).
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 check=() from=export jobs=()
@@ -29,7 +30,7 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-steps=(export core changes vt cert deployed memory whir count tables decoder)
+steps=(export core changes vt cert deployed memory whir count tables decoder backend)
 case " ${steps[*]} " in *" $from "*) ;; *) echo "unknown step $from: one of ${steps[*]}" >&2; exit 2 ;; esac
 step() { printf '\n==> [%dm%02ds] %s\n' $((SECONDS / 60)) $((SECONDS % 60)) "$*"; }
 capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
@@ -65,6 +66,8 @@ parts_count=(count_gen count_vsos) targets_count=()
 parts_tables=(tables) targets_tables=(LeanVM.Guest.Fast.WhirTemplate LeanVM.Guest.B1.Opening.QueriesT
   LeanVM.Guest.Memory.GuestCallees)
 parts_decoder=(decoder) targets_decoder=(LeanVM.Guest.Glob LeanVM.Cost.Decoder.GuestTables guest-tables)
+parts_backend=(backend_obl) targets_backend=(guest-oblgen LeanVM.Guest.CoreData
+  LeanVM.Guest.B1.Opening.Interface)
 
 part_export() {
   step "export: the compiled guest (guest-artifact), then bytecode, source, programs (guest-export, from leanVM's sources)"
@@ -171,6 +174,13 @@ part_decoder() {
   capped lake env lean scripts/decoder-tables-inputs.lean > "$d/in.txt"
   for k in rows split; do sed -n "s/^$k: //p" "$d/in.txt" > "$d/$k.txt"; done
   python3 -I scripts/decoder-table-chunks --row-lengths "$d/rows.txt" --split-lengths "$d/split.txt" "${check[@]}"
+}
+
+part_backend_obl() {
+  # Reads the core data and B1's `openingQueriesShapes` from their `.olean`s, so under `lake env`.
+  step "backend: the soundness obligations' guest tables and evaluation modules (guest-oblgen)"
+  lakebuild "${targets_backend[@]}"
+  capped lake env .lake/build/bin/guest-oblgen "${check[@]}"
 }
 
 selected=() started=
