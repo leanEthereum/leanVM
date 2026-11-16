@@ -1,7 +1,7 @@
 import LeanVM.Guest.Data.Source
 import Statement.Data.Bytecode
 import LeanVM.Guest.Backend.Invariants
-import LeanVM.Guest.Backend.Text
+import LeanVM.Guest.Backend.Lines
 import LeanVM.Guest.Interp
 import LeanVMTests.Guest.Programs
 
@@ -21,8 +21,9 @@ Run from `lean_vm`.
   statement's layout, so that each function is compared on its own: the count of identical
   functions and instructions when the programs differ, and the first `N` that differ.
 * `lake exe guest-backend export programs DIR [--check]` writes the compiler's test programs
-  (`LeanVMTests.Guest.Programs`) in the line format of `crates/isa/src/text.rs`, which the Rust
-  tests compare with the Rust compiler's output (`crates/zkdsl_compiler/tests/suite/lean_backend.rs`).
+  (`LeanVMTests.Guest.Programs`) in the line format of `crates/isa/src/text.rs`, source lines
+  included (`Backend.Lines`), which the Rust tests compare with the Rust compiler's output
+  (`crates/zkdsl_compiler/tests/suite/lean_backend.rs`).
   The guest itself is written by `lake exe guest-artifact` (`cli/GuestArtifact.lean`).
 * `lake exe guest-backend time` prints the time of each pass on the guest.
 * `lake exe guest-backend core NAME` prints a function's core IR, and `show NAME` its code beside
@@ -187,18 +188,20 @@ def exportPrograms (dir : String) (checkOnly : Bool) : IO UInt32 := do
   for t in LeanVMTests.Guest.Programs.all do
     let path := s!"{dir}/{t.name}.txt"
     unless ← selfChecks t.name t.program do failed := true
-    match Backend.compile t.program with
+    match Lines.compileLines t.program with
     | .error e =>
         IO.eprintln s!"{t.name}: {e}"
         failed := true
-    | .ok c =>
+    | .ok (c, lines) =>
+        let text := render c ++ renderLines lines
         if checkOnly then
-          if !(← System.FilePath.pathExists path) || (← IO.FS.readFile path) != render c then
+          let current ← if ← System.FilePath.pathExists path then IO.FS.readFile path else pure ""
+          if current != text then
             IO.eprintln s!"{path} is stale: run `lake exe guest-backend export programs {dir}`"
             failed := true
         else
           IO.FS.createDirAll dir
-          IO.FS.writeFile path (render c)
+          IO.FS.writeFile path text
           IO.println s!"{path}: {c.code.size} instructions, size {c.size}, main frame {c.mainFrame}"
   return if failed then 1 else 0
 

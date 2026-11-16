@@ -1,6 +1,5 @@
 import LeanVM.Guest.Data.Source
-import LeanVM.Guest.Backend.Compile
-import LeanVM.Guest.Backend.Text
+import LeanVM.Guest.Backend.Lines
 import Statement.Keccak
 import Statement.LeanVmVerifier
 
@@ -14,8 +13,10 @@ Run from `lean_vm`.
   `guests/lean_ethereum.compiled`: an `input` line, `Data.inputDigest`, the digest of the source
   and the placeholders it was compiled from; an `iv` line, the program's Fiat-Shamir IV
   (`fiatShamirIv` of its `bytecodeWords`, the statement's `deployedSeed`); then the program in the
-  line format of `crates/isa/src/text.rs` (`Backend.render`). `crates/aggregation/src/guest.rs`
-  loads it and checks both lines against what it compiles and proves.
+  line format of `crates/isa/src/text.rs` (`Backend.render`), and the source line of each
+  instruction (`L` lines, `Backend.renderLines`, from the line pass `Backend.Lines.compileLines`).
+  `crates/aggregation/src/guest.rs` loads it and checks both header lines against what it
+  compiles and proves.
 * `lake exe guest-artifact FILE --check` writes nothing and fails when `FILE` differs.
 
 The guest is compiled at the fixed point on its own size: its placeholders are computed for a log
@@ -41,8 +42,8 @@ def iv (c : Assembled) (logSize : Nat) (h : logSize ≤ maxLogBytecode) : Digest
   fiatShamirIv (bytecodeWords ⟨logSize, h, fun i ↦ code[i.val]'(by simp [code])⟩)
 
 def run (file : String) (checkOnly : Bool) : IO UInt32 := do
-  let c ← match Backend.compile Data.guest with
-    | .ok c => pure c
+  let (c, lines) ← match Lines.compileLines Data.guest with
+    | .ok r => pure r
     | .error e => throw (IO.userError s!"the guest does not compile: {e}")
   let logSize := c.size.log2
   if c.size != 2 ^ Data.bytecodeLog then
@@ -53,7 +54,8 @@ def run (file : String) (checkOnly : Bool) : IO UInt32 := do
   if h : logSize > maxLogBytecode then
     throw (IO.userError s!"the guest's {c.size} slots exceed the ISA's")
   else
-  let text := s!"input {Data.inputDigest}\niv {hex (iv c logSize (Nat.le_of_not_gt h)).toBytes.toList}\n" ++ render c
+  let text := s!"input {Data.inputDigest}\niv {hex (iv c logSize (Nat.le_of_not_gt h)).toBytes.toList}\n" ++
+    render c ++ renderLines lines
   if checkOnly then
     let current ← if ← System.FilePath.pathExists file then IO.FS.readFile file else pure ""
     if current == text then
