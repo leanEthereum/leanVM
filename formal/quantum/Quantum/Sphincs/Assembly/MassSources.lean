@@ -1,6 +1,6 @@
 module
 
-public import Quantum.Sphincs.Assembly.ReparamFull
+public import Quantum.Sphincs.Assembly.ChgRev
 public import Quantum.Sphincs.Assembly.SrcBad
 public import Quantum.Sphincs.Assembly.GameTCalls
 public import Quantum.Xmss.Assembly.MassesR0
@@ -812,15 +812,16 @@ variable (Q : (recHwSpec X Z HPos Selections).Port → Prop) [DecidablePred Q] (
   (ρ : Matrix (QReg.of Unit × QReg.of (HwReg X Z (Mem HPos)))
     (QReg.of Unit × QReg.of (HwReg X Z (Mem HPos))) ℂ)
 
-/-- The record mass of the charged coordinates at the reparametrized data. -/
+/-- The first-meeting record mass of the charged coordinates read off the reparametrized data
+(`chgBK`, ChgRev's `revFirst`). -/
 noncomputable def chgRev (t : FT) : ℝ≥0∞ :=
-  revW m0R LocalSig.Interp.instruments (chgB t)
+  revFirst m0R LocalSig.Interp.instruments (chgBK (fullE t))
     (gameR msgPol A (pubP (fullE t).1) (fullE t).2.1) ρ
 
 open scoped Classical in
-/-- **The mismatch term**: the record mass of the charged coordinates `chgB t` (Mismatch's `revW`)
-in the canonical game at the reparametrized data, averaged over the padded tables of the good set
-(`0` elsewhere). -/
+/-- **The mismatch term**: the first-meeting record mass of the charged coordinates `chgBK` in the
+canonical game at the reparametrized data, averaged over the padded tables of the good set (`0`
+elsewhere). -/
 noncomputable def chgRevAvg (S : PP → ((s : HPos) → XD s) → Prop) : ℝ≥0∞ :=
   (Fintype.card FT : ℝ≥0∞)⁻¹ * ∑ t, if MassG S t then chgRev A ρ t else 0
 
@@ -857,16 +858,40 @@ theorem mass_le_mismatch (hρ : ρ.PosSemidef)
       massA Q A ρ (fullE t).1 (fullE t).2.1 +
         massB Q A ρ Hhk Hkk Hk'k (fullE t).1 (fullE t).2.1 (fullE t).2.2 + N * chgRev A ρ t := by
   obtain ⟨v, hv, hgeq⟩ := ((fullE_spec (SrcS S) A).2 t ht).1
+  have hv' : Agree (Finset.univ \ chgBK (fullE t)) v (fullE t).2.1 :=
+    hv.mono (Finset.sdiff_subset_sdiff le_rfl (chgB_subset_chgBK (fullD_of_core ht.1)))
   obtain ⟨h1, h2, h3⟩ := hsub t ht
   refine (le_of_eq (congrArg (fun x ↦ (runtimeR m0R).totalWeight LocalSig.Interp.instruments
     (portMass Q (Hh (tabOf t)) (Hk (tabOf t)) (Hk' (tabOf t))) x ρ) hgeq)).trans
-    ((totalWeight_portMass_le_mismatch m0R LocalSig.Interp.instruments
+    ((totalWeight_portMass_le_mismatch_first m0R LocalSig.Interp.instruments
     (gameT Selections cwUpd msgPol (pubP (fullE t).1) A)
     (disc_gameT Selections cwUpd msgPol _ A ∅) (keepsLab_gameT Selections cwUpd msgPol _ A) ρ hρ
-    hs (chgB t) (Finset.disjoint_empty_left _) Q (Hh (tabOf t)) (Hk (tabOf t)) (Hk' (tabOf t))
-    hv (hN _ v)).trans (add_le_add ?_ le_rfl))
+    hs (chgBK (fullE t)) (Finset.disjoint_empty_left _) Q (Hh (tabOf t)) (Hk (tabOf t))
+    (Hk' (tabOf t)) hv' (hN _ v)).trans (add_le_add ?_ le_rfl))
   exact (totalWeight_portMass_mono _ Q m0R h1 h2 h3 _ hρ).trans
     (totalWeight_portMass_union_le _ Q m0R _ _ _ _ _ _ _ hρ)
+
+/-- **The per-table mismatch step**: on the good set, the port mass at the table is at most the
+port mass at the reparametrized data plus `N` times the charged first-meeting record mass. -/
+theorem mass_le_chgRev (hρ : ρ.PosSemidef)
+    (hs : QuerySupportedOn (fun p : QReg.of Unit × QReg.of (HwReg X Z (Mem HPos)) ↦ p.2.2.2.1)
+      {∅} ρ)
+    (S : PP → ((s : HPos) → XD s) → Prop)
+    {N : ℕ} (hN : ∀ (pub : Pub) (v : (s : HPos) → XD s),
+      IFreeM.IsChargeBound (gameR msgPol A pub v) (portCharge fun i ↦ if Q i then 1 else 0) N)
+    (t : FT) (ht : MassG S t) (Hh : Set Z) (Hk Hk' : Set X) :
+    (runtimeR m0R).totalWeight LocalSig.Interp.instruments (portMass Q Hh Hk Hk')
+        (gameR msgPol A (pubOf (tabOf t)) (valueAt (tabOf t))) ρ ≤
+      (runtimeR m0R).totalWeight LocalSig.Interp.instruments (portMass Q Hh Hk Hk')
+        (gameR msgPol A (pubP (fullE t).1) (fullE t).2.1) ρ + N * chgRev A ρ t := by
+  obtain ⟨v, hv, hgeq⟩ := ((fullE_spec (SrcS S) A).2 t ht).1
+  have hv' : Agree (Finset.univ \ chgBK (fullE t)) v (fullE t).2.1 :=
+    hv.mono (Finset.sdiff_subset_sdiff le_rfl (chgB_subset_chgBK (fullD_of_core ht.1)))
+  rw [hgeq]
+  exact totalWeight_portMass_le_mismatch_first m0R LocalSig.Interp.instruments
+    (gameT Selections cwUpd msgPol (pubP (fullE t).1) A)
+    (disc_gameT Selections cwUpd msgPol _ A ∅) (keepsLab_gameT Selections cwUpd msgPol _ A) ρ hρ
+    hs (chgBK (fullE t)) (Finset.disjoint_empty_left _) Q Hh Hk Hk' hv' (hN _ v)
 
 /-- Every mass is at most the number of calls. -/
 theorem mass_le_calls (hρ : ρ.PosSemidef) (hρ1 : ENNReal.ofReal ρ.trace.re ≤ 1)
