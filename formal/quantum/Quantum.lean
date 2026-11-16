@@ -60,6 +60,8 @@ import Quantum.Xmss.Assembly.ReparamR0
 import Quantum.Xmss.Hybrid.GradedMasked
 import Quantum.Xmss.Assembly.CoversFull
 import Quantum.Xmss.Assembly.EventSqrt
+import Quantum.Xmss.Assembly.PrefixFacts
+import Quantum.Xmss.Assembly.TrialsOff
 import Quantum.Xmss.Hybrid.SchemeSplit
 import Quantum.Xmss.Hybrid.CoinStage
 import Quantum.Xmss.Hybrid.R0Stage

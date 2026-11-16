@@ -3,15 +3,17 @@ module
 public import Quantum.Xmss.Assembly.EndReads
 public import Quantum.Xmss.Assembly.GameT
 public import Quantum.Xmss.EncCost
+public import Mathlib.Analysis.Matrix.Order
 
 @[expose] public section
 
 /-!
 # The winning runs of the canonical game, decomposed along the verification's reads
 
-EndReads' `WinDecomp` for the canonical game `wGame A L` (Security's `gameR`), with the game itself
-as the event-bound program, hence Security's `endReads` (`endReads_wGame`) from the prefix
-invariant `PrefixWinFacts` (open).
+Security's `endReads` for the canonical game `wGame A L` (Security's `gameR`), off an event `E` of
+the decompressed register (`endReads_wGame`): the win weight is at most the event weight of
+`BadRS L progCap` at the end of the game, plus the read error, plus the mass `eventMassDec` of `E`
+at the end of the game, given the prefix invariant off `E` (`PrefixWinFactsOff`, open).
 
 * **The game's shape** (`wGame_eq`): the challenge prefix `wPrefix A L`, then the verification's
   read program `wReads L pre` (`readsProgram` of the verification, its reads returned), then the
@@ -22,13 +24,19 @@ invariant `PrefixWinFacts` (open).
   computation returns its honest evaluation against the register's functions `regFns`.
 * **Runs on the trivial register** (`runSig`, `ofReal_trace_conj_runSig`): the final branch at
   `true` of `x >>= y >>= f` splits, through any Kraus operator, along the runs of `x` and `y`.
-* **The decomposition** (`wDecomp`): one operator per prefix outcome `pre` and run `(true, reads)`
-  of the verification, when the winning condition holds; the log is the run's reads. Recorded:
-  no empty decompressed cell (`noBot_runtimeR`) and the reads are the honest verification's
-  against the register's functions, hence held by the view. In the event: on the prefix's facts
-  (`PreFacts`: public key, transcript signatures and records of a selection function, exempted
-  slots public), at most `progCap` hardwired cells and an accepting honest verification held by
-  the view, `mem_bad_of_agrees`.
+* **A run off a decompressed event** (`trace_le_of_off`): a run recorded in the decompressed basis
+  (no empty cell, the view holds the log) whose decompressed form has, off `E`, classical facts
+  under which a view holding the log is in the event, weighs at most its weight in the event, the
+  read error and its weight in `E` (through `E`'s projector in the compressed basis, `decProj`).
+  A view holding the log outside the event has no weight off `E`, so its weight is at most the
+  weight in `E` (`re_trace_diagonal_ind_mul_le_of_compl`).
+* **The winning runs** (`wSig`, `trace_wSig_le`): one run per prefix outcome `pre` and run
+  `(true, reads)` of the verification, when the winning condition holds; the log is the run's
+  reads. Recorded: no empty decompressed cell (`noBot_runtimeR`) and the reads are the honest
+  verification's against the register's functions, hence held by the view. Off `E`: on the
+  prefix's facts (`PreFacts`: public key, transcript signatures and records of a selection
+  function, exempted slots public), at most `progCap` hardwired cells and an accepting honest
+  verification held by the view, `mem_bad_of_agrees`.
 -/
 
 open Matrix OracleSpec
@@ -688,10 +696,10 @@ theorem evalDistMap_winBit (x : QComp (recHwSpec X Z S M') (QReg.of Unit) (QReg.
 branch at `true`. -/
 theorem trace_conj_branch_true_le_eventWeight
     (x : QComp (recHwSpec X Z S M') (QReg.of Unit) (QReg.of Unit) Bool)
-    (Bad : Set (HwReg X Z (Finset S × M'))) [DecidablePred (· ∈ Bad)] :
-    ENNReal.ofReal (MatrixMap.conj ((1 : Matrix Unit Unit ℂ) ⊗ₖ hwProjector Bad)
+    (Q : Matrix (HwReg X Z (Finset S × M')) (HwReg X Z (Finset S × M')) ℂ) :
+    ENNReal.ofReal (MatrixMap.conj ((1 : Matrix Unit Unit ℂ) ⊗ₖ Q)
       (((runtimeR m₀).run₂ .instruments x).branch true (initU m₀))).trace.re ≤
-      (runtimeR m₀).eventWeight .instruments (hwProjector Bad) x (initU m₀) := by
+      (runtimeR m₀).eventWeight .instruments Q x (initU m₀) := by
   unfold QuantumRuntime.eventWeight
   refine le_trans (le_of_eq ?_) (ENNReal.le_tsum (QuantumComp₂.leafEquiv (QReg.of Unit) Bool true))
   rfl
@@ -819,6 +827,262 @@ theorem ofReal_trace_branch_le_one {γ : Type}
 
 end bridge
 
+/-! ## A diagonal event off the complement of a projector -/
+
+section projector
+
+variable {n : Type*} [Fintype n] [DecidableEq n]
+
+omit [Fintype n] in
+/-- The diagonal projector on a predicate is Hermitian. -/
+theorem conjTranspose_diagonal_ind (b : n → Prop) [DecidablePred b] :
+    (diagonal fun i ↦ if b i then (1 : ℂ) else 0)ᴴ =
+      diagonal fun i ↦ if b i then (1 : ℂ) else 0 := by
+  rw [diagonal_conjTranspose]
+  congr 1
+  funext i
+  by_cases h : b i <;> simp [h]
+
+/-- The diagonal projector on a predicate is idempotent. -/
+theorem diagonal_ind_mul_self (b : n → Prop) [DecidablePred b] :
+    (diagonal fun i ↦ if b i then (1 : ℂ) else 0) * (diagonal fun i ↦ if b i then (1 : ℂ) else 0) =
+      diagonal fun i ↦ if b i then (1 : ℂ) else 0 := by
+  rw [diagonal_mul_diagonal]
+  congr 1
+  funext i
+  by_cases h : b i <;> simp [h]
+
+/-- A diagonal projector weighs at most the identity on a positive semidefinite operator. -/
+theorem re_trace_diagonal_ind_mul_le (b : n → Prop) [DecidablePred b] {M : Matrix n n ℂ}
+    (hM : M.PosSemidef) :
+    (diagonal (fun i ↦ if b i then (1 : ℂ) else 0) * M).trace.re ≤ M.trace.re := by
+  simp only [Matrix.trace, diag_apply, diagonal_mul, Complex.re_sum]
+  refine Finset.sum_le_sum fun i _ ↦ ?_
+  have hnn : 0 ≤ (M i i).re := by
+    have := Complex.le_def.mp (hM.diag_nonneg (i := i))
+    simpa using this.1
+  by_cases h : b i <;> simp [h, hnn]
+
+open scoped MatrixOrder in
+/-- A positive semidefinite complex matrix is `Sᴴ * S` (its square root). -/
+theorem exists_eq_conjTranspose_mul_self_of_psd {σ : Matrix n n ℂ} (hσ : σ.PosSemidef) :
+    ∃ S : Matrix n n ℂ, σ = Sᴴ * S := by
+  have h0 : 0 ≤ σ := nonneg_iff_posSemidef.mpr hσ
+  refine ⟨CFC.sqrt σ, ?_⟩
+  have hs : star (CFC.sqrt σ) = CFC.sqrt σ := (CFC.sqrt_nonneg σ).isSelfAdjoint.star_eq
+  rw [← star_eq_conjTranspose, hs, CFC.sqrt_mul_sqrt_self σ h0]
+
+/-- **A diagonal event off the complement of a projector**: for `σ` positive semidefinite, `P`
+Hermitian and the diagonal projector `D` on `b`, if `(1 - P) σ (1 - P)` vanishes on the diagonal
+where `b` holds, then `tr (D σ) ≤ tr (P σ P)`. -/
+theorem re_trace_diagonal_ind_mul_le_of_compl {σ P : Matrix n n ℂ} (hσ : σ.PosSemidef)
+    (hP : Pᴴ = P) (b : n → Prop) [DecidablePred b]
+    (h0 : ∀ i, b i → ((1 - P) * σ * (1 - P)) i i = 0) :
+    (diagonal (fun i ↦ if b i then (1 : ℂ) else 0) * σ).trace.re ≤ (P * σ * P).trace.re := by
+  have hD := conjTranspose_diagonal_ind b
+  have hDD := diagonal_ind_mul_self b
+  have hR : (1 - P)ᴴ = 1 - P := by rw [conjTranspose_sub, conjTranspose_one, hP]
+  set D : Matrix n n ℂ := diagonal fun i ↦ if b i then (1 : ℂ) else 0 with hDdef
+  set R : Matrix n n ℂ := 1 - P with hRdef
+  have htr : (D * (R * σ * R)).trace = 0 := by
+    rw [hDdef]
+    simp only [Matrix.trace, diag_apply, diagonal_mul]
+    refine Finset.sum_eq_zero fun i _ ↦ ?_
+    by_cases h : b i
+    · rw [ite_eq_left h, h0 i h, mul_zero]
+    · rw [ite_eq_right h, zero_mul]
+  have hK : D * R * σ * (D * R)ᴴ = 0 := by
+    rw [← (hσ.mul_mul_conjTranspose_same (D * R)).trace_eq_zero_iff, conjTranspose_mul, hR, hD]
+    have e : D * R * σ * (R * D) = D * (R * σ * R) * D := by simp only [Matrix.mul_assoc]
+    rw [e, Matrix.trace_mul_comm, ← Matrix.mul_assoc, hDD, htr]
+  obtain ⟨S, hS⟩ := exists_eq_conjTranspose_mul_self_of_psd hσ
+  have hKS : D * R * Sᴴ = 0 := by
+    refine self_mul_conjTranspose_eq_zero.mp ?_
+    have e : D * R * Sᴴ * (D * R * Sᴴ)ᴴ = D * R * σ * (D * R)ᴴ := by
+      rw [hS]
+      simp only [conjTranspose_mul, conjTranspose_conjTranspose, Matrix.mul_assoc]
+    rw [e, hK]
+  have h1 : D * R * σ = 0 := by rw [hS, ← Matrix.mul_assoc, hKS, Matrix.zero_mul]
+  have h2 : σ * R * D = 0 := by
+    have h := congrArg conjTranspose h1
+    rwa [conjTranspose_mul, conjTranspose_mul, hσ.isHermitian.eq, hR, hD, conjTranspose_zero,
+      ← Matrix.mul_assoc] at h
+  have hPR : P + R = 1 := by
+    rw [hRdef]
+    abel
+  have hmid : D * σ * D = D * P * σ * P * D := by
+    calc D * σ * D = D * ((P + R) * σ * (P + R)) * D := by
+          rw [hPR, Matrix.one_mul, Matrix.mul_one]
+      _ = D * P * σ * P * D + D * P * (σ * R * D) + D * R * σ * (P * D) +
+          D * R * σ * (R * D) := by noncomm_ring
+      _ = D * P * σ * P * D := by
+          rw [h1, h2]
+          simp
+  have htrace : (D * σ).trace = (D * (P * σ * P)).trace := by
+    calc (D * σ).trace = (D * σ * D).trace := by
+          rw [Matrix.trace_mul_comm (D * σ) D, ← Matrix.mul_assoc, hDD]
+      _ = (D * P * σ * P * D).trace := by rw [hmid]
+      _ = (D * (P * σ * P)).trace := by
+          rw [Matrix.trace_mul_comm (D * P * σ * P) D]
+          simp only [← Matrix.mul_assoc, hDD]
+  have hM : (P * σ * P).PosSemidef := by
+    have h := hσ.mul_mul_conjTranspose_same P
+    rwa [hP] at h
+  rw [htrace]
+  exact re_trace_diagonal_ind_mul_le b hM
+
+omit [DecidableEq n] in
+/-- `C D C` is Hermitian for Hermitian `C` and `D`. -/
+theorem conjTranspose_conj_proj {C D : Matrix n n ℂ} (hC : Cᴴ = C) (hD : Dᴴ = D) :
+    (C * D * C)ᴴ = C * D * C := by
+  rw [conjTranspose_mul, conjTranspose_mul, hC, hD, Matrix.mul_assoc]
+
+/-- Conjugating by an involution `C` the complement of `C D C` is conjugating by the complement
+of `D` the conjugate by `C`. -/
+theorem conj_compl_proj {C D : Matrix n n ℂ} (hCC : C * C = 1) (σ : Matrix n n ℂ) :
+    MatrixMap.conj C (MatrixMap.conj (1 - C * D * C) σ) =
+      MatrixMap.conj (1 - D) (MatrixMap.conj C σ) := by
+  have h : C * (1 - C * D * C) = (1 - D) * C := by
+    rw [Matrix.mul_sub, Matrix.mul_one, Matrix.sub_mul, Matrix.one_mul, ← Matrix.mul_assoc,
+      ← Matrix.mul_assoc, hCC, Matrix.one_mul]
+  rw [MatrixMap.conj_apply, MatrixMap.conj_apply, MatrixMap.conj_apply, MatrixMap.conj_apply]
+  calc C * ((1 - C * D * C) * σ * (1 - C * D * C)ᴴ) * Cᴴ =
+      C * (1 - C * D * C) * σ * (C * (1 - C * D * C))ᴴ := by
+        rw [conjTranspose_mul]
+        simp only [Matrix.mul_assoc]
+    _ = (1 - D) * C * σ * ((1 - D) * C)ᴴ := by rw [h]
+    _ = (1 - D) * (C * σ * Cᴴ) * (1 - D)ᴴ := by
+        rw [conjTranspose_mul]
+        simp only [Matrix.mul_assoc]
+
+/-- Conjugating by the complement of the diagonal projector on an event `E` of the queried value
+supports an operator off `E`. -/
+theorem querySupportedOn_conj_one_sub_ind {β : Type*} {q : n → β} {S : Set β} (E : Set β)
+    [DecidablePred (· ∈ E)] {τ : Matrix n n ℂ} (h : QuerySupportedOn q S τ) :
+    QuerySupportedOn q {s | s ∈ S ∧ s ∉ E}
+      (MatrixMap.conj (1 - diagonal fun y ↦ if q y ∈ E then (1 : ℂ) else 0) τ) :=
+  QuerySupportedOn.conj h fun m' m hK hm ↦ by
+    by_cases he : m' = m
+    · rw [he] at hK ⊢
+      by_cases hE : q m ∈ E
+      · rw [Matrix.sub_apply, Matrix.one_apply_eq, diagonal_apply_eq, ite_eq_left hE, sub_self]
+          at hK
+        exact absurd rfl hK
+      · exact ⟨hm, hE⟩
+    · rw [Matrix.sub_apply, Matrix.one_apply_ne he, diagonal_apply_ne _ he, sub_zero] at hK
+      exact absurd rfl hK
+
+end projector
+
+/-! ## A run off an event of the decompressed register -/
+
+section offEvent
+
+variable {X Z : Type} [Fintype X] [DecidableEq X] [Fintype Z] [DecidableEq Z]
+  [AddCommGroup X] [AddCommGroup Z] [Nonempty X] [Nonempty Z]
+  {M' : Type} [Fintype M'] [DecidableEq M']
+
+omit [AddCommGroup X] [AddCommGroup Z] [Nonempty X] [Nonempty Z] in
+/-- The weight of a view holding the log is at most the weight of the event plus the weight of a
+view holding the log outside the event. -/
+theorem trace_agree_le_bad_add (Bad : Set (HwReg X Z M')) [DecidablePred (· ∈ Bad)]
+    (log : QueryLog (spongeOSpec X Z))
+    {σ : Matrix (Unit × HwReg X Z M') (Unit × HwReg X Z M') ℂ} (hσ : σ.PosSemidef) :
+    (((1 : Matrix Unit Unit ℂ) ⊗ₖ agreeReg log) * σ).trace.re ≤
+      (MatrixMap.conj ((1 : Matrix Unit Unit ℂ) ⊗ₖ hwProjector Bad) σ).trace.re +
+        (diagonal (fun y : Unit × HwReg X Z M' ↦
+          if DbReg.Agrees log (hwView y.2.2.1 y.2.1) ∧ y.2 ∉ Bad then (1 : ℂ) else 0) *
+            σ).trace.re := by
+  have hP : ((1 : Matrix Unit Unit ℂ) ⊗ₖ hwProjector Bad)ᴴ *
+      ((1 : Matrix Unit Unit ℂ) ⊗ₖ hwProjector Bad) =
+      diagonal fun y : Unit × HwReg X Z M' ↦ if y.2 ∈ Bad then 1 else 0 := by
+    rw [conjTranspose_kronecker, conjTranspose_one, ← mul_kronecker_mul, Matrix.one_mul,
+      hwProjector, labelProjector, diagonal_conjTranspose, diagonal_mul_diagonal, ← diagonal_one,
+      diagonal_kronecker_diagonal]
+    congr 1
+    funext y
+    by_cases h : y.2 ∈ Bad <;> simp [h]
+  have hA : (1 : Matrix Unit Unit ℂ) ⊗ₖ agreeReg log =
+      diagonal fun y : Unit × HwReg X Z M' ↦
+        if DbReg.Agrees log (hwView y.2.2.1 y.2.1) then 1 else 0 := by
+    rw [agreeReg, ← diagonal_one, diagonal_kronecker_diagonal]
+    simp only [one_mul]
+  rw [MatrixMap.trace_conj_apply, hP, hA]
+  simp only [Matrix.trace, diag_apply, diagonal_mul, Complex.re_sum]
+  rw [← Finset.sum_add_distrib]
+  refine Finset.sum_le_sum fun y _ ↦ ?_
+  have hnn : 0 ≤ (σ y y).re := by
+    have := Complex.le_def.mp (hσ.diag_nonneg (i := y))
+    simpa using this.1
+  by_cases ha : DbReg.Agrees log (hwView y.2.2.1 y.2.1) <;> by_cases hB : y.2 ∈ Bad <;>
+    simp [ha, hB, hnn]
+
+omit [Nonempty X] [Nonempty Z] [AddCommGroup X] [AddCommGroup Z] in
+/-- The projector on an event of the decompressed register, in the compressed basis, beside the
+trivial register. -/
+theorem one_kronecker_conj_compressReg (E : Set (HwReg X Z M')) [DecidablePred (· ∈ E)] :
+    (1 : Matrix Unit Unit ℂ) ⊗ₖ (compressReg X Z M' *
+      diagonal (fun s ↦ if s ∈ E then (1 : ℂ) else 0) * compressReg X Z M') =
+      ((1 : Matrix Unit Unit ℂ) ⊗ₖ compressReg X Z M') *
+        diagonal (fun y : Unit × HwReg X Z M' ↦ if y.2 ∈ E then (1 : ℂ) else 0) *
+          ((1 : Matrix Unit Unit ℂ) ⊗ₖ compressReg X Z M') := by
+  have hd : (diagonal fun y : Unit × HwReg X Z M' ↦ if y.2 ∈ E then (1 : ℂ) else 0) =
+      (1 : Matrix Unit Unit ℂ) ⊗ₖ diagonal fun s ↦ if s ∈ E then (1 : ℂ) else 0 := by
+    rw [← diagonal_one, diagonal_kronecker_diagonal]
+    simp only [one_mul]
+  rw [hd, ← mul_kronecker_mul, ← mul_kronecker_mul, Matrix.one_mul, Matrix.one_mul]
+
+/-- **A run off a decompressed event**: an operator whose decompressed form has no empty cell and
+a view holding the log (of at most `lh`, `lk`, `lk'` reads), and, off the event `E`, classical
+facts `F` under which a view holding the log is in `Bad`, weighs at most its weight in `Bad`, the
+read error, and its weight in `E`. -/
+theorem trace_le_of_off (Bad E : Set (HwReg X Z M')) [DecidablePred (· ∈ Bad)]
+    [DecidablePred (· ∈ E)] (log : QueryLog (spongeOSpec X Z)) {lh lk lk' : ℕ}
+    (hh : readCount .h log ≤ lh) (hk : readCount .k log ≤ lk) (hk' : readCount .k' log ≤ lk')
+    {σ : Matrix (Unit × HwReg X Z M') (Unit × HwReg X Z M') ℂ} (hσ : σ.PosSemidef)
+    (hrec : QuerySupportedOn (fun y : Unit × HwReg X Z M' ↦ y.2)
+      {s | NoBotDb s.1 ∧ DbReg.Agrees log (hwView s.2.1 s.1)}
+      (MatrixMap.conj ((1 : Matrix Unit Unit ℂ) ⊗ₖ compressReg X Z M') σ))
+    (F : Hw X Z × M' → Prop) (hF : ∀ D b, F b → DbReg.Agrees log (hwView b.1 D) → (D, b) ∈ Bad)
+    (hoff : QuerySupportedOn (fun y : Unit × HwReg X Z M' ↦ y.2) {s | s ∉ E → F s.2}
+      (MatrixMap.conj ((1 : Matrix Unit Unit ℂ) ⊗ₖ compressReg X Z M') σ)) :
+    σ.trace.re ≤ (MatrixMap.conj ((1 : Matrix Unit Unit ℂ) ⊗ₖ hwProjector Bad) σ).trace.re +
+      readError X Z lh lk lk' * σ.trace.re +
+        (MatrixMap.conj ((1 : Matrix Unit Unit ℂ) ⊗ₖ (compressReg X Z M' *
+          diagonal (fun s ↦ if s ∈ E then (1 : ℂ) else 0) * compressReg X Z M')) σ).trace.re := by
+  have hC : ((1 : Matrix Unit Unit ℂ) ⊗ₖ compressReg X Z M')ᴴ =
+      (1 : Matrix Unit Unit ℂ) ⊗ₖ compressReg X Z M' := by
+    rw [conjTranspose_kronecker, conjTranspose_one, conjTranspose_compressReg]
+  have hCC : ((1 : Matrix Unit Unit ℂ) ⊗ₖ compressReg X Z M') *
+      ((1 : Matrix Unit Unit ℂ) ⊗ₖ compressReg X Z M') = 1 := by
+    rw [← mul_kronecker_mul, Matrix.one_mul, compressReg_mul_self, one_kronecker_one]
+  have hP := conjTranspose_conj_proj hC
+    (conjTranspose_diagonal_ind fun y : Unit × HwReg X Z M' ↦ y.2 ∈ E)
+  have h1 := readsRecorded log hh hk hk' hσ hrec
+  have h2 := trace_agree_le_bad_add Bad log hσ
+  have h3 : (diagonal (fun y : Unit × HwReg X Z M' ↦
+      if DbReg.Agrees log (hwView y.2.2.1 y.2.1) ∧ y.2 ∉ Bad then (1 : ℂ) else 0) * σ).trace.re ≤
+      (MatrixMap.conj ((1 : Matrix Unit Unit ℂ) ⊗ₖ (compressReg X Z M' *
+        diagonal (fun s ↦ if s ∈ E then (1 : ℂ) else 0) * compressReg X Z M')) σ).trace.re := by
+    rw [one_kronecker_conj_compressReg, MatrixMap.conj_apply, hP]
+    refine re_trace_diagonal_ind_mul_le_of_compl hσ hP
+      (fun y : Unit × HwReg X Z M' ↦ DbReg.Agrees log (hwView y.2.2.1 y.2.1) ∧ y.2 ∉ Bad)
+      fun y hy ↦ ?_
+    by_contra hne
+    have h' : QuerySupportedOn (fun y : Unit × HwReg X Z M' ↦ y.2) {s | F s.2}
+        (MatrixMap.conj ((1 : Matrix Unit Unit ℂ) ⊗ₖ compressReg X Z M')
+          (MatrixMap.conj (1 - ((1 : Matrix Unit Unit ℂ) ⊗ₖ compressReg X Z M') *
+            diagonal (fun y : Unit × HwReg X Z M' ↦ if y.2 ∈ E then (1 : ℂ) else 0) *
+              ((1 : Matrix Unit Unit ℂ) ⊗ₖ compressReg X Z M')) σ)) := by
+      rw [conj_compl_proj hCC]
+      exact (querySupportedOn_conj_one_sub_ind E hoff).mono fun s hs ↦ hs.1 hs.2
+    have hM := querySupportedOn_of_conj_compressReg (P := F) h'
+    rw [MatrixMap.conj_apply, conjTranspose_sub, conjTranspose_one, hP] at hM
+    exact hy.2 (hF y.2.1 y.2.2 (hM y y hne).1 hy.1)
+  linarith
+
+end offEvent
+
 
 /-! ## The canonical game -/
 
@@ -876,14 +1140,29 @@ def PreFacts (L : HonestTable) (pre : PublicKey × (Forgery × SignLog))
     (∀ r ∈ pre.2.2, b.2.2.toMemory.RecordsSel L Sel r.1) ∧
     exOf L b.1 ⊆ Public (L.selDisclosures Sel (pre.2.2.map Sigma.fst))
 
-/-- **The prefix invariant** (open): on every branch of the challenge prefix in `runtimeR m₀` whose
-outcome `pre` satisfies the winning condition, the register is supported on `PreFacts L pre`. -/
-def PrefixWinFacts (m₀ : Finset HPos × Selections) (A : Adversary (X × Z)) (L : HonestTable) :
-    Prop :=
+/-- The prefix invariant off a decompressed event `E`: on every winning branch of the prefix, in
+the decompressed basis, the register is supported where it is in `E` or has the prefix facts. -/
+def PrefixWinFactsOff (m₀ : Finset HPos × Selections) (A : Adversary (X × Z)) (L : HonestTable)
+    (E : Set (HwReg X Z (Finset HPos × Selections))) : Prop :=
   ∀ pre, winCond pre = true →
     QuerySupportedOn (fun p : Unit × HwReg X Z (Finset HPos × Selections) ↦ p.2)
-      {s | PreFacts L pre s.2}
-      (((runtimeR m₀).run₂ .instruments (wPrefix A L)).branch pre (initU m₀))
+      {s | s ∉ E → PreFacts L pre s.2}
+      (MatrixMap.conj ((1 : Matrix Unit Unit ℂ) ⊗ₖ compressReg X Z (Finset HPos × Selections))
+        (((runtimeR m₀).run₂ .instruments (wPrefix A L)).branch pre (initU m₀)))
+
+/-- The projector on a decompressed event, in the compressed basis. -/
+noncomputable def decProj (E : Set (HwReg X Z (Finset HPos × Selections)))
+    [DecidablePred (· ∈ E)] :
+    Matrix (HwReg X Z (Finset HPos × Selections)) (HwReg X Z (Finset HPos × Selections)) ℂ :=
+  compressReg X Z (Finset HPos × Selections) * diagonal (fun s ↦ if s ∈ E then 1 else 0) *
+    compressReg X Z (Finset HPos × Selections)
+
+/-- The mass of a decompressed event at the end of the game. -/
+noncomputable def eventMassDec (m₀ : Finset HPos × Selections) (A : Adversary (X × Z))
+    (L : HonestTable) (E : Set (HwReg X Z (Finset HPos × Selections))) [DecidablePred (· ∈ E)] :
+    ℝ≥0∞ :=
+  (runtimeR m₀).eventWeight .instruments (decProj E) (wGame A L)
+    ((SubState.basis ()).matrix ⊗ₖ (runtimeR (X := X) (Z := Z) m₀).init.matrix)
 
 /-- The verification's reads of each port number at most `verifyBlocks`. -/
 def CountsOK (l : List (SpongeRead X Z)) : Prop :=
@@ -953,32 +1232,32 @@ theorem isChargeBound_wPrefix
   exact isChargeBound_of_bind₂ hprog
 
 /-- **The prefix's branch in the decompressed basis**: no empty cell, at most `progCap`
-hardwired cells, and the prefix facts. -/
-theorem dec_wPre
+hardwired cells, and, off `E`, the prefix facts. -/
+theorem dec_wPre {E : Set (HwReg X Z (Finset HPos × Selections))}
     (hprog : IPFunctor.IFreeM.IsChargeBound (wGame A L)
       (portCharge (L := LocalSig.instruments.{0})
         (extProgCharge X Z (Finset HPos × Selections) (recSpec HPos Selections))) progCap)
-    (hpre : PrefixWinFacts m₀ A L) (pre : PublicKey × (Forgery × SignLog))
+    (hpre : PrefixWinFactsOff m₀ A L E) (pre : PublicKey × (Forgery × SignLog))
     (hw : winCond pre = true) :
     QuerySupportedOn (fun p : Unit × HwReg X Z (Finset HPos × Selections) ↦ p.2)
-      {s | NoBot s ∧ (dbGrade s.2.1 ≤ progCap ∧ PreFacts L pre s.2)}
+      {s | NoBot s ∧ (dbGrade s.2.1 ≤ progCap ∧ (s ∉ E → PreFacts L pre s.2))}
       (MatrixMap.conj ((1 : Matrix Unit Unit ℂ) ⊗ₖ compressReg X Z (Finset HPos × Selections))
         (((runtimeR m₀).run₂ .instruments (wPrefix A L)).branch pre (initU m₀))) :=
   querySupportedOn_inter (noBot_branch₂ m₀ (wPrefix A L) pre)
-    (querySupportedOn_conj_compressReg (P := fun b ↦ dbGrade b.1 ≤ progCap ∧ PreFacts L pre b)
-      (querySupportedOn_inter (grade_branch₂ m₀ (isChargeBound_wPrefix hprog) pre) (hpre pre hw)))
+    (querySupportedOn_inter (querySupportedOn_conj_compressReg (P := fun b ↦ dbGrade b.1 ≤ progCap)
+      (grade_branch₂ m₀ (isChargeBound_wPrefix hprog) pre)) (hpre pre hw))
 
 /-- **A winning run of the verification's reads in the decompressed basis**: the prefix's facts
-kept, and the run's outcome the honest verification against the register's functions. -/
-theorem dec_wSig
+kept off `E`, and the run's outcome the honest verification against the register's functions. -/
+theorem dec_wSig {E : Set (HwReg X Z (Finset HPos × Selections))}
     (hprog : IPFunctor.IFreeM.IsChargeBound (wGame A L)
       (portCharge (L := LocalSig.instruments.{0})
         (extProgCharge X Z (Finset HPos × Selections) (recSpec HPos Selections))) progCap)
-    (hpre : PrefixWinFacts m₀ A L)
+    (hpre : PrefixWinFactsOff m₀ A L E)
     (i : (PublicKey × (Forgery × SignLog)) × (Bool × List (SpongeRead X Z))) :
     QuerySupportedOn (fun p : Unit × HwReg X Z (Finset HPos × Selections) ↦ p.2)
       {s | (winCond i.1 && i.2.1) = true ∧
-        ((NoBot s ∧ (dbGrade s.2.1 ≤ progCap ∧ PreFacts L i.1 s.2)) ∧
+        ((NoBot s ∧ (dbGrade s.2.1 ≤ progCap ∧ (s ∉ E → PreFacts L i.1 s.2))) ∧
           i.2 = honestEval (regFns s) L.perm (schemeWithHashFromSeed.verify i.1.1 i.1.2.1))}
       (MatrixMap.conj ((1 : Matrix Unit Unit ℂ) ⊗ₖ compressReg X Z (Finset HPos × Selections))
         (wSig m₀ A L i)) := by
@@ -991,34 +1270,24 @@ theorem dec_wSig
   · rw [wSig, runSig_of_not m₀ _ _ _ i h, map_zero]
     exact querySupportedOn_zero _ _
 
-end decomp
-
-/-! ## The decomposition and `endReads` -/
-
-section final
-
-variable {m₀ : Finset HPos × Selections} {A : Adversary (X × Z)} {L : HonestTable}
-
-/-- **The winning runs of the canonical game, decomposed along the verification's reads**: the
-runs `wSig` of a winning prefix outcome and an accepting run of the verification's reads, with
-the reads' log, recorded in the decompressed basis (`noBot_runtimeR`, the read program's
-`SuppTo`), in the event `BadRS L progCap` where their view holds the log (`mem_bad_of_agrees`
-from the prefix facts and the honest verification), their event weights part of the game's. -/
-noncomputable def wDecomp [DecidablePred (· ∈ BadRS (S := HPos) L progCap)]
+/-- **A winning run off `E`**: its weight is at most its weight in `BadRS L progCap`, the read
+error of the verification's reads, and its weight in `E` (`trace_le_of_off`). -/
+theorem trace_wSig_le {E : Set (HwReg X Z (Finset HPos × Selections))}
+    [DecidablePred (· ∈ BadRS (S := HPos) L progCap)] [DecidablePred (· ∈ E)]
     (hprog : IPFunctor.IFreeM.IsChargeBound (wGame A L)
       (portCharge (L := LocalSig.instruments.{0})
         (extProgCharge X Z (Finset HPos × Selections) (recSpec HPos Selections))) progCap)
-    (hpre : PrefixWinFacts m₀ A L) :
-    WinDecomp m₀ (wGame A L) (wGame A L) (BadRS (S := HPos) L progCap) verifyBlocks verifyBlocks
-      verifyBlocks where
-  ι := (PublicKey × (Forgery × SignLog)) × (Bool × List (SpongeRead X Z))
-  σ := wSig m₀ A L
-  log := wLog
-  psd i := runSig_posSemidef m₀ _ _ _ i
-  countH i := readCount_wLog_le i .h
-  countK i := readCount_wLog_le i .k
-  countK' i := readCount_wLog_le i .k'
-  recorded i := (dec_wSig hprog hpre i).mono fun s hs ↦ by
+    (hpre : PrefixWinFactsOff m₀ A L E)
+    (i : (PublicKey × (Forgery × SignLog)) × (Bool × List (SpongeRead X Z))) :
+    (wSig m₀ A L i).trace.re ≤
+      (MatrixMap.conj ((1 : Matrix Unit Unit ℂ) ⊗ₖ hwProjector (BadRS L progCap))
+        (wSig m₀ A L i)).trace.re +
+        readError X Z verifyBlocks verifyBlocks verifyBlocks * (wSig m₀ A L i).trace.re +
+          (MatrixMap.conj ((1 : Matrix Unit Unit ℂ) ⊗ₖ decProj E) (wSig m₀ A L i)).trace.re := by
+  have hrec : QuerySupportedOn (fun y : Unit × HwReg X Z (Finset HPos × Selections) ↦ y.2)
+      {s | NoBotDb s.1 ∧ DbReg.Agrees (wLog i) (hwView s.2.1 s.1)}
+      (MatrixMap.conj ((1 : Matrix Unit Unit ℂ) ⊗ₖ compressReg X Z (Finset HPos × Selections))
+        (wSig m₀ A L i)) := (dec_wSig hprog hpre i).mono fun s hs ↦ by
     obtain ⟨-, ⟨hnb, -⟩, ha⟩ := hs
     have hc : CountsOK i.2.2 := by
       rw [ha]
@@ -1028,64 +1297,121 @@ noncomputable def wDecomp [DecidablePred (· ∈ BadRS (S := HPos) L progCap)]
     intro e he
     rw [ha] at he
     exact heldBy_hwView_of_noBot hnb (honestEval_answeredBy L.perm _ _ e he)
-  bad i := by
-    have hdec := (dec_wSig hprog hpre i).mono (T := {s | ∃ Sel : SelFn, WinFacts L progCap Sel
-        (wLog i) i.1.2.2 i.1.2.1 s.2.1 s.2.2.2}) fun s hs ↦ by
-      obtain ⟨hw, ⟨hnb, hgr, hpk, Sel, hsig, hrec, hex⟩, ha⟩ := hs
-      obtain ⟨hwc, hver⟩ := (Bool.and_eq_true _ _).mp hw
-      have hc : CountsOK i.2.2 := by
-        rw [ha]
-        exact countsOK_honest _ _ _ _
-      rw [hpk] at ha
-      have hwin := hwc
-      simp only [winCond, sufCmaScheme, decide_eq_true_eq] at hwin
-      refine ⟨Sel, hgr, hsig, hrec, hex, hwin, fun U hU ↦ ?_⟩
-      rw [wLog_of_countsOK hc, map_toSpongeRead_ofSpongeRead, ha] at hU
-      have hcg : honestEval U.fill L.perm (schemeWithHashFromSeed.verify L.publicKey i.1.2.1) =
-          honestEval (regFns s) L.perm (schemeWithHashFromSeed.verify L.publicKey i.1.2.1) :=
-        honestEval_congr L.perm _ fun e he ↦ answeredBy_fill (hU e he)
-      rw [hcg]
-      refine ⟨?_, hU⟩
-      rw [← ha]
-      exact hver
-    exact (querySupportedOn_of_conj_compressReg
-      (P := fun b ↦ ∃ Sel : SelFn, WinFacts L progCap Sel (wLog i) i.1.2.2 i.1.2.1 b.1 b.2.2)
-        hdec).mono fun s hs hag ↦ by
-      obtain ⟨Sel, hf⟩ := hs
+  have hoff : QuerySupportedOn (fun y : Unit × HwReg X Z (Finset HPos × Selections) ↦ y.2)
+      {s | s ∉ E → ∃ Sel : SelFn, WinFacts L progCap Sel (wLog i) i.1.2.2 i.1.2.1 s.2.1 s.2.2.2}
+      (MatrixMap.conj ((1 : Matrix Unit Unit ℂ) ⊗ₖ compressReg X Z (Finset HPos × Selections))
+        (wSig m₀ A L i)) := (dec_wSig hprog hpre i).mono fun s hs hsE ↦ by
+    obtain ⟨hw, ⟨-, hgr, hpf⟩, ha⟩ := hs
+    obtain ⟨hpk, Sel, hsig, hrc, hex⟩ := hpf hsE
+    obtain ⟨hwc, hver⟩ := (Bool.and_eq_true _ _).mp hw
+    have hc : CountsOK i.2.2 := by
+      rw [ha]
+      exact countsOK_honest _ _ _ _
+    rw [hpk] at ha
+    have hwin := hwc
+    simp only [winCond, sufCmaScheme, decide_eq_true_eq] at hwin
+    refine ⟨Sel, hgr, hsig, hrc, hex, hwin, fun U hU ↦ ?_⟩
+    rw [wLog_of_countsOK hc, map_toSpongeRead_ofSpongeRead, ha] at hU
+    have hcg : honestEval U.fill L.perm (schemeWithHashFromSeed.verify L.publicKey i.1.2.1) =
+        honestEval (regFns s) L.perm (schemeWithHashFromSeed.verify L.publicKey i.1.2.1) :=
+      honestEval_congr L.perm _ fun e he ↦ answeredBy_fill (hU e he)
+    rw [hcg]
+    refine ⟨?_, hU⟩
+    rw [← ha]
+    exact hver
+  exact trace_le_of_off (BadRS L progCap) E (wLog i) (readCount_wLog_le i .h)
+    (readCount_wLog_le i .k) (readCount_wLog_le i .k') (runSig_posSemidef m₀ _ _ _ i) hrec
+    (fun b ↦ ∃ Sel : SelFn, WinFacts L progCap Sel (wLog i) i.1.2.2 i.1.2.1 b.1 b.2.2)
+    (fun _ _ hf hag ↦ by
+      obtain ⟨Sel, hf⟩ := hf
       exact mem_bad_of_agrees L Sel (wLog i) i.1.2.2 i.1.2.1 hf.grade hf.sigs hf.records hf.exempt
-        hf.win hf.verify hag
-  win := by
+        hf.win hf.verify hag)
+    hoff
+
+end decomp
+
+/-! ## `endReads` off a decompressed event -/
+
+section final
+
+variable {m₀ : Finset HPos × Selections} {A : Adversary (X × Z)} {L : HonestTable}
+  {E : Set (HwReg X Z (Finset HPos × Selections))}
+
+/-- `a ≤ b + e a + c` in `ℝ≥0∞`, from the real inequality. -/
+theorem ofReal_le_add_mul_add {a b c e : ℝ} (he : 0 ≤ e) (h : a ≤ b + e * a + c) :
+    ENNReal.ofReal a ≤ ENNReal.ofReal b + ENNReal.ofReal e * ENNReal.ofReal a +
+      ENNReal.ofReal c := by
+  rw [← ENNReal.ofReal_mul he]
+  refine (ENNReal.ofReal_le_ofReal h).trans (ENNReal.ofReal_add_le.trans ?_)
+  exact add_le_add ENNReal.ofReal_add_le le_rfl
+
+/-- **`endReads` for the canonical game off a decompressed event**: on runs with at most
+`progCap` program calls and given the prefix invariant off `E` (`PrefixWinFactsOff`), the win
+weight of the game in `runtimeR m₀` is at most the event weight of `BadRS L progCap` at the end of
+the game, plus the read error of the verification's `verifyBlocks` reads of each function, plus
+the mass of `E` at the end of the game. -/
+theorem endReads_wGame [DecidablePred (· ∈ BadRS (S := HPos) L progCap)] [DecidablePred (· ∈ E)]
+    (hprog : IPFunctor.IFreeM.IsChargeBound (wGame A L)
+      (portCharge (L := LocalSig.instruments.{0})
+        (extProgCharge X Z (Finset HPos × Selections) (recSpec HPos Selections))) progCap)
+    (hpre : PrefixWinFactsOff m₀ A L E) :
+    (runtimeR m₀).evalDistMap .instruments (wGame A L) (SubState.basis ()) winBit {true} ≤
+      (runtimeR m₀).eventWeight .instruments (hwProjector (BadRS L progCap)) (wGame A L)
+          ((SubState.basis ()).matrix ⊗ₖ (runtimeR (X := X) (Z := Z) m₀).init.matrix) +
+        ENNReal.ofReal (readError X Z verifyBlocks verifyBlocks verifyBlocks) +
+          eventMassDec m₀ A L E := by
+  set err := readError X Z verifyBlocks verifyBlocks verifyBlocks
+  have herr : 0 ≤ err := readError_nonneg _ _ _
+  have hi : ∀ i, ENNReal.ofReal (wSig m₀ A L i).trace.re ≤
+      ENNReal.ofReal (MatrixMap.conj ((1 : Matrix Unit Unit ℂ) ⊗ₖ hwProjector (BadRS L progCap))
+        (wSig m₀ A L i)).trace.re + ENNReal.ofReal err * ENNReal.ofReal (wSig m₀ A L i).trace.re +
+        ENNReal.ofReal (MatrixMap.conj ((1 : Matrix Unit Unit ℂ) ⊗ₖ decProj E)
+          (wSig m₀ A L i)).trace.re := by
+    intro i
+    exact ofReal_le_add_mul_add herr (trace_wSig_le hprog hpre i)
+  have hwin : (runtimeR m₀).evalDistMap .instruments (wGame A L) (SubState.basis ()) winBit
+      {true} ≤ ∑' i, ENNReal.ofReal (wSig m₀ A L i).trace.re := by
     rw [evalDistMap_winBit, wGame_eq]
     have h := ofReal_trace_conj_runSig m₀ (wPrefix A L) (wReads L)
       (fun pre a ↦ winCond pre && a.1) 1
     simp only [MatrixMap.conj_one, LinearMap.id_apply] at h
     exact h.le
-  event := by
+  have hev : ∑' i, ENNReal.ofReal (MatrixMap.conj
+      ((1 : Matrix Unit Unit ℂ) ⊗ₖ hwProjector (BadRS L progCap)) (wSig m₀ A L i)).trace.re ≤
+      (runtimeR m₀).eventWeight .instruments (hwProjector (BadRS L progCap)) (wGame A L)
+        ((SubState.basis ()).matrix ⊗ₖ (runtimeR (X := X) (Z := Z) m₀).init.matrix) := by
     have h := ofReal_trace_conj_runSig m₀ (wPrefix A L) (wReads L)
       (fun pre a ↦ winCond pre && a.1) ((1 : Matrix Unit Unit ℂ) ⊗ₖ hwProjector (BadRS L progCap))
     rw [← wGame_eq] at h
     exact h.symm.le.trans (trace_conj_branch_true_le_eventWeight m₀ (wGame A L) _)
-  mass := by
+  have hdec : ∑' i, ENNReal.ofReal (MatrixMap.conj ((1 : Matrix Unit Unit ℂ) ⊗ₖ decProj E)
+      (wSig m₀ A L i)).trace.re ≤ eventMassDec m₀ A L E := by
+    have h := ofReal_trace_conj_runSig m₀ (wPrefix A L) (wReads L)
+      (fun pre a ↦ winCond pre && a.1) ((1 : Matrix Unit Unit ℂ) ⊗ₖ decProj E)
+    rw [← wGame_eq] at h
+    exact h.symm.le.trans (trace_conj_branch_true_le_eventWeight m₀ (wGame A L) _)
+  have hmass : ∑' i, ENNReal.ofReal (wSig m₀ A L i).trace.re ≤ 1 := by
     have h := ofReal_trace_conj_runSig m₀ (wPrefix A L) (wReads L)
       (fun pre a ↦ winCond pre && a.1) 1
     simp only [MatrixMap.conj_one, LinearMap.id_apply] at h
     rw [← wGame_eq] at h
     exact h.symm.le.trans (ofReal_trace_branch_le_one m₀ (wGame A L) true)
-
-/-- **`endReads` for the canonical game**: on runs with at most `progCap` program calls and given
-the prefix invariant `PrefixWinFacts`, the win weight of the game in `runtimeR m₀` is at most the
-event weight of `BadRS L progCap` at the end of the game plus the read error of the verification's
-`verifyBlocks` reads of each function. -/
-theorem endReads_wGame [DecidablePred (· ∈ BadRS (S := HPos) L progCap)]
-    (hprog : IPFunctor.IFreeM.IsChargeBound (wGame A L)
-      (portCharge (L := LocalSig.instruments.{0})
-        (extProgCharge X Z (Finset HPos × Selections) (recSpec HPos Selections))) progCap)
-    (hpre : PrefixWinFacts m₀ A L) :
-    (runtimeR m₀).evalDistMap .instruments (wGame A L) (SubState.basis ()) winBit {true} ≤
-      (runtimeR m₀).eventWeight .instruments (hwProjector (BadRS L progCap)) (wGame A L)
-          ((SubState.basis ()).matrix ⊗ₖ (runtimeR (X := X) (Z := Z) m₀).init.matrix) +
-        ENNReal.ofReal (readError X Z verifyBlocks verifyBlocks verifyBlocks) :=
-  endReads_of_winDecomp L m₀ (wGame A L) (wGame A L) (wDecomp hprog hpre)
+  calc (runtimeR m₀).evalDistMap .instruments (wGame A L) (SubState.basis ()) winBit {true}
+      ≤ ∑' i, ENNReal.ofReal (wSig m₀ A L i).trace.re := hwin
+    _ ≤ ∑' i, (ENNReal.ofReal (MatrixMap.conj
+          ((1 : Matrix Unit Unit ℂ) ⊗ₖ hwProjector (BadRS L progCap)) (wSig m₀ A L i)).trace.re +
+          ENNReal.ofReal err * ENNReal.ofReal (wSig m₀ A L i).trace.re +
+          ENNReal.ofReal (MatrixMap.conj ((1 : Matrix Unit Unit ℂ) ⊗ₖ decProj E)
+            (wSig m₀ A L i)).trace.re) := ENNReal.tsum_le_tsum hi
+    _ = ∑' i, ENNReal.ofReal (MatrixMap.conj
+          ((1 : Matrix Unit Unit ℂ) ⊗ₖ hwProjector (BadRS L progCap)) (wSig m₀ A L i)).trace.re +
+          ENNReal.ofReal err * ∑' i, ENNReal.ofReal (wSig m₀ A L i).trace.re +
+          ∑' i, ENNReal.ofReal (MatrixMap.conj ((1 : Matrix Unit Unit ℂ) ⊗ₖ decProj E)
+            (wSig m₀ A L i)).trace.re := by
+        rw [ENNReal.tsum_add, ENNReal.tsum_add, ENNReal.tsum_mul_left]
+    _ ≤ _ := by
+        refine add_le_add (add_le_add hev ?_) hdec
+        exact (mul_le_mul_right hmass _).trans_eq (mul_one _)
 
 end final
 
