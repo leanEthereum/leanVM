@@ -193,9 +193,12 @@ end convert
 section avg
 
 /-- **The remaining bound of the other labels' hits**: over a good set, the average of the
-decompressed `RecHitB` weight `decHitBPre` is at most `τ` (every run of a label hits the selected
-digest only at its first run's stopping trial, and only on a collision of two labels' codeword
-digests). -/
+decompressed `RecHitB` weight `decHitBPre` is at most `τ`. By RecOffDecHit's decompressed invariant
+(`forallQueries_dInv`: a selection's digest is its label's first-run stopping digest, earlier trials
+non-codewords) a hit at trial `j` of `lab` makes `j` the stopping trial of `lab` with the stopping
+digest of a signed label `lab' ≠ lab` of the same key. A static table fraction does not bound this
+(`2^256` candidate labels, chosen adaptively); it needs the undisclosed base of `lab` at its first
+reveal, with the key's selection fixed (a view lemma in the decompressed basis). -/
 def DecHitBAvg (A : Adversary (X × Z)) (good : HonestTable → Prop) [DecidablePred good]
     (τ : ℝ≥0∞) : Prop :=
   uavg (fun L ↦ if good L then decHitBPre A L else 0) ≤ τ
