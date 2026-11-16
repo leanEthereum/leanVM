@@ -10,6 +10,7 @@ mod field_div;
 mod hint_log2_ceil;
 mod inline_expr;
 mod inline_returns;
+mod lean_backend;
 mod loop_frames;
 mod miscompiles;
 mod pack64x2;

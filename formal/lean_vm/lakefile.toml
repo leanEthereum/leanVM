@@ -160,3 +160,64 @@ srcDir = "cli"
 name = "test-runs"
 root = "TestRuns"
 srcDir = "cli"
+
+# The guest's back end in Lean (`LeanVM/Guest/Backend/`), compiled (cli/GuestBackend.lean): the
+# guest's source through `Expand` and the back end to leanISA bytecode and prover hints, compared
+# with `Statement/Data/` or written out for the Rust comparison; not a default target.
+[[lean_exe]]
+name = "guest-backend"
+root = "GuestBackend"
+srcDir = "cli"
+
+# The guest as the back end's input with `coreProgram`'s functions (cli/GuestTraced.lean): writes the
+# traces of `LeanVM/Guest/Backend/Guest/`, or checks them and the back end's output on them; not a
+# default target.
+[[lean_exe]]
+name = "guest-traced"
+root = "GuestTraced"
+srcDir = "cli"
+
+# The kernel-checked pieces of the guest's compilation by the back end (cli/GuestPieces.lean):
+# writes `LeanVM/Guest/Backend/Guest/Piece/` and `Compiled.lean`, or checks them; not a default
+# target.
+[[lean_exe]]
+name = "guest-pieces"
+root = "GuestPieces"
+srcDir = "cli"
+
+# The completeness cross-check of the back end against the certificate tables
+# (cli/GuestCplCheck.lean): `scripts/cpl-crosscheck` reads the tables as text and runs it; not a
+# default target.
+[[lean_exe]]
+name = "guest-cplcheck"
+root = "GuestCplCheck"
+srcDir = "cli"
+
+# The placement-side completeness hypotheses on the guest (cli/GuestCplFrame.lean); not a default
+# target.
+[[lean_exe]]
+name = "guest-cplframe"
+root = "GuestCplFrame"
+srcDir = "cli"
+
+# The per-function checks of the guest's completeness instance through the back end
+# (cli/GuestCplGuest.lean): run on the tables `scripts/cpl-crosscheck --tables-only` writes; not a
+# default target.
+[[lean_exe]]
+name = "guest-cplguest"
+root = "GuestCplGuest"
+srcDir = "cli"
+
+# The kernel's per-function completeness checks of the guest: writes Guest/Backend/Guest/Cpl/Eval/
+# (`--check` compares). Not a default target.
+[[lean_exe]]
+name = "guest-cpleval"
+root = "GuestCplEval"
+srcDir = "cli"
+
+# The pointer discipline and the load shapes of the guest's core functions
+# (cli/GuestPtrCheck.lean); not a default target.
+[[lean_exe]]
+name = "guest-ptrcheck"
+root = "GuestPtrCheck"
+srcDir = "cli"
