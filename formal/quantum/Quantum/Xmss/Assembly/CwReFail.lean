@@ -1973,6 +1973,33 @@ theorem mem_image_univ_of {α β : Type} [Fintype α] [DecidableEq β] (f : α �
     f a ∈ Finset.univ.image f :=
   Finset.mem_image_of_mem f (Finset.mem_univ a)
 
+section hwSets
+
+variable {X₁ Z₁ : Type} [Zero X₁] [Zero Z₁]
+
+open scoped Classical in
+/-- A hardwiring of the cells of three sets, with dummy values (over abstract types). -/
+noncomputable def hwOfSets (H : Set Z₁) (K K' : Set X₁) : Hw X₁ Z₁ :=
+  (fun z ↦ if z ∈ H then some 0 else none, fun x ↦ if x ∈ K then some 0 else none,
+    fun x ↦ if x ∈ K' then some 0 else none)
+
+theorem hwOfSets_fst {H : Set Z₁} {K K' : Set X₁} {z : Z₁} :
+    (hwOfSets H K K').1 z ≠ none ↔ z ∈ H := by
+  classical
+  by_cases hz : z ∈ H <;> simp [hwOfSets, hz]
+
+theorem hwOfSets_snd_fst {H : Set Z₁} {K K' : Set X₁} {x : X₁} :
+    (hwOfSets H K K').2.1 x ≠ none ↔ x ∈ K := by
+  classical
+  by_cases hx : x ∈ K <;> simp [hwOfSets, hx]
+
+theorem hwOfSets_snd_snd {H : Set Z₁} {K K' : Set X₁} {x : X₁} :
+    (hwOfSets H K K').2.2 x ≠ none ↔ x ∈ K' := by
+  classical
+  by_cases hx : x ∈ K' <;> simp [hwOfSets, hx]
+
+end hwSets
+
 /-! ## The in-table cells and the failure fraction -/
 
 section slotCells
@@ -1980,32 +2007,41 @@ section slotCells
 open HashSig HashSig.OverPermutation LeanXmss Common Common.SufCma
   LeanXmss.RandomPermutationModel
 
+/-- The image of a function on a finite type (over abstract types, with the classical decidable
+equality so that no instance needs to be matched across construction paths). -/
+noncomputable def imgUniv {α β : Type} [Fintype α] (f : α → β) : Finset β :=
+  @Finset.image _ _ (Classical.decEq β) f Finset.univ
+
+theorem mem_imgUniv {α β : Type} [Fintype α] (f : α → β) (a : α) : f a ∈ imgUniv f :=
+  @Finset.mem_image_of_mem _ _ (Classical.decEq β) _ f a (Finset.mem_univ a)
+
+theorem card_imgUniv_le {α β : Type} [Fintype α] (f : α → β) :
+    (imgUniv f).card ≤ Fintype.card α :=
+  @Finset.card_image_le _ _ _ _ (Classical.decEq β)
+
 /-- The `k'`-cells of the in-table slots at the values `w` (by output position and round). -/
 noncomputable def k'CellsV (pub : Pub) (w : ValPos → Digest) : Finset X :=
-  Finset.univ.image fun q : ValPos × Fin 8 ↦ srcCellK' pub (outSlot q.1) w q.2
+  imgUniv fun q : ValPos × Fin 8 ↦ srcCellK' pub (outSlot q.1) w q.2
 
 /-- The `h`-cells of the in-table slots at the values `w`. -/
 noncomputable def hCellsV (pub : Pub) (w : ValPos → Digest) : Finset Z :=
-  Finset.univ.image fun q : ValPos × Fin 8 ↦ srcCellH pub (outSlot q.1) w q.2
+  imgUniv fun q : ValPos × Fin 8 ↦ srcCellH pub (outSlot q.1) w q.2
 
-open scoped Classical in
 /-- **The cells of all in-table slots**, as a hardwiring with a dummy value: every cell a
 signature may program. -/
 noncomputable def slotHw (pub : Pub) (w : ValPos → Digest) : Hw X Z :=
-  (fun z ↦ if z ∈ hCellsV pub w then some 0 else none,
-    fun x ↦ if x ∈ slotCellsK pub w then some 0 else none,
-    fun x ↦ if x ∈ k'CellsV pub w then some 0 else none)
+  hwOfSets (↑(hCellsV pub w)) (slotCellsK pub w) (↑(k'CellsV pub w))
 
 theorem card_k'CellsV_le (pub : Pub) (w : ValPos → Digest) :
     (k'CellsV pub w).card ≤ 8 * (498 * 2 ^ 32) :=
-  Finset.card_image_le.trans (by
-    rw [Finset.card_univ, Fintype.card_prod, Fintype.card_fin]
+  (card_imgUniv_le _).trans (by
+    rw [Fintype.card_prod, Fintype.card_fin]
     exact (Nat.mul_le_mul_right 8 card_valPos_le).trans_eq (by ring))
 
 theorem card_hCellsV_le (pub : Pub) (w : ValPos → Digest) :
     (hCellsV pub w).card ≤ 8 * (498 * 2 ^ 32) :=
-  Finset.card_image_le.trans (by
-    rw [Finset.card_univ, Fintype.card_prod, Fintype.card_fin]
+  (card_imgUniv_le _).trans (by
+    rw [Fintype.card_prod, Fintype.card_fin]
     exact (Nat.mul_le_mul_right 8 card_valPos_le).trans_eq (by ring))
 
 theorem sum_not_eq {B : Type} [Fintype B] (P : B → Prop) [DecidablePred P] :
@@ -2033,6 +2069,159 @@ theorem trW_ofFunDbs (π : Equiv.Perm (X × Z)) (P : PublicParameter) (lab : RLa
     (b : Randomizer) (j : ℕ) (t : (Z → X) × (X → Z) × (X → Z)) :
     trW π P lab b j (ofFunDbs t) = t.1 (tZ π (cwBlk P lab b j) t) := rfl
 
+theorem mem_hCellsV (pub : Pub) (w : ValPos → Digest) (q : ValPos × Fin 8) :
+    srcCellH pub (outSlot q.1) w q.2 ∈ hCellsV pub w := by
+  rw [hCellsV]
+  exact @mem_imgUniv _ _ _ (fun q : ValPos × Fin 8 ↦ srcCellH pub (outSlot q.1) w q.2) q
+
+theorem mem_kpCellsV (pub : Pub) (w : ValPos → Digest) (q : ValPos × Fin 8) :
+    srcCellK' pub (outSlot q.1) w q.2 ∈ k'CellsV pub w := by
+  rw [k'CellsV]
+  exact @mem_imgUniv _ _ _ (fun q : ValPos × Fin 8 ↦ srcCellK' pub (outSlot q.1) w q.2) q
+
+theorem slotHw_fst {pub : Pub} {w : ValPos → Digest} {z : Z} :
+    (slotHw pub w).1 z ≠ none ↔ z ∈ hCellsV pub w :=
+  hwOfSets_fst
+
+theorem slotHw_snd_fst {pub : Pub} {w : ValPos → Digest} {x : X} :
+    (slotHw pub w).2.1 x ≠ none ↔ x ∈ slotCellsK pub w :=
+  hwOfSets_snd_fst
+
+theorem slotHw_snd_snd {pub : Pub} {w : ValPos → Digest} {x : X} :
+    (slotHw pub w).2.2 x ≠ none ↔ x ∈ k'CellsV pub w :=
+  hwOfSets_snd_snd
+
+attribute [irreducible] slotHw hwOfSets k'CellsV hCellsV
+
+/-- Off the in-table `k`-cells at `w` (`HwTrialOff`), no trial block is a cell of `slotHw`. -/
+theorem slotHw_blk_eq_none {pub : Pub} {w : ValPos → Digest} (hoff : HwTrialOff pub w)
+    (lab : RLabel) (b : Randomizer) (j : ℕ) :
+    (slotHw pub w).2.1 (cwBlk pub.param lab b j) = none := by
+  by_contra h
+  obtain ⟨s, hs, i, hi, he⟩ := slotHw_snd_fst.mp h
+  exact hoff s hs i hi (he ▸ trialBlock_cwBlk pub.param lab b j)
+
+/-- **The signatures' program ports program cells of `slotHw`.** -/
+theorem cellIn_slotPorts (pub : Pub) (v : HPos → Digest) {l : Layer} {e : KeyIndex}
+    {x : Encoding} (he : e.val < keyCount l) {s : Slot} (hs : s ∈ layerSlots l e x)
+    {p : LazyProg X Z HPos XD} (hp : p ∈ slotPorts pub s) :
+    (p.realize v).CellIn (slotHw pub fun q ↦ v (.inl q)) := by
+  have hin := inTable_of_mem_layerSlots he hs
+  have hv : ∀ q ∈ slotNeed s, extendVals (restrictTo (inlSet (slotNeed s)) v) q = v (.inl q) :=
+    fun q hq ↦ extendVals_restrictTo (inl_mem_inlSet.mpr hq) v
+  have hj8 : ∀ {j}, j < nBlocks pub s → j < 8 := fun hj ↦ hj.trans_le (nBlocks_le_eight hin pub)
+  simp only [slotPorts, List.mem_flatMap, List.mem_range, List.mem_cons, List.not_mem_nil,
+    or_false] at hp
+  obtain ⟨j, hj, rfl | rfl | rfl⟩ := hp
+  · have e1 : roundK pub s (extendVals (restrictTo (inlSet (slotNeed s)) v)) j =
+        roundK pub s (fun p ↦ v (.inl p)) j := by
+      simp only [roundK, slotInput_eq_of_need pub hv]
+    show (slotHw pub fun q ↦ v (.inl q)).2.1
+      (roundK pub s (extendVals (restrictTo (inlSet (slotNeed s)) v)) j).1 ≠ none
+    rw [e1]
+    exact slotHw_snd_fst.mpr ⟨s, hin, j, hj, rfl⟩
+  · have e1 : roundK' pub s (extendVals (restrictTo (inlSet (slotNeed s)) v)) j =
+        roundK' pub s (fun p ↦ v (.inl p)) j := by
+      simp only [roundK', slotInput_eq_of_need pub hv]
+    show (slotHw pub fun q ↦ v (.inl q)).2.2
+      (roundK' pub s (extendVals (restrictTo (inlSet (slotNeed s)) v)) j).1 ≠ none
+    rw [e1]
+    refine slotHw_snd_snd.mpr ?_
+    have hm0 := mem_kpCellsV pub (fun q ↦ v (.inl q)) (slotOutPos s, ⟨j, hj8 hj⟩)
+    have he' : srcCellK' pub (outSlot (slotOutPos s)) (fun q ↦ v (.inl q)) j =
+        (roundK' pub s (fun p ↦ v (.inl p)) j).1 := by
+      rw [outSlot_slotOutPos hin]
+      rfl
+    rw [← he']
+    exact hm0
+  · have e1 : (roundH pub s (extendVals (restrictTo (inlSet (slotNeed s)) v)) j).1 =
+        (roundH pub s (fun p ↦ v (.inl p)) j).1 :=
+      cellH_congr pub (fun q hq ↦ hv q (isInput_mem_slotNeed hq)) j
+    show (slotHw pub fun q ↦ v (.inl q)).1
+      (roundH pub s (extendVals (restrictTo (inlSet (slotNeed s)) v)) j).1 ≠ none
+    rw [e1]
+    refine slotHw_fst.mpr ?_
+    have hm0 := mem_hCellsV pub (fun q ↦ v (.inl q)) (slotOutPos s, ⟨j, hj8 hj⟩)
+    have he' : srcCellH pub (outSlot (slotOutPos s)) (fun q ↦ v (.inl q)) j =
+        (roundH pub s (fun p ↦ v (.inl p)) j).1 := by
+      rw [outSlot_slotOutPos hin]
+      rfl
+    rw [← he']
+    exact hm0
+
+/-- **The challenge prefix programs cells of `slotHw` only.** -/
+theorem progsC_prefixT_slotHw (pub : Pub) (v : HPos → Digest) (A : Adversary (X × Z)) :
+    ProgsC (slotHw pub fun q ↦ v (.inl q)) v (prefixT Selections cwUpd pub A) :=
+  progsC_prefixT _ v cwUpd (fun _ _ _ he _ hs _ hp ↦ cellIn_slotPorts pub v he hs hp) A
+
+open scoped Classical in
+/-- **The failure fraction**: a union over the labels of `frac_fail_le`, the trial blocks off
+`slotHw` (`HwTrialOff`) and `PermGood π 18`. -/
+theorem frac_failDb_le (pub : Pub) (v : HPos → Digest) (hπ : PermGood pub.perm 18)
+    (hoff : HwTrialOff pub fun q ↦ v (.inl q)) :
+    ((Finset.univ.filter fun t ↦
+        FailDb pub.perm pub.param (slotHw pub fun q ↦ v (.inl q)) v (ofFunDbs t)).card : ℝ≥0∞) /
+      Fintype.card ((Z → X) × (X → Z) × (X → Z)) ≤
+      Fintype.card RLabel * (((randomizerAttemptLimit * (18 * (8 * (498 * 2 ^ 32)) +
+        8 * (498 * 2 ^ 32)) + randomizerAttemptLimit * randomizerAttemptLimit : ℕ) : ℝ≥0∞) /
+          Fintype.card Z + (((Fintype.card X - cwCount * 2 ^ 960) ^ randomizerAttemptLimit : ℕ) :
+            ℝ≥0∞) / ((Fintype.card X ^ randomizerAttemptLimit : ℕ) : ℝ≥0∞)) := by
+  set N := randomizerAttemptLimit
+  set T := Fintype.card ((Z → X) × (X → Z) × (X → Z))
+  set c : ℝ≥0∞ := ((N * (18 * (8 * (498 * 2 ^ 32)) + 8 * (498 * 2 ^ 32)) + N * N : ℕ) :
+    ℝ≥0∞) / Fintype.card Z + (((Fintype.card X - cwCount * 2 ^ 960) ^ N : ℕ) : ℝ≥0∞) /
+      ((Fintype.card X ^ N : ℕ) : ℝ≥0∞)
+  have hlab : ∀ lab : RLabel, ((Finset.univ.filter fun t ↦
+      ∀ j < N, TB pub.perm pub.param (slotHw pub fun q ↦ v (.inl q)) lab (v (.inr lab)) j
+        (ofFunDbs t)).card : ℝ≥0∞) / T ≤ c := fun lab ↦ by
+    refine (frac_fail_le hπ (k'CellsV pub fun q ↦ v (.inl q)) (hCellsV pub fun q ↦ v (.inl q))
+      (fun j ↦ cwBlk pub.param lab (v (.inr lab)) j) N
+      (fun i hi j hj he ↦ cwBlk_inj pub.param lab _ hi hj he)
+      (fun y ↦ Codeword.Valid (trunc128 y)) _ sum_not_codeword_le _ fun t ht j hj ↦ ?_).trans ?_
+    · have h0 := ht j hj
+      unfold TB at h0
+      rw [trY_ofFunDbs, trZ_ofFunDbs, trW_ofFunDbs] at h0
+      rcases h0 with h | h | h | h
+      · exact absurd (slotHw_blk_eq_none hoff lab _ j) h
+      · exact .inl (.inl (slotHw_snd_snd.mp h))
+      · exact .inl (.inr (slotHw_fst.mp h))
+      · exact .inr h
+    · refine add_le_add (ENNReal.div_le_div_right (Nat.cast_le.mpr (Nat.add_le_add_right
+        (Nat.mul_le_mul_left _ (Nat.add_le_add (Nat.mul_le_mul_left _
+          (card_k'CellsV_le pub _)) (card_hCellsV_le pub _))) _)) _) le_rfl
+  have hcard : (Finset.univ.filter fun t ↦
+      FailDb pub.perm pub.param (slotHw pub fun q ↦ v (.inl q)) v (ofFunDbs t)).card ≤
+      ∑ lab : RLabel, (Finset.univ.filter fun t ↦
+        ∀ j < N, TB pub.perm pub.param (slotHw pub fun q ↦ v (.inl q)) lab (v (.inr lab)) j
+          (ofFunDbs t)).card := by
+    simp only [Finset.card_filter]
+    rw [Finset.sum_comm]
+    refine Finset.sum_le_sum fun t _ ↦ ?_
+    by_cases hF : FailDb pub.perm pub.param (slotHw pub fun q ↦ v (.inl q)) v (ofFunDbs t)
+    · rw [ite_eq_left hF]
+      obtain ⟨lab, h⟩ := hF
+      exact le_trans (by rw [ite_eq_left h]) (Finset.single_le_sum
+        (f := fun lab : RLabel ↦ if ∀ j < N, TB pub.perm pub.param (slotHw pub fun q ↦
+          v (.inl q)) lab (v (.inr lab)) j (ofFunDbs t) then 1 else 0)
+        (fun _ _ ↦ Nat.zero_le _) (by simp))
+    · rw [ite_eq_right hF]
+      exact Nat.zero_le _
+  calc ((Finset.univ.filter fun t ↦
+        FailDb pub.perm pub.param (slotHw pub fun q ↦ v (.inl q)) v (ofFunDbs t)).card :
+        ℝ≥0∞) / T
+      ≤ ((∑ lab : RLabel, (Finset.univ.filter fun t ↦
+          ∀ j < N, TB pub.perm pub.param (slotHw pub fun q ↦ v (.inl q)) lab (v (.inr lab)) j
+            (ofFunDbs t)).card : ℕ) : ℝ≥0∞) / T :=
+        ENNReal.div_le_div_right (Nat.cast_le.mpr hcard) _
+    _ = ∑ lab : RLabel, ((Finset.univ.filter fun t ↦
+          ∀ j < N, TB pub.perm pub.param (slotHw pub fun q ↦ v (.inl q)) lab (v (.inr lab)) j
+            (ofFunDbs t)).card : ℝ≥0∞) / T := by
+        push_cast
+        rw [ENNReal.div_eq_inv_mul, Finset.mul_sum]
+        exact Finset.sum_congr rfl fun _ _ ↦ (ENNReal.div_eq_inv_mul).symm
+    _ ≤ ∑ _lab : RLabel, c := Finset.sum_le_sum fun lab _ ↦ hlab lab
+    _ = Fintype.card RLabel * c := by
+        rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
 end slotCells
 
 end Quantum.Xmss.Assembly
