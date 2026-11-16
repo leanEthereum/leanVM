@@ -521,7 +521,7 @@ def logOf (n : Nat) : Nat := Id.run do
 def testFile (name : String) : IO String := do
   let some t := LeanVMTests.Guest.Programs.all.find? (·.name == name)
     | throw (IO.userError s!"no test program {name}")
-  let P := renamed (← orThrow (ExpandTrace.expandProgram t.program))
+  let P := renamed (← orThrow (Expand.expandProgramTraced t.program))
   let outs ← orThrow (outsOf P)
   let (fns, slots) ← orThrow (lowerProgram P)
   let a := assemble fns slots
