@@ -1,15 +1,15 @@
 use super::cells::{count, pack_16_bytes};
 use super::deferred::{DeferredBytecodeClaim, bytecode_sums, bytecode_value, bytecode_vars};
 use super::error::AggregateError;
-use super::guest::{GUEST_SOURCE, compile_guest, unified_guest};
+use super::guest::{ARTIFACT, GUEST_SOURCE, load, unified_guest};
 use super::hints::{FORGE, Forgery, Hints};
 use super::placeholders::placeholder_map;
 use super::proof::{AggregateClaims, AggregateProof, decode, encode};
 use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
 use super::*;
 use fiat_shamir_prover::merkle::hash_to_scalars;
-use isa::Program;
 use isa::Prover;
+use isa::{CompiledProgram, Program};
 use keccak256::{hash, hash_pair};
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS, Hash};
 use lean_sphincs::LeanSphincsSignature;
@@ -111,15 +111,13 @@ fn the_wire_layout_is_pinned() {
     assert_eq!(decode(&le(u64::MAX)), None);
 }
 
-/// The guest compiles to one program, always.
+/// This crate's compiler compiles the guest to one program, always.
 ///
-/// `unified_guest` finds a fixed point by compiling repeatedly and comparing
-/// the result's log size, so a compiler that read a hash seed would not just
-/// produce two incompatible transcripts, it could fail to converge at all.
-/// The small programs in `zkdsl_compiler`'s `determinism` suite pin the
-/// digests; this pins the one program large enough to hit every path that
-/// walks a map. A fixed `kbc` is enough: reproducibility does not depend on
-/// the size being the fixed point.
+/// A compiler that read a hash seed could not be compared with the artefact
+/// ([`the_artefact_is_the_rust_compilers_guest`]). The small programs in
+/// `zkdsl_compiler`'s `determinism` suite pin the digests; this pins the one
+/// program large enough to hit every path that walks a map. A fixed `kbc` is
+/// enough: reproducibility does not depend on the size being the fixed point.
 #[test]
 fn guest_compiles_reproducibly() {
     let (one, two) = (compile_guest(20), compile_guest(20));
@@ -803,25 +801,36 @@ fn malformed_raw_signatures_are_errors() {
     }
 }
 
-/// The guest as the back end written in Lean compiles it (`formal/lean_vm/LeanVM/Guest/Backend`) is the guest this
-/// crate compiles: the same bytecode, hints, `main` frame and function ranges, and so the same Fiat-Shamir IV. The
-/// Lean compiler's output is too large to check in: `formal/lean_vm/scripts/backend-diff` writes it
-/// (`lake exe guest-backend export guest`) and runs this test on it.
+/// The guest as this crate's zkDSL compiler compiles it at the bytecode size `2^kbc`.
+fn compile_guest(kbc: usize) -> CompiledProgram {
+    compile(
+        &parse_with_replacements(GUEST_SOURCE, &placeholder_map(kbc))
+            .expect("the repository aggregation guest must parse"),
+    )
+}
+
+/// The guest the back end written in Lean compiled (`guests/lean_ethereum.compiled`) is the one this crate's compiler
+/// gives at the same size: the same bytecode, hints, `main` frame and function ranges, so the same fixed point and
+/// the same Fiat-Shamir IV.
 #[test]
-#[ignore = "needs LEAN_BACKEND_GUEST, the file `lake exe guest-backend export guest` wrote"]
-fn lean_backend_guest() {
-    let path = std::env::var("LEAN_BACKEND_GUEST").expect("LEAN_BACKEND_GUEST names the Lean compiler's output");
-    let lean = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{path}: {e}"));
-    let rust = unified_guest().__to_text();
-    if let Some((line, (ours, theirs))) = rust.lines().zip(lean.lines()).enumerate().find(|(_, (a, b))| a != b) {
+fn the_artefact_is_the_rust_compilers_guest() {
+    let lean = unified_guest();
+    let rust = Program::from(compile_guest(lean.prog.len().trailing_zeros() as usize));
+    let (theirs, ours) = (lean.__to_text(), rust.__to_text());
+    if let Some((line, (ours, theirs))) = ours.lines().zip(theirs.lines()).enumerate().find(|(_, (a, b))| a != b) {
         panic!("line {}: this crate compiles `{ours}`, Lean `{theirs}`", line + 1);
     }
-    assert_eq!(rust.lines().count(), lean.lines().count());
-    // What Lean compiled, loaded, is the guest: the IV hashes every instruction.
-    let loaded = Program::__from_text(&lean).unwrap();
-    assert_eq!(loaded.__to_text(), rust);
-    assert_eq!(
-        loaded.bytecode().fiat_shamir_iv(),
-        unified_guest().bytecode().fiat_shamir_iv()
-    );
+    assert_eq!(ours.lines().count(), theirs.lines().count());
+    assert_eq!(rust.bytecode().fiat_shamir_iv(), lean.bytecode().fiat_shamir_iv());
+}
+
+/// An artefact compiled from other placeholders than its own size's, or whose IV is not its bytecode's, is refused.
+#[test]
+fn a_stale_or_altered_artefact_is_refused() {
+    let (input, rest) = ARTIFACT.split_once('\n').unwrap();
+    let stale = format!("input {}\n{rest}", "0".repeat(64));
+    assert!(load(&stale).unwrap_err().starts_with("stale"));
+    let (iv, rest) = rest.split_once('\n').unwrap();
+    let altered = format!("{input}\n{iv}\n{}", rest.replacen("\nX ", "\nM ", 1));
+    assert!(load(&altered).unwrap_err().contains("`iv`"));
 }

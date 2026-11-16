@@ -346,7 +346,7 @@ jobs:
         run: python3 -I ../tools/firewall-canary.py
       # Every executable in one build, before the cache is saved, so a cache hit holds them all.
       - name: Build the executables
-        run: lake build node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove test-runs
+        run: lake build node-vectors guest-core guest-cert guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove test-runs guest-artifact
       # What is slow in the interpreter: the guest's Fiat-Shamir IV against the Rust's, the DA
       # vector digests.
       - name: The Rust vectors' costly checks
@@ -385,7 +385,8 @@ jobs:
       # hand: `scheme-vectors --xmss-sign`, lean_sphincs' `lake exe signature-kat`).
       - name: The statement's verifiers are the crate's (scheme-vectors)
         run: .lake/build/bin/scheme-vectors
-      # Every file derived from the guest is what its generator writes, byte for byte: the guest's
+      # Every file derived from the guest is what its generator writes, byte for byte: the compiled
+      # guest (`guests/lean_ethereum.compiled`, `scripts/guest-artifact`, the Lean back end), the guest's
       # bytecode, source, manifest, test programs and node vectors (`scripts/guest-export`, from this
       # repository's sources), the core IR, the certificates, the memory layer's checks, the
       # templates, the walks, the count families, the call tables and the decoder tables.

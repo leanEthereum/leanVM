@@ -27,6 +27,10 @@ open LeanVM.Guest.Source
 /-- The log size of the bytecode the placeholders are computed for. -/
 def bytecodeLog : Nat := 19
 
+/-- The digest of the source and the placeholders (`aggregation`'s `input_digest`), which the compiled guest carries
+(`guests/lean_ethereum.compiled`). -/
+def inputDigest : String := "f3c2371a7286c6156d9b5815bed16a7253da03831589948e941d2d79b594f8dc"
+
 /-- The global constant `STREAM_CAP`. -/
 def const_STREAM_CAP : Nat := 8192
 

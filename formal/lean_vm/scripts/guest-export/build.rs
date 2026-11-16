@@ -94,12 +94,13 @@ fn main() {
     let _ = std::fs::remove_dir_all(&out);
     copy_dir(&crate_dir.join("src"), &out.join("src"));
     copy_dir(&leanvm.join("guests"), &out.join("guests"));
-    // The guest source sits at the repository's root, two levels above the crate: the copy reads it beside itself.
+    // The guest's source and its compiled artefact sit at the repository's root, two levels above the crate: the copy
+    // reads them beside itself.
     let guest = out.join("src/guest.rs");
     let text = std::fs::read_to_string(&guest).unwrap();
-    let from = r#"include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../guests/lean_ethereum.py"))"#;
-    assert!(text.contains(from), "the guest source is included from the repository's root");
-    std::fs::write(&guest, text.replace(from, r#"include_str!("../guests/lean_ethereum.py")"#)).unwrap();
+    let from = r#"include_str!("../../../guests/"#;
+    assert_eq!(text.matches(from).count(), 2, "the guest's source and artefact are included from the root");
+    std::fs::write(&guest, text.replace(from, r#"include_str!("../guests/"#)).unwrap();
 
     // The crate as this crate's module `aggregation`: `lib.rs` as the module's `mod.rs`, `crate::` paths pointed at
     // the module. The exporters, a child of it, read its submodules' private items, so every top-level item of a

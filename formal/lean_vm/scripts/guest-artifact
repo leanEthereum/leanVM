@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Writes the guest the Rust prover loads, `guests/lean_ethereum.compiled`: the Lean back end's compilation
+# (`lake exe guest-artifact`, `cli/GuestArtifact.lean`) of the guest's source at the fixed point on its own size.
+#
+#   scripts/guest-artifact               # write
+#   scripts/guest-artifact --check       # write nothing, fail if the exported source or the artefact is stale
+#   scripts/guest-artifact --jobs N      # the Lean build's job cap (lake-build.py's --jobs)
+#
+# The source's placeholders depend on the bytecode's log size (`placeholder_map`, in Rust), so the size is iterated:
+# export the source at the artefact's current size K (`guest-export --source K`), compile it in Lean, and when the
+# program does not have 2^K slots (exit 3, `log size N`), export at N and compile again. Run from anywhere; it works in
+# lean_vm. `scripts/regen-guest.sh` runs it before `guest-export`, which then exports the artefact as the statement's
+# program.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+check=() jobs=()
+while [ $# -gt 0 ]; do
+  case $1 in
+    --check) check=(--check) ;;
+    --jobs) jobs=(--jobs "$2"); shift ;;
+    *) echo "usage: scripts/guest-artifact [--check] [--jobs N]" >&2; exit 2 ;;
+  esac
+  shift
+done
+artifact=../../guests/lean_ethereum.compiled
+capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
+
+cargo build --release --manifest-path scripts/guest-export/Cargo.toml
+size=$(sed -n 's/^size //p' "$artifact")
+kbc=$(python3 -I -c 'import sys; n = int(sys.argv[1]); assert n & (n - 1) == 0; print(n.bit_length() - 1)' "$size")
+
+for _ in 1 2 3 4 5 6 7 8; do
+  echo "==> the source at 2^$kbc"
+  capped scripts/guest-export/target/release/guest-export . --source "$kbc" "${check[@]}"
+  python3 -I ../lake-build.py . guest-artifact "${jobs[@]}"
+  status=0
+  out=$(capped .lake/build/bin/guest-artifact "$artifact" "${check[@]}") || status=$?
+  echo "$out"
+  case $status in
+    0) exit 0 ;;
+    3) [ ${#check[@]} -eq 0 ] || { echo "$artifact is not at the fixed point: run scripts/guest-artifact" >&2; exit 1; }
+       kbc=$(sed -n 's/^log size //p' <<<"$out") ;;
+    *) exit "$status" ;;
+  esac
+done
+echo "the guest's size did not converge" >&2
+exit 1

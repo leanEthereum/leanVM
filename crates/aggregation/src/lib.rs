@@ -25,7 +25,10 @@
 //! The bytecode is compiled to a fixed point on its own size
 //! ([`unified_guest`]): the recursion placeholders depend on the inner bytecode
 //! size, and here the inner bytecode is this one. Its digest does not need a
-//! fixed point, riding the statement instead of the code.
+//! fixed point, riding the statement instead of the code. The compiler of record
+//! is the back end written in Lean (`formal/lean_vm/LeanVM/Guest/Backend`), whose
+//! output is checked in (`guests/lean_ethereum.compiled`); this workspace's
+//! zkDSL compiler is a differential test of it.
 //!
 //! One fixed polynomial, the stacked bytecode, is too
 //! big to evaluate in-circuit, so each node exports one deferred claim on it
