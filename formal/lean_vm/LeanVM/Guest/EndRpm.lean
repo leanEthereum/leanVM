@@ -78,7 +78,7 @@ end LeanVM.Node
 
 namespace LeanVM.Guest.End
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Check LeanVM.Node
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Node
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Guest.B1 LeanVM.Guest.B1.Digest
 open LeanVM.Guest.Binding
 open scoped ENNReal
@@ -139,19 +139,11 @@ theorem aggregate_sound_outer_of (h : SoundHyps W) :
     MemoryAggregateSound guestProgram (decodeWith W) transcriptExtractor :=
   aggregate_sound_outer_dec (guest_knowledge_of h)
 
-/-- **What the outer verifier's acceptance establishes**, from B2 and `verify_sub`'s
-statement. -/
-theorem aggregate_sound_outer_V {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof} (hb2 : B2SoundL)
-    (hv : B1.Main.SubSoundW bytecode piOf) :
-    MemoryAggregateSound guestProgram (decodeV piOf) transcriptExtractor :=
-  aggregate_sound_outer_of (soundHyps_of_sub hb2 hv)
-
 /-- **What the outer verifier's acceptance establishes**, from `verify_sub`'s statement. -/
-theorem aggregate_sound_outer_sub
-    {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof}
+theorem aggregate_sound_outer_V {piOf : Reader → Val → FrameMap → Protocol.Compile.Proof}
     (hv : B1.Main.SubSoundW bytecode piOf) :
     MemoryAggregateSound guestProgram (decodeV piOf) transcriptExtractor :=
-  aggregate_sound_outer_V (b2SoundL endPending_proved) hv
+  aggregate_sound_outer_of (soundHyps_of_sub hv)
 
 /-- **The aggregate's soundness, its witness named**, for the deployed guest and its decoder: in
 the random-permutation experiment, the verifier accepts a proof of the guest from which no
