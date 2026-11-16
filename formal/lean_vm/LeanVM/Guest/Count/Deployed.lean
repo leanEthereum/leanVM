@@ -51,7 +51,7 @@ set_option maxRecDepth 100000 in
 theorem deployedBudget_instrs (Bvf : ℕ → ℕ → ℕ) (op : Opcode) :
     (Budget.deployedBudget Bvf).instrs op = deployedInstrs op := by
   simp only [Budget.deployedBudget, Budget.mainBudget, Budget.mainInstrs]
-  cases op <;> simp only [deployedInstrs, mainCounts, kcExp, kcSd, kcL1, kcL2, kcL3, kcL4, kcAggC, kcAggD, kcClA, kcClS, kcDvA, kcDvR, kcDvP, B2C.jtSets] <;> congr 1
+  cases op <;> simp only [deployedInstrs, mainCounts, kcExp, kcSd, kcL1, kcL2, kcL3, kcL4, kcAggC, kcAggD, kcClA, kcClS, kcDvA, kcDvR, kcDvP, Deployed.jtSets] <;> congr 1
 
 end
 end LeanVM.Guest.Count
