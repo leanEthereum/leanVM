@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Da.DvAt
 # `main`'s instruction counts
 
 `MainCounts ω fs`: per callee of `main`, a bound on every valid tree's weight at `ω` (an opcode's
-instructions per frame, `B2C.ωArm`):
+instructions per frame, `Deployed.ωArm`):
 * `exponent_tables`, `statement_digest`: constants (`WeightLe`);
 * the loops `main_loop0` .. `main_loop3`: per iteration (`LoopW`), run from `1` to `g^n` at `main`'s
   counts;

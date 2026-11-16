@@ -17,7 +17,7 @@ public meta import LeanVM.Guest.KernelLit
 
 B1's completeness of `main` (`End.MainComplete`) is generic in the cells (`mainComplete_at`, given
 `Lift.RunsFit` and `B1.RunsConsec`), and at the back end's cells `certG` those hold
-(`runsFitG`, `runsConsecG`). Its trees are placed at the certificates' frame sizes `B2C.fs`, which
+(`runsFitG`, `runsConsecG`). Its trees are placed at the deployed frame sizes `Deployed.fs`, which
 agree with the back end's `W0.fsB` on every function of the guest (`W0_agree`: the per-function
 test's frame size, `main`'s with the jump tables, `slotsG_size`), as do `certG` and `W0.cellB`. So
 a tree B1 builds is valid, placed and loads in its data at the back end's layout
@@ -41,9 +41,10 @@ kernel_rfl slotsG_size : slotsG.size = Data.jtSlots
 
 theorem W0_core : W0.core = coreProgram := guestWorld_core
 
-/-- **The back end's layout agrees with the certificates' frame sizes and the back end's cells**
-on every function of the guest. -/
-theorem W0_agree : Complete.AgreeOn coreProgram B2C.fs W0.fsB certG W0.cellB := by
+/-- **The back end's layout agrees with the deployed frame sizes and the back end's cells** on
+every function of the guest. -/
+theorem W0_agree : Complete.AgreeOn coreProgram Deployed.fs W0.fsB certG W0.cellB := by
+  rw [← B2C.fs_deployed]
   intro g fn hf
   obtain ⟨i, hix⟩ := ix_of_find hf
   have F := fnAt hix
@@ -83,12 +84,15 @@ def CoreRun (hdr : E × E) (T : Tree) (M : MemoryImage (logMem (T.total W0.fsB))
 the limits and a budget within `2^30` words, a `CoreRun` of the statement's public input within the
 budget's words. -/
 theorem coreRun_of_main {cnt : Tree → Opcode → ℕ} {b : End.Budget}
-    (hm : MainComplete B2C.fs certG cnt b) :
+    (hm : MainComplete Deployed.fs certG cnt b) :
     ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w → ChildrenOk bytecode seed w →
       b.size (work s w) ≤ 2 ^ 30 →
       ∃ (T : Tree) (M : MemoryImage (logMem (T.total W0.fsB))),
         CoreRun (hdrOf (statementDigest seed s)) T M ∧ T.total W0.fsB ≤ b.words.eval (work s w) := by
   intro seed s w hrel hlim hok hbs
+  rw [← B2C.fs_deployed] at hm
+  have hA : Complete.AgreeOn coreProgram B2C.fs W0.fsB certG W0.cellB := by
+    rw [B2C.fs_deployed]; exact W0_agree
   obtain ⟨N, L, hcons, hin, hN, hNb, hrelL⟩ := hm seed s w hrel hlim hok hbs
   set hdr := hdrOf (statementDigest seed s) with hhdr
   have h64 : logMem N < 64 := by have := logMem_le_maxLogMem hN; unfold maxLogMem at this; omega
@@ -102,7 +106,7 @@ theorem coreRun_of_main {cnt : Tree → Opcode → ℕ} {b : End.Budget}
   have e1 : Parameters.g = Parameters.addressOfIndex 1 := by simp [Parameters.addressOfIndex]
   obtain ⟨t, hn, hv, hb, hp, ht, hl, -⟩ := hrelL M.read hlow hL (by rw [e0]; exact hh0)
     (by rw [e1]; exact hh1)
-  have htot : t.total W0.fsB = N := (Complete.total_eq W0_agree hv).symm.trans ht
+  have htot : t.total W0.fsB = N := (Complete.total_eq hA hv).symm.trans ht
   subst htot
   have hkf := kFactsAllG CplEval.cplOkAll hdr t hn
   have ha : ∀ q ∈ t.eqns coreProgram, ∃ i : Fin (2 ^ logMem (t.total W0.fsB)),
@@ -117,9 +121,9 @@ theorem coreRun_of_main {cnt : Tree → Opcode → ℕ} {b : End.Budget}
   refine ⟨t, M, ⟨hn, by rw [W0_core]; exact hv, by rw [W0_core]; exact hb, ?_, ?_, hh0, hh1, hN,
     by rw [W0_core]; exact ha⟩, hNb⟩
   · rw [W0_core]
-    exact (Complete.placed_iff W0_agree t 0 hv).mp hp
+    exact (Complete.placed_iff hA t 0 hv).mp hp
   · rw [W0_core]
-    exact (Complete.loadsIn_iff W0_agree t _ 0 hv).mp hl
+    exact (Complete.loadsIn_iff hA t _ 0 hv).mp hl
 
 /-- **The guest's core runs exist**: for every node relation within the deployed limits and the
 deployed budget within `2^30` words, B1's tree of `main` at the back end's cells is a `CoreRun` of
@@ -130,7 +134,8 @@ theorem guest_core_run : ∀ seed s w, NodeRelation bytecode seed s w → GuestL
     ∃ (T : Tree) (M : MemoryImage (logMem (T.total W0.fsB))),
       CoreRun (hdrOf (statementDigest seed s)) T M ∧
         T.total W0.fsB ≤ (deployedBudgetB (vsBoundAt Count.vsWordsOs vkBound)).words.eval (work s w) :=
-  coreRun_of_main (mainComplete_at (runsFitG CplEval.cplOkAll) (runsConsecG CplEval.cplOkAll))
+  coreRun_of_main (mainComplete_at (B2C.fs_deployed ▸ runsFitG CplEval.cplOkAll)
+    (runsConsecG CplEval.cplOkAll))
 
 /-- **The compiled guest runs for every node relation**: within the deployed limits and the
 deployed budget within `2^30` words, there is a tree of `main` within the budget's words whose
