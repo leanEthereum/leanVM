@@ -6,6 +6,7 @@ public import Quantum.Sphincs.Assembly.TrialsOff
 public import Quantum.Sphincs.Assembly.GameTCalls
 public import Quantum.Sphincs.Assembly.GameR
 public import Quantum.Sphincs.Assembly.ReparamFull
+public import Quantum.Sphincs.Assembly.MassSources
 
 @[expose] public section
 
@@ -822,15 +823,32 @@ theorem sum_prod_le_of_sph {V K : Type*} [Fintype V] [Fintype K] (g : V × K →
 
 variable {M : Type} [Fintype M] [DecidableEq M] (upd : TrialUpd M)
 
+/-- The arithmetic of the per-public-datum sum with an extra term, over abstract quantities. -/
+theorem split_good_arith_x (τ κ c N εK κX cK cV pre ver x : ℝ≥0∞) (hpre : pre ≤ τ * cV)
+    (hver : ver ≤ κ * (c * cV)) (hx : x ≤ N * κX * cV) :
+    cK * (pre + ver) + cV * (εK * N * cK) + cK * x ≤
+      (τ + κ * c + N * εK + N * κX) * (cV * cK) := by
+  calc cK * (pre + ver) + cV * (εK * N * cK) + cK * x
+      ≤ cK * (τ * cV + κ * (c * cV)) + cV * (εK * N * cK) + cK * (N * κX * cV) := by gcongr
+    _ = (τ + κ * c + N * εK + N * κX) * (cV * cK) := by ring
+
+/-- A sum of three terms, over an abstract type. -/
+theorem sum_three_eq_sph {V : Type*} [Fintype V] (c d : ℝ≥0∞) (a b x : V → ℝ≥0∞) :
+    ∑ v, (c * (a v + b v) + d + c * x v) =
+      c * (∑ v, a v + ∑ v, b v) + Fintype.card V * d + c * ∑ v, x v := by
+  simp only [Finset.sum_add_distrib, Finset.mul_sum, Finset.sum_const, Finset.card_univ,
+    nsmul_eq_mul, mul_add]
+
 /-- **The masked read mass through a reparametrization, with the trial term on good data.** Let
 `e` be injective on the good set `G` of the tables `Θ`, into public data `P`, hidden values and
-never-revealed coordinates `K`, with the game at a table (public data `pubT t`, hidden values
-`valT t`) equal to the game at `pubP (e t).1` realized at hidden values agreeing with `(e t).2.1`
-off the charged set `B t`. Let the table's hidden cells lie in hidden cells `Hhv`, `Hkv`, `Hk'v`
-of the public data and hidden values with sources (`src`, weight `κ`) and in cells of the
-never-revealed coordinates (at most `εK |K|` of them per cell). Then the masked read mass is at
-most the trials' term `τ` (asked on the good hidden values `TG`), `κ` per verification read,
-`N εK`, and `N` times the masked record mass `μ` of the charged sets. -/
+never-revealed coordinates `K`, with the read mass of the game at a table (public data `pubT t`,
+hidden values `valT t`) at most that of the game at `pubP (e t).1` realized at `(e t).2.1` plus
+`N r t` (`hmis`, the mismatch). Let the table's hidden cells lie in hidden cells `Hhv`, `Hkv`,
+`Hk'v` of the public data and hidden values with sources (`src`, weight `κ`), in cells of the
+never-revealed coordinates (at most `εK |K|` of them per cell) and in further cells `Hhx` of the
+public data and hidden values whose read mass is `κX` per call (`hX`). Then the masked read mass is
+at most the trials' term `τ` (asked on the good hidden values `TG`), `κ` per verification read,
+`N εK`, `N κX` and `N` times the masked mismatch `μ`. -/
 theorem uavg_mask_readMass_le_split_good_sph {pol : DigestPolicy} (hpol : pol.ValFree)
     (A : SAdversary) (m₀ : Finset HPos × M)
     (ρ : Matrix (QReg.of Unit × QReg.of (HwReg X Z (Finset HPos × M)))
@@ -843,20 +861,17 @@ theorem uavg_mask_readMass_le_split_good_sph {pol : DigestPolicy} (hpol : pol.Va
     (e : Θ → P × (((s : HPos) → XD s) × K)) (G : Θ → Prop) [DecidablePred G]
     (hinj : Set.InjOn e {t | G t})
     (hcard : Fintype.card P * Fintype.card (((s : HPos) → XD s) × K) ≤ Fintype.card Θ)
-    (pubP : P → Pub) (B : Θ → Finset HPos)
-    (hgame : ∀ t, G t → ∃ v : (s : HPos) → XD s,
-      Agree (Finset.univ \ B t) v (e t).2.1 ∧
-      realizeT (valT t) (gameT M upd pol (pubT t) A) =
-        realizeT v (gameT M upd pol (pubP (e t).1) A))
+    (pubP : P → Pub)
     (Hhv : P → ((s : HPos) → XD s) → Set Z) (Hkv Hk'v : P → ((s : HPos) → XD s) → Set X)
     (κ : ℝ≥0∞)
     (src : ∀ p, Sources X Z HPos M HPos XD (fun r ↦ r.2.2.1) (SlotInv M (pubP p)) (Hhv p) (Hkv p)
       (Hk'v p) κ)
     (Hhk : P → ((s : HPos) → XD s) × K → Set Z) (Hkk Hk'k : P → ((s : HPos) → XD s) × K → Set X)
+    (Hhx : P → ((s : HPos) → XD s) → Set Z) (Hkx Hk'x : P → ((s : HPos) → XD s) → Set X)
     (hsub : ∀ t, G t →
-      Hh t ⊆ Hhv (e t).1 (e t).2.1 ∪ Hhk (e t).1 (e t).2 ∧
-      Hk t ⊆ Hkv (e t).1 (e t).2.1 ∪ Hkk (e t).1 (e t).2 ∧
-      Hk' t ⊆ Hk'v (e t).1 (e t).2.1 ∪ Hk'k (e t).1 (e t).2)
+      Hh t ⊆ Hhv (e t).1 (e t).2.1 ∪ Hhk (e t).1 (e t).2 ∪ Hhx (e t).1 (e t).2.1 ∧
+      Hk t ⊆ Hkv (e t).1 (e t).2.1 ∪ Hkk (e t).1 (e t).2 ∪ Hkx (e t).1 (e t).2.1 ∧
+      Hk' t ⊆ Hk'v (e t).1 (e t).2.1 ∪ Hk'k (e t).1 (e t).2 ∪ Hk'x (e t).1 (e t).2.1)
     (εK : ℝ≥0∞)
     (hcH : ∀ p v z, ∑ k, (Hhk p (v, k)).indicator (fun _ ↦ (1 : ℝ≥0∞)) z ≤
       εK * Fintype.card K)
@@ -867,9 +882,19 @@ theorem uavg_mask_readMass_le_split_good_sph {pol : DigestPolicy} (hpol : pol.Va
     {N : ℕ} (hN : ∀ (pub : Pub) (v : (s : HPos) → XD s),
       IFreeM.IsChargeBound (realizeT v (gameT M upd pol pub A))
         (portCharge fun i ↦ if readRecPort M i = true then 1 else 0) N)
-    (μ : ℝ≥0∞)
-    (hrev : uavg (fun t ↦ if G t then revW m₀ LocalSig.Interp.instruments (B t)
-      (realizeT (e t).2.1 (gameT M upd pol (pubP (e t).1) A)) ρ else 0) ≤ μ)
+    (κX : ℝ≥0∞)
+    (hX : ∀ p, ∑ v, (runtimeR m₀).totalWeight LocalSig.Interp.instruments
+      (portMass (fun i ↦ readRecPort M i = true) (Hhx p v) (Hkx p v) (Hk'x p v))
+      (realizeT v (gameT M upd pol (pubP p) A)) ρ ≤ N * κX * Fintype.card ((s : HPos) → XD s))
+    (r : Θ → ℝ≥0∞)
+    (hmis : ∀ t, G t → ∀ (Hh₀ : Set Z) (Hk₀ Hk'₀ : Set X),
+      (runtimeR m₀).totalWeight LocalSig.Interp.instruments
+          (portMass (fun i ↦ readRecPort M i = true) Hh₀ Hk₀ Hk'₀)
+          (realizeT (valT t) (gameT M upd pol (pubT t) A)) ρ ≤
+        (runtimeR m₀).totalWeight LocalSig.Interp.instruments
+          (portMass (fun i ↦ readRecPort M i = true) Hh₀ Hk₀ Hk'₀)
+          (realizeT (e t).2.1 (gameT M upd pol (pubP (e t).1) A)) ρ + N * r t)
+    (μ : ℝ≥0∞) (hrev : uavg (fun t ↦ if G t then r t else 0) ≤ μ)
     (TG : P → ((s : HPos) → XD s) → Prop) [∀ p, DecidablePred (TG p)]
     (hTG : ∀ t, G t → TG (e t).1 (e t).2.1) (τ : ℝ≥0∞)
     (htrial : ∀ p, ∑ v : (s : HPos) → XD s, (if TG p v then (runtimeR m₀).totalWeight
@@ -880,7 +905,7 @@ theorem uavg_mask_readMass_le_split_good_sph {pol : DigestPolicy} (hpol : pol.Va
     uavg (fun t ↦ if G t then (runtimeR m₀).totalWeight LocalSig.Interp.instruments
       (readMass (Hh t) (Hk t) (Hk' t)) (realizeT (valT t) (gameT M upd pol (pubT t) A)) ρ
         else 0) ≤
-      τ + κ * ((3 * verifyBlocks : ℕ) : ℝ≥0∞) + N * εK + N * μ := by
+      τ + κ * ((3 * verifyBlocks : ℕ) : ℝ≥0∞) + N * εK + N * κX + N * μ := by
   simp only [readMass_eq_portMass]
   set pre : P → ((s : HPos) → XD s) → ℝ≥0∞ := fun p v ↦ if TG p v then
     (runtimeR m₀).totalWeight LocalSig.Interp.instruments
@@ -896,32 +921,29 @@ theorem uavg_mask_readMass_le_split_good_sph {pol : DigestPolicy} (hpol : pol.Va
     LocalSig.Interp.instruments
     (portMass (fun i ↦ readRecPort M i = true) (Hhk p w) (Hkk p w) (Hk'k p w))
     (realizeT w.1 (gameT M upd pol (pubP p) A)) ρ with hext
-  set g : P → ((s : HPos) → XD s) × K → ℝ≥0∞ := fun p w ↦ pre p w.1 + ver p w.1 + ext p w
-    with hg
-  set rv : Θ → ℝ≥0∞ := fun t ↦ if G t then revW m₀ LocalSig.Interp.instruments (B t)
-    (realizeT (e t).2.1 (gameT M upd pol (pubP (e t).1) A)) ρ else 0 with hrv
+  set xt : P → ((s : HPos) → XD s) → ℝ≥0∞ := fun p v ↦ (runtimeR m₀).totalWeight
+    LocalSig.Interp.instruments
+    (portMass (fun i ↦ readRecPort M i = true) (Hhx p v) (Hkx p v) (Hk'x p v))
+    (realizeT v (gameT M upd pol (pubP p) A)) ρ with hxt
+  set g : P → ((s : HPos) → XD s) × K → ℝ≥0∞ := fun p w ↦
+    pre p w.1 + ver p w.1 + ext p w + xt p w.1 with hg
   have hle : ∀ t, (if G t then (runtimeR m₀).totalWeight LocalSig.Interp.instruments
       (portMass (fun i ↦ readRecPort M i = true) (Hh t) (Hk t) (Hk' t))
       (realizeT (valT t) (gameT M upd pol (pubT t) A)) ρ else 0) ≤
-      (if G t then g (e t).1 (e t).2 else 0) + (N : ℝ≥0∞) * rv t := by
+      (if G t then g (e t).1 (e t).2 else 0) + (N : ℝ≥0∞) * (if G t then r t else 0) := by
     intro t
     by_cases ht : G t
-    · obtain ⟨v, hv, hgeq⟩ := hgame t ht
-      obtain ⟨h1, h2, h3⟩ := hsub t ht
-      simp only [ht, ↓reduceIte, hrv, hg, hpre, hver, hext, hTG t ht]
-      rw [hgeq]
-      refine (totalWeight_portMass_le_mismatch m₀ LocalSig.Interp.instruments
-        (gameT M upd pol (pubP (e t).1) A) (disc_gameT M upd pol _ A ∅)
-        (keepsLab_gameT M upd pol _ A) ρ hρ hs (B t) (Finset.disjoint_empty_left _) _
-        (Hh t) (Hk t) (Hk' t) hv (hN _ v)).trans (add_le_add ?_ le_rfl)
+    · obtain ⟨h1, h2, h3⟩ := hsub t ht
+      simp only [ht, ↓reduceIte, hg, hpre, hver, hext, hxt, hTG t ht]
+      refine (hmis t ht _ _ _).trans (add_le_add ?_ le_rfl)
       refine (totalWeight_portMass_mono _ _ m₀ h1 h2 h3 _ hρ).trans
         ((totalWeight_portMass_union_le _ _ m₀ _ _ _ _ _ _ _ hρ).trans (add_le_add
-          (le_of_eq ?_) le_rfl))
+          ((totalWeight_portMass_union_le _ _ m₀ _ _ _ _ _ _ _ hρ).trans (add_le_add
+            (le_of_eq ?_) le_rfl)) le_rfl))
       exact totalWeight_portMass_gameT_split_sph upd _ pol m₀ _ A _ _ _ _ ρ hρ
-    · rw [ite_eq_right ht]
-      exact zero_le
+    · simp only [ht, ↓reduceIte, mul_zero, add_zero, le_refl]
   have hgsum : ∀ p, ∑ w, g p w ≤
-      (τ + κ * ((3 * verifyBlocks : ℕ) : ℝ≥0∞) + N * εK) *
+      (τ + κ * ((3 * verifyBlocks : ℕ) : ℝ≥0∞) + N * εK + N * κX) *
         Fintype.card (((s : HPos) → XD s) × K) := by
     intro p
     have hK : ∀ v : (s : HPos) → XD s, ∑ k, ext p (v, k) ≤ εK * N * Fintype.card K := fun v ↦
@@ -935,24 +957,26 @@ theorem uavg_mask_readMass_le_split_good_sph {pol : DigestPolicy} (hpol : pol.Va
       (src p)
     refine sum_prod_le_of_sph (g p) _ ?_
     calc ∑ v, ∑ k, g p (v, k)
-        ≤ ∑ v, ((Fintype.card K : ℝ≥0∞) * (pre p v + ver p v) + εK * N * Fintype.card K) := by
+        ≤ ∑ v, ((Fintype.card K : ℝ≥0∞) * (pre p v + ver p v) + εK * N * Fintype.card K +
+            (Fintype.card K : ℝ≥0∞) * xt p v) := by
           refine Finset.sum_le_sum fun v _ ↦ ?_
           simp only [hg]
-          rw [Finset.sum_add_distrib, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
-          exact add_le_add le_rfl (hK v)
+          rw [Finset.sum_add_distrib, Finset.sum_add_distrib, Finset.sum_const, Finset.sum_const,
+            Finset.card_univ, nsmul_eq_mul, nsmul_eq_mul]
+          exact add_le_add (add_le_add le_rfl (hK v)) le_rfl
       _ = (Fintype.card K : ℝ≥0∞) * (∑ v, pre p v + ∑ v, ver p v) +
-          Fintype.card ((s : HPos) → XD s) * (εK * N * Fintype.card K) := by
-          rw [Finset.sum_add_distrib, ← Finset.mul_sum, Finset.sum_add_distrib, Finset.sum_const,
-            Finset.card_univ, nsmul_eq_mul]
-      _ ≤ _ := split_good_arith τ κ _ N εK _ _ _ _ (htrial p) hv1
+          Fintype.card ((s : HPos) → XD s) * (εK * N * Fintype.card K) +
+          (Fintype.card K : ℝ≥0∞) * ∑ v, xt p v := sum_three_eq_sph _ _ _ _ _
+      _ ≤ _ := split_good_arith_x τ κ _ N εK κX _ _ _ _ _ (htrial p) hv1 (hX p)
   calc uavg (fun t ↦ if G t then (runtimeR m₀).totalWeight LocalSig.Interp.instruments
         (portMass (fun i ↦ readRecPort M i = true) (Hh t) (Hk t) (Hk' t))
         (realizeT (valT t) (gameT M upd pol (pubT t) A)) ρ else 0)
-      ≤ uavg (fun t ↦ (if G t then g (e t).1 (e t).2 else 0) + (N : ℝ≥0∞) * rv t) :=
-        uavg_mono hle
-    _ = uavg (fun t ↦ if G t then g (e t).1 (e t).2 else 0) + (N : ℝ≥0∞) * uavg rv := by
+      ≤ uavg (fun t ↦ (if G t then g (e t).1 (e t).2 else 0) +
+          (N : ℝ≥0∞) * (if G t then r t else 0)) := uavg_mono hle
+    _ = uavg (fun t ↦ if G t then g (e t).1 (e t).2 else 0) +
+          (N : ℝ≥0∞) * uavg (fun t ↦ if G t then r t else 0) := by
         rw [uavg_add, uavg_const_mul]
-    _ ≤ (τ + κ * ((3 * verifyBlocks : ℕ) : ℝ≥0∞) + N * εK) + N * μ :=
+    _ ≤ (τ + κ * ((3 * verifyBlocks : ℕ) : ℝ≥0∞) + N * εK + N * κX) + N * μ :=
         add_le_add (uavg_mask_le_of_injOn_sph e G hinj hcard (fun t ↦ g (e t).1 (e t).2) g
           (fun _ _ ↦ le_rfl) _ hgsum) (mul_le_mul_of_nonneg_left hrev zero_le)
 
@@ -976,29 +1000,33 @@ variable (A : SAdversary) {q : ℕ}
   (hsign : ∀ pk, IFreeM.IsChargeBound (A pk) (cmdCharge signCharge) signatureLimit)
 include hperm hsign
 
+open scoped Classical in
 /-- **The masked read mass at the composed reparametrization**
-(`uavg_mask_readMass_le_split_good_sph` at ReparamFull's `fullE` on `FullG S`, the charged sets
-`chgB`, `N = clsCap`): the trials' term `τ`
-on the good hidden values `TG`, `κ` per verification read, `clsCap · εK` for the never-revealed
-coordinates' cells, and `clsCap` times the masked record mass `μ` of the charged coordinates. -/
+(`uavg_mask_readMass_le_split_good_sph` at ReparamFull's `fullE` on MassSources' `MassG S`, the
+mismatch MassSources' `mass_le_chgRev`, `N = clsCap`): the trials' term `τ` on the good hidden
+values `TG`, `κ` per verification read, `clsCap · εK` for the never-revealed coordinates' cells,
+`clsCap · κX` for the further cells `Hhx` and `clsCap · chgRevAvg`. -/
 theorem uavg_mask_readMass_le_sph_good (S : PP → ((s : HPos) → XD s) → Prop)
-    (m₀ : Mem HPos)
     (ρ : Matrix (QReg.of Unit × QReg.of (HwReg X Z (Mem HPos)))
       (QReg.of Unit × QReg.of (HwReg X Z (Mem HPos))) ℂ) (hρ : ρ.PosSemidef)
     (hρ1 : ENNReal.ofReal ρ.trace.re ≤ 1)
     (hs : QuerySupportedOn (fun p : QReg.of Unit × QReg.of (HwReg X Z (Mem HPos)) ↦
       p.2.2.2.1) {∅} ρ)
-    [DecidablePred (FullG S)] (Hh : FT → Set Z) (Hk Hk' : FT → Set X)
+    (Hh : FT → Set Z) (Hk Hk' : FT → Set X)
     (Hhv : PP → ((s : HPos) → XD s) → Set Z) (Hkv Hk'v : PP → ((s : HPos) → XD s) → Set X)
     (κ : ℝ≥0∞)
     (src : ∀ p, Sources X Z HPos Selections HPos XD (fun r ↦ r.2.2.1)
       (SlotInv Selections (pubP p)) (Hhv p) (Hkv p) (Hk'v p) κ)
     (Hhk : PP → ((s : HPos) → XD s) × KK → Set Z)
     (Hkk Hk'k : PP → ((s : HPos) → XD s) × KK → Set X)
-    (hsub : ∀ t, FullG S t →
-      Hh t ⊆ Hhv (fullE t).1 (fullE t).2.1 ∪ Hhk (fullE t).1 (fullE t).2 ∧
-      Hk t ⊆ Hkv (fullE t).1 (fullE t).2.1 ∪ Hkk (fullE t).1 (fullE t).2 ∧
-      Hk' t ⊆ Hk'v (fullE t).1 (fullE t).2.1 ∪ Hk'k (fullE t).1 (fullE t).2)
+    (Hhx : PP → ((s : HPos) → XD s) → Set Z) (Hkx Hk'x : PP → ((s : HPos) → XD s) → Set X)
+    (hsub : ∀ t, MassG S t →
+      Hh t ⊆ Hhv (fullE t).1 (fullE t).2.1 ∪ Hhk (fullE t).1 (fullE t).2 ∪
+        Hhx (fullE t).1 (fullE t).2.1 ∧
+      Hk t ⊆ Hkv (fullE t).1 (fullE t).2.1 ∪ Hkk (fullE t).1 (fullE t).2 ∪
+        Hkx (fullE t).1 (fullE t).2.1 ∧
+      Hk' t ⊆ Hk'v (fullE t).1 (fullE t).2.1 ∪ Hk'k (fullE t).1 (fullE t).2 ∪
+        Hk'x (fullE t).1 (fullE t).2.1)
     (εK : ℝ≥0∞)
     (hcH : ∀ p v z, ∑ k, (Hhk p (v, k)).indicator (fun _ ↦ (1 : ℝ≥0∞)) z ≤
       εK * Fintype.card KK)
@@ -1006,30 +1034,32 @@ theorem uavg_mask_readMass_le_sph_good (S : PP → ((s : HPos) → XD s) → Pro
       εK * Fintype.card KK)
     (hcK' : ∀ p v y, ∑ k, (Hk'k p (v, k)).indicator (fun _ ↦ (1 : ℝ≥0∞)) y ≤
       εK * Fintype.card KK)
-    (μ : ℝ≥0∞)
-    (hrev : uavg (fun t ↦ if FullG S t then revW m₀ LocalSig.Interp.instruments (chgB t)
-      (gameR msgPol A (pubP (fullE t).1) (fullE t).2.1) ρ else 0) ≤ μ)
+    (κX : ℝ≥0∞)
+    (hX : ∀ p, ∑ v, (runtimeR m0R).totalWeight LocalSig.Interp.instruments
+      (readMass (Hhx p v) (Hkx p v) (Hk'x p v)) (gameR msgPol A (pubP p) v) ρ ≤
+        clsCap * κX * Fintype.card ((s : HPos) → XD s))
     (TG : PP → ((s : HPos) → XD s) → Prop) [∀ p, DecidablePred (TG p)]
-    (hTG : ∀ t, FullG S t → TG (fullE t).1 (fullE t).2.1) (τ : ℝ≥0∞)
-    (htrial : ∀ p, ∑ v : (s : HPos) → XD s, (if TG p v then (runtimeR m₀).totalWeight
+    (hTG : ∀ t, MassG S t → TG (fullE t).1 (fullE t).2.1) (τ : ℝ≥0∞)
+    (htrial : ∀ p, ∑ v : (s : HPos) → XD s, (if TG p v then (runtimeR m0R).totalWeight
       LocalSig.Interp.instruments
       (portMass (fun i ↦ readRecPort Selections i = true) (Hhv p v) (Hkv p v) (Hk'v p v))
       (prefixR msgPol A (pubP p) v) ρ else 0) ≤ τ * Fintype.card ((s : HPos) → XD s)) :
-    uavg (fun t ↦ if FullG S t then (runtimeR m₀).totalWeight LocalSig.Interp.instruments
+    uavg (fun t ↦ if MassG S t then (runtimeR m0R).totalWeight LocalSig.Interp.instruments
       (readMass (Hh t) (Hk t) (Hk' t)) (gameR msgPol A (pubOf (tabOf t)) (valueAt (tabOf t))) ρ
         else 0) ≤
-      τ + κ * ((3 * verifyBlocks : ℕ) : ℝ≥0∞) + clsCap * εK + clsCap * μ :=
-  by
+      τ + κ * ((3 * verifyBlocks : ℕ) : ℝ≥0∞) + clsCap * εK + clsCap * κX +
+        clsCap * chgRevAvg A ρ S := by
+  have hN := fun pub v ↦ hN_readRec cwUpd msgPol A hperm hsign pub v
   refine uavg_mask_readMass_le_split_good_sph (Θ := FT) (P := PP) (K := KK) cwUpd valFree_msgPol
-    A m₀ ρ hρ hρ1 hs
-    (fun t ↦ pubOf (tabOf t)) (fun t ↦ valueAt (tabOf t)) Hh Hk Hk' fullE (FullG S)
-    ?_ ?_ pubP chgB ?_
-    Hhv Hkv Hk'v κ src Hhk Hkk Hk'k hsub εK hcH hcK hcK'
-    ?_ μ hrev TG hTG τ htrial
-  · exact (fullE_spec S A).1
-  · exact le_card_mul_of_eq_inst _ _ _ _ _ _ card_coords
-  · exact fun t ht ↦ ((fullE_spec S A).2 t ht).1
-  · exact fun pub v ↦ hN_readRec cwUpd msgPol A hperm hsign pub v
+    A m0R ρ hρ hρ1 hs
+    (fun t ↦ pubOf (tabOf t)) (fun t ↦ valueAt (tabOf t)) Hh Hk Hk' fullE (MassG S)
+    (fullE_spec (SrcS S) A).1 (le_card_mul_of_eq_inst _ _ _ _ _ _ card_coords) pubP
+    Hhv Hkv Hk'v κ src Hhk Hkk Hk'k Hhx Hkx Hk'x hsub εK hcH hcK hcK' hN κX
+    (fun p ↦ by
+      have h := hX p
+      simp only [readMass_eq_portMass] at h
+      exact h) (chgRev A ρ)
+    (fun t ht _ _ _ ↦ mass_le_chgRev _ A ρ hρ hs S hN t ht _ _ _) _ le_rfl TG hTG τ htrial
 
 end sph
 
