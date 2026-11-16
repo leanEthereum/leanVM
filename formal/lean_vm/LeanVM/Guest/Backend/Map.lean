@@ -394,8 +394,10 @@ theorem contains_eq_isSome (m : KMap κ α) (k : κ) : m.contains k = (m[k]?).is
 end KMap
 
 /-- A value's number: twice its index for a value of no path and tag `0` (every value of the
-guest's renumbered input, `V.n`), else odd, by its hash. -/
-def vKey (v : V) : ℕ := if v.path.isEmpty && v.tag == 0 then 2 * v.idx else 2 * (hash v).toNat + 1
+guest's renumbered input, `V.n`), else odd, by its hash modulo a prime below `2^20`, which keeps
+the trie shallow. Values of one number share a bucket. -/
+def vKey (v : V) : ℕ :=
+  if v.path.isEmpty && v.tag == 0 then 2 * v.idx else 2 * ((hash v).toNat % 1048573) + 1
 
 instance : Keyed V := ⟨vKey⟩
 
