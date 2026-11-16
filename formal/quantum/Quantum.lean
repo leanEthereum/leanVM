@@ -21,6 +21,7 @@ import Quantum.Xmss.TableLaw
 import Quantum.Xmss.Events
 import Quantum.Xmss.Hybrid.Kraus
 import Quantum.Xmss.Hybrid.View
+import Quantum.Xmss.Hybrid.Disclose
 import Quantum.Sphincs.Keccak
 import Quantum.Sphincs.Coverage
 
