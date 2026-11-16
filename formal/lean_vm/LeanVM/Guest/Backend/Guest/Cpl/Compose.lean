@@ -8,7 +8,7 @@
 
 module
 
-public import LeanVM.Guest.B2C.Cells
+public import LeanVM.Guest.Deployed
 public import LeanVM.Guest.RunCount
 public import LeanVM.Guest.JumpTable
 public import LeanVM.Guest.Memory.GuestMainFree
@@ -17,25 +17,25 @@ public import LeanVM.Guest.Memory.SizeTotal
 /-!
 # B2's composition at an instance
 
-`B2C/B2.lean` composes the certificates' per-function runs (`CplRun`, which reads `FrameHolds` at
-the certificates' cells) into `End`'s `b2` and `count`. The composition does not look at what a
+The certificates' completeness composed their per-function runs, which read their frames at the
+certificates' cells, into `End`'s `b2` and `count`. The composition does not look at what a
 frame holds: here it is stated for any predicate `FH L j fp σ es vs kfps hdr` on an instance's
-frame, and any honest memory `honest coreProgram fs H C`. `CplRunG FH j` is `CplRun j` with `FH`
-for `FrameHolds`; `B2HypsG FH H C cert` asks it of every function, `FH` of every running instance
-of the honest memory, and `main`'s cells to hold the jump table. Then `b2_completeG` and
-`b2_countG` are `End.CompleteParts`' `b2` and `count` at `fs H C cert` with the counts `B2C.cnt`.
-The proofs are `B2C/B2.lean`'s.
+frame, and any honest memory `honest coreProgram fs H C`. `CplRunG FH j` asks function `j`'s
+counted run on every frame holding `FH`; `B2HypsG FH H C cert` asks it of every function, `FH` of
+every running instance of the honest memory, and `main`'s cells to hold the jump table. Then
+`b2_completeG` and `b2_countG` are `End.CompleteParts`' `b2` and `count` at `fs H C cert` with the
+counts `Deployed.cnt`.
 -/
 
 namespace LeanVM.Guest.Backend.Cpl
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
-open LeanVM.Guest.B2C
+open LeanVM.Guest.Deployed
 open LeanVM.Guest.End (mainEntry JumpTables)
 
 @[expose] public section
 
-/-- **The callees on a path run** (`B2C.KidsRun`): each call entered, from its callee's entry at its
+/-- **The callees on a path run**: each call entered, from its callee's entry at its
 frame to its return registers, executing `ck[i] op` instructions of each opcode, its returns left
 in its frame's cells after its arguments. -/
 def KidsRunG {κ : ℕ} (L : MemoryImage κ) (σ : Val) (es : List Ev) (kfps : List ℕ) (ck : List (Opcode → ℕ)) :
@@ -52,8 +52,8 @@ abbrev FrameP : Type :=
 
 variable (FH : FrameP)
 
-/-- **Function `j` runs, counted**, on any frame holding what `FH` asks (`B2C.CplRun` with `FH`
-for `FrameHolds`): on a memory holding the jump table, from its entry at its frame to its return
+/-- **Function `j` runs, counted**, on any frame holding what `FH` asks: on a memory holding the
+jump table, from its entry at its frame to its return
 registers (`main`: the final ones), at most `pathCount` instructions of each opcode besides its
 callees', its returned values left after its arguments. -/
 def CplRunG (j : ℕ) : Prop :=
@@ -287,7 +287,7 @@ theorem inst_runs : ∀ n, ∀ I ∈ honestInsts coreProgram fs H hdr T, I.t.tot
     · rw [hti] at hv
       obtain ⟨fn, hf, hpar, es, vs, hw, hrets, hev, hk⟩ := hv
       obtain ⟨j, hj⟩ := idxOf_of_find hf
-      obtain ⟨i, rfl, hi, hn', hfind, hcore, -, -, h1, hlt⟩ := fn_of_idx hj
+      obtain ⟨i, rfl, hi, hn', hfind, hcore, -, h1, hlt⟩ := fn_of_idx hj
       obtain rfl : fn = coreProgram[i] := Option.some.inj (hf.symm.trans hfind)
       have hw' : walk σ (coreOf (i + 1)).body = .ret es vs := by rw [hcore]; exact hw
       have hF := h.frame hdr rd T hname hH I hI f σ bufs kids hti (i + 1) hj es vs hw'

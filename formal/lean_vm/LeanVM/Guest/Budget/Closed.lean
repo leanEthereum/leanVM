@@ -9,6 +9,8 @@
 module
 
 public import LeanVM.Guest.Budget.DeployedBudget
+public import LeanVM.Guest.Budget.Deployed
+public import LeanVM.Guest.AcceptableChild
 public import LeanVM.Guest.Count.VsWordsOs
 public import LeanVM.Guest.B1.Main.VerifySubGoals
 public import LeanVM.Guest.B1.VerifySub.CompleteHyp
@@ -18,12 +20,28 @@ public import LeanVM.Guest.B2C.DeployedEq
 namespace LeanVM.Guest.Budget
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Guest.Completeness
 open LeanVM.Node
 open LeanVM.Guest.End (GuestCompleteWithin bytecode bytecode_length)
 open LeanVM.Guest.B1.Main (VerifySubGoalsTB childBv)
 open LeanVM.Guest.B1.VerifySub (vsBoundAt vsTsAny vkBound)
 
 @[expose] public section
+
+/-- **The guest is complete within the deployed budget**, each child's `verify_sub` complete within
+`Bvf` words at its announced stack log and rate, by a tree of `vsCnt op` instructions at it. -/
+theorem guest_complete_deployed {Pvs : NodeWitness → ℕ → Tree → Prop} {Bvf : ℕ → ℕ → ℕ}
+    (hV : ∀ seed s w, NodeRelation bytecode seed s w → GuestLimits s w →
+      ChildrenOk bytecode seed w →
+      VerifySubGoalsTB Deployed.fs B2C.cert 0 seed s w (Pvs w) (childBv Bvf w))
+    (hPv : ∀ op (w : NodeWitness) c (hc : c < w.children.length) (rd : Reader) (t : Tree)
+      (args rets : List E), Pvs w c t → t.Valid coreProgram rd args rets → t.BufsOk coreProgram →
+        t.weight (Deployed.ωArm Deployed.xmssArmC op) ≤
+          vsCnt op (childShape bytecode w.children[c]).1 (childShape bytecode w.children[c]).2) :
+    GuestCompleteWithin (deployedBudget Bvf) :=
+  guest_complete_budget Deployed.xmssArmC Deployed.xmssArmC_spec Count.mainCounts Count.mainStatics hV
+    l5C ccS vsCnt fun _ _ _ _ hl op _ _ _ _ _ hv hb hT =>
+      l5_honest_weight_le op hl (hPv op _) hv hb hT
 
 /-- **Child `c`'s `verify_sub` tree at the deployed instance**: its stack log among
 `open_stacked`'s arms, `20` to `30`, its callees calls of their names within their bounds at the

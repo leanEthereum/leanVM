@@ -9,10 +9,8 @@
 module
 
 public import LeanVM.Guest.Backend.Guest.Cpl.Placed
-public import LeanVM.Guest.B2C.DeployedEq
 public import LeanVM.Guest.Backend.Guest.Cpl.Insts
 public import LeanVM.Guest.Backend.Complete.InFrameFn
-public import LeanVM.Guest.B2C.Table
 public import LeanVM.Guest.EndComplete
 
 /-!
@@ -35,7 +33,7 @@ from the temporaries' and one value each, and the frame family does not see the 
 namespace LeanVM.Guest.Backend.Cpl
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory GuestPiece
-open LeanVM.Guest.B2C
+open LeanVM.Guest.Deployed
 
 @[expose] public section
 
@@ -187,7 +185,7 @@ structure FnAt (f : String) (i : ℕ) : Prop where
 
 theorem fnAt {f : String} {i : ℕ} (hix : coreProgram.indexOf? f = some i) : FnAt f i := by
   have hj : idxOf f = some (i + 1) := by unfold idxOf; rw [hix]; rfl
-  obtain ⟨i', he, hi, hn, hf, hc, hfs, -, -, h2⟩ := fn_of_idx hj
+  obtain ⟨i', he, hi, hn, hf, hc, hfs, -, h2⟩ := fn_of_idx hj
   obtain rfl : i = i' := by omega
   have hi' : i < guestTraced.length := lt_of_lt_of_eq hi guestTraced_length.symm
   have hcore : (tfG i).core = coreOf (i + 1) := by
@@ -212,21 +210,14 @@ theorem tmps_tfG {f : String} {i : ℕ} (F : FnAt f i) :
     coreProgram.temps f = Stmt.tmpsList (tfG i).core.body := by
   rw [F.temps, F.core]
 
-/-- The completeness instance's frame size of entry `i` is the certificates' (`B2C.fs`'s). -/
-theorem fsWant_cert (i : ℕ) : fsWant i = if i = 0 then Data.mainCells else max 2 (fsAt (i + 1)) := by
-  rw [B2C.fsAt_deployed]
-  rfl
-
 theorem fsWant_le (i : ℕ) : fsWant i ≤ fsN (i + 1) := by
-  rw [fsWant_cert]
   rcases i with _ | i
-  · show Data.mainCells ≤ mainFrame
+  · show Deployed.Data.mainCells ≤ mainFrame
     unfold mainFrame; omega
   · show max 2 (fsAt (i + 1 + 1)) ≤ (bif Nat.beq (i + 1 + 1) 1 then mainFrame else max 2 (fsAt (i + 1 + 1)))
     simp
 
 theorem fsWant_eq {i : ℕ} (h : i ≠ 0) : fsWant i = fsN (i + 1) := by
-  rw [fsWant_cert]
   rcases i with _ | i
   · exact absurd rfl h
   · show max 2 (fsAt (i + 1 + 1)) = (bif Nat.beq (i + 1 + 1) 1 then mainFrame else max 2 (fsAt (i + 1 + 1)))
@@ -261,25 +252,6 @@ theorem mem_runsG {f : String} {σ : Val} {es : List Ev} {x : ℕ × E} (h : x �
   obtain ⟨k, hk, rfl⟩ := List.mem_mapIdx.mp hx
   exact ⟨p, r, rs, he, k, hk, rfl⟩
 
-mutual
-theorem stmtAtoms_eq : ∀ s : Stmt, B2C.stmtAtoms s = Lift.stmtAtoms s
-  | .atom _ => rfl
-  | .ite _ z n => by rw [B2C.stmtAtoms, Lift.stmtAtoms, blockAtoms_eq z, blockAtoms_eq n]
-  | .match_ _ arms => by rw [B2C.stmtAtoms, Lift.stmtAtoms, armsAtoms_eq arms]
-  | .call .. => rfl
-  | .callIf .. => rfl
-  | .dispatch .. => rfl
-  | .ret _ => rfl
-
-theorem blockAtoms_eq : ∀ ss : List Stmt, B2C.blockAtoms ss = Lift.blockAtoms ss
-  | [] => rfl
-  | s :: ss => by rw [B2C.blockAtoms, Lift.blockAtoms, stmtAtoms_eq s, blockAtoms_eq ss]
-
-theorem armsAtoms_eq : ∀ as : List (List Stmt), B2C.armsAtoms as = Lift.armsAtoms as
-  | [] => rfl
-  | a :: as => by rw [B2C.armsAtoms, Lift.armsAtoms, blockAtoms_eq a, armsAtoms_eq as]
-end
-
 /-- An atom of a node's path is an atom of its function's body. -/
 theorem events_atomG {I : Inst} {f : String} {σ : Val} {bufs : List ℕ} {kids : List Tree}
     (ht : I.t = .node f σ bufs kids) {a : Atom} (ha : Ev.atom a ∈ I.t.events coreProgram) :
@@ -297,8 +269,8 @@ theorem events_atomG {I : Inst} {f : String} {σ : Val} {bufs : List ℕ} {kids 
     | ret es vs =>
       rw [hw] at ha
       refine ⟨i, rfl, ?_⟩
-      rw [F.core, ← blockAtoms_eq]
-      exact B2C.walk_blockAtoms (σ := σ) _ (by rw [hw]; exact ha)
+      rw [F.core]
+      exact walk_blockAtoms (σ := σ) _ (by rw [hw]; exact ha)
     | fall es => rw [hw] at ha; cases ha
     | stuck => rw [hw] at ha; cases ha
 
@@ -526,13 +498,13 @@ theorem tableG (hok : CplOkAll) {I : Inst} {σ : Val} {bufs : List ℕ} {kids : 
     exact hi
   have F := fnAt hix
   have E := entryOk hok F.lt
-  have hlo : Data.mainCells ≤ q.1 := by
+  have hlo : Deployed.Data.mainCells ≤ q.1 := by
     have := tableCells_offsets ▸ List.mem_map_of_mem (f := Prod.fst) hq
     rw [List.mem_range'_1] at this
     exact this.1
   have hoff := tableCells_off hq
   have hpre : ∀ x ∈ valG "main" σ (coreProgram.temps "main") ++
-      (runsG "main" σ (I.t.events coreProgram) ++ ownG 0 "main" σ I), x.1 < Data.mainCells := by
+      (runsG "main" σ (I.t.events coreProgram) ++ ownG 0 "main" σ I), x.1 < Deployed.Data.mainCells := by
     intro x hx
     rcases List.mem_append.mp hx with hx | hx
     · obtain ⟨t, htm, rfl⟩ := List.mem_map.mp hx
@@ -540,7 +512,7 @@ theorem tableG (hok : CplOkAll) {I : Inst} {σ : Val} {bufs : List ℕ} {kids : 
       obtain ⟨c, hc, -, hn⟩ := E.facts.sfacts.tmpIn t htm
       dsimp only
       rw [F.cert, hc]
-      simpa [fsWant_cert] using hn
+      simpa [fsWant] using hn
     rcases List.mem_append.mp hx with hx | hx
     · obtain ⟨p, r, rs, he, k, hk, rfl⟩ := mem_runsG hx
       obtain ⟨i', hix', ha⟩ := events_atomG ht he
