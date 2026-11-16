@@ -61,7 +61,7 @@ followed it, which may differ where the compiler's sharing emitted nothing; and 
 message cells are used in place (`sponge_run`) only when they are one run of the expansion
 (`V.adjacent`), where the compiler also uses four cells that its allocator happened to place one
 after another (the guest's `fs_perm_pending`, four loads in a row): there the expansion copies
-them into a fresh run, and a certificate places each copy in the cell it copies.
+them into a fresh run, and the placement puts each copy in the cell it copies.
 -/
 
 namespace LeanVM.Guest.Expand

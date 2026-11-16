@@ -22,7 +22,7 @@ proof.
 
 * `fn% s`: `Fn.«s».core`; `idx% s`: `j`; `name% s`: the function's name; `core_count%`: the
   number of core functions; `fn_idx% s`: `j + 1`, its index among the compiled functions
-  (`coreOf`, `certOf`); `fn_count%`: their number (`nFns`), the entry's included;
+  (`coreOf`); `fn_count%`: their number (`nFns`), the entry's included;
 * `core% s m`: the definition `Fn.«s».core.m` of its generated layout (`body`, chunk `c3`, block
   `s40_e`);
 * `core_eq% s`, `core_eq% s m`: the defining equation of `Fn.«s».core` or of `Fn.«s».core.m`, a
@@ -77,7 +77,7 @@ elab:max "fn_count%" : term => do
   succLit d.value
 
 /-- `fn_idx% s`: the compiled index of the function of stable name `s`, one past its index in
-`coreProgram` (`coreOf`, `certOf`, `CutsKnown`), a numeral. -/
+`coreProgram` (`coreOf`), a numeral. -/
 elab:max "fn_idx% " s:ident : term => do succLit (← valueOf `I s)
 
 /-- `core% s m`: the member `m` of the generated function of stable name `s`. -/

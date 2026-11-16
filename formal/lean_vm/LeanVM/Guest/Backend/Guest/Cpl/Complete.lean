@@ -16,10 +16,10 @@ public import LeanVM.Guest.Backend.Complete.PathRun
 
 `guest_complete_backend` is `Budget.guest_complete`'s statement at the instance `HG CG certG` of
 `Inst.lean`: B2's composition (`b2_completeG`, `b2_countG`) on `cplRunG` and `frameG`, the
-checker's facts `kFactsAllG`, the counts' invariance `Deployed.cntRetemp`, the frame runs' facts
-`runsFitG`, `runsConsecG`, and the jump
-table's cells `jtCells`. It rests on the frame side of the back end's completeness
-(`Complete.FrameWordsStmt`) and the per-function test passing for every entry (`CplOkAll`).
+placement facts `kFactsAllG`, the counts' invariance `Deployed.cntRetemp`, the frame runs' facts
+`runsFitG`, `runsConsecG`, and the jump table's cells `jtCells`. It rests on the frame side of the
+back end's completeness (`Complete.FrameWordsStmt`) and the per-function test passing for every
+entry (`CplOkAll`).
 -/
 
 namespace LeanVM.Guest.Backend.Cpl

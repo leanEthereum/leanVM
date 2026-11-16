@@ -1,8 +1,8 @@
 /-
   LeanVM.Guest.ExpTables
 
-  The exponent table `exponent_tables` fills (`B1.ExpTables`), for the guest's shared check
-  context (`Glob`) and B1's meaning of `exponent_tables` (`B1/Bits/Meaning.lean`).
+  The exponent table `exponent_tables` fills (`B1.ExpTables`), for B1's meaning of
+  `exponent_tables` (`B1/Bits/Meaning.lean`) and the back end's obligations.
 -/
 
 module
@@ -16,8 +16,8 @@ import LeanVM.Guest.Data.Source
 /-!
 # The exponent table
 
-Defined here, apart from B1's proofs, so that the check context, and with it the kernel-checked
-certificates of the compiled functions (`B2C`), do not import them.
+Defined here, apart from B1's proofs, so that the back end's obligations (`Backend/Sound/Obl/GuestU.lean`)
+do not import them.
 
 `exponent_tables()` (`lean_ethereum.py`) fills one read-only `HeapBuf(WIN_TAB_AT + WIN_TAB_LEN)`,
 `236 + 2048` words, indexed by g-powers, in five sections:

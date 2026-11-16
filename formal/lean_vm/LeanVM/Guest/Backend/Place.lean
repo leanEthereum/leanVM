@@ -897,8 +897,7 @@ end
 /-! ## Functions -/
 
 /-- A placed function with the place of each of its values: the valuation a correctness proof
-reads the frame with, and what a certificate of the existing checker calls its cells
-(`Check.Cert.locs`). -/
+reads the frame with. -/
 structure Placed where
   fn : PFn
   locs : VMap Loc

@@ -15,10 +15,7 @@ public import LeanVM.Guest.Data.NameStrings
 
 What each guest function asks of its callers and promises them, in the analysis' terms
 (`Obl.Sig`, indices into the arguments and, for `post`, into the arguments then the returns).
-Every entry is what a selector of the function, or of a function it is passed to, needs, and what
-the existing certificates' signatures ask of the same function (`Sig.pre`, `Sig.mem`, `Sig.sem`,
-at frame offsets `2 + i`), so that the guest's precondition `guestU` and the certificates' imply
-each other (`Guest/B2/Sig.lean`).
+Every entry is what a selector of the function, or of a function it is passed to, needs.
 
 * `verify_tables`: argument `9` below `g^34` (dispatched on), the word at argument `10` below
   `g^34` (`dims_g[0]`, dispatched on), read (`memRel`);

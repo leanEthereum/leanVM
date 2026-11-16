@@ -39,7 +39,7 @@ open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
 
 @[expose] public section
 
-/-- `k m`, the trie of `m` evaluated first (`B2.withMap`). -/
+/-- `k m`, the trie of `m` evaluated first. -/
 def withLocs {α β : Type} (m : VMap α) (k : VMap α → β) : β := m.t.seq fun t => k ⟨t⟩
 
 theorem withLocs_eq {α β : Type} (m : VMap α) (k : VMap α → β) : withLocs m k = k m := by

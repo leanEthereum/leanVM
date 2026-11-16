@@ -41,8 +41,8 @@ stack log and rate, the opening arm its `verify_sub` takes, `work s w`), at
 `GuestCompleteWithin b`.
 
 **The pieces** (`CompletePieces`, `guest_complete_of`). The memory is the honest memory of a call
-tree (`Memory.honest`) at the certificates' frame sizes `fs`, headers `H` and cells `C`, the tree
-placed at the certificates' cells `cert` (`Memory.HonestAt`):
+tree (`Memory.honest`) at the placement's frame sizes `fs`, headers `H` and cells `C`, the tree
+placed at the value cells `cert` (`Memory.HonestAt`):
 
 * `honest`: under the hypotheses, a tree of `main`, valid on some memory, satisfying
   `Memory.HonestAt` with the statement's digest as `main`'s header, of cost within the budget
@@ -50,7 +50,7 @@ placed at the certificates' cells `cert` (`Memory.HonestAt`):
   the discharge of `Honest`);
 * `table`: `main`'s cells hold its jump table (`Memory.tableCells`);
 * `b2`: on the honest memory, `main` runs from its entry at `fp = 1` to the halting registers
-  (the checker's completeness, `exec_complete` and the certificates);
+  (the back end's completeness, `Backend.Cpl.b2_completeG`);
 * `size`: that run's committed size is at most the tree's cost.
 
 `CompletePiecesWithin` splits the size at a call tree's instruction counts `cnt T op`, and
@@ -163,7 +163,7 @@ abbrev GuestCompleteWithin (b : Budget) : Prop := GuestComplete fun s w ↦ b.si
 
 /-! ## The pieces -/
 
-/-- **What completeness rests on**, for the certificates' frame sizes `fs`, headers `H`, cells `C`
+/-- **What completeness rests on**, for the placement's frame sizes `fs`, headers `H`, cells `C`
 and value cells `cert`, a cost of a call tree and a budget of a node. -/
 structure CompletePieces (fs : String → ℕ) (H : Memory.Inst → ℕ → E × E)
     (C : Memory.Inst → List (ℕ × E)) (cert : String → V → ℕ) (cost : Memory.Tree → ℕ)
@@ -177,7 +177,7 @@ structure CompletePieces (fs : String → ℕ) (H : Memory.Inst → ℕ → E ×
       cost T ≤ budget s w
   /-- `main`'s cells hold its jump table. -/
   table : ∀ (I : Memory.Inst) σ bufs kids, I.t = .node "main" σ bufs kids → Memory.tableCells ⊆ C I
-  /-- B2 (the checker's completeness, the certificates): on the honest memory, `main` runs from
+  /-- B2 (the back end's completeness): on the honest memory, `main` runs from
   its entry at `fp = 1` to the halting registers. -/
   b2 : ∀ hdr (rd : Reader) (T : Memory.Tree), T.name = "main" →
     Memory.HonestAt coreProgram fs H C hdr T cert rd [] [] →

@@ -9,7 +9,7 @@
 
 module
 
-public import LeanVM.Guest.Data.FrameSizes
+public import LeanVM.Guest.Deployed.Data
 public import LeanVM.Guest.Memory.Alloc
 public import LeanVM.Guest.Memory.Tree
 public import LeanVM.Guest.Memory.Placed
@@ -23,12 +23,12 @@ B2's completeness direction runs the compiled guest on a memory built from an ho
 evaluation of its core IR (`Tree.Valid`, `Memory/Eval.lean`): a call tree with one valuation per
 call instance, which a derivation of `Program.Rel` is for a well-formed program
 (`Program.Rel.tree`, `Memory/Tree.lean`). This file builds that memory and states what the
-checker's completeness consumes.
+completeness proof consumes.
 
 **Inputs.** The evaluation `T` from `main`, valid on some reader `rd`; the frame sizes `fs`
-(the certificate's); the header of each callee, `H I i` (`fp[0]`, `fp[1]`: the return pc and
+(the placement's); the header of each callee, `H I i` (`fp[0]`, `fp[1]`: the return pc and
 the caller's frame, or the caller's own header for a tail call); and the cells of each frame,
-`C I` (offset, word): the certificate's cell of each value with its word (`valueCells`), and
+`C I` (offset, word): the placed cell of each value with its word (`valueCells`), and
 whatever plumbing the compiled code writes (callee frame pointers, jump targets, a loop's next
 frame, `main`'s jump table, `tableCells`).
 
@@ -363,16 +363,16 @@ def tableCells : List (ℕ × E) :=
     | _ => none
 
 set_option maxRecDepth 100000 in
-/-- The slots are `Data.mainCells, Data.mainCells + 1, …`, one per `SET`. -/
-theorem tableCells_offsets : tableCells.map Prod.fst = List.range' Data.mainCells Data.jtSlots := by
+/-- The slots are `Deployed.Data.mainCells, Deployed.Data.mainCells + 1, …`, one per `SET`. -/
+theorem tableCells_offsets : tableCells.map Prod.fst = List.range' Deployed.Data.mainCells Deployed.Data.jtSlots := by
   decide +kernel
 
-/-- The slots lie in `main`'s frame past its header, below `Data.mainCells + Data.jtSlots`. -/
+/-- The slots lie in `main`'s frame past its header, below `Deployed.Data.mainCells + Deployed.Data.jtSlots`. -/
 theorem tableCells_off {q : ℕ × E} (hq : q ∈ tableCells) :
-    2 ≤ q.1 ∧ q.1 < Data.mainCells + Data.jtSlots := by
+    2 ≤ q.1 ∧ q.1 < Deployed.Data.mainCells + Deployed.Data.jtSlots := by
   have := tableCells_offsets ▸ List.mem_map_of_mem (f := Prod.fst) hq
   rw [List.mem_range'_1] at this
-  have : 2 ≤ Data.mainCells := by decide
+  have : 2 ≤ Deployed.Data.mainCells := by decide
   omega
 
 /-- Two slots at one offset are one slot. -/

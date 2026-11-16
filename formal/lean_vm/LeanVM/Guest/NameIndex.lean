@@ -12,13 +12,11 @@ public import LeanVM.Guest.CoreNames
 # Functions by name
 
 A guest function's **index** is one past its position in `coreProgram` (`main` is `1`), the index
-the certificates (`certOf`, `certByName`), the replayed frame map's entry table
-(`Located/ReplayFast.lean`) and the decoder's numbered frames (`Fast/FunctionNames.lean`) use.
-`nameIndex f` is the index of the first function named `f`; the names being distinct
-(`coreProgram_names_nodup`), the function at position `i` is the first of its name
-(`findIdx_name_of_nodup`). This module imports the names alone, so the kernel-checked tables of
-the decoder's readers that name functions (`Fast/WhirTablesCheck.lean`) import neither the
-certificates nor the checker.
+the replayed frame map's entry table (`Located/ReplayFast.lean`) and the decoder's numbered frames
+(`Fast/FunctionNames.lean`) use. `nameIndex f` is the index of the first function named `f`; the
+names being distinct (`coreProgram_names_nodup`), the function at position `i` is the first of its
+name (`findIdx_name_of_nodup`). This module imports the names alone, so the kernel-checked tables
+of the decoder's readers that name functions (`Fast/WhirTablesCheck.lean`) import nothing else.
 -/
 
 namespace LeanVM.Guest

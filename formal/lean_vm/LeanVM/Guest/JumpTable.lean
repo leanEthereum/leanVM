@@ -1,34 +1,23 @@
 /-
   LeanVM.Guest.JumpTable
 
-  `main`'s entry and the jump table `__jump_tables` writes: the run's start, and the jump table of
-  the checker's `Glob` holding in a memory that holds `__jump_tables`' writes.
+  `main`'s entry and the jump table `__jump_tables` writes: the run's start.
 -/
 
 module
 
-public import LeanVM.Guest.Exec
 public import LeanVM.Guest.Bytecode
 public import LeanVM.Guest.Logic
 public import LeanVM.Guest.Memory
-public import LeanVM.Guest.JumpTable.Keys
-public import LeanVM.Guest.JumpTable.Code
 
 /-!
 # The jump table
 
-`__jump_tables` (function `0`, from pc `0`) is `Data.jtSlots` `SET`s of the slots
-`Data.mainCells + i` of `main`'s frame, then `main` runs from its entry `mainEntry` at `fp = 1`. `JumpTables L` says each
+`__jump_tables` (function `0`, from pc `0`) is `Deployed.Data.jtSlots` `SET`s of the slots
+`Deployed.Data.mainCells + i` of `main`'s frame, then `main` runs from its entry `mainEntry` at `fp = 1`. `JumpTables L` says each
 `SET` holds in `L` (each slot of `Memory.tableCells` holds its word). `safe_jumpTables`: a halting
 run from `(g^0, 1)` writes the table and halts from `(g^mainEntry, 1)`; `reach_jumpTables` is the
 converse for completeness.
-
-`Data.jtTrie` maps a slot `s` to the exponent `t` of the target `g^t` the checker expects there.
-`jtOk` checks, at every entry `(s, t)` of the trie, that instruction `s - Data.mainCells` of
-`__jump_tables` is `SET s, k0, 0, 0` with `Data.powTree` giving `k0 ↦ t`, so that `K.ofBits k0 = g^t`
-(`PowTree.Ok`), from the kernel's walks of the trie's keys (`JumpTable.Keys`) and of the code
-(`JumpTable.Code`). So the table the checks read is the one `__jump_tables` writes
-(`jt_of_jumpTables`).
 -/
 
 namespace LeanVM.Guest.End
@@ -144,46 +133,3 @@ theorem reach_jumpTables {κ : ℕ} {L : MemoryImage κ} (h : JumpTables L) :
 
 end
 end LeanVM.Guest.End
-
-namespace LeanVM.Guest.JumpTable
-
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Exec LeanVM.Guest.Memory
-
-@[expose] public section
-
-/-- **Every entry of the jump table is checked.** -/
-theorem jtOk : allEntries entryOk Data.jtTrie 1 0 = true := by
-  refine allEntries_of_get _ _ _ fun s t hs => ?_
-  have hk := allEntries_get jtKeys hs
-  rw [Nat.one_mul, Nat.add_zero] at hk ⊢
-  simp only [keysOk, Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq] at hk
-  have hc := CompiledFunction.getElem?_code (CompiledFunction.wellChunked_of_mem End.f0_mem) hk.2
-  have hw := walkOk_get jtCode hc
-  rw [Nat.zero_add] at hw
-  unfold codeOk at hw
-  rw [Nat.sub_add_cancel hk.1, hs] at hw
-  unfold entryOk
-  rw [Nat.blt_eq.mpr hk.2, Bool.true_and]
-  exact hw
-
-/-- The jump table the checker reads is what `__jump_tables` wrote. -/
-theorem jt_of_jumpTables {κ : ℕ} {L : MemoryImage κ} (h : End.JumpTables L) (hpows : Data.powTree.Ok) :
-    ∀ s t, Data.jtTrie.get s = some t → L.read (addressOfIndex s) = some (ofK (addressOfIndex
-        t)) := by
-  intro s t hs
-  have he := allEntries_get jtOk hs
-  rw [Nat.one_mul, Nat.add_zero] at he
-  unfold entryOk at he
-  rw [Bool.and_eq_true] at he
-  obtain ⟨hlt, he⟩ := he
-  have hlen : s - Data.mainCells < Data.f0.instructionCount := by simpa using hlt
-  obtain ⟨o, k0, k1, hins, hmem⟩ := End.f0_instr hlen
-  rw [hins] at he
-  simp only [Bool.and_eq_true, beq_iff_eq] at he
-  obtain ⟨⟨ho, hk1⟩, hf⟩ := he
-  subst ho hk1
-  have := h _ hmem
-  rwa [imm_of_ofBits (PowTree.find_ok hpows hf)] at this
-
-end
-end LeanVM.Guest.JumpTable

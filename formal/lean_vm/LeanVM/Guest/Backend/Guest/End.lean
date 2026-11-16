@@ -22,8 +22,7 @@ public import LeanVM.Guest.Backend.Sound.Obl.GuestB1
   `minLogMem ≤ κ ≤ maxLogMem`, where a run of `guestProgram` from `(g^0, 1)` halts, `main`'s core
   body holds at frame `1` (`guest_program_sound`, its obligations from `guest_obligations`);
 * `guest_main_body`: the same as `main`'s body `Data.core0.body` under the valuation by places at
-  frame `1`, returning nothing, its calls located (`World.C`): the certificate-free analogue of
-  `B2SoundL`'s statement about `main`;
+  frame `1`, returning nothing, its calls located (`World.C`);
 * `guest_main_rel`: `coreProgram.Rel L.read "main" [] []`;
 * `registered_tfOf`: function `j` is a registered loop helper of the guest's world exactly when
   its name is a loop helper's and its `loopSource` says so.

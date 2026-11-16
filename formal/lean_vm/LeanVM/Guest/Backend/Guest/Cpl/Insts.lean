@@ -15,9 +15,8 @@ public import LeanVM.Guest.Memory.SizeTotal
 /-!
 # The instances at any headers
 
-The certificates' completeness proved these at their headers; the proofs read of the headers only
-that they are some function of the instance, so here they are stated for
-any `H`. `kid_inst`: the `i`-th callee of a node's path is an instance at its `i`-th callee frame
+The completeness proofs read of the headers only that they are some function of the instance, so
+here they are stated for any `H`. `kid_inst`: the `i`-th callee of a node's path is an instance at its `i`-th callee frame
 with header `H I i`; `honest_hdrK`: when every `H I i` is of `K`, every instance but `main`'s
 returns to registers of `K`; `reInst_of_honest`: when `H` does not see the temporaries, an
 instance of the re-chosen tree is the old instance at its frame, re-chosen. `frameE_cell`: a cell
