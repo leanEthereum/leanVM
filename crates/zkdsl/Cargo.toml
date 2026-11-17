@@ -9,10 +9,10 @@ workspace = true
 
 [dependencies]
 isa.workspace = true
-keccak256.workspace = true
 verifier.workspace = true
 
 [dev-dependencies]
 fiat_shamir_prover.workspace = true
+keccak256.workspace = true
 primitives = { package = "stable_primitives", path = "../stable_prover/primitives" }
 lean_vm_core = { package = "stable_lean_vm_core", path = "../stable_prover/lean_vm_core" }

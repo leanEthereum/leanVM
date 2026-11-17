@@ -316,6 +316,5 @@ name = "zkdsl"
 version = "0.1.0"
 dependencies = [
  "isa",
- "keccak256",
  "verifier",
 ]

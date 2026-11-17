@@ -3,19 +3,16 @@
 
 pub use verifier::{E as F128, K as F64};
 
-/// Zero and one.
+/// One.
 pub trait Consts {
-    const ZERO: Self;
     const ONE: Self;
 }
 
 impl Consts for F64 {
-    const ZERO: Self = F64(0);
     const ONE: Self = F64(1);
 }
 
 impl Consts for F128 {
-    const ZERO: Self = F128::new(0, 0);
     const ONE: Self = F128::new(1, 0);
 }
 

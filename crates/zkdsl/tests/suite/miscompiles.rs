@@ -1,7 +1,7 @@
 //! Programs that compiled to something other than what they say, or crashed the
-//! compiler. Each is now rejected with a diagnostic, or compiled as written.
+//! compiler. Each is now rejected by the parser with a diagnostic.
 
-use zkdsl::{expand, parse};
+use zkdsl::parse;
 
 #[test]
 fn ambiguous_programs_are_rejected_when_parsed() {
@@ -54,64 +54,4 @@ fn ambiguous_programs_are_rejected_when_parsed() {
         let err = parse(&src).err().unwrap_or_else(|| panic!("accepted:\n{src}"));
         assert!(err.contains(want), "`{err}` does not say `{want}`, for:\n{src}");
     }
-}
-
-#[test]
-fn ill_formed_calls_are_rejected_when_lowered() {
-    for (src, want) in [
-        // `main` halts the machine, so the call ended the run with a success.
-        (
-            "def f():\n    main()\n    return\n\ndef main():\n    f()\n    return\n",
-            "`main` is the entry point",
-        ),
-        // Read the third cell through a two-cell parameter.
-        (
-            "@inline\ndef f(s: StackBuf(2)):\n    return s[0]\n\ndef main():\n    t = StackBuf(3)\n    t[0] = 1\n    r = f(t)\n    return\n",
-            "is a StackBuf(2), got a StackBuf(3)",
-        ),
-        (
-            "def main():\n    b = StackBuf(41)\n    hint_decompose_bits_exponent(b, GEN, 41)\n    return\n",
-            "at most 40 bits",
-        ),
-        // `at + count` wrapped to 1, and the windows were written below the buffer.
-        (
-            "def main():\n    b = StackBuf(1)\n    hint_windows_exponent(b, GEN, 0, 1, 2, 4294967295)\n    return\n",
-            "its StackBuf destination has 1",
-        ),
-        // `cap=` absorbs with no padding, and ignored `pad_tail=1`.
-        (
-            "def main():\n    s = StackBuf(13)\n    keccak([0, 0], [0, 0], s)\n    t = StackBuf(4)\n    o = StackBuf(13)\n    keccak([0, 0], [0, 0], o, tail=t, cap=s, pad_tail=1)\n    return\n",
-            "takes no len= or pad_tail=",
-        ),
-    ] {
-        let ast = parse(src).unwrap();
-        let Err(err) = std::panic::catch_unwind(|| expand(&ast)) else {
-            panic!("accepted:\n{src}");
-        };
-        let msg = err.downcast_ref::<String>().map(String::as_str).unwrap_or("");
-        assert!(msg.contains(want), "`{msg}` does not say `{want}`, for:\n{src}");
-    }
-}
-
-/// A `return` nested in `main` was ignored, the code after it running anyway.
-#[test]
-#[should_panic(expected = "`return` in `main` is allowed only as its last statement")]
-fn nested_return_in_main_is_rejected() {
-    let src = "def main():\n    x = 1\n    if x == 1:\n        return\n    assert x == 2\n    return\n";
-    let _ = expand(&parse(src).expect("parse"));
-}
-
-/// `x ** 0` never evaluated `x`, dropping the assertion in `one()`.
-#[test]
-fn zero_power_evaluates_its_base() {
-    let src = "def one():\n    x = hint_witness(\"x\")\n    assert x == 1\n    return x\n\ndef main():\n    y = one() ** 0\n    return\n";
-    let run = |x: u64| {
-        execute(
-            &compile(&parse(src).unwrap()),
-            &[("x".into(), vec![vec![F128::from(F64(x))]])],
-            [F128::ZERO; 2],
-        )
-    };
-    run(1).unwrap();
-    assert!(run(2).is_err());
 }
