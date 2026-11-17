@@ -202,8 +202,7 @@ const CRT: [Maps; POINTS] = {
             p += 1;
         }
         let pivot = rows[p];
-        rows[p] = rows[c];
-        rows[c] = pivot;
+        rows.swap(p, c);
         let mut r = 0;
         while r < N {
             if r != c && rows[r][c / 64] >> (c % 64) & 1 == 1 {
