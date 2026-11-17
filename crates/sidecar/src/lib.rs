@@ -1,7 +1,7 @@
-//! The leanVM sidecar: a process that proves, and nothing else, for a client on the same machine.
+//! The leanVM sidecar: a process that proves for clients on the same machine.
 //!
-//! A client calls the sidecar's one operation, the library's `aggregate`, over a Unix stream socket, and verifies
-//! the proofs it gets back with the library. The sidecar keeps the prover's allocator, threads and warm state out of
+//! A client calls the library's `aggregate` over a Unix stream socket, and verifies proofs with the library, or with
+//! the sidecar if it has no binding to it. The sidecar keeps the prover's allocator, threads and warm state out of
 //! the client's process. `bins/leanvm-sidecar` runs [`serve`]; its `README.md` specifies the protocol, which any
 //! language can speak, and [`Client`] speaks it from Rust.
 

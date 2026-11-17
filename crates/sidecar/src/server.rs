@@ -1,8 +1,8 @@
-//! The server: a thread per connection reads and decodes requests, and the thread that calls [`serve`], the one
-//! that started the prover's pool, proves them one at a time.
+//! The server: a thread per connection reads and decodes requests and verifies proofs, and the thread that calls
+//! [`serve`], the one that started the prover's pool, proves them one at a time.
 
 use crate::Rejection;
-use crate::wire::{self, Hello, Incoming, Outcome, Request};
+use crate::wire::{self, Call, Hello, Incoming, Outcome, Request};
 use aggregation::{AggregateError, OutputClaims};
 use isa::Prover;
 use std::convert::Infallible;
@@ -215,8 +215,8 @@ fn connection(mut stream: UnixStream, jobs: &Sender<Job>, hello: &[u8], max_requ
             }
             Ok(Incoming::End) | Err(_) => return,
         };
-        let outcome = match wire::decode_request(&body) {
-            Ok(request) => {
+        let response = match wire::decode_request(&body) {
+            Ok(Call::Aggregate(request)) => {
                 drop(body);
                 let Ok(client) = stream.try_clone() else { return };
                 let (reply, outcome) = mpsc::channel();
@@ -224,14 +224,16 @@ fn connection(mut stream: UnixStream, jobs: &Sender<Job>, hello: &[u8], max_requ
                     .expect("the prover outlives every connection");
                 // No outcome: the prover dropped the request, its client having hung up.
                 let Ok(outcome) = outcome.recv() else { return };
-                outcome
+                wire::encode_response(&outcome)
             }
+            // Here rather than behind the proofs: it is fast, and on one thread.
+            Ok(Call::Verify(claims, proof)) => wire::encode_verdict(proof.is_some_and(|proof| proof.verify(&claims))),
             Err((rejection, message)) => {
                 eprintln!("a request refused ({rejection:?}): {message}");
-                Err((rejection, message))
+                wire::encode_response(&Err((rejection, message)))
             }
         };
-        if stream.write_all(&wire::encode_response(&outcome)).is_err() {
+        if stream.write_all(&response).is_err() {
             return;
         }
     }

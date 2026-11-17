@@ -93,23 +93,8 @@ impl Client {
         log_inv_rate: usize,
     ) -> Result<(AggregateClaims, AggregateProof), SidecarError> {
         let request = wire::encode_request(children, raw_lean_xmss, raw_lean_sphincs, blobs, output, log_inv_rate);
-        let len = request.len() as u64 - 8;
-        if len > self.max_request {
-            return Err(SidecarError::Rejected(
-                Rejection::Malformed,
-                format!(
-                    "a request of {len} bytes, the sidecar takes at most {}",
-                    self.max_request
-                ),
-            ));
-        }
-        self.stream.write_all(&request)?;
         // The claims a response carries are no longer than the request.
-        let body = match wire::read_frame(&mut self.stream, len + PROOF_ROOM)? {
-            Incoming::Body(body) => body,
-            Incoming::End => return Err(std::io::Error::from(std::io::ErrorKind::UnexpectedEof).into()),
-            Incoming::TooLarge(_) => return Err(SidecarError::Protocol("a response longer than any".into())),
-        };
+        let body = self.call(&request, request.len() as u64 + PROOF_ROOM)?;
         let (claims, proof) = match wire::decode_response(&body) {
             Some(Ok(proven)) => proven,
             Some(Err((rejection, message))) => return Err(SidecarError::Rejected(rejection, message)),
@@ -128,6 +113,36 @@ impl Client {
             return Err(SidecarError::Protocol("a proof of other claims than asked for".into()));
         }
         Ok((claims, proof))
+    }
+
+    /// The sidecar's verify operation, for clients without the library: from Rust, [`AggregateProof::verify`] is faster.
+    pub fn verify(&mut self, claims: &AggregateClaims, proof: &AggregateProof) -> Result<bool, SidecarError> {
+        let body = self.call(&wire::encode_verify(claims, proof), 1 << 16)?;
+        match wire::decode_verdict(&body) {
+            Some(Ok(valid)) => Ok(valid),
+            Some(Err((rejection, message))) => Err(SidecarError::Rejected(rejection, message)),
+            None => Err(SidecarError::Protocol("a response that does not decode".into())),
+        }
+    }
+
+    /// Sends a request frame and reads the response's body, at most `max_response` bytes.
+    fn call(&mut self, request: &[u8], max_response: u64) -> Result<Vec<u8>, SidecarError> {
+        let len = request.len() as u64 - 8;
+        if len > self.max_request {
+            return Err(SidecarError::Rejected(
+                Rejection::Malformed,
+                format!(
+                    "a request of {len} bytes, the sidecar takes at most {}",
+                    self.max_request
+                ),
+            ));
+        }
+        self.stream.write_all(request)?;
+        match wire::read_frame(&mut self.stream, max_response)? {
+            Incoming::Body(body) => Ok(body),
+            Incoming::End => Err(std::io::Error::from(std::io::ErrorKind::UnexpectedEof).into()),
+            Incoming::TooLarge(_) => Err(SidecarError::Protocol("a response longer than any".into())),
+        }
     }
 }
 

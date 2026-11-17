@@ -15,6 +15,7 @@ pub(crate) const MAGIC: [u8; 8] = *b"leanvmsc";
 pub(crate) const VERSION: u32 = 1;
 
 const OP_AGGREGATE: u8 = 1;
+const OP_VERIFY: u8 = 2;
 const OK: u8 = 0;
 
 const XMSS_RECORD: usize = lean_xmss::PUB_KEY_SIZE + lean_xmss::MESSAGE_LEN + lean_xmss::SIG_SIZE;
@@ -189,7 +190,14 @@ pub(crate) fn decode_hello(body: &[u8]) -> Option<Hello> {
     c.is_empty().then_some(hello)
 }
 
-/// An `aggregate` call, as the server decodes it.
+/// A request, as the server decodes it.
+pub(crate) enum Call {
+    Aggregate(Request),
+    /// Claims, and their proof unless its bytes do not decode, which makes it invalid.
+    Verify(AggregateClaims, Option<AggregateProof>),
+}
+
+/// An `aggregate` call.
 pub(crate) struct Request {
     pub children: Vec<Proven>,
     pub raw_lean_xmss: Vec<RawLeanXmss>,
@@ -245,14 +253,37 @@ pub(crate) fn encode_request(
     f.finish()
 }
 
-pub(crate) fn decode_request(body: &[u8]) -> Result<Request, (Rejection, String)> {
+pub(crate) fn encode_verify(claims: &AggregateClaims, proof: &AggregateProof) -> Vec<u8> {
+    let mut f = Frame::new();
+    f.u8(OP_VERIFY);
+    f.bytes(&claims.to_bytes());
+    f.bytes(&proof.to_bytes());
+    f.finish()
+}
+
+pub(crate) fn decode_request(body: &[u8]) -> Result<Call, (Rejection, String)> {
     let malformed = |what: &str| (Rejection::Malformed, format!("malformed request: {what}"));
     let mut c = Cursor(body);
-    match c.u8() {
-        Some(OP_AGGREGATE) => {}
+    let call = match c.u8() {
+        Some(OP_AGGREGATE) => Call::Aggregate(decode_aggregate(&mut c, malformed)?),
+        Some(OP_VERIFY) => {
+            let claims = c.claims().ok_or_else(|| malformed("claims"))?;
+            let proof = c.bytes().ok_or_else(|| malformed("proof"))?;
+            Call::Verify(claims, AggregateProof::from_bytes(proof))
+        }
         Some(op) => return Err((Rejection::Malformed, format!("unknown operation {op}"))),
         None => return Err(malformed("empty")),
+    };
+    if !c.is_empty() {
+        return Err(malformed("trailing bytes"));
     }
+    Ok(call)
+}
+
+fn decode_aggregate(
+    c: &mut Cursor,
+    malformed: impl Fn(&str) -> (Rejection, String),
+) -> Result<Request, (Rejection, String)> {
     let log_inv_rate = c.u8().ok_or_else(|| malformed("no rate"))?.into();
 
     // Each child is at least its two lengths. Nothing is reserved: `aggregate` bounds the count, not this.
@@ -301,9 +332,6 @@ pub(crate) fn decode_request(body: &[u8]) -> Result<Request, (Rejection, String)
         Some(1) => Some(c.claims().ok_or_else(|| malformed("output claims"))?),
         _ => return Err(malformed("output")),
     };
-    if !c.is_empty() {
-        return Err(malformed("trailing bytes"));
-    }
     Ok(Request {
         children,
         raw_lean_xmss,
@@ -330,7 +358,29 @@ pub(crate) fn encode_response(result: &Outcome) -> Vec<u8> {
     f.finish()
 }
 
-/// `None` if the body is not a response.
+/// A verify request's response: whether the proof is valid.
+pub(crate) fn encode_verdict(valid: bool) -> Vec<u8> {
+    let mut f = Frame::new();
+    f.u8(OK);
+    f.u8(valid.into());
+    f.finish()
+}
+
+/// `None` if the body is not a verify request's response.
+pub(crate) fn decode_verdict(body: &[u8]) -> Option<Result<bool, (Rejection, String)>> {
+    let mut c = Cursor(body);
+    let result = match c.u8()? {
+        OK => Ok(match c.u8()? {
+            0 => false,
+            1 => true,
+            _ => return None,
+        }),
+        status => Err((Rejection::from_code(status)?, c.string()?)),
+    };
+    c.is_empty().then_some(result)
+}
+
+/// `None` if the body is not an aggregate request's response.
 pub(crate) fn decode_response(body: &[u8]) -> Option<Outcome> {
     let mut c = Cursor(body);
     let result = match c.u8()? {
@@ -398,7 +448,9 @@ mod tests {
             3,
         );
         let bytes = body(frame);
-        let request = decode_request(&bytes).unwrap_or_else(|(_, m)| panic!("{m}"));
+        let Ok(Call::Aggregate(request)) = decode_request(&bytes) else {
+            panic!("not an aggregate request")
+        };
         assert!(request.children.is_empty());
         assert_eq!(request.raw_lean_xmss, vec![xmss]);
         assert_eq!(request.raw_lean_sphincs, vec![sphincs]);

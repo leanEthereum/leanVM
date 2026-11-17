@@ -1,5 +1,5 @@
 //! The sidecar binary end to end, through the library's client: a leaf with every kind of input, a narrowed node over
-//! it from a second connection, refusals that leave the connection usable, a request that is not one sent as another
+//! it from a second connection, verifying, refusals that leave the connection usable, a request that is not one sent as another
 //! language's client would, and the socket's life across a second sidecar and a restart.
 
 use aggregation::signers_cache;
@@ -96,6 +96,10 @@ fn sidecar_end_to_end() {
         .unwrap();
     assert_eq!(node.0, only);
     assert!(node.1.verify(&only));
+
+    // Verifying, from either connection, while nothing proves.
+    assert!(client.verify(&node.0, &node.1).unwrap());
+    assert!(!other.verify(&AggregateClaims::default(), &node.1).unwrap());
 
     // Refusals leave the connection in step: two in a row.
     for rate in [0, 300] {

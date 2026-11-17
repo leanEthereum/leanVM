@@ -1,6 +1,6 @@
 # leanvm-sidecar
 
-A process that proves for clients on the same machine, over a Unix stream socket. It runs the library's one proving call, `aggregate`, so a client in any language gets the prover's full speed, with its own allocator, thread pool and retained memory, in a process of its own. Verifying stays in the client, with the library (`AggregateProof::verify`), which is fast and needs no prover: from another language, through a binding to it.
+A process that proves for clients on the same machine, over a Unix stream socket. It runs the library's one proving call, `aggregate`, so a client in any language gets the prover's full speed, with its own allocator, thread pool and retained memory, in a process of its own. It also verifies proofs, for clients without the library; a Rust client verifies with the library (`AggregateProof::verify`), which is faster.
 
 ## Running
 
@@ -17,7 +17,7 @@ target/release/leanvm-sidecar --prover experimental --socket /run/leanvm/sidecar
 | `--threads` | 0 | the prover's thread count, 0 for one per core |
 | `--tracing` | off | print each proof's timing tree (`RUST_LOG` sets the level) |
 
-- The sidecar starts the prover's thread pool and compiles the aggregation program before it listens, so the socket appears once it is ready. It says so on standard error, then logs one line per request there.
+- The sidecar starts the prover's thread pool, compiles the aggregation program before it listens, so the socket appears once it is ready. It says so on standard error, then logs one line per `aggregate` request there.
 - A sidecar holds a lock on the file beside its socket, the socket's path with `.lock` appended, while it runs. A second sidecar on the same socket fails at once. A socket left by a sidecar that stopped is replaced; a path that is some other file, or a socket another program listens on, is not.
 - The socket takes the process's umask, and connecting needs write permission on it. Restrict it to the clients the sidecar serves: it trusts them with its resources. Any of them can keep it proving, and every connection may hold a request up to the max request in memory.
 - Requests are proven one at a time, across all connections, in the order they are received in full. A request whose client disconnects before its proof starts is dropped; one already proving finishes, and its proof is dropped. A client that gives up on a request should therefore close its connection, and send the request again, if at all, on a new one.
@@ -56,13 +56,15 @@ On each connection the sidecar first sends a hello frame. The client then sends 
 
 Every version keeps the magic and the version first. A client checks them, the verifier tag and the program, and disconnects if any differs from what it expects: a proof for another verifier or another build's program does not verify with its library. A client must not send a request body longer than the max request: the sidecar would close the connection without reading it, and the client could fail mid-write.
 
-### Request
+### Requests
 
-The library's `aggregate` arguments:
+A request's first byte is its operation: 1 for `aggregate`, 2 for `verify`.
+
+**Aggregate**, the library's `aggregate` arguments:
 
 | field | type | meaning |
 | --- | --- | --- |
-| operation | `u8` | 1, `aggregate` |
+| operation | `u8` | 1 |
 | rate | `u8` | `log_inv_rate`, 1 to 4: higher gives a smaller proof, slower |
 | children | count, then per child: claims (bytes), proof (bytes) | at most 16 |
 | leanXMSS signatures | count, then per signature: pubkey (32 bytes), message (32 bytes), signature (2404 bytes) | |
@@ -70,7 +72,17 @@ The library's `aggregate` arguments:
 | blobs | count, then per blob: 8192 symbols of 16 bytes each | at most 32 |
 | output | `u8`, then for 1 the claims (bytes) | 0: every covered claim; 1: exactly these claims, each covered by the inputs |
 
-Keys, signatures and proofs are the libraries' byte forms (`to_bytes`), and a symbol is its 128 bits as a little-endian `u128`, as LeanDA hashes it. Signatures may come in any order, and a repeated claim, the same pubkey and message twice, counts once. As with the library, the sidecar does not verify children: an invalid one costs a failed proof, status 3 or 4, so a child from an untrusted source is checked with `AggregateProof::verify` first.
+Keys, signatures and proofs are the libraries' byte forms (`to_bytes`), and a symbol is its 128 bits as a little-endian `u128`, as LeanDA hashes it. Signatures may come in any order, and a repeated claim, the same pubkey and message twice, counts once. As with the library, the sidecar does not verify children: an invalid one costs a failed proof, status 3 or 4, so a child from an untrusted source is verified first.
+
+**Verify**, whether a proof proves claims, as `AggregateProof::verify` says. It does not wait for the proofs being made.
+
+| field | type |
+| --- | --- |
+| operation | `u8`, 2 |
+| claims | bytes |
+| proof | bytes |
+
+A proof whose bytes do not decode is invalid; claims that do not decode make the request malformed.
 
 **Claims**, as `AggregateClaims::to_bytes` writes them:
 
@@ -87,8 +99,9 @@ A proof verifies only against claims whose lists are strictly sorted, comparing 
 | field | type | meaning |
 | --- | --- | --- |
 | status | `u8` | below |
-| for 0: claims, proof | bytes, bytes | what the proof proves, and the proof (`AggregateProof::from_bytes` reads it) |
-| otherwise: message | bytes | UTF-8, why there is no proof |
+| for 0, to `aggregate`: claims, proof | bytes, bytes | what the proof proves, and the proof (`AggregateProof::from_bytes` reads it) |
+| for 0, to `verify`: valid | `u8` | 1 if the proof proves the claims, else 0 |
+| otherwise: message | bytes | UTF-8, why there is no answer |
 
 | status | name | meaning |
 | --- | --- | --- |
@@ -99,6 +112,6 @@ A proof verifies only against claims whose lists are strictly sorted, comparing 
 | 4 | proving failed | an input the checks above missed is invalid, or the request is too large for one proof |
 | 5 | malformed | the request does not decode, or is longer than the hello's max request |
 
-A request with several problems gets the status of the first one found.
+A request with several problems gets the status of the first one found. A `verify` request gets only 0 or 5.
 
 After any response the connection stays usable, except after a request longer than the max request: the sidecar answers it with status 5 without reading it, then closes the connection.
