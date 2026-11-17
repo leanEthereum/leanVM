@@ -96,22 +96,22 @@ theorem shareOk : ShareOkD Fn.«verify_keccak_loop2».core (cert.withPows Data.p
 end
 end LeanVM.Guest.Fn.«verify_keccak_loop2»
 
-namespace LeanVM.Guest.Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0»
+namespace LeanVM.Guest.Fn.«da_factors__L13_L7_L0»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0`, once. -/
-theorem st : shareStaticD Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+/-- `da_factors__L13_L7_L0`, once. -/
+theorem st : shareStaticD Fn.«da_factors__L13_L7_L0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0`, window 0. -/
-theorem sw0 : shareWinD Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+/-- `da_factors__L13_L7_L0`, window 0. -/
+theorem sw0 : shareWinD Fn.«da_factors__L13_L7_L0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
 end
-end LeanVM.Guest.Fn.«level_queries__L73_L1_L6_L32_L19_L7_L0_L0_L0_L0»
+end LeanVM.Guest.Fn.«da_factors__L13_L7_L0»
 

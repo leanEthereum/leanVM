@@ -16,7 +16,7 @@ public import LeanVM.Protocol.Verifier
 # Multilinear facts for the table sumcheck
 
 Nothing is transcribed. The table sumcheck of the verifier program
-(`LeanVM.Protocol.Verifier.tableSumcheck`, `crates/verifier/src/bus.rs:218-259` at leanVM
+(`LeanVM.Protocol.Verifier.tableSumcheck`, `crates/verifier/src/bus.rs` at leanVM
 `40f877dc`) sums, over the cube of `n` coordinates, a summand built
 from the tables' weights (`tableWeights`), the columns' multilinear extensions and degree-two
 forms. Its honest prover needs:

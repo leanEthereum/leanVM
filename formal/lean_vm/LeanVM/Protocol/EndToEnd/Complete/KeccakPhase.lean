@@ -18,7 +18,7 @@ public import LeanVM.Protocol.EndToEnd.Front.RingFidelity
 /-!
 # Completeness of the Keccak phase
 
-Step 6 of `verify_execution` (`keccakPhase`, `crates/verifier/src/lib.rs:283-300` at leanVM
+Step 6 of `verify_execution` (`keccakPhase`, `crates/verifier/src/lib.rs` at leanVM
 `40f877dc`): the claims on the 25 output lanes of `KECCAK` leave
 the batch, the program checks that they are the 25 lanes in order at one point, and they become
 the claim of the Keccak reduction (`verifyKeccak`), whose column claims on `q_keccak` join the

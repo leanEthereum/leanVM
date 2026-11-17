@@ -451,7 +451,7 @@ theorem leanDa_codeBinding_rpm_bound_at (c k : ℕ) (A : CodeBindingAdvRpmH r Cr
         ((q : ℝ≥0∞) + c) * (2 : ℝ≥0∞)⁻¹ ^ k)
     (hrM : r ≤ maxRows) (Q : ℕ) (hQ : QueryCostAtMost (codeBindingGameH r ps A) permCallsH Q) :
     Pr{let b ← runKH (codeBindingGameH r ps A)}[b = true] ≤
-      ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 11) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
+      ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k + ((Q : ℝ≥0∞) + 2 ^ 10) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
         ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247 := by
   rcases le_or_gt Q (2 ^ 127) with hQcap | hQcap
   swap
@@ -464,13 +464,8 @@ theorem leanDa_codeBinding_rpm_bound_at (c k : ℕ) (A : CodeBindingAdvRpmH r Cr
         calc (2 : ℝ≥0∞) ^ 127 ≤ (Q : ℝ≥0∞) := by exact_mod_cast hQcap.le
           _ ≤ (Q : ℝ≥0∞) + 2 ^ 22 := le_self_add
   have hQ0 := isWeightBound_codeBindingGame2_advV0 r ps A Q hQ
-  have hL : logPaddedRowCount r ≤ 10 := by
-    unfold logPaddedRowCount
-    exact (Nat.clog_le_iff_le_pow (by norm_num)).mpr (by simpa [maxRows] using hrM)
-  have hN : paddedRowCount r ≤ 1024 := by
-    unfold paddedRowCount
-    calc 2 ^ logPaddedRowCount r ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) hL
-      _ = 1024 := by norm_num
+  have hL : logMaxRows = 5 := rfl
+  have hN : maxRows = 32 := rfl
   have hK : ksCalls r Q ≤ Q + 2 ^ 65 := by
     unfold ksCalls relCalls nLabels nonceCount; omega
   -- the argument's knowledge soundness, against the code-binding adversary itself
@@ -517,13 +512,13 @@ theorem leanDa_codeBinding_rpm_bound_at (c k : ℕ) (A : CodeBindingAdvRpmH r Cr
               (postKG r (psV r ps) (extV r ext)))) +
           ((((ksCalls r Q : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 508 + dupTerm Q +
             (((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) * (65 * ((2 * Q + 2 ^ 20 : ℕ) : ℝ≥0∞) / 2 ^ 256) +
-              ((Q : ℝ≥0∞) * ((2 ^ 14 - 1) / 2 ^ 139) + (2 ^ 14 - 1) / 2 ^ 128))) +
+              ((Q : ℝ≥0∞) * ((2 ^ 13 - 1) / 2 ^ 138) + (2 ^ 13 - 1) / 2 ^ 128))) +
             ((Q : ℝ≥0∞) ^ 2 / 2 ^ 508 + dupTerm Q)) := by
         refine (add_le_add (add_le_add (hS.trans (add_le_add hKS le_rfl)) le_rfl) le_rfl).trans
           (le_of_eq ?_)
         ring
     _ ≤ ((Q : ℝ≥0∞) + c + 2 ^ 65) * (2 : ℝ≥0∞)⁻¹ ^ k +
-          (((Q : ℝ≥0∞) + 2 ^ 11) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
+          (((Q : ℝ≥0∞) + 2 ^ 10) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
             ((Q : ℝ≥0∞) + 2 ^ 22) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 247) := add_le_add hε hR
     _ = _ := by ring
 

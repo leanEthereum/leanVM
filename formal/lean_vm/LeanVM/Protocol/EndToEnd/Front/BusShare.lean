@@ -17,7 +17,7 @@ public import LeanVM.Protocol.ToArkLib.Sumcheck
 # The bytecode share
 
 The verifier never evaluates the program's share of a bytecode leaf, `Σ_x w_x · P(low, x)` over
-the stacked bytecode's sixteen tuple slots `x` (`bytecodeShare`, `crates/verifier/src/bus.rs:168-184`):
+the stacked bytecode's sixteen tuple slots `x` (`bytecodeShare`, `crates/verifier/src/bus.rs`):
 the prover sends it, a sumcheck over `x` of `w̃(x) · P(low, x)` (degree two in each slot bit,
 its low bit first) reduces it to one value of `P` at `(low, slot)`, and the deployed verifier
 evaluates `P` there (`computedBytecodeValue`). This module proves that the pair returns only the

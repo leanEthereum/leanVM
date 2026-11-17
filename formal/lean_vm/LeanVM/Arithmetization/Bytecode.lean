@@ -12,22 +12,21 @@ public import LeanVM.Semantics.Lemmas
 /-!
 # The bytecode encoding
 
-At `leanvm-rev`, transcribed from:
+Transcribed from:
 
 * specification §8.1 (`doc/leanvm/body/08-end-to-end-protocol.tex`): instruction `z` is sixteen
   `K` slots, the opcode in slot 3, the operands, immediate lanes and flags after it, zero
   elsewhere;
-* `crates/leanvm_core/src/cpu/layout.rs:290-365` (`bytecode_columns`): the thirteen public program
-  columns, the opcode then twelve operand slots (`BYTECODE_OPERANDS = 12`, `:285`), offsets as
-  g-powers, a `SET` immediate as its two limbs, the `DEREF` store-mode flags and `KECCAK`'s
-  layout and output flags as `0` or `1`, unused slots zero; `stack_columns` stacks them at slots
-  `3..16` (`BYTECODE_PUBLIC_SLOT = 3`);
-* `crates/leanvm_core/src/cpu/isa.rs:85-93`: the `DEREF` store mode as the flag pair
+* `crates/isa/src/program.rs` (`encode`): the thirteen public program columns, the opcode then
+  twelve operand slots (`BYTECODE_OPERANDS = 12`), offsets as g-powers, a `SET` immediate as its
+  two limbs, the `DEREF` store-mode flags and `KECCAK`'s layout and output flags as `0` or `1`,
+  unused slots zero; `Program::from` stacks them at slots `3..16` (`OPCODE_SLOT = 3`);
+* `crates/isa/src/lib.rs`: the `DEREF` store mode as the flag pair
   `(f_pc, f_fp)`, `cell = (0, 0)`, `pc = (1, 0)`, `fp = (0, 1)`;
-* `crates/leanvm_core/src/cpu/isa.rs:59-82`: `KECCAK`'s output cells as the flag pair
+* `crates/isa/src/lib.rs`: `KECCAK`'s output cells as the flag pair
   `(out_two, out_all)`, `one = (0, 0)`, `two = (1, 0)`, `all = (1, 1)`.
 
-`entry i` is the bus entry of an instruction, the row of `bytecode_columns`; `instructionSlots i` is
+`entry i` is the bus entry of an instruction, the row `encode` gives; `instructionSlots i` is
 its sixteen-slot row, the entry at slots 3 to 15. Both are defined in `Statement.LeanIsa`, since
 the verifier receives a program through them; `decode`, here, consumes a thirteen-coordinate
 entry. It is exact: `decode v = some i ↔ v = entry i` (`decode_eq_some_iff`); on a `DEREF`
@@ -53,7 +52,7 @@ loading/correspondence theorem. Those interfaces require separate coverage or re
 * An output flag of `KECCAK` is `0` or `1`: that is what makes its gated memory pair either a
   read or a cancelled pair (`Tables.Keccak`), and `decode` is where it comes from.
 * A nonzero spare entry coordinate is not ignored. Each opcode table's bytecode tuple carries
-  literal zeros in its spare coordinates (`flushes_*`, `crates/verifier/src/layout.rs:208-362`),
+  literal zeros in its spare coordinates (`flushes_*`, `crates/verifier/src/layout.rs`),
   and `decode` rejects a tuple that violates that opcode's canonical entry shape. This is a
   thirteen-coordinate entry claim, not rejection by the typed program's address lookup.
 -/

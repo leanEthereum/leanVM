@@ -1,0 +1,31 @@
+[package]
+name = "aggregation"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+isa.workspace = true
+verifier.workspace = true
+keccak256.workspace = true
+fiat_shamir_prover.workspace = true
+zkdsl_compiler.workspace = true
+lean_xmss.workspace = true
+lean_sphincs.workspace = true
+lean_da.workspace = true
+# The protocol's structure (bus blocks, stacking, grinds, the stacked bytecode), from the reference prover.
+lean_vm_core = { package = "stable_lean_vm_core", path = "../stable_prover/lean_vm_core" }
+pcs = { package = "stable_pcs", path = "../stable_prover/pcs" }
+primitives = { package = "stable_primitives", path = "../stable_prover/primitives" }
+rand = { workspace = true, optional = true }
+tracing.workspace = true
+
+[features]
+# `signers_cache`: cached benchmark signers, for tests and the CLI.
+signers-cache = ["dep:rand"]
+
+[dev-dependencies]
+rand.workspace = true

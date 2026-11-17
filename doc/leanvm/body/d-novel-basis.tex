@@ -1,7 +1,7 @@
 % !TeX root = ../drafts/d-novel-basis.tex
 \section{Novel polynomial basis and additive NTT}\label{app:ntt}
 
-This annex collects the algebra shared by the PCS (Annex~\ref{annex:pcs}) and LeanDA (\S\ref{sec:leanda}): additive domains, the novel polynomial basis, its additive FFT (called an NTT over a finite field), and codeword membership. The basis and transform follow~\cite{LCH14}, as presented in~\cite{DP24}.
+This annex describes the algebraic toolkit shared by the PCS (Annex~\ref{annex:pcs}) and LeanDA (\S\ref{sec:leanda}). The basis and transform follow~\cite{LCH14}, as presented in~\cite{DP24}.
 
 Fix the $\Ftwo$-basis $e_c:=x^c$, $0\le c<64$, of $\K$, the first $64$ vectors of the basis of $\E$ in Annex~\ref{annex:rs}. In particular $e_0=1$. For a bit vector $u$, write $\langle u\rangle:=\sum_i u_i2^i$ for its integer index, with bit $0$ first.
 
@@ -45,7 +45,7 @@ Let $0\le\kappa<64$, $\rexp\ge0$, and $\kappa+\rexp\le64$. For $0 \le j < 2^{\ka
 a linear injection onto $\RS[\E, \dom, 2^{\kappa}]$ of rate $\rate = 2^{-\rexp}$; the $\novel_j$ take their values on $\dom \subseteq \K$, so a $\K$-valued message gives a $\K$-valued word. (The message is read \emph{directly} as novel-basis coefficients; no conversion is applied.)
 \end{definition}
 
-In the PCS the payload is the polynomial's coefficients: any $\kdim=2^\kappa$ distinct evaluations determine them by interpolation, but an evaluation prefix need not equal the payload. LeanDA instead takes the blob to be the evaluations on $\subsp_\kappa$, so its encoding is systematic (\S\ref{sec:da-commit}).
+In the PCS the payload is the polynomial's coefficients. LeanDA instead takes the blob to be the evaluations on $\subsp_\kappa$, so its encoding is systematic (\S\ref{sec:da-commit}).
 
 \subsection{The additive NTT}\label{sec:ntt}
 

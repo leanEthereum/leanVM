@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.KeccakGkr.LocalRounds
 # A layer, from its facts
 
 `LayerW` collects, for one reading of `keccak_layer`'s arguments (the claim `c`, `y`, the waiting
-word `w`), the facts its body gives (G:2850-3033): the product read, the projection check, the
+word `w`), the facts its body gives: the product read, the projection check, the
 squeeze after the product, the instance weights written, the pack rounds' records and calls, the
 eleven position rounds, `t`, the final check, the squeeze `β` and the next claim's record.
 `layer_of_w` turns them into the meaning: `layer_runsTo` with `pack_chain`'s messages, and the
@@ -51,7 +51,7 @@ structure LayerW (first : ℕ) (rd : Reader) (f0 f1 f2 f3 f4 cur sg rg claim out
   pp : E
   hpp : LoadHolds rd claim 2 pp
   tb : E
-  h0 : RoundRec rd rc 0 capS (cur * gen ^ (productBits + 1)) (polyEval prod sv) 1
+  h0 : RoundRec rd rc 0 capS (cur * gen ^ (productBits + 1)) (polyEval prod sv)
   hloop : IsInK (1 + sg) ∧
     (1 + sg ≠ 0 → coreProgram.Rel rd (packLoopName first) [1, sg, rc, pp, pt, tb] [])
   hrem : IsInK (1 + rg) ∧
@@ -60,8 +60,7 @@ structure LayerW (first : ℕ) (rd : Reader) (f0 f1 f2 f3 f4 cur sg rg claim out
   capL : List E
   curL : E
   vL : E
-  scL : E
-  hlast : RoundRec rd (rc * sg * rg) 0 capL curL vL scL
+  hlast : RoundRec rd (rc * sg * rg) 0 capL curL vL
   msgs : List (E × E × E)
   hmsgsL : msgs.length = keccakLocalBits
   hmsgs : ReadsAt rd curL (msgs.flatMap fun m ↦ [m.1, m.2.1, m.2.2])
@@ -75,7 +74,7 @@ structure LayerW (first : ℕ) (rd : Reader) (f0 f1 f2 f3 f4 cur sg rg claim out
   t1 : E
   t2 : E
   ht : ReadsAt rd (curL * gen ^ 33) [t0, t1, t2]
-  hfin : scL * dot ((eqKernel locPt).take keccakBits) c.weights *
+  hfin : dot ((eqKernel locPt).take keccakBits) c.weights *
     (sumE (keccakInstanceWeights sv) * t0 + (sumE (keccakInstanceWeights sv) + t1) * t2) = vR
   beta : E
   capB : List E
@@ -94,7 +93,7 @@ structure LayerW (first : ℕ) (rd : Reader) (f0 f1 f2 f3 f4 cur sg rg claim out
 theorem lanesOut_length (loc : List E) (beta : E) : (lanesOut loc beta).length = 25 := by
   simp [lanesOut]
 
-/-- **A layer, from its facts** (G:2644-2825 against V:1983-2019). -/
+/-- **A layer, from its facts**. -/
 theorem layer_of_w {first : ℕ} (hf : first < 2) {rd : Reader}
     {f0 f1 f2 f3 f4 cur sg rg claim out iota : E} {rets : List E} {y step : ℕ} {c : KeccakClaim}
     {w : E} (hy32 : y < 32) (hsg : sg = gen ^ (y / krStep)) (hrg : rg = gen ^ (y % krStep))
@@ -108,14 +107,14 @@ theorem layer_of_w {first : ℕ} (hf : first < 2) {rd : Reader}
   have epp : W.pp = pp' := loadHolds_unique W.hpp hpp'
   obtain ⟨msgsP, chs, hmL, hmR, hchR, hchL, hcurL, hrun1, hrun2⟩ :=
     pack_chain hf hsg hrg hy32 hptL (epp ▸ hppR) W.h0 W.hloop W.hrem W.hlast
-  have hpack : packRunF c.point msgsP (polyEval W.prod W.sv) 1 ⟨W.capS, []⟩ =
-      ((W.vL, W.scL, chs), ⟨W.capL, []⟩) := Prod.ext hrun1 hrun2
+  have hpack : packRunF c.point msgsP (polyEval W.prod W.sv) ⟨W.capS, []⟩ =
+      ((W.vL, chs), ⟨W.capL, []⟩) := Prod.ext hrun1 hrun2
   have hsq1 : (layerSq (plainStart first [f0, f1, f2, f3, f4] w) W.prod W.nonce).1 = W.sv := by
     rw [W.hsq]
   have hsq2 : (layerSq (plainStart first [f0, f1, f2, f3, f4] w) W.prod W.nonce).2 = ⟨W.capS, []⟩ := by
     rw [W.hsq]
   have hP : layerPack c (plainStart first [f0, f1, f2, f3, f4] w) W.prod W.nonce msgsP =
-      ((W.vL, W.scL, chs), ⟨W.capL, []⟩) := by
+      ((W.vL, chs), ⟨W.capL, []⟩) := by
     rw [layerPack, hsq1, hsq2, hpack]
   have hL : layerLocal c (plainStart first [f0, f1, f2, f3, f4] w) W.prod W.nonce msgsP W.msgs =
       ((W.locPt, W.vR), ⟨W.capR, []⟩) := by
@@ -126,7 +125,7 @@ theorem layer_of_w {first : ℕ} (hf : first < 2) {rd : Reader}
   have hfin : LayerFinal c (plainStart first [f0, f1, f2, f3, f4] w) W.prod W.nonce msgsP W.msgs
       (W.t0, W.t1, W.t2) := by
     unfold LayerFinal
-    rw [hsq1, hP, hL]
+    rw [hsq1, hL]
     exact W.hfin
   have hrun := layer_runsTo (y + 3) step c (plainStart first [f0, f1, f2, f3, f4] w) W.prod
     W.hprodL W.nonce W.hgrind msgsP (by rw [hmL, hptL]) W.msgs W.hmsgsL (W.t0, W.t1, W.t2)

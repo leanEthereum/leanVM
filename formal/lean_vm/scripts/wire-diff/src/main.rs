@@ -1,4 +1,4 @@
-//! `leanvm-rust-wire`: leanVM's proof wire encoding (`crates/fiat_shamir/src/wire.rs`,
+//! `leanvm-rust-wire`: leanVM's proof wire encoding (`crates/verifier/src/wire.rs`,
 //! `Proof::from_bytes` and `Proof::to_bytes`) on byte files, so that `scripts/wire-diff.py` can set
 //! its results beside the Lean transcription's (`lake exe wire-diff`, cli/WireDiff.lean) on the
 //! same bytes.
@@ -27,9 +27,8 @@
 use std::io::{BufRead, Write};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
-use fiat_shamir::merkle::{MerklePath, hash_pair, hash_words, open};
-use fiat_shamir::transcript::Proof;
-use primitives::field::{F64, F128};
+use fiat_shamir_prover::merkle::{hash_pair, hash_words, open};
+use verifier::{E, K, MerklePath, Proof};
 
 #[path = "../../rust-verifier-cli/src/plain.rs"]
 mod plain;
@@ -48,8 +47,8 @@ fn plain(proof: &Proof) -> Vec<u8> {
             out.extend(word.to_le_bytes());
         }
     }
-    put_u32(&mut out, proof.merkle.len());
-    for phase in &proof.merkle {
+    put_u32(&mut out, proof.merkle_openings.len());
+    for phase in &proof.merkle_openings {
         put_u32(&mut out, phase.len());
         for path in phase {
             out.extend(path.leaf_index.to_le_bytes());
@@ -70,27 +69,27 @@ fn plain(proof: &Proof) -> Vec<u8> {
 fn from_plain(bytes: &[u8]) -> Option<Proof> {
     let mut input = Reader(bytes);
     let count = input.u32()?;
-    let stream = input.scalars(count)?.into_iter().map(|[c0, c1]| F128::new(c0, c1)).collect();
-    let merkle = input.phases(|leaf_index, leaf, siblings| MerklePath {
+    let stream = input.scalars(count)?.into_iter().map(|[c0, c1]| E::new(c0, c1)).collect();
+    let merkle_openings = input.phases(|leaf_index, leaf, siblings| MerklePath {
         leaf_index,
-        leaf: leaf.into_iter().map(F64).collect(),
+        leaf: leaf.into_iter().map(K).collect(),
         siblings,
     })?;
-    input.0.is_empty().then_some(Proof { stream, merkle })
+    input.0.is_empty().then_some(Proof { stream, merkle_openings })
 }
 
 /// The proof of wire.rs's test `proof_round_trips_through_its_one_encoding`, its encoding, with the
 /// test's assertions checked.
 fn vector() -> Vec<u8> {
-    let rows = [[0, 0, 1], [0, 2, 3], [0, 0, 4], [0, 5, 0]].map(|row| row.map(F64));
-    let leaf = |q: usize| hash_words(&rows[q]);
+    let rows = [[0, 0, 1], [0, 2, 3], [0, 0, 4], [0, 5, 0]];
+    let leaf = |q: usize| hash_words(rows[q]);
     let node = |level: usize, i: usize| match level {
         0 => leaf(i),
         _ => hash_pair(&leaf(2 * i), &leaf(2 * i + 1)),
     };
     let proof = Proof {
-        stream: vec![F128::new(1, 2)],
-        merkle: vec![open(4, &[3, 1, 3], 3, node, |q| &rows[q])],
+        stream: vec![E::new(1, 2)],
+        merkle_openings: vec![open(4, &[3, 1, 3], 3, node, |q| rows[q])],
     };
     let bytes = proof.to_bytes();
     assert_eq!(bytes.len(), (4 + 16) + 4 + (4 + 3 * 4) + 3 * 4 + 2 * 2 * 8 + 2 * 32);

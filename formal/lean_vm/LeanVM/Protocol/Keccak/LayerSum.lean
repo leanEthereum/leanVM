@@ -24,10 +24,10 @@ is the summand of the pack rounds (eq. `keccak:eq:after-packs`):
 * `FP r acc = Σ_{z} eq(r_{≥|acc|}, z) · g(acc ++ z)` is an equality-mode family of degree two
   at `r` (`FP_eqFamily`), equal to `G(s)` before any challenge (`FP_nil`) and to `g(c)` after all
   (`FP_full`);
-* with `c` bound, `FX acc = scale · Σ_u φ(acc ++ u)`,
+* with `c` bound, `FX acc = Σ_u φ(acc ++ u)`,
   `φ(p) = W(p)·(κ·T_0(p) + (κ + T_1(p))·T_2(p))`, `W` and `T_k(p) = Σ_j eq(p, j)·Ŝ_{j+k}(c)` the
   multilinear extensions over the `11` position bits, is a plain family of degree three
-  (`FX_plainFamily`), equal to `scale · g(c)` before any challenge (`FX_nil`); `dot_weights`: the
+  (`FX_plainFamily`), equal to `g(c)` before any challenge (`FX_nil`); `dot_weights`: the
   verifier's `dot(eq[:1600], w)` is `W` (eq. `keccak:eq:terminal`);
 * `batch_eq`: `T_0 + β(T_1 + βT_2)` at the position point is the claim's sum on the states before
   the round, with weights `keccakLinearTranspose` of the verifier's batched weights and instance
@@ -130,8 +130,8 @@ noncomputable def phi (c p : List E) : E :=
   Wt w p * (kappaAt s * Tk T P s c 0 p + (kappaAt s + Tk T P s c 1 p) * Tk T P s c 2 p)
 
 /-- The position rounds' family. -/
-noncomputable def FX (c : List E) (scale : E) (acc : List E) : E :=
-  scale * ∑ u ∈ range (2 ^ (11 - acc.length)), phi T P s w c (acc ++ bitsE u (11 - acc.length))
+noncomputable def FX (c : List E) (acc : List E) : E :=
+  ∑ u ∈ range (2 ^ (11 - acc.length)), phi T P s w c (acc ++ bitsE u (11 - acc.length))
 
 theorem sum1600_bitsE {u : ℕ} (hu : u < 2 ^ 11) (f : ℕ → E) :
     ∑ j ∈ range 1600, eqAt (bitsE u 11) j * f j = if u < 1600 then f u else 0 := by
@@ -144,10 +144,9 @@ theorem sum1600_bitsE {u : ℕ} (hu : u < 2 ^ 11) (f : ℕ → E) :
   rw [Finset.sum_congr rfl h, Finset.sum_ite_eq]
   simp
 
-/-- Before any position challenge, the family is `scale · g(c)`. -/
-theorem FX_nil (c : List E) (scale : E) : FX T P s w c scale [] = scale * gt T P s w c := by
+/-- Before any position challenge, the family is `g(c)`. -/
+theorem FX_nil (c : List E) : FX T P s w c [] = gt T P s w c := by
   unfold FX
-  refine congrArg (HMul.hMul _) ?_
   simp only [List.length_nil, Nat.sub_zero, List.nil_append]
   rw [show 2 ^ 11 = 1600 + 448 from rfl, Finset.sum_range_add]
   have hrest : ∑ x ∈ range 448, phi T P s w c (bitsE (1600 + x) 11) = 0 := by
@@ -161,8 +160,8 @@ theorem FX_nil (c : List E) (scale : E) : FX T P s w c scale [] = scale * gt T P
     sum1600_bitsE (by omega), sum1600_bitsE (by omega), ite_eq_left hu', ite_eq_left hu',
     ite_eq_left hu', ite_eq_left hu', keccakAlong_zero hu']
 
-theorem FX_full (c : List E) (scale : E) (acc : List E) (h : acc.length = 11) :
-    FX T P s w c scale acc = scale * phi T P s w c acc := by
+theorem FX_full (c : List E) (acc : List E) (h : acc.length = 11) :
+    FX T P s w c acc = phi T P s w c acc := by
   rw [FX, h, Nat.sub_self]
   simp [bitsE]
 
@@ -174,23 +173,23 @@ theorem polyLE_phi (c pre post : List E) : PolyLE 3 fun x ↦ phi T P s w c (pre
     (polyLE_mle pre post _ _)
 
 /-- **The position rounds' family**: degree three, plain. -/
-theorem FX_plainFamily {β : Type} (Tq : β → States) (c : List E) (scale : E) :
-    PlainFamily (fun q acc ↦ FX (Tq q) P s w c scale acc) 3 11 := by
+theorem FX_plainFamily {β : Type} (Tq : β → States) (c : List E) :
+    PlainFamily (fun q acc ↦ FX (Tq q) P s w c acc) 3 11 := by
   intro q acc hacc
   have hm : 11 - acc.length = (11 - (acc.length + 1)) + 1 := by omega
   refine ⟨?_, ?_⟩
-  · have e : ∀ x, FX (Tq q) P s w c scale (acc ++ [x]) =
-        scale * ∑ u ∈ range (2 ^ (11 - (acc.length + 1))),
+  · have e : ∀ x, FX (Tq q) P s w c (acc ++ [x]) =
+        ∑ u ∈ range (2 ^ (11 - (acc.length + 1))),
           phi (Tq q) P s w c (acc ++ x :: bitsE u (11 - (acc.length + 1))) := by
       intro x
       simp only [FX, List.length_append, List.length_singleton, List.append_assoc,
         List.singleton_append]
-    refine PolyLE.congr (f := fun x ↦ scale * ∑ u ∈ range (2 ^ (11 - (acc.length + 1))),
+    refine PolyLE.congr (f := fun x ↦ ∑ u ∈ range (2 ^ (11 - (acc.length + 1))),
       phi (Tq q) P s w c (acc ++ x :: bitsE u (11 - (acc.length + 1)))) ?_ fun x ↦ (e x).symm
-    exact PolyLE.const_mul (PolyLE.sum _ fun u _ ↦ polyLE_phi (Tq q) P s w c acc _) scale
+    exact PolyLE.sum _ fun u _ ↦ polyLE_phi (Tq q) P s w c acc _
   · simp only [FX, List.length_append, List.length_singleton]
-    rw [hm, sum_cube_succ, ← mul_add, ← Finset.sum_add_distrib]
-    refine congrArg (HMul.hMul _) (Finset.sum_congr rfl fun u _ ↦ ?_)
+    rw [hm, sum_cube_succ, ← Finset.sum_add_distrib]
+    refine Finset.sum_congr rfl fun u _ ↦ ?_
     rw [bitsE_two_mul, bitsE_two_mul_add_one]
     simp only [List.append_assoc, List.singleton_append]
 
@@ -224,7 +223,7 @@ theorem Tk_shift (c p : List E) {k k' : ℕ} (hk : k + k' = 5) :
         (fun j _ ↦ keccakAlong_along (by omega)) (fun j _ ↦ keccakAlong_along hk)
         (fun j ↦ eqAt p (keccakAlong j k') * Shat T P s j c)
 
-/-- The verifier's batched weights (`crates/verifier/src/keccak.rs:184-189`). -/
+/-- The verifier's batched weights (`crates/verifier/src/keccak.rs`). -/
 def batchW (p : List E) (beta : E) : List E :=
   (List.range keccakBits).map fun j ↦ (eqKernel p).getD j 0 +
     beta * ((eqKernel p).getD (keccakAlong j 4) 0 + beta * (eqKernel p).getD (keccakAlong j 3) 0)

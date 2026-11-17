@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.FormsData
 
 /-!
-# The forms' values (G:2648-2675)
+# The forms' values
 
 For a table's evaluations `ev`, a side's challenge `β` and slot weights `W`, the guest computes
 each block's `β + Σ_slot W_slot · coordinate_slot(ev)` from the baked terms (`vtBlockVal`), and

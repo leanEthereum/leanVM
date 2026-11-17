@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.VecFn
 
-  `da_vector`'s body, checked, and its meaning from its callees' (G:4371-4388).
+  `da_vector`'s body, checked, and its meaning from its callees'.
 -/
 
 module
@@ -10,11 +10,11 @@ public import LeanVM.Guest.B1.Da.Offsets
 public import LeanVM.Guest.B1.Da.Expand
 
 /-!
-# `da_vector` (G:4371-4388)
+# `da_vector`
 
-`da_vector(z)`: the powers `zs[j] = z^(2^j)` by squaring, `zs[14] = 0`; the shifts of
-the tree over the cell index (`above_top`, zero at `8 … 14`); then `da_factors__L14_L7_L0(zs)`,
-`da_expand__L14_L7(1, ·, zs, above_top)`, `da_factors__L7_L8_L128(zs)` and
+`da_vector(z)`: the powers `zs[j] = z^(2^j)` by squaring, `zs[13] = 0`; the shifts of
+the tree over the cell index (`above_top`, zero at `7 … 13`); then `da_factors__L13_L7_L0(zs)`,
+`da_expand__L13_L7(1, ·, zs, above_top)`, `da_factors__L6_L7_L128(zs)` and
 `da_column_offsets(zs)`, whose results it returns with `zs`. `vecOk` checks the body (kernel
 evaluation in `VecFnChk`); `da_vector_val` gives `MeaningDaVector` from the callees' meanings:
 the factors and shifts the callees read are `zs`' (`factorAt_congr`, `expandLeaf_congr`), so the
@@ -67,19 +67,19 @@ noncomputable def vecOk : Bool :=
   let P := vecP
   let A := atomsIn P
   decide ((fn% «da_vector»).params = [.n 0]) &&
-  stmtsEqb (Fn.body fn% «da_vector») (P ++ [.ret [.n 30, .n 31, .n 32,
-      .n 33]]) && P.all Stmt.flat &&
-  (List.range 14).all (fun j ↦ A.any (isLoadAt (.n (vecPw j)) (.n 1) j)) &&
-  (List.range 13).all (fun j ↦ isMul A (.n (j + 2)) (.n (vecPw j)) (.n (vecPw j))) &&
-  A.any (isConstAt (.n 16) 0 0) && A.any (isLoadAt (.n 16) (.n 1) 14) &&
-  (List.range 7).all (fun i ↦ A.any (isConstAt (.n (18 + i)) 0 0) &&
-    A.any (isLoadAt (.n (18 + i)) (.n 17) (8 + i))) &&
-  hasCall P "da_factors__L14_L7_L0" [.n 1] [.n 25] && A.any (isConstAt (.n 26) 1 0) &&
-  hasCall P "da_expand__L14_L7" [.n 26, .n 25, .n 1, .n 17] [.n 27] &&
-  hasCall P "da_factors__L7_L8_L128" [.n 1] [.n 28] &&
-  hasCall P "da_column_offsets" [.n 1] [.n 29] &&
-  A.any (isCopyAt (.n 30) (.n 1)) && A.any (isCopyAt (.n 31) (.n 27)) &&
-  A.any (isCopyAt (.n 32) (.n 28)) && A.any (isCopyAt (.n 33) (.n 29))
+  stmtsEqb (Fn.body fn% «da_vector») (P ++ [.ret [.n 29, .n 30, .n 31,
+      .n 32]]) && P.all Stmt.flat &&
+  (List.range 13).all (fun j ↦ A.any (isLoadAt (.n (vecPw j)) (.n 1) j)) &&
+  (List.range 12).all (fun j ↦ isMul A (.n (j + 2)) (.n (vecPw j)) (.n (vecPw j))) &&
+  A.any (isConstAt (.n 15) 0 0) && A.any (isLoadAt (.n 15) (.n 1) 13) &&
+  (List.range 7).all (fun i ↦ A.any (isConstAt (.n (17 + i)) 0 0) &&
+    A.any (isLoadAt (.n (17 + i)) (.n 16) (7 + i))) &&
+  hasCall P "da_factors__L13_L7_L0" [.n 1] [.n 24] && A.any (isConstAt (.n 25) 1 0) &&
+  hasCall P "da_expand__L13_L7" [.n 25, .n 24, .n 1, .n 16] [.n 26] &&
+  hasCall P "da_factors__L6_L7_L128" [.n 1] [.n 27] &&
+  hasCall P "da_column_offsets" [.n 1] [.n 28] &&
+  A.any (isCopyAt (.n 29) (.n 1)) && A.any (isCopyAt (.n 30) (.n 26)) &&
+  A.any (isCopyAt (.n 31) (.n 27)) && A.any (isCopyAt (.n 32) (.n 28))
 
 /-- **`da_vector`'s core IR gives its meaning**, from its callees'. -/
 theorem da_vector_val (hok : vecOk = true) (hfac : da_factors_sound_Spec)
@@ -89,8 +89,8 @@ theorem da_vector_val (hok : vecOk = true) (hfac : da_factors_sound_Spec)
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_da_vector _ _).mp hrel
   unfold vecOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true, List.mem_range] at hok
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hparams, hbody⟩, hflat⟩, hpw⟩, hsq⟩, hc16⟩, hl16⟩, hshift⟩, hcf⟩,
-    hc26⟩, hce⟩, hcf7⟩, hco⟩, h30⟩, h31⟩, h32⟩, h33⟩ := hok
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hparams, hbody⟩, hflat⟩, hpw⟩, hsq⟩, hc15⟩, hl15⟩, hshift⟩, hcf⟩,
+    hc25⟩, hce⟩, hcf6⟩, hco⟩, h29⟩, h30⟩, h31⟩, h32⟩ := hok
   rw [hparams] at hpar
   simp only [List.map_cons, List.map_nil] at hpar
   subst hpar
@@ -101,7 +101,7 @@ theorem da_vector_val (hok : vecOk = true) (hfac : da_factors_sound_Spec)
   have hat := atoms_of_flat hall
   set z := σ (.n 0)
   -- the powers
-  have hpow : ∀ j < 14, σ (.n (vecPw j)) = z ^ 2 ^ j := by
+  have hpow : ∀ j < 13, σ (.n (vecPw j)) = z ^ 2 ^ j := by
     intro j
     induction j with
     | zero => intro _; simp [vecPw, z]
@@ -112,28 +112,28 @@ theorem da_vector_val (hok : vecOk = true) (hfac : da_factors_sound_Spec)
         ← pow_succ]
   have hzs : ZsAt rd (σ (.n 1)) z := by
     intro j hj
-    rcases Nat.lt_or_ge j 14 with h | h
+    rcases Nat.lt_or_ge j 13 with h | h
     · have := load_sound (hpw j h) hat
       rwa [hpow j h, ← show zsVal z j = z ^ 2 ^ j by simp [zsVal, h]] at this
-    · have := load_sound hl16 hat
-      rw [const_sound hc16 hat, word_zero] at this
-      rwa [show j = 14 by omega, show zsVal z 14 = 0 by simp [zsVal]]
-  have hzu : ∀ {j v}, j < 15 → LoadHolds rd (σ (.n 1)) j v → v = zsVal z j := fun hj h ↦
+    · have := load_sound hl15 hat
+      rw [const_sound hc15 hat, word_zero] at this
+      rwa [show j = 13 by omega, show zsVal z 13 = 0 by simp [zsVal]]
+  have hzu : ∀ {j v}, j < 14 → LoadHolds rd (σ (.n 1)) j v → v = zsVal z j := fun hj h ↦
     loadHolds_unique h (hzs _ hj)
   -- the callees
-  have rF14 := hfac.1 rd _ _ (call_of_flat hall hcf)
+  have rF13 := hfac.1 rd _ _ (call_of_flat hall hcf)
   have rE := hexp.1 rd _ _ (call_of_flat hall hce)
-  have rF7 := hfac.2 rd _ _ (call_of_flat hall hcf7)
+  have rF6 := hfac.2 rd _ _ (call_of_flat hall hcf6)
   have rO := hoff rd _ _ (call_of_flat hall hco)
   simp only [List.map_cons, List.map_nil, MeaningDaFactors, MeaningDaExpand,
-    MeaningDaColumnOffsets] at rF14 rE rF7 rO
-  obtain ⟨Z1, hZ1, hF1⟩ := rF14
+    MeaningDaColumnOffsets] at rF13 rE rF6 rO
+  obtain ⟨Z1, hZ1, hF1⟩ := rF13
   obtain ⟨F, Z, S, hF, hZ, hS, hrun⟩ := rE
-  obtain ⟨Z2, hZ2, hF2⟩ := rF7
+  obtain ⟨Z2, hZ2, hF2⟩ := rF6
   obtain ⟨Z3, hZ3, hO⟩ := rO
-  rw [const_sound hc26 hat, word_one] at hrun
-  simp only [MeaningDaVector, copy_sound h30 hat, copy_sound h31 hat, copy_sound h32 hat,
-    copy_sound h33 hat]
+  rw [const_sound hc25 hat, word_one] at hrun
+  simp only [MeaningDaVector, copy_sound h29 hat, copy_sound h30 hat, copy_sound h31 hat,
+    copy_sound h32 hat]
   refine ⟨hzs, ⟨hrun.1, fun k hk w hw ↦ ?_⟩, fun n hn1 hn2 ↦ ?_, fun h hh j hj ↦ ?_⟩
   · -- the top leaves
     rw [hrun.2 k (by norm_num at hk ⊢; omega) w hw, ← topLeaf_eq z hk]
@@ -147,12 +147,12 @@ theorem da_vector_val (hok : vecOk = true) (hfac : da_factors_sound_Spec)
     · exact hzu (by omega) (hZ d hd)
     · have hsh := (hshift (6 - d) (by omega))
       have l := load_sound hsh.2 hat
-      rw [const_sound hsh.1 hat, word_zero, show 8 + (6 - d) = 14 - d by omega] at l
+      rw [const_sound hsh.1 hat, word_zero, show 7 + (6 - d) = 13 - d by omega] at l
       exact loadHolds_unique (hS d hd) l
   · -- the cell tree's factors
-    rw [show (256 : ℕ) = 2 ^ 8 by norm_num] at hn2
+    rw [show (128 : ℕ) = 2 ^ 7 by norm_num] at hn2
     refine (factorAt_congr ?_) ▸ hF2 n hn1 hn2
-    have hl : Nat.log 2 n < 8 := Nat.log_lt_of_lt_pow (by omega) hn2
+    have hl : Nat.log 2 n < 7 := Nat.log_lt_of_lt_pow (by omega) hn2
     exact hzu (by omega) (hZ2 (Nat.log 2 n) hl)
   · -- the offsets
     have e := hzu (by omega) (hZ3 j hj)

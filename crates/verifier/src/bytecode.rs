@@ -1,90 +1,65 @@
-//! The program a proof is about, prepared once so that verifying many proofs of it hashes its table once.
+//! The program a proof is about, prepared once so that verifying many proofs of it hashes its bytecode once.
 
-use crate::field::{E, ZERO, reduce};
+use crate::field::{E, K};
 use crate::hash::{Digest, keccak_hash};
 use crate::layout::TAG;
 use crate::multilinear::eq_kernel;
 use crate::{VerifierError, require};
+use std::collections::BTreeMap;
 
 /// The stacked bytecode multilinear, prepared to be evaluated, and the Fiat-Shamir IV it gives every transcript.
 ///
-/// The table is fixed while the points vary, so its words are sorted once: per block of `2^BLOCK_LOG` words, the
-/// positions of each distinct nonzero word, and the bytes those words have.
+/// The multilinear is fixed while the points vary, so its values on the hypercube are grouped once (`blocks`).
 #[derive(Clone, Debug)]
 pub struct Bytecode {
+    /// How many values `new` was given: unless that is a power of two, [`Bytecode::evaluate`] rejects every point.
     len: usize,
     pub(crate) fiat_shamir_iv: Digest,
-    blocks: Vec<Block>,
-    /// A distinct word of a block, and where its positions end.
-    words: Vec<(u64, usize)>,
-    positions: Vec<u16>,
-    /// A byte some word of a block has: which of the word's eight, times 256, plus its value.
-    bytes: Vec<u16>,
+    /// The values cut into blocks of `2^BLOCK_LOG` consecutive ones: a block's index is the high coordinates, a
+    /// position within it the low ones. For each block, every distinct nonzero value, with the positions where it
+    /// occurs; zeros are left out.
+    blocks: Vec<Vec<(K, Vec<u16>)>>,
 }
 
-/// A block with a nonzero word: its index, and where its words and bytes end.
-#[derive(Clone, Copy, Debug)]
-struct Block {
-    index: usize,
-    words_end: usize,
-    bytes_end: usize,
-}
-
-/// How many low coordinates one block of [`Bytecode::evaluate`] spans: their eq table stays in cache, and a block is long enough to amortize closing it.
+/// How many low coordinates one block of [`Bytecode::evaluate`] spans: their eq table stays in cache.
 const BLOCK_LOG: usize = 14;
-
-/// The nonzero bytes of `word`, each as its bucket: which byte, times 256, plus its value.
-fn byte_buckets(word: u64) -> impl Iterator<Item = u16> {
-    let bytes = word.to_le_bytes().into_iter().enumerate();
-    bytes
-        .filter(|&(_, value)| value != 0)
-        .map(|(byte, value)| 256 * byte as u16 + value as u16)
-}
+const _: () = assert!(BLOCK_LOG <= u16::BITS as usize, "a position within a block is a u16");
 
 impl Bytecode {
-    pub fn new(table: &[u64]) -> Self {
+    /// The Fiat-Shamir IV every transcript of this program starts from.
+    pub fn fiat_shamir_iv(&self) -> [u8; 32] {
+        self.fiat_shamir_iv.0
+    }
+
+    /// From the multilinear's values on the hypercube, LSB-first: what `isa::Program::stacked_bytecode` returns. Any
+    /// length is accepted, but only a power of two can be evaluated.
+    pub fn new(stacked_bytecode: &[u64]) -> Self {
         let fiat_shamir_iv = {
             let iv_preimage: Vec<u8> = TAG
                 .iter()
                 .copied()
-                .chain(table.iter().flat_map(|word| word.to_le_bytes()))
+                .chain(stacked_bytecode.iter().flat_map(|word| word.to_le_bytes()))
                 .collect();
             keccak_hash(&iv_preimage)
         };
-
-        let (mut blocks, mut words, mut positions, mut bytes) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
-        for (index, block) in table.chunks(1 << BLOCK_LOG).enumerate() {
-            let mut members = std::collections::BTreeMap::<u64, Vec<u16>>::new();
-            for (position, &word) in block.iter().enumerate().filter(|&(_, &word)| word != 0) {
-                members.entry(word).or_default().push(position as u16);
-            }
-            if members.is_empty() {
-                continue;
-            }
-            // Fewest positions first: the sum over a word's positions then runs one length many times over,
-            // so its loop exit is predicted.
-            let mut members: Vec<(u64, Vec<u16>)> = members.into_iter().collect();
-            members.sort_by_key(|(_, at)| at.len());
-            let mut used = std::collections::BTreeSet::new();
-            for (word, at) in members {
-                positions.extend(at);
-                words.push((word, positions.len()));
-                used.extend(byte_buckets(word));
-            }
-            bytes.extend(used);
-            blocks.push(Block {
-                index,
-                words_end: words.len(),
-                bytes_end: bytes.len(),
-            });
-        }
+        let blocks = stacked_bytecode
+            .chunks(1 << BLOCK_LOG)
+            .map(|block| {
+                let mut members = BTreeMap::<u64, Vec<u16>>::new();
+                for (position, &word) in block.iter().enumerate().filter(|&(_, &word)| word != 0) {
+                    members.entry(word).or_default().push(position as u16);
+                }
+                // Fewest positions first: the sum over a value's positions then runs one length many times over, so
+                // its loop exit is predicted.
+                let mut members: Vec<(K, Vec<u16>)> = members.into_iter().map(|(word, at)| (K(word), at)).collect();
+                members.sort_by_key(|(_, at)| at.len());
+                members
+            })
+            .collect();
         Self {
-            len: table.len(),
+            len: stacked_bytecode.len(),
             fiat_shamir_iv,
             blocks,
-            words,
-            positions,
-            bytes,
         }
     }
 
@@ -96,11 +71,10 @@ impl Bytecode {
         self.len == 0
     }
 
-    /// The table's multilinear extension at an LSB-first `point`, equal to `multilinear_eval` of its words.
+    /// The multilinear at an LSB-first `point`, equal to `multilinear_eval` of its values.
     ///
-    /// The low coordinates' eq table weighs the words of every block, and the high coordinates' weighs the blocks.
-    /// Within a block, the weights of each distinct word are summed once and credited to the buckets of its bytes,
-    /// and each bucket to every bit its byte value sets: then bit `k` of the words holds its sum, which `x^k` scales.
+    /// The low coordinates' eq table weighs the values of a block, and the high coordinates' weighs the blocks. Within
+    /// a block, the weights of a value's positions are summed before it multiplies them, once per distinct value.
     pub fn evaluate(&self, point: &[E]) -> Result<E, VerifierError> {
         require(
             point.len() < 64 && self.len == 1 << point.len(),
@@ -108,53 +82,30 @@ impl Bytecode {
         )?;
         let (low, high) = point.split_at(point.len().min(BLOCK_LOG));
         let (low_weights, high_weights) = (eq_kernel(low), eq_kernel(high));
-        let mut buckets = vec![ZERO; 8 * 256];
-        let (mut words_start, mut positions_start, mut bytes_start) = (0, 0, 0);
-        let mut total = ZERO;
-        for block in &self.blocks {
-            for &(word, positions_end) in &self.words[words_start..block.words_end] {
-                let members = &self.positions[positions_start..positions_end];
-                let sum = E::sum(members.iter().map(|&position| low_weights[position as usize]));
-                // Every byte, the zero ones into buckets no block reads, so the loop has no branch on the data.
-                for (byte, value) in word.to_le_bytes().into_iter().enumerate() {
-                    buckets[256 * byte + value as usize] += sum;
-                }
-                positions_start = positions_end;
-            }
-            let mut bit_sums = [ZERO; 64];
-            for &bucket in &self.bytes[bytes_start..block.bytes_end] {
-                let sum = std::mem::take(&mut buckets[bucket as usize]);
-                let (byte, value) = (bucket as usize / 256, bucket as u64 % 256);
-                for (bit, bit_sum) in bit_sums[8 * byte..8 * byte + 8].iter_mut().enumerate() {
-                    *bit_sum += sum.masked(0u64.wrapping_sub(value >> bit & 1));
-                }
-            }
-            (words_start, bytes_start) = (block.words_end, block.bytes_end);
-            total += high_weights[block.index] * monomial_sum(&bit_sums);
-        }
-        Ok(total)
+        let block_value = |block: &Vec<(K, Vec<u16>)>| {
+            E::sum(
+                block
+                    .iter()
+                    .map(|(word, at)| E::sum(at.iter().map(|&i| low_weights[i as usize])) * *word),
+            )
+        };
+        Ok(E::sum(
+            self.blocks
+                .iter()
+                .zip(&high_weights)
+                .map(|(block, &weight)| weight * block_value(block)),
+        ))
     }
-}
-
-/// `sum_k x^k * sums[k]`: each limb shifted into place, then one reduction.
-fn monomial_sum(sums: &[E; 64]) -> E {
-    let (mut c0, mut c1) = (0u128, 0u128);
-    for (k, sum) in sums.iter().enumerate() {
-        c0 ^= (sum.c0 as u128) << k;
-        c1 ^= (sum.c1 as u128) << k;
-    }
-    E::new(reduce(c0), reduce(c1))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::field::K;
     use crate::multilinear::multilinear_eval;
 
     #[test]
     fn evaluate_matches_the_fold() {
-        // An xorshift stream: words with every byte live, short words, a run of zeros, a zero block, and points on both sides of the block split.
+        // An xorshift stream: distinct words, repeated short words, a run of zeros, a zero block, and points on both sides of the block split.
         let mut state = 0x9E37_79B9_7F4A_7C15u64;
         let mut next = move || {
             state ^= state << 13;
@@ -163,19 +114,19 @@ mod tests {
             state
         };
         for variables in [0, 3, BLOCK_LOG, BLOCK_LOG + 2] {
-            let mut table: Vec<u64> = (0..1 << variables).map(|_| next()).collect();
-            for word in table.iter_mut().skip(5).take(40) {
+            let mut stacked_bytecode: Vec<u64> = (0..1 << variables).map(|_| next()).collect();
+            for word in stacked_bytecode.iter_mut().skip(5).take(40) {
                 *word = 0;
             }
-            for word in table.iter_mut().skip(50).step_by(3) {
+            for word in stacked_bytecode.iter_mut().skip(50).step_by(3) {
                 *word >>= 40;
             }
-            for word in table.iter_mut().skip(2 << BLOCK_LOG).take(1 << BLOCK_LOG) {
+            for word in stacked_bytecode.iter_mut().skip(2 << BLOCK_LOG).take(1 << BLOCK_LOG) {
                 *word = 0;
             }
             let point: Vec<E> = (0..variables).map(|_| E::new(next(), next())).collect();
-            let words: Vec<K> = table.iter().map(|&word| K(word)).collect();
-            let bytecode = Bytecode::new(&table);
+            let words: Vec<K> = stacked_bytecode.iter().map(|&word| K(word)).collect();
+            let bytecode = Bytecode::new(&stacked_bytecode);
             assert_eq!(bytecode.evaluate(&point), multilinear_eval(&words, &point));
         }
     }

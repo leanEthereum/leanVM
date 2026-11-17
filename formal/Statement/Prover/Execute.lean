@@ -6,12 +6,12 @@ public import Statement.LeanIsa
 # The executor
 
 `execute prog input advice` runs `prog` on `input` as leanVM's Rust executor does
-(`Program::execute_with`, `crates/leanvm_core/src/cpu/execute.rs`), producing the execution the
+(`cpu::execute`, `crates/lean_vm_core/src/cpu/execute.rs`), producing the execution the
 prover takes. The memory starts empty and is written once: each instruction fills the cell its
 relation determines (a `XOR`'s or a `MUL`'s result, a `MUL`'s one unknown operand, a `SET`'s cell,
 the unwritten side of a `DEREF`, a `KECCAK`'s outputs), and a `DEREF` between two unwritten cells
 links them, a later write to either reaching both. The hints a `pc` carries (`RHint`,
-`cpu/hints.rs`) run before its instruction: they allocate (`next_free`, a bump pointer from the end
+`crates/isa/src/lib.rs`) run before its instruction: they allocate (`next_free`, a bump pointer from the end
 of `main`'s frame), pop witness streams, and compute advice the instructions go on to check.
 
 Nothing here is trusted: a run that halts gives a valid execution whatever the program, its hints
@@ -126,7 +126,7 @@ inductive BufSize where
   | cells (n : ℕ)
   | exp (cell : ℕ)
 
-/-- A hint (`RHint`, `cpu/hints.rs`), its offsets relative to `fp`. -/
+/-- A hint (`RHint`, `crates/isa/src/lib.rs`), its offsets relative to `fp`. -/
 inductive Hint where
   /-- Announce `fp + offset`'s address (no effect on the run). -/
   | frameAddress (offset : ℕ)

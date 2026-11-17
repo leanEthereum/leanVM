@@ -143,7 +143,7 @@ theorem layKid_lin_region (h : D.Ok) {s : ℕ} (hs : s < 12) (hl : s + 2 ≤ fps
           (by simp [layerBufs_eq]) le_rfl le_rfl x hx'
       · exact lay (by simp [layerBufs_eq]) le_rfl le_rfl x hx'
       · exact lay (by simp [layerBufs_eq]) le_rfl le_rfl x hx'
-      · exact lay (b := D.lsOf fs fps k + (D.layer k).y + 164)
+      · exact lay (b := D.lsOf fs fps k + (D.layer k).y + 148)
           (ws := flipsOf (laterWeights (lanesOut ((D.layer k).locPt (firstOf k))
             ((D.layer k).beta (firstOf k)).1) (eqKernel (((D.layer k).locPt (firstOf k)).take 6))))
           (by simp [layerBufs_eq]) le_rfl (by simp [flipsOf]) x hx'

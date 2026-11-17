@@ -41,11 +41,11 @@ theorem corr_layer {P : ℕ} {col' col : ℕ → K} (hcol : ColAgree P col' col)
   rw [kappa_eq s]
   refine Corr.bind (fun a b hab ↦ ?_) _ _ (corr_pack (T := statesAt (P + 4) col (d + 1))
     (w := claim.weights) hshape.2.1 claim.point [] _ (packInv_start hcol hd s claim.point) rfl)
-  obtain ⟨hb1, hb2, hl, hinv⟩ := hab
+  obtain ⟨hb, hl, hinv⟩ := hab
   rw [List.nil_append] at hinv
   have hacc : a.1.length = P + 1 := by rw [hl, hshape.2.1]
-  rw [hb1, hb2]
-  refine Corr.bind (fun a2 b2 hab2 ↦ ?_) _ _ (corr_pos (w := claim.weights) hinv hacc a.2.scale)
+  rw [hb]
+  refine Corr.bind (fun a2 b2 hab2 ↦ ?_) _ _ (corr_pos (w := claim.weights) hinv hacc)
   obtain ⟨h1, h2, h3, h4⟩ := hab2
   obtain ⟨t0, t1, t2⟩ := posInv_full h2 h4
   refine corr_sendList (by rw [t0, t1, t2, h1]) ?_

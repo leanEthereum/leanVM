@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.Vt.AsmForms
 public import LeanVM.Guest.B1.Tables.Vt.Air
 
 /-!
-# The final check (V:664-675)
+# The final check
 
 `vt_weight_guest`: a table's weight at the reversed challenges is the guest's `cprod[g^n/τ]` times
 `peq[τ]`. `vt_xi_pow`: the batching challenge's powers. `vt_asm_final`: `termsPure`'s terminal

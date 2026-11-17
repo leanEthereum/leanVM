@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Common.Atoms
 
 /-!
-# `residual_query` (G:1463-1480)
+# `residual_query`
 
 `residual_query(position, row_d, hs, vanish, n_cols, n_hs, hs_bits)` walks the chain
 `chain_0 = x` (the position), `chain_(t+1) = chain_t·(chain_t + VALS[vanish + t])` (`LIG_VANISH_VALS`,
@@ -21,7 +21,7 @@ over the row `d_t = row_d[t]` (`residualProd`) and the high part's share
 reads the share against the verifier.
 
 * `residual_factor`: `1 + c·(1 + x·inv) = (c·inv)·((1 + c)/(c·inv) + x)` when `c·inv ≠ 0`, so the
-  product of `inducedWeight`'s factors (V:1715) at one query is `Π_t (c_t·inv_t)` (the level's
+  product of `inducedWeight`'s factors at one query is `Π_t (c_t·inv_t)` (the level's
   scale, `open_stacked`'s `level_scale`) times the prefix product at `d_t = (1 + c_t)/(c_t·inv_t)`
   (`basis_d`): `residual_prod`.
 -/
@@ -45,14 +45,14 @@ def residualProd (vals : List E) (x : E) (d : ℕ → E) : ℕ → E
 
 /-! ## The factoring -/
 
-/-- **A coordinate's factor** (G:1639-1647): `1 + c·(1 + x·inv) = (c·inv)·((1 + c)/(c·inv) + x)`. -/
+/-- **A coordinate's factor**: `1 + c·(1 + x·inv) = (c·inv)·((1 + c)/(c·inv) + x)`. -/
 theorem residual_factor {c inv x : E} (h : c * inv ≠ 0) :
     1 + c * (1 + x * inv) = c * inv * ((1 + c) / (c * inv) + x) := by
   have e : c * inv * ((1 + c) / (c * inv)) = 1 + c := mul_div_cancel₀ _ h
   rw [mul_add (c * inv), e]
   ring
 
-/-- **The product of `inducedWeight`'s factors** (V:1715) at one query is the level's scale times
+/-- **The product of `inducedWeight`'s factors** at one query is the level's scale times
 `residual_query`'s value at `d_t = (1 + c_t)/(c_t·inv_t)`. -/
 theorem residual_prod (vals : List E) (x : E) (c inv : ℕ → E) (n : ℕ)
     (h : ∀ t < n, c t * inv t ≠ 0) :

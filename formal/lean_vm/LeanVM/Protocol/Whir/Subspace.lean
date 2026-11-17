@@ -17,7 +17,7 @@ public import Mathlib.Algebra.MvPolynomial.Basic
 # Subspace vanishing polynomials
 
 Annex D ("Novel polynomial basis and additive NTT", `app:ntt`; Annex B §B.6 until `127510d1`) of
-the leanVM specification, `doc/leanvm/body/d-novel-basis.tex:2-27` at leanVM pin
+the leanVM specification, `doc/leanvm/body/d-novel-basis.tex` at leanVM pin
 `127510d14c98ade4e8a97646c44fa7f1ff5e752d`. The definitions are the Annex's, and the
 lemma is its Lemma `lem:subspace`, parts (i) and (ii) proved here; its first sentence, added at
 `127510d1` (each `W_i` has only the monomials `X^(2^j)`), is not formalized.
@@ -220,7 +220,7 @@ theorem vanishing_succ (i : ℕ) :
   (vanishing_comp_add_and_succ i).2
 
 /-- The recurrence (i), evaluated: `W_{i+1}(a) = W_i(a)^2 + W_i(e_i)·W_i(a)`, the update of the
-verifier's `subspace_roots` (`crates/verifier/src/whir.rs:91-103`) and of the prover's `next_s`. -/
+verifier's `subspace_roots` (`crates/verifier/src/whir.rs`) and of the prover's `next_s`. -/
 theorem vanishingAt_succ (i : ℕ) (a : K) :
     vanishingAt (i + 1) a = vanishingAt i a ^ 2 + vanishingAt i (basisVec i) * vanishingAt i a := by
   rw [← eval_vanishing, vanishing_succ, eval_mul, eval_add, eval_C, eval_vanishing]

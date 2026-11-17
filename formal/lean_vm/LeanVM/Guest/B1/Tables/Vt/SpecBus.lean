@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.Vt.SpecRun
 
 /-!
-# `busRest` as a run (V:1348-1380)
+# `busRest` as a run
 
 `vtBus`: the bus result `busRest` returns for the framework words `memory`, `mf`, `bf`, the
 bytecode's share and the slot sumcheck's point. `vt_busRest_run`: from any sponge `s`, `busRest`

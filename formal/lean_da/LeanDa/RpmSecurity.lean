@@ -118,7 +118,7 @@ theorem run_verifyCellM (r : ℕ) (com : Common.DigestBytes) (p : Fin (r * 128))
     (hz : z ∈ support ((simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
       (verifyCellMWithHash hR r com p x τ)).run c)) :
     c ≤ z.2 ∧ ∀ c', z.2 ≤ c' → z.1 = verifyCell (hOf c') r com p x τ ∧
-      ∀ a ∈ hashInputs (hOf c') p (cellBytes x) τ.path, c' (.inl a) ≠ none := by
+      ∀ a ∈ hashInputs (hOf c') p (cellBytes x) (τ.path ++ [countBytes r]), c' (.inl a) ≠ none := by
   simp only [verifyCellMWithHash, simulateQ_bind, StateT.run_bind, mem_support_bind_iff,
     simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
   obtain ⟨w₁, hw₁, w₂, hw₂, rfl⟩ := hz
@@ -178,7 +178,7 @@ theorem run_verifyRpm (crs : Crs) (com : Common.DigestBytes × Proof) (p : Fin (
     (hz : z ∈ support ((simulateQ (hfSpec (List UInt8) DigestBytes KState).romImpl
       (verifyRpm hR pR r ps crs com p x τ)).run c)) :
     c ≤ z.2 ∧ (z.1 = true → ∀ c', z.2 ≤ c' → verifyCell (hOf c') r com.1 p x τ = true ∧
-      ∀ a ∈ hashInputs (hOf c') p (cellBytes x) τ.path, c' (.inl a) ≠ none) := by
+      ∀ a ∈ hashInputs (hOf c') p (cellBytes x) (τ.path ++ [countBytes r]), c' (.inl a) ≠ none) := by
   simp only [verifyRpm, simulateQ_bind, StateT.run_bind, mem_support_bind_iff,
     simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
   obtain ⟨w₁, hw₁, w₂, hw₂, rfl⟩ := hz

@@ -17,11 +17,11 @@ public import LeanVM.Guest.Memory.LoopPre
 `layer_completeAtFB` is `layer_completeAtF` with the size of the layer's run bounded before the
 memory, by
 
-  `layerWords fs first y KP KR = fs (layerName first) + (y + 171)
+  `layerWords fs first y KP KR = fs (layerName first) + (y + 155)
     + (fs (packLoopName first) + ⌊y/8⌋ * KP) + (fs (remLoopName first) + (y % 8) * KR)
     + fs (grindCheckName 3)`:
 
-the layer's frame; its buffers (`allocDyn` of `y` words for the pack challenges, then 128 for the
+the layer's frame; its buffers (`allocDyn` of `y` words for the pack challenges, then 112 for the
 round records, 11 for the local point, 25 for the next claim's lanes and 7 for its flips); the
 eight-round pack loop's call (`⌊y/8⌋` iterations of at most `KP` words each and its run's one
 phantom frame `fs (packLoopName first)` when it is entered, that frame alone when it is skipped,
@@ -45,11 +45,11 @@ open LeanVM.Protocol.KeccakGkr
 
 @[expose] public section
 
-/-- **`keccak_layer`'s words**: its frame, its buffers (`y + 128 + 11 + 25 + 7`), the eight-round
+/-- **`keccak_layer`'s words**: its frame, its buffers (`y + 112 + 11 + 25 + 7`), the eight-round
 pack loop's (its frame and `⌊y/8⌋` iterations of at most `KP` words) and the remainder loop's (its
 frame and `y % 8` iterations of at most `KR` words), and `grind_check__L3`'s frame. -/
 def layerWords (fs : String → ℕ) (first y KP KR : ℕ) : ℕ :=
-  fs (layerName first) + (y + 171) + (fs (packLoopName first) + y / 8 * KP) +
+  fs (layerName first) + (y + 155) + (fs (packLoopName first) + y / 8 * KP) +
     (fs (remLoopName first) + y % 8 * KR) + fs (grindCheckName 3)
 
 theorem packLoopName_ne_rem (first : ℕ) : packLoopName first ≠ remLoopName first := by

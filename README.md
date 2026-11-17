@@ -30,8 +30,8 @@
     <td align="right"><b>140 ms</b></td>
   </tr>
   <tr>
-    <td><a href="#hashing">proving KECCAK</a></td>
-    <td align="right"><b>700K/s</b></td>
+    <td><a href="#proving-keccak">proving KECCAK</a></td>
+    <td align="right"><b>800K/s</b></td>
   </tr>
   <tr>
     <td><a href="#fibonacci">cheap cycles</a></td>
@@ -56,6 +56,10 @@ leanVM is designed for security:
 
 **leanVM is not (yet) production ready.**
 
+## two provers
+
+In the short term, we provide two Rust implementations of the prover, `stable` (for readability and safety) and `experimental` (includes the latest optimizations). There will eventually be a single prover in this repo.
+
 ## benchmarks
 
 **machine**: M4 Max MacBook Pro (12 performance cores, 4 efficiency cores, 48GB RAM, CPU only, i.e. no metal GPU)
@@ -65,7 +69,7 @@ leanVM is designed for security:
 The leanXMSS parameters are specified in [leanXMSS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/leanXMSS.pdf), with a [security proof in Lean 4](formal/statement.tex). **This is not the definitive parameter set.**
 
 ```bash
-cargo leanvm aggregate --xmss 1400 --log-inv-rate 2 --repeat 3
+cargo leanvm --prover experimental aggregate --xmss 1400 --log-inv-rate 2 --repeat 3
 ```
 
 ```
@@ -83,7 +87,7 @@ aggregation, 1,400 leanXMSS signatures
 The leanSPHINCS parameters are specified in [leanSPHINCS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/leanSPHINCS.pdf), with a [security proof in Lean 4](formal/statement.tex). **This is not the definitive parameter set.**
 
 ```bash
-cargo leanvm aggregate --sphincs 500 --log-inv-rate 1 --repeat 3
+cargo leanvm --prover experimental aggregate --sphincs 500 --log-inv-rate 1 --repeat 3
 ```
 
 ```
@@ -99,23 +103,23 @@ aggregation, 500 leanSPHINCS signatures
 ### data availability
 
 ```bash
-cargo leanvm aggregate --blobs 16 --log-inv-rate 1 --repeat 3
+cargo leanvm --prover experimental aggregate --blobs 32 --log-inv-rate 1 --repeat 3
 ```
 
 ```
-aggregation, 16 blobs
-  cycles (VM steps)           : 3,020,842 = 2^21.527
-    details                   : XOR 2^20.098 (37.1%)  MUL 2^19.811 (30.4%)  DEREF 2^19.206 (20.0%)  JUMP 2^18.052 (9.0%)  SET 2^16.043 (2.2%)  KECCAK 2^15.088 (1.2%)  MEMORY 2^21.799  BYTECODE 2^18.812  TOTAL_COMMITTED 2^26.306
-  proof size                  : 289.9 KiB
-  proving time                : 0.608 s ± 3.4%      peak memory 4.279 GiB
-  blob throughput             : 26.299 blobs/s, 3.287 MiB/s
-  verifying                   : 5.714 ms
+aggregation, 32 blobs
+  cycles (VM steps)           : 2,602,234 = 2^21.311
+    details                   : XOR 2^20.063 (42.1%)  MUL 2^19.392 (26.4%)  DEREF 2^19.25 (24.0%)  SET 2^16.717 (4.1%)  KECCAK 2^16.088 (2.7%)  JUMP 2^14.14 (0.7%)  MEMORY 2^21.88  BYTECODE 2^18.801  TOTAL_COMMITTED 2^26.291
+  proof size                  : 289.8 KiB
+  proving time                : 0.643 s ± 2.6%      peak memory 4.28 GiB
+  blob throughput             : 49.757 blobs/s, 6.22 MiB/s
+  verifying                   : 5.466 ms
 ```
 
 ### recursion
 
 ```bash
-cargo leanvm recursion --n 2 --xmss-per-leaf 1400 --leaf-log-inv-rate 2 --log-inv-rate 1 --repeat 3
+cargo leanvm --prover experimental recursion --n 2 --xmss-per-leaf 1400 --leaf-log-inv-rate 2 --log-inv-rate 1 --repeat 3
 ```
 
 ```
@@ -130,27 +134,27 @@ recursion 2→1, over leaves of 1,400 leanXMSS signatures, leaf rate = 1/4, recu
 ### Proving KECCAK
 
 ```bash
-cargo leanvm hash --log-n 17 --repeat 3
+KECCAK_N_LOG=20 BENCH_REPEAT=3 cargo bench -p experimental_keccak_gkr --bench hash_batch
 ```
 
 ```
-Keccak GKR batch proving, 131,072 permutations, a state committed every 12 rounds
-  witness                         :      9.8 ms ± 32.7%    5.5%
-  commit                          :     18.1 ms ± 12.6%   10.0%
-  output claim                    :      2.2 ms ± 22.3%    1.2%
-  layers and openings             :    126.6 ms ± 2.8%   70.2%
-  pcs opening                     :     23.7 ms ± 3.9%   13.1%
+Keccak GKR batch proving, 1,048,576 permutations, a state committed every 12 rounds
+  witness                         :     63.8 ms ± 12.0%    5.1%
+  commit                          :    116.1 ms ± 0.4%    9.2%
+  output claim                    :     12.2 ms ± 1.8%    1.0%
+  layers and openings             :    932.2 ms ± 1.2%   74.1%
+  pcs opening                     :    133.7 ms ± 0.9%   10.6%
   ------------------------------------------
-  prove TOTAL (witness included)  :    180.4 ms ± 4.5%
-  verify                          :      2.4 ms
-  throughput                      :        726,763 permutations/s ± 4.5%
-  proof size                      :       237.7 KiB  (1639 scalars, 212.1 KiB of Merkle openings)
+  prove TOTAL (witness included)  :   1258.1 ms ± 0.7%
+  verify                          :      2.7 ms
+  throughput                      :        833,488 permutations/s ± 0.7%
+  proof size                      :       281.3 KiB  (1722 scalars, 254.4 KiB of Merkle openings)
 ```
 
 ### Fibonacci
 
 ```bash
-cargo leanvm fibonacci --n 2000000 --log-inv-rate 1 --repeat 3
+cargo leanvm --prover experimental fibonacci --n 2000000 --log-inv-rate 1 --repeat 3
 ```
 
 ```

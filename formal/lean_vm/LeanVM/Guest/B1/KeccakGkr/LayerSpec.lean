@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.KeccakGkr.Lib
 public import LeanVM.Guest.B1.Common.Run
 public import LeanVM.Guest.B1.Gkr.Spec
+public import LeanVM.Protocol.Verifier.KeccakPack
 
 /-!
 # A layer on the carried sponge
@@ -49,26 +50,24 @@ theorem runsTo_require {c : Prop} [Decidable c] (h : c) (s : Fs) :
 
 /-! ## The pack rounds -/
 
-/-- `keccakPackRounds` on the carried sponge, round `i` reading `(g₁, g₂)`: the value,
-the scale, the challenges, and the sponge after them. -/
-def packRunF : List E → List (E × E) → E → E → Fs → (E × E × List E) × Fs
-  | r :: rs, (g1, g2) :: ms, v, sc, s =>
+/-- `keccakPackRounds` on the carried sponge, round `i` reading `(g₁, g₂)`: the normalized value, challenges and sponge after them. -/
+def packRunF : List E → List (E × E) → E → Fs → (E × List E) × Fs
+  | r :: rs, (g1, g2) :: ms, v, s =>
     let q := (s.absorbAll [g1, g2] dsObserve).squeeze
-    let res := packRunF rs ms ((1 + r + q.1) * polyEval [v + r * sumE [g1, g2], g1, g2] q.1)
-      (sc * (1 + r + q.1)) q.2
-    ((res.1.1, res.1.2.1, q.1 :: res.1.2.2), res.2)
-  | _, _, v, sc, s => ((v, sc, []), s)
+    let res := packRunF rs ms (polyEval [v + r * sumE [g1, g2], g1, g2] q.1) q.2
+    ((res.1.1, q.1 :: res.1.2), res.2)
+  | _, _, v, s => ((v, []), s)
 
 theorem runsTo_readN2 (s : Fs) (a b : E) :
     RunsTo (VerifierProgram.readScalars 2) s [a, b] [a, b] (s.absorbAll [a, b] dsObserve) :=
   runsTo_readN s [a, b]
 
 theorem runsTo_packRounds :
-    ∀ (rs : List E) (ms : List (E × E)) (v sc : E) (s : Fs), ms.length = rs.length →
-      RunsTo (keccakPackRounds rs v sc) s (ms.flatMap fun m ↦ [m.1, m.2])
-        (packRunF rs ms v sc s).1 (packRunF rs ms v sc s).2
-  | [], [], v, sc, s, _ => runsTo_ret _ _
-  | r :: rs, (g1, g2) :: ms, v, sc, s, h => by
+    ∀ (rs : List E) (ms : List (E × E)) (v : E) (s : Fs), ms.length = rs.length →
+      RunsTo (keccakPackRounds rs v) s (ms.flatMap fun m ↦ [m.1, m.2])
+        (packRunF rs ms v s).1 (packRunF rs ms v s).2
+  | [], [], v, s, _ => runsTo_ret _ _
+  | r :: rs, (g1, g2) :: ms, v, s, h => by
     have hl : ms.length = rs.length := by simpa using h
     have hmsg : RunsTo (sumcheckRoundPoly 3 v (some r)) s [g1, g2]
         [v + r * sumE [g1, g2], g1, g2] (s.absorbAll [g1, g2] dsObserve) := by
@@ -79,27 +78,23 @@ theorem runsTo_packRounds :
     set q := (s.absorbAll [g1, g2] dsObserve).squeeze with hq
     have hs := runsTo_sampleE (s.absorbAll [g1, g2] dsObserve)
     rw [← hq] at hs
-    have hrest := runsTo_packRounds rs ms ((1 + r + q.1) *
-        polyEval [v + r * sumE [g1, g2], g1, g2] q.1) (sc * (1 + r + q.1)) q.2 hl
-    have key : keccakPackRounds (r :: rs) v sc = (sumcheckRoundPoly 3 v (some r) >>= fun message ↦
+    have hrest := runsTo_packRounds rs ms
+      (polyEval [v + r * sumE [g1, g2], g1, g2] q.1) q.2 hl
+    have key : keccakPackRounds (r :: rs) v = (sumcheckRoundPoly 3 v (some r) >>= fun message ↦
         VerifierProgram.sampleChallenge >>= fun challenge ↦
-          keccakPackRounds rs ((1 + r + challenge) * polyEval message challenge)
-            (sc * (1 + r + challenge)) >>= fun x ↦
-            (pure (x.1, x.2.1, challenge :: x.2.2) : VerifierProgram (E × E × List E))) := rfl
+          keccakPackRounds rs (polyEval message challenge) >>= fun x ↦
+            (pure (x.1, challenge :: x.2) : VerifierProgram (E × List E))) := rfl
     rw [key]
-    have h3 := hrest.bind (f := fun x ↦ (pure (x.1, x.2.1, q.1 :: x.2.2) : VerifierProgram (E × E ×
-        List E)))
-      (runsTo_ret _ _)
+    have h3 := hrest.bind (f := fun x ↦
+      (pure (x.1, q.1 :: x.2) : VerifierProgram (E × List E))) (runsTo_ret _ _)
     have h2 := hs.bind (f := fun challenge ↦
-      keccakPackRounds rs ((1 + r + challenge) * polyEval [v + r * sumE [g1, g2], g1, g2] challenge)
-        (sc * (1 + r + challenge)) >>= fun x ↦
-        (pure (x.1, x.2.1, challenge :: x.2.2) : VerifierProgram (E × E × List E))) h3
+      keccakPackRounds rs (polyEval [v + r * sumE [g1, g2], g1, g2] challenge) >>= fun x ↦
+        (pure (x.1, challenge :: x.2) : VerifierProgram (E × List E))) h3
     have h1 := hmsg.bind (f := fun message ↦ VerifierProgram.sampleChallenge >>= fun challenge ↦
-          keccakPackRounds rs ((1 + r + challenge) * polyEval message challenge)
-            (sc * (1 + r + challenge)) >>= fun x ↦
-            (pure (x.1, x.2.1, challenge :: x.2.2) : VerifierProgram (E × E × List E))) h2
+      keccakPackRounds rs (polyEval message challenge) >>= fun x ↦
+        (pure (x.1, challenge :: x.2) : VerifierProgram (E × List E))) h2
     simpa [packRunF, ← hq] using h1
-  | [], _ :: _, _, _, _, h | _ :: _, [], _, _, _, h => by simp at h
+  | [], _ :: _, _, _, h | _ :: _, [], _, _, h => by simp at h
 
 /-! ## Plain rounds of degree three -/
 
@@ -178,8 +173,8 @@ def layerSq (s0 : Fs) (product : List E) (n : E) : E × Fs :=
 
 /-- The pack rounds from the product's value at `s`. -/
 def layerPack (c : KeccakClaim) (s0 : Fs) (product : List E) (n : E) (packMsgs : List (E × E)) :
-    (E × E × List E) × Fs :=
-  packRunF c.point packMsgs (polyEval product (layerSq s0 product n).1) 1 (layerSq s0 product n).2
+    (E × List E) × Fs :=
+  packRunF c.point packMsgs (polyEval product (layerSq s0 product n).1) (layerSq s0 product n).2
 
 /-- The rounds over the bit position. -/
 def layerLocal (c : KeccakClaim) (s0 : Fs) (product : List E) (n : E) (packMsgs : List (E × E))
@@ -195,8 +190,7 @@ def layerBeta (c : KeccakClaim) (s0 : Fs) (product : List E) (n : E) (packMsgs :
 def LayerFinal (c : KeccakClaim) (s0 : Fs) (product : List E) (n : E) (packMsgs : List (E × E))
     (localMsgs : List (E × E × E)) (t : E × E × E) : Prop :=
   let kappa := sumE (keccakInstanceWeights (layerSq s0 product n).1)
-  (layerPack c s0 product n packMsgs).1.2.1 *
-      dot ((eqKernel (layerLocal c s0 product n packMsgs localMsgs).1.1).take keccakBits)
+  dot ((eqKernel (layerLocal c s0 product n packMsgs localMsgs).1.1).take keccakBits)
         c.weights * (kappa * t.1 + (kappa + t.2.1) * t.2.2) =
     (layerLocal c s0 product n packMsgs localMsgs).1.2
 
@@ -206,7 +200,7 @@ def layerClaim (c : KeccakClaim) (s0 : Fs) (product : List E) (n : E) (packMsgs 
   let beta := (layerBeta c s0 product n packMsgs localMsgs t).1
   let eq := eqKernel (layerLocal c s0 product n packMsgs localMsgs).1.1
   ⟨t.1 + beta * (t.2.1 + beta * t.2.2), keccakInstanceWeights (layerSq s0 product n).1,
-    (layerPack c s0 product n packMsgs).1.2.2,
+    (layerPack c s0 product n packMsgs).1.2,
     keccakLinearTranspose ((List.range keccakBits).map fun j ↦
       eq.getD j 0 + beta * (eq.getD (keccakAlong j 4) 0 + beta * eq.getD (keccakAlong j 3) 0))⟩
 
@@ -229,7 +223,7 @@ theorem layer_runsTo (logSteps step : ℕ) (c : KeccakClaim) (s0 : Fs) (product 
     hp ▸ runsTo_readN s0 product
   have r2 := runsTo_grindSample sGrindBits (s0.absorbAll product dsObserve) n hg
   rw [show grindWords sGrindBits n = [n] by simp [grindWords, sGrindBits_eq]] at r2
-  have r3 := runsTo_packRounds c.point packMsgs (polyEval product (layerSq s0 product n).1) 1
+  have r3 := runsTo_packRounds c.point packMsgs (polyEval product (layerSq s0 product n).1)
     (layerSq s0 product n).2 hpm
   have r4 := runsTo_sumcheck4 localMsgs (layerPack c s0 product n packMsgs).1.1
     (layerPack c s0 product n packMsgs).2
@@ -237,7 +231,8 @@ theorem layer_runsTo (logSteps step : ℕ) (c : KeccakClaim) (s0 : Fs) (product 
   have r5 := runsTo_readN (layerLocal c s0 product n packMsgs localMsgs).2 [t.1, t.2.1, t.2.2]
   have hb : grindingBits 2 = 0 := grindingBits_le_eight (by norm_num)
   simp only [List.append_assoc]
-  unfold verifyKeccakLayer
+  rw [verifyKeccakLayer_packed]
+  unfold verifyKeccakLayerPacked
   refine RunsTo.bind r1 ?_
   refine RunsTo.bind_nil (runsTo_require hproj _) ?_
   refine RunsTo.bind_assoc' (m := VerifierProgram.grindProofOfWork (grindingBits (productBits - 1)))

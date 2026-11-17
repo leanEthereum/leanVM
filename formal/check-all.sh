@@ -76,12 +76,14 @@ build() {
   fi
 }
 
-# Each theorem after the module $2 depends on Lean's three axioms only, asked from outside (`bg`).
+# Each theorem after the module $2 depends on Lean's three axioms only, asked from outside (`bg`), in the workspace
+# that built it: its own, or lean_vm's after `together`.
+axioms_in=""
 axioms() { bg "$1: axiom footprint" axioms_of "$@"; }
 axioms_of() {
   local dir=$1 module=$2 t; shift 2
   { echo "import $module"; for t in "$@"; do echo "#print axioms $t"; done; } > "$log/axioms-$dir.lean"
-  (cd "$dir" && capped lake env lean "$log/axioms-$dir.lean") | tee "$log/axioms-$dir.txt"
+  (cd "${axioms_in:-$dir}" && capped lake env lean "$log/axioms-$dir.lean") | tee "$log/axioms-$dir.txt"
   for t in "$@"; do
     grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$log/axioms-$dir.txt" \
       || fail "$dir: $t depends on more axioms"
@@ -177,6 +179,7 @@ together() {
     fail "deprecated API"
   fi
   for p in Statement common lean_xmss lean_sphincs lean_da lean_vm; do once "build:$p"; done
+  axioms_in=lean_vm
 }
 
 executables() {

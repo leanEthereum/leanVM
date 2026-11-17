@@ -17,7 +17,7 @@ that a run may pass an equal program whose instructions read faster.
 The advice is `main`'s frame size and the compiler's hints by `pc`, generated data
 (`Statement/Data/AdviceHints*.lean`, the compiler's `Program::advice_text`), and the witness streams
 (`guestStreams`): what the guest pops with `hint_witness`, each stream's entries in the order it pops
-them. They are the pushes of `aggregate_with_stats` (`crates/rec_aggregation/src/aggregation/`:
+them. They are the pushes of `aggregate` (`crates/aggregation/src/`:
 `node.rs`, `hints.rs`, `child.rs`, `deferred.rs`), grouped by stream as `Hints::push` does
 (`honestPushes`, in the order the Rust makes them). Where the Rust replays a child's proof
 (`verifier::replay_unchecked`), this runs the deferring verifier (`deferringVerifierProgram`) and
@@ -105,7 +105,7 @@ def cellsOfBytes (b : List UInt8) : List E :=
 /-- A 128-bit value as its cell. -/
 def cell128 (v : BitVec 128) : E := cellOfBytes (HashSig.littleEndianBytes 16 v)
 
-/-- A digest's two cells (`pack_hash_state`). -/
+/-- A digest's two cells (`hash_to_scalars`). -/
 def digestCells (d : Digest) : Entry := [(digestHalves d).1, (digestHalves d).2]
 
 /-- Bytes, each in the exponent (`exponent_bytes`). -/
@@ -308,19 +308,13 @@ def sphincsHints (pk : Sphincs.PublicKey) (message : HashSig.Message) (σ : Sphi
 
 /-! ## LeanDA (`node.rs`) -/
 
-/-- A blob matrix's hints: the claim's membership challenge (`da_challenge`), the row count and its
-padded log (`da_shape`), and every row's cells, row by row (`da_symbols`). -/
+/-- A blob matrix's hints: the claim's membership challenge (`da_challenge`), the blob count
+(`da_n_blobs`), and every blob's cells, blob by blob (`da_symbols`). -/
 def daHints (c : DaClaim) (w : Da.MatrixWitness) : List (String × Entry) :=
-  [("da_challenge", [c.membershipChallenge]),
-    ("da_shape", [count w.rows.length, count (LeanDa.logPaddedRowCount w.rows.length)])] ++
+  [("da_challenge", [c.membershipChallenge]), ("da_n_blobs", [count w.rows.length])] ++
     w.rows.flatMap fun row ↦
       (List.range LeanDa.cellsPerRow).map fun j ↦
-        ("da_symbols", ((row.drop (j * LeanDa.cellSymbols)).take LeanDa.cellSymbols).map ofK)
-
-/-- The advised `HeapBuf` size for `rows` blobs: the tree over the padded rows' roots
-(`da_heap_sizes`). -/
-def daHeapSizes (rows : ℕ) : List ℕ :=
-  [4 * 2 ^ LeanDa.logPaddedRowCount rows]
+        ("da_symbols", (row.drop (j * LeanDa.cellSymbols)).take LeanDa.cellSymbols)
 
 /-! ## A child (`gen_verify`, `child.rs`) -/
 
@@ -478,7 +472,7 @@ def childHints (bytecode : List K) (seed : Digest) (c : Child) : List (String ×
       ("col_group_order", colGroupOrder layout), ("block_group_order", blockGroupOrder layout)] ++
       queries
 
-/-! ## The node (`aggregate_with_stats`, `node.rs`) -/
+/-! ## The node (`aggregate`, `node.rs`) -/
 
 /-- Whether a list is strictly increasing (`is_sorted_by(a < b)`). -/
 def increasing : List ℕ → Bool
@@ -514,15 +508,14 @@ def daPick (s : NodeStatement) (w : NodeWitness) : ℕ :=
   else (w.children.findIdx? fun c ↦ c.statement.claims.daDigest == s.claims.daDigest).getD w.children.length
 
 /-- The `HeapBuf` sizes the guest takes as advice before a child's (`heap_sizes`): `main`'s two
-coverage tables, `da_digests`, `child_pi`, `child_fresh`, `child_carried` and `written`; each claim
-list's chain; the blob matrix's. -/
+coverage tables, `da_digests`, `child_pi`, `child_fresh`, `child_carried` and `written`; then each
+claim list's chain. -/
 def nodeHeapSizes (s : NodeStatement) (w : NodeWitness) (xDups sDups : ℕ) : List (Option ℕ) :=
   let (x, sp, n) := (s.claims.xmss.length, s.claims.sphincs.length, w.children.length)
   [4 * (x + xDups), 4 * (sp + sDups), 2 * (n + 1), 2 * n, deferSize * n,
-      deferStmtCells * n, n + 1].map some ++ [listChainCells x, listChainCells sp] ++
-    ((w.daMatrix.map fun c ↦ daHeapSizes c.2.rows.length).getD []).map some
+      deferStmtCells * n, n + 1].map some ++ [listChainCells x, listChainCells sp]
 
-/-- **Every push of an honest run**, in the order `aggregate_with_stats` makes them: the node's
+/-- **Every push of an honest run**, in the order `aggregate` makes them: the node's
 sizes (`meta`) and seed (`fs_seed`), the advised sizes, the claim lists (`claims`) and the
 duplicates (`dup_claims`), each raw signature's slot (`raw_index`, `sp_raw_index`) and hints, each
 child's sizes (`child_meta`), slots, carried claim (`child_defer`), DA digest (`child_da`) and

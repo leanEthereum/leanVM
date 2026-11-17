@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Whir.CLvCommit
 public import LeanVM.Guest.B1.Whir.TailRun
 
 /-!
-# The closing rounds, honestly (G:1697-1705)
+# The closing rounds, honestly
 
 * `tailRets cap cur cl p`: what `opening_tail_round` returns on the capacity `cap`, the cursor,
   the claim and the words `p` (its meaning's formula).
@@ -75,7 +75,7 @@ theorem osTailRounds_k (tch : ℕ) : ∀ (n j : ℕ) (st : OsSt), st.k ≤ (osTa
   | 0, _, _ => le_rfl
   | n + 1, j, st => le_trans (osTailRound_k tch j st) (osTailRounds_k tch n (j + 1) _)
 
-/-- **One closing round, honestly** (G:1699-1701). -/
+/-- **One closing round, honestly**. -/
 theorem osTailRound_complete {tch j : ℕ} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (htch : tch < st.k) (p : E × E)
     (hC : ∀ C rd, H C rd → C "opening_tail_round" (st.fsv σ ++ [st.cur σ, σ (.n st.claim), σ (.n osTabs)])
@@ -149,7 +149,7 @@ theorem tailRets_claim (cap : List E) (cur cl : E) (p : E × E) :
         (cl + (1 + ((⟨cap, []⟩ : Fs).absorbAll [p.1, p.2] dsObserve).squeeze.1) * p.2) := by
   simp [tailRets, Fs.squeeze, capOf]
 
-/-- **The closing rounds, honestly** (G:1699-1701): the sponge and claim after them
+/-- **The closing rounds, honestly**: the sponge and claim after them
 `tailRun`'s. -/
 theorem osTailRounds_completeA {tch : ℕ} : ∀ (pairs : List (E × E)) (j : ℕ) (st : OsSt) (σ : Val),
     st.Sf → (∀ C rd, H C rd → st.Ok σ) → tch < st.k →
@@ -208,7 +208,7 @@ theorem osTailRounds_sf (tch : ℕ) : ∀ (n j : ℕ) (st : OsSt), st.Sf → (os
 /-- The zeroed entries' values. -/
 def tailZeros (m : ℕ) : List E := List.replicate m (word 0 0)
 
-/-- **The closing rounds into `tail_challenges`, honestly** (G:1697-1705): the buffer allocated at
+/-- **The closing rounds into `tail_challenges`, honestly**: the buffer allocated at
 `pT`, the rounds, the unused entries zeroed. -/
 theorem osTail_complete {c : OsCfg} {st : OsSt} (σ : Val) (hsf : st.Sf)
     (hok : ∀ C rd, H C rd → st.Ok σ) (pT : E) (pairs : List (E × E)) (hlen : pairs.length = c.yrLog)

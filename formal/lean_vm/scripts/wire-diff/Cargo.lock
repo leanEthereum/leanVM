@@ -3,37 +3,25 @@
 version = 4
 
 [[package]]
-name = "fiat_shamir"
+name = "fiat_shamir_prover"
 version = "0.1.0"
 dependencies = [
- "parallel",
- "primitives",
+ "keccak256",
+ "verifier",
 ]
+
+[[package]]
+name = "keccak256"
+version = "0.1.0"
 
 [[package]]
 name = "leanvm-rust-wire"
 version = "0.0.0"
 dependencies = [
- "fiat_shamir",
- "primitives",
+ "fiat_shamir_prover",
+ "verifier",
 ]
 
 [[package]]
-name = "libc"
-version = "0.2.186"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68ab91017fe16c622486840e4c83c9a37afeff978bd239b5293d61ece587de66"
-
-[[package]]
-name = "parallel"
+name = "verifier"
 version = "0.1.0"
-dependencies = [
- "libc",
-]
-
-[[package]]
-name = "primitives"
-version = "0.1.0"
-dependencies = [
- "parallel",
-]

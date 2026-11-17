@@ -2,16 +2,16 @@
 //! n→1 recursion step over leaves of that size (`recursion`). Aggregation accepts
 //! signature counts and a blob count; recursion accepts these counts per leaf.
 
+use aggregation::{AggregateClaims, AggregateProof, OutputClaims, aggregate, signers_cache};
 use bench::{Plan, Timing};
-use primitives::{pretty_f64, pretty_integer};
+use isa::{Prover, Stats, pretty_f64, pretty_integer};
+use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use rand::{Rng, SeedableRng, rngs::StdRng};
-use rec_aggregation::{EthereumClaims, EthereumProof, aggregate, aggregate_with_stats, signers_cache};
-use signatures::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
-use signatures::{lean_sphincs, lean_xmss};
 
-fn blobs(n: usize, seed: u64) -> Vec<u64> {
+fn blobs(n: usize, seed: u64) -> Vec<lean_da::Blob> {
     let mut rng = StdRng::seed_from_u64(seed);
-    (0..n * lean_da::BLOB_SYMBOLS).map(|_| rng.random()).collect()
+    let symbols: Vec<u128> = (0..n * lean_da::BLOB_SYMBOLS).map(|_| rng.random()).collect();
+    symbols.as_chunks().0.to_vec()
 }
 
 /// Signatures as the aggregation API takes them, each with its key and message.
@@ -23,31 +23,34 @@ type RawLeanSphincs = (
 );
 
 /// Cached signers `[from, to)`, as the aggregation API takes them.
-fn signers(from: usize, to: usize) -> Vec<RawLeanXmss> {
+fn signers<P: Prover>(from: usize, to: usize) -> Vec<RawLeanXmss> {
     if to == 0 {
         return Vec::new();
     }
-    signers_cache::get_signers(to)[from..to].to_vec()
+    signers_cache::get_signers::<P>(to)[from..to].to_vec()
 }
 
 /// Each leanSPHINCS signer comes with the message it signed, as the leanXMSS ones do.
-fn lean_sphincs_signers(from: usize, to: usize) -> Vec<RawLeanSphincs> {
+fn lean_sphincs_signers<P: Prover>(from: usize, to: usize) -> Vec<RawLeanSphincs> {
     if to == 0 {
         return Vec::new();
     }
-    signers_cache::get_lean_sphincs_signers(to)[from..to].to_vec()
+    signers_cache::get_lean_sphincs_signers::<P>(to)[from..to].to_vec()
 }
 
 /// Report the shape and cost of one aggregation node.
-fn report(label: &str, stats: &leanvm_core::cpu::Stats, sig: &EthereumProof, prove_time: &Timing) {
+fn report(label: &str, stats: &Stats, sig: &AggregateProof, prove_time: &Timing) {
     println!("{label}");
     println!(
         "  cycles (VM steps)           : {} = {}",
         pretty_integer(stats.cycles),
         crate::report::pow(stats.cycles)
     );
-    println!("    details                   : {}", stats.details());
-    crate::report::print_proof_size(sig.proof_bytes().len());
+    println!(
+        "    details                   : {}",
+        crate::report::details(stats, aggregation::unified_guest().code_len())
+    );
+    crate::report::print_proof_size(sig.to_bytes().len());
     // The whole `aggregate` call, not just `cpu::prove`: for a node that also
     // covers replaying each child and batching the deferred claims, which are
     // real per-node costs. `--tracing` breaks it down.
@@ -57,6 +60,11 @@ fn report(label: &str, stats: &leanvm_core::cpu::Stats, sig: &EthereumProof, pro
         prove_time.spread(),
         crate::report::peak_gib()
     );
+}
+
+/// The blobs' matrix, `None` for no blobs.
+fn matrix(blobs: &[lean_da::Blob]) -> Option<lean_da::BlobMatrix> {
+    (!blobs.is_empty()).then(|| lean_da::BlobMatrix::build(blobs).expect("at most DA_MAX_ROWS blobs"))
 }
 
 /// How a benchmark names a leaf of either scheme or of both.
@@ -73,33 +81,38 @@ fn describe(n_lean_xmss: usize, n_lean_sphincs: usize) -> String {
 /// Proving runs one discarded warmup pass followed by `plan.repeat` measured
 /// passes; see [`bench`] for why the first pass is not
 /// representative and why the cooldown matters.
-pub fn run_aggregation(n_lean_xmss: usize, n_lean_sphincs: usize, n_blobs: usize, log_inv_rate: usize, plan: Plan) {
+pub fn run_aggregation<P: Prover>(
+    n_lean_xmss: usize,
+    n_lean_sphincs: usize,
+    n_blobs: usize,
+    log_inv_rate: usize,
+    plan: Plan,
+) {
     assert!(
         n_lean_xmss > 0 || n_lean_sphincs > 0 || n_blobs > 0,
         "a leaf needs signatures or blobs"
     );
     let trace_span = tracing::info_span!("aggregation", n_lean_xmss, n_lean_sphincs, n_blobs, log_inv_rate).entered();
-    rec_aggregation::warm_up();
-    let raw_lean_xmss = signers(0, n_lean_xmss);
-    let raw_lean_sphincs = lean_sphincs_signers(0, n_lean_sphincs);
+    let raw_lean_xmss = signers::<P>(0, n_lean_xmss);
+    let raw_lean_sphincs = lean_sphincs_signers::<P>(0, n_lean_sphincs);
     let blobs = blobs(n_blobs, 0);
     // Only the final measured pass of each stage is traced: the tree describes the
     // proof the reported timings are about, instead of repeating itself per pass.
-    let ((sig, stats), prove_time) = plan.warm_then_measure(|last| {
+    let ((claims, sig, stats), prove_time) = plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        aggregate_with_stats(
+        aggregate::<P>(
             &[],
             raw_lean_xmss.clone(),
             raw_lean_sphincs.clone(),
-            &blobs,
-            None,
+            matrix(&blobs).as_ref(),
+            OutputClaims::All,
             log_inv_rate,
         )
         .expect("leaf aggregates")
     });
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        sig.verify().expect("the leaf aggregate verifies");
+        assert!(sig.verify(&claims), "the leaf aggregate verifies");
     });
     drop(trace_span);
 
@@ -123,7 +136,7 @@ pub fn run_aggregation(n_lean_xmss: usize, n_lean_sphincs: usize, n_blobs: usize
         );
     }
     if n_blobs > 0 {
-        let payload_mib = (blobs.len() * size_of::<u64>()) as f64 / (1 << 20) as f64;
+        let payload_mib = size_of_val(blobs.as_slice()) as f64 / (1 << 20) as f64;
         println!(
             "  blob throughput             : {} blobs/s, {} MiB/s",
             pretty_f64(n_blobs as f64 / prove_time.mean()),
@@ -139,7 +152,7 @@ pub fn run_aggregation(n_lean_xmss: usize, n_lean_sphincs: usize, n_blobs: usize
 /// Prove `n` leaves with signatures and distinct blob payloads at `leaf_log_inv_rate`, then
 /// aggregate them in one recursion step at `log_inv_rate` and verify the result. The leaves are
 /// built once, in a process of their own; only the recursion step is measured.
-pub fn run_recursion(
+pub fn run_recursion<P: Prover>(
     n: usize,
     per_leaf: usize,
     lean_sphincs_per_leaf: usize,
@@ -149,20 +162,16 @@ pub fn run_recursion(
     enable_tracing: bool,
     plan: Plan,
 ) {
-    assert!(
-        (1..=rec_aggregation::MAX_RECURSIONS).contains(&n),
-        "invalid child count"
-    );
+    assert!((1..=aggregation::MAX_RECURSIONS).contains(&n), "invalid child count");
     assert!(
         per_leaf > 0 || lean_sphincs_per_leaf > 0 || blobs_per_leaf > 0,
         "a leaf needs signatures or blobs"
     );
     let started = std::time::Instant::now();
-    let guest_instructions = rec_aggregation::aggregation::unified_guest().code_len();
+    let guest_instructions = aggregation::unified_guest().code_len();
     let compile_time = started.elapsed();
-    rec_aggregation::warm_up();
     if let Some(out) = std::env::var_os(LEAVES_OUT) {
-        return write_leaves(
+        return write_leaves::<P>(
             n,
             per_leaf,
             lean_sphincs_per_leaf,
@@ -176,22 +185,19 @@ pub fn run_recursion(
     if enable_tracing {
         bench::init_tracing();
     }
-    let ((sig, stats), prove_time) = plan.warm_then_measure(|last| {
+    let ((claims, sig, stats), prove_time) = plan.warm_then_measure(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        aggregate_with_stats(&children, vec![], vec![], &[], None, log_inv_rate).expect("node aggregates")
+        aggregate::<P>(&children, vec![], vec![], None, OutputClaims::All, log_inv_rate).expect("node aggregates")
     });
     let (_, verify_time) = Plan::new(plan.repeat, 0).measure_quiet(|last| {
         let _quiet = (!last).then(bench::suppress_tracing);
-        sig.verify().expect("the recursive aggregate verifies");
+        assert!(sig.verify(&claims), "the recursive aggregate verifies");
     });
 
     println!(
         "aggregation bytecode: {} instructions (2^{} padded), compiled in {} s",
         pretty_integer(guest_instructions),
-        rec_aggregation::aggregation::unified_guest()
-            .prog()
-            .len()
-            .trailing_zeros(),
+        aggregation::unified_guest().prog.len().trailing_zeros(),
         pretty_f64(compile_time.as_secs_f64())
     );
     let mut inputs = Vec::new();
@@ -216,8 +222,7 @@ pub fn run_recursion(
     );
     if blobs_per_leaf > 0 {
         assert_eq!(
-            sig.claims().da_commitment,
-            children[0].claims().da_commitment,
+            claims.da_commitment, children[0].0.da_commitment,
             "the first child's root is passed on"
         );
     }
@@ -229,7 +234,7 @@ pub fn run_recursion(
 
 /// Prove a recursion step's `n` leaves and write them to `out`: each leaf's claims, then its proof's
 /// bytes after their length.
-fn write_leaves(
+fn write_leaves<P: Prover>(
     n: usize,
     per_leaf: usize,
     lean_sphincs_per_leaf: usize,
@@ -237,21 +242,22 @@ fn write_leaves(
     log_inv_rate: usize,
     out: &std::path::Path,
 ) {
-    let all = signers(0, n * per_leaf);
-    let all_lean_sphincs = lean_sphincs_signers(0, n * lean_sphincs_per_leaf);
+    let all = signers::<P>(0, n * per_leaf);
+    let all_lean_sphincs = lean_sphincs_signers::<P>(0, n * lean_sphincs_per_leaf);
     let mut bytes = Vec::new();
     for k in 0..n {
-        let leaf = aggregate(
+        let leaf = aggregate::<P>(
             &[],
             all[k * per_leaf..(k + 1) * per_leaf].to_vec(),
             all_lean_sphincs[k * lean_sphincs_per_leaf..(k + 1) * lean_sphincs_per_leaf].to_vec(),
-            &blobs(blobs_per_leaf, k as u64),
-            None,
+            matrix(&blobs(blobs_per_leaf, k as u64)).as_ref(),
+            OutputClaims::All,
             log_inv_rate,
         )
         .expect("leaf aggregates");
-        write_claims(&mut bytes, leaf.claims());
-        let proof = leaf.proof_bytes();
+        let (claims, leaf, _) = leaf;
+        write_claims(&mut bytes, &claims);
+        let proof = leaf.to_bytes();
         bytes.extend((proof.len() as u64).to_le_bytes());
         bytes.extend(proof);
     }
@@ -261,7 +267,7 @@ fn write_leaves(
 /// A leaf's claims in the leaves' file: each list as its length and its `(key, message)` pairs, then
 /// a 0/1 byte for whether there is a DA root and 32 root bytes, zero without one. The proof carries
 /// no claims; the parent trusts its subprocess for them, standing in for a receiver that knows them.
-fn write_claims(out: &mut Vec<u8>, claims: &EthereumClaims) {
+fn write_claims(out: &mut Vec<u8>, claims: &AggregateClaims) {
     out.extend((claims.lean_xmss.len() as u64).to_le_bytes());
     for (pk, message) in &claims.lean_xmss {
         out.extend(pk.to_bytes());
@@ -295,7 +301,7 @@ impl<'a> LeavesFile<'a> {
     }
 
     /// The inverse of [`write_claims`].
-    fn claims(&mut self) -> EthereumClaims {
+    fn claims(&mut self) -> AggregateClaims {
         let n = self.count();
         let lean_xmss = (0..n)
             .map(|_| (LeanXmssPublicKey::from_bytes(&self.array()), self.array()))
@@ -311,7 +317,7 @@ impl<'a> LeavesFile<'a> {
             .collect();
         let [has_root] = self.array();
         let root = self.array();
-        EthereumClaims {
+        AggregateClaims {
             lean_xmss,
             lean_sphincs,
             da_commitment: (has_root == 1).then_some(root),
@@ -324,7 +330,7 @@ const LEAVES_OUT: &str = "LEANVM_LEAVES_OUT";
 
 /// The leaves of [`run_recursion`], from this same command rerun with [`LEAVES_OUT`] set. Peak
 /// memory is the process's high-water mark, which proving them here would make a leaf's.
-fn leaves_from_subprocess(n: usize) -> Vec<EthereumProof> {
+fn leaves_from_subprocess(n: usize) -> Vec<(AggregateClaims, AggregateProof)> {
     let out = std::env::temp_dir().join(format!("leanvm-leaves-{}.bin", std::process::id()));
     // Created here, refusing one already there, so no other user can plant or swap it in a shared `/tmp`.
     std::fs::OpenOptions::new()
@@ -347,7 +353,10 @@ fn leaves_from_subprocess(n: usize) -> Vec<EthereumProof> {
     while !file.0.is_empty() {
         let claims = file.claims();
         let len = file.count();
-        leaves.push(EthereumProof::from_proof_bytes(file.take(len), claims).expect("a leaf proof"));
+        leaves.push((
+            claims,
+            AggregateProof::from_bytes(file.take(len)).expect("a leaf proof"),
+        ));
     }
     assert_eq!(leaves.len(), n, "one proof per leaf");
     leaves

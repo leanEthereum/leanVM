@@ -13,8 +13,8 @@ public import LeanVM.Guest.B1.KeccakGkr.LocalRounds
 
 `noStoreVia ps S`: no store of `S` goes through a pointer of `ps` (`not_mem_of_noStoreVia`).
 `noneIn as S`: none of the atoms `as` is a store of `S` (`not_mem_of_noneIn`). `localS`:
-`keccak_layer`'s position rounds (`localRoundsT` from the cursor `o + 745`, the local point
-`o + 748`, the value `o + 746` and the capacity `o + 740 ..`, `o` the specialization's offset).
+`keccak_layer`'s position rounds (`localRoundsT` from the cursor `o + 744`, the local point
+`o + 746`, the value `o + 745` and the capacity `o + 739 ..`, `o` the specialization's offset).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -25,7 +25,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value Lea
 
 /-- The position rounds. -/
 def localS (o : ℕ) : List Stmt :=
-  localRoundsT (.n (o + 745)) (.n (o + 748)) (.n (o + 746)) (cap5 (o + 740)) (o + 749) 11
+  localRoundsT (.n (o + 744)) (.n (o + 746)) (.n (o + 745)) (cap5 (o + 739)) (o + 747) 11
 
 /-- No store goes through the pointers `ps`. -/
 def noStoreVia (ps : List V) (S : List Atom) : Bool := S.all fun a ↦ match a with

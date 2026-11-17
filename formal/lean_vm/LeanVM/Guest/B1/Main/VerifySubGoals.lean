@@ -65,7 +65,7 @@ structure VsCompleteHyp (bytecode : List K) (fs : String → ℕ) (cert : String
     (T : ℕ → ℕ → Tree → Prop) (B : ℕ → ℕ → ℕ) : Prop where
   complete : ∀ (seed : Digest) (c : Child) (sqE outE : ℕ) (Lin : Main.Layout),
     VsChildOk bytecode seed c → (∀ q ∈ vsExpLin sqE, q ∈ Lin) →
-    (outE, DeferredClaim.cells c.freshClaim) ∈ Lin →
+    (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin →
     CompleteAtDTB fs cert κ "verify_sub" Lin
       [(digestHalves (statementDigest seed c.statement)).1,
         (digestHalves (statementDigest seed c.statement)).2, (digestHalves seed).1,
@@ -107,7 +107,7 @@ theorem verifySubGoalsTB_of {T : ℕ → ℕ → Tree → Prop} {B : ℕ → ℕ
   set e := etB fs (mK0 (hData seed s w) fs fp) with he
   set outE := hP fs fp seed s w 6 + 24 * c with hout
   have h := hvs.complete seed w.children[c] e outE
-    (vsExpLin e ++ [(outE, DeferredClaim.cells w.children[c].freshClaim)])
+    (vsExpLin e ++ [(outE, DeferredBytecodeClaim.cells w.children[c].freshClaim)])
     ⟨(hok _ hmem).stackLogAtLeastMinimum, (hok _ hmem).streamWithinCap,
       (hok _ hmem).noZeroChallenge, (hok _ hmem).capsAgree⟩
     (fun q hq => List.mem_append_left _ hq) (List.mem_append_right _ (List.mem_singleton_self _))
@@ -121,8 +121,8 @@ theorem verifySubGoalsTB_of {T : ℕ → ℕ → Tree → Prop} {B : ℕ → ℕ
       (childShape bytecode w.children[c]).1 - B1.Whir.minOpenLog < B1.Whir.openArms ∧
         T (childShape bytecode w.children[c]).1 (childShape bytecode w.children[c]).2 t)
     le_rfl fun t ht _ => ⟨by unfold B1.Whir.minOpenLog B1.Whir.openArms; omega, ht⟩
-  have hlen : ∀ a ∈ w.children, (DeferredClaim.cells a.freshClaim).length = 24 := fun a ha => by
-    simp [DeferredClaim.cells, (kid_shapes hbl hr a ha).1, bytecodeVars]
+  have hlen : ∀ a ∈ w.children, (DeferredBytecodeClaim.cells a.freshClaim).length = 24 := fun a ha => by
+    simp [DeferredBytecodeClaim.cells, (kid_shapes hbl hr a ha).1, bytecodeVars]
   have e1 : (hm fs fp seed s w).et = ofK (addressOfIndex e) := gen_pow_eq_ofK _
   have e3 : (hm fs fp seed s w).a400 * gen ^ (24 * c) = ofK (addressOfIndex outE) := by
     rw [hout, ← gen_pow_eq_ofK, pow_add]; rfl

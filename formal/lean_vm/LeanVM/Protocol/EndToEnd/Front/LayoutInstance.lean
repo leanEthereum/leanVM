@@ -30,7 +30,7 @@ vector:
   (`bytecodeColumn`, `FixedColumns.lean`) as a list: `2 ^ (logSize + 4)` words, instruction bits
   low, slot bits high, sixteen slots per instruction, the entry at slots 3 to 13.
 * `refCol c`: the verifier's global column number of the instance's column `c`, its position in the
-  instance's global order (`columns`): the memory columns `0 to 2`, `BFCNT` `3`, `QKECCAK` `4`, then
+  instance's global order (`columns`): the memory columns `0 to 2`, `BYTECODE_FINAL_COUNTERS` `3`, `QKECCAK` `4`, then
   the six opcode tables' columns in order. `refCol_*` give the named columns.
 * `buildLayout_eq`: the layout is built from the announced rows (`tableRows`) exactly when the
   sizes are in the windows `buildLayout` checks (`LayoutOk`), and is then `verifierLayout prog s`,
@@ -151,10 +151,10 @@ theorem getElem_columns_pyCol (c : Col) :
 theorem refCol_memCol (i : Fin 3) : refCol (memCol i) = i := by
   revert i; decide +kernel
 
-/-- `BFCNT` is `BYTECODE_FINAL_COUNTERS`. -/
+/-- The instance's `bfcntCol` is the reference's `BYTECODE_FINAL_COUNTERS`. -/
 theorem refCol_bfcntCol : refCol bfcntCol = bytecodeFinalCounters := by decide +kernel
 
-/-- `QKECCAK` is `QKECCAK`. -/
+/-- The instance's `keccakCol` is the reference's `QKECCAK`. -/
 theorem refCol_keccakCol : refCol keccakCol = qkeccak := by decide +kernel
 
 /-- Column `i` of opcode table `j` is the verifier's `GLOBAL_COLUMN_BASES[j] + i`. -/
@@ -168,7 +168,7 @@ theorem width_opIdx (j : Fin 6) : width (opIdx j) = (tables.getD j default).widt
 
 /-! ## The layout -/
 
-/-- The checks `build_layout` makes of the sizes (`layout.rs:497-503`) for the program's
+/-- The checks `build_layout` makes of the sizes (`layout.rs`) for the program's
 bytecode: the memory window `[1, 30]` and the row cap `2 ^ 30`. The bytecode's checks hold by
 construction (`LeanIsaProgram.logSize_le`). -/
 def LayoutOk (s : Sizes) : Prop :=
@@ -440,7 +440,7 @@ theorem stackOffsets_snd (prog : LeanIsaProgram) (s : Sizes) :
 /-! ## The placements -/
 
 /-- The verifier's offset of a global column's block (`offsets` in `build_layout`,
-`layout.rs:556-562`). -/
+`layout.rs`). -/
 def refOffset (prog : LeanIsaProgram) (s : Sizes) (column : ℕ) : ℕ :=
   let blockCols := (List.range (refKappas prog s).length).filter fun c ↦
     (keccakSlot c).isNone ∧ c ∉ keccakOutputColumns
@@ -651,7 +651,7 @@ theorem bytecodeColumnEval_eq_entries (prog : LeanIsaProgram) (z : Vector E prog
     simp [encodeSlots_getElem _ _ s.isLt, hs']
 
 /-- **The bytecode fingerprint**: the verifier's evaluation of the bytecode at `(low, alphas)`
-(`crates/verifier/src/bus.rs:139-145`) is the sum over the instance's thirteen entry coordinates
+(`crates/verifier/src/bus.rs`) is the sum over the instance's thirteen entry coordinates
 (`entryColumn`, coordinates `3 to 15` of the bytecode boundary blocks) of the fingerprint weight
 times the column's extension at `low`. Added to the weighted separator, index and count (slots
 `0 to 2`), it is the instance's fingerprint of the bytecode block at `low`. -/

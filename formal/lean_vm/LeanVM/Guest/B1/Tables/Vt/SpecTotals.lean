@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Tables.Vt.SpecBus
 public import LeanVM.Protocol.EndToEnd.Complete.BusTables
 
 /-!
-# The bus result's totals and forms (V:623-640)
+# The bus result's totals and forms
 
 On `layoutOf bc lm rows` (a bytecode of `2^23` words, six row counts), with the selectors of the
 push side's blocks `a₀, a₁, a₂` (framework) and `S c` (table blocks, by the guest's copy cell `c`)

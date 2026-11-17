@@ -131,6 +131,7 @@ impl Placement {
     }
 }
 
+/// Blocks of `2^size` laid end to end, largest first, ties by index: their offsets, and the total's `log2`, rounded up.
 pub fn stack_offsets(sizes: &[usize]) -> (Vec<u64>, usize) {
     let mut order: Vec<usize> = (0..sizes.len()).collect();
     order.sort_by_key(|&index| (std::cmp::Reverse(sizes[index]), index));

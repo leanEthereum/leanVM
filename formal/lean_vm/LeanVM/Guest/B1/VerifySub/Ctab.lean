@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.VerifySub.Ctab
 
   `verify_sub`'s ring map: its grind and sixteen challenges, and their Frobenius coefficients
-  `c_table` (G:3636-3663).
+  `c_table`.
 -/
 
 module
@@ -96,7 +96,7 @@ theorem runsFromG_sample16 (cap : List E) (c : E) :
     ((runsTo_sampleN 15 _).bind (f := fun xs ↦ (pure (c :: xs) : VerifierProgram (List E)))
       (runsTo_ret _ _))
 
-/-- **The ring map's challenges** (G:3636-3653): from the sponge `s` with a full queue, the
+/-- **The ring map's challenges**: from the sponge `s` with a full queue, the
 nonce at the cursor `σ 595`, `ringSwitch` returns the target and weight of the sixteen challenges
 stored at `map_challenges`. -/
 theorem vsMapsT_holds {κ : ℕ} (hκ : κ ≤ 32) (hκw : winTabBits ≤ κ) (L : MemoryImage κ)
@@ -314,7 +314,7 @@ theorem readsAt_flatMap8 {p : E} {F : ℕ → List E} (hF : ∀ q, (F q).length 
     have := h n (by omega) b (by rw [hF] at hb; exact hb)
     rwa [List.getD_eq_getElem _ _ hb] at this
 
-/-- **`c_table`** (G:3655-3663): the Frobenius coefficients of the sixteen challenges, then the
+/-- **`c_table`**: the Frobenius coefficients of the sixteen challenges, then the
 call of `ring_switch_target`. -/
 theorem vsCtabT_holds {chs : List E} (hl : chs.length = 16)
     (hch : ∀ i < 16, σ (.n (vsCh i)) = chs.getD i 0)

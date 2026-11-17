@@ -1,0 +1,207 @@
+//! Range checks *in the exponent*: `assert log x < log GEN ** k` (or
+//! `assert log x < k`) proves `log_g(x) < k`, i.e. `x ∈ {g^0, g^1, …, g^{k-1}}`,
+//! in 3 cycles: `DEREF x` bounds `log(x)` by the memory size, a `MUL` into the
+//! write-once constant cell `g^{k-1}` back-solves and binds the complement
+//! `y = g^{k-1-log(x)}`, and `DEREF y` bounds the complement. leanVM's DEREF
+//! range-check trick, transported to g-powers; the only nondeterminism is the
+//! end-of-run resolution of the two touched cells.
+
+use crate::common::compile;
+use lean_vm_core::cpu::{execute, prove, verify};
+use primitives::field::{F64, F128, g_pow};
+use zkdsl_compiler::parse;
+
+use crate::common::mix;
+
+/// Both bound forms (`log GEN ** k` and a plain integer exponent) with the
+/// boundary elements (`g^{k-1}`, `1 = g^0`), end-to-end: prove + verify, and a
+/// wrong public input is rejected. Also pins the gadget's cost: 2 DEREFs per
+/// check.
+#[test]
+fn range_check_end_to_end() {
+    let src = "\
+def main():
+    x = GEN ** 5
+    assert log x < log GEN ** 8
+    y = GEN ** 7
+    assert log y < 8
+    assert log 1 < log GEN ** 8
+    z = x * y
+    assert log z < 13
+    p = 1
+    p[1] = z
+    p[GEN] = x
+    return
+";
+    let program = compile(&parse(src).expect("parse"));
+    let want = [F128::from(g_pow(12)), F128::from(g_pow(5))];
+    let (proof, _) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    // 2 DEREFs per range check (4 checks) + 2 publishing stores.
+    assert_eq!(mix(src, want)[3], 10, "DEREF count");
+    verify(&program, &want, &proof).expect("range-checked program verifies");
+}
+
+/// A check whose two touched cells (`m[300]` and the complement's `m[99]`) are
+/// never written by the program: their `DEREF`s only link them to fresh cells,
+/// all of which stay ZERO, and the bus still balances.
+#[test]
+fn range_check_unwritten_cells() {
+    let src = "\
+def main():
+    x = GEN ** 300
+    assert log x < 400
+    p = 1
+    p[1] = x
+    p[GEN] = x
+    return
+";
+    let program = compile(&parse(src).expect("parse"));
+    let want = [F128::from(g_pow(300)), F128::from(g_pow(300))];
+    let (proof, _) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    verify(&program, &want, &proof).expect("unwritten touches verify");
+}
+
+/// The complement read sizes the memory: with `x = g^0`, a bound `k` touches `g^{k-1}`,
+/// so the run announces the least power of two above `k - 1` cells, exactly `2^16` at
+/// `k = 2^16` and `2^17` one past it. An off-by-one in the bound or in the memory size
+/// shows up here.
+#[test]
+fn range_check_complement_sizes_the_memory() {
+    for (k, log_mem) in [(65536, 16), (65537, 17)] {
+        let src = format!(
+            "def main():\n    x = GEN ** 0\n    assert log x < {k}\n    p = 1\n    p[1] = x\n    p[GEN] = x\n    return\n"
+        );
+        let program = compile(&parse(&src).expect("parse"));
+        let want = [F128::from(g_pow(0)); 2];
+        let (proof, stats) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        assert_eq!(stats.memory_used.next_power_of_two().ilog2(), log_mem, "bound {k}");
+        verify(&program, &want, &proof).unwrap_or_else(|e| panic!("bound {k}: {e:?}"));
+    }
+}
+
+/// Range checks inside a `mul_range` body: the check runs once per iteration in
+/// a fresh helper frame (its own `g^{k-1}` constant cell each time), and the
+/// touched low cells mix already-written ones (`m[0]`, `m[1]`: the public
+/// input) with unwritten ones.
+#[test]
+fn range_check_in_loop() {
+    let src = "\
+def main():
+    for i in mul_range(1, GEN ** 6):
+        assert log i < log GEN ** 6
+    p = 1
+    p[1] = 5
+    p[GEN] = 7
+    return
+";
+    let program = compile(&parse(src).expect("parse"));
+    let want = [F128::from(F64(5)), F128::from(F64(7))];
+    let (proof, _) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    // 6 iterations × 2 range-check DEREFs, plus call/publish plumbing.
+    assert!(mix(src, want)[3] >= 12, "at least the 12 range-check DEREFs");
+    verify(&program, &want, &proof).expect("loop range checks verify");
+}
+
+/// Bound 0 names the empty set: rejected at compile time.
+#[test]
+#[should_panic(expected = "names the empty set")]
+fn range_check_empty_bound_rejected() {
+    let src = "def main():\n    x = 1\n    assert log x < 0\n    return\n";
+    let _ = compile(&parse(src).expect("parse"));
+}
+
+/// A bound whose complement lies past this prover's address space compiles (the
+/// protocol admits it) and the run is refused with an error, not a panic.
+#[test]
+fn range_check_bound_past_the_prover_is_an_error() {
+    let src = "def main():\n    x = GEN ** 5\n    assert log x < 268435472\n    return\n";
+    let program = compile(&parse(src).expect("parse"));
+    match execute(&program, &[], [F128::ZERO; 2]) {
+        Err(err) => assert!(
+            matches!(err.fault, lean_vm_core::cpu::Fault::WildPointer { .. }),
+            "{err}"
+        ),
+        Ok(_) => panic!("a run past the prover's address space"),
+    }
+}
+
+/// A g-power reached only through a hint, past every cell the run otherwise touches:
+/// `assert_gpow` on it, and a runtime bound whose complement lies beyond it, prove.
+#[test]
+fn hinted_gpow_past_the_run_proves() {
+    let src = "\
+def main():
+    nb = StackBuf(1)
+    hint_witness(nb[0:1], \"n\")
+    n = nb[0]
+    assert_gpow(n)
+    x = GEN ** 3
+    assert log x < log n
+    p = 1
+    p[1] = x
+    p[GEN] = x
+    return
+";
+    let program = compile(&parse(src).expect("parse"));
+    let witness = [("n".to_string(), vec![vec![F128::from(g_pow(5000))]])];
+    let want = [F128::from(g_pow(3)); 2];
+    let (proof, stats) = prove(&program, &witness, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    assert_eq!(stats.memory_used.next_power_of_two().ilog2(), 13);
+    verify(&program, &want, &proof).expect("hinted g-power range checks verify");
+}
+
+/// Bounds beyond `2^30`, the largest memory, could never be complete: rejected at
+/// compile time.
+#[test]
+#[should_panic(expected = "exceeds 2^30")]
+fn range_check_bound_too_big_rejected() {
+    let src = "def main():\n    x = 1\n    assert log x < 1073741825\n    return\n";
+    let _ = compile(&parse(src).expect("parse"));
+}
+
+/// A `<` assert without `log` is rejected: field elements have no order, only
+/// their logs do.
+#[test]
+#[should_panic(expected = "compares logs")]
+fn range_check_without_log_rejected() {
+    let src = "def main():\n    x = 1\n    assert x < 8\n    return\n";
+    let _ = parse(src).map_err(|e| panic!("{e}"));
+}
+
+/// A *runtime* bound, `assert log x < log n`: the same gadget with `g^{k-1}`
+/// derived as `n·g^{-1}` instead of pooled from a constant. The bound rides a
+/// hint here, as it does in the aggregation guest, where the signer count is
+/// prover-announced.
+#[test]
+fn range_check_runtime_bound() {
+    let src = "\
+def main():
+    nb = StackBuf(1)
+    hint_witness(nb[0:1], \"n\")
+    n = nb[0]
+    assert log n < 64
+    x = GEN ** 5
+    assert log x < log n
+    assert log 1 < log n
+    p = 1
+    p[1] = x
+    p[GEN] = n
+    return
+";
+    let program = compile(&parse(src).expect("parse"));
+    let witness = [("n".to_string(), vec![vec![F128::from(g_pow(6))]])];
+    let want = [F128::from(g_pow(5)), F128::from(g_pow(6))];
+    let (proof, _) = prove(&program, &witness, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+    verify(&program, &want, &proof).expect("runtime-bound range check verifies");
+}
+
+/// A bound that folds at parse time but is not a power of `GEN` stays a parse
+/// error rather than quietly becoming a runtime bound. `log 8` names the field
+/// element 8, whose g-log is nothing in particular, so a program meaning `< 8`
+/// must not compile into a check that can only fail at witness generation.
+#[test]
+#[should_panic(expected = "must be a power of GEN")]
+fn range_check_folded_non_gpower_bound_rejected() {
+    let src = "def main():\n    x = GEN ** 3\n    assert log x < log 5\n    return\n";
+    let _ = parse(src).map_err(|e| panic!("{e}"));
+}

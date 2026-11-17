@@ -44,7 +44,7 @@ def merklePathM : ℕ → (ℕ → m Common.DigestBytes) → ℕ → m (List Com
 /-- The honest opening of a position over an oracle (`openCell`). -/
 def openCellM {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) : m CellOpening := do
   let low ← merklePathM H 7 (cellLeavesMWithHash H c (positionRow p)) (positionCell p)
-  let high ← merklePathM H (logPaddedRowCount r) (blobRootMWithHash H c) (positionRow p)
+  let high ← merklePathM H logMaxRows (blobRootMWithHash H c) (positionRow p)
   pure ⟨low ++ high⟩
 
 /-- The hash inputs of a climb over an oracle (`hashInputs`). -/
@@ -111,8 +111,10 @@ theorem blobRootM_eval {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ) :
   merkleRootM_eval φ hpure hbind H H' hH _ _ _ (cellLeavesM_eval φ hpure hbind H H' hH c i)
 
 theorem commitCellsM_eval {r : ℕ} (c : Fin (r * 128) → Cell) :
-    φ (commitCellsMWithHash H c) = pure (commitCellsWithHash H' c) :=
-  merkleRootM_eval φ hpure hbind H H' hH _ _ _ (blobRootM_eval φ hpure hbind H H' hH c)
+    φ (commitCellsMWithHash H c) = pure (commitCellsWithHash H' c) := by
+  simp only [commitCellsMWithHash, hbind,
+    merkleRootM_eval φ hpure hbind H H' hH _ _ _ (blobRootM_eval φ hpure hbind H H' hH c), pure_bind, hH,
+    commitCellsWithHash]
 
 theorem openCellM_eval {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
     φ (openCellM H c p) = pure (openCellWithHash H' c p) := by
@@ -239,30 +241,30 @@ theorem isWeightBound_blobRootM {r : ℕ} (c : Fin (r * 128) → Cell) (i : ℕ)
   exact (isWeightBound_merkleRootM H w cP hP 7 _ cC fun _ ↦ hC _).mono (by norm_num)
 
 include hP hC in
-/-- The commitment's hash calls: `128` cells and `127` pairs per blob tree, and `2^⌈log₂ r⌉ - 1`
-pairs over the blob roots, at most `2^⌈log₂ r⌉ · 128 (cC + cP)`. -/
+/-- The commitment's hash calls: `128` cells and `127` pairs per blob tree, `maxRows - 1` pairs
+over the blob roots and the count's pair, `maxRows · 128 (cC + cP)`. -/
 theorem isWeightBound_commitCellsM {r : ℕ} (c : Fin (r * 128) → Cell) :
-    QueryCostAtMost (commitCellsMWithHash H c) w (paddedRowCount r * (128 * cC + 128 * cP)) := by
+    QueryCostAtMost (commitCellsMWithHash H c) w (maxRows * (128 * cC + 128 * cP)) := by
   unfold commitCellsMWithHash
-  refine (isWeightBound_merkleRootM H w cP hP _ _ _
-    (isWeightBound_blobRootM H w cP cC hP hC c)).mono ?_
-  have h1 : 1 ≤ 2 ^ logPaddedRowCount r := Nat.one_le_two_pow
-  unfold paddedRowCount
-  generalize 2 ^ logPaddedRowCount r = n at h1 ⊢
+  refine ((isWeightBound_merkleRootM H w cP hP _ _ _
+    (isWeightBound_blobRootM H w cP cC hP hC c)).bind fun _ ↦ hP _ _).mono ?_
+  unfold maxRows
+  have h1 : 1 ≤ 2 ^ logMaxRows := Nat.one_le_two_pow
+  generalize 2 ^ logMaxRows = n at h1 ⊢
   obtain ⟨k, rfl⟩ : ∃ k, n = k + 1 := ⟨n - 1, by omega⟩
   rw [show k + 1 - 1 = k by omega]
   nlinarith
 
 include hP hC in
 theorem isWeightBound_openCellM {r : ℕ} (c : Fin (r * 128) → Cell) (p : Fin (r * 128)) :
-    QueryCostAtMost (openCellM H c p) w (paddedRowCount r * (128 * cC + 128 * cP)) := by
+    QueryCostAtMost (openCellM H c p) w (maxRows * (128 * cC + 128 * cP)) := by
   unfold openCellM
   refine ((isWeightBound_merklePathM H w cP hP 7 _ cC (fun _ ↦ hC _) _).bind fun _ ↦
     (isWeightBound_merklePathM H w cP hP _ _ _ (isWeightBound_blobRootM H w cP cC hP hC c) _).bind
       fun _ ↦ isWeightBound_pure _ _ 0).mono ?_
-  have h1 : 1 ≤ 2 ^ logPaddedRowCount r := Nat.one_le_two_pow
-  unfold paddedRowCount
-  generalize 2 ^ logPaddedRowCount r = n at h1 ⊢
+  unfold maxRows
+  have h1 : 1 ≤ 2 ^ logMaxRows := Nat.one_le_two_pow
+  generalize 2 ^ logMaxRows = n at h1 ⊢
   obtain ⟨k, rfl⟩ : ∃ k, n = k + 1 := ⟨n - 1, by omega⟩
   rw [show k + 1 - 1 = k by omega]
   norm_num

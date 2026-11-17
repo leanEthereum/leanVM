@@ -126,11 +126,6 @@ impl E {
         values.into_iter().fold(ZERO, |acc, value| acc + value)
     }
 
-    /// Each limb ANDed with `mask`: itself under all ones, zero under zero.
-    pub fn masked(self, mask: u64) -> Self {
-        Self::new(self.c0 & mask, self.c1 & mask)
-    }
-
     pub fn square(self) -> Self {
         let (s0, s1) = (spread(self.c0), spread(self.c1));
         // y^2 = x y + 1.

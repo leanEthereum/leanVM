@@ -59,7 +59,7 @@ is no witness.
 
 Written from the mathematics of the product-tree argument. The deployed verifier draws each
 layer's combiner at the start of the layer, as here (`verify_gkr_grand_products`,
-`crates/verifier/src/bus.rs:20-48` at leanVM `40f877dc`).
+`crates/verifier/src/bus.rs` at leanVM `40f877dc`).
 
 ## Relation to ArkLib pull request 818
 

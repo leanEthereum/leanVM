@@ -6,8 +6,8 @@ public import Statement.Prover.Mle
 /-!
 # The batched GKR over three product trees, executable
 
-The prover of `verifyGkrGrandProducts` (`crates/verifier/src/bus.rs:29-75`; the Rust's
-`prove_products`, `crates/leanvm_core/src/gkr.rs`) over three trees of `2^D` leaves, the first two
+The prover of `verifyGkrGrandProducts` (`crates/verifier/src/bus.rs`; the Rust's
+`prove_products`, `crates/lean_vm_core/src/gkr.rs`) over three trees of `2^D` leaves, the first two
 of the same product, every layer built once (`treeLayers`). In a step of `h` levels the three child
 layers are folded in place, one coordinate per round (`foldStride`), and each round's polynomial is
 computed row by row from the folded layers (`gkrRound`); after the rounds the folded layers are the

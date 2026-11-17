@@ -1,5 +1,5 @@
 {
-  "commit": "035eff47a",
+  "commit": "29077b733",
   "proof_kib": { "aggregation": 209, "recursion": 303 },
   "machines": [
     {
@@ -10,8 +10,8 @@
       "memory": "48 GB LPDDR5X, unified",
       "simd": "NEON",
       "results": {
-        "aggregation": { "4": { "time": 1.298, "ram": 5.00 }, "8": { "time": 0.943, "ram": 5.03 }, "full": { "time": 0.879, "ram": 5.04 } },
-        "recursion": { "4": { "time": 1.222, "ram": 4.93 }, "8": { "time": 0.908, "ram": 4.99 }, "full": { "time": 0.842, "ram": 5.01 } }
+        "aggregation": { "4": { "time": 1.149, "ram": 5.04 }, "8": { "time": 0.817, "ram": 5.14 }, "full": { "time": 0.748, "ram": 5.19 } },
+        "recursion": { "4": { "time": 1.229, "ram": 4.88 }, "8": { "time": 0.894, "ram": 5.01 }, "full": { "time": 0.829, "ram": 5.03 } }
       }
     },
     {
@@ -22,8 +22,8 @@
       "memory": "64 GB DDR5-5200, 2 × 32 GB Samsung",
       "simd": "AVX-512",
       "results": {
-        "aggregation": { "4": { "time": 2.278, "ram": 3.36 }, "8": { "time": 1.455, "ram": 3.37 }, "full": { "time": 1.454, "ram": 3.37 } },
-        "recursion": { "4": { "time": 2.308, "ram": 3.72 }, "8": { "time": 1.514, "ram": 3.76 }, "full": { "time": 1.515, "ram": 3.76 } }
+        "aggregation": { "4": { "time": 1.754, "ram": 3.43 }, "8": { "time": 1.124, "ram": 3.50 }, "full": { "time": 1.121, "ram": 3.50 } },
+        "recursion": { "4": { "time": 1.945, "ram": 3.54 }, "8": { "time": 1.322, "ram": 3.58 }, "full": { "time": 1.333, "ram": 3.58 } }
       }
     },
     {
@@ -34,8 +34,8 @@
       "memory": "64 GB DDR5-5600, 2 × 32 GB Crucial",
       "simd": "AVX2",
       "results": {
-        "aggregation": { "4": { "time": 2.280, "ram": 3.15 }, "8": { "time": 1.328, "ram": 3.16 }, "full": { "time": 1.001, "ram": 3.22 } },
-        "recursion": { "4": { "time": 2.232, "ram": 3.54 }, "8": { "time": 1.321, "ram": 3.58 }, "full": { "time": 1.058, "ram": 3.64 } }
+        "aggregation": { "4": { "time": 1.978, "ram": 3.22 }, "8": { "time": 1.134, "ram": 3.29 }, "full": { "time": 0.871, "ram": 3.40 } },
+        "recursion": { "4": { "time": 2.257, "ram": 3.10 }, "8": { "time": 1.358, "ram": 3.12 }, "full": { "time": 1.047, "ram": 3.23 } }
       }
     },
     {
@@ -46,8 +46,8 @@
       "memory": "192 GB DDR5-6400 RDIMM, 12 × 16 GB SK Hynix",
       "simd": "AVX-512",
       "results": {
-        "aggregation": { "4": { "time": 1.421, "ram": 3.36 }, "8": { "time": 0.806, "ram": 3.37 }, "full": { "time": 0.364, "ram": 3.48 } },
-        "recursion": { "4": { "time": 1.321, "ram": 3.73 }, "8": { "time": 0.778, "ram": 3.76 }, "full": { "time": 0.382, "ram": 3.92 } }
+        "aggregation": { "4": { "time": 1.077, "ram": 3.44 }, "8": { "time": 0.567, "ram": 3.50 }, "full": { "time": 0.242, "ram": 3.69 } },
+        "recursion": { "4": { "time": 1.245, "ram": 3.55 }, "8": { "time": 0.706, "ram": 3.56 }, "full": { "time": 0.366, "ram": 3.74 } }
       }
     }
   ]

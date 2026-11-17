@@ -1,0 +1,29 @@
+[package]
+name = "stable_keccak_gkr"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+parallel = { package = "stable_parallel", path = "../parallel" }
+primitives = { package = "stable_primitives", path = "../primitives" }
+fiat_shamir = { package = "fiat_shamir_prover", path = "../../fiat_shamir_prover" }
+pcs = { package = "stable_pcs", path = "../pcs" }
+tracing.workspace = true
+bench = { workspace = true, optional = true }
+isa = { workspace = true, optional = true }
+verifier.workspace = true
+
+[features]
+# The standalone batch benchmark (`batch_bench`), for the `hash_batch` target.
+bench = ["dep:bench", "dep:isa", "primitives/test-util"]
+
+[dev-dependencies]
+keccak_gkr = { package = "stable_keccak_gkr", path = ".", features = ["bench"] }
+
+[[bench]]
+name = "hash_batch"
+harness = false

@@ -21,7 +21,7 @@ public import LeanVM.Protocol.Keccak.Gkr
 /-!
 # The Keccak phase on doom
 
-Step 6 of `verify_execution` (`keccakPhase`, `crates/verifier/src/lib.rs:283-300` at leanVM
+Step 6 of `verify_execution` (`keccakPhase`, `crates/verifier/src/lib.rs` at leanVM
 `40f877dc`): the table's 25 claims on the `KECCAK` output lanes,
 all at one point `inst`, leave the batch and are the Keccak reduction's claim on the permutation's
 output; the reduction (`verifyKeccak`) adds its claims on `q_keccak` to the batch and leaves a point
@@ -133,21 +133,22 @@ theorem retOK_sampleN : ∀ n : ℕ, RetOK (fun xs : List E ↦ xs.length = n)
       RetOK.ret (by simp [hxs])
 
 /-- The pack rounds return one challenge per coordinate of the point. -/
-theorem retOK_keccakPackRounds : ∀ (rs : List E) (value scale : E),
-    RetOK (fun r : E × E × List E ↦ r.2.2.length = rs.length) (keccakPackRounds rs value scale)
-  | [], _, _ => RetOK.ret rfl
-  | _ :: rs, _, _ => RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
-      (retOK_keccakPackRounds rs _ _).bind fun r hr ↦ RetOK.ret (by simp [hr])
+theorem retOK_keccakPackRounds : ∀ (rs : List E) (value : E),
+    RetOK (fun r : E × List E ↦ r.2.length = rs.length) (keccakPackRounds rs value)
+  | [], _ => RetOK.ret rfl
+  | _ :: rs, _ => RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
+      (retOK_keccakPackRounds rs _).bind fun r hr ↦ RetOK.ret (by simp [hr])
 
 /-- A layer keeps the length of the claim's point. -/
 theorem retOK_verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) :
     RetOK (fun c : KeccakClaim ↦ c.point.length = claim.point.length)
       (verifyKeccakLayer logSteps step claim) := by
-  unfold verifyKeccakLayer
+  rw [verifyKeccakLayer_packed]
+  unfold verifyKeccakLayerPacked
   refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
     RetOK.bind_true fun _ ↦ ?_
-  refine (retOK_keccakPackRounds _ _ _).bind fun r hr ↦ ?_
-  obtain ⟨value, scale, point⟩ := r
+  refine (retOK_keccakPackRounds _ _).bind fun r hr ↦ ?_
+  obtain ⟨value, point⟩ := r
   refine RetOK.bind_true fun r ↦ ?_
   obtain ⟨localPoint, value'⟩ := r
   exact RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦

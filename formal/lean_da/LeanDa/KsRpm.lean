@@ -30,6 +30,8 @@ open scoped ENNReal
 
 namespace LeanDa
 
+attribute [local irreducible] logMaxRows
+
 /-! ## The commitment hashes only short strings -/
 
 section Congr
@@ -64,7 +66,8 @@ theorem commitCellsM_congr {r : ℕ} (c : Fin (r * 128) → Cell) :
     commitCellsMWithHash H₁ c = commitCellsMWithHash H₂ c := by
   have hblob : ∀ i, blobRootMWithHash H₁ c i = blobRootMWithHash H₂ c i := fun i ↦
     merkleRootM_congr hH 7 fun j ↦ hH (cellBytes (paddedCell c i j)) (by simp [shortP, length_cellBytes])
-  exact merkleRootM_congr hH _ hblob
+  rw [commitCellsMWithHash, commitCellsMWithHash, merkleRootM_congr hH _ hblob]
+  exact bind_congr fun t ↦ hH _ (by simp [shortP, length_pairBytes])
 
 end Congr
 
@@ -240,7 +243,7 @@ variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Common.DigestBytes × Membe
 
 /-- The permutation calls of the relation's check: at most `2176` per padded row (`128` cells of
 `16` calls and `128` pairs of one). -/
-abbrev relCalls (r : ℕ) : ℕ := 2176 * paddedRowCount r
+abbrev relCalls (_r : ℕ) : ℕ := 2176 * maxRows
 
 theorem isWeightBound_ksPost (crs : Crs) (out : (Unit × Common.DigestBytes × MembershipChallenge) ×
     Proof) :

@@ -40,11 +40,11 @@ open LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
 
 /-- The 200 bytes of a Keccak state, as `common` splits them (32 digest bytes, 104 more bytes
 of the rate, 64 bytes of capacity): byte `8i + k` is byte `k` of lane `i`, little-endian
-(`keccak_hash`'s `u64::from_le_bytes`, `crates/verifier/src/hash.rs:71-75`). -/
+(`keccak_hash`'s `u64::from_le_bytes`, `crates/verifier/src/hash.rs`). -/
 def KState.toRpm (s : KeccakState) : Common.KState :=
   Common.KState.ofBytes (s.toList.flatMap wordBytes)
 
-/-- A digest of 32 bytes as four little-endian words (`Digest::words`, `hash.rs:105-107`). -/
+/-- A digest of 32 bytes as four little-endian words (`Digest::words`, `hash.rs`). -/
 def Digest.ofRpm (d : Common.DigestBytes) : Digest :=
   #v[littleEndianLane d.toList 0, littleEndianLane d.toList 1, littleEndianLane d.toList 2,
       littleEndianLane d.toList 3]

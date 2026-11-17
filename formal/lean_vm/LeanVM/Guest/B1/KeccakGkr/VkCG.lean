@@ -105,8 +105,8 @@ def o274 : ℕ := D.τ + 318
 
 /-- Layer `s`'s next claim's record, pointing into its buffers at `ls s`. -/
 def outWs (ls : ℕ → ℕ) (s : ℕ) : List E :=
-  (D.layer s).outW (firstOf s) (ptr (ls s)) (ptr (ls s + (D.layer s).y + 139))
-    (ptr (ls s + (D.layer s).y + 128)) (ptr (ls s + (D.layer s).y + 164))
+  (D.layer s).outW (firstOf s) (ptr (ls s)) (ptr (ls s + (D.layer s).y + 123))
+    (ptr (ls s + (D.layer s).y + 112)) (ptr (ls s + (D.layer s).y + 148))
 
 /-- The first claim's record. -/
 def cw0 (B : ℕ) : List E :=
@@ -118,9 +118,9 @@ def claims (B : ℕ) (ls : ℕ → ℕ) : List E := D.cw0 B ++ (List.range 12).f
 /-- **Where claim `s`'s record and buffers are.** -/
 def CL (B : ℕ) (ls : ℕ → ℕ) : ℕ → ClaimLay
   | 0 => ⟨B + D.o201 + 22 * 0, D.cw0 B, B, B + D.o274 + 30, (eqKernel D.rl).take 25, 0, [], 0⟩
-  | k + 1 => ⟨B + D.o201 + 22 * (k + 1), D.outWs ls k, ls k, ls k + (D.layer k).y + 139,
+  | k + 1 => ⟨B + D.o201 + 22 * (k + 1), D.outWs ls k, ls k, ls k + (D.layer k).y + 123,
       lanesOut ((D.layer k).locPt (firstOf k)) ((D.layer k).beta (firstOf k)).1,
-      ls k + (D.layer k).y + 128, (D.layer k).locPt (firstOf k), ls k + (D.layer k).y + 164⟩
+      ls k + (D.layer k).y + 112, (D.layer k).locPt (firstOf k), ls k + (D.layer k).y + 148⟩
 
 /-- **The buffers' words.** -/
 def own (B : ℕ) (ls : ℕ → ℕ) : List (List E) :=

@@ -15,10 +15,10 @@ import LeanVM.Cli.GuestCase
 # `guest-diff`: the guest's mirror and hint generator against Rust executions
 
 `lake exe guest-diff <case>...` reads cases written by the exporter's ignored test `guest_diff`
-(`scripts/guest-export/src/export/guest_diff.rs`, format `leanvm-guest-diff 4`): a real
+(`scripts/guest-export/src/export/guest_diff.rs`, format `leanvm-guest-diff 5`): a real
 aggregation's statement `s`, seed, node witness `w`, the streams `aggregate` installed (captured
-through the test-only `FORGE` hook, `aggregation/hints.rs:53`) and its public input. For each
-case it checks
+through the test-only `FORGE` hook, `crates/aggregation/src/hints.rs`) and its public input. For
+each case it checks
 
 * that `w` holds `s` (`NodeRelation`'s computable parts: every child's proof verifies, every raw
   signature verifies and every signature claim is a raw signature's or a child's, the DA digest is that of the claim the directly checked matrix opens, else zero or
@@ -47,7 +47,7 @@ namespace GuestDiff
 def bytecode : List K := List.replicate (2 ^ (Data.logSize + busBits)) 0
 
 /-- `MatrixWitness.Opens`, its dot products computed and its commitment computed level by level as
-the crate does (`lean_da`'s `LeanDa.commitCodewords`, on codewords of `2^15` symbols the statement's
+the crate does (`lean_da`'s `LeanDa.commitCodewords`, on codewords of `2^14` symbols the statement's
 `commitCells` of the matrix they form: `LeanDa.commitCodewords_eq_commitCells`), the dual codeword
 of `z` as `dualAt` (`LeanDa.dualCodewordAt`: `Guest.B1.Da.dualAt_eq`). -/
 def daOpens (root : Digest) (z : E) (w : LeanVM.Da.MatrixWitness) : Bool :=
@@ -55,7 +55,7 @@ def daOpens (root : Digest) (z : E) (w : LeanVM.Da.MatrixWitness) : Bool :=
   1 ≤ w.rows.length && w.rows.length ≤ LeanDa.maxRows &&
     w.rows.all (·.length == 2 ^ LeanDa.logM) &&
     (LeanDa.commitCodewords keccakF1600 w.rows).toList == (LeanVM.Protocol.Digest.toBytes root).toList &&
-    w.rows.all fun row => (dual.zip row).foldl (fun acc (v, x) => acc + v * ofK x) 0 == 0
+    w.rows.all fun row => (dual.zip row).foldl (fun acc (v, x) => acc + v * x) 0 == 0
 
 /-- Every raw signature of a kind verifies, and every claim of the kind is a raw signature's or in
 a child's list, each by name. -/
@@ -72,7 +72,7 @@ def digestEq (a b : Digest) : Bool := a.toList == b.toList
 def nodeRel (c : Case) : List (String × Bool) :=
   let s := c.statement
   let w := c.witness
-  let shaped := fun (d : DeferredClaim) => d.bytecodePoint.length == Nat.log2 bytecode.length
+  let shaped := fun (d : DeferredBytecodeClaim) => d.bytecodePoint.length == Nat.log2 bytecode.length
   [("the statement's deferred claim is shaped", shaped s.deferredClaim)] ++
   w.children.zipIdx.flatMap (fun (ch, i) =>
     [(s!"child {i}'s deferred claim is shaped", shaped ch.statement.deferredClaim),
@@ -96,7 +96,7 @@ def nodeRel (c : Case) : List (String × Bool) :=
       ("the leaf defers the bytecode at zero", s.deferredClaim.bytecodePoint.all (· == 0))
     else ("the batching defers the statement's claim",
       (batch (w.children.map fun ch => ⟨statementDigest c.seed ch.statement, ch.freshClaim, ch.statement.deferredClaim⟩)
-        w.batchingHints).map DeferredClaim.cells == some s.deferredClaim.cells)]
+        w.batchingHints).map DeferredBytecodeClaim.cells == some s.deferredClaim.cells)]
 
 /-- `Limits`' parts and `NoZeroChallenge`, each by name. -/
 def limits (c : Case) : List (String × Bool) :=

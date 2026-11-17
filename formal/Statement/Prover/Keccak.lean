@@ -5,7 +5,7 @@ public import Statement.Prover.KeccakLayer
 /-!
 # The Keccak prover
 
-The honest prover of `verifyKeccak` (`verify_keccak`, `crates/verifier/src/keccak.rs:235-294`) and
+The honest prover of `verifyKeccak` (`verify_keccak`, `crates/verifier/src/keccak.rs`) and
 of the Keccak phase of `verify_execution` (`keccakPhase`): the column's `64` slots at the steps'
 point (`slotWords`), the twelve layers (`KeccakLayer.lean`), and the openings' sumchecks, sums over
 the remaining cube of products of two folded tables (`openRound`, `openFold`).
@@ -49,7 +49,7 @@ def slotWords (col : ℕ → K) (h : ℕ) (inst : List E) : Array E :=
   let eq := eqTable inst
   Array.ofFn (n := 64) fun o ↦ sumRange (2 ^ h) fun x ↦ eq.getD x 0 * ofK (col (x + 2 ^ h * o.val))
 
-/-- The weight the opening puts at slot `o`, slice `z` (`open`, `keccak.rs:208-221`). -/
+/-- The weight the opening puts at slot `o`, slice `z` (`open`, `keccak.rs`). -/
 def slotWeightOf (segments : List E) (w : Array E) (first count o z : ℕ) : E :=
   if 25 * first ≤ o ∧ o < 25 * (first + count) ∧ z < 64 then
     segments.getD (o / 25 - first) 0 * w.getD (64 * (o % 25) + z) 0 else 0
@@ -112,7 +112,7 @@ def keccakProve (col : ℕ → K) (P : ℕ) (inst output : List E) : Script Unit
   let word := (x.2.pairs.headD (#[], #[])).2.getD 0 0
   (Script.sendE word).bind fun _ ↦ inputProve col P claim
 
-/-- **The honest prover of the Keccak phase** (`keccakPhase`, `crates/verifier/src/lib.rs:316-333`):
+/-- **The honest prover of the Keccak phase** (`keccakPhase`, `crates/verifier/src/lib.rs`):
 the reduction on `q_keccak`'s words (the column `qkeccak` of `cols`), the `KECCAK` table of
 log-height `τ`, at its point and output lanes (`evaluations`). -/
 def keccakPhaseProve (τ : ℕ) (cols : Array (Array K)) (evaluations : List (List E × List E)) :

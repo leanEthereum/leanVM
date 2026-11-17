@@ -63,8 +63,8 @@ def sv : E := (layerSq (D.s0 first) D.product D.nonce).1
 def capS : List E := (layerSq (D.s0 first) D.product D.nonce).2.cap
 
 /-- The first `k` pack rounds. -/
-def run (k : ℕ) : (E × E × List E) × Fs :=
-  packRunF (D.c.point.take k) (D.packMsgs.take k) (polyEval D.product (D.sv first)) 1
+def run (k : ℕ) : (E × List E) × Fs :=
+  packRunF (D.c.point.take k) (D.packMsgs.take k) (polyEval D.product (D.sv first))
     ⟨D.capS first, []⟩
 
 /-- The rounds record `j` follows: eight a record up to `⌊y/8⌋`, then one. -/
@@ -73,18 +73,18 @@ def recK (j : ℕ) : ℕ := if j ≤ D.y / 8 then 8 * j else min (8 * (D.y / 8) 
 /-- Record `j`'s cursor. -/
 def recCur (cur : E) (j : ℕ) : E := cur * gen ^ (48 + 2 * D.recK j)
 
-/-- Field `f` of record `j`: the capacity, the cursor, the claim, the scale. -/
+/-- Field `f` of record `j`: the capacity, the cursor and the claim. -/
 def recField (cur : E) (f j : ℕ) : E :=
   if f < 5 then ((D.run first (D.recK j)).2.cap).getD f 0
   else if f = 5 then D.recCur cur j
-  else if f = 6 then (D.run first (D.recK j)).1.1 else (D.run first (D.recK j)).1.2.1
+  else (D.run first (D.recK j)).1.1
 
 /-- The records' buffer. -/
-def recWords (cur : E) : List E := (List.range 128).map fun i ↦
+def recWords (cur : E) : List E := (List.range 112).map fun i ↦
   if i % 16 ≤ D.y / 8 + D.y % 8 then D.recField first cur (i / 16) (i % 16) else 0
 
 /-- The pack rounds. -/
-def pack : (E × E × List E) × Fs := layerPack D.c (D.s0 first) D.product D.nonce D.packMsgs
+def pack : (E × List E) × Fs := layerPack D.c (D.s0 first) D.product D.nonce D.packMsgs
 
 /-- The position rounds. -/
 def loc : (List E × E) × Fs := layerLocal D.c (D.s0 first) D.product D.nonce D.packMsgs D.localMsgs
@@ -96,7 +96,7 @@ def beta : E × Fs := layerBeta D.c (D.s0 first) D.product D.nonce D.packMsgs D.
 def next : KeccakClaim := layerClaim D.c (D.s0 first) D.product D.nonce D.packMsgs D.localMsgs D.t
 
 /-- The pack challenges. -/
-def chs : List E := (D.pack first).1.2.2
+def chs : List E := (D.pack first).1.2
 
 /-- The local point. -/
 def locPt : List E := (D.loc first).1.1
@@ -117,22 +117,22 @@ end LayerData
 
 /-! ## The run's states -/
 
-theorem packRunF_cap : ∀ (rs : List E) (ms : List (E × E)) (v sc : E) (s : Fs),
+theorem packRunF_cap : ∀ (rs : List E) (ms : List (E × E)) (v : E) (s : Fs),
     s.cap.length = 5 → s.pend = [] →
-    (packRunF rs ms v sc s).2.cap.length = 5 ∧ (packRunF rs ms v sc s).2.pend = []
-  | r :: rs, (g1, g2) :: ms, v, sc, s, _, _ => by
+    (packRunF rs ms v s).2.cap.length = 5 ∧ (packRunF rs ms v s).2.pend = []
+  | r :: rs, (g1, g2) :: ms, v, s, _, _ => by
     simp only [packRunF]
-    exact packRunF_cap rs ms _ _ _ (by simp [Fs.squeeze, capOf]) rfl
-  | [], _, _, _, _, h1, h3 => by simp only [packRunF]; exact ⟨h1, h3⟩
-  | _ :: _, [], _, _, _, h1, h3 => by simp only [packRunF]; exact ⟨h1, h3⟩
+    exact packRunF_cap rs ms _ _ (by simp [Fs.squeeze, capOf]) rfl
+  | [], _, _, _, h1, h3 => by simp only [packRunF]; exact ⟨h1, h3⟩
+  | _ :: _, [], _, _, h1, h3 => by simp only [packRunF]; exact ⟨h1, h3⟩
 
-theorem packRunF_chs_length : ∀ (rs : List E) (ms : List (E × E)) (v sc : E) (s : Fs),
-    ms.length = rs.length → (packRunF rs ms v sc s).1.2.2.length = rs.length
-  | [], [], _, _, _, _ => rfl
-  | r :: rs, (g1, g2) :: ms, v, sc, s, h => by
+theorem packRunF_chs_length : ∀ (rs : List E) (ms : List (E × E)) (v : E) (s : Fs),
+    ms.length = rs.length → (packRunF rs ms v s).1.2.length = rs.length
+  | [], [], _, _, _ => rfl
+  | r :: rs, (g1, g2) :: ms, v, s, h => by
     simp only [packRunF, List.length_cons]
-    rw [packRunF_chs_length rs ms _ _ _ (by simpa using h)]
-  | [], _ :: _, _, _, _, h | _ :: _, [], _, _, _, h => by simp at h
+    rw [packRunF_chs_length rs ms _ _ (by simpa using h)]
+  | [], _ :: _, _, _, h | _ :: _, [], _, _, h => by simp at h
 
 namespace LayerData
 
@@ -145,14 +145,14 @@ theorem capS_ok : (D.capS first).length = 5 := by
 theorem run_cap (k : ℕ) : (D.run first k).2.cap.length = 5 ∧
     (D.run first k).2 = ⟨(D.run first k).2.cap, []⟩ := by
   obtain ⟨h1, h3⟩ := packRunF_cap (D.c.point.take k) (D.packMsgs.take k)
-    (polyEval D.product (D.sv first)) 1 ⟨D.capS first, []⟩ capS_ok rfl
+    (polyEval D.product (D.sv first)) ⟨D.capS first, []⟩ capS_ok rfl
   refine ⟨h1, ?_⟩
   unfold run
-  generalize packRunF _ _ _ _ _ = q at h3 ⊢
+  generalize packRunF _ _ _ _ = q at h3 ⊢
   cases q with
   | mk a b => cases b; simp_all
 
-theorem run_zero : D.run first 0 = ((polyEval D.product (D.sv first), 1, []), ⟨D.capS first, []⟩) := by
+theorem run_zero : D.run first 0 = ((polyEval D.product (D.sv first), []), ⟨D.capS first, []⟩) := by
   simp [run, packRunF]
 
 theorem run_full (hpm : D.packMsgs.length = D.y) : D.run first D.y = D.pack first := by
@@ -161,11 +161,10 @@ theorem run_full (hpm : D.packMsgs.length = D.y) : D.run first D.y = D.pack firs
   rfl
 
 /-- More rounds after a state with nothing waiting. -/
-def cont (s : (E × E × List E) × Fs) (rs : List E) (ms : List (E × E)) : (E × E × List E) × Fs :=
-  ((((packRunF rs ms s.1.1 s.1.2.1 ⟨s.2.cap, []⟩).1.1,
-    (packRunF rs ms s.1.1 s.1.2.1 ⟨s.2.cap, []⟩).1.2.1,
-    s.1.2.2 ++ (packRunF rs ms s.1.1 s.1.2.1 ⟨s.2.cap, []⟩).1.2.2)),
-    (packRunF rs ms s.1.1 s.1.2.1 ⟨s.2.cap, []⟩).2)
+def cont (s : (E × List E) × Fs) (rs : List E) (ms : List (E × E)) : (E × List E) × Fs :=
+  (((packRunF rs ms s.1.1 ⟨s.2.cap, []⟩).1.1,
+    s.1.2 ++ (packRunF rs ms s.1.1 ⟨s.2.cap, []⟩).1.2),
+    (packRunF rs ms s.1.1 ⟨s.2.cap, []⟩).2)
 
 theorem run_add (hpm : D.packMsgs.length = D.y) {k n : ℕ} (hk : k + n ≤ D.y) :
     D.run first (k + n) = cont (D.run first k) ((D.c.point.drop k).take n)
@@ -175,9 +174,9 @@ theorem run_add (hpm : D.packMsgs.length = D.y) {k n : ℕ} (hk : k + n ≤ D.y)
     simp only [List.length_take]; omega
   have hs := (run_cap (D := D) (first := first) k).2
   unfold run at hs ⊢
-  rw [List.take_add, List.take_add, packRunF_append _ _ _ _ _ _ _ hA]
+  rw [List.take_add, List.take_add, packRunF_append _ _ _ _ _ _ hA]
   unfold cont
-  generalize packRunF (D.c.point.take k) (D.packMsgs.take k) _ _ _ = q at hs ⊢
+  generalize packRunF (D.c.point.take k) (D.packMsgs.take k) _ _ = q at hs ⊢
   obtain ⟨a, st⟩ := q
   cases st with
   | mk cap pend =>
@@ -185,56 +184,55 @@ theorem run_add (hpm : D.packMsgs.length = D.y) {k n : ℕ} (hk : k + n ≤ D.y)
     subst hs
     rfl
 
-/-- **Rounds from a state with nothing waiting chain by `eqRound`.** -/
-theorem eqChain_of_packRunF : ∀ (rs : List E) (ms : List (E × E)) (cl sc : E) (cap : List E),
+/-- Rounds from a state with nothing waiting chain by `eqRound`. -/
+theorem eqChain_of_packRunF : ∀ (rs : List E) (ms : List (E × E)) (cl : E) (cap : List E),
     ms.length = rs.length →
-    EqChain rs ms cl sc cap (packRunF rs ms cl sc ⟨cap, []⟩).1.2.2
-      (packRunF rs ms cl sc ⟨cap, []⟩).1.1 (packRunF rs ms cl sc ⟨cap, []⟩).1.2.1
-      (packRunF rs ms cl sc ⟨cap, []⟩).2.cap
-  | [], [], _, _, _, _ => ⟨rfl, rfl, rfl, rfl⟩
-  | r :: rs, (g1, g2) :: ms, cl, sc, cap, h => by
+    EqChain rs ms cl cap (packRunF rs ms cl ⟨cap, []⟩).1.2
+      (packRunF rs ms cl ⟨cap, []⟩).1.1 (packRunF rs ms cl ⟨cap, []⟩).2.cap
+  | [], [], _, _, _ => ⟨rfl, rfl, rfl⟩
+  | r :: rs, (g1, g2) :: ms, cl, cap, h => by
     rw [packRunF_eqRound]
-    have hs : (eqRound ⟨cap, []⟩ g1 g2 r cl sc).2.2.2 =
-        ⟨(eqRound ⟨cap, []⟩ g1 g2 r cl sc).2.2.2.cap, []⟩ := rfl
-    refine ⟨_, _, _, _, _, by rw [← hs], rfl, ?_⟩
+    have hs : (eqRound ⟨cap, []⟩ g1 g2 r cl).2.2 =
+        ⟨(eqRound ⟨cap, []⟩ g1 g2 r cl).2.2.cap, []⟩ := rfl
+    refine ⟨_, _, _, _, by rw [← hs], rfl, ?_⟩
     rw [hs]
-    exact eqChain_of_packRunF rs ms _ _ _ (by simpa using h)
-  | [], _ :: _, _, _, _, h | _ :: _, [], _, _, _, h => by simp at h
+    exact eqChain_of_packRunF rs ms _ _ (by simpa using h)
+  | [], _ :: _, _, _, h | _ :: _, [], _, _, h => by simp at h
 
 /-- **The challenges so far** are a prefix of the pack challenges. -/
 theorem run_chs (hpm : D.packMsgs.length = D.y) {k : ℕ} (hk : k ≤ D.y) {i : ℕ}
-    (hi : i < (D.run first k).1.2.2.length) :
-    ∃ h : i < (D.chs first).length, (D.chs first)[i] = (D.run first k).1.2.2[i] := by
+    (hi : i < (D.run first k).1.2.length) :
+    ∃ h : i < (D.chs first).length, (D.chs first)[i] = (D.run first k).1.2[i] := by
   have hfull := run_full (D := D) (first := first) hpm
   have hy : D.y = D.c.point.length := rfl
   have hA : (D.packMsgs.take k).length = (D.c.point.take k).length := by
     simp only [List.length_take]; omega
-  have e : D.chs first = (D.run first k).1.2.2 ++ (packRunF (D.c.point.drop k) (D.packMsgs.drop k)
-      (D.run first k).1.1 (D.run first k).1.2.1 (D.run first k).2).1.2.2 := by
+  have e : D.chs first = (D.run first k).1.2 ++ (packRunF (D.c.point.drop k) (D.packMsgs.drop k)
+      (D.run first k).1.1 (D.run first k).2).1.2 := by
     rw [chs, ← hfull]
     unfold run
     rw [show D.c.point.take D.y = D.c.point.take k ++ D.c.point.drop k by
         rw [List.take_of_length_le (by omega), List.take_append_drop],
       show D.packMsgs.take D.y = D.packMsgs.take k ++ D.packMsgs.drop k by
         rw [List.take_of_length_le (by rw [hpm]), List.take_append_drop],
-      packRunF_append _ _ _ _ _ _ _ hA]
+      packRunF_append _ _ _ _ _ _ hA]
   refine ⟨by rw [e, List.length_append]; omega, ?_⟩
   simp only [e]
   rw [List.getElem_append_left hi]
 
 theorem run_chsD (hpm : D.packMsgs.length = D.y) {k : ℕ} (hk : k ≤ D.y) {i : ℕ} (hi : i < k) :
-    (D.chs first).getD i 0 = (D.run first k).1.2.2.getD i 0 := by
-  have hl : (D.run first k).1.2.2.length = k := by
+    (D.chs first).getD i 0 = (D.run first k).1.2.getD i 0 := by
+  have hl : (D.run first k).1.2.length = k := by
     have hy : D.y = D.c.point.length := rfl
-    exact (packRunF_chs_length _ _ _ _ _ (by simp only [List.length_take]; omega)).trans
+    exact (packRunF_chs_length _ _ _ _ (by simp only [List.length_take]; omega)).trans
       (by simp only [List.length_take]; omega)
   obtain ⟨h1, h2⟩ := run_chs (D := D) (first := first) hpm hk (i := i) (by omega)
   rw [List.getD_eq_getElem _ _ h1, List.getD_eq_getElem _ _ (by omega), h2]
 
 theorem run_chs_length (hpm : D.packMsgs.length = D.y) {k : ℕ} (hk : k ≤ D.y) :
-    (D.run first k).1.2.2.length = k := by
+    (D.run first k).1.2.length = k := by
   have hy : D.y = D.c.point.length := rfl
-  exact (packRunF_chs_length _ _ _ _ _ (by simp only [List.length_take]; omega)).trans
+  exact (packRunF_chs_length _ _ _ _ (by simp only [List.length_take]; omega)).trans
     (by simp only [List.length_take]; omega)
 
 end LayerData

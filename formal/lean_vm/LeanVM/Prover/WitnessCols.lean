@@ -14,7 +14,7 @@ public import LeanVM.Prover.WitnessColumns
 
 `cols_trace`: on a valid execution, `colsOf` at `refCol c` is the instance's column `c` read off
 `stackOf` of the specification witness, for every column `c`: the memory's (its limbs and its
-finalize counts), `BFCNT`, `QKECCAK` (`qkeccak_trace`), the opcode tables' columns, the `KECCAK`
+finalize counts), `BYTECODE_FINAL_COUNTERS`, `QKECCAK` (`qkeccak_trace`), the opcode tables' columns, the `KECCAK`
 input lanes and spare columns among them, and the `KECCAK` output lanes, which the instance
 derives (`column_toArray_out`).
 -/

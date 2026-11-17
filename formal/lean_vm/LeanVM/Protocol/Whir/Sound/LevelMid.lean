@@ -14,7 +14,7 @@ public import LeanVM.Protocol.Whir.Sound.LevelFacts
 /-!
 # A level with a next one
 
-`whirLevels` on `level :: next :: rest` (`crates/verifier/src/whir.rs:231-325`): the level's fold
+`whirLevels` on `level :: next :: rest` (`crates/verifier/src/whir.rs`): the level's fold
 rounds (`foldRoundsSpec`), then `midTail`: the next commitment, the high part, a `15`-bit grind and
 the out-of-domain point (`eOod`), its value, a `17`-bit grind, then the positions (`eQuery`) and
 `λ` (`eLam`) in one message after that grind, the openings, the glued claim, and the next level.

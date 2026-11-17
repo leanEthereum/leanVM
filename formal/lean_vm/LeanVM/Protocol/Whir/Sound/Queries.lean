@@ -14,7 +14,7 @@ public import LeanVM.Protocol.ToArkLib.Whir.Counting
 /-!
 # Uniformity of the query positions
 
-`sample_queries(transcript, 2^depth, t)` (`crates/verifier/src/whir.rs:77-92`,
+`sample_queries(transcript, 2^depth, t)` (`crates/verifier/src/whir.rs`,
 `LeanVM.Protocol.Verifier.sampleQueries`) draws samples `c ∈ E` and reads `int(c)` (`eToNat`,
 the two limbs as one 128-bit integer); the chunks
 `(int(c) >> (k·depth)) mod 2^depth`, `k < min(128/depth, remaining)`, are the positions.

@@ -1,7 +1,7 @@
 /-
   LeanVM.Cli.GuestCase
 
-  The reader of the guest's test cases (`scripts/guest-export`'s `guest_diff`, format `leanvm-guest-diff 4`),
+  The reader of the guest's test cases (`scripts/guest-export`'s `guest_diff`, format `leanvm-guest-diff 5`),
   shared by `guest-diff` and `guest-run`. No proof imports it.
 -/
 
@@ -74,7 +74,7 @@ def claimR : R ((BitVec 128 × BitVec 128) × BitVec 256) := do
   let m := (← bytesR).map (·.toNat)
   return ((bitsLE 128 (pk.take 16), bitsLE 128 (pk.drop 16)), bitsLE 256 m)
 
-def deferR : R DeferredClaim := do
+def deferR : R DeferredBytecodeClaim := do
   expect "defer"
   return ⟨← many eR, ← eR⟩
 
@@ -128,7 +128,7 @@ def rawSphincsR : R (LeanSphincsClaim × Sphincs.Signature) := do
   let ((p, r), m) ← claimR
   return (((⟨p, r⟩ : Sphincs.PublicKey), m), ← sphincsSigR)
 
-def daWitnessR : R LeanVM.Da.MatrixWitness := do return ⟨← many (many kR)⟩
+def daWitnessR : R LeanVM.Da.MatrixWitness := do return ⟨← many (many eR)⟩
 
 /-- The blob matrix checked directly, with the DA claim it opens (`NodeWitness.daMatrix`): `direct`, the
 root, the membership challenge, the rows; or `none`. -/
@@ -151,7 +151,7 @@ structure Case where
   streams : Streams
 
 def caseR : R Case := do
-  expect "leanvm-guest-diff"; expect "4"
+  expect "leanvm-guest-diff"; expect "5"
   expect "case"; let name ← tok
   expect "seed"; let seed ← digestR
   expect "log_memory"; let logMemory ← nat

@@ -189,19 +189,19 @@ section KeccakNoQuery
 open LeanVM.Protocol.KeccakGkr
 
 theorem noQuery_hPack (F : List E → E) :
-    ∀ (rs acc : List E) (scale : E), Script.NoQuery (hPack F rs acc scale)
-  | [], _, _ => trivial
-  | _ :: rs, acc, _ => by
+    ∀ (rs acc : List E), Script.NoQuery (hPack F rs acc)
+  | [], _ => trivial
+  | _ :: rs, acc => by
     simp only [hPack]
     exact nq_bind (nq_bind (noQuery_sendList _) fun _ ↦ nq_grindBits _) fun _ ↦
-      nq_bind nq_sampleE fun c ↦ nq_bind (noQuery_hPack F rs (acc ++ [c]) _) fun _ ↦ nq_ret _
+      nq_bind nq_sampleE fun c ↦ nq_bind (noQuery_hPack F rs (acc ++ [c])) fun _ ↦ nq_ret _
 
 attribute [local irreducible] hPack
 
 theorem noQuery_hLayer (T : States) (P : ℕ) (claim : KeccakClaim) :
     Script.NoQuery (hLayer T P claim) := by
   unfold hLayer
-  repeat' (first | exact noQuery_hSumcheck _ _ _ _ | exact noQuery_hPack _ _ _ _ | nqstep)
+  repeat' (first | exact noQuery_hSumcheck _ _ _ _ | exact noQuery_hPack _ _ _ | nqstep)
 
 attribute [local irreducible] hLayer
 

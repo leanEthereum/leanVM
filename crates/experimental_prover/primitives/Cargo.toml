@@ -1,0 +1,22 @@
+[package]
+name = "experimental_primitives"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+keccak256.workspace = true
+parallel = { package = "experimental_parallel", path = "../parallel" }
+fiat_shamir_prover.workspace = true
+rand = { workspace = true, optional = true }
+
+[features]
+# Test-only helpers (`test_rng`) used by this and other crates' tests.
+# Kept off the default build so `rand` stays out of the production graph.
+test-util = ["dep:rand"]
+
+[dev-dependencies]
+primitives = { package = "experimental_primitives", path = ".", features = ["test-util"] }

@@ -110,11 +110,11 @@ theorem merkleRootM_map (d : ℕ) : ∀ f : ℕ → m Common.DigestBytes,
 /-- **The commitment through a monad morphism.** -/
 theorem commitCellsM_map {r : ℕ} (c : Fin (r * 128) → Cell) :
     φ (commitCellsMWithHash H c) = commitCellsMWithHash (fun a ↦ φ (H a)) c := by
-  simp only [commitCellsMWithHash, merkleRootM_map φ hpure hbind]
-  congr 1
-  funext i
-  simp only [blobRootMWithHash, merkleRootM_map φ hpure hbind, cellLeavesMWithHash]
-  rfl
+  have hb : (fun i ↦ φ (blobRootMWithHash H c i)) = blobRootMWithHash (fun a ↦ φ (H a)) c := by
+    funext i
+    simp only [blobRootMWithHash, merkleRootM_map φ hpure hbind, cellLeavesMWithHash]
+    rfl
+  simp only [commitCellsMWithHash, hbind, merkleRootM_map φ hpure hbind, hb]
 
 /-- **The verification through a monad morphism.** -/
 theorem verifyRpm_map (r : ℕ) {Crs Proof : Type}

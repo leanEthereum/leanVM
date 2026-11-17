@@ -55,7 +55,7 @@ def weightAt (cs : List ChildClaims) (h : BatchingHints) (c : ℕ) : E :=
     (Batch.lambdaPowers (lamA cs h) c))
 
 /-- The claim `aggregate_claims` writes: the sumcheck's point, the hinted value. -/
-def aggOut (cs : List ChildClaims) (h : BatchingHints) : DeferredClaim :=
+def aggOut (cs : List ChildClaims) (h : BatchingHints) : DeferredBytecodeClaim :=
   ⟨(aggRun cs h).1.1, h.finalBytecodeValue⟩
 
 /-- `aggregate_claims`' buffers. -/

@@ -18,15 +18,15 @@ public import LeanVM.Guest.AcceptableChild
 # The limits of the guest's completeness
 
 `NodeRelation bytecode seed s w` (`Statement/LeanVmGuest.lean`) admits witnesses on which the deployed guest
-(`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM main `40f877dc`, `G:N` its lines) does
+(`guests/lean_ethereum.py` at leanVM main `40f877dc`) does
 not run to completion. Completeness assumes two hypotheses beside `NodeRelation`, each a precise
 predicate on the witness:
 
 * **`DeployedLimits s w`, the deployed limits** of the node, which the Spec does not have (listed
   at the structure): the claims held with multiplicity and at most `16` children, which the guest
-  enforces (`aggregate_with_stats` refuses more than `16` children), and caps on the children's
+  enforces (`aggregate` refuses more than `16` children), and caps on the children's
   claims, the raw signatures and the blob matrix's rows, which neither the guest nor
-  `aggregate_with_stats` enforces: a node past a cap is still accepted, but completeness does not
+  `aggregate` enforces: a node past a cap is still accepted, but completeness does not
   cover it. An honest prover within them is never refused. The guest's proofs take them with the
   coverage table below `2^23` (`GuestLimits`), which their caps give.
 * **`ChildrenOk bytecode seed w`, every child one the guest accepts** (`AcceptableChild`, `LeanVM/Guest/AcceptableChild.lean`): besides
@@ -35,8 +35,8 @@ predicate on the witness:
   cap once, so two openings of one query step meeting at a node of the tree must give it one
   digest; one tree's openings agree; two that disagree at a node give a Keccak-256 collision, an
   argument in prose, not proved here); and no zero challenge where the guest divides (the guest
-  computes `μ = 1/λ` for each WHIR level's batching challenge `λ`, G:1385, and the basis
-  coefficients `(1 + c)/(c·inv)` for the fold and tail challenges `c`, G:1723, G:1725).
+  computes `μ = 1/λ` for each WHIR level's batching challenge `λ`, and the basis
+  coefficients `(1 + c)/(c·inv)` for the fold and tail challenges `c`).
 
 The coverage table's size (`coverageSlots`) is the number of claims made; an honest run lays it out by `Coverage.coveragePlan` (`planSlots`, equal to it under `DeployedLimits`: `B1/Main/Plan.lean`'s `planSlots_eq`). The guest's proofs take it below `2^23` (`GuestLimits`, every count of `meta` and of a child's lists at most it), so below the guest's memory, which is at least `2^23` words (`Memory.logMem`); the deployed limits' caps give it (`Budget/Fits.lean`'s `GuestLimits.of_limits`).
 -/

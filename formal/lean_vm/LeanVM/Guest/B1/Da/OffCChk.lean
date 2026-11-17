@@ -26,22 +26,22 @@ def atomOfS : Stmt → Option Atom
 /-- `da_column_offsets`' atoms. -/
 def offAtoms : List Atom := offP.filterMap atomOfS
 
-/-- Its stores: the eight zeros, then each bit's steps. -/
+/-- Its stores: the seven zeros, then each bit's steps. -/
 def offStores : List Atom :=
-  (List.range 8).map (fun j => .load (.n (2 + j)) (.n 1) j) ++
-    (List.range 7).flatMap fun b => (List.range 8).map fun j =>
+  (List.range 7).map (fun j => .load (.n (2 + j)) (.n 1) j) ++
+    (List.range 7).flatMap fun b => (List.range 7).map fun j =>
       .load (.n (offB b + 1 + 3 * j + 2)) (.n (offB b)) j
 
 /-- A load of one of its three shapes: a zero into `offsets[j]`, `zs[j]` for a bit's step, a
 step into `steps[j]`. -/
 def isOffLoad (d p : V) (off : ℕ) : Bool :=
-  decide (off < 8) && ((decide (p = .n 1) && decide (d = .n (2 + off))) ||
+  decide (off < 7) && ((decide (p = .n 1) && decide (d = .n (2 + off))) ||
     (decide (p = .n 0) && (List.range 7).any fun b => decide (d = .n (offB b + 1 + 3 * off))) ||
     (List.range 7).any fun b => decide (p = .n (offB b)) && decide (d = .n (offB b + 1 + 3 * off + 2)))
 
 /-- Bit `b`'s loop call. -/
 def offCallS (b : ℕ) : Stmt :=
-  .callIf (.n (offB b + 27)) (offLoopName b) [.n (offB b + 28), .n (offB b + 29), .n 1, .n (offB b)]
+  .callIf (.n (offB b + 24)) (offLoopName b) [.n (offB b + 25), .n (offB b + 26), .n 1, .n (offB b)]
 
 /-- A statement of `da_column_offsets`: an atom or a loop's call. -/
 def isOffStmt : Stmt → Bool
@@ -49,11 +49,11 @@ def isOffStmt : Stmt → Bool
   | s => (List.range 7).any fun b => stmtsEqb [s] [offCallS b]
 
 /-- Its `HeapBuf`s. -/
-def offAllocs : List (V × (ℕ ⊕ V)) := (.n 1, .inl 1024) :: (List.range 7).map fun b => (.n (offB b), .inl 8)
+def offAllocs : List (V × (ℕ ⊕ V)) := (.n 1, .inl 896) :: (List.range 7).map fun b => (.n (offB b), .inl 7)
 
 /-- Its calls. -/
 def offCalls : List (Option V × String × List V × List V) := (List.range 7).map fun b =>
-  (some (.n (offB b + 27)), offLoopName b, [.n (offB b + 28), .n (offB b + 29), .n 1, .n (offB b)], [])
+  (some (.n (offB b + 24)), offLoopName b, [.n (offB b + 25), .n (offB b + 26), .n 1, .n (offB b)], [])
 
 /-- **`da_column_offsets`, evaluated.** -/
 def offCOk : Bool :=

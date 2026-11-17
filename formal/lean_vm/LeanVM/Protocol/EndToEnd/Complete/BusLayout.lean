@@ -29,7 +29,7 @@ open LeanVM.Protocol.Whir.Complete Finset
 @[expose] public section
 
 /-- The tail of `verify_bus_balance` after the reads: the claims, the bytecode's point, the GKR
-point, the forms and the totals (`bus.rs:185-246`), from the slot weights, `β`, the GKR's point and
+point, the forms and the totals (`bus.rs`), from the slot weights, `β`, the GKR's point and
 tree values, the memory limbs and finalize counts read, and the bytecode's share and point. -/
 def busOut (layout : Verifier.Layout) (weights : List E) (beta : E)
     (point treeValues memory : List E) (memoryFinal bytecodeFinal share : E)

@@ -2,7 +2,7 @@
   LeanVM.Guest.B1.Sig.SphincsAdrs
 
   FIPS 205's 32-byte address as the guest's two cells
-  (`lean_ethereum.py:501-513`, `crates/signatures/src/lean_sphincs/hash.rs:28-79`).
+  (`lean_ethereum.py`, `crates/lean_sphincs/src/hash.rs`).
 -/
 
 module
@@ -12,18 +12,18 @@ public import LeanVM.Guest.B1.Sig.InterfaceP
 /-!
 # The address as two cells
 
-FIPS 205's address (`Adrs`, `hash.rs:28-79`) is 32 bytes, eight big-endian 32-bit words: the
+FIPS 205's address (`Adrs`, `hash.rs`) is 32 bytes, eight big-endian 32-bit words: the
 layer (bytes `0..4`), the tree (`4..16`, its high word zero here), the type (`16..20`), then the
 key pair, the chain index or tree height, and the hash address or tree index. A hash input
 `PK.seed | ADRS | M` is cells' bytes (each cell 16 bytes, little-endian), so the address is two
-cells: `A0`, bytes `0..16`, and `A1`, bytes `16..32` (`lean_ethereum.py:501-513`). In a cell a
+cells: `A0`, bytes `0..16`, and `A1`, bytes `16..32` (`lean_ethereum.py`). In a cell a
 big-endian word's low byte is its last byte: `beWordAt k w` is the number the word `w` at word slot
 `k` of a half adds to its cell.
 
 * `adrsCell0 layer tree`, `adrsCell1 type keyPair word2 word3`: the two cells;
 * `keyAdrsCells layer tree leaf`: the address of a one-time key, type `WOTS_HASH` (`0`), its leaf
-  the key pair (`OtsKey::adrs`, `wots.rs:41-44`): the `(a0, a1)` `sp_wots` takes;
-* the types (`hash.rs:20-27`).
+  the key pair (`OtsKey::adrs`, `wots.rs`): the `(a0, a1)` `sp_wots` takes;
+* the types (`hash.rs`).
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -32,7 +32,7 @@ open LeanVM.Parameters LeanVM.Guest
 
 @[expose] public section
 
-/-- The address types (`hash.rs:20-27`). -/
+/-- The address types (`hash.rs`). -/
 def adrsWotsHash : Nat := 0
 def adrsWotsPk : Nat := 1
 def adrsTree : Nat := 2

@@ -46,8 +46,8 @@ theorem padRate_eq (ws : List E) : padToRate ws = ws ++ List.replicate (zerosToW
 theorem length_words {bytecode : List K} {c : ChildClaims} (hc : ChildHasBytecodeShape bytecode c) :
     c.words.length = childWordCount (Nat.log2 bytecode.length) := by
   obtain ⟨h1, h2⟩ := hc
-  simp only [DeferredClaim.HasBytecodeShape] at h2
-  simp [ChildClaims.words, DeferredClaim.cells, childWordCount, h1, h2]
+  simp only [DeferredBytecodeClaim.HasBytecodeShape] at h2
+  simp [ChildClaims.words, DeferredBytecodeClaim.cells, childWordCount, h1, h2]
   omega
 
 /-- A child of the bytecode's shapes has `childWordCount` words, then the padding. -/
@@ -66,10 +66,10 @@ theorem parseChild_words {bytecode : List K} {c : ChildClaims} (hc : ChildHasByt
     parseChild (Nat.log2 bytecode.length) c.words = some c := by
   obtain ⟨pi, ⟨bp, bv⟩, ⟨bp', bv'⟩⟩ := c
   obtain ⟨h1, h2⟩ := hc
-  simp only [DeferredClaim.HasBytecodeShape] at h1 h2
+  simp only [DeferredBytecodeClaim.HasBytecodeShape] at h1 h2
   generalize Nat.log2 bytecode.length = nB at *
   subst h1
-  simp [parseChild, ChildClaims.words, DeferredClaim.cells,
+  simp [parseChild, ChildClaims.words, DeferredBytecodeClaim.cells,
     digestOfScalars_digestScalars, List.getD_eq_getElem?_getD, List.drop_append, h2, List.drop_eq_nil_of_le]
 
 /-- The padded words are read back off. -/
@@ -78,10 +78,10 @@ theorem parseChild_childCells {bytecode : List K} {c : ChildClaims} (hc : ChildH
   rw [← parseChild_words hc, childCells_eq hc]
   obtain ⟨pi, ⟨bp, bv⟩, ⟨bp', bv'⟩⟩ := c
   obtain ⟨h1, h2⟩ := hc
-  simp only [DeferredClaim.HasBytecodeShape] at h1 h2
+  simp only [DeferredBytecodeClaim.HasBytecodeShape] at h1 h2
   generalize Nat.log2 bytecode.length = nB at *
   subst h1
-  simp [parseChild, ChildClaims.words, DeferredClaim.cells,
+  simp [parseChild, ChildClaims.words, DeferredBytecodeClaim.cells,
     List.getD_eq_getElem?_getD, List.drop_append, h2,
     List.drop_eq_nil_of_le]
 

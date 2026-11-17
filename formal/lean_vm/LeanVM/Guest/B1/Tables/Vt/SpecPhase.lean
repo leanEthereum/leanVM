@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Tables.Vt.SpecTotals
 public import LeanVM.Guest.B1.Sumcheck.Run
 
 /-!
-# The table phase and the public input phase (V:646-675, 2183-2209)
+# The table phase and the public input phase
 
 * `vt_tableSumcheck_run`: when the sumcheck of `n` rounds (the tables' largest height) runs to
   the challenges `pts` and the claim `claimN`, and the per-table loop over the evaluations `evs`

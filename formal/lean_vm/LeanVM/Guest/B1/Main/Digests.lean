@@ -148,7 +148,7 @@ theorem readCells_of_readsAt {p : E} {cells : List E} (h : ReadsAt rd p cells) (
 theorem deferOfCells_cells {cells : List E} (hl : cells.length = 24) :
     (deferOfCells cells).cells = cells := by
   have hb : bytecodeVars = 23 := rfl
-  unfold deferOfCells DeferredClaim.cells
+  unfold deferOfCells DeferredBytecodeClaim.cells
   rw [hb, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega), Option.getD_some]
   simp only
   rw [← List.take_succ_eq_append_getElem (by omega), List.take_of_length_le (by omega)]
@@ -158,9 +158,9 @@ theorem deferOfCells_point {cells : List E} (hl : cells.length = 24) :
   simp [deferOfCells, hl, bytecodeVars]
 
 theorem fixedOfCells_cells {f : BytecodeClaim} (hl : f.bytecodePoint.length = bytecodeVars) :
-    fixedOfCells (DeferredClaim.cells f) = f := by
+    fixedOfCells (DeferredBytecodeClaim.cells f) = f := by
   have hb : bytecodeVars = 23 := rfl
-  unfold fixedOfCells DeferredClaim.cells
+  unfold fixedOfCells DeferredBytecodeClaim.cells
   rw [List.take_append_of_le_length (by omega), List.take_of_length_le (by omega),
     List.getD_eq_getElem?_getD, List.getElem?_append_right (by omega), hl]
   simp

@@ -14,7 +14,7 @@ public import LeanVM.Protocol.EndToEnd.Complete.Sumcheck
 # Multilinear sums
 
 The verifier's points are lists, the first coordinate the lowest bit of an index
-(`eq_kernel`, `crates/verifier/src/multilinear.rs:6-19`). Here:
+(`eq_kernel`, `crates/verifier/src/multilinear.rs`). Here:
 
 * `eqAt pt w = Π_k eq(pt_k, bit k of w)`, defined coordinate by coordinate from the first;
   `eqKernel_getD`: the verifier's `eqKernel pt` lists `eqAt pt w` for `w < 2^|pt|`;

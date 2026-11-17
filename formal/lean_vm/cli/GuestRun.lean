@@ -9,7 +9,7 @@ import LeanVM.Facts.Verifier
 # `guest-run`: the guest's prover in Lean, from a node's statement and witness
 
 `lake exe guest-run [--rust DIR] [--prove] <case>...` reads cases written by the exporter's test
-`guest_diff` (`scripts/guest-export`, format `leanvm-guest-diff 4`: a real aggregation's seed,
+`guest_diff` (`scripts/guest-export`, format `leanvm-guest-diff 5`: a real aggregation's seed,
 statement and witness) and, from the statement and the witness alone, runs the statement's
 witness generation and prover (`Statement/Prover/Guest.lean`) on the guest program, as
 `guestArray` (equal to `guestProgram`, its instructions read from an array):

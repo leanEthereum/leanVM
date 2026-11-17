@@ -13,8 +13,8 @@ public import Statement.LeanIsa
 /-!
 # Offset-form bytecode
 
-The compiler's `Op` (`crates/leanvm_core/src/cpu/isa.rs`) names a frame cell by its offset `o`,
-whose bytecode slot is `g^o` (`crates/leanvm_core/src/cpu/layout.rs:292-362`), and holds a `SET`
+The compiler's `Op` (`crates/isa/src/lib.rs`) names a frame cell by its offset `o`,
+whose bytecode slot is `g^o` (`crates/lean_vm_core/src/cpu/layout.rs`), and holds a `SET`
 immediate as three `u64` limbs. `OffsetInstruction` is that form, and
 `OffsetInstruction.toLeanIsaInstruction` its meaning in
 `Statement.LeanIsa`: the kernel never evaluates a power of `g`, which costs one multiplication per
@@ -24,7 +24,7 @@ unit of the exponent, because every offset stays a `ℕ` until `toLeanIsaInstruc
 A compiled function (`CompiledFn`) is its name, entry pc, length and code, the code in chunks of
 `chunkSize` instructions so that no literal is too large to elaborate. `assemble` lays a list of
 functions out as a `Program`, padding with `SET fp[0] = 0` as the compiler does
-(`crates/lean_compiler/src/lib.rs`). When the functions are laid out one after another from pc
+(`crates/zkdsl_compiler/src/lib.rs`). When the functions are laid out one after another from pc
 `0` (`consecutive`, decided once per program), `assemble_fetch` gives the instruction at every pc
 of every function, by a proof that evaluates nothing but the one instruction asked for.
 

@@ -12,7 +12,7 @@ public import LeanVM.Parameters.Whir
 /-!
 # The subspace roots, certified
 
-`subspaceRoots` (`Statement/LeanVmVerifier.lean`, `whir.rs:93-105`) computes, layer by layer, the
+`subspaceRoots` (`Statement/LeanVmVerifier.lean`, `whir.rs`) computes, layer by layer, the
 roots from the basis `x^(i+1)`: each layer is the previous one squared and shifted by the last root
 (`subspaceRootsAux`). Evaluating it in one go costs the kernel too much memory at `26`
 coordinates, so the layers are written out (`layersLit`, computed outside) and each step checked

@@ -22,7 +22,7 @@ public import LeanVM.Protocol.EndToEnd.Front.InstanceWith
 
 The table phase's identities (`TableFid`, `LeanVM.Protocol.EndToEnd.Front.TablePhase`) compare the
 verifier program's bus result, `BusWit.result` (`verify_bus_balance`,
-`crates/verifier/src/bus.rs:130-247`), with the oracle protocol's output on the
+`crates/verifier/src/bus.rs`), with the oracle protocol's output on the
 same reads, `Bus.busOut`. This module proves the two agree at the leanISA instance and the
 verifier's layout, for every read whose GKR point has `μ_bus` coordinates, whose memory values are
 two, whose slot weights are sixteen and whose share is the bytecode's:
@@ -147,7 +147,7 @@ theorem sumcheckB_leanIsa : (leanIsaWith prog s fl).B = 2 := by
   change ∑ t : Fin 6, (LeanIsa.constraints (opIdx t)).length = 2
   simp [constraints_opIdx_length]
 
-/-- **The boundary columns**: the memory columns, then `BFCNT`. -/
+/-- **The boundary columns**: the memory columns, then `BYTECODE_FINAL_COUNTERS`. -/
 theorem boundaryColumns_leanIsa : (leanIsaWith prog s fl).boundaryColumns =
     [memCol 0, memCol 1, memCol 2, bfcntCol] := by
   simp [M3Instance.boundaryColumns, LeanIsa.boundary, LeanIsa.coords, Vector.toList_ofFn,
@@ -975,7 +975,7 @@ theorem dot_take_map_append {X : Type} (W : List E) (a b : List X) (f : X → E)
   simp only [List.length_map, ← List.map_append, List.length_append] at this ⊢
   exact this
 
-/-- The values sent for the boundary columns: the memory limbs, `MFCNT`, `BFCNT`. -/
+/-- The values sent for the boundary columns: the memory limbs, `MEMORY_FINAL_COUNTERS`, `BYTECODE_FINAL_COUNTERS`. -/
 theorem valueOf_leanIsa (w : BusWit) (hm : w.memory.length = 2) :
     Bus.valueOf (w.vals (leanIsaWith prog s fl)) (memCol 0) = w.memory.getD 0 0 ∧
       Bus.valueOf (w.vals (leanIsaWith prog s fl)) (memCol 1) = w.memory.getD 1 0 ∧
@@ -1141,7 +1141,7 @@ section Padding
 
 variable (prog : LeanIsaProgram) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
 
-/-- The verifier's padding term of a block (`padding_rows`, `bus.rs:197-199`): the padding weight
+/-- The verifier's padding term of a block (`padding_rows`, `bus.rs`): the padding weight
 of its owner's rows times its form at the owner's padding row, plus one. -/
 def refPad (w : List E) (β : E) (p : List E) (b : BusBlock) : E :=
   paddingWeight (p.take b.logRows) b.rows *

@@ -16,9 +16,9 @@ public import LeanVM.Guest.Pack.P45.Core
 /-!
 # `opening_tail_round` (TRIAGE G)
 
-`opening_tail_round(fs0..fs4, cursor, claim, tabs)` (`crates/rec_aggregation/guests/
-lean_ethereum.py`) reads `c0`, `c2` at the cursor, absorbs them, and squeezes `r` after the round's
-grind (`ROUND2_GRIND_BITS`, zero bits as deployed: a plain squeeze); `h(0) + h(1) = claim` fixes
+`opening_tail_round(fs0..fs4, cursor, claim, tabs)` (`guests/lean_ethereum.py`) reads
+`c0`, `c2` at the cursor, absorbs them, and squeezes `r` after the round's grind
+(`ROUND2_GRIND_BITS`, zero bits as deployed: a plain squeeze); `h(0) + h(1) = claim` fixes
 the linear coefficient, so it returns the capacity, the cursor two words on,
 `h(r) = c0 + r (claim + (1 + r) c2)` and `r`. That is one plain round of `sumcheck _ 3`
 (`tailRound_run`).
