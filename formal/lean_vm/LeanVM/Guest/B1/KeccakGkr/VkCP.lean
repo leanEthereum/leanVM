@@ -35,8 +35,8 @@ theorem L_next (h : D.Ok) : D.L.1 = (D.layer 11).next (firstOf 11) := by
 
 /-- The last claim's record. -/
 theorem outWs_last (h : D.Ok) : D.outWs ls 11 = [D.L.1.value, sumE D.L.1.mu, ptr (ls 11),
-    ptr (ls 11 + (D.layer 11).y + 139), ptr (ls 11 + (D.layer 11).y + 128),
-    ptr (ls 11 + (D.layer 11).y + 164)] ++ D.L.1.mu := by
+    ptr (ls 11 + (D.layer 11).y + 123), ptr (ls 11 + (D.layer 11).y + 112),
+    ptr (ls 11 + (D.layer 11).y + 148)] ++ D.L.1.mu := by
   rw [outWs, LayerData.outW, L_next h]
 
 /-- The last claim's record, in memory. -/
@@ -160,15 +160,15 @@ theorem fin_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : V
   have msl := memL_entry hm.lin (b := slE) (ws := D.slices) (by simp [lin])
   have hpp : LoadHolds rd (σ (.n 161)) 266 (ptr (ls 11)) := by
     rw [h201]; simpa using hrec 2 (by norm_num)
-  have hlc : LoadHolds rd (σ (.n 161)) 268 (ptr (ls 11 + (D.layer 11).y + 128)) := by
+  have hlc : LoadHolds rd (σ (.n 161)) 268 (ptr (ls 11 + (D.layer 11).y + 112)) := by
     rw [h201]; simpa using hrec 4 (by norm_num)
-  have hlp : LoadHolds rd (σ (.n 161)) 267 (ptr (ls 11 + (D.layer 11).y + 139)) := by
+  have hlp : LoadHolds rd (σ (.n 161)) 267 (ptr (ls 11 + (D.layer 11).y + 123)) := by
     rw [h201]; simpa using hrec 3 (by norm_num)
   have hpt : ReadsAt rd (ptr (ls 11)) D.L.1.point := by
     rw [L1_point h]; exact memL_entry hL (by simp)
-  have hloc : ReadsAt rd (ptr (ls 11 + (D.layer 11).y + 128)) ((D.layer 11).locPt (firstOf 11)) :=
+  have hloc : ReadsAt rd (ptr (ls 11 + (D.layer 11).y + 112)) ((D.layer 11).locPt (firstOf 11)) :=
     memL_entry hL (by simp)
-  have hlanes : ReadsAt rd (ptr (ls 11 + (D.layer 11).y + 139))
+  have hlanes : ReadsAt rd (ptr (ls 11 + (D.layer 11).y + 123))
       (lanesOut ((D.layer 11).locPt (firstOf 11)) ((D.layer 11).beta (firstOf 11)).1) :=
     memL_entry hL (by simp)
   have hslot : ReadsAt rd (σ (.n 1330)) D.S.1 := by

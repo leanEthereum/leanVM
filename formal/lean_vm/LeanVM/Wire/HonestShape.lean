@@ -223,14 +223,14 @@ theorem noOpen_publicInputPhase (layout : Layout) (pi : Digest) :
   unfold publicInputPhase
   no_open
 
-theorem noOpen_keccakPackRounds : ∀ (rs : List E) (value scale : E),
-    NoOpen (keccakPackRounds rs value scale)
-  | [], _, _ => noOpen_ret _
-  | r :: rs, value, scale => by
+theorem noOpen_keccakPackRounds : ∀ (rs : List E) (value : E),
+    NoOpen (keccakPackRounds rs value)
+  | [], _ => noOpen_ret _
+  | r :: rs, value => by
     unfold keccakPackRounds
     simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
     exact NoOpen.bind (noOpen_sumcheckRoundPoly _ _ _) fun _ ↦ NoOpen.bind noOpen_sampleE
-      fun _ ↦ NoOpen.bind (noOpen_keccakPackRounds rs _ _) fun _ ↦ noOpen_ret _
+      fun _ ↦ NoOpen.bind (noOpen_keccakPackRounds rs _) fun _ ↦ noOpen_ret _
 
 theorem noOpen_verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) :
     NoOpen (verifyKeccakLayer logSteps step claim) := by
@@ -238,8 +238,8 @@ theorem noOpen_verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) :
   simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
   refine NoOpen.bind (noOpen_readN _) fun _ ↦ NoOpen.bind (noOpen_require _) fun _ ↦ ?_
   refine NoOpen.bind (noOpen_grind _) fun _ ↦ NoOpen.bind noOpen_sampleE fun _ ↦ ?_
-  refine NoOpen.bind (noOpen_keccakPackRounds _ _ _) fun x ↦ ?_
-  obtain ⟨_, _, _⟩ := x
+  refine NoOpen.bind (noOpen_keccakPackRounds _ _) fun x ↦ ?_
+  obtain ⟨_, _⟩ := x
   refine NoOpen.bind (noOpen_sumcheck _ _ _) fun y ↦ ?_
   obtain ⟨_, _⟩ := y
   refine NoOpen.bind (noOpen_readN _) fun _ ↦ NoOpen.bind (noOpen_require _) fun _ ↦ ?_

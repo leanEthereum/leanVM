@@ -481,14 +481,14 @@ theorem moves_publicInputPhase_le (layout : Layout) (publicInput : Digest) :
 
 /-! ### The Keccak reduction and ring switching -/
 
-theorem moves_keccakPackRounds_le (hB : grindCap ≤ B) : ∀ (rs : List E) (value scale : E),
-    Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (keccakPackRounds rs value scale)
-  | [], _, _ => Moves.pure trivial
-  | r :: rs, value, scale =>
+theorem moves_keccakPackRounds_le (hB : grindCap ≤ B) : ∀ (rs : List E) (value : E),
+    Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (keccakPackRounds rs value)
+  | [], _ => Moves.pure trivial
+  | r :: rs, value =>
     Moves.seq (moves_sumcheckRoundPoly_le (le_two_pow_of_le hB (by norm_num)) _ _)
       (fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦
-        Moves.seq' (moves_keccakPackRounds_le hB rs _ _) fun r _ ↦ by
-          obtain ⟨value, scale, point⟩ := r
+        Moves.seq' (moves_keccakPackRounds_le hB rs _) fun r _ ↦ by
+          obtain ⟨value, point⟩ := r
           exact Moves.pure trivial)
       fun _ _ _ ↦ Moves.startsSample_sampleChallenge _
 
@@ -497,9 +497,9 @@ theorem moves_verifyKeccakLayer_le (hB : grindCap ≤ B) (logSteps step : ℕ) (
   refine Moves.seq' (Moves.readN _) fun _ _ ↦ Moves.seq' (Moves.require _) fun _ _ ↦
     Moves.seq (Moves.grindP fun _ ↦ grindingBits_le_of (le_two_pow_of_le hB (by decide)))
       (fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦
-        Moves.seq' (moves_keccakPackRounds_le hB _ _ _) fun r _ ↦ ?_)
+        Moves.seq' (moves_keccakPackRounds_le hB _ _) fun r _ ↦ ?_)
       fun _ _ _ ↦ Moves.startsSample_sampleChallenge _
-  obtain ⟨value, scale, point⟩ := r
+  obtain ⟨value, point⟩ := r
   refine Moves.seq' (moves_sumcheck_le (le_two_pow_of_le hB (by norm_num)) _ _) fun r _ ↦ ?_
   obtain ⟨localPoint, value⟩ := r
   exact Moves.seq' (Moves.readN _) fun _ _ ↦ Moves.seq' (Moves.require _) fun _ _ ↦

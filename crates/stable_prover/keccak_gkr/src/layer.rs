@@ -42,7 +42,6 @@ pub(crate) fn prove_layer(
     let kappa = mu.iter().sum();
     let mut sumcheck = Sumcheck {
         value: poly_eval(&product, s),
-        scale: F128::ONE,
         point: Vec::with_capacity(claim.point.len()),
     };
 
@@ -56,7 +55,7 @@ pub(crate) fn prove_layer(
         .in_scope(|| table::prove_rounds(ps, claim, &summand, values, tables, &mut sumcheck));
 
     // 4. The bit position.
-    let (local, t) = prove_positions(ps, &claim.weights, folded, kappa, sumcheck.scale);
+    let (local, t) = prove_positions(ps, &claim.weights, folded, kappa);
     ps.add_scalars(&t);
 
     // 5. `beta`: the next claim is quadratic in it.
@@ -126,46 +125,36 @@ impl<'a> Layer<'a> {
     }
 }
 
-/// The sumcheck over the pack and the segment as it runs: the claim's `eq` factor on each bound variable has moved
-/// into `scale`, and `value` is what the rounds still to come must sum to.
+/// The normalized sumcheck over the pack and the segment: `value` is what the rounds still to come must sum to.
 pub(crate) struct Sumcheck {
     pub value: F128,
-    pub scale: F128,
     pub point: Vec<F128>,
 }
 
 impl Sumcheck {
-    /// Send the next round, whose polynomial before `scale` and the `eq` factor on its variable has the values `zero`,
+    /// Send the next round, whose polynomial without the `eq` factor on its variable has the values `zero`,
     /// `one` and `infinity` at `0`, `1` and infinity, and bind its variable, the claim's coordinate on which is `r`.
     /// Returns the challenge. Without `one`, `value = (1 + r) h(0) + r h(1) = c0 + r (c1 + c2)` gives the coefficient
     /// the other values do not, which needs `r` nonzero.
     pub fn round(&mut self, ps: &mut ProverState, zero: F128, one: Option<F128>, infinity: F128, r: F128) -> F128 {
-        let (c0, c2) = (self.scale * zero, self.scale * infinity);
+        let (c0, c2) = (zero, infinity);
         let c1 = match one {
-            Some(one) => self.scale * (zero + one + infinity),
+            Some(one) => zero + one + infinity,
             None => (self.value + c0) * r.inv() + c2,
         };
         let coeffs = [c0, c1, c2];
         ps.add_round_poly(&coeffs, true);
         let challenge = ps.sample();
-        let eq = F128::ONE + r + challenge;
-        self.value = eq * poly_eval(&coeffs, challenge);
-        self.scale *= eq;
+        self.value = poly_eval(&coeffs, challenge);
         self.point.push(challenge);
         challenge
     }
 }
 
-/// Step 4: the sumcheck of `scale * sum over j of w[j] (kappa T[j] + (kappa + T[j + 1]) T[j + 2])` over the bit
+/// Step 4: the sumcheck of `sum over j of w[j] (kappa T[j] + (kappa + T[j + 1]) T[j + 2])` over the bit
 /// position, `T` being `folded`, the state at the bound pack and segment. Returns its point and `T`, `T[j + 1]` and
 /// `T[j + 2]` there.
-fn prove_positions(
-    ps: &mut ProverState,
-    weights: &[F128],
-    folded: Vec<F128>,
-    kappa: F128,
-    scale: F128,
-) -> (Vec<F128>, [F128; 3]) {
+fn prove_positions(ps: &mut ProverState, weights: &[F128], folded: Vec<F128>, kappa: F128) -> (Vec<F128>, [F128; 3]) {
     let cube = 1 << LOCAL_BITS;
     let shift = |k: usize| -> Vec<F128> {
         (0..cube)
@@ -177,7 +166,7 @@ fn prove_positions(
     w.resize(cube, F128::ZERO);
     let mut point = Vec::with_capacity(LOCAL_BITS);
     for _ in 0..LOCAL_BITS {
-        ps.add_round_poly(&position_round(&w, &t, kappa).map(|c| scale * c), false);
+        ps.add_round_poly(&position_round(&w, &t, kappa), false);
         let challenge = ps.sample();
         point.push(challenge);
         w = fold(&w, 1, challenge);

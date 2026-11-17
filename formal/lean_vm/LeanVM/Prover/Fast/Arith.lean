@@ -1,5 +1,7 @@
-import Statement.Field
-import Statement.Fast.QuadExt
+module
+
+public import Statement.Field
+public import Statement.Fast.QuadExt
 import Mathlib.Tactic.Ring
 
 /-!
@@ -17,6 +19,8 @@ converts its four limbs once, computes three coefficient products (Karatsuba) an
 (`LeanVM.Prover.Fast.Copy`) call them where the statement's prover multiplies in `E`, and they
 compile as the word-level computations.
 -/
+
+@[expose] public section
 
 namespace LeanVM.Prover.Fast
 
@@ -191,3 +195,5 @@ def powEW (x : E) (n : ℕ) : E := (W2.powAcc (W2.ofE x) W2.one n).toE
   rw [powE, powEW, W2.toE_powAcc, W2.toE_one, W2.toE_ofE, one_mul]
 
 end LeanVM.Prover.Fast
+
+end

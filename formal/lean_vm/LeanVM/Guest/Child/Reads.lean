@@ -540,17 +540,17 @@ theorem reads_publicInputPhase (layout : Layout) (publicInput : Digest) :
   omega
 
 
-theorem reads_keccakPackRounds : ∀ (point : List E) (value scale : E),
-    Reads (keccakPackRounds point value scale) (point.length * roundReads 3)
-      fun r ↦ r.2.2.length = point.length
-  | [], _, _ => rfl
-  | r :: rs, value, scale => by
+theorem reads_keccakPackRounds : ∀ (point : List E) (value : E),
+    Reads (keccakPackRounds point value) (point.length * roundReads 3)
+      fun r ↦ r.2.length = point.length
+  | [], _ => rfl
+  | r :: rs, value => by
     refine Reads.seq (reads_sumcheckRoundPoly 3 _ _) (fun _ _ ↦
         Reads.seq
       Reads.sampleE (fun c _ ↦ Reads.seq (reads_keccakPackRounds
-          rs _ _)
+          rs _)
         (fun t ht ↦ ?_) ?_) ?_) ?_
-    · obtain ⟨v, s, p⟩ := t
+    · obtain ⟨v, p⟩ := t
       show (c :: p).length = (r :: rs).length
       simpa using ht
     all_goals simp only [List.length_cons, Nat.succ_mul, roundReads]; omega
@@ -565,8 +565,8 @@ theorem reads_verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) :
       Reads.seq (Reads.require (n := 0) _) (fun _ _ ↦
     Reads.seq (Reads.grindP _) (fun _ _ ↦
       Reads.seq Reads.sampleE (fun _ _ ↦
-      Reads.seq (reads_keccakPackRounds _ _ _) (fun r hr ↦ ?_) ?_) ?_) ?_) ?_) ?_
-  · obtain ⟨value, scale, point⟩ := r
+      Reads.seq (reads_keccakPackRounds _ _) (fun r hr ↦ ?_) ?_) ?_) ?_) ?_) ?_
+  · obtain ⟨value, point⟩ := r
     refine Reads.seq (reads_sumcheck 4 _ _) (fun r _ ↦ ?_) ?_
     · obtain ⟨localPoint, value⟩ := r
       refine Reads.seq (Reads.readN 3) (fun _ _ ↦

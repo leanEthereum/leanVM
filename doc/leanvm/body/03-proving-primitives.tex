@@ -106,6 +106,12 @@ By Fact~\ref{fact:eq} that sum is $\mle{g}(r)$, for $g$ the restriction of $P$ t
 
 \paragraph{Two savings on a round message~\cite{Gru24}.} A round polynomial of degree $D$ travels as its coefficients, and would take $D+1$ of them, but the round check $h_j(0)+h_j(1)\qeq\rc{j-1}$ already pins one to the incoming claim, so $D$ are enough. The same idea applies to the known factor: a zerocheck's summand carries $\eq(r,\cdot)$, which the verifier can form itself, so only the cofactor travels and it is one degree lower. A zerocheck round on a degree-$d$ cofactor therefore costs $d$ field elements.
 
+We use the normalized convention for rounds that factor out $\eq(r,\cdot)$, including the bus GKR and the Keccak GKR. In round $j$, the prover sends the degree-$d$ cofactor $\eqcofactor_j$ with no equality factor from already bound coordinates. The verifier checks
+\[
+  (1+r_j)\eqcofactor_j(0)+r_j\eqcofactor_j(1)\qeq\rc{j-1},
+\]
+samples $\fc_j$ and sets $\rc{j}=\eqcofactor_j(\fc_j)$. The round check fixes one cofactor coefficient, leaving $d$ field elements to send. The new claim is the remaining sum with coordinate $j$ bound to $\fc_j$ and only the still unbound equality factors included. After the last such round, ordinary sumcheck rounds continue from this claim without an accumulated equality factor. No step divides by an equality evaluation, even when $1+r_j+\fc_j=0$.
+
 \begin{definition}[RBR soundness, informal; cf.~\cite{CCHLRR19,ACFY25}]\label{def:rbr}
 A public-coin protocol is \emph{round-by-round (RBR) sound with errors} $(\varepsilon_1, \varepsilon_2, \dots)$, one per verifier message, if there is an \emph{invariant} on partial transcripts (not necessarily efficiently computable) marking the positions where a cheating prover has already lost:
 \begin{enumerate}[itemsep=1pt,label=(\roman*)]

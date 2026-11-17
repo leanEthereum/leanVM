@@ -240,8 +240,7 @@ KC_SIZE = KC_MU + KECCAK_PACK
 KR_FS = 0
 KR_CURSOR = 5
 KR_CLAIM = 6
-KR_SCALE = 7
-KR_SLOTS = 8
+KR_SLOTS = 7
 # A layer's round records lie field by field, KR_CAP apart, one per KR_STEP rounds
 # and one per round of the remainder: a layer has tau - 3 < 32 rounds, so at most
 # 3 + 7 of them.
@@ -2913,7 +2912,6 @@ def keccak_layer(fs0, fs1, fs2, fs3, fs4, p0, p1, cursor, y_g, step_g, rem_g, cl
     fs_store(rounds, KR_FS, KR_CAP, sp)
     rounds[GEN ** (KR_CURSOR * KR_CAP)] = cursor
     rounds[GEN ** (KR_CLAIM * KR_CAP)] = value
-    rounds[GEN ** (KR_SCALE * KR_CAP)] = 1
     for xs in mul_range(1, step_g):
         rd = rounds * xs
         pp = prev_point * xs ** KR_STEP
@@ -2921,12 +2919,11 @@ def keccak_layer(fs0, fs1, fs2, fs3, fs4, p0, p1, cursor, y_g, step_g, rem_g, cl
         round_sp = fs_load(rd, KR_FS, KR_CAP)
         cur_i = rd[GEN ** (KR_CURSOR * KR_CAP)]
         run = rd[GEN ** (KR_CLAIM * KR_CAP)]
-        scale = rd[GEN ** (KR_SCALE * KR_CAP)]
         for q in unroll(0, KR_STEP):
             # q has degree two with the eq factor pulled out, and the prover sends its
             # coefficients c1 and c2 (g_1, g_2), c0 being fixed by the claim. With r the
             # round's coordinate and c its challenge, q(c) = claim + (r + c) c1 +
-            # (r + c^2) c2, and the next claim is (1 + r + c) q(c). The round grinds for
+            # (r + c^2) c2, which is the next normalized claim. The round grinds for
             # degree three, the eq factor included.
             r_eq = pp[GEN ** q]
             rate = StackBuf(8)
@@ -2935,14 +2932,11 @@ def keccak_layer(fs0, fs1, fs2, fs3, fs4, p0, p1, cursor, y_g, step_g, rem_g, cl
             round_sp, challenge, cur_i = fs_grind_squeeze(round_sp, rate, 2, cur_i, tabs, ROUND3_GRIND_BITS)
             pt[GEN ** q] = challenge
             gap = r_eq + challenge
-            eq_factor = 1 + gap
-            run = eq_factor * (run + gap * g_1 + (r_eq + challenge * challenge) * g_2)
-            scale = scale * eq_factor
+            run = run + gap * g_1 + (r_eq + challenge * challenge) * g_2
         nxt = rd * GEN
         fs_store(nxt, KR_FS, KR_CAP, round_sp)
         nxt[GEN ** (KR_CURSOR * KR_CAP)] = cur_i
         nxt[GEN ** (KR_CLAIM * KR_CAP)] = run
-        nxt[GEN ** (KR_SCALE * KR_CAP)] = scale
     rem_rounds = rounds * step_g
     rem_prev = prev_point * step_g ** KR_STEP
     rem_point = point * step_g ** KR_STEP
@@ -2957,17 +2951,14 @@ def keccak_layer(fs0, fs1, fs2, fs3, fs4, p0, p1, cursor, y_g, step_g, rem_g, cl
         round_sp, challenge, cur_i = fs_grind_squeeze(round_sp, rate, 2, cur_i, tabs, ROUND3_GRIND_BITS)
         rem_point[x1] = challenge
         gap = r_eq + challenge
-        eq_factor = 1 + gap
         nxt = rd * GEN
         fs_store(nxt, KR_FS, KR_CAP, round_sp)
         nxt[GEN ** (KR_CURSOR * KR_CAP)] = cur_i
-        nxt[GEN ** (KR_CLAIM * KR_CAP)] = eq_factor * (rd[GEN ** (KR_CLAIM * KR_CAP)] + gap * g_1 + (r_eq + challenge * challenge) * g_2)
-        nxt[GEN ** (KR_SCALE * KR_CAP)] = rd[GEN ** (KR_SCALE * KR_CAP)] * eq_factor
+        nxt[GEN ** (KR_CLAIM * KR_CAP)] = rd[GEN ** (KR_CLAIM * KR_CAP)] + gap * g_1 + (r_eq + challenge * challenge) * g_2
     last = rem_rounds * rem_g
     sp = fs_load(last, KR_FS, KR_CAP)
     cursor = last[GEN ** (KR_CURSOR * KR_CAP)]
     value = last[GEN ** (KR_CLAIM * KR_CAP)]
-    scale = last[GEN ** (KR_SCALE * KR_CAP)]
     # The bit position: degree three, the weights being one more multilinear factor.
     local = HeapBuf(KECCAK_LOCAL_BITS)
     for i in unroll(0, KECCAK_LOCAL_BITS):
@@ -3001,7 +2992,7 @@ def keccak_layer(fs0, fs1, fs2, fs3, fs4, p0, p1, cursor, y_g, step_g, rem_g, cl
         shifts = StackBuf(64)
         keccak_shifts_eq(claim[GEN ** KC_LOCAL], local, shifts)
         weight_at_local[0] = keccak_form(prev_lanes, shifts, f_lanes, LANE_OFF)
-    assert scale * weight_at_local[0] * (kappa * t0 + (kappa + t1) * t2) == value
+    assert weight_at_local[0] * (kappa * t0 + (kappa + t1) * t2) == value
     # t[k] = sum_j eq[j] T[j + k]: one claim on the state before chi, quadratic in beta.
     sp, beta, cursor = fs_grind_squeeze(sp, rate, 3, cursor, tabs, KECCAK_BETA_GRIND_BITS)
     out[GEN ** KC_VALUE] = t0 + beta * (t1 + beta * t2)

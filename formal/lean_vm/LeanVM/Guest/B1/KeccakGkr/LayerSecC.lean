@@ -57,33 +57,33 @@ theorem lflipBlk_noRet (lp : V) (sl : ℕ → ℕ) (top top1 i b : ℕ) (s : Stm
 
 /-- **The tail**. -/
 theorem tailT_holds {o W wv : ℕ} {locPt : List E} (hlocL : locPt.length = 11)
-    (hloc : ReadsAt rd (σ (.n (o + 748))) locPt)
+    (hloc : ReadsAt rd (σ (.n (o + 746))) locPt)
     (hf : ∀ i < 25, σ (.n (laneW o i)) = eqAt (locPt.drop 6) i)
-    (p1 : FsPackOk σ (.n (o + 1112)) (o + 1112 + 1) dsObserve)
-    (p2 : FsPackOk σ (.n (o + 1115)) (o + 1115 + 1) dsObserve)
-    (p3 : FsPackOk σ (.n (o + 1118)) (o + 1118 + 1) dsObserve)
+    (p1 : FsPackOk σ (.n (o + 1110)) (o + 1110 + 1) dsObserve)
+    (p2 : FsPackOk σ (.n (o + 1113)) (o + 1113 + 1) dsObserve)
+    (p3 : FsPackOk σ (.n (o + 1116)) (o + 1116 + 1) dsObserve)
     {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (tailT o W wv) next kret) :
-      σ (.n (o + 747)) * σ (.n wv) * (σ (.n (o + 625)) * σ (.n (o + 1112)) +
-        (σ (.n (o + 625)) + σ (.n (o + 1115))) * σ (.n (o + 1118))) = σ (.n (o + 1111)) ∧
-      ((⟨(cap5 (o + 1098)).map σ, []⟩ : Fs).absorbAll
-        [σ (.n (o + 1112)), σ (.n (o + 1115)), σ (.n (o + 1118))] dsObserve).squeeze =
-        (σ (.n (W + 22)), ⟨(cap5 (W + 17)).map σ, []⟩) ∧
-      LoadHolds rd (σ (.n 12)) 0 (σ (.n (o + 1112)) + σ (.n (W + 22)) *
-        (σ (.n (o + 1115)) + σ (.n (W + 22)) * σ (.n (o + 1118)))) ∧
+      σ (.n wv) * (σ (.n (o + 625)) * σ (.n (o + 1110)) +
+        (σ (.n (o + 625)) + σ (.n (o + 1113))) * σ (.n (o + 1116))) = σ (.n (o + 1109)) ∧
+      ((⟨(cap5 (o + 1096)).map σ, []⟩ : Fs).absorbAll
+        [σ (.n (o + 1110)), σ (.n (o + 1113)), σ (.n (o + 1116))] dsObserve).squeeze =
+        (σ (.n (W + 21)), ⟨(cap5 (W + 16)).map σ, []⟩) ∧
+      LoadHolds rd (σ (.n 12)) 0 (σ (.n (o + 1110)) + σ (.n (W + 21)) *
+        (σ (.n (o + 1113)) + σ (.n (W + 21)) * σ (.n (o + 1116)))) ∧
       LoadHolds rd (σ (.n 12)) 2 (σ (.n (o + 719))) ∧
-      LoadHolds rd (σ (.n 12)) 4 (σ (.n (o + 748))) ∧
-      LoadHolds rd (σ (.n 12)) 3 (σ (.n (W + 27))) ∧
-      ReadsAt rd (σ (.n (W + 27))) (lanesOut locPt (σ (.n (W + 22)))) ∧
+      LoadHolds rd (σ (.n 12)) 4 (σ (.n (o + 746))) ∧
+      LoadHolds rd (σ (.n 12)) 3 (σ (.n (W + 26))) ∧
+      ReadsAt rd (σ (.n (W + 26))) (lanesOut locPt (σ (.n (W + 21)))) ∧
       LoadHolds rd (σ (.n 12)) 5 (σ (.n (topV W + 3))) ∧
       ReadsAt rd (σ (.n (topV W + 3)))
-        (flipsOf (laterWeights (lanesOut locPt (σ (.n (W + 22)))) (eqKernel (locPt.take 6)))) ∧
-      kret ((cap5 (W + 17)).map σ ++ [σ (.n (o + 745)) * gen ^ 36]) := by
+        (flipsOf (laterWeights (lanesOut locPt (σ (.n (W + 21)))) (eqKernel (locPt.take 6)))) ∧
+      kret ((cap5 (W + 16)).map σ ++ [σ (.n (o + 744)) * gen ^ 36]) := by
   simp only [tailT, holdsList_append, List.append_assoc, holds_challengeT] at h
   simp only [Stmt.HoldsList, Stmt.Holds, keccakA] at h
-  obtain ⟨e0, e1, e2, e3, e4, e5, e6, heq, z0, z1, hk, hch, h⟩ := h
+  obtain ⟨e0, e2, e3, e4, e5, e6, heq, z0, z1, hk, hch, h⟩ := h
   obtain ⟨o1, o2, o3, o4, lo0, lo2, lo4, -, h⟩ := h
-  simp only [Atom.Holds] at e0 e1 e2 e3 e4 e5 e6 heq z0 z1 o1 o2 o3 o4 lo0 lo2 lo4
+  simp only [Atom.Holds] at e0 e2 e3 e4 e5 e6 heq z0 z1 o1 o2 o3 o4 lo0 lo2 lo4
   obtain ⟨hl, h⟩ := lanesOutT_holds h
   obtain ⟨lo3, h⟩ := h
   simp only [Atom.Holds] at lo3
@@ -96,7 +96,7 @@ theorem tailT_holds {o W wv : ℕ} {locPt : List E} (hlocL : locPt.length = 11)
   rw [holdsList_map_atoms] at h
   obtain ⟨hcp, c0', c1', c2', hret⟩ := h
   simp only [Atom.Holds] at hcp c0' c1' c2'
-  have hsq := sq3_atoms (a := o + 1112) (o := W + 9) (cap := (cap5 (o + 1098)).map σ) p1
+  have hsq := sq3_atoms (a := o + 1110) (o := W + 8) (cap := (cap5 (o + 1096)).map σ) p1
     (by simpa [Nat.add_assoc] using p2) (by simpa [Nat.add_assoc] using p3)
     (by simpa [cap5, Nat.add_assoc] using hk) (by simpa [Nat.add_assoc] using hch)
     (by rw [z0, word_zero]) (by rw [z1, word_zero]) rfl
@@ -111,7 +111,7 @@ theorem tailT_holds {o W wv : ℕ} {locPt : List E} (hlocL : locPt.length = 11)
   have htop : σ (.n (topV W)) = locPt.getD 5 0 := by
     rw [List.getD_eq_getElem _ _ (by omega)]
     exact loadHolds_unique ltop (hloc 5 (by omega))
-  have hlanes : ReadsAt rd (σ (.n (W + 27))) (lanesOut locPt (σ (.n (W + 22)))) := by
+  have hlanes : ReadsAt rd (σ (.n (W + 26))) (lanesOut locPt (σ (.n (W + 21)))) := by
     intro k hk
     simp only [lanesOut, List.length_map, List.length_range] at hk
     have := (hl k hk).2
@@ -120,7 +120,7 @@ theorem tailT_holds {o W wv : ℕ} {locPt : List E} (hlocL : locPt.length = 11)
     simp only [lanesOut, List.getElem_map, List.getElem_range]
     exact this
   refine ⟨?_, ?_, ?_, lo2, lo4, lo3, hlanes, lo5, ?_, ?_⟩
-  · rw [← eq_of_add_eq_zero' heq, e6, e5, e4, e3, e2, e1, e0]
+  · rw [← eq_of_add_eq_zero' heq, e6, e5, e4, e3, e2, e0]
   · refine Prod.ext hsq.1.symm ?_
     have hs : ∀ s : Fs, s.squeeze.2 = ⟨s.squeeze.2.cap, []⟩ := fun _ ↦ rfl
     rw [hs, ← hsq.2]
@@ -147,11 +147,11 @@ theorem tailT_holds {o W wv : ℕ} {locPt : List E} (hlocL : locPt.length = 11)
     split
     · rfl
     · rw [etop, c1, word_one]
-  · have h0 : σ (.n (topV W + 305)) = σ (.n (W + 17)) := by simpa using hcp 0 (by omega)
-    have h1 : σ (.n (topV W + 306)) = σ (.n (W + 18)) := by simpa [Nat.add_assoc] using hcp 1 (by omega)
-    have h2 : σ (.n (topV W + 307)) = σ (.n (W + 19)) := by simpa [Nat.add_assoc] using hcp 2 (by omega)
-    have h3 : σ (.n (topV W + 308)) = σ (.n (W + 20)) := by simpa [Nat.add_assoc] using hcp 3 (by omega)
-    have h4 : σ (.n (topV W + 309)) = σ (.n (W + 21)) := by simpa [Nat.add_assoc] using hcp 4 (by omega)
+  · have h0 : σ (.n (topV W + 305)) = σ (.n (W + 16)) := by simpa using hcp 0 (by omega)
+    have h1 : σ (.n (topV W + 306)) = σ (.n (W + 17)) := by simpa [Nat.add_assoc] using hcp 1 (by omega)
+    have h2 : σ (.n (topV W + 307)) = σ (.n (W + 18)) := by simpa [Nat.add_assoc] using hcp 2 (by omega)
+    have h3 : σ (.n (topV W + 308)) = σ (.n (W + 19)) := by simpa [Nat.add_assoc] using hcp 3 (by omega)
+    have h4 : σ (.n (topV W + 309)) = σ (.n (W + 20)) := by simpa [Nat.add_assoc] using hcp 4 (by omega)
     convert hret using 1
     simp only [cap5, List.map_cons, List.map_nil, List.cons_append, List.nil_append, c2', c1', c0',
       word_2p36, h0, h1, h2, h3, h4, Nat.add_assoc, Nat.reduceAdd]

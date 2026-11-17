@@ -156,18 +156,11 @@ fn verify_layer(
     let s = transcript.sample();
     let mu = instance_weights(s);
     let kappa = E::sum(mu.iter().copied());
-    let mut value = poly_eval(&product, s);
+    let value = poly_eval(&product, s);
 
     // 3] The pack and the segment.
-    let mut scale = ONE;
-    let mut point = Vec::with_capacity(claim.point.len());
-    for &r in &claim.point {
-        let message = transcript.sumcheck_round_poly(3, value, Some(r))?;
-        let challenge = transcript.sample();
-        value = (ONE + r + challenge) * poly_eval(&message, challenge);
-        scale *= ONE + r + challenge;
-        point.push(challenge);
-    }
+    let equalities: Vec<_> = claim.point.iter().copied().map(Some).collect();
+    let (point, value) = sumcheck(transcript, value, 3, &equalities)?;
 
     // 4] The bit position: `sum_j w[j] (kappa T[j] + (kappa + T[j + 1]) T[j + 2])`, the weights one more multilinear factor.
     let (local, value) = sumcheck(transcript, value, 4, &[None; LOCAL_BITS])?;
@@ -183,7 +176,7 @@ fn verify_layer(
                 .map(|(lane, &e)| e * dot(&eq_z, lane)),
         );
         require(
-            scale * at_local * (kappa * t[0] + (kappa + t[1]) * t[2]) == value,
+            at_local * (kappa * t[0] + (kappa + t[1]) * t[2]) == value,
             VerifierError::KeccakLayer,
         )?;
     }

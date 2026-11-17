@@ -92,13 +92,13 @@ theorem layer_body_complete {first : ℕ} (hf : first < 2) (D : LayerData)
     (hcwl : 22 ≤ cw.length) (hxs : ReadsAt rd cur D.xs)
     (hpt : ReadsAt rd (w (layOff first + 719)) (D.chs first))
     (hrec : ReadsAt rd (w (layOff first + 720)) (D.recWords first cur))
-    (hloc : ReadsAt rd (w (layOff first + 748)) (D.locPt first))
-    (hlan : ReadsAt rd (w (tW first + 27)) (lanesOut (D.locPt first) (D.beta first).1))
+    (hloc : ReadsAt rd (w (layOff first + 746)) (D.locPt first))
+    (hlan : ReadsAt rd (w (tW first + 26)) (lanesOut (D.locPt first) (D.beta first).1))
     (hfl : ReadsAt rd (w (topV (tW first) + 3))
       (flipsOf (laterWeights (lanesOut (D.locPt first) (D.beta first).1)
         (eqKernel ((D.locPt first).take 6)))))
-    (hout : ReadsAt rd out (D.outW first (w (layOff first + 719)) (w (tW first + 27))
-      (w (layOff first + 748)) (w (topV (tW first) + 3))))
+    (hout : ReadsAt rd out (D.outW first (w (layOff first + 719)) (w (tW first + 26))
+      (w (layOff first + 746)) (w (topV (tW first) + 3))))
     (hgr : ∀ v : E, (v.limb 0).lane.toNat % 2 ^ 3 = 0 →
       coreProgram.Rel rd (grindCheckName 3) [v, tb] [])
     (hloop : 1 + gen ^ (D.y / 8) ≠ 0 → coreProgram.Rel rd (packLoopName first)
@@ -109,12 +109,12 @@ theorem layer_body_complete {first : ℕ} (hf : first < 2) (D : LayerData)
       []) :
     let σ := layerσ rd w (D.cap ++ [p0, p1, cur, gen ^ D.y, gen ^ (D.y / 8),
       gen ^ (D.y % 8), claim, out, iota, tb]) first
-    (σ (.n (layOff first + 739)) = w (layOff first + 720) * gen ^ (D.y / 8) * gen ^ (D.y % 8) ∧
+    (σ (.n (layOff first + 738)) = w (layOff first + 720) * gen ^ (D.y / 8) * gen ^ (D.y % 8) ∧
       σ (.n (layOff first + 532)) = cellsOfState (((D.s0 first).absorbAll D.product
         dsObserve).nonceState D.nonce) false ⟨1, by omega⟩ ∧
-      σ (.n (layOff first + 745)) = cur * gen ^ (48 + 2 * D.y) ∧
-      σ (.n (layOff first + 1190)) = cw.getD 3 0 ∧
-      (first = 0 → σ (.n (layOff first + 1191)) = cw.getD 4 0) ∧
+      σ (.n (layOff first + 744)) = cur * gen ^ (48 + 2 * D.y) ∧
+      σ (.n (layOff first + 1188)) = cw.getD 3 0 ∧
+      (first = 0 → σ (.n (layOff first + 1189)) = cw.getD 4 0) ∧
       σ (.n (layOff first + 718)) = cw.getD 2 0) ∧
     Stmt.HoldsList (coreProgram.Rel rd) rd σ (layerT first) False
       (fun r ↦ r = D.rets first cur) := by
@@ -153,8 +153,8 @@ theorem layer_body_complete {first : ℕ} (hf : first < 2) (D : LayerData)
   have hNS := layer_noStore hf
   have hS7 := not_mem_of_noStoreVia hNS (p := .n 7) (by simp)
   have hS11 := not_mem_of_noStoreVia hNS (p := .n 11) (by simp)
-  have hS72 := not_mem_of_noStoreVia hNS (p := .n (layOff first + 739)) (by simp)
-  have hS78 := not_mem_of_noStoreVia hNS (p := .n (layOff first + 745)) (by simp)
+  have hS72 := not_mem_of_noStoreVia hNS (p := .n (layOff first + 738)) (by simp)
+  have hS78 := not_mem_of_noStoreVia hNS (p := .n (layOff first + 744)) (by simp)
   obtain ⟨hRe, hRw, hRt, hRtop, hRf, hRfl⟩ := layer_residOk hf
   -- the claim's record
   obtain ⟨hmuL, hptL, hval, hkap, hmus, ⟨pp, hpp, hppR⟩, lp, lanes, hlp, hlanesL, hlanesR, hwts⟩ :=
@@ -222,11 +222,11 @@ theorem layer_body_complete {first : ℕ} (hf : first < 2) (D : LayerData)
     rwa [e544, show layOff first + 626 + 91 = layOff first + 717 by omega] at this
   -- the pack rounds' setup
   have g720 : σ (.n (layOff first + 720)) = w (layOff first + 720) :=
-    gP (.atom (.hint (.alloc (.n (layOff first + 720)) 128))) (by simp [packSetupT])
+    gP (.atom (.hint (.alloc (.n (layOff first + 720)) 112))) (by simp [packSetupT])
   have g719 : σ (.n (layOff first + 719)) = w (layOff first + 719) :=
     gP (.atom (.hint (.allocDyn (.n (layOff first + 719)) (.n 8)))) (by simp [packSetupT])
   have hrec0 : RoundRec rd (σ (.n (layOff first + 720))) 0 ((cap5 (layOff first + 539)).map σ)
-      (σ (.n 7) * gen ^ 48) (σ (.n (layOff first + 717))) 1 := by
+      (σ (.n 7) * gen ^ 48) (σ (.n (layOff first + 717))) := by
     have := LayerData.recWords_rec hrec (j := 0) (by norm_num) (by omega)
     rw [g720, ecapS, a7, e717]
     simpa [LayerData.recK, LayerData.run_zero, LayerData.recCur] using this
@@ -243,27 +243,27 @@ theorem layer_body_complete {first : ℕ} (hf : first < 2) (D : LayerData)
   have hcur : D.recCur cur (D.y / 8 + D.y % 8) = cur * gen ^ (48 + 2 * D.y) := by
     simp [LayerData.recCur, hkm]
   rw [hcur] at hrecm
-  obtain ⟨e739, ecapL, e745, e746, e747, HL⟩ := last_complete (C := coreProgram.Rel rd) ho hσ gL
+  obtain ⟨e739, ecapL, e745, e746, HL⟩ := last_complete (C := coreProgram.Rel rd) ho hσ gL
     (hS72 · ·) (by rw [e727, g720, a9, a10, mul_assoc, ← pow_add]; exact hrecm)
-  have g748 : σ (.n (layOff first + 748)) = w (layOff first + 748) :=
-    gL (.atom (.hint (.alloc (.n (layOff first + 748)) 11)))
+  have g748 : σ (.n (layOff first + 746)) = w (layOff first + 746) :=
+    gL (.atom (.hint (.alloc (.n (layOff first + 746)) 11)))
       (by unfold lastT; exact List.mem_append_right _ (by simp))
   -- the position rounds
   have hpk := LayerData.run_cap (D := D) (first := first) D.y
   rw [LayerData.run_full hpm] at hpk
-  have eLoc : localRunF D.localMsgs (σ (.n (layOff first + 746)))
-      ⟨(cap5 (layOff first + 740)).map σ, []⟩ = D.loc first := by
+  have eLoc : localRunF D.localMsgs (σ (.n (layOff first + 745)))
+      ⟨(cap5 (layOff first + 739)).map σ, []⟩ = D.loc first := by
     rw [e746, ecapL, LayerData.loc, layerLocal]
     conv_rhs => rw [show layerPack D.c (D.s0 first) D.product D.nonce D.packMsgs = D.pack first
       from rfl, hpk.2]
   obtain ⟨hvR, hcR, HLR⟩ := localRounds_complete (C := coreProgram.Rel rd)
-    (cur := .n (layOff first + 745)) (loc := .n (layOff first + 748))
-    (vIn := .n (layOff first + 746)) (capV := cap5 (layOff first + 740))
-    (a0 := layOff first + 749) (hS78 · ·) 11 D.localMsgs hlm (by norm_num) gLR
+    (cur := .n (layOff first + 744)) (loc := .n (layOff first + 746))
+    (vIn := .n (layOff first + 745)) (capV := cap5 (layOff first + 739))
+    (a0 := layOff first + 747) (hS78 · ·) 11 D.localMsgs hlm (by norm_num) gLR
     (by rw [e745]; exact hxL)
   rw [eLoc] at hvR hcR HLR
   -- `t`
-  have hT : ∀ k < 3, LoadHolds rd (σ (.n (layOff first + 745))) (33 + k)
+  have hT : ∀ k < 3, LoadHolds rd (σ (.n (layOff first + 744))) (33 + k)
       ([D.t.1, D.t.2.1, D.t.2.2].getD k 0) := by
     intro k hk
     rw [e745, ← loadHolds_mul_gen_pow, mul_assoc, ← pow_add]
@@ -274,13 +274,13 @@ theorem layer_body_complete {first : ℕ} (hf : first < 2) (D : LayerData)
   -- the lane weights of the local point
   have hlocL : (D.locPt first).length = 11 := by
     rw [LayerData.locPt, LayerData.loc, layerLocal, localRunF_length, hlm]
-  have hlocσ : ReadsAt rd (σ (.n (layOff first + 748))) (D.locPt first) := by
+  have hlocσ : ReadsAt rd (σ (.n (layOff first + 746))) (D.locPt first) := by
     rw [g748]; exact hloc
   have HE : ∀ {next : Prop} {kret : List E → Prop}, next →
       Stmt.HoldsList (coreProgram.Rel rd) rd σ (eqfS (layOff first)) next kret :=
     fun hn ↦ eqf_complete ho hσ gE (not_mem_of_noneIn hRe) hlocL hlocσ hn
   obtain ⟨⟨rs, hrsL, hrs, hent⟩, -⟩ := eqfT_holds (C := coreProgram.Rel rd) (rd := rd) (σ := σ)
-    (pt := .n (layOff first + 748)) (off := 6) (n := 5) (count := 25) (b := layOff first + 1121)
+    (pt := .n (layOff first + 746)) (off := 6) (n := 5) (count := 25) (b := layOff first + 1119)
     (by norm_num) (by norm_num) (by decide) (by decide)
     (HE (next := True) (kret := fun _ ↦ True) trivial)
   have hrs6 : rs = (D.locPt first).drop 6 := by
@@ -325,13 +325,13 @@ theorem layer_body_complete {first : ℕ} (hf : first < 2) (D : LayerData)
   have v1 := fsPack_vals_of_good (fun s hs ↦ gT1 s (List.mem_cons_of_mem _ hs))
   have v2 := fsPack_vals_of_good (fun s hs ↦ gT2 s (List.mem_cons_of_mem _ hs))
   obtain ⟨-, hv625⟩ := rmfe_vals ho hσ gR
-  have hfin' : σ (.n (layOff first + 747)) * σ (.n (tV first)) *
-      (σ (.n (layOff first + 625)) * σ (.n (layOff first + 1112)) +
-        (σ (.n (layOff first + 625)) + σ (.n (layOff first + 1115))) *
-          σ (.n (layOff first + 1118))) = σ (.n (layOff first + 1111)) := by
-    have e1111 : layOff first + 749 + 33 * (11 - 1) + 32 = layOff first + 1111 := by omega
+  have hfin' : σ (.n (tV first)) *
+      (σ (.n (layOff first + 625)) * σ (.n (layOff first + 1110)) +
+        (σ (.n (layOff first + 625)) + σ (.n (layOff first + 1113))) *
+          σ (.n (layOff first + 1116))) = σ (.n (layOff first + 1109)) := by
+    have e1111 : layOff first + 747 + 33 * (11 - 1) + 32 = layOff first + 1109 := by omega
     rw [e1111] at hvR
-    rw [e747, show tV first = weightVal first (layOff first) from rfl, hwv, hv625, e544, et0,
+    rw [show tV first = weightVal first (layOff first) from rfl, hwv, hv625, e544, et0,
       et1, et2, ← hvR]
     exact hfin
   obtain ⟨eβ, ecapB, HTl⟩ := layer_tail_complete (C := coreProgram.Rel rd) hf hσ gTP
@@ -339,28 +339,28 @@ theorem layer_body_complete {first : ℕ} (hf : first < 2) (D : LayerData)
     (fun i hi ↦ not_mem_of_noneIn (hRf i hi))
     (fun i hi ↦ List.contains_iff_mem.mp (hRfl i hi)) v0 v1 v2 hlocL hlocσ hfw hfin'
   have eTail : tailSq (layOff first) σ = D.beta first := by
-    have ecv : localRoundsT.capV' (layOff first + 749 + 33 * (11 - 1) + 19) =
-        cap5 (layOff first + 1098) := by
+    have ecv : localRoundsT.capV' (layOff first + 747 + 33 * (11 - 1) + 19) =
+        cap5 (layOff first + 1096) := by
       simp only [localRoundsT.capV', cap5]
     rw [LayerData.beta, layerBeta, show layerLocal D.c (D.s0 first) D.product D.nonce D.packMsgs
       D.localMsgs = D.loc first from rfl, hcR, ecv, tailSq, sq3, et0, et1, et2]
   rw [eTail] at eβ ecapB HTl
-  have g27 : σ (.n (tW first + 27)) = w (tW first + 27) :=
-    gTP (.atom (.hint (.alloc (.n (tW first + 27)) 25))) (by
+  have g27 : σ (.n (tW first + 26)) = w (tW first + 26) :=
+    gTP (.atom (.hint (.alloc (.n (tW first + 26)) 25))) (by
       simp [tailPre, tailA1, tailP2])
   have gfl : σ (.n (topV (tW first) + 3)) = w (topV (tW first) + 3) :=
     gTP (.atom (.hint (.alloc (.n (topV (tW first) + 3)) 7))) (by
       simp [tailPre, tailA1, tailTop])
   have ho' : ∀ k < 6, LoadHolds rd (σ (.n 12)) k ((D.outW first (w (layOff first + 719))
-      (w (tW first + 27)) (w (layOff first + 748)) (w (topV (tW first) + 3))).getD k 0) :=
+      (w (tW first + 26)) (w (layOff first + 746)) (w (topV (tW first) + 3))).getD k 0) :=
     fun k hk ↦ by rw [a12]; exact kk_readsAt_getD hout (by simp [LayerData.outW]; omega)
-  have e1190 : σ (.n (layOff first + 1190)) = cw.getD 3 0 := by
-    have g := gW (.atom (.load (.n (layOff first + 1190)) (.n 11) 3)) (by
+  have e1190 : σ (.n (layOff first + 1188)) = cw.getD 3 0 := by
+    have g := gW (.atom (.load (.n (layOff first + 1188)) (.n 11) 3)) (by
       unfold weightT; split <;> simp)
     exact load_val (w := w) g (hS11 _ _) (by rw [a11]; exact hcw' 3 (by norm_num))
-  have e1191 : first = 0 → σ (.n (layOff first + 1191)) = cw.getD 4 0 := by
+  have e1191 : first = 0 → σ (.n (layOff first + 1189)) = cw.getD 4 0 := by
     intro h0
-    have g := gW (.atom (.load (.n (layOff first + 1191)) (.n 11) 4)) (by
+    have g := gW (.atom (.load (.n (layOff first + 1189)) (.n 11) 4)) (by
       unfold weightT; simp [h0])
     exact load_val (w := w) g (hS11 _ _) (by rw [a11]; exact hcw' 4 (by norm_num))
   refine ⟨⟨by rw [e739, e727, g720, a9, a10], h532, e745, e1190, e1191, e718⟩, ?_⟩

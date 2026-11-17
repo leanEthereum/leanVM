@@ -1863,17 +1863,14 @@ def keccakInstanceWeights (s : E) : List E :=
 
 /-! ### A layer (`keccak.rs`) -/
 
-/-- Step 3 of a layer, the pack and the segment (`keccak.rs`): an equality-mode round
-per coordinate of the claim's point, the value scaled by `1 + r + challenge`. The new value, the
-product of the scales, and the challenges. -/
-def keccakPackRounds : List E → E → E → VerifierProgram (E × E × List E)
-  | [], value, scale => return (value, scale, [])
-  | r :: rs, value, scale => do
+/-- Step 3 of a layer, the pack and the segment (`keccak.rs`): an equality-mode round per coordinate of the claim's point. Each round keeps the normalized polynomial evaluation as its value. The new value and the challenges. -/
+def keccakPackRounds : List E → E → VerifierProgram (E × List E)
+  | [], value => return (value, [])
+  | r :: rs, value => do
     let message ← sumcheckRoundPoly 3 value (some r)
     let challenge ← VerifierProgram.sampleChallenge
-    let (value, scale, point) ← keccakPackRounds rs
-      ((1 + r + challenge) * polyEval message challenge) (scale * (1 + r + challenge))
-    return (value, scale, challenge :: point)
+    let (value, point) ← keccakPackRounds rs (polyEval message challenge)
+    return (value, challenge :: point)
 
 /-- `verify_layer(transcript, shape, step, claim)` (`keccak.rs`): a claim on the states
 `step` layers below the committed outputs becomes one on the states a layer further down. The Rust
@@ -1900,7 +1897,7 @@ def verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) : VerifierProg
   let mu := keccakInstanceWeights s
   let kappa := sumE mu
   -- 3] The pack and the segment.
-  let (value, scale, point) ← keccakPackRounds claim.point (polyEval product s) 1
+  let (value, point) ← keccakPackRounds claim.point (polyEval product s)
   -- 4] The bit position: `Σ_j w[j] (κ T[j] + (κ + T[j + 1]) T[j + 2])`.
   let (localPoint, value) ← sumcheck value 4 (List.replicate keccakLocalBits none)
   let t ← VerifierProgram.readScalars 3
@@ -1909,7 +1906,7 @@ def verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) : VerifierProg
   let t1 := t.getD 1 0
   let t2 := t.getD 2 0
   VerifierProgram.require
-    (scale * dot (eq.take keccakBits) claim.weights * (kappa * t0 + (kappa + t1) * t2) = value)
+    (dot (eq.take keccakBits) claim.weights * (kappa * t0 + (kappa + t1) * t2) = value)
   -- 5] `t[k] = Σ_j eq[j] T[j + k]`: one claim on the state before chi, then on the round's
   -- input through the linear map. The next claim is quadratic in `beta`.
   VerifierProgram.grindProofOfWork (grindingBits 2)

@@ -124,7 +124,7 @@ end ClaimLay
 /-! ## The layer's layout -/
 
 /-- The sizes of the layer's buffers. -/
-def layerSizes (D : LayerData) : List ℕ := [D.y, 128, 11, 25, 7]
+def layerSizes (D : LayerData) : List ℕ := [D.y, 112, 11, 25, 7]
 
 /-- The words of the layer's buffers. -/
 def layerOwn (D : LayerData) (first : ℕ) (cur : E) : List (List E) :=
@@ -138,8 +138,8 @@ def layerBufs (D : LayerData) (first : ℕ) (cur : E) (b : ℕ) : Main.Layout :=
 
 theorem layerBufs_eq (D : LayerData) (first : ℕ) (cur : E) (b : ℕ) :
     layerBufs D first cur b = [(b, D.chs first), (b + D.y, D.recWords first cur),
-      (b + D.y + 128, D.locPt first), (b + D.y + 139, lanesOut (D.locPt first) (D.beta first).1),
-      (b + D.y + 164, flipsOf (laterWeights (lanesOut (D.locPt first) (D.beta first).1)
+      (b + D.y + 112, D.locPt first), (b + D.y + 123, lanesOut (D.locPt first) (D.beta first).1),
+      (b + D.y + 148, flipsOf (laterWeights (lanesOut (D.locPt first) (D.beta first).1)
         (eqKernel ((D.locPt first).take 6))))] := by
   simp [layerBufs, bufL, layerSizes, layerOwn, bases]
 
@@ -147,11 +147,11 @@ theorem layerBufs_eq (D : LayerData) (first : ℕ) (cur : E) (b : ℕ) :
 `b`), the stream at `cur`, the claim's layout, the window tables at `tbE`. -/
 noncomputable def layerLin (D : LayerData) (first : ℕ) (CL : ClaimLay) (bcur bout tbE b : ℕ) :
     Main.Layout :=
-  [(bout, D.outW first (ptr b) (ptr (b + D.y + 139)) (ptr (b + D.y + 128)) (ptr (b + D.y + 164))),
+  [(bout, D.outW first (ptr b) (ptr (b + D.y + 123)) (ptr (b + D.y + 112)) (ptr (b + D.y + 148))),
     (bcur, D.xs)] ++ CL.L first D.c ++ [(tbE, winTabWords)]
 
 theorem recWords_length (D : LayerData) (first : ℕ) (cur : E) :
-    (D.recWords first cur).length = 128 := by simp [LayerData.recWords]
+    (D.recWords first cur).length = 112 := by simp [LayerData.recWords]
 
 /-- **The callees, honestly and loading from the layout**: on a memory holding the caller's words
 and the buffers, the eight-round loop and the remainder loop hold. -/

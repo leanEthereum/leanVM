@@ -62,12 +62,12 @@ G(\kpt)&\qeq\sum_{p\in\cube{\kbatch-4}}\eq(r,p)\sum_{j<1600}\kpw_j\,G_{p,j}(\kpt
 \end{align*}
 with $\kwsum'=\kemb_{\allone}(\kpt)$.
 
-\paragraph{3. Sumcheck.} A degree-three sumcheck proves the right side above (first on the $\kbatch-4$ bits of $p$, then on the $11$ bits of $j$). It ends at a random pack $\fc^{\mathrm{pack}}\in\E^{\kbatch-4}$ and a random position $\fc^{\mathrm{pos}}\in\E^{11}$, and the verifier has to evaluate:
+\paragraph{3. Sumcheck.} A sumcheck proves the right side above, using the normalized convention of \S\ref{sec:prelim}: first $\kbatch-4$ rounds over $p$ with the known equality factor removed and a quadratic cofactor, then $11$ ordinary degree-three rounds over $j$. In each pack round the prover sends two cofactor coefficients; the verifier checks the equality-weighted Boolean sum against the incoming claim and takes the cofactor at the challenge as the next claim. It ends at a random pack $\fc^{\mathrm{pack}}\in\E^{\kbatch-4}$ and a random position $\fc^{\mathrm{pos}}\in\E^{11}$, and the verifier has to evaluate:
 \[
-\eq(r,\fc^{\mathrm{pack}})\;\mle{\kpw}(\fc^{\mathrm{pos}})\;\bigl(\kwsum'\,\kev_0+(\kwsum'+\kev_1)\,\kev_2\bigr),\qquad
+\mle{\kpw}(\fc^{\mathrm{pos}})\;\bigl(\kwsum'\,\kev_0+(\kwsum'+\kev_1)\,\kev_2\bigr),\qquad
 \kev_k=\sum_{j<1600}\eq(\fc^{\mathrm{pos}},j)\,S_{\fc^{\mathrm{pack}},\along{j}{k}}(\kpt),
 \]
-with $S_{\fc,j}=\sum_{p\in\cube{\kbatch-4}}\eq(\fc,p)\,S_{p,j}$. The prover sends $\kev_0,\kev_1,\kev_2$, which lets the verifier conclude the sumcheck. It remains to prove the correctness of $\kev_0,\kev_1,\kev_2$.
+with $S_{\fc,j}=\sum_{p\in\cube{\kbatch-4}}\eq(\fc,p)\,S_{p,j}$. The terminal expression has no factor $\eq(r,\fc^{\mathrm{pack}})$ because each pack round updates the normalized claim. The prover sends $\kev_0,\kev_1,\kev_2$, which lets the verifier conclude the sumcheck. It remains to prove the correctness of $\kev_0,\kev_1,\kev_2$.
 
 \paragraph{4. One claim again.} Each $\kev_k$ is itself a weighted sum of bits. Since $\kemb$ is linear, $S_{p,j}=\sum_i\ain(j;(i,p))\,\kemb_i$, so $S_{p,j}(\kpt)=\sum_i\kw'_i\,\ain(j;(i,p))$ with $\kw'_i=\kemb_i(\kpt)$; and re-indexing the sum over $j$ by the bijection $j\mapsto\along{j}{k}$, of inverse $j\mapsto\along{j}{5-k}$ (\S\ref{keccak:perm}), carries the shift off the bits and onto the weights:
 \[
@@ -107,9 +107,9 @@ which is chi on the bits of $b$, plus the round constant. Only the two ends chan
 \inner{\kw}{\kproj(G)}+\kwsum\sum_{z<64}\krc_{24-d}[z]\,\kpw_z\ \qeq\ c.
 \end{equation}
 
-Steps $2$ and $3$ are unchanged: $\kbatch+7$ sumcheck rounds bind $G(\kpt)$ (\S\ref{sec:prelim}), $\kbatch-4$ over $p$ at two $\E$-elements each, then $11$ over $j$ at three, slice low and lane high ($\kpw_j$ and $S_{p,\along{j}{k}}$ vanish at lanes $25$ to $31$); with $\kw'_i=\kemb_i(\kpt)$, $\kwsum'=\sum_i\kw'_i$ and $\kev_k$ as there, the verifier checks
+Steps $2$ and $3$ are unchanged: $\kbatch+7$ sumcheck rounds bind $G(\kpt)$ (\S\ref{sec:prelim}), $\kbatch-4$ normalized rounds over $p$ at two $\E$-elements each, then $11$ ordinary rounds over $j$ at three, slice low and lane high ($\kpw_j$ and $S_{p,\along{j}{k}}$ vanish at lanes $25$ to $31$); with $\kw'_i=\kemb_i(\kpt)$, $\kwsum'=\sum_i\kw'_i$ and $\kev_k$ as there, the verifier checks
 \begin{equation}\label{keccak:eq:terminal}
-\eq(r,\fc^{\mathrm{pack}})\;\mle{\kpw}(\fc^{\mathrm{pos}})\;\bigl(\kwsum'\,\kev_0+(\kwsum'+\kev_1)\,\kev_2\bigr)\ \qeq\ \rc{\kbatch+7}.
+\mle{\kpw}(\fc^{\mathrm{pos}})\;\bigl(\kwsum'\,\kev_0+(\kwsum'+\kev_1)\,\kev_2\bigr)\ \qeq\ \rc{\kbatch+7}.
 \end{equation}
 
 \emph{The linear map.} Step $4$ leaves a claim on the bits of $b$, with weights $\kpw^{\flat}_j=\eq(\fc^{\mathrm{pos}},j)+\kbeta\,\eq(\fc^{\mathrm{pos}},\along{j}{4})+\kbeta^{2}\,\eq(\fc^{\mathrm{pos}},\along{j}{3})$. As $\klin$ is linear, $\sum_j\kpw^{\flat}_j\,b(j;\kperm)=\sum_j(\klin^{\top}\kpw^{\flat})_j\,a_{23-d}(j;\kperm)$: transpose it onto the weights and the claim is on $a_{23-d}$, the layer handing $(c',\kw',\fc^{\mathrm{pack}},\klin^{\top}\kpw^{\flat})$ to depth $d+1$. The recursive verifier never writes those $1600$ weights out: $\eq(\fc^{\mathrm{pos}},\cdot)$ is a lane table times a slice table and the shifts only move lanes, so a claim's weights stay $\klin^{\top}$ of such a product, which is what $\mle{\kpw}$ is evaluated from.
@@ -132,7 +132,7 @@ This is an optimization to get smaller proofs and faster recursion: we also comm
 a_{0,12}(j;\kperm)=a_{1,0}(j;\kperm)\quad\text{for all }\kperm\text{ and }j<1600.
 \end{equation}
 
-Both halves end on a state, and we claim both at the one point $(r_{\mathrm{low}},r_{\mathrm{pack}})$ we are given: half $1$ on the output, where the $\koutv{\ell}$ are, and half $0$ on the middle state. Reusing that point is the point: one point, one claim. It is random and drawn after $\qkeccak$ is committed, so it pins the middle state as firmly as the output. That is fifty lane claims, which we fold into one by sampling $r_{\mathrm{seg}}$ over the two halves and $r_{\mathrm{lane}}$ over the lanes; the prover then sends the middle state's share of the folded value as $c_{\mathrm{st}}$. The surviving claim carries a coordinate for the half, and twelve layers prove both at once: \eqref{keccak:eq:claim} sums over $m$ too, on $a_{m,12-d}$; layer $d$ crosses round $12(m+1)-d$ of each half, its constant weighted by $\eq(r_{\kbatch-4},m)$; the sumcheck gains a round; and depth $12$ opens as in \S\ref{keccak:openings} over six slot rounds, with $\kpw^{\mathrm{in}}(25m+\ell,z)=\eq(r_{\kbatch-4},m)\,\kpw_{z+64\ell}$: the segment rides the weights, so only $r$'s pack coordinates enter the point.
+Both halves end on a state, and we claim both at the one point $(r_{\mathrm{low}},r_{\mathrm{pack}})$ we are given: half $1$ on the output, where the $\koutv{\ell}$ are, and half $0$ on the middle state. Reusing that point is the point: one point, one claim. It is random and drawn after $\qkeccak$ is committed, so it pins the middle state as firmly as the output. That is fifty lane claims, which we fold into one by sampling $r_{\mathrm{seg}}$ over the two halves and $r_{\mathrm{lane}}$ over the lanes; the prover then sends the middle state's share of the folded value as $c_{\mathrm{st}}$. The surviving claim carries a coordinate for the half, and twelve layers prove both at once: \eqref{keccak:eq:claim} sums over $m$ too, on $a_{m,12-d}$; layer $d$ crosses round $12(m+1)-d$ of each half, its constant weighted by $\eq(r_{\kbatch-4},m)$; the sumcheck gains a normalized round; and depth $12$ opens as in \S\ref{keccak:openings} over six slot rounds, with $\kpw^{\mathrm{in}}(25m+\ell,z)=\eq(r_{\kbatch-4},m)\,\kpw_{z+64\ell}$: the segment rides the weights, so only $r$'s pack coordinates enter the point.
 
 Only $c_{\mathrm{st}}$ is still the prover's word. Comparing it with slots $25+\ell$ of the commitment, where half $1$ starts, is exactly \eqref{keccak:eq:chain} at a random point: a sumcheck over the slot (challenges $\fc^{\mathrm{out}}$) does it, the prover sending the word $c_{\mathrm{out}}$ and the verifier checking the last running claim against it times the weight that slot carries, which leaves
 \begin{equation}\label{keccak:eq:out-claim}
@@ -148,9 +148,11 @@ Fix $\qkeccak$ before the protocol starts. For every prover, the probability tha
 a term per challenge a false claim must survive (Lemma~\ref{lem:sz}, Fact~\ref{fact:sumcheck}):
 \begin{itemize}
 \item the start, $\kbatch+6$: $r_{\mathrm{low}}$ and $r_{\mathrm{pack}}$ hide a wrong middle state, $r_{\mathrm{seg}}$ and $r_{\mathrm{lane}}$ a wrong lane among the fifty the first claim combines;
-\item a layer, $3\kbatch+72$: $46$ for $\kpt$, as $G$ has degree $46$; $3(\kbatch-3)$ for the pack and segment rounds and $33$ for the $11$ over positions, all of degree three; $2$ for $\kbeta$, in which $c'$ is quadratic;
+\item a layer, $3\kbatch+72$: $46$ for $\kpt$, as $G$ has degree $46$; $3(\kbatch-3)$ for the pack and segment rounds, a conservative bound for their quadratic cofactors, and $33$ for the $11$ degree-three rounds over positions; $2$ for $\kbeta$, in which $c'$ is quadratic;
 \item the openings, $12$ and $20$: the six slot rounds of the middle state's opening, then the four instance and six slot rounds of \eqref{keccak:eq:in}, all of degree two.
 \end{itemize}
+A false normalized claim forces the sent quadratic cofactor to differ from the honest cofactor: their equality-weighted Boolean sums cannot agree. The next claim can become true only at a root of that nonzero difference, with probability at most $2/|\E|$. This argument does not divide by $1+r_j+\fc_j$ and justifies retaining the conservative degree-three bound above.
+
 A round message counts as a whole polynomial of bounded degree, of which the compressed messages of \S\ref{sec:prelim} are a special case, and $(r_{\mathrm{low}},r_{\mathrm{pack}})$ is drawn after $\qkeccak$ is committed. The bound holds over any field of characteristic two in which $x^0,\dots,x^{63}$ are independent over $\Ftwo$, as they are in $\E$. Fiat-Shamir is governed by the largest single term (Definition~\ref{def:rbr}), and $\kpt$, of degree $46$, grinds $3$ bits (\S\ref{sec:grinding}). The coordinates of $(r_{\mathrm{low}},r_{\mathrm{pack}})$ are challenges of the table sumcheck, whose rounds take the one degree added here (\S\ref{sec:air}). The commitment scheme is not accounted for: the two claims are the output, for ring switching and the PCS to discharge.
 
 \subsection{Proof of the embedding lemma}\label{keccak:rmfe-proof}

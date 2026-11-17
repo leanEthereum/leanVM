@@ -26,15 +26,7 @@ sumcheck family when, for each `acc`, `x ↦ F q (acc ++ [x])` is a polynomial o
 * `sumcheckSpec` (plain rounds, `crates/verifier/src/transcript.rs`): from doom of
   `claim = F q acc`, to doom
   of `final = F q (acc ++ point)`; each challenge escapes at `L₀ · d/|E|`.
-* `packSpec` (`keccakPackRounds`, `crates/verifier/src/keccak.rs`): the equality-mode
-  rounds, the value
-  scaled by `1 + r + c` each round: from doom of `value = scale · F q acc` to doom of
-  `value' = scale' · F q (acc ++ point)`; each challenge escapes at `L₀ · (d + 1)/|E|`, the
-  scale `1 + r + c` adding a root.
-
-A candidate alive after a round's message is one whose message is its true round polynomial;
-the check then makes the claim before the message true, which is the contrapositive the reads
-need.
+* `packSpec` (`keccakPackRounds`, `crates/verifier/src/keccak.rs`): the normalized equality-mode rounds, from doom of `value = F q acc` to doom of `value' = F q (acc ++ point)`. Each challenge uses the conservative bound `L₀ · (d + 1)/|E|`, matching the deployed grinding schedule.
 -/
 
 namespace LeanVM.Protocol.KeccakGkr
@@ -271,43 +263,39 @@ def EqFamily (F : β → List E → E) (r : List E) (d : ℕ) : Prop :=
       F q acc = (1 + r[acc.length]) * F q (acc ++ [0]) + r[acc.length] * F q (acc ++ [1])
 
 omit [Finite β] in
-/-- The escape of an equality-mode round's challenge: the value `(1 + r + c)·msg(c)` against
-`(1 + r + c)·scale·F(acc ++ [c])`, a polynomial identity of degree `d + 1`. -/
+/-- The escape of a normalized equality-mode round's challenge, with the existing conservative degree bound. -/
 theorem eq_escape {F : β → List E → E} {r : List E} {d : ℕ} (hF : EqFamily F r d) (R : β → Prop)
-    {acc msg : List E} (hacc : acc.length < r.length) (hd : msg.length - 1 ≤ d) (scale : E)
-    (q : β) (hq : ¬ ((∀ x, polyEval msg x = scale * F q (acc ++ [x])) ∧ R q)) :
-    avgE (fun c ↦ indE ((1 + r[acc.length] + c) * polyEval msg c =
-      (scale * (1 + r[acc.length] + c)) * F q (acc ++ [c]) ∧ R q)) ≤ errE (d + 1) := by
+    {acc msg : List E} (hacc : acc.length < r.length) (hd : msg.length - 1 ≤ d)
+    (q : β) (hq : ¬ ((∀ x, polyEval msg x = F q (acc ++ [x])) ∧ R q)) :
+    avgE (fun c ↦ indE (polyEval msg c = F q (acc ++ [c]) ∧ R q)) ≤ errE (d + 1) := by
   by_cases hR : R q
-  · have hne : ¬ ∀ x, polyEval msg x = scale * F q (acc ++ [x]) := fun h ↦ hq ⟨h, hR⟩
+  · have hne : ¬ ∀ x, polyEval msg x = F q (acc ++ [x]) := fun h ↦ hq ⟨h, hR⟩
     refine (avgE_mono fun c ↦ indE_mono fun hc ↦ ?_).trans
-      (msg_escape hd (PolyLE.const_mul (hF q acc hacc).1 scale) hne
-        (fun c ↦ 1 + r[acc.length] + c) ((PolyLE.affine (1 + r[acc.length]) 1).congr
-          fun x ↦ by ring) ⟨r[acc.length], by
-            rw [add_assoc, CharTwo.add_self_eq_zero, add_zero]; exact one_ne_zero⟩)
-    rw [hc.1]; ring
+      (msg_escape hd (hF q acc hacc).1 hne (fun _ ↦ 1) (PolyLE.const 1 1) ⟨0, one_ne_zero⟩)
+    simp only [one_mul]
+    exact hc.1
   · refine (avgE_mono fun c ↦ indE_mono (q := False) fun h ↦ hR h.2).trans ?_
     exact (avgE_le_of_le fun c ↦ (indE_of_not not_false).le).trans zero_le
 
 /-- **The equality-mode rounds** of `keccakPackRounds` at the point `r`, from the challenges
-`acc` drawn (`rs = r.drop acc.length` left): from doom of `value = scale · F q acc` to doom of
-`value' = scale' · F q (acc ++ point)`, each challenge escaping at `L₀ · (d + 1)/|E|`. Lead `0`
+`acc` drawn (`rs = r.drop acc.length` left): from doom of `value = F q acc` to doom of
+`value' = F q (acc ++ point)`, each challenge escaping at `L₀ · (d + 1)/|E|`. Lead `0`
 when a round is left. -/
 noncomputable def packSpec (hst : Stable C) (hcard : ∀ h, (C h).ncard ≤ L₀)
     (R : β → Prop) {F : β → List E → E} {r : List E} {d : ℕ} (hF : EqFamily F r d)
     (hd : 2 ≤ d) (hT : T ≤ εmax) (he : (L₀ : ℝ≥0∞) * errE (d + 1) + T ≤ εmax) :
-    (rs : List E) → (acc : List E) → (value scale : E) → rs = r.drop acc.length →
-      Spec (keccakPackRounds rs value scale)
-        (Doomed C (fun q ↦ value = scale * F q acc ∧ R q))
-        (fun res h ↦ res.2.2.length = rs.length ∧
-          Doomed C (fun q ↦ res.1 = res.2.1 * F q (acc ++ res.2.2) ∧ R q) h)
+    (rs : List E) → (acc : List E) → (value : E) → rs = r.drop acc.length →
+      Spec (keccakPackRounds rs value)
+        (Doomed C (fun q ↦ value = F q acc ∧ R q))
+        (fun res h ↦ res.2.length = rs.length ∧
+          Doomed C (fun q ↦ res.1 = F q (acc ++ res.2) ∧ R q) h)
         εmax T T
-  | [], acc, value, scale, _ =>
-    (Spec.ret (Post := fun (res : E × E × List E) h ↦ res.2.2.length = 0 ∧
-        Doomed C (fun q ↦ res.1 = res.2.1 * F q (acc ++ res.2.2) ∧ R q) h)
-      (value, scale, [])).mono
+  | [], acc, value, _ =>
+    (Spec.ret (Post := fun (res : E × List E) h ↦ res.2.length = 0 ∧
+        Doomed C (fun q ↦ res.1 = F q (acc ++ res.2) ∧ R q) h)
+      (value, [])).mono
       (fun _ h ↦ ⟨rfl, by simpa using h⟩) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
-  | rk :: rs, acc, value, scale, hrs => by
+  | rk :: rs, acc, value, hrs => by
     have hlt : acc.length < r.length := by
       by_contra h
       rw [List.drop_eq_nil_of_le (by omega)] at hrs
@@ -321,26 +309,25 @@ noncomputable def packSpec (hst : Stable C) (hcard : ∀ h, (C h).ncard ≤ L₀
       zero_le le_rfl).bind' fun msg ↦ ?_
     by_cases hm : msg.length = 3
     · refine ((doomSample (εmax := εmax) (T := T) hst hcard
-        (fun q ↦ (∀ x, polyEval msg x = scale * F q (acc ++ [x])) ∧ R q)
-        (fun c q ↦ (1 + r[acc.length] + c) * polyEval msg c =
-          (scale * (1 + r[acc.length] + c)) * F q (acc ++ [c]) ∧ R q) (errE (d + 1))
-        (fun q hq ↦ eq_escape hF R hlt (by omega) scale q hq)).mono
+        (fun q ↦ (∀ x, polyEval msg x = F q (acc ++ [x])) ∧ R q)
+        (fun c q ↦ polyEval msg c =
+          F q (acc ++ [c]) ∧ R q) (errE (d + 1))
+        (fun q hq ↦ eq_escape hF R hlt (by omega) q hq)).mono
           (fun h (hh : msg.length = 3 ∧
               RoundSplit (some rk) value (polyEval msg 0) (polyEval msg 1) ∧
-              Doomed C (fun q ↦ value = scale * F q acc ∧ R q) h) ↦
+              Doomed C (fun q ↦ value = F q acc ∧ R q) h) ↦
             Doomed.mono hh.2.2 fun q ⟨hall, hR⟩ ↦ ⟨by
               have hs := hh.2.1
               rw [RoundSplit, hall, hall, ← hrk] at hs
-              rw [← hs, (hF q acc hlt).2]
-              ring, hR⟩)
+              rw [← hs, (hF q acc hlt).2], hR⟩)
           (fun _ _ h ↦ h) le_rfl le_rfl le_rfl).bind' fun c ↦ ?_
       · refine (packSpec hst hcard R hF hd hT he rs (acc ++ [c])
-          ((1 + rk + c) * polyEval msg c) (scale * (1 + rk + c)) ?_).mono
-          (fun _ h ↦ by rw [hrk] at h; exact h) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
+          (polyEval msg c) ?_).mono
+          (fun _ h ↦ h) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
           |>.bind' fun res ↦ ?_
         · rw [List.length_append, List.length_singleton, ← List.drop_drop, ← hrs]
           rfl
-        · exact (Spec.ret (res.1, res.2.1, c :: res.2.2)).mono
+        · exact (Spec.ret (res.1, c :: res.2)).mono
             (fun _ h ↦ ⟨by simp [h.1], by simpa using h.2⟩) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
     · exact Spec.dead.mono (fun _ h ↦ hm h.1) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
 

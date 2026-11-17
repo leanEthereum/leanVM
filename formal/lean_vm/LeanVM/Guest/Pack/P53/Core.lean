@@ -219,34 +219,28 @@ noncomputable def body : List Core.Stmt := (
   .atom (.mul (.n 40) (.n 5) (.n 0)) ::
   .atom (.load (.n 39) (.n 40) 0) ::
   .atom (.add (.n 41) (.n 8) (.n 39)) ::
-  .atom (.const (.n 42) (word 1 0)) ::
-  .atom (.add (.n 43) (.n 42) (.n 41)) ::
   .atom (.load (.n 34) (.n 6) 1) ::
   .atom (.load (.n 35) (.n 6) 17) ::
   .atom (.load (.n 36) (.n 6) 33) ::
   .atom (.load (.n 37) (.n 6) 49) ::
   .atom (.load (.n 38) (.n 6) 65) ::
-  .atom (.const (.n 44) (word 4 0)) ::
-  .atom (.mul (.n 45) (.n 14) (.n 44)) ::
-  .atom (.load (.n 45) (.n 6) 81) ::
-  .atom (.load (.n 46) (.n 6) 96) ::
-  .atom (.mul (.n 47) (.n 41) (.n 15)) ::
-  .atom (.add (.n 48) (.n 46) (.n 47)) ::
-  .atom (.mul (.n 49) (.n 39) (.n 39)) ::
-  .atom (.add (.n 50) (.n 8) (.n 49)) ::
-  .atom (.mul (.n 51) (.n 50) (.n 18)) ::
-  .atom (.add (.n 52) (.n 48) (.n 51)) ::
-  .atom (.mul (.n 53) (.n 43) (.n 52)) ::
-  .atom (.load (.n 53) (.n 6) 97) ::
-  .atom (.load (.n 54) (.n 6) 112) ::
-  .atom (.mul (.n 55) (.n 54) (.n 43)) ::
-  .atom (.load (.n 55) (.n 6) 113) ::
-  .atom (.const (.n 56) (word 2 0)) ::
-  .atom (.mul (.n 57) (.n 0) (.n 56)) ::
-  .atom (.add (.n 58) (.n 57) (.n 1)) ::
-  .atom (.const (.n 59) (word 2 0)) ::
-  .atom (.mul (.n 60) (.n 0) (.n 59)) ::
-  .callIf (.n 58) "__loop40" [.n 60, .n 1, .n 2, .n 3, .n 4, .n 5] ::
+  .atom (.const (.n 42) (word 4 0)) ::
+  .atom (.mul (.n 43) (.n 14) (.n 42)) ::
+  .atom (.load (.n 43) (.n 6) 81) ::
+  .atom (.load (.n 44) (.n 6) 96) ::
+  .atom (.mul (.n 45) (.n 41) (.n 15)) ::
+  .atom (.add (.n 46) (.n 44) (.n 45)) ::
+  .atom (.mul (.n 47) (.n 39) (.n 39)) ::
+  .atom (.add (.n 48) (.n 8) (.n 47)) ::
+  .atom (.mul (.n 49) (.n 48) (.n 18)) ::
+  .atom (.add (.n 50) (.n 46) (.n 49)) ::
+  .atom (.load (.n 50) (.n 6) 97) ::
+  .atom (.const (.n 51) (word 2 0)) ::
+  .atom (.mul (.n 52) (.n 0) (.n 51)) ::
+  .atom (.add (.n 53) (.n 52) (.n 1)) ::
+  .atom (.const (.n 54) (word 2 0)) ::
+  .atom (.mul (.n 55) (.n 0) (.n 54)) ::
+  .callIf (.n 53) "__loop40" [.n 55, .n 1, .n 2, .n 3, .n 4, .n 5] ::
   .ret [] ::
   [])
 
