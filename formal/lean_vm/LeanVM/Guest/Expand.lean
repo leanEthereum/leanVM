@@ -673,6 +673,7 @@ def specName (f : String) (substs : List (String × Expr)) : String :=
 /-- Monomorphize a call to a `Const` template, queueing the specialization once
 (`specialize`); the name and the runtime arguments. -/
 def specialize (callee : String) (args : List Expr) : M (String × List Expr) := do
+  if callee == "main" then fail "`main` is the entry point, so it cannot be called"
   let some def_ ← origDef callee | return (callee, args)
   if !def_.hasConstParams then return (callee, args)
   let substs ← match ← constSubsts def_ args with
