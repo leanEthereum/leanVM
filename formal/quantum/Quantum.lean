@@ -163,6 +163,7 @@ import Quantum.Qrom.TableLaw
 import Quantum.Qrom.Regroup
 import Quantum.Qrom.Xmss.Scheme
 import Quantum.Qrom.Xmss.Slots
+import Quantum.Qrom.Xmss.Events
 import Quantum.Qrom.Sphincs.Scheme
 import Quantum.Qrom.Sphincs.Slots
 import Quantum.Sponge.Indifferentiability.Selection
