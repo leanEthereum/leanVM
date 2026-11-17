@@ -194,6 +194,7 @@ import Quantum.Qrom.Sphincs.GameTCalls
 import Quantum.Qrom.Sphincs.GameTFacts
 import Quantum.Qrom.Sphincs.GameTFactsPre
 import Quantum.Qrom.Sphincs.Costs.Total
+import Quantum.Qrom.Sphincs.Hybrid
 import Quantum.Sponge.Indifferentiability.Selection
 import Quantum.Sponge.Indifferentiability.FixCircuit
 import Quantum.Sponge.Indifferentiability.PadCircuit
