@@ -221,7 +221,7 @@ leanvm() {
   bg "leanvm: the fold rounds' table is the prover's (whir-fold-table)" \
     cargo run --release --manifest-path lean_vm/scripts/whir-fold-table/Cargo.toml -- \
     lean_vm/LeanVM/Protocol/ToArkLib/Whir/AffineCombinerDeployedTable.lean --check
-  bg "leanvm: the honest hints are the Rust's, the guest runs on them, and the statement's executor runs it as the Rust does (guest-diff, leanvm-execute)" guest_diff
+  bg "leanvm: the honest hints are the Rust's, the guest runs on them, the statement's executor runs it as the Rust does, and the guest prover's proof is accepted (guest-diff, leanvm-execute, guest-run)" guest_diff
   # verification only; key generation and signing are run by hand (`scheme-vectors --xmss-sign`,
   # lean_sphincs' `lake exe signature-kat`)
   bg "leanvm: EthLib's vectors on the statement's verifiers, compiled (scheme-vectors)" \
@@ -244,6 +244,7 @@ guest_diff() {
   in_lean_vm .lake/build/bin/guest-diff "$gd"/diff/*.txt
   in_lean_vm .lake/build/bin/leanvm-execute "$gd"/exec/*/
   in_lean_vm .lake/build/bin/guest-run --rust "$gd/exec" "$gd"/diff/*.txt
+  in_lean_vm .lake/build/bin/guest-run --rust "$gd/exec" --prove "$gd"/diff/leaf.txt
   rm -rf "$gd"
 }
 fuzz_verifier() {

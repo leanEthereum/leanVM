@@ -399,14 +399,16 @@ jobs:
       # Four real Rust aggregations (a leaf, a leaf of both schemes with a blob, a long leanXMSS
       # list, a node over them): the witness holds the statement, the honest hint generator gives
       # the Rust's installed streams entry for entry, and the interpreter runs `main` on them; the
-      # statement's executor runs the guest on them to the Rust interpreter's memory and step count.
-      - name: The honest hints are the Rust's (guest-diff), and the executor runs as the Rust's
+      # statement's executor runs the guest on them to the Rust interpreter's memory and step count;
+      # on the leaf, the statement's guest prover (`guestProve`) makes a proof the verifier accepts.
+      - name: The honest hints are the Rust's (guest-diff), the executor runs as the Rust's, and the guest prover's proof is accepted
         run: |
           LEANVM_GUEST_DIFF="$RUNNER_TEMP/guest-diff" LEANVM_GUEST_EXEC="$RUNNER_TEMP/guest-exec" \
             cargo test --release --manifest-path scripts/guest-export/Cargo.toml --lib guest_diff -- --ignored
           .lake/build/bin/guest-diff "$RUNNER_TEMP"/guest-diff/*.txt
           .lake/build/bin/leanvm-execute "$RUNNER_TEMP"/guest-exec/*/
           .lake/build/bin/guest-run --rust "$RUNNER_TEMP/guest-exec" "$RUNNER_TEMP"/guest-diff/*.txt
+          .lake/build/bin/guest-run --rust "$RUNNER_TEMP/guest-exec" --prove "$RUNNER_TEMP"/guest-diff/leaf.txt
       # The Lean verifier and the Rust verifier must agree on the committed proofs and on
       # mutations of them, so a bump to a protocol change fails here until the Lean one follows.
       - name: Rust-vs-Lean differential
