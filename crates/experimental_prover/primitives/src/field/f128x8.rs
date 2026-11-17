@@ -19,14 +19,22 @@ use super::gf2_64x2::{F128, F128Unreduced};
 
 #[cfg(all(
     target_arch = "x86_64",
-    target_feature = "vpclmulqdq",
     target_feature = "avx2",
+    target_feature = "pclmulqdq",
     not(target_feature = "avx512f")
 ))]
 pub use avx2::{F64x8, F128x8, Prod8};
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
 pub use avx512::{Acc8, F64x8, F128x8};
-#[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
+#[cfg(not(any(
+    all(
+        target_arch = "x86_64",
+        target_feature = "avx2",
+        target_feature = "pclmulqdq",
+        not(target_feature = "avx512f")
+    ),
+    all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f")
+)))]
 pub use portable::{F64x8, F128x8, Prod8};
 #[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f")))]
 pub use sum::Acc8;
@@ -36,8 +44,16 @@ pub use sum::Acc8;
 #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f"))]
 pub type Prod8 = Acc8;
 
-/// The eight-lane types on a target without the wide multiplier.
-#[cfg(not(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2")))]
+/// The eight-lane types on a target without the `x4` or `x8` multipliers.
+#[cfg(not(any(
+    all(
+        target_arch = "x86_64",
+        target_feature = "avx2",
+        target_feature = "pclmulqdq",
+        not(target_feature = "avx512f")
+    ),
+    all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx512f")
+)))]
 mod portable {
     use super::sum::halves;
     use super::{F64, F128, F128Unreduced};
@@ -318,12 +334,12 @@ pub fn xor_into8(out: &mut [F128; 8], add: &[F128; 8]) {
     }
 }
 
-/// The eight-lane types with VPCLMULQDQ but no AVX-512: two halves of four lanes, each the `x4` form, a
-/// YMM plane per coefficient, so a product is lane-wise, two lanes to an instruction.
+/// The eight-lane types with AVX2 but no AVX-512: two halves of four lanes, each the `x4` form, a YMM plane per
+/// coefficient, so a product is lane-wise, two lanes to an instruction with VPCLMULQDQ and one without.
 #[cfg(all(
     target_arch = "x86_64",
-    target_feature = "vpclmulqdq",
     target_feature = "avx2",
+    target_feature = "pclmulqdq",
     not(target_feature = "avx512f")
 ))]
 mod avx2 {

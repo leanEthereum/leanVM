@@ -219,9 +219,19 @@ impl LeafBlock {
         let (real_out, padding) = out.split_at_mut(real);
         // A padding row's leaf is the identity, so it leaves the product alone.
         padding.fill(F128::ONE);
-        #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
+        #[cfg(all(
+            target_arch = "x86_64",
+            target_feature = "avx2",
+            target_feature = "pclmulqdq",
+            any(target_feature = "vpclmulqdq", not(target_feature = "avx512f"))
+        ))]
         let done = self.fill_lanes(z0, real_out, cols);
-        #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq")))]
+        #[cfg(not(all(
+            target_arch = "x86_64",
+            target_feature = "avx2",
+            target_feature = "pclmulqdq",
+            any(target_feature = "vpclmulqdq", not(target_feature = "avx512f"))
+        )))]
         let done = 0;
         let mut index = g_pow(z0 + done);
         for (i, slot) in real_out.iter_mut().enumerate().skip(done) {
@@ -233,7 +243,12 @@ impl LeafBlock {
 
     /// [`fill`](Self::fill) [`lanes::N`] rows at a time, every term one lane-wise mixed
     /// product; returns how many rows it wrote.
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "avx2",
+        target_feature = "pclmulqdq",
+        any(target_feature = "vpclmulqdq", not(target_feature = "avx512f"))
+    ))]
     fn fill_lanes(&self, z0: usize, out: &mut [F128], cols: &[&[F64]]) -> usize {
         use lanes::{E, K, Mixed, N};
         let load = |source: &[F64], z: usize| K::load(source[z..z + N].try_into().unwrap());
@@ -271,7 +286,7 @@ mod lanes {
 #[cfg(all(
     target_arch = "x86_64",
     target_feature = "avx2",
-    target_feature = "vpclmulqdq",
+    target_feature = "pclmulqdq",
     not(target_feature = "avx512f")
 ))]
 mod lanes {
