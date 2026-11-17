@@ -134,7 +134,7 @@ impl Hints {
 /// The digits of a WOTS+C codeword as the guest dispatches on them: `group` at a
 /// time, then the rest, each group's index little endian in base `CHAIN_LEN`, in the
 /// exponent.
-fn digit_hints(codeword: &[u8], size: usize) -> impl Iterator<Item = Vec<F128>> + '_ {
+pub(super) fn digit_hints(codeword: &[u8], size: usize) -> impl Iterator<Item = Vec<F128>> + '_ {
     codeword.chunks(size).map(|group| {
         let index = group.iter().rev().fold(0, |index, &digit| {
             index * lean_xmss::internals::CHAIN_LEN + digit as usize

@@ -1,8 +1,10 @@
-use super::cells::{count, pack_16_bytes};
+use super::cells::{count, exponent_bytes, pack_16_bytes};
 use super::deferred::{DeferredBytecodeClaim, bytecode_sums, bytecode_value, bytecode_vars};
 use super::error::AggregateError;
 use super::guest::{GUEST_SOURCE, compile_guest, unified_guest};
-use super::hints::{FORGE, Forgery, Hints, SP_FORS_LOW, SP_FORS_MID, SP_PATH_WINDOW, lean_sphincs_hints};
+use super::hints::{
+    DIGIT_GROUP, FORGE, Forgery, Hints, SP_FORS_LOW, SP_FORS_MID, SP_PATH_WINDOW, digit_hints, lean_sphincs_hints,
+};
 use super::placeholders::placeholder_map;
 use super::proof::{AggregateClaims, AggregateProof, decode, encode};
 use super::statement::{CLAIM_GROUP, claim_list_digest, list_split, statement_digest};
@@ -181,11 +183,12 @@ fn aggregate_mixed_leaf() {
 
 /// A leanSPHINCS signature's digest and openings are bound in-circuit. A node fails the
 /// guest's run when its hints put the digest's unused bytes or bits off by one, change
-/// a sibling on a FORS climb or on a layer's path, a FORS secret, a chain's start or a
-/// node a window starts from (in a FORS tree or on a path), dispatch a FORS or a path
-/// window other than the digest's, name a leaf or a high window other than the path's
-/// windows spell (the leaf alone, or with its window moved to agree), or give a layer
-/// another counter.
+/// a sibling on a FORS climb or on a layer's path (in a top window, and in a middle one,
+/// which only the node the window above starts from binds), a FORS secret, a chain's
+/// start or a node a window starts from (in a FORS tree or on a path), dispatch a FORS
+/// or a path window other than the digest's, name a leaf or a high window other than the
+/// path's windows spell (the leaf alone, or with its window moved to agree), or give a
+/// layer another counter.
 #[test]
 fn forged_lean_sphincs_hints_are_rejected() {
     use lean_sphincs::internals::{FORS_HEIGHT, FORS_TREES, H};
@@ -196,14 +199,17 @@ fn forged_lean_sphincs_hints_are_rejected() {
     let next = |name: &'static str, entry: usize, at: usize| -> Forgery {
         Box::new(move |hints: &mut Hints| hints.entry_mut(name, entry)[at] *= count(1))
     };
-    // The FORS trees' siblings come first, then the layers' paths.
+    // The FORS trees' siblings come first, a tree's top window then its middle one, then
+    // the layers' paths, the top one's two lower windows last.
     let fors_siblings = FORS_TREES * FORS_HEIGHT;
-    let forgeries: [Forgery; 19] = [
+    let forgeries: [Forgery; 21] = [
         next("sp_unused", 0, 0),
         next("sp_pad", 0, 0),
         flip("sp_siblings", 0, 0),
+        flip("sp_siblings", FORS_HEIGHT - SP_FORS_LOW - SP_FORS_MID, 0),
         flip("sp_siblings", FORS_HEIGHT - 1, 0),
         flip("sp_siblings", fors_siblings, 0),
+        flip("sp_siblings", fors_siblings + H - 2 * SP_PATH_WINDOW, 0),
         flip("sp_siblings", fors_siblings + H - 1, 0),
         flip("sp_fors_secrets", 0, 0),
         flip("chain_starts", 0, 0),
@@ -330,6 +336,76 @@ fn lean_sphincs_openings_are_the_digests() {
     ];
     for forgery in forgeries {
         assert_forgery_rejected(forgery, &[], vec![], vec![signer.clone()], &[]);
+    }
+}
+
+/// Writes over the honest hints of `signer`, whose key is `secret_key`, those of its
+/// bottom one-time key standing at the leaf `flip` away from its own in the bottom tree,
+/// the path's siblings kept, and of the middle key's signature of the root that reaches,
+/// as `secret_key` signs it: the path's windows, the node its high window starts from,
+/// then the counter, the codeword and each chain walked from its secret to its digit.
+fn move_bottom_leaf(hints: &mut Hints, secret_key: &lean_sphincs::SecretKey, signer: &LeanSphincsSigner, flip: u32) {
+    use lean_sphincs::internals::{
+        FORS_TREES, N, OtsKey, V, WOTS_HASH, WOTS_PRF, digest_fields, fors_recover, h_msg, pk_root, pk_seed, prf,
+        sig_fors, sig_layers, sig_path, sig_randomizer, th, tree_fold, wots_leaf,
+    };
+    let (pk, message, sig) = signer;
+    let seed = pk_seed(pk);
+    let (idx, leaves) = digest_fields(&h_msg(sig_randomizer(sig), seed, pk_root(pk), message));
+    let (bottom, middle) = (OtsKey::of_index(0, idx), OtsKey::of_index(1, idx));
+    let fors_key = fors_recover(seed, idx, &leaves, sig_fors(sig), |_| ());
+    let signed = &sig_layers(sig)[0];
+    let (_, one_time) = wots_leaf(seed, &bottom, &fors_key, signed.counter(), signed.wots()).expect("a codeword");
+    let moved = OtsKey {
+        leaf: bottom.leaf ^ flip,
+        ..bottom
+    };
+    let mut pairs = Vec::new();
+    let root = tree_fold(seed, &moved, one_time, sig_path(sig, 0), |pair| pairs.push(*pair));
+    let leaf = moved.leaf as usize;
+    let low = leaf & ((1 << SP_PATH_WINDOW) - 1);
+    *hints.entry_mut("sp_path_windows", 0) = vec![count(low), count(leaf >> SP_PATH_WINDOW)];
+    // The paths' nodes follow the FORS trees', two a tree.
+    let start = &pairs[SP_PATH_WINDOW][leaf >> SP_PATH_WINDOW & 1];
+    hints.entry_mut("sp_mids", 2 * FORS_TREES)[0] = pack_16_bytes(start);
+    // The least counter that gives a codeword, as the signer takes it.
+    let encode = |counter| Some((counter, wots_leaf(seed, &middle, &root, counter, &[[0; N]; V])?.0));
+    let (counter, codeword) = (0..).find_map(encode).expect("a codeword");
+    *hints.entry_mut("sp_counter", 1) = exponent_bytes(&counter.to_be_bytes());
+    for (group, entry) in digit_hints(&codeword, DIGIT_GROUP).enumerate() {
+        *hints.entry_mut("digits", V.div_ceil(DIGIT_GROUP) + group) = entry;
+    }
+    for (chain, &digit) in codeword.iter().enumerate() {
+        let at = |t: u32| middle.adrs(t).with_chain(chain as u32);
+        let secret = prf(seed, secret_key, &at(WOTS_PRF));
+        let value = (0..digit).fold(secret, |value, from| {
+            th(seed, &at(WOTS_HASH).with_hash(from.into()), &value)
+        });
+        hints.entry_mut("chain_starts", V + chain)[0] = pack_16_bytes(&value);
+    }
+}
+
+/// The leaf a leanSPHINCS path climbs from is the one its key's addresses take. A node
+/// fails the guest's run when its hints climb from another leaf of the bottom tree, in
+/// the path's low window or in its high one, the bottom key's one-time leaf standing
+/// there and the middle key signing the root that reaches, as the signer would have
+/// signed it: every hash is then the witness's own and the digest is the signature's, so
+/// that only what a dispatch stores into the hinted leaf tells the two apart. The same
+/// routine at the digest's leaf verifies.
+#[test]
+fn lean_sphincs_paths_climb_from_the_digests_leaf() {
+    let secret_key = [0x5A; lean_sphincs::SECRET_KEY_LEN];
+    let message = [0xC5; lean_sphincs::MESSAGE_LEN];
+    let signature = lean_sphincs::sign(&secret_key, &message);
+    let signer = (lean_sphincs::key_gen(&secret_key), message, signature);
+    let moved = |flip: u32| -> Forgery {
+        let signer = signer.clone();
+        Box::new(move |hints: &mut Hints| move_bottom_leaf(hints, &secret_key, &signer, flip))
+    };
+    FORGE.with(|forge| *forge.borrow_mut() = Some(moved(0)));
+    prove(&[], &[], std::slice::from_ref(&signer));
+    for flip in [1, 1 << SP_PATH_WINDOW] {
+        assert_forgery_rejected(moved(flip), &[], vec![], vec![signer.clone()], &[]);
     }
 }
 
