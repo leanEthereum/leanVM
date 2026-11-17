@@ -195,6 +195,9 @@ import Quantum.Qrom.Sphincs.GameTFacts
 import Quantum.Qrom.Sphincs.GameTFactsPre
 import Quantum.Qrom.Sphincs.Costs.Total
 import Quantum.Qrom.Sphincs.Hybrid
+import Quantum.Qrom.Sphincs.End
+import Quantum.Qrom.Sphincs.Security
+import Quantum.Qrom.Sphincs.BoundValue
 import Quantum.Sponge.Indifferentiability.Selection
 import Quantum.Sponge.Indifferentiability.FixCircuit
 import Quantum.Sponge.Indifferentiability.PadCircuit
@@ -206,10 +209,11 @@ resistance against an adversary making `q` superposition calls to `π` and `π�
 values at Keccak-256's sizes (`Quantum.Sponge.keccak256_qrpm_collision_le`,
 `Quantum.Sponge.keccak256_qrpm_preimage_le`), and leanXMSS's and leanSPHINCS's strong
 unforgeability against quantum adversaries (`Quantum.Xmss.Assembly.leanXmss_qrpm_security`,
-`Quantum.Sphincs.Assembly.leanSphincs_qrpm_security`). For comparison, leanXMSS in the quantum
-random-oracle model with Keccak-256 as one random function (`Quantum.Qrom`:
-`Quantum.Qrom.Xmss.leanXmss_qrom_security`). The build fails if the axiom footprint of the main
-theorems ever grows beyond Lean's three standard axioms. -/
+`Quantum.Sphincs.Assembly.leanSphincs_qrpm_security`). For comparison, both schemes in the
+quantum random-oracle model with Keccak-256 as one random function (`Quantum.Qrom`:
+`Quantum.Qrom.Xmss.leanXmss_qrom_security`, `Quantum.Qrom.Sphincs.leanSphincs_qrom_security`).
+The build fails if the axiom footprint of the main theorems ever grows beyond Lean's three standard
+axioms. -/
 
 /-- info: 'Quantum.qrpmEvalDistMap_eq_spongePerm' depends on axioms:
 [propext, Classical.choice, Quot.sound] -/
@@ -310,3 +314,23 @@ theorems ever grows beyond Lean's three standard axioms. -/
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Quantum.Qrom.Xmss.xmssQromBound_two_pow_50_le
+
+/-- info: 'Quantum.Qrom.Sphincs.leanSphincs_qrom_security' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Qrom.Sphincs.leanSphincs_qrom_security
+
+/-- info: 'Quantum.Qrom.Sphincs.sphincsQromBound_le' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Qrom.Sphincs.sphincsQromBound_le
+
+/-- info: 'Quantum.Qrom.Sphincs.sphincsQromBound_two_pow_30_le' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Qrom.Sphincs.sphincsQromBound_two_pow_30_le
+
+/-- info: 'Quantum.Qrom.Sphincs.sphincsQromBound_two_pow_40_le' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Qrom.Sphincs.sphincsQromBound_two_pow_40_le
