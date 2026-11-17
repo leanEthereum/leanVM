@@ -1,0 +1,5 @@
+def main []
+  const %0 98799108396552527 0
+  const %1 8 0
+  range_check %1 %2 %3 %4 %0
+  ret []
