@@ -22,6 +22,8 @@ import LeanVM.Cost.Bounds.Guest.Budget
 import LeanVM.Cost.GuestDecoding
 import LeanVM.Wire.OneEncoding
 import LeanVM.Wire.Honest
+import LeanVM.Guest.Batch.Honest
+import LeanVM.Guest.Compose
 
 /-! # The end theorems of leanVM
 
@@ -377,3 +379,42 @@ theorem LeanVM.corollaries_hold :
 /-- info: 'LeanVM.corollaries_hold' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.corollaries_hold
+
+/-- **Conditional, not an end theorem: an accepted aggregate's raw leanXMSS signatures under honest
+keys are genuine, if the deployed Keccak's verification behaves like the ideal one for the
+adversary at hand** (`Common.Compose.KeccakVerificationLikeIdeal`, a hypothesis on that one
+adversary, its bound `δ`). For the compiled extractor and decoder programs, from
+`corollaries_hold`'s `aggregateSound` and `XmssSecurity.leanXmss_multiKey`. The model is wider than
+the statement's: the signature scheme hashes over a second random permutation, independent of the
+proof system's, while deployed both are Keccak-f[1600]. It is about soundness only (an honest
+signature made in this model generally fails `verifyWithKeccak`) and about the raw signatures a
+node holds directly, not the claims it holds through children. Not part of `Statement.Theorems`. -/
+theorem LeanVM.aggregate_raw_xmss_signatures_genuine_if_keccak_like_ideal :
+    LeanVM.Guest.Compose.AggregateRawXmssSignaturesGenuineIfKeccakLikeIdeal
+      LeanVM.Cost.compiledKnowledgeExtractor LeanVM.Cost.compiledGuestWitnessDecoder :=
+  LeanVM.Guest.Compose.aggregate_raw_xmss_signatures_genuine_if_keccak_like_ideal_of_aggregateSound
+    LeanVM.corollaries_hold.aggregateSound
+
+/-- info: 'LeanVM.aggregate_raw_xmss_signatures_genuine_if_keccak_like_ideal' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.aggregate_raw_xmss_signatures_genuine_if_keccak_like_ideal
+
+/-- **Conditional, not an end theorem: an accepted aggregate's raw leanSPHINCS signatures under
+honest keys are genuine, if the deployed Keccak's verification behaves like the ideal one for the
+adversary at hand**, as `aggregate_raw_xmss_signatures_genuine_if_keccak_like_ideal`, from
+`Sphincs.leanSphincs_multiKey`. -/
+theorem LeanVM.aggregate_raw_sphincs_signatures_genuine_if_keccak_like_ideal :
+    LeanVM.Guest.Compose.AggregateRawSphincsSignaturesGenuineIfKeccakLikeIdeal
+      LeanVM.Cost.compiledKnowledgeExtractor LeanVM.Cost.compiledGuestWitnessDecoder :=
+  LeanVM.Guest.Compose.aggregate_raw_sphincs_signatures_genuine_if_keccak_like_ideal_of_aggregateSound
+    LeanVM.corollaries_hold.aggregateSound
+
+/-- info: 'LeanVM.aggregate_raw_sphincs_signatures_genuine_if_keccak_like_ideal' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.aggregate_raw_sphincs_signatures_genuine_if_keccak_like_ideal
+
+/-- info: 'LeanVM.Guest.Batch.honest_root_holdsWithShape' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Batch.honest_root_holdsWithShape
