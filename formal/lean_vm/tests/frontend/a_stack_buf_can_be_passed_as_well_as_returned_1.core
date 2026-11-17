@@ -1,0 +1,1 @@
+error: in main: `f` parameter 0 is a StackBuf(2), got a StackBuf(3)

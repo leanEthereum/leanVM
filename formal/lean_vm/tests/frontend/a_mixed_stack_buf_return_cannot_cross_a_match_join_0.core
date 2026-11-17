@@ -1,0 +1,1 @@
+error: in main: a multi-cell StackBuf return cannot cross a match join
