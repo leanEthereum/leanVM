@@ -10,6 +10,7 @@ use crate::compiler_overlay::{
     Ast, Expr, ForBound, Func, LtBound, ParamKind, Shape, Stmt, StmtKind, core_ir, expand, parse, parse_const,
     parse_with_constants, parse_with_replacements,
 };
+use std::collections::BTreeSet;
 use std::fmt::Write as _;
 
 fn string(s: &str) -> String {
@@ -317,11 +318,173 @@ fn chain_programs() -> Vec<(String, Ast)> {
         .collect()
 }
 
-/// `Source.lean`, with the placeholders at the log size `kbc`, and `Programs.lean`.
+/// The functions `e` calls.
+fn calls_expr<'a>(e: &'a Expr, out: &mut Vec<&'a str>) {
+    match e {
+        Expr::Call(f, args) => {
+            out.push(f);
+            args.iter().for_each(|a| calls_expr(a, out));
+        }
+        Expr::GenPow(a) | Expr::HeapBufDyn(a) => calls_expr(a, out),
+        Expr::Pow(a, b)
+        | Expr::Add(a, b)
+        | Expr::Mul(a, b)
+        | Expr::Sub(a, b)
+        | Expr::Div(a, b)
+        | Expr::Mod(a, b)
+        | Expr::FieldDiv(a, b)
+        | Expr::Index(a, b) => {
+            calls_expr(a, out);
+            calls_expr(b, out);
+        }
+        Expr::Slice(a, b, c) | Expr::ListComp(a, _, b, c) => [a, b, c].into_iter().for_each(|x| calls_expr(x, out)),
+        Expr::ListLit(es) => es.iter().for_each(|x| calls_expr(x, out)),
+        Expr::Lit(_) | Expr::Gen | Expr::GPow(_) | Expr::Var(_) | Expr::HeapBuf(_) | Expr::StackBuf(_) => {}
+    }
+}
+
+/// The functions a block calls, at any depth.
+fn calls_block<'a>(body: &'a [Stmt], out: &mut Vec<&'a str>) {
+    for s in body {
+        let mut exprs: Vec<&Expr> = Vec::new();
+        match &s.kind {
+            StmtKind::Let(_, e) | StmtKind::HintWitness { dest: e, .. } | StmtKind::Print { value: e, .. } => {
+                exprs.push(e)
+            }
+            StmtKind::LetTuple(_, f, args) | StmtKind::Call(f, args) => {
+                out.push(f);
+                exprs.extend(args);
+            }
+            StmtKind::AssertEq(a, b) | StmtKind::AssertNe(a, b) => exprs.extend([a, b]),
+            StmtKind::AssertLt(a, bound) => {
+                exprs.push(a);
+                if let LtBound::Runtime(b) = bound {
+                    exprs.push(b);
+                }
+            }
+            StmtKind::LetHintWitness { .. } => {}
+            StmtKind::If { lhs, rhs, then, els, .. } => {
+                exprs.extend([lhs, rhs]);
+                calls_block(then, out);
+                calls_block(els, out);
+            }
+            StmtKind::Match { targets, x, arms } => {
+                exprs.extend(targets);
+                exprs.push(x);
+                exprs.extend(arms);
+            }
+            StmtKind::Store(a, b, c) => exprs.extend([a, b, c]),
+            StmtKind::For { hi, body, .. } => {
+                if let ForBound::Runtime(e) = hi {
+                    exprs.push(e);
+                }
+                calls_block(body, out);
+            }
+            StmtKind::Unroll { lo, hi, body, .. } => {
+                exprs.extend([lo, hi]);
+                calls_block(body, out);
+            }
+            StmtKind::Return(es) => exprs.extend(es),
+            StmtKind::CallIfNe(a, b, f, args) => {
+                out.push(f);
+                exprs.extend([a, b]);
+                exprs.extend(args);
+            }
+        }
+        exprs.into_iter().for_each(|e| calls_expr(e, out));
+    }
+}
+
+/// The aggregation tests' snippets (`crates/aggregation/snippets/*.py`, each a `main`), each parsed after the guest's
+/// source up to its `main`, at the placeholders `replacements`, and kept to the functions its `main` reaches, which
+/// are all a run can execute: `(name, the names kept in the guest's order, the snippet's main)`. Each kept function
+/// must be the guest's own (`guest`), which is what lets the Lean data name them.
+fn snippet_programs(guest: &Ast, replacements: &BTreeMap<String, String>) -> Vec<(String, Vec<String>, Func)> {
+    let (helpers, _) = GUEST_SOURCE.split_once("\ndef main():").unwrap();
+    let dir = concat!(env!("LEANVM_DIR"), "/crates/aggregation/snippets");
+    let mut paths: Vec<_> = std::fs::read_dir(dir)
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .filter(|p| p.extension().is_some_and(|x| x == "py"))
+        .collect();
+    paths.sort();
+    paths
+        .into_iter()
+        .map(|path| {
+            let name = path.file_stem().unwrap().to_string_lossy().into_owned();
+            let src = format!("{helpers}\n{}", std::fs::read_to_string(&path).unwrap());
+            let ast = parse_with_replacements(&src, replacements).unwrap();
+            assert_eq!(format!("{:?}", ast.const_arrays), format!("{:?}", guest.const_arrays));
+            let main = ast.funcs.last().unwrap().clone();
+            assert_eq!(main.name, "main", "snippet {name}: its last function is not its `main`");
+            let mut reached: BTreeSet<&str> = BTreeSet::new();
+            let mut todo = vec!["main"];
+            while let Some(f) = todo.pop() {
+                let Some(def) = ast.funcs.iter().find(|d| d.name == f) else { continue };
+                if reached.insert(&def.name) {
+                    calls_block(&def.body, &mut todo);
+                }
+            }
+            let kept: Vec<String> = ast
+                .funcs
+                .iter()
+                .filter(|f| f.name != "main" && reached.contains(f.name.as_str()))
+                .map(|f| {
+                    let own = guest.funcs.iter().find(|g| g.name == f.name);
+                    assert!(
+                        own.is_some_and(|g| format!("{g:?}") == format!("{f:?}")),
+                        "snippet {name}: `{}` is not the guest's",
+                        f.name
+                    );
+                    f.name.clone()
+                })
+                .collect();
+            (name, kept, main)
+        })
+        .collect()
+}
+
+/// `Snippets.lean`: each snippet's `main` and the guest functions it keeps, and its program.
+fn render_snippets(snippets: &[(String, Vec<String>, Func)]) -> String {
+    let mut out = String::from(
+        "/-\n  LeanVMTests.Guest.Snippets\n\n  Generated by `guest-export` (lean_vm/scripts/guest-export); do not\n  \
+         edit. The aggregation tests' snippets, `crates/aggregation/snippets/*.py`: each a `main`\n  over the \
+         guest's helpers, at the guest's placeholders.\n-/\n\nimport LeanVM.Guest.Data.Source\n\n\
+         namespace LeanVMTests.Guest.Snippets\n\nopen LeanVM.Guest.Source\n\n\
+         /-- A snippet's program: the guest's functions it reaches, in the guest's order, then its `main`. -/\n\
+         def program (keep : List String) (main : Func) : Program :=\n  \
+         ⟨LeanVM.Guest.Data.guest.funcs.filter (fun f => keep.contains f.name) ++ [main], \
+         LeanVM.Guest.Data.guest.constArrays⟩\n\n",
+    );
+    for (name, kept, main) in snippets {
+        writeln!(
+            out,
+            "/-- `{name}.py`. -/\ndef main_{name} : Func :=\n  {}\n\n/-- The functions `{name}.py` reaches. -/\n\
+             def keep_{name} : List String := {}\n",
+            func(main),
+            list(kept.iter().map(|k| string(k)))
+        )
+        .unwrap();
+    }
+    writeln!(
+        out,
+        "/-- Every snippet, by name. -/\ndef all : List (String × Program) := {}\n\nend LeanVMTests.Guest.Snippets",
+        list(
+            snippets
+                .iter()
+                .map(|(name, ..)| format!("({}, program keep_{name} main_{name})", string(name)))
+        )
+    )
+    .unwrap();
+    out
+}
+
+/// `Source.lean`, with the placeholders at the log size `kbc`, `Programs.lean` and `Snippets.lean`.
 pub fn files(kbc: usize) -> Vec<File> {
     let replacements = placeholder_map(kbc);
     let (ast, consts) =
         parse_with_constants(GUEST_SOURCE, &replacements).expect("the repository aggregation guest must parse");
+    let snippets = snippet_programs(&ast, &replacements);
     vec![
         File {
             path: "LeanVM/Guest/Data/Source.lean".into(),
@@ -330,6 +493,10 @@ pub fn files(kbc: usize) -> Vec<File> {
         File {
             path: "tests/LeanVMTests/Guest/Programs.lean".into(),
             text: render_programs(),
+        },
+        File {
+            path: "tests/LeanVMTests/Guest/Snippets.lean".into(),
+            text: render_snippets(&snippets),
         },
     ]
 }

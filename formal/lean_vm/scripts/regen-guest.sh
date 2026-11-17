@@ -16,8 +16,9 @@
 # were removed since the last export, with the hand-written modules that read them: the proofs to
 # adapt. Not regenerated here: the verifier fixtures (`scripts/export-verifier-fixtures-rust.sh`,
 # before the differential tests) and the fold rounds' table (`scripts/whir-fold-table`, after a change to
-# WHIR's folding). The `programs` step writes the Lean back end's compilation of the zkDSL test programs and of
-# the verifiers' fixture program, which the Rust tests, the Fibonacci benchmark and the fixtures load. The `backend`
+# WHIR's folding). The `programs` step writes the Lean back end's compilation of the zkDSL test programs, of
+# the verifiers' fixture program and of the aggregation tests' snippets, which the Rust tests, the Fibonacci
+# benchmark and the fixtures load. The `backend`
 # step writes the Lean back end's guest data: the soundness obligations' tables and evaluation modules
 # (`guest-oblgen`).
 set -euo pipefail
@@ -96,6 +97,7 @@ part_programs() {
   step "programs: the zkDSL test programs compiled (guest-backend export programs)"
   lakebuild guest-backend
   capped .lake/build/bin/guest-backend export programs ../../crates/zkdsl_compiler/tests/suite/lean_backend "${check[@]}"
+  capped .lake/build/bin/guest-backend export snippets ../../crates/aggregation/snippets "${check[@]}"
 }
 
 part_core_ir() {

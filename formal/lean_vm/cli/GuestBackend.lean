@@ -5,6 +5,7 @@ import LeanVM.Compiler.Lines
 import LeanVM.Guest.Interp
 import LeanVM.Guest.Renumber
 import LeanVMTests.Guest.Programs
+import LeanVMTests.Guest.Snippets
 
 /-!
 # `guest-backend`: the guest compiled by the Lean back end
@@ -23,7 +24,9 @@ Run from `lean_vm`.
 * `lake exe guest-backend export programs DIR [--check]` writes the compiler's test programs
   (`LeanVMTests.Guest.Programs`) in the line format of `crates/isa/src/text.rs`, source lines
   included (`Compiler.Lines`), which the Rust tests compare with the Rust compiler's output
-  (`crates/zkdsl_compiler/tests/suite/lean_backend.rs`).
+  (`crates/zkdsl_compiler/tests/suite/lean_backend.rs`), and the verifiers' fixture program at each
+  of its step counts (`Programs.chains`). `export snippets DIR [--check]` writes the aggregation
+  tests' snippets (`LeanVMTests.Guest.Snippets`: a `main` over the guest's helpers).
   The guest itself is written by `lake exe guest-artifact` (`cli/GuestArtifact.lean`).
 * `lake exe guest-backend core-text DIR` writes the core IR of the guest (`DIR/guest.core`) and of each
   test program (`DIR/<name>.core`), as `Expand.expandProgram` gives it, each function renumbered
@@ -184,27 +187,34 @@ def core (name : String) : IO UInt32 := do
   IO.println (Interp.showFn f.core)
   return 0
 
-def exportPrograms (dir : String) (checkOnly : Bool) : IO UInt32 := do
+/-- Compile each program and write it to `DIR/<name>.txt`, or with `checkOnly` fail when a file
+differs; `what` names the command that writes them. -/
+def exportAll (what : String) (programs : List (String × Source.Program)) (dir : String)
+    (checkOnly : Bool) : IO UInt32 := do
   let mut failed := false
-  for t in LeanVMTests.Guest.Programs.all ++ LeanVMTests.Guest.Programs.chains do
-    let path := s!"{dir}/{t.name}.txt"
-    unless ← selfChecks t.name t.program do failed := true
-    match Lines.compileLines t.program with
+  for (name, program) in programs do
+    let path := s!"{dir}/{name}.txt"
+    unless ← selfChecks name program do failed := true
+    match Lines.compileLines program with
     | .error e =>
-        IO.eprintln s!"{t.name}: {e}"
+        IO.eprintln s!"{name}: {e}"
         failed := true
     | .ok (c, lines) =>
         let text := render c ++ renderLines lines
         if checkOnly then
           let current ← if ← System.FilePath.pathExists path then IO.FS.readFile path else pure ""
           if current != text then
-            IO.eprintln s!"{path} is stale: run `lake exe guest-backend export programs {dir}`"
+            IO.eprintln s!"{path} is stale: run `lake exe guest-backend export {what} {dir}`"
             failed := true
         else
           IO.FS.createDirAll dir
           IO.FS.writeFile path text
           IO.println s!"{path}: {c.code.size} instructions, size {c.size}, main frame {c.mainFrame}"
   return if failed then 1 else 0
+
+/-- The test programs and the verifiers' fixture program at each of its step counts. -/
+def testPrograms : List (String × Source.Program) :=
+  (LeanVMTests.Guest.Programs.all ++ LeanVMTests.Guest.Programs.chains).map fun t => (t.name, t.program)
 
 /-! ## The canonical text of the core IR -/
 
@@ -277,8 +287,7 @@ def coreText (P : Program) : String :=
 
 def coreTextDir (dir : String) : IO UInt32 := do
   IO.FS.createDirAll dir
-  let programs := ("guest", Data.guest) ::
-    (LeanVMTests.Guest.Programs.all ++ LeanVMTests.Guest.Programs.chains).map fun t => (t.name, t.program)
+  let programs := ("guest", Data.guest) :: testPrograms
   for (name, p) in programs do
     let P ← orThrow (Expand.expandProgram p)
     IO.FS.writeFile s!"{dir}/{name}.core" (coreText P)
@@ -342,11 +351,13 @@ def main (args : List String) : IO UInt32 := do
   | "functions" :: rest => GuestBackend.functions rest
   | ["show", name] => GuestBackend.show name
   | ["core", name] => GuestBackend.core name
-  | ["export", "programs", dir] => GuestBackend.exportPrograms dir false
-  | ["export", "programs", dir, "--check"] => GuestBackend.exportPrograms dir true
+  | ["export", "programs", dir] => GuestBackend.exportAll "programs" GuestBackend.testPrograms dir false
+  | ["export", "programs", dir, "--check"] => GuestBackend.exportAll "programs" GuestBackend.testPrograms dir true
+  | ["export", "snippets", dir] => GuestBackend.exportAll "snippets" LeanVMTests.Guest.Snippets.all dir false
+  | ["export", "snippets", dir, "--check"] => GuestBackend.exportAll "snippets" LeanVMTests.Guest.Snippets.all dir true
   | ["core-text", dir] => GuestBackend.coreTextDir dir
   | ["time"] => GuestBackend.time
   | ["coverage"] => GuestBackend.coverage
   | _ =>
-      IO.eprintln "usage: guest-backend check | functions [N] | show NAME | core NAME | export programs DIR [--check] | core-text DIR | time | coverage"
+      IO.eprintln "usage: guest-backend check | functions [N] | show NAME | core NAME | export programs|snippets DIR [--check] | core-text DIR | time | coverage"
       return 2
