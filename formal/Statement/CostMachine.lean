@@ -414,22 +414,22 @@ def decodeExecution (program : Semantics.LeanIsaProgram) : MachineValue → Opti
 /-- **The extractor's budget**, for a proof announcing a stack of `2^μ` elements
 (`stackLog = μ`) and a transcript of `N = permutationQueryCount` permutation queries: the most the
 extractor's run may cost, in the machine's price (the sum of its steps' prices, each at least `1`,
-so also the most steps it may execute), `2^max(80, 2μ + 25) + (N + 2^30)·(D + 2)²·(2^15 + 2D)`,
+so also the most steps it may execute), `2^max(58, 2μ + 9) + (N + 2^30)·(D + 2)²·(2^17 + 8D)`,
 with `D = log₂(N + 2) + 1` the levels of the extractor's sorted tables of the transcript.
-`lean_vm` proves the compiled extractor's price at most this at every shape the replay admits
-(stack log-size `16` to `30`, rate exponent `1` to `4`, memory and program log-sizes at most `30`):
-the first term bounds the list decoder (its `64` lanes' Guruswami-Sudan decoding at the stack's
-worst rate, each lane interpolated by an approximant basis: about `2^78.96` at `μ = 27`, `2^80.93`
-at `28`, `2^82.91` at `29` and `2^84.91` at `30`, so the term is `2^80` up to `μ = 27`, then
-`2^81`, `2^83`, `2^85`) and the runs of the candidate executions; the second term bounds the
-transcript's index (per query and level squared, a level's positions growing by a limb per `64`
-levels) and the committed leaves (`2^30` at most). Past `2^128` from about `2^100` queries, where
-the soundness bound is still about `2^-25` (`statement.tex`, *What is not proved*, says what the regime
+`lean_vm` proves the compiled extractor's price at most this wherever it extracts, at every shape
+the replay admits (stack log-size `16` to `30`, rate exponent `1` to `4`, memory and program
+log-sizes at most `30`): the first term bounds the descent from the final polynomial to level 0's
+stack (each fold round's lanes decoded with at most one error on the columns of their agreement
+set, level 0's descent dominating), level 0's stack, the candidate run and every other price
+independent of the transcript; the second bounds, per query, the transcript's indexes (its first
+forward answers, and one preimage index per committed root, at most six) and, per committed leaf
+or hashed block (`2^30` at most), their lookups. It passes `2^128` at about `N = 2^97.5`, where the
+soundness bound is still about `2^-27` (`statement.tex`, *What is not proved*, says what the regime
 leaves out). A proof announcing no layout is given the budget of `μ = 0`. -/
 def leanVmKnowledgeExtractorBudget (stackLog permutationQueryCount : ℕ) : ℕ :=
-  2 ^ max 80 (2 * stackLog + 25) +
+  2 ^ max 58 (2 * stackLog + 9) +
     (permutationQueryCount + 2 ^ 30) * (Nat.log2 (permutationQueryCount + 2) + 3) ^ 2 *
-      (2 ^ 15 + 2 * (Nat.log2 (permutationQueryCount + 2) + 1))
+      (2 ^ 17 + 8 * (Nat.log2 (permutationQueryCount + 2) + 1))
 
 /-- The stack log-size a proof of `program` announces (`Verifier.announcedLayoutAndRate`), `0` if
 it announces none. -/
@@ -450,12 +450,12 @@ open Common
 
 @[expose] public section
 
-/-- **The bound on the extractor program's size** (`MachineProgram.size`): `14159`, the compiled
-extractor's size (`14039`: its `699` compiled bodies and the entry, at `712` indices, `12` of
+/-- **The bound on the extractor program's size** (`MachineProgram.size`): `25377`, the compiled
+extractor's size (`25257`: its `513` compiled bodies and the entry, at `550` indices, `36` of
 them holes, a literal `0` each) and a slack of `120`, less than one leanXMSS signature's encoding
 (`309`: two layers of `153`, each a randomizer, `58` chain values and a path of `16`, digests of
 two limbs), so the compiled extractor could carry no useful table of witnesses beside its code. -/
-def leanVmKnowledgeExtractorSizeBound : ℕ := 14159
+def leanVmKnowledgeExtractorSizeBound : ℕ := 25377
 
 /-- **The extractor a program computes**: the program, of size at most
 `leanVmKnowledgeExtractorSizeBound`, run on the encoded statement, transcript and proof

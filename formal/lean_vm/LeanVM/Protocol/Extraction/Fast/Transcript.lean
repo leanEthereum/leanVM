@@ -4,18 +4,16 @@ public import LeanVM.Protocol.Extraction.Fast.Lookup
 public import LeanVM.Protocol.Extraction.Fast.Replay
 
 /-!
-# The extractor of the random-permutation model, fast
+# The transcript's preimage index
 
-`transcriptExtractorFast` is `transcriptExtractor` (`Extraction/Extractor.lean`) with
-every piece fast: the transcript replayed through sorted maps (`SortedMap`), keeping the evaluations of at most
+The transcript replayed through sorted maps (`SortedMap`), keeping the evaluations of at most
 `L = max 64 (8·width)` bytes (`keccakEvaluationsFast`), their first answers and preimages indexed
-(`firstAnswers`, `preimageIndex`), and the decoder's Roth–Ruckenstein step a Taylor shift
-(`extractWith`, on `decodeStacksFast`).
+(`firstAnswers`, `preimageIndex`): `transcriptIndex`, and a root's committed leaves read through it
+(`leavesOf`).
 
 * `preimage_filter`: `preimage pairs d len` reads only the pairs of `len` bytes;
 * `filter_answerPairs`: the answered pairs of at most `L` bytes are those of the paths of at most
   `L` bytes;
-* **`transcriptExtractorFast_eq`**: `transcriptExtractorFast = transcriptExtractor`.
 -/
 
 namespace LeanVM.Extraction.Fast
@@ -80,25 +78,11 @@ theorem filter_answerPairs (P : List (Bytes × Digest)) (L : ℕ) :
   let P := keccakEvaluationsFast T L
   preimageIndex (answerPairs (firstAnswers P).get? (P.map (·.1)))
 
-/-- **The extractor in the random-permutation model, fast.** -/
-@[expose] def transcriptExtractorFast (prog : LeanIsaProgram) (input : PublicInput) (T :
-    OracleQueryLog)
-    (proof : Proof) : Option (Execution prog) :=
-  extractWith prog input (bytecodeWords prog)
-    (fun width ↦ transcriptIndex (permutationQueries T) (max 64 (8 * width))) preimageIn proof
-
-/-- **The fast extractor is the statement's.** -/
-theorem transcriptExtractorFast_eq : transcriptExtractorFast = transcriptExtractor := by
-  funext prog input T proof
-  rw [transcriptExtractorFast, transcriptExtractor, ← extractFast_eq, ← extractWith_preimage]
-  refine extractWith_congr _ _ _ _ _ _ _ (fun w d len hlen ↦ ?_) _
-  have hL : len ≤ max 64 (8 * w) := by
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at hlen
-    omega
-  rw [transcriptIndex, preimageIn_preimageIndex, answerPairs_firstAnswers, keccakEvaluationsFast_eq,
-    ← filter_answerPairs, preimage_filter]
-  intro p _ hp
-  simp [hp, hL]
+/-- **A root's committed leaves**, its preimages read through the transcript's index of the
+evaluations of at most `max 64 (8·w)` bytes. -/
+@[expose] def leavesOf (qs : List (PermutationQuery KeccakState × KeccakState)) (w h : ℕ)
+    (root : Digest) : Array (List K) :=
+  subtreeLeavesWith (preimageIn (transcriptIndex qs (max 64 (8 * w)))) w h root
 
 end
 

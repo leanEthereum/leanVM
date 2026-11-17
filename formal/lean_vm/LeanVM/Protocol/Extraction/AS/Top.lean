@@ -7,7 +7,9 @@
 module
 
 public import LeanVM.Protocol.Extraction.AS.Hash
-public import LeanVM.Protocol.Extraction.Fast.Compiled
+public import LeanVM.Protocol.Extraction.Fast.Transcript
+public import LeanVM.Protocol.Extraction.Fast.RunVec
+public import LeanVM.Protocol.Extraction.Fast.AfterRoot
 public import LeanVM.Protocol.LeanVMRpmASC
 
 /-!

@@ -3,6 +3,7 @@ module
 public import LeanVM.Cost.CompPolyLib
 public import LeanVM.Cost.InitLib
 public import LeanVM.Protocol.Extraction.Fast.Transcript
+public import LeanVM.Protocol.Extraction.Fast.Address
 import all LeanVM.Protocol.Extraction.Fast.SortedMap
 import all LeanVM.Protocol.Extraction.Fast.Lookup
 import all LeanVM.Protocol.Extraction.Fast.Replay
@@ -32,15 +33,6 @@ instance {α β : Type} [Ord α] [MachineEncoding α] [MachineEncoding β] : Mac
 
 instance : MachineEncoding ReplayFast := ⟨fun τ ↦ .constructor 0 [encodeValue τ.fwd, encodeValue τ.inv, encodeValue τ.caps, encodeValue τ.paths]⟩
 
-instance {R : Type} [Zero R] [MachineEncoding R] : MachineEncoding (CompPoly.CBivariate R) :=
-  inferInstanceAs (MachineEncoding (CompPoly.CPolynomial (CompPoly.CPolynomial R)))
-
-cost_enc CompPoly.GuruswamiSudan.GSInterpParams
-cost_enc CompPoly.GuruswamiSudan.GSExecParams
-cost_enc CompPoly.GuruswamiSudan.GSReceivedWord
-cost_enc CompPoly.PolynomialMatrix.RowChoice
-cost_enc CompPoly.GuruswamiSudan.LeeOSullivan.RowChoice
-cost_enc CompPoly.CBivariate.Monomial
 cost_enc LeanVM.Protocol.Compile.Sponge
 cost_enc LeanVM.Protocol.Compile.VerifierProgramState
 cost_enc LeanVM.Protocol.Verifier.Placement

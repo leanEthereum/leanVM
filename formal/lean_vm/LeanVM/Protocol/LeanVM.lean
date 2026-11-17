@@ -17,8 +17,8 @@ public import LeanVM.Protocol.EndToEnd.Complete.Statement
 The statements are in `LeanVM/Spec/` (the ISA, the verifier, the extractor, `Statement.lean` and
 `Rpm.lean`), which imports nothing else from the repository; their proofs
 (`LeanVM/Protocol/LeanVMRpm.lean`) go through the two-oracle random-oracle model of
-`LeanVM/Protocol/Rom/Statement.lean`. There, knowledge soundness, `knowledgeSoundnessRom_holds`,
-is proved in `LeanVM.Protocol.LeanVMSound`, and its numbers in `LeanVM.Protocol.ErrorBounds`;
+`LeanVM/Protocol/Rom/Statement.lean`. There, knowledge soundness, `knowledgeSoundnessRomAS`,
+is proved in `LeanVM.Protocol.LeanVMSoundAS`, and its numbers in `LeanVM.Protocol.ErrorBounds`;
 this page proves completeness, `completenessRom_holds`, with an explicit honest prover.
 
 **Completeness** (`completenessRom`): for a valid execution whose committed size

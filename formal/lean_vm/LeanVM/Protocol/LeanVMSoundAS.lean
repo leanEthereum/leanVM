@@ -130,7 +130,7 @@ theorem rootCap_le : Sound.rootCap ≤ 2 ^ 16 := by decide
 
 /-- **The agreement-set extractor's error fits the end statement's bound**: for `Q ≤ 2^128`
 queries, with the transfer to the random-permutation model, at most
-`(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256`, as the list decoder's. The new terms, the fresh hit
+`(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256`. The new terms, the fresh hit
 `2^-127` and the fresh roots `V · rootCap · 2^-256`, are each at most `2^-125`, as are the
 transfer's, and `Q + V + 3 ≤ Q + 2^14`. -/
 theorem soundnessRpmAS_le_statement {Q : ℕ} (hQ : Q ≤ 2 ^ 128) :

@@ -1,6 +1,7 @@
 module
 
-public import LeanVM.Cost.Bounds.Top
+public import LeanVM.Cost.Bounds.Leaves
+public import LeanVM.Cost.Bounds.Layout
 public import LeanVM.Cost.AS.Top
 import all LeanVM.Protocol.Whir.Sound.NewtonK
 
@@ -25,18 +26,18 @@ public section
 variable (P : MachineProgram)
 
 theorem nEvalK_go_cost
-    (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.Newton.nEvalK.c713.costDeps) :
+    (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.Newton.nEvalK.c264.costDeps) :
     ∀ (xs : List K) (as : List E) (z : K),
-      machineCost P Auto.LeanVM.Protocol.Whir.Sound.Newton.nEvalK.c713.costIdx
+      machineCost P Auto.LeanVM.Protocol.Whir.Sound.Newton.nEvalK.c264.costIdx
         [encodeValue xs, encodeValue as, encodeValue z] ≤ 206 * xs.length + 11
   | [], as, z => by
-    rw [Auto.LeanVM.Protocol.Whir.Sound.Newton.nEvalK.c713.costEq P hP]
+    rw [Auto.LeanVM.Protocol.Whir.Sound.Newton.nEvalK.c264.costEq P hP]
     cases as <;> simp
   | x :: xs, [], z => by
-    rw [Auto.LeanVM.Protocol.Whir.Sound.Newton.nEvalK.c713.costEq P hP]
+    rw [Auto.LeanVM.Protocol.Whir.Sound.Newton.nEvalK.c264.costEq P hP]
     simp
   | x :: xs, a :: as, z => by
-    rw [Auto.LeanVM.Protocol.Whir.Sound.Newton.nEvalK.c713.costEq P hP]
+    rw [Auto.LeanVM.Protocol.Whir.Sound.Newton.nEvalK.c264.costEq P hP]
     have := nEvalK_go_cost hP xs as z
     simp only [List.length_cons]
     omega
@@ -61,13 +62,13 @@ theorem nodalK_cost (hP : Includes P nodalKC.costDeps) (xs : List K) (z : K) :
     (fun x _ ↦ by
       rw [appCost_fn, List.cons_append, List.nil_append, nodalKC.lam0.costEq P (by includes)]
       simp)
-  have hp : machineCost P Auto.List.prod.c715.costIdx [encodeValue (xs.map fun x ↦ z - x)] ≤
+  have hp : machineCost P Auto.List.prod.c266.costIdx [encodeValue (xs.map fun x ↦ z - x)] ≤
       40 * xs.length + 7 := by
-    rw [Auto.List.prod.c715.costEq P (by includes)]
-    have := foldr_cost P (by includes) (· * ·) (.closure Auto.List.prod.c715.lam0.costIdx [])
-      (fun a b ↦ RunsApp.of_spec (Auto.List.prod.c715.lam0.costSpec P (by includes) a b)) 29 1
+    rw [Auto.List.prod.c266.costEq P (by includes)]
+    have := foldr_cost P (by includes) (· * ·) (.closure Auto.List.prod.c266.lam0.costIdx [])
+      (fun a b ↦ RunsApp.of_spec (Auto.List.prod.c266.lam0.costSpec P (by includes) a b)) 29 1
       (xs.map fun x ↦ z - x) (fun a _ b ↦ by
-        rw [appCost_fn, List.nil_append, Auto.List.prod.c715.lam0.costEq P (by includes)]
+        rw [appCost_fn, List.nil_append, Auto.List.prod.c266.lam0.costEq P (by includes)]
         simp)
     simp only [List.length_map] at this
     omega
@@ -103,13 +104,13 @@ theorem nFormK_cost (hP : Includes P nFormKC.costDeps) (pts : List (K × E)) :
     pts ([], []) ⟨rfl, by simp⟩
   nlinarith
 
-theorem eraseIdx_cost (hP : Includes P Auto.List.eraseIdx.c722.costDeps) {α : Type}
+theorem eraseIdx_cost (hP : Includes P Auto.List.eraseIdx.c273.costDeps) {α : Type}
     [MachineEncoding α] : ∀ (l : List α) (i : ℕ), i < 2 ^ 64 →
-      machineCost P Auto.List.eraseIdx.c722.costIdx [encodeValue l, encodeValue i] ≤ 19 * l.length + 10
-  | [], i, _ => by rw [Auto.List.eraseIdx.c722.costEq P hP]; simp
-  | x :: l, 0, _ => by rw [Auto.List.eraseIdx.c722.costEq P hP]; simp [limbCount]
+      machineCost P Auto.List.eraseIdx.c273.costIdx [encodeValue l, encodeValue i] ≤ 19 * l.length + 10
+  | [], i, _ => by rw [Auto.List.eraseIdx.c273.costEq P hP]; simp
+  | x :: l, 0, _ => by rw [Auto.List.eraseIdx.c273.costEq P hP]; simp [limbCount]
   | x :: l, i + 1, hi => by
-    rw [Auto.List.eraseIdx.c722.costEq P hP, limbs_of_lt hi]
+    rw [Auto.List.eraseIdx.c273.costEq P hP, limbs_of_lt hi]
     have := eraseIdx_cost hP l i (by omega)
     simp only [List.length_cons]
     omega

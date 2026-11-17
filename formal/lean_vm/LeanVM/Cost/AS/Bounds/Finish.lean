@@ -134,7 +134,7 @@ theorem finishL_cost (hP : Includes P finishLC.costDeps) (prog : Semantics.LeanI
   rw [hl]
   simp (disch := omega) only [limbs_of_lt]
   split_ifs with g1 g2 g3
-  · rw [Auto.Option.bind.c154.costEq P (by includes) _
+  · rw [Auto.Option.bind.c47.costEq P (by includes) _
       (fun T ↦ if T.1 = 6 then candidateRunner prog input lay (stackA lay.stackLog T.2) else none)
       _ (fun T ↦ RunsApp.of_spec (finishLC.lam0.costSpec P (by includes) prog input
         ((b, ((lay, ρ), tr)), s) T))]

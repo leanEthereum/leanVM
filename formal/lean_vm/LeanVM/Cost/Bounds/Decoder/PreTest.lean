@@ -50,9 +50,9 @@ variable (P : LeanVM.Cost.MachineProgram)
 /-! ## Powers and the logarithm's bound -/
 
 /-- A power `g^o` by squaring, `o < 2^W`: at most `psAt W`. -/
-theorem powSqW_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c101.costDeps) {W o : ℕ}
+theorem powSqW_cost (hP : Includes P Auto.LeanVM.Cost.Rewrite.powSq.c116.costDeps) {W o : ℕ}
     (hW : 0 < W) (hW64 : W < 64) (ho : o < 2 ^ W) :
-    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c101.costIdx [encodeValue LeanVM.Parameters.g, encodeValue o] ≤
+    machineCost P Auto.LeanVM.Cost.Rewrite.powSq.c116.costIdx [encodeValue LeanVM.Parameters.g, encodeValue o] ≤
       psAt W := by
   have h64 : 2 ^ W ≤ 2 ^ 64 := Nat.pow_le_pow_right (by norm_num) hW64.le
   have h1 := powSq_cost P hP LeanVM.Parameters.g o (by omega)
@@ -154,20 +154,20 @@ theorem sum_map_affine {α : Type} (f : α → ℕ) (a b : ℕ) :
     simp only [List.map_cons, List.sum_cons, List.length_cons, sum_map_affine f a b l]
     ring
 
-/-- `List.all` (`all.c296`), the predicate's price depending on the element: its prices and `11`
+/-- `List.all` (`all.c173`), the predicate's price depending on the element: its prices and `11`
 per element, `3`. -/
-theorem all_cost_sum (hP : Includes P Auto.List.all.c296.costDeps) {β : Type} [MachineEncoding β]
+theorem all_cost_sum (hP : Includes P Auto.List.all.c173.costDeps) {β : Type} [MachineEncoding β]
     (p : β → Bool) (pVal : MachineValue)
     (hp : ∀ a, RunsApp P pVal [encodeValue a] (encodeValue (p a))) (B : β → ℕ) :
     ∀ l : List β, (∀ a ∈ l, appCost P pVal [encodeValue a] ≤ B a) →
-      machineCost P Auto.List.all.c296.costIdx [encodeValue l, pVal] ≤
+      machineCost P Auto.List.all.c173.costIdx [encodeValue l, pVal] ≤
         (l.map fun a ↦ B a + 11).sum + 3 := by
   intro l
   induction l with
-  | nil => intro _; rw [Auto.List.all.c296.costEq_nil P hP p pVal hp]; simp
+  | nil => intro _; rw [Auto.List.all.c173.costEq_nil P hP p pVal hp]; simp
   | cons a l ih =>
     intro hB
-    rw [Auto.List.all.c296.costEq_cons P hP a l p pVal hp]
+    rw [Auto.List.all.c173.costEq_cons P hP a l p pVal hp]
     have h1 := ih fun a' ha ↦ hB a' (by simp [ha])
     have h2 := hB a (by simp)
     simp only [List.map_cons, List.sum_cons]

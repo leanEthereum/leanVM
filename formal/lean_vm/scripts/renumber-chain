@@ -13,6 +13,10 @@ follow. This script does it mechanically, from two listings of the chain's compi
       kernel on: `lake env` reads `.lake/build`; with --dev, `lake-build.py --dev`'s
       `.lake/build-dev`).
 
+  scripts/renumber-chain dump --as OUT
+      The same for the agreement-set extractor's branch (`Cost/AS/`), whose indices overlap the
+      decoder's: apply its pair to `LeanVM/Cost/AS/` alone.
+
   scripts/renumber-chain apply BEFORE AFTER [FILES…]   (default FILES: every .lean file under
       LeanVM/Cost/Bounds and tests/LeanVMTests/Cost)
       In FILES, rename every `<name>.c<i>` naming an on-demand function of BEFORE (`<name>` the
@@ -35,7 +39,10 @@ import tempfile
 from collections import defaultdict
 from pathlib import Path
 
-LAST_MODULES = ["LeanVM.Cost.Extractor.Top", "LeanVM.Cost.Decoder.Top", "LeanVM.Cost.Extractor.PMLane"]
+LAST_MODULES = ["LeanVM.Cost.Extractor.Top", "LeanVM.Cost.Decoder.Top"]
+# The agreement-set extractor's branch of the chain (`Cost/AS/`), past the shared chain like the
+# decoder's: its indices overlap the decoder's, so it is dumped and applied on its own (`--as`).
+AS_MODULES = ["LeanVM.Cost.Extractor.Top", "LeanVM.Cost.AS.Program"]
 
 DUMP_LEAN = """{imports}
 
@@ -59,8 +66,8 @@ open Lean LeanVM.Cost.Compiler in
 """
 
 
-def dump(out: Path, dev: bool) -> None:
-    imports = "\n".join(f"import {m}" for m in LAST_MODULES)
+def dump(out: Path, dev: bool, as_branch: bool = False) -> None:
+    imports = "\n".join(f"import {m}" for m in (AS_MODULES if as_branch else LAST_MODULES))
     with tempfile.TemporaryDirectory() as d:
         src = Path(d) / "Dump.lean"
         src.write_text(DUMP_LEAN.format(imports=imports, out=out.resolve()))
@@ -189,6 +196,8 @@ def main() -> int:
     d = sub.add_parser("dump")
     d.add_argument("out", type=Path)
     d.add_argument("--dev", action="store_true", help="read the --dev build (.lake/build-dev)")
+    d.add_argument("--as", dest="as_branch", action="store_true",
+                   help="the agreement-set extractor's branch (`Cost/AS/`) instead of the decoder's")
     a = sub.add_parser("apply")
     a.add_argument("before", type=Path)
     a.add_argument("after", type=Path)
@@ -196,7 +205,7 @@ def main() -> int:
     a.add_argument("--check", action="store_true")
     args = ap.parse_args()
     if args.cmd == "dump":
-        dump(args.out, args.dev)
+        dump(args.out, args.dev, args.as_branch)
         return 0
     files = args.files or sorted(str(p) for root in ("LeanVM/Cost/Bounds", "tests/LeanVMTests/Cost")
                                  for p in Path(root).rglob("*.lean"))

@@ -15,7 +15,7 @@ import Statement.Theorems
 import Statement.Corollaries
 import LeanVM.Protocol.WithHash
 import LeanVM.Guest.WithHash
-import LeanVM.Cost.Efficient
+import LeanVM.Cost.KnowledgeExtractor
 import LeanVM.Guest.DecoderProgram
 import LeanVM.Cost.DecoderSpec
 import LeanVM.Cost.Bounds.Guest.Budget
@@ -47,14 +47,14 @@ Its fields are proved by `theorems_of_decoderSpec`, for any decoder program meet
 whose decodings explain the input by `guest_knowledge`.
 
 **The extractor.** `Statement.Theorems` takes the extractor as a cost-machine program
-(`Statement/CostMachine.lean`): `compiledKnowledgeExtractor`, the knowledge extractor
-`transcriptExtractor` (`LeanVM/Protocol/Extraction/Extractor.lean`) compiled
-(`Cost/Extractor/Top.lean`) behind an entry (`Cost/ExtractorProgram.lean`). Its size is within
-`leanVmKnowledgeExtractorSizeBound` (`Cost/ExtractorSize.lean`), and the extractor it computes
-within its budget is
+(`Statement/CostMachine.lean`): `compiledKnowledgeExtractor` (`Cost/KnowledgeExtractor.lean`), the
+knowledge extractor `transcriptExtractor` (`LeanVM/Protocol/KnowledgeSoundness.lean`, the
+agreement-set extractor of `LeanVM/Protocol/Extraction/AS/Lite.lean`) compiled (`Cost/AS/Top.lean`)
+behind an entry (`Cost/AS/Program.lean`). Its size is within `leanVmKnowledgeExtractorSizeBound`
+(`Cost/AS/ProgramSize.lean`), and the extractor it computes within its budget is
 `transcriptExtractor` (`LeanVM.Cost.extractorOf_extractorProgram`), for which
 `knowledgeSoundness_holds` is proved; its price is within `leanVmKnowledgeExtractorBudget`
-(`Cost/Bounds/Top.lean`).
+wherever it extracts (`LeanVM.Cost.AS.asPrice_within`, `Cost/AS/End.lean`).
 
 Each theorem below proves a proposition of `Statement/` (`statement.tex`), in the
 random-permutation model where an adversary is involved, except the memory-decoder forms
@@ -91,14 +91,14 @@ random-permutation model where an adversary is involved, except the memory-decod
   the random-permutation model (from `batch_rpm`).
 
 The other theorems pinned below are steps or corollaries: the bounds' numbers (the soundness and
-completeness errors, and the compiled extractor's price, `LeanVM.Cost.Bounds.extractorC_cost`,
-`extractorPrice_30_4`, `extractorPrice_30_4_2_128`), the guest's batching
+completeness errors, and the compiled extractor's price, `LeanVM.Cost.Bounds.AS.extractL_cost`,
+`LeanVM.Cost.Bounds.AS.asPrice_le`, `LeanVM.Cost.AS.asPrice_within`), the guest's batching
 of its children's deferred claims (`LeanVM.Guest.Batch.children_sound`, and in the
 random-permutation model `batch_rpm`, `batch_rpm_bits`), `decode_binds`, `guest_sound`,
 `aggregate_knowledge`, and the guest's completeness within its deployed budget
 (`LeanVM.Guest.Budget.guest_complete`, `guest_complete_numeric`).
 The two-oracle random-oracle model the proofs pass through (`LeanVM/Protocol/Rom/Statement.lean`:
-`LeanVM.knowledgeSoundnessRom_holds`, `LeanVM.completenessRom_holds`; the batching's
+`LeanVM.knowledgeSoundnessRomAS`, `LeanVM.completenessRom_holds`; the batching's
 `LeanVM.Guest.Batch.batch_rom`, `batch_rom_bits`) is a proof step: its theorems are not pinned here
 (`tests/LeanVMTests/Protocol/` and `tests/LeanVMTests/Guest/Batch.lean` check their footprints).
 The build fails if their axiom footprint ever grows beyond Lean's three standard axioms. -/
@@ -124,17 +124,17 @@ example : LeanVM.Guest.Batch.BatchingSound := LeanVM.Guest.Batch.batch_sound_hol
 #guard_msgs in
 #print axioms LeanVM.knowledgeSoundness_holds
 
-/-- info: 'LeanVM.Cost.Bounds.extractorC_cost' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Cost.Bounds.AS.extractL_cost' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Cost.Bounds.extractorC_cost
+#print axioms LeanVM.Cost.Bounds.AS.extractL_cost
 
-/-- info: 'LeanVM.Cost.Bounds.extractorPrice_30_4' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Cost.Bounds.AS.asPrice_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Cost.Bounds.extractorPrice_30_4
+#print axioms LeanVM.Cost.Bounds.AS.asPrice_le
 
-/-- info: 'LeanVM.Cost.Bounds.extractorPrice_30_4_2_128' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Cost.AS.asPrice_within' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms LeanVM.Cost.Bounds.extractorPrice_30_4_2_128
+#print axioms LeanVM.Cost.AS.asPrice_within
 
 /-- info: 'LeanVM.candidates_ncard_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

@@ -36,12 +36,10 @@ proof (`Adversary`). The experiment runs the adversary, then the verifier on its
 one oracle, and records the verdict, the oracle's answers at the end, and the oracle's answers to
 the adversary's queries, as they stood when the adversary output its proof (`experiment`).
 
-* `KnowledgeSoundnessRom`: for every adversary of at most `Q` queries, the probability that the
-  verifier accepts while the extractor (`extractor`: `LeanVM.Extraction.extract` of
-  `LeanVM/Protocol/Extraction/Extractor.lean` on the adversary's cached Keccak-256 answers, the byte strings they
-  answer enumerated classically, `Extraction.supportKeys`) does not return a valid execution of the
-  program on the public input is at most `soundnessError Q`. Proved:
-  `LeanVM.knowledgeSoundnessRom_holds` (`LeanVM/Protocol/LeanVMSound.lean`).
+* `Breaks extract`: the verifier accepts while the extractor `extract` (from the adversary's cached
+  answers and the proof) does not return a valid execution of the program on the public input;
+  the agreement-set extractor's bound on it is `LeanVM.knowledgeSoundnessRomAS`
+  (`LeanVM/Protocol/LeanVMSoundAS.lean`).
 * `CompletenessRom`: there is an honest prover which, given a valid execution whose committed size
   is at most `2^30`, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, trying at most `fuel ≤ 2^64` nonces
   per proof of work, makes the verifier reject with probability at most `completenessError fuel`.
@@ -104,27 +102,12 @@ and the proof, an execution of the program. -/
 abbrev Extractor : Type :=
   (prog : LeanIsaProgram) → PublicInput → KeccakCalls.QueryCache → Proof → Option (Execution prog)
 
-/-- **The extractor of the random-oracle model** (`LeanVM.Extraction.extract`,
-`LeanVM/Protocol/Extraction/Extractor.lean`) on the adversary's cached Keccak-256 answers, with the byte strings
-they answer as its keys (a classical enumeration, `Extraction.supportKeys`, of a support that is
-finite on every reachable cache; the extraction does not depend on which covering keys it is
-given, `ExtractProofs.extract_keys_congr`). -/
-noncomputable def extractor : Extractor := fun prog input answers proof ↦
-  Extraction.extract prog input (bytecodeWords prog) (fun x ↦ answers (.inl x))
-    (Extraction.supportKeys fun x ↦ answers (.inl x)) proof
-
 /-- **The adversary breaks soundness**: the verifier accepts its statement and proof, and the
 execution extracted from the adversary's answers and the proof is not a valid execution of the
 program on the public input. -/
 def Breaks (extract : Extractor) (z : Outcome) : Prop :=
   z.accepted ∧ ¬ ∃ t, extract z.program z.input z.adversaryCache z.proof = some t ∧
     ValidExecution z.program z.input t
-
-/-- **Knowledge soundness in the two-oracle random-oracle model**, for the extractor
-`extractor`. -/
-def KnowledgeSoundnessRom : Prop :=
-  ∀ (A : Adversary) (Q : ℕ), A.IsTotalQueryBound Q →
-    Pr{let z ← experiment A}[Breaks extractor z] ≤ soundnessError Q
 
 /-! ## Completeness -/
 

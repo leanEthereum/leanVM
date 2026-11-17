@@ -23,12 +23,12 @@ public section
 variable (P : MachineProgram)
 
 theorem candidateRunner_cost
-    (hP : Includes P Auto.LeanVM.Extraction.Fast.candidateRunner.c985.costDeps)
+    (hP : Includes P Auto.LeanVM.Extraction.Fast.candidateRunner.c540.costDeps)
     (prog : Semantics.LeanIsaProgram) (input : PublicInput) (layout : LayoutLite)
     (hm : layout.logMemory ≤ 30) (hb : layout.logBytecode ≤ 30)
     (hh : ∀ h ∈ layout.tableLogHeights, h ≤ 30) (hl : layout.tableLogHeights.length ≤ 6)
     (hidx : ∀ c, (layout.placement c).index < 2 ^ 63) (q : Vector K (2 ^ layout.stackLog)) :
-    machineCost P Auto.LeanVM.Extraction.Fast.candidateRunner.c985.costIdx
+    machineCost P Auto.LeanVM.Extraction.Fast.candidateRunner.c540.costIdx
         [encodeValue prog, encodeValue input, encodeValue layout, encodeValue q] ≤
       (74 * layout.logMemory + 121) * 2 ^ layout.logMemory +
         (74 * prog.logSize + 121) * 2 ^ prog.logSize + 73 * prog.logSize + 357 +
@@ -36,7 +36,7 @@ theorem candidateRunner_cost
         45 * 2 ^ layout.logMemory + 1800 := by
   have hls : prog.logSize ≤ 30 := prog.logSize_le
   have hcap := stepCapLite_le layout hm hb hh hl
-  rw [Auto.LeanVM.Extraction.Fast.candidateRunner.c985.costEq P hP,
+  rw [Auto.LeanVM.Extraction.Fast.candidateRunner.c540.costEq P hP,
     limbs_of_lt (by omega : layout.logMemory < 2 ^ 64)]
   have h1 := powTable_cost P (by includes) layout.logMemory (by omega)
   have h2 := powTable_cost P (by includes) prog.logSize (by omega)
@@ -57,12 +57,12 @@ theorem candidateRunner_cost
 
 /-- **The candidate run at the worst shape.** -/
 theorem candidateRunner_cost_worst
-    (hP : Includes P Auto.LeanVM.Extraction.Fast.candidateRunner.c985.costDeps)
+    (hP : Includes P Auto.LeanVM.Extraction.Fast.candidateRunner.c540.costDeps)
     (prog : Semantics.LeanIsaProgram) (input : PublicInput) (layout : LayoutLite)
     (hm : layout.logMemory ≤ 30) (hb : layout.logBytecode ≤ 30)
     (hh : ∀ h ∈ layout.tableLogHeights, h ≤ 30) (hl : layout.tableLogHeights.length ≤ 6)
     (hidx : ∀ c, (layout.placement c).index < 2 ^ 63) (q : Vector K (2 ^ layout.stackLog)) :
-    machineCost P Auto.LeanVM.Extraction.Fast.candidateRunner.c985.costIdx
+    machineCost P Auto.LeanVM.Extraction.Fast.candidateRunner.c540.costIdx
         [encodeValue prog, encodeValue input, encodeValue layout, encodeValue q] ≤
       4682 * 2 ^ 30 + 395201 * 2 ^ 35 + 45 * 2 ^ 30 + 5000 := by
   have hls : prog.logSize ≤ 30 := prog.logSize_le

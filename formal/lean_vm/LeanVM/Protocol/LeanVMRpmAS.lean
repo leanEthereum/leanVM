@@ -22,9 +22,7 @@ decoder `D`) on the Keccak-256 evaluations of the adversary's transcript and the
 first forward queries (`Rpm.firstForward`). `knowledgeSoundnessAS_holds`: it satisfies the end
 statement `KnowledgeSoundness`, with its bound unchanged.
 
-The proof is the list decoder's (`LeanVM.Protocol.LeanVMRpm`) but for one step. There, the
-extractor on the transcript is the random-oracle model's extractor on the adversary's cache. Here,
-the transcript's evaluations are the cache's hash answers (`Rpm.transcriptHashes_eq_of_mem_support`)
+The proof uses the transfer of `LeanVM.Protocol.LeanVMRpm`. The transcript's evaluations are the cache's hash answers (`Rpm.transcriptHashes_eq_of_mem_support`)
 and its first forward answers extend the cache's `F` answers (`Rpm.cacheF_firstForward`); the
 extractor is monotone in its permutation answers (`Sound.extractAS_mono`), so wherever the
 random-oracle extractor returns an execution, the transcript's returns it too (`Rpm.romGame_leAS`).

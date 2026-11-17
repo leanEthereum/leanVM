@@ -5,12 +5,12 @@ public import LeanVM.Cost.AS.Program
 /-!
 # The agreement-set extractor's program: its indices and its size, by evaluation
 
-A firewall, as `Cost/ExtractorSize.lean`: the kernel evaluations over the program, in a module of
+A firewall, as `Cost/DecoderSize.lean`: the kernel evaluations over the program, in a module of
 their own.
 
 * `asProgram_indices_increasing`: the bodies' indices are distinct;
-* **`asProgram_size_le`**: the program's size is at most `26154` (the bodies' sizes, `25190` for
-  `513` bodies, and `482` indices without a body, of size `2` each).
+* **`asProgram_size_le`**: the program's size is at most `25257` (the bodies' sizes, `25185` for
+  `514` bodies, the entry's included, and `36` indices without a body, of size `2` each).
 -/
 
 namespace LeanVM.Cost.AS
@@ -24,13 +24,13 @@ theorem asProgram_indices_increasing :
   decide +kernel
 
 /-- **The program's size**, from its bodies, each count evaluated. -/
-theorem asProgram_size_le : compiledASExtractor.size ≤ 26154 := by
+theorem asProgram_size_le : compiledASExtractor.size ≤ 25257 := by
   have h := size_ofList_add_length asProgramBodies (by
     rw [asProgramBodies, List.map_cons]
     exact nodup_of_increasing asProgram_indices_increasing)
-  have h1 : (asProgramBodies.map fun p ↦ p.2.size).sum = 25190 := by decide +kernel
-  have h2 : (asProgramBodies.map (·.1)).foldr max 0 = 994 := by decide +kernel
-  have h3 : asProgramBodies.length = 513 := by decide +kernel
+  have h1 : (asProgramBodies.map fun p ↦ p.2.size).sum = 25185 := by decide +kernel
+  have h2 : (asProgramBodies.map (·.1)).foldr max 0 = 549 := by decide +kernel
+  have h3 : asProgramBodies.length = 514 := by decide +kernel
   unfold compiledASExtractor
   omega
 

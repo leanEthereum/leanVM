@@ -214,8 +214,7 @@ theorem haltingRunC_eq_of_extracted {s : Sizes} {q : Column (leanIsaμ prog s)}
   omega
 
 /-- **A stack satisfying the leanISA relation at admissible sizes has a valid execution**, the one
-`candidateExecution` returns. With `haltingRunC_eq_of_extracted` this replaces `haltingRun_valid`
-and `haltingRun_imageOf` in `extractor_of_extracted`. -/
+`candidateExecution` returns. -/
 theorem candidateExecution_of_extracted {s : Sizes} {q : Column (leanIsaμ prog s)}
     (hs : s.Admissible prog) (h : M3Holds (leanIsaInstance prog s) input q) :
     ∃ t, candidateExecution prog input (verifierLayout prog s) (q.values : Vector K (2 ^ _)) =

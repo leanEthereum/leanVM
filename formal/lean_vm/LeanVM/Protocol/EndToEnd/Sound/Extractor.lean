@@ -13,7 +13,7 @@ public import LeanVM.Protocol.EndToEnd.Sound.Theorem
 public import LeanVM.Protocol.EndToEnd.Front.LayoutBridgeB
 public import LeanVM.Protocol.LeanIsa.Read
 public import LeanVM.Protocol.Rom.Statement
-public import LeanVM.Protocol.Extraction.Params
+public import LeanVM.Protocol.Extraction.Defs
 public import LeanVM.Protocol.WithHash
 public import LeanVM.Protocol.WithHashBridge
 

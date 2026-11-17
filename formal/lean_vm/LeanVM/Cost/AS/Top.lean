@@ -15,9 +15,9 @@ public import LeanVM.Protocol.Extraction.AS.Lite
 `extractL` (`Protocol/Extraction/AS/Lite.lean`), compiled on top of the descent's and the replay's
 functions (`Cost/AS/Descent.lean`, `Cost/AS/Replay.lean`): the decoders of the announced sizes and
 of the opening's trace on the lite layout, the body's skeleton, every root's word (its leaves
-inverted by the list decoder's compiled index, `leavesOf`), the finish, and the top (`extractLC`).
-The chain starts after the list decoder's (`Cost/Extractor/Top.lean`), so the two share their
-compiled functions' indices.
+inverted through the transcript's compiled index, `leavesOf`), the finish, and the top
+(`extractLC`). The chain starts after the shared one (`Cost/Extractor/Top.lean`), whose compiled
+functions it reuses.
 -/
 
 namespace LeanVM.Cost.AS

@@ -1,16 +1,6 @@
-import LeanVMTests.Cost.DecOf
-import LeanVMTests.Cost.Decoder
 import LeanVMTests.Cost.DecoderChain
 import LeanVMTests.Cost.DecoderPreTest
 import LeanVMTests.Cost.DecoderReaders
-import LeanVMTests.Cost.PMChain
-import LeanVMTests.Cost.PMChainFFT
-import LeanVMTests.Extraction.FFT
-import LeanVMTests.Extraction.Fast
-import LeanVMTests.Extraction.LanePM
-import LeanVMTests.Extraction.Toy
-import LeanVMTests.Extraction.ToyFast
-import LeanVMTests.Extraction.ToyRadius
 import LeanVMTests.Guest.CoreDataCheck
 import LeanVMTests.Protocol.EndToEnd.Front.Layout
 import LeanVMTests.Prover.Keccak
@@ -31,19 +21,9 @@ open Lean LeanVMTests
 
 /-- Every module's runs, by module. -/
 def modules : List (String × Runs) := [
-  ("Cost.DecOf", Cost.DecOf.runs),
-  ("Cost.Decoder", Cost.Decoder.runs),
   ("Cost.DecoderChain", Cost.DecoderChain.runs ++ Cost.DecoderChain.frameRuns),
   ("Cost.DecoderPreTest", Cost.DecoderPreTest.runs),
   ("Cost.DecoderReaders", Cost.DecoderReaders.runs),
-  ("Cost.PMChain", Cost.PMChain.runs ++ Cost.PMChain.prices),
-  ("Cost.PMChainFFT", Cost.PMChainFFT.runs),
-  ("Extraction.FFT", Extraction.FFT.runs),
-  ("Extraction.Fast", Extraction.Fast.runs),
-  ("Extraction.LanePM", Extraction.LanePM.runs),
-  ("Extraction.Toy", Extraction.Toy.runs),
-  ("Extraction.ToyFast", Extraction.ToyFast.runs),
-  ("Extraction.ToyRadius", Extraction.ToyRadius.runs),
   ("Protocol.EndToEnd.Front.Layout", Protocol.EndToEnd.Front.Layout.runs),
   ("Prover.Keccak", Prover.Keccak.runs),
   ("Prover.Whir", Prover.Whir.runs)]

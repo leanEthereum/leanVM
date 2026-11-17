@@ -7,7 +7,7 @@ public import LeanVM.Cost.DecoderSize.Locs
 /-!
 # The guest decoder's program: its indices and its size, by evaluation
 
-A firewall (`AGENTS.md`), as `Cost/ExtractorSize.lean` is the extractor's: the kernel evaluations
+A firewall (`AGENTS.md`), as `Cost/AS/ProgramSize.lean` is the extractor's: the kernel evaluations
 over the decoder program's bodies, in a module of their own that imports only the program's
 definition with its facts, the compiled top and the row chunks, none of the proofs that use these
 evaluations, so that no edit of those proofs rebuilds them. Through the program's definition and the
@@ -31,7 +31,7 @@ For the compiled top `decTopC` (`Decoder/Top.lean`): at most the bodies' sizes (
 cells' conservative bound `517354` and the others', the entry's among them, `50797`) plus two per index
 without a body, the indices up to the top's, `decTopC`'s own (the last index allocated), less the
 bodies (`costIdx - costDeps.length`; so the bound names no index, which moves when a module before
-it in the chain gains a function): `569405` at index `1062` with `435` bodies besides the entry, the
+it in the chain gains a function): `568507` at index `613` with `435` bodies besides the entry, the
 program's conservative bound (its exact size is checked in `LeanVMTests/Cost/DecoderSize.lean`), of which the guest's frame cells
 (`guestLocs`, a literal held once, `guestLocsTable`) are `517271`. The frame cells (below `2^20`
 each), packed three to a limb, would take about a third of their `517271`. -/
