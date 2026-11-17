@@ -221,6 +221,7 @@ import Quantum.Qrom.Sphincs.Multi.StreamGame
 import Quantum.Qrom.Sphincs.Multi.GameTSel
 import Quantum.Qrom.Sphincs.Multi.GameTCalls
 import Quantum.Qrom.Sphincs.Multi.Costs.Numeric
+import Quantum.Qrom.Sphincs.Multi.BoundValue
 import Quantum.Qrom.SufCma.GamePar
 import Quantum.Sponge.Oracle.Parallel
 import Quantum.Cost.Nist
@@ -419,3 +420,18 @@ the main theorems ever grows beyond Lean's three standard axioms. -/
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Quantum.Cost.Nist.leanXmss_qrom_cat1_inPlace
+
+/-- info: 'Quantum.Qrom.Sphincs.Multi.leanSphincs_qrom_mu_security' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Qrom.Sphincs.Multi.leanSphincs_qrom_mu_security
+
+/-- info: 'Quantum.Qrom.Sphincs.Multi.sphincsQromMuBound_le' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Qrom.Sphincs.Multi.sphincsQromMuBound_le
+
+/-- info: 'Quantum.Qrom.Sphincs.Multi.rhoMaxQ_le' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Qrom.Sphincs.Multi.rhoMaxQ_le
