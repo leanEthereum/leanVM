@@ -123,6 +123,8 @@ theorem replay_cut_skel (F : KeccakState → Option KeccakState) (bytecode : Lis
   simp only [List.map_append, hs₁, hs₂] at hrep
   simpa using hrep
 
+variable {D : NearDecoder} (W : ValsDecoder D)
+
 /-- **The agreement-set extractor over the skeleton**: the seed; the announced sizes' skeleton,
 the layout and the rate read off it; the body's skeleton, the opening's trace read off it; then
 the extractor's finish. -/
@@ -134,14 +136,14 @@ def extractASF (prog : LeanIsaProgram) (input : PublicInput) (H : Bytes → Opti
   (decSizes (bytecodeWords prog) r₁.1).bind fun a ↦
   (skelReplay F (skBody a.1 a.2) r₁.2).bind fun r₂ ↦
   (decBody a.1 a.2 r₂.1).bind fun tr ↦
-  finishAS prog input H keys ((true, (a, tr)), r₂.2)
+  finishAS W prog input H keys ((true, (a, tr)), r₂.2)
 
 /-- **Where the computed extractor returns an execution, the extractor over the skeleton returns
 it.** -/
 theorem extractASF_of_extractASC {prog : LeanIsaProgram} {input : PublicInput}
     {H : Bytes → Option Digest} {keys : List Bytes} {F : KeccakState → Option KeccakState}
-    {π : Proof} {t : Execution prog} (h : extractASC prog input H keys F π = some t) :
-    extractASF prog input H keys F π = some t := by
+    {π : Proof} {t : Execution prog} (h : extractASC W prog input H keys F π = some t) :
+    extractASF W prog input H keys F π = some t := by
   unfold extractASC at h
   obtain ⟨seed, hseed, h⟩ := Option.bind_eq_some_iff.mp h
   obtain ⟨⟨a, s'⟩, hr, hfin⟩ := Option.bind_eq_some_iff.mp h

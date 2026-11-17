@@ -2,7 +2,8 @@
   LeanVM.Protocol.EndToEnd.Sound.ExtractorC
 
   The agreement-set extractor, computable: the descent over values, level 0's stack read off its
-  values on `U_κ`. It is the extractor over Gao's decoder.
+  values on `U_κ`. It is the extractor over the decoder the descent's decoder over values
+  evaluates.
 -/
 
 module
@@ -16,8 +17,9 @@ public import LeanVM.Protocol.Whir.Sound.DescentV
 `extractASC`: the seed and the cut verifier's replay, the roots' words through the computed leaves
 (`Extraction.committedWordC`), the descent over values (`Whir.Sound.descendTraceV`), and level 0's
 stack, whose block `u` is the low part of lane `u`, read off its values on `U_κ` through the
-inverse transform (`stackV`). Every step is computable. It is `extractAS` over Gao's decoder
-(`extractASC_eq`): the descent over values is Gao's descent, evaluated (`descendTraceV_eq`), and
+inverse transform (`stackV`). Every step is computable when the decoder over values is. It is
+`extractAS` over the decoder (`extractASC_eq`): the descent over values is its descent, evaluated
+(`descendTraceV_eq`), and
 the low parts are the inverse transforms of the values (`lowMsg_eq_novelInvE`).
 -/
 
@@ -52,6 +54,8 @@ theorem stackV_valsT {μ : ℕ} (hμ : laneBits ≤ μ) (P : LevelCode) (hn : 2 
   funext u x
   rw [lowMsg_eq_novelInvE h64]
 
+variable {D : NearDecoder} (W : ValsDecoder D)
+
 /-- The extractor after the replay: the roots' words, the descent over values, level 0's stack
 and its execution, from the replay's value and state. -/
 def finishAS (prog : LeanIsaProgram) (input : PublicInput) (H : Bytes → Option Digest)
@@ -59,7 +63,7 @@ def finishAS (prog : LeanIsaProgram) (input : PublicInput) (H : Bytes → Option
     Option (Execution prog) :=
   if hμ : laneBits ≤ r.1.2.1.1.stackLog then
     if hn : 2 ^ (r.1.2.1.1.stackLog - laneBits) ≤ (codesOf r.1.2.1.1.stackLog r.1.2.1.2 0).n then
-      (descendTraceV (codesOf r.1.2.1.1.stackLog r.1.2.1.2)
+      (descendTraceV W (codesOf r.1.2.1.1.stackLog r.1.2.1.2)
         (r.2.roots.map fun x ↦ (x.2.1, x.2.2, Extraction.committedWordC H keys x.1 x.2.1 x.2.2))
         r.1.2.2 0).bind fun T ↦
       if hm : T.1 = laneBits then
@@ -74,18 +78,18 @@ def extractASC (prog : LeanIsaProgram) (input : PublicInput) (H : Bytes → Opti
     Option (Execution prog) :=
   ((leanVmSeed (bytecodeWords prog) (publicInputDigest input)).run H F).bind fun seed ↦
   (replayU F (leanVmProgramCut (bytecodeWords prog) (publicInputDigest input))
-    (startState π seed)).bind (finishAS prog input H keys)
+    (startState π seed)).bind (finishAS W prog input H keys)
 
-/-- **The computed extractor is the extractor over Gao's decoder.** -/
+/-- **The computed extractor is the extractor over the decoder.** -/
 theorem extractASC_eq (prog : LeanIsaProgram) (input : PublicInput) (H : Bytes → Option Digest)
     (keys : List Bytes) (F : KeccakState → Option KeccakState) (π : Proof) :
-    extractASC prog input H keys F π = extractAS gaoNearDecoder prog input H keys F π := by
+    extractASC W prog input H keys F π = extractAS D prog input H keys F π := by
   unfold extractASC extractAS finishAS
   refine congrArg _ (funext fun seed ↦ congrArg _ (funext fun r ↦ ?_))
   by_cases hμ : laneBits ≤ r.1.2.1.1.stackLog
   · rw [dite_eq_left hμ, dite_eq_left hμ]
     by_cases hn : 2 ^ (r.1.2.1.1.stackLog - laneBits) ≤ (codesOf r.1.2.1.1.stackLog r.1.2.1.2 0).n
-    · rw [dite_eq_left hn, ite_eq_left hn, descendTraceV_eq, Option.bind_map]
+    · rw [dite_eq_left hn, ite_eq_left hn, descendTraceV_eq W, Option.bind_map]
       refine congrArg _ (funext fun T ↦ ?_)
       obtain ⟨k, T⟩ := T
       simp only [Function.comp, valsS]

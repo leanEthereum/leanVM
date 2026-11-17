@@ -32,13 +32,15 @@ open LeanVM.Protocol.EndToEnd.Complete (publicInputDigest)
 
 attribute [local instance] lexOrd
 
+variable {D : NearDecoder} (W : ValsDecoder D)
+
 /-- The extractor's finish with the committed words given by `word root height width`. -/
 def finishW (prog : LeanIsaProgram) (input : PublicInput) (word : Digest → ℕ → ℕ → ℕ → List K)
     (r : (Bool × ((Verifier.Layout × ℕ) × WhirTrace)) × VerifierProgramState) :
     Option (Execution prog) :=
   if hμ : laneBits ≤ r.1.2.1.1.stackLog then
     if hn : 2 ^ (r.1.2.1.1.stackLog - laneBits) ≤ (codesOf r.1.2.1.1.stackLog r.1.2.1.2 0).n then
-      (descendTraceV (codesOf r.1.2.1.1.stackLog r.1.2.1.2)
+      (descendTraceV W (codesOf r.1.2.1.1.stackLog r.1.2.1.2)
         (r.2.roots.map fun x ↦ (x.2.1, x.2.2, word x.1 x.2.1 x.2.2))
         r.1.2.2 0).bind fun T ↦
       if hm : T.1 = laneBits then
@@ -49,8 +51,8 @@ def finishW (prog : LeanIsaProgram) (input : PublicInput) (word : Digest → ℕ
 
 theorem finishAS_eq (prog : LeanIsaProgram) (input : PublicInput) (H : Bytes → Option Digest)
     (keys : List Bytes) (r : (Bool × ((Verifier.Layout × ℕ) × WhirTrace)) × VerifierProgramState) :
-    finishAS prog input H keys r =
-      finishW prog input (fun root h w ↦ Extraction.committedWordC H keys root h w) r :=
+    finishAS W prog input H keys r =
+      finishW W prog input (fun root h w ↦ Extraction.committedWordC H keys root h w) r :=
   rfl
 
 /-- **The committed leaves through the preimage index** are the statement's. -/
@@ -90,12 +92,12 @@ def extractM (prog : LeanIsaProgram) (input : PublicInput)
   (decSizes (bytecodeWords prog) r₁.1).bind fun a ↦
   (skelReplay F (skBody a.1 a.2) r₁.2).bind fun r₂ ↦
   (decBody a.1 a.2 r₂.1).bind fun tr ↦
-  finishW prog input (wordM qs) ((true, (a, tr)), r₂.2)
+  finishW W prog input (wordM qs) ((true, (a, tr)), r₂.2)
 
 /-- **Wherever the skeleton's extractor returns an execution, the indexed one returns it.** -/
 theorem extractM_of_ASF {prog : LeanIsaProgram} {input : PublicInput} {T : OracleQueryLog}
-    {π : Proof} {t : Execution prog} (h : transcriptExtractorASF prog input T π = some t) :
-    extractM prog input (permutationQueries T) π = some t := by
+    {π : Proof} {t : Execution prog} (h : transcriptExtractorASF W prog input T π = some t) :
+    extractM W prog input (permutationQueries T) π = some t := by
   unfold transcriptExtractorASF extractASF at h
   simp only at h
   obtain ⟨seed, hseed, h⟩ := Option.bind_eq_some_iff.mp h
@@ -107,9 +109,9 @@ theorem extractM_of_ASF {prog : LeanIsaProgram} {input : PublicInput} {T : Oracl
   have hiv' := keccak256_of_lookupEvaluation hiv
   simp only [seedWithHash, fiatShamirIvWithHash, bind, Option.bind, hiv'] at hseed ⊢
   simp only [hseed]
-  have hfin : ∀ r, finishAS prog input (lookupEvaluation (keccakEvaluationsOfTranscript
+  have hfin : ∀ r, finishAS W prog input (lookupEvaluation (keccakEvaluationsOfTranscript
       (permutationQueries T))) ((keccakEvaluationsOfTranscript (permutationQueries T)).map (·.1)) r =
-        finishW prog input (wordM (permutationQueries T)) r := fun r ↦ by
+        finishW W prog input (wordM (permutationQueries T)) r := fun r ↦ by
     rw [finishAS_eq]
     unfold wordM Extraction.committedWordC
     simp only [leavesOf_eq]

@@ -2,8 +2,8 @@
   LeanVM.Protocol.Whir.Sound.DescentV
 
   The descent over values: each tuple carried as its values on the level's domain, each round's
-  near tuple decoded by Gao and evaluated there, each level's low part read off the values on
-  `U_κ`. It is the descent over polynomials with Gao's decoder, evaluated.
+  near tuple decoded over values, each level's low part read off the values on `U_κ`. It is the
+  descent over polynomials, evaluated.
 -/
 
 module
@@ -16,11 +16,12 @@ public import LeanVM.Protocol.Whir.Sound.LowMsgC
 
 The descent (`descendTrace`) carries polynomial tuples, but reads them only through their values
 on the level's domain: the agreement set of a round is where the values agree with the fold
-(`agreeV_valsT`), a round's near tuple is Gao's, evaluated (`gaoDecV_eq`), the next level up is
+(`agreeV_valsT`), a round's near tuple is the decoder's, evaluated (`ValsDecoder`: Gao's is
+`gaoValsDecoder`), the next level up is
 read through its low part, which is the inverse transform of its values on `U_κ`
 (`lowMsg_eq_novelInvE`), and its high part and the final polynomial are sums over the novel basis
 at the point. So the descent over values (`descendRoundsV`, `descendTraceV`), which is computable,
-is the descent with Gao's decoder (`gaoNearDecoder`), evaluated (`descendRoundsV_eq`,
+is the descent with the decoder, evaluated (`descendRoundsV_eq`,
 `descendTraceV_eq`).
 -/
 
@@ -102,7 +103,23 @@ theorem gaoDecV_eq {m : ℕ} (dom : Fin n ↪ E) (d : ℕ) (Q : (Fin (m + 1) →
       simp only [hc, ↓reduceIte, mt hnear.mp hc, Option.map_none]
   · simp only [h, ↓reduceDIte, Option.map_none]
 
+/-! ## Decoders over values -/
+
+/-- **A near-tuple decoder over values**: the decoder `D`'s output, evaluated on the domain. -/
+structure ValsDecoder (D : NearDecoder) where
+  /-- The decoder over values. -/
+  decV : ∀ {n m : ℕ}, (Fin n ↪ E) → ℕ → ((Fin (m + 1) → Bool) → Fin n → E) → Finset (Fin n) →
+    Option ((Fin (m + 1) → Bool) → Fin n → E)
+  /-- It is `D`'s, evaluated. -/
+  eq : ∀ {n m : ℕ} (dom : Fin n ↪ E) (d : ℕ) (Q : (Fin (m + 1) → Bool) → Fin n → E)
+    (S : Finset (Fin n)), decV dom d Q S = (D.dec dom d Q S).map (valsT dom)
+
+/-- Gao's decoding over values. -/
+def gaoValsDecoder : ValsDecoder gaoNearDecoder := ⟨gaoDecV, gaoDecV_eq⟩
+
 /-! ## Within a level -/
+
+variable {D : NearDecoder} (W : ValsDecoder D)
 
 /-- **The descent within a level, over values.** -/
 def descendRoundsV (dom : Fin n ↪ E) (d : ℕ) (thr : ℕ → ℕ) (O : ℕ → Fin n → E)
@@ -114,7 +131,7 @@ def descendRoundsV (dom : Fin n ↪ E) (d : ℕ) (thr : ℕ → ℕ) (O : ℕ �
     let Q := rowsOf (m + 1) (foldsA dom rs.dropLast O)
     let S := agreeV V (foldQ dom r.alpha r.beta Q)
     if thr (rs.dropLast.length + 1) ≤ S.card then
-      (gaoDecV dom d Q S).bind fun T ↦ descendRoundsV dom d thr O rs.dropLast (m + 1) T
+      (W.decV dom d Q S).bind fun T ↦ descendRoundsV dom d thr O rs.dropLast (m + 1) T
     else none
 termination_by rs.length
 decreasing_by
@@ -124,17 +141,17 @@ decreasing_by
   omega
 
 theorem descendRoundsV_nil (dom : Fin n ↪ E) (d : ℕ) (thr : ℕ → ℕ) (O : ℕ → Fin n → E) (m : ℕ)
-    (V : (Fin m → Bool) → Fin n → E) : descendRoundsV dom d thr O [] m V = some ⟨m, V⟩ := by
+    (V : (Fin m → Bool) → Fin n → E) : descendRoundsV W dom d thr O [] m V = some ⟨m, V⟩ := by
   rw [descendRoundsV]; rfl
 
 theorem descendRoundsV_concat (dom : Fin n ↪ E) (d : ℕ) (thr : ℕ → ℕ) (O : ℕ → Fin n → E)
     (rs : List FoldRound) (r : FoldRound) (m : ℕ) (V : (Fin m → Bool) → Fin n → E) :
-    descendRoundsV dom d thr O (rs ++ [r]) m V =
+    descendRoundsV W dom d thr O (rs ++ [r]) m V =
       if thr (rs.length + 1) ≤ (agreeV V (foldQ dom r.alpha r.beta
           (rowsOf (m + 1) (foldsA dom rs O)))).card then
-        (gaoDecV dom d (rowsOf (m + 1) (foldsA dom rs O))
+        (W.decV dom d (rowsOf (m + 1) (foldsA dom rs O))
           (agreeV V (foldQ dom r.alpha r.beta (rowsOf (m + 1) (foldsA dom rs O))))).bind
-          fun T ↦ descendRoundsV dom d thr O rs (m + 1) T
+          fun T ↦ descendRoundsV W dom d thr O rs (m + 1) T
       else none := by
   rw [descendRoundsV]
   split
@@ -152,8 +169,8 @@ noncomputable def valsS (dom : Fin n ↪ E) (T : Σ k, (Fin k → Bool) → E[X]
 /-- **The descent within a level over values is Gao's, evaluated.** -/
 theorem descendRoundsV_eq (dom : Fin n ↪ E) (d : ℕ) (thr : ℕ → ℕ) (O : ℕ → Fin n → E) :
     ∀ (rs : List FoldRound) (m : ℕ) (U : (Fin m → Bool) → E[X]),
-      descendRoundsV dom d thr O rs m (valsT dom U) =
-        (descendRounds gaoNearDecoder dom d thr O rs m U).map (valsS dom) := by
+      descendRoundsV W dom d thr O rs m (valsT dom U) =
+        (descendRounds D dom d thr O rs m U).map (valsS dom) := by
   intro rs
   induction rs using List.reverseRecOn with
   | nil =>
@@ -164,10 +181,8 @@ theorem descendRoundsV_eq (dom : Fin n ↪ E) (d : ℕ) (thr : ℕ → ℕ) (O :
     intro m U
     rw [descendRoundsV_concat, descendRounds_concat, agreeV_valsT]
     split_ifs
-    · rw [gaoDecV_eq]
-      show (Option.map (valsT dom) (gaoDec dom d _ _)).bind _ =
-        Option.map (valsS dom) ((gaoDec dom d _ _).bind _)
-      rcases gaoDec dom d (rowsOf (m + 1) (foldsA dom rs O))
+    · rw [W.eq]
+      rcases D.dec dom d (rowsOf (m + 1) (foldsA dom rs O))
         (agreeT dom U (foldQ dom r.alpha r.beta (rowsOf (m + 1) (foldsA dom rs O)))) with _ | T
       · rfl
       · exact ih (m + 1) T
@@ -194,11 +209,11 @@ theorem two_pow_le_n (P : LevelCode) : 2 ^ P.κ ≤ P.n :=
 /-- **The descent across levels, over values.** -/
 def descendTraceV (codes : ℕ → LevelCode) (cs : List (ℕ × ℕ × Word)) :
     WhirTrace → (i : ℕ) → Option (Σ k, (Fin k → Bool) → Fin (codes i).n → E)
-  | .final rounds folded, i => descendRoundsV (codes i).dom (codes i).deg (codes i).thr
+  | .final rounds folded, i => descendRoundsV W (codes i).dom (codes i).deg (codes i).thr
       (laneO i cs (codes i).n) rounds 0 fun _ x ↦ polyOfAt folded (K.ofBits x)
   | .mid rounds high rest, i => (descendTraceV codes cs rest (i + 1)).bind fun T' ↦
       if h : T'.1 = (codes (i + 1)).ℓ ∧ (codes i).κ = (codes (i + 1)).ℓ + (codes (i + 1)).κ then
-        descendRoundsV (codes i).dom (codes i).deg (codes i).thr (laneO i cs (codes i).n) rounds 0
+        descendRoundsV W (codes i).dom (codes i).deg (codes i).thr (laneO i cs (codes i).n) rounds 0
           fun _ x ↦ upAt (codes (i + 1)).κ (codes (i + 1)).ℓ (two_pow_le_n (codes (i + 1))) h.2
             (h.1 ▸ T'.2) high (K.ofBits x)
       else none
@@ -221,18 +236,18 @@ theorem upAt_eq (P' : LevelCode) (m : ℕ) {κ : ℕ} (hκ : κ = m + P'.κ) (hm
 
 /-- **The descent across levels over values is Gao's, evaluated.** -/
 theorem descendTraceV_eq (codes : ℕ → LevelCode) (cs : List (ℕ × ℕ × Word)) :
-    ∀ (tr : WhirTrace) (i : ℕ), descendTraceV codes cs tr i =
-      (descendTrace gaoNearDecoder codes cs tr i).map (valsS (codes i).dom)
+    ∀ (tr : WhirTrace) (i : ℕ), descendTraceV W codes cs tr i =
+      (descendTrace D codes cs tr i).map (valsS (codes i).dom)
   | .final rounds folded, i => by
     have hU : (fun (_ : Fin 0 → Bool) (x : Fin (codes i).n) ↦ polyOfAt folded (K.ofBits x)) =
         valsT (codes i).dom (fun _ ↦ polyOf folded) := by
       funext _ x
       rw [polyOfAt_eq]
       rfl
-    rw [descendTraceV, descendTrace, hU, descendRoundsV_eq]
+    rw [descendTraceV, descendTrace, hU, descendRoundsV_eq W]
   | .mid rounds high rest, i => by
     rw [descendTraceV, descendTrace, descendTraceV_eq codes cs rest (i + 1)]
-    rcases descendTrace gaoNearDecoder codes cs rest (i + 1) with _ | ⟨k, T⟩
+    rcases descendTrace D codes cs rest (i + 1) with _ | ⟨k, T⟩
     · rfl
     · simp only [Option.map_some, Option.bind_some, valsS]
       by_cases h1 : k = (codes (i + 1)).ℓ
@@ -247,7 +262,7 @@ theorem descendTraceV_eq (codes : ℕ → LevelCode) (cs : List (ℕ × ℕ × W
             funext _ x
             exact upAt_eq (codes (i + 1)) _ h2 (by have := (codes i).h64; omega)
               (by have := (codes i).h64; omega) T high (K.ofBits x)
-          have := descendRoundsV_eq (codes i).dom (codes i).deg (codes i).thr
+          have := descendRoundsV_eq W (codes i).dom (codes i).deg (codes i).thr
             (laneO i cs (codes i).n) rounds 0 (fun _ ↦ msgPoly (codes i).κ (joinMsg h2
               (msgT (codes (i + 1)).κ T)) + hatE (codes i).κ * polyOf high)
           rw [← hU] at this

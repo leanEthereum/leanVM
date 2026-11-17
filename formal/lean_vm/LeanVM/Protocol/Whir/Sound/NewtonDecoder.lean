@@ -39,11 +39,13 @@ open Classical in
 near. -/
 noncomputable def newtonDec (dom : Fin n ↪ E) (d : ℕ) (Q : (Fin (m + 1) → Bool) → Fin n → E)
     (S : Finset (Fin n)) : Option ((Fin (m + 1) → Bool) → E[X]) :=
-  if h : ∀ v, (decode1 d (winPts dom d Q S v)).isSome then
-    if NearT dom Q d S (fun v ↦ nP ((decode1 d (winPts dom d Q S v)).get (h v)).1
-        ((decode1 d (winPts dom d Q S v)).get (h v)).2) then
-      some fun v ↦ nP ((decode1 d (winPts dom d Q S v)).get (h v)).1
-        ((decode1 d (winPts dom d Q S v)).get (h v)).2
+  if d + 3 ≤ S.card then
+    if h : ∀ v, (decode1 d (winPts dom d Q S v)).isSome then
+      if NearT dom Q d S (fun v ↦ nP ((decode1 d (winPts dom d Q S v)).get (h v)).1
+          ((decode1 d (winPts dom d Q S v)).get (h v)).2) then
+        some fun v ↦ nP ((decode1 d (winPts dom d Q S v)).get (h v)).1
+          ((decode1 d (winPts dom d Q S v)).get (h v)).2
+      else none
     else none
   else none
 
@@ -97,7 +99,7 @@ noncomputable def newtonNearDecoder : NearDecoder where
   dec dom d Q S := newtonDec dom d Q S
   sound dom d Q S T h := by
     unfold newtonDec at h
-    split_ifs at h with h1 h2
+    split_ifs at h with h0 h1 h2
     · rw [Option.some.injEq] at h
       exact h ▸ h2
   complete dom d Q S T hS hT := by
@@ -113,7 +115,7 @@ noncomputable def newtonNearDecoder : NearDecoder where
       obtain ⟨f, hf, hfT⟩ := hlane v
       simp only [hf, Option.get_some, hfT]
     unfold newtonDec
-    rw [dite_eq_left hall, hTeq, ite_eq_left hT]
+    rw [ite_eq_left hS, dite_eq_left hall, hTeq, ite_eq_left hT]
     rfl
 
 end
