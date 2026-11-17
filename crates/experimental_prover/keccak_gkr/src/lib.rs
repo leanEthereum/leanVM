@@ -86,9 +86,13 @@
 //! of eight positions' weights applied to bit-transposed products (`products_gfni`); elsewhere,
 //! the positions grouped by each byte of their weight (`prover`'s digit buckets).
 //!
-//! The four rounds' sums are binary polynomials of degree at most 173. With AVX-512 and GFNI they
+//! The four rounds' sums are binary polynomials of degree at most 173. With AVX2 and GFNI they
 //! are taken on residues modulo 24 irreducibles of degree 8, where a product is a byte product
 //! (`skip_gfni`).
+//!
+//! The rounds that remain fold a table of one field element per half block and position. A pass over it
+//! binds two rounds' variables: over each quad of the rows it writes it sums the next round and, as a
+//! quadratic in that round's challenge, the round after, so the table is read once per two rounds (`prover`).
 
 use primitives::field::{F64, F128, F128Unreduced};
 use primitives::hash::STATE_LANES;
@@ -110,13 +114,15 @@ mod products_gfni;
 mod protocol;
 mod prover;
 pub mod rmfe;
-cfg_select! {
-    all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512bw", target_feature = "gfni") => {
-        mod skip_gfni;
-        mod table_gfni;
-    }
-    _ => {}
-}
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"))]
+mod skip_gfni;
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx512f",
+    target_feature = "avx512bw",
+    target_feature = "gfni"
+))]
+mod table_gfni;
 pub mod witness;
 
 #[cfg(test)]
