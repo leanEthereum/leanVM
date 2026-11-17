@@ -133,6 +133,11 @@ structure OpeningIface : Type where
   /-- **An accepting opening's trace is good**, from the bad stacks `Bad`: the descent of its
   final polynomial ends on a stack that is not bad. -/
   TraceGood : ∀ μ : ℕ, ℕ → (Column μ → Prop) → Whir.Sound.WhirTrace → List (ℕ × ℕ × Word) → Prop
+  /-- **A good trace ends on a good candidate**: some candidate of the stack's word at level 0's
+  threshold is not bad. -/
+  traceGood_cands : ∀ {μ R : ℕ}, Whir.Admissible μ R → ∀ (Bad : Column μ → Prop)
+    (tr : Whir.Sound.WhirTrace) (cs : List (ℕ × ℕ × Word)), TraceGood μ R Bad tr cs →
+    ∃ W, firstWordC cs = some W ∧ ∃ q ∈ Candidates μ R (thr₀ μ R) W, ¬ Bad q
   /-- **The stacked opening**, on the ghost program returning its trace: from every bad
   candidate violating a claim, every group within `εmsg`, and an accepting return's trace good. -/
   stackedSpec : ∀ {μ R : ℕ}, Whir.Admissible μ R → ∀ (claims : List StackClaim),
@@ -630,6 +635,14 @@ noncomputable def bodySpec (a : Verifier.Layout × ℕ) :
       (congrArg (fun l ↦ veBodyG ev pd l a.2) h.choose_spec.1.symm)).mono (fun _ h ↦ h)
       (fun _ _ hg ↦ ⟨h, hg⟩) le_rfl le_rfl le_rfl
   else Spec.dead
+
+/-- At admissible announced sizes, `bodySpec`'s doom is `realSpec`'s at the chosen sizes. -/
+theorem bodySpec_D (a : Verifier.Layout × ℕ) (h : AdmAt prog a) :
+    (bodySpec O F hev a).D = (realSpec O F (s := h.choose) (ρ := a.2) hev h.choose_spec.2.1
+      (by rw [μs, ← h.choose_spec.1]; exact h.choose_spec.2.2)).D := by
+  unfold bodySpec
+  simp only [h, ↓reduceDIte]
+  exact (Spec.mono_D _ _ _ _ _ _).trans (Spec.congr_D _ _)
 
 /-- `verify_execution` on the claim-list form, returning the announced value and the opening's
 trace. -/

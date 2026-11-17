@@ -458,8 +458,12 @@ theorem anyD_split {h : List Ev} (hD : anyD O h) :
   obtain ⟨x, ⟨h', rfl⟩, hD⟩ := hD
   exact ⟨x, h', rfl, by simpa using hD⟩
 
+/-- **A good run of some statement**: past a statement's root, a good run of its verifier. -/
+def anyG (h : List Ev) : Prop :=
+  ∃ x h', h = stmtHistory x ++ h' ∧ stmtG O x.1 x.2 h'
+
 /-- **The certificate of every statement.** -/
-noncomputable def anyCert : Cert anyProgram where
+noncomputable def anyCert : CertG anyProgram (anyG O) where
   D := anyD O
   ε := anyε O
   read := by
@@ -494,8 +498,8 @@ noncomputable def anyCert : Cert anyProgram where
     intro h hr ha hD
     obtain ⟨x, h', rfl, hDx⟩ := anyD_split O hD
     have hax := after_stmtHistory x
-    exact (stmtCert O x.1 x.2).final (reachable_drop hax (commits_stmtHistory x) hr h' rfl)
-      (by rwa [after_drop hax] at ha) hDx
+    exact ⟨x, h', rfl, (stmtCert O x.1 x.2).final
+      (reachable_drop hax (commits_stmtHistory x) hr h' rfl) (by rwa [after_drop hax] at ha) hDx⟩
 
 theorem grindBits_stmt (x : Statement) (h' : List Ev) :
     grindBits (stmtHistory x ++ h') = grindBits h' := by
@@ -616,6 +620,23 @@ theorem doomed_of_doomedRun {x : Statement} {π : Proof} {c : KeccakCalls.QueryC
       rw [← List.append_assoc]
       exact boundary_append_of hb
 
+/-- **A statement's run that is not good is not good for every statement.** -/
+theorem not_anyG_of {x : Statement} {π : Proof} {c : KeccakCalls.QueryCache}
+    (hv : Rom.verify (fun y ↦ c (.inl y)) (fun t ↦ c (.inr t))
+      (leanVmSeed (bytecodeWords x.1) (publicInputDigest x.2))
+      (leanVmVerifierProgram (bytecodeWords x.1) (publicInputDigest x.2)) π = some true)
+    (hg : ¬ stmtG O x.1 x.2 (extractedHistory (fun y ↦ c (.inl y)) (fun t ↦ c (.inr t))
+      (leanVmSeed (bytecodeWords x.1) (publicInputDigest x.2))
+      (leanVmVerifierProgram (bytecodeWords x.1) (publicInputDigest x.2)) π)) :
+    ¬ anyG O (extractedFrom (fun y ↦ c (.inl y)) (fun t ↦ c (.inr t))
+      (leanVmSeed (bytecodeWords x.1) (publicInputDigest x.2)) (nodeAt anyProgram (stmtHistory x))
+      (stmtHistory x) π) := by
+  rintro ⟨x', h', he, hG⟩
+  rw [nodeAt_stmtHistory, extractedFrom_eq _ _ _ _ _ _ hv] at he
+  obtain rfl := stmt_eq_of_prefix ⟨_, he.symm⟩ (List.prefix_append _ _)
+  rw [List.append_cancel_left he] at hg
+  exact hg hG
+
 /-! ## Knowledge soundness for chosen statements -/
 
 /-- **Knowledge soundness for adversarially chosen statements.** An adversary of `QA` queries
@@ -629,12 +650,13 @@ theorem leanVm_knowledge (A : OracleComp KeccakCalls (Statement × Proof)) (QA :
     Pr{let z ← romExperiment A (verifierFam leanVmSeeds anyProgram)}[z.1.2 = true ∧
       ¬ Extracted O z.1.1.1.1 z.1.1.1.2 z.2 z.1.1.2] ≤
       ((QA + 13708 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + 13708)) := by
-  have h := romSound_of_imp anyProgram (anyCert O) leanVmSeeds (fun x ↦ rootOk_stmtHistory x) εmsg
+  have h := romSound_of_impG anyProgram (anyCert O) leanVmSeeds (fun x ↦ rootOk_stmtHistory x) εmsg
     (anyCert_bound O) A QA hA leanVmQueryBound isTotalQueryBound_leanVmFam
     (fun z c ↦ ¬ Extracted O z.1.1 z.1.2 c z.2)
     (fun z c hv hb ↦ by
       simp only [leanVmSeeds, nodeAt_stmtHistory] at hv
-      exact doomed_of_doomedRun O hv (doomed_of_not_extracted O z.1.1 z.1.2 hv hb))
+      obtain ⟨hd, hg⟩ := doomed_of_not_extracted O z.1.1 z.1.2 hv hb
+      exact ⟨doomed_of_doomedRun O hv hd, not_anyG_of O hv hg⟩)
   rwa [leanVmQueryBound_eq] at h
 
 /-- **The extracted witness represents a valid execution, for chosen statements.** An adversary
@@ -651,15 +673,16 @@ theorem leanVm_execution (A : OracleComp KeccakCalls (Statement × Proof)) (QA :
         ∃ t, AssignmentRepresents (witnessOf z.1.1.1.1 s q) t ∧
           ValidExecution z.1.1.1.1 z.1.1.1.2 t] ≤
       ((QA + 13708 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 125 + failBound leanVmSeeds (QA + 13708)) := by
-  have h := romSound_of_imp anyProgram (anyCert O) leanVmSeeds (fun x ↦ rootOk_stmtHistory x) εmsg
+  have h := romSound_of_impG anyProgram (anyCert O) leanVmSeeds (fun x ↦ rootOk_stmtHistory x) εmsg
     (anyCert_bound O) A QA hA leanVmQueryBound isTotalQueryBound_leanVmFam
     (fun z c ↦ ¬ ∃ (s : Sizes) (q : Column (leanIsaμ z.1.1 s)),
         extractStack O z.1.1 z.1.2 c z.2 = some ⟨s, q⟩ ∧
         ∃ t, AssignmentRepresents (witnessOf z.1.1 s q) t ∧ ValidExecution z.1.1 z.1.2 t)
     (fun z c hv hb ↦ by
       simp only [leanVmSeeds, nodeAt_stmtHistory] at hv
-      exact doomed_of_doomedRun O hv (doomed_of_not_extracted O z.1.1 z.1.2 hv
-        fun ⟨s, q, hx, hs, hM⟩ ↦ hb ⟨s, q, hx, execution_of_extracted hs hM⟩))
+      obtain ⟨hd, hg⟩ := doomed_of_not_extracted O z.1.1 z.1.2 hv
+        fun ⟨s, q, hx, hs, hM⟩ ↦ hb ⟨s, q, hx, execution_of_extracted hs hM⟩
+      exact ⟨doomed_of_doomedRun O hv hd, not_anyG_of O hv hg⟩)
   rwa [leanVmQueryBound_eq] at h
 
 /-! ## The numbers -/

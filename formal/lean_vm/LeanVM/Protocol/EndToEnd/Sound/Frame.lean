@@ -99,6 +99,12 @@ def Spec.retInv (S : Spec p Pre Post εmax L T) (Q : α → Prop)
   post hl ha hD := ⟨S.post hl ha hD, hQ _ _ ha⟩
   bound := S.bound
 
+/-- The doom of a weakened specification is unchanged. -/
+theorem Spec.mono_D {Pre' : List Ev → Prop} {Post' : α → List Ev → Prop} {εmax' L' T' : ENNReal}
+    (S : Spec p Pre Post εmax L T) (hPre : ∀ h, Pre' h → Pre h)
+    (hPost : ∀ a h, Post a h → Post' a h) (hε : εmax ≤ εmax') (hL : L ≤ L') (hT : T' ≤ T) :
+    (S.mono hPre hPost hε hL hT).D = S.D := rfl
+
 /-- The doom of a specification transported along an equality of programs is unchanged. -/
 theorem Spec.congr_D {p' : VerifierProgram α} (h : p = p') (S : Spec p Pre Post εmax L T) :
     (S.congr h).D = S.D := by

@@ -8,7 +8,7 @@
 
 module
 
-public import LeanVM.Protocol.Whir.Sound.Spec
+public import LeanVM.Protocol.Whir.Sound.Descent
 public import LeanVM.Protocol.Whir.Sound.FoldRoundCwyz
 public import LeanVM.Protocol.Whir.Params.Check
 public import LeanVM.Protocol.Compile.SpecRules.Grind
@@ -484,6 +484,16 @@ theorem candidates_facts {μ R : ℕ} (h : Whir.Admissible μ R) (W : Word) :
   refine ⟨hc.1, hc.2.trans ?_⟩
   rw [F.hL]
   exact card_tlist_le_jl _ _ _ _ F.hgap
+
+/-- **A good trace ends on a good candidate** at the deployed parameters. -/
+theorem traceGood_cands {μ R : ℕ} (h : Whir.Admissible μ R) (Bad : Column μ → Prop)
+    (tr : WhirTrace) (cs : List (ℕ × ℕ × Word))
+    (hg : traceGood (codesOf μ R) 0 (lvl0Pred μ Bad) tr cs) :
+    ∃ q ∈ Candidates μ R (thr0Of μ R) (wordOf cs 0), ¬ Bad q := by
+  obtain ⟨level, rest, F⟩ := level0Facts (shapeOK_of_admissible h)
+  have := exists_good_candidate (codesOf μ R) F.hμ F.hκ₀ F.hR₀ (by rw [← F.hA.head.1, F.hℓ])
+    F.hthr (deployedBounds (shapeOK_of_admissible h) 0).hA Bad tr cs hg
+  rwa [F.hthr₀] at this
 
 /-! ## The stacked opening -/
 

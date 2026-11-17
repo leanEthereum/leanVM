@@ -80,6 +80,9 @@ noncomputable def openingIface : EndToEnd.Sound.OpeningIface where
   multiaffine_eqEval := isMultiaffine_eqEval
   multiaffine_of_multilinear hw := isMultiaffine_of_multilinear hw
   TraceGood μ R Bad tr cs := traceGood (codesOf μ R) 0 (lvl0Pred μ Bad) tr cs
+  traceGood_cands h Bad tr cs hg := by
+    obtain ⟨c, rest, rfl⟩ := List.exists_cons_of_ne_nil (traceGood_ne_nil _ cs tr 0 _ hg)
+    exact ⟨wordOf (c :: rest) 0, rfl, traceGood_cands h Bad tr _ hg⟩
   stackedSpec h claims _ hcl Bad := deployedStackedSpec h claims hcl Bad
 
 end

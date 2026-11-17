@@ -129,7 +129,7 @@ theorem knowledgeSoundnessRom {A : Adversary} {Q : ℕ}
     (hA : A.IsTotalQueryBound Q) :
     Pr{let z ← experiment A}[Breaks extractor z] ≤ soundnessError Q := by
   -- Doom or failure, read off the final log.
-  have h1 := romSound_log Sound.anyProgram (Sound.anyCert LeanVM.Protocol.Whir.Params.openingIface) Sound.leanVmSeeds
+  have h1 := romSound_logG Sound.anyProgram (Sound.anyCert LeanVM.Protocol.Whir.Params.openingIface) Sound.leanVmSeeds
     (fun x ↦ Sound.rootOk_stmtHistory x) εmsg (Sound.anyCert_bound LeanVM.Protocol.Whir.Params.openingIface) A Q hA
     leanVmQueryBound Sound.isTotalQueryBound_leanVmFam
     (fun z ℓ ↦ Fail Sound.leanVmSeeds ℓ ∨
@@ -142,8 +142,10 @@ theorem knowledgeSoundnessRom {A : Adversary} {Q : ℕ}
       rcases hb with hb | hb | hb
       · exact absurd hb hf
       · exact absurd hv hb
-      · exact Sound.doomed_of_doomedRun LeanVM.Protocol.Whir.Params.openingIface hv
-          (Sound.doomed_of_not_extracted LeanVM.Protocol.Whir.Params.openingIface z.1.1 z.1.2 hv hb))
+      · obtain ⟨hd, hg⟩ :=
+          Sound.doomed_of_not_extracted LeanVM.Protocol.Whir.Params.openingIface z.1.1 z.1.2 hv hb
+        exact ⟨Sound.doomed_of_doomedRun LeanVM.Protocol.Whir.Params.openingIface hv hd,
+          Sound.not_anyG_of LeanVM.Protocol.Whir.Params.openingIface hv hg⟩)
   rw [Sound.logExperiment_eq_logged2, prEvent_map] at h1
   -- A fresh Keccak-256 answer of the verifier that is the announced root.
   have h2 := Sound.prEvent_logged2_root_le A (Rom.verifierFam Sound.leanVmSeeds Sound.anyProgram)

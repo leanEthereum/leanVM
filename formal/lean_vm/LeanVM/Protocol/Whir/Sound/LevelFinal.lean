@@ -272,7 +272,7 @@ predicate after its rounds, at the commitments `cs`. With the predicate "the des
 descent of the final polynomial is good. -/
 def FinGood (i : ℕ) (P : LevelCode) (B : List (ℕ × ℕ × Word) → TPred) (rounds : List FoldRound)
     (folded : List E) (cs : List (ℕ × ℕ × Word)) : Prop :=
-  i < cs.length ∧ ¬ roundPred i P B rounds cs 0 fun _ ↦ polyOf folded
+  i < cs.length ∧ rounds.length = P.ℓ ∧ ¬ roundPred i P B rounds cs 0 fun _ ↦ polyOf folded
 
 theorem finGood_append {i : ℕ} {P : LevelCode} {B : List (ℕ × ℕ × Word) → TPred}
     (hB : PredStable i B) (rounds : List FoldRound) (folded : List E) :
@@ -281,9 +281,9 @@ theorem finGood_append {i : ℕ} {P : LevelCode} {B : List (ℕ × ℕ × Word) 
   | [], cs, h => by simpa using h
   | x :: l, cs, h => by
     rw [show cs ++ x :: l = (cs ++ [x]) ++ l by simp]
-    refine finGood_append hB rounds folded l _ ⟨by simp; have := h.1; omega, ?_⟩
+    refine finGood_append hB rounds folded l _ ⟨by simp; have := h.1; omega, h.2.1, ?_⟩
     rw [roundPred_append hB rounds cs x h.1]
-    exact h.2
+    exact h.2.2
 
 section Spec
 
@@ -353,7 +353,7 @@ noncomputable def finalTailSpec {εmax : ENNReal} (level : Whir.Level) (hw : IsM
       · obtain ⟨hT1, hT2⟩ := not_or.mp hT
         have hbad : roundPred i P B rounds (commits h₀) 0 fun _ ↦ polyOf folded := by
           by_contra hn
-          exact hT2 ⟨by omega, hn⟩
+          exact hT2 ⟨by omega, hr, hn⟩
         refine ⟨hqs q hq, hSq ?_ hbad ⟨q, hqs q hq⟩ ?_⟩
         · by_contra hne
           refine hT1 ⟨by rw [← hκ]; exact hres, by rw [← hκ]; exact hma, ?_⟩

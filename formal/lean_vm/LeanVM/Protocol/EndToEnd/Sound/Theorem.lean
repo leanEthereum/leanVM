@@ -60,10 +60,15 @@ variable (O : OpeningIface) (prog : LeanIsaProgram) (input : PublicInput)
 
 /-! ## The certificate of a statement -/
 
+/-- **A statement's good runs**: `GoodRun` of its verifier program. -/
+abbrev stmtG : List Ev → Prop :=
+  GoodRun O (prog := prog) (input := input) (bytecodeWords prog) (publicInputDigest input)
+
 /-- **The doom certificate of a statement's verifier program**: `leanVmCert` with the front
-phases built. -/
+phases built, accepting from doom only good runs. -/
 noncomputable abbrev stmtCert :
-    Cert (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) :=
+    CertG (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input))
+      (stmtG O prog input) :=
   leanVmCert O (frontIface prog input) (bytecodeWords prog)
 
 /-- **The certificate's bound**: every escape bound, discounted by the proof of work before its
@@ -74,7 +79,7 @@ theorem stmtCert_bound (h : List Ev) :
 
 /-- Some boundary prefix of the extracted history of the seeded verifier's run of `P` on `π`,
 under the answers of the cache `c` to both oracles, is doomed. -/
-def DoomedRun {P : VerifierProgram Bool} (C : Cert P) (σ : Seed) (π : Proof)
+def DoomedRun {P : VerifierProgram Bool} {G : List Ev → Prop} (C : CertG P G) (σ : Seed) (π : Proof)
     (c : KeccakCalls.QueryCache) : Prop :=
   ∃ h₀, h₀ <+: extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s)) σ P π ∧
     Boundary h₀ ∧ C.D h₀
@@ -115,7 +120,7 @@ root's postcondition. -/
 theorem realSpec_D {s : Sizes} {ρ : ℕ} (hs : s.Admissible prog)
     (hadm : Whir.Admissible (μs prog s) ρ) {h₀ : List Ev} {e : Ev}
     (hce : (commitStack (μs prog s) ρ).after [e] = some (.ret ()))
-    (hpost : RootDoom O prog input s ρ (commits (h₀ ++ [e]))) :
+    (hpost : RootDoom O prog s ρ (commits (h₀ ++ [e]))) :
     (realSpec O (frontIface prog input) moves_computedBytecodeValue hs hadm).D h₀ [e] := by
   refine (Spec.bindD_some (VerifierProgram.retSplit_self hce)).2
     ⟨fun _ ↦ ?_, Spec.start_D _ _ hpost⟩
@@ -124,38 +129,53 @@ theorem realSpec_D {s : Sizes} {ρ : ℕ} (hs : s.Admissible prog)
 
 /-- **After the stack's root, the certificate's doom is the root's**: along a history where
 `readAnnouncedSizes` returned the layout of admissible sizes `s` and the root was committed by `e`,
-the doom holds if the commitments have level 0's shape and no candidate of the root satisfies the
-relation. -/
+the doom holds if the commitments have level 0's shape. -/
 theorem leanVmSpec_D_commit {l₁ : List Ev} {s : Sizes} {ρ : ℕ}
     (hl₁ : (readAnnouncedSizes (bytecodeWords prog)).after l₁ =
       some (.ret (verifierLayout prog s, ρ)))
     (hg : Good prog (verifierLayout prog s, ρ) s) {e : Ev}
     (hce : (commitStack (μs prog s) ρ).after [e] = some (.ret ()))
-    (hpost : RootDoom O prog input s ρ (commits (l₁ ++ [e]))) :
+    (hpost : RootDoom O prog s ρ (commits (l₁ ++ [e]))) :
     (leanVmSpec O (frontIface prog input) (bytecodeWords prog)).D [] (l₁ ++ [e]) := by
-  have hve : (verifyExecutionClaims computedBytecodeValue (bytecodeWords prog)
-      (publicInputDigest input)).after (l₁ ++ [e]) =
-      some ((readOod (μs prog s)).bind fun ood ↦
-        (frontProg computedBytecodeValue (verifierLayout prog s) (publicInputDigest input)).bind
-          fun r ↦ (ringSwitch r.2.1 r.2.2).bind fun y' ↦
-            verifyStackedOpening (μs prog s) ρ (ringSwitchClaim (verifierLayout prog s) y'.1 y'.2 ::
-              r.1.map (·.stackClaim (verifierLayout prog s)) ++ [ood])) := by
-    rw [verifyExecutionClaims_eq, VerifierProgram.bind_eq, VerifierProgram.after_bind_append _ hl₁]
-    exact VerifierProgram.after_bind_append _ hce []
-  have hs : (verifyExecutionClaims computedBytecodeValue (bytecodeWords prog)
-      (publicInputDigest input)).retSplit (l₁ ++ [e]) = none :=
-    retSplit_eq_none_of_after hve fun u h ↦ readOod_bind_ne_ret _ _ _ h
-  rw [leanVmSpec, Spec.congr_D]
-  refine (Spec.bindD_none hs).2 ?_
-  rw [veSpec, Spec.congr_D]
+  -- After the root, the ghost body is at its OOD sample, which does not return at once.
+  set pd := publicInputDigest input
+  have hbody : ∀ {γ : Type} (g : Whir.Sound.WhirTrace → VerifierProgram γ),
+      ∃ q, ((veBodyG computedBytecodeValue pd (verifierLayout prog s) ρ).bind g).after [e] =
+        some q ∧ ∀ c, q ≠ .ret c := by
+    intro γ g
+    simp only [veBodyG, VerifierProgram.bind_eq, VerifierProgram.bind_assoc]
+    rw [show [e] = [e] ++ [] from rfl, VerifierProgram.after_bind_append _ hce]
+    exact ⟨_, rfl, fun c hc ↦ readOod_bind_ne_ret _ _ c hc⟩
+  have hveG : ∀ {γ : Type} (g : (Verifier.Layout × ℕ) × Whir.Sound.WhirTrace → VerifierProgram γ),
+      ∃ q, ((verifyExecutionClaimsG computedBytecodeValue (bytecodeWords prog) pd).bind g).after
+        (l₁ ++ [e]) = some q ∧ ∀ c, q ≠ .ret c := by
+    intro γ g
+    obtain ⟨q, hq, hne⟩ := hbody (γ := γ) fun tr ↦ g ((verifierLayout prog s, ρ), tr)
+    refine ⟨q, ?_, hne⟩
+    simp only [verifyExecutionClaimsG, VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
+    rw [VerifierProgram.after_bind_append _ hl₁]
+    exact hq
+  obtain ⟨q₀, hq₀, hne₀⟩ := hveG (γ := Bool × (Verifier.Layout × ℕ) × Whir.Sound.WhirTrace)
+    fun d ↦ VerifierProgram.ret (true, d)
+  have hs₀ := retSplit_eq_none_of_after hq₀ hne₀
+  obtain ⟨q₁, hq₁, hne₁⟩ := hveG (γ := (Verifier.Layout × ℕ) × Whir.Sound.WhirTrace)
+    VerifierProgram.ret
+  rw [VerifierProgram.bind_ret] at hq₁
+  have hs₁ := retSplit_eq_none_of_after hq₁ hne₁
+  obtain ⟨q₂, hq₂, hne₂⟩ := hbody (γ := Whir.Sound.WhirTrace) VerifierProgram.ret
+  rw [VerifierProgram.bind_ret] at hq₂
+  have hs₂ := retSplit_eq_none_of_after hq₂ hne₂
+  rw [leanVmSpec]
+  erw [Spec.congr_D]
+  refine (Spec.bindD_none hs₀).2 ⟨?_, rfl⟩
+  refine (Spec.bindD_none hs₁).2 ?_
+  rw [veSpec]
   refine (Spec.bindD_after (VerifierProgram.retSplit_of_after _ l₁ [e] hl₁)
     (List.cons_ne_nil _ _)).2 ?_
-  have hex : ∃ s', verifierLayout prog s = verifierLayout prog s' ∧ s'.Admissible prog ∧
-      Whir.Admissible (verifierLayout prog s).stackLog ρ := ⟨s, rfl, hg.2.1, hg.2.2⟩
+  apply (Spec.bindD_none hs₂).2
+  have hex : AdmAt prog (verifierLayout prog s, ρ) := ⟨s, rfl, hg.2.1, hg.2.2⟩
   have hs' : hex.choose = s := verifierLayout_injective prog hex.choose_spec.1.symm
-  show (bodySpec O (frontIface prog input) moves_computedBytecodeValue
-    (verifierLayout prog s, ρ)).D _ [e]
-  simp only [bodySpec, hex, ↓reduceDIte, Spec.congr_D]
+  rw [bodySpec_D O (frontIface prog input) moves_computedBytecodeValue _ hex]
   refine realSpec_D O prog input _ _ ?_ ?_
   · rw [hs']; exact hce
   · rw [hs', List.nil_append]; exact hpost
@@ -234,15 +254,76 @@ theorem mem_candidates_castColumn {a b : ℕ} (e : a = b) (R : ℕ) (A : ℕ →
   subst e
   simp [castColumn]
 
-/-- **Accepted, and the extractor fails, is doomed**: the prefix of the extracted history up to
-the stack's root is a boundary at which the certificate's doom holds. -/
+/-- `ret` reaches only itself. -/
+theorem after_ret_eq {α : Type} {a b : α} {l : List Ev}
+    (h : (VerifierProgram.ret a).after l = some (.ret b)) : l = [] ∧ a = b := by
+  rcases l with _ | ⟨e, l⟩
+  · simp only [VerifierProgram.after, Option.some.injEq, VerifierProgram.ret.injEq] at h
+    exact ⟨rfl, h⟩
+  · simp [VerifierProgram.after] at h
+
+/-- **A good run's announced sizes and good candidate**: on a history along which the verifier
+accepts and which is a good run, the sizes announced are admissible and some candidate of the
+stack's word at level 0's threshold satisfies the relation. -/
+theorem goodRun_cand {hist : List Ev}
+    (hafter : (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)).after hist =
+      some (.ret true))
+    (hG : stmtG O prog input hist) :
+    ∃ s ρ W, s.Admissible prog ∧ announced prog hist = some (s, ρ) ∧ firstWord hist = some W ∧
+      ∃ q ∈ Candidates (leanIsaμ prog s) ρ (O.thr₀ (leanIsaμ prog s) ρ) W,
+        M3Holds (leanIsaInstance prog s) input q := by
+  rw [← leanVmProgramG_eq] at hafter
+  obtain ⟨r, m, m', rfl, hg, hret⟩ := after_bind_ret hafter
+  obtain ⟨rfl, hr1⟩ := after_ret_eq hret
+  rw [List.append_nil] at hG ⊢
+  -- The ghost's data: the announced value and the trace.
+  have hg' := hg
+  unfold leanVmProgramG at hg'
+  obtain ⟨d, m₁, m₂, rfl, hd, hretd⟩ := after_bind_ret hg'
+  obtain ⟨rfl, hrd⟩ := after_ret_eq hretd
+  rw [verifyExecutionClaimsG] at hd
+  obtain ⟨a, l₁, l₂, rfl, hl₁, hbody⟩ := after_bind_ret hd
+  obtain ⟨tr, l₃, l₄, rfl, -, hrt⟩ := after_bind_ret hbody
+  obtain ⟨rfl, hdt⟩ := after_ret_eq hrt
+  have hrt' : r = (true, (a, tr)) := by rw [← hrd, ← hdt]
+  obtain ⟨hadm, hT⟩ := hG (a, tr) (by rw [← hrt']; exact hg)
+  obtain ⟨hlay, hs, hwadm⟩ := hadm.choose_spec
+  have hwadm' : Whir.Admissible (μs prog hadm.choose) a.2 := by rw [μs, ← hlay]; exact hwadm
+  obtain ⟨W, hW, q, hq, hnb⟩ := O.traceGood_cands hwadm' _ tr _ hT
+  refine ⟨hadm.choose, a.2, W, hs,
+    announced_eq prog (by rw [List.append_assoc]; exact List.prefix_append _ _) hl₁ hlay, hW,
+    toI prog hadm.choose q, ?_, not_not.mp hnb⟩
+  exact (mem_candidates_castColumn (stackLog_verifierLayout prog hadm.choose) a.2 O.thr₀ W q).2 hq
+
+/-- **A good run is extracted**: on an accepted proof whose extracted history is a good run, the
+announced sizes are admissible and a candidate of the stack's word satisfies the relation. -/
+theorem extracted_of_goodRun {c : KeccakCalls.QueryCache} {π : Proof}
+    (hv : Rom.verify (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
+      (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) π = some true)
+    (hG : stmtG O prog input (extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
+      (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) π)) :
+    Extracted O prog input c π := by
+  obtain ⟨hafter, -⟩ := after_extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s)) hv
+  obtain ⟨s, ρ, W, hs, hann, hfw, hq'⟩ := goodRun_cand O prog input hafter hG
+  refine ⟨s, hq'.choose, ?_, hs, hq'.choose_spec.2⟩
+  simp only [extractStack, hann, hfw, hq', ↓reduceDIte]
+
+/-- **Accepted, and the extractor fails, is doomed and not a good run**: the prefix of the
+extracted history up to the stack's root is a boundary at which the certificate's doom holds,
+and the extracted history is not a good run (`extracted_of_goodRun`). -/
 theorem doomed_of_not_extracted {c : KeccakCalls.QueryCache} {π : Proof}
     (hv : Rom.verify (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
       (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
       (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) π = some true)
     (hne : ¬ Extracted O prog input c π) :
     DoomedRun (stmtCert O prog input) (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
-      π c := by
+      π c ∧
+    ¬ stmtG O prog input (extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
+      (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) π) := by
+  refine ⟨?_, fun hG ↦ hne (extracted_of_goodRun O prog input hv hG)⟩
   set hist := extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
     (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
     (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) π with hhist
@@ -277,23 +358,8 @@ theorem doomed_of_not_extracted {c : KeccakCalls.QueryCache} {π : Proof}
     simp
   have hshape : O.ShapeOK₀ (μs prog s) ρ (commits (l₁ ++ [e])) := by
     rw [hcomm]; exact O.shape_commitStack hadm hwell hce'
-  have hW := O.shape_word hshape
-  set W := O.word₀ (commits (l₁ ++ [e]))
-  -- No good candidate.
-  have hdoom : RootDoom O prog input s ρ (commits (l₁ ++ [e])) := by
-    refine ⟨hshape, W, hW, fun q hq hM ↦ hne ?_⟩
-    have hann : announced prog hist = some (s, ρ) :=
-      announced_eq prog ((List.prefix_append l₁ [e]).trans hpre) hl₁ rfl
-    have hfw' : firstWord hist = some W := by
-      obtain ⟨t, ht⟩ := hpre
-      rw [← ht]
-      exact firstWord_append hW t
-    have hq' : ∃ q ∈ Candidates (leanIsaμ prog s) ρ (O.thr₀ (leanIsaμ prog s) ρ) W,
-        M3Holds (leanIsaInstance prog s) input q :=
-      ⟨toI prog s q, (mem_candidates_castColumn (stackLog_verifierLayout prog s) ρ O.thr₀ W q).2 hq,
-        hM⟩
-    refine ⟨s, hq'.choose, ?_, hs, hq'.choose_spec.2⟩
-    simp only [extractStack, ← hhist, hann, hfw', hq', ↓reduceDIte]
+  have hdoom : RootDoom O prog s ρ (commits (l₁ ++ [e])) :=
+    ⟨hshape, O.word₀ (commits (l₁ ++ [e])), O.shape_word hshape⟩
   exact ⟨l₁ ++ [e], hpre, by rw [he]; exact boundary_append_commit _ _ _ _,
     leanVmSpec_D_commit O prog input hl₁ ⟨rfl, hs, hadm⟩ hce' hdoom⟩
 

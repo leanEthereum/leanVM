@@ -228,6 +228,26 @@ theorem romSound_of_imp {X : Type} (P : VerifierProgram Bool) (C : Cert P) (σ :
   exact romSound_log P C σ hroot εmax hε A QA hA QV hV (fun z ℓ ↦ bad z (cacheOf ℓ))
     fun z ℓ _ hv hb ↦ hbad z (cacheOf ℓ) hv hb
 
+/-- **The random-oracle theorem for an event that implies doom, with an acceptance predicate**:
+`romSound_of_imp` for a certificate `C : CertG P G`, where `bad` must also give the extracted
+history failing `G`. -/
+theorem romSound_of_impG {X : Type} (P : VerifierProgram Bool) {G : List Ev → Prop}
+    (C : CertG P G) (σ : Seeds X) (hroot : ∀ x, RootOk P (σ.root x)) (εmax : ℝ≥0∞)
+    (hε : ∀ h, (2 : ℝ≥0∞)⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax)
+    (A : OracleComp KeccakCalls (X × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA)
+    (QV : ℕ) (hV : ∀ z, IsTotalQueryBound (verifierFam σ P z) QV)
+    (bad : X × Proof → KeccakCalls.QueryCache → Prop)
+    (hbad : ∀ z c, verify (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s)) (σ.seed z.1)
+      (nodeAt P (σ.root z.1)) z.2 = some true → bad z c → Doomed C σ z c ∧
+        ¬ G (extractedFrom (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s)) (σ.seed z.1)
+          (nodeAt P (σ.root z.1)) (σ.root z.1) z.2)) :
+    Pr{let z ← romExperiment A (verifierFam σ P)}[z.1.2 = true ∧ bad z.1.1 z.2] ≤
+      (QA + QV : ℕ) * (εmax + failBound σ (QA + QV)) := by
+  rw [prEvent_romExperiment_eq_logExperiment A (verifierFam σ P)
+    fun r c ↦ r.2 = true ∧ bad r.1 c]
+  exact romSound_logG P C σ hroot εmax hε A QA hA QV hV (fun z ℓ ↦ bad z (cacheOf ℓ))
+    fun z ℓ _ hv hb ↦ hbad z (cacheOf ℓ) hv hb
+
 /-- **The random-oracle theorem of the compiled verifier.** For a verifier program `P` with a
 doom certificate `C`, a family of seedings `σ` whose roots are roots of `P`, an adversary `A`
 making at most `QA` queries that outputs a statement and a proof, and a compiled verifier making

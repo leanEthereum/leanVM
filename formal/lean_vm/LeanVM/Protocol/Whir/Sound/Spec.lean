@@ -115,7 +115,8 @@ def traceGood (codes : ℕ → LevelCode) :
     ℕ → (List (ℕ × ℕ × Word) → TPred) → WhirTrace → List (ℕ × ℕ × Word) → Prop
   | i, B, .final rounds folded, cs => FinGood i (codes i) B rounds folded cs
   | i, B, .mid rounds high rest, cs => ∃ h : (codes i).κ = (codes (i + 1)).ℓ + (codes (i + 1)).κ,
-      traceGood codes (i + 1) (nextPred i (codes i) (codes (i + 1)) h B rounds high) rest cs
+      rounds.length = (codes i).ℓ ∧
+        traceGood codes (i + 1) (nextPred i (codes i) (codes (i + 1)) h B rounds high) rest cs
 
 /-- **The levels' specification**: from level `i`'s doom with a stable predicate `B`, every
 group escapes within `εmax` after its grind, and an accepting return has a good trace. -/
@@ -143,6 +144,7 @@ noncomputable def levelsSpec (hw : IsMultiaffine μ w) (hℓ₀ : ℓ₀ ≤ μ)
     ((foldRoundsSpec μ ℓ₀ w i (codes i) pre B
         (fun cs ↦ ShapeOK i (codes i) cs ∧ cs.length = i + 1) hw hℓ₀ (RB i) level.fold s []
         (by simp [hA.1])).bind' fun r ↦
+      if hr : r.2.length = (codes i).ℓ then
       (midTailSpec μ ℓ₀ w i (codes i) (codes (i + 1)) pre B μ level next rfl
         ⟨hA.1, hA.2.1⟩ hA.2.2.2.head hA.2.2.1 hB r.1 r.2 _
         (fun high s' ↦
@@ -150,10 +152,12 @@ noncomputable def levelsSpec (hw : IsMultiaffine μ w) (hℓ₀ : ℓ₀ ≤ μ)
             (nextPred i (codes i) (codes (i + 1)) hA.2.2.1.hκ B r.2 high)
             (predStable_nextPred hB r.2 high) s').bind' fun tr ↦
           (Spec.ret (Post := fun tr h ↦ traceGood codes i B tr (commits h))
-            (.mid r.2 high tr)).mono (fun _ h ↦ ⟨hA.2.2.1.hκ, h⟩) (fun _ _ h ↦ h) le_rfl le_rfl
-            le_rfl)).mono
-        (fun _ hp ↦ ⟨⟨by simpa using hp.1.1, hp.1.2⟩, by rw [hp.2, hA.1]⟩)
-        (fun _ _ h ↦ h) le_rfl le_rfl le_rfl).mono
+            (.mid r.2 high tr)).mono (fun _ h ↦ ⟨hA.2.2.1.hκ, hr, h⟩) (fun _ _ h ↦ h) le_rfl
+            le_rfl le_rfl)).mono
+        (fun _ hp ↦ ⟨⟨by simpa using hp.1.1, hp.1.2⟩, hr⟩)
+        (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
+      else Spec.dead.mono (fun _ hp ↦ hr (by rw [hp.2, hA.1])) (fun _ _ h ↦ h) le_rfl zero_le
+        le_rfl).mono
       (fun _ hp ↦ ⟨hp.1, hp.2⟩) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
 
 /-! ## The opening -/
