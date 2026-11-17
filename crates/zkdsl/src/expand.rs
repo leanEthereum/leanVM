@@ -1,17 +1,17 @@
 //! The front end: each function the program runs, from its AST to its core function ([`crate::core_ir`]), by the
-//! compiler's own rules. Every decision on the source is made here as lowering made it to bytecode: compile-time
-//! evaluation ([`mod@eval`]), virtual bindings folded into addresses and constants, `Const` specialization, `@inline`
-//! expansion, `unroll`, folded and runtime `if`, `match` with fused dispatch and chains, `mul_range` lifted to a
-//! tail-recursive helper, `StackBuf` runs, heap addressing ([`mod@mem`]), calls ([`mod@call`]), the Keccak builtins
-//! and the hints ([`mod@builtins`]).
+//! Rust compiler's rules. Every decision on the source is made here as that compiler's lowering made it to bytecode:
+//! compile-time evaluation ([`mod@eval`]), virtual bindings folded into addresses and constants, `Const`
+//! specialization, `@inline` expansion, `unroll`, folded and runtime `if`, `match` with fused dispatch and chains,
+//! `mul_range` lifted to a tail-recursive helper, `StackBuf` runs, heap addressing ([`mod@mem`]), calls
+//! ([`mod@call`]), the Keccak builtins and the hints ([`mod@builtins`]).
 //!
-//! What the compiler's back end decided is not here: a value is a fresh number where lowering allocated a frame
-//! cell, nothing is shared (a pooled constant, an interned pure result or a repeated load is a second atom on a
-//! fresh value), and there is no frame plumbing (frame and return pointers, jump targets, jump tables). Values
-//! allocated together ([`FnExpand::alloc_stack`]) are a run, which is what a `keccak` operand used in place needs.
-//! This is Rust's own front end, cut from the compiler's lowering (`lower.rs`, `lower/*.rs`), and independent of
-//! Lean's (`formal/lean_vm/LeanVM/Guest/Expand.lean`), which was ported from that lowering separately;
-//! `scripts/frontend-diff` compares the two on the guest and the test programs.
+//! What a back end decides is not here: a value is a fresh number where lowering allocated a frame cell, nothing is
+//! shared (a pooled constant, an interned pure result or a repeated load is a second atom on a fresh value), and
+//! there is no frame plumbing (frame and return pointers, jump targets, jump tables). Values allocated together
+//! ([`FnExpand::alloc_stack`]) are a run, which is what a `keccak` operand used in place needs.
+//! This is Rust's own front end, cut from the Rust compiler's lowering before that compiler's code generation was
+//! deleted, and independent of Lean's (`formal/lean_vm/LeanVM/Guest/Expand.lean`), which was ported from that lowering
+//! separately; `scripts/frontend-diff` compares the two on the guest and the test programs.
 
 use super::*;
 use crate::core_ir::{Atom, Dest, Hint, Stmt as CStmt, V};

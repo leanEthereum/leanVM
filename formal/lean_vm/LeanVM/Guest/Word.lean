@@ -15,8 +15,8 @@ public import LeanVM.Parameters.Generator
 /-!
 # Compile-time words
 
-What the compiler computes in `F128` while folding (`crates/zkdsl/src/lib.rs`,
-`lower/eval.rs`), on the Spec's fields:
+What the compiler computes in `F128` while folding (`crates/zkdsl_compiler/src/lib.rs`,
+`lower/eval.rs` at leanVM `6363526c0`), on the Spec's fields:
 
 * `word c0 c1`, the element `c0 + c1·y` from two 64-bit limbs; `litField n`, the word whose
   limbs a 128-bit source literal's bits spell (`lit_field`);
@@ -26,7 +26,7 @@ What the compiler computes in `F128` while folding (`crates/zkdsl/src/lib.rs`,
 * the shape of a `KECCAK` state in cells (`stateCells`, `blockCells`) and the padding's words:
   `byteWord pos v`, the byte `v` at byte `pos` of a message cell (`xor_byte`), and
   `keccakPadValue`, the padding's first byte at the start of a cell (`keccak_pad_value`,
-  `crates/zkdsl/src/lower/builtins.rs`); the bytes themselves are the Spec's
+  `crates/zkdsl_compiler/src/lower/builtins.rs` at leanVM `6363526c0`); the bytes themselves are the Spec's
   (`Protocol.KeccakHash.padFirst`, `padLast`, `rate`).
 -/
 

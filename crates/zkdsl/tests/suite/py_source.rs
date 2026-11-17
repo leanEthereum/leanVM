@@ -2,9 +2,11 @@
 //! stub import makes them valid Python for editors/linters, and the compiler
 //! skips it (single-file programs only: importing anything else is an error).
 //!
-//! The harness is generic: every `tests/programs/*.py` is parsed, compiled,
-//! proven, and verified. A program declares the public input it expects with a
-//! top-of-file annotation of two constant field elements,
+//! The harness is generic: every `tests/programs/*.py` parses, and the program the
+//! Lean back end compiled from it (`tests/compiled/<name>.txt`, written by
+//! `lake exe guest-backend export programs`) is proven and verified. A program
+//! declares the public input it expects with a top-of-file annotation of two
+//! constant field elements,
 //!
 //! ```text
 //! # public_input: GEN ** 89, 101229015297003380629709256178361811305
@@ -19,7 +21,7 @@ use std::fs;
 use isa::Program;
 use lean_vm_core::cpu::{from_scalar, prove, verify};
 use primitives::field::F128;
-use zkdsl::{compile, parse, parse_const};
+use zkdsl::{parse, parse_const};
 
 /// The `# public_input: <elt>, <elt>` annotation, if any.
 pub(crate) fn public_input(src: &str) -> Option<[F128; 2]> {
@@ -38,11 +40,14 @@ pub(crate) fn public_input(src: &str) -> Option<[F128; 2]> {
     None
 }
 
+/// Named prover streams, each a list of entries.
+pub(crate) type Streams = Vec<(String, Vec<Vec<F128>>)>;
+
 /// The `# witness <name>: <elt>, …` annotations: one line per *entry*
 /// (repeated lines with the same name are the stream's successive entries,
 /// popped by successive `hint_witness` calls).
-pub(crate) fn witness(src: &str) -> Vec<(String, Vec<Vec<F128>>)> {
-    let mut streams: Vec<(String, Vec<Vec<F128>>)> = Vec::new();
+pub(crate) fn witness(src: &str) -> Streams {
+    let mut streams: Streams = Vec::new();
     for rest in src.lines().filter_map(|l| l.trim().strip_prefix("# witness ")) {
         let (name, vals) = rest.split_once(':').expect("`# witness` needs `name: values`");
         let entry = vals
@@ -57,7 +62,18 @@ pub(crate) fn witness(src: &str) -> Vec<(String, Vec<Vec<F128>>)> {
     streams
 }
 
-/// Every program in `tests/programs/`, end to end.
+/// The program `tests/programs/<name>.py` as the Lean back end compiled it, its witness streams and its public input.
+pub(crate) fn lean_compiled(name: &str) -> (Program, Streams, [F128; 2]) {
+    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/tests");
+    let src = fs::read_to_string(format!("{dir}/programs/{name}.py")).unwrap_or_else(|e| panic!("{name}: read: {e}"));
+    let text = fs::read_to_string(format!("{dir}/compiled/{name}.txt")).unwrap_or_else(|e| {
+        panic!("{name}: no Lean-compiled program ({e}): run `lake exe guest-backend export programs`")
+    });
+    let program = Program::__from_text(&text).unwrap_or_else(|e| panic!("{name}: {e}"));
+    (program, witness(&src), public_input(&src).unwrap_or([F128::ZERO; 2]))
+}
+
+/// Every program in `tests/programs/` parses, and proves and verifies as Lean compiled it.
 #[test]
 fn all_py_programs() {
     let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/programs");
@@ -70,12 +86,11 @@ fn all_py_programs() {
     assert!(!paths.is_empty(), "no .py programs found");
 
     for path in paths {
-        let name = path.file_name().unwrap().to_string_lossy().into_owned();
+        let name = path.file_stem().unwrap().to_string_lossy().into_owned();
         let src = fs::read_to_string(&path).unwrap_or_else(|e| panic!("{name}: read: {e}"));
-        let want = public_input(&src).unwrap_or([F128::ZERO; 2]);
-        let ast = parse(&src).unwrap_or_else(|e| panic!("{name}: parse: {e}"));
-        let program = Program::from(compile(&ast));
-        let (proof, _) = prove(&program, &witness(&src), want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
+        parse(&src).unwrap_or_else(|e| panic!("{name}: parse: {e}"));
+        let (program, streams, want) = lean_compiled(&name);
+        let (proof, _) = prove(&program, &streams, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
         verify(&program, &want, &proof).unwrap_or_else(|e| panic!("{name}: verify: {e:?}"));
         println!("{name}: ok");
     }

@@ -10,10 +10,8 @@
 
 use std::collections::BTreeMap;
 
-use crate::common::compile;
-use lean_vm_core::cpu::{prove, verify};
-use primitives::field::g_pow;
-use zkdsl::{parse, parse_with_replacements};
+use crate::common::core;
+use zkdsl::{expand, parse, parse_with_replacements};
 
 /// A global constant substitutes exactly like writing its value inline: even
 /// in a `StackBuf` size, which demands a parse-time literal. The two programs
@@ -45,7 +43,7 @@ def main():
         crate::common::without_lines(&ai),
         "constant must inline to its value"
     );
-    let _ = compile(&ac); // and it lowers to a real program
+    let _ = expand(&ac); // and it expands
 }
 
 /// A constant may be used as a `**` exponent and an `assert log _ < _` bound -
@@ -71,7 +69,7 @@ def main():
         crate::common::without_lines(&parse(src).unwrap()),
         crate::common::without_lines(&parse(inlined).unwrap()),
     );
-    let _ = compile(&parse(src).unwrap());
+    let _ = expand(&parse(src).unwrap());
 }
 
 /// A global constant may be a g-power, which is how the ISA writes every
@@ -84,21 +82,17 @@ def main():
 /// rather than only as a value.
 #[test]
 fn a_global_constant_may_be_a_g_power() {
+    let program = |decl: &str, value: &str| {
+        format!(
+            "STEP = {decl}\n\ndef main():\n    p = GEN ** 0\n    p[1] = {value}\n    p[GEN] = GEN ** 0\n    return\n"
+        )
+    };
     for (decl, exp) in [("GEN ** 2", 2usize), ("GEN * GEN", 2), ("GEN ** 70", 70)] {
-        let src = format!(
-            "STEP = {decl}
-
-def main():
-    p = GEN ** 0
-    p[1] = STEP
-    p[GEN] = GEN ** 0
-    return
-"
+        assert_eq!(
+            core(&program(decl, "STEP")),
+            core(&program("1", &format!("GEN ** {exp}"))),
+            "`{decl}` is not g^{exp}"
         );
-        let program = compile(&parse(&src).unwrap_or_else(|e| panic!("`{decl}`: {e}")));
-        let want = [g_pow(exp).into(), g_pow(0).into()];
-        let (proof, _) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-        verify(&program, &want, &proof).unwrap_or_else(|e| panic!("`{decl}` is not g^{exp}: {e:?}"));
     }
 }
 
@@ -125,7 +119,7 @@ def main():
         crate::common::without_lines(&parse(src).unwrap()),
         crate::common::without_lines(&parse(inlined).unwrap()),
     );
-    let _ = compile(&parse(src).unwrap());
+    let _ = expand(&parse(src).unwrap());
 }
 
 /// Constant expressions use **integer** arithmetic (`+ - * / **`), not runtime
@@ -174,7 +168,7 @@ def main():
         crate::common::without_lines(&filled),
         crate::common::without_lines(&parse(concrete).unwrap())
     );
-    let _ = compile(&filled);
+    let _ = expand(&filled);
 }
 
 /// `const(...)` is TRANSPARENT in a parse-time position, and the test is that
@@ -209,7 +203,7 @@ fn const_is_transparent_where_the_reading_is_already_integer() {
     // An `unroll` count keeps its expression for the lowerer to fold, in either
     // spelling, so the baseline is the unwrapped expression rather than a literal.
     let count = |b: &str| format!("def main():\n    for i in unroll(0, {b}):\n        v = 1\n    return\n");
-    let unrolled = |b: &str| compile(&parse(&count(b)).unwrap_or_else(|e| panic!("{b}: {e}"))).code_len();
+    let unrolled = |b: &str| core(&count(b));
     assert_eq!(
         unrolled("const(1 + 1)"),
         unrolled("1 + 1"),
@@ -227,7 +221,7 @@ fn const_is_transparent_where_the_reading_is_already_integer() {
     // wrapper is no route past a bound the bare spelling would fail.
     for b in ["0", "const(0)"] {
         let ast = parse(&bound(b)).expect("parses");
-        let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {
+        let Err(err) = std::panic::catch_unwind(|| expand(&ast)) else {
             panic!("`{b}` was accepted as a bound");
         };
         let msg = err.downcast_ref::<String>().map(String::as_str).unwrap_or("");
@@ -263,7 +257,7 @@ def main():
         crate::common::without_lines(&filled),
         crate::common::without_lines(&parse(concrete).unwrap())
     );
-    let _ = compile(&filled);
+    let _ = expand(&filled);
 }
 
 /// Replacement is identifier-bounded: a key does not match a substring of a

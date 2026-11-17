@@ -41,11 +41,6 @@ impl Base for F64 {
     }
 }
 
-/// `g^i`.
-pub fn g_pow(i: usize) -> F64 {
-    F64::G.pow(i as u128)
-}
-
 /// The base-field element a word is, or `None` when its `y` coefficient is nonzero.
 pub fn as_base(word: F128) -> Option<F64> {
     (word.c1 == 0).then_some(F64(word.c0))

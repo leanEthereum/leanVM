@@ -6,10 +6,11 @@ import LeanVMTests.Guest.Programs
 
 Every `crates/zkdsl/tests/programs/*.py` compiles through `Expand` and the back end, and
 the back end's invariants hold of its traced expansion (`Compiler.invariants`); and the sizes of
-the compiled programs are pinned. That each is the Rust compiler's program, instruction for
-instruction and hint for hint, is the Rust test `crates/zkdsl/tests/suite/lean_backend.rs`
-on the exports `lake exe guest-backend export programs` writes; the whole guest is
-`lake exe guest-backend check`.
+the compiled programs are pinned. That each was the Rust compiler's program, instruction for
+instruction and hint for hint, was the Rust test `crates/zkdsl_compiler/tests/suite/lean_backend.rs`
+(leanVM `6363526c0`) until that compiler's code generation was deleted; the exports
+`lake exe guest-backend export programs` writes are what the Rust tests prove now, and the whole
+guest is `lake exe guest-backend check`.
 -/
 
 open LeanVM.Guest LeanVM.Compiler LeanVM.Semantics

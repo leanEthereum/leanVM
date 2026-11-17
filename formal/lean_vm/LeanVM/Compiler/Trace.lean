@@ -14,7 +14,7 @@ public import LeanVM.Guest.Source
 # The allocation trace
 
 The core IR keeps a function's relations, not its frame. The Rust lowering
-(`crates/zkdsl/src/lower.rs`) takes a frame cell wherever the expansion makes a value
+(`crates/zkdsl_compiler/src/lower.rs` at leanVM `6363526c0`) takes a frame cell wherever the expansion makes a value
 (`Expand.fresh`, `Expand.freshRun`), and the core IR names a value only where a statement uses
 it. So the following are gone from the core IR, and each moves cells:
 

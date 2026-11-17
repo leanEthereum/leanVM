@@ -23,8 +23,8 @@ Run from `lean_vm`.
   functions and instructions when the programs differ, and the first `N` that differ.
 * `lake exe guest-backend export programs DIR [--check]` writes the compiler's test programs
   (`LeanVMTests.Guest.Programs`) in the line format of `crates/isa/src/text.rs`, source lines
-  included (`Compiler.Lines`), which the Rust tests compare with the Rust compiler's output
-  (`crates/zkdsl/tests/suite/lean_backend.rs`), and the verifiers' fixture program at each
+  included (`Compiler.Lines`), which the Rust tests and the benchmark load
+  (`crates/zkdsl/tests/compiled/`), and the verifiers' fixture program at each
   of its step counts (`Programs.chains`). `export snippets DIR [--check]` writes the aggregation
   tests' snippets (`LeanVMTests.Guest.Snippets`: a `main` over the guest's helpers).
   The guest itself is written by `lake exe guest-artifact` (`cli/GuestArtifact.lean`).

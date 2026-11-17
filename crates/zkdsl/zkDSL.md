@@ -4,7 +4,7 @@ The zkDSL is a Python-syntax language that compiles to the leanVM ISA: six instr
 
 Source files use the `.py` extension and are **Python-shaped**: they import the [`snark_lib`](snark_lib.py) stub, which defines `GEN`, `log`, `mul_range`, `HeapBuf`, `StackBuf`, `assert_in_k`, `keccak` and `keccak_cells`, so editors and linters resolve the intrinsic names. The compiler skips the import. Ordinary helpers such as `pack64x2` are defined in the single-file guest. A program that uses placeholders is not a runnable Python file: its `*_PLACEHOLDER` identifiers are undefined until the host fills them in, so importing it raises `NameError`.
 
-Entry points: `zkdsl::parse` / `parse_with_replacements` → `zkdsl::compile`, a `CompiledProgram` (crate `isa`) → `isa::Program::from` → `cpu::prove` / `verify` in either prover tree.
+Entry points: `zkdsl::parse` / `parse_with_replacements` give the AST, which the compiler, the Lean back end (`formal/lean_vm/LeanVM/Compiler`, fed by `formal/lean_vm/scripts/guest-export`), compiles to a `CompiledProgram` (crate `isa`) in text (`lake exe guest-backend export`) → `isa::Program::__from_text` → `cpu::prove` / `verify` in either prover tree. `zkdsl::expand` is a second front end, from the AST to the core IR, independent of Lean's: `formal/lean_vm/scripts/frontend-diff` compares the two.
 
 ## Dev experience
 
@@ -62,7 +62,7 @@ p[1] = result_a     # m[p·1]  = m[0], an equality assert against the public inp
 p[GEN] = result_b   # m[p·g] = m[1]
 ```
 
-Test programs under `tests/programs/` declare the public input they expect with a top-of-file annotation of two constant elements (or omit it to run with two zeros); the generic harness `tests/suite/py_source.rs` proves and verifies every program in the directory:
+Test programs under `tests/programs/` declare the public input they expect with a top-of-file annotation of two constant elements (or omit it to run with two zeros); the generic harness `tests/suite/py_source.rs` proves and verifies every program in the directory as the Lean back end compiled it (`tests/compiled/<name>.txt`):
 
 ```python
 # public_input: GEN ** 89, 101229015297003380629709256178361811305

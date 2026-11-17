@@ -84,9 +84,8 @@ pub enum Expr {
 }
 
 /// A statement, with the source line it came from. The line is what every
-/// lowering diagnostic names and what the pc-to-line table is built from: the
-/// AST is the only place that still knows it, since lowering works in frame
-/// cells and program counters.
+/// diagnostic names and what a compiled program's pc-to-line table is built
+/// from: the AST is the only place that still knows it.
 #[derive(Clone, Debug)]
 pub struct Stmt {
     pub line: u32,
@@ -116,10 +115,10 @@ pub enum StmtKind {
     AssertEq(Expr, Expr),
     /// `assert a != b`. Lowers to `x = a + b`, a hinted `inv = x⁻¹`, `p = x·inv`
     /// and `SET p = 1`: `x = 0` forces `p = 0` whatever the hint, so the
-    /// write-once conflict is the assertion. See `FnLower::lower_assert_ne`.
+    /// write-once conflict is the assertion. See `FnExpand::lower_assert_ne`.
     AssertNe(Expr, Expr),
     /// `assert log X < log Y`, or `assert log X < k`: a range check in the
-    /// exponent, proving `x < k` for `X = g^x`. See `FnLower::lower_assert_lt`.
+    /// exponent, proving `x < k` for `X = g^x`. See `FnExpand::lower_assert_lt`.
     AssertLt(Expr, LtBound),
     /// `f(args)` as a statement (returns discarded).
     Call(String, Vec<Expr>),
@@ -140,7 +139,7 @@ pub enum StmtKind {
     /// `elif` parses as an `else` holding a nested `if`). One conditional `JUMP`
     /// on the XOR of the sides. Bindings inside a branch are local to it, and the
     /// branches communicate through write-once memory, only one of them running.
-    /// See `FnLower::lower_if`.
+    /// See `FnExpand::lower_if`.
     If {
         eq: bool,
         lhs: Expr,
@@ -158,7 +157,7 @@ pub enum StmtKind {
     /// literal `j`, expanded at parse time, and `x = g^j` runs arm `j` through a
     /// jump table in `main`'s frame. Every arm writes the same cells, exactly one of them running, so a
     /// target may be a name bound at the join or a `StackBuf` element written in
-    /// place. See `FnLower::lower_match`.
+    /// place. See `FnExpand::lower_match`.
     Match {
         targets: Vec<Expr>,
         x: Expr,

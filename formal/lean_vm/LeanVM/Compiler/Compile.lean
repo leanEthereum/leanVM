@@ -14,7 +14,7 @@ public import LeanVM.Compiler.Assemble
 /-!
 # The compiler
 
-`compile` is `zkdsl::compile` (`crates/zkdsl/src/lib.rs`) as four functions:
+`compile` is the Rust compiler's `compile` (`crates/zkdsl_compiler/src/lib.rs` at leanVM `6363526c0`) as four functions:
 
     Source.Program ─Expand.expandProgramTraced→ List TracedFn ─placeProgram→ List PFn
       ─emitFn→ List Lowered, jump table slots ─assemble→ Assembled
