@@ -147,21 +147,23 @@ theorem laneO_wordArr (i : ℕ) (cs : List (ℕ × ℕ × Word)) (n j : ℕ) (v 
   simp [Array.getD_eq_getD_getElem?, List.getD_eq_getElem?_getD]
 
 /-- **The descent across levels, over arrays.** -/
-def descendTraceA (codes : ℕ → LevelCode) (cs : List (ℕ × ℕ × Word)) :
+def descendTraceA (codes : ℕ → LevelCode) (OAs : List AV) :
     WhirTrace → ℕ → Option (ℕ × AV)
   | .final rounds folded, i => descendRoundsA (codes i).dom (codes i).deg (codes i).thr
-      (wordArr i cs (codes i).n) rounds 0
+      (OAs.getD i #[]) rounds 0
       (Array.ofFn fun x : Fin (codes i).n ↦ #[polyOfAtH folded x])
-  | .mid rounds high rest, i => (descendTraceA codes cs rest (i + 1)).bind fun T' ↦
+  | .mid rounds high rest, i => (descendTraceA codes OAs rest (i + 1)).bind fun T' ↦
       if T'.1 = (codes (i + 1)).ℓ ∧ (codes i).κ = (codes (i + 1)).ℓ + (codes (i + 1)).κ then
-        descendRoundsA (codes i).dom (codes i).deg (codes i).thr (wordArr i cs (codes i).n)
+        descendRoundsA (codes i).dom (codes i).deg (codes i).thr (OAs.getD i #[])
           rounds 0 (upAtA (codes i).κ (codes (i + 1)).κ (codes (i + 1)).ℓ (codes i).R T'.2 high)
       else none
 
 /-- **The descent across levels over arrays is the descent over values**, with one-error
 decoding. -/
-theorem descendTraceA_eq (codes : ℕ → LevelCode) (cs : List (ℕ × ℕ × Word)) :
-    ∀ (tr : WhirTrace) (i : ℕ), descendTraceA codes cs tr i =
+theorem descendTraceA_eq (codes : ℕ → LevelCode) (cs : List (ℕ × ℕ × Word)) {OAs : List AV}
+    (hO : ∀ i j (v : Fin (codes i).n), laneO i cs (codes i).n j v =
+      ((OAs.getD i #[]).getD v #[]).getD j 0) :
+    ∀ (tr : WhirTrace) (i : ℕ), descendTraceA codes OAs tr i =
       (descendTraceV newtonValsDecoder codes cs tr i).map toAVS
   | .final rounds folded, i => by
     have hV : (Array.ofFn fun x : Fin (codes i).n ↦ #[polyOfAtH folded x]) =
@@ -169,9 +171,9 @@ theorem descendTraceA_eq (codes : ℕ → LevelCode) (cs : List (ℕ × ℕ × W
       rw [toAV_zero]
       simp only [polyOfAtH_eq]
     rw [descendTraceA, descendTraceV, hV,
-      descendRoundsA_eq _ _ _ (fun j x ↦ laneO_wordArr i cs (codes i).n j x)]
+      descendRoundsA_eq _ _ _ (hO i)]
   | .mid rounds high rest, i => by
-    rw [descendTraceA, descendTraceV, descendTraceA_eq codes cs rest (i + 1)]
+    rw [descendTraceA, descendTraceV, descendTraceA_eq codes cs hO rest (i + 1)]
     rcases descendTraceV newtonValsDecoder codes cs rest (i + 1) with _ | ⟨k, V'⟩
     · rfl
     · simp only [Option.map_some, Option.bind_some, toAVS]
@@ -180,7 +182,7 @@ theorem descendTraceA_eq (codes : ℕ → LevelCode) (cs : List (ℕ × ℕ × W
         by_cases h2 : (codes i).κ = (codes (i + 1)).ℓ + (codes (i + 1)).κ
         · rw [ite_eq_left ⟨rfl, h2⟩, dite_eq_left ⟨rfl, h2⟩,
             upAtA_eq' (two_pow_le_n (codes (i + 1))) h2 (codes i).h64 (codes i).hR V' high]
-          exact descendRoundsA_eq _ _ _ (fun j x ↦ laneO_wordArr i cs (codes i).n j x) rounds 0 _
+          exact descendRoundsA_eq _ _ _ (hO i) rounds 0 _
         · rw [ite_eq_right fun h ↦ h2 h.2, dite_eq_right fun h ↦ h2 h.2]
           rfl
       · rw [ite_eq_right fun h ↦ h1 h.1, dite_eq_right fun h ↦ h1 h.1]

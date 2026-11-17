@@ -332,15 +332,17 @@ theorem locate [DecidableEq F] {d : ℕ} {pts : List (F × F)} (hl : pts.length 
       ring
 
 /-- **Decoding one error** among `d + 3` points: the interpolant if its top two coefficients are
-zero; otherwise the interpolant of the points but the one at the located node, if there is one and
-its top coefficient is zero. -/
+zero; otherwise the interpolant of the points but the first whose node `x` has
+`a_{d+2}·(x − x_{d+2}) = a_{d+1}` (the located node, found without a division), if there is one
+and its top coefficient is zero. -/
 def decode1 [DecidableEq F] (d : ℕ) (pts : List (F × F)) : Option (List F × List F) :=
   let f := nForm pts
   if f.2.getD (d + 2) 0 = 0 then
     if f.2.getD (d + 1) 0 = 0 then some f else none
   else
-    let xe := (pts.getD (d + 2) (0, 0)).1 + f.2.getD (d + 1) 0 / f.2.getD (d + 2) 0
-    let pts' := pts.eraseIdx ((pts.map (·.1)).idxOf xe)
+    let x2 := (pts.getD (d + 2) (0, 0)).1
+    let pts' := pts.eraseIdx (pts.findIdx fun p ↦
+      decide (f.2.getD (d + 2) 0 * (p.1 - x2) = f.2.getD (d + 1) 0))
     if pts'.length = d + 2 ∧ (nForm pts').2.getD (d + 1) 0 = 0 then some (nForm pts') else none
 
 theorem natDegree_le_of_top {P : F[X]} {d : ℕ} (hP : P.natDegree ≤ d + 2) (h2 : P.coeff (d + 2) = 0)
@@ -399,11 +401,30 @@ theorem decode1_eq [DecidableEq F] {d : ℕ} {pts : List (F × F)} (hl : pts.len
     have hpe : e < pts.length := by omega
     have hg : (pts.getD (d + 2) (0, 0)).1 = (pts[d + 2]'(by omega)).1 := by
       rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega), Option.getD_some]
-    have hidx : (pts.map (·.1)).idxOf ((pts.getD (d + 2) (0, 0)).1 +
-        (nForm pts).2.getD (d + 1) 0 / (nForm pts).2.getD (d + 2) 0) = e := by
-      rw [hg, ← hxe]
-      have := List.Nodup.idxOf_getElem hd e (by simpa using hpe)
-      simpa using this
+    have hsol : ∀ j (hj : j < pts.length), (nForm pts).2.getD (d + 2) 0 *
+        ((pts[j]).1 - (pts.getD (d + 2) (0, 0)).1) = (nForm pts).2.getD (d + 1) 0 ↔ j = e := by
+      intro j hj
+      rw [hg]
+      constructor
+      · intro h
+        have hx : (pts[j]).1 = (pts[e]'hpe).1 := by
+          have h' : (pts[j]).1 - (pts[d + 2]'(by omega)).1 = (nForm pts).2.getD (d + 1) 0 /
+              (nForm pts).2.getD (d + 2) 0 := by
+            rw [← h, mul_div_cancel_left₀ _ h2]
+          rw [hxe, ← h']
+          ring
+        have hnd := List.Nodup.getElem_inj_iff hd (i := j) (j := e) (hi := by simpa using hj)
+          (hj := by simpa using hpe)
+        simp only [List.getElem_map] at hnd
+        exact hnd.mp hx
+      · rintro rfl
+        rw [hxe, add_sub_cancel_left, mul_div_cancel₀ _ h2]
+    have hidx : pts.findIdx (fun p ↦ decide ((nForm pts).2.getD (d + 2) 0 *
+        (p.1 - (pts.getD (d + 2) (0, 0)).1) = (nForm pts).2.getD (d + 1) 0)) = e := by
+      rw [List.findIdx_eq hpe]
+      refine ⟨decide_eq_true ((hsol e hpe).mpr rfl), fun j hj ↦ ?_⟩
+      rw [decide_eq_false_iff_not]
+      exact fun h ↦ absurd ((hsol j (by omega)).mp h) (by omega)
     rw [ite_eq_right h2, hidx]
     have hl' : (pts.eraseIdx e).length = d + 2 := by rw [List.length_eraseIdx_of_lt hpe, hl]; rfl
     have hd' : ((pts.eraseIdx e).map (·.1)).Nodup := by
