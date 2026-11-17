@@ -98,10 +98,10 @@ theorem descendTraceC_fst (μ R : ℕ) (OAs : List AV) : ∀ (tr : WhirTrace) (i
     omega
 
 /-- The descent within a level of `n` columns at degree `d`, `r` rounds from one lane. -/
-def descPrice (n d W r : ℕ) : ℕ := stepF n d * 2 ^ (0 + 1 + r) + stepG n W r * r + 9
+@[expose] def descPrice (n d W r : ℕ) : ℕ := stepF n d * 2 ^ (0 + 1 + r) + stepG n W r * r + 9
 
 /-- **The descent across levels' price**, level by level. -/
-def traceCostB (μ R W : ℕ) : WhirTrace → ℕ → ℕ
+@[expose] def traceCostB (μ R W : ℕ) : WhirTrace → ℕ → ℕ
   | .final rounds folded, i =>
     (15 * (μ + R + i) + 20000) + 15 * i + 17 + 11 * rounds.length + 3 +
       (polyPrice folded.length + 13 + 16) * 2 ^ ((lvC μ R i).1 + (lvC μ R i).2.1) + 5 +

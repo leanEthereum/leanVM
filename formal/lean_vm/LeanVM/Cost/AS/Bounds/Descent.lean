@@ -348,10 +348,10 @@ theorem length_agreeC (n m : ℕ) (r : FoldRound) (VA QA : AV) :
   (List.length_filter_le _ _).trans (by simp)
 
 /-- The lane-dependent price of a round of the descent, per `2^(m+1)`. -/
-def stepF (n d : ℕ) : ℕ := 600 * (d + 3) ^ 2 + 8200 * (d + 3) + 10200 + (206 * (d + 3) + 144) * n
+@[expose] def stepF (n d : ℕ) : ℕ := 600 * (d + 3) ^ 2 + 8200 * (d + 3) + 10200 + (206 * (d + 3) + 144) * n
 
 /-- The lane-independent price of a round of the descent. -/
-def stepG (n W R : ℕ) : ℕ := ((113 * W + 340) * R + 113 * W + 1100) * n + 30 * R + 1000
+@[expose] def stepG (n W R : ℕ) : ℕ := ((113 * W + 340) * R + 113 * W + 1100) * n + 30 * R + 1000
 
 /-- One round's arithmetic: the round's parts and the rest's price within the bound. -/
 theorem descStep_le (n d W R t m c₁ c₂ c₃ c₄ c₅ c₆ c₇ rec q : ℕ) (ht : t + 1 ≤ R) (hq : q ≤ n)
