@@ -229,6 +229,7 @@ import Quantum.StdModel.Qrom.CorollaryXmss2
 import Quantum.StdModel.Qrom.EncSaltBound
 import Quantum.StdModel.Qrom.CorollaryXmss3
 import Quantum.StdModel.Qrom.CorollarySphincs
+import Quantum.StdModel.Qrom.CorollarySphincs2
 import Quantum.Sphincs.Assembly.Depth.BoundValue
 import Quantum.Cost.NistQrpmSphincs
 import Quantum.Par.Subst
@@ -521,3 +522,8 @@ the main theorems ever grows beyond Lean's three standard axioms. -/
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Quantum.StdModel.Xmss.leanXmss_qrom_security_props_closed
+
+/-- info: 'Quantum.StdModel.Sphincs.leanSphincs_qrom_security_props_closed' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.StdModel.Sphincs.leanSphincs_qrom_security_props_closed
