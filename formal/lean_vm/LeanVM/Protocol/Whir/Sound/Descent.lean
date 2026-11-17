@@ -203,6 +203,19 @@ structure NearDecoder where
     d + 3 ≤ S.card → NearT dom Q d S T → (dec dom d Q S).isSome
 
 open Classical in
+/-- **A near-tuple decoder** by choice: a near tuple, if one exists. -/
+noncomputable def classicalNearDecoder : NearDecoder where
+  dec dom d Q S := if h : ∃ T, NearT dom Q d S T then some h.choose else none
+  sound dom d Q S T h := by
+    by_cases hex : ∃ T, NearT dom Q d S T
+    · rw [dite_eq_left hex, Option.some.injEq] at h
+      exact h ▸ hex.choose_spec
+    · simp only [hex, ↓reduceDIte, reduceCtorEq] at h
+  complete dom d Q S T _ hT := by
+    rw [dite_eq_left ⟨T, hT⟩]
+    rfl
+
+open Classical in
 /-- **The descent within a level**: from a tuple after the rounds `rs`, at each round going back
 the near tuple of the unfolded word on its agreement set with the fold, if that set reaches the
 round's threshold. -/
