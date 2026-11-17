@@ -8,10 +8,10 @@
 module
 
 public import LeanVM.Guest.Bridge.Defs
-public import LeanVM.Guest.Data.AdviceHints
 public import LeanVM.Guest.Pack.«P13».Bundle
 public import LeanVM.Guest.Pack.«P13».Core
 public import LeanVM.Guest.Pack.«walk_path__L24_L2».Core
+public import Statement.Data.AdviceHints
 
 namespace LeanVM.Guest.Fn.«level_queries__L55_L1_L6_L32_L28_L4_L0_L0_L0_L0»
 

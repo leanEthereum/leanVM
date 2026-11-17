@@ -47,10 +47,11 @@ theorem vs_heap {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) {seed : Dig
   have hd := S.d_bounds hbl
   have hn : S.H.n ≤ 30 := S.nT_le hbl
   have e5 : advEntry (vsSizes S.d) 5 = [Hints.count S.d] := by
-    rw [advEntry, show (vsSizes S.d)[5]? = some S.d from rfl, Option.map_some, Option.toList_some, Hints.count,
-      gpowE, gpowK_eq (by unfold u128Bound; omega)]
-  have eH : ∀ k m, S.H.sizes[k]? = some m → m < 2 ^ 128 → advEntry S.H.sizes k = [Hints.count m] := fun k m h hm => by
-    rw [advEntry, h, Option.map_some, Option.toList_some, Hints.count, gpowE, gpowK_eq (by unfold u128Bound; omega)]
+    rw [advEntry, show (vsSizes S.d)[5]? = some S.d from rfl, Option.map_some, Option.toList_some,
+      Hints.count, LeanVM.Protocol.Verifier.gpow, LeanVM.Guest.Value.gen_pow_eq_ofK]
+  have eH : ∀ k m, S.H.sizes[k]? = some m → m < 2 ^ 128 → advEntry S.H.sizes k = [Hints.count m] := fun k m h _hm => by
+    rw [advEntry, h, Option.map_some, Option.toList_some, Hints.count, LeanVM.Protocol.Verifier.gpow,
+      LeanVM.Guest.Value.gen_pow_eq_ofK]
   rw [show heapSlots "verify_sub" = [5] from rfl, show heapSlots "verify_tables" = [108, 109, 111] from rfl]
   simp only [List.map_cons, List.map_nil, List.cons_append, List.nil_append]
   rw [e5, eH 108 (7 * (S.H.n + 1)) rfl (by omega), eH 109 (S.H.n + 1) rfl (by omega),

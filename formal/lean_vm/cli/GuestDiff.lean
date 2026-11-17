@@ -1,4 +1,5 @@
 import LeanVM.Guest.Hints
+import Statement.Prover.Guest
 import LeanVM.Guest.Limits
 import LeanVM.Guest.Interp
 import LeanVM.Guest.Renumber
@@ -24,7 +25,8 @@ case it checks
   a child's, the batching closes, the shapes), within the deployed limits (`Limits`' parts) and
   with no zero challenge where the guest divides (`NoZeroChallenge`: `verifyDeferredNZ` accepts
   every child's proof);
-* (i) that `Hints.honestStreams` is the Rust streams, stream by stream and entry by entry;
+* (i) that the statement's witness streams (`LeanVM.Prover.guestStreams`, `Statement/Prover/Guest.lean`)
+  are the Rust streams, stream by stream and entry by entry;
 * (iii) that the public input is `statementDigest seed s`;
 * (ii) that the interpreter accepts the guest's core IR (`coreProgram`: the renumbered expansion
   of the source, which `guest-core --check` keeps equal to the data) on `main`, with the honest
@@ -219,7 +221,7 @@ def main (args : List String) : IO UInt32 := do
       failed := (← report "the witness holds the statement" bad time) || failed
       let (badL, timeL) ← timed fun _ => ((limits c).find? (!·.2)).map (·.1 ++ " fails")
       failed := (← report "the witness is within the limits, no zero challenge" badL timeL) || failed
-    let (streams, time) ← timed fun _ => honestStreams bytecode c.seed c.statement c.witness
+    let (streams, time) ← timed fun _ => LeanVM.Prover.guestStreams bytecode c.seed c.statement c.witness
     let (diff, time') ← timed fun _ => (streamDiffs streams c.streams).head?
     failed := (← report "(i) the honest streams are Rust's" diff (time + time')) || failed
     let pi := publicInput c.seed c.statement

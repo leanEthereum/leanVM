@@ -1,10 +1,18 @@
 """The guest's generated data as the bridge's certificates read it: each compiled function's core body
 (`Pack/*/Core*.lean`), code and certificate cells (`Pack/*/Bundle.lean`, `Cells*.lean`) and plumbing
-(`Bundle.lean`'s `plumb`), and its advice (`Data/AdviceHints.lean`), parsed from the Lean text."""
+(`Bundle.lean`'s `plumb`), and its advice (`Statement/Data/AdviceHints*.lean`), parsed from the Lean text."""
 import re, glob, os
 HERE = os.path.dirname(os.path.abspath(__file__))
 LEAN_VM = os.path.normpath(os.path.join(HERE, '..', '..'))
 ROOT = os.path.join(LEAN_VM, 'LeanVM', 'Guest')
+# The statement's generated data, where `guest-export` writes the advice (`Statement/Data/AdviceHints*.lean`).
+STATEMENT_DATA = os.path.join(LEAN_VM, '..', 'Statement', 'Data')
+
+
+def advice_text():
+    """The text of the advice's modules, `AdviceHints` and its chunks, one after another."""
+    names = sorted(n for n in os.listdir(STATEMENT_DATA) if n.startswith('AdviceHints') and n.endswith('.lean'))
+    return ''.join(open(os.path.join(STATEMENT_DATA, n), encoding='utf-8').read() for n in names)
 
 TOK = re.compile(r'\s*(?:("(?:[^"\\]|\\.)*")|(::|\+\+|[()\[\],⟨⟩])|([A-Za-z_.][A-Za-z0-9_.!?\']*)|(0x[0-9a-fA-F]+|\d+))')
 
@@ -306,7 +314,7 @@ def bundles():
 
 def advice():
     """The advice by function: its index in `Data.adviceFns`, keyed by entry pc, with its hints by pc."""
-    t = open(ROOT + '/Data/AdviceHints.lean', encoding='utf-8').read()
+    t = advice_text()
     ds = defs(t)
 
     def env(n):

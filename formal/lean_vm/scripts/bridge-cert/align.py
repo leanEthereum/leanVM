@@ -372,7 +372,7 @@ theorem alignCellsOk :
 
 def bases(f, pack):
     from gen import core_module
-    return ['LeanVM.Guest.Bridge.AlignDefs', 'LeanVM.Guest.Data.AdviceHints', 'LeanVM.Guest.Data.Pows',
+    return ['LeanVM.Guest.Bridge.AlignDefs', 'Statement.Data.AdviceHints', 'LeanVM.Guest.Data.Pows',
             f'LeanVM.Guest.Pack.«{pack}».Bundle',
             f'LeanVM.Guest.Pack.«{f["core_pack"]}».Core' if f['core_pack'] else core_module(f['key'])]
 
@@ -497,7 +497,7 @@ def cell_wins(key, pack):
 
 def hint_parts(j):
     """The advice's parts of function `j`, with their lengths, as `Data.AdviceHints` writes them."""
-    t = open(data.ROOT + '/Data/AdviceHints.lean', encoding='utf-8').read()
+    t = data.advice_text()
     ds = defs(t)
     hs = parse(ds[f'adviceFn{j}'])[1][2]
     if isinstance(hs, tuple) and hs[0] == 'app' and hs[1] == ('id', 'List.flatten'):

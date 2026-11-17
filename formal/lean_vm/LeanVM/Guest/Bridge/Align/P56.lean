@@ -9,10 +9,10 @@ module
 
 
 public import LeanVM.Guest.Bridge.AlignDefs
-public import LeanVM.Guest.Data.AdviceHints
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P56».Bundle
 public import LeanVM.Guest.Pack.«P56».Core
+public import Statement.Data.AdviceHints
 
 
 namespace LeanVM.Guest.Fn.«check_opening_terminal_loop0»

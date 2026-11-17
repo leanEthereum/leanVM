@@ -68,8 +68,8 @@ theorem foldr_digits (N : Nat) : ∀ j a, ((List.range' a j).map fun i => N / 4 
         show N / 4 ^ (a + 1) = N / 4 ^ a / 4 by rw [pow_succ, Nat.div_div_eq_div_mul],
         show (4 : Nat) ^ (j + 1) = 4 * 4 ^ j from pow_succ' 4 j, Nat.mod_mul]
 
-theorem count_eq {n : Nat} (h : n < 2 ^ 64) : Hints.count n = ofK (addressOfIndex n) := by
-  rw [Hints.count, gpowE, gpowK_eq (by unfold u128Bound; omega)]
+theorem count_eq {n : Nat} (_h : n < 2 ^ 64) : Hints.count n = ofK (addressOfIndex n) := by
+  rw [Hints.count, LeanVM.Protocol.Verifier.gpow, gen_pow_eq_ofK]
 
 /-- **A digest's digit words**: its base-4 digits four at a time, in the exponent, are the groups `lxK` of its number. -/
 theorem digitHints_lx (D : HashSig.Digest) :

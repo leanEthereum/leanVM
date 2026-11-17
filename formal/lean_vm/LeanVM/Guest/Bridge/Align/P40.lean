@@ -9,10 +9,10 @@ module
 
 
 public import LeanVM.Guest.Bridge.AlignDefs
-public import LeanVM.Guest.Data.AdviceHints
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P40».Bundle
 public import LeanVM.Guest.Pack.«P40».Core
+public import Statement.Data.AdviceHints
 
 
 namespace LeanVM.Guest.Fn.«claim_list_last__L9»

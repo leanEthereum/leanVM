@@ -6,7 +6,9 @@ public import Statement.Theorems
 # Corollaries
 
 End statements that follow from `Statement.Theorems`, stated in their composed form: what an
-accepted proof of the leanISA guest program establishes (`AggregateSound`). `lean_vm` proves
+accepted proof of the leanISA guest program establishes (`AggregateSound`), and that the guest's
+prover, run on a node's statement and witness, makes a proof the verifier accepts
+(`GuestProverComplete`). `lean_vm` proves
 `LeanVM.corollaries_of_theorems`, that `Statement.Theorems` implies `Statement.Corollaries` for the
 same extractor and decoder programs, from the fields of `Theorems` alone, and
 `LeanVM.corollaries_hold`. A reviewer who trusts `Theorems` need not read this file.
@@ -70,6 +72,43 @@ def AggregateSound (guest : LeanIsaProgram) (guestWitnessDecoder : LeanVM.Cost.M
 
 end LeanVM.Node
 
+namespace LeanVM.Guest.Completeness
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
+open LeanVM.Protocol.Compile LeanVM.Node
+
+open OracleComp OracleSpec in
+/-- **The guest's prover makes a proof the verifier accepts.** On every node
+`GuestCompleteOnHonestChildren` covers (`NodeRelation` under the deployed seed, `DeployedLimits`,
+every child a `HonestChild`), in the random-permutation model, at an inverse rate `2^ρ`,
+`1 ≤ ρ ≤ 4`, with `2^35` nonces per proof of work: the guest's prover (`LeanVM.Prover.guestProve`,
+`Prover/Guest.lean`: the advice from the statement and the witness, the executor, then the honest
+prover) makes no proof, or the verifier rejects it, with probability at most `2^-256`; and makes no
+proof, or the verifier refusing every zero challenge (`verifierRefusingZero`) rejects it, with
+probability at most `2^-100`. From `GuestExecutionComplete`, `Completeness` and
+`HonestProofRarelyRefused`. -/
+def GuestProverComplete : Prop :=
+  ∀ (statement : NodeStatement) (witness : NodeWitness),
+    NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness →
+    DeployedLimits statement witness →
+    (∀ child ∈ witness.children, HonestChild child) →
+    ∀ ρ : ℕ, 1 ≤ ρ ∧ ρ ≤ 4 →
+      let input := PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)
+      Pr{let accepted ← Common.runWithRandomPermutation (do
+          match ← Prover.guestProve Common.queryPermutation guestProgram statement witness ρ
+              (2 ^ 35) with
+          | none => pure false
+          | some proof => leanVmVerifier Common.queryPermutation guestProgram input proof)}[
+          accepted = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 256 ∧
+      Pr{let accepted ← Common.runWithRandomPermutation (do
+          match ← Prover.guestProve Common.queryPermutation guestProgram statement witness ρ
+              (2 ^ 35) with
+          | none => pure false
+          | some proof => verifierRefusingZero Common.queryPermutation guestProgram input proof)}[
+          accepted = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 100
+
+end LeanVM.Guest.Completeness
+
 namespace Statement
 
 /-- **The corollaries**, each following from `Theorems`, for the same extractor and decoder
@@ -84,6 +123,13 @@ structure Corollaries
   through children carry no knowledge of their own (`AggregateSound`). -/
   aggregateSound : LeanVM.Node.AggregateSound LeanVM.Guest.guestProgram guestWitnessDecoder
     (LeanVM.extractorComputedBy leanVmKnowledgeExtractor)
+  /-- The guest's prover (`LeanVM.Prover.guestProve`), run on the statement and the witness of a
+  node `guestCompleteOnHonestChildren` covers, makes a proof the verifier rejects, or none, with
+  probability at most `2^-256`, and that the verifier refusing every zero challenge rejects, or
+  none, with probability at most `2^-100`, in the random-permutation model: from
+  `guestExecutionComplete`, `leanVmCompleteness` and `honestProofRarelyRefused`
+  (`GuestProverComplete`). -/
+  guestProverComplete : LeanVM.Guest.Completeness.GuestProverComplete
 
 end Statement
 

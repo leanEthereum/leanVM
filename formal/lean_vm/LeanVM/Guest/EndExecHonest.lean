@@ -12,7 +12,7 @@ import LeanVM.Prover.End
 /-!
 # The executor on honest children
 
-`guestExecution_complete_on_honest_children : GuestExecutionComplete guestAdvice`, given
+`guestExecution_complete_on_honest_children : AdviceComplete guestAdvice`, given
 `ExecGaps`: a node within the deployed limits, under the deployed seed, whose children carry honest
 proofs, has acceptable children (`acceptableChildren_of_honest`) and is within the budget
 (`budget_of_limits`), so the executor runs the guest to completion on its advice
@@ -34,9 +34,9 @@ open scoped ENNReal
 variable {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {X Pro : Ref → St → Prop}
 
 /-- **The executor runs the guest program to completion on the guest's advice** on every node within
-the deployed limits whose children carry honest proofs (`GuestExecutionComplete guestAdvice`). -/
+the deployed limits whose children carry honest proofs (`AdviceComplete guestAdvice`). -/
 theorem guestExecution_complete_on_honest_children (G : ExecGaps Ks Km E0 X Pro) :
-    GuestExecutionComplete guestAdvice := by
+    AdviceComplete guestAdvice := by
   intro statement witness hrel hlim hon
   have hok := acceptableChildren_of_honest hrel hon
   exact execute_guest_complete G _ _ _ hrel (GuestLimits.of_limits hlim) hok (budget_of_limits hlim hok)

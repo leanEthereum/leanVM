@@ -3,7 +3,7 @@ import LeanVM.Guest.Bridge.AlignDefs
 
 /-! **The hint bridge's certificates read the bridge's definitions, the guest's code and their own data
 alone.** Each `Bridge/PrefixOk/*` and `Bridge/Align/*` module imports the definitions (`Bridge.Defs`, `Bridge.AlignDefs`, which adds the executor's power table and tries), the powers of `g` and the jump table (`Data.Pows`, `Align` only), the advice by function
-(`Data.AdviceHints`), its pack's code and certificates (`Bundle`) and its functions' core IR (`Core`). This
+(`Statement.Data.AdviceHints`), its pack's code and certificates (`Bundle`) and its functions' core IR (`Core`). This
 module fails to build if the definitions reach the bridge's proofs, B1's, the protocol's, the schemes' or
 the honest prover beyond its executor (`Statement.Prover.Execute`, whose `Hint` the bridge reads), as
 `B2C/CertFirewall.lean` does for the other certificates, or if what an importer of the definitions sees

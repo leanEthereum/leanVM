@@ -8,9 +8,9 @@
 module
 
 public import LeanVM.Guest.Bridge.Defs
-public import LeanVM.Guest.Data.AdviceHints
 public import LeanVM.Guest.Pack.«P29».Bundle
 public import LeanVM.Guest.Pack.«P29».Core
+public import Statement.Data.AdviceHints
 
 namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L12»
 

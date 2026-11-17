@@ -1,6 +1,6 @@
 //! `guest-export <lean_vm dir> [--check]`: write the guest's Lean data under `<lean_vm dir>`
 //! (paths relative to `lean_vm/`), or with `--check` fail when any file differs from what is
-//! there. Stale `Bytecode*.lean` modules are removed on write and reported on check.
+//! there. Stale `Bytecode*.lean` and `AdviceHints*.lean` modules are removed on write and reported on check.
 
 use leanvm_guest_export::lean_export;
 use std::collections::BTreeSet;
@@ -28,7 +28,7 @@ fn main() {
         std::fs::read_dir(dir)
             .map(|es| {
                 es.filter_map(|e| e.ok()?.file_name().into_string().ok())
-                    .filter(|n| n.starts_with("Bytecode") && n.ends_with(".lean"))
+                    .filter(|n| (n.starts_with("Bytecode") || n.starts_with("AdviceHints")) && n.ends_with(".lean"))
                     .collect()
             })
             .unwrap_or_default()
@@ -36,7 +36,7 @@ fn main() {
     let ours: BTreeSet<String> = files
         .iter()
         .filter_map(|f| f.path.strip_prefix(&format!("{}/", lean_export::bytecode::DATA)).map(str::to_string))
-        .filter(|n| n.starts_with("Bytecode"))
+        .filter(|n| n.starts_with("Bytecode") || n.starts_with("AdviceHints"))
         .collect();
     let mut stale = Vec::new();
     for extra in bytecode_modules(&data).difference(&ours) {

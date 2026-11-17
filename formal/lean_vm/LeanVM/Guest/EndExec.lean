@@ -31,10 +31,11 @@ the reference run (but `MainExactHyp`), the memory's log-size at most `28` and t
 decoding (`guest_decodable`), `main`'s frame, the executor's tables, and `ProgOk` from the
 certificates (`progOk_of`).
 
-`GuestExecutionComplete advice` is the `Statement/` field `notes/exec-statement.md` proposes, and
-`aggregate_complete_exec` the guest's completeness in the random-permutation model with the
-executor's execution (`End.aggregate_complete_of`'s form). The honest-children forms are in
-`EndExecHonest.lean`.
+`AdviceComplete advice` is the executor's completeness on the guest for any advice generator, which
+`EndExecFinal.lean` proves of `guestAdvice` and `ProverGuest.lean` carries to `Statement/`'s
+`GuestExecutionComplete`, and `aggregate_complete_exec` the guest's completeness in the
+random-permutation model with the executor's execution (`End.aggregate_complete_of`'s form). The
+honest-children forms are in `EndExecHonest.lean`.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -358,7 +359,7 @@ theorem aggregate_complete_exec (G : ExecGaps Ks Km E0 X Pro) {seed : Digest} {s
 
 end
 
-/-! ## The proposed `Statement/` field -/
+/-! ## The executor's run on an advice generator -/
 
 /-- The guest program's run on a node: the executor on the statement's digest, with the advice the
 generator makes from the statement and the witness. -/
@@ -369,7 +370,7 @@ def guestRun (advice : Digest → NodeStatement → NodeWitness → Advice) (sta
 
 /-- **The executor runs the guest program to completion on the advice**, within `2^30` committed
 cells, on every node `GuestCompleteOnHonestChildren` admits. -/
-def GuestExecutionComplete (advice : Digest → NodeStatement → NodeWitness → Advice) : Prop :=
+def AdviceComplete (advice : Digest → NodeStatement → NodeWitness → Advice) : Prop :=
   ∀ statement witness,
     NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness →
     DeployedLimits statement witness →
@@ -379,9 +380,9 @@ def GuestExecutionComplete (advice : Digest → NodeStatement → NodeWitness �
         (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) execution ∧
       execution.committedSize ≤ 2 ^ 30
 
-/-- **`GuestExecutionComplete` gives `GuestCompleteOnHonestChildren`**, for any advice. -/
+/-- **`AdviceComplete` gives `GuestCompleteOnHonestChildren`**, for any advice. -/
 theorem guestCompleteOnHonestChildren_of_exec {advice : Digest → NodeStatement → NodeWitness → Advice}
-    (h : GuestExecutionComplete advice) : Completeness.GuestCompleteOnHonestChildren :=
+    (h : AdviceComplete advice) : Completeness.GuestCompleteOnHonestChildren :=
   fun statement witness hrel hlim hon ↦
     let ⟨t, _, hv, hsz⟩ := h statement witness hrel hlim hon
     ⟨t, hv, hsz⟩

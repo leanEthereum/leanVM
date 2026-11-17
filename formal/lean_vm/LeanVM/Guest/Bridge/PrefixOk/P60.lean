@@ -8,9 +8,9 @@
 module
 
 public import LeanVM.Guest.Bridge.Defs
-public import LeanVM.Guest.Data.AdviceHints
 public import LeanVM.Guest.Pack.«P60».Bundle
 public import LeanVM.Guest.Pack.«P60».Core
+public import Statement.Data.AdviceHints
 
 namespace LeanVM.Guest.Fn.«decode_query_windows__L13_L7»
 

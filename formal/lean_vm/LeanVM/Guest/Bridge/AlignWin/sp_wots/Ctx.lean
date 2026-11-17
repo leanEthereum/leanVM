@@ -8,10 +8,10 @@
 module
 
 public import LeanVM.Guest.Bridge.AlignDefs
-public import LeanVM.Guest.Data.AdviceHints
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«sp_wots».Bundle
 public import LeanVM.Guest.Pack.«sp_wots».Core
+public import Statement.Data.AdviceHints
 
 namespace LeanVM.Guest.Fn.«sp_wots»
 

@@ -9,11 +9,11 @@ module
 
 
 public import LeanVM.Guest.Bridge.AlignDefs
-public import LeanVM.Guest.Data.AdviceHints
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P13».Bundle
 public import LeanVM.Guest.Pack.«P13».Core
 public import LeanVM.Guest.Pack.«walk_path__L24_L2».Core
+public import Statement.Data.AdviceHints
 
 
 namespace LeanVM.Guest.Fn.«aggregate_claims_loop0»

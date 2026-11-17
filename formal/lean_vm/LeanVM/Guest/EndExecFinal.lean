@@ -6,6 +6,7 @@
 -/
 
 import LeanVM.Guest.EndExecHonest
+import LeanVM.Guest.ProverGuest
 import LeanVM.Guest.EndExecR
 import LeanVM.Guest.Mode.Certs
 import LeanVM.Guest.Res.SubCerts
@@ -44,6 +45,8 @@ cursor (`YCur`) and the bump pointer (`YAlloc`), each kept by a step given the o
 (`keepY_alignA`, `keepY_allocA_guest`) and started (`initY_cur`, `initY_alloc`), the residuals
 (`resTop_guestF`) and the termination facts (`termNode_guest`). `guest_prover_complete_of` is
 `guest_prover_complete` from `OpenGaps`, which `openGaps` proves: the kernel checks every walk.
+`guestExecution_complete_holds` is `Statement/`'s `GuestExecutionComplete`, the statement's
+witness generation (`Prover.guestExecution`) being `guestRun guestAdvice` (`prover_guestExecution_eq`).
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -115,7 +118,7 @@ theorem execGaps_of (O : OpenGaps) :
 
 /-- **The executor runs the guest program to completion on the guest's advice**, given the open
 facts. -/
-theorem guestExecution_complete_of (O : OpenGaps) : GuestExecutionComplete guestAdvice :=
+theorem guestExecution_complete_of (O : OpenGaps) : AdviceComplete guestAdvice :=
   guestExecution_complete_on_honest_children (execGaps_of O)
 
 open OracleComp OracleSpec in
@@ -137,5 +140,58 @@ theorem guest_prover_complete_of (O : OpenGaps) (statement : NodeStatement) (wit
               (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) proof)}[
           accepted = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 100 :=
   guest_prover_complete (execGaps_of O) statement witness hrel hlim hon
+
+/-! ## The statement's witness generation -/
+
+/-- **The statement's advice is `guestAdvice`**, on a bytecode of the guest's length. -/
+theorem prover_guestAdvice_eq {bytecode : List K} (h : bytecode.length = 2 ^ 23) (seed : Digest)
+    (s : NodeStatement) (w : NodeWitness) :
+    Prover.guestAdvice bytecode seed s w = guestAdvice seed s w := by
+  rw [Prover.guestAdvice, guestAdvice, Prover.guestStreams, ProverGuest.honestPushes_eq,
+    Hints.honestStreams,
+    honestPushes_len (b' := bytecodeShape) (by rw [h, bytecodeShape, List.length_replicate])]
+  rfl
+
+/-- **The statement's execution of the guest is `guestRun guestAdvice`.** -/
+theorem prover_guestExecution_eq (s : NodeStatement) (w : NodeWitness) :
+    Prover.guestExecution guestProgram s w = guestRun guestAdvice s w := by
+  simp only [Prover.guestExecution, guestRun]
+  rw [prover_guestAdvice_eq (bytecode := bytecodeWords guestProgram) End.bytecode_length]
+
+/-- **The executor runs the guest program to completion on the statement's advice**: `Statement/`'s
+`GuestExecutionComplete`, the field `guestExecutionComplete` of `Statement.Theorems`. -/
+theorem guestExecution_complete_holds : Completeness.GuestExecutionComplete :=
+  fun s w hrel hlim hon ↦
+    let ⟨t, he, hv, hsz⟩ := guestExecution_complete_of openGaps s w hrel hlim hon
+    ⟨t, (prover_guestExecution_eq s w).trans he, hv, hsz⟩
+
+open OracleComp OracleSpec in
+/-- **The guest's prover makes the honest prover's proof of its execution**: where `guestExecution`
+returns `t`, `guestProve`'s proof is rejected, refused or not made exactly as the honest prover's
+proof of `t` (`Completeness`, `HonestProofRarelyRefused`), for any program `guest`. -/
+theorem guestProve_complete {guest : LeanIsaProgram} {s : NodeStatement} {w : NodeWitness}
+    {t : Execution guest} (he : Prover.guestExecution guest s w = .ok t)
+    (hv : ValidExecution guest (PublicInput.ofDigest (statementDigest (deployedSeed guest) s)) t)
+    (hsz : t.committedSize ≤ 2 ^ 30) {ρ : ℕ} (hρ : 1 ≤ ρ ∧ ρ ≤ 4) (hC : LeanVM.Completeness)
+    (hR : HonestProofRarelyRefused) :
+    let input := PublicInput.ofDigest (statementDigest (deployedSeed guest) s)
+    Pr{let accepted ← Common.runWithRandomPermutation (do
+        match ← Prover.guestProve Common.queryPermutation guest s w ρ (2 ^ 35) with
+        | none => pure false
+        | some proof => leanVmVerifier Common.queryPermutation guest input proof)}[
+        accepted = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 256 ∧
+    Pr{let accepted ← Common.runWithRandomPermutation (do
+        match ← Prover.guestProve Common.queryPermutation guest s w ρ (2 ^ 35) with
+        | none => pure false
+        | some proof => verifierRefusingZero Common.queryPermutation guest input proof)}[
+        accepted = false] ≤ (2 : ℝ≥0∞)⁻¹ ^ 100 := by
+  have hp : Prover.guestProve Common.queryPermutation guest s w ρ (2 ^ 35) =
+      leanVmHonestProver Common.queryPermutation guest
+        (PublicInput.ofDigest (statementDigest (deployedSeed guest) s)) t ρ (2 ^ 35) := by
+    simp only [Prover.guestProve, he]
+    rfl
+  intro input
+  rw [hp]
+  exact ⟨hC _ _ t ρ hv hsz hρ, hR _ _ t ρ hv hsz hρ⟩
 
 end LeanVM.Guest.EndExec

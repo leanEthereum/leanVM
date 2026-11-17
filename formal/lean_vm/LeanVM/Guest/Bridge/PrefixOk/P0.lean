@@ -8,9 +8,9 @@
 module
 
 public import LeanVM.Guest.Bridge.Defs
-public import LeanVM.Guest.Data.AdviceHints
 public import LeanVM.Guest.Pack.«P0».Bundle
 public import LeanVM.Guest.Pack.«P0».Core
+public import Statement.Data.AdviceHints
 
 namespace LeanVM.Guest.Fn.«column_selector__L5»
 

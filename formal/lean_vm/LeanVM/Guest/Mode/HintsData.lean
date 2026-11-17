@@ -1,7 +1,7 @@
 module
 
 public import LeanVM.Guest.Mode.Hints
-public import LeanVM.Guest.Data.AdviceHints
+public import Statement.Data.AdviceHints
 
 /-!
 # The guest's advice, by function

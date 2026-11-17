@@ -37,8 +37,8 @@ open LeanVM.Node LeanVM.Guest.Memory
 /-- `z_vals`' words: the committed outputs' point, the ring switch's at `qkeccakVarsCap`. -/
 def zvW (op kpt : List E) : List E := op ++ List.replicate (qkeccakVarsCap - op.length) 0 ++ kpt
 
-theorem vs_count_eq_gen {n : ℕ} (h : n < 2 ^ 64) : Hints.count n = gen ^ n := by
-  rw [Hints.count, gpowE, gpowK_eq (by unfold u128Bound; omega), gen_pow_eq_ofK]
+theorem vs_count_eq_gen {n : ℕ} (_h : n < 2 ^ 64) : Hints.count n = gen ^ n := by
+  rw [Hints.count, LeanVM.Protocol.Verifier.gpow]
 
 namespace ChildSegs
 

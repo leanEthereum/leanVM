@@ -8,10 +8,10 @@
 module
 
 public import LeanVM.Guest.Bridge.AlignDefs
-public import LeanVM.Guest.Data.AdviceHints
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«verify_tables».Bundle
 public import LeanVM.Guest.Pack.«verify_tables».Core
+public import Statement.Data.AdviceHints
 
 namespace LeanVM.Guest.Fn.«verify_tables»
 

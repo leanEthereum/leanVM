@@ -1,12 +1,14 @@
 module
 
 public import Statement.LeanVmGuest
+public import Statement.Prover.Guest
 
 /-!
 # The leanISA guest program: completeness, and the batching's soundness
 
 The guest program's completeness on the nodes within the deployed limits (`DeployedLimits`) whose
-children carry honest proofs (`GuestCompleteOnHonestChildren`), the honest proof
+children carry honest proofs (`GuestCompleteOnHonestChildren`), its execution made from the
+statement and the witness (`GuestExecutionComplete`), the honest proof
 rarely refused (`HonestProofRarelyRefused`), and the recursion step, the batching of the
 children's deferred claims, sound in the random-permutation model (`BatchingSound`). The
 soundness side, what a node proves, is `LeanVmGuest.lean`. `lean_ethereum.py:N` is line `N`
@@ -147,6 +149,22 @@ def GuestCompleteOnHonestChildren : Prop :=
     DeployedLimits statement witness →
     (∀ child ∈ witness.children, HonestChild child) →
     ∃ execution : Execution guestProgram,
+      ValidExecution guestProgram
+        (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) execution ∧
+      execution.committedSize ≤ 2 ^ 30
+
+/-- **The guest's execution, made from the statement and the witness**: on every node
+`GuestCompleteOnHonestChildren` covers, the executor's run of the guest program on the advice made
+from the statement and the witness (`LeanVM.Prover.guestExecution`, `Prover/Guest.lean`) returns
+a valid execution of the guest program on the statement's digest, of committed size at most
+`2^30`. `GuestCompleteOnHonestChildren` says that one exists; this, that the guest's witness
+generation finds it. -/
+def GuestExecutionComplete : Prop :=
+  ∀ (statement : NodeStatement) (witness : NodeWitness),
+    NodeRelation (bytecodeWords guestProgram) (deployedSeed guestProgram) statement witness →
+    DeployedLimits statement witness →
+    (∀ child ∈ witness.children, HonestChild child) →
+    ∃ execution, Prover.guestExecution guestProgram statement witness = .ok execution ∧
       ValidExecution guestProgram
         (PublicInput.ofDigest (statementDigest (deployedSeed guestProgram) statement)) execution ∧
       execution.committedSize ≤ 2 ^ 30

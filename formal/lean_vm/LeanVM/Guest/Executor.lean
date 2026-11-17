@@ -7,7 +7,7 @@
 module
 
 public import Statement.Prover.Execute
-public import LeanVM.Guest.Data.AdviceHints
+public import Statement.Data.AdviceHints
 public import LeanVM.Guest.Hints
 public import LeanVM.Facts.Guest
 
@@ -15,11 +15,12 @@ public import LeanVM.Facts.Guest
 # The guest's execution
 
 `guestAdvice seed s w` is `main`'s frame size and the compiler's hints by pc, as data
-(`Data.adviceMainFrame`, `Data.adviceHints`: the text `Data.adviceText` that `guest-export` writes,
-which `tests/LeanVMTests/Guest/AdviceData.lean` checks against its parse), with the honest witness
-streams (`Hints.honestStreams`); `guestExecution seed s w` runs the guest on the statement's digest
-with it (`Exec.execute`). The honest streams read the bytecode only through its length, `2^23`
-words.
+(`Data.adviceMainFrame`, `Data.adviceHints`, `Statement/Data/AdviceHints*.lean`: the text
+`Data.adviceText` that `guest-export` writes, which `tests/LeanVMTests/Guest/AdviceData.lean` checks
+against its parse), with the honest witness streams (`Hints.honestStreams`); `guestExecution seed s
+w` runs the guest on the statement's digest with it (`Exec.execute`). The honest streams read the
+bytecode only through its length, `2^23` words. The proofs are about these; `Statement/`'s
+`Prover.guestAdvice` is the same advice (`EndExec.prover_guestAdvice_eq`).
 -/
 
 @[expose] public section

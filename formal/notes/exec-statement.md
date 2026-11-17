@@ -1,6 +1,6 @@
-# The executor's end statement: the prepared `Statement/` change
+# The executor's end statement
 
-Status: the final chain is proved in `lean_vm` modulo one structure, `ExecGaps` (`lean_vm/LeanVM/Guest/EndExec.lean`), and pinned in `LeanVM.lean` (axioms Lean's three). The `Statement/` change below is prepared, not applied: `Theorems` can take the field only once `ExecGaps` is discharged, since `theorems_hold` takes no hypothesis.
+Status: applied. `ExecGaps` is discharged (`execGaps_of openGaps`, `EndExecFinal.lean`), and `Statement/` states the guest's witness generation as an executable definition, `Statement/Prover/Guest.lean` (`LeanVM.Prover.guestStreams`, `guestAdvice`, `guestExecution`, `guestProve`), with no parameter: `Theorems.guestExecutionComplete : GuestExecutionComplete` (`LeanVmGuestCompleteness.lean`) and `Corollaries.guestProverComplete : GuestProverComplete`, `guestProve`'s proof accepted. The proofs keep reasoning about `lean_vm`'s generator (`Guest/Hints.lean`, `Guest/Executor.lean`); `Guest/ProverGuest.lean` proves the statement's pushes equal to it function by function (`honestPushes_eq`), and `EndExecFinal.lean` carries `guestExecution_complete_of openGaps` over (`prover_guestExecution_eq`, `guestExecution_complete_holds`). The sections below record the chain and the parametrized form first prepared (`AdviceComplete advice`, formerly `GuestExecutionComplete advice`, in `EndExec.lean`).
 
 ## What is proved
 

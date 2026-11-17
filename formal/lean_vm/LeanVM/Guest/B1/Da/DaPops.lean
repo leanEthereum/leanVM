@@ -174,8 +174,8 @@ theorem flatMap_eq_range {α β : Type} (d : α) (f : α → List β) :
       List.flatMap_map]
     simp
 
-theorem count_gen {n : ℕ} (h : n ≤ 1024) : Hints.count n = gen ^ n := by
-  rw [Hints.count, gpowE, gpowK_eq (by unfold u128Bound; omega), gen_pow_eq_ofK]
+theorem count_gen {n : ℕ} (_h : n ≤ 1024) : Hints.count n = gen ^ n := by
+  rw [Hints.count, LeanVM.Protocol.Verifier.gpow]
 
 /-- **The check's entries are `daHints`'**, stream by stream. -/
 theorem daPops_sameStreams (c : LeanVM.Node.DaClaim) (w : LeanVM.Da.MatrixWitness) (hr : w.rows.length ≤ 1024)

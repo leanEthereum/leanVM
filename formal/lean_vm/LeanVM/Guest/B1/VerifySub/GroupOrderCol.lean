@@ -17,8 +17,8 @@ open LeanVM.Parameters LeanVM.Guest.Value LeanVM.Protocol.Verifier LeanVM.Guest.
 
 @[expose] public section
 
-theorem count_eq_gen {n : ℕ} (h : n < 2 ^ 64) : Hints.count n = gen ^ n := by
-  rw [Hints.count, gpowE, gpowK_eq (by unfold u128Bound; omega), gen_pow_eq_ofK]
+theorem count_eq_gen {n : ℕ} (_h : n < 2 ^ 64) : Hints.count n = gen ^ n := by
+  rw [Hints.count, LeanVM.Protocol.Verifier.gpow]
 
 theorem map_count_eq_gen {l : List ℕ} (h : ∀ n ∈ l, n < 2 ^ 64) : l.map Hints.count = l.map (gen ^ ·) :=
   List.map_congr_left fun n hn => count_eq_gen (h n hn)

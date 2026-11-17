@@ -8,9 +8,9 @@
 module
 
 public import LeanVM.Guest.Bridge.Defs
-public import LeanVM.Guest.Data.AdviceHints
 public import LeanVM.Guest.Pack.«P41».Bundle
 public import LeanVM.Guest.Pack.«P41».Core
+public import Statement.Data.AdviceHints
 
 namespace LeanVM.Guest.Fn.«g_power_of_word»
 

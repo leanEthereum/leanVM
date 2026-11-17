@@ -9,10 +9,10 @@ module
 
 
 public import LeanVM.Guest.Bridge.AlignDefs
-public import LeanVM.Guest.Data.AdviceHints
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P57».Bundle
 public import LeanVM.Guest.Pack.«P57».Core
+public import Statement.Data.AdviceHints
 
 
 namespace LeanVM.Guest.Fn.«bus_grind_check__L8»

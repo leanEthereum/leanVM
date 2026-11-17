@@ -9,10 +9,10 @@ module
 
 
 public import LeanVM.Guest.Bridge.AlignDefs
-public import LeanVM.Guest.Data.AdviceHints
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P60».Core
 public import LeanVM.Guest.Pack.«open_stacked__L3».Bundle
+public import Statement.Data.AdviceHints
 
 
 namespace LeanVM.Guest.Fn.«open_stacked__L3»

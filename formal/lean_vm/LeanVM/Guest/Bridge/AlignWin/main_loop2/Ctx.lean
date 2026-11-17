@@ -9,10 +9,10 @@ module
 
 public import LeanVM.Guest.Bridge.AlignDefs
 public import LeanVM.Guest.Bridge.AlignWin.«main_loop2».Packed
-public import LeanVM.Guest.Data.AdviceHints
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P43».Bundle
 public import LeanVM.Guest.Pack.«main_loop2».Core
+public import Statement.Data.AdviceHints
 
 namespace LeanVM.Guest.Fn.«main_loop2»
 

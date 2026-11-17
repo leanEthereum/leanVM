@@ -79,7 +79,8 @@ A family's block-level pops (`FallPops`, `SplicePops`) reach the honest call tre
 ## Changes to `Statement/`
 
 - `Prover/Execute.lean` (the executor) and the guest's hint table join the honest prover the completeness statements name. A reviewer checks only that the executor is a genuine one: its outputs are proved valid.
-- `Theorems` gains the headline, `guestProverComplete`: the composed prover's proof is rejected with probability at most the existing bound, on every node `GuestCompleteOnHonestChildren` admits. That field can replace `guestCompleteOnHonestChildren`, whose existential it implies.
+- `Prover/Guest.lean`, the guest's witness generation (streams, advice, execution, `guestProve`), executable, and the hint table as generated data (`Data/AdviceHints*.lean`).
+- `Theorems` gains `guestExecutionComplete` (`guestExecution` returns a valid execution within `2^30` on every node `GuestCompleteOnHonestChildren` admits) and `Corollaries` the headline, `guestProverComplete`: `guestProve`'s proof is rejected with probability at most `2^-256`, and refused or not made with probability at most `2^-100`.
 
 Each change is recorded in `statement.tex`.
 

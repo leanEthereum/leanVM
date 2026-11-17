@@ -94,7 +94,7 @@ def run(check):
     files[os.path.join(BR, 'ProgAlData.lean')] = (
         HEAD.format(mod='LeanVM.Guest.Bridge.ProgAlData',
                     what="Each compiled function's hint-only cells, callees and advice, as its alignment check reads them.")
-        + '''public import LeanVM.Guest.Data.AdviceHints
+        + '''public import Statement.Data.AdviceHints
 public import LeanVM.Guest.ExecCore
 
 namespace LeanVM.Guest.Bridge

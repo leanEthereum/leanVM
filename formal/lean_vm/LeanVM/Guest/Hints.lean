@@ -113,7 +113,7 @@ def heapSizeStream : String := "heap_sizes"
 /-! ## Encodings -/
 
 /-- `count(n)`: `g^n` (`aggregation/cells.rs:6-8`). -/
-def count (n : ℕ) : E := gpowE n
+def count (n : ℕ) : E := gpow n
 
 /-- A bit as a word. -/
 def bit (b : Bool) : E := if b then 1 else 0

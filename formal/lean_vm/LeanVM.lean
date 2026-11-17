@@ -12,6 +12,7 @@ import LeanVM.Prover.ExecuteComplete
 import LeanVM.Prover.ExecuteCompleteX
 import LeanVM.Guest.HonestChildren
 import LeanVM.Guest.EndExecHonest
+import LeanVM.Guest.EndExecFinal
 import XmssSecurity.Rpm
 import Sphincs.Security
 import LeanDa
@@ -92,15 +93,23 @@ random-permutation model where an adversary is involved, except the memory-decod
   with probability at most `2^-100` in the random-permutation model;
 * `LeanVM.Guest.Batch.batch_sound_holds : BatchingSound` (`Statement/LeanVmGuestCompleteness.lean`): the
   recursion step, the batching of the children's deferred claims run outside the circuit, sound in
-  the random-permutation model (from `batch_rpm`).
+  the random-permutation model (from `batch_rpm`);
+* `LeanVM.Guest.EndExec.guestExecution_complete_holds : GuestExecutionComplete`
+  (`Statement/LeanVmGuestCompleteness.lean`): the executor runs the guest program to completion on
+  the advice `Statement/Prover/Guest.lean` makes from the statement and the witness, on every node
+  `GuestCompleteOnHonestChildren` admits; with `completeness_holds` and `honest_proof_rarely_refused`
+  it gives `GuestProverComplete` (`Statement/Corollaries.lean`), the guest's prover's proof accepted.
 
-**The executor on the guest, conditional.** `LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children :
-ExecGaps Ks Km E0 X Pro → GuestExecutionComplete guestAdvice` (`LeanVM/Guest/EndExecHonest.lean`): the executor
-`LeanVM.Prover.Exec.execute` runs the guest program to completion on the guest's advice
-(`LeanVM.Guest.guestAdvice`), within `2^30` committed cells, on every node `GuestCompleteOnHonestChildren`
-admits, given the pieces not yet proved (`ExecGaps`, `LeanVM/Guest/EndExec.lean`); with it the composed
-prover's proof is accepted (`guest_prover_complete`, `aggregate_complete_exec`). Not a field of
-`Statement.Theorems` until `ExecGaps` is discharged (`notes/exec-statement.md`).
+**The executor on the guest.** `LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children :
+ExecGaps Ks Km E0 X Pro → AdviceComplete guestAdvice` (`LeanVM/Guest/EndExecHonest.lean`): the
+executor `LeanVM.Prover.Exec.execute` runs the guest program to completion on the proofs' advice
+(`LeanVM.Guest.guestAdvice`, its streams `LeanVM.Guest.Hints.honestStreams`), within `2^30` committed
+cells, on every node `GuestCompleteOnHonestChildren` admits, given `ExecGaps`
+(`LeanVM/Guest/EndExec.lean`), which `execGaps_of openGaps` discharges (`LeanVM/Guest/EndExecFinal.lean`:
+the mode walks, kernel-checked, the reference run and its alignment, the hint tracks, the residuals and
+the termination facts). `Statement/Prover/Guest.lean`'s advice is that advice
+(`LeanVM.Guest.ProverGuest.honestPushes_eq`, `EndExec.prover_guestAdvice_eq`), which gives
+`guestExecution_complete_holds`.
 
 The other theorems pinned below are steps or corollaries: the bounds' numbers (the soundness and
 completeness errors, and the compiled extractor's price, `LeanVM.Cost.Bounds.extractorC_cost`,
@@ -127,6 +136,8 @@ example : LeanVM.Guest.Completeness.GuestCompleteOnHonestChildren :=
   LeanVM.Guest.Completeness.guest_complete_on_honest_children
 example : LeanVM.Guest.Completeness.HonestProofRarelyRefused :=
   LeanVM.Guest.Completeness.honest_proof_rarely_refused
+example : LeanVM.Guest.Completeness.GuestExecutionComplete :=
+  LeanVM.Guest.EndExec.guestExecution_complete_holds
 example : LeanVM.Guest.Completeness.GuestCompleteOnAcceptableChildren :=
   LeanVM.Guest.Budget.guest_complete_on_acceptable_children
 example : LeanVM.Guest.Completeness.GuestChildComplete := LeanVM.Guest.Budget.guest_child_complete
@@ -264,6 +275,10 @@ info: 'LeanVM.Guest.EndExec.guestExecution_complete_on_honest_children' depends 
 #guard_msgs in
 #print axioms LeanVM.Guest.EndExec.guest_prover_complete
 
+/-- info: 'LeanVM.Guest.EndExec.guestExecution_complete_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.EndExec.guestExecution_complete_holds
+
 /-- info: 'LeanVM.Guest.Completeness.honest_proof_rarely_refused' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.Completeness.honest_proof_rarely_refused
@@ -356,6 +371,7 @@ theorem LeanVM.theorems_of_decoderSpec {decoderProgram : LeanVM.Cost.MachineProg
   guestKnowledgeSoundness := LeanVM.Guest.End.guestKnowledge_of_spec hspec hexplains
   statementDigestBinds := LeanVM.Guest.Binding.digest_binds
   guestCompleteOnHonestChildren := LeanVM.Guest.Completeness.guest_complete_on_honest_children
+  guestExecutionComplete := LeanVM.Guest.EndExec.guestExecution_complete_holds
   honestProofRarelyRefused := LeanVM.Guest.Completeness.honest_proof_rarely_refused
   batchingSound := LeanVM.Guest.Batch.batch_sound_holds
   leanXmssStronglyUnforgeable := XmssSecurity.leanXmss_rpm_security
@@ -415,7 +431,9 @@ open OracleComp in
 `leanVmKnowledgeSoundness`, `guestKnowledgeSoundness` and `statementDigestBinds` (an accepted proof
 whose extracted execution decodes, by `guestKnowledgeSoundness`, to a statement of the accepted
 digest, which `statementDigestBinds` identifies with the accepted statement or turns into a
-collision). -/
+collision); `guestProverComplete` from `guestExecutionComplete`, `leanVmCompleteness` and
+`honestProofRarelyRefused` (the guest's prover proves the execution the executor returns with the
+honest prover). -/
 theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM.Cost.MachineProgram}
     (h : Statement.Theorems (leanVmKnowledgeExtractor := extractorProgram)
       (guestWitnessDecoder := decoderProgram)) :
@@ -434,6 +452,10 @@ theorem LeanVM.corollaries_of_theorems {extractorProgram decoderProgram : LeanVM
     rcases h.statementDigestBinds _ _ _ _ _ hrel.hasBytecodeShape hs.1 (hd.trans hpub) with ⟨h1, h2⟩ | hc
     · exact Or.inl ⟨h1, h2, h1 ▸ h2 ▸ hrel⟩
     · exact Or.inr hc
+  guestProverComplete s w hrel hlim hon ρ hρ :=
+    let ⟨_, he, hv, hsz⟩ := h.guestExecutionComplete s w hrel hlim hon
+    LeanVM.Guest.EndExec.guestProve_complete he hv hsz hρ h.leanVmCompleteness
+      h.honestProofRarelyRefused
 
 /-- info: 'LeanVM.corollaries_of_theorems' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

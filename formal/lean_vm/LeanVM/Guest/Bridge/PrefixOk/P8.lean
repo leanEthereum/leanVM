@@ -8,9 +8,9 @@
 module
 
 public import LeanVM.Guest.Bridge.Defs
-public import LeanVM.Guest.Data.AdviceHints
 public import LeanVM.Guest.Pack.«P8».Bundle
 public import LeanVM.Guest.Pack.«P8».Core
+public import Statement.Data.AdviceHints
 
 namespace LeanVM.Guest.Fn.«level_queries__L218_L1_L6_L32_L24_L6_L0_L0_L0_L0»
 

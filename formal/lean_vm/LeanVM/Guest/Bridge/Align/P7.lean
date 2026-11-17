@@ -9,10 +9,10 @@ module
 
 
 public import LeanVM.Guest.Bridge.AlignDefs
-public import LeanVM.Guest.Data.AdviceHints
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Pack.«P7».Bundle
 public import LeanVM.Guest.Pack.«P7».Core
+public import Statement.Data.AdviceHints
 
 
 namespace LeanVM.Guest.Fn.«column_selector__L11»

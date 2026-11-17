@@ -90,7 +90,6 @@ LeanVM.Guest.Checked.X37_7	70.0	70.0	5600	4300
 LeanVM.Guest.Checked.X37_8	80.0	70.0	5300	4300
 LeanVM.Guest.Checked.X37_9	80.0	70.0	5400	4300
 LeanVM.Guest.Count.VsBound	20.0	20.0	5200	3700
-LeanVM.Guest.Data.AdviceHints	70.0	90.0	4400	3400
 LeanVM.Guest.FunctionTable	30.0	20.0	4700	3700
 LeanVM.Guest.JumpTable.Code	20.0	20.0	4400	3200
 LeanVM.Guest.Lift.XmssLeaf	30.0	30.0	6900	5500

@@ -27,8 +27,8 @@ open LeanVM.Guest (GuestLimits)
 
 @[expose] public section
 
-theorem count_eq {n : ℕ} (h : n < 2 ^ 128) : Hints.count n = ofK (addressOfIndex n) := by
-  rw [Hints.count, gpowE, gpowK_eq h]
+theorem count_eq {n : ℕ} (_h : n < 2 ^ 128) : Hints.count n = ofK (addressOfIndex n) := by
+  rw [Hints.count, LeanVM.Protocol.Verifier.gpow, gen_pow_eq_ofK]
 
 theorem advEntry_count {bufs : List ℕ} {k n : ℕ} (h : bufs[k]? = some n) (hn : n < 2 ^ 128) :
     advEntry bufs k = [Hints.count n] := by

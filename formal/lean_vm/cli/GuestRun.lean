@@ -1,8 +1,8 @@
-import LeanVM.Guest.Executor
+import Statement.Prover.Guest
 import LeanVM.Guest.Bytecode
 import LeanVM.Cli.GuestCase
 import Statement.Prover.Prove
-import LeanVM.Prover.Fast.Prover
+import LeanVM.Prover.Fast.Guest
 import LeanVM.Facts.Verifier
 
 /-!
@@ -10,18 +10,20 @@ import LeanVM.Facts.Verifier
 
 `lake exe guest-run [--rust DIR] [--prove] <case>...` reads cases written by the exporter's test
 `guest_diff` (`scripts/guest-export`, format `leanvm-guest-diff 4`: a real aggregation's seed,
-statement and witness) and, from the statement and the witness alone,
+statement and witness) and, from the statement and the witness alone, runs the statement's
+witness generation and prover (`Statement/Prover/Guest.lean`) on the guest program, as
+`guestArray` (equal to `guestProgram`, its instructions read from an array):
 
-* checks that the case's seed is the deployed one (`deployedSeed guestProgram`, evaluated as
-  `guestArray`), the seed the end theorem's prover runs at;
-* runs the guest (`LeanVM.Guest.guestExecution`: the honest streams, the compiler's hints, the
+* checks that the case's seed is the deployed one (`deployedSeed guestProgram`), the seed the end
+  theorem's prover runs at;
+* runs the guest (`LeanVM.Prover.guestExecution`: the honest streams, the compiler's hints, the
   statement's executor);
 * with `--rust DIR`, compares the execution with the Rust interpreter's, `DIR/<case>/memory.bin`
   and `trace.txt` (`LEANVM_GUEST_EXEC=DIR` on the exporter writes them): the memory's size, every
   cell and the step count;
-* with `--prove`, proves it with the statement's honest prover (`LeanVM.Prover.prove`, compiled as
-  `leanvm-prove` runs it, at inverse rate `2`) and verifies the proof with the deployed verifier
-  (`Verifier.verify`) on the guest's bytecode and the statement's digest.
+* with `--prove`, runs the guest's prover end to end (`LeanVM.Prover.guestProve`, at inverse rate
+  `2`, its `prove` compiled as `leanvm-prove` runs it) and verifies the proof with the deployed
+  verifier (`Verifier.verify`) on the guest's bytecode and the statement's digest.
 
 It prints each stage's time and exits with `1` if a stage fails or differs.
 -/
@@ -37,7 +39,7 @@ def timed {α : Type} (f : Unit → α) : IO (α × Float) := do
   return (a, ((← IO.monoMsNow) - start).toFloat / 1000)
 
 /-- The first cell where the execution differs from the Rust's in `dir`, or a size or step mismatch. -/
-def compare (t : Execution guestProgram) (dir : String) : IO (Option String) := do
+def compare {prog : LeanIsaProgram} (t : Execution prog) (dir : String) : IO (Option String) := do
   let read := fun (p : String) => do return (← IO.FS.readBinFile (dir ++ "/" ++ p)).toList
   let some mem := decodeScalars (← read "memory.bin") | return some "bad memory.bin"
   let mem := mem.toArray
@@ -68,10 +70,10 @@ def main (args : List String) : IO UInt32 := do
       ok := false
       continue
     let digest := statementDigest c.seed c.statement
-    let (r, time) ← timed fun _ => guestExecution c.seed c.statement c.witness
+    let (r, time) ← timed fun _ => LeanVM.Prover.guestExecution guestArray c.statement c.witness
     match r with
-    | .error e =>
-      IO.println s!"{c.name}: FAIL: {e} ({time} s)"
+    | .error (pc, _) =>
+      IO.println s!"{c.name}: FAIL: the guest stops at pc {pc} ({time} s)"
       ok := false
     | .ok t =>
       IO.println s!"{c.name}: executed, {t.stepCount} steps, 2^{t.logMemorySize} cells ({time} s)"
@@ -81,12 +83,12 @@ def main (args : List String) : IO UInt32 := do
         | some d => IO.println s!"  as the Rust interpreter's: DIFFERS: {d}"; ok := false
       if prove then
         let (π, time) ← timed fun _ =>
-          LeanVM.Prover.prove (m := Id) keccakF1600 guestProgram (End.publicInputOf digest) t 2 (2 ^ 64)
+          LeanVM.Prover.guestProve (m := Id) keccakF1600 guestArray c.statement c.witness 2 (2 ^ 64)
         match π with
         | none => IO.println s!"  proved: FAIL, no proof ({time} s)"; ok := false
         | some π =>
           IO.println s!"  proved: {π.stream.length} scalars ({time} s)"
-          let (v, time) ← timed fun _ => Verifier.verify (LeanVM.bytecodeWords guestProgram) digest π
+          let (v, time) ← timed fun _ => Verifier.verify (LeanVM.bytecodeWords guestArray) digest π
           IO.println s!"  verified: {if v then "accepted" else "REJECTED"} ({time} s)"
           ok := ok && v
     (← IO.getStdout).flush

@@ -47,8 +47,8 @@ theorem spCell128_eq (v : BitVec 128) : Hints.cell128 v = cellOf128 v := by
   conv_lhs => rw [← cellVal_cellOf128 v]
   rw [Hints.cell128, bytesLE_cellVal, spCellOfBytes_cellBytes]
 
-theorem spCount_eq {n : Nat} (h : n < 2 ^ 64) : Hints.count n = ofK (addressOfIndex n) := by
-  rw [Hints.count, gpowE, gpowK_eq (by unfold u128Bound; omega)]
+theorem spCount_eq {n : Nat} (_h : n < 2 ^ 64) : Hints.count n = ofK (addressOfIndex n) := by
+  rw [Hints.count, LeanVM.Protocol.Verifier.gpow, gen_pow_eq_ofK]
 
 /-! ## The digest -/
 
