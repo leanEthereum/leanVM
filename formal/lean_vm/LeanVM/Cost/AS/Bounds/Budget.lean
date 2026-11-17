@@ -86,6 +86,67 @@ theorem traceBound_ok : ∀ m < 15, ∀ r < 4,
       2 ^ 55 ≤ 2 ^ max 58 (2 * (m + 16) + 9) := by
   decide +kernel
 
+/-! ## The words -/
+
+/-- A root's word's price but its transcript index and its leaves' lookups, at most. -/
+@[expose] def wordConst : ℕ :=
+  2 * (15 * 40 + 20000) + 100 + (45 * 64 + 68) * 2 ^ 34 + 2 ^ 28 * (84 + 468 * 64 + 30760 + 5 * 28)
+
+/-- **The words' price**, at most six roots of at most `64` words and height `H ≤ 28`: a constant
+per root, each root's transcript index, and its leaves' lookups. -/
+theorem wordsPrice_le (D Wl qn μ R H : ℕ) (hμ : μ ≤ 30) (hR : R ≤ 4) (hH : H ≤ 28) :
+    ∀ (roots : List (LeanVM.Protocol.Digest × ℕ × ℕ)) (a : ℕ), a + roots.length ≤ 6 →
+      (∀ x ∈ roots, x.2.2 ≤ 64 ∧ x.2.1 ≤ H) →
+      wordsPrice D Wl qn μ R a roots ≤ 3 + roots.length * (wordConst +
+        2 ^ H * (2 * (D * (20 + (162 + 9 * Wl) * (D + 2))))) +
+        (roots.map fun x ↦ transcriptIndexPrice D (8 * x.2.2) qn Wl).sum
+  | [], _, _, _ => by simp [wordsPrice]
+  | x :: xs, a, ha, hx => by
+    simp only [List.length_cons] at ha
+    have ih := wordsPrice_le D Wl qn μ R H hμ hR hH xs (a + 1) (by omega)
+      fun y hy ↦ hx y (List.mem_cons_of_mem _ hy)
+    obtain ⟨hw, hh⟩ := hx x List.mem_cons_self
+    simp only [wordsPrice, wordPrice, leavesPrice, List.map_cons, List.sum_cons, List.length_cons]
+    generalize D * (20 + (162 + 9 * Wl) * (D + 2)) = X at ih ⊢
+    have e1 : 2 ^ x.2.1 * (2 * (X + 42) + 468 * x.2.2 + 30760 + 5 * x.2.1) =
+        2 ^ x.2.1 * (2 * X) + 2 ^ x.2.1 * (84 + 468 * x.2.2 + 30760 + 5 * x.2.1) := by ring
+    have e2 : 2 ^ x.2.1 * (2 * X) ≤ 2 ^ H * (2 * X) :=
+      Nat.mul_le_mul_right _ (Nat.pow_le_pow_right (by norm_num) hh)
+    have e3 : 2 ^ x.2.1 * (84 + 468 * x.2.2 + 30760 + 5 * x.2.1) ≤
+        2 ^ 28 * (84 + 468 * 64 + 30760 + 5 * 28) :=
+      Nat.mul_le_mul (Nat.pow_le_pow_right (by norm_num) (by omega)) (by omega)
+    have e4 : (45 * x.2.2 + 68) * 2 ^ ((lvC μ R a).1 + (lvC μ R a).2.1) ≤ (45 * 64 + 68) * 2 ^ 34 :=
+      Nat.mul_le_mul (by omega) (Nat.pow_le_pow_right (by norm_num) (lvC_small μ R a))
+    have e5 : (xs.length + 1) * (wordConst + 2 ^ H * (2 * X)) =
+        xs.length * (wordConst + 2 ^ H * (2 * X)) + (wordConst + 2 ^ H * (2 * X)) := by ring
+    unfold wordConst at e5 ih ⊢
+    omega
+
+/-- **An index's price is affine in its keys' length.** -/
+theorem transcriptIndexPrice_add (D L L' N W : ℕ) :
+    transcriptIndexPrice D L N W + transcriptIndexPrice D L' N W =
+      transcriptIndexPrice D (L + L') N W + transcriptIndexPrice D 0 N W := by
+  unfold transcriptIndexPrice replayStepPrice firstAnswersStepPrice preimageStepPrice
+  ring
+
+theorem transcriptIndexPrice_mono (D N W : ℕ) {L L' : ℕ} (h : L ≤ L') :
+    transcriptIndexPrice D L N W ≤ transcriptIndexPrice D L' N W := by
+  unfold transcriptIndexPrice replayStepPrice firstAnswersStepPrice preimageStepPrice
+  gcongr
+
+/-- **The roots' indexes**: one index of all their keys, and one of none per root. -/
+theorem sum_transcriptIndexPrice_le (D N W : ℕ) :
+    ∀ (roots : List (LeanVM.Protocol.Digest × ℕ × ℕ)),
+      (roots.map fun x ↦ transcriptIndexPrice D (8 * x.2.2) N W).sum ≤
+        transcriptIndexPrice D (8 * (roots.map fun x ↦ x.2.2).sum) N W +
+          roots.length * transcriptIndexPrice D 0 N W
+  | [] => by simp
+  | x :: xs => by
+    have ih := sum_transcriptIndexPrice_le D N W xs
+    have e := transcriptIndexPrice_add D (8 * x.2.2) (8 * (xs.map fun x ↦ x.2.2).sum) N W
+    simp only [List.map_cons, List.sum_cons, List.length_cons, Nat.mul_add, Nat.add_mul, Nat.one_mul]
+    omega
+
 end
 
 end LeanVM.Cost.Bounds.AS
