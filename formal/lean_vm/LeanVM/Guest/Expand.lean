@@ -1331,8 +1331,7 @@ def lowerIf : Nat → Bool → Expr → Expr → List Source.Stmt → List Sourc
   | n + 1, eq, lhs, rhs, thn, els, forceConst => do
     let a ← eval evalFuel lhs
     let b ← eval evalFuel rhs
-    let small : Option Nat → Option Nat := fun k => k.bind fun k => if k < u32Bound then some k else none
-    if let (some ai, some bi) := (small a.int, small b.int) then
+    if let (some ai, some bi) := (a.int, b.int) then
       if !forceConst then
         for k in [a, b] do
           if let some (i, _) := k.diverging then
