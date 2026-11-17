@@ -74,7 +74,7 @@ end But
 /-! ## Stream names -/
 
 /-- LeanDA's streams. -/
-def daNames : List String := ["da_challenge", "da_shape", "da_symbols"]
+def daNames : List String := ["da_challenge", "da_n_blobs", "da_symbols"]
 
 theorem daHints_names (c : DaClaim) (w : Da.MatrixWitness) : ∀ p ∈ Hints.daHints c w, p.1 ∈ daNames := by
   intro p hp

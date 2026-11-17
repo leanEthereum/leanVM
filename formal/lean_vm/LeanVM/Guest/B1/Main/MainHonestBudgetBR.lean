@@ -76,7 +76,7 @@ structure MainGoalsRR (SK : String → ℕ) (p : MainPredsR) (b : MainBs) : Prop
         gen ^ (hm fs fp seed s w).nrx, (hm fs fp seed s w).a80, (hm fs fp seed s w).a119] (Returns []) p.P3
       ((hm fs fp seed s w).nrs * iterK fs SK name% «main_loop3» + fs name% «main_loop3»)
   dv : (hm fs fp seed s w).nd = 1 →
-    CompleteAtDTBR fs cert 20 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et]
+    CompleteAtDTBR fs cert 20 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).a119]
       (Returns (hm fs fp seed s w).daR) p.Pd b.Bd
   l5 : (hm fs fp seed s w).nc ≠ 0 →
     CompleteAtDTBR fs cert 23 name% «main_loop4» (hLmain fs fp seed s w)

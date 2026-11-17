@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.DaPops
 
-  The witness-stream entries LeanDA's blob matrix check pops (`da_verify` and its callees, `lean_ethereum.py:4516-4600`)
+  The witness-stream entries LeanDA's blob matrix check pops (`da_verify` and its callees)
   are the honest hint generator's (`Hints.daHints`), stream by stream.
 
   The witness and `Da.MatrixWitness.Opens` are Benedikt Wagner's LeanDA formalization, as ported here.
@@ -12,19 +12,18 @@ module
 public import LeanVM.Guest.B1.Common.MutePops
 public import LeanVM.Guest.B1.Da.DvAt
 public import LeanVM.Guest.B1.Da.CellPops
-public import LeanVM.Guest.B1.Da.DaMuteChk
 public import LeanVM.Guest.B1.Da.Witness
 public import LeanVM.Guest.Hints
 
 /-!
 # LeanDA's pops
 
-`da_verify` pops its shape (`da_shape`) and its challenge (`da_challenge`), each cell check its `256` symbols
+`da_verify` pops its blob count (`da_n_blobs`) and its challenge (`da_challenge`), each cell check its `128` symbols
 (`da_symbols`); nothing else in its call tree pops (`kid_pops_mute`).
 
 * `blob_pops`: a blob of honest shape pops its cells' symbols in order (`blobPops`);
 * `blobL_pops`: the blob loop pops its blobs' entries in order;
-* `dv_pops`: `da_verify` of honest shape pops its shape, its challenge, then its blob loop's entries;
+* `dv_pops`: `da_verify` of honest shape pops its blob count, its challenge, then its blob loop's entries;
 * `daPops_sameStreams`: those are `daHints`', stream by stream (blob by blob, `daSymPops`).
 -/
 
@@ -47,12 +46,12 @@ theorem blobL_body_mute : Stmt.muteList (fun _ => true)
     (coreProgram.getD idx% «da_verify_loop0» default).body = true := by decide +kernel
 
 /-- Blob `i`'s entries: its cells' symbols. -/
-def blobPops (syms : ℕ → ℕ → List K) (i : ℕ) : List Pop :=
-  (List.range 128).map fun h => ("da_symbols", (syms i h).map ofK)
+def blobPops (syms : ℕ → ℕ → List E) (i : ℕ) : List Pop :=
+  (List.range 128).map fun h => ("da_symbols", syms i h)
 
 /-- **A blob of honest shape pops its cells' symbols.** -/
-theorem blob_pops {fs SB SK : String → ℕ} {rd : Reader} {syms : ℕ → ℕ → List K} {i : ℕ}
-    (hsl : ∀ k, (syms i k).length = 256) {t : Memory.Tree} {args rets : List E} (ht : blobNH fs SB SK syms i t)
+theorem blob_pops {fs SB SK : String → ℕ} {rd : Reader} {syms : ℕ → ℕ → List E} {i : ℕ}
+    (hsl : ∀ k, (syms i k).length = 128) {t : Memory.Tree} {args rets : List E} (ht : blobNH fs SB SK syms i t)
     (hv : t.Valid coreProgram rd args rets) : t.pops coreProgram rd = blobPops syms i := by
   obtain ⟨σ, ks, rfl, -, hc, -, hT⟩ := ht
   obtain ⟨fn, hf, -, es, vs, hw, -, -, hkv⟩ := id hv
@@ -104,62 +103,59 @@ theorem blobL_pops {rd : Reader} {r : ℕ} {Tb : ℕ → Memory.Tree → Prop} {
 
 /-! ## `da_verify` -/
 
-/-- `da_verify`'s first statements: its shape's hint, the shape's range check, the row shape, its challenge's hint. -/
+/-- `da_verify`'s first statements: its blob count's hint, the padding rows' count, its challenge's hint. -/
 def dvHead : List Stmt :=
-  [.atom (.hint (.witness "da_shape" (.stack [.n 1, .n 2]))), .atom (.const (.n 3) (word 1024 0)),
-    .atom (.rangeCheck (.n 2) (.n 4) (.n 5) (.n 6) (.n 3)), .call "da_row_shape" [.n 1, .n 2, .n 0] [.n 7, .n 8],
-    .atom (.hint (.witness "da_challenge" (.stack [.n 9])))]
+  [.atom (.hint (.witness "da_n_blobs" (.stack [.n 1]))), .call "da_padding" [.n 1] [.n 2],
+    .atom (.hint (.witness "da_challenge" (.stack [.n 3])))]
 
 /-- `da_verify` starts with `dvHead`, then pops nothing itself. -/
 noncomputable def dvShapeOk : Bool :=
-  stmtsEqb ((Fn.body fn% «da_verify»).take 5) dvHead && Stmt.muteList (fun _ => true) ((Fn.body fn% «da_verify»).drop 5)
+  stmtsEqb ((Fn.body fn% «da_verify»).take 3) dvHead && Stmt.muteList (fun _ => true) ((Fn.body fn% «da_verify»).drop 3)
 
 theorem dv_shape_ok : dvShapeOk = true := by decide +kernel
 
 theorem dvHead_pops (rd : Reader) (σ : Val) (k : List Pop) :
-    SplicePops rd σ dvHead [k] (("da_shape", [σ (.n 1), σ (.n 2)]) :: (k ++ [("da_challenge", [σ (.n 9)])])) := by
+    SplicePops rd σ dvHead [k] (("da_n_blobs", [σ (.n 1)]) :: (k ++ [("da_challenge", [σ (.n 3)])])) := by
   have h := (SplicePops.of_fallPops (rd := rd) (σ := σ)
-    (FallPops.atom (.hint (.witness "da_shape" (.stack [.n 1, .n 2]))))).append
-    ((SplicePops.of_fallPops (FallPops.atom (.const (.n 3) (word 1024 0)))).append
-    ((SplicePops.of_fallPops (FallPops.atom (.rangeCheck (.n 2) (.n 4) (.n 5) (.n 6) (.n 3)))).append
-    ((SplicePops.call (rd := rd) (σ := σ) "da_row_shape" [.n 1, .n 2, .n 0] [.n 7, .n 8] k).append
-      (SplicePops.of_fallPops (FallPops.atom (.hint (.witness "da_challenge" (.stack [.n 9]))))))))
+    (FallPops.atom (.hint (.witness "da_n_blobs" (.stack [.n 1]))))).append
+    ((SplicePops.call (rd := rd) (σ := σ) "da_padding" [.n 1] [.n 2] k).append
+      (SplicePops.of_fallPops (FallPops.atom (.hint (.witness "da_challenge" (.stack [.n 3]))))))
   simpa [dvHead, Atom.pops, Hint.pops, Dest.words] using h
 
-/-- **`da_verify` of honest shape pops its shape and its challenge, then its blob loop's entries.** -/
+/-- **`da_verify` of honest shape pops its blob count and its challenge, then its blob loop's entries.** -/
 theorem dv_pops {rd : Reader} {r L : ℕ} {z : E} {Tb : Memory.Tree → Prop} (hr1 : 1 ≤ r) (hr : r ≤ 1024)
-    (hL : L ≤ 10) {t : Memory.Tree} {args rets : List E} (ht : dvNHzC r L z Tb t)
+    {t : Memory.Tree} {args rets : List E} (ht : dvNHzC r L z Tb t)
     (hv : t.Valid coreProgram rd args rets) :
     ∃ k3 args3, k3.Valid coreProgram rd args3 [] ∧ Tb k3 ∧
-      t.pops coreProgram rd = ("da_shape", [gen ^ r, gen ^ L]) :: ("da_challenge", [z]) :: k3.pops coreProgram rd := by
-  obtain ⟨σ, ks, rfl, ⟨⟨s1, s2, -, s19, -⟩, s9⟩, hc, -, hT⟩ := ht
+      t.pops coreProgram rd = ("da_n_blobs", [gen ^ r]) :: ("da_challenge", [z]) :: k3.pops coreProgram rd := by
+  obtain ⟨σ, ks, rfl, ⟨⟨s1, -, s12, -⟩, s3⟩, hc, -, hT⟩ := ht
   obtain ⟨fn, hf, -, es, vs, hw, -, -, hkv⟩ := id hv
   rw [find_da_verify] at hf
   cases hf
-  have hlogL : logG (σ (.n 2)) = L := by rw [s2]; exact logG_gen_pow (by omega)
-  rw [hc _ es vs find_da_verify hw, dv_flatCalls, hlogL] at hkv
-  rw [dv_flatCalls, hlogL] at hT
-  obtain ⟨k0, k1, k2, k3, k4, rfl⟩ : ∃ k0 k1 k2 k3 k4, ks = [k0, k1, k2, k3, k4] := by
+  rw [hc _ es vs find_da_verify hw, dv_flatCalls] at hkv
+  rw [dv_flatCalls] at hT
+  obtain ⟨k0, k1, k2, k3, k4, k5, rfl⟩ : ∃ k0 k1 k2 k3 k4 k5, ks = [k0, k1, k2, k3, k4, k5] := by
     match ks, kidsValid_len hkv with
-    | [k0, k1, k2, k3, k4], _ => exact ⟨k0, k1, k2, k3, k4, rfl⟩
-  obtain ⟨n0, v0, n1, v1, n2, v2, -, v3, n4, v4, -⟩ := hkv
+    | [k0, k1, k2, k3, k4, k5], _ => exact ⟨k0, k1, k2, k3, k4, k5, rfl⟩
+  obtain ⟨n0, v0, n1, v1, n2, v2, -, v3, n4, v4, n5, v5, -⟩ := hkv
   obtain ⟨-, -, -, t3, -⟩ := hT
   have hne : (1 : E) + gen ^ r ≠ 0 := one_add_gen_pow_ne_zero (by omega) (by unfold ordG; omega)
-  have htk : (Main.mkCall σ (some (.n 19), name% «da_verify_loop0», [.n 20, .n 1, .n 14, .n 17], [])).taken = true := by
-    simp [Main.mkCall, s19, hne]
+  have htk : (Main.mkCall σ (some (.n 12), name% «da_verify_loop0», [.n 13, .n 1, .n 8, .n 10], [])).taken = true := by
+    simp [Main.mkCall, s12, hne]
   have e0 := kid_pops_mute v0 n0 (by rw [mkCall_f]; exact noWitS_of_callee (j := idx% «da_verify») (by decide +kernel))
   have e1 := kid_pops_mute v1 n1 (by rw [mkCall_f]; exact noWitS_of_callee (j := idx% «da_verify») (by decide +kernel))
   have e2 := kid_pops_mute v2 n2 (by rw [mkCall_f]; exact noWitS_of_callee (j := idx% «da_verify») (by decide +kernel))
-  have e4 := kid_pops_mute v4 n4 (by rw [mkCall_f]; exact rt_noWitS hL)
+  have e4 := kid_pops_mute v4 n4 (by rw [mkCall_f]; exact noWitS_of_callee (j := idx% «da_verify») (by decide +kernel))
+  have e5 := kid_pops_mute v5 n5 (by rw [mkCall_f]; exact noWitS_of_callee (j := idx% «da_verify») (by decide +kernel))
   have h := dv_shape_ok
   simp only [dvShapeOk, Bool.and_eq_true] at h
-  have hb : Fn.body fn% «da_verify» = dvHead ++ (Fn.body fn% «da_verify»).drop 5 := by
+  have hb : Fn.body fn% «da_verify» = dvHead ++ (Fn.body fn% «da_verify»).drop 3 := by
     rw [← stmtsEqb_sound h.1, List.take_append_drop]
   rw [ite_eq_left htk] at v3
   replace v3 : k3.Valid coreProgram rd _ _ := v3
   refine ⟨k3, _, v3, t3 htk, ?_⟩
-  rw [Tree.pops_of_prefix hv find_da_verify hb (dvHead_pops rd σ (k0.pops coreProgram rd)) h.2 rfl, s1, s2, s9]
-  simp [Memory.Tree.popsKids, e0, e1, e2, e4]
+  rw [Tree.pops_of_prefix hv find_da_verify hb (dvHead_pops rd σ (k0.pops coreProgram rd)) h.2 rfl, s1, s3]
+  simp [Memory.Tree.popsKids, e0, e1, e2, e4, e5]
 
 /-! ## Against the hints -/
 
@@ -178,18 +174,16 @@ theorem count_gen {n : ℕ} (_h : n ≤ 1024) : Hints.count n = gen ^ n := by
   rw [Hints.count, LeanVM.Protocol.Verifier.gpow]
 
 /-- **The check's entries are `daHints`'**, stream by stream. -/
-theorem daPops_sameStreams (c : LeanVM.Node.DaClaim) (w : LeanVM.Da.MatrixWitness) (hr : w.rows.length ≤ 1024)
-    (hL : wLog w ≤ 10) :
-    SameStreams (("da_shape", [gen ^ w.rows.length, gen ^ wLog w]) :: ("da_challenge", [c.membershipChallenge]) ::
+theorem daPops_sameStreams (c : LeanVM.Node.DaClaim) (w : LeanVM.Da.MatrixWitness) (hr : w.rows.length ≤ 1024) :
+    SameStreams (("da_n_blobs", [gen ^ w.rows.length]) :: ("da_challenge", [c.membershipChallenge]) ::
       daSymPops w) (Hints.daHints c w) := by
   have e3 : w.rows.flatMap (fun row => (List.range LeanDa.cellsPerRow).map fun j =>
-      (("da_symbols" : String), (LeanDa.listCell row j).map ofK)) = daSymPops w := by
+      (("da_symbols" : String), LeanDa.listCell row j)) = daSymPops w := by
     rw [flatMap_eq_range [] _ w.rows, daSymPops]
     refine List.flatMap_congr fun i hi => List.map_congr_left fun j hj => ?_
     rw [wSyms, ite_eq_left ⟨List.mem_range.mp hi, List.mem_range.mp hj⟩]
-  rw [Hints.daHints, count_gen hr, show LeanDa.logPaddedRowCount w.rows.length = wLog w from rfl, count_gen (by omega),
-    e3]
-  exact (sameStreams_append_comm (a := [("da_shape", [gen ^ w.rows.length, gen ^ wLog w])])
+  rw [Hints.daHints, count_gen hr, e3]
+  exact (sameStreams_append_comm (a := [("da_n_blobs", [gen ^ w.rows.length])])
     (b := [("da_challenge", [c.membershipChallenge])]) (by simp)).append (SameStreams.refl _)
 
 end

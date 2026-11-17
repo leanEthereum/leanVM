@@ -55,7 +55,7 @@ theorem main_heap_honest (hl : GuestLimits s w) {Pvs : ℕ → Tree → Prop} {b
   have hsd := hb.sd
   rw [main_tree_heap hb hval hv _ hT hc (Hx := [(Hints.listChainCells s.claims.xmss.length).map Hints.count |>.toList])
     (Hs := [(Hints.listChainCells s.claims.sphincs.length).map Hints.count |>.toList])
-    (Hd := ((w.daMatrix.map fun c ↦ Hints.daHeapSizes c.2.rows.length).getD []).map fun n => [Hints.count n])
+    (Hd := [])
     (H5 := (List.range' 0 w.children.length).flatMap (vsHeapH bytecode w)), heapPushes_eq]
   · have hown : (heapSlots "main").map (advEntry (mSizes (hData seed s w))) =
         [4 * (s.claims.xmss.length + (xPlan s w).duplicates.length),
@@ -107,14 +107,7 @@ theorem main_heap_honest (hl : GuestLimits s w) {Pvs : ℕ → Tree → Prop} {b
     · simp [MainData.toIn, hData, hdm] at hnd
     · have hT := ht.1
       simp only [hDvNH, hdm, Option.map_some, Option.getD_some] at hT
-      have hr : p.2.rows.length ≤ 32 := hl.atMost32Rows p (by simp [hdm])
-      have hL : Da.wLog p.2 ≤ 5 := by
-        rw [Da.wLog, LeanDa.logPaddedRowCount]
-        exact (Nat.clog_mono_right 2 hr).trans (by decide)
-      rw [dvNH_heap htv hT, advEntry_count rfl (by
-          have := Nat.pow_le_pow_right (show 0 < 2 by decide) hL
-          omega)]
-      simp [Hints.daHeapSizes, Da.wLog, Nat.mul_comm]
+      exact dvNH_heap htv hT
   · intro t rest r hrest htv ht
     exact l5From_heap hvh (by omega) hrest w.children.length 0 t r (by simp [MainData.toIn, hData]) htv ht.1
 end

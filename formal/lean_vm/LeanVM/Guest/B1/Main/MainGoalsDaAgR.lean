@@ -51,7 +51,7 @@ variable (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) {seed : 
 `hDvB`.** -/
 theorem mainGoalDvTBP (hn : NodeRelation bytecode seed s w) (hrf : Lift.RunsFit fs cert)
     {SB SK : String → ℕ} (hS : Da.DvStaticB fs SB SK) : (hm fs fp seed s w).nd = 1 →
-    CompleteAtDTB fs cert 20 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et]
+    CompleteAtDTB fs cert 20 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).a119]
       (Returns (hm fs fp seed s w).daR)
       (fun t => hDvNH w t ∧ ∀ (rd : Reader) (args rets : List E), t.Valid coreProgram rd args rets →
         t.pops coreProgram rd = daPopsH w) (hDvB fs SB SK w) := by
@@ -59,36 +59,16 @@ theorem mainGoalDvTBP (hn : NodeRelation bytecode seed s w) (hrf : Lift.RunsFit 
   obtain ⟨p, hp, hR, hw⟩ := checked_da fs fp hn h1
   rw [hR, hDvNH, hDvB, daPopsH, hp]
   simp only [Option.map_some, Option.getD_some]
-  have hL := wLog_lt hw
-  have h := Da.da_verify_completeAtTBP cert hrf hw (etB fs (mK0 (hData seed s w) fs fp)) hS
-  have hq : (etB fs (mK0 (hData seed s w) fs fp), expTabAllWords) ∈ hLmain fs fp seed s w :=
-    List.mem_append_right _ (by simp [etL])
-  have hlen : expTabAllWords.length = 2284 := length_expTabAllWords
-  refine completeAtDTB_lin_mono (fun rd hM => ?_) (fun i hi => ?_) (h.lowMono (by norm_num))
-  · have hr := reads_of_memL hM hq (wLog p.2) (by omega)
-    rw [expTabAllWords_sq (by omega)] at hr
-    intro q hq'
-    rw [List.mem_singleton] at hq'
-    subst hq'
-    intro k hk
-    simp only [List.length_singleton, Nat.lt_one_iff] at hk
-    subst hk
-    rw [← gen_pow_eq_ofK, pow_add, loadHolds_mul_gen_pow, Nat.add_zero]
-    exact hr
-  · obtain ⟨q, hq', h1, h2⟩ := hi
-    rw [List.mem_singleton] at hq'
-    subst hq'
-    simp only [List.length_singleton] at h1 h2
-    refine ⟨_, hq, by dsimp only; omega, ?_⟩
-    dsimp only
-    rw [hlen]
-    omega
+  have hN : LeanDa.maxRows = 32 := rfl
+  exact (Da.da_verify_completeAtTBP cert hrf hw hS (Lin := hLmain fs fp seed s w)
+    (tb := hPos seed s w fs fp 3) (fun _ hM v hv => bytes_hold hM v (by omega))
+    (fun v hv => bytes_region (by omega))).lowMono (by norm_num)
 
 /-- **`MainGoalsRR.dv`**, `q` popping `da_verify`'s honest entries. -/
 theorem mainGoalsRR_dv (hn : NodeRelation bytecode seed s w) (hrf : Lift.RunsFit fs cert) {SB SK : String → ℕ}
     {Bv : ℕ → ℕ} {Pvs : ℕ → Tree → Prop} {q : MainPops} (hS : MainStatics fs SB SK)
     (hq : ∀ rd, q.pd rd = daPopsH w) : (hm fs fp seed s w).nd = 1 →
-    CompleteAtDTBR fs cert 20 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).et]
+    CompleteAtDTBR fs cert 20 "da_verify" (hLmain fs fp seed s w) [(hm fs fp seed s w).a119]
       (Returns (hm fs fp seed s w).daR) (mainPredsHP fs SB SK Bv Pvs s w q).Pd (mainBsH fs SB SK Bv s w).Bd :=
   fun h1 => ((mainGoalDvTBP fs cert fp hn hrf hS.dv h1).with_total.withPops (ps := fun _ => daPopsH w)
     fun rd _ _ _ _ hv hT => hT.1.2 rd _ _ hv).mono le_rfl fun rd _ h => ⟨⟨h.1.1.1, h.1.2⟩, h.2.trans (hq rd).symm⟩

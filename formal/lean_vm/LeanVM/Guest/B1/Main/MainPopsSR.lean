@@ -54,9 +54,9 @@ def sRawPop (s : NodeStatement) (w : NodeWitness) (d0 : LeanSphincsClaim × Sphi
   ("sp_raw_index", [gen ^ (slotsOf (sPlan s w)).getD j 0]) ::
     Sig.spSegPops ((hRawS s w).getD j d0).1.1 ((hRawS s w).getD j d0).1.2 ((hRawS s w).getD j d0).2
 
-/-- **`da_verify`'s honest entries**: its shape, its challenge, its blobs' cells. -/
+/-- **`da_verify`'s honest entries**: its blob count, its challenge, its blobs' cells. -/
 def daPopsH (w : NodeWitness) : List Pop :=
-  (w.daMatrix.map fun p => ("da_shape", [gen ^ p.2.rows.length, gen ^ Da.wLog p.2]) ::
+  (w.daMatrix.map fun p => ("da_n_blobs", [gen ^ p.2.rows.length]) ::
     ("da_challenge", [p.1.membershipChallenge]) :: Da.daSymPops p.2).getD []
 
 /-- **The raw leanXMSS signatures' entries.** -/
@@ -232,18 +232,9 @@ theorem mainSegs_da (hn : NodeRelation bytecode seed s w) {q : MainPops} (hq : �
   obtain ⟨-, hda, -, -⟩ := hn
   rw [DaDigestHeld, hp] at hda
   have hw := hda.2
-  have hr1 := hw.1
-  have hr : p.2.rows.length ≤ 1024 := hw.2.1
-  have hL : 2 ^ Da.wLog p.2 = LeanDa.paddedRowCount p.2.rows.length := rfl
-  have hL10 : Da.wLog p.2 ≤ 10 := by
-    obtain ⟨-, hhi⟩ := Da.nPad_bounds hr1
-    have hlt : 2 ^ Da.wLog p.2 < 2 ^ 11 := by
-      calc 2 ^ Da.wLog p.2 < 2 * p.2.rows.length := hL ▸ hhi
-        _ ≤ 2 ^ 11 := by norm_num; omega
-    have := (Nat.pow_lt_pow_iff_right (by norm_num : 1 < 2)).mp hlt
-    omega
+  have hr : p.2.rows.length ≤ 1024 := le_trans hw.2.1 (by decide)
   rw [hq, daPopsH, daSeg, hp, Option.map_some, Option.map_some, Option.getD_some, Option.getD_some]
-  exact Da.daPops_sameStreams p.1 p.2 hr hL10
+  exact Da.daPops_sameStreams p.1 p.2 hr
 
 theorem mainSegs_agg {q : MainPops} (hq : ∀ rd, q.pa rd = Hints.batchPushes w.batchingHints) (rd : Reader) :
     w.children ≠ [] → SameStreams (q.pa rd) (Hints.batchPushes w.batchingHints) := fun _ => by

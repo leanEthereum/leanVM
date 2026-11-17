@@ -3,6 +3,9 @@ module
 public import LeanVM.Cost.Decoder.Hints
 public import LeanVM.Guest.Fast.Da
 import LeanVM.Guest.Value.Bits
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # The guest decoder's compiled chain: the DA matrix
@@ -11,7 +14,7 @@ import LeanVM.Guest.Value.Bits
 (`Guest.Fast.dvWitN`, equal to `Da.dvWit` at the frame map re-keyed by `decoderFunctionName`,
 `Guest.Fast.dvWitN_eq`): the blobs' rows of the cells' symbols, staged, each frame looked up once:
 
-* the number of blobs (a logarithm, `gLogD D`, the logarithm's tables `D` given, at most `1024`,
+* the number of blobs (a logarithm, `gLogD D`, the logarithm's tables `D` given, at most `DA_MAX_ROWS`,
   `daRowCount`, as `Da.dvRows`) computed once by `dvWitND` and passed to `dvWitNAt`;
 * each blob's region base (`dvBlobBase`: its blob-loop iteration's two words, then
   `da_verify_blob`'s frame) computed once and passed as a value to its row (`dvRowOf`);
@@ -31,40 +34,40 @@ open LeanVM.Guest.B1.Da LeanVM.Extraction.Fast LeanVM.Protocol.Verifier
 @[expose] public section
 
 /-- The symbols, padded outside the matrix of `r` blobs (`dvSymsPN`, `r` its logarithm). -/
-def dvSymsPNAt (r : ℕ) (σ : Val) (Vn : NFrames) (i h : ℕ) : List K :=
+def dvSymsPNAt (r : ℕ) (σ : Val) (Vn : NFrames) (i h : ℕ) : List E :=
   if i < r ∧ h < 128 then
     cellSymsOf (Vn (fn_idx% da_verify_cell) [dvCellVN σ Vn i h (.n 4)]
       [dvCellVN σ Vn i h (.n 5), dvCellVN σ Vn i h (.n 6), dvCellVN σ Vn i h (.n 7)])
-  else List.replicate 256 0
+  else List.replicate 128 0
 
 /-! ## Each frame once -/
 
 /-- Blob `i`'s iteration of the blob loop (`dvBlobLVN`), the power of `g` in `K`. -/
 def dvBlobLW (σ : Val) (Vn : NFrames) (i : ℕ) : Val :=
-  Vn (fn_idx% da_verify_loop0) [ofK (Parameters.g ^ i), σ (.n 1), σ (.n 14), σ (.n 17)] []
+  Vn (fn_idx% da_verify_loop0) [ofK (Parameters.g ^ i), σ (.n 1), σ (.n 8), σ (.n 10)] []
 
 /-- Blob `i`'s region base (`dvBlobVN σ Vn i (.n 1)`). -/
 def dvBlobBase (σ : Val) (Vn : NFrames) (i : ℕ) : E :=
-  Vn (fn_idx% da_verify_blob) [σ (.n 14)] [dvBlobLW σ Vn i (.n 4), dvBlobLW σ Vn i (.n 5)] (.n 1)
+  Vn (fn_idx% da_verify_blob) [σ (.n 8)] [dvBlobLW σ Vn i (.n 4), dvBlobLW σ Vn i (.n 5)] (.n 1)
 
 /-- Cell `h`'s iteration of a blob's cell loop (`dvCellVN`), the blob's base given. -/
 def dvCellVW (σ : Val) (Vn : NFrames) (base : E) (h : ℕ) : Val :=
-  Vn (fn_idx% da_verify_blob_loop0) [ofK (Parameters.g ^ h), σ (.n 14), base] []
+  Vn (fn_idx% da_verify_blob_loop0) [ofK (Parameters.g ^ h), σ (.n 8), base] []
 
 /-- A cell's symbols off `da_verify_cell`'s frame, the cell loop's valuation given. -/
-def cellSymsAt (Vn : NFrames) (cell : Val) : List K :=
+def cellSymsAt (Vn : NFrames) (cell : Val) : List E :=
   cellSymsOf (Vn (fn_idx% da_verify_cell) [cell (.n 4)] [cell (.n 5), cell (.n 6), cell (.n 7)])
 
 /-- Cell `h`'s symbols, its blob's base given. -/
-def dvSymsCell (σ : Val) (Vn : NFrames) (base : E) (h : ℕ) : List K :=
+def dvSymsCell (σ : Val) (Vn : NFrames) (base : E) (h : ℕ) : List E :=
   cellSymsAt Vn (dvCellVW σ Vn base h)
 
 /-- A blob's row, its base given. -/
-def dvRowOf (σ : Val) (Vn : NFrames) (base : E) : List K :=
+def dvRowOf (σ : Val) (Vn : NFrames) (base : E) : List E :=
   (List.range 128).flatMap fun h => dvSymsCell σ Vn base h
 
 /-- Blob `i`'s row, its base computed once. -/
-def dvRowAt (σ : Val) (Vn : NFrames) (i : ℕ) : List K := dvRowOf σ Vn (dvBlobBase σ Vn i)
+def dvRowAt (σ : Val) (Vn : NFrames) (i : ℕ) : List E := dvRowOf σ Vn (dvBlobBase σ Vn i)
 
 /-- `da_verify`'s witness, its `r` blobs given (`dvWitN`). -/
 def dvWitNAt (r : ℕ) (σ : Val) (Vn : NFrames) : LeanVM.Da.MatrixWitness :=
@@ -89,19 +92,19 @@ theorem dvWitNAt_eq (r : ℕ) (σ : Val) (Vn : NFrames) :
   rw [List.mem_range] at hh
   exact dvSymsCell_eq r σ Vn hi hh
 
-/-- A count of rows, at most `1024` (`dvRows`'s clamp). -/
-def daRowCount (r : ℕ) : ℕ := if r ≤ 1024 then r else 1024
+/-- A count of rows, at most `DA_MAX_ROWS` (`dvRows`'s clamp). -/
+def daRowCount (r : ℕ) : ℕ := if r ≤ guest_const% DA_MAX_ROWS then r else guest_const% DA_MAX_ROWS
 
-theorem daRowCount_eq (r : ℕ) : daRowCount r = min r 1024 := by
+theorem daRowCount_eq (r : ℕ) : daRowCount r = min r (guest_const% DA_MAX_ROWS) := by
   unfold daRowCount
   split <;> omega
 
-theorem daRowCount_le (r : ℕ) : daRowCount r ≤ 1024 := by
+theorem daRowCount_le (r : ℕ) : daRowCount r ≤ guest_const% DA_MAX_ROWS := by
   unfold daRowCount
   split <;> omega
 
 /-- **`da_verify`'s witness** (`dvWitN`), the logarithm's tables `D` given: its rows counted
-once, at most `1024` (`daRowCount`). -/
+once, at most `DA_MAX_ROWS` (`daRowCount`). -/
 def dvWitND (D : DiscreteLogTables) (σ : Val) (Vn : NFrames) : LeanVM.Da.MatrixWitness :=
   dvWitNAt (daRowCount (gLogD D (σ (.n 1)))) σ Vn
 

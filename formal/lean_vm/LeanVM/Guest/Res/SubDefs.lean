@@ -13,7 +13,6 @@ public import LeanVM.Guest.Res.MonoDefs
 public import LeanVM.Guest.Res.ResGiven
 public import LeanVM.Guest.Res.FamDefs
 public import LeanVM.Guest.Res.TermDefs
-public import LeanVM.Guest.Res.RootsDefs
 public import LeanVM.Guest.Res.TileDefs
 public import LeanVM.Guest.Res.ExpDefs
 public import LeanVM.Guest.Res.GkrDefs
@@ -25,7 +24,7 @@ public import LeanVM.Guest.Res.GkrDefs
 (`splitB`, `anyResB anyLink`, `monoResB`, those read off the function's code, `subFamB` and
 `termFamB`, the proof stream's reads, `stB`, the runs a split cuts into blocks, `blkB`,
 `verify_tables`' table sumcheck's reads, `vtB`, the runs of a lift, `liftB`, `verify_keccak`'s
-reads past its layers, `vkStB`, the roots' tree's reads, `rootsB`, the tiles, `tileFamB`, a lift
+reads past its layers, `vkStB`, the tiles, `tileFamB`, a lift
 read back, `liftBackB`, the same cells named one index up, `ordShiftB`, `verify_tables`' reads past
 its table sumcheck, `vtStB`, the runs a product's factors bound, `expFamB`, and `verify_tables`' groups'
 bases, `vtGrpB`, and `verify_sub`'s exponent facts' families, `vsB`, `verify_bus_gkr`'s pair loop's reads of the stream,
@@ -181,7 +180,7 @@ noncomputable def subB (j : ℕ) (w : Wit) : Mode.Res → Bool
   | .sub a bs => splitB j (.sub a bs) || anyResB anyLink j (.sub a bs) || monoResB j (.sub a bs) ||
       subFamB j w (.sub a bs) || termFamB j w (.sub a bs) || stB j (.sub a bs) ||
       blkB j (.sub a bs) || vtB j (.sub a bs) || liftB j (.sub a bs) || vkStB j (.sub a bs) ||
-      rootsB j (.sub a bs) || tileFamB j w (.sub a bs) || liftBackB j (.sub a bs) || ordShiftB j w (.sub a bs) ||
+      tileFamB j w (.sub a bs) || liftBackB j (.sub a bs) || ordShiftB j w (.sub a bs) ||
       vtStB j (.sub a bs) || expFamB j w (.sub a bs) || vtGrpB j (.sub a bs) || vsB j (.sub a bs) ||
       gkrStB j (.sub a bs) || vbgRowB j (.sub a bs)
   | _ => true
