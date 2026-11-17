@@ -25,11 +25,12 @@ Run from `lean_vm`.
   (`LeanVMTests.Guest.Programs`) in the line format of `crates/isa/src/text.rs`, source lines
   included (`Compiler.Lines`), which the Rust tests and the benchmark load
   (`crates/zkdsl/tests/compiled/`), and the verifiers' fixture program at each
-  of its step counts (`Programs.chains`). `export snippets DIR [--check]` writes the aggregation
+  of its step counts (`Programs.chains`) and the programs of the VM's and the prover's tests (`Programs.vm`).
+  `export snippets DIR [--check]` writes the aggregation
   tests' snippets (`LeanVMTests.Guest.Snippets`: a `main` over the guest's helpers).
   The guest itself is written by `lake exe guest-artifact` (`cli/GuestArtifact.lean`).
 * `lake exe guest-backend core-text DIR` writes the core IR of the guest (`DIR/guest.core`) and of each
-  test program (`DIR/<name>.core`), as `Expand.expandProgram` gives it, each function renumbered
+  test program and each program of the front-end corpus (`Programs.frontend`) (`DIR/<name>.core`), as `Expand.expandProgram` gives it, each function renumbered
   (`Fn.renumber`), in the canonical text the Rust front end also prints
   (`crates/zkdsl/src/core_ir.rs`, `render`): `scripts/frontend-diff` compares the two.
 * `lake exe guest-backend time` prints the time of each pass on the guest.
@@ -212,9 +213,15 @@ def exportAll (what : String) (programs : List (String × Source.Program)) (dir 
           IO.println s!"{path}: {c.code.size} instructions, size {c.size}, main frame {c.mainFrame}"
   return if failed then 1 else 0
 
-/-- The test programs and the verifiers' fixture program at each of its step counts. -/
+/-- The test programs, the verifiers' fixture program at each of its step counts, and the programs of the VM's and
+the prover's tests. -/
 def testPrograms : List (String × Source.Program) :=
-  (LeanVMTests.Guest.Programs.all ++ LeanVMTests.Guest.Programs.chains).map fun t => (t.name, t.program)
+  (LeanVMTests.Guest.Programs.all ++ LeanVMTests.Guest.Programs.chains ++ LeanVMTests.Guest.Programs.vm).map
+    fun t => (t.name, t.program)
+
+/-- What `core-text` expands: the test programs and the front-end corpus (`Programs.frontend`), which is not compiled. -/
+def frontEndPrograms : List (String × Source.Program) :=
+  testPrograms ++ LeanVMTests.Guest.Programs.frontend.map fun t => (t.name, t.program)
 
 /-! ## The canonical text of the core IR -/
 
@@ -287,10 +294,13 @@ def coreText (P : Program) : String :=
 
 def coreTextDir (dir : String) : IO UInt32 := do
   IO.FS.createDirAll dir
-  let programs := ("guest", Data.guest) :: testPrograms
+  let programs := ("guest", Data.guest) :: frontEndPrograms
   for (name, p) in programs do
-    let P ← orThrow (Expand.expandProgram p)
-    IO.FS.writeFile s!"{dir}/{name}.core" (coreText P)
+    -- A program `Expand` rejects is written as its error, which the Rust text then differs from.
+    let text := match Expand.expandProgram p with
+      | .ok P => coreText P
+      | .error e => s!"error: {e}\n"
+    IO.FS.writeFile s!"{dir}/{name}.core" text
   IO.println s!"{dir}: the core IR of {programs.length} programs"
   return 0
 

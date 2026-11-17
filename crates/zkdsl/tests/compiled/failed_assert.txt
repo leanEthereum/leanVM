@@ -1,0 +1,11 @@
+size 8
+main_frame 6
+F main 0 6
+S 2 8 0
+S 3 16 0
+S 4 1 0
+M 2 4 3
+S 5 128 0
+J 4 5 4
+L 0 5
+L 4 6
