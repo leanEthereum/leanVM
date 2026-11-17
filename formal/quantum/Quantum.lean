@@ -217,6 +217,7 @@ import Quantum.StdModel.Qrom.SphincsInst
 import Quantum.StdModel.Sphincs.PropsInRed
 import Quantum.StdModel.Sphincs.CostsTweak
 import Quantum.Sphincs.Assembly.Depth.BoundValue
+import Quantum.Cost.NistQrpmSphincs
 import Quantum.Par.Subst
 import Quantum.Par.Lockstep
 import Quantum.Par.LockstepRounds
@@ -497,3 +498,8 @@ the main theorems ever grows beyond Lean's three standard axioms. -/
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Quantum.Sphincs.Assembly.sphincsQrpmDepthBound_le
+
+/-- info: 'Quantum.Cost.Nist.leanSphincs_qrpm_cat1_inPlace' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Cost.Nist.leanSphincs_qrpm_cat1_inPlace

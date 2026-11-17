@@ -185,7 +185,7 @@ quantum() {
     Quantum.Cost.Nist.leanXmss_qrpm_cat1_inPlace \
     Quantum.StdModel.Sphincs.sphincs_suf_le_propsIn_keccak \
     Quantum.Sphincs.Assembly.leanSphincs_qrpm_depth_security \
-    Quantum.Sphincs.Assembly.sphincsQrpmDepthBound_le
+    Quantum.Sphincs.Assembly.sphincsQrpmDepthBound_le Quantum.Cost.Nist.leanSphincs_qrpm_cat1_inPlace
 }
 
 # Every lean_vm executable, in one build.
