@@ -400,4 +400,247 @@ theorem setup_support (i : Fin k) {others : Fin k → Option (KeyRec PK SK)}
     cases hzz
     exact ⟨s, support_tag_subset true _ hz'⟩
 
+/-- **An input asked of both oracles means a clash of key `i` with another key.** -/
+theorem bad_imp_clash (sep : Separation S ownedPub) (i : Fin k)
+    (A : (Fin k → PK) → OracleComp (World + (Fin k × Req →ₒ Resp)) (Fin k × F))
+    {z : ((Fin k × Bool) × KeyRec PK SK × (Fin k → Option (KeyRec PK SK))) × TagSpec.QueryCache}
+    (hz : z ∈ support (run2 (taggedGame S ownedPub i A) ∅)) (hbad : Bad z.2) :
+    ∃ j zj, z.1.2.2 j = some zj ∧ Clash ownedPub z.1.2.1 zj := by
+  unfold taggedGame at hz
+  obtain ⟨z₁, hz₁, hz⟩ := mem_support_run2_bind hz
+  obtain ⟨z₂, hz₂, hz⟩ := mem_support_run2_bind hz
+  obtain ⟨z₃, hz₃, hz⟩ := mem_support_run2_bind hz
+  obtain ⟨z₆, hz₆, hz⟩ := mem_support_run2_bind hz
+  simp only [run2, simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
+  subst hz
+  rw [run_gameOraclesT_reductionT] at hz₃
+  obtain ⟨z₄, hz₄, hz₃⟩ := mem_support_run2_bind hz₃
+  rw [run2, simulateQ_map, StateT.run_map, support_map] at hz₃
+  obtain ⟨z₅, hz₅, rfl⟩ := hz₃
+  have hzi : IsKey S z₂.1 := isKey_of_run2 hz₂
+  have hset := setup_support (S := S) i (fst_mem_support_run2 hz₄)
+  have g₁ := growsIn_of_tQueriesIn (tQueriesIn_coinsT (P := fun _ ↦ False) S.sample) ∅ hz₁
+  have g₂ := growsIn_logged false (S.keygen z₁.1) z₁.2 hz₂
+  have g₄ := growsIn_setup S i z₂.2 hz₄
+  have g₅ := growsIn_of_tQueriesIn (tQueriesIn_advPhase sep i z₂.1 hzi z₄.1 hset.2
+    (A (pksOf z₂.1.1.1 z₄.1))) z₄.2 hz₅
+  have g₆ := growsIn_of_tQueriesIn (tQueriesIn_tag false (Q := ownedPub z₂.1.1.1)
+    (P := fun t ↦ t.1 = false ∧ ownedPub z₂.1.1.1 t.2) (fun x hx ↦ ⟨rfl, hx⟩) _
+    (sep.verify_queries _ _)) _ hz₆
+  have g := ((((g₁.trans g₂).trans g₄).trans g₅).trans g₆)
+  obtain ⟨x, hF, hG⟩ := hbad
+  -- the private side: another key's key-generation query, or one it owns
+  have hW : ∃ j zj, z₄.1 j = some zj ∧ (x ∈ zj.2 ∨ ownedPub zj.1.1 x) := by
+    rcases g (true, x) hG with h0 | (((h1 | h2) | h4) | h5) | h6
+    · simp at h0
+    · exact h1.elim
+    · exact absurd h2.1 (by simp)
+    · obtain ⟨j, zj, hj, -, hx⟩ := h4
+      exact ⟨j, zj, hj, .inl hx⟩
+    · rcases h5.2 rfl with hr | ⟨j, zj, hj, hx⟩
+      · obtain ⟨j, zj, hj, hx⟩ := (groute_iff ownedPub _ _ x).mp hr
+        exact ⟨j, zj, hj, hx.imp id And.left⟩
+      · exact ⟨j, zj, hj, hx.symm⟩
+    · exact absurd h6.1 (by simp)
+  -- the real side: key `i`'s key-generation query, one it owns, or one not routed away
+  have hR : (x ∈ z₂.1.2 ∨ ownedPub z₂.1.1.1 x) ∨ groute ownedPub z₂.1.1.1 z₄.1 x = false := by
+    rcases g (false, x) hF with h0 | (((h1 | h2) | h4) | h5) | h6
+    · simp at h0
+    · exact h1.elim
+    · exact .inl (.inl h2.2)
+    · obtain ⟨-, -, -, h, -⟩ := h4
+      exact absurd h (by simp)
+    · rcases h5.1 rfl with h | h | h
+      exacts [.inl (.inl h), .inl (.inr h), .inr h]
+    · exact .inl (.inr h6.2)
+  obtain ⟨j, zj, hj, hx⟩ := hW
+  refine ⟨j, zj, hj, x, ?_⟩
+  rcases hR with (hxi | hxo) | hr
+  · rcases hx with hx | hx
+    · exact .inl ⟨hx, .inl hxi⟩
+    · exact .inr ⟨sep.keygen_owned _ hzi x hxi _ hx, hx⟩
+  · rcases hx with hx | hx
+    · exact .inl ⟨hx, .inr hxo⟩
+    · exact .inr ⟨hxo, hx⟩
+  · rcases hx with hx | hx
+    · exact absurd ((groute_iff ownedPub z₂.1.1.1 z₄.1 x).mpr ⟨j, zj, hj, .inl hx⟩) (by simp [hr])
+    · by_cases hxo : ownedPub z₂.1.1.1 x
+      · exact .inr ⟨hxo, hx⟩
+      · exact absurd ((groute_iff ownedPub z₂.1.1.1 z₄.1 x).mpr ⟨j, zj, hj, .inr ⟨hx, hxo⟩⟩)
+          (by simp [hr])
+
+/-! ## The probability of a clash -/
+
+/-- An event after a continuation that, on every reachable path, implies an event of the draw
+has at most the draw's event's probability. -/
+theorem prEvent_bind_le_of_imp {α β : Type} (mx : ProbComp α) (f : α → ProbComp β)
+    (p : α → Prop) (q : β → Prop) (h : ∀ a ∈ support mx, ∀ b ∈ support (f a), q b → p a) :
+    Pr{let b ← mx >>= f}[q b] ≤ Pr{let a ← mx}[p a] := by
+  classical
+  conv_rhs => rw [← bind_pure mx]
+  refine prEvent_bind_mono_of_forall_le_of_support mx f pure q p fun a ha ↦ ?_
+  rw [prEvent_pure]
+  split_ifs with hp
+  · exact prEvent_le_one _
+  · exact (prEvent_eq_zero_of_forall_mem_support _ _ fun b hb hq ↦ hp (h a ha b hb hq)).le
+
+theorem tQueriesIn_sequenceFin {P : Bool × List UInt8 → Prop} {γ : Type} :
+    ∀ {n : ℕ} (cs : Fin n → OracleComp TSpec γ), (∀ j, TQueriesIn P (cs j)) →
+      TQueriesIn P (sequenceFin cs)
+  | 0, _, _ => trivial
+  | n + 1, cs, h => by
+    simp only [sequenceFin]
+    exact tQueriesIn_bind (h 0) fun _ ↦
+      tQueriesIn_bind (tQueriesIn_sequenceFin _ fun j ↦ h j.succ) fun _ ↦ trivial
+
+variable (S ownedPub)
+
+/-- The other keys ask only the private oracle. -/
+theorem tQueriesIn_setup (i : Fin k) : TQueriesIn (fun t ↦ t.1 = true) (setup S i) := by
+  unfold setup
+  refine tQueriesIn_sequenceFin _ fun j ↦ ?_
+  split
+  · trivial
+  · exact tQueriesIn_bind (tQueriesIn_coinsT _) fun _ ↦ tQueriesIn_map _
+      (tQueriesIn_tag true (fun _ _ ↦ rfl) _ (queriesIn_univ _))
+
+/-- **A computation of coins and the private oracle, its private oracle sampled inside, leaves
+the real oracle's cache as it was.** -/
+theorem romRun_inner_cache {α : Type} (X : OracleComp TSpec α)
+    (hX : TQueriesIn (fun t ↦ t.1 = true) X) (cG cF : SchemeHashSpec.QueryCache)
+    {z : (α × SchemeHashSpec.QueryCache) × SchemeHashSpec.QueryCache}
+    (hz : z ∈ support (romRun ((simulateQ inner X).run cG) cF)) : z.2 = cF := by
+  induction X using OracleComp.inductionOn generalizing cG cF z with
+  | pure a =>
+    simp only [romRun, simulateQ_pure, StateT.run_pure, support_pure,
+      Set.mem_singleton_iff] at hz
+    subst hz
+    rfl
+  | query_bind t k ih =>
+    rw [tQueriesIn_query_bind] at hX
+    simp only [romRun, simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
+      mem_support_bind_iff] at hz
+    obtain ⟨z₁, hz₁, hz⟩ := hz
+    rw [ih z₁.1.1 (hX.2 z₁.1.1) z₁.1.2 z₁.2 hz]
+    rcases t with n | ⟨b, x⟩
+    · simp only [inner, StateT.run_lift, simulateQ_bind, simulateQ_spec_query, simulateQ_pure,
+        StateT.run_bind, roSim.run_apply_inl, bind_map_left, StateT.run_pure, support_bind,
+        support_pure, Set.mem_iUnion, Set.mem_singleton_iff] at hz₁
+      obtain ⟨u, -, rfl⟩ := hz₁
+      rfl
+    · cases b
+      · exact (Bool.false_ne_true hX.1).elim
+      · simp only [inner, ↓reduceIte, StateT.run_mk, roSim.run_liftM, support_map,
+          Set.mem_image] at hz₁
+        obtain ⟨u, -, rfl⟩ := hz₁
+        rfl
+
+/-- A fresh key's record in the random-oracle model: a seed, and its key generation logged. -/
+noncomputable def freshRec : OracleComp World (KeyRec PK SK) :=
+  (liftM S.sample : OracleComp World Seed) >>= fun s ↦ liftM (loggedKeygen S s)
+
+/-- Key `i` over the real oracle, then the others over the private one. -/
+def keysT (i : Fin k) : OracleComp TSpec (KeyRec PK SK × (Fin k → Option (KeyRec PK SK))) := do
+  let s ← simulateQ coinsT S.sample
+  let zi ← simulateQ tagF (loggedKeygen S s)
+  let others ← setup S i
+  return (zi, others)
+
+/-- The tagged game after the keys. -/
+def tailTg (i : Fin k)
+    (A : (Fin k → PK) → OracleComp (World + (Fin k × Req →ₒ Resp)) (Fin k × F))
+    (y : KeyRec PK SK × (Fin k → Option (KeyRec PK SK))) :
+    OracleComp TSpec ((Fin k × Bool) × KeyRec PK SK × (Fin k → Option (KeyRec PK SK))) := do
+  let p ← (simulateQ (gameOraclesT S y.1.1.2)
+    (simulateQ (advImpl S ownedPub i y.1.1.1 y.2) (A (pksOf y.1.1.1 y.2)))).run
+  let b ← simulateQ tagF (S.verify y.1.1.1 p.1.2)
+  return ((p.1.1, S.win p.2 p.1.2 && b), y.1, y.2)
+
+theorem taggedGame_eq_keysT (i : Fin k)
+    (A : (Fin k → PK) → OracleComp (World + (Fin k × Req →ₒ Resp)) (Fin k × F)) :
+    taggedGame S ownedPub i A = keysT S i >>= tailTg S ownedPub i A := by
+  simp only [taggedGame, keysT, tailTg, run_gameOraclesT_reductionT, bind_assoc, bind_map_left,
+    pure_bind]
+
+/-- **An event of the keys in the two-oracle run of the tagged game** has at most the
+probability bounded, for every possible draw of the other keys, by that of the event of a fresh
+key with them. -/
+theorem prob_keys_le (i : Fin k)
+    (A : (Fin k → PK) → OracleComp (World + (Fin k × Req →ₒ Resp)) (Fin k × F))
+    (Q : KeyRec PK SK × (Fin k → Option (KeyRec PK SK)) → Prop) {ε : ℝ≥0∞}
+    (h : ∀ others ∈ support (setup S i),
+      Pr{let z ← romRun (freshRec S) ∅}[Q (z.1, others)] ≤ ε) :
+    Pr{let z ← run2 (taggedGame S ownedPub i A) ∅}[Q z.1.2] ≤ ε := by
+  -- the event is one of the keys
+  have h1 : Pr{let z ← run2 (taggedGame S ownedPub i A) ∅}[Q z.1.2] ≤
+      Pr{let y ← run2 (keysT S i) ∅}[Q y.1] := by
+    rw [taggedGame_eq_keysT, run2, simulateQ_bind, StateT.run_bind]
+    refine prEvent_bind_le_of_imp _ _ _ _ fun y _ b hb hq ↦ ?_
+    have hb' := fst_mem_support_run2 hb
+    simp only [tailTg, support_bind, support_pure, Set.mem_iUnion,
+      Set.mem_singleton_iff] at hb'
+    obtain ⟨_, _, _, _, hb'⟩ := hb'
+    rw [hb'] at hq
+    exact hq
+  refine h1.trans ?_
+  -- the private oracle sampled inside
+  rw [run2, ← join_empty, ← flatten, prEvent_map]
+  have h3 : (simulateQ inner (keysT S i)).run ∅ = freshRec S >>= fun zi ↦
+      (simulateQ inner (setup S i)).run ∅ >>= fun so ↦ pure ((zi, so.1), so.2) := by
+    simp only [keysT, freshRec, simulateQ_bind, StateT.run_bind, run_inner_coinsT,
+      run_inner_tagF, bind_map_left, simulateQ_pure, StateT.run_pure, bind_assoc]
+  rw [h3]
+  -- the other keys first
+  rw [(romRun_comm (freshRec S) ((simulateQ inner (setup S i)).run ∅)
+    (fun zi so ↦ pure ((zi, so.1), so.2)) ∅).prEvent_eq, romRun_bind]
+  refine prEvent_bind_le_of_forall_le_of_support _ _ _ fun so hso ↦ ?_
+  have hc : so.2 = ∅ := romRun_inner_cache _ (tQueriesIn_setup S i) ∅ ∅ hso
+  have hs : so.1.1 ∈ support (setup S i) :=
+    support_simulateQ_run'_subset inner (setup S i) ∅ (by
+      rw [StateT.run'_eq, support_map]; exact ⟨so.1, KeptKey.fst_mem_support_romRun' hso, rfl⟩)
+  rw [hc, romRun_bind]
+  simp only [romRun, simulateQ_pure, StateT.run_pure, bind_pure_comp, prEvent_map]
+  exact h so.1.1 hs
+
+/-- **The bad event's probability**: at most `(k - 1) ε`, for a scheme in which a fresh key
+clashes with any fixed key with probability at most `ε`. -/
+theorem prob_bad_le (sep : Separation S ownedPub) (i : Fin k)
+    (A : (Fin k → PK) → OracleComp (World + (Fin k × Req →ₒ Resp)) (Fin k × F)) {ε : ℝ≥0∞}
+    (hclash : ∀ zb, IsKey S zb → Pr{let z ← romRun (freshRec S) ∅}[Clash ownedPub z.1 zb] ≤ ε) :
+    Pr{let z ← run2 (taggedGame S ownedPub i A) ∅}[Bad z.2] ≤ ((k - 1 : ℕ) : ℝ≥0∞) * ε := by
+  classical
+  have hE : ∀ j, Pr{let z ← run2 (taggedGame S ownedPub i A) ∅}[
+      ∃ zj, z.1.2.2 j = some zj ∧ Clash ownedPub z.1.2.1 zj] ≤ if j = i then 0 else ε := by
+    intro j
+    refine prob_keys_le S ownedPub i A (fun y ↦ ∃ zj, y.2 j = some zj ∧ Clash ownedPub y.1 zj)
+      fun others hothers ↦ ?_
+    obtain ⟨hi, hk⟩ := setup_support (S := S) i hothers
+    rcases hj : others j with _ | zb
+    · refine (prEvent_eq_zero_of_forall_mem_support _ _ fun z _ ⟨zj, h, _⟩ ↦ ?_).le.trans
+        zero_le
+      simp [hj] at h
+    · have hji : j ≠ i := fun hji ↦ by
+        subst hji
+        rw [hi] at hj
+        cases hj
+      simp only [hji, ↓reduceIte]
+      refine (prEvent_mono_of_support _ _ (fun z ↦ Clash ownedPub z.1 zb)
+        fun z _ ⟨zj, h, hc⟩ ↦ ?_).trans (hclash zb (hk j zb hj))
+      simp only [hj, Option.some.injEq] at h
+      subst h
+      exact hc
+  calc Pr{let z ← run2 (taggedGame S ownedPub i A) ∅}[Bad z.2]
+      ≤ Pr{let z ← run2 (taggedGame S ownedPub i A) ∅}[
+          ∃ j zj, z.1.2.2 j = some zj ∧ Clash ownedPub z.1.2.1 zj] :=
+        prEvent_mono_of_support _ _ _ fun z hz hb ↦ bad_imp_clash sep i A hz hb
+    _ ≤ ∑ j, Pr{let z ← run2 (taggedGame S ownedPub i A) ∅}[
+          ∃ zj, z.1.2.2 j = some zj ∧ Clash ownedPub z.1.2.1 zj] := prEvent_exists_le _ _
+    _ ≤ ∑ j : Fin k, if j = i then 0 else ε := Finset.sum_le_sum fun j _ ↦ hE j
+    _ = ((k - 1 : ℕ) : ℝ≥0∞) * ε := by
+      rw [Finset.sum_ite, Finset.sum_const_zero, zero_add, Finset.sum_const, nsmul_eq_mul]
+      congr 2
+      rw [show Finset.filter (fun j ↦ ¬j = i) Finset.univ = Finset.univ.erase i by
+          ext j; simp, Finset.card_erase_of_mem (Finset.mem_univ i), Finset.card_univ,
+        Fintype.card_fin]
+
 end Common.SufCma.MultiKey
