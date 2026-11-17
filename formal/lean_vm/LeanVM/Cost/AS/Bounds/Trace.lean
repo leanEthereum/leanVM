@@ -72,12 +72,12 @@ theorem descRevC_fst (n d A ℓ : ℕ) (OA : AV) : ∀ (rs : List FoldRound) (m 
     omega
 
 /-- A trace's number of levels after the first. -/
-def traceDepth : WhirTrace → ℕ
+@[expose] def traceDepth : WhirTrace → ℕ
   | .final _ _ => 0
   | .mid _ _ rest => traceDepth rest + 1
 
 /-- A trace's sizes within the machine's words. -/
-def TraceSmall : WhirTrace → Prop
+@[expose] def TraceSmall : WhirTrace → Prop
   | .final rounds folded => rounds.length ≤ 50 ∧ folded.length < 2 ^ 32
   | .mid rounds high rest => rounds.length ≤ 50 ∧ high.length < 2 ^ 32 ∧ TraceSmall rest
 
