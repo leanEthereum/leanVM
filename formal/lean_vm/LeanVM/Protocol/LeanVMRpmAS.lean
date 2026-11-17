@@ -43,10 +43,12 @@ open scoped ENNReal
 /-- **The agreement-set extractor is monotone in its permutation answers**: answers that extend
 the ones it returned an execution on give the same execution. -/
 theorem Protocol.EndToEnd.Sound.extractAS_mono (D : NearDecoder) {prog : LeanIsaProgram}
-    {input : PublicInput} {H : Bytes → Option Digest} {F F' : KeccakState → Option KeccakState}
-    {π : Proof} {t : Execution prog} (h : Protocol.EndToEnd.Sound.extractAS D prog input H F π = some t)
+    {input : PublicInput} {H : Bytes → Option Digest} {keys : List Bytes}
+    {F F' : KeccakState → Option KeccakState}
+    {π : Proof} {t : Execution prog}
+    (h : Protocol.EndToEnd.Sound.extractAS D prog input H keys F π = some t)
     (hF : ∀ x y, F x = some y → F' x = some y) :
-    Protocol.EndToEnd.Sound.extractAS D prog input H F' π = some t := by
+    Protocol.EndToEnd.Sound.extractAS D prog input H keys F' π = some t := by
   unfold Protocol.EndToEnd.Sound.extractAS at h ⊢
   obtain ⟨seed, hseed, h⟩ := Option.bind_eq_some_iff.mp h
   obtain ⟨r, hr, h⟩ := Option.bind_eq_some_iff.mp h
@@ -64,7 +66,7 @@ evaluations and the answers of its first forward queries. -/
 noncomputable def transcriptExtractorASWithHash (D : NearDecoder) (prog : LeanIsaProgram)
     (input : PublicInput) (T : PermutationTranscript) (proof : Proof) : Option (Execution prog) :=
   Protocol.EndToEnd.Sound.extractAS D prog input (lookupEvaluation (keccakEvaluationsOfTranscript T))
-    (Rpm.firstForward T) proof
+    ((keccakEvaluationsOfTranscript T).map (·.1)) (Rpm.firstForward T) proof
 
 /-- **The agreement-set extractor in the random-permutation model**, on the adversary's
 transcript, its coins left out. -/
@@ -133,7 +135,12 @@ theorem romGame_leAS (D : NearDecoder) (A : DetAdversary) :
     funext m
     rw [cmap_inl]
   unfold transcriptExtractorASWithHash
-  rw [hH]
+  have hc : Extraction.MerkleProofs.KeysCover (lookupEvaluation (keccakEvaluationsOfTranscript p.1.2))
+      ((keccakEvaluationsOfTranscript p.1.2).map (·.1)) :=
+    Extraction.ExtractProofs.keysCover_hashesOf _
+  rw [Protocol.EndToEnd.Sound.extractAS_keys_congr D _ _ hc
+    (Extraction.ExtractProofs.keysCover_supportKeys (Extraction.ExtractProofs.finite_of_keysCover hc)),
+    hH]
   exact Protocol.EndToEnd.Sound.extractAS_mono D hte fun s y hs ↦ hf s y hs
 
 /-- **Knowledge soundness in the random-permutation model, for the agreement-set extractor**, for

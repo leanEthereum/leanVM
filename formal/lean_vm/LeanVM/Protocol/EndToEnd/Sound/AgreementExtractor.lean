@@ -11,6 +11,7 @@ module
 
 public import LeanVM.Protocol.EndToEnd.Sound.AvailProb
 public import LeanVM.Protocol.Extraction.Halting
+public import LeanVM.Protocol.Extraction.Extract
 public import LeanVM.Protocol.Whir.Params.DescentCheck
 public import LeanVM.Protocol.Whir.Params.Iface
 
@@ -90,19 +91,30 @@ Keccak-256 and Keccak-f answers `H`, `F` and the proof `π`, the seed and the cu
 on them, the roots' words through `H`, the descent of the replay's trace, and the run of level 0's
 stack. -/
 noncomputable def extractAS (D : NearDecoder) (prog : LeanIsaProgram) (input : PublicInput)
-    (H : Bytes → Option Digest) (F : KeccakState → Option KeccakState) (π : Proof) :
-    Option (Execution prog) :=
+    (H : Bytes → Option Digest) (keys : List Bytes) (F : KeccakState → Option KeccakState)
+    (π : Proof) : Option (Execution prog) :=
   ((leanVmSeed (bytecodeWords prog) (publicInputDigest input)).run H F).bind fun seed ↦
   (replayU F (leanVmProgramCut (bytecodeWords prog) (publicInputDigest input))
     (startState π seed)).bind fun r ↦
   if hμ : laneBits ≤ r.1.2.1.1.stackLog then
-    (descendTrace D (codesOf r.1.2.1.1.stackLog r.1.2.1.2)
-      (r.2.roots.map fun x ↦ (x.2.1, x.2.2, Extraction.committedWord H x.1 x.2.1 x.2.2))
-      r.1.2.2 0).bind fun T ↦
-    if hm : T.1 = laneBits then
-      Extraction.candidateExecution prog input r.1.2.1.1 (tupleStack hμ (hm ▸ T.2)).values
+    if 2 ^ (r.1.2.1.1.stackLog - laneBits) ≤ (codesOf r.1.2.1.1.stackLog r.1.2.1.2 0).n then
+      (descendTrace D (codesOf r.1.2.1.1.stackLog r.1.2.1.2)
+        (r.2.roots.map fun x ↦ (x.2.1, x.2.2, Extraction.committedWordC H keys x.1 x.2.1 x.2.2))
+        r.1.2.2 0).bind fun T ↦
+      if hm : T.1 = laneBits then
+        Extraction.candidateExecution prog input r.1.2.1.1 (tupleStack hμ (hm ▸ T.2)).values
+      else none
     else none
   else none
+
+/-- **The extraction does not depend on which covering keys it is given.** -/
+theorem extractAS_keys_congr (D : NearDecoder) (prog : LeanIsaProgram) (input : PublicInput)
+    {H : Bytes → Option Digest} {keys keys' : List Bytes}
+    (hc : Extraction.MerkleProofs.KeysCover H keys) (hc' : Extraction.MerkleProofs.KeysCover H keys')
+    (F : KeccakState → Option KeccakState) (π : Proof) :
+    extractAS D prog input H keys F π = extractAS D prog input H keys' F π := by
+  simp only [extractAS, Extraction.committedWordC,
+    Extraction.ExtractProofs.committedLeaves_keys_congr hc hc']
 
 /-- The candidate execution of a stack read on equal variables is the stack's. -/
 theorem candidateExecution_cast {prog : LeanIsaProgram} {input : PublicInput} {L : Verifier.Layout}
@@ -128,9 +140,13 @@ theorem extractAS_valid (D : NearDecoder) {ℓ ℓ₀ : Log} {prog : LeanIsaProg
     (hav : ∀ seed, (leanVmSeed (bytecodeWords prog) (publicInputDigest input)).run
       (lookH ℓ) (lookF ℓ) = some seed →
       Avail (bytecodeWords prog) (publicInputDigest input) π ℓ ℓ₀.length seed)
-    (hroots : ¬ RootsAnswered (bytecodeWords prog) (publicInputDigest input) π ℓ₀ ℓ) :
-    ∃ t, extractAS D prog input (lookH ℓ₀) (lookF ℓ₀) π = some t ∧ ValidExecution prog input t := by
+    (hroots : ¬ RootsAnswered (bytecodeWords prog) (publicInputDigest input) π ℓ₀ ℓ)
+    {keys : List Bytes} (hkeys : Extraction.MerkleProofs.KeysCover (lookH ℓ₀) keys) :
+    ∃ t, extractAS D prog input (lookH ℓ₀) keys (lookF ℓ₀) π = some t ∧
+      ValidExecution prog input t := by
   have hℓ₀ : ℓ₀ = ℓ.take ℓ₀.length := List.prefix_iff_eq_take.mp hpre
+  have hinj : Extraction.MerkleProofs.AnswersInj (lookH ℓ₀) := by
+    rw [hℓ₀]; exact answersInj_lookH (not_fail_take hf _)
   obtain ⟨seed, s, hseed, hx⟩ := xrun_of_verify hv
   obtain ⟨hseedk, hink⟩ := hav seed hseed
   rw [← hℓ₀] at hseedk hink
@@ -160,27 +176,32 @@ theorem extractAS_valid (D : NearDecoder) {ℓ ℓ₀ : Log} {prog : LeanIsaProg
   have hcs : commits (extractedHistory (lookH ℓ) (lookF ℓ)
       (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
       (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) π) =
-      s₁.roots.map fun x ↦ (x.2.1, x.2.2, Extraction.committedWord (lookH ℓ₀) x.1 x.2.1 x.2.2) := by
+      s₁.roots.map fun x ↦ (x.2.1, x.2.2, Extraction.committedWordC (lookH ℓ₀) keys x.1 x.2.1 x.2.2) := by
     rw [hcomm]
     refine List.map_congr_left fun x hx ↦ ?_
     have hr : ∀ y, Sum.inl (y, x.1) ∉ ℓ.drop ℓ₀.length := fun y hy ↦
       hroots ⟨x.1, by rw [hRR]; exact List.mem_map_of_mem hx, y, hy⟩
-    rw [hℓ₀, committedWord_eq hf hr x.2.1 x.2.2]
+    rw [Extraction.MerkleProofs.committedWordC_eq hinj hkeys, hℓ₀,
+      committedWord_eq hf hr x.2.1 x.2.2]
   rw [hcs] at hT
   -- The descent.
   have hwadm' : Whir.Admissible (μs prog s0) d.1.2 := by rw [μs, ← hlay]; exact hwadm
   have hT' : traceGood (codesOf (μs prog s0) d.1.2) 0 (lvl0Pred (μs prog s0) (badOf prog input s0))
       d.2 (s₁.roots.map fun x ↦
-        (x.2.1, x.2.2, Extraction.committedWord (lookH ℓ₀) x.1 x.2.1 x.2.2)) := hT
+        (x.2.1, x.2.2, Extraction.committedWordC (lookH ℓ₀) keys x.1 x.2.1 x.2.2)) := hT
   obtain ⟨m, T, hdesc, hm, hμ, hnb⟩ := descend_good hwadm' D _ d.2 _ hT'
   have hM : M3Holds (leanIsaInstance prog s0) input (toI prog s0 (tupleStack hμ (hm ▸ T))) :=
     not_not.mp hnb
   obtain ⟨t, hct, hvt⟩ := Halting.candidateExecution_of_extracted hs hM
   refine ⟨t, ?_, hvt⟩
   rw [toI, candidateExecution_cast] at hct
-  simp only [μs] at hdesc hμ
+  have hn : 2 ^ (μs prog s0 - laneBits) ≤ (codesOf (μs prog s0) d.1.2 0).n := by
+    obtain ⟨level, rest, F⟩ := level0Facts (shapeOK_of_admissible hwadm')
+    rw [LevelCode.n, F.hκ₀]
+    exact Nat.pow_le_pow_right (by norm_num) (Nat.le_add_right _ _)
+  simp only [μs] at hdesc hμ hn
   simp only [extractAS, hseedk, Option.bind_some, hrep']
-  rw [hlay, dite_eq_left hμ, hdesc, Option.bind_some, dite_eq_left hm]
+  rw [hlay, dite_eq_left hμ, ite_eq_left hn, hdesc, Option.bind_some, dite_eq_left hm]
   exact hct
 
 end

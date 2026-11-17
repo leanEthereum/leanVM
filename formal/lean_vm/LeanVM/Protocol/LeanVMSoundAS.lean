@@ -40,7 +40,8 @@ open scoped ENNReal
 /-- **The agreement-set extractor of the random-oracle model**, over the near-tuple decoder `D`,
 on the adversary's cached answers. -/
 noncomputable def extractorAS (D : NearDecoder) : Extractor := fun prog input answers π ↦
-  Sound.extractAS D prog input (fun x ↦ answers (.inl x)) (fun t ↦ answers (.inr t)) π
+  Sound.extractAS D prog input (fun x ↦ answers (.inl x))
+    (Extraction.supportKeys fun x ↦ answers (.inl x)) (fun t ↦ answers (.inr t)) π
 
 /-- **The knowledge-soundness error for the agreement-set extractor**: the random-oracle theorem's,
 a fresh hit of the final proof of work (`2^-127`, once), and a fresh hash answer of the verifier
@@ -114,7 +115,8 @@ theorem knowledgeSoundnessRomAS (D : NearDecoder) {A : Adversary} {Q : ℕ}
         (fun seed' hseed' ↦ by
           rw [hseed] at hseed'
           cases hseed'
-          exact hav) hn3'
+          exact hav) hn3' (Extraction.ExtractProofs.keysCover_supportKeys
+            (Extraction.ExtractProofs.finite_of_keysCover (Sound.keysCover_lookH w.1.2)))
       exact hno ⟨t, ht, htv⟩
     · exact hn2' ⟨j, hkj, hj, t, u, hej, hhit⟩
   · rw [leanVmQueryBound_eq, failBound]
