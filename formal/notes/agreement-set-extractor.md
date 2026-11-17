@@ -45,3 +45,19 @@ Each is at most `2^-125`. `lean_vm`'s `soundnessError` gains them, and the end s
 5. **Cost** (`LeanVM/Cost/`): compile it and prove its price. The decoder at multiplicity one replaces Roth–Ruckenstein's search; the replay compiles the verifier's schedule into the program, so the size bound (`14159`) grows by that, which `statement.tex` must then account for.
 
 Items 1 to 3 are a refactor of the soundness proof, not new mathematics; item 5 is the largest by volume.
+
+## Status
+
+Done on `agreement-set-extractor` (each step builds on its own):
+
+* `CertG` with an acceptance predicate, `romSound_logG`, `romSound_of_impG`, `Spec.toCertG`.
+* The relativised invariant: `TViol` with a predicate, `pullT` through near tuples at the round's threshold, `FoldRoundBound` relativised (`AffineCombinerFoldRel`), `nextPred` across levels, `lvl0Pred` at level 0.
+* The ghost opening (`whirLevelsG`, `verifyWhirG`, `verifyStackedOpeningG`) returning a `WhirTrace`, its specifications with postcondition `traceGood`, and the descent (`Whir.Sound.Descent`: a good trace has a level-0 list member whose stack is not bad).
+* The assembly on the bad stacks, the ghost verifier (`leanVmProgramG`), `leanVmCert` a `CertG` with `GoodRun`, and the end theorem through `doomed_of_not_extracted` (accepted, not extracted, gives doom and not a good run). The statement's extractor is still the list decoder.
+
+## Next
+
+1. **The descent as an algorithm**: from the trace and the levels' words, the final polynomial, then at each round back the unique near tuple of the unfolded word on the agreement set (each lane decoded on the set with at most one error, which the Guruswami–Sudan decoder does on any point list at multiplicity one), and at each level boundary the polynomial of the message and the high part; at level 0 the stack. Proved equal to the existential descent when the trace is good: near tuples on a set of at least `d + 3` columns are unique.
+2. **The replay**: the verifier run with the adversary's permutation answers up to the final level's polynomial, returning the trace, and every level's word inverted through the adversary's hash answers.
+3. **Availability**: without failure, an accepted proof whose replay stops early has a fresh verifier permutation before the final query positions, so the positions and their grind were guessed; every level's root is an adversary's hash (the stack root's argument, per level). New terms of the internal `soundnessError`, absorbed by the statement's `2^14`.
+4. **Cost**: compile the new extractor to the cost machine and prove its price; then the statement's size bound and budget, `statement.tex`, and removing the list decoder.
