@@ -330,5 +330,134 @@ theorem prEvent_logged2_hit_le {α : Type} (A : OracleComp KeccakCalls α)
     simp only [Φ, ind_of_not h0, zero_add, mul_zero, add_zero]
     exact mul_le_of_le_one_right' (ind_le_one _)
 
+/-! ## The levels' roots -/
+
+/-- At most this many roots in a run of the verifier: every commitment costs two quarters. -/
+def rootCap : ℕ := leanVmCost / 2
+
+/-- **A run's commitments are at most half its cost.** -/
+theorem commits_length_le_of_costs {α : Type} {height : ℕ} :
+    ∀ {p : VerifierProgram α} {n : ℕ} {Q : α → Prop} {l : List Ev} {q : VerifierProgram α},
+      VerifierProgram.Costs height p n Q → p.after l = some q → 2 * (commits l).length ≤ n
+  | _, _, _, [], _, _, _ => by simp [commits]
+  | .ret _, _, _, _ :: _, _, _, ha => by simp [VerifierProgram.after] at ha
+  | .fail, _, _, _ :: _, _, _, ha => by simp [VerifierProgram.after] at ha
+  | .read k, n, _, e :: es, _, hc, ha => by
+    cases e <;> simp only [VerifierProgram.after, reduceCtorEq] at ha
+    have := commits_length_le_of_costs (hc.2 _) ha
+    simp only [commits]
+    omega
+  | .sample k, n, _, e :: es, _, hc, ha => by
+    cases e <;> simp only [VerifierProgram.after, reduceCtorEq] at ha
+    have := commits_length_le_of_costs (hc.2 _) ha
+    simp only [commits]
+    omega
+  | .grind b k, n, _, e :: es, _, hc, ha => by
+    cases e <;> simp only [VerifierProgram.after, reduceCtorEq] at ha
+    split at ha
+    · have := commits_length_le_of_costs hc.2 ha
+      simp only [commits]
+      omega
+    · simp at ha
+  | .commit ht w k, n, _, e :: es, _, hc, ha => by
+    cases e <;> simp only [VerifierProgram.after, reduceCtorEq] at ha
+    split at ha
+    · have := commits_length_le_of_costs hc.2.2 ha
+      have h2 := hc.2.1
+      simp only [commits, List.length_cons]
+      omega
+    · simp at ha
+  | .query i ps k, n, _, e :: es, _, hc, ha => by
+    cases e <;> simp only [VerifierProgram.after, reduceCtorEq] at ha
+    have := commits_length_le_of_costs (hc.2 _) ha
+    simp only [commits]
+    omega
+
+/-- **The roots the cut verifier's replay reads** on the log `ℓ₀`'s answers, at most `rootCap`. -/
+def replayRoots (bc : List K) (pd : Digest) (π : Proof) (ℓ₀ : Log) : List Digest :=
+  (((leanVmSeed bc pd).run (lookH ℓ₀) (lookF ℓ₀)).bind fun seed ↦
+    (replayU (lookF ℓ₀) (leanVmProgramCut bc pd) (startState π seed)).map fun r ↦
+      (r.2.roots.map (·.1)).take rootCap).getD []
+
+theorem length_replayRoots_le (bc : List K) (pd : Digest) (π : Proof) (ℓ₀ : Log) :
+    (replayRoots bc pd π ℓ₀).length ≤ rootCap := by
+  unfold replayRoots
+  rcases (leanVmSeed bc pd).run (lookH ℓ₀) (lookF ℓ₀) with _ | seed
+  · simp
+  · rcases h : replayU (lookF ℓ₀) (leanVmProgramCut bc pd) (startState π seed) with _ | r
+    · simp [h]
+    · simp [h]
+
+/-- A hash entry past the adversary's log answers one of the replay's roots. -/
+def RootsAnswered (bc : List K) (pd : Digest) (π : Proof) (ℓ₀ ℓ : Log) : Prop :=
+  ∃ r ∈ replayRoots bc pd π ℓ₀, ∃ x, .inl (x, r) ∈ ℓ.drop ℓ₀.length
+
+/-- **The verifier rarely answers a root afresh**: the probability that a fresh hash answer of
+the verifier, past the adversary's log, is one of the roots the cut verifier's replay reads on the
+adversary's answers is at most `rootCap · 2^-256` per verifier query. -/
+theorem prEvent_logged2_roots_le {α : Type} (A : OracleComp KeccakCalls α)
+    (V : α → OracleComp KeccakCalls Bool) (QV : ℕ) (hV : ∀ a, IsTotalQueryBound (V a) QV)
+    (bc : α → List K) (pd : α → Digest) (π : α → Proof) :
+    Pr{let w ← logged2 A V}[¬ w.1.2 <+: w.2.2 ∨
+      RootsAnswered (bc w.1.1) (pd w.1.1) (π w.1.1) w.1.2 w.2.2] ≤
+      QV * (rootCap * (2 ^ 256 : ℝ≥0∞)⁻¹) := by
+  unfold logged2
+  refine prEvent_bind_le_of_forall_le_of_support _ _ _ fun p _ ↦ ?_
+  rw [prEvent_map]
+  set R := replayRoots (bc p.1) (pd p.1) (π p.1) p.2 with hRdef
+  have hR : R.length ≤ rootCap := length_replayRoots_le _ _ _ _
+  let Φ : Log → ℝ≥0∞ := fun ℓ ↦ ind (∃ r ∈ R, ∃ x, .inl (x, r) ∈ ℓ.drop p.2.length)
+  have hdrop : ∀ (ℓ : Log) (e : Entry), (ℓ ++ [e]).drop p.2.length ⊆ ℓ.drop p.2.length ++ [e] := by
+    intro ℓ e x hx
+    rw [List.drop_append] at hx
+    rcases List.mem_append.mp hx with hx | hx
+    · exact List.mem_append_left _ hx
+    · exact List.mem_append_right _ (List.mem_of_mem_drop hx)
+  have hsum : ∑ u : Digest, ind (u ∈ R) ≤ rootCap := by
+    calc ∑ u : Digest, ind (u ∈ R) ≤ ∑ u : Digest, (R.map fun r ↦ ind (u = r)).sum := by
+          gcongr with u
+          exact (ind_mono fun h ↦ ⟨u, h, rfl⟩).trans (ind_exists_le R fun r ↦ u = r)
+      _ = (R.map fun r ↦ ∑ u : Digest, ind (u = r)).sum := sum_list_sum_comm R fun r u ↦ ind (u = r)
+      _ ≤ R.length * 1 := list_sum_le _ _ _ fun r _ ↦
+          sum_ind_le_one fun a b ha hb ↦ ha.trans hb.symm
+      _ ≤ rootCap := by rw [mul_one]; exact_mod_cast hR
+  have hΦ : LogFreshStepBound Φ (rootCap * (2 ^ 256 : ℝ≥0∞)⁻¹) := by
+    rw [logFreshStepBound_iff]
+    refine ⟨fun ℓ t _ ↦ ?_, fun ℓ t _ ↦ ?_⟩
+    · have hstep : ∀ u, Φ (ℓ ++ [.inl (t, u)]) ≤ ind (u ∈ R) + Φ ℓ := fun u ↦ by
+        refine (ind_mono ?_).trans ((ind_or_le _ _).trans (le_of_eq (add_comm _ _)))
+        rintro ⟨r, hr, x, hx⟩
+        rcases List.mem_append.mp (hdrop ℓ _ hx) with hx | hx
+        · exact Or.inl ⟨r, hr, x, hx⟩
+        · rw [List.mem_singleton] at hx
+          cases hx
+          exact Or.inr hr
+      calc (∑ u, Φ (ℓ ++ [.inl (t, u)])) / Fintype.card Digest
+          ≤ (∑ u, (ind (u ∈ R) + Φ ℓ)) / Fintype.card Digest := by
+            gcongr with u
+            exact hstep u
+        _ = (∑ u, ind (u ∈ R)) / Fintype.card Digest + Φ ℓ := avg_add_const _ _
+        _ ≤ rootCap * (2 ^ 256 : ℝ≥0∞)⁻¹ + Φ ℓ := by
+            gcongr
+            rw [card_digest, Nat.cast_pow, Nat.cast_ofNat, div_eq_mul_inv]
+            gcongr
+        _ = Φ ℓ + rootCap * (2 ^ 256 : ℝ≥0∞)⁻¹ := add_comm _ _
+    · have hstep : ∀ u, Φ (ℓ ++ [.inr (t, u)]) ≤ Φ ℓ := fun u ↦ by
+        refine ind_mono ?_
+        rintro ⟨r, hr, x, hx⟩
+        rcases List.mem_append.mp (hdrop ℓ _ hx) with hx | hx
+        · exact ⟨r, hr, x, hx⟩
+        · simp at hx
+      exact (avg_le_of_le hstep).trans le_self_add
+  dsimp only
+  refine (prEvent_run_loggedRO_le_of_freshStepBound hΦ (V p.1) QV (hV p.1) p.2
+    (fun _ ℓ ↦ ¬ p.2 <+: ℓ ∨ RootsAnswered (bc p.1) (pd p.1) (π p.1) p.2 ℓ) ?_).trans ?_
+  · intro z hz hev
+    have hpre := (simulateQ_look_of_mem_support _ p.2 z hz).1
+    rcases hev with hn | hr
+    · exact absurd hpre hn
+    · exact (ind_of hr).ge
+  · simp [Φ, ind]
+
 end
 end LeanVM.Protocol.EndToEnd.Sound
