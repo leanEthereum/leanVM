@@ -213,6 +213,8 @@ import Quantum.StdModel.Xmss.Reduction
 import Quantum.StdModel.Sphincs.Reduction
 import Quantum.Par.Subst
 import Quantum.Par.Lockstep
+import Quantum.Par.LockstepRounds
+import Quantum.Xmss.Assembly.Depth.Ports
 import Quantum.Qrom.SufCma.GamePar
 import Quantum.Sponge.Oracle.Parallel
 import Quantum.Cost.Nist
