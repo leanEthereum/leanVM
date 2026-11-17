@@ -33,12 +33,10 @@ const DIGITS: usize = 128 / DIGIT_BITS;
 /// The bits of a block position's products, 48 to each pack.
 pub(crate) const PAYLOAD_BITS: usize = 48 * PACKS;
 /// The packs of a part of a block position, and the words of their products: with AVX-512 the
-/// whole position, three registers; with AVX2 half, three registers; elsewhere a quarter, a
-/// block's worth of which stays in cache.
-#[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
+/// whole position, three registers; with AVX2 the whole position, six registers; elsewhere a
+/// quarter, a block's worth of which stays in cache.
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
 const PART: usize = PACKS;
-#[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "avx512f")))]
-const PART: usize = PACKS / 2;
 #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
 const PART: usize = 8;
 const PART_WORDS: usize = 48 * PART / 64;
@@ -92,7 +90,7 @@ impl Part {
             }
         }
         #[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "avx512f")))]
-        // SAFETY: both parts are three registers, and AVX2 is enabled at compile time.
+        // SAFETY: both parts are six registers, and AVX2 is enabled at compile time.
         unsafe {
             use core::arch::x86_64::*;
             let (dst, src) = (self.0.as_mut_ptr(), other.0.as_ptr());
