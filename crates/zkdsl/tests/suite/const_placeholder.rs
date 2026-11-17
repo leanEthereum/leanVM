@@ -13,7 +13,7 @@ use std::collections::BTreeMap;
 use crate::common::compile;
 use lean_vm_core::cpu::{prove, verify};
 use primitives::field::g_pow;
-use zkdsl_compiler::{parse, parse_with_replacements};
+use zkdsl::{parse, parse_with_replacements};
 
 /// A global constant substitutes exactly like writing its value inline: even
 /// in a `StackBuf` size, which demands a parse-time literal. The two programs

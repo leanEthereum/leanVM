@@ -6,7 +6,7 @@
 use crate::common::compile;
 use lean_vm_core::cpu::{prove, verify};
 use primitives::field::{F64, F128};
-use zkdsl_compiler::parse;
+use zkdsl::parse;
 
 #[test]
 fn inline_call_in_expression_positions() {

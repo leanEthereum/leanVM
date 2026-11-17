@@ -19,7 +19,7 @@ use std::fs;
 use isa::Program;
 use lean_vm_core::cpu::{from_scalar, prove, verify};
 use primitives::field::F128;
-use zkdsl_compiler::{compile, parse, parse_const};
+use zkdsl::{compile, parse, parse_const};
 
 /// The `# public_input: <elt>, <elt>` annotation, if any.
 pub(crate) fn public_input(src: &str) -> Option<[F128; 2]> {

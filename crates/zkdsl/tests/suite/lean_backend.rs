@@ -1,6 +1,6 @@
 //! The test programs compiled twice: by this crate, and by the compiler's back end written in Lean
-//! (`formal/lean_vm/LeanVM/Compiler`), whose output is checked in (`lean_backend/*.txt`, written from
-//! `formal/lean_vm` by `lake exe guest-backend export programs ../../crates/zkdsl_compiler/tests/suite/lean_backend`).
+//! (`formal/lean_vm/LeanVM/Compiler`), whose output is checked in (`tests/compiled/*.txt`, written from
+//! `formal/lean_vm` by `lake exe guest-backend export programs ../../crates/zkdsl/tests/compiled`).
 //! The two are the same bytecode under the same hints and source lines, and what Lean compiled runs and proves on
 //! this VM.
 
@@ -9,7 +9,7 @@ use std::fs;
 use isa::Program;
 use lean_vm_core::cpu::{execute, prove, verify};
 use primitives::field::F128;
-use zkdsl_compiler::parse;
+use zkdsl::parse;
 
 use crate::common::compile;
 use crate::py_source::{public_input, witness};
@@ -29,7 +29,7 @@ fn programs() -> Vec<(String, String, String)> {
         .into_iter()
         .map(|name| {
             let src = fs::read_to_string(format!("{dir}/programs/{name}.py")).unwrap();
-            let lean = fs::read_to_string(format!("{dir}/suite/lean_backend/{name}.txt")).unwrap_or_else(|e| {
+            let lean = fs::read_to_string(format!("{dir}/compiled/{name}.txt")).unwrap_or_else(|e| {
                 panic!("{name}: no Lean-compiled program ({e}): export it as this file's header says")
             });
             (name, src, lean)

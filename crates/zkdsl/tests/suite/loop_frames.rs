@@ -1,7 +1,7 @@
 use crate::common::compile;
 use lean_vm_core::cpu::{execute, prove, verify};
 use primitives::field::{F64, F128, g_pow};
-use zkdsl_compiler::parse;
+use zkdsl::parse;
 
 #[test]
 fn loop_frames_preserve_escaped_cells_and_nested_allocations() {

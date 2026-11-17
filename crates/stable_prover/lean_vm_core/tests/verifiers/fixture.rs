@@ -12,7 +12,7 @@ fn compiled(loop_steps: usize) -> &'static str {
     macro_rules! at {
         ($($n:literal),*) => {
             match loop_steps {
-                $($n => include_str!(concat!("../../../../zkdsl_compiler/tests/suite/lean_backend/chain", $n, ".txt")),)*
+                $($n => include_str!(concat!("../../../../zkdsl/tests/compiled/chain", $n, ".txt")),)*
                 _ => panic!("no compiled chain at {loop_steps} steps: add it to `CHAIN_STEPS` in guest-export"),
             }
         };

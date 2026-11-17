@@ -29,4 +29,4 @@ tracing.workspace = true
 clap = { version = "4", features = ["derive"] }
 
 [dev-dependencies]
-zkdsl_compiler.workspace = true
+zkdsl.workspace = true

@@ -25,7 +25,7 @@ use std::fs;
 
 use crate::common::compile;
 use isa::Program;
-use zkdsl_compiler::parse;
+use zkdsl::parse;
 
 /// `tests/programs/<name>.py` against the digest of the bytecode it compiles to.
 /// The list is closed: a new program must be added here, so one cannot be added

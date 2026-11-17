@@ -7,7 +7,7 @@ use crate::common::f128_literal;
 use lean_vm_core::cpu::execute;
 use primitives::field::F128;
 use primitives::hash::{STATE_LANES, keccak_f};
-use zkdsl_compiler::parse;
+use zkdsl::parse;
 
 const SRC: &str = r#"
 from snark_lib import *

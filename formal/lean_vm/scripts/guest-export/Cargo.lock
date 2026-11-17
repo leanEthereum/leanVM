@@ -90,7 +90,7 @@ dependencies = [
  "stable_primitives",
  "tracing",
  "verifier",
- "zkdsl_compiler",
+ "zkdsl",
 ]
 
 [[package]]
@@ -312,7 +312,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "zkdsl_compiler"
+name = "zkdsl"
 version = "0.1.0"
 dependencies = [
  "isa",

@@ -4,7 +4,7 @@ use crate::common::compile;
 use fiat_shamir_prover::merkle::hash_to_scalars;
 use lean_vm_core::cpu::{Proof, ProveError, prove, verify};
 use primitives::field::F128;
-use zkdsl_compiler::parse;
+use zkdsl::parse;
 
 /// A program that hashes one block and publishes the digest, so its proof carries
 /// the Keccak reduction over a real compression.

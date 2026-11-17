@@ -19,7 +19,7 @@ use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use primitives::field::F128;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
-use zkdsl_compiler::{compile, parse_with_replacements};
+use zkdsl::{compile, parse_with_replacements};
 
 use crate::signers_cache::{
     LeanSphincsSigner, LeanXmssSigner, get_lean_sphincs_signers, get_signers, get_signers_for, message, message_for,
@@ -127,7 +127,7 @@ fn the_wire_layout_is_pinned() {
 ///
 /// A compiler that read a hash seed could not be compared with the artefact
 /// ([`the_artefact_is_the_rust_compilers_guest`]). The small programs in
-/// `zkdsl_compiler`'s `determinism` suite pin the digests; this pins the one
+/// `zkdsl`'s `determinism` suite pin the digests; this pins the one
 /// program large enough to hit every path that walks a map. A fixed `kbc` is
 /// enough: reproducibility does not depend on the size being the fixed point.
 #[test]

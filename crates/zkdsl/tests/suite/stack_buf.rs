@@ -12,7 +12,7 @@ use crate::common::compile;
 use crate::common::f128_literal;
 use lean_vm_core::cpu::{execute, prove, verify};
 use primitives::field::{F64, F128, g_pow};
-use zkdsl_compiler::parse;
+use zkdsl::parse;
 
 use crate::common::mix;
 

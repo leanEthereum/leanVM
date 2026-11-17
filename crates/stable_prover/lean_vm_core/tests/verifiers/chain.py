@@ -2,7 +2,7 @@
 # `formal/lean_vm/scripts/export-rust.sh`: a two-block Keccak and a loop of field arithmetic, long
 # enough that every table and the Keccak reduction are exercised. Compiled by the Lean back end at
 # each step count `LOOP_STEPS_PLACEHOLDER` takes (`guest-export`'s `CHAIN_STEPS`, written to
-# `crates/zkdsl_compiler/tests/suite/lean_backend/chain<steps>.txt`).
+# `crates/zkdsl/tests/compiled/chain<steps>.txt`).
 from snark_lib import *
 
 LOOP_STEPS = LOOP_STEPS_PLACEHOLDER

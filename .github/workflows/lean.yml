@@ -421,7 +421,7 @@ jobs:
           cargo run --release --manifest-path scripts/whir-fold-table/Cargo.toml -- \
             LeanVM/Protocol/ToArkLib/Whir/AffineCombinerDeployedTable.lean --check
       # The front end, independently: the core IR Lean's `Expand` gives the guest and every test
-      # program is the one the Rust front end (`crates/zkdsl_compiler/src/expand.rs`) gives, each
+      # program is the one the Rust front end (`crates/zkdsl/src/expand.rs`) gives, each
       # function renumbered, line for line.
       - name: The front end is Rust's (frontend-diff)
         run: scripts/frontend-diff

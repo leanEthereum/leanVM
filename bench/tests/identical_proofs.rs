@@ -72,11 +72,11 @@ fn prove<P: Prover>(
     P::prove(program, witness, public_input, log_inv_rate).map(|(proof, _)| proof)
 }
 
-/// The zkDSL test programs, as the Lean back end compiled them (`tests/suite/lean_backend/*.txt`), with their annotated
+/// The zkDSL test programs, as the Lean back end compiled them (`tests/compiled/*.txt`), with their annotated
 /// inputs (`# public_input:`, `# witness name:`) and with a wrong public input, through both provers at every rate.
 #[test]
 fn compiler_programs_prove_identically() {
-    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../crates/zkdsl_compiler/tests/programs");
+    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../crates/zkdsl/tests/programs");
     let mut paths: Vec<_> = std::fs::read_dir(dir)
         .unwrap()
         .map(|entry| entry.unwrap().path())
@@ -84,16 +84,11 @@ fn compiler_programs_prove_identically() {
     paths.retain(|path| path.extension().is_some_and(|ext| ext == "py"));
     paths.sort();
     assert!(!paths.is_empty());
-    let constants = |values: &str| -> Vec<E> {
-        values
-            .split(',')
-            .map(|v| zkdsl_compiler::parse_const(v).unwrap())
-            .collect()
-    };
+    let constants = |values: &str| -> Vec<E> { values.split(',').map(|v| zkdsl::parse_const(v).unwrap()).collect() };
     for path in paths {
         let src = std::fs::read_to_string(&path).unwrap();
         let compiled = path.with_file_name(format!(
-            "../suite/lean_backend/{}.txt",
+            "../compiled/{}.txt",
             path.file_stem().unwrap().to_string_lossy()
         ));
         let program = Program::__from_text(&std::fs::read_to_string(&compiled).unwrap()).unwrap();

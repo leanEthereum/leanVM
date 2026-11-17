@@ -4,7 +4,7 @@
 
 use crate::common::compile;
 use isa::pretty_integer;
-use zkdsl_compiler::{disassemble, parse};
+use zkdsl::{disassemble, parse};
 
 #[test]
 fn disassemble_covers_every_opcode() {

@@ -5,7 +5,7 @@
 use crate::common::compile;
 use lean_vm_core::cpu::{execute, prove, verify};
 use primitives::field::{F64, F128};
-use zkdsl_compiler::parse;
+use zkdsl::parse;
 
 const V: u64 = 0b1011_0110;
 
