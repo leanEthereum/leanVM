@@ -29,6 +29,7 @@ Execution and witness building run at the same speed on every target.
 - In riscv: every byte-field kernel has an AVX2 arm alongside its AVX-512 one, the same algorithm two registers wide (`riscv:crates/flock/src/zerocheck/round1.rs:711`, `product_bytes_avx2`, beside `product_bytes_gfni` at `:665`).
 - The port: `skip_gfni.rs` uses only `gf2p8affineqb`, `gf2p8mulb`, XOR, loads, stores and broadcasts, all of which exist at 256 bits under GFNI with AVX. Each `__m512i` becomes a pair of `__m256i`. The 24 residues are three ZMM registers, so six YMM; keep the per-slot loop's live set within 16 registers, as riscv's eight-byte output tiles do (`riscv:round1.rs:930`).
 - Gain: the largest of this list on the GFNI tier. None on the other two tiers.
+- Outcome: done (`kw/avx2-single-thread`). The direct two-register port spilled, so the AVX2 arm splits a row into three passes through memory. The other tiers got a cofactor formulation instead (below).
 
 ### 2. An AVX2+GFNI arm for the Keccak tables
 
@@ -36,6 +37,7 @@ Execution and witness building run at the same speed on every target.
 - In riscv: the lift and weighting of packed bytes are GF(2)-linear maps applied 32 lanes at a time with `_mm256_gf2p8affine_epi64_epi8`, eight output bytes at a time so the accumulators stay in registers (`riscv:round1.rs:930` `convert`, `riscv:crates/primitives/src/bit_fold/avx2.rs:55`).
 - The port: `table_gfni.rs`'s AVX-512 operations are the affine map, unpacks, `shuffle_i64x2` (`vperm2i128` or `vpermq` at 256 bits) and one `ternarylogic` (two XORs). The scratch pass goes away with it.
 - Gain: medium, GFNI tier only.
+- Outcome: done, now level with AVX-512 on GFNI. Without GFNI the same maps run as two `vpshufb` nibble lookups, which also beat the scratch pass.
 
 ### 3. The bus GKR's vertical kernel on AVX2+VPCLMULQDQ
 
@@ -43,6 +45,7 @@ Execution and witness building run at the same speed on every target.
 - In riscv: the GKR is written once over `field::lanes::Lane`, which on x86 is the AVX2+VPCLMULQDQ type even where AVX-512 exists (`riscv:crates/primitives/src/field/lanes.rs:19`). Products are gathered into lanes, kept there across the layer, and accumulated unreduced (`riscv:crates/leanvm_core/src/gkr/mod.rs:48`, `gkr/layer.rs:231`).
 - The port: `field::f128x8::F128x8` already has an AVX2+VPCLMULQDQ arm (`primitives/src/field/f128x8.rs:20`), two `x4` halves. Write `gkr.rs`'s `vertical` module over it instead of `x8`, gate it on AVX2 with VPCLMULQDQ, and check for spills, since one AVX-512 plane register becomes two YMM registers. `products_into` alone, which also builds the leaves, is the smaller first step.
 - Gain: medium on the VPCLMULQDQ and GFNI tiers.
+- Outcome: done. Once `x4` built with plain PCLMULQDQ, the same kernels and the leaf fill also ran on the Haswell tier.
 
 ### 4. An AVX2 bit transpose, with a GFNI form
 
@@ -50,6 +53,7 @@ Execution and witness building run at the same speed on every target.
 - In riscv: `riscv:crates/primitives/src/bits.rs:182` gathers the byte columns with two loads, two unpack rounds, a `vpermq` and a `vpshufb`. Then it applies either one `gf2p8affineqb` per register (`:203`) or the three masked-swap rounds on four words at once (`:217`).
 - The port: the same 64-byte contract and bit order, so copy the functions and add the two `cfg` arms. Both forms beat the portable gather in a microbenchmark on one core, the GFNI form by far.
 - Gain: low to medium, on every tier. The projection also spends time in `fold_columns` and the pattern dots, which this leaves unchanged.
+- Outcome: done.
 
 ### 5. Row-major `BitFold::fold_block` on AVX2
 
@@ -57,18 +61,21 @@ Execution and witness building run at the same speed on every target.
 - In riscv: rows are transposed into 32-byte columns, then go through the same byte maps (`riscv:crates/primitives/src/bit_fold/avx2.rs:198` `transpose_rows`, `:308` `fold_block`). Without GFNI, each nibble table is stored once as 16 bytes and broadcast to both lanes (`:98`), not stored twice.
 - The port: put an AVX2 row transpose in front of the existing `fold_columns`. The consumer is the ring switch's dense lift (`pcs/src/ring_switch.rs:313`).
 - Gain: low on these workloads, where the ring switch's spans are small. It grows with ring-heavy openings.
+- Outcome: done, with the nibble tables stored once and broadcast. The no-GFNI column kernel was also retuned.
 
 ### 6. Two sumcheck rounds per pass over a table
 
 - Today: the Keccak tail (`keccak_gkr/src/prover.rs:547`) and the bus GKR (`lean_vm_core/src/gkr.rs:446`) already fuse each fold with the next round's message. Each round still writes a half-size table that the next round reads.
 - In riscv: a quadratic round computes the shared terms for two rounds and folds two pending challenges in one read of the table (`riscv:crates/flock/src/zerocheck/multilinear.rs:232`, `:562`). The quartic GKR does the same with a degree-(4, 4) grid (`riscv:crates/leanvm_core/src/gkr/layer.rs:82` `fold`, `:199` `second_round`).
 - Gain: low to medium, and the effort is high. On AVX2 the quartic version's extra accumulators may spill, so try the quadratic Keccak tail first.
+- Outcome: rejected. The fused two-round block kernel needs 32 accumulators and spills on 16 YMM registers, so it ran slower than the rounds it replaces. The tail got faster another way: cheaper products by shifted multipliers, with B left unreduced.
 
 ### 7. Byte-field products without GFNI
 
 - Today: on the two tiers without GFNI, Product and Skip multiply by CLMUL.
 - In riscv: the same byte-field kernels run without GFNI by shift-and-add byte products (`riscv:round1.rs:749`, `gf8_mul_vec32`).
 - Whether residues with shift-and-add products beat the CLMUL path is open: try it on the PCLMULQDQ tier, where the CLMUL path is slowest.
+- Outcome: residues without GFNI were not built, since a shift-and-add byte product costs dozens of AVX2 operations against one. Instead, Skip on these tiers takes cofactors once per pack, reduced modulo the minimal polynomial of `s`, which needs fewer carry-less products. For Product, Haswell takes `ones * a` by nibble lookups, and all AVX2 tiers pack two products per lane in registers and fold bucket sums by nibbles.
 
 ## Looked at and not proposed
 
@@ -77,3 +84,12 @@ Execution and witness building run at the same speed on every target.
 - Incremental twiddles (`riscv:crates/pcs/src/ntt/mod.rs:44`), SIMD for WHIR's deeper-level affine rounds (`pcs/src/whir.rs:572`), and composed ring-weight maps (`riscv:crates/pcs/src/ring_switch.rs:134`): the spans they would speed up are small on these workloads.
 - Karatsuba with delayed reduction, VPCLMULQDQ-256 batching, split equality tables in the bus GKR, Gruen's equality factoring, and packed Keccak witnesses: this tree already has them.
 - Flock's fixed small challenges and univariate skip: these change the protocol, so they are out of scope here.
+
+## Outcomes outside the list
+
+- The absorb and digest transposes for four-way Keccak were done anyway, for a small gain. The PoW grind gained more: it now searches nonces with `keccak256::first_nonce`, which builds states directly in lanes and hoists the first round's nonce-independent work. That is shared, so both provers use it, and the result is the same smallest nonce.
+- The NTT tile change gave nothing on the VPCLMULQDQ tiers, where the butterfly is bound by carry-less product throughput. The register-tiled kernels now also build with plain PCLMULQDQ, which helps the Haswell tier.
+- WHIR's deeper-level affine rounds now run two lanes a register, and so does level 0's lane fold. Later level-0 rounds project whole `E` lanes by Karatsuba dots, and project `X F` through `X^T pi` where no ring folds it.
+- Product on GFNI now sums values at six points by `gf2p8mulb` and converts back once per layer.
+- Zero-padded Merkle leaves are hashed from their rows, with no staging copy. The bytecode share skips the stacked bytecode's zero words.
+- What is left on AVX2 sits close to the carry-less multiplier's throughput (NTT, bus, Skip and Product without GFNI) or to the Keccak permutation's (commits, grind). On Zen 4 a 256-bit VPCLMULQDQ costs the same as a 512-bit one, so AVX2 gets half of AVX-512's product throughput.
