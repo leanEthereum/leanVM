@@ -24,8 +24,9 @@ public import LeanVM.Compiler.Sound.Main
   same run with a stronger precondition (`World.entered_withConsts`), so its located call relation
   is within the world's (`World.c_withConsts`); its obligations follow from the world's
   (`World.obligations_withConsts`), the parameters being the frame's argument words
-  (`World.params_vf`); and in every frame of a function its precondition holds at, the cells
-  `2 + k` the table names hold their words (`World.pre_withConsts_cell`).
+  (`World.params_vf`); in every frame of a function its precondition holds at, the cells
+  `2 + k` the table names hold their words (`World.pre_withConsts_cell`); and `main`'s body holds
+  of the world where it holds of the world with the facts (`World.program_sound_withConsts`).
 -/
 
 namespace LeanVM.Compiler
@@ -248,6 +249,18 @@ theorem pre_withConsts_cell {g : String} {fp : K} (h : (W.withConsts T).Pre g fp
       rw [List.getElem_range] at hi
       subst hi
       exact Option.some.inj h1
+
+/-- **The program is compiled correctly through the world with the table's facts**: `main`'s
+body holds of the world where it holds of the world with the table's facts, whose obligations
+and `main`'s precondition follow from the world's. -/
+theorem program_sound_withConsts (hW : W.Compiled) (hκ : κ < 64) (hT : ConstsOk T W.core = true)
+    (hobl : ∀ tf ∈ W.p, W.Obligations tf)
+    (hU : ∀ tf ∈ W.p, tf.core.name = "main" → W.U "main" (frameWords W.L 1 2 (sigOf tf).1))
+    {k : ℕ} (hs : Safe W.prog W.L k ⟨addressOfIndex 0, 1⟩) : W.MainHolds := by
+  obtain ⟨tf, htf, hn, hp, hb⟩ := program_sound (W := W.withConsts T) hW hκ
+    (fun tf htf => obligations_withConsts hW hT htf (hobl tf htf))
+    (fun tf htf hn => ⟨hU tf htf hn, by rw [ConstsOk.main hT]; intro x hx; cases hx⟩) hs
+  exact ⟨tf, htf, hn, hp, holdsList_mono c_withConsts _ id (fun _ h => h) hb⟩
 
 end World
 
