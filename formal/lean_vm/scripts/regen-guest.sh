@@ -17,7 +17,8 @@
 # adapt. Not regenerated here: the verifier fixtures (`scripts/export-verifier-fixtures-rust.sh`,
 # before the differential tests) and the fold rounds' table (`scripts/whir-fold-table`, after a change to
 # WHIR's folding). The `programs` step writes the Lean back end's compilation of the zkDSL test programs, of
-# the verifiers' fixture program and of the aggregation tests' snippets, which the Rust tests, the Fibonacci
+# the verifiers' fixture program, of the VM's and the prover's test programs (`crates/zkdsl/tests/vm/`, a
+# template at each of its counts) and of the aggregation tests' snippets, which the Rust tests, the Fibonacci
 # benchmark and the fixtures load. The `backend`
 # step writes the Lean back end's guest data: the soundness obligations' tables and evaluation modules
 # (`guest-oblgen`).

@@ -274,28 +274,95 @@ fn render_programs() -> String {
         .unwrap();
         names.push(format!("prog_{file}"));
     }
-    let mut chains = Vec::new();
-    for (name, ast) in chain_programs() {
-        let funcs = list(ast.funcs.iter().map(|f| format!("\n    {}", func_at(f, 4))));
-        writeln!(
-            out,
-            "/-- `chain.py` as `{name}`. -/\ndef prog_{name} : TestProgram where\n  name := {}\n  program := ⟨{funcs},\n    \
-             []⟩\n  publicInput := []\n  streams := []\n",
-            string(&name)
-        )
-        .unwrap();
-        chains.push(format!("prog_{name}"));
-    }
+    let mut bare = |programs: Vec<(String, Ast)>, from: &str| {
+        let mut names = Vec::new();
+        for (name, ast) in programs {
+            let funcs = list(ast.funcs.iter().map(|f| format!("\n    {}", func_at(f, 4))));
+            let arrays = list(ast.const_arrays.iter().map(|(name, values)| {
+                format!(
+                    "({}, {})",
+                    string(name),
+                    list(values.iter().map(|v| format!("({}, {})", v.c0, v.c1)))
+                )
+            }));
+            writeln!(
+                out,
+                "/-- `{from}` as `{name}`. -/\ndef prog_{name} : TestProgram where\n  name := {}\n  program := \
+                 ⟨{funcs},\n    {arrays}⟩\n  publicInput := []\n  streams := []\n",
+                string(&name)
+            )
+            .unwrap();
+            names.push(format!("prog_{name}"));
+        }
+        names
+    };
+    let chains = bare(chain_programs(), "chain.py");
+    let vm = bare(vm_programs(), "tests/vm");
+    let frontend = bare(frontend_programs(), "tests/frontend");
     writeln!(
         out,
         "/-- Every test program. -/\ndef all : List TestProgram := {}\n\n/-- The verifiers' fixture program \
          (`crates/stable_prover/lean_vm_core/tests/verifiers/chain.py`) at each step count its users take. -/\n\
-         def chains : List TestProgram := {}\n\nend LeanVMTests.Guest.Programs",
+         def chains : List TestProgram := {}\n\n/-- The programs of the VM's and the prover's tests \
+         (`crates/zkdsl/tests/vm/*.py`), a template at each of its counts. -/\ndef vm : List TestProgram := {}\n\n\
+         /-- The programs the deleted Rust code generation's tests ran (`crates/zkdsl/tests/frontend/*.py`), for the \
+         front-end comparison only. -/\ndef frontend : List TestProgram := {}\n\nend LeanVMTests.Guest.Programs",
         list(names),
-        list(chains)
+        list(chains),
+        list(vm),
+        list(frontend)
     )
     .unwrap();
     out
+}
+
+/// The `.py` files of a directory of `crates/zkdsl/tests`, by name.
+fn corpus(dir: &str) -> Vec<(String, String)> {
+    let dir = format!("{}/crates/zkdsl/tests/{dir}", env!("LEANVM_DIR"));
+    let mut paths: Vec<_> = std::fs::read_dir(&dir)
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .filter(|p| p.extension().is_some_and(|x| x == "py"))
+        .collect();
+    paths.sort();
+    paths
+        .into_iter()
+        .map(|p| (p.file_stem().unwrap().to_string_lossy().into_owned(), std::fs::read_to_string(&p).unwrap()))
+        .collect()
+}
+
+/// The templates among the VM's test programs, each with the counts its tests take for `STEPS_PLACEHOLDER`: the
+/// instance at count `n` is named `<template><n>`.
+const VM_TEMPLATES: [(&str, &[usize]); 1] = [("keccak_steps", &[0, 1, 3, 512, 513])];
+
+/// The programs of the VM's and the prover's tests (`crates/zkdsl/tests/vm`), compiled by the Lean back end and
+/// proved by the zkdsl suite.
+fn vm_programs() -> Vec<(String, Ast)> {
+    let mut out = Vec::new();
+    for (name, src) in corpus("vm") {
+        match VM_TEMPLATES.iter().find(|(t, _)| *t == name) {
+            Some((_, counts)) => {
+                for n in *counts {
+                    let replacements = BTreeMap::from([("STEPS_PLACEHOLDER".to_string(), n.to_string())]);
+                    out.push((format!("{name}{n}"), parse_with_replacements(&src, &replacements).unwrap()));
+                }
+            }
+            None => out.push((name, parse(&src).unwrap())),
+        }
+    }
+    out
+}
+
+/// The programs the deleted Rust code generation's run-time tests ran (`crates/zkdsl/tests/frontend`): the front-end
+/// comparison's corpus.
+fn frontend_programs() -> Vec<(String, Ast)> {
+    corpus("frontend")
+        .into_iter()
+        .map(|(name, src)| {
+            let ast = parse(&src).unwrap_or_else(|e| panic!("tests/frontend/{name}.py: {e}"));
+            (name, ast)
+        })
+        .collect()
 }
 
 /// The step counts the verifiers' fixture program is compiled at: the fixture's own (`fixture.rs`), and the chain
@@ -520,7 +587,7 @@ pub fn core_texts(kbc: usize) -> Vec<(String, String)> {
         let ast = parse(&std::fs::read_to_string(&path).unwrap()).unwrap();
         out.push((name, core_ir::render(&expand(&ast))));
     }
-    for (name, ast) in chain_programs() {
+    for (name, ast) in chain_programs().into_iter().chain(vm_programs()).chain(frontend_programs()) {
         out.push((name, core_ir::render(&expand(&ast))));
     }
     out

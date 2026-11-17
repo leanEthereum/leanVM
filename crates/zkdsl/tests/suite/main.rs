@@ -11,4 +11,5 @@ mod range_check;
 mod stack_bits;
 mod stack_buf;
 mod statements;
+mod vm;
 mod vm_proofs;
