@@ -297,12 +297,22 @@ jobs:
             echo changed=false >> "$GITHUB_OUTPUT"
           fi
 
+  # lean_vm's Lake build is kept as a workflow artifact, not in the Actions cache (`tools/lake-artifact.sh`): the job
+  # restores the newest one of a push to main or of its own pull request's runs, for the same toolchain and
+  # manifest (the artifact's name), and Lake rebuilds what changed since.
   lean-vm-formalization:
     needs: lean-vm-changes
     if: needs.lean-vm-changes.outputs.changed == 'true'
     runs-on: ubuntu-latest
-    # A build from a cold cache is several CPU-hours of kernel checks, on the runner's cores.
+    # A build from scratch is several CPU-hours of kernel checks, on the runner's cores.
     timeout-minutes: 360
+    permissions:
+      contents: read
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      HEAD_REPO_ID: ${{ github.event.pull_request.head.repo.id || github.repository_id }}
+      HEAD_REF: ${{ github.head_ref || github.ref_name }}
     defaults:
       run:
         working-directory: formal/lean_vm
@@ -312,22 +322,8 @@ jobs:
       # instance or data: it is stated and proved for any program.
       - name: Keep the compiler apart from the guest (compiler-apart)
         run: python3 -I ../tools/compiler-apart.py
-      # As for sphincs: only `main` saves, without Mathlib's build, which `lake exe cache get` fetches.
       - name: Restore the Lake build
-        id: lake-cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            formal/lean_vm/.lake
-            !formal/lean_vm/.lake/packages/mathlib/.lake
-            formal/common/.lake/build
-            formal/Statement/.lake/build
-            formal/lean_xmss/.lake/build
-            formal/lean_sphincs/.lake/build
-            formal/lean_da/.lake/build
-          # The files derived from the guest are not committed, nor written yet: their sources stand in.
-          key: lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-${{ hashFiles('formal/lean_vm/**/*.lean', 'formal/common/**/*.lean', 'formal/Statement/**/*.lean', 'formal/lean_xmss/**/*.lean', 'formal/lean_sphincs/**/*.lean', 'formal/lean_da/**/*.lean', 'formal/lean_vm/scripts/**', '!formal/lean_vm/scripts/**/target/**', 'guests/**', 'crates/**', 'Cargo.lock') }}
-          restore-keys: lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json', 'formal/*/lakefile.*') }}-
+        run: ../tools/lake-artifact.sh restore
       - uses: leanprover/lean-action@v1
         with:
           lake-package-directory: formal/lean_vm
@@ -391,7 +387,7 @@ jobs:
       # A private import stops a rebuild, as `tools/deps.py` assumes (`notes/per-function-cone.md`).
       - name: The private-import firewall holds (firewall-canary)
         run: python3 -I ../tools/firewall-canary.py
-      # Every executable in one build, before the cache is saved, so a cache hit holds them all.
+      # Every executable in one build, before the build is kept, so the next runs restore them all.
       - name: Build the executables
         run: lake build node-vectors guest-core guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove test-runs guest-artifact guest-backend
       # What is slow in the interpreter: the guest's Fiat-Shamir IV against the Rust's, the DA
@@ -402,19 +398,19 @@ jobs:
       # `.olean` they read.
       - name: The tests' compiled runs
         run: lake env .lake/build/bin/test-runs
-      - name: Save the Lake build
-        if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+      # Every ref keeps its build, main's for a week, a pull request's (restored only by its own later runs) for
+      # three days; one whose `formal/` tree is the restored build's has nothing new to keep.
+      - name: Pack the Lake build
+        id: pack
+        run: ../tools/lake-artifact.sh pack "$RUNNER_TEMP/lake.tar.zst"
+      - name: Keep the Lake build
+        if: steps.pack.outputs.pack == 'true'
+        uses: actions/upload-artifact@v4
         with:
-          path: |
-            formal/lean_vm/.lake
-            !formal/lean_vm/.lake/packages/mathlib/.lake
-            formal/common/.lake/build
-            formal/Statement/.lake/build
-            formal/lean_xmss/.lake/build
-            formal/lean_sphincs/.lake/build
-            formal/lean_da/.lake/build
-          key: ${{ steps.lake-cache.outputs.cache-primary-key }}
+          name: ${{ steps.pack.outputs.name }}
+          path: ${{ runner.temp }}/lake.tar.zst
+          retention-days: ${{ github.ref == 'refs/heads/main' && 7 || 3 }}
+          compression-level: 0
       # EthLib's test vectors of leanSPHINCS and leanXMSS, as leanVM vendors them, on the
       # statement's schemes compiled: verification only (key generation and signing are checked by
       # hand: `scheme-vectors --xmss-sign`, lean_sphincs' `lake exe signature-kat`).
