@@ -173,6 +173,9 @@ import Quantum.Qrom.Sphincs.Scheme
 import Quantum.Qrom.Sphincs.Slots
 import Quantum.Qrom.Sphincs.Cov
 import Quantum.Qrom.Sphincs.Stream
+import Quantum.Qrom.Sphincs.HonestTable
+import Quantum.Qrom.Sphincs.GameReads
+import Quantum.Qrom.Sphincs.Runtime1
 import Quantum.Sponge.Indifferentiability.Selection
 import Quantum.Sponge.Indifferentiability.FixCircuit
 import Quantum.Sponge.Indifferentiability.PadCircuit
