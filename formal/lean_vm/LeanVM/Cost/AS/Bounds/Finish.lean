@@ -14,7 +14,7 @@ import all LeanVM.Protocol.Whir.Sound.DescentC
 # Bounds: the finish
 
 The finish (`finishLC`) prices level 0's shape, every root's word (`wordsPrice`), the descent
-across levels (`traceCostB`, at words of at most `128` lanes: `size_wordsGo`), level 0's stack
+across levels (`traceCostB`, at words of at most `64` lanes: `size_wordsGo`), level 0's stack
 and the candidate run: **`finishL_cost`**, within `finishPrice`. A decoded trace is small
 (`traceSmall_of_shape`).
 -/
@@ -98,7 +98,7 @@ theorem traceSmall_of_shape (logN : ℕ) (hN : logN ≤ 30) :
 @[expose] def finishPrice (D Wl qn ℓ : ℕ) (lay : LayoutLite) (ρ : ℕ) (tr : WhirTrace)
     (roots : List (LeanVM.Protocol.Digest × ℕ × ℕ)) : ℕ :=
   2 * (15 * (lay.stackLog + ρ + 0) + 20000) + wordsPrice D Wl qn lay.stackLog ρ 0 roots +
-    traceCostB lay.stackLog ρ 128 tr 0 + stackPrice lay.stackLog + runnerPrice lay ℓ + 1000
+    traceCostB lay.stackLog ρ 64 tr 0 + stackPrice lay.stackLog + runnerPrice lay ℓ + 1000
 
 /-- **The finish, priced.** -/
 theorem finishL_cost (hP : Includes P finishLC.costDeps) (prog : Semantics.LeanIsaProgram)
@@ -106,7 +106,7 @@ theorem finishL_cost (hP : Includes P finishLC.costDeps) (prog : Semantics.LeanI
     (D Wl : ℕ) (hW : ∀ x, x ≤ 2 * 2 ^ D → limbCount x ≤ Wl) (hN : qs.length + 2 ≤ 2 ^ D)
     (b : Bool) (lay : LayoutLite) (ρ : ℕ) (tr : WhirTrace) (s : VerifierProgramState)
     (hF : LayoutFacts lay) (h1 : 16 ≤ lay.stackLog) (h2 : lay.stackLog ≤ 30) (h3 : 1 ≤ ρ) (h4 : ρ ≤ 4)
-    (hroots : RootsOk (s.roots.map Prod.snd)) (hs : TraceSmall tr) (hd : traceDepth tr < 2 ^ 40) :
+    (hroots : RootsOk lay.stackLog ρ (s.roots.map Prod.snd)) (hs : TraceSmall tr) (hd : traceDepth tr < 2 ^ 40) :
     machineCost P finishLC.costIdx [encodeValue prog, encodeValue input, encodeValue qs,
       encodeValue ((b, ((lay, ρ), tr)), s)] ≤
       finishPrice D Wl qs.length prog.logSize lay ρ tr s.roots := by
@@ -115,16 +115,16 @@ theorem finishL_cost (hP : Includes P finishLC.costDeps) (prog : Semantics.LeanI
   have hl : Protocol.EndToEnd.laneBits = 6 := rfl
   obtain ⟨l1, l2, l3, l4, l5, l6, l7, l8, l9⟩ := lvC_limbs lay.stackLog ρ 0
   have hx : ∀ x ∈ s.roots, 8 ≤ x.2.2 ∧ x.2.2 < 2 ^ 57 ∧ x.2.1 < 64 := fun x hx ↦ by
-    have := hroots.2 x.2 (List.mem_map_of_mem hx)
+    have := hroots.2.1 x.2 (List.mem_map_of_mem hx)
     omega
   have hlen : s.roots.length ≤ 6 := by simpa using hroots.1
   have c1 := lvC_cost P (by includes) lay.stackLog ρ 0 (by omega) (by omega) (by omega)
   have c2 := wordsGoWorker_cost P (by includes) lay.stackLog ρ qs D Wl hW hN (by omega) (by omega)
     s.roots 0 hx (by omega)
   have c3 := descendTraceGo_cost P (by includes) lay.stackLog ρ
-    (wordsGo lay.stackLog ρ qs 0 s.roots) 128 (by omega) (by omega)
-    (size_wordsGo lay.stackLog ρ qs 128 s.roots 0 fun x hx ↦ by
-      have := hroots.2 x.2 (List.mem_map_of_mem hx); omega) (by norm_num) tr 0 (by omega) hs
+    (wordsGo lay.stackLog ρ qs 0 s.roots) 64 (by omega) (by omega)
+    (size_wordsGo lay.stackLog ρ qs 64 s.roots 0 fun x hx ↦ by
+      have := hroots.2.1 x.2 (List.mem_map_of_mem hx); omega) (by norm_num) tr 0 (by omega) hs
   have s1 : 1 <<< (lay.stackLog - 6) < 2 ^ 64 := by
     rw [Nat.shiftLeft_eq, one_mul]
     exact lt_of_le_of_lt (Nat.pow_le_pow_right (by norm_num) (by omega)) (by norm_num : 2 ^ 24 < 2 ^ 64)

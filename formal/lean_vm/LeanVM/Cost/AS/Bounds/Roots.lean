@@ -16,7 +16,7 @@ import all Statement.LeanVmVerifier
 The replay of a skeleton records one root per commit, with the commit's height and width
 (`roots_skelReplayP`). The body's skeleton commits the stack and then one word per level after the
 first (`commitsOf_skBodyL`), so at every admissible stack size and rate there are at most six
-roots, each of height below `64` and width `32` to `128` (`ladderRootsOk`).
+roots, each of height at most the stack tree's and width `32` to `64` (`ladderRootsOk`).
 -/
 
 namespace LeanVM.Cost.Bounds.AS
@@ -187,15 +187,17 @@ theorem commitsOf_skBodyL (lay : LayoutLite) (ρ : ℕ) :
   simp only [skWhir]
   split <;> rename_i hl <;> simp [hl, commitsOf, commitsOf_skLevels]
 
-/-- The roots' shapes the leaves' bounds assume: at most six, each of height below `64` and width
-`8` to `128`. -/
-@[expose] def RootsOk (cs : List (ℕ × ℕ)) : Prop :=
-  cs.length ≤ 6 ∧ ∀ c ∈ cs, c.1 < 64 ∧ 8 ≤ c.2 ∧ c.2 ≤ 128
+/-- The roots' shapes the leaves' bounds assume, at a stack of `2^logN` and rate `ρ`: at most six,
+each of height at most the stack's tree's, `logN − 6 + ρ`, and width `8` to `64`, of widths summing
+to at most `224`. -/
+@[expose] def RootsOk (logN ρ : ℕ) (cs : List (ℕ × ℕ)) : Prop :=
+  cs.length ≤ 6 ∧ (∀ c ∈ cs, c.1 ≤ logN - 6 + ρ ∧ 8 ≤ c.2 ∧ c.2 ≤ 64) ∧ (cs.map Prod.snd).sum ≤ 224
 
 /-- **The body's commits at every admissible stack size and rate.** -/
 theorem ladderRootsOk : ∀ m < 15, ∀ r < 4,
     ((bodyCommits (m + 16) (r + 1)).length ≤ 6 ∧
-      (bodyCommits (m + 16) (r + 1)).all fun c ↦ c.1 < 64 ∧ 8 ≤ c.2 ∧ c.2 ≤ 128) := by
+      ((bodyCommits (m + 16) (r + 1)).all fun c ↦ c.1 ≤ m + 16 - 6 + (r + 1) ∧ 8 ≤ c.2 ∧ c.2 ≤ 64) ∧
+      ((bodyCommits (m + 16) (r + 1)).map Prod.snd).sum ≤ 224) := by
   decide +kernel
 
 /-- **The ladder's levels at every admissible stack size and rate**: at most six, each folding at
@@ -218,15 +220,15 @@ theorem ladder_small {logN ρ : ℕ} {cfg : List Whir.Level} (hc : Whir.ladder l
   exact ⟨hl, fun lv hlv ↦ by simpa using List.all_eq_true.mp ha lv hlv⟩
 
 theorem rootsOk_bodyCommits {logN ρ : ℕ} (h1 : Whir.minLogStack ≤ logN) (h2 : logN ≤ Whir.maxLogStack)
-    (h3 : 1 ≤ ρ) (h4 : ρ ≤ 4) : RootsOk (bodyCommits logN ρ) := by
+    (h3 : 1 ≤ ρ) (h4 : ρ ≤ 4) : RootsOk logN ρ (bodyCommits logN ρ) := by
   have e1 : logN = (logN - 16) + 16 := by
     have : Whir.minLogStack = 16 := rfl
     omega
   have e2 : ρ = (ρ - 1) + 1 := by omega
   have hm : Whir.maxLogStack = 30 := rfl
-  obtain ⟨hl, ha⟩ := ladderRootsOk (logN - 16) (by omega) (ρ - 1) (by omega)
-  rw [← e1, ← e2] at hl ha
-  refine ⟨hl, fun c hc ↦ ?_⟩
+  obtain ⟨hl, ha, hs⟩ := ladderRootsOk (logN - 16) (by omega) (ρ - 1) (by omega)
+  rw [← e1, ← e2] at hl ha hs
+  refine ⟨hl, fun c hc ↦ ?_, hs⟩
   simpa using List.all_eq_true.mp ha c hc
 
 end
