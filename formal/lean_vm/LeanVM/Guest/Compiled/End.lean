@@ -15,8 +15,9 @@ public import LeanVM.Guest.Compiled.Obl.GuestB1
 /-!
 # The guest, end to end
 
-`guestEnd L` is the guest's world on the memory `L` with the precondition `guestU L.read`
-(`Obl/GuestU.lean`). On it:
+`guestEnd L` is the guest's world on the memory `L` with the precondition `guestUc L.read`: the
+guest's `guestU L.read` (`Obl/GuestU.lean`) and its loop helpers' constant parameters
+(`withConsts`), whose obligations follow from `guestU`'s (`guestEnd_obligations`). On it:
 
 * `guest_main_holds`: given `GuestCompiles fns slots`, on a memory of `2^κ` words,
   `minLogMem ≤ κ ≤ maxLogMem`, where a run of `guestProgram` from `(g^0, 1)` halts, `main`'s core
@@ -34,12 +35,17 @@ open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Gues
 
 @[expose] public section
 
-/-- **The guest's world on `L`**, its preconditions the guest's (`guestU`). -/
+/-- **What the guest's callers are asked for**: the guest's preconditions (`guestU`), and the
+arguments its loop helpers' constant parameters name holding their words (`withConsts`). -/
+noncomputable abbrev guestUc (rd : Reader) : String → List E → Prop :=
+  withConsts (guestU rd) (constsOf (loopTable guestTraced))
+
+/-- **The guest's world on `L`**, its preconditions `guestUc`. -/
 noncomputable abbrev guestEnd {κ : ℕ} (fns : List Lowered) (slots : Array KVal) (L : MemoryImage κ) :
     World κ :=
-  guestWorld fns slots L (guestU L.read)
+  guestWorld fns slots L (guestUc L.read)
 
-theorem guestTraced_head : ∃ t, guestTraced = ⟨Data.core0, traceOf0, 0, true, none⟩ :: t :=
+theorem guestTraced_head : ∃ t, guestTraced = ⟨Data.core0, traceOf0, 0, (true, none), []⟩ :: t :=
   ⟨_, rfl⟩
 
 theorem core0_name : Data.core0.name = "main" ∧ Data.core0.params = [] := by decide +kernel
@@ -57,7 +63,7 @@ variable {κ : ℕ} {fns : List Lowered} {slots : Array KVal} {L : MemoryImage �
 /-- `main`'s traced function is the head of `guestTraced`. -/
 theorem guestTraced_main (L : MemoryImage κ) {tf : TracedFn} (h : GuestCompiles fns slots) (htf : tf ∈ guestTraced)
     (hn : tf.core.name = "main") :
-    tf = ⟨Data.core0, traceOf0, 0, true, none⟩ := by
+    tf = ⟨Data.core0, traceOf0, 0, (true, none), []⟩ := by
   obtain ⟨t, ht⟩ := guestTraced_head
   have hnd := (World.names (guestWorld_compiled (L := L) (U := guestU L.read) h)).2.1
   rw [guestWorld_p, ht] at hnd
@@ -70,13 +76,24 @@ theorem guestTraced_main (L : MemoryImage κ) {tf : TracedFn} (h : GuestCompiles
 
 theorem maxLogMem_lt : maxLogMem < 64 := by decide
 
+/-- **The guest's callers' preconditions carry the constant parameters.** -/
+theorem guestEnd_constsIn : (guestEnd fns slots L).ConstsIn := fun _ _ h => h.2
+
+/-- **Every function's obligations on the guest's world** (`guest_obligations`, the constant
+parameters' facts from the table being right of the guest, `World.obligations_withConsts`). -/
+theorem guestEnd_obligations (h : GuestCompiles fns slots) (hκ : minLogMem ≤ κ ∧ κ ≤ maxLogMem) :
+    ∀ tf ∈ guestTraced, (guestEnd fns slots L).Obligations tf := fun tf htf =>
+  World.obligations_withConsts (W := guestWorld fns slots L (guestU L.read)) (guestWorld_compiled h)
+    (lowerProgram_consts h.1) htf
+    (guest_obligations (guestWorld_compiled h) guestTraced_core hκ rfl tf htf)
+
 /-- **`main`'s core body holds at frame `1`**, given that the back end compiles the guest to the
 statement's bytecode and a run of `guestProgram` from `(g^0, 1)` halts. -/
 theorem guest_main_holds (h : GuestCompiles fns slots) (hκ : minLogMem ≤ κ ∧ κ ≤ maxLogMem) {k : ℕ}
     (hs : Safe guestProgram L k ⟨addressOfIndex 0, 1⟩) : (guestEnd fns slots L).MainHolds :=
-  guest_program_sound h (lt_of_le_of_lt hκ.2 maxLogMem_lt)
-    (guest_obligations (guestWorld_compiled h) guestTraced_core hκ rfl)
-    (fun _ _ _ => guestU_main) hs
+  guest_program_sound h (lt_of_le_of_lt hκ.2 maxLogMem_lt) (guestEnd_obligations h hκ)
+    (fun _ _ _ => ⟨guestU_main, fun x hx => by
+      rw [ConstsOk.main (lowerProgram_consts h.1)] at hx; cases hx⟩) hs
 
 /-- **`main`'s body, certificate-free**: on a memory of `2^κ` words, `minLogMem ≤ κ ≤ maxLogMem`,
 where a run of `guestProgram` from `(g^0, 1)` halts, `main`'s core body holds at frame `1` under
@@ -102,7 +119,7 @@ theorem guest_main_rel (h : GuestCompiles fns slots) (hκ : minLogMem ≤ κ ∧
 
 theorem registered_tfOf (h : GuestCompiles fns slots) {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) :
     (guestEnd fns slots L).registered (coreOf j).name ↔
-      (isLoopName (coreOf j).name && (infoOf j).2.2.1) = true := by
+      (isLoopName (coreOf j).name && (infoOf j).2.2.1.1) = true := by
   have := registered_iff (guestTraced_nodup L h) (getElem_mem_guestTraced h1 h2)
   dsimp only [tfOf] at this
   show ((loopTable guestTraced)[(coreOf j).name]?).any (·.registered) = true ↔ _

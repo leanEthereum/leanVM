@@ -60,9 +60,10 @@ def reference : Reference :=
 
 /-! ## The comparison -/
 
+/-- The guest's traced functions with their constant parameters, as `compileTraced` lowers them. -/
 def guestCore : IO (List TracedFn) :=
   match Expand.expandProgramTraced Data.guest with
-  | .ok P => pure P
+  | .ok P => pure (withConstTable P)
   | .error e => throw (IO.userError s!"expansion failed: {e}")
 
 def orThrow {α : Type} : Except String α → IO α
@@ -115,7 +116,7 @@ def report (ref : Reference) (ours : Assembled) (limit : Nat) : IO Bool := do
 /-- The checks that need no reference: the back end's invariants. -/
 def selfChecks (name : String) (p : Source.Program) : IO Bool := do
   let traced ← orThrow (Expand.expandProgramTraced p)
-  let checks ← orThrow (invariants traced)
+  let checks ← orThrow (invariants (withConstTable traced))
   for (what, ok) in checks do
     unless ok do IO.println s!"{name}: FAILED: {what}"
   return checks.all (·.2)
