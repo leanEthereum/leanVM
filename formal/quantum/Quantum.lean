@@ -216,6 +216,10 @@ import Quantum.StdModel.Sphincs.Reduction
 import Quantum.StdModel.Qrom.SphincsInst
 import Quantum.StdModel.Sphincs.PropsInRed
 import Quantum.StdModel.Sphincs.CostsTweak
+import Quantum.StdModel.Qrom.CorollaryXmss
+import Quantum.StdModel.Qrom.XmssTcr
+import Quantum.StdModel.Qrom.EncTcr
+import Quantum.StdModel.Qrom.CpreHyb
 import Quantum.Sphincs.Assembly.Depth.BoundValue
 import Quantum.Cost.NistQrpmSphincs
 import Quantum.Par.Subst

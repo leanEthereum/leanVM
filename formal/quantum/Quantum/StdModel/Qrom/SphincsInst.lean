@@ -4,6 +4,8 @@ public import Quantum.StdModel.Sphincs.PropsInRed
 public import Quantum.StdModel.Qrom.Prf
 public import Quantum.StdModel.Sphincs.CostsRedA
 public import Quantum.StdModel.Sphincs.CostsRedB
+public import Quantum.StdModel.Sphincs.CostsTweak
+public import Quantum.StdModel.Qrom.Moded
 
 @[expose] public section
 
@@ -192,6 +194,34 @@ theorem encHash_param_tweak_eq {t : Quantum.Sphincs.Slot} (ht : EncTwIn t) (P : 
   exact tweak_eq_of_shaped encCtr.hash (fun _ P t x ↦ encLayout_shaped P t x) (by exact trivial)
     h
 
+/-- **The evaluation collection against the encoding, with the parameter free**: an input of
+`slotColl` at the tweak `t'` equal to an encoding input at an encoding slot `t` (under any
+parameter) has `t' = t`. -/
+theorem slotColl_enc_tweak_eq {t : Quantum.Sphincs.Slot} (ht : EncTwIn t)
+    {P P' : PublicParameter} (x : Digest × ℕ) {l t' : Quantum.Sphincs.Slot}
+    {m : Quantum.Qrom.Sphincs.SlotPayload l}
+    (h : slotColl.layout l P t' m = encCtr.hash.layout () P' t x) : t' = t := by
+  cases t <;> simp only [EncTwIn] at ht
+  rename_i a b c
+  change slotLayout l P t' m = Quantum.Qrom.Sphincs.slotInput (pubKey P') 0 (.enc a b c) _ at h
+  unfold slotLayout at h
+  split_ifs at h with hl
+  · obtain ⟨rfl, hr⟩ := hl
+    have hlen := (length_slotInput (pubKey P) 0 l m).symm.trans
+      ((congrArg List.length h).trans (length_slotInput _ _ _ _))
+    cases l <;> simp only [slotLen] at hlen <;> try omega
+    rename_i a' b' c'
+    obtain ⟨r, hr'⟩ := encHash_layout_prefix P (.enc a' b' c') (m.1, m.2.toNat)
+    obtain ⟨r', hr''⟩ := encHash_layout_prefix P' (.enc a b c) x
+    have hP : P = P' := param_eq_of_prefix (hr'.symm.trans (Eq.trans (by
+      change Quantum.Qrom.Sphincs.slotInput (pubKey P) 0 (.enc a' b' c')
+        (m.1, BitVec.ofNat counterBits m.2.toNat) = _
+      rw [BitVec.ofNat_toNat, BitVec.setWidth_eq]
+      exact h) hr''))
+    subst hP
+    exact congrArg Sigma.fst (sphincs_slotInput_inj (pubKey P) 0 hr (by exact trivial) h)
+  · exact absurd h.symm (slotInput_ne_of_length (by decide))
+
 /-- The prefix and suffix lengths of the KIM formats: `11` and `1` for `S1`, `S2`, `48` and `0`
 for `S3`. -/
 theorem kimFmt_lengths (x : KimDom) :
@@ -340,6 +370,42 @@ theorem winProb_sphincsRom_le_avg
   rw [ENNReal.toReal_mul, ENNReal.toReal_inv, ENNReal.toReal_natCast]
   exact mul_le_mul_of_nonneg_left (sphincs_suf_le_props romWorld romWorld_coinsFair H (ofQrom A))
     (inv_nonneg.mpr (Nat.cast_nonneg _))
+
+/-! ## B4's phase hypotheses in the form of `Moded` -/
+
+/-- The calls at cells of `Gc` (`gCostR`) are the calls counted by `hcallCostOn`. -/
+theorem gCostR_eq_hcallCostOn (Gc : Quantum.Qrom.HashDomain → Prop) {Q' : Type}
+    {R' : OracleSpec.{0, 0} Q'} : gCostR Gc (R' := R') = hcallCostOn Gc (R' := R') := by
+  funext t
+  rcases t with (n | x) | q
+  · rfl
+  · change gCost Gc (.inr x) = twCellCost Gc (.inr x)
+    simp only [gCost, twCellCost]
+  · rfl
+
+/-- The challenger calls (`ansCost`) are the calls counted by `portCost`. -/
+theorem ansCost_eq_portCost {Q' : Type} {R' : OracleSpec.{0, 0} Q'} :
+    ansCost (R' := R') = portCost romWorld (R' := R') := by
+  funext t
+  rcases t with _ | _ <;> rfl
+
+/-- **B4's setup reads no encoding cell of a target key.** -/
+theorem encRedPre_gCostR :
+    Common.QueryCostAtMost (encRedPre romWorld) (gCostR EncCell (R' := EncCtrPorts)) 0 := by
+  rw [gCostR_eq_hcallCostOn]
+  exact twCalls_enc_pre
+
+/-- **B4's signer makes no challenger call.** -/
+theorem encRedSign_ansCost (st : EncData × SignLog) (M : Message) :
+    Common.QueryCostAtMost (encRedSign romWorld st M) (ansCost (R' := EncCtrPorts)) 0 := by
+  rw [ansCost_eq_portCost]
+  exact queryCostAtMost_encRedSign romWorld st M
+
+/-- **B4's output makes no challenger call.** -/
+theorem encRedPost_ansCost (a : EncData) (f : Forgery) (st : EncData × SignLog) :
+    Common.QueryCostAtMost (encRedPost romWorld a f st) (ansCost (R' := EncCtrPorts)) 0 := by
+  rw [ansCost_eq_portCost]
+  exact queryCostAtMost_encRedPost romWorld a f st
 
 end Quantum.StdModel.Qrom.SphInst
 
