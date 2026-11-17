@@ -17,7 +17,7 @@ public import LeanVM.Protocol.Whir.Params.Iface
 /-!
 # The agreement-set extractor
 
-`extractAS D prog input ℓ₀ π`, from the adversary's log `ℓ₀` and its proof `π`:
+`extractAS D prog input H F π`, from the adversary's answers `H`, `F` and its proof `π`:
 
 1. the seed, on `ℓ₀`'s answers;
 2. the cut verifier's replay (`replayU` on `leanVmProgramCut`), which returns the announced layout
@@ -85,19 +85,19 @@ theorem descend_good {μ R : ℕ} (h : Whir.Admissible μ R) (D : NearDecoder)
 
 /-! ## The extractor -/
 
-/-- **The agreement-set extractor**, over the near-tuple decoder `D`: from the adversary's log
-`ℓ₀` and the proof `π`, the seed and the cut verifier's replay on `ℓ₀`'s answers, the roots'
-words through its hash answers, the descent of the replay's trace, and the run of level 0's
+/-- **The agreement-set extractor**, over the near-tuple decoder `D`: from the adversary's
+Keccak-256 and Keccak-f answers `H`, `F` and the proof `π`, the seed and the cut verifier's replay
+on them, the roots' words through `H`, the descent of the replay's trace, and the run of level 0's
 stack. -/
 noncomputable def extractAS (D : NearDecoder) (prog : LeanIsaProgram) (input : PublicInput)
-    (ℓ₀ : Log) (π : Proof) : Option (Execution prog) :=
-  ((leanVmSeed (bytecodeWords prog) (publicInputDigest input)).run (lookH ℓ₀) (lookF ℓ₀)).bind
-    fun seed ↦
-  (replayU (lookF ℓ₀) (leanVmProgramCut (bytecodeWords prog) (publicInputDigest input))
+    (H : Bytes → Option Digest) (F : KeccakState → Option KeccakState) (π : Proof) :
+    Option (Execution prog) :=
+  ((leanVmSeed (bytecodeWords prog) (publicInputDigest input)).run H F).bind fun seed ↦
+  (replayU F (leanVmProgramCut (bytecodeWords prog) (publicInputDigest input))
     (startState π seed)).bind fun r ↦
   if hμ : laneBits ≤ r.1.2.1.1.stackLog then
     (descendTrace D (codesOf r.1.2.1.1.stackLog r.1.2.1.2)
-      (r.2.roots.map fun x ↦ (x.2.1, x.2.2, Extraction.committedWord (lookH ℓ₀) x.1 x.2.1 x.2.2))
+      (r.2.roots.map fun x ↦ (x.2.1, x.2.2, Extraction.committedWord H x.1 x.2.1 x.2.2))
       r.1.2.2 0).bind fun T ↦
     if hm : T.1 = laneBits then
       Extraction.candidateExecution prog input r.1.2.1.1 (tupleStack hμ (hm ▸ T.2)).values
@@ -129,7 +129,7 @@ theorem extractAS_valid (D : NearDecoder) {ℓ ℓ₀ : Log} {prog : LeanIsaProg
       (lookH ℓ) (lookF ℓ) = some seed →
       Avail (bytecodeWords prog) (publicInputDigest input) π ℓ ℓ₀.length seed)
     (hroots : ¬ RootsAnswered (bytecodeWords prog) (publicInputDigest input) π ℓ₀ ℓ) :
-    ∃ t, extractAS D prog input ℓ₀ π = some t ∧ ValidExecution prog input t := by
+    ∃ t, extractAS D prog input (lookH ℓ₀) (lookF ℓ₀) π = some t ∧ ValidExecution prog input t := by
   have hℓ₀ : ℓ₀ = ℓ.take ℓ₀.length := List.prefix_iff_eq_take.mp hpre
   obtain ⟨seed, s, hseed, hx⟩ := xrun_of_verify hv
   obtain ⟨hseedk, hink⟩ := hav seed hseed

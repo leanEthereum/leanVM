@@ -310,20 +310,14 @@ theorem extracted_of_goodRun {c : KeccakCalls.QueryCache} {π : Proof}
   refine ⟨s, hq'.choose, ?_, hs, hq'.choose_spec.2⟩
   simp only [extractStack, hann, hfw, hq', ↓reduceDIte]
 
-/-- **Accepted, and the extractor fails, is doomed and not a good run**: the prefix of the
-extracted history up to the stack's root is a boundary at which the certificate's doom holds,
-and the extracted history is not a good run (`extracted_of_goodRun`). -/
-theorem doomed_of_not_extracted {c : KeccakCalls.QueryCache} {π : Proof}
+/-- **An accepted proof is doomed at the stack's root**: the prefix of the extracted history up to
+the stack's root is a boundary at which the certificate's doom holds. -/
+theorem doomedRun_of_verify {c : KeccakCalls.QueryCache} {π : Proof}
     (hv : Rom.verify (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
       (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
-      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) π = some true)
-    (hne : ¬ Extracted O prog input c π) :
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) π = some true) :
     DoomedRun (stmtCert O prog input) (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
-      π c ∧
-    ¬ stmtG O prog input (extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
-      (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
-      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) π) := by
-  refine ⟨?_, fun hG ↦ hne (extracted_of_goodRun O prog input hv hG)⟩
+      π c := by
   set hist := extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
     (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
     (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) π with hhist
@@ -362,6 +356,22 @@ theorem doomed_of_not_extracted {c : KeccakCalls.QueryCache} {π : Proof}
     ⟨hshape, O.word₀ (commits (l₁ ++ [e])), O.shape_word hshape⟩
   exact ⟨l₁ ++ [e], hpre, by rw [he]; exact boundary_append_commit _ _ _ _,
     leanVmSpec_D_commit O prog input hl₁ ⟨rfl, hs, hadm⟩ hce' hdoom⟩
+
+
+/-- **Accepted, and the extractor fails, is doomed and not a good run**: the prefix of the
+extracted history up to the stack's root is a boundary at which the certificate's doom holds
+(`doomedRun_of_verify`), and the extracted history is not a good run (`extracted_of_goodRun`). -/
+theorem doomed_of_not_extracted {c : KeccakCalls.QueryCache} {π : Proof}
+    (hv : Rom.verify (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
+      (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) π = some true)
+    (hne : ¬ Extracted O prog input c π) :
+    DoomedRun (stmtCert O prog input) (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+      π c ∧
+    ¬ stmtG O prog input (extractedHistory (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s))
+      (leanVmSeed (bytecodeWords prog) (publicInputDigest input))
+      (leanVmVerifierProgram (bytecodeWords prog) (publicInputDigest input)) π) :=
+  ⟨doomedRun_of_verify O prog input hv, fun hG ↦ hne (extracted_of_goodRun O prog input hv hG)⟩
 
 end
 end LeanVM.Protocol.EndToEnd.Sound
