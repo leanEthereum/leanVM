@@ -50,7 +50,7 @@ placed at the value cells `cert` (`Memory.HonestAt`):
   the discharge of `Honest`);
 * `table`: `main`'s cells hold its jump table (`Memory.tableCells`);
 * `b2`: on the honest memory, `main` runs from its entry at `fp = 1` to the halting registers
-  (the back end's completeness, `Backend.Cpl.b2_completeG`);
+  (the back end's completeness, `Compiled.Cpl.b2_completeG`);
 * `size`: that run's committed size is at most the tree's cost.
 
 `CompletePiecesWithin` splits the size at a call tree's instruction counts `cnt T op`, and

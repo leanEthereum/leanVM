@@ -1,6 +1,6 @@
 import Statement.Data.Bytecode
-import LeanVM.Guest.Backend.Guest.Input
-import LeanVM.Guest.Backend.Cut
+import LeanVM.Guest.Compiled.Input
+import LeanVM.Compiler.Cut
 import LeanVMTests.Guest.Programs
 
 /-!
@@ -11,17 +11,17 @@ Run from `lean_vm`.
 `lake exe guest-pieces` compiles the guest's traced input (`guestTraced`, as `guest-traced` writes
 it) with the back end, natively, and writes what the kernel checks of it, function by function:
 
-* `Backend/Guest/Piece/Outs.lean`: what placement and emission give of each function (`FnOut`: the
+* `Guest/Compiled/Piece/Outs.lean`: what placement and emission give of each function (`FnOut`: the
   jump tables' length after it, the shared tables it made, the slots it fills, its frame and code
   sizes), as flat lists, `outsG`;
-* `Backend/Guest/Piece/Tables.lean`, `Layout.lean`: the loop and signature tables of the program,
+* `Guest/Compiled/Piece/Tables.lean`, `Layout.lean`: the loop and signature tables of the program,
   the layout of its functions and the jump tables' slots, each computed once by the kernel
   (`kernel_lit`);
-* `Backend/Guest/Piece/P{k}.lean`: the pieces, `piecesIn … a b = true` by `decide +kernel`, one
+* `Guest/Compiled/Piece/P{k}.lean`: the pieces, `piecesIn … a b = true` by `decide +kernel`, one
   declaration for a run of functions of at most `maxDecl` instructions, `maxModule` instructions a
-  module; `Backend/Guest/Piece/Jt{c}.lean`: chunk `c` of `__jump_tables`, in `jtParts` parts;
-  `Backend/Guest/Piece/Checks.lean` and `Names.lean`: the checks on numbers and names;
-* `Backend/Guest/Compiled.lean`: `GuestCompiles guestFns guestSlots` from them
+  module; `Guest/Compiled/Piece/Jt{c}.lean`: chunk `c` of `__jump_tables`, in `jtParts` parts;
+  `Guest/Compiled/Piece/Checks.lean` and `Names.lean`: the checks on numbers and names;
+* `Guest/Compiled/Compiled.lean`: `GuestCompiles guestFns guestSlots` from them
   (`compiles_of_pieces`), given the pieces of the functions `bigNames` lists, which are not written
   as one piece (`BigPieces`).
 
@@ -30,13 +30,13 @@ piece natively first. `--extra NAME MODULE` makes the piece of each function `j`
 `NAME j : VMap Loc → Bool` (from `MODULE`) on its placed locations (`pieceAtWith`), and
 `Compiled.lean` conclude it for every function (`guest_extra`).
 
-`lake exe guest-pieces test` writes `tests/LeanVMTests/Guest/BackendPieces.lean`: the same for the
+`lake exe guest-pieces test` writes `tests/LeanVMTests/Compiler/Pieces.lean`: the same for the
 compiler's test program `match_arms`, its traced functions written out, and its compilation proved
 by `compiles_of_pieces` there.
 -/
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Backend
-  LeanVM.Guest.Backend.GuestInput
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Compiler LeanVM.Guest.Compiled
+  LeanVM.Guest.Compiled.GuestInput
 
 namespace GuestPieces
 
@@ -56,9 +56,9 @@ def cutNames : List String := bigNames
 /-- A definition of data is split once its text is longer than this. -/
 def maxDef : Nat := 24000
 
-def pieceDir : System.FilePath := "LeanVM/Guest/Backend/Guest/Piece"
-def compiledPath : System.FilePath := "LeanVM/Guest/Backend/Guest/Compiled.lean"
-def testPath : System.FilePath := "tests/LeanVMTests/Guest/BackendPieces.lean"
+def pieceDir : System.FilePath := "LeanVM/Guest/Compiled/Piece"
+def compiledPath : System.FilePath := "LeanVM/Guest/Compiled/Compiled.lean"
+def testPath : System.FilePath := "tests/LeanVMTests/Compiler/Pieces.lean"
 
 /-! ## Text -/
 
@@ -205,39 +205,39 @@ def piecesFn (extra : Option Extra) : String :=
 def pieceArgs : String := "loopsG sigsG layG guestTraced outsG Data.functions.tail"
 
 def outsFile (outs : List FnOut) : String :=
-  header "LeanVM.Guest.Backend.Guest.Piece.Outs"
+  header "LeanVM.Guest.Compiled.Piece.Outs"
     "What placement and emission give of each of the guest's functions, in order." ++
-  "\nmodule\n\npublic import LeanVM.Guest.Backend.Piece\n\n" ++
+  "\nmodule\n\npublic import LeanVM.Compiler.Piece\n\n" ++
   "set_option maxRecDepth 20000\nset_option linter.all false\n\n" ++
-  "namespace LeanVM.Guest.Backend.GuestPiece\n\nopen LeanVM.Guest.Backend\n\n@[expose] public section\n\n" ++
+  "namespace LeanVM.Guest.Compiled.GuestPiece\n\nopen LeanVM.Compiler\n\n@[expose] public section\n\n" ++
   String.join (outs.zipIdx.filterMap fun (o, j) =>
     if (pList (pFills o)).length ≤ maxDef then none
     else some (chunkedDefs s!"The jump table slots function {j} fills." s!"fillsG{j}" "(Nat × Nat)" (pFills o))) ++
   chunkedDefs "What placement and emission give of each of the guest's functions, in order (`FnOut`)."
     "outsG" "FnOut" (outs.zipIdx.map fun (o, j) =>
       if (pList (pFills o)).length ≤ maxDef then pFnOut o else pFnOutWith o s!"fillsG{j}") ++
-  "end\nend LeanVM.Guest.Backend.GuestPiece\n"
+  "end\nend LeanVM.Guest.Compiled.GuestPiece\n"
 
 def tablesFile (loops : Loops) (sigs : SMap (Nat × Nat)) : String :=
-  header "LeanVM.Guest.Backend.Guest.Piece.Tables"
+  header "LeanVM.Guest.Compiled.Piece.Tables"
     "The guest's loop and signature tables, and the kernel's checks that they are the program's." ++
-  "\nmodule\n\npublic import LeanVM.Guest.Backend.Guest.Program\npublic import LeanVM.Guest.Backend.Piece\n" ++
+  "\nmodule\n\npublic import LeanVM.Guest.Compiled.Program\npublic import LeanVM.Compiler.Piece\n" ++
   "public meta import LeanVM.Guest.KernelLit\n\n" ++
   "set_option maxRecDepth 100000\nset_option linter.all false\n\n" ++
-  "namespace LeanVM.Guest.Backend.GuestPiece\n\nopen LeanVM.Guest.Backend\n\n@[expose] public section\n\n" ++
+  "namespace LeanVM.Guest.Compiled.GuestPiece\n\nopen LeanVM.Compiler\n\n@[expose] public section\n\n" ++
   s!"/-- The guest's loop helpers. -/\ndef loopsG : Loops :=\n  {pKMap String.quote pLoopInfo loops}\n\n" ++
   s!"/-- The guest's functions' argument and return cells. -/\ndef sigsG : SMap (Nat × Nat) :=\n  {pKMap String.quote pPair sigs}\n\n" ++
   "kernel_rfl loopsG_eq : loopTable guestTraced = loopsG\n\n" ++
   "kernel_rfl sigsG_eq : sigTable guestTraced = sigsG\n\n" ++
-  "end\nend LeanVM.Guest.Backend.GuestPiece\n"
+  "end\nend LeanVM.Guest.Compiled.GuestPiece\n"
 
 def layoutFile (l : Layout) (slots : Array KVal) : String :=
-  header "LeanVM.Guest.Backend.Guest.Piece.Layout"
+  header "LeanVM.Guest.Compiled.Piece.Layout"
     "The guest's layout and jump table slots, the kernel's checks of them, and its placed locations." ++
-  "\nmodule\n\npublic import LeanVM.Guest.Backend.Guest.Piece.Outs\npublic import LeanVM.Guest.Backend.Guest.Piece.Tables\n" ++
+  "\nmodule\n\npublic import LeanVM.Guest.Compiled.Piece.Outs\npublic import LeanVM.Guest.Compiled.Piece.Tables\n" ++
   "public meta import LeanVM.Guest.KernelLit\n\n" ++
   "set_option maxRecDepth 100000\nset_option linter.all false\n\n" ++
-  "namespace LeanVM.Guest.Backend.GuestPiece\n\nopen LeanVM.Guest.Backend\n\n@[expose] public section\n\n" ++
+  "namespace LeanVM.Guest.Compiled.GuestPiece\n\nopen LeanVM.Compiler\n\n@[expose] public section\n\n" ++
   s!"/-- The layout of the guest's functions, `__jump_tables` first. -/\ndef layG : Layout :=\n  {pLayout l}\n\n" ++
   chunkedDefs "The guest's jump table slots, as a list." "slotsL" "KVal" (slots.toList.map pKVal) ++
   "/-- The guest's jump table slots. -/\ndef slotsG : Array KVal := slotsL.toArray\n\n" ++
@@ -245,7 +245,7 @@ def layoutFile (l : Layout) (slots : Array KVal) : String :=
   "kernel_rfl slotsOfOuts_eq : slotsOfOuts guestTraced outsG = slotsG\n\n" ++
   "/-- **The locations of function `j`'s values**, placed from the jump tables the functions before it\nleave. -/\n" ++
   "noncomputable def placedLocs (j : Nat) : VMap Loc := placedLocsAt loopsG sigsG guestTraced outsG j\n\n" ++
-  "end\nend LeanVM.Guest.Backend.GuestPiece\n"
+  "end\nend LeanVM.Guest.Compiled.GuestPiece\n"
 
 def pieceFile (k : Nat) (rs : List (Nat × Nat)) (names : List String) (sizes : List Nat)
     (extra : Option Extra) : String :=
@@ -258,21 +258,21 @@ def pieceFile (k : Nat) (rs : List (Nat × Nat)) (names : List String) (sizes : 
   let extraImport := match extra with
     | some x => s!"public import {x.mod}\n"
     | none => ""
-  header s!"LeanVM.Guest.Backend.Guest.Piece.P{k}" "The kernel's checks of some of the guest's functions' pieces." ++
-  "\nmodule\n\npublic import LeanVM.Guest.Backend.Guest.Piece.Layout\npublic import Statement.Data.Bytecode\n" ++
+  header s!"LeanVM.Guest.Compiled.Piece.P{k}" "The kernel's checks of some of the guest's functions' pieces." ++
+  "\nmodule\n\npublic import LeanVM.Guest.Compiled.Piece.Layout\npublic import Statement.Data.Bytecode\n" ++
   extraImport ++ "\nset_option Elab.async false\nset_option maxRecDepth 100000\n\n" ++
-  "namespace LeanVM.Guest.Backend.GuestPiece\n\nopen LeanVM.Guest.Backend\n\n@[expose] public section\n\n" ++
-  String.join decls ++ "end\nend LeanVM.Guest.Backend.GuestPiece\n"
+  "namespace LeanVM.Guest.Compiled.GuestPiece\n\nopen LeanVM.Compiler\n\n@[expose] public section\n\n" ++
+  String.join decls ++ "end\nend LeanVM.Guest.Compiled.GuestPiece\n"
 
 def jtFile (c : Nat) : String :=
-  header s!"LeanVM.Guest.Backend.Guest.Piece.Jt{c}" s!"The kernel's checks of chunk {c} of `__jump_tables`." ++
-  "\nmodule\n\npublic import LeanVM.Guest.Backend.Guest.Piece.Layout\npublic import Statement.Data.Bytecode\n\n" ++
+  header s!"LeanVM.Guest.Compiled.Piece.Jt{c}" s!"The kernel's checks of chunk {c} of `__jump_tables`." ++
+  "\nmodule\n\npublic import LeanVM.Guest.Compiled.Piece.Layout\npublic import Statement.Data.Bytecode\n\n" ++
   "set_option Elab.async false\nset_option maxRecDepth 100000\n\n" ++
-  "namespace LeanVM.Guest.Backend.GuestPiece\n\nopen LeanVM.Guest.Backend\n\n@[expose] public section\n\n" ++
+  "namespace LeanVM.Guest.Compiled.GuestPiece\n\nopen LeanVM.Compiler\n\n@[expose] public section\n\n" ++
   String.join ((List.range jtParts).map fun q =>
     s!"/-- Part {q} of chunk {c} of `__jump_tables` is the statement's. -/\n" ++
     s!"theorem jt_{c}_{q} : jtPartOk layG (baseOf outsG) slotsG Data.f0 {c} {q} = true := by\n  decide +kernel\n\n") ++
-  "end\nend LeanVM.Guest.Backend.GuestPiece\n"
+  "end\nend LeanVM.Guest.Compiled.GuestPiece\n"
 
 /-- The proof of `∀ c < m, ∀ q < jtParts, jtPartOk … c q = true` from the theorems `jt_{c}_{q}`
 (`name c q` names them). -/
@@ -285,19 +285,19 @@ def jtCases (indent : String) (m : Nat) (name : Nat → Nat → String) : String
   s!"{indent}· exact absurd hc (by omega)\n"
 
 def namesFile : String :=
-  header "LeanVM.Guest.Backend.Guest.Piece.Names" "The kernel's check of the guest's names." ++
-  "\nmodule\n\npublic import LeanVM.Guest.Backend.Guest.Piece.Tables\n\n" ++
+  header "LeanVM.Guest.Compiled.Piece.Names" "The kernel's check of the guest's names." ++
+  "\nmodule\n\npublic import LeanVM.Guest.Compiled.Piece.Tables\n\n" ++
   "set_option maxRecDepth 100000\n\n" ++
-  "namespace LeanVM.Guest.Backend.GuestPiece\n\nopen LeanVM.Guest.Backend\n\n@[expose] public section\n\n" ++
+  "namespace LeanVM.Guest.Compiled.GuestPiece\n\nopen LeanVM.Compiler\n\n@[expose] public section\n\n" ++
   "/-- `main` first, no function named `__jump_tables`, the names distinct, `main` no loop helper. -/\n" ++
   "theorem checks_ok : progChecks guestTraced loopsG = true := by decide +kernel\n\n" ++
-  "end\nend LeanVM.Guest.Backend.GuestPiece\n"
+  "end\nend LeanVM.Guest.Compiled.GuestPiece\n"
 
 def checksFile (count logSize : Nat) : String :=
-  header "LeanVM.Guest.Backend.Guest.Piece.Checks" "The kernel's checks of the guest's names, slots and sizes." ++
-  "\nmodule\n\npublic import LeanVM.Guest.Backend.Guest.Piece.Layout\npublic import Statement.Data.Bytecode\n\n" ++
+  header "LeanVM.Guest.Compiled.Piece.Checks" "The kernel's checks of the guest's names, slots and sizes." ++
+  "\nmodule\n\npublic import LeanVM.Guest.Compiled.Piece.Layout\npublic import Statement.Data.Bytecode\n\n" ++
   "set_option maxRecDepth 100000\n\n" ++
-  "namespace LeanVM.Guest.Backend.GuestPiece\n\nopen LeanVM.Guest.Backend\n\n@[expose] public section\n\n" ++
+  "namespace LeanVM.Guest.Compiled.GuestPiece\n\nopen LeanVM.Compiler\n\n@[expose] public section\n\n" ++
   s!"theorem guestTraced_length : guestTraced.length = {count} := by decide +kernel\n\n" ++
   "theorem outs_length : outsG.length = guestTraced.length := by decide +kernel\n\n" ++
   "theorem cfs_length : Data.functions.tail.length = guestTraced.length := by decide +kernel\n\n" ++
@@ -306,7 +306,7 @@ def checksFile (count logSize : Nat) : String :=
   s!"theorem size_ok : nextPow2 ((tablesEnd outsG).len + (outsG.map (·.size)).sum + 1) = 2 ^ {logSize} := by\n  decide +kernel\n\n" ++
   "theorem jt_head : jtHead slotsG Data.f0 = true := by decide +kernel\n\n" ++
   "theorem functions_eq : Data.functions = Data.f0 :: Data.functions.tail := rfl\n\n" ++
-  "end\nend LeanVM.Guest.Backend.GuestPiece\n"
+  "end\nend LeanVM.Guest.Compiled.GuestPiece\n"
 
 /-- The proof of `piecesIn … 0 n`, gluing the ranges and the big functions' pieces in order. -/
 def glueTerm (n : Nat) (rs : List (Nat × Nat)) (big cut : List Nat) (extra : Option Extra) : String := Id.run do
@@ -337,11 +337,11 @@ def glueTerm (n : Nat) (rs : List (Nat × Nat)) (big cut : List Nat) (extra : Op
 def compiledFile (n : Nat) (rs : List (Nat × Nat)) (big : List Nat) (cuts : List (Nat × String × Nat))
     (mods jts : Nat) (extra : Option Extra) : String :=
   let cut := cuts.map (·.1)
-  let imports := String.join ((List.range mods).map fun k => s!"public import LeanVM.Guest.Backend.Guest.Piece.P{k}\n") ++
-    String.join ((List.range jts).map fun c => s!"public import LeanVM.Guest.Backend.Guest.Piece.Jt{c}\n") ++
+  let imports := String.join ((List.range mods).map fun k => s!"public import LeanVM.Guest.Compiled.Piece.P{k}\n") ++
+    String.join ((List.range jts).map fun c => s!"public import LeanVM.Guest.Compiled.Piece.Jt{c}\n") ++
     String.join (cuts.map fun (j, _, m) => String.join ((List.range m).map fun k =>
-      s!"public import LeanVM.Guest.Backend.Guest.Piece.C{j}P{k}\n")) ++
-    (if cut.isEmpty then "" else "public import LeanVM.Guest.Backend.Sound.Cut\n")
+      s!"public import LeanVM.Guest.Compiled.Piece.C{j}P{k}\n")) ++
+    (if cut.isEmpty then "" else "public import LeanVM.Compiler.Sound.Cut\n")
   let cutPieces := String.join (cuts.map (·.2.1))
   let bigNames := pList (big.map toString)
   -- with no function left out, no hypothesis
@@ -367,18 +367,18 @@ def compiledFile (n : Nat) (rs : List (Nat × Nat)) (big : List Nat) (cuts : Lis
         s!"  rw [guestTraced_length]\n  exact fun j hj => piecesIn_spec (a := 0) (b := {n})\n    {glueTerm n rs big cut extra} j (Nat.zero_le _) hj\n\n"
   let hbigDoc := if big.isEmpty then "every function's piece is checked here, so `guest_compiles` has no hypothesis"
     else s!"the {big.length} functions too large for one piece (`BigPieces`) are a hypothesis"
-  header "LeanVM.Guest.Backend.Guest.Compiled" "The back end compiles the guest to the statement's bytecode, from the kernel-checked pieces." ++
-  "\nmodule\n\npublic import LeanVM.Guest.Backend.Guest.World\npublic import LeanVM.Guest.Backend.Sound.Compiles\n" ++
-  "public import LeanVM.Guest.Backend.Guest.Piece.Checks\npublic import LeanVM.Guest.Backend.Guest.Piece.Names\n" ++ imports ++
-  s!"\n/-!\n# The guest compiled\n\n`guest_compiles`: `GuestCompiles guestFns guestSlots`, by `compiles_of_pieces` from the pieces of\n`Guest/Piece/` and the checks of `Guest/Piece/Checks.lean`; {hbigDoc}.\n`guest_program_sound_compiled` is `guest_program_sound` without `GuestCompiles`, and\n`guestWorld_locs` says function `j`'s places in the guest's world are `placedLocs j`, which the\nkernel evaluates; for a function checked in parts, `placedLocs_j` gives them as its walk's last state's.\n-/\n\n" ++
+  header "LeanVM.Guest.Compiled.Compiled" "The back end compiles the guest to the statement's bytecode, from the kernel-checked pieces." ++
+  "\nmodule\n\npublic import LeanVM.Guest.Compiled.World\npublic import LeanVM.Compiler.Sound.Compiles\n" ++
+  "public import LeanVM.Guest.Compiled.Piece.Checks\npublic import LeanVM.Guest.Compiled.Piece.Names\n" ++ imports ++
+  s!"\n/-!\n# The guest compiled\n\n`guest_compiles`: `GuestCompiles guestFns guestSlots`, by `compiles_of_pieces` from the pieces of\n`Piece/` and the checks of `Piece/Checks.lean`; {hbigDoc}.\n`guest_program_sound_compiled` is `guest_program_sound` without `GuestCompiles`, and\n`guestWorld_locs` says function `j`'s places in the guest's world are `placedLocs j`, which the\nkernel evaluates; for a function checked in parts, `placedLocs_j` gives them as its walk's last state's.\n-/\n\n" ++
   "set_option maxRecDepth 100000\n\n" ++
-  "namespace LeanVM.Guest.Backend\n\nopen LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core GuestPiece\n\n@[expose] public section\n\n" ++
+  "namespace LeanVM.Guest.Compiled\n\nopen LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core GuestPiece\n\n@[expose] public section\n\n" ++
   bigDef ++ cutPieces ++ piecesAll ++
   "/-- The labelled code of the guest's functions, as the back end lowers them. -/\n" ++
   "noncomputable def guestFns : List Lowered := fnsOf (lowerProgram guestTraced)\n\n" ++
   "/-- The guest's jump table slots. -/\ndef guestSlots : Array KVal := slotsG\n\n" ++
   "theorem guest_jt :\n    Data.f0 = ⟨\"__jump_tables\", 0, (slotsOfOuts guestTraced outsG).size,\n" ++
-  "      chunked (resolvedFn layG 0 (jtOf (baseOf outsG) (slotsOfOuts guestTraced outsG)))⟩ := by\n" ++
+  "      Compiler.chunked (resolvedFn layG 0 (jtOf (baseOf outsG) (slotsOfOuts guestTraced outsG)))⟩ := by\n" ++
   "  rw [slotsOfOuts_eq]\n  refine jt_of_chunks jt_head fun c hc q hq => ?_\n" ++
   s!"  have hn : Data.f0.chunks.length = {jts} := rfl\n  rw [hn] at hc\n" ++
   jtCases "  " jts (fun c q => s!"jt_{c}_{q}") ++ "\n" ++
@@ -403,12 +403,12 @@ def compiledFile (n : Nat) (rs : List (Nat × Nat)) (big : List Nat) (cuts : Lis
   s!"theorem guestWorld_locs {hb}\{j : ℕ} (hj : j < guestTraced.length) :\n" ++
   "    (guestWorld guestFns guestSlots L U).locs (guestTraced.getD j default).core.name = placedLocs j :=\n" ++
   s!"  world_locs_of_pieces _ guestWorld_p loopsG_eq sigsG_eq checks_ok outs_length cfs_length (guest_pieces{hbArg}) hj\n\n" ++
-  "end\nend LeanVM.Guest.Backend\n\n" ++
-  "/-- info: 'LeanVM.Guest.Backend.guest_compiles' depends on axioms: [propext, Classical.choice, Quot.sound] -/\n#guard_msgs in\n#print axioms LeanVM.Guest.Backend.guest_compiles\n\n" ++
-  "/-- info: 'LeanVM.Guest.Backend.guest_program_sound_compiled' depends on axioms: [propext, Classical.choice, Quot.sound] -/\n#guard_msgs in\n#print axioms LeanVM.Guest.Backend.guest_program_sound_compiled\n\n" ++
-  "/-- info: 'LeanVM.Guest.Backend.guestWorld_locs' depends on axioms: [propext, Classical.choice, Quot.sound] -/\n#guard_msgs in\n#print axioms LeanVM.Guest.Backend.guestWorld_locs\n" ++
+  "end\nend LeanVM.Guest.Compiled\n\n" ++
+  "/-- info: 'LeanVM.Guest.Compiled.guest_compiles' depends on axioms: [propext, Classical.choice, Quot.sound] -/\n#guard_msgs in\n#print axioms LeanVM.Guest.Compiled.guest_compiles\n\n" ++
+  "/-- info: 'LeanVM.Guest.Compiled.guest_program_sound_compiled' depends on axioms: [propext, Classical.choice, Quot.sound] -/\n#guard_msgs in\n#print axioms LeanVM.Guest.Compiled.guest_program_sound_compiled\n\n" ++
+  "/-- info: 'LeanVM.Guest.Compiled.guestWorld_locs' depends on axioms: [propext, Classical.choice, Quot.sound] -/\n#guard_msgs in\n#print axioms LeanVM.Guest.Compiled.guestWorld_locs\n" ++
   String.join (cut.map fun j =>
-    s!"\n/-- info: 'LeanVM.Guest.Backend.placedLocs_{j}' depends on axioms: [propext, Classical.choice, Quot.sound] -/\n#guard_msgs in\n#print axioms LeanVM.Guest.Backend.placedLocs_{j}\n")
+    s!"\n/-- info: 'LeanVM.Guest.Compiled.placedLocs_{j}' depends on axioms: [propext, Classical.choice, Quot.sound] -/\n#guard_msgs in\n#print axioms LeanVM.Guest.Compiled.placedLocs_{j}\n")
 
 /-! ## The test program -/
 
@@ -532,12 +532,12 @@ def testFile (name : String) : IO String := do
   let n := P.length
   let jts := (cfs.headD noFunction).chunks.length
   let nameId := name.replace "_" ""
-  return header s!"LeanVMTests.Guest.BackendPieces"
+  return header s!"LeanVMTests.Compiler.Pieces"
       s!"The compiler's test program `{name}` compiled by the back end, from its kernel-checked pieces." ++
-    "\nimport LeanVM.Guest.Backend.Sound.Compiles\nimport LeanVM.Guest.KernelLit\n\n" ++
-    s!"/-!\n# A program compiled from its pieces\n\n`{name}.py`'s traced functions, their values renamed as `guest-traced` renames the guest's, written out, and what placement and emission give of each; its\ncompilation by the back end (`lowerProgram`, `assemble`) is `{nameId}_compiles`, by\n`compiles_of_pieces` from the kernel's checks of its pieces: the composition the guest's\n`Backend/Guest/Compiled.lean` makes, on a program small enough to check in one module.\n-/\n\n" ++
+    "\nimport LeanVM.Compiler.Sound.Compiles\nimport LeanVM.Guest.KernelLit\n\n" ++
+    s!"/-!\n# A program compiled from its pieces\n\n`{name}.py`'s traced functions, their values renamed as `guest-traced` renames the guest's, written out, and what placement and emission give of each; its\ncompilation by the back end (`lowerProgram`, `assemble`) is `{nameId}_compiles`, by\n`compiles_of_pieces` from the kernel's checks of its pieces: the composition the guest's\n`Guest/Compiled/Compiled.lean` makes, on a program small enough to check in one module.\n-/\n\n" ++
     "set_option maxRecDepth 100000\n\n" ++
-    "namespace LeanVMTests.Guest.BackendPieces\n\nopen LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Backend\n\n" ++
+    "namespace LeanVMTests.Compiler.Pieces\n\nopen LeanVM.Guest LeanVM.Guest.Core LeanVM.Compiler\n\n" ++
     s!"/-- `{name}.py`, traced. -/\ndef prog : List TracedFn := {pList (P.map pTraced)}\n\n" ++
     s!"/-- What placement and emission give of its functions. -/\ndef outs : List FnOut := {pList (outs.map pFnOut)}\n\n" ++
     s!"/-- Its compiled functions. -/\ndef cfs : List CompiledFunction := {pList (cfs.map pCompiled)}\n\n" ++
@@ -557,8 +557,8 @@ def testFile (name : String) : IO String := do
     "    (by decide +kernel) jt (by decide +kernel) (by norm_num)\n" ++
     "  have hc : cfs = cfs.headD noFunction :: cfs.tail := rfl\n" ++
     "  rw [hc]\n  exact h\n\n" ++
-    "end LeanVMTests.Guest.BackendPieces\n\n" ++
-    s!"/-- info: 'LeanVMTests.Guest.BackendPieces.{nameId}_compiles' depends on axioms: [propext, Classical.choice, Quot.sound] -/\n#guard_msgs in\n#print axioms LeanVMTests.Guest.BackendPieces.{nameId}_compiles\n"
+    "end LeanVMTests.Compiler.Pieces\n\n" ++
+    s!"/-- info: 'LeanVMTests.Compiler.Pieces.{nameId}_compiles' depends on axioms: [propext, Classical.choice, Quot.sound] -/\n#guard_msgs in\n#print axioms LeanVMTests.Compiler.Pieces.{nameId}_compiles\n"
 
 /-! ## Cut pieces -/
 
@@ -860,7 +860,7 @@ def stateDef (j : Nat) (name prev : String) (prevSt st : St) (traceSize : Nat)
 def cutHeader (mod what : String) (imports : String) : String :=
   header mod what ++ "\nmodule\n\n" ++ imports ++
     "\nset_option Elab.async false\nset_option maxRecDepth 100000\nset_option linter.all false\n\n" ++
-    "namespace LeanVM.Guest.Backend.GuestPiece\n\nopen LeanVM.Guest.Core LeanVM.Guest.Backend\n\n@[expose] public section\n\n"
+    "namespace LeanVM.Guest.Compiled.GuestPiece\n\nopen LeanVM.Guest.Core LeanVM.Compiler\n\n@[expose] public section\n\n"
 
 /-- The chunk checks of a cut function are grouped in modules of this many. -/
 def chunkGroup : Nat := 4
@@ -957,18 +957,18 @@ def cutFiles (j : Nat) (tf : TracedFn) (t : Tables) (loops : Loops) (plan : CutP
     prevSt := st
   if !data.isEmpty then dataMods := dataMods.push data
   let dataImports := String.join ((List.range dataMods.size).map fun d =>
-    s!"public import LeanVM.Guest.Backend.Guest.Piece.C{j}D{d}\n")
+    s!"public import LeanVM.Guest.Compiled.Piece.C{j}D{d}\n")
   let dataFiles := dataMods.toList.zipIdx.map fun (text, d) =>
-    (s!"C{j}D{d}.lean", cutHeader s!"LeanVM.Guest.Backend.Guest.Piece.C{j}D{d}"
+    (s!"C{j}D{d}.lean", cutHeader s!"LeanVM.Guest.Compiled.Piece.C{j}D{d}"
       s!"What the walk of `{tf.core.name}` adds at its cuts, part {d}."
-      "public import LeanVM.Guest.Backend.Guest.Piece.Layout\npublic import LeanVM.Guest.Backend.Cut\n" ++
-      text ++ "end\nend LeanVM.Guest.Backend.GuestPiece\n")
+      "public import LeanVM.Guest.Compiled.Piece.Layout\npublic import LeanVM.Compiler.Cut\n" ++
+      text ++ "end\nend LeanVM.Guest.Compiled.GuestPiece\n")
   let ctxDef := s!"/-- The context `{tf.core.name}` is walked in, the length of its trace written out. -/\n" ++
     s!"noncomputable def ctx{j} : Ctx := \{ ctxOf loopsG sigsG {tfT} with fuel := {tf.trace.size} }\n\n"
-  let statesFile := cutHeader s!"LeanVM.Guest.Backend.Guest.Piece.C{j}"
+  let statesFile := cutHeader s!"LeanVM.Guest.Compiled.Piece.C{j}"
     s!"The states of the walk of `{tf.core.name}` at its cuts."
-    (dataImports ++ "public meta import LeanVM.Guest.Backend.StateLit\n") ++
-    ctxDef ++ states ++ "end\nend LeanVM.Guest.Backend.GuestPiece\n"
+    (dataImports ++ "public meta import LeanVM.Compiler.StateLit\n") ++
+    ctxDef ++ states ++ "end\nend LeanVM.Guest.Compiled.GuestPiece\n"
   let ctxThm := s!"kernel_rfl cut{j}_trace : {tfT}.trace = GuestData.traceOf{j}\n\n" ++
     s!"theorem cut{j}_ctx : ctxOf loopsG sigsG {tfT} = ctx{j} := by\n" ++
     s!"  refine ctxOf_fuel ?_\n  rw [cut{j}_trace]\n  unfold GuestData.traceOf{j}\n" ++
@@ -996,12 +996,12 @@ def cutFiles (j : Nat) (tf : TracedFn) (t : Tables) (loops : Loops) (plan : CutP
   if !cur.isEmpty then groups := groups.push cur.toList
   for m in List.range ((finals.size + chunkGroup - 1) / chunkGroup) do
     groups := groups.push ((finals.toList.drop (m * chunkGroup)).take chunkGroup)
-  let checkImports := s!"public import LeanVM.Guest.Backend.Guest.Piece.C{j}\npublic import Statement.Data.Bytecode\n" ++
+  let checkImports := s!"public import LeanVM.Guest.Compiled.Piece.C{j}\npublic import Statement.Data.Bytecode\n" ++
     (match extra with | some x => s!"public import {x.mod}\n" | none => "")
   let checkFiles := groups.toList.zipIdx.map fun (g, m) =>
-    (s!"C{j}P{m}.lean", cutHeader s!"LeanVM.Guest.Backend.Guest.Piece.C{j}P{m}"
+    (s!"C{j}P{m}.lean", cutHeader s!"LeanVM.Guest.Compiled.Piece.C{j}P{m}"
       s!"The kernel's checks of some of the parts of the piece of `{tf.core.name}`." checkImports ++
-      String.join g ++ "end\nend LeanVM.Guest.Backend.GuestPiece\n")
+      String.join g ++ "end\nend LeanVM.Guest.Compiled.GuestPiece\n")
   if limit.isSome then
     return ((s!"C{j}.lean", statesFile) :: dataFiles ++ checkFiles, "")
   let pat := " | ".intercalate ((List.range chunks).map fun _ => "_") ++ " | c"
@@ -1097,7 +1097,7 @@ def main (args : List String) : IO UInt32 := do
     | ["--extra", n, m] => pure (false, false, some (⟨n, m⟩ : Extra))
     | ["--check", "--extra", n, m] => pure (false, true, some ⟨n, m⟩)
     | ["cut", j, n] =>
-        -- The first `n` parts of function `j`'s cut piece, for measuring: written to `Guest/Piece/`.
+        -- The first `n` parts of function `j`'s cut piece, for measuring: written to `Piece/`.
         let P ← input
         let outs ← orThrow (outsOf P)
         let j := j.toNat!

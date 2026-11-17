@@ -26,7 +26,7 @@
 //! ([`unified_guest`]): the recursion placeholders depend on the inner bytecode
 //! size, and here the inner bytecode is this one. Its digest does not need a
 //! fixed point, riding the statement instead of the code. The compiler of record
-//! is the back end written in Lean (`formal/lean_vm/LeanVM/Guest/Backend`), whose
+//! is the back end written in Lean (`formal/lean_vm/LeanVM/Compiler`), whose
 //! output is checked in (`guests/lean_ethereum.compiled`); this workspace's
 //! zkDSL compiler is a differential test of it.
 //!

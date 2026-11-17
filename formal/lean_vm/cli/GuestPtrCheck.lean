@@ -1,4 +1,4 @@
-import LeanVM.Guest.Backend.Guest.Input
+import LeanVM.Guest.Compiled.Input
 import LeanVM.Guest.Interp
 
 /-!
@@ -27,8 +27,8 @@ prover chooses, which no check bounds.
 or a runtime offset.
 -/
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Backend
-  LeanVM.Guest.Backend.GuestInput
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Compiler LeanVM.Guest.Compiled
+  LeanVM.Guest.Compiled.GuestInput
 
 namespace PtrCheck
 

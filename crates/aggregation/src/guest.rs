@@ -13,7 +13,7 @@ use std::sync::LazyLock;
 /// The aggregation guest's zkDSL source.
 pub(super) const GUEST_SOURCE: &str = include_str!("../../../guests/lean_ethereum.py");
 
-/// The guest compiled by the back end written in Lean (`formal/lean_vm/LeanVM/Guest/Backend`), at the fixed point on
+/// The guest compiled by the back end written in Lean (`formal/lean_vm/LeanVM/Compiler`), at the fixed point on
 /// its own size: an `input` line (the [`input_digest`] it was compiled from), an `iv` line (its Fiat-Shamir IV), then
 /// the program in `isa`'s line format, source lines included, which a failure report names.
 /// `formal/lean_vm/scripts/guest-artifact` writes it.

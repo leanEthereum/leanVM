@@ -15,7 +15,7 @@ public import LeanVM.Guest.CoreLemmas
 `Program.Rel` relates a callee's argument and return words when *some* valuation of its values
 satisfies its body. The located relation `Program.RelL rd vf A` asks instead for the valuation
 `vf f fp` of a frame `fp` with `A f fp args rets`. That is what the walk of the guest's run gives
-(`Backend.World.vf`: each value is the word of its place), so whatever a proof reads off
+(`Compiler.World.vf`: each value is the word of its place), so whatever a proof reads off
 a callee's valuation is a function of the memory and of the callee's frame.
 
 * `relL_le_rel`: the located relation implies the relation;

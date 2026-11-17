@@ -1,6 +1,6 @@
-import LeanVM.Guest.Backend.Guest.Input
-import LeanVM.Guest.Backend.Complete.Scoped
-import LeanVM.Guest.Backend.Complete.Cells
+import LeanVM.Guest.Compiled.Input
+import LeanVM.Compiler.Complete.Scoped
+import LeanVM.Compiler.Complete.Cells
 
 /-!
 # `guest-cplframe`: the placement-side completeness hypotheses on the guest
@@ -12,8 +12,8 @@ decides `Complete.scopedB`, the hypothesis the placement-side completeness theor
 traced function, and reports every function that fails it with the walk's reason.
 -/
 
-open LeanVM.Guest.Core LeanVM.Guest.Backend LeanVM.Guest.Backend.Complete
-  LeanVM.Guest.Backend.GuestInput
+open LeanVM.Guest.Core LeanVM.Compiler LeanVM.Guest.Compiled LeanVM.Compiler.Complete
+  LeanVM.Guest.Compiled.GuestInput
 
 /-- A value. -/
 def vv (k : Nat) : V := ⟨[], 1, k⟩

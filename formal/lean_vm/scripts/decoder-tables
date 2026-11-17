@@ -13,7 +13,7 @@ Read off the generated sources (the core IR through `scripts/coredata.py`), an e
 `lake env lean scripts/decoder-tables-entries.lean` prints after `lake build LeanVM.Guest.CoreData`,
 as `scripts/regen-guest.sh` runs it, or `decoder-tables-inputs.lean` once the tables are built) and
 the back end's tables (`--backend FILE`, which `lake exe guest-tables --decoder-inputs FILE`
-writes); `Cost/Decoder/GuestTablesCheck.lean` and `Backend/Guest/DecoderTables.lean` prove
+writes); `Cost/Decoder/GuestTablesCheck.lean` and `Guest/Compiled/DecoderTables.lean` prove
 `GuestTables.lean` and the registered flags equal to their definitions in the kernel. `python3 -I scripts/decoder-tables --entries FILE --backend FILE`, from any
 directory (the paths are lean_vm's); `--check` fails when a file differs (`check-all.sh` and the CI
 run it).
@@ -88,7 +88,7 @@ module
 
 For each of the guest's {N} compiled functions `j`: its entry pc, its number of arguments and of
 return words. Literals of the decoder program (`Rule.literalNats`); `GuestTablesCheck.lean` proves
-them equal to `(fnOf j).entryPc` and `(coreOf j).params.length`, `Backend/Guest/DecoderTables.lean`
+them equal to `(fnOf j).entryPc` and `(coreOf j).params.length`, `Guest/Compiled/DecoderTables.lean`
 the return counts to the back end's input's.
 -/
 

@@ -10,7 +10,7 @@ module
 
 public import LeanVM.Guest.Source
 public import LeanVM.Guest.Core
-public import LeanVM.Guest.Backend.Trace
+public import LeanVM.Compiler.Trace
 
 /-!
 # Expansion
@@ -65,7 +65,7 @@ after another (the guest's `fs_perm_pending`, four loads in a row): there the ex
 them into a fresh run, and the placement puts each copy in the cell it copies.
 
 The expansion also records what the back end needs and the core IR does not keep: the allocation
-trace (`Backend.Event`, `Backend/Trace.lean`), each value made with its `Kind`, each statement
+trace (`Compiler.Event`, `Compiler/Trace.lean`), each value made with its `Kind`, each statement
 emitted, each branch and arm entered and left, and what the core IR drops (an address used as a
 value, an address shifted, a chained `match`, a hint's offset); and beside it the source line of
 each statement begun (`St.lines`). Neither is read to decide a statement: `expandProgramTraced` is
@@ -76,7 +76,7 @@ namespace LeanVM.Guest.Expand
 
 open LeanVM.Parameters LeanVM.Guest.Source
 open LeanVM.Guest.Core (V Seg Atom Hint Dest)
-open LeanVM.Guest.Backend (Kind Event)
+open LeanVM.Compiler (Kind Event)
 
 @[expose] public section
 
@@ -1941,8 +1941,8 @@ def specializeFn (f : Func) (constArgs : List Expr) : Except String Func := do
 /-- The compiler's queue (`compile`), at most `fuel` functions, each with its trace and its source
 lines. -/
 def expandQueue (p : Program) : Nat → Nat → Array Func → Nat →
-    Array (Backend.TracedFn × Array (Nat × Nat)) →
-    Except String (Array (Backend.TracedFn × Array (Nat × Nat)))
+    Array (Compiler.TracedFn × Array (Nat × Nat)) →
+    Except String (Array (Compiler.TracedFn × Array (Nat × Nat)))
   | 0, _, _, _, _ => throw "too many functions"
   | budget + 1, i, queue, loopCtr, out =>
       match queue[i]? with
@@ -1952,13 +1952,13 @@ def expandQueue (p : Program) : Nat → Nat → Array Func → Nat →
           else do
             let (fn, queue, loopCtr, trace, lines) ← expandFn p f queue loopCtr
             expandQueue p budget (i + 1) queue loopCtr (out.push
-              (⟨fn, trace, (f.returnShapes.map Shape.cells).sum, Backend.loopSource f⟩, lines))
+              (⟨fn, trace, (f.returnShapes.map Shape.cells).sum, Compiler.loopSource f⟩, lines))
 
 /-- Every function the compiler lowers, in its order, `main` first: its core function, its trace
-and what the back end reads of its source as queued (`Backend.TracedFn`), and the source lines
-(`St.lines`), which only the line pass reads (`Backend.Lines`). -/
+and what the back end reads of its source as queued (`Compiler.TracedFn`), and the source lines
+(`St.lines`), which only the line pass reads (`Compiler.Lines`). -/
 def expandProgramLines (p : Program) :
-    Except String (List (Backend.TracedFn × Array (Nat × Nat))) := do
+    Except String (List (Compiler.TracedFn × Array (Nat × Nat))) := do
   let some main := p.funcs.find? (·.name == "main") | throw "program needs a `main`"
   if main.hasConstParams then throw "main cannot take Const parameters"
   if main.inline then throw "main cannot be `@inline`"
@@ -1966,7 +1966,7 @@ def expandProgramLines (p : Program) :
   return (← expandQueue p 1000000 0 queue 0 #[]).toList
 
 /-- Every function the compiler lowers, in its order, with its trace: the back end's input. -/
-def expandProgramTraced (p : Program) : Except String (List Backend.TracedFn) :=
+def expandProgramTraced (p : Program) : Except String (List Compiler.TracedFn) :=
   (expandProgramLines p).map (·.map (·.1))
 
 /-- Every function the compiler lowers, in its order: `main` first. -/

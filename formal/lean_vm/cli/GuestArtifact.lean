@@ -1,5 +1,5 @@
 import LeanVM.Guest.Data.Source
-import LeanVM.Guest.Backend.Lines
+import LeanVM.Compiler.Lines
 import Statement.Keccak
 import Statement.LeanVmVerifier
 
@@ -9,12 +9,12 @@ import Statement.LeanVmVerifier
 Run from `lean_vm`.
 
 * `lake exe guest-artifact FILE` compiles the guest's source (`Data.guest`, its placeholders at
-  `Data.bytecodeLog`) with `Backend.compile` and writes `FILE`, the repository's
+  `Data.bytecodeLog`) with `Compiler.compile` and writes `FILE`, the repository's
   `guests/lean_ethereum.compiled`: an `input` line, `Data.inputDigest`, the digest of the source
   and the placeholders it was compiled from; an `iv` line, the program's Fiat-Shamir IV
   (`fiatShamirIv` of its `bytecodeWords`, the statement's `deployedSeed`); then the program in the
-  line format of `crates/isa/src/text.rs` (`Backend.render`), and the source line of each
-  instruction (`L` lines, `Backend.renderLines`, from the line pass `Backend.Lines.compileLines`).
+  line format of `crates/isa/src/text.rs` (`Compiler.render`), and the source line of each
+  instruction (`L` lines, `Compiler.renderLines`, from the line pass `Compiler.Lines.compileLines`).
   `crates/aggregation/src/guest.rs` loads it and checks both header lines against what it
   compiles and proves.
 * `lake exe guest-artifact FILE --check` writes nothing and fails when `FILE` differs.
@@ -26,7 +26,7 @@ the program's log size is printed as `log size N`, and the exit code is `3`;
 -/
 
 open LeanVM LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Guest
-  LeanVM.Guest.Backend
+  LeanVM.Compiler
 
 namespace GuestArtifact
 

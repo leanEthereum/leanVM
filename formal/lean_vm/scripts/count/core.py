@@ -165,7 +165,7 @@ def load(D, cache=None):
 def pows():
     """The powers `g^e`, `e < 2^20`, by their word's limb 0 to `e`: `g` is `X` in `GF(2^64)`, so
     `g^(e+1)` is `g^e` shifted by one bit, reduced by `X^64 = X^4 + X^3 + X + 1` (`27`, the entry
-    `g^64` of `Backend/Pow.lean`'s `gtab`)."""
+    `g^64` of `Compiler/Pow.lean`'s `gtab`)."""
     out, x = {}, 1
     for e in range(1 << 20):
         out.setdefault(x, e)

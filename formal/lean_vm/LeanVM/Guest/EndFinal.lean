@@ -54,7 +54,7 @@ alone, `tests/LeanVMTests/Guest/DecodeNoChoice.lean`, which follows every defini
   or holds an explicit Keccak-256 collision.
 
 They rest on B2, the back end's correctness at the guest (`End.mainBodyL_of`, `End.globSpec`:
-`Backend.contracts` given `Backend.guest_compiles`), the places decoded from the table
+`Compiler.contracts` given `Compiled.guest_compiles`), the places decoded from the table
 (`Located.placesAgree`), and B1 (`B1.Main.main_sound_V_of_sub` with
 `VerifySub.verify_sub_sound_w`).
 -/
