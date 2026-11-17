@@ -159,21 +159,20 @@ theorem vi_require {c : Prop} [Decidable c] {st st' : TSt} {u : Unit}
 /-! ## Sumchecks -/
 
 /-- **The pack rounds, read back.** -/
-theorem vi_pack : ∀ (rs : List E) (v sc : E) (s : Fs) (zs : List E) (os : List (List Opening))
-    (R : List (Digest × ℕ × ℕ)) (res : E × E × List E) (st' : TSt),
-    runT (keccakPackRounds rs v sc) ⟨s, none, zs, os, R⟩ = some (res, st') →
+theorem vi_pack : ∀ (rs : List E) (v : E) (s : Fs) (zs : List E) (os : List (List Opening))
+    (R : List (Digest × ℕ × ℕ)) (res : E × List E) (st' : TSt),
+    runT (keccakPackRounds rs v) ⟨s, none, zs, os, R⟩ = some (res, st') →
       ∃ (ms : List (E × E)) (rest : List E), ms.length = rs.length ∧
-        zs = ms.flatMap (fun m ↦ [m.1, m.2]) ++ rest ∧ res = (packRunF rs ms v sc s).1 ∧
-        st' = ⟨(packRunF rs ms v sc s).2, none, rest, os, R⟩
-  | [], v, sc, s, zs, os, R, res, st', h => by
-    obtain ⟨rfl, rfl⟩ := vi_pure (a := ((v, sc, []) : E × E × List E)) h
+        zs = ms.flatMap (fun m ↦ [m.1, m.2]) ++ rest ∧ res = (packRunF rs ms v s).1 ∧
+        st' = ⟨(packRunF rs ms v s).2, none, rest, os, R⟩
+  | [], v, s, zs, os, R, res, st', h => by
+    obtain ⟨rfl, rfl⟩ := vi_pure (a := ((v, []) : E × List E)) h
     exact ⟨[], zs, rfl, rfl, rfl, rfl⟩
-  | r :: rs, v, sc, s, zs, os, R, res, st', h => by
-    have key : keccakPackRounds (r :: rs) v sc = (sumcheckRoundPoly 3 v (some r) >>= fun message ↦
+  | r :: rs, v, s, zs, os, R, res, st', h => by
+    have key : keccakPackRounds (r :: rs) v = (sumcheckRoundPoly 3 v (some r) >>= fun message ↦
         VerifierProgram.sampleChallenge >>= fun challenge ↦
-          keccakPackRounds rs ((1 + r + challenge) * polyEval message challenge)
-            (sc * (1 + r + challenge)) >>= fun x ↦
-            (pure (x.1, x.2.1, challenge :: x.2.2) : VerifierProgram (E × E × List E))) := rfl
+          keccakPackRounds rs (polyEval message challenge) >>= fun x ↦
+            (pure (x.1, challenge :: x.2) : VerifierProgram (E × List E))) := rfl
     rw [key] at h
     obtain ⟨msg, st1, h1, h2⟩ := vi_bind h
     simp only [sumcheckRoundPoly] at h1
@@ -183,7 +182,7 @@ theorem vi_pack : ∀ (rs : List E) (v sc : E) (s : Fs) (zs : List E) (os : List
     obtain ⟨ch, st2, h5, h6⟩ := vi_bind h2
     obtain ⟨rfl, rfl⟩ := vi_sampleE' h5
     obtain ⟨r', st3, h7, h8⟩ := vi_bind h6
-    obtain ⟨ms, rest, hml, hz', hr, hst⟩ := vi_pack rs _ _ _ _ _ _ _ _ h7
+    obtain ⟨ms, rest, hml, hz', hr, hst⟩ := vi_pack rs _ _ _ _ _ _ _ h7
     obtain ⟨rfl, rfl⟩ := vi_pure h8
     have hl2 : tail.length = 2 := by simpa using hl
     obtain ⟨g1, g2, rfl⟩ := List.length_eq_two.mp hl2
@@ -289,7 +288,8 @@ theorem vi_layer {L step : ℕ} {c c' : KeccakClaim} {s : Fs} {zs : List E} {os 
       LayerFinal c s product n packMsgs localMsgs t ∧
       c' = layerClaim c s product n packMsgs localMsgs t ∧
       st' = ⟨(layerBeta c s product n packMsgs localMsgs t).2, none, rest, os, R⟩ := by
-  unfold verifyKeccakLayer at h
+  rw [verifyKeccakLayer_packed] at h
+  unfold verifyKeccakLayerPacked at h
   obtain ⟨product, st1, h1, h2⟩ := vi_bind h
   obtain ⟨rest1, hpl, hz1, rfl⟩ := vi_readN _ _ _ _ _ _ _ h1
   obtain ⟨u, st2, h3, h4⟩ := vi_bind h2
@@ -297,8 +297,8 @@ theorem vi_layer {L step : ℕ} {c c' : KeccakClaim} {s : Fs} {zs : List E} {os 
   obtain ⟨n, rest2, rfl, hgr, h6⟩ := vi_grindSample
     (by rw [show grindingBits (productBits - 1) = 3 from sGrindBits_eq]; decide) h4
   obtain ⟨res, st4, h7, h8⟩ := vi_bind h6
-  obtain ⟨packMsgs, rest3, hpm, hz2, hr, rfl⟩ := vi_pack _ _ _ _ _ _ _ _ _ h7
-  obtain ⟨vL, scL, chs⟩ := res
+  obtain ⟨packMsgs, rest3, hpm, hz2, hr, rfl⟩ := vi_pack _ _ _ _ _ _ _ _ h7
+  obtain ⟨vL, chs⟩ := res
   obtain ⟨res2, st5, h9, h10⟩ := vi_bind h8
   obtain ⟨localMsgs, rest4, hlm, hz3, hr2, rfl⟩ := vi_local _ _ _ _ _ _ _ _ h9
   obtain ⟨locPt, vR⟩ := res2
@@ -314,7 +314,7 @@ theorem vi_layer {L step : ℕ} {c c' : KeccakClaim} {s : Fs} {zs : List E} {os 
   obtain ⟨rfl, rfl⟩ := vi_sampleE' h15
   obtain ⟨rfl, rfl⟩ := vi_pure h16
   simp only [Prod.ext_iff] at hr hr2
-  obtain ⟨rfl, rfl, rfl⟩ := hr
+  obtain ⟨rfl, rfl⟩ := hr
   obtain ⟨rfl, rfl⟩ := hr2
   refine ⟨product, n, packMsgs, localMsgs, (t0, t1, t2), rest5, hpl, hgr, hpm, hlm, ?_, hproj,
     hfin, rfl, rfl⟩

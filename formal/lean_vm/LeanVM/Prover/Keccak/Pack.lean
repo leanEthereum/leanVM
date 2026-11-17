@@ -17,10 +17,10 @@ at `s` extended multilinearly, its first coordinates bound to `acc`:
 `st.get z j = Ŝ_j(acc ++ z)` (`Shat`), and the coordinates of `r` still to come.
 
 * `packInv_start`: the table built from the masks and the instance weights;
-* `packRound_eval`: the round polynomial evaluates as `scale · FP r (acc ++ [x])`;
+* `packRound_eval`: the round polynomial evaluates as `FP r (acc ++ [x])`;
 * `packInv_fold`: the fold keeps the invariant;
 * `corr_pack`: **the rounds make the moves of `hPack (FP T P s w r)`**, ending with the same
-  scale and challenges.
+  challenges.
 -/
 
 namespace LeanVM.Prover.KeccakGkr
@@ -61,14 +61,14 @@ theorem packInv_row {acc : List E} {st : PackState} (h : PackInv T P s r acc st)
 
 theorem length_packRound (κ : E) (wA : Array E) (st : PackState) :
     (packRound κ wA st).length = 3 := by
-  rw [packRound, length_scaleCoeffs]
+  rw [packRound]
   exact (polyEval_sumCoeffs 3 _ _ (fun _ _ ↦ by
     rw [length_scaleCoeffs]; exact (polyEval_sumCoeffs 3 _ _ (fun _ _ ↦ rfl) 0).1) 0).1
 
 /-- **A pack round's polynomial** evaluates as the specification's family. -/
 theorem packRound_eval (hr : r.length = P + 1) {acc : List E} {st : PackState}
     (h : PackInv T P s r acc st) (hlt : acc.length < P + 1) (x : E) :
-    polyEval (packRound (kappaAt s) w.toArray st) x = st.scale * FP T P s w r (acc ++ [x]) := by
+    polyEval (packRound (kappaAt s) w.toArray st) x = FP T P s w r (acc ++ [x]) := by
   have hrest := h.2.1
   have hrl : st.rest.length - 1 = P + 1 - (acc.length + 1) := by
     rw [hrest, List.length_drop, hr]; omega
@@ -77,10 +77,10 @@ theorem packRound_eval (hr : r.length = P + 1) {acc : List E} {st : PackState}
     rw [List.length_drop, hr]
   rw [packRound]
   simp only
-  rw [polyEval_scaleCoeffs, (polyEval_sumCoeffs 3 _ _ (fun _ _ ↦ by
+  rw [(polyEval_sumCoeffs 3 _ _ (fun _ _ ↦ by
     rw [length_scaleCoeffs]; exact (polyEval_sumCoeffs 3 _ _ (fun _ _ ↦ rfl) 0).1) x).2, hrl, FP,
     List.length_append, List.length_singleton]
-  refine congrArg (st.scale * ·) (Finset.sum_congr rfl fun z hz ↦ ?_)
+  refine Finset.sum_congr rfl fun z hz ↦ ?_
   have hz' := Finset.mem_range.1 hz
   rw [polyEval_scaleCoeffs, (polyEval_sumCoeffs 3 _ _ (fun _ _ ↦ rfl) x).2, htail,
     eqTable_getD_lt _ (by rw [hdl]; exact hz'), gt]
@@ -108,15 +108,15 @@ theorem packInv_fold (hr : r.length = P + 1) {acc : List E} {st : PackState}
   rw [array_getD_ofFn_lt _ (by rw [hrl]; exact hz), array_getD_ofFn_lt _ hj, List.append_assoc,
     List.singleton_append, packInv_row h hlt hz hj]
 
-/-- **The pack rounds make the moves of `hPack`**, and end with its scale and challenges. -/
+/-- **The pack rounds make the moves of `hPack`**, and end with its challenges. -/
 theorem corr_pack (hr : r.length = P + 1) : ∀ (rs acc : List E) (st : PackState),
     PackInv T P s r acc st → st.rest = rs →
-    Corr (fun a b ↦ b.1 = a.2.scale ∧ b.2 = a.1 ∧ a.1.length = rs.length ∧
+    Corr (fun a b ↦ b = a.1 ∧ a.1.length = rs.length ∧
         PackInv T P s r (acc ++ a.1) a.2)
       (sumcheckBy (packRound (kappaAt s) w.toArray) packFold (rs.map some) st)
-      (hPack (FP T P s w r) rs acc st.scale)
+      (hPack (FP T P s w r) rs acc)
   | [], acc, st, h, _ => by
-    exact corr_ret ⟨rfl, rfl, rfl, by simpa using h⟩
+    exact corr_ret ⟨rfl, rfl, by simpa using h⟩
   | rk :: rs, acc, st, h, hrs => by
     have hlt : acc.length < P + 1 := by
       have h1 := h.2.1
@@ -124,18 +124,16 @@ theorem corr_pack (hr : r.length = P + 1) : ∀ (rs acc : List E) (st : PackStat
       by_contra hc
       rw [List.drop_eq_nil_of_le (by omega)] at h1
       exact List.cons_ne_nil _ _ h1
-    have hco : coeffsOf 2 (fun x ↦ st.scale * FP T P s w r (acc ++ [x])) =
+    have hco : coeffsOf 2 (fun x ↦ FP T P s w r (acc ++ [x])) =
         packRound (kappaAt s) w.toArray st :=
       coeffsOf_eq (length_packRound _ _ _) (by norm_num) fun x ↦ packRound_eval hr h hlt x
     simp only [List.map_cons, sumcheckBy, hPack, hco, ← wire_eq, Script.bind_assoc',
       roundGrind_eq (length_packRound _ _ _)]
     refine Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun _ ↦ Corr.bind_same _ fun c ↦ ?_
-    have hsc : st.scale * (1 + rk + c) = (packFold st c).scale := by simp [packFold, hrs]
-    rw [hsc]
     refine Corr.bind (fun a b hab ↦ ?_) _ _ (corr_pack hr rs (acc ++ [c]) (packFold st c)
       (packInv_fold hr h hlt c) (by simp [packFold, hrs]))
-    obtain ⟨h1, h2, h3, h4⟩ := hab
-    exact corr_ret ⟨h1, by rw [h2], by simp [h3], by simpa using h4⟩
+    obtain ⟨h1, h2, h3⟩ := hab
+    exact corr_ret ⟨by rw [h1], by simp [h2], by simpa using h3⟩
 
 /-- **The table before the pack rounds**: the packs' states at `s` from the masks. -/
 theorem packInv_start {col' col : ℕ → K} (hcol : ColAgree P col' col) {d : ℕ} (hd : d < 12)

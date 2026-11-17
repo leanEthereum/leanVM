@@ -82,8 +82,8 @@ theorem xs_length (hpl : D.product.length = 47) (hpm : D.packMsgs.length = D.y)
 theorem recWords_rec {base cur : E} (h : ReadsAt rd base (D.recWords first cur)) {j : ℕ}
     (hj : j < 16) (hjy : j ≤ D.y / 8 + D.y % 8) :
     RoundRec rd (base * gen ^ j) 0 (D.run first (D.recK j)).2.cap (D.recCur cur j)
-      (D.run first (D.recK j)).1.1 (D.run first (D.recK j)).1.2.1 := by
-  have field : ∀ f < 8, LoadHolds rd (base * gen ^ j) (16 * f) (D.recField first cur f j) := by
+      (D.run first (D.recK j)).1.1 := by
+  have field : ∀ f < 7, LoadHolds rd (base * gen ^ j) (16 * f) (D.recField first cur f j) := by
     intro f hf
     rw [loadHolds_mul_gen_pow]
     have hl : j + 16 * f < (D.recWords first cur).length := by simp [recWords]; omega
@@ -93,7 +93,7 @@ theorem recWords_rec {base cur : E} (h : ReadsAt rd base (D.recWords first cur))
     simp only [hjy, ↓reduceIte] at this
     exact this
   obtain ⟨hcl, -⟩ := run_cap (D := D) (first := first) (D.recK j)
-  refine ⟨⟨hcl, fun i hi ↦ ?_⟩, ?_, ?_, ?_⟩
+  refine ⟨⟨hcl, fun i hi ↦ ?_⟩, ?_, ?_⟩
   · have := field i (by omega)
     simp only [recField, show i < 5 by omega, ↓reduceIte] at this
     rw [List.getD_eq_getElem _ _ hi] at this
@@ -102,28 +102,25 @@ theorem recWords_rec {base cur : E} (h : ReadsAt rd base (D.recWords first cur))
     simpa [recField, krCap] using this
   · have := field 6 (by norm_num)
     simpa [recField, krCap] using this
-  · have := field 7 (by norm_num)
-    simpa [recField, krCap] using this
 
 /-- A record at `rec·g^(j+1)` is the one written at offset `1` from `rec·g^j`. -/
-theorem roundRec_pred {rec : E} {j : ℕ} {cap : List E} {cur cl sc : E}
-    (h : RoundRec rd (rec * gen ^ (j + 1)) 0 cap cur cl sc) :
-    RoundRec rd (rec * gen ^ j) 1 cap cur cl sc := by
-  obtain ⟨⟨hl, hc⟩, h1, h2, h3⟩ := h
-  refine ⟨⟨hl, fun i hi => ?_⟩, ?_, ?_, ?_⟩
+theorem roundRec_pred {rec : E} {j : ℕ} {cap : List E} {cur cl : E}
+    (h : RoundRec rd (rec * gen ^ (j + 1)) 0 cap cur cl) :
+    RoundRec rd (rec * gen ^ j) 1 cap cur cl := by
+  obtain ⟨⟨hl, hc⟩, h1, h2⟩ := h
+  refine ⟨⟨hl, fun i hi => ?_⟩, ?_, ?_⟩
   · have := hc i hi
     rw [show 1 + i * krCap = 1 + (0 + i * krCap) by omega, loadHolds_rec_succ]
     exact this
   · rw [show 1 + 5 * krCap = 1 + (0 + 5 * krCap) by omega, loadHolds_rec_succ]; exact h1
   · rw [show 1 + 6 * krCap = 1 + (0 + 6 * krCap) by omega, loadHolds_rec_succ]; exact h2
-  · rw [show 1 + 7 * krCap = 1 + (0 + 7 * krCap) by omega, loadHolds_rec_succ]; exact h3
 
 /-- The challenges of rounds `k .. k + n`, as the continuation's. -/
 theorem chs_cont (hpm : D.packMsgs.length = D.y) {k n : ℕ} (hk : k + n ≤ D.y) {q : ℕ}
     (hq : q < n) :
     (D.chs first).getD (k + q) 0 = (packRunF ((D.c.point.drop k).take n)
-      ((D.packMsgs.drop k).take n) (D.run first k).1.1 (D.run first k).1.2.1
-      ⟨(D.run first k).2.cap, []⟩).1.2.2.getD q 0 := by
+      ((D.packMsgs.drop k).take n) (D.run first k).1.1
+      ⟨(D.run first k).2.cap, []⟩).1.2.getD q 0 := by
   rw [run_chsD (D := D) (first := first) hpm hk (by omega), run_add hpm hk]
   simp only [cont]
   rw [List.getD_append_right _ _ _ _ (by rw [run_chs_length hpm (by omega)]; omega),
@@ -146,10 +143,10 @@ theorem pack8_honest (hpl : D.product.length = 47) (hpm : D.packMsgs.length = D.
   have hrsl : ((D.c.point.drop (8 * j)).take 8).length = 8 := by simp; omega
   have hmsl : ((D.packMsgs.drop (8 * j)).take 8).length = 8 := by simp; omega
   have hPl := packRunF_chs_length ((D.c.point.drop (8 * j)).take 8)
-    ((D.packMsgs.drop (8 * j)).take 8) (D.run first (8 * j)).1.1 (D.run first (8 * j)).1.2.1
+    ((D.packMsgs.drop (8 * j)).take 8) (D.run first (8 * j)).1.1
     ⟨(D.run first (8 * j)).2.cap, []⟩ (by rw [hrsl, hmsl])
-  refine ⟨_, D.recCur cur j, _, _, _, _, _, _, _, _, by simpa [recCur, hk0] using r0,
-    hrsl, ?_, ?_, eqChain_of_packRunF _ _ _ _ _ (by rw [hrsl, hmsl]), ?_, ?_⟩
+  refine ⟨_, D.recCur cur j, _, _, _, _, _, _, by simpa [recCur, hk0] using r0,
+    hrsl, ?_, ?_, eqChain_of_packRunF _ _ _ _ (by rw [hrsl, hmsl]), ?_, ?_⟩
   · intro k hk
     rw [hrsl] at hk
     rw [← pow_mul, show j * 8 = 8 * j by ring, loadHolds_mul_gen_pow]
@@ -212,7 +209,7 @@ theorem packRem_honest (hpl : D.product.length = 47) (hpm : D.packMsgs.length = 
   obtain ⟨g1e, g2e⟩ := xs_packReads hpl hxs (k := k) (by omega)
   rw [← List.getD_eq_getElem (d := (0, 0))] at g1e g2e
   refine ⟨(D.run first k).2.cap, D.recCur cur (D.y / 8 + i), (D.run first k).1.1,
-    (D.run first k).1.2.1, D.c.point.getD k 0, (D.packMsgs.getD k (0, 0)).1,
+    D.c.point.getD k 0, (D.packMsgs.getD k (0, 0)).1,
     (D.packMsgs.getD k (0, 0)).2, by rw [hrec']; simpa [recCur, hk0] using r0, ?_, ?_, ?_, ?_⟩
   · rw [hgk, loadHolds_mul_gen_pow, Nat.add_zero]
     exact kk_readsAt_getD hpp (by omega)

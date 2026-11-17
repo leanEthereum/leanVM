@@ -18,7 +18,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest
 
 example : Data.functions.length = fn_count% := by decide +kernel
 
-example : Data.codeLen = 456124 := rfl
+example : Data.codeLen = 456056 := rfl
 
 /-- `sp_wots` is function 20, the largest after `__loop2` (function 37, 114219 instructions). -/
 theorem spWots_mem : Data.f20 ∈ Data.functions := mem_functions (j := 20) rfl

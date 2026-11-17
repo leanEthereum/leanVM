@@ -34,46 +34,46 @@ variable {C : CallRel} {rd : Reader} {S : List Atom} {w : ℕ → E} {σ : Val}
 
 /-- The tail up to the squeeze of `β`. -/
 def tailP1 (o W wv : ℕ) : List Stmt :=
-  [.atom (.copy (.n W) (.n wv)), .atom (.mul (.n (W + 1)) (.n (o + 747)) (.n W)),
-    .atom (.mul (.n (W + 2)) (.n (o + 625)) (.n (o + 1112))),
-    .atom (.add (.n (W + 3)) (.n (o + 625)) (.n (o + 1115))),
-    .atom (.mul (.n (W + 4)) (.n (W + 3)) (.n (o + 1118))),
-    .atom (.add (.n (W + 5)) (.n (W + 2)) (.n (W + 4))),
-    .atom (.mul (.n (W + 6)) (.n (W + 1)) (.n (W + 5))),
-    .atom (.assertEq (.n (W + 6)) (.n (o + 1111))),
-    .atom (.const (.n (W + 7)) (word 0 0)), .atom (.const (.n (W + 8)) (word 0 0)),
-    keccakA ([.n (o + 1113), .n (o + 1114), .n (o + 1116), .n (o + 1117), .n (o + 1119), .n (o + 1120), .n (W + 7), .n (W + 8)] ++
-      cap5 (o + 1098)) ((List.range 13).map fun k ↦ .n (W + 9 + k))]
+  [.atom (.copy (.n W) (.n wv)),
+    .atom (.mul (.n (W + 1)) (.n (o + 625)) (.n (o + 1110))),
+    .atom (.add (.n (W + 2)) (.n (o + 625)) (.n (o + 1113))),
+    .atom (.mul (.n (W + 3)) (.n (W + 2)) (.n (o + 1116))),
+    .atom (.add (.n (W + 4)) (.n (W + 1)) (.n (W + 3))),
+    .atom (.mul (.n (W + 5)) (.n W) (.n (W + 4))),
+    .atom (.assertEq (.n (W + 5)) (.n (o + 1109))),
+    .atom (.const (.n (W + 6)) (word 0 0)), .atom (.const (.n (W + 7)) (word 0 0)),
+    keccakA ([.n (o + 1111), .n (o + 1112), .n (o + 1114), .n (o + 1115), .n (o + 1117), .n (o + 1118), .n (W + 6), .n (W + 7)] ++
+      cap5 (o + 1096)) ((List.range 13).map fun k ↦ .n (W + 8 + k))]
 
 /-- The next claim's value and pointers. -/
 def tailP2 (o W : ℕ) : List Stmt :=
-  [.atom (.mul (.n (W + 23)) (.n (W + 22)) (.n (o + 1118))),
-    .atom (.add (.n (W + 24)) (.n (o + 1115)) (.n (W + 23))),
-    .atom (.mul (.n (W + 25)) (.n (W + 22)) (.n (W + 24))),
-    .atom (.add (.n (W + 26)) (.n (o + 1112)) (.n (W + 25))),
-    .atom (.load (.n (W + 26)) (.n 12) 0), .atom (.load (.n (o + 719)) (.n 12) 2),
-    .atom (.load (.n (o + 748)) (.n 12) 4), .atom (.hint (.alloc (.n (W + 27)) 25))]
+  [.atom (.mul (.n (W + 22)) (.n (W + 21)) (.n (o + 1116))),
+    .atom (.add (.n (W + 23)) (.n (o + 1113)) (.n (W + 22))),
+    .atom (.mul (.n (W + 24)) (.n (W + 21)) (.n (W + 23))),
+    .atom (.add (.n (W + 25)) (.n (o + 1110)) (.n (W + 24))),
+    .atom (.load (.n (W + 25)) (.n 12) 0), .atom (.load (.n (o + 719)) (.n 12) 2),
+    .atom (.load (.n (o + 746)) (.n 12) 4), .atom (.hint (.alloc (.n (W + 26)) 25))]
 
 /-- The local point's slice weights (its first five coordinates). -/
-def tailEqf (o W : ℕ) : List Stmt := eqfT (.n (o + 748)) 0 5 32 (sliceB W)
+def tailEqf (o W : ℕ) : List Stmt := eqfT (.n (o + 746)) 0 5 32 (sliceB W)
 
 /-- The top coordinate, `1 + top`, the flips' buffer. -/
 def tailTop (o W : ℕ) : List Stmt :=
-  [.atom (.load (.n (topV W)) (.n (o + 748)) 5), .atom (.const (.n (topV W + 1)) (word 1 0)),
+  [.atom (.load (.n (topV W)) (.n (o + 746)) 5), .atom (.const (.n (topV W + 1)) (word 1 0)),
     .atom (.add (.n (topV W + 2)) (.n (topV W + 1)) (.n (topV W))),
     .atom (.hint (.alloc (.n (topV W + 3)) 7))]
 
 /-- The return's copies. -/
 def tailP3 (o W : ℕ) : List Stmt :=
-  (List.range 5).map (fun j ↦ .atom (.copy (.n (topV W + 305 + j)) (.n (W + 17 + j)))) ++
+  (List.range 5).map (fun j ↦ .atom (.copy (.n (topV W + 305 + j)) (.n (W + 16 + j)))) ++
   [.atom (.const (.n (topV W + 310)) (word 68719476736 0)),
-    .atom (.mul (.n (topV W + 311)) (.n (o + 745)) (.n (topV W + 310))),
+    .atom (.mul (.n (topV W + 311)) (.n (o + 744)) (.n (topV W + 310))),
     .atom (.copy (.n (topV W + 312)) (.n (topV W + 311)))]
 
 /-- The tail before its flips. -/
 def tailA1 (o W wv : ℕ) : List Stmt :=
-  tailP1 o W wv ++ challengeT (.n (W + 9)) (W + 22) ++ tailP2 o W ++
-    lanesOutT (W + 22) (laneW o) (W + 27) (W + 28) ++ [.atom (.load (.n (W + 27)) (.n 12) 3)] ++
+  tailP1 o W wv ++ challengeT (.n (W + 8)) (W + 21) ++ tailP2 o W ++
+    lanesOutT (W + 21) (laneW o) (W + 26) (W + 27) ++ [.atom (.load (.n (W + 26)) (.n 12) 3)] ++
     tailEqf o W ++ tailTop o W
 
 /-- The tail after its flips, but its return. -/
@@ -90,17 +90,17 @@ theorem tailT_split (o W wv : ℕ) : tailT o W wv = tailPre o W wv ++
 
 /-- The residual atoms of the tail before the slices' weights. -/
 def tailR1 (o W : ℕ) : List Atom :=
-  [.assertEq (.n (W + 6)) (.n (o + 1111)),
-    .load (.n (W + 26)) (.n 12) 0, .load (.n (o + 719)) (.n 12) 2, .load (.n (o + 748)) (.n 12) 4] ++
-  (List.range 25).map (fun i ↦ .load (.n (W + 31 + 4 * i)) (.n (W + 27)) i) ++
-  [.load (.n (W + 27)) (.n 12) 3]
+  [.assertEq (.n (W + 5)) (.n (o + 1109)),
+    .load (.n (W + 25)) (.n 12) 0, .load (.n (o + 719)) (.n 12) 2, .load (.n (o + 746)) (.n 12) 4] ++
+  (List.range 25).map (fun i ↦ .load (.n (W + 30 + 4 * i)) (.n (W + 26)) i) ++
+  [.load (.n (W + 26)) (.n 12) 3]
 
 /-- Flip `i`'s first value. -/
 def flipB (W i : ℕ) : ℕ := topV W + 4 + 43 * i
 
 /-- Flip `i`'s block. -/
 def layerFlipT (W i : ℕ) : List Stmt :=
-  lflipT (.n (W + 27)) (eqfVal (sliceB W) 5 32 4) (topV W) (topV W + 2) i (flipB W i)
+  lflipT (.n (W + 26)) (eqfVal (sliceB W) 5 32 4) (topV W) (topV W + 2) i (flipB W i)
 
 theorem lflipsT_eq (W : ℕ) : lflipsT W = ((List.range 7).map fun i ↦
     layerFlipT W i ++ [.atom (.load (.n (flipB W i + 42)) (.n (topV W + 3)) i)]).flatten := rfl
@@ -115,16 +115,16 @@ theorem tail_kernel {first : ℕ} (hf : first < 2) :
     (tailA1 (layOff first) (tW first) (tV first)).all isAtom = true ∧
     resid (atomsL (tailA1 (layOff first) (tW first) (tV first))) =
       tailR1 (layOff first) (tW first) ++ resid (atomsL (tailEqf (layOff first) (tW first))) ++
-        [.load (.n (topV (tW first))) (.n (layOff first + 748)) 5] ∧
+        [.load (.n (topV (tW first))) (.n (layOff first + 746)) 5] ∧
     (tailEqf (layOff first) (tW first)).all isAtom = true ∧
     (resid (atomsL (tailEqf (layOff first) (tW first)))).all
-      (ldIn [(.n (layOff first + 748), 5)]) = true ∧
+      (ldIn [(.n (layOff first + 746), 5)]) = true ∧
     (∀ i < 7, (layerFlipT (tW first) i).all isAtom = true ∧
-      (resid (atomsL (layerFlipT (tW first) i))).all (ldIn [(.n (tW first + 27), 25)]) = true) ∧
+      (resid (atomsL (layerFlipT (tW first) i))).all (ldIn [(.n (tW first + 26), 25)]) = true) ∧
     (tailA3 (layOff first) (tW first)).all isAtom = true ∧
     resid (atomsL (tailA3 (layOff first) (tW first))) =
       [.load (.n (topV (tW first) + 3)) (.n 12) 5] ∧
-    tV first < tW first ∧ layOff first + 1118 < tW first ∧ tW first < topV (tW first) ∧
+    tV first < tW first ∧ layOff first + 1116 < tW first ∧ tW first < topV (tW first) ∧
     (List.range 25).all (fun j ↦ decide (laneW (layOff first) j < tW first)) = true := by
   interval_cases first
   all_goals exact ⟨by decide +kernel, by decide +kernel, by decide +kernel, by decide +kernel,
@@ -133,7 +133,7 @@ theorem tail_kernel {first : ℕ} (hf : first < 2) :
 
 /-- The squeeze of `β`: after the capacity of the last position round, `t`'s three words. -/
 def tailSq (o : ℕ) (σ : Val) : E × Fs :=
-  sq3 ((cap5 (o + 1098)).map σ) (σ (.n (o + 1112))) (σ (.n (o + 1115))) (σ (.n (o + 1118)))
+  sq3 ((cap5 (o + 1096)).map σ) (σ (.n (o + 1110))) (σ (.n (o + 1113))) (σ (.n (o + 1116)))
 
 set_option maxRecDepth 20000 in
 /-- **The tail, completely.** -/
@@ -141,30 +141,30 @@ theorem layer_tail_complete {first : ℕ} (hf : first < 2)
     (hσ : ∀ v, σ v = σ (.n v.idx))
     (hg : ∀ s ∈ tailPre (layOff first) (tW first) (tV first), GoodS rd S w σ s)
     (hSe : ∀ a ∈ resid (atomsL (tailEqf (layOff first) (tW first))), a ∉ S)
-    (hSt : Atom.load (.n (topV (tW first))) (.n (layOff first + 748)) 5 ∉ S)
+    (hSt : Atom.load (.n (topV (tW first))) (.n (layOff first + 746)) 5 ∉ S)
     (hSf : ∀ i < 7, ∀ a ∈ resid (atomsL (layerFlipT (tW first) i)), a ∉ S)
     (hSfl : ∀ i < 7, Atom.load (.n (flipB (tW first) i + 42))
       (.n (topV (tW first) + 3)) i ∈ S)
-    (p1 : FsPackOk σ (.n (layOff first + 1112)) (layOff first + 1112 + 1) dsObserve)
-    (p2 : FsPackOk σ (.n (layOff first + 1115)) (layOff first + 1115 + 1) dsObserve)
-    (p3 : FsPackOk σ (.n (layOff first + 1118)) (layOff first + 1118 + 1) dsObserve)
-    {locPt : List E} (hlocL : locPt.length = 11) (hloc : ReadsAt rd (σ (.n (layOff first + 748))) locPt)
+    (p1 : FsPackOk σ (.n (layOff first + 1110)) (layOff first + 1110 + 1) dsObserve)
+    (p2 : FsPackOk σ (.n (layOff first + 1113)) (layOff first + 1113 + 1) dsObserve)
+    (p3 : FsPackOk σ (.n (layOff first + 1116)) (layOff first + 1116 + 1) dsObserve)
+    {locPt : List E} (hlocL : locPt.length = 11) (hloc : ReadsAt rd (σ (.n (layOff first + 746))) locPt)
     (hfw : ∀ i < 25, σ (.n (laneW (layOff first) i)) = eqAt (locPt.drop 6) i)
-    (hfin : σ (.n (layOff first + 747)) * σ (.n (tV first)) * (σ (.n (layOff first + 625)) * σ (.n (layOff first + 1112)) +
-      (σ (.n (layOff first + 625)) + σ (.n (layOff first + 1115))) * σ (.n (layOff first + 1118))) = σ (.n (layOff first + 1111))) :
-    σ (.n (tW first + 22)) = (tailSq (layOff first) σ).1 ∧
-      (cap5 (tW first + 17)).map σ = (tailSq (layOff first) σ).2.cap ∧
+    (hfin : σ (.n (tV first)) * (σ (.n (layOff first + 625)) * σ (.n (layOff first + 1110)) +
+      (σ (.n (layOff first + 625)) + σ (.n (layOff first + 1113))) * σ (.n (layOff first + 1116))) = σ (.n (layOff first + 1109))) :
+    σ (.n (tW first + 21)) = (tailSq (layOff first) σ).1 ∧
+      (cap5 (tW first + 16)).map σ = (tailSq (layOff first) σ).2.cap ∧
       ∀ {next : Prop} {kret : List E → Prop},
-        LoadHolds rd (σ (.n 12)) 0 (σ (.n (layOff first + 1112)) + (tailSq (layOff first) σ).1 *
-          (σ (.n (layOff first + 1115)) + (tailSq (layOff first) σ).1 * σ (.n (layOff first + 1118)))) →
+        LoadHolds rd (σ (.n 12)) 0 (σ (.n (layOff first + 1110)) + (tailSq (layOff first) σ).1 *
+          (σ (.n (layOff first + 1113)) + (tailSq (layOff first) σ).1 * σ (.n (layOff first + 1116)))) →
         LoadHolds rd (σ (.n 12)) 2 (σ (.n (layOff first + 719))) →
-        LoadHolds rd (σ (.n 12)) 4 (σ (.n (layOff first + 748))) →
-        LoadHolds rd (σ (.n 12)) 3 (σ (.n (tW first + 27))) →
-        ReadsAt rd (σ (.n (tW first + 27))) (lanesOut locPt (tailSq (layOff first) σ).1) →
+        LoadHolds rd (σ (.n 12)) 4 (σ (.n (layOff first + 746))) →
+        LoadHolds rd (σ (.n 12)) 3 (σ (.n (tW first + 26))) →
+        ReadsAt rd (σ (.n (tW first + 26))) (lanesOut locPt (tailSq (layOff first) σ).1) →
         LoadHolds rd (σ (.n 12)) 5 (σ (.n (topV (tW first) + 3))) →
         ReadsAt rd (σ (.n (topV (tW first) + 3)))
           (flipsOf (laterWeights (lanesOut locPt (tailSq (layOff first) σ).1) (eqKernel (locPt.take 6)))) →
-        kret ((cap5 (tW first + 17)).map σ ++ [σ (.n (layOff first + 745)) * gen ^ 36]) →
+        kret ((cap5 (tW first + 16)).map σ ++ [σ (.n (layOff first + 744)) * gen ^ 36]) →
         Stmt.HoldsList C rd σ (tailT (layOff first) (tW first) (tV first)) next kret := by
   obtain ⟨hall, hr, halle, hre, hflk, hall3, hr3, hwv, h1762, hWt, hlw0⟩ := tail_kernel hf
   generalize tW first = W at *
@@ -179,10 +179,10 @@ theorem layer_tail_complete {first : ℕ} (hf : first < 2)
   have mA1u := mA1
   unfold tailA1 at mA1u
   have g1 : ∀ s ∈ tailP1 o W wv, GoodS rd S w σ s := fun s hs ↦ mA1u s (by simp [hs])
-  have gc : ∀ s ∈ challengeT (.n (W + 9)) (W + 22), GoodS rd S w σ s :=
+  have gc : ∀ s ∈ challengeT (.n (W + 8)) (W + 21), GoodS rd S w σ s :=
     fun s hs ↦ mA1u s (by simp [hs])
   have g2 : ∀ s ∈ tailP2 o W, GoodS rd S w σ s := fun s hs ↦ mA1u s (by simp [hs])
-  have gl : ∀ s ∈ lanesOutT (W + 22) (laneW o) (W + 27) (W + 28), GoodS rd S w σ s :=
+  have gl : ∀ s ∈ lanesOutT (W + 21) (laneW o) (W + 26) (W + 27), GoodS rd S w σ s :=
     fun s hs ↦ mA1u s (by simp [hs])
   have ge : ∀ s ∈ tailEqf o W, GoodS rd S w σ s := fun s hs ↦ mA1u s (by simp [hs])
   have gt : ∀ s ∈ tailTop o W, GoodS rd S w σ s := fun s hs ↦ mA1u s (by simp [hs])
@@ -191,24 +191,23 @@ theorem layer_tail_complete {first : ℕ} (hf : first < 2)
   have g1' := g1
   simp only [tailP1, List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff, implies_true,
     and_true] at g1'
-  obtain ⟨e0, e1, e2, e3, e4, e5, e6, -, z0, z1, gk⟩ := g1'
+  obtain ⟨e0, e2, e3, e4, e5, e6, -, z0, z1, gk⟩ := g1'
   simp only [GoodS, Good] at e0 e3 e5 z0 z1
-  have e1' := mul_good (by omega) (by omega) e1
   have e2' := mul_good (by omega) (by omega) e2
   have e4' := mul_good (by omega) (by omega) e4
   have e6' := mul_good (by omega) (by omega) e6
   -- the squeeze of `β`
   have kc := keccakA_complete (show Good rd S w σ (.keccak _ ((List.range 13).map fun k ↦
-    .n (W + 9 + k)) false false) from gk)
+    .n (W + 8 + k)) false false) from gk)
   obtain ⟨ch, -⟩ := challenge_complete (C := C) gc
-  have hsq := sq3_atoms (a := o + 1112) (o := W + 9) (cap := (cap5 (o + 1098)).map σ) p1
+  have hsq := sq3_atoms (a := o + 1110) (o := W + 8) (cap := (cap5 (o + 1096)).map σ) p1
     (by simpa [Nat.add_assoc] using p2) (by simpa [Nat.add_assoc] using p3)
     (by simpa [cap5, Nat.add_assoc] using kc) (by simpa [Nat.add_assoc] using ch)
     (by rw [z0, word_zero]) (by rw [z1, word_zero]) rfl
   simp only [Nat.add_assoc, Nat.reduceAdd] at hsq
-  have eβ : σ (.n (W + 22)) = (tailSq o σ).1 := by
+  have eβ : σ (.n (W + 21)) = (tailSq o σ).1 := by
     rw [tailSq, sq3]; simpa [Nat.add_assoc] using hsq.1
-  have ecap : (cap5 (W + 17)).map σ = (tailSq o σ).2.cap := by
+  have ecap : (cap5 (W + 16)).map σ = (tailSq o σ).2.cap := by
     rw [tailSq, sq3, ← hsq.2]
     simp [cap5, Nat.add_assoc]
   refine ⟨eβ, ecap, fun {next kret} ho0 ho2 ho4 ho3 hlan ho5 hfl hret ↦ ?_⟩
@@ -220,11 +219,11 @@ theorem layer_tail_complete {first : ℕ} (hf : first < 2)
   simp only [GoodS, Good] at f30 f32
   have f29' := mul_good (by omega) (by omega) f29
   have f31' := mul_good (by omega) (by omega) f31
-  have ev : σ (.n (W + 26)) = σ (.n (o + 1112)) + (tailSq o σ).1 *
-      (σ (.n (o + 1115)) + (tailSq o σ).1 * σ (.n (o + 1118))) := by
+  have ev : σ (.n (W + 25)) = σ (.n (o + 1110)) + (tailSq o σ).1 *
+      (σ (.n (o + 1113)) + (tailSq o σ).1 * σ (.n (o + 1116))) := by
     rw [f32, f31', f30, f29', eβ]
   -- the lanes' values
-  have hlv : ∀ i < 25, σ (.n (W + 31 + 4 * i)) = (lanesOut locPt (tailSq o σ).1).getD i 0 := by
+  have hlv : ∀ i < 25, σ (.n (W + 30 + 4 * i)) = (lanesOut locPt (tailSq o σ).1).getD i 0 := by
     intro i hi
     have gi := fun s hs ↦ gl s (List.mem_flatten.mpr ⟨_, List.mem_map.mpr
       ⟨i, List.mem_range.mpr hi, rfl⟩, hs⟩)
@@ -238,7 +237,7 @@ theorem layer_tail_complete {first : ℕ} (hf : first < 2)
     have hl3 := hlw ((i % 5 + 3) % 5 + 5 * (i / 5)) (by omega)
     have a0' := mul_good (h := a0) (by omega) (by omega)
     have a2' := mul_good (h := a2) (by omega) (by omega)
-    rw [show W + 28 + 4 * i + 3 = W + 31 + 4 * i by omega] at a3
+    rw [show W + 27 + 4 * i + 3 = W + 30 + 4 * i by omega] at a3
     rw [a3, a2', a1, a0', eβ, hfw i hi, hfw _ (by omega), hfw _ (by omega)]
     simp only [lanesOut, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range hi,
       Option.map_some, Option.getD_some]
@@ -250,7 +249,7 @@ theorem layer_tail_complete {first : ℕ} (hf : first < 2)
         simp only [List.mem_singleton] at hq
         subst hq
         exact ⟨locPt, hloc, by omega⟩)
-  obtain ⟨⟨rs, hrsL, hrs, hent⟩, -⟩ := eqfT_holds (pt := .n (o + 748)) (off := 0) (n := 5)
+  obtain ⟨⟨rs, hrsL, hrs, hent⟩, -⟩ := eqfT_holds (pt := .n (o + 746)) (off := 0) (n := 5)
     (count := 32) (b := sliceB W) (by norm_num) (by norm_num) (by decide) (by decide)
     (hEq (kret := fun _ ↦ True) trivial)
   have hrs5 : rs = locPt.take 5 := by
@@ -323,7 +322,7 @@ theorem layer_tail_complete {first : ℕ} (hf : first < 2)
   obtain ⟨hcp, c10', c11', c12'⟩ := g3'
   simp only [GoodS, Good] at c10' c12'
   have c11'' := mul_good (by omega) (by omega) c11'
-  have hcp' : ∀ j < 5, σ (.n (topV W + 305 + j)) = σ (.n (W + 17 + j)) := fun j hj ↦ by
+  have hcp' : ∀ j < 5, σ (.n (topV W + 305 + j)) = σ (.n (W + 16 + j)) := fun j hj ↦ by
     have := hcp j hj
     simpa [GoodS, Good] using this
   -- the blocks
@@ -337,8 +336,8 @@ theorem layer_tail_complete {first : ℕ} (hf : first < 2)
           List.mem_map, List.mem_range] at ha
         rcases ha with ((rfl | rfl | rfl | rfl) | ⟨i, hi, rfl⟩) | rfl
         · left
-          show σ (.n (W + 6)) + σ (.n (o + 1111)) = 0
-          rw [e6', e1', e0, e5, e2', e4', e3, ← hfin]
+          show σ (.n (W + 5)) + σ (.n (o + 1109)) = 0
+          rw [e6', e0, e5, e2', e4', e3, ← hfin]
           exact e_add_self _
         · left
           show LoadHolds rd _ _ _

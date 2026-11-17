@@ -41,29 +41,29 @@ open LeanVM.Protocol.KeccakGkr
 /-- The oracle: the bases of the layer's buffers from `b`. -/
 noncomputable def layerW (D : LayerData) (first b : ℕ) (i : ℕ) : E :=
   if i = layOff first + 719 then ptr b else if i = layOff first + 720 then ptr (b + D.y)
-  else if i = layOff first + 748 then ptr (b + D.y + 128)
-  else if i = tW first + 27 then ptr (b + D.y + 139)
-  else if i = topV (tW first) + 3 then ptr (b + D.y + 164) else 0
+  else if i = layOff first + 746 then ptr (b + D.y + 112)
+  else if i = tW first + 26 then ptr (b + D.y + 123)
+  else if i = topV (tW first) + 3 then ptr (b + D.y + 148) else 0
 
 theorem weightEnd_big {first : ℕ} (hf : first < 2) :
-    layOff first ≤ 20 ∧ 1100 < tW first ∧ tW first + 27 < topV (tW first) := by
+    layOff first ≤ 20 ∧ 1100 < tW first ∧ tW first + 26 < topV (tW first) := by
   interval_cases first <;> exact ⟨by decide, by decide +kernel, by decide +kernel⟩
 
 theorem layerW_vals {first : ℕ} (hf : first < 2) (D : LayerData) (b : ℕ) :
     layerW D first b (layOff first + 719) = ptr b ∧
       layerW D first b (layOff first + 720) = ptr (b + D.y) ∧
-      layerW D first b (layOff first + 748) = ptr (b + D.y + 128) ∧
-      layerW D first b (tW first + 27) = ptr (b + D.y + 139) ∧
-      layerW D first b (topV (tW first) + 3) = ptr (b + D.y + 164) := by
+      layerW D first b (layOff first + 746) = ptr (b + D.y + 112) ∧
+      layerW D first b (tW first + 26) = ptr (b + D.y + 123) ∧
+      layerW D first b (topV (tW first) + 3) = ptr (b + D.y + 148) := by
   obtain ⟨hO, hW, hT⟩ := weightEnd_big hf
   refine ⟨by simp [layerW], by simp [layerW], by simp [layerW], ?_, ?_⟩
-  · simp only [layerW, show ¬ (tW first + 27 = layOff first + 719) by omega,
-      show ¬ (tW first + 27 = layOff first + 720) by omega,
-      show ¬ (tW first + 27 = layOff first + 748) by omega, ↓reduceIte]
+  · simp only [layerW, show ¬ (tW first + 26 = layOff first + 719) by omega,
+      show ¬ (tW first + 26 = layOff first + 720) by omega,
+      show ¬ (tW first + 26 = layOff first + 746) by omega, ↓reduceIte]
   · simp only [layerW, show ¬ (topV (tW first) + 3 = layOff first + 719) by omega,
       show ¬ (topV (tW first) + 3 = layOff first + 720) by omega,
-      show ¬ (topV (tW first) + 3 = layOff first + 748) by omega,
-      show ¬ (topV (tW first) + 3 = tW first + 27) by omega, ↓reduceIte]
+      show ¬ (topV (tW first) + 3 = layOff first + 746) by omega,
+      show ¬ (topV (tW first) + 3 = tW first + 26) by omega, ↓reduceIte]
 
 /-- The word `grind_check` reads: the nonce's permutation's output `1`. -/
 noncomputable def LayerData.gw (D : LayerData) (first : ℕ) : E :=
@@ -205,7 +205,7 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
   have hcw : ReadsAt rd (ptr CL.bclaim) CL.cw := mL (by simp [layerLin, ClaimLay.L])
   have hxs : ReadsAt rd (ptr bcur) D.xs := mL (by simp [layerLin])
   have hout' : ReadsAt rd (ptr bout) (D.outW first (layerW D first b (layOff first + 719))
-      (layerW D first b (tW first + 27)) (layerW D first b (layOff first + 748))
+      (layerW D first b (tW first + 26)) (layerW D first b (layOff first + 746))
       (layerW D first b (topV (tW first) + 3))) := by
     rw [w719, w27, w748, wfl]; exact mL (by simp [layerLin])
   have hbody' := layer_body_complete hf D (rd := rd) (w := layerW D first b) (p0 := p0)
@@ -319,8 +319,8 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
     · rw [a7]; exact fin0 (bb := bcur) (ws := D.xs) (by simp [layerLin]) (by simp only at hg2; omega)
     · rw [a11]; exact fin0 (bb := CL.bclaim) (ws := CL.cw) (by simp [layerLin, ClaimLay.L])
         (by simp only at hg2; omega)
-    · rw [a12]; exact fin0 (bb := bout) (ws := D.outW first (ptr b) (ptr (b + D.y + 139))
-        (ptr (b + D.y + 128)) (ptr (b + D.y + 164))) (by simp [layerLin])
+    · rw [a12]; exact fin0 (bb := bout) (ws := D.outW first (ptr b) (ptr (b + D.y + 123))
+        (ptr (b + D.y + 112)) (ptr (b + D.y + 148))) (by simp [layerLin])
         (by simp [LayerData.outW, LayerData.next, layerClaim, keccakInstanceWeights_length]; omega)
     · rw [a720]; exact fin0 (bb := b + D.y) (ws := D.recWords first (ptr bcur))
         (by simp [layerBufs_eq]) (by rw [recWords_length]; omega)
@@ -330,11 +330,11 @@ theorem layer_obl {first : ℕ} (hf : first < 2) {κ : ℕ} (hκ : 11 ≤ κ) (D
     · rw [e745]; exact fin (bb := bcur) (ws := D.xs) (by simp [layerLin]) (by simp only at hg2; omega)
     · rw [e1190, h3]; exact fin0 (bb := CL.blp) (ws := CL.lanes) (by simp [layerLin, ClaimLay.L])
         (by have := hCL.2.2.2.2.2.2.2.2.1; simp only at hg2; omega)
-    · rw [a748]; exact fin0 (bb := b + D.y + 128) (ws := D.locPt first) (by simp [layerBufs_eq])
+    · rw [a748]; exact fin0 (bb := b + D.y + 112) (ws := D.locPt first) (by simp [layerBufs_eq])
         (by simp only at hg2; omega)
-    · rw [a27]; exact fin0 (bb := b + D.y + 139) (ws := lanesOut (D.locPt first) (D.beta first).1)
+    · rw [a27]; exact fin0 (bb := b + D.y + 123) (ws := lanesOut (D.locPt first) (D.beta first).1)
         (by simp [layerBufs_eq]) (by rw [lanesOut_length]; simp only at hg2; omega)
-    · rw [afl]; exact fin0 (bb := b + D.y + 164) (ws := flipsOf (laterWeights
+    · rw [afl]; exact fin0 (bb := b + D.y + 148) (ws := flipsOf (laterWeights
         (lanesOut (D.locPt first) (D.beta first).1) (eqKernel ((D.locPt first).take 6))))
         (by simp [layerBufs_eq]) (by simp [flipsOf]; simp only at hg2; omega)
     · split at hgm

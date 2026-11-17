@@ -10,6 +10,7 @@ module
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.Tables.RunF
 public import LeanVM.Guest.B1.VerifySub.Split
+public import LeanVM.Protocol.Verifier.KeccakPack
 
 /-!
 # Phases without commitments
@@ -315,25 +316,26 @@ theorem noCommit_tablesSeg (c : BytecodeClaim) (L : Layout) (pi : Digest) (weigh
   refine NoCommit.bind (noCommit_publicInputPhase _ _) fun _ ↦ ?_
   exact noCommit_ret _
 
-theorem noCommit_keccakPackRounds : ∀ (rs : List E) (value scale : E),
-    NoCommit (keccakPackRounds rs value scale)
-  | [], _, _ => noCommit_ret _
-  | r :: rs, value, scale => by
+theorem noCommit_keccakPackRounds : ∀ (rs : List E) (value : E),
+    NoCommit (keccakPackRounds rs value)
+  | [], _ => noCommit_ret _
+  | r :: rs, value => by
     unfold keccakPackRounds
     simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
     refine NoCommit.bind (noCommit_sumcheckRoundPoly _ _ _) fun _ ↦ ?_
     refine NoCommit.bind noCommit_sampleE fun _ ↦ ?_
-    exact NoCommit.bind (noCommit_keccakPackRounds rs _ _) fun _ ↦ noCommit_ret _
+    exact NoCommit.bind (noCommit_keccakPackRounds rs _) fun _ ↦ noCommit_ret _
 
 theorem noCommit_verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) :
     NoCommit (verifyKeccakLayer logSteps step claim) := by
-  unfold verifyKeccakLayer
+  rw [verifyKeccakLayer_packed]
+  unfold verifyKeccakLayerPacked
   simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
   refine NoCommit.bind (noCommit_readN _) fun _ ↦ ?_
   refine NoCommit.bind (noCommit_require _) fun _ ↦ ?_
   refine NoCommit.bind (noCommit_grind _) fun _ ↦ ?_
   refine NoCommit.bind noCommit_sampleE fun _ ↦ ?_
-  refine NoCommit.bind (noCommit_keccakPackRounds _ _ _) fun _ ↦ ?_
+  refine NoCommit.bind (noCommit_keccakPackRounds _ _) fun _ ↦ ?_
   refine NoCommit.bind (noCommit_sumcheck _ _ _) fun _ ↦ ?_
   refine NoCommit.bind (noCommit_readN _) fun _ ↦ ?_
   refine NoCommit.bind (noCommit_require _) fun _ ↦ ?_

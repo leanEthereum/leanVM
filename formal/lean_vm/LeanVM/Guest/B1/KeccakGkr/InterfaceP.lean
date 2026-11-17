@@ -38,8 +38,7 @@ The pack rounds of a layer run in two loops (`keccak_layer__L1_loop0` .. `keccak
 `slice_weight`, `keccak_slot_lanes`) have no core function of their
 own: they are lemmas of `B1/KeccakGkr/`.
 
-**Records.** A round record (`KR_*`) holds a sponge's capacity, a cursor, a claim
-and a scale, its fields `KR_CAP = 16` words apart (`RoundRec`). A claim record (`KC_*`) holds a `KeccakClaim` in the guest's factored form (`ClaimRec`): its value,
+**Records.** A round record (`KR_*`) holds a sponge's capacity, a cursor and a claim, its fields `KR_CAP = 16` words apart (`RoundRec`). A claim record (`KC_*`) holds a `KeccakClaim` in the guest's factored form (`ClaimRec`): its value,
 `κ = Σ μ`, a pointer to its point, its sixteen instance weights `μ`, and its position weights as
 a lane table times a slice table, `firstWeights lanes` for the first claim (a word's bits, `x^z`)
 and `laterWeights lanes slices` after a layer (through the transpose of θ, ρ, π,
@@ -80,23 +79,15 @@ abbrev qkeccakVarsCap : ℕ := 39
 
 /-! ## Round records -/
 
-/-- The round record at `rec`, from offset `k` (record `rec·g^k`): the capacity cells `cap`, the
-cursor `cur`, the claim and the scale, its fields `KR_CAP` words apart (`KR_FS = 0`,
-`KR_CURSOR = 5`, `KR_CLAIM = 6`, `KR_SCALE = 7`). -/
-def RoundRec (rd : Reader) (rec : E) (k : ℕ) (cap : List E) (cur claim scale : E) : Prop :=
+/-- The round record at `rec`, from offset `k` (record `rec·g^k`): the capacity cells `cap`, the cursor `cur` and the normalized claim, its fields `KR_CAP` words apart (`KR_FS = 0`, `KR_CURSOR = 5`, `KR_CLAIM = 6`). -/
+def RoundRec (rd : Reader) (rec : E) (k : ℕ) (cap : List E) (cur claim : E) : Prop :=
   CapAt rd rec k krCap cap ∧ LoadHolds rd rec (k + 5 * krCap) cur ∧
-    LoadHolds rd rec (k + 6 * krCap) claim ∧ LoadHolds rd rec (k + 7 * krCap) scale
+    LoadHolds rd rec (k + 6 * krCap) claim
 
-/-- **One equality-mode round of degree two** (a pack round of `keccak_layer`): `g₁`,
-`g₂` absorbed,
-the challenge `c` squeezed; with `r` the round's coordinate, the claim becomes
-`(1 + r + c)·(claim + (r + c)·g₁ + (r + c²)·g₂)` (`(1 + r + c)·polyEval message c` of
-`sumcheckRoundPoly 3 claim (some r)`) and the scale is multiplied by
-`1 + r + c`. The challenge, the claim, the scale and the sponge after it. -/
-def eqRound (s : Fs) (g1 g2 r claim scale : E) : E × E × E × Fs :=
+/-- One equality-mode round of degree two: after absorbing `g₁`, `g₂` and squeezing the challenge `c`, the normalized claim is `claim + (r + c)·g₁ + (r + c²)·g₂`, the evaluation of `sumcheckRoundPoly 3 claim (some r)`. Returns the challenge, claim and sponge. -/
+def eqRound (s : Fs) (g1 g2 r claim : E) : E × E × Fs :=
   let q := (s.absorbAll [g1, g2] dsObserve).squeeze
-  (q.1, (1 + (r + q.1)) * (claim + (r + q.1) * g1 + (r + q.1 * q.1) * g2),
-    scale * (1 + (r + q.1)), q.2)
+  (q.1, claim + (r + q.1) * g1 + (r + q.1 * q.1) * g2, q.2)
 
 /-! ## Plain rounds -/
 

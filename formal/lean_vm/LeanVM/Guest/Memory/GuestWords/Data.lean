@@ -521,8 +521,8 @@ def wcertTTllr : NTree (Cert) :=
     .leaf
     .leaf)
     .leaf)
-    (.node 267 (.stat [(9, 0), (10, 0)] ⟨3374, [(8, 1), (9, 374), (10, 77)]⟩ [(.n 726, 0), (.n 738, 0)])
-    (.node 266 (.stat [(9, 0), (10, 0)] ⟨3022, [(8, 1), (9, 374), (10, 77)]⟩ [(.n 746, 0), (.n 758, 0)])
+    (.node 267 (.stat [(9, 0), (10, 0)] ⟨3298, [(8, 1), (9, 349), (10, 73)]⟩ [(.n 725, 0), (.n 737, 0)])
+    (.node 266 (.stat [(9, 0), (10, 0)] ⟨2946, [(8, 1), (9, 349), (10, 73)]⟩ [(.n 745, 0), (.n 757, 0)])
     .leaf
     .leaf)
     .leaf)))
@@ -840,7 +840,7 @@ def wcertTTlrl : NTree (Cert) :=
     .leaf
     .leaf)
     .leaf))))
-    (.node 436 (.loop none [] ⟨77, []⟩ [])
+    (.node 436 (.loop none [] ⟨73, []⟩ [])
     (.node 430 (.stat [] ⟨323, []⟩ [])
     (.node 427 (.stat [] ⟨7, []⟩ [])
     (.node 426 (.loop none [] ⟨438, []⟩ [])
@@ -853,14 +853,14 @@ def wcertTTlrl : NTree (Cert) :=
     .leaf
     .leaf)
     .leaf))
-    (.node 433 (.loop none [] ⟨374, []⟩ [])
+    (.node 433 (.loop none [] ⟨349, []⟩ [])
     (.node 432 (.stat [] ⟨60, []⟩ [])
     (.node 431 (.stat [] ⟨68, []⟩ [])
     .leaf
     .leaf)
     .leaf)
-    (.node 435 (.loop none [] ⟨374, []⟩ [])
-    (.node 434 (.loop none [] ⟨77, []⟩ [])
+    (.node 435 (.loop none [] ⟨349, []⟩ [])
+    (.node 434 (.loop none [] ⟨73, []⟩ [])
     .leaf
     .leaf)
     .leaf)))
@@ -3607,7 +3607,7 @@ def womegaTTllr : NTree (ℕ) :=
     .leaf
     .leaf)
     .leaf)))))
-    (.node 266 (1889)
+    (.node 266 (1887)
     (.node 254 (67)
     (.node 248 (58)
     (.node 245 (48)
@@ -3659,7 +3659,7 @@ def womegaTTllr : NTree (ℕ) :=
     (.node 272 (356)
     (.node 269 (17)
     (.node 268 (250)
-    (.node 267 (2241)
+    (.node 267 (2239)
     .leaf
     .leaf)
     .leaf)
@@ -3899,7 +3899,7 @@ def womegaTTllr : NTree (ℕ) :=
 /-- A subtree. -/
 def womegaTTlrl : NTree (ℕ) :=
   (.node 484 (32)
-    (.node 436 (77)
+    (.node 436 (73)
     (.node 412 (380)
     (.node 400 (332)
     (.node 394 (230)
@@ -3986,14 +3986,14 @@ def womegaTTlrl : NTree (ℕ) :=
     .leaf
     .leaf)
     .leaf))
-    (.node 433 (374)
+    (.node 433 (349)
     (.node 432 (60)
     (.node 431 (68)
     .leaf
     .leaf)
     .leaf)
-    (.node 435 (374)
-    (.node 434 (77)
+    (.node 435 (349)
+    (.node 434 (73)
     .leaf
     .leaf)
     .leaf)))))

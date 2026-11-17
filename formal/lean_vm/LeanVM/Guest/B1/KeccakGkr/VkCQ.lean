@@ -88,8 +88,8 @@ theorem fin_ptrs (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ :
     (hσd : σ = D.val rd B curE chiE olE zvE slE tbE) (h17 : σ (.n 18) = gen ^ (D.τ - 4))
     (h201 : σ (.n 161) = ptr (B + D.o201)) :
     σ (.n 1746) = ptr (ls 11) * gen ^ (D.τ - 4) ∧
-      σ (.n 1980) = ptr (ls 11 + (D.layer 11).y + 128) ∧
-      σ (.n 3143) = ptr (ls 11 + (D.layer 11).y + 139) := by
+      σ (.n 1980) = ptr (ls 11 + (D.layer 11).y + 112) ∧
+      σ (.n 3143) = ptr (ls 11 + (D.layer 11).y + 123) := by
   have hg : ∀ st ∈ vkFinT, GoodS rd vkSt (D.w B curE) σ st := fun st hst ↦ by
     subst hσd
     exact val_good' h (List.mem_append_right _ hst)

@@ -65,7 +65,7 @@ theorem chainOk_point {L : ℕ} : ∀ {steps : List ℕ} {c : KeccakClaim} {s : 
     have ih := chainOk_point h.2.2.2.2.2.2 k (by simpa using hk)
     simp only [List.take_succ_cons, chainEnd]
     rw [ih]
-    exact packRunF_chs_length _ _ _ _ _ h.2.2.1
+    exact packRunF_chs_length _ _ _ _ h.2.2.1
   | [], _, _, _, _, k + 1, hk => absurd hk (by simp)
   | _ :: _, _, _, [], h, _ + 1, _ => h.elim
 

@@ -120,10 +120,9 @@ def shatAt (lo hi : Array E) (masks : Array (Array ℕ)) (z j : ℕ) : E :=
   lo.getD (m % 256) 0 + hi.getD (m / 256 % 256) 0
 
 /-- The pack rounds' state: the table of the packs' states at the challenges so far (entry
-`(z, j)`), the product of the scales, and the claim's point's coordinates still to come. -/
+`(z, j)`), the claim's point's coordinates still to come. -/
 structure PackState where
   get : ℕ → ℕ → E
-  scale : E
   rest : List E
 
 /-- The state before the pack rounds, at the claim's point `point`. -/
@@ -131,32 +130,31 @@ def packStart (masks : Array (Array ℕ)) (mu point : List E) : PackState :=
   let μ := mu.toArray
   let lo := byteSums fun t ↦ μ.getD t 0
   let hi := byteSums fun t ↦ μ.getD (8 + t) 0
-  ⟨shatAt lo hi masks, 1, point⟩
+  ⟨shatAt lo hi masks, point⟩
 
 /-- The coefficients of `x ↦ w·(κ·S_0(x) + (κ + S_1(x))·S_2(x))`, `S_k(x) = l_k + x·d_k`. -/
 def chiCoeffs (κ w l0 d0 l1 d1 l2 d2 : E) : List E :=
   let k1 := κ + l1
   [w * (κ * l0 + k1 * l2), w * (κ * d0 + d1 * l2 + k1 * d2), w * (d1 * d2)]
 
-/-- **A pack round's polynomial**: `scale · Σ_z eq(rest, z) Σ_j w_j·χ` at the next coordinate
+/-- **A pack round's polynomial**: `Σ_z eq(rest, z) Σ_j w_j·χ` at the next coordinate
 `x`, each pack row affine in `x` between the rows `2z` and `2z + 1`. -/
 def packRound (κ : E) (w : Array E) (st : PackState) : List E :=
   let eq := eqTable st.rest.tail
-  scaleCoeffs st.scale <| sumCoeffs 3 (2 ^ (st.rest.length - 1)) fun z ↦
+  sumCoeffs 3 (2 ^ (st.rest.length - 1)) fun z ↦
     let lo : Array E := Array.ofFn (n := 1600) fun j ↦ st.get (2 * z) j.val
     let d : Array E := Array.ofFn (n := 1600) fun j ↦ lo.getD j.val 0 + st.get (2 * z + 1) j.val
     scaleCoeffs (eq.getD z 0) <| sumCoeffs 3 1600 fun j ↦
       chiCoeffs κ (w.getD j 0) (lo.getD j 0) (d.getD j 0) (lo.getD (keccakAlong j 1) 0)
         (d.getD (keccakAlong j 1) 0) (lo.getD (keccakAlong j 2) 0) (d.getD (keccakAlong j 2) 0)
 
-/-- **A pack round's fold** at the challenge `c`: the rows `2z, 2z + 1` become row `z`, the scale
-gains `1 + r + c`. -/
+/-- **A pack round's fold** at the challenge `c`: the rows `2z, 2z + 1` become row `z`. -/
 def packFold (st : PackState) (c : E) : PackState :=
   let T : Array (Array E) := Array.ofFn (n := 2 ^ (st.rest.length - 1)) fun z ↦
     Array.ofFn (n := 1600) fun j ↦
       let lo := st.get (2 * z.val) j.val
       lo + c * (lo + st.get (2 * z.val + 1) j.val)
-  ⟨fun z j ↦ (T.getD z #[]).getD j 0, st.scale * (1 + st.rest.headD 0 + c), st.rest.tail⟩
+  ⟨fun z j ↦ (T.getD z #[]).getD j 0, st.rest.tail⟩
 
 /-! ## The position rounds -/
 
@@ -184,10 +182,10 @@ def posCoeffs (κ wl wd l0 d0 l1 d1 l2 d2 : E) : List E :=
   let q2 := d1 * d2
   [wl * q0, wl * q1 + wd * q0, wl * q2 + wd * q1, wd * q2]
 
-/-- **A position round's polynomial**: `scale · Σ_u W·(κ·T_0 + (κ + T_1)·T_2)` at the next
+/-- **A position round's polynomial**: `Σ_u W·(κ·T_0 + (κ + T_1)·T_2)` at the next
 coordinate. -/
-def posRound (κ scale : E) (st : PosState) : List E :=
-  scaleCoeffs scale <| sumCoeffs 4 (st.t0.size / 2) fun u ↦
+def posRound (κ : E) (st : PosState) : List E :=
+  sumCoeffs 4 (st.t0.size / 2) fun u ↦
     posCoeffs κ (st.wt.getD (2 * u) 0) (st.wt.getD (2 * u) 0 + st.wt.getD (2 * u + 1) 0)
       (st.t0.getD (2 * u) 0) (st.t0.getD (2 * u) 0 + st.t0.getD (2 * u + 1) 0)
       (st.t1.getD (2 * u) 0) (st.t1.getD (2 * u) 0 + st.t1.getD (2 * u + 1) 0)
@@ -218,7 +216,7 @@ def layerProve (col : ℕ → K) (P d : ℕ) (claim : KeccakClaim) : Script Kecc
   let w := claim.weights.toArray
   (sumcheckBy (packRound κ w) packFold (claim.point.map some)
       (packStart masks mu claim.point)).bind fun pk ↦
-  (sumcheckBy (posRound κ pk.2.scale) posFold (List.replicate keccakLocalBits none)
+  (sumcheckBy (posRound κ) posFold (List.replicate keccakLocalBits none)
       (posStart (pk.2.get 0) w)).bind fun ps ↦
   let t0 := ps.2.t0.getD 0 0
   let t1 := ps.2.t1.getD 0 0

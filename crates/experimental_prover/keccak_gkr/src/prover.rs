@@ -742,7 +742,6 @@ pub fn prove_layer(
     // The claim's weights in the power basis, which Skip and the later rounds share.
     let polys: Vec<Element> = claim.weights.iter().map(|&w| field.to_poly(w)).collect();
     let mut sums = tracing::info_span!("Skip").in_scope(|| layer.skip_sums(claim, &polys, &field, s, &binary));
-    let mut scale = F128::ONE;
     let mut point = Vec::with_capacity(claim.point.len());
     for i in 0..SKIP {
         let later = eq_table(&claim.point[i + 1..SKIP]);
@@ -752,8 +751,8 @@ pub fn prove_layer(
                 *h += eq * sums[d + 3 * ternary(b)];
             }
         }
-        let coeffs = [scale * h[0], scale * (h[0] + h[1] + h[2]), scale * h[2]];
-        let challenge = bind(ps, &coeffs, claim.point[i], &mut value, &mut scale, &mut point);
+        let coeffs = [h[0], h[0] + h[1] + h[2], h[2]];
+        let challenge = bind(ps, &coeffs, &mut value, &mut point);
         sums = sums
             .as_chunks::<3>()
             .0
@@ -778,8 +777,8 @@ pub fn prove_layer(
     });
     let tail = tracing::info_span!("Tail").entered();
     for i in SKIP..claim.point.len() {
-        let coeffs = round_coefficients(scale, values.0, values.1, value, claim.point[i]);
-        let challenge = bind(ps, &coeffs, claim.point[i], &mut value, &mut scale, &mut point);
+        let coeffs = round_coefficients(values.0, values.1, value, claim.point[i]);
+        let challenge = bind(ps, &coeffs, &mut value, &mut point);
         let later = eq_table(claim.point.get(i + 2..).unwrap_or(&[]));
         values = round.fold(src, layout, dst, pads, &field.to_poly(challenge), &later);
         layout = layout.next();
@@ -799,7 +798,7 @@ pub fn prove_layer(
         if tables.len() % 2 == 1 {
             tables.push([F128::ZERO; 4]);
         }
-        let coeffs = local_round(&tables, kappa).map(|c| scale * c);
+        let coeffs = local_round(&tables, kappa);
         ps.add_round_poly(&coeffs, false);
         let challenge = ps.sample();
         local.push(challenge);
@@ -823,29 +822,19 @@ pub fn prove_layer(
     }
 }
 
-/// Send a round of the sumcheck over the packs and segments and bind its variable, whose point
-/// in the claim is `at`: the claim's `eq` factor on it moves into `scale`.
-fn bind(
-    ps: &mut ProverState,
-    coeffs: &[F128; 3],
-    at: F128,
-    value: &mut F128,
-    scale: &mut F128,
-    point: &mut Vec<F128>,
-) -> F128 {
+/// Send a normalized round of the sumcheck over the packs and segments and bind its variable.
+fn bind(ps: &mut ProverState, coeffs: &[F128; 3], value: &mut F128, point: &mut Vec<F128>) -> F128 {
     ps.add_round_poly(coeffs, true);
     let challenge = ps.sample();
-    let eq = F128::ONE + at + challenge;
-    *value = eq * poly_eval(coeffs, challenge);
-    *scale *= eq;
+    *value = poly_eval(coeffs, challenge);
     point.push(challenge);
     challenge
 }
 
-/// The coefficients of a round polynomial `h`, scaled, from its values at `0` and infinity:
+/// The coefficients of a round polynomial `h` from its values at `0` and infinity:
 /// `(1 + r) h(0) + r h(1) = value` gives the value at one.
-fn round_coefficients(scale: F128, zero: F128, infinity: F128, value: F128, r: F128) -> [F128; 3] {
-    let (c0, c2) = (scale * zero, scale * infinity);
+fn round_coefficients(zero: F128, infinity: F128, value: F128, r: F128) -> [F128; 3] {
+    let (c0, c2) = (zero, infinity);
     // value = c0 + r (c1 + c2).
     let c1 = (value + c0) * r.inv() + c2;
     [c0, c1, c2]
