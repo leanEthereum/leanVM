@@ -224,6 +224,7 @@ import Quantum.Qrom.Sphincs.Multi.Costs.Numeric
 import Quantum.Qrom.Sphincs.Multi.BoundValue
 import Quantum.Qrom.Sphincs.DepthSecurity
 import Quantum.Qrom.Sphincs.DepthBoundValue
+import Quantum.Cost.NistSphincs
 import Quantum.Qrom.SufCma.GamePar
 import Quantum.Sponge.Oracle.Parallel
 import Quantum.Cost.Nist
@@ -447,3 +448,13 @@ the main theorems ever grows beyond Lean's three standard axioms. -/
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Quantum.Qrom.Sphincs.sphincsQromDepthBound_le
+
+/-- info: 'Quantum.Cost.Nist.leanSphincs_qrom_cat1_lowDepth' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Cost.Nist.leanSphincs_qrom_cat1_lowDepth
+
+/-- info: 'Quantum.Cost.Nist.leanSphincs_qrom_cat1_inPlace' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Cost.Nist.leanSphincs_qrom_cat1_inPlace
