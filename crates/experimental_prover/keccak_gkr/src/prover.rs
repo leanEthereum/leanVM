@@ -272,9 +272,8 @@ impl Layer<'_> {
                 a
             },
         );
-        (0..PACKS)
-            .map(|q| std::array::from_fn(|c| sums[48 * q + c].reduce()))
-            .collect()
+        let sums: Vec<F128> = sums.iter().map(|s| s.reduce()).collect();
+        crate::products_gfni::coefficients(&sums)
     }
 
     /// [`Self::pack_products`] by digit buckets: the block's positions grouped by each digit of
