@@ -1,0 +1,12 @@
+[package]
+name = "claims"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+lean_xmss.workspace = true
+lean_sphincs.workspace = true

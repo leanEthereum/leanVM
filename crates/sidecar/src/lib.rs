@@ -1,28 +1,33 @@
-//! The leanVM sidecar: a process that proves for clients on the same machine.
+//! The leanVM sidecar: a process that proves and verifies for clients on the same machine.
 //!
-//! A client calls the library's `aggregate` over a Unix stream socket, and verifies proofs with the library, or with
-//! the sidecar if it has no binding to it. The sidecar keeps the prover's allocator, threads and warm state out of
-//! the client's process. `bins/leanvm-sidecar` runs [`serve`]; its `README.md` specifies the protocol, which any
-//! language can speak, and [`Client`] speaks it from Rust.
+//! A client calls the library's `aggregate` and `verify` over a Unix stream socket, so it builds no prover: the
+//! sidecar keeps the prover's allocator, threads and warm state out of the client's process. `bins/leanvm-sidecar`
+//! runs `serve`, which the `server` feature brings; its `README.md` specifies the protocol, which any language can
+//! speak, and [`Client`] speaks it from Rust.
 
 mod client;
+#[cfg(feature = "server")]
 mod server;
 mod wire;
 
 pub use client::Client;
+#[cfg(feature = "server")]
 pub use server::{Config, serve};
+
+/// One blob, as `lean_da` takes it: its symbols, each 128 bits.
+pub type Blob = [u128; 1 << verifier::da::LOG_BLOB_SYMBOLS];
 
 /// Why the sidecar made no proof.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Rejection {
-    /// [`aggregation::AggregateError::InvalidInput`], or more blobs than one proof takes.
+    /// `AggregateError::InvalidInput`, or more blobs than one proof takes.
     InvalidInput = 1,
-    /// [`aggregation::AggregateError::InvalidSignature`].
+    /// `AggregateError::InvalidSignature`.
     InvalidSignature = 2,
-    /// [`aggregation::AggregateError::InvalidChild`], or a child proof's bytes that do not decode.
+    /// `AggregateError::InvalidChild`, or a child proof's bytes that do not decode.
     InvalidChild = 3,
-    /// [`aggregation::AggregateError::ProvingFailed`].
+    /// `AggregateError::ProvingFailed`.
     ProvingFailed = 4,
     /// The request is not one: its bytes do not decode, or it is longer than the sidecar takes.
     Malformed = 5,
@@ -47,9 +52,9 @@ impl Rejection {
 pub enum SidecarError {
     /// The socket failed, or the sidecar closed it: it stopped, or crashed. Connect again.
     Io(std::io::Error),
-    /// The sidecar speaks another protocol version, or proves for another verifier or aggregation program.
+    /// The sidecar speaks another protocol version, or proves for another verifier.
     Incompatible(String),
-    /// The sidecar's bytes are not the protocol, or prove other claims than asked for. Connect again.
+    /// The sidecar's bytes are not the protocol. Connect again.
     Protocol(String),
     /// The sidecar made no proof, and says why. The connection stays usable.
     Rejected(Rejection, String),

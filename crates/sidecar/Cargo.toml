@@ -8,10 +8,15 @@ publish = false
 workspace = true
 
 [dependencies]
-isa.workspace = true
+claims.workspace = true
 verifier.workspace = true
-aggregation.workspace = true
-lean_da.workspace = true
 lean_xmss.workspace = true
 lean_sphincs.workspace = true
-libc.workspace = true
+isa = { workspace = true, optional = true }
+aggregation = { workspace = true, optional = true }
+lean_da = { workspace = true, optional = true }
+libc = { workspace = true, optional = true }
+
+[features]
+# The server, which proves: what `bins/leanvm-sidecar` runs. The client builds no prover.
+server = ["dep:isa", "dep:aggregation", "dep:lean_da", "dep:libc"]

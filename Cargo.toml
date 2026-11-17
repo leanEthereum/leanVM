@@ -9,6 +9,7 @@ members = [
     "crates/lean_xmss",
     "crates/lean_sphincs",
     "crates/lean_da",
+    "crates/claims",
     "crates/aggregation",
     "crates/lean_vm",
     "crates/sidecar",
@@ -38,6 +39,7 @@ zkdsl_compiler = { path = "crates/zkdsl_compiler" }
 lean_xmss = { path = "crates/lean_xmss" }
 lean_sphincs = { path = "crates/lean_sphincs" }
 lean_da = { path = "crates/lean_da" }
+claims = { path = "crates/claims" }
 aggregation = { path = "crates/aggregation" }
 sidecar = { path = "crates/sidecar" }
 libc = "0.2"

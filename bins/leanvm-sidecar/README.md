@@ -1,6 +1,6 @@
 # leanvm-sidecar
 
-A process that proves for clients on the same machine, over a Unix stream socket. It runs the library's one proving call, `aggregate`, so a client in any language gets the prover's full speed, with its own allocator, thread pool and retained memory, in a process of its own. It also verifies proofs, for clients without the library; a Rust client verifies with the library (`AggregateProof::verify`), which is faster.
+A process that proves for clients on the same machine, over a Unix stream socket. It runs the library's one proving call, `aggregate`, so a client in any language gets the prover's full speed, with its own allocator, thread pool and retained memory, in a process of its own. It also verifies proofs, so a client builds no prover at all.
 
 ## Running
 
@@ -26,14 +26,17 @@ target/release/leanvm-sidecar --prover experimental --socket /run/leanvm/sidecar
 
 ## Clients
 
-From Rust, `lean_vm::sidecar::Client` speaks the protocol, with the library's arguments but for the blobs, which go as they are:
+From Rust, `lean_vm::sidecar::Client` speaks the protocol, with the library's arguments but for the blobs, which go as they are, and proofs, which are their bytes:
 
 ```rust
 let mut sidecar = lean_vm::sidecar::Client::connect("/run/leanvm/sidecar.sock", None)?;
 let (claims, proof) = sidecar.aggregate(&children, &raw_lean_xmss, &[], &[], OutputClaims::All, 2)?;
+assert!(sidecar.verify(&claims, &proof)?);
 ```
 
-`connect`'s timeout, which `Client::set_timeout` changes, bounds how long each read or write waits; after a timeout, drop the client. The client checks that the claims it gets back are those asked for, but for the DA root of blobs, which it only checks is there.
+With `lean_vm = { default-features = false }`, a client builds no prover: it proves and verifies through the sidecar alone, so it cannot verify while the sidecar is down or restarting. With the default `prover` feature, the library also proves and verifies in the client's process (`AggregateProof::from_bytes`, then `verify`), which takes a sidecar of the same leanVM build.
+
+`connect`'s timeout, which `Client::set_timeout` changes, bounds how long each read or write waits; after a timeout, drop the client.
 
 From another language, a client is the protocol below: connect, read the hello, then write a request and read its response, as many times as needed.
 

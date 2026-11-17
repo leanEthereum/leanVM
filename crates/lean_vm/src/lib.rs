@@ -3,30 +3,20 @@
 //! - leanSPHINCS (stateless, for the execution layer)
 //! - leanDA (PQ blobs)
 //!
-//! Proving runs the stable prover, or with the `experimental_prover` feature the experimental one.
-//! Both give the same proofs, byte for byte, and verifying needs neither.
+//! With the default `prover` feature, it proves and verifies here: proving runs the stable prover, or with the
+//! `experimental_prover` feature the experimental one, and both give the same proofs, byte for byte. Without it, it
+//! builds no prover, and proves and verifies through the sidecar, [`sidecar::Client`]: the same claims and
+//! signatures, proofs as their bytes.
 //!
 //! Example: [`crates/lean_vm/tests/api.rs`](https://github.com/leanEthereum/leanVM/blob/main/crates/lean_vm/tests/api.rs).
 
-use ::lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
-use ::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
-pub use aggregation::{
-    AggregateClaims, AggregateError, AggregateProof, LeanSphincsClaim, LeanXmssClaim, MAX_LOG_INV_RATE, MAX_RECURSIONS,
-    MIN_LOG_INV_RATE, OutputClaims,
-};
-use isa::Prover;
+pub use claims::{AggregateClaims, LeanSphincsClaim, LeanXmssClaim, OutputClaims};
+pub use verifier::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 
-#[cfg(feature = "experimental_prover")]
-type P = experimental_lean_vm_core::ExperimentalProver;
-#[cfg(not(feature = "experimental_prover"))]
-type P = stable_lean_vm_core::StableProver;
-
-pub mod lean_da {
-    pub use ::lean_da::{
-        BLOB_SYMBOLS, Blob, BlobCountError, BlobMatrix, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS,
-        MERKLE_PATH_LEN, Symbol, verify_cell,
-    };
-}
+#[cfg(feature = "prover")]
+mod prover;
+#[cfg(feature = "prover")]
+pub use prover::{AggregateError, AggregateProof, MAX_RECURSIONS, aggregate, lean_da, setup};
 
 pub mod lean_xmss {
     pub use lean_xmss::{
@@ -43,51 +33,10 @@ pub mod lean_sphincs {
     };
 }
 
-/// [`aggregate`] in another process, the sidecar (`bins/leanvm-sidecar`), which keeps the prover's memory, threads
-/// and warm state out of this one. Verifying stays here, with [`AggregateProof::verify`].
+/// Proving and verifying in another process, the sidecar (`bins/leanvm-sidecar`), which keeps the prover's memory,
+/// threads and warm state out of this one. A client built without the `prover` feature verifies only there, so not
+/// while its sidecar is down.
 #[cfg(unix)]
 pub mod sidecar {
-    pub use ::sidecar::{Client, Rejection, SidecarError};
-}
-
-/// Call this function before generating / verifying proofs: it starts the prover's thread pool, with `threads` threads
-/// (0: one per core), and builds the aggregation program.
-///
-/// # Panics
-/// If the pool already runs with another thread count.
-pub fn setup(threads: usize) {
-    if threads > 0 {
-        P::set_num_threads(threads);
-    }
-    P::init();
-    aggregation::unified_guest();
-}
-
-/// Aggregate leanXMSS and leanSPHINCS signatures, blobs and the claims of child proofs.
-///
-/// - `children`: at most [`MAX_RECURSIONS`], each with its claims.
-/// - `raw_lean_xmss`, `raw_lean_sphincs`: `(public_key, message, signature)`, in any order.
-/// - `blobs`: the encoded blobs, if any ([`lean_da::BlobMatrix::build`]).
-/// - `output`: which covered claims the proof attests.
-/// - `log_inv_rate`: the code rate's log, in [`MIN_LOG_INV_RATE`]..=[`MAX_LOG_INV_RATE`]; higher gives a smaller proof
-///   but slower proving.
-///
-/// # Errors
-///
-/// [`AggregateError`] says why there is no proof.
-///
-/// Calls run one at a time: a second waits for the first.
-///
-/// # WARNING
-/// - Signatures and children must be valid (children checked with [`AggregateProof::verify`]): otherwise proving fails.
-pub fn aggregate(
-    children: &[(AggregateClaims, AggregateProof)],
-    raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
-    raw_lean_sphincs: Vec<(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)>,
-    blobs: Option<&lean_da::BlobMatrix>,
-    output: OutputClaims,
-    log_inv_rate: usize,
-) -> Result<(AggregateClaims, AggregateProof), AggregateError> {
-    aggregation::aggregate::<P>(children, raw_lean_xmss, raw_lean_sphincs, blobs, output, log_inv_rate)
-        .map(|(claims, proof, _)| (claims, proof))
+    pub use ::sidecar::{Blob, Client, Rejection, SidecarError};
 }

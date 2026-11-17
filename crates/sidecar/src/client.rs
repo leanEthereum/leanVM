@@ -1,9 +1,8 @@
 //! The protocol from Rust.
 
 use crate::wire::{self, Incoming};
-use crate::{Rejection, SidecarError};
-use aggregation::{AggregateClaims, AggregateProof, OutputClaims};
-use lean_da::Blob;
+use crate::{Blob, Rejection, SidecarError};
+use claims::{AggregateClaims, OutputClaims};
 use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use std::io::Write;
@@ -11,7 +10,8 @@ use std::os::unix::net::UnixStream;
 use std::path::Path;
 use std::time::Duration;
 
-/// A connection to a sidecar, for one request at a time.
+/// A connection to a sidecar, for one request at a time. Proofs are their bytes, as the library's
+/// `AggregateProof::to_bytes` writes them and `from_bytes` reads them.
 ///
 /// After an error other than [`SidecarError::Rejected`], the connection is in an unknown state: drop it and connect
 /// again.
@@ -23,9 +23,8 @@ pub struct Client {
 }
 
 impl Client {
-    /// Connects to the sidecar listening on `socket`, and checks it speaks this protocol version and proves this
-    /// build's aggregation program, which the first connection in a process builds. `timeout` is
-    /// [`Self::set_timeout`]'s, already for reading the sidecar's hello.
+    /// Connects to the sidecar listening on `socket`, and checks it speaks this protocol version and proves for this
+    /// verifier. `timeout` is [`Self::set_timeout`]'s, already for reading the sidecar's hello.
     pub fn connect(socket: impl AsRef<Path>, timeout: Option<Duration>) -> Result<Self, SidecarError> {
         let mut stream = UnixStream::connect(socket)?;
         stream.set_read_timeout(timeout)?;
@@ -53,11 +52,6 @@ impl Client {
                 String::from_utf8_lossy(verifier::TAG)
             )));
         }
-        if hello.program != aggregation::unified_guest().bytecode().fiat_shamir_iv() {
-            return Err(SidecarError::Incompatible(
-                "proves another aggregation program: another leanVM build".into(),
-            ));
-        }
         Ok(Self {
             stream,
             prover: hello.prover,
@@ -78,45 +72,32 @@ impl Client {
         &self.prover
     }
 
-    /// The library's `aggregate`, proven by the sidecar. The arguments are the library's but for the blobs, which
-    /// go as they are (none for no blobs) and which the sidecar builds the matrix of.
+    /// The library's `aggregate`, proven by the sidecar: its arguments, but for the blobs, which go as they are (none
+    /// for no blobs) and which the sidecar builds the matrix of.
     ///
-    /// As with the library, children must be valid (checked with [`AggregateProof::verify`]), or proving fails. The
-    /// claims returned are checked to be those asked for, but for the root of `blobs`, only checked to be there.
+    /// As with the library, children must be valid (checked with [`Self::verify`]), or proving fails.
     pub fn aggregate(
         &mut self,
-        children: &[(AggregateClaims, AggregateProof)],
+        children: &[(AggregateClaims, Vec<u8>)],
         raw_lean_xmss: &[(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)],
         raw_lean_sphincs: &[(LeanSphincsPublicKey, lean_sphincs::Message, LeanSphincsSignature)],
         blobs: &[Blob],
         output: OutputClaims,
         log_inv_rate: usize,
-    ) -> Result<(AggregateClaims, AggregateProof), SidecarError> {
+    ) -> Result<(AggregateClaims, Vec<u8>), SidecarError> {
         let request = wire::encode_request(children, raw_lean_xmss, raw_lean_sphincs, blobs, output, log_inv_rate);
         // The claims a response carries are no longer than the request.
         let body = self.call(&request, request.len() as u64 + PROOF_ROOM)?;
-        let (claims, proof) = match wire::decode_response(&body) {
-            Some(Ok(proven)) => proven,
-            Some(Err((rejection, message))) => return Err(SidecarError::Rejected(rejection, message)),
-            None => return Err(SidecarError::Protocol("a response that does not decode".into())),
-        };
-        // The root of blobs is the sidecar's to compute: it is taken as given, but must be there.
-        let blobs_root = (!blobs.is_empty()).then_some(claims.da_commitment);
-        let asked = aggregation::published_claims(
-            children,
-            &claims_of(raw_lean_xmss),
-            &claims_of(raw_lean_sphincs),
-            blobs_root.flatten(),
-            output,
-        );
-        if blobs_root == Some(None) || asked.as_ref() != Ok(&claims) {
-            return Err(SidecarError::Protocol("a proof of other claims than asked for".into()));
+        match wire::decode_response(&body) {
+            Some(Ok(proven)) => Ok(proven),
+            Some(Err((rejection, message))) => Err(SidecarError::Rejected(rejection, message)),
+            None => Err(SidecarError::Protocol("a response that does not decode".into())),
         }
-        Ok((claims, proof))
     }
 
-    /// The sidecar's verify operation, which [`AggregateProof::verify`] answers faster in this process.
-    pub fn verify(&mut self, claims: &AggregateClaims, proof: &AggregateProof) -> Result<bool, SidecarError> {
+    /// The library's `AggregateProof::verify`, run by the sidecar: whether `proof` proves `claims`. Bytes that do not
+    /// decode prove nothing.
+    pub fn verify(&mut self, claims: &AggregateClaims, proof: &[u8]) -> Result<bool, SidecarError> {
         let body = self.call(&wire::encode_verify(claims, proof), 1 << 16)?;
         match wire::decode_verdict(&body) {
             Some(Ok(valid)) => Ok(valid),
@@ -141,14 +122,12 @@ impl Client {
         match wire::read_frame(&mut self.stream, max_response)? {
             Incoming::Body(body) => Ok(body),
             Incoming::End => Err(std::io::Error::from(std::io::ErrorKind::UnexpectedEof).into()),
-            Incoming::TooLarge(_) => Err(SidecarError::Protocol("a response longer than any".into())),
+            Incoming::TooLarge(len) => Err(SidecarError::Protocol(format!(
+                "a response of {len} bytes, longer than any"
+            ))),
         }
     }
 }
 
 /// Room for a proof in a response, far more than one takes.
 const PROOF_ROOM: u64 = 1 << 28;
-
-fn claims_of<K: Copy, S>(raw: &[(K, [u8; 32], S)]) -> Vec<(K, [u8; 32])> {
-    raw.iter().map(|(pk, message, _)| (*pk, *message)).collect()
-}

@@ -4,7 +4,7 @@
 
 use aggregation::signers_cache;
 use lean_vm::sidecar::{Client, Rejection, SidecarError};
-use lean_vm::{AggregateClaims, OutputClaims, lean_da};
+use lean_vm::{AggregateClaims, AggregateProof, OutputClaims, lean_da};
 use stable_lean_vm_core::StableProver;
 use std::io::{Read, Write};
 use std::os::unix::net::UnixStream;
@@ -75,7 +75,7 @@ fn sidecar_end_to_end() {
     let leaf = client
         .aggregate(&[], &xmss[..2], &sphincs, &blobs, OutputClaims::All, 2)
         .unwrap();
-    assert!(leaf.1.verify(&leaf.0));
+    assert!(AggregateProof::from_bytes(&leaf.1).unwrap().verify(&leaf.0));
     assert_eq!(leaf.0.num_signature_claims(), 3);
     assert_eq!(
         leaf.0.da_commitment,
@@ -95,7 +95,7 @@ fn sidecar_end_to_end() {
         .aggregate(&[leaf], &xmss[2..], &[], &[], OutputClaims::Only(&only), 1)
         .unwrap();
     assert_eq!(node.0, only);
-    assert!(node.1.verify(&only));
+    assert!(AggregateProof::from_bytes(&node.1).unwrap().verify(&only));
 
     // Verifying, from either connection, while nothing proves.
     assert!(client.verify(&node.0, &node.1).unwrap());

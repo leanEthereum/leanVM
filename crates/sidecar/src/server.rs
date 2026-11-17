@@ -1,10 +1,15 @@
 //! The server: a thread per connection reads and decodes requests and verifies proofs, and the thread that calls
-//! [`serve`], the one that started the prover's pool, proves them one at a time.
+//! [`serve`], the one that started the prover's pool, proves them one at a time. Also the server's half of the
+//! protocol: requests in, the hello and responses out.
 
-use crate::Rejection;
-use crate::wire::{self, Call, Hello, Incoming, Outcome, Request};
-use aggregation::{AggregateError, OutputClaims};
+use crate::wire::{
+    self, Cursor, Frame, Hello, Incoming, OK, OP_AGGREGATE, OP_VERIFY, Outcome, Proven, RawLeanSphincs, RawLeanXmss,
+};
+use crate::{Blob, Rejection};
+use aggregation::{AggregateClaims, AggregateError, AggregateProof, OutputClaims};
 use isa::Prover;
+use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
+use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use std::convert::Infallible;
 use std::fs::{File, TryLockError};
 use std::io::{self, Write};
@@ -47,7 +52,7 @@ pub fn serve<P: Prover>(config: &Config) -> io::Result<Infallible> {
     let program = aggregation::unified_guest().bytecode().fiat_shamir_iv();
     warm_up::<P>();
     let listener = UnixListener::bind(&config.socket)?;
-    let hello = wire::encode_hello(&Hello {
+    let hello = encode_hello(&Hello {
         max_request: config.max_request,
         tag: verifier::TAG.to_vec(),
         program,
@@ -168,6 +173,15 @@ fn hung_up(client: &UnixStream) -> bool {
 }
 
 fn aggregate<P: Prover>(request: Request) -> Outcome {
+    let children = request
+        .children
+        .into_iter()
+        .enumerate()
+        .map(|(i, (claims, proof))| match AggregateProof::from_bytes(&proof) {
+            Some(proof) => Ok((claims, proof)),
+            None => Err((Rejection::InvalidChild, format!("child {i}'s proof does not decode"))),
+        })
+        .collect::<Result<Vec<_>, _>>()?;
     let blobs = match request.blobs.len() {
         0 => None,
         _ => Some(lean_da::BlobMatrix::build(&request.blobs).map_err(|e| (Rejection::InvalidInput, e.to_string()))?),
@@ -175,14 +189,14 @@ fn aggregate<P: Prover>(request: Request) -> Outcome {
     drop(request.blobs);
     let output = request.output.as_ref().map_or(OutputClaims::All, OutputClaims::Only);
     aggregation::aggregate::<P>(
-        &request.children,
+        &children,
         request.raw_lean_xmss,
         request.raw_lean_sphincs,
         blobs.as_ref(),
         output,
         request.log_inv_rate,
     )
-    .map(|(claims, proof, _)| (claims, proof))
+    .map(|(claims, proof, _)| (claims, proof.to_bytes()))
     .map_err(|e| match e {
         AggregateError::InvalidInput(reason) => (Rejection::InvalidInput, reason.into()),
         AggregateError::InvalidSignature => (Rejection::InvalidSignature, e.to_string()),
@@ -224,12 +238,12 @@ fn connection(mut stream: UnixStream, jobs: &Sender<Job>, hello: &[u8], max_requ
             Ok(Incoming::TooLarge(len)) => {
                 let message = format!("a request of {len} bytes, the sidecar takes at most {max_request}");
                 eprintln!("a request refused (Malformed): {message}");
-                let _ = stream.write_all(&wire::encode_response(&Err((Rejection::Malformed, message))));
+                let _ = stream.write_all(&encode_response(&Err((Rejection::Malformed, message))));
                 return;
             }
             Ok(Incoming::End) | Err(_) => return,
         };
-        let response = match wire::decode_request(&body) {
+        let response = match decode_request(&body) {
             Ok(Call::Aggregate(request)) => {
                 drop(body);
                 let Ok(client) = stream.try_clone() else { return };
@@ -238,17 +252,258 @@ fn connection(mut stream: UnixStream, jobs: &Sender<Job>, hello: &[u8], max_requ
                     .expect("the prover outlives every connection");
                 // No outcome: the prover dropped the request, its client having hung up.
                 let Ok(outcome) = outcome.recv() else { return };
-                wire::encode_response(&outcome)
+                encode_response(&outcome)
             }
             // Here rather than behind the proofs: it is fast, and on one thread.
-            Ok(Call::Verify(claims, proof)) => wire::encode_verdict(proof.is_some_and(|proof| proof.verify(&claims))),
+            Ok(Call::Verify(claims, proof)) => {
+                encode_verdict(AggregateProof::from_bytes(&proof).is_some_and(|proof| proof.verify(&claims)))
+            }
             Err((rejection, message)) => {
                 eprintln!("a request refused ({rejection:?}): {message}");
-                wire::encode_response(&Err((rejection, message)))
+                encode_response(&Err((rejection, message)))
             }
         };
         if stream.write_all(&response).is_err() {
             return;
         }
+    }
+}
+
+const XMSS_RECORD: usize = lean_xmss::PUB_KEY_SIZE + lean_xmss::MESSAGE_LEN + lean_xmss::SIG_SIZE;
+const SPHINCS_RECORD: usize = lean_sphincs::PUB_KEY_SIZE + lean_sphincs::MESSAGE_LEN + lean_sphincs::SIG_SIZE;
+const BLOB_BYTES: usize = 16 * lean_da::BLOB_SYMBOLS;
+
+fn encode_hello(hello: &Hello) -> Vec<u8> {
+    let mut f = Frame::new();
+    f.raw(&wire::MAGIC);
+    f.raw(&wire::VERSION.to_le_bytes());
+    f.u64(hello.max_request);
+    f.bytes(&hello.tag);
+    f.raw(&hello.program);
+    f.bytes(hello.prover.as_bytes());
+    f.finish()
+}
+
+/// A request, as the server decodes it.
+enum Call {
+    Aggregate(Request),
+    /// Claims, and their proof's bytes.
+    Verify(AggregateClaims, Vec<u8>),
+}
+
+/// An `aggregate` call, its children's proofs still bytes.
+struct Request {
+    children: Vec<Proven>,
+    raw_lean_xmss: Vec<RawLeanXmss>,
+    raw_lean_sphincs: Vec<RawLeanSphincs>,
+    blobs: Vec<Blob>,
+    /// `None` for [`OutputClaims::All`].
+    output: Option<AggregateClaims>,
+    log_inv_rate: usize,
+}
+
+fn decode_request(body: &[u8]) -> Result<Call, (Rejection, String)> {
+    let malformed = |what: &str| (Rejection::Malformed, format!("malformed request: {what}"));
+    let mut c = Cursor(body);
+    let call = match c.u8() {
+        Some(OP_AGGREGATE) => Call::Aggregate(decode_aggregate(&mut c, malformed)?),
+        Some(OP_VERIFY) => {
+            let claims = c.claims().ok_or_else(|| malformed("claims"))?;
+            let proof = c.bytes().ok_or_else(|| malformed("proof"))?;
+            Call::Verify(claims, proof.to_vec())
+        }
+        Some(op) => return Err((Rejection::Malformed, format!("unknown operation {op}"))),
+        None => return Err(malformed("empty")),
+    };
+    if !c.is_empty() {
+        return Err(malformed("trailing bytes"));
+    }
+    Ok(call)
+}
+
+/// A count of records of `size` bytes each, all of which must follow: a forged count allocates nothing.
+fn count(c: &mut Cursor, size: usize) -> Option<usize> {
+    let n = usize::try_from(c.u64()?).ok()?;
+    (n.checked_mul(size)? <= c.0.len()).then_some(n)
+}
+
+fn decode_aggregate(
+    c: &mut Cursor,
+    malformed: impl Fn(&str) -> (Rejection, String),
+) -> Result<Request, (Rejection, String)> {
+    let log_inv_rate = c.u8().ok_or_else(|| malformed("no rate"))?.into();
+
+    // Each child is at least its two lengths. Nothing is reserved: `aggregate` bounds the count, not this.
+    let n = count(c, 16).ok_or_else(|| malformed("children"))?;
+    let mut children = Vec::new();
+    for i in 0..n {
+        let claims = c.claims().ok_or_else(|| malformed(&format!("child {i}'s claims")))?;
+        let proof = c.bytes().ok_or_else(|| malformed(&format!("child {i}'s proof")))?;
+        children.push((claims, proof.to_vec()));
+    }
+
+    let n = count(c, XMSS_RECORD).ok_or_else(|| malformed("leanXMSS signatures"))?;
+    let raw_lean_xmss = (0..n)
+        .map(|_| {
+            let pk = LeanXmssPublicKey::from_bytes(c.array().unwrap());
+            (
+                pk,
+                *c.array().unwrap(),
+                LeanXmssSignature::from_bytes(c.array().unwrap()),
+            )
+        })
+        .collect();
+    let n = count(c, SPHINCS_RECORD).ok_or_else(|| malformed("leanSPHINCS signatures"))?;
+    let raw_lean_sphincs = (0..n)
+        .map(|_| {
+            let pk = LeanSphincsPublicKey::from_bytes(c.array().unwrap());
+            (
+                pk,
+                *c.array().unwrap(),
+                LeanSphincsSignature::from_bytes(c.array().unwrap()),
+            )
+        })
+        .collect();
+
+    let n = count(c, BLOB_BYTES).ok_or_else(|| malformed("blobs"))?;
+    let blobs = (0..n)
+        .map(|_| {
+            let symbols = c.take(BLOB_BYTES).unwrap().as_chunks::<16>().0;
+            std::array::from_fn(|i| u128::from_le_bytes(symbols[i]))
+        })
+        .collect();
+
+    let output = match c.u8() {
+        Some(0) => None,
+        Some(1) => Some(c.claims().ok_or_else(|| malformed("output claims"))?),
+        _ => return Err(malformed("output")),
+    };
+    Ok(Request {
+        children,
+        raw_lean_xmss,
+        raw_lean_sphincs,
+        blobs,
+        output,
+        log_inv_rate,
+    })
+}
+
+fn encode_response(result: &Outcome) -> Vec<u8> {
+    let mut f = Frame::new();
+    match result {
+        Ok((claims, proof)) => {
+            f.u8(OK);
+            f.bytes(&claims.to_bytes());
+            f.bytes(proof);
+        }
+        Err((rejection, message)) => {
+            f.u8(*rejection as u8);
+            f.bytes(message.as_bytes());
+        }
+    }
+    f.finish()
+}
+
+/// A verify request's response: whether the proof is valid.
+fn encode_verdict(valid: bool) -> Vec<u8> {
+    let mut f = Frame::new();
+    f.u8(OK);
+    f.u8(valid.into());
+    f.finish()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::wire::{decode_hello, decode_response, encode_request, hello_version};
+
+    fn body(frame: Vec<u8>) -> Vec<u8> {
+        assert_eq!(
+            u64::from_le_bytes(frame[..8].try_into().unwrap()),
+            frame.len() as u64 - 8
+        );
+        frame[8..].to_vec()
+    }
+
+    #[test]
+    fn hello_round_trips() {
+        let hello = Hello {
+            max_request: 1 << 30,
+            tag: verifier::TAG.to_vec(),
+            program: [7; 32],
+            prover: "stable".into(),
+        };
+        let bytes = body(encode_hello(&hello));
+        assert_eq!(hello_version(&bytes), Some(wire::VERSION));
+        assert_eq!(decode_hello(&bytes), Some(hello));
+        assert_eq!(decode_hello(&bytes[..bytes.len() - 1]), None);
+        assert_eq!(decode_hello(&[&bytes[..], &[0]].concat()), None);
+        let mut other = bytes.clone();
+        other[0] ^= 1;
+        assert_eq!(hello_version(&other), None);
+    }
+
+    /// A request decodes to what was encoded; every truncation, and a trailing byte, is refused, never a panic.
+    #[test]
+    fn requests_round_trip_and_truncations_are_refused() {
+        let xmss = (
+            LeanXmssPublicKey::from_bytes(&[1; 32]),
+            [2; 32],
+            LeanXmssSignature::from_bytes(&std::array::from_fn(|i| i as u8)),
+        );
+        let sphincs = (
+            LeanSphincsPublicKey::from_bytes(&[3; 32]),
+            [4; 32],
+            LeanSphincsSignature::from_bytes(&std::array::from_fn(|i| (i * 7) as u8)),
+        );
+        let blob: Blob = std::array::from_fn(|i| ((i as u128) << 100) | i as u128);
+        let only = AggregateClaims {
+            lean_xmss: vec![(xmss.0, xmss.1)],
+            lean_sphincs: vec![(sphincs.0, sphincs.1)],
+            da_commitment: Some([5; 32]),
+        };
+        let child = (only.clone(), vec![6, 7, 8]);
+        let frame = encode_request(
+            std::slice::from_ref(&child),
+            std::slice::from_ref(&xmss),
+            std::slice::from_ref(&sphincs),
+            &[blob],
+            OutputClaims::Only(&only),
+            3,
+        );
+        let bytes = body(frame);
+        let Ok(Call::Aggregate(request)) = decode_request(&bytes) else {
+            panic!("not an aggregate request")
+        };
+        assert_eq!(request.children, vec![child]);
+        assert_eq!(request.raw_lean_xmss, vec![xmss]);
+        assert_eq!(request.raw_lean_sphincs, vec![sphincs]);
+        assert_eq!(request.blobs, vec![blob]);
+        assert_eq!(request.output, Some(only));
+        assert_eq!(request.log_inv_rate, 3);
+        for len in 0..bytes.len() {
+            assert!(
+                decode_request(&bytes[..len]).is_err(),
+                "a prefix of {len} bytes decoded"
+            );
+        }
+        assert!(decode_request(&[&bytes[..], &[0]].concat()).is_err());
+        // A count no body could hold.
+        let mut huge = vec![OP_AGGREGATE, 1];
+        huge.extend(u64::MAX.to_le_bytes());
+        assert!(decode_request(&huge).is_err());
+    }
+
+    #[test]
+    fn responses_round_trip() {
+        let proven = (AggregateClaims::default(), vec![1, 2, 3]);
+        assert_eq!(
+            decode_response(&body(encode_response(&Ok(proven.clone())))),
+            Some(Ok(proven))
+        );
+        let rejection = (Rejection::InvalidInput, "log_inv_rate out of range".to_string());
+        let bytes = body(encode_response(&Err(rejection.clone())));
+        assert_eq!(decode_response(&bytes).unwrap().unwrap_err(), rejection);
+        assert!(decode_response(&[42, 0, 0, 0, 0, 0, 0, 0, 0]).is_none());
     }
 }

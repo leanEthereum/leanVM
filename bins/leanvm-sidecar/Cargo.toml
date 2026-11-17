@@ -14,7 +14,7 @@ doc = false
 workspace = true
 
 [dependencies]
-sidecar.workspace = true
+sidecar = { workspace = true, features = ["server"] }
 stable_lean_vm_core = { path = "../../crates/stable_prover/lean_vm_core" }
 experimental_lean_vm_core = { path = "../../crates/experimental_prover/lean_vm_core" }
 bench_harness.workspace = true
