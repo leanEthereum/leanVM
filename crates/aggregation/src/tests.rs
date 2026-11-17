@@ -163,12 +163,12 @@ fn guest_addresses_are_the_native_ones() {
 fn aggregate_mixed_leaf() {
     let secret_key = [77; lean_sphincs::SECRET_KEY_LEN];
     let public_key = lean_sphincs::key_gen(&secret_key);
-    let mut sphincs = get_lean_sphincs_signers(3);
+    let mut sphincs = get_lean_sphincs_signers::<StableProver>(3);
     for tag in [3u8, 9] {
         let signed: lean_sphincs::Message = std::array::from_fn(|i| tag.wrapping_mul(i as u8 + 1));
         sphincs.push((public_key, signed, lean_sphincs::sign(&secret_key, &signed)));
     }
-    let leaf = prove(&[], &get_signers(3), &sphincs);
+    let leaf = prove(&[], &get_signers::<StableProver>(3), &sphincs);
     assert_eq!((leaf.0.lean_xmss.len(), leaf.0.lean_sphincs.len()), (3, 5));
     assert_eq!(leaf.0.lean_xmss[0].1, message());
     assert_eq!(leaf.0.da_commitment, None);
@@ -184,7 +184,7 @@ fn aggregate_mixed_leaf() {
 /// the other way, or give a layer another counter fails the guest's run.
 #[test]
 fn forged_lean_sphincs_hints_are_rejected() {
-    let signers = get_lean_sphincs_signers(1);
+    let signers = get_lean_sphincs_signers::<StableProver>(1);
     let forgeries: [Forgery; 3] = [
         Box::new(|hints: &mut Hints| hints.entry_mut("sp_unused", 0)[0] *= count(1)),
         Box::new(|hints: &mut Hints| hints.entry_mut("sp_fors_nodes", 0).swap(0, 1)),
@@ -200,7 +200,7 @@ fn forged_lean_sphincs_hints_are_rejected() {
 /// dispatch a digit group other than the digest's fails the guest's run.
 #[test]
 fn forged_lean_xmss_hints_are_rejected() {
-    let signers = get_signers(1);
+    let signers = get_signers::<StableProver>(1);
     let forgeries: [Forgery; 3] = [
         Box::new(|hints: &mut Hints| hints.entry_mut("lx_index", 0)[0] += F128::ONE),
         Box::new(|hints: &mut Hints| hints.entry_mut("lx_windows", 0)[0] *= count(1)),
@@ -219,7 +219,7 @@ fn forged_lean_xmss_hints_are_rejected() {
 fn forged_da_hints_are_rejected() {
     let child = aggregate(
         &[],
-        get_signers(SMALL_LEAF_SIZE),
+        get_signers::<StableProver>(SMALL_LEAF_SIZE),
         vec![],
         matrix(&da_rows(1, 7)).as_ref(),
         OutputClaims::All,
@@ -252,7 +252,7 @@ fn forged_da_hints_are_rejected() {
 /// The child's opening rides in as hints: a forged opened row or cap node fails the guest's Merkle check.
 #[test]
 fn forged_opening_hints_are_rejected() {
-    let child = prove(&[], &get_signers(SMALL_LEAF_SIZE), &[]);
+    let child = prove(&[], &get_signers::<StableProver>(SMALL_LEAF_SIZE), &[]);
     let forgeries: [Forgery; 2] = [
         Box::new(|hints: &mut Hints| hints.entry_mut("merkle_leaf_rows", 0)[0] += F128::ONE),
         Box::new(|hints: &mut Hints| hints.entry_mut("merkle_caps", 0)[4] += F128::ONE),
@@ -322,7 +322,7 @@ fn guest_column_selectors_match_native_eq() {
 #[test]
 fn aggregate_two_to_one() {
     let big = 2 * CLAIM_GROUP + 3;
-    let signers = get_signers(SMALL_LEAF_SIZE + big);
+    let signers = get_signers::<StableProver>(SMALL_LEAF_SIZE + big);
     let left = prove(&[], &signers[..SMALL_LEAF_SIZE], &[]);
     let right = prove(&[], &signers[SMALL_LEAF_SIZE - 3..], &[]);
     let cover = super::coverage::plan_coverage(&[], &[], &[left.clone(), right.clone()], None).unwrap();
@@ -401,7 +401,7 @@ fn invalid_da_selections_are_rejected_before_building_the_proof() {
 /// publishes their matrix's, whatever its children hold.
 #[test]
 fn a_node_passes_on_one_childs_da_root() {
-    let signers = get_signers(SMALL_LEAF_SIZE);
+    let signers = get_signers::<StableProver>(SMALL_LEAF_SIZE);
     let mut children = vec![prove(&[], &signers, &[])];
     for (n_rows, seed) in [(1, 509), (2, 510)] {
         let rows = da_rows(n_rows, seed);
@@ -574,8 +574,8 @@ fn da_root(rows: &[Codeword]) -> Hash {
 /// claim on one message, the second all but one claim.
 #[test]
 fn a_node_may_publish_less_than_it_covers() {
-    let at_a = get_signers(3);
-    let at_b = get_signers_for(2, MESSAGE_B);
+    let at_a = get_signers::<StableProver>(3);
+    let at_b = get_signers_for::<StableProver>(2, MESSAGE_B);
     let wide = prove(&[], &[at_a.clone(), at_b].concat(), &[]);
     assert_eq!(wide.0.lean_xmss.len(), 5);
 
@@ -633,13 +633,13 @@ fn a_node_may_publish_less_than_it_covers() {
 /// A raw signature whose claim goes undeclared covers a duplicate slot.
 #[test]
 fn raw_signatures_may_go_undeclared() {
-    let b = get_signers_for(1, MESSAGE_B);
+    let b = get_signers_for::<StableProver>(1, MESSAGE_B);
     let claim_b = vec![(b[0].0, message_for(MESSAGE_B))];
     let declare = AggregateClaims {
         lean_xmss: claim_b.clone(),
         ..AggregateClaims::default()
     };
-    let raw = [get_signers(1), b].concat();
+    let raw = [get_signers::<StableProver>(1), b].concat();
     let node = aggregate(&[], raw, vec![], None, OutputClaims::Only(&declare)).expect("the narrowing leaf aggregates");
     assert!(node.1.verify(&node.0), "it verifies");
     assert_eq!(node.0.lean_xmss, claim_b);
@@ -651,8 +651,8 @@ fn raw_signatures_may_go_undeclared() {
 /// slot for the claim both leaves cover.
 #[test]
 fn aggregate_two_messages() {
-    let at_a = get_signers(4);
-    let at_b = get_signers_for(2, MESSAGE_B);
+    let at_a = get_signers::<StableProver>(4);
+    let at_b = get_signers_for::<StableProver>(2, MESSAGE_B);
     assert_eq!(at_a[0].0, at_b[0].0, "the cache reuses pubkeys across messages");
     assert_ne!(at_a[0].2.leaf_index(), at_b[0].2.leaf_index());
     let left = prove(&[], &at_a[..3], &[]);
@@ -726,8 +726,8 @@ fn a_child_walk_cannot_step_back() {
 /// children. The root's proof goes over the wire.
 #[test]
 fn aggregate_three_levels() {
-    let xmss = get_signers(17);
-    let sphincs = get_lean_sphincs_signers(5);
+    let xmss = get_signers::<StableProver>(17);
+    let sphincs = get_lean_sphincs_signers::<StableProver>(5);
     let left = prove(
         &[prove(&[], &xmss[..6], &sphincs[..2]), prove(&[], &xmss[5..11], &[])],
         &[],
@@ -738,7 +738,11 @@ fn aggregate_three_levels() {
         &[],
         &[],
     );
-    let root = prove(&[left, right], &get_signers_for(2, MESSAGE_B), &sphincs[4..]);
+    let root = prove(
+        &[left, right],
+        &get_signers_for::<StableProver>(2, MESSAGE_B),
+        &sphincs[4..],
+    );
     assert_eq!(root.0.lean_xmss.len(), 17 + 2);
     assert_eq!(root.0.lean_sphincs.len(), 5, "the repeats merged");
     let received = AggregateProof::from_bytes(&root.1.to_bytes()).expect("round trip");
@@ -786,7 +790,7 @@ fn malformed_raw_signatures_are_errors() {
     bytes[4 + layer_size..][..lean_xmss::internals::RANDOMIZER_LEN].copy_from_slice(&randomizer);
     let xmss = vec![(pk, message, LeanXmssSignature::from_bytes(&bytes))];
 
-    let (public_key, signed, signature) = get_lean_sphincs_signers(1).pop().expect("one signer");
+    let (public_key, signed, signature) = get_lean_sphincs_signers::<StableProver>(1).pop().expect("one signer");
     // The bottom layer's counter follows the randomizer and the FORS openings.
     let mut bytes = signature.to_bytes();
     bytes[lean_sphincs::internals::N

@@ -23,19 +23,19 @@ type RawLeanSphincs = (
 );
 
 /// Cached signers `[from, to)`, as the aggregation API takes them.
-fn signers(from: usize, to: usize) -> Vec<RawLeanXmss> {
+fn signers<P: Prover>(from: usize, to: usize) -> Vec<RawLeanXmss> {
     if to == 0 {
         return Vec::new();
     }
-    signers_cache::get_signers(to)[from..to].to_vec()
+    signers_cache::get_signers::<P>(to)[from..to].to_vec()
 }
 
 /// Each leanSPHINCS signer comes with the message it signed, as the leanXMSS ones do.
-fn lean_sphincs_signers(from: usize, to: usize) -> Vec<RawLeanSphincs> {
+fn lean_sphincs_signers<P: Prover>(from: usize, to: usize) -> Vec<RawLeanSphincs> {
     if to == 0 {
         return Vec::new();
     }
-    signers_cache::get_lean_sphincs_signers(to)[from..to].to_vec()
+    signers_cache::get_lean_sphincs_signers::<P>(to)[from..to].to_vec()
 }
 
 /// Report the shape and cost of one aggregation node.
@@ -93,8 +93,8 @@ pub fn run_aggregation<P: Prover>(
         "a leaf needs signatures or blobs"
     );
     let trace_span = tracing::info_span!("aggregation", n_lean_xmss, n_lean_sphincs, n_blobs, log_inv_rate).entered();
-    let raw_lean_xmss = signers(0, n_lean_xmss);
-    let raw_lean_sphincs = lean_sphincs_signers(0, n_lean_sphincs);
+    let raw_lean_xmss = signers::<P>(0, n_lean_xmss);
+    let raw_lean_sphincs = lean_sphincs_signers::<P>(0, n_lean_sphincs);
     let blobs = blobs(n_blobs, 0);
     // Only the final measured pass of each stage is traced: the tree describes the
     // proof the reported timings are about, instead of repeating itself per pass.
@@ -242,8 +242,8 @@ fn write_leaves<P: Prover>(
     log_inv_rate: usize,
     out: &std::path::Path,
 ) {
-    let all = signers(0, n * per_leaf);
-    let all_lean_sphincs = lean_sphincs_signers(0, n * lean_sphincs_per_leaf);
+    let all = signers::<P>(0, n * per_leaf);
+    let all_lean_sphincs = lean_sphincs_signers::<P>(0, n * lean_sphincs_per_leaf);
     let mut bytes = Vec::new();
     for k in 0..n {
         let leaf = aggregate::<P>(

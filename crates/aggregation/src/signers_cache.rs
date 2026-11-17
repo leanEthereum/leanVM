@@ -1,4 +1,4 @@
-//! Deterministic benchmark and test signers, generated on the stable prover's pool and cached in memory and on disk,
+//! Deterministic benchmark and test signers, generated on the given prover's pool and cached in memory and on disk,
 //! one file per scheme and message id, each signer stored as its public key then its signature.
 //!
 //! Loaded signers are verified, so a change to the scheme regenerates them from the first that no longer verifies; a
@@ -15,7 +15,7 @@ use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
 
-use isa::{pretty_f64, pretty_integer};
+use isa::{Prover, pretty_f64, pretty_integer};
 use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use lean_xmss::internals::*;
 use lean_xmss::*;
@@ -78,13 +78,13 @@ fn key_seed(k: usize) -> SecretKey {
 }
 
 /// The first `n` cached signers of [`message`] and the rounds after it, generated if not cached.
-pub fn get_signers(n: usize) -> Vec<LeanXmssSigner> {
-    get_signers_for(n, 0)
+pub fn get_signers<P: Prover>(n: usize) -> Vec<LeanXmssSigner> {
+    get_signers_for::<P>(n, 0)
 }
 
 /// The first `n` cached signers of cache `message_id`, signer `i` at `leaf_index_of(i, message_id)`: one cache file
 /// per message id, the keys shared across them.
-pub(crate) fn get_signers_for(n: usize, message_id: u32) -> Vec<LeanXmssSigner> {
+pub(crate) fn get_signers_for<P: Prover>(n: usize, message_id: u32) -> Vec<LeanXmssSigner> {
     static POOLS: Mutex<BTreeMap<u32, Vec<LeanXmssSigner>>> = Mutex::new(BTreeMap::new());
     assert!(
         message_id < MESSAGE_IDS,
@@ -121,12 +121,12 @@ pub(crate) fn get_signers_for(n: usize, message_id: u32) -> Vec<LeanXmssSigner> 
         |range| {
             // The keys first, one task each: a worker claims a run of signers, whose keys it would otherwise generate
             // one after another. `keys[j]` is the key of signer `range.start + j`.
-            let keys = progress("leanXMSS keys", 0..NUM_KEYS.min(range.len()), |j| {
+            let keys = progress::<P, _>("leanXMSS keys", 0..NUM_KEYS.min(range.len()), |j| {
                 let (sk, pk) = key_gen(&key_seed((range.start + j) % NUM_KEYS));
                 sk.prepare(BOTTOM_TREE << LAYER_HEIGHT);
                 (sk, pk)
             });
-            progress("leanXMSS signatures", range.clone(), |index| {
+            progress::<P, _>("leanXMSS signatures", range.clone(), |index| {
                 let (sk, pk) = &keys[(index - range.start) % NUM_KEYS];
                 let message = signer_message(index, message_id);
                 (*pk, message, sign(sk, &message, leaf_index_of(index, message_id)))
@@ -154,7 +154,7 @@ fn lean_sphincs_signer(index: usize) -> LeanSphincsSigner {
 }
 
 /// The first `n` cached leanSPHINCS signers, generated if not cached.
-pub fn get_lean_sphincs_signers(n: usize) -> Vec<LeanSphincsSigner> {
+pub fn get_lean_sphincs_signers<P: Prover>(n: usize) -> Vec<LeanSphincsSigner> {
     static POOL: Mutex<Vec<LeanSphincsSigner>> = Mutex::new(Vec::new());
     cached(
         &mut POOL.lock().unwrap(),
@@ -173,14 +173,14 @@ pub fn get_lean_sphincs_signers(n: usize) -> Vec<LeanSphincsSigner> {
             lean_sphincs::verify(&pk, &message, &sig).then_some((pk, message, sig))
         },
         |(pk, _, sig)| [&pk.to_bytes()[..], &sig.to_bytes()].concat(),
-        |range| progress("leanSPHINCS signatures", range, lean_sphincs_signer),
+        |range| progress::<P, _>("leanSPHINCS signatures", range, lean_sphincs_signer),
     )
 }
 
-/// `f` over `range` on the pool, with a progress line naming `what`.
-fn progress<T: Send>(what: &str, range: Range<usize>, f: impl Fn(usize) -> T + Sync) -> Vec<T> {
+/// `f` over `range` on `P`'s pool, with a progress line naming `what`.
+fn progress<P: Prover, T: Send>(what: &str, range: Range<usize>, f: impl Fn(usize) -> T + Sync) -> Vec<T> {
     let (total, started, done) = (range.len(), Instant::now(), AtomicUsize::new(0));
-    let generated = parallel::map_collect(total, |k| {
+    let generated = P::map_collect(total, |k| {
         let generated = f(range.start + k);
         let done = done.fetch_add(1, Ordering::Relaxed) + 1;
         print!(

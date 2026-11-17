@@ -14,7 +14,6 @@ dependencies = [
  "lean_xmss",
  "rand",
  "stable_lean_vm_core",
- "stable_parallel",
  "stable_pcs",
  "stable_primitives",
  "tracing",

@@ -24,8 +24,8 @@ fn proofs<P: Prover>() -> ([Vec<u8>; 5], Option<AggregateError>) {
         .collect();
     let blobs = lean_da::BlobMatrix::build(symbols.as_chunks().0).unwrap();
     let (xmss, sphincs) = (
-        signers_cache::get_signers(23),
-        signers_cache::get_lean_sphincs_signers(20),
+        signers_cache::get_signers::<P>(23),
+        signers_cache::get_lean_sphincs_signers::<P>(20),
     );
     let left = aggregate(&[], xmss[..3].to_vec(), vec![], Some(&blobs), 1).unwrap();
     let right = aggregate(&[], vec![], sphincs[..1].to_vec(), None, 2).unwrap();
