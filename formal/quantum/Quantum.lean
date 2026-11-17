@@ -174,6 +174,7 @@ import Quantum.Qrom.Xmss.GameT
 import Quantum.Qrom.Xmss.GameTFacts
 import Quantum.Qrom.Xmss.GameTCalls
 import Quantum.Qrom.Xmss.Hybrid
+import Quantum.Qrom.Xmss.Costs.Total
 import Quantum.Qrom.Sphincs.Scheme
 import Quantum.Qrom.Sphincs.Slots
 import Quantum.Qrom.Sphincs.Cov
