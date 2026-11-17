@@ -169,6 +169,9 @@ import Quantum.Qrom.Xmss.NoReuse
 import Quantum.Qrom.Xmss.GameReads
 import Quantum.Qrom.Xmss.Runtime1
 import Quantum.Qrom.Xmss.Classify
+import Quantum.Qrom.Xmss.Template
+import Quantum.Qrom.Xmss.GameT
+import Quantum.Qrom.Xmss.GameTFacts
 import Quantum.Qrom.Sphincs.Scheme
 import Quantum.Qrom.Sphincs.Slots
 import Quantum.Qrom.Sphincs.Cov
