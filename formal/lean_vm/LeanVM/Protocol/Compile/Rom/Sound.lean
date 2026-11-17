@@ -99,7 +99,7 @@ noncomputable def failBound {X : Type} (σ : Seeds X) (N : ℕ) : ℝ≥0∞ :=
 
 /-- Some boundary prefix, past the statement's root, of the extracted history of the verifier's
 run on the statement and proof `z`, under the answers of the cache `c`, is doomed. -/
-def Doomed {X : Type} {P : VerifierProgram Bool} (C : Cert P) (σ : Seeds X) (z : X × Proof)
+def Doomed {X : Type} {P : VerifierProgram Bool} {G : List Ev → Prop} (C : CertG P G) (σ : Seeds X) (z : X × Proof)
     (c : KeccakCalls.QueryCache) : Prop :=
   ∃ h₀, h₀ <+: extractedFrom (fun x ↦ c (.inl x)) (fun s ↦ c (.inr s)) (σ.seed z.1)
       (nodeAt P (σ.root z.1)) (σ.root z.1) z.2 ∧
@@ -117,7 +117,7 @@ theorem not_isTotalQueryBound_verifierComp_zero (σ₀ : Seed) (P : VerifierProg
 
 /-- **The step inequality, packaged for the engine**: below `N` entries, a fresh answer to either
 oracle raises the potential by at most `εmax + failBound σ N` in expectation. -/
-theorem pot_logStepBelow {X : Type} {P : VerifierProgram Bool} (C : Cert P) (σ : Seeds X) {εmax
+theorem pot_logStepBelow {X : Type} {P : VerifierProgram Bool} {G : List Ev → Prop} (C : CertG P G) (σ : Seeds X) {εmax
     : ℝ≥0∞}
     (hε : ∀ h, (2 : ℝ≥0∞)⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax) (N : ℕ) :
     LogStepBelow N (pot C.D σ P) (εmax + failBound σ N) := by
@@ -157,11 +157,51 @@ theorem romSound_log {X : Type} (P : VerifierProgram Bool) (C : Cert P) (σ : Se
     by_cases hf : Fail σ z.2
     · simp only [pot, hf, ↓reduceIte, le_refl]
     · have hv := verifyFam_of_mem_support_logExperiment A hz hacc
-      exact final_ineq C hf hε1 (hroot _) hv (hbad z.1.1 z.2 hf hv hb)
+      exact final_ineq C hf hε1 (hroot _) hv not_false (hbad z.1.1 z.2 hf hv hb)
   · rw [not_lt] at hlt
     by_cases hQ : QA + QV = 0
     · -- no verifier can make no query: there is no outcome
       have hQV : QV = 0 := by omega
+      refine le_of_eq_of_le (prEvent_eq_zero_of_forall_mem_support _ _ fun z _ _ ↦ ?_) bot_le
+      exact not_isTotalQueryBound_verifierComp_zero _ _ _ (hQV ▸ hV z.1.1)
+    · refine (prEvent_le_one _).trans ?_
+      calc (1 : ℝ≥0∞) = 1 * 1 := (one_mul 1).symm
+        _ ≤ (QA + QV : ℕ) * (εmax + failBound σ (QA + QV)) :=
+          mul_le_mul' (by exact_mod_cast Nat.one_le_iff_ne_zero.mpr hQ) (hlt.trans le_self_add)
+
+/-- **The random-oracle theorem with an acceptance predicate**: for a certificate `C : CertG P G`,
+whose doom may accept where the history satisfies `G`, the probability that the verifier accepts
+while `bad` holds is at most `romSound_log`'s bound, if `bad`, on accepted proofs without failure,
+gives a doomed boundary prefix of the extracted history and the extracted history failing `G`. -/
+theorem romSound_logG {X : Type} (P : VerifierProgram Bool) {G : List Ev → Prop} (C : CertG P G)
+    (σ : Seeds X) (hroot : ∀ x, RootOk P (σ.root x)) (εmax : ℝ≥0∞)
+    (hε : ∀ h, (2 : ℝ≥0∞)⁻¹ ^ min (grindBits h) 64 * C.ε h ≤ εmax)
+    (A : OracleComp KeccakCalls (X × Proof)) (QA : ℕ) (hA : IsTotalQueryBound A QA)
+    (QV : ℕ) (hV : ∀ z, IsTotalQueryBound (verifierFam σ P z) QV)
+    (bad : X × Proof → Log → Prop)
+    (hbad : ∀ z ℓ, ¬ Fail σ ℓ →
+      verify (lookH ℓ) (lookF ℓ) (σ.seed z.1) (nodeAt P (σ.root z.1)) z.2 = some true →
+        bad z ℓ → Doomed C σ z (cacheOf ℓ) ∧
+          ¬ G (extractedFrom (lookH ℓ) (lookF ℓ) (σ.seed z.1) (nodeAt P (σ.root z.1))
+            (σ.root z.1) z.2)) :
+    Pr{let z ← logExperiment A (verifierFam σ P)}[z.1.2 = true ∧ bad z.1.1 z.2] ≤
+      (QA + QV : ℕ) * (εmax + failBound σ (QA + QV)) := by
+  by_cases hlt : εmax < 1
+  · have hε1 : ∀ h, grindBits h = 0 → C.ε h < 1 := fun h hg ↦ by
+      have := hε h
+      rw [hg, Nat.zero_min, pow_zero, one_mul] at this
+      exact this.trans_lt hlt
+    refine prEvent_logExperiment_le_of_freshStepBelow (QA + QV) (pot_logStepBelow C σ hε _)
+      (pot_nil C.D σ P) A (verifierFam σ P) QA QV hA hV le_rfl bad ?_
+    intro z hz hacc hb
+    by_cases hf : Fail σ z.2
+    · simp only [pot, hf, ↓reduceIte, le_refl]
+    · have hv := verifyFam_of_mem_support_logExperiment A hz hacc
+      obtain ⟨hD, hG⟩ := hbad z.1.1 z.2 hf hv hb
+      exact final_ineq C hf hε1 (hroot _) hv hG hD
+  · rw [not_lt] at hlt
+    by_cases hQ : QA + QV = 0
+    · have hQV : QV = 0 := by omega
       refine le_of_eq_of_le (prEvent_eq_zero_of_forall_mem_support _ _ fun z _ _ ↦ ?_) bot_le
       exact not_isTotalQueryBound_verifierComp_zero _ _ _ (hQV ▸ hV z.1.1)
     · refine (prEvent_le_one _).trans ?_
