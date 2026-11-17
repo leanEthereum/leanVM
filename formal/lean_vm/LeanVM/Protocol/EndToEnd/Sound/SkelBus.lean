@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Protocol.EndToEnd.Sound.SkelLeaves
+public import LeanVM.Protocol.EndToEnd.Complete.BusTables
 
 /-!
 # The bus phase's skeleton
@@ -102,11 +103,34 @@ def skBus (depth : ℕ) : List Op :=
     (.read :: .read :: skGkrLayers depth 0) ++ List.replicate 2 .read ++ [.read, .read] ++
     skBytecodeShare
 
-/-- **The bus phase's skeleton**, at the push side's depth. -/
+/-- The claims are on no `KECCAK` output column. -/
+def OffKeccak (claims : List Verifier.ColumnClaim) : Prop := ∀ c ∈ claims, c.column ∉ keccakOutputColumns
+
+theorem length_accFold (side : ℕ) (w : List E) (β : E) :
+    ∀ (l : List (E × BusBlock)) (forms : List (List Form)),
+      (EndToEnd.Complete.accFold side w β l forms).length = forms.length
+  | [], _ => rfl
+  | x :: l, forms => by
+    unfold EndToEnd.Complete.accFold
+    rw [List.foldl_cons]
+    exact (length_accFold side w β l _).trans (List.length_modify _ _ _)
+
+theorem length_accumulateSide (forms : List (List Form)) (side : ℕ) (fw : List ℕ)
+    (blocks : List BusBlock) (fps w : List E) (β : E) (p : List E) (tv : E) :
+    (accumulateSide forms side blocks (busLayout fw blocks) fps w β p tv).1.length =
+      forms.length := by
+  rw [EndToEnd.Complete.accumulateSide_fst, length_accFold]
+
+theorem bus_columns_off : memory0 ∉ keccakOutputColumns ∧ memory1 ∉ keccakOutputColumns ∧
+    memoryFinalCounters ∉ keccakOutputColumns ∧ bytecodeFinalCounters ∉ keccakOutputColumns := by
+  decide
+
+/-- **The bus phase's skeleton**, at the push side's depth: its forms one per table, its claims on
+no `KECCAK` output column. -/
 theorem skel_verifyBusBalance (layout : Verifier.Layout) :
     SkelP (verifyBusBalance computedBytecodeValue layout)
       (skBus (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth)
-      fun _ ↦ True := by
+      fun r ↦ r.forms.length = tables.length ∧ OffKeccak r.claims := by
   unfold verifyBusBalance computedBytecodeValue
   simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
   exact ((skel_require _).bind fun _ _ ↦ (skel_grindProofOfWork _).bind fun _ _ ↦
@@ -115,8 +139,21 @@ theorem skel_verifyBusBalance (layout : Verifier.Layout) :
     (skel_require _).bind fun _ _ ↦ (skel_readScalars 2).bind fun memory _ ↦
     skel_readScalar.bind fun _ _ ↦ skel_readScalar.bind fun _ _ ↦
     (skel_bytecodeShare _ _).bind fun r' _ ↦ (skel_require _).bind fun _ _ ↦
-    SkelP.ret (Q := fun _ : BusResult ↦ True) trivial).mono (by simp [skBus, List.append_assoc])
-    fun _ h ↦ h
+    SkelP.ret (Q := fun r : BusResult ↦ r.forms.length = tables.length ∧ OffKeccak r.claims)
+      ⟨by simp only [length_accumulateSide, List.length_map], by
+        obtain ⟨h0, h1, h2, h3⟩ := bus_columns_off
+        intro c hc
+        simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hc
+        rcases hc with hc | rfl | rfl
+        · obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hc
+          simp only [List.getElem_zipWith]
+          rw [List.length_zipWith] at hi
+          have : i < 2 := by simp at hi; omega
+          interval_cases i
+          · exact h0
+          · exact h1
+        · exact h2
+        · exact h3⟩).mono (by simp [skBus, List.append_assoc]) fun _ h ↦ h
 
 end
 end LeanVM.Protocol.EndToEnd.Sound
