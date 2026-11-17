@@ -83,6 +83,8 @@ part_export() {
   # The Lean back end compiles the guest at its fixed point (`guests/lean_ethereum.compiled`), which guest-export then
   # reads as the statement's program.
   scripts/guest-artifact "${check[@]}" "${jobs[@]}"
+  # guest-export embeds the artefact (`include_str!`): built again, so that it reads the one just written.
+  cargo build --release --manifest-path scripts/guest-export/Cargo.toml
   capped scripts/guest-export/target/release/guest-export . "${check[@]}"
 }
 
@@ -158,7 +160,7 @@ part_decoder() {
   capped lake env lean scripts/decoder-tables-entries.lean | sed -n "s/^entries: //p" > "$d/entries.txt"
   capped .lake/build/bin/guest-tables --decoder-inputs "$d/backend.txt"
   python3 -I scripts/decoder-tables --entries "$d/entries.txt" --backend "$d/backend.txt" "${check[@]}"
-  lakebuild LeanVM.Cost.Decoder.GuestTables
+  lakebuild LeanVM.Cost.Decoder.GuestTables LeanVM.Cost.Decoder.GuestPlaces
   capped lake env lean scripts/decoder-tables-inputs.lean > "$d/in.txt"
   for k in rows split; do sed -n "s/^$k: //p" "$d/in.txt" > "$d/$k.txt"; done
   python3 -I scripts/decoder-table-chunks --row-lengths "$d/rows.txt" --split-lengths "$d/split.txt" "${check[@]}"
