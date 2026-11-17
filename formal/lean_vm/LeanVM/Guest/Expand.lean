@@ -582,7 +582,8 @@ def stackAddr (args : List Expr) : M GAddr := do
 /-- The compile-time bounds check of a heap or `addr` access (`check_heap_bound`). -/
 def checkHeapBound (arr : Expr) (extra span : Nat) : M Unit := do
   let some ga ← gaddrOf arr | return
-  let (some base, some exp) := (ga.base, chk (ga.exp + extra)) | return
+  let some base := ga.base | return
+  let exp := ga.exp + extra
   if let some len := ga.run then
     if len < exp + span then fail s!"frame access {exp} out of bounds for the StackBuf({len}) named by `addr`"
     return
