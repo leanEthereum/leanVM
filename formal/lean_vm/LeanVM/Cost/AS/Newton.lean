@@ -25,6 +25,8 @@ cost_compile nStepKC := nStepK
 
 cost_compile nFormKC := nFormK
 
+cost_compile dropLocC := dropLoc
+
 cost_compile decode1KC := decode1K
 
 end

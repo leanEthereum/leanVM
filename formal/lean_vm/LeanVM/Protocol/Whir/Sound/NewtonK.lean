@@ -80,6 +80,16 @@ theorem nFormK_eq (pts : List (K × E)) :
     simp only [List.map_cons, List.map_nil, List.foldl_cons, List.foldl_nil, nStep, nStepK,
       List.map_append, nEvalK_eq, ofK_inv, nodalK_eq, CharTwo.sub_eq_add]
 
+/-- The points but the first at the node `x` with `a_{d+2}·(x − x_{d+2}) = a_{d+1}`. -/
+def dropLoc (d : ℕ) (f : List K × List E) (pts : List (K × E)) : List (K × E) :=
+  let a2 := f.2.getD (d + 2) 0
+  let a1 := f.2.getD (d + 1) 0
+  let x2 := (pts.getD (d + 2) (0, 0)).1
+  pts.eraseIdx (pts.findIdx fun p ↦
+    let u := ofK (p.1 - x2)
+    let v := a2 * u
+    decide (v = a1))
+
 /-- **One-error decoding, nodes in `K`.** -/
 def decode1K (d : ℕ) (pts : List (K × E)) : Option (List K × List E) :=
   let f := nFormK pts
@@ -88,12 +98,9 @@ def decode1K (d : ℕ) (pts : List (K × E)) : Option (List K × List E) :=
   if a2 = 0 then
     if a1 = 0 then some f else none
   else
-    let x2 := (pts.getD (d + 2) (0, 0)).1
-    let pts' := pts.eraseIdx (pts.findIdx fun p ↦
-      let u := ofK (p.1 - x2)
-      let v := a2 * u
-      decide (v = a1))
-    if pts'.length = d + 2 ∧ (nFormK pts').2.getD (d + 1) 0 = 0 then some (nFormK pts') else none
+    let pts' := dropLoc d f pts
+    let f' := nFormK pts'
+    if pts'.length = d + 2 ∧ f'.2.getD (d + 1) 0 = 0 then some f' else none
 
 theorem length_liftPts (pts : List (K × E)) : (liftPts pts).length = pts.length := by
   simp [liftPts]
@@ -120,7 +127,7 @@ theorem decode1K_eq (d : ℕ) (pts : List (K × E)) :
   set a2 := (nFormK pts).2.getD (d + 2) 0
   set a1 := (nFormK pts).2.getD (d + 1) 0
   have hf := nFormK_eq pts
-  unfold decode1 decode1K
+  unfold decode1 decode1K dropLoc
   dsimp only
   rw [hf]
   dsimp only
