@@ -7,7 +7,7 @@
 use crate::common::compile;
 use lean_vm_core::cpu::{execute, prove, verify};
 use primitives::field::{F64, F128, g_pow};
-use zkdsl_compiler::parse;
+use zkdsl::parse;
 
 /// A returned value that repeats a constant computed earlier in the same
 /// function. The return slot lives in the callee frame and is read by the

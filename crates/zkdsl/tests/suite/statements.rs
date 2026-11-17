@@ -5,7 +5,7 @@
 use crate::common::compile;
 use lean_vm_core::cpu::{execute, prove, verify};
 use primitives::field::{F128, g_pow};
-use zkdsl_compiler::parse;
+use zkdsl::parse;
 
 /// A name is a plain identifier. Two different mistakes arrive here, and both
 /// used to compile: a mis-split statement (`x /= 2` became a binding named
@@ -231,7 +231,7 @@ fn an_operator_missing_an_operand_says_so() {
         ("* 2", "`*` has no left operand"),
         ("4 // ", "`//` has no right operand"),
     ] {
-        let err = zkdsl_compiler::parse_const(src).expect_err(src);
+        let err = zkdsl::parse_const(src).expect_err(src);
         assert!(err.contains(want), "{src}: got `{err}`, wanted `{want}`");
     }
 }
@@ -974,7 +974,7 @@ fn a_multi_line_placeholder_is_rejected() {
     let src = "FOO = 1\n\ndef main():\n    return\n";
     for bad in ["1\nz = 9", "1 #"] {
         reps.insert("FOO".to_string(), bad.to_string());
-        let err = zkdsl_compiler::parse_with_replacements(src, &reps).unwrap_err();
+        let err = zkdsl::parse_with_replacements(src, &reps).unwrap_err();
         assert!(err.contains("would reshape the line"), "{bad}: {err}");
     }
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The front end in Lean (`LeanVM/Guest/Expand.lean`) against the one in Rust (`crates/zkdsl_compiler/src/expand.rs`),
+# The front end in Lean (`LeanVM/Guest/Expand.lean`) against the one in Rust (`crates/zkdsl/src/expand.rs`),
 # on the guest and on every test program: the core IR each expands the program to, every function renumbered
 # (`Fn.renumber`), in one canonical text (`lake exe guest-backend core-text`, `cli/GuestBackend.lean`; `core_ir::render`
 # in Rust), compared line for line. Run from anywhere; needs `lake` and `cargo`, and the guest's artefact current

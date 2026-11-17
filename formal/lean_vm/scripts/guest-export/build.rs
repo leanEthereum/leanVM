@@ -94,6 +94,8 @@ fn main() {
     let _ = std::fs::remove_dir_all(&out);
     copy_dir(&crate_dir.join("src"), &out.join("src"));
     copy_dir(&leanvm.join("guests"), &out.join("guests"));
+    // The tests' Lean-compiled snippets, beside `src/` as in the crate.
+    copy_dir(&crate_dir.join("snippets"), &out.join("snippets"));
     // The guest's source and its compiled artefact sit at the repository's root, two levels above the crate: the copy
     // reads them beside itself.
     let guest = out.join("src/guest.rs");
@@ -145,12 +147,12 @@ fn main() {
     ));
     std::fs::write(&aggregation, text).unwrap();
 
-    // leanVM's `zkdsl_compiler` as this crate's module `compiler_overlay`, for the exporters that
+    // leanVM's `zkdsl` as this crate's module `compiler_overlay`, for the exporters that
     // read the parsed guest (`Ast`'s functions are crate-private since leanVM #669): its sources
     // copied, `lib.rs` as the module's `mod.rs`, and `crate::` paths pointed at the module.
     let compiler = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("compiler_overlay");
     let _ = std::fs::remove_dir_all(&compiler);
-    copy_dir(&leanvm.join("crates/zkdsl_compiler/src"), &compiler);
+    copy_dir(&leanvm.join("crates/zkdsl/src"), &compiler);
     std::fs::rename(compiler.join("lib.rs"), compiler.join("mod.rs")).unwrap();
     let mut files = Vec::new();
     rust_files(&compiler, &mut files);

@@ -2,7 +2,7 @@
   LeanVM.Compiler.Emit
 
   Emission: a placed function to its labelled code, each placed statement the instructions the
-  Rust lowering emits for it (`crates/zkdsl_compiler/src/lower.rs`, `lower/call.rs`).
+  Rust lowering emits for it (`crates/zkdsl/src/lower.rs`, `lower/call.rs`).
 -/
 
 module

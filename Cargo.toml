@@ -6,7 +6,7 @@ members = [
     "crates/keccak256",
     "crates/fiat_shamir_prover",
     "crates/isa",
-    "crates/zkdsl_compiler",
+    "crates/zkdsl",
     "crates/lean_xmss",
     "crates/lean_sphincs",
     "crates/lean_da",
@@ -43,7 +43,7 @@ verifier = { path = "crates/verifier" }
 keccak256 = { path = "crates/keccak256" }
 fiat_shamir_prover = { path = "crates/fiat_shamir_prover" }
 isa = { path = "crates/isa" }
-zkdsl_compiler = { path = "crates/zkdsl_compiler" }
+zkdsl = { path = "crates/zkdsl" }
 lean_xmss = { path = "crates/lean_xmss" }
 lean_sphincs = { path = "crates/lean_sphincs" }
 lean_da = { path = "crates/lean_da" }

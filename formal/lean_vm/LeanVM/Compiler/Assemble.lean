@@ -2,7 +2,7 @@
   LeanVM.Compiler.Assemble
 
   Assembly: the functions' labelled code and the jump tables to one program, every immediate and
-  hint resolved (`compile` and `resolve`, `crates/zkdsl_compiler/src/lib.rs`).
+  hint resolved (`compile` and `resolve`, `crates/zkdsl/src/lib.rs`).
 -/
 
 module

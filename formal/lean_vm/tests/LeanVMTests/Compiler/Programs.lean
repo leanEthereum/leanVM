@@ -4,10 +4,10 @@ import LeanVMTests.Guest.Programs
 /-!
 # The back end on the compiler's test programs
 
-Every `crates/zkdsl_compiler/tests/programs/*.py` compiles through `Expand` and the back end, and
+Every `crates/zkdsl/tests/programs/*.py` compiles through `Expand` and the back end, and
 the back end's invariants hold of its traced expansion (`Compiler.invariants`); and the sizes of
 the compiled programs are pinned. That each is the Rust compiler's program, instruction for
-instruction and hint for hint, is the Rust test `crates/zkdsl_compiler/tests/suite/lean_backend.rs`
+instruction and hint for hint, is the Rust test `crates/zkdsl/tests/suite/lean_backend.rs`
 on the exports `lake exe guest-backend export programs` writes; the whole guest is
 `lake exe guest-backend check`.
 -/

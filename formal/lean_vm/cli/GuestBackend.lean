@@ -24,14 +24,14 @@ Run from `lean_vm`.
 * `lake exe guest-backend export programs DIR [--check]` writes the compiler's test programs
   (`LeanVMTests.Guest.Programs`) in the line format of `crates/isa/src/text.rs`, source lines
   included (`Compiler.Lines`), which the Rust tests compare with the Rust compiler's output
-  (`crates/zkdsl_compiler/tests/suite/lean_backend.rs`), and the verifiers' fixture program at each
+  (`crates/zkdsl/tests/suite/lean_backend.rs`), and the verifiers' fixture program at each
   of its step counts (`Programs.chains`). `export snippets DIR [--check]` writes the aggregation
   tests' snippets (`LeanVMTests.Guest.Snippets`: a `main` over the guest's helpers).
   The guest itself is written by `lake exe guest-artifact` (`cli/GuestArtifact.lean`).
 * `lake exe guest-backend core-text DIR` writes the core IR of the guest (`DIR/guest.core`) and of each
   test program (`DIR/<name>.core`), as `Expand.expandProgram` gives it, each function renumbered
   (`Fn.renumber`), in the canonical text the Rust front end also prints
-  (`crates/zkdsl_compiler/src/core_ir.rs`, `render`): `scripts/frontend-diff` compares the two.
+  (`crates/zkdsl/src/core_ir.rs`, `render`): `scripts/frontend-diff` compares the two.
 * `lake exe guest-backend time` prints the time of each pass on the guest.
 * `lake exe guest-backend core NAME` prints a function's core IR, and `show NAME` its code beside
   the statement's.

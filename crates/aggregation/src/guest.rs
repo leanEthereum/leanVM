@@ -101,7 +101,7 @@ pub(super) fn load(text: &str) -> Result<Program, String> {
         for (name, entry, len) in ranges {
             dump += &format!("# fn {entry:>7}..{:<7} {name}\n", entry + len);
         }
-        dump += &zkdsl_compiler::disassemble(&program.prog);
+        dump += &zkdsl::disassemble(&program.prog);
         std::fs::write(&path, dump).expect("write DBG_DISASM");
     }
     Ok(program)

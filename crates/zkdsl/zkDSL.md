@@ -4,11 +4,11 @@ The zkDSL is a Python-syntax language that compiles to the leanVM ISA: six instr
 
 Source files use the `.py` extension and are **Python-shaped**: they import the [`snark_lib`](snark_lib.py) stub, which defines `GEN`, `log`, `mul_range`, `HeapBuf`, `StackBuf`, `assert_in_k`, `keccak` and `keccak_cells`, so editors and linters resolve the intrinsic names. The compiler skips the import. Ordinary helpers such as `pack64x2` are defined in the single-file guest. A program that uses placeholders is not a runnable Python file: its `*_PLACEHOLDER` identifiers are undefined until the host fills them in, so importing it raises `NameError`.
 
-Entry points: `zkdsl_compiler::parse` / `parse_with_replacements` → `zkdsl_compiler::compile`, a `CompiledProgram` (crate `isa`) → `isa::Program::from` → `cpu::prove` / `verify` in either prover tree.
+Entry points: `zkdsl::parse` / `parse_with_replacements` → `zkdsl::compile`, a `CompiledProgram` (crate `isa`) → `isa::Program::from` → `cpu::prove` / `verify` in either prover tree.
 
 ## Dev experience
 
-The repo ships a root [`pyrightconfig.json`](../../pyrightconfig.json) with `"extraPaths": ["crates/zkdsl_compiler"]`, so any `.py` program anywhere in the repo resolves `snark_lib` when the repo root is opened in the editor. A placeholder-free program also runs as plain Python (`PYTHONPATH=crates/zkdsl_compiler python3 crates/zkdsl_compiler/tests/programs/foo.py`); the stubs are no-ops, so this only checks that the file is well-formed.
+The repo ships a root [`pyrightconfig.json`](../../pyrightconfig.json) with `"extraPaths": ["crates/zkdsl"]`, so any `.py` program anywhere in the repo resolves `snark_lib` when the repo root is opened in the editor. A placeholder-free program also runs as plain Python (`PYTHONPATH=crates/zkdsl python3 crates/zkdsl/tests/programs/foo.py`); the stubs are no-ops, so this only checks that the file is well-formed.
 
 ## The field, and indices in the exponent
 

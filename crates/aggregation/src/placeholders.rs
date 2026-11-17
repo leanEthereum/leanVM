@@ -48,7 +48,7 @@ integer_literal!(u32, u64, u128, usize);
 
 impl Literal for F128 {
     fn literal(&self) -> String {
-        zkdsl_compiler::f128_literal(to_scalar(self))
+        zkdsl::f128_literal(to_scalar(self))
     }
 }
 

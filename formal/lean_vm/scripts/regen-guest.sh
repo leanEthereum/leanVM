@@ -96,7 +96,7 @@ part_programs() {
   # The test programs and the verifiers' fixture program, as the Rust tests, the benchmark and the fixtures load them.
   step "programs: the zkDSL test programs compiled (guest-backend export programs)"
   lakebuild guest-backend
-  capped .lake/build/bin/guest-backend export programs ../../crates/zkdsl_compiler/tests/suite/lean_backend "${check[@]}"
+  capped .lake/build/bin/guest-backend export programs ../../crates/zkdsl/tests/compiled "${check[@]}"
   capped .lake/build/bin/guest-backend export snippets ../../crates/aggregation/snippets "${check[@]}"
 }
 

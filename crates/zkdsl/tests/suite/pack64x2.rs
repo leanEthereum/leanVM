@@ -1,7 +1,7 @@
 use crate::common::compile;
 use lean_vm_core::cpu::{execute, prove, verify};
 use primitives::field::{F64, F128};
-use zkdsl_compiler::parse;
+use zkdsl::parse;
 
 #[test]
 fn pack64x2_proves_and_verifies() {

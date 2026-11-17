@@ -7,7 +7,7 @@
 use crate::common::compile;
 use lean_vm_core::cpu::{prove, verify};
 use primitives::field::{F64, F128, g_pow};
-use zkdsl_compiler::parse;
+use zkdsl::parse;
 
 fn log2_ceil_of(v: u128) -> usize {
     if v <= 1 {

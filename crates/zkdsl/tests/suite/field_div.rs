@@ -8,7 +8,7 @@
 use crate::common::compile;
 use lean_vm_core::cpu::{prove, verify};
 use primitives::field::{F64, F128, g_pow};
-use zkdsl_compiler::parse;
+use zkdsl::parse;
 
 /// `a / b` and `1 / b` over runtime values: the quotient satisfies `q·b == a`,
 /// checked by publishing it and reproducing the dividend.

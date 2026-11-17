@@ -4,7 +4,7 @@
 use crate::common::compile;
 use lean_vm_core::cpu::execute;
 use primitives::field::{F64, F128, g_pow};
-use zkdsl_compiler::parse;
+use zkdsl::parse;
 
 #[test]
 fn ambiguous_programs_are_rejected_when_parsed() {
