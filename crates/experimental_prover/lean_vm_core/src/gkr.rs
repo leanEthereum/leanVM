@@ -6,7 +6,7 @@
 //! Leaves and every layer are `E`-valued (the bus fingerprints mix `K`-columns
 //! into `E` upstream, [`crate::leaf`]).
 //!
-//! On AVX-512 the large rounds run eight pairs of rows at a time in transposed form
+//! With VPCLMULQDQ the large rounds run eight pairs of rows at a time in transposed form
 //! (`vertical`), and skip the runs of rows known to be the identity.
 
 use std::ops::Range;
@@ -41,9 +41,9 @@ fn sum_tasks(tasks: usize, parallel: bool, f: impl Fn(usize) -> [F128; 4] + Sync
 /// `out[i] = ∏ current[4i..4i+4]`, for `out.len() == current.len() / 4`.
 pub(crate) fn products_into(current: &[F128], out: &mut [F128]) {
     debug_assert_eq!(out.len(), current.len() / 4);
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
     let done = vertical::products_into(current, out);
-    #[cfg(not(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq")))]
+    #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq")))]
     let done = 0;
     for (row, slot) in out.iter_mut().enumerate().skip(done) {
         let [left, right] = mul2(
@@ -161,8 +161,8 @@ struct SplitEq {
     hi: Vec<F128>,
     lo_bits: usize,
     /// `lo` eight entries at a time, for the vertical kernels.
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
-    lo8: Vec<primitives::field::x8::F128x8>,
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
+    lo8: Vec<vertical::F128x8>,
 }
 
 impl SplitEq {
@@ -171,13 +171,8 @@ impl SplitEq {
         let (low, high) = vars.split_at(lo_bits);
         let lo = eq_table(low);
         Self {
-            #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
-            lo8: lo
-                .as_chunks::<8>()
-                .0
-                .iter()
-                .map(primitives::field::x8::F128x8::load)
-                .collect(),
+            #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
+            lo8: lo.as_chunks::<8>().0.iter().map(vertical::load_eight).collect(),
             lo,
             hi: eq_table(high),
             lo_bits,
@@ -264,7 +259,7 @@ fn runs<'a>(range: Range<usize>, ones: &'a [Range<usize>]) -> impl Iterator<Item
 pub(crate) const SKIP_IDENTITY: bool = cfg!(target_arch = "x86_64");
 
 /// Below this logical height a layer runs the scalar kernels.
-#[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
 const VERTICAL_ROWS: usize = 1 << 10;
 
 /// Two binary product levels contracted into one degree-four layer.
@@ -276,9 +271,9 @@ struct QuaternaryLayerState {
     /// prefix; every omitted row is the constant four-tuple one.
     logical_rows: usize,
     /// Once folded by the vertical kernels, the rows live here instead of in `values`.
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
     groups: Vec<vertical::Group>,
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
     spare: Vec<vertical::Group>,
     /// Runs of rows known to be the identity, sorted: the kernels skip them, and
     /// the vertical ones leave their groups unwritten.
@@ -295,9 +290,9 @@ impl QuaternaryLayerState {
         Self {
             values,
             logical_rows: width,
-            #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+            #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
             groups: Vec::new(),
-            #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+            #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
             spare: Vec::new(),
             ones: Vec::new(),
         }
@@ -305,7 +300,7 @@ impl QuaternaryLayerState {
 
     /// `(q(0)+q(1), [X²]q, [X³]q, [X⁴]q)`.
     fn round_message(&self, eq: &SplitEq) -> [F128; 4] {
-        #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+        #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
         if self.logical_rows >= VERTICAL_ROWS {
             return vertical::message(&self.values, &self.ones, eq);
         }
@@ -313,13 +308,13 @@ impl QuaternaryLayerState {
     }
 
     fn fold(&mut self, challenge: F128) {
-        #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+        #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
         self.leave_groups();
         self.fold_scalar(challenge);
     }
 
     /// The vertical kernels' view of the rows, and the buffer the fold writes.
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
     fn split(&mut self) -> (vertical::Input<'_>, &mut Vec<vertical::Group>) {
         let data = if self.groups.is_empty() {
             vertical::Data::Rows(&self.values)
@@ -330,7 +325,7 @@ impl QuaternaryLayerState {
     }
 
     /// Move the rows back into `values` for the scalar kernels.
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
     fn leave_groups(&mut self) {
         if !self.groups.is_empty() {
             self.values = vertical::to_rows(&self.groups, &self.ones);
@@ -515,7 +510,7 @@ fn fold_and_message(
     challenge: F128,
     eq: &SplitEq,
 ) -> [[F128; 4]; N_BUS_TREES] {
-    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
     {
         if trees[0].logical_rows >= VERTICAL_ROWS {
             let [a, b, c] = trees.each_mut().map(QuaternaryLayerState::split);
@@ -535,17 +530,37 @@ fn fold_and_message(
     trees.each_mut().map(|tree| tree.fold_and_message_scalar(challenge, eq))
 }
 
-/// The AVX-512 kernels: eight pairs of rows at a time, transposed so that every
-/// product is lane-wise ([`primitives::field::x8`]). After its first fold a layer
-/// keeps its rows transposed, in [`Group`]s, until it is small enough for the scalar
-/// kernels.
-#[cfg(all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "vpclmulqdq"))]
+/// The VPCLMULQDQ kernels: eight pairs of rows at a time, transposed so that every
+/// product is lane-wise (`primitives::field::x8` on AVX-512, `f128x8`'s two halves
+/// of `x4` lanes on AVX2). After its first fold a layer keeps its rows transposed,
+/// in [`Group`]s, until it is small enough for the scalar kernels.
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "vpclmulqdq"))]
 mod vertical {
     use super::{N_BUS_TREES, SplitEq, add4, coarsen, sum_tasks};
     use primitives::field::F128;
-    use primitives::field::x8::{F128x8, Sum8};
+    // A message runs on `Lane`s: all eight lanes on AVX-512, and on AVX2 a four-lane half at a time, which
+    // keeps its live set within the sixteen YMM registers.
+    cfg_select! {
+        target_feature = "avx512f" => {
+            use primitives::field::x8::{F128x8 as Lane, Sum8 as Sum};
+            pub(super) use primitives::field::x8::F128x8;
+        }
+        _ => {
+            use primitives::field::x4::{F128x4 as Lane, Sum4 as Sum};
+            pub(super) use primitives::field::f128x8::F128x8;
+        }
+    }
     use primitives::stream::Stream;
     use std::ops::Range;
+
+    /// Eight consecutive elements.
+    #[inline(always)]
+    pub(super) fn load_eight(src: &[F128; 8]) -> F128x8 {
+        cfg_select! {
+            target_feature = "avx512f" => F128x8::load(src),
+            _ => F128x8::from_array(src),
+        }
+    }
 
     /// Whether `ones` covers `rows`.
     fn covered(ones: &[Range<usize>], rows: Range<usize>) -> bool {
@@ -573,10 +588,10 @@ mod vertical {
         }
     }
 
-    /// Add eight pairs' `eq`-weighted summands. The weight scales child 0's line, and
-    /// with it every product, so it costs two products rather than one per coefficient.
+    /// Add the `eq`-weighted summands of a group's pairs, in `Lane`s. The weight scales child 0's line,
+    /// and with it every product, so it costs two products rather than one per coefficient.
     #[inline(always)]
-    fn add_message(g: &Group, eq: F128x8, acc: &mut [Sum8; 4]) {
+    fn add_message(g: [Lane; 8], eq: Lane, acc: &mut [Sum; 4]) {
         let a0 = eq * g[0];
         let d0 = eq * (g[0] + g[4]);
         let left0 = a0 * g[1];
@@ -601,7 +616,7 @@ mod vertical {
     struct Message<'a> {
         eq: &'a SplitEq,
         block: usize,
-        sums: [Sum8; 4],
+        sums: [Sum; 4],
         total: [F128; 4],
     }
 
@@ -610,7 +625,7 @@ mod vertical {
             Self {
                 eq,
                 block: first >> (eq.lo_bits - 3),
-                sums: [Sum8::ZERO; 4],
+                sums: [Sum::ZERO; 4],
                 total: [F128::ZERO; 4],
             }
         }
@@ -622,11 +637,20 @@ mod vertical {
                 self.flush();
                 self.block = g >> shift;
             }
-            add_message(group, self.eq.lo8[g & ((1 << shift) - 1)], &mut self.sums);
+            let eq = self.eq.lo8[g & ((1 << shift) - 1)];
+            cfg_select! {
+                target_feature = "avx512f" => add_message(*group, eq, &mut self.sums),
+                _ => {
+                    // One half after the other, unrolled: a loop over them runs slower.
+                    let (e, h) = (eq.halves(), group.map(F128x8::halves));
+                    add_message(h.map(|lanes| lanes[0]), e[0], &mut self.sums);
+                    add_message(h.map(|lanes| lanes[1]), e[1], &mut self.sums);
+                }
+            }
         }
 
         fn flush(&mut self) {
-            let sums = std::mem::replace(&mut self.sums, [Sum8::ZERO; 4]).map(Sum8::reduce);
+            let sums = std::mem::replace(&mut self.sums, [Sum::ZERO; 4]).map(Sum::reduce);
             let scaled = primitives::field::mul4([self.eq.hi[self.block]; 4], sums);
             self.total = add4(self.total, scaled);
         }
@@ -658,7 +682,10 @@ mod vertical {
         let fold = |g: &Group, c: usize| g[c] + r * (g[c] + g[4 + c]);
         let mut out = [F128x8::splat(F128::ZERO); 8];
         for c in 0..4 {
-            (out[c], out[4 + c]) = F128x8::deinterleave(fold(a, c), fold(b, c));
+            (out[c], out[4 + c]) = cfg_select! {
+                target_feature = "avx512f" => F128x8::deinterleave(fold(a, c), fold(b, c)),
+                _ => F128x8::even_odd(fold(a, c), fold(b, c)),
+            };
         }
         out
     }
@@ -775,10 +802,16 @@ mod vertical {
         let (chunks, _) = out.as_chunks_mut::<16>();
         for (slot, run) in chunks.iter_mut().zip(current.as_chunks::<64>().0) {
             let g = F128x8::load_runs(run);
-            let (lo, hi) = F128x8::interleave(product(g[0], g[1], g[2], g[3]), product(g[4], g[5], g[6], g[7]));
-            let (first, second) = slot.split_at_mut(8);
-            lo.store(first.try_into().unwrap());
-            hi.store(second.try_into().unwrap());
+            let (a, b) = (product(g[0], g[1], g[2], g[3]), product(g[4], g[5], g[6], g[7]));
+            cfg_select! {
+                target_feature = "avx512f" => {
+                    let (lo, hi) = F128x8::interleave(a, b);
+                    let (first, second) = slot.split_at_mut(8);
+                    lo.store(first.try_into().unwrap());
+                    hi.store(second.try_into().unwrap());
+                }
+                _ => F128x8::store_interleaved(a, b, slot),
+            }
         }
         16 * chunks.len()
     }

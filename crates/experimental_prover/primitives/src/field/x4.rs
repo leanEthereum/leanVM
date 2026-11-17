@@ -3,7 +3,7 @@
 //! and the halves of the eight-lane `f128x8` types.
 
 use core::arch::x86_64::*;
-use core::ops::{Add, BitXorAssign, Mul};
+use core::ops::{Add, BitXor, BitXorAssign, Mul};
 
 use super::gf2_64::F64;
 use super::gf2_64x2::x86_64::{fold, reduce_halves256 as reduce_halves, times_x256};
@@ -25,6 +25,10 @@ pub struct Mixed4 {
     even: [__m256i; 2],
     odd: [__m256i; 2],
 }
+
+/// The sum over lanes of unreduced products, y-folded: per coefficient, two 128-bit partials.
+#[derive(Clone, Copy, Debug)]
+pub struct Sum4([__m256i; 2]);
 
 #[inline(always)]
 fn xor(a: __m256i, b: __m256i) -> __m256i {
@@ -132,6 +136,57 @@ impl F128x4 {
             even: karatsuba::<0x00>(self.0, rhs.0),
             odd: karatsuba::<0x11>(self.0, rhs.0),
         }
+    }
+
+    /// The lane-wise products, summed over the lanes and left unreduced. Karatsuba's products are summed
+    /// before their one fold.
+    #[inline(always)]
+    pub fn mul_sum(self, rhs: Self) -> Sum4 {
+        let both = |x: __m256i, y: __m256i| xor(clmul::<0x00>(x, y), clmul::<0x11>(x, y));
+        let ([a0, a1], [b0, b1]) = (self.0, rhs.0);
+        let (m0, m1, m01) = (both(a0, b0), both(a1, b1), both(xor(a0, a1), xor(b0, b1)));
+        // SAFETY: the module's cfg enables avx2.
+        Sum4(fold(m0, m1, m01, xor, |p| unsafe { times_x256(p) }))
+    }
+}
+
+impl Mul for F128x4 {
+    type Output = Self;
+    #[inline(always)]
+    fn mul(self, rhs: Self) -> Self {
+        self.mul_unreduced(rhs).reduce()
+    }
+}
+
+impl Sum4 {
+    // SAFETY: an all-zero bit pattern is a valid `__m256i`.
+    pub const ZERO: Self = Self(unsafe { std::mem::zeroed() });
+
+    /// The lane sum, reduced.
+    #[inline]
+    pub fn reduce(self) -> F128 {
+        let coeffs = self.0.map(|v| {
+            // SAFETY: both are 32 bytes.
+            let w: [u64; 4] = unsafe { std::mem::transmute(v) };
+            [w[0] ^ w[2], w[1] ^ w[3]]
+        });
+        F128Unreduced::from_coeffs(coeffs).reduce()
+    }
+}
+
+impl BitXorAssign for Sum4 {
+    #[inline(always)]
+    fn bitxor_assign(&mut self, rhs: Self) {
+        self.0 = std::array::from_fn(|k| xor(self.0[k], rhs.0[k]));
+    }
+}
+
+impl BitXor for Sum4 {
+    type Output = Self;
+    #[inline(always)]
+    fn bitxor(mut self, rhs: Self) -> Self {
+        self ^= rhs;
+        self
     }
 }
 

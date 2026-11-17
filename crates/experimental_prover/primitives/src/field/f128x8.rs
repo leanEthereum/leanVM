@@ -409,6 +409,47 @@ mod avx2 {
             let ((ae, ao), (be, bo)) = (split(a), split(b));
             (Self([ae, be]), Self([ao, bo]))
         }
+
+        /// Eight runs of eight consecutive elements, transposed: `out[j]` lane `p` is `src[8p + j]`.
+        #[inline(always)]
+        pub fn load_runs(src: &[F128; 64]) -> [Self; 8] {
+            let at = |p: usize, j: usize| src[8 * p + j..].as_ptr().cast::<__m128i>();
+            std::array::from_fn(|j| {
+                Self(std::array::from_fn(|h| {
+                    // Runs `4h + i` and `4h + i + 2` in one register; the unpacks then put lane `i` in qword `i`.
+                    // SAFETY: the module's cfg enables avx2; each address is one element, 16 readable bytes.
+                    let pair = |i: usize| unsafe { _mm256_loadu2_m128i(at(4 * h + i + 2, j), at(4 * h + i, j)) };
+                    let (a, b) = (pair(0), pair(1));
+                    // SAFETY: the module's cfg enables avx2.
+                    F128x4(unsafe { [_mm256_unpacklo_epi64(a, b), _mm256_unpackhi_epi64(a, b)] })
+                }))
+            })
+        }
+
+        /// Stores the lanes `a0 b0 a1 b1 … a7 b7`.
+        #[inline(always)]
+        pub fn store_interleaved(a: Self, b: Self, dst: &mut [F128; 16]) {
+            let q = dst.as_mut_ptr().cast::<__m256i>();
+            for h in 0..2 {
+                let ([a0, a1], [b0, b1]) = (a.0[h].0, b.0[h].0);
+                // SAFETY: the module's cfg enables avx2; `dst` is eight writable 32-byte pairs of elements.
+                unsafe {
+                    // Elements `[x0, x2]` and `[x1, x3]` of each.
+                    let (al, ah) = (_mm256_unpacklo_epi64(a0, a1), _mm256_unpackhi_epi64(a0, a1));
+                    let (bl, bh) = (_mm256_unpacklo_epi64(b0, b1), _mm256_unpackhi_epi64(b0, b1));
+                    _mm256_storeu_si256(q.add(4 * h), _mm256_permute2x128_si256::<0x20>(al, bl));
+                    _mm256_storeu_si256(q.add(4 * h + 1), _mm256_permute2x128_si256::<0x20>(ah, bh));
+                    _mm256_storeu_si256(q.add(4 * h + 2), _mm256_permute2x128_si256::<0x31>(al, bl));
+                    _mm256_storeu_si256(q.add(4 * h + 3), _mm256_permute2x128_si256::<0x31>(ah, bh));
+                }
+            }
+        }
+
+        /// Lanes `0..4` and `4..8`.
+        #[inline(always)]
+        pub fn halves(self) -> [F128x4; 2] {
+            self.0
+        }
     }
 
     impl core::ops::Add for F128x8 {
