@@ -209,6 +209,8 @@ import Quantum.StdModel.World
 import Quantum.StdModel.StraightLine
 import Quantum.StdModel.Formats
 import Quantum.StdModel.Props
+import Quantum.Par.Subst
+import Quantum.Qrom.SufCma.GamePar
 import Quantum.Qrom.SufCma.MultiOne
 import Quantum.Qrom.Xmss.Multi.NoReuse
 import Quantum.Qrom.Xmss.Multi.Memo
