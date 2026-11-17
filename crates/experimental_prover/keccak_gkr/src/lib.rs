@@ -116,13 +116,8 @@ mod prover;
 pub mod rmfe;
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"))]
 mod skip_gfni;
-#[cfg(all(
-    target_arch = "x86_64",
-    target_feature = "avx512f",
-    target_feature = "avx512bw",
-    target_feature = "gfni"
-))]
-mod table_gfni;
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+mod table_maps;
 pub mod witness;
 
 #[cfg(test)]
