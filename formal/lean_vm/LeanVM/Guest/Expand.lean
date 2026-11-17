@@ -1394,7 +1394,7 @@ def lowerAssertLt : Nat → Expr → LtBound → M Unit
     let kcell ← match bound with
       | .const k => do
           if k < 1 then fail "range-check bound GEN ** 0 names the empty set"
-          if 2 ^ 16 < k then fail s!"range-check bound GEN ** {k} exceeds 2^16 (the minimum memory size)"
+          if 2 ^ 30 < k then fail s!"range-check bound GEN ** {k} exceeds 2^30 (the largest memory size)"
           constCell (gpowE (k - 1))
       | .runtime b => do
           if (← tryFieldConst b).isSome then
