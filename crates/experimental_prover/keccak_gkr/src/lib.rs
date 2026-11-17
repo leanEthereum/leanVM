@@ -86,9 +86,10 @@
 //! of eight positions' weights applied to bit-transposed products (`products_gfni`); elsewhere,
 //! the positions grouped by each byte of their weight (`prover`'s digit buckets).
 //!
-//! The four rounds' sums are binary polynomials of degree at most 173. With AVX2 and GFNI they
-//! are taken on residues modulo 24 irreducibles of degree 8, where a product is a byte product
-//! (`skip_gfni`).
+//! The four rounds' sums are binary polynomials of degree at most 173. With GFNI (x86-64) they are
+//! taken on residues modulo 24 irreducibles of degree 8, where a product is a byte product
+//! (`skip_gfni`). Without it, x86-64 multiplies out the weights on the packs first, so that a
+//! sum takes fewer carry-less products (`skip_clmul`).
 //!
 //! The rounds that remain fold a table of one field element per half block and position. A pass over it
 //! binds two rounds' variables: over each quad of the rows it writes it sums the next round and, as a
@@ -114,6 +115,14 @@ mod products_gfni;
 mod protocol;
 mod prover;
 pub mod rmfe;
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx2",
+    target_feature = "pclmulqdq",
+    not(target_feature = "gfni"),
+    not(all(target_feature = "avx512f", target_feature = "vpclmulqdq"))
+))]
+mod skip_clmul;
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"))]
 mod skip_gfni;
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
