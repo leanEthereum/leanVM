@@ -303,6 +303,10 @@ jobs:
         working-directory: formal/lean_vm
     steps:
       - uses: actions/checkout@v4
+      # The verified compiler (`LeanVM/Compiler/`) imports, directly or not, no module of the guest's
+      # instance or data: it is stated and proved for any program.
+      - name: Keep the compiler apart from the guest (compiler-apart)
+        run: python3 -I ../tools/compiler-apart.py
       # As for sphincs: only `main` saves, without Mathlib's build, which `lake exe cache get` fetches.
       - name: Restore the Lake build
         id: lake-cache
