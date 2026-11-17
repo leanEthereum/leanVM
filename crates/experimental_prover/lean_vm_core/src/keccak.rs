@@ -117,11 +117,82 @@ pub(crate) struct Blocks {
     steps: usize,
 }
 
+/// Where an execution hands the lanes each `KECCAK` step reads, in step order.
+pub(crate) trait Steps {
+    fn step(&mut self, lanes: &[u64; STATE_LANES]);
+    /// The steps of `runs`, end to end.
+    fn steps(&mut self, runs: &[&[[u64; STATE_LANES]]]) {
+        runs.iter().copied().flatten().for_each(|lanes| self.step(lanes));
+    }
+}
+
+impl<F: FnMut(&[u64; STATE_LANES])> Steps for F {
+    fn step(&mut self, lanes: &[u64; STATE_LANES]) {
+        self(lanes)
+    }
+}
+
+type Job = (usize, Vec<[u64; STATE_LANES]>);
+
+/// The steps of a run as [`while_executing`] takes them: whole blocks to its workers, the last
+/// one's lanes on the executing thread.
+struct Sink<'a> {
+    jobs: Option<&'a std::sync::mpsc::Sender<Job>>,
+    pending: Vec<[u64; STATE_LANES]>,
+    /// Blocks done here, by their index.
+    inline: Vec<(usize, Vec<u64>)>,
+    blocks: usize,
+    steps: usize,
+}
+
+impl Sink<'_> {
+    fn dispatch(&mut self) {
+        let block = std::mem::replace(&mut self.pending, Vec::with_capacity(BLOCK));
+        match self.jobs {
+            Some(jobs) => jobs.send((self.blocks, block)).expect("the workers outlive the run"),
+            None => self.inline.push((self.blocks, block_lanes(DEPTH, &block))),
+        }
+        self.blocks += 1;
+    }
+}
+
+impl Steps for Sink<'_> {
+    fn step(&mut self, lanes: &[u64; STATE_LANES]) {
+        self.pending.push(*lanes);
+        self.steps += 1;
+        if self.pending.len() == BLOCK {
+            self.dispatch();
+        }
+    }
+
+    /// The whole blocks among `runs` on the pool, which their sender leaves idle.
+    fn steps(&mut self, runs: &[&[[u64; STATE_LANES]]]) {
+        let mut all = runs.iter().copied().flatten();
+        // Fill the pending block, so that the rest starts one.
+        while !self.pending.is_empty()
+            && let Some(lanes) = all.next()
+        {
+            self.step(lanes);
+        }
+        let rest: Vec<_> = all.collect();
+        let whole = rest.len() / BLOCK;
+        let done = parallel::map_collect(whole, |b| {
+            let block: Vec<_> = rest[b * BLOCK..(b + 1) * BLOCK].iter().map(|&&lanes| lanes).collect();
+            block_lanes(DEPTH, &block)
+        });
+        for lanes in done {
+            self.inline.push((self.blocks, lanes));
+            self.blocks += 1;
+        }
+        self.steps += whole * BLOCK;
+        rest[whole * BLOCK..].iter().for_each(|lanes| self.step(lanes));
+    }
+}
+
 /// Run `run`, which reports the lanes of each step it executes, and compute the committed lanes
 /// behind it: executing is one thread's work, so the others take each block of steps as it
 /// completes instead of waiting for the last.
-pub(crate) fn while_executing<R>(run: impl FnOnce(&mut dyn FnMut(&[u64; STATE_LANES])) -> R) -> (R, Blocks) {
-    type Job = (usize, Vec<[u64; STATE_LANES]>);
+pub(crate) fn while_executing<R>(run: impl FnOnce(&mut dyn Steps) -> R) -> (R, Blocks) {
     let (jobs, queue) = std::sync::mpsc::channel::<Job>();
     let queue = std::sync::Mutex::new(queue);
     // More workers than this slow the executing thread by more than they finish early.
@@ -140,30 +211,19 @@ pub(crate) fn while_executing<R>(run: impl FnOnce(&mut dyn FnMut(&[u64; STATE_LA
                 })
             })
             .collect();
-
-        let mut inline = Vec::new();
-        let mut pending = Vec::with_capacity(BLOCK);
-        let mut blocks = 0;
-        let mut steps = 0;
-        let mut dispatch = |pending: &mut Vec<[u64; STATE_LANES]>, last: bool| {
-            let block = std::mem::replace(pending, Vec::with_capacity(BLOCK));
-            if workers == 0 || last {
-                inline.push((blocks, block_lanes(DEPTH, &block)));
-            } else {
-                jobs.send((blocks, block)).expect("the workers outlive the run");
-            }
-            blocks += 1;
+        let mut sink = Sink {
+            jobs: (workers > 0).then_some(&jobs),
+            pending: Vec::with_capacity(BLOCK),
+            inline: Vec::new(),
+            blocks: 0,
+            steps: 0,
         };
-        let result = run(&mut |state| {
-            pending.push(*state);
-            steps += 1;
-            if pending.len() == BLOCK {
-                dispatch(&mut pending, false);
-            }
-        });
-        if !pending.is_empty() {
-            dispatch(&mut pending, true);
+        let result = run(&mut sink);
+        sink.jobs = None;
+        if !sink.pending.is_empty() {
+            sink.dispatch();
         }
+        let Sink { inline, steps, .. } = sink;
         drop(jobs);
         let mut lanes = inline;
         for handle in handles {
@@ -217,18 +277,23 @@ mod tests {
             .collect()
     }
 
-    /// The lanes committed behind a run, and the witness rebuilt from them, are what a single
-    /// pass over its steps builds: the same committed column and the same reduction, whether the steps fill whole blocks, leave a
+    /// The lanes committed behind a run, handed over a step or a run of steps at a time, and the
+    /// witness rebuilt from them, are what a single pass over its steps builds: the same committed column and the same reduction, whether the steps fill whole blocks, leave a
     /// partial one, or leave blocks of the batch with no step at all.
     #[test]
     fn blocks_built_while_executing_match_one_pass() {
         for n in [0, 1, 511, 512, 513, 1500, 4099] {
             let instances = sample_instances(n);
             let (expected, reference) = build_qkeccak(&instances);
-            let ((), blocks) = while_executing(|step| {
-                for state in &instances {
-                    step(state);
-                }
+            // One at a time, then in runs that start and end anywhere in a block.
+            let ((), blocks) = while_executing(|steps| {
+                let (first, rest) = instances.split_at(n.min(7));
+                first.iter().for_each(|state| steps.step(state));
+                let runs: Vec<_> = rest
+                    .chunks(700)
+                    .flat_map(|c| [&c[..c.len() / 3], &c[c.len() / 3..]])
+                    .collect();
+                steps.steps(&runs);
             });
             let mut q_keccak = vec![f(0xdead_beef); expected.len()];
             let states = SLOTS * (1 << n_steps_log(n));

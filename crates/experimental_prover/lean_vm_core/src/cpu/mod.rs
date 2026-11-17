@@ -20,6 +20,7 @@ use verifier::layout::{BYTECODE_FINAL_COUNTERS, MEMORY_0, MEMORY_1, MEMORY_FINAL
 mod execute;
 pub mod hints;
 pub mod layout;
+mod segments;
 mod trace;
 pub(crate) use execute::Cell;
 pub use execute::{ExecError, Execution, Fault, Memory, execute};

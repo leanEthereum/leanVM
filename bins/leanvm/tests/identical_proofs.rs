@@ -1,9 +1,10 @@
 //! The stable and the experimental prover give the same proof of the same statement, byte for byte: three leaves
-//! (leanXMSS signatures and blobs, leanSPHINCS signatures, both schemes and blobs), a recursion node over them, at the
-//! four rates, and a second-level node over that node, a leaf and a raw signature; the same refusal of a forged
-//! signature the native pre-check misses; and every compiler test program, or the same refusal. Both trees' thread
-//! pools live in this one process, and libtest may run the two tests at once: both pools can then be busy together,
-//! and either can take dispatches from both tests, which its dispatch lock serializes.
+//! (leanXMSS signatures and blobs, leanSPHINCS signatures, both schemes and blobs, with enough signatures of each that
+//! experimental runs both signature loops as parallel segments), a recursion node over them, at the four rates, and a
+//! second-level node over that node, a leaf and a raw signature; the same refusal of a forged signature the native
+//! pre-check misses; and every compiler test program, or the same refusal. Both trees' thread pools live in this one
+//! process, and libtest may run the two tests at once: both pools can then be busy together, and either can take
+//! dispatches from both tests, which its dispatch lock serializes.
 
 use aggregation::{AggregateClaims, AggregateError, AggregateProof, OutputClaims, signers_cache};
 use experimental_lean_vm_core::ExperimentalProver;
@@ -23,17 +24,17 @@ fn proofs<P: Prover>() -> ([Vec<u8>; 5], Option<AggregateError>) {
         .collect();
     let blobs = lean_da::BlobMatrix::build(symbols.as_chunks().0).unwrap();
     let (xmss, sphincs) = (
-        signers_cache::get_signers(6),
-        signers_cache::get_lean_sphincs_signers(2),
+        signers_cache::get_signers(23),
+        signers_cache::get_lean_sphincs_signers(20),
     );
     let left = aggregate(&[], xmss[..3].to_vec(), vec![], Some(&blobs), 1).unwrap();
     let right = aggregate(&[], vec![], sphincs[..1].to_vec(), None, 2).unwrap();
-    let mixed = aggregate(&[], xmss[3..5].to_vec(), sphincs[1..].to_vec(), Some(&blobs), 3).unwrap();
+    let mixed = aggregate(&[], xmss[3..22].to_vec(), sphincs[1..].to_vec(), Some(&blobs), 3).unwrap();
     let children = [left.clone(), right.clone(), mixed.clone()];
     let node = aggregate(&children, vec![], vec![], None, 4).unwrap();
     // The node's carried deferred claim is at a non-zero point, unlike a leaf's.
     let children = [node.clone(), right.clone()];
-    let top = aggregate(&children, xmss[5..].to_vec(), vec![], None, 1).unwrap();
+    let top = aggregate(&children, xmss[22..].to_vec(), vec![], None, 1).unwrap();
     // A leanXMSS signature with its top layer's last path node changed: the native pre-check passes, the guest fails.
     let (pk, message, signature) = &xmss[0];
     let mut bytes = signature.to_bytes();

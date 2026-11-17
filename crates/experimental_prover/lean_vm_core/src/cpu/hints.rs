@@ -197,13 +197,24 @@ impl GPow {
     #[cold]
     #[inline(never)]
     fn log_miss(&mut self, x: F64, bound: usize) -> Option<u32> {
+        let k = self.find(x, bound)?;
+        self.note(k as usize);
+        Some(k)
+    }
+
+    /// `log_below` for an exponent not announced, announcing nothing: the coarse index, else a
+    /// bounded discrete log.
+    pub(crate) fn find(&self, x: F64, bound: usize) -> Option<u32> {
         let k = self
             .resolve(x)
             .or_else(|| bounded_dlog(x, crate::log2_ceil_usize(bound) as u32).map(|k| k as usize))?;
-        (k < bound).then(|| {
-            self.note(k);
-            k as u32
-        })
+        (k < bound).then_some(k as u32)
+    }
+
+    /// Whether `g^k` is covered, so that [`Self::pow`] holds it.
+    #[inline(always)]
+    pub(crate) fn covers(&self, k: usize) -> bool {
+        k / STRIDE < self.strides.len()
     }
 
     /// The exponent of `x` if announced: any covered one, for a table built by [`Self::dense`].
