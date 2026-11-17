@@ -21,7 +21,7 @@ noncomputable def modeSig : Mode.Sig :=
     (.num 0), (.ex (.fr 5) 0), 4, 2⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 5) 0), 4, 3⟩],
     [], [9, 10], [], [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 5) 0), 4, 0⟩, ⟨⟨0, 0, [((.fr 2),
     1)]⟩, (.num 0), (.ex (.fr 5) 0), 4, 1⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 5) 0), 4,
-    2⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 5) 0), 4, 3⟩], [], [], [], [], []⟩
+    2⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 5) 0), 4, 3⟩], [], [], [], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -44,7 +44,7 @@ noncomputable def modeSig : Mode.Sig :=
     5), 1)]⟩, ⟨0, 9, [((.fr 4), 1)]⟩, ⟨0, 9, [((.fr 5), 1)]⟩, ⟨0, 10, [((.fr 4), 1)]⟩, ⟨0, 10,
     [((.fr 5), 1)]⟩]]), [], [], [6], [], [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 12), 1, 0⟩, ⟨⟨0,
     0, [((.fr 4), 1)]⟩, (.num 0), (.num 11), 1, 0⟩, ⟨⟨0, 0, [((.fr 5), 1)]⟩, (.num 0), (.num 11),
-    1, 0⟩], [], [], [], [], []⟩
+    1, 0⟩], [], [], [], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -65,7 +65,7 @@ noncomputable def modeSig : Mode.Sig :=
     10, [((.fr 3), 1)]⟩, ⟨0, 11, [((.fr 3), 1)]⟩, ⟨0, 12, [((.fr 3), 1)]⟩, ⟨0, 13, [((.fr 3), 1)]⟩,
     ⟨0, 14, [((.fr 3), 1)]⟩, ⟨0, 15, [((.fr 3), 1)]⟩], [⟨0, 16, [((.fr 3), 1)]⟩]]), [], [], [4],
     [], [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 17), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0),
-    (.num 17), 1, 0⟩], [], [], [], [], []⟩
+    (.num 17), 1, 0⟩], [], [], [], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -92,7 +92,7 @@ noncomputable def modeSig : Mode.Sig :=
     ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 1), (.num 34), 4, 18446744073709551611⟩, ⟨⟨0, 0, [((.fr 4),
     1)]⟩, (.num 1), (.num 34), 4, 18446744073709551612⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 1), (.num
     34), 4, 18446744073709551613⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 1), (.num 34), 4,
-    18446744073709551614⟩], [], [5, 6], [], [], [], [], [], [], []⟩
+    18446744073709551614⟩], [], [5, 6], [], [], [], [], [], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -126,7 +126,8 @@ noncomputable def modeSig : Mode.Sig :=
     0), (.ex (.fr 3) 0), 8, 2⟩, ⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 8, 3⟩,
     ⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 8, 4⟩, ⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex
     (.fr 2) 0), (.ex (.fr 3) 0), 8, 5⟩, ⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0),
-    8, 6⟩, ⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 8, 7⟩], [], [], [], []⟩
+    8, 6⟩, ⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 8, 7⟩], [], [], [], [], [],
+    []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -155,7 +156,7 @@ noncomputable def modeSig : Mode.Sig :=
     (.num 4), 8, 2⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 4), 8, 3⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩,
     (.num 0), (.num 4), 8, 4⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 4), 8, 5⟩, ⟨⟨0, 0, [((.fr
     2), 1)]⟩, (.num 0), (.num 4), 8, 6⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 4), 8, 7⟩, ⟨⟨0,
-    0, [((.fr 3), 1)]⟩, (.num 0), (.num 10), 1, 0⟩], [], [], [], [], []⟩
+    0, [((.fr 3), 1)]⟩, (.num 0), (.num 10), 1, 0⟩], [], [], [], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -181,7 +182,7 @@ noncomputable def modeSig : Mode.Sig :=
     (.num 0), (.num 12), 1, 0⟩, ⟨⟨0, 0, [((.fr 6), 1)]⟩, (.num 0), (.num 19), 1, 0⟩, ⟨⟨0, 0, [((.fr
     7), 1)]⟩, (.num 0), (.num 19), 1, 0⟩], [], [(⟨⟨0, 0, [((.fr 7), 1)]⟩, (.num 0), (.num 19), 1,
     0⟩, [0, 1, 2, 3])], [(⟨⟨0, 0, [((.fr 7), 1)]⟩, (.num 0), (.num 19), 1, 0⟩, [0, 1, 2, 3])], [],
-    [(11, ⟨0, 0, [((.fr 2), 19)]⟩)]⟩
+    [(11, ⟨0, 0, [((.fr 2), 19)]⟩)], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -213,7 +214,7 @@ noncomputable def modeSig : Mode.Sig :=
     [0, 1, 2, 3, 4]), (⟨⟨0, 0, [((.fr 9), 1)]⟩, (.num 1), (.num 13), 6, 2⟩, [0, 1, 2, 3, 4]), (⟨⟨0,
     0, [((.fr 9), 1)]⟩, (.num 1), (.num 13), 6, 3⟩, [0, 1, 2, 3, 4]), (⟨⟨0, 0, [((.fr 9), 1)]⟩,
     (.num 1), (.num 13), 6, 4⟩, [0, 1, 2, 3, 4]), (⟨⟨0, 0, [((.fr 9), 1)]⟩, (.num 1), (.num 13), 6,
-    5⟩, [0, 1, 2, 3, 4])], [], []⟩
+    5⟩, [0, 1, 2, 3, 4])], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -246,7 +247,7 @@ noncomputable def modeSig : Mode.Sig :=
     [0, 1, 2, 3]), (⟨⟨0, 0, [((.fr 9), 1)]⟩, (.num 1), (.num 5), 6, 2⟩, [0, 1, 2, 3]), (⟨⟨0, 0,
     [((.fr 9), 1)]⟩, (.num 1), (.num 5), 6, 3⟩, [0, 1, 2, 3]), (⟨⟨0, 0, [((.fr 9), 1)]⟩, (.num 1),
     (.num 5), 6, 4⟩, [0, 1, 2, 3]), (⟨⟨0, 0, [((.fr 9), 1)]⟩, (.num 1), (.num 5), 6, 5⟩, [0, 1, 2,
-    3])], [], []⟩
+    3])], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -268,7 +269,7 @@ noncomputable def modeSig : Mode.Sig :=
     4), 1)]⟩, (.num 0), (.num 8), 1, 0⟩, ⟨⟨0, 0, [((.fr 6), 1)]⟩, (.num 0), (.num 18), 1, 0⟩, ⟨⟨0,
     0, [((.fr 7), 1)]⟩, (.num 0), (.num 18), 1, 0⟩], [], [(⟨⟨0, 0, [((.fr 7), 1)]⟩, (.num 0), (.num
     18), 1, 0⟩, [0, 1, 2, 3])], [(⟨⟨0, 0, [((.fr 7), 1)]⟩, (.num 0), (.num 18), 1, 0⟩, [0, 1, 2,
-    3])], [], [(11, ⟨0, 0, [((.fr 2), 18)]⟩)]⟩
+    3])], [], [(11, ⟨0, 0, [((.fr 2), 18)]⟩)], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -294,7 +295,7 @@ noncomputable def modeSig : Mode.Sig :=
     (.num 0), (.num 12), 1, 0⟩, ⟨⟨0, 0, [((.fr 6), 1)]⟩, (.num 0), (.num 17), 1, 0⟩, ⟨⟨0, 0, [((.fr
     7), 1)]⟩, (.num 0), (.num 17), 1, 0⟩], [], [(⟨⟨0, 0, [((.fr 7), 1)]⟩, (.num 0), (.num 17), 1,
     0⟩, [0, 1, 2, 3])], [(⟨⟨0, 0, [((.fr 7), 1)]⟩, (.num 0), (.num 17), 1, 0⟩, [0, 1, 2, 3])], [],
-    [(11, ⟨0, 0, [((.fr 2), 17)]⟩)]⟩
+    [(11, ⟨0, 0, [((.fr 2), 17)]⟩)], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -325,7 +326,7 @@ noncomputable def modeSig : Mode.Sig :=
     3), 8, 4⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 3), 8, 5⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num
     0), (.num 3), 8, 6⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 3), 8, 7⟩, ⟨⟨0, 0, [((.fr 3),
     1)]⟩, (.num 0), (.num 11), 1, 0⟩, ⟨⟨0, 24, [((.fr 2), 1)]⟩, (.num 0), (.num 4), 1, 0⟩], [], [],
-    [], [], []⟩
+    [], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -352,7 +353,7 @@ noncomputable def modeSig : Mode.Sig :=
     [(⟨⟨0, 0, [((.fr 7), 1)]⟩, (.num 0), (.num 109), 2, 0⟩, [0, 1, 2, 3, 4]), (⟨⟨0, 0, [((.fr 7),
     1)]⟩, (.num 0), (.num 109), 2, 1⟩, [0, 1, 2, 3, 4])], [(⟨⟨0, 0, [((.fr 7), 1)]⟩, (.num 0),
     (.num 109), 2, 0⟩, [0, 1, 2, 3, 4]), (⟨⟨0, 0, [((.fr 7), 1)]⟩, (.num 0), (.num 109), 2, 1⟩, [0,
-    1, 2, 3, 4])], [], [(11, ⟨0, 0, [((.fr 2), 218)]⟩)]⟩
+    1, 2, 3, 4])], [], [(11, ⟨0, 0, [((.fr 2), 218)]⟩)], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -385,7 +386,7 @@ noncomputable def modeSig : Mode.Sig :=
     0, [((.fr 2), 1)]⟩, (.num 0), (.num 4), 8, 4⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 4), 8,
     5⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 4), 8, 6⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0),
     (.num 4), 8, 7⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 19), 1, 0⟩, ⟨⟨0, 32, [((.fr 2), 1)]⟩,
-    (.num 0), (.num 5), 1, 0⟩], [], [], [], [], []⟩
+    (.num 0), (.num 5), 1, 0⟩], [], [], [], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -417,7 +418,7 @@ noncomputable def modeSig : Mode.Sig :=
     (.num 2), 8, 3⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 2), 8, 4⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩,
     (.num 0), (.num 2), 8, 5⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 2), 8, 6⟩, ⟨⟨0, 0, [((.fr
     2), 1)]⟩, (.num 0), (.num 2), 8, 7⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 16), 1, 0⟩, ⟨⟨0,
-    16, [((.fr 2), 1)]⟩, (.num 0), (.num 7), 1, 0⟩], [], [], [], [], []⟩
+    16, [((.fr 2), 1)]⟩, (.num 0), (.num 7), 1, 0⟩], [], [], [], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -436,7 +437,7 @@ noncomputable def modeSig : Mode.Sig :=
     4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 4, 122⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2) 0),
     (.ex (.fr 3) 0), 4, 123⟩], [((.ex (.fr 2) 0), (.ex (.fr 3) 0))], [], [], [], [⟨⟨0, 0, [((.fr
     4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 2, 124⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2) 0),
-    (.ex (.fr 3) 0), 2, 125⟩], [], [], [], []⟩
+    (.ex (.fr 3) 0), 2, 125⟩], [], [], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -476,7 +477,7 @@ noncomputable def modeSig : Mode.Sig :=
     (.fr 2) 0), (.ex (.fr 3) 0), 8, 4⟩, [0, 1, 2, 3]), (⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0),
     (.ex (.fr 3) 0), 8, 5⟩, [0, 1, 2, 3]), (⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3)
     0), 8, 6⟩, [0, 1, 2, 3]), (⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 8, 7⟩,
-    [0, 1, 2, 3])], []⟩
+    [0, 1, 2, 3])], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -499,7 +500,7 @@ noncomputable def modeSig : Mode.Sig :=
     1)]⟩, ⟨0, 12, [((.fr 6), 1)]⟩, ⟨0, 13, [((.fr 6), 1)]⟩]]), [⟨⟨0, 0, [((.fr 5), 1)]⟩, (.ex (.fr
     2) 0), (.ex (.fr 3) 0), 1, 0⟩], [((.ex (.fr 2) 0), (.ex (.fr 3) 0))], [], [], [], [⟨⟨0, 0,
     [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 2, 2⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2)
-    0), (.ex (.fr 3) 0), 2, 3⟩], [], [], [], []⟩
+    0), (.ex (.fr 3) 0), 2, 3⟩], [], [], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -538,7 +539,7 @@ noncomputable def modeSig : Mode.Sig :=
     0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 8, 4⟩, [0, 1, 2, 3]), (⟨⟨0, 0, [((.fr 6),
     1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 8, 5⟩, [0, 1, 2, 3]), (⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex
     (.fr 2) 0), (.ex (.fr 3) 0), 8, 6⟩, [0, 1, 2, 3]), (⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0),
-    (.ex (.fr 3) 0), 8, 7⟩, [0, 1, 2, 3])], []⟩
+    (.ex (.fr 3) 0), 8, 7⟩, [0, 1, 2, 3])], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -575,7 +576,7 @@ noncomputable def modeSig : Mode.Sig :=
     1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 7, 3⟩, [0, 1, 2, 3]), (⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex
     (.fr 2) 0), (.ex (.fr 3) 0), 7, 4⟩, [0, 1, 2, 3]), (⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0),
     (.ex (.fr 3) 0), 7, 5⟩, [0, 1, 2, 3]), (⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3)
-    0), 7, 6⟩, [0, 1, 2, 3])], []⟩
+    0), 7, 6⟩, [0, 1, 2, 3])], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -601,7 +602,7 @@ noncomputable def modeSig : Mode.Sig :=
     0), (.ex (.fr 3) 0), 8, 6⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 8, 7⟩],
     [((.ex (.fr 2) 0), (.ex (.fr 3) 0))], [], [], [], [⟨⟨0, 0, [((.fr 5), 1)]⟩, (.ex (.fr 2) 0),
     (.ex (.fr 3) 0), 2, 2⟩, ⟨⟨0, 0, [((.fr 5), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 2, 3⟩], [],
-    [], [], []⟩
+    [], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -622,7 +623,7 @@ noncomputable def modeSig : Mode.Sig :=
     6), 1)]⟩, ⟨0, 7, [((.fr 6), 1)]⟩, ⟨0, 8, [((.fr 6), 1)]⟩, ⟨0, 9, [((.fr 6), 1)]⟩], [⟨⟨0, 0,
     [((.fr 5), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 1, 0⟩], [((.ex (.fr 2) 0), (.ex (.fr 3)
     0))], [], [], [], [⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 2, 2⟩, ⟨⟨0, 0,
-    [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 2, 3⟩], [], [], [], []⟩
+    [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 2, 3⟩], [], [], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -651,7 +652,7 @@ noncomputable def modeSig : Mode.Sig :=
     0), 8, 5⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 8, 6⟩, ⟨⟨0, 0, [((.fr 4),
     1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 8, 7⟩], [((.ex (.fr 2) 0), (.ex (.fr 3) 0))], [], [],
     [], [⟨⟨0, 0, [((.fr 5), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 2, 2⟩, ⟨⟨0, 0, [((.fr 5), 1)]⟩,
-    (.ex (.fr 2) 0), (.ex (.fr 3) 0), 2, 3⟩], [], [], [], []⟩
+    (.ex (.fr 2) 0), (.ex (.fr 3) 0), 2, 3⟩], [], [], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -679,7 +680,7 @@ noncomputable def modeSig : Mode.Sig :=
     1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 8, 6⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex
     (.fr 3) 0), 8, 7⟩], [((.ex (.fr 2) 0), (.ex (.fr 3) 0))], [], [], [], [⟨⟨0, 0, [((.fr 5), 1)]⟩,
     (.ex (.fr 2) 0), (.ex (.fr 3) 0), 2, 2⟩, ⟨⟨0, 0, [((.fr 5), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3)
-    0), 2, 3⟩], [], [], [], []⟩
+    0), 2, 3⟩], [], [], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -712,7 +713,7 @@ noncomputable def modeSig : Mode.Sig :=
     (.fr 2) 0), (.ex (.fr 3) 0), 5, 1⟩, [0, 1, 2, 3, 4]), (⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2)
     0), (.ex (.fr 3) 0), 5, 2⟩, [0, 1, 2, 3, 4]), (⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex
     (.fr 3) 0), 5, 3⟩, [0, 1, 2, 3, 4]), (⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3)
-    0), 5, 4⟩, [0, 1, 2, 3, 4])], []⟩
+    0), 5, 4⟩, [0, 1, 2, 3, 4])], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -745,7 +746,7 @@ noncomputable def modeSig : Mode.Sig :=
     (.fr 2) 0), (.ex (.fr 3) 0), 5, 1⟩, [0, 1, 2, 3, 4]), (⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2)
     0), (.ex (.fr 3) 0), 5, 2⟩, [0, 1, 2, 3, 4]), (⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex
     (.fr 3) 0), 5, 3⟩, [0, 1, 2, 3, 4]), (⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3)
-    0), 5, 4⟩, [0, 1, 2, 3, 4])], []⟩
+    0), 5, 4⟩, [0, 1, 2, 3, 4])], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -770,7 +771,7 @@ noncomputable def modeSig : Mode.Sig :=
     [((.fr 6), 1)]⟩, ⟨0, 20, [((.fr 6), 1)]⟩]]), [⟨⟨0, 0, [((.fr 5), 1)]⟩, (.ex (.fr 2) 0), (.ex
     (.fr 3) 0), 1, 0⟩], [((.ex (.fr 2) 0), (.ex (.fr 3) 0))], [], [], [], [⟨⟨0, 0, [((.fr 4), 1)]⟩,
     (.ex (.fr 2) 0), (.ex (.fr 3) 0), 2, 2⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3)
-    0), 2, 3⟩], [], [], [], []⟩
+    0), 2, 3⟩], [], [], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -802,7 +803,7 @@ noncomputable def modeSig : Mode.Sig :=
     3, 4]), (⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 5, 1⟩, [0, 1, 2, 3, 4]),
     (⟨⟨0, 0, [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 5, 2⟩, [0, 1, 2, 3, 4]), (⟨⟨0, 0,
     [((.fr 6), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 5, 3⟩, [0, 1, 2, 3, 4]), (⟨⟨0, 0, [((.fr 6),
-    1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 5, 4⟩, [0, 1, 2, 3, 4])], []⟩
+    1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 5, 4⟩, [0, 1, 2, 3, 4])], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -828,7 +829,7 @@ noncomputable def modeSig : Mode.Sig :=
     23, [((.fr 6), 1)]⟩]]), [⟨⟨0, 0, [((.fr 5), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 1, 0⟩],
     [((.ex (.fr 2) 0), (.ex (.fr 3) 0))], [], [], [], [⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2) 0),
     (.ex (.fr 3) 0), 2, 2⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 2, 3⟩], [],
-    [], [], []⟩
+    [], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 

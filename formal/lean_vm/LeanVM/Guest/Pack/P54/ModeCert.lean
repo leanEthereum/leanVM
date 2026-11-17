@@ -11,8 +11,8 @@ public import LeanVM.Guest.Mode.CertDefs
 public import LeanVM.Guest.Pack.«P54».Mode0
 public import LeanVM.Guest.Pack.«P54».Mode1
 public import LeanVM.Guest.Pack.«P54».Mode2
+public import LeanVM.Guest.Pack.«P54».Mode3
 public import LeanVM.Guest.Pack.«P54».ModeH
-public import LeanVM.Guest.Pack.«P54».ModeX
 meta import LeanVM.Guest.KernelLit
 
 set_option Elab.async false
@@ -756,9 +756,9 @@ theorem certs_st : ∀ K ∈ certs, Mode.CertSt K :=
     (Mode.fa_nil)))))))))))))))))))))))))))))
 
 /-- The certificates' walks and hints. -/
-theorem certs_walk («da_verify» : Mode.WalkHyp Fn.«da_verify».modeCert) :
+theorem certs_walk :
     ∀ K ∈ certs, Mode.CertWalk K :=
-  Mode.fa_cons (⟨«da_verify», Fn.«da_verify».modeHintsOk⟩)
+  Mode.fa_cons (⟨Fn.«da_verify».modeOk, Fn.«da_verify».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«rs_eq_rows__L5».modeOk, Fn.«rs_eq_rows__L5».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«padding_weight__L29».modeOk, Fn.«padding_weight__L29».modeHintsOk⟩)
     (Mode.fa_cons (⟨Fn.«plus_one_run__L8».modeOk, Fn.«plus_one_run__L8».modeHintsOk⟩)

@@ -67,7 +67,7 @@ public import LeanVM.Guest.Pack.«P52».Mode0
 public import LeanVM.Guest.Pack.«P52».Mode2
 public import LeanVM.Guest.Pack.«P53».Mode0
 public import LeanVM.Guest.Pack.«P54».Mode0
-public import LeanVM.Guest.Pack.«P54».Mode2
+public import LeanVM.Guest.Pack.«P54».Mode3
 public import LeanVM.Guest.Pack.«P55».Mode0
 public import LeanVM.Guest.Pack.«P55».Mode1
 public import LeanVM.Guest.Pack.«P56».Mode0

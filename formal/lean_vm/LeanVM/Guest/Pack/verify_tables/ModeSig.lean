@@ -81,7 +81,7 @@ noncomputable def modeSig : Mode.Sig :=
     8162), 1, 0⟩, ⟨⟨0, 0, [((.fr 22), 1)]⟩, (.num 0), (.ex (.hp 12 4) 8162), 1, 0⟩, ⟨⟨0, 0, [((.fr
     22), 1)]⟩, (.num 0), (.ex (.hp 12 5) 8162), 1, 0⟩, ⟨⟨0, 0, [((.fr 22), 1)]⟩, (.num 0), (.ex
     (.hp 12 6) 8162), 1, 0⟩], [⟨⟨0, 0, [((.fr 22), 1)]⟩, (.num 0), (.num 8192), 1, 0⟩, ⟨⟨0, 0,
-    [((.fr 32), 1)]⟩, (.num 0), (.num 153), 1, 0⟩]]), [], [], [], [], []⟩
+    [((.fr 32), 1)]⟩, (.num 0), (.num 153), 1, 0⟩]]), [], [], [], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
