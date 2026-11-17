@@ -1,7 +1,7 @@
 /-
   LeanVM.Guest.B1.Da.BlobDefs
 
-  The bodies of `da_verify_blob` and of its cell loop `da_verify_blob_loop0` (G:4575-4590).
+  The bodies of `da_verify_blob` and of its cell loop `da_verify_blob_loop0`.
 -/
 
 module
@@ -62,15 +62,15 @@ def blobCellV (Vm : FrameMap) (w c0 c1 : E) (h : ℕ) : Val :=
   Vm name% «da_verify_blob_loop0» [gen ^ h, w, blobV Vm w c0 c1 (.n 1)] []
 
 /-- The symbols of cell `h` of that blob: its cell check's. -/
-def blobSyms (Vm : FrameMap) (w c0 c1 : E) (h : ℕ) : List K :=
+def blobSyms (Vm : FrameMap) (w c0 c1 : E) (h : ℕ) : List E :=
   cellSymsOf (Vm "da_verify_cell" [blobCellV Vm w c0 c1 h (.n 4)]
     [blobCellV Vm w c0 c1 h (.n 5), blobCellV Vm w c0 c1 h (.n 6), blobCellV Vm w c0 c1 h (.n 7)])
 
 /-- **The weights at `w` are the dual codeword of `z`**, column by column: `weights[h]` is a
-pointer to the entries `256 h + e`. -/
+pointer to the entries `128 h + e`. -/
 def WeightsAt (rd : Reader) (z w : E) : Prop :=
   ∀ h < 128, ∃ lv : E, LoadHolds rd (w * gen ^ h) 0 lv ∧
-    ∀ e < 256, ∀ v, rd (lv.limb 0 * addressOfIndex e) = some v → v = dualAt z (256 * h + e)
+    ∀ e < 128, ∀ v, rd (lv.limb 0 * addressOfIndex e) = some v → v = dualAt z (128 * h + e)
 
 end
 end LeanVM.Guest.B1.Da

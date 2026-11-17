@@ -14,8 +14,8 @@ public import LeanVM.Guest.B1.Main.Facts
 # `da_weights`, sound
 
 `ws_sound`: a run of `da_weights` makes, at every column `h < 128`, `weights[h]` the result of
-`da_expand__L7_L8` on `top_leaves[h]` and the offsets shifted by `g^(8h)` (`wsOk`: the offsets'
-pointer doubles by `g^8` from column to column). `weightsAt_of`: with `da_vector`'s meaning, the
+`da_expand__L6_L7` on `top_leaves[h]` and the offsets shifted by `g^(7h)` (`wsOk`: the offsets'
+pointer moves by `g^7` from column to column). `weightsAt_of`: with `da_vector`'s meaning, the
 weights are the dual codeword of `z` (`WeightsAt`).
 -/
 
@@ -32,7 +32,7 @@ variable {rd : Reader}
 /-- Column `h`'s expansion, as `da_weights` runs it. -/
 def WeightCol (rd : Reader) (tl cf zs off wt : E) (h : ℕ) : Prop :=
   ∃ t lv : E, LoadHolds rd (tl * gen ^ h) 0 t ∧
-    coreProgram.Rel rd "da_expand__L7_L8" [t, cf, zs, off * (gen ^ h) ^ 8] [lv] ∧
+    coreProgram.Rel rd "da_expand__L6_L7" [t, cf, zs, off * (gen ^ h) ^ 7] [lv] ∧
     LoadHolds rd (wt * gen ^ h) 0 lv
 
 /-- **`da_weights`' run** expands every column. -/
@@ -53,7 +53,7 @@ theorem ws_sound {tl cf zs off wt : E}
   have hat := atoms_of_flat hallS
   have hw : σ (.n 4) = wt := by
     rw [← copy_sound hcp hat]; simpa using hret
-  have hoff : ∀ k < 128, σ (wsOff k) = off * (gen ^ k) ^ 8 := by
+  have hoff : ∀ k < 128, σ (wsOff k) = off * (gen ^ k) ^ 7 := by
     intro k hk
     induction k with
     | zero => simp [wsOff, h3]
@@ -63,7 +63,7 @@ theorem ws_sound {tl cf zs off wt : E}
       rcases hm with hm | ⟨hc, hmul⟩
       · exact absurd hm (by omega)
       rw [isMul_sound hmul hat, Nat.add_sub_cancel, ih (by omega), const_sound hc hat,
-        show (256 : ℕ) = 2 ^ 8 from rfl, word_two_pow (by norm_num)]
+        show (128 : ℕ) = 2 ^ 7 from rfl, word_two_pow (by norm_num)]
       ring
   intro k hk
   obtain ⟨⟨⟨hc, hl1⟩, hl2⟩, -⟩ := hall k hk
@@ -95,7 +95,7 @@ theorem weightsAt_of {z zs tl cf off wt : E} (hvec : MeaningDaVector rd [z] [zs,
   · have := hS d hd
     rw [← pow_mul, loadHolds_mul_gen_pow] at this
     exact loadHolds_unique this (by
-      rw [show hc * 8 + (7 - d) = 8 * hc + (7 - d) by ring]; exact hoff hc hh (7 - d) (by omega))
+      rw [show hc * 7 + (6 - d) = 7 * hc + (6 - d) by ring]; exact hoff hc hh (6 - d) (by omega))
 
 end
 end LeanVM.Guest.B1.Da

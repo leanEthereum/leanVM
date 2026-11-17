@@ -57,7 +57,7 @@ noncomputable def cellShapeOk : Bool :=
 theorem cell_shape_ok : cellShapeOk = true := by decide +kernel
 
 /-- The entry of the cell check's hint on `σ`. -/
-def cellPop (σ : Val) : Pop := ("da_symbols", (List.range 256).map fun j => σ (.n (j + 1)))
+def cellPop (σ : Val) : Pop := ("da_symbols", (List.range 128).map fun j => σ (.n (j + 1)))
 
 /-- **A cell check pops the symbols its valuation holds.** -/
 theorem cell_pops {rd : Reader} {σ : Val} {bufs : List ℕ} {kids : List Memory.Tree} {args rets : List E}
@@ -73,13 +73,13 @@ theorem cell_pops {rd : Reader} {σ : Val} {bufs : List ℕ} {kids : List Memory
   exact Tree.pops_of_prefix_leaf hv find_da_verify_cell hb hx h.2
 
 /-- **`da_verify_cell` is complete, popping its symbols**: `da_verify_cell_complete_vals`'s valuation, and every valid call instance of it on that valuation pops `syms`. -/
-theorem da_verify_cell_complete_pops (rd : Reader) (lv : E) (syms : List K) (ws : List E)
+theorem da_verify_cell_complete_pops (rd : Reader) (lv : E) (syms : List E) (ws : List E)
     (hsl : syms.length = LeanDa.cellSymbols) (hwl : ws.length = LeanDa.cellSymbols) (hreads : ReadsAt rd lv ws) :
     ∃ σ : Val, σ (.n 0) = lv ∧ (∀ C : CallRel,
       Stmt.HoldsList C rd σ (Fn.body fn% «da_verify_cell») False (fun rs => rs = cellRets syms ws)) ∧
       ∀ (bufs : List ℕ) (kids : List Memory.Tree) (args rets : List E),
         (Memory.Tree.node "da_verify_cell" σ bufs kids).Valid coreProgram rd args rets →
-        (Memory.Tree.node "da_verify_cell" σ bufs kids).pops coreProgram rd = [("da_symbols", syms.map ofK)] := by
+        (Memory.Tree.node "da_verify_cell" σ bufs kids).pops coreProgram rd = [("da_symbols", syms)] := by
   obtain ⟨σ, e0, hs, h⟩ := da_verify_cell_complete_vals rd lv syms ws hsl hwl hreads
   refine ⟨σ, e0, h, fun bufs kids args rets hv => ?_⟩
   rw [cell_pops hv, cellPop]

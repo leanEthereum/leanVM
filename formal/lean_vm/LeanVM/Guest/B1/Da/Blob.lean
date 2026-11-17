@@ -2,7 +2,6 @@
   LeanVM.Guest.B1.Da.Blob
 
   `da_verify_blob` and its cell loop `da_verify_blob_loop0`: what a run of a blob establishes
-  (G:4575-4590).
 -/
 
 module
@@ -14,7 +13,7 @@ public import LeanVM.Guest.B1.Main.LoopsC
 public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# `da_verify_blob` (G:4575-4590)
+# `da_verify_blob`
 
 `da_verify_blob(weights)`: a fresh region `base`, its running sum's first word (`512`) zero, then
 `da_verify_blob_loop0` over the cells `h < 128`: a `da_verify_cell` run on `weights[h]`, its sum
@@ -113,14 +112,14 @@ theorem runAt_load {p : E} {n : ℕ} {f : ℕ → E} (hr : RunAt rd p n f) {k : 
   hr.2 k hk v h.2
 
 /-- **A blob's run** on weights that are the dual codeword of `z`, under a call relation that
-unfolds at `Vm` and lies below `coreProgram.Rel`: its cells' symbols (`blobSyms`) are `256` long
+unfolds at `Vm` and lies below `coreProgram.Rel`: its cells' symbols (`blobSyms`) are `128` long
 and orthogonal to the dual codeword, and the returned cells are the root of their digests' tree. -/
 theorem blob_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel rd)) {z w c0 c1 : E}
     (hw : WeightsAt rd z w) (hrel : C "da_verify_blob" [w] [c0, c1]) :
-    (∀ h < 128, (blobSyms Vm w c0 c1 h).length = 256) ∧
-      ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 256,
-        dualAt z (256 * h + e) * ofK ((blobSyms Vm w c0 c1 h).getD e 0) = 0 ∧
-      (c0, c1) = digestHalves (mRoot 7 fun h => keccak256 ((blobSyms Vm w c0 c1 h).flatMap K.toBytes)) := by
+    (∀ h < 128, (blobSyms Vm w c0 c1 h).length = 128) ∧
+      ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 128,
+        dualAt z (128 * h + e) * (blobSyms Vm w c0 c1 h).getD e 0 = 0 ∧
+      (c0, c1) = digestHalves (mRoot 7 fun h => keccak256 ((blobSyms Vm w c0 c1 h).flatMap E.toBytes)) := by
   have hok := blob_ok
   unfold blobOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
@@ -143,13 +142,13 @@ theorem blob_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel
         obtain ⟨k1, k2⟩ := c_stepW hVm hx
         exact ⟨k1 _ _ rfl, by rw [← word_g128]; exact k2⟩)
       hloop h (Nat.zero_le _) hh
-  have cell : ∀ h < 128, (blobSyms Vm w c0 c1 h).length = 256 ∧ ∃ a : E,
+  have cell : ∀ h < 128, (blobSyms Vm w c0 c1 h).length = 128 ∧ ∃ a : E,
       LoadHolds rd (σ (.n 1)) (h + 512) a ∧
-      LoadHolds rd (σ (.n 1)) (h + 513) (a + ∑ e ∈ Finset.range 256, dualAt z (256 * h + e) *
-        ofK ((blobSyms Vm w c0 c1 h).getD e 0)) ∧
-      LoadHolds rd (σ (.n 1)) (2 * h) (digestHalves (keccak256 ((blobSyms Vm w c0 c1 h).flatMap K.toBytes))).1 ∧
+      LoadHolds rd (σ (.n 1)) (h + 513) (a + ∑ e ∈ Finset.range 128, dualAt z (128 * h + e) *
+        (blobSyms Vm w c0 c1 h).getD e 0) ∧
+      LoadHolds rd (σ (.n 1)) (2 * h) (digestHalves (keccak256 ((blobSyms Vm w c0 c1 h).flatMap E.toBytes))).1 ∧
       LoadHolds rd (σ (.n 1)) (2 * h + 1)
-        (digestHalves (keccak256 ((blobSyms Vm w c0 c1 h).flatMap K.toBytes))).2 := by
+        (digestHalves (keccak256 ((blobSyms Vm w c0 c1 h).flatMap E.toBytes))).2 := by
     intro h hh
     obtain ⟨hwl, hc, a, ha, has, hd0, hd1⟩ := L h hh
     obtain ⟨lv, hlv0, hlvv⟩ := hw h hh
@@ -174,13 +173,13 @@ theorem blob_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel
     unfold LeanDa.cellSymbols
     refine congrArg _ (List.map_congr_left fun e he ↦ ?_)
     have he' := List.mem_range.mp he
-    rw [List.getD_eq_getElem (memRun rd lv 256) 0 (show e < _ by rw [hlen]; unfold LeanDa.cellSymbols; omega),
+    rw [List.getD_eq_getElem (memRun rd lv 128) 0 (show e < _ by rw [hlen]; unfold LeanDa.cellSymbols; omega),
       hlvv e he' _ (hrd e (by rw [hlen]; unfold LeanDa.cellSymbols; omega)).2]
   refine ⟨fun h hh => (cell h hh).1, ?_, ?_⟩
   · -- the running sum
     have run : ∀ h ≤ 128, LoadHolds rd (σ (.n 1)) (h + 512)
-        (∑ h' ∈ Finset.range h, ∑ e ∈ Finset.range 256,
-          dualAt z (256 * h' + e) * ofK ((blobSyms Vm w c0 c1 h').getD e 0)) := by
+        (∑ h' ∈ Finset.range h, ∑ e ∈ Finset.range 128,
+          dualAt z (128 * h' + e) * (blobSyms Vm w c0 c1 h').getD e 0) := by
       intro h
       induction h with
       | zero => intro _; simpa using l2
@@ -199,13 +198,13 @@ theorem blob_stepW (hVm : UnfoldsV rd C Vm) (hle : CallRel.Le C (coreProgram.Rel
     have hl7 : coreProgram.Rel rd (daLevelsName 7) [σ (.n 1)] [σ (.n 6), σ (.n 7)] := hle _ _ _ hlv
     have hk7 : ofK (Parameters.addressOfIndex 7) = gen ^ 7 := (gen_pow_eq_ofK 7).symm
     have hf : ∀ i < 2 ^ 7, LoadHolds rd (σ (.n 1)) (2 * i)
-        (digestHalves (keccak256 ((blobSyms Vm w c0 c1 i).flatMap K.toBytes))).1 ∧
+        (digestHalves (keccak256 ((blobSyms Vm w c0 c1 i).flatMap E.toBytes))).1 ∧
         LoadHolds rd (σ (.n 1)) (2 * i + 1)
-          (digestHalves (keccak256 ((blobSyms Vm w c0 c1 i).flatMap K.toBytes))).2 := fun i hi => by
+          (digestHalves (keccak256 ((blobSyms Vm w c0 c1 i).flatMap E.toBytes))).2 := fun i hi => by
       obtain ⟨-, -, -, -, k0, k1⟩ := cell i (by norm_num at hi; omega)
       exact ⟨k0, k1⟩
-    exact levels_root_of (k := 7) (L := 7) (g := fun i => keccak256 ((blobSyms Vm w c0 c1 i).flatMap K.toBytes))
-      (by norm_num) (by norm_num) hk7 hl7 hf
+    exact levels_root_of (k := 7) (L := 7) (g := fun i => keccak256 ((blobSyms Vm w c0 c1 i).flatMap E.toBytes))
+      (Or.inr rfl) (by norm_num) hk7 hl7 hf
 
 end
 end LeanVM.Guest.B1.Da

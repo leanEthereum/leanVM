@@ -92,15 +92,15 @@ theorem placedLF_tail {k : ℕ} {f g : String} {Lin : Layout} {args : List E} {T
 /-! ## The cell check -/
 
 /-- The symbols a cell check's valuation holds. -/
-def cellQ (syms : List K) (σ : Val) : Prop := ∀ j < 256, σ (.n (j + 1)) = ofK (syms.getD j 0)
+def cellQ (syms : List E) (σ : Val) : Prop := ∀ j < 128, σ (.n (j + 1)) = syms.getD j 0
 
 /-- **A cell check's node holding `syms`.** -/
-def cellNH (syms : List K) (t : Tree) : Prop := ∃ σ ks, t = .node "da_verify_cell" σ [] ks ∧ cellQ syms σ
+def cellNH (syms : List E) (t : Tree) : Prop := ∃ σ ks, t = .node "da_verify_cell" σ [] ks ∧ cellQ syms σ
 
 /-- **A cell check holding `syms` pops them.** -/
-theorem cellNH_pops {syms : List K} (hsl : syms.length = 256) {t : Tree} (ht : cellNH syms t) {rd : Reader}
+theorem cellNH_pops {syms : List E} (hsl : syms.length = 128) {t : Tree} (ht : cellNH syms t) {rd : Reader}
     {args rets : List E} (hv : t.Valid coreProgram rd args rets) :
-    t.pops coreProgram rd = [("da_symbols", syms.map ofK)] := by
+    t.pops coreProgram rd = [("da_symbols", syms)] := by
   obtain ⟨σ, ks, rfl, hq⟩ := ht
   rw [cell_pops hv, cellPop]
   refine congrArg (fun l => [(("da_symbols" : String), l)]) (List.ext_getElem (by simp [hsl]) fun j h1 h2 => ?_)
@@ -109,9 +109,9 @@ theorem cellNH_pops {syms : List K} (hsl : syms.length = 256) {t : Tree} (ht : c
   rw [hq j h1, List.getD_eq_getElem _ _ (by omega)]
 
 /-- **The cell check placed on its completing valuation**: its weights `ws` at `g^b`, which `Lin` holds. -/
-theorem cell_placedF {Lin : Layout} {b : ℕ} (syms : List K) (ws : List E) (hsl : syms.length = 256)
-    (hwl : ws.length = 256) (hreads : ∀ rd, MemL rd Lin → ReadsAt rd (gen ^ b) ws)
-    (hreg : ∀ e < 256, RegionL Lin (b + e)) :
+theorem cell_placedF {Lin : Layout} {b : ℕ} (syms : List E) (ws : List E) (hsl : syms.length = 128)
+    (hwl : ws.length = 128) (hreads : ∀ rd, MemL rd Lin → ReadsAt rd (gen ^ b) ws)
+    (hreg : ∀ e < 128, RegionL Lin (b + e)) :
     PlacedF fs cert 16 "da_verify_cell" Lin [gen ^ b] (cellRets syms ws) (cellNH syms) := by
   have hok := cellp_ok
   unfold cellPOk at hok
@@ -131,7 +131,7 @@ theorem cell_placedF {Lin : Layout} {b : ℕ} (syms : List K) (ws : List E) (hsl
   have hmem : fn% «da_verify_cell» ∈ coreProgram := List.mem_of_find?_eq_some hf
   have hh1 := hh fun _ _ _ => True
   generalize fn% «da_verify_cell» = F at hf hpar hmem hh1 hb
-  have hw := B1.walk_flat σ [.n 1740, .n 1741, .n 1742] cellPre hflat hdo
+  have hw := B1.walk_flat σ [.n 844, .n 845, .n 846] cellPre hflat hdo
   rw [← hb] at hw
   have hsat := walk_sat (P := coreProgram) _ (coreProgram_wf _ hmem) hh1
   rw [hw] at hsat

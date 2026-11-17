@@ -1,8 +1,8 @@
 /-
-  LeanVM.Guest.B1.Da.RootsTreeAt
+  LeanVM.Guest.B1.Da.PadAt
 
-  The roots' tree on its honest buffer, placed: the padding loop `da_pad_loop0`, `da_pad` and the
-  arms `da_roots_tree__L{k}` (G:4553-4566).
+  The roots' tree on its honest buffer, placed: the padding loop `da_pad_loop0`, `da_pad`, and the
+  tree over the roots.
 
   `da_verify` checks Benedikt Wagner's LeanDA witnesses (`Da.MatrixWitness.Opens`), as ported here.
 -/
@@ -17,14 +17,16 @@ public import LeanVM.Guest.B1.Da.DvShape
 public import LeanVM.Guest.B1.Da.FlatOut
 public import LeanVM.Guest.B1.Digest.Steps
 public import LeanVM.Guest.Data.NameStrings
+public import LeanVM.Guest.GuestConst
+-- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
+import LeanVM.Guest.Data.Source
 
 /-!
 # The roots' tree, placed
 
 On a memory holding the roots' tree at `g^bT` (`rootsCells r L syms`): `padL_rel` runs the padding
-loop over the `2^L - r` padding blobs, `dl_rel` the levels, returning `daRoot`'s cells.
-`pad_completeAtB`: `da_pad` complete within `padB` by a tree of `padNH`; `rt_completeAtB`: the arm `L`
-complete within `rtB` by a tree of `rtNH`, returning the root's cells.
+loop over the `2^L - r` padding blobs, `dl_rel` the levels, returning `daTree`'s cells.
+`pad_completeAtB`: `da_pad` complete within `padB` by a tree of `padNH`.
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -69,7 +71,7 @@ theorem namedP_forall₂ {fs : String → ℕ} : ∀ (names : List String) (Bs :
   | [], [], _ :: _, h1, _ => by simp at h1
   | _ :: _, _ :: _, [], h1, _ => by simp at h1
 
-variable {rd : Reader} {r L : ℕ} {syms : ℕ → ℕ → List K} {bT : ℕ}
+variable {rd : Reader} {r L : ℕ} {syms : ℕ → ℕ → List E} {bT : ℕ}
 
 /-- The roots' tree's leaf words. -/
 theorem roots_leaf {i : ℕ} (hi : i < 2 ^ L) :
@@ -109,11 +111,11 @@ theorem padL_rel (hrL : r < 2 ^ L) (hT : ReadsAt rd (gen ^ bT) (rootsCells r L s
   · rw [hp, loadHolds_mul_gen_pow]
     exact loadHolds_of_reads hT (by rw [length_rootsCells]; omega) hl2
 
-/-- **The tree over the roots** returns `daRoot`'s cells. -/
-theorem dl_rel (hL : L ≤ 10) (hT : ReadsAt rd (gen ^ bT) (rootsCells r L syms)) :
-    coreProgram.Rel rd (daLevelsName L) [gen ^ bT] (digestCells (daRoot r L syms)) := by
+/-- **The tree over the roots** returns `daTree`'s cells. -/
+theorem dl_rel (hL : L = guest_const% DA_LOG_MAX_ROWS) (hT : ReadsAt rd (gen ^ bT) (rootsCells r L syms)) :
+    coreProgram.Rel rd (daLevelsName L) [gen ^ bT] (digestCells (daTree r L syms)) := by
   rw [rootsCells, readsAt_append] at hT
-  have hc := da_levels_complete L hL rd (gen ^ bT) (rootLeaves r L syms) (length_rootLeaves r L syms)
+  have hc := da_levels_complete L (Or.inl hL) rd (gen ^ bT) (rootLeaves r L syms) (length_rootLeaves r L syms)
     (treeMem_of_reads (length_rootLeaves r L syms) hT.1)
   rw [rootLeaves, cellRoot_mRoot] at hc
   exact hc
@@ -121,23 +123,23 @@ theorem dl_rel (hL : L ≤ 10) (hT : ReadsAt rd (gen ^ bT) (rootsCells r L syms)
 /-! ## `da_pad` -/
 
 /-- `da_pad`'s body before its `ret`. -/
-def padPre : List Stmt := padBody.dropLast
+def padPre : List Stmt := dpadBody.dropLast
 
 theorem pad_body : (fn% «da_pad»).body = padPre ++ [.ret []] := by
-  have hok := pad_ok
-  unfold padOk at hok
+  have hok := dpad_ok
+  unfold dpadOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
   rw [stmtsEqb_sound hok.2]
   rfl
 
 theorem pad_params : (fn% «da_pad»).params = [.n 0, .n 1, .n 2] := by
-  have hok := pad_ok
-  unfold padOk at hok
+  have hok := dpad_ok
+  unfold dpadOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
   exact hok.1
 
 /-- `da_pad`'s callee: the padding loop, entered iff the gap `d` is nonzero. -/
-noncomputable def padKids (r L : ℕ) (syms : ℕ → ℕ → List K) (bT : ℕ) : List KidD :=
+noncomputable def padKids (r L : ℕ) (syms : ℕ → ℕ → List E) (bT : ℕ) : List KidD :=
   [fun _ => ⟨name% «da_pad_loop0», decide (2 ^ L - r ≠ 0), [1, gen ^ (2 ^ L - r), gen ^ bT, gen ^ r],
     [(bT, rootsCells r L syms)], Returns []⟩]
 
@@ -180,120 +182,23 @@ theorem pad_completeAtB {SK : String → ℕ}
     refine ⟨Val.ofArgs [gen ^ bT, gen ^ r, gen ^ (2 ^ L - r), word 1 0, word 1 0 + gen ^ (2 ^ L - r),
       word 1 0], by rw [pad_params]; rfl, fun s hs => ?_, ?_, rfl, rfl, ?_, fun q hq => ?_,
       ⟨rfl, by simp [ofArgs_n, word_one], by simp [ofArgs_n, word_one]⟩⟩
-    · simp only [padPre, padBody, List.dropLast, List.mem_cons, List.not_mem_nil, or_false] at hs
+    · simp only [padPre, dpadBody, List.dropLast, List.mem_cons, List.not_mem_nil, or_false] at hs
       rcases hs with rfl | rfl | rfl | rfl <;> exact True.intro
     · rw [pad_body]
       refine holdsList_straight _ _ _ _ (fun s hs => ?_) rfl
-      simp only [padPre, padBody, List.dropLast, List.mem_cons, List.not_mem_nil, or_false] at hs
+      simp only [padPre, dpadBody, List.dropLast, List.mem_cons, List.not_mem_nil, or_false] at hs
       rcases hs with rfl | rfl | rfl | rfl
       all_goals simp only [SHolds, Atom.Holds, ofArgs_n, List.getD_cons_succ, List.getD_cons_zero]
       exact ⟨by rw [word_one]; exact one_add_gen_isInK _, fun _ => True.intro⟩
     · have ho1 : decide (2 ^ L - r ≠ 0) = true → o.1 = [] := fun h =>
         (show OutsOk [_] [o] from ho).1 h |>.1
-      simp only [flatCalls, padPre, padBody, List.dropLast, List.filterMap, Stmt.callSF,
+      simp only [flatCalls, padPre, dpadBody, List.dropLast, List.filterMap, Stmt.callSF,
         Main.Stmt.callS, List.map, Main.mkCall, kidsAt, padKids, CallsMatch, ofArgs_n,
         List.getD_cons_succ, List.getD_cons_zero, word_one]
       exact ⟨trivial, by simp only [decide_eq_decide]; exact one_add_gen_ne_iff hd,
         fun ht => ⟨trivial, (ho1 ht).symm⟩, trivial⟩
-    · simp [padPre, padBody, Stmt.loadS] at hq
+    · simp [padPre, dpadBody, Stmt.loadS] at hq
   · simp only [List.sum_nil, List.sum_cons, padB]
-    omega
-
-/-! ## The arms -/
-
-/-- The arm `k`'s body before its `ret`. -/
-def rtPre (k : ℕ) : List Stmt := (rtBody k).dropLast
-
-theorem rt_body {k : ℕ} (hk : k < 11) :
-    (coreProgram.getD (rtIdx.getD k 0) default).body = rtPre k ++ [.ret [.n 5, .n 6]] := by
-  have hok := (rt_find hk).2
-  unfold rtOk at hok
-  simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
-  rw [stmtsEqb_sound hok.2]
-  rfl
-
-theorem rt_params {k : ℕ} (hk : k < 11) :
-    (coreProgram.getD (rtIdx.getD k 0) default).params = [.n 0, .n 1, .n 2] := by
-  have hok := (rt_find hk).2
-  unfold rtOk at hok
-  simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
-  exact hok.1
-
-/-- The arm's callees: the padding, then the levels over the roots. -/
-noncomputable def rtKids (r L : ℕ) (syms : ℕ → ℕ → List K) (bT : ℕ) : List KidD :=
-  [fun _ => ⟨"da_pad", true, [gen ^ bT, gen ^ r, gen ^ (2 ^ L - r)], [(bT, rootsCells r L syms)],
-      Returns []⟩,
-    fun _ => ⟨daLevelsName L, true, [gen ^ bT], [(bT, rootsCells r L syms)],
-      Returns (digestCells (daRoot r L syms))⟩]
-
-/-- **The roots' tree's arm `L` is complete, placed, within `rtB`**, on the roots' tree at `g^bT`,
-returning the root's cells. -/
-theorem rt_completeAtB {SB SK : String → ℕ}
-    (hpad : TotalLeOn coreProgram fs name% «da_pad_loop0» LoopPre
-      (fun a => logG (a.getD 1 0) * iterK fs SK name% «da_pad_loop0» + fs name% «da_pad_loop0»))
-    (hdl : TotalLe coreProgram fs (daLevelsName L) (fun _ => SB (daLevelsName L)))
-    (hrL : r ≤ 2 ^ L) (hL : L ≤ 10) :
-    CompleteAtDTB fs cert 16 (rtName L) [(bT, rootsCells r L syms)]
-      [gen ^ bT, gen ^ r, gen ^ (2 ^ L - r)] (Returns (digestCells (daRoot r L syms))) (rtNH L (2 ^ L - r))
-      (rtB fs SB SK r L) := by
-  have hk : L < 11 := by omega
-  refine ((completeAt_flatDepRet (fs := fs) (cert := cert) (rt_find hk).1
-    (by rw [Program.loop_of_find? (rt_find hk).1]; unfold Fn.loop; rw [rt_body hk]; rfl) 16
-    [(bT, rootsCells r L syms)] [gen ^ bT, gen ^ r, gen ^ (2 ^ L - r)]
-    (fun _ _ => digestCells (daRoot r L syms)) _ (rt_body hk) rfl rfl rfl [] (fun _ => [])
-    (fun _ => .nil) (fun _ => rtKids r L syms bT) ["da_pad", daLevelsName L]
-    [padB fs SK (2 ^ L - r), SB (daLevelsName L)] [padNH (2 ^ L - r), fun _ => True] (fun _ => True)
-    (fun _ => .cons (fun _ => rfl) (.cons (fun _ => rfl) .nil))
-    (fun _ => ⟨fun _ => ⟨fun _ => ?_, fun h => absurd h (by simp)⟩,
-      fun _ => ⟨fun _ => ?_, fun h => absurd h (by simp)⟩, trivial⟩)
-    (fun _ _ _ _ => rfl) (fun fp outs ho => ?_) (fun fp outs ho rd _ _ hLin _ => ?_)
-    (fun fp outs hlen ho rd _ _ _ _ => ?_)).mono ?_ (fun t ht => nodeHonest_mono ht
-      (namedP_forall₂ _ _ _ rfl rfl)))
-  · exact pad_completeAtB fs cert hpad hrL hL
-  · exact pureB_static daPure (List.mem_append_left _ (List.mem_append_left _
-      (List.mem_append_right _ (List.mem_map.mpr ⟨L, List.mem_range.mpr hk, rfl⟩))))
-      (fun rd hm => dl_rel hL (reads_of_memL hm List.mem_cons_self)) hdl
-  · match outs with
-    | [] => trivial
-    | o :: os =>
-    refine ⟨fun _ i hi => Or.inl (Or.inl hi), ?_⟩
-    match os with
-    | [] => trivial
-    | o2 :: os => exact ⟨fun _ i hi => Or.inl (Or.inl hi), by cases os <;> trivial⟩
-  · intro q hq
-    match outs with
-    | [] => simp [kidsAt, Kid.lins] at hq
-    | [o] => simp only [kidsAt, rtKids, Kid.lins, List.flatMap_cons, List.flatMap_nil,
-        List.append_nil, List.mem_singleton] at hq; subst hq; exact hLin _ List.mem_cons_self
-    | o :: o2 :: os =>
-      simp only [kidsAt, rtKids, Kid.lins, List.flatMap_cons, List.mem_append,
-        List.mem_singleton] at hq
-      rcases hq with rfl | rfl | hq
-      · exact hLin _ List.mem_cons_self
-      · exact hLin _ List.mem_cons_self
-      · cases os <;> simp at hq
-  · match outs, hlen with
-    | [o1, o2], _ =>
-    have h2 : o2.1 = digestCells (daRoot r L syms) := (show OutsOk [_, _] [o1, o2] from ho).2.1 rfl |>.1
-    have h1 : o1.1 = [] := (show OutsOk [_, _] [o1, o2] from ho).1 rfl |>.1
-    refine ⟨Val.ofArgs [gen ^ bT, gen ^ r, gen ^ (2 ^ L - r), (digestHalves (daRoot r L syms)).1,
-      (digestHalves (daRoot r L syms)).2, (digestHalves (daRoot r L syms)).1,
-      (digestHalves (daRoot r L syms)).2], by rw [rt_params hk]; rfl, fun s hs => ?_, ?_, rfl, rfl, ?_,
-      fun q hq => ?_, trivial⟩
-    · simp only [rtPre, rtBody, List.dropLast, List.mem_cons, List.not_mem_nil, or_false] at hs
-      rcases hs with rfl | rfl | rfl | rfl <;> exact True.intro
-    · rw [rt_body hk]
-      refine holdsList_straight _ _ _ _ (fun s hs => ?_) rfl
-      simp only [rtPre, rtBody, List.dropLast, List.mem_cons, List.not_mem_nil, or_false] at hs
-      rcases hs with rfl | rfl | rfl | rfl
-      all_goals simp only [SHolds, Atom.Holds, ofArgs_n, List.getD_cons_succ, List.getD_cons_zero]
-    · simp only [flatCalls, rtPre, rtBody, List.dropLast, List.filterMap, Stmt.callSF,
-        Main.Stmt.callS, List.map, Main.mkCall, kidsAt, rtKids, CallsMatch, ofArgs_n,
-        List.getD_cons_succ, List.getD_cons_zero, h1, h2, digestCells]
-      exact ⟨trivial, trivial, fun _ => ⟨trivial, trivial⟩, trivial, trivial, fun _ => ⟨trivial, trivial⟩,
-        trivial⟩
-    · simp [rtPre, rtBody, Stmt.loadS] at hq
-  · simp only [List.sum_nil, List.sum_cons, rtB, dlNames_bang hL]
     omega
 
 end

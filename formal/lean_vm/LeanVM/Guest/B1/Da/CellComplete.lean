@@ -52,11 +52,11 @@ theorem weightLoad_spec {a : Atom} (h : isWeightLoad a = true) :
 
 set_option maxRecDepth 10000 in
 /-- **`da_verify_cell` is complete, its hinted symbols exposed**: a valuation of its parameter `lv`
-holding the symbols at `.n 1 ..= .n 256`, on which its body holds under every call relation,
+holding the symbols at `.n 1 ..= .n 128`, on which its body holds under every call relation,
 returning `cellRets syms ws`. -/
-theorem da_verify_cell_complete_vals (rd : Reader) (lv : E) (syms : List K) (ws : List E)
+theorem da_verify_cell_complete_vals (rd : Reader) (lv : E) (syms : List E) (ws : List E)
     (hsl : syms.length = LeanDa.cellSymbols) (hwl : ws.length = LeanDa.cellSymbols) (hreads : ReadsAt rd lv ws) :
-    ∃ σ : Val, σ (.n 0) = lv ∧ (∀ j < 256, σ (.n (j + 1)) = ofK (syms.getD j 0)) ∧ ∀ C : CallRel,
+    ∃ σ : Val, σ (.n 0) = lv ∧ (∀ j < 128, σ (.n (j + 1)) = syms.getD j 0) ∧ ∀ C : CallRel,
       Stmt.HoldsList C rd σ (Fn.body fn% «da_verify_cell») False (fun rs => rs = cellRets syms ws) := by
   simp only [LeanDa.cellSymbols] at hsl hwl
   have hok := cell_ok

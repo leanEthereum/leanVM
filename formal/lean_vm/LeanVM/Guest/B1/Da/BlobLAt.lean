@@ -8,7 +8,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Da.RootsTreeAt
+public import LeanVM.Guest.B1.Da.PadAt
 public import LeanVM.Guest.B1.Da.CellLAt
 
 /-!
@@ -70,7 +70,7 @@ variable (fs : String → ℕ) (cert : String → V → ℕ)
 set_option maxRecDepth 20000 in
 /-- **One iteration of the blob loop, placed, by a tree of its honest shape**: blob `i`, its root among the roots'
 leaves. -/
-theorem blobL_stepAtTB {Bb Bt : ℕ} {Tb Tt : Tree → Prop} {r L i bw bT : ℕ} {syms : ℕ → ℕ → List K}
+theorem blobL_stepAtTB {Bb Bt : ℕ} {Tb Tt : Tree → Prop} {r L i bw bT : ℕ} {syms : ℕ → ℕ → List E}
     {Lin : Layout} (hi : i + 1 ≤ r) (hrL : r ≤ 2 ^ L) (hL : L ≤ 10) (hTm : (bT, rootsCells r L syms) ∈ Lin)
     (hblob : CompleteAtDTB fs cert 16 "da_verify_blob" Lin [gen ^ bw] (Returns (digestCells (blobLeaf r syms i)))
       Tb Bb)
@@ -191,7 +191,7 @@ theorem blobL_stepAtTB {Bb Bt : ℕ} {Tb Tt : Tree → Prop} {r L i bw bT : ℕ}
 
 /-- **The blob loop is complete, placed, by trees of its honest shape** (`blobLFrom`), over the `r` blobs, within
 `r · Kb` and its frame, blob `i` by a tree of `Tb i` within `Bb` and `fs loop + Bb ≤ Kb`. -/
-theorem blobL_completeAtTB {Bb Kb : ℕ} {Tb : ℕ → Tree → Prop} {r L bw bT : ℕ} {syms : ℕ → ℕ → List K}
+theorem blobL_completeAtTB {Bb Kb : ℕ} {Tb : ℕ → Tree → Prop} {r L bw bT : ℕ} {syms : ℕ → ℕ → List E}
     {Lin : Layout} (hr1 : 1 ≤ r) (hrL : r ≤ 2 ^ L) (hL : L ≤ 10) (hTm : (bT, rootsCells r L syms) ∈ Lin)
     (hblob : ∀ i < r, CompleteAtDTB fs cert 16 "da_verify_blob" Lin [gen ^ bw]
       (Returns (digestCells (blobLeaf r syms i))) (Tb i) Bb)

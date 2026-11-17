@@ -159,7 +159,7 @@ theorem rtOm_eq {L : ℕ} (hL : L < 11) :
 
 /-! ## The padding, the roots' tree -/
 
-theorem pad_calls (σ : Val) : B1.flatCalls B1.Da.padBody.dropLast σ =
+theorem pad_calls (σ : Val) : B1.flatCalls B1.Da.dpadBody.dropLast σ =
     [Memory.mkCall σ (some (.n 4), name% «da_pad_loop0», [.n 5, .n 2, .n 0, .n 1], [])] := rfl
 
 theorem rt_calls (L : ℕ) (σ : Val) : B1.flatCalls (B1.Da.rtBody L).dropLast σ =

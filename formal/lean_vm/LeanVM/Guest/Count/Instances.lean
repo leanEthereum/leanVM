@@ -106,7 +106,7 @@ theorem blob_le : B2C.fs name% «da_verify_loop0» + (B2C.fs "da_verify_blob" + 
   unfold B1.Da.cellB B1.Main.iterK
   decide +kernel
 
-theorem ws_le : B2C.fs "da_weights" + 128 + 128 * B2C.fs "da_expand__L7_L8" ≤ wSB "da_weights" := by
+theorem ws_le : B2C.fs "da_weights" + 128 + 128 * B2C.fs "da_expand__L6_L7" ≤ wSB "da_weights" := by
   decide +kernel
 
 /-- **`da_verify`'s static bounds**, at the deployed frame sizes. -/
@@ -116,6 +116,7 @@ theorem dvStatic : B1.Da.DvStaticB B2C.fs wSB wSK where
   blob := blob_le
   off := fun _ hb => iterK_totalLeOn (all_range_get offLoops_ok hb)
   dl := wSB_totalLe dlTop_ok
+  dl7 := wSB_totalLe (j := wIdx "da_levels__L128_L7") (by decide +kernel)
   vec := vec_le
   exp := exp_le
   ws := ws_le

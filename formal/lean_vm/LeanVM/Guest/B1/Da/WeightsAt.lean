@@ -24,7 +24,7 @@ public import LeanVM.Guest.Data.NameStrings
 * `wsPre`, `ws_xok`: `da_weights`' body exactly, one block `wsS h` per column (kernel evaluation).
 * `kidsU`: callees placed at `fps` whose words depend on their own frame pointer only;
   `atAllG_uniform` and the facts on `OutsOk`, `CallsMatch`, `RegionsOk`, `KidsGB` over them.
-* `wOut`: `da_weights` returns its buffer, of pointers to word `256` of each column's run.
+* `wOut`: `da_weights` returns its buffer, of pointers to word `128` of each column's run.
 * `ws_completeAtB`: `da_weights` is complete, placed, within its frame, its buffer and its
   expansions' frames.
 -/
@@ -41,24 +41,24 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 /-! ## The runs -/
 
 theorem length_expRunVals {root : E} {F Z S : ℕ → E} {top D : ℕ} :
-    (expRunVals root F Z S top D).length = 512 := by
+    (expRunVals root F Z S top D).length = 256 := by
   simp [expRunVals]
 
 set_option maxRecDepth 8000 in
-theorem length_topRun (z : E) : (topRun z).length = 512 := length_expRunVals
+theorem length_topRun (z : E) : (topRun z).length = 256 := length_expRunVals
 
 /-- Column `h`'s shifts: the offsets of the cell `h`. -/
-def colShift (z : E) (h : ℕ) : ℕ → E := fun j => zsVal z j * ofK (wK j (256 * h))
+def colShift (z : E) (h : ℕ) : ℕ → E := fun j => zsVal z j * ofK (wK j (128 * h))
 
 /-- Column `h`'s expansion's run. -/
 def colRun (z : E) (h : ℕ) : List E :=
-  expRunVals (topLeaf z h) (factorAt (zsVal z) 7) (zsVal z) (colShift z h) 7 8
+  expRunVals (topLeaf z h) (factorAt (zsVal z) 6) (zsVal z) (colShift z h) 6 7
 
-theorem length_colRun (z : E) (h : ℕ) : (colRun z h).length = 512 := length_expRunVals
+theorem length_colRun (z : E) (h : ℕ) : (colRun z h).length = 256 := length_expRunVals
 
 theorem topRun_leaf (z : E) {h : ℕ} (hh : h < 128) :
     (topRun z).getD (128 + h) 0 = topLeaf z h := by
-  have hk : 128 + h < 512 := by omega
+  have hk : 128 + h < 256 := by omega
   unfold topRun
   rw [List.getD_eq_getElem _ _ (by rw [length_expRunVals]; exact hk), expRunVals_get hk,
     ite_pos' ⟨by omega, by norm_num; omega⟩,
@@ -66,22 +66,22 @@ theorem topRun_leaf (z : E) {h : ℕ} (hh : h < 128) :
     show (2 : ℕ) ^ 7 = 128 by norm_num, Nat.add_sub_cancel_left, topLeaf_eq z hh]
 
 set_option maxRecDepth 8000 in
-theorem colRun_leaf (z : E) (h : ℕ) {e : ℕ} (he : e < 256) :
-    (colRun z h).getD (256 + e) 0 = dualAt z (256 * h + e) := by
-  have hk : 256 + e < 512 := by omega
+theorem colRun_leaf (z : E) (h : ℕ) {e : ℕ} (he : e < 128) :
+    (colRun z h).getD (128 + e) 0 = dualAt z (128 * h + e) := by
+  have hk : 128 + e < 256 := by omega
   unfold colRun
   rw [List.getD_eq_getElem _ _ (by rw [length_expRunVals]; exact hk), expRunVals_get hk,
     ite_pos' ⟨by omega, by norm_num; omega⟩,
-    show Nat.log 2 (256 + e) = 8 from log_two_pow_add (k := 8) he,
-    show (2 : ℕ) ^ 8 = 256 by norm_num, Nat.add_sub_cancel_left]
+    show Nat.log 2 (128 + e) = 7 from log_two_pow_add (k := 7) he,
+    show (2 : ℕ) ^ 7 = 128 by norm_num, Nat.add_sub_cancel_left]
   exact cellLeaf_eq z he
 
 /-- **Column `h`'s weights**, the leaves of its expansion's run. -/
 theorem colRun_reads {rd : Reader} {L : Layout} (hm : MemL rd L) {c : ℕ} (z : E) (h : ℕ)
-    (hq : (c, colRun z h) ∈ L) : ReadsAt rd (gen ^ (c + 256)) (colWs z h) := by
+    (hq : (c, colRun z h) ∈ L) : ReadsAt rd (gen ^ (c + 128)) (colWs z h) := by
   intro e he
-  have he' : e < 256 := by simpa [colWs] using he
-  have := reads_of_memL hm hq (256 + e) (by rw [length_colRun]; omega)
+  have he' : e < 128 := by simpa [colWs] using he
+  have := reads_of_memL hm hq (128 + e) (by rw [length_colRun]; omega)
   rw [← List.getD_eq_getElem _ 0, colRun_leaf z h he'] at this
   rw [pow_add, loadHolds_mul_gen_pow]
   simpa [colWs, he'] using this
@@ -92,9 +92,9 @@ theorem colRun_reads {rd : Reader} {L : Layout} (hm : MemL rd L) {c : ℕ} (z : 
 expansion, its result at `weights[h]`. -/
 def wsS (h : ℕ) : List Stmt :=
   .atom (.load (wsLeaf h) (.n 0) h) ::
-    ((if h = 0 then [] else [.atom (.const (.n (4 * h + 4)) (word 256 0)),
+    ((if h = 0 then [] else [.atom (.const (.n (4 * h + 4)) (word 128 0)),
       .atom (.mul (wsOff h) (wsOff (h - 1)) (.n (4 * h + 4)))]) ++
-    [.call "da_expand__L7_L8" [wsLeaf h, .n 1, .n 2, wsOff h] [.n (4 * h + 6)],
+    [.call "da_expand__L6_L7" [wsLeaf h, .n 1, .n 2, wsOff h] [.n (4 * h + 6)],
       .atom (.load (.n (4 * h + 6)) (.n 4) h)])
 
 /-- `da_weights`' block: its buffer, the columns, the returned pointer. -/
@@ -104,7 +104,7 @@ def wsPre : List Stmt :=
 
 /-- Column `h`'s call. -/
 def wsCallS (h : ℕ) : Option V × String × List V × List V :=
-  (none, "da_expand__L7_L8", [wsLeaf h, .n 1, .n 2, wsOff h], [.n (4 * h + 6)])
+  (none, "da_expand__L6_L7", [wsLeaf h, .n 1, .n 2, wsOff h], [.n (4 * h + 6)])
 
 /-- **`da_weights`' body, exactly** (kernel evaluation). -/
 noncomputable def wsXOk : Bool :=
@@ -128,8 +128,8 @@ def wsv (z : E) (bt bc bz bo b : ℕ) (R : ℕ → E) (i : ℕ) : E :=
   else if i = 3 then gen ^ bo else if i = 4 ∨ i = 515 then gen ^ b
   else if i = 5 then topLeaf z 0 else if i = 6 then R 0
   else if (i - 3) % 4 = 0 then topLeaf z ((i - 3) / 4)
-  else if (i - 3) % 4 = 1 then word 256 0
-  else if (i - 3) % 4 = 2 then gen ^ (bo + 8 * ((i - 3) / 4))
+  else if (i - 3) % 4 = 1 then word 128 0
+  else if (i - 3) % 4 = 2 then gen ^ (bo + 7 * ((i - 3) / 4))
   else R ((i - 3) / 4)
 
 /-- `da_weights`' valuation. -/
@@ -142,8 +142,8 @@ variable {z : E} {bt bc bz bo b : ℕ} {R : ℕ → E} {h : ℕ}
 theorem wsσ_n (i : ℕ) : wsσ z bt bc bz bo b R (.n i) = wsv z bt bc bz bo b R i := rfl
 
 theorem wsv_hi {i : ℕ} (h7 : 7 ≤ i) (h515 : i ≠ 515) : wsv z bt bc bz bo b R i =
-    if (i - 3) % 4 = 0 then topLeaf z ((i - 3) / 4) else if (i - 3) % 4 = 1 then word 256 0
-    else if (i - 3) % 4 = 2 then gen ^ (bo + 8 * ((i - 3) / 4)) else R ((i - 3) / 4) := by
+    if (i - 3) % 4 = 0 then topLeaf z ((i - 3) / 4) else if (i - 3) % 4 = 1 then word 128 0
+    else if (i - 3) % 4 = 2 then gen ^ (bo + 7 * ((i - 3) / 4)) else R ((i - 3) / 4) := by
   unfold wsv
   rw [ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega),
     ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega)]
@@ -155,7 +155,7 @@ theorem wsσ_leaf (hh : h < 128) : wsσ z bt bc bz bo b R (wsLeaf h) = topLeaf z
   · rw [wsσ_n, wsv_hi (by omega) (by omega), ite_pos' (by omega)]
     congr 1; omega
 
-theorem wsσ_off (hh : h < 128) : wsσ z bt bc bz bo b R (wsOff h) = gen ^ (bo + 8 * h) := by
+theorem wsσ_off (hh : h < 128) : wsσ z bt bc bz bo b R (wsOff h) = gen ^ (bo + 7 * h) := by
   unfold wsOff
   split_ifs with h0
   · subst h0; simp [wsσ_n, wsv]
@@ -168,9 +168,9 @@ theorem wsσ_ret (hh : h < 128) : wsσ z bt bc bz bo b R (.n (4 * h + 6)) = R h 
   · rw [wsσ_n, wsv_hi (by omega) (by omega), ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega)]
     congr 1; omega
 
-theorem wsσ_c8 (h1 : 1 ≤ h) (hh : h < 128) : wsσ z bt bc bz bo b R (.n (4 * h + 4)) = gen ^ 8 := by
+theorem wsσ_c8 (h1 : 1 ≤ h) (hh : h < 128) : wsσ z bt bc bz bo b R (.n (4 * h + 4)) = gen ^ 7 := by
   rw [wsσ_n, wsv_hi (by omega) (by omega), ite_neg' (by omega), ite_pos' (by omega),
-    show (256 : ℕ) = 2 ^ 8 from rfl, word_two_pow (by norm_num)]
+    show (128 : ℕ) = 2 ^ 7 from rfl, word_two_pow (by norm_num)]
 
 end Vals
 
@@ -285,39 +285,39 @@ theorem kidsGBound_range {B : ℕ} (K : ℕ → KidG) (hK : ∀ h, (K h).taken =
 
 /-! ## The weights -/
 
-/-- The run's offset in `da_expand__L7_L8`'s frame. -/
-noncomputable def wsC8 (cert : String → V → ℕ) : ℕ := cert "da_expand__L7_L8" (.n (expB 8 + 1))
+/-- The run's offset in `da_expand__L6_L7`'s frame. -/
+noncomputable def wsC8 (cert : String → V → ℕ) : ℕ := cert "da_expand__L6_L7" (.n (expB 7 + 1))
 
 /-- What the expansions read: `zs`, the cell factors, the offsets. -/
 def wsKLin (z : E) (bz bc bo : ℕ) : Layout :=
-  [(bz, zsCells z), (bc, facCells (zsVal z) 7 8), (bo, offCells (zsVal z))]
+  [(bz, zsCells z), (bc, facCells (zsVal z) 6 7), (bo, offCells (zsVal z))]
 
 /-- **What `da_weights` reads**: `zs`, the top tree's run, the cell factors, the offsets. -/
 def wsLin (z : E) (bz bt bc bo : ℕ) : Layout :=
-  [(bz, zsCells z), (bt, topRun z), (bc, facCells (zsVal z) 7 8), (bo, offCells (zsVal z))]
+  [(bz, zsCells z), (bt, topRun z), (bc, facCells (zsVal z) 6 7), (bo, offCells (zsVal z))]
 
 /-- Column `h`'s expansion. -/
 noncomputable def wsKid (cert : String → V → ℕ) (z : E) (bz bc bo h : ℕ) : KidG :=
-  ⟨"da_expand__L7_L8", true, fun _ => [topLeaf z h, gen ^ bc, gen ^ bz, gen ^ (bo + 8 * h)],
+  ⟨"da_expand__L6_L7", true, fun _ => [topLeaf z h, gen ^ bc, gen ^ bz, gen ^ (bo + 7 * h)],
     fun _ => wsKLin z bz bc bo,
-    fun ps => expOutAt (topLeaf z h) (factorAt (zsVal z) 7) (zsVal z) (colShift z h) 7 8
+    fun ps => expOutAt (topLeaf z h) (factorAt (zsVal z) 6) (zsVal z) (colShift z h) 6 7
       (ps.getLastD 0 + wsC8 cert)⟩
 
 /-- Column `h`'s expansion, placed at `p`. -/
 noncomputable def wsU (cert : String → V → ℕ) (z : E) (bz bc bo : ℕ) (h p : ℕ) : Kid :=
-  ⟨"da_expand__L7_L8", true, [topLeaf z h, gen ^ bc, gen ^ bz, gen ^ (bo + 8 * h)],
+  ⟨"da_expand__L6_L7", true, [topLeaf z h, gen ^ bc, gen ^ bz, gen ^ (bo + 7 * h)],
     wsKLin z bz bc bo,
-    expOutAt (topLeaf z h) (factorAt (zsVal z) 7) (zsVal z) (colShift z h) 7 8 (p + wsC8 cert)⟩
+    expOutAt (topLeaf z h) (factorAt (zsVal z) 6) (zsVal z) (colShift z h) 6 7 (p + wsC8 cert)⟩
 
-/-- The buffer: column `h`'s pointer to word `256` of its run in the frame at `fps[h]`. -/
+/-- The buffer: column `h`'s pointer to word `128` of its run in the frame at `fps[h]`. -/
 noncomputable def wsCells (cert : String → V → ℕ) (fps : List ℕ) : List E :=
-  (List.range 128).map fun h => gen ^ (fps.getD h 0 + wsC8 cert + 256)
+  (List.range 128).map fun h => gen ^ (fps.getD h 0 + wsC8 cert + 128)
 
-/-- **`da_weights` returns its buffer** `g^b`, word `h` a pointer to word `256` of column `h`'s
+/-- **`da_weights` returns its buffer** `g^b`, word `h` a pointer to word `128` of column `h`'s
 run, at `q h`. -/
 def wOut (z : E) : List E → Layout → Prop := fun rets Lo =>
   ∃ (b : ℕ) (q : ℕ → ℕ), rets = [gen ^ b] ∧
-    (b, (List.range 128).map fun h => gen ^ (q h + 256)) ∈ Lo ∧ ∀ h < 128, (q h, colRun z h) ∈ Lo
+    (b, (List.range 128).map fun h => gen ^ (q h + 128)) ∈ Lo ∧ ∀ h < 128, (q h, colRun z h) ∈ Lo
 
 theorem ws_atAllG (z : E) (bz bc bo : ℕ) {fps : List ℕ} (hl : fps.length = 128) :
     atAllG [] ((List.range' 0 128).map (wsKid cert z bz bc bo)) fps = kidsU (wsU cert z bz bc bo) 0 fps := by
@@ -335,14 +335,14 @@ frames.** -/
 theorem ws_completeAtB (hrf : Lift.RunsFit fs cert) (z : E) (bz bt bc bo : ℕ) :
     CompleteAtB fs cert 16 "da_weights" (wsLin z bz bt bc bo)
       [gen ^ (bt + 2 ^ 7), gen ^ bc, gen ^ bz, gen ^ bo] (wOut z)
-      (fs "da_weights" + 128 + 128 * fs "da_expand__L7_L8") := by
+      (fs "da_weights" + 128 + 128 * fs "da_expand__L6_L7") := by
   have hx := ws_xok
   unfold wsXOk at hx
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hx
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨hpar, hbody⟩, hflat⟩, hnli⟩, hnd⟩, haddr⟩, halloc⟩, hcalls⟩, hloads⟩ := hx
   have hb : (fn% «da_weights»).body = wsPre ++ [.ret [.n 515]] := stmtsEqb_sound hbody
   have hLz : ∀ {rd : Reader}, MemL rd (wsKLin z bz bc bo) →
-      ∀ j < 15, LoadHolds rd (gen ^ bz) j (zsVal z j) := fun hm j hj => by
+      ∀ j < 14, LoadHolds rd (gen ^ bz) j (zsVal z j) := fun hm j hj => by
     have := reads_of_memL hm List.mem_cons_self j (by simp [zsCells]; exact hj)
     rwa [zsCells_get hj] at this
   have e := completeAt_flatGOutB (fs := fs) (cert := cert) find_da_weights
@@ -351,21 +351,21 @@ theorem ws_completeAtB (hrf : Lift.RunsFit fs cert) (z : E) (bz bt bc bo : ℕ) 
     (fun fp _ => [gen ^ (fp + fs "da_weights")]) (wOut z) hb hflat haddr hnli [128]
     (fun _ fps => [wsCells cert fps]) (fun _ _ => .cons (by simp [wsCells]) .nil)
     (fun _ => (List.range' 0 128).map (wsKid cert z bz bc bo))
-    (List.replicate 128 (fs "da_expand__L7_L8")) (128 * fs "da_expand__L7_L8")
+    (List.replicate 128 (fs "da_expand__L6_L7")) (128 * fs "da_expand__L6_L7")
     (fun _ => kidsGB_range (N := 128) _ (fun h hh _ ps => ?_) 128 0 le_rfl)
     (fun _ => le_of_eq (kidsGBound_range _ (fun _ => rfl) 128 0)) (fun fp fps outs hl ho => ?_)
     (fun fp fps outs hl _ ho rd _ hB hLin _ => ?_)
   · simpa using e
   · -- an expansion
-    have := exp8_completeAtFB fs cert hrf (Lin := wsKLin z bz bc bo) (root := topLeaf z h)
-      (cf := bc) (cz := bz) (cs := bo + 8 * h) (F := factorAt (zsVal z) 7) (Z := zsVal z)
+    have := expCell_completeAtFB fs cert hrf (Lin := wsKLin z bz bc bo) (root := topLeaf z h)
+      (cf := bc) (cz := bz) (cs := bo + 7 * h) (F := factorAt (zsVal z) 6) (Z := zsVal z)
       (S := colShift z h) (fun rd hm n h1 h2 => ?_)
       (fun rd hm d hd => hLz hm _ (by omega)) (fun rd hm d hd => ?_)
       (fun n h1 h2 => regionL_of_mem (List.mem_cons_of_mem _ List.mem_cons_self)
         (by simp [facCells]; omega))
       (fun d hd => regionL_of_mem List.mem_cons_self (by simp [zsCells]; omega))
       (fun d hd => by
-        have := regionL_of_mem (L := wsKLin z bz bc bo) (k := 8 * h + (7 - d))
+        have := regionL_of_mem (L := wsKLin z bz bc bo) (k := 7 * h + (6 - d))
           (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self))
           (by simp [offCells]; omega)
         rwa [← Nat.add_assoc] at this)
@@ -375,9 +375,9 @@ theorem ws_completeAtB (hrf : Lift.RunsFit fs cert) (z : E) (bz bt bc bo : ℕ) 
         (by simp [facCells]; omega)
       rwa [facCells_get h1 h2 (by norm_num)] at this
     · have := reads_of_memL hm (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self))
-        (8 * h + (7 - d)) (by simp [offCells]; omega)
-      rw [offCells_get (by omega), show (8 * h + (7 - d)) % 8 = 7 - d by omega,
-        show (8 * h + (7 - d)) / 8 = h by omega] at this
+        (7 * h + (6 - d)) (by simp [offCells]; omega)
+      rw [offCells_get (by omega), show (7 * h + (6 - d)) % 7 = 6 - d by omega,
+        show (7 * h + (6 - d)) / 7 = h by omega] at this
       rw [pow_add, loadHolds_mul_gen_pow]
       exact this
   · -- the result
@@ -391,7 +391,7 @@ theorem ws_completeAtB (hrf : Lift.RunsFit fs cert) (z : E) (bz bt bc bo : ℕ) 
   · -- the valuation
     have hl' : fps.length = 128 := by simpa using hl
     rw [ws_atAllG z bz bc bo hl'] at ho ⊢
-    set R : ℕ → E := fun h => gen ^ (fps.getD h 0 + wsC8 cert + 256) with hR
+    set R : ℕ → E := fun h => gen ^ (fps.getD h 0 + wsC8 cert + 128) with hR
     set σ := wsσ z bt bc bz bo (fp + fs "da_weights") R with hσdef
     have hbuf : ReadsAt rd (gen ^ (fp + fs "da_weights")) (wsCells cert fps) :=
       reads_of_memL hB (by simp [bufL, bases])
@@ -415,8 +415,8 @@ theorem ws_completeAtB (hrf : Lift.RunsFit fs cert) (z : E) (bz bt bc bo : ℕ) 
           · simp at hs
           simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
           rcases hs with rfl | rfl
-          · show σ (.n (4 * h + 4)) = word 256 0
-            rw [hσdef, wsσ_c8 (by omega) hh, show (256 : ℕ) = 2 ^ 8 from rfl,
+          · show σ (.n (4 * h + 4)) = word 128 0
+            rw [hσdef, wsσ_c8 (by omega) hh, show (128 : ℕ) = 2 ^ 7 from rfl,
               word_two_pow (by norm_num)]
           · show σ (wsOff h) = σ (wsOff (h - 1)) * σ (.n (4 * h + 4))
             rw [hσdef, wsσ_off hh, wsσ_off (by omega), wsσ_c8 (by omega) hh, ← pow_add]

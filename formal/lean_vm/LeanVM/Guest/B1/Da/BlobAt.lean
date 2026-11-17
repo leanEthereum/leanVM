@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.Da.CellLAt
-public import LeanVM.Guest.B1.Da.RootsTreeAt
+public import LeanVM.Guest.B1.Da.PadAt
 
 /-!
 # A blob, placed
@@ -58,7 +58,7 @@ theorem blob_flatCalls (σ : Val) : flatCalls blobPre σ =
       Main.mkCall σ (none, "da_levels__L128_L7", [.n 1], [.n 6, .n 7])] := rfl
 
 /-- `da_verify_blob`'s callees, its region at `bb`. -/
-noncomputable def blobKids (r : ℕ) (syms : ℕ → ℕ → List K) (z : E) (i bw : ℕ) (Lin : Layout) (bb : ℕ) :
+noncomputable def blobKids (r : ℕ) (syms : ℕ → ℕ → List E) (z : E) (i bw : ℕ) (Lin : Layout) (bb : ℕ) :
     List KidD :=
   [fun _ => ⟨name% «da_verify_blob_loop0», true, [1, gen ^ bw, gen ^ bb],
       (bb, regionCells syms z i) :: Lin, Returns []⟩,
@@ -66,13 +66,13 @@ noncomputable def blobKids (r : ℕ) (syms : ℕ → ℕ → List K) (z : E) (i 
       Returns (digestCells (blobLeaf r syms i))⟩]
 
 /-- The predicates on `da_verify_blob`'s callees' trees: its cells holding `syms i k`. -/
-def blobTs (syms : ℕ → ℕ → List K) (i : ℕ) : List (Tree → Prop) :=
+def blobTs (syms : ℕ → ℕ → List E) (i : ℕ) : List (Tree → Prop) :=
   [cellLFrom (fun k => cellNH (syms i k)) 128 0, fun _ => True]
 
 variable (fs : String → ℕ) (cert : String → V → ℕ)
 
 /-- **`da_verify_blob`'s honest shape** on blob `i`'s cells. -/
-def blobNH (SB SK : String → ℕ) (syms : ℕ → ℕ → List K) (i : ℕ) : Tree → Prop :=
+def blobNH (SB SK : String → ℕ) (syms : ℕ → ℕ → List E) (i : ℕ) : Tree → Prop :=
   NodeHonest coreProgram "da_verify_blob" (fun _ => True) (flatCalls blobPre) (fun _ => [641])
     (namedP fs [name% «da_verify_blob_loop0», "da_levels__L128_L7"]
       [cellB fs SK, SB "da_levels__L128_L7"] (blobTs syms i))
@@ -85,9 +85,9 @@ theorem blob_completeAtB {SB : String → ℕ}
     {SK : String → ℕ} (hcl : TotalLeOn coreProgram fs name% «da_verify_blob_loop0» (fun a => a.getD 0 0 = 1)
       (fun _ => cellB fs SK))
     (hdl : TotalLe coreProgram fs "da_levels__L128_L7" (fun _ => SB "da_levels__L128_L7"))
-    {r i : ℕ} (hi : i < r) {syms : ℕ → ℕ → List K} (hsl : ∀ k, (syms i k).length = 256) {z : E}
-    (hdot : ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 256,
-      dualAt z (256 * h + e) * ofK ((syms i h).getD e 0) = 0) {bw : ℕ} {q : ℕ → ℕ} {Lin : Layout}
+    {r i : ℕ} (hi : i < r) {syms : ℕ → ℕ → List E} (hsl : ∀ k, (syms i k).length = 128) {z : E}
+    (hdot : ∑ h ∈ Finset.range 128, ∑ e ∈ Finset.range 128,
+      dualAt z (128 * h + e) * (syms i h).getD e 0 = 0) {bw : ℕ} {q : ℕ → ℕ} {Lin : Layout}
     (hWm : (bw, wtsCells q) ∈ Lin) (hCm : ∀ k < 128, (q k, colRun z k) ∈ Lin) :
     CompleteAtDTB fs cert 16 "da_verify_blob" Lin [gen ^ bw]
       (Returns (digestCells (blobLeaf r syms i))) (blobNH fs SB SK syms i)
@@ -112,11 +112,11 @@ theorem blob_completeAtB {SB : String → ℕ}
     exact cellL_completeAtTB hcl hsl List.mem_cons_self (List.mem_cons_of_mem _ hWm)
       (fun k hk => List.mem_cons_of_mem _ (hCm k hk))
   · -- the blob's tree
-    refine pureB_static daPure (List.mem_append_left _ (List.mem_append_left _ (List.mem_append_right _
-      (List.mem_map.mpr ⟨7, by simp, rfl⟩)))) (fun rd hm => ?_) hdl
+    refine pureB_static daPure (List.mem_append_left _ (List.mem_append_right _ (by decide)))
+      (fun rd hm => ?_) hdl
     have hregR := reads_of_memL hm List.mem_cons_self
     rw [regionCells, List.append_assoc, readsAt_append] at hregR
-    have hc := da_levels_complete 7 (by norm_num) rd _ (blobLeaves syms i) (by rw [hlen]; norm_num)
+    have hc := da_levels_complete 7 (Or.inr rfl) rd _ (blobLeaves syms i) (by rw [hlen]; norm_num)
       (treeMem_of_reads (by rw [hlen]; norm_num) hregR.1)
     rw [hroot] at hc
     exact hc

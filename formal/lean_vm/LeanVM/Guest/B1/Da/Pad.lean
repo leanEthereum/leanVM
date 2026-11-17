@@ -1,8 +1,7 @@
 /-
-  LeanVM.Guest.B1.Da.RootsTree
+  LeanVM.Guest.B1.Da.Pad
 
-  The roots' tree's arms `da_roots_tree__L{k}`, `da_pad` and its loop `da_pad_loop0`: what a run
-  establishes (G:4547-4561).
+  `da_pad` and its loop `da_pad_loop0`: what a run establishes.
 -/
 
 module
@@ -12,12 +11,11 @@ public import LeanVM.Guest.B1.Da.Help
 public import LeanVM.Guest.Data.NameStrings
 
 /-!
-# The roots' tree (G:4547-4561)
+# The padding blobs
 
-`da_roots_tree__L{k}(roots, n_blob_g, gap_g)` (`rtBody k`): `da_pad`, then `da_levels` over the
-`2^k` roots. `da_pad` (`padBody`) runs `da_pad_loop0` from `1` while `gap_g ≠ 1`, each iteration
-writing `DA_PAD_BLOB`'s cells at `roots·n_blob_g²·x²`. `rt_sound`: at `gap_g = g^d`, every padding
-blob `j < d`'s cells and the levels' run.
+`da_pad(roots, n_blob_g, gap_g)` (`dpadBody`) runs `da_pad_loop0` from `1` while `gap_g ≠ 1`, each
+iteration writing `DA_PAD_BLOB`'s cells at `roots·n_blob_g²·x²`. `pad_sound`: at `gap_g = g^d`,
+every padding blob `j < d`'s cells.
 -/
 
 namespace LeanVM.Guest.B1.Da
@@ -68,8 +66,8 @@ theorem pad_sound {roots nb : E} {d : ℕ} (hd : d < ordG)
     (hrel : coreProgram.Rel rd "da_pad" [roots, nb, gen ^ d] []) :
     ∀ j < d, LoadHolds rd (roots * nb ^ 2 * (gen ^ j) ^ 2) 0 (digestHalves daPadBlobDigest).1 ∧
       LoadHolds rd (roots * nb ^ 2 * (gen ^ j) ^ 2) 1 (digestHalves daPadBlobDigest).2 := by
-  have hok := pad_ok
-  unfold padOk at hok
+  have hok := dpad_ok
+  unfold dpadOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨hparams, hbody⟩ := hok
   obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_da_pad _ _).mp hrel
@@ -77,7 +75,7 @@ theorem pad_sound {roots nb : E} {d : ℕ} (hd : d < ordG)
   rw [hparams] at hpar
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar
   obtain ⟨h0, h1, h2⟩ := hpar
-  simp only [padBody, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
+  simp only [dpadBody, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
   obtain ⟨c3, a4, c5, -, hcall, -⟩ := hb
   refine loop_sound (f := name% «da_pad_loop0») (ps := [gen ^ d, roots, nb]) hd rfl
     (fun y hy => by
@@ -87,31 +85,6 @@ theorem pad_sound {roots nb : E} {d : ℕ} (hd : d < ordG)
   have := hcall (by rw [a4, c3, word_one, h2]; exact hne)
   rw [c5, word_one, h2, h0, h1] at this
   exact this
-
-/-- **The roots' tree's arm `k`'s run** at `gap = g^d`: the padding blobs `j < d` and the levels'
-run. -/
-theorem rt_sound {k : ℕ} (hk : k < 11) {roots nb c0 c1 : E} {d : ℕ} (hd : d < ordG)
-    (hrel : coreProgram.Rel rd (rtName k) [roots, nb, gen ^ d] [c0, c1]) :
-    (∀ j < d, LoadHolds rd (roots * nb ^ 2 * (gen ^ j) ^ 2) 0 (digestHalves daPadBlobDigest).1 ∧
-      LoadHolds rd (roots * nb ^ 2 * (gen ^ j) ^ 2) 1 (digestHalves daPadBlobDigest).2) ∧
-      coreProgram.Rel rd (daLevelsName k) [roots] [c0, c1] := by
-  obtain ⟨hf, hok⟩ := rt_find hk
-  unfold rtOk at hok
-  simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
-  obtain ⟨hparams, hbody⟩ := hok
-  obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem hf _ _).mp hrel
-  rw [stmtsEqb_sound hbody] at hb
-  rw [hparams] at hpar
-  simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar
-  obtain ⟨h0, h1, h2⟩ := hpar
-  simp only [rtBody, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
-  obtain ⟨hpad, hlv, cp5, cp6, hret⟩ := hb
-  simp only [List.cons.injEq, and_true] at hret
-  rw [h0, h1, h2] at hpad
-  rw [h0] at hlv
-  refine ⟨pad_sound hd hpad, ?_⟩
-  rw [← hret.1, ← hret.2, cp5, cp6]
-  exact hlv
 
 end
 end LeanVM.Guest.B1.Da

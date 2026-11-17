@@ -18,7 +18,7 @@ public import LeanVM.Guest.B1.Da.WeightsAt
 # A blob's cell loop, popping its cells' symbols
 
 Blob `i`'s region at `g^bb` (`regionCells syms z i`); the weights at `g^bw` (`wtsCells q`), column `h`'s expansion at
-`g^(q h)` (`colRun z h`), its weights at `g^(q h + 256)`.
+`g^(q h)` (`colRun z h`), its weights at `g^(q h + 128)`.
 
 * `cellLNH`, `cellLFrom`: the loop's iterations of honest shape, cell `k`'s tree of `Tc k`;
 * `cellL_stepLF`, `cellL_completeAtTB`: the loop from its first iteration within its static bound, its cells holding
@@ -38,8 +38,8 @@ open LeanVM.Guest.B1.Main (Layout MemL RegionL memL_append iterK)
 
 @[expose] public section
 
-/-- The weights' pointers: column `h`'s weights at `g^(q h + 256)`. -/
-def wtsCells (q : ℕ → ℕ) : List E := (List.range 128).map fun h => gen ^ (q h + 256)
+/-- The weights' pointers: column `h`'s weights at `g^(q h + 128)`. -/
+def wtsCells (q : ℕ → ℕ) : List E := (List.range 128).map fun h => gen ^ (q h + 128)
 
 theorem length_wtsCells (q : ℕ → ℕ) : (wtsCells q).length = 128 := by simp [wtsCells]
 
@@ -80,18 +80,18 @@ variable {fs : String → ℕ} {cert : String → V → ℕ}
 
 set_option maxRecDepth 20000 in
 /-- **One iteration of the cell loop, placed, its cell check holding the cell's symbols**: blob `i`'s cell `k`. -/
-theorem cellL_stepLF {i k bb bw : ℕ} {q : ℕ → ℕ} {syms : ℕ → ℕ → List K} {z : E} {Lin : Layout} (hk : k < 128)
-    (hsl : (syms i k).length = 256) (hBm : (bb, regionCells syms z i) ∈ Lin) (hWm : (bw, wtsCells q) ∈ Lin)
+theorem cellL_stepLF {i k bb bw : ℕ} {q : ℕ → ℕ} {syms : ℕ → ℕ → List E} {z : E} {Lin : Layout} (hk : k < 128)
+    (hsl : (syms i k).length = 128) (hBm : (bb, regionCells syms z i) ∈ Lin) (hWm : (bw, wtsCells q) ∈ Lin)
     (hCm : (q k, colRun z k) ∈ Lin) {Tt : Tree → Prop}
     (htail : k + 1 < 128 → PlacedLF fs cert 16 name% «da_verify_blob_loop0» Lin [gen ^ (k + 1), gen ^ bw, gen ^ bb] Tt) :
     PlacedLF fs cert 16 name% «da_verify_blob_loop0» Lin [gen ^ k, gen ^ bw, gen ^ bb]
       (cellLNH k (cellNH (syms i k)) Tt) := by
   obtain ⟨Bt', hRest⟩ := placedLF_tail (fs := fs) (cert := cert) (g := name% «da_verify_blob_loop0»)
     (last := k + 1 = 128) fun h' => htail (by omega)
-  have hcell := cell_placedF (fs := fs) (cert := cert) (Lin := Lin) (b := q k + 256) (syms i k) (colWs z k) hsl
+  have hcell := cell_placedF (fs := fs) (cert := cert) (Lin := Lin) (b := q k + 128) (syms i k) (colWs z k) hsl
     (by simp [colWs]) (fun rd hm => colRun_reads hm z k hCm)
     (fun e he => by
-      have := regionL_of_mem hCm (k := 256 + e) (by rw [length_colRun]; omega)
+      have := regionL_of_mem hCm (k := 128 + e) (by rw [length_colRun]; omega)
       rwa [← Nat.add_assoc] at this)
   refine ⟨fs name% «da_verify_blob_loop0» + Bt', fun fp cur hcur => ?_⟩
   obtain ⟨nc, hRc⟩ := hcell cur
@@ -104,7 +104,7 @@ theorem cellL_stepLF {i k bb bw : ℕ} {q : ℕ → ℕ} {syms : ℕ → ℕ →
   have hreg : ∀ {j : ℕ} {v : E}, j < 641 → (regionCells syms z i).getD j 0 = v → LoadHolds rd (gen ^ bb) j v :=
     fun hj hv => loadHolds_of_reads hB (by rw [length_regionCells]; exact hj) hv
   obtain ⟨hl1, hl2⟩ := regionCells_leaf (syms := syms) (z := z) (i := i) hk
-  have h0 : LoadHolds rd (gen ^ bw * gen ^ k) 0 (gen ^ (q k + 256)) := by
+  have h0 : LoadHolds rd (gen ^ bw * gen ^ k) 0 (gen ^ (q k + 128)) := by
     rw [loadHolds_mul_gen_pow]
     exact loadHolds_of_reads hW (by rw [length_wtsCells]; omega) (by
       simp [wtsCells, List.getD_eq_getElem?_getD, hk])
@@ -122,7 +122,7 @@ theorem cellL_stepLF {i k bb bw : ℕ} {q : ℕ → ℕ} {syms : ℕ → ℕ →
     exact hreg (by omega) (by rw [show k + k + 1 = 2 * k + 1 by ring, hl2])
   rw [cellRets_eq] at hc
   -- the path
-  set σ := Val.ofArgs [gen ^ k, gen ^ bw, gen ^ bb, gen ^ bw * gen ^ k, gen ^ (q k + 256),
+  set σ := Val.ofArgs [gen ^ k, gen ^ bw, gen ^ bb, gen ^ bw * gen ^ k, gen ^ (q k + 128),
     (digestHalves (cellD syms i k)).1, (digestHalves (cellD syms i k)).2, cellDot syms z i k,
     gen ^ bb * gen ^ k, runSum syms z i k, runSum syms z i k + cellDot syms z i k, gen ^ k * gen ^ k,
     gen ^ bb * (gen ^ k * gen ^ k), word 2 0, gen ^ k * word 2 0, word 325 0, gen ^ k * word 2 0 + word 325 0,
@@ -213,8 +213,8 @@ theorem cellL_stepLF {i k bb bw : ℕ} {q : ℕ → ℕ} {syms : ℕ → ℕ →
 cells' symbols. -/
 theorem cellL_completeAtTB {B : ℕ}
     (hT : TotalLeOn coreProgram fs name% «da_verify_blob_loop0» (fun a => a.getD 0 0 = 1) (fun _ => B))
-    {i bb bw : ℕ} {q : ℕ → ℕ} {syms : ℕ → ℕ → List K} {z : E} {Lin : Layout}
-    (hsl : ∀ k, (syms i k).length = 256) (hBm : (bb, regionCells syms z i) ∈ Lin) (hWm : (bw, wtsCells q) ∈ Lin)
+    {i bb bw : ℕ} {q : ℕ → ℕ} {syms : ℕ → ℕ → List E} {z : E} {Lin : Layout}
+    (hsl : ∀ k, (syms i k).length = 128) (hBm : (bb, regionCells syms z i) ∈ Lin) (hWm : (bw, wtsCells q) ∈ Lin)
     (hCm : ∀ k < 128, (q k, colRun z k) ∈ Lin) :
     CompleteAtDTB fs cert 16 name% «da_verify_blob_loop0» Lin [1, gen ^ bw, gen ^ bb]
       (Returns []) (cellLFrom (fun k => cellNH (syms i k)) 128 0) B := by
@@ -242,10 +242,10 @@ theorem cellL_iter_pops {rd : Reader} {σ : Val} {bufs : List ℕ} {kids : List 
     List.nil_append]
 
 /-- **A cell loop whose cell checks hold `syms i k` pops them**, from iteration `k` to the last. -/
-theorem cellL_pops {rd : Reader} {i : ℕ} {syms : ℕ → ℕ → List K} (hsl : ∀ k, (syms i k).length = 256) :
+theorem cellL_pops {rd : Reader} {i : ℕ} {syms : ℕ → ℕ → List E} (hsl : ∀ k, (syms i k).length = 128) :
     ∀ n k (t : Memory.Tree) (args rets : List E), k + n = 128 → cellLFrom (fun j => cellNH (syms i j)) n k t →
       t.Valid coreProgram rd args rets →
-      t.pops coreProgram rd = (List.range' k n).flatMap fun j => [("da_symbols", (syms i j).map ofK)]
+      t.pops coreProgram rd = (List.range' k n).flatMap fun j => [("da_symbols", syms i j)]
   | 0, _, _, _, _, _, ht, _ => ht.elim
   | n + 1, k, t, args, rets, hkn, ht, hv => by
       obtain ⟨σ, ks, rfl, -, hc, -, hT⟩ := ht
