@@ -16,7 +16,7 @@ use primitives::transcript::ProverState;
 use verifier::keccak::{BITS, LOCAL_BITS, along, linear_transpose};
 
 use crate::basis::{PolyEval, add_mul};
-use crate::kernels::{GROUP, MIXED, PACKS, SKIP, SkipBlock, TERNARY, embed, mixed_points, products, slot};
+use crate::kernels::{GROUP, MIXED, PACKS, SKIP, SkipBlock, TERNARY, mixed_points, row_products, slot};
 use crate::power::{Element, PowerField, get, set};
 use crate::protocol::{Claim, chi_weights, mu_at};
 use crate::witness::{Shape, Witness, transpose64, words};
@@ -298,13 +298,11 @@ impl Layer<'_> {
                 for r in 0..5 {
                     for z in 0..64 {
                         let js = row_positions(r, z);
-                        let e: [[u32; PACKS]; 5] = std::array::from_fn(|x| embed(words(block, js[x])));
-                        for x in 0..5 {
-                            let p = products(&e[x], &e[(x + 1) % 5], &e[(x + 2) % 5]);
+                        row_products(js.map(|j| words(block, j)), |x, p| {
                             for (q, part) in payloads.iter_mut().enumerate() {
                                 part[js[x]] = Part::pack(p[PART * q..][..PART].try_into().unwrap());
                             }
-                        }
+                        });
                     }
                 }
                 for (payloads, rows) in payloads.iter().zip(rows.iter_mut()) {
@@ -428,7 +426,7 @@ impl Layer<'_> {
                 _ => {
                     // Both groups' unreduced sums, three words each and laid out by word, then reduced.
                     for j in 0..BITS {
-                        let sums = crate::kernels::fold_groups(&embed(words(block, j)), &fold);
+                        let sums = crate::kernels::fold_groups(&crate::kernels::embed(words(block, j)), &fold);
                         for (wide, sum) in wide.as_chunks_mut::<{ 3 * BITS }>().0[..halves].iter_mut().zip(&sums) {
                             let sum: [u64; 3] = crate::basis::carry(sum);
                             for (k, &word) in sum.iter().enumerate() {
