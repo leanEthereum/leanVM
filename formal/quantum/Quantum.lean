@@ -211,6 +211,7 @@ import Quantum.StdModel.Formats
 import Quantum.StdModel.Props
 import Quantum.Par.Subst
 import Quantum.Qrom.SufCma.GamePar
+import Quantum.Sponge.Oracle.Parallel
 import Quantum.Qrom.Xmss.Multi.GameT
 import Quantum.Qrom.Xmss.Multi.GameTSel
 import Quantum.Qrom.Xmss.Multi.GameTCalls
