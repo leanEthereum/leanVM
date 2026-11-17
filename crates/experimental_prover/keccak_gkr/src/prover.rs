@@ -152,7 +152,9 @@ impl Groups {
 
     /// `sum over positions of weight[j] (x) payloads[j]` into `rows`: row `DIGIT_BITS * d + i`
     /// sums the payloads whose weight has that bit set. Each group is summed in registers, so
-    /// the payloads are only read.
+    /// the payloads are only read, then added into the sums of its value's low nibble and of its
+    /// high one (`sums[..16]`, `sums[16..32]`), the latter kept in registers; those make the
+    /// rows of the digit's low bits and of its high bits.
     fn add_rows(&self, payloads: &[Part; BITS], rows: &mut [Part; 128], sums: &mut [Part; 1 << DIGIT_BITS]) {
         for (rows, (order, starts)) in rows
             .as_chunks_mut::<DIGIT_BITS>()
@@ -160,23 +162,33 @@ impl Groups {
             .iter_mut()
             .zip(self.order.iter().zip(&self.starts))
         {
-            for (v, sum) in sums.iter_mut().enumerate() {
-                let mut acc = Part::ZERO;
-                for &p in &order[starts[v] as usize..starts[v + 1] as usize] {
-                    // SAFETY: `order` holds positions.
-                    acc.add(unsafe { payloads.get_unchecked(p as usize) });
+            let (low, high) = sums[..32].split_at_mut(16);
+            low.fill(Part::ZERO);
+            for (h, high) in high.iter_mut().enumerate() {
+                let mut nibble = Part::ZERO;
+                for (l, low) in low.iter_mut().enumerate() {
+                    let v = 16 * h + l;
+                    let mut acc = Part::ZERO;
+                    for &p in &order[starts[v] as usize..starts[v + 1] as usize] {
+                        // SAFETY: `order` holds positions.
+                        acc.add(unsafe { payloads.get_unchecked(p as usize) });
+                    }
+                    nibble.add(&acc);
+                    low.add(&acc);
                 }
-                *sum = acc;
+                *high = nibble;
             }
-            // Bit `i` of the digit: the sums whose value has it, then fold it away.
-            for (i, row) in rows.iter_mut().enumerate().rev() {
-                let (low, high) = sums[..2 << i].split_at_mut(1 << i);
-                let mut acc = Part::ZERO;
-                for (low, high) in low.iter_mut().zip(&*high) {
-                    acc.add(high);
-                    low.add(high);
+            for (sums, rows) in [low, high].into_iter().zip(rows.as_chunks_mut::<4>().0) {
+                // Bit `i` of the nibble: the sums whose value has it, then fold it away.
+                for (i, row) in rows.iter_mut().enumerate().rev() {
+                    let (low, high) = sums[..2 << i].split_at_mut(1 << i);
+                    let mut acc = Part::ZERO;
+                    for (low, high) in low.iter_mut().zip(&*high) {
+                        acc.add(high);
+                        low.add(high);
+                    }
+                    *row = acc;
                 }
-                *row = acc;
             }
         }
     }
