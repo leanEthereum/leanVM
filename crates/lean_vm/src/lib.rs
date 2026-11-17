@@ -43,11 +43,11 @@ pub mod lean_sphincs {
     };
 }
 
-/// Starts the prover's thread pool and builds the aggregation program and its Fiat-Shamir IV, which
-/// [`AggregateProof::verify`] also reads. Optional: both are built on first use otherwise.
+/// Starts the prover's thread pool and builds the aggregation program, which [`AggregateProof::verify`] also reads.
+/// Optional: both are built on first use otherwise.
 pub fn setup() {
     P::init();
-    aggregation::unified_guest().bytecode();
+    aggregation::unified_guest();
 }
 
 /// Aggregate leanXMSS and leanSPHINCS signatures, blobs and the claims of child proofs.
