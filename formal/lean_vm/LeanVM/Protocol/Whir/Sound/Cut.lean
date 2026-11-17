@@ -121,6 +121,33 @@ theorem after_ret_eq' {α : Type} {a b : α} {l : List Ev}
     exact ⟨rfl, h⟩
   · simp [VerifierProgram.after] at h
 
+/-- **`q` cuts `p`**: wherever `p` returns a value after a history, `q` returns it after a
+prefix of that history. -/
+def CutRel {α : Type} (p q : VerifierProgram α) : Prop :=
+  ∀ h v, p.after h = some (.ret v) → ∃ h₁ h₂, h = h₁ ++ h₂ ∧ q.after h₁ = some (.ret v)
+
+theorem CutRel.refl {α : Type} (p : VerifierProgram α) : CutRel p p :=
+  fun h _ hv ↦ ⟨h, [], by simp, hv⟩
+
+/-- Binding the same program before cut continuations cuts. -/
+theorem CutRel.bind {α β : Type} (p : VerifierProgram α) {f g : α → VerifierProgram β}
+    (hfg : ∀ a, CutRel (f a) (g a)) : CutRel (p.bind f) (p.bind g) := by
+  intro h v hv
+  obtain ⟨a, hA, hB, rfl, ha, hf⟩ := after_bind_ret hv
+  obtain ⟨hB₁, hB₂, rfl, hg⟩ := hfg a hB v hf
+  exact ⟨hA ++ hB₁, hB₂, by rw [List.append_assoc], by
+    rw [VerifierProgram.after_bind_append _ ha]; exact hg⟩
+
+/-- Mapping by a return keeps a cut. -/
+theorem CutRel.mapRet {α β : Type} {p q : VerifierProgram α} (hpq : CutRel p q) (w : α → β) :
+    CutRel (p.bind fun a ↦ VerifierProgram.ret (w a)) (q.bind fun a ↦ VerifierProgram.ret (w a)) := by
+  intro h v hv
+  obtain ⟨a, hA, hB, rfl, ha, hret⟩ := after_bind_ret hv
+  obtain ⟨rfl, rfl⟩ := after_ret_eq' hret
+  obtain ⟨h₁, h₂, rfl, hq⟩ := hpq hA a ha
+  exact ⟨h₁, h₂, by simp, by
+    rw [← List.append_nil h₁, VerifierProgram.after_bind_append _ hq]; rfl⟩
+
 /-- **The cut returns the full one's trace**, after a prefix of the history. -/
 theorem after_whirLevelsGF_cut (logN laneFolds : ℕ) (eb : List E → E) :
     ∀ (index : ℕ) (levels : List Whir.Level) (s : WhirState) (h : List Ev) (v : WhirTrace),
@@ -155,6 +182,46 @@ theorem after_whirLevelsGF_cut (logN laneFolds : ℕ) (eb : List E → E) :
       VerifierProgram.after_bind_append _ hp, VerifierProgram.bind_eq,
       ← List.append_nil hI₁, VerifierProgram.after_bind_append _ hcut]
     rfl
+
+end
+end LeanVM.Protocol.Whir.Sound
+
+namespace LeanVM.Protocol.Whir.Sound
+
+open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier LeanVM.Protocol.Whir
+
+@[expose] public section
+
+/-- **The levels cut**: `whirLevelsG` cut at the final polynomial. -/
+theorem cutRel_whirLevelsG (logN laneFolds : ℕ) (eb : List E → E) (index : ℕ)
+    (levels : List Whir.Level) (s : WhirState) :
+    CutRel (whirLevelsG logN laneFolds eb index levels s)
+      (whirLevelsGF logN (finCut logN) index levels s) := by
+  rw [whirLevelsG_eq]
+  exact after_whirLevelsGF_cut logN laneFolds eb index levels s
+
+/-- `verifyWhirG` cut at the final polynomial (where its weight is not yet read). -/
+def verifyWhirCut (logN logInvRate : ℕ) (target : E) : VerifierProgram WhirTrace :=
+  liftOption (Whir.ladder logN logInvRate) >>= fun config ↦
+    whirLevelsGF logN (finCut logN) 0 config ⟨target, [], []⟩
+
+theorem cutRel_verifyWhirG (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E) :
+    CutRel (verifyWhirG logN logInvRate target evaluateBasis)
+      (verifyWhirCut logN logInvRate target) := by
+  unfold verifyWhirG verifyWhirCut
+  rw [VerifierProgram.bind_eq, VerifierProgram.bind_eq]
+  exact CutRel.bind _ fun config ↦ cutRel_whirLevelsG _ _ _ _ _ _
+
+/-- `verifyStackedOpeningG` cut at the final polynomial. -/
+def verifyStackedOpeningCut (stackLog logInvRate : ℕ) (claims : List StackClaim) :
+    VerifierProgram WhirTrace :=
+  (VerifierProgram.require (StackedOk claims)).bind fun _ ↦ VerifierProgram.sampleChallenge.bind fun c ↦
+    verifyWhirCut stackLog logInvRate (dot (powers c claims.length) (claims.map (·.2)))
+
+theorem cutRel_verifyStackedOpeningG (stackLog logInvRate : ℕ) (claims : List StackClaim) :
+    CutRel (verifyStackedOpeningG stackLog logInvRate claims)
+      (verifyStackedOpeningCut stackLog logInvRate claims) :=
+  CutRel.bind _ fun _ ↦ CutRel.bind _ fun _ ↦ cutRel_verifyWhirG _ _ _ _
 
 end
 end LeanVM.Protocol.Whir.Sound
