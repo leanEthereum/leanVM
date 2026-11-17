@@ -173,7 +173,9 @@ impl Client {
         let (ring_cap, req_ring, resp_ring) = (field(H_RING_CAP), field(H_REQ_RING), field(H_RESP_RING));
         let (arena_off, arena_len) = (field(H_ARENA_OFF), field(H_ARENA_LEN));
         // Every later access is in bounds given these: the rings sit below the arena, the arena inside the file.
-        let ring_bytes = ring_cap.checked_mul(MSG_SIZE as u64).and_then(|slots| slots.checked_add(R_SLOTS as u64));
+        let ring_bytes = ring_cap
+            .checked_mul(MSG_SIZE as u64)
+            .and_then(|slots| slots.checked_add(R_SLOTS as u64));
         let ring_fits = |ring: u64| {
             let end = ring_bytes.and_then(|bytes| ring.checked_add(bytes));
             ring.is_multiple_of(8) && end.is_some_and(|end| end <= arena_off)
@@ -259,7 +261,8 @@ impl Client {
         msg[48..52].copy_from_slice(&log_inv_rate.to_le_bytes());
         // SAFETY: the slot is inside the mapping, and the server does not read it before the tail moves past it.
         unsafe { std::ptr::copy_nonoverlapping(msg.as_ptr(), self.slot(self.req_ring, tail), MSG_SIZE) };
-        self.word(self.req_ring + R_TAIL).store(tail.wrapping_add(1), Ordering::Release);
+        self.word(self.req_ring + R_TAIL)
+            .store(tail.wrapping_add(1), Ordering::Release);
         self.live.push_back(Block {
             id,
             off,
@@ -279,7 +282,8 @@ impl Client {
         let mut msg = [0u8; MSG_SIZE];
         // SAFETY: the slot is inside the mapping; the server published it with its store of the tail.
         unsafe { std::ptr::copy_nonoverlapping(self.slot(self.resp_ring, head), msg.as_mut_ptr(), MSG_SIZE) };
-        self.word(self.resp_ring + R_HEAD).store(head.wrapping_add(1), Ordering::Release);
+        self.word(self.resp_ring + R_HEAD)
+            .store(head.wrapping_add(1), Ordering::Release);
 
         let mut response = Response {
             id: u64::from_le_bytes(msg[0..8].try_into().unwrap()),
@@ -326,13 +330,20 @@ mod tests {
         let mut state = 1u64;
         let mut placed = 0;
         for id in 0..10_000 {
-            state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            state = state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
             let len = (state >> 33) as usize % 40;
             match place(&live, ARENA_LEN, len) {
                 Some(off) => {
                     assert!(off + len <= ARENA_LEN);
                     assert!(live.iter().all(|b: &Block| off + len <= b.off || b.end() <= off));
-                    live.push_back(Block { id, off, payload_len: len, resp_cap: 0 });
+                    live.push_back(Block {
+                        id,
+                        off,
+                        payload_len: len,
+                        resp_cap: 0,
+                    });
                     placed += 1;
                 }
                 None => assert!(live.pop_front().is_some()),

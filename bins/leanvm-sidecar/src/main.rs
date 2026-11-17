@@ -107,7 +107,10 @@ fn main() {
     if args.warmup_signatures > 0 {
         eprintln!("warming up...");
         let started = std::time::Instant::now();
-        let signers = args.threads.or(std::thread::available_parallelism().ok().map(usize::from)).unwrap_or(1);
+        let signers = args
+            .threads
+            .or(std::thread::available_parallelism().ok().map(usize::from))
+            .unwrap_or(1);
         let _quiet = bench::suppress_tracing();
         warm::warm_up(args.warmup_signatures, &args.warmup_rates, signers);
         eprintln!("warmed up in {:.1} s", started.elapsed().as_secs_f64());
@@ -122,7 +125,6 @@ fn main() {
     eprintln!("serving {}", args.path.display());
     run(&chan, &AtomicBool::new(false));
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -201,8 +203,12 @@ mod tests {
             .collect();
 
         // Two requests in flight: answered in order, each from its own arena block.
-        let first = client.send(OP_AGGREGATE, 0, LOG_INV_RATE, &signatures(&triples[..2]), RESP_CAP).unwrap();
-        let second = client.send(OP_AGGREGATE, 0, LOG_INV_RATE, &signatures(&triples[2..]), RESP_CAP).unwrap();
+        let first = client
+            .send(OP_AGGREGATE, 0, LOG_INV_RATE, &signatures(&triples[..2]), RESP_CAP)
+            .unwrap();
+        let second = client
+            .send(OP_AGGREGATE, 0, LOG_INV_RATE, &signatures(&triples[2..]), RESP_CAP)
+            .unwrap();
         let (left, right) = (recv(&mut client), recv(&mut client));
         assert_eq!((left.id, right.id), (first, second));
         let (left, left_claims) = proved(left.status, &left.body);
@@ -264,9 +270,15 @@ mod tests {
         assert_eq!(response.status, ST_RESP_TOO_SMALL);
         assert!(response.resp_len > 8 && response.body.is_empty());
 
-        assert_eq!(call(&mut client, OP_VERIFY, 0, &verify[..verify.len() - 1]).0, ST_BAD_REQUEST);
+        assert_eq!(
+            call(&mut client, OP_VERIFY, 0, &verify[..verify.len() - 1]).0,
+            ST_BAD_REQUEST
+        );
         assert_eq!(call(&mut client, 99, 0, &[]).0, ST_BAD_REQUEST);
-        assert_eq!(client.send(OP_VERIFY, 0, 0, &[], ARENA_LEN + 1), Err(leanvm_sidecar_client::Full));
+        assert_eq!(
+            client.send(OP_VERIFY, 0, 0, &[], ARENA_LEN + 1),
+            Err(leanvm_sidecar_client::Full)
+        );
     }
 
     #[test]

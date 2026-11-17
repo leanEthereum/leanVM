@@ -70,7 +70,10 @@ impl Channel {
     /// old geometry has to reopen.
     pub fn create(path: &Path, ring_cap: u32, arena_len: usize) -> io::Result<Self> {
         if !ring_cap.is_power_of_two() {
-            return Err(io::Error::new(io::ErrorKind::InvalidInput, "ring capacity is not a power of two"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "ring capacity is not a power of two",
+            ));
         }
         let ring_bytes = (R_SLOTS + ring_cap as usize * MSG_SIZE).next_multiple_of(PAGE);
         let (req_ring, resp_ring) = (PAGE, PAGE + ring_bytes);
@@ -83,7 +86,12 @@ impl Channel {
         staging.push(".init");
         let fresh = !path.exists();
         let open_at = if fresh { Path::new(&staging) } else { path };
-        let file = OpenOptions::new().read(true).write(true).create(true).truncate(false).open(open_at)?;
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .open(open_at)?;
         if file.metadata()?.len() != total as u64 {
             file.set_len(total as u64)?;
         }
@@ -124,7 +132,10 @@ impl Channel {
             (H_SIG_SIZE, SIG_SIZE as u64),
         ];
         let epoch = chan.word(H_EPOCH).load(Ordering::Relaxed);
-        if !header.iter().all(|&(at, value)| chan.word(at).load(Ordering::Relaxed) == value) {
+        if !header
+            .iter()
+            .all(|&(at, value)| chan.word(at).load(Ordering::Relaxed) == value)
+        {
             // SAFETY: `[0, arena_off)` is inside the mapping.
             unsafe { std::ptr::write_bytes(chan.base, 0, arena_off) };
             for (at, value) in header {

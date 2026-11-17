@@ -18,7 +18,9 @@ const RESP_CAP: usize = 16 << 20;
 /// Send one request and wait for its response.
 fn call(client: &mut Client, op: u32, flags: u32, rate: u32, payload: &[u8]) -> (Response, Duration) {
     let started = Instant::now();
-    let id = client.send(op, flags, rate, payload, RESP_CAP).expect("no room in the channel");
+    let id = client
+        .send(op, flags, rate, payload, RESP_CAP)
+        .expect("no room in the channel");
     let response = loop {
         match client.try_recv() {
             Some(response) => break response,
@@ -32,7 +34,10 @@ fn call(client: &mut Client, op: u32, flags: u32, rate: u32, payload: &[u8]) -> 
 fn check(response: &Response) {
     if response.status != ST_OK {
         let text = String::from_utf8_lossy(&response.body);
-        println!("  FAILED: status {} detail {}: {text}", response.status, response.detail);
+        println!(
+            "  FAILED: status {} detail {}: {text}",
+            response.status, response.detail
+        );
         std::process::exit(1);
     }
 }
@@ -60,7 +65,9 @@ fn step(
     since: Option<Instant>,
 ) -> (Vec<u8>, Vec<u8>) {
     let (response, elapsed) = call(client, op, flags, rate, payload);
-    let batch = since.map(|since| format!(", batch total {:.3} s", since.elapsed().as_secs_f64())).unwrap_or_default();
+    let batch = since
+        .map(|since| format!(", batch total {:.3} s", since.elapsed().as_secs_f64()))
+        .unwrap_or_default();
     let (proof, claims) = split(&response);
     println!(
         "{what}, {} bytes, rate {rate} -> proof {} bytes, {} claims, {:.3} s{batch}",
@@ -99,7 +106,16 @@ fn aggregate(
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    let [_, channel, signatures, aggregate_rate, recurse_rate, per_batch, sub_batch] = args.as_slice() else {
+    let [
+        _,
+        channel,
+        signatures,
+        aggregate_rate,
+        recurse_rate,
+        per_batch,
+        sub_batch,
+    ] = args.as_slice()
+    else {
         eprintln!(
             "usage: e2e <channel> <signatures-file> <aggregate-rate> <recurse-rate> <signatures-per-batch> <sub-batch>"
         );
@@ -112,7 +128,10 @@ fn main() {
     let mut client = Client::open(channel.as_ref()).expect("open channel");
     let record = client.pub_key_size() + client.message_len() + client.sig_size();
     let signatures = std::fs::read(signatures).expect("read signatures");
-    assert!(signatures.len() >= BATCHES * per_batch * record, "signature file too short");
+    assert!(
+        signatures.len() >= BATCHES * per_batch * record,
+        "signature file too short"
+    );
 
     let total = Instant::now();
     let parts = per_batch.div_ceil(sub_batch);
