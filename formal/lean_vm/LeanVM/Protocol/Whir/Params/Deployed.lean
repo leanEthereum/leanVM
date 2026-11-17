@@ -491,10 +491,11 @@ theorem candidates_facts {μ R : ℕ} (h : Whir.Admissible μ R) (W : Word) :
 every group within `εmsg = 2^-125` after its grind, the batching challenge with lead
 `(J − 1)·L₀/|E|`. -/
 noncomputable def deployedStackedSpec {μ R : ℕ} (h : Whir.Admissible μ R)
-    (claims : List StackClaim) (hcl : ∀ c ∈ claims, IsMultiaffine μ c.1) (T : ENNReal) :
-    Spec (verifyStackedOpening μ R claims)
-      (fun h ↦ StackedPre μ R (thr0Of μ R) claims (commits h)) (fun _ _ ↦ False) εmsg
-      (eBatch claims.length (listMax₀ μ R)) T :=
+    (claims : List StackClaim) (hcl : ∀ c ∈ claims, IsMultiaffine μ c.1) (Bad : Column μ → Prop) :
+    Spec (verifyStackedOpeningG μ R claims)
+      (fun h ↦ StackedPre μ R (thr0Of μ R) claims Bad (commits h))
+      (fun tr h ↦ traceGood (codesOf μ R) 0 (lvl0Pred μ Bad) tr (commits h)) εmsg
+      (eBatch claims.length (listMax₀ μ R)) 0 :=
   match hc : Whir.ladder μ R with
   | some (level :: rest) =>
     have F : Level0Facts μ R level rest := by
@@ -506,7 +507,7 @@ noncomputable def deployedStackedSpec {μ R : ℕ} (h : Whir.Admissible μ R)
     (stackedSpec claims hcl F.hc F.hℓ F.hμ F.hκ₀ F.hR₀ F.hthr
       (deployedBounds (shapeOK_of_admissible h)) F.hA (listMax₀ μ R)
       (fun W ↦ F.hthr₀ ▸ (candidates_facts h W).1)
-      (fun W ↦ F.hthr₀ ▸ (candidates_facts h W).2) T).mono
+      (fun W ↦ F.hthr₀ ▸ (candidates_facts h W).2) Bad).mono
       (fun _ hp ↦ by rw [F.hthr₀]; exact hp) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
   | some [] => False.elim (by
       obtain ⟨level', rest', F⟩ := level0Facts (shapeOK_of_admissible h)

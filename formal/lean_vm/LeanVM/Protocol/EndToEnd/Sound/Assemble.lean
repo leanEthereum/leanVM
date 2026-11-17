@@ -17,6 +17,7 @@ public import LeanVM.Protocol.EndToEnd.Front.RingFidelity
 public import LeanVM.Protocol.EndToEnd.Front.RingMultilinear
 public import LeanVM.Protocol.EndToEnd.Front.LayoutBridgeB
 public import LeanVM.Protocol.Whir.Sound.Sumcheck
+public import LeanVM.Protocol.Whir.Sound.Spec
 public import LeanVM.Protocol.Compile.SpecRules.Cert
 public import LeanVM.Protocol.Extraction.Extractor
 
@@ -87,12 +88,12 @@ theorem div_card_lt_one {N : ℕ} (hN : N ≤ 2 ^ 127) : (N : ℝ≥0∞) / Fint
 /-! ## The opening's interface -/
 
 /-- The opening's relation, in the shape W2's `Whir.Sound.StackedPre` has: the commitments have level
-0's shape, and every candidate of the stack's word violates one of the claims. -/
+0's shape, and every bad candidate of the stack's word violates one of the claims. -/
 def StackedPreOf (ShapeOK₀ : ℕ → ℕ → List (ℕ × ℕ × Word) → Prop) (thr₀ : ℕ → ℕ → ℕ)
     (word₀ : List (ℕ × ℕ × Word) → Word) (μ R : ℕ) (claims : List StackClaim)
-    (cs : List (ℕ × ℕ × Word)) : Prop :=
+    (Bad : Column μ → Prop) (cs : List (ℕ × ℕ × Word)) : Prop :=
   ShapeOK₀ μ R cs ∧
-    ∀ q ∈ Candidates μ R (thr₀ μ R) (word₀ cs), ∃ c ∈ claims, ¬ StackClaim.Holds μ c q
+    ∀ q ∈ Candidates μ R (thr₀ μ R) (word₀ cs), Bad q → ∃ c ∈ claims, ¬ StackClaim.Holds μ c q
 
 /-- The batching challenge's error, `(J − 1)·L/|E|`. -/
 noncomputable def eBatchOf (J L : ℕ) : ℝ≥0∞ := (((J - 1) * L : ℕ) : ℝ≥0∞) / Fintype.card E
@@ -129,12 +130,18 @@ structure OpeningIface : Type where
     (maxStackedClaims + 1) * listMax₀ μ R ≤ 2 ^ (Whir.batchGrindingBits + 3)
   multiaffine_eqEval : ∀ z : List E, IsMultiaffine z.length (eqEval z)
   multiaffine_of_multilinear : ∀ {μ : ℕ} {w : List E → E}, IsMultilinearFn μ w → IsMultiaffine μ w
-  /-- **The stacked opening**. -/
+  /-- **An accepting opening's trace is good**, from the bad stacks `Bad`: the descent of its
+  final polynomial ends on a stack that is not bad. -/
+  TraceGood : ∀ μ : ℕ, ℕ → (Column μ → Prop) → Whir.Sound.WhirTrace → List (ℕ × ℕ × Word) → Prop
+  /-- **The stacked opening**, on the ghost program returning its trace: from every bad
+  candidate violating a claim, every group within `εmsg`, and an accepting return's trace good. -/
   stackedSpec : ∀ {μ R : ℕ}, Whir.Admissible μ R → ∀ (claims : List StackClaim),
-    claims.length ≤ maxStackedClaims → (∀ c ∈ claims, IsMultiaffine μ c.1) → ∀ T : ℝ≥0∞,
-    Spec (verifyStackedOpening μ R claims)
-      (fun h ↦ StackedPreOf ShapeOK₀ thr₀ word₀ μ R claims (commits h)) (fun _ _ ↦ False) εmsg
-      (eBatchOf claims.length (listMax₀ μ R)) T
+    claims.length ≤ maxStackedClaims → (∀ c ∈ claims, IsMultiaffine μ c.1) →
+    ∀ Bad : Column μ → Prop,
+    Spec (Whir.Sound.verifyStackedOpeningG μ R claims)
+      (fun h ↦ StackedPreOf ShapeOK₀ thr₀ word₀ μ R claims Bad (commits h))
+      (fun tr h ↦ TraceGood μ R Bad tr (commits h)) εmsg
+      (eBatchOf claims.length (listMax₀ μ R)) 0
 
 /-! ## Multiaffine claims -/
 
@@ -231,6 +238,30 @@ def veBody (ev : List K → List E → E → VerifierProgram Unit) (publicInput 
   verifyStackedOpening layout.stackLog ρ
     (ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.stackClaim layout) ++ [ood])
 
+/-- `veBody`, returning the opening's trace. -/
+def veBodyG (ev : List K → List E → E → VerifierProgram Unit) (publicInput : Digest)
+    (layout : Verifier.Layout) (ρ : ℕ) : VerifierProgram Whir.Sound.WhirTrace := do
+  commitStack layout.stackLog ρ
+  let ood ← readOod layout.stackLog
+  let (claims, keccakPoint, keccakSlices) ← frontProg ev layout publicInput
+  let (ringTarget, ringWeight) ← ringSwitch keccakPoint keccakSlices
+  Whir.Sound.verifyStackedOpeningG layout.stackLog ρ
+    (ringSwitchClaim layout ringTarget ringWeight :: claims.map (·.stackClaim layout) ++ [ood])
+
+/-- The ghost body, its trace dropped, is the body. -/
+theorem veBodyG_unit (ev : List K → List E → E → VerifierProgram Unit) (publicInput : Digest)
+    (layout : Verifier.Layout) (ρ : ℕ) :
+    (veBodyG ev publicInput layout ρ).bind (fun _ ↦ VerifierProgram.ret ()) =
+      veBody ev publicInput layout ρ := by
+  simp only [veBodyG, veBody, VerifierProgram.bind_eq, VerifierProgram.bind_assoc]
+  refine congrArg (VerifierProgram.bind _) (funext fun _ ↦ ?_)
+  refine congrArg (VerifierProgram.bind _) (funext fun ood ↦ ?_)
+  refine congrArg (VerifierProgram.bind _) (funext fun r ↦ ?_)
+  obtain ⟨cl, kp, ks⟩ := r
+  refine congrArg (VerifierProgram.bind _) (funext fun y ↦ ?_)
+  obtain ⟨t, w⟩ := y
+  exact Whir.Sound.verifyStackedOpeningG_unit _ _ _
+
 /-- `verify_execution` is the announced sizes, then `veBody`. -/
 theorem verifyExecutionClaims_eq (ev : List K → List E → E → VerifierProgram Unit)
     (bytecode : List K) (publicInput : Digest) :
@@ -315,12 +346,15 @@ abbrev cands₀ (prog : LeanIsaProgram) (s : Sizes) (ρ : ℕ) (W : Word) :
     Set (Column (μs prog s)) :=
   Candidates (μs prog s) ρ (O.thr₀ (μs prog s) ρ) W
 
-/-- **The doom the stack's root creates**, on the commitments: level 0's shape, and no candidate of
-the root's word satisfies the leanISA relation. -/
-def RootDoom (prog : LeanIsaProgram) (input : PublicInput) (s : Sizes) (ρ : ℕ)
-    (cs : List (ℕ × ℕ × Word)) : Prop :=
-  O.ShapeOK₀ (μs prog s) ρ cs ∧ ∃ W, firstWordC cs = some W ∧
-    ∀ q ∈ cands₀ O prog s ρ W, ¬ M3Holds (leanIsaInstance prog s) input (toI prog s q)
+/-- **The bad stacks**: those not satisfying the leanISA relation. -/
+def badOf (prog : LeanIsaProgram) (input : PublicInput) (s : Sizes) (q : Column (μs prog s)) :
+    Prop :=
+  ¬ M3Holds (leanIsaInstance prog s) input (toI prog s q)
+
+/-- **The doom the stack's root creates**, on the commitments: level 0's shape and the stack's
+word. What is at stake from here on is that the descent of an accepting run ends on a bad stack. -/
+def RootDoom (prog : LeanIsaProgram) (s : Sizes) (ρ : ℕ) (cs : List (ℕ × ℕ × Word)) : Prop :=
+  O.ShapeOK₀ (μs prog s) ρ cs ∧ ∃ W, firstWordC cs = some W
 
 /-- The invariant the phases after the OOD sample carry: the stack's word and shape. -/
 def WordShape (prog : LeanIsaProgram) (s : Sizes) (ρ : ℕ) (W : Word) (h : List Ev) : Prop :=
@@ -330,6 +364,20 @@ def WordShape (prog : LeanIsaProgram) (s : Sizes) (ρ : ℕ) (W : Word) (h : Lis
 abbrev left (prog : LeanIsaProgram) (s : Sizes) (ρ : ℕ) (W : Word) (z : List E) (y : E) :
     Set (Column (μs prog s)) :=
   oodCands (cands₀ O prog s ρ W) z y
+
+/-- The candidate left by the OOD sample, if it is bad. -/
+abbrev leftBad (prog : LeanIsaProgram) (input : PublicInput) (s : Sizes) (ρ : ℕ) (W : Word)
+    (z : List E) (y : E) : Set (Column (μs prog s)) :=
+  left O prog s ρ W z y ∩ {q | badOf prog input s q}
+
+theorem leftBad_finite (hadm : Whir.Admissible (μs prog s) ρ) (W : Word) (z : List E) (y : E) :
+    (leftBad O prog input s ρ W z y).Finite :=
+  ((O.candidates_finite W hadm).subset (oodCands_subset _ z y)).subset Set.inter_subset_left
+
+theorem leftBad_ncard_le (hadm : Whir.Admissible (μs prog s) ρ) (W : Word) (z : List E) (y : E) :
+    (leftBad O prog input s ρ W z y).ncard ≤ 1 :=
+  (Set.ncard_le_ncard Set.inter_subset_left
+    ((O.candidates_finite W hadm).subset (oodCands_subset _ z y))).trans (oodCands_ncard_le _ z y)
 
 /-- The ring claim's reading on a candidate. -/
 def ringRC (prog : LeanIsaProgram) (s : Sizes) (r : E × (List E → E)) (q : Column (μs prog s)) :
@@ -347,19 +395,24 @@ theorem length_openClaims (layout : Verifier.Layout) (cl : List Verifier.ColumnC
   simp only [openClaims, List.cons_append, List.length_cons, List.length_append, List.length_map,
     List.length_nil]
 
+/-- An accepting opening's trace is good from the bad stacks. -/
+abbrev goodTr (prog : LeanIsaProgram) (input : PublicInput) (s : Sizes) (ρ : ℕ)
+    (tr : Whir.Sound.WhirTrace) (h : List Ev) : Prop :=
+  O.TraceGood (μs prog s) ρ (badOf prog input s) tr (commits h)
+
 open Classical in
-/-- **The stacked opening**, from ring switching's postcondition on the candidate left, the
+/-- **The stacked opening**, from ring switching's postcondition on the bad candidate left, the
 separation of the candidates and the stack's word and shape. -/
 noncomputable def openingPart (hadm : Whir.Admissible (μs prog s) ρ) (W : Word) (z : List E)
     (y : E) (hsep : OodSep (cands₀ O prog s ρ W) z) (cl : List Verifier.ColumnClaim)
     (hcl : cl.length ≤ maxStackedClaims - 2) (r : E × (List E → E)) :
-    Spec (verifyStackedOpening (μs prog s) ρ
+    Spec (Whir.Sound.verifyStackedOpeningG (μs prog s) ρ
         (openClaims (verifierLayout prog s) cl r (oodClaim z y)))
-      (fun h ↦ (RingPost (left O prog s ρ W z y)
+      (fun h ↦ (RingPost (leftBad O prog input s ρ W z y)
           (fun q ↦ ColumnClaimsHold (verifierLayout prog s) cl q) (ringRC prog s) r h ∧
           IsMultilinearFn (μs prog s) (ringSwitchClaim (verifierLayout prog s) r.1 r.2).1) ∧
         WordShape O prog s ρ W h)
-      (fun _ _ ↦ False) εmsg (eBatchOf (cl.length + 2) (O.listMax₀ (μs prog s) ρ)) 0 :=
+      (goodTr O prog input s ρ) εmsg (eBatchOf (cl.length + 2) (O.listMax₀ (μs prog s) ρ)) 0 :=
   if hq : IsMultilinearFn (μs prog s) (ringSwitchClaim (verifierLayout prog s) r.1 r.2).1 then
     (O.stackedSpec hadm (openClaims (verifierLayout prog s) cl r (oodClaim z y))
       (by rw [length_openClaims]; simp only [maxStackedClaims] at hcl ⊢; omega)
@@ -370,7 +423,7 @@ noncomputable def openingPart (hadm : Whir.Admissible (μs prog s) ρ) (W : Word
         rcases hc with rfl | ⟨c', -, rfl⟩ | rfl
         · exact O.multiaffine_of_multilinear hq
         · exact isMultiaffine_eqEval_any O _ _
-        · exact isMultiaffine_eqEval_any O _ _) 0).mono
+        · exact isMultiaffine_eqEval_any O _ _) (badOf prog input s)).mono
       (fun h hp ↦ by
         obtain ⟨⟨hring, -⟩, hW, hshape⟩ := hp
         refine ⟨hshape, ?_⟩
@@ -379,13 +432,15 @@ noncomputable def openingPart (hadm : Whir.Admissible (μs prog s) ρ) (W : Word
           rw [hW] at this
           exact (Option.some.inj this).symm
         rw [hw]
-        intro q hq'
-        have hv := exists_violated_of_ood hsep
+        intro q hq' hbad
+        have hv := exists_violated_of_ood
+          (hsep.mono (Set.inter_subset_left (t := {q | badOf prog input s q})))
           (ringSwitchClaim (verifierLayout prog s) r.1 r.2 ::
             cl.map (·.stackClaim (verifierLayout prog s)))
-          (fun q hq hall ↦ hring q hq
+          (fun q hq hall ↦ hring q
+            ⟨mem_oodCands_of_sep hsep hq.1.1 hq.2.1, hq.1.2⟩
             ⟨fun c hc ↦ hall _ (List.mem_cons_of_mem _ (List.mem_map_of_mem hc)),
-              hall _ List.mem_cons_self⟩) q hq'
+              hall _ List.mem_cons_self⟩) q ⟨hq', hbad⟩
         simpa only [openClaims, List.cons_append] using hv)
       (fun _ _ h ↦ h) le_rfl
       (by rw [length_openClaims]) le_rfl
@@ -436,28 +491,31 @@ open Classical in
 noncomputable def ringPart (hadm : Whir.Admissible (μs prog s) ρ) (W : Word) (z : List E) (y : E)
     (hsep : OodSep (cands₀ O prog s ρ W) z) (r : List Verifier.ColumnClaim × List E × List E) :
     Spec ((ringSwitch r.2.1 r.2.2).bind fun y' ↦
-        verifyStackedOpening (μs prog s) ρ (openClaims (verifierLayout prog s) r.1 y' (oodClaim z y)))
-      (fun h ↦ FrontPost prog s (left O prog s ρ W z y) r h ∧ WordShape O prog s ρ W h)
-      (fun _ _ ↦ False) εmsg 0 0 :=
+        Whir.Sound.verifyStackedOpeningG (μs prog s) ρ
+          (openClaims (verifierLayout prog s) r.1 y' (oodClaim z y)))
+      (fun h ↦ FrontPost prog s (leftBad O prog input s ρ W z y) r h ∧ WordShape O prog s ρ W h)
+      (goodTr O prog input s ρ) εmsg 0 0 :=
   if hr : r.2.1.length = s.τ 5 + 6 ∧ r.2.2.length = 64 ∧ r.1.length ≤ maxStackedClaims - 2 then
     have hsv : List.ofFn (fun i : Fin 64 ↦ r.2.2.getD i 0) = r.2.2 := by
       apply List.ext_getElem (by simp [hr.2.1])
       intro i h1 h2
       rw [List.getElem_ofFn]
       simp only [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h2, Option.getD_some]
-    have hS := (O.candidates_finite W hadm).subset (oodCands_subset _ z y)
     (Spec.frame (Spec.retInv
-      ((ringSpec (left O prog s ρ W z y) (fun q ↦ ColumnClaimsHold (verifierLayout prog s) r.1 q)
+      ((ringSpec (leftBad O prog input s ρ W z y)
+        (fun q ↦ ColumnClaimsHold (verifierLayout prog s) r.1 q)
         (fun q i ↦ sliceExt (s.τ 5) (qkAt (qkOff prog s) q) r.2.1 i) (fun i ↦ r.2.2.getD i 0)
-        (ringRC prog s) (ringClaimBad_stack (ringLayoutHyp_verifierLayout prog s) hr.1 _) hS
-        (oodCands_ncard_le _ z y) (by simpa using div_card_lt_one (N := 2) (by norm_num))
+        (ringRC prog s) (ringClaimBad_stack (ringLayoutHyp_verifierLayout prog s) hr.1 _)
+        (leftBad_finite O hadm W z y)
+        (leftBad_ncard_le O hadm W z y) (by simpa using div_card_lt_one (N := 2) (by norm_num))
         (ring_eps O hadm (J := r.1.length + 2)
           (by have := hr.2.2; simp only [maxStackedClaims] at this ⊢; omega))).congr (by rw [hsv]))
       _ (ringSwitch_multilinear (verifierLayout prog s) r.2.1 r.2.2))
       (WordShape O prog s ρ W) (fun h₀ l hl hJ ↦
         ⟨keep_commits (moves_ringSwitch r.2.1 r.2.2) (fun cs ↦ firstWordC cs = some W) h₀ l hl hJ.1,
           keep_commits (moves_ringSwitch r.2.1 r.2.2) (O.ShapeOK₀ (μs prog s) ρ) h₀ l hl hJ.2⟩)
-      ).mono (Pre' := fun h ↦ FrontPost prog s (left O prog s ρ W z y) r h ∧ WordShape O prog s ρ W h)
+      ).mono (Pre' := fun h ↦ FrontPost prog s (leftBad O prog input s ρ W z y) r h ∧
+        WordShape O prog s ρ W h)
       (fun h hp ↦ ⟨fun q hq hG ↦ hp.1.2.2.2 q hq ⟨hG.1, fun i ↦ congrFun hG.2 i⟩, hp.2⟩)
       (fun _ _ h ↦ h) le_rfl le_rfl le_rfl |>.bind' fun y' ↦
       openingPart O hadm W z y hsep r.1 hr.2.2 y'
@@ -465,28 +523,25 @@ noncomputable def ringPart (hadm : Whir.Admissible (μs prog s) ρ) (W : Word) (
     le_rfl le_rfl
 
 open Classical in
-/-- **The front phases, ring switching and the opening**, for the candidate the OOD sample left. -/
+/-- **The front phases, ring switching and the opening**, on the bad candidate the OOD sample
+left. -/
 noncomputable def afterOodPart (hev : ∀ w p v, Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (ev w p v))
     (hs : s.Admissible prog) (hadm : Whir.Admissible (μs prog s) ρ) (W : Word) (z : List E) (y : E)
     (hsep : OodSep (cands₀ O prog s ρ W) z) :
     Spec (frontProg ev (verifierLayout prog s) pd >>= fun r ↦ match r with
         | (claims, keccakPoint, keccakSlices) => ringSwitch keccakPoint keccakSlices >>= fun y' ↦
           match y' with
-          | (ringTarget, ringWeight) => verifyStackedOpening (μs prog s) ρ
+          | (ringTarget, ringWeight) => Whir.Sound.verifyStackedOpeningG (μs prog s) ρ
             (ringSwitchClaim (verifierLayout prog s) ringTarget ringWeight ::
               claims.map (·.stackClaim (verifierLayout prog s)) ++ [oodClaim z y]))
-      (fun h ↦ (∀ q ∈ left O prog s ρ W z y, ¬ M3Holds (leanIsaInstance prog s) input (toI prog s q)) ∧
-        WordShape O prog s ρ W h)
-      (fun _ _ ↦ False) εmsg εmsg 0 :=
-  (Spec.frame (F.frontSpec s ρ hs hadm (left O prog s ρ W z y)
-      ((O.candidates_finite W hadm).subset (oodCands_subset _ z y)) (oodCands_ncard_le _ z y) 0
-      zero_le)
+      (WordShape O prog s ρ W) (goodTr O prog input s ρ) εmsg εmsg 0 :=
+  (Spec.frame (F.frontSpec s ρ hs hadm (leftBad O prog input s ρ W z y)
+      (leftBad_finite O hadm W z y) (leftBad_ncard_le O hadm W z y) 0 zero_le)
     (WordShape O prog s ρ W) (fun h₀ l hl hJ ↦
       ⟨keep_commits (moves_frontProg hev _ pd) (fun cs ↦ firstWordC cs = some W) h₀ l hl hJ.1,
         keep_commits (moves_frontProg hev _ pd) (O.ShapeOK₀ (μs prog s) ρ) h₀ l hl hJ.2⟩)).mono
-    (Pre' := fun h ↦ (∀ q ∈ left O prog s ρ W z y, ¬ M3Holds (leanIsaInstance prog s) input
-      (toI prog s q)) ∧ WordShape O prog s ρ W h)
-    (fun _ hp ↦ ⟨⟨⟨W, hp.2.1⟩, hp.1⟩, hp.2⟩) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl |>.bind'
+    (Pre' := WordShape O prog s ρ W)
+    (fun _ hp ↦ ⟨⟨⟨W, hp.1⟩, fun q hq ↦ hq.2⟩, hp⟩) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl |>.bind'
     fun r ↦ by
       obtain ⟨claims, keccakPoint, keccakSlices⟩ := r
       exact (ringPart O hadm W z y hsep (claims, keccakPoint, keccakSlices)).congr
@@ -500,25 +555,23 @@ noncomputable def oodThen (hev : ∀ w p v, Moves G64 False (fun _ ↦ True) (fu
     Spec (frontProg ev (verifierLayout prog s) pd >>= fun r ↦ match r with
         | (claims, keccakPoint, keccakSlices) => ringSwitch keccakPoint keccakSlices >>= fun y' ↦
           match y' with
-          | (ringTarget, ringWeight) => verifyStackedOpening (μs prog s) ρ
+          | (ringTarget, ringWeight) => Whir.Sound.verifyStackedOpeningG (μs prog s) ρ
             (ringSwitchClaim (verifierLayout prog s) ringTarget ringWeight ::
               claims.map (·.stackClaim (verifierLayout prog s)) ++ [ood]))
-      (OodPost (firstCands (μs prog s) ρ (O.thr₀ (μs prog s) ρ)) (RootDoom O prog input s ρ) ood)
-      (fun _ _ ↦ False) εmsg εmsg 0 :=
+      (OodPost (firstCands (μs prog s) ρ (O.thr₀ (μs prog s) ρ)) (RootDoom O prog s ρ) ood)
+      (goodTr O prog input s ρ) εmsg εmsg 0 :=
   (Spec.exPre (ι := Word × List E × E) (Pre := fun i h ↦ ood = oodClaim i.2.1 i.2.2 ∧
-      OodSep (cands₀ O prog s ρ i.1) i.2.1 ∧
-      (∀ q ∈ left O prog s ρ i.1 i.2.1 i.2.2, ¬ M3Holds (leanIsaInstance prog s) input (toI prog s q)) ∧
-      WordShape O prog s ρ i.1 h) fun i ↦
+      OodSep (cands₀ O prog s ρ i.1) i.2.1 ∧ WordShape O prog s ρ i.1 h) fun i ↦
     if hc : ood = oodClaim i.2.1 i.2.2 ∧ OodSep (cands₀ O prog s ρ i.1) i.2.1 then
       (afterOodPart O F hev hs hadm i.1 i.2.1 i.2.2 hc.2).congr (by rw [hc.1]) |>.mono
         (fun _ hp ↦ hp.2.2) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
     else Spec.dead.mono (fun _ hp ↦ hc ⟨hp.1, hp.2.1⟩) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl).mono
     (fun h hp ↦ by
-      obtain ⟨z, y, hood, -, ⟨hshape, W, hW, hdoom⟩, hsep⟩ := hp
+      obtain ⟨z, y, hood, -, ⟨hshape, W, hW⟩, hsep⟩ := hp
       have hc : firstCands (μs prog s) ρ (O.thr₀ (μs prog s) ρ) (commits h) = cands₀ O prog s ρ W :=
         firstCands_eq hW
       rw [hc] at hsep
-      exact ⟨(W, z, y), hood, hsep, fun q hq ↦ hdoom q (oodCands_subset _ z y hq), hW, hshape⟩)
+      exact ⟨(W, z, y), hood, hsep, hW, hshape⟩)
     (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
 
 /-- The stack has at least one variable. -/
@@ -531,12 +584,13 @@ theorem μs_ne_zero (hadm : Whir.Admissible (μs prog s) ρ) : μs prog s ≠ 0 
 sample, then `oodThen`. -/
 noncomputable def realSpec (hev : ∀ w p v, Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (ev w p v))
     (hs : s.Admissible prog) (hadm : Whir.Admissible (μs prog s) ρ) :
-    Spec (veBody ev pd (verifierLayout prog s) ρ) (fun _ ↦ False) (fun _ _ ↦ False) εmsg 0 0 :=
-  (commitSpec (fun _ h ↦ RootDoom O prog input s ρ (commits h)) (μs prog s) ρ
+    Spec (veBodyG ev pd (verifierLayout prog s) ρ) (fun _ ↦ False) (goodTr O prog input s ρ) εmsg
+      0 0 :=
+  (commitSpec (fun _ h ↦ RootDoom O prog s ρ (commits h)) (μs prog s) ρ
       (zero_le (a := εmsg))).bind' fun _ ↦
     (commitOodSpec (A := O.thr₀) (μs_ne_zero hadm)
         (fun W ↦ ⟨O.candidates_finite W hadm, O.card_candidates_le W hadm⟩)
-        (RootDoom O prog input s ρ)
+        (RootDoom O prog s ρ)
         (by unfold oodError
             exact div_card_lt_one ((O.ood_row hadm).trans (Nat.pow_le_pow_right (by norm_num) (by decide))))
         (by rw [add_zero]; unfold oodError; exact discount_le Whir.oodGrindingBits _ (O.ood_row hadm))
@@ -553,27 +607,106 @@ variable (O : OpeningIface) {ev : List K → List E → E → VerifierProgram Un
   {prog : LeanIsaProgram} {input : PublicInput} {pd : Digest} (F : FrontIface ev prog input pd)
   (hev : ∀ w p v, Moves G64 False (fun _ ↦ True) (fun _ ↦ False) (ev w p v))
 
+/-- The announced value is at admissible sizes. -/
+def AdmAt (prog : LeanIsaProgram) (a : Verifier.Layout × ℕ) : Prop :=
+  ∃ s, a.1 = verifierLayout prog s ∧ s.Admissible prog ∧ Whir.Admissible a.1.stackLog a.2
+
+open Classical in
+/-- **An accepting run's data is good**: at admissible announced sizes, the opening's trace is
+good from the stacks that do not satisfy the relation at those sizes. -/
+def GoodAt (prog : LeanIsaProgram) (input : PublicInput) (a : Verifier.Layout × ℕ)
+    (tr : Whir.Sound.WhirTrace) (cs : List (ℕ × ℕ × Word)) : Prop :=
+  ∃ h : AdmAt prog a, O.TraceGood (μs prog h.choose) a.2 (badOf prog input h.choose) tr cs
+
 open Classical in
 /-- `verify_execution` after the announced value `a`: `realSpec` at admissible sizes, dead
 otherwise. -/
 noncomputable def bodySpec (a : Verifier.Layout × ℕ) :
-    Spec (veBody ev pd a.1 a.2) (fun _ ↦ False) (fun _ _ ↦ False) εmsg 0 0 :=
-  if h : ∃ s, a.1 = verifierLayout prog s ∧ s.Admissible prog ∧ Whir.Admissible a.1.stackLog a.2 then
-    (realSpec O F (s := h.choose) (ρ := a.2) hev h.choose_spec.2.1
+    Spec (veBodyG ev pd a.1 a.2) (fun _ ↦ False) (fun tr h ↦ GoodAt O prog input a tr (commits h))
+      εmsg 0 0 :=
+  if h : AdmAt prog a then
+    ((realSpec O F (s := h.choose) (ρ := a.2) hev h.choose_spec.2.1
       (by rw [μs, ← h.choose_spec.1]; exact h.choose_spec.2.2)).congr
-      (congrArg (fun l ↦ veBody ev pd l a.2) h.choose_spec.1.symm)
+      (congrArg (fun l ↦ veBodyG ev pd l a.2) h.choose_spec.1.symm)).mono (fun _ h ↦ h)
+      (fun _ _ hg ↦ ⟨h, hg⟩) le_rfl le_rfl le_rfl
   else Spec.dead
 
-/-- **The specification of `verify_execution`**, on the claim-list form. -/
+/-- `verify_execution` on the claim-list form, returning the announced value and the opening's
+trace. -/
+def verifyExecutionClaimsG (ev : List K → List E → E → VerifierProgram Unit) (bytecode : List K)
+    (pd : Digest) : VerifierProgram ((Verifier.Layout × ℕ) × Whir.Sound.WhirTrace) :=
+  (readAnnouncedSizes bytecode).bind fun a ↦ (veBodyG ev pd a.1 a.2).bind fun tr ↦
+    VerifierProgram.ret (a, tr)
+
+theorem verifyExecutionClaimsG_unit (ev : List K → List E → E → VerifierProgram Unit)
+    (bytecode : List K) (pd : Digest) :
+    (verifyExecutionClaimsG ev bytecode pd).bind (fun _ ↦ VerifierProgram.ret ()) =
+      verifyExecutionClaims ev bytecode pd := by
+  rw [verifyExecutionClaimsG, verifyExecutionClaims_eq]
+  simp only [VerifierProgram.bind_eq, VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
+  refine congrArg (VerifierProgram.bind _) (funext fun a ↦ ?_)
+  obtain ⟨layout, ρ⟩ := a
+  exact veBodyG_unit ev pd layout ρ
+
+/-- **The specification of `verify_execution`**, on the claim-list form, returning its data. -/
 noncomputable def veSpec (bytecode : List K) :
-    Spec (verifyExecutionClaims ev bytecode pd) (fun _ ↦ False) (fun _ _ ↦ False) εmsg 0 0 :=
-  ((readSizesSpec bytecode (fun _ _ ↦ False)).bind' fun a ↦ by
-    obtain ⟨layout, ρ⟩ := a
-    exact bodySpec O F hev (layout, ρ)).congr (verifyExecutionClaims_eq ev bytecode pd).symm
+    Spec (verifyExecutionClaimsG ev bytecode pd) (fun _ ↦ False)
+      (fun d h ↦ GoodAt O prog input d.1 d.2 (commits h)) εmsg 0 0 :=
+  (readSizesSpec bytecode (fun _ _ ↦ False)).bind' fun a ↦
+    (bodySpec O F hev a).bind' fun tr ↦
+      Spec.ret (Post := fun d h ↦ GoodAt O prog input d.1 d.2 (commits h)) (a, tr)
 
 end Whole
 
+/-! ## Accepting at the root -/
 
+section AtRoot
+
+variable {α : Type} {p : VerifierProgram α} {Post : α → List Ev → Prop} {εmax L T : ℝ≥0∞}
+
+open Classical in
+/-- **A specification of a whole program run from the empty history** also gives, where it
+returns in doom, that the history is a run of the program to that value. -/
+noncomputable def Spec.atRoot (S : Spec p (fun _ ↦ False) Post εmax L T) :
+    Spec p (fun _ ↦ False) (fun a h ↦ Post a h ∧ p.after h = some (.ret a)) εmax L T where
+  D h₀ l := S.D h₀ l ∧ h₀ = []
+  V h₀ l := if h₀ = [] then S.V h₀ l else 1
+  le_one h₀ l := by split_ifs; exacts [S.le_one h₀ l, le_rfl]
+  start_D _ h := h.elim
+  start_V _ h := h.elim
+  read x hl ha hD := ⟨S.read x hl ha hD.1, hD.2⟩
+  grind hl ha hD := ⟨S.grind hl ha hD.1, hD.2⟩
+  commit word hl ha hw hD := ⟨S.commit word hl ha hw hD.1, hD.2⟩
+  sample {h₀ l k} hl ha := by
+    by_cases h0 : h₀ = []
+    · simp only [h0, ↓reduceIte]; exact S.sample (h0 ▸ hl) ha
+    · simp only [h0, ↓reduceIte, Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one]
+      rw [ENNReal.inv_mul_cancel (by simp) (ENNReal.natCast_ne_top _)]
+  query {h₀ l i ps k rows} hl ha hans := by
+    by_cases h0 : h₀ = []
+    · simp only [h0, ↓reduceIte]; exact S.query (h0 ▸ hl) ha (by simpa [h0] using hans)
+    · simp [h0]
+  moveEnd {h₀ l q} hl ha hm hD := by
+    by_cases h0 : h₀ = []
+    · simp only [h0, ↓reduceIte]
+      exact S.moveEnd (h0 ▸ hl) ha hm fun hd ↦ hD ⟨h0 ▸ hd, h0⟩
+    · simp [h0]
+  retEnd {h₀ l a} hl ha hD := by
+    by_cases h0 : h₀ = []
+    · simp only [h0, ↓reduceIte]
+      exact S.retEnd (h0 ▸ hl) ha fun hd ↦ hD ⟨h0 ▸ hd, h0⟩
+    · simp [h0]
+  retDoom {h₀ l a} hl ha hD := by
+    simp only [hD.2, ↓reduceIte]
+    exact S.retDoom (hD.2 ▸ hl) ha (hD.2 ▸ hD.1)
+  post {h₀ l a} hl ha hD := by
+    obtain ⟨hd, rfl⟩ := hD
+    exact ⟨S.post hl ha hd, by simpa using ha⟩
+  bound {h₀ l} hl hne hm hD := by
+    simp only [hD.2, ↓reduceIte]
+    exact S.bound (hD.2 ▸ hl) hne hm (hD.2 ▸ hD.1)
+
+end AtRoot
 
 /-! ## The leanVM verifier and its certificate -/
 
@@ -582,29 +715,71 @@ section Program
 variable (O : OpeningIface) {prog : LeanIsaProgram} {input : PublicInput} {pd : Digest}
   (F : FrontIface computedBytecodeValue prog input pd)
 
-/-- **The specification of the leanVM verifier program**: from no doom, rejecting where it returns
-in doom, every group at most `2^-125` after its grind, lead `0`. -/
+/-- The leanVM verifier program, returning its verdict and its data. -/
+def leanVmProgramG (bytecode : List K) (pd : Digest) :
+    VerifierProgram (Bool × ((Verifier.Layout × ℕ) × Whir.Sound.WhirTrace)) :=
+  (verifyExecutionClaimsG computedBytecodeValue bytecode pd).bind fun d ↦ VerifierProgram.ret (true, d)
+
+theorem leanVmProgramG_eq (bytecode : List K) (pd : Digest) :
+    (leanVmProgramG bytecode pd).bind (fun r ↦ VerifierProgram.ret r.1) =
+      leanVmVerifierProgram bytecode pd := by
+  rw [leanVmProgram_eq, ← verifyExecutionClaimsG_unit, leanVmProgramG]
+  simp only [VerifierProgram.bind_assoc, VerifierProgram.ret_bind]
+
+/-- **An accepting run is good**: wherever the leanVM verifier accepts after a history, the
+data its ghost returns there is good. -/
+def GoodRun (bytecode : List K) (pd : Digest) (h : List Ev) : Prop :=
+  ∀ d, (leanVmProgramG bytecode pd).after h = some (.ret (true, d)) →
+    GoodAt O prog input d.1 d.2 (commits h)
+
+/-- **The specification of the leanVM verifier program**: from no doom, every group at most
+`2^-125` after its grind, lead `0`, and an accepting return in doom is a good run. -/
 @[irreducible] noncomputable def leanVmSpec (bytecode : List K) :
-    Spec (leanVmVerifierProgram bytecode pd) (fun _ ↦ False) (fun b _ ↦ b = false) εmsg 0 0 :=
-  ((veSpec O F moves_computedBytecodeValue bytecode).bind' fun _ ↦
-    (Spec.ret (Post := fun b _ ↦ b = false) (T := 0) true).mono (fun _ h ↦ h.elim) (fun _ _ h ↦ h)
-      le_rfl le_rfl le_rfl).congr (leanVmProgram_eq _ _).symm
+    Spec (leanVmVerifierProgram bytecode pd) (fun _ ↦ False)
+      (fun b h ↦ b = false ∨ GoodRun O (prog := prog) (input := input) bytecode pd h) εmsg 0 0 :=
+  (Spec.atRoot ((veSpec O F moves_computedBytecodeValue bytecode).bind' fun d ↦
+    Spec.ret (Post := fun r h ↦ GoodAt O prog input r.2.1 r.2.2 (commits h)) (T := 0)
+      (true, d)) |>.bind' fun r ↦
+    (Spec.ret (Post := fun b h ↦ b = false ∨ GoodRun O (prog := prog) (input := input) bytecode pd h)
+      (T := 0) r.1).mono (fun h hp ↦ Or.inr fun d hd ↦ by
+        unfold leanVmProgramG at hd
+        have h2 := hp.2
+        simp only [VerifierProgram.bind_eq] at h2
+        rw [h2] at hd
+        obtain rfl := (VerifierProgram.ret.inj (Option.some.inj hd))
+        exact hp.1) (fun _ _ h ↦ h) le_rfl le_rfl le_rfl).congr (leanVmProgramG_eq bytecode pd)
+
+theorem verifyExecutionClaimsG_ne_ret (bytecode : List K) (pd : Digest)
+    (d : (Verifier.Layout × ℕ) × Whir.Sound.WhirTrace) :
+    verifyExecutionClaimsG computedBytecodeValue bytecode pd ≠ .ret d := by
+  intro h
+  obtain ⟨a, ha, -⟩ := bind_eq_ret_iff h
+  exact readSizes_ne_ret bytecode a ha
+
+theorem leanVmProgramG_ne_ret (bytecode : List K) (pd : Digest)
+    (r : Bool × (Verifier.Layout × ℕ) × Whir.Sound.WhirTrace) :
+    (verifyExecutionClaimsG computedBytecodeValue bytecode pd).bind
+      (fun d ↦ VerifierProgram.ret (true, d)) ≠ .ret r := by
+  intro h
+  obtain ⟨d, hd, -⟩ := bind_eq_ret_iff h
+  exact verifyExecutionClaimsG_ne_ret bytecode pd d hd
 
 /-- Doom never holds at the empty history: the announced sizes are not at stake. -/
 theorem leanVmSpec_D_nil (bytecode : List K) : ¬ (leanVmSpec O F bytecode).D [] [] := by
   intro hD
-  rw [leanVmSpec, Spec.congr_D] at hD
-  have hs : (verifyExecutionClaims computedBytecodeValue bytecode pd).retSplit [] = none :=
-    retSplit_eq_none_of_after rfl (verifyExecution_ne_ret _ _)
-  have h1 := (Spec.bindD_none hs).1 hD
-  rw [veSpec, Spec.congr_D] at h1
-  have hs' : (readAnnouncedSizes bytecode).retSplit [] = none :=
-    retSplit_eq_none_of_after rfl (readSizes_ne_ret _)
-  exact (Spec.bindD_none hs').1 h1
+  rw [leanVmSpec] at hD
+  erw [Spec.congr_D] at hD
+  have h1 := (Spec.bindD_none
+    (retSplit_eq_none_of_after rfl (leanVmProgramG_ne_ret bytecode pd))).1 hD
+  have h2 := (Spec.bindD_none
+    (retSplit_eq_none_of_after rfl (verifyExecutionClaimsG_ne_ret bytecode pd))).1 h1.1
+  rw [veSpec] at h2
+  exact (Spec.bindD_none (retSplit_eq_none_of_after rfl (readSizes_ne_ret _))).1 h2
 
-/-- **The doom certificate of the leanVM verifier.** -/
-noncomputable def leanVmCert (bytecode : List K) : Cert (leanVmVerifierProgram bytecode pd) :=
-  (leanVmSpec O F bytecode).toCert
+/-- **The doom certificate of the leanVM verifier**, accepting from doom only good runs. -/
+noncomputable def leanVmCert (bytecode : List K) :
+    CertG (leanVmVerifierProgram bytecode pd) (GoodRun O (prog := prog) (input := input) bytecode pd) :=
+  (leanVmSpec O F bytecode).toCertG
 
 /-- **The certificate's bound**: every escape bound, discounted by the proof of work before its
 group (`2^-min(b, 64)`), is at most `2^-125`, the random-oracle theorem's hypothesis. -/
@@ -612,8 +787,9 @@ theorem leanVmCert_bound (bytecode : List K) (h : List Ev) :
     (2 : ℝ≥0∞)⁻¹ ^ min (grindBits h) 64 * (leanVmCert O F bytecode).ε h ≤ εmsg := by
   by_cases hr : (leanVmVerifierProgram bytecode pd).Reachable h
   · rw [min_eq_left (grindBits_le_of_reachable _ _ hr)]
-    exact Spec.toCert_bound _ (fun hD ↦ absurd hD (leanVmSpec_D_nil O F bytecode)) h
-  · simp only [leanVmCert, Spec.toCert_ε, hr, false_and, ↓reduceIte, mul_zero, zero_le]
+    exact Spec.toCertG_bound _ (fun hD ↦ absurd hD (leanVmSpec_D_nil O F bytecode)) h
+  · change (2 : ℝ≥0∞)⁻¹ ^ min (grindBits h) 64 * Spec.certε _ h ≤ εmsg
+    simp only [Spec.certε, hr, false_and, ↓reduceIte, mul_zero, zero_le]
 
 end Program
 

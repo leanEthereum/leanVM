@@ -79,7 +79,8 @@ noncomputable def openingIface : EndToEnd.Sound.OpeningIface where
   lambda_row h := countBits_eq Whir.batchGrindingBits ▸ lambda_row h
   multiaffine_eqEval := isMultiaffine_eqEval
   multiaffine_of_multilinear hw := isMultiaffine_of_multilinear hw
-  stackedSpec h claims _ hcl T := deployedStackedSpec h claims hcl T
+  TraceGood μ R Bad tr cs := traceGood (codesOf μ R) 0 (lvl0Pred μ Bad) tr cs
+  stackedSpec h claims _ hcl Bad := deployedStackedSpec h claims hcl Bad
 
 end
 end LeanVM.Protocol.Whir.Params
