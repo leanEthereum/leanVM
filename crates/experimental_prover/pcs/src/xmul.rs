@@ -44,7 +44,7 @@ impl Coef for F64 {
     #[cfg(all(
         target_arch = "x86_64",
         target_feature = "avx2",
-        target_feature = "vpclmulqdq",
+        target_feature = "pclmulqdq",
         not(target_feature = "avx512f")
     ))]
     #[inline(always)]
@@ -69,7 +69,7 @@ impl Coef for F128 {
     #[cfg(all(
         target_arch = "x86_64",
         target_feature = "avx2",
-        target_feature = "vpclmulqdq",
+        target_feature = "pclmulqdq",
         not(target_feature = "avx512f")
     ))]
     #[inline(always)]
@@ -188,19 +188,19 @@ pub(crate) fn mul_x_block<T: Coef>(block: &[T], first: usize, outside: impl Fn(u
     T::x_block(block, first, outside, out);
 }
 
-/// [`sums8`] and [`mul_x_block`] on two coefficients a register, in the order they lie in memory, where VPCLMULQDQ
-/// has no AVX-512 beside it.
+/// [`sums8`] and [`mul_x_block`] on two coefficients a register, in the order they lie in memory, where AVX2 has no
+/// AVX-512 beside it.
 #[cfg(all(
     target_arch = "x86_64",
     target_feature = "avx2",
-    target_feature = "vpclmulqdq",
+    target_feature = "pclmulqdq",
     not(target_feature = "avx512f")
 ))]
 pub(crate) mod lanes {
     use core::arch::x86_64::*;
 
     use primitives::field::gf2_64x2::x86_64::reduce_halves256;
-    use primitives::field::x4::{F64x2, F64x4, F128x2};
+    use primitives::field::x4::{F64x2, F64x4, F128x2, clmul};
     use primitives::field::{F64, F128};
 
     use super::{constants, head8};
@@ -296,7 +296,7 @@ pub(crate) mod lanes {
         let chunks = block.as_chunks::<8>().0.iter().zip(out.as_chunks_mut::<8>().0);
         for (q, (b, o)) in chunks.enumerate() {
             let (s0, t0) = head8(block, q, first, &outside);
-            // SAFETY: the module's cfg enables avx2 and vpclmulqdq; each access is four whole qwords of a chunk of eight.
+            // SAFETY: the module's cfg enables avx2; each access is four whole qwords of a chunk of eight.
             unsafe {
                 let (lo, hi) = (
                     _mm256_loadu_si256(b.as_ptr().cast()),
@@ -312,10 +312,7 @@ pub(crate) mod lanes {
                 );
                 let even = _mm256_xor_si256(even, _mm256_zextsi128_si256(_mm_cvtsi64_si128(s0.0 as i64)));
                 let m = _mm256_set_epi64x(a[1].0 as i64, a[1].0 as i64, a[2].0 as i64, a[t0].0 as i64);
-                let r = reduce_halves256(
-                    _mm256_clmulepi64_epi128::<0x00>(even, m),
-                    _mm256_clmulepi64_epi128::<0x11>(even, m),
-                );
+                let r = reduce_halves256(clmul::<0x00>(even, m), clmul::<0x11>(even, m));
                 _mm256_storeu_si256(o.as_mut_ptr().cast(), _mm256_unpacklo_epi64(r, odd));
                 _mm256_storeu_si256(o[4..].as_mut_ptr().cast(), _mm256_unpackhi_epi64(r, odd));
             }

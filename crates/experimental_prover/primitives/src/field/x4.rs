@@ -1,6 +1,7 @@
-//! Four lanes of products in YMM registers, for a machine with VPCLMULQDQ but no AVX-512: the
-//! 256-bit counterpart of the AVX-512 `x8`'s `F64x8`, `F128x8` and `Mixed8` for the leaf builder,
-//! and the halves of the eight-lane `f128x8` types.
+//! Four lanes of products in YMM registers, for a machine with AVX2 but no AVX-512: the 256-bit
+//! counterpart of the AVX-512 `x8`'s `F64x8`, `F128x8` and `Mixed8` for the leaf builder, and the
+//! halves of the eight-lane `f128x8` types. Without VPCLMULQDQ a 256-bit carry-less product is two
+//! 128-bit ones.
 
 use core::arch::x86_64::*;
 use core::ops::{Add, BitXor, BitXorAssign, Mul};
@@ -36,11 +37,22 @@ fn xor(a: __m256i, b: __m256i) -> __m256i {
     unsafe { _mm256_xor_si256(a, b) }
 }
 
-/// The products of the even lanes (`I = 0x00`) or the odd ones (`I = 0x11`) of two registers.
+/// `vpclmulqdq` with immediate `I`: in each 128-bit lane, the product of the qwords `I` picks, bit 0 in `a` and bit 4 in
+/// `b`.
 #[inline(always)]
-fn clmul<const I: i32>(a: __m256i, b: __m256i) -> __m256i {
-    // SAFETY: the module's cfg enables vpclmulqdq.
-    unsafe { _mm256_clmulepi64_epi128::<I>(a, b) }
+pub fn clmul<const I: i32>(a: __m256i, b: __m256i) -> __m256i {
+    #[cfg(target_feature = "vpclmulqdq")]
+    // SAFETY: the cfg enables vpclmulqdq.
+    return unsafe { _mm256_clmulepi64_epi128::<I>(a, b) };
+    #[cfg(not(target_feature = "vpclmulqdq"))]
+    // SAFETY: the module's cfg enables avx2 and pclmulqdq.
+    unsafe {
+        let lane = |a: __m128i, b: __m128i| _mm_clmulepi64_si128::<I>(a, b);
+        _mm256_set_m128i(
+            lane(_mm256_extracti128_si256::<1>(a), _mm256_extracti128_si256::<1>(b)),
+            lane(_mm256_castsi256_si128(a), _mm256_castsi256_si128(b)),
+        )
+    }
 }
 
 /// The y-folded Karatsuba product of the even or the odd lanes.
@@ -88,13 +100,8 @@ impl Mul for F64x4 {
     type Output = Self;
     #[inline(always)]
     fn mul(self, rhs: Self) -> Self {
-        // SAFETY: the module's cfg enables avx2 and vpclmulqdq.
-        Self(unsafe {
-            reduce_halves(
-                _mm256_clmulepi64_epi128::<0x00>(self.0, rhs.0),
-                _mm256_clmulepi64_epi128::<0x11>(self.0, rhs.0),
-            )
-        })
+        // SAFETY: the module's cfg enables avx2.
+        Self(unsafe { reduce_halves(clmul::<0x00>(self.0, rhs.0), clmul::<0x11>(self.0, rhs.0)) })
     }
 }
 

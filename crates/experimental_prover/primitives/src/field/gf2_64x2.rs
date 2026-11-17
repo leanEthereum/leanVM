@@ -410,7 +410,7 @@ impl F128Unreduced {
     }
 
     /// Build from two 128-bit coefficients given as `[low, high]` words.
-    #[cfg(all(target_arch = "x86_64", target_feature = "vpclmulqdq", target_feature = "avx2"))]
+    #[cfg(all(target_arch = "x86_64", target_feature = "pclmulqdq", target_feature = "avx2"))]
     #[inline]
     pub(crate) const fn from_coeffs(coeffs: [[u64; 2]; 2]) -> Self {
         Self { coeffs }

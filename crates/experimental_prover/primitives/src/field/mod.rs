@@ -18,7 +18,7 @@ pub mod gf2_64x2;
 #[cfg(all(
     target_arch = "x86_64",
     target_feature = "avx2",
-    target_feature = "vpclmulqdq",
+    target_feature = "pclmulqdq",
     not(target_feature = "avx512f")
 ))]
 pub mod x4;

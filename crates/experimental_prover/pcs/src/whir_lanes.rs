@@ -115,7 +115,7 @@ impl Folded<'_> {
     #[cfg(not(all(
         target_arch = "x86_64",
         target_feature = "avx2",
-        target_feature = "vpclmulqdq",
+        target_feature = "pclmulqdq",
         not(target_feature = "avx512f")
     )))]
     fn block(&self, i: usize, first: usize, out: &mut [F128]) {
@@ -160,7 +160,7 @@ impl Folded<'_> {
     #[cfg(all(
         target_arch = "x86_64",
         target_feature = "avx2",
-        target_feature = "vpclmulqdq",
+        target_feature = "pclmulqdq",
         not(target_feature = "avx512f")
     ))]
     fn block(&self, i: usize, first: usize, out: &mut [F128]) {
