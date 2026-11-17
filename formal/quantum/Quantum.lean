@@ -213,6 +213,9 @@ import Quantum.StdModel.Xmss.Reduction
 import Quantum.StdModel.Xmss.Costs
 import Quantum.StdModel.Qrom.OffTweak
 import Quantum.StdModel.Sphincs.Reduction
+import Quantum.StdModel.Qrom.SphincsInst
+import Quantum.StdModel.Sphincs.PropsInRed
+import Quantum.StdModel.Sphincs.CostsTweak
 import Quantum.Par.Subst
 import Quantum.Par.Lockstep
 import Quantum.Par.LockstepRounds
@@ -478,3 +481,8 @@ the main theorems ever grows beyond Lean's three standard axioms. -/
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Quantum.Cost.Nist.leanXmss_qrpm_cat1_inPlace
+
+/-- info: 'Quantum.StdModel.Sphincs.sphincs_suf_le_propsIn_keccak' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.StdModel.Sphincs.sphincs_suf_le_propsIn_keccak
