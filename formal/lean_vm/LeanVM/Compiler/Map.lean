@@ -13,7 +13,7 @@ public import LeanVM.Guest.Core
 # Maps the kernel evaluates
 
 The back end runs compiled (`guest-backend`) and in the kernel (`decide +kernel`, `kernel_rfl`, on
-the guest), so its state is in structures the kernel reduces quickly: `Std.HashMap` does not
+whole programs), so its state is in structures the kernel reduces quickly: `Std.HashMap` does not
 reduce there, `Std.TreeMap` does but slowly, an `Array` is a list (an index, a push and a size are
 linear), and comparing two strings decodes both.
 

@@ -25,10 +25,9 @@ every function passes `FnConds` in every world over it, so the whole-program com
 theorems need no separate per-function hypothesis.
 
 Not among the checks: a pointer discipline and a load-safety check. The pointer discipline is
-decidable and the guest passes it, but it does not give `Tree.Placed` (a run with pointers stored
-in memory can be valid only because two pointers coincide), and `Tree.LoadsIn` is not decided by
-the program (loads at offsets the prover chooses). Both stay hypotheses of the end theorem;
-`lake exe guest-ptrcheck` measures them on the guest.
+decidable, but it does not give `Tree.Placed` (a run with pointers stored in memory can be valid
+only because two pointers coincide), and `Tree.LoadsIn` is not decided by the program (loads at
+offsets the prover chooses). Both stay hypotheses of a program's end theorem.
 -/
 
 namespace LeanVM.Compiler

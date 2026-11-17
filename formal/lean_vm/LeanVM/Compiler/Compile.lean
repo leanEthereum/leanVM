@@ -1,7 +1,7 @@
 /-
   LeanVM.Compiler.Compile
 
-  The guest compiler in Lean: the front end (`Expand`) and the back end, a zkDSL program to its
+  The zkDSL compiler in Lean: the front end (`Expand`) and the back end, a zkDSL program to its
   assembled bytecode and hints.
 -/
 

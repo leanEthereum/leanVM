@@ -1,7 +1,7 @@
 /-
   LeanVM.Compiler.Ir
 
-  The intermediate forms of the guest compiler's back end: the placed IR (core statements on frame
+  The intermediate forms of the zkDSL compiler's back end: the placed IR (core statements on frame
   cells, every plumbing cell chosen), the labelled code of a function (instructions with symbolic
   immediates, `crates/zkdsl_compiler/src/ir.rs`) and the assembled program.
 -/

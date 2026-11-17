@@ -1,8 +1,8 @@
 /-
   LeanVM.Compiler.Piece
 
-  The check of one function's placement, emission and assembly against the statement's bytecode,
-  which the kernel evaluates function by function on the guest (`Guest/Compiled/Piece/`).
+  The check of one function's placement, emission and assembly against given bytecode, which the
+  kernel evaluates function by function on a whole program.
 -/
 
 module
@@ -33,7 +33,7 @@ open LeanVM.Guest
 
 @[expose] public section
 
-/-- What placement and emission give of one function, as the guest's data records it. -/
+/-- What placement and emission give of one function, recorded as data. -/
 structure FnOut where
   /-- The jump tables' length after it. -/
   len : Nat

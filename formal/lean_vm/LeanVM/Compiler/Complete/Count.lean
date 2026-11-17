@@ -2,7 +2,7 @@
   LeanVM.Compiler.Complete.Count
 
   Instruction counts of placed code: per instruction, the path maxima of a placed body and the
-  separately counted arms, in the form the guest's count tables hold them.
+  separately counted arms, as lists in `Opcode`'s order.
 -/
 
 module
@@ -15,8 +15,8 @@ public import LeanVM.Compiler.Sound.Ops
 
 `pmaxP keyed pf` is the most instructions of each opcode a path through a placed body to a
 return runs; for a separately counted function (`keyed`) the arms of its top-level chains are
-left out, and `armsP` lists each such stage's arms' counts with its core selector's number, as
-`Deployed.Data.pmax` and `Deployed.Data.arms` hold them (`lake exe guest-tables` writes them).
+left out, and `armsP` lists each such stage's arms' counts with its core selector's number.
+`ofCnt` lays a count out as a list in `Opcode`'s order (`opIx`).
 -/
 
 namespace LeanVM.Compiler.Complete
@@ -129,7 +129,7 @@ to a return runs, a separately counted function's top-level chains' arms exclude
 def pmaxP (keyed : Bool) (pf : Placed) : Opcode → ℕ :=
   ((pmL keyed true pf.fn.body).ret).getD 0
 
-/-- An opcode's position in `Opcode`'s order (`Deployed.opIdx`). -/
+/-- An opcode's position in `Opcode`'s order. -/
 def opIx : Opcode → ℕ
   | .xor => 0
   | .mulNative => 1
@@ -138,7 +138,7 @@ def opIx : Opcode → ℕ
   | .jump => 4
   | .keccak => 5
 
-/-- Counts as a list in `Opcode`'s order, as the guest's tables hold them. -/
+/-- Counts as a list in `Opcode`'s order. -/
 def ofCnt (c : Opcode → ℕ) : List ℕ :=
   [c .xor, c .mulNative, c .setConstant, c .deref, c .jump, c .keccak]
 
@@ -168,8 +168,8 @@ def armsGo (keyed : Bool) : List PStmt → List Stmt → List (ℕ × List (List
       | some (_, rest) => armsGo keyed ps rest
       | none => []
 
-/-- **The separately counted arms of a function** (`Deployed.Data.arms`' format), none if it is not
-separately counted. -/
+/-- **The separately counted arms of a function**: per top-level stage, its core selector's number
+and its arms' counts (`ofCnt`); none if it is not separately counted. -/
 def armsP (keyed : Bool) (tf : TracedFn) (pf : Placed) : List (ℕ × List (List ℕ)) :=
   if keyed then armsGo keyed pf.fn.body tf.core.body else []
 
