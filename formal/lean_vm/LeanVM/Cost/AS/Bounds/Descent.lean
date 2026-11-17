@@ -343,6 +343,177 @@ theorem newtonDecC_cost (hP : Includes P newtonDecCC.costDeps) (n d m : ℕ) (QA
   · simp only [max_self]
     omega
 
+theorem length_agreeC (n m : ℕ) (r : FoldRound) (VA QA : AV) :
+    (agreeC n m r VA QA).length ≤ n :=
+  (List.length_filter_le _ _).trans (by simp)
+
+/-- The lane-dependent price of a round of the descent, per `2^(m+1)`. -/
+def stepF (n d : ℕ) : ℕ := 600 * (d + 3) ^ 2 + 8200 * (d + 3) + 10200 + (206 * (d + 3) + 144) * n
+
+/-- The lane-independent price of a round of the descent. -/
+def stepG (n W R : ℕ) : ℕ := ((113 * W + 340) * R + 113 * W + 1100) * n + 30 * R + 1000
+
+/-- One round's arithmetic: the round's parts and the rest's price within the bound. -/
+theorem descStep_le (n d W R t m c₁ c₂ c₃ c₄ c₅ c₆ c₇ rec q : ℕ) (ht : t + 1 ≤ R) (hq : q ≤ n)
+    (h₁ : c₁ ≤ 11 * t + 3) (h₂ : c₂ ≤ ((113 * W + 340) * t + 60) * n + 20)
+    (h₃ : c₃ ≤ (113 * W + 56 * 2 ^ m + 430) * n + 30) (h₄ : c₄ ≤ 8 * t + 3) (h₅ : c₅ ≤ 8 * q + 3)
+    (h₆ : c₆ ≤ (600 * (d + 3) ^ 2 + 8200 * (d + 3) + 10200 + (206 * (d + 3) + 116) * n) *
+      2 ^ (m + 1) + 130 * n + 200)
+    (h₇ : c₇ ≤ rec + 24 + 6)
+    (hrec : rec + stepF n d * 2 ^ (m + 1 + 1) ≤ stepF n d * 2 ^ (m + 1 + 1 + t) + stepG n W R * t + 9) :
+    c₁ + c₂ + c₃ + c₄ + 4 + c₅ + 1 + (c₆ + c₇ + 22) + 28 + stepF n d * 2 ^ (m + 1) ≤
+      stepF n d * 2 ^ (m + 1 + (t + 1)) + stepG n W R * (t + 1) + 9 := by
+  have e1 : 2 ^ (m + 1 + 1) = 2 * 2 ^ (m + 1) := by ring
+  have e2 : 2 ^ (m + 1 + (t + 1)) = 2 ^ (m + 1 + 1 + t) := by ring_nf
+  have e3 : 56 * 2 ^ m * n = 28 * n * 2 ^ (m + 1) := by ring
+  rw [e2]
+  rw [e1] at hrec
+  have hF : stepF n d * 2 ^ (m + 1) = (600 * (d + 3) ^ 2 + 8200 * (d + 3) + 10200 +
+      (206 * (d + 3) + 116) * n) * 2 ^ (m + 1) + 28 * n * 2 ^ (m + 1) := by unfold stepF; ring
+  have hG : stepG n W R * (t + 1) = stepG n W R * t + stepG n W R := by ring
+  have hGt : ((113 * W + 340) * t + 60) * n ≤ ((113 * W + 340) * R) * n :=
+    Nat.mul_le_mul_right _ (by nlinarith)
+  have hG' : ((113 * W + 340) * R + 113 * W + 1100) * n + 30 * R + 1000 = stepG n W R := rfl
+  have hA : (113 * W + 56 * 2 ^ m + 430) * n = 113 * W * n + 56 * 2 ^ m * n + 430 * n := by ring
+  have hS : ((113 * W + 340) * R + 113 * W + 1100) * n =
+      (113 * W + 340) * R * n + 113 * W * n + 1100 * n := by ring
+  rw [hA] at h₃
+  rw [e3] at h₃
+  have h2t : 2 * (stepF n d * 2 ^ (m + 1)) = stepF n d * (2 * 2 ^ (m + 1)) := by ring
+  rw [← h2t] at hrec
+  omega
+
+theorem pow_le_pow_add (F a t : ℕ) : F * 2 ^ a ≤ F * 2 ^ (a + t) :=
+  Nat.mul_le_mul_left _ (Nat.pow_le_pow_right (by norm_num) (by omega))
+
+/-- **The descent within a level, its recursive worker, priced**: with `F = stepF n d` the
+lane-dependent and `G = stepG n W R` the lane-independent price of a round, the rounds `rs` from
+`2^m` lanes cost at most `F·(2^(m+1+|rs|) − 2^(m+1)) + G·|rs| + 9`. -/
+theorem descRevGo_cost (hP : Includes P Auto.LeanVM.Protocol.Whir.Sound.descRevC.c750.costDeps)
+    (n d A ℓ : ℕ) (OA : AV) (W R : ℕ) (hn : n < 2 ^ 62) (hd : d + 3 < 2 ^ 40)
+    (hW : ∀ x < n, (OA.getD x #[]).size ≤ W) (hW' : W < 2 ^ 62) (hA : A < 2 ^ 62)
+    (hℓ : ℓ < 2 ^ 62) :
+    ∀ (rs : List FoldRound) (m : ℕ) (VA : AV), rs.length ≤ R → m + rs.length < 59 →
+      machineCost P Auto.LeanVM.Protocol.Whir.Sound.descRevC.c750.costIdx [encodeValue n,
+        encodeValue d, encodeValue A, encodeValue ℓ, encodeValue OA, encodeValue rs, encodeValue m,
+        encodeValue VA] + stepF n d * 2 ^ (m + 1) ≤
+        stepF n d * 2 ^ (m + 1 + rs.length) + stepG n W R * rs.length + 9
+  | [], m, VA, _, _ => by
+    rw [Auto.LeanVM.Protocol.Whir.Sound.descRevC.c750.costEq_nil P hP]
+    simp only [List.length_nil, Nat.add_zero, Nat.mul_zero]
+    omega
+  | r :: tail, m, VA, hR, hm => by
+    simp only [List.length_cons] at hR hm ⊢
+    rw [Auto.LeanVM.Protocol.Whir.Sound.descRevC.c750.costEq_cons P hP]
+    have c₁ := reverseAux_cost P (by includes) tail []
+    have c₂ := foldsAC_cost P (by includes) n tail.reverse OA W hn hW hW'
+    rw [List.length_reverse] at c₂
+    have c₃ := agreeC_cost P (by includes) n m r VA (foldsAC n tail.reverse OA) W hn (by omega)
+      (fun x _ ↦ foldsAC_col n tail.reverse OA x W hW) hW'
+    have c₄ := length_cost P (by includes) tail (by omega)
+    have hag := length_agreeC n m r VA (foldsAC n tail.reverse OA)
+    have c₅ := length_cost P (by includes) (agreeC n m r VA (foldsAC n tail.reverse OA)) (by omega)
+    rw [limbs_of_lt (by omega : tail.length + 1 < 2 ^ 64), limbs_of_lt (by omega : tail.length < 2 ^ 64),
+      limbs_of_lt (by omega : ℓ < 2 ^ 64), limbs_of_lt (by omega : A < 2 ^ 64),
+      limbs_of_lt (by omega : ℓ - (tail.length + 1) < 2 ^ 64),
+      limbs_of_lt (by omega : A - (ℓ - (tail.length + 1)) < 2 ^ 64),
+      limbs_of_lt (by omega : (agreeC n m r VA (foldsAC n tail.reverse OA)).length < 2 ^ 64)]
+    have ih := fun VA' ↦ descRevGo_cost hP n d A ℓ OA W R hn hd hW hW' hA hℓ tail (m + 1) VA'
+      (by omega) (by omega)
+    set rec := stepF n d * 2 ^ (m + 1 + 1 + tail.length) + stepG n W R * tail.length + 9 -
+      stepF n d * 2 ^ (m + 1 + 1) with hrec
+    have hmono := pow_le_pow_add (stepF n d) (m + 1 + 1) tail.length
+    have hrec' : rec + stepF n d * 2 ^ (m + 1 + 1) ≤
+        stepF n d * 2 ^ (m + 1 + 1 + tail.length) + stepG n W R * tail.length + 9 := by omega
+    split_ifs with hthr
+    · have c₆ := newtonDecC_cost P (by includes) n d m (foldsAC n tail.reverse OA)
+        (agreeC n m r VA (foldsAC n tail.reverse OA)) hd (by omega) hn hag
+      have c₇ := bind_cost P (by includes) (fun TA ↦ descRevC n d A ℓ OA tail (m + 1) TA)
+        (.closure Auto.LeanVM.Protocol.Whir.Sound.descRevC.c750.lam0.costIdx [encodeValue tail,
+          encodeValue n, encodeValue d, encodeValue A, encodeValue ℓ, encodeValue OA, encodeValue m])
+        (fun TA ↦ RunsApp.of_spec (Auto.LeanVM.Protocol.Whir.Sound.descRevC.c750.lam0.costSpec P
+          (by includes) tail n d A ℓ OA m TA))
+        (rec + 24) (fun TA ↦ by
+          rw [appCost_fn]
+          simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+          rw [Auto.LeanVM.Protocol.Whir.Sound.descRevC.c750.lam0.costEq P (by includes),
+            limbs_of_lt (by omega : m + 1 < 2 ^ 64),
+            limbs_of_lt (by omega : m < 2 ^ 64)]
+          have := ih TA
+          omega) (newtonDecC n d m (foldsAC n tail.reverse OA)
+            (agreeC n m r VA (foldsAC n tail.reverse OA)))
+      have := descStep_le n d W R tail.length m _ _ _ _ _ _ _ rec _ (by omega) hag c₁ c₂ c₃ c₄
+        c₅ c₆ c₇ hrec'
+      simp only [max_self]
+      rw [show (751 : ℕ) = Auto.LeanVM.Protocol.Whir.Sound.descRevC.c750.lam0.costIdx from rfl]
+      omega
+    · have := descStep_le n d W R tail.length m _ _ _ _ _ 0 0 rec _ (by omega) hag c₁ c₂ c₃ c₄
+        c₅ (Nat.zero_le _) (Nat.zero_le _) hrec'
+      simp only [max_self]
+      omega
+
+
+theorem descRevC_cost (hP : Includes P descRevCC.costDeps)
+    (n d A ℓ : ℕ) (OA : AV) (W R : ℕ) (hn : n < 2 ^ 62) (hd : d + 3 < 2 ^ 40)
+    (hW : ∀ x < n, (OA.getD x #[]).size ≤ W) (hW' : W < 2 ^ 62) (hA : A < 2 ^ 62)
+    (hℓ : ℓ < 2 ^ 62) :
+    ∀ (rs : List FoldRound) (m : ℕ) (VA : AV), rs.length ≤ R → m + rs.length < 59 →
+      machineCost P descRevCC.costIdx [encodeValue n,
+        encodeValue d, encodeValue A, encodeValue ℓ, encodeValue OA, encodeValue rs, encodeValue m,
+        encodeValue VA] + stepF n d * 2 ^ (m + 1) ≤
+        stepF n d * 2 ^ (m + 1 + rs.length) + stepG n W R * rs.length + 9
+  | [], m, VA, _, _ => by
+    rw [descRevCC.costEq_nil P hP]
+    simp only [List.length_nil, Nat.add_zero, Nat.mul_zero]
+    omega
+  | r :: tail, m, VA, hR, hm => by
+    simp only [List.length_cons] at hR hm ⊢
+    rw [descRevCC.costEq_cons P hP]
+    have c₁ := reverseAux_cost P (by includes) tail []
+    have c₂ := foldsAC_cost P (by includes) n tail.reverse OA W hn hW hW'
+    rw [List.length_reverse] at c₂
+    have c₃ := agreeC_cost P (by includes) n m r VA (foldsAC n tail.reverse OA) W hn (by omega)
+      (fun x _ ↦ foldsAC_col n tail.reverse OA x W hW) hW'
+    have c₄ := length_cost P (by includes) tail (by omega)
+    have hag := length_agreeC n m r VA (foldsAC n tail.reverse OA)
+    have c₅ := length_cost P (by includes) (agreeC n m r VA (foldsAC n tail.reverse OA)) (by omega)
+    rw [limbs_of_lt (by omega : tail.length + 1 < 2 ^ 64), limbs_of_lt (by omega : tail.length < 2 ^ 64),
+      limbs_of_lt (by omega : ℓ < 2 ^ 64), limbs_of_lt (by omega : A < 2 ^ 64),
+      limbs_of_lt (by omega : ℓ - (tail.length + 1) < 2 ^ 64),
+      limbs_of_lt (by omega : A - (ℓ - (tail.length + 1)) < 2 ^ 64),
+      limbs_of_lt (by omega : (agreeC n m r VA (foldsAC n tail.reverse OA)).length < 2 ^ 64)]
+    have ih := fun VA' ↦ descRevGo_cost P (by includes) n d A ℓ OA W R hn hd hW hW' hA hℓ tail (m + 1) VA'
+      (by omega) (by omega)
+    set rec := stepF n d * 2 ^ (m + 1 + 1 + tail.length) + stepG n W R * tail.length + 9 -
+      stepF n d * 2 ^ (m + 1 + 1) with hrec
+    have hmono := pow_le_pow_add (stepF n d) (m + 1 + 1) tail.length
+    have hrec' : rec + stepF n d * 2 ^ (m + 1 + 1) ≤
+        stepF n d * 2 ^ (m + 1 + 1 + tail.length) + stepG n W R * tail.length + 9 := by omega
+    split_ifs with hthr
+    · have c₆ := newtonDecC_cost P (by includes) n d m (foldsAC n tail.reverse OA)
+        (agreeC n m r VA (foldsAC n tail.reverse OA)) hd (by omega) hn hag
+      have c₇ := bind_cost P (by includes) (fun TA ↦ descRevC n d A ℓ OA tail (m + 1) TA)
+        (.closure descRevCC.lam0.costIdx [encodeValue tail,
+          encodeValue n, encodeValue d, encodeValue A, encodeValue ℓ, encodeValue OA, encodeValue m])
+        (fun TA ↦ RunsApp.of_spec (descRevCC.lam0.costSpec P
+          (by includes) tail n d A ℓ OA m TA))
+        (rec + 24) (fun TA ↦ by
+          rw [appCost_fn]
+          simp only [List.cons_append, List.nil_append, List.length_cons, List.length_nil]
+          rw [descRevCC.lam0.costEq P (by includes),
+            limbs_of_lt (by omega : m + 1 < 2 ^ 64),
+            limbs_of_lt (by omega : m < 2 ^ 64)]
+          have := ih TA
+          omega) (newtonDecC n d m (foldsAC n tail.reverse OA)
+            (agreeC n m r VA (foldsAC n tail.reverse OA)))
+      have := descStep_le n d W R tail.length m _ _ _ _ _ _ _ rec _ (by omega) hag c₁ c₂ c₃ c₄
+        c₅ c₆ c₇ hrec'
+      simp only [max_self]
+      omega
+    · have := descStep_le n d W R tail.length m _ _ _ _ _ 0 0 rec _ (by omega) hag c₁ c₂ c₃ c₄
+        c₅ (Nat.zero_le _) (Nat.zero_le _) hrec'
+      simp only [max_self]
+      omega
 end
 
 end LeanVM.Cost.Bounds.AS
