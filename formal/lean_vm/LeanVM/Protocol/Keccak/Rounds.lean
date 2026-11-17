@@ -10,6 +10,7 @@ module
 
 public import LeanVM.Protocol.Keccak.Multilinear
 public import LeanVM.Protocol.EndToEnd.Front.FlockMech
+public import LeanVM.Protocol.Verifier.KeccakPack
 
 /-!
 # Sumcheck rounds as specifications

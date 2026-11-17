@@ -11,6 +11,7 @@ module
 
 public import LeanVM.Protocol.Compile.SpecRules.Grind
 public import LeanVM.Protocol.Verifier.Phases
+public import LeanVM.Protocol.Verifier.KeccakPack
 
 /-!
 # The prover moves of the leanVM verifier
@@ -494,6 +495,7 @@ theorem moves_keccakPackRounds_le (hB : grindCap ≤ B) : ∀ (rs : List E) (val
 
 theorem moves_verifyKeccakLayer_le (hB : grindCap ≤ B) (logSteps step : ℕ) (claim : KeccakClaim) :
     Moves (· ≤ B) False (fun _ ↦ True) (fun _ ↦ False) (verifyKeccakLayer logSteps step claim) := by
+  rw [verifyKeccakLayer_packed]
   refine Moves.seq' (Moves.readN _) fun _ _ ↦ Moves.seq' (Moves.require _) fun _ _ ↦
     Moves.seq (Moves.grindP fun _ ↦ grindingBits_le_of (le_two_pow_of_le hB (by decide)))
       (fun _ _ ↦ Moves.seq' Moves.sampleE fun _ _ ↦

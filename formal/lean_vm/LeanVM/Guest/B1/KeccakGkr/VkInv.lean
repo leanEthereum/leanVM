@@ -288,7 +288,8 @@ theorem vi_layer {L step : ℕ} {c c' : KeccakClaim} {s : Fs} {zs : List E} {os 
       LayerFinal c s product n packMsgs localMsgs t ∧
       c' = layerClaim c s product n packMsgs localMsgs t ∧
       st' = ⟨(layerBeta c s product n packMsgs localMsgs t).2, none, rest, os, R⟩ := by
-  unfold verifyKeccakLayer at h
+  rw [verifyKeccakLayer_packed] at h
+  unfold verifyKeccakLayerPacked at h
   obtain ⟨product, st1, h1, h2⟩ := vi_bind h
   obtain ⟨rest1, hpl, hz1, rfl⟩ := vi_readN _ _ _ _ _ _ _ h1
   obtain ⟨u, st2, h3, h4⟩ := vi_bind h2

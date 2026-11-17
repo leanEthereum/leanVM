@@ -209,7 +209,7 @@ the third lane of that permutation must have its low $b$ bits zero, and its firs
 next challenge; nothing is absorbed while that challenge waits, and a grind of zero bits is no step
 at all (\lean{run}, \texttt{Transcript::grind\_check}).
 
-The Keccak layer's equality-factored sumcheck uses the same normalized convention as the bus sumcheck: each round sends the unscaled polynomial, continues from its evaluation at the sampled challenge, and omits the equality-prefix factor from the terminal check (\lean{keccakPackRounds}, \lean{verifyKeccakLayer}). The scalar stream has the same length, but its values change; the transcript labels remain at \texttt{v1}.
+The Keccak layer's equality-factored sumcheck uses the same normalized convention as the bus sumcheck: each round sends the unscaled polynomial, continues from its evaluation at the sampled challenge, and omits the equality-prefix factor from the terminal check (\lean{sumcheck}, \lean{verifyKeccakLayer}). The scalar stream has the same length, but its values change; the transcript labels remain at \texttt{v1}.
 
 \paragraph{Knowledge soundness} (\lean{LeanVM.KnowledgeSoundness}). In the experiment
 (\lean{knowledgeSoundnessExperiment}), an adversary $\mathcal{A}$ with oracle access to $\pi$ and

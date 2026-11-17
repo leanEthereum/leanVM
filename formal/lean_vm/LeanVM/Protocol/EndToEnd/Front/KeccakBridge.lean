@@ -143,7 +143,8 @@ theorem retOK_keccakPackRounds : ∀ (rs : List E) (value : E),
 theorem retOK_verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) :
     RetOK (fun c : KeccakClaim ↦ c.point.length = claim.point.length)
       (verifyKeccakLayer logSteps step claim) := by
-  unfold verifyKeccakLayer
+  rw [verifyKeccakLayer_packed]
+  unfold verifyKeccakLayerPacked
   refine RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦ RetOK.bind_true fun _ ↦
     RetOK.bind_true fun _ ↦ ?_
   refine (retOK_keccakPackRounds _ _).bind fun r hr ↦ ?_

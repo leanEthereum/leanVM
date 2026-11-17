@@ -559,6 +559,7 @@ theorem reads_keccakPackRounds : ∀ (point : List E) (value : E),
 theorem reads_verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) :
     Reads (verifyKeccakLayer logSteps step claim)
       (keccakLayerReads claim.point.length) fun c ↦ c.point.length = claim.point.length := by
+  rw [verifyKeccakLayer_packed]
   have hr4 : roundReads 4 = 4 := rfl
   have hr3 : roundReads 3 = 3 := rfl
   refine Reads.seq (Reads.readN _) (fun _ _ ↦

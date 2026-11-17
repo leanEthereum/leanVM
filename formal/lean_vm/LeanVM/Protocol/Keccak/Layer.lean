@@ -83,7 +83,8 @@ def layerProg (P step : ℕ) (claim : KeccakClaim) : VerifierProgram KeccakClaim
   layerTail claim s res res2
 
 theorem verifyKeccakLayer_eq (P step : ℕ) (claim : KeccakClaim) :
-    verifyKeccakLayer (P + 4) step claim = layerProg P step claim := rfl
+    verifyKeccakLayer (P + 4) step claim = layerProg P step claim :=
+  (verifyKeccakLayer_packed _ _ _).trans rfl
 
 /-! ## The checks -/
 

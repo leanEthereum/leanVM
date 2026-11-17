@@ -10,6 +10,7 @@ module
 public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Guest.B1.Tables.RunF
 public import LeanVM.Guest.B1.VerifySub.Split
+public import LeanVM.Protocol.Verifier.KeccakPack
 
 /-!
 # Phases without commitments
@@ -327,7 +328,8 @@ theorem noCommit_keccakPackRounds : ∀ (rs : List E) (value : E),
 
 theorem noCommit_verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) :
     NoCommit (verifyKeccakLayer logSteps step claim) := by
-  unfold verifyKeccakLayer
+  rw [verifyKeccakLayer_packed]
+  unfold verifyKeccakLayerPacked
   simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
   refine NoCommit.bind (noCommit_readN _) fun _ ↦ ?_
   refine NoCommit.bind (noCommit_require _) fun _ ↦ ?_

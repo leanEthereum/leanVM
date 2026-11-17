@@ -13,6 +13,7 @@ public import LeanVM.Protocol.Verifier.Claims
 public import LeanVM.Protocol.Compile.Cost
 public import LeanVM.Protocol.Verifier
 public import LeanVM.Protocol.WithHash
+public import LeanVM.Protocol.Verifier.KeccakPack
 
 /-!
 # The query cost of the leanVM verifier
@@ -602,6 +603,7 @@ theorem costs_keccakPackRounds : ∀ (point : List E) (value : E),
 theorem costs_verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) :
     VerifierProgram.Costs height (verifyKeccakLayer logSteps step claim)
       (keccakLayerCost claim.point.length) fun c ↦ c.point.length = claim.point.length := by
+  rw [verifyKeccakLayer_packed]
   have hr4 : roundCost 4 = 12 := rfl
   have hr3 : roundCost 3 = 11 := rfl
   refine VerifierProgram.Costs.seq (VerifierProgram.Costs.readN _) (fun _ _ ↦

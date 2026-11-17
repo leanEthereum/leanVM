@@ -1863,15 +1863,6 @@ def keccakInstanceWeights (s : E) : List E :=
 
 /-! ### A layer (`keccak.rs`) -/
 
-/-- Step 3 of a layer, the pack and the segment (`keccak.rs`): an equality-mode round per coordinate of the claim's point. Each round keeps the normalized polynomial evaluation as its value. The new value and the challenges. -/
-def keccakPackRounds : List E → E → VerifierProgram (E × List E)
-  | [], value => return (value, [])
-  | r :: rs, value => do
-    let message ← sumcheckRoundPoly 3 value (some r)
-    let challenge ← VerifierProgram.sampleChallenge
-    let (value, point) ← keccakPackRounds rs (polyEval message challenge)
-    return (value, challenge :: point)
-
 /-- `verify_layer(transcript, shape, step, claim)` (`keccak.rs`): a claim on the states
 `step` layers below the committed outputs becomes one on the states a layer further down. The Rust
 splits `eq(local, j)`, `j = 64 · lane + z`, into `eq_z[z] · eq_lane[lane]` (`keccak.rs`);
@@ -1896,8 +1887,8 @@ def verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) : VerifierProg
   let s ← VerifierProgram.sampleChallenge
   let mu := keccakInstanceWeights s
   let kappa := sumE mu
-  -- 3] The pack and the segment.
-  let (value, point) ← keccakPackRounds claim.point (polyEval product s)
+  -- 3] The pack and the segment: an equality-mode round per coordinate of the claim's point.
+  let (point, value) ← sumcheck (polyEval product s) 3 (claim.point.map some)
   -- 4] The bit position: `Σ_j w[j] (κ T[j] + (κ + T[j + 1]) T[j + 2])`.
   let (localPoint, value) ← sumcheck value 4 (List.replicate keccakLocalBits none)
   let t ← VerifierProgram.readScalars 3

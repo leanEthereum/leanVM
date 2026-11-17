@@ -234,7 +234,8 @@ theorem noOpen_keccakPackRounds : ∀ (rs : List E) (value : E),
 
 theorem noOpen_verifyKeccakLayer (logSteps step : ℕ) (claim : KeccakClaim) :
     NoOpen (verifyKeccakLayer logSteps step claim) := by
-  unfold verifyKeccakLayer
+  rw [verifyKeccakLayer_packed]
+  unfold verifyKeccakLayerPacked
   simp only [VerifierProgram.bind_eq, VerifierProgram.pure_eq]
   refine NoOpen.bind (noOpen_readN _) fun _ ↦ NoOpen.bind (noOpen_require _) fun _ ↦ ?_
   refine NoOpen.bind (noOpen_grind _) fun _ ↦ NoOpen.bind noOpen_sampleE fun _ ↦ ?_

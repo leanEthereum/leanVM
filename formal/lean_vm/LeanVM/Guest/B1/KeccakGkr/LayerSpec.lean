@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.KeccakGkr.Lib
 public import LeanVM.Guest.B1.Common.Run
 public import LeanVM.Guest.B1.Gkr.Spec
+public import LeanVM.Protocol.Verifier.KeccakPack
 
 /-!
 # A layer on the carried sponge
@@ -230,7 +231,8 @@ theorem layer_runsTo (logSteps step : ℕ) (c : KeccakClaim) (s0 : Fs) (product 
   have r5 := runsTo_readN (layerLocal c s0 product n packMsgs localMsgs).2 [t.1, t.2.1, t.2.2]
   have hb : grindingBits 2 = 0 := grindingBits_le_eight (by norm_num)
   simp only [List.append_assoc]
-  unfold verifyKeccakLayer
+  rw [verifyKeccakLayer_packed]
+  unfold verifyKeccakLayerPacked
   refine RunsTo.bind r1 ?_
   refine RunsTo.bind_nil (runsTo_require hproj _) ?_
   refine RunsTo.bind_assoc' (m := VerifierProgram.grindProofOfWork (grindingBits (productBits - 1)))
