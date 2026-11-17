@@ -260,5 +260,74 @@ theorem newtonDecA_eq {n m : ℕ} (dom : Fin n ↪ E) (d : ℕ) {QA : AV}
   · rw [ite_eq_right hS, ite_eq_right hS]
     rfl
 
+/-! ## Within a level -/
+
+/-- **The descent within a level, over arrays.** -/
+def descendRoundsA {n : ℕ} (dom : Fin n ↪ E) (d : ℕ) (thr : ℕ → ℕ) (OA : AV)
+    (rs : List FoldRound) (m : ℕ) (VA : AV) : Option (ℕ × AV) :=
+  match _h : rs.getLast? with
+  | none => some (m, VA)
+  | some r =>
+    let QA := foldsAA dom rs.dropLast OA
+    let cols := agreeA dom m r VA QA
+    if thr (rs.dropLast.length + 1) ≤ cols.length then
+      (newtonDecA dom d m QA cols).bind fun TA ↦ descendRoundsA dom d thr OA rs.dropLast (m + 1) TA
+    else none
+termination_by rs.length
+decreasing_by
+  have : rs ≠ [] := fun h0 ↦ by simp [h0] at _h
+  simp only [List.length_dropLast]
+  have := List.length_pos_of_ne_nil this
+  omega
+
+theorem descendRoundsA_nil {n : ℕ} (dom : Fin n ↪ E) (d : ℕ) (thr : ℕ → ℕ) (OA : AV) (m : ℕ)
+    (VA : AV) : descendRoundsA dom d thr OA [] m VA = some (m, VA) := by
+  rw [descendRoundsA]; rfl
+
+theorem descendRoundsA_concat {n : ℕ} (dom : Fin n ↪ E) (d : ℕ) (thr : ℕ → ℕ) (OA : AV)
+    (rs : List FoldRound) (r : FoldRound) (m : ℕ) (VA : AV) :
+    descendRoundsA dom d thr OA (rs ++ [r]) m VA =
+      if thr (rs.length + 1) ≤ (agreeA dom m r VA (foldsAA dom rs OA)).length then
+        (newtonDecA dom d m (foldsAA dom rs OA) (agreeA dom m r VA (foldsAA dom rs OA))).bind
+          fun TA ↦ descendRoundsA dom d thr OA rs (m + 1) TA
+      else none := by
+  rw [descendRoundsA]
+  split
+  · rename_i h; simp at h
+  · rename_i r' h
+    simp only [List.getLast?_concat, Option.some.injEq] at h
+    subst h
+    simp only [List.dropLast_concat]
+
+/-- A tuple's values as arrays, with its lane count. -/
+def toAVS {n : ℕ} (T : Σ k, (Fin k → Bool) → Fin n → E) : ℕ × AV := (T.1, toAV n T.1 T.2)
+
+/-- **The descent within a level over arrays is the descent over values**, with one-error
+decoding. -/
+theorem descendRoundsA_eq {n : ℕ} (dom : Fin n ↪ E) (d : ℕ) (thr : ℕ → ℕ) {OA : AV}
+    {O : ℕ → Fin n → E} (hO : ∀ j x, O j x = (OA.getD x #[]).getD j 0) :
+    ∀ (rs : List FoldRound) (m : ℕ) (V : (Fin m → Bool) → Fin n → E),
+      descendRoundsA dom d thr OA rs m (toAV n m V) =
+        (descendRoundsV newtonValsDecoder dom d thr O rs m V).map toAVS := by
+  intro rs
+  induction rs using List.reverseRecOn with
+  | nil =>
+    intro m V
+    rw [descendRoundsA_nil, descendRoundsV_nil]
+    rfl
+  | append_singleton rs r ih =>
+    intro m V
+    have hQ := rep_foldsAA (m := m + 1) dom rs hO
+    rw [descendRoundsA_concat, descendRoundsV_concat, agreeA_eq dom r (rep_toAV V) hQ,
+      length_colsOf]
+    split_ifs
+    · rw [newtonDecA_eq dom d hQ]
+      show (Option.map _ (newtonDecV dom d _ _)).bind _ = Option.map toAVS ((newtonDecV dom d _ _).bind _)
+      rcases newtonDecV dom d (rowsOf (m + 1) (foldsA dom rs O))
+        (agreeV V (foldQ dom r.alpha r.beta (rowsOf (m + 1) (foldsA dom rs O)))) with _ | T
+      · rfl
+      · exact ih (m + 1) T
+    · rfl
+
 end
 end LeanVM.Protocol.Whir.Sound
