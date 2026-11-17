@@ -23,13 +23,13 @@
 //! Where the stack's blocks under a lane `X F` repeat, its blocks repeat past their first few words (one more per
 //! round, from multiplying by `X`), so a block of `X F` is a repeat when those words are too.
 
-use primitives::field::{F64, F64x8, F128, F128x8, mul_base_splat8};
+use primitives::field::{F64, F128};
 use primitives::multilinear::interp;
 use primitives::stream::Stream;
 
 use crate::stack_open::{SWEEP, Terms};
 use crate::whir::{FoldChallenges, FoldTable, InitialBasis};
-use crate::xmul::{exponents8, mul_x_block, multiples, sums8, x_at};
+use crate::xmul::{mul_x_block, multiples, x_at};
 
 /// The words of a block of a round-`r` lane `X F` that can differ from the block before when the stack's blocks under
 /// it repeat: its first `r`. Later rounds skip no blocks.
@@ -112,7 +112,16 @@ impl Folded<'_> {
     ///
     /// `X` multiplies column `c` by `A_t` after summing two coefficients, so a multiple of `X` enters as the sums, the
     /// `A_t` folded into its challenge.
+    #[cfg(not(all(
+        target_arch = "x86_64",
+        target_feature = "avx2",
+        target_feature = "vpclmulqdq",
+        not(target_feature = "avx512f")
+    )))]
     fn block(&self, i: usize, first: usize, out: &mut [F128]) {
+        use crate::xmul::{exponents8, sums8};
+        use primitives::field::{F64x8, F128x8, mul_base_splat8};
+
         let n = out.len();
         let alpha = self.ch.alpha;
         let out = out.as_chunks_mut::<8>().0;
@@ -142,6 +151,69 @@ impl Folded<'_> {
                     let sum =
                         alpha.mul_unreduced(F128x8::from_array(&f8[q])) ^ cx(t0).mul_unreduced(F128x8::from_array(&sf));
                     *o = (F128x8::from_array(&g8[q]) + sum.reduce_lanes()).to_array();
+                }
+            }
+        }
+    }
+
+    /// [`Self::block`] two coefficients a register, in the order they lie in memory.
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "avx2",
+        target_feature = "vpclmulqdq",
+        not(target_feature = "avx512f")
+    ))]
+    fn block(&self, i: usize, first: usize, out: &mut [F128]) {
+        use crate::xmul::head8;
+        use crate::xmul::lanes::{load8, load8_base, store8, sums};
+        use primitives::field::x4::{F64x2, F128x2};
+
+        let n = out.len();
+        let cx = &self.cx;
+        // `beta A_t` of the columns of an aligned eight, two to a register, all but the first column's.
+        let (c23, c45) = (F128x2::new(cx[1], cx[0]), F128x2::new(cx[2], cx[0]));
+        let out = out.as_chunks_mut::<8>().0;
+        match self.pairs {
+            Pairs::Stack => {
+                let f = self.stack_lane(2 * i).expect("a folded lane has its first");
+                let g = self
+                    .stack_lane(2 * i + 1)
+                    .map(|g| g[first..first + n].as_chunks::<8>().0);
+                let (fb, alpha) = (&f[first..first + n], F128x2::splat(self.ch.alpha));
+                for (q, (b, o)) in fb.as_chunks::<8>().0.iter().zip(out).enumerate() {
+                    let (s0, t0) = head8(fb, q, first, outside(f));
+                    let fv = load8_base(b);
+                    let s = sums(fv, F64x2::new(s0, F64::ZERO));
+                    let c = [F128x2::new(cx[t0], cx[0]), c23, c45, c23];
+                    let mut v: [F128x2; 4] = std::array::from_fn(|j| {
+                        let mut p = alpha.mul_base_unreduced(fv[j]);
+                        p ^= c[j].mul_base_unreduced(s[j]);
+                        p.reduce()
+                    });
+                    if let Some(g) = g {
+                        let gv = load8_base(&g[q]);
+                        v = std::array::from_fn(|j| v[j] + F128x2::from(gv[j]));
+                    }
+                    store8(v, o);
+                }
+            }
+            Pairs::Stored { f, g, len } => {
+                let (f, g) = (&f[i * len..(i + 1) * len], &g[i * len..(i + 1) * len]);
+                let (fb, gb) = (&f[first..first + n], g[first..first + n].as_chunks::<8>().0);
+                let alpha = F128x2::splat(self.ch.alpha).factor();
+                let (c23, c45) = (c23.factor(), c45.factor());
+                for (q, (b, o)) in fb.as_chunks::<8>().0.iter().zip(out).enumerate() {
+                    let (s0, t0) = head8(fb, q, first, outside(f));
+                    let fv = load8(b);
+                    let s = sums(fv, F128x2::new(s0, F128::ZERO));
+                    let c = [F128x2::new(cx[t0], cx[0]).factor(), c23, c45, c23];
+                    let gv = load8(&gb[q]);
+                    let v = std::array::from_fn(|j| {
+                        let mut p = fv[j].mul_unreduced(alpha);
+                        p ^= s[j].mul_unreduced(c[j]);
+                        gv[j] + p.reduce()
+                    });
+                    store8(v, o);
                 }
             }
         }

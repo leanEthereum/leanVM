@@ -20,6 +20,15 @@ pub(crate) trait Coef: Copy + Send + Sync + std::ops::Add<Output = Self> {
     fn scale(self, k: F64) -> Self;
     /// `v[j] * k[j]`, where `k[j]` is one at every odd `j`.
     fn scale8(v: [Self; 8], k: [F64; 8]) -> [Self; 8];
+
+    /// [`mul_x_block`].
+    #[inline(always)]
+    fn x_block(block: &[Self], first: usize, outside: impl Fn(usize) -> Self, out: &mut [Self]) {
+        for (q, out) in out.as_chunks_mut::<8>().0.iter_mut().enumerate() {
+            let (s, t0) = sums8(block, q, first, &outside);
+            *out = Self::scale8(s, multipliers8(exponents8(t0)));
+        }
+    }
 }
 
 impl Coef for F64 {
@@ -31,6 +40,16 @@ impl Coef for F64 {
     #[inline(always)]
     fn scale8(v: [Self; 8], k: [F64; 8]) -> [Self; 8] {
         std::array::from_fn(|j| if j % 2 == 0 { v[j] * k[j] } else { v[j] })
+    }
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "avx2",
+        target_feature = "vpclmulqdq",
+        not(target_feature = "avx512f")
+    ))]
+    #[inline(always)]
+    fn x_block(block: &[Self], first: usize, outside: impl Fn(usize) -> Self, out: &mut [Self]) {
+        lanes::x_block_k(block, first, outside, out);
     }
 }
 
@@ -46,6 +65,16 @@ impl Coef for F128 {
             .mul_base_unreduced(F64x8::from_array(&k))
             .reduce_lanes()
             .to_array()
+    }
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "avx2",
+        target_feature = "vpclmulqdq",
+        not(target_feature = "avx512f")
+    ))]
+    #[inline(always)]
+    fn x_block(block: &[Self], first: usize, outside: impl Fn(usize) -> Self, out: &mut [Self]) {
+        lanes::x_block_e(block, first, outside, out);
     }
 }
 
@@ -110,13 +139,10 @@ pub(crate) fn multiples(c: F128) -> [F128; 64] {
     constants().map(|a| c.mul_base(a))
 }
 
-/// The sums `s` of columns `8q..8q + 8` of a block of a lane `h`, `(X h)[c] = A_t s[c]` with `t` from [`exponents8`],
-/// and `t0`. `block[i] = h[first + i]`, and `outside(c)` gives the coefficients outside the block that the first column
-/// reads; the block's length is a power of two that divides `first`.
+/// `s[0]` of [`sums8`], and `t0`.
 #[inline(always)]
-pub(crate) fn sums8<T: Coef>(block: &[T], q: usize, first: usize, outside: impl Fn(usize) -> T) -> ([T; 8], usize) {
-    let b = &block[8 * q..8 * q + 8];
-    let (s0, t0) = match (q, first) {
+pub(crate) fn head8<T: Coef>(block: &[T], q: usize, first: usize, outside: impl Fn(usize) -> T) -> (T, usize) {
+    match (q, first) {
         (0, 0) => (T::ZERO, 0),
         (0, _) => {
             let t = first.trailing_zeros() as usize;
@@ -130,7 +156,16 @@ pub(crate) fn sums8<T: Coef>(block: &[T], q: usize, first: usize, outside: impl 
             let t = 3 + q.trailing_zeros() as usize;
             (block[8 * q - 1] + block[8 * q + (1 << t) - 1], t)
         }
-    };
+    }
+}
+
+/// The sums `s` of columns `8q..8q + 8` of a block of a lane `h`, `(X h)[c] = A_t s[c]` with `t` from [`exponents8`],
+/// and `t0`. `block[i] = h[first + i]`, and `outside(c)` gives the coefficients outside the block that the first column
+/// reads; the block's length is a power of two that divides `first`.
+#[inline(always)]
+pub(crate) fn sums8<T: Coef>(block: &[T], q: usize, first: usize, outside: impl Fn(usize) -> T) -> ([T; 8], usize) {
+    let b = &block[8 * q..8 * q + 8];
+    let (s0, t0) = head8(block, q, first, outside);
     let s = [
         s0,
         b[0] + b[1],
@@ -149,9 +184,142 @@ pub(crate) fn sums8<T: Coef>(block: &[T], q: usize, first: usize, outside: impl 
 /// 8, that divides `first`.
 pub(crate) fn mul_x_block<T: Coef>(block: &[T], first: usize, outside: impl Fn(usize) -> T, out: &mut [T]) {
     debug_assert!(block.len() >= 8 && block.len().is_power_of_two() && first.is_multiple_of(block.len()));
-    for (q, out) in out.as_chunks_mut::<8>().0.iter_mut().enumerate() {
-        let (s, t0) = sums8(block, q, first, &outside);
-        *out = T::scale8(s, multipliers8(exponents8(t0)));
+    debug_assert_eq!(block.len(), out.len());
+    T::x_block(block, first, outside, out);
+}
+
+/// [`sums8`] and [`mul_x_block`] on two coefficients a register, in the order they lie in memory, where VPCLMULQDQ
+/// has no AVX-512 beside it.
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx2",
+    target_feature = "vpclmulqdq",
+    not(target_feature = "avx512f")
+))]
+pub(crate) mod lanes {
+    use core::arch::x86_64::*;
+
+    use primitives::field::gf2_64x2::x86_64::reduce_halves256;
+    use primitives::field::x4::{F64x2, F64x4, F128x2};
+    use primitives::field::{F64, F128};
+
+    use super::{constants, head8};
+
+    /// A register of two coefficients.
+    pub(crate) trait Lane2: Copy + std::ops::Add<Output = Self> {
+        /// The 128-bit lanes `vperm2i128` picks with immediate `I`.
+        fn select<const I: i32>(a: Self, b: Self) -> Self;
+    }
+
+    impl Lane2 for F128x2 {
+        #[inline(always)]
+        fn select<const I: i32>(a: Self, b: Self) -> Self {
+            F128x2::select::<I>(a, b)
+        }
+    }
+
+    impl Lane2 for F64x2 {
+        #[inline(always)]
+        fn select<const I: i32>(a: Self, b: Self) -> Self {
+            F64x2::select::<I>(a, b)
+        }
+    }
+
+    /// [`super::sums8`] on the registers `[b0 b1, b2 b3, b4 b5, b6 b7]`, with `s0` the low lane of its register.
+    #[inline(always)]
+    pub(crate) fn sums<L: Lane2>([f01, f23, f45, f67]: [L; 4], s0: L) -> [L; 4] {
+        let pair = f01 + L::select::<0x01>(f01, f01);
+        [
+            L::select::<0x30>(s0, pair),
+            L::select::<0x21>(f01, f23) + L::select::<0x11>(f23, f23),
+            L::select::<0x21>(f23, f45) + L::select::<0x31>(f67, f45),
+            L::select::<0x21>(f45, f67) + L::select::<0x11>(f67, f67),
+        ]
+    }
+
+    /// Eight `E` coefficients as four registers.
+    #[inline(always)]
+    pub(crate) fn load8(e: &[F128; 8]) -> [F128x2; 4] {
+        let p = e.as_chunks::<2>().0;
+        [
+            F128x2::load(&p[0]),
+            F128x2::load(&p[1]),
+            F128x2::load(&p[2]),
+            F128x2::load(&p[3]),
+        ]
+    }
+
+    #[inline(always)]
+    pub(crate) fn store8([a, b, c, d]: [F128x2; 4], out: &mut [F128; 8]) {
+        let p = out.as_chunks_mut::<2>().0;
+        a.store(&mut p[0]);
+        b.store(&mut p[1]);
+        c.store(&mut p[2]);
+        d.store(&mut p[3]);
+    }
+
+    /// Eight `K` coefficients as four registers.
+    #[inline(always)]
+    pub(crate) fn load8_base(k: &[F64; 8]) -> [F64x2; 4] {
+        let q = k.as_chunks::<4>().0;
+        let ([a, b], [c, d]) = (F64x4::load(&q[0]).spread(), F64x4::load(&q[1]).spread());
+        [a, b, c, d]
+    }
+
+    /// [`super::mul_x_block`] on `E` coefficients: the odd columns' constant is one, so only the even ones multiply.
+    #[inline(always)]
+    pub(super) fn x_block_e(block: &[F128], first: usize, outside: impl Fn(usize) -> F128, out: &mut [F128]) {
+        let a = constants();
+        let k46 = F64x2::new(a[2], a[1]);
+        let chunks = block.as_chunks::<8>().0.iter().zip(out.as_chunks_mut::<8>().0);
+        for (q, (b, o)) in chunks.enumerate() {
+            let (s0, t0) = head8(block, q, first, &outside);
+            let s = sums(load8(b), F128x2::new(s0, F128::ZERO));
+            let r02 = F128x2::select::<0x20>(s[0], s[1])
+                .mul_base_unreduced(F64x2::new(a[t0], a[1]))
+                .reduce();
+            let r46 = F128x2::select::<0x20>(s[2], s[3]).mul_base_unreduced(k46).reduce();
+            let out = [
+                F128x2::select::<0x30>(r02, s[0]),
+                F128x2::select::<0x31>(r02, s[1]),
+                F128x2::select::<0x30>(r46, s[2]),
+                F128x2::select::<0x31>(r46, s[3]),
+            ];
+            store8(out, o);
+        }
+    }
+
+    /// [`super::mul_x_block`] on `K` coefficients: the even columns' sums in one register, multiplied at once.
+    #[inline(always)]
+    pub(super) fn x_block_k(block: &[F64], first: usize, outside: impl Fn(usize) -> F64, out: &mut [F64]) {
+        let a = constants();
+        let chunks = block.as_chunks::<8>().0.iter().zip(out.as_chunks_mut::<8>().0);
+        for (q, (b, o)) in chunks.enumerate() {
+            let (s0, t0) = head8(block, q, first, &outside);
+            // SAFETY: the module's cfg enables avx2 and vpclmulqdq; each access is four whole qwords of a chunk of eight.
+            unsafe {
+                let (lo, hi) = (
+                    _mm256_loadu_si256(b.as_ptr().cast()),
+                    _mm256_loadu_si256(b[4..].as_ptr().cast()),
+                );
+                // `[b0 b4 b2 b6]` and `[b1 b5 b3 b7]`.
+                let (u, h) = (_mm256_unpacklo_epi64(lo, hi), _mm256_unpackhi_epi64(lo, hi));
+                let odd = _mm256_xor_si256(u, h);
+                // `[s0 s4 s2 s6]`: the shuffles cancel in the first qword, where `s0` goes.
+                let even = _mm256_xor_si256(
+                    _mm256_permute4x64_epi64::<0b01_00_10_00>(h),
+                    _mm256_permute4x64_epi64::<0b11_10_11_00>(h),
+                );
+                let even = _mm256_xor_si256(even, _mm256_zextsi128_si256(_mm_cvtsi64_si128(s0.0 as i64)));
+                let m = _mm256_set_epi64x(a[1].0 as i64, a[1].0 as i64, a[2].0 as i64, a[t0].0 as i64);
+                let r = reduce_halves256(
+                    _mm256_clmulepi64_epi128::<0x00>(even, m),
+                    _mm256_clmulepi64_epi128::<0x11>(even, m),
+                );
+                _mm256_storeu_si256(o.as_mut_ptr().cast(), _mm256_unpacklo_epi64(r, odd));
+                _mm256_storeu_si256(o[4..].as_mut_ptr().cast(), _mm256_unpackhi_epi64(r, odd));
+            }
+        }
     }
 }
 
@@ -261,6 +429,19 @@ mod tests {
                 let mut part = vec![F128::ONE; (n + 1 - first) * stride];
                 mul_x(&h, stride, 1, first, &mut part);
                 assert_eq!(part, got[first * stride..], "E range, mu={mu}, high={high}");
+
+                // Blocks of the first E lane.
+                let e: Vec<F128> = h.iter().step_by(stride).copied().collect();
+                let want: Vec<F128> = got.iter().step_by(stride).copied().collect();
+                for log_block in 3..=mu {
+                    let n_block = 1usize << log_block;
+                    for first in (0..1usize << mu).step_by(n_block) {
+                        let mut part = vec![F128::ONE; n_block];
+                        let outside = |c: usize| e.get(c).copied().unwrap_or(F128::ZERO);
+                        mul_x_block(&e[first..first + n_block], first, outside, &mut part);
+                        assert_eq!(part, want[first..first + n_block], "E block {first}+{n_block}, mu={mu}");
+                    }
+                }
             }
         }
     }
