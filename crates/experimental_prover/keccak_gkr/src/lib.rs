@@ -88,7 +88,8 @@
 //!
 //! The four rounds' sums are binary polynomials of degree at most 173. With AVX-512 and GFNI they
 //! are taken on residues modulo 24 irreducibles of degree 8, where a product is a byte product
-//! (`skip_gfni`).
+//! (`skip_gfni`); with PCLMULQDQ alone, by carry-less products on a row's shared cofactors
+//! (`skip_clmul`).
 
 use primitives::field::{F64, F128, F128Unreduced};
 use primitives::hash::STATE_LANES;
@@ -114,6 +115,9 @@ cfg_select! {
     all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512bw", target_feature = "gfni") => {
         mod skip_gfni;
         mod table_gfni;
+    }
+    all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq") => {
+        mod skip_clmul;
     }
     _ => {}
 }
