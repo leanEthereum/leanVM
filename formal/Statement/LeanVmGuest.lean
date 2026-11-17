@@ -458,8 +458,8 @@ open LeanVM.Parameters LeanVM.Semantics
 limits. -/
 
 /-- **The bound on the guest decoder program's size** (`MachineProgram.size`): `564989`, the
-compiled decoder's size (`564579`: `lean_vm`'s `Cost/DecoderSize.lean` proves it at most that) and a
-slack of `410`, room for one leanXMSS signature's encoding (`309`) but not two, so no useful table
+compiled decoder's size (`564497`, measured; `lean_vm`'s `Cost/DecoderSize.lean` proves it at most
+`564579`) and a slack of `492`, room for one leanXMSS signature's encoding (`309`) but not two, so no useful table
 of witnesses (hard-coded signatures, matrices or proofs that would mask a bug of the guest program
 on finitely many statements) fits beside the compiled decoder's code. The size counts in full the
 guest program's per-function tables, literals of the compiled decoder; a program written differently
