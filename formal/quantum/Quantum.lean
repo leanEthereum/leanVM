@@ -209,6 +209,7 @@ import Quantum.StdModel.World
 import Quantum.StdModel.StraightLine
 import Quantum.StdModel.Formats
 import Quantum.StdModel.Props
+import Quantum.StdModel.Xmss.Reduction
 import Quantum.Par.Subst
 import Quantum.Qrom.SufCma.GamePar
 import Quantum.Sponge.Oracle.Parallel
@@ -371,3 +372,8 @@ the main theorems ever grows beyond Lean's three standard axioms. -/
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Quantum.Qrom.Xmss.Multi.xmssQromMuBound_le
+
+/-- info: 'Quantum.StdModel.Xmss.xmss_suf_le_props_keccak' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.StdModel.Xmss.xmss_suf_le_props_keccak
