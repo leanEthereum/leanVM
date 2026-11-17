@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Protocol.Whir.Sound.GaoDecoder
+public import LeanVM.Protocol.Whir.Sound.Descent
 public import LeanVM.Protocol.Whir.Sound.Newton
 
 /-!
@@ -26,8 +26,23 @@ open LeanVM.Parameters Polynomial Newton
 
 variable {n m : ℕ}
 
+/-- The columns of `S`, in increasing order. -/
+def colsOf (S : Finset (Fin n)) : List (Fin n) := (List.finRange n).filter (· ∈ S)
+
+theorem nodup_colsOf (S : Finset (Fin n)) : (colsOf S).Nodup :=
+  (List.nodup_finRange n).filter _
+
+theorem mem_colsOf {S : Finset (Fin n)} {x : Fin n} : x ∈ colsOf S ↔ x ∈ S := by
+  simp [colsOf]
+
+theorem length_colsOf (S : Finset (Fin n)) : (colsOf S).length = S.card := by
+  rw [← List.toFinset_card_of_nodup (nodup_colsOf S)]
+  congr 1
+  ext x
+  simp [mem_colsOf]
+
 /-- The window: the first `d + 3` columns of `S`, in increasing order. -/
-def window (d : ℕ) (S : Finset (Fin n)) : List (Fin n) := (setPts S).take (d + 3)
+def window (d : ℕ) (S : Finset (Fin n)) : List (Fin n) := (colsOf S).take (d + 3)
 
 /-- Lane `v`'s points on the window. -/
 def winPts (dom : Fin n ↪ E) (d : ℕ) (Q : (Fin (m + 1) → Bool) → Fin n → E) (S : Finset (Fin n))
@@ -51,12 +66,12 @@ noncomputable def newtonDec (dom : Fin n ↪ E) (d : ℕ) (Q : (Fin (m + 1) → 
 
 theorem length_window {d : ℕ} {S : Finset (Fin n)} (hS : d + 3 ≤ S.card) :
     (window d S).length = d + 3 := by
-  rw [window, List.length_take, length_setPts]; omega
+  rw [window, List.length_take, length_colsOf]; omega
 
 theorem nodup_winPts (dom : Fin n ↪ E) (d : ℕ) (Q : (Fin (m + 1) → Bool) → Fin n → E)
     (S : Finset (Fin n)) (v : Fin (m + 1) → Bool) : ((winPts dom d Q S v).map (·.1)).Nodup := by
   rw [winPts, List.map_map]
-  exact ((nodup_setPts S).sublist (List.take_sublist _ _)).map dom.injective
+  exact ((nodup_colsOf S).sublist (List.take_sublist _ _)).map dom.injective
 
 /-- A near tuple's lane disagrees with the window's points at one index at most. -/
 theorem exists_err {dom : Fin n ↪ E} {d : ℕ} {Q : (Fin (m + 1) → Bool) → Fin n → E}
@@ -73,9 +88,9 @@ theorem exists_err {dom : Fin n ↪ E} {d : ℕ} {Q : (Fin (m + 1) → Bool) →
     have hi' : i < (window d S).length := by simpa [winPts] using hi
     simp only [winPts, List.getElem_map]
     by_contra hbad'
-    have hnd : (window d S).Nodup := (nodup_setPts S).sublist (List.take_sublist _ _)
+    have hnd : (window d S).Nodup := (nodup_colsOf S).sublist (List.take_sublist _ _)
     have hmem : ∀ j (hj : j < (window d S).length), (window d S)[j] ∈ S := fun j hj ↦
-      mem_setPts.mp (List.mem_of_mem_take (List.getElem_mem hj))
+      mem_colsOf.mp (List.mem_of_mem_take (List.getElem_mem hj))
     have hsub : ({(window d S)[e], (window d S)[i]} : Finset (Fin n)) ⊆
         S.filter fun x ↦ ∃ v, (T v).eval (dom x) ≠ Q v x := by
       intro x hx
