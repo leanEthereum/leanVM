@@ -286,6 +286,8 @@ theorem LeanVM.theorems_of_decoderSpec {decoderProgram : LeanVM.Cost.MachineProg
   batchingSound := LeanVM.Guest.Batch.batch_sound_holds
   leanXmssStronglyUnforgeable := XmssSecurity.leanXmss_rpm_security
   leanSphincsStronglyUnforgeable := Sphincs.leanSphincsStronglyUnforgeable
+  leanXmssMultiKeyStronglyUnforgeable := XmssSecurity.leanXmss_multiKey
+  leanSphincsMultiKeyStronglyUnforgeable := Sphincs.leanSphincs_multiKey
   leanDaComplete := LeanDa.leanDa_perfectlyComplete_rpm
   leanDaPositionBinding := LeanDa.leanDa_positionBinding_rpm
   leanDaCodeBinding := LeanDa.leanDa_codeBinding_rpm_bound

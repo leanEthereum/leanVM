@@ -41,7 +41,8 @@ abbrev requestToKeyCalls {k : ℕ} (j : Fin k) : World.Domain ⊕ (Fin k × Req)
   reqWeight fun r ↦ if r.1 = j then 1 else 0
 
 theorem signingRequestToKeyCost_eq {k : ℕ} (j : Fin k) :
-    signingRequestToKeyCost (Req := Req) j = reqWeight fun r ↦ if r.1 = j then 1 else 0 := by
+    signingRequestToKeyCost (SigningRequest := Req) j =
+      reqWeight fun r ↦ if r.1 = j then 1 else 0 := by
   funext t
   rcases t with _ | _ <;> rfl
 
