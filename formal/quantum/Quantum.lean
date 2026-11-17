@@ -211,6 +211,7 @@ import Quantum.StdModel.Formats
 import Quantum.StdModel.Props
 import Quantum.StdModel.Xmss.Reduction
 import Quantum.Par.Subst
+import Quantum.Par.Lockstep
 import Quantum.Qrom.SufCma.GamePar
 import Quantum.Sponge.Oracle.Parallel
 import Quantum.Xmss.Hybrid.GradedPar
