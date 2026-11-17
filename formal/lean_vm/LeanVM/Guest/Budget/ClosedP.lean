@@ -56,7 +56,7 @@ theorem vs_completeR {bc : List K} (hbl : bc.length = 2 ^ 23) {fs : String → �
     (hrf : Lift.RunsFit fs cert) (hcons : RunsConsec cert) (W : VsWordsOs fs)
     {Bvk κ : ℕ} (hκ : 16 ≤ κ) (hvk : VkCompleteAtBK fs cert κ Bvk) (seed : Digest) (c : Child)
     (sqE outE : ℕ) (Lin : Layout) (hok : VsChildOk bc seed c) (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin)
-    (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) :
+    (hout : (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin) :
     CompleteAtDTBR fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
       (fun rd t ↦ (20 ≤ (childShape bc c).1 ∧ (childShape bc c).1 ≤ 30 ∧
         vsTsAny fs W Bvk (childShape bc c).1 (childShape bc c).2 t) ∧
@@ -84,7 +84,7 @@ theorem verifySubGoalsTBR_deployed {seed : Digest} {s : NodeStatement} {w : Node
   set outE := hP LeanVM.Guest.B2C.fs 0 seed s w 6 + 24 * c with hout
   have h := vs_completeR bytecode_length LeanVM.Guest.B2C.runsFit LeanVM.Guest.B2C.runsConsec LeanVM.Guest.Count.vsWordsOs le_rfl
     (B1.VerifySub.verify_keccak_completeAtB_fs (by omega)) seed w.children[c] e outE
-    (vsExpLin e ++ [(outE, DeferredClaim.cells w.children[c].freshClaim)])
+    (vsExpLin e ++ [(outE, DeferredBytecodeClaim.cells w.children[c].freshClaim)])
     ⟨(hok _ hmem).stackLogAtLeastMinimum, (hok _ hmem).streamWithinCap,
       (hok _ hmem).noZeroChallenge, (hok _ hmem).capsAgree⟩
     (fun q hq => List.mem_append_left _ hq) (List.mem_append_right _ (List.mem_singleton_self _))
@@ -97,8 +97,8 @@ theorem verifySubGoalsTBR_deployed {seed : Digest} {s : NodeStatement} {w : Node
         have := ht.1.1; have := ht.1.2.1; unfold B1.Whir.minOpenLog B1.Whir.openArms; omega, ht.1⟩, by
       rw [pvH, List.getElem?_eq_getElem hc, Option.map_some, Option.getD_some]; exact ht.2⟩
   have hbc := bytecode_length
-  have hlen : ∀ a ∈ w.children, (DeferredClaim.cells a.freshClaim).length = 24 := fun a ha => by
-    simp [DeferredClaim.cells, (kid_shapes hbc hr a ha).1, bytecodeVars]
+  have hlen : ∀ a ∈ w.children, (DeferredBytecodeClaim.cells a.freshClaim).length = 24 := fun a ha => by
+    simp [DeferredBytecodeClaim.cells, (kid_shapes hbc hr a ha).1, bytecodeVars]
   have e1 : (hm LeanVM.Guest.B2C.fs 0 seed s w).et = ofK (addressOfIndex e) := gen_pow_eq_ofK _
   have e3 : (hm LeanVM.Guest.B2C.fs 0 seed s w).a400 * gen ^ (24 * c) = ofK (addressOfIndex outE) := by
     rw [hout, ← gen_pow_eq_ofK, pow_add]; rfl

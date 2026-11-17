@@ -68,7 +68,7 @@ theorem words_of_reads {rd : Reader} {p : E} {L : List E} (h : ReadsAt rd p L) (
 theorem aggregate_claims_complete_pops {rd : Reader} {m : ℕ} {cpi cfresh ccarried dst tabs : E}
     {cs : List ChildClaims} (hcl : cs.length = m)
     (hcw : ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
-    {h : BatchingHints} {out : DeferredClaim} (hrl : h.sumcheckMessages.length = 23)
+    {h : BatchingHints} {out : DeferredBytecodeClaim} (hrl : h.sumcheckMessages.length = 23)
     (hb : batch cs h = some out) {P : AggPtrs} (hmem : AggMem rd cfresh ccarried dst cs h P) :
     AggVals rd (aggσ rd m cpi cfresh ccarried dst tabs P cs h) m cpi cfresh ccarried dst tabs P cs h ∧
       ∀ (bufs : List ℕ) (kids : List Memory.Tree) (args rets : List E),

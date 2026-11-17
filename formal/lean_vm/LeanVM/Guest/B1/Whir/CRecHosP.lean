@@ -60,7 +60,7 @@ theorem verify_sub_completeBTS {bytecode : List K} (hbl : bytecode.length = 2 ^ 
     (hrz : Limits.verifyDeferredRefusingZero bytecode seed (Node.statementDigest seed c.statement)
       c.freshClaim c.proof = true) (sqE outE : ℕ) (Lin : Main.Layout)
     (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
-    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin) :
+    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin) :
     CompleteAtDTBR fs cert κ "verify_sub" Lin (vsArgs seed c sqE outE) (Returns [])
       (fun rd t ↦ vsTsAny fs W Bvk S.μs S.rate t ∧
         SameStreams (t.pops coreProgram rd) ((Hints.childHints bytecode seed c).drop 4))

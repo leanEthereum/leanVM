@@ -384,7 +384,7 @@ theorem aggregate_claims_completeAtTBR (fs : String → ℕ) (cert : String → 
           name% «aggregate_claims_loop2»))
     (hbs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23")) {m : ℕ}
     (hm1 : 1 ≤ m) (hm16 : m ≤ 16) {cs : List ChildClaims} (hcl : cs.length = m) {h : BatchingHints}
-    {out : DeferredClaim} (hrl : h.sumcheckMessages.length = 23) (hb : batch cs h = some out)
+    {out : DeferredBytecodeClaim} (hrl : h.sumcheckMessages.length = 23) (hb : batch cs h = some out)
     {cpi cfresh ccarried tabs : E} {ds : ℕ} {Lin : Main.Layout}
     (hcw : ∀ rd, Main.MemL rd Lin → ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
     (htabs : ∀ rd, LowDef 16 rd → Main.MemL rd Lin → WinTabs rd tabs)
@@ -409,7 +409,7 @@ theorem aggregate_claims_completeAtTB (fs : String → ℕ) (cert : String → V
           name% «aggregate_claims_loop2»))
     (hbs : TotalLe coreProgram fs "batch_sumcheck__L23" (fun _ => SB "batch_sumcheck__L23")) {m : ℕ}
     (hm1 : 1 ≤ m) (hm16 : m ≤ 16) {cs : List ChildClaims} (hcl : cs.length = m) {h : BatchingHints}
-    {out : DeferredClaim} (hrl : h.sumcheckMessages.length = 23) (hb : batch cs h = some out)
+    {out : DeferredBytecodeClaim} (hrl : h.sumcheckMessages.length = 23) (hb : batch cs h = some out)
     {cpi cfresh ccarried tabs : E} {ds : ℕ} {Lin : Main.Layout}
     (hcw : ∀ rd, Main.MemL rd Lin → ∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c])
     (htabs : ∀ rd, LowDef 16 rd → Main.MemL rd Lin → WinTabs rd tabs)

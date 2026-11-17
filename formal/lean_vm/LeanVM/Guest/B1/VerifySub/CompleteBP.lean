@@ -117,7 +117,7 @@ theorem verify_sub_completeBTP {bytecode : List K} (hbl : bytecode.length = 2 ^ 
     (hκ : 16 ≤ κ) (hvk : VkCompleteAtBK fs cert κ Bvk) {seed : Digest} {c : Child}
     (S : ChildSegs bytecode seed c) (sqE outE : ℕ) (Lin : Main.Layout)
     (hst : c.proof.stream.length ≤ Coverage.childStreamCap)
-    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredClaim.cells c.freshClaim) ∈ Lin)
+    (hexp : ∀ q ∈ vsExpLin sqE, q ∈ Lin) (hout : (outE, DeferredBytecodeClaim.cells c.freshClaim) ∈ Lin)
     (hos : ∀ bs pv, CompleteAtDTBR fs cert κ (Whir.openName S.μs) ((S.kids bs sqE).getD 14 noKid pv).Lin
       ((S.kids bs sqE).getD 14 noKid pv).args ((S.kids bs sqE).getD 14 noKid pv).Out (vsPos bytecode seed c)
       (osBosAt fs W.Bnd S.μs)) :
