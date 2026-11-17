@@ -17,12 +17,12 @@ target/release/leanvm-sidecar --prover experimental --socket /run/leanvm/sidecar
 | `--threads` | 0 | the prover's thread count, 0 for one per core |
 | `--tracing` | off | print each proof's timing tree (`RUST_LOG` sets the level) |
 
-- The sidecar starts the prover's thread pool, compiles the aggregation program before it listens, so the socket appears once it is ready. It says so on standard error, then logs one line per `aggregate` request there.
+- The sidecar starts the prover's thread pool, compiles the aggregation program and warms up before it listens, so the socket appears once it is ready. It says so on standard error, then logs one line per `aggregate` request there.
+- The warm-up, two discarded proofs, makes the first proofs as fast as the next ones: without it they pay for touching the memory the prover then keeps. A proof larger than any before it still pays for its extra memory.
 - A sidecar holds a lock on the file beside its socket, the socket's path with `.lock` appended, while it runs. A second sidecar on the same socket fails at once. A socket left by a sidecar that stopped is replaced; a path that is some other file, or a socket another program listens on, is not.
 - The socket takes the process's umask, and connecting needs write permission on it. Restrict it to the clients the sidecar serves: it trusts them with its resources. Any of them can keep it proving, and every connection may hold a request up to the max request in memory.
 - Requests are proven one at a time, across all connections, in the order they are received in full. A request whose client disconnects before its proof starts is dropped; one already proving finishes, and its proof is dropped. A client that gives up on a request should therefore close its connection, and send the request again, if at all, on a new one.
 - Stop the sidecar with a signal: it holds nothing to save. A request in flight is lost, and its client sees the connection close. The same goes if the prover panics, which exits the process: run the sidecar under a supervisor that restarts it.
-- The first proof of a fresh sidecar is a little slower than the next ones.
 
 ## Clients
 

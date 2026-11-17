@@ -31,7 +31,7 @@ pub struct Config {
 /// A request, its client's connection, and where its outcome goes.
 type Job = (Request, UnixStream, Sender<Outcome>);
 
-/// Starts prover `P` and builds the aggregation program, then listens on `config.socket` and serves until the
+/// Starts prover `P`, builds the aggregation program and warms up, then listens on `config.socket` and serves until the
 /// process ends, proving on the calling thread. The socket appears once the sidecar is ready to prove. Returns only
 /// if it cannot listen, which a second sidecar on the same socket learns before it starts anything.
 ///
@@ -45,6 +45,7 @@ pub fn serve<P: Prover>(config: &Config) -> io::Result<Infallible> {
     }
     P::init();
     let program = aggregation::unified_guest().bytecode().fiat_shamir_iv();
+    warm_up::<P>();
     let listener = UnixListener::bind(&config.socket)?;
     let hello = wire::encode_hello(&Hello {
         max_request: config.max_request,
@@ -63,6 +64,19 @@ pub fn serve<P: Prover>(config: &Config) -> io::Result<Infallible> {
         P::NAME
     );
     prove_forever::<P>(&queue)
+}
+
+/// A fresh process's first proofs are slower, touching memory the allocator then keeps: this pays for it before the
+/// first request, with a discarded leaf and a full recursion over it, at the highest rate, whose memory is the
+/// largest. A blob is the one input that needs no key.
+fn warm_up<P: Prover>() {
+    let blobs = lean_da::BlobMatrix::build(&[[0; lean_da::BLOB_SYMBOLS]]).expect("one blob");
+    let rate = aggregation::MAX_LOG_INV_RATE;
+    let leaf = aggregation::aggregate::<P>(&[], vec![], vec![], Some(&blobs), OutputClaims::All, rate)
+        .expect("the warm-up's leaf proves");
+    let children = vec![(leaf.0, leaf.1); aggregation::MAX_RECURSIONS];
+    aggregation::aggregate::<P>(&children, vec![], vec![], None, OutputClaims::All, rate)
+        .expect("the warm-up's recursion proves");
 }
 
 /// Locks `<socket>.lock`, which the process holds until it ends, so that one sidecar at a time owns the socket.
