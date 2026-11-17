@@ -15,7 +15,6 @@ public import LeanVM.Guest.Checked.Link12
 public import LeanVM.Guest.Checked.Link13
 public import LeanVM.Guest.Checked.Link14
 public import LeanVM.Guest.Checked.Link15
-public import LeanVM.Guest.Checked.Link16
 public import LeanVM.Guest.Checked.Link2
 public import LeanVM.Guest.Checked.Link3
 public import LeanVM.Guest.Checked.Link4
@@ -30,355 +29,6 @@ public import LeanVM.Guest.SoundFacts
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.ModePack.«P30»
-
-open LeanVM.Guest LeanVM.Guest.Mode
-
-public section
-
-theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
-  Mode.fa_cons (Mode.sigsIn_of Fn.«padding_weight__L1».modeSigs
-    (Mode.fa_nil))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«padding_weight__L14».modeSigs
-    (Mode.fa_nil))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«block_selector_tab__L28».modeSigs
-    (Mode.fa_nil))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«child_claim_list_mono_last__L4».modeSigs
-    (Mode.fa_nil))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«da_roots_tree__L3».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«da_pad».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«da_levels__L8_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L109_L16_L6_L3».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L16_L6_L3_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L16_L6_L3_loop1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L22_L23_L5».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L23_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L22_L23_L5_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L15_L24_L6».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L24_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L15_L24_L6_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L44_L17_L4_L2».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L17_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L17_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L25_L14_L4_L2».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L14_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L14_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L55_L23_L6_L3».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L23_L6_L3_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L23_L6_L3_loop1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«da_levels__L128_L7_loop2».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«da_levels__L128_L7_loop2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L25_L6_L4_L2_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L6_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L32_L13_L4_L2_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L13_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L28_L9_L4_L2_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L9_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L109_L20_L6_L3_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L20_L6_L3_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L28_L12_L4_L2_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L12_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1_loop0».modeCert_in,
-    rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L23_L15_L4_L2_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L15_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
-    (Mode.fa_cons (Mode.sigsIn_of
-    Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L4_L10_L20_L5_L1_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«walk_path__L12_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_,
-    Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L4_L10_L20_L5_L1_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_nil))))))))))))))))))))
-
-theorem certs_fn : ∀ K ∈ certs, FnLink K :=
-  Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code101 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code114 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code261 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code394 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code411 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code586 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code766 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code767 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code796 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code845 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code886 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code957 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1023 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1139 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1141 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1256 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1269 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1390 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1410 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1549 rfl rfl)
-    (Mode.fa_nil))))))))))))))))))))
-
-end
-
-end LeanVM.Guest.ModePack.«P30»
-
-namespace LeanVM.Guest.ModePack.«P31»
-
-open LeanVM.Guest LeanVM.Guest.Mode
-
-public section
-
-theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
-  Mode.fa_cons (Mode.sigsIn_of Fn.«index_mle__L3».modeSigs
-    (Mode.fa_nil))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«column_selector__L0».modeSigs
-    (Mode.fa_nil))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L24_L0_L4_L16_L13_L7_L2_L8_L3_L1».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L2_L3_L8_L3_L1».modeCert_in, rfl,
-    rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L23_L0_L4_L16_L14_L2_L3_L12_L4_L1».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1».modeCert_in, rfl,
-    rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L8_L17_L5».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L17_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L17_L5_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L23_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0».modeCert_in, rfl,
-    rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L28_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0».modeCert_in, rfl,
-    rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L55_L19_L6_L3».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L19_L6_L3_loop1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L19_L6_L3_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L23_L0_L4_L16_L22_L4_L0_L0_L0_L0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L0_L0_L0_L0_L0».modeCert_in, rfl,
-    rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L16_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0».modeCert_in, rfl,
-    rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L73_L24_L6_L3».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L24_L6_L3_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L73_L24_L6_L3_loop1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L14_L16_L4_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L16_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L14_L16_L4_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L16_L17_L5_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L17_L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L16_L17_L5_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L37_L11_L4_L2_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L11_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L32_L18_L6_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L18_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L32_L18_L6_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L21_L8_L4_L2_loop1».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L21_L8_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L18_L8_L4_L2_loop1».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L18_L8_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L32_L18_L4_L2_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L18_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L8_L26_L2_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L26_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L26_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L19_L27_L3_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L27_L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L19_L27_L3_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«da_levels__L16_L4_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«da_levels__L16_L4_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
-    (Mode.fa_cons (Mode.sigsIn_of
-    Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«walk_path__L12_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0_loop0».modeCert_in,
-    rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of
-    Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L3_L6_L12_L4_L1_loop0».modeCert_in,
-    rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«walk_path__L18_L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_nil)))))))))))))))))))))))
-
-theorem certs_fn : ∀ K ∈ certs, FnLink K :=
-  Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code202 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code278 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code495 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code538 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code607 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code660 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code700 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code713 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code743 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code924 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code931 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code965 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1028 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1057 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1107 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1276 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1280 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1356 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1383 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1423 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1475 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1525 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1597 rfl rfl)
-    (Mode.fa_nil)))))))))))))))))))))))
-
-end
-
-end LeanVM.Guest.ModePack.«P31»
-
-namespace LeanVM.Guest.ModePack.«P32»
-
-open LeanVM.Guest LeanVM.Guest.Mode
-
-public section
-
-theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
-  Mode.fa_cons (Mode.sigsIn_of Fn.«selector_tables».modeSigs
-    (Mode.fa_nil))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«block_selector__L31».modeSigs
-    (Mode.fa_nil))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«block_selector_tab__L4».modeSigs
-    (Mode.fa_nil))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«block_selector_tab__L22».modeSigs
-    (Mode.fa_nil))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«keccak_plain_rounds__L4_L1».modeSigs
-    (Mode.fa_nil))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«claim_list_last__L10».modeSigs
-    (Mode.fa_nil))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«child_claim_list_last__L15».modeSigs
-    (Mode.fa_nil))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«da_roots_tree__L9».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«da_pad».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«da_levels__L512_L9».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0».modeCert_in, rfl,
-    rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L32_L7_L4_L2».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L7_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«squeeze_point_from__L16».modeSigs
-    (Mode.fa_nil))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L25_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0».modeCert_in, rfl,
-    rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L23_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0».modeCert_in, rfl,
-    rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L15_L0_L4_L16_L19_L7_L3_L12_L4_L1».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L3_L6_L12_L4_L1».modeCert_in, rfl,
-    rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L4_L22_L4».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L22_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L22_L4_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L15_L25_L7».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L15_L25_L7_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L25_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L14_L0_L4_L16_L21_L3_L3_L12_L4_L1».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1».modeCert_in, rfl,
-    rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L4_L16_L4_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L16_L4_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L16_L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L4_L18_L6_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L18_L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L18_L6_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L37_L20_L4_L2_loop1».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L20_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«da_levels__L512_L9_loop7».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«da_levels__L512_L9_loop7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
-    (Mode.fa_cons (Mode.sigsIn_of
-    Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0».modeCert_in,
-    rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«walk_path__L18_L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil))))
-    (Mode.fa_nil))))))))))))))))))))))
-
-theorem certs_fn : ∀ K ∈ certs, FnLink K :=
-  Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code17 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code196 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code237 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code255 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code274 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code362 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code386 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code417 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code532 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code550 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code554 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code619 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code620 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code709 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code784 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code807 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code881 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1039 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1079 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1452 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1505 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1581 rfl rfl)
-    (Mode.fa_nil))))))))))))))))))))))
-
-end
-
-end LeanVM.Guest.ModePack.«P32»
-
 namespace LeanVM.Guest.ModePack.«P33»
 
 open LeanVM.Guest LeanVM.Guest.Mode
@@ -387,54 +37,54 @@ public section
 
 theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
   Mode.fa_cons (Mode.sigsIn_of Fn.«verify_sub».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«grind_check__L13».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L23».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«opening_message__L1_L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«open_stacked__L8».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«ring_switch_target».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L10».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L26».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«grind_check__L15».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_keccak».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«open_stacked__L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L22».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L8».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_tables».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«open_stacked__L10».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«open_stacked__L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«open_stacked__L3».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«open_stacked__L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«certify_placement».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L30».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L12».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«check_opening_terminal».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L27».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L24».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«log2_ceil_in_the_exponent__L0_L34».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«g_power_of_word».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«log2_ceil_in_the_exponent__L16_L34».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«open_stacked__L9».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L11».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«open_stacked__L0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«open_stacked__L9».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«open_stacked__L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L25».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«open_stacked__L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L28».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L9».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L29».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«open_stacked__L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«open_stacked__L0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«log2_ceil_in_the_exponent__L16_L34».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«verify_bus_gkr».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L24».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«log2_ceil_in_the_exponent__L0_L34».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L13».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«open_stacked__L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L21».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L20».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L5».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_bus_gkr».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L21».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L29».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«g_power_of_word».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L28».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L9».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«open_stacked__L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L30».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«ring_switch_target».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«open_stacked__L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«open_stacked__L10».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«open_stacked__L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L27».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L12».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L8».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L15».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«open_stacked__L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L22».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«check_opening_terminal».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L23».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L13».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«certify_placement».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«verify_keccak».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L10».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«squeeze_point_from__L26».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«verify_tables».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_message__L1_L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«open_stacked__L8».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«bus_grind_check__L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))))))))))))))))))))))))))))))))))))))))))))))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«eq_prefix_run__L36».modeSigs
     (Mode.fa_nil))
@@ -456,9 +106,9 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (Mode.sigsIn_of Fn.«grind_check__L25».modeSigs
     (Mode.fa_nil))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L33_L0_L4_L16_L13_L7_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0».modeCert_in, rfl,
     rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«opening_message__L20_L1».modeSigs
     (Mode.fa_nil))
@@ -467,34 +117,34 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L16_L6_L3_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L19_L19_L7».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L19_L19_L7_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L19_L19_L7_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L109_L1_L6_L32_L20_L2_L0_L0_L0_L0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L1_L1_L6_L32_L20_L2_L0_L0_L0_L0_L0».modeCert_in, rfl,
     rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L2».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L32_L15_L4_L2».modeSigs
     (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L15_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil)))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L109_L1_L6_L32_L22_L4_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L1_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0».modeCert_in, rfl,
     rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L73_L1_L6_L32_L23_L5_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0».modeCert_in, rfl,
     rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L23_L13_L4_L2».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L13_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L13_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L13_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L28_L14_L4_L2».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L14_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L14_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L14_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L55_L15_L6_L3_loop1».modeSigs
     (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L15_L6_L3_loop1».modeCert_in, rfl, rfl, rfl⟩)
@@ -518,15 +168,15 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_nil)))
     (Mode.fa_cons (Mode.sigsIn_of
     Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«walk_path__L12_L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0_loop0».modeCert_in,
     rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«walk_path__L12_L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of
     Fn.«opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«walk_path__L18_L6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0».modeCert_in,
     rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«walk_path__L18_L6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_nil))))))))))))))))))))))))))))
 
@@ -539,26 +189,26 @@ theorem certs_fn : ∀ K ∈ certs, FnLink K :=
     (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code276 rfl rfl)
     (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code295 rfl rfl)
     (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code320 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code442 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code455 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code486 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code578 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code585 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code599 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code646 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code717 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code729 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code730 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code801 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code844 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1052 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1133 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1162 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1209 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1401 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1449 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1526 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1593 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code432 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code445 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code476 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code568 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code575 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code589 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code636 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code707 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code719 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code720 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code791 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code834 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1037 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1118 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1147 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1194 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1386 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1434 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1463 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1530 rfl rfl)
     (Mode.fa_nil))))))))))))))))))))))))))))
 
 end
@@ -573,25 +223,25 @@ public section
 
 theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
   Mode.fa_cons (Mode.sigsIn_of Fn.«child_claim_list_any».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L10».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_any_loop1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L16».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L9».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L13».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L8».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L11».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L15».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L14».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L12».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«child_claim_list_any_loop0».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L2».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L15».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L1».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L7».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L14».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L11».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L8».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L9».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L16».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L10».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_any_loop1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L13».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«child_claim_list_last__L0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil)))))))))))))))))))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«eq_prefix_run__L11».modeSigs
     (Mode.fa_nil))
@@ -611,31 +261,31 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L13_L21_L3».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L21_L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L13_L21_L3_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L21_L3».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L5_L19_L7».modeSigs
     (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L19_L7_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L19_L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L18_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0».modeCert_in, rfl,
     rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L17_L0_L4_L16_L17_L5_L3_L12_L4_L1».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1».modeCert_in, rfl,
     rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L28_L11_L4_L2».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L11_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L11_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L11_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L218_L1_L6_L32_L23_L5_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0».modeCert_in, rfl,
     rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L37_L19_L4_L2».modeSigs
     (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L19_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
@@ -645,20 +295,23 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L16_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L16_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«da_levels__L32_L5_loop4».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«da_levels__L32_L5_loop4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil)))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L4_L15_L3_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L15_L3_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L15_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L15_L3_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L109_L14_L6_L3_loop1».modeSigs
     (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L14_L6_L3_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil)))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L28_L16_L4_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L28_L16_L4_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L16_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L28_L16_L4_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L6_L18_L6_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L18_L6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L18_L6_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L18_L6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L23_L8_L4_L2_loop0».modeSigs
     (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L8_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
@@ -673,12 +326,12 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L16_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil)))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L7_L24_L6_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L24_L6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L7_L24_L6_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L24_L6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L5_L23_L5_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L23_L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L23_L5_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L23_L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L55_L21_L6_L3_loop1».modeSigs
     (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L21_L6_L3_loop1».modeCert_in, rfl, rfl, rfl⟩)
@@ -690,9 +343,6 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L218_L24_L6_L3_loop1».modeSigs
     (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L24_L6_L3_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil)))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«da_levels__L32_L5_loop4».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«da_levels__L32_L5_loop4».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
     (Mode.fa_nil)))))))))))))))))))))))))))))
 
 theorem certs_fn : ∀ K ∈ certs, FnLink K :=
@@ -700,31 +350,31 @@ theorem certs_fn : ∀ K ∈ certs, FnLink K :=
     (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code53 rfl rfl)
     (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code148 rfl rfl)
     (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code266 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code445 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code506 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code540 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code643 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code656 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code664 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code707 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code718 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code809 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code889 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code435 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code496 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code530 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code633 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code646 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code654 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code697 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code708 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code799 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code879 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code929 rfl rfl)
     (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code939 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code991 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1007 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1027 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1076 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1105 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1184 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1212 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1262 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1290 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1292 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1304 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1428 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1440 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1483 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code976 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code992 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1012 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1061 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1090 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1169 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1197 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1247 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1275 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1277 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1289 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1413 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1425 rfl rfl)
     (Mode.fa_nil)))))))))))))))))))))))))))))
 
 end
@@ -760,32 +410,32 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L15_L6_L3_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L8_L19_L7».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L19_L7_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L19_L7_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L55_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0».modeCert_in, rfl,
     rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L19_L0_L4_L16_L19_L7_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0».modeCert_in, rfl,
     rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L5_L25_L7».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L25_L7_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L25_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L25_L7_loop0».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L21_L0_L4_L16_L23_L5_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L23_L5_L0_L0_L0_L0_L0».modeCert_in, rfl,
     rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L18_L0_L4_L16_L25_L7_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L25_L7_L0_L0_L0_L0_L0».modeCert_in, rfl,
     rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L7».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L16_L8_L4_L2».modeSigs
     (Mode.fa_cons (⟨_, Fn.«level_residual__L16_L8_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
@@ -797,12 +447,12 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L14_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil)))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L22_L23_L5_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L23_L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L22_L23_L5_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L23_L5».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L15_L24_L6_loop0».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L24_L6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«level_positions__L15_L24_L6_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L24_L6».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L44_L17_L4_L2_loop0».modeSigs
     (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L17_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
@@ -819,16 +469,13 @@ theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
     (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L18_L11_L4_L2_loop1».modeSigs
     (Mode.fa_cons (⟨_, Fn.«level_residual__L18_L11_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil)))
-    (Mode.fa_cons (Mode.sigsIn_of Fn.«da_levels__L256_L8_loop6».modeSigs
-    (Mode.fa_cons (⟨_, Fn.«da_levels__L256_L8_loop6».modeCert_in, rfl, rfl, rfl⟩)
-    (Mode.fa_nil)))
     (Mode.fa_cons (Mode.sigsIn_of
     Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1_loop0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«walk_path__L18_L4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1_loop0».modeCert_in,
     rfl, rfl, rfl⟩)
-    (Mode.fa_cons (⟨_, Fn.«walk_path__L18_L4».modeCert_in, rfl, rfl, rfl⟩)
     (Mode.fa_nil))))
-    (Mode.fa_nil)))))))))))))))))))))))))))
+    (Mode.fa_nil))))))))))))))))))))))))))
 
 theorem certs_fn : ∀ K ∈ certs, FnLink K :=
   Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code4 rfl rfl)
@@ -838,28 +485,317 @@ theorem certs_fn : ∀ K ∈ certs, FnLink K :=
     (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code314 rfl rfl)
     (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code352 rfl rfl)
     (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code378 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code430 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code545 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code649 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code694 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code705 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code869 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code920 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code922 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code944 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1087 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1173 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1282 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1283 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1307 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1359 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1397 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1413 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1417 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1496 rfl rfl)
-    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1599 rfl rfl)
-    (Mode.fa_nil)))))))))))))))))))))))))))
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code420 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code535 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code639 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code684 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code695 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code859 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code910 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code912 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code934 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1072 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1158 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1267 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1268 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1292 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1344 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1382 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1398 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1402 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1536 rfl rfl)
+    (Mode.fa_nil))))))))))))))))))))))))))
 
 end
 
 end LeanVM.Guest.ModePack.«P35»
+
+namespace LeanVM.Guest.ModePack.«P36»
+
+open LeanVM.Guest LeanVM.Guest.Mode
+
+public section
+
+theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
+  Mode.fa_cons (Mode.sigsIn_of Fn.«eq_prefix_run__L26».modeSigs
+    (Mode.fa_nil))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«block_selector__L4».modeSigs
+    (Mode.fa_nil))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«block_selector__L22».modeSigs
+    (Mode.fa_nil))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«block_selector_tab__L13».modeSigs
+    (Mode.fa_nil))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«keccak_layer__L1».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«keccak_layer__L1_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«keccak_layer__L1_loop1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil)))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«column_selector__L9».modeSigs
+    (Mode.fa_nil))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«bus_grind_check__L7».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L24».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil)))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«bus_grind_check__L12».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«grind_check__L29».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil)))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«child_claim_list_mono_last__L11».modeSigs
+    (Mode.fa_nil))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«grind_check__L17».modeSigs
+    (Mode.fa_nil))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L55_L14_L6_L3».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L14_L6_L3_loop1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L14_L6_L3_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L25_L0_L4_L16_L16_L4_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0».modeCert_in, rfl,
+    rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L109_L1_L6_L32_L18_L6_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».modeCert_in, rfl,
+    rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L3_L19_L7».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L3_L19_L7_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L19_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L28_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0».modeCert_in, rfl,
+    rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L37_L17_L4_L2».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L17_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L17_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L6_L26_L2».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L26_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L6_L26_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L28_L15_L3_loop0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L15_L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L28_L15_L3_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«walk_path__L12_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0».modeCert_in,
+    rfl, rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L37_L10_L4_L2_loop0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L10_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil)))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L23_L7_L4_L2_loop1».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L23_L7_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil)))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L44_L13_L4_L2_loop1».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L44_L13_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil)))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L25_L10_L4_L2_loop1».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L25_L10_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil)))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L14_L26_L2_loop0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L14_L26_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L26_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L109_L22_L6_L3_loop0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L22_L6_L3_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil)))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L55_L19_L4_L2_loop1».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L55_L19_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil)))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L32_L19_L4_L2_loop0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L19_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil)))
+    (Mode.fa_cons (Mode.sigsIn_of
+    Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0_loop0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0_loop0».modeCert_in,
+    rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«walk_path__L24_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_nil))))))))))))))))))))))))))))
+
+theorem certs_fn : ∀ K ∈ certs, FnLink K :=
+  Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code68 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code169 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code187 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code246 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code270 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code287 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code331 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code336 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code401 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code437 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code492 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code524 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code550 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code651 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code731 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code787 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code905 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code948 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code958 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1001 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1051 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1121 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1167 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1313 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1329 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1385 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1390 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1539 rfl rfl)
+    (Mode.fa_nil))))))))))))))))))))))))))))
+
+end
+
+end LeanVM.Guest.ModePack.«P36»
+
+namespace LeanVM.Guest.ModePack.«P37»
+
+open LeanVM.Guest LeanVM.Guest.Mode
+
+public section
+
+theorem certs_sigs : ∀ K ∈ certs, SigsIn guestCerts K :=
+  Mode.fa_cons (Mode.sigsIn_of Fn.«shared_selector_tables_loop0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«shared_selector_tables_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil)))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«sel_partial_nibble__L1».modeSigs
+    (Mode.fa_nil))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«padding_weight__L19».modeSigs
+    (Mode.fa_nil))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«block_selector_tab__L3».modeSigs
+    (Mode.fa_nil))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«block_selector_tab__L25».modeSigs
+    (Mode.fa_nil))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«child_claim_list_last__L12».modeSigs
+    (Mode.fa_nil))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«child_claim_list_mono_last__L9».modeSigs
+    (Mode.fa_nil))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L11_L17_L5».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L11_L17_L5_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L17_L5».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L4_L13_L7».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L4_L13_L7_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L13_L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«squeeze_point_from__L11».modeSigs
+    (Mode.fa_nil))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L32_L11_L4_L2».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L32_L11_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil)))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L55_L0_L4_L16_L16_L4_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0».modeCert_in, rfl,
+    rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L32_L0_L4_L16_L20_L2_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L20_L2_L0_L0_L0_L0_L0».modeCert_in, rfl,
+    rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0».modeCert_in, rfl,
+    rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L19_L0_L4_L16_L18_L6_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0».modeCert_in, rfl,
+    rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L28_L10_L4_L2».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L10_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L28_L10_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L5_L20_L2».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L20_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L20_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L5_L22_L4».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L5_L22_L4_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L17_L0_L4_L16_L18_L6_L4_L20_L5_L1».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1».modeCert_in, rfl,
+    rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L15_L0_L4_L16_L19_L7_L2_L8_L3_L1».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1».modeCert_in, rfl,
+    rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L7».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L14_L0_L4_L16_L21_L3_L2_L8_L3_L1».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L2_L3_L8_L3_L1».modeCert_in, rfl,
+    rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L3».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L37_L18_L4_L2».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L18_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L18_L4_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_queries__L18_L0_L4_L16_L24_L6_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L24_L6_L0_L0_L0_L0_L0».modeCert_in, rfl,
+    rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«verify_merkle_cap__L6».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L218_L19_L6_L3_loop0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L218_L19_L6_L3_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil)))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L8_L22_L4_loop0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L8_L22_L4_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L22_L4».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L37_L16_L4_L2_loop1».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L37_L16_L4_L2_loop1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil)))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_positions__L28_L26_L2_loop0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_positions__L28_L26_L2_loop0».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_cons (⟨_, Fn.«decode_query_windows__L26_L2».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil))))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«opening_queries__L0_L0_L4_L16_L27_L3_L0_L0_L0_L0_L0_loop0».modeCert_in,
+    rfl, rfl, rfl⟩)
+    (Mode.fa_nil)))
+    (Mode.fa_cons (Mode.sigsIn_of Fn.«level_residual__L109_L24_L6_L3_loop1».modeSigs
+    (Mode.fa_cons (⟨_, Fn.«level_residual__L109_L24_L6_L3_loop1».modeCert_in, rfl, rfl, rfl⟩)
+    (Mode.fa_nil)))
+    (Mode.fa_nil)))))))))))))))))))))))))))))
+
+theorem certs_fn : ∀ K ∈ certs, FnLink K :=
+  Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code95 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code97 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code119 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code236 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code258 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code383 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code399 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code455 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code472 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code510 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code539 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code558 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code604 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code642 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code653 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code666 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code688 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code730 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code738 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code823 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code825 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code832 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code866 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1195 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1230 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1252 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1407 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1416 rfl rfl)
+    (Mode.fa_cons (Mode.fnLink_of (End.fnOf_mem (by decide)) Checked.code1427 rfl rfl)
+    (Mode.fa_nil)))))))))))))))))))))))))))))
+
+end
+
+end LeanVM.Guest.ModePack.«P37»

@@ -26,6 +26,21 @@ end
 
 end LeanVM.Guest.Fn.«child_claim_list_digest»
 
+namespace LeanVM.Guest.Fn.«da_padding»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_padding`'s computed hints pass the data check. -/
+theorem pairOk :
+    Bridge.pairChk [] Fn.«da_padding».cert.locs Fn.«da_padding».fs Fn.«da_padding».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_padding»
+
 namespace LeanVM.Guest.Fn.«rs_eq_rows__L7»
 
 open LeanVM.Guest
@@ -520,21 +535,6 @@ theorem pairOk :
 end
 
 end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1»
-
-namespace LeanVM.Guest.Fn.«da_levels__L256_L8_loop7»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_levels__L256_L8_loop7`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«da_levels__L256_L8_loop7».cert.locs Fn.«da_levels__L256_L8_loop7».fs Fn.«da_levels__L256_L8_loop7».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L256_L8_loop7»
 
 namespace LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L23_L5_L0_L0_L0_L0_L0_loop0»
 

@@ -72,36 +72,6 @@ end
 
 end LeanVM.Guest.Fn.«column_selector__L28»
 
-namespace LeanVM.Guest.Fn.«da_row_shape»
-
-open LeanVM.Guest
-
-@[expose] public section
-
-/-- `da_row_shape`: the cells only its hints touch, `(value, cell)`. -/
-def bridgeCells : List (ℕ × ℕ) := []
-
-/-- `da_row_shape`: its hints' cell map, its certificate's cells but for `bridgeCells`. -/
-noncomputable def bridgeLoc : ℕ → ℕ := Bridge.locOf Fn.«da_row_shape».cert.locs bridgeCells
-
-end
-
-public section
-
-/-- `da_row_shape`: its hint-only cells are fresh. -/
-theorem bridgeCellsOk :
-    Bridge.cellsFresh Fn.«da_row_shape».cert.locs (Bridge.plumbCells Fn.«da_row_shape».plumb) bridgeCells = true := by
-  decide +kernel
-
-/-- `da_row_shape` is in the hint bridge's prefix class. -/
-theorem bridgePrefixOk :
-    Bridge.prefixOk bridgeLoc Fn.«da_row_shape».core.body Fn.«da_row_shape».code.code Data.adviceFn31 = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_row_shape»
-
 namespace LeanVM.Guest.Fn.«da_verify_cell»
 
 open LeanVM.Guest
@@ -155,7 +125,7 @@ theorem bridgeCellsOk :
 
 /-- `grind_check__L23` is in the hint bridge's prefix class. -/
 theorem bridgePrefixOk :
-    Bridge.prefixOk bridgeLoc Fn.«grind_check__L23».core.body Fn.«grind_check__L23».code.code Data.adviceFn453 = true := by
+    Bridge.prefixOk bridgeLoc Fn.«grind_check__L23».core.body Fn.«grind_check__L23».code.code Data.adviceFn443 = true := by
   decide +kernel
 
 end
@@ -185,7 +155,7 @@ theorem bridgeCellsOk :
 
 /-- `level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0` is in the hint bridge's prefix class. -/
 theorem bridgePrefixOk :
-    Bridge.prefixOk bridgeLoc Fn.«level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0».core.body Fn.«level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0».code.code Data.adviceFn688 = true := by
+    Bridge.prefixOk bridgeLoc Fn.«level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0».core.body Fn.«level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0».code.code Data.adviceFn678 = true := by
   decide +kernel
 
 end
@@ -215,7 +185,7 @@ theorem bridgeCellsOk :
 
 /-- `level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1` is in the hint bridge's prefix class. -/
 theorem bridgePrefixOk :
-    Bridge.prefixOk bridgeLoc Fn.«level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1».core.body Fn.«level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1».code.code Data.adviceFn708 = true := by
+    Bridge.prefixOk bridgeLoc Fn.«level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1».core.body Fn.«level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1».code.code Data.adviceFn698 = true := by
   decide +kernel
 
 end
@@ -245,7 +215,7 @@ theorem bridgeCellsOk :
 
 /-- `level_queries__L16_L0_L4_L16_L22_L4_L0_L0_L0_L0` is in the hint bridge's prefix class. -/
 theorem bridgePrefixOk :
-    Bridge.prefixOk bridgeLoc Fn.«level_queries__L16_L0_L4_L16_L22_L4_L0_L0_L0_L0».core.body Fn.«level_queries__L16_L0_L4_L16_L22_L4_L0_L0_L0_L0».code.code Data.adviceFn878 = true := by
+    Bridge.prefixOk bridgeLoc Fn.«level_queries__L16_L0_L4_L16_L22_L4_L0_L0_L0_L0».core.body Fn.«level_queries__L16_L0_L4_L16_L22_L4_L0_L0_L0_L0».code.code Data.adviceFn868 = true := by
   decide +kernel
 
 end
@@ -275,7 +245,7 @@ theorem bridgeCellsOk :
 
 /-- `level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0` is in the hint bridge's prefix class. -/
 theorem bridgePrefixOk :
-    Bridge.prefixOk bridgeLoc Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».core.body Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».code.code Data.adviceFn526 = true := by
+    Bridge.prefixOk bridgeLoc Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».core.body Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0».code.code Data.adviceFn516 = true := by
   decide +kernel
 
 end
@@ -365,7 +335,7 @@ theorem bridgeCellsOk :
 
 /-- `walk_path__L18_L7` is in the hint bridge's prefix class. -/
 theorem bridgePrefixOk :
-    Bridge.prefixOk bridgeLoc Fn.«walk_path__L18_L7».core.body Fn.«walk_path__L18_L7».code.code Data.adviceFn1580 = true := by
+    Bridge.prefixOk bridgeLoc Fn.«walk_path__L18_L7».core.body Fn.«walk_path__L18_L7».code.code Data.adviceFn1517 = true := by
   decide +kernel
 
 end

@@ -36,16 +36,16 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop78`, once. -/
+/-- `__loop83`, once. -/
 theorem st : shareStaticD Fn.«level_residual__L33_L6_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop78`, window 0. -/
+/-- `__loop83`, window 0. -/
 theorem sw0 : shareWinD Fn.«level_residual__L33_L6_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
-/-- `__loop78`: its static sharing check and every window's. -/
+/-- `__loop83`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_residual__L33_L6_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -63,21 +63,21 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop104`, once. -/
+/-- `__loop109`, once. -/
 theorem st : shareStaticD Fn.«level_residual__L55_L11_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop104`, window 0. -/
+/-- `__loop109`, window 0. -/
 theorem sw0 : shareWinD Fn.«level_residual__L55_L11_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop104`, window 1. -/
+/-- `__loop109`, window 1. -/
 theorem sw1 : shareWinD Fn.«level_residual__L55_L11_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
   decide +kernel
 
-/-- `__loop104`: its static sharing check and every window's. -/
+/-- `__loop109`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_residual__L55_L11_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 1 := by decide +kernel
   rw [hc] at hi

@@ -200,7 +200,7 @@ theorem wok30 : Bridge.WitJ 30 :=
 
 theorem wok31 : Bridge.WitJ 31 :=
   Bridge.witJ_of Checked.code31 Checked.core31 Checked.cert31 Checked.plumbEq31 Bridge.ProgAl.tab31 rfl Checked.fsEq31
-    Fn.«da_row_shape».witOk
+    Fn.«da_padding».witOk
 
 theorem wok32 : Bridge.WitJ 32 :=
   Bridge.witJ_of Checked.code32 Checked.core32 Checked.cert32 Checked.plumbEq32 Bridge.ProgAl.tab32 rfl Checked.fsEq32

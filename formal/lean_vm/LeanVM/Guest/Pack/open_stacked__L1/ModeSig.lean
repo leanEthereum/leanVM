@@ -16,7 +16,7 @@ namespace LeanVM.Guest.Fn.«open_stacked__L1»
 /-- `open_stacked__L1`: its entry, the cells and heap facts it needs at entry and guarantees at
     return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨215121, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], none, (List.flatten [[⟨0, 0, [((.fr 11),
+  ⟨214300, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], none, (List.flatten [[⟨0, 0, [((.fr 11),
     1)]⟩, ⟨0, 1, [((.fr 11), 1)]⟩, ⟨0, 2, [((.fr 11), 1)]⟩, ⟨0, 3, [((.fr 11), 1)]⟩, ⟨0, 4, [((.fr
     11), 1)]⟩, ⟨0, 5, [((.fr 11), 1)]⟩, ⟨0, 6, [((.fr 11), 1)]⟩, ⟨0, 7, [((.fr 11), 1)]⟩, ⟨0, 8,
     [((.fr 11), 1)]⟩, ⟨0, 9, [((.fr 11), 1)]⟩, ⟨0, 10, [((.fr 11), 1)]⟩, ⟨0, 11, [((.fr 11), 1)]⟩,

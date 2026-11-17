@@ -230,7 +230,7 @@ theorem jc30 : Bridge.jcData 30 = true := by
 theorem jc31 : Bridge.jcData 31 = true := by
   have hx : Bridge.extraOf 31 = [] := congrArg Prod.fst ProgAl.tab31
   rw [Bridge.jcData, Checked.code31, Checked.core31, Checked.cert31, Checked.plumbEq31, Checked.fsEq31, hx]
-  exact Fn.«da_row_shape».jcOk
+  exact Fn.«da_padding».jcOk
 
 theorem jc32 : Bridge.jcData 32 = true := by
   have hx : Bridge.extraOf 32 = [] := congrArg Prod.fst ProgAl.tab32

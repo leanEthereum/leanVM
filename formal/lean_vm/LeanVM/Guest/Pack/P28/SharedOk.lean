@@ -13,7 +13,6 @@ public import LeanVM.Guest.Pack.«P28».Shared1
 public import LeanVM.Guest.Pack.«P28».Shared2
 public import LeanVM.Guest.Pack.«P28».Shared3
 public import LeanVM.Guest.Pack.«P28».Shared4
-public import LeanVM.Guest.Pack.«P28».Shared5
 public import LeanVM.Guest.Pack.«P28».Shared6
 public import LeanVM.Guest.Pack.«P28».Shared7
 public import LeanVM.Guest.Pack.«P28».Shared8
@@ -71,25 +70,6 @@ theorem shareOk : ShareOkD Fn.«level_positions__L8_L22_L4».core (cert.withPows
 end
 end LeanVM.Guest.Fn.«level_positions__L8_L22_L4»
 
-namespace LeanVM.Guest.Fn.«level_residual__L109_L17_L6_L3_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-/-- `__loop162`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«level_residual__L109_L17_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 2 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-  · exact sw1
-  · exact sw2
-⟩
-
-end
-end LeanVM.Guest.Fn.«level_residual__L109_L17_L6_L3_loop0»
-
 namespace LeanVM.Guest.Fn.«walk_path__L12_L4»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -117,7 +97,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop544`: its static sharing check and every window's. -/
+/-- `__loop501`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 2 := by decide +kernel
   rw [hc] at hi
@@ -136,7 +116,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop562`: its static sharing check and every window's. -/
+/-- `__loop519`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 2 := by decide +kernel
   rw [hc] at hi

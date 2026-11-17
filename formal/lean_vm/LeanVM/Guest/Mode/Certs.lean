@@ -32,6 +32,7 @@ public section
 /-- **The walks and hints the kernel does not check**, one per function: a walk failing or too
     costly to check (`WalkHyp`), hints too costly to check in one piece (`HintsHyp`). -/
 structure ModeHyps : Prop where
+  «da_verify» : WalkHyp Fn.«da_verify».modeCert
 
 theorem guestGroup_walk0 (_h : ModeHyps) : ∀ l ∈ guestGroups[0]!, ∀ K ∈ l, CertWalk K :=
   Mode.fa_cons (ModePack.«P0».certs_walk)
@@ -90,10 +91,10 @@ theorem guestGroup_walk2 (_h : ModeHyps) : ∀ l ∈ guestGroups[2]!, ∀ K ∈ 
     (Mode.fa_cons (ModePack.«P51».certs_walk)
     (Mode.fa_nil))))))))))))))))
 
-theorem guestGroup_walk3 (_h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ l, CertWalk K :=
+theorem guestGroup_walk3 (h : ModeHyps) : ∀ l ∈ guestGroups[3]!, ∀ K ∈ l, CertWalk K :=
   Mode.fa_cons (ModePack.«P52».certs_walk)
     (Mode.fa_cons (ModePack.«P53».certs_walk)
-    (Mode.fa_cons (ModePack.«P54».certs_walk)
+    (Mode.fa_cons (ModePack.«P54».certs_walk h.«da_verify»)
     (Mode.fa_cons (ModePack.«P55».certs_walk)
     (Mode.fa_cons (ModePack.«P56».certs_walk)
     (Mode.fa_cons (ModePack.«P57».certs_walk)

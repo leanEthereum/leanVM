@@ -38,20 +38,19 @@ def layerSt (first : ℕ) : List Atom :=
     .load (.n (layOff first + 542)) (.n (layOff first + 720)) 48,
     .load (.n (layOff first + 543)) (.n (layOff first + 720)) 64,
     .load (.n (layOff first + 722)) (.n (layOff first + 720)) 80,
-    .load (.n (layOff first + 717)) (.n (layOff first + 720)) 96,
-    .load (.n (layOff first + 723)) (.n (layOff first + 720)) 112] ++
-  (List.range 11).map (fun i ↦ .load (.n (layOff first + 773 + 33 * i)) (.n (layOff first + 748)) i) ++
-  [.load (.n (weightEnd first (layOff first) + 26)) (.n 12) 0,
-    .load (.n (layOff first + 719)) (.n 12) 2, .load (.n (layOff first + 748)) (.n 12) 4] ++
-  (List.range 25).map (fun i ↦ .load (.n (weightEnd first (layOff first) + 31 + 4 * i))
-    (.n (weightEnd first (layOff first) + 27)) i) ++
-  [.load (.n (weightEnd first (layOff first) + 27)) (.n 12) 3] ++
+    .load (.n (layOff first + 717)) (.n (layOff first + 720)) 96] ++
+  (List.range 11).map (fun i ↦ .load (.n (layOff first + 771 + 33 * i)) (.n (layOff first + 746)) i) ++
+  [.load (.n (weightEnd first (layOff first) + 25)) (.n 12) 0,
+    .load (.n (layOff first + 719)) (.n 12) 2, .load (.n (layOff first + 746)) (.n 12) 4] ++
+  (List.range 25).map (fun i ↦ .load (.n (weightEnd first (layOff first) + 30 + 4 * i))
+    (.n (weightEnd first (layOff first) + 26)) i) ++
+  [.load (.n (weightEnd first (layOff first) + 26)) (.n 12) 3] ++
   (List.range 7).map (fun i ↦ .load (.n (topV (weightEnd first (layOff first)) + 46 + 43 * i))
     (.n (topV (weightEnd first (layOff first)) + 3)) i) ++
   [.load (.n (topV (weightEnd first (layOff first)) + 3)) (.n 12) 5]
 
 /-- The checker's count after the body. -/
-def layerN (first : ℕ) : ℕ := if first = 1 then 1839 else 2168
+def layerN (first : ℕ) : ℕ := if first = 1 then 1836 else 2165
 
 theorem layer_chk {first : ℕ} (hf : first < 2) :
     Fwd.chk 16 (layerT first) = some (layerN first) := by

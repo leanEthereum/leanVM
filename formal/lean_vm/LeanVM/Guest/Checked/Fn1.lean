@@ -25,7 +25,6 @@ import LeanVM.Guest.Checked.Link12
 import LeanVM.Guest.Checked.Link13
 import LeanVM.Guest.Checked.Link14
 import LeanVM.Guest.Checked.Link15
-import LeanVM.Guest.Checked.Link16
 public import LeanVM.Guest.Pack.«P15».Core
 public import LeanVM.Guest.Pack.«P15».Bundle
 public import LeanVM.Guest.Pack.«P53».Core
@@ -521,11 +520,11 @@ theorem ok82 : CheckOk 82 := checkOk_one (by decide +kernel) w82_0
 
 theorem plain82 : Plain 82 := plain_of_nil (by decide +kernel)
 
-theorem link83 : Link 83 (Glob.ofSigs ([(83, Fn.«rs_eq_run_loop0».sig), (438, Fn.«rs_eq_rows__L8».sig)]) Data.jtTrie globSem)
+theorem link83 : Link 83 (Glob.ofSigs ([(83, Fn.«rs_eq_run_loop0».sig), (428, Fn.«rs_eq_rows__L8».sig)]) Data.jtTrie globSem)
     Fn.«rs_eq_run_loop0».code Fn.«rs_eq_run_loop0».core (Fn.«rs_eq_run_loop0».cert.withPows Data.powTree) :=
   Link.of code83 core83 cert83 
     (SigsOk.cons sig83 rfl 
-    (SigsOk.cons sig438 rfl SigsOk.nil))
+    (SigsOk.cons sig428 rfl SigsOk.nil))
     (by decide +kernel)
 
 theorem w83_0 : WinOk 83 0 := link83.win rfl Fn.«rs_eq_run_loop0».w0
@@ -672,13 +671,13 @@ theorem ok92 : CheckOk 92 := checkOk_one (by decide +kernel) w92_0
 
 theorem plain92 : Plain 92 := plain_of_nil (by decide +kernel)
 
-theorem link93 : Link 93 (Glob.ofSigs ([(93, Fn.«verify_bus_gkr_loop0».sig), (439, Fn.«verify_bus_gkr_loop0_loop0».sig), (440, Fn.«gkr_rounds__L2».sig), (441, Fn.«gkr_rounds__L1».sig)]) Data.jtTrie globSem)
+theorem link93 : Link 93 (Glob.ofSigs ([(93, Fn.«verify_bus_gkr_loop0».sig), (429, Fn.«verify_bus_gkr_loop0_loop0».sig), (430, Fn.«gkr_rounds__L2».sig), (431, Fn.«gkr_rounds__L1».sig)]) Data.jtTrie globSem)
     Fn.«verify_bus_gkr_loop0».code Fn.«verify_bus_gkr_loop0».core (Fn.«verify_bus_gkr_loop0».cert.withPows Data.powTree) :=
   Link.of code93 core93 cert93 
     (SigsOk.cons sig93 rfl 
-    (SigsOk.cons sig439 rfl 
-    (SigsOk.cons sig440 rfl 
-    (SigsOk.cons sig441 rfl SigsOk.nil))))
+    (SigsOk.cons sig429 rfl 
+    (SigsOk.cons sig430 rfl 
+    (SigsOk.cons sig431 rfl SigsOk.nil))))
     (by decide +kernel)
 
 theorem w93_0 : WinOk 93 0 := link93.win rfl Fn.«verify_bus_gkr_loop0».w0

@@ -109,7 +109,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop71`, once. -/
+/-- `__loop77`, once. -/
 theorem st : shareStaticD Fn.«level_residual__L55_L10_L4_L2_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 

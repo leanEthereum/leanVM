@@ -17,76 +17,76 @@ open LeanVM.Guest.B1
 @[expose] public section
 
 /-- `opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0`. -/
-theorem walkOk_973 : mainOkS 973 1 (⟨1, 1, 6, 32, 16, 4, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_958 : mainOkS 958 1 (⟨1, 1, 6, 32, 16, 4, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0`. -/
-theorem walkOk_1520 : loop1Ok 1520 1 (⟨1, 1, 6, 32, 16, 4, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_1457 : loop1Ok 1457 1 (⟨1, 1, 6, 32, 16, 4, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0`. -/
-theorem walkOk_977 : mainOkS 977 1 (⟨1, 1, 6, 32, 18, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_962 : mainOkS 962 1 (⟨1, 1, 6, 32, 18, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0`. -/
-theorem walkOk_1524 : loop1Ok 1524 1 (⟨1, 1, 6, 32, 18, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_1461 : loop1Ok 1461 1 (⟨1, 1, 6, 32, 18, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0`. -/
-theorem walkOk_985 : mainOkS 985 0 (⟨0, 0, 4, 16, 15, 3, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_970 : mainOkS 970 0 (⟨0, 0, 4, 16, 15, 3, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0_loop0`. -/
-theorem walkOk_1526 : loop0Ok 1526 (⟨0, 0, 4, 16, 15, 3, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_1463 : loop0Ok 1463 (⟨0, 0, 4, 16, 15, 3, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0`. -/
-theorem walkOk_987 : mainOkS 987 0 (⟨0, 0, 4, 16, 17, 5, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_972 : mainOkS 972 0 (⟨0, 0, 4, 16, 17, 5, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0_loop0`. -/
-theorem walkOk_1528 : loop0Ok 1528 (⟨0, 0, 4, 16, 17, 5, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_1465 : loop0Ok 1465 (⟨0, 0, 4, 16, 17, 5, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0`. -/
-theorem walkOk_1078 : mainOkS 1078 0 (⟨0, 0, 4, 16, 19, 7, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_1063 : mainOkS 1063 0 (⟨0, 0, 4, 16, 19, 7, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L19_L7_L0_L0_L0_L0_L0_loop0`. -/
-theorem walkOk_1545 : loop0Ok 1545 (⟨0, 0, 4, 16, 19, 7, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_1482 : loop0Ok 1482 (⟨0, 0, 4, 16, 19, 7, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0`. -/
-theorem walkOk_1286 : mainOkS 1286 0 (⟨0, 1, 6, 32, 22, 4, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_1271 : mainOkS 1271 0 (⟨0, 1, 6, 32, 22, 4, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L0_L1_L6_L32_L22_L4_L0_L0_L0_L0_L0_loop0`. -/
-theorem walkOk_1579 : loop1Ok 1579 0 (⟨0, 1, 6, 32, 22, 4, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_1516 : loop1Ok 1516 0 (⟨0, 1, 6, 32, 22, 4, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1`. -/
-theorem walkOk_1296 : mainOkS 1296 0 (⟨0, 0, 4, 16, 21, 3, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_1281 : mainOkS 1281 0 (⟨0, 0, 4, 16, 21, 3, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L1_loop0`. -/
-theorem walkOk_1585 : loop0Ok 1585 (⟨0, 0, 4, 16, 21, 3, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_1522 : loop0Ok 1522 (⟨0, 0, 4, 16, 21, 3, 5, 15, 36, 6, 1, [1, 6, 360, 18245760, 78274681211224091]⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1`. -/
-theorem walkOk_1340 : mainOkS 1340 0 (⟨0, 0, 4, 16, 20, 2, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_1325 : mainOkS 1325 0 (⟨0, 0, 4, 16, 20, 2, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L20_L2_L2_L3_L8_L3_L1_loop0`. -/
-theorem walkOk_1591 : loop0Ok 1591 (⟨0, 0, 4, 16, 20, 2, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_1528 : loop0Ok 1528 (⟨0, 0, 4, 16, 20, 2, 2, 3, 8, 3, 1, [1, 6]⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0`. -/
-theorem walkOk_1379 : mainOkS 1379 0 (⟨0, 1, 6, 32, 24, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_1364 : mainOkS 1364 0 (⟨0, 1, 6, 32, 24, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L0_L1_L6_L32_L24_L6_L0_L0_L0_L0_L0_loop0`. -/
-theorem walkOk_1593 : loop1Ok 1593 0 (⟨0, 1, 6, 32, 24, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_1530 : loop1Ok 1530 0 (⟨0, 1, 6, 32, 24, 6, 0, 0, 0, 0, 0, []⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1`. -/
-theorem walkOk_1389 : mainOkS 1389 0 (⟨0, 0, 4, 16, 21, 3, 3, 6, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_1374 : mainOkS 1374 0 (⟨0, 0, 4, 16, 21, 3, 3, 6, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L21_L3_L3_L6_L12_L4_L1_loop0`. -/
-theorem walkOk_1598 : loop0Ok 1598 (⟨0, 0, 4, 16, 21, 3, 3, 6, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_1535 : loop0Ok 1535 (⟨0, 0, 4, 16, 21, 3, 3, 6, 12, 4, 1, [1, 6, 360]⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1`. -/
-theorem walkOk_1436 : mainOkS 1436 0 (⟨0, 0, 4, 16, 21, 3, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_1421 : mainOkS 1421 0 (⟨0, 0, 4, 16, 21, 3, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L21_L3_L4_L10_L20_L5_L1_loop0`. -/
-theorem walkOk_1604 : loop0Ok 1604 (⟨0, 0, 4, 16, 21, 3, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_1541 : loop0Ok 1541 (⟨0, 0, 4, 16, 21, 3, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1`. -/
-theorem walkOk_1438 : mainOkS 1438 0 (⟨0, 0, 4, 16, 23, 5, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_1423 : mainOkS 1423 0 (⟨0, 0, 4, 16, 23, 5, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq = true := by decide +kernel
 
 /-- `opening_queries__L0_L0_L4_L16_L23_L5_L4_L10_L20_L5_L1_loop0`. -/
-theorem walkOk_1606 : loop0Ok 1606 (⟨0, 0, 4, 16, 23, 5, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq = true := by decide +kernel
+theorem walkOk_1543 : loop0Ok 1543 (⟨0, 0, 4, 16, 23, 5, 4, 10, 20, 5, 1, [1, 6, 360, 18245760]⟩ : OqShape).oq = true := by decide +kernel
 
 end
 end LeanVM.Guest.End

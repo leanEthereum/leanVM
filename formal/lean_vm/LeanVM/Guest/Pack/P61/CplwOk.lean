@@ -11,8 +11,6 @@ public import LeanVM.Guest.B2C.CplCheck
 public import Mathlib.Tactic.IntervalCases
 public import LeanVM.Guest.Pack.«P61».Cplw3
 public import LeanVM.Guest.Pack.«P61».Cplw4
-public import LeanVM.Guest.Pack.«P61».Cplw5
-public import LeanVM.Guest.Pack.«P61».Cplw6
 
 namespace LeanVM.Guest.Fn.«level_residual__L55_L17_L4_L2_loop0»
 
@@ -20,8 +18,8 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop310`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(1305, Fn.«level_residual__L55_L17_L4_L2_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L55_L17_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+/-- `__loop315`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs ([(1290, Fn.«level_residual__L55_L17_L4_L2_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L55_L17_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -34,32 +32,4 @@ theorem cplOk : CplOkD (Glob.ofSigs ([(1305, Fn.«level_residual__L55_L17_L4_L2_
 
 end
 end LeanVM.Guest.Fn.«level_residual__L55_L17_L4_L2_loop0»
-
-namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-/-- `__loop508`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(1521, Fn.«walk_path__L12_L5».sig), (1528, Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem) code Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
-  intro i hi k hk
-  have hc : (cert.withPows Data.powTree).cuts.length = 2 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · have hn : nPartsD parts 0 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw0_0
-  · have hn : nPartsD parts 1 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw1_0
-  · have hn : nPartsD parts 2 = 1 := by decide +kernel
-    rw [hn] at hk
-    interval_cases k
-    · exact cw2_0
-
-end
-end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0_loop0»
 

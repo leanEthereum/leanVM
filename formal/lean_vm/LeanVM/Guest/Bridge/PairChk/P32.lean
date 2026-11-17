@@ -116,21 +116,6 @@ end
 
 end LeanVM.Guest.Fn.«child_claim_list_last__L15»
 
-namespace LeanVM.Guest.Fn.«da_roots_tree__L9»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_roots_tree__L9`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«da_roots_tree__L9».cert.locs Fn.«da_roots_tree__L9».fs Fn.«da_roots_tree__L9».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_roots_tree__L9»
-
 namespace LeanVM.Guest.Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0»
 
 open LeanVM.Guest
@@ -310,21 +295,6 @@ theorem pairOk :
 end
 
 end LeanVM.Guest.Fn.«level_residual__L37_L20_L4_L2_loop1»
-
-namespace LeanVM.Guest.Fn.«da_levels__L512_L9_loop7»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_levels__L512_L9_loop7`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«da_levels__L512_L9_loop7».cert.locs Fn.«da_levels__L512_L9_loop7».fs Fn.«da_levels__L512_L9_loop7».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L512_L9_loop7»
 
 namespace LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L25_L7_L0_L0_L0_L0_L0_loop0»
 

@@ -25,105 +25,60 @@ import LeanVM.Guest.Checked.Link12
 import LeanVM.Guest.Checked.Link13
 import LeanVM.Guest.Checked.Link14
 import LeanVM.Guest.Checked.Link15
-import LeanVM.Guest.Checked.Link16
-public import LeanVM.Guest.Pack.«P27».Core
-public import LeanVM.Guest.Pack.«P27».Bundle
-public import LeanVM.Guest.Pack.«P38».Sig
-public import LeanVM.Guest.Pack.«P57».Sig
-public import LeanVM.Guest.Pack.«P0».Sig
-public import LeanVM.Guest.Pack.«P19».Sig
-public import LeanVM.Guest.Pack.«P50».Sig
-public import LeanVM.Guest.Pack.«P5».Sig
+public import LeanVM.Guest.Pack.«P14».Core
+public import LeanVM.Guest.Pack.«P14».Bundle
 public import LeanVM.Guest.Pack.«P44».Core
 public import LeanVM.Guest.Pack.«P44».Bundle
-public import LeanVM.Guest.Pack.«P21».Sig
-public import LeanVM.Guest.Pack.«P2».Sig
-public import LeanVM.Guest.Pack.«P47».Sig
-public import LeanVM.Guest.Pack.«P28».Sig
-public import LeanVM.Guest.Pack.«P9».Sig
-public import LeanVM.Guest.Pack.«P54».Sig
-public import LeanVM.Guest.Pack.«P35».Sig
-public import LeanVM.Guest.Pack.«P16».Sig
+public import LeanVM.Guest.Pack.«P14».Sig
+public import LeanVM.Guest.Pack.«P44».Sig
 public import LeanVM.Guest.Pack.«P28».Core
 public import LeanVM.Guest.Pack.«P28».Bundle
-public import LeanVM.Guest.Pack.«P37».Sig
-public import LeanVM.Guest.Pack.«P18».Sig
-public import LeanVM.Guest.Pack.«P63».Sig
-public import LeanVM.Guest.Pack.«P44».Sig
-public import LeanVM.Guest.Pack.«P25».Sig
-public import LeanVM.Guest.Pack.«P6».Sig
-public import LeanVM.Guest.Pack.«P51».Sig
-public import LeanVM.Guest.Pack.«P32».Sig
-public import LeanVM.Guest.Pack.«P61».Sig
-public import LeanVM.Guest.Pack.«P3».Core
-public import LeanVM.Guest.Pack.«P3».Bundle
-public import LeanVM.Guest.Pack.«P46».Sig
-public import LeanVM.Guest.Pack.«P1».Sig
-public import LeanVM.Guest.Pack.«P8».Sig
-public import LeanVM.Guest.Pack.«P27».Sig
-public import LeanVM.Guest.Pack.«P58».Sig
-public import LeanVM.Guest.Pack.«P13».Sig
-public import LeanVM.Guest.Pack.«P20».Sig
-public import LeanVM.Guest.Pack.«P39».Sig
-public import LeanVM.Guest.Pack.«P22».Sig
-public import LeanVM.Guest.Pack.«P41».Sig
-public import LeanVM.Guest.Pack.«P56».Core
-public import LeanVM.Guest.Pack.«P56».Bundle
-public import LeanVM.Guest.Pack.«P56».Sig
+public import LeanVM.Guest.Pack.«P60».Core
+public import LeanVM.Guest.Pack.«P60».Bundle
+public import LeanVM.Guest.Pack.«P28».Sig
+public import LeanVM.Guest.Pack.«P60».Sig
 public import LeanVM.Guest.Pack.«P11».Core
 public import LeanVM.Guest.Pack.«P11».Bundle
-public import LeanVM.Guest.Pack.«P11».Sig
-public import LeanVM.Guest.Pack.«P30».Core
-public import LeanVM.Guest.Pack.«P30».Bundle
-public import LeanVM.Guest.Pack.«P30».Sig
-public import LeanVM.Guest.Pack.«P49».Core
-public import LeanVM.Guest.Pack.«P49».Bundle
-public import LeanVM.Guest.Pack.«P49».Sig
-public import LeanVM.Guest.Pack.«P4».Core
-public import LeanVM.Guest.Pack.«P4».Bundle
-public import LeanVM.Guest.Pack.«P4».Sig
-public import LeanVM.Guest.Pack.«P23».Core
-public import LeanVM.Guest.Pack.«P23».Bundle
+public import LeanVM.Guest.Pack.«P50».Core
+public import LeanVM.Guest.Pack.«P50».Bundle
+public import LeanVM.Guest.Pack.«P9».Sig
 public import LeanVM.Guest.Pack.«P23».Sig
 public import LeanVM.Guest.Pack.«P42».Core
 public import LeanVM.Guest.Pack.«P42».Bundle
-public import LeanVM.Guest.Pack.«P42».Sig
-public import LeanVM.Guest.Pack.«P6».Core
-public import LeanVM.Guest.Pack.«P6».Bundle
 public import LeanVM.Guest.Pack.«P36».Core
 public import LeanVM.Guest.Pack.«P36».Bundle
-public import LeanVM.Guest.Pack.«P36».Sig
-public import LeanVM.Guest.Pack.«P0».Core
-public import LeanVM.Guest.Pack.«P0».Bundle
-public import LeanVM.Guest.Pack.«P31».Core
-public import LeanVM.Guest.Pack.«P31».Bundle
-public import LeanVM.Guest.Pack.«P31».Sig
-public import LeanVM.Guest.Pack.«P14».Core
-public import LeanVM.Guest.Pack.«P14».Bundle
-public import LeanVM.Guest.Pack.«P14».Sig
-public import LeanVM.Guest.Pack.«P60».Core
-public import LeanVM.Guest.Pack.«P60».Bundle
-public import LeanVM.Guest.Pack.«P60».Sig
-public import LeanVM.Guest.Pack.«P50».Core
-public import LeanVM.Guest.Pack.«P50».Bundle
 public import LeanVM.Guest.Pack.«P45».Sig
 public import LeanVM.Guest.Pack.«P61».Core
 public import LeanVM.Guest.Pack.«P61».Bundle
 public import LeanVM.Guest.Pack.«P22».Core
 public import LeanVM.Guest.Pack.«P22».Bundle
+public import LeanVM.Guest.Pack.«P47».Sig
+public import LeanVM.Guest.Pack.«P27».Sig
+public import LeanVM.Guest.Pack.«P4».Core
+public import LeanVM.Guest.Pack.«P4».Bundle
 public import LeanVM.Guest.Pack.«P20».Core
 public import LeanVM.Guest.Pack.«P20».Bundle
+public import LeanVM.Guest.Pack.«P2».Sig
+public import LeanVM.Guest.Pack.«P61».Sig
 public import LeanVM.Guest.Pack.«P51».Core
 public import LeanVM.Guest.Pack.«P51».Bundle
+public import LeanVM.Guest.Pack.«P51».Sig
 public import LeanVM.Guest.Pack.«P12».Core
 public import LeanVM.Guest.Pack.«P12».Bundle
+public import LeanVM.Guest.Pack.«P6».Sig
 public import LeanVM.Guest.Pack.«P12».Sig
 public import LeanVM.Guest.Pack.«P21».Core
 public import LeanVM.Guest.Pack.«P21».Bundle
+public import LeanVM.Guest.Pack.«P0».Sig
+public import LeanVM.Guest.Pack.«P21».Sig
 public import LeanVM.Guest.Pack.«P63».Core
 public import LeanVM.Guest.Pack.«P63».Bundle
+public import LeanVM.Guest.Pack.«P63».Sig
+public import LeanVM.Guest.Pack.«P56».Core
+public import LeanVM.Guest.Pack.«P56».Bundle
 public import LeanVM.Guest.Pack.«P58».Core
 public import LeanVM.Guest.Pack.«P58».Bundle
+public import LeanVM.Guest.Pack.«P31».Sig
 public import LeanVM.Guest.Pack.«P33».Sig
 public import LeanVM.Guest.Pack.«P24».Core
 public import LeanVM.Guest.Pack.«P24».Bundle
@@ -134,6 +89,8 @@ public import LeanVM.Guest.Pack.«P34».Sig
 public import LeanVM.Guest.Pack.«P43».Core
 public import LeanVM.Guest.Pack.«P43».Bundle
 public import LeanVM.Guest.Pack.«P43».Sig
+public import LeanVM.Guest.Pack.«P23».Core
+public import LeanVM.Guest.Pack.«P23».Bundle
 public import LeanVM.Guest.Pack.«P54».Core
 public import LeanVM.Guest.Pack.«P54».Bundle
 public import LeanVM.Guest.Pack.«P59».Sig
@@ -143,41 +100,71 @@ public import LeanVM.Guest.Pack.«P29».Core
 public import LeanVM.Guest.Pack.«P29».Bundle
 public import LeanVM.Guest.Pack.«P26».Sig
 public import LeanVM.Guest.Pack.«P29».Sig
+public import LeanVM.Guest.Pack.«P27».Core
+public import LeanVM.Guest.Pack.«P27».Bundle
 public import LeanVM.Guest.Pack.«P5».Core
 public import LeanVM.Guest.Pack.«P5».Bundle
-import LeanVM.Guest.Pack.«P27».Checked
+public import LeanVM.Guest.Pack.«P39».Core
+public import LeanVM.Guest.Pack.«P39».Bundle
+public import LeanVM.Guest.Pack.«P50».Sig
+public import LeanVM.Guest.Pack.«P22».Sig
+public import LeanVM.Guest.Pack.«P42».Sig
+public import LeanVM.Guest.Pack.«P53».Core
+public import LeanVM.Guest.Pack.«P53».Bundle
+public import LeanVM.Guest.Pack.«P53».Sig
+public import LeanVM.Guest.Pack.«P13».Core
+public import LeanVM.Guest.Pack.«P13».Bundle
+public import LeanVM.Guest.Pack.«P13».Sig
+public import LeanVM.Guest.Pack.«P58».Sig
+public import LeanVM.Guest.Pack.«P45».Core
+public import LeanVM.Guest.Pack.«P45».Bundle
+public import LeanVM.Guest.Pack.«P52».Core
+public import LeanVM.Guest.Pack.«P52».Bundle
+public import LeanVM.Guest.Pack.«P52».Sig
+public import LeanVM.Guest.Pack.«P7».Core
+public import LeanVM.Guest.Pack.«P7».Bundle
+public import LeanVM.Guest.Pack.«P7».Sig
+public import LeanVM.Guest.Pack.«P46».Core
+public import LeanVM.Guest.Pack.«P46».Bundle
+public import LeanVM.Guest.Pack.«P46».Sig
+public import LeanVM.Guest.Pack.«P1».Core
+public import LeanVM.Guest.Pack.«P1».Bundle
+public import LeanVM.Guest.Pack.«P1».Sig
+import LeanVM.Guest.Pack.«P14».Checked
 import LeanVM.Guest.Pack.«P44».Checked
 import LeanVM.Guest.Pack.«P28».Checked
-import LeanVM.Guest.Pack.«P3».Checked
-import LeanVM.Guest.Pack.«P56».Checked
-import LeanVM.Guest.Pack.«P11».Checked
-import LeanVM.Guest.Pack.«P30».Checked
-import LeanVM.Guest.Pack.«P49».Checked
-import LeanVM.Guest.Pack.«P4».Checked
-import LeanVM.Guest.Pack.«P23».Checked
-import LeanVM.Guest.Pack.«P42».Checked
-import LeanVM.Guest.Pack.«P6».Checked
-import LeanVM.Guest.Pack.«P36».Checked
-import LeanVM.Guest.Pack.«P0».Checked
-import LeanVM.Guest.Pack.«P31».Checked
-import LeanVM.Guest.Pack.«P14».Checked
 import LeanVM.Guest.Pack.«P60».Checked
+import LeanVM.Guest.Pack.«P11».Checked
 import LeanVM.Guest.Pack.«P50».Checked
+import LeanVM.Guest.Pack.«P42».Checked
+import LeanVM.Guest.Pack.«P36».Checked
 import LeanVM.Guest.Pack.«P61».Checked
 import LeanVM.Guest.Pack.«P22».Checked
+import LeanVM.Guest.Pack.«P4».Checked
 import LeanVM.Guest.Pack.«P20».Checked
 import LeanVM.Guest.Pack.«P51».Checked
 import LeanVM.Guest.Pack.«P12».Checked
 import LeanVM.Guest.Pack.«P21».Checked
 import LeanVM.Guest.Pack.«P63».Checked
+import LeanVM.Guest.Pack.«P56».Checked
 import LeanVM.Guest.Pack.«P58».Checked
 import LeanVM.Guest.Pack.«P24».Checked
 import LeanVM.Guest.Pack.«P34».Checked
 import LeanVM.Guest.Pack.«P43».Checked
+import LeanVM.Guest.Pack.«P23».Checked
 import LeanVM.Guest.Pack.«P54».Checked
 import LeanVM.Guest.Pack.«P26».Checked
 import LeanVM.Guest.Pack.«P29».Checked
+import LeanVM.Guest.Pack.«P27».Checked
 import LeanVM.Guest.Pack.«P5».Checked
+import LeanVM.Guest.Pack.«P39».Checked
+import LeanVM.Guest.Pack.«P53».Checked
+import LeanVM.Guest.Pack.«P13».Checked
+import LeanVM.Guest.Pack.«P45».Checked
+import LeanVM.Guest.Pack.«P52».Checked
+import LeanVM.Guest.Pack.«P7».Checked
+import LeanVM.Guest.Pack.«P46».Checked
+import LeanVM.Guest.Pack.«P1».Checked
 
 namespace LeanVM.Guest.Checked
 
@@ -185,491 +172,499 @@ open LeanVM.Guest.Check
 
 @[expose] public section
 
-theorem link951 : Link 951 (Glob.ofSigs ([(1484, Fn.«da_levels__L64_L6_loop0».sig), (1485, Fn.«da_levels__L64_L6_loop1».sig), (1486, Fn.«da_levels__L64_L6_loop2».sig), (1487, Fn.«da_levels__L64_L6_loop3».sig), (1488, Fn.«da_levels__L64_L6_loop4».sig), (1489, Fn.«da_levels__L64_L6_loop5».sig)]) Data.jtTrie globSem)
-    Fn.«da_levels__L64_L6».code Fn.«da_levels__L64_L6».core (Fn.«da_levels__L64_L6».cert.withPows Data.powTree) :=
-  Link.of code951 core951 cert951 
-    (SigsOk.cons sig1484 rfl 
-    (SigsOk.cons sig1485 rfl 
-    (SigsOk.cons sig1486 rfl 
-    (SigsOk.cons sig1487 rfl 
-    (SigsOk.cons sig1488 rfl 
-    (SigsOk.cons sig1489 rfl SigsOk.nil))))))
+theorem link951 : Link 951 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«decode_query_windows__L17_L5».code Fn.«decode_query_windows__L17_L5».core (Fn.«decode_query_windows__L17_L5».cert.withPows Data.powTree) :=
+  Link.of code951 core951 cert951 SigsOk.nil
     (by decide +kernel)
 
-theorem w951_0 : WinOk 951 0 := link951.win rfl Fn.«da_levels__L64_L6».w0
+theorem w951_0 : WinOk 951 0 := link951.win rfl Fn.«decode_query_windows__L17_L5».w0
 
 theorem ok951 : CheckOk 951 := checkOk_one (by decide +kernel) w951_0
 
 theorem plain951 : Plain 951 := plain_of_nil (by decide +kernel)
 
-theorem link952 : Link 952 (Glob.ofSigs ([(1490, Fn.«da_levels__L256_L8_loop0».sig), (1491, Fn.«da_levels__L256_L8_loop1».sig), (1492, Fn.«da_levels__L256_L8_loop2».sig), (1493, Fn.«da_levels__L256_L8_loop3».sig), (1494, Fn.«da_levels__L256_L8_loop4».sig), (1495, Fn.«da_levels__L256_L8_loop5».sig), (1496, Fn.«da_levels__L256_L8_loop6».sig), (1497, Fn.«da_levels__L256_L8_loop7».sig)]) Data.jtTrie globSem)
-    Fn.«da_levels__L256_L8».code Fn.«da_levels__L256_L8».core (Fn.«da_levels__L256_L8».cert.withPows Data.powTree) :=
+theorem link952 : Link 952 (Glob.ofSigs ([(951, Fn.«decode_query_windows__L17_L5».sig), (952, Fn.«level_positions__L11_L17_L5_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«level_positions__L11_L17_L5_loop0».code Fn.«level_positions__L11_L17_L5_loop0».core (Fn.«level_positions__L11_L17_L5_loop0».cert.withPows Data.powTree) :=
   Link.of code952 core952 cert952 
-    (SigsOk.cons sig1490 rfl 
-    (SigsOk.cons sig1491 rfl 
-    (SigsOk.cons sig1492 rfl 
-    (SigsOk.cons sig1493 rfl 
-    (SigsOk.cons sig1494 rfl 
-    (SigsOk.cons sig1495 rfl 
-    (SigsOk.cons sig1496 rfl 
-    (SigsOk.cons sig1497 rfl SigsOk.nil))))))))
+    (SigsOk.cons sig951 rfl 
+    (SigsOk.cons sig952 rfl SigsOk.nil))
     (by decide +kernel)
 
-theorem w952_0 : WinOk 952 0 := link952.win rfl Fn.«da_levels__L256_L8».w0
+theorem w952_0 : WinOk 952 0 := link952.win rfl Fn.«level_positions__L11_L17_L5_loop0».w0
 
 theorem ok952 : CheckOk 952 := checkOk_one (by decide +kernel) w952_0
 
 theorem plain952 : Plain 952 := plain_of_nil (by decide +kernel)
 
-theorem link953 : Link 953 (Glob.ofSigs ([(1498, Fn.«da_levels__L512_L9_loop0».sig), (1499, Fn.«da_levels__L512_L9_loop1».sig), (1500, Fn.«da_levels__L512_L9_loop2».sig), (1501, Fn.«da_levels__L512_L9_loop3».sig), (1502, Fn.«da_levels__L512_L9_loop4».sig), (1503, Fn.«da_levels__L512_L9_loop5».sig), (1504, Fn.«da_levels__L512_L9_loop6».sig), (1505, Fn.«da_levels__L512_L9_loop7».sig), (1506, Fn.«da_levels__L512_L9_loop8».sig)]) Data.jtTrie globSem)
-    Fn.«da_levels__L512_L9».code Fn.«da_levels__L512_L9».core (Fn.«da_levels__L512_L9».cert.withPows Data.powTree) :=
-  Link.of code953 core953 cert953 
-    (SigsOk.cons sig1498 rfl 
-    (SigsOk.cons sig1499 rfl 
-    (SigsOk.cons sig1500 rfl 
-    (SigsOk.cons sig1501 rfl 
-    (SigsOk.cons sig1502 rfl 
-    (SigsOk.cons sig1503 rfl 
-    (SigsOk.cons sig1504 rfl 
-    (SigsOk.cons sig1505 rfl 
-    (SigsOk.cons sig1506 rfl SigsOk.nil)))))))))
+theorem link953 : Link 953 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«decode_query_windows__L18_L6».code Fn.«decode_query_windows__L18_L6».core (Fn.«decode_query_windows__L18_L6».cert.withPows Data.powTree) :=
+  Link.of code953 core953 cert953 SigsOk.nil
     (by decide +kernel)
 
-theorem w953_0 : WinOk 953 0 := link953.win rfl Fn.«da_levels__L512_L9».w0
+theorem w953_0 : WinOk 953 0 := link953.win rfl Fn.«decode_query_windows__L18_L6».w0
 
 theorem ok953 : CheckOk 953 := checkOk_one (by decide +kernel) w953_0
 
 theorem plain953 : Plain 953 := plain_of_nil (by decide +kernel)
 
-theorem link954 : Link 954 (Glob.ofSigs ([(1507, Fn.«da_levels__L1024_L10_loop0».sig), (1508, Fn.«da_levels__L1024_L10_loop1».sig), (1509, Fn.«da_levels__L1024_L10_loop2».sig), (1510, Fn.«da_levels__L1024_L10_loop3».sig), (1511, Fn.«da_levels__L1024_L10_loop4».sig), (1512, Fn.«da_levels__L1024_L10_loop5».sig), (1513, Fn.«da_levels__L1024_L10_loop6».sig), (1514, Fn.«da_levels__L1024_L10_loop7».sig), (1515, Fn.«da_levels__L1024_L10_loop8».sig), (1516, Fn.«da_levels__L1024_L10_loop9».sig)]) Data.jtTrie globSem)
-    Fn.«da_levels__L1024_L10».code Fn.«da_levels__L1024_L10».core (Fn.«da_levels__L1024_L10».cert.withPows Data.powTree) :=
+theorem link954 : Link 954 (Glob.ofSigs ([(953, Fn.«decode_query_windows__L18_L6».sig), (954, Fn.«level_positions__L8_L18_L6_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«level_positions__L8_L18_L6_loop0».code Fn.«level_positions__L8_L18_L6_loop0».core (Fn.«level_positions__L8_L18_L6_loop0».cert.withPows Data.powTree) :=
   Link.of code954 core954 cert954 
-    (SigsOk.cons sig1507 rfl 
-    (SigsOk.cons sig1508 rfl 
-    (SigsOk.cons sig1509 rfl 
-    (SigsOk.cons sig1510 rfl 
-    (SigsOk.cons sig1511 rfl 
-    (SigsOk.cons sig1512 rfl 
-    (SigsOk.cons sig1513 rfl 
-    (SigsOk.cons sig1514 rfl 
-    (SigsOk.cons sig1515 rfl 
-    (SigsOk.cons sig1516 rfl SigsOk.nil))))))))))
+    (SigsOk.cons sig953 rfl 
+    (SigsOk.cons sig954 rfl SigsOk.nil))
     (by decide +kernel)
 
-theorem w954_0 : WinOk 954 0 := link954.win rfl Fn.«da_levels__L1024_L10».w0
+theorem w954_0 : WinOk 954 0 := link954.win rfl Fn.«level_positions__L8_L18_L6_loop0».w0
 
 theorem ok954 : CheckOk 954 := checkOk_one (by decide +kernel) w954_0
 
 theorem plain954 : Plain 954 := plain_of_nil (by decide +kernel)
 
-theorem link955 : Link 955 (Glob.ofSigs ([(955, Fn.«da_levels__L128_L7_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«da_levels__L128_L7_loop0».code Fn.«da_levels__L128_L7_loop0».core (Fn.«da_levels__L128_L7_loop0».cert.withPows Data.powTree) :=
-  Link.of code955 core955 cert955 
-    (SigsOk.cons sig955 rfl SigsOk.nil)
+theorem link955 : Link 955 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«verify_merkle_cap__L3».code Fn.«verify_merkle_cap__L3».core (Fn.«verify_merkle_cap__L3».cert.withPows Data.powTree) :=
+  Link.of code955 core955 cert955 SigsOk.nil
     (by decide +kernel)
 
-theorem w955_0 : WinOk 955 0 := link955.win rfl Fn.«da_levels__L128_L7_loop0».w0
+theorem w955_0 : WinOk 955 0 := link955.win rfl Fn.«verify_merkle_cap__L3».w0
 
 theorem ok955 : CheckOk 955 := checkOk_one (by decide +kernel) w955_0
 
 theorem plain955 : Plain 955 := plain_of_nil (by decide +kernel)
 
-theorem link956 : Link 956 (Glob.ofSigs ([(956, Fn.«da_levels__L128_L7_loop1».sig)]) Data.jtTrie globSem)
-    Fn.«da_levels__L128_L7_loop1».code Fn.«da_levels__L128_L7_loop1».core (Fn.«da_levels__L128_L7_loop1».cert.withPows Data.powTree) :=
+theorem link956 : Link 956 (Glob.ofSigs ([(1454, Fn.«walk_path__L12_L3».sig), (1455, Fn.«opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0».code Fn.«opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0».core (Fn.«opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0».cert.withPows Data.powTree) :=
   Link.of code956 core956 cert956 
-    (SigsOk.cons sig956 rfl SigsOk.nil)
+    (SigsOk.cons sig1454 rfl 
+    (SigsOk.cons sig1455 rfl SigsOk.nil))
     (by decide +kernel)
 
-theorem w956_0 : WinOk 956 0 := link956.win rfl Fn.«da_levels__L128_L7_loop1».w0
+theorem w956_0 : WinOk 956 0 := link956.win rfl Fn.«opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0».w0
 
-theorem ok956 : CheckOk 956 := checkOk_one (by decide +kernel) w956_0
+theorem w956_1 : WinOk 956 1 := link956.win rfl Fn.«opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0».w1
 
-theorem plain956 : Plain 956 := plain_of_nil (by decide +kernel)
+theorem w956_2 : WinOk 956 2 := link956.win rfl Fn.«opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0».w2
 
-theorem link957 : Link 957 (Glob.ofSigs ([(957, Fn.«da_levels__L128_L7_loop2».sig)]) Data.jtTrie globSem)
-    Fn.«da_levels__L128_L7_loop2».code Fn.«da_levels__L128_L7_loop2».core (Fn.«da_levels__L128_L7_loop2».cert.withPows Data.powTree) :=
-  Link.of code957 core957 cert957 
-    (SigsOk.cons sig957 rfl SigsOk.nil)
+theorem ok956 : CheckOk 956 := fun i hi ↦ by
+  have h : (certOf 956).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w956_0
+  · exact w956_1
+  · exact w956_2
+
+theorem link957 : Link 957 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«verify_merkle_cap__L4».code Fn.«verify_merkle_cap__L4».core (Fn.«verify_merkle_cap__L4».cert.withPows Data.powTree) :=
+  Link.of code957 core957 cert957 SigsOk.nil
     (by decide +kernel)
 
-theorem w957_0 : WinOk 957 0 := link957.win rfl Fn.«da_levels__L128_L7_loop2».w0
+theorem w957_0 : WinOk 957 0 := link957.win rfl Fn.«verify_merkle_cap__L4».w0
 
 theorem ok957 : CheckOk 957 := checkOk_one (by decide +kernel) w957_0
 
 theorem plain957 : Plain 957 := plain_of_nil (by decide +kernel)
 
-theorem link958 : Link 958 (Glob.ofSigs ([(958, Fn.«da_levels__L128_L7_loop3».sig)]) Data.jtTrie globSem)
-    Fn.«da_levels__L128_L7_loop3».code Fn.«da_levels__L128_L7_loop3».core (Fn.«da_levels__L128_L7_loop3».cert.withPows Data.powTree) :=
+theorem link958 : Link 958 (Glob.ofSigs ([(1456, Fn.«walk_path__L12_L4».sig), (1457, Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0».code Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0».core (Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0».cert.withPows Data.powTree) :=
   Link.of code958 core958 cert958 
-    (SigsOk.cons sig958 rfl SigsOk.nil)
+    (SigsOk.cons sig1456 rfl 
+    (SigsOk.cons sig1457 rfl SigsOk.nil))
     (by decide +kernel)
 
-theorem w958_0 : WinOk 958 0 := link958.win rfl Fn.«da_levels__L128_L7_loop3».w0
+theorem w958_0 : WinOk 958 0 := link958.win rfl Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0».w0
 
-theorem ok958 : CheckOk 958 := checkOk_one (by decide +kernel) w958_0
+theorem w958_1 : WinOk 958 1 := link958.win rfl Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0».w1
 
-theorem plain958 : Plain 958 := plain_of_nil (by decide +kernel)
+theorem w958_2 : WinOk 958 2 := link958.win rfl Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0».w2
 
-theorem link959 : Link 959 (Glob.ofSigs ([(959, Fn.«da_levels__L128_L7_loop4».sig)]) Data.jtTrie globSem)
-    Fn.«da_levels__L128_L7_loop4».code Fn.«da_levels__L128_L7_loop4».core (Fn.«da_levels__L128_L7_loop4».cert.withPows Data.powTree) :=
-  Link.of code959 core959 cert959 
-    (SigsOk.cons sig959 rfl SigsOk.nil)
+theorem ok958 : CheckOk 958 := fun i hi ↦ by
+  have h : (certOf 958).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w958_0
+  · exact w958_1
+  · exact w958_2
+
+theorem link959 : Link 959 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«verify_merkle_cap__L5».code Fn.«verify_merkle_cap__L5».core (Fn.«verify_merkle_cap__L5».cert.withPows Data.powTree) :=
+  Link.of code959 core959 cert959 SigsOk.nil
     (by decide +kernel)
 
-theorem w959_0 : WinOk 959 0 := link959.win rfl Fn.«da_levels__L128_L7_loop4».w0
+theorem w959_0 : WinOk 959 0 := link959.win rfl Fn.«verify_merkle_cap__L5».w0
 
 theorem ok959 : CheckOk 959 := checkOk_one (by decide +kernel) w959_0
 
 theorem plain959 : Plain 959 := plain_of_nil (by decide +kernel)
 
-theorem link960 : Link 960 (Glob.ofSigs ([(960, Fn.«da_levels__L128_L7_loop5».sig)]) Data.jtTrie globSem)
-    Fn.«da_levels__L128_L7_loop5».code Fn.«da_levels__L128_L7_loop5».core (Fn.«da_levels__L128_L7_loop5».cert.withPows Data.powTree) :=
+theorem link960 : Link 960 (Glob.ofSigs ([(1458, Fn.«walk_path__L12_L5».sig), (1459, Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».code Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».core (Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».cert.withPows Data.powTree) :=
   Link.of code960 core960 cert960 
-    (SigsOk.cons sig960 rfl SigsOk.nil)
+    (SigsOk.cons sig1458 rfl 
+    (SigsOk.cons sig1459 rfl SigsOk.nil))
     (by decide +kernel)
 
-theorem w960_0 : WinOk 960 0 := link960.win rfl Fn.«da_levels__L128_L7_loop5».w0
+theorem w960_0 : WinOk 960 0 := link960.win rfl Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».w0
 
-theorem ok960 : CheckOk 960 := checkOk_one (by decide +kernel) w960_0
+theorem w960_1 : WinOk 960 1 := link960.win rfl Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».w1
 
-theorem plain960 : Plain 960 := plain_of_nil (by decide +kernel)
+theorem w960_2 : WinOk 960 2 := link960.win rfl Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».w2
 
-theorem link961 : Link 961 (Glob.ofSigs ([(961, Fn.«da_levels__L128_L7_loop6».sig)]) Data.jtTrie globSem)
-    Fn.«da_levels__L128_L7_loop6».code Fn.«da_levels__L128_L7_loop6».core (Fn.«da_levels__L128_L7_loop6».cert.withPows Data.powTree) :=
-  Link.of code961 core961 cert961 
-    (SigsOk.cons sig961 rfl SigsOk.nil)
+theorem ok960 : CheckOk 960 := fun i hi ↦ by
+  have h : (certOf 960).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w960_0
+  · exact w960_1
+  · exact w960_2
+
+theorem link961 : Link 961 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«verify_merkle_cap__L6».code Fn.«verify_merkle_cap__L6».core (Fn.«verify_merkle_cap__L6».cert.withPows Data.powTree) :=
+  Link.of code961 core961 cert961 SigsOk.nil
     (by decide +kernel)
 
-theorem w961_0 : WinOk 961 0 := link961.win rfl Fn.«da_levels__L128_L7_loop6».w0
+theorem w961_0 : WinOk 961 0 := link961.win rfl Fn.«verify_merkle_cap__L6».w0
 
 theorem ok961 : CheckOk 961 := checkOk_one (by decide +kernel) w961_0
 
 theorem plain961 : Plain 961 := plain_of_nil (by decide +kernel)
 
-theorem link962 : Link 962 (Glob.ofSigs [] Data.jtTrie globSem)
-    Fn.«decode_query_windows__L15_L3».code Fn.«decode_query_windows__L15_L3».core (Fn.«decode_query_windows__L15_L3».cert.withPows Data.powTree) :=
-  Link.of code962 core962 cert962 SigsOk.nil
+theorem link962 : Link 962 (Glob.ofSigs ([(1460, Fn.«walk_path__L12_L6».sig), (1461, Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».code Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».core (Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».cert.withPows Data.powTree) :=
+  Link.of code962 core962 cert962 
+    (SigsOk.cons sig1460 rfl 
+    (SigsOk.cons sig1461 rfl SigsOk.nil))
     (by decide +kernel)
 
-theorem w962_0 : WinOk 962 0 := link962.win rfl Fn.«decode_query_windows__L15_L3».w0
+theorem w962_0 : WinOk 962 0 := link962.win rfl Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».w0
 
-theorem ok962 : CheckOk 962 := checkOk_one (by decide +kernel) w962_0
+theorem w962_1 : WinOk 962 1 := link962.win rfl Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».w1
 
-theorem plain962 : Plain 962 := plain_of_nil (by decide +kernel)
+theorem w962_2 : WinOk 962 2 := link962.win rfl Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».w2
 
-theorem link963 : Link 963 (Glob.ofSigs ([(962, Fn.«decode_query_windows__L15_L3».sig), (963, Fn.«level_positions__L28_L15_L3_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«level_positions__L28_L15_L3_loop0».code Fn.«level_positions__L28_L15_L3_loop0».core (Fn.«level_positions__L28_L15_L3_loop0».cert.withPows Data.powTree) :=
-  Link.of code963 core963 cert963 
-    (SigsOk.cons sig962 rfl 
-    (SigsOk.cons sig963 rfl SigsOk.nil))
+theorem ok962 : CheckOk 962 := fun i hi ↦ by
+  have h : (certOf 962).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w962_0
+  · exact w962_1
+  · exact w962_2
+
+theorem link963 : Link 963 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«decode_query_windows__L14_L2».code Fn.«decode_query_windows__L14_L2».core (Fn.«decode_query_windows__L14_L2».cert.withPows Data.powTree) :=
+  Link.of code963 core963 cert963 SigsOk.nil
     (by decide +kernel)
 
-theorem w963_0 : WinOk 963 0 := link963.win rfl Fn.«level_positions__L28_L15_L3_loop0».w0
+theorem w963_0 : WinOk 963 0 := link963.win rfl Fn.«decode_query_windows__L14_L2».w0
 
 theorem ok963 : CheckOk 963 := checkOk_one (by decide +kernel) w963_0
 
 theorem plain963 : Plain 963 := plain_of_nil (by decide +kernel)
 
-theorem link964 : Link 964 (Glob.ofSigs [] Data.jtTrie globSem)
-    Fn.«decode_query_windows__L16_L4».code Fn.«decode_query_windows__L16_L4».core (Fn.«decode_query_windows__L16_L4».cert.withPows Data.powTree) :=
-  Link.of code964 core964 cert964 SigsOk.nil
+theorem link964 : Link 964 (Glob.ofSigs ([(963, Fn.«decode_query_windows__L14_L2».sig), (964, Fn.«level_positions__L7_L14_L2_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«level_positions__L7_L14_L2_loop0».code Fn.«level_positions__L7_L14_L2_loop0».core (Fn.«level_positions__L7_L14_L2_loop0».cert.withPows Data.powTree) :=
+  Link.of code964 core964 cert964 
+    (SigsOk.cons sig963 rfl 
+    (SigsOk.cons sig964 rfl SigsOk.nil))
     (by decide +kernel)
 
-theorem w964_0 : WinOk 964 0 := link964.win rfl Fn.«decode_query_windows__L16_L4».w0
+theorem w964_0 : WinOk 964 0 := link964.win rfl Fn.«level_positions__L7_L14_L2_loop0».w0
 
 theorem ok964 : CheckOk 964 := checkOk_one (by decide +kernel) w964_0
 
 theorem plain964 : Plain 964 := plain_of_nil (by decide +kernel)
 
-theorem link965 : Link 965 (Glob.ofSigs ([(964, Fn.«decode_query_windows__L16_L4».sig), (965, Fn.«level_positions__L14_L16_L4_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«level_positions__L14_L16_L4_loop0».code Fn.«level_positions__L14_L16_L4_loop0».core (Fn.«level_positions__L14_L16_L4_loop0».cert.withPows Data.powTree) :=
+theorem link965 : Link 965 (Glob.ofSigs ([(947, Fn.«decode_query_windows__L15_L3».sig), (965, Fn.«level_positions__L6_L15_L3_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«level_positions__L6_L15_L3_loop0».code Fn.«level_positions__L6_L15_L3_loop0».core (Fn.«level_positions__L6_L15_L3_loop0».cert.withPows Data.powTree) :=
   Link.of code965 core965 cert965 
-    (SigsOk.cons sig964 rfl 
+    (SigsOk.cons sig947 rfl 
     (SigsOk.cons sig965 rfl SigsOk.nil))
     (by decide +kernel)
 
-theorem w965_0 : WinOk 965 0 := link965.win rfl Fn.«level_positions__L14_L16_L4_loop0».w0
+theorem w965_0 : WinOk 965 0 := link965.win rfl Fn.«level_positions__L6_L15_L3_loop0».w0
 
 theorem ok965 : CheckOk 965 := checkOk_one (by decide +kernel) w965_0
 
 theorem plain965 : Plain 965 := plain_of_nil (by decide +kernel)
 
-theorem link966 : Link 966 (Glob.ofSigs [] Data.jtTrie globSem)
-    Fn.«decode_query_windows__L17_L5».code Fn.«decode_query_windows__L17_L5».core (Fn.«decode_query_windows__L17_L5».cert.withPows Data.powTree) :=
-  Link.of code966 core966 cert966 SigsOk.nil
+theorem link966 : Link 966 (Glob.ofSigs ([(949, Fn.«decode_query_windows__L16_L4».sig), (966, Fn.«level_positions__L5_L16_L4_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«level_positions__L5_L16_L4_loop0».code Fn.«level_positions__L5_L16_L4_loop0».core (Fn.«level_positions__L5_L16_L4_loop0».cert.withPows Data.powTree) :=
+  Link.of code966 core966 cert966 
+    (SigsOk.cons sig949 rfl 
+    (SigsOk.cons sig966 rfl SigsOk.nil))
     (by decide +kernel)
 
-theorem w966_0 : WinOk 966 0 := link966.win rfl Fn.«decode_query_windows__L17_L5».w0
+theorem w966_0 : WinOk 966 0 := link966.win rfl Fn.«level_positions__L5_L16_L4_loop0».w0
 
 theorem ok966 : CheckOk 966 := checkOk_one (by decide +kernel) w966_0
 
 theorem plain966 : Plain 966 := plain_of_nil (by decide +kernel)
 
-theorem link967 : Link 967 (Glob.ofSigs ([(966, Fn.«decode_query_windows__L17_L5».sig), (967, Fn.«level_positions__L11_L17_L5_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«level_positions__L11_L17_L5_loop0».code Fn.«level_positions__L11_L17_L5_loop0».core (Fn.«level_positions__L11_L17_L5_loop0».cert.withPows Data.powTree) :=
+theorem link967 : Link 967 (Glob.ofSigs ([(951, Fn.«decode_query_windows__L17_L5».sig), (967, Fn.«level_positions__L5_L17_L5_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«level_positions__L5_L17_L5_loop0».code Fn.«level_positions__L5_L17_L5_loop0».core (Fn.«level_positions__L5_L17_L5_loop0».cert.withPows Data.powTree) :=
   Link.of code967 core967 cert967 
-    (SigsOk.cons sig966 rfl 
+    (SigsOk.cons sig951 rfl 
     (SigsOk.cons sig967 rfl SigsOk.nil))
     (by decide +kernel)
 
-theorem w967_0 : WinOk 967 0 := link967.win rfl Fn.«level_positions__L11_L17_L5_loop0».w0
+theorem w967_0 : WinOk 967 0 := link967.win rfl Fn.«level_positions__L5_L17_L5_loop0».w0
 
 theorem ok967 : CheckOk 967 := checkOk_one (by decide +kernel) w967_0
 
 theorem plain967 : Plain 967 := plain_of_nil (by decide +kernel)
 
 theorem link968 : Link 968 (Glob.ofSigs [] Data.jtTrie globSem)
-    Fn.«decode_query_windows__L18_L6».code Fn.«decode_query_windows__L18_L6».core (Fn.«decode_query_windows__L18_L6».cert.withPows Data.powTree) :=
+    Fn.«verify_merkle_cap__L2».code Fn.«verify_merkle_cap__L2».core (Fn.«verify_merkle_cap__L2».cert.withPows Data.powTree) :=
   Link.of code968 core968 cert968 SigsOk.nil
     (by decide +kernel)
 
-theorem w968_0 : WinOk 968 0 := link968.win rfl Fn.«decode_query_windows__L18_L6».w0
+theorem w968_0 : WinOk 968 0 := link968.win rfl Fn.«verify_merkle_cap__L2».w0
 
 theorem ok968 : CheckOk 968 := checkOk_one (by decide +kernel) w968_0
 
 theorem plain968 : Plain 968 := plain_of_nil (by decide +kernel)
 
-theorem link969 : Link 969 (Glob.ofSigs ([(968, Fn.«decode_query_windows__L18_L6».sig), (969, Fn.«level_positions__L8_L18_L6_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«level_positions__L8_L18_L6_loop0».code Fn.«level_positions__L8_L18_L6_loop0».core (Fn.«level_positions__L8_L18_L6_loop0».cert.withPows Data.powTree) :=
+theorem link969 : Link 969 (Glob.ofSigs ([(1462, Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0».code Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0».core (Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0».cert.withPows Data.powTree) :=
   Link.of code969 core969 cert969 
-    (SigsOk.cons sig968 rfl 
-    (SigsOk.cons sig969 rfl SigsOk.nil))
+    (SigsOk.cons sig1462 rfl SigsOk.nil)
     (by decide +kernel)
 
-theorem w969_0 : WinOk 969 0 := link969.win rfl Fn.«level_positions__L8_L18_L6_loop0».w0
+theorem w969_0 : WinOk 969 0 := link969.win rfl Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0».w0
 
-theorem ok969 : CheckOk 969 := checkOk_one (by decide +kernel) w969_0
+theorem w969_1 : WinOk 969 1 := link969.win rfl Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0».w1
 
-theorem plain969 : Plain 969 := plain_of_nil (by decide +kernel)
+theorem ok969 : CheckOk 969 := fun i hi ↦ by
+  have h : (certOf 969).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w969_0
+  · exact w969_1
 
-theorem link970 : Link 970 (Glob.ofSigs [] Data.jtTrie globSem)
-    Fn.«verify_merkle_cap__L3».code Fn.«verify_merkle_cap__L3».core (Fn.«verify_merkle_cap__L3».cert.withPows Data.powTree) :=
-  Link.of code970 core970 cert970 SigsOk.nil
+theorem link970 : Link 970 (Glob.ofSigs ([(1463, Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0».code Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0».core (Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0».cert.withPows Data.powTree) :=
+  Link.of code970 core970 cert970 
+    (SigsOk.cons sig1463 rfl SigsOk.nil)
     (by decide +kernel)
 
-theorem w970_0 : WinOk 970 0 := link970.win rfl Fn.«verify_merkle_cap__L3».w0
+theorem w970_0 : WinOk 970 0 := link970.win rfl Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0».w0
 
-theorem ok970 : CheckOk 970 := checkOk_one (by decide +kernel) w970_0
+theorem w970_1 : WinOk 970 1 := link970.win rfl Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0».w1
 
-theorem plain970 : Plain 970 := plain_of_nil (by decide +kernel)
+theorem ok970 : CheckOk 970 := fun i hi ↦ by
+  have h : (certOf 970).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w970_0
+  · exact w970_1
 
-theorem link971 : Link 971 (Glob.ofSigs ([(1517, Fn.«walk_path__L12_L3».sig), (1518, Fn.«opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0».code Fn.«opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0».core (Fn.«opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0».cert.withPows Data.powTree) :=
+theorem link971 : Link 971 (Glob.ofSigs ([(1464, Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0».code Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0».core (Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0».cert.withPows Data.powTree) :=
   Link.of code971 core971 cert971 
-    (SigsOk.cons sig1517 rfl 
-    (SigsOk.cons sig1518 rfl SigsOk.nil))
+    (SigsOk.cons sig1464 rfl SigsOk.nil)
     (by decide +kernel)
 
-theorem w971_0 : WinOk 971 0 := link971.win rfl Fn.«opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0».w0
+theorem w971_0 : WinOk 971 0 := link971.win rfl Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0».w0
 
-theorem w971_1 : WinOk 971 1 := link971.win rfl Fn.«opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0».w1
-
-theorem w971_2 : WinOk 971 2 := link971.win rfl Fn.«opening_queries__L1_L1_L6_L32_L15_L3_L0_L0_L0_L0_L0».w2
+theorem w971_1 : WinOk 971 1 := link971.win rfl Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0».w1
 
 theorem ok971 : CheckOk 971 := fun i hi ↦ by
-  have h : (certOf 971).cuts.length = 2 := by decide +kernel
+  have h : (certOf 971).cuts.length = 1 := by decide +kernel
   rw [h] at hi
   interval_cases i
   · exact w971_0
   · exact w971_1
-  · exact w971_2
 
-theorem link972 : Link 972 (Glob.ofSigs [] Data.jtTrie globSem)
-    Fn.«verify_merkle_cap__L4».code Fn.«verify_merkle_cap__L4».core (Fn.«verify_merkle_cap__L4».cert.withPows Data.powTree) :=
-  Link.of code972 core972 cert972 SigsOk.nil
+theorem link972 : Link 972 (Glob.ofSigs ([(1465, Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0».code Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0».core (Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0».cert.withPows Data.powTree) :=
+  Link.of code972 core972 cert972 
+    (SigsOk.cons sig1465 rfl SigsOk.nil)
     (by decide +kernel)
 
-theorem w972_0 : WinOk 972 0 := link972.win rfl Fn.«verify_merkle_cap__L4».w0
+theorem w972_0 : WinOk 972 0 := link972.win rfl Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0».w0
 
-theorem ok972 : CheckOk 972 := checkOk_one (by decide +kernel) w972_0
+theorem w972_1 : WinOk 972 1 := link972.win rfl Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0».w1
 
-theorem plain972 : Plain 972 := plain_of_nil (by decide +kernel)
-
-theorem link973 : Link 973 (Glob.ofSigs ([(1519, Fn.«walk_path__L12_L4».sig), (1520, Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0».code Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0».core (Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0».cert.withPows Data.powTree) :=
-  Link.of code973 core973 cert973 
-    (SigsOk.cons sig1519 rfl 
-    (SigsOk.cons sig1520 rfl SigsOk.nil))
-    (by decide +kernel)
-
-theorem w973_0 : WinOk 973 0 := link973.win rfl Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0».w0
-
-theorem w973_1 : WinOk 973 1 := link973.win rfl Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0».w1
-
-theorem w973_2 : WinOk 973 2 := link973.win rfl Fn.«opening_queries__L1_L1_L6_L32_L16_L4_L0_L0_L0_L0_L0».w2
-
-theorem ok973 : CheckOk 973 := fun i hi ↦ by
-  have h : (certOf 973).cuts.length = 2 := by decide +kernel
+theorem ok972 : CheckOk 972 := fun i hi ↦ by
+  have h : (certOf 972).cuts.length = 1 := by decide +kernel
   rw [h] at hi
   interval_cases i
-  · exact w973_0
-  · exact w973_1
-  · exact w973_2
+  · exact w972_0
+  · exact w972_1
 
-theorem link974 : Link 974 (Glob.ofSigs [] Data.jtTrie globSem)
-    Fn.«verify_merkle_cap__L5».code Fn.«verify_merkle_cap__L5».core (Fn.«verify_merkle_cap__L5».cert.withPows Data.powTree) :=
-  Link.of code974 core974 cert974 SigsOk.nil
+theorem link973 : Link 973 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«decode_query_windows__L13_L7».code Fn.«decode_query_windows__L13_L7».core (Fn.«decode_query_windows__L13_L7».cert.withPows Data.powTree) :=
+  Link.of code973 core973 cert973 SigsOk.nil
     (by decide +kernel)
 
-theorem w974_0 : WinOk 974 0 := link974.win rfl Fn.«verify_merkle_cap__L5».w0
+theorem w973_0 : WinOk 973 0 := link973.win rfl Fn.«decode_query_windows__L13_L7».w0
+
+theorem ok973 : CheckOk 973 := checkOk_one (by decide +kernel) w973_0
+
+theorem plain973 : Plain 973 := plain_of_nil (by decide +kernel)
+
+theorem link974 : Link 974 (Glob.ofSigs ([(973, Fn.«decode_query_windows__L13_L7».sig), (974, Fn.«level_positions__L4_L13_L7_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«level_positions__L4_L13_L7_loop0».code Fn.«level_positions__L4_L13_L7_loop0».core (Fn.«level_positions__L4_L13_L7_loop0».cert.withPows Data.powTree) :=
+  Link.of code974 core974 cert974 
+    (SigsOk.cons sig973 rfl 
+    (SigsOk.cons sig974 rfl SigsOk.nil))
+    (by decide +kernel)
+
+theorem w974_0 : WinOk 974 0 := link974.win rfl Fn.«level_positions__L4_L13_L7_loop0».w0
 
 theorem ok974 : CheckOk 974 := checkOk_one (by decide +kernel) w974_0
 
 theorem plain974 : Plain 974 := plain_of_nil (by decide +kernel)
 
-theorem link975 : Link 975 (Glob.ofSigs ([(1521, Fn.«walk_path__L12_L5».sig), (1522, Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».code Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».core (Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».cert.withPows Data.powTree) :=
+theorem link975 : Link 975 (Glob.ofSigs ([(963, Fn.«decode_query_windows__L14_L2».sig), (975, Fn.«level_positions__L4_L14_L2_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«level_positions__L4_L14_L2_loop0».code Fn.«level_positions__L4_L14_L2_loop0».core (Fn.«level_positions__L4_L14_L2_loop0».cert.withPows Data.powTree) :=
   Link.of code975 core975 cert975 
-    (SigsOk.cons sig1521 rfl 
-    (SigsOk.cons sig1522 rfl SigsOk.nil))
+    (SigsOk.cons sig963 rfl 
+    (SigsOk.cons sig975 rfl SigsOk.nil))
     (by decide +kernel)
 
-theorem w975_0 : WinOk 975 0 := link975.win rfl Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».w0
+theorem w975_0 : WinOk 975 0 := link975.win rfl Fn.«level_positions__L4_L14_L2_loop0».w0
 
-theorem w975_1 : WinOk 975 1 := link975.win rfl Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».w1
+theorem ok975 : CheckOk 975 := checkOk_one (by decide +kernel) w975_0
 
-theorem w975_2 : WinOk 975 2 := link975.win rfl Fn.«opening_queries__L1_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0».w2
+theorem plain975 : Plain 975 := plain_of_nil (by decide +kernel)
 
-theorem ok975 : CheckOk 975 := fun i hi ↦ by
-  have h : (certOf 975).cuts.length = 2 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w975_0
-  · exact w975_1
-  · exact w975_2
-
-theorem link976 : Link 976 (Glob.ofSigs [] Data.jtTrie globSem)
-    Fn.«verify_merkle_cap__L6».code Fn.«verify_merkle_cap__L6».core (Fn.«verify_merkle_cap__L6».cert.withPows Data.powTree) :=
-  Link.of code976 core976 cert976 SigsOk.nil
+theorem link976 : Link 976 (Glob.ofSigs ([(947, Fn.«decode_query_windows__L15_L3».sig), (976, Fn.«level_positions__L4_L15_L3_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«level_positions__L4_L15_L3_loop0».code Fn.«level_positions__L4_L15_L3_loop0».core (Fn.«level_positions__L4_L15_L3_loop0».cert.withPows Data.powTree) :=
+  Link.of code976 core976 cert976 
+    (SigsOk.cons sig947 rfl 
+    (SigsOk.cons sig976 rfl SigsOk.nil))
     (by decide +kernel)
 
-theorem w976_0 : WinOk 976 0 := link976.win rfl Fn.«verify_merkle_cap__L6».w0
+theorem w976_0 : WinOk 976 0 := link976.win rfl Fn.«level_positions__L4_L15_L3_loop0».w0
 
 theorem ok976 : CheckOk 976 := checkOk_one (by decide +kernel) w976_0
 
 theorem plain976 : Plain 976 := plain_of_nil (by decide +kernel)
 
-theorem link977 : Link 977 (Glob.ofSigs ([(1523, Fn.«walk_path__L12_L6».sig), (1524, Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».code Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».core (Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».cert.withPows Data.powTree) :=
+theorem link977 : Link 977 (Glob.ofSigs ([(949, Fn.«decode_query_windows__L16_L4».sig), (977, Fn.«level_positions__L3_L16_L4_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«level_positions__L3_L16_L4_loop0».code Fn.«level_positions__L3_L16_L4_loop0».core (Fn.«level_positions__L3_L16_L4_loop0».cert.withPows Data.powTree) :=
   Link.of code977 core977 cert977 
-    (SigsOk.cons sig1523 rfl 
-    (SigsOk.cons sig1524 rfl SigsOk.nil))
+    (SigsOk.cons sig949 rfl 
+    (SigsOk.cons sig977 rfl SigsOk.nil))
     (by decide +kernel)
 
-theorem w977_0 : WinOk 977 0 := link977.win rfl Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».w0
+theorem w977_0 : WinOk 977 0 := link977.win rfl Fn.«level_positions__L3_L16_L4_loop0».w0
 
-theorem w977_1 : WinOk 977 1 := link977.win rfl Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».w1
+theorem ok977 : CheckOk 977 := checkOk_one (by decide +kernel) w977_0
 
-theorem w977_2 : WinOk 977 2 := link977.win rfl Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0».w2
-
-theorem ok977 : CheckOk 977 := fun i hi ↦ by
-  have h : (certOf 977).cuts.length = 2 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w977_0
-  · exact w977_1
-  · exact w977_2
+theorem plain977 : Plain 977 := plain_of_nil (by decide +kernel)
 
 theorem link978 : Link 978 (Glob.ofSigs [] Data.jtTrie globSem)
-    Fn.«decode_query_windows__L14_L2».code Fn.«decode_query_windows__L14_L2».core (Fn.«decode_query_windows__L14_L2».cert.withPows Data.powTree) :=
+    Fn.«verify_merkle_cap__L7».code Fn.«verify_merkle_cap__L7».core (Fn.«verify_merkle_cap__L7».cert.withPows Data.powTree) :=
   Link.of code978 core978 cert978 SigsOk.nil
     (by decide +kernel)
 
-theorem w978_0 : WinOk 978 0 := link978.win rfl Fn.«decode_query_windows__L14_L2».w0
+theorem w978_0 : WinOk 978 0 := link978.win rfl Fn.«verify_merkle_cap__L7».w0
 
-theorem ok978 : CheckOk 978 := checkOk_one (by decide +kernel) w978_0
+theorem w978_1 : WinOk 978 1 := link978.win rfl Fn.«verify_merkle_cap__L7».w1
 
-theorem plain978 : Plain 978 := plain_of_nil (by decide +kernel)
+theorem w978_2 : WinOk 978 2 := link978.win rfl Fn.«verify_merkle_cap__L7».w2
 
-theorem link979 : Link 979 (Glob.ofSigs ([(978, Fn.«decode_query_windows__L14_L2».sig), (979, Fn.«level_positions__L7_L14_L2_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«level_positions__L7_L14_L2_loop0».code Fn.«level_positions__L7_L14_L2_loop0».core (Fn.«level_positions__L7_L14_L2_loop0».cert.withPows Data.powTree) :=
+theorem ok978 : CheckOk 978 := fun i hi ↦ by
+  have h : (certOf 978).cuts.length = 2 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w978_0
+  · exact w978_1
+  · exact w978_2
+
+theorem plain978 : Plain 978 := by
+  unfold Plain
+  decide +kernel
+
+theorem link979 : Link 979 (Glob.ofSigs ([(1466, Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0».code Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0».core (Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0».cert.withPows Data.powTree) :=
   Link.of code979 core979 cert979 
-    (SigsOk.cons sig978 rfl 
-    (SigsOk.cons sig979 rfl SigsOk.nil))
+    (SigsOk.cons sig1466 rfl SigsOk.nil)
     (by decide +kernel)
 
-theorem w979_0 : WinOk 979 0 := link979.win rfl Fn.«level_positions__L7_L14_L2_loop0».w0
+theorem w979_0 : WinOk 979 0 := link979.win rfl Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0».w0
 
-theorem ok979 : CheckOk 979 := checkOk_one (by decide +kernel) w979_0
+theorem w979_1 : WinOk 979 1 := link979.win rfl Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0».w1
 
-theorem plain979 : Plain 979 := plain_of_nil (by decide +kernel)
+theorem ok979 : CheckOk 979 := fun i hi ↦ by
+  have h : (certOf 979).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w979_0
+  · exact w979_1
 
-theorem link980 : Link 980 (Glob.ofSigs ([(962, Fn.«decode_query_windows__L15_L3».sig), (980, Fn.«level_positions__L6_L15_L3_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«level_positions__L6_L15_L3_loop0».code Fn.«level_positions__L6_L15_L3_loop0».core (Fn.«level_positions__L6_L15_L3_loop0».cert.withPows Data.powTree) :=
-  Link.of code980 core980 cert980 
-    (SigsOk.cons sig962 rfl 
-    (SigsOk.cons sig980 rfl SigsOk.nil))
+theorem link980 : Link 980 (Glob.ofSigs [] Data.jtTrie globSem)
+    Fn.«decode_query_windows__L12_L6».code Fn.«decode_query_windows__L12_L6».core (Fn.«decode_query_windows__L12_L6».cert.withPows Data.powTree) :=
+  Link.of code980 core980 cert980 SigsOk.nil
     (by decide +kernel)
 
-theorem w980_0 : WinOk 980 0 := link980.win rfl Fn.«level_positions__L6_L15_L3_loop0».w0
+theorem w980_0 : WinOk 980 0 := link980.win rfl Fn.«decode_query_windows__L12_L6».w0
 
 theorem ok980 : CheckOk 980 := checkOk_one (by decide +kernel) w980_0
 
 theorem plain980 : Plain 980 := plain_of_nil (by decide +kernel)
 
-theorem link981 : Link 981 (Glob.ofSigs ([(964, Fn.«decode_query_windows__L16_L4».sig), (981, Fn.«level_positions__L5_L16_L4_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«level_positions__L5_L16_L4_loop0».code Fn.«level_positions__L5_L16_L4_loop0».core (Fn.«level_positions__L5_L16_L4_loop0».cert.withPows Data.powTree) :=
+theorem link981 : Link 981 (Glob.ofSigs ([(980, Fn.«decode_query_windows__L12_L6».sig), (981, Fn.«level_positions__L3_L12_L6_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«level_positions__L3_L12_L6_loop0».code Fn.«level_positions__L3_L12_L6_loop0».core (Fn.«level_positions__L3_L12_L6_loop0».cert.withPows Data.powTree) :=
   Link.of code981 core981 cert981 
-    (SigsOk.cons sig964 rfl 
+    (SigsOk.cons sig980 rfl 
     (SigsOk.cons sig981 rfl SigsOk.nil))
     (by decide +kernel)
 
-theorem w981_0 : WinOk 981 0 := link981.win rfl Fn.«level_positions__L5_L16_L4_loop0».w0
+theorem w981_0 : WinOk 981 0 := link981.win rfl Fn.«level_positions__L3_L12_L6_loop0».w0
 
 theorem ok981 : CheckOk 981 := checkOk_one (by decide +kernel) w981_0
 
 theorem plain981 : Plain 981 := plain_of_nil (by decide +kernel)
 
-theorem link982 : Link 982 (Glob.ofSigs ([(966, Fn.«decode_query_windows__L17_L5».sig), (982, Fn.«level_positions__L5_L17_L5_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«level_positions__L5_L17_L5_loop0».code Fn.«level_positions__L5_L17_L5_loop0».core (Fn.«level_positions__L5_L17_L5_loop0».cert.withPows Data.powTree) :=
+theorem link982 : Link 982 (Glob.ofSigs ([(973, Fn.«decode_query_windows__L13_L7».sig), (982, Fn.«level_positions__L3_L13_L7_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«level_positions__L3_L13_L7_loop0».code Fn.«level_positions__L3_L13_L7_loop0».core (Fn.«level_positions__L3_L13_L7_loop0».cert.withPows Data.powTree) :=
   Link.of code982 core982 cert982 
-    (SigsOk.cons sig966 rfl 
+    (SigsOk.cons sig973 rfl 
     (SigsOk.cons sig982 rfl SigsOk.nil))
     (by decide +kernel)
 
-theorem w982_0 : WinOk 982 0 := link982.win rfl Fn.«level_positions__L5_L17_L5_loop0».w0
+theorem w982_0 : WinOk 982 0 := link982.win rfl Fn.«level_positions__L3_L13_L7_loop0».w0
 
 theorem ok982 : CheckOk 982 := checkOk_one (by decide +kernel) w982_0
 
 theorem plain982 : Plain 982 := plain_of_nil (by decide +kernel)
 
-theorem link983 : Link 983 (Glob.ofSigs [] Data.jtTrie globSem)
-    Fn.«verify_merkle_cap__L2».code Fn.«verify_merkle_cap__L2».core (Fn.«verify_merkle_cap__L2».cert.withPows Data.powTree) :=
-  Link.of code983 core983 cert983 SigsOk.nil
+theorem link983 : Link 983 (Glob.ofSigs ([(963, Fn.«decode_query_windows__L14_L2».sig), (983, Fn.«level_positions__L3_L14_L2_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«level_positions__L3_L14_L2_loop0».code Fn.«level_positions__L3_L14_L2_loop0».core (Fn.«level_positions__L3_L14_L2_loop0».cert.withPows Data.powTree) :=
+  Link.of code983 core983 cert983 
+    (SigsOk.cons sig963 rfl 
+    (SigsOk.cons sig983 rfl SigsOk.nil))
     (by decide +kernel)
 
-theorem w983_0 : WinOk 983 0 := link983.win rfl Fn.«verify_merkle_cap__L2».w0
+theorem w983_0 : WinOk 983 0 := link983.win rfl Fn.«level_positions__L3_L14_L2_loop0».w0
 
 theorem ok983 : CheckOk 983 := checkOk_one (by decide +kernel) w983_0
 
 theorem plain983 : Plain 983 := plain_of_nil (by decide +kernel)
 
-theorem link984 : Link 984 (Glob.ofSigs ([(1525, Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0».code Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0».core (Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0».cert.withPows Data.powTree) :=
+theorem link984 : Link 984 (Glob.ofSigs ([(947, Fn.«decode_query_windows__L15_L3».sig), (984, Fn.«level_positions__L3_L15_L3_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«level_positions__L3_L15_L3_loop0».code Fn.«level_positions__L3_L15_L3_loop0».core (Fn.«level_positions__L3_L15_L3_loop0».cert.withPows Data.powTree) :=
   Link.of code984 core984 cert984 
-    (SigsOk.cons sig1525 rfl SigsOk.nil)
+    (SigsOk.cons sig947 rfl 
+    (SigsOk.cons sig984 rfl SigsOk.nil))
     (by decide +kernel)
 
-theorem w984_0 : WinOk 984 0 := link984.win rfl Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0».w0
+theorem w984_0 : WinOk 984 0 := link984.win rfl Fn.«level_positions__L3_L15_L3_loop0».w0
 
-theorem w984_1 : WinOk 984 1 := link984.win rfl Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L0_L0_L0_L0_L0».w1
+theorem ok984 : CheckOk 984 := checkOk_one (by decide +kernel) w984_0
 
-theorem ok984 : CheckOk 984 := fun i hi ↦ by
-  have h : (certOf 984).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w984_0
-  · exact w984_1
+theorem plain984 : Plain 984 := plain_of_nil (by decide +kernel)
 
-theorem link985 : Link 985 (Glob.ofSigs ([(1526, Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0».code Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0».core (Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0».cert.withPows Data.powTree) :=
+theorem link985 : Link 985 (Glob.ofSigs ([(1467, Fn.«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1».code Fn.«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1».core (Fn.«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1».cert.withPows Data.powTree) :=
   Link.of code985 core985 cert985 
-    (SigsOk.cons sig1526 rfl SigsOk.nil)
+    (SigsOk.cons sig1467 rfl SigsOk.nil)
     (by decide +kernel)
 
-theorem w985_0 : WinOk 985 0 := link985.win rfl Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0».w0
+theorem w985_0 : WinOk 985 0 := link985.win rfl Fn.«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1».w0
 
-theorem w985_1 : WinOk 985 1 := link985.win rfl Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L0_L0_L0_L0_L0».w1
+theorem w985_1 : WinOk 985 1 := link985.win rfl Fn.«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1».w1
 
 theorem ok985 : CheckOk 985 := fun i hi ↦ by
   have h : (certOf 985).cuts.length = 1 := by decide +kernel
@@ -678,15 +673,15 @@ theorem ok985 : CheckOk 985 := fun i hi ↦ by
   · exact w985_0
   · exact w985_1
 
-theorem link986 : Link 986 (Glob.ofSigs ([(1527, Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0».code Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0».core (Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0».cert.withPows Data.powTree) :=
+theorem link986 : Link 986 (Glob.ofSigs ([(1468, Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L2_L3_L8_L3_L1_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L2_L3_L8_L3_L1».code Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L2_L3_L8_L3_L1».core (Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L2_L3_L8_L3_L1».cert.withPows Data.powTree) :=
   Link.of code986 core986 cert986 
-    (SigsOk.cons sig1527 rfl SigsOk.nil)
+    (SigsOk.cons sig1468 rfl SigsOk.nil)
     (by decide +kernel)
 
-theorem w986_0 : WinOk 986 0 := link986.win rfl Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0».w0
+theorem w986_0 : WinOk 986 0 := link986.win rfl Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L2_L3_L8_L3_L1».w0
 
-theorem w986_1 : WinOk 986 1 := link986.win rfl Fn.«opening_queries__L0_L0_L4_L16_L16_L4_L0_L0_L0_L0_L0».w1
+theorem w986_1 : WinOk 986 1 := link986.win rfl Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L2_L3_L8_L3_L1».w1
 
 theorem ok986 : CheckOk 986 := fun i hi ↦ by
   have h : (certOf 986).cuts.length = 1 := by decide +kernel
@@ -695,15 +690,15 @@ theorem ok986 : CheckOk 986 := fun i hi ↦ by
   · exact w986_0
   · exact w986_1
 
-theorem link987 : Link 987 (Glob.ofSigs ([(1528, Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0».code Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0».core (Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0».cert.withPows Data.powTree) :=
+theorem link987 : Link 987 (Glob.ofSigs ([(1469, Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1».code Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1».core (Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1».cert.withPows Data.powTree) :=
   Link.of code987 core987 cert987 
-    (SigsOk.cons sig1528 rfl SigsOk.nil)
+    (SigsOk.cons sig1469 rfl SigsOk.nil)
     (by decide +kernel)
 
-theorem w987_0 : WinOk 987 0 := link987.win rfl Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0».w0
+theorem w987_0 : WinOk 987 0 := link987.win rfl Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1».w0
 
-theorem w987_1 : WinOk 987 1 := link987.win rfl Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0».w1
+theorem w987_1 : WinOk 987 1 := link987.win rfl Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L2_L3_L8_L3_L1».w1
 
 theorem ok987 : CheckOk 987 := fun i hi ↦ by
   have h : (certOf 987).cuts.length = 1 := by decide +kernel
@@ -712,188 +707,166 @@ theorem ok987 : CheckOk 987 := fun i hi ↦ by
   · exact w987_0
   · exact w987_1
 
-theorem link988 : Link 988 (Glob.ofSigs [] Data.jtTrie globSem)
-    Fn.«decode_query_windows__L13_L7».code Fn.«decode_query_windows__L13_L7».core (Fn.«decode_query_windows__L13_L7».cert.withPows Data.powTree) :=
-  Link.of code988 core988 cert988 SigsOk.nil
+theorem link988 : Link 988 (Glob.ofSigs ([(1470, Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1».code Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1».core (Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1».cert.withPows Data.powTree) :=
+  Link.of code988 core988 cert988 
+    (SigsOk.cons sig1470 rfl SigsOk.nil)
     (by decide +kernel)
 
-theorem w988_0 : WinOk 988 0 := link988.win rfl Fn.«decode_query_windows__L13_L7».w0
+theorem w988_0 : WinOk 988 0 := link988.win rfl Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1».w0
 
-theorem ok988 : CheckOk 988 := checkOk_one (by decide +kernel) w988_0
+theorem w988_1 : WinOk 988 1 := link988.win rfl Fn.«opening_queries__L0_L0_L4_L16_L15_L3_L2_L3_L8_L3_L1».w1
 
-theorem plain988 : Plain 988 := plain_of_nil (by decide +kernel)
+theorem ok988 : CheckOk 988 := fun i hi ↦ by
+  have h : (certOf 988).cuts.length = 1 := by decide +kernel
+  rw [h] at hi
+  interval_cases i
+  · exact w988_0
+  · exact w988_1
 
-theorem link989 : Link 989 (Glob.ofSigs ([(988, Fn.«decode_query_windows__L13_L7».sig), (989, Fn.«level_positions__L4_L13_L7_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«level_positions__L4_L13_L7_loop0».code Fn.«level_positions__L4_L13_L7_loop0».core (Fn.«level_positions__L4_L13_L7_loop0».cert.withPows Data.powTree) :=
+theorem link989 : Link 989 (Glob.ofSigs ([(989, Fn.«level_residual__L219_L14_L6_L3_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«level_residual__L219_L14_L6_L3_loop0».code Fn.«level_residual__L219_L14_L6_L3_loop0».core (Fn.«level_residual__L219_L14_L6_L3_loop0».cert.withPows Data.powTree) :=
   Link.of code989 core989 cert989 
-    (SigsOk.cons sig988 rfl 
-    (SigsOk.cons sig989 rfl SigsOk.nil))
+    (SigsOk.cons sig989 rfl SigsOk.nil)
     (by decide +kernel)
 
-theorem w989_0 : WinOk 989 0 := link989.win rfl Fn.«level_positions__L4_L13_L7_loop0».w0
+theorem w989_0 : WinOk 989 0 := link989.win rfl Fn.«level_residual__L219_L14_L6_L3_loop0».w0
 
 theorem ok989 : CheckOk 989 := checkOk_one (by decide +kernel) w989_0
 
 theorem plain989 : Plain 989 := plain_of_nil (by decide +kernel)
 
-theorem link990 : Link 990 (Glob.ofSigs ([(978, Fn.«decode_query_windows__L14_L2».sig), (990, Fn.«level_positions__L4_L14_L2_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«level_positions__L4_L14_L2_loop0».code Fn.«level_positions__L4_L14_L2_loop0».core (Fn.«level_positions__L4_L14_L2_loop0».cert.withPows Data.powTree) :=
+theorem link990 : Link 990 (Glob.ofSigs ([(990, Fn.«level_residual__L219_L14_L6_L3_loop1».sig)]) Data.jtTrie globSem)
+    Fn.«level_residual__L219_L14_L6_L3_loop1».code Fn.«level_residual__L219_L14_L6_L3_loop1».core (Fn.«level_residual__L219_L14_L6_L3_loop1».cert.withPows Data.powTree) :=
   Link.of code990 core990 cert990 
-    (SigsOk.cons sig978 rfl 
-    (SigsOk.cons sig990 rfl SigsOk.nil))
+    (SigsOk.cons sig990 rfl SigsOk.nil)
     (by decide +kernel)
 
-theorem w990_0 : WinOk 990 0 := link990.win rfl Fn.«level_positions__L4_L14_L2_loop0».w0
+theorem w990_0 : WinOk 990 0 := link990.win rfl Fn.«level_residual__L219_L14_L6_L3_loop1».w0
 
 theorem ok990 : CheckOk 990 := checkOk_one (by decide +kernel) w990_0
 
 theorem plain990 : Plain 990 := plain_of_nil (by decide +kernel)
 
-theorem link991 : Link 991 (Glob.ofSigs ([(962, Fn.«decode_query_windows__L15_L3».sig), (991, Fn.«level_positions__L4_L15_L3_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«level_positions__L4_L15_L3_loop0».code Fn.«level_positions__L4_L15_L3_loop0».core (Fn.«level_positions__L4_L15_L3_loop0».cert.withPows Data.powTree) :=
+theorem link991 : Link 991 (Glob.ofSigs ([(991, Fn.«level_residual__L109_L14_L6_L3_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«level_residual__L109_L14_L6_L3_loop0».code Fn.«level_residual__L109_L14_L6_L3_loop0».core (Fn.«level_residual__L109_L14_L6_L3_loop0».cert.withPows Data.powTree) :=
   Link.of code991 core991 cert991 
-    (SigsOk.cons sig962 rfl 
-    (SigsOk.cons sig991 rfl SigsOk.nil))
+    (SigsOk.cons sig991 rfl SigsOk.nil)
     (by decide +kernel)
 
-theorem w991_0 : WinOk 991 0 := link991.win rfl Fn.«level_positions__L4_L15_L3_loop0».w0
+theorem w991_0 : WinOk 991 0 := link991.win rfl Fn.«level_residual__L109_L14_L6_L3_loop0».w0
 
 theorem ok991 : CheckOk 991 := checkOk_one (by decide +kernel) w991_0
 
 theorem plain991 : Plain 991 := plain_of_nil (by decide +kernel)
 
-theorem link992 : Link 992 (Glob.ofSigs ([(964, Fn.«decode_query_windows__L16_L4».sig), (992, Fn.«level_positions__L3_L16_L4_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«level_positions__L3_L16_L4_loop0».code Fn.«level_positions__L3_L16_L4_loop0».core (Fn.«level_positions__L3_L16_L4_loop0».cert.withPows Data.powTree) :=
+theorem link992 : Link 992 (Glob.ofSigs ([(992, Fn.«level_residual__L109_L14_L6_L3_loop1».sig)]) Data.jtTrie globSem)
+    Fn.«level_residual__L109_L14_L6_L3_loop1».code Fn.«level_residual__L109_L14_L6_L3_loop1».core (Fn.«level_residual__L109_L14_L6_L3_loop1».cert.withPows Data.powTree) :=
   Link.of code992 core992 cert992 
-    (SigsOk.cons sig964 rfl 
-    (SigsOk.cons sig992 rfl SigsOk.nil))
+    (SigsOk.cons sig992 rfl SigsOk.nil)
     (by decide +kernel)
 
-theorem w992_0 : WinOk 992 0 := link992.win rfl Fn.«level_positions__L3_L16_L4_loop0».w0
+theorem w992_0 : WinOk 992 0 := link992.win rfl Fn.«level_residual__L109_L14_L6_L3_loop1».w0
 
 theorem ok992 : CheckOk 992 := checkOk_one (by decide +kernel) w992_0
 
 theorem plain992 : Plain 992 := plain_of_nil (by decide +kernel)
 
-theorem link993 : Link 993 (Glob.ofSigs [] Data.jtTrie globSem)
-    Fn.«verify_merkle_cap__L7».code Fn.«verify_merkle_cap__L7».core (Fn.«verify_merkle_cap__L7».cert.withPows Data.powTree) :=
-  Link.of code993 core993 cert993 SigsOk.nil
+theorem link993 : Link 993 (Glob.ofSigs ([(993, Fn.«level_residual__L73_L14_L6_L3_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«level_residual__L73_L14_L6_L3_loop0».code Fn.«level_residual__L73_L14_L6_L3_loop0».core (Fn.«level_residual__L73_L14_L6_L3_loop0».cert.withPows Data.powTree) :=
+  Link.of code993 core993 cert993 
+    (SigsOk.cons sig993 rfl SigsOk.nil)
     (by decide +kernel)
 
-theorem w993_0 : WinOk 993 0 := link993.win rfl Fn.«verify_merkle_cap__L7».w0
+theorem w993_0 : WinOk 993 0 := link993.win rfl Fn.«level_residual__L73_L14_L6_L3_loop0».w0
 
-theorem w993_1 : WinOk 993 1 := link993.win rfl Fn.«verify_merkle_cap__L7».w1
+theorem ok993 : CheckOk 993 := checkOk_one (by decide +kernel) w993_0
 
-theorem w993_2 : WinOk 993 2 := link993.win rfl Fn.«verify_merkle_cap__L7».w2
+theorem plain993 : Plain 993 := plain_of_nil (by decide +kernel)
 
-theorem ok993 : CheckOk 993 := fun i hi ↦ by
-  have h : (certOf 993).cuts.length = 2 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w993_0
-  · exact w993_1
-  · exact w993_2
-
-theorem plain993 : Plain 993 := by
-  unfold Plain
-  decide +kernel
-
-theorem link994 : Link 994 (Glob.ofSigs ([(1529, Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0».code Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0».core (Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0».cert.withPows Data.powTree) :=
+theorem link994 : Link 994 (Glob.ofSigs ([(994, Fn.«level_residual__L73_L14_L6_L3_loop1».sig)]) Data.jtTrie globSem)
+    Fn.«level_residual__L73_L14_L6_L3_loop1».code Fn.«level_residual__L73_L14_L6_L3_loop1».core (Fn.«level_residual__L73_L14_L6_L3_loop1».cert.withPows Data.powTree) :=
   Link.of code994 core994 cert994 
-    (SigsOk.cons sig1529 rfl SigsOk.nil)
+    (SigsOk.cons sig994 rfl SigsOk.nil)
     (by decide +kernel)
 
-theorem w994_0 : WinOk 994 0 := link994.win rfl Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0».w0
+theorem w994_0 : WinOk 994 0 := link994.win rfl Fn.«level_residual__L73_L14_L6_L3_loop1».w0
 
-theorem w994_1 : WinOk 994 1 := link994.win rfl Fn.«opening_queries__L0_L0_L4_L16_L13_L7_L0_L0_L0_L0_L0».w1
+theorem ok994 : CheckOk 994 := checkOk_one (by decide +kernel) w994_0
 
-theorem ok994 : CheckOk 994 := fun i hi ↦ by
-  have h : (certOf 994).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w994_0
-  · exact w994_1
+theorem plain994 : Plain 994 := plain_of_nil (by decide +kernel)
 
-theorem link995 : Link 995 (Glob.ofSigs [] Data.jtTrie globSem)
-    Fn.«decode_query_windows__L12_L6».code Fn.«decode_query_windows__L12_L6».core (Fn.«decode_query_windows__L12_L6».cert.withPows Data.powTree) :=
-  Link.of code995 core995 cert995 SigsOk.nil
+theorem link995 : Link 995 (Glob.ofSigs ([(995, Fn.«level_residual__L55_L14_L6_L3_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«level_residual__L55_L14_L6_L3_loop0».code Fn.«level_residual__L55_L14_L6_L3_loop0».core (Fn.«level_residual__L55_L14_L6_L3_loop0».cert.withPows Data.powTree) :=
+  Link.of code995 core995 cert995 
+    (SigsOk.cons sig995 rfl SigsOk.nil)
     (by decide +kernel)
 
-theorem w995_0 : WinOk 995 0 := link995.win rfl Fn.«decode_query_windows__L12_L6».w0
+theorem w995_0 : WinOk 995 0 := link995.win rfl Fn.«level_residual__L55_L14_L6_L3_loop0».w0
 
 theorem ok995 : CheckOk 995 := checkOk_one (by decide +kernel) w995_0
 
 theorem plain995 : Plain 995 := plain_of_nil (by decide +kernel)
 
-theorem link996 : Link 996 (Glob.ofSigs ([(995, Fn.«decode_query_windows__L12_L6».sig), (996, Fn.«level_positions__L3_L12_L6_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«level_positions__L3_L12_L6_loop0».code Fn.«level_positions__L3_L12_L6_loop0».core (Fn.«level_positions__L3_L12_L6_loop0».cert.withPows Data.powTree) :=
+theorem link996 : Link 996 (Glob.ofSigs ([(996, Fn.«level_residual__L55_L14_L6_L3_loop1».sig)]) Data.jtTrie globSem)
+    Fn.«level_residual__L55_L14_L6_L3_loop1».code Fn.«level_residual__L55_L14_L6_L3_loop1».core (Fn.«level_residual__L55_L14_L6_L3_loop1».cert.withPows Data.powTree) :=
   Link.of code996 core996 cert996 
-    (SigsOk.cons sig995 rfl 
-    (SigsOk.cons sig996 rfl SigsOk.nil))
+    (SigsOk.cons sig996 rfl SigsOk.nil)
     (by decide +kernel)
 
-theorem w996_0 : WinOk 996 0 := link996.win rfl Fn.«level_positions__L3_L12_L6_loop0».w0
+theorem w996_0 : WinOk 996 0 := link996.win rfl Fn.«level_residual__L55_L14_L6_L3_loop1».w0
 
 theorem ok996 : CheckOk 996 := checkOk_one (by decide +kernel) w996_0
 
 theorem plain996 : Plain 996 := plain_of_nil (by decide +kernel)
 
-theorem link997 : Link 997 (Glob.ofSigs ([(988, Fn.«decode_query_windows__L13_L7».sig), (997, Fn.«level_positions__L3_L13_L7_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«level_positions__L3_L13_L7_loop0».code Fn.«level_positions__L3_L13_L7_loop0».core (Fn.«level_positions__L3_L13_L7_loop0».cert.withPows Data.powTree) :=
+theorem link997 : Link 997 (Glob.ofSigs ([(997, Fn.«level_residual__L55_L10_L4_L2_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«level_residual__L55_L10_L4_L2_loop0».code Fn.«level_residual__L55_L10_L4_L2_loop0».core (Fn.«level_residual__L55_L10_L4_L2_loop0».cert.withPows Data.powTree) :=
   Link.of code997 core997 cert997 
-    (SigsOk.cons sig988 rfl 
-    (SigsOk.cons sig997 rfl SigsOk.nil))
+    (SigsOk.cons sig997 rfl SigsOk.nil)
     (by decide +kernel)
 
-theorem w997_0 : WinOk 997 0 := link997.win rfl Fn.«level_positions__L3_L13_L7_loop0».w0
+theorem w997_0 : WinOk 997 0 := link997.win rfl Fn.«level_residual__L55_L10_L4_L2_loop0».w0
 
 theorem ok997 : CheckOk 997 := checkOk_one (by decide +kernel) w997_0
 
 theorem plain997 : Plain 997 := plain_of_nil (by decide +kernel)
 
-theorem link998 : Link 998 (Glob.ofSigs ([(978, Fn.«decode_query_windows__L14_L2».sig), (998, Fn.«level_positions__L3_L14_L2_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«level_positions__L3_L14_L2_loop0».code Fn.«level_positions__L3_L14_L2_loop0».core (Fn.«level_positions__L3_L14_L2_loop0».cert.withPows Data.powTree) :=
+theorem link998 : Link 998 (Glob.ofSigs ([(998, Fn.«level_residual__L55_L10_L4_L2_loop1».sig)]) Data.jtTrie globSem)
+    Fn.«level_residual__L55_L10_L4_L2_loop1».code Fn.«level_residual__L55_L10_L4_L2_loop1».core (Fn.«level_residual__L55_L10_L4_L2_loop1».cert.withPows Data.powTree) :=
   Link.of code998 core998 cert998 
-    (SigsOk.cons sig978 rfl 
-    (SigsOk.cons sig998 rfl SigsOk.nil))
+    (SigsOk.cons sig998 rfl SigsOk.nil)
     (by decide +kernel)
 
-theorem w998_0 : WinOk 998 0 := link998.win rfl Fn.«level_positions__L3_L14_L2_loop0».w0
+theorem w998_0 : WinOk 998 0 := link998.win rfl Fn.«level_residual__L55_L10_L4_L2_loop1».w0
 
 theorem ok998 : CheckOk 998 := checkOk_one (by decide +kernel) w998_0
 
 theorem plain998 : Plain 998 := plain_of_nil (by decide +kernel)
 
-theorem link999 : Link 999 (Glob.ofSigs ([(962, Fn.«decode_query_windows__L15_L3».sig), (999, Fn.«level_positions__L3_L15_L3_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«level_positions__L3_L15_L3_loop0».code Fn.«level_positions__L3_L15_L3_loop0».core (Fn.«level_positions__L3_L15_L3_loop0».cert.withPows Data.powTree) :=
+theorem link999 : Link 999 (Glob.ofSigs ([(999, Fn.«level_residual__L44_L10_L4_L2_loop0».sig)]) Data.jtTrie globSem)
+    Fn.«level_residual__L44_L10_L4_L2_loop0».code Fn.«level_residual__L44_L10_L4_L2_loop0».core (Fn.«level_residual__L44_L10_L4_L2_loop0».cert.withPows Data.powTree) :=
   Link.of code999 core999 cert999 
-    (SigsOk.cons sig962 rfl 
-    (SigsOk.cons sig999 rfl SigsOk.nil))
+    (SigsOk.cons sig999 rfl SigsOk.nil)
     (by decide +kernel)
 
-theorem w999_0 : WinOk 999 0 := link999.win rfl Fn.«level_positions__L3_L15_L3_loop0».w0
+theorem w999_0 : WinOk 999 0 := link999.win rfl Fn.«level_residual__L44_L10_L4_L2_loop0».w0
 
 theorem ok999 : CheckOk 999 := checkOk_one (by decide +kernel) w999_0
 
 theorem plain999 : Plain 999 := plain_of_nil (by decide +kernel)
 
-theorem link1000 : Link 1000 (Glob.ofSigs ([(1530, Fn.«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1_loop0».sig)]) Data.jtTrie globSem)
-    Fn.«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1».code Fn.«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1».core (Fn.«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1».cert.withPows Data.powTree) :=
+theorem link1000 : Link 1000 (Glob.ofSigs ([(1000, Fn.«level_residual__L44_L10_L4_L2_loop1».sig)]) Data.jtTrie globSem)
+    Fn.«level_residual__L44_L10_L4_L2_loop1».code Fn.«level_residual__L44_L10_L4_L2_loop1».core (Fn.«level_residual__L44_L10_L4_L2_loop1».cert.withPows Data.powTree) :=
   Link.of code1000 core1000 cert1000 
-    (SigsOk.cons sig1530 rfl SigsOk.nil)
+    (SigsOk.cons sig1000 rfl SigsOk.nil)
     (by decide +kernel)
 
-theorem w1000_0 : WinOk 1000 0 := link1000.win rfl Fn.«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1».w0
+theorem w1000_0 : WinOk 1000 0 := link1000.win rfl Fn.«level_residual__L44_L10_L4_L2_loop1».w0
 
-theorem w1000_1 : WinOk 1000 1 := link1000.win rfl Fn.«opening_queries__L0_L0_L4_L16_L12_L6_L2_L3_L8_L3_L1».w1
+theorem ok1000 : CheckOk 1000 := checkOk_one (by decide +kernel) w1000_0
 
-theorem ok1000 : CheckOk 1000 := fun i hi ↦ by
-  have h : (certOf 1000).cuts.length = 1 := by decide +kernel
-  rw [h] at hi
-  interval_cases i
-  · exact w1000_0
-  · exact w1000_1
+theorem plain1000 : Plain 1000 := plain_of_nil (by decide +kernel)
 
 end
 end LeanVM.Guest.Checked

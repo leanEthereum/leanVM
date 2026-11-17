@@ -4,8 +4,8 @@ import os, sys
 import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from genforms import *
 from mk import write
-# G:2701 `air_acc += zc_cprod[g_zc_n / tau_g] * zc_peq[tau_g] * constraint_eval`, tau_g = kb[2 + t]
-# (the kappa_base frame variable 28 + t): `g_zc_n = x·τ`, cprod at 2631, peq at 2656.
+# `verify_tables`' `air_acc += zc_cprod[g_zc_n / tau_g] * zc_peq[tau_g] * constraint_eval`, tau_g = kb[2 + t]
+# (the kappa_base frame variable 28 + t): `g_zc_n = x·τ`.
 GZN, CPROD, PEQ, CLAIM = 2545, 2631, 2656, 2653
 out=[]
 def at(p): return f'  have a{p} := h.atomAt {p} {RAW[p][len(".atom "):]} (by decide +kernel)'

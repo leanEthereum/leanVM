@@ -26,21 +26,6 @@ end
 
 end LeanVM.Guest.Fn.«rs_eq_run»
 
-namespace LeanVM.Guest.Fn.«da_row_shape»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_row_shape`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«da_row_shape».cert.locs Fn.«da_row_shape».fs Fn.«da_row_shape».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_row_shape»
-
 namespace LeanVM.Guest.Fn.«da_verify_cell»
 
 open LeanVM.Guest

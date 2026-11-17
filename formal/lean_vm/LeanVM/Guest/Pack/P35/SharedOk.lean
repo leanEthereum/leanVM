@@ -95,7 +95,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop130`: its static sharing check and every window's. -/
+/-- `__loop135`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_residual__L109_L16_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 2 := by decide +kernel
   rw [hc] at hi
@@ -114,7 +114,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop295`: its static sharing check and every window's. -/
+/-- `__loop300`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_positions__L15_L24_L6_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -131,7 +131,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop408`: its static sharing check and every window's. -/
+/-- `__loop413`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_residual__L18_L11_L4_L2_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi

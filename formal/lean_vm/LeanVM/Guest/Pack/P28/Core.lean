@@ -298,47 +298,44 @@ namespace core
 /-- `da_column_offsets_loop1`: the body. -/
 noncomputable def body : List Core.Stmt := (
   .atom (.mul (.n 4) (.n 0) (.n 0)) ::
-  .atom (.mul (.n 5) (.n 4) (.n 4)) ::
+  .atom (.mul (.n 5) (.n 4) (.n 0)) ::
   .atom (.mul (.n 6) (.n 5) (.n 5)) ::
-  .atom (.mul (.n 7) (.n 2) (.n 6)) ::
-  .atom (.load (.n 8) (.n 7) 0) ::
-  .atom (.load (.n 9) (.n 3) 0) ::
-  .atom (.add (.n 10) (.n 8) (.n 9)) ::
-  .atom (.load (.n 10) (.n 7) 16) ::
-  .atom (.load (.n 11) (.n 7) 1) ::
-  .atom (.load (.n 12) (.n 3) 1) ::
-  .atom (.add (.n 13) (.n 11) (.n 12)) ::
-  .atom (.load (.n 13) (.n 7) 17) ::
-  .atom (.load (.n 14) (.n 7) 2) ::
-  .atom (.load (.n 15) (.n 3) 2) ::
-  .atom (.add (.n 16) (.n 14) (.n 15)) ::
-  .atom (.load (.n 16) (.n 7) 18) ::
-  .atom (.load (.n 17) (.n 7) 3) ::
-  .atom (.load (.n 18) (.n 3) 3) ::
-  .atom (.add (.n 19) (.n 17) (.n 18)) ::
-  .atom (.load (.n 19) (.n 7) 19) ::
-  .atom (.load (.n 20) (.n 7) 4) ::
-  .atom (.load (.n 21) (.n 3) 4) ::
-  .atom (.add (.n 22) (.n 20) (.n 21)) ::
-  .atom (.load (.n 22) (.n 7) 20) ::
-  .atom (.load (.n 23) (.n 7) 5) ::
-  .atom (.load (.n 24) (.n 3) 5) ::
-  .atom (.add (.n 25) (.n 23) (.n 24)) ::
-  .atom (.load (.n 25) (.n 7) 21) ::
-  .atom (.load (.n 26) (.n 7) 6) ::
-  .atom (.load (.n 27) (.n 3) 6) ::
-  .atom (.add (.n 28) (.n 26) (.n 27)) ::
-  .atom (.load (.n 28) (.n 7) 22) ::
-  .atom (.load (.n 29) (.n 7) 7) ::
-  .atom (.load (.n 30) (.n 3) 7) ::
-  .atom (.add (.n 31) (.n 29) (.n 30)) ::
-  .atom (.load (.n 31) (.n 7) 23) ::
-  .atom (.const (.n 32) (word 2 0)) ::
-  .atom (.mul (.n 33) (.n 0) (.n 32)) ::
-  .atom (.add (.n 34) (.n 33) (.n 1)) ::
-  .atom (.const (.n 35) (word 2 0)) ::
-  .atom (.mul (.n 36) (.n 0) (.n 35)) ::
-  .callIf (.n 34) "__loop26" [.n 36, .n 1, .n 2, .n 3] ::
+  .atom (.mul (.n 7) (.n 6) (.n 0)) ::
+  .atom (.mul (.n 8) (.n 2) (.n 7)) ::
+  .atom (.load (.n 9) (.n 8) 0) ::
+  .atom (.load (.n 10) (.n 3) 0) ::
+  .atom (.add (.n 11) (.n 9) (.n 10)) ::
+  .atom (.load (.n 11) (.n 8) 14) ::
+  .atom (.load (.n 12) (.n 8) 1) ::
+  .atom (.load (.n 13) (.n 3) 1) ::
+  .atom (.add (.n 14) (.n 12) (.n 13)) ::
+  .atom (.load (.n 14) (.n 8) 15) ::
+  .atom (.load (.n 15) (.n 8) 2) ::
+  .atom (.load (.n 16) (.n 3) 2) ::
+  .atom (.add (.n 17) (.n 15) (.n 16)) ::
+  .atom (.load (.n 17) (.n 8) 16) ::
+  .atom (.load (.n 18) (.n 8) 3) ::
+  .atom (.load (.n 19) (.n 3) 3) ::
+  .atom (.add (.n 20) (.n 18) (.n 19)) ::
+  .atom (.load (.n 20) (.n 8) 17) ::
+  .atom (.load (.n 21) (.n 8) 4) ::
+  .atom (.load (.n 22) (.n 3) 4) ::
+  .atom (.add (.n 23) (.n 21) (.n 22)) ::
+  .atom (.load (.n 23) (.n 8) 18) ::
+  .atom (.load (.n 24) (.n 8) 5) ::
+  .atom (.load (.n 25) (.n 3) 5) ::
+  .atom (.add (.n 26) (.n 24) (.n 25)) ::
+  .atom (.load (.n 26) (.n 8) 19) ::
+  .atom (.load (.n 27) (.n 8) 6) ::
+  .atom (.load (.n 28) (.n 3) 6) ::
+  .atom (.add (.n 29) (.n 27) (.n 28)) ::
+  .atom (.load (.n 29) (.n 8) 20) ::
+  .atom (.const (.n 30) (word 2 0)) ::
+  .atom (.mul (.n 31) (.n 0) (.n 30)) ::
+  .atom (.add (.n 32) (.n 31) (.n 1)) ::
+  .atom (.const (.n 33) (word 2 0)) ::
+  .atom (.mul (.n 34) (.n 0) (.n 33)) ::
+  .callIf (.n 32) "__loop26" [.n 34, .n 1, .n 2, .n 3] ::
   .ret [] ::
   [])
 
@@ -353,137 +350,6 @@ noncomputable def core : Core.Fn where
 end
 end LeanVM.Guest.Fn.«da_column_offsets_loop1»
 
-namespace LeanVM.Guest.Fn.«da_levels__L256_L8_loop3»
-
-open LeanVM.Guest
-
-@[expose] public section
-
-namespace core
-
-/-- `da_levels__L256_L8_loop3`: the body. -/
-noncomputable def body : List Core.Stmt := [
-  .atom (.const (.n 3) (word 94597931458646037 0)),
-  .atom (.mul (.n 4) (.n 2) (.n 3)),
-  .atom (.mul (.n 5) (.n 0) (.n 0)),
-  .atom (.mul (.n 6) (.n 5) (.n 5)),
-  .atom (.mul (.n 7) (.n 4) (.n 6)),
-  .atom (.const (.n 8) (word 2049660569696039367 0)),
-  .atom (.mul (.n 9) (.n 2) (.n 8)),
-  .atom (.mul (.n 10) (.n 0) (.n 0)),
-  .atom (.mul (.n 11) (.n 9) (.n 10)),
-  .atom (.load (.n 12) (.n 7) 0),
-  .atom (.load (.n 13) (.n 7) 1),
-  .atom (.load (.n 14) (.n 7) 2),
-  .atom (.load (.n 15) (.n 7) 3),
-  .atom (.const (.n 16) (word 1 0)),
-  .atom (.const (.n 17) (word 0 0)),
-  .atom (.const (.n 18) (word 0 0)),
-  .atom (.const (.n 19) (word 0 0)),
-  .atom (.const (.n 20) (word 0 0)),
-  .atom (.const (.n 21) (word 9223372036854775808 0)),
-  .atom (.keccak [.n 12, .n 13, .n 14, .n 15, .n 16, .n 17, .n 18, .n 19, .n 21, .n 17, .n 18, .n 19, .n 20] [.n 22, .n 23] false false),
-  .atom (.load (.n 22) (.n 11) 0),
-  .atom (.load (.n 23) (.n 11) 1),
-  .atom (.const (.n 24) (word 2 0)),
-  .atom (.mul (.n 25) (.n 0) (.n 24)),
-  .atom (.add (.n 26) (.n 25) (.n 1)),
-  .atom (.const (.n 27) (word 2 0)),
-  .atom (.mul (.n 28) (.n 0) (.n 27)),
-  .callIf (.n 26) "__loop477" [.n 28, .n 1, .n 2],
-  .ret []]
-
-end core
-
-/-- `da_levels__L256_L8_loop3`. -/
-noncomputable def core : Core.Fn where
-  name := "__loop477"
-  params := [.n 0, .n 1, .n 2]
-  body := core.body
-
-end
-end LeanVM.Guest.Fn.«da_levels__L256_L8_loop3»
-
-namespace LeanVM.Guest.Fn.«da_levels__L512_L9»
-
-open LeanVM.Guest
-
-@[expose] public section
-
-namespace core
-
-/-- `da_levels__L512_L9`: the body. -/
-noncomputable def body : List Core.Stmt := (
-  .atom (.const (.n 1) (word 1 0)) ::
-  .atom (.const (.n 2) (word 69649 0)) ::
-  .atom (.add (.n 3) (.n 1) (.n 2)) ::
-  .atom (.const (.n 4) (word 1 0)) ::
-  .atom (.const (.n 5) (word 69649 0)) ::
-  .callIf (.n 3) "__loop482" [.n 4, .n 5, .n 0] ::
-  .atom (.const (.n 6) (word 1 0)) ::
-  .atom (.const (.n 7) (word 325 0)) ::
-  .atom (.add (.n 8) (.n 6) (.n 7)) ::
-  .atom (.const (.n 9) (word 1 0)) ::
-  .atom (.const (.n 10) (word 325 0)) ::
-  .callIf (.n 8) "__loop483" [.n 9, .n 10, .n 0] ::
-  .atom (.const (.n 11) (word 1 0)) ::
-  .atom (.const (.n 12) (word 27 0)) ::
-  .atom (.add (.n 13) (.n 11) (.n 12)) ::
-  .atom (.const (.n 14) (word 1 0)) ::
-  .atom (.const (.n 15) (word 27 0)) ::
-  .callIf (.n 13) "__loop484" [.n 14, .n 15, .n 0] ::
-  .atom (.const (.n 16) (word 1 0)) ::
-  .atom (.const (.n 17) (word 4294967296 0)) ::
-  .atom (.add (.n 18) (.n 16) (.n 17)) ::
-  .atom (.const (.n 19) (word 1 0)) ::
-  .atom (.const (.n 20) (word 4294967296 0)) ::
-  .callIf (.n 18) "__loop485" [.n 19, .n 20, .n 0] ::
-  .atom (.const (.n 21) (word 1 0)) ::
-  .atom (.const (.n 22) (word 65536 0)) ::
-  .atom (.add (.n 23) (.n 21) (.n 22)) ::
-  .atom (.const (.n 24) (word 1 0)) ::
-  .atom (.const (.n 25) (word 65536 0)) ::
-  .callIf (.n 23) "__loop486" [.n 24, .n 25, .n 0] ::
-  .atom (.const (.n 26) (word 1 0)) ::
-  .atom (.const (.n 27) (word 256 0)) ::
-  .atom (.add (.n 28) (.n 26) (.n 27)) ::
-  .atom (.const (.n 29) (word 1 0)) ::
-  .atom (.const (.n 30) (word 256 0)) ::
-  .callIf (.n 28) "__loop487" [.n 29, .n 30, .n 0] ::
-  .atom (.const (.n 31) (word 1 0)) ::
-  .atom (.const (.n 32) (word 16 0)) ::
-  .atom (.add (.n 33) (.n 31) (.n 32)) ::
-  .atom (.const (.n 34) (word 1 0)) ::
-  .atom (.const (.n 35) (word 16 0)) ::
-  .callIf (.n 33) "__loop488" [.n 34, .n 35, .n 0] ::
-  .atom (.const (.n 36) (word 1 0)) ::
-  .atom (.const (.n 37) (word 4 0)) ::
-  .atom (.add (.n 38) (.n 36) (.n 37)) ::
-  .atom (.const (.n 39) (word 1 0)) ::
-  .atom (.const (.n 40) (word 4 0)) ::
-  .callIf (.n 38) "__loop489" [.n 39, .n 40, .n 0] ::
-  .atom (.const (.n 41) (word 1 0)) ::
-  .atom (.const (.n 42) (word 2 0)) ::
-  .atom (.add (.n 43) (.n 41) (.n 42)) ::
-  .atom (.const (.n 44) (word 1 0)) ::
-  .atom (.const (.n 45) (word 2 0)) ::
-  .callIf (.n 43) "__loop490" [.n 44, .n 45, .n 0] ::
-  .atom (.load (.n 46) (.n 0) 2044) ::
-  .atom (.load (.n 47) (.n 0) 2045) ::
-  .ret [.n 46, .n 47] ::
-  [])
-
-end core
-
-/-- `da_levels__L512_L9`. -/
-noncomputable def core : Core.Fn where
-  name := "da_levels__L512_L9"
-  params := [.n 0]
-  body := core.body
-
-end
-end LeanVM.Guest.Fn.«da_levels__L512_L9»
-
 namespace LeanVM.Guest.Fn.«da_weights»
 
 open LeanVM.Guest
@@ -496,646 +362,646 @@ namespace core
 noncomputable def c0 : List Core.Stmt := (
   .atom (.hint (.alloc (.n 4) 128)) ::
   .atom (.load (.n 5) (.n 0) 0) ::
-  .call "da_expand__L7_L8" [.n 5, .n 1, .n 2, .n 3] [.n 6] ::
+  .call "da_expand__L6_L7" [.n 5, .n 1, .n 2, .n 3] [.n 6] ::
   .atom (.load (.n 6) (.n 4) 0) ::
   .atom (.load (.n 7) (.n 0) 1) ::
-  .atom (.const (.n 8) (word 256 0)) ::
+  .atom (.const (.n 8) (word 128 0)) ::
   .atom (.mul (.n 9) (.n 3) (.n 8)) ::
-  .call "da_expand__L7_L8" [.n 7, .n 1, .n 2, .n 9] [.n 10] ::
+  .call "da_expand__L6_L7" [.n 7, .n 1, .n 2, .n 9] [.n 10] ::
   .atom (.load (.n 10) (.n 4) 1) ::
   .atom (.load (.n 11) (.n 0) 2) ::
-  .atom (.const (.n 12) (word 256 0)) ::
+  .atom (.const (.n 12) (word 128 0)) ::
   .atom (.mul (.n 13) (.n 9) (.n 12)) ::
-  .call "da_expand__L7_L8" [.n 11, .n 1, .n 2, .n 13] [.n 14] ::
+  .call "da_expand__L6_L7" [.n 11, .n 1, .n 2, .n 13] [.n 14] ::
   .atom (.load (.n 14) (.n 4) 2) ::
   .atom (.load (.n 15) (.n 0) 3) ::
-  .atom (.const (.n 16) (word 256 0)) ::
+  .atom (.const (.n 16) (word 128 0)) ::
   .atom (.mul (.n 17) (.n 13) (.n 16)) ::
-  .call "da_expand__L7_L8" [.n 15, .n 1, .n 2, .n 17] [.n 18] ::
+  .call "da_expand__L6_L7" [.n 15, .n 1, .n 2, .n 17] [.n 18] ::
   .atom (.load (.n 18) (.n 4) 3) ::
   .atom (.load (.n 19) (.n 0) 4) ::
-  .atom (.const (.n 20) (word 256 0)) ::
+  .atom (.const (.n 20) (word 128 0)) ::
   .atom (.mul (.n 21) (.n 17) (.n 20)) ::
-  .call "da_expand__L7_L8" [.n 19, .n 1, .n 2, .n 21] [.n 22] ::
+  .call "da_expand__L6_L7" [.n 19, .n 1, .n 2, .n 21] [.n 22] ::
   .atom (.load (.n 22) (.n 4) 4) ::
   .atom (.load (.n 23) (.n 0) 5) ::
-  .atom (.const (.n 24) (word 256 0)) ::
+  .atom (.const (.n 24) (word 128 0)) ::
   .atom (.mul (.n 25) (.n 21) (.n 24)) ::
-  .call "da_expand__L7_L8" [.n 23, .n 1, .n 2, .n 25] [.n 26] ::
+  .call "da_expand__L6_L7" [.n 23, .n 1, .n 2, .n 25] [.n 26] ::
   .atom (.load (.n 26) (.n 4) 5) ::
   .atom (.load (.n 27) (.n 0) 6) ::
-  .atom (.const (.n 28) (word 256 0)) ::
+  .atom (.const (.n 28) (word 128 0)) ::
   .atom (.mul (.n 29) (.n 25) (.n 28)) ::
-  .call "da_expand__L7_L8" [.n 27, .n 1, .n 2, .n 29] [.n 30] ::
+  .call "da_expand__L6_L7" [.n 27, .n 1, .n 2, .n 29] [.n 30] ::
   .atom (.load (.n 30) (.n 4) 6) ::
   .atom (.load (.n 31) (.n 0) 7) ::
-  .atom (.const (.n 32) (word 256 0)) ::
+  .atom (.const (.n 32) (word 128 0)) ::
   .atom (.mul (.n 33) (.n 29) (.n 32)) ::
-  .call "da_expand__L7_L8" [.n 31, .n 1, .n 2, .n 33] [.n 34] ::
+  .call "da_expand__L6_L7" [.n 31, .n 1, .n 2, .n 33] [.n 34] ::
   .atom (.load (.n 34) (.n 4) 7) ::
   .atom (.load (.n 35) (.n 0) 8) ::
-  .atom (.const (.n 36) (word 256 0)) ::
+  .atom (.const (.n 36) (word 128 0)) ::
   .atom (.mul (.n 37) (.n 33) (.n 36)) ::
-  .call "da_expand__L7_L8" [.n 35, .n 1, .n 2, .n 37] [.n 38] ::
+  .call "da_expand__L6_L7" [.n 35, .n 1, .n 2, .n 37] [.n 38] ::
   .atom (.load (.n 38) (.n 4) 8) ::
   .atom (.load (.n 39) (.n 0) 9) ::
-  .atom (.const (.n 40) (word 256 0)) ::
+  .atom (.const (.n 40) (word 128 0)) ::
   .atom (.mul (.n 41) (.n 37) (.n 40)) ::
-  .call "da_expand__L7_L8" [.n 39, .n 1, .n 2, .n 41] [.n 42] ::
+  .call "da_expand__L6_L7" [.n 39, .n 1, .n 2, .n 41] [.n 42] ::
   .atom (.load (.n 42) (.n 4) 9) ::
   .atom (.load (.n 43) (.n 0) 10) ::
-  .atom (.const (.n 44) (word 256 0)) ::
+  .atom (.const (.n 44) (word 128 0)) ::
   .atom (.mul (.n 45) (.n 41) (.n 44)) ::
-  .call "da_expand__L7_L8" [.n 43, .n 1, .n 2, .n 45] [.n 46] ::
+  .call "da_expand__L6_L7" [.n 43, .n 1, .n 2, .n 45] [.n 46] ::
   .atom (.load (.n 46) (.n 4) 10) ::
   .atom (.load (.n 47) (.n 0) 11) ::
-  .atom (.const (.n 48) (word 256 0)) ::
+  .atom (.const (.n 48) (word 128 0)) ::
   .atom (.mul (.n 49) (.n 45) (.n 48)) ::
-  .call "da_expand__L7_L8" [.n 47, .n 1, .n 2, .n 49] [.n 50] ::
+  .call "da_expand__L6_L7" [.n 47, .n 1, .n 2, .n 49] [.n 50] ::
   .atom (.load (.n 50) (.n 4) 11) ::
   .atom (.load (.n 51) (.n 0) 12) ::
-  .atom (.const (.n 52) (word 256 0)) ::
+  .atom (.const (.n 52) (word 128 0)) ::
   .atom (.mul (.n 53) (.n 49) (.n 52)) ::
-  .call "da_expand__L7_L8" [.n 51, .n 1, .n 2, .n 53] [.n 54] ::
+  .call "da_expand__L6_L7" [.n 51, .n 1, .n 2, .n 53] [.n 54] ::
   .atom (.load (.n 54) (.n 4) 12) ::
   .atom (.load (.n 55) (.n 0) 13) ::
-  .atom (.const (.n 56) (word 256 0)) ::
+  .atom (.const (.n 56) (word 128 0)) ::
   .atom (.mul (.n 57) (.n 53) (.n 56)) ::
-  .call "da_expand__L7_L8" [.n 55, .n 1, .n 2, .n 57] [.n 58] ::
+  .call "da_expand__L6_L7" [.n 55, .n 1, .n 2, .n 57] [.n 58] ::
   .atom (.load (.n 58) (.n 4) 13) ::
   .atom (.load (.n 59) (.n 0) 14) ::
-  .atom (.const (.n 60) (word 256 0)) ::
+  .atom (.const (.n 60) (word 128 0)) ::
   .atom (.mul (.n 61) (.n 57) (.n 60)) ::
-  .call "da_expand__L7_L8" [.n 59, .n 1, .n 2, .n 61] [.n 62] ::
+  .call "da_expand__L6_L7" [.n 59, .n 1, .n 2, .n 61] [.n 62] ::
   .atom (.load (.n 62) (.n 4) 14) ::
   .atom (.load (.n 63) (.n 0) 15) ::
-  .atom (.const (.n 64) (word 256 0)) ::
+  .atom (.const (.n 64) (word 128 0)) ::
   .atom (.mul (.n 65) (.n 61) (.n 64)) ::
-  .call "da_expand__L7_L8" [.n 63, .n 1, .n 2, .n 65] [.n 66] ::
+  .call "da_expand__L6_L7" [.n 63, .n 1, .n 2, .n 65] [.n 66] ::
   .atom (.load (.n 66) (.n 4) 15) ::
   .atom (.load (.n 67) (.n 0) 16) ::
-  .atom (.const (.n 68) (word 256 0)) ::
+  .atom (.const (.n 68) (word 128 0)) ::
   .atom (.mul (.n 69) (.n 65) (.n 68)) ::
-  .call "da_expand__L7_L8" [.n 67, .n 1, .n 2, .n 69] [.n 70] ::
+  .call "da_expand__L6_L7" [.n 67, .n 1, .n 2, .n 69] [.n 70] ::
   .atom (.load (.n 70) (.n 4) 16) ::
   .atom (.load (.n 71) (.n 0) 17) ::
-  .atom (.const (.n 72) (word 256 0)) ::
+  .atom (.const (.n 72) (word 128 0)) ::
   .atom (.mul (.n 73) (.n 69) (.n 72)) ::
-  .call "da_expand__L7_L8" [.n 71, .n 1, .n 2, .n 73] [.n 74] ::
+  .call "da_expand__L6_L7" [.n 71, .n 1, .n 2, .n 73] [.n 74] ::
   .atom (.load (.n 74) (.n 4) 17) ::
   .atom (.load (.n 75) (.n 0) 18) ::
-  .atom (.const (.n 76) (word 256 0)) ::
+  .atom (.const (.n 76) (word 128 0)) ::
   .atom (.mul (.n 77) (.n 73) (.n 76)) ::
-  .call "da_expand__L7_L8" [.n 75, .n 1, .n 2, .n 77] [.n 78] ::
+  .call "da_expand__L6_L7" [.n 75, .n 1, .n 2, .n 77] [.n 78] ::
   .atom (.load (.n 78) (.n 4) 18) ::
   .atom (.load (.n 79) (.n 0) 19) ::
-  .atom (.const (.n 80) (word 256 0)) ::
+  .atom (.const (.n 80) (word 128 0)) ::
   .atom (.mul (.n 81) (.n 77) (.n 80)) ::
-  .call "da_expand__L7_L8" [.n 79, .n 1, .n 2, .n 81] [.n 82] ::
+  .call "da_expand__L6_L7" [.n 79, .n 1, .n 2, .n 81] [.n 82] ::
   .atom (.load (.n 82) (.n 4) 19) ::
   .atom (.load (.n 83) (.n 0) 20) ::
-  .atom (.const (.n 84) (word 256 0)) ::
+  .atom (.const (.n 84) (word 128 0)) ::
   .atom (.mul (.n 85) (.n 81) (.n 84)) ::
-  .call "da_expand__L7_L8" [.n 83, .n 1, .n 2, .n 85] [.n 86] ::
+  .call "da_expand__L6_L7" [.n 83, .n 1, .n 2, .n 85] [.n 86] ::
   .atom (.load (.n 86) (.n 4) 20) ::
   .atom (.load (.n 87) (.n 0) 21) ::
-  .atom (.const (.n 88) (word 256 0)) ::
+  .atom (.const (.n 88) (word 128 0)) ::
   .atom (.mul (.n 89) (.n 85) (.n 88)) ::
-  .call "da_expand__L7_L8" [.n 87, .n 1, .n 2, .n 89] [.n 90] ::
+  .call "da_expand__L6_L7" [.n 87, .n 1, .n 2, .n 89] [.n 90] ::
   .atom (.load (.n 90) (.n 4) 21) ::
   .atom (.load (.n 91) (.n 0) 22) ::
-  .atom (.const (.n 92) (word 256 0)) ::
+  .atom (.const (.n 92) (word 128 0)) ::
   .atom (.mul (.n 93) (.n 89) (.n 92)) ::
-  .call "da_expand__L7_L8" [.n 91, .n 1, .n 2, .n 93] [.n 94] ::
+  .call "da_expand__L6_L7" [.n 91, .n 1, .n 2, .n 93] [.n 94] ::
   .atom (.load (.n 94) (.n 4) 22) ::
   .atom (.load (.n 95) (.n 0) 23) ::
-  .atom (.const (.n 96) (word 256 0)) ::
+  .atom (.const (.n 96) (word 128 0)) ::
   .atom (.mul (.n 97) (.n 93) (.n 96)) ::
-  .call "da_expand__L7_L8" [.n 95, .n 1, .n 2, .n 97] [.n 98] ::
+  .call "da_expand__L6_L7" [.n 95, .n 1, .n 2, .n 97] [.n 98] ::
   .atom (.load (.n 98) (.n 4) 23) ::
   .atom (.load (.n 99) (.n 0) 24) ::
-  .atom (.const (.n 100) (word 256 0)) ::
+  .atom (.const (.n 100) (word 128 0)) ::
   .atom (.mul (.n 101) (.n 97) (.n 100)) ::
-  .call "da_expand__L7_L8" [.n 99, .n 1, .n 2, .n 101] [.n 102] ::
+  .call "da_expand__L6_L7" [.n 99, .n 1, .n 2, .n 101] [.n 102] ::
   .atom (.load (.n 102) (.n 4) 24) ::
   .atom (.load (.n 103) (.n 0) 25) ::
-  .atom (.const (.n 104) (word 256 0)) ::
+  .atom (.const (.n 104) (word 128 0)) ::
   .atom (.mul (.n 105) (.n 101) (.n 104)) ::
-  .call "da_expand__L7_L8" [.n 103, .n 1, .n 2, .n 105] [.n 106] ::
+  .call "da_expand__L6_L7" [.n 103, .n 1, .n 2, .n 105] [.n 106] ::
   .atom (.load (.n 106) (.n 4) 25) ::
   .atom (.load (.n 107) (.n 0) 26) ::
-  .atom (.const (.n 108) (word 256 0)) ::
+  .atom (.const (.n 108) (word 128 0)) ::
   .atom (.mul (.n 109) (.n 105) (.n 108)) ::
-  .call "da_expand__L7_L8" [.n 107, .n 1, .n 2, .n 109] [.n 110] ::
+  .call "da_expand__L6_L7" [.n 107, .n 1, .n 2, .n 109] [.n 110] ::
   .atom (.load (.n 110) (.n 4) 26) ::
   .atom (.load (.n 111) (.n 0) 27) ::
-  .atom (.const (.n 112) (word 256 0)) ::
+  .atom (.const (.n 112) (word 128 0)) ::
   .atom (.mul (.n 113) (.n 109) (.n 112)) ::
-  .call "da_expand__L7_L8" [.n 111, .n 1, .n 2, .n 113] [.n 114] ::
+  .call "da_expand__L6_L7" [.n 111, .n 1, .n 2, .n 113] [.n 114] ::
   .atom (.load (.n 114) (.n 4) 27) ::
   .atom (.load (.n 115) (.n 0) 28) ::
-  .atom (.const (.n 116) (word 256 0)) ::
+  .atom (.const (.n 116) (word 128 0)) ::
   .atom (.mul (.n 117) (.n 113) (.n 116)) ::
-  .call "da_expand__L7_L8" [.n 115, .n 1, .n 2, .n 117] [.n 118] ::
+  .call "da_expand__L6_L7" [.n 115, .n 1, .n 2, .n 117] [.n 118] ::
   .atom (.load (.n 118) (.n 4) 28) ::
   .atom (.load (.n 119) (.n 0) 29) ::
-  .atom (.const (.n 120) (word 256 0)) ::
+  .atom (.const (.n 120) (word 128 0)) ::
   .atom (.mul (.n 121) (.n 117) (.n 120)) ::
-  .call "da_expand__L7_L8" [.n 119, .n 1, .n 2, .n 121] [.n 122] ::
+  .call "da_expand__L6_L7" [.n 119, .n 1, .n 2, .n 121] [.n 122] ::
   .atom (.load (.n 122) (.n 4) 29) ::
   .atom (.load (.n 123) (.n 0) 30) ::
-  .atom (.const (.n 124) (word 256 0)) ::
+  .atom (.const (.n 124) (word 128 0)) ::
   .atom (.mul (.n 125) (.n 121) (.n 124)) ::
-  .call "da_expand__L7_L8" [.n 123, .n 1, .n 2, .n 125] [.n 126] ::
+  .call "da_expand__L6_L7" [.n 123, .n 1, .n 2, .n 125] [.n 126] ::
   .atom (.load (.n 126) (.n 4) 30) ::
   .atom (.load (.n 127) (.n 0) 31) ::
-  .atom (.const (.n 128) (word 256 0)) ::
+  .atom (.const (.n 128) (word 128 0)) ::
   .atom (.mul (.n 129) (.n 125) (.n 128)) ::
-  .call "da_expand__L7_L8" [.n 127, .n 1, .n 2, .n 129] [.n 130] ::
+  .call "da_expand__L6_L7" [.n 127, .n 1, .n 2, .n 129] [.n 130] ::
   .atom (.load (.n 130) (.n 4) 31) ::
   .atom (.load (.n 131) (.n 0) 32) ::
-  .atom (.const (.n 132) (word 256 0)) ::
+  .atom (.const (.n 132) (word 128 0)) ::
   .atom (.mul (.n 133) (.n 129) (.n 132)) ::
-  .call "da_expand__L7_L8" [.n 131, .n 1, .n 2, .n 133] [.n 134] ::
+  .call "da_expand__L6_L7" [.n 131, .n 1, .n 2, .n 133] [.n 134] ::
   .atom (.load (.n 134) (.n 4) 32) ::
   .atom (.load (.n 135) (.n 0) 33) ::
-  .atom (.const (.n 136) (word 256 0)) ::
+  .atom (.const (.n 136) (word 128 0)) ::
   .atom (.mul (.n 137) (.n 133) (.n 136)) ::
-  .call "da_expand__L7_L8" [.n 135, .n 1, .n 2, .n 137] [.n 138] ::
+  .call "da_expand__L6_L7" [.n 135, .n 1, .n 2, .n 137] [.n 138] ::
   .atom (.load (.n 138) (.n 4) 33) ::
   .atom (.load (.n 139) (.n 0) 34) ::
-  .atom (.const (.n 140) (word 256 0)) ::
+  .atom (.const (.n 140) (word 128 0)) ::
   .atom (.mul (.n 141) (.n 137) (.n 140)) ::
-  .call "da_expand__L7_L8" [.n 139, .n 1, .n 2, .n 141] [.n 142] ::
+  .call "da_expand__L6_L7" [.n 139, .n 1, .n 2, .n 141] [.n 142] ::
   .atom (.load (.n 142) (.n 4) 34) ::
   .atom (.load (.n 143) (.n 0) 35) ::
-  .atom (.const (.n 144) (word 256 0)) ::
+  .atom (.const (.n 144) (word 128 0)) ::
   .atom (.mul (.n 145) (.n 141) (.n 144)) ::
-  .call "da_expand__L7_L8" [.n 143, .n 1, .n 2, .n 145] [.n 146] ::
+  .call "da_expand__L6_L7" [.n 143, .n 1, .n 2, .n 145] [.n 146] ::
   .atom (.load (.n 146) (.n 4) 35) ::
   .atom (.load (.n 147) (.n 0) 36) ::
-  .atom (.const (.n 148) (word 256 0)) ::
+  .atom (.const (.n 148) (word 128 0)) ::
   .atom (.mul (.n 149) (.n 145) (.n 148)) ::
-  .call "da_expand__L7_L8" [.n 147, .n 1, .n 2, .n 149] [.n 150] ::
+  .call "da_expand__L6_L7" [.n 147, .n 1, .n 2, .n 149] [.n 150] ::
   .atom (.load (.n 150) (.n 4) 36) ::
   .atom (.load (.n 151) (.n 0) 37) ::
-  .atom (.const (.n 152) (word 256 0)) ::
+  .atom (.const (.n 152) (word 128 0)) ::
   .atom (.mul (.n 153) (.n 149) (.n 152)) ::
-  .call "da_expand__L7_L8" [.n 151, .n 1, .n 2, .n 153] [.n 154] ::
+  .call "da_expand__L6_L7" [.n 151, .n 1, .n 2, .n 153] [.n 154] ::
   .atom (.load (.n 154) (.n 4) 37) ::
   .atom (.load (.n 155) (.n 0) 38) ::
-  .atom (.const (.n 156) (word 256 0)) ::
+  .atom (.const (.n 156) (word 128 0)) ::
   .atom (.mul (.n 157) (.n 153) (.n 156)) ::
-  .call "da_expand__L7_L8" [.n 155, .n 1, .n 2, .n 157] [.n 158] ::
+  .call "da_expand__L6_L7" [.n 155, .n 1, .n 2, .n 157] [.n 158] ::
   .atom (.load (.n 158) (.n 4) 38) ::
   .atom (.load (.n 159) (.n 0) 39) ::
-  .atom (.const (.n 160) (word 256 0)) ::
+  .atom (.const (.n 160) (word 128 0)) ::
   .atom (.mul (.n 161) (.n 157) (.n 160)) ::
-  .call "da_expand__L7_L8" [.n 159, .n 1, .n 2, .n 161] [.n 162] ::
+  .call "da_expand__L6_L7" [.n 159, .n 1, .n 2, .n 161] [.n 162] ::
   .atom (.load (.n 162) (.n 4) 39) ::
   .atom (.load (.n 163) (.n 0) 40) ::
-  .atom (.const (.n 164) (word 256 0)) ::
+  .atom (.const (.n 164) (word 128 0)) ::
   .atom (.mul (.n 165) (.n 161) (.n 164)) ::
-  .call "da_expand__L7_L8" [.n 163, .n 1, .n 2, .n 165] [.n 166] ::
+  .call "da_expand__L6_L7" [.n 163, .n 1, .n 2, .n 165] [.n 166] ::
   .atom (.load (.n 166) (.n 4) 40) ::
   .atom (.load (.n 167) (.n 0) 41) ::
-  .atom (.const (.n 168) (word 256 0)) ::
+  .atom (.const (.n 168) (word 128 0)) ::
   .atom (.mul (.n 169) (.n 165) (.n 168)) ::
-  .call "da_expand__L7_L8" [.n 167, .n 1, .n 2, .n 169] [.n 170] ::
+  .call "da_expand__L6_L7" [.n 167, .n 1, .n 2, .n 169] [.n 170] ::
   .atom (.load (.n 170) (.n 4) 41) ::
   .atom (.load (.n 171) (.n 0) 42) ::
-  .atom (.const (.n 172) (word 256 0)) ::
+  .atom (.const (.n 172) (word 128 0)) ::
   .atom (.mul (.n 173) (.n 169) (.n 172)) ::
-  .call "da_expand__L7_L8" [.n 171, .n 1, .n 2, .n 173] [.n 174] ::
+  .call "da_expand__L6_L7" [.n 171, .n 1, .n 2, .n 173] [.n 174] ::
   .atom (.load (.n 174) (.n 4) 42) ::
   .atom (.load (.n 175) (.n 0) 43) ::
-  .atom (.const (.n 176) (word 256 0)) ::
+  .atom (.const (.n 176) (word 128 0)) ::
   .atom (.mul (.n 177) (.n 173) (.n 176)) ::
-  .call "da_expand__L7_L8" [.n 175, .n 1, .n 2, .n 177] [.n 178] ::
+  .call "da_expand__L6_L7" [.n 175, .n 1, .n 2, .n 177] [.n 178] ::
   .atom (.load (.n 178) (.n 4) 43) ::
   .atom (.load (.n 179) (.n 0) 44) ::
-  .atom (.const (.n 180) (word 256 0)) ::
+  .atom (.const (.n 180) (word 128 0)) ::
   .atom (.mul (.n 181) (.n 177) (.n 180)) ::
-  .call "da_expand__L7_L8" [.n 179, .n 1, .n 2, .n 181] [.n 182] ::
+  .call "da_expand__L6_L7" [.n 179, .n 1, .n 2, .n 181] [.n 182] ::
   .atom (.load (.n 182) (.n 4) 44) ::
   .atom (.load (.n 183) (.n 0) 45) ::
-  .atom (.const (.n 184) (word 256 0)) ::
+  .atom (.const (.n 184) (word 128 0)) ::
   .atom (.mul (.n 185) (.n 181) (.n 184)) ::
-  .call "da_expand__L7_L8" [.n 183, .n 1, .n 2, .n 185] [.n 186] ::
+  .call "da_expand__L6_L7" [.n 183, .n 1, .n 2, .n 185] [.n 186] ::
   .atom (.load (.n 186) (.n 4) 45) ::
   .atom (.load (.n 187) (.n 0) 46) ::
-  .atom (.const (.n 188) (word 256 0)) ::
+  .atom (.const (.n 188) (word 128 0)) ::
   .atom (.mul (.n 189) (.n 185) (.n 188)) ::
-  .call "da_expand__L7_L8" [.n 187, .n 1, .n 2, .n 189] [.n 190] ::
+  .call "da_expand__L6_L7" [.n 187, .n 1, .n 2, .n 189] [.n 190] ::
   .atom (.load (.n 190) (.n 4) 46) ::
   .atom (.load (.n 191) (.n 0) 47) ::
-  .atom (.const (.n 192) (word 256 0)) ::
+  .atom (.const (.n 192) (word 128 0)) ::
   .atom (.mul (.n 193) (.n 189) (.n 192)) ::
-  .call "da_expand__L7_L8" [.n 191, .n 1, .n 2, .n 193] [.n 194] ::
+  .call "da_expand__L6_L7" [.n 191, .n 1, .n 2, .n 193] [.n 194] ::
   .atom (.load (.n 194) (.n 4) 47) ::
   .atom (.load (.n 195) (.n 0) 48) ::
-  .atom (.const (.n 196) (word 256 0)) ::
+  .atom (.const (.n 196) (word 128 0)) ::
   .atom (.mul (.n 197) (.n 193) (.n 196)) ::
-  .call "da_expand__L7_L8" [.n 195, .n 1, .n 2, .n 197] [.n 198] ::
+  .call "da_expand__L6_L7" [.n 195, .n 1, .n 2, .n 197] [.n 198] ::
   .atom (.load (.n 198) (.n 4) 48) ::
   .atom (.load (.n 199) (.n 0) 49) ::
-  .atom (.const (.n 200) (word 256 0)) ::
+  .atom (.const (.n 200) (word 128 0)) ::
   .atom (.mul (.n 201) (.n 197) (.n 200)) ::
-  .call "da_expand__L7_L8" [.n 199, .n 1, .n 2, .n 201] [.n 202] ::
+  .call "da_expand__L6_L7" [.n 199, .n 1, .n 2, .n 201] [.n 202] ::
   .atom (.load (.n 202) (.n 4) 49) ::
   .atom (.load (.n 203) (.n 0) 50) ::
-  .atom (.const (.n 204) (word 256 0)) ::
+  .atom (.const (.n 204) (word 128 0)) ::
   .atom (.mul (.n 205) (.n 201) (.n 204)) ::
-  .call "da_expand__L7_L8" [.n 203, .n 1, .n 2, .n 205] [.n 206] ::
+  .call "da_expand__L6_L7" [.n 203, .n 1, .n 2, .n 205] [.n 206] ::
   .atom (.load (.n 206) (.n 4) 50) ::
   .atom (.load (.n 207) (.n 0) 51) ::
-  .atom (.const (.n 208) (word 256 0)) ::
+  .atom (.const (.n 208) (word 128 0)) ::
   .atom (.mul (.n 209) (.n 205) (.n 208)) ::
-  .call "da_expand__L7_L8" [.n 207, .n 1, .n 2, .n 209] [.n 210] ::
+  .call "da_expand__L6_L7" [.n 207, .n 1, .n 2, .n 209] [.n 210] ::
   .atom (.load (.n 210) (.n 4) 51) ::
   .atom (.load (.n 211) (.n 0) 52) ::
-  .atom (.const (.n 212) (word 256 0)) ::
+  .atom (.const (.n 212) (word 128 0)) ::
   .atom (.mul (.n 213) (.n 209) (.n 212)) ::
-  .call "da_expand__L7_L8" [.n 211, .n 1, .n 2, .n 213] [.n 214] ::
+  .call "da_expand__L6_L7" [.n 211, .n 1, .n 2, .n 213] [.n 214] ::
   .atom (.load (.n 214) (.n 4) 52) ::
   .atom (.load (.n 215) (.n 0) 53) ::
-  .atom (.const (.n 216) (word 256 0)) ::
+  .atom (.const (.n 216) (word 128 0)) ::
   .atom (.mul (.n 217) (.n 213) (.n 216)) ::
-  .call "da_expand__L7_L8" [.n 215, .n 1, .n 2, .n 217] [.n 218] ::
+  .call "da_expand__L6_L7" [.n 215, .n 1, .n 2, .n 217] [.n 218] ::
   .atom (.load (.n 218) (.n 4) 53) ::
   .atom (.load (.n 219) (.n 0) 54) ::
-  .atom (.const (.n 220) (word 256 0)) ::
+  .atom (.const (.n 220) (word 128 0)) ::
   .atom (.mul (.n 221) (.n 217) (.n 220)) ::
-  .call "da_expand__L7_L8" [.n 219, .n 1, .n 2, .n 221] [.n 222] ::
+  .call "da_expand__L6_L7" [.n 219, .n 1, .n 2, .n 221] [.n 222] ::
   .atom (.load (.n 222) (.n 4) 54) ::
   .atom (.load (.n 223) (.n 0) 55) ::
-  .atom (.const (.n 224) (word 256 0)) ::
+  .atom (.const (.n 224) (word 128 0)) ::
   .atom (.mul (.n 225) (.n 221) (.n 224)) ::
-  .call "da_expand__L7_L8" [.n 223, .n 1, .n 2, .n 225] [.n 226] ::
+  .call "da_expand__L6_L7" [.n 223, .n 1, .n 2, .n 225] [.n 226] ::
   .atom (.load (.n 226) (.n 4) 55) ::
   .atom (.load (.n 227) (.n 0) 56) ::
-  .atom (.const (.n 228) (word 256 0)) ::
+  .atom (.const (.n 228) (word 128 0)) ::
   .atom (.mul (.n 229) (.n 225) (.n 228)) ::
-  .call "da_expand__L7_L8" [.n 227, .n 1, .n 2, .n 229] [.n 230] ::
+  .call "da_expand__L6_L7" [.n 227, .n 1, .n 2, .n 229] [.n 230] ::
   .atom (.load (.n 230) (.n 4) 56) ::
   .atom (.load (.n 231) (.n 0) 57) ::
-  .atom (.const (.n 232) (word 256 0)) ::
+  .atom (.const (.n 232) (word 128 0)) ::
   .atom (.mul (.n 233) (.n 229) (.n 232)) ::
-  .call "da_expand__L7_L8" [.n 231, .n 1, .n 2, .n 233] [.n 234] ::
+  .call "da_expand__L6_L7" [.n 231, .n 1, .n 2, .n 233] [.n 234] ::
   .atom (.load (.n 234) (.n 4) 57) ::
   .atom (.load (.n 235) (.n 0) 58) ::
-  .atom (.const (.n 236) (word 256 0)) ::
+  .atom (.const (.n 236) (word 128 0)) ::
   .atom (.mul (.n 237) (.n 233) (.n 236)) ::
-  .call "da_expand__L7_L8" [.n 235, .n 1, .n 2, .n 237] [.n 238] ::
+  .call "da_expand__L6_L7" [.n 235, .n 1, .n 2, .n 237] [.n 238] ::
   .atom (.load (.n 238) (.n 4) 58) ::
   .atom (.load (.n 239) (.n 0) 59) ::
-  .atom (.const (.n 240) (word 256 0)) ::
+  .atom (.const (.n 240) (word 128 0)) ::
   .atom (.mul (.n 241) (.n 237) (.n 240)) ::
-  .call "da_expand__L7_L8" [.n 239, .n 1, .n 2, .n 241] [.n 242] ::
+  .call "da_expand__L6_L7" [.n 239, .n 1, .n 2, .n 241] [.n 242] ::
   .atom (.load (.n 242) (.n 4) 59) ::
   .atom (.load (.n 243) (.n 0) 60) ::
-  .atom (.const (.n 244) (word 256 0)) ::
+  .atom (.const (.n 244) (word 128 0)) ::
   .atom (.mul (.n 245) (.n 241) (.n 244)) ::
-  .call "da_expand__L7_L8" [.n 243, .n 1, .n 2, .n 245] [.n 246] ::
+  .call "da_expand__L6_L7" [.n 243, .n 1, .n 2, .n 245] [.n 246] ::
   .atom (.load (.n 246) (.n 4) 60) ::
   .atom (.load (.n 247) (.n 0) 61) ::
-  .atom (.const (.n 248) (word 256 0)) ::
+  .atom (.const (.n 248) (word 128 0)) ::
   .atom (.mul (.n 249) (.n 245) (.n 248)) ::
-  .call "da_expand__L7_L8" [.n 247, .n 1, .n 2, .n 249] [.n 250] ::
+  .call "da_expand__L6_L7" [.n 247, .n 1, .n 2, .n 249] [.n 250] ::
   .atom (.load (.n 250) (.n 4) 61) ::
   .atom (.load (.n 251) (.n 0) 62) ::
-  .atom (.const (.n 252) (word 256 0)) ::
+  .atom (.const (.n 252) (word 128 0)) ::
   .atom (.mul (.n 253) (.n 249) (.n 252)) ::
-  .call "da_expand__L7_L8" [.n 251, .n 1, .n 2, .n 253] [.n 254] ::
+  .call "da_expand__L6_L7" [.n 251, .n 1, .n 2, .n 253] [.n 254] ::
   .atom (.load (.n 254) (.n 4) 62) ::
   .atom (.load (.n 255) (.n 0) 63) ::
-  .atom (.const (.n 256) (word 256 0)) ::
+  .atom (.const (.n 256) (word 128 0)) ::
   .atom (.mul (.n 257) (.n 253) (.n 256)) ::
-  .call "da_expand__L7_L8" [.n 255, .n 1, .n 2, .n 257] [.n 258] ::
+  .call "da_expand__L6_L7" [.n 255, .n 1, .n 2, .n 257] [.n 258] ::
   .atom (.load (.n 258) (.n 4) 63) ::
   .atom (.load (.n 259) (.n 0) 64) ::
-  .atom (.const (.n 260) (word 256 0)) ::
+  .atom (.const (.n 260) (word 128 0)) ::
   .atom (.mul (.n 261) (.n 257) (.n 260)) ::
-  .call "da_expand__L7_L8" [.n 259, .n 1, .n 2, .n 261] [.n 262] ::
+  .call "da_expand__L6_L7" [.n 259, .n 1, .n 2, .n 261] [.n 262] ::
   .atom (.load (.n 262) (.n 4) 64) ::
   .atom (.load (.n 263) (.n 0) 65) ::
-  .atom (.const (.n 264) (word 256 0)) ::
+  .atom (.const (.n 264) (word 128 0)) ::
   .atom (.mul (.n 265) (.n 261) (.n 264)) ::
-  .call "da_expand__L7_L8" [.n 263, .n 1, .n 2, .n 265] [.n 266] ::
+  .call "da_expand__L6_L7" [.n 263, .n 1, .n 2, .n 265] [.n 266] ::
   .atom (.load (.n 266) (.n 4) 65) ::
   .atom (.load (.n 267) (.n 0) 66) ::
-  .atom (.const (.n 268) (word 256 0)) ::
+  .atom (.const (.n 268) (word 128 0)) ::
   .atom (.mul (.n 269) (.n 265) (.n 268)) ::
-  .call "da_expand__L7_L8" [.n 267, .n 1, .n 2, .n 269] [.n 270] ::
+  .call "da_expand__L6_L7" [.n 267, .n 1, .n 2, .n 269] [.n 270] ::
   .atom (.load (.n 270) (.n 4) 66) ::
   .atom (.load (.n 271) (.n 0) 67) ::
-  .atom (.const (.n 272) (word 256 0)) ::
+  .atom (.const (.n 272) (word 128 0)) ::
   .atom (.mul (.n 273) (.n 269) (.n 272)) ::
-  .call "da_expand__L7_L8" [.n 271, .n 1, .n 2, .n 273] [.n 274] ::
+  .call "da_expand__L6_L7" [.n 271, .n 1, .n 2, .n 273] [.n 274] ::
   .atom (.load (.n 274) (.n 4) 67) ::
   .atom (.load (.n 275) (.n 0) 68) ::
-  .atom (.const (.n 276) (word 256 0)) ::
+  .atom (.const (.n 276) (word 128 0)) ::
   .atom (.mul (.n 277) (.n 273) (.n 276)) ::
-  .call "da_expand__L7_L8" [.n 275, .n 1, .n 2, .n 277] [.n 278] ::
+  .call "da_expand__L6_L7" [.n 275, .n 1, .n 2, .n 277] [.n 278] ::
   .atom (.load (.n 278) (.n 4) 68) ::
   .atom (.load (.n 279) (.n 0) 69) ::
-  .atom (.const (.n 280) (word 256 0)) ::
+  .atom (.const (.n 280) (word 128 0)) ::
   .atom (.mul (.n 281) (.n 277) (.n 280)) ::
-  .call "da_expand__L7_L8" [.n 279, .n 1, .n 2, .n 281] [.n 282] ::
+  .call "da_expand__L6_L7" [.n 279, .n 1, .n 2, .n 281] [.n 282] ::
   .atom (.load (.n 282) (.n 4) 69) ::
   .atom (.load (.n 283) (.n 0) 70) ::
-  .atom (.const (.n 284) (word 256 0)) ::
+  .atom (.const (.n 284) (word 128 0)) ::
   .atom (.mul (.n 285) (.n 281) (.n 284)) ::
-  .call "da_expand__L7_L8" [.n 283, .n 1, .n 2, .n 285] [.n 286] ::
+  .call "da_expand__L6_L7" [.n 283, .n 1, .n 2, .n 285] [.n 286] ::
   .atom (.load (.n 286) (.n 4) 70) ::
   .atom (.load (.n 287) (.n 0) 71) ::
-  .atom (.const (.n 288) (word 256 0)) ::
+  .atom (.const (.n 288) (word 128 0)) ::
   .atom (.mul (.n 289) (.n 285) (.n 288)) ::
-  .call "da_expand__L7_L8" [.n 287, .n 1, .n 2, .n 289] [.n 290] ::
+  .call "da_expand__L6_L7" [.n 287, .n 1, .n 2, .n 289] [.n 290] ::
   .atom (.load (.n 290) (.n 4) 71) ::
   .atom (.load (.n 291) (.n 0) 72) ::
-  .atom (.const (.n 292) (word 256 0)) ::
+  .atom (.const (.n 292) (word 128 0)) ::
   .atom (.mul (.n 293) (.n 289) (.n 292)) ::
-  .call "da_expand__L7_L8" [.n 291, .n 1, .n 2, .n 293] [.n 294] ::
+  .call "da_expand__L6_L7" [.n 291, .n 1, .n 2, .n 293] [.n 294] ::
   .atom (.load (.n 294) (.n 4) 72) ::
   .atom (.load (.n 295) (.n 0) 73) ::
-  .atom (.const (.n 296) (word 256 0)) ::
+  .atom (.const (.n 296) (word 128 0)) ::
   .atom (.mul (.n 297) (.n 293) (.n 296)) ::
-  .call "da_expand__L7_L8" [.n 295, .n 1, .n 2, .n 297] [.n 298] ::
+  .call "da_expand__L6_L7" [.n 295, .n 1, .n 2, .n 297] [.n 298] ::
   .atom (.load (.n 298) (.n 4) 73) ::
   .atom (.load (.n 299) (.n 0) 74) ::
-  .atom (.const (.n 300) (word 256 0)) ::
+  .atom (.const (.n 300) (word 128 0)) ::
   .atom (.mul (.n 301) (.n 297) (.n 300)) ::
-  .call "da_expand__L7_L8" [.n 299, .n 1, .n 2, .n 301] [.n 302] ::
+  .call "da_expand__L6_L7" [.n 299, .n 1, .n 2, .n 301] [.n 302] ::
   .atom (.load (.n 302) (.n 4) 74) ::
   .atom (.load (.n 303) (.n 0) 75) ::
-  .atom (.const (.n 304) (word 256 0)) ::
+  .atom (.const (.n 304) (word 128 0)) ::
   .atom (.mul (.n 305) (.n 301) (.n 304)) ::
-  .call "da_expand__L7_L8" [.n 303, .n 1, .n 2, .n 305] [.n 306] ::
+  .call "da_expand__L6_L7" [.n 303, .n 1, .n 2, .n 305] [.n 306] ::
   .atom (.load (.n 306) (.n 4) 75) ::
   .atom (.load (.n 307) (.n 0) 76) ::
-  .atom (.const (.n 308) (word 256 0)) ::
+  .atom (.const (.n 308) (word 128 0)) ::
   .atom (.mul (.n 309) (.n 305) (.n 308)) ::
-  .call "da_expand__L7_L8" [.n 307, .n 1, .n 2, .n 309] [.n 310] ::
+  .call "da_expand__L6_L7" [.n 307, .n 1, .n 2, .n 309] [.n 310] ::
   .atom (.load (.n 310) (.n 4) 76) ::
   .atom (.load (.n 311) (.n 0) 77) ::
-  .atom (.const (.n 312) (word 256 0)) ::
+  .atom (.const (.n 312) (word 128 0)) ::
   .atom (.mul (.n 313) (.n 309) (.n 312)) ::
-  .call "da_expand__L7_L8" [.n 311, .n 1, .n 2, .n 313] [.n 314] ::
+  .call "da_expand__L6_L7" [.n 311, .n 1, .n 2, .n 313] [.n 314] ::
   .atom (.load (.n 314) (.n 4) 77) ::
   .atom (.load (.n 315) (.n 0) 78) ::
-  .atom (.const (.n 316) (word 256 0)) ::
+  .atom (.const (.n 316) (word 128 0)) ::
   .atom (.mul (.n 317) (.n 313) (.n 316)) ::
-  .call "da_expand__L7_L8" [.n 315, .n 1, .n 2, .n 317] [.n 318] ::
+  .call "da_expand__L6_L7" [.n 315, .n 1, .n 2, .n 317] [.n 318] ::
   .atom (.load (.n 318) (.n 4) 78) ::
   .atom (.load (.n 319) (.n 0) 79) ::
-  .atom (.const (.n 320) (word 256 0)) ::
+  .atom (.const (.n 320) (word 128 0)) ::
   .atom (.mul (.n 321) (.n 317) (.n 320)) ::
-  .call "da_expand__L7_L8" [.n 319, .n 1, .n 2, .n 321] [.n 322] ::
+  .call "da_expand__L6_L7" [.n 319, .n 1, .n 2, .n 321] [.n 322] ::
   .atom (.load (.n 322) (.n 4) 79) ::
   .atom (.load (.n 323) (.n 0) 80) ::
-  .atom (.const (.n 324) (word 256 0)) ::
+  .atom (.const (.n 324) (word 128 0)) ::
   .atom (.mul (.n 325) (.n 321) (.n 324)) ::
-  .call "da_expand__L7_L8" [.n 323, .n 1, .n 2, .n 325] [.n 326] ::
+  .call "da_expand__L6_L7" [.n 323, .n 1, .n 2, .n 325] [.n 326] ::
   .atom (.load (.n 326) (.n 4) 80) ::
   .atom (.load (.n 327) (.n 0) 81) ::
-  .atom (.const (.n 328) (word 256 0)) ::
+  .atom (.const (.n 328) (word 128 0)) ::
   .atom (.mul (.n 329) (.n 325) (.n 328)) ::
-  .call "da_expand__L7_L8" [.n 327, .n 1, .n 2, .n 329] [.n 330] ::
+  .call "da_expand__L6_L7" [.n 327, .n 1, .n 2, .n 329] [.n 330] ::
   .atom (.load (.n 330) (.n 4) 81) ::
   .atom (.load (.n 331) (.n 0) 82) ::
-  .atom (.const (.n 332) (word 256 0)) ::
+  .atom (.const (.n 332) (word 128 0)) ::
   .atom (.mul (.n 333) (.n 329) (.n 332)) ::
-  .call "da_expand__L7_L8" [.n 331, .n 1, .n 2, .n 333] [.n 334] ::
+  .call "da_expand__L6_L7" [.n 331, .n 1, .n 2, .n 333] [.n 334] ::
   .atom (.load (.n 334) (.n 4) 82) ::
   .atom (.load (.n 335) (.n 0) 83) ::
-  .atom (.const (.n 336) (word 256 0)) ::
+  .atom (.const (.n 336) (word 128 0)) ::
   .atom (.mul (.n 337) (.n 333) (.n 336)) ::
-  .call "da_expand__L7_L8" [.n 335, .n 1, .n 2, .n 337] [.n 338] ::
+  .call "da_expand__L6_L7" [.n 335, .n 1, .n 2, .n 337] [.n 338] ::
   .atom (.load (.n 338) (.n 4) 83) ::
   .atom (.load (.n 339) (.n 0) 84) ::
-  .atom (.const (.n 340) (word 256 0)) ::
+  .atom (.const (.n 340) (word 128 0)) ::
   .atom (.mul (.n 341) (.n 337) (.n 340)) ::
-  .call "da_expand__L7_L8" [.n 339, .n 1, .n 2, .n 341] [.n 342] ::
+  .call "da_expand__L6_L7" [.n 339, .n 1, .n 2, .n 341] [.n 342] ::
   .atom (.load (.n 342) (.n 4) 84) ::
   .atom (.load (.n 343) (.n 0) 85) ::
-  .atom (.const (.n 344) (word 256 0)) ::
+  .atom (.const (.n 344) (word 128 0)) ::
   .atom (.mul (.n 345) (.n 341) (.n 344)) ::
-  .call "da_expand__L7_L8" [.n 343, .n 1, .n 2, .n 345] [.n 346] ::
+  .call "da_expand__L6_L7" [.n 343, .n 1, .n 2, .n 345] [.n 346] ::
   .atom (.load (.n 346) (.n 4) 85) ::
   .atom (.load (.n 347) (.n 0) 86) ::
-  .atom (.const (.n 348) (word 256 0)) ::
+  .atom (.const (.n 348) (word 128 0)) ::
   .atom (.mul (.n 349) (.n 345) (.n 348)) ::
-  .call "da_expand__L7_L8" [.n 347, .n 1, .n 2, .n 349] [.n 350] ::
+  .call "da_expand__L6_L7" [.n 347, .n 1, .n 2, .n 349] [.n 350] ::
   .atom (.load (.n 350) (.n 4) 86) ::
   .atom (.load (.n 351) (.n 0) 87) ::
-  .atom (.const (.n 352) (word 256 0)) ::
+  .atom (.const (.n 352) (word 128 0)) ::
   .atom (.mul (.n 353) (.n 349) (.n 352)) ::
-  .call "da_expand__L7_L8" [.n 351, .n 1, .n 2, .n 353] [.n 354] ::
+  .call "da_expand__L6_L7" [.n 351, .n 1, .n 2, .n 353] [.n 354] ::
   .atom (.load (.n 354) (.n 4) 87) ::
   .atom (.load (.n 355) (.n 0) 88) ::
-  .atom (.const (.n 356) (word 256 0)) ::
+  .atom (.const (.n 356) (word 128 0)) ::
   .atom (.mul (.n 357) (.n 353) (.n 356)) ::
-  .call "da_expand__L7_L8" [.n 355, .n 1, .n 2, .n 357] [.n 358] ::
+  .call "da_expand__L6_L7" [.n 355, .n 1, .n 2, .n 357] [.n 358] ::
   .atom (.load (.n 358) (.n 4) 88) ::
   .atom (.load (.n 359) (.n 0) 89) ::
-  .atom (.const (.n 360) (word 256 0)) ::
+  .atom (.const (.n 360) (word 128 0)) ::
   .atom (.mul (.n 361) (.n 357) (.n 360)) ::
-  .call "da_expand__L7_L8" [.n 359, .n 1, .n 2, .n 361] [.n 362] ::
+  .call "da_expand__L6_L7" [.n 359, .n 1, .n 2, .n 361] [.n 362] ::
   .atom (.load (.n 362) (.n 4) 89) ::
   .atom (.load (.n 363) (.n 0) 90) ::
-  .atom (.const (.n 364) (word 256 0)) ::
+  .atom (.const (.n 364) (word 128 0)) ::
   .atom (.mul (.n 365) (.n 361) (.n 364)) ::
-  .call "da_expand__L7_L8" [.n 363, .n 1, .n 2, .n 365] [.n 366] ::
+  .call "da_expand__L6_L7" [.n 363, .n 1, .n 2, .n 365] [.n 366] ::
   .atom (.load (.n 366) (.n 4) 90) ::
   .atom (.load (.n 367) (.n 0) 91) ::
-  .atom (.const (.n 368) (word 256 0)) ::
+  .atom (.const (.n 368) (word 128 0)) ::
   .atom (.mul (.n 369) (.n 365) (.n 368)) ::
-  .call "da_expand__L7_L8" [.n 367, .n 1, .n 2, .n 369] [.n 370] ::
+  .call "da_expand__L6_L7" [.n 367, .n 1, .n 2, .n 369] [.n 370] ::
   .atom (.load (.n 370) (.n 4) 91) ::
   .atom (.load (.n 371) (.n 0) 92) ::
-  .atom (.const (.n 372) (word 256 0)) ::
+  .atom (.const (.n 372) (word 128 0)) ::
   .atom (.mul (.n 373) (.n 369) (.n 372)) ::
-  .call "da_expand__L7_L8" [.n 371, .n 1, .n 2, .n 373] [.n 374] ::
+  .call "da_expand__L6_L7" [.n 371, .n 1, .n 2, .n 373] [.n 374] ::
   .atom (.load (.n 374) (.n 4) 92) ::
   .atom (.load (.n 375) (.n 0) 93) ::
-  .atom (.const (.n 376) (word 256 0)) ::
+  .atom (.const (.n 376) (word 128 0)) ::
   .atom (.mul (.n 377) (.n 373) (.n 376)) ::
-  .call "da_expand__L7_L8" [.n 375, .n 1, .n 2, .n 377] [.n 378] ::
+  .call "da_expand__L6_L7" [.n 375, .n 1, .n 2, .n 377] [.n 378] ::
   .atom (.load (.n 378) (.n 4) 93) ::
   .atom (.load (.n 379) (.n 0) 94) ::
-  .atom (.const (.n 380) (word 256 0)) ::
+  .atom (.const (.n 380) (word 128 0)) ::
   .atom (.mul (.n 381) (.n 377) (.n 380)) ::
-  .call "da_expand__L7_L8" [.n 379, .n 1, .n 2, .n 381] [.n 382] ::
+  .call "da_expand__L6_L7" [.n 379, .n 1, .n 2, .n 381] [.n 382] ::
   .atom (.load (.n 382) (.n 4) 94) ::
   .atom (.load (.n 383) (.n 0) 95) ::
-  .atom (.const (.n 384) (word 256 0)) ::
+  .atom (.const (.n 384) (word 128 0)) ::
   .atom (.mul (.n 385) (.n 381) (.n 384)) ::
-  .call "da_expand__L7_L8" [.n 383, .n 1, .n 2, .n 385] [.n 386] ::
+  .call "da_expand__L6_L7" [.n 383, .n 1, .n 2, .n 385] [.n 386] ::
   .atom (.load (.n 386) (.n 4) 95) ::
   .atom (.load (.n 387) (.n 0) 96) ::
-  .atom (.const (.n 388) (word 256 0)) ::
+  .atom (.const (.n 388) (word 128 0)) ::
   .atom (.mul (.n 389) (.n 385) (.n 388)) ::
-  .call "da_expand__L7_L8" [.n 387, .n 1, .n 2, .n 389] [.n 390] ::
+  .call "da_expand__L6_L7" [.n 387, .n 1, .n 2, .n 389] [.n 390] ::
   .atom (.load (.n 390) (.n 4) 96) ::
   .atom (.load (.n 391) (.n 0) 97) ::
-  .atom (.const (.n 392) (word 256 0)) ::
+  .atom (.const (.n 392) (word 128 0)) ::
   .atom (.mul (.n 393) (.n 389) (.n 392)) ::
-  .call "da_expand__L7_L8" [.n 391, .n 1, .n 2, .n 393] [.n 394] ::
+  .call "da_expand__L6_L7" [.n 391, .n 1, .n 2, .n 393] [.n 394] ::
   .atom (.load (.n 394) (.n 4) 97) ::
   .atom (.load (.n 395) (.n 0) 98) ::
-  .atom (.const (.n 396) (word 256 0)) ::
+  .atom (.const (.n 396) (word 128 0)) ::
   .atom (.mul (.n 397) (.n 393) (.n 396)) ::
-  .call "da_expand__L7_L8" [.n 395, .n 1, .n 2, .n 397] [.n 398] ::
+  .call "da_expand__L6_L7" [.n 395, .n 1, .n 2, .n 397] [.n 398] ::
   .atom (.load (.n 398) (.n 4) 98) ::
   .atom (.load (.n 399) (.n 0) 99) ::
-  .atom (.const (.n 400) (word 256 0)) ::
+  .atom (.const (.n 400) (word 128 0)) ::
   .atom (.mul (.n 401) (.n 397) (.n 400)) ::
-  .call "da_expand__L7_L8" [.n 399, .n 1, .n 2, .n 401] [.n 402] ::
+  .call "da_expand__L6_L7" [.n 399, .n 1, .n 2, .n 401] [.n 402] ::
   .atom (.load (.n 402) (.n 4) 99) ::
   .atom (.load (.n 403) (.n 0) 100) ::
-  .atom (.const (.n 404) (word 256 0)) ::
+  .atom (.const (.n 404) (word 128 0)) ::
   .atom (.mul (.n 405) (.n 401) (.n 404)) ::
-  .call "da_expand__L7_L8" [.n 403, .n 1, .n 2, .n 405] [.n 406] ::
+  .call "da_expand__L6_L7" [.n 403, .n 1, .n 2, .n 405] [.n 406] ::
   .atom (.load (.n 406) (.n 4) 100) ::
   .atom (.load (.n 407) (.n 0) 101) ::
-  .atom (.const (.n 408) (word 256 0)) ::
+  .atom (.const (.n 408) (word 128 0)) ::
   .atom (.mul (.n 409) (.n 405) (.n 408)) ::
-  .call "da_expand__L7_L8" [.n 407, .n 1, .n 2, .n 409] [.n 410] ::
+  .call "da_expand__L6_L7" [.n 407, .n 1, .n 2, .n 409] [.n 410] ::
   .atom (.load (.n 410) (.n 4) 101) ::
   .atom (.load (.n 411) (.n 0) 102) ::
-  .atom (.const (.n 412) (word 256 0)) ::
+  .atom (.const (.n 412) (word 128 0)) ::
   .atom (.mul (.n 413) (.n 409) (.n 412)) ::
-  .call "da_expand__L7_L8" [.n 411, .n 1, .n 2, .n 413] [.n 414] ::
+  .call "da_expand__L6_L7" [.n 411, .n 1, .n 2, .n 413] [.n 414] ::
   .atom (.load (.n 414) (.n 4) 102) ::
   .atom (.load (.n 415) (.n 0) 103) ::
-  .atom (.const (.n 416) (word 256 0)) ::
+  .atom (.const (.n 416) (word 128 0)) ::
   .atom (.mul (.n 417) (.n 413) (.n 416)) ::
-  .call "da_expand__L7_L8" [.n 415, .n 1, .n 2, .n 417] [.n 418] ::
+  .call "da_expand__L6_L7" [.n 415, .n 1, .n 2, .n 417] [.n 418] ::
   .atom (.load (.n 418) (.n 4) 103) ::
   .atom (.load (.n 419) (.n 0) 104) ::
-  .atom (.const (.n 420) (word 256 0)) ::
+  .atom (.const (.n 420) (word 128 0)) ::
   .atom (.mul (.n 421) (.n 417) (.n 420)) ::
-  .call "da_expand__L7_L8" [.n 419, .n 1, .n 2, .n 421] [.n 422] ::
+  .call "da_expand__L6_L7" [.n 419, .n 1, .n 2, .n 421] [.n 422] ::
   .atom (.load (.n 422) (.n 4) 104) ::
   .atom (.load (.n 423) (.n 0) 105) ::
-  .atom (.const (.n 424) (word 256 0)) ::
+  .atom (.const (.n 424) (word 128 0)) ::
   .atom (.mul (.n 425) (.n 421) (.n 424)) ::
-  .call "da_expand__L7_L8" [.n 423, .n 1, .n 2, .n 425] [.n 426] ::
+  .call "da_expand__L6_L7" [.n 423, .n 1, .n 2, .n 425] [.n 426] ::
   .atom (.load (.n 426) (.n 4) 105) ::
   .atom (.load (.n 427) (.n 0) 106) ::
-  .atom (.const (.n 428) (word 256 0)) ::
+  .atom (.const (.n 428) (word 128 0)) ::
   .atom (.mul (.n 429) (.n 425) (.n 428)) ::
-  .call "da_expand__L7_L8" [.n 427, .n 1, .n 2, .n 429] [.n 430] ::
+  .call "da_expand__L6_L7" [.n 427, .n 1, .n 2, .n 429] [.n 430] ::
   .atom (.load (.n 430) (.n 4) 106) ::
   .atom (.load (.n 431) (.n 0) 107) ::
-  .atom (.const (.n 432) (word 256 0)) ::
+  .atom (.const (.n 432) (word 128 0)) ::
   .atom (.mul (.n 433) (.n 429) (.n 432)) ::
-  .call "da_expand__L7_L8" [.n 431, .n 1, .n 2, .n 433] [.n 434] ::
+  .call "da_expand__L6_L7" [.n 431, .n 1, .n 2, .n 433] [.n 434] ::
   .atom (.load (.n 434) (.n 4) 107) ::
   .atom (.load (.n 435) (.n 0) 108) ::
-  .atom (.const (.n 436) (word 256 0)) ::
+  .atom (.const (.n 436) (word 128 0)) ::
   .atom (.mul (.n 437) (.n 433) (.n 436)) ::
-  .call "da_expand__L7_L8" [.n 435, .n 1, .n 2, .n 437] [.n 438] ::
+  .call "da_expand__L6_L7" [.n 435, .n 1, .n 2, .n 437] [.n 438] ::
   .atom (.load (.n 438) (.n 4) 108) ::
   .atom (.load (.n 439) (.n 0) 109) ::
-  .atom (.const (.n 440) (word 256 0)) ::
+  .atom (.const (.n 440) (word 128 0)) ::
   .atom (.mul (.n 441) (.n 437) (.n 440)) ::
-  .call "da_expand__L7_L8" [.n 439, .n 1, .n 2, .n 441] [.n 442] ::
+  .call "da_expand__L6_L7" [.n 439, .n 1, .n 2, .n 441] [.n 442] ::
   .atom (.load (.n 442) (.n 4) 109) ::
   .atom (.load (.n 443) (.n 0) 110) ::
-  .atom (.const (.n 444) (word 256 0)) ::
+  .atom (.const (.n 444) (word 128 0)) ::
   .atom (.mul (.n 445) (.n 441) (.n 444)) ::
-  .call "da_expand__L7_L8" [.n 443, .n 1, .n 2, .n 445] [.n 446] ::
+  .call "da_expand__L6_L7" [.n 443, .n 1, .n 2, .n 445] [.n 446] ::
   .atom (.load (.n 446) (.n 4) 110) ::
   .atom (.load (.n 447) (.n 0) 111) ::
-  .atom (.const (.n 448) (word 256 0)) ::
+  .atom (.const (.n 448) (word 128 0)) ::
   .atom (.mul (.n 449) (.n 445) (.n 448)) ::
-  .call "da_expand__L7_L8" [.n 447, .n 1, .n 2, .n 449] [.n 450] ::
+  .call "da_expand__L6_L7" [.n 447, .n 1, .n 2, .n 449] [.n 450] ::
   .atom (.load (.n 450) (.n 4) 111) ::
   .atom (.load (.n 451) (.n 0) 112) ::
-  .atom (.const (.n 452) (word 256 0)) ::
+  .atom (.const (.n 452) (word 128 0)) ::
   .atom (.mul (.n 453) (.n 449) (.n 452)) ::
-  .call "da_expand__L7_L8" [.n 451, .n 1, .n 2, .n 453] [.n 454] ::
+  .call "da_expand__L6_L7" [.n 451, .n 1, .n 2, .n 453] [.n 454] ::
   .atom (.load (.n 454) (.n 4) 112) ::
   .atom (.load (.n 455) (.n 0) 113) ::
-  .atom (.const (.n 456) (word 256 0)) ::
+  .atom (.const (.n 456) (word 128 0)) ::
   .atom (.mul (.n 457) (.n 453) (.n 456)) ::
-  .call "da_expand__L7_L8" [.n 455, .n 1, .n 2, .n 457] [.n 458] ::
+  .call "da_expand__L6_L7" [.n 455, .n 1, .n 2, .n 457] [.n 458] ::
   .atom (.load (.n 458) (.n 4) 113) ::
   .atom (.load (.n 459) (.n 0) 114) ::
-  .atom (.const (.n 460) (word 256 0)) ::
+  .atom (.const (.n 460) (word 128 0)) ::
   .atom (.mul (.n 461) (.n 457) (.n 460)) ::
-  .call "da_expand__L7_L8" [.n 459, .n 1, .n 2, .n 461] [.n 462] ::
+  .call "da_expand__L6_L7" [.n 459, .n 1, .n 2, .n 461] [.n 462] ::
   .atom (.load (.n 462) (.n 4) 114) ::
   .atom (.load (.n 463) (.n 0) 115) ::
-  .atom (.const (.n 464) (word 256 0)) ::
+  .atom (.const (.n 464) (word 128 0)) ::
   .atom (.mul (.n 465) (.n 461) (.n 464)) ::
-  .call "da_expand__L7_L8" [.n 463, .n 1, .n 2, .n 465] [.n 466] ::
+  .call "da_expand__L6_L7" [.n 463, .n 1, .n 2, .n 465] [.n 466] ::
   .atom (.load (.n 466) (.n 4) 115) ::
   .atom (.load (.n 467) (.n 0) 116) ::
-  .atom (.const (.n 468) (word 256 0)) ::
+  .atom (.const (.n 468) (word 128 0)) ::
   .atom (.mul (.n 469) (.n 465) (.n 468)) ::
-  .call "da_expand__L7_L8" [.n 467, .n 1, .n 2, .n 469] [.n 470] ::
+  .call "da_expand__L6_L7" [.n 467, .n 1, .n 2, .n 469] [.n 470] ::
   .atom (.load (.n 470) (.n 4) 116) ::
   .atom (.load (.n 471) (.n 0) 117) ::
-  .atom (.const (.n 472) (word 256 0)) ::
+  .atom (.const (.n 472) (word 128 0)) ::
   .atom (.mul (.n 473) (.n 469) (.n 472)) ::
   [])
 
 /-- `da_weights`: statements 587 to 640 of the body. -/
 noncomputable def c1 : List Core.Stmt := (
-  .call "da_expand__L7_L8" [.n 471, .n 1, .n 2, .n 473] [.n 474] ::
+  .call "da_expand__L6_L7" [.n 471, .n 1, .n 2, .n 473] [.n 474] ::
   .atom (.load (.n 474) (.n 4) 117) ::
   .atom (.load (.n 475) (.n 0) 118) ::
-  .atom (.const (.n 476) (word 256 0)) ::
+  .atom (.const (.n 476) (word 128 0)) ::
   .atom (.mul (.n 477) (.n 473) (.n 476)) ::
-  .call "da_expand__L7_L8" [.n 475, .n 1, .n 2, .n 477] [.n 478] ::
+  .call "da_expand__L6_L7" [.n 475, .n 1, .n 2, .n 477] [.n 478] ::
   .atom (.load (.n 478) (.n 4) 118) ::
   .atom (.load (.n 479) (.n 0) 119) ::
-  .atom (.const (.n 480) (word 256 0)) ::
+  .atom (.const (.n 480) (word 128 0)) ::
   .atom (.mul (.n 481) (.n 477) (.n 480)) ::
-  .call "da_expand__L7_L8" [.n 479, .n 1, .n 2, .n 481] [.n 482] ::
+  .call "da_expand__L6_L7" [.n 479, .n 1, .n 2, .n 481] [.n 482] ::
   .atom (.load (.n 482) (.n 4) 119) ::
   .atom (.load (.n 483) (.n 0) 120) ::
-  .atom (.const (.n 484) (word 256 0)) ::
+  .atom (.const (.n 484) (word 128 0)) ::
   .atom (.mul (.n 485) (.n 481) (.n 484)) ::
-  .call "da_expand__L7_L8" [.n 483, .n 1, .n 2, .n 485] [.n 486] ::
+  .call "da_expand__L6_L7" [.n 483, .n 1, .n 2, .n 485] [.n 486] ::
   .atom (.load (.n 486) (.n 4) 120) ::
   .atom (.load (.n 487) (.n 0) 121) ::
-  .atom (.const (.n 488) (word 256 0)) ::
+  .atom (.const (.n 488) (word 128 0)) ::
   .atom (.mul (.n 489) (.n 485) (.n 488)) ::
-  .call "da_expand__L7_L8" [.n 487, .n 1, .n 2, .n 489] [.n 490] ::
+  .call "da_expand__L6_L7" [.n 487, .n 1, .n 2, .n 489] [.n 490] ::
   .atom (.load (.n 490) (.n 4) 121) ::
   .atom (.load (.n 491) (.n 0) 122) ::
-  .atom (.const (.n 492) (word 256 0)) ::
+  .atom (.const (.n 492) (word 128 0)) ::
   .atom (.mul (.n 493) (.n 489) (.n 492)) ::
-  .call "da_expand__L7_L8" [.n 491, .n 1, .n 2, .n 493] [.n 494] ::
+  .call "da_expand__L6_L7" [.n 491, .n 1, .n 2, .n 493] [.n 494] ::
   .atom (.load (.n 494) (.n 4) 122) ::
   .atom (.load (.n 495) (.n 0) 123) ::
-  .atom (.const (.n 496) (word 256 0)) ::
+  .atom (.const (.n 496) (word 128 0)) ::
   .atom (.mul (.n 497) (.n 493) (.n 496)) ::
-  .call "da_expand__L7_L8" [.n 495, .n 1, .n 2, .n 497] [.n 498] ::
+  .call "da_expand__L6_L7" [.n 495, .n 1, .n 2, .n 497] [.n 498] ::
   .atom (.load (.n 498) (.n 4) 123) ::
   .atom (.load (.n 499) (.n 0) 124) ::
-  .atom (.const (.n 500) (word 256 0)) ::
+  .atom (.const (.n 500) (word 128 0)) ::
   .atom (.mul (.n 501) (.n 497) (.n 500)) ::
-  .call "da_expand__L7_L8" [.n 499, .n 1, .n 2, .n 501] [.n 502] ::
+  .call "da_expand__L6_L7" [.n 499, .n 1, .n 2, .n 501] [.n 502] ::
   .atom (.load (.n 502) (.n 4) 124) ::
   .atom (.load (.n 503) (.n 0) 125) ::
-  .atom (.const (.n 504) (word 256 0)) ::
+  .atom (.const (.n 504) (word 128 0)) ::
   .atom (.mul (.n 505) (.n 501) (.n 504)) ::
-  .call "da_expand__L7_L8" [.n 503, .n 1, .n 2, .n 505] [.n 506] ::
+  .call "da_expand__L6_L7" [.n 503, .n 1, .n 2, .n 505] [.n 506] ::
   .atom (.load (.n 506) (.n 4) 125) ::
   .atom (.load (.n 507) (.n 0) 126) ::
-  .atom (.const (.n 508) (word 256 0)) ::
+  .atom (.const (.n 508) (word 128 0)) ::
   .atom (.mul (.n 509) (.n 505) (.n 508)) ::
-  .call "da_expand__L7_L8" [.n 507, .n 1, .n 2, .n 509] [.n 510] ::
+  .call "da_expand__L6_L7" [.n 507, .n 1, .n 2, .n 509] [.n 510] ::
   .atom (.load (.n 510) (.n 4) 126) ::
   .atom (.load (.n 511) (.n 0) 127) ::
-  .atom (.const (.n 512) (word 256 0)) ::
+  .atom (.const (.n 512) (word 128 0)) ::
   .atom (.mul (.n 513) (.n 509) (.n 512)) ::
-  .call "da_expand__L7_L8" [.n 511, .n 1, .n 2, .n 513] [.n 514] ::
+  .call "da_expand__L6_L7" [.n 511, .n 1, .n 2, .n 513] [.n 514] ::
   .atom (.load (.n 514) (.n 4) 127) ::
   .atom (.copy (.n 515) (.n 4)) ::
   .ret [.n 515] ::
@@ -1972,7 +1838,7 @@ noncomputable def body : List Core.Stmt := [
   .atom (.add (.n 13) (.n 11) (.n 12)),
   .atom (.const (.n 14) (word 2 0)),
   .atom (.const (.n 15) (word 268435456 0)),
-  .callIf (.n 13) "__loop413" [.n 14, .n 15, .n 10, .n 6, .n 7, .n 8],
+  .callIf (.n 13) "__loop418" [.n 14, .n 15, .n 10, .n 6, .n 7, .n 8],
   .atom (.const (.n 16) (word 1331200 0)),
   .atom (.mul (.n 17) (.n 10) (.n 16)),
   .atom (.load (.n 18) (.n 17) 0),
@@ -2021,7 +1887,7 @@ noncomputable def body : List Core.Stmt := [
   .atom (.add (.n 13) (.n 11) (.n 12)),
   .atom (.const (.n 14) (word 2 0)),
   .atom (.const (.n 15) (word 256 0)),
-  .callIf (.n 13) "__loop261" [.n 14, .n 15, .n 10, .n 6, .n 7, .n 8],
+  .callIf (.n 13) "__loop266" [.n 14, .n 15, .n 10, .n 6, .n 7, .n 8],
   .atom (.const (.n 16) (word 1099511627776 0)),
   .atom (.mul (.n 17) (.n 10) (.n 16)),
   .atom (.load (.n 18) (.n 17) 0),
@@ -3118,7 +2984,7 @@ noncomputable def c1 : List Core.Stmt := (
   .atom (.add (.n 1017) (.n 1016) (.n 1)) ::
   .atom (.const (.n 1018) (word 2 0)) ::
   .atom (.mul (.n 1019) (.n 0) (.n 1018)) ::
-  .callIf (.n 1017) "__loop162" [.n 1019, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
+  .callIf (.n 1017) "__loop167" [.n 1019, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
   .ret [] ::
   [])
 
@@ -3129,7 +2995,7 @@ end core
 
 /-- `level_residual__L109_L17_L6_L3_loop0`. -/
 noncomputable def core : Core.Fn where
-  name := "__loop162"
+  name := "__loop167"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]
   body := core.body
 
@@ -3240,7 +3106,7 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 96) (.n 95) (.n 1)) ::
   .atom (.const (.n 97) (word 2 0)) ::
   .atom (.mul (.n 98) (.n 0) (.n 97)) ::
-  .callIf (.n 96) "__loop406" [.n 98, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
+  .callIf (.n 96) "__loop411" [.n 98, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
   .ret [] ::
   [])
 
@@ -3248,7 +3114,7 @@ end core
 
 /-- `level_residual__L19_L11_L4_L2_loop1`. -/
 noncomputable def core : Core.Fn where
-  name := "__loop406"
+  name := "__loop411"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]
   body := core.body
 
@@ -3276,7 +3142,7 @@ noncomputable def body : List Core.Stmt := [
   .atom (.add (.n 10) (.n 8) (.n 9)),
   .atom (.const (.n 11) (word 1 0)),
   .atom (.const (.n 12) (word 134217728 0)),
-  .callIf (.n 10) "__loop229" [.n 11, .n 12, .n 0, .n 5, .n 1, .n 2, .n 3],
+  .callIf (.n 10) "__loop234" [.n 11, .n 12, .n 0, .n 5, .n 1, .n 2, .n 3],
   .atom (.load (.n 13) (.n 5) 54),
   .atom (.load (.n 14) (.n 5) 55),
   .atom (.const (.n 15) (word 64 0)),
@@ -3290,7 +3156,7 @@ noncomputable def body : List Core.Stmt := [
   .atom (.add (.n 21) (.n 19) (.n 20)),
   .atom (.const (.n 22) (word 1 0)),
   .atom (.const (.n 23) (word 4 0)),
-  .callIf (.n 21) "__loop230" [.n 22, .n 23, .n 16, .n 18, .n 1, .n 2, .n 3],
+  .callIf (.n 21) "__loop235" [.n 22, .n 23, .n 16, .n 18, .n 1, .n 2, .n 3],
   .atom (.load (.n 24) (.n 16) 4),
   .atom (.load (.n 25) (.n 16) 5),
   .atom (.copy (.n 26) (.n 24)),
@@ -3382,7 +3248,7 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 66) (.n 65) (.n 1)) ::
   .atom (.const (.n 67) (word 2 0)) ::
   .atom (.mul (.n 68) (.n 0) (.n 67)) ::
-  .callIf (.n 66) "__loop79" [.n 68, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
+  .callIf (.n 66) "__loop84" [.n 68, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
   .ret [] ::
   [])
 
@@ -3390,7 +3256,7 @@ end core
 
 /-- `level_residual__L33_L6_L4_L2_loop1`. -/
 noncomputable def core : Core.Fn where
-  name := "__loop79"
+  name := "__loop84"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]
   body := core.body
 
@@ -3501,7 +3367,7 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 96) (.n 95) (.n 1)) ::
   .atom (.const (.n 97) (word 2 0)) ::
   .atom (.mul (.n 98) (.n 0) (.n 97)) ::
-  .callIf (.n 96) "__loop105" [.n 98, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
+  .callIf (.n 96) "__loop110" [.n 98, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
   .ret [] ::
   [])
 
@@ -3509,7 +3375,7 @@ end core
 
 /-- `level_residual__L55_L11_L4_L2_loop1`. -/
 noncomputable def core : Core.Fn where
-  name := "__loop105"
+  name := "__loop110"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]
   body := core.body
 
@@ -4789,7 +4655,7 @@ noncomputable def c2 : List Core.Stmt := (
   .atom (.add (.n 1257) (.n 1256) (.n 1)) ::
   .atom (.const (.n 1258) (word 2 0)) ::
   .atom (.mul (.n 1259) (.n 0) (.n 1258)) ::
-  .callIf (.n 1257) "__loop346" [.n 1259, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
+  .callIf (.n 1257) "__loop351" [.n 1259, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] ::
   .ret [] ::
   [])
 
@@ -4800,7 +4666,7 @@ end core
 
 /-- `level_residual__L55_L22_L6_L3_loop0`. -/
 noncomputable def core : Core.Fn where
-  name := "__loop346"
+  name := "__loop351"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6]
   body := core.body
 
@@ -5017,7 +4883,7 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 182) (.n 181) (.n 1)) ::
   .atom (.const (.n 183) (word 2 0)) ::
   .atom (.mul (.n 184) (.n 0) (.n 183)) ::
-  .callIf (.n 182) "__loop526" [.n 184, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
+  .callIf (.n 182) "__loop483" [.n 184, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
   .ret [] ::
   [])
 
@@ -5025,7 +4891,7 @@ end core
 
 /-- `opening_queries__L0_L0_L4_L16_L16_L4_L4_L10_L20_L5_L1_loop0`. -/
 noncomputable def core : Core.Fn where
-  name := "__loop526"
+  name := "__loop483"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]
   body := core.body
 
@@ -5163,7 +5029,7 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 154) (.n 153) (.n 1)) ::
   .atom (.const (.n 155) (word 2 0)) ::
   .atom (.mul (.n 156) (.n 0) (.n 155)) ::
-  .callIf (.n 154) "__loop544" [.n 156, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
+  .callIf (.n 154) "__loop501" [.n 156, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
   .ret [] ::
   [])
 
@@ -5171,7 +5037,7 @@ end core
 
 /-- `opening_queries__L0_L0_L4_L16_L17_L5_L3_L6_L12_L4_L1_loop0`. -/
 noncomputable def core : Core.Fn where
-  name := "__loop544"
+  name := "__loop501"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]
   body := core.body
 
@@ -5337,7 +5203,7 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 182) (.n 181) (.n 1)) ::
   .atom (.const (.n 183) (word 2 0)) ::
   .atom (.mul (.n 184) (.n 0) (.n 183)) ::
-  .callIf (.n 182) "__loop550" [.n 184, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
+  .callIf (.n 182) "__loop507" [.n 184, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
   .ret [] ::
   [])
 
@@ -5345,7 +5211,7 @@ end core
 
 /-- `opening_queries__L0_L0_L4_L16_L18_L6_L4_L10_L20_L5_L1_loop0`. -/
 noncomputable def core : Core.Fn where
-  name := "__loop550"
+  name := "__loop507"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]
   body := core.body
 
@@ -5467,7 +5333,7 @@ noncomputable def body : List Core.Stmt := (
   .atom (.add (.n 138) (.n 137) (.n 1)) ::
   .atom (.const (.n 139) (word 2 0)) ::
   .atom (.mul (.n 140) (.n 0) (.n 139)) ::
-  .callIf (.n 138) "__loop562" [.n 140, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
+  .callIf (.n 138) "__loop519" [.n 140, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] ::
   .ret [] ::
   [])
 
@@ -5475,7 +5341,7 @@ end core
 
 /-- `opening_queries__L0_L0_L4_L16_L19_L7_L2_L3_L8_L3_L1_loop0`. -/
 noncomputable def core : Core.Fn where
-  name := "__loop562"
+  name := "__loop519"
   params := [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9]
   body := core.body
 

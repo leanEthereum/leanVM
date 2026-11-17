@@ -17,12 +17,12 @@ open Core Memory
 
 /-- The arity of every function a `callIf` names, by index. -/
 def Data.takesT : NTree ℕ :=
-  (.node 1275 7
-    (.node 1100 7
-    (.node 1012 7
-    (.node 442 6
-    (.node 368 7
-    (.node 266 6
+  (.node 1230 6
+    (.node 1069 7
+    (.node 982 6
+    (.node 424 7
+    (.node 349 4
+    (.node 94 7
     (.node 40 16
     (.node 38 56
     (.node 37 4
@@ -33,121 +33,162 @@ def Data.takesT : NTree ℕ :=
     (.node 39 7
     .leaf
     .leaf))
-    (.node 93 4
     (.node 92 11
     (.node 82 5
     .leaf
     .leaf)
-    .leaf)
-    (.node 94 7
+    (.node 93 4
     .leaf
     .leaf)))
-    (.node 275 4
     (.node 272 4
-    (.node 268 4
     (.node 267 5
+    (.node 266 6
     .leaf
     .leaf)
-    .leaf)
+    (.node 268 4
+    .leaf
+    .leaf))
+    (.node 275 4
     (.node 274 4
     .leaf
-    .leaf))
-    (.node 349 4
+    .leaf)
     (.node 276 4
     .leaf
-    .leaf)
+    .leaf))))
+    (.node 415 4
+    (.node 388 4
+    (.node 369 7
+    (.node 368 7
     (.node 350 4
     .leaf
-    .leaf))))
-    (.node 427 4
-    (.node 419 4
-    (.node 388 4
+    .leaf)
+    .leaf)
     (.node 387 4
-    (.node 369 7
     .leaf
-    .leaf)
-    .leaf)
+    .leaf))
+    (.node 409 4
     (.node 406 4
     .leaf
-    .leaf))
-    (.node 425 4
-    (.node 420 3
-    .leaf
     .leaf)
-    (.node 426 4
+    (.node 410 3
     .leaf
     .leaf)))
-    (.node 432 8
-    (.node 430 4
-    (.node 429 4
-    (.node 428 4
+    (.node 419 4
+    (.node 417 4
+    (.node 416 4
     .leaf
     .leaf)
-    .leaf)
-    (.node 431 4
+    (.node 418 4
     .leaf
     .leaf))
-    (.node 436 8
-    (.node 434 7
+    (.node 421 4
+    (.node 420 4
     .leaf
     .leaf)
-    (.node 438 5
+    (.node 422 8
     .leaf
     .leaf)))))
-    (.node 981 6
-    (.node 959 3
-    (.node 955 3
-    (.node 445 6
-    (.node 444 6
-    (.node 443 6
+    (.node 944 3
+    (.node 936 3
+    (.node 434 6
+    (.node 432 6
+    (.node 428 5
+    (.node 426 8
     .leaf
     .leaf)
     .leaf)
-    (.node 954 3
+    (.node 433 6
     .leaf
     .leaf))
-    (.node 957 3
-    (.node 956 3
+    (.node 934 3
+    (.node 435 6
     .leaf
     .leaf)
-    (.node 958 3
+    (.node 935 3
     .leaf
     .leaf)))
-    (.node 968 6
-    (.node 964 6
-    (.node 962 6
-    (.node 960 3
+    (.node 940 3
+    (.node 938 3
+    (.node 937 3
     .leaf
     .leaf)
-    .leaf)
-    (.node 966 6
+    (.node 939 3
     .leaf
     .leaf))
-    (.node 979 6
-    (.node 978 6
+    (.node 942 3
+    (.node 941 3
     .leaf
     .leaf)
-    (.node 980 6
+    (.node 943 3
     .leaf
     .leaf))))
-    (.node 1003 7
-    (.node 995 6
-    (.node 990 6
-    (.node 989 6
-    (.node 988 6
+    (.node 965 6
+    (.node 951 6
+    (.node 947 6
+    (.node 945 3
     .leaf
     .leaf)
-    .leaf)
-    (.node 991 6
+    (.node 949 6
     .leaf
     .leaf))
-    (.node 997 6
-    (.node 996 6
+    (.node 963 6
+    (.node 953 6
     .leaf
     .leaf)
-    (.node 998 6
+    (.node 964 6
     .leaf
     .leaf)))
+    (.node 975 6
+    (.node 973 6
+    (.node 966 6
+    .leaf
+    .leaf)
+    (.node 974 6
+    .leaf
+    .leaf))
+    (.node 980 6
+    (.node 976 6
+    .leaf
+    .leaf)
+    (.node 981 6
+    .leaf
+    .leaf))))))
+    (.node 1024 6
+    (.node 1003 7
+    (.node 995 7
+    (.node 991 7
+    (.node 989 7
+    (.node 988 7
+    (.node 983 6
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 990 7
+    .leaf
+    .leaf))
+    (.node 993 7
+    (.node 992 7
+    .leaf
+    .leaf)
+    (.node 994 7
+    .leaf
+    .leaf)))
+    (.node 999 7
+    (.node 997 7
+    (.node 996 7
+    .leaf
+    .leaf)
+    (.node 998 7
+    .leaf
+    .leaf))
+    (.node 1001 7
+    (.node 1000 7
+    .leaf
+    .leaf)
+    (.node 1002 7
+    .leaf
+    .leaf))))
+    (.node 1012 6
     (.node 1008 7
     (.node 1006 7
     (.node 1005 7
@@ -162,899 +203,878 @@ def Data.takesT : NTree ℕ :=
     (.node 1009 7
     .leaf
     .leaf)
-    (.node 1011 7
-    .leaf
-    .leaf))))))
-    (.node 1056 7
-    (.node 1033 6
-    (.node 1021 7
-    (.node 1017 7
-    (.node 1015 7
-    (.node 1014 7
-    (.node 1013 7
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1016 7
-    .leaf
-    .leaf))
-    (.node 1019 7
-    (.node 1018 7
-    .leaf
-    .leaf)
-    (.node 1020 7
+    (.node 1011 6
     .leaf
     .leaf)))
-    (.node 1026 6
-    (.node 1024 7
-    (.node 1023 7
-    (.node 1022 7
+    (.node 1019 6
+    (.node 1015 6
+    (.node 1013 6
     .leaf
     .leaf)
-    .leaf)
-    (.node 1025 7
+    (.node 1018 6
     .leaf
     .leaf))
-    (.node 1028 6
-    (.node 1027 6
+    (.node 1021 6
+    (.node 1020 6
     .leaf
     .leaf)
-    (.node 1030 6
-    .leaf
-    .leaf))))
-    (.node 1047 7
-    (.node 1039 6
-    (.node 1036 6
-    (.node 1035 6
-    (.node 1034 6
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1038 6
-    .leaf
-    .leaf))
-    (.node 1045 7
-    (.node 1044 7
-    .leaf
-    .leaf)
-    (.node 1046 7
-    .leaf
-    .leaf)))
-    (.node 1052 7
-    (.node 1050 7
-    (.node 1049 7
-    (.node 1048 7
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1051 7
-    .leaf
-    .leaf))
-    (.node 1054 7
-    (.node 1053 7
-    .leaf
-    .leaf)
-    (.node 1055 7
+    (.node 1023 6
     .leaf
     .leaf)))))
-    (.node 1078 6
-    (.node 1065 7
-    (.node 1061 7
-    (.node 1059 7
-    (.node 1058 7
-    (.node 1057 7
+    (.node 1045 7
+    (.node 1037 7
+    (.node 1033 7
+    (.node 1031 7
+    (.node 1030 7
+    (.node 1029 7
     .leaf
     .leaf)
     .leaf)
-    (.node 1060 7
+    (.node 1032 7
     .leaf
     .leaf))
-    (.node 1063 7
-    (.node 1062 7
+    (.node 1035 7
+    (.node 1034 7
     .leaf
     .leaf)
-    (.node 1064 7
+    (.node 1036 7
     .leaf
     .leaf)))
-    (.node 1073 6
-    (.node 1068 6
-    (.node 1067 6
-    (.node 1066 6
+    (.node 1041 7
+    (.node 1039 7
+    (.node 1038 7
     .leaf
     .leaf)
-    .leaf)
-    (.node 1070 6
+    (.node 1040 7
     .leaf
     .leaf))
-    (.node 1075 6
-    (.node 1074 6
+    (.node 1043 7
+    (.node 1042 7
     .leaf
     .leaf)
-    (.node 1076 6
+    (.node 1044 7
     .leaf
     .leaf))))
-    (.node 1091 7
-    (.node 1087 7
-    (.node 1085 7
-    (.node 1084 7
-    (.node 1079 6
+    (.node 1053 6
+    (.node 1049 7
+    (.node 1047 7
+    (.node 1046 7
     .leaf
     .leaf)
-    .leaf)
-    (.node 1086 7
+    (.node 1048 7
     .leaf
     .leaf))
+    (.node 1051 6
+    (.node 1050 7
+    .leaf
+    .leaf)
+    (.node 1052 6
+    .leaf
+    .leaf)))
+    (.node 1060 6
+    (.node 1058 6
+    (.node 1055 6
+    .leaf
+    .leaf)
+    (.node 1059 6
+    .leaf
+    .leaf))
+    (.node 1063 6
+    (.node 1061 6
+    .leaf
+    .leaf)
+    (.node 1064 6
+    .leaf
+    .leaf)))))))
+    (.node 1151 7
+    (.node 1111 7
+    (.node 1086 7
+    (.node 1078 7
+    (.node 1074 7
+    (.node 1072 7
+    (.node 1071 7
+    (.node 1070 7
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1073 7
+    .leaf
+    .leaf))
+    (.node 1076 7
+    (.node 1075 7
+    .leaf
+    .leaf)
+    (.node 1077 7
+    .leaf
+    .leaf)))
+    (.node 1082 7
+    (.node 1080 7
+    (.node 1079 7
+    .leaf
+    .leaf)
+    (.node 1081 7
+    .leaf
+    .leaf))
+    (.node 1084 7
+    (.node 1083 7
+    .leaf
+    .leaf)
+    (.node 1085 7
+    .leaf
+    .leaf))))
+    (.node 1098 6
+    (.node 1091 6
     (.node 1089 7
     (.node 1088 7
+    (.node 1087 7
     .leaf
+    .leaf)
     .leaf)
     (.node 1090 7
     .leaf
-    .leaf)))
-    (.node 1096 7
-    (.node 1094 7
-    (.node 1093 7
-    (.node 1092 7
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1095 7
-    .leaf
     .leaf))
-    (.node 1098 7
-    (.node 1097 7
+    (.node 1093 6
+    (.node 1092 6
     .leaf
     .leaf)
-    (.node 1099 7
-    .leaf
-    .leaf)))))))
-    (.node 1187 7
-    (.node 1144 7
-    (.node 1126 7
-    (.node 1110 6
-    (.node 1105 7
-    (.node 1103 7
-    (.node 1102 7
-    (.node 1101 7
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1104 7
-    .leaf
-    .leaf))
-    (.node 1107 6
-    (.node 1106 6
-    .leaf
-    .leaf)
-    (.node 1108 6
+    (.node 1095 6
     .leaf
     .leaf)))
-    (.node 1118 6
-    (.node 1115 6
-    (.node 1114 6
-    (.node 1113 6
+    (.node 1103 6
+    (.node 1100 6
+    (.node 1099 6
     .leaf
     .leaf)
-    .leaf)
-    (.node 1116 6
+    (.node 1101 6
     .leaf
     .leaf))
-    (.node 1124 7
-    (.node 1119 6
+    (.node 1109 7
+    (.node 1104 6
     .leaf
     .leaf)
-    (.node 1125 7
-    .leaf
-    .leaf))))
-    (.node 1135 7
-    (.node 1131 7
-    (.node 1129 7
-    (.node 1128 7
-    (.node 1127 7
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1130 7
-    .leaf
-    .leaf))
-    (.node 1133 7
-    (.node 1132 7
-    .leaf
-    .leaf)
-    (.node 1134 7
-    .leaf
-    .leaf)))
-    (.node 1140 7
-    (.node 1138 7
-    (.node 1137 7
-    (.node 1136 7
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1139 7
-    .leaf
-    .leaf))
-    (.node 1142 7
-    (.node 1141 7
-    .leaf
-    .leaf)
-    (.node 1143 7
+    (.node 1110 7
     .leaf
     .leaf)))))
-    (.node 1169 7
-    (.node 1157 6
-    (.node 1150 6
-    (.node 1147 6
-    (.node 1146 6
-    (.node 1145 7
+    (.node 1128 7
+    (.node 1120 7
+    (.node 1116 7
+    (.node 1114 7
+    (.node 1113 7
+    (.node 1112 7
     .leaf
     .leaf)
     .leaf)
-    (.node 1148 6
+    (.node 1115 7
     .leaf
     .leaf))
-    (.node 1154 6
-    (.node 1153 6
+    (.node 1118 7
+    (.node 1117 7
     .leaf
     .leaf)
-    (.node 1155 6
+    (.node 1119 7
     .leaf
     .leaf)))
-    (.node 1165 7
-    (.node 1163 7
-    (.node 1159 6
-    (.node 1158 6
+    (.node 1124 7
+    (.node 1122 7
+    (.node 1121 7
     .leaf
     .leaf)
-    .leaf)
-    (.node 1164 7
+    (.node 1123 7
     .leaf
     .leaf))
-    (.node 1167 7
-    (.node 1166 7
+    (.node 1126 7
+    (.node 1125 7
     .leaf
     .leaf)
-    (.node 1168 7
+    (.node 1127 7
     .leaf
     .leaf))))
-    (.node 1178 7
-    (.node 1174 7
-    (.node 1172 7
-    (.node 1171 7
-    (.node 1170 7
+    (.node 1139 6
+    (.node 1132 6
+    (.node 1130 7
+    (.node 1129 7
     .leaf
     .leaf)
-    .leaf)
-    (.node 1173 7
+    (.node 1131 6
     .leaf
     .leaf))
-    (.node 1176 7
-    (.node 1175 7
+    (.node 1135 6
+    (.node 1133 6
     .leaf
     .leaf)
-    (.node 1177 7
+    (.node 1138 6
     .leaf
     .leaf)))
-    (.node 1183 7
-    (.node 1181 7
-    (.node 1180 7
-    (.node 1179 7
+    (.node 1144 6
+    (.node 1142 6
+    (.node 1140 6
     .leaf
     .leaf)
-    .leaf)
-    (.node 1182 7
+    (.node 1143 6
     .leaf
     .leaf))
-    (.node 1185 7
-    (.node 1184 7
+    (.node 1149 7
+    (.node 1148 7
     .leaf
     .leaf)
-    (.node 1186 7
+    (.node 1150 7
     .leaf
     .leaf))))))
-    (.node 1232 7
-    (.node 1214 7
-    (.node 1201 6
-    (.node 1193 6
-    (.node 1191 6
-    (.node 1189 7
-    (.node 1188 7
+    (.node 1194 7
+    (.node 1168 7
+    (.node 1160 7
+    (.node 1156 7
+    (.node 1154 7
+    (.node 1153 7
+    (.node 1152 7
     .leaf
     .leaf)
     .leaf)
-    (.node 1192 6
+    (.node 1155 7
     .leaf
     .leaf))
-    (.node 1199 6
-    (.node 1195 6
+    (.node 1158 7
+    (.node 1157 7
     .leaf
     .leaf)
-    (.node 1200 6
+    (.node 1159 7
     .leaf
     .leaf)))
-    (.node 1210 7
-    (.node 1205 6
-    (.node 1204 6
-    (.node 1203 6
+    (.node 1164 7
+    (.node 1162 7
+    (.node 1161 7
     .leaf
     .leaf)
-    .leaf)
-    (.node 1209 7
+    (.node 1163 7
     .leaf
     .leaf))
-    (.node 1212 7
-    (.node 1211 7
+    (.node 1166 7
+    (.node 1165 7
     .leaf
     .leaf)
-    (.node 1213 7
+    (.node 1167 7
     .leaf
     .leaf))))
-    (.node 1223 7
-    (.node 1219 7
-    (.node 1217 7
-    (.node 1216 7
-    (.node 1215 7
+    (.node 1178 6
+    (.node 1173 7
+    (.node 1171 7
+    (.node 1170 7
+    (.node 1169 7
     .leaf
     .leaf)
+    .leaf)
+    (.node 1172 7
+    .leaf
+    .leaf))
+    (.node 1176 6
+    (.node 1174 7
+    .leaf
+    .leaf)
+    (.node 1177 6
+    .leaf
+    .leaf)))
+    (.node 1186 6
+    (.node 1184 6
+    (.node 1180 6
+    .leaf
+    .leaf)
+    (.node 1185 6
+    .leaf
+    .leaf))
+    (.node 1189 6
+    (.node 1188 6
+    .leaf
+    .leaf)
+    (.node 1190 6
+    .leaf
+    .leaf)))))
+    (.node 1211 7
+    (.node 1203 7
+    (.node 1199 7
+    (.node 1197 7
+    (.node 1196 7
+    (.node 1195 7
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1198 7
+    .leaf
+    .leaf))
+    (.node 1201 7
+    (.node 1200 7
+    .leaf
+    .leaf)
+    (.node 1202 7
+    .leaf
+    .leaf)))
+    (.node 1207 7
+    (.node 1205 7
+    (.node 1204 7
+    .leaf
+    .leaf)
+    (.node 1206 7
+    .leaf
+    .leaf))
+    (.node 1209 7
+    (.node 1208 7
+    .leaf
+    .leaf)
+    (.node 1210 7
+    .leaf
+    .leaf))))
+    (.node 1219 7
+    (.node 1215 7
+    (.node 1213 7
+    (.node 1212 7
+    .leaf
+    .leaf)
+    (.node 1214 7
+    .leaf
+    .leaf))
+    (.node 1217 7
+    (.node 1216 7
+    .leaf
     .leaf)
     (.node 1218 7
     .leaf
-    .leaf))
-    (.node 1221 7
+    .leaf)))
+    (.node 1223 6
+    (.node 1221 6
     (.node 1220 7
     .leaf
     .leaf)
-    (.node 1222 7
-    .leaf
-    .leaf)))
-    (.node 1228 7
-    (.node 1226 7
-    (.node 1225 7
-    (.node 1224 7
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1227 7
+    (.node 1222 6
     .leaf
     .leaf))
-    (.node 1230 7
-    (.node 1229 7
+    (.node 1228 6
+    (.node 1225 6
     .leaf
     .leaf)
-    (.node 1231 7
-    .leaf
-    .leaf)))))
-    (.node 1257 7
-    (.node 1244 6
-    (.node 1237 6
-    (.node 1235 7
-    (.node 1234 7
-    (.node 1233 7
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1236 6
-    .leaf
-    .leaf))
-    (.node 1240 6
-    (.node 1238 6
-    .leaf
-    .leaf)
-    (.node 1243 6
-    .leaf
-    .leaf)))
-    (.node 1253 7
-    (.node 1248 6
-    (.node 1247 6
-    (.node 1245 6
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1249 6
-    .leaf
-    .leaf))
-    (.node 1255 7
-    (.node 1254 7
-    .leaf
-    .leaf)
-    (.node 1256 7
-    .leaf
-    .leaf))))
-    (.node 1266 7
-    (.node 1262 7
-    (.node 1260 7
-    (.node 1259 7
-    (.node 1258 7
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1261 7
-    .leaf
-    .leaf))
-    (.node 1264 7
-    (.node 1263 7
-    .leaf
-    .leaf)
-    (.node 1265 7
-    .leaf
-    .leaf)))
-    (.node 1271 7
-    (.node 1269 7
-    (.node 1268 7
-    (.node 1267 7
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1270 7
-    .leaf
-    .leaf))
-    (.node 1273 7
-    (.node 1272 7
-    .leaf
-    .leaf)
-    (.node 1274 7
+    (.node 1229 6
     .leaf
     .leaf))))))))
-    (.node 1448 7
-    (.node 1362 7
-    (.node 1319 7
-    (.node 1301 7
-    (.node 1288 6
-    (.node 1280 6
-    (.node 1278 7
-    (.node 1277 7
-    (.node 1276 7
+    (.node 1389 7
+    (.node 1308 6
+    (.node 1269 6
+    (.node 1251 7
+    (.node 1243 7
+    (.node 1239 7
+    (.node 1234 6
+    (.node 1233 6
+    (.node 1232 6
     .leaf
     .leaf)
     .leaf)
-    (.node 1279 7
+    (.node 1238 7
     .leaf
     .leaf))
-    (.node 1284 6
-    (.node 1282 6
-    (.node 1281 6
+    (.node 1241 7
+    (.node 1240 7
     .leaf
     .leaf)
-    .leaf)
-    (.node 1287 6
+    (.node 1242 7
     .leaf
     .leaf)))
-    (.node 1297 7
-    (.node 1292 6
-    (.node 1291 6
-    (.node 1289 6
+    (.node 1247 7
+    (.node 1245 7
+    (.node 1244 7
     .leaf
     .leaf)
-    .leaf)
-    (.node 1296 7
+    (.node 1246 7
     .leaf
     .leaf))
-    (.node 1299 7
-    (.node 1298 7
+    (.node 1249 7
+    (.node 1248 7
     .leaf
     .leaf)
-    (.node 1300 7
+    (.node 1250 7
     .leaf
     .leaf))))
-    (.node 1310 7
-    (.node 1306 7
-    (.node 1304 7
-    (.node 1303 7
-    (.node 1302 7
+    (.node 1260 7
+    (.node 1256 7
+    (.node 1254 7
+    (.node 1253 7
+    (.node 1252 7
     .leaf
     .leaf)
     .leaf)
-    (.node 1305 7
+    (.node 1255 7
     .leaf
     .leaf))
-    (.node 1308 7
-    (.node 1307 7
+    (.node 1258 7
+    (.node 1257 7
     .leaf
     .leaf)
-    (.node 1309 7
+    (.node 1259 7
     .leaf
     .leaf)))
-    (.node 1315 7
-    (.node 1313 7
-    (.node 1312 7
-    (.node 1311 7
+    (.node 1264 7
+    (.node 1262 7
+    (.node 1261 7
     .leaf
     .leaf)
-    .leaf)
-    (.node 1314 7
+    (.node 1263 7
     .leaf
     .leaf))
-    (.node 1317 7
-    (.node 1316 7
+    (.node 1266 6
+    (.node 1265 6
     .leaf
     .leaf)
-    (.node 1318 7
+    (.node 1267 6
     .leaf
     .leaf)))))
-    (.node 1344 7
-    (.node 1331 6
-    (.node 1324 6
-    (.node 1322 7
-    (.node 1321 7
-    (.node 1320 7
+    (.node 1292 7
+    (.node 1284 7
+    (.node 1277 6
+    (.node 1274 6
+    (.node 1273 6
+    (.node 1272 6
     .leaf
     .leaf)
     .leaf)
-    (.node 1323 6
+    (.node 1276 6
     .leaf
     .leaf))
-    (.node 1327 6
-    (.node 1325 6
+    (.node 1282 7
+    (.node 1281 7
     .leaf
     .leaf)
-    (.node 1330 6
+    (.node 1283 7
     .leaf
     .leaf)))
-    (.node 1337 6
-    (.node 1335 6
-    (.node 1334 6
-    (.node 1332 6
+    (.node 1288 7
+    (.node 1286 7
+    (.node 1285 7
     .leaf
     .leaf)
-    .leaf)
-    (.node 1336 6
+    (.node 1287 7
     .leaf
     .leaf))
-    (.node 1342 7
-    (.node 1341 7
+    (.node 1290 7
+    (.node 1289 7
     .leaf
     .leaf)
-    (.node 1343 7
+    (.node 1291 7
     .leaf
     .leaf))))
-    (.node 1353 7
-    (.node 1349 7
-    (.node 1347 7
-    (.node 1346 7
-    (.node 1345 7
+    (.node 1300 7
+    (.node 1296 7
+    (.node 1294 7
+    (.node 1293 7
     .leaf
     .leaf)
+    (.node 1295 7
+    .leaf
+    .leaf))
+    (.node 1298 7
+    (.node 1297 7
+    .leaf
+    .leaf)
+    (.node 1299 7
+    .leaf
+    .leaf)))
+    (.node 1304 7
+    (.node 1302 7
+    (.node 1301 7
+    .leaf
+    .leaf)
+    (.node 1303 7
+    .leaf
+    .leaf))
+    (.node 1306 7
+    (.node 1305 7
+    .leaf
+    .leaf)
+    (.node 1307 7
+    .leaf
+    .leaf))))))
+    (.node 1349 7
+    (.node 1332 7
+    (.node 1321 6
+    (.node 1316 6
+    (.node 1312 6
+    (.node 1310 6
+    (.node 1309 6
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1315 6
+    .leaf
+    .leaf))
+    (.node 1319 6
+    (.node 1317 6
+    .leaf
+    .leaf)
+    (.node 1320 6
+    .leaf
+    .leaf)))
+    (.node 1328 7
+    (.node 1326 7
+    (.node 1322 6
+    .leaf
+    .leaf)
+    (.node 1327 7
+    .leaf
+    .leaf))
+    (.node 1330 7
+    (.node 1329 7
+    .leaf
+    .leaf)
+    (.node 1331 7
+    .leaf
+    .leaf))))
+    (.node 1341 7
+    (.node 1337 7
+    (.node 1335 7
+    (.node 1334 7
+    (.node 1333 7
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1336 7
+    .leaf
+    .leaf))
+    (.node 1339 7
+    (.node 1338 7
+    .leaf
+    .leaf)
+    (.node 1340 7
+    .leaf
+    .leaf)))
+    (.node 1345 7
+    (.node 1343 7
+    (.node 1342 7
+    .leaf
+    .leaf)
+    (.node 1344 7
+    .leaf
+    .leaf))
+    (.node 1347 7
+    (.node 1346 7
+    .leaf
     .leaf)
     (.node 1348 7
     .leaf
-    .leaf))
+    .leaf)))))
+    (.node 1370 6
+    (.node 1358 6
+    (.node 1354 7
+    (.node 1352 7
     (.node 1351 7
     (.node 1350 7
     .leaf
     .leaf)
-    (.node 1352 7
+    .leaf)
+    (.node 1353 7
     .leaf
-    .leaf)))
-    (.node 1358 7
+    .leaf))
     (.node 1356 7
     (.node 1355 7
-    (.node 1354 7
     .leaf
-    .leaf)
     .leaf)
     (.node 1357 7
     .leaf
-    .leaf))
-    (.node 1360 7
-    (.node 1359 7
-    .leaf
-    .leaf)
-    (.node 1361 7
-    .leaf
-    .leaf))))))
-    (.node 1405 7
-    (.node 1384 6
-    (.node 1371 7
-    (.node 1367 7
-    (.node 1365 7
-    (.node 1364 7
-    (.node 1363 7
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1366 7
-    .leaf
-    .leaf))
-    (.node 1369 7
-    (.node 1368 7
-    .leaf
-    .leaf)
-    (.node 1370 7
-    .leaf
     .leaf)))
-    (.node 1377 6
-    (.node 1374 6
-    (.node 1373 6
-    (.node 1372 7
+    (.node 1365 6
+    (.node 1360 6
+    (.node 1359 6
     .leaf
     .leaf)
-    .leaf)
-    (.node 1375 6
+    (.node 1362 6
     .leaf
     .leaf))
-    (.node 1381 6
-    (.node 1380 6
+    (.node 1367 6
+    (.node 1366 6
     .leaf
     .leaf)
-    (.node 1382 6
+    (.node 1369 6
     .leaf
     .leaf))))
-    (.node 1396 7
-    (.node 1392 7
-    (.node 1390 7
-    (.node 1386 6
-    (.node 1385 6
+    (.node 1381 7
+    (.node 1377 7
+    (.node 1375 7
+    (.node 1371 6
     .leaf
     .leaf)
-    .leaf)
-    (.node 1391 7
+    (.node 1376 7
     .leaf
     .leaf))
+    (.node 1379 7
+    (.node 1378 7
+    .leaf
+    .leaf)
+    (.node 1380 7
+    .leaf
+    .leaf)))
+    (.node 1385 7
+    (.node 1383 7
+    (.node 1382 7
+    .leaf
+    .leaf)
+    (.node 1384 7
+    .leaf
+    .leaf))
+    (.node 1387 7
+    (.node 1386 7
+    .leaf
+    .leaf)
+    (.node 1388 7
+    .leaf
+    .leaf)))))))
+    (.node 1467 10
+    (.node 1430 7
+    (.node 1406 6
+    (.node 1398 7
     (.node 1394 7
+    (.node 1392 7
+    (.node 1391 7
+    (.node 1390 7
+    .leaf
+    .leaf)
+    .leaf)
     (.node 1393 7
     .leaf
-    .leaf)
+    .leaf))
+    (.node 1396 7
     (.node 1395 7
     .leaf
-    .leaf)))
-    (.node 1401 7
-    (.node 1399 7
-    (.node 1398 7
+    .leaf)
     (.node 1397 7
     .leaf
-    .leaf)
-    .leaf)
-    (.node 1400 7
-    .leaf
-    .leaf))
-    (.node 1403 7
-    (.node 1402 7
-    .leaf
-    .leaf)
-    (.node 1404 7
-    .leaf
-    .leaf)))))
-    (.node 1424 6
-    (.node 1414 7
-    (.node 1410 7
-    (.node 1408 7
-    (.node 1407 7
-    (.node 1406 7
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1409 7
-    .leaf
-    .leaf))
-    (.node 1412 7
-    (.node 1411 7
-    .leaf
-    .leaf)
-    (.node 1413 7
-    .leaf
     .leaf)))
-    (.node 1419 7
-    (.node 1417 7
-    (.node 1416 7
-    (.node 1415 7
+    (.node 1402 7
+    (.node 1400 7
+    (.node 1399 7
     .leaf
     .leaf)
-    .leaf)
-    (.node 1418 7
+    (.node 1401 7
     .leaf
     .leaf))
-    (.node 1421 6
-    (.node 1420 6
+    (.node 1404 7
+    (.node 1403 7
     .leaf
     .leaf)
-    (.node 1422 6
+    (.node 1405 6
     .leaf
     .leaf))))
-    (.node 1439 7
-    (.node 1432 6
-    (.node 1429 6
-    (.node 1428 6
-    (.node 1427 6
+    (.node 1419 6
+    (.node 1414 6
+    (.node 1412 6
+    (.node 1409 6
+    (.node 1407 6
     .leaf
     .leaf)
     .leaf)
-    (.node 1431 6
+    (.node 1413 6
     .leaf
     .leaf))
-    (.node 1434 6
-    (.node 1433 6
+    (.node 1417 6
+    (.node 1416 6
+    .leaf
+    .leaf)
+    (.node 1418 6
+    .leaf
+    .leaf)))
+    (.node 1426 7
+    (.node 1424 7
+    (.node 1423 7
+    .leaf
+    .leaf)
+    (.node 1425 7
+    .leaf
+    .leaf))
+    (.node 1428 7
+    (.node 1427 7
+    .leaf
+    .leaf)
+    (.node 1429 7
+    .leaf
+    .leaf)))))
+    (.node 1447 7
+    (.node 1439 7
+    (.node 1435 7
+    (.node 1433 7
+    (.node 1432 7
+    (.node 1431 7
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1434 7
+    .leaf
+    .leaf))
+    (.node 1437 7
+    (.node 1436 7
     .leaf
     .leaf)
     (.node 1438 7
     .leaf
     .leaf)))
-    (.node 1444 7
-    (.node 1442 7
+    (.node 1443 7
     (.node 1441 7
     (.node 1440 7
     .leaf
     .leaf)
-    .leaf)
-    (.node 1443 7
+    (.node 1442 7
     .leaf
     .leaf))
-    (.node 1446 7
     (.node 1445 7
+    (.node 1444 7
     .leaf
     .leaf)
-    (.node 1447 7
+    (.node 1446 7
     .leaf
-    .leaf)))))))
-    (.node 1524 10
-    (.node 1484 3
-    (.node 1466 7
-    (.node 1457 7
-    (.node 1453 7
+    .leaf))))
+    (.node 1458 10
     (.node 1451 7
-    (.node 1450 7
     (.node 1449 7
+    (.node 1448 7
     .leaf
     .leaf)
-    .leaf)
+    (.node 1450 7
+    .leaf
+    .leaf))
+    (.node 1454 10
     (.node 1452 7
     .leaf
-    .leaf))
-    (.node 1455 7
-    (.node 1454 7
-    .leaf
     .leaf)
-    (.node 1456 7
+    (.node 1456 10
     .leaf
     .leaf)))
-    (.node 1462 7
-    (.node 1460 7
-    (.node 1459 7
-    (.node 1458 7
+    (.node 1463 10
+    (.node 1461 10
+    (.node 1460 10
     .leaf
     .leaf)
-    .leaf)
-    (.node 1461 7
+    (.node 1462 10
     .leaf
     .leaf))
-    (.node 1464 7
-    (.node 1463 7
+    (.node 1465 10
+    (.node 1464 10
     .leaf
     .leaf)
-    (.node 1465 7
-    .leaf
-    .leaf))))
-    (.node 1475 3
-    (.node 1471 3
-    (.node 1469 3
-    (.node 1468 3
-    (.node 1467 7
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1470 3
-    .leaf
-    .leaf))
-    (.node 1473 3
-    (.node 1472 3
-    .leaf
-    .leaf)
-    (.node 1474 3
-    .leaf
-    .leaf)))
-    (.node 1480 3
-    (.node 1478 3
-    (.node 1477 3
-    (.node 1476 3
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1479 3
-    .leaf
-    .leaf))
-    (.node 1482 3
-    (.node 1481 3
-    .leaf
-    .leaf)
-    (.node 1483 3
-    .leaf
-    .leaf)))))
-    (.node 1502 3
-    (.node 1493 3
-    (.node 1489 3
-    (.node 1487 3
-    (.node 1486 3
-    (.node 1485 3
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1488 3
-    .leaf
-    .leaf))
-    (.node 1491 3
-    (.node 1490 3
-    .leaf
-    .leaf)
-    (.node 1492 3
-    .leaf
-    .leaf)))
-    (.node 1498 3
-    (.node 1496 3
-    (.node 1495 3
-    (.node 1494 3
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1497 3
-    .leaf
-    .leaf))
-    (.node 1500 3
-    (.node 1499 3
-    .leaf
-    .leaf)
-    (.node 1501 3
-    .leaf
-    .leaf))))
-    (.node 1511 3
-    (.node 1507 3
-    (.node 1505 3
-    (.node 1504 3
-    (.node 1503 3
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1506 3
-    .leaf
-    .leaf))
-    (.node 1509 3
-    (.node 1508 3
-    .leaf
-    .leaf)
-    (.node 1510 3
-    .leaf
-    .leaf)))
-    (.node 1517 10
-    (.node 1514 3
-    (.node 1513 3
-    (.node 1512 3
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1515 3
-    .leaf
-    .leaf))
-    (.node 1521 10
-    (.node 1519 10
-    .leaf
-    .leaf)
-    (.node 1523 10
+    (.node 1466 10
     .leaf
     .leaf))))))
-    (.node 1564 10
-    (.node 1544 10
-    (.node 1533 10
+    (.node 1505 10
+    (.node 1486 10
+    (.node 1477 10
+    (.node 1473 10
+    (.node 1470 10
+    (.node 1469 10
+    (.node 1468 10
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1472 10
+    .leaf
+    .leaf))
+    (.node 1475 10
+    (.node 1474 10
+    .leaf
+    .leaf)
+    (.node 1476 10
+    .leaf
+    .leaf)))
+    (.node 1482 10
+    (.node 1480 10
+    (.node 1478 10
+    .leaf
+    .leaf)
+    (.node 1481 10
+    .leaf
+    .leaf))
+    (.node 1484 10
+    (.node 1483 10
+    .leaf
+    .leaf)
+    (.node 1485 10
+    .leaf
+    .leaf))))
+    (.node 1496 10
+    (.node 1491 10
+    (.node 1489 10
+    (.node 1488 10
+    .leaf
+    .leaf)
+    (.node 1490 10
+    .leaf
+    .leaf))
+    (.node 1493 10
+    (.node 1492 10
+    .leaf
+    .leaf)
+    (.node 1494 10
+    .leaf
+    .leaf)))
+    (.node 1500 10
+    (.node 1498 10
+    (.node 1497 10
+    .leaf
+    .leaf)
+    (.node 1499 10
+    .leaf
+    .leaf))
+    (.node 1503 10
+    (.node 1501 10
+    .leaf
+    .leaf)
+    (.node 1504 10
+    .leaf
+    .leaf)))))
+    (.node 1525 10
+    (.node 1515 10
+    (.node 1511 10
+    (.node 1508 10
+    (.node 1507 10
+    (.node 1506 10
+    .leaf
+    .leaf)
+    .leaf)
+    (.node 1510 10
+    .leaf
+    .leaf))
+    (.node 1513 10
+    (.node 1512 10
+    .leaf
+    .leaf)
+    (.node 1514 10
+    .leaf
+    .leaf)))
+    (.node 1520 10
+    (.node 1518 10
+    (.node 1517 10
+    .leaf
+    .leaf)
+    (.node 1519 10
+    .leaf
+    .leaf))
+    (.node 1522 10
+    (.node 1521 10
+    .leaf
+    .leaf)
+    (.node 1524 10
+    .leaf
+    .leaf))))
+    (.node 1534 10
     (.node 1529 10
     (.node 1527 10
     (.node 1526 10
-    (.node 1525 10
     .leaf
-    .leaf)
     .leaf)
     (.node 1528 10
     .leaf
     .leaf))
+    (.node 1532 10
     (.node 1531 10
-    (.node 1530 10
     .leaf
     .leaf)
-    (.node 1532 10
+    (.node 1533 10
     .leaf
     .leaf)))
     (.node 1539 10
-    (.node 1537 10
     (.node 1536 10
     (.node 1535 10
     .leaf
-    .leaf)
     .leaf)
     (.node 1538 10
     .leaf
@@ -1063,113 +1083,7 @@ def Data.takesT : NTree ℕ :=
     (.node 1540 10
     .leaf
     .leaf)
-    (.node 1543 10
-    .leaf
-    .leaf))))
-    (.node 1554 10
-    (.node 1549 10
-    (.node 1547 10
-    (.node 1546 10
-    (.node 1545 10
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1548 10
-    .leaf
-    .leaf))
-    (.node 1552 10
-    (.node 1551 10
-    .leaf
-    .leaf)
-    (.node 1553 10
-    .leaf
-    .leaf)))
-    (.node 1560 10
-    (.node 1557 10
-    (.node 1556 10
-    (.node 1555 10
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1559 10
-    .leaf
-    .leaf))
-    (.node 1562 10
-    (.node 1561 10
-    .leaf
-    .leaf)
-    (.node 1563 10
-    .leaf
-    .leaf)))))
-    (.node 1585 10
-    (.node 1575 10
-    (.node 1570 10
-    (.node 1568 10
-    (.node 1567 10
-    (.node 1566 10
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1569 10
-    .leaf
-    .leaf))
-    (.node 1573 10
-    (.node 1571 10
-    .leaf
-    .leaf)
-    (.node 1574 10
-    .leaf
-    .leaf)))
-    (.node 1581 10
-    (.node 1578 10
-    (.node 1577 10
-    (.node 1576 10
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1580 10
-    .leaf
-    .leaf))
-    (.node 1583 10
-    (.node 1582 10
-    .leaf
-    .leaf)
-    (.node 1584 10
-    .leaf
-    .leaf))))
-    (.node 1596 10
-    (.node 1591 10
-    (.node 1589 10
-    (.node 1588 10
-    (.node 1587 10
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1590 10
-    .leaf
-    .leaf))
-    (.node 1594 10
-    (.node 1592 10
-    .leaf
-    .leaf)
-    (.node 1595 10
-    .leaf
-    .leaf)))
-    (.node 1602 10
-    (.node 1599 10
-    (.node 1598 10
-    (.node 1597 10
-    .leaf
-    .leaf)
-    .leaf)
-    (.node 1601 10
-    .leaf
-    .leaf))
-    (.node 1604 10
-    (.node 1603 10
-    .leaf
-    .leaf)
-    (.node 1605 10
+    (.node 1542 10
     .leaf
     .leaf)))))))))
 

@@ -23,16 +23,16 @@ theorem fnIs_level_queries_L55_L0_L4_L16_L14_L2_L0_L0_L0_L0 (P : Program) [Finds
   fnIsP_of P "level_queries__L55_L0_L4_L16_L14_L2_L0_L0_L0_L0" Fn.«level_queries__L55_L0_L4_L16_L14_L2_L0_L0_L0_L0».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
 
 set_option maxRecDepth 100000 in
-/-- `__loop59`. -/
-theorem fnIs_level_positions_L3_L12_L6_loop0 (P : Program) [Finds P "__loop59" Fn.«level_positions__L3_L12_L6_loop0».core] :
-    FnIsP P "__loop59" (osParams 6) (lpLoopBody 12 6 "__loop59") :=
-  fnIsP_of P "__loop59" Fn.«level_positions__L3_L12_L6_loop0».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
+/-- `__loop64`. -/
+theorem fnIs_level_positions_L3_L12_L6_loop0 (P : Program) [Finds P "__loop64" Fn.«level_positions__L3_L12_L6_loop0».core] :
+    FnIsP P "__loop64" (osParams 6) (lpLoopBody 12 6 "__loop64") :=
+  fnIsP_of P "__loop64" Fn.«level_positions__L3_L12_L6_loop0».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
 
 set_option maxRecDepth 100000 in
-/-- `__loop62`. -/
-theorem fnIs_level_positions_L3_L15_L3_loop0 (P : Program) [Finds P "__loop62" Fn.«level_positions__L3_L15_L3_loop0».core] :
-    FnIsP P "__loop62" (osParams 6) (lpLoopBody 15 3 "__loop62") :=
-  fnIsP_of P "__loop62" Fn.«level_positions__L3_L15_L3_loop0».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
+/-- `__loop67`. -/
+theorem fnIs_level_positions_L3_L15_L3_loop0 (P : Program) [Finds P "__loop67" Fn.«level_positions__L3_L15_L3_loop0».core] :
+    FnIsP P "__loop67" (osParams 6) (lpLoopBody 15 3 "__loop67") :=
+  fnIsP_of P "__loop67" Fn.«level_positions__L3_L15_L3_loop0».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0`. -/
@@ -41,10 +41,10 @@ theorem fnIs_level_queries_L23_L0_L4_L16_L21_L3_L0_L0_L0_L0 (P : Program) [Finds
   fnIsP_of P "level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0" Fn.«level_queries__L23_L0_L4_L16_L21_L3_L0_L0_L0_L0».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
 
 set_option maxRecDepth 100000 in
-/-- `__loop236`. -/
-theorem fnIs_level_residual_L55_L19_L6_L3_loop1 (P : Program) [Finds P "__loop236" Fn.«level_residual__L55_L19_L6_L3_loop1».core] :
-    FnIsP P "__loop236" (osParams 7) (lrLoop2Body 19 6 3 "__loop236") :=
-  fnIsP_of P "__loop236" Fn.«level_residual__L55_L19_L6_L3_loop1».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
+/-- `__loop241`. -/
+theorem fnIs_level_residual_L55_L19_L6_L3_loop1 (P : Program) [Finds P "__loop241" Fn.«level_residual__L55_L19_L6_L3_loop1».core] :
+    FnIsP P "__loop241" (osParams 7) (lrLoop2Body 19 6 3 "__loop241") :=
+  fnIsP_of P "__loop241" Fn.«level_residual__L55_L19_L6_L3_loop1».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L18_L0_L4_L16_L22_L4_L0_L0_L0_L0`. -/
@@ -59,10 +59,10 @@ theorem fnIs_level_queries_L14_L0_L4_L16_L23_L5_L4_L20_L5_L1 (P : Program) [Find
   fnIsP_of P "level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1" Fn.«level_queries__L14_L0_L4_L16_L23_L5_L4_L20_L5_L1».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
 
 set_option maxRecDepth 100000 in
-/-- `__loop428`. -/
-theorem fnIs_level_residual_L73_L24_L6_L3_loop1 (P : Program) [Finds P "__loop428" Fn.«level_residual__L73_L24_L6_L3_loop1».core] :
-    FnIsP P "__loop428" (osParams 7) (lrLoop2Body 24 6 3 "__loop428") :=
-  fnIsP_of P "__loop428" Fn.«level_residual__L73_L24_L6_L3_loop1».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
+/-- `__loop433`. -/
+theorem fnIs_level_residual_L73_L24_L6_L3_loop1 (P : Program) [Finds P "__loop433" Fn.«level_residual__L73_L24_L6_L3_loop1».core] :
+    FnIsP P "__loop433" (osParams 7) (lrLoop2Body 24 6 3 "__loop433") :=
+  fnIsP_of P "__loop433" Fn.«level_residual__L73_L24_L6_L3_loop1».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
 
 end
 end LeanVM.Guest.B1.Whir

@@ -25,7 +25,6 @@ import LeanVM.Guest.Checked.Link12
 import LeanVM.Guest.Checked.Link13
 import LeanVM.Guest.Checked.Link14
 import LeanVM.Guest.Checked.Link15
-import LeanVM.Guest.Checked.Link16
 public import LeanVM.Guest.Pack.«P12».Core
 public import LeanVM.Guest.Pack.«P12».Bundle
 public import LeanVM.Guest.Pack.«P31».Core

@@ -112,7 +112,7 @@ public section
 
 /-- `grind_check__L2`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 434) (d := Data.adviceFn434) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 424) (d := Data.adviceFn424) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -127,7 +127,7 @@ public section
 
 /-- `grind_check__L24`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 454) (d := Data.adviceFn454) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 444) (d := Data.adviceFn444) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -142,7 +142,7 @@ public section
 
 /-- `level_positions__L7_L14_L2`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 473) (d := Data.adviceFn473) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 463) (d := Data.adviceFn463) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -157,7 +157,7 @@ public section
 
 /-- `level_residual__L37_L20_L4_L2`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 935) (d := Data.adviceFn935) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 925) (d := Data.adviceFn925) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -172,7 +172,7 @@ public section
 
 /-- `decode_query_windows__L17_L5`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 966) (d := Data.adviceFn966) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 951) (d := Data.adviceFn951) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -185,9 +185,9 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `__loop102`: its walk reads the advice's hints. -/
+/-- `__loop107`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1051) (d := Data.adviceFn1051) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 1036) (d := Data.adviceFn1036) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -200,9 +200,9 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `__loop169`: its walk reads the advice's hints. -/
+/-- `__loop174`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1134) (d := Data.adviceFn1134) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 1119) (d := Data.adviceFn1119) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -215,9 +215,9 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `__loop186`: its walk reads the advice's hints. -/
+/-- `__loop191`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1154) (d := Data.adviceFn1154) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 1139) (d := Data.adviceFn1139) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -230,9 +230,9 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `__loop380`: its walk reads the advice's hints. -/
+/-- `__loop385`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1386) (d := Data.adviceFn1386) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 1371) (d := Data.adviceFn1371) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -245,9 +245,9 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `__loop393`: its walk reads the advice's hints. -/
+/-- `__loop398`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1402) (d := Data.adviceFn1402) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 1387) (d := Data.adviceFn1387) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -260,9 +260,9 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `__loop434`: its walk reads the advice's hints. -/
+/-- `__loop439`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1450) (d := Data.adviceFn1450) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 1435) (d := Data.adviceFn1435) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end
@@ -275,9 +275,9 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `__loop452`: its walk reads the advice's hints. -/
+/-- `__loop457`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1468) (d := Data.adviceFn1468) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 1453) (d := Data.adviceFn1453) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end

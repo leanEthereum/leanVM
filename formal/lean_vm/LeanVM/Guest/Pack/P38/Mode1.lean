@@ -23,21 +23,21 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop145`: the program its walk shares. -/
+/-- `__loop150`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14363, (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none
-    .nil (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
-    (.node none (.node none (.node (some Fn.«level_residual__L28_L8_L4_L2_loop1».modeSig) .nil
-    .nil) .nil) .nil)) .nil))) .nil) .nil))) .nil) .nil)))))) .nil), 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none (.node none (.node none .nil
+    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
+    (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node
+    none (.node (some Fn.«level_residual__L28_L8_L4_L2_loop1».modeSig) .nil .nil) .nil) .nil))
+    .nil)) .nil)) .nil) .nil)) .nil)) .nil) .nil)) .nil) .nil)), 524287⟩
 
-/-- `__loop145`: its hints, residuals, table sizes and cuts. -/
+/-- `__loop150`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨308029, 89, Fn.«level_residual__L28_L8_L4_L2_loop1».modeSig, (.node none (.node none (.node none
+  ⟨305480, 89, Fn.«level_residual__L28_L8_L4_L2_loop1».modeSig, (.node none (.node none (.node none
     .nil (.node none .nil (.node none (.node none (.node (some [(.frameAddress 100)]) .nil .nil)
     .nil) .nil))) .nil) .nil), .nil, .nil, false, .nil⟩
 
-/-- `__loop145`: its mode walk accepts its code. -/
+/-- `__loop150`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
   decide +kernel
 
@@ -51,21 +51,21 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop199`: the program its walk shares. -/
+/-- `__loop204`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14363, (.node none (.node none (.node none (.node none (.node
-    none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none .nil (.node none (.node none
+    .nil (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none (.node
+    none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil (.node
     none (.node none (.node (some Fn.«level_residual__L55_L18_L6_L3_loop1».modeSig) .nil .nil)
-    .nil) .nil)))) .nil))))) .nil) .nil)) .nil) .nil) .nil) .nil) .nil), 524287⟩
+    .nil) .nil)))) .nil) .nil)) .nil)) .nil) .nil)) .nil)) .nil))), 524287⟩
 
-/-- `__loop199`: its hints, residuals, table sizes and cuts. -/
+/-- `__loop204`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨323359, 156, Fn.«level_residual__L55_L18_L6_L3_loop1».modeSig, (.node none .nil (.node none .nil
+  ⟨320810, 156, Fn.«level_residual__L55_L18_L6_L3_loop1».modeSig, (.node none .nil (.node none .nil
     (.node none .nil (.node none .nil (.node none (.node none (.node none (.node (some
     [(.frameAddress 164)]) .nil .nil) .nil) .nil) .nil))))), .nil, .nil, false, .nil⟩
 
-/-- `__loop199`: its mode walk accepts its code. -/
+/-- `__loop204`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
   decide +kernel
 
@@ -79,21 +79,21 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop318`: the program its walk shares. -/
+/-- `__loop323`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14363, (.node none (.node none .nil (.node none .nil (.node none
-    (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
-    none .nil (.node none (.node (some Fn.«level_residual__L28_L13_L4_L2_loop1».modeSig) .nil .nil)
-    .nil))) .nil) .nil) .nil))))) .nil))) .nil) .nil))) .nil), 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none (.node none (.node none
+    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
+    (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    .nil (.node none (.node (some Fn.«level_residual__L28_L13_L4_L2_loop1».modeSig) .nil .nil)
+    .nil))) .nil) .nil) .nil) .nil)) .nil)) .nil)))) .nil) .nil) .nil)), 524287⟩
 
-/-- `__loop318`: its hints, residuals, table sizes and cuts. -/
+/-- `__loop323`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨364389, 119, Fn.«level_residual__L28_L13_L4_L2_loop1».modeSig, (.node none (.node none .nil
+  ⟨361840, 119, Fn.«level_residual__L28_L13_L4_L2_loop1».modeSig, (.node none (.node none .nil
     (.node none (.node none .nil (.node none (.node none .nil (.node (some [(.frameAddress 130)])
     .nil .nil)) .nil)) .nil)) .nil), .nil, .nil, false, .nil⟩
 
-/-- `__loop318`: its mode walk accepts its code. -/
+/-- `__loop323`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
   decide +kernel
 
@@ -107,21 +107,21 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop325`: the program its walk shares. -/
+/-- `__loop330`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14363, (.node none (.node none (.node none (.node none (.node
-    none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node none (.node none .nil (.node none (.node none (.node none .nil (.node none
-    .nil (.node none (.node (some Fn.«level_residual__L19_L9_L4_L2_loop0».modeSig) .nil .nil)
-    .nil))) .nil) .nil)) .nil)))) .nil)) .nil)) .nil) .nil) .nil) .nil), 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none .nil (.node none (.node none
+    .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
+    none .nil (.node none (.node (some Fn.«level_residual__L19_L9_L4_L2_loop0».modeSig) .nil .nil)
+    .nil))) .nil) .nil) .nil))) .nil)) .nil)) .nil))) .nil))), 524287⟩
 
-/-- `__loop325`: its hints, residuals, table sizes and cuts. -/
+/-- `__loop330`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨366415, 434, Fn.«level_residual__L19_L9_L4_L2_loop0».modeSig, (.node none .nil (.node none
+  ⟨363866, 434, Fn.«level_residual__L19_L9_L4_L2_loop0».modeSig, (.node none .nil (.node none
     (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none .nil (.node
     (some [(.frameAddress 550)]) .nil .nil)) .nil)) .nil) .nil)) .nil)), .nil, .nil, false, .nil⟩
 
-/-- `__loop325`: its mode walk accepts its code. -/
+/-- `__loop330`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
   decide +kernel
 
@@ -135,21 +135,21 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop360`: the program its walk shares. -/
+/-- `__loop365`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14363, (.node none .nil (.node none (.node none .nil (.node none
-    (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node
-    none .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none (.node (some Fn.«level_residual__L23_L14_L4_L2_loop1».modeSig) .nil .nil)
-    .nil)))) .nil) .nil) .nil))) .nil)) .nil)) .nil) .nil)) .nil)), 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none (.node
+    none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none (.node none
+    .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node
+    none .nil (.node none (.node (some Fn.«level_residual__L23_L14_L4_L2_loop1».modeSig) .nil .nil)
+    .nil))) .nil))))) .nil) .nil)) .nil))) .nil) .nil) .nil) .nil), 524287⟩
 
-/-- `__loop360`: its hints, residuals, table sizes and cuts. -/
+/-- `__loop365`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨378532, 125, Fn.«level_residual__L23_L14_L4_L2_loop1».modeSig, (.node none (.node none (.node
+  ⟨375983, 125, Fn.«level_residual__L23_L14_L4_L2_loop1».modeSig, (.node none (.node none (.node
     none (.node none (.node none .nil (.node none .nil (.node (some [(.frameAddress 136)]) .nil
     .nil))) .nil) .nil) .nil) .nil), .nil, .nil, false, .nil⟩
 
-/-- `__loop360`: its mode walk accepts its code. -/
+/-- `__loop365`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
   decide +kernel
 
@@ -157,61 +157,33 @@ end
 
 end LeanVM.Guest.Fn.«level_residual__L23_L14_L4_L2_loop1»
 
-namespace LeanVM.Guest.Fn.«da_levels__L64_L6_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `__loop468`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14363, (.node none (.node none .nil (.node none (.node none .nil
-    (.node none (.node none (.node none (.node none (.node none (.node none .nil (.node none .nil
-    (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node none .nil
-    (.node (some Fn.«da_levels__L64_L6_loop0».modeSig) .nil .nil)) .nil) .nil)) .nil) .nil) .nil)))
-    .nil) .nil) .nil) .nil) .nil)) .nil)) .nil), 524287⟩
-
-/-- `__loop468`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨411145, 33, Fn.«da_levels__L64_L6_loop0».modeSig, (.node none (.node none (.node none (.node
-    none .nil (.node (some [(.frameAddress 30)]) .nil .nil)) .nil) .nil) .nil), .nil, .nil, false,
-    .nil⟩
-
-/-- `__loop468`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L64_L6_loop0»
-
 namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop533`: the program its walk shares. -/
+/-- `__loop490`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14363, (.node none .nil (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none (.node
-    none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none
-    (.node none .nil (.node (some Fn.«walk_path__L12_L5».modeSig) .nil .nil)) .nil) .nil)) .nil)))
-    .nil) .nil) .nil) .nil)))) .nil) .nil) (.node none (.node none .nil (.node none (.node none
-    .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
-    none .nil (.node none (.node none (.node none .nil (.node none (.node none .nil (.node (some
-    Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0».modeSig) .nil .nil)) .nil))
-    .nil) .nil)) .nil) .nil)) .nil)) .nil)) .nil)) .nil))), 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none .nil
+    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
+    none (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node none
+    .nil (.node (some Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0».modeSig)
+    .nil .nil)) .nil)) .nil) .nil) .nil) .nil) .nil)) .nil) .nil) .nil)))) .nil) (.node none .nil
+    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none
+    .nil (.node none (.node none (.node none .nil (.node (some Fn.«walk_path__L12_L5».modeSig) .nil
+    .nil)) .nil) .nil)) .nil) .nil) .nil))))))))))) .nil), 524287⟩
 
-/-- `__loop533`: its hints, residuals, table sizes and cuts. -/
+/-- `__loop490`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨430762, 223, Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0».modeSig, (.node
+  ⟨426551, 223, Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L5_L15_L36_L6_L1_loop0».modeSig, (.node
     none .nil (.node none (.node (some [(.witnessStack "merkle_leaf_rows" 18 16)]) .nil .nil)
     (.node none .nil (.node none (.node (some [(.alloc 80 153)]) .nil .nil) (.node none (.node none
     (.node none .nil (.node (some [(.frameAddress 334)]) .nil .nil)) .nil) .nil))))), .nil, .nil,
     false, .nil⟩
 
-/-- `__loop533`: its mode walk accepts its code. -/
+/-- `__loop490`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
   decide +kernel
 
@@ -225,27 +197,27 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 @[expose] public section
 
-/-- `__loop537`: the program its walk shares. -/
+/-- `__loop494`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14363, (.node none (.node none .nil (.node none .nil (.node none
-    .nil (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node none (.node none (.node none (.node none (.node none .nil (.node none
-    (.node none .nil (.node (some Fn.«walk_path__L18_L3».modeSig) .nil .nil)) .nil)) .nil) .nil)
-    .nil) .nil)))) .nil)) .nil) (.node none .nil (.node none .nil (.node none .nil (.node none .nil
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none (.node none
-    (.node none .nil (.node none (.node none .nil (.node (some
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none .nil (.node none .nil (.node none (.node none
+    .nil (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none .nil (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
+    none (.node none .nil (.node (some
     Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».modeSig) .nil .nil)) .nil))
-    .nil) .nil))))))))))))) .nil), 524287⟩
+    .nil) .nil) .nil)))))) .nil) .nil) (.node none (.node none .nil (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node none (.node none .nil (.node (some Fn.«walk_path__L18_L3».modeSig) .nil
+    .nil)) .nil) .nil)))) .nil))) .nil))) .nil))) .nil))), 524287⟩
 
-/-- `__loop537`: its hints, residuals, table sizes and cuts. -/
+/-- `__loop494`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨434173, 102, Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».modeSig, (.node none
+  ⟨429962, 102, Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L0_L0_L0_L0_L0_loop0».modeSig, (.node none
     (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node (some
     [(.frameAddress 123)]) .nil .nil) .nil)) .nil))) (.node none (.node (some [(.witnessStack
     "merkle_leaf_rows" 18 16)]) .nil .nil) (.node none .nil (.node none (.node (some [(.alloc 80
     170)]) .nil .nil) .nil)))), .nil, .nil, false, .nil⟩
 
-/-- `__loop537`: its mode walk accepts its code. -/
+/-- `__loop494`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
   decide +kernel
 

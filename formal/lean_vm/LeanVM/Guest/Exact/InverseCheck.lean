@@ -14,7 +14,7 @@ public import LeanVM.Guest.CoreNames
 /-!
 # The `inverse` hints are pinned
 
-`verify_tables`, `verify_bus_gkr` and `da_row_shape` hold the guest's eight `inverse` hints. In each,
+`verify_tables`, `verify_bus_gkr` and `da_padding` hold the guest's eight `inverse` hints. In each,
 every `inverse` hint is immediately followed by `assertNe` on its value and its word
 (`pinsInverse`), which makes it exact on every valuation holding the path (`inverse_exact`).
 -/
@@ -30,8 +30,8 @@ theorem vbg_inversePinned :
     Stmt.blockNextOk isInverse pinsInverse (fn% «verify_bus_gkr»).body = true := by
   decide +kernel
 
-theorem drs_inversePinned :
-    Stmt.blockNextOk isInverse pinsInverse (fn% «da_row_shape»).body = true := by
+theorem dp_inversePinned :
+    Stmt.blockNextOk isInverse pinsInverse (fn% «da_padding»).body = true := by
   decide +kernel
 
 end

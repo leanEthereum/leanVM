@@ -16,7 +16,7 @@ namespace LeanVM.Guest.Fn.«verify_tables»
 /-- `verify_tables`: its entry, the cells and heap facts it needs at entry and guarantees at
     return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨19993, (List.flatten [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], [16, 17, 18, 19,
+  ⟨19982, (List.flatten [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], [16, 17, 18, 19,
     20, 21, 22]]), none, (List.flatten [[⟨0, 0, [((.fr 7), 1)]⟩, ⟨0, 0, [((.fr 10), 1)]⟩, ⟨0, 0,
     [((.fr 12), 1)]⟩, ⟨0, 0, [((.fr 13), 1)]⟩, ⟨0, 0, [((.fr 14), 1)]⟩, ⟨0, 0, [((.fr 14), 1),
     ((.hp 12 0), 1)]⟩, ⟨0, 0, [((.fr 14), 1), ((.hp 12 1), 1)]⟩, ⟨0, 0, [((.fr 14), 1), ((.hp 12

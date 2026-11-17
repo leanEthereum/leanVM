@@ -17,10 +17,10 @@ open LeanVM.Guest.Core LeanVM.Guest
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop61`. -/
-theorem fnIs_level_positions_L3_L14_L2_loop0 (P : Program) [Finds P "__loop61" Fn.«level_positions__L3_L14_L2_loop0».core] :
-    FnIsP P "__loop61" (osParams 6) (lpLoopBody 14 2 "__loop61") :=
-  fnIsP_of P "__loop61" Fn.«level_positions__L3_L14_L2_loop0».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
+/-- `__loop66`. -/
+theorem fnIs_level_positions_L3_L14_L2_loop0 (P : Program) [Finds P "__loop66" Fn.«level_positions__L3_L14_L2_loop0».core] :
+    FnIsP P "__loop66" (osParams 6) (lpLoopBody 14 2 "__loop66") :=
+  fnIsP_of P "__loop66" Fn.«level_positions__L3_L14_L2_loop0».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L73_L1_L6_L32_L20_L2_L0_L0_L0_L0`. -/
@@ -43,14 +43,14 @@ theorem fnIs_level_queries_L37_L0_L4_L16_L19_L7_L0_L0_L0_L0 (P : Program) [Finds
 set_option maxRecDepth 100000 in
 /-- `level_positions__L4_L19_L7`. -/
 theorem fnIs_level_positions_L4_L19_L7 (P : Program) [Finds P "level_positions__L4_L19_L7" Fn.«level_positions__L4_L19_L7».core] :
-    FnIsP P "level_positions__L4_L19_L7" (osParams 9) (lpBody 4 19 7 "__loop158") :=
+    FnIsP P "level_positions__L4_L19_L7" (osParams 9) (lpBody 4 19 7 "__loop163") :=
   fnIsP_of P "level_positions__L4_L19_L7" Fn.«level_positions__L4_L19_L7».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
 
 set_option maxRecDepth 100000 in
-/-- `__loop221`. -/
-theorem fnIs_level_positions_L15_L22_L4_loop0 (P : Program) [Finds P "__loop221" Fn.«level_positions__L15_L22_L4_loop0».core] :
-    FnIsP P "__loop221" (osParams 6) (lpLoopBody 22 4 "__loop221") :=
-  fnIsP_of P "__loop221" Fn.«level_positions__L15_L22_L4_loop0».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
+/-- `__loop226`. -/
+theorem fnIs_level_positions_L15_L22_L4_loop0 (P : Program) [Finds P "__loop226" Fn.«level_positions__L15_L22_L4_loop0».core] :
+    FnIsP P "__loop226" (osParams 6) (lpLoopBody 22 4 "__loop226") :=
+  fnIsP_of P "__loop226" Fn.«level_positions__L15_L22_L4_loop0».core (by decide +kernel) (stmtsEqb_sound (by decide +kernel))
 
 set_option maxRecDepth 100000 in
 /-- `level_queries__L73_L1_L6_L32_L22_L4_L0_L0_L0_L0`. -/

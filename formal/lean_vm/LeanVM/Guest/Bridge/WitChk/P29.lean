@@ -152,6 +152,34 @@ end
 
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L12»
 
+namespace LeanVM.Guest.Fn.«da_expand__L6_L7»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_expand__L6_L7`'s witness hints pass the data check. -/
+theorem witOk : Bridge.witChk alignCtx Fn.«da_expand__L6_L7».fs Fn.«da_expand__L6_L7».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_expand__L6_L7»
+
+namespace LeanVM.Guest.Fn.«da_expand__L13_L7»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_expand__L13_L7`'s witness hints pass the data check. -/
+theorem witOk : Bridge.witChk alignCtx Fn.«da_expand__L13_L7».fs Fn.«da_expand__L13_L7».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_expand__L13_L7»
+
 namespace LeanVM.Guest.Fn.«level_queries__L55_L0_L4_L16_L14_L2_L0_L0_L0_L0»
 
 open LeanVM.Guest

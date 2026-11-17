@@ -25,7 +25,6 @@ import LeanVM.Guest.Checked.Link12
 import LeanVM.Guest.Checked.Link13
 import LeanVM.Guest.Checked.Link14
 import LeanVM.Guest.Checked.Link15
-import LeanVM.Guest.Checked.Link16
 public import LeanVM.Guest.Pack.«P5».Core
 public import LeanVM.Guest.Pack.«P5».Bundle
 public import LeanVM.Guest.Pack.«P50».Core
@@ -372,12 +371,12 @@ theorem ok269 : CheckOk 269 := checkOk_one (by decide +kernel) w269_0
 
 theorem plain269 : Plain 269 := plain_of_nil (by decide +kernel)
 
-theorem link270 : Link 270 (Glob.ofSigs ([(442, Fn.«grind_check__L3».sig), (443, Fn.«keccak_layer__L1_loop0».sig), (444, Fn.«keccak_layer__L1_loop1».sig)]) Data.jtTrie globSem)
+theorem link270 : Link 270 (Glob.ofSigs ([(432, Fn.«grind_check__L3».sig), (433, Fn.«keccak_layer__L1_loop0».sig), (434, Fn.«keccak_layer__L1_loop1».sig)]) Data.jtTrie globSem)
     Fn.«keccak_layer__L1».code Fn.«keccak_layer__L1».core (Fn.«keccak_layer__L1».cert.withPows Data.powTree) :=
   Link.of code270 core270 cert270 
-    (SigsOk.cons sig442 rfl 
-    (SigsOk.cons sig443 rfl 
-    (SigsOk.cons sig444 rfl SigsOk.nil)))
+    (SigsOk.cons sig432 rfl 
+    (SigsOk.cons sig433 rfl 
+    (SigsOk.cons sig434 rfl SigsOk.nil)))
     (by decide +kernel)
 
 theorem w270_0 : WinOk 270 0 := link270.win rfl Fn.«keccak_layer__L1».w0
@@ -398,12 +397,12 @@ theorem plain270 : Plain 270 := by
   unfold Plain
   decide +kernel
 
-theorem link271 : Link 271 (Glob.ofSigs ([(442, Fn.«grind_check__L3».sig), (445, Fn.«keccak_layer__L0_loop0».sig), (446, Fn.«keccak_layer__L0_loop1».sig)]) Data.jtTrie globSem)
+theorem link271 : Link 271 (Glob.ofSigs ([(432, Fn.«grind_check__L3».sig), (435, Fn.«keccak_layer__L0_loop0».sig), (436, Fn.«keccak_layer__L0_loop1».sig)]) Data.jtTrie globSem)
     Fn.«keccak_layer__L0».code Fn.«keccak_layer__L0».core (Fn.«keccak_layer__L0».cert.withPows Data.powTree) :=
   Link.of code271 core271 cert271 
-    (SigsOk.cons sig442 rfl 
-    (SigsOk.cons sig445 rfl 
-    (SigsOk.cons sig446 rfl SigsOk.nil)))
+    (SigsOk.cons sig432 rfl 
+    (SigsOk.cons sig435 rfl 
+    (SigsOk.cons sig436 rfl SigsOk.nil)))
     (by decide +kernel)
 
 theorem w271_0 : WinOk 271 0 := link271.win rfl Fn.«keccak_layer__L0».w0

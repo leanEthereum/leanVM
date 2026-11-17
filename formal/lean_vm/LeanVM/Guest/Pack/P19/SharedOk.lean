@@ -16,6 +16,7 @@ public import LeanVM.Guest.Pack.«P19».Shared4
 public import LeanVM.Guest.Pack.«P19».Shared5
 public import LeanVM.Guest.Pack.«P19».Shared6
 public import LeanVM.Guest.Pack.«P19».Shared7
+public import LeanVM.Guest.Pack.«P19».Shared8
 
 namespace LeanVM.Guest.Fn.«level_queries__L55_L1_L6_L32_L22_L4_L0_L0_L0_L0»
 
@@ -77,7 +78,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop285`: its static sharing check and every window's. -/
+/-- `__loop290`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_residual__L23_L12_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 1 := by decide +kernel
   rw [hc] at hi
@@ -95,7 +96,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop397`: its static sharing check and every window's. -/
+/-- `__loop402`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_residual__L28_L15_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 1 := by decide +kernel
   rw [hc] at hi
@@ -106,4 +107,24 @@ theorem shareOk : ShareOkD Fn.«level_residual__L28_L15_L4_L2_loop0».core (cert
 
 end
 end LeanVM.Guest.Fn.«level_residual__L28_L15_L4_L2_loop0»
+
+namespace LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+/-- `__loop504`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+  · exact sw1
+  · exact sw2
+  · exact sw3
+⟩
+
+end
+end LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0»
 

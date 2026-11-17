@@ -320,10 +320,10 @@ theorem pok30 : Bridge.PairJ 30 :=
 
 kernel_rfl adv31 : Data.adviceFns[31]? = some Data.adviceFn31
 
-kernel_rfl len31 : Data.adviceFn31.2.1 = Fn.«da_row_shape».code.instructionCount
+kernel_rfl len31 : Data.adviceFn31.2.1 = Fn.«da_padding».code.instructionCount
 
 theorem pok31 : Bridge.PairJ 31 :=
-  Bridge.pairJ_of Checked.code31 Checked.core31 Checked.cert31 Bridge.ProgAl.tab31 Checked.fsEq31 Fn.«da_row_shape».pairOk
+  Bridge.pairJ_of Checked.code31 Checked.core31 Checked.cert31 Bridge.ProgAl.tab31 Checked.fsEq31 Fn.«da_padding».pairOk
     adv31 len31
 
 kernel_rfl adv32 : Data.adviceFns[32]? = some Data.adviceFn32

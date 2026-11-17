@@ -16,7 +16,7 @@ namespace LeanVM.Guest.Fn.«padding_weight__L4»
 /-- `padding_weight__L4`: its entry, the cells and heap facts it needs at entry and guarantees at
     return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨190789, [0, 1, 2, 3], none, [⟨0, 0, [((.fr 3), 1)]⟩, ⟨0, 1, [((.fr 3), 1)]⟩, ⟨0, 2, [((.fr 3),
+  ⟨189974, [0, 1, 2, 3], none, [⟨0, 0, [((.fr 3), 1)]⟩, ⟨0, 1, [((.fr 3), 1)]⟩, ⟨0, 2, [((.fr 3),
     1)]⟩, ⟨0, 3, [((.fr 3), 1)]⟩], [], [], [4, 5, 6], [⟨0, 0, [((.fr 3), 1)]⟩, ⟨0, 1, [((.fr 3),
     1)]⟩, ⟨0, 2, [((.fr 3), 1)]⟩, ⟨0, 3, [((.fr 3), 1)]⟩], [], [], [], [], [], []⟩
 
@@ -33,7 +33,7 @@ namespace LeanVM.Guest.Fn.«padding_weight__L11»
 /-- `padding_weight__L11`: its entry, the cells and heap facts it needs at entry and guarantees at
     return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨191321, [0, 1, 2, 3], none, [⟨0, 0, [((.fr 3), 1)]⟩, ⟨0, 1, [((.fr 3), 1)]⟩, ⟨0, 2, [((.fr 3),
+  ⟨190506, [0, 1, 2, 3], none, [⟨0, 0, [((.fr 3), 1)]⟩, ⟨0, 1, [((.fr 3), 1)]⟩, ⟨0, 2, [((.fr 3),
     1)]⟩, ⟨0, 3, [((.fr 3), 1)]⟩, ⟨0, 4, [((.fr 3), 1)]⟩, ⟨0, 5, [((.fr 3), 1)]⟩, ⟨0, 6, [((.fr 3),
     1)]⟩, ⟨0, 7, [((.fr 3), 1)]⟩, ⟨0, 8, [((.fr 3), 1)]⟩, ⟨0, 9, [((.fr 3), 1)]⟩, ⟨0, 10, [((.fr
     3), 1)]⟩], [], [], [4, 5, 6], [], [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 11), 1, 0⟩], [],
@@ -52,7 +52,7 @@ namespace LeanVM.Guest.Fn.«index_mle__L30»
 /-- `index_mle__L30`: its entry, the cells and heap facts it needs at entry and guarantees at
     return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨204702, [0, 1, 2], none, (List.flatten [[⟨0, 0, [((.fr 2), 1)]⟩, ⟨0, 1, [((.fr 2), 1)]⟩, ⟨0, 2,
+  ⟨203887, [0, 1, 2], none, (List.flatten [[⟨0, 0, [((.fr 2), 1)]⟩, ⟨0, 1, [((.fr 2), 1)]⟩, ⟨0, 2,
     [((.fr 2), 1)]⟩, ⟨0, 3, [((.fr 2), 1)]⟩, ⟨0, 4, [((.fr 2), 1)]⟩, ⟨0, 5, [((.fr 2), 1)]⟩, ⟨0, 6,
     [((.fr 2), 1)]⟩, ⟨0, 7, [((.fr 2), 1)]⟩, ⟨0, 8, [((.fr 2), 1)]⟩, ⟨0, 9, [((.fr 2), 1)]⟩, ⟨0,
     10, [((.fr 2), 1)]⟩, ⟨0, 11, [((.fr 2), 1)]⟩, ⟨0, 12, [((.fr 2), 1)]⟩, ⟨0, 13, [((.fr 2), 1)]⟩,
@@ -75,7 +75,7 @@ namespace LeanVM.Guest.Fn.«child_claim_list_mono_loop1»
 
 /-- `__loop21`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨245830, [0, 1, 2, 3, 4, 5], (some 6), [⟨0, 0, [((.fr 2), 15), ((.fr 4), 1)]⟩, ⟨0, 1, [((.fr 2),
+  ⟨245009, [0, 1, 2, 3, 4, 5], (some 6), [⟨0, 0, [((.fr 2), 15), ((.fr 4), 1)]⟩, ⟨0, 1, [((.fr 2),
     15), ((.fr 4), 1)]⟩, ⟨0, 2, [((.fr 2), 15), ((.fr 4), 1)]⟩, ⟨0, 3, [((.fr 2), 15), ((.fr 4),
     1)]⟩, ⟨0, 4, [((.fr 2), 15), ((.fr 4), 1)]⟩, ⟨0, 5, [((.fr 2), 15), ((.fr 4), 1)]⟩, ⟨0, 6,
     [((.fr 2), 15), ((.fr 4), 1)]⟩, ⟨0, 7, [((.fr 2), 15), ((.fr 4), 1)]⟩, ⟨0, 8, [((.fr 2), 15),
@@ -110,7 +110,7 @@ namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L1»
 /-- `child_claim_list_mono_last__L1`: its entry, the cells and heap facts it needs at entry and
     guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨246167, [0, 1, 2, 3, 4, 5], none, [⟨0, 0, [((.fr 2), 1)]⟩, ⟨0, 1, [((.fr 2), 1)]⟩, ⟨0, 2, [((.fr
+  ⟨245346, [0, 1, 2, 3, 4, 5], none, [⟨0, 0, [((.fr 2), 1)]⟩, ⟨0, 1, [((.fr 2), 1)]⟩, ⟨0, 2, [((.fr
     2), 1)]⟩, ⟨0, 3, [((.fr 2), 1)]⟩, ⟨0, 4, [((.fr 2), 1)]⟩, ⟨0, 5, [((.fr 2), 1)]⟩, ⟨0, 6, [((.fr
     2), 1)]⟩, ⟨0, 7, [((.fr 2), 1)]⟩, ⟨0, 8, [((.fr 2), 1)]⟩, ⟨0, 9, [((.fr 2), 1)]⟩, ⟨0, 10,
     [((.fr 2), 1)]⟩, ⟨0, 11, [((.fr 2), 1)]⟩, ⟨0, 12, [((.fr 2), 1)]⟩, ⟨0, 13, [((.fr 2), 1)]⟩, ⟨0,
@@ -125,51 +125,13 @@ end
 
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L1»
 
-namespace LeanVM.Guest.Fn.«da_roots_tree__L6»
-
-@[expose] public section
-
-/-- `da_roots_tree__L6`: its entry, the cells and heap facts it needs at entry and guarantees at
-    return. -/
-noncomputable def modeSig : Mode.Sig :=
-  ⟨248856, [0, 1, 2, 3, 4], none, [], [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 3) 0), 2, 0⟩,
-    ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 3) 0), 2, 1⟩], [], [5, 6], [], (List.flatten
-    [[⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.ex (.fr 3) 0), 2, 0⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0),
-    (.ex (.fr 3) 0), 2, 1⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 1), 2, 252⟩, ⟨⟨0, 0, [((.fr
-    2), 1)]⟩, (.num 0), (.num 1), 2, 253⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 2), 2, 248⟩,
-    ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 2), 2, 249⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num
-    2), 2, 250⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 2), 2, 251⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩,
-    (.num 0), (.num 3), 2, 246⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 3), 2, 247⟩, ⟨⟨0, 0,
-    [((.fr 2), 1)]⟩, (.num 0), (.num 3), 2, 248⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 3), 2,
-    249⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 4), 2, 240⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0),
-    (.num 4), 2, 241⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 5), 2, 238⟩, ⟨⟨0, 0, [((.fr 2),
-    1)]⟩, (.num 0), (.num 5), 2, 239⟩], [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 8), 2, 224⟩, ⟨⟨0,
-    0, [((.fr 2), 1)]⟩, (.num 0), (.num 8), 2, 225⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 9),
-    2, 222⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 9), 2, 223⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num
-    0), (.num 16), 2, 192⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 16), 2, 193⟩, ⟨⟨0, 0, [((.fr
-    2), 1)]⟩, (.num 0), (.num 17), 2, 190⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 17), 2, 191⟩,
-    ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 32), 2, 128⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num
-    32), 2, 129⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 32), 4, 0⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩,
-    (.num 0), (.num 32), 4, 1⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 32), 4, 2⟩, ⟨⟨0, 0, [((.fr
-    2), 1)]⟩, (.num 0), (.num 32), 4, 3⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 33), 2, 126⟩,
-    ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 33), 2, 127⟩], [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0),
-    (.num 34), 2, 124⟩, ⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 0), (.num 34), 2, 125⟩, ⟨⟨0, 0, [((.fr 2),
-    1), ((.fr 3), 2)]⟩, (.num 0), (.ex (.fr 4) 0), 2, 0⟩, ⟨⟨0, 0, [((.fr 2), 1), ((.fr 3), 2)]⟩,
-    (.num 0), (.ex (.fr 4) 0), 2, 1⟩]]), [], [], [], [], []⟩
-
-theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_roots_tree__L6»
-
 namespace LeanVM.Guest.Fn.«da_verify_blob_loop0»
 
 @[expose] public section
 
 /-- `__loop24`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨250270, [0, 1, 2, 3, 4], (some 5), [⟨0, 512, [((.fr 2), 1), ((.fr 4), 1)]⟩], [⟨⟨0, 0, [((.fr 3),
+  ⟨248663, [0, 1, 2, 3, 4], (some 5), [⟨0, 512, [((.fr 2), 1), ((.fr 4), 1)]⟩], [⟨⟨0, 0, [((.fr 3),
     1)]⟩, (.ex (.fr 2) 0), (.num 128), 1, 0⟩], [((.ex (.fr 2) 0), (.num 128))], [], [], [], [⟨⟨0,
     0, [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.num 128), 1, 513⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2)
     0), (.num 128), 2, 0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.num 128), 2, 1⟩], [(⟨⟨0, 0,
@@ -179,14 +141,7 @@ noncomputable def modeSig : Mode.Sig :=
     55, 56, 57, 58, 59, 60, 61, 62, 63], [64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77,
     78, 79], [80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95], [96, 97, 98, 99,
     100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111], [112, 113, 114, 115, 116, 117,
-    118, 119, 120, 121, 122, 123, 124, 125, 126, 127], [128, 129, 130, 131, 132, 133, 134, 135,
-    136, 137, 138, 139, 140, 141, 142, 143], [144, 145, 146, 147, 148, 149, 150, 151, 152, 153,
-    154, 155, 156, 157, 158, 159], [160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171,
-    172, 173, 174, 175], [176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189,
-    190, 191], [192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207],
-    [208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223], [224, 225,
-    226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239], [240, 241, 242, 243,
-    244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255]]))], [], [], []⟩
+    118, 119, 120, 121, 122, 123, 124, 125, 126, 127]]))], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
@@ -194,24 +149,24 @@ end
 
 end LeanVM.Guest.Fn.«da_verify_blob_loop0»
 
-namespace LeanVM.Guest.Fn.«da_factors__L14_L7_L0»
+namespace LeanVM.Guest.Fn.«da_factors__L6_L7_L128»
 
 @[expose] public section
 
-/-- `da_factors__L14_L7_L0`: its entry, the cells and heap facts it needs at entry and guarantees
+/-- `da_factors__L6_L7_L128`: its entry, the cells and heap facts it needs at entry and guarantees
     at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨250378, [0, 1, 2], none, [⟨0, 8, [((.fr 2), 1)]⟩, ⟨0, 9, [((.fr 2), 1)]⟩, ⟨0, 10, [((.fr 2),
-    1)]⟩, ⟨0, 11, [((.fr 2), 1)]⟩, ⟨0, 12, [((.fr 2), 1)]⟩, ⟨0, 13, [((.fr 2), 1)]⟩, ⟨0, 14, [((.fr
-    2), 1)]⟩], [], [], [3], [⟨0, 8, [((.fr 2), 1)]⟩, ⟨0, 9, [((.fr 2), 1)]⟩, ⟨0, 10, [((.fr 2),
-    1)]⟩, ⟨0, 11, [((.fr 2), 1)]⟩, ⟨0, 12, [((.fr 2), 1)]⟩, ⟨0, 13, [((.fr 2), 1)]⟩, ⟨0, 14, [((.fr
-    2), 1)]⟩], [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 1), (.num 128), 1, 0⟩], [], [], [], [], []⟩
+  ⟨249941, [0, 1, 2], none, [⟨0, 0, [((.fr 2), 1)]⟩, ⟨0, 1, [((.fr 2), 1)]⟩, ⟨0, 2, [((.fr 2),
+    1)]⟩, ⟨0, 3, [((.fr 2), 1)]⟩, ⟨0, 4, [((.fr 2), 1)]⟩, ⟨0, 5, [((.fr 2), 1)]⟩, ⟨0, 6, [((.fr 2),
+    1)]⟩], [], [], [3], [⟨0, 0, [((.fr 2), 1)]⟩, ⟨0, 1, [((.fr 2), 1)]⟩, ⟨0, 2, [((.fr 2), 1)]⟩,
+    ⟨0, 3, [((.fr 2), 1)]⟩, ⟨0, 4, [((.fr 2), 1)]⟩, ⟨0, 5, [((.fr 2), 1)]⟩, ⟨0, 6, [((.fr 2),
+    1)]⟩], [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 1), (.num 128), 1, 0⟩], [], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
 
 end
 
-end LeanVM.Guest.Fn.«da_factors__L14_L7_L0»
+end LeanVM.Guest.Fn.«da_factors__L6_L7_L128»
 
 namespace LeanVM.Guest.Fn.«level_positions__L28_L15_L3»
 
@@ -220,7 +175,7 @@ namespace LeanVM.Guest.Fn.«level_positions__L28_L15_L3»
 /-- `level_positions__L28_L15_L3`: its entry, the cells and heap facts it needs at entry and
     guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨256987, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], none, [], [⟨⟨0, 0, [((.fr 10), 1)]⟩, (.num 0), (.num
+  ⟨254785, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], none, [], [⟨⟨0, 0, [((.fr 10), 1)]⟩, (.num 0), (.num
     64), 1, 0⟩, ⟨⟨0, 0, [((.fr 10), 1)]⟩, (.num 0), (.num 128), 1, 0⟩], [], [11, 12, 13, 14, 15],
     [], (List.flatten [[⟨⟨0, 0, [((.fr 8), 1)]⟩, (.num 0), (.num 8), 1, 0⟩, ⟨⟨0, 0, [((.fr 8),
     1)]⟩, (.num 1), (.num 28), 8, 0⟩, ⟨⟨0, 0, [((.fr 8), 1)]⟩, (.num 1), (.num 28), 8, 1⟩, ⟨⟨0, 0,
@@ -255,7 +210,7 @@ namespace LeanVM.Guest.Fn.«level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1»
 /-- `level_queries__L20_L0_L4_L16_L15_L3_L2_L8_L3_L1`: its entry, the cells and heap facts it needs
     at entry and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨258355, [0, 1, 2, 3, 4, 5, 6, 7], none, [⟨0, 0, [((.fr 4), 1)]⟩, ⟨0, 0, [((.fr 5), 1)]⟩, ⟨0, 1,
+  ⟨256153, [0, 1, 2, 3, 4, 5, 6, 7], none, [⟨0, 0, [((.fr 4), 1)]⟩, ⟨0, 0, [((.fr 5), 1)]⟩, ⟨0, 1,
     [((.fr 4), 1)]⟩, ⟨0, 1, [((.fr 5), 1)]⟩, ⟨0, 2, [((.fr 4), 1)]⟩, ⟨0, 2, [((.fr 5), 1)]⟩, ⟨0, 3,
     [((.fr 4), 1)]⟩, ⟨0, 3, [((.fr 5), 1)]⟩, ⟨0, 4, [((.fr 4), 1)]⟩, ⟨0, 4, [((.fr 5), 1)]⟩, ⟨0, 5,
     [((.fr 4), 1)]⟩, ⟨0, 5, [((.fr 5), 1)]⟩, ⟨0, 6, [((.fr 4), 1)]⟩, ⟨0, 6, [((.fr 5), 1)]⟩, ⟨0, 7,
@@ -280,7 +235,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L37_L10_L4_L2»
 /-- `level_residual__L37_L10_L4_L2`: its entry, the cells and heap facts it needs at entry and
     guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨258682, [0, 1, 2, 3, 4, 5], none, [⟨0, 0, [((.fr 3), 1)]⟩, ⟨0, 0, [((.fr 4), 1)]⟩, ⟨0, 1, [((.fr
+  ⟨256480, [0, 1, 2, 3, 4, 5], none, [⟨0, 0, [((.fr 3), 1)]⟩, ⟨0, 0, [((.fr 4), 1)]⟩, ⟨0, 1, [((.fr
     3), 1)]⟩, ⟨0, 1, [((.fr 4), 1)]⟩, ⟨0, 2, [((.fr 3), 1)]⟩, ⟨0, 2, [((.fr 4), 1)]⟩, ⟨0, 3, [((.fr
     3), 1)]⟩, ⟨0, 3, [((.fr 4), 1)]⟩, ⟨0, 4, [((.fr 3), 1)]⟩, ⟨0, 5, [((.fr 3), 1)]⟩, ⟨0, 6, [((.fr
     3), 1)]⟩, ⟨0, 7, [((.fr 3), 1)]⟩, ⟨0, 8, [((.fr 3), 1)]⟩, ⟨0, 9, [((.fr 3), 1)]⟩], [⟨⟨0, 0,
@@ -310,7 +265,7 @@ namespace LeanVM.Guest.Fn.«squeeze_point_from__L19»
 /-- `squeeze_point_from__L19`: its entry, the cells and heap facts it needs at entry and guarantees
     at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨266313, [0, 1, 2, 3, 4, 5, 6, 7, 8], none, [], [], [], [9, 10, 11, 12, 13], [], [⟨⟨0, 0, [((.fr
+  ⟨264111, [0, 1, 2, 3, 4, 5, 6, 7, 8], none, [], [], [], [9, 10, 11, 12, 13], [], [⟨⟨0, 0, [((.fr
     8), 1)]⟩, (.num 0), (.num 19), 1, 0⟩], [], [], [], [], []⟩
 
 theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
@@ -326,7 +281,7 @@ namespace LeanVM.Guest.Fn.«level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0»
 /-- `level_queries__L25_L0_L4_L16_L22_L4_L0_L0_L0_L0`: its entry, the cells and heap facts it needs
     at entry and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨270371, [0, 1, 2, 3, 4, 5, 6, 7], none, [⟨0, 0, [((.fr 4), 1)]⟩, ⟨0, 1, [((.fr 4), 1)]⟩, ⟨0, 2,
+  ⟨268169, [0, 1, 2, 3, 4, 5, 6, 7], none, [⟨0, 0, [((.fr 4), 1)]⟩, ⟨0, 1, [((.fr 4), 1)]⟩, ⟨0, 2,
     [((.fr 4), 1)]⟩, ⟨0, 3, [((.fr 4), 1)]⟩, ⟨0, 4, [((.fr 4), 1)]⟩, ⟨0, 5, [((.fr 4), 1)]⟩, ⟨0, 6,
     [((.fr 4), 1)]⟩, ⟨0, 7, [((.fr 4), 1)]⟩], [⟨⟨0, 0, [((.fr 6), 1)]⟩, (.num 0), (.num 25), 1, 0⟩,
     ⟨⟨0, 0, [((.fr 7), 1)]⟩, (.num 0), (.num 25), 1, 0⟩], [], [8, 9, 10, 11], [], [⟨⟨0, 0, [((.fr
@@ -348,7 +303,7 @@ namespace LeanVM.Guest.Fn.«level_positions__L14_L26_L2»
 /-- `level_positions__L14_L26_L2`: its entry, the cells and heap facts it needs at entry and
     guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨271428, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], none, [], [⟨⟨0, 0, [((.fr 10), 1)]⟩, (.num 0), (.num
+  ⟨269226, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], none, [], [⟨⟨0, 0, [((.fr 10), 1)]⟩, (.num 0), (.num
     64), 1, 0⟩, ⟨⟨0, 0, [((.fr 10), 1)]⟩, (.num 0), (.num 128), 1, 0⟩], [], [11, 12, 13, 14, 15],
     [⟨0, 0, [((.fr 8), 1)]⟩, ⟨0, 0, [((.fr 9), 1)]⟩, ⟨0, 1, [((.fr 8), 1)]⟩, ⟨0, 1, [((.fr 9),
     1)]⟩, ⟨0, 2, [((.fr 8), 1)]⟩, ⟨0, 2, [((.fr 9), 1)]⟩, ⟨0, 3, [((.fr 8), 1)]⟩, ⟨0, 3, [((.fr 9),
@@ -376,7 +331,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L109_L22_L6_L3»
 /-- `level_residual__L109_L22_L6_L3`: its entry, the cells and heap facts it needs at entry and
     guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨272543, [0, 1, 2, 3, 4, 5], none, (List.flatten [[⟨0, 0, [((.fr 3), 1)]⟩, ⟨0, 0, [((.fr 4),
+  ⟨270341, [0, 1, 2, 3, 4, 5], none, (List.flatten [[⟨0, 0, [((.fr 3), 1)]⟩, ⟨0, 0, [((.fr 4),
     1)]⟩, ⟨0, 1, [((.fr 3), 1)]⟩, ⟨0, 1, [((.fr 4), 1)]⟩, ⟨0, 2, [((.fr 3), 1)]⟩, ⟨0, 2, [((.fr 4),
     1)]⟩, ⟨0, 3, [((.fr 3), 1)]⟩, ⟨0, 3, [((.fr 4), 1)]⟩, ⟨0, 4, [((.fr 3), 1)]⟩, ⟨0, 4, [((.fr 4),
     1)]⟩, ⟨0, 5, [((.fr 3), 1)]⟩, ⟨0, 5, [((.fr 4), 1)]⟩, ⟨0, 6, [((.fr 3), 1)]⟩, ⟨0, 7, [((.fr 3),
@@ -411,7 +366,7 @@ namespace LeanVM.Guest.Fn.«level_residual__L32_L19_L4_L2»
 /-- `level_residual__L32_L19_L4_L2`: its entry, the cells and heap facts it needs at entry and
     guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨274682, [0, 1, 2, 3, 4, 5], none, (List.flatten [[⟨0, 0, [((.fr 3), 1)]⟩, ⟨0, 0, [((.fr 4),
+  ⟨272480, [0, 1, 2, 3, 4, 5], none, (List.flatten [[⟨0, 0, [((.fr 3), 1)]⟩, ⟨0, 0, [((.fr 4),
     1)]⟩, ⟨0, 1, [((.fr 3), 1)]⟩, ⟨0, 1, [((.fr 4), 1)]⟩, ⟨0, 2, [((.fr 3), 1)]⟩, ⟨0, 2, [((.fr 4),
     1)]⟩, ⟨0, 3, [((.fr 3), 1)]⟩, ⟨0, 3, [((.fr 4), 1)]⟩, ⟨0, 4, [((.fr 3), 1)]⟩, ⟨0, 5, [((.fr 3),
     1)]⟩, ⟨0, 6, [((.fr 3), 1)]⟩, ⟨0, 7, [((.fr 3), 1)]⟩, ⟨0, 8, [((.fr 3), 1)]⟩, ⟨0, 9, [((.fr 3),
@@ -443,7 +398,7 @@ namespace LeanVM.Guest.Fn.«verify_merkle_cap__L5»
 /-- `verify_merkle_cap__L5`: its entry, the cells and heap facts it needs at entry and guarantees
     at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨279812, [0, 1, 2, 3], none, [], [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 4), (.num 128), 1, 0⟩, ⟨⟨0, 0,
+  ⟨277263, [0, 1, 2, 3], none, [], [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num 4), (.num 128), 1, 0⟩, ⟨⟨0, 0,
     [((.fr 3), 1)]⟩, (.num 2), (.num 32), 1, 0⟩], [], [4, 5], [], [⟨⟨0, 0, [((.fr 2), 1)]⟩, (.num
     4), (.num 128), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 2), (.num 32), 1, 0⟩], [], [], [], [], []⟩
 
@@ -457,9 +412,9 @@ namespace LeanVM.Guest.Fn.«level_residual__L219_L14_L6_L3_loop0»
 
 @[expose] public section
 
-/-- `__loop63`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
+/-- `__loop68`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨284632, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), (List.flatten [[⟨0, 0, [((.fr 2), 2), ((.fr 5),
+  ⟨282083, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), (List.flatten [[⟨0, 0, [((.fr 2), 2), ((.fr 5),
     1)]⟩, ⟨0, 0, [((.fr 6), 1)]⟩, ⟨0, 0, [((.fr 7), 1)]⟩, ⟨0, 1, [((.fr 2), 2), ((.fr 5), 1)]⟩, ⟨0,
     1, [((.fr 6), 1)]⟩, ⟨0, 1, [((.fr 7), 1)]⟩, ⟨0, 2, [((.fr 6), 1)]⟩, ⟨0, 2, [((.fr 7), 1)]⟩, ⟨0,
     3, [((.fr 6), 1)]⟩, ⟨0, 3, [((.fr 7), 1)]⟩, ⟨0, 4, [((.fr 6), 1)]⟩, ⟨0, 4, [((.fr 7), 1)]⟩, ⟨0,
@@ -485,9 +440,9 @@ namespace LeanVM.Guest.Fn.«level_positions__L32_L17_L5_loop0»
 
 @[expose] public section
 
-/-- `__loop118`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
+/-- `__loop123`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨300065, [0, 1, 2, 3, 4, 5, 6, 7], (some 8), [⟨0, 0, [((.fr 2), 5), ((.fr 4), 1)]⟩, ⟨0, 1, [((.fr
+  ⟨297516, [0, 1, 2, 3, 4, 5, 6, 7], (some 8), [⟨0, 0, [((.fr 2), 5), ((.fr 4), 1)]⟩, ⟨0, 1, [((.fr
     2), 5), ((.fr 4), 1)]⟩, ⟨0, 2, [((.fr 2), 5), ((.fr 4), 1)]⟩, ⟨0, 3, [((.fr 2), 5), ((.fr 4),
     1)]⟩, ⟨0, 4, [((.fr 2), 5), ((.fr 4), 1)]⟩], [⟨⟨0, 0, [((.fr 7), 1)]⟩, (.num 0), (.num 64), 1,
     0⟩, ⟨⟨0, 0, [((.fr 7), 1)]⟩, (.num 0), (.num 128), 1, 0⟩], [((.ex (.fr 2) 0), (.ex (.fr 3)
@@ -522,9 +477,9 @@ namespace LeanVM.Guest.Fn.«level_residual__L23_L9_L4_L2_loop0»
 
 @[expose] public section
 
-/-- `__loop180`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
+/-- `__loop185`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨318050, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), [⟨0, 0, [((.fr 2), 2), ((.fr 5), 1)]⟩, ⟨0, 0,
+  ⟨315501, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), [⟨0, 0, [((.fr 2), 2), ((.fr 5), 1)]⟩, ⟨0, 0,
     [((.fr 6), 1)]⟩, ⟨0, 0, [((.fr 7), 1)]⟩, ⟨0, 1, [((.fr 2), 2), ((.fr 5), 1)]⟩, ⟨0, 1, [((.fr
     6), 1)]⟩, ⟨0, 1, [((.fr 7), 1)]⟩, ⟨0, 2, [((.fr 6), 1)]⟩, ⟨0, 2, [((.fr 7), 1)]⟩, ⟨0, 3, [((.fr
     6), 1)]⟩, ⟨0, 3, [((.fr 7), 1)]⟩, ⟨0, 4, [((.fr 6), 1)]⟩, ⟨0, 5, [((.fr 6), 1)]⟩, ⟨0, 6, [((.fr
@@ -548,9 +503,9 @@ namespace LeanVM.Guest.Fn.«level_residual__L44_L14_L4_L2_loop1»
 
 @[expose] public section
 
-/-- `__loop203`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
+/-- `__loop208`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨324848, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), (List.flatten [[⟨0, 0, [((.fr 2), 2), ((.fr 4),
+  ⟨322299, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), (List.flatten [[⟨0, 0, [((.fr 2), 2), ((.fr 4),
     1)]⟩, ⟨0, 0, [((.fr 6), 1)]⟩, ⟨0, 0, [((.fr 7), 1)]⟩, ⟨0, 1, [((.fr 2), 2), ((.fr 4), 1)]⟩, ⟨0,
     1, [((.fr 6), 1)]⟩, ⟨0, 1, [((.fr 7), 1)]⟩, ⟨0, 2, [((.fr 6), 1)]⟩, ⟨0, 2, [((.fr 7), 1)]⟩, ⟨0,
     3, [((.fr 6), 1)]⟩, ⟨0, 3, [((.fr 7), 1)]⟩, ⟨0, 4, [((.fr 6), 1)]⟩, ⟨0, 5, [((.fr 6), 1)]⟩, ⟨0,
@@ -570,9 +525,9 @@ namespace LeanVM.Guest.Fn.«level_residual__L73_L19_L6_L3_loop1»
 
 @[expose] public section
 
-/-- `__loop234`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
+/-- `__loop239`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨336220, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), (List.flatten [[⟨0, 0, [((.fr 2), 2), ((.fr 4),
+  ⟨333671, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), (List.flatten [[⟨0, 0, [((.fr 2), 2), ((.fr 4),
     1)]⟩, ⟨0, 0, [((.fr 6), 1)]⟩, ⟨0, 0, [((.fr 7), 1)]⟩, ⟨0, 1, [((.fr 2), 2), ((.fr 4), 1)]⟩, ⟨0,
     1, [((.fr 6), 1)]⟩, ⟨0, 1, [((.fr 7), 1)]⟩, ⟨0, 2, [((.fr 6), 1)]⟩, ⟨0, 2, [((.fr 7), 1)]⟩, ⟨0,
     3, [((.fr 6), 1)]⟩, ⟨0, 3, [((.fr 7), 1)]⟩, ⟨0, 4, [((.fr 6), 1)]⟩, ⟨0, 4, [((.fr 7), 1)]⟩, ⟨0,
@@ -594,9 +549,9 @@ namespace LeanVM.Guest.Fn.«level_residual__L218_L21_L6_L3_loop1»
 
 @[expose] public section
 
-/-- `__loop303`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
+/-- `__loop308`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨357218, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), (List.flatten [[⟨0, 0, [((.fr 2), 2), ((.fr 4),
+  ⟨354669, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), (List.flatten [[⟨0, 0, [((.fr 2), 2), ((.fr 4),
     1)]⟩, ⟨0, 0, [((.fr 6), 1)]⟩, ⟨0, 0, [((.fr 7), 1)]⟩, ⟨0, 1, [((.fr 2), 2), ((.fr 4), 1)]⟩, ⟨0,
     1, [((.fr 6), 1)]⟩, ⟨0, 1, [((.fr 7), 1)]⟩, ⟨0, 2, [((.fr 6), 1)]⟩, ⟨0, 2, [((.fr 7), 1)]⟩, ⟨0,
     3, [((.fr 6), 1)]⟩, ⟨0, 3, [((.fr 7), 1)]⟩, ⟨0, 4, [((.fr 6), 1)]⟩, ⟨0, 4, [((.fr 7), 1)]⟩, ⟨0,
@@ -619,9 +574,9 @@ namespace LeanVM.Guest.Fn.«level_residual__L109_L21_L6_L3_loop0»
 
 @[expose] public section
 
-/-- `__loop304`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
+/-- `__loop309`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨357392, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), (List.flatten [[⟨0, 0, [((.fr 2), 2), ((.fr 5),
+  ⟨354843, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), (List.flatten [[⟨0, 0, [((.fr 2), 2), ((.fr 5),
     1)]⟩, ⟨0, 0, [((.fr 6), 1)]⟩, ⟨0, 0, [((.fr 7), 1)]⟩, ⟨0, 1, [((.fr 2), 2), ((.fr 5), 1)]⟩, ⟨0,
     1, [((.fr 6), 1)]⟩, ⟨0, 1, [((.fr 7), 1)]⟩, ⟨0, 2, [((.fr 6), 1)]⟩, ⟨0, 2, [((.fr 7), 1)]⟩, ⟨0,
     3, [((.fr 6), 1)]⟩, ⟨0, 3, [((.fr 7), 1)]⟩, ⟨0, 4, [((.fr 6), 1)]⟩, ⟨0, 4, [((.fr 7), 1)]⟩, ⟨0,
@@ -649,9 +604,9 @@ namespace LeanVM.Guest.Fn.«level_residual__L55_L17_L4_L2_loop0»
 
 @[expose] public section
 
-/-- `__loop310`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
+/-- `__loop315`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨360566, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), (List.flatten [[⟨0, 0, [((.fr 2), 2), ((.fr 5),
+  ⟨358017, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), (List.flatten [[⟨0, 0, [((.fr 2), 2), ((.fr 5),
     1)]⟩, ⟨0, 0, [((.fr 6), 1)]⟩, ⟨0, 0, [((.fr 7), 1)]⟩, ⟨0, 1, [((.fr 2), 2), ((.fr 5), 1)]⟩, ⟨0,
     1, [((.fr 6), 1)]⟩, ⟨0, 1, [((.fr 7), 1)]⟩, ⟨0, 2, [((.fr 6), 1)]⟩, ⟨0, 2, [((.fr 7), 1)]⟩, ⟨0,
     3, [((.fr 6), 1)]⟩, ⟨0, 3, [((.fr 7), 1)]⟩, ⟨0, 4, [((.fr 6), 1)]⟩, ⟨0, 5, [((.fr 6), 1)]⟩, ⟨0,
@@ -677,9 +632,9 @@ namespace LeanVM.Guest.Fn.«level_positions__L4_L24_L6_loop0»
 
 @[expose] public section
 
-/-- `__loop381`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
+/-- `__loop386`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨382555, [0, 1, 2, 3, 4, 5, 6, 7], (some 8), [⟨0, 0, [((.fr 2), 5), ((.fr 4), 1)]⟩, ⟨0, 1, [((.fr
+  ⟨380006, [0, 1, 2, 3, 4, 5, 6, 7], (some 8), [⟨0, 0, [((.fr 2), 5), ((.fr 4), 1)]⟩, ⟨0, 1, [((.fr
     2), 5), ((.fr 4), 1)]⟩, ⟨0, 2, [((.fr 2), 5), ((.fr 4), 1)]⟩, ⟨0, 3, [((.fr 2), 5), ((.fr 4),
     1)]⟩, ⟨0, 4, [((.fr 2), 5), ((.fr 4), 1)]⟩], [⟨⟨0, 0, [((.fr 7), 1)]⟩, (.num 0), (.num 64), 1,
     0⟩, ⟨⟨0, 0, [((.fr 7), 1)]⟩, (.num 0), (.num 128), 1, 0⟩], [((.ex (.fr 2) 0), (.ex (.fr 3)
@@ -713,7 +668,7 @@ namespace LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0�
 /-- `opening_queries__L1_L1_L6_L32_L28_L4_L0_L0_L0_L0_L0`: its entry, the cells and heap facts it
     needs at entry and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨396190, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], none, (List.flatten [[⟨0, 0, [((.fr 5), 1)]⟩, ⟨0, 0,
+  ⟨393641, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], none, (List.flatten [[⟨0, 0, [((.fr 5), 1)]⟩, ⟨0, 0,
     [((.fr 7), 1)]⟩, ⟨0, 0, [((.fr 8), 1)]⟩, ⟨0, 0, [((.hp 8 0), 1)]⟩, ⟨0, 1, [((.fr 5), 1)]⟩, ⟨0,
     1, [((.hp 8 0), 1)]⟩, ⟨0, 2, [((.fr 5), 1)]⟩, ⟨0, 2, [((.hp 8 0), 1)]⟩, ⟨0, 3, [((.fr 5), 1)]⟩,
     ⟨0, 3, [((.hp 8 0), 1)]⟩, ⟨0, 4, [((.fr 5), 1)]⟩, ⟨0, 4, [((.hp 8 0), 1)]⟩, ⟨0, 5, [((.fr 5),
@@ -742,9 +697,9 @@ namespace LeanVM.Guest.Fn.«level_residual__L55_L24_L6_L3_loop1»
 
 @[expose] public section
 
-/-- `__loop430`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
+/-- `__loop435`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨401460, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), (List.flatten [[⟨0, 0, [((.fr 2), 2), ((.fr 4),
+  ⟨398911, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), (List.flatten [[⟨0, 0, [((.fr 2), 2), ((.fr 4),
     1)]⟩, ⟨0, 0, [((.fr 6), 1)]⟩, ⟨0, 0, [((.fr 7), 1)]⟩, ⟨0, 1, [((.fr 2), 2), ((.fr 4), 1)]⟩, ⟨0,
     1, [((.fr 6), 1)]⟩, ⟨0, 1, [((.fr 7), 1)]⟩, ⟨0, 2, [((.fr 6), 1)]⟩, ⟨0, 2, [((.fr 7), 1)]⟩, ⟨0,
     3, [((.fr 6), 1)]⟩, ⟨0, 3, [((.fr 7), 1)]⟩, ⟨0, 4, [((.fr 6), 1)]⟩, ⟨0, 4, [((.fr 7), 1)]⟩, ⟨0,
@@ -768,9 +723,9 @@ namespace LeanVM.Guest.Fn.«level_residual__L21_L12_L4_L2_loop0»
 
 @[expose] public section
 
-/-- `__loop444`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
+/-- `__loop449`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨407794, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), (List.flatten [[⟨0, 0, [((.fr 2), 2), ((.fr 5),
+  ⟨405245, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), (List.flatten [[⟨0, 0, [((.fr 2), 2), ((.fr 5),
     1)]⟩, ⟨0, 0, [((.fr 6), 1)]⟩, ⟨0, 0, [((.fr 7), 1)]⟩, ⟨0, 1, [((.fr 2), 2), ((.fr 5), 1)]⟩, ⟨0,
     1, [((.fr 6), 1)]⟩, ⟨0, 1, [((.fr 7), 1)]⟩, ⟨0, 2, [((.fr 6), 1)]⟩, ⟨0, 2, [((.fr 7), 1)]⟩, ⟨0,
     3, [((.fr 6), 1)]⟩, ⟨0, 3, [((.fr 7), 1)]⟩, ⟨0, 4, [((.fr 6), 1)]⟩, ⟨0, 5, [((.fr 6), 1)]⟩, ⟨0,
@@ -795,9 +750,9 @@ namespace LeanVM.Guest.Fn.«level_residual__L18_L12_L4_L2_loop0»
 
 @[expose] public section
 
-/-- `__loop448`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
+/-- `__loop453`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨409092, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), (List.flatten [[⟨0, 0, [((.fr 2), 2), ((.fr 5),
+  ⟨406543, [0, 1, 2, 3, 4, 5, 6, 7, 8], (some 9), (List.flatten [[⟨0, 0, [((.fr 2), 2), ((.fr 5),
     1)]⟩, ⟨0, 0, [((.fr 6), 1)]⟩, ⟨0, 0, [((.fr 7), 1)]⟩, ⟨0, 1, [((.fr 2), 2), ((.fr 5), 1)]⟩, ⟨0,
     1, [((.fr 6), 1)]⟩, ⟨0, 1, [((.fr 7), 1)]⟩, ⟨0, 2, [((.fr 6), 1)]⟩, ⟨0, 2, [((.fr 7), 1)]⟩, ⟨0,
     3, [((.fr 6), 1)]⟩, ⟨0, 3, [((.fr 7), 1)]⟩, ⟨0, 4, [((.fr 6), 1)]⟩, ⟨0, 5, [((.fr 6), 1)]⟩, ⟨0,
@@ -818,32 +773,13 @@ end
 
 end LeanVM.Guest.Fn.«level_residual__L18_L12_L4_L2_loop0»
 
-namespace LeanVM.Guest.Fn.«da_levels__L512_L9_loop8»
-
-@[expose] public section
-
-/-- `__loop490`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
-noncomputable def modeSig : Mode.Sig :=
-  ⟨411909, [0, 1, 2, 3, 4], (some 5), [], [⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3)
-    0), 4, 2040⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 4, 2041⟩, ⟨⟨0, 0,
-    [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 4, 2042⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr
-    2) 0), (.ex (.fr 3) 0), 4, 2043⟩], [((.ex (.fr 2) 0), (.ex (.fr 3) 0))], [], [], [], [⟨⟨0, 0,
-    [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 2, 2044⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr
-    2) 0), (.ex (.fr 3) 0), 2, 2045⟩], [], [], [], []⟩
-
-theorem modeSig_termFr : Mode.termFr modeSig = true := by decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L512_L9_loop8»
-
 namespace LeanVM.Guest.Fn.«opening_queries__L1_L1_L6_L32_L18_L6_L0_L0_L0_L0_L0_loop0»
 
 @[expose] public section
 
-/-- `__loop504`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
+/-- `__loop461`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨418816, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], (some 12), [⟨0, 0, [((.fr 2), 1), ((.fr 10),
+  ⟨414605, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], (some 12), [⟨0, 0, [((.fr 2), 1), ((.fr 10),
     1)]⟩, ⟨0, 0, [((.fr 8), 1)]⟩, ⟨0, 1, [((.fr 8), 1)]⟩, ⟨0, 2, [((.fr 8), 1)]⟩, ⟨0, 3, [((.fr 8),
     1)]⟩, ⟨0, 4, [((.fr 8), 1)]⟩, ⟨0, 5, [((.fr 8), 1)]⟩, ⟨0, 6, [((.fr 8), 1)]⟩, ⟨0, 7, [((.fr 8),
     1)]⟩, ⟨0, 8, [((.fr 8), 1)]⟩, ⟨0, 9, [((.fr 8), 1)]⟩, ⟨0, 10, [((.fr 8), 1)]⟩, ⟨0, 11, [((.fr
@@ -865,9 +801,9 @@ namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L17_L5_L0_L0_L0_L0_L0_
 
 @[expose] public section
 
-/-- `__loop508`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
+/-- `__loop465`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨419726, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], (some 12), [⟨0, 0, [((.fr 2), 1), ((.fr 10),
+  ⟨415515, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], (some 12), [⟨0, 0, [((.fr 2), 1), ((.fr 10),
     1)]⟩, ⟨0, 0, [((.fr 8), 1)]⟩, ⟨0, 1, [((.fr 8), 1)]⟩, ⟨0, 2, [((.fr 8), 1)]⟩, ⟨0, 3, [((.fr 8),
     1)]⟩, ⟨0, 4, [((.fr 8), 1)]⟩, ⟨0, 5, [((.fr 8), 1)]⟩, ⟨0, 6, [((.fr 8), 1)]⟩, ⟨0, 7, [((.fr 8),
     1)]⟩], [⟨⟨0, 0, [((.fr 4), 1)]⟩, (.ex (.fr 2) 0), (.ex (.fr 3) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 5),
@@ -885,9 +821,9 @@ namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L21_L3_L5_L15_L36_L6_L
 
 @[expose] public section
 
-/-- `__loop558`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
+/-- `__loop515`: its entry, the cells and heap facts it needs at entry and guarantees at return. -/
 noncomputable def modeSig : Mode.Sig :=
-  ⟨445245, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], (some 12), (List.flatten [[⟨0, 0, [((.fr 8),
+  ⟨441034, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], (some 12), (List.flatten [[⟨0, 0, [((.fr 8),
     1)]⟩, ⟨0, 0, [((.fr 9), 1)]⟩, ⟨0, 1, [((.fr 8), 1)]⟩, ⟨0, 1, [((.fr 9), 1)]⟩, ⟨0, 2, [((.fr 8),
     1)]⟩, ⟨0, 2, [((.fr 9), 1)]⟩, ⟨0, 3, [((.fr 8), 1)]⟩, ⟨0, 3, [((.fr 9), 1)]⟩, ⟨0, 4, [((.fr 8),
     1)]⟩, ⟨0, 4, [((.fr 9), 1)]⟩, ⟨0, 5, [((.fr 8), 1)]⟩, ⟨0, 5, [((.fr 9), 1)]⟩, ⟨0, 6, [((.fr 8),

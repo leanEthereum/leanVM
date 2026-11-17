@@ -18,8 +18,8 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `__loop196`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(1168, Fn.«level_residual__L73_L18_L6_L3_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L73_L18_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+/-- `__loop201`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs ([(1153, Fn.«level_residual__L73_L18_L6_L3_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L73_L18_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
   rw [hc] at hi

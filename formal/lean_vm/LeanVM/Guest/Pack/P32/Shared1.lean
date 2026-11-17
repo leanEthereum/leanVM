@@ -110,17 +110,17 @@ theorem shareOk : ShareOkD Fn.«child_claim_list_last__L15».core (cert.withPows
 end
 end LeanVM.Guest.Fn.«child_claim_list_last__L15»
 
-namespace LeanVM.Guest.Fn.«da_roots_tree__L9»
+namespace LeanVM.Guest.Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `da_roots_tree__L9`, once. -/
-theorem st : shareStaticD Fn.«da_roots_tree__L9».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+/-- `level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0`, once. -/
+theorem st : shareStaticD Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 end
-end LeanVM.Guest.Fn.«da_roots_tree__L9»
+end LeanVM.Guest.Fn.«level_queries__L32_L0_L4_L16_L14_L2_L0_L0_L0_L0»
 

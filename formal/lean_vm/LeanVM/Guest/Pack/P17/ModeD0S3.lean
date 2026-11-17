@@ -73,39 +73,39 @@ noncomputable def snap208 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (.m ⟨0, 0, [((.hp 12 1), 1)]⟩)) .nil .nil) .nil) (.node none (.node
     (some (.m ⟨0, 0, [((.hp 12 8), 1)]⟩)) .nil .nil) .nil)))) (.node none (.node none (.node none
     (.node none .nil (.node (some (.m ⟨0, 0, [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node
-    (some (.m ⟨0, 30205, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 148 5), 1)]⟩))
+    (some (.m ⟨0, 30194, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 148 5), 1)]⟩))
     (.node none (.node (some (.m ⟨0, 34, [((.fr 2), 1)]⟩)) .nil .nil) .nil) (.node none (.node
     (some (.m ⟨0, 0, [((.hp 12 7), 1)]⟩)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0,
     [((.hp 10 3), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 0, [((.hp 12 13), 1)]⟩)) .nil .nil))
     (.node none (.node (some (.m ⟨0, 0, [((.hp 12 5), 1)]⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0,
     0, [((.hp 184 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩)) .nil .nil)
     .nil) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil .nil) .nil))))) (.node none
-    (.node none (.node none (.node none (.node none .nil (.node (some (.m ⟨0, 30277, []⟩)) .nil
+    (.node none (.node none (.node none (.node none .nil (.node (some (.m ⟨0, 30266, []⟩)) .nil
     .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩)) .nil .nil) .nil)) (.node none
-    (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30317,
-    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30237, []⟩)) .nil .nil) .nil))) (.node (some
-    (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some
-    (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30217, []⟩)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30183,
-    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30257, []⟩)) .nil .nil) .nil)))) (.node
-    none (.node none (.node (some (.m ⟨0, 210902, []⟩)) (.node none .nil (.node (some (.m ⟨0,
-    30287, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30173,
-    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30247, []⟩)) .nil .nil) .nil))) (.node
+    (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30306,
+    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30226, []⟩)) .nil .nil) .nil))) (.node (some
+    (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some
+    (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30206, []⟩)) .nil .nil)
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30172,
+    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30246, []⟩)) .nil .nil) .nil)))) (.node
+    none (.node none (.node (some (.m ⟨0, 210081, []⟩)) (.node none .nil (.node (some (.m ⟨0,
+    30276, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩)) .nil .nil)
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30162,
+    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30236, []⟩)) .nil .nil) .nil))) (.node
     (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩))
-    (.node none .nil (.node (some (.m ⟨0, 30307, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30227, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node none (.node
-    (some (.m ⟨0, 30193, []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30267, []⟩)) .nil
+    (.node none .nil (.node (some (.m ⟨0, 30296, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30216, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node none (.node
+    (some (.m ⟨0, 30182, []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30256, []⟩)) .nil
     .nil) .nil)))))) (.node none (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp
     16 0), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 204 5), 1)]⟩)) .nil .nil) (.node none (.node (some
     (.m ⟨0, 19, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil))
     (.node none (.node (some (.m ⟨0, 0, [((.hp 10 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0,
     [((.hp 172 5), 1)]⟩)) .nil .nil))) (.node none (.node none (.node none .nil (.node none (.node
     (some (.tab (.fr 161) 650)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩))
-    .nil .nil)) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil
+    .nil .nil)) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil
     .nil) (.node (some (.m ⟨0, 0, [((.hp 188 5), 1)]⟩)) .nil .nil)))) (.node none (.node none
     (.node none (.node (some (.m ⟨0, 1, []⟩)) (.node none .nil (.node (some (.tab (.hp 10 2) 650))
-    .nil .nil)) .nil) (.node (some (.m ⟨0, 29578, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩))
+    .nil .nil)) .nil) (.node (some (.m ⟨0, 29567, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩))
     .nil .nil) (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.hp
     10 2) 650)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 2), 1)]⟩)) (.node
     none .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.fr
@@ -146,17 +146,17 @@ noncomputable def snap208 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node (some
     ()) (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node (some ()) .nil
     .nil) .nil)) (.node none (.node none (.node (some ()) .nil (.node none (.node (some ()) .nil
-    .nil) .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30119, []⟩)),
-    (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30128, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)),
-    (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30145, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30161, []⟩)),
-    (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30173, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30183,
-    []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30193, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0,
-    30205, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30217, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m
-    ⟨0, 30227, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30237, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩,
-    (.m ⟨0, 30247, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30257, []⟩)), (⟨0, 0, [((.fr 188),
-    1)]⟩, (.m ⟨0, 30267, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30277, []⟩))], [(⟨0, 0, [((.fr
-    196), 1)]⟩, (.m ⟨0, 30287, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30297, []⟩)), (⟨0, 0,
-    [((.fr 204), 1)]⟩, (.m ⟨0, 30307, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30317, []⟩)), (⟨0,
+    .nil) .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30108, []⟩)),
+    (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30117, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)),
+    (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30134, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30150, []⟩)),
+    (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30162, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30172,
+    []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30182, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0,
+    30194, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30206, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m
+    ⟨0, 30216, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30226, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩,
+    (.m ⟨0, 30236, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30246, []⟩)), (⟨0, 0, [((.fr 188),
+    1)]⟩, (.m ⟨0, 30256, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30266, []⟩))], [(⟨0, 0, [((.fr
+    196), 1)]⟩, (.m ⟨0, 30276, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30286, []⟩)), (⟨0, 0,
+    [((.fr 204), 1)]⟩, (.m ⟨0, 30296, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30306, []⟩)), (⟨0,
     1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1,
     [((.fr 31), 1)]⟩, (.m ⟨0, 0, [((.fr 33), 1)]⟩)), (⟨0, 1, [((.fr 36), 1)]⟩, (.m ⟨1, 0, []⟩)),
     (⟨0, 1, [((.fr 49), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 148), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0,
@@ -336,9 +336,9 @@ noncomputable def snap208 : List Mode.Abs × Mode.Pend :=
     1)]⟩, ⟨0, 480, [((.hp 49 4), 1)]⟩, ⟨0, 482, [((.hp 49 4), 1)]⟩, ⟨0, 484, [((.hp 49 4), 1)]⟩],
     [⟨0, 486, [((.hp 49 4), 1)]⟩, ⟨0, 488, [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0,
     492, [((.hp 49 4), 1)]⟩, ⟨0, 494, [((.hp 49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num
-    430), (.ex (.fr 161) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0,
-    0, []⟩, (.num 430), (.ex (.hp 10 1) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2)
-    14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0),
+    430), (.ex (.fr 161) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0,
+    0, []⟩, (.num 430), (.ex (.hp 10 1) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2)
+    14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0),
     (.ex (.fr 6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0,
     [((.fr 13), 1)]⟩, (.num 0), (.ex (.fr 9) 6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex
     (.fr 161) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0,
@@ -614,39 +614,39 @@ noncomputable def snap208 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (.m ⟨0, 0, [((.hp 12 1), 1)]⟩)) .nil .nil) .nil) (.node none (.node
     (some (.m ⟨0, 0, [((.hp 12 8), 1)]⟩)) .nil .nil) .nil)))) (.node none (.node none (.node none
     (.node none .nil (.node (some (.m ⟨0, 0, [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node
-    (some (.m ⟨0, 30205, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 148 5), 1)]⟩))
+    (some (.m ⟨0, 30194, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 148 5), 1)]⟩))
     (.node none (.node (some (.m ⟨0, 34, [((.fr 2), 1)]⟩)) .nil .nil) .nil) (.node none (.node
     (some (.m ⟨0, 0, [((.hp 12 7), 1)]⟩)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0,
     [((.hp 10 3), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 0, [((.hp 12 13), 1)]⟩)) .nil .nil))
     (.node none (.node (some (.m ⟨0, 0, [((.hp 12 5), 1)]⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0,
     0, [((.hp 184 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩)) .nil .nil)
     .nil) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil .nil) .nil))))) (.node none
-    (.node none (.node none (.node none (.node none .nil (.node (some (.m ⟨0, 30277, []⟩)) .nil
+    (.node none (.node none (.node none (.node none .nil (.node (some (.m ⟨0, 30266, []⟩)) .nil
     .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩)) .nil .nil) .nil)) (.node none
-    (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30317,
-    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30237, []⟩)) .nil .nil) .nil))) (.node (some
-    (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some
-    (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30217, []⟩)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30183,
-    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30257, []⟩)) .nil .nil) .nil)))) (.node
-    none (.node none (.node (some (.m ⟨0, 210902, []⟩)) (.node none .nil (.node (some (.m ⟨0,
-    30287, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30173,
-    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30247, []⟩)) .nil .nil) .nil))) (.node
+    (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30306,
+    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30226, []⟩)) .nil .nil) .nil))) (.node (some
+    (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some
+    (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30206, []⟩)) .nil .nil)
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30172,
+    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30246, []⟩)) .nil .nil) .nil)))) (.node
+    none (.node none (.node (some (.m ⟨0, 210081, []⟩)) (.node none .nil (.node (some (.m ⟨0,
+    30276, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩)) .nil .nil)
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30162,
+    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30236, []⟩)) .nil .nil) .nil))) (.node
     (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩))
-    (.node none .nil (.node (some (.m ⟨0, 30307, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30227, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node none (.node
-    (some (.m ⟨0, 30193, []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30267, []⟩)) .nil
+    (.node none .nil (.node (some (.m ⟨0, 30296, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30216, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node none (.node
+    (some (.m ⟨0, 30182, []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30256, []⟩)) .nil
     .nil) .nil)))))) (.node none (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp
     16 0), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 204 5), 1)]⟩)) .nil .nil) (.node none (.node (some
     (.m ⟨0, 19, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil))
     (.node none (.node (some (.m ⟨0, 0, [((.hp 10 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0,
     [((.hp 172 5), 1)]⟩)) .nil .nil))) (.node none (.node none (.node none .nil (.node none (.node
     (some (.tab (.fr 161) 650)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩))
-    .nil .nil)) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil
+    .nil .nil)) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil
     .nil) (.node (some (.m ⟨0, 0, [((.hp 188 5), 1)]⟩)) .nil .nil)))) (.node none (.node none
     (.node none (.node (some (.m ⟨0, 1, []⟩)) (.node none .nil (.node (some (.tab (.hp 10 2) 650))
-    .nil .nil)) .nil) (.node (some (.m ⟨0, 29578, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩))
+    .nil .nil)) .nil) (.node (some (.m ⟨0, 29567, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩))
     .nil .nil) (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.hp
     10 2) 650)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 2), 1)]⟩)) (.node
     none .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.fr
@@ -687,17 +687,17 @@ noncomputable def snap208 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node (some
     ()) (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node (some ()) .nil
     .nil) .nil)) (.node none (.node none (.node (some ()) .nil (.node none (.node (some ()) .nil
-    .nil) .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30119, []⟩)),
-    (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30128, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)),
-    (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30145, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30161, []⟩)),
-    (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30173, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30183,
-    []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30193, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0,
-    30205, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30217, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m
-    ⟨0, 30227, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30237, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩,
-    (.m ⟨0, 30247, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30257, []⟩)), (⟨0, 0, [((.fr 188),
-    1)]⟩, (.m ⟨0, 30267, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30277, []⟩))], [(⟨0, 0, [((.fr
-    196), 1)]⟩, (.m ⟨0, 30287, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30297, []⟩)), (⟨0, 0,
-    [((.fr 204), 1)]⟩, (.m ⟨0, 30307, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30317, []⟩)), (⟨0,
+    .nil) .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30108, []⟩)),
+    (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30117, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)),
+    (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30134, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30150, []⟩)),
+    (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30162, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30172,
+    []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30182, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0,
+    30194, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30206, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m
+    ⟨0, 30216, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30226, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩,
+    (.m ⟨0, 30236, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30246, []⟩)), (⟨0, 0, [((.fr 188),
+    1)]⟩, (.m ⟨0, 30256, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30266, []⟩))], [(⟨0, 0, [((.fr
+    196), 1)]⟩, (.m ⟨0, 30276, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30286, []⟩)), (⟨0, 0,
+    [((.fr 204), 1)]⟩, (.m ⟨0, 30296, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30306, []⟩)), (⟨0,
     1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1,
     [((.fr 31), 1)]⟩, (.m ⟨0, 0, [((.fr 33), 1)]⟩)), (⟨0, 1, [((.fr 36), 1)]⟩, (.m ⟨1, 0, []⟩)),
     (⟨0, 1, [((.fr 49), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 148), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0,
@@ -877,9 +877,9 @@ noncomputable def snap208 : List Mode.Abs × Mode.Pend :=
     1)]⟩, ⟨0, 480, [((.hp 49 4), 1)]⟩, ⟨0, 482, [((.hp 49 4), 1)]⟩, ⟨0, 484, [((.hp 49 4), 1)]⟩],
     [⟨0, 486, [((.hp 49 4), 1)]⟩, ⟨0, 488, [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0,
     492, [((.hp 49 4), 1)]⟩, ⟨0, 494, [((.hp 49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num
-    430), (.ex (.fr 161) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0,
-    0, []⟩, (.num 430), (.ex (.hp 10 1) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2)
-    14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0),
+    430), (.ex (.fr 161) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0,
+    0, []⟩, (.num 430), (.ex (.hp 10 1) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2)
+    14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0),
     (.ex (.fr 6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0,
     [((.fr 13), 1)]⟩, (.num 0), (.ex (.fr 9) 6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex
     (.fr 161) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0,
@@ -1160,7 +1160,7 @@ noncomputable def snap213 : List Mode.Abs × Mode.Pend :=
     (.m ⟨0, 0, [((.hp 168 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 1), 1)]⟩)) .nil
     .nil) .nil) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 8), 1)]⟩)) .nil .nil) .nil)))) (.node
     none (.node none (.node none (.node none .nil (.node (some (.m ⟨0, 0, [((.hp 12 11), 1)]⟩))
-    .nil .nil)) (.node none (.node (some (.m ⟨0, 30205, []⟩)) .nil .nil) .nil)) (.node (some (.m
+    .nil .nil)) (.node none (.node (some (.m ⟨0, 30194, []⟩)) .nil .nil) .nil)) (.node (some (.m
     ⟨0, 0, [((.hp 148 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 34, [((.fr 2), 1)]⟩)) .nil .nil)
     (.node (some (.m ⟨0, 0, [((.hp 12 15), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0,
     [((.hp 12 7), 1)]⟩)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 3),
@@ -1169,31 +1169,31 @@ noncomputable def snap213 : List Mode.Abs × Mode.Pend :=
     184 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩)) .nil .nil) .nil) (.node
     none (.node (some (.m ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil .nil) .nil))))) (.node none (.node none
     (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0,
-    30277, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩)) .nil .nil)
+    30266, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩)) .nil .nil)
     .nil)) (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node
-    (some (.m ⟨0, 30317, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30237, []⟩)) .nil .nil)
-    .nil))) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node
-    none .nil (.node (some (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30217,
+    (some (.m ⟨0, 30306, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30226, []⟩)) .nil .nil)
+    .nil))) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node
+    none .nil (.node (some (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30206,
     []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some
-    (.m ⟨0, 30183, []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30257, []⟩)) .nil .nil)
-    .nil)))) (.node none (.node none (.node (some (.m ⟨0, 210902, []⟩)) (.node none .nil (.node
-    (some (.m ⟨0, 30287, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩))
+    (.m ⟨0, 30172, []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30246, []⟩)) .nil .nil)
+    .nil)))) (.node none (.node none (.node (some (.m ⟨0, 210081, []⟩)) (.node none .nil (.node
+    (some (.m ⟨0, 30276, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩))
     .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m
-    ⟨0, 30173, []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30247, []⟩)) .nil .nil)
+    ⟨0, 30162, []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30236, []⟩)) .nil .nil)
     .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp
-    10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30307, []⟩)) .nil .nil)) (.node none (.node
-    (some (.m ⟨0, 30227, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩))
-    (.node none (.node (some (.m ⟨0, 30193, []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0,
-    30267, []⟩)) .nil .nil) .nil)))))) (.node none (.node none (.node none (.node none (.node (some
+    10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30296, []⟩)) .nil .nil)) (.node none (.node
+    (some (.m ⟨0, 30216, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩))
+    (.node none (.node (some (.m ⟨0, 30182, []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0,
+    30256, []⟩)) .nil .nil) .nil)))))) (.node none (.node none (.node none (.node none (.node (some
     (.m ⟨0, 0, [((.hp 16 0), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 204 5), 1)]⟩)) .nil .nil) (.node
     none (.node (some (.m ⟨0, 19, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 49 4),
     1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 0), 1)]⟩)) .nil .nil) (.node
     (some (.m ⟨0, 0, [((.hp 172 5), 1)]⟩)) .nil .nil))) (.node none (.node none (.node none .nil
     (.node none (.node (some (.tab (.fr 161) 650)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp
-    152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10
+    152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10
     4), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 188 5), 1)]⟩)) .nil .nil)))) (.node none
     (.node none (.node none (.node (some (.m ⟨0, 1, []⟩)) (.node none .nil (.node (some (.tab (.hp
-    10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29578, []⟩)) (.node none (.node (some (.m
+    10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29567, []⟩)) (.node none (.node (some (.m
     ⟨0, 34, []⟩)) .nil .nil) (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none (.node
     (some (.tab (.hp 10 2) 650)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10
     2), 1)]⟩)) (.node none .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none (.node
@@ -1235,17 +1235,17 @@ noncomputable def snap213 : List Mode.Abs × Mode.Pend :=
     .nil .nil) .nil)) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node
     none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil (.node
     none (.node (some ()) .nil .nil) .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24),
-    1)]⟩, (.m ⟨0, 30119, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30128, []⟩)), (⟨0, 0, [((.fr 31),
-    1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30145, []⟩)), (⟨0, 0, [((.fr 49),
-    1)]⟩, (.m ⟨0, 30161, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30173, []⟩)), (⟨0, 0, [((.fr
-    152), 1)]⟩, (.m ⟨0, 30183, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30193, []⟩)), (⟨0, 0,
-    [((.fr 162), 1)]⟩, (.m ⟨0, 30205, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30217, []⟩)), (⟨0,
-    0, [((.fr 172), 1)]⟩, (.m ⟨0, 30227, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30237, []⟩)),
-    (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30247, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30257,
-    []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0, 30267, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0,
-    30277, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30287, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m
-    ⟨0, 30297, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30307, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩,
-    (.m ⟨0, 30317, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m
+    1)]⟩, (.m ⟨0, 30108, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30117, []⟩)), (⟨0, 0, [((.fr 31),
+    1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30134, []⟩)), (⟨0, 0, [((.fr 49),
+    1)]⟩, (.m ⟨0, 30150, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30162, []⟩)), (⟨0, 0, [((.fr
+    152), 1)]⟩, (.m ⟨0, 30172, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30182, []⟩)), (⟨0, 0,
+    [((.fr 162), 1)]⟩, (.m ⟨0, 30194, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30206, []⟩)), (⟨0,
+    0, [((.fr 172), 1)]⟩, (.m ⟨0, 30216, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30226, []⟩)),
+    (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30236, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30246,
+    []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0, 30256, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0,
+    30266, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30276, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m
+    ⟨0, 30286, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30296, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩,
+    (.m ⟨0, 30306, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m
     ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 31), 1)]⟩, (.m ⟨0, 0, [((.fr 33), 1)]⟩)), (⟨0, 1, [((.fr 36),
     1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 49), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 148), 1)]⟩,
     (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 152), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 156), 1)]⟩, (.m
@@ -1427,10 +1427,10 @@ noncomputable def snap213 : List Mode.Abs × Mode.Pend :=
     ⟨0, 472, [((.hp 49 4), 1)]⟩, ⟨0, 476, [((.hp 49 4), 1)]⟩], [⟨0, 480, [((.hp 49 4), 1)]⟩, ⟨0,
     482, [((.hp 49 4), 1)]⟩, ⟨0, 484, [((.hp 49 4), 1)]⟩, ⟨0, 486, [((.hp 49 4), 1)]⟩, ⟨0, 488,
     [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0, 492, [((.hp 49 4), 1)]⟩, ⟨0, 494, [((.hp
-    49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161) 14333), 1, 0⟩, ⟨⟨0,
-    0, []⟩, (.num 430), (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 1)
-    14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
-    (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr
+    49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161) 14322), 1, 0⟩, ⟨⟨0,
+    0, []⟩, (.num 430), (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 1)
+    14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
+    (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr
     4), 1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 13), 1)]⟩, (.num 0), (.ex (.fr 9)
     6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 161) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15),
     1)]⟩, (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.hp 10 1)
@@ -1705,7 +1705,7 @@ noncomputable def snap213 : List Mode.Abs × Mode.Pend :=
     1)]⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 168 5), 1)]⟩)) (.node none (.node (some
     (.m ⟨0, 0, [((.hp 12 1), 1)]⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 0, [((.hp 12
     8), 1)]⟩)) .nil .nil) .nil)))) (.node none (.node none (.node none (.node none .nil (.node
-    (some (.m ⟨0, 0, [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30205,
+    (some (.m ⟨0, 0, [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30194,
     []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 148 5), 1)]⟩)) (.node none (.node (some
     (.m ⟨0, 34, [((.fr 2), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 15), 1)]⟩)) .nil
     .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 7), 1)]⟩)) .nil .nil) .nil))) (.node none
@@ -1714,32 +1714,32 @@ noncomputable def snap213 : List Mode.Abs × Mode.Pend :=
     .nil)) (.node (some (.m ⟨0, 0, [((.hp 184 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 0, [((.hp
     12 2), 1)]⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil
     .nil) .nil))))) (.node none (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp
-    208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30277, []⟩)) .nil .nil)) (.node none (.node (some (.m
+    208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30266, []⟩)) .nil .nil)) (.node none (.node (some (.m
     ⟨0, 0, [((.fr 161), 1)]⟩)) .nil .nil) .nil)) (.node none (.node none (.node (some (.m ⟨0, 0,
-    [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30317, []⟩)) .nil .nil)) (.node none
-    (.node (some (.m ⟨0, 30237, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19361, []⟩)) (.node
-    (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30297, []⟩)) .nil
-    .nil)) (.node none (.node (some (.m ⟨0, 30217, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
-    [((.hp 176 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30183, []⟩)) .nil .nil) .nil) (.node
-    none (.node (some (.m ⟨0, 30257, []⟩)) .nil .nil) .nil)))) (.node none (.node none (.node (some
-    (.m ⟨0, 210902, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30287, []⟩)) .nil .nil)) (.node
+    [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30306, []⟩)) .nil .nil)) (.node none
+    (.node (some (.m ⟨0, 30226, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19350, []⟩)) (.node
+    (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30286, []⟩)) .nil
+    .nil)) (.node none (.node (some (.m ⟨0, 30206, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
+    [((.hp 176 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30172, []⟩)) .nil .nil) .nil) (.node
+    none (.node (some (.m ⟨0, 30246, []⟩)) .nil .nil) .nil)))) (.node none (.node none (.node (some
+    (.m ⟨0, 210081, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30276, []⟩)) .nil .nil)) (.node
     none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
-    [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30173, []⟩)) .nil .nil) .nil) (.node
-    none (.node (some (.m ⟨0, 30247, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9),
+    [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30162, []⟩)) .nil .nil) .nil) (.node
+    none (.node (some (.m ⟨0, 30236, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9),
     1), ((.fr 15), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node
-    (some (.m ⟨0, 30307, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30227, []⟩)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30193,
-    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30267, []⟩)) .nil .nil) .nil))))))
+    (some (.m ⟨0, 30296, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30216, []⟩)) .nil .nil)
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30182,
+    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30256, []⟩)) .nil .nil) .nil))))))
     (.node none (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 16 0), 1)]⟩))
     (.node (some (.m ⟨0, 0, [((.hp 204 5), 1)]⟩)) .nil .nil) (.node none (.node (some (.m ⟨0, 19,
     []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil)) (.node none
     (.node (some (.m ⟨0, 0, [((.hp 10 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 172 5),
     1)]⟩)) .nil .nil))) (.node none (.node none (.node none .nil (.node none (.node (some (.tab
     (.fr 161) 650)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil))
-    (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil)
+    (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil)
     (.node (some (.m ⟨0, 0, [((.hp 188 5), 1)]⟩)) .nil .nil)))) (.node none (.node none (.node none
     (.node (some (.m ⟨0, 1, []⟩)) (.node none .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil))
-    .nil) (.node (some (.m ⟨0, 29578, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil)
+    .nil) (.node (some (.m ⟨0, 29567, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil)
     (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.hp 10 2) 650))
     .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 2), 1)]⟩)) (.node none .nil
     (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.fr 167) 650))
@@ -1780,17 +1780,17 @@ noncomputable def snap213 : List Mode.Abs × Mode.Pend :=
     ()) (.node none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node
     (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node (some ())
     .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil (.node none (.node (some ())
-    .nil .nil) .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30119,
-    []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30128, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0,
-    []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30145, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30161,
-    []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30173, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0,
-    30183, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30193, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m
-    ⟨0, 30205, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30217, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩,
-    (.m ⟨0, 30227, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30237, []⟩)), (⟨0, 0, [((.fr 180),
-    1)]⟩, (.m ⟨0, 30247, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30257, []⟩)), (⟨0, 0, [((.fr
-    188), 1)]⟩, (.m ⟨0, 30267, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30277, []⟩))], [(⟨0, 0,
-    [((.fr 196), 1)]⟩, (.m ⟨0, 30287, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30297, []⟩)), (⟨0,
-    0, [((.fr 204), 1)]⟩, (.m ⟨0, 30307, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30317, []⟩)),
+    .nil .nil) .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30108,
+    []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30117, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0,
+    []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30134, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30150,
+    []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30162, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0,
+    30172, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30182, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m
+    ⟨0, 30194, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30206, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩,
+    (.m ⟨0, 30216, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30226, []⟩)), (⟨0, 0, [((.fr 180),
+    1)]⟩, (.m ⟨0, 30236, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30246, []⟩)), (⟨0, 0, [((.fr
+    188), 1)]⟩, (.m ⟨0, 30256, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30266, []⟩))], [(⟨0, 0,
+    [((.fr 196), 1)]⟩, (.m ⟨0, 30276, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30286, []⟩)), (⟨0,
+    0, [((.fr 204), 1)]⟩, (.m ⟨0, 30296, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30306, []⟩)),
     (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1,
     [((.fr 31), 1)]⟩, (.m ⟨0, 0, [((.fr 33), 1)]⟩)), (⟨0, 1, [((.fr 36), 1)]⟩, (.m ⟨1, 0, []⟩)),
     (⟨0, 1, [((.fr 49), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 148), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0,
@@ -1973,10 +1973,10 @@ noncomputable def snap213 : List Mode.Abs × Mode.Pend :=
     ⟨0, 472, [((.hp 49 4), 1)]⟩, ⟨0, 476, [((.hp 49 4), 1)]⟩], [⟨0, 480, [((.hp 49 4), 1)]⟩, ⟨0,
     482, [((.hp 49 4), 1)]⟩, ⟨0, 484, [((.hp 49 4), 1)]⟩, ⟨0, 486, [((.hp 49 4), 1)]⟩, ⟨0, 488,
     [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0, 492, [((.hp 49 4), 1)]⟩, ⟨0, 494, [((.hp
-    49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161) 14333), 1, 0⟩, ⟨⟨0,
-    0, []⟩, (.num 430), (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 1)
-    14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
-    (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr
+    49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161) 14322), 1, 0⟩, ⟨⟨0,
+    0, []⟩, (.num 430), (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 1)
+    14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
+    (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr
     4), 1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 13), 1)]⟩, (.num 0), (.ex (.fr 9)
     6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 161) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15),
     1)]⟩, (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.hp 10 1)
@@ -2257,7 +2257,7 @@ noncomputable def snap217 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (.m ⟨0, 0, [((.hp 12 1), 1)]⟩)) .nil .nil) .nil) (.node none (.node
     (some (.m ⟨0, 0, [((.hp 12 8), 1)]⟩)) .nil .nil) .nil)))) (.node none (.node none (.node none
     (.node none .nil (.node (some (.m ⟨0, 0, [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node
-    (some (.m ⟨0, 30205, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 148 5), 1)]⟩))
+    (some (.m ⟨0, 30194, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 148 5), 1)]⟩))
     (.node none (.node (some (.m ⟨0, 34, [((.fr 2), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0,
     [((.hp 12 15), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 7), 1)]⟩)) .nil
     .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 3), 1)]⟩)) (.node none .nil (.node
@@ -2265,32 +2265,32 @@ noncomputable def snap217 : List Mode.Abs × Mode.Pend :=
     12 5), 1)]⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 184 5), 1)]⟩)) (.node none
     (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0,
     0, [((.hp 12 9), 1)]⟩)) .nil .nil) .nil))))) (.node none (.node none (.node none (.node none
-    (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30277, []⟩)) .nil
+    (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30266, []⟩)) .nil
     .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩)) .nil .nil) .nil)) (.node none
-    (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30317,
-    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30237, []⟩)) .nil .nil) .nil))) (.node (some
-    (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some
-    (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30217, []⟩)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30183,
-    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30257, []⟩)) .nil .nil) .nil)))) (.node
-    none (.node none (.node (some (.m ⟨0, 210902, []⟩)) (.node none .nil (.node (some (.m ⟨0,
-    30287, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30173,
-    []⟩)) .nil .nil) (.node (some (.m ⟨0, 30327, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30247, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
-    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30307, []⟩)) .nil
-    .nil)) (.node none (.node (some (.m ⟨0, 30227, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
-    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30193, []⟩)) .nil .nil) .nil) (.node
-    none (.node (some (.m ⟨0, 30267, []⟩)) .nil .nil) .nil)))))) (.node none (.node none (.node
+    (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30306,
+    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30226, []⟩)) .nil .nil) .nil))) (.node (some
+    (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some
+    (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30206, []⟩)) .nil .nil)
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30172,
+    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30246, []⟩)) .nil .nil) .nil)))) (.node
+    none (.node none (.node (some (.m ⟨0, 210081, []⟩)) (.node none .nil (.node (some (.m ⟨0,
+    30276, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩)) .nil .nil)
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30162,
+    []⟩)) .nil .nil) (.node (some (.m ⟨0, 30316, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30236, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
+    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30296, []⟩)) .nil
+    .nil)) (.node none (.node (some (.m ⟨0, 30216, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
+    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30182, []⟩)) .nil .nil) .nil) (.node
+    none (.node (some (.m ⟨0, 30256, []⟩)) .nil .nil) .nil)))))) (.node none (.node none (.node
     none (.node none (.node (some (.m ⟨0, 0, [((.hp 16 0), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp
     204 5), 1)]⟩)) .nil .nil) (.node none (.node (some (.m ⟨0, 19, []⟩)) .nil .nil) .nil)) (.node
     (some (.m ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 10
     0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 172 5), 1)]⟩)) .nil .nil))) (.node none
     (.node none (.node none .nil (.node none (.node (some (.tab (.fr 161) 650)) .nil .nil) .nil))
-    (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19361, []⟩))
+    (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19350, []⟩))
     (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 188 5),
     1)]⟩)) .nil .nil)))) (.node none (.node none (.node none (.node (some (.m ⟨0, 1, []⟩)) (.node
-    none .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29578,
+    none .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29567,
     []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil) (.node (some (.tab (.hp 10 2) 650))
     .nil .nil)) (.node none (.node (some (.tab (.hp 10 2) 650)) .nil .nil) .nil))) (.node none
     (.node (some (.m ⟨0, 0, [((.hp 10 2), 1)]⟩)) (.node none .nil (.node (some (.tab (.hp 10 2)
@@ -2333,18 +2333,18 @@ noncomputable def snap217 : List Mode.Abs × Mode.Pend :=
     (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node none (.node (some ()) .nil .nil)
     .nil) .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node
     (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil) .nil)))), (List.flatten
-    [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30119, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30128,
-    []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30145,
-    []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30161, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0,
-    30173, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30183, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m
-    ⟨0, 30193, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30205, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩,
-    (.m ⟨0, 30217, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30227, []⟩)), (⟨0, 0, [((.fr 176),
-    1)]⟩, (.m ⟨0, 30237, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30247, []⟩)), (⟨0, 0, [((.fr
-    184), 1)]⟩, (.m ⟨0, 30257, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0, 30267, []⟩)), (⟨0, 0,
-    [((.fr 192), 1)]⟩, (.m ⟨0, 30277, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30287, []⟩)),
-    (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30297, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30307,
-    []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30317, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0,
-    30327, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0,
+    [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30108, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30117,
+    []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30134,
+    []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30150, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0,
+    30162, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30172, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m
+    ⟨0, 30182, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30194, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩,
+    (.m ⟨0, 30206, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30216, []⟩)), (⟨0, 0, [((.fr 176),
+    1)]⟩, (.m ⟨0, 30226, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30236, []⟩)), (⟨0, 0, [((.fr
+    184), 1)]⟩, (.m ⟨0, 30246, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0, 30256, []⟩)), (⟨0, 0,
+    [((.fr 192), 1)]⟩, (.m ⟨0, 30266, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30276, []⟩)),
+    (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30286, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30296,
+    []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30306, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0,
+    30316, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0,
     []⟩)), (⟨0, 1, [((.fr 31), 1)]⟩, (.m ⟨0, 0, [((.fr 33), 1)]⟩)), (⟨0, 1, [((.fr 36), 1)]⟩, (.m
     ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 49), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 148), 1)]⟩, (.m ⟨1, 0,
     []⟩)), (⟨0, 1, [((.fr 152), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 156), 1)]⟩, (.m ⟨1, 0,
@@ -2528,9 +2528,9 @@ noncomputable def snap217 : List Mode.Abs × Mode.Pend :=
     480, [((.hp 49 4), 1)]⟩, ⟨0, 482, [((.hp 49 4), 1)]⟩, ⟨0, 484, [((.hp 49 4), 1)]⟩, ⟨0, 486,
     [((.hp 49 4), 1)]⟩, ⟨0, 488, [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0, 492, [((.hp
     49 4), 1)]⟩, ⟨0, 494, [((.hp 49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex
-    (.fr 161) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩,
-    (.num 430), (.ex (.hp 10 1) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14333), 1,
-    0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr
+    (.fr 161) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩,
+    (.num 430), (.ex (.hp 10 1) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14322), 1,
+    0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr
     6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 13),
     1)]⟩, (.num 0), (.ex (.fr 9) 6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 161) 2),
     1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩,
@@ -2807,7 +2807,7 @@ noncomputable def snap217 : List Mode.Abs × Mode.Pend :=
     (.m ⟨0, 0, [((.hp 168 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 1), 1)]⟩)) .nil
     .nil) .nil) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 8), 1)]⟩)) .nil .nil) .nil)))) (.node
     none (.node none (.node none (.node none .nil (.node (some (.m ⟨0, 0, [((.hp 12 11), 1)]⟩))
-    .nil .nil)) (.node none (.node (some (.m ⟨0, 30205, []⟩)) .nil .nil) .nil)) (.node (some (.m
+    .nil .nil)) (.node none (.node (some (.m ⟨0, 30194, []⟩)) .nil .nil) .nil)) (.node (some (.m
     ⟨0, 0, [((.hp 148 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 34, [((.fr 2), 1)]⟩)) .nil .nil)
     (.node (some (.m ⟨0, 0, [((.hp 12 15), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0,
     [((.hp 12 7), 1)]⟩)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 3),
@@ -2816,32 +2816,32 @@ noncomputable def snap217 : List Mode.Abs × Mode.Pend :=
     184 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩)) .nil .nil) .nil) (.node
     none (.node (some (.m ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil .nil) .nil))))) (.node none (.node none
     (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0,
-    30277, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩)) .nil .nil)
+    30266, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩)) .nil .nil)
     .nil)) (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node
-    (some (.m ⟨0, 30317, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30237, []⟩)) .nil .nil)
-    .nil))) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node
-    none .nil (.node (some (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30217,
+    (some (.m ⟨0, 30306, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30226, []⟩)) .nil .nil)
+    .nil))) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node
+    none .nil (.node (some (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30206,
     []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some
-    (.m ⟨0, 30183, []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30257, []⟩)) .nil .nil)
-    .nil)))) (.node none (.node none (.node (some (.m ⟨0, 210902, []⟩)) (.node none .nil (.node
-    (some (.m ⟨0, 30287, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩))
+    (.m ⟨0, 30172, []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30246, []⟩)) .nil .nil)
+    .nil)))) (.node none (.node none (.node (some (.m ⟨0, 210081, []⟩)) (.node none .nil (.node
+    (some (.m ⟨0, 30276, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩))
     .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m
-    ⟨0, 30173, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30327, []⟩)) .nil .nil)) (.node none (.node
-    (some (.m ⟨0, 30247, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15),
+    ⟨0, 30162, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30316, []⟩)) .nil .nil)) (.node none (.node
+    (some (.m ⟨0, 30236, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15),
     1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0,
-    30307, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30227, []⟩)) .nil .nil) .nil)) (.node
-    (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30193, []⟩)) .nil .nil)
-    .nil) (.node none (.node (some (.m ⟨0, 30267, []⟩)) .nil .nil) .nil)))))) (.node none (.node
+    30296, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30216, []⟩)) .nil .nil) .nil)) (.node
+    (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30182, []⟩)) .nil .nil)
+    .nil) (.node none (.node (some (.m ⟨0, 30256, []⟩)) .nil .nil) .nil)))))) (.node none (.node
     none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 16 0), 1)]⟩)) (.node (some (.m ⟨0,
     0, [((.hp 204 5), 1)]⟩)) .nil .nil) (.node none (.node (some (.m ⟨0, 19, []⟩)) .nil .nil)
     .nil)) (.node (some (.m ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m
     ⟨0, 0, [((.hp 10 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 172 5), 1)]⟩)) .nil
     .nil))) (.node none (.node none (.node none .nil (.node none (.node (some (.tab (.fr 161) 650))
     .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m
-    ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0,
+    ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0,
     0, [((.hp 188 5), 1)]⟩)) .nil .nil)))) (.node none (.node none (.node none (.node (some (.m ⟨0,
     1, []⟩)) (.node none .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some
-    (.m ⟨0, 29578, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil) (.node (some (.tab
+    (.m ⟨0, 29567, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil) (.node (some (.tab
     (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.hp 10 2) 650)) .nil .nil) .nil)))
     (.node none (.node (some (.m ⟨0, 0, [((.hp 10 2), 1)]⟩)) (.node none .nil (.node (some (.tab
     (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.fr 167) 650)) .nil .nil) .nil))
@@ -2883,18 +2883,18 @@ noncomputable def snap217 : List Mode.Abs × Mode.Pend :=
     none (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node none (.node (some ()) .nil
     .nil) .nil) .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none
     (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil) .nil)))),
-    (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30119, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m
-    ⟨0, 30128, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0,
-    30145, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30161, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m
-    ⟨0, 30173, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30183, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩,
-    (.m ⟨0, 30193, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30205, []⟩)), (⟨0, 0, [((.fr 168),
-    1)]⟩, (.m ⟨0, 30217, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30227, []⟩)), (⟨0, 0, [((.fr
-    176), 1)]⟩, (.m ⟨0, 30237, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30247, []⟩)), (⟨0, 0,
-    [((.fr 184), 1)]⟩, (.m ⟨0, 30257, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0, 30267, []⟩)), (⟨0,
-    0, [((.fr 192), 1)]⟩, (.m ⟨0, 30277, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30287, []⟩)),
-    (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30297, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30307,
-    []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30317, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0,
-    30327, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0,
+    (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30108, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m
+    ⟨0, 30117, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0,
+    30134, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30150, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m
+    ⟨0, 30162, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30172, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩,
+    (.m ⟨0, 30182, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30194, []⟩)), (⟨0, 0, [((.fr 168),
+    1)]⟩, (.m ⟨0, 30206, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30216, []⟩)), (⟨0, 0, [((.fr
+    176), 1)]⟩, (.m ⟨0, 30226, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30236, []⟩)), (⟨0, 0,
+    [((.fr 184), 1)]⟩, (.m ⟨0, 30246, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0, 30256, []⟩)), (⟨0,
+    0, [((.fr 192), 1)]⟩, (.m ⟨0, 30266, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30276, []⟩)),
+    (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30286, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30296,
+    []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30306, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0,
+    30316, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0,
     []⟩)), (⟨0, 1, [((.fr 31), 1)]⟩, (.m ⟨0, 0, [((.fr 33), 1)]⟩)), (⟨0, 1, [((.fr 36), 1)]⟩, (.m
     ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 49), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 148), 1)]⟩, (.m ⟨1, 0,
     []⟩)), (⟨0, 1, [((.fr 152), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 156), 1)]⟩, (.m ⟨1, 0,
@@ -3078,9 +3078,9 @@ noncomputable def snap217 : List Mode.Abs × Mode.Pend :=
     480, [((.hp 49 4), 1)]⟩, ⟨0, 482, [((.hp 49 4), 1)]⟩, ⟨0, 484, [((.hp 49 4), 1)]⟩, ⟨0, 486,
     [((.hp 49 4), 1)]⟩, ⟨0, 488, [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0, 492, [((.hp
     49 4), 1)]⟩, ⟨0, 494, [((.hp 49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex
-    (.fr 161) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩,
-    (.num 430), (.ex (.hp 10 1) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14333), 1,
-    0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr
+    (.fr 161) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩,
+    (.num 430), (.ex (.hp 10 1) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14322), 1,
+    0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr
     6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 13),
     1)]⟩, (.num 0), (.ex (.fr 9) 6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 161) 2),
     1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩,
@@ -3362,7 +3362,7 @@ noncomputable def snap218 : List Mode.Abs × Mode.Pend :=
     (.node none (.node (some (.m ⟨0, 0, [((.hp 12 1), 1)]⟩)) .nil .nil) .nil) (.node none (.node
     (some (.m ⟨0, 0, [((.hp 12 8), 1)]⟩)) .nil .nil) .nil)))) (.node none (.node none (.node none
     (.node none .nil (.node (some (.m ⟨0, 0, [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node
-    (some (.m ⟨0, 30205, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 148 5), 1)]⟩))
+    (some (.m ⟨0, 30194, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 148 5), 1)]⟩))
     (.node none (.node (some (.m ⟨0, 34, [((.fr 2), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0,
     [((.hp 12 15), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 7), 1)]⟩)) .nil
     .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 3), 1)]⟩)) (.node none .nil (.node
@@ -3370,32 +3370,32 @@ noncomputable def snap218 : List Mode.Abs × Mode.Pend :=
     12 5), 1)]⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 184 5), 1)]⟩)) (.node none
     (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0,
     0, [((.hp 12 9), 1)]⟩)) .nil .nil) .nil))))) (.node none (.node none (.node none (.node none
-    (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30277, []⟩)) .nil
+    (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30266, []⟩)) .nil
     .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩)) .nil .nil) .nil)) (.node none
-    (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30317,
-    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30237, []⟩)) .nil .nil) .nil))) (.node (some
-    (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some
-    (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30217, []⟩)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30183,
-    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30257, []⟩)) .nil .nil) .nil)))) (.node
-    none (.node none (.node (some (.m ⟨0, 210902, []⟩)) (.node none .nil (.node (some (.m ⟨0,
-    30287, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30173,
-    []⟩)) .nil .nil) (.node (some (.m ⟨0, 30327, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30247, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
-    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30307, []⟩)) .nil
-    .nil)) (.node none (.node (some (.m ⟨0, 30227, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
-    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30193, []⟩)) .nil .nil) .nil) (.node
-    none (.node (some (.m ⟨0, 30267, []⟩)) .nil .nil) .nil)))))) (.node none (.node none (.node
+    (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30306,
+    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30226, []⟩)) .nil .nil) .nil))) (.node (some
+    (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some
+    (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30206, []⟩)) .nil .nil)
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30172,
+    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30246, []⟩)) .nil .nil) .nil)))) (.node
+    none (.node none (.node (some (.m ⟨0, 210081, []⟩)) (.node none .nil (.node (some (.m ⟨0,
+    30276, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩)) .nil .nil)
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30162,
+    []⟩)) .nil .nil) (.node (some (.m ⟨0, 30316, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30236, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
+    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30296, []⟩)) .nil
+    .nil)) (.node none (.node (some (.m ⟨0, 30216, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
+    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30182, []⟩)) .nil .nil) .nil) (.node
+    none (.node (some (.m ⟨0, 30256, []⟩)) .nil .nil) .nil)))))) (.node none (.node none (.node
     none (.node none (.node (some (.m ⟨0, 0, [((.hp 16 0), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp
     204 5), 1)]⟩)) .nil .nil) (.node none (.node (some (.m ⟨0, 19, []⟩)) .nil .nil) .nil)) (.node
     (some (.m ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 10
     0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 172 5), 1)]⟩)) .nil .nil))) (.node none
     (.node none (.node none .nil (.node none (.node (some (.tab (.fr 161) 650)) .nil .nil) .nil))
-    (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19361, []⟩))
+    (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19350, []⟩))
     (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 188 5),
     1)]⟩)) .nil .nil)))) (.node none (.node none (.node none (.node (some (.m ⟨0, 1, []⟩)) (.node
-    none .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29578,
+    none .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29567,
     []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil) (.node (some (.tab (.hp 10 2) 650))
     .nil .nil)) (.node none (.node (some (.tab (.hp 10 2) 650)) .nil .nil) .nil))) (.node none
     (.node (some (.m ⟨0, 0, [((.hp 10 2), 1)]⟩)) (.node none .nil (.node (some (.tab (.hp 10 2)
@@ -3438,18 +3438,18 @@ noncomputable def snap218 : List Mode.Abs × Mode.Pend :=
     (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node none (.node (some ()) .nil .nil)
     .nil) .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node
     (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil) .nil)))), (List.flatten
-    [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30119, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30128,
-    []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30145,
-    []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30161, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0,
-    30173, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30183, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m
-    ⟨0, 30193, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30205, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩,
-    (.m ⟨0, 30217, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30227, []⟩)), (⟨0, 0, [((.fr 176),
-    1)]⟩, (.m ⟨0, 30237, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30247, []⟩)), (⟨0, 0, [((.fr
-    184), 1)]⟩, (.m ⟨0, 30257, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0, 30267, []⟩)), (⟨0, 0,
-    [((.fr 192), 1)]⟩, (.m ⟨0, 30277, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30287, []⟩)),
-    (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30297, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30307,
-    []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30317, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0,
-    30327, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0,
+    [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30108, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30117,
+    []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30134,
+    []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30150, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0,
+    30162, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30172, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m
+    ⟨0, 30182, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30194, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩,
+    (.m ⟨0, 30206, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30216, []⟩)), (⟨0, 0, [((.fr 176),
+    1)]⟩, (.m ⟨0, 30226, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30236, []⟩)), (⟨0, 0, [((.fr
+    184), 1)]⟩, (.m ⟨0, 30246, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0, 30256, []⟩)), (⟨0, 0,
+    [((.fr 192), 1)]⟩, (.m ⟨0, 30266, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30276, []⟩)),
+    (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30286, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30296,
+    []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30306, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0,
+    30316, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0,
     []⟩)), (⟨0, 1, [((.fr 31), 1)]⟩, (.m ⟨0, 0, [((.fr 33), 1)]⟩)), (⟨0, 1, [((.fr 36), 1)]⟩, (.m
     ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 49), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 148), 1)]⟩, (.m ⟨1, 0,
     []⟩)), (⟨0, 1, [((.fr 152), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 156), 1)]⟩, (.m ⟨1, 0,
@@ -3633,9 +3633,9 @@ noncomputable def snap218 : List Mode.Abs × Mode.Pend :=
     480, [((.hp 49 4), 1)]⟩, ⟨0, 482, [((.hp 49 4), 1)]⟩, ⟨0, 484, [((.hp 49 4), 1)]⟩, ⟨0, 486,
     [((.hp 49 4), 1)]⟩, ⟨0, 488, [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0, 492, [((.hp
     49 4), 1)]⟩, ⟨0, 494, [((.hp 49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex
-    (.fr 161) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩,
-    (.num 430), (.ex (.hp 10 1) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14333), 1,
-    0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr
+    (.fr 161) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩,
+    (.num 430), (.ex (.hp 10 1) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14322), 1,
+    0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr
     6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 13),
     1)]⟩, (.num 0), (.ex (.fr 9) 6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 161) 2),
     1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩,
@@ -3912,7 +3912,7 @@ noncomputable def snap218 : List Mode.Abs × Mode.Pend :=
     (.m ⟨0, 0, [((.hp 168 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 1), 1)]⟩)) .nil
     .nil) .nil) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 8), 1)]⟩)) .nil .nil) .nil)))) (.node
     none (.node none (.node none (.node none .nil (.node (some (.m ⟨0, 0, [((.hp 12 11), 1)]⟩))
-    .nil .nil)) (.node none (.node (some (.m ⟨0, 30205, []⟩)) .nil .nil) .nil)) (.node (some (.m
+    .nil .nil)) (.node none (.node (some (.m ⟨0, 30194, []⟩)) .nil .nil) .nil)) (.node (some (.m
     ⟨0, 0, [((.hp 148 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 34, [((.fr 2), 1)]⟩)) .nil .nil)
     (.node (some (.m ⟨0, 0, [((.hp 12 15), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0,
     [((.hp 12 7), 1)]⟩)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 3),
@@ -3921,32 +3921,32 @@ noncomputable def snap218 : List Mode.Abs × Mode.Pend :=
     184 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩)) .nil .nil) .nil) (.node
     none (.node (some (.m ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil .nil) .nil))))) (.node none (.node none
     (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0,
-    30277, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩)) .nil .nil)
+    30266, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩)) .nil .nil)
     .nil)) (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node
-    (some (.m ⟨0, 30317, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30237, []⟩)) .nil .nil)
-    .nil))) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node
-    none .nil (.node (some (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30217,
+    (some (.m ⟨0, 30306, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30226, []⟩)) .nil .nil)
+    .nil))) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node
+    none .nil (.node (some (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30206,
     []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some
-    (.m ⟨0, 30183, []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30257, []⟩)) .nil .nil)
-    .nil)))) (.node none (.node none (.node (some (.m ⟨0, 210902, []⟩)) (.node none .nil (.node
-    (some (.m ⟨0, 30287, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩))
+    (.m ⟨0, 30172, []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30246, []⟩)) .nil .nil)
+    .nil)))) (.node none (.node none (.node (some (.m ⟨0, 210081, []⟩)) (.node none .nil (.node
+    (some (.m ⟨0, 30276, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩))
     .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m
-    ⟨0, 30173, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30327, []⟩)) .nil .nil)) (.node none (.node
-    (some (.m ⟨0, 30247, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15),
+    ⟨0, 30162, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30316, []⟩)) .nil .nil)) (.node none (.node
+    (some (.m ⟨0, 30236, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15),
     1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0,
-    30307, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30227, []⟩)) .nil .nil) .nil)) (.node
-    (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30193, []⟩)) .nil .nil)
-    .nil) (.node none (.node (some (.m ⟨0, 30267, []⟩)) .nil .nil) .nil)))))) (.node none (.node
+    30296, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30216, []⟩)) .nil .nil) .nil)) (.node
+    (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30182, []⟩)) .nil .nil)
+    .nil) (.node none (.node (some (.m ⟨0, 30256, []⟩)) .nil .nil) .nil)))))) (.node none (.node
     none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 16 0), 1)]⟩)) (.node (some (.m ⟨0,
     0, [((.hp 204 5), 1)]⟩)) .nil .nil) (.node none (.node (some (.m ⟨0, 19, []⟩)) .nil .nil)
     .nil)) (.node (some (.m ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m
     ⟨0, 0, [((.hp 10 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 172 5), 1)]⟩)) .nil
     .nil))) (.node none (.node none (.node none .nil (.node none (.node (some (.tab (.fr 161) 650))
     .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m
-    ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0,
+    ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0,
     0, [((.hp 188 5), 1)]⟩)) .nil .nil)))) (.node none (.node none (.node none (.node (some (.m ⟨0,
     1, []⟩)) (.node none .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some
-    (.m ⟨0, 29578, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil) (.node (some (.tab
+    (.m ⟨0, 29567, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil) (.node (some (.tab
     (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.hp 10 2) 650)) .nil .nil) .nil)))
     (.node none (.node (some (.m ⟨0, 0, [((.hp 10 2), 1)]⟩)) (.node none .nil (.node (some (.tab
     (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.fr 167) 650)) .nil .nil) .nil))
@@ -3988,18 +3988,18 @@ noncomputable def snap218 : List Mode.Abs × Mode.Pend :=
     none (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node none (.node (some ()) .nil
     .nil) .nil) .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none
     (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil) .nil)))),
-    (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30119, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m
-    ⟨0, 30128, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0,
-    30145, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30161, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m
-    ⟨0, 30173, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30183, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩,
-    (.m ⟨0, 30193, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30205, []⟩)), (⟨0, 0, [((.fr 168),
-    1)]⟩, (.m ⟨0, 30217, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30227, []⟩)), (⟨0, 0, [((.fr
-    176), 1)]⟩, (.m ⟨0, 30237, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30247, []⟩)), (⟨0, 0,
-    [((.fr 184), 1)]⟩, (.m ⟨0, 30257, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0, 30267, []⟩)), (⟨0,
-    0, [((.fr 192), 1)]⟩, (.m ⟨0, 30277, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30287, []⟩)),
-    (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30297, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30307,
-    []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30317, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0,
-    30327, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0,
+    (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30108, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m
+    ⟨0, 30117, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0,
+    30134, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30150, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m
+    ⟨0, 30162, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30172, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩,
+    (.m ⟨0, 30182, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30194, []⟩)), (⟨0, 0, [((.fr 168),
+    1)]⟩, (.m ⟨0, 30206, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30216, []⟩)), (⟨0, 0, [((.fr
+    176), 1)]⟩, (.m ⟨0, 30226, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30236, []⟩)), (⟨0, 0,
+    [((.fr 184), 1)]⟩, (.m ⟨0, 30246, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0, 30256, []⟩)), (⟨0,
+    0, [((.fr 192), 1)]⟩, (.m ⟨0, 30266, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30276, []⟩)),
+    (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30286, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30296,
+    []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30306, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0,
+    30316, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0,
     []⟩)), (⟨0, 1, [((.fr 31), 1)]⟩, (.m ⟨0, 0, [((.fr 33), 1)]⟩)), (⟨0, 1, [((.fr 36), 1)]⟩, (.m
     ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 49), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 148), 1)]⟩, (.m ⟨1, 0,
     []⟩)), (⟨0, 1, [((.fr 152), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 156), 1)]⟩, (.m ⟨1, 0,
@@ -4183,9 +4183,9 @@ noncomputable def snap218 : List Mode.Abs × Mode.Pend :=
     480, [((.hp 49 4), 1)]⟩, ⟨0, 482, [((.hp 49 4), 1)]⟩, ⟨0, 484, [((.hp 49 4), 1)]⟩, ⟨0, 486,
     [((.hp 49 4), 1)]⟩, ⟨0, 488, [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0, 492, [((.hp
     49 4), 1)]⟩, ⟨0, 494, [((.hp 49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex
-    (.fr 161) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩,
-    (.num 430), (.ex (.hp 10 1) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14333), 1,
-    0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr
+    (.fr 161) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩,
+    (.num 430), (.ex (.hp 10 1) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14322), 1,
+    0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr
     6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 13),
     1)]⟩, (.num 0), (.ex (.fr 9) 6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 161) 2),
     1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩,
@@ -4468,7 +4468,7 @@ noncomputable def snap223 : List Mode.Abs × Mode.Pend :=
     [((.hp 12 1), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 16), 1)]⟩)) .nil .nil))
     (.node none (.node (some (.m ⟨0, 0, [((.hp 12 8), 1)]⟩)) .nil .nil) .nil)))) (.node none (.node
     none (.node none (.node none .nil (.node (some (.m ⟨0, 0, [((.hp 12 11), 1)]⟩)) .nil .nil))
-    (.node none (.node (some (.m ⟨0, 30205, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp
+    (.node none (.node (some (.m ⟨0, 30194, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp
     148 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 34, [((.fr 2), 1)]⟩)) .nil .nil) (.node (some
     (.m ⟨0, 0, [((.hp 12 15), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 7),
     1)]⟩)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 3), 1)]⟩)) (.node none
@@ -4476,33 +4476,33 @@ noncomputable def snap223 : List Mode.Abs × Mode.Pend :=
     0, [((.hp 12 5), 1)]⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 184 5), 1)]⟩)) (.node
     none (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩)) .nil .nil) .nil) (.node none (.node (some (.m
     ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil .nil) .nil))))) (.node none (.node none (.node none (.node
-    none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30277, []⟩)) .nil
+    none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30266, []⟩)) .nil
     .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩)) .nil .nil) .nil)) (.node none
-    (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30317,
-    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30237, []⟩)) .nil .nil) .nil))) (.node (some
-    (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some
-    (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30217, []⟩)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30183,
-    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30257, []⟩)) .nil .nil) .nil)))) (.node
-    none (.node none (.node (some (.m ⟨0, 210902, []⟩)) (.node none .nil (.node (some (.m ⟨0,
-    30287, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30173,
-    []⟩)) .nil .nil) (.node (some (.m ⟨0, 30327, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30247, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
-    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30307, []⟩)) .nil
-    .nil)) (.node none (.node (some (.m ⟨0, 30227, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
-    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30193, []⟩)) .nil .nil) .nil) (.node
-    none (.node (some (.m ⟨0, 30267, []⟩)) .nil .nil) .nil)))))) (.node none (.node none (.node
+    (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30306,
+    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30226, []⟩)) .nil .nil) .nil))) (.node (some
+    (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some
+    (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30206, []⟩)) .nil .nil)
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30172,
+    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30246, []⟩)) .nil .nil) .nil)))) (.node
+    none (.node none (.node (some (.m ⟨0, 210081, []⟩)) (.node none .nil (.node (some (.m ⟨0,
+    30276, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩)) .nil .nil)
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30162,
+    []⟩)) .nil .nil) (.node (some (.m ⟨0, 30316, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30236, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
+    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30296, []⟩)) .nil
+    .nil)) (.node none (.node (some (.m ⟨0, 30216, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
+    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30182, []⟩)) .nil .nil) .nil) (.node
+    none (.node (some (.m ⟨0, 30256, []⟩)) .nil .nil) .nil)))))) (.node none (.node none (.node
     none (.node none (.node (some (.m ⟨0, 0, [((.hp 16 0), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp
     204 5), 1)]⟩)) .nil .nil) (.node none (.node (some (.m ⟨0, 19, []⟩)) .nil .nil) .nil)) (.node
     (some (.m ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 10
     0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 172 5), 1)]⟩)) .nil .nil))) (.node none
     (.node none (.node none .nil (.node none (.node (some (.tab (.fr 161) 650)) .nil .nil) .nil))
-    (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19361, []⟩))
+    (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19350, []⟩))
     (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 188 5),
     1)]⟩)) .nil .nil)))) (.node none (.node none (.node none (.node (some (.m ⟨0, 1, []⟩)) (.node
     (some (.m ⟨0, 0, [((.hp 212 5), 1)]⟩)) .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil))
-    .nil) (.node (some (.m ⟨0, 29578, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil)
+    .nil) (.node (some (.m ⟨0, 29567, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil)
     (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.hp 10 2) 650))
     .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 2), 1)]⟩)) (.node none .nil
     (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.fr 167) 650))
@@ -4544,18 +4544,18 @@ noncomputable def snap223 : List Mode.Abs × Mode.Pend :=
     (some ()) (.node none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil))
     (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node (some
     ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil (.node none (.node (some
-    ()) .nil .nil) .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30119,
-    []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30128, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0,
-    []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30145, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30161,
-    []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30173, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0,
-    30183, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30193, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m
-    ⟨0, 30205, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30217, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩,
-    (.m ⟨0, 30227, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30237, []⟩)), (⟨0, 0, [((.fr 180),
-    1)]⟩, (.m ⟨0, 30247, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30257, []⟩)), (⟨0, 0, [((.fr
-    188), 1)]⟩, (.m ⟨0, 30267, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30277, []⟩))], [(⟨0, 0,
-    [((.fr 196), 1)]⟩, (.m ⟨0, 30287, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30297, []⟩)), (⟨0,
-    0, [((.fr 204), 1)]⟩, (.m ⟨0, 30307, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30317, []⟩)),
-    (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0, 30327, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)),
+    ()) .nil .nil) .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30108,
+    []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30117, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0,
+    []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30134, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30150,
+    []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30162, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0,
+    30172, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30182, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m
+    ⟨0, 30194, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30206, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩,
+    (.m ⟨0, 30216, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30226, []⟩)), (⟨0, 0, [((.fr 180),
+    1)]⟩, (.m ⟨0, 30236, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30246, []⟩)), (⟨0, 0, [((.fr
+    188), 1)]⟩, (.m ⟨0, 30256, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30266, []⟩))], [(⟨0, 0,
+    [((.fr 196), 1)]⟩, (.m ⟨0, 30276, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30286, []⟩)), (⟨0,
+    0, [((.fr 204), 1)]⟩, (.m ⟨0, 30296, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30306, []⟩)),
+    (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0, 30316, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)),
     (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 31), 1)]⟩, (.m ⟨0, 0, [((.fr 33),
     1)]⟩)), (⟨0, 1, [((.fr 36), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 49), 1)]⟩, (.m ⟨1, 0, []⟩)),
     (⟨0, 1, [((.fr 148), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 152), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0,
@@ -4742,9 +4742,9 @@ noncomputable def snap223 : List Mode.Abs × Mode.Pend :=
     [((.hp 49 4), 1)]⟩, ⟨0, 482, [((.hp 49 4), 1)]⟩, ⟨0, 484, [((.hp 49 4), 1)]⟩, ⟨0, 486, [((.hp
     49 4), 1)]⟩, ⟨0, 488, [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0, 492, [((.hp 49 4),
     1)]⟩, ⟨0, 494, [((.hp 49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161)
-    14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
-    (.ex (.hp 10 1) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14333), 1, 0⟩, ⟨⟨0, 0,
-    []⟩, (.num 430), (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1,
+    14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
+    (.ex (.hp 10 1) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14322), 1, 0⟩, ⟨⟨0, 0,
+    []⟩, (.num 430), (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1,
     0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 13), 1)]⟩, (.num
     0), (.ex (.fr 9) 6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 161) 2), 1, 0⟩, ⟨⟨0,
     0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0),
@@ -5022,7 +5022,7 @@ noncomputable def snap223 : List Mode.Abs × Mode.Pend :=
     none (.node (some (.m ⟨0, 0, [((.hp 12 1), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12
     16), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 8), 1)]⟩)) .nil .nil)
     .nil)))) (.node none (.node none (.node none (.node none .nil (.node (some (.m ⟨0, 0, [((.hp 12
-    11), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30205, []⟩)) .nil .nil) .nil)) (.node
+    11), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30194, []⟩)) .nil .nil) .nil)) (.node
     (some (.m ⟨0, 0, [((.hp 148 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 34, [((.fr 2), 1)]⟩))
     .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 15), 1)]⟩)) .nil .nil)) (.node none (.node (some
     (.m ⟨0, 0, [((.hp 12 7), 1)]⟩)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp
@@ -5031,32 +5031,32 @@ noncomputable def snap223 : List Mode.Abs × Mode.Pend :=
     [((.hp 184 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩)) .nil .nil) .nil)
     (.node none (.node (some (.m ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil .nil) .nil))))) (.node none
     (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node
-    (some (.m ⟨0, 30277, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩))
+    (some (.m ⟨0, 30266, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩))
     .nil .nil) .nil)) (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil
-    .nil) (.node (some (.m ⟨0, 30317, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30237,
-    []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10
-    1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node none (.node
-    (some (.m ⟨0, 30217, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩))
-    (.node none (.node (some (.m ⟨0, 30183, []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0,
-    30257, []⟩)) .nil .nil) .nil)))) (.node none (.node none (.node (some (.m ⟨0, 210902, []⟩))
-    (.node none .nil (.node (some (.m ⟨0, 30287, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    .nil) (.node (some (.m ⟨0, 30306, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30226,
+    []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10
+    1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node none (.node
+    (some (.m ⟨0, 30206, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩))
+    (.node none (.node (some (.m ⟨0, 30172, []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0,
+    30246, []⟩)) .nil .nil) .nil)))) (.node none (.node none (.node (some (.m ⟨0, 210081, []⟩))
+    (.node none .nil (.node (some (.m ⟨0, 30276, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
     0, [((.hp 12 4), 1)]⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node
-    none (.node (some (.m ⟨0, 30173, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30327, []⟩)) .nil .nil))
-    (.node none (.node (some (.m ⟨0, 30247, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr
+    none (.node (some (.m ⟨0, 30162, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30316, []⟩)) .nil .nil))
+    (.node none (.node (some (.m ⟨0, 30236, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr
     9), 1), ((.fr 15), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node
-    (some (.m ⟨0, 30307, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30227, []⟩)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30193,
-    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30267, []⟩)) .nil .nil) .nil))))))
+    (some (.m ⟨0, 30296, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30216, []⟩)) .nil .nil)
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30182,
+    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30256, []⟩)) .nil .nil) .nil))))))
     (.node none (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 16 0), 1)]⟩))
     (.node (some (.m ⟨0, 0, [((.hp 204 5), 1)]⟩)) .nil .nil) (.node none (.node (some (.m ⟨0, 19,
     []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil)) (.node none
     (.node (some (.m ⟨0, 0, [((.hp 10 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 172 5),
     1)]⟩)) .nil .nil))) (.node none (.node none (.node none .nil (.node none (.node (some (.tab
     (.fr 161) 650)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil))
-    (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil)
+    (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil)
     (.node (some (.m ⟨0, 0, [((.hp 188 5), 1)]⟩)) .nil .nil)))) (.node none (.node none (.node none
     (.node (some (.m ⟨0, 1, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 212 5), 1)]⟩)) .nil (.node (some
-    (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29578, []⟩)) (.node none (.node
+    (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29567, []⟩)) (.node none (.node
     (some (.m ⟨0, 34, []⟩)) .nil .nil) (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none
     (.node (some (.tab (.hp 10 2) 650)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0,
     [((.hp 10 2), 1)]⟩)) (.node none .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node
@@ -5099,18 +5099,18 @@ noncomputable def snap223 : List Mode.Abs × Mode.Pend :=
     (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node none (.node (some ()) .nil .nil)
     .nil) .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node
     (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil) .nil)))), (List.flatten
-    [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30119, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30128,
-    []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30145,
-    []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30161, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0,
-    30173, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30183, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m
-    ⟨0, 30193, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30205, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩,
-    (.m ⟨0, 30217, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30227, []⟩)), (⟨0, 0, [((.fr 176),
-    1)]⟩, (.m ⟨0, 30237, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30247, []⟩)), (⟨0, 0, [((.fr
-    184), 1)]⟩, (.m ⟨0, 30257, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0, 30267, []⟩)), (⟨0, 0,
-    [((.fr 192), 1)]⟩, (.m ⟨0, 30277, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30287, []⟩)),
-    (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30297, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30307,
-    []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30317, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0,
-    30327, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0,
+    [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30108, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30117,
+    []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30134,
+    []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30150, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0,
+    30162, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30172, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m
+    ⟨0, 30182, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30194, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩,
+    (.m ⟨0, 30206, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30216, []⟩)), (⟨0, 0, [((.fr 176),
+    1)]⟩, (.m ⟨0, 30226, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30236, []⟩)), (⟨0, 0, [((.fr
+    184), 1)]⟩, (.m ⟨0, 30246, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0, 30256, []⟩)), (⟨0, 0,
+    [((.fr 192), 1)]⟩, (.m ⟨0, 30266, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30276, []⟩)),
+    (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30286, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30296,
+    []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30306, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0,
+    30316, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0,
     []⟩)), (⟨0, 1, [((.fr 31), 1)]⟩, (.m ⟨0, 0, [((.fr 33), 1)]⟩)), (⟨0, 1, [((.fr 36), 1)]⟩, (.m
     ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 49), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 148), 1)]⟩, (.m ⟨1, 0,
     []⟩)), (⟨0, 1, [((.fr 152), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 156), 1)]⟩, (.m ⟨1, 0,
@@ -5297,9 +5297,9 @@ noncomputable def snap223 : List Mode.Abs × Mode.Pend :=
     [((.hp 49 4), 1)]⟩, ⟨0, 482, [((.hp 49 4), 1)]⟩, ⟨0, 484, [((.hp 49 4), 1)]⟩, ⟨0, 486, [((.hp
     49 4), 1)]⟩, ⟨0, 488, [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0, 492, [((.hp 49 4),
     1)]⟩, ⟨0, 494, [((.hp 49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161)
-    14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
-    (.ex (.hp 10 1) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14333), 1, 0⟩, ⟨⟨0, 0,
-    []⟩, (.num 430), (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1,
+    14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
+    (.ex (.hp 10 1) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14322), 1, 0⟩, ⟨⟨0, 0,
+    []⟩, (.num 430), (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1,
     0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 13), 1)]⟩, (.num
     0), (.ex (.fr 9) 6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 161) 2), 1, 0⟩, ⟨⟨0,
     0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0),
@@ -5582,7 +5582,7 @@ noncomputable def snap227 : List Mode.Abs × Mode.Pend :=
     168 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 1), 1)]⟩)) .nil .nil) (.node (some
     (.m ⟨0, 0, [((.hp 12 16), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 8),
     1)]⟩)) .nil .nil) .nil)))) (.node none (.node none (.node none (.node none .nil (.node (some
-    (.m ⟨0, 0, [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30205, []⟩)) .nil
+    (.m ⟨0, 0, [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30194, []⟩)) .nil
     .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 148 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 34,
     [((.fr 2), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 15), 1)]⟩)) .nil .nil)) (.node
     none (.node (some (.m ⟨0, 0, [((.hp 12 7), 1)]⟩)) .nil .nil) .nil))) (.node none (.node (some
@@ -5591,33 +5591,33 @@ noncomputable def snap227 : List Mode.Abs × Mode.Pend :=
     (some (.m ⟨0, 0, [((.hp 184 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩))
     .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil .nil) .nil)))))
     (.node none (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩))
-    .nil (.node (some (.m ⟨0, 30277, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr
+    .nil (.node (some (.m ⟨0, 30266, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr
     161), 1)]⟩)) .nil .nil) .nil)) (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0),
-    1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30317, []⟩)) .nil .nil)) (.node none (.node (some (.m
-    ⟨0, 30237, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0,
-    [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node none
-    (.node (some (.m ⟨0, 30217, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5),
-    1)]⟩)) (.node none (.node (some (.m ⟨0, 30183, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30337,
-    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30257, []⟩)) .nil .nil) .nil)))) (.node none
-    (.node none (.node (some (.m ⟨0, 210902, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30287,
+    1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30306, []⟩)) .nil .nil)) (.node none (.node (some (.m
+    ⟨0, 30226, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0,
+    [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node none
+    (.node (some (.m ⟨0, 30206, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5),
+    1)]⟩)) (.node none (.node (some (.m ⟨0, 30172, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30326,
+    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30246, []⟩)) .nil .nil) .nil)))) (.node none
+    (.node none (.node (some (.m ⟨0, 210081, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30276,
     []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩)) .nil .nil) .nil))
-    (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30173, []⟩))
-    .nil .nil) (.node (some (.m ⟨0, 30327, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30247, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
-    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30307, []⟩)) .nil
-    .nil)) (.node none (.node (some (.m ⟨0, 30227, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
-    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30193, []⟩)) .nil .nil) .nil) (.node
-    none (.node (some (.m ⟨0, 30267, []⟩)) .nil .nil) .nil)))))) (.node none (.node none (.node
+    (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30162, []⟩))
+    .nil .nil) (.node (some (.m ⟨0, 30316, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30236, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
+    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30296, []⟩)) .nil
+    .nil)) (.node none (.node (some (.m ⟨0, 30216, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
+    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30182, []⟩)) .nil .nil) .nil) (.node
+    none (.node (some (.m ⟨0, 30256, []⟩)) .nil .nil) .nil)))))) (.node none (.node none (.node
     none (.node none (.node (some (.m ⟨0, 0, [((.hp 16 0), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp
     204 5), 1)]⟩)) .nil .nil) (.node none (.node (some (.m ⟨0, 19, []⟩)) .nil .nil) .nil)) (.node
     (some (.m ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 10
     0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 172 5), 1)]⟩)) .nil .nil))) (.node none
     (.node none (.node none .nil (.node none (.node (some (.tab (.fr 161) 650)) .nil .nil) .nil))
-    (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19361, []⟩))
+    (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19350, []⟩))
     (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 188 5),
     1)]⟩)) .nil .nil)))) (.node none (.node none (.node none (.node (some (.m ⟨0, 1, []⟩)) (.node
     (some (.m ⟨0, 0, [((.hp 212 5), 1)]⟩)) .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil))
-    .nil) (.node (some (.m ⟨0, 29578, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil)
+    .nil) (.node (some (.m ⟨0, 29567, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil)
     (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.hp 10 2) 650))
     .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 2), 1)]⟩)) (.node none .nil
     (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.fr 167) 650))
@@ -5660,18 +5660,18 @@ noncomputable def snap227 : List Mode.Abs × Mode.Pend :=
     .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node none (.node (some
     ()) .nil .nil) .nil) .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node
     none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil) .nil)))),
-    (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30119, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m
-    ⟨0, 30128, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0,
-    30145, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30161, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m
-    ⟨0, 30173, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30183, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩,
-    (.m ⟨0, 30193, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30205, []⟩)), (⟨0, 0, [((.fr 168),
-    1)]⟩, (.m ⟨0, 30217, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30227, []⟩)), (⟨0, 0, [((.fr
-    176), 1)]⟩, (.m ⟨0, 30237, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30247, []⟩)), (⟨0, 0,
-    [((.fr 184), 1)]⟩, (.m ⟨0, 30257, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0, 30267, []⟩)), (⟨0,
-    0, [((.fr 192), 1)]⟩, (.m ⟨0, 30277, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30287, []⟩)),
-    (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30297, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30307,
-    []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30317, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0,
-    30327, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m ⟨0, 30337, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m
+    (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30108, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m
+    ⟨0, 30117, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0,
+    30134, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30150, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m
+    ⟨0, 30162, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30172, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩,
+    (.m ⟨0, 30182, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30194, []⟩)), (⟨0, 0, [((.fr 168),
+    1)]⟩, (.m ⟨0, 30206, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30216, []⟩)), (⟨0, 0, [((.fr
+    176), 1)]⟩, (.m ⟨0, 30226, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30236, []⟩)), (⟨0, 0,
+    [((.fr 184), 1)]⟩, (.m ⟨0, 30246, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0, 30256, []⟩)), (⟨0,
+    0, [((.fr 192), 1)]⟩, (.m ⟨0, 30266, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30276, []⟩)),
+    (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30286, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30296,
+    []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30306, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0,
+    30316, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m ⟨0, 30326, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m
     ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 31), 1)]⟩, (.m ⟨0, 0,
     [((.fr 33), 1)]⟩)), (⟨0, 1, [((.fr 36), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 49), 1)]⟩, (.m
     ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 148), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 152), 1)]⟩, (.m ⟨1,
@@ -5859,9 +5859,9 @@ noncomputable def snap227 : List Mode.Abs × Mode.Pend :=
     49 4), 1)]⟩, ⟨0, 480, [((.hp 49 4), 1)]⟩, ⟨0, 482, [((.hp 49 4), 1)]⟩, ⟨0, 484, [((.hp 49 4),
     1)]⟩, ⟨0, 486, [((.hp 49 4), 1)]⟩, ⟨0, 488, [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩,
     ⟨0, 492, [((.hp 49 4), 1)]⟩, ⟨0, 494, [((.hp 49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩,
-    (.num 430), (.ex (.fr 161) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14333), 1,
-    0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 1) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp
-    10 2) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩,
+    (.num 430), (.ex (.fr 161) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14322), 1,
+    0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 1) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp
+    10 2) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩,
     (.num 0), (.ex (.fr 6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩,
     ⟨⟨0, 0, [((.fr 13), 1)]⟩, (.num 0), (.ex (.fr 9) 6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0),
     (.ex (.fr 161) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0,
@@ -6140,7 +6140,7 @@ noncomputable def snap227 : List Mode.Abs × Mode.Pend :=
     [((.hp 12 1), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 16), 1)]⟩)) .nil .nil))
     (.node none (.node (some (.m ⟨0, 0, [((.hp 12 8), 1)]⟩)) .nil .nil) .nil)))) (.node none (.node
     none (.node none (.node none .nil (.node (some (.m ⟨0, 0, [((.hp 12 11), 1)]⟩)) .nil .nil))
-    (.node none (.node (some (.m ⟨0, 30205, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp
+    (.node none (.node (some (.m ⟨0, 30194, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp
     148 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 34, [((.fr 2), 1)]⟩)) .nil .nil) (.node (some
     (.m ⟨0, 0, [((.hp 12 15), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 7),
     1)]⟩)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 3), 1)]⟩)) (.node none
@@ -6148,33 +6148,33 @@ noncomputable def snap227 : List Mode.Abs × Mode.Pend :=
     0, [((.hp 12 5), 1)]⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 184 5), 1)]⟩)) (.node
     none (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩)) .nil .nil) .nil) (.node none (.node (some (.m
     ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil .nil) .nil))))) (.node none (.node none (.node none (.node
-    none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30277, []⟩)) .nil
+    none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30266, []⟩)) .nil
     .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩)) .nil .nil) .nil)) (.node none
-    (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30317,
-    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30237, []⟩)) .nil .nil) .nil))) (.node (some
-    (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some
-    (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30217, []⟩)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30183,
-    []⟩)) .nil .nil) (.node (some (.m ⟨0, 30337, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30257, []⟩)) .nil .nil) .nil)))) (.node none (.node none (.node (some (.m ⟨0, 210902, []⟩))
-    (.node none .nil (.node (some (.m ⟨0, 30287, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30306,
+    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30226, []⟩)) .nil .nil) .nil))) (.node (some
+    (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some
+    (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30206, []⟩)) .nil .nil)
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30172,
+    []⟩)) .nil .nil) (.node (some (.m ⟨0, 30326, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30246, []⟩)) .nil .nil) .nil)))) (.node none (.node none (.node (some (.m ⟨0, 210081, []⟩))
+    (.node none .nil (.node (some (.m ⟨0, 30276, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
     0, [((.hp 12 4), 1)]⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node
-    none (.node (some (.m ⟨0, 30173, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30327, []⟩)) .nil .nil))
-    (.node none (.node (some (.m ⟨0, 30247, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr
+    none (.node (some (.m ⟨0, 30162, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30316, []⟩)) .nil .nil))
+    (.node none (.node (some (.m ⟨0, 30236, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr
     9), 1), ((.fr 15), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node
-    (some (.m ⟨0, 30307, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30227, []⟩)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30193,
-    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30267, []⟩)) .nil .nil) .nil))))))
+    (some (.m ⟨0, 30296, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30216, []⟩)) .nil .nil)
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30182,
+    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30256, []⟩)) .nil .nil) .nil))))))
     (.node none (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 16 0), 1)]⟩))
     (.node (some (.m ⟨0, 0, [((.hp 204 5), 1)]⟩)) .nil .nil) (.node none (.node (some (.m ⟨0, 19,
     []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil)) (.node none
     (.node (some (.m ⟨0, 0, [((.hp 10 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 172 5),
     1)]⟩)) .nil .nil))) (.node none (.node none (.node none .nil (.node none (.node (some (.tab
     (.fr 161) 650)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil))
-    (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil)
+    (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil)
     (.node (some (.m ⟨0, 0, [((.hp 188 5), 1)]⟩)) .nil .nil)))) (.node none (.node none (.node none
     (.node (some (.m ⟨0, 1, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 212 5), 1)]⟩)) .nil (.node (some
-    (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29578, []⟩)) (.node none (.node
+    (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29567, []⟩)) (.node none (.node
     (some (.m ⟨0, 34, []⟩)) .nil .nil) (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none
     (.node (some (.tab (.hp 10 2) 650)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0,
     [((.hp 10 2), 1)]⟩)) (.node none .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node
@@ -6217,18 +6217,18 @@ noncomputable def snap227 : List Mode.Abs × Mode.Pend :=
     (some ()) (.node none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil))
     (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node (some
     ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil (.node none (.node (some
-    ()) .nil .nil) .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30119,
-    []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30128, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0,
-    []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30145, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30161,
-    []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30173, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0,
-    30183, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30193, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m
-    ⟨0, 30205, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30217, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩,
-    (.m ⟨0, 30227, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30237, []⟩)), (⟨0, 0, [((.fr 180),
-    1)]⟩, (.m ⟨0, 30247, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30257, []⟩)), (⟨0, 0, [((.fr
-    188), 1)]⟩, (.m ⟨0, 30267, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30277, []⟩))], [(⟨0, 0,
-    [((.fr 196), 1)]⟩, (.m ⟨0, 30287, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30297, []⟩)), (⟨0,
-    0, [((.fr 204), 1)]⟩, (.m ⟨0, 30307, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30317, []⟩)),
-    (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0, 30327, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m ⟨0, 30337,
+    ()) .nil .nil) .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30108,
+    []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30117, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0,
+    []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30134, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30150,
+    []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30162, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0,
+    30172, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30182, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m
+    ⟨0, 30194, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30206, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩,
+    (.m ⟨0, 30216, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30226, []⟩)), (⟨0, 0, [((.fr 180),
+    1)]⟩, (.m ⟨0, 30236, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30246, []⟩)), (⟨0, 0, [((.fr
+    188), 1)]⟩, (.m ⟨0, 30256, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30266, []⟩))], [(⟨0, 0,
+    [((.fr 196), 1)]⟩, (.m ⟨0, 30276, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30286, []⟩)), (⟨0,
+    0, [((.fr 204), 1)]⟩, (.m ⟨0, 30296, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30306, []⟩)),
+    (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0, 30316, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m ⟨0, 30326,
     []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0, []⟩)),
     (⟨0, 1, [((.fr 31), 1)]⟩, (.m ⟨0, 0, [((.fr 33), 1)]⟩)), (⟨0, 1, [((.fr 36), 1)]⟩, (.m ⟨1, 0,
     []⟩)), (⟨0, 1, [((.fr 49), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 148), 1)]⟩, (.m ⟨1, 0, []⟩)),
@@ -6416,10 +6416,10 @@ noncomputable def snap227 : List Mode.Abs × Mode.Pend :=
     [((.hp 49 4), 1)]⟩, ⟨0, 476, [((.hp 49 4), 1)]⟩, ⟨0, 480, [((.hp 49 4), 1)]⟩, ⟨0, 482, [((.hp
     49 4), 1)]⟩, ⟨0, 484, [((.hp 49 4), 1)]⟩, ⟨0, 486, [((.hp 49 4), 1)]⟩, ⟨0, 488, [((.hp 49 4),
     1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0, 492, [((.hp 49 4), 1)]⟩, ⟨0, 494, [((.hp 49 4),
-    1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩,
-    (.num 430), (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 1) 14333), 1,
-    0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num
-    14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 4),
+    1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩,
+    (.num 430), (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 1) 14322), 1,
+    0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num
+    14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 4),
     1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 13), 1)]⟩, (.num 0), (.ex (.fr 9) 6), 1,
     0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 161) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩,
     (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.hp 10 1) 2), 1,
@@ -6702,7 +6702,7 @@ noncomputable def snap228 : List Mode.Abs × Mode.Pend :=
     168 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 1), 1)]⟩)) .nil .nil) (.node (some
     (.m ⟨0, 0, [((.hp 12 16), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 8),
     1)]⟩)) .nil .nil) .nil)))) (.node none (.node none (.node none (.node none .nil (.node (some
-    (.m ⟨0, 0, [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30205, []⟩)) .nil
+    (.m ⟨0, 0, [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30194, []⟩)) .nil
     .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 148 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 34,
     [((.fr 2), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 15), 1)]⟩)) .nil .nil)) (.node
     none (.node (some (.m ⟨0, 0, [((.hp 12 7), 1)]⟩)) .nil .nil) .nil))) (.node none (.node (some
@@ -6711,33 +6711,33 @@ noncomputable def snap228 : List Mode.Abs × Mode.Pend :=
     (some (.m ⟨0, 0, [((.hp 184 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩))
     .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil .nil) .nil)))))
     (.node none (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩))
-    .nil (.node (some (.m ⟨0, 30277, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr
+    .nil (.node (some (.m ⟨0, 30266, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr
     161), 1)]⟩)) .nil .nil) .nil)) (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0),
-    1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30317, []⟩)) .nil .nil)) (.node none (.node (some (.m
-    ⟨0, 30237, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0,
-    [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node none
-    (.node (some (.m ⟨0, 30217, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5),
-    1)]⟩)) (.node none (.node (some (.m ⟨0, 30183, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30337,
-    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30257, []⟩)) .nil .nil) .nil)))) (.node none
-    (.node none (.node (some (.m ⟨0, 210902, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30287,
+    1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30306, []⟩)) .nil .nil)) (.node none (.node (some (.m
+    ⟨0, 30226, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0,
+    [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node none
+    (.node (some (.m ⟨0, 30206, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5),
+    1)]⟩)) (.node none (.node (some (.m ⟨0, 30172, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30326,
+    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30246, []⟩)) .nil .nil) .nil)))) (.node none
+    (.node none (.node (some (.m ⟨0, 210081, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30276,
     []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩)) .nil .nil) .nil))
-    (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30173, []⟩))
-    .nil .nil) (.node (some (.m ⟨0, 30327, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30247, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
-    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30307, []⟩)) .nil
-    .nil)) (.node none (.node (some (.m ⟨0, 30227, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
-    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30193, []⟩)) .nil .nil) .nil) (.node
-    none (.node (some (.m ⟨0, 30267, []⟩)) .nil .nil) .nil)))))) (.node none (.node none (.node
+    (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30162, []⟩))
+    .nil .nil) (.node (some (.m ⟨0, 30316, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30236, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
+    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30296, []⟩)) .nil
+    .nil)) (.node none (.node (some (.m ⟨0, 30216, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
+    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30182, []⟩)) .nil .nil) .nil) (.node
+    none (.node (some (.m ⟨0, 30256, []⟩)) .nil .nil) .nil)))))) (.node none (.node none (.node
     none (.node none (.node (some (.m ⟨0, 0, [((.hp 16 0), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp
     204 5), 1)]⟩)) .nil .nil) (.node none (.node (some (.m ⟨0, 19, []⟩)) .nil .nil) .nil)) (.node
     (some (.m ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 10
     0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 172 5), 1)]⟩)) .nil .nil))) (.node none
     (.node none (.node none .nil (.node none (.node (some (.tab (.fr 161) 650)) .nil .nil) .nil))
-    (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19361, []⟩))
+    (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19350, []⟩))
     (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 188 5),
     1)]⟩)) .nil .nil)))) (.node none (.node none (.node none (.node (some (.m ⟨0, 1, []⟩)) (.node
     (some (.m ⟨0, 0, [((.hp 212 5), 1)]⟩)) .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil))
-    .nil) (.node (some (.m ⟨0, 29578, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil)
+    .nil) (.node (some (.m ⟨0, 29567, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil)
     (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.hp 10 2) 650))
     .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 2), 1)]⟩)) (.node none .nil
     (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.fr 167) 650))
@@ -6780,18 +6780,18 @@ noncomputable def snap228 : List Mode.Abs × Mode.Pend :=
     .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node none (.node (some
     ()) .nil .nil) .nil) .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node
     none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil) .nil)))),
-    (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30119, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m
-    ⟨0, 30128, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0,
-    30145, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30161, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m
-    ⟨0, 30173, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30183, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩,
-    (.m ⟨0, 30193, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30205, []⟩)), (⟨0, 0, [((.fr 168),
-    1)]⟩, (.m ⟨0, 30217, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30227, []⟩)), (⟨0, 0, [((.fr
-    176), 1)]⟩, (.m ⟨0, 30237, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30247, []⟩)), (⟨0, 0,
-    [((.fr 184), 1)]⟩, (.m ⟨0, 30257, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0, 30267, []⟩)), (⟨0,
-    0, [((.fr 192), 1)]⟩, (.m ⟨0, 30277, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30287, []⟩)),
-    (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30297, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30307,
-    []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30317, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0,
-    30327, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m ⟨0, 30337, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m
+    (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30108, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m
+    ⟨0, 30117, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0,
+    30134, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30150, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m
+    ⟨0, 30162, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30172, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩,
+    (.m ⟨0, 30182, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30194, []⟩)), (⟨0, 0, [((.fr 168),
+    1)]⟩, (.m ⟨0, 30206, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30216, []⟩)), (⟨0, 0, [((.fr
+    176), 1)]⟩, (.m ⟨0, 30226, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30236, []⟩)), (⟨0, 0,
+    [((.fr 184), 1)]⟩, (.m ⟨0, 30246, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0, 30256, []⟩)), (⟨0,
+    0, [((.fr 192), 1)]⟩, (.m ⟨0, 30266, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30276, []⟩)),
+    (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30286, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30296,
+    []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30306, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0,
+    30316, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m ⟨0, 30326, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m
     ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 31), 1)]⟩, (.m ⟨0, 0,
     [((.fr 33), 1)]⟩)), (⟨0, 1, [((.fr 36), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 49), 1)]⟩, (.m
     ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 148), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 152), 1)]⟩, (.m ⟨1,
@@ -6979,9 +6979,9 @@ noncomputable def snap228 : List Mode.Abs × Mode.Pend :=
     49 4), 1)]⟩, ⟨0, 476, [((.hp 49 4), 1)]⟩, ⟨0, 480, [((.hp 49 4), 1)]⟩, ⟨0, 482, [((.hp 49 4),
     1)]⟩, ⟨0, 484, [((.hp 49 4), 1)]⟩, ⟨0, 486, [((.hp 49 4), 1)]⟩, ⟨0, 488, [((.hp 49 4), 1)]⟩,
     ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0, 492, [((.hp 49 4), 1)]⟩], [⟨0, 494, [((.hp 49 4), 1)]⟩]])]),
-    (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
-    (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 1) 14333), 1, 0⟩, ⟨⟨0, 0,
-    []⟩, (.num 430), (.ex (.hp 10 2) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14363), 1, 0⟩,
+    (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
+    (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 1) 14322), 1, 0⟩, ⟨⟨0, 0,
+    []⟩, (.num 430), (.ex (.hp 10 2) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14352), 1, 0⟩,
     ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0),
     (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 13), 1)]⟩, (.num 0), (.ex (.fr 9) 6), 1, 0⟩, ⟨⟨0, 0,
     [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 161) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex
@@ -7261,7 +7261,7 @@ noncomputable def snap228 : List Mode.Abs × Mode.Pend :=
     [((.hp 12 1), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 16), 1)]⟩)) .nil .nil))
     (.node none (.node (some (.m ⟨0, 0, [((.hp 12 8), 1)]⟩)) .nil .nil) .nil)))) (.node none (.node
     none (.node none (.node none .nil (.node (some (.m ⟨0, 0, [((.hp 12 11), 1)]⟩)) .nil .nil))
-    (.node none (.node (some (.m ⟨0, 30205, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp
+    (.node none (.node (some (.m ⟨0, 30194, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp
     148 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 34, [((.fr 2), 1)]⟩)) .nil .nil) (.node (some
     (.m ⟨0, 0, [((.hp 12 15), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 7),
     1)]⟩)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 3), 1)]⟩)) (.node none
@@ -7269,33 +7269,33 @@ noncomputable def snap228 : List Mode.Abs × Mode.Pend :=
     0, [((.hp 12 5), 1)]⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 184 5), 1)]⟩)) (.node
     none (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩)) .nil .nil) .nil) (.node none (.node (some (.m
     ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil .nil) .nil))))) (.node none (.node none (.node none (.node
-    none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30277, []⟩)) .nil
+    none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30266, []⟩)) .nil
     .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩)) .nil .nil) .nil)) (.node none
-    (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30317,
-    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30237, []⟩)) .nil .nil) .nil))) (.node (some
-    (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some
-    (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30217, []⟩)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30183,
-    []⟩)) .nil .nil) (.node (some (.m ⟨0, 30337, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30257, []⟩)) .nil .nil) .nil)))) (.node none (.node none (.node (some (.m ⟨0, 210902, []⟩))
-    (.node none .nil (.node (some (.m ⟨0, 30287, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30306,
+    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30226, []⟩)) .nil .nil) .nil))) (.node (some
+    (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some
+    (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30206, []⟩)) .nil .nil)
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30172,
+    []⟩)) .nil .nil) (.node (some (.m ⟨0, 30326, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30246, []⟩)) .nil .nil) .nil)))) (.node none (.node none (.node (some (.m ⟨0, 210081, []⟩))
+    (.node none .nil (.node (some (.m ⟨0, 30276, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
     0, [((.hp 12 4), 1)]⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node
-    none (.node (some (.m ⟨0, 30173, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30327, []⟩)) .nil .nil))
-    (.node none (.node (some (.m ⟨0, 30247, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr
+    none (.node (some (.m ⟨0, 30162, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30316, []⟩)) .nil .nil))
+    (.node none (.node (some (.m ⟨0, 30236, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr
     9), 1), ((.fr 15), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node
-    (some (.m ⟨0, 30307, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30227, []⟩)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30193,
-    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30267, []⟩)) .nil .nil) .nil))))))
+    (some (.m ⟨0, 30296, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30216, []⟩)) .nil .nil)
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30182,
+    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30256, []⟩)) .nil .nil) .nil))))))
     (.node none (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 16 0), 1)]⟩))
     (.node (some (.m ⟨0, 0, [((.hp 204 5), 1)]⟩)) .nil .nil) (.node none (.node (some (.m ⟨0, 19,
     []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil)) (.node none
     (.node (some (.m ⟨0, 0, [((.hp 10 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 172 5),
     1)]⟩)) .nil .nil))) (.node none (.node none (.node none .nil (.node none (.node (some (.tab
     (.fr 161) 650)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil))
-    (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil)
+    (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil)
     (.node (some (.m ⟨0, 0, [((.hp 188 5), 1)]⟩)) .nil .nil)))) (.node none (.node none (.node none
     (.node (some (.m ⟨0, 1, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 212 5), 1)]⟩)) .nil (.node (some
-    (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29578, []⟩)) (.node none (.node
+    (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29567, []⟩)) (.node none (.node
     (some (.m ⟨0, 34, []⟩)) .nil .nil) (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none
     (.node (some (.tab (.hp 10 2) 650)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0,
     [((.hp 10 2), 1)]⟩)) (.node none .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node
@@ -7338,18 +7338,18 @@ noncomputable def snap228 : List Mode.Abs × Mode.Pend :=
     (some ()) (.node none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil))
     (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node (some
     ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil (.node none (.node (some
-    ()) .nil .nil) .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30119,
-    []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30128, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0,
-    []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30145, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30161,
-    []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30173, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0,
-    30183, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30193, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m
-    ⟨0, 30205, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30217, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩,
-    (.m ⟨0, 30227, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30237, []⟩)), (⟨0, 0, [((.fr 180),
-    1)]⟩, (.m ⟨0, 30247, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30257, []⟩)), (⟨0, 0, [((.fr
-    188), 1)]⟩, (.m ⟨0, 30267, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30277, []⟩))], [(⟨0, 0,
-    [((.fr 196), 1)]⟩, (.m ⟨0, 30287, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30297, []⟩)), (⟨0,
-    0, [((.fr 204), 1)]⟩, (.m ⟨0, 30307, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30317, []⟩)),
-    (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0, 30327, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m ⟨0, 30337,
+    ()) .nil .nil) .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30108,
+    []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30117, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0,
+    []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30134, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30150,
+    []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30162, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0,
+    30172, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30182, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m
+    ⟨0, 30194, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30206, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩,
+    (.m ⟨0, 30216, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30226, []⟩)), (⟨0, 0, [((.fr 180),
+    1)]⟩, (.m ⟨0, 30236, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30246, []⟩)), (⟨0, 0, [((.fr
+    188), 1)]⟩, (.m ⟨0, 30256, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30266, []⟩))], [(⟨0, 0,
+    [((.fr 196), 1)]⟩, (.m ⟨0, 30276, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30286, []⟩)), (⟨0,
+    0, [((.fr 204), 1)]⟩, (.m ⟨0, 30296, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30306, []⟩)),
+    (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0, 30316, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m ⟨0, 30326,
     []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0, []⟩)),
     (⟨0, 1, [((.fr 31), 1)]⟩, (.m ⟨0, 0, [((.fr 33), 1)]⟩)), (⟨0, 1, [((.fr 36), 1)]⟩, (.m ⟨1, 0,
     []⟩)), (⟨0, 1, [((.fr 49), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 148), 1)]⟩, (.m ⟨1, 0, []⟩)),
@@ -7538,9 +7538,9 @@ noncomputable def snap228 : List Mode.Abs × Mode.Pend :=
     49 4), 1)]⟩, ⟨0, 482, [((.hp 49 4), 1)]⟩, ⟨0, 484, [((.hp 49 4), 1)]⟩, ⟨0, 486, [((.hp 49 4),
     1)]⟩, ⟨0, 488, [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0, 492, [((.hp 49 4), 1)]⟩],
     [⟨0, 494, [((.hp 49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161)
-    14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
-    (.ex (.hp 10 1) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14333), 1, 0⟩, ⟨⟨0, 0,
-    []⟩, (.num 430), (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1,
+    14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
+    (.ex (.hp 10 1) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14322), 1, 0⟩, ⟨⟨0, 0,
+    []⟩, (.num 430), (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1,
     0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 13), 1)]⟩, (.num
     0), (.ex (.fr 9) 6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 161) 2), 1, 0⟩, ⟨⟨0,
     0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0),
@@ -7824,7 +7824,7 @@ noncomputable def snap233 : List Mode.Abs × Mode.Pend :=
     [((.hp 12 1), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 16), 1)]⟩)) .nil .nil))
     (.node none (.node (some (.m ⟨0, 0, [((.hp 12 8), 1)]⟩)) .nil .nil) .nil)))) (.node none (.node
     none (.node none (.node (some (.m ⟨0, 0, [((.hp 216 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 0,
-    [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30205, []⟩)) .nil .nil)
+    [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30194, []⟩)) .nil .nil)
     .nil)) (.node (some (.m ⟨0, 0, [((.hp 148 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 34,
     [((.fr 2), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 15), 1)]⟩)) .nil .nil)) (.node
     none (.node (some (.m ⟨0, 0, [((.hp 12 7), 1)]⟩)) .nil .nil) .nil))) (.node none (.node (some
@@ -7833,33 +7833,33 @@ noncomputable def snap233 : List Mode.Abs × Mode.Pend :=
     (some (.m ⟨0, 0, [((.hp 184 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩))
     .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 17), 1)]⟩)) .nil .nil)) (.node none (.node (some
     (.m ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil .nil) .nil))))) (.node none (.node none (.node none (.node
-    none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30277, []⟩)) .nil
+    none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30266, []⟩)) .nil
     .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩)) .nil .nil) .nil)) (.node none
-    (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30317,
-    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30237, []⟩)) .nil .nil) .nil))) (.node (some
-    (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some
-    (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30217, []⟩)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30183,
-    []⟩)) .nil .nil) (.node (some (.m ⟨0, 30337, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30257, []⟩)) .nil .nil) .nil)))) (.node none (.node none (.node (some (.m ⟨0, 210902, []⟩))
-    (.node none .nil (.node (some (.m ⟨0, 30287, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30306,
+    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30226, []⟩)) .nil .nil) .nil))) (.node (some
+    (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some
+    (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30206, []⟩)) .nil .nil)
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30172,
+    []⟩)) .nil .nil) (.node (some (.m ⟨0, 30326, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30246, []⟩)) .nil .nil) .nil)))) (.node none (.node none (.node (some (.m ⟨0, 210081, []⟩))
+    (.node none .nil (.node (some (.m ⟨0, 30276, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
     0, [((.hp 12 4), 1)]⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node
-    none (.node (some (.m ⟨0, 30173, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30327, []⟩)) .nil .nil))
-    (.node none (.node (some (.m ⟨0, 30247, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr
+    none (.node (some (.m ⟨0, 30162, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30316, []⟩)) .nil .nil))
+    (.node none (.node (some (.m ⟨0, 30236, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr
     9), 1), ((.fr 15), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node
-    (some (.m ⟨0, 30307, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30227, []⟩)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30193,
-    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30267, []⟩)) .nil .nil) .nil))))))
+    (some (.m ⟨0, 30296, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30216, []⟩)) .nil .nil)
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30182,
+    []⟩)) .nil .nil) .nil) (.node none (.node (some (.m ⟨0, 30256, []⟩)) .nil .nil) .nil))))))
     (.node none (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 16 0), 1)]⟩))
     (.node (some (.m ⟨0, 0, [((.hp 204 5), 1)]⟩)) .nil .nil) (.node none (.node (some (.m ⟨0, 19,
     []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil)) (.node none
     (.node (some (.m ⟨0, 0, [((.hp 10 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 172 5),
     1)]⟩)) .nil .nil))) (.node none (.node none (.node none .nil (.node none (.node (some (.tab
     (.fr 161) 650)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil))
-    (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil)
+    (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil)
     (.node (some (.m ⟨0, 0, [((.hp 188 5), 1)]⟩)) .nil .nil)))) (.node none (.node none (.node none
     (.node (some (.m ⟨0, 1, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 212 5), 1)]⟩)) .nil (.node (some
-    (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29578, []⟩)) (.node none (.node
+    (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29567, []⟩)) (.node none (.node
     (some (.m ⟨0, 34, []⟩)) .nil .nil) (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none
     (.node (some (.tab (.hp 10 2) 650)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0,
     [((.hp 10 2), 1)]⟩)) (.node none .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node
@@ -7903,18 +7903,18 @@ noncomputable def snap233 : List Mode.Abs × Mode.Pend :=
     (some ()) .nil .nil) .nil)) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil)
     .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ())
     .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0,
-    [((.fr 24), 1)]⟩, (.m ⟨0, 30119, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30128, []⟩)), (⟨0, 0,
-    [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30145, []⟩)), (⟨0, 0,
-    [((.fr 49), 1)]⟩, (.m ⟨0, 30161, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30173, []⟩)), (⟨0,
-    0, [((.fr 152), 1)]⟩, (.m ⟨0, 30183, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30193, []⟩)),
-    (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30205, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30217,
-    []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30227, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0,
-    30237, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30247, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m
-    ⟨0, 30257, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0, 30267, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩,
-    (.m ⟨0, 30277, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30287, []⟩)), (⟨0, 0, [((.fr 200),
-    1)]⟩, (.m ⟨0, 30297, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30307, []⟩)), (⟨0, 0, [((.fr
-    208), 1)]⟩, (.m ⟨0, 30317, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0, 30327, []⟩)), (⟨0, 0,
-    [((.fr 216), 1)]⟩, (.m ⟨0, 30337, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1,
+    [((.fr 24), 1)]⟩, (.m ⟨0, 30108, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30117, []⟩)), (⟨0, 0,
+    [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30134, []⟩)), (⟨0, 0,
+    [((.fr 49), 1)]⟩, (.m ⟨0, 30150, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30162, []⟩)), (⟨0,
+    0, [((.fr 152), 1)]⟩, (.m ⟨0, 30172, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30182, []⟩)),
+    (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30194, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30206,
+    []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30216, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0,
+    30226, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30236, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m
+    ⟨0, 30246, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0, 30256, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩,
+    (.m ⟨0, 30266, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30276, []⟩)), (⟨0, 0, [((.fr 200),
+    1)]⟩, (.m ⟨0, 30286, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30296, []⟩)), (⟨0, 0, [((.fr
+    208), 1)]⟩, (.m ⟨0, 30306, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0, 30316, []⟩)), (⟨0, 0,
+    [((.fr 216), 1)]⟩, (.m ⟨0, 30326, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1,
     [((.fr 27), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 31), 1)]⟩, (.m ⟨0, 0, [((.fr 33), 1)]⟩)),
     (⟨0, 1, [((.fr 36), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 49), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1,
     [((.fr 148), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 152), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1,
@@ -8105,10 +8105,10 @@ noncomputable def snap233 : List Mode.Abs × Mode.Pend :=
     1)]⟩, ⟨0, 472, [((.hp 49 4), 1)]⟩, ⟨0, 476, [((.hp 49 4), 1)]⟩, ⟨0, 480, [((.hp 49 4), 1)]⟩,
     ⟨0, 482, [((.hp 49 4), 1)]⟩, ⟨0, 484, [((.hp 49 4), 1)]⟩, ⟨0, 486, [((.hp 49 4), 1)]⟩], [⟨0,
     488, [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0, 492, [((.hp 49 4), 1)]⟩, ⟨0, 494,
-    [((.hp 49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161) 14333), 1, 0⟩,
-    ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 1)
-    14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
-    (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr
+    [((.hp 49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161) 14322), 1, 0⟩,
+    ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 1)
+    14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
+    (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr
     4), 1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 13), 1)]⟩, (.num 0), (.ex (.fr 9)
     6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 161) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15),
     1)]⟩, (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.hp 10 1)
@@ -8388,7 +8388,7 @@ noncomputable def snap233 : List Mode.Abs × Mode.Pend :=
     16), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 8), 1)]⟩)) .nil .nil)
     .nil)))) (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 216 5), 1)]⟩)) .nil
     (.node (some (.m ⟨0, 0, [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30205, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 148 5), 1)]⟩)) (.node none (.node
+    30194, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 148 5), 1)]⟩)) (.node none (.node
     (some (.m ⟨0, 34, [((.fr 2), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 15), 1)]⟩))
     .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 7), 1)]⟩)) .nil .nil) .nil))) (.node
     none (.node (some (.m ⟨0, 0, [((.hp 10 3), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 0,
@@ -8397,33 +8397,33 @@ noncomputable def snap233 : List Mode.Abs × Mode.Pend :=
     [((.hp 12 2), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 17), 1)]⟩)) .nil .nil))
     (.node none (.node (some (.m ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil .nil) .nil))))) (.node none
     (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node
-    (some (.m ⟨0, 30277, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩))
+    (some (.m ⟨0, 30266, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩))
     .nil .nil) .nil)) (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil
-    .nil) (.node (some (.m ⟨0, 30317, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30237,
-    []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10
-    1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node none (.node
-    (some (.m ⟨0, 30217, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩))
-    (.node none (.node (some (.m ⟨0, 30183, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30337, []⟩)) .nil
-    .nil)) (.node none (.node (some (.m ⟨0, 30257, []⟩)) .nil .nil) .nil)))) (.node none (.node
-    none (.node (some (.m ⟨0, 210902, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30287, []⟩)) .nil
+    .nil) (.node (some (.m ⟨0, 30306, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30226,
+    []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10
+    1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node none (.node
+    (some (.m ⟨0, 30206, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩))
+    (.node none (.node (some (.m ⟨0, 30172, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30326, []⟩)) .nil
+    .nil)) (.node none (.node (some (.m ⟨0, 30246, []⟩)) .nil .nil) .nil)))) (.node none (.node
+    none (.node (some (.m ⟨0, 210081, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30276, []⟩)) .nil
     .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩)) .nil .nil) .nil)) (.node (some
-    (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30173, []⟩)) .nil .nil)
-    (.node (some (.m ⟨0, 30327, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30247, []⟩))
+    (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30162, []⟩)) .nil .nil)
+    (.node (some (.m ⟨0, 30316, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30236, []⟩))
     .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node (some (.m
-    ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30307, []⟩)) .nil .nil))
-    (.node none (.node (some (.m ⟨0, 30227, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp
-    192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30193, []⟩)) .nil .nil) .nil) (.node none
-    (.node (some (.m ⟨0, 30267, []⟩)) .nil .nil) .nil)))))) (.node none (.node none (.node none
+    ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30296, []⟩)) .nil .nil))
+    (.node none (.node (some (.m ⟨0, 30216, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp
+    192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30182, []⟩)) .nil .nil) .nil) (.node none
+    (.node (some (.m ⟨0, 30256, []⟩)) .nil .nil) .nil)))))) (.node none (.node none (.node none
     (.node none (.node (some (.m ⟨0, 0, [((.hp 16 0), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 204 5),
     1)]⟩)) .nil .nil) (.node none (.node (some (.m ⟨0, 19, []⟩)) .nil .nil) .nil)) (.node (some (.m
     ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 0),
     1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 172 5), 1)]⟩)) .nil .nil))) (.node none (.node
     none (.node none .nil (.node none (.node (some (.tab (.fr 161) 650)) .nil .nil) .nil)) (.node
-    (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19361, []⟩)) (.node
+    (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19350, []⟩)) (.node
     (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 188 5), 1)]⟩))
     .nil .nil)))) (.node none (.node none (.node none (.node (some (.m ⟨0, 1, []⟩)) (.node (some
     (.m ⟨0, 0, [((.hp 212 5), 1)]⟩)) .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) .nil)
-    (.node (some (.m ⟨0, 29578, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil) (.node
+    (.node (some (.m ⟨0, 29567, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil) (.node
     (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.hp 10 2) 650)) .nil
     .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 2), 1)]⟩)) (.node none .nil (.node
     (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.fr 167) 650)) .nil
@@ -8466,18 +8466,18 @@ noncomputable def snap233 : List Mode.Abs × Mode.Pend :=
     none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ())
     (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node (some ()) .nil .nil)
     .nil)) (.node none (.node none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil)
-    .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30119, []⟩)), (⟨0, 0,
-    [((.fr 27), 1)]⟩, (.m ⟨0, 30128, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0,
-    [((.fr 36), 1)]⟩, (.m ⟨0, 30145, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30161, []⟩)), (⟨0, 0,
-    [((.fr 148), 1)]⟩, (.m ⟨0, 30173, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30183, []⟩)), (⟨0,
-    0, [((.fr 156), 1)]⟩, (.m ⟨0, 30193, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30205, []⟩)),
-    (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30217, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30227,
-    []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30237, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0,
-    30247, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30257, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m
-    ⟨0, 30267, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30277, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩,
-    (.m ⟨0, 30287, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30297, []⟩)), (⟨0, 0, [((.fr 204),
-    1)]⟩, (.m ⟨0, 30307, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30317, []⟩)), (⟨0, 0, [((.fr
-    212), 1)]⟩, (.m ⟨0, 30327, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m ⟨0, 30337, []⟩)), (⟨0, 1,
+    .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30108, []⟩)), (⟨0, 0,
+    [((.fr 27), 1)]⟩, (.m ⟨0, 30117, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0,
+    [((.fr 36), 1)]⟩, (.m ⟨0, 30134, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30150, []⟩)), (⟨0, 0,
+    [((.fr 148), 1)]⟩, (.m ⟨0, 30162, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30172, []⟩)), (⟨0,
+    0, [((.fr 156), 1)]⟩, (.m ⟨0, 30182, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30194, []⟩)),
+    (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30206, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30216,
+    []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30226, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0,
+    30236, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30246, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m
+    ⟨0, 30256, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30266, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩,
+    (.m ⟨0, 30276, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30286, []⟩)), (⟨0, 0, [((.fr 204),
+    1)]⟩, (.m ⟨0, 30296, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30306, []⟩)), (⟨0, 0, [((.fr
+    212), 1)]⟩, (.m ⟨0, 30316, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m ⟨0, 30326, []⟩)), (⟨0, 1,
     [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr
     31), 1)]⟩, (.m ⟨0, 0, [((.fr 33), 1)]⟩)), (⟨0, 1, [((.fr 36), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1,
     [((.fr 49), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 148), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr
@@ -8668,10 +8668,10 @@ noncomputable def snap233 : List Mode.Abs × Mode.Pend :=
     1)]⟩, ⟨0, 472, [((.hp 49 4), 1)]⟩, ⟨0, 476, [((.hp 49 4), 1)]⟩, ⟨0, 480, [((.hp 49 4), 1)]⟩,
     ⟨0, 482, [((.hp 49 4), 1)]⟩, ⟨0, 484, [((.hp 49 4), 1)]⟩, ⟨0, 486, [((.hp 49 4), 1)]⟩], [⟨0,
     488, [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0, 492, [((.hp 49 4), 1)]⟩, ⟨0, 494,
-    [((.hp 49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161) 14333), 1, 0⟩,
-    ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 1)
-    14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
-    (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr
+    [((.hp 49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161) 14322), 1, 0⟩,
+    ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 1)
+    14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
+    (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr
     4), 1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 13), 1)]⟩, (.num 0), (.ex (.fr 9)
     6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 161) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15),
     1)]⟩, (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.hp 10 1)
@@ -8956,7 +8956,7 @@ noncomputable def snap237 : List Mode.Abs × Mode.Pend :=
     (.m ⟨0, 0, [((.hp 12 16), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 8),
     1)]⟩)) .nil .nil) .nil)))) (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp
     216 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 0, [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none
-    (.node (some (.m ⟨0, 30205, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 148 5),
+    (.node (some (.m ⟨0, 30194, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 148 5),
     1)]⟩)) (.node none (.node (some (.m ⟨0, 34, [((.fr 2), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0,
     0, [((.hp 12 15), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 7), 1)]⟩))
     .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 3), 1)]⟩)) (.node none .nil
@@ -8965,33 +8965,33 @@ noncomputable def snap237 : List Mode.Abs × Mode.Pend :=
     none (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12
     17), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil .nil)
     .nil))))) (.node none (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 208
-    5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30277, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30266, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
     0, [((.fr 161), 1)]⟩)) .nil .nil) .nil)) (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp
-    12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30317, []⟩)) .nil .nil)) (.node none (.node (some
-    (.m ⟨0, 30237, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0,
-    0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node
-    none (.node (some (.m ⟨0, 30217, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5),
-    1)]⟩)) (.node none (.node (some (.m ⟨0, 30183, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30337,
-    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30257, []⟩)) .nil .nil) .nil)))) (.node none
-    (.node none (.node (some (.m ⟨0, 210902, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30287,
+    12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30306, []⟩)) .nil .nil)) (.node none (.node (some
+    (.m ⟨0, 30226, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0,
+    0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node
+    none (.node (some (.m ⟨0, 30206, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5),
+    1)]⟩)) (.node none (.node (some (.m ⟨0, 30172, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30326,
+    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30246, []⟩)) .nil .nil) .nil)))) (.node none
+    (.node none (.node (some (.m ⟨0, 210081, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30276,
     []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩)) .nil .nil) .nil))
-    (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30173, []⟩))
-    .nil .nil) (.node (some (.m ⟨0, 30327, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30247, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
-    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30307, []⟩)) .nil
-    .nil)) (.node none (.node (some (.m ⟨0, 30227, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
-    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30193, []⟩)) .nil .nil) (.node (some (.m
-    ⟨0, 30347, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30267, []⟩)) .nil .nil)
+    (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30162, []⟩))
+    .nil .nil) (.node (some (.m ⟨0, 30316, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30236, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
+    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30296, []⟩)) .nil
+    .nil)) (.node none (.node (some (.m ⟨0, 30216, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
+    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30182, []⟩)) .nil .nil) (.node (some (.m
+    ⟨0, 30336, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30256, []⟩)) .nil .nil)
     .nil)))))) (.node none (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 16
     0), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 204 5), 1)]⟩)) .nil .nil) (.node none (.node (some
     (.m ⟨0, 19, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil))
     (.node none (.node (some (.m ⟨0, 0, [((.hp 10 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0,
     [((.hp 172 5), 1)]⟩)) .nil .nil))) (.node none (.node none (.node none .nil (.node none (.node
     (some (.tab (.fr 161) 650)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩))
-    .nil .nil)) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil
+    .nil .nil)) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil
     .nil) (.node (some (.m ⟨0, 0, [((.hp 188 5), 1)]⟩)) .nil .nil)))) (.node none (.node none
     (.node none (.node (some (.m ⟨0, 1, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 212 5), 1)]⟩)) .nil
-    (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29578, []⟩)) (.node
+    (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29567, []⟩)) (.node
     none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil) (.node (some (.tab (.hp 10 2) 650)) .nil .nil))
     (.node none (.node (some (.tab (.hp 10 2) 650)) .nil .nil) .nil))) (.node none (.node (some (.m
     ⟨0, 0, [((.hp 10 2), 1)]⟩)) (.node none .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil))
@@ -9036,18 +9036,18 @@ noncomputable def snap237 : List Mode.Abs × Mode.Pend :=
     .nil)) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node
     (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil (.node none (.node
     (some ()) .nil .nil) .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0,
-    30119, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30128, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0,
-    0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30145, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0,
-    30161, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30173, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m
-    ⟨0, 30183, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30193, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩,
-    (.m ⟨0, 30205, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30217, []⟩)), (⟨0, 0, [((.fr 172),
-    1)]⟩, (.m ⟨0, 30227, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30237, []⟩)), (⟨0, 0, [((.fr
-    180), 1)]⟩, (.m ⟨0, 30247, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30257, []⟩)), (⟨0, 0,
-    [((.fr 188), 1)]⟩, (.m ⟨0, 30267, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30277, []⟩))],
-    [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30287, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30297,
-    []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30307, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0,
-    30317, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0, 30327, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m
-    ⟨0, 30337, []⟩)), (⟨0, 0, [((.fr 220), 1)]⟩, (.m ⟨0, 30347, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩,
+    30108, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30117, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0,
+    0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30134, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0,
+    30150, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30162, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m
+    ⟨0, 30172, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30182, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩,
+    (.m ⟨0, 30194, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30206, []⟩)), (⟨0, 0, [((.fr 172),
+    1)]⟩, (.m ⟨0, 30216, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30226, []⟩)), (⟨0, 0, [((.fr
+    180), 1)]⟩, (.m ⟨0, 30236, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30246, []⟩)), (⟨0, 0,
+    [((.fr 188), 1)]⟩, (.m ⟨0, 30256, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30266, []⟩))],
+    [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30276, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30286,
+    []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30296, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0,
+    30306, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0, 30316, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m
+    ⟨0, 30326, []⟩)), (⟨0, 0, [((.fr 220), 1)]⟩, (.m ⟨0, 30336, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩,
     (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 31), 1)]⟩, (.m ⟨0,
     0, [((.fr 33), 1)]⟩)), (⟨0, 1, [((.fr 36), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 49), 1)]⟩,
     (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 148), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 152), 1)]⟩, (.m
@@ -9240,9 +9240,9 @@ noncomputable def snap237 : List Mode.Abs × Mode.Pend :=
     ⟨0, 480, [((.hp 49 4), 1)]⟩, ⟨0, 482, [((.hp 49 4), 1)]⟩], [⟨0, 484, [((.hp 49 4), 1)]⟩, ⟨0,
     486, [((.hp 49 4), 1)]⟩, ⟨0, 488, [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0, 492,
     [((.hp 49 4), 1)]⟩, ⟨0, 494, [((.hp 49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430),
-    (.ex (.fr 161) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0, 0,
-    []⟩, (.num 430), (.ex (.hp 10 1) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2)
-    14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0),
+    (.ex (.fr 161) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0, 0,
+    []⟩, (.num 430), (.ex (.hp 10 1) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2)
+    14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0),
     (.ex (.fr 6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0,
     [((.fr 13), 1)]⟩, (.num 0), (.ex (.fr 9) 6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex
     (.fr 161) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0,
@@ -9523,7 +9523,7 @@ noncomputable def snap237 : List Mode.Abs × Mode.Pend :=
     [((.hp 12 1), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 16), 1)]⟩)) .nil .nil))
     (.node none (.node (some (.m ⟨0, 0, [((.hp 12 8), 1)]⟩)) .nil .nil) .nil)))) (.node none (.node
     none (.node none (.node (some (.m ⟨0, 0, [((.hp 216 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 0,
-    [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30205, []⟩)) .nil .nil)
+    [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30194, []⟩)) .nil .nil)
     .nil)) (.node (some (.m ⟨0, 0, [((.hp 148 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 34,
     [((.fr 2), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 15), 1)]⟩)) .nil .nil)) (.node
     none (.node (some (.m ⟨0, 0, [((.hp 12 7), 1)]⟩)) .nil .nil) .nil))) (.node none (.node (some
@@ -9532,33 +9532,33 @@ noncomputable def snap237 : List Mode.Abs × Mode.Pend :=
     (some (.m ⟨0, 0, [((.hp 184 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩))
     .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 17), 1)]⟩)) .nil .nil)) (.node none (.node (some
     (.m ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil .nil) .nil))))) (.node none (.node none (.node none (.node
-    none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30277, []⟩)) .nil
+    none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30266, []⟩)) .nil
     .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩)) .nil .nil) .nil)) (.node none
-    (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30317,
-    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30237, []⟩)) .nil .nil) .nil))) (.node (some
-    (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some
-    (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30217, []⟩)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30183,
-    []⟩)) .nil .nil) (.node (some (.m ⟨0, 30337, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30257, []⟩)) .nil .nil) .nil)))) (.node none (.node none (.node (some (.m ⟨0, 210902, []⟩))
-    (.node none .nil (.node (some (.m ⟨0, 30287, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30306,
+    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30226, []⟩)) .nil .nil) .nil))) (.node (some
+    (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some
+    (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30206, []⟩)) .nil .nil)
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30172,
+    []⟩)) .nil .nil) (.node (some (.m ⟨0, 30326, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30246, []⟩)) .nil .nil) .nil)))) (.node none (.node none (.node (some (.m ⟨0, 210081, []⟩))
+    (.node none .nil (.node (some (.m ⟨0, 30276, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
     0, [((.hp 12 4), 1)]⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node
-    none (.node (some (.m ⟨0, 30173, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30327, []⟩)) .nil .nil))
-    (.node none (.node (some (.m ⟨0, 30247, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr
+    none (.node (some (.m ⟨0, 30162, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30316, []⟩)) .nil .nil))
+    (.node none (.node (some (.m ⟨0, 30236, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr
     9), 1), ((.fr 15), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node
-    (some (.m ⟨0, 30307, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30227, []⟩)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30193,
-    []⟩)) .nil .nil) (.node (some (.m ⟨0, 30347, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30267, []⟩)) .nil .nil) .nil)))))) (.node none (.node none (.node none (.node none (.node (some
+    (some (.m ⟨0, 30296, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30216, []⟩)) .nil .nil)
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30182,
+    []⟩)) .nil .nil) (.node (some (.m ⟨0, 30336, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30256, []⟩)) .nil .nil) .nil)))))) (.node none (.node none (.node none (.node none (.node (some
     (.m ⟨0, 0, [((.hp 16 0), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 204 5), 1)]⟩)) .nil .nil) (.node
     none (.node (some (.m ⟨0, 19, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 49 4),
     1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 0), 1)]⟩)) .nil .nil) (.node
     (some (.m ⟨0, 0, [((.hp 172 5), 1)]⟩)) .nil .nil))) (.node none (.node none (.node none .nil
     (.node none (.node (some (.tab (.fr 161) 650)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp
-    152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10
+    152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10
     4), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 188 5), 1)]⟩)) .nil .nil)))) (.node none
     (.node none (.node none (.node (some (.m ⟨0, 1, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 212 5),
-    1)]⟩)) .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29578,
+    1)]⟩)) .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29567,
     []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil) (.node (some (.tab (.hp 10 2) 650))
     .nil .nil)) (.node none (.node (some (.tab (.hp 10 2) 650)) .nil .nil) .nil))) (.node none
     (.node (some (.m ⟨0, 0, [((.hp 10 2), 1)]⟩)) (.node none .nil (.node (some (.tab (.hp 10 2)
@@ -9603,18 +9603,18 @@ noncomputable def snap237 : List Mode.Abs × Mode.Pend :=
     (some ()) .nil .nil) .nil)) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil)
     .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ())
     .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0,
-    [((.fr 24), 1)]⟩, (.m ⟨0, 30119, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30128, []⟩)), (⟨0, 0,
-    [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30145, []⟩)), (⟨0, 0,
-    [((.fr 49), 1)]⟩, (.m ⟨0, 30161, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30173, []⟩)), (⟨0,
-    0, [((.fr 152), 1)]⟩, (.m ⟨0, 30183, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30193, []⟩)),
-    (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30205, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30217,
-    []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30227, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0,
-    30237, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30247, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m
-    ⟨0, 30257, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0, 30267, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩,
-    (.m ⟨0, 30277, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30287, []⟩)), (⟨0, 0, [((.fr 200),
-    1)]⟩, (.m ⟨0, 30297, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30307, []⟩)), (⟨0, 0, [((.fr
-    208), 1)]⟩, (.m ⟨0, 30317, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0, 30327, []⟩)), (⟨0, 0,
-    [((.fr 216), 1)]⟩, (.m ⟨0, 30337, []⟩)), (⟨0, 0, [((.fr 220), 1)]⟩, (.m ⟨0, 30347, []⟩)), (⟨0,
+    [((.fr 24), 1)]⟩, (.m ⟨0, 30108, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30117, []⟩)), (⟨0, 0,
+    [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30134, []⟩)), (⟨0, 0,
+    [((.fr 49), 1)]⟩, (.m ⟨0, 30150, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30162, []⟩)), (⟨0,
+    0, [((.fr 152), 1)]⟩, (.m ⟨0, 30172, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30182, []⟩)),
+    (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30194, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30206,
+    []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30216, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0,
+    30226, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30236, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m
+    ⟨0, 30246, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0, 30256, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩,
+    (.m ⟨0, 30266, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30276, []⟩)), (⟨0, 0, [((.fr 200),
+    1)]⟩, (.m ⟨0, 30286, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30296, []⟩)), (⟨0, 0, [((.fr
+    208), 1)]⟩, (.m ⟨0, 30306, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0, 30316, []⟩)), (⟨0, 0,
+    [((.fr 216), 1)]⟩, (.m ⟨0, 30326, []⟩)), (⟨0, 0, [((.fr 220), 1)]⟩, (.m ⟨0, 30336, []⟩)), (⟨0,
     1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1,
     [((.fr 31), 1)]⟩, (.m ⟨0, 0, [((.fr 33), 1)]⟩)), (⟨0, 1, [((.fr 36), 1)]⟩, (.m ⟨1, 0, []⟩)),
     (⟨0, 1, [((.fr 49), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 148), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0,
@@ -9807,9 +9807,9 @@ noncomputable def snap237 : List Mode.Abs × Mode.Pend :=
     ⟨0, 480, [((.hp 49 4), 1)]⟩, ⟨0, 482, [((.hp 49 4), 1)]⟩], [⟨0, 484, [((.hp 49 4), 1)]⟩, ⟨0,
     486, [((.hp 49 4), 1)]⟩, ⟨0, 488, [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0, 492,
     [((.hp 49 4), 1)]⟩, ⟨0, 494, [((.hp 49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430),
-    (.ex (.fr 161) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0, 0,
-    []⟩, (.num 430), (.ex (.hp 10 1) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2)
-    14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0),
+    (.ex (.fr 161) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0, 0,
+    []⟩, (.num 430), (.ex (.hp 10 1) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2)
+    14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0),
     (.ex (.fr 6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0,
     [((.fr 13), 1)]⟩, (.num 0), (.ex (.fr 9) 6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex
     (.fr 161) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0,
@@ -10095,7 +10095,7 @@ noncomputable def snap238 : List Mode.Abs × Mode.Pend :=
     (.node (some (.m ⟨0, 0, [((.hp 12 16), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0,
     [((.hp 12 8), 1)]⟩)) .nil .nil) .nil)))) (.node none (.node none (.node none (.node (some (.m
     ⟨0, 0, [((.hp 216 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 0, [((.hp 12 11), 1)]⟩)) .nil .nil))
-    (.node none (.node (some (.m ⟨0, 30205, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp
+    (.node none (.node (some (.m ⟨0, 30194, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp
     148 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 34, [((.fr 2), 1)]⟩)) .nil .nil) (.node (some
     (.m ⟨0, 0, [((.hp 12 15), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 7),
     1)]⟩)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 3), 1)]⟩)) (.node none
@@ -10104,33 +10104,33 @@ noncomputable def snap238 : List Mode.Abs × Mode.Pend :=
     none (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12
     17), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil .nil)
     .nil))))) (.node none (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 208
-    5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30277, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30266, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
     0, [((.fr 161), 1)]⟩)) .nil .nil) .nil)) (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp
-    12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30317, []⟩)) .nil .nil)) (.node none (.node (some
-    (.m ⟨0, 30237, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0,
-    0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node
-    none (.node (some (.m ⟨0, 30217, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5),
-    1)]⟩)) (.node none (.node (some (.m ⟨0, 30183, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30337,
-    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30257, []⟩)) .nil .nil) .nil)))) (.node none
-    (.node none (.node (some (.m ⟨0, 210902, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30287,
+    12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30306, []⟩)) .nil .nil)) (.node none (.node (some
+    (.m ⟨0, 30226, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0,
+    0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node
+    none (.node (some (.m ⟨0, 30206, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5),
+    1)]⟩)) (.node none (.node (some (.m ⟨0, 30172, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30326,
+    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30246, []⟩)) .nil .nil) .nil)))) (.node none
+    (.node none (.node (some (.m ⟨0, 210081, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30276,
     []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩)) .nil .nil) .nil))
-    (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30173, []⟩))
-    .nil .nil) (.node (some (.m ⟨0, 30327, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30247, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
-    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30307, []⟩)) .nil
-    .nil)) (.node none (.node (some (.m ⟨0, 30227, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
-    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30193, []⟩)) .nil .nil) (.node (some (.m
-    ⟨0, 30347, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30267, []⟩)) .nil .nil)
+    (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30162, []⟩))
+    .nil .nil) (.node (some (.m ⟨0, 30316, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30236, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
+    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30296, []⟩)) .nil
+    .nil)) (.node none (.node (some (.m ⟨0, 30216, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
+    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30182, []⟩)) .nil .nil) (.node (some (.m
+    ⟨0, 30336, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30256, []⟩)) .nil .nil)
     .nil)))))) (.node none (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 16
     0), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 204 5), 1)]⟩)) .nil .nil) (.node none (.node (some
     (.m ⟨0, 19, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil))
     (.node none (.node (some (.m ⟨0, 0, [((.hp 10 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0,
     [((.hp 172 5), 1)]⟩)) .nil .nil))) (.node none (.node none (.node none .nil (.node none (.node
     (some (.tab (.fr 161) 650)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩))
-    .nil .nil)) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil
+    .nil .nil)) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil
     .nil) (.node (some (.m ⟨0, 0, [((.hp 188 5), 1)]⟩)) .nil .nil)))) (.node none (.node none
     (.node none (.node (some (.m ⟨0, 1, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 212 5), 1)]⟩)) .nil
-    (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29578, []⟩)) (.node
+    (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29567, []⟩)) (.node
     none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil) (.node (some (.tab (.hp 10 2) 650)) .nil .nil))
     (.node none (.node (some (.tab (.hp 10 2) 650)) .nil .nil) .nil))) (.node none (.node (some (.m
     ⟨0, 0, [((.hp 10 2), 1)]⟩)) (.node none .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil))
@@ -10175,18 +10175,18 @@ noncomputable def snap238 : List Mode.Abs × Mode.Pend :=
     .nil)) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node
     (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil (.node none (.node
     (some ()) .nil .nil) .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0,
-    30119, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30128, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0,
-    0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30145, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0,
-    30161, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30173, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m
-    ⟨0, 30183, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30193, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩,
-    (.m ⟨0, 30205, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30217, []⟩)), (⟨0, 0, [((.fr 172),
-    1)]⟩, (.m ⟨0, 30227, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30237, []⟩)), (⟨0, 0, [((.fr
-    180), 1)]⟩, (.m ⟨0, 30247, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30257, []⟩)), (⟨0, 0,
-    [((.fr 188), 1)]⟩, (.m ⟨0, 30267, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30277, []⟩))],
-    [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30287, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30297,
-    []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30307, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0,
-    30317, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0, 30327, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m
-    ⟨0, 30337, []⟩)), (⟨0, 0, [((.fr 220), 1)]⟩, (.m ⟨0, 30347, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩,
+    30108, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30117, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0,
+    0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30134, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0,
+    30150, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30162, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m
+    ⟨0, 30172, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30182, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩,
+    (.m ⟨0, 30194, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30206, []⟩)), (⟨0, 0, [((.fr 172),
+    1)]⟩, (.m ⟨0, 30216, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30226, []⟩)), (⟨0, 0, [((.fr
+    180), 1)]⟩, (.m ⟨0, 30236, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30246, []⟩)), (⟨0, 0,
+    [((.fr 188), 1)]⟩, (.m ⟨0, 30256, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30266, []⟩))],
+    [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30276, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30286,
+    []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30296, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0,
+    30306, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0, 30316, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m
+    ⟨0, 30326, []⟩)), (⟨0, 0, [((.fr 220), 1)]⟩, (.m ⟨0, 30336, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩,
     (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 31), 1)]⟩, (.m ⟨0,
     0, [((.fr 33), 1)]⟩)), (⟨0, 1, [((.fr 36), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 49), 1)]⟩,
     (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 148), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 152), 1)]⟩, (.m
@@ -10379,9 +10379,9 @@ noncomputable def snap238 : List Mode.Abs × Mode.Pend :=
     ⟨0, 480, [((.hp 49 4), 1)]⟩], [⟨0, 482, [((.hp 49 4), 1)]⟩, ⟨0, 484, [((.hp 49 4), 1)]⟩, ⟨0,
     486, [((.hp 49 4), 1)]⟩, ⟨0, 488, [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0, 492,
     [((.hp 49 4), 1)]⟩, ⟨0, 494, [((.hp 49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430),
-    (.ex (.fr 161) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0, 0,
-    []⟩, (.num 430), (.ex (.hp 10 1) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2)
-    14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0),
+    (.ex (.fr 161) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0, 0,
+    []⟩, (.num 430), (.ex (.hp 10 1) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2)
+    14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0),
     (.ex (.fr 6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0,
     [((.fr 13), 1)]⟩, (.num 0), (.ex (.fr 9) 6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex
     (.fr 161) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0,
@@ -10662,7 +10662,7 @@ noncomputable def snap238 : List Mode.Abs × Mode.Pend :=
     [((.hp 12 1), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 16), 1)]⟩)) .nil .nil))
     (.node none (.node (some (.m ⟨0, 0, [((.hp 12 8), 1)]⟩)) .nil .nil) .nil)))) (.node none (.node
     none (.node none (.node (some (.m ⟨0, 0, [((.hp 216 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 0,
-    [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30205, []⟩)) .nil .nil)
+    [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30194, []⟩)) .nil .nil)
     .nil)) (.node (some (.m ⟨0, 0, [((.hp 148 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 34,
     [((.fr 2), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 15), 1)]⟩)) .nil .nil)) (.node
     none (.node (some (.m ⟨0, 0, [((.hp 12 7), 1)]⟩)) .nil .nil) .nil))) (.node none (.node (some
@@ -10671,33 +10671,33 @@ noncomputable def snap238 : List Mode.Abs × Mode.Pend :=
     (some (.m ⟨0, 0, [((.hp 184 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩))
     .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 17), 1)]⟩)) .nil .nil)) (.node none (.node (some
     (.m ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil .nil) .nil))))) (.node none (.node none (.node none (.node
-    none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30277, []⟩)) .nil
+    none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30266, []⟩)) .nil
     .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩)) .nil .nil) .nil)) (.node none
-    (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30317,
-    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30237, []⟩)) .nil .nil) .nil))) (.node (some
-    (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some
-    (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30217, []⟩)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30183,
-    []⟩)) .nil .nil) (.node (some (.m ⟨0, 30337, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30257, []⟩)) .nil .nil) .nil)))) (.node none (.node none (.node (some (.m ⟨0, 210902, []⟩))
-    (.node none .nil (.node (some (.m ⟨0, 30287, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30306,
+    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30226, []⟩)) .nil .nil) .nil))) (.node (some
+    (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some
+    (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30206, []⟩)) .nil .nil)
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30172,
+    []⟩)) .nil .nil) (.node (some (.m ⟨0, 30326, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30246, []⟩)) .nil .nil) .nil)))) (.node none (.node none (.node (some (.m ⟨0, 210081, []⟩))
+    (.node none .nil (.node (some (.m ⟨0, 30276, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
     0, [((.hp 12 4), 1)]⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node
-    none (.node (some (.m ⟨0, 30173, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30327, []⟩)) .nil .nil))
-    (.node none (.node (some (.m ⟨0, 30247, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr
+    none (.node (some (.m ⟨0, 30162, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30316, []⟩)) .nil .nil))
+    (.node none (.node (some (.m ⟨0, 30236, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr
     9), 1), ((.fr 15), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node
-    (some (.m ⟨0, 30307, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30227, []⟩)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30193,
-    []⟩)) .nil .nil) (.node (some (.m ⟨0, 30347, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30267, []⟩)) .nil .nil) .nil)))))) (.node none (.node none (.node none (.node none (.node (some
+    (some (.m ⟨0, 30296, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30216, []⟩)) .nil .nil)
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30182,
+    []⟩)) .nil .nil) (.node (some (.m ⟨0, 30336, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30256, []⟩)) .nil .nil) .nil)))))) (.node none (.node none (.node none (.node none (.node (some
     (.m ⟨0, 0, [((.hp 16 0), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 204 5), 1)]⟩)) .nil .nil) (.node
     none (.node (some (.m ⟨0, 19, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 49 4),
     1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 0), 1)]⟩)) .nil .nil) (.node
     (some (.m ⟨0, 0, [((.hp 172 5), 1)]⟩)) .nil .nil))) (.node none (.node none (.node none .nil
     (.node none (.node (some (.tab (.fr 161) 650)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp
-    152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10
+    152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10
     4), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 188 5), 1)]⟩)) .nil .nil)))) (.node none
     (.node none (.node none (.node (some (.m ⟨0, 1, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 212 5),
-    1)]⟩)) .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29578,
+    1)]⟩)) .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29567,
     []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil) (.node (some (.tab (.hp 10 2) 650))
     .nil .nil)) (.node none (.node (some (.tab (.hp 10 2) 650)) .nil .nil) .nil))) (.node none
     (.node (some (.m ⟨0, 0, [((.hp 10 2), 1)]⟩)) (.node none .nil (.node (some (.tab (.hp 10 2)
@@ -10742,18 +10742,18 @@ noncomputable def snap238 : List Mode.Abs × Mode.Pend :=
     (some ()) .nil .nil) .nil)) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil)
     .nil)) (.node none (.node (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ())
     .nil (.node none (.node (some ()) .nil .nil) .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0,
-    [((.fr 24), 1)]⟩, (.m ⟨0, 30119, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30128, []⟩)), (⟨0, 0,
-    [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30145, []⟩)), (⟨0, 0,
-    [((.fr 49), 1)]⟩, (.m ⟨0, 30161, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30173, []⟩)), (⟨0,
-    0, [((.fr 152), 1)]⟩, (.m ⟨0, 30183, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30193, []⟩)),
-    (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30205, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30217,
-    []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30227, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0,
-    30237, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30247, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m
-    ⟨0, 30257, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0, 30267, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩,
-    (.m ⟨0, 30277, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30287, []⟩)), (⟨0, 0, [((.fr 200),
-    1)]⟩, (.m ⟨0, 30297, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30307, []⟩)), (⟨0, 0, [((.fr
-    208), 1)]⟩, (.m ⟨0, 30317, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0, 30327, []⟩)), (⟨0, 0,
-    [((.fr 216), 1)]⟩, (.m ⟨0, 30337, []⟩)), (⟨0, 0, [((.fr 220), 1)]⟩, (.m ⟨0, 30347, []⟩)), (⟨0,
+    [((.fr 24), 1)]⟩, (.m ⟨0, 30108, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30117, []⟩)), (⟨0, 0,
+    [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30134, []⟩)), (⟨0, 0,
+    [((.fr 49), 1)]⟩, (.m ⟨0, 30150, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30162, []⟩)), (⟨0,
+    0, [((.fr 152), 1)]⟩, (.m ⟨0, 30172, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30182, []⟩)),
+    (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30194, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30206,
+    []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30216, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0,
+    30226, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30236, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m
+    ⟨0, 30246, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0, 30256, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩,
+    (.m ⟨0, 30266, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30276, []⟩)), (⟨0, 0, [((.fr 200),
+    1)]⟩, (.m ⟨0, 30286, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30296, []⟩)), (⟨0, 0, [((.fr
+    208), 1)]⟩, (.m ⟨0, 30306, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0, 30316, []⟩)), (⟨0, 0,
+    [((.fr 216), 1)]⟩, (.m ⟨0, 30326, []⟩)), (⟨0, 0, [((.fr 220), 1)]⟩, (.m ⟨0, 30336, []⟩)), (⟨0,
     1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1,
     [((.fr 31), 1)]⟩, (.m ⟨0, 0, [((.fr 33), 1)]⟩)), (⟨0, 1, [((.fr 36), 1)]⟩, (.m ⟨1, 0, []⟩)),
     (⟨0, 1, [((.fr 49), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 148), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0,
@@ -10946,9 +10946,9 @@ noncomputable def snap238 : List Mode.Abs × Mode.Pend :=
     ⟨0, 480, [((.hp 49 4), 1)]⟩], [⟨0, 482, [((.hp 49 4), 1)]⟩, ⟨0, 484, [((.hp 49 4), 1)]⟩, ⟨0,
     486, [((.hp 49 4), 1)]⟩, ⟨0, 488, [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0, 492,
     [((.hp 49 4), 1)]⟩, ⟨0, 494, [((.hp 49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430),
-    (.ex (.fr 161) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0, 0,
-    []⟩, (.num 430), (.ex (.hp 10 1) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2)
-    14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0),
+    (.ex (.fr 161) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0, 0,
+    []⟩, (.num 430), (.ex (.hp 10 1) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2)
+    14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0),
     (.ex (.fr 6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0,
     [((.fr 13), 1)]⟩, (.num 0), (.ex (.fr 9) 6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex
     (.fr 161) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0,
@@ -11235,7 +11235,7 @@ noncomputable def snap243 : List Mode.Abs × Mode.Pend :=
     (.node (some (.m ⟨0, 0, [((.hp 12 16), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0,
     [((.hp 12 8), 1)]⟩)) .nil .nil) .nil)))) (.node none (.node none (.node none (.node (some (.m
     ⟨0, 0, [((.hp 216 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 0, [((.hp 12 11), 1)]⟩)) .nil .nil))
-    (.node none (.node (some (.m ⟨0, 30205, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp
+    (.node none (.node (some (.m ⟨0, 30194, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp
     148 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 34, [((.fr 2), 1)]⟩)) .nil .nil) (.node (some
     (.m ⟨0, 0, [((.hp 12 15), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 7),
     1)]⟩)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 3), 1)]⟩)) (.node none
@@ -11244,34 +11244,34 @@ noncomputable def snap243 : List Mode.Abs × Mode.Pend :=
     none (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12
     17), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil .nil)
     .nil))))) (.node none (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 208
-    5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30277, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30266, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
     0, [((.fr 161), 1)]⟩)) .nil .nil) .nil)) (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp
-    12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30317, []⟩)) .nil .nil)) (.node none (.node (some
-    (.m ⟨0, 30237, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0,
-    0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node
-    none (.node (some (.m ⟨0, 30217, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5),
-    1)]⟩)) (.node none (.node (some (.m ⟨0, 30183, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30337,
-    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30257, []⟩)) .nil .nil) .nil)))) (.node none
-    (.node none (.node (some (.m ⟨0, 210902, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30287,
+    12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30306, []⟩)) .nil .nil)) (.node none (.node (some
+    (.m ⟨0, 30226, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0,
+    0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node
+    none (.node (some (.m ⟨0, 30206, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5),
+    1)]⟩)) (.node none (.node (some (.m ⟨0, 30172, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30326,
+    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30246, []⟩)) .nil .nil) .nil)))) (.node none
+    (.node none (.node (some (.m ⟨0, 210081, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30276,
     []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩)) .nil .nil) .nil))
-    (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30173, []⟩))
-    .nil .nil) (.node (some (.m ⟨0, 30327, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30247, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
-    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30307, []⟩)) .nil
-    .nil)) (.node none (.node (some (.m ⟨0, 30227, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
-    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30193, []⟩)) .nil .nil) (.node (some (.m
-    ⟨0, 30347, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30267, []⟩)) .nil .nil)
+    (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30162, []⟩))
+    .nil .nil) (.node (some (.m ⟨0, 30316, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30236, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
+    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30296, []⟩)) .nil
+    .nil)) (.node none (.node (some (.m ⟨0, 30216, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
+    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30182, []⟩)) .nil .nil) (.node (some (.m
+    ⟨0, 30336, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30256, []⟩)) .nil .nil)
     .nil)))))) (.node none (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 16
     0), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 204 5), 1)]⟩)) .nil .nil) (.node none (.node (some
     (.m ⟨0, 19, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil))
     (.node none (.node (some (.m ⟨0, 0, [((.hp 10 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0,
     [((.hp 172 5), 1)]⟩)) .nil .nil))) (.node none (.node none (.node none (.node (some (.m ⟨0, 0,
     [((.hp 220 5), 1)]⟩)) .nil .nil) (.node none (.node (some (.tab (.fr 161) 650)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19361,
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19350,
     []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp
     188 5), 1)]⟩)) .nil .nil)))) (.node none (.node none (.node none (.node (some (.m ⟨0, 1, []⟩))
     (.node (some (.m ⟨0, 0, [((.hp 212 5), 1)]⟩)) .nil (.node (some (.tab (.hp 10 2) 650)) .nil
-    .nil)) .nil) (.node (some (.m ⟨0, 29578, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil
+    .nil)) .nil) (.node (some (.m ⟨0, 29567, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil
     .nil) (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.hp 10 2)
     650)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 2), 1)]⟩)) (.node none
     .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.fr 167)
@@ -11315,19 +11315,19 @@ noncomputable def snap243 : List Mode.Abs × Mode.Pend :=
     none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ())
     (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node (some ()) .nil .nil)
     .nil)) (.node none (.node none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil)
-    .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30119, []⟩)), (⟨0, 0,
-    [((.fr 27), 1)]⟩, (.m ⟨0, 30128, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0,
-    [((.fr 36), 1)]⟩, (.m ⟨0, 30145, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30161, []⟩)), (⟨0, 0,
-    [((.fr 148), 1)]⟩, (.m ⟨0, 30173, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30183, []⟩)), (⟨0,
-    0, [((.fr 156), 1)]⟩, (.m ⟨0, 30193, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30205, []⟩)),
-    (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30217, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30227,
-    []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30237, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0,
-    30247, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30257, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m
-    ⟨0, 30267, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30277, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩,
-    (.m ⟨0, 30287, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30297, []⟩)), (⟨0, 0, [((.fr 204),
-    1)]⟩, (.m ⟨0, 30307, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30317, []⟩)), (⟨0, 0, [((.fr
-    212), 1)]⟩, (.m ⟨0, 30327, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m ⟨0, 30337, []⟩)), (⟨0, 0,
-    [((.fr 220), 1)]⟩, (.m ⟨0, 30347, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1,
+    .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30108, []⟩)), (⟨0, 0,
+    [((.fr 27), 1)]⟩, (.m ⟨0, 30117, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0,
+    [((.fr 36), 1)]⟩, (.m ⟨0, 30134, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30150, []⟩)), (⟨0, 0,
+    [((.fr 148), 1)]⟩, (.m ⟨0, 30162, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30172, []⟩)), (⟨0,
+    0, [((.fr 156), 1)]⟩, (.m ⟨0, 30182, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30194, []⟩)),
+    (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30206, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30216,
+    []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30226, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0,
+    30236, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30246, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m
+    ⟨0, 30256, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30266, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩,
+    (.m ⟨0, 30276, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30286, []⟩)), (⟨0, 0, [((.fr 204),
+    1)]⟩, (.m ⟨0, 30296, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30306, []⟩)), (⟨0, 0, [((.fr
+    212), 1)]⟩, (.m ⟨0, 30316, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m ⟨0, 30326, []⟩)), (⟨0, 0,
+    [((.fr 220), 1)]⟩, (.m ⟨0, 30336, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1,
     [((.fr 27), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 31), 1)]⟩, (.m ⟨0, 0, [((.fr 33), 1)]⟩)),
     (⟨0, 1, [((.fr 36), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 49), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1,
     [((.fr 148), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 152), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1,
@@ -11522,9 +11522,9 @@ noncomputable def snap243 : List Mode.Abs × Mode.Pend :=
     476, [((.hp 49 4), 1)]⟩, ⟨0, 480, [((.hp 49 4), 1)]⟩, ⟨0, 482, [((.hp 49 4), 1)]⟩, ⟨0, 484,
     [((.hp 49 4), 1)]⟩, ⟨0, 486, [((.hp 49 4), 1)]⟩, ⟨0, 488, [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp
     49 4), 1)]⟩, ⟨0, 492, [((.hp 49 4), 1)]⟩, ⟨0, 494, [((.hp 49 4), 1)]⟩]])]), (List.flatten
-    [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr
-    167) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 1) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num
-    430), (.ex (.hp 10 2) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14363), 1, 0⟩, ⟨⟨0, 0,
+    [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr
+    167) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 1) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num
+    430), (.ex (.hp 10 2) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14352), 1, 0⟩, ⟨⟨0, 0,
     [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.ex (.fr
     7) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 13), 1)]⟩, (.num 0), (.ex (.fr 9) 6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15),
     1)]⟩, (.num 0), (.ex (.fr 161) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 167)
@@ -11807,7 +11807,7 @@ noncomputable def snap243 : List Mode.Abs × Mode.Pend :=
     (.node (some (.m ⟨0, 0, [((.hp 12 16), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0,
     [((.hp 12 8), 1)]⟩)) .nil .nil) .nil)))) (.node none (.node none (.node none (.node (some (.m
     ⟨0, 0, [((.hp 216 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 0, [((.hp 12 11), 1)]⟩)) .nil .nil))
-    (.node none (.node (some (.m ⟨0, 30205, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp
+    (.node none (.node (some (.m ⟨0, 30194, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp
     148 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 34, [((.fr 2), 1)]⟩)) .nil .nil) (.node (some
     (.m ⟨0, 0, [((.hp 12 15), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 7),
     1)]⟩)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 3), 1)]⟩)) (.node none
@@ -11816,34 +11816,34 @@ noncomputable def snap243 : List Mode.Abs × Mode.Pend :=
     none (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12
     17), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil .nil)
     .nil))))) (.node none (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 208
-    5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30277, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30266, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
     0, [((.fr 161), 1)]⟩)) .nil .nil) .nil)) (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp
-    12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30317, []⟩)) .nil .nil)) (.node none (.node (some
-    (.m ⟨0, 30237, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0,
-    0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node
-    none (.node (some (.m ⟨0, 30217, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5),
-    1)]⟩)) (.node none (.node (some (.m ⟨0, 30183, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30337,
-    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30257, []⟩)) .nil .nil) .nil)))) (.node none
-    (.node none (.node (some (.m ⟨0, 210902, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30287,
+    12 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30306, []⟩)) .nil .nil)) (.node none (.node (some
+    (.m ⟨0, 30226, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0,
+    0, [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node
+    none (.node (some (.m ⟨0, 30206, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5),
+    1)]⟩)) (.node none (.node (some (.m ⟨0, 30172, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30326,
+    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30246, []⟩)) .nil .nil) .nil)))) (.node none
+    (.node none (.node (some (.m ⟨0, 210081, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30276,
     []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩)) .nil .nil) .nil))
-    (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30173, []⟩))
-    .nil .nil) (.node (some (.m ⟨0, 30327, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30247, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
-    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30307, []⟩)) .nil
-    .nil)) (.node none (.node (some (.m ⟨0, 30227, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
-    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30193, []⟩)) .nil .nil) (.node (some (.m
-    ⟨0, 30347, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30267, []⟩)) .nil .nil)
+    (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30162, []⟩))
+    .nil .nil) (.node (some (.m ⟨0, 30316, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30236, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
+    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30296, []⟩)) .nil
+    .nil)) (.node none (.node (some (.m ⟨0, 30216, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
+    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30182, []⟩)) .nil .nil) (.node (some (.m
+    ⟨0, 30336, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30256, []⟩)) .nil .nil)
     .nil)))))) (.node none (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 16
     0), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 204 5), 1)]⟩)) .nil .nil) (.node none (.node (some
     (.m ⟨0, 19, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil))
     (.node none (.node (some (.m ⟨0, 0, [((.hp 10 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0,
     [((.hp 172 5), 1)]⟩)) .nil .nil))) (.node none (.node none (.node none (.node (some (.m ⟨0, 0,
     [((.hp 220 5), 1)]⟩)) .nil .nil) (.node none (.node (some (.tab (.fr 161) 650)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19361,
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19350,
     []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp
     188 5), 1)]⟩)) .nil .nil)))) (.node none (.node none (.node none (.node (some (.m ⟨0, 1, []⟩))
     (.node (some (.m ⟨0, 0, [((.hp 212 5), 1)]⟩)) .nil (.node (some (.tab (.hp 10 2) 650)) .nil
-    .nil)) .nil) (.node (some (.m ⟨0, 29578, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil
+    .nil)) .nil) (.node (some (.m ⟨0, 29567, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil
     .nil) (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.hp 10 2)
     650)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 2), 1)]⟩)) (.node none
     .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.fr 167)
@@ -11887,19 +11887,19 @@ noncomputable def snap243 : List Mode.Abs × Mode.Pend :=
     none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ())
     (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node (some ()) .nil .nil)
     .nil)) (.node none (.node none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil)
-    .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30119, []⟩)), (⟨0, 0,
-    [((.fr 27), 1)]⟩, (.m ⟨0, 30128, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0,
-    [((.fr 36), 1)]⟩, (.m ⟨0, 30145, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30161, []⟩)), (⟨0, 0,
-    [((.fr 148), 1)]⟩, (.m ⟨0, 30173, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30183, []⟩)), (⟨0,
-    0, [((.fr 156), 1)]⟩, (.m ⟨0, 30193, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30205, []⟩)),
-    (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30217, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30227,
-    []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30237, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0,
-    30247, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30257, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m
-    ⟨0, 30267, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30277, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩,
-    (.m ⟨0, 30287, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30297, []⟩)), (⟨0, 0, [((.fr 204),
-    1)]⟩, (.m ⟨0, 30307, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30317, []⟩)), (⟨0, 0, [((.fr
-    212), 1)]⟩, (.m ⟨0, 30327, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m ⟨0, 30337, []⟩)), (⟨0, 0,
-    [((.fr 220), 1)]⟩, (.m ⟨0, 30347, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1,
+    .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30108, []⟩)), (⟨0, 0,
+    [((.fr 27), 1)]⟩, (.m ⟨0, 30117, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0,
+    [((.fr 36), 1)]⟩, (.m ⟨0, 30134, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30150, []⟩)), (⟨0, 0,
+    [((.fr 148), 1)]⟩, (.m ⟨0, 30162, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30172, []⟩)), (⟨0,
+    0, [((.fr 156), 1)]⟩, (.m ⟨0, 30182, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30194, []⟩)),
+    (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30206, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30216,
+    []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30226, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0,
+    30236, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30246, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m
+    ⟨0, 30256, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30266, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩,
+    (.m ⟨0, 30276, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30286, []⟩)), (⟨0, 0, [((.fr 204),
+    1)]⟩, (.m ⟨0, 30296, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30306, []⟩)), (⟨0, 0, [((.fr
+    212), 1)]⟩, (.m ⟨0, 30316, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m ⟨0, 30326, []⟩)), (⟨0, 0,
+    [((.fr 220), 1)]⟩, (.m ⟨0, 30336, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1,
     [((.fr 27), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 31), 1)]⟩, (.m ⟨0, 0, [((.fr 33), 1)]⟩)),
     (⟨0, 1, [((.fr 36), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 49), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1,
     [((.fr 148), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 152), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1,
@@ -12094,9 +12094,9 @@ noncomputable def snap243 : List Mode.Abs × Mode.Pend :=
     476, [((.hp 49 4), 1)]⟩, ⟨0, 480, [((.hp 49 4), 1)]⟩, ⟨0, 482, [((.hp 49 4), 1)]⟩, ⟨0, 484,
     [((.hp 49 4), 1)]⟩, ⟨0, 486, [((.hp 49 4), 1)]⟩, ⟨0, 488, [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp
     49 4), 1)]⟩, ⟨0, 492, [((.hp 49 4), 1)]⟩, ⟨0, 494, [((.hp 49 4), 1)]⟩]])]), (List.flatten
-    [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr
-    167) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 1) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num
-    430), (.ex (.hp 10 2) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14363), 1, 0⟩, ⟨⟨0, 0,
+    [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr
+    167) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 1) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num
+    430), (.ex (.hp 10 2) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.num 14352), 1, 0⟩, ⟨⟨0, 0,
     [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.ex (.fr
     7) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 13), 1)]⟩, (.num 0), (.ex (.fr 9) 6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15),
     1)]⟩, (.num 0), (.ex (.fr 161) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 167)
@@ -12383,7 +12383,7 @@ noncomputable def snap246 : List Mode.Abs × Mode.Pend :=
     .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 16), 1)]⟩)) .nil .nil)) (.node none (.node (some
     (.m ⟨0, 0, [((.hp 12 8), 1)]⟩)) .nil .nil) .nil)))) (.node none (.node none (.node none (.node
     (some (.m ⟨0, 0, [((.hp 216 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 0, [((.hp 12 11), 1)]⟩)) .nil
-    .nil)) (.node none (.node (some (.m ⟨0, 30205, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
+    .nil)) (.node none (.node (some (.m ⟨0, 30194, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
     [((.hp 148 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 34, [((.fr 2), 1)]⟩)) .nil .nil) (.node
     (some (.m ⟨0, 0, [((.hp 12 15), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp
     12 7), 1)]⟩)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 3), 1)]⟩))
@@ -12392,34 +12392,34 @@ noncomputable def snap246 : List Mode.Abs × Mode.Pend :=
     1)]⟩)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0,
     0, [((.hp 12 17), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 9), 1)]⟩))
     .nil .nil) .nil))))) (.node none (.node none (.node none (.node none (.node (some (.m ⟨0, 0,
-    [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30277, []⟩)) .nil .nil)) (.node none (.node
-    (some (.m ⟨0, 0, [((.fr 161), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30357, []⟩)) .nil .nil)))
+    [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30266, []⟩)) .nil .nil)) (.node none (.node
+    (some (.m ⟨0, 0, [((.fr 161), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 30346, []⟩)) .nil .nil)))
     (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩)) .nil .nil) (.node (some
-    (.m ⟨0, 30317, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30237, []⟩)) .nil .nil)
-    .nil))) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node
-    none .nil (.node (some (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30217,
+    (.m ⟨0, 30306, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30226, []⟩)) .nil .nil)
+    .nil))) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 1), 1)]⟩)) (.node
+    none .nil (.node (some (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30206,
     []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5), 1)]⟩)) (.node none (.node (some
-    (.m ⟨0, 30183, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30337, []⟩)) .nil .nil)) (.node none
-    (.node (some (.m ⟨0, 30257, []⟩)) .nil .nil) .nil)))) (.node none (.node none (.node (some (.m
-    ⟨0, 210902, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30287, []⟩)) .nil .nil)) (.node none
+    (.m ⟨0, 30172, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30326, []⟩)) .nil .nil)) (.node none
+    (.node (some (.m ⟨0, 30246, []⟩)) .nil .nil) .nil)))) (.node none (.node none (.node (some (.m
+    ⟨0, 210081, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30276, []⟩)) .nil .nil)) (.node none
     (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp
-    156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30173, []⟩)) .nil .nil) (.node (some (.m ⟨0,
-    30327, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30247, []⟩)) .nil .nil) .nil)))
+    156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30162, []⟩)) .nil .nil) (.node (some (.m ⟨0,
+    30316, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30236, []⟩)) .nil .nil) .nil)))
     (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 5),
-    1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30307, []⟩)) .nil .nil)) (.node none (.node (some
-    (.m ⟨0, 30227, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node
-    none (.node (some (.m ⟨0, 30193, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30347, []⟩)) .nil .nil))
-    (.node none (.node (some (.m ⟨0, 30267, []⟩)) .nil .nil) .nil)))))) (.node none (.node none
+    1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30296, []⟩)) .nil .nil)) (.node none (.node (some
+    (.m ⟨0, 30216, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 192 5), 1)]⟩)) (.node
+    none (.node (some (.m ⟨0, 30182, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30336, []⟩)) .nil .nil))
+    (.node none (.node (some (.m ⟨0, 30256, []⟩)) .nil .nil) .nil)))))) (.node none (.node none
     (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 16 0), 1)]⟩)) (.node (some (.m ⟨0, 0,
     [((.hp 204 5), 1)]⟩)) .nil .nil) (.node none (.node (some (.m ⟨0, 19, []⟩)) .nil .nil) .nil))
     (.node (some (.m ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0,
     [((.hp 10 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 172 5), 1)]⟩)) .nil .nil)))
     (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 220 5), 1)]⟩)) .nil .nil)
     (.node none (.node (some (.tab (.fr 161) 650)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp
-    152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10
+    152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10
     4), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 188 5), 1)]⟩)) .nil .nil)))) (.node none
     (.node none (.node none (.node (some (.m ⟨0, 1, []⟩)) (.node (some (.m ⟨0, 0, [((.hp 212 5),
-    1)]⟩)) .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29578,
+    1)]⟩)) .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) .nil) (.node (some (.m ⟨0, 29567,
     []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil) (.node (some (.tab (.hp 10 2) 650))
     .nil .nil)) (.node none (.node (some (.tab (.hp 10 2) 650)) .nil .nil) .nil))) (.node none
     (.node (some (.m ⟨0, 0, [((.hp 10 2), 1)]⟩)) (.node none .nil (.node (some (.tab (.hp 10 2)
@@ -12464,19 +12464,19 @@ noncomputable def snap246 : List Mode.Abs × Mode.Pend :=
     (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil)) (.node (some ()) (.node
     none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node (some ()) .nil .nil) .nil))
     (.node none (.node none (.node (some ()) .nil (.node none (.node (some ()) .nil .nil) .nil))
-    .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30119, []⟩)), (⟨0, 0, [((.fr
-    27), 1)]⟩, (.m ⟨0, 30128, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr
-    36), 1)]⟩, (.m ⟨0, 30145, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30161, []⟩)), (⟨0, 0, [((.fr
-    148), 1)]⟩, (.m ⟨0, 30173, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30183, []⟩)), (⟨0, 0,
-    [((.fr 156), 1)]⟩, (.m ⟨0, 30193, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30205, []⟩)), (⟨0,
-    0, [((.fr 168), 1)]⟩, (.m ⟨0, 30217, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30227, []⟩)),
-    (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30237, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30247,
-    []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30257, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0,
-    30267, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30277, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m
-    ⟨0, 30287, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30297, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩,
-    (.m ⟨0, 30307, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30317, []⟩)), (⟨0, 0, [((.fr 212),
-    1)]⟩, (.m ⟨0, 30327, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m ⟨0, 30337, []⟩)), (⟨0, 0, [((.fr
-    220), 1)]⟩, (.m ⟨0, 30347, []⟩)), (⟨0, 0, [((.fr 224), 1)]⟩, (.m ⟨0, 30357, []⟩)), (⟨0, 1,
+    .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0, 30108, []⟩)), (⟨0, 0, [((.fr
+    27), 1)]⟩, (.m ⟨0, 30117, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0, 0, []⟩)), (⟨0, 0, [((.fr
+    36), 1)]⟩, (.m ⟨0, 30134, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0, 30150, []⟩)), (⟨0, 0, [((.fr
+    148), 1)]⟩, (.m ⟨0, 30162, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m ⟨0, 30172, []⟩)), (⟨0, 0,
+    [((.fr 156), 1)]⟩, (.m ⟨0, 30182, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩, (.m ⟨0, 30194, []⟩)), (⟨0,
+    0, [((.fr 168), 1)]⟩, (.m ⟨0, 30206, []⟩)), (⟨0, 0, [((.fr 172), 1)]⟩, (.m ⟨0, 30216, []⟩)),
+    (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30226, []⟩)), (⟨0, 0, [((.fr 180), 1)]⟩, (.m ⟨0, 30236,
+    []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30246, []⟩)), (⟨0, 0, [((.fr 188), 1)]⟩, (.m ⟨0,
+    30256, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30266, []⟩))], [(⟨0, 0, [((.fr 196), 1)]⟩, (.m
+    ⟨0, 30276, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30286, []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩,
+    (.m ⟨0, 30296, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0, 30306, []⟩)), (⟨0, 0, [((.fr 212),
+    1)]⟩, (.m ⟨0, 30316, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m ⟨0, 30326, []⟩)), (⟨0, 0, [((.fr
+    220), 1)]⟩, (.m ⟨0, 30336, []⟩)), (⟨0, 0, [((.fr 224), 1)]⟩, (.m ⟨0, 30346, []⟩)), (⟨0, 1,
     [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr
     31), 1)]⟩, (.m ⟨0, 0, [((.fr 33), 1)]⟩)), (⟨0, 1, [((.fr 36), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1,
     [((.fr 49), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 148), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr
@@ -12673,9 +12673,9 @@ noncomputable def snap246 : List Mode.Abs × Mode.Pend :=
     [((.hp 49 4), 1)]⟩, ⟨0, 482, [((.hp 49 4), 1)]⟩, ⟨0, 484, [((.hp 49 4), 1)]⟩, ⟨0, 486, [((.hp
     49 4), 1)]⟩, ⟨0, 488, [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0, 492, [((.hp 49 4),
     1)]⟩, ⟨0, 494, [((.hp 49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161)
-    14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
-    (.ex (.hp 10 1) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14333), 1, 0⟩, ⟨⟨0, 0,
-    []⟩, (.num 430), (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1,
+    14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
+    (.ex (.hp 10 1) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14322), 1, 0⟩, ⟨⟨0, 0,
+    []⟩, (.num 430), (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1,
     0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 13), 1)]⟩, (.num
     0), (.ex (.fr 9) 6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 161) 2), 1, 0⟩, ⟨⟨0,
     0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0),
@@ -12957,7 +12957,7 @@ noncomputable def snap246 : List Mode.Abs × Mode.Pend :=
     (.m ⟨0, 0, [((.hp 12 1), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 16), 1)]⟩)) .nil
     .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 8), 1)]⟩)) .nil .nil) .nil)))) (.node none
     (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 216 5), 1)]⟩)) .nil (.node (some (.m ⟨0,
-    0, [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30205, []⟩)) .nil .nil)
+    0, [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30194, []⟩)) .nil .nil)
     .nil)) (.node (some (.m ⟨0, 0, [((.hp 148 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 34,
     [((.fr 2), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 15), 1)]⟩)) .nil .nil)) (.node
     none (.node (some (.m ⟨0, 0, [((.hp 12 7), 1)]⟩)) .nil .nil) .nil))) (.node none (.node (some
@@ -12966,35 +12966,35 @@ noncomputable def snap246 : List Mode.Abs × Mode.Pend :=
     (some (.m ⟨0, 0, [((.hp 184 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩))
     .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 17), 1)]⟩)) .nil .nil)) (.node none (.node (some
     (.m ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil .nil) .nil))))) (.node none (.node none (.node none (.node
-    none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30277, []⟩)) .nil
+    none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30266, []⟩)) .nil
     .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0,
-    30357, []⟩)) .nil .nil))) (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩))
-    .nil .nil) (.node (some (.m ⟨0, 30317, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30237, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0,
-    [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node none
-    (.node (some (.m ⟨0, 30217, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5),
-    1)]⟩)) (.node none (.node (some (.m ⟨0, 30183, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30337,
-    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30257, []⟩)) .nil .nil) .nil)))) (.node none
-    (.node none (.node (some (.m ⟨0, 210902, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30287,
+    30346, []⟩)) .nil .nil))) (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩))
+    .nil .nil) (.node (some (.m ⟨0, 30306, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30226, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0,
+    [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node none
+    (.node (some (.m ⟨0, 30206, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5),
+    1)]⟩)) (.node none (.node (some (.m ⟨0, 30172, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30326,
+    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30246, []⟩)) .nil .nil) .nil)))) (.node none
+    (.node none (.node (some (.m ⟨0, 210081, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30276,
     []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩)) .nil .nil) .nil))
-    (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30173, []⟩))
-    .nil .nil) (.node (some (.m ⟨0, 30327, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30247, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
-    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30307, []⟩)) .nil
-    .nil)) (.node none (.node (some (.m ⟨0, 30227, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
-    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30193, []⟩)) .nil .nil) (.node (some (.m
-    ⟨0, 30347, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30267, []⟩)) .nil .nil)
+    (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30162, []⟩))
+    .nil .nil) (.node (some (.m ⟨0, 30316, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30236, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
+    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30296, []⟩)) .nil
+    .nil)) (.node none (.node (some (.m ⟨0, 30216, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
+    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30182, []⟩)) .nil .nil) (.node (some (.m
+    ⟨0, 30336, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30256, []⟩)) .nil .nil)
     .nil)))))) (.node none (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 16
     0), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 204 5), 1)]⟩)) .nil .nil) (.node none (.node (some
     (.m ⟨0, 19, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil))
     (.node none (.node (some (.m ⟨0, 0, [((.hp 10 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0,
     [((.hp 172 5), 1)]⟩)) .nil .nil))) (.node none (.node none (.node none (.node (some (.m ⟨0, 0,
     [((.hp 220 5), 1)]⟩)) .nil .nil) (.node none (.node (some (.tab (.fr 161) 650)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19361,
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19350,
     []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp
     188 5), 1)]⟩)) .nil .nil)))) (.node none (.node none (.node none (.node (some (.m ⟨0, 1, []⟩))
     (.node (some (.m ⟨0, 0, [((.hp 212 5), 1)]⟩)) .nil (.node (some (.tab (.hp 10 2) 650)) .nil
-    .nil)) .nil) (.node (some (.m ⟨0, 29578, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil
+    .nil)) .nil) (.node (some (.m ⟨0, 29567, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil
     .nil) (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.hp 10 2)
     650)) .nil .nil) .nil))) (.node none (.node (some (.m ⟨0, 0, [((.hp 10 2), 1)]⟩)) (.node none
     .nil (.node (some (.tab (.hp 10 2) 650)) .nil .nil)) (.node none (.node (some (.tab (.fr 167)
@@ -13039,19 +13039,19 @@ noncomputable def snap246 : List Mode.Abs × Mode.Pend :=
     .nil)) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node
     (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil (.node none (.node
     (some ()) .nil .nil) .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0,
-    30119, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30128, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0,
-    0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30145, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0,
-    30161, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30173, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m
-    ⟨0, 30183, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30193, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩,
-    (.m ⟨0, 30205, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30217, []⟩)), (⟨0, 0, [((.fr 172),
-    1)]⟩, (.m ⟨0, 30227, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30237, []⟩)), (⟨0, 0, [((.fr
-    180), 1)]⟩, (.m ⟨0, 30247, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30257, []⟩)), (⟨0, 0,
-    [((.fr 188), 1)]⟩, (.m ⟨0, 30267, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30277, []⟩))],
-    [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30287, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30297,
-    []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30307, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0,
-    30317, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0, 30327, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m
-    ⟨0, 30337, []⟩)), (⟨0, 0, [((.fr 220), 1)]⟩, (.m ⟨0, 30347, []⟩)), (⟨0, 0, [((.fr 224), 1)]⟩,
-    (.m ⟨0, 30357, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m
+    30108, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30117, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0,
+    0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30134, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0,
+    30150, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30162, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m
+    ⟨0, 30172, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30182, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩,
+    (.m ⟨0, 30194, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30206, []⟩)), (⟨0, 0, [((.fr 172),
+    1)]⟩, (.m ⟨0, 30216, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30226, []⟩)), (⟨0, 0, [((.fr
+    180), 1)]⟩, (.m ⟨0, 30236, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30246, []⟩)), (⟨0, 0,
+    [((.fr 188), 1)]⟩, (.m ⟨0, 30256, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30266, []⟩))],
+    [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30276, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30286,
+    []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30296, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0,
+    30306, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0, 30316, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m
+    ⟨0, 30326, []⟩)), (⟨0, 0, [((.fr 220), 1)]⟩, (.m ⟨0, 30336, []⟩)), (⟨0, 0, [((.fr 224), 1)]⟩,
+    (.m ⟨0, 30346, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m
     ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 31), 1)]⟩, (.m ⟨0, 0, [((.fr 33), 1)]⟩)), (⟨0, 1, [((.fr 36),
     1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 49), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 148), 1)]⟩,
     (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 152), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 156), 1)]⟩, (.m
@@ -13247,9 +13247,9 @@ noncomputable def snap246 : List Mode.Abs × Mode.Pend :=
     [((.hp 49 4), 1)]⟩, ⟨0, 482, [((.hp 49 4), 1)]⟩, ⟨0, 484, [((.hp 49 4), 1)]⟩, ⟨0, 486, [((.hp
     49 4), 1)]⟩, ⟨0, 488, [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0, 492, [((.hp 49 4),
     1)]⟩, ⟨0, 494, [((.hp 49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161)
-    14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
-    (.ex (.hp 10 1) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14333), 1, 0⟩, ⟨⟨0, 0,
-    []⟩, (.num 430), (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1,
+    14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
+    (.ex (.hp 10 1) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14322), 1, 0⟩, ⟨⟨0, 0,
+    []⟩, (.num 430), (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1,
     0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 13), 1)]⟩, (.num
     0), (.ex (.fr 9) 6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 161) 2), 1, 0⟩, ⟨⟨0,
     0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0),
@@ -13536,7 +13536,7 @@ noncomputable def snap247 : List Mode.Abs × Mode.Pend :=
     ⟨0, 0, [((.hp 12 1), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 16), 1)]⟩)) .nil
     .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 8), 1)]⟩)) .nil .nil) .nil)))) (.node none
     (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 216 5), 1)]⟩)) .nil (.node (some (.m ⟨0,
-    0, [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30205, []⟩)) .nil .nil)
+    0, [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30194, []⟩)) .nil .nil)
     .nil)) (.node (some (.m ⟨0, 0, [((.hp 148 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 34,
     [((.fr 2), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 15), 1)]⟩)) .nil .nil)) (.node
     none (.node (some (.m ⟨0, 0, [((.hp 12 7), 1)]⟩)) .nil .nil) .nil))) (.node none (.node (some
@@ -13545,36 +13545,36 @@ noncomputable def snap247 : List Mode.Abs × Mode.Pend :=
     (some (.m ⟨0, 0, [((.hp 184 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩))
     .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 17), 1)]⟩)) .nil .nil)) (.node none (.node (some
     (.m ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil .nil) .nil))))) (.node none (.node none (.node none (.node
-    none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30277, []⟩)) .nil
+    none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30266, []⟩)) .nil
     .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0,
-    30357, []⟩)) .nil .nil))) (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩))
-    .nil .nil) (.node (some (.m ⟨0, 30317, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30237, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0,
-    [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node none
-    (.node (some (.m ⟨0, 30217, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5),
-    1)]⟩)) (.node none (.node (some (.m ⟨0, 30183, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30337,
-    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30257, []⟩)) .nil .nil) .nil)))) (.node none
-    (.node none (.node (some (.m ⟨0, 210902, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30287,
+    30346, []⟩)) .nil .nil))) (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩))
+    .nil .nil) (.node (some (.m ⟨0, 30306, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30226, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0,
+    [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node none
+    (.node (some (.m ⟨0, 30206, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5),
+    1)]⟩)) (.node none (.node (some (.m ⟨0, 30172, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30326,
+    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30246, []⟩)) .nil .nil) .nil)))) (.node none
+    (.node none (.node (some (.m ⟨0, 210081, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30276,
     []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩)) .nil .nil) .nil))
-    (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30173, []⟩))
-    .nil .nil) (.node (some (.m ⟨0, 30327, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30247, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
-    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30307, []⟩)) .nil
-    .nil)) (.node none (.node (some (.m ⟨0, 30227, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
-    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30193, []⟩)) .nil .nil) (.node (some (.m
-    ⟨0, 30347, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30267, []⟩)) .nil .nil)
+    (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30162, []⟩))
+    .nil .nil) (.node (some (.m ⟨0, 30316, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30236, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
+    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30296, []⟩)) .nil
+    .nil)) (.node none (.node (some (.m ⟨0, 30216, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
+    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30182, []⟩)) .nil .nil) (.node (some (.m
+    ⟨0, 30336, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30256, []⟩)) .nil .nil)
     .nil)))))) (.node none (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 16
     0), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 204 5), 1)]⟩)) .nil .nil) (.node none (.node (some
     (.m ⟨0, 19, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil))
     (.node none (.node (some (.m ⟨0, 0, [((.hp 10 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0,
     [((.hp 172 5), 1)]⟩)) .nil .nil))) (.node none (.node none (.node none (.node (some (.m ⟨0, 0,
     [((.hp 220 5), 1)]⟩)) .nil .nil) (.node none (.node (some (.tab (.fr 161) 650)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19361,
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19350,
     []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp
     188 5), 1)]⟩)) .nil .nil)))) (.node none (.node none (.node none (.node (some (.m ⟨0, 1, []⟩))
     (.node (some (.m ⟨0, 0, [((.hp 212 5), 1)]⟩)) .nil (.node (some (.tab (.hp 10 2) 650)) .nil
     .nil)) (.node none .nil (.node (some (.tab (.hp 10 3) 650)) .nil .nil))) (.node (some (.m ⟨0,
-    29578, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil) (.node (some (.tab (.hp 10
+    29567, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil) (.node (some (.tab (.hp 10
     2) 650)) .nil .nil)) (.node none (.node (some (.tab (.hp 10 2) 650)) .nil .nil) .nil))) (.node
     none (.node (some (.m ⟨0, 0, [((.hp 10 2), 1)]⟩)) (.node none .nil (.node (some (.tab (.hp 10
     2) 650)) .nil .nil)) (.node none (.node (some (.tab (.fr 167) 650)) .nil .nil) .nil)) (.node
@@ -13619,19 +13619,19 @@ noncomputable def snap247 : List Mode.Abs × Mode.Pend :=
     .nil)) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node
     (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil (.node none (.node
     (some ()) .nil .nil) .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0,
-    30119, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30128, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0,
-    0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30145, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0,
-    30161, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30173, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m
-    ⟨0, 30183, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30193, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩,
-    (.m ⟨0, 30205, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30217, []⟩)), (⟨0, 0, [((.fr 172),
-    1)]⟩, (.m ⟨0, 30227, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30237, []⟩)), (⟨0, 0, [((.fr
-    180), 1)]⟩, (.m ⟨0, 30247, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30257, []⟩)), (⟨0, 0,
-    [((.fr 188), 1)]⟩, (.m ⟨0, 30267, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30277, []⟩))],
-    [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30287, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30297,
-    []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30307, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0,
-    30317, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0, 30327, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m
-    ⟨0, 30337, []⟩)), (⟨0, 0, [((.fr 220), 1)]⟩, (.m ⟨0, 30347, []⟩)), (⟨0, 0, [((.fr 224), 1)]⟩,
-    (.m ⟨0, 30357, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m
+    30108, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30117, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0,
+    0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30134, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0,
+    30150, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30162, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m
+    ⟨0, 30172, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30182, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩,
+    (.m ⟨0, 30194, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30206, []⟩)), (⟨0, 0, [((.fr 172),
+    1)]⟩, (.m ⟨0, 30216, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30226, []⟩)), (⟨0, 0, [((.fr
+    180), 1)]⟩, (.m ⟨0, 30236, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30246, []⟩)), (⟨0, 0,
+    [((.fr 188), 1)]⟩, (.m ⟨0, 30256, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30266, []⟩))],
+    [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30276, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30286,
+    []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30296, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0,
+    30306, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0, 30316, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m
+    ⟨0, 30326, []⟩)), (⟨0, 0, [((.fr 220), 1)]⟩, (.m ⟨0, 30336, []⟩)), (⟨0, 0, [((.fr 224), 1)]⟩,
+    (.m ⟨0, 30346, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m
     ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 31), 1)]⟩, (.m ⟨0, 0, [((.fr 33), 1)]⟩)), (⟨0, 1, [((.fr 36),
     1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 49), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 148), 1)]⟩,
     (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 152), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 156), 1)]⟩, (.m
@@ -13827,9 +13827,9 @@ noncomputable def snap247 : List Mode.Abs × Mode.Pend :=
     [((.hp 49 4), 1)]⟩, ⟨0, 482, [((.hp 49 4), 1)]⟩, ⟨0, 484, [((.hp 49 4), 1)]⟩, ⟨0, 486, [((.hp
     49 4), 1)]⟩, ⟨0, 488, [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0, 492, [((.hp 49 4),
     1)]⟩, ⟨0, 494, [((.hp 49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161)
-    14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
-    (.ex (.hp 10 1) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14333), 1, 0⟩, ⟨⟨0, 0,
-    []⟩, (.num 430), (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1,
+    14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
+    (.ex (.hp 10 1) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14322), 1, 0⟩, ⟨⟨0, 0,
+    []⟩, (.num 430), (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1,
     0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 13), 1)]⟩, (.num
     0), (.ex (.fr 9) 6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 161) 2), 1, 0⟩, ⟨⟨0,
     0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0),
@@ -14112,7 +14112,7 @@ noncomputable def snap247 : List Mode.Abs × Mode.Pend :=
     ⟨0, 0, [((.hp 12 1), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 16), 1)]⟩)) .nil
     .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 8), 1)]⟩)) .nil .nil) .nil)))) (.node none
     (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 216 5), 1)]⟩)) .nil (.node (some (.m ⟨0,
-    0, [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30205, []⟩)) .nil .nil)
+    0, [((.hp 12 11), 1)]⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30194, []⟩)) .nil .nil)
     .nil)) (.node (some (.m ⟨0, 0, [((.hp 148 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 34,
     [((.fr 2), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 15), 1)]⟩)) .nil .nil)) (.node
     none (.node (some (.m ⟨0, 0, [((.hp 12 7), 1)]⟩)) .nil .nil) .nil))) (.node none (.node (some
@@ -14121,36 +14121,36 @@ noncomputable def snap247 : List Mode.Abs × Mode.Pend :=
     (some (.m ⟨0, 0, [((.hp 184 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 2), 1)]⟩))
     .nil .nil) (.node (some (.m ⟨0, 0, [((.hp 12 17), 1)]⟩)) .nil .nil)) (.node none (.node (some
     (.m ⟨0, 0, [((.hp 12 9), 1)]⟩)) .nil .nil) .nil))))) (.node none (.node none (.node none (.node
-    none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30277, []⟩)) .nil
+    none (.node (some (.m ⟨0, 0, [((.hp 208 5), 1)]⟩)) .nil (.node (some (.m ⟨0, 30266, []⟩)) .nil
     .nil)) (.node none (.node (some (.m ⟨0, 0, [((.fr 161), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0,
-    30357, []⟩)) .nil .nil))) (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩))
-    .nil .nil) (.node (some (.m ⟨0, 30317, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30237, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19361, []⟩)) (.node (some (.m ⟨0, 0,
-    [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30297, []⟩)) .nil .nil)) (.node none
-    (.node (some (.m ⟨0, 30217, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5),
-    1)]⟩)) (.node none (.node (some (.m ⟨0, 30183, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30337,
-    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30257, []⟩)) .nil .nil) .nil)))) (.node none
-    (.node none (.node (some (.m ⟨0, 210902, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30287,
+    30346, []⟩)) .nil .nil))) (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 12 0), 1)]⟩))
+    .nil .nil) (.node (some (.m ⟨0, 30306, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30226, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 19350, []⟩)) (.node (some (.m ⟨0, 0,
+    [((.hp 10 1), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30286, []⟩)) .nil .nil)) (.node none
+    (.node (some (.m ⟨0, 30206, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 176 5),
+    1)]⟩)) (.node none (.node (some (.m ⟨0, 30172, []⟩)) .nil .nil) (.node (some (.m ⟨0, 30326,
+    []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30246, []⟩)) .nil .nil) .nil)))) (.node none
+    (.node none (.node (some (.m ⟨0, 210081, []⟩)) (.node none .nil (.node (some (.m ⟨0, 30276,
     []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 0, [((.hp 12 4), 1)]⟩)) .nil .nil) .nil))
-    (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30173, []⟩))
-    .nil .nil) (.node (some (.m ⟨0, 30327, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
-    30247, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
-    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30307, []⟩)) .nil
-    .nil)) (.node none (.node (some (.m ⟨0, 30227, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
-    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30193, []⟩)) .nil .nil) (.node (some (.m
-    ⟨0, 30347, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30267, []⟩)) .nil .nil)
+    (.node (some (.m ⟨0, 0, [((.hp 156 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30162, []⟩))
+    .nil .nil) (.node (some (.m ⟨0, 30316, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0,
+    30236, []⟩)) .nil .nil) .nil))) (.node (some (.m ⟨0, 0, [((.fr 9), 1), ((.fr 15), 1)]⟩)) (.node
+    (some (.m ⟨0, 0, [((.hp 10 5), 1)]⟩)) (.node none .nil (.node (some (.m ⟨0, 30296, []⟩)) .nil
+    .nil)) (.node none (.node (some (.m ⟨0, 30216, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0,
+    [((.hp 192 5), 1)]⟩)) (.node none (.node (some (.m ⟨0, 30182, []⟩)) .nil .nil) (.node (some (.m
+    ⟨0, 30336, []⟩)) .nil .nil)) (.node none (.node (some (.m ⟨0, 30256, []⟩)) .nil .nil)
     .nil)))))) (.node none (.node none (.node none (.node none (.node (some (.m ⟨0, 0, [((.hp 16
     0), 1)]⟩)) (.node (some (.m ⟨0, 0, [((.hp 204 5), 1)]⟩)) .nil .nil) (.node none (.node (some
     (.m ⟨0, 19, []⟩)) .nil .nil) .nil)) (.node (some (.m ⟨0, 0, [((.hp 49 4), 1)]⟩)) .nil .nil))
     (.node none (.node (some (.m ⟨0, 0, [((.hp 10 0), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0,
     [((.hp 172 5), 1)]⟩)) .nil .nil))) (.node none (.node none (.node none (.node (some (.m ⟨0, 0,
     [((.hp 220 5), 1)]⟩)) .nil .nil) (.node none (.node (some (.tab (.fr 161) 650)) .nil .nil)
-    .nil)) (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19361,
+    .nil)) (.node (some (.m ⟨0, 0, [((.hp 152 5), 1)]⟩)) .nil .nil)) (.node (some (.m ⟨0, 19350,
     []⟩)) (.node (some (.m ⟨0, 0, [((.hp 10 4), 1)]⟩)) .nil .nil) (.node (some (.m ⟨0, 0, [((.hp
     188 5), 1)]⟩)) .nil .nil)))) (.node none (.node none (.node none (.node (some (.m ⟨0, 1, []⟩))
     (.node (some (.m ⟨0, 0, [((.hp 212 5), 1)]⟩)) .nil (.node (some (.tab (.hp 10 2) 650)) .nil
     .nil)) (.node none .nil (.node (some (.tab (.hp 10 3) 650)) .nil .nil))) (.node (some (.m ⟨0,
-    29578, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil) (.node (some (.tab (.hp 10
+    29567, []⟩)) (.node none (.node (some (.m ⟨0, 34, []⟩)) .nil .nil) (.node (some (.tab (.hp 10
     2) 650)) .nil .nil)) (.node none (.node (some (.tab (.hp 10 2) 650)) .nil .nil) .nil))) (.node
     none (.node (some (.m ⟨0, 0, [((.hp 10 2), 1)]⟩)) (.node none .nil (.node (some (.tab (.hp 10
     2) 650)) .nil .nil)) (.node none (.node (some (.tab (.fr 167) 650)) .nil .nil) .nil)) (.node
@@ -14195,19 +14195,19 @@ noncomputable def snap247 : List Mode.Abs × Mode.Pend :=
     .nil)) (.node (some ()) (.node none (.node (some ()) .nil .nil) .nil) .nil)) (.node none (.node
     (some ()) .nil .nil) .nil)) (.node none (.node none (.node (some ()) .nil (.node none (.node
     (some ()) .nil .nil) .nil)) .nil) .nil)))), (List.flatten [[(⟨0, 0, [((.fr 24), 1)]⟩, (.m ⟨0,
-    30119, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30128, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0,
-    0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30145, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0,
-    30161, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30173, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m
-    ⟨0, 30183, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30193, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩,
-    (.m ⟨0, 30205, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30217, []⟩)), (⟨0, 0, [((.fr 172),
-    1)]⟩, (.m ⟨0, 30227, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30237, []⟩)), (⟨0, 0, [((.fr
-    180), 1)]⟩, (.m ⟨0, 30247, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30257, []⟩)), (⟨0, 0,
-    [((.fr 188), 1)]⟩, (.m ⟨0, 30267, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30277, []⟩))],
-    [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30287, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30297,
-    []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30307, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0,
-    30317, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0, 30327, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m
-    ⟨0, 30337, []⟩)), (⟨0, 0, [((.fr 220), 1)]⟩, (.m ⟨0, 30347, []⟩)), (⟨0, 0, [((.fr 224), 1)]⟩,
-    (.m ⟨0, 30357, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m
+    30108, []⟩)), (⟨0, 0, [((.fr 27), 1)]⟩, (.m ⟨0, 30117, []⟩)), (⟨0, 0, [((.fr 31), 1)]⟩, (.m ⟨0,
+    0, []⟩)), (⟨0, 0, [((.fr 36), 1)]⟩, (.m ⟨0, 30134, []⟩)), (⟨0, 0, [((.fr 49), 1)]⟩, (.m ⟨0,
+    30150, []⟩)), (⟨0, 0, [((.fr 148), 1)]⟩, (.m ⟨0, 30162, []⟩)), (⟨0, 0, [((.fr 152), 1)]⟩, (.m
+    ⟨0, 30172, []⟩)), (⟨0, 0, [((.fr 156), 1)]⟩, (.m ⟨0, 30182, []⟩)), (⟨0, 0, [((.fr 162), 1)]⟩,
+    (.m ⟨0, 30194, []⟩)), (⟨0, 0, [((.fr 168), 1)]⟩, (.m ⟨0, 30206, []⟩)), (⟨0, 0, [((.fr 172),
+    1)]⟩, (.m ⟨0, 30216, []⟩)), (⟨0, 0, [((.fr 176), 1)]⟩, (.m ⟨0, 30226, []⟩)), (⟨0, 0, [((.fr
+    180), 1)]⟩, (.m ⟨0, 30236, []⟩)), (⟨0, 0, [((.fr 184), 1)]⟩, (.m ⟨0, 30246, []⟩)), (⟨0, 0,
+    [((.fr 188), 1)]⟩, (.m ⟨0, 30256, []⟩)), (⟨0, 0, [((.fr 192), 1)]⟩, (.m ⟨0, 30266, []⟩))],
+    [(⟨0, 0, [((.fr 196), 1)]⟩, (.m ⟨0, 30276, []⟩)), (⟨0, 0, [((.fr 200), 1)]⟩, (.m ⟨0, 30286,
+    []⟩)), (⟨0, 0, [((.fr 204), 1)]⟩, (.m ⟨0, 30296, []⟩)), (⟨0, 0, [((.fr 208), 1)]⟩, (.m ⟨0,
+    30306, []⟩)), (⟨0, 0, [((.fr 212), 1)]⟩, (.m ⟨0, 30316, []⟩)), (⟨0, 0, [((.fr 216), 1)]⟩, (.m
+    ⟨0, 30326, []⟩)), (⟨0, 0, [((.fr 220), 1)]⟩, (.m ⟨0, 30336, []⟩)), (⟨0, 0, [((.fr 224), 1)]⟩,
+    (.m ⟨0, 30346, []⟩)), (⟨0, 1, [((.fr 24), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 27), 1)]⟩, (.m
     ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 31), 1)]⟩, (.m ⟨0, 0, [((.fr 33), 1)]⟩)), (⟨0, 1, [((.fr 36),
     1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 49), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 148), 1)]⟩,
     (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 152), 1)]⟩, (.m ⟨1, 0, []⟩)), (⟨0, 1, [((.fr 156), 1)]⟩, (.m
@@ -14403,9 +14403,9 @@ noncomputable def snap247 : List Mode.Abs × Mode.Pend :=
     [((.hp 49 4), 1)]⟩, ⟨0, 482, [((.hp 49 4), 1)]⟩, ⟨0, 484, [((.hp 49 4), 1)]⟩, ⟨0, 486, [((.hp
     49 4), 1)]⟩, ⟨0, 488, [((.hp 49 4), 1)]⟩, ⟨0, 490, [((.hp 49 4), 1)]⟩, ⟨0, 492, [((.hp 49 4),
     1)]⟩, ⟨0, 494, [((.hp 49 4), 1)]⟩]])]), (List.flatten [[⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 161)
-    14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
-    (.ex (.hp 10 1) 14333), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14333), 1, 0⟩, ⟨⟨0, 0,
-    []⟩, (.num 430), (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1,
+    14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.fr 167) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430),
+    (.ex (.hp 10 1) 14322), 1, 0⟩, ⟨⟨0, 0, []⟩, (.num 430), (.ex (.hp 10 2) 14322), 1, 0⟩, ⟨⟨0, 0,
+    []⟩, (.num 430), (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.ex (.fr 6) 0), 1,
     0⟩, ⟨⟨0, 0, [((.fr 4), 1)]⟩, (.num 0), (.ex (.fr 7) 0), 1, 0⟩, ⟨⟨0, 0, [((.fr 13), 1)]⟩, (.num
     0), (.ex (.fr 9) 6), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 161) 2), 1, 0⟩, ⟨⟨0,
     0, [((.fr 15), 1)]⟩, (.num 0), (.ex (.fr 167) 2), 1, 0⟩, ⟨⟨0, 0, [((.fr 15), 1)]⟩, (.num 0),

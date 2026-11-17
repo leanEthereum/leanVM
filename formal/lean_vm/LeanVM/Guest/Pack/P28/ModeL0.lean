@@ -19,8 +19,6 @@ public import LeanVM.Guest.Pack.«P28».ModeD0W8
 public import LeanVM.Guest.Pack.«P28».ModeD0W9
 public import LeanVM.Guest.Pack.«P28».ModeD0W10
 public import LeanVM.Guest.Pack.«P28».ModeD0W11
-public import LeanVM.Guest.Pack.«P28».ModeD0W12
-public import LeanVM.Guest.Pack.«P28».ModeD0W13
 
 namespace LeanVM.Guest.Fn.«da_weights»
 
@@ -30,8 +28,7 @@ public section
 
 /-- `da_weights`: its cuts from its 0-th on. -/
 def modeCuts0 : List ℕ :=
-  132 :: 258 :: 376 :: 488 :: 592 :: 692 :: 788 :: 880 :: 968 :: 1048 :: 1132 :: 1208 :: 1276 ::
-    []
+  144 :: 280 :: 408 :: 532 :: 652 :: 764 :: 868 :: 968 :: 1060 :: 1156 :: 1244 :: []
 
 /-- `da_weights`: its mode walk accepts its code, window by window. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=
@@ -47,9 +44,7 @@ theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true :=
     ⟨by decide, by decide, by decide +kernel, modeW8,
     ⟨by decide, by decide, by decide +kernel, modeW9,
     ⟨by decide, by decide, by decide +kernel, modeW10,
-    ⟨by decide, by decide, by decide +kernel, modeW11,
-    ⟨by decide, by decide, by decide +kernel, modeW12,
-    modeW13⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
+    modeW11⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩⟩
 
 end
 

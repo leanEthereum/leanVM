@@ -30,11 +30,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `list_split`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
 
 /-- `list_split`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨61192, 30, Fn.«list_split».modeSig, (.node (some [(.witnessStack "signers_split" 6 3)]) .nil
+  ⟨61181, 30, Fn.«list_split».modeSig, (.node (some [(.witnessStack "signers_split" 6 3)]) .nil
     .nil), .nil, .nil, false, .nil⟩
 
 /-- `list_split`: its mode walk accepts its code. -/
@@ -53,48 +53,46 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `da_column_offsets`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14363, (.node none .nil (.node none (.node none (.node none
-    (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil
-    (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node (some Fn.«da_column_offsets_loop3».modeSig) .nil .nil)))) .nil)))
-    .nil))) .nil) .nil))) (.node none (.node none (.node none .nil (.node none .nil (.node none
-    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node (some Fn.«da_column_offsets_loop1».modeSig) .nil
-    .nil)))) .nil))) .nil)) .nil))) .nil) (.node none (.node none (.node none .nil (.node none .nil
-    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none .nil
-    (.node none .nil (.node none .nil (.node (some Fn.«da_column_offsets_loop5».modeSig) .nil
-    .nil)))) .nil))) .nil)))) .nil) .nil))) (.node none (.node none (.node none .nil (.node none
-    .nil (.node none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none
-    .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_column_offsets_loop4».modeSig) .nil .nil)))) .nil))) .nil))) .nil))) (.node none (.node
-    none (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none
-    .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
-    Fn.«da_column_offsets_loop0».modeSig) .nil .nil)))) .nil))) .nil)) .nil)) .nil) .nil)) (.node
-    none (.node none (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node (some Fn.«da_column_offsets_loop6».modeSig) .nil .nil)))) .nil))) .nil)))))
-    .nil) (.node none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node
-    none (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node (some Fn.«da_column_offsets_loop2».modeSig) .nil .nil)))) .nil))) .nil))
-    .nil))))))) .nil)), 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none (.node none (.node
+    none .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node
+    none (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node (some Fn.«da_column_offsets_loop2».modeSig) .nil .nil)))) .nil)) .nil) .nil))
+    .nil)) .nil))) .nil) (.node none (.node none .nil (.node none .nil (.node none .nil (.node none
+    (.node none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node (some Fn.«da_column_offsets_loop6».modeSig)
+    .nil .nil)))) .nil)) .nil) .nil))) .nil)))) .nil)) (.node none (.node none (.node none .nil
+    (.node none (.node none (.node none (.node none .nil (.node none .nil (.node none (.node none
+    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«da_column_offsets_loop4».modeSig) .nil .nil)))) .nil)) .nil) .nil))) .nil) .nil) .nil))
+    .nil) (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none (.node
+    none .nil (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none
+    .nil (.node none .nil (.node (some Fn.«da_column_offsets_loop0».modeSig) .nil .nil)))) .nil))
+    .nil) .nil)) .nil) .nil)) .nil) .nil)))) (.node none (.node none (.node none (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node none (.node none .nil (.node none (.node
+    none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node
+    (some Fn.«da_column_offsets_loop3».modeSig) .nil .nil)))) .nil)) .nil) .nil)) .nil)))) .nil)
+    .nil) .nil) (.node none (.node none (.node none (.node none (.node none .nil (.node none (.node
+    none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none
+    .nil (.node none .nil (.node none .nil (.node (some Fn.«da_column_offsets_loop5».modeSig) .nil
+    .nil)))) .nil)) .nil) .nil))) .nil)) .nil) .nil) .nil) (.node none .nil (.node none .nil (.node
+    none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none (.node none
+    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil (.node (some
+    Fn.«da_column_offsets_loop1».modeSig) .nil .nil)))) .nil)) .nil) .nil)) .nil) .nil)))))))),
+    524287⟩
 
 /-- `da_column_offsets`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨64591, 264, Fn.«da_column_offsets».modeSig, (.node (some [(.alloc 4 1024)]) (.node none (.node
-    none .nil (.node none (.node none .nil (.node none .nil (.node (some [(.allocFrames 76 42 74
-    (LeanVM.Parameters.K.ofBits 0x1) 42)]) .nil .nil))) (.node none .nil (.node none (.node none
-    .nil (.node (some [(.allocFrames 138 42 136 (LeanVM.Parameters.K.ofBits 0x1) 42)]) .nil .nil))
-    .nil)))) (.node none (.node (some [(.alloc 6 8)]) .nil .nil) (.node none (.node none .nil
-    (.node none (.node none (.node (some [(.allocFrames 96 42 8 (LeanVM.Parameters.K.ofBits 0x1)
-    42)]) .nil .nil) .nil) .nil)) (.node none (.node (some [(.alloc 36 8), (.alloc 57 8), (.alloc
-    78 8), (.alloc 98 8), (.alloc 119 8), (.alloc 140 8), (.allocFrames 34 42 32
-    (LeanVM.Parameters.K.ofBits 0x1) 42)]) .nil .nil) .nil)))) (.node none (.node none (.node none
-    (.node none .nil (.node none (.node (some [(.allocFrames 55 42 53 (LeanVM.Parameters.K.ofBits
-    0x1) 42)]) .nil .nil) .nil)) (.node none .nil (.node none .nil (.node none (.node (some
-    [(.allocFrames 117 42 115 (LeanVM.Parameters.K.ofBits 0x1) 42)]) .nil .nil) .nil)))) .nil)
-    (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node none .nil (.node
-    (some [(.allocFrames 159 42 157 (LeanVM.Parameters.K.ofBits 0x1) 42)]) .nil .nil)))))))), .nil,
-    .nil, false, .nil⟩
+  ⟨63799, 241, Fn.«da_column_offsets».modeSig, (.node (some [(.alloc 4 896)]) (.node none (.node
+    none (.node none .nil (.node none (.node none (.node none (.node (some [(.allocFrames 87 40 34
+    (LeanVM.Parameters.K.ofBits 0x1) 40)]) .nil .nil) (.node (some [(.allocFrames 125 40 123
+    (LeanVM.Parameters.K.ofBits 0x1) 40)]) .nil .nil)) (.node none (.node (some [(.allocFrames 106
+    40 104 (LeanVM.Parameters.K.ofBits 0x1) 40)]) .nil .nil) (.node (some [(.allocFrames 144 40 142
+    (LeanVM.Parameters.K.ofBits 0x1) 40)]) .nil .nil))) .nil)) .nil) .nil) (.node none (.node none
+    (.node (some [(.alloc 6 7)]) .nil (.node none (.node (some [(.alloc 33 7), (.alloc 52 7),
+    (.alloc 71 7), (.alloc 89 7), (.alloc 108 7), (.alloc 127 7), (.allocFrames 31 40 29
+    (LeanVM.Parameters.K.ofBits 0x1) 40)]) (.node (some [(.allocFrames 50 40 48
+    (LeanVM.Parameters.K.ofBits 0x1) 40)]) .nil .nil) (.node (some [(.allocFrames 69 40 67
+    (LeanVM.Parameters.K.ofBits 0x1) 40)]) .nil .nil)) .nil)) .nil) .nil)), .nil, .nil, false, .nil⟩
 
 /-- `da_column_offsets`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
@@ -112,11 +110,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `padding_weight__L5`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
 
 /-- `padding_weight__L5`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨190841, 60, Fn.«padding_weight__L5».modeSig, (.node none .nil (.node (some [(.bitDecompose 8
+  ⟨190026, 60, Fn.«padding_weight__L5».modeSig, (.node none .nil (.node (some [(.bitDecompose 8
     (.stack 9) 6)]) .nil .nil)), .nil, .nil, false, .nil⟩
 
 /-- `padding_weight__L5`: its mode walk accepts its code. -/
@@ -135,11 +133,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `padding_weight__L10`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
 
 /-- `padding_weight__L10`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨191221, 100, Fn.«padding_weight__L10».modeSig, (.node none .nil (.node (some [(.bitDecompose 8
+  ⟨190406, 100, Fn.«padding_weight__L10».modeSig, (.node none .nil (.node (some [(.bitDecompose 8
     (.stack 9) 11)]) .nil .nil)), .nil, .nil, false, .nil⟩
 
 /-- `padding_weight__L10`: its mode walk accepts its code. -/
@@ -158,11 +156,11 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `index_mle__L31`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14363, .nil, 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
 
 /-- `index_mle__L31`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨204854, 157, Fn.«index_mle__L31».modeSig, .nil, .nil, .nil, false, .nil⟩
+  ⟨204039, 157, Fn.«index_mle__L31».modeSig, .nil, .nil, .nil, false, .nil⟩
 
 /-- `index_mle__L31`: its mode walk accepts its code. -/
 theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by

@@ -22,39 +22,12 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop397`, window 1. -/
+/-- `__loop402`, window 1. -/
 theorem sw1 : shareWinD Fn.«level_residual__L28_L15_L4_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
   decide +kernel
 
 end
 end LeanVM.Guest.Fn.«level_residual__L28_L15_L4_L2_loop0»
-
-namespace LeanVM.Guest.Fn.«da_levels__L64_L6_loop3»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `__loop471`, once. -/
-theorem st : shareStaticD Fn.«da_levels__L64_L6_loop3».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop471`, window 0. -/
-theorem sw0 : shareWinD Fn.«da_levels__L64_L6_loop3».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `__loop471`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«da_levels__L64_L6_loop3».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«da_levels__L64_L6_loop3»
 
 namespace LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0»
 
@@ -63,31 +36,31 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop541`, once. -/
+/-- `__loop498`, once. -/
 theorem st : shareStaticD Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop541`, window 0. -/
+/-- `__loop498`, window 0. -/
 theorem sw0 : shareWinD Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop541`, window 1. -/
+/-- `__loop498`, window 1. -/
 theorem sw1 : shareWinD Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop541`, window 2. -/
+/-- `__loop498`, window 2. -/
 theorem sw2 : shareWinD Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps 2 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop541`, window 3. -/
+/-- `__loop498`, window 3. -/
 theorem sw3 : shareWinD Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps 3 = true := by
   decide +kernel
 
-/-- `__loop541`: its static sharing check and every window's. -/
+/-- `__loop498`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 3 := by decide +kernel
   rw [hc] at hi
@@ -100,4 +73,23 @@ theorem shareOk : ShareOkD Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0
 
 end
 end LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L20_L8_L0_L0_L0_L0_L0_loop0»
+
+namespace LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+set_option maxRecDepth 100000 in
+/-- `__loop504`, once. -/
+theorem st : shareStaticD Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
+  decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop504`, window 0. -/
+theorem sw0 : shareWinD Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
+  decide +kernel
+
+end
+end LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0_loop0»
 

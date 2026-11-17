@@ -786,25 +786,25 @@ kernel_rfl armsEq30 : listElementOrDefault Data.cplArms 30 [] = Fn.«da_pad».ar
 
 kernel_rfl snapsEq30 : B2C.snapsOf 30 = Fn.«da_pad».snaps
 
-kernel_rfl code31 : fnOf 31 = Fn.«da_row_shape».code
+kernel_rfl code31 : fnOf 31 = Fn.«da_padding».code
 
-kernel_rfl core31 : coreOf 31 = Fn.«da_row_shape».core
+kernel_rfl core31 : coreOf 31 = Fn.«da_padding».core
 
-kernel_rfl cert31 : certOf 31 = (Fn.«da_row_shape».cert.withPows Data.powTree)
+kernel_rfl cert31 : certOf 31 = (Fn.«da_padding».cert.withPows Data.powTree)
 
-kernel_rfl sigBody31 : sigFrom Fn.«da_row_shape».code Fn.«da_row_shape».core (Fn.«da_row_shape».cert.withPows Data.powTree) = Fn.«da_row_shape».sig
+kernel_rfl sigBody31 : sigFrom Fn.«da_padding».code Fn.«da_padding».core (Fn.«da_padding».cert.withPows Data.powTree) = Fn.«da_padding».sig
 
-theorem sig31 : glob.sig 31 = Fn.«da_row_shape».sig := sig_of_link code31 core31 cert31 sigBody31
+theorem sig31 : glob.sig 31 = Fn.«da_padding».sig := sig_of_link code31 core31 cert31 sigBody31
 
-kernel_rfl plumbEq31 : B2C.plumbOf 31 = Fn.«da_row_shape».plumb
+kernel_rfl plumbEq31 : B2C.plumbOf 31 = Fn.«da_padding».plumb
 
-kernel_rfl fsEq31 : B2C.fsN 31 = Fn.«da_row_shape».fs
+kernel_rfl fsEq31 : B2C.fsN 31 = Fn.«da_padding».fs
 
-kernel_rfl partsEq31 : B2C.cplPartsOf 31 = Fn.«da_row_shape».parts
+kernel_rfl partsEq31 : B2C.cplPartsOf 31 = Fn.«da_padding».parts
 
-kernel_rfl armsEq31 : listElementOrDefault Data.cplArms 31 [] = Fn.«da_row_shape».arms
+kernel_rfl armsEq31 : listElementOrDefault Data.cplArms 31 [] = Fn.«da_padding».arms
 
-kernel_rfl snapsEq31 : B2C.snapsOf 31 = Fn.«da_row_shape».snaps
+kernel_rfl snapsEq31 : B2C.snapsOf 31 = Fn.«da_padding».snaps
 
 kernel_rfl code32 : fnOf 32 = Fn.«da_verify_blob».code
 

@@ -41,16 +41,16 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop193`, once. -/
+/-- `__loop198`, once. -/
 theorem st : shareStaticD Fn.«level_residual__L218_L18_L6_L3_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop193`, window 0. -/
+/-- `__loop198`, window 0. -/
 theorem sw0 : shareWinD Fn.«level_residual__L218_L18_L6_L3_loop1».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
-/-- `__loop193`: its static sharing check and every window's. -/
+/-- `__loop198`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_residual__L218_L18_L6_L3_loop1».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -68,26 +68,26 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop196`, once. -/
+/-- `__loop201`, once. -/
 theorem st : shareStaticD Fn.«level_residual__L73_L18_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop196`, window 0. -/
+/-- `__loop201`, window 0. -/
 theorem sw0 : shareWinD Fn.«level_residual__L73_L18_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop196`, window 1. -/
+/-- `__loop201`, window 1. -/
 theorem sw1 : shareWinD Fn.«level_residual__L73_L18_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop196`, window 2. -/
+/-- `__loop201`, window 2. -/
 theorem sw2 : shareWinD Fn.«level_residual__L73_L18_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs snaps 2 = true := by
   decide +kernel
 
-/-- `__loop196`: its static sharing check and every window's. -/
+/-- `__loop201`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_residual__L73_L18_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 2 := by decide +kernel
   rw [hc] at hi

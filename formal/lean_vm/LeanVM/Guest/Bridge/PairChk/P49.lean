@@ -71,36 +71,6 @@ end
 
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L5»
 
-namespace LeanVM.Guest.Fn.«da_roots_tree__L2»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_roots_tree__L2`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«da_roots_tree__L2».cert.locs Fn.«da_roots_tree__L2».fs Fn.«da_roots_tree__L2».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_roots_tree__L2»
-
-namespace LeanVM.Guest.Fn.«da_expand__L7_L8»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_expand__L7_L8`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«da_expand__L7_L8».cert.locs Fn.«da_expand__L7_L8».fs Fn.«da_expand__L7_L8».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_expand__L7_L8»
-
 namespace LeanVM.Guest.Fn.«gkr_rounds__L2»
 
 open LeanVM.Guest

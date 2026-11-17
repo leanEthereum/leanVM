@@ -362,20 +362,6 @@ end
 
 end LeanVM.Guest.Fn.«level_residual__L18_L11_L4_L2_loop1»
 
-namespace LeanVM.Guest.Fn.«da_levels__L256_L8_loop6»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_levels__L256_L8_loop6`'s witness hints pass the data check. -/
-theorem witOk : Bridge.witChk alignCtx Fn.«da_levels__L256_L8_loop6».fs Fn.«da_levels__L256_L8_loop6».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L256_L8_loop6»
-
 namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L22_L4_L3_L6_L12_L4_L1_loop0»
 
 open LeanVM.Guest

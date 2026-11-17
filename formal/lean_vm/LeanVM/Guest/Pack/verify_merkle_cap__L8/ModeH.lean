@@ -20,7 +20,7 @@ public section
 
 /-- `verify_merkle_cap__L8`: its walk reads the advice's hints. -/
 theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1197) (d := Data.adviceFn1197) Mode.adviceFns_ok (by decide +kernel) (by
+  Mode.hintsOk_of_fn (j := 1182) (d := Data.adviceFn1182) Mode.adviceFns_ok (by decide +kernel) (by
     decide +kernel)
 
 end

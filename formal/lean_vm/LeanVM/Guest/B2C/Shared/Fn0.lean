@@ -40,7 +40,6 @@ import LeanVM.Guest.Pack.«P63».Shared0
 import LeanVM.Guest.Pack.«P54».Shared0
 import LeanVM.Guest.Pack.«P12».Shared0
 import LeanVM.Guest.Pack.«P20».Shared0
-import LeanVM.Guest.Pack.«P7».SharedOk
 import LeanVM.Guest.Pack.«P24».Shared0
 import LeanVM.Guest.Pack.«P4».Shared0
 import LeanVM.Guest.Pack.«P17».SharedOk
@@ -149,7 +148,7 @@ theorem ok30 : ShareOk 30 :=
   shareOk_of_link link30 plumbEq30 fsEq30 snapsEq30 rfl (fun h ↦ nomatch h) Fn.«da_pad».shareOk
 
 theorem ok31 : ShareOk 31 :=
-  shareOk_of_link link31 plumbEq31 fsEq31 snapsEq31 rfl (fun h ↦ nomatch h) Fn.«da_row_shape».shareOk
+  shareOk_of_link link31 plumbEq31 fsEq31 snapsEq31 rfl (fun h ↦ nomatch h) Fn.«da_padding».shareOk
 
 theorem ok32 : ShareOk 32 :=
   shareOk_of_link link32 plumbEq32 fsEq32 snapsEq32 rfl (fun h ↦ nomatch h) Fn.«da_verify_blob».shareOk

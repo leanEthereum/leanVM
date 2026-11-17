@@ -14,7 +14,7 @@ public import LeanVM.Guest.Pack.«P28».Bundle
 public import LeanVM.Guest.Pack.«P28».ModeD0S0
 public import LeanVM.Guest.Pack.«P28».ModeD0S1
 public import LeanVM.Guest.Pack.«P28».ModeSig
-public import LeanVM.Guest.Pack.«P49».ModeSig
+public import LeanVM.Guest.Pack.«P29».ModeSig
 
 namespace LeanVM.Guest.Fn.«da_weights»
 
@@ -24,110 +24,106 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 /-- `da_weights`: the program its walk shares. -/
 noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14363, (.node none .nil (.node none .nil (.node none (.node none
-    (.node none .nil (.node none .nil (.node none .nil (.node none (.node none (.node none (.node
-    none .nil (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node
-    none .nil (.node (some Fn.«da_expand__L7_L8».modeSig) .nil .nil)))) .nil) .nil))) .nil) .nil)
-    .nil)))) .nil) .nil))), 524287⟩
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none (.node
+    none (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node (some Fn.«da_expand__L6_L7».modeSig) .nil .nil)))) .nil) .nil)) .nil) .nil) .nil))
+    .nil)) .nil)))) .nil), 524287⟩
 
 /-- `da_weights`: its hints, residuals, table sizes and cuts. -/
 noncomputable def modeFun : Mode.Fun :=
-  ⟨61614, 1539, Fn.«da_weights».modeSig, (.node (some [(.alloc 7 128)]) (.node none (.node (some
-    [(.alloc 10 1306)]) .nil .nil) .nil) (.node none (.node none (.node none (.node (some [(.alloc
-    17 1306)]) (.node none (.node (some [(.alloc 37 1306)]) (.node none (.node (some [(.alloc 117
-    1306)]) (.node none (.node (some [(.alloc 437 1306)]) .nil .nil) .nil) .nil) (.node none (.node
-    (some [(.alloc 277 1306)]) .nil .nil) (.node none (.node (some [(.alloc 597 1306)]) .nil .nil)
-    .nil))) (.node none (.node none .nil (.node (some [(.alloc 357 1306)]) .nil .nil)) (.node (some
-    [(.alloc 197 1306)]) (.node none (.node (some [(.alloc 517 1306)]) .nil .nil) .nil) .nil)))
-    (.node none (.node (some [(.alloc 77 1306)]) (.node none (.node (some [(.alloc 237 1306)]) .nil
-    .nil) (.node none (.node (some [(.alloc 557 1306)]) .nil .nil) .nil)) (.node none .nil (.node
-    (some [(.alloc 397 1306)]) .nil .nil))) (.node none (.node (some [(.alloc 157 1306)]) (.node
-    none (.node (some [(.alloc 477 1306)]) .nil .nil) .nil) .nil) (.node none (.node (some [(.alloc
-    317 1306)]) .nil .nil) (.node none (.node (some [(.alloc 637 1306)]) .nil .nil) .nil)))))
-    (.node none (.node none (.node none (.node none .nil (.node (some [(.alloc 337 1306)]) .nil
-    .nil)) (.node (some [(.alloc 177 1306)]) (.node none (.node (some [(.alloc 497 1306)]) .nil
-    .nil) .nil) .nil)) (.node (some [(.alloc 97 1306)]) (.node none (.node (some [(.alloc 257
-    1306)]) .nil .nil) (.node none (.node (some [(.alloc 577 1306)]) .nil .nil) .nil)) (.node none
-    .nil (.node (some [(.alloc 417 1306)]) .nil .nil)))) (.node (some [(.alloc 57 1306)]) (.node
-    none (.node (some [(.alloc 137 1306)]) (.node none (.node (some [(.alloc 457 1306)]) .nil .nil)
-    .nil) .nil) (.node none (.node (some [(.alloc 297 1306)]) .nil .nil) (.node none (.node (some
-    [(.alloc 617 1306)]) .nil .nil) .nil))) (.node none (.node none .nil (.node (some [(.alloc 377
-    1306)]) .nil .nil)) (.node (some [(.alloc 217 1306)]) (.node none (.node (some [(.alloc 537
-    1306)]) .nil .nil) .nil) .nil))))) (.node none (.node (some [(.alloc 27 1306)]) (.node none
-    (.node (some [(.alloc 67 1306)]) (.node none (.node (some [(.alloc 227 1306)]) .nil .nil)
-    (.node none (.node (some [(.alloc 547 1306)]) .nil .nil) .nil)) (.node none .nil (.node (some
-    [(.alloc 387 1306)]) .nil .nil))) (.node none (.node (some [(.alloc 147 1306)]) (.node none
-    (.node (some [(.alloc 467 1306)]) .nil .nil) .nil) .nil) (.node none (.node (some [(.alloc 307
-    1306)]) .nil .nil) (.node none (.node (some [(.alloc 627 1306)]) .nil .nil) .nil)))) (.node
-    none (.node none (.node none .nil (.node (some [(.alloc 347 1306)]) .nil .nil)) (.node (some
-    [(.alloc 187 1306)]) (.node none (.node (some [(.alloc 507 1306)]) .nil .nil) .nil) .nil))
-    (.node (some [(.alloc 107 1306)]) (.node none (.node (some [(.alloc 267 1306)]) .nil .nil)
-    (.node none (.node (some [(.alloc 587 1306)]) .nil .nil) .nil)) (.node none .nil (.node (some
-    [(.alloc 427 1306)]) .nil .nil))))) (.node none (.node (some [(.alloc 47 1306)]) (.node none
-    (.node (some [(.alloc 127 1306)]) (.node none (.node (some [(.alloc 447 1306)]) .nil .nil)
-    .nil) .nil) (.node none (.node (some [(.alloc 287 1306)]) .nil .nil) (.node none (.node (some
-    [(.alloc 607 1306)]) .nil .nil) .nil))) (.node none (.node none .nil (.node (some [(.alloc 367
-    1306)]) .nil .nil)) (.node (some [(.alloc 207 1306)]) (.node none (.node (some [(.alloc 527
-    1306)]) .nil .nil) .nil) .nil))) (.node none (.node (some [(.alloc 87 1306)]) (.node none
-    (.node (some [(.alloc 247 1306)]) .nil .nil) (.node none (.node (some [(.alloc 567 1306)]) .nil
-    .nil) .nil)) (.node none .nil (.node (some [(.alloc 407 1306)]) .nil .nil))) (.node none (.node
-    (some [(.alloc 167 1306)]) (.node none (.node (some [(.alloc 487 1306)]) .nil .nil) .nil) .nil)
-    (.node none (.node (some [(.alloc 327 1306)]) .nil .nil) (.node none (.node (some [(.alloc 647
-    1306)]) .nil .nil) .nil))))))) (.node none (.node none (.node none (.node none (.node none
-    (.node none .nil (.node (some [(.alloc 332 1306)]) .nil .nil)) (.node (some [(.alloc 172
-    1306)]) (.node none (.node (some [(.alloc 492 1306)]) .nil .nil) .nil) .nil)) (.node (some
-    [(.alloc 92 1306)]) (.node none (.node (some [(.alloc 252 1306)]) .nil .nil) (.node none (.node
-    (some [(.alloc 572 1306)]) .nil .nil) .nil)) (.node none .nil (.node (some [(.alloc 412 1306)])
-    .nil .nil)))) (.node (some [(.alloc 52 1306)]) (.node none (.node (some [(.alloc 132 1306)])
-    (.node none (.node (some [(.alloc 452 1306)]) .nil .nil) .nil) .nil) (.node none (.node (some
-    [(.alloc 292 1306)]) .nil .nil) (.node none (.node (some [(.alloc 612 1306)]) .nil .nil)
-    .nil))) (.node none (.node none .nil (.node (some [(.alloc 372 1306)]) .nil .nil)) (.node (some
-    [(.alloc 212 1306)]) (.node none (.node (some [(.alloc 532 1306)]) .nil .nil) .nil) .nil))))
-    (.node (some [(.alloc 32 1306)]) (.node none (.node (some [(.alloc 72 1306)]) (.node none
-    (.node (some [(.alloc 232 1306)]) .nil .nil) (.node none (.node (some [(.alloc 552 1306)]) .nil
-    .nil) .nil)) (.node none .nil (.node (some [(.alloc 392 1306)]) .nil .nil))) (.node none (.node
-    (some [(.alloc 152 1306)]) (.node none (.node (some [(.alloc 472 1306)]) .nil .nil) .nil) .nil)
-    (.node none (.node (some [(.alloc 312 1306)]) .nil .nil) (.node none (.node (some [(.alloc 632
-    1306)]) .nil .nil) .nil)))) (.node none (.node none (.node none .nil (.node (some [(.alloc 352
-    1306)]) .nil .nil)) (.node (some [(.alloc 192 1306)]) (.node none (.node (some [(.alloc 512
-    1306)]) .nil .nil) .nil) .nil)) (.node (some [(.alloc 112 1306)]) (.node none (.node (some
-    [(.alloc 272 1306)]) .nil .nil) (.node none (.node (some [(.alloc 592 1306)]) .nil .nil) .nil))
-    (.node none .nil (.node (some [(.alloc 432 1306)]) .nil .nil)))))) (.node (some [(.alloc 22
-    1306)]) (.node none (.node (some [(.alloc 42 1306)]) (.node none (.node (some [(.alloc 122
-    1306)]) (.node none (.node (some [(.alloc 442 1306)]) .nil .nil) .nil) .nil) (.node none (.node
-    (some [(.alloc 282 1306)]) .nil .nil) (.node none (.node (some [(.alloc 602 1306)]) .nil .nil)
-    .nil))) (.node none (.node none .nil (.node (some [(.alloc 362 1306)]) .nil .nil)) (.node (some
-    [(.alloc 202 1306)]) (.node none (.node (some [(.alloc 522 1306)]) .nil .nil) .nil) .nil)))
-    (.node none (.node (some [(.alloc 82 1306)]) (.node none (.node (some [(.alloc 242 1306)]) .nil
-    .nil) (.node none (.node (some [(.alloc 562 1306)]) .nil .nil) .nil)) (.node none .nil (.node
-    (some [(.alloc 402 1306)]) .nil .nil))) (.node none (.node (some [(.alloc 162 1306)]) (.node
-    none (.node (some [(.alloc 482 1306)]) .nil .nil) .nil) .nil) (.node none (.node (some [(.alloc
-    322 1306)]) .nil .nil) (.node none (.node (some [(.alloc 642 1306)]) .nil .nil) .nil)))))
-    (.node none (.node none (.node none (.node none .nil (.node (some [(.alloc 342 1306)]) .nil
-    .nil)) (.node (some [(.alloc 182 1306)]) (.node none (.node (some [(.alloc 502 1306)]) .nil
-    .nil) .nil) .nil)) (.node (some [(.alloc 102 1306)]) (.node none (.node (some [(.alloc 262
-    1306)]) .nil .nil) (.node none (.node (some [(.alloc 582 1306)]) .nil .nil) .nil)) (.node none
-    .nil (.node (some [(.alloc 422 1306)]) .nil .nil)))) (.node (some [(.alloc 62 1306)]) (.node
-    none (.node (some [(.alloc 142 1306)]) (.node none (.node (some [(.alloc 462 1306)]) .nil .nil)
-    .nil) .nil) (.node none (.node (some [(.alloc 302 1306)]) .nil .nil) (.node none (.node (some
-    [(.alloc 622 1306)]) .nil .nil) .nil))) (.node none (.node none .nil (.node (some [(.alloc 382
-    1306)]) .nil .nil)) (.node (some [(.alloc 222 1306)]) (.node none (.node (some [(.alloc 542
-    1306)]) .nil .nil) .nil) .nil))))))) .nil)), .nil, .nil, false, (.node none .nil (.node none
-    (.node none (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
-    (.node (some snap592) .nil .nil) .nil) .nil)) (.node none .nil (.node none (.node none .nil
-    (.node (some snap880) .nil .nil)) .nil)))) (.node none (.node none (.node none .nil (.node none
-    .nil (.node none .nil (.node (some snap968) .nil .nil)))) (.node none .nil (.node none .nil
-    (.node (some snap488) .nil .nil)))) (.node none (.node none (.node none (.node none (.node none
-    (.node (some snap1048) .nil .nil) .nil) .nil) .nil) .nil) (.node none (.node none .nil (.node
-    none (.node none (.node (some snap1208) .nil .nil) .nil) .nil)) (.node none (.node (some
-    snap376) .nil .nil) .nil))))) (.node none (.node none (.node none (.node none (.node (some
-    snap132) .nil .nil) .nil) .nil) (.node none (.node none (.node none (.node none .nil (.node
-    (some snap788) .nil .nil)) .nil) .nil) (.node none (.node none .nil (.node none (.node (some
-    snap692) .nil .nil) .nil)) .nil))) (.node none (.node none .nil (.node none .nil (.node none
-    (.node none (.node none (.node (some snap1132) .nil .nil) .nil) .nil) .nil))) (.node none .nil
-    (.node none .nil (.node none .nil (.node none (.node none (.node (some snap1276) .nil .nil)
-    .nil) .nil))))))) (.node none (.node none (.node none (.node none (.node none (.node none
-    (.node (some snap258) .nil .nil) .nil) .nil) .nil) .nil) .nil) .nil)))⟩
+  ⟨61608, 1539, Fn.«da_weights».modeSig, (.node (some [(.alloc 7 128)]) (.node none (.node (some
+    [(.alloc 10 664)]) .nil .nil) .nil) (.node none (.node none (.node none (.node (some [(.alloc
+    17 664)]) (.node none (.node (some [(.alloc 37 664)]) (.node none (.node (some [(.alloc 117
+    664)]) (.node none (.node (some [(.alloc 437 664)]) .nil .nil) .nil) .nil) (.node none (.node
+    (some [(.alloc 277 664)]) .nil .nil) (.node none (.node (some [(.alloc 597 664)]) .nil .nil)
+    .nil))) (.node none (.node none .nil (.node (some [(.alloc 357 664)]) .nil .nil)) (.node (some
+    [(.alloc 197 664)]) (.node none (.node (some [(.alloc 517 664)]) .nil .nil) .nil) .nil)))
+    (.node none (.node (some [(.alloc 77 664)]) (.node none (.node (some [(.alloc 237 664)]) .nil
+    .nil) (.node none (.node (some [(.alloc 557 664)]) .nil .nil) .nil)) (.node none .nil (.node
+    (some [(.alloc 397 664)]) .nil .nil))) (.node none (.node (some [(.alloc 157 664)]) (.node none
+    (.node (some [(.alloc 477 664)]) .nil .nil) .nil) .nil) (.node none (.node (some [(.alloc 317
+    664)]) .nil .nil) (.node none (.node (some [(.alloc 637 664)]) .nil .nil) .nil))))) (.node none
+    (.node none (.node none (.node none .nil (.node (some [(.alloc 337 664)]) .nil .nil)) (.node
+    (some [(.alloc 177 664)]) (.node none (.node (some [(.alloc 497 664)]) .nil .nil) .nil) .nil))
+    (.node (some [(.alloc 97 664)]) (.node none (.node (some [(.alloc 257 664)]) .nil .nil) (.node
+    none (.node (some [(.alloc 577 664)]) .nil .nil) .nil)) (.node none .nil (.node (some [(.alloc
+    417 664)]) .nil .nil)))) (.node (some [(.alloc 57 664)]) (.node none (.node (some [(.alloc 137
+    664)]) (.node none (.node (some [(.alloc 457 664)]) .nil .nil) .nil) .nil) (.node none (.node
+    (some [(.alloc 297 664)]) .nil .nil) (.node none (.node (some [(.alloc 617 664)]) .nil .nil)
+    .nil))) (.node none (.node none .nil (.node (some [(.alloc 377 664)]) .nil .nil)) (.node (some
+    [(.alloc 217 664)]) (.node none (.node (some [(.alloc 537 664)]) .nil .nil) .nil) .nil)))))
+    (.node none (.node (some [(.alloc 27 664)]) (.node none (.node (some [(.alloc 67 664)]) (.node
+    none (.node (some [(.alloc 227 664)]) .nil .nil) (.node none (.node (some [(.alloc 547 664)])
+    .nil .nil) .nil)) (.node none .nil (.node (some [(.alloc 387 664)]) .nil .nil))) (.node none
+    (.node (some [(.alloc 147 664)]) (.node none (.node (some [(.alloc 467 664)]) .nil .nil) .nil)
+    .nil) (.node none (.node (some [(.alloc 307 664)]) .nil .nil) (.node none (.node (some [(.alloc
+    627 664)]) .nil .nil) .nil)))) (.node none (.node none (.node none .nil (.node (some [(.alloc
+    347 664)]) .nil .nil)) (.node (some [(.alloc 187 664)]) (.node none (.node (some [(.alloc 507
+    664)]) .nil .nil) .nil) .nil)) (.node (some [(.alloc 107 664)]) (.node none (.node (some
+    [(.alloc 267 664)]) .nil .nil) (.node none (.node (some [(.alloc 587 664)]) .nil .nil) .nil))
+    (.node none .nil (.node (some [(.alloc 427 664)]) .nil .nil))))) (.node none (.node (some
+    [(.alloc 47 664)]) (.node none (.node (some [(.alloc 127 664)]) (.node none (.node (some
+    [(.alloc 447 664)]) .nil .nil) .nil) .nil) (.node none (.node (some [(.alloc 287 664)]) .nil
+    .nil) (.node none (.node (some [(.alloc 607 664)]) .nil .nil) .nil))) (.node none (.node none
+    .nil (.node (some [(.alloc 367 664)]) .nil .nil)) (.node (some [(.alloc 207 664)]) (.node none
+    (.node (some [(.alloc 527 664)]) .nil .nil) .nil) .nil))) (.node none (.node (some [(.alloc 87
+    664)]) (.node none (.node (some [(.alloc 247 664)]) .nil .nil) (.node none (.node (some
+    [(.alloc 567 664)]) .nil .nil) .nil)) (.node none .nil (.node (some [(.alloc 407 664)]) .nil
+    .nil))) (.node none (.node (some [(.alloc 167 664)]) (.node none (.node (some [(.alloc 487
+    664)]) .nil .nil) .nil) .nil) (.node none (.node (some [(.alloc 327 664)]) .nil .nil) (.node
+    none (.node (some [(.alloc 647 664)]) .nil .nil) .nil))))))) (.node none (.node none (.node
+    none (.node none (.node none (.node none .nil (.node (some [(.alloc 332 664)]) .nil .nil))
+    (.node (some [(.alloc 172 664)]) (.node none (.node (some [(.alloc 492 664)]) .nil .nil) .nil)
+    .nil)) (.node (some [(.alloc 92 664)]) (.node none (.node (some [(.alloc 252 664)]) .nil .nil)
+    (.node none (.node (some [(.alloc 572 664)]) .nil .nil) .nil)) (.node none .nil (.node (some
+    [(.alloc 412 664)]) .nil .nil)))) (.node (some [(.alloc 52 664)]) (.node none (.node (some
+    [(.alloc 132 664)]) (.node none (.node (some [(.alloc 452 664)]) .nil .nil) .nil) .nil) (.node
+    none (.node (some [(.alloc 292 664)]) .nil .nil) (.node none (.node (some [(.alloc 612 664)])
+    .nil .nil) .nil))) (.node none (.node none .nil (.node (some [(.alloc 372 664)]) .nil .nil))
+    (.node (some [(.alloc 212 664)]) (.node none (.node (some [(.alloc 532 664)]) .nil .nil) .nil)
+    .nil)))) (.node (some [(.alloc 32 664)]) (.node none (.node (some [(.alloc 72 664)]) (.node
+    none (.node (some [(.alloc 232 664)]) .nil .nil) (.node none (.node (some [(.alloc 552 664)])
+    .nil .nil) .nil)) (.node none .nil (.node (some [(.alloc 392 664)]) .nil .nil))) (.node none
+    (.node (some [(.alloc 152 664)]) (.node none (.node (some [(.alloc 472 664)]) .nil .nil) .nil)
+    .nil) (.node none (.node (some [(.alloc 312 664)]) .nil .nil) (.node none (.node (some [(.alloc
+    632 664)]) .nil .nil) .nil)))) (.node none (.node none (.node none .nil (.node (some [(.alloc
+    352 664)]) .nil .nil)) (.node (some [(.alloc 192 664)]) (.node none (.node (some [(.alloc 512
+    664)]) .nil .nil) .nil) .nil)) (.node (some [(.alloc 112 664)]) (.node none (.node (some
+    [(.alloc 272 664)]) .nil .nil) (.node none (.node (some [(.alloc 592 664)]) .nil .nil) .nil))
+    (.node none .nil (.node (some [(.alloc 432 664)]) .nil .nil)))))) (.node (some [(.alloc 22
+    664)]) (.node none (.node (some [(.alloc 42 664)]) (.node none (.node (some [(.alloc 122 664)])
+    (.node none (.node (some [(.alloc 442 664)]) .nil .nil) .nil) .nil) (.node none (.node (some
+    [(.alloc 282 664)]) .nil .nil) (.node none (.node (some [(.alloc 602 664)]) .nil .nil) .nil)))
+    (.node none (.node none .nil (.node (some [(.alloc 362 664)]) .nil .nil)) (.node (some [(.alloc
+    202 664)]) (.node none (.node (some [(.alloc 522 664)]) .nil .nil) .nil) .nil))) (.node none
+    (.node (some [(.alloc 82 664)]) (.node none (.node (some [(.alloc 242 664)]) .nil .nil) (.node
+    none (.node (some [(.alloc 562 664)]) .nil .nil) .nil)) (.node none .nil (.node (some [(.alloc
+    402 664)]) .nil .nil))) (.node none (.node (some [(.alloc 162 664)]) (.node none (.node (some
+    [(.alloc 482 664)]) .nil .nil) .nil) .nil) (.node none (.node (some [(.alloc 322 664)]) .nil
+    .nil) (.node none (.node (some [(.alloc 642 664)]) .nil .nil) .nil))))) (.node none (.node none
+    (.node none (.node none .nil (.node (some [(.alloc 342 664)]) .nil .nil)) (.node (some [(.alloc
+    182 664)]) (.node none (.node (some [(.alloc 502 664)]) .nil .nil) .nil) .nil)) (.node (some
+    [(.alloc 102 664)]) (.node none (.node (some [(.alloc 262 664)]) .nil .nil) (.node none (.node
+    (some [(.alloc 582 664)]) .nil .nil) .nil)) (.node none .nil (.node (some [(.alloc 422 664)])
+    .nil .nil)))) (.node (some [(.alloc 62 664)]) (.node none (.node (some [(.alloc 142 664)])
+    (.node none (.node (some [(.alloc 462 664)]) .nil .nil) .nil) .nil) (.node none (.node (some
+    [(.alloc 302 664)]) .nil .nil) (.node none (.node (some [(.alloc 622 664)]) .nil .nil) .nil)))
+    (.node none (.node none .nil (.node (some [(.alloc 382 664)]) .nil .nil)) (.node (some [(.alloc
+    222 664)]) (.node none (.node (some [(.alloc 542 664)]) .nil .nil) .nil) .nil))))))) .nil)),
+    .nil, .nil, false, (.node none .nil (.node none (.node none (.node none (.node none .nil (.node
+    none (.node none (.node (some snap144) .nil .nil) .nil) .nil)) (.node none (.node none (.node
+    none .nil (.node none .nil (.node none .nil (.node (some snap968) .nil .nil)))) .nil) (.node
+    none (.node none (.node none (.node (some snap280) .nil .nil) (.node (some snap408) .nil .nil))
+    .nil) .nil))) (.node none (.node none (.node none (.node none (.node none .nil (.node none
+    (.node none (.node (some snap1156) .nil .nil) .nil) .nil)) .nil) (.node none (.node none (.node
+    none (.node none (.node (some snap1060) .nil .nil) .nil) .nil) .nil) (.node none (.node none
+    .nil (.node (some snap868) .nil .nil)) .nil))) (.node none (.node none (.node none (.node none
+    (.node (some snap532) .nil .nil) .nil) .nil) .nil) .nil)) (.node none (.node none (.node none
+    (.node none .nil (.node none (.node (some snap652) .nil .nil) .nil)) .nil) .nil) (.node none
+    (.node none .nil (.node none .nil (.node none (.node none (.node (some snap1244) .nil .nil)
+    .nil) .nil))) (.node none .nil (.node none .nil (.node none (.node (some snap764) .nil .nil)
+    .nil))))))) .nil))⟩
 
 end
 

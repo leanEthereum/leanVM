@@ -22,7 +22,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop333`, window 0. -/
+/-- `__loop338`, window 0. -/
 theorem sw0 : shareWinD Fn.«level_positions__L9_L23_L5_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
@@ -36,16 +36,16 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop375`, once. -/
+/-- `__loop380`, once. -/
 theorem st : shareStaticD Fn.«level_positions__L14_L27_L3_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop375`, window 0. -/
+/-- `__loop380`, window 0. -/
 theorem sw0 : shareWinD Fn.«level_positions__L14_L27_L3_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
-/-- `__loop375`: its static sharing check and every window's. -/
+/-- `__loop380`: its static sharing check and every window's. -/
 theorem shareOk : ShareOkD Fn.«level_positions__L14_L27_L3_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
@@ -56,33 +56,6 @@ theorem shareOk : ShareOkD Fn.«level_positions__L14_L27_L3_loop0».core (cert.w
 end
 end LeanVM.Guest.Fn.«level_positions__L14_L27_L3_loop0»
 
-namespace LeanVM.Guest.Fn.«da_levels__L1024_L10_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
-
-@[expose] public section
-
-set_option maxRecDepth 100000 in
-/-- `__loop491`, once. -/
-theorem st : shareStaticD Fn.«da_levels__L1024_L10_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop491`, window 0. -/
-theorem sw0 : shareWinD Fn.«da_levels__L1024_L10_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-/-- `__loop491`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«da_levels__L1024_L10_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 0 := by decide +kernel
-  rw [hc] at hi
-  interval_cases i
-  · exact sw0
-⟩
-
-end
-end LeanVM.Guest.Fn.«da_levels__L1024_L10_loop0»
-
 namespace LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
@@ -90,19 +63,34 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop518`, once. -/
+/-- `__loop475`, once. -/
 theorem st : shareStaticD Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop518`, window 0. -/
+/-- `__loop475`, window 0. -/
 theorem sw0 : shareWinD Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop518`, window 1. -/
+/-- `__loop475`, window 1. -/
 theorem sw1 : shareWinD Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1_loop0».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
   decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop475`, window 2. -/
+theorem sw2 : shareWinD Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1_loop0».core (cert.withPows Data.powTree) plumb fs snaps 2 = true := by
+  decide +kernel
+
+/-- `__loop475`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 2 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+  · exact sw1
+  · exact sw2
+⟩
 
 end
 end LeanVM.Guest.Fn.«opening_queries__L0_L0_L4_L16_L14_L2_L3_L6_L12_L4_L1_loop0»

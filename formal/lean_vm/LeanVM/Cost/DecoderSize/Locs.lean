@@ -11,7 +11,6 @@ public import LeanVM.Cost.DecoderSize.Rows2
 public import LeanVM.Cost.DecoderSize.Rows3
 public import LeanVM.Cost.DecoderSize.Rows4
 public import LeanVM.Cost.DecoderSize.Rows5
-public import LeanVM.Cost.DecoderSize.Rows6
 public import LeanVM.Cost.DecoderSize.Names0
 public import LeanVM.Cost.DecoderSize.Names1
 
@@ -25,26 +24,24 @@ namespace LeanVM.Cost.Decoder
 
 set_option maxRecDepth 100000 in
 /-- **The rows' sizes**, summed. -/
-theorem guestLocsList_rowSize : (guestLocsList.map rowSize).sum = 521156 := by
-  have hl : guestLocsList.length = 1611 := by decide +kernel
+theorem guestLocsList_rowSize : (guestLocsList.map rowSize).sum = 517104 := by
+  have hl : guestLocsList.length = 1548 := by decide +kernel
   have hn : guestLocsRow39.length = 41 := by decide +kernel
   rw [sum_rowSize_eq_rowsSize, hl]
-  have s0 := rowsSize_split 0 39 1572 39 1611 rfl rfl
+  have s0 := rowsSize_split 0 39 1509 39 1548 rfl rfl
   have c0 := rowsSize_0_39
-  have s1 := rowsSize_split 39 1 1571 40 1572 rfl rfl
-  have s2 := rowsSize_split 40 348 1223 388 1571 rfl rfl
+  have s1 := rowsSize_split 39 1 1508 40 1509 rfl rfl
+  have s2 := rowsSize_split 40 348 1160 388 1508 rfl rfl
   have c2 := rowsSize_40_348
-  have s3 := rowsSize_split 388 722 501 1110 1223 rfl rfl
+  have s3 := rowsSize_split 388 722 438 1110 1160 rfl rfl
   have c3 := rowsSize_388_722
-  have s4 := rowsSize_split 1110 206 295 1316 501 rfl rfl
-  have c4 := rowsSize_1110_206
-  have s5 := rowsSize_split 1316 207 88 1523 295 rfl rfl
-  have c5 := rowsSize_1316_207
-  have s6 := rowsSize_split 1523 86 2 1609 88 rfl rfl
-  have c6 := rowsSize_1523_86
-  have s7 := rowsSize_split 1609 2 0 1611 2 rfl rfl
-  have c7 := rowsSize_1609_2
-  have e := rowsSize_zero 1611
+  have s4 := rowsSize_split 1110 195 243 1305 438 rfl rfl
+  have c4 := rowsSize_1110_195
+  have s5 := rowsSize_split 1305 162 81 1467 243 rfl rfl
+  have c5 := rowsSize_1305_162
+  have s6 := rowsSize_split 1467 81 0 1548 81 rfl rfl
+  have c6 := rowsSize_1467_81
+  have e := rowsSize_zero 1548
   have g : guestLocsList.getD 39 [] = guestLocsRow39.flatten := rfl
   have r := rowsSize_one (a := 39) (by omega)
   rw [g] at r

@@ -14,58 +14,58 @@ namespace LeanVM.Guest.End
 @[expose] public section
 
 /-- `walk_path__L12_L3`. -/
-theorem walkOk_1517 : wpOkJ 1517 12 3 = true := by decide +kernel
+theorem walkOk_1454 : wpOkJ 1454 12 3 = true := by decide +kernel
 
 /-- `walk_path__L12_L4`. -/
-theorem walkOk_1519 : wpOkJ 1519 12 4 = true := by decide +kernel
+theorem walkOk_1456 : wpOkJ 1456 12 4 = true := by decide +kernel
 
 /-- `walk_path__L12_L5`. -/
-theorem walkOk_1521 : wpOkJ 1521 12 5 = true := by decide +kernel
+theorem walkOk_1458 : wpOkJ 1458 12 5 = true := by decide +kernel
 
 /-- `walk_path__L12_L6`. -/
-theorem walkOk_1523 : wpOkJ 1523 12 6 = true := by decide +kernel
+theorem walkOk_1460 : wpOkJ 1460 12 6 = true := by decide +kernel
 
 /-- `walk_path__L12_L7`. -/
-theorem walkOk_1535 : wpOkJ 1535 12 7 = true := by decide +kernel
+theorem walkOk_1472 : wpOkJ 1472 12 7 = true := by decide +kernel
 
 /-- `walk_path__L18_L2`. -/
-theorem walkOk_1543 : wpOkJ 1543 18 2 = true := by decide +kernel
+theorem walkOk_1480 : wpOkJ 1480 18 2 = true := by decide +kernel
 
 /-- `walk_path__L18_L3`. -/
-theorem walkOk_1551 : wpOkJ 1551 18 3 = true := by decide +kernel
+theorem walkOk_1488 : wpOkJ 1488 18 3 = true := by decide +kernel
 
 /-- `walk_path__L18_L4`. -/
-theorem walkOk_1559 : wpOkJ 1559 18 4 = true := by decide +kernel
+theorem walkOk_1496 : wpOkJ 1496 18 4 = true := by decide +kernel
 
 /-- `walk_path__L18_L5`. -/
-theorem walkOk_1566 : wpOkJ 1566 18 5 = true := by decide +kernel
+theorem walkOk_1503 : wpOkJ 1503 18 5 = true := by decide +kernel
 
 /-- `walk_path__L18_L6`. -/
-theorem walkOk_1573 : wpOkJ 1573 18 6 = true := by decide +kernel
+theorem walkOk_1510 : wpOkJ 1510 18 6 = true := by decide +kernel
 
 /-- `walk_path__L18_L7`. -/
-theorem walkOk_1580 : wpOkJ 1580 18 7 = true := by decide +kernel
+theorem walkOk_1517 : wpOkJ 1517 18 7 = true := by decide +kernel
 
 /-- `walk_path__L24_L2`. -/
-theorem walkOk_1587 : wpOkJ 1587 24 2 = true := by decide +kernel
+theorem walkOk_1524 : wpOkJ 1524 24 2 = true := by decide +kernel
 
 /-- `walk_path__L24_L3`. -/
-theorem walkOk_1594 : wpOkJ 1594 24 3 = true := by decide +kernel
+theorem walkOk_1531 : wpOkJ 1531 24 3 = true := by decide +kernel
 
 /-- `walk_path__L24_L4`. -/
-theorem walkOk_1601 : wpOkJ 1601 24 4 = true := by decide +kernel
+theorem walkOk_1538 : wpOkJ 1538 24 4 = true := by decide +kernel
 
 /-- `walk_path__L12_L2`. -/
-theorem walkOk_1607 : wpOkJ 1607 12 2 = true := by decide +kernel
+theorem walkOk_1544 : wpOkJ 1544 12 2 = true := by decide +kernel
 
 /-- `walk_path__L6_L7`. -/
-theorem walkOk_1608 : wpOkJ 1608 6 7 = true := by decide +kernel
+theorem walkOk_1545 : wpOkJ 1545 6 7 = true := by decide +kernel
 
 /-- `walk_path__L6_L6`. -/
-theorem walkOk_1609 : wpOkJ 1609 6 6 = true := by decide +kernel
+theorem walkOk_1546 : wpOkJ 1546 6 6 = true := by decide +kernel
 
 /-- `walk_path__L12_L8`. -/
-theorem walkOk_1610 : wpOkJ 1610 12 8 = true := by decide +kernel
+theorem walkOk_1547 : wpOkJ 1547 12 8 = true := by decide +kernel
 
 end
 end LeanVM.Guest.End

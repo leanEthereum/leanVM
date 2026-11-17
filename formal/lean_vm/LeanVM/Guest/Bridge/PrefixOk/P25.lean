@@ -95,7 +95,7 @@ theorem bridgeCellsOk :
 
 /-- `decode_query_windows__L24_L6` is in the hint bridge's prefix class. -/
 theorem bridgePrefixOk :
-    Bridge.prefixOk bridgeLoc Fn.«decode_query_windows__L24_L6».core.body Fn.«decode_query_windows__L24_L6».code.code Data.adviceFn1240 = true := by
+    Bridge.prefixOk bridgeLoc Fn.«decode_query_windows__L24_L6».core.body Fn.«decode_query_windows__L24_L6».code.code Data.adviceFn1225 = true := by
   decide +kernel
 
 end
@@ -125,7 +125,7 @@ theorem bridgeCellsOk :
 
 /-- `level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0` is in the hint bridge's prefix class. -/
 theorem bridgePrefixOk :
-    Bridge.prefixOk bridgeLoc Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».core.body Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».code.code Data.adviceFn605 = true := by
+    Bridge.prefixOk bridgeLoc Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».core.body Fn.«level_queries__L55_L1_L6_L32_L21_L3_L0_L0_L0_L0».code.code Data.adviceFn595 = true := by
   decide +kernel
 
 end

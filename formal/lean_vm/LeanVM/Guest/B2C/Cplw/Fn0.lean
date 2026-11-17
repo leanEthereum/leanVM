@@ -147,7 +147,7 @@ theorem ok30 : CplOk 30 :=
   cplOk_of_link link30 plumbEq30 fsEq30 partsEq30 armsEq30 rfl Fn.«da_pad».cplOk
 
 theorem ok31 : CplOk 31 :=
-  cplOk_of_link link31 plumbEq31 fsEq31 partsEq31 armsEq31 rfl Fn.«da_row_shape».cplOk
+  cplOk_of_link link31 plumbEq31 fsEq31 partsEq31 armsEq31 rfl Fn.«da_padding».cplOk
 
 theorem ok32 : CplOk 32 :=
   cplOk_of_link link32 plumbEq32 fsEq32 partsEq32 armsEq32 rfl Fn.«da_verify_blob».cplOk

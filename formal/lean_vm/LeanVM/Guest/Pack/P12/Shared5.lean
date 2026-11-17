@@ -22,22 +22,12 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop521`, window 0. -/
-theorem sw0 : shareWinD Fn.«opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop521`, window 1. -/
-theorem sw1 : shareWinD Fn.«opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
-  decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `__loop521`, window 2. -/
+/-- `__loop478`, window 2. -/
 theorem sw2 : shareWinD Fn.«opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps 2 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop521`, window 3. -/
+/-- `__loop478`, window 3. -/
 theorem sw3 : shareWinD Fn.«opening_queries__L0_L1_L6_L32_L17_L5_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps 3 = true := by
   decide +kernel
 
@@ -51,24 +41,40 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop535`, once. -/
+/-- `__loop492`, once. -/
 theorem st : shareStaticD Fn.«opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop535`, window 0. -/
+/-- `__loop492`, window 0. -/
 theorem sw0 : shareWinD Fn.«opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps 0 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop535`, window 1. -/
+/-- `__loop492`, window 1. -/
 theorem sw1 : shareWinD Fn.«opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps 1 = true := by
   decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop535`, window 2. -/
+/-- `__loop492`, window 2. -/
 theorem sw2 : shareWinD Fn.«opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps 2 = true := by
   decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop492`, window 3. -/
+theorem sw3 : shareWinD Fn.«opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps 3 = true := by
+  decide +kernel
+
+/-- `__loop492`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 3 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · exact sw0
+  · exact sw1
+  · exact sw2
+  · exact sw3
+⟩
 
 end
 end LeanVM.Guest.Fn.«opening_queries__L0_L1_L6_L32_L19_L7_L0_L0_L0_L0_L0_loop0»

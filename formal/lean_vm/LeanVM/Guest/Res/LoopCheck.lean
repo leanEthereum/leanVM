@@ -44,7 +44,6 @@ public import LeanVM.Guest.Res.LoopCheck39
 public import LeanVM.Guest.Res.LoopCheck4
 public import LeanVM.Guest.Res.LoopCheck40
 public import LeanVM.Guest.Res.LoopCheck41
-public import LeanVM.Guest.Res.LoopCheck42
 public import LeanVM.Guest.Res.LoopCheck5
 public import LeanVM.Guest.Res.LoopCheck6
 public import LeanVM.Guest.Res.LoopCheck7
@@ -83,31 +82,30 @@ theorem termAll : RangeOk (fun _ fn => termChk fn) 0 coreProgram.length := by
   have h18 : RangeOk (fun _ fn => termChk fn) 0 347 := h17.append (m := 1) termRange_346
   have h19 : RangeOk (fun _ fn => termChk fn) 0 348 := h18.append (m := 1) termRange_347
   have h20 : RangeOk (fun _ fn => termChk fn) 0 349 := h19.append (m := 1) termRange_348
-  have h21 : RangeOk (fun _ fn => termChk fn) 0 422 := h20.append (m := 73) termRange_349
-  have h22 : RangeOk (fun _ fn => termChk fn) 0 572 := h21.append (m := 150) termRange_422
-  have h23 : RangeOk (fun _ fn => termChk fn) 0 722 := h22.append (m := 150) termRange_572
-  have h24 : RangeOk (fun _ fn => termChk fn) 0 872 := h23.append (m := 150) termRange_722
-  have h25 : RangeOk (fun _ fn => termChk fn) 0 1018 := h24.append (m := 146) termRange_872
-  have h26 : RangeOk (fun _ fn => termChk fn) 0 1090 := h25.append (m := 72) termRange_1018
-  have h27 : RangeOk (fun _ fn => termChk fn) 0 1143 := h26.append (m := 53) termRange_1090
-  have h28 : RangeOk (fun _ fn => termChk fn) 0 1196 := h27.append (m := 53) termRange_1143
-  have h29 : RangeOk (fun _ fn => termChk fn) 0 1197 := h28.append (m := 1) termRange_1196
-  have h30 : RangeOk (fun _ fn => termChk fn) 0 1257 := h29.append (m := 60) termRange_1197
-  have h31 : RangeOk (fun _ fn => termChk fn) 0 1304 := h30.append (m := 47) termRange_1257
-  have h32 : RangeOk (fun _ fn => termChk fn) 0 1351 := h31.append (m := 47) termRange_1304
-  have h33 : RangeOk (fun _ fn => termChk fn) 0 1398 := h32.append (m := 47) termRange_1351
-  have h34 : RangeOk (fun _ fn => termChk fn) 0 1444 := h33.append (m := 46) termRange_1398
-  have h35 : RangeOk (fun _ fn => termChk fn) 0 1516 := h34.append (m := 72) termRange_1444
-  have h36 : RangeOk (fun _ fn => termChk fn) 0 1522 := h35.append (m := 6) termRange_1516
-  have h37 : RangeOk (fun _ fn => termChk fn) 0 1542 := h36.append (m := 20) termRange_1522
-  have h38 : RangeOk (fun _ fn => termChk fn) 0 1558 := h37.append (m := 16) termRange_1542
-  have h39 : RangeOk (fun _ fn => termChk fn) 0 1572 := h38.append (m := 14) termRange_1558
-  have h40 : RangeOk (fun _ fn => termChk fn) 0 1586 := h39.append (m := 14) termRange_1572
-  have h41 : RangeOk (fun _ fn => termChk fn) 0 1593 := h40.append (m := 7) termRange_1586
-  have h42 : RangeOk (fun _ fn => termChk fn) 0 1600 := h41.append (m := 7) termRange_1593
-  have h43 : RangeOk (fun _ fn => termChk fn) 0 1609 := h42.append (m := 9) termRange_1600
-  have h44 : RangeOk (fun _ fn => termChk fn) 0 1610 := h43.append (m := 1) termRange_1609
-  rw [coreProgram_length]; exact h44
+  have h21 : RangeOk (fun _ fn => termChk fn) 0 413 := h20.append (m := 64) termRange_349
+  have h22 : RangeOk (fun _ fn => termChk fn) 0 563 := h21.append (m := 150) termRange_413
+  have h23 : RangeOk (fun _ fn => termChk fn) 0 713 := h22.append (m := 150) termRange_563
+  have h24 : RangeOk (fun _ fn => termChk fn) 0 863 := h23.append (m := 150) termRange_713
+  have h25 : RangeOk (fun _ fn => termChk fn) 0 1005 := h24.append (m := 142) termRange_863
+  have h26 : RangeOk (fun _ fn => termChk fn) 0 1077 := h25.append (m := 72) termRange_1005
+  have h27 : RangeOk (fun _ fn => termChk fn) 0 1134 := h26.append (m := 57) termRange_1077
+  have h28 : RangeOk (fun _ fn => termChk fn) 0 1181 := h27.append (m := 47) termRange_1134
+  have h29 : RangeOk (fun _ fn => termChk fn) 0 1182 := h28.append (m := 1) termRange_1181
+  have h30 : RangeOk (fun _ fn => termChk fn) 0 1242 := h29.append (m := 60) termRange_1182
+  have h31 : RangeOk (fun _ fn => termChk fn) 0 1289 := h30.append (m := 47) termRange_1242
+  have h32 : RangeOk (fun _ fn => termChk fn) 0 1336 := h31.append (m := 47) termRange_1289
+  have h33 : RangeOk (fun _ fn => termChk fn) 0 1383 := h32.append (m := 47) termRange_1336
+  have h34 : RangeOk (fun _ fn => termChk fn) 0 1429 := h33.append (m := 46) termRange_1383
+  have h35 : RangeOk (fun _ fn => termChk fn) 0 1454 := h34.append (m := 25) termRange_1429
+  have h36 : RangeOk (fun _ fn => termChk fn) 0 1471 := h35.append (m := 17) termRange_1454
+  have h37 : RangeOk (fun _ fn => termChk fn) 0 1487 := h36.append (m := 16) termRange_1471
+  have h38 : RangeOk (fun _ fn => termChk fn) 0 1502 := h37.append (m := 15) termRange_1487
+  have h39 : RangeOk (fun _ fn => termChk fn) 0 1516 := h38.append (m := 14) termRange_1502
+  have h40 : RangeOk (fun _ fn => termChk fn) 0 1529 := h39.append (m := 13) termRange_1516
+  have h41 : RangeOk (fun _ fn => termChk fn) 0 1537 := h40.append (m := 8) termRange_1529
+  have h42 : RangeOk (fun _ fn => termChk fn) 0 1546 := h41.append (m := 9) termRange_1537
+  have h43 : RangeOk (fun _ fn => termChk fn) 0 1547 := h42.append (m := 1) termRange_1546
+  rw [coreProgram_length]; exact h43
 
 end
 

@@ -221,21 +221,6 @@ end
 
 end LeanVM.Guest.Fn.«level_positions__L8_L23_L5»
 
-namespace LeanVM.Guest.Fn.«da_levels__L2_L1»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_levels__L2_L1`'s computed hints pass the data check. -/
-theorem pairOk :
-    Bridge.pairChk [] Fn.«da_levels__L2_L1».cert.locs Fn.«da_levels__L2_L1».fs Fn.«da_levels__L2_L1».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L2_L1»
-
 namespace LeanVM.Guest.Fn.«level_positions__L8_L17_L5_loop0»
 
 open LeanVM.Guest

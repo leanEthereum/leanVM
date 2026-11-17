@@ -65,7 +65,7 @@ theorem bridgeCellsOk :
 
 /-- `decode_query_windows__L15_L3` is in the hint bridge's prefix class. -/
 theorem bridgePrefixOk :
-    Bridge.prefixOk bridgeLoc Fn.«decode_query_windows__L15_L3».core.body Fn.«decode_query_windows__L15_L3».code.code Data.adviceFn962 = true := by
+    Bridge.prefixOk bridgeLoc Fn.«decode_query_windows__L15_L3».core.body Fn.«decode_query_windows__L15_L3».code.code Data.adviceFn947 = true := by
   decide +kernel
 
 end
@@ -95,7 +95,7 @@ theorem bridgeCellsOk :
 
 /-- `level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0` is in the hint bridge's prefix class. -/
 theorem bridgePrefixOk :
-    Bridge.prefixOk bridgeLoc Fn.«level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0».core.body Fn.«level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0».code.code Data.adviceFn696 = true := by
+    Bridge.prefixOk bridgeLoc Fn.«level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0».core.body Fn.«level_queries__L37_L0_L4_L16_L21_L3_L0_L0_L0_L0».code.code Data.adviceFn686 = true := by
   decide +kernel
 
 end
@@ -125,7 +125,7 @@ theorem bridgeCellsOk :
 
 /-- `level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0` is in the hint bridge's prefix class. -/
 theorem bridgePrefixOk :
-    Bridge.prefixOk bridgeLoc Fn.«level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0».core.body Fn.«level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0».code.code Data.adviceFn778 = true := by
+    Bridge.prefixOk bridgeLoc Fn.«level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0».core.body Fn.«level_queries__L37_L0_L4_L16_L23_L5_L0_L0_L0_L0».code.code Data.adviceFn768 = true := by
   decide +kernel
 
 end
@@ -155,7 +155,7 @@ theorem bridgeCellsOk :
 
 /-- `level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0` is in the hint bridge's prefix class. -/
 theorem bridgePrefixOk :
-    Bridge.prefixOk bridgeLoc Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».core.body Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».code.code Data.adviceFn518 = true := by
+    Bridge.prefixOk bridgeLoc Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».core.body Fn.«level_queries__L73_L1_L6_L32_L18_L6_L0_L0_L0_L0».code.code Data.adviceFn508 = true := by
   decide +kernel
 
 end

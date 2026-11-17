@@ -26,20 +26,6 @@ end
 
 end LeanVM.Guest.Fn.«rs_eq_run»
 
-namespace LeanVM.Guest.Fn.«da_row_shape»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_row_shape`'s witness hints pass the data check. -/
-theorem witOk : Bridge.witChk alignCtx Fn.«da_row_shape».fs Fn.«da_row_shape».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_row_shape»
-
 namespace LeanVM.Guest.Fn.«da_verify_cell»
 
 open LeanVM.Guest

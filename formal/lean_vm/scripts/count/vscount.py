@@ -4,8 +4,14 @@ opcode, of `verify_sub`'s statically bounded callees (each child's opening arm
 of `verify_sub`, `child_claim_list_digest` and `__loop4`, as tables checked against the `V`
 count certificates (`Count/StaticV.lean`) by `decide +kernel`, one module per opcode; and
 `verify_tables`' and the terminal's bounds (`kcVtW`, `kcTermW`, from the `W` certificates)."""
-import os
+import os, re
 from core import L
+
+# The guest's constants, as `guest-export` writes them to `Data/Source.lean` (`guest_const%`).
+_SRC = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'LeanVM', 'Guest', 'Data',
+                         'Source.lean'), encoding='utf-8').read()
+def guest_const(name):
+    return int(re.search(r'def const_%s : Nat := (\d+)' % name, _SRC).group(1))
 
 def vs_st(g):
     """`verify_sub`'s statically bounded callees but its opening arm: its static calls, then the arms
@@ -218,20 +224,18 @@ noncomputable def vsTabOk (op : Opcode) : Bool :=
 
 # `main`'s `da_verify` and `claim_list_digest`, counted by their trees' shapes (`Budget/MvCount.lean`)
 # from the `V` certificates: `da_verify`'s statically bounded callees (the weights among them), its
-# blob loop and the padding loop, the DA levels by their log `L`, the claim lists' last digests by
-# the last group's size, their loops (`CL_LP`); `da_verify`, `da_pad` and the roots' tree's arm
-# `da_roots_tree__L{L}` by their frames.
-MV_ST = ['da_row_shape', 'da_vector', 'da_weights']
+# blob loop and the padding loop, the tree over the blob roots, the claim lists' last digests by
+# the last group's size, their loops (`CL_LP`); `da_verify` and `da_pad` by their frames.
+MV_ST = ['da_padding', 'da_vector', 'da_weights']
 MV_LP = [L('da_verify_loop0'), L('da_pad_loop0')]
-MV_DL = ['da_levels__L%d_L%d' % (2 ** L, L) for L in range(11)]
-MV_RT = ['da_roots_tree__L%d' % L for L in range(11)]
+DA_ROWS = guest_const('DA_MAX_ROWS')  # the matrix's rows, padding included
+MV_DL = 'da_levels__L%d_L%d' % (DA_ROWS, guest_const('DA_LOG_MAX_ROWS'))  # the tree over the blob roots
 MV_CL = ['claim_list_last__L%d' % k for k in range(17)]
 MV_OM = ['da_verify', 'da_pad', 'claim_list_digest']
-MV_MAXROWS = 1024
 
 
 def main_tables(g):
-    """Per opcode index `k`: the tables of `MvCountData` and `dvW(k, r, L)`, `clW(k, n)`, the exact
+    """Per opcode index `k`: the tables of `MvCountData` and `dvW(k, r)`, `clW(k, n)`, the exact
     counts `Budget/MvCount.lean` proves, with their affine bounds `(dvA, dvR, dvP)`, `(clA, clS)`."""
     import checker
     S = g.closure(__import__('gen').VROOTS(g))
@@ -243,23 +247,22 @@ def main_tables(g):
     om = [g.omega_cnt(k) for k in range(6)]
     T = {}
     for k in range(6):
-        T[k] = dict(st=[stat(k, n) for n in MV_ST], lp=[loop(k, n) for n in MV_LP], dl=[stat(k, n) for n in MV_DL],
+        T[k] = dict(st=[stat(k, n) for n in MV_ST], lp=[loop(k, n) for n in MV_LP], dl=stat(k, MV_DL),
                     cl=[stat(k, n) for n in MV_CL], clp=[loop(k, n) for n in CL_LP], ls=stat(k, 'list_split'),
-                    om=[om[k][n] for n in MV_OM], rt=[om[k][n] for n in MV_RT])
-    def dvW(k, r, L):
+                    om=[om[k][n] for n in MV_OM])
+    def dvW(k, r):
         t = T[k]
         return (t['om'][0] + t['st'][0] + t['st'][1] + t['st'][2] + r * t['lp'][0]
-                + t['rt'][L] + t['om'][1] + (2 ** L - r) * t['lp'][1] + t['dl'][L])
+                + t['om'][1] + (DA_ROWS - r) * t['lp'][1] + t['dl'])
     def dv_aff(k):
-        """`dvW` within `C + R · r + P · 2^L` on `r ≤ 2^L` rows: the constant (the largest arm's
-        frame), the blob loop per row past the padding loop, the padding loop and
-        `⌈levels / 2^L⌉` per padded row."""
+        """`dvW` within `C + R · r + P · DA_MAX_ROWS` on `r ≤ DA_MAX_ROWS` rows: the constant, the
+        blob loop per row past the padding loop, the padding loop and `⌈levels / DA_MAX_ROWS⌉` per
+        row of the padded matrix."""
         t = T[k]
-        C = t['om'][0] + t['st'][0] + t['st'][1] + t['st'][2] + max(t['rt']) + t['om'][1]
-        # The padding loop runs `2^L - r` times: `r · (a - b) + 2^L · b` charges it exactly.
+        C = t['om'][0] + t['st'][0] + t['st'][1] + t['st'][2] + t['om'][1]
+        # The padding loop runs `DA_MAX_ROWS - r` times: `r · (a - b) + DA_MAX_ROWS · b` charges it exactly.
         R = max(0, t['lp'][0] - t['lp'][1])
-        dlP = max(-(-d // 2 ** L) for L, d in enumerate(t['dl']))
-        P = t['lp'][1] + dlP
+        P = t['lp'][1] + -(-t['dl'] // DA_ROWS)
         return C, R, P
     def clW(k, n):
         t = T[k]
@@ -279,7 +282,7 @@ def write_main(g, OPS):
     def clog(r): return (r - 1).bit_length()
     for k in range(6):
         A, R, P = dv_aff(k)
-        assert all(dvW(k, r, L) <= A + R * r + P * 2 ** L for L in range(11) for r in range(1, 2 ** L + 1))
+        assert all(dvW(k, r) <= A + R * r + P * DA_ROWS for r in range(1, DA_ROWS + 1))
         A, S = cl_aff(k)
         assert all(clW(k, n) <= A + S * n for n in range(0, 2 ** 17))
     def lst(xs): return '[' + ', '.join(str(x) for x in xs) + ']'
@@ -293,12 +296,11 @@ def write_main(g, OPS):
         for lop, _, k in OPS: s += '  | .%s => %d\n' % (lop, f(k))
         return s
     o = []
-    o.append('/-- `da_verify`\'s statically bounded callees but the DA levels by `L`. -/\ndef dvStNames : List String := %s\n' % names(MV_ST))
+    o.append('/-- `da_verify`\'s statically bounded callees but the tree over the blob roots. -/\ndef dvStNames : List String := %s\n' % names(MV_ST))
     o.append('/-- Their core indices. -/\ndef dvStJ : List ℕ := %s\n' % lst(g.by[n] for n in MV_ST))
     o.append('/-- `da_verify`\'s blob loop and the padding loop. -/\ndef dvLpNames : List String := %s\n' % names(MV_LP))
     o.append('/-- Their core indices. -/\ndef dvLpJ : List ℕ := %s\n' % lst(g.by[n] for n in MV_LP))
-    o.append('/-- The core indices of the DA levels `B1.Da.dlNames`, by `L`. -/\ndef dlJ : List ℕ := %s\n' % lst(g.by[n] for n in MV_DL))
-    o.append('/-- The core indices of the roots\' tree\'s arms `B1.Da.rtNames`, by `L`. -/\ndef rtJ : List ℕ := %s\n' % lst(g.by[n] for n in MV_RT))
+    o.append('/-- The core index of the tree over the blob roots, `B1.Da.dlTop`. -/\ndef dlJ : ℕ := %d\n' % g.by[MV_DL])
     o.append('/-- The core indices of `claim_list_last__L{k}`, `k < 17`. -/\ndef clJ : List ℕ := %s\n' % lst(g.by[n] for n in MV_CL))
     o.append('/-- `claim_list_digest`\'s loops, per `136` and per `17` claims. -/\ndef clLpNames : List String := %s\n' % names(CL_LP))
     o.append('/-- Their core indices. -/\ndef clLpJ : List ℕ := %s\n' % lst(g.by[n] for n in CL_LP))
@@ -306,13 +308,12 @@ def write_main(g, OPS):
     o.append('/-- Their core indices. -/\ndef mvOmJ : List ℕ := %s\n' % lst(g.by[n] for n in MV_OM))
     o.append(opdefl('kcDvStT', 'The instructions of `dvStNames`.', lambda k: T[k]['st']))
     o.append(opdefl('kcDvLpT', 'The instructions of `dvLpNames` per iteration.', lambda k: T[k]['lp']))
-    o.append(opdefl('kcDlT', 'The DA levels\' instructions, by `L`.', lambda k: T[k]['dl']))
+    o.append(opdef('kcDl', 'The instructions of the tree over the blob roots.', lambda k: T[k]['dl']))
     o.append(opdefl('kcClT', '`claim_list_last__L{k}`\'s instructions, by `k`.', lambda k: T[k]['cl']))
     o.append(opdefl('kcClLpT', 'The instructions of `clLpNames` per iteration.', lambda k: T[k]['clp']))
     o.append(opdefl('mvOmT', 'The frame weights of `mvOmNames`.', lambda k: T[k]['om']))
-    o.append(opdefl('rtOmT', 'The frame weights of the roots\' tree\'s arms, by `L`.', lambda k: T[k]['rt']))
-    o.append(opdef('kcDvA', '`da_verify`\'s instructions on `r` rows padded to `2^L` within '
-                   '`kcDvA + kcDvR · r + kcDvP · 2^L`: the constant.', lambda k: dv_aff(k)[0]))
+    o.append(opdef('kcDvA', '`da_verify`\'s instructions on `r` rows padded to `DA_MAX_ROWS` within '
+                   '`kcDvA + kcDvR · r + kcDvP · DA_MAX_ROWS`: the constant.', lambda k: dv_aff(k)[0]))
     o.append(opdef('kcDvR', '`da_verify`\'s instructions: per row.', lambda k: dv_aff(k)[1]))
     o.append(opdef('kcDvP', '`da_verify`\'s instructions: per padded row.', lambda k: dv_aff(k)[2]))
     o.append(opdef('kcClA', '`claim_list_digest`\'s instructions on `n` claims within `kcClA + kcClS · n`: the constant.',
@@ -324,10 +325,7 @@ noncomputable def mvTabOk (op : Opcode) : Bool :=
     kvSBJ op (dvStJ.getD i 0) == (kcDvStT op).getD i 0) &&
   (List.range 2).all (fun i => kvOkK op (dvLpJ.getD i 0) (dvLpNames.getD i "") &&
     kvSKJ op (dvLpJ.getD i 0) == (kcDvLpT op).getD i 0) &&
-  (List.range 11).all (fun L => kvOkB op (dlJ.getD L 0) (B1.Da.dlNames.getD L "") &&
-    kvSBJ op (dlJ.getD L 0) == (kcDlT op).getD L 0) &&
-  (List.range 11).all (fun L => decide ((coreProgram[rtJ.getD L 0]?).map Fn.name = some (B1.Da.rtNames.getD L "")) &&
-    (B2C.plumbOf (rtJ.getD L 0 + 1)).pmax.getD (B2C.opIdx op) 0 == (rtOmT op).getD L 0) &&
+  (kvOkB op dlJ B1.Da.dlTop && kvSBJ op dlJ == kcDl op) &&
   (List.range 17).all (fun k => kvOkB op (clJ.getD k 0) (B1.Digest.clNames.getD k "") &&
     kvSBJ op (clJ.getD k 0) == (kcClT op).getD k 0) &&
   (List.range 2).all (fun i => kvOkK op (clLpJ.getD i 0) (clLpNames.getD i "") &&
@@ -348,5 +346,5 @@ noncomputable def mvTabOk (op : Opcode) : Bool :=
     for lop, _, k in OPS:
         A, R, P = dv_aff(k); cA, cS = cl_aff(k)
         print('mvcount %s: da_verify %d + %d/row + %d/padded row (16 rows: %d of exact %d; 32: %d of %d); '
-              'claim list %d + %d/claim' % (lop, A, R, P, A + 16 * (R + P), dvW(k, 16, 4), A + 32 * (R + P),
-                                           dvW(k, 32, 5), cA, cS))
+              'claim list %d + %d/claim' % (lop, A, R, P, A + 16 * R + DA_ROWS * P, dvW(k, 16),
+                                           A + 32 * R + DA_ROWS * P, dvW(k, 32), cA, cS))

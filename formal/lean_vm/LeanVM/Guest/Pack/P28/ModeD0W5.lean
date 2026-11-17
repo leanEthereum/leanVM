@@ -17,10 +17,10 @@ open LeanVM.Guest LeanVM.Guest.Exec
 
 public section
 
-/-- `da_weights`: its walk from offset 592 goes through to its cut at 692. -/
+/-- `da_weights`: its walk from offset 652 goes through to its cut at 764. -/
 theorem modeW5 :
-    (Mode.runCode modeEnv modeFun (Mode.winCode code.chunks 592 692) 592 (Mode.cutOf modeFun 592).1
-    (Mode.cutOf modeFun 592).2).isSome = true := by
+    (Mode.runCode modeEnv modeFun (Mode.winCode code.chunks 652 764) 652 (Mode.cutOf modeFun 652).1
+    (Mode.cutOf modeFun 652).2).isSome = true := by
   decide +kernel
 
 end

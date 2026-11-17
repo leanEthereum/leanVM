@@ -17,37 +17,33 @@ open LeanVM.Guest.B1.Main (nameSum dlK clC clS ccC ccS dvC dvS dvP l5A0 l5A1 l5A
 
 @[expose] public section
 
-/-- The roots' tree's arms' frames. -/
-theorem rt_sum : nameSum (fun g => B2C.fs g) B1.Da.rtNames 11 = 154 := by decide +kernel
-
 /-- **`da_verify`'s constant words.** -/
-theorem dvC_eq : dvC B2C.fs wSB = 178029 := by
+theorem dvC_eq : dvC B2C.fs wSB = 94356 := by
   unfold dvC
-  rw [rt_sum,
-    fs_idx (j := 27) (f := "da_verify") (by decide +kernel),
-    fs_idx (j := 30) (f := "da_row_shape") (by decide +kernel),
+  rw [fs_idx (j := 27) (f := "da_verify") (by decide +kernel),
+    fs_idx (j := 30) (f := "da_padding") (by decide +kernel),
     fs_idx (j := 406) (f := "__loop22") (by decide +kernel),
     fs_idx (j := 29) (f := "da_pad") (by decide +kernel),
-    fs_idx (j := 419) (f := "__loop23") (by decide +kernel),
+    fs_idx (j := 409) (f := "__loop23") (by decide +kernel),
     wSB_idx (j := 33) (f := "da_vector") (by decide +kernel),
     wSB_idx (j := 28) (f := "da_weights") (by decide +kernel)]
   decide +kernel
 
 /-- **`da_verify`'s words per row.** -/
-theorem dvS_eq : dvS B2C.fs wSK = 215656 := by
+theorem dvS_eq : dvS B2C.fs wSK = 117096 := by
   unfold dvS B1.Main.iterK
   rw [fs_idx (j := 406) (f := "__loop22") (by decide +kernel),
-    fs_idx (j := 419) (f := "__loop23") (by decide +kernel),
+    fs_idx (j := 409) (f := "__loop23") (by decide +kernel),
     wSK_idx (j := 406) (f := "__loop22") (by decide +kernel),
-    wSK_idx (j := 419) (f := "__loop23") (by decide +kernel)]
+    wSK_idx (j := 409) (f := "__loop23") (by decide +kernel)]
   decide +kernel
 
 /-- **`da_verify`'s words per padded row.** -/
-theorem dvP_eq : dvP B2C.fs wSB wSK = 82 := by
+theorem dvP_eq : dvP B2C.fs wSB wSK = 65 := by
   unfold dvP B1.Main.iterK
   rw [dlK_eq,
-    fs_idx (j := 419) (f := "__loop23") (by decide +kernel),
-    wSK_idx (j := 419) (f := "__loop23") (by decide +kernel)]
+    fs_idx (j := 409) (f := "__loop23") (by decide +kernel),
+    wSK_idx (j := 409) (f := "__loop23") (by decide +kernel)]
   decide +kernel
 
 end

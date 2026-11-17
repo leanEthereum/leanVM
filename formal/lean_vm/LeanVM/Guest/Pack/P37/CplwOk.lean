@@ -11,6 +11,8 @@ public import LeanVM.Guest.B2C.CplCheck
 public import Mathlib.Tactic.IntervalCases
 public import LeanVM.Guest.Pack.«P37».Cplw1
 public import LeanVM.Guest.Pack.«P37».Cplw2
+public import LeanVM.Guest.Pack.«P37».Cplw3
+public import LeanVM.Guest.Pack.«P37».Cplw4
 
 namespace LeanVM.Guest.Fn.«level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0»
 
@@ -19,7 +21,7 @@ open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 @[expose] public section
 
 /-- `level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0`: every part of every window. -/
-theorem cplOk : CplOkD (Glob.ofSigs ([(976, Fn.«verify_merkle_cap__L6».sig), (1038, Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code Fn.«level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+theorem cplOk : CplOkD (Glob.ofSigs ([(961, Fn.«verify_merkle_cap__L6».sig), (1023, Fn.«opening_queries__L0_L0_L4_L16_L18_L6_L0_L0_L0_L0_L0».sig)]) Data.jtTrie globSem) code Fn.«level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
   intro i hi k hk
   have hc : (cert.withPows Data.powTree).cuts.length = 1 := by decide +kernel
   rw [hc] at hi
@@ -35,4 +37,25 @@ theorem cplOk : CplOkD (Glob.ofSigs ([(976, Fn.«verify_merkle_cap__L6».sig), (
 
 end
 end LeanVM.Guest.Fn.«level_queries__L55_L0_L4_L16_L18_L6_L0_L0_L0_L0»
+
+namespace LeanVM.Guest.Fn.«level_residual__L218_L19_L6_L3_loop0»
+
+open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
+
+@[expose] public section
+
+/-- `__loop234`: every part of every window. -/
+theorem cplOk : CplOkD (Glob.ofSigs ([(1195, Fn.«level_residual__L218_L19_L6_L3_loop0».sig)]) Data.jtTrie globSem) code Fn.«level_residual__L218_L19_L6_L3_loop0».core (cert.withPows Data.powTree) plumb fs parts arms false := by
+  intro i hi k hk
+  have hc : (cert.withPows Data.powTree).cuts.length = 0 := by decide +kernel
+  rw [hc] at hi
+  interval_cases i
+  · have hn : nPartsD parts 0 = 2 := by decide +kernel
+    rw [hn] at hk
+    interval_cases k
+    · exact cw0_0
+    · exact cw0_1
+
+end
+end LeanVM.Guest.Fn.«level_residual__L218_L19_L6_L3_loop0»
 

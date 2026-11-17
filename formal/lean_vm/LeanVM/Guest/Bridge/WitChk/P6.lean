@@ -319,17 +319,3 @@ theorem witOk : Bridge.witChk alignCtx Fn.«level_residual__L19_L12_L4_L2_loop0�
 end
 
 end LeanVM.Guest.Fn.«level_residual__L19_L12_L4_L2_loop0»
-
-namespace LeanVM.Guest.Fn.«da_levels__L512_L9_loop5»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_levels__L512_L9_loop5`'s witness hints pass the data check. -/
-theorem witOk : Bridge.witChk alignCtx Fn.«da_levels__L512_L9_loop5».fs Fn.«da_levels__L512_L9_loop5».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L512_L9_loop5»

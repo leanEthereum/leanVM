@@ -1810,7 +1810,7 @@ noncomputable def snap2717 : List Mode.Abs × Mode.Pend :=
     (some ()) .nil .nil)) .nil)) (.node none (.node none (.node none (.node (some ()) .nil .nil)
     .nil) (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) .nil)))))))), [], [⟨0,
     0, [((.fr 2), 1)]⟩, ⟨0, 1, [((.fr 2), 1)]⟩, ⟨0, 2, [((.fr 2), 1)]⟩, ⟨0, 3, [((.fr 2), 1)]⟩],
-    [⟨⟨0, 0, []⟩, (.num 430), (.num 14363), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 256),
+    [⟨⟨0, 0, []⟩, (.num 430), (.num 14352), 1, 0⟩, ⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 256),
     1, 0⟩], (List.flatten [[((.ex (.fr 2) 0), (.num 268435456)), ((.ex (.fr 1313) 0), (.num 256)),
     ((.ex (.fr 1313) 0), (.num 268435456)), ((.ex (.fr 1314) 0), (.num 256)), ((.ex (.fr 1314) 0),
     (.num 268435456)), ((.ex (.fr 1315) 0), (.num 256)), ((.ex (.fr 1315) 0), (.num 268435456)),

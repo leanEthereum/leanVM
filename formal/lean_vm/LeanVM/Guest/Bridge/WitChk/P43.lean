@@ -110,6 +110,20 @@ end
 
 end LeanVM.Guest.Fn.«child_claim_list_mono_last__L14»
 
+namespace LeanVM.Guest.Fn.«da_levels__L32_L5»
+
+open LeanVM.Guest
+
+public section
+
+/-- `da_levels__L32_L5`'s witness hints pass the data check. -/
+theorem witOk : Bridge.witChk alignCtx Fn.«da_levels__L32_L5».fs Fn.«da_levels__L32_L5».core.body = true := by
+  decide +kernel
+
+end
+
+end LeanVM.Guest.Fn.«da_levels__L32_L5»
+
 namespace LeanVM.Guest.Fn.«level_positions__L4_L17_L5»
 
 open LeanVM.Guest
@@ -207,20 +221,6 @@ theorem witOk : Bridge.witChk alignCtx Fn.«level_positions__L3_L22_L4».fs Fn.�
 end
 
 end LeanVM.Guest.Fn.«level_positions__L3_L22_L4»
-
-namespace LeanVM.Guest.Fn.«da_levels__L32_L5»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_levels__L32_L5`'s witness hints pass the data check. -/
-theorem witOk : Bridge.witChk alignCtx Fn.«da_levels__L32_L5».fs Fn.«da_levels__L32_L5».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L32_L5»
 
 namespace LeanVM.Guest.Fn.«level_positions__L3_L16_L4_loop0»
 

@@ -13,14 +13,14 @@ public import LeanVM.Guest.Pack.«P24».Shared3
 public import LeanVM.Guest.Pack.«P24».Shared4
 public import LeanVM.Guest.Pack.«P24».Shared5
 
-namespace LeanVM.Guest.Fn.«level_residual__L19_L8_L4_L2»
+namespace LeanVM.Guest.Fn.«level_positions__L44_L24_L6»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `level_residual__L19_L8_L4_L2`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«level_residual__L19_L8_L4_L2».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+/-- `level_positions__L44_L24_L6`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«level_positions__L44_L24_L6».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
   have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
@@ -28,23 +28,22 @@ theorem shareOk : ShareOkD Fn.«level_residual__L19_L8_L4_L2».core (cert.withPo
 ⟩
 
 end
-end LeanVM.Guest.Fn.«level_residual__L19_L8_L4_L2»
+end LeanVM.Guest.Fn.«level_positions__L44_L24_L6»
 
-namespace LeanVM.Guest.Fn.«level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0»
+namespace LeanVM.Guest.Fn.«level_positions__L4_L14_L2_loop0»
 
 open LeanVM.Guest LeanVM.Guest.Check LeanVM.Guest.B2C
 
 @[expose] public section
 
-/-- `level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0`: its static sharing check and every window's. -/
-theorem shareOk : ShareOkD Fn.«level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
-  have hc : snaps.length = 1 := by decide +kernel
+/-- `__loop61`: its static sharing check and every window's. -/
+theorem shareOk : ShareOkD Fn.«level_positions__L4_L14_L2_loop0».core (cert.withPows Data.powTree) plumb fs snaps false 0 := ⟨st, fun i hi ↦ by
+  have hc : snaps.length = 0 := by decide +kernel
   rw [hc] at hi
   interval_cases i
   · exact sw0
-  · exact sw1
 ⟩
 
 end
-end LeanVM.Guest.Fn.«level_queries__L19_L0_L4_L16_L24_L6_L0_L0_L0_L0»
+end LeanVM.Guest.Fn.«level_positions__L4_L14_L2_loop0»
 

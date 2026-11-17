@@ -347,17 +347,3 @@ theorem witOk : Bridge.witChk alignCtx Fn.«level_residual__L23_L16_L4_L2_loop1�
 end
 
 end LeanVM.Guest.Fn.«level_residual__L23_L16_L4_L2_loop1»
-
-namespace LeanVM.Guest.Fn.«da_levels__L1024_L10_loop6»
-
-open LeanVM.Guest
-
-public section
-
-/-- `da_levels__L1024_L10_loop6`'s witness hints pass the data check. -/
-theorem witOk : Bridge.witChk alignCtx Fn.«da_levels__L1024_L10_loop6».fs Fn.«da_levels__L1024_L10_loop6».core.body = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«da_levels__L1024_L10_loop6»

@@ -292,11 +292,11 @@ theorem aok30 : Bridge.AllocJ 30 :=
     Fn.«da_pad».allocShapeOk Fn.«da_pad».curBodyOk Fn.«da_pad».allocOk
 
 theorem fok31 : Bridge.FrJ 31 :=
-  Bridge.frJ_of Checked.code31 Checked.core31 Checked.cert31 Checked.plumbEq31 Bridge.ProgAl.tab31 rfl Checked.fsEq31 Fn.«da_row_shape».frOk
+  Bridge.frJ_of Checked.code31 Checked.core31 Checked.cert31 Checked.plumbEq31 Bridge.ProgAl.tab31 rfl Checked.fsEq31 Fn.«da_padding».frOk
 
 theorem aok31 : Bridge.AllocJ 31 :=
   Bridge.allocJ_of Checked.code31 Checked.core31 Checked.cert31 Checked.plumbEq31 Bridge.ProgAl.tab31 rfl Checked.fsEq31
-    Fn.«da_row_shape».allocShapeOk Fn.«da_row_shape».curBodyOk Fn.«da_row_shape».allocOk
+    Fn.«da_padding».allocShapeOk Fn.«da_padding».curBodyOk Fn.«da_padding».allocOk
 
 theorem fok32 : Bridge.FrJ 32 :=
   Bridge.frJ_of Checked.code32 Checked.core32 Checked.cert32 Checked.plumbEq32 Bridge.ProgAl.tab32 rfl Checked.fsEq32 Fn.«da_verify_blob».frOk
