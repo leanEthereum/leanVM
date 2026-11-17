@@ -40,16 +40,14 @@ pub struct Stats {
     /// Executed instructions.
     pub cycles: usize,
     /// Rows per table the program executed, in the order of [`Self::TABLES`].
-    pub rows: [usize; N_TABLES],
+    pub table_heights: [usize; N_TABLES],
     /// Committed words: the columns' lengths, before the stack's pad to a power of two.
-    pub committed: usize,
-    /// Data memory is `2^log_mem` cells.
-    pub log_mem: usize,
-    /// Cells actually touched, before the pad to `2^log_mem`.
-    pub mem_used: usize,
+    pub total_committed: usize,
+    /// Cells actually touched, before the pad to a power of two.
+    pub memory_used: usize,
 }
 
 impl Stats {
-    /// Table names in `rows` order.
+    /// Table names in `table_heights` order.
     pub const TABLES: [&'static str; N_TABLES] = ["XOR", "MUL", "SET", "DEREF", "JUMP", "KECCAK"];
 }

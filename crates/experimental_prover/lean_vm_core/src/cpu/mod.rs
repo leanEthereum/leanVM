@@ -222,7 +222,7 @@ pub fn prove(
     }
     let cycles = exec.cycles;
     let mut w = crate::stage!("Build witness", || build(program, &exec, layout, keccak_blocks));
-    let mem_used = exec.mem_used;
+    let memory_used = exec.mem_used;
     drop(exec);
     let committed_size = w.committed_size();
     // The public statement (program digest + input) seeds the transcript, so
@@ -306,10 +306,9 @@ pub fn prove(
         ps.into_proof(),
         Stats {
             cycles,
-            rows: w.layout.rows,
-            committed: committed_size,
-            log_mem: w.log_mem,
-            mem_used,
+            table_heights: w.layout.rows,
+            total_committed: committed_size,
+            memory_used,
         },
     ))
 }

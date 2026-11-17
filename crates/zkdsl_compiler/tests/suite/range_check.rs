@@ -74,7 +74,7 @@ fn range_check_complement_sizes_the_memory() {
         let program = compile(&parse(&src).expect("parse"));
         let want = [F128::from(g_pow(0)); 2];
         let (proof, stats) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-        assert_eq!(stats.log_mem, log_mem, "bound {k}");
+        assert_eq!(stats.memory_used.next_power_of_two().ilog2(), log_mem, "bound {k}");
         verify(&program, &want, &proof).unwrap_or_else(|e| panic!("bound {k}: {e:?}"));
     }
 }
@@ -146,7 +146,7 @@ def main():
     let witness = [("n".to_string(), vec![vec![F128::from(g_pow(5000))]])];
     let want = [F128::from(g_pow(3)); 2];
     let (proof, stats) = prove(&program, &witness, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-    assert_eq!(stats.log_mem, 13);
+    assert_eq!(stats.memory_used.next_power_of_two().ilog2(), 13);
     verify(&program, &want, &proof).expect("hinted g-power range checks verify");
 }
 

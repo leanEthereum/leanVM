@@ -161,10 +161,9 @@ pub fn prove(
     }
     let stats = Stats {
         cycles: exec.cycles,
-        rows: layout.rows,
-        committed: layout.committed_size(),
-        log_mem,
-        mem_used: exec.mem_used,
+        table_heights: layout.rows,
+        total_committed: layout.committed_size(),
+        memory_used: exec.mem_used,
     };
     let mut w = crate::stage!("Build witness", || build(program, &exec, layout));
     drop(exec);

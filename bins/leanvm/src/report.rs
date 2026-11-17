@@ -28,7 +28,7 @@ pub fn details(stats: &isa::Stats, code_len: usize) -> String {
     }
     let mut shares: Vec<(&str, usize)> = isa::Stats::TABLES
         .iter()
-        .zip(&stats.rows)
+        .zip(&stats.table_heights)
         .filter(|&(_, &c)| c > 0)
         .map(|(&name, &c)| (name, c))
         .collect();
@@ -38,9 +38,9 @@ pub fn details(stats: &isa::Stats, code_len: usize) -> String {
         .iter()
         .map(|&(name, c)| format!("{name} 2^{} ({:.1}%)", log2(c), 100.0 * c as f64 / stats.cycles as f64))
         .collect();
-    parts.push(format!("MEMORY 2^{}", log2(stats.mem_used)));
+    parts.push(format!("MEMORY 2^{}", log2(stats.memory_used)));
     parts.push(format!("BYTECODE 2^{}", log2(code_len)));
-    parts.push(format!("TOTAL_COMMITTED 2^{}", log2(stats.committed)));
+    parts.push(format!("TOTAL_COMMITTED 2^{}", log2(stats.total_committed)));
     parts.join("  ")
 }
 

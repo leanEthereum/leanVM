@@ -73,7 +73,7 @@ fn any_number_of_steps_proves() {
         let pi = chained_digest(n);
         let program = compile(&parse(&source).expect("parse"));
         let (proof, stats) = prove(&program, &[], pi, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-        assert_eq!(stats.rows[5], n, "{n} steps");
+        assert_eq!(stats.table_heights[5], n, "{n} steps");
         verify(&program, &pi, &proof).unwrap_or_else(|e| panic!("{n} steps: {e:?}"));
     }
 }
@@ -86,6 +86,6 @@ fn a_tiny_memory_proves() {
     let program = compile(&parse("def main():\n    return\n").expect("parse"));
     let pi = [F128::ZERO; 2];
     let (proof, stats) = prove(&program, &[], pi, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-    assert!(stats.log_mem < 3, "memory of 2^{} cells", stats.log_mem);
+    assert!(stats.memory_used <= 4, "{} cells used", stats.memory_used);
     verify(&program, &pi, &proof).expect("honest proof verifies");
 }
