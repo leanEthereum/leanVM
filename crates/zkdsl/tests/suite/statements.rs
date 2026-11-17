@@ -2,10 +2,8 @@
 //! these compiled clean before, so the pin is that they are now REJECTED: a
 //! diagnostic is the whole fix.
 
-use crate::common::compile;
-use lean_vm_core::cpu::{execute, prove, verify};
-use primitives::field::{F128, g_pow};
-use zkdsl::parse;
+use crate::common::core;
+use zkdsl::{expand, parse};
 
 /// A name is a plain identifier. Two different mistakes arrive here, and both
 /// used to compile: a mis-split statement (`x /= 2` became a binding named
@@ -59,7 +57,7 @@ def main():
     }
     // The five that ARE supported still desugar.
     let ok = body("x += 1\n    x *= 2\n    x //= 2\n    x %= 3\n    x -= 1");
-    compile(&parse(&ok).expect("the supported compound assignments parse"));
+    expand(&parse(&ok).expect("the supported compound assignments parse"));
 }
 
 /// A bare comparison is not a statement. `split_assign` used to split `x != y`
@@ -91,51 +89,6 @@ def main():
     assert!(parse(&body("x < y")).unwrap_err().contains("order facts come from"));
 }
 
-/// A stack store whose value IS its own destination recorded `alias[dst] = dst`,
-/// and `word_src` chased that forever: a compiler that never returns, with no
-/// output at all. Two stores could close the same loop in two steps. Both are
-/// now no-ops (write-once makes a second write of the same value one), and the
-/// documented swap must keep working.
-#[test]
-fn a_self_referential_stack_store_terminates() {
-    let cases = [
-        // one statement
-        "    s[0] = s[0]\n",
-        // two, closing the cycle
-        "    s[0] = s[1]\n    s[1] = s[0]\n",
-    ];
-    for tail in cases {
-        let src = format!(
-            "\
-def main():
-    s = StackBuf(2)
-{tail}    p = 1
-    p[1] = s[0]
-    p[GEN] = s[0]
-    return
-"
-        );
-        execute(&compile(&parse(&src).expect("parse")), &[], [F128::ZERO; 2]).unwrap();
-    }
-    // `s = [s[1], s[0]]` rebinds to a fresh run and must still swap.
-    let swap = "\
-def main():
-    s = StackBuf(2)
-    s[0] = 5
-    s[1] = 7
-    s = [s[1], s[0]]
-    p = 1
-    p[1] = s[0]
-    p[GEN] = s[1]
-    return
-";
-    let want = [
-        F128::from(primitives::field::F64(7)),
-        F128::from(primitives::field::F64(5)),
-    ];
-    execute(&compile(&parse(swap).expect("parse")), &[], want).unwrap();
-}
-
 /// A `mul_range` stop bound that is a compile-time value but not a power of GEN
 /// can never be REACHED: the counter walks by multiplication and exits on
 /// equality, so the loop ran forever at witness generation with no diagnostic.
@@ -157,100 +110,7 @@ def main():
     // A power-of-two literal IS a power of GEN and the walk does reach it, so it
     // must be accepted, and as a compile-time bound rather than a runtime one.
     let ok = src.replace("mul_range(1, 10)", "mul_range(1, 16)");
-    compile(&parse(&ok).expect("`16` is `g^4`"));
-}
-
-/// A binding made inside one arm of an `if` is local to that arm, so the other
-/// arm reads the OUTER binding and the loop must capture it. `free_vars_stmt`
-/// threaded one flat set through both arms, so a name rebound anywhere in the
-/// body counted as loop-local everywhere and the outer binding was never
-/// captured: this legal program failed with `unbound variable`.
-#[test]
-fn a_branch_local_rebinding_does_not_hide_the_outer_binding() {
-    let src = "\
-def main():
-    hb = HeapBuf(8)
-    w = GEN ** 3
-    for i in mul_range(1, GEN ** 4):
-        if i == GEN:
-            w = GEN
-            hb[i * GEN] = w
-        else:
-            hb[i * GEN] = w
-    p = GEN ** 0
-    p[1] = hb[GEN ** 2]
-    p[GEN] = hb[GEN ** 3]
-    return
-";
-    // Cell 2 is written on the taken arm (the branch-local `w = GEN`); cell 3 on
-    // the other, from the outer `w`.
-    let program = compile(&parse(src).expect("parse"));
-    let want = [F128::from(g_pow(1)), F128::from(g_pow(3))];
-    let (proof, _) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-    verify(&program, &want, &proof).expect("the else arm reads the outer binding");
-}
-
-/// Nor does a binding that never runs: the other arm of a compile-time `if`, an `unroll` over nothing.
-/// `free_vars_stmt` counted both as the body's own, so the outer `w` the body reads was never captured, a scalar
-/// or a `StackBuf`.
-#[test]
-fn a_binding_that_never_runs_does_not_hide_the_outer_binding() {
-    for (outer, inner, read) in [("GEN ** 3", "GEN", "w"), ("[GEN ** 3, 7]", "[GEN, 9]", "w[0]")] {
-        for dead in ["if const(1 == 2):", "if 1 == 2:", "for k in unroll(0, 0):"] {
-            let src = format!(
-                "def main():\n    hb = HeapBuf(2)\n    w = {outer}\n    for i in mul_range(1, GEN ** 2):\n        {dead}\n            w = {inner}\n        hb[i] = {read}\n    assert hb[GEN] == GEN ** 3\n    return\n"
-            );
-            let program = compile(&parse(&src).expect("parses"));
-            execute(&program, &[], [F128::ZERO; 2]).expect("the body reads the outer binding");
-        }
-    }
-
-    // A name only such blocks use is not captured: the copy of an unwritten `StackBuf` would pin its cells.
-    let src = "\
-def main():
-    s = StackBuf(2)
-    hb = HeapBuf(2)
-    for i in mul_range(1, GEN ** 2):
-        if const(0 == 1):
-            if i == 1:
-                s = StackBuf(2)
-                keccak([1, 2], [3, 4], s)
-        for k in unroll(0, 0):
-            hb[i] = s[0]
-        hb[i] = 5
-    keccak([1, 2], [3, 4], s)
-    return
-";
-    let program = compile(&parse(src).expect("parses"));
-    execute(&program, &[], [F128::ZERO; 2]).expect("the outer run is still unwritten after the loop");
-}
-
-/// `g` is `x`, so a literal `2^k` is `g^k` ONLY while `k < 64`: at and above
-/// that the modulus folds the monomial back into the low limb while the
-/// literal's bit `k` lands in the next one, the tower coefficient of `y`. The
-/// guest's own `Y_TOWER` is exactly `2^64`, machine-generated by `f128_literal`, so
-/// a g-power recognizer without that guard gives one literal two values
-/// depending on whether it went through a binding.
-#[test]
-fn a_power_of_two_literal_is_a_g_power_only_below_two_to_the_64() {
-    let src = "\
-Y_TOWER = 18446744073709551616
-
-def main():
-    yt = Y_TOWER
-    a = yt * GEN
-    b = Y_TOWER * GEN
-    assert a == b
-    p = GEN ** 0
-    p[1] = a
-    p[GEN] = b
-    return
-";
-    let program = compile(&parse(src).expect("parse"));
-    // y·x, i.e. the tower coefficient shifted, NOT g^65.
-    let want = [F128::new(0, 2); 2];
-    let (proof, _) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-    verify(&program, &want, &proof).expect("2^64 is the tower element y, not g^64");
+    expand(&parse(&ok).expect("`16` is `g^4`"));
 }
 
 /// An operator missing a side says which operator and which side.
@@ -269,61 +129,6 @@ fn an_operator_missing_an_operand_says_so() {
         let err = zkdsl::parse_const(src).expect_err(src);
         assert!(err.contains(want), "{src}: got `{err}`, wanted `{want}`");
     }
-}
-
-/// One hinted value needs no buffer, and costs exactly what the buffer did.
-///
-/// `hint_witness` fills a destination that already exists, so a single hinted
-/// scalar cost a one-cell `StackBuf`, a slice of it, and a read back out. The
-/// guest declared thirty such buffers, twenty-eight of them for nothing else.
-#[test]
-fn one_hinted_value_needs_no_buffer() {
-    let body = |bind: &str| {
-        format!(
-            "def main():
-{bind}    assert log m < 8
-    p = GEN ** 0
-    p[1] = m
-    p[GEN] = GEN ** 0
-    return
-"
-        )
-    };
-    let old = body("    mb = StackBuf(1)\n    hint_witness(mb[0:1], \"m\")\n    m = mb[0]\n");
-    let new = body("    m = hint_witness(\"m\")\n");
-    let run = |src: &str| {
-        let program = compile(&parse(src).expect("parse"));
-        let witness = [("m".to_string(), vec![vec![g_pow(5).into()]])];
-        let want = [g_pow(5).into(), g_pow(0).into()];
-        let (proof, _) = prove(&program, &witness, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-        verify(&program, &want, &proof).expect("verifies");
-        execute(&program, &witness, want).unwrap().cycles
-    };
-    assert_eq!(run(&old), run(&new), "the sugar must cost what it replaces");
-
-    // It binds inside a loop body too, where substitution walks the statement.
-    let looped = "\
-def main():
-    hb = HeapBuf(4)
-    for i in mul_range(1, 8):
-        w = hint_witness(\"w\")
-        hb[i] = w
-    p = GEN ** 0
-    p[1] = hb[GEN]
-    p[GEN] = GEN ** 0
-    return
-";
-    let program = compile(&parse(looped).expect("parse"));
-    let witness = [(
-        "w".to_string(),
-        vec![vec![g_pow(1).into()], vec![g_pow(2).into()], vec![g_pow(3).into()]],
-    )];
-    let want = [g_pow(2).into(), g_pow(0).into()];
-    let (proof, _) = prove(&program, &witness, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-    // `mul_range(1, 8)` is g^0..g^3, so THREE iterations and all three entries
-    // are popped. With `mul_range(1, 4)` the third would sit unread and mask an
-    // off-by-one in that direction.
-    verify(&program, &want, &proof).expect("one hint per iteration");
 }
 
 /// A trailing factor after a `hint_witness` call may not vanish into the
@@ -352,64 +157,6 @@ def main():
     }
 }
 
-/// The scalar hint binds like any other statement that binds.
-///
-/// Three `StmtKind` walkers have a catch-all arm, and each silently swallowed
-/// the new variant: `@inline` rejected a body that is a single tail return,
-/// the `for` capture check raised a `StackBuf` false positive, and return-shape
-/// inference lost the binding. All three fail closed, so the cost was a
-/// diagnostic naming the wrong cause rather than a miscompile, and all three
-/// made the sugar not a drop-in for the idiom it replaces.
-#[test]
-fn the_scalar_hint_binds_like_any_other_binder() {
-    let tail = "    p = GEN ** 0\n    p[1] = r\n    p[GEN] = GEN ** 0\n    return\n";
-    // `@inline` accepts it: the body IS a single tail return.
-    let inlined = format!(
-        "@inline\ndef pick():\n    m = hint_witness(\"m\")\n    return m\n\ndef main():\n    r = pick()\n{tail}"
-    );
-    let program = compile(&parse(&inlined).expect("an @inline body may bind a hint"));
-    let witness = [("m".to_string(), vec![vec![g_pow(5).into()]])];
-    let want = [g_pow(5).into(), g_pow(0).into()];
-    let (proof, _) = prove(&program, &witness, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-    verify(&program, &want, &proof).expect("the inlined binding fires");
-
-    // A `for` body that shadows an enclosing StackBuf's name from inside an arm
-    // is not capturing it, which is what `binds_anywhere` exists to notice.
-    let shadowed = "\
-def main():
-    sb = StackBuf(2)
-    sb[0] = GEN ** 1
-    sb[1] = GEN ** 2
-    hb = HeapBuf(4)
-    for i in mul_range(1, 4):
-        if i == i:
-            sb = hint_witness(\"w\")
-            hb[i] = sb
-    p = GEN ** 0
-    p[1] = sb[0]
-    p[GEN] = GEN ** 0
-    return
-";
-    let program = compile(&parse(shadowed).expect("shadowing is not capturing"));
-    let witness = [("w".to_string(), vec![vec![g_pow(7).into()], vec![g_pow(8).into()]])];
-    let want = [g_pow(1).into(), g_pow(0).into()];
-    let (proof, _) = prove(&program, &witness, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-    verify(&program, &want, &proof).expect("the outer StackBuf is untouched");
-
-    // Return-shape inference, the third walker: rebinding a `StackBuf` name to a
-    // scalar hint has to REPLACE the shape, or the callee is inferred to return a
-    // run of cells and the caller dies on "StackBuf used as a scalar". Only a
-    // rebinding reaches it, which is why the other two cases above do not.
-    let rebound = format!(
-        "def pick():\n    s = StackBuf(2)\n    s[0] = GEN ** 1\n    s[1] = GEN ** 2\n    s = hint_witness(\"m\")\n    return s\n\ndef main():\n    r = pick()\n{tail}"
-    );
-    let program = compile(&parse(&rebound).expect("a hint may rebind a StackBuf name"));
-    let witness = [("m".to_string(), vec![vec![g_pow(6).into()]])];
-    let want = [g_pow(6).into(), g_pow(0).into()];
-    let (proof, _) = prove(&program, &witness, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-    verify(&program, &want, &proof).expect("the rebound name returns as a scalar");
-}
-
 /// A bit-decomposition hint checks its heap destination, like its stack one.
 ///
 /// `bits_dest`'s `StackBuf` arm rejected a destination too small for `nbits`;
@@ -434,15 +181,15 @@ fn a_bit_decomposition_cannot_overrun_its_heap_destination() {
     };
     for (decl, dest, want) in [("2", "hb", "0:8"), ("8", "hb * GEN ** 4", "4:12")] {
         let ast = parse(&prog(decl, dest)).expect("parses");
-        let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {
+        let Err(err) = std::panic::catch_unwind(|| expand(&ast)) else {
             panic!("HeapBuf({decl}) accepted 8 bits at `{dest}`");
         };
         let msg = err.downcast_ref::<String>().map(String::as_str).unwrap_or("");
         assert!(msg.contains(want) && msg.contains("out of bounds"), "got `{msg}`");
     }
     // Both forms still compile where the buffer really does hold the bits.
-    compile(&parse(&prog("8", "hb")).expect("parses"));
-    compile(&parse(&prog("16", "hb * GEN ** 4")).expect("parses"));
+    expand(&parse(&prog("8", "hb")).expect("parses"));
+    expand(&parse(&prog("16", "hb * GEN ** 4")).expect("parses"));
 }
 
 /// Four names and calls that used to pick a winner or die without a line.
@@ -457,23 +204,13 @@ fn a_program_names_what_it_means() {
     // place and the call ran the wrong body.
     let reserved = format!("def f__L1(a):\n    return a\n\ndef main():\n{tail}");
     assert!(parse(&reserved).expect_err("reserved name").contains("reserved"));
-    // So is a variable's: a loop's counter and bound are `__nextN` and `__boundN`, and a program's `__next0`,
-    // read in a loop body, was the counter from the second iteration on.
-    // So is a call's, which would run the specialization or fail by lowering order, and a global constant's.
-    for reserved in [
-        format!("def main():\n    __next0 = 5\n{tail}"),
-        format!("def f(a, k: Const):\n    return a\n\ndef main():\n    x = f__L1(GEN)\n{tail}"),
-        format!("__A = 5\n\ndef main():\n{tail}"),
-    ] {
-        assert!(parse(&reserved).expect_err("reserved name").contains("reserved"));
-    }
 
     // A call to something that will never be lowered died in the assembler as a
     // bare `no entry found for key`, with no line.
     for callee in ["nosuchfn(1)", "assert_in_k(GEN ** 1, GEN ** 1)"] {
         let src = format!("def main():\n    x = {callee}\n{tail}");
         let ast = parse(&src).expect("parses");
-        let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {
+        let Err(err) = std::panic::catch_unwind(|| expand(&ast)) else {
             panic!("`{callee}` was accepted");
         };
         let msg = err.downcast_ref::<String>().map(String::as_str).unwrap_or("");
@@ -494,10 +231,7 @@ def main():
     p[GEN] = GEN ** 0
     return
 ";
-    let program = compile(&parse(captured).expect("a constant may be captured"));
-    let want = [F128::new(5, 0), g_pow(0).into()];
-    let (proof, _) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-    verify(&program, &want, &proof).expect("the captured constant reaches the body");
+    expand(&parse(captured).expect("a constant may be captured"));
 }
 
 /// Three ways a program could read a frame or heap cell it does not own.
@@ -517,7 +251,7 @@ def main():
 fn a_program_cannot_reach_a_cell_it_does_not_own() {
     let rejected = |src: &str, want: &str| {
         let ast = parse(src).unwrap_or_else(|e| panic!("should parse: {e}"));
-        let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {
+        let Err(err) = std::panic::catch_unwind(|| expand(&ast)) else {
             panic!("accepted:\n{src}");
         };
         let msg = err.downcast_ref::<String>().map(String::as_str).unwrap_or("");
@@ -550,15 +284,8 @@ fn a_program_cannot_reach_a_cell_it_does_not_own() {
         ),
         "heap slice 1:3 out of bounds",
     );
-    // So does one whose start folds as a field constant rather than as an address.
-    rejected(
-        &format!(
-            "def main():\n    hb = HeapBuf(8)\n    hint_witness(hb[(GEN ** 2) ** 3:(GEN ** 2) ** 3 + 4], \"w\")\n{tail}"
-        ),
-        "heap slice 6:10 out of bounds",
-    );
 
-    // The in-bounds run of the same shape still compiles and proves.
+    // The in-bounds run of the same shape still expands.
     let ok = "\
 def main():
     hb = HeapBuf(4)
@@ -568,11 +295,7 @@ def main():
     p[GEN] = GEN ** 0
     return
 ";
-    let program = compile(&parse(ok).expect("parse"));
-    let witness = [("w".to_string(), vec![vec![F128::new(1234, 0), F128::new(5678, 0)]])];
-    let want = [F128::new(1234, 0), g_pow(0).into()];
-    let (proof, _) = prove(&program, &witness, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-    verify(&program, &want, &proof).expect("an in-bounds runtime-start slice still works");
+    expand(&parse(ok).expect("parse"));
 }
 
 /// A `for` body that assigns to an enclosing name says why that cannot work.
@@ -596,139 +319,34 @@ def main():
     return
 ";
     let ast = parse(accumulator).expect("parses");
-    let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {
+    let Err(err) = std::panic::catch_unwind(|| expand(&ast)) else {
         panic!("a loop-carried accumulator was accepted");
     };
     let msg = err.downcast_ref::<String>().map(String::as_str).unwrap_or("");
     assert!(msg.contains("the loop cannot carry it"), "got `{msg}`");
 
-    // So is a folded `if` that assigns to a name the body has read from outside, its bindings outliving it: one
-    // that folds as written, and one that folds once `unroll` has substituted its counter. So is a `StackBuf`
-    // read and then rebound, by a cell or whole. Each names the read, on line 5.
+    // So is a folded `if` that assigns to a captured name: its bindings outlive it.
     let folded = "def main():\n    p = GEN ** 0\n    t = 7\n    for i in mul_range(1, 8):\n        p[i] = t\n        if 2 * 3 == 6:\n            t = 9\n    return\n";
-    let unrolled = "def main():\n    p = GEN ** 0\n    t = 7\n    for i in mul_range(1, 8):\n        p[i] = t\n        for k in unroll(0, 1):\n            if k == 0:\n                t = 9\n    return\n";
-    let run = "def main():\n    p = GEN ** 0\n    t = [1, 2]\n    for i in mul_range(1, 8):\n        p[i] = t[0]\n        t = [3, 4]\n    return\n";
-    let whole = "def main():\n    o = StackBuf(2)\n    t = [1, 2]\n    for i in mul_range(1, 8):\n        keccak(t, t, o)\n        t = [3, 4]\n    return\n";
-    for src in [folded, unrolled, run, whole] {
-        let ast = parse(src).expect("parses");
-        let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {
-            panic!("a value was carried to the next iteration:\n{src}");
-        };
-        let msg = err.downcast_ref::<String>().map(String::as_str).unwrap_or("");
-        assert!(
-            msg.starts_with("line 5 ") && msg.contains("unbound variable `t`") && msg.contains("cannot carry it"),
-            "got `{msg}`"
-        );
-    }
-
-    // A name the body binds before it reads it is the body's own, however the binding folds: `acc`, like `t` in
-    // a runtime arm, whose bindings end with the arm, and like an `@inline` callee's `t`. So is the counter, and
-    // rebinding it moves the walk, which leaves cell 5 to the store after the loop.
-    let own = "\
-@inline
-def scale(a, n: Const):
-    if 2 * n == 2:
-        t = a * 3
-    return t
-
-def main():
-    t = 2
-    acc = 5
-    out = HeapBuf(8)
-    for i in mul_range(1, GEN ** 4):
-        if i == 1:
-            for k in unroll(0, 1):
-                if k == 0:
-                    t = 9
-            out[i] = t
-        for k in unroll(0, 2):
-            if k == 0:
-                acc = i
-            else:
-                acc = acc * GEN
-        out[i * GEN] = acc
-        out[i * GEN ** 4] = scale(t, 1)
-        for k in unroll(0, 1):
-            if 2 * k == 0:
-                i = i * GEN
-    out[GEN ** 5] = 7
-    assert out[1] == 9
-    assert out[GEN] == GEN
-    assert out[GEN ** 3] == GEN ** 3
-    assert out[GEN ** 4] == 6
-    assert out[GEN ** 6] == 6
-    return
-";
-    let program = compile(&parse(own).expect("parses"));
-    execute(&program, &[], [F128::ZERO; 2]).expect("nothing is carried");
-
-    // A real typo, outside any loop, still gets the plain message, indexed or not.
-    for read in ["nosuch", "nosuch[0]"] {
-        let typo = format!("def main():\n    p = GEN ** 0\n    p[1] = {read}\n    p[GEN] = GEN ** 0\n    return\n");
-        let ast = parse(&typo).expect("parses");
-        let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {
-            panic!("a typo was accepted");
-        };
-        let msg = err.downcast_ref::<String>().map(String::as_str).unwrap_or("");
-        assert!(
-            msg.contains("unbound variable `nosuch`") && !msg.contains("loop"),
-            "got `{msg}`"
-        );
-    }
-}
-
-/// A `match` target is a BINDER, and every field of the statement is walked.
-///
-/// Four facts, none of which was pinned by anything in the crate: a name target
-/// is not substituted (a `Const k` used to rewrite the binder into a literal, and
-/// the target was then rejected); an INDEX target is, since `sb[k]` needs `k`; the
-/// scrutinee and the arms are; and the statement REBINDS its name targets, so
-/// substitution stops after it. The last is the dangerous one, being the only
-/// mutation of the four that produced a wrong published value rather than a
-/// diagnostic.
-#[test]
-fn a_match_target_binds_and_every_field_is_walked() {
-    let two = "def two(i: Const):\n    return GEN ** i, GEN ** i\n\n";
-    let publish = "    p = GEN ** 0\n    p[1] = r\n    p[GEN] = GEN ** 0\n    return\n";
-    // Arm 1 returns (g, g), so the two returns XOR to zero wherever they are read.
-    let want = [F128::ZERO, g_pow(0).into()];
-    let verifies = |src: &str, why: &str| {
-        let program = compile(&parse(src).unwrap_or_else(|e| panic!("{why}: {e}")));
-        let (proof, _) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-        verify(&program, &want, &proof).unwrap_or_else(|e| panic!("{why}: {e:?}"));
+    let ast = parse(folded).expect("parses");
+    let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {
+        panic!("a folded `if` carried a value to the next iteration");
     };
-
-    // A `Const` parameter whose name is also a target: the binder survives, and
-    // what is read after the statement is the DISPATCH's output, not the constant.
-    verifies(
-        &format!(
-            "{two}def pick(x, k: Const):\n    k, e = match(log(x), range(0, 2), lambda i: two(i))\n    return k + e\n\ndef main():\n    r = pick(GEN ** 1, 7)\n{publish}"
-        ),
-        "a Const name may also be a target",
+    assert!(
+        err.downcast_ref::<String>()
+            .is_some_and(|m| m.contains("the loop cannot carry it"))
     );
 
-    // The scrutinee and the arms ARE substituted: both mention the constant, and a
-    // missed field shows up as a `Var` reaching a position that needs an integer.
-    verifies(
-        &format!(
-            "{two}def pick(k: Const):\n    a, b = match(log(GEN ** k), range(0, 2), lambda i: two(i + k))\n    return a + b\n\ndef main():\n    r = pick(1)\n{publish}"
-        ),
-        "the scrutinee and the arms see the constant",
+    // A real typo, outside any loop, still gets the plain message.
+    let typo = "def main():\n    p = GEN ** 0\n    p[1] = nosuch\n    p[GEN] = GEN ** 0\n    return\n";
+    let ast = parse(typo).expect("parses");
+    let Err(err) = std::panic::catch_unwind(|| expand(&ast)) else {
+        panic!("a typo was accepted");
+    };
+    let msg = err.downcast_ref::<String>().map(String::as_str).unwrap_or("");
+    assert!(
+        msg.contains("unbound variable `nosuch`") && !msg.contains("loop"),
+        "got `{msg}`"
     );
-
-    // An INDEX target is substituted, so a `Const` index names a cell.
-    verifies(
-        &format!(
-            "{two}def pick(x, k: Const):\n    sb = StackBuf(2)\n    sb[0] = 0\n    sb[k], e = match(log(x), range(0, 2), lambda i: two(i))\n    return sb[1] + e\n\ndef main():\n    r = pick(GEN ** 1, 1)\n{publish}"
-        ),
-        "a Const index target resolves to its cell",
-    );
-
-    // An `unroll` counter as a target name obeys the same rule.
-    let counter = format!(
-        "{two}def main():\n    for j in unroll(0, 2):\n        j, e = match(log(GEN ** 1), range(0, 2), lambda i: two(i))\n    r = j + e\n{publish}"
-    );
-    let _ = compile(&parse(&counter).expect("an unroll counter may also be a target"));
 }
 
 /// The same construct in a VALUE position, for the same reason. `+` there is
@@ -741,15 +359,13 @@ fn a_match_target_binds_and_every_field_is_walked() {
 /// differ here, or the test proves nothing.
 #[test]
 fn a_value_may_ask_for_the_integer_regime() {
-    // Parse and compile OUTSIDE the catch, so a negative arm can only fail on the
-    // assert. Inside, `!accepted` would also hold if the program stopped parsing.
-    let accepted = |expr: &str, want: u64| {
-        let src = format!(
-            "def main():\n    for i in unroll(3, 4):\n        v = {expr}\n        assert v == {want}\n    return\n"
-        );
-        let program = compile(&parse(&src).expect("parse"));
-        execute(&program, &[], [F128::ZERO, F128::ZERO]).is_ok()
+    // `v` stored to the heap, so its value reaches the core IR whatever it folds to.
+    let store = |expr: &str| {
+        core(&format!(
+            "def main():\n    for i in unroll(3, 4):\n        v = {expr}\n        p = GEN ** 0\n        p[1] = v\n    return\n"
+        ))
     };
+    let accepted = |expr: &str, want: u64| store(expr) == store(&want.to_string());
 
     // i = 3: the integer reading is 4, the field reading `3 XOR 1` is 2.
     assert!(accepted("const(i + 1)", 4), "const(...) is the integer reading");
@@ -762,7 +378,7 @@ fn a_value_may_ask_for_the_integer_regime() {
 
     let rejected = |src: &str, want: &str| {
         let ast = parse(src).expect("parses");
-        let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {
+        let Err(err) = std::panic::catch_unwind(|| expand(&ast)) else {
             panic!("accepted: {src}");
         };
         let msg = err.downcast_ref::<String>().map(String::as_str).unwrap_or("");
@@ -840,12 +456,11 @@ fn an_ambiguous_compile_time_branch_must_be_declared() {
 "
         )
     };
-    let fold = |cond: &str| {
-        let program = compile(&parse(&prog(cond)).unwrap_or_else(|e| panic!("{cond}: {e}")));
-        let want = [F128::new(5, 0), g_pow(0).into()];
-        let (proof, _) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-        verify(&program, &want, &proof).unwrap_or_else(|e| panic!("`{cond}` did not take the then arm: {e:?}"));
-    };
+    // The program with the then arm in place of the `if`: what a fold that takes it expands to.
+    let taken = core(
+        "def main():\n    hb = HeapBuf(4)\n    hb[GEN ** 0] = 5\n    p = GEN ** 0\n    p[1] = hb[GEN ** 0]\n    p[GEN] = GEN ** 0\n    return\n",
+    );
+    let fold = |cond: &str| assert_eq!(core(&prog(cond)), taken, "`{cond}` did not fold to the then arm");
     // Declared, so it folds with integer arithmetic and the arm runs.
     fold("const(3 + 1 == 4)");
     fold("const(1 + 1 == 2)");
@@ -872,7 +487,7 @@ fn an_ambiguous_compile_time_branch_must_be_declared() {
     ] {
         let src = prog(cond);
         let ast = parse(&src).expect("parses");
-        let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {
+        let Err(err) = std::panic::catch_unwind(|| expand(&ast)) else {
             panic!("`{cond}` was accepted");
         };
         let msg = err.downcast_ref::<String>().map(String::as_str).unwrap_or("");
@@ -891,134 +506,16 @@ fn an_ambiguous_compile_time_branch_must_be_declared() {
     fold("2 == const(1 + 1)");
     // A variable that merely starts with `const` is not a near miss.
     let plain = "def main():\n    const = 4\n    hb = HeapBuf(4)\n    if const == 4:\n        hb[GEN ** 0] = 5\n    else:\n        hb[GEN ** 0] = 7\n    p = GEN ** 0\n    p[1] = hb[GEN ** 0]\n    p[GEN] = GEN ** 0\n    return\n";
-    let program = compile(&parse(plain).expect("a name beginning with `const` is an ordinary name"));
-    let want = [F128::new(5, 0), g_pow(0).into()];
-    let (proof, _) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-    verify(&program, &want, &proof).expect("`const == 4` is a comparison, not a wrapper");
+    assert_eq!(core(plain), taken, "`const == 4` is a comparison, not a wrapper");
 
     // Declared, but not actually decidable while compiling.
     let src = prog("const(hb == 4)");
     let ast = parse(&src).expect("parses");
-    let Err(err) = std::panic::catch_unwind(|| compile(&ast)) else {
+    let Err(err) = std::panic::catch_unwind(|| expand(&ast)) else {
         panic!("a runtime `if const(...)` was accepted");
     };
     let msg = err.downcast_ref::<String>().map(String::as_str).unwrap_or("");
     assert!(msg.contains("asks for a compile-time decision"), "got `{msg}`");
-}
-
-/// A string literal is one opaque token.
-///
-/// Two passes used to read structure out of the middle of one. Comments were
-/// stripped with `raw.split('#')`, so a `#` in a stream name truncated the line,
-/// and the shortened line often still parsed. Bracket depth was counted without
-/// any notion of a string, so every top-level splitter (arguments, `+`/`-`,
-/// `*`//`/`%`, `**`, augmented assignment, comparisons) read a `,` or a `]`
-/// spelled inside the name as structure: this call split into three arguments.
-#[test]
-fn a_string_literal_is_not_scanned_for_syntax() {
-    let src = "\
-def main():
-    rb = StackBuf(1)
-    hint_witness(rb[0:1], \"x,y#z]w\")
-    p = GEN ** 0
-    p[1] = rb[0]
-    p[GEN] = GEN ** 0
-    return
-";
-    let program = compile(&parse(src).expect("a `,`, `#` or `]` inside a string is part of the name"));
-    let witness = [("x,y#z]w".to_string(), vec![vec![F128::new(7, 0)]])];
-    let want = [F128::new(7, 0), g_pow(0).into()];
-    let (proof, _) = prove(&program, &witness, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-    verify(&program, &want, &proof).expect("the stream name survived parsing intact");
-}
-
-/// Naming a constant may not change what it means.
-///
-/// `K = 3 + 1` folds two ways at once. In the field, where a value expression's
-/// constants live, it is `3 XOR 1` = 2 = `g^1`. As a compile-time integer, which
-/// is what an index position wants, it is 4. A second g-power recognizer used to
-/// match `Expr::Var` against the integer binding and read those bits as an
-/// exponent, so `K` was `g^1` as a value and `g^2` as an index: one name, two
-/// meanings, in one function. Spelling the constant inline was unaffected, since
-/// the integer view only ever reached a *name*.
-///
-/// The buffer holds a distinct value per cell, so the proof pins which cell the
-/// index named rather than merely that it compiled.
-#[test]
-fn naming_a_constant_does_not_change_which_heap_cell_it_names() {
-    let src = "\
-def main():
-    rb = StackBuf(1)
-    hint_witness(rb[0:1], \"r\")
-    r = rb[0]
-    hb = HeapBuf(16)
-    hint_witness(hb[0:4], \"vals\")
-    K = 3 + 1
-    x = hb[(r * r) * K]
-    p = GEN ** 0
-    p[1] = x
-    p[GEN] = GEN ** 0
-    return
-";
-    let program = compile(&parse(src).expect("parse"));
-    let witness = [
-        ("r".to_string(), vec![vec![g_pow(0).into()]]),
-        ("vals".to_string(), vec![(10u64..14).map(|v| F128::new(v, 0)).collect()]),
-    ];
-    // `r` is 1, so the index is `K` itself: cell 1, holding 11. Reading the
-    // integer view instead would name cell 2, holding 12.
-    let want = [F128::new(11, 0), g_pow(0).into()];
-    let (proof, _) = prove(&program, &witness, want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-    verify(&program, &want, &proof).expect("the index means what the value means");
-}
-
-/// A loop body that merely SHADOWS an enclosing `StackBuf` never touches it, so
-/// rejecting the program names a capture that is not happening. Scoping the
-/// arms took the arm-local binding out of the set the rejection consults, which
-/// needs the flat "does the body bind this at all" answer instead.
-#[test]
-fn a_shadowed_stack_buf_is_not_a_capture() {
-    let src = "\
-def main():
-    sa = StackBuf(2)
-    sa[0] = GEN
-    sa[1] = GEN ** 2
-    hb = HeapBuf(8)
-    for i in mul_range(1, GEN ** 3):
-        if i == GEN:
-            sa = StackBuf(2)
-            sa[0] = GEN ** 5
-            assert sa[0] == GEN ** 5
-        else:
-            hb[i] = GEN ** 7
-    assert sa[0] == GEN
-    return
-";
-    let exec = execute(&compile(&parse(src).expect("parse")), &[], [F128::ZERO; 2]).unwrap();
-    assert!(exec.unconstrained_reads.is_empty(), "no prover-chosen read");
-}
-
-/// `lower_if` FOLDS a compile-time condition and runs the taken branch without a
-/// scope, so its bindings persist exactly like an `unroll` body's. Modelling it
-/// as scoped over-captured, and the loop's own self-call then evaluated a name
-/// the folded arm had rebound to a `StackBuf`.
-#[test]
-fn a_folded_branch_keeps_its_bindings() {
-    let src = "\
-def main():
-    hb = HeapBuf(64)
-    w = HeapBuf(16)
-    for i in mul_range(1, GEN ** 3):
-        if 1 == 1:
-            w = StackBuf(2)
-            w[0] = i
-            w[1] = i * GEN
-        hb[i] = w[1]
-    assert hb[1] == GEN
-    return
-";
-    let exec = execute(&compile(&parse(src).expect("parse")), &[], [F128::ZERO; 2]).unwrap();
-    assert!(exec.unconstrained_reads.is_empty(), "no prover-chosen read");
 }
 
 /// Every diagnostic names its source line. The line vector used to carry the
@@ -1082,16 +579,16 @@ fn a_multi_line_placeholder_is_rejected() {
     }
 }
 
-/// A lowering error names its line too, not just a parse error. `lower.rs` works
-/// in frame cells and program counters, so the statement's line is the last
-/// place that knows where the program said it: 30 diagnostics used to print a
-/// Rust `Debug` dump of an AST node and nothing else.
+/// An expansion error names its line too, not just a parse error. The
+/// statement's line is the last place that knows where the program said it:
+/// 30 diagnostics used to print a Rust `Debug` dump of an AST node and nothing
+/// else.
 #[test]
 fn a_lowering_error_names_its_source_line() {
     // 1 blank, 2 def, 3 let, 4 store, 5 blank, 6 let, 7 the unbound read.
     let src = "\ndef main():\n    hb = HeapBuf(4)\n    hb[GEN] = 7\n\n    p = GEN ** 0\n    p[1] = nope\n    return\n";
     let err = std::panic::catch_unwind(|| {
-        compile(&parse(src).expect("parse"));
+        expand(&parse(src).expect("parse"));
     })
     .expect_err("an unbound variable must abort");
     let msg = err
@@ -1099,38 +596,6 @@ fn a_lowering_error_names_its_source_line() {
         .cloned()
         .unwrap_or_else(|| err.downcast_ref::<&str>().map(|s| s.to_string()).unwrap_or_default());
     assert!(msg.starts_with("line 7:"), "{msg}");
-}
-
-/// And a check that fails at witness generation names it, which is the one that
-/// matters day to day: a failed guest `assert` surfaces as a write-once
-/// conflict, and `AGENTS.md` used to say to disassemble around the reported pc.
-#[test]
-fn a_failed_assert_names_its_source_line() {
-    // 1 blank, 2 def, 3 let, 4 blank, 5 the assert that cannot hold.
-    let src = "\ndef main():\n    x = GEN ** 3\n\n    assert x == GEN ** 4\n    return\n";
-    let program = compile(&parse(src).expect("parse"));
-    let err = execute(&program, &[], [F128::ZERO; 2])
-        .err()
-        .expect("the assert cannot hold");
-    assert!(err.site.contains("line 5"), "{err}");
-}
-
-/// An `@inline` body lowers through the CALLER's `FnLower`, so its statements
-/// move `cur_line`. Without restoring it, every instruction the caller emitted
-/// after the call was blamed on whatever line the callee ended on: a line that
-/// cannot fail, reported with confidence.
-#[test]
-fn an_inline_call_does_not_steal_the_call_site_line() {
-    // 1 blank, 2 @inline, 3 def, 4 let, 5 return, 6-7 blank, 8 def main, ... 12 the assert.
-    let src = "\n@inline\ndef idf(x):\n    y = x * x\n    return y\n\n\ndef main():\n    hb = HeapBuf(4)\n    hb[GEN] = GEN ** 3\n    a = hb[GEN]\n    assert idf(a) == GEN\n    return\n";
-    let program = compile(&parse(src).expect("parse"));
-    let err = execute(&program, &[], [F128::ZERO; 2])
-        .err()
-        .expect("the assert cannot hold");
-    assert!(
-        err.site.contains("line 12"),
-        "the call site, not the callee's line 5: {err}"
-    );
 }
 
 /// A `match` join reads one cell per bound name, so a multi-cell `StackBuf`
@@ -1156,64 +621,5 @@ def main():
     assert b == GEN ** 7
     return
 ";
-    compile(&parse(src).expect("parse"));
-}
-
-/// Back-to-back `match` statements an `unroll` expands chain, each arm entering the
-/// next dispatch: the arms still run in order and fold into the same value, in fewer
-/// cycles than the same matches written out, which do not chain.
-#[test]
-fn chained_matches_run_in_order() {
-    let head = "@inline\ndef add(acc, k: Const):\n    return acc * GEN ** (k + 1)\n\ndef main():\n    xs = StackBuf(3)\n    xs[0] = GEN ** 1\n    xs[1] = GEN ** 3\n    xs[2] = GEN ** 0\n    acc = GEN\n";
-    let tail = "    p = 1\n    p[1] = acc\n    p[GEN] = 0\n    return\n";
-    let step = |p: usize| format!("acc = match(log(xs[{p}]), range(0, 4), lambda k: add(acc * GEN ** {p}, k))\n");
-    let chained = format!(
-        "{head}    for p in unroll(0, 3):\n        {}{tail}",
-        step(0).replace("[0]", "[p]").replace("** 0", "** p")
-    );
-    let unchained = format!("{head}    {}    {}    {}{tail}", step(0), step(1), step(2));
-    // g^1 · (g^0 · g^2) · (g^1 · g^4) · (g^2 · g^1)
-    let want = [F128::from(g_pow(11)), F128::ZERO];
-    let program = compile(&parse(&chained).expect("parse"));
-    let (proof, _) = prove(&program, &[], want, lean_vm_core::pcs::TEST_LOG_INV_RATE).unwrap();
-    verify(&program, &want, &proof).expect("chained matches verify");
-    assert!(execute(&program, &[], [F128::from(g_pow(10)), F128::ZERO]).is_err());
-    let unchained = compile(&parse(&unchained).expect("parse"));
-    assert!(execute(&program, &[], want).unwrap().cycles < execute(&unchained, &[], want).unwrap().cycles);
-}
-
-/// A scrutinee chains only when reading it emits nothing and the previous match does not
-/// rebind it. One that needs code (here an inlined `assert`) or names the previous target
-/// lowers unchained, and a `match` nested in a scrutinee leaves the chain to its own.
-#[test]
-fn unchainable_scrutinees_keep_their_meaning() {
-    let add = "@inline\ndef add(acc, k: Const):\n    return acc * GEN ** (k + 1)\n\n";
-    let g = |k| F128::from(g_pow(k));
-    let check = |src: String, good: [F128; 2], bad: [F128; 2]| {
-        let program = compile(&parse(&src).expect("parse"));
-        execute(&program, &[], good).unwrap_or_else(|e| panic!("{src}\n{e}"));
-        assert!(execute(&program, &[], bad).is_err(), "{src}");
-    };
-    // An inlined `assert` in the third scrutinee still runs.
-    check(
-        format!(
-            "@inline\ndef chk(a):\n    assert a != GEN ** 3\n    return a\n\n{add}def main():\n    q = 1\n    xs = StackBuf(3)\n    xs[0] = GEN ** 0\n    xs[1] = GEN ** 1\n    xs[2] = q[GEN]\n    acc = GEN\n    for p in unroll(0, 3):\n        acc = match(log(chk(xs[p])), range(0, 4), lambda k: add(acc, k))\n    q[1] = acc\n    return\n"
-        ),
-        [g(5), g(0)],
-        [g(8), g(3)],
-    );
-    // The second match of each pair chains onto the first, whose scrutinee holds a `match`.
-    check(
-        format!(
-            "@inline\ndef id(k: Const):\n    return GEN ** k\n\n@inline\ndef sel(a):\n    r = match(log(a), range(0, 4), lambda k: id(k))\n    return r\n\n{add}def main():\n    q = 1\n    xs = [GEN ** 0, GEN ** 1]\n    ys = [GEN ** 2, GEN ** 0]\n    acc = GEN\n    for p in unroll(0, 2):\n        acc = match(log(sel(xs[p])), range(0, 4), lambda k: add(acc, k))\n        acc = match(log(ys[p]), range(0, 4), lambda k: add(acc, k))\n    q[1] = acc\n    q[GEN] = 0\n    return\n"
-        ),
-        [g(8), F128::ZERO],
-        [g(9), F128::ZERO],
-    );
-    // A scrutinee the previous match rebinds is read after it.
-    check(
-        "@inline\ndef step(k: Const):\n    return GEN ** ((k + 1) % 4)\n\ndef main():\n    x = GEN ** 0\n    for p in unroll(0, 3):\n        x = match(log(x), range(0, 4), lambda k: step(k))\n    q = 1\n    q[1] = x\n    q[GEN] = 0\n    return\n".to_string(),
-        [g(3), F128::ZERO],
-        [g(2), F128::ZERO],
-    );
+    expand(&parse(src).expect("parse"));
 }

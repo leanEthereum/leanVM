@@ -3,7 +3,7 @@
 
   The intermediate forms of the zkDSL compiler's back end: the placed IR (core statements on frame
   cells, every plumbing cell chosen), the labelled code of a function (instructions with symbolic
-  immediates, `crates/zkdsl/src/ir.rs`) and the assembled program.
+  immediates, `crates/zkdsl_compiler/src/ir.rs` at leanVM `6363526c0`) and the assembled program.
 -/
 
 module
@@ -17,7 +17,7 @@ The back end takes the core IR (`LeanVM.Guest.Core`, as `Expand.expandProgram` g
 leanISA bytecode in three passes, each a function between two of these forms:
 
 1. `Place` gives every core value a frame cell and every control statement the cells it jumps
-   with, as the Rust lowering does (`crates/zkdsl/src/lower.rs`): the **placed IR**
+   with, as the Rust lowering does (`crates/zkdsl_compiler/src/lower.rs` at leanVM `6363526c0`): the **placed IR**
    (`PStmt`, `PFn`). It is the one pass with state, and the one that reads the expansion's
    allocation trace (`Trace`).
 2. `Emit` writes each placed statement as its instructions, by structural recursion and with no

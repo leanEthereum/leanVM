@@ -2,7 +2,7 @@
   LeanVM.Compiler.Place
 
   Cell placement: a core function to its placed function, every value in the frame cell the Rust
-  lowering gives it (`crates/zkdsl/src/lower.rs`, `lower/*.rs`).
+  lowering gives it (`crates/zkdsl_compiler/src/lower.rs`, `lower/*.rs` at leanVM `6363526c0`).
 -/
 
 module

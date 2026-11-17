@@ -1,15 +1,14 @@
 use super::cells::{count, pack_16_bytes};
 use super::deferred::{DeferredBytecodeClaim, bytecode_sums, bytecode_value, bytecode_vars};
 use super::error::AggregateError;
-use super::guest::{ARTIFACT, GUEST_SOURCE, load, unified_guest};
+use super::guest::{ARTIFACT, load, unified_guest};
 use super::hints::{FORGE, Forgery, Hints};
-use super::placeholders::placeholder_map;
 use super::proof::{AggregateProof, decode, encode};
 use super::statement::{CLAIM_GROUP, claim_list_digest, list_split};
 use super::*;
 use fiat_shamir_prover::merkle::hash_to_scalars;
+use isa::Program;
 use isa::Prover;
-use isa::{CompiledProgram, Program};
 use keccak256::{hash, hash_pair};
 use lean_da::{BLOB_SYMBOLS, CELL_SYMBOLS, CELLS_PER_ROW, Codeword, DA_MAX_ROWS, Hash};
 use lean_sphincs::LeanSphincsSignature;
@@ -19,7 +18,6 @@ use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use primitives::field::F128;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
-use zkdsl::{compile, parse_with_replacements};
 
 use crate::signers_cache::{
     LeanSphincsSigner, LeanXmssSigner, get_lean_sphincs_signers, get_signers, get_signers_for, message, message_for,
@@ -121,24 +119,6 @@ fn the_wire_layout_is_pinned() {
     // A count beyond the input, or beyond any input, fails whatever it claims.
     assert_eq!(decode(&[&le(3)[..], &bytes[8..]].concat()), None);
     assert_eq!(decode(&le(u64::MAX)), None);
-}
-
-/// This crate's compiler compiles the guest to one program, always.
-///
-/// A compiler that read a hash seed could not be compared with the artefact
-/// ([`the_artefact_is_the_rust_compilers_guest`]). The small programs in
-/// `zkdsl`'s `determinism` suite pin the digests; this pins the one
-/// program large enough to hit every path that walks a map. A fixed `kbc` is
-/// enough: reproducibility does not depend on the size being the fixed point.
-#[test]
-fn guest_compiles_reproducibly() {
-    let (one, two) = (compile_guest(20), compile_guest(20));
-    assert_eq!(
-        format!("{:?}", one.prog),
-        format!("{:?}", two.prog),
-        "two compilations of the guest produced different bytecode, \
-             so the compiler is reading a hash seed"
-    );
 }
 
 /// The guest builds a leanXMSS address as its type's cell plus `lo`,
@@ -755,29 +735,6 @@ fn malformed_raw_signatures_are_errors() {
             Some(AggregateError::InvalidSignature)
         );
     }
-}
-
-/// The guest as this crate's zkDSL compiler compiles it at the bytecode size `2^kbc`.
-fn compile_guest(kbc: usize) -> CompiledProgram {
-    compile(
-        &parse_with_replacements(GUEST_SOURCE, &placeholder_map(kbc))
-            .expect("the repository aggregation guest must parse"),
-    )
-}
-
-/// The guest the back end written in Lean compiled (`guests/lean_ethereum.compiled`) is the one this crate's compiler
-/// gives at the same size: the same bytecode, hints, `main` frame, function ranges and source line of every
-/// instruction, so the same fixed point, the same Fiat-Shamir IV and the same sites in a failure report.
-#[test]
-fn the_artefact_is_the_rust_compilers_guest() {
-    let lean = unified_guest();
-    let rust = Program::from(compile_guest(lean.prog.len().trailing_zeros() as usize));
-    let (theirs, ours) = (lean.__to_text(), rust.__to_text());
-    if let Some((line, (ours, theirs))) = ours.lines().zip(theirs.lines()).enumerate().find(|(_, (a, b))| a != b) {
-        panic!("line {}: this crate compiles `{ours}`, Lean `{theirs}`", line + 1);
-    }
-    assert_eq!(ours.lines().count(), theirs.lines().count());
-    assert_eq!(rust.bytecode().fiat_shamir_iv(), lean.bytecode().fiat_shamir_iv());
 }
 
 /// An artefact compiled from other placeholders than its own size's, or whose IV is not its bytecode's, is refused.

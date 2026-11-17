@@ -1,23 +1,10 @@
 //! Helpers shared by the integration tests, reached as `crate::common::…`.
 
-use primitives::field::F128;
 use zkdsl::parse;
 
-/// `ast` compiled into the `isa::Program` the provers take.
-pub fn compile(ast: &zkdsl::Ast) -> isa::Program {
-    zkdsl::compile(ast).into()
-}
-
-/// [`zkdsl::f128_literal`] of a prover word.
-pub fn f128_literal(x: F128) -> String {
-    zkdsl::f128_literal(lean_vm_core::cpu::to_scalar(&x))
-}
-
-/// The program's own instruction mix: executed but not proven.
-pub fn mix(src: &str, pi: [F128; 2]) -> [usize; lean_vm_core::cpu::Stats::TABLES.len()] {
-    lean_vm_core::cpu::execute(&compile(&parse(src).expect("parse")), &[], pi)
-        .unwrap()
-        .rows()
+/// The core IR the front end expands `src` to, as `scripts/frontend-diff` prints it.
+pub fn core(src: &str) -> String {
+    zkdsl::core_ir::render(&zkdsl::expand(&parse(src).expect("parse")))
 }
 
 /// An AST's shape with source lines stripped. Two spellings of the same program

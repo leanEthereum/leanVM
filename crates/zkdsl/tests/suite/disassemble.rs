@@ -2,46 +2,22 @@
 //! so it stays usable for the `DBG_DISASM` workflow (a failed guest `assert`
 //! surfaces as a write-once conflict, and the pc is all you get).
 
-use crate::common::compile;
-use isa::pretty_integer;
-use zkdsl::{disassemble, parse};
+use isa::Program;
+use zkdsl::disassemble;
 
+/// Every Lean-compiled program in `tests/compiled`, one line per instruction, and the six opcodes among them.
 #[test]
 fn disassemble_covers_every_opcode() {
-    let src = "\
-@inline
-def pack64x2(a, b):
-    assert_in_k(a, b)
-    return a + 18446744073709551616 * b
-
-def main():
-    buff = HeapBuf(6)
-    buff[1] = 1
-    buff[GEN] = GEN
-    for i in mul_range(1, GEN ** 4):
-        buff[i * GEN ** 2] = buff[i] * buff[i * GEN]
-    h = StackBuf(2)
-    h[0] = 5
-    h[1] = 7
-    d = StackBuf(2)
-    keccak(h, h, d)
-    packed = pack64x2(5, 7)
-    p = 1
-    p[1] = buff[GEN ** 4] + packed
-    p[GEN] = d[0]
-    return
-";
-
-    let program = compile(&parse(src).expect("parse"));
-
-    println!("\n=== zkDSL source ===\n{src}");
-    println!(
-        "=== compiled ISA ({} instructions) ===",
-        pretty_integer(program.prog.len())
-    );
-    let text = disassemble(&program.prog);
-    print!("{text}");
-
+    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/compiled");
+    let mut text = String::new();
+    for entry in std::fs::read_dir(dir).expect("tests/compiled") {
+        let path = entry.expect("dir entry").path();
+        let program = Program::__from_text(&std::fs::read_to_string(&path).unwrap())
+            .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+        let listing = disassemble(&program.prog);
+        assert_eq!(listing.lines().count(), program.prog.len(), "{}", path.display());
+        text += &listing;
+    }
     for mnemonic in ["SET", "XOR", "MUL", "DEREF", "JUMP", "KECCAK"] {
         assert!(text.contains(mnemonic), "disassembly is missing {mnemonic}");
     }
