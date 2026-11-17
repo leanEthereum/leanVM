@@ -305,6 +305,8 @@ pub(super) struct Plan<'a> {
     at: Vec<u32>,
     lists: Vec<(&'a [RHint], usize, u32)>,
     streams: Vec<u32>,
+    /// Whether a hint prints.
+    printing: bool,
 }
 
 const NO_MARK: u32 = u32::MAX;
@@ -312,36 +314,71 @@ const NO_MARK: u32 = u32::MAX;
 impl<'a> Plan<'a> {
     /// The plan, and the witness streams it indexes, resolved by name once so a pop indexes one.
     fn new(program: &'a Program, witness: &'a [(String, Vec<Vec<F128>>)]) -> (Self, Vec<Stream<'a>>) {
-        let mut streams: Vec<Stream> = Vec::new();
-        let mut stream_of: FastMap<&str, u32> = FastMap::default();
         let mut at = vec![0u32; program.prog.len()];
         let mut lists = Vec::with_capacity(program.hints.len());
-        let mut hint_streams: Vec<u32> = Vec::new();
+        let mut hints = 0;
+        for (&hpc, hs) in &program.hints {
+            lists.push((hs.as_slice(), hints, NO_MARK));
+            at[hpc as usize] = lists.len() as u32;
+            hints += hs.len();
+        }
+        // Each list is its own allocation, so the pool reads them: a task numbers the streams of a run of lists in
+        // first-pop order, with their pops, and the runs are renumbered in order.
+        const LISTS: usize = 1 << 10;
+        let parts = parallel::map_collect(lists.len().div_ceil(LISTS), |t| {
+            let (mut names, mut index, mut printing) =
+                (Vec::<(&str, usize)>::new(), FastMap::<&str, u32>::default(), false);
+            let ids: Vec<u32> = lists[t * LISTS..lists.len().min((t + 1) * LISTS)]
+                .iter()
+                .flat_map(|&(hs, ..)| hs)
+                .map(|h| match h {
+                    RHint::WitnessStack { name, .. } | RHint::WitnessHeap { name, .. } => {
+                        let s = *index.entry(name).or_insert_with(|| {
+                            names.push((name.as_str(), 0));
+                            names.len() as u32 - 1
+                        });
+                        names[s as usize].1 += 1;
+                        s
+                    }
+                    _ => {
+                        printing |= matches!(h, RHint::Print { .. });
+                        NO_MARK
+                    }
+                })
+                .collect();
+            (names, ids, printing)
+        });
+        let mut streams: Vec<Stream> = Vec::new();
+        let mut stream_of: FastMap<&str, u32> = FastMap::default();
         // The hints popping each stream.
         let mut pops: Vec<usize> = Vec::new();
-        for (&hpc, hs) in &program.hints {
-            lists.push((hs.as_slice(), hint_streams.len(), NO_MARK));
-            at[hpc as usize] = lists.len() as u32;
-            for h in hs {
-                let (RHint::WitnessStack { name, .. } | RHint::WitnessHeap { name, .. }) = h else {
-                    hint_streams.push(NO_MARK);
-                    continue;
-                };
-                let s = *stream_of.entry(name).or_insert_with(|| {
-                    streams.push(Stream {
-                        name,
-                        entries: witness
-                            .iter()
-                            .find(|(n, _)| n == name)
-                            .map(|(_, entries)| entries.as_slice()),
-                        next: 0,
+        let mut hint_streams: Vec<u32> = Vec::with_capacity(hints);
+        let mut printing = false;
+        for (names, ids, p) in parts {
+            printing |= p;
+            let global: Vec<u32> = names
+                .into_iter()
+                .map(|(name, n)| {
+                    let s = *stream_of.entry(name).or_insert_with(|| {
+                        streams.push(Stream {
+                            name,
+                            entries: witness
+                                .iter()
+                                .find(|(w, _)| w == name)
+                                .map(|(_, entries)| entries.as_slice()),
+                            next: 0,
+                        });
+                        pops.push(0);
+                        streams.len() as u32 - 1
                     });
-                    pops.push(0);
-                    streams.len() as u32 - 1
-                });
-                pops[s as usize] += 1;
-                hint_streams.push(s);
-            }
+                    pops[s as usize] += n;
+                    s
+                })
+                .collect();
+            hint_streams.extend(
+                ids.into_iter()
+                    .map(|s| if s == NO_MARK { s } else { global[s as usize] }),
+            );
         }
         // A stream one hint pops, with enough entries, may be a loop's, one entry an iteration.
         for list in &mut lists {
@@ -359,6 +396,7 @@ impl<'a> Plan<'a> {
             at,
             lists,
             streams: hint_streams,
+            printing,
         };
         (plan, streams)
     }
@@ -784,12 +822,7 @@ fn execute_once(
         .is_ok()
         .then(|| vec![0u64; program.prog.len()]);
     // A profile and a print see every step in serial order.
-    let printing = program
-        .hints
-        .values()
-        .flatten()
-        .any(|h| matches!(h, RHint::Print { .. }));
-    if segments && run.prof.is_none() && !printing {
+    if segments && run.prof.is_none() && !plan.printing {
         if !super::segments::run(&plan, &mut m, &mut run, keccak_step)? {
             return Ok(Err(run.rows.keccak.len()));
         }
