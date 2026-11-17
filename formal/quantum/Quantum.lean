@@ -190,6 +190,8 @@ import Quantum.Qrom.Sphincs.Classify
 import Quantum.Qrom.Sphincs.Template
 import Quantum.Qrom.Sphincs.GameT
 import Quantum.Qrom.Sphincs.StreamGame
+import Quantum.Qrom.Sphincs.GameTCalls
+import Quantum.Qrom.Sphincs.GameTFacts
 import Quantum.Sponge.Indifferentiability.Selection
 import Quantum.Sponge.Indifferentiability.FixCircuit
 import Quantum.Sponge.Indifferentiability.PadCircuit
