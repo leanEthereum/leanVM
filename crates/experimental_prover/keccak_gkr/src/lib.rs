@@ -89,6 +89,10 @@
 //! The four rounds' sums are binary polynomials of degree at most 173. With AVX-512 and GFNI they
 //! are taken on residues modulo 24 irreducibles of degree 8, where a product is a byte product
 //! (`skip_gfni`).
+//!
+//! The rounds that remain fold a table of one field element per half block and position. A pass over it
+//! binds two rounds' variables: over each quad of the rows it writes it sums the next round and, as a
+//! quadratic in that round's challenge, the round after, so the table is read once per two rounds (`prover`).
 
 use primitives::field::{F64, F128, F128Unreduced};
 use primitives::hash::STATE_LANES;
