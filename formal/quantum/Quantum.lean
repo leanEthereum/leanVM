@@ -213,6 +213,7 @@ import Quantum.Par.Subst
 import Quantum.Qrom.SufCma.GamePar
 import Quantum.Sponge.Oracle.Parallel
 import Quantum.Xmss.Hybrid.GradedPar
+import Quantum.Qrom.Xmss.DepthBridge
 import Quantum.Qrom.Xmss.Multi.Hybrid
 import Quantum.Qrom.Xmss.Multi.End
 import Quantum.Qrom.Xmss.Multi.Security
