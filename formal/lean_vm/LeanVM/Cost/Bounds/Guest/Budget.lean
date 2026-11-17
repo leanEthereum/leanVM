@@ -24,7 +24,7 @@ the decoder program's price is within `guestDecoderPriceAt (2^κ)` (`Cost/Prices
   (`replayStatesOf_length`);
 * the counts `main`'s checks bound (`valid_counts`, `Bounds/Guest/Valid.lean`): at most `16`
   children, the slots in the two regions together, the declared claims and raw signatures of a
-  scheme below the memory's size `2^κ` (`CountsWithin`), and `da_verify`'s rows at most `1024` (`dvWitN_cost_1024`, on every input);
+  scheme below the memory's size `2^κ` (`CountsWithin`), and `da_verify`'s rows at most `DA_MAX_ROWS` (`dvWitN_cost_maxRows`, on every input);
 * the entry table, one sorted array (`entryArrayT_cost`) at the key exponent
   `guestDecoderEntryTableKeyExponent steps`, the precondition test (`preTestAt_cost_deployed`, its
   logarithms' bounds by the lanes' scan, `powBelow_cost`, its powers read off the powers table:

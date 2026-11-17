@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.KeccakGkr.VkChain
 * `pack_cur`, `rem_cur`: the two loops' records, by their iterations (`B1.VerifySub.pack8_step`,
   `packRem_step`), hold the cursor sixteen, then two words on per iteration;
 * `layer_cur`: on `y`'s facts alone, a layer's body puts its last record's cursor (value
-  `layOff first + 745`) `48 + 2y` words past its cursor and returns the cursor `84 + 2y` words past it;
+  `layOff first + 744`) `48 + 2y` words past its cursor and returns the cursor `84 + 2y` words past it;
 * `vk_curs`: `verify_keccak`'s step `s` hands its layer the cursor `1 + s·(84 + 2(τ - 3))` words past
   its own, each layer's returned cursor the next one's;
 * `layQ_all`: at every honest instance of a layer, by `Res.insts_down`: its only caller is
@@ -50,9 +50,9 @@ def layA (first : ℕ) : List Stmt :=
 
 /-- A layer's statements between its last record and its tail. -/
 def layB (first : ℕ) : List Stmt :=
-  localRoundsT (.n (layOff first + 745)) (.n (layOff first + 748)) (.n (layOff first + 746))
-      (cap5 (layOff first + 740)) (layOff first + 749) 11 ++
-    tReadsT (layOff first) ++ eqfT (.n (layOff first + 748)) 6 5 25 (layOff first + 1121) ++
+  localRoundsT (.n (layOff first + 744)) (.n (layOff first + 746)) (.n (layOff first + 745))
+      (cap5 (layOff first + 739)) (layOff first + 747) 11 ++
+    tReadsT (layOff first) ++ eqfT (.n (layOff first + 746)) 6 5 25 (layOff first + 1119) ++
     weightT first (layOff first)
 
 /-- A layer's tail. -/
@@ -63,7 +63,7 @@ def layTail (first : ℕ) : List Stmt :=
 def layEnd (first : ℕ) : List Stmt :=
   let W := weightEnd first (layOff first)
   [.atom (.const (.n (topV W + 310)) (word 68719476736 0)),
-    .atom (.mul (.n (topV W + 311)) (.n (layOff first + 745)) (.n (topV W + 310))),
+    .atom (.mul (.n (topV W + 311)) (.n (layOff first + 744)) (.n (topV W + 310))),
     .atom (.copy (.n (topV W + 312)) (.n (topV W + 311))),
     .ret [.n (topV W + 305), .n (topV W + 306), .n (topV W + 307), .n (topV W + 308),
       .n (topV W + 309), .n (topV W + 312)]]
@@ -123,7 +123,7 @@ theorem pack_cur {first : ℕ} (hf : first < 2) {sg rec pp pt tb cur : E} {n : �
       (N := sg) (m := n) (B := Pack8Step rd rec pp pt)
       (fun d x h' => pack8_step hfn hb hp d x sg rec pp pt tb h') hsg hlt
       0 (by rw [pow_zero]; exact hloop (by rw [hsg]; exact hne)) j (Nat.zero_le _) (by omega)
-    obtain ⟨cap, cur', cl, sc, rs, ms, chs, cl', sc', cap', h0', -, -, -, -, -, h1'⟩ := hs
+    obtain ⟨cap, cur', cl, rs, ms, chs, cl', cap', h0', -, -, -, -, -, h1'⟩ := hs
     have e : cur' = cur * gen ^ (16 * j) := loadHolds_unique h0'.2.1 (by simpa using ih (by omega))
     have h1 := h1'.2.1
     rw [loadHolds_rec_succ, e] at h1
@@ -148,7 +148,7 @@ theorem rem_cur {first : ℕ} (hf : first < 2) {rg rec pp pt tb cur : E} {m : �
       (N := rg) (m := m) (B := PackRemStep rd rec pp pt)
       (fun d x h' => packRem_step hfn hb hp d x rg rec pp tb pt h') hrg hlt
       0 (by rw [pow_zero]; exact hrem (by rw [hrg]; exact hne)) j (Nat.zero_le _) (by omega)
-    obtain ⟨cap, cur', cl, sc, r, g1, g2, h0', -, -, -, h1'⟩ := hs
+    obtain ⟨cap, cur', cl, r, g1, g2, h0', -, -, -, h1'⟩ := hs
     have e : cur' = cur * gen ^ (2 * j) := loadHolds_unique h0'.2.1 (by simpa using ih (by omega))
     have h1 := h1'.2.1
     rw [loadHolds_rec_succ, e] at h1
@@ -181,7 +181,7 @@ theorem layer_cur {first : ℕ} (hf : first < 2) {C : CallRel} (hC : CallRel.Le 
     {σ : Val} {kret : List E → Prop} {y : ℕ} (hy : y < 32) (h9 : σ (.n 9) = gen ^ (y / krStep))
     (h10 : σ (.n 10) = gen ^ (y % krStep)) {body : List Stmt} (hbd : body = layerT first)
     (h : Stmt.HoldsList C rd σ body False kret) :
-    σ (.n (layOff first + 745)) = σ (.n 7) * gen ^ (48 + 2 * y) ∧
+    σ (.n (layOff first + 744)) = σ (.n 7) * gen ^ (48 + 2 * y) ∧
       ∃ ws, kret (ws ++ [σ (.n 7) * gen ^ (84 + 2 * y)]) := by
   subst hbd
   rw [layerT_split, holdsList_append, holdsList_noRet _ (layA_noRet hf)] at h
@@ -204,7 +204,7 @@ theorem layer_cur {first : ℕ} (hf : first < 2) {C : CallRel} (hC : CallRel.Le 
   rw [← h10, ← e727, ← e739] at hR
   have e745 := loadHolds_unique hlast.2.1 hR
   have hy' : 16 * (y / krStep) + 2 * (y % krStep) = 2 * y := by simp only [krStep]; omega
-  have hcur : σ (.n (layOff first + 745)) = σ (.n 7) * gen ^ (48 + 2 * y) := by
+  have hcur : σ (.n (layOff first + 744)) = σ (.n 7) * gen ^ (48 + 2 * y) := by
     rw [e745, mul_assoc, mul_assoc, ← pow_add, ← pow_add, hy']
   rw [c312, m311, c310, word_g36, hcur, mul_assoc, ← pow_add,
     show 48 + 2 * y + 36 = 84 + 2 * y by ring] at hk
