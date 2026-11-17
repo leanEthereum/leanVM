@@ -388,7 +388,7 @@ jobs:
         run: python3 -I ../tools/firewall-canary.py
       # Every executable in one build, before the cache is saved, so a cache hit holds them all.
       - name: Build the executables
-        run: lake build node-vectors guest-core guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove test-runs guest-artifact
+        run: lake build node-vectors guest-core guest-memory scheme-vectors guest-diff leanvm-verify wire-diff leanvm-prove test-runs guest-artifact guest-backend
       # What is slow in the interpreter: the guest's Fiat-Shamir IV against the Rust's, the DA
       # vector digests.
       - name: The Rust vectors' costly checks
@@ -420,6 +420,11 @@ jobs:
         run: |
           cargo run --release --manifest-path scripts/whir-fold-table/Cargo.toml -- \
             LeanVM/Protocol/ToArkLib/Whir/AffineCombinerDeployedTable.lean --check
+      # The front end, independently: the core IR Lean's `Expand` gives the guest and every test
+      # program is the one the Rust front end (`crates/zkdsl_compiler/src/expand.rs`) gives, each
+      # function renumbered, line for line.
+      - name: The front end is Rust's (frontend-diff)
+        run: scripts/frontend-diff
       # Four real Rust aggregations (a leaf, a leaf of both schemes with a blob, a long leanXMSS
       # list, a node over them): the witness holds the statement, the honest hint generator gives
       # the Rust's installed streams entry for entry, and the interpreter runs `main` on them.

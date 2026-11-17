@@ -34,11 +34,14 @@ use isa::pretty_integer;
 use isa::{BitsDest, CompiledProgram, DerefMode, Op, OutCells, RHint};
 
 mod ast;
+pub mod core_ir;
+mod expand;
 mod field;
 mod ir;
 mod lower;
 mod parser;
 pub use ast::*;
+pub use expand::expand;
 pub(crate) use ir::*;
 use lower::lower_func;
 pub(crate) use parser::subst_stmts;
