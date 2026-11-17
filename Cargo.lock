@@ -645,7 +645,6 @@ dependencies = [
  "stable_primitives",
  "tracing",
  "verifier",
- "zkdsl_compiler",
 ]
 
 [[package]]

@@ -29,7 +29,8 @@
 # unpruned. The guests (`fixed`) are the program of
 # crates/stable_prover/lean_vm_core/tests/verifiers/fixture.rs at 4, 300 and 1000 loop steps,
 # crates/zkdsl_compiler/tests/programs/fibonacci.py, and eight more programs of that suite, three
-# at each of the four rates, read from the source tree. Every proof is verified by the Rust
+# at each of the four rates, each as the Lean back end compiled it (the suite's
+# `tests/suite/lean_backend/*.txt`, `lake exe guest-backend export programs`). Every proof is verified by the Rust
 # `cpu::verify` before it is written, and `Proof::from_bytes` must give it back from `proof.wire`.
 # In `fixtures` mode `scripts/rust-verifier-cli` must also accept it from the written files before
 # the script returns; the fixtures are consumed by scripts/fuzz-verifier.py, which runs the Lean
@@ -91,7 +92,6 @@ EOF
 
 cat >> "$work/src/main.rs" <<'EOF'
 use fixture::chain;
-use zkdsl_compiler::{compile, parse};
 use isa::Program;
 use lean_vm_core::cpu::{execute, prove, public_input_bytes, verify};
 use primitives::field::F128;
@@ -105,7 +105,13 @@ type Case = (Program, Vec<(String, Vec<Vec<F128>>)>, [F128; 2]);
 fn suite_program(path: &Path) -> Option<Case> {
     let source = std::fs::read_to_string(path).expect("read suite program");
     let public_input = py_source::public_input(&source)?;
-    let program = Program::from(compile(&parse(&source).expect("parse suite program")));
+    // As the Lean back end compiled it (`lake exe guest-backend export programs`).
+    let compiled = path.with_file_name(format!(
+        "../suite/lean_backend/{}.txt",
+        path.file_stem().unwrap().to_string_lossy()
+    ));
+    let program = Program::__from_text(&std::fs::read_to_string(compiled).expect("read the compiled program"))
+        .expect("load the compiled program");
     Some((program, py_source::witness(&source), public_input))
 }
 

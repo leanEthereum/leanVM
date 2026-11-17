@@ -72,8 +72,8 @@ fn prove<P: Prover>(
     P::prove(program, witness, public_input, log_inv_rate).map(|(proof, _)| proof)
 }
 
-/// The compiler suite runs on stable alone; this runs its programs, with their annotated inputs (`# public_input:`,
-/// `# witness name:`) and with a wrong public input, through experimental's interpreter and hints too, at every rate.
+/// The zkDSL test programs, as the Lean back end compiled them (`tests/suite/lean_backend/*.txt`), with their annotated
+/// inputs (`# public_input:`, `# witness name:`) and with a wrong public input, through both provers at every rate.
 #[test]
 fn compiler_programs_prove_identically() {
     let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../crates/zkdsl_compiler/tests/programs");
@@ -92,7 +92,11 @@ fn compiler_programs_prove_identically() {
     };
     for path in paths {
         let src = std::fs::read_to_string(&path).unwrap();
-        let program = Program::from(zkdsl_compiler::compile(&zkdsl_compiler::parse(&src).unwrap()));
+        let compiled = path.with_file_name(format!(
+            "../suite/lean_backend/{}.txt",
+            path.file_stem().unwrap().to_string_lossy()
+        ));
+        let program = Program::__from_text(&std::fs::read_to_string(&compiled).unwrap()).unwrap();
         let annotation = |tag: &'static str| src.lines().filter_map(move |line| line.trim().strip_prefix(tag));
         let public_input = annotation("# public_input:")
             .next()
