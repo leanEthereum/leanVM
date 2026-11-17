@@ -1,0 +1,11 @@
+def main []
+  const %0 2 0
+  match %0
+  arm
+    const %1 1 2
+  arm
+    const %1 1 2
+  end
+  const %2 1 2
+  assert_eq %1 %2
+  ret []

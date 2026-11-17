@@ -1,0 +1,16 @@
+def main []
+  call pick [] [%0]
+  const %1 1 0
+  load %0 %1 0
+  const %2 1 0
+  const %3 1 0
+  const %4 2 0
+  mul %5 %3 %4
+  load %2 %5 0
+  ret []
+def pick []
+  const %0 2 0
+  const %1 4 0
+  hint witness m [%2]
+  copy %3 %2
+  ret [%3]

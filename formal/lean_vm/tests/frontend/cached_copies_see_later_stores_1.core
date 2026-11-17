@@ -1,0 +1,16 @@
+def main []
+  hint alloc %0 2
+  load %1 %0 1
+  hint witness value [%2]
+  copy %3 %2
+  load %3 %0 1
+  call square [%0] [%4]
+  const %5 1 0
+  load %6 %5 0
+  assert_eq %6 %4
+  ret []
+def square [%0]
+  load %1 %0 1
+  load %2 %0 1
+  mul %3 %1 %2
+  ret [%3]

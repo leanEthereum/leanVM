@@ -1,0 +1,34 @@
+def main []
+  hint alloc %0 2
+  const %1 9272771591053052074 0
+  const %2 1 0
+  const %3 2 0
+  mul %4 %2 %3
+  load %5 %4 0
+  add %6 %1 %5
+  const %7 9272771591053052074 0
+  const %8 1 0
+  const %9 2 0
+  mul %10 %8 %9
+  load %11 %10 0
+  call_if %6 __loop0 [%7 %11 %0]
+  load %12 %0 1
+  const %13 1 0
+  load %14 %13 0
+  assert_eq %12 %14
+  ret []
+def __loop0 [%0 %1 %2]
+  const %3 9272771591053052074 0
+  add %4 %0 %3
+  if_zero %4
+    load %0 %2 0
+  else
+    load %0 %2 1
+  end
+  const %5 2 0
+  mul %6 %0 %5
+  add %7 %6 %1
+  const %8 2 0
+  mul %9 %0 %8
+  call_if %7 __loop0 [%9 %1 %2]
+  ret []

@@ -1,0 +1,11 @@
+def main []
+  const %0 3 0
+  const %1 4 0
+  add %2 %0 %1
+  const %3 1 0
+  load %2 %3 0
+  const %4 1 0
+  const %5 2 0
+  mul %6 %4 %5
+  load %1 %6 0
+  ret []

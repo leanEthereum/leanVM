@@ -1,0 +1,42 @@
+def main []
+  const %0 182 0
+  hint bits %0 [%1 %2 %3 %4 %5 %6 %7 %8] 0 8
+  mul %1 %1 %1
+  mul %2 %2 %2
+  const %9 2 0
+  mul %10 %2 %9
+  add %11 %1 %10
+  mul %3 %3 %3
+  const %12 4 0
+  mul %13 %3 %12
+  add %14 %11 %13
+  mul %4 %4 %4
+  const %15 8 0
+  mul %16 %4 %15
+  add %17 %14 %16
+  mul %5 %5 %5
+  const %18 16 0
+  mul %19 %5 %18
+  add %20 %17 %19
+  mul %6 %6 %6
+  const %21 32 0
+  mul %22 %6 %21
+  add %23 %20 %22
+  mul %7 %7 %7
+  const %24 64 0
+  mul %25 %7 %24
+  add %26 %23 %25
+  mul %8 %8 %8
+  const %27 128 0
+  mul %28 %8 %27
+  add %29 %26 %28
+  const %30 182 0
+  assert_eq %29 %30
+  const %31 1 0
+  load %29 %31 0
+  const %32 1 0
+  const %33 1 0
+  const %34 2 0
+  mul %35 %33 %34
+  load %32 %35 0
+  ret []

@@ -1,0 +1,68 @@
+def main []
+  const %0 2 0
+  const %1 8 0
+  const %2 1 0
+  const %3 1 0
+  const %4 0 0
+  const %5 0 0
+  const %6 0 0
+  const %7 0 0
+  const %8 9223372036854775808 0
+  match %0
+  arm
+    const %9 4 0
+    copy %10 %9
+  arm
+    const %11 8 0
+    copy %10 %11
+  arm
+    const %12 16 0
+    copy %10 %12
+  arm
+    const %13 32 0
+    copy %10 %13
+  end
+  match %1
+  arm
+    const %14 4 0
+    mul %15 %10 %14
+    copy %16 %15
+  arm
+    const %17 8 0
+    mul %18 %10 %17
+    copy %16 %18
+  arm
+    const %19 16 0
+    mul %20 %10 %19
+    copy %16 %20
+  arm
+    const %21 32 0
+    mul %22 %10 %21
+    copy %16 %22
+  end
+  match %2
+  arm
+    const %23 8 0
+    mul %24 %16 %23
+    copy %25 %24
+  arm
+    const %26 16 0
+    mul %27 %16 %26
+    copy %25 %27
+  arm
+    const %28 32 0
+    mul %29 %16 %28
+    copy %25 %29
+  arm
+    const %30 64 0
+    mul %31 %16 %30
+    copy %25 %31
+  end
+  const %32 1 0
+  load %25 %32 0
+  const %33 0 0
+  const %34 1 0
+  const %35 2 0
+  mul %36 %34 %35
+  load %33 %36 0
+  ret []

@@ -1,0 +1,77 @@
+def main []
+  hint alloc %0 4
+  const %1 2048 0
+  load %1 %0 0
+  const %2 4194304 0
+  load %2 %0 1
+  const %3 8589934592 0
+  load %3 %0 2
+  const %4 17592186044416 0
+  load %4 %0 3
+  load %5 %0 0
+  load %6 %0 1
+  load %7 %0 2
+  load %8 %0 3
+  copy %9 %5
+  copy %10 %5
+  copy %11 %5
+  copy %12 %5
+  copy %13 %5
+  copy %14 %5
+  copy %15 %5
+  copy %16 %5
+  copy %17 %5
+  copy %18 %5
+  copy %19 %5
+  copy %20 %5
+  copy %21 %5
+  copy %22 %5
+  copy %23 %5
+  copy %24 %5
+  copy %25 %5
+  copy %26 %5
+  copy %27 %5
+  copy %28 %5
+  copy %29 %5
+  copy %30 %5
+  copy %31 %5
+  copy %32 %5
+  copy %33 %7
+  copy %34 %8
+  add %35 %9 %6
+  add %36 %11 %6
+  add %37 %13 %6
+  add %38 %15 %6
+  const %39 1 0
+  const %40 0 0
+  const %41 0 0
+  const %42 0 0
+  const %43 0 0
+  add %44 %17 %39
+  copy %45 %19
+  copy %46 %21
+  copy %47 %23
+  const %48 9223372036854775808 0
+  add %49 %25 %48
+  keccak [%35 %36 %37 %38 %44 %45 %46 %47 %49 %27 %29 %31 %33] [%50 %51] 0 0
+  add %52 %10 %6
+  add %53 %12 %6
+  add %54 %14 %6
+  add %55 %16 %6
+  add %56 %18 %39
+  copy %57 %20
+  copy %58 %22
+  copy %59 %24
+  const %60 9223372036854775808 0
+  add %61 %26 %60
+  keccak [%52 %53 %54 %55 %56 %57 %58 %59 %61 %28 %30 %32 %34] [%62 %63] 0 0
+  add %64 %50 %62
+  hint inverse %64 %65
+  assert_ne %64 %65 %66
+  const %67 1 0
+  load %5 %67 0
+  const %68 1 0
+  const %69 2 0
+  mul %70 %68 %69
+  load %6 %70 0
+  ret []

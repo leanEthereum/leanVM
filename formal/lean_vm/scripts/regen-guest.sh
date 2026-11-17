@@ -19,7 +19,8 @@
 # WHIR's folding). The `programs` step writes the Lean back end's compilation of the zkDSL test programs, of
 # the verifiers' fixture program, of the VM's and the prover's test programs (`crates/zkdsl/tests/vm/`, a
 # template at each of its counts) and of the aggregation tests' snippets, which the Rust tests, the Fibonacci
-# benchmark and the fixtures load. The `backend`
+# benchmark and the fixtures load, and the core IR `Expand` gives each program of the front end's regression
+# corpus (`tests/frontend/*.core`, from `tests/frontend/*.py`). The `backend`
 # step writes the Lean back end's guest data: the soundness obligations' tables and evaluation modules
 # (`guest-oblgen`).
 set -euo pipefail
@@ -94,10 +95,12 @@ part_export() {
 }
 
 part_programs() {
-  # The test programs and the verifiers' fixture program, as the Rust tests, the benchmark and the fixtures load them.
-  step "programs: the zkDSL test programs compiled (guest-backend export programs)"
+  # The test programs and the verifiers' fixture program, as the Rust tests, the benchmark and the fixtures load them;
+  # the front end's corpus, expanded.
+  step "programs: the zkDSL test programs compiled (guest-backend export programs), the corpus expanded (core-text)"
   lakebuild guest-backend
   capped .lake/build/bin/guest-backend export programs ../../crates/zkdsl/tests/compiled "${check[@]}"
+  capped .lake/build/bin/guest-backend core-text tests/frontend "${check[@]}"
   capped .lake/build/bin/guest-backend export snippets ../../crates/aggregation/snippets "${check[@]}"
 }
 

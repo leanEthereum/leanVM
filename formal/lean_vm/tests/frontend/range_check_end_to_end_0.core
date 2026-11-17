@@ -1,0 +1,22 @@
+def main []
+  const %0 128 0
+  const %1 32 0
+  range_check %1 %2 %3 %4 %0
+  const %5 128 0
+  const %6 128 0
+  range_check %6 %7 %8 %9 %5
+  const %10 128 0
+  const %11 1 0
+  range_check %11 %12 %13 %14 %10
+  const %15 4096 0
+  const %16 4096 0
+  range_check %16 %17 %18 %19 %15
+  const %20 4096 0
+  const %21 1 0
+  load %20 %21 0
+  const %22 32 0
+  const %23 1 0
+  const %24 2 0
+  mul %25 %23 %24
+  load %22 %25 0
+  ret []

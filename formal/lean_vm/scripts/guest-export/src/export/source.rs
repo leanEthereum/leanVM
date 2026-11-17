@@ -305,8 +305,9 @@ fn render_programs() -> String {
          (`crates/stable_prover/lean_vm_core/tests/verifiers/chain.py`) at each step count its users take. -/\n\
          def chains : List TestProgram := {}\n\n/-- The programs of the VM's and the prover's tests \
          (`crates/zkdsl/tests/vm/*.py`), a template at each of its counts. -/\ndef vm : List TestProgram := {}\n\n\
-         /-- The programs the deleted Rust code generation's tests ran (`crates/zkdsl/tests/frontend/*.py`), for the \
-         front-end comparison only. -/\ndef frontend : List TestProgram := {}\n\nend LeanVMTests.Guest.Programs",
+         /-- The front end's regression corpus (`tests/frontend/*.py`): `lake exe guest-backend core-text` compares \
+         the core IR `Expand` gives each with `tests/frontend/*.core`. -/\ndef frontend : List TestProgram := \
+         {}\n\nend LeanVMTests.Guest.Programs",
         list(names),
         list(chains),
         list(vm),
@@ -316,9 +317,9 @@ fn render_programs() -> String {
     out
 }
 
-/// The `.py` files of a directory of `crates/zkdsl/tests`, by name.
+/// The `.py` files of a directory of this repository, by name.
 fn corpus(dir: &str) -> Vec<(String, String)> {
-    let dir = format!("{}/crates/zkdsl/tests/{dir}", env!("LEANVM_DIR"));
+    let dir = format!("{}/{dir}", env!("LEANVM_DIR"));
     let mut paths: Vec<_> = std::fs::read_dir(&dir)
         .unwrap()
         .map(|e| e.unwrap().path())
@@ -339,7 +340,7 @@ const VM_TEMPLATES: [(&str, &[usize]); 1] = [("keccak_steps", &[0, 1, 3, 512, 51
 /// proved by the zkdsl suite.
 fn vm_programs() -> Vec<(String, Ast)> {
     let mut out = Vec::new();
-    for (name, src) in corpus("vm") {
+    for (name, src) in corpus("crates/zkdsl/tests/vm") {
         match VM_TEMPLATES.iter().find(|(t, _)| *t == name) {
             Some((_, counts)) => {
                 for n in *counts {
@@ -353,10 +354,9 @@ fn vm_programs() -> Vec<(String, Ast)> {
     out
 }
 
-/// The programs the deleted Rust code generation's run-time tests ran (`crates/zkdsl/tests/frontend`): the front-end
-/// comparison's corpus.
+/// The front end's regression corpus (`formal/lean_vm/tests/frontend`), expanded and not compiled.
 fn frontend_programs() -> Vec<(String, Ast)> {
-    corpus("frontend")
+    corpus("formal/lean_vm/tests/frontend")
         .into_iter()
         .map(|(name, src)| {
             let ast = parse(&src).unwrap_or_else(|e| panic!("tests/frontend/{name}.py: {e}"));

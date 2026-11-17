@@ -1,0 +1,19 @@
+def main []
+  call make [] [%0]
+  load %1 %0 0
+  const %2 1 0
+  load %1 %2 0
+  load %3 %0 1
+  const %4 1 0
+  const %5 2 0
+  mul %6 %4 %5
+  load %3 %6 0
+  ret []
+def make []
+  hint alloc %0 2
+  const %1 17 0
+  load %1 %0 0
+  const %2 23 0
+  load %2 %0 1
+  copy %3 %0
+  ret [%3]
