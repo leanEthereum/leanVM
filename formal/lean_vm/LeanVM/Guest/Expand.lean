@@ -1561,6 +1561,7 @@ def lowerBuiltin : Nat → String → List Expr → M Bool
         if !(args.length == 3 || (plain && args.length == 4)) then
           fail s!"{f} takes (bits, value, nbits[, start])"
         let nbits ← constIndex args[2]!
+        if !plain && 40 < nbits then fail s!"{f} writes at most 40 bits, got {nbits}"
         let bits ← bitsDest n args[0]! nbits
         let value ← expr n args[1]!
         if plain then
@@ -1597,8 +1598,8 @@ def lowerBuiltin : Nat → String → List Expr → M Bool
         let nbits ← constIndex a2
         let ndigits ← constIndex a3
         let digitBits ← constIndex a4
-        if 64 < nbits || !(1 ≤ digitBits && digitBits ≤ 16) then
-          fail s!"{f}: nbits <= 64 and 1 <= digit_bits <= 16"
+        if 40 < nbits || !(1 ≤ digitBits && digitBits ≤ 16) then
+          fail s!"{f}: nbits <= 40 and 1 <= digit_bits <= 16"
         let dst ← bitsDest n a0 ndigits
         let value ← expr n a1
         let (start, startCell) ← match ← tryConstIndex a5 with
