@@ -145,18 +145,18 @@ costs are included in the bounds below.
 
 \paragraph{The extractor.} Knowledge soundness is stated for the extractor a program of a cost
 machine computes (\lean{LeanVM.extractorComputedBy}~$P$, \lean{Statement/CostMachine.lean}): the
-program $P$, of size at most $14159$ (\lean{leanVmKnowledgeExtractorSizeBound}: the compiled
-extractor's $14039$ and a slack of $120$, less than one leanXMSS signature's encoding), run on the encoded
+program $P$, of size at most $25310$ (\lean{leanVmKnowledgeExtractorSizeBound}: the compiled
+extractor's $25190$ and a slack of $120$, less than one leanXMSS signature's encoding), run on the encoded
 statement, transcript and proof within a budget (\lean{leanVmKnowledgeExtractorBudget}: the most its
 run may cost in the machine's price, so also the most steps it may execute,
-$2^{\max(80,\,2\mu + 25)} + (N + 2^{30})(D + 2)^2(2^{15} + 2D)$ for a proof announcing a stack of $2^\mu$
+$2^{\max(58,\,2\mu + 9)} + (N + 2^{30})(D + 2)^2(2^{17} + 8D)$ for a proof announcing a stack of $2^\mu$
 elements (\lean{announcedStackLog}) and $N$ permutation queries, $D = \log_2(N + 2) + 1$, above the
-price \lean{lean_vm} proves of the compiled extractor at every shape of that size; polylogarithmic
-per query: for $N \le 2^{50}$ about $2^{80}$ up to $\mu = 27$, then $2^{81}$, $2^{83}$ and $2^{85}$ at $\mu = 28, 29, 30$, the list
-decoder dominating, and $2^{157.08}$ at $N = 2^{128}$, the transcript's index dominating), its output
+price \lean{lean_vm} proves of the compiled extractor wherever it extracts, at every shape of that size; polylogarithmic
+per query: $2^{69}$ at $\mu = 30$ up to $N = 2^{38}$, the descent at level 0 dominating, $2^{78.5}$ at $N = 2^{50}$
+and $2^{159.1}$ at $N = 2^{128}$, the transcript's indexes dominating), its output
 parsed as an execution; a run out of budget outputs nothing, which counts as a break. The budget
-passes $2^{128}$ at about $N = 2^{100}$, where the soundness bound is still about $2^{-25}$, and its first
-term, at most $2^{85}$, would pay for a search of about $2^{74}$ Keccak-f[1600] evaluations: knowledge
+passes $2^{128}$ at about $N = 2^{97.7}$, where the soundness bound is still about $2^{-27}$, and its first
+term, at most $2^{69}$, would pay for a search of about $2^{58}$ Keccak-f[1600] evaluations: knowledge
 of a witness such a search finds
 (of low entropy) is not what the statement certifies. The
 statement takes $P$ as a parameter (\texttt{leanVmKnowledgeExtractor := P}) and constrains it only
@@ -173,28 +173,32 @@ and its reduction, $27$). In a program's size, a constructor's tag and a functio
 the machine reads them only by bounded lookups.
 
 \texttt{lean\_vm} proves it for \lean{LeanVM.Cost.compiledKnowledgeExtractor}, the compiled form of
-\lean{transcriptExtractor} (\lean{lean_vm/LeanVM/Protocol/Extraction/Extractor.lean}), and proves
+\lean{transcriptExtractor} (\lean{lean_vm/LeanVM/Protocol/Extraction/AS/Lite.lean}), and proves
 that the program computes it within the budget. \lean{transcriptExtractor} is straight-line: it reads the proof and
 the adversary's transcript and nothing else; it neither queries $\pi$, nor rewinds the adversary,
 nor sees the verifier's queries. From the transcript's permutation queries (its coins left out,
-\lean{permutationQueries}) it collects the Keccak-256 evaluations whose
-whole padded sponge path appears as a chain of forward queries from the zero state
-(\lean{keccakEvaluationsOfTranscript}). It reads the announced sizes and the stack's Merkle root off the proof,
-inverts the Merkle tree through those evaluations to recover the committed word, lists the stacks
-whose Reed-Solomon encoding agrees with the word on at least the Johnson threshold of columns (at
-most $166$ of them, \lean{Whir.Params.listMax₀_le}, \lean{lean_vm}), and returns a candidate's memory
-image whose halting run is a valid execution, if one exists.
+\lean{permutationQueries}) it keeps each forward query's first answer, and recomputes the
+Fiat-Shamir transcript through them: the verifier's transcript operations are fixed by the sizes
+the proof announces (the verifier's skeleton), so it replays the sponge along that skeleton, reading
+the announced sizes, every level's Merkle root, the fold rounds' messages and the final
+polynomial off the proof. It inverts every level's Merkle tree through the Keccak-256 evaluations
+the transcript holds to recover each committed word, and then descends from the final polynomial to
+level 0's stack: in each fold round it decodes the previous round's word with at most one error on
+the columns where the current tuple agrees with the word (on the first $d + 3$ of them, $d$ the
+level's degree), and between levels it rebuilds the level's tuple from the next one's message and
+the proof's high part. Level 0's tuple gives one stack, whose memory image it runs; it returns the
+execution if the halting run is a valid one.
 
-It is an algorithm: every definition it uses is computable and deterministic. It lists the
-candidates lane by lane with the Guruswami-Sudan list decoder over $\mathbb{F}_{2^{64}}$
-(CompPoly's Lee-O'Sullivan interpolation and Roth-Ruckenstein root finding, with Shoup's trace
-splitting for the field roots), and it is proved to list every candidate. It runs each
-candidate for at most as many steps as the announced tables have rows (\lean{stepCap}), which a
-valid execution never exceeds (proved). Its running time, as the compiled program, is proved
-within the budget above (\lean{LeanVM.Cost.Bounds.extractorC_cost}, \lean{lean_vm}): the compiled list decoder
-interpolates by CompPoly's approximant basis (it lists the same candidates, proved), and
-Roth-Ruckenstein's search dominates, with $O(\log^2 N)$ comparisons per lookup in the evaluations (sorted maps). It gives straight-line knowledge with a
-concrete reduction cost for the collision clauses below.
+It is an algorithm: every definition it uses is computable and deterministic. Unlike a list
+decoder it decodes uniquely, on agreement sets the transcript pins down, and the proof shows that on
+an accepted proof, outside the soundness events, the stack it finds is the one the commitment's
+out-of-domain answer leaves, with the same per-message errors. It runs the candidate for at most as
+many steps as the announced tables have rows (\lean{stepCapLite}), which a valid execution never
+exceeds (proved). Its running time, as the compiled program, is proved within the budget above
+(\lean{LeanVM.Cost.Bounds.AS.extractL_cost}, \lean{LeanVM.Cost.Bounds.AS.asPrice_le}, \lean{lean_vm}):
+the descent at level 0 dominates, about $2^{2\mu + 7}$ at the worst rate, with $O(\log^2 N)$
+comparisons per lookup in the transcript's indexes (sorted maps). It gives straight-line knowledge
+with a concrete reduction cost for the collision clauses below.
 
 \paragraph{The proof.} A proof (\lean{Proof}, \lean{Statement/LeanVmVerifier.lean}) is the Rust
 verifier's: the scalar stream and the Merkle openings, grouped in phases, one phase per opened
@@ -804,7 +808,7 @@ written differently could pack the guest's frame-cell table about three times ti
 room for about $1120$ signatures' encodings, or compute it from its input, freeing room for about $1690$).
 \item How $D$ computes the witness: the statement accepts any program that computes it from the
 execution within its budget, not only one that reads it off the memory.
-\item A tight extractor budget: it is $2^{\max(80,\,2\mu + 25)} + O(N\log^3 N)$, priced at the worst shape of each stack size.
+\item A tight extractor budget: it is $2^{\max(58,\,2\mu + 9)} + O(N\log^3 N)$, priced at the worst shape of each stack size.
 \item Knowledge soundness for a bytecode table that encodes no program (Section~\ref{sec:zkvm}): the Rust verifier accepts any table of words, the statement only \lean{bytecodeWords} of a \lean{LeanIsaProgram}.
 \item The Rust verifier, prover and guests. They are tested against the Lean specification: the
 verifier differential fuzz; the wire differential (the Lean decoding against the Rust
