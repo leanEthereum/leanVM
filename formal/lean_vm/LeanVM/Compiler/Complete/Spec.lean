@@ -44,7 +44,7 @@ memory that holds the right words. As for soundness, the proof is split at the i
   the return registers (`main`: the final ones), at most `pathOps` instructions of each opcode
   besides the callees'.
 * **The counts** (`PathOpsStmt`): `pathOps` is at most the placed body's path maxima (`pmaxP`) and
-  the separately counted arms (`armsP`, `armsCost`), the quantities the guest's tables hold.
+  the separately counted arms (`armsP`, `armsCost`).
 
 Every statement is a proposition here; a theorem of that type lives in another module of this
 directory. Nothing here is proved.
@@ -447,18 +447,18 @@ section Cost
 open Classical
 
 mutual
-/-- The separately counted arms a statement's path passes, under `σ` (`Deployed.cost1`). -/
+/-- The separately counted arms a statement's path passes, under `σ`. -/
 noncomputable def cost1 (acs : List (ℕ × List (List ℕ))) (σ : Val) : Stmt → Opcode → ℕ
   | .ite c z n => if σ c = 0 then armsCost acs σ z else armsCost acs σ n
   | .match_ x arms => costArms acs σ x (armRaw acs x.idx) 0 arms
   | _ => 0
 
-/-- The separately counted arms a block's path passes, under `σ` (`Deployed.costW`). -/
+/-- The separately counted arms a block's path passes, under `σ`. -/
 noncomputable def armsCost (acs : List (ℕ × List (List ℕ))) (σ : Val) : List Stmt → Opcode → ℕ
   | [] => 0
   | s :: ss => cost1 acs σ s + armsCost acs σ ss
 
-/-- The arm `σ` picks, from arm `k` on, its count if counted separately (`Deployed.costArms`). -/
+/-- The arm `σ` picks, from arm `k` on, its count if counted separately. -/
 noncomputable def costArms (acs : List (ℕ × List (List ℕ))) (σ : Val) (x : V)
     (key : Option (List (List ℕ))) : ℕ → List (List Stmt) → Opcode → ℕ
   | _, [] => 0

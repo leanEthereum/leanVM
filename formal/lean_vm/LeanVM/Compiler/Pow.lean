@@ -13,8 +13,8 @@ public import LeanVM.Guest.Word
 # Powers of `g` the kernel evaluates
 
 The kernel evaluates a product of `K` bit by bit, through `BitVec` and a well-founded fold, so
-`gpowK e`, square-and-multiply, costs it about a fifth of a second for an exponent of the guest's
-code size. `gpowBits e` is the same word: for `e < 2^20` the product of the five entries
+`gpowK e`, square-and-multiply, costs it about a fifth of a second for an exponent of a large
+program's code size. `gpowBits e` is the same word: for `e < 2^20` the product of the five entries
 `g^(d·16^w)` of `gtab`, one per hexadecimal digit of `e` (`gtab_eq`, decided once), each product
 on words in `ℕ` by `BF64.mulShift`'s loop (`mulN`, `ofBits_mulN`), as `Guest.Pow` does; past
 `2^20`, `gpowK e`. Compiled code runs `gpowK` (`@[csimp]`).

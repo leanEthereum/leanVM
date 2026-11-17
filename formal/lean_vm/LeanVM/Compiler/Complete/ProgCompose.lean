@@ -12,8 +12,8 @@ public import LeanVM.Compiler.Complete.Program
 /-!
 # The composition at any program
 
-`Guest/Cpl/Compose.lean` composes the guest's per-function runs into one run of `main`; this is
-its proof at any `World`. `CplRunW W FH ω tf`: function `tf` runs, counted by `ω` besides its
+A program's per-function runs compose into one run of `main`; this is that composition at any
+`World`. `CplRunW W FH ω tf`: function `tf` runs, counted by `ω` besides its
 callees, on any memory holding the jump tables and a frame holding what `FH` asks. `ComposeHyps`
 asks it of every function, `FH` of every running instance of the honest memory
 `honest W.core fs H C hdr T`, the jump tables in that memory, and no path calling `main`. Then

@@ -31,7 +31,7 @@ long trace is `(List.flatten [c₀, c₁, …]).toArray`, and its suffix from ev
 definition. A check then reads no event before the cut, and the walk's own trace, reduced past the
 events it reads, has the same tail term.
 
-Keys: a value `⟨[], 0, i⟩` (every value of the guest's renumbered input) has the number `2 * i`
+Keys: a value `⟨[], 0, i⟩` (every value of a renumbered traced input) has the number `2 * i`
 (`vKey`); a value of another shape is refused. Numerals of `ℕ` in the entries become literals.
 
 Nothing here is trusted: `v` is only a definition, and a check that a walk reaches it is the

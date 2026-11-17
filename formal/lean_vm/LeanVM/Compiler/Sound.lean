@@ -38,7 +38,7 @@ And composed (`Sound/Program.lean`, `Main.lean`):
 * `World.params_vf`: at every frame, a function's parameters are its argument words under the
   valuation by places.
 
-And the guest's equation by pieces (`Sound/Piece.lean`, `Compiles.lean`): `pieceOk_spec`, what a
+And a program's equation by pieces (`Sound/Piece.lean`, `Compiles.lean`): `pieceOk_spec`, what a
 kernel-checked piece of one function says, and `compiles_of_pieces`, a program compiled from the
 pieces of its functions and checks on numbers (`lowerProgram` succeeds and the assembled functions
 are the given ones); `placed_locs_of_pieces`, `world_locs_of_pieces`, the places of each function's values; and a
