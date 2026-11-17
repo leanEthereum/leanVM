@@ -244,11 +244,12 @@ def finalDepth (logN a : ℕ) (levels : List Whir.Level) : ℕ :=
 /-- The final level's query count of a ladder. -/
 def finalCount (levels : List Whir.Level) : ℕ := (levels.getLast?.map (·.queries)).getD 0
 
-/-- **The final shape's hit**: at the ladder of the stack's size and rate, the final query's
-proof of work hits. -/
+/-- **The final shape's hit**: the stack's size and rate have a ladder, at whose final level the
+final query's proof of work hits. -/
 def FinalShapeOK (F : KeccakState → Option KeccakState) (logN ρ : ℕ) (s : VerifierProgramState) :
     Prop :=
-  ∀ config, Whir.ladder logN ρ = some config → FinalOK F (finalDepth logN 0 config) (finalCount config) s
+  ∃ config, Whir.ladder logN ρ = some config ∧
+    FinalOK F (finalDepth logN 0 config) (finalCount config) s
 
 /-! ## The cut on runs -/
 
@@ -448,10 +449,7 @@ theorem xcut_verifyStackedOpeningG (stackLog logInvRate : ℕ) (claims : List St
   simp only [VerifierProgram.bind_eq]
   refine XCut.bind _ fun config hc ↦ ?_
   rw [whirLevelsG_eq]
-  refine (xcut_whirLevelsGF _ _ _ _ _ _).mono fun _ st hst config' hconfig ↦ ?_
-  rw [returns_liftOption hc] at hconfig
-  cases hconfig
-  exact hst
+  exact (xcut_whirLevelsGF _ _ _ _ _ _).mono fun _ st hst ↦ ⟨config, returns_liftOption hc, hst⟩
 
 theorem xcut_veBodyG (ev : List K → List E → E → VerifierProgram Unit) (publicInput : Digest)
     (layout : Verifier.Layout) (ρ : ℕ) :
