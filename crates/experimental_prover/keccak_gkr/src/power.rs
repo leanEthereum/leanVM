@@ -9,6 +9,7 @@
 //! A table row is laid out by word: word `k` of entry `j` at `k * width + j`.
 
 use primitives::field::F128;
+use primitives::field::gf2_64::mul_wide;
 
 use crate::basis::{PolyEval, PowerBasis, add_mul};
 
@@ -113,15 +114,49 @@ impl PowerField {
         [p[0] ^ r[0], p[1] ^ r[1]]
     }
 
+    /// [`Self::reduce`] of a polynomial of three words, whose high half is its word 2 alone: most of the products
+    /// vanish.
     #[inline(always)]
-    pub fn mul(&self, a: &Element, b: &Element) -> Element {
-        self.reduce(&mul_wide2(a, b))
+    fn reduce3(&self, p: &[u64; 3]) -> Element {
+        let q = p[2] ^ (mul_wide(p[2], self.barrett[1]) >> 64) as u64;
+        let mut r = [0u64; 3];
+        add_mul(&mut r, &[q], &self.modulus);
+        [p[0] ^ r[0], p[1] ^ r[1]]
+    }
+
+    /// The split constants of `c`: `c` and `c * x^64`, reduced. A product by `c` is then the other factor's words
+    /// times these, three words reduced once, where a product of two elements is four words and a full reduction.
+    /// The table's passes multiply this way, by what is fixed for the pass: a fold by its challenge, a round's
+    /// factor by the position weights.
+    pub fn split(&self, c: &Element) -> [Element; 2] {
+        [*c, self.reduce3(&[0, c[0], c[1]])]
+    }
+
+    /// The split constants of a row's entries, a row each.
+    pub fn split_row(&self, row: &[u64], width: usize) -> Vec<u64> {
+        let mut out = vec![0u64; 4 * width];
+        for j in 0..width {
+            for (out, c) in out.chunks_exact_mut(2 * width).zip(self.split(&get(row, width, j))) {
+                set(out, width, j, &c);
+            }
+        }
+        out
+    }
+
+    /// `a` times the element whose split constants are `split`.
+    #[inline(always)]
+    fn mul_split(&self, a: &Element, split: &[Element; 2]) -> Element {
+        let mut product = [0u64; 3];
+        for (&a, c) in a.iter().zip(split) {
+            add_mul(&mut product, &[a], c);
+        }
+        self.reduce3(&product)
     }
 
     /// `sum of B[j] * T2[j]` and `sum of (B[j] + B'[j]) * (T2[j] + T2'[j])` over a pair of rows
-    /// `t` and `t'`, unreduced, where `B[j] = a[j] * T1[j] + c[j]`, reduced. `T1` and `T2` read
-    /// their row a run of `run` entries at a time: `T1[r + o] = t[s1 + o]` and `T2[r + o] = t[s2 + o]`,
-    /// `(s1, s2)` the `r / run`-th of `sources`.
+    /// `t` and `t'`, unreduced, where `B[j] = a[j] * T1[j] + c[j]`, reduced, `a` given by its split constants
+    /// ([`Self::split_row`]). `T1` and `T2` read their row a run of `run` entries at a time:
+    /// `T1[r + o] = t[s1 + o]` and `T2[r + o] = t[s2 + o]`, `(s1, s2)` the `r / run`-th of `sources`.
     pub fn pair_sums(
         &self,
         a: &[u64],
@@ -131,7 +166,8 @@ impl PowerField {
         run: usize,
         sources: &[(usize, usize)],
     ) -> ([u64; 4], [u64; 4]) {
-        assert!([a, c, t[0], t[1]].iter().all(|row| row.len() >= 2 * width) && width.is_multiple_of(run));
+        assert!(a.len() >= 4 * width && [c, t[0], t[1]].iter().all(|row| row.len() >= 2 * width));
+        assert!(width.is_multiple_of(run));
         assert!(sources.len() == width / run && sources.iter().all(|&(s1, s2)| s1.max(s2) + run <= width));
         row_kernel!(
             run,
@@ -152,8 +188,9 @@ impl PowerField {
         let (mut zero, mut infinity) = ([0u64; 4], [0u64; 4]);
         for (r, &(s1, s2)) in (0..width).step_by(run).zip(sources) {
             for o in 0..run {
-                let (w, c) = (get(a, width, r + o), get(c, width, r + o));
-                let [b0, b1] = t.map(|t| add(&self.mul(&w, &get(t, width, s1 + o)), &c));
+                let w = [0, 1].map(|k| get(&a[2 * k * width..], width, r + o));
+                let c = get(c, width, r + o);
+                let [b0, b1] = t.map(|t| add(&self.mul_split(&get(t, width, s1 + o), &w), &c));
                 let [y0, y1] = t.map(|t| get(t, width, s2 + o));
                 add_mul(&mut zero, &b0, &y0);
                 add_mul(&mut infinity, &add(&b0, &b1), &add(&y0, &y1));
@@ -190,9 +227,10 @@ impl PowerField {
     }
 
     pub fn fold_row_portable(&self, dst: &mut [u64], lo: &[u64], hi: &[u64], challenge: &Element, width: usize) {
+        let split = self.split(challenge);
         for j in 0..width {
             let l = get(lo, width, j);
-            let folded = self.mul(challenge, &add(&l, &get(hi, width, j)));
+            let folded = self.mul_split(&add(&l, &get(hi, width, j)), &split);
             set(dst, width, j, &add(&l, &folded));
         }
     }
@@ -244,17 +282,16 @@ mod x86 {
 
     /// The products of the entries, as partial sums by word offset: `out[half][s]` holds the
     /// 128-bit sum of `a[i] * b[k]` over `i + k = s`, for the even or the odd entries. Karatsuba's
-    /// three products where the schoolbook takes four, `sa` and `sb` the sums of the two words.
-    #[inline(always)]
-    fn karatsuba(a: &[V; 2], sa: V, b: &[V; 2], sb: V) -> [[V; 3]; 2] {
-        let product = |x: V, y: V| [x.clmul::<0x00>(y), x.clmul::<0x11>(y)];
-        let (p0, p1, m) = (product(a[0], b[0]), product(a[1], b[1]), product(sa, sb));
-        std::array::from_fn(|h| [p0[h], m[h].xor(p0[h]).xor(p1[h]), p1[h]])
-    }
-
+    /// three products where the schoolbook takes four.
     #[inline(always)]
     fn partial(a: &[V; 2], b: &[V; 2]) -> [[V; 3]; 2] {
-        karatsuba(a, a[0].xor(a[1]), b, b[0].xor(b[1]))
+        let product = |x: V, y: V| [x.clmul::<0x00>(y), x.clmul::<0x11>(y)];
+        let (p0, p1, m) = (
+            product(a[0], b[0]),
+            product(a[1], b[1]),
+            product(a[0].xor(a[1]), b[0].xor(b[1])),
+        );
+        std::array::from_fn(|h| [p0[h], m[h].xor(p0[h]).xor(p1[h]), p1[h]])
     }
 
     /// Word `w` of a product from its partial sums by offset, in the low word of each lane.
@@ -265,28 +302,7 @@ mod x86 {
         low.xor(high)
     }
 
-    /// Reduce the products given by their words in the low word of each lane.
-    #[inline(always)]
-    fn reduce(field: &PowerField, p: &[V; 4]) -> [V; 2] {
-        let barrett: [V; 2] = std::array::from_fn(|k| V::splat(field.barrett[k]));
-        let modulus: [V; 2] = std::array::from_fn(|k| V::splat(field.modulus[k]));
-        let high = [p[2], p[3]];
-        // The top two words of `high * barrett`: sums at offsets 1 and 2.
-        let mut t = [V::zero(); 3];
-        for (i, k) in [(0, 1), (1, 0), (1, 1)] {
-            t[i + k] = t[i + k].xor(high[i].clmul::<0x00>(barrett[k]));
-        }
-        let q: [V; 2] = std::array::from_fn(|k| high[k].xor(word(&t, 2 + k)));
-        // The low two words of `q * modulus`: sums at offsets 0 and 1.
-        let mut r = [V::zero(); 3];
-        for (i, k) in [(0, 0), (0, 1), (1, 0)] {
-            r[i + k] = r[i + k].xor(q[i].clmul::<0x00>(modulus[k]));
-        }
-        std::array::from_fn(|k| p[k].xor(word(&r, k)))
-    }
-
-    /// [`reduce`] of products of three words, whose high half is their word 2 alone: most of
-    /// the products vanish.
+    /// [`PowerField::reduce3`] of the polynomials given by their words in the low word of each lane.
     #[inline(always)]
     fn reduce3(field: &PowerField, p: &[V; 3]) -> [V; 2] {
         let q = p[2].xor(p[2].clmul::<0x00>(V::splat(field.barrett[1])).high());
@@ -294,10 +310,19 @@ mod x86 {
         std::array::from_fn(|k| word(&[r[0], r[1], V::zero()], k).xor(p[k]))
     }
 
-    /// The even and the odd entries' reductions, interleaved back.
+    /// The entries of `a` times the elements whose split constants are `split` ([`PowerField::split`]): word `k`
+    /// of an entry times constant `k`, summed by word offset for the even and the odd entries, reduced and
+    /// interleaved back.
     #[inline(always)]
-    fn reduce_pair(field: &PowerField, sums: &[[V; 3]; 2]) -> [V; 2] {
-        let [even, odd] = [0, 1].map(|half| reduce(field, &std::array::from_fn(|w| word(&sums[half], w))));
+    fn mul_split(field: &PowerField, a: &[V; 2], split: &[[V; 2]; 2]) -> [V; 2] {
+        let mut sums = [[V::zero(); 3]; 2];
+        for (a, c) in a.iter().zip(split) {
+            for (m, &c) in c.iter().enumerate() {
+                sums[0][m] = sums[0][m].xor(a.clmul::<0x00>(c));
+                sums[1][m] = sums[1][m].xor(a.clmul::<0x11>(c));
+            }
+        }
+        let [even, odd] = sums.map(|sums| reduce3(field, &std::array::from_fn(|w| word(&sums, w))));
         std::array::from_fn(|k| even[k].unpacklo(odd[k]))
     }
 
@@ -313,10 +338,10 @@ mod x86 {
         let mut acc = [[V::zero(); 3]; 2];
         for (r, &(s1, s2)) in (0..width).step_by(run).zip(sources) {
             for o in (0..run).step_by(STEP) {
-                // SAFETY: the caller bounds every row and run.
+                // SAFETY: the caller bounds every row and run, `a` at two rows, one to each constant.
                 let (w, c, x0, x1, y0, y1) = unsafe {
                     (
-                        load2(a, width, r + o),
+                        [0, 1].map(|k| load2(&a[2 * k * width..], width, r + o)),
                         load2(c, width, r + o),
                         load2(t[0], width, s1 + o),
                         load2(t[1], width, s1 + o),
@@ -325,9 +350,7 @@ mod x86 {
                     )
                 };
                 // `B` in registers, where it is read: `c` is in both rows' `B`, so not in their sum.
-                let sw = w[0].xor(w[1]);
-                let product = |x: &[V; 2]| reduce_pair(field, &karatsuba(&w, sw, x, x[0].xor(x[1])));
-                let (b0, b1) = (product(&x0), product(&x1));
+                let (b0, b1) = (mul_split(field, &x0, &w), mul_split(field, &x1, &w));
                 for (acc, p) in acc
                     .iter_mut()
                     .zip([partial(&xor2(&b0, &c), &y0), partial(&xor2(&b0, &b1), &xor2(&y0, &y1))])
@@ -369,15 +392,10 @@ mod x86 {
         challenge: &Element,
         width: usize,
     ) {
-        let challenge: [V; 2] = std::array::from_fn(|k| V::splat(challenge[k]));
-        let challenge_sum = challenge[0].xor(challenge[1]);
+        let split = field.split(challenge).map(|c| c.map(V::splat));
         for j in (0..width).step_by(STEP) {
             let (l, h) = unsafe { (load2(lo, width, j), load2(hi, width, j)) };
-            let delta = xor2(&l, &h);
-            let folded = reduce_pair(
-                field,
-                &karatsuba(&delta, delta[0].xor(delta[1]), &challenge, challenge_sum),
-            );
+            let folded = mul_split(field, &xor2(&l, &h), &split);
             unsafe { store2(dst, width, j, xor2(&l, &folded)) };
         }
     }
@@ -441,17 +459,14 @@ mod neon {
         }
     }
 
-    /// Reduce two products, a lane each, given by their four words.
+    /// [`PowerField::reduce3`] of two polynomials, a lane each, given by their three words.
     #[inline(always)]
-    unsafe fn reduce(field: &PowerField, p: &[uint64x2_t; 4]) -> [uint64x2_t; 2] {
+    unsafe fn reduce3(field: &PowerField, p: &[uint64x2_t; 3]) -> [uint64x2_t; 2] {
         unsafe {
-            let barrett: [uint64x2_t; 2] = std::array::from_fn(|k| vdupq_n_u64(field.barrett[k]));
+            let barrett = vdupq_n_u64(field.barrett[1]);
+            let q = veorq_u64(p[2], vzip2q_u64(mul_lo(p[2], barrett), mul_hi(p[2], barrett)));
             let modulus: [uint64x2_t; 2] = std::array::from_fn(|k| vdupq_n_u64(field.modulus[k]));
-            let high = [p[2], p[3]];
-            // The top two words of `high * barrett`, then the low two of `q * modulus`.
-            let t = partial(&high, &barrett, [(0, 1), (1, 0), (1, 1)]);
-            let q: [uint64x2_t; 2] = std::array::from_fn(|k| veorq_u64(high[k], word(&t, 2 + k)));
-            let r = partial(&q, &modulus, [(0, 0), (0, 1), (1, 0)]);
+            let r = partial(&[q; 2], &modulus, [(0, 0), (0, 1)]);
             std::array::from_fn(|k| veorq_u64(p[k], word(&r, k)))
         }
     }
@@ -465,12 +480,19 @@ mod neon {
         }
     }
 
-    /// The reduced products of two pairs of entries, a lane each.
+    /// Two entries of `a`, a lane each, times the elements whose split constants are `split`
+    /// ([`PowerField::split`]): word `k` of an entry times constant `k`, summed by word offset.
     #[inline(always)]
-    unsafe fn mul(field: &PowerField, a: &[uint64x2_t; 2], b: &[uint64x2_t; 2]) -> [uint64x2_t; 2] {
+    unsafe fn mul_split(field: &PowerField, a: &[uint64x2_t; 2], split: &[[uint64x2_t; 2]; 2]) -> [uint64x2_t; 2] {
         unsafe {
-            let sums = partial(a, b, ALL);
-            reduce(field, &std::array::from_fn(|w| word(&sums, w)))
+            let mut sums = [[vdupq_n_u64(0); 3]; 2];
+            for (&a, c) in a.iter().zip(split) {
+                for (m, &c) in c.iter().enumerate() {
+                    sums[0][m] = veorq_u64(sums[0][m], mul_lo(a, c));
+                    sums[1][m] = veorq_u64(sums[1][m], mul_hi(a, c));
+                }
+            }
+            reduce3(field, &std::array::from_fn(|w| word(&sums, w)))
         }
     }
 
@@ -487,11 +509,13 @@ mod neon {
             let mut acc = [[vdupq_n_u64(0); 3]; 2];
             for (r, &(s1, s2)) in (0..width).step_by(run).zip(sources) {
                 for o in (0..run).step_by(2) {
-                    let (w, c) = (load2(a, width, r + o), load2(c, width, r + o));
+                    // The caller bounds `a` at two rows, one to each constant.
+                    let w = [0, 1].map(|k| load2(&a[2 * k * width..], width, r + o));
+                    let c = load2(c, width, r + o);
                     let (y0, y1) = (load2(t[0], width, s2 + o), load2(t[1], width, s2 + o));
                     // `B` in registers, where it is read: `c` is in both rows' `B`, so not in their sum.
-                    let b0 = mul(field, &w, &load2(t[0], width, s1 + o));
-                    let b1 = mul(field, &w, &load2(t[1], width, s1 + o));
+                    let b0 = mul_split(field, &load2(t[0], width, s1 + o), &w);
+                    let b1 = mul_split(field, &load2(t[1], width, s1 + o), &w);
                     for (acc, p) in acc.iter_mut().zip([
                         partial(&xor2(&b0, &c), &y0, ALL),
                         partial(&xor2(&b0, &b1), &xor2(&y0, &y1), ALL),
@@ -516,10 +540,9 @@ mod neon {
 
     pub unsafe fn reduce_row(field: &PowerField, dst: &mut [u64], wide: &[u64], width: usize) {
         unsafe {
-            let zero = vdupq_n_u64(0);
             for j in (0..width).step_by(2) {
                 let w: [uint64x2_t; 3] = std::array::from_fn(|k| vld1q_u64(wide.as_ptr().add(k * width + j)));
-                store2(dst, width, j, &reduce(field, &[w[0], w[1], w[2], zero]));
+                store2(dst, width, j, &reduce3(field, &w));
             }
         }
     }
@@ -533,10 +556,10 @@ mod neon {
         width: usize,
     ) {
         unsafe {
-            let challenge: [uint64x2_t; 2] = std::array::from_fn(|k| vdupq_n_u64(challenge[k]));
+            let split = field.split(challenge).map(|c| c.map(|x| vdupq_n_u64(x)));
             for j in (0..width).step_by(2) {
                 let l = load2(lo, width, j);
-                let folded = mul(field, &xor2(&l, &load2(hi, width, j)), &challenge);
+                let folded = mul_split(field, &xor2(&l, &load2(hi, width, j)), &split);
                 store2(dst, width, j, &xor2(&l, &folded));
             }
         }
@@ -568,17 +591,13 @@ mod tests {
             elements(&mut rng),
             elements(&mut rng),
         );
-        assert_eq!(
-            field.to_field(&field.mul(&get(&ra0, width, 3), &get(&rb0, width, 5))),
-            a0[3] * b0[5]
-        );
-
         // Runs of eight, `T1` read from the other run and `T2` from its own.
         let sources: Vec<_> = (0..width).step_by(8).map(|r| ((r + 8) % width, r)).collect();
-        let (zero, infinity) = field.pair_sums(&ra0, &ra1, [&rb0, &rb1], width, 8, &sources);
+        let split = field.split_row(&ra0, width);
+        let (zero, infinity) = field.pair_sums(&split, &ra1, [&rb0, &rb1], width, 8, &sources);
         assert_eq!(
             (zero, infinity),
-            field.pair_sums_portable(&ra0, &ra1, [&rb0, &rb1], width, 8, &sources)
+            field.pair_sums_portable(&split, &ra1, [&rb0, &rb1], width, 8, &sources)
         );
         let big_b = |t: &[F128], j: usize| a0[j] * t[(j + 8) % width] + a1[j];
         let expected = (0..width).map(|j| big_b(&b0, j) * b0[j]).sum();
