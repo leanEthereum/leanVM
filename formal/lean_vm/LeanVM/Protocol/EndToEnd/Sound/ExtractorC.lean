@@ -52,13 +52,11 @@ theorem stackV_valsT {μ : ℕ} (hμ : laneBits ≤ μ) (P : LevelCode) (hn : 2 
   funext u x
   rw [lowMsg_eq_novelInvE h64]
 
-/-- **The agreement-set extractor, computed.** -/
-def extractASC (prog : LeanIsaProgram) (input : PublicInput) (H : Bytes → Option Digest)
-    (keys : List Bytes) (F : KeccakState → Option KeccakState) (π : Proof) :
+/-- The extractor after the replay: the roots' words, the descent over values, level 0's stack
+and its execution, from the replay's value and state. -/
+def finishAS (prog : LeanIsaProgram) (input : PublicInput) (H : Bytes → Option Digest)
+    (keys : List Bytes) (r : (Bool × ((Verifier.Layout × ℕ) × WhirTrace)) × VerifierProgramState) :
     Option (Execution prog) :=
-  ((leanVmSeed (bytecodeWords prog) (publicInputDigest input)).run H F).bind fun seed ↦
-  (replayU F (leanVmProgramCut (bytecodeWords prog) (publicInputDigest input))
-    (startState π seed)).bind fun r ↦
   if hμ : laneBits ≤ r.1.2.1.1.stackLog then
     if hn : 2 ^ (r.1.2.1.1.stackLog - laneBits) ≤ (codesOf r.1.2.1.1.stackLog r.1.2.1.2 0).n then
       (descendTraceV (codesOf r.1.2.1.1.stackLog r.1.2.1.2)
@@ -70,11 +68,19 @@ def extractASC (prog : LeanIsaProgram) (input : PublicInput) (H : Bytes → Opti
     else none
   else none
 
+/-- **The agreement-set extractor, computed.** -/
+def extractASC (prog : LeanIsaProgram) (input : PublicInput) (H : Bytes → Option Digest)
+    (keys : List Bytes) (F : KeccakState → Option KeccakState) (π : Proof) :
+    Option (Execution prog) :=
+  ((leanVmSeed (bytecodeWords prog) (publicInputDigest input)).run H F).bind fun seed ↦
+  (replayU F (leanVmProgramCut (bytecodeWords prog) (publicInputDigest input))
+    (startState π seed)).bind (finishAS prog input H keys)
+
 /-- **The computed extractor is the extractor over Gao's decoder.** -/
 theorem extractASC_eq (prog : LeanIsaProgram) (input : PublicInput) (H : Bytes → Option Digest)
     (keys : List Bytes) (F : KeccakState → Option KeccakState) (π : Proof) :
     extractASC prog input H keys F π = extractAS gaoNearDecoder prog input H keys F π := by
-  unfold extractASC extractAS
+  unfold extractASC extractAS finishAS
   refine congrArg _ (funext fun seed ↦ congrArg _ (funext fun r ↦ ?_))
   by_cases hμ : laneBits ≤ r.1.2.1.1.stackLog
   · rw [dite_eq_left hμ, dite_eq_left hμ]

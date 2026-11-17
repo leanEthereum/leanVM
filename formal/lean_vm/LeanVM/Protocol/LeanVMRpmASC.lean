@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Protocol.LeanVMRpmAS
 public import LeanVM.Protocol.EndToEnd.Sound.ExtractorC
+public import LeanVM.Protocol.EndToEnd.Sound.SkelExtract
 
 @[expose] public section
 
@@ -18,6 +19,9 @@ public import LeanVM.Protocol.EndToEnd.Sound.ExtractorC
 and its first forward answers, the computed extractor (`Sound.extractASC`: the descent over values,
 Gao's decoder, the inverse transform). It is the agreement-set extractor over Gao's decoder
 (`transcriptExtractorASC_eq`), so the end statement holds for it (`knowledgeSoundnessASC_holds`).
+`transcriptExtractorASF` replays the verifier's skeleton instead of the verifier, and returns
+whatever the computed extractor returns, so the end statement holds for it too
+(`knowledgeSoundnessASF_holds`).
 -/
 
 namespace LeanVM
@@ -46,6 +50,26 @@ statement's bound. -/
 theorem knowledgeSoundnessASC_holds : KnowledgeSoundness transcriptExtractorASC := by
   rw [transcriptExtractorASC_eq]
   exact knowledgeSoundnessAS_holds gaoNearDecoder
+
+/-- An extractor that returns whatever one knowledge-sound extractor returns is knowledge sound. -/
+theorem KnowledgeSoundness.of_imp {E₁ E₂ : StraightLineExtractor}
+    (h : ∀ prog input T proof t, E₁ prog input T proof = some t → E₂ prog input T proof = some t)
+    (h₁ : KnowledgeSoundness E₁) : KnowledgeSoundness E₂ := fun A Q hQ hcap ↦
+  (prEvent_mono _ _ _ fun _ ho ↦ ⟨ho.1, fun ⟨t, ht, hv⟩ ↦ ho.2 ⟨t, h _ _ _ _ _ ht, hv⟩⟩).trans
+    (h₁ A Q hQ hcap)
+
+/-- **The agreement-set extractor over the verifier's skeleton**, on the adversary's transcript. -/
+def transcriptExtractorASF : StraightLineExtractor :=
+  fun prog input T proof ↦
+    let paths := keccakEvaluationsOfTranscript (permutationQueries T)
+    EndToEnd.Sound.extractASF prog input (lookupEvaluation paths) (paths.map (·.1))
+      (Rpm.firstForward (permutationQueries T)) proof
+
+/-- **Knowledge soundness holds for the extractor over the skeleton**, with the end statement's
+bound. -/
+theorem knowledgeSoundnessASF_holds : KnowledgeSoundness transcriptExtractorASF :=
+  KnowledgeSoundness.of_imp (fun _ _ _ _ _ h ↦ EndToEnd.Sound.extractASF_of_extractASC h)
+    knowledgeSoundnessASC_holds
 
 end LeanVM
 
