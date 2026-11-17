@@ -1411,9 +1411,10 @@ def lowerMatch : Nat → List Expr → Expr → List Expr → M Unit
     let isInlineArm : Expr → M Bool := fun
       | .call f _ => return (← origDef f).any (·.inline)
       | _ => return false
+    -- Only calls to the program's own normal functions fuse into a dispatch: a builtin's arm is a value.
     let allCalls ← arms.allM fun a => do
       match a with
-      | .call .. => return !(← isInlineArm a)
+      | .call f _ => return (← origDef f).any (!·.inline)
       | _ => return false
     if allCalls && !arms.isEmpty then
       let specialized ← arms.mapM fun a => do
