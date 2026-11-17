@@ -9,7 +9,8 @@
 //! cell, nothing is shared (a pooled constant, an interned pure result or a repeated load is a second atom on a
 //! fresh value), and there is no frame plumbing (frame and return pointers, jump targets, jump tables). Values
 //! allocated together ([`FnExpand::alloc_stack`]) are a run, which is what a `keccak` operand used in place needs.
-//! Lean's expansion (`formal/lean_vm/LeanVM/Guest/Expand.lean`) is the other implementation of this pass;
+//! This is Rust's own front end, cut from the compiler's lowering (`lower.rs`, `lower/*.rs`), and independent of
+//! Lean's (`formal/lean_vm/LeanVM/Guest/Expand.lean`), which was ported from that lowering separately;
 //! `scripts/frontend-diff` compares the two on the guest and the test programs.
 
 use super::*;
