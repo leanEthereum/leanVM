@@ -214,6 +214,8 @@ import Quantum.Qrom.SufCma.GamePar
 import Quantum.Sponge.Oracle.Parallel
 import Quantum.Qrom.Xmss.Multi.Hybrid
 import Quantum.Qrom.Xmss.Multi.End
+import Quantum.Qrom.Xmss.Multi.Security
+import Quantum.Qrom.Xmss.Multi.BoundValue
 import Quantum.Qrom.Xmss.Multi.GameT
 import Quantum.Qrom.Xmss.Multi.GameTSel
 import Quantum.Qrom.Xmss.Multi.GameTCalls
@@ -233,9 +235,10 @@ values at Keccak-256's sizes (`Quantum.Sponge.keccak256_qrpm_collision_le`,
 unforgeability against quantum adversaries (`Quantum.Xmss.Assembly.leanXmss_qrpm_security`,
 `Quantum.Sphincs.Assembly.leanSphincs_qrpm_security`). For comparison, both schemes in the
 quantum random-oracle model with Keccak-256 as one random function (`Quantum.Qrom`:
-`Quantum.Qrom.Xmss.leanXmss_qrom_security`, `Quantum.Qrom.Sphincs.leanSphincs_qrom_security`).
-The build fails if the axiom footprint of the main theorems ever grows beyond Lean's three standard
-axioms. -/
+`Quantum.Qrom.Xmss.leanXmss_qrom_security`, `Quantum.Qrom.Sphincs.leanSphincs_qrom_security`),
+and leanXMSS with `n` users in the quantum random-oracle model
+(`Quantum.Qrom.Xmss.Multi.leanXmss_qrom_mu_security`). The build fails if the axiom footprint of
+the main theorems ever grows beyond Lean's three standard axioms. -/
 
 /-- info: 'Quantum.qrpmEvalDistMap_eq_spongePerm' depends on axioms:
 [propext, Classical.choice, Quot.sound] -/
@@ -356,3 +359,13 @@ axioms. -/
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Quantum.Qrom.Sphincs.sphincsQromBound_two_pow_40_le
+
+/-- info: 'Quantum.Qrom.Xmss.Multi.leanXmss_qrom_mu_security' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Qrom.Xmss.Multi.leanXmss_qrom_mu_security
+
+/-- info: 'Quantum.Qrom.Xmss.Multi.xmssQromMuBound_le' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Qrom.Xmss.Multi.xmssQromMuBound_le
