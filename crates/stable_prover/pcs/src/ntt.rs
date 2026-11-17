@@ -8,7 +8,8 @@
 //! - An `E` element is two `K` words and the twiddles lie in `K`, so an `E`-valued encode is the base transform over
 //!   twice the lanes.
 //!
-//! A transform runs in two phases, so that a large buffer takes few passes over memory:
+//! A transform on the pool runs in two phases, so that a large buffer takes few passes over memory (the in-place
+//! encode, on one thread, runs the second alone):
 //!
 //! 1. The layers with fewer blocks than the pool has tasks run together, in one pass.
 //! 2. Then each block of the next layer runs the rest on its own, depth first: three layers per pass while the block is
@@ -245,12 +246,18 @@ impl AdditiveNttF64 {
     }
 
     /// RS-encode the row-major message in the first `2^-log_inv_rate` of `data`, `num_ntts` lanes a row: every coset
-    /// becomes a copy of it, then the transform runs from layer `log_inv_rate`.
+    /// becomes a copy of it, then the transform runs from layer `log_inv_rate`, on one thread: each copy is a block of
+    /// that layer, taken by the second phase alone.
     pub fn encode_interleaved_in_place(&self, data: &mut [F64], num_ntts: usize, log_inv_rate: usize) {
+        assert_eq!(data.len() % num_ntts, 0, "whole rows");
+        let log_d = log2_strict_usize(data.len() / num_ntts);
+        assert!(log_d <= self.dim && log_inv_rate <= log_d);
         let (msg, rest) = data.split_at_mut(data.len() >> log_inv_rate);
-        parallel::chunks_mut(rest, CHUNK, |i, out| copy_cyclic(msg, i * CHUNK, out));
-        let rows = data.len() / num_ntts;
-        self.transform(data, num_ntts, log_inv_rate, &mut vec![(); rows], |_, _| {});
+        copy_cyclic(msg, 0, rest);
+        let (coset, rows) = (msg.len(), msg.len() / num_ntts);
+        for (b, block) in data.chunks_exact_mut(coset).enumerate() {
+            self.transform_block(block, &mut vec![(); rows], num_ntts, log_inv_rate, b, &|_, _| {});
+        }
     }
 
     /// The codeword of a row-major message held apart, `num_ntts` lanes a row, each block of its rows handed to `done`
