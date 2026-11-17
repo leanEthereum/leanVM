@@ -1,0 +1,1 @@
+error: in main: hint_decompose_bits_exponent writes at most 40 bits, got 41
