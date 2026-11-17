@@ -210,6 +210,8 @@ import Quantum.StdModel.StraightLine
 import Quantum.StdModel.Formats
 import Quantum.StdModel.Props
 import Quantum.StdModel.Xmss.Reduction
+import Quantum.StdModel.Xmss.Costs
+import Quantum.StdModel.Qrom.OffTweak
 import Quantum.StdModel.Sphincs.Reduction
 import Quantum.Par.Subst
 import Quantum.Par.Lockstep
