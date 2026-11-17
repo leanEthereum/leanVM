@@ -4,8 +4,8 @@
 //! Each has a portable form, an AVX-512 one (AVX-512BW, VPCLMULQDQ, GFNI), an AVX2 one
 //! (PCLMULQDQ, and VPCLMULQDQ where it is) and a NEON one (PMULL), which agree bit for bit. The
 //! vector forms are compiled only where their features are. With AVX-512 and GFNI a block's
-//! [`skip_row`]s are summed on residues instead (`skip_gfni`), and with PCLMULQDQ alone on a
-//! row's shared cofactors (`skip_clmul`).
+//! [`skip_row`]s are summed on residues instead (`skip_gfni`), and with PCLMULQDQ alone or PMULL
+//! on a row's shared cofactors (`skip_clmul`).
 
 use primitives::field::gf2_64::mul_wide;
 
@@ -262,7 +262,10 @@ cfg_select! {
     ) => {
         pub(crate) use crate::skip_gfni::SkipBlock;
     }
-    all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq") => {
+    any(
+        all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq"),
+        all(target_arch = "aarch64", target_feature = "aes")
+    ) => {
         pub(crate) use crate::skip_clmul::SkipBlock;
     }
     _ => {
@@ -559,11 +562,10 @@ mod neon {
     use core::arch::aarch64::*;
     use core::mem::transmute;
 
-    use primitives::field::gf2_64::aarch64::{
-        pmull, pmull_hi as mul_hi_scheduled, pmull_hi_asm as mul_hi, pmull_lo_asm as mul_lo,
-    };
+    use primitives::field::gf2_64::aarch64::{pmull_hi_asm as mul_hi, pmull_lo_asm as mul_lo};
 
     use super::*;
+    pub use super::{embed_extend_portable as embed_extend, skip_row_portable as skip_row};
 
     /// A linear map is the sum of its nibbles' images, so each byte of sixteen embeddings is four
     /// table lookups.
@@ -607,78 +609,6 @@ mod neon {
         unsafe { vmovl_u32(vld1_u32(p)) }
     }
 
-    /// [`extend_group`] on the four vectors of a group, the values staying in registers: a
-    /// vector's low mixed points are two table lookups, and its lane sum is returned for the last
-    /// one, which [`embed_extend`] stores with the other group's.
-    #[inline(always)]
-    unsafe fn extend_vectors(v: [uint32x4_t; 4], out: *mut u32) -> uint32x4_t {
-        const FIRST: [u8; 16] = [0, 1, 2, 3, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5, 6, 7];
-        const SECOND: [u8; 16] = [4, 5, 6, 7, 12, 13, 14, 15, 8, 9, 10, 11, 12, 13, 14, 15];
-        unsafe {
-            let (first, second) = (vld1q_u8(FIRST.as_ptr()), vld1q_u8(SECOND.as_ptr()));
-            let (w4, w5) = (veorq_u32(v[0], v[1]), veorq_u32(v[2], v[3]));
-            let w = [
-                v[0],
-                v[1],
-                v[2],
-                v[3],
-                w4,
-                w5,
-                veorq_u32(v[0], v[2]),
-                veorq_u32(v[1], v[3]),
-                veorq_u32(w4, w5),
-            ];
-            for (k, &w) in w[4..].iter().enumerate() {
-                vst1q_u32(out.add(4 * k), w);
-            }
-            let low: [uint32x4_t; 9] = std::array::from_fn(|k| {
-                let b = vreinterpretq_u8_u32(w[k]);
-                vreinterpretq_u32_u8(veorq_u8(vqtbl1q_u8(b, first), vqtbl1q_u8(b, second)))
-            });
-            for (k, &l) in low.iter().enumerate() {
-                vst1q_u32(out.add(20 + 4 * k), l);
-            }
-            // Lanes 0 and 1 of a vector's low mixed points add to its lane sum: two vectors at a time.
-            let pair = |a: uint32x4_t, b: uint32x4_t| {
-                let z = vzip1q_u32(a, b);
-                veorq_u32(z, vextq_u32::<2>(z, z))
-            };
-            for k in (0..8).step_by(4) {
-                let (p, q) = (pair(low[k], low[k + 1]), pair(low[k + 2], low[k + 3]));
-                vst1q_u32(
-                    out.add(56 + k),
-                    vreinterpretq_u32_u64(vzip1q_u64(vreinterpretq_u64_u32(p), vreinterpretq_u64_u32(q))),
-                );
-            }
-            low[8]
-        }
-    }
-
-    #[inline(always)]
-    pub fn embed_extend(words: &[u64; BLOCK_WORDS], out: &mut [u32; SLOTS]) {
-        unsafe {
-            let e = embed(words);
-            let v = |half: usize| -> [uint32x4_t; 4] {
-                std::array::from_fn(|k| vld1q_u32(e.as_ptr().add(16 * half + 4 * k)))
-            };
-            let last0 = extend_vectors(v(0), out.as_mut_ptr());
-            let last1 = extend_vectors(v(1), out.as_mut_ptr().add(64));
-            let z = vzip1q_u32(last0, last1);
-            vst1_u32(
-                out.as_mut_ptr().add(128),
-                vget_low_u32(veorq_u32(z, vextq_u32::<2>(z, z))),
-            );
-        }
-    }
-
-    /// The low lanes' product through the intrinsics, as [`mul_hi_scheduled`] is, for [`skip_row`]:
-    /// its products are the bound there, and the compiler schedules them better around the rest of
-    /// the loop than written-out ones.
-    #[inline(always)]
-    unsafe fn mul_lo_scheduled(a: uint64x2_t, b: uint64x2_t) -> uint64x2_t {
-        unsafe { pmull(vgetq_lane_u64(a, 0), vgetq_lane_u64(b, 0)) }
-    }
-
     #[inline(always)]
     pub fn products(a: &[u32; PACKS], b: &[u32; PACKS], c: &[u32; PACKS]) -> [u64; PACKS] {
         unsafe {
@@ -696,34 +626,6 @@ mod neon {
                 vst1q_u64(out.as_mut_ptr().add(q), vzip1q_u64(even, odd));
             }
             out
-        }
-    }
-
-    /// Two slots at a time, their sums over the row kept in registers. The padding slots are
-    /// skipped: [`extend`] never writes them, and nothing reads their sums.
-    #[inline(always)]
-    pub fn skip_row(acc: &mut SkipAcc, e: &[[u32; SLOTS]; 5], weights: [&[u64; 2]; 5]) {
-        unsafe {
-            let w: [[uint64x2_t; 2]; 5] = std::array::from_fn(|x| std::array::from_fn(|k| vdupq_n_u64(weights[x][k])));
-            for p in (0..2 * MIXED).step_by(2) {
-                let z: [uint64x2_t; 5] = std::array::from_fn(|x| load(e[x].as_ptr().add(p)));
-                let mut sums = [[vdupq_n_u64(0); 2]; 2];
-                for x in 0..5 {
-                    let (zb, zc) = (z[(x + 1) % 5], z[(x + 2) % 5]);
-                    let pair = vzip1q_u64(mul_lo_scheduled(zb, zc), mul_hi_scheduled(zb, zc));
-                    for k in 0..2 {
-                        sums[k][0] = veorq_u64(sums[k][0], mul_lo_scheduled(pair, w[x][k]));
-                        sums[k][1] = veorq_u64(sums[k][1], mul_hi_scheduled(pair, w[x][k]));
-                    }
-                }
-                for (k, sums) in sums.iter().enumerate() {
-                    for (h, &sum) in sums.iter().enumerate() {
-                        let (v, l) = lane(p + h);
-                        let slot = (&mut acc.0[k][v].0[l] as *mut u128).cast::<u64>();
-                        vst1q_u64(slot, veorq_u64(vld1q_u64(slot), sum));
-                    }
-                }
-            }
         }
     }
 

@@ -1,6 +1,6 @@
 //! The four bit-level rounds' sums over a block, by carry-less products on registers of
-//! [`Vector`] lanes (PCLMULQDQ at any width, where AVX-512 and GFNI are not): per [`slot`], the
-//! polynomial [`skip_row`](crate::kernels::skip_row) sums over the block.
+//! [`Vector`] lanes (PCLMULQDQ at any width, where AVX-512 and GFNI are not, or PMULL): per
+//! [`slot`], the polynomial [`skip_row`](crate::kernels::skip_row) sums over the block.
 //!
 //! A register holds one value of [`L`] slices, a word each, so the extension is a sum of
 //! registers and a slot's products are a register's lanes, at `L` positions' weights at once.

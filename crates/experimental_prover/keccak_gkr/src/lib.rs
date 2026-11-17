@@ -88,8 +88,8 @@
 //!
 //! The four rounds' sums are binary polynomials of degree at most 173. With AVX-512 and GFNI they
 //! are taken on residues modulo 24 irreducibles of degree 8, where a product is a byte product
-//! (`skip_gfni`); with PCLMULQDQ alone, by carry-less products on a row's shared cofactors
-//! (`skip_clmul`).
+//! (`skip_gfni`); with PCLMULQDQ alone or PMULL, by carry-less products on a row's shared
+//! cofactors (`skip_clmul`).
 
 use primitives::field::{F64, F128, F128Unreduced};
 use primitives::hash::STATE_LANES;
@@ -101,7 +101,10 @@ use verifier::keccak::LANE_BITS;
 mod basis;
 #[cfg(feature = "bench")]
 pub mod batch_bench;
-#[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq"))]
+#[cfg(any(
+    all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq"),
+    all(target_arch = "aarch64", target_feature = "aes")
+))]
 mod clmul;
 pub mod kernels;
 mod open;
@@ -116,7 +119,10 @@ cfg_select! {
         mod skip_gfni;
         mod table_gfni;
     }
-    all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq") => {
+    any(
+        all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq"),
+        all(target_arch = "aarch64", target_feature = "aes")
+    ) => {
         mod skip_clmul;
     }
     _ => {}
