@@ -1,19 +1,21 @@
 /-
   LeanVM.Guest.EndExecYAdvAl
 
-  The deployed alignment's advice by function is the advice's own, decided by the kernel.
+  The deployed alignment's advice by function is the advice's own.
 -/
 
 module
 
-public import LeanVM.Guest.Bridge.ProgAlDefs
+public import LeanVM.Guest.Bridge.PairChk.All
+public import LeanVM.Guest.B2C.CplRun
 public import LeanVM.Guest.Mode.Hints
 
 /-!
 # The alignment's advice
 
 `adviceOf_fns`: compiled function `j`'s advice in the alignment check (`Bridge.adviceOf j`) is the
-`j`-th of the advice's functions, of its code's length.
+`j`-th of the advice's functions, of its code's length: the data check's (`Bridge.PairJ`) for every
+function but `__jump_tables`, which `adviceOf_zero` decides.
 -/
 
 namespace LeanVM.Guest.EndExec
@@ -22,21 +24,17 @@ open LeanVM.Guest
 
 public section
 
-/-- The check of function `j`, its advice `d`. -/
-noncomputable def advFnOk (p : (ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)) × ℕ) : Bool :=
-  decide (p.1 = Bridge.adviceOf p.2) && Nat.beq p.1.2.1 (fnOf p.2).code.length
-
-theorem advFnOk_all : Data.adviceFns.zipIdx.all advFnOk = true ∧ nFns ≤ Data.adviceFns.length := by
+/-- `__jump_tables`' advice, which the data check leaves out. -/
+theorem adviceOf_zero :
+    Data.adviceFns[0]? = some (Bridge.adviceOf 0) ∧ (Bridge.adviceOf 0).2.1 = (fnOf 0).instructionCount := by
   decide +kernel
 
 theorem adviceOf_fns {j : ℕ} (hj : j < nFns) :
     Data.adviceFns[j]? = some (Bridge.adviceOf j) ∧ (Bridge.adviceOf j).2.1 = (fnOf j).code.length := by
-  have hl : j < Data.adviceFns.length := lt_of_lt_of_le hj advFnOk_all.2
-  have := List.all_eq_true.mp advFnOk_all.1 (Data.adviceFns[j], j)
-    (List.mem_zipIdx_iff_getElem?.mpr (by simp [List.getElem?_eq_getElem hl]))
-  simp only [advFnOk, Bool.and_eq_true, decide_eq_true_eq, Nat.beq_eq] at this
-  rw [List.getElem?_eq_getElem hl, this.1]
-  exact ⟨rfl, this.1 ▸ this.2⟩
+  rw [CompiledFunction.length_code (CompiledFunction.wellChunked_of_mem (B2C.fnOf_memC hj))]
+  rcases Nat.eq_zero_or_pos j with rfl | h1
+  · exact adviceOf_zero
+  · exact (Bridge.PairChk.pairJ_all j h1 (by have : nFns = fn_count% := rfl; omega)).2
 
 end
 

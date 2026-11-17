@@ -585,10 +585,17 @@ def Abs.ptrAt (A : Abs) (k : Mono) (os : List ℕ) : Bool :=
   | some (.m m) => os.all fun o ↦ A.covered (m.shift o)
   | _ => false
 
-/-- The heap cell `k` holds a pointer with the cells `os` past it written: a known word, or a cell of
-a run of pointers naming them. -/
+/-- The heap cell `k` holds a known word whose cells `os` past it, each below `os`'s length, are
+known written, a run at a time (`coverC`). -/
+def Abs.ptrC (A : Abs) (k : Mono) (os : List ℕ) : Bool :=
+  match A.hvGet k with
+  | some (.m m) => os.all (· < os.length) && A.coverC m (os.length + 1) m.k (m.k + os.length)
+  | _ => false
+
+/-- The heap cell `k` holds a pointer with the cells `os` past it written: a known word (its cells
+a run at a time, else each), or a cell of a run of pointers naming them. -/
 def Abs.ptrIn (A : Abs) (k : Mono) (os : List ℕ) : Bool :=
-  A.ptrAt k os || A.p.any fun q ↦ os.all (q.2.contains ·) && A.inRng k q.1
+  A.ptrC k os || A.ptrAt k os || A.p.any fun q ↦ os.all (q.2.contains ·) && A.inRng k q.1
 
 /-- Every cell of run `r` is known to hold a pointer with the cells `os` past it written: a known run
 of pointers holds it, or it is one point, or each of its (at most `2^12`) points, from a constant to a

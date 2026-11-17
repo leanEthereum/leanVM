@@ -119,12 +119,26 @@ theorem PtrW.sub {m : Mem} {x : ℕ} {os os' : List ℕ} (h : PtrW m x os') (hs 
   obtain ⟨p, h1, h2⟩ := h
   exact ⟨p, h1, fun o ho ↦ h2 o (hs o ho)⟩
 
+/-- **A pointer the walk knows, its cells a run at a time.** -/
+theorem Abs.ptrC_sound {s : St} {A : Abs} (hA : Holds s A) (hfp : s.fp < maxCells) (hwf : s.mem.WF)
+    (hu : s.mem.used ≤ maxCells) {k : Mono} {os : List ℕ} (h : A.ptrC k os = true) : HP s k os := by
+  unfold Abs.ptrC at h
+  split at h
+  · rename_i m hm
+    obtain ⟨⟨vk, X, w, hk, hX, hw, hmw⟩, -⟩ := hvGet_gen hA hfp hwf hu hm
+    simp only [Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq] at h
+    exact ⟨vk, X, hk, hX, w, hw, fun o ho ↦
+      Abs.coverC_sound hA hwf hu h.2 (m.k + o) (by omega) (by have := h.1 o ho; omega) _ (hmw.shift o)⟩
+  · cases h
+
 /-- **A pointer the walk knows**, or one a run of pointers holds. -/
 theorem Abs.ptrIn_sound {s : St} {A : Abs} (hA : Holds s A) (hfp : s.fp < maxCells) (hwf : s.mem.WF)
     (hu : s.mem.used ≤ maxCells) {k : Mono} {os : List ℕ} (h : A.ptrIn k os = true) : HP s k os := by
   unfold Abs.ptrIn at h
   rcases Bool.or_eq_true_iff.mp h with h | h
-  · exact Abs.ptrAt_sound hA hfp hwf hu h
+  · rcases Bool.or_eq_true_iff.mp h with h | h
+    · exact Abs.ptrC_sound hA hfp hwf hu h
+    · exact Abs.ptrAt_sound hA hfp hwf hu h
   · obtain ⟨⟨r, os'⟩, hm, hh⟩ := List.any_eq_true.mp h
     simp only [Bool.and_eq_true, List.all_eq_true, List.contains_iff_mem] at hh
     obtain ⟨vq, xlo, xhi, h1, -, h3, -⟩ := hA.p _ hm

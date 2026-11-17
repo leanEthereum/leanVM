@@ -23,7 +23,9 @@ LONG = 16
 # The kernel's memory on a check, estimated in MB (`kprofile`): `KBASE` a module, `KINS` an
 # instruction, `KRUN` a run a lookup tries (`Abs.inRuns`) per base of the cell, `KARM` a call's arm and
 # `KADD` each fact it adds to the state before the call (the arms are met by what they add: the state
-# before is a tail they share), `KSIZE` a fact of the snapshot a window ends at (its cut's check). A
+# before is a tail they share), `KPTR` each cell past a known pointer that `Abs.ptrAt` looks up one by
+# one, `KPTRC` each cell past one whose cells `Abs.ptrC` finds a run at a time, `KSIZE` a fact of the
+# snapshot a window ends at (its cut's check). A
 # module is sized to at most `KBUDGET`; a function one of whose instructions alone needs more than
 # `KHARD` is not checked (`HEAVY`). `KHARD` is set from the kernel's measured peak on table calls, a
 # margin below the 8 GB a check may take.
@@ -32,6 +34,8 @@ KINS = 1.5
 KRUN = 0.01
 KARM = 105
 KADD = 1.6
+KPTR = 0.5
+KPTRC = 0.02
 KSIZE = 0.75
 KBUDGET = 4500
 KHARD = 12500
@@ -350,12 +354,14 @@ def kprofile(n, sig, res):
     kernel's memory its instruction is estimated to need (`C`, MB): `KINS`, and `KRUN` for each run a
     lookup tries and each base of the cell (`Abs.inRuns` tries the runs over `k`'s bases or all but one
     of them, a miss each, a hit half of them on average; none for a run of one point that is the cell,
-    which `ptKey` finds at once), and for each arm of a call `KARM` and `KADD` for each fact it adds."""
+    which `ptKey` finds at once), for each arm of a call `KARM` and `KADD` for each fact it adds, and
+    for a known pointer's cells `KPTRC` each if `Abs.ptrC` finds them (no lookup counted), else `KPTR`
+    each."""
     f = I.fns[n]; N = f['count']
-    S = [0] * (N + 1); C = [KINS] * N; cur = [0]
-    och = W.Abs.coveredHR
+    S = [0] * (N + 1); C = [KINS] * N; cur = [0]; quiet = [0]
+    och = W.Abs.coveredHR; opi = W.Abs.ptrIn
     def coveredHR(A, k):
-        if k not in A.h:
+        if k not in A.h and not quiet[0]:
             keys = {(k[0], k[2])} | {(k[0], tuple(q for q in k[2] if q[0] != e[0])) for e in k[2]}
             c = [r for r in A.r if (r[0][0], r[0][2]) in keys]
             if not any(onePt(r) == k for r in c):
@@ -369,12 +375,36 @@ def kprofile(n, sig, res):
         B = oac(w, A, *a)
         C[cur[0]] += KARM + KADD * max(0, facts(B) - facts(A))
         return B
-    W.Abs.coveredHR = coveredHR; I.Walk.afterCall = afterCall
+    def ptrIn(A, k, os):
+        x = A.hvGet(k)
+        if x is None or x[0] != 'm' or quiet[0]: return opi(A, k, os)
+        fast = ptrC(A, x[1], os)
+        C[cur[0]] += (KPTRC if fast else KPTR) * len(os)
+        quiet[0] += fast
+        try: return opi(A, k, os)
+        finally: quiet[0] -= fast
+    W.Abs.coveredHR = coveredHR; I.Walk.afterCall = afterCall; W.Abs.ptrIn = ptrIn
     try:
         I.Walk(I.E, f['entry'], N, sig, f['hints'], res, f['tabs'], main=n == 'main').run(f['ops'], probe=probe)
     finally:
-        W.Abs.coveredHR = och; I.Walk.afterCall = oac
+        W.Abs.coveredHR = och; I.Walk.afterCall = oac; W.Abs.ptrIn = opi
     return S, C
+
+
+def ptrC(A, m, os):
+    """`Abs.ptrC` past the pointer `m`: every offset of `os` below its length, and every cell up to it
+    known written, from each a known run of stride 1 and constant bounds to its end (`Abs.reach`), else
+    that cell alone (`Abs.coverC`)."""
+    if not all(o < len(os) for o in os): return False
+    segs = [(q[1] + d + lo[1], q[1] + d + hi[1]) for q, lo, hi, S, d in A.r
+            if S == 1 and lo[0] == 'num' and hi[0] == 'num' and lo[1] + 1 < hi[1] and (q[0], q[2]) == (m[0], m[2])]
+    o, e = m[1], m[1] + len(os)
+    while o < e:
+        r = max([b for a, b in segs if a <= o < b], default=o)
+        if o < r: o = r
+        elif A.covered((m[0], o, m[2])): o += 1
+        else: return False
+    return True
 
 
 def onePt(r):
