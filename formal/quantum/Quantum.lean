@@ -161,6 +161,8 @@ import Quantum.Qrom.Embed
 import Quantum.Qrom.CellEvent
 import Quantum.Qrom.TableLaw
 import Quantum.Qrom.Regroup
+import Quantum.Qrom.Xmss.Scheme
+import Quantum.Qrom.Xmss.Slots
 
 /-! Security against quantum adversaries in the quantum random-permutation model (`Quantum.Model`),
 on VCVio's quantum oracle programs (`VCVio.Quantum`): the sponge's collision and preimage
