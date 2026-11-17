@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Protocol.Extraction.AS.TopA
 public import LeanVM.Protocol.Whir.Sound.DescentC
+public import LeanVM.Protocol.EndToEnd.Sound.SkelPairs
 
 /-!
 # The extractor, compiled form
@@ -81,13 +82,34 @@ theorem extractC_eq (prog : LeanIsaProgram) (input : PublicInput)
   unfold extractC extractA
   simp only [finishC_eq]
 
+/-- **The agreement-set extractor, compiled form**: the replay records each event's values
+only (`skelReplayP`), the decoders read them (`decSizesP`, `decBodyP`). -/
+def extractP (prog : LeanIsaProgram) (input : PublicInput)
+    (qs : List (PermutationQuery KeccakState × KeccakState)) (π : Proof) :
+    Option (Execution prog) :=
+  let F := fwdF (fwdIndex qs)
+  (seedWithHash (KeccakHash.keccak256With F) F (bytecodeWords prog)
+    (publicInputDigest input)).bind fun seed ↦
+  (skelReplayP F skSizes (startState π seed)).bind fun r₁ ↦
+  (decSizesP (bytecodeWords prog) r₁.1).bind fun a ↦
+  (skelReplayP F (skBody a.1 a.2) r₁.2).bind fun r₂ ↦
+  (decBodyP a.1 a.2 r₂.1).bind fun tr ↦
+  finishC prog input qs ((true, (a, tr)), r₂.2)
+
+theorem extractP_eq (prog : LeanIsaProgram) (input : PublicInput)
+    (qs : List (PermutationQuery KeccakState × KeccakState)) (π : Proof) :
+    extractP prog input qs π = extractC prog input qs π := by
+  unfold extractP extractC
+  simp only [skelReplayP_eq, Option.bind_map, Function.comp_def, ← decSizes_eq, ← decBody_eq]
+
 /-- **The agreement-set extractor, compiled form**, on the adversary's transcript. -/
 def transcriptExtractorC : StraightLineExtractor :=
-  fun prog input T π ↦ extractC prog input (permutationQueries T) π
+  fun prog input T π ↦ extractP prog input (permutationQueries T) π
 
 /-- **Knowledge soundness holds for the compiled form**, with the end statement's bound. -/
 theorem knowledgeSoundnessC_holds : KnowledgeSoundness transcriptExtractorC :=
-  KnowledgeSoundness.of_imp (fun _ _ _ _ _ h ↦ (extractC_eq _ _ _ _).trans h) knowledgeSoundnessA_holds
+  KnowledgeSoundness.of_imp (fun _ _ _ _ _ h ↦ ((extractP_eq _ _ _ _).trans
+    (extractC_eq _ _ _ _)).trans h) knowledgeSoundnessA_holds
 
 end
 end LeanVM.Extraction.AS

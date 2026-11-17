@@ -48,7 +48,7 @@ def foldsAC (n : ℕ) (rounds : List FoldRound) (OA : AV) : AV :=
 /-- The agreement set's columns. -/
 def agreeC (n m : ℕ) (r : FoldRound) (VA QA : AV) : List (Fin n) :=
   (List.finRange n).filter fun (x : Fin n) ↦ (List.finRange (2 ^ m)).all fun k ↦
-    (VA.getD x #[]).getD k 0 == (foldCA (ptE x) r (QA.getD x #[])).getD k 0
+    decide ((VA.getD x #[]).getD k 0 = (foldCA (ptE x) r (QA.getD x #[])).getD k 0)
 
 /-- Lane `k`'s points on the window, nodes in `K`. -/
 def winPtsC {n : ℕ} (d : ℕ) (QA : AV) (cols : List (Fin n)) (k : ℕ) : List (K × E) :=
@@ -62,9 +62,13 @@ def newtonDecC (n d m : ℕ) (QA : AV) (cols : List (Fin n)) : Option AV :=
       let V := Array.ofFn fun x : Fin n ↦ Array.ofFn fun k : Fin (2 ^ (m + 1)) ↦
         nEvalK ((fs.getD k none).getD ([], [])).1 ((fs.getD k none).getD ([], [])).2 (K.ofBits x)
       if (cols.filter fun (x : Fin n) ↦ (List.finRange (2 ^ (m + 1))).any fun k ↦
-          (V.getD x #[]).getD k 0 != (QA.getD x #[]).getD k 0).length ≤ 1 then some V else none
+          !decide ((V.getD x #[]).getD k 0 = (QA.getD x #[]).getD k 0)).length ≤ 1 then some V
+      else none
     else none
   else none
+
+theorem bne_eq_not_decide (a b : E) : (a != b) = !decide (a = b) := by
+  rw [bne, beq_eq_decide]
 
 theorem winPtsA_domain {κ R : ℕ} (h : κ + R ≤ 64) (d : ℕ) (QA : AV)
     (cols : List (Fin (2 ^ (κ + R)))) (k : ℕ) :
@@ -114,6 +118,7 @@ theorem newtonDecC_eq {κ R : ℕ} (h : κ + R ≤ 64) (d m : ℕ) (QA : AV)
     rfl
   dsimp only
   rw [hall, hV]
+  simp only [bne_eq_not_decide]
 
 /-- **The descent within a level, compiled form**: the rounds reversed, the last first. -/
 def descRevC (n d A ℓ : ℕ) (OA : AV) : List FoldRound → ℕ → AV → Option (ℕ × AV)
@@ -129,7 +134,10 @@ theorem foldsAC_eq {κ R : ℕ} (h : κ + R ≤ 64) (rounds : List FoldRound) (O
     foldsAC (2 ^ (κ + R)) rounds OA = foldsAA (domain κ R h) rounds OA := rfl
 
 theorem agreeC_eq {κ R : ℕ} (h : κ + R ≤ 64) (m : ℕ) (r : FoldRound) (VA QA : AV) :
-    agreeC (2 ^ (κ + R)) m r VA QA = agreeA (domain κ R h) m r VA QA := rfl
+    agreeC (2 ^ (κ + R)) m r VA QA = agreeA (domain κ R h) m r VA QA := by
+  unfold agreeC agreeA
+  simp only [beq_eq_decide]
+  rfl
 
 theorem descRevC_eq {κ R : ℕ} (h : κ + R ≤ 64) (d A ℓ : ℕ) (OA : AV) :
     ∀ (rs : List FoldRound) (m : ℕ) (VA : AV),

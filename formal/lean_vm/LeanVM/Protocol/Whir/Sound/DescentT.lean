@@ -33,7 +33,13 @@ def novelAtH (c x : ℕ) : K := ∏ i ∈ range 64, if c.testBit i then hatAt i 
 
 /-- The polynomial of novel coefficients `cs` at `x_x`, from the table. -/
 def polyOfAtH (cs : List E) (x : ℕ) : E :=
-  ∑ c ∈ range cs.length, cs.getD c 0 * ofK (novelAtH c x)
+  ((List.range cs.length).map fun c ↦ cs.getD c 0 * ofK (novelAtH c x)).sum
+
+theorem sum_range_eq_list (f : ℕ → E) : ∀ n, ∑ c ∈ range n, f c = ((List.range n).map f).sum
+  | 0 => rfl
+  | n + 1 => by
+    rw [sum_range_succ, sum_range_eq_list f n, List.range_succ, List.map_append, List.sum_append]
+    simp
 
 theorem novelAtH_eq (c x : ℕ) : novelAtH c x = novelAt c (K.ofBits x) := by
   unfold novelAtH novelAt
@@ -42,6 +48,7 @@ theorem novelAtH_eq (c x : ℕ) : novelAtH c x = novelAt c (K.ofBits x) := by
 
 theorem polyOfAtH_eq (cs : List E) (x : ℕ) : polyOfAtH cs x = polyOfAt cs (K.ofBits x) := by
   unfold polyOfAtH polyOfAt
+  rw [sum_range_eq_list]
   simp only [novelAtH_eq]
 
 /-- The message of the step up: entry `u + 2^m w` is entry `w` of the low part of lane `u` of the
@@ -55,8 +62,8 @@ def msgA (κ κ' m : ℕ) (VA' : AV) : Array E :=
 def upAtA (κ κ' m R : ℕ) (VA' : AV) (high : List E) : AV :=
   let g := msgA κ κ' m VA'
   let tw := nttTwiddles (κ + R) κ
-  let l0 := ntt tw κ R (limbArr 0 g)
-  let l1 := ntt tw κ R (limbArr 1 g)
+  let l0 := ntt tw κ R (g.map fun e ↦ e.limb 0)
+  let l1 := ntt tw κ R (g.map fun e ↦ e.limb 1)
   Array.ofFn fun x : Fin (2 ^ (κ + R)) ↦
     #[E.ofLimbs (l0.getD x 0) (l1.getD x 0) + ofK (hatAt κ x) * polyOfAtH high x]
 
@@ -126,7 +133,7 @@ theorem upAtA_eq {κ' m R : ℕ} {n' : ℕ} (hn' : 2 ^ κ' ≤ n') (h64 : m + κ
   refine congrArg₂ E.ofLimbs ?_ ?_ <;>
   · rw [limb_sum, Complete.encKAt]
     refine sum_congr rfl fun p _ ↦ ?_
-    rw [limb_mul_ofK, limbArr_getD, msgA_getD hn' V' p]
+    rw [limb_mul_ofK, ← limbArr, limbArr_getD, msgA_getD hn' V' p]
 
 theorem upAtA_eq' {κ κ' m R : ℕ} {n' : ℕ} (hn' : 2 ^ κ' ≤ n') (hκ : κ = m + κ')
     (h64 : κ + R ≤ 64) (hR : 1 ≤ R) (V' : (Fin m → Bool) → Fin n' → E) (high : List E) :
