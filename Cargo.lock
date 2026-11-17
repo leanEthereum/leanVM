@@ -406,6 +406,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "leanvm-sidecar"
+version = "0.1.0"
+dependencies = [
+ "bench",
+ "clap",
+ "lean_vm",
+ "leanvm_sidecar_client",
+ "libc",
+ "tracing",
+]
+
+[[package]]
 name = "leanvm_sidecar_client"
 version = "0.1.0"
 dependencies = [
