@@ -1,4 +1,5 @@
 import Sphincs.Axioms
+import Sphincs.MultiKey
 
 /-! # The end theorem of leanSPHINCS
 
@@ -19,3 +20,7 @@ example : Sphincs.LeanSphincsStronglyUnforgeable := Sphincs.leanSphincsStronglyU
 /-- info: 'Sphincs.leanSphincsStronglyUnforgeable' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.leanSphincsStronglyUnforgeable
+
+/-- info: 'Sphincs.leanSphincs_multiKey' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.leanSphincs_multiKey
