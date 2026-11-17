@@ -41,7 +41,7 @@ theorem stmtFills_of (f : String) : ∀ (s : PStmt) (pos : Nat), ∀ x ∈ stmtF
   | .chain _ _ _ _ _ _ firsts stages, pos, x, hx => stagesFills_of f firsts stages _ x hx
   | .op _ _, _, x, hx => by simp [stmtFills] at hx
   | .call _ _, _, x, hx => by simp [stmtFills] at hx
-  | .loopNext _ _ _ _ _ _ _, _, x, hx => by simp [stmtFills] at hx
+  | .loopNext _ _ _ _ _ _ _ _, _, x, hx => by simp [stmtFills] at hx
   | .dispatch _ _ _ _ _ _ _ _ _ _, _, x, hx => by simp [stmtFills] at hx
   | .ret _ _, _, x, hx => by simp [stmtFills] at hx
   | .halt _ _ _, _, x, hx => by simp [stmtFills] at hx

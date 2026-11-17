@@ -277,6 +277,7 @@ def OpW (I : Inst) (Ψ : ℕ → E) : LOp → Prop
         (fun c : Fin 13 => fw I Ψ (out + c.val)) outOdd oc
   | .slot _ _ _ => False
   | .mulNextFrame _ _ _ => False
+  | .setNextFrame _ _ _ => False
 
 /-! ## The on-path specification of a placement action -/
 

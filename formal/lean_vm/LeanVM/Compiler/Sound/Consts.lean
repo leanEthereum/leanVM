@@ -1,6 +1,5 @@
 /-
   LeanVM.Compiler.Sound.Consts
-
   A right table of constant parameters (`ConstsOk`): its facts follow from a function's
   obligations, so a compiled program's preconditions may carry them.
 -/
@@ -14,7 +13,7 @@ public import LeanVM.Compiler.Sound.Main
 # The constant parameters' facts
 
 `withConsts U T` is the precondition `U` with the table `T`'s facts: the arguments of a call of
-`g` that `T.at g` names hold their words.
+`g` that `T g` names hold their words.
 
 * `oblList_consts`: where `T` is right of a block (`blockOk`), the block's obligations under `U`
   give its obligations under `withConsts U T`, what the statements before each call teach
@@ -24,9 +23,12 @@ public import LeanVM.Compiler.Sound.Main
   same run with a stronger precondition (`World.entered_withConsts`), so its located call relation
   is within the world's (`World.c_withConsts`); its obligations follow from the world's
   (`World.obligations_withConsts`), the parameters being the frame's argument words
-  (`World.params_vf`); in every frame of a function its precondition holds at, the cells
-  `2 + k` the table names hold their words (`World.pre_withConsts_cell`); and `main`'s body holds
-  of the world where it holds of the world with the facts (`World.program_sound_withConsts`).
+  (`World.params_vf`); with the back end's table (`constsOf (loopTable W.p)`, right of the program
+  by `lowerProgram_consts`) its callers' preconditions carry the constant parameters
+  (`World.ConstsIn`).
+* `program_sound`: `program_sound_of` at the world with the back end's table, its `main` body
+  back at the world: a compiled program is sound with no precondition about its constant
+  parameters.
 -/
 
 namespace LeanVM.Compiler
@@ -37,8 +39,9 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 /-- The precondition `U` with the table `T`'s facts: the arguments of a call of `g` that `T`
 names hold their words. -/
-def withConsts (U : String → List E → Prop) (T : Consts) : String → List E → Prop :=
-  fun g a => U g a ∧ ∀ x ∈ T.at g, a[x.1]? = some x.2
+def withConsts (U : String → List E → Prop) (T : String → List (ℕ × E)) :
+    String → List E → Prop :=
+  fun g a => U g a ∧ ∀ x ∈ T g, a[x.1]? = some x.2
 
 /-- Every value `kn` names holds its word. -/
 def KnownHolds (σ : Val) (kn : Known) : Prop := ∀ x ∈ kn, σ x.1 = x.2
@@ -66,10 +69,11 @@ end Located
 
 section Obligations
 
-variable {T : Consts} {C C' : CallRel} {U : String → List E → Prop} {rd : Reader} {σ : Val}
+variable {T : String → List (ℕ × E)} {C C' : CallRel} {U : String → List E → Prop} {rd : Reader}
+  {σ : Val}
 
 theorem argsOk_words {kn : Known} (hk : KnownHolds σ kn) {f : String} {args : List V}
-    (h : argsOk T kn f args = true) : ∀ x ∈ T.at f, (args.map σ)[x.1]? = some x.2 := by
+    (h : argsOk T kn f args = true) : ∀ x ∈ T f, (args.map σ)[x.1]? = some x.2 := by
   intro x hx
   have hx' := List.all_eq_true.mp h x hx
   cases hv : args[x.1]? with
@@ -152,7 +156,7 @@ end
 
 /-- A function's entry knowledge holds where its parameters are words its table entries name. -/
 theorem entryKnown_holds {f : Fn} {ws : List E} (hp : f.params.map σ = ws)
-    (hw : ∀ x ∈ T.at f.name, ws[x.1]? = some x.2) : KnownHolds σ (entryKnown T f) := by
+    (hw : ∀ x ∈ T f.name, ws[x.1]? = some x.2) : KnownHolds σ (entryKnown T f) := by
   intro x hx
   obtain ⟨y, hy, hxy⟩ := List.mem_filterMap.mp hx
   cases hv : f.params[y.1]? with
@@ -166,41 +170,9 @@ theorem entryKnown_holds {f : Fn} {ws : List E} (hp : f.params.map σ = ws)
 
 end Obligations
 
-/-! ## The table the back end uses is right -/
-
-section Empty
-
-mutual
-theorem stmtOk_empty (kn : Known) : ∀ s : Stmt, stmtOk {} kn s = true
-  | .atom _ => rfl
-  | .ite _ z n => by simp only [stmtOk, blockOk_empty, Bool.and_self]
-  | .match_ _ arms => armsOk_empty kn arms
-  | .call .. => rfl
-  | .callIf .. => rfl
-  | .dispatch _ fs _ _ => List.all_eq_true.mpr fun _ _ => rfl
-  | .ret _ => rfl
-
-theorem blockOk_empty (kn : Known) : ∀ ss : List Stmt, blockOk {} kn ss = true
-  | [] => rfl
-  | s :: ss => by simp only [blockOk, stmtOk_empty, blockOk_empty, Bool.and_self]
-
-theorem armsOk_empty (kn : Known) : ∀ arms : List (List Stmt), armsOk {} kn arms = true
-  | [] => rfl
-  | a :: as => by simp only [armsOk, blockOk_empty, armsOk_empty, Bool.and_self]
-end
-
-end Empty
-
-/-- **The back end's table is right of the program.** -/
-theorem constTable_ok (p : List TracedFn) : ConstsOk (constTable p) (p.map (·.core)) = true := by
-  unfold constTable
-  dsimp only
-  split
-  · assumption
-  · exact Bool.and_eq_true_iff.mpr ⟨rfl, List.all_eq_true.mpr fun f _ => blockOk_empty _ f.body⟩
-
 /-- A right table names nothing of `main`. -/
-theorem ConstsOk.main {T : Consts} {p : Program} (h : ConstsOk T p = true) : T.at "main" = [] :=
+theorem ConstsOk.main {T : String → List (ℕ × E)} {p : Program} (h : ConstsOk T p = true) :
+    T "main" = [] :=
   List.isEmpty_iff.mp (Bool.and_eq_true_iff.mp h).1
 
 /-! ## A compiled program's world with the table's facts -/
@@ -210,9 +182,10 @@ namespace World
 variable {κ : ℕ} (W : World κ)
 
 /-- The world whose precondition carries the table's facts. -/
-def withConsts (T : Consts) : World κ := { W with U := LeanVM.Compiler.withConsts W.U T }
+def withConsts (T : String → List (ℕ × E)) : World κ :=
+  { W with U := LeanVM.Compiler.withConsts W.U T }
 
-variable {W} {T : Consts}
+variable {W} {T : String → List (ℕ × E)}
 
 /-- A frame entered with the table's facts was entered. -/
 theorem entered_withConsts {g : String} {fp : K} {a r : List E}
@@ -234,35 +207,45 @@ theorem obligations_withConsts (hW : W.Compiled) (hT : ConstsOk T W.core = true)
     (List.all_eq_true.mp (Bool.and_eq_true_iff.mp hT).2 tf.core (List.mem_map_of_mem htf)) id
     (h fp hmain hU.1)
 
-/-- **A frame of `g` its precondition holds at has the table's words in its cells**: cell
-`2 + k` holds the word of each entry `(k, c)` of `g`. -/
-theorem pre_withConsts_cell {g : String} {fp : K} (h : (W.withConsts T).Pre g fp)
-    {x : Nat × E} (hx : x ∈ T.at g) : wd W.L fp (2 + x.1) = x.2 := by
-  obtain ⟨-, -, tf, -, rfl, -, hU⟩ := h
-  have h1 := hU.2 x hx
-  simp only [frameWords, List.getElem?_map] at h1
-  cases hr : (List.range (sigOf tf).1)[x.1]? with
-  | none => rw [hr] at h1; cases h1
-  | some i =>
-      rw [hr] at h1
-      obtain ⟨_, hi⟩ := List.getElem?_eq_some_iff.mp hr
-      rw [List.getElem_range] at hi
-      subst hi
-      exact Option.some.inj h1
+/-- **With the back end's table, the callers' preconditions carry the constant parameters.** -/
+theorem constsIn_withConsts : (W.withConsts (constsOf (loopTable W.p))).ConstsIn :=
+  fun _ _ h => h.2
 
-/-- **The program is compiled correctly through the world with the table's facts**: `main`'s
-body holds of the world where it holds of the world with the table's facts, whose obligations
-and `main`'s precondition follow from the world's. -/
-theorem program_sound_withConsts (hW : W.Compiled) (hκ : κ < 64) (hT : ConstsOk T W.core = true)
+end World
+
+/-- **(c) The program is compiled correctly**: on a memory where a run of the compiled program
+from `(g^0, 1)` halts, every function's obligations holding, `main`'s core body holds at frame
+`1` under the valuation by places, its calls located: `program_sound_of` at the world whose
+preconditions carry the constant parameters, whose obligations and `main`'s precondition follow
+from the world's. -/
+theorem program_sound {κ : ℕ} {W : World κ} (hW : W.Compiled) (hκ : κ < 64)
     (hobl : ∀ tf ∈ W.p, W.Obligations tf)
     (hU : ∀ tf ∈ W.p, tf.core.name = "main" → W.U "main" (frameWords W.L 1 2 (sigOf tf).1))
     {k : ℕ} (hs : Safe W.prog W.L k ⟨addressOfIndex 0, 1⟩) : W.MainHolds := by
-  obtain ⟨tf, htf, hn, hp, hb⟩ := program_sound (W := W.withConsts T) hW hκ
-    (fun tf htf => obligations_withConsts hW hT htf (hobl tf htf))
+  have hT := lowerProgram_consts hW.1
+  obtain ⟨tf, htf, hn, hp, hb⟩ := program_sound_of (W := W.withConsts (constsOf (loopTable W.p)))
+    hW hκ World.constsIn_withConsts
+    (fun tf htf => World.obligations_withConsts hW hT htf (hobl tf htf))
     (fun tf htf hn => ⟨hU tf htf hn, by rw [ConstsOk.main hT]; intro x hx; cases hx⟩) hs
-  exact ⟨tf, htf, hn, hp, holdsList_mono c_withConsts _ id (fun _ h => h) hb⟩
+  exact ⟨tf, htf, hn, hp, holdsList_mono World.c_withConsts _ id (fun _ h => h) hb⟩
 
-end World
+/-- (c) for a valid execution of the compiled program. -/
+theorem program_sound_valid {κ : ℕ} {W : World κ} (hW : W.Compiled) (hκ : κ < 64)
+    (hobl : ∀ tf ∈ W.p, W.Obligations tf)
+    (hU : ∀ tf ∈ W.p, tf.core.name = "main" → W.U "main" (frameWords W.L 1 2 (sigOf tf).1))
+    {input : PublicInput} {steps : ℕ}
+    (h : ValidExecution W.prog input ⟨κ, W.L, steps⟩) : W.MainHolds :=
+  program_sound hW hκ hobl hU (safe_of_validExecution h)
+
+/-! ## The statements -/
+
+/-- **(b), for every program.** -/
+theorem fnSound : FnSoundStmt :=
+  fun _ hW hκ hUc _ htf hne hobl => fn_sound hW hκ hUc htf hne hobl
+
+/-- **(c), for every program.** -/
+theorem programSound : ProgramSoundStmt :=
+  fun _ hW hκ hobl hU _ hs => program_sound hW hκ hobl hU hs
 
 end
 end LeanVM.Compiler

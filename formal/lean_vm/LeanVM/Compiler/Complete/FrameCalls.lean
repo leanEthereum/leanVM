@@ -33,7 +33,8 @@ def AgOwn (I : Inst) (Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : �
 
 /-- The memories `Ag` hold the path's callee frames (`AgOf`'s `FrameOK.kid` and third part): call
 `i` of `cl` at the callee frame `I.kf[i]` has its header `kh i` and its arguments (and a registered
-loop helper's self pointer), an entered call its returns. -/
+loop helper's self pointer), an entered call its returns; and it passes its callee's constant
+parameters as their words (`FrameOK.kcs`). -/
 def AgKids (ctx : Compiler.Ctx) (I : Inst)
     (Ag : Val → (ℕ → E) → (ℕ → E × E) → (κ : ℕ) → MemoryImage κ → Prop) (cl : List Call) : Prop :=
   ∀ σ' Ψ kh κ (L : MemoryImage κ), Ag σ' Ψ kh κ L → ∀ (i : ℕ) (c : Call) (kfp : ℕ),
@@ -44,7 +45,8 @@ def AgKids (ctx : Compiler.Ctx) (I : Inst)
     (((ctx.loops[c.f]?).any (·.registered)) = true →
       L.read (addressOfIndex (kfp + (2 + c.args.length))) = some (ofK (addressOfIndex kfp))) ∧
     (c.taken = true → ∀ k (hk : k < c.rets.length),
-      L.read (addressOfIndex (kfp + (2 + c.args.length + k))) = some (σ' c.rets[k]))
+      L.read (addressOfIndex (kfp + (2 + c.args.length + k))) = some (σ' c.rets[k])) ∧
+    ∀ x ∈ constsOf ctx.loops c.f, ∀ hk : x.1 < c.args.length, σ' c.args[x.1] = x.2
 
 section Prims
 
@@ -399,7 +401,7 @@ theorem stmtW_call (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hAg
   refine ⟨trivial, ⟨⟨_, hcl0, rfl, rfl⟩, hfe, hfn, hkh⟩, callRets_segW hr (by comega) hfn
     fun k hk => ⟨(hlrs' k hk (hlen₃ ▸ hk)).1, fun κ L hL => ?_⟩, ?_⟩
   · rw [(hlrs' k hk (hlen₃ ▸ hk)).2]
-    have := (hK σ' Ψ kh κ L hL i₀ _ kfp hcl0 hkf).2.2.2.2 rfl k (hlen₃ ▸ hk)
+    have := (hK σ' Ψ kh κ L hL i₀ _ kfp hcl0 hkf).2.2.2.2.1 rfl k (hlen₃ ▸ hk)
     simpa [argBase, hlen₂] using this
   · have := hk (rest ++ tl) rfl
     simpa [outEs, calls, Ev.call?] using this
@@ -1050,6 +1052,15 @@ theorem blockW_tailIf (hnew : PlaceNew ctx) (hpk : PoolKeepStmt) (hok : OpOK Γ 
   blockW_selfIf hok hI hmain hnew hAg hkend fun _ _ _ _ _ _ hsc hes hcl hinv =>
     tailIf_fbat hok hI hRd hpk hAg hK hkw hent hmN hself hreg hu hsc hes hcl hinv
 
+/-- An entry of `nextConsts` is the limbs of a constant parameter's word. -/
+theorem mem_nextConsts {consts : List (ℕ × E)} {las : List Cell} {x : ℕ × ℕ × ℕ}
+    (h : x ∈ nextConsts consts las) : ∃ y ∈ consts, x = (y.1, limbsOf y.2) := by
+  obtain ⟨y, hy, hxy⟩ := List.mem_filterMap.mp h
+  refine ⟨y, hy, ?_⟩
+  split at hxy
+  · exact (Option.some.inj hxy).symm
+  · cases hxy
+
 /-- **A registered loop helper's closing call on the path** (`loopNext`), before the return that
 ends its block: the condition's and the arguments' cells, the frame's own pointer times the frame
 size (the next frame, right after this one), the entry, the pooled `1`; the invariant after it,
@@ -1214,7 +1225,8 @@ theorem loopNext_fbat (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = 
   have hO₁₁ : OutOps I { st₁₀ with pending := #[] } := fun h o hm =>
     hO.outOps h o (by simp [hm])
   have hsz : st₁₀.next ≤ I.size := hF.1
-  refine ⟨ops ++ [.loopNext hints f nfp st₈.next lc one las],
+  refine ⟨ops ++ [.loopNext hints f nfp st₈.next lc one las
+      (nextConsts (constsOf ctx.loops f) las)],
     by have hops' : st₁₀.out.toList = st.out.toList ++ ops := hops
        simp [hops'], ?_⟩
   refine blkWK_ops_ctl hok [I.hdr]
@@ -1271,14 +1283,15 @@ theorem loopNext_fbat (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = 
   have hfn : fwd I.hdr ⟨patchT I Ψ σ', kh⟩ nfp = ofK (addressOfIndex kfp) := by
     rw [fwd_patchT hn2 hntc, hnΨ Ψ hΨ9.1, hoΨ Ψ hΨ5.1, hΨ5.2, hI.ksize hlh, hkfp, Inst.fpw,
       ofK_gpow_add]
-  have hlas' : ∀ k (hk : k < las.length) (hk' : k < args.length), las[k] < I.size ∧
+  have hlas' : ∀ k (hk : k < las.length) (hk' : k < args.length),
+      (nextConsts (constsOf ctx.loops f) las).lookup k = none → las[k] < I.size ∧
       fwd I.hdr ⟨patchT I Ψ σ', kh⟩ las[k] = σ' args[k] := by
-    intro k hk hk'
+    intro k hk hk' hl
     obtain ⟨h2, hlt, hw⟩ := hlas k hk hk'
     have ho : LOp.mulNextFrame las[k] one (argBase + k) ∈ I.ops := hXo _ (by
       simp only [stmtOps, loopPre, List.mem_append, List.mem_map]
       exact Or.inl (Or.inl (Or.inr ⟨(las[k], k),
-        List.mk_mem_zipIdx_iff_getElem?.mpr (by simp), rfl⟩)))
+        List.mk_mem_zipIdx_iff_getElem?.mpr (by simp), by simp [nextArg, hl]⟩)))
     have htc : ¬ I.tc las[k] := not_tc_of hI ho (by simp [opCells]) fun _ h => nomatch h
     refine ⟨by comega, (fwd_patchT h2 htc).trans ((hw Ψ (hs₄ Ψ hΨ5.1)).trans ?_)⟩
     exact (hσ _ (hu _ (List.mem_cons_of_mem _ (List.getElem_mem _)))).symm
@@ -1289,9 +1302,20 @@ theorem loopNext_fbat (hok : OpOK Γ I Ag cl) (hI : I.Ok) (hmain : ctx.isMain = 
   simp only [wLc, wS, hcs']
   refine ⟨loopPre_segW hr (by comega) (by comega) (by comega) (by comega) hfo
     ((fwd_patchT h2₈ hetc).trans (hΨ9.2.trans (hkw f)))
-    (fun k hk => ⟨(hlas' k hk (hlen₃ ▸ hk)).1, fun κ L hL => by
-      rw [(hlas' k hk (hlen₃ ▸ hk)).2, hadr]
+    (fun k hk hl => ⟨(hlas' k hk (hlen₃ ▸ hk) hl).1, fun κ L hL => by
+      rw [(hlas' k hk (hlen₃ ▸ hk) hl).2, hadr]
       exact (hK σ' Ψ kh κ L hL i₀ _ kfp hcl hkf).2.2.1 k (hlen₃ ▸ hk)⟩)
+    (fun k hk c0 c1 hl κ L hL => by
+      obtain ⟨y, hy, hyx⟩ := mem_nextConsts (mem_of_lookup hl)
+      simp only [Prod.mk.injEq] at hyx
+      obtain ⟨rfl, hcc⟩ := hyx
+      have hw : Guest.word c0 c1 = y.2 := by
+        rw [show c0 = (limbsOf y.2).1 from congrArg Prod.fst hcc,
+          show c1 = (limbsOf y.2).2 from congrArg Prod.snd hcc, word_limbsOf]
+      have h1 := (hK σ' Ψ kh κ L hL i₀ _ kfp hcl hkf).2.2.1 y.1 (hlen₃ ▸ hk)
+      have h2 := (hK σ' Ψ kh κ L hL i₀ _ kfp hcl hkf).2.2.2.2.2 y hy (hlen₃ ▸ hk)
+      rw [hadr, hw, show argBase + y.1 = 2 + y.1 from rfl, h1]
+      exact congrArg some h2)
     (fun κ L hL => by
       rw [hfn, hadr]
       have := (hK σ' Ψ kh κ L hL i₀ _ kfp hcl hkf).2.2.2.1 hreg
@@ -1629,7 +1653,7 @@ theorem stmtW_dispatch (hpk : PoolKeepStmt) (hok : OpOK Γ I Ag cl) (hI : I.Ok)
     callRets_segW hr (by comega) hfn fun k hk => ⟨(hlrs' k hk (hlen₃ ▸ hk)).1, fun κ L hL => ?_⟩,
     ?_⟩
   · rw [(hlrs' k hk (hlen₃ ▸ hk)).2]
-    have := (hK σ' Ψ kh κ L hL i₀ _ kfp hcl0 hkf).2.2.2.2 rfl k (hlen₃ ▸ hk)
+    have := (hK σ' Ψ kh κ L hL i₀ _ kfp hcl0 hkf).2.2.2.2.1 rfl k (hlen₃ ▸ hk)
     simpa [argBase, hlen₂] using this
   · have := hk (rest ++ tl) rfl
     simpa [outEs, calls, Ev.call?] using this

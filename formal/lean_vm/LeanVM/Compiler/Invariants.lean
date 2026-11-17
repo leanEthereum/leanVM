@@ -34,9 +34,11 @@ open LeanVM.Guest LeanVM.Semantics
 
 @[expose] public section
 
-/-- The frame cells an instruction names; the last of a `mulNextFrame` is in the next frame. -/
+/-- The frame cells an instruction names; the last of a `mulNextFrame` and the cell of a
+`setNextFrame` are in the next frame. -/
 def LOp.cells : LOp → List Cell
   | .mulNextFrame a b c => [a, b, c]
+  | .setNextFrame c _ _ => [c]
   | .set o _ => [o]
   | .xor a b c => [a, b, c]
   | .mul a b c => [a, b, c]

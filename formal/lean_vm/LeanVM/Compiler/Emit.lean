@@ -48,7 +48,7 @@ def stmtSize : PStmt → Nat
       2 + blockSize zero + (if hasElse then 2 + blockSize nonzero else 0)
   | .chain _ _ _ _ _ _ _ stages => 3 + stagesSize stages
   | .call _ c => 1 + c.args.length + (if c.loop.isSome then 1 else 0) + 3 + c.rets.length
-  | .loopNext _ _ _ _ _ _ args => 1 + args.length + 4
+  | .loopNext _ _ _ _ _ _ args _ => 1 + args.length + 4
   | .dispatch _ _ _ _ _ _ _ _ args rets => args.length + 5 + rets.length
   | .ret _ _ => 1
   | .halt _ _ _ => 2
@@ -89,12 +89,20 @@ def emitCall (hints : List LHint) (c : CallSite) : List LInstr :=
   [⟨.set c.entry (.entry c.callee), hints⟩] ++ stores ++ [bare (.jump c.oc c.entry c.nfp)] ++
     c.rets.zipIdx.map fun (r, i) => bare (.deref c.nfp (argBase + n + i) r .cell)
 
-/-- The instructions of a loop helper's closing call (`lower_call`, the loop arm): the arguments,
-the next frame's pointer and the return registers copied into the next frame, then the jump. -/
+/-- Argument `k` of a loop helper's closing call, in cell `a`, into the next frame: a `SET` of the
+limbs `consts` names for position `k`, else a copy. -/
+def nextArg (one : Cell) (consts : List (Nat × Nat × Nat)) (x : Cell × Nat) : LOp :=
+  match consts.lookup x.2 with
+  | some (c0, c1) => .setNextFrame (argBase + x.2) c0 c1
+  | none => .mulNextFrame x.1 one (argBase + x.2)
+
+/-- The instructions of a loop helper's closing call (`lower_call`, the loop arm): the arguments
+(`nextArg`), the next frame's pointer and the return registers copied into the next frame, then
+the jump. -/
 def emitLoopNext (hints : List LHint) (callee : String) (nfp entry oc one : Cell)
-    (args : List Cell) : List LInstr :=
+    (args : List Cell) (consts : List (Nat × Nat × Nat)) : List LInstr :=
   [⟨.set entry (.entry callee), hints⟩] ++
-    (args.zipIdx.map fun (a, k) => bare (.mulNextFrame a one (argBase + k))) ++
+    (args.zipIdx.map fun x => bare (nextArg one consts x)) ++
     [bare (.mulNextFrame nfp one (argBase + args.length)), bare (.mulNextFrame 1 one 1),
      bare (.mulNextFrame 0 one 0), bare (.jump oc entry nfp)]
 
@@ -136,8 +144,8 @@ def emitStmt (f : String) : PStmt → Rev LInstr × Rev Fill → Rev LInstr × R
         (bare (.slot x (firsts.headD 0) entry))).push (bare (.jump one entry sfp))
       emitStages f firsts stages (code, fills)
   | .call hints c, (code, fills) => (code.appendList (emitCall hints c), fills)
-  | .loopNext hints callee nfp entry oc one args, (code, fills) =>
-      (code.appendList (emitLoopNext hints callee nfp entry oc one args), fills)
+  | .loopNext hints callee nfp entry oc one args consts, (code, fills) =>
+      (code.appendList (emitLoopNext hints callee nfp entry oc one args consts), fills)
   | .dispatch hints callees nfp joinCell x entry one first args rets, (code, fills) =>
       (code.appendList (emitDispatch code.size hints callees nfp joinCell x entry one first args
         rets), fills)

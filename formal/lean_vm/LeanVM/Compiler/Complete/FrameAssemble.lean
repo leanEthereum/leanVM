@@ -150,7 +150,8 @@ theorem agKids_K : AgKids (ctxOf (loopTable W.p) (sigTable W.p) tf) (instK W tf 
     (agK W tf pf fp hdr es kfps (instK W tf pf fp hdr σ es kfps)) (calls es) := by
   intro σ' Ψ kh κ L hA i c kfp hc hk
   obtain ⟨h0, h1, h2, h3⟩ := hA.2.1.kid i c kfp hc hk
-  exact ⟨h0, h1, h2, h3, fun ht k hk' => hA.2.2.1 i c kfp hc hk ht k hk'⟩
+  exact ⟨h0, h1, h2, h3, fun ht k hk' => hA.2.2.1 i c kfp hc hk ht k hk',
+    hA.2.1.kcs c (List.mem_of_getElem? hc)⟩
 
 theorem hent_K (hW : W.Compiled) (g : String) :
     kwOf (World.cplSite W tf.core.name) (.entry g) =

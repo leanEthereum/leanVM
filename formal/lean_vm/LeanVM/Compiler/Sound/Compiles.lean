@@ -363,6 +363,7 @@ theorem compiles_of_pieces {p : List TracedFn} {os : List FnOut} {cfJt : Compile
     {cfs : List CompiledFunction} {loops : Loops} {sigs : SMap (ℕ × ℕ)} {l : Layout} {k : ℕ}
     (hloops : loopTable p = loops) (hsigs : sigTable p = sigs)
     (hl : layoutInfo (infoOfOuts p os) (baseOf os) = l) (hchecks : progChecks p loops = true)
+    (hconsts : ConstsOk (constsOf loops) (p.map (·.core)) = true)
     (hos : os.length = p.length) (hcfs : cfs.length = p.length)
     (hpieces : ∀ j < p.length, pieceAt loops sigs l p os cfs j = true)
     (hslots : slotsOk os = true) (hne : (tablesEnd os).len ≠ 0)
@@ -401,6 +402,7 @@ theorem compiles_of_pieces {p : List TracedFn} {os : List FnOut} {cfJt : Compile
     exact this
   have hlow : lowerProgram p = .ok (placed.map fun pf => (emitFn pf.fn).1, slots) := by
     unfold lowerProgram
+    simp only [hloops, hconsts, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
     rw [hpp]
     have hs : tableSlots (tablesEnd os).len (fillsOf placed).toArray (tablesEnd os).entries = slots := by
       rw [hfills, entries_eq, tableSlots_eq]

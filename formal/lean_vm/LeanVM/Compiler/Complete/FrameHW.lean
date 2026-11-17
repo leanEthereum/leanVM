@@ -110,6 +110,16 @@ theorem mulNextFrame_hw (h : Rds Ag fp size w) {pc a b c : ℕ} (ha : a < size) 
   rw [idx_mul]
   exact hr κ L hA
 
+/-- **A `SET` into the next frame**: the memory holds the immediate there. -/
+theorem setNextFrame_hw {pc c c0 c1 : ℕ}
+    (hr : ∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →
+      L.read (addressOfIndex (fp + (Γ.frame + c))) = some (Guest.word c0 c1)) :
+    HW Γ fp Ag pc (.setNextFrame c c0 c1) := by
+  intro κ L hA
+  simp only [Site.R, resolveOp, Holds]
+  rw [idx_mul]
+  exact hr κ L hA
+
 /-- **A `KECCAK`**: its input words and some output words, those it writes the cells' words, are
 related. -/
 theorem keccak_hw (h : Rds Ag fp size w) {pc m0 m1 m2 m3 tail b8 cap out : ℕ} {inOdd outOdd : Bool}
@@ -235,29 +245,42 @@ theorem callRets_segW (hr : Rds Ag fp size w) {nfp nargs pos kfp : ℕ} {rets : 
     SegW Γ fp Ag (callRets nfp nargs rets) pos :=
   segW_zipIdx fun k hk => derefAt_hw hr hnfp (hrets k hk).1 hkw (hrets k hk).2
 
-/-- **A loop helper's closing call before its jump**: the entry; the arguments, the next frame's
-self pointer and this frame's header copied into the next frame. -/
+/-- **A loop helper's closing call before its jump**: the entry; the arguments (each copied, or
+the word its limbs name set), the next frame's self pointer and this frame's header copied into
+the next frame. -/
 theorem loopPre_segW (hr : Rds Ag fp size w) {callee : String} {nfp entry one pos : ℕ}
-    {args : List Cell} (hs : 2 ≤ size) (hen : entry < size) (hnfp : nfp < size) (hone : one < size)
-    (h1 : w one = 1)
+    {args : List Cell} {consts : List (ℕ × ℕ × ℕ)} (hs : 2 ≤ size) (hen : entry < size)
+    (hnfp : nfp < size) (hone : one < size) (h1 : w one = 1)
     (hent : w entry = OffsetInstruction.immediateWord
       (resolveK Γ.l Γ.pc0 Γ.frame (.entry callee)).1 (resolveK Γ.l Γ.pc0 Γ.frame (.entry callee)).2)
-    (hargs : ∀ k (hk : k < args.length), args[k] < size ∧
+    (hargs : ∀ k (hk : k < args.length), consts.lookup k = none → args[k] < size ∧
       ∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →
         L.read (addressOfIndex (fp + (Γ.frame + (argBase + k)))) = some (w args[k]))
+    (hcs : ∀ k, k < args.length → ∀ c0 c1, consts.lookup k = some (c0, c1) →
+      ∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →
+        L.read (addressOfIndex (fp + (Γ.frame + (argBase + k)))) = some (Guest.word c0 c1))
     (hself : ∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →
       L.read (addressOfIndex (fp + (Γ.frame + (argBase + args.length)))) = some (w nfp))
     (hhdr : ∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →
       L.read (addressOfIndex (fp + (Γ.frame + 1))) = some (w 1) ∧
         L.read (addressOfIndex (fp + (Γ.frame + 0))) = some (w 0)) :
-    SegW Γ fp Ag (loopPre callee nfp entry one args) pos := by
+    SegW Γ fp Ag (loopPre callee nfp entry one args consts) pos := by
   have hm : ∀ a c, a < size → (∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →
       L.read (addressOfIndex (fp + (Γ.frame + c))) = some (w a)) → ∀ pc,
       HW Γ fp Ag pc (.mulNextFrame a one c) := fun a c ha h pc =>
     mulNextFrame_hw hr ha hone fun κ L hA => by rw [h1, mul_one]; exact h κ L hA
+  have hn : ∀ k (hk : k < args.length) pc, HW Γ fp Ag pc (nextArg one consts (args[k], k)) := by
+    intro k hk pc
+    unfold nextArg
+    dsimp only
+    cases hl : consts.lookup k with
+    | some p =>
+        obtain ⟨c0, c1⟩ := p
+        exact setNextFrame_hw (hcs k hk c0 c1 hl)
+    | none => exact hm _ _ (hargs k hk hl).1 (hargs k hk hl).2 pc
   unfold loopPre
   refine segW_append.mpr ⟨segW_append.mpr ⟨segW_cons.mpr ⟨set_hw hr hen hent, segW_nil rfl⟩,
-    segW_zipIdx fun k hk => hm _ _ (hargs k hk).1 (hargs k hk).2 _⟩, ?_⟩
+    segW_zipIdx fun k hk => hn k hk _⟩, ?_⟩
   exact segW_cons.mpr ⟨hm _ _ hnfp hself _, segW_cons.mpr ⟨hm _ _ (by omega)
     (fun κ L hA => (hhdr κ L hA).1) _, segW_cons.mpr ⟨hm _ _ (by omega)
     (fun κ L hA => (hhdr κ L hA).2) _, segW_nil rfl⟩⟩⟩

@@ -101,6 +101,8 @@ inductive LHint where
 inductive LOp where
   /-- A copy into the next loop frame: `c` is an offset in that frame. -/
   | mulNextFrame (a b c : Cell)
+  /-- The word of limbs `c0`, `c1` written into the next loop frame: `c` is an offset there. -/
+  | setNextFrame (c : Cell) (c0 c1 : Nat)
   | set (o : Cell) (k : KVal)
   | xor (a b c : Cell)
   | mul (a b c : Cell)
@@ -159,9 +161,11 @@ inductive PStmt where
       (stages : List (List (List PStmt)))
   /-- A call. -/
   | call (hints : List LHint) (c : CallSite)
-  /-- A loop helper's closing call into the next frame of its run: the copies of the arguments,
-  of the next frame's pointer `nfp` and of the return registers, then the jump on `oc`. -/
+  /-- A loop helper's closing call into the next frame of its run: the arguments (a `SET` of the
+  limbs `consts` names at an argument's position, else a copy), the copies of the next frame's
+  pointer `nfp` and of the return registers, then the jump on `oc`. -/
   | loopNext (hints : List LHint) (callee : String) (nfp entry oc one : Cell) (args : List Cell)
+      (consts : List (Nat × Nat × Nat))
   /-- A fused `match` of calls on one shared frame, through the shared table at `first`. -/
   | dispatch (hints : List LHint) (callees : List String) (nfp joinCell x entry one : Cell)
       (first : Nat) (args rets : List Cell)

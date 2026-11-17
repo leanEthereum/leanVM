@@ -290,7 +290,8 @@ def compileLines (p : Source.Program) : Except String (Assembled × Array Nat) :
   let fns ← Expand.expandProgramLines p
   let traced := fns.map (·.1)
   let c ← compileTraced traced
-  let (placed, tables) ← placeFnsL (loopTable traced) (sigTable traced) fns {}
+  let loops := loopTable (withConstTable traced)
+  let (placed, tables) ← placeFnsL loops (sigTable traced) fns {}
   let pfs := placed.map (·.1)
   let slots := tableSlots tables.len (fillsOf pfs).toArray tables.entries
   let ours := assemble (pfs.map fun pf => (emitFn pf.fn).1) slots

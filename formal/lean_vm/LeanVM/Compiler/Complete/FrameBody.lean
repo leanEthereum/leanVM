@@ -340,7 +340,7 @@ def BodyW : Prop :=
 
 theorem loopTable_go_name : ∀ (fns : List TracedFn) (t : Loops) (g : String) (x : LoopInfo),
     (fns.foldl (fun table tf => if isLoopName tf.core.name then
-      table.insert tf.core.name ⟨tf.loop.1, tf.loop.2⟩ else table) t)[g]? = some x →
+      table.insert tf.core.name ⟨tf.loop.1, tf.loop.2, tf.consts⟩ else table) t)[g]? = some x →
     t[g]? = some x ∨ isLoopName g = true
   | [], _, _, _, h => Or.inl h
   | tf :: fns, t, g, x, h => by

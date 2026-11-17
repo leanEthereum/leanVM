@@ -118,8 +118,8 @@ def PStmt.Sem : PStmt → ℕ → Prop → (E → E → Prop) → Prop → (E �
           (some ⟨addressOfIndex (Γ.pc0 + (pos + (callPre c).length + 1)), fp⟩)
           (SegHolds Γ fp (callRets c.nfp c.args.length c.rets) (pos + (callPre c).length + 1) ∧
             next))
-  | .loopNext _ callee nfp entry oc one args, pos, next, _, kret, _ =>
-      SegHolds Γ fp (loopPre callee nfp entry one args) pos ∧
+  | .loopNext _ callee nfp entry oc one args consts, pos, next, _, kret, _ =>
+      SegHolds Γ fp (loopPre callee nfp entry one args consts) pos ∧
       JumpAt Γ fp oc entry nfp next (CallSem Γ callee (retRegs Γ.L fp) kret)
   | .dispatch _ callees nfp joinCell x entry one first args rets, pos, next, _, _, _ =>
       SegHolds Γ fp (dispatchPre pos nfp joinCell x entry first args) pos ∧

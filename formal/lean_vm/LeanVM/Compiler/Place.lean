@@ -93,6 +93,8 @@ structure LoopInfo where
   registered : Bool
   /-- The exponent of a constant exit bound. -/
   hi : Option Nat
+  /-- Its constant parameters: positions and the words every call passes there (`Consts.lean`). -/
+  consts : List (Nat × E) := []
   deriving Inhabited
 
 /-- The program's loop helpers. -/
@@ -103,13 +105,17 @@ compared byte by byte (`String.startsWith` is no definition the kernel unfolds i
 def isLoopName (f : String) : Bool :=
   f.toByteArray.data.toList.take 6 == "__loop".toByteArray.data.toList
 
-/-- The program's loop helpers (`loop_bounds`). -/
+/-- The program's loop helpers (`loop_bounds`), each with its constant parameters. -/
 def loopTable (fns : List TracedFn) : Loops :=
   fns.foldl (init := {}) fun table tf =>
     if isLoopName tf.core.name then
       let (registered, hi) := tf.loop
-      table.insert tf.core.name ⟨registered, hi⟩
+      table.insert tf.core.name ⟨registered, hi, tf.consts⟩
     else table
+
+/-- The constant parameters of each function the loop table holds, none of the others. -/
+def constsOf (loops : Loops) (g : String) : List (Nat × E) :=
+  ((loops[g]?).map (·.consts)).getD []
 
 /-- The function being placed. -/
 structure Ctx where
@@ -245,6 +251,12 @@ def oneCell : P Cell := constCell (1, 0)
 
 /-- A cell holding `0` (`zero`). -/
 def zeroCell : P Cell := constCell (0, 0)
+
+/-- The limbs a loop helper's closing call writes into the next frame of its run, by argument
+position: of each of its constant parameters `(k, c)` (`LoopInfo.consts`) passed through
+unchanged, its argument cell being the parameter's own cell `2 + k`. -/
+def nextConsts (consts : List (Nat × E)) (las : List Cell) : List (Nat × Nat × Nat) :=
+  consts.filterMap fun x => if las[x.1]? == some (2 + x.1) then some (x.1, limbsOf x.2) else none
 
 /-- The cell holding `a · b` (`pure`). -/
 def mulCell (a b : Cell) : P Cell := do
@@ -840,7 +852,7 @@ def placeStmt : Stmt → List Stmt → P Unit
         let entry ← fresh
         let one ← oneCell
         let hints ← takeHints
-        push (.loopNext hints f nfp entry lc one las)
+        push (.loopNext hints f nfp entry lc one las (nextConsts (constsOf ctx.loops f) las))
       else placeCall f args las [] (some lc) self
   | .dispatch x fs args rets, rest => do
       beginStmt (.dispatch x fs args rets :: rest)

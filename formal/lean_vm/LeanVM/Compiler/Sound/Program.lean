@@ -166,6 +166,8 @@ theorem lowerProgram_ok {p : List TracedFn} {fns : List Lowered} {slots : Array 
   unfold lowerProgram at h
   split at h
   · cases h
+  split at h
+  · cases h
   · next placed tables hp =>
     by_cases hs : slotsHold (tableSlots tables.len (fillsOf placed).toArray tables.entries)
         (fillsOf placed) tables.shared = true
@@ -174,6 +176,14 @@ theorem lowerProgram_ok {p : List TracedFn} {fns : List Lowered} {slots : Array 
       obtain ⟨rfl, rfl⟩ := h
       exact ⟨placed, tables, hp, rfl, (slotsHold_spec hs).1, (slotsHold_spec hs).2⟩
     · simp [hs] at h
+
+/-- **A lowered program's constant parameters are right of it.** -/
+theorem lowerProgram_consts {p : List TracedFn} {r : List Lowered × Array KVal}
+    (h : lowerProgram p = .ok r) : ConstsOk (constsOf (loopTable p)) (p.map (·.core)) = true := by
+  unfold lowerProgram at h
+  split at h
+  · cases h
+  · next hc => simpa using hc
 
 /-! ## Where a function's code lies -/
 
