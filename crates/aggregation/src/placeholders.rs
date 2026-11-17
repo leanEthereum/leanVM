@@ -598,7 +598,8 @@ type Level = fn(&OpeningShape, usize) -> usize;
 
 impl OpeningShape {
     fn new(mu: usize, log_inv_rate: usize) -> Self {
-        let (config, log_message_columns, tree_depths) = whir_levels(mu, log_inv_rate);
+        let (config, log_message_columns, tree_depths) =
+            whir_levels(mu, log_inv_rate).expect("every candidate stack has a WHIR config");
         let shape = Self {
             folds: config.folds,
             queries: config.queries,

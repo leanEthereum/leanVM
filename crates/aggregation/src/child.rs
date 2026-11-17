@@ -11,9 +11,9 @@ use primitives::field::F128;
 /// The stacked WHIR opening of a `2^mu` stack at a rate: the verifier's config, then each level's message columns
 /// after its folds and its Merkle tree's depth. The hint builder needs it for the real opening and the placeholder map
 /// for every candidate size, so it lives here: a candidate whose shape differed from the real one would compile a
-/// guest that cannot open the proof it is handed.
-pub(super) fn whir_levels(mu: usize, log_inv_rate: usize) -> (verifier::WhirConfig, Vec<usize>, Vec<usize>) {
-    let config = verifier::derive_config(mu, log_inv_rate).expect("stacked whir config");
+/// guest that cannot open the proof it is handed. `None` for a shape no proof has.
+pub(super) fn whir_levels(mu: usize, log_inv_rate: usize) -> Option<(verifier::WhirConfig, Vec<usize>, Vec<usize>)> {
+    let config = verifier::derive_config(mu, log_inv_rate).ok()?;
     let log_msg_cols: Vec<usize> = config
         .folds
         .iter()
@@ -27,7 +27,7 @@ pub(super) fn whir_levels(mu: usize, log_inv_rate: usize) -> (verifier::WhirConf
         .zip(&config.log_inv_rates)
         .map(|(c, r)| c + r)
         .collect();
-    (config, log_msg_cols, depth)
+    Some((config, log_msg_cols, depth))
 }
 
 /// The path bits a query's Merkle walk dispatches on at a time, the guest's `QW` (`walk_path`).
@@ -105,7 +105,7 @@ pub(super) fn gen_verify(
         ("col_group_order", col_group_order(kbc, &column_offsets)),
         ("block_group_order", block_group_order(kbc, &sides)),
     ];
-    let (config, _, depth) = whir_levels(mu, summary.log_inv_rate);
+    let (config, _, depth) = whir_levels(mu, summary.log_inv_rate).ok_or(AggregateError::InvalidChild)?;
     hints.extend(merkle_hints(config.queries, &depth, proof));
     Ok(hints)
 }
