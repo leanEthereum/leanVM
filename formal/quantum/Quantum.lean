@@ -208,6 +208,7 @@ import Quantum.Qrom.MultiUser.Owner
 import Quantum.StdModel.World
 import Quantum.StdModel.StraightLine
 import Quantum.StdModel.Formats
+import Quantum.StdModel.Props
 import Quantum.Qrom.SufCma.MultiOne
 import Quantum.Qrom.Xmss.Multi.NoReuse
 import Quantum.Qrom.Xmss.Multi.Memo
