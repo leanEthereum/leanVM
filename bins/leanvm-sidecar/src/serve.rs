@@ -4,9 +4,11 @@ use crate::wire::{
     FLAG_KEEP_PROOF, FLAG_USE_KEPT, FLAG_VERIFY_CHILDREN, OP_AGGREGATE, OP_EXTEND, OP_RECURSE, OP_VERIFY,
     OP_VERIFY_NARROW, Reader, Request, ST_AGGREGATION_FAILED, ST_BAD_REQUEST, ST_INVALID_PROOF, proved,
 };
-use leanvm::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature, Message};
-use leanvm::{AggregateVerifyError, AggregationError, EthereumClaims, EthereumProof, MAX_RECURSIONS, aggregate};
-use std::error::Error;
+use lean_vm::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature, Message};
+use lean_vm::{AggregateClaims, AggregateError, AggregateProof, MAX_RECURSIONS, OutputClaims, aggregate};
+
+/// A proof with the claims it proves, which travel apart.
+pub type Proved = (AggregateClaims, AggregateProof);
 
 pub struct Failure {
     pub status: u32,
@@ -30,58 +32,46 @@ fn malformed() -> Failure {
 }
 
 /// The `detail` of `ST_AGGREGATION_FAILED`. Part of the protocol: a variant keeps its number.
-fn aggregation_code(error: &AggregationError) -> u32 {
+fn aggregation_code(error: &AggregateError) -> u32 {
     match error {
-        AggregationError::InvalidChild(_) => 1,
-        AggregationError::Empty => 2,
-        AggregationError::NotCovered => 3,
-        AggregationError::MalformedRawSignature => 4,
-        AggregationError::TooLarge => 5,
-        AggregationError::InvalidBlobSize { .. } => 6,
-        AggregationError::BlobNotCovered => 7,
-        AggregationError::BlobsUnpublished => 8,
-        AggregationError::InvalidRate { .. } => 9,
-        AggregationError::ChildOutOfRange { .. } => 10,
-        AggregationError::ProofError(_) => 11,
+        AggregateError::InvalidChild => 1,
+        AggregateError::InvalidSignature => 4,
+        AggregateError::ProvingFailed => 11,
+        AggregateError::InvalidInput(_) => 12,
     }
 }
 
-/// Child `index` of the request, decoded against `claims` and natively verified if `verify`.
-fn child(proof: &[u8], claims: EthereumClaims, index: usize, verify: bool) -> Result<EthereumProof, Failure> {
-    let invalid = |error: AggregateVerifyError| Failure {
+/// Child `index` of the request, decoded and, if `verify`, natively verified against `claims`.
+fn child(proof: &[u8], claims: AggregateClaims, index: usize, verify: bool) -> Result<Proved, Failure> {
+    let invalid = |text: &str| Failure {
         status: ST_INVALID_PROOF,
         detail: index as u32,
-        text: error.to_string(),
+        text: text.into(),
     };
-    let proof = EthereumProof::from_proof_bytes(proof, claims).map_err(invalid)?;
-    if verify {
-        proof.verify().map_err(invalid)?;
+    let proof = AggregateProof::from_bytes(proof).ok_or_else(|| invalid("the proof does not decode"))?;
+    if verify && !proof.verify(&claims) {
+        return Err(invalid("the proof does not verify against its claims"));
     }
-    Ok(proof)
+    Ok((claims, proof))
 }
 
 fn prove(
-    children: &[EthereumProof],
+    children: &[Proved],
     signatures: Vec<(LeanXmssPublicKey, Message, LeanXmssSignature)>,
-    declare: Option<&EthereumClaims>,
+    declare: Option<&AggregateClaims>,
     log_inv_rate: usize,
-) -> Result<EthereumProof, Failure> {
-    match aggregate(children, signatures, vec![], &[], declare, log_inv_rate) {
-        Ok(proof) => Ok(proof),
-        Err(error) => Err(Failure {
-            status: ST_AGGREGATION_FAILED,
-            detail: aggregation_code(&error),
-            text: match error.source() {
-                Some(source) => format!("{error}: {source}"),
-                None => error.to_string(),
-            },
-        }),
-    }
+) -> Result<Proved, Failure> {
+    let output = declare.map_or(OutputClaims::All, OutputClaims::Only);
+    aggregate(children, signatures, vec![], None, output, log_inv_rate).map_err(|error| Failure {
+        status: ST_AGGREGATION_FAILED,
+        detail: aggregation_code(&error),
+        text: error.to_string(),
+    })
 }
 
 /// The response body of `request`, whose payload is `payload`. `kept` is the proof held between
 /// requests under `FLAG_KEEP_PROOF`; a request that fails leaves it as it was.
-pub fn handle(request: &Request, payload: &[u8], kept: &mut Option<EthereumProof>) -> Result<Vec<u8>, Failure> {
+pub fn handle(request: &Request, payload: &[u8], kept: &mut Option<Proved>) -> Result<Vec<u8>, Failure> {
     let log_inv_rate = request.log_inv_rate as usize;
     let mut reader = Reader(payload);
     let proof = match request.op {
@@ -141,7 +131,7 @@ pub fn handle(request: &Request, payload: &[u8], kept: &mut Option<EthereumProof
         }
         _ => return Err(Failure::bad_request("unknown op")),
     };
-    let body = proved(&proof);
+    let body = proved(&proof.0, &proof.1);
     if request.flags & FLAG_KEEP_PROOF != 0 {
         *kept = Some(proof);
     }

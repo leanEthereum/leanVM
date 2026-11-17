@@ -5,7 +5,7 @@
 //! copied out before any decoding.
 
 use crate::wire::MSG_SIZE;
-use leanvm::lean_xmss::{MESSAGE_LEN, PUB_KEY_SIZE, SIG_SIZE};
+use lean_vm::lean_xmss::{MESSAGE_LEN, PUB_KEY_SIZE, SIG_SIZE};
 use std::fs::OpenOptions;
 use std::io;
 use std::os::fd::AsRawFd;

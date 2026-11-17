@@ -1,7 +1,7 @@
 //! Message and payload encodings: little-endian, fixed offsets. `PROTOCOL.md` is the specification.
 
-use leanvm::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature, MESSAGE_LEN, Message, PUB_KEY_SIZE, SIG_SIZE};
-use leanvm::{EthereumClaims, EthereumProof};
+use lean_vm::lean_xmss::{LeanXmssPublicKey, LeanXmssSignature, MESSAGE_LEN, Message, PUB_KEY_SIZE, SIG_SIZE};
+use lean_vm::{AggregateClaims, AggregateProof};
 
 /// Size of a ring slot, request or response.
 pub const MSG_SIZE: usize = 64;
@@ -26,7 +26,7 @@ pub const ST_BAD_REQUEST: u32 = 1;
 pub const ST_RESP_TOO_SMALL: u32 = 2;
 /// A proof does not decode or verify against its claims; `detail` is its index in the request.
 pub const ST_INVALID_PROOF: u32 = 3;
-/// `aggregate` refused or failed; `detail` is the `AggregationError` variant.
+/// `aggregate` refused or failed; `detail` is the `AggregateError` variant.
 pub const ST_AGGREGATION_FAILED: u32 = 4;
 
 const CLAIM_SIZE: usize = PUB_KEY_SIZE + MESSAGE_LEN;
@@ -99,13 +99,13 @@ impl<'a> Reader<'a> {
     }
 
     /// `n u32 | n x (pubkey | message)`
-    pub fn claims(&mut self) -> Option<EthereumClaims> {
+    pub fn claims(&mut self) -> Option<AggregateClaims> {
         let count = self.u32()? as usize;
         let raw = self.bytes(count.checked_mul(CLAIM_SIZE)?)?;
-        let xmss = raw.as_chunks::<CLAIM_SIZE>().0.iter().map(claim).collect();
-        Some(EthereumClaims {
-            xmss,
-            ..EthereumClaims::default()
+        let lean_xmss = raw.as_chunks::<CLAIM_SIZE>().0.iter().map(claim).collect();
+        Some(AggregateClaims {
+            lean_xmss,
+            ..AggregateClaims::default()
         })
     }
 
@@ -139,9 +139,9 @@ fn claim(bytes: &[u8; CLAIM_SIZE]) -> (LeanXmssPublicKey, Message) {
     (LeanXmssPublicKey::from_bytes(pub_key), message.try_into().unwrap())
 }
 
-pub fn put_claims(out: &mut Vec<u8>, claims: &EthereumClaims) {
-    out.extend((claims.xmss.len() as u32).to_le_bytes());
-    for (pub_key, message) in &claims.xmss {
+pub fn put_claims(out: &mut Vec<u8>, claims: &AggregateClaims) {
+    out.extend((claims.lean_xmss.len() as u32).to_le_bytes());
+    for (pub_key, message) in &claims.lean_xmss {
         out.extend(pub_key.to_bytes());
         out.extend(message);
     }
@@ -153,9 +153,9 @@ pub fn put_proof(out: &mut Vec<u8>, proof: &[u8]) {
 }
 
 /// `proof | claims`: the response to every op that proves.
-pub fn proved(proof: &EthereumProof) -> Vec<u8> {
+pub fn proved(claims: &AggregateClaims, proof: &AggregateProof) -> Vec<u8> {
     let mut out = Vec::new();
-    put_proof(&mut out, &proof.proof_bytes());
-    put_claims(&mut out, proof.claims());
+    put_proof(&mut out, &proof.to_bytes());
+    put_claims(&mut out, claims);
     out
 }

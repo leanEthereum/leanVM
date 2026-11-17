@@ -48,7 +48,7 @@ struct Args {
         value_delimiter = ',',
         default_value = "1,2",
         value_parser = clap::builder::RangedU64ValueParser::<usize>::new()
-            .range(leanvm::MIN_LOG_INV_RATE as u64..=leanvm::MAX_LOG_INV_RATE as u64)
+            .range(lean_vm::MIN_LOG_INV_RATE as u64..=lean_vm::MAX_LOG_INV_RATE as u64)
     )]
     warmup_rates: Vec<usize>,
 
@@ -103,7 +103,7 @@ fn main() {
     if args.tracing {
         bench::init_tracing();
     }
-    leanvm::setup();
+    lean_vm::setup();
     if args.warmup_signatures > 0 {
         eprintln!("warming up...");
         let started = std::time::Instant::now();
@@ -127,7 +127,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use leanvm::lean_xmss::{self, LeanXmssPublicKey, LeanXmssSignature, Message};
+    use lean_vm::lean_xmss::{self, LeanXmssPublicKey, LeanXmssSignature, Message};
     use leanvm_sidecar_client::Client;
     use wire::*;
 
@@ -162,7 +162,7 @@ mod tests {
     }
 
     /// A `proof | claims` body.
-    fn proved(status: u32, body: &[u8]) -> (Vec<u8>, leanvm::EthereumClaims) {
+    fn proved(status: u32, body: &[u8]) -> (Vec<u8>, lean_vm::AggregateClaims) {
         assert_eq!(status, ST_OK, "{}", String::from_utf8_lossy(body));
         let mut reader = Reader(body);
         let proof = reader.proof().unwrap().to_vec();
@@ -181,7 +181,7 @@ mod tests {
         out
     }
 
-    fn proof_with_claims(proof: &[u8], claims: &leanvm::EthereumClaims) -> Vec<u8> {
+    fn proof_with_claims(proof: &[u8], claims: &lean_vm::AggregateClaims) -> Vec<u8> {
         let mut out = Vec::new();
         put_claims(&mut out, claims);
         put_proof(&mut out, proof);
@@ -195,8 +195,8 @@ mod tests {
         let message = [7; lean_xmss::MESSAGE_LEN];
         let triples: Vec<_> = (0..3)
             .map(|leaf_index| {
-                let (secret_key, pub_key) = lean_xmss::key_gen();
-                (pub_key, message, lean_xmss::sign(&secret_key, &message, leaf_index).unwrap())
+                let (secret_key, pub_key) = lean_xmss::key_gen(&[leaf_index as u8; lean_xmss::SECRET_KEY_LEN]);
+                (pub_key, message, lean_xmss::sign(&secret_key, &message, leaf_index))
             })
             .collect();
 
@@ -207,12 +207,12 @@ mod tests {
         assert_eq!((left.id, right.id), (first, second));
         let (left, left_claims) = proved(left.status, &left.body);
         let (right, right_claims) = proved(right.status, &right.body);
-        assert_eq!((left_claims.xmss.len(), right_claims.xmss.len()), (2, 1));
+        assert_eq!((left_claims.lean_xmss.len(), right_claims.lean_xmss.len()), (2, 1));
 
         let verify = proof_with_claims(&left, &left_claims);
         assert_eq!(call(&mut client, OP_VERIFY, 0, &verify).0, ST_OK);
         let mut fewer = left_claims.clone();
-        fewer.xmss.pop();
+        fewer.lean_xmss.pop();
         let (status, detail, _) = call(&mut client, OP_VERIFY, 0, &proof_with_claims(&left, &fewer));
         assert_eq!((status, detail), (ST_INVALID_PROOF, 0));
 
@@ -221,7 +221,7 @@ mod tests {
         recurse.extend(proof_with_claims(&right, &right_claims));
         let (status, _, body) = call(&mut client, OP_RECURSE, FLAG_VERIFY_CHILDREN, &recurse);
         let (root, root_claims) = proved(status, &body);
-        assert_eq!(root_claims.xmss.len(), 3);
+        assert_eq!(root_claims.lean_xmss.len(), 3);
 
         // The second child claims what the first proved: named by its index.
         let mut swapped = 2u32.to_le_bytes().to_vec();
@@ -249,7 +249,7 @@ mod tests {
         assert_eq!(call(&mut client, OP_EXTEND, FLAG_USE_KEPT, &extend).0, ST_BAD_REQUEST);
 
         let mut retained = root_claims.clone();
-        retained.xmss.remove(1);
+        retained.lean_xmss.remove(1);
         let mut narrow = proof_with_claims(&root, &root_claims);
         put_claims(&mut narrow, &retained);
         let (status, _, body) = call(&mut client, OP_VERIFY_NARROW, 0, &narrow);
@@ -271,7 +271,7 @@ mod tests {
 
     #[test]
     fn serves_every_op() {
-        leanvm::setup();
+        lean_vm::setup();
         let path = std::env::temp_dir().join(format!("leanvm-sidecar-test-{}", std::process::id()));
         let chan = Channel::create(&path, RING_CAP, ARENA_LEN).unwrap();
         // Only the arena is addressable by a request.

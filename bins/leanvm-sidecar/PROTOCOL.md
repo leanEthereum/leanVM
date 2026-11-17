@@ -128,4 +128,4 @@ The response body repeats the claims because the server sorts and deduplicates t
 
 `RESP_TOO_SMALL` is found only after the proof is made, and the proof is discarded: size the response region generously.
 
-`AGGREGATION_FAILED` reasons: 1 invalid child, 2 nothing to prove, 3 a retained claim is not among the proof's, 4 a signature does not decode, 5 too many children, 9 `log_inv_rate` out of range, 10 a child proof too large to recurse on, 11 proving failed (an invalid signature or child, or too many signatures for one proof). 6 through 8 concern blobs, which this protocol does not carry.
+`AGGREGATION_FAILED` reasons: 1 invalid child, 4 invalid signature, 11 proving failed (an invalid signature or child that was not caught earlier, or too many signatures for one proof), 12 invalid input (nothing to prove, a retained claim that is not among the proof's, too many children, `log_inv_rate` out of range); the text says which. 2, 3 and 5 through 10 are no longer sent: 12 replaces them.
