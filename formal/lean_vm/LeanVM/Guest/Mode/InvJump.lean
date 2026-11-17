@@ -22,9 +22,10 @@ open LeanVM.Prover.Exec
 
 theorem RetHolds.mono {s s' : St} (hle : s.mem ≤ s'.mem) (hfp : s'.fp = s.fp) {G : Sig}
     (h : RetHolds s G) : RetHolds s' G := by
-  obtain ⟨h1, h2, h3, h4, h5⟩ := h
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := h
   refine ⟨fun o ho ↦ hfp ▸ written_mono hle (h1 o ho), fun k hk ↦ (h2 k hk).mono hle hfp,
-    fun r hr ↦ (h3 r hr).mono hle hfp, fun q hq ↦ (h4 q hq).mono hle hfp, fun p hp ↦ ?_⟩
+    fun r hr ↦ (h3 r hr).mono hle hfp, fun q hq ↦ (h4 q hq).mono hle hfp, fun p hp ↦ ?_,
+    fun p hp ↦ (h6 p hp).mono hle hfp, fun q hq ↦ (h7 q hq).mono hle hfp⟩
   obtain ⟨u, hu, hmu⟩ := h5 p hp
   exact ⟨u, by rw [hfp]; exact hle.get _ _ hu, hmu.mono hle hfp⟩
 

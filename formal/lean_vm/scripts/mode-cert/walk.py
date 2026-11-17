@@ -338,6 +338,58 @@ def assume(A, x, j):
     return B
 
 
+# a quotient `g^C / [k]` gets conditions for `C` at most this
+QMAX = 64
+
+
+def quotC(A, k, u, c):
+    """The back-solve of `[u]` from `[c] = g^C` and `[k]`, `k`'s exponent at most `b <= C`: under its
+    exponent `j <= b`, `u`'s is `C - j` (`Abs.quotC`)."""
+    m = A.mono(c); b = A.bound(('ex', ('fr', k), 0))
+    if m is None or m[0] != 0 or m[2] or b is None: return
+    C = m[1]
+    if C > QMAX or b > C: return
+    for j in range(b + 1):
+        key = (('fr', k), j)
+        if key not in A.c:
+            A.c[key] = (frozenset(), frozenset(), frozenset(),
+                        frozenset({(('ex', ('fr', u), 0), ('num', C - j + 1)), (('num', C - j), ('ex', ('fr', u), 1))}), {})
+
+
+def pinR(A, x):
+    """Each run over base `x` also with its product's bases of known exponent made powers of `g`
+    (`Abs.pinR`)."""
+    for (q, lo, hi, S, d) in list(A.r):
+        if any(b == x for b, e in q[2]): A.r.add((A.pinned(q), lo, hi, S, d))
+    return A
+
+
+# a case split on an exponent has at most this many cases
+SPLITMAX = 64
+
+
+def splitAt(A, r, x, N):
+    """Run `r` known by cases on base `x`'s exponent: each value below `N`, its pins applied, and at
+    least `N` unless a bound excludes it (`Abs.splitAt`)."""
+    if not A.hasIdx(('ex', x, 0)) or N > SPLITMAX: return False
+    if not all(pinR(assume(A, x, j), x).coveredR(r) for j in range(N)): return False
+    b = A.bound(('ex', x, 0))
+    if b is not None and b < N: return True
+    B = A.copy(); B.lt.add((('num', N), ('ex', x, 1)))
+    return B.coveredR(r)
+
+
+def splitR(A, r):
+    """Run `r` known by cases on the exponent of a base with conditional facts, up to the greatest
+    value they name or the base's bound (`Abs.splitR`)."""
+    xs = {}
+    for (x, j) in A.c: xs[x] = max(xs.get(x, -1), j)
+    def top(x, j):
+        b = A.bound(('ex', x, 0))
+        return j + 1 if b is None else min(j, b) + 1
+    return any(splitAt(A, r, x, top(x, j)) for x, j in xs.items())
+
+
 def condOf(B, X, x, j):
     """The facts of `X` not in `B`, under `x`'s exponent `j`."""
     return (frozenset(X.h - B.h), frozenset(X.r - B.r), frozenset(X.p - B.p), frozenset(X.lt - B.lt),
@@ -368,11 +420,13 @@ def jtRng(E): return (ONE, ('num', E.jtLo), ('num', E.jtHi), 1, 0)
 
 class Sig:
     def __init__(self, pc, entry, self_=None, pre=(), preR=(), term=(), ret=(), post=(), postR=(), postL=(),
-                 preP=(), postP=(), postLP=(), retV=()):
+                 preP=(), postP=(), postLP=(), retV=(), postT=(), postC=()):
         self.pc = pc; self.entry = list(entry); self.self_ = self_; self.pre = list(pre); self.preR = list(preR)
         self.term = list(term); self.ret = list(ret); self.post = list(post); self.postR = list(postR)
         self.postL = list(postL); self.preP = list(preP); self.postP = list(postP); self.postLP = list(postLP)
         self.retV = list(retV)
+        # exponents in order at return, and under a condition on a base's exponent: `(x, j, lts)`
+        self.postT = list(postT); self.postC = list(postC)
 
 
 class Walk:
@@ -489,6 +543,7 @@ class Walk:
                     A.nz.add(kn)
                     A.w.add(un)
                     if z in A.nz: A.nz.add(un)
+                    quotC(A, kn, un, z)
                     A.pr = [(x, y, z)]
                     return
             self.needW(A, x, i); self.needW(A, y, i)
@@ -712,7 +767,7 @@ class Walk:
             self.need(k is not None and A.known(k) and A.covered(k), 'pre', i, name, m, k, A)
         for r in G.preR:
             r2 = self.trRngDown(A, mq, r)
-            self.need(r2 is not None and A.coveredR(r2), 'preR', i, name, r, r2, A)
+            self.need(r2 is not None and (A.coveredR(r2) or splitR(A, r2)), 'preR', i, name, r, r2, A)
         for r, os in G.preP:
             r2 = self.trRngDown(A, mq, r)
             self.need(r2 is not None and A.coveredP(r2, os), 'preP', i, name, r, os, r2, A)
@@ -734,6 +789,18 @@ class Walk:
         for r, os in G.postP + G.postLP:
             r2 = self.trRngUp(A, mq, r)
             if r2 is not None: A.p.add((r2, os))
+        for p, q in G.postT:
+            a, b = self.idxUp(A, mq, p), self.idxUp(A, mq, q)
+            if a is not None and b is not None: A.lt.add((a, b))
+        for x, j, lts in G.postC:
+            y = self.trBase(A, mq, x)
+            if y is None or y[0] != 0 or y[1] != 0 or len(y[2]) != 1 or y[2][0][1] != 1: continue
+            ls = set()
+            for p, q in lts:
+                a, b = self.idxUp(A, mq, p), self.idxUp(A, mq, q)
+                if a is not None and b is not None: ls.add((a, b))
+            key = (y[2][0][0], j)
+            if key not in A.c: A.c[key] = (frozenset(), frozenset(), frozenset(), frozenset(ls), {})
         self.atCall(A, mq, G)
         return A
 
@@ -767,6 +834,22 @@ class Walk:
         for r, os in self.sig.postP:
             r2 = self.trRngDown(A, own(0), r)
             self.need(r2 is not None and A.coveredP(r2, os), 'postP', i, r, os, A)
+        for p, q in self.sig.postT:
+            a, b = self.idxDown(A, own(0), p), self.idxDown(A, own(0), q)
+            self.need(a is not None and b is not None and A.hasIdx(b) and A.ltI(a, b), 'postT', i, (p, q), A)
+        for x, j, lts in self.sig.postC:
+            self.need(self.condOk(A, x, j, lts), 'postC', i, (x, j, lts), A)
+
+    def condOk(self, A, x, j, lts):
+        """At a return, what the function guarantees under `x`'s exponent `j` (`condOk`)."""
+        if x[0] != 'fr' or x[1] not in A.w: return False
+        y = self.trBase(A, own(0), x)
+        if y is None or y[0] != 0 or y[1] != 0 or len(y[2]) != 1 or y[2][0][1] != 1: return False
+        B = assume(A, y[2][0][0], j)
+        for p, q in lts:
+            a, b = self.idxDown(A, own(0), p), self.idxDown(A, own(0), q)
+            if a is None or b is None or not B.hasIdx(b) or not B.ltI(a, b): return False
+        return True
 
     def calleesOf(self, A, i, t):
         v = A.v.get(t)
@@ -836,7 +919,7 @@ class Walk:
                         ok = t is not None and t > 0 and b2 == q
                     self.need(ok, 'termstep', i, p, q, A)
                 # its guarantees at return are the next iteration's (`retStay`)
-                self.need(not G.ret and not G.retV, 'stayFrame', i)
+                self.need(not G.ret and not G.retV and not G.postT and not G.postC, 'stayFrame', i)
                 for m in G.post: self.need(self.trMono(A, own(e), m) == m, 'stay', i, m, A)
                 for r in G.postR + [r for r, os in G.postP]:
                     self.need(self.trRngUp(A, own(e), r) == r, 'stayR', i, r, A)

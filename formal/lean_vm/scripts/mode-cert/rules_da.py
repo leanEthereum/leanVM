@@ -223,6 +223,57 @@ def widePtrs(I, n, sig, res):
         sig.postP = old
 
 
+def retConds(I, n, sig, res):
+    """Conditions every return knows on a parameter's exponent, giving exponents of return cells (a
+    quotient `g^C / x` returned, `da_padding`'s, `walk.quotC`): guarantees (`postC`), its facts over a
+    return cell's base restated over the cell, with the parameter's bound past the greatest value
+    where every return knows it (`postT`). Kept if the function walks."""
+    f = I['fns'][n]
+    if n in I['isloop']: return
+    walk = lambda: Walk(I['E'], f['entry'], f['count'], sig, f['hints'], res, f['tabs'], main=n == 'main')
+    try:
+        w = walk(); w.run(f['ops'])
+    except Fail:
+        return
+    if not w.rets: return
+    na, nr = f.get('nargs', 0), f.get('nret', 0)
+    ps = I['params'](f)
+    rets = range(2 + na, 2 + na + nr)
+    cand = None
+    for A in w.rets:
+        ren = {}
+        for o in rets:
+            m = A.mono(o)
+            if m is not None and m[0] == 0 and m[1] == 0 and len(m[2]) == 1 and m[2][0][1] == 1:
+                ren.setdefault(m[2][0][0], ('fr', o))
+        def rn(i):
+            if i[0] == 'num': return i
+            b = ren.get(i[1])
+            return ('ex', b, i[2]) if b is not None else None
+        got = set()
+        for (x, j), F in A.c.items():
+            if x[0] != 'fr' or x[1] not in ps or A.mono(x[1]) != W.root(x[1]): continue
+            lts = []
+            for p, q in F[3]:
+                a, b = rn(p), rn(q)
+                if a is not None and b is not None: lts.append((a, b))
+            if lts: got.add((x, j, tuple(sorted(lts))))
+        cand = got if cand is None else cand & got
+    cand = sorted(cand or set())
+    if not cand: return
+    # each condition's base bounded past its greatest value, where every return knows it
+    top = {}
+    for x, j, _ in cand: top[x] = max(top.get(x, 0), j + 1)
+    ts = [(('ex', x, 0), ('num', N)) for x, N in sorted(top.items()) if all(A.ltI(('ex', x, 0), ('num', N)) for A in w.rets)]
+    old = list(sig.postT), list(sig.postC)
+    sig.postT = sorted(set(old[0]) | set(ts)); sig.postC = sorted(set(old[1]) | set(cand))
+    try:
+        walk().run(f['ops'])
+        APPLIED.setdefault('retConds', set()).add(n)
+    except Fail:
+        sig.postT, sig.postC = old
+
+
 def install(I):
     """Hook the rules into `infer.py`'s namespace `I`."""
     Infer, infer1 = I['Infer'], I['infer1']
@@ -247,6 +298,7 @@ def install(I):
         retCells(I, n, sig, res)
         mergeRuns(I, n, sig, res)
         widePtrs(I, n, sig, res)
+        retConds(I, n, sig, res)
         return sig, res
 
     Infer.demand = demand2

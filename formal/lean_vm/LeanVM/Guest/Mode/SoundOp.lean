@@ -178,6 +178,49 @@ theorem immNz_ne {k0 k1 : ℕ} (h : immNz k0 k1 = true) : OffsetInstruction.imme
   · exact ofBits_ne_zero_of a b (by simpa using h0)
   · exact ofBits_ne_zero_of a b (by simpa using h1)
 
+/-- **A quotient's exponent**: `[u]` with `[c] = [k]·[u]` and `[c] = g^C`, under `k`'s exponent `j`, has
+exponent `C - j`. -/
+theorem Holds.quotC {s : St} {A : Abs} (hA : Holds s A) {k u c : ℕ} {vk vu : E}
+    (hk : s.mem.get (s.fp + k) = some vk) (hu : s.mem.get (s.fp + u) = some vu)
+    (hc : s.mem.get (s.fp + c) = some (vk * vu)) : Holds s (A.quotC k u c) := by
+  unfold Abs.quotC
+  split
+  · rename_i C b hv hb
+    split_ifs with hcb
+    · simp only [Bool.and_eq_true, decide_eq_true_eq] at hcb
+      obtain ⟨hC, hbC⟩ := hcb
+      unfold qMax at hC
+      obtain ⟨w, hw, hwv⟩ := hA.v c _ hv
+      rw [hc] at hw
+      cases hw
+      have hw' : vk * vu = ofK (g ^ C) := pow_val hwv
+      exact { hA with
+        c := fun q hq ↦ by
+          rcases List.mem_append.mp hq with hq | hq
+          · obtain ⟨j, hj, hq⟩ := List.mem_filterMap.mp hq
+            split_ifs at hq
+            cases hq
+            refine ⟨⟨vk, hk⟩, fun hix ↦ ?_⟩
+            obtain ⟨v, e, hv1, rfl, he, hje⟩ := hix
+            have hvk : vk = ofK (g ^ e) := Option.some.inj (hk.symm.trans hv1)
+            have hjb : j ≤ C := by have := List.mem_range.mp hj; omega
+            have hvu : vu = ofK (g ^ (C - j)) := by
+              refine mul_left_cancel₀ (ofK_gpow_ne_zero j) ?_
+              rw [← ofK_mul, ← pow_add, show j + (C - j) = C by omega, ← hw', hvk]
+              simp only [Nat.add_zero] at hje
+              rw [hje]
+            have hi0 : IdxVal s (.ex (.fr u) 0) (C - j) := ⟨vu, C - j, hu, hvu, by omega, rfl⟩
+            have hi1 : IdxVal s (.ex (.fr u) 1) (C - j + 1) := ⟨vu, C - j, hu, hvu, by omega, rfl⟩
+            refine ⟨fun _ h ↦ by simp at h, fun _ h ↦ by simp at h, fun _ h ↦ by simp at h, fun p hp ↦ ?_,
+              fun _ h ↦ by simp at h⟩
+            rcases List.mem_cons.mp hp with rfl | hp
+            · exact ⟨C - j, C - j + 1, hi0, rfl, by omega⟩
+            · rcases List.mem_singleton.mp hp with rfl
+              exact ⟨C - j, C - j + 1, rfl, hi1, by omega⟩
+          · exact hA.c q hq }
+    · exact hA
+  · exact hA
+
 /-- **An `XOR`, `MUL`, `SET` or `KECCAK` the walk accepts.** -/
 theorem stepOp_sound_nj {En : Env} {C : Ctx} {s s' : St} {A A' : Abs} {ins : OffsetInstruction}
     (hs : s.Good) (hfp : s.fp < maxCells) (hpc : s.pc < C.ops.size) (hE : EnvOk s En)
@@ -204,7 +247,7 @@ theorem stepOp_sound_nj {En : Env} {C : Ctx} {s s' : St} {A A' : Abs} {ins : Off
           exact ⟨va, vb, by rw [h2]; exact h3.get _ _ ha, by rw [h2]; exact h3.get _ _ hb,
             by rw [h2]; exact hc'⟩
         · exact hm.xs c' a' b' hc'
-    refine Holds.setPrXs (l := []) ?_ (fun _ h ↦ nomatch h) hX
+    refine Holds.setPrXs (l := []) ?_ (fun _ h ↦ by simp at h) hX
     split
     · rename_i x y hx hy
       split_ifs with hxy
@@ -268,7 +311,7 @@ theorem stepOp_sound_nj {En : Env} {C : Ctx} {s s' : St} {A A' : Abs} {ins : Off
       rw [← g2] at ha hb hc
       have hm := hH.mono g3 g2
       have hW := (hm.addW (o := b) (written_of_get hb)).addNz ⟨va, ha, hva⟩
-      refine Holds.setPr ?_ (fun p hp ↦ by
+      refine Holds.setPr (Holds.quotC ?_ ha hb hc) (fun p hp ↦ by
         rcases List.mem_singleton.mp hp with rfl
         exact ⟨va, vb, ha, hb, hc⟩)
       by_cases hn : A.hasNz c = true
@@ -291,7 +334,7 @@ theorem stepOp_sound_nj {En : Env} {C : Ctx} {s s' : St} {A A' : Abs} {ins : Off
       rw [← g2] at ha hb hc
       have hm := hH.mono g3 g2
       have hW := (hm.addW (o := a) (written_of_get ha)).addNz ⟨vb, hb, hvb⟩
-      refine Holds.setPr ?_ (fun p hp ↦ by
+      refine Holds.setPr (Holds.quotC ?_ hb ha (by rw [mul_comm]; exact hc)) (fun p hp ↦ by
         rcases List.mem_singleton.mp hp with rfl
         exact ⟨va, vb, ha, hb, hc⟩)
       by_cases hn : A.hasNz c = true
@@ -323,7 +366,7 @@ theorem stepOp_sound_nj {En : Env} {C : Ctx} {s s' : St} {A A' : Abs} {ins : Off
       · split_ifs with hi
         · exact hA.addNz ⟨_, hv, immNz_ne hi⟩
         · exact hA
-    refine Holds.setPr ?_ (fun _ h ↦ nomatch h)
+    refine Holds.setPr ?_ (fun _ h ↦ by simp at h)
     split
     · rename_i x i p l hpr
       by_cases hc : (p == o && k0 == 1 && k1 == 0) = true
@@ -352,7 +395,7 @@ theorem stepOp_sound_nj {En : Env} {C : Ctx} {s s' : St} {A A' : Abs} {ins : Off
       exact hH.written (List.all_eq_true.mp hall i hi')
     · obtain ⟨g3, g2, -, hw⟩ := keccak_writes hs e
       have hm := hH.mono g3 g2
-      refine Holds.setPr ?_ (fun _ h ↦ nomatch h)
+      refine Holds.setPr ?_ (fun _ h ↦ by simp at h)
       have : ∀ (n : ℕ) (B : Abs), Holds s' B → (∀ j < n, j < outCells.cellCount) →
           Holds s' ((List.range n).foldl (fun A j ↦ A.addW (out + j)) B) := by
         intro n

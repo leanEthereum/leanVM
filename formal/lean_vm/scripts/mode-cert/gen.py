@@ -85,12 +85,16 @@ def lst(xs, f):
 def ptr(q): return '(%s, %s)' % (rng(q[0]), lst(q[1], nat))
 
 
+def ltp(p): return '(%s, %s)' % (idx(p[0]), idx(p[1]))
+
+
 def sig(s):
-    return '⟨%d, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s⟩' % (
+    return '⟨%d, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s⟩' % (
         s.pc, lst(s.entry, nat), 'none' if s.self_ is None else '(some %d)' % s.self_, lst(s.pre, mono),
-        lst(s.preR, rng), lst(s.term, lambda p: '(%s, %s)' % (idx(p[0]), idx(p[1]))), lst(s.ret, nat),
+        lst(s.preR, rng), lst(s.term, ltp), lst(s.ret, nat),
         lst(s.post, mono), lst(s.postR, rng), lst(s.postL, rng), lst(s.preP, ptr), lst(s.postP, ptr),
-        lst(s.postLP, ptr), lst(s.retV, lambda p: '(%d, %s)' % (p[0], mono(p[1]))))
+        lst(s.postLP, ptr), lst(s.retV, lambda p: '(%d, %s)' % (p[0], mono(p[1]))), lst(s.postT, ltp),
+        lst(s.postC, lambda q: '(%s, %d, %s)' % (base(q[0]), q[1], lst(q[2], ltp))))
 
 
 def dest(d): return '(.stack %d)' % d[1] if d[0] == 's' else '(.heap %d)' % d[1]

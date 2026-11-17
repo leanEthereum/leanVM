@@ -25,11 +25,13 @@ its frame side is known written, loads when its heap side is, and otherwise link
 `Abs.inter` is what two paths into a join both know. Calls, tail calls and returns (`entryOk`,
 `afterCall`, `tailOk`, `retOk`) read the callee's `Sig`: the cells its walk needs written at entry,
 the heap facts it needs over its own bases (`pre`, `preR`, `preP`), and those it guarantees at return
-(`ret`, its returned words `retV`, `post`, `postR`, `postP`, a loop's `postL`, `postLP`), translated
-through the caller's knowledge of the callee frame (`trBase`). `walk` runs a function's code once,
-forward (`runCode`), keeping at most two paths apart at each offset and meeting more into one; the
-pending edges of a jump go in groups by their targets (`Grp`), a group of three or more paths met at
-once, so a table jump's arms share one state; the fall-through of a `JUMP` on a sum learns its two
+(`ret`, its returned words `retV`, `post`, `postR`, `postP`, a loop's `postL`, `postLP`, exponents in
+order `postT`, and under a condition on one `postC`), translated through the caller's knowledge of the
+callee frame (`trBase`). A back-solve of a quotient `g^C / [k]` learns its exponent under each value of
+`k`'s (`Abs.quotC`), and a callee's run is covered by cases on such a value (`Abs.splitR`). `walk`
+runs a function's code once, forward (`runCode`), keeping at most two paths apart at each offset and
+meeting more into one; the pending edges of a jump go in groups by their targets (`Grp`), a group of
+three or more paths met at once, so a table jump's arms share one state; the fall-through of a `JUMP` on a sum learns its two
 terms equal (`Abs.learn0`). At a cut (`Fun.cuts`) the walk goes on from given weaker paths and
 pending edges (`cutAt`), so a long function is checked in windows (`Mode/Win.lean`). The states are
 evaluated as they are built (`Abs.force`, `foldlA`), for the kernel, and a list is searched for a fact
@@ -802,6 +804,10 @@ structure Sig where
   postLP : List (Rng × List ℕ)
   /-- Frame offsets holding at return the word of a product over its bases. -/
   retV : List (ℕ × Mono)
+  /-- Exponents in order at return. -/
+  postT : List (Idx × Idx)
+  /-- Exponents in order at return when a base's exponent is a value: `(x, j, lts)`. -/
+  postC : List (Base × ℕ × List (Idx × Idx))
 
 /-- A residual: a value fact the walk assumes at an instruction, proved apart. -/
 inductive Res where
@@ -952,6 +958,22 @@ def Abs.zNz (A : Abs) (b c : ℕ) : Bool :=
     | some (o, x) => (A.isOne o && A.zImp b x) || (A.isOne x && A.zImp b o)
     | none => false
 
+/-- A quotient `g^C / [k]` gets conditions for `C` at most this. -/
+def qMax : ℕ := 64
+
+/-- The back-solve of `[u]` from `[c] = g^C` and `[k]`, `k`'s exponent known at most `b ≤ C`: under
+`k`'s exponent `j ≤ b`, `u`'s is `C - j` (`g^C / g^j`), each condition not already held. -/
+def Abs.quotC (A : Abs) (k u c : ℕ) : Abs :=
+  match A.v.get c, A.bound (.ex (.fr k) 0) with
+  | some (.m ⟨0, C, []⟩), some b =>
+    if decide (C ≤ qMax) && decide (b ≤ C) then
+      { A with c := (List.range (b + 1)).filterMap (fun j ↦
+          if A.c.any (fun d ↦ d.x.beq (.fr k) && d.j == j) then none
+          else some ⟨.fr k, j, [], [], [], [(.ex (.fr u) 0, .num (C - j + 1)), (.num (C - j), .ex (.fr u) 1)],
+            []⟩) ++ A.c }
+    else A
+  | _, _ => A
+
 /-- **One instruction** at pc `pc`, its operands as offsets. -/
 noncomputable def stepOp (E : Env) (pc : ℕ) (A : Abs) : OffsetInstruction → Option Abs
   | .xor a b c =>
@@ -974,10 +996,10 @@ noncomputable def stepOp (E : Env) (pc : ℕ) (A : Abs) : OffsetInstruction → 
     -- a back-solve: the executor's known operand is then nonzero
     else if A.hasW c && A.hasW a && A.zNz a c then
       let A' := (A.addW b).addNz a
-      some { (if A.hasNz c then A'.addNz b else A') with pr := [(a, b, c)] }
+      some { ((if A.hasNz c then A'.addNz b else A').quotC a b c) with pr := [(a, b, c)] }
     else if A.hasW c && A.hasW b && A.zNz b c then
       let A' := (A.addW a).addNz b
-      some { (if A.hasNz c then A'.addNz a else A') with pr := [(a, b, c)] }
+      some { ((if A.hasNz c then A'.addNz a else A').quotC b a c) with pr := [(a, b, c)] }
     else none
   | .set o k0 k1 =>
     let A' := (A.addW o).addV o (valOfImm E k0 k1)
@@ -1105,6 +1127,49 @@ def addRes (A : Abs) : List Res → Option Abs
   | .name o :: rs =>
     if A.hasW o then addRes { A with v := A.v.set (.m (.root o)) envDepth o } rs else none
 
+/-! ## Cases on an exponent -/
+
+/-- What holds when base `x`'s exponent is `j`: the facts under that condition, and the exponent. -/
+def Abs.assume (A : Abs) : Option Base → ℕ → Abs
+  | none, _ => A
+  | some x, j =>
+    let A := (A.addLt (.ex x 0) (.num (j + 1))).addLt (.num j) (.ex x 1)
+    match A.c.find? (fun c ↦ c.x.beq x && c.j == j) with
+    | some c =>
+      { A with
+        h := c.h ++ A.h
+        r := c.r ++ A.r
+        p := c.p ++ A.p
+        lt := c.lt ++ A.lt
+        hv := A.hv ++ c.hv.filter (fun p ↦ !(anyB (buckets (monoKey ·.1) A.hv) (fun q ↦ q.1.beq p.1) (monoKey p.1))) }
+    | none => A
+
+/-- Each run over base `x` also with its product's bases of known exponent made powers of `g`. -/
+def Abs.pinR (A : Abs) (x : Base) : Abs :=
+  { A with r := A.r.filterMap (fun r ↦
+      if r.q.bs.any (fun p ↦ p.1.beq x) then some ⟨A.pinned r.q, r.lo, r.hi, r.S, r.d⟩ else none) ++ A.r }
+
+/-- A case split on an exponent has at most this many cases. -/
+def splitMax : ℕ := 64
+
+/-- Run `r` known written by cases on base `x`'s exponent: each value below `N` assumed, its pins
+applied (`pinR`), and at least `N` unless a known bound excludes it. -/
+def Abs.splitAt (A : Abs) (r : Rng) (x : Base) (N : ℕ) : Bool :=
+  A.hasIdx (.ex x 0) && decide (N ≤ splitMax) &&
+  (List.range N).all (fun j ↦ ((A.assume (some x) j).pinR x).coveredR r) &&
+  ((match A.bound (.ex x 0) with
+    | some b => decide (b < N)
+    | none => false) || (A.addLt (.num N) (.ex x 1)).coveredR r)
+
+/-- Run `r` known written by cases on the exponent of a base with conditional facts, up to the
+greatest value they name or the base's bound (a run tiled by two whose bounds' exponents sum to a
+constant, `g^C / x` and `x`: `da_verify`'s tree leaves). -/
+def Abs.splitR (A : Abs) (r : Rng) : Bool :=
+  A.c.any fun c ↦ A.c.all (fun d ↦ !d.x.beq c.x || decide (d.j ≤ c.j)) &&
+    A.splitAt r c.x (match A.bound (.ex c.x 0) with
+      | some b => min c.j b + 1
+      | none => c.j + 1)
+
 /-! ## Calls -/
 
 /-- A callee's base, in the caller's terms, the callee's frame named by the product `mq` (its
@@ -1202,7 +1267,7 @@ def entryOk (A : Abs) (mq : Mono) (G : Sig) : Bool :=
     | some k => A.known k && A.covered k
     | none => false) &&
   G.preR.all (fun r ↦ match trRngDown A mq r with
-    | some r => A.coveredR r
+    | some r => A.coveredR r || A.splitR r
     | none => false) &&
   G.preP.all (fun q ↦ match trRngDown A mq q.1 with
     | some r => A.coveredP r q.2
@@ -1250,6 +1315,16 @@ noncomputable def afterCall (A : Abs) (mq : Mono) (G : Sig) : Abs :=
   let A := foldlA (fun A q ↦ match trRngUp A mq q.1 with
     | some r => { A with p := (r, q.2) :: A.p }
     | none => A) A (G.postP ++ G.postLP)
+  let A := foldlA (fun A p ↦ match idxUp A mq p.1, idxUp A mq p.2 with
+    | some a, some b => A.addLt a b
+    | _, _ => A) A G.postT
+  let A := foldlA (fun A q ↦ match trBase A mq q.1 with
+    | some ⟨0, 0, [(y, 1)]⟩ =>
+      if A.c.any (fun d ↦ d.x.beq y && d.j == q.2.1) then A
+      else { A with c := ⟨y, q.2.1, [], [], [], q.2.2.filterMap (fun p ↦ match idxUp A mq p.1, idxUp A mq p.2 with
+          | some a, some b => some (a, b)
+          | _, _ => none), []⟩ :: A.c }
+    | _ => A) A G.postC
   atCall A mq G
 
 /-- The walk's state at a function's entry. -/
@@ -1279,6 +1354,16 @@ def exitOk (A : Abs) : Idx → Idx → Bool
     | _ => false
   | _, _ => false
 
+/-- Under frame cell `o`'s exponent `j`, the exponents `lts` in order, at a return. -/
+def condOk (A : Abs) (x : Base) (j : ℕ) (lts : List (Idx × Idx)) : Bool :=
+  match x with
+  | .fr o => A.hasW o && match trBase A (.own 0) (.fr o) with
+    | some ⟨0, 0, [(y, 1)]⟩ => lts.all fun p ↦ match idxDown A (.own 0) p.1, idxDown A (.own 0) p.2 with
+      | some a, some b => (A.assume (some y) j).hasIdx b && (A.assume (some y) j).ltI a b
+      | _, _ => false
+    | _ => false
+  | .hp _ _ => false
+
 /-- What the function guarantees holds at a return. -/
 def retOk (A : Abs) (G : Sig) : Bool :=
   loopOk A G && G.term.all (fun p ↦ exitOk A p.1 p.2) &&
@@ -1292,9 +1377,13 @@ def retOk (A : Abs) (G : Sig) : Bool :=
   (G.postR.all fun r ↦ match trRngDown A (.own 0) r with
     | some r => A.coveredR r
     | none => false) &&
-  G.postP.all fun q ↦ match trRngDown A (.own 0) q.1 with
+  (G.postP.all fun q ↦ match trRngDown A (.own 0) q.1 with
     | some r => A.coveredP r q.2
-    | none => false
+    | none => false) &&
+  (G.postT.all fun p ↦ match idxDown A (.own 0) p.1, idxDown A (.own 0) p.2 with
+    | some a, some b => A.hasIdx b && A.ltI a b
+    | _, _ => false) &&
+  G.postC.all fun q ↦ condOk A q.1 q.2.1 q.2.2
 
 /-! ## Table calls -/
 
@@ -1303,21 +1392,6 @@ def selOf (A : Abs) (t : ℕ) : Option Base :=
   match A.v.get t with
   | some (.tab x _) => some x
   | _ => none
-
-/-- What holds when base `x`'s exponent is `j`: the facts under that condition, and the exponent. -/
-def Abs.assume (A : Abs) : Option Base → ℕ → Abs
-  | none, _ => A
-  | some x, j =>
-    let A := (A.addLt (.ex x 0) (.num (j + 1))).addLt (.num j) (.ex x 1)
-    match A.c.find? (fun c ↦ c.x.beq x && c.j == j) with
-    | some c =>
-      { A with
-        h := c.h ++ A.h
-        r := c.r ++ A.r
-        p := c.p ++ A.p
-        lt := c.lt ++ A.lt
-        hv := A.hv ++ c.hv.filter (fun p ↦ !(anyB (buckets (monoKey ·.1) A.hv) (fun q ↦ q.1.beq p.1) (monoKey p.1))) }
-    | none => A
 
 /-- Two or more arms met in `M`: each heap word of the first arm `M` lost (none of the tail they share), a pointer on every arm, as a
 run of one pointer with the cells below 64 past it every arm knows written (a call's arms returning
@@ -1444,7 +1518,7 @@ def headerOk (A : Abs) (e : ℕ) : Bool :=
 /-- What a loop guarantees at return is the same at the frame `fp·g^e` it tail-calls: nothing in its own
 frame, and each heap fact translated to itself, over bases the tail call passes on unchanged. -/
 def retStay (A : Abs) (e : ℕ) (G : Sig) : Bool :=
-  G.ret.isEmpty && G.retV.isEmpty &&
+  G.ret.isEmpty && G.retV.isEmpty && G.postT.isEmpty && G.postC.isEmpty &&
   G.post.all (fun m ↦ match trMono A (.own e) m with
     | some k => k.beq m
     | none => false) &&

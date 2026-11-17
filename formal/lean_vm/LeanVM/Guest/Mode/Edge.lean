@@ -103,32 +103,6 @@ theorem callee_at {En : Env} {F : Fun} {i : ℕ} {A : Abs} {d : ℕ} {Gs : List 
     · cases hc
   · cases hc
 
-/-- **What holds when a selector's exponent is `j`**: the facts under that condition, and its bounds. -/
-theorem Holds.assume {s : St} {A : Abs} (hA : Holds s A) {sel : Option Base} {j : ℕ}
-    (hsel : ∀ x, sel = some x → IdxVal s (.ex x 0) j) : Holds s (A.assume sel j) := by
-  cases sel with
-  | none => exact hA
-  | some x =>
-    have hi := hsel x rfl
-    have h1 := (hA.addLt (a := .ex x 0) (b := .num (j + 1)) ⟨j, j + 1, hi, rfl, by omega⟩).addLt
-      (a := .num j) (b := .ex x 1) ⟨j, j + 1, rfl, Idx.succ_val' hi, by omega⟩
-    unfold Abs.assume
-    dsimp only
-    split
-    · rename_i c hc
-      have hm := List.mem_of_find?_eq_some hc
-      have hk := List.find?_some hc
-      simp only [Bool.and_eq_true, beq_iff_eq] at hk
-      obtain ⟨-, hf⟩ := hA.c c hm
-      obtain ⟨hh, hr, hp, hlt, hhv⟩ := hf (by rw [Base.beq_eq hk.1, hk.2]; exact hi)
-      exact { h1 with
-        h := fun k hk' ↦ (List.mem_append.mp hk').elim (hh k) (h1.h k)
-        r := fun r hr' ↦ (List.mem_append.mp hr').elim (hr r) (h1.r r)
-        p := fun q hq ↦ (List.mem_append.mp hq).elim (hp q) (h1.p q)
-        lt := fun q hq ↦ (List.mem_append.mp hq).elim (hlt q) (h1.lt q)
-        hv := fun q hq ↦ (List.mem_append.mp hq).elim (h1.hv q) (fun hq ↦ hhv q (List.mem_filter.mp hq).1) }
-    · exact h1
-
 /-- The callee a call enters: one of its signatures, at the pc the executor goes to. -/
 theorem callee_of {En : Env} {F : Fun} {i : ℕ} {A : Abs} {d : ℕ} {Gs : List Sig} {s : St} {pc : ℕ}
     (hA : Holds s A) (hE : EnvOk s En) (hS : EnvSmall En) (hc : calleesOf En F A i d = some Gs)

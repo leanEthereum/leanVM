@@ -183,8 +183,8 @@ theorem retStay_sound {s sN : St} {A : Abs} {e : ℕ} {G : Sig} (hA : Holds s A)
     (F : Frames s sN (.own e)) (h : retStay A e G = true) (hR : RetHolds sN G) : RetHolds s G := by
   unfold retStay at h
   simp only [Bool.and_eq_true, List.isEmpty_iff, List.all_eq_true] at h
-  obtain ⟨⟨⟨⟨h0, h1⟩, hp⟩, hr⟩, hq⟩ := h
-  refine ⟨by simp [h0], fun m hm ↦ ?_, fun r hm ↦ ?_, fun q hm ↦ ?_, by simp [h1]⟩
+  obtain ⟨⟨⟨⟨⟨⟨h0, h1⟩, hT⟩, hC⟩, hp⟩, hr⟩, hq⟩ := h
+  refine ⟨by simp [h0], fun m hm ↦ ?_, fun r hm ↦ ?_, fun q hm ↦ ?_, by simp [h1], by simp [hT], by simp [hC]⟩
   · have := hp m hm
     split at this
     · rename_i k hk
