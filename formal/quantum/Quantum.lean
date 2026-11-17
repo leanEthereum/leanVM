@@ -215,6 +215,7 @@ import Quantum.Par.Subst
 import Quantum.Par.Lockstep
 import Quantum.Qrom.SufCma.GamePar
 import Quantum.Sponge.Oracle.Parallel
+import Quantum.Cost.Nist
 import Quantum.Qrom.Xmss.DepthBoundValue
 import Quantum.Xmss.Hybrid.GradedPar
 import Quantum.Qrom.Xmss.DepthBridge
@@ -395,3 +396,18 @@ the main theorems ever grows beyond Lean's three standard axioms. -/
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Quantum.StdModel.Sphincs.sphincs_suf_le_props_keccak
+
+/-- info: 'Quantum.Cost.Qrom.leanXmss_qrom_gateDepth_closed' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Cost.Qrom.leanXmss_qrom_gateDepth_closed
+
+/-- info: 'Quantum.Cost.Nist.leanXmss_qrom_cat1_lowDepth' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Cost.Nist.leanXmss_qrom_cat1_lowDepth
+
+/-- info: 'Quantum.Cost.Nist.leanXmss_qrom_cat1_inPlace' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Cost.Nist.leanXmss_qrom_cat1_inPlace

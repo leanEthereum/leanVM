@@ -174,7 +174,9 @@ quantum() {
     Quantum.Qrom.Xmss.Multi.leanXmss_qrom_mu_security Quantum.Qrom.Xmss.Multi.xmssQromMuBound_le \
     Quantum.StdModel.Xmss.xmss_suf_le_props_keccak \
     Quantum.Qrom.Xmss.leanXmss_qrom_depth_security Quantum.Qrom.Xmss.xmssQromDepthBound_le \
-    Quantum.StdModel.Sphincs.sphincs_suf_le_props_keccak
+    Quantum.StdModel.Sphincs.sphincs_suf_le_props_keccak \
+    Quantum.Cost.Qrom.leanXmss_qrom_gateDepth_closed Quantum.Cost.Nist.leanXmss_qrom_cat1_lowDepth \
+    Quantum.Cost.Nist.leanXmss_qrom_cat1_inPlace
 }
 
 # Every lean_vm executable, in one build.
