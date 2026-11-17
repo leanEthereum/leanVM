@@ -66,9 +66,11 @@ A computable extractor (`Whir.Sound.GaoDecoder`, `LowMsgC`, `DescentV`, `EndToEn
 
 Also done: the extractor over the verifier's skeleton (`EndToEnd.Sound.Skeleton`, `SkelLeaves`, `SkelBus`, `SkelFront`, `SkelWhir`, `SkelDecode`, `SkelExtract`): the cut verifier's transcript operations are fixed by the announced layout and rate (`skel_veBodyCut`), its value is read off the history (`dec_leanVmProgramCut`), so `extractASF` replays the sponge along the skeleton, with no verifier arithmetic, and returns whatever `extractASC` returns (`extractASF_of_extractASC`); **`knowledgeSoundnessASF_holds`**.
 
+Also done (the cost machine's form): the transcript's first forward answers indexed (`Extraction.AS.Forward`), Keccak-256 through them (`Extraction.AS.Hash`), one-error Newton decoding on the first `d + 3` columns of the agreement set (`Whir.Sound.Newton`, `NewtonDecoder`, `NewtonK`), the descent over arrays with the next level's message by the additive NTT (`DescentA`, `DescentT`, `DescentC`, `StackA`), the replay on events' values (`SkelPairs`) and the lite layout (`Extraction.AS.Lite`): **`knowledgeSoundnessL_holds : KnowledgeSoundness transcriptExtractorL`**, and `extractL` compiled on the cost machine (`Cost/AS/*`, `extractLC`).
+
 ## Next
 
-**Cost.** `Statement.Theorems` states knowledge soundness for the extractor a cost-machine program computes within `leanVmKnowledgeExtractorBudget`; the price need only be bounded where the extraction succeeds. The machine extractor, in order, each piece a compile-friendly definition proved equal to its part of `extractASF`, then `cost_compile`d and priced:
+**Price.** `Statement.Theorems` states knowledge soundness for the extractor a cost-machine program computes within `leanVmKnowledgeExtractorBudget`; the price need only be bounded where the extraction succeeds. Left: the price of `extractLC` from its compiled functions' price equations, then the glue (the entry, the size bound), the new budget, `Statement/` (shown to the user first), `statement.tex`, and removing the list decoder. The plan the compiled form followed:
 
 1. The transcript's first forward answers as a `SortedMap` (insert a forward query's answer only if its input is absent): its `get?` is `Rpm.firstForward`.
 2. Keccak-256 through that map: where the transcript's evaluations answer a message, the sponge over the first forward answers gives the same digest (a path's every block is the query that first fixed its edge, a forward one). This gives the seed's bytecode digest at `O(|bytecode| log² N)`.
