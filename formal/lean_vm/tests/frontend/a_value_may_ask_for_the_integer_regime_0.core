@@ -1,0 +1,5 @@
+def main []
+  const %0 4 0
+  const %1 1 0
+  load %0 %1 0
+  ret []

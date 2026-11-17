@@ -1112,6 +1112,78 @@ def prog_unwritten_heap_read : TestProgram where
   publicInput := []
   streams := []
 
+/-- `tests/frontend` as `a_bit_decomposition_cannot_overrun_its_heap_destination_0`. -/
+def prog_a_bit_decomposition_cannot_overrun_its_heap_destination_0 : TestProgram where
+  name := "a_bit_decomposition_cannot_overrun_its_heap_destination_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 2)),
+        .mk 3 (.let_ "v" (.gpow 5)),
+        .mk 4 (.call "hint_decompose_bits_exponent" [(.var "hb"), (.var "v"), (.lit 8)]),
+        .mk 5 (.let_ "p" (.gpow 0)),
+        .mk 6 (.store (.var "p") (.lit 1) (.index (.var "hb") (.lit 1))),
+        .mk 7 (.store (.var "p") .gen (.gpow 0)),
+        .mk 8 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_bit_decomposition_cannot_overrun_its_heap_destination_1`. -/
+def prog_a_bit_decomposition_cannot_overrun_its_heap_destination_1 : TestProgram where
+  name := "a_bit_decomposition_cannot_overrun_its_heap_destination_1"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 8)),
+        .mk 3 (.let_ "v" (.gpow 5)),
+        .mk 4 (.call "hint_decompose_bits_exponent" [(.mul (.var "hb") (.gpow 4)), (.var "v"), (.lit 8)]),
+        .mk 5 (.let_ "p" (.gpow 0)),
+        .mk 6 (.store (.var "p") (.lit 1) (.index (.var "hb") (.lit 1))),
+        .mk 7 (.store (.var "p") .gen (.gpow 0)),
+        .mk 8 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_bit_decomposition_cannot_overrun_its_heap_destination_2`. -/
+def prog_a_bit_decomposition_cannot_overrun_its_heap_destination_2 : TestProgram where
+  name := "a_bit_decomposition_cannot_overrun_its_heap_destination_2"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 8)),
+        .mk 3 (.let_ "v" (.gpow 5)),
+        .mk 4 (.call "hint_decompose_bits_exponent" [(.var "hb"), (.var "v"), (.lit 8)]),
+        .mk 5 (.let_ "p" (.gpow 0)),
+        .mk 6 (.store (.var "p") (.lit 1) (.index (.var "hb") (.lit 1))),
+        .mk 7 (.store (.var "p") .gen (.gpow 0)),
+        .mk 8 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_bit_decomposition_cannot_overrun_its_heap_destination_3`. -/
+def prog_a_bit_decomposition_cannot_overrun_its_heap_destination_3 : TestProgram where
+  name := "a_bit_decomposition_cannot_overrun_its_heap_destination_3"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 16)),
+        .mk 3 (.let_ "v" (.gpow 5)),
+        .mk 4 (.call "hint_decompose_bits_exponent" [(.mul (.var "hb") (.gpow 4)), (.var "v"), (.lit 8)]),
+        .mk 5 (.let_ "p" (.gpow 0)),
+        .mk 6 (.store (.var "p") (.lit 1) (.index (.var "hb") (.lit 1))),
+        .mk 7 (.store (.var "p") .gen (.gpow 0)),
+        .mk 8 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
 /-- `tests/frontend` as `a_branch_local_rebinding_does_not_hide_the_outer_binding_0`. -/
 def prog_a_branch_local_rebinding_does_not_hide_the_outer_binding_0 : TestProgram where
   name := "a_branch_local_rebinding_does_not_hide_the_outer_binding_0"
@@ -1255,6 +1327,81 @@ def prog_a_frame_bit_buffer_costs_no_deref_1 : TestProgram where
   publicInput := []
   streams := []
 
+/-- `tests/frontend` as `a_global_constant_may_be_a_g_power_0`. -/
+def prog_a_global_constant_may_be_a_g_power_0 : TestProgram where
+  name := "a_global_constant_may_be_a_g_power_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 4 (.let_ "p" (.gpow 0)),
+        .mk 5 (.store (.var "p") (.lit 1) (.lit 4)),
+        .mk 6 (.store (.var "p") .gen (.gpow 0)),
+        .mk 7 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_global_constant_may_be_a_g_power_1`. -/
+def prog_a_global_constant_may_be_a_g_power_1 : TestProgram where
+  name := "a_global_constant_may_be_a_g_power_1"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 4 (.let_ "p" (.gpow 0)),
+        .mk 5 (.store (.var "p") (.lit 1) (.gpow 2)),
+        .mk 6 (.store (.var "p") .gen (.gpow 0)),
+        .mk 7 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_global_constant_may_be_a_g_power_2`. -/
+def prog_a_global_constant_may_be_a_g_power_2 : TestProgram where
+  name := "a_global_constant_may_be_a_g_power_2"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 4 (.let_ "p" (.gpow 0)),
+        .mk 5 (.store (.var "p") (.lit 1) (.lit 4)),
+        .mk 6 (.store (.var "p") .gen (.gpow 0)),
+        .mk 7 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_global_constant_may_be_a_g_power_3`. -/
+def prog_a_global_constant_may_be_a_g_power_3 : TestProgram where
+  name := "a_global_constant_may_be_a_g_power_3"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 4 (.let_ "p" (.gpow 0)),
+        .mk 5 (.store (.var "p") (.lit 1) (.lit 1728)),
+        .mk 6 (.store (.var "p") .gen (.gpow 0)),
+        .mk 7 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_global_constant_may_be_a_g_power_4`. -/
+def prog_a_global_constant_may_be_a_g_power_4 : TestProgram where
+  name := "a_global_constant_may_be_a_g_power_4"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 4 (.let_ "p" (.gpow 0)),
+        .mk 5 (.store (.var "p") (.lit 1) (.gpow 70)),
+        .mk 6 (.store (.var "p") .gen (.gpow 0)),
+        .mk 7 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
 /-- `tests/frontend` as `a_literal_power_of_two_is_a_g_power_0`. -/
 def prog_a_literal_power_of_two_is_a_g_power_0 : TestProgram where
   name := "a_literal_power_of_two_is_a_g_power_0"
@@ -1285,6 +1432,40 @@ def prog_a_load_before_its_store_sees_the_store_0 : TestProgram where
         .mk 5 (.let_ "public" (.lit 1)),
         .mk 6 (.assertEq (.index (.var "public") (.lit 1)) (.mul (.var "x") .gen)),
         .mk 7 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_loop_bound_must_be_reachable_0`. -/
+def prog_a_loop_bound_must_be_reachable_0 : TestProgram where
+  name := "a_loop_bound_must_be_reachable_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 8)),
+        .mk 3 (.store (.var "hb") (.lit 1) (.lit 1)),
+        .mk 4 (.for_ "i" 0 (.const 4) [
+          .mk 5 (.store (.var "hb") (.mul (.var "i") .gen) (.index (.var "hb") (.var "i")))]),
+        .mk 6 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_loop_cannot_carry_a_value_0`. -/
+def prog_a_loop_cannot_carry_a_value_0 : TestProgram where
+  name := "a_loop_cannot_carry_a_value_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "s" (.gpow 0)),
+        .mk 3 (.for_ "i" 0 (.const 3) [
+          .mk 4 (.let_ "s" (.mul (.var "s") .gen))]),
+        .mk 5 (.let_ "p" (.gpow 0)),
+        .mk 6 (.store (.var "p") (.lit 1) (.var "s")),
+        .mk 7 (.store (.var "p") .gen (.gpow 0)),
+        .mk 8 (.ret [])] }],
     []⟩
   publicInput := []
   streams := []
@@ -1402,6 +1583,29 @@ def prog_a_match_target_binds_and_every_field_is_walked_3 : TestProgram where
   publicInput := []
   streams := []
 
+/-- `tests/frontend` as `a_mixed_stack_buf_return_cannot_cross_a_match_join_0`. -/
+def prog_a_mixed_stack_buf_return_cannot_cross_a_match_join_0 : TestProgram where
+  name := "a_mixed_stack_buf_return_cannot_cross_a_match_join_0"
+  program := ⟨[
+    { name := "f", params := [⟨"k", .const⟩], returnShapes := [.scalar, (.stackBuf 2)],
+      inline := true,
+      body := [
+        .mk 3 (.let_ "s" (.stackBuf 2)),
+        .mk 4 (.store (.var "s") (.lit 0) (.gpow 7)),
+        .mk 5 (.store (.var "s") (.lit 1) (.gpow 9)),
+        .mk 6 (.ret [(.genPow (.var "k")), (.var "s")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 9 (.let_ "x" .gen),
+        .mk 10 (.match_ [(.var "a"), (.var "b")] (.var "x") [(.call "f" [(.lit 0)]), (.call "f" [(.lit 1)])]),
+        .mk 11 (.assertEq (.var "a") (.var "a")),
+        .mk 12 (.assertEq (.var "b") (.gpow 7)),
+        .mk 13 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
 /-- `tests/frontend` as `a_power_of_two_literal_is_a_g_power_only_below_two_to_the_64_0`. -/
 def prog_a_power_of_two_literal_is_a_g_power_only_below_two_to_the_64_0 : TestProgram where
   name := "a_power_of_two_literal_is_a_g_power_only_below_two_to_the_64_0"
@@ -1417,6 +1621,170 @@ def prog_a_power_of_two_literal_is_a_g_power_only_below_two_to_the_64_0 : TestPr
         .mk 9 (.store (.var "p") (.lit 1) (.var "a")),
         .mk 10 (.store (.var "p") .gen (.var "b")),
         .mk 11 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_program_cannot_reach_a_cell_it_does_not_own_0`. -/
+def prog_a_program_cannot_reach_a_cell_it_does_not_own_0 : TestProgram where
+  name := "a_program_cannot_reach_a_cell_it_does_not_own_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "a" (.stackBuf 2)),
+        .mk 3 (.let_ "b" (.stackBuf 2)),
+        .mk 4 (.let_ "c" (.stackBuf 2)),
+        .mk 5 (.store (.var "c") (.lit 0) (.index (.var "a") (.lit 2))),
+        .mk 6 (.let_ "p" (.gpow 0)),
+        .mk 7 (.store (.var "p") (.lit 1) (.gpow 0)),
+        .mk 8 (.store (.var "p") .gen (.gpow 0)),
+        .mk 9 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_program_cannot_reach_a_cell_it_does_not_own_1`. -/
+def prog_a_program_cannot_reach_a_cell_it_does_not_own_1 : TestProgram where
+  name := "a_program_cannot_reach_a_cell_it_does_not_own_1"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "a" (.stackBuf 2)),
+        .mk 3 (.let_ "b" (.stackBuf 2)),
+        .mk 4 (.let_ "lst" (.list [(.index (.var "a") (.lit 2)), (.index (.var "a") (.lit 3))])),
+        .mk 5 (.let_ "p" (.gpow 0)),
+        .mk 6 (.store (.var "p") (.lit 1) (.gpow 0)),
+        .mk 7 (.store (.var "p") .gen (.gpow 0)),
+        .mk 8 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_program_cannot_reach_a_cell_it_does_not_own_2`. -/
+def prog_a_program_cannot_reach_a_cell_it_does_not_own_2 : TestProgram where
+  name := "a_program_cannot_reach_a_cell_it_does_not_own_2"
+  program := ⟨[
+    { name := "check", params := [⟨"a", (.runtime .scalar)⟩, ⟨"b", (.runtime .scalar)⟩], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.assertEq (.var "a") (.var "b")),
+        .mk 3 (.ret [])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 6 (.call "check" [(.lit 0)]),
+        .mk 7 (.let_ "p" (.gpow 0)),
+        .mk 8 (.store (.var "p") (.lit 1) (.gpow 0)),
+        .mk 9 (.store (.var "p") .gen (.gpow 0)),
+        .mk 10 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_program_cannot_reach_a_cell_it_does_not_own_3`. -/
+def prog_a_program_cannot_reach_a_cell_it_does_not_own_3 : TestProgram where
+  name := "a_program_cannot_reach_a_cell_it_does_not_own_3"
+  program := ⟨[
+    { name := "one", params := [⟨"a", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 2 (.ret [(.var "a")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 5 (.let_ "r" (.call "one" [(.gpow 1), (.gpow 2)])),
+        .mk 6 (.let_ "p" (.gpow 0)),
+        .mk 7 (.store (.var "p") (.lit 1) (.gpow 0)),
+        .mk 8 (.store (.var "p") .gen (.gpow 0)),
+        .mk 9 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_program_cannot_reach_a_cell_it_does_not_own_4`. -/
+def prog_a_program_cannot_reach_a_cell_it_does_not_own_4 : TestProgram where
+  name := "a_program_cannot_reach_a_cell_it_does_not_own_4"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 2)),
+        .mk 3 (.let_ "nxt" (.heapBuf 2)),
+        .mk 4 (.hintWitness (.slice (.var "hb") (.gpow 1) (.add (.gpow 1) (.lit 2))) "w"),
+        .mk 5 (.let_ "p" (.gpow 0)),
+        .mk 6 (.store (.var "p") (.lit 1) (.gpow 0)),
+        .mk 7 (.store (.var "p") .gen (.gpow 0)),
+        .mk 8 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_program_cannot_reach_a_cell_it_does_not_own_5`. -/
+def prog_a_program_cannot_reach_a_cell_it_does_not_own_5 : TestProgram where
+  name := "a_program_cannot_reach_a_cell_it_does_not_own_5"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 4)),
+        .mk 3 (.hintWitness (.slice (.var "hb") (.gpow 1) (.add (.gpow 1) (.lit 2))) "w"),
+        .mk 4 (.let_ "p" (.gpow 0)),
+        .mk 5 (.store (.var "p") (.lit 1) (.index (.var "hb") .gen)),
+        .mk 6 (.store (.var "p") .gen (.gpow 0)),
+        .mk 7 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_program_names_what_it_means_0`. -/
+def prog_a_program_names_what_it_means_0 : TestProgram where
+  name := "a_program_names_what_it_means_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "x" (.call "nosuchfn" [(.lit 1)])),
+        .mk 3 (.let_ "p" (.gpow 0)),
+        .mk 4 (.store (.var "p") (.lit 1) (.gpow 0)),
+        .mk 5 (.store (.var "p") .gen (.gpow 0)),
+        .mk 6 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_program_names_what_it_means_1`. -/
+def prog_a_program_names_what_it_means_1 : TestProgram where
+  name := "a_program_names_what_it_means_1"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "x" (.call "assert_in_k" [(.gpow 1), (.gpow 1)])),
+        .mk 3 (.let_ "p" (.gpow 0)),
+        .mk 4 (.store (.var "p") (.lit 1) (.gpow 0)),
+        .mk 5 (.store (.var "p") .gen (.gpow 0)),
+        .mk 6 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_program_names_what_it_means_2`. -/
+def prog_a_program_names_what_it_means_2 : TestProgram where
+  name := "a_program_names_what_it_means_2"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "c" (.lit 5)),
+        .mk 3 (.let_ "hb" (.heapBuf 4)),
+        .mk 4 (.for_ "i" 0 (.const 2) [
+          .mk 5 (.store (.var "hb") (.var "i") (.var "c"))]),
+        .mk 6 (.let_ "p" (.gpow 0)),
+        .mk 7 (.store (.var "p") (.lit 1) (.index (.var "hb") .gen)),
+        .mk 8 (.store (.var "p") .gen (.gpow 0)),
+        .mk 9 (.ret [])] }],
     []⟩
   publicInput := []
   streams := []
@@ -1577,6 +1945,74 @@ def prog_a_stack_bit_run_survives_cell_sharing_0 : TestProgram where
   publicInput := []
   streams := []
 
+/-- `tests/frontend` as `a_stack_buf_can_be_passed_as_well_as_returned_0`. -/
+def prog_a_stack_buf_can_be_passed_as_well_as_returned_0 : TestProgram where
+  name := "a_stack_buf_can_be_passed_as_well_as_returned_0"
+  program := ⟨[
+    { name := "swap", params := [⟨"s", (.runtime (.stackBuf 2))⟩], returnShapes := [(.stackBuf 2)],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "t" (.stackBuf 2)),
+        .mk 3 (.store (.var "t") (.lit 0) (.index (.var "s") (.lit 1))),
+        .mk 4 (.store (.var "t") (.lit 1) (.index (.var "s") (.lit 0))),
+        .mk 5 (.ret [(.var "t")])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 8 (.let_ "b" (.stackBuf 2)),
+        .mk 9 (.store (.var "b") (.lit 0) (.gpow 1)),
+        .mk 10 (.store (.var "b") (.lit 1) (.gpow 2)),
+        .mk 11 (.let_ "r" (.call "swap" [(.var "b")])),
+        .mk 12 (.let_ "p" (.gpow 0)),
+        .mk 13 (.store (.var "p") (.lit 1) (.index (.var "r") (.lit 0))),
+        .mk 14 (.store (.var "p") .gen (.index (.var "r") (.lit 1))),
+        .mk 15 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_stack_buf_can_be_passed_as_well_as_returned_1`. -/
+def prog_a_stack_buf_can_be_passed_as_well_as_returned_1 : TestProgram where
+  name := "a_stack_buf_can_be_passed_as_well_as_returned_1"
+  program := ⟨[
+    { name := "f", params := [⟨"s", (.runtime (.stackBuf 2))⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 2 (.ret [(.index (.var "s") (.lit 0))])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 5 (.let_ "b" (.stackBuf 3)),
+        .mk 6 (.store (.var "b") (.lit 0) (.gpow 1)),
+        .mk 7 (.let_ "r" (.call "f" [(.var "b")])),
+        .mk 8 (.let_ "p" (.gpow 0)),
+        .mk 9 (.store (.var "p") (.lit 1) (.var "r")),
+        .mk 10 (.store (.var "p") .gen (.gpow 0)),
+        .mk 11 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_stack_buf_can_be_passed_as_well_as_returned_2`. -/
+def prog_a_stack_buf_can_be_passed_as_well_as_returned_2 : TestProgram where
+  name := "a_stack_buf_can_be_passed_as_well_as_returned_2"
+  program := ⟨[
+    { name := "f", params := [⟨"s", (.runtime (.stackBuf 2))⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 2 (.ret [(.index (.var "s") (.lit 0))])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 5 (.let_ "r" (.call "f" [(.gpow 1)])),
+        .mk 6 (.let_ "p" (.gpow 0)),
+        .mk 7 (.store (.var "p") (.lit 1) (.var "r")),
+        .mk 8 (.store (.var "p") .gen (.gpow 0)),
+        .mk 9 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
 /-- `tests/frontend` as `a_store_into_a_run_parameter_asserts_0`. -/
 def prog_a_store_into_a_run_parameter_asserts_0 : TestProgram where
   name := "a_store_into_a_run_parameter_asserts_0"
@@ -1614,6 +2050,114 @@ def prog_a_string_literal_is_not_scanned_for_syntax_0 : TestProgram where
         .mk 5 (.store (.var "p") (.lit 1) (.index (.var "rb") (.lit 0))),
         .mk 6 (.store (.var "p") .gen (.gpow 0)),
         .mk 7 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_value_may_ask_for_the_integer_regime_0`. -/
+def prog_a_value_may_ask_for_the_integer_regime_0 : TestProgram where
+  name := "a_value_may_ask_for_the_integer_regime_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.unroll "i" (.lit 3) (.lit 4) [
+          .mk 3 (.let_ "v" (.call "const" [(.add (.var "i") (.lit 1))])),
+          .mk 4 (.let_ "p" (.gpow 0)),
+          .mk 5 (.store (.var "p") (.lit 1) (.var "v"))]),
+        .mk 6 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_value_may_ask_for_the_integer_regime_1`. -/
+def prog_a_value_may_ask_for_the_integer_regime_1 : TestProgram where
+  name := "a_value_may_ask_for_the_integer_regime_1"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.unroll "i" (.lit 3) (.lit 4) [
+          .mk 3 (.let_ "v" (.lit 4)),
+          .mk 4 (.let_ "p" (.gpow 0)),
+          .mk 5 (.store (.var "p") (.lit 1) (.var "v"))]),
+        .mk 6 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_value_may_ask_for_the_integer_regime_2`. -/
+def prog_a_value_may_ask_for_the_integer_regime_2 : TestProgram where
+  name := "a_value_may_ask_for_the_integer_regime_2"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.unroll "i" (.lit 3) (.lit 4) [
+          .mk 3 (.let_ "v" (.lit 2)),
+          .mk 4 (.let_ "p" (.gpow 0)),
+          .mk 5 (.store (.var "p") (.lit 1) (.var "v"))]),
+        .mk 6 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_value_may_ask_for_the_integer_regime_3`. -/
+def prog_a_value_may_ask_for_the_integer_regime_3 : TestProgram where
+  name := "a_value_may_ask_for_the_integer_regime_3"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.unroll "i" (.lit 3) (.lit 4) [
+          .mk 3 (.let_ "v" (.add (.var "i") (.lit 1))),
+          .mk 4 (.let_ "p" (.gpow 0)),
+          .mk 5 (.store (.var "p") (.lit 1) (.var "v"))]),
+        .mk 6 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_value_may_ask_for_the_integer_regime_4`. -/
+def prog_a_value_may_ask_for_the_integer_regime_4 : TestProgram where
+  name := "a_value_may_ask_for_the_integer_regime_4"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.unroll "i" (.lit 3) (.lit 4) [
+          .mk 3 (.let_ "v" (.call "const" [(.sub (.var "i") (.lit 1))])),
+          .mk 4 (.let_ "p" (.gpow 0)),
+          .mk 5 (.store (.var "p") (.lit 1) (.var "v"))]),
+        .mk 6 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_value_may_ask_for_the_integer_regime_5`. -/
+def prog_a_value_may_ask_for_the_integer_regime_5 : TestProgram where
+  name := "a_value_may_ask_for_the_integer_regime_5"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "w" (.gpow 0)),
+        .mk 3 (.let_ "v" (.call "const" [(.add (.var "w") (.lit 1))])),
+        .mk 4 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `a_value_may_ask_for_the_integer_regime_6`. -/
+def prog_a_value_may_ask_for_the_integer_regime_6 : TestProgram where
+  name := "a_value_may_ask_for_the_integer_regime_6"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "n" (.add (.lit 2) (.lit 3))),
+        .mk 3 (.let_ "v" (.call "const" [(.var "n")])),
+        .mk 4 (.ret [])] }],
     []⟩
   publicInput := []
   streams := []
@@ -1657,6 +2201,324 @@ def prog_addr_names_the_frame_run_0 : TestProgram where
   publicInput := []
   streams := []
 
+/-- `tests/frontend` as `addr_pointers_are_bounds_checked_0`. -/
+def prog_addr_pointers_are_bounds_checked_0 : TestProgram where
+  name := "addr_pointers_are_bounds_checked_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "b" (.stackBuf 2)),
+        .mk 3 (.let_ "p" (.call "addr" [(.var "b")])),
+        .mk 4 (.store (.var "p") (.gpow 40) (.gpow 3)),
+        .mk 5 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `an_ambiguous_compile_time_branch_must_be_declared_0`. -/
+def prog_an_ambiguous_compile_time_branch_must_be_declared_0 : TestProgram where
+  name := "an_ambiguous_compile_time_branch_must_be_declared_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 4)),
+        .mk 3 (.store (.var "hb") (.gpow 0) (.lit 5)),
+        .mk 4 (.let_ "p" (.gpow 0)),
+        .mk 5 (.store (.var "p") (.lit 1) (.index (.var "hb") (.gpow 0))),
+        .mk 6 (.store (.var "p") .gen (.gpow 0)),
+        .mk 7 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `an_ambiguous_compile_time_branch_must_be_declared_1`. -/
+def prog_an_ambiguous_compile_time_branch_must_be_declared_1 : TestProgram where
+  name := "an_ambiguous_compile_time_branch_must_be_declared_1"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 4)),
+        .mk 3 (.ite true (.add (.lit 3) (.lit 1)) (.lit 4) [
+          .mk 4 (.store (.var "hb") (.gpow 0) (.lit 5))] [
+          .mk 6 (.store (.var "hb") (.gpow 0) (.lit 7))] true),
+        .mk 7 (.let_ "p" (.gpow 0)),
+        .mk 8 (.store (.var "p") (.lit 1) (.index (.var "hb") (.gpow 0))),
+        .mk 9 (.store (.var "p") .gen (.gpow 0)),
+        .mk 10 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `an_ambiguous_compile_time_branch_must_be_declared_10`. -/
+def prog_an_ambiguous_compile_time_branch_must_be_declared_10 : TestProgram where
+  name := "an_ambiguous_compile_time_branch_must_be_declared_10"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 4)),
+        .mk 3 (.ite true (.add (.lit 1) (.lit 1)) (.div (.lit 8) (.lit 4)) [
+          .mk 4 (.store (.var "hb") (.gpow 0) (.lit 5))] [
+          .mk 6 (.store (.var "hb") (.gpow 0) (.lit 7))] false),
+        .mk 7 (.let_ "p" (.gpow 0)),
+        .mk 8 (.store (.var "p") (.lit 1) (.index (.var "hb") (.gpow 0))),
+        .mk 9 (.store (.var "p") .gen (.gpow 0)),
+        .mk 10 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `an_ambiguous_compile_time_branch_must_be_declared_11`. -/
+def prog_an_ambiguous_compile_time_branch_must_be_declared_11 : TestProgram where
+  name := "an_ambiguous_compile_time_branch_must_be_declared_11"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 4)),
+        .mk 3 (.ite true (.add (.lit 1) (.lit 1)) (.mod (.lit 9) (.lit 7)) [
+          .mk 4 (.store (.var "hb") (.gpow 0) (.lit 5))] [
+          .mk 6 (.store (.var "hb") (.gpow 0) (.lit 7))] false),
+        .mk 7 (.let_ "p" (.gpow 0)),
+        .mk 8 (.store (.var "p") (.lit 1) (.index (.var "hb") (.gpow 0))),
+        .mk 9 (.store (.var "p") .gen (.gpow 0)),
+        .mk 10 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `an_ambiguous_compile_time_branch_must_be_declared_12`. -/
+def prog_an_ambiguous_compile_time_branch_must_be_declared_12 : TestProgram where
+  name := "an_ambiguous_compile_time_branch_must_be_declared_12"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 4)),
+        .mk 3 (.ite true (.call "const" [(.add (.lit 1) (.lit 1))]) (.lit 2) [
+          .mk 4 (.store (.var "hb") (.gpow 0) (.lit 5))] [
+          .mk 6 (.store (.var "hb") (.gpow 0) (.lit 7))] false),
+        .mk 7 (.let_ "p" (.gpow 0)),
+        .mk 8 (.store (.var "p") (.lit 1) (.index (.var "hb") (.gpow 0))),
+        .mk 9 (.store (.var "p") .gen (.gpow 0)),
+        .mk 10 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `an_ambiguous_compile_time_branch_must_be_declared_13`. -/
+def prog_an_ambiguous_compile_time_branch_must_be_declared_13 : TestProgram where
+  name := "an_ambiguous_compile_time_branch_must_be_declared_13"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 4)),
+        .mk 3 (.ite true (.lit 2) (.call "const" [(.add (.lit 1) (.lit 1))]) [
+          .mk 4 (.store (.var "hb") (.gpow 0) (.lit 5))] [
+          .mk 6 (.store (.var "hb") (.gpow 0) (.lit 7))] false),
+        .mk 7 (.let_ "p" (.gpow 0)),
+        .mk 8 (.store (.var "p") (.lit 1) (.index (.var "hb") (.gpow 0))),
+        .mk 9 (.store (.var "p") .gen (.gpow 0)),
+        .mk 10 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `an_ambiguous_compile_time_branch_must_be_declared_14`. -/
+def prog_an_ambiguous_compile_time_branch_must_be_declared_14 : TestProgram where
+  name := "an_ambiguous_compile_time_branch_must_be_declared_14"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "const" (.lit 4)),
+        .mk 3 (.let_ "hb" (.heapBuf 4)),
+        .mk 4 (.ite true (.var "const") (.lit 4) [
+          .mk 5 (.store (.var "hb") (.gpow 0) (.lit 5))] [
+          .mk 7 (.store (.var "hb") (.gpow 0) (.lit 7))] false),
+        .mk 8 (.let_ "p" (.gpow 0)),
+        .mk 9 (.store (.var "p") (.lit 1) (.index (.var "hb") (.gpow 0))),
+        .mk 10 (.store (.var "p") .gen (.gpow 0)),
+        .mk 11 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `an_ambiguous_compile_time_branch_must_be_declared_15`. -/
+def prog_an_ambiguous_compile_time_branch_must_be_declared_15 : TestProgram where
+  name := "an_ambiguous_compile_time_branch_must_be_declared_15"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 4)),
+        .mk 3 (.ite true (.var "hb") (.lit 4) [
+          .mk 4 (.store (.var "hb") (.gpow 0) (.lit 5))] [
+          .mk 6 (.store (.var "hb") (.gpow 0) (.lit 7))] true),
+        .mk 7 (.let_ "p" (.gpow 0)),
+        .mk 8 (.store (.var "p") (.lit 1) (.index (.var "hb") (.gpow 0))),
+        .mk 9 (.store (.var "p") .gen (.gpow 0)),
+        .mk 10 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `an_ambiguous_compile_time_branch_must_be_declared_2`. -/
+def prog_an_ambiguous_compile_time_branch_must_be_declared_2 : TestProgram where
+  name := "an_ambiguous_compile_time_branch_must_be_declared_2"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 4)),
+        .mk 3 (.ite true (.add (.lit 1) (.lit 1)) (.lit 2) [
+          .mk 4 (.store (.var "hb") (.gpow 0) (.lit 5))] [
+          .mk 6 (.store (.var "hb") (.gpow 0) (.lit 7))] true),
+        .mk 7 (.let_ "p" (.gpow 0)),
+        .mk 8 (.store (.var "p") (.lit 1) (.index (.var "hb") (.gpow 0))),
+        .mk 9 (.store (.var "p") .gen (.gpow 0)),
+        .mk 10 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `an_ambiguous_compile_time_branch_must_be_declared_3`. -/
+def prog_an_ambiguous_compile_time_branch_must_be_declared_3 : TestProgram where
+  name := "an_ambiguous_compile_time_branch_must_be_declared_3"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 4)),
+        .mk 3 (.ite true (.add (.lit 1) (.lit 1)) (.sub (.lit 3) (.lit 1)) [
+          .mk 4 (.store (.var "hb") (.gpow 0) (.lit 5))] [
+          .mk 6 (.store (.var "hb") (.gpow 0) (.lit 7))] true),
+        .mk 7 (.let_ "p" (.gpow 0)),
+        .mk 8 (.store (.var "p") (.lit 1) (.index (.var "hb") (.gpow 0))),
+        .mk 9 (.store (.var "p") .gen (.gpow 0)),
+        .mk 10 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `an_ambiguous_compile_time_branch_must_be_declared_4`. -/
+def prog_an_ambiguous_compile_time_branch_must_be_declared_4 : TestProgram where
+  name := "an_ambiguous_compile_time_branch_must_be_declared_4"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 4)),
+        .mk 3 (.ite true (.gpow 3) (.gpow 3) [
+          .mk 4 (.store (.var "hb") (.gpow 0) (.lit 5))] [
+          .mk 6 (.store (.var "hb") (.gpow 0) (.lit 7))] true),
+        .mk 7 (.let_ "p" (.gpow 0)),
+        .mk 8 (.store (.var "p") (.lit 1) (.index (.var "hb") (.gpow 0))),
+        .mk 9 (.store (.var "p") .gen (.gpow 0)),
+        .mk 10 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `an_ambiguous_compile_time_branch_must_be_declared_5`. -/
+def prog_an_ambiguous_compile_time_branch_must_be_declared_5 : TestProgram where
+  name := "an_ambiguous_compile_time_branch_must_be_declared_5"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 4)),
+        .mk 3 (.ite true (.pow (.lit 2) (.lit 40)) (.pow (.lit 2) (.lit 40)) [
+          .mk 4 (.store (.var "hb") (.gpow 0) (.lit 5))] [
+          .mk 6 (.store (.var "hb") (.gpow 0) (.lit 7))] true),
+        .mk 7 (.let_ "p" (.gpow 0)),
+        .mk 8 (.store (.var "p") (.lit 1) (.index (.var "hb") (.gpow 0))),
+        .mk 9 (.store (.var "p") .gen (.gpow 0)),
+        .mk 10 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `an_ambiguous_compile_time_branch_must_be_declared_6`. -/
+def prog_an_ambiguous_compile_time_branch_must_be_declared_6 : TestProgram where
+  name := "an_ambiguous_compile_time_branch_must_be_declared_6"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 4)),
+        .mk 3 (.ite true (.mul (.lit 2) (.lit 3)) (.lit 6) [
+          .mk 4 (.store (.var "hb") (.gpow 0) (.lit 5))] [
+          .mk 6 (.store (.var "hb") (.gpow 0) (.lit 7))] false),
+        .mk 7 (.let_ "p" (.gpow 0)),
+        .mk 8 (.store (.var "p") (.lit 1) (.index (.var "hb") (.gpow 0))),
+        .mk 9 (.store (.var "p") .gen (.gpow 0)),
+        .mk 10 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `an_ambiguous_compile_time_branch_must_be_declared_7`. -/
+def prog_an_ambiguous_compile_time_branch_must_be_declared_7 : TestProgram where
+  name := "an_ambiguous_compile_time_branch_must_be_declared_7"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 4)),
+        .mk 3 (.ite true (.add (.lit 3) (.lit 1)) (.lit 4) [
+          .mk 4 (.store (.var "hb") (.gpow 0) (.lit 5))] [
+          .mk 6 (.store (.var "hb") (.gpow 0) (.lit 7))] false),
+        .mk 7 (.let_ "p" (.gpow 0)),
+        .mk 8 (.store (.var "p") (.lit 1) (.index (.var "hb") (.gpow 0))),
+        .mk 9 (.store (.var "p") .gen (.gpow 0)),
+        .mk 10 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `an_ambiguous_compile_time_branch_must_be_declared_8`. -/
+def prog_an_ambiguous_compile_time_branch_must_be_declared_8 : TestProgram where
+  name := "an_ambiguous_compile_time_branch_must_be_declared_8"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 4)),
+        .mk 3 (.ite true (.add (.lit 1) (.lit 1)) (.lit 2) [
+          .mk 4 (.store (.var "hb") (.gpow 0) (.lit 5))] [
+          .mk 6 (.store (.var "hb") (.gpow 0) (.lit 7))] false),
+        .mk 7 (.let_ "p" (.gpow 0)),
+        .mk 8 (.store (.var "p") (.lit 1) (.index (.var "hb") (.gpow 0))),
+        .mk 9 (.store (.var "p") .gen (.gpow 0)),
+        .mk 10 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `an_ambiguous_compile_time_branch_must_be_declared_9`. -/
+def prog_an_ambiguous_compile_time_branch_must_be_declared_9 : TestProgram where
+  name := "an_ambiguous_compile_time_branch_must_be_declared_9"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 4)),
+        .mk 3 (.ite true (.add (.lit 1) (.lit 1)) (.sub (.lit 3) (.lit 1)) [
+          .mk 4 (.store (.var "hb") (.gpow 0) (.lit 5))] [
+          .mk 6 (.store (.var "hb") (.gpow 0) (.lit 7))] false),
+        .mk 7 (.let_ "p" (.gpow 0)),
+        .mk 8 (.store (.var "p") (.lit 1) (.index (.var "hb") (.gpow 0))),
+        .mk 9 (.store (.var "p") .gen (.gpow 0)),
+        .mk 10 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
 /-- `tests/frontend` as `an_if_folds_on_integers_of_any_size`. -/
 def prog_an_if_folds_on_integers_of_any_size : TestProgram where
   name := "an_if_folds_on_integers_of_any_size"
@@ -1689,6 +2551,50 @@ def prog_an_inline_call_does_not_steal_the_call_site_line_0 : TestProgram where
         .mk 11 (.let_ "a" (.index (.var "hb") .gen)),
         .mk 12 (.assertEq (.call "idf" [(.var "a")]) .gen),
         .mk 13 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `an_unbound_name_is_rejected_0`. -/
+def prog_an_unbound_name_is_rejected_0 : TestProgram where
+  name := "an_unbound_name_is_rejected_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "p" (.gpow 0)),
+        .mk 3 (.store (.var "p") (.lit 1) (.var "nosuch")),
+        .mk 4 (.store (.var "p") .gen (.gpow 0)),
+        .mk 5 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `an_unbound_name_is_rejected_1`. -/
+def prog_an_unbound_name_is_rejected_1 : TestProgram where
+  name := "an_unbound_name_is_rejected_1"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 3 (.let_ "hb" (.heapBuf 4)),
+        .mk 4 (.store (.var "hb") .gen (.lit 7)),
+        .mk 6 (.let_ "p" (.gpow 0)),
+        .mk 7 (.store (.var "p") (.lit 1) (.var "nope")),
+        .mk 8 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `assert_ne_compile_time_equal_rejected_0`. -/
+def prog_assert_ne_compile_time_equal_rejected_0 : TestProgram where
+  name := "assert_ne_compile_time_equal_rejected_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.assertNe (.lit 5) (.lit 5)),
+        .mk 3 (.ret [])] }],
     []⟩
   publicInput := []
   streams := []
@@ -2088,6 +2994,137 @@ def prog_chained_matches_run_in_order_1 : TestProgram where
   publicInput := []
   streams := []
 
+/-- `tests/frontend` as `const_chains_0`. -/
+def prog_const_chains_0 : TestProgram where
+  name := "const_chains_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 5 (.let_ "p" (.stackBuf 4)),
+        .mk 6 (.let_ "q" (.stackBuf 4)),
+        .mk 7 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `const_in_literal_only_positions_0`. -/
+def prog_const_in_literal_only_positions_0 : TestProgram where
+  name := "const_in_literal_only_positions_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 5 (.let_ "x" (.gpow 3)),
+        .mk 6 (.assertLt (.var "x") (.const 8)),
+        .mk 7 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `const_inlines_like_literal_0`. -/
+def prog_const_inlines_like_literal_0 : TestProgram where
+  name := "const_inlines_like_literal_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "a" (.stackBuf 5)),
+        .mk 3 (.store (.var "a") (.lit 0) (.lit 5)),
+        .mk 4 (.store (.var "a") (.lit 1) (.add (.lit 5) (.lit 2))),
+        .mk 5 (.assertEq (.index (.var "a") (.lit 0)) (.lit 5)),
+        .mk 6 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `const_integer_arithmetic_derivations_0`. -/
+def prog_const_integer_arithmetic_derivations_0 : TestProgram where
+  name := "const_integer_arithmetic_derivations_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "a" (.stackBuf 328)),
+        .mk 3 (.let_ "x" (.gpow 5792)),
+        .mk 4 (.assertLt (.var "x") (.const 65536)),
+        .mk 5 (.unroll "i" (.lit 0) (.lit 164) [
+          .mk 6 (.assertEq (.index (.var "a") (.lit 0)) (.lit 8))]),
+        .mk 7 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `const_is_transparent_where_the_reading_is_already_integer_0`. -/
+def prog_const_is_transparent_where_the_reading_is_already_integer_0 : TestProgram where
+  name := "const_is_transparent_where_the_reading_is_already_integer_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.unroll "i" (.lit 0) (.call "const" [(.add (.lit 1) (.lit 1))]) [
+          .mk 3 (.let_ "v" (.lit 1))]),
+        .mk 4 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `const_is_transparent_where_the_reading_is_already_integer_1`. -/
+def prog_const_is_transparent_where_the_reading_is_already_integer_1 : TestProgram where
+  name := "const_is_transparent_where_the_reading_is_already_integer_1"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.unroll "i" (.lit 0) (.add (.lit 1) (.lit 1)) [
+          .mk 3 (.let_ "v" (.lit 1))]),
+        .mk 4 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `const_is_transparent_where_the_reading_is_already_integer_2`. -/
+def prog_const_is_transparent_where_the_reading_is_already_integer_2 : TestProgram where
+  name := "const_is_transparent_where_the_reading_is_already_integer_2"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.unroll "i" (.lit 0) (.lit 2) [
+          .mk 3 (.let_ "v" (.lit 1))]),
+        .mk 4 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `const_is_transparent_where_the_reading_is_already_integer_3`. -/
+def prog_const_is_transparent_where_the_reading_is_already_integer_3 : TestProgram where
+  name := "const_is_transparent_where_the_reading_is_already_integer_3"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "v" (.gpow 2)),
+        .mk 3 (.assertLt (.var "v") (.const 0)),
+        .mk 4 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `const_is_transparent_where_the_reading_is_already_integer_4`. -/
+def prog_const_is_transparent_where_the_reading_is_already_integer_4 : TestProgram where
+  name := "const_is_transparent_where_the_reading_is_already_integer_4"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "v" (.gpow 2)),
+        .mk 3 (.assertLt (.var "v") (.const 0)),
+        .mk 4 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
 /-- `tests/frontend` as `duplicate_argument_value_survives_0`. -/
 def prog_duplicate_argument_value_survives_0 : TestProgram where
   name := "duplicate_argument_value_survives_0"
@@ -2187,6 +3224,38 @@ def prog_field_div_vs_floordiv_0 : TestProgram where
   publicInput := []
   streams := []
 
+/-- `tests/frontend` as `heap_alias_index_oob_rejected_0`. -/
+def prog_heap_alias_index_oob_rejected_0 : TestProgram where
+  name := "heap_alias_index_oob_rejected_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 8)),
+        .mk 3 (.let_ "row" (.mul (.var "hb") (.gpow 6))),
+        .mk 4 (.let_ "x" (.index (.var "row") (.gpow 3))),
+        .mk 5 (.assertEq (.var "x") (.var "x")),
+        .mk 6 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `heap_hint_slice_oob_rejected_0`. -/
+def prog_heap_hint_slice_oob_rejected_0 : TestProgram where
+  name := "heap_hint_slice_oob_rejected_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 8)),
+        .mk 3 (.hintWitness (.slice (.var "hb") (.lit 0) (.lit 9)) "w"),
+        .mk 4 (.let_ "x" (.index (.var "hb") (.gpow 0))),
+        .mk 5 (.assertEq (.var "x") (.var "x")),
+        .mk 6 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
 /-- `tests/frontend` as `heap_index_boundary_ok_0`. -/
 def prog_heap_index_boundary_ok_0 : TestProgram where
   name := "heap_index_boundary_ok_0"
@@ -2200,6 +3269,51 @@ def prog_heap_index_boundary_ok_0 : TestProgram where
         .mk 5 (.let_ "y" (.index (.var "row") (.gpow 3))),
         .mk 6 (.assertEq (.var "y") (.lit 5)),
         .mk 7 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `heap_index_exponent_overflow_rejected_0`. -/
+def prog_heap_index_exponent_overflow_rejected_0 : TestProgram where
+  name := "heap_index_exponent_overflow_rejected_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 8)),
+        .mk 3 (.store (.var "hb") (.gpow 340282366920938463463374607431768211455) (.lit 5)),
+        .mk 4 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `heap_index_oob_rejected_0`. -/
+def prog_heap_index_oob_rejected_0 : TestProgram where
+  name := "heap_index_oob_rejected_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 8)),
+        .mk 3 (.let_ "x" (.index (.var "hb") (.gpow 8))),
+        .mk 4 (.assertEq (.var "x") (.var "x")),
+        .mk 5 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `heap_keccak_slice_oob_rejected_0`. -/
+def prog_heap_keccak_slice_oob_rejected_0 : TestProgram where
+  name := "heap_keccak_slice_oob_rejected_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "hb" (.heapBuf 8)),
+        .mk 3 (.store (.var "hb") (.gpow 7) (.lit 5)),
+        .mk 4 (.let_ "out" (.stackBuf 2)),
+        .mk 5 (.call "keccak" [(.slice (.var "hb") (.lit 7) (.lit 9)), (.slice (.var "hb") (.lit 7) (.lit 9)), (.var "out")]),
+        .mk 6 (.ret [])] }],
     []⟩
   publicInput := []
   streams := []
@@ -2301,6 +3415,53 @@ def prog_inline_returns_stackbuf_and_scalar_0 : TestProgram where
   publicInput := []
   streams := []
 
+/-- `tests/frontend` as `integer_heap_index_is_rejected_0`. -/
+def prog_integer_heap_index_is_rejected_0 : TestProgram where
+  name := "integer_heap_index_is_rejected_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "b" (.heapBuf 4)),
+        .mk 3 (.store (.var "b") (.lit 1) (.lit 3)),
+        .mk 4 (.store (.var "b") .gen (.lit 5)),
+        .mk 5 (.let_ "x" (.lit 0)),
+        .mk 6 (.unroll "k" (.lit 0) (.lit 2) [
+          .mk 7 (.let_ "p" (.lit 1)),
+          .mk 8 (.store (.var "p") (.genPow (.var "k")) (.index (.var "b") (.var "k")))]),
+        .mk 9 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `keccak_cell_past_len_is_rejected_0`. -/
+def prog_keccak_cell_past_len_is_rejected_0 : TestProgram where
+  name := "keccak_cell_past_len_is_rejected_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "out" (.stackBuf 2)),
+        .mk 3 (.call "keccak" [(.list [(.lit 1), (.lit 2)]), (.list [(.lit 3), (.lit 4)]), (.var "out"), (.call "__kw_len" [(.lit 40)])]),
+        .mk 4 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `keccak_cells_non_final_len_is_rejected_0`. -/
+def prog_keccak_cells_non_final_len_is_rejected_0 : TestProgram where
+  name := "keccak_cells_non_final_len_is_rejected_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "out" (.stackBuf 13)),
+        .mk 3 (.call "keccak_cells" [(.list [(.lit 1), (.lit 2)]), (.var "out"), (.call "__kw_final" [(.lit 0)]), (.call "__kw_len" [(.lit 16)])]),
+        .mk 4 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
 /-- `tests/frontend` as `keccak_cells_of_a_comprehension_0`. -/
 def prog_keccak_cells_of_a_comprehension_0 : TestProgram where
   name := "keccak_cells_of_a_comprehension_0"
@@ -2317,6 +3478,20 @@ def prog_keccak_cells_of_a_comprehension_0 : TestProgram where
         .mk 8 (.store (.var "p") (.lit 1) (.index (.var "out") (.lit 0))),
         .mk 9 (.store (.var "p") .gen (.index (.var "out") (.lit 1))),
         .mk 10 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `keccak_len_past_the_cells_is_rejected_0`. -/
+def prog_keccak_len_past_the_cells_is_rejected_0 : TestProgram where
+  name := "keccak_len_past_the_cells_is_rejected_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "out" (.stackBuf 2)),
+        .mk 3 (.call "keccak" [(.list [(.lit 1), (.lit 2)]), (.list [(.lit 3), (.lit 4)]), (.var "out"), (.call "__kw_tail" [(.list [(.lit 5), (.lit 6), (.lit 7), (.lit 8)])]), (.call "__kw_len" [(.lit 129)])]),
+        .mk 4 (.ret [])] }],
     []⟩
   publicInput := []
   streams := []
@@ -2400,6 +3575,35 @@ def prog_keccak_pad_tail_in_place_0 : TestProgram where
         .mk 8 (.store (.var "p") (.lit 1) (.index (.var "out") (.lit 0))),
         .mk 9 (.store (.var "p") .gen (.index (.var "out") (.lit 1))),
         .mk 10 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `keccak_pad_tail_of_a_list_is_rejected_0`. -/
+def prog_keccak_pad_tail_of_a_list_is_rejected_0 : TestProgram where
+  name := "keccak_pad_tail_of_a_list_is_rejected_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "out" (.stackBuf 2)),
+        .mk 3 (.call "keccak" [(.list [(.lit 1), (.lit 2)]), (.list [(.lit 3), (.lit 4)]), (.var "out"), (.call "__kw_tail" [(.list [(.lit 5), (.lit 0), (.lit 0), (.lit 0)])]), (.call "__kw_len" [(.lit 80)]), (.call "__kw_pad_tail" [(.lit 1)])]),
+        .mk 4 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `keccak_short_state_is_rejected_0`. -/
+def prog_keccak_short_state_is_rejected_0 : TestProgram where
+  name := "keccak_short_state_is_rejected_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "st" (.list [(.lit 1), (.lit 2)])),
+        .mk 3 (.let_ "out" (.stackBuf 2)),
+        .mk 4 (.call "keccak_cells" [(.list [(.lit 1), (.lit 2)]), (.var "out"), (.call "__kw_state" [(.var "st")])]),
+        .mk 5 (.ret [])] }],
     []⟩
   publicInput := []
   streams := []
@@ -2627,6 +3831,49 @@ def prog_pack64x2_proves_and_verifies_0 : TestProgram where
   publicInput := []
   streams := []
 
+/-- `tests/frontend` as `placeholder_fills_constant_0`. -/
+def prog_placeholder_fills_constant_0 : TestProgram where
+  name := "placeholder_fills_constant_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "a" (.stackBuf 7)),
+        .mk 3 (.store (.var "a") (.lit 0) (.lit 7)),
+        .mk 4 (.assertEq (.index (.var "a") (.lit 0)) (.lit 7)),
+        .mk 5 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `range_check_bound_too_big_rejected_0`. -/
+def prog_range_check_bound_too_big_rejected_0 : TestProgram where
+  name := "range_check_bound_too_big_rejected_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "x" (.lit 1)),
+        .mk 3 (.assertLt (.var "x") (.const 1073741825)),
+        .mk 4 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `range_check_empty_bound_rejected_0`. -/
+def prog_range_check_empty_bound_rejected_0 : TestProgram where
+  name := "range_check_empty_bound_rejected_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "x" (.lit 1)),
+        .mk 3 (.assertLt (.var "x") (.const 0)),
+        .mk 4 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
 /-- `tests/frontend` as `range_check_end_to_end_0`. -/
 def prog_range_check_end_to_end_0 : TestProgram where
   name := "range_check_end_to_end_0"
@@ -2761,6 +4008,20 @@ def prog_runtime_frame_count_uses_the_distance_from_the_start_0 : TestProgram wh
   publicInput := []
   streams := []
 
+/-- `tests/frontend` as `stack_buf_index_overflow_rejected_0`. -/
+def prog_stack_buf_index_overflow_rejected_0 : TestProgram where
+  name := "stack_buf_index_overflow_rejected_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "sa" (.stackBuf 2)),
+        .mk 3 (.let_ "x" (.index (.var "sa") (.lit 4294967296))),
+        .mk 4 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
 /-- `tests/frontend` as `stack_buf_indexing_0`. -/
 def prog_stack_buf_indexing_0 : TestProgram where
   name := "stack_buf_indexing_0"
@@ -2796,6 +4057,20 @@ def prog_stack_buf_list_literal_0 : TestProgram where
         .mk 8 (.store (.var "p") (.lit 1) (.index (.var "out") (.lit 0))),
         .mk 9 (.store (.var "p") .gen (.index (.var "out") (.lit 1))),
         .mk 10 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `stack_buf_list_literal_as_value_rejected_0`. -/
+def prog_stack_buf_list_literal_as_value_rejected_0 : TestProgram where
+  name := "stack_buf_list_literal_as_value_rejected_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "x" (.add (.lit 1) (.list [(.lit 2), (.lit 3)]))),
+        .mk 3 (.assertEq (.var "x") (.var "x")),
+        .mk 4 (.ret [])] }],
     []⟩
   publicInput := []
   streams := []
@@ -2900,6 +4175,27 @@ def prog_the_scalar_hint_binds_like_any_other_binder_2 : TestProgram where
         .mk 11 (.store (.var "p") (.lit 1) (.var "r")),
         .mk 12 (.store (.var "p") .gen (.gpow 0)),
         .mk 13 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `tests/frontend` as `the_supported_compound_assignments_desugar_0`. -/
+def prog_the_supported_compound_assignments_desugar_0 : TestProgram where
+  name := "the_supported_compound_assignments_desugar_0"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 2 (.let_ "x" (.lit 4)),
+        .mk 3 (.let_ "x" (.add (.var "x") (.lit 1))),
+        .mk 4 (.let_ "x" (.mul (.var "x") (.lit 2))),
+        .mk 5 (.let_ "x" (.div (.var "x") (.lit 2))),
+        .mk 6 (.let_ "x" (.mod (.var "x") (.lit 3))),
+        .mk 7 (.let_ "x" (.sub (.var "x") (.lit 1))),
+        .mk 8 (.let_ "p" (.gpow 0)),
+        .mk 9 (.store (.var "p") (.lit 1) (.var "x")),
+        .mk 10 (.store (.var "p") .gen (.var "x")),
+        .mk 11 (.ret [])] }],
     []⟩
   publicInput := []
   streams := []
@@ -3021,6 +4317,6 @@ def chains : List TestProgram := [prog_chain4, prog_chain16, prog_chain300, prog
 def vm : List TestProgram := [prog_duplex_step, prog_empty, prog_failed_assert, prog_field_div, prog_heap_buf_runtime_size, prog_hinted_gpow_past_the_run, prog_keccak_cells_run, prog_keccak_full_final_block, prog_keccak_self_hash, prog_keccak_state_heap, prog_keccak_steps0, prog_keccak_steps1, prog_keccak_steps3, prog_keccak_steps512, prog_keccak_steps513, prog_keccak_two_blocks, prog_log2_ceil, prog_log2_ceil_floor, prog_print, prog_range_check_complement_65536, prog_range_check_complement_runtime, prog_range_check_past_the_prover, prog_range_check_unwritten, prog_unwritten_heap_read]
 
 /-- The front end's regression corpus (`tests/frontend/*.py`): `lake exe guest-backend core-text` compares the core IR `Expand` gives each with `tests/frontend/*.core`. -/
-def frontend : List TestProgram := [prog_a_branch_local_rebinding_does_not_hide_the_outer_binding_0, prog_a_builtin_value_stored_into_a_cell_is_evaluated, prog_a_constant_name_inside_a_stream_name_is_not_substituted, prog_a_failed_assert_names_its_line_0, prog_a_folded_branch_keeps_its_bindings_0, prog_a_frame_bit_buffer_costs_no_deref_0, prog_a_frame_bit_buffer_costs_no_deref_1, prog_a_literal_power_of_two_is_a_g_power_0, prog_a_load_before_its_store_sees_the_store_0, prog_a_match_of_builtin_arms_is_not_a_dispatch, prog_a_match_target_binds_and_every_field_is_walked_0, prog_a_match_target_binds_and_every_field_is_walked_1, prog_a_match_target_binds_and_every_field_is_walked_2, prog_a_match_target_binds_and_every_field_is_walked_3, prog_a_power_of_two_literal_is_a_g_power_only_below_two_to_the_64_0, prog_a_runtime_loop_bound_is_evaluated_once, prog_a_self_referential_stack_store_terminates_0, prog_a_self_referential_stack_store_terminates_1, prog_a_self_referential_stack_store_terminates_2, prog_a_shadowed_stack_buf_is_not_a_capture_0, prog_a_sponge_state_run_is_neither_rewritten_nor_dropped_0, prog_a_stack_bit_run_survives_cell_sharing_0, prog_a_store_into_a_run_parameter_asserts_0, prog_a_string_literal_is_not_scanned_for_syntax_0, prog_addr_names_the_frame_run_0, prog_an_if_folds_on_integers_of_any_size, prog_an_inline_call_does_not_steal_the_call_site_line_0, prog_assert_ne_emits_no_jump_0, prog_assert_ne_emits_no_jump_1, prog_assert_ne_end_to_end_0, prog_assert_ne_in_loop_0, prog_assert_survives_a_duplicated_comparison_0, prog_branch_writes_survive_unrolled_tuple_return_0, prog_cached_copies_see_later_stores_0, prog_cached_copies_see_later_stores_1, prog_cached_copies_see_later_stores_2, prog_cached_loads_do_not_cross_branches_or_erase_stores_0, prog_cached_loads_see_linked_equalities_before_use_0, prog_cached_loads_see_linked_equalities_before_use_1, prog_cached_loads_see_linked_equalities_before_use_2, prog_cached_loads_see_linked_equalities_before_use_3, prog_chained_matches_run_in_order_0, prog_chained_matches_run_in_order_1, prog_duplicate_argument_value_survives_0, prog_duplicate_constant_in_a_return_slot_survives_0, prog_duplicates_are_not_folded_across_a_branch_0, prog_early_return_does_not_reserve_the_unused_range_0, prog_field_div_vs_floordiv_0, prog_heap_index_boundary_ok_0, prog_inline_call_in_expression_positions_0, prog_inline_returns_advanced_cursor_0, prog_inline_returns_stackbuf_and_scalar_0, prog_keccak_cells_of_a_comprehension_0, prog_keccak_pad_inside_a_word_0, prog_keccak_pad_run_after_runtime_branch_0, prog_keccak_pad_run_in_both_runtime_branches_0, prog_keccak_pad_tail_in_place_0, prog_loop_frames_preserve_escaped_cells_and_nested_allocations_0, prog_naming_a_constant_does_not_change_which_heap_cell_it_names_0, prog_normal_function_returns_heapbuf_pointer_0, prog_normal_function_returns_stackbuf_0, prog_normal_function_returns_stackbuf_and_scalar_0, prog_one_hinted_value_needs_no_buffer_0, prog_one_hinted_value_needs_no_buffer_1, prog_one_hinted_value_needs_no_buffer_2, prog_pack64x2_proves_and_verifies_0, prog_range_check_end_to_end_0, prog_range_check_in_loop_0, prog_range_check_runtime_bound_0, prog_rebound_counter_keeps_incremental_frames_0, prog_rebound_counter_keeps_incremental_frames_1, prog_runtime_frame_count_uses_the_distance_from_the_start_0, prog_stack_buf_indexing_0, prog_stack_buf_list_literal_0, prog_stack_buf_loop_capture_0, prog_stack_buf_rebind_to_scalar_0, prog_the_scalar_hint_binds_like_any_other_binder_0, prog_the_scalar_hint_binds_like_any_other_binder_1, prog_the_scalar_hint_binds_like_any_other_binder_2, prog_trailing_branch_hint_stays_in_its_branch_0, prog_unchainable_scrutinees_keep_their_meaning_0, prog_unchainable_scrutinees_keep_their_meaning_1, prog_unchainable_scrutinees_keep_their_meaning_2]
+def frontend : List TestProgram := [prog_a_bit_decomposition_cannot_overrun_its_heap_destination_0, prog_a_bit_decomposition_cannot_overrun_its_heap_destination_1, prog_a_bit_decomposition_cannot_overrun_its_heap_destination_2, prog_a_bit_decomposition_cannot_overrun_its_heap_destination_3, prog_a_branch_local_rebinding_does_not_hide_the_outer_binding_0, prog_a_builtin_value_stored_into_a_cell_is_evaluated, prog_a_constant_name_inside_a_stream_name_is_not_substituted, prog_a_failed_assert_names_its_line_0, prog_a_folded_branch_keeps_its_bindings_0, prog_a_frame_bit_buffer_costs_no_deref_0, prog_a_frame_bit_buffer_costs_no_deref_1, prog_a_global_constant_may_be_a_g_power_0, prog_a_global_constant_may_be_a_g_power_1, prog_a_global_constant_may_be_a_g_power_2, prog_a_global_constant_may_be_a_g_power_3, prog_a_global_constant_may_be_a_g_power_4, prog_a_literal_power_of_two_is_a_g_power_0, prog_a_load_before_its_store_sees_the_store_0, prog_a_loop_bound_must_be_reachable_0, prog_a_loop_cannot_carry_a_value_0, prog_a_match_of_builtin_arms_is_not_a_dispatch, prog_a_match_target_binds_and_every_field_is_walked_0, prog_a_match_target_binds_and_every_field_is_walked_1, prog_a_match_target_binds_and_every_field_is_walked_2, prog_a_match_target_binds_and_every_field_is_walked_3, prog_a_mixed_stack_buf_return_cannot_cross_a_match_join_0, prog_a_power_of_two_literal_is_a_g_power_only_below_two_to_the_64_0, prog_a_program_cannot_reach_a_cell_it_does_not_own_0, prog_a_program_cannot_reach_a_cell_it_does_not_own_1, prog_a_program_cannot_reach_a_cell_it_does_not_own_2, prog_a_program_cannot_reach_a_cell_it_does_not_own_3, prog_a_program_cannot_reach_a_cell_it_does_not_own_4, prog_a_program_cannot_reach_a_cell_it_does_not_own_5, prog_a_program_names_what_it_means_0, prog_a_program_names_what_it_means_1, prog_a_program_names_what_it_means_2, prog_a_runtime_loop_bound_is_evaluated_once, prog_a_self_referential_stack_store_terminates_0, prog_a_self_referential_stack_store_terminates_1, prog_a_self_referential_stack_store_terminates_2, prog_a_shadowed_stack_buf_is_not_a_capture_0, prog_a_sponge_state_run_is_neither_rewritten_nor_dropped_0, prog_a_stack_bit_run_survives_cell_sharing_0, prog_a_stack_buf_can_be_passed_as_well_as_returned_0, prog_a_stack_buf_can_be_passed_as_well_as_returned_1, prog_a_stack_buf_can_be_passed_as_well_as_returned_2, prog_a_store_into_a_run_parameter_asserts_0, prog_a_string_literal_is_not_scanned_for_syntax_0, prog_a_value_may_ask_for_the_integer_regime_0, prog_a_value_may_ask_for_the_integer_regime_1, prog_a_value_may_ask_for_the_integer_regime_2, prog_a_value_may_ask_for_the_integer_regime_3, prog_a_value_may_ask_for_the_integer_regime_4, prog_a_value_may_ask_for_the_integer_regime_5, prog_a_value_may_ask_for_the_integer_regime_6, prog_addr_names_the_frame_run_0, prog_addr_pointers_are_bounds_checked_0, prog_an_ambiguous_compile_time_branch_must_be_declared_0, prog_an_ambiguous_compile_time_branch_must_be_declared_1, prog_an_ambiguous_compile_time_branch_must_be_declared_10, prog_an_ambiguous_compile_time_branch_must_be_declared_11, prog_an_ambiguous_compile_time_branch_must_be_declared_12, prog_an_ambiguous_compile_time_branch_must_be_declared_13, prog_an_ambiguous_compile_time_branch_must_be_declared_14, prog_an_ambiguous_compile_time_branch_must_be_declared_15, prog_an_ambiguous_compile_time_branch_must_be_declared_2, prog_an_ambiguous_compile_time_branch_must_be_declared_3, prog_an_ambiguous_compile_time_branch_must_be_declared_4, prog_an_ambiguous_compile_time_branch_must_be_declared_5, prog_an_ambiguous_compile_time_branch_must_be_declared_6, prog_an_ambiguous_compile_time_branch_must_be_declared_7, prog_an_ambiguous_compile_time_branch_must_be_declared_8, prog_an_ambiguous_compile_time_branch_must_be_declared_9, prog_an_if_folds_on_integers_of_any_size, prog_an_inline_call_does_not_steal_the_call_site_line_0, prog_an_unbound_name_is_rejected_0, prog_an_unbound_name_is_rejected_1, prog_assert_ne_compile_time_equal_rejected_0, prog_assert_ne_emits_no_jump_0, prog_assert_ne_emits_no_jump_1, prog_assert_ne_end_to_end_0, prog_assert_ne_in_loop_0, prog_assert_survives_a_duplicated_comparison_0, prog_branch_writes_survive_unrolled_tuple_return_0, prog_cached_copies_see_later_stores_0, prog_cached_copies_see_later_stores_1, prog_cached_copies_see_later_stores_2, prog_cached_loads_do_not_cross_branches_or_erase_stores_0, prog_cached_loads_see_linked_equalities_before_use_0, prog_cached_loads_see_linked_equalities_before_use_1, prog_cached_loads_see_linked_equalities_before_use_2, prog_cached_loads_see_linked_equalities_before_use_3, prog_chained_matches_run_in_order_0, prog_chained_matches_run_in_order_1, prog_const_chains_0, prog_const_in_literal_only_positions_0, prog_const_inlines_like_literal_0, prog_const_integer_arithmetic_derivations_0, prog_const_is_transparent_where_the_reading_is_already_integer_0, prog_const_is_transparent_where_the_reading_is_already_integer_1, prog_const_is_transparent_where_the_reading_is_already_integer_2, prog_const_is_transparent_where_the_reading_is_already_integer_3, prog_const_is_transparent_where_the_reading_is_already_integer_4, prog_duplicate_argument_value_survives_0, prog_duplicate_constant_in_a_return_slot_survives_0, prog_duplicates_are_not_folded_across_a_branch_0, prog_early_return_does_not_reserve_the_unused_range_0, prog_field_div_vs_floordiv_0, prog_heap_alias_index_oob_rejected_0, prog_heap_hint_slice_oob_rejected_0, prog_heap_index_boundary_ok_0, prog_heap_index_exponent_overflow_rejected_0, prog_heap_index_oob_rejected_0, prog_heap_keccak_slice_oob_rejected_0, prog_inline_call_in_expression_positions_0, prog_inline_returns_advanced_cursor_0, prog_inline_returns_stackbuf_and_scalar_0, prog_integer_heap_index_is_rejected_0, prog_keccak_cell_past_len_is_rejected_0, prog_keccak_cells_non_final_len_is_rejected_0, prog_keccak_cells_of_a_comprehension_0, prog_keccak_len_past_the_cells_is_rejected_0, prog_keccak_pad_inside_a_word_0, prog_keccak_pad_run_after_runtime_branch_0, prog_keccak_pad_run_in_both_runtime_branches_0, prog_keccak_pad_tail_in_place_0, prog_keccak_pad_tail_of_a_list_is_rejected_0, prog_keccak_short_state_is_rejected_0, prog_loop_frames_preserve_escaped_cells_and_nested_allocations_0, prog_naming_a_constant_does_not_change_which_heap_cell_it_names_0, prog_normal_function_returns_heapbuf_pointer_0, prog_normal_function_returns_stackbuf_0, prog_normal_function_returns_stackbuf_and_scalar_0, prog_one_hinted_value_needs_no_buffer_0, prog_one_hinted_value_needs_no_buffer_1, prog_one_hinted_value_needs_no_buffer_2, prog_pack64x2_proves_and_verifies_0, prog_placeholder_fills_constant_0, prog_range_check_bound_too_big_rejected_0, prog_range_check_empty_bound_rejected_0, prog_range_check_end_to_end_0, prog_range_check_in_loop_0, prog_range_check_runtime_bound_0, prog_rebound_counter_keeps_incremental_frames_0, prog_rebound_counter_keeps_incremental_frames_1, prog_runtime_frame_count_uses_the_distance_from_the_start_0, prog_stack_buf_index_overflow_rejected_0, prog_stack_buf_indexing_0, prog_stack_buf_list_literal_0, prog_stack_buf_list_literal_as_value_rejected_0, prog_stack_buf_loop_capture_0, prog_stack_buf_rebind_to_scalar_0, prog_the_scalar_hint_binds_like_any_other_binder_0, prog_the_scalar_hint_binds_like_any_other_binder_1, prog_the_scalar_hint_binds_like_any_other_binder_2, prog_the_supported_compound_assignments_desugar_0, prog_trailing_branch_hint_stays_in_its_branch_0, prog_unchainable_scrutinees_keep_their_meaning_0, prog_unchainable_scrutinees_keep_their_meaning_1, prog_unchainable_scrutinees_keep_their_meaning_2]
 
 end LeanVMTests.Guest.Programs

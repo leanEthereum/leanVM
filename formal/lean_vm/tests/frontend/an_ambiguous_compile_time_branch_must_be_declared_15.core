@@ -1,0 +1,1 @@
+error: in main: `if const(...)` asks for a compile-time decision, but this condition is not one

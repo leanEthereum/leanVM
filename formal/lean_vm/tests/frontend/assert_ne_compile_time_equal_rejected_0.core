@@ -1,0 +1,1 @@
+error: in main: assert a != b: sides are the compile-time-equal literal 5
