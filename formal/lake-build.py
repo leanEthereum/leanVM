@@ -15,7 +15,8 @@ Among the waiting modules the longest path to the end of the build goes first, t
 first that cannot be admitted holds its memory back, so a large module is not starved. The estimates are the peak
 anonymous memory from `DIR/.lake/lake-build.tsv`, which every run updates with each module's wall time, CPU time,
 peak RSS and peak anonymous memory, over `DIR/lake-build.tsv` (the heavy modules, committed, which `--seed`
-rewrites); an unknown module is taken at 2 GB.
+rewrites); an unknown module is taken at 2 GB. `DIR/.lake/lake-build-timeline.tsv` holds the last run's modules with
+their start and end (seconds from the run's start), CPU time and peak anonymous memory, for profiling the schedule.
 
 The run is a systemd scope capped at `--cap` (default: the machine's memory less 1 GB, without `OOMPolicy=stop`): a
 module killed by the kernel there, or whose allocation fails (`std::bad_alloc`), is run again, alone; one that crashes, or runs past a multiple of its recorded
@@ -294,6 +295,7 @@ class Run:
     def __init__(self, name: str, need: int, ticket: int, alone: bool, limit: float) -> None:
         self.name, self.need, self.ticket, self.alone, self.limit = name, need, ticket, alone, limit
         self.pid = self.anon = self.peak = self.file = 0
+        self.start = time.monotonic()
         self.stopped = False
 
 
@@ -311,6 +313,8 @@ class Scheduler:
         self.done = 0
         self.busy = self.cpu = 0.0  # module-seconds, CPU seconds
         self.peak_committed = self.peak_anon = self.peak_used = 0
+        self.timeline: list[tuple[str, float, float, float, float]] = []  # module, start, end, CPU s, peak anon MB
+        self.origin = time.monotonic()
         self.stop = threading.Event()
 
     def need(self, name: str, alone: bool) -> int:
@@ -371,6 +375,8 @@ class Scheduler:
             if code == 0:
                 self.done += 1
                 self.table[run.name] = [wall, cpu, maxrss / 1024, max(run.peak, run.anon) / MB]
+                self.timeline.append((run.name, run.start - self.origin, time.monotonic() - self.origin, cpu,
+                                      max(run.peak, run.anon) / MB))
             elif again:
                 self.killed.append(run.name)  # its wrapper runs it again
             else:
@@ -597,6 +603,9 @@ def main() -> None:
         shutil.rmtree(work, ignore_errors=True)
     local.parent.mkdir(exist_ok=True)
     write_table(local, scheduler.table)
+    (local.parent / "lake-build-timeline.tsv").write_text(
+        "# module\tstart s\tend s\tcpu s\tpeak anon MB\n"
+        + "".join(f"{m}\t{s:.1f}\t{e:.1f}\t{c:.1f}\t{a:.0f}\n" for m, s, e, c, a in scheduler.timeline), encoding="utf-8")
     if opts.seed:
         write_table(seed, seed_rows(pkg, scheduler.table))
     peak = cgroup_file("memory.peak")
