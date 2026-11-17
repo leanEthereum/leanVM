@@ -48,11 +48,11 @@ pub use verifier::{MAX_LOG_INV_RATE, MAX_STACKED_LOG, MIN_LOG_INV_RATE, MIN_STAC
 /// The shared WHIR config for a `2^μ`-word witness, memoized per `(μ, log_inv_rate)`.
 fn whir_config(mu: usize, log_inv_rate: usize) -> std::sync::Arc<ProverConfig> {
     use std::collections::HashMap;
-    use std::sync::{Arc, Mutex, OnceLock};
+    use std::sync::{Arc, Mutex, OnceLock, PoisonError};
     type Cache = Mutex<HashMap<(usize, usize), Arc<ProverConfig>>>;
     static CACHE: OnceLock<Cache> = OnceLock::new();
     let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-    let mut map = cache.lock().expect("whir config cache poisoned");
+    let mut map = cache.lock().unwrap_or_else(PoisonError::into_inner);
     Arc::clone(map.entry((mu, log_inv_rate)).or_insert_with(|| {
         assert!(
             mu >= MIN_STACKED_LOG,
