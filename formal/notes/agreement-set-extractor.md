@@ -40,6 +40,7 @@ Each is at most `2^-125`. `lean_vm`'s `soundnessError` gains them, and the end s
 
 1. **The opening** (`LeanVM/Protocol/Whir/Sound/`): the invariant `Bad = ∅` with `Back`, the four transitions above from the existing lemmas (`card_excSet_le_nAff` and `IsWitness` for `B_1`, the fold, batching, OOD and query counts), and `OpeningIface.stackedSpec` restated from the new precondition.
 2. **The front and the assembly** (`EndToEnd/Front/`, `EndToEnd/Sound/`): each doom predicate weakened by "`∨ C*` is valid", generically if the phases' doom predicates factor through `C*`, and the end event as above.
+   Remaining for the replay: the run of the cut with the adversary's answers (`lookH (ℓ.take k)`, `lookF (ℓ.take k)`) equals the run with the whole log's, outside availability failures: its commitments' words by `committedWord_eq` per level root, its permutation inputs by the chain argument below; then `runWithHash` with the adversary's answers is that run (the converse of `xrun_of_run`).
 3. **Availability**: the root lemma per level, the committed word of every level (`committedWord_eq` generalised), and the fresh-chain lemma.
 4. **The extractor**: replay the verifier's transcript from the adversary's permutation queries (the schedule is the verifier program's, `runPure`'s with real answers), invert every level's tree (`committedLeaves`), the descent with one-error decoding, then the candidate run. Its proof against the history: `Sound.extractor_of_extracted` restated.
 5. **Cost** (`LeanVM/Cost/`): compile it and prove its price. The decoder at multiplicity one replaces Roth–Ruckenstein's search; the replay compiles the verifier's schedule into the program, so the size bound (`14159`) grows by that, which `statement.tex` must then account for.
@@ -54,6 +55,8 @@ Done on `agreement-set-extractor` (each step builds on its own):
 * The relativised invariant: `TViol` with a predicate, `pullT` through near tuples at the round's threshold, `FoldRoundBound` relativised (`AffineCombinerFoldRel`), `nextPred` across levels, `lvl0Pred` at level 0.
 * The ghost opening (`whirLevelsG`, `verifyWhirG`, `verifyStackedOpeningG`) returning a `WhirTrace`, its specifications with postcondition `traceGood`, and the descent (`Whir.Sound.Descent`: a good trace has a level-0 list member whose stack is not bad).
 * The assembly on the bad stacks, the ghost verifier (`leanVmProgramG`), `leanVmCert` a `CertG` with `GoodRun`, and the end theorem through `doomed_of_not_extracted` (accepted, not extracted, gives doom and not a good run). The statement's extractor is still the list decoder.
+
+Also done: the descent as an algorithm over any near-tuple decoder (`descendTrace`, `descendTrace_of_traceGood`), the deployed thresholds (`Whir.Params.DescentCheck`), and the cut ghost verifier at the final polynomial with its run (`Whir.Sound.Cut`, `EndToEnd.Sound.CutRun`, `EndToEnd.Sound.CutXrun`: `xcut_leanVmProgramG`).
 
 ## Next
 
