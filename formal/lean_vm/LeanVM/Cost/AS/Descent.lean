@@ -27,11 +27,11 @@ public section
 cost_enc LeanVM.Protocol.Verifier.FoldRound
 
 /-- A trace's encoding, constructor by constructor. -/
-def encTrace : WhirTrace → MachineValue
+@[expose] def encTrace : WhirTrace → MachineValue
   | .final rounds folded => .constructor 0 [encodeValue rounds, encodeValue folded]
   | .mid rounds high rest => .constructor 1 [encodeValue rounds, encodeValue high, encTrace rest]
 
-instance : MachineEncoding WhirTrace := ⟨encTrace⟩
+@[instance_reducible] instance : MachineEncoding WhirTrace := ⟨encTrace⟩
 
 cost_compile foldCAC := foldCA
 

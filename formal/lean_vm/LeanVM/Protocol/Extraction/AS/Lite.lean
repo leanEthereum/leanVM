@@ -178,6 +178,45 @@ theorem decBodyP_built {bytecode : List K} {lm : ℕ} {rows : List ℕ} {layout 
   rw [skFront_built h]
   rfl
 
+/-- Column `v`'s lanes of commitment `i`, from its leaves. -/
+def laneRow (i : ℕ) (lv : Array (List K)) (h w v : ℕ) : Array E :=
+  (lanesOf i (leafAt lv h w v)).toArray
+
+/-- The `n` columns' lanes of commitment `i`, from its leaves. -/
+def laneRows (n i : ℕ) (lv : Array (List K)) (h w : ℕ) : AV :=
+  Array.ofFn fun v : Fin n ↦ laneRow i lv h w v
+
+/-- A root's leaves. -/
+def leavesAt (qs : List (PermutationQuery KeccakState × KeccakState)) (x : Digest × ℕ × ℕ) :
+    Array (List K) :=
+  Fast.leavesOf qs x.2.2 x.2.1 x.1
+
+/-- Root `i`'s word, column by column. -/
+def wordArrOf (μ R : ℕ) (qs : List (PermutationQuery KeccakState × KeccakState)) (i : ℕ)
+    (x : Digest × ℕ × ℕ) : AV :=
+  laneRows (2 ^ ((lvC μ R i).1 + (lvC μ R i).2.1)) i (leavesAt qs x) x.2.1 x.2.2
+
+/-- Every root's word from root `i` on. -/
+def wordsGo (μ R : ℕ) (qs : List (PermutationQuery KeccakState × KeccakState)) :
+    ℕ → List (Digest × ℕ × ℕ) → List AV
+  | _, [] => []
+  | i, x :: xs => wordArrOf μ R qs i x :: wordsGo μ R qs (i + 1) xs
+
+theorem wordsGo_eq (μ R : ℕ) (qs : List (PermutationQuery KeccakState × KeccakState)) :
+    ∀ (roots : List (Digest × ℕ × ℕ)) (i : ℕ),
+      wordsGo μ R qs i roots = roots.mapIdx fun j x ↦ wordArrOf μ R qs (j + i) x
+  | [], _ => rfl
+  | x :: xs, i => by
+    rw [wordsGo, List.mapIdx_cons, wordsGo_eq μ R qs xs (i + 1), Nat.zero_add]
+    congr 1
+    refine List.mapIdx_eq_mapIdx_iff.mpr fun j _ ↦ ?_
+    rw [Nat.add_right_comm, Nat.add_assoc]
+
+theorem wordsGo_zero (μ R : ℕ) (qs : List (PermutationQuery KeccakState × KeccakState))
+    (roots : List (Digest × ℕ × ℕ)) : wordsGo μ R qs 0 roots = wordsC μ R qs roots := by
+  rw [wordsGo_eq]
+  rfl
+
 /-- **The extractor's finish on the lite layout**, its candidate run the indexed runner. -/
 def finishL (prog : LeanIsaProgram) (input : PublicInput)
     (qs : List (PermutationQuery KeccakState × KeccakState))
@@ -186,7 +225,7 @@ def finishL (prog : LeanIsaProgram) (input : PublicInput)
   if laneBits ≤ r.1.2.1.1.stackLog ∧ 2 ^ (r.1.2.1.1.stackLog - laneBits) ≤
       2 ^ ((lvC r.1.2.1.1.stackLog r.1.2.1.2 0).1 + (lvC r.1.2.1.1.stackLog r.1.2.1.2 0).2.1) then
     (descendTraceC r.1.2.1.1.stackLog r.1.2.1.2
-      (wordsC r.1.2.1.1.stackLog r.1.2.1.2 qs r.2.roots) r.1.2.2 0).bind fun T ↦
+      (wordsGo r.1.2.1.1.stackLog r.1.2.1.2 qs 0 r.2.roots) r.1.2.2 0).bind fun T ↦
     if T.1 = laneBits then
       candidateRunner prog input r.1.2.1.1 (stackA r.1.2.1.1.stackLog T.2)
     else none
@@ -199,7 +238,7 @@ theorem finishL_eq (prog : LeanIsaProgram) (input : PublicInput)
       finishC prog input qs ((true, ((L, ρ), tr)), s) := by
   unfold finishL finishC
   dsimp only
-  rw [candidateRunner_eq, candidateExecutionFast_eq]
+  rw [candidateRunner_eq, candidateExecutionFast_eq, wordsGo_zero]
   rfl
 
 /-- **The agreement-set extractor on the lite layout.** -/
