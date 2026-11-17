@@ -65,6 +65,9 @@ theorem drop {p : VerifierProgram α} {f : α → VerifierProgram β} {sk : List
   rw [List.drop_left' hl]
   exact hf a (hs.2 a (returns_of_after ha)) h₂ b hfa
 
+theorem ret' (a : α) (g : α → γ) (c : γ) (h : g a = c) : DecP (.ret a) g fun _ ↦ some c :=
+  h ▸ ret a g
+
 theorem congr {p : VerifierProgram α} {g : α → γ} {d d' : List Ev → Option γ} (hp : DecP p g d)
     (e : ∀ h, d h = d' h) : DecP p g d' := fun h a ha ↦ (e h).symm.trans (hp h a ha)
 
@@ -165,6 +168,109 @@ theorem dec_foldRounds : ∀ (n : ℕ) (s : WhirState),
         (d₂ := fun rs _ ↦ some (r.2 :: rs)) fun r' _ ↦ DecP.ret _ Prod.snd) fun h ↦ ?_) fun h ↦ ?_
     · rcases decRounds n (h.take (skFoldRounds n).length) <;> rfl
     · rfl
+
+theorem dec_liftOption {α : Type} (o : Option α) : DecP (Verifier.liftOption o) id fun _ ↦ o := by
+  intro h a ha
+  cases o with
+  | none =>
+    exfalso
+    rcases h with _ | ⟨e, h⟩ <;> simp [Verifier.liftOption, VerifierProgram.after] at ha
+  | some b =>
+    have hb : (VerifierProgram.ret b : VerifierProgram α).after h = some (.ret a) := ha
+    obtain ⟨-, rfl⟩ := after_ret_eq' hb
+    rfl
+
+/-- A level's high part read off its rest's history: after the commitment. -/
+def decHigh (fold : ℕ) (h : List Ev) : Option (List E) :=
+  ((h.drop 1).take fold).mapM Ev.readVal
+
+theorem dec_midTailPre (logN index : ℕ) (level next : Whir.Level) (s : WhirState)
+    (rounds : List FoldRound) :
+    DecP (midTailPre logN index level next s rounds) Prod.fst (decHigh level.fold) := by
+  unfold midTailPre midTailC decHigh
+  simp only [VerifierProgram.bind_eq]
+  refine DecP.congr (DecP.drop (skel_readCommitment _ _) fun _ _ ↦
+    DecP.bind (skel_readScalars _) (dec_readScalars _) (d₂ := fun high _ ↦ some high)
+      fun high _ ↦ DecP.drop (skel_grindProofOfWork _) fun _ _ ↦
+      DecP.drop (skel_sampleChallenges _) fun _ _ ↦ DecP.drop skel_readScalar fun _ _ ↦
+      DecP.drop (skel_grindProofOfWork _) fun _ _ ↦ DecP.drop (skel_sampleQueries _ _) fun _ _ ↦
+      DecP.drop skel_sampleChallenge fun _ _ ↦ DecP.drop (skel_queryOpenings _ _) fun _ _ ↦
+      DecP.ret' _ Prod.fst high rfl) fun h ↦ ?_
+  simp only [List.length_singleton, List.length_replicate]
+  rcases ((h.drop 1).take level.fold).mapM Ev.readVal <;> rfl
+
+theorem dec_finCut (logN index : ℕ) (level : Whir.Level) (s : WhirState)
+    (rounds : List FoldRound) :
+    DecP (finCut logN index level s rounds) id fun h ↦
+      ((h.take (2 ^ (logN - s.alphas.length) + level.fold)).mapM Ev.readVal).map
+        (WhirTrace.final rounds) := by
+  unfold finCut
+  simp only [VerifierProgram.bind_eq]
+  refine DecP.congr (DecP.bind (skel_readScalars _) (dec_readScalars _)
+    (d₂ := fun folded _ ↦ some (WhirTrace.final rounds folded)) fun _ _ ↦ DecP.ret _ id)
+    fun h ↦ ?_
+  simp only [List.length_replicate]
+  rcases (h.take (2 ^ (logN - s.alphas.length) + level.fold)).mapM Ev.readVal <;> rfl
+
+/-- **The cut levels' trace read off their history**, `A` the folds made before them. -/
+def decLevels (logN : ℕ) : ℕ → List Whir.Level → List Ev → Option WhirTrace
+  | _, [], _ => none
+  | A, [level], h =>
+    (decRounds level.fold (h.take (skFoldRounds level.fold).length)).bind fun rounds ↦
+      (((h.drop (skFoldRounds level.fold).length).take
+        (2 ^ (logN - (A + level.fold)) + level.fold)).mapM Ev.readVal).map (WhirTrace.final rounds)
+  | A, level :: next :: rest, h =>
+    (decRounds level.fold (h.take (skFoldRounds level.fold).length)).bind fun rounds ↦
+      let h' := h.drop (skFoldRounds level.fold).length
+      let Lm := (skMidTail logN (A + level.fold) level next).length
+      (decHigh level.fold (h'.take Lm)).bind fun high ↦
+        (decLevels logN (A + level.fold) (next :: rest) ((h'.drop Lm).take
+          (skLevels logN (A + level.fold) (next :: rest)).length)).map fun tr ↦
+          WhirTrace.mid rounds high tr
+
+theorem dec_whirLevelsGF (logN : ℕ) : ∀ (index : ℕ) (levels : List Whir.Level) (s : WhirState)
+    (A : ℕ), s.alphas.length = A →
+    DecP (whirLevelsGF logN (finCut logN) index levels s) id (decLevels logN A levels)
+  | _, [], _, _, _ => fun h a ha ↦ by
+    rcases h with _ | ⟨e, h⟩ <;> simp [whirLevelsGF, VerifierProgram.after] at ha
+  | index, [level], s, A, hA => by
+    simp only [whirLevelsGF, VerifierProgram.bind_eq]
+    refine DecP.congr (DecP.bind (skel_foldRounds level.fold s) (dec_foldRounds level.fold s)
+      (d₂ := fun rounds h ↦ ((h.take (2 ^ (logN - (A + level.fold)) + level.fold)).mapM
+        Ev.readVal).map (WhirTrace.final rounds)) fun r hr ↦ ?_) fun h ↦ rfl
+    have := dec_finCut logN index level r.1 r.2
+    rwa [hr, hA] at this
+  | index, level :: next :: rest, s, A, hA => by
+    simp only [whirLevelsGF, VerifierProgram.bind_eq]
+    rw [show (fun r : WhirState × List FoldRound ↦ midTailC logN index level next (fun high s' ↦
+        (whirLevelsGF logN (finCut logN) (index + 1) (next :: rest) s').bind fun tr ↦
+          VerifierProgram.ret (WhirTrace.mid r.2 high tr)) r.1 r.2) =
+        fun r ↦ (midTailPre logN index level next r.1 r.2).bind fun p ↦
+          (whirLevelsGF logN (finCut logN) (index + 1) (next :: rest) p.2).bind fun tr ↦
+            VerifierProgram.ret (WhirTrace.mid r.2 p.1 tr) from
+      funext fun r ↦ midTailC_eq_pre _ _ _ _ _ _ _]
+    refine DecP.congr (DecP.bind (skel_foldRounds level.fold s) (dec_foldRounds level.fold s)
+      (d₂ := fun rounds h' ↦
+        (decHigh level.fold (h'.take (skMidTail logN (A + level.fold) level next).length)).bind
+          fun high ↦ (decLevels logN (A + level.fold) (next :: rest)
+            ((h'.drop (skMidTail logN (A + level.fold) level next).length).take
+              (skLevels logN (A + level.fold) (next :: rest)).length)).map fun tr ↦
+            WhirTrace.mid rounds high tr) fun r hr ↦ ?_) fun h ↦ rfl
+    have hr' : r.1.alphas.length = A + level.fold := by rw [hr, hA]
+    refine DecP.congr (DecP.bind ((skel_midTailPre logN index level next r.1 r.2).mono
+        (sk' := skMidTail logN (A + level.fold) level next) (by rw [hr']) fun _ h ↦ h)
+      (dec_midTailPre logN index level next r.1 r.2)
+      (d₂ := fun high h'' ↦ (decLevels logN (A + level.fold) (next :: rest)
+        (h''.take (skLevels logN (A + level.fold) (next :: rest)).length)).map fun tr ↦
+          WhirTrace.mid r.2 high tr) fun p hp ↦ ?_) fun h ↦ rfl
+    have hp' : p.2.alphas.length = A + level.fold := by rw [hp, hr']
+    refine DecP.congr (DecP.bind ((skel_whirLevelsGF logN (index + 1) (next :: rest) p.2).mono
+        (sk' := skLevels logN (A + level.fold) (next :: rest)) (by rw [hp']) fun _ h ↦ h)
+      (dec_whirLevelsGF logN (index + 1) (next :: rest) p.2 (A + level.fold) hp')
+      (d₂ := fun tr _ ↦ some (WhirTrace.mid r.2 p.1 tr))
+      fun tr _ ↦ DecP.ret' _ id _ rfl) fun h ↦ ?_
+    rcases decLevels logN (A + level.fold) (next :: rest)
+      (h.take (skLevels logN (A + level.fold) (next :: rest)).length) <;> rfl
 
 end
 end LeanVM.Protocol.EndToEnd.Sound
