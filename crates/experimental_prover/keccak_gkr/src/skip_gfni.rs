@@ -369,8 +369,9 @@ pub struct SkipBlock {
 }
 
 impl SkipBlock {
-    /// For blocks summed at the position weights `weights`, as polynomials.
-    pub fn new(weights: &[[u64; 2]]) -> Box<Self> {
+    /// For blocks summed at the position weights `weights`, as polynomials. The sums are exact,
+    /// with no reduction modulo the minimal polynomial of the field's `s`.
+    pub fn new(weights: &[[u64; 2]], _field: &crate::power::PowerField) -> Box<Self> {
         let mut residues = vec![[splat(0); RESIDUES]; BITS / 8];
         for (residues, weights) in residues.iter_mut().zip(weights[..BITS].as_chunks::<8>().0) {
             let bytes = transpose_bytes(weights.map(|w| [w[0], w[1], 0, 0]));

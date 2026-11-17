@@ -4,14 +4,16 @@
 //! A row's sum `sum over x of w[x] e[x + 1] e[x + 2]` is taken as `e[2] A + e[4] B + e[0] C`, with
 //! the cofactors `A = w[0] e[1] + w[1] e[3]`, `B = w[2] e[3] + w[3] e[0]` and `C = w[4] e[1]`.
 //! They are linear in the values, so they are multiplied out on the row's packs and extended like
-//! them: a cofactor has three words, and a slot takes nine products of an embedding and a word
-//! where [`skip_row`](crate::kernels::skip_row) takes fifteen of an embedding, a product and a
-//! weight's word.
+//! them. Only a block's sums at `s` matter, so a cofactor is reduced modulo the minimal polynomial
+//! of `s` to two words, and a slot takes six products of an embedding and a word where
+//! [`skip_row`](crate::kernels::skip_row) takes fifteen of an embedding, a product and a weight's
+//! word.
 
 use primitives::hash::positions::row_positions;
 
 use crate::clmul::{V, Vector};
 use crate::kernels::{GROUP, MIXED, PACKS, embed};
+use crate::power::PowerField;
 use crate::witness::words;
 
 cfg_select! {
@@ -59,12 +61,12 @@ cfg_select! {
 const _: () = assert!(GROUPS == V::N);
 
 /// The lanes of two words a slot's products read: `[e[2], e[4]]`, `[A0, B0]`, `[A1, B1]`,
-/// `[A2, B2]`, `[C0, C1]` and `[C2, e[0]]`, word `k` of a cofactor its coefficients from `64 k`.
-const FIELDS: usize = 6;
+/// `[C0, C1]` and `e[0]` in the low word, word `k` of a cofactor its coefficients from `64 k`.
+const FIELDS: usize = 5;
 
 /// Per word of the cofactors, a block's sums of the products of the word, at [`at`] each output
 /// of [`extend_group`](crate::kernels::extend_group) of each group.
-type Acc = [[[u64; 2]; 2 * MIXED]; 3];
+type Acc = [[[u64; 2]; 2 * MIXED]; 2];
 
 /// The pairs of lanes of a vector of four whose sums are its low mixed points, in the order of
 /// [`extend_group`](crate::kernels::extend_group).
@@ -73,6 +75,9 @@ const LOW_MIXED: [(usize, usize); 4] = [(0, 1), (2, 3), (0, 2), (1, 3)];
 /// [`skip_row`](crate::kernels::skip_row) over every row and slice of a block, a row at a time.
 pub struct SkipBlock<'a> {
     weights: &'a [[u64; 2]],
+    /// In every lane's low word: the high word of the Barrett constant of the minimal polynomial
+    /// of `s`, then the minimal polynomial's two words below its leading term.
+    reduction: [V; 3],
     /// The embeddings of a row's positions.
     e: [[u32; PACKS]; 5],
     /// Per field, the nine vectors of four of [`extend_group`](crate::kernels::extend_group) of
@@ -83,19 +88,21 @@ pub struct SkipBlock<'a> {
 }
 
 impl<'a> SkipBlock<'a> {
-    /// For blocks summed at the position weights `weights`, as polynomials.
-    pub fn new(weights: &'a [[u64; 2]]) -> Box<Self> {
+    /// For blocks summed at the position weights `weights`, as polynomials in the power basis of
+    /// `field`.
+    pub fn new(weights: &'a [[u64; 2]], field: &PowerField) -> Box<Self> {
         Box::new(Self {
             weights,
+            reduction: [field.barrett[1], field.modulus[0], field.modulus[1]].map(V::splat),
             e: [[0; PACKS]; 5],
             vectors: [[[V::zero(); 4]; 9]; FIELDS],
-            acc: [[[0; 2]; 2 * MIXED]; 3],
+            acc: [[[0; 2]; 2 * MIXED]; 2],
         })
     }
 
     /// Sum a block.
     pub fn run(&mut self, block: &[u64]) {
-        self.acc = [[[0; 2]; 2 * MIXED]; 3];
+        self.acc = [[[0; 2]; 2 * MIXED]; 2];
         for r in 0..5 {
             for z in 0..64 {
                 let js = row_positions(r, z);
@@ -137,15 +144,8 @@ impl<'a> SkipBlock<'a> {
             for h in 0..2 {
                 // Pack `q + h`'s embeddings in the low word.
                 let e = e.map(|e| if h == 0 { e } else { e.high() });
-                let ([a0, a1], [b0, b1], [c0, c1]) = (a[h], b[h], c[h]);
-                let fields = [
-                    e[2].unpacklo(e[4]),
-                    a0.unpacklo(b0),
-                    a0.high().xor(a1).unpacklo(b0.high().xor(b1)),
-                    a1.high().unpacklo(b1.high()),
-                    c0.unpacklo(c0.high().xor(c1)),
-                    c1.high().unpacklo(e[0]),
-                ];
+                let [a, b, c] = [a[h], b[h], c[h]].map(|x| reduce(x, self.reduction));
+                let fields = [e[2].unpacklo(e[4]), a.unpacklo(b), a.high().unpacklo(b.high()), c, e[0]];
                 for (vectors, field) in self.vectors.iter_mut().zip(fields) {
                     vectors[(q + h) / 4][(q + h) % 4] = field;
                 }
@@ -190,18 +190,32 @@ impl<'a> SkipBlock<'a> {
         } else {
             (slot - 128, 64)
         };
-        let [s0, s1, s2] = self.acc.each_ref().map(|acc| acc[at(half, i)]);
-        [s0[0], s0[1] ^ s1[0], s1[1] ^ s2[0]]
+        let [s0, s1] = self.acc.each_ref().map(|acc| acc[at(half, i)]);
+        [s0[0], s0[1] ^ s1[0], s1[1]]
     }
+}
+
+/// A cofactor `low + high x^64`, `high`'s high word below 64 coefficients, modulo the minimal
+/// polynomial of `s` by Barrett's reduction, `reduction` as [`SkipBlock`] holds it: its words in a
+/// lane each.
+#[inline(always)]
+fn reduce([low, high]: [V; 2], [barrett, modulus_low, modulus_high]: [V; 3]) -> V {
+    // The quotient, from the cofactor's word 2 alone.
+    let top = high.high();
+    let q = top.xor(top.clmul::<0x00>(barrett).high());
+    // The low two words of the cofactor and of `q` times the modulus.
+    let shifted = |x: V| V::zero().unpacklo(x);
+    low.xor(shifted(high))
+        .xor(q.clmul::<0x00>(modulus_low))
+        .xor(shifted(q.clmul::<0x00>(modulus_high)))
 }
 
 /// Adds the products of the [`FIELDS`] at output `i` of the groups from `pass` to their sums.
 #[inline(always)]
-fn accumulate(acc: &mut Acc, pass: usize, i: usize, [e, w0, w1, w2, wc, wd]: [V; FIELDS]) {
+fn accumulate(acc: &mut Acc, pass: usize, i: usize, [e, w0, w1, c, e0]: [V; FIELDS]) {
     let sums = [
-        e.clmul::<0x00>(w0).xor(e.clmul::<0x11>(w0)).xor(wd.clmul::<0x01>(wc)),
-        e.clmul::<0x00>(w1).xor(e.clmul::<0x11>(w1)).xor(wd.clmul::<0x11>(wc)),
-        e.clmul::<0x00>(w2).xor(e.clmul::<0x11>(w2)).xor(wd.clmul::<0x01>(wd)),
+        e.clmul::<0x00>(w0).xor(e.clmul::<0x11>(w0)).xor(e0.clmul::<0x00>(c)),
+        e.clmul::<0x00>(w1).xor(e.clmul::<0x11>(w1)).xor(e0.clmul::<0x10>(c)),
     ];
     for (acc, sum) in acc.iter_mut().zip(sums) {
         // Lane `g` is group `pass + g`.

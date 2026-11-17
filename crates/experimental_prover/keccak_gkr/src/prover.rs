@@ -380,7 +380,7 @@ impl Layer<'_> {
         let (nb, written) = (self.witness.shape.n_blocks(), self.witness.written());
         let mixed = parallel::map_reduce_with_state(
             self.rounds.len() * written,
-            || SkipBlock::new(weights),
+            || SkipBlock::new(weights, field),
             || vec![[0u64; 5]; MIXED],
             |skip, total, task| {
                 let (segment, g) = (task / written, task % written);

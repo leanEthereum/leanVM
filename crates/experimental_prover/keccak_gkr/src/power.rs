@@ -44,9 +44,9 @@ macro_rules! row_kernel {
 pub struct PowerField {
     pub basis: PowerBasis,
     /// `s^128`, the modulus without its leading term.
-    modulus: Element,
+    pub(crate) modulus: Element,
     /// `floor(x^256 / modulus)` without its leading term, for Barrett's reduction.
-    barrett: Element,
+    pub(crate) barrett: Element,
     eval: PolyEval,
 }
 

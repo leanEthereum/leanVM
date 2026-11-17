@@ -313,8 +313,9 @@ cfg_select! {
         }
 
         impl<'a> SkipBlock<'a> {
-            /// For blocks summed at the position weights `weights`, as polynomials.
-            pub fn new(weights: &'a [[u64; 2]]) -> Box<Self> {
+            /// For blocks summed at the position weights `weights`, as polynomials. The sums are
+            /// exact, with no reduction modulo the minimal polynomial of the field's `s`.
+            pub fn new(weights: &'a [[u64; 2]], _field: &crate::power::PowerField) -> Box<Self> {
                 Box::new(Self {
                     acc: SkipAcc::new(),
                     extended: [[0; SLOTS]; 5],
@@ -1195,11 +1196,14 @@ mod tests {
             let weights: Vec<[u64; 2]> = (0..BITS)
                 .map(|_| std::array::from_fn(|_| if dense { u64::MAX } else { rng.next_u64() }))
                 .collect();
-            let mut skip = SkipBlock::new(&weights);
+            // A kernel's sums may be reduced modulo the minimal polynomial of `s`.
+            let field = crate::power::PowerField::new(rng.ext()).expect("a generator");
+            let reduce = |[a, b, c]: [u64; 3]| field.reduce(&[a, b, c, 0]);
+            let mut skip = SkipBlock::new(&weights, &field);
             for (b, block) in blocks.iter().enumerate() {
                 skip.run(block);
                 for (i, expected) in skip_block_portable(block, &weights).into_iter().enumerate() {
-                    assert_eq!(skip.get(i), expected, "block {b} slot {i}");
+                    assert_eq!(reduce(skip.get(i)), reduce(expected), "block {b} slot {i}");
                 }
             }
         }
