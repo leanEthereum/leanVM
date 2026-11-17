@@ -297,9 +297,12 @@ jobs:
             echo changed=false >> "$GITHUB_OUTPUT"
           fi
 
-  # lean_vm's Lake build is kept as a workflow artifact, not in the Actions cache (`tools/lake-artifact.sh`): the job
-  # restores the newest one of a push to main or of its own pull request's runs, for the same toolchain and
-  # manifest (the artifact's name), and Lake rebuilds what changed since.
+  # lean_vm's Lake build is kept as a workflow artifact, not in the Actions cache (`tools/lake-artifact.sh`): each
+  # job restores the newest one of a push to main or of its own pull request's runs, for the same toolchain and
+  # manifest (the artifact's name), and Lake rebuilds what changed since. Three jobs share it and run side by side:
+  # the build and the checks that need it whole (`lean-vm-formalization`), the files derived from the guest
+  # (`lean-vm-guest`), and the Rust-vs-Lean differentials (`lean-vm-differentials`), which need three
+  # executables, a few dozen modules: none reads another's output.
   lean-vm-formalization:
     needs: lean-vm-changes
     if: needs.lean-vm-changes.outputs.changed == 'true'
@@ -398,6 +401,11 @@ jobs:
       # `.olean` they read.
       - name: The tests' compiled runs
         run: lake env .lake/build/bin/test-runs
+      # EthLib's test vectors of leanSPHINCS and leanXMSS, as leanVM vendors them, on the
+      # statement's schemes compiled: verification only (key generation and signing are checked by
+      # hand: `scheme-vectors --xmss-sign`, lean_sphincs' `lake exe signature-kat`).
+      - name: The statement's verifiers are the crate's (scheme-vectors)
+        run: .lake/build/bin/scheme-vectors
       # Every ref keeps its build, main's for a week, a pull request's (restored only by its own later runs) for
       # three days; one whose `formal/` tree is the restored build's has nothing new to keep.
       - name: Pack the Lake build
@@ -411,11 +419,63 @@ jobs:
           path: ${{ runner.temp }}/lake.tar.zst
           retention-days: ${{ github.ref == 'refs/heads/main' && 7 || 3 }}
           compression-level: 0
-      # EthLib's test vectors of leanSPHINCS and leanXMSS, as leanVM vendors them, on the
-      # statement's schemes compiled: verification only (key generation and signing are checked by
-      # hand: `scheme-vectors --xmss-sign`, lean_sphincs' `lake exe signature-kat`).
-      - name: The statement's verifiers are the crate's (scheme-vectors)
-        run: .lake/build/bin/scheme-vectors
+
+  # Every file derived from the guest, and the front end and the honest hints against the Rust's.
+  lean-vm-guest:
+    needs: lean-vm-changes
+    if: needs.lean-vm-changes.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions:
+      contents: read
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      HEAD_REPO_ID: ${{ github.event.pull_request.head.repo.id || github.repository_id }}
+      HEAD_REF: ${{ github.head_ref || github.ref_name }}
+    defaults:
+      run:
+        working-directory: formal/lean_vm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore the Lake build
+        run: ../tools/lake-artifact.sh restore
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: formal/lean_vm
+          auto-config: false
+          build: false
+          test: false
+          lint: false
+          use-github-cache: false
+          use-mathlib-cache: auto
+      # The generators' builds go through `lake-build.py`; the swap as in `lean-vm-formalization`.
+      - name: Add swap
+        run: |
+          dir=/mnt; [ -d /mnt ] || dir=/
+          sudo fallocate -l 16G "$dir/swapfile.lean"
+          sudo chmod 600 "$dir/swapfile.lean"
+          sudo mkswap "$dir/swapfile.lean"
+          sudo swapon "$dir/swapfile.lean"
+          free -g
+      - uses: dtolnay/rust-toolchain@stable
+      # The cargo projects the checks below build, each its own workspace and target: their
+      # registry dependencies cached, as in rust.yml; only `main` saves.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            formal/lean_vm/scripts/guest-export
+            formal/lean_vm/scripts/whir-fold-table
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      # Every file derived from the guest is what its generator writes, byte for byte: the compiled
+      # guest (`guests/lean_ethereum.compiled`, `scripts/guest-artifact`, the Lean back end), the guest's
+      # bytecode, source, manifest, test programs and node vectors (`scripts/guest-export`, from this
+      # repository's sources), the test programs' compilations and the core IR of the front end's
+      # corpus (`tests/frontend/`), the guest's core IR, the back end's tables, the memory layer's checks, the
+      # templates, the walks, the count families, the call tables, the decoder tables and the back
+      # end's obligations.
+      - name: Every file derived from the guest is current (regen-guest.sh --check)
+        run: scripts/regen-guest.sh --check
       # The fold rounds' table is what `scripts/whir-fold-table` exports from `whir_config.rs`.
       - name: The fold rounds' table is the prover's
         run: |
@@ -426,16 +486,68 @@ jobs:
       # the Rust's installed streams entry for entry, and the interpreter runs `main` on them.
       - name: The honest hints are the Rust's (guest-diff)
         run: |
+          python3 -I ../lake-build.py . guest-diff
           LEANVM_GUEST_DIFF="$RUNNER_TEMP/guest-diff" cargo test --release \
             --manifest-path scripts/guest-export/Cargo.toml --lib guest_diff -- --ignored
           .lake/build/bin/guest-diff "$RUNNER_TEMP"/guest-diff/*.txt
-      # The verifier fixtures (`tests/fixtures/verifier`, not committed): the Rust prover's proofs of
-      # twelve small programs, each verified by the Rust verifier before it is written.
-      - name: Write the verifier fixtures (export-verifier-fixtures-rust.sh)
-        run: scripts/export-verifier-fixtures-rust.sh tests/fixtures/verifier
-      # The Lean verifier and the Rust verifier must agree on the fixtures and on mutations of
-      # them, so a bump to a protocol change fails here until the Lean one follows.
+
+  # The compiled Lean verifier, wire codec and prover against the Rust's, one runner each: each check is minutes
+  # of `--jobs 4` processes, and needs one or two executables of a few dozen modules.
+  lean-vm-differentials:
+    needs: lean-vm-changes
+    if: needs.lean-vm-changes.outputs.changed == 'true'
+    name: lean-vm-differentials (${{ matrix.check }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions:
+      contents: read
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - check: verifier
+            exes: leanvm-verify
+          - check: wire
+            exes: wire-diff
+          - check: prover
+            exes: leanvm-prove leanvm-verify
+    env:
+      GH_TOKEN: ${{ github.token }}
+      HEAD_REPO_ID: ${{ github.event.pull_request.head.repo.id || github.repository_id }}
+      HEAD_REF: ${{ github.head_ref || github.ref_name }}
+    defaults:
+      run:
+        working-directory: formal/lean_vm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore the Lake build
+        run: ../tools/lake-artifact.sh restore
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: formal/lean_vm
+          auto-config: false
+          build: false
+          test: false
+          lint: false
+          use-github-cache: false
+          use-mathlib-cache: auto
+      - name: Build the executables
+        run: python3 -I ../lake-build.py . ${{ matrix.exes }}
+      - uses: dtolnay/rust-toolchain@stable
+      # As in `lean-vm-guest`; one entry per check.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.check }}
+          workspaces: |
+            formal/lean_vm/scripts/rust-verifier-cli
+            formal/lean_vm/scripts/wire-diff
+            . -> target
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      # The Lean verifier and the Rust verifier must agree on the committed proofs and on
+      # mutations of them, so a bump to a protocol change fails here until the Lean one follows.
       - name: Rust-vs-Lean differential
+        if: matrix.check == 'verifier'
         run: |
           cargo build --release --manifest-path scripts/rust-verifier-cli/Cargo.toml
           python3 -I scripts/fuzz-verifier.py tests/fixtures/verifier --jobs 4
@@ -443,15 +555,18 @@ jobs:
       # (`Proof::from_bytes`, `Proof::to_bytes`) must agree on every fixture's wire proof, the Rust
       # test's vector and mutations of them: the same verdicts and decoded proofs, and the round trip.
       - name: The wire encoding, Rust-vs-Lean (wire-diff)
+        if: matrix.check == 'wire'
         run: |
           cargo build --release --manifest-path scripts/wire-diff/Cargo.toml
           python3 -I scripts/wire-diff.py tests/fixtures/verifier --jobs 4
       # The statement's honest prover (`LeanVM.Prover.prove`), compiled, on the executions the
       # Rust interpreter runs of the twelve fixed cases: each proof must be the Rust prover's and
-      # the fixture's byte for byte, accepted by the Lean and the Rust verifier, and
-      # every mutation of it rejected by both.
+      # the committed fixture's byte for byte, accepted by the Lean and the Rust verifier, and
+      # every mutation of it rejected by both (`fuzz-verifier.py`, hence the Rust verifier's build).
       - name: The statement's prover against both verifiers (prover-diff)
+        if: matrix.check == 'prover'
         run: |
+          cargo build --release --manifest-path scripts/rust-verifier-cli/Cargo.toml
           scripts/export-prover-traces-rust.sh "$RUNNER_TEMP/prover-cases" > /dev/null
           python3 -I scripts/prover-diff.py "$RUNNER_TEMP/prover-cases" --mutations 40 --jobs 4 \
             --identical --expected tests/fixtures/verifier
