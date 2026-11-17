@@ -12,21 +12,15 @@
 //! - GFNI: an 8x8 bit matrix per (input byte, output byte), applied to 64 rows by one instruction.
 //! - AVX2 without GFNI, and NEON: each of those matrices as two 16-entry nibble tables, one byte shuffle each per
 //!   32 or 16 rows.
+//!
+//! The 256-bit kernels read byte columns, so there the row-major fold transposes its rows first.
 
 use crate::field::F128;
 
 /// Rows folded per call.
 pub const BLOCK: usize = 64;
 
-#[cfg(any(
-    test,
-    not(all(
-        target_arch = "x86_64",
-        target_feature = "gfni",
-        target_feature = "avx512bw",
-        target_feature = "avx512vbmi"
-    ))
-))]
+#[cfg(any(test, not(all(target_arch = "x86_64", target_feature = "avx2"))))]
 /// A byte's subset-sum table: 256 entries, then a cache line of padding.
 type Table = [F128; 256 + 4];
 
@@ -76,15 +70,7 @@ impl BitFold {
     }
 }
 
-#[cfg(any(
-    test,
-    not(all(
-        target_arch = "x86_64",
-        target_feature = "gfni",
-        target_feature = "avx512bw",
-        target_feature = "avx512vbmi"
-    ))
-))]
+#[cfg(any(test, not(all(target_arch = "x86_64", target_feature = "avx2"))))]
 /// One 256-entry subset-sum table per byte of a row: entry `[j][v]` sums the weights of the set bits of `v` at byte `j`.
 ///
 /// A table is a cache line longer than its entries, so one entry of every table does not fall in one cache set: rows of
@@ -106,15 +92,7 @@ fn lookup_tables(weights: &[F128]) -> Vec<Table> {
         .collect()
 }
 
-#[cfg(any(
-    test,
-    not(all(
-        target_arch = "x86_64",
-        target_feature = "gfni",
-        target_feature = "avx512bw",
-        target_feature = "avx512vbmi"
-    ))
-))]
+#[cfg(any(test, not(all(target_arch = "x86_64", target_feature = "avx2"))))]
 /// The fold of one row through the byte tables: one lookup and one XOR per byte.
 #[inline(always)]
 fn fold_row_lookup<const CHUNKS: usize>(tables: &[Table], row: &[u8; CHUNKS]) -> F128 {
@@ -122,8 +100,11 @@ fn fold_row_lookup<const CHUNKS: usize>(tables: &[Table], row: &[u8; CHUNKS]) ->
     row.iter().zip(tables).map(|(&v, sums)| sums[usize::from(v)]).sum()
 }
 
-#[cfg(not(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni")))]
+#[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
 use portable::Imp;
+
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "gfni")))]
+use avx2::Imp;
 
 #[cfg(all(
     target_arch = "x86_64",
@@ -141,12 +122,7 @@ use gfni256::Imp;
 ))]
 use gfni::Imp;
 
-#[cfg(not(all(
-    target_arch = "x86_64",
-    target_feature = "gfni",
-    target_feature = "avx512bw",
-    target_feature = "avx512vbmi"
-)))]
+#[cfg(not(all(target_arch = "x86_64", target_feature = "avx2")))]
 mod portable {
     use super::{BLOCK, F128, Table, fold_row_lookup, lookup_tables};
 
@@ -155,9 +131,6 @@ mod portable {
     pub(super) struct Imp {
         /// One subset-sum table per byte of a row.
         tables: Vec<Table>,
-        /// The nibble tables of `avx2::fold_columns`.
-        #[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "gfni")))]
-        nibbles: Vec<super::avx2::Nibbles>,
         /// The nibble tables of `neon::fold_columns`.
         #[cfg(target_arch = "aarch64")]
         nibbles: Vec<super::neon::Nibbles>,
@@ -167,8 +140,6 @@ mod portable {
         pub(super) fn new(weights: &[F128]) -> Self {
             Self {
                 tables: lookup_tables(weights),
-                #[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "gfni")))]
-                nibbles: super::nibble_tables(weights),
                 #[cfg(target_arch = "aarch64")]
                 nibbles: super::nibble_tables(weights),
             }
@@ -182,23 +153,12 @@ mod portable {
             out[rows.len()..].fill(F128::ZERO);
         }
 
-        // With AVX2 and GFNI the columns go through `gfni256`, which keeps these tables for rows only.
-        #[cfg_attr(
-            all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"),
-            allow(dead_code)
-        )]
         #[inline]
         pub(super) fn fold_columns<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F128; BLOCK]) {
-            #[cfg(all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "gfni")))]
-            // SAFETY: AVX2 is enabled at compile time.
-            return unsafe { super::avx2::fold_columns(&self.nibbles, cols, out) };
             #[cfg(target_arch = "aarch64")]
             // SAFETY: NEON is part of aarch64.
             return unsafe { super::neon::fold_columns(&self.nibbles, cols, out) };
-            #[cfg(not(any(
-                all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "gfni")),
-                target_arch = "aarch64"
-            )))]
+            #[cfg(not(target_arch = "aarch64"))]
             for (p, o) in out.iter_mut().enumerate() {
                 *o = cols
                     .iter()
@@ -210,13 +170,13 @@ mod portable {
     }
 }
 
-/// Entry `16 j + o`: the images of the low and the high nibble of input byte `j` in output byte `o`, each 16-entry
-/// table repeated to fill `W` bytes.
+/// Entry `16 j + o`: the images of the low and the high nibble of input byte `j` in output byte `o`, each a
+/// 16-entry table.
 #[cfg(any(
     all(target_arch = "x86_64", target_feature = "avx2", not(target_feature = "gfni")),
     target_arch = "aarch64"
 ))]
-fn nibble_tables<const W: usize>(weights: &[F128]) -> Vec<[[u8; W]; 2]> {
+fn nibble_tables(weights: &[F128]) -> Vec<[[u8; 16]; 2]> {
     let byte = |w: &F128, o: usize| (w.to_limbs()[o / 8] >> (8 * (o % 8))) as u8;
     let mut out = Vec::with_capacity(2 * weights.len());
     for w in weights.as_chunks::<8>().0 {
@@ -224,13 +184,81 @@ fn nibble_tables<const W: usize>(weights: &[F128]) -> Vec<[[u8; W]; 2]> {
             out.push(std::array::from_fn(|half| {
                 std::array::from_fn(|i| {
                     (0..4)
-                        .filter(|t| (i % 16) >> t & 1 == 1)
+                        .filter(|t| i >> t & 1 == 1)
                         .fold(0, |acc, t| acc ^ byte(&w[4 * half + t], o))
                 })
             }));
         }
     }
     out
+}
+
+/// Up to 64 rows as byte columns, `cols[j][p]` byte `j` of row `p`, rows past the input zero.
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx2",
+    not(all(target_feature = "gfni", target_feature = "avx512bw", target_feature = "avx512vbmi"))
+))]
+#[inline]
+#[target_feature(enable = "avx2")]
+fn columns_avx2<const CHUNKS: usize>(rows: &[[u8; CHUNKS]], cols: &mut [[u8; BLOCK]; CHUNKS]) {
+    match rows.try_into() {
+        Ok(rows) => columns_full_avx2(rows, cols),
+        Err(_) => {
+            // A short block transposes a zero-padded copy.
+            let mut padded = [[0u8; CHUNKS]; BLOCK];
+            padded[..rows.len()].copy_from_slice(rows);
+            columns_full_avx2(&padded, cols);
+        }
+    }
+}
+
+/// [`columns_avx2`] of a full block.
+///
+/// A 16-byte slice of a row is a lane, rows `p` and `p + 16` sharing a register, and sixteen registers take one in-lane
+/// byte transpose. Rows of 8 bytes put rows `p` and `p + 32` in a lane, so the transpose's registers `k` and `k + 8`
+/// are the two halves of column `k`.
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx2",
+    not(all(target_feature = "gfni", target_feature = "avx512bw", target_feature = "avx512vbmi"))
+))]
+#[inline]
+#[target_feature(enable = "avx2")]
+fn columns_full_avx2<const CHUNKS: usize>(rows: &[[u8; CHUNKS]; BLOCK], cols: &mut [[u8; BLOCK]; CHUNKS]) {
+    use core::arch::x86_64::*;
+
+    use crate::bits::transpose_bytes16x16_per_lane256 as transpose;
+    use crate::{load_at, store_at};
+
+    let pair = |lo: &[u8], hi: &[u8]| -> __m256i { _mm256_set_m128i(load_at(hi, 0), load_at(lo, 0)) };
+    if CHUNKS == 8 {
+        let bytes = rows.as_flattened();
+        let mut regs = [_mm256_setzero_si256(); 16];
+        for z in (0..16).step_by(2) {
+            // Lane `l` of `x`: rows `z + 16 l` and `z + 16 l + 1`; of `y`, the same rows plus 32.
+            let x = pair(&bytes[8 * z..], &bytes[8 * (z + 16)..]);
+            let y = pair(&bytes[8 * (z + 32)..], &bytes[8 * (z + 48)..]);
+            regs[z] = _mm256_unpacklo_epi64(x, y);
+            regs[z + 1] = _mm256_unpackhi_epi64(x, y);
+        }
+        transpose(&mut regs);
+        for (k, col) in cols.iter_mut().enumerate() {
+            store_at(col, 0, regs[k]);
+            store_at(col, 32, regs[k + 8]);
+        }
+    } else {
+        for h in 0..2 {
+            for g in 0..CHUNKS / 16 {
+                let mut regs: [__m256i; 16] =
+                    std::array::from_fn(|z| pair(&rows[32 * h + z][16 * g..], &rows[32 * h + 16 + z][16 * g..]));
+                transpose(&mut regs);
+                for (k, r) in regs.into_iter().enumerate() {
+                    store_at(&mut cols[16 * g + k], 32 * h, r);
+                }
+            }
+        }
+    }
 }
 
 /// The GFNI fold's byte-matrix products as nibble lookups, for AVX2 without GFNI.
@@ -244,64 +272,103 @@ mod avx2 {
     use super::{BLOCK, F128};
     use crate::{load_at, store_at};
 
-    /// [`super::nibble_tables`], each table in both 128-bit lanes.
-    pub(super) type Nibbles = [[u8; 32]; 2];
+    /// An entry of [`super::nibble_tables`], broadcast to both 128-bit lanes when used.
+    type Nibbles = [[u8; 16]; 2];
 
-    /// [`super::BitFold::fold_columns`]: per 32 rows and coefficient, eight output bytes summed over the
-    /// input bytes, then transposed into words.
+    /// The nibble tables.
+    #[derive(Clone, Debug)]
+    pub(super) struct Imp {
+        tables: Vec<Nibbles>,
+    }
+
+    impl Imp {
+        pub(super) fn new(weights: &[F128]) -> Self {
+            Self {
+                tables: super::nibble_tables(weights),
+            }
+        }
+
+        #[inline]
+        pub(super) fn fold_block<const CHUNKS: usize>(&self, rows: &[[u8; CHUNKS]], out: &mut [F128; BLOCK]) {
+            let mut cols = [[0u8; BLOCK]; CHUNKS];
+            // SAFETY: AVX2 is enabled at compile time (the module's cfg).
+            unsafe { super::columns_avx2(rows, &mut cols) };
+            self.fold_columns(&cols, out);
+        }
+
+        #[inline]
+        pub(super) fn fold_columns<const CHUNKS: usize>(&self, cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F128; BLOCK]) {
+            // SAFETY: AVX2 is enabled at compile time (the module's cfg).
+            unsafe { fold_columns(&self.tables, cols, out) }
+        }
+    }
+
+    /// [`super::BitFold::fold_columns`]: output bytes summed over the input bytes, 32 rows to a register, then per half a
+    /// byte transpose of the 16 output-byte registers into 32 F128 values.
+    ///
+    /// Up to 64-byte rows, eight output bytes of one half at a time. Wider rows' tables outgrow L1, so four output bytes
+    /// of both halves at a time read each table once.
     #[inline]
     #[target_feature(enable = "avx2")]
-    pub(super) fn fold_columns<const CHUNKS: usize>(
-        tables: &[Nibbles],
-        cols: &[[u8; BLOCK]; CHUNKS],
-        out: &mut [F128; BLOCK],
-    ) {
-        assert_eq!(tables.len(), 16 * CHUNKS);
+    fn fold_columns<const CHUNKS: usize>(tables: &[Nibbles], cols: &[[u8; BLOCK]; CHUNKS], out: &mut [F128; BLOCK]) {
+        let tables: &[[Nibbles; 16]; CHUNKS] = tables.as_chunks().0.try_into().expect("16 tables per byte");
         let mask = _mm256_set1_epi8(0x0f);
-        let mut words = [[0u64; BLOCK]; 2];
-        for (k, words) in words.iter_mut().enumerate() {
+        let nibbles = |col: &[u8; BLOCK], h: usize| {
+            let v: __m256i = load_at(col, 32 * h);
+            [
+                _mm256_and_si256(v, mask),
+                _mm256_and_si256(_mm256_srli_epi16::<4>(v), mask),
+            ]
+        };
+        let image = |t: &Nibbles, [lo, hi]: [__m256i; 2]| {
+            let (tl, th) = (
+                _mm256_broadcastsi128_si256(load_at(&t[0], 0)),
+                _mm256_broadcastsi128_si256(load_at(&t[1], 0)),
+            );
+            _mm256_xor_si256(_mm256_shuffle_epi8(tl, lo), _mm256_shuffle_epi8(th, hi))
+        };
+        // Byte `16 l + p` of `acc[o]` is byte `o` of row `32 h + 16 l + p`.
+        let mut store = |h: usize, mut acc: [__m256i; 16]| {
+            crate::bits::transpose_bytes16x16_per_lane256(&mut acc);
+            for (k, a) in acc.into_iter().enumerate() {
+                store_at(out, 32 * h + k, _mm256_castsi256_si128(a));
+                store_at(out, 32 * h + 16 + k, _mm256_extracti128_si256::<1>(a));
+            }
+        };
+        if CHUNKS <= 64 {
             for h in 0..2 {
-                let mut acc = [_mm256_setzero_si256(); 8];
-                for (j, col) in cols.iter().enumerate() {
-                    let v: __m256i = load_at(col, 32 * h);
-                    let (lo, hi) = (
-                        _mm256_and_si256(v, mask),
-                        _mm256_and_si256(_mm256_srli_epi16::<4>(v), mask),
-                    );
-                    for (i, acc) in acc.iter_mut().enumerate() {
-                        let t = &tables[16 * j + 8 * k + i];
-                        let (tl, th): (__m256i, __m256i) = (load_at(&t[0], 0), load_at(&t[1], 0));
-                        let image = _mm256_xor_si256(_mm256_shuffle_epi8(tl, lo), _mm256_shuffle_epi8(th, hi));
-                        *acc = _mm256_xor_si256(*acc, image);
+                let mut acc = [_mm256_setzero_si256(); 16];
+                for o0 in (0..16).step_by(8) {
+                    let mut a = [_mm256_setzero_si256(); 8];
+                    for (col, tables) in cols.iter().zip(tables) {
+                        let x = nibbles(col, h);
+                        for (a, t) in a.iter_mut().zip(&tables[o0..o0 + 8]) {
+                            *a = _mm256_xor_si256(*a, image(t, x));
+                        }
                     }
+                    acc[o0..o0 + 8].copy_from_slice(&a);
                 }
-                // Byte `p` of `acc[i]` is byte `i` of row `32 h + p`: three unpack stages make words.
-                let pairs = |a: __m256i, b: __m256i| (_mm256_unpacklo_epi8(a, b), _mm256_unpackhi_epi8(a, b));
-                let (l01, h01) = pairs(acc[0], acc[1]);
-                let (l23, h23) = pairs(acc[2], acc[3]);
-                let (l45, h45) = pairs(acc[4], acc[5]);
-                let (l67, h67) = pairs(acc[6], acc[7]);
-                // Lane 0 of a stage-one register holds rows `base..base + 8`, lane 1 the same rows plus 16.
-                for (base, (a, b, c, d)) in [(0, (l01, l23, l45, l67)), (8, (h01, h23, h45, h67))] {
-                    let quads = [
-                        (base, _mm256_unpacklo_epi16(a, b), _mm256_unpacklo_epi16(c, d)),
-                        (base + 4, _mm256_unpackhi_epi16(a, b), _mm256_unpackhi_epi16(c, d)),
-                    ];
-                    for (base, x, y) in quads {
-                        for (base, w) in [
-                            (base, _mm256_unpacklo_epi32(x, y)),
-                            (base + 2, _mm256_unpackhi_epi32(x, y)),
-                        ] {
-                            let row = 32 * h + base;
-                            store_at(words, row, _mm256_castsi256_si128(w));
-                            store_at(words, row + 16, _mm256_extracti128_si256::<1>(w));
+                store(h, acc);
+            }
+        } else {
+            let mut acc = [[_mm256_setzero_si256(); 16]; 2];
+            for o0 in (0..16).step_by(4) {
+                let mut a = [[_mm256_setzero_si256(); 4]; 2];
+                for (col, tables) in cols.iter().zip(tables) {
+                    let x = [nibbles(col, 0), nibbles(col, 1)];
+                    for (i, t) in tables[o0..o0 + 4].iter().enumerate() {
+                        for (a, x) in a.iter_mut().zip(x) {
+                            a[i] = _mm256_xor_si256(a[i], image(t, x));
                         }
                     }
                 }
+                for (acc, a) in acc.iter_mut().zip(a) {
+                    acc[o0..o0 + 4].copy_from_slice(&a);
+                }
             }
-        }
-        for (p, o) in out.iter_mut().enumerate() {
-            *o = F128::new(words[0][p], words[1][p]);
+            for (h, acc) in acc.into_iter().enumerate() {
+                store(h, acc);
+            }
         }
     }
 }
@@ -685,8 +752,8 @@ mod gfni {
     not(all(target_feature = "avx512bw", target_feature = "avx512vbmi"))
 ))]
 mod gfni256 {
-    //! The GFNI fold on 256-bit registers (AVX2 and GFNI, without the AVX-512 kernel's byte permutes), for
-    //! [`super::BitFold::fold_columns`], whose rows already come as byte columns:
+    //! The GFNI fold on 256-bit registers (AVX2 and GFNI, without the AVX-512 kernel's byte permutes), on rows as byte
+    //! columns:
     //!
     //! ```text
     //!     per 32 rows:  out byte o  +=  A[j][o] * (column j),  one affine instruction per column and output byte
@@ -694,7 +761,7 @@ mod gfni256 {
     //! ```
     //!
     //! Sixteen registers hold eight accumulators at a time, so the columns are read twice. The row-major
-    //! [`super::BitFold::fold_block`] keeps the byte tables.
+    //! [`super::BitFold::fold_block`] transposes its rows first.
 
     use core::arch::x86_64::*;
 
@@ -703,13 +770,11 @@ mod gfni256 {
     /// Bytes of an F128.
     const OUT_BYTES: usize = 16;
 
-    /// The GFNI matrices, and the byte tables for the row-major fold.
+    /// The GFNI matrices.
     #[derive(Clone, Debug)]
     pub(super) struct Imp {
         /// `matrices[j][o]` maps byte `j` of a row to byte `o` of its weights' sum.
         matrices: Vec<[u64; OUT_BYTES]>,
-        /// The byte tables of the row-major fold.
-        lookup: super::portable::Imp,
     }
 
     /// Byte `o` of a weight.
@@ -743,15 +808,15 @@ mod gfni256 {
                     })
                 })
                 .collect();
-            Self {
-                matrices,
-                lookup: super::portable::Imp::new(weights),
-            }
+            Self { matrices }
         }
 
         #[inline]
         pub(super) fn fold_block<const CHUNKS: usize>(&self, rows: &[[u8; CHUNKS]], out: &mut [F128; BLOCK]) {
-            self.lookup.fold_block(rows, out);
+            let mut cols = [[0u8; BLOCK]; CHUNKS];
+            // SAFETY: AVX2 is enabled at compile time (the module's cfg).
+            unsafe { super::columns_avx2(rows, &mut cols) };
+            self.fold_columns(&cols, out);
         }
 
         #[inline]
@@ -876,23 +941,34 @@ mod tests {
         check::<128>(&mut rng);
     }
 
-    /// Rows of 16 bytes against the byte-table fold, full and short blocks.
+    /// Every row width against the byte-table fold, full and short blocks.
     #[test]
     fn fold_block_matches_lookup() {
-        let mut rng = Rng::new(0x0009_A12B);
-        let weights: Vec<F128> = (0..128).map(|_| rng.ext()).collect();
-        let (fold, tables) = (BitFold::new(&weights), lookup_tables(&weights));
-        for len in [BLOCK, 5] {
-            let rows: Vec<[u8; 16]> = (0..len)
-                .map(|_| std::array::from_fn(|_| rng.next_u64() as u8))
-                .collect();
-            let mut out = [F128::ZERO; BLOCK];
-            fold.fold_block(&rows, &mut out);
-            for p in 0..len {
-                assert_eq!(out[p], fold_row_lookup(&tables, &rows[p]), "len={len}, row {p}");
+        fn check<const CHUNKS: usize>(rng: &mut Rng) {
+            let weights: Vec<F128> = (0..8 * CHUNKS).map(|_| rng.ext()).collect();
+            let (fold, tables) = (BitFold::new(&weights), lookup_tables(&weights));
+            for len in [BLOCK, 37, 5] {
+                let rows: Vec<[u8; CHUNKS]> = (0..len)
+                    .map(|_| std::array::from_fn(|_| rng.next_u64() as u8))
+                    .collect();
+                let mut out = [F128::ZERO; BLOCK];
+                fold.fold_block(&rows, &mut out);
+                for p in 0..len {
+                    assert_eq!(
+                        out[p],
+                        fold_row_lookup(&tables, &rows[p]),
+                        "CHUNKS={CHUNKS}, len={len}, row {p}"
+                    );
+                }
+                assert!(out[len..].iter().all(|o| *o == F128::ZERO));
             }
-            assert!(out[len..].iter().all(|o| *o == F128::ZERO));
         }
+        let mut rng = Rng::new(0x0009_A12B);
+        check::<8>(&mut rng);
+        check::<16>(&mut rng);
+        check::<32>(&mut rng);
+        check::<64>(&mut rng);
+        check::<128>(&mut rng);
     }
 
     /// The byte tables against the definition: the sum of the weights of the set bits.
