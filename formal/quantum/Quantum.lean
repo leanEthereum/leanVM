@@ -228,6 +228,7 @@ import Quantum.StdModel.Qrom.SphincsTcr
 import Quantum.StdModel.Qrom.CorollaryXmss2
 import Quantum.StdModel.Qrom.EncSaltBound
 import Quantum.StdModel.Qrom.CorollaryXmss3
+import Quantum.StdModel.Qrom.CorollarySphincs
 import Quantum.Sphincs.Assembly.Depth.BoundValue
 import Quantum.Cost.NistQrpmSphincs
 import Quantum.Par.Subst
