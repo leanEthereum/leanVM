@@ -1933,8 +1933,32 @@ def initState (p : Program) (f : Func) (queue : Array Func) (loopBase : Nat) : S
     keccakPad := none, queue,
     loopCtr := loopBase }
 
-/-- Lower a function's body (`lower_func`). -/
+mutual
+/-- Whether `s` returns from its function: a `return`, or one in an `if` arm or an `unroll` body, but not one in a
+`mul_range` body, which is a function of its own and whose `return` ends the loop (`has_return`). -/
+def retHere : Stmt → Bool
+  | .mk _ k => retHereKind k
+
+/-- `retHere` of a statement's kind. -/
+def retHereKind : StmtKind → Bool
+  | .ret _ => true
+  | .ite _ _ _ thn els _ => retHereList thn || retHereList els
+  | .unroll _ _ _ body => retHereList body
+  | _ => false
+
+/-- `retHere` over a block. -/
+def retHereList : List Stmt → Bool
+  | [] => false
+  | s :: ss => retHere s || retHereList ss
+end
+
+/-- Lower a function's body (`lower_func`). A `return` in `main` halts the machine, so it is allowed only as `main`'s
+last statement: one before it, even in an arm whose condition folds, would leave the statements after it to run. -/
 def lowerFunc (f : Func) : M Unit := do
+  if (← ctx).isMain then
+    for (i, s) in (List.range f.body.length).zip f.body do
+      let last := i + 1 == f.body.length && (match s with | .mk _ (.ret _) => true | _ => false)
+      if !last && retHere s then fail "`return` in `main` is allowed only as its last statement"
   stmts fuel f.body
   if (← ctx).isMain then
     emit (.ret [])

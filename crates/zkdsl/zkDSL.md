@@ -50,7 +50,7 @@ def helper(a, b):         # other functions
 
 `import snark_lib` / `from snark_lib import *` are the only imports accepted; anything else is a compile error (no multi-file programs yet). Comments (`#`) and blank lines are free. Indentation is block structure, as in Python.
 
-`main` is the entry point and its `return` halts the machine, so no function may call it.
+`main` is the entry point and its `return` halts the machine, so no function may call it, and a `return` in `main` is allowed only as its last statement.
 
 Ordinary functions may return scalars, `HeapBuf` pointers, and `StackBuf` values, including mixtures in a tuple return. A returned `StackBuf(n)` has a compile-time-known size: its `n` cells are copied through `n` consecutive return slots and the caller binds the result as a new `StackBuf(n)`. A `HeapBuf` return is just its one-cell pointer; the allocation hint already ran where the buffer was created, so no size metadata needs to cross the call.
 
