@@ -409,6 +409,10 @@ jobs:
           .lake/build/bin/leanvm-execute "$RUNNER_TEMP"/guest-exec/*/
           .lake/build/bin/guest-run --rust "$RUNNER_TEMP/guest-exec" "$RUNNER_TEMP"/guest-diff/*.txt
           .lake/build/bin/guest-run --rust "$RUNNER_TEMP/guest-exec" --prove "$RUNNER_TEMP"/guest-diff/leaf.txt
+      # A manual run also proves the node case end to end with the statement's guest prover.
+      - name: The guest prover's proof of a node is accepted (manual runs)
+        if: github.event_name == 'workflow_dispatch'
+        run: .lake/build/bin/guest-run --rust "$RUNNER_TEMP/guest-exec" --prove "$RUNNER_TEMP"/guest-diff/node.txt
       # The Lean verifier and the Rust verifier must agree on the committed proofs and on
       # mutations of them, so a bump to a protocol change fails here until the Lean one follows.
       - name: Rust-vs-Lean differential
