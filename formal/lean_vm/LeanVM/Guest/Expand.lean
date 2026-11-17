@@ -1050,6 +1050,10 @@ def exprInto : Nat → Expr → V → M Unit
         let lb ← expr n b
         emitAtom (.mul dst la lb)
     | .call f args => do
+        -- A function of the program; a builtin's value (`hint_log2_ceil`, `addr`, ...) is an expression.
+        if (← origDef f).isNone then
+          let v ← expr n e
+          return ← copy v dst
         if (← origDef f).isSome then return ← callInto n f args [dst]
         let v ← expr n e
         copy v dst

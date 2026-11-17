@@ -53,6 +53,6 @@ test programs and the front-end corpus. -/
 #guard Programs.all.length = 17
 #guard Programs.chains.length = 6
 #guard Programs.vm.length = 24
-#guard Programs.frontend.length = 80
+#guard Programs.frontend.length = 81
 
 end LeanVMTests.Guest.Data
