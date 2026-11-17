@@ -186,7 +186,7 @@ def core (name : String) : IO UInt32 := do
 
 def exportPrograms (dir : String) (checkOnly : Bool) : IO UInt32 := do
   let mut failed := false
-  for t in LeanVMTests.Guest.Programs.all do
+  for t in LeanVMTests.Guest.Programs.all ++ LeanVMTests.Guest.Programs.chains do
     let path := s!"{dir}/{t.name}.txt"
     unless ← selfChecks t.name t.program do failed := true
     match Lines.compileLines t.program with
@@ -277,7 +277,8 @@ def coreText (P : Program) : String :=
 
 def coreTextDir (dir : String) : IO UInt32 := do
   IO.FS.createDirAll dir
-  let programs := ("guest", Data.guest) :: LeanVMTests.Guest.Programs.all.map fun t => (t.name, t.program)
+  let programs := ("guest", Data.guest) ::
+    (LeanVMTests.Guest.Programs.all ++ LeanVMTests.Guest.Programs.chains).map fun t => (t.name, t.program)
   for (name, p) in programs do
     let P ← orThrow (Expand.expandProgram p)
     IO.FS.writeFile s!"{dir}/{name}.core" (coreText P)

@@ -8,7 +8,7 @@
 use super::*;
 use crate::compiler_overlay::{
     Ast, Expr, ForBound, Func, LtBound, ParamKind, Shape, Stmt, StmtKind, core_ir, expand, parse, parse_const,
-    parse_with_constants,
+    parse_with_constants, parse_with_replacements,
 };
 use std::fmt::Write as _;
 
@@ -273,13 +273,48 @@ fn render_programs() -> String {
         .unwrap();
         names.push(format!("prog_{file}"));
     }
+    let mut chains = Vec::new();
+    for (name, ast) in chain_programs() {
+        let funcs = list(ast.funcs.iter().map(|f| format!("\n    {}", func_at(f, 4))));
+        writeln!(
+            out,
+            "/-- `chain.py` as `{name}`. -/\ndef prog_{name} : TestProgram where\n  name := {}\n  program := ⟨{funcs},\n    \
+             []⟩\n  publicInput := []\n  streams := []\n",
+            string(&name)
+        )
+        .unwrap();
+        chains.push(format!("prog_{name}"));
+    }
     writeln!(
         out,
-        "/-- Every test program. -/\ndef all : List TestProgram := {}\n\nend LeanVMTests.Guest.Programs",
-        list(names)
+        "/-- Every test program. -/\ndef all : List TestProgram := {}\n\n/-- The verifiers' fixture program \
+         (`crates/stable_prover/lean_vm_core/tests/verifiers/chain.py`) at each step count its users take. -/\n\
+         def chains : List TestProgram := {}\n\nend LeanVMTests.Guest.Programs",
+        list(names),
+        list(chains)
     )
     .unwrap();
     out
+}
+
+/// The step counts the verifiers' fixture program is compiled at: the fixture's own (`fixture.rs`), and the chain
+/// cases of `scripts/export-rust.sh` (fixed and corpus).
+const CHAIN_STEPS: [usize; 6] = [4, 16, 300, 1000, 5000, 16384];
+
+/// The fixture program at each of [`CHAIN_STEPS`], named `chain<steps>`.
+fn chain_programs() -> Vec<(String, Ast)> {
+    let src = std::fs::read_to_string(concat!(
+        env!("LEANVM_DIR"),
+        "/crates/stable_prover/lean_vm_core/tests/verifiers/chain.py"
+    ))
+    .unwrap();
+    CHAIN_STEPS
+        .iter()
+        .map(|n| {
+            let replacements = BTreeMap::from([("LOOP_STEPS_PLACEHOLDER".to_string(), n.to_string())]);
+            (format!("chain{n}"), parse_with_replacements(&src, &replacements).unwrap())
+        })
+        .collect()
 }
 
 /// `Source.lean`, with the placeholders at the log size `kbc`, and `Programs.lean`.
@@ -316,6 +351,9 @@ pub fn core_texts(kbc: usize) -> Vec<(String, String)> {
     for path in paths {
         let name = path.file_stem().unwrap().to_string_lossy().into_owned();
         let ast = parse(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        out.push((name, core_ir::render(&expand(&ast))));
+    }
+    for (name, ast) in chain_programs() {
         out.push((name, core_ir::render(&expand(&ast))));
     }
     out

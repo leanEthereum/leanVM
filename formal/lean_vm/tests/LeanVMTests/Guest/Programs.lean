@@ -98,6 +98,34 @@ def prog_fibonacci : TestProgram where
   publicInput := [(905969664, 0), (905969664, 0)]
   streams := []
 
+/-- `fibonacci_bench.py`. -/
+def prog_fibonacci_bench : TestProgram where
+  name := "fibonacci_bench"
+  program := ⟨[
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 12 (.let_ "public" (.gpow 0)),
+        .mk 13 (.let_ "end" (.index (.var "public") .gen)),
+        .mk 14 (.assertLt (.var "end") (.const 16385)),
+        .mk 15 (.let_ "buff" (.heapBufDyn (.mul (.mul (.var "end") (.var "end")) (.gpow 2)))),
+        .mk 16 (.store (.var "buff") (.lit 1) (.lit 1)),
+        .mk 17 (.store (.var "buff") .gen .gen),
+        .mk 18 (.for_ "x" 0 (.runtime (.var "end")) [
+          .mk 19 (.let_ "b" (.mul (.var "x") (.var "x"))),
+          .mk 20 (.let_ "f" (.stackBuf 1002)),
+          .mk 21 (.store (.var "f") (.lit 0) (.index (.var "buff") (.var "b"))),
+          .mk 22 (.store (.var "f") (.lit 1) (.index (.var "buff") (.mul (.var "b") .gen))),
+          .mk 23 (.unroll "j" (.lit 2) (.lit 1002) [
+            .mk 24 (.store (.var "f") (.var "j") (.mul (.index (.var "f") (.sub (.var "j") (.lit 2))) (.index (.var "f") (.sub (.var "j") (.lit 1)))))]),
+          .mk 25 (.store (.var "buff") (.mul (.var "b") (.gpow 2)) (.index (.var "f") (.lit 1000))),
+          .mk 26 (.store (.var "buff") (.mul (.var "b") (.gpow 3)) (.index (.var "f") (.lit 1001)))]),
+        .mk 27 (.store (.var "public") (.lit 1) (.index (.var "buff") (.mul (.var "end") (.var "end")))),
+        .mk 28 (.ret [])] }],
+    []⟩
+  publicInput := [(8035997182686239527, 0), (4, 0)]
+  streams := []
+
 /-- `hash_heap_chain.py`. -/
 def prog_hash_heap_chain : TestProgram where
   name := "hash_heap_chain"
@@ -239,38 +267,6 @@ def prog_inline : TestProgram where
     []⟩
   publicInput := [(8, 0), (10, 0)]
   streams := [("x", [[(4, 0)]])]
-
-/-- `loop_scopes.py`. -/
-def prog_loop_scopes : TestProgram where
-  name := "loop_scopes"
-  program := ⟨[
-    { name := "main", params := [], returnShapes := [],
-      inline := false,
-      body := [
-        .mk 18 (.let_ "out" (.heapBuf 8)),
-        .mk 19 (.let_ "acc" (.lit 5)),
-        .mk 20 (.let_ "w" (.gpow 3)),
-        .mk 21 (.let_ "k" (.lit 7)),
-        .mk 22 (.for_ "i" 0 (.const 2) [
-          .mk 23 (.unroll "j" (.lit 0) (.lit 2) [
-            .mk 24 (.ite true (.var "j") (.lit 0) [
-              .mk 25 (.let_ "acc" (.var "i"))] [
-              .mk 27 (.let_ "acc" (.mul (.var "acc") .gen))] false)]),
-          .mk 28 (.ite true (.lit 1) (.lit 2) [
-            .mk 29 (.let_ "w" .gen)] [] true),
-          .mk 30 (.unroll "j" (.lit 0) (.lit 0) [
-            .mk 31 (.let_ "w" .gen)]),
-          .mk 32 (.unroll "k" (.lit 0) (.lit 1) [
-            .mk 33 (.store (.var "out") (.mul (.var "i") (.gpow 4)) (.var "k"))]),
-          .mk 34 (.store (.var "out") (.var "i") (.add (.mul (.var "acc") (.var "w")) (.var "k")))]),
-        .mk 35 (.store (.var "out") (.pow (.gpow 2) (.lit 3)) (.lit 9)),
-        .mk 36 (.let_ "p" (.gpow 0)),
-        .mk 37 (.store (.var "p") (.lit 1) (.index (.var "out") (.lit 1))),
-        .mk 38 (.store (.var "p") .gen (.add (.index (.var "out") .gen) (.index (.var "out") (.gpow 6)))),
-        .mk 39 (.ret [])] }],
-    []⟩
-  publicInput := [(23, 0), (46, 0)]
-  streams := []
 
 /-- `match.py`. -/
 def prog_match : TestProgram where
@@ -477,7 +473,172 @@ def prog_wots_walk : TestProgram where
   publicInput := [(5424567347477364969, 11320273246001258297), (13399249004939818843, 6414592463089217630)]
   streams := []
 
+/-- `chain.py` as `chain4`. -/
+def prog_chain4 : TestProgram where
+  name := "chain4"
+  program := ⟨[
+    { name := "mix", params := [⟨"value", (.runtime .scalar)⟩, ⟨"tag", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 12 (.ite true (.var "tag") (.lit 0) [
+          .mk 13 (.ret [(.var "value")])] [] false),
+        .mk 14 (.ret [(.add (.mul (.var "value") .gen) (.var "value"))])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 18 (.let_ "digest" (.stackBuf 2)),
+        .mk 19 (.call "keccak_cells" [(.list [(.lit 5), (.lit 7), (.lit 5), (.lit 7), (.lit 5), (.lit 7), (.lit 5), (.lit 7), (.lit 5), (.lit 7)]), (.var "digest")]),
+        .mk 21 (.let_ "chain" (.heapBuf 5)),
+        .mk 22 (.store (.var "chain") (.lit 1) (.index (.var "digest") (.lit 0))),
+        .mk 23 (.for_ "index" 0 (.const 4) [
+          .mk 24 (.store (.var "chain") (.mul (.var "index") .gen) (.add (.call "mix" [(.add (.index (.var "chain") (.var "index")) (.var "index")), (.var "index")]) (.var "index")))]),
+        .mk 26 (.let_ "public" (.gpow 0)),
+        .mk 27 (.store (.var "public") (.lit 1) (.index (.var "chain") (.gpow 4))),
+        .mk 28 (.store (.var "public") .gen (.call "mix" [(.index (.var "digest") (.lit 1)), (.gpow 0)])),
+        .mk 29 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `chain.py` as `chain16`. -/
+def prog_chain16 : TestProgram where
+  name := "chain16"
+  program := ⟨[
+    { name := "mix", params := [⟨"value", (.runtime .scalar)⟩, ⟨"tag", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 12 (.ite true (.var "tag") (.lit 0) [
+          .mk 13 (.ret [(.var "value")])] [] false),
+        .mk 14 (.ret [(.add (.mul (.var "value") .gen) (.var "value"))])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 18 (.let_ "digest" (.stackBuf 2)),
+        .mk 19 (.call "keccak_cells" [(.list [(.lit 5), (.lit 7), (.lit 5), (.lit 7), (.lit 5), (.lit 7), (.lit 5), (.lit 7), (.lit 5), (.lit 7)]), (.var "digest")]),
+        .mk 21 (.let_ "chain" (.heapBuf 17)),
+        .mk 22 (.store (.var "chain") (.lit 1) (.index (.var "digest") (.lit 0))),
+        .mk 23 (.for_ "index" 0 (.const 16) [
+          .mk 24 (.store (.var "chain") (.mul (.var "index") .gen) (.add (.call "mix" [(.add (.index (.var "chain") (.var "index")) (.var "index")), (.var "index")]) (.var "index")))]),
+        .mk 26 (.let_ "public" (.gpow 0)),
+        .mk 27 (.store (.var "public") (.lit 1) (.index (.var "chain") (.gpow 16))),
+        .mk 28 (.store (.var "public") .gen (.call "mix" [(.index (.var "digest") (.lit 1)), (.gpow 0)])),
+        .mk 29 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `chain.py` as `chain300`. -/
+def prog_chain300 : TestProgram where
+  name := "chain300"
+  program := ⟨[
+    { name := "mix", params := [⟨"value", (.runtime .scalar)⟩, ⟨"tag", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 12 (.ite true (.var "tag") (.lit 0) [
+          .mk 13 (.ret [(.var "value")])] [] false),
+        .mk 14 (.ret [(.add (.mul (.var "value") .gen) (.var "value"))])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 18 (.let_ "digest" (.stackBuf 2)),
+        .mk 19 (.call "keccak_cells" [(.list [(.lit 5), (.lit 7), (.lit 5), (.lit 7), (.lit 5), (.lit 7), (.lit 5), (.lit 7), (.lit 5), (.lit 7)]), (.var "digest")]),
+        .mk 21 (.let_ "chain" (.heapBuf 301)),
+        .mk 22 (.store (.var "chain") (.lit 1) (.index (.var "digest") (.lit 0))),
+        .mk 23 (.for_ "index" 0 (.const 300) [
+          .mk 24 (.store (.var "chain") (.mul (.var "index") .gen) (.add (.call "mix" [(.add (.index (.var "chain") (.var "index")) (.var "index")), (.var "index")]) (.var "index")))]),
+        .mk 26 (.let_ "public" (.gpow 0)),
+        .mk 27 (.store (.var "public") (.lit 1) (.index (.var "chain") (.gpow 300))),
+        .mk 28 (.store (.var "public") .gen (.call "mix" [(.index (.var "digest") (.lit 1)), (.gpow 0)])),
+        .mk 29 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `chain.py` as `chain1000`. -/
+def prog_chain1000 : TestProgram where
+  name := "chain1000"
+  program := ⟨[
+    { name := "mix", params := [⟨"value", (.runtime .scalar)⟩, ⟨"tag", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 12 (.ite true (.var "tag") (.lit 0) [
+          .mk 13 (.ret [(.var "value")])] [] false),
+        .mk 14 (.ret [(.add (.mul (.var "value") .gen) (.var "value"))])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 18 (.let_ "digest" (.stackBuf 2)),
+        .mk 19 (.call "keccak_cells" [(.list [(.lit 5), (.lit 7), (.lit 5), (.lit 7), (.lit 5), (.lit 7), (.lit 5), (.lit 7), (.lit 5), (.lit 7)]), (.var "digest")]),
+        .mk 21 (.let_ "chain" (.heapBuf 1001)),
+        .mk 22 (.store (.var "chain") (.lit 1) (.index (.var "digest") (.lit 0))),
+        .mk 23 (.for_ "index" 0 (.const 1000) [
+          .mk 24 (.store (.var "chain") (.mul (.var "index") .gen) (.add (.call "mix" [(.add (.index (.var "chain") (.var "index")) (.var "index")), (.var "index")]) (.var "index")))]),
+        .mk 26 (.let_ "public" (.gpow 0)),
+        .mk 27 (.store (.var "public") (.lit 1) (.index (.var "chain") (.gpow 1000))),
+        .mk 28 (.store (.var "public") .gen (.call "mix" [(.index (.var "digest") (.lit 1)), (.gpow 0)])),
+        .mk 29 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `chain.py` as `chain5000`. -/
+def prog_chain5000 : TestProgram where
+  name := "chain5000"
+  program := ⟨[
+    { name := "mix", params := [⟨"value", (.runtime .scalar)⟩, ⟨"tag", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 12 (.ite true (.var "tag") (.lit 0) [
+          .mk 13 (.ret [(.var "value")])] [] false),
+        .mk 14 (.ret [(.add (.mul (.var "value") .gen) (.var "value"))])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 18 (.let_ "digest" (.stackBuf 2)),
+        .mk 19 (.call "keccak_cells" [(.list [(.lit 5), (.lit 7), (.lit 5), (.lit 7), (.lit 5), (.lit 7), (.lit 5), (.lit 7), (.lit 5), (.lit 7)]), (.var "digest")]),
+        .mk 21 (.let_ "chain" (.heapBuf 5001)),
+        .mk 22 (.store (.var "chain") (.lit 1) (.index (.var "digest") (.lit 0))),
+        .mk 23 (.for_ "index" 0 (.const 5000) [
+          .mk 24 (.store (.var "chain") (.mul (.var "index") .gen) (.add (.call "mix" [(.add (.index (.var "chain") (.var "index")) (.var "index")), (.var "index")]) (.var "index")))]),
+        .mk 26 (.let_ "public" (.gpow 0)),
+        .mk 27 (.store (.var "public") (.lit 1) (.index (.var "chain") (.gpow 5000))),
+        .mk 28 (.store (.var "public") .gen (.call "mix" [(.index (.var "digest") (.lit 1)), (.gpow 0)])),
+        .mk 29 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
+/-- `chain.py` as `chain16384`. -/
+def prog_chain16384 : TestProgram where
+  name := "chain16384"
+  program := ⟨[
+    { name := "mix", params := [⟨"value", (.runtime .scalar)⟩, ⟨"tag", (.runtime .scalar)⟩], returnShapes := [.scalar],
+      inline := false,
+      body := [
+        .mk 12 (.ite true (.var "tag") (.lit 0) [
+          .mk 13 (.ret [(.var "value")])] [] false),
+        .mk 14 (.ret [(.add (.mul (.var "value") .gen) (.var "value"))])] }, 
+    { name := "main", params := [], returnShapes := [],
+      inline := false,
+      body := [
+        .mk 18 (.let_ "digest" (.stackBuf 2)),
+        .mk 19 (.call "keccak_cells" [(.list [(.lit 5), (.lit 7), (.lit 5), (.lit 7), (.lit 5), (.lit 7), (.lit 5), (.lit 7), (.lit 5), (.lit 7)]), (.var "digest")]),
+        .mk 21 (.let_ "chain" (.heapBuf 16385)),
+        .mk 22 (.store (.var "chain") (.lit 1) (.index (.var "digest") (.lit 0))),
+        .mk 23 (.for_ "index" 0 (.const 16384) [
+          .mk 24 (.store (.var "chain") (.mul (.var "index") .gen) (.add (.call "mix" [(.add (.index (.var "chain") (.var "index")) (.var "index")), (.var "index")]) (.var "index")))]),
+        .mk 26 (.let_ "public" (.gpow 0)),
+        .mk 27 (.store (.var "public") (.lit 1) (.index (.var "chain") (.gpow 16384))),
+        .mk 28 (.store (.var "public") .gen (.call "mix" [(.index (.var "digest") (.lit 1)), (.gpow 0)])),
+        .mk 29 (.ret [])] }],
+    []⟩
+  publicInput := []
+  streams := []
+
 /-- Every test program. -/
-def all : List TestProgram := [prog_conditionals, prog_const_params, prog_fibonacci, prog_hash_heap_chain, prog_hash_slices, prog_heapbuf_dyn, prog_hint, prog_identities, prog_inline, prog_loop_scopes, prog_match, prog_match_arms, prog_nested, prog_runtime_loop, prog_scoping, prog_unroll, prog_wots_walk]
+def all : List TestProgram := [prog_conditionals, prog_const_params, prog_fibonacci, prog_fibonacci_bench, prog_hash_heap_chain, prog_hash_slices, prog_heapbuf_dyn, prog_hint, prog_identities, prog_inline, prog_match, prog_match_arms, prog_nested, prog_runtime_loop, prog_scoping, prog_unroll, prog_wots_walk]
+
+/-- The verifiers' fixture program (`crates/stable_prover/lean_vm_core/tests/verifiers/chain.py`) at each step count its users take. -/
+def chains : List TestProgram := [prog_chain4, prog_chain16, prog_chain300, prog_chain1000, prog_chain5000, prog_chain16384]
 
 end LeanVMTests.Guest.Programs

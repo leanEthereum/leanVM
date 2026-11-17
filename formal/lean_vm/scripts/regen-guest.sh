@@ -4,7 +4,7 @@
 #
 #   scripts/regen-guest.sh                 # write
 #   scripts/regen-guest.sh --check         # write nothing, fail if any file is stale
-#   scripts/regen-guest.sh --from STEP     # resume at STEP: export core changes vt deployed memory whir count tables decoder backend
+#   scripts/regen-guest.sh --from STEP     # resume at STEP: export programs core changes vt deployed memory whir count tables decoder backend
 #   scripts/regen-guest.sh --jobs N        # the Lean builds' job cap (lake-build.py's --jobs)
 #
 # Run from anywhere; it works in lean_vm. Each step's generator reads only what the steps before it
@@ -16,8 +16,10 @@
 # were removed since the last export, with the hand-written modules that read them: the proofs to
 # adapt. Not regenerated here: the verifier fixtures (`scripts/export-verifier-fixtures-rust.sh`,
 # before the differential tests) and the fold rounds' table (`scripts/whir-fold-table`, after a change to
-# WHIR's folding). The `backend` step writes the Lean back end's guest data: the soundness
-# obligations' tables and evaluation modules (`guest-oblgen`).
+# WHIR's folding). The `programs` step writes the Lean back end's compilation of the zkDSL test programs and of
+# the verifiers' fixture program, which the Rust tests, the Fibonacci benchmark and the fixtures load. The `backend`
+# step writes the Lean back end's guest data: the soundness obligations' tables and evaluation modules
+# (`guest-oblgen`).
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 check=() from=export jobs=()
@@ -30,7 +32,7 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-steps=(export core changes vt deployed memory whir count tables decoder backend)
+steps=(export programs core changes vt deployed memory whir count tables decoder backend)
 case " ${steps[*]} " in *" $from "*) ;; *) echo "unknown step $from: one of ${steps[*]}" >&2; exit 2 ;; esac
 step() { printf '\n==> [%dm%02ds] %s\n' $((SECONDS / 60)) $((SECONDS % 60)) "$*"; }
 capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
@@ -55,6 +57,7 @@ in_place() {
 
 # Each step's parts, and the Lean targets they run.
 parts_export=(export) targets_export=()
+parts_programs=(programs) targets_programs=(guest-backend)
 parts_core=(core_ir core_names) targets_core=(guest-core)
 parts_changes=(changes) targets_changes=()
 parts_vt=(vt) targets_vt=()
@@ -86,6 +89,13 @@ part_export() {
   # guest-export embeds the artefact (`include_str!`): built again, so that it reads the one just written.
   cargo build --release --manifest-path scripts/guest-export/Cargo.toml
   capped scripts/guest-export/target/release/guest-export . "${check[@]}"
+}
+
+part_programs() {
+  # The test programs and the verifiers' fixture program, as the Rust tests, the benchmark and the fixtures load them.
+  step "programs: the zkDSL test programs compiled (guest-backend export programs)"
+  lakebuild guest-backend
+  capped .lake/build/bin/guest-backend export programs ../../crates/zkdsl_compiler/tests/suite/lean_backend "${check[@]}"
 }
 
 part_core_ir() {
