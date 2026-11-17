@@ -930,6 +930,15 @@ def freeCell (e : Expr) (targets : List Expr) : M (Option V) := do
       return cells[k]?
   | _ => return none
 
+/-- `calls_or_allocates`: evaluating `e` calls a function or allocates, so it must run once. -/
+def callsOrAllocates : Expr → Bool
+  | .call .. | .heapBuf _ | .heapBufDyn _ | .stackBuf _ | .list _ | .listComp .. => true
+  | .add a b | .mul a b | .sub a b | .div a b | .fdiv a b | .mod a b | .index a b | .pow a b =>
+      callsOrAllocates a || callsOrAllocates b
+  | .slice a lo hi => callsOrAllocates a || callsOrAllocates lo || callsOrAllocates hi
+  | .genPow x => callsOrAllocates x
+  | .lit _ | .gen | .gpow _ | .var _ => false
+
 /-! ## Lowering -/
 
 mutual
@@ -1528,6 +1537,13 @@ def lowerFor : Nat → Nat → String → Nat → ForBound → List Source.Stmt 
         if lo != h then
           discard <| call n loopName (capArgs (.gpow lo) (.gpow h)) 0
     | .runtime _ =>
+        -- The entry test and the first call's argument both read the bound, so one with a call or
+        -- an allocation in it is bound once first.
+        let entryBound ← if callsOrAllocates entryBound then do
+            let entry := s!"__entry{id}"
+            stmtKind n line (.let_ entry entryBound)
+            pure (Expr.var entry)
+          else pure entryBound
         stmtKind n line (.callIfNe (.gpow lo) entryBound loopName (capArgs (.gpow lo) entryBound))
 
 /-- The Keccak builtins, `assert_in_k` and the hints (`lower_builtin`); `false` for another
