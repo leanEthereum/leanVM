@@ -1,0 +1,17 @@
+def main []
+  hint witness r [%0]
+  hint alloc %1 16
+  hint witness vals heap(%1 0 4)
+  mul %2 %0 %0
+  const %3 2 0
+  mul %4 %2 %3
+  mul %5 %1 %4
+  load %6 %5 0
+  const %7 1 0
+  load %6 %7 0
+  const %8 1 0
+  const %9 1 0
+  const %10 2 0
+  mul %11 %9 %10
+  load %8 %11 0
+  ret []

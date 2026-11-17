@@ -1,0 +1,4 @@
+def main []
+  hint log2_ceil [%0 %1 %2 %3] %4 4 0
+  copy %5 %4
+  ret []

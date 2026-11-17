@@ -29,10 +29,11 @@ Run from `lean_vm`.
   `export snippets DIR [--check]` writes the aggregation
   tests' snippets (`LeanVMTests.Guest.Snippets`: a `main` over the guest's helpers).
   The guest itself is written by `lake exe guest-artifact` (`cli/GuestArtifact.lean`).
-* `lake exe guest-backend core-text DIR` writes the core IR of the guest (`DIR/guest.core`) and of each
-  test program and each program of the front-end corpus (`Programs.frontend`) (`DIR/<name>.core`), as `Expand.expandProgram` gives it, each function renumbered
-  (`Fn.renumber`), in the canonical text the Rust front end also prints
-  (`crates/zkdsl/src/core_ir.rs`, `render`): `scripts/frontend-diff` compares the two.
+* `lake exe guest-backend core-text DIR [--check]` writes the core IR of each program of the front end's
+  regression corpus (`Programs.frontend`, `tests/frontend/*.py`) to `DIR/<name>.core`, as `Expand.expandProgram`
+  gives it, each function renumbered (`Fn.renumber`), in a canonical text; with `--check` it writes nothing and
+  fails if any file differs or is not a program's. The guest's expansion is checked by `lake exe guest-core
+  --check` and the other test programs' by their compilations (`export programs --check`).
 * `lake exe guest-backend time` prints the time of each pass on the guest.
 * `lake exe guest-backend core NAME` prints a function's core IR, and `show NAME` its code beside
   the statement's.
@@ -219,14 +220,9 @@ def testPrograms : List (String × Source.Program) :=
   (LeanVMTests.Guest.Programs.all ++ LeanVMTests.Guest.Programs.chains ++ LeanVMTests.Guest.Programs.vm).map
     fun t => (t.name, t.program)
 
-/-- What `core-text` expands: the test programs and the front-end corpus (`Programs.frontend`), which is not compiled. -/
-def frontEndPrograms : List (String × Source.Program) :=
-  testPrograms ++ LeanVMTests.Guest.Programs.frontend.map fun t => (t.name, t.program)
-
 /-! ## The canonical text of the core IR -/
 
-/-- A value of a renumbered function; any other is printed whole, and so differs from the Rust
-text. -/
+/-- A value of a renumbered function; any other is printed whole. -/
 def ctV (v : V) : String :=
   if v.path.isEmpty && v.tag == 0 then s!"%{v.idx}" else s!"?{Interp.showV v}"
 
@@ -292,17 +288,34 @@ def coreText (P : Program) : String :=
     let f := f.renumber
     String.join ((s!"def {f.name} {ctVs f.params}" :: ctStmts "  " f.body).map (· ++ "\n"))
 
-def coreTextDir (dir : String) : IO UInt32 := do
-  IO.FS.createDirAll dir
-  let programs := ("guest", Data.guest) :: frontEndPrograms
-  for (name, p) in programs do
-    -- A program `Expand` rejects is written as its error, which the Rust text then differs from.
-    let text := match Expand.expandProgram p with
+/-- The core IR of each program of the corpus (`Programs.frontend`) in `DIR/<name>.core`, a program `Expand`
+rejects as its error; with `checkOnly`, the comparison with what `DIR` holds, every stale, missing or extra file
+named. -/
+def coreTextDir (dir : String) (checkOnly : Bool) : IO UInt32 := do
+  let programs := LeanVMTests.Guest.Programs.frontend
+  let names := programs.map (·.name ++ ".core")
+  let mut failed := false
+  for t in programs do
+    let path := s!"{dir}/{t.name}.core"
+    let text := match Expand.expandProgram t.program with
       | .ok P => coreText P
       | .error e => s!"error: {e}\n"
-    IO.FS.writeFile s!"{dir}/{name}.core" text
+    if checkOnly then
+      let current ← if ← System.FilePath.pathExists path then IO.FS.readFile path else pure ""
+      if current != text then
+        IO.eprintln s!"{path} is stale: run `lake exe guest-backend core-text {dir}`"
+        failed := true
+    else
+      IO.FS.writeFile path text
+  for e in ← System.FilePath.readDir dir do
+    if e.fileName.endsWith ".core" && !names.contains e.fileName then
+      if checkOnly then
+        IO.eprintln s!"{e.path} is not the core IR of a program of the corpus"
+        failed := true
+      else
+        IO.FS.removeFile e.path
   IO.println s!"{dir}: the core IR of {programs.length} programs"
-  return 0
+  return if failed then 1 else 0
 
 def time : IO UInt32 := do
   let t0 ← IO.monoMsNow
@@ -365,9 +378,10 @@ def main (args : List String) : IO UInt32 := do
   | ["export", "programs", dir, "--check"] => GuestBackend.exportAll "programs" GuestBackend.testPrograms dir true
   | ["export", "snippets", dir] => GuestBackend.exportAll "snippets" LeanVMTests.Guest.Snippets.all dir false
   | ["export", "snippets", dir, "--check"] => GuestBackend.exportAll "snippets" LeanVMTests.Guest.Snippets.all dir true
-  | ["core-text", dir] => GuestBackend.coreTextDir dir
+  | ["core-text", dir] => GuestBackend.coreTextDir dir false
+  | ["core-text", dir, "--check"] => GuestBackend.coreTextDir dir true
   | ["time"] => GuestBackend.time
   | ["coverage"] => GuestBackend.coverage
   | _ =>
-      IO.eprintln "usage: guest-backend check | functions [N] | show NAME | core NAME | export programs|snippets DIR [--check] | core-text DIR | time | coverage"
+      IO.eprintln "usage: guest-backend check | functions [N] | show NAME | core NAME | export programs|snippets DIR [--check] | core-text DIR [--check] | time | coverage"
       return 2

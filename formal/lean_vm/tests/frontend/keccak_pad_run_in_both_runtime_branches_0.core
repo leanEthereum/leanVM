@@ -1,0 +1,32 @@
+def main []
+  hint witness flag [%0]
+  const %1 1 0
+  const %2 2 0
+  const %3 3 0
+  const %4 4 0
+  const %5 1 0
+  add %6 %0 %5
+  if_zero %6
+    const %7 1 0
+    const %8 0 0
+    const %9 0 0
+    const %10 0 0
+    const %11 0 0
+    const %12 9223372036854775808 0
+    keccak [%1 %2 %3 %4 %7 %8 %9 %10 %12 %8 %9 %10 %11] [%13 %14] 0 0
+  else
+    const %15 1 0
+    const %16 0 0
+    const %17 0 0
+    const %18 0 0
+    const %19 0 0
+    const %20 9223372036854775808 0
+    keccak [%1 %2 %3 %4 %15 %16 %17 %18 %20 %16 %17 %18 %19] [%13 %14] 0 0
+  end
+  const %21 1 0
+  load %13 %21 0
+  const %22 1 0
+  const %23 2 0
+  mul %24 %22 %23
+  load %14 %24 0
+  ret []

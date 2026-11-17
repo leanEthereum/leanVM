@@ -1,0 +1,21 @@
+def main []
+  hint alloc %0 1
+  load %1 %0 0
+  hint witness value heap(%0 0 1)
+  load %2 %0 0
+  load %3 %0 0
+  mul %4 %2 %3
+  load %5 %0 0
+  const %6 1 0
+  load %7 %6 0
+  assert_eq %7 %4
+  const %8 1 0
+  const %9 2 0
+  mul %10 %8 %9
+  load %11 %10 0
+  assert_eq %11 %5
+  ret []
+def fill [%0]
+  hint witness value [%1]
+  load %1 %0 0
+  ret []
