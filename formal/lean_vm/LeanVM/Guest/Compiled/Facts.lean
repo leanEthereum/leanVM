@@ -36,7 +36,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Compiler LeanVM
 @[expose] public section
 
 /-- What the back end's input holds of function `j ≥ 1` besides its core function. -/
-def infoOf (j : ℕ) : Array Event × Nat × Bool × Option Nat := GuestData.guestInfo.getD (j - 1) default
+noncomputable def infoOf (j : ℕ) : Array Event × Nat × Bool × Option Nat := GuestData.guestInfo.getD (j - 1) default
 
 /-! ## Halting runs -/
 
