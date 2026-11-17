@@ -71,10 +71,8 @@ module
 
 "
 
-/-- The definitions of function `j`'s trace, each with the names it defines and the names it
-reads: its chunks, then the trace. -/
-def traceDefs (j : Nat) (name : String) (trace : Array Event) :
-    List (String × String × List String) := Id.run do
+/-- The definitions of function `j`'s trace: its parts, and the trace (`none` if it is one part). -/
+def traceDefs (j : Nat) (name : String) (trace : Array Event) : List String × Option String := Id.run do
   let items := trace.toList.map pEvent
   let mut chunks : Array (List String) := #[]
   let mut cur : Array String := #[]
@@ -88,18 +86,16 @@ def traceDefs (j : Nat) (name : String) (trace : Array Event) :
     size := size + it.length + 4
   if !cur.isEmpty || chunks.isEmpty then chunks := chunks.push cur.toList
   if chunks.size == 1 then
-    return [(s!"/-- `{name}`: its trace. -/\ndef traceOf{j} : Array Event :=\n  {pList (chunks[0]!)}.toArray\n\n",
-      s!"traceOf{j}", [])]
+    return ([s!"/-- `{name}`: its trace. -/\ndata_lit traceOf{j} : Array Event :=\n  {pList (chunks[0]!)}.toArray\n\n"], none)
   let names := (List.range chunks.size).map fun i => s!"traceOf{j}_c{i}"
   let parts := (chunks.toList.zip names).zipIdx.map fun ((c, n), i) =>
-    (s!"/-- `{name}`: part {i} of its trace. -/\ndef {n} : List Event :=\n  {pList c}\n\n", n, [])
-  return parts ++ [(s!"/-- `{name}`: its trace. -/\ndef traceOf{j} : Array Event :=\n  (List.flatten {pList names}).toArray\n\n",
-    s!"traceOf{j}", names)]
+    s!"/-- `{name}`: part {i} of its trace. -/\ndata_lit {n} : List Event :=\n  {pList c}\n\n"
+  return (parts, some s!"/-- `{name}`: its trace. -/\ndata_lit traceOf{j} : Array Event :=\n  (List.flatten {pList names}).toArray\n\n")
 
-def traceFile (k : Nat) (deps : List Nat) (body : String) : String :=
+def traceFile (k : Nat) (body : String) : String :=
   header s!"Trace.T{k}" "The traces of some of the guest's functions, renamed as `coreProgram` names their values." ++
   "public import LeanVM.Compiler.Trace\npublic import LeanVM.Guest.Renumber\n" ++
-  String.join (deps.map fun d => s!"public import LeanVM.Guest.Compiled.Trace.T{d}\n") ++ "\n" ++
+  "public meta import LeanVM.Compiler.DataLit\n\n" ++
   "set_option maxRecDepth 20000\nset_option linter.all false\n\n" ++
   "namespace LeanVM.Guest.Compiled.GuestData\n\nopen LeanVM.Compiler LeanVM.Guest.Core\n\n@[expose] public section\n\n" ++
   body ++ "end\nend LeanVM.Guest.Compiled.GuestData\n"
@@ -107,35 +103,34 @@ def traceFile (k : Nat) (deps : List Nat) (body : String) : String :=
 def pLoop (l : Bool × Option Nat) : String :=
   s!"({l.1}, {match l.2 with | some h => s!"some {h}" | none => "none"})"
 
-/-- Every file, by its path under `Guest/Compiled`. -/
+/-- Every file, by its path under `Guest/Compiled`. The trace files import nothing of each other: a
+trace in parts is assembled in `Traced.lean`. -/
 def files (P : List TracedFn) : List (String × String) := Id.run do
   let mut out : Array (String × String) := #[]
   let mut body := ""
-  let mut deps : List Nat := []
+  let mut assembled := ""
   let mut k := 0
-  let mut defined : Std.HashMap String Nat := {}
   for (tf, j) in P.zipIdx do
-    for (d, n, refs) in traceDefs j tf.core.name tf.trace do
+    let (parts, whole) := traceDefs j tf.core.name tf.trace
+    for d in parts do
       if body.length + d.length > maxFile && !body.isEmpty then
-        out := out.push (s!"Trace/T{k}.lean", traceFile k deps body)
+        out := out.push (s!"Trace/T{k}.lean", traceFile k body)
         body := ""
-        deps := []
         k := k + 1
-      for r in refs do
-        if let some f := defined[r]? then
-          if f != k && !deps.contains f then deps := deps ++ [f]
       body := body ++ d
-      defined := defined.insert n k
-  out := out.push (s!"Trace/T{k}.lean", traceFile k deps body)
+    if let some w := whole then assembled := assembled ++ w
+  out := out.push (s!"Trace/T{k}.lean", traceFile k body)
   let imports := (List.range (k + 1)).map fun i => s!"public import LeanVM.Guest.Compiled.Trace.T{i}\n"
   let entries := P.zipIdx.map fun (tf, j) => s!"(traceOf{j}, {tf.rets}, {pLoop tf.loop})"
   let list := header "Traced" "The guest as the back end's input: the traces of `coreProgram`'s functions." ++
     "public import LeanVM.Compiler.Trace\n" ++ String.join imports ++
+    "public meta import LeanVM.Compiler.DataLit\n" ++
     "\nset_option maxRecDepth 20000\nset_option linter.all false\n\n" ++
     "namespace LeanVM.Guest.Compiled.GuestData\n\nopen LeanVM.Compiler\n\n@[expose] public section\n\n" ++
+    assembled ++
     "/-- What the back end takes of each of the guest's functions besides its core function, in the\n" ++
     "compiler's order: its trace, its return cells and its `loopSource`. -/\n" ++
-    "def guestInfo : List (Array Event × Nat × Bool × Option Nat) :=\n  " ++ pList entries ++
+    "data_lit guestInfo : List (Array Event × Nat × Bool × Option Nat) :=\n  " ++ pList entries ++
     s!"\n\ntheorem guestInfo_length : guestInfo.length = {P.length} := by decide +kernel\n" ++
     "\nend\nend LeanVM.Guest.Compiled.GuestData\n"
   out := out.push ("Traced.lean", list)
