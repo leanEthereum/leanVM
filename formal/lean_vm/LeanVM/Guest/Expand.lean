@@ -1244,8 +1244,11 @@ def tryInline : Nat → String → List Expr → Option (List V) → M (Option (
     if (← get).inlineCalls.contains callee then
       fail s!"recursive @inline expansion is not supported: {callee}"
     let mut binds := #[]
-    for (p, a) in def_.params.zip args do
+    for (i, p, a) in (List.range args.length).zip (def_.params.zip args) do
       if p.kind == .const then continue
+      if let Shape.stackBuf k := Param.shape p then
+        let some run ← stackOf a | fail s!"`{callee}` parameter {i} is a StackBuf({k}); pass one"
+        if run.length != k then fail s!"`{callee}` parameter {i} is a StackBuf({k}), got a StackBuf({run.length})"
       match ← aliasOf a with
       | some b => binds := binds.push (p.name, b)
       | none =>
