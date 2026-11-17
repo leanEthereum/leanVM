@@ -7,7 +7,8 @@
 
 use super::*;
 use crate::compiler_overlay::{
-    Ast, Expr, ForBound, Func, LtBound, ParamKind, Shape, Stmt, StmtKind, parse, parse_const, parse_with_constants,
+    Ast, Expr, ForBound, Func, LtBound, ParamKind, Shape, Stmt, StmtKind, core_ir, expand, parse, parse_const,
+    parse_with_constants,
 };
 use std::fmt::Write as _;
 
@@ -296,4 +297,26 @@ pub fn files(kbc: usize) -> Vec<File> {
             text: render_programs(),
         },
     ]
+}
+
+/// The core IR of the guest, with the placeholders at the log size `kbc`, and of each test program, as the Rust
+/// front end expands them, in the canonical text (`core_ir::render`): `(name, text)`, the guest's named `guest`.
+/// `lake exe guest-backend core-text` writes Lean's, and `scripts/frontend-diff` compares them.
+pub fn core_texts(kbc: usize) -> Vec<(String, String)> {
+    let (ast, _) = parse_with_constants(GUEST_SOURCE, &placeholder_map(kbc))
+        .expect("the repository aggregation guest must parse");
+    let mut out = vec![("guest".to_string(), core_ir::render(&expand(&ast)))];
+    let dir = concat!(env!("LEANVM_DIR"), "/crates/zkdsl_compiler/tests/programs");
+    let mut paths: Vec<_> = std::fs::read_dir(dir)
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .filter(|p| p.extension().is_some_and(|x| x == "py"))
+        .collect();
+    paths.sort();
+    for path in paths {
+        let name = path.file_stem().unwrap().to_string_lossy().into_owned();
+        let ast = parse(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        out.push((name, core_ir::render(&expand(&ast))));
+    }
+    out
 }

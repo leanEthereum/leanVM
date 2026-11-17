@@ -3,6 +3,7 @@ import Statement.Data.Bytecode
 import LeanVM.Compiler.Invariants
 import LeanVM.Compiler.Lines
 import LeanVM.Guest.Interp
+import LeanVM.Guest.Renumber
 import LeanVMTests.Guest.Programs
 
 /-!
@@ -24,6 +25,10 @@ Run from `lean_vm`.
   included (`Compiler.Lines`), which the Rust tests compare with the Rust compiler's output
   (`crates/zkdsl_compiler/tests/suite/lean_backend.rs`).
   The guest itself is written by `lake exe guest-artifact` (`cli/GuestArtifact.lean`).
+* `lake exe guest-backend core-text DIR` writes the core IR of the guest (`DIR/guest.core`) and of each
+  test program (`DIR/<name>.core`), as `Expand.expandProgram` gives it, each function renumbered
+  (`Fn.renumber`), in the canonical text the Rust front end also prints
+  (`crates/zkdsl_compiler/src/core_ir.rs`, `render`): `scripts/frontend-diff` compares the two.
 * `lake exe guest-backend time` prints the time of each pass on the guest.
 * `lake exe guest-backend core NAME` prints a function's core IR, and `show NAME` its code beside
   the statement's.
@@ -201,6 +206,84 @@ def exportPrograms (dir : String) (checkOnly : Bool) : IO UInt32 := do
           IO.println s!"{path}: {c.code.size} instructions, size {c.size}, main frame {c.mainFrame}"
   return if failed then 1 else 0
 
+/-! ## The canonical text of the core IR -/
+
+/-- A value of a renumbered function; any other is printed whole, and so differs from the Rust
+text. -/
+def ctV (v : V) : String :=
+  if v.path.isEmpty && v.tag == 0 then s!"%{v.idx}" else s!"?{Interp.showV v}"
+
+def ctVs (vs : List V) : String := "[" ++ " ".intercalate (vs.map ctV) ++ "]"
+
+def ctDest : Dest → String
+  | .stack cs => ctVs cs
+  | .heap p off len => s!"heap({ctV p} {off} {len})"
+
+def ctHint : Hint → String
+  | .witness s d => s!"witness {s} {ctDest d}"
+  | .bits v st n d => s!"bits {ctV v} {ctDest d} {st} {n}"
+  | .bitsExp v n d => s!"bits_exp {ctV v} {ctDest d} {n}"
+  | .digitsExp v nb nd db st sc d =>
+      s!"digits_exp {ctV v} {(sc.map ctV).getD "-"} {ctDest d} {nb} {nd} {db} {st}"
+  | .windowsExp v st w n d => s!"windows_exp {ctV v} {ctDest d} {st} {w} {n}"
+  | .limbs v d => s!"limbs {ctV v} {ctVs d}"
+  | .log2Ceil b n f d => s!"log2_ceil {ctDest b} {ctV d} {n} {f}"
+  | .inverse x d => s!"inverse {ctV x} {ctV d}"
+  | .alloc d n => s!"alloc {ctV d} {n}"
+  | .allocDyn d s => s!"alloc_dyn {ctV d} {ctV s}"
+
+def ctAtom : Atom → String
+  | .const d c => let (c0, c1) := limbsOf c; s!"const {ctV d} {c0} {c1}"
+  | .add d a b => s!"add {ctV d} {ctV a} {ctV b}"
+  | .mul d a b => s!"mul {ctV d} {ctV a} {ctV b}"
+  | .copy d s => s!"copy {ctV d} {ctV s}"
+  | .load d p off => s!"load {ctV d} {ctV p} {off}"
+  | .assertEq a b => s!"assert_eq {ctV a} {ctV b}"
+  | .assertNe x inv p => s!"assert_ne {ctV x} {ctV inv} {ctV p}"
+  | .rangeCheck x y t1 t2 k => s!"range_check {ctV x} {ctV y} {ctV t1} {ctV t2} {ctV k}"
+  | .assertInK a b => s!"assert_in_k {ctV a} {ctV b}"
+  | .keccak ins outs i o =>
+      s!"keccak {ctVs ins} {ctVs outs} {if i then 1 else 0} {if o then 1 else 0}"
+  | .frameAddr p run => s!"addr {ctV p} {ctVs run}"
+  | .touch t p => s!"touch {ctV t} {ctV p}"
+  | .hint h => s!"hint {ctHint h}"
+
+mutual
+def ctStmt (ind : String) : Stmt → List String
+  | .atom a => [ind ++ ctAtom a]
+  | .ite c z n => [s!"{ind}if_zero {ctV c}"] ++ ctStmts (ind ++ "  ") z ++ [s!"{ind}else"] ++
+      ctStmts (ind ++ "  ") n ++ [s!"{ind}end"]
+  | .match_ x arms => [s!"{ind}match {ctV x}"] ++ ctArms ind arms ++ [s!"{ind}end"]
+  | .call f args rets => [s!"{ind}call {f} {ctVs args} {ctVs rets}"]
+  | .callIf c f args => [s!"{ind}call_if {ctV c} {f} {ctVs args}"]
+  | .dispatch x fs args rets =>
+      [s!"{ind}dispatch {ctV x} [{" ".intercalate fs}] {ctVs args} {ctVs rets}"]
+  | .ret vs => [s!"{ind}ret {ctVs vs}"]
+
+def ctStmts (ind : String) : List Stmt → List String
+  | [] => []
+  | s :: ss => ctStmt ind s ++ ctStmts ind ss
+
+def ctArms (ind : String) : List (List Stmt) → List String
+  | [] => []
+  | a :: as => [s!"{ind}arm"] ++ ctStmts (ind ++ "  ") a ++ ctArms ind as
+end
+
+/-- A program in the canonical text: each function renumbered, one after another. -/
+def coreText (P : Program) : String :=
+  String.join <| P.map fun f =>
+    let f := f.renumber
+    String.join ((s!"def {f.name} {ctVs f.params}" :: ctStmts "  " f.body).map (· ++ "\n"))
+
+def coreTextDir (dir : String) : IO UInt32 := do
+  IO.FS.createDirAll dir
+  let programs := ("guest", Data.guest) :: LeanVMTests.Guest.Programs.all.map fun t => (t.name, t.program)
+  for (name, p) in programs do
+    let P ← orThrow (Expand.expandProgram p)
+    IO.FS.writeFile s!"{dir}/{name}.core" (coreText P)
+  IO.println s!"{dir}: the core IR of {programs.length} programs"
+  return 0
+
 def time : IO UInt32 := do
   let t0 ← IO.monoMsNow
   let P ← guestCore
@@ -260,8 +343,9 @@ def main (args : List String) : IO UInt32 := do
   | ["core", name] => GuestBackend.core name
   | ["export", "programs", dir] => GuestBackend.exportPrograms dir false
   | ["export", "programs", dir, "--check"] => GuestBackend.exportPrograms dir true
+  | ["core-text", dir] => GuestBackend.coreTextDir dir
   | ["time"] => GuestBackend.time
   | ["coverage"] => GuestBackend.coverage
   | _ =>
-      IO.eprintln "usage: guest-backend check | functions [N] | show NAME | core NAME | export programs DIR [--check] | time | coverage"
+      IO.eprintln "usage: guest-backend check | functions [N] | show NAME | core NAME | export programs DIR [--check] | core-text DIR | time | coverage"
       return 2
