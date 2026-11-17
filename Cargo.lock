@@ -90,7 +90,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "bench"
+name = "bench_harness"
 version = "0.1.0"
 dependencies = [
  "isa",
@@ -210,7 +210,7 @@ dependencies = [
 name = "experimental_keccak_gkr"
 version = "0.1.0"
 dependencies = [
- "bench",
+ "bench_harness",
  "experimental_keccak_gkr",
  "experimental_parallel",
  "experimental_pcs",
@@ -246,7 +246,7 @@ dependencies = [
 name = "experimental_pcs"
 version = "0.1.0"
 dependencies = [
- "bench",
+ "bench_harness",
  "experimental_parallel",
  "experimental_primitives",
  "fiat_shamir_prover",
@@ -334,7 +334,7 @@ dependencies = [
 name = "keccak256"
 version = "0.1.0"
 dependencies = [
- "bench",
+ "bench_harness",
  "sha3",
  "stable_parallel",
  "verifier",
@@ -387,11 +387,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "leanvm-cli"
+name = "leanvm-bench"
 version = "0.1.0"
 dependencies = [
  "aggregation",
- "bench",
+ "bench_harness",
  "clap",
  "experimental_lean_vm_core",
  "isa",
@@ -573,7 +573,7 @@ checksum = "8ed6a63f02c8539c91a8685a86f4099661ba3da017932f6ebbea6de3f0fa7c90"
 name = "stable_keccak_gkr"
 version = "0.1.0"
 dependencies = [
- "bench",
+ "bench_harness",
  "fiat_shamir_prover",
  "isa",
  "stable_keccak_gkr",
@@ -607,7 +607,7 @@ version = "0.1.0"
 name = "stable_pcs"
 version = "0.1.0"
 dependencies = [
- "bench",
+ "bench_harness",
  "fiat_shamir_prover",
  "isa",
  "stable_parallel",

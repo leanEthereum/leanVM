@@ -1,7 +1,7 @@
 //! Benchmark CLI for signature and blob proofs, recursion, and the Fibonacci demo.
 
 #[global_allocator]
-static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;
+static ALLOCATOR: bench_harness::Jemalloc = bench_harness::Jemalloc;
 
 use clap::{Parser, Subcommand};
 use experimental_lean_vm_core::ExperimentalProver;
@@ -14,9 +14,9 @@ mod report;
 /// Run the CLI's command on prover `P`.
 fn run<P: isa::Prover>(cli: Cli) {
     P::init();
-    let plan = bench::Plan::new(cli.repeat, cli.cooldown);
+    let plan = bench_harness::Plan::new(cli.repeat, cli.cooldown);
     if cli.tracing && !matches!(&cli.command, Command::Recursion { .. }) {
-        bench::init_tracing();
+        bench_harness::init_tracing();
     }
     match cli.command {
         Command::Aggregate { xmss, sphincs, blobs } => {
@@ -54,7 +54,7 @@ enum Prover {
 }
 
 #[derive(Parser)]
-#[command(name = "leanvm")]
+#[command(name = "leanvm-bench")]
 struct Cli {
     /// WHIR inverse-rate logarithm (1 through 4).
     #[arg(

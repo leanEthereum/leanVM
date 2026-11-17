@@ -18,12 +18,12 @@ The fields are `K = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)` and `E = K[y]/(y^2 + x*
 
 ## Layout
 
-The root `Cargo.toml` is workspace-only: libraries in `crates/`, the CLI in `bins/`. The prover exists twice, in two trees that share no prover crate:
+The root `Cargo.toml` is workspace-only: libraries in `crates/`, the benchmark CLI in `bench/`. The prover exists twice, in two trees that share no prover crate:
 
 - `crates/stable_prover/` (packages `stable_*`): the reference prover, written to be read: plain, safe code, as short as the protocol allows, and slower than experimental. Architecture-specific code lives in one SIMD layer, `primitives::field::lanes` (eight field elements at a time, `F128x8`, `F64x8`, `Acc8`, `Wide8`, and the byte maps and transposes over 64 bytes, each with one portable body that defines it and NEON, AVX2+VPCLMULQDQ and AVX-512+VPCLMULQDQ arms and the portable one), and in the shared `keccak256`'s multi-way permutation; the hot loops are written over them and nothing else in stable has `core::arch` or `cfg(target_feature)`. No uninitialized buffers, no non-temporal stores, no cache-tiled pass plans, no per-machine tuning. It keeps the whole level-0 codeword and every Merkle level, so its peak memory at the largest stacks is a multiple of experimental's on x86. An optimization enters it only where leaving it out costs a measurable share of a proof and its simple form stays short.
 - `crates/experimental_prover/` (packages `experimental_*`): the optimized prover, where performance work lands first. The conventions below about NEON, AVX-512, streaming stores and the like are about this tree.
 
-Both prove the same protocol and give the same proof bytes, pinned by `bins/leanvm/tests/identical_proofs.rs`; a protocol change lands in both trees, the three verifiers and `formal/`, while an optimization lands in experimental alone. What is not prover code exists once (table below), the guest (`guests/lean_ethereum.py`) and the aggregation included. It depends on the stable tree only where it needs the protocol's structure or a primitive (`aggregation`, below; `lean_da`, its NTT), importing rather than restating them, and proves only through `isa::Prover`, which each tree implements once beside `cpu::prove` (`lean_vm_core::StableProver`, `lean_vm_core::ExperimentalProver`): proving a program, its thread pool, and the deferred claims' batching kernels (`combine_rows`, `dot_rows`). `formal/`'s Rust helpers that need a prover tree build against stable, but for `whir-fold-table`, which exports the WHIR security search that only experimental's `pcs` keeps (stable reads the verifier's table). Within a tree, crates name each other through Cargo renames (`pcs = { package = "stable_pcs", path = "../pcs" }`), so sources say `pcs::`, and the shared `fiat_shamir_prover` likewise as `fiat_shamir`; an integration test reaches its own crate with `extern crate stable_pcs as pcs;`, and a doctest names it in full. The shared crates, leaves first:
+Both prove the same protocol and give the same proof bytes, pinned by `bench/tests/identical_proofs.rs`; a protocol change lands in both trees, the three verifiers and `formal/`, while an optimization lands in experimental alone. What is not prover code exists once (table below), the guest (`guests/lean_ethereum.py`) and the aggregation included. It depends on the stable tree only where it needs the protocol's structure or a primitive (`aggregation`, below; `lean_da`, its NTT), importing rather than restating them, and proves only through `isa::Prover`, which each tree implements once beside `cpu::prove` (`lean_vm_core::StableProver`, `lean_vm_core::ExperimentalProver`): proving a program, its thread pool, and the deferred claims' batching kernels (`combine_rows`, `dot_rows`). `formal/`'s Rust helpers that need a prover tree build against stable, but for `whir-fold-table`, which exports the WHIR security search that only experimental's `pcs` keeps (stable reads the verifier's table). Within a tree, crates name each other through Cargo renames (`pcs = { package = "stable_pcs", path = "../pcs" }`), so sources say `pcs::`, and the shared `fiat_shamir_prover` likewise as `fiat_shamir`; an integration test reaches its own crate with `extern crate stable_pcs as pcs;`, and a doctest names it in full. The shared crates, leaves first:
 
 | crate             | role                                                                   |
 | ----------------- | ---------------------------------------------------------------------- |
@@ -34,7 +34,7 @@ Both prove the same protocol and give the same proof bytes, pinned by `bins/lean
 | `zkdsl_compiler`  | zkDSL → ISA; its tests run the stable prover                           |
 | `lean_xmss`       | leanXMSS over Keccak-256                                               |
 | `lean_sphincs`    | leanSPHINCS over Keccak-256                                            |
-| `bench`           | benchmark harness (`Plan`, `Timing`, `--tracing`, Bencher output, the jemalloc allocator); never linked by a prover |
+| `bench_harness`   | benchmark harness (`Plan`, `Timing`, `--tracing`, Bencher output, the jemalloc allocator); never linked by a prover |
 | `lean_da`         | additive Reed-Solomon blob encoding (the stable tree's NTT), commitments, membership vectors |
 | `aggregation`     | recursive signature and DA aggregation, generic over the prover: the guest's constants and witness, and the entry points |
 | `lean_vm`         | the public API, not generic: it proves with the stable tree, or with the `experimental_prover` feature the experimental one |
@@ -51,7 +51,7 @@ Each tree holds, in dependency order, leaves first:
 | `keccak_gkr`      | the prover of the VM's `KECCAK` argument                               |
 | `lean_vm_core`    | arithmetization: tables, bus, constraints, `cpu::execute` and `cpu::prove` of an `isa::Program` and its witness streams; `cpu::verify` wraps `verifier`; the tree's `isa::Prover` |
 
-Paths below such as `crates/lean_vm_core` mean the crate in either tree. `crates/lean_vm/src/lib.rs` is the only thing a user imports: every other crate is `publish = false`, so a new user-facing item is a re-export there, and `crates/lean_vm/tests/api.rs` is its end-to-end use. A re-exported type brings its `pub` methods along, so one the workspace needs but users should not see is `#[doc(hidden)] pub fn __name`, the double underscore marking it internal at every call site. The guest is zkDSL, `guests/lean_ethereum.py`. The CLI is `bins/leanvm`, run with `cargo leanvm --prover stable|experimental <subcommand>` (`aggregate`, `recursion`, `fibonacci`; the prover is required, with no default), the benchmarks generic over the prover.
+Paths below such as `crates/lean_vm_core` mean the crate in either tree. `crates/lean_vm/src/lib.rs` is the only thing a user imports: every other crate is `publish = false`, so a new user-facing item is a re-export there, and `crates/lean_vm/tests/api.rs` is its end-to-end use. A re-exported type brings its `pub` methods along, so one the workspace needs but users should not see is `#[doc(hidden)] pub fn __name`, the double underscore marking it internal at every call site. The guest is zkDSL, `guests/lean_ethereum.py`. The benchmark CLI is `bench/` (`leanvm-bench`), run with `cargo leanvm-bench --prover stable|experimental <subcommand>` (`aggregate`, `recursion`, `fibonacci`; the prover is required, with no default), the benchmarks generic over the prover.
 
 ## Building and testing
 
@@ -67,11 +67,11 @@ cargo fmt --all                   # max_width = 120
 cargo machete --with-metadata     # unused dependencies, dev ones included
 ```
 
-An x86-only `cfg` arm never compiles on an Apple machine, so type-check the other target before pushing anything `cfg`-gated (needs only `rustup target add x86_64-unknown-linux-gnu`; `bench` and the CLI are left out because jemalloc's build script wants a cross `gcc`):
+An x86-only `cfg` arm never compiles on an Apple machine, so type-check the other target before pushing anything `cfg`-gated (needs only `rustup target add x86_64-unknown-linux-gnu`; `bench_harness` and the CLI are left out because jemalloc's build script wants a cross `gcc`):
 
 ```bash
 RUSTFLAGS="-C target-cpu=znver4" \
-  cargo check --release --workspace --exclude leanvm-cli --exclude bench --target x86_64-unknown-linux-gnu
+  cargo check --release --workspace --exclude leanvm-bench --exclude bench_harness --target x86_64-unknown-linux-gnu
 ```
 
 `RUSTFLAGS` replaces `.cargo/config.toml`'s `target-cpu=native`; a target-specific `CARGO_TARGET_*_RUSTFLAGS` would be merged with it and hand the Apple CPU to the x86 target.
@@ -85,10 +85,10 @@ Where a proof's time goes is the `tracing` span tree, and only that: `--tracing`
 ## Benchmarking
 
 ```bash
-cargo leanvm --prover experimental aggregate --xmss 900 --log-inv-rate 1 --repeat 3
-cargo leanvm --prover experimental aggregate --sphincs 410 --log-inv-rate 1 --repeat 3
-cargo leanvm --prover experimental recursion --n 2 --xmss-per-leaf 900 --log-inv-rate 2 --repeat 3
-cargo leanvm --prover stable aggregate --xmss 900 --log-inv-rate 1 --repeat 3
+cargo leanvm-bench --prover experimental aggregate --xmss 900 --log-inv-rate 1 --repeat 3
+cargo leanvm-bench --prover experimental aggregate --sphincs 410 --log-inv-rate 1 --repeat 3
+cargo leanvm-bench --prover experimental recursion --n 2 --xmss-per-leaf 900 --log-inv-rate 2 --repeat 3
+cargo leanvm-bench --prover stable aggregate --xmss 900 --log-inv-rate 1 --repeat 3
 ```
 
 `aggregate` takes a count per scheme (both default to zero) and `--blobs`; `recursion` likewise takes `--sphincs-per-leaf` and `--blobs-per-leaf`. Compare schemes and changes by the reported VM cycle counts.
@@ -97,7 +97,7 @@ CI compares every PR with its base, never with a history: `bench.yml` runs both 
 
 ## The allocator
 
-The prover's buffers are plain `Vec`s and the libraries impose no allocator. A proof allocates and frees gigabytes, so the CLI and the benches install jemalloc with `dirty_decay_ms:-1` (`bench::Jemalloc`), which keeps freed pages mapped for the next proof at the cost of resident memory, and on Linux with `thp:always`, which backs its extents with transparent huge pages. Experimental skips a buffer's zero-fill with `primitives::uninit_vec` or `filled_vec` (`T: Plain`, every element written before it is read); stable never reads uninitialized memory, and writes a large buffer's first pass with the pool (`parallel::filled`, or `parallel::map_collect` when every element is computed anyway), since a zero-fill on one thread costs a whole-proof factor on many cores. Both drop large buffers where their last use ends.
+The prover's buffers are plain `Vec`s and the libraries impose no allocator. A proof allocates and frees gigabytes, so the CLI and the benches install jemalloc with `dirty_decay_ms:-1` (`bench_harness::Jemalloc`), which keeps freed pages mapped for the next proof at the cost of resident memory, and on Linux with `thp:always`, which backs its extents with transparent huge pages. Experimental skips a buffer's zero-fill with `primitives::uninit_vec` or `filled_vec` (`T: Plain`, every element written before it is read); stable never reads uninitialized memory, and writes a large buffer's first pass with the pool (`parallel::filled`, or `parallel::map_collect` when every element is computed anyway), since a zero-fill on one thread costs a whole-proof factor on many cores. Both drop large buffers where their last use ends.
 
 ## The thread pool (`parallel`)
 

@@ -1,5 +1,5 @@
 [package]
-name = "bench"
+name = "bench_harness"
 version.workspace = true
 edition.workspace = true
 publish = false

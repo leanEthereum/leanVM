@@ -69,7 +69,7 @@ In the short term, we provide two Rust implementations of the prover, `stable` (
 The leanXMSS parameters are specified in [leanXMSS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/leanXMSS.pdf), with a [security proof in Lean 4](formal/statement.tex). **This is not the definitive parameter set.**
 
 ```bash
-cargo leanvm --prover experimental aggregate --xmss 1400 --log-inv-rate 2 --repeat 3
+cargo leanvm-bench --prover experimental aggregate --xmss 1400 --log-inv-rate 2 --repeat 3
 ```
 
 ```
@@ -87,7 +87,7 @@ aggregation, 1,400 leanXMSS signatures
 The leanSPHINCS parameters are specified in [leanSPHINCS.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/leanSPHINCS.pdf), with a [security proof in Lean 4](formal/statement.tex). **This is not the definitive parameter set.**
 
 ```bash
-cargo leanvm --prover experimental aggregate --sphincs 500 --log-inv-rate 1 --repeat 3
+cargo leanvm-bench --prover experimental aggregate --sphincs 500 --log-inv-rate 1 --repeat 3
 ```
 
 ```
@@ -103,7 +103,7 @@ aggregation, 500 leanSPHINCS signatures
 ### data availability
 
 ```bash
-cargo leanvm --prover experimental aggregate --blobs 32 --log-inv-rate 1 --repeat 3
+cargo leanvm-bench --prover experimental aggregate --blobs 32 --log-inv-rate 1 --repeat 3
 ```
 
 ```
@@ -119,7 +119,7 @@ aggregation, 32 blobs
 ### recursion
 
 ```bash
-cargo leanvm --prover experimental recursion --n 2 --xmss-per-leaf 1400 --leaf-log-inv-rate 2 --log-inv-rate 1 --repeat 3
+cargo leanvm-bench --prover experimental recursion --n 2 --xmss-per-leaf 1400 --leaf-log-inv-rate 2 --log-inv-rate 1 --repeat 3
 ```
 
 ```
@@ -154,7 +154,7 @@ Keccak GKR batch proving, 1,048,576 permutations, a state committed every 12 rou
 ### Fibonacci
 
 ```bash
-cargo leanvm --prover experimental fibonacci --n 2000000 --log-inv-rate 1 --repeat 3
+cargo leanvm-bench --prover experimental fibonacci --n 2000000 --log-inv-rate 1 --repeat 3
 ```
 
 ```

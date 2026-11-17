@@ -17,7 +17,7 @@ pub fn pow(x: usize) -> String {
 
 /// Peak resident set size, in GiB.
 pub fn peak_gib() -> String {
-    pretty_f64(bench::peak_rss_bytes() as f64 / (1u64 << 30) as f64)
+    pretty_f64(bench_harness::peak_rss_bytes() as f64 / (1u64 << 30) as f64)
 }
 
 /// One line of per-table instruction counts and shares, largest first, followed by memory, bytecode (`code_len`

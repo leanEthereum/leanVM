@@ -3,7 +3,7 @@
 
 use std::time::Instant;
 
-use bench::{Metric, Plan, Timing, bencher_json};
+use bench_harness::{Metric, Plan, Timing, bencher_json};
 use isa::pretty_integer;
 use pcs::stack_open::StackClaim;
 use pcs::whir::{ProverConfig, ProverData, commit, config_for_rate};
@@ -82,7 +82,7 @@ pub fn run(n: usize, depth: usize, log_inv_rate: usize, plan: Plan) -> Report {
     let mut stages: [Timing; 6] = std::array::from_fn(|_| Timing::default());
     let mut warm = true;
     let (proof, _) = plan.warm_then_measure(|final_pass| {
-        let _quiet = (!final_pass).then(bench::suppress_tracing);
+        let _quiet = (!final_pass).then(bench_harness::suppress_tracing);
         let (proof, secs) = prove_pass();
         if !std::mem::take(&mut warm) {
             for (timing, s) in stages.iter_mut().zip(secs) {

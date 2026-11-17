@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "crates/verifier",
-    "crates/bench",
+    "crates/bench_harness",
     "crates/keccak256",
     "crates/fiat_shamir_prover",
     "crates/isa",
@@ -13,7 +13,7 @@ members = [
     "crates/lean_vm",
     "crates/stable_prover/*",
     "crates/experimental_prover/*",
-    "bins/*",
+    "bench",
 ]
 resolver = "3"
 
@@ -27,7 +27,7 @@ needless_range_loop = "allow"
 too_many_arguments = "allow"
 
 [workspace.dependencies]
-bench = { path = "crates/bench" }
+bench_harness = { path = "crates/bench_harness" }
 verifier = { path = "crates/verifier" }
 keccak256 = { path = "crates/keccak256" }
 fiat_shamir_prover = { path = "crates/fiat_shamir_prover" }

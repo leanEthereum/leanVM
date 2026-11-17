@@ -3,7 +3,7 @@
 //! Commits a random witness of `2^PCS_LOG_N` GF(2^64) elements at
 //! inverse-rate `1/2^PCS_LOG_INV_RATE` and opens it through the stacked opener with one point
 //! claim, after the OOD sample, times each phase, and reports GiB/s over the committed data. The
-//! passes follow [`bench::Plan::from_env`] (`BENCH_REPEAT`, `BENCH_COOLDOWN`).
+//! passes follow [`bench_harness::Plan::from_env`] (`BENCH_REPEAT`, `BENCH_COOLDOWN`).
 //!
 //! ```text
 //! PCS_LOG_N          number of variables = log2(witness length)   [default 22]
@@ -22,7 +22,7 @@ extern crate experimental_pcs as pcs;
 use std::hint::black_box;
 use std::time::Instant;
 
-use bench::{Plan, Timing, env_usize};
+use bench_harness::{Plan, Timing, env_usize};
 use isa::pretty_integer;
 use pcs::ood::ood_sample;
 use pcs::stack_open::{RingSwitchClaim, RingSwitchOpen, StackClaim, open_batch_mixed_whir_stacked};
@@ -34,10 +34,10 @@ use primitives::{
 };
 
 #[global_allocator]
-static ALLOCATOR: bench::Jemalloc = bench::Jemalloc;
+static ALLOCATOR: bench_harness::Jemalloc = bench_harness::Jemalloc;
 
 fn main() {
-    bench::init_tracing_from_env();
+    bench_harness::init_tracing_from_env();
 
     let log_n = env_usize("PCS_LOG_N", 22);
     let log_inv_rate = env_usize("PCS_LOG_INV_RATE", LOG_INV_RATE_0);
@@ -79,7 +79,7 @@ fn main() {
 
     let (mut commit_t, mut open_t) = (Timing::default(), Timing::default());
     plan.warm_then_measure(|last| {
-        let _quiet = (!last).then(bench::suppress_tracing);
+        let _quiet = (!last).then(bench_harness::suppress_tracing);
 
         let t = Instant::now();
         let (cm, pd) = tracing::info_span!("Commit").in_scope(|| commit(&witness, log_n, pc.initial_k, log_inv_rate));
