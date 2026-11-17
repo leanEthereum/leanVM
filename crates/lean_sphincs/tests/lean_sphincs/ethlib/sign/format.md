@@ -32,6 +32,6 @@ Signing is deterministic: the same seed and message give the same signature.
 The randomizer is `PRF_msg(SK.prf, PK.seed, M')`, and the signer rebuilds `PK.root`, which the message digest hashes.
 
 These cases pin the signer of the specification, so two implementations of it agree byte for byte.
-`sign_known_answer` is the known answer of leanVM's Rust implementation, and the suite checks it against that value.
+`sign_known_answer` is the known answer of an independent implementation, and the suite checks it against that value.
 
 A signer must never sign more than `2^30` messages with one key.

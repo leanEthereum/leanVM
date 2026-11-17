@@ -1,4 +1,4 @@
-# Source: EthLib, and leanVM's Rust implementation for the known answers
+# Source: EthLib, and an independent implementation for the known answers
 92ef6600e2ef7ea31662e030843c09c2fd595beede003ed831dee5e2b899e43b  key_gen/key_gen_known_answer/data.yaml
 2a36c02e1c55c978b7a9329a43f4e54232b05b2d7a870d14c10fbe92ca2b4cca  key_gen/key_gen_long_seed/data.yaml
 3ed7eace48ce6ece145e9eed412fbfd4678181d93fa3494748955a9a960abd9a  key_gen/key_gen_short_seed/data.yaml
