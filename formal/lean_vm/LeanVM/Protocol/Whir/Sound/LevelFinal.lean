@@ -101,6 +101,32 @@ def finalTail (logN laneFolds : ℕ) (eb : List E → E) (index : ℕ) (level : 
       (eb ((s.alphas ++ r.1).drop laneFolds ++ (s.alphas ++ r.1).take laneFolds)) *
     multilinearEval (folded.take (2 ^ (logN - s.alphas.length))) r.1 = r.2)
 
+/-- `finalTail`, returning the final polynomial's coefficients. -/
+def finalTailG (logN laneFolds : ℕ) (eb : List E → E) (index : ℕ) (level : Whir.Level)
+    (s : WhirState) (rounds : List FoldRound) : VerifierProgram (List E) :=
+  readScalars (2 ^ (logN - s.alphas.length) + level.fold) >>= fun folded ↦
+  grindProofOfWork Whir.queryGrindingBits >>= fun _ ↦
+  (sampleQueries (logN - s.alphas.length + level.logInvRate) level.queries >>= fun qs ↦
+    queryOpenings index qs >>= fun words ↦
+    VerifierProgram.require ((List.zip qs words).all fun (qq, row) ↦
+      foldRow (lanesOf index row) (K.ofBits qq) rounds =
+        novelEval folded (subspaceAt (logN - s.alphas.length) (K.ofBits qq)))) >>= fun _ ↦
+  sumcheck s.claim 3 (List.replicate (logN - s.alphas.length) none) >>= fun r ↦
+  VerifierProgram.require (s.glued.foldl
+      (fun weight glued ↦ weight + glued.scalar * glued.weightAt ((s.alphas ++ r.1).drop glued.foldStart))
+      (eb ((s.alphas ++ r.1).drop laneFolds ++ (s.alphas ++ r.1).take laneFolds)) *
+    multilinearEval (folded.take (2 ^ (logN - s.alphas.length))) r.1 = r.2) >>= fun _ ↦
+  VerifierProgram.ret folded
+
+theorem finalTailG_unit (logN laneFolds : ℕ) (eb : List E → E) (index : ℕ) (level : Whir.Level)
+    (s : WhirState) (rounds : List FoldRound) :
+    finalTailG logN laneFolds eb index level s rounds >>= (fun _ ↦ VerifierProgram.ret ()) =
+      finalTail logN laneFolds eb index level s rounds := by
+  have hu : ∀ p : VerifierProgram Unit, p.bind (fun _ ↦ VerifierProgram.ret ()) = p := fun p ↦ by
+    conv_rhs => rw [← VerifierProgram.bind_ret p]
+  simp only [finalTailG, finalTail, bind_eq, VerifierProgram.bind_assoc, VerifierProgram.ret_bind,
+    hu]
+
 theorem whirLevels_final (logN laneFolds : ℕ) (eb : List E → E) (index : ℕ)
     (level : Whir.Level) (s : WhirState) :
     whirLevels logN laneFolds eb index [level] s =
@@ -127,9 +153,11 @@ theorem terminal_weight (eb : List E → E) (laneFolds : ℕ) (s : WhirState)
 agrees with the folded word on fewer than `A` columns. -/
 theorem final_agree (P : LevelCode) (hA : 1 ≤ P.A) (hℓκ : P.ℓ ≤ 2 ^ P.κ) (C : Fin P.n → E)
     (Φ : List E → E) (σ : E) (folded : List E) (hlen : folded.length = 2 ^ P.κ + P.ℓ)
-    (hviol : TViol P.κ P.dom (fun _ : Fin 0 → Bool ↦ C) Φ σ (P.thr P.ℓ) P.deg) :
+    {Bfin : ((Fin 0 → Bool) → E[X]) → Prop}
+    (hviol : TViol P.κ P.dom (fun _ : Fin 0 → Bool ↦ C) Φ σ (P.thr P.ℓ) P.deg Bfin) :
     ∃ S : Finset (Fin P.n), S.card + 1 ≤ P.A ∧
       (∑ x : Fin P.κ → Bool, Φ (bitsL x) * folded.getD (bitsToNat x) 0 = σ →
+        Bfin (fun _ ↦ polyOf folded) →
         ∀ v : Fin P.n, (polyOf folded).eval (P.dom v) = C v → v ∈ S) := by
   classical
   have h64 := P.κ_lt
@@ -147,10 +175,11 @@ theorem final_agree (P : LevelCode) (hA : 1 ≤ P.A) (hℓκ : P.ℓ ≤ 2 ^ P.�
     omega
   set S := agreeT P.dom (fun _ : Fin 0 → Bool ↦ polyOf folded) (fun _ ↦ C)
   by_cases hS : P.A ≤ S.card
-  · refine ⟨∅, by simpa using hA, fun heq ↦ absurd ?_ (hviol _ hdeg (by simpa [LevelCode.thr] using hS))⟩
+  · refine ⟨∅, by simpa using hA, fun heq hB ↦
+      absurd ?_ (hviol _ hdeg (by simpa [LevelCode.thr] using hS) hB)⟩
     rw [tclaim, claimSum_zero, hlow]
     exact heq
-  · refine ⟨S, by omega, fun _ v hv ↦ ?_⟩
+  · refine ⟨S, by omega, fun _ _ v hv ↦ ?_⟩
     rw [mem_agreeT]
     exact fun _ ↦ hv
 
@@ -189,32 +218,107 @@ structure FinalOK (P : LevelCode) (t : ℕ) (εmax : ENNReal) : Prop where
   eQ1 : eQuery P t < 1
   eT : eTail ≤ εmax
 
+/-! ## Doom or a static condition -/
+
+open Classical in
+/-- **Doom or a static condition**: a specification whose follower's allowance is `0`, run from
+its precondition or from a condition `X` of the history that every extension keeps, returns in
+its postcondition or in `X`. In `X` nothing is at stake: the potential is `0`. -/
+noncomputable def orInvSpec {α : Type} {p : VerifierProgram α} {Pre : List Ev → Prop}
+    {Post : α → List Ev → Prop} {εmax L : ENNReal} (S : Spec p Pre Post εmax L 0)
+    (X : List Ev → Prop) (hX : ∀ h l, X h → X (h ++ l)) :
+    Spec p (fun h ↦ Pre h ∨ X h) (fun a h ↦ Post a h ∨ X h) εmax L 0 where
+  D h₀ l := X h₀ ∨ S.D h₀ l
+  V h₀ l := if X h₀ then 0 else S.V h₀ l
+  le_one h₀ l := by split_ifs; exacts [zero_le_one, S.le_one h₀ l]
+  start_D h₀ hp := by
+    by_cases hx : X h₀
+    · exact Or.inl hx
+    · exact Or.inr (S.start_D h₀ (hp.resolve_right hx))
+  start_V h₀ hp := by
+    split_ifs with hx
+    · exact zero_le
+    · exact S.start_V h₀ (hp.resolve_right hx)
+  read x hl ha hD := hD.imp id (S.read x hl ha)
+  grind hl ha hD := hD.imp id (S.grind hl ha)
+  commit word hl ha hw hD := hD.imp id (S.commit word hl ha hw)
+  sample {h₀ l k} hl ha := by
+    by_cases hx : X h₀
+    · simp [hx]
+    · simp only [hx, ↓reduceIte]; exact S.sample hl ha
+  query {h₀ l i ps k rows} hl ha hans := by
+    by_cases hx : X h₀
+    · simp [hx]
+    · simp only [hx, ↓reduceIte]; exact S.query hl ha hans
+  moveEnd hl ha hm hD := by
+    rw [not_or] at hD
+    simp only [hD.1, ↓reduceIte]
+    exact S.moveEnd hl ha hm hD.2
+  retEnd hl ha hD := by
+    rw [not_or] at hD
+    simp only [hD.1, ↓reduceIte]
+    exact S.retEnd hl ha hD.2
+  retDoom _ _ _ := by simp
+  post hl ha hD := hD.elim (fun hx ↦ Or.inr (hX _ _ hx)) fun hd ↦ Or.inl (S.post hl ha hd)
+  bound {h₀ l} hl hne hm hD := by
+    by_cases hx : X h₀
+    · simp [hx]
+    · simp only [hx, ↓reduceIte]; exact S.bound hl hne hm (hD.resolve_left hx)
+
+/-! ## The final polynomial's descent -/
+
+/-- **The final level accepts well**: the final polynomial does not satisfy the level's
+predicate after its rounds, at the commitments `cs`. With the predicate "the descent is bad", the
+descent of the final polynomial is good. -/
+def FinGood (i : ℕ) (P : LevelCode) (B : List (ℕ × ℕ × Word) → TPred) (rounds : List FoldRound)
+    (folded : List E) (cs : List (ℕ × ℕ × Word)) : Prop :=
+  i < cs.length ∧ ¬ roundPred i P B rounds cs 0 fun _ ↦ polyOf folded
+
+theorem finGood_append {i : ℕ} {P : LevelCode} {B : List (ℕ × ℕ × Word) → TPred}
+    (hB : PredStable i B) (rounds : List FoldRound) (folded : List E) :
+    ∀ (l cs : List (ℕ × ℕ × Word)), FinGood i P B rounds folded cs →
+      FinGood i P B rounds folded (cs ++ l)
+  | [], cs, h => by simpa using h
+  | x :: l, cs, h => by
+    rw [show cs ++ x :: l = (cs ++ [x]) ++ l by simp]
+    refine finGood_append hB rounds folded l _ ⟨by simp; have := h.1; omega, ?_⟩
+    rw [roundPred_append hB rounds cs x h.1]
+    exact h.2
+
 section Spec
 
 variable (μ ℓ₀ : ℕ) (w : List E → E) (i : ℕ) (P : LevelCode) (pre : ℕ)
+  (B : List (ℕ × ℕ × Word) → TPred)
 
 open Classical in
 /-- **The final level after its fold rounds**: the query group escapes within `εmax` after its
-grind, each tail round within `εmax`, and the terminal check fails. -/
+grind, each tail round within `εmax`, and the terminal check fails unless the final polynomial's
+descent is good (`FinGood`). -/
 noncomputable def finalTailSpec {εmax : ENNReal} (level : Whir.Level) (hw : IsMultiaffine μ w)
     (hℓ₀ : ℓ₀ ≤ μ) (hlev : level.fold = P.ℓ ∧ level.logInvRate = P.R)
-    (F : FinalOK P level.queries εmax) (s : WhirState) (rounds : List FoldRound) :
-    Spec (finalTail μ ℓ₀ w i level s rounds)
-      (fun h ↦ (RoundInv μ ℓ₀ w i P pre s rounds (commits h) ∧
+    (F : FinalOK P level.queries εmax) (hB : PredStable i B) (s : WhirState)
+    (rounds : List FoldRound) :
+    Spec (finalTailG μ ℓ₀ w i level s rounds)
+      (fun h ↦ (RoundInv μ ℓ₀ w i P pre B s rounds (commits h) ∧
         (ShapeOK i P (commits h) ∧ (commits h).length = i + 1)) ∧ rounds.length = P.ℓ)
-      (fun _ _ ↦ False) εmax 0 0 :=
+      (fun folded h ↦ FinGood i P B rounds folded (commits h)) εmax 0 0 :=
   if hmu : μ - s.alphas.length = P.κ ∧ rounds.length = P.ℓ ∧ GluedOK μ s ∧
       s.alphas.length ≤ μ then
-  let I : CInv := fun cs ↦ (RoundInv μ ℓ₀ w i P pre s rounds cs ∧
+  let I : CInv := fun cs ↦ (RoundInv μ ℓ₀ w i P pre B s rounds cs ∧
     (ShapeOK i P cs ∧ cs.length = i + 1)) ∧ rounds.length = P.ℓ
   let res := fun folded : List E ↦ folded.take (2 ^ (μ - s.alphas.length))
+  let X := fun (folded : List E) (h : List Ev) ↦ FinGood i P B rounds folded (commits h)
+  have hX : ∀ folded h l, X folded h → X folded (h ++ l) := fun folded h l hx ↦ by
+    simp only [X, commits_append]
+    exact finGood_append hB rounds folded _ _ hx
   (readNInv I (T := 0) zero_le (2 ^ (μ - s.alphas.length) + level.fold)).bind' fun folded ↦
   (grindInv (fun cs ↦ folded.length = 2 ^ (μ - s.alphas.length) + level.fold ∧ I cs)
     (b := Whir.queryGrindingBits) (by decide) (T := eQuery P level.queries + 0)
     (by simpa using F.eQ)).bind' fun _ ↦
   (Spec.ofNoMove (Pre := fun h ↦ folded.length = 2 ^ (μ - s.alphas.length) + level.fold ∧
       I (commits h))
-    (Post := fun _ _ ↦ TailInv (runW w ℓ₀ s) (res folded) [] (μ - s.alphas.length) s.claim)
+    (Post := fun _ h ↦ TailInv (runW w ℓ₀ s) (res folded) [] (μ - s.alphas.length) s.claim ∨
+      X folded h)
     (T := 0)
     ((noMoves_sampleQueriesAux _ _ _).bind fun _ ↦ (noMoves_queryP _ _).bind fun _ ↦ by
       unfold VerifierProgram.require; split
@@ -228,9 +332,10 @@ noncomputable def finalTailSpec {εmax : ENNReal} (level : Whir.Level) (hw : IsM
         simpa using isMultiaffine_runW hw hℓ₀ s hmu.2.2.2 hmu.2.2.1
       set C : Fin P.n → E := fun v ↦ foldsA P.dom rounds (laneO i (commits h₀) P.n) 0 v
       have hviol : TViol P.κ P.dom (fun _ : Fin 0 → Bool ↦ C) (runW w ℓ₀ s) s.claim
-          (P.thr P.ℓ) P.deg := by
+          (P.thr P.ℓ) P.deg (roundPred i P B rounds (commits h₀) 0) := by
         have h5 := hR.2.2.2.2
-        rw [tviol_rowsOf_congr (show P.ℓ - rounds.length = 0 by omega), hr] at h5
+        rw [tviol_rowsOf_congr (B := roundPred i P B rounds (commits h₀))
+          (show P.ℓ - rounds.length = 0 by omega), hr] at h5
         have hrow : rowsOf 0 (foldsA P.dom rounds (laneO i (commits h₀) P.n)) =
             fun _ : Fin 0 → Bool ↦ C := by
           funext u v
@@ -241,12 +346,17 @@ noncomputable def finalTailSpec {εmax : ENNReal} (level : Whir.Level) (hw : IsM
       have hdepth : 1 ≤ P.κ + P.R := by have := P.hR; omega
       have hW' : (commits h₀)[i]? = some (P.κ + P.R, wdOf i P.ℓ, W) := hW
       rw [hκ, hlev.2]
-      refine (escRet_queryCheck_le (fun _ ↦ TailInv (runW w ℓ₀ s) (res folded) [] P.κ s.claim)
+      refine (escRet_queryCheck_le (fun cs ↦ TailInv (runW w ℓ₀ s) (res folded) [] P.κ s.claim ∨
+          FinGood i P B rounds folded cs)
         i (P.κ + P.R) level.queries hdepth (by have := P.h64; omega) h₀ hW' _
         (fun j ↦ ∃ h : j < P.n, (⟨j, h⟩ : Fin P.n) ∈ S) fun qs hqs _ hch hT q hq ↦ ?_).trans ?_
-      · refine ⟨hqs q hq, hSq ?_ ⟨q, hqs q hq⟩ ?_⟩
+      · obtain ⟨hT1, hT2⟩ := not_or.mp hT
+        have hbad : roundPred i P B rounds (commits h₀) 0 fun _ ↦ polyOf folded := by
+          by_contra hn
+          exact hT2 ⟨by omega, hn⟩
+        refine ⟨hqs q hq, hSq ?_ hbad ⟨q, hqs q hq⟩ ?_⟩
         · by_contra hne
-          refine hT ⟨by rw [← hκ]; exact hres, by rw [← hκ]; exact hma, ?_⟩
+          refine hT1 ⟨by rw [← hκ]; exact hres, by rw [← hκ]; exact hma, ?_⟩
           rw [claimSum_msg0]
           intro heq
           apply hne
@@ -273,10 +383,14 @@ noncomputable def finalTailSpec {εmax : ENNReal} (level : Whir.Level) (hw : IsM
           obtain ⟨-, h, hjS⟩ := mem_filter.mp hj
           exact hjS
         exact_mod_cast this).bind' fun _ ↦
-  (tailSpec (runW w ℓ₀ s) (res folded) F.eT (μ - s.alphas.length) [] s.claim).bind' fun x ↦
-  Spec.require fun _ hp hc ↦ by
-    rw [terminal_weight w ℓ₀ s (fun g hg ↦ (hmu.2.2.1 g hg).1)] at hc
-    exact tailDone_ne _ _ hp (by simpa using hc)
+  (orInvSpec (tailSpec (runW w ℓ₀ s) (res folded) F.eT (μ - s.alphas.length) [] s.claim)
+    (X folded) (hX folded)).bind' fun x ↦
+  (Spec.require (Post := fun _ h ↦ X folded h) fun _ hp hc ↦ by
+    rcases hp with hp | hp
+    · rw [terminal_weight w ℓ₀ s (fun g hg ↦ (hmu.2.2.1 g hg).1)] at hc
+      exact absurd (by simpa using hc) (tailDone_ne _ _ hp)
+    · exact hp).bind' fun _ ↦
+  (Spec.ret (Post := fun f h ↦ FinGood i P B rounds f (commits h)) folded)
   else Spec.dead.mono (fun h hp ↦ hmu ⟨by
       obtain ⟨⟨⟨hlen, -, hκ, -⟩, -⟩, hr⟩ := hp
       omega, hp.2, hp.1.1.2.2.2.1, by
