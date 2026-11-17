@@ -201,6 +201,8 @@ import Quantum.Qrom.Sphincs.BoundValue
 import Quantum.Sponge.Indifferentiability.Selection
 import Quantum.Sponge.Indifferentiability.FixCircuit
 import Quantum.Sponge.Indifferentiability.PadCircuit
+import Quantum.Cost.Qrom
+import Quantum.Cost.Qrpm
 
 /-! Security against quantum adversaries in the quantum random-permutation model (`Quantum.Model`),
 on VCVio's quantum oracle programs (`VCVio.Quantum`): the sponge's collision and preimage
