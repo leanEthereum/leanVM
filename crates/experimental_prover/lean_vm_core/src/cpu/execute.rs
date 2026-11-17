@@ -313,7 +313,7 @@ impl<'a> Plan<'a> {
     /// The plan, and the witness streams it indexes, resolved by name once so a pop indexes one.
     fn new(program: &'a Program, witness: &'a [(String, Vec<Vec<F128>>)]) -> (Self, Vec<Stream<'a>>) {
         let mut streams: Vec<Stream> = Vec::new();
-        let mut stream_of: HashMap<&str, u32> = HashMap::new();
+        let mut stream_of: FastMap<&str, u32> = FastMap::default();
         let mut at = vec![0u32; program.prog.len()];
         let mut lists = Vec::with_capacity(program.hints.len());
         let mut hint_streams: Vec<u32> = Vec::new();
