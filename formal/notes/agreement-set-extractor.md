@@ -1,6 +1,6 @@
 # An agreement-set knowledge extractor
 
-The knowledge extractor (`lean_vm/LeanVM/Protocol/Extraction/Extractor.lean`) list-decodes level 0's word at the Johnson threshold with Guruswami–Sudan and runs every candidate; that list decoding is the `2^max(80, 2μ+25)` term of the statement's budget. This note shows that an extractor that decodes uniquely, on agreement sets the transcript pins down, is correct with the same per-message errors, and says what proving it in Lean takes. The idea is scaraven's (github.com/scaraven), from the lvm2 write-up's "advice decoding" annex.
+The knowledge extractor (`lean_vm/LeanVM/Protocol/Extraction/Extractor.lean`) list-decodes level 0's word at the Johnson threshold with Guruswami-Sudan and runs every candidate; that list decoding is the `2^max(80, 2μ+25)` term of the statement's budget. This note shows that an extractor that decodes uniquely, on agreement sets the transcript pins down, is correct with the same per-message errors, and says what proving it in Lean takes. The idea is scaraven's (github.com/scaraven), from the lvm2 write-up's "advice decoding" annex.
 
 ## The extractor
 
@@ -8,7 +8,7 @@ Notation is Annex B's (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`): le
 
 For a polynomial tuple `U` and a word `ω` let `S(U, ω)` be the set of columns where they agree. Define, for a level `i` and round `j ≥ 1`, the one-round step `Dec_{i,j}(U)`: decode the two halves of `ω^(i,j−1)` on the columns `S(U, ω^(i,j))` with at most one error, giving a tuple of degree at most `d_i` (or nothing). At a level boundary, `Up_i(U) := mpoly(g_U) + Ŵ_{κ_{i−1}} Σ_s φ^(i−1)_s X_s`, the polynomial of level `i−1`'s last round with the message of `U` as low part and the proof's high part. The extractor computes `T := P^fin`, then for `i = M−1` down to `0`, `j = ℓ_i` down to `1`, `T := Dec_{i,j}(T)`, and `T := Up_i(T)` between levels; the last `T` is a tuple of level 0, and its low parts are the stack, run as now (`candidateExecutionIn`). Write `Back_{i,j}` for the composition of the remaining steps from round `(i,j)`, so the output is `Back_{M−1,ℓ}(P^fin)`.
 
-Each step is one unique decoding of a lane with one error (Berlekamp–Welch, or Guruswami–Sudan at multiplicity one and `Y`-degree one) on a set of at least `A^(i,j)` columns, `2^(ℓ_i − j + 1)` lanes per round: at level 0, `126` lanes of length at most `2^26`. Unique decoding with one error needs two tuples that each agree with the word on all but one column of `S` to agree on more than `d_i` columns, `|S| ≥ d_i + 3`; `|S| ≥ A^(i,j) ≥ A^(i,0) + 1` and `(A^(i,0))² > n_i d_i` give it at every admissible shape (a parameter check, decided over the table like the others).
+Each step is one unique decoding of a lane with one error (Berlekamp-Welch, or Guruswami-Sudan at multiplicity one and `Y`-degree one) on a set of at least `A^(i,j)` columns, `2^(ℓ_i − j + 1)` lanes per round: at level 0, `126` lanes of length at most `2^26`. Unique decoding with one error needs two tuples that each agree with the word on all but one column of `S` to agree on more than `d_i` columns, `|S| ≥ d_i + 3`; `|S| ≥ A^(i,j) ≥ A^(i,0) + 1` and `(A^(i,0))² > n_i d_i` give it at every admissible shape (a parameter check, decided over the table like the others).
 
 ## Correctness, with the same errors
 
@@ -43,7 +43,7 @@ Each is at most `2^-125`. `lean_vm`'s `soundnessError` gains them, and the end s
    Remaining for the replay: the run of the cut with the adversary's answers (`lookH (ℓ.take k)`, `lookF (ℓ.take k)`) equals the run with the whole log's, outside availability failures: its commitments' words by `committedWord_eq` per level root, its permutation inputs by the chain argument below; then `runWithHash` with the adversary's answers is that run (the converse of `xrun_of_run`).
 3. **Availability**: the root lemma per level, the committed word of every level (`committedWord_eq` generalised), and the fresh-chain lemma.
 4. **The extractor**: replay the verifier's transcript from the adversary's permutation queries (the schedule is the verifier program's, `runPure`'s with real answers), invert every level's tree (`committedLeaves`), the descent with one-error decoding, then the candidate run. Its proof against the history: `Sound.extractor_of_extracted` restated.
-5. **Cost** (`LeanVM/Cost/`): compile it and prove its price. The decoder at multiplicity one replaces Roth–Ruckenstein's search; the replay compiles the verifier's schedule into the program, so the size bound (`14159`) grows by that, which `statement.tex` must then account for.
+5. **Cost** (`LeanVM/Cost/`): compile it and prove its price. The decoder at multiplicity one replaces Roth-Ruckenstein's search; the replay compiles the verifier's schedule into the program, so the size bound (`14159`) grows by that, which `statement.tex` must then account for.
 
 Items 1 to 3 are a refactor of the soundness proof, not new mathematics; item 5 is the largest by volume.
 
