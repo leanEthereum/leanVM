@@ -39,9 +39,9 @@ def nEvalK : List K → List E → K → E
 /-- `∏ (z − x_i)` in `K`. -/
 def nodalK (xs : List K) (z : K) : K := (xs.map fun x ↦ z - x).prod
 
-/-- One point added, its node in `K`. -/
+/-- One point added, its node in `K` (`E` has characteristic two: `y − P(x) = y + P(x)`). -/
 def nStepK (st : List K × List E) (p : K × E) : List K × List E :=
-  (st.1 ++ [p.1], st.2 ++ [(p.2 - nEvalK st.1 st.2 p.1) * ofK (nodalK st.1 p.1)⁻¹])
+  (st.1 ++ [p.1], st.2 ++ [(p.2 + nEvalK st.1 st.2 p.1) * ofK (nodalK st.1 p.1)⁻¹])
 
 /-- The Newton coefficients, nodes in `K`. -/
 def nFormK (pts : List (K × E)) : List K × List E := pts.foldl nStepK ([], [])
@@ -72,7 +72,7 @@ theorem nFormK_eq (pts : List (K × E)) :
   | append_singleton pts p ih =>
     rw [List.map_append, List.foldl_append, List.foldl_append, ih]
     simp only [List.map_cons, List.map_nil, List.foldl_cons, List.foldl_nil, nStep, nStepK,
-      List.map_append, nEvalK_eq, ofK_inv, nodalK_eq]
+      List.map_append, nEvalK_eq, ofK_inv, nodalK_eq, CharTwo.sub_eq_add]
 
 /-- **One-error decoding, nodes in `K`.** -/
 def decode1K (d : ℕ) (pts : List (K × E)) : Option (List K × List E) :=
