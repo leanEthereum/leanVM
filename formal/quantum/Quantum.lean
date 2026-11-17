@@ -205,6 +205,9 @@ import Quantum.Cost.Qrom
 import Quantum.Cost.Qrpm
 import Quantum.Qrom.TableLawOn
 import Quantum.Qrom.MultiUser.Owner
+import Quantum.StdModel.World
+import Quantum.StdModel.StraightLine
+import Quantum.StdModel.Formats
 
 /-! Security against quantum adversaries in the quantum random-permutation model (`Quantum.Model`),
 on VCVio's quantum oracle programs (`VCVio.Quantum`): the sponge's collision and preimage
