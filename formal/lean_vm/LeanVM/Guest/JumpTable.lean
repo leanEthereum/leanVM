@@ -8,7 +8,7 @@ module
 
 public import LeanVM.Guest.Bytecode
 public import LeanVM.Guest.Logic
-public import LeanVM.Guest.Memory
+public import LeanVM.Guest.Memory.GuestTable
 
 /-!
 # The jump table
