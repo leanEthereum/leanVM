@@ -216,6 +216,7 @@ import Quantum.StdModel.Sphincs.Reduction
 import Quantum.StdModel.Qrom.SphincsInst
 import Quantum.StdModel.Sphincs.PropsInRed
 import Quantum.StdModel.Sphincs.CostsTweak
+import Quantum.Sphincs.Assembly.Depth.BoundValue
 import Quantum.Par.Subst
 import Quantum.Par.Lockstep
 import Quantum.Par.LockstepRounds
@@ -486,3 +487,13 @@ the main theorems ever grows beyond Lean's three standard axioms. -/
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Quantum.StdModel.Sphincs.sphincs_suf_le_propsIn_keccak
+
+/-- info: 'Quantum.Sphincs.Assembly.leanSphincs_qrpm_depth_security' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Sphincs.Assembly.leanSphincs_qrpm_depth_security
+
+/-- info: 'Quantum.Sphincs.Assembly.sphincsQrpmDepthBound_le' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Quantum.Sphincs.Assembly.sphincsQrpmDepthBound_le
