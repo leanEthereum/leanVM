@@ -215,6 +215,12 @@ import Quantum.Par.Subst
 import Quantum.Par.Lockstep
 import Quantum.Par.LockstepRounds
 import Quantum.Xmss.Assembly.Depth.Ports
+import Quantum.Qrom.Sphincs.Multi.Classify
+import Quantum.Qrom.Sphincs.Multi.GameT
+import Quantum.Qrom.Sphincs.Multi.StreamGame
+import Quantum.Qrom.Sphincs.Multi.GameTSel
+import Quantum.Qrom.Sphincs.Multi.GameTCalls
+import Quantum.Qrom.Sphincs.Multi.Costs.Numeric
 import Quantum.Qrom.SufCma.GamePar
 import Quantum.Sponge.Oracle.Parallel
 import Quantum.Cost.Nist
