@@ -70,16 +70,26 @@ def Avail (bc : List K) (pd : Digest) (π : Proof) (ℓ : Log) (k : ℕ) (seed :
     ∀ x ∈ replayIn (lookF ℓ) (leanVmProgramCut bc pd) (startState π seed),
       lookF (ℓ.take k) x = lookF ℓ x
 
-/-- **The answer `u` hits the final proof of work after the log `ℓ'`**: on `ℓ'`'s answers, the
-seed and the cut verifier's replay return, and `u` hits the final query's proof of work at the
-announced shape's final level, for the phase the replay leaves next. -/
-def FinalHit (bc : List K) (pd : Digest) (π : Proof) (ℓ' : Log) (u : KeccakState) : Prop :=
-  ∃ seed a s₁ config phase rest,
-    (leanVmSeed bc pd).run (lookH ℓ') (lookF ℓ') = some seed ∧
-    replayU (lookF ℓ') (leanVmProgramCut bc pd) (startState π seed) = some (a, s₁) ∧
-    Whir.ladder a.2.1.1.stackLog a.2.1.2 = some config ∧ s₁.openings = phase :: rest ∧
-    GrindHit Whir.queryGrindingBits (finalDepth a.2.1.1.stackLog 0 config)
-      (min (128 / finalDepth a.2.1.1.stackLog 0 config) (finalCount config)) phase u
+/-- **The final proof of work after the log `ℓ'`**: on `ℓ'`'s answers, the seed, the cut
+verifier's replay and the nonce's absorption return; the permutation input that follows, the final
+level's query depth, the positions its first sample names and the phase they open. -/
+def grindData (bc : List K) (pd : Digest) (π : Proof) (ℓ' : Log) :
+    Option (KeccakState × ℕ × ℕ × List Opening) :=
+  ((leanVmSeed bc pd).run (lookH ℓ') (lookF ℓ')).bind fun seed ↦
+  (replayU (lookF ℓ') (leanVmProgramCut bc pd) (startState π seed)).bind fun r ↦
+  (Whir.ladder r.1.2.1.1.stackLog r.1.2.1.2).bind fun config ↦
+  match r.2.openings, r.2.stream, r.2.sponge.ground with
+  | phase :: _, n :: _, none =>
+    (absorb (m := Option) (lookF ℓ') r.2.sponge n dsPowNonce).map fun sp1 ↦
+      (duplexInput sp1, finalDepth r.1.2.1.1.stackLog 0 config,
+        min (128 / finalDepth r.1.2.1.1.stackLog 0 config) (finalCount config), phase)
+  | _, _, _ => none
+
+/-- **The answer `u` at the input `t` hits the final proof of work after the log `ℓ'`**: `t` is
+the final proof of work's permutation input after `ℓ'`, and `u` hits it. -/
+def FinalHit (bc : List K) (pd : Digest) (π : Proof) (ℓ' : Log) (t u : KeccakState) : Prop :=
+  ∃ d n phase, grindData bc pd π ℓ' = some (t, d, n, phase) ∧
+    GrindHit Whir.queryGrindingBits d n phase u
 
 /-- **Available, or a fresh hit**: without failure, on an accepted proof, the first `k` entries
 answer the extractor's queries, or a permutation entry `j ≥ k` answers a hit of the final proof
@@ -90,7 +100,7 @@ theorem avail_or_hit (hf : ¬ Fail σs ℓ) {bc : List K} {pd : Digest} {π : Pr
     ∃ seed, (leanVmSeed bc pd).run (lookH ℓ) (lookF ℓ) = some seed ∧
       (Avail bc pd π ℓ k seed ∨
         ∃ j, k ≤ j ∧ ∃ (hj : j < ℓ.length) (t u : KeccakState), ℓ[j] = .inr (t, u) ∧
-          FinalHit bc pd π (ℓ.take j) u) := by
+          FinalHit bc pd π (ℓ.take j) t u) := by
   obtain ⟨seed, s, hseed, hx⟩ := xrun_of_verify hv
   obtain ⟨d, hxg⟩ := xrun_leanVmProgramG hx
   obtain ⟨s₁, h₁, -, hrep, -, hend⟩ :=
@@ -98,9 +108,9 @@ theorem avail_or_hit (hf : ¬ Fail σs ℓ) {bc : List K} {pd : Digest} {π : Pr
   refine ⟨seed, hseed, ?_⟩
   obtain ⟨i₀, hout₀, hseedk⟩ := seed_chain hf hseed
   obtain ⟨i', hi', hout', hchain⟩ := replay_chain hf _ (startState π seed) hrep hout₀
-  obtain ⟨config, hconfig, n, xs, sp1, sp2, phase, rest, -, -, hsp1, hsp2, hop, hhit⟩ := hend
-  obtain ⟨i₁, hi₁, hout₁, -⟩ := absorb_chain hf hout' hsp1
-  obtain ⟨j, hj, -, hout⟩ := duplex_chain hf hout₁ hsp2
+  obtain ⟨config, hconfig, n, xs, sp1, sp2, phase, rest, hst, hg, hsp1, hsp2, hop, hhit⟩ := hend
+  obtain ⟨i₁, hi₁, hout₁, habs⟩ := absorb_chain hf hout' hsp1
+  obtain ⟨j, hj, hfirst, hout⟩ := duplex_chain hf hout₁ hsp2
   by_cases hav : Avail bc pd π ℓ k seed
   · exact Or.inl hav
   right
@@ -122,9 +132,49 @@ theorem avail_or_hit (hf : ¬ Fail σs ℓ) {bc : List K} {pd : Digest} {π : Pr
     · exact hrep
     · obtain ⟨jx, h1, h2, hfx⟩ := hchain x hx
       exact hfx.lookF_take (by omega)
-  obtain ⟨hjl, t, hej⟩ := hout
-  exact ⟨j, hkj, hjl, t, sp2.state, hej,
-    ⟨seed, (true, d), s₁, config, phase, rest, hseedj, hrepj, hconfig, hop, hhit⟩⟩
+  have habsj : absorb (m := Option) (lookF (ℓ.take j)) s₁.sponge n dsPowNonce = some sp1 := by
+    rw [absorb_congr n dsPowNonce fun y hy ↦ ?_]
+    · exact hsp1
+    · obtain ⟨jy, h1, h2, hfy⟩ := habs y hy
+      exact hfy.lookF_take (by omega)
+  obtain ⟨hjl, v, hej, -⟩ := hfirst
+  obtain ⟨hjl', x, hej'⟩ := hout
+  have hv' : v = sp2.state := by
+    have := hej.symm.trans hej'
+    simp only [Sum.inr.injEq, Prod.mk.injEq] at this
+    exact this.2
+  rw [hv'] at hej
+  refine ⟨j, hkj, hjl, duplexInput sp1, sp2.state, hej, _, _, phase, ?_, hhit⟩
+  simp only [grindData, hseedj, Option.bind_some, hrepj, hconfig, hop, hst, hg, habsj,
+    Option.map_some]
+
+/-- The seed on a log's answers is the seed on any longer log's. -/
+theorem seed_run_append {bc : List K} {pd : Digest} {ℓ' : Log} {seed : KeccakState}
+    (h : (leanVmSeed bc pd).run (lookH ℓ') (lookF ℓ') = some seed) (ℓ'' : Log) :
+    (leanVmSeed bc pd).run (lookH (ℓ' ++ ℓ'')) (lookF (ℓ' ++ ℓ'')) = some seed := by
+  rw [leanVmSeed_run_option] at h ⊢
+  obtain ⟨d, hd, ht⟩ := Option.bind_eq_some_iff.mp h
+  rw [lookH_append_of_some hd, Option.bind_some, lookF_append_of_some ht]
+
+/-- **The final proof of work's data persists on a longer log.** -/
+theorem grindData_append {bc : List K} {pd : Digest} {π : Proof} {ℓ' : Log}
+    {D : KeccakState × ℕ × ℕ × List Opening} (h : grindData bc pd π ℓ' = some D) (ℓ'' : Log) :
+    grindData bc pd π (ℓ' ++ ℓ'') = some D := by
+  unfold grindData at h ⊢
+  obtain ⟨seed, hseed, h⟩ := Option.bind_eq_some_iff.mp h
+  obtain ⟨r, hr, h⟩ := Option.bind_eq_some_iff.mp h
+  obtain ⟨config, hconfig, h⟩ := Option.bind_eq_some_iff.mp h
+  have hF : ∀ x v, lookF ℓ' x = some v → lookF (ℓ' ++ ℓ'') x = some v :=
+    fun x v hx ↦ lookF_append_of_some hx ℓ''
+  rw [seed_run_append hseed ℓ'', Option.bind_some, replayU_mono hr hF, Option.bind_some, hconfig,
+    Option.bind_some]
+  revert h
+  split
+  · intro h
+    obtain ⟨sp1, hsp1, rfl⟩ := Option.map_eq_some_iff.mp h
+    rw [absorb_mono hsp1 hF, Option.map_some]
+  · intro h
+    simp at h
 
 end
 end LeanVM.Protocol.EndToEnd.Sound

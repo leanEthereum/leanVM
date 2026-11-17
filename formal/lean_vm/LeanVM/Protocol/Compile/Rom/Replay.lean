@@ -326,6 +326,121 @@ theorem replayU_congr {F F' : KeccakState → Option KeccakState} {α : Type} :
       exact replayU_congr (k (phase.map (·.leaf))) _ h
     · rfl
 
+/-! ## Replays on more answers -/
+
+theorem absorb_answered {sp sp' : Sponge} {x : E} {tag : ℕ}
+    (h : absorb (m := Option) F sp x tag = some sp') : ∀ y ∈ absorbIn sp, ∃ v, F y = some v := by
+  intro y hy
+  unfold absorbIn at hy
+  split_ifs at hy with hp
+  · rw [List.mem_singleton] at hy
+    subst hy
+    rcases hF : F (duplexInput sp) with _ | v
+    · simp [absorb, hp, duplex, hF, bind] at h
+    · exact ⟨v, rfl⟩
+  · simp at hy
+
+theorem squeeze_answered {sp : Sponge} {r : E × Sponge} (h : squeeze (m := Option) F sp = some r) :
+    ∀ y ∈ squeezeIn sp, ∃ v, F y = some v := by
+  intro y hy
+  unfold squeezeIn at hy
+  split at hy
+  · simp at hy
+  · rename_i hg
+    rw [List.mem_singleton] at hy
+    subst hy
+    rcases hF : F (duplexInput sp) with _ | v
+    · simp [squeeze, hg, duplex, hF, bind] at h
+    · exact ⟨v, rfl⟩
+
+/-- **A returning replay's permutation inputs are answered.** -/
+theorem replayU_answered {α : Type} :
+    ∀ (p : VerifierProgram α) (s : VerifierProgramState) {r : α × VerifierProgramState},
+      replayU F p s = some r → ∀ x ∈ replayIn F p s, ∃ v, F x = some v
+  | .ret _, _, _, _ => fun _ hx ↦ by simp [replayIn] at hx
+  | .fail, _, _, h => by simp [replayU] at h
+  | .read k, s, _, h => by
+    simp only [replayU] at h
+    simp only [replayIn]
+    split at h
+    · obtain ⟨sp, hsp, h⟩ := Option.bind_eq_some_iff.mp h
+      rw [hsp]
+      intro x hx
+      rcases List.mem_append.mp hx with hx | hx
+      · exact absorb_answered hsp x hx
+      · exact replayU_answered _ _ h x hx
+    · simp at h
+  | .sample k, s, _, h => by
+    simp only [replayU] at h
+    simp only [replayIn]
+    obtain ⟨r, hr, h⟩ := Option.bind_eq_some_iff.mp h
+    rw [hr]
+    intro x hx
+    rcases List.mem_append.mp hx with hx | hx
+    · exact squeeze_answered hr x hx
+    · exact replayU_answered _ _ h x hx
+  | .grind bits k, s, _, h => by
+    simp only [replayU] at h
+    simp only [replayIn]
+    split at h
+    · rename_i n xs _ _
+      obtain ⟨r, hr, h⟩ := Option.bind_eq_some_iff.mp h
+      split_ifs at h with hp
+      have hr' := hr
+      simp only [absorbNonce, bind, Option.bind_eq_some_iff, pure, Option.some.injEq] at hr'
+      obtain ⟨sp1, hsp1, sp2, hsp2, -⟩ := hr'
+      rw [hsp1]
+      simp only [hr, hp, ↓reduceIte]
+      intro x hx
+      rcases List.mem_append.mp hx with hx | hx
+      · exact absorb_answered hsp1 x hx
+      rcases List.mem_append.mp hx with hx | hx
+      · rw [List.mem_singleton] at hx
+        subst hx
+        simp only [duplex, bind, Option.bind_eq_some_iff] at hsp2
+        obtain ⟨v, hv, -⟩ := hsp2
+        exact ⟨v, hv⟩
+      · exact replayU_answered _ _ h x hx
+    · simp at h
+  | .commit height width k, s, _, h => by
+    simp only [replayU] at h
+    simp only [replayIn]
+    split at h
+    · obtain ⟨sp0, hsp0, h⟩ := Option.bind_eq_some_iff.mp h
+      obtain ⟨sp1, hsp1, h⟩ := Option.bind_eq_some_iff.mp h
+      rw [hsp0]
+      simp only [hsp1]
+      intro x hx
+      rcases List.mem_append.mp hx with hx | hx
+      · exact absorb_answered hsp0 x hx
+      rcases List.mem_append.mp hx with hx | hx
+      · exact absorb_answered hsp1 x hx
+      · exact replayU_answered _ _ h x hx
+    · simp at h
+  | .query i _ k, s, _, h => by
+    simp only [replayU] at h
+    simp only [replayIn]
+    split at h
+    · exact replayU_answered _ _ h
+    · simp at h
+
+/-- **A replay returns the same on answers that extend its own.** -/
+theorem replayU_mono {F' : KeccakState → Option KeccakState} {α : Type} {p : VerifierProgram α}
+    {s : VerifierProgramState} {r : α × VerifierProgramState} (h : replayU F p s = some r)
+    (hF : ∀ x v, F x = some v → F' x = some v) : replayU F' p s = some r := by
+  rw [replayU_congr p s fun x hx ↦ ?_]
+  · exact h
+  · obtain ⟨v, hv⟩ := replayU_answered p s h x hx
+    rw [hv, hF x v hv]
+
+theorem absorb_mono {F' : KeccakState → Option KeccakState} {sp sp' : Sponge} {x : E} {tag : ℕ}
+    (h : absorb (m := Option) F sp x tag = some sp') (hF : ∀ y v, F y = some v → F' y = some v) :
+    absorb (m := Option) F' sp x tag = some sp' := by
+  rw [absorb_congr x tag fun y hy ↦ ?_]
+  · exact h
+  · obtain ⟨v, hv⟩ := absorb_answered h y hy
+    rw [hv, hF y v hv]
+
 end Replay
 
 end
