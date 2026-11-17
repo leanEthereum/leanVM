@@ -18,7 +18,7 @@ Survey of the core IR (`Pack/*/Core.lean`, static sites; a loop body counts once
 | `digitsExp` | 128 | 96 heap, 32 stack | `verify_tables` (96 heap), `column_selector` (30), `assert_small_g_power` (1) |
 | `bits` | 35 | stack | `padding_weight` (30), `verify_sig_lean_sphincs` (3), `g_power_of_word` (1); `start` is always `0` |
 | `bitsExp` | 8 | 5 heap, 3 stack | `log2_ceil_in_the_exponent` (2 heap), `verify_tables` (3 heap), `rs_eq_run`, `shared_selector_tables`, `verify_keccak` |
-| `inverse` | 8 | stack | `verify_tables` (6), `verify_bus_gkr`, `da_row_shape` |
+| `inverse` | 8 | stack | `verify_tables` (6), `verify_bus_gkr`, `da_padding` |
 | `limbs` | 2 | stack | `verify_tables` (`split_limbs`) |
 | `log2Ceil` | 2 | bits heap, result stack | `log2_ceil_in_the_exponent` (2) |
 
