@@ -5,28 +5,15 @@
 //! `guest-export <lean_vm dir> --source K [--check]` writes only what the Lean back end compiles the guest from,
 //! `Source.lean` with the placeholders at the log size `K` (and the test programs), reading nothing of the compiled
 //! guest: `scripts/guest-artifact` runs it on the way to the fixed point, before the artefact exists at that size.
-//!
-//! `guest-export <lean_vm dir> --core DIR` writes the Rust front end's core IR of the guest (at the artefact's size)
-//! and of each test program, `DIR/<name>.core` (`source::core_texts`), for `scripts/frontend-diff`.
 
 use leanvm_guest_export::lean_export;
 use std::collections::BTreeSet;
 use std::path::Path;
 
-const USAGE: &str = "usage: guest-export <lean_vm dir> [--source K] [--check] | guest-export <lean_vm dir> --core DIR";
+const USAGE: &str = "usage: guest-export <lean_vm dir> [--source K] [--check]";
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    if let [_, flag, dir] = args.as_slice()
-        && flag == "--core"
-    {
-        let kbc = lean_export::guest().prog.len().trailing_zeros() as usize;
-        std::fs::create_dir_all(dir).unwrap();
-        for (name, text) in lean_export::source::core_texts(kbc) {
-            std::fs::write(Path::new(dir).join(format!("{name}.core")), text).unwrap();
-        }
-        return;
-    }
     let check = args.iter().any(|a| a == "--check");
     let source = args
         .iter()

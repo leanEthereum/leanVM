@@ -6,24 +6,7 @@
 //! range-check trick, transported to g-powers; the only nondeterminism is the
 //! end-of-run resolution of the two touched cells.
 
-use zkdsl::{expand, parse};
-
-/// Bound 0 names the empty set: rejected at compile time.
-#[test]
-#[should_panic(expected = "names the empty set")]
-fn range_check_empty_bound_rejected() {
-    let src = "def main():\n    x = 1\n    assert log x < 0\n    return\n";
-    let _ = expand(&parse(src).expect("parse"));
-}
-
-/// Bounds beyond `2^30`, the largest memory, could never be complete: rejected at
-/// compile time.
-#[test]
-#[should_panic(expected = "exceeds 2^30")]
-fn range_check_bound_too_big_rejected() {
-    let src = "def main():\n    x = 1\n    assert log x < 1073741825\n    return\n";
-    let _ = expand(&parse(src).expect("parse"));
-}
+use zkdsl::parse;
 
 /// A `<` assert without `log` is rejected: field elements have no order, only
 /// their logs do.

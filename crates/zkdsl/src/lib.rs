@@ -1,11 +1,8 @@
 //! The zkDSL (see `zkDSL.md`): its parser ([`parse`], [`parse_with_replacements`], [`parse_const`], [`f128_literal`]),
-//! the [`Ast`] it gives, the front end from that AST to the core IR ([`expand`], [`core_ir`]) and a bytecode
-//! disassembler ([`disassemble`]).
+//! the [`Ast`] it gives, and a bytecode disassembler ([`disassemble`]).
 //!
-//! The compiler of record is the Lean back end (`formal/lean_vm/LeanVM/Compiler`), which compiles this parser's AST
-//! (exported by `formal/lean_vm/scripts/guest-export`) through Lean's front end (`LeanVM/Guest/Expand.lean`). The front
-//! end here is an independent implementation of the same rules, kept to cross-check Lean's: `scripts/frontend-diff`
-//! compares the two expansions function by function.
+//! The compiler is the Lean back end (`formal/lean_vm/LeanVM/Compiler`), which compiles this parser's AST (exported by
+//! `formal/lean_vm/scripts/guest-export`) through Lean's front end (`LeanVM/Guest/Expand.lean`).
 
 use std::collections::HashMap;
 use std::fmt::Write;
@@ -16,13 +13,9 @@ use isa::pretty_integer;
 use isa::{DerefMode, Op};
 
 mod ast;
-pub mod core_ir;
-mod expand;
 mod field;
 mod parser;
 pub use ast::*;
-pub use expand::expand;
-pub(crate) use parser::subst_stmts;
 pub use parser::{f128_literal, parse, parse_const, parse_with_constants, parse_with_replacements};
 
 /// Render compiled bytecode as a human-readable disassembly. `fp[k]` is the cell

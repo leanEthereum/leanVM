@@ -10,8 +10,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::common::core;
-use zkdsl::{expand, parse, parse_with_replacements};
+use zkdsl::{parse, parse_with_replacements};
 
 /// A global constant substitutes exactly like writing its value inline: even
 /// in a `StackBuf` size, which demands a parse-time literal. The two programs
@@ -43,7 +42,6 @@ def main():
         crate::common::without_lines(&ai),
         "constant must inline to its value"
     );
-    let _ = expand(&ac); // and it expands
 }
 
 /// A constant may be used as a `**` exponent and an `assert log _ < _` bound -
@@ -69,31 +67,6 @@ def main():
         crate::common::without_lines(&parse(src).unwrap()),
         crate::common::without_lines(&parse(inlined).unwrap()),
     );
-    let _ = expand(&parse(src).unwrap());
-}
-
-/// A global constant may be a g-power, which is how the ISA writes every
-/// address and index.
-///
-/// The scalar path tried an integer expression and stopped, so `GEN ** 2` was
-/// rejected as "not a compile-time integer constant expression". It now falls
-/// back to the field evaluator and renders the value as the decimal its limbs
-/// spell, so the constant still works in the positions that demand a literal
-/// rather than only as a value.
-#[test]
-fn a_global_constant_may_be_a_g_power() {
-    let program = |decl: &str, value: &str| {
-        format!(
-            "STEP = {decl}\n\ndef main():\n    p = GEN ** 0\n    p[1] = {value}\n    p[GEN] = GEN ** 0\n    return\n"
-        )
-    };
-    for (decl, exp) in [("GEN ** 2", 2usize), ("GEN * GEN", 2), ("GEN ** 70", 70)] {
-        assert_eq!(
-            core(&program(decl, "STEP")),
-            core(&program("1", &format!("GEN ** {exp}"))),
-            "`{decl}` is not g^{exp}"
-        );
-    }
 }
 
 /// A constant may reference an earlier constant (chaining). `B = A` gives `B`
@@ -119,7 +92,6 @@ def main():
         crate::common::without_lines(&parse(src).unwrap()),
         crate::common::without_lines(&parse(inlined).unwrap()),
     );
-    let _ = expand(&parse(src).unwrap());
 }
 
 /// Constant expressions use **integer** arithmetic (`+ - * / **`), not runtime
@@ -168,7 +140,6 @@ def main():
         crate::common::without_lines(&filled),
         crate::common::without_lines(&parse(concrete).unwrap())
     );
-    let _ = expand(&filled);
 }
 
 /// `const(...)` is TRANSPARENT in a parse-time position, and the test is that
@@ -194,22 +165,12 @@ fn const_is_transparent_where_the_reading_is_already_integer() {
             "`{wrapped}` must parse as `{bare}`"
         );
     }
-    // A `log` bound and an `unroll` count, which are their own parse paths.
+    // A `log` bound, which is its own parse path.
     let bound = |b: &str| format!("def main():\n    v = GEN ** 2\n    assert log v < {b}\n    return\n");
     assert_eq!(
         crate::common::without_lines(&parse(&bound("const(4 + 4)")).expect("wrapped bound")),
         crate::common::without_lines(&parse(&bound("8")).expect("bare bound")),
     );
-    // An `unroll` count keeps its expression for the lowerer to fold, in either
-    // spelling, so the baseline is the unwrapped expression rather than a literal.
-    let count = |b: &str| format!("def main():\n    for i in unroll(0, {b}):\n        v = 1\n    return\n");
-    let unrolled = |b: &str| core(&count(b));
-    assert_eq!(
-        unrolled("const(1 + 1)"),
-        unrolled("1 + 1"),
-        "the count must fold the same"
-    );
-    assert_eq!(unrolled("const(1 + 1)"), unrolled("2"));
     // And a global constant, where the whole declaration is already integer.
     assert_eq!(
         crate::common::without_lines(
@@ -217,16 +178,6 @@ fn const_is_transparent_where_the_reading_is_already_integer() {
         ),
         crate::common::without_lines(&parse("N = 4\n\ndef main():\n    s = StackBuf(N)\n    return\n").expect("bare")),
     );
-    // Transparent means transparent: an illegal value is still illegal, so the
-    // wrapper is no route past a bound the bare spelling would fail.
-    for b in ["0", "const(0)"] {
-        let ast = parse(&bound(b)).expect("parses");
-        let Err(err) = std::panic::catch_unwind(|| expand(&ast)) else {
-            panic!("`{b}` was accepted as a bound");
-        };
-        let msg = err.downcast_ref::<String>().map(String::as_str).unwrap_or("");
-        assert!(msg.contains("empty set"), "{b}: got `{msg}`");
-    }
 }
 
 /// A placeholder is text-replaced before parsing; feeding a constant is the
@@ -257,7 +208,6 @@ def main():
         crate::common::without_lines(&filled),
         crate::common::without_lines(&parse(concrete).unwrap())
     );
-    let _ = expand(&filled);
 }
 
 /// Replacement is identifier-bounded: a key does not match a substring of a

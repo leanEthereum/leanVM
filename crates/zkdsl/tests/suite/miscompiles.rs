@@ -1,7 +1,7 @@
 //! Programs that compiled to something other than what they say, or crashed the
-//! compiler. Each is now rejected with a diagnostic, or compiled as written.
+//! compiler. Each is now rejected by the parser with a diagnostic.
 
-use zkdsl::{expand, parse};
+use zkdsl::parse;
 
 #[test]
 fn ambiguous_programs_are_rejected_when_parsed() {
@@ -54,39 +54,4 @@ fn ambiguous_programs_are_rejected_when_parsed() {
         let err = parse(&src).err().unwrap_or_else(|| panic!("accepted:\n{src}"));
         assert!(err.contains(want), "`{err}` does not say `{want}`, for:\n{src}");
     }
-}
-
-#[test]
-fn ill_formed_calls_are_rejected_when_lowered() {
-    for (src, want) in [
-        // `main` halts the machine, so the call ended the run with a success.
-        (
-            "def f():\n    main()\n    return\n\ndef main():\n    f()\n    return\n",
-            "`main` is the entry point",
-        ),
-        // Read the third cell through a two-cell parameter.
-        (
-            "@inline\ndef f(s: StackBuf(2)):\n    return s[0]\n\ndef main():\n    t = StackBuf(3)\n    t[0] = 1\n    r = f(t)\n    return\n",
-            "is a StackBuf(2), got a StackBuf(3)",
-        ),
-        (
-            "def main():\n    b = StackBuf(41)\n    hint_decompose_bits_exponent(b, GEN, 41)\n    return\n",
-            "at most 40 bits",
-        ),
-    ] {
-        let ast = parse(src).unwrap();
-        let Err(err) = std::panic::catch_unwind(|| expand(&ast)) else {
-            panic!("accepted:\n{src}");
-        };
-        let msg = err.downcast_ref::<String>().map(String::as_str).unwrap_or("");
-        assert!(msg.contains(want), "`{msg}` does not say `{want}`, for:\n{src}");
-    }
-}
-
-/// A `return` nested in `main` was ignored, the code after it running anyway.
-#[test]
-#[should_panic(expected = "`return` in `main` is allowed only as its last statement")]
-fn nested_return_in_main_is_rejected() {
-    let src = "def main():\n    x = 1\n    if x == 1:\n        return\n    assert x == 2\n    return\n";
-    let _ = expand(&parse(src).expect("parse"));
 }
