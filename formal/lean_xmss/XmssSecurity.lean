@@ -1,6 +1,7 @@
 import LeanXmss.Statement
 import XmssSecurity.Proof.OwnBridge
 import XmssSecurity.Rpm
+import XmssSecurity.MultiKey
 import Common.WithHash
 
 /-! # The end theorem of leanXMSS
@@ -11,7 +12,11 @@ random-permutation model, an adversary that itself makes at most `q` calls of `�
 most `lifetime = 2^32` signing requests forges with probability at most `(q + 2^10) · 2^-127`; key
 generation, the signer's hashing (its randomizer grinding included) and the forgery's verification
 are not charged to `q`. Its proof passes through the random-oracle model at the adversary's own
-count (`leanXmss_rom_adversary_bound`, a step). -/
+count (`leanXmss_rom_adversary_bound`, a step).
+
+`XmssSecurity.leanXmss_multiKey` (`XmssSecurity/MultiKey.lean`) proves leanXMSS multi-key strongly
+unforgeable in the random-permutation model (`Common.SufCma.MultiKeyStronglyUnforgeable`): for up
+to `2^32` keys, each signing at most `lifetime` requests, at most `k · (q + 2^10 + k) · 2^-127`. -/
 
 example : LeanXmss.RandomPermutationModel.LeanXmssStronglyUnforgeable :=
     XmssSecurity.leanXmss_rpm_security
@@ -42,5 +47,9 @@ example : Bridge.romAdversarySlack + 1 = LeanXmss.RandomPermutationModel.securit
 /-- info: 'XmssSecurity.leanXmss_rpm_security' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms leanXmss_rpm_security
+
+/-- info: 'XmssSecurity.leanXmss_multiKey' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms leanXmss_multiKey
 
 end XmssSecurity
