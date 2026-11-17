@@ -164,8 +164,15 @@ import Quantum.Qrom.Regroup
 import Quantum.Qrom.Xmss.Scheme
 import Quantum.Qrom.Xmss.Slots
 import Quantum.Qrom.Xmss.Events
+import Quantum.Qrom.Xmss.HonestTable
+import Quantum.Qrom.Xmss.NoReuse
+import Quantum.Qrom.Xmss.GameReads
+import Quantum.Qrom.Xmss.Runtime1
+import Quantum.Qrom.Xmss.Classify
 import Quantum.Qrom.Sphincs.Scheme
 import Quantum.Qrom.Sphincs.Slots
+import Quantum.Qrom.Sphincs.Cov
+import Quantum.Qrom.Sphincs.Stream
 import Quantum.Sponge.Indifferentiability.Selection
 import Quantum.Sponge.Indifferentiability.FixCircuit
 import Quantum.Sponge.Indifferentiability.PadCircuit
