@@ -225,6 +225,7 @@ import Quantum.StdModel.Qrom.SphincsCpre
 import Quantum.StdModel.Qrom.CpreValue
 import Quantum.StdModel.Qrom.XmssTcr2
 import Quantum.StdModel.Qrom.SphincsTcr
+import Quantum.StdModel.Qrom.CorollaryXmss2
 import Quantum.Sphincs.Assembly.Depth.BoundValue
 import Quantum.Cost.NistQrpmSphincs
 import Quantum.Par.Subst
