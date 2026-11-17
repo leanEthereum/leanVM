@@ -43,6 +43,13 @@ pub mod lean_sphincs {
     };
 }
 
+/// [`aggregate`] in another process, the sidecar (`bins/leanvm-sidecar`), which keeps the prover's memory, threads
+/// and warm state out of this one. Verifying stays here, with [`AggregateProof::verify`].
+#[cfg(unix)]
+pub mod sidecar {
+    pub use ::sidecar::{Client, Rejection, SidecarError};
+}
+
 /// Call this function before generating / verifying proofs
 /// Starts the prover's thread pool, with `threads` threads (0: one per core), and builds the aggregation program.
 ///

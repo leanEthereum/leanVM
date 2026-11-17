@@ -8,6 +8,8 @@ use verifier::E;
 pub struct StableProver;
 
 impl isa::Prover for StableProver {
+    const NAME: &'static str = "stable";
+
     fn init() {
         parallel::init();
     }

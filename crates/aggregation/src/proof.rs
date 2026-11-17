@@ -65,11 +65,70 @@ pub(super) fn is_sorted(claims: &AggregateClaims) -> bool {
     claims.lean_xmss.windows(2).all(|w| w[0] < w[1]) && claims.lean_sphincs.windows(2).all(|w| w[0] < w[1])
 }
 
+// Wire format of claims: the leanXMSS claims (a u64 count, then each claim's pubkey and message), the leanSPHINCS
+// claims alike, then the DA commitment (a byte, 0 for none or 1, then the 32-byte root). Little-endian, and
+// canonical: decoding rejects any other flag and trailing bytes. Order is kept, sorted or not.
+
+const _: () = assert!(lean_xmss::PUB_KEY_SIZE == 32 && lean_sphincs::PUB_KEY_SIZE == 32);
+const _: () = assert!(lean_xmss::MESSAGE_LEN == 32 && lean_sphincs::MESSAGE_LEN == 32);
+
+fn encode_claims<K>(out: &mut Vec<u8>, claims: &[(K, [u8; 32])], pk_bytes: impl Fn(&K) -> [u8; 32]) {
+    out.extend((claims.len() as u64).to_le_bytes());
+    for (pk, message) in claims {
+        out.extend(pk_bytes(pk));
+        out.extend(message);
+    }
+}
+
+/// Reads a count and that many `(pubkey, message)` pairs off the front of `bytes`. A forged count allocates nothing.
+fn decode_claims<K>(bytes: &mut &[u8], pk: impl Fn(&[u8; 32]) -> K) -> Option<Vec<(K, [u8; 32])>> {
+    let (count, rest) = bytes.split_first_chunk::<8>()?;
+    let count = usize::try_from(u64::from_le_bytes(*count)).ok()?;
+    let (pairs, rest) = rest.split_at_checked(count.checked_mul(64)?)?;
+    *bytes = rest;
+    let pairs = pairs.as_chunks::<32>().0.as_chunks::<2>().0;
+    Some(pairs.iter().map(|[key, message]| (pk(key), *message)).collect())
+}
+
 impl AggregateClaims {
     /// The number of `(pubkey, message)` claims, not of distinct signers: a pubkey may sign
     /// several messages.
     pub fn num_signature_claims(&self) -> usize {
         self.lean_xmss.len() + self.lean_sphincs.len()
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut out = Vec::new();
+        encode_claims(&mut out, &self.lean_xmss, lean_xmss::LeanXmssPublicKey::to_bytes);
+        encode_claims(
+            &mut out,
+            &self.lean_sphincs,
+            lean_sphincs::LeanSphincsPublicKey::to_bytes,
+        );
+        match self.da_commitment {
+            None => out.push(0),
+            Some(root) => {
+                out.push(1);
+                out.extend(root);
+            }
+        }
+        out
+    }
+
+    /// Decode claims, `None` if the bytes are not exactly one encoding.
+    pub fn from_bytes(mut bytes: &[u8]) -> Option<Self> {
+        let lean_xmss = decode_claims(&mut bytes, lean_xmss::LeanXmssPublicKey::from_bytes)?;
+        let lean_sphincs = decode_claims(&mut bytes, lean_sphincs::LeanSphincsPublicKey::from_bytes)?;
+        let da_commitment = match bytes {
+            [0] => None,
+            [1, root @ ..] => Some(<[u8; 32]>::try_from(root).ok()?),
+            _ => return None,
+        };
+        Some(Self {
+            lean_xmss,
+            lean_sphincs,
+            da_commitment,
+        })
     }
 }
 

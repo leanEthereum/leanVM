@@ -1,0 +1,17 @@
+[package]
+name = "sidecar"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+isa.workspace = true
+verifier.workspace = true
+aggregation.workspace = true
+lean_da.workspace = true
+lean_xmss.workspace = true
+lean_sphincs.workspace = true
+libc.workspace = true

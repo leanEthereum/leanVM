@@ -15,6 +15,10 @@ lean_sphincs.workspace = true
 stable_lean_vm_core = { path = "../stable_prover/lean_vm_core" }
 experimental_lean_vm_core = { path = "../experimental_prover/lean_vm_core", optional = true }
 
+# The sidecar speaks over a Unix socket.
+[target.'cfg(unix)'.dependencies]
+sidecar.workspace = true
+
 [features]
 # Prove with the experimental tree rather than the stable one.
 experimental_prover = ["dep:experimental_lean_vm_core"]

@@ -11,9 +11,11 @@ members = [
     "crates/lean_da",
     "crates/aggregation",
     "crates/lean_vm",
+    "crates/sidecar",
     "crates/stable_prover/*",
     "crates/experimental_prover/*",
     "bench",
+    "bins/*",
 ]
 resolver = "3"
 
@@ -37,6 +39,7 @@ lean_xmss = { path = "crates/lean_xmss" }
 lean_sphincs = { path = "crates/lean_sphincs" }
 lean_da = { path = "crates/lean_da" }
 aggregation = { path = "crates/aggregation" }
+sidecar = { path = "crates/sidecar" }
 libc = "0.2"
 rand = "0.9"
 sha3 = "0.11"

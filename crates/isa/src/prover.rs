@@ -6,6 +6,9 @@ use verifier::{E, layout::N_TABLES};
 
 /// A prover of ISA programs, and the thread pool and field kernels it brings for the work around a proof.
 pub trait Prover: 'static {
+    /// The prover's name: `stable` or `experimental`.
+    const NAME: &'static str;
+
     /// Warm up the prover's thread pool, so that no timed work pays for starting it. Idempotent.
     fn init();
 

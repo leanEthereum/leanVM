@@ -2,7 +2,7 @@
 
 use super::cells::count;
 use super::child::gen_verify;
-use super::coverage::plan_coverage;
+use super::coverage::{Coverage, plan_coverage};
 use super::deferred::{DeferredBytecodeClaim, aggregate_deferred_claims, bytecode_sums};
 use super::error::AggregateError;
 use super::guest::{fs_seed, unified_guest};
@@ -11,7 +11,7 @@ use super::hints::FORGE;
 use super::hints::{Hints, lean_sphincs_hints, lean_xmss_hints};
 use super::proof::{AggregateClaims, AggregateProof, OutputClaims, is_sorted};
 use super::statement::{lean_sphincs_claim_cells, lean_xmss_claim_cells, list_split, statement_digest};
-use super::{MAX_LOG_INV_RATE, MAX_RECURSIONS, MIN_LOG_INV_RATE};
+use super::{LeanSphincsClaim, LeanXmssClaim, MAX_LOG_INV_RATE, MAX_RECURSIONS, MIN_LOG_INV_RATE};
 use fiat_shamir_prover::merkle::hash_to_scalars;
 use isa::{Prover, Stats};
 use lean_da::CELLS_PER_ROW;
@@ -48,10 +48,6 @@ pub fn aggregate<P: Prover>(
     // Two proofs at once would share the pool and hold both proofs' memory.
     static PROVING: Mutex<()> = Mutex::new(());
     let _proving = PROVING.lock().unwrap_or_else(PoisonError::into_inner);
-    let declare = match output {
-        OutputClaims::All => None,
-        OutputClaims::Only(claims) => Some(claims),
-    };
     // Proving checks the rate too, but only after the witness is built.
     if !(MIN_LOG_INV_RATE..=MAX_LOG_INV_RATE).contains(&log_inv_rate) {
         return Err(AggregateError::InvalidInput("log_inv_rate out of range"));
@@ -59,39 +55,16 @@ pub fn aggregate<P: Prover>(
     if children.len() > MAX_RECURSIONS {
         return Err(AggregateError::InvalidInput("more than MAX_RECURSIONS children"));
     }
-    // The published root and the guest's slot for it: a child's, or `children.len()` for the node's own, its blobs'
-    // or none.
-    let own = children.len();
-    let (da_pick, da_root) = match (blobs, declare.map(|claims| claims.da_commitment)) {
-        (Some(matrix), declared) => {
-            let root = Some(matrix.commitment());
-            if declared.is_some_and(|declared| declared != root) {
-                return Err(AggregateError::InvalidInput("a node with blobs publishes their root"));
-            }
-            (own, root)
-        }
-        (None, None) => children
-            .iter()
-            .position(|(claims, _)| claims.da_commitment.is_some())
-            .map_or((own, None), |i| (i, children[i].0.da_commitment)),
-        (None, Some(None)) => (own, None),
-        (None, Some(root)) => children
-            .iter()
-            .position(|(claims, _)| claims.da_commitment == root)
-            .map(|i| (i, root))
-            .ok_or(AggregateError::InvalidInput("the requested DA root is not a child's"))?,
-    };
-
-    // The request's checks, on the claim lists alone, before any costly work.
-    if !children.iter().all(|(claims, _)| is_sorted(claims)) {
-        return Err(AggregateError::InvalidChild);
-    }
     let raw_lean_xmss_claims = sorted_claims(&mut raw_lean_xmss);
     let raw_lean_sphincs_claims = sorted_claims(&mut raw_lean_sphincs);
-    let cover = plan_coverage(&raw_lean_xmss_claims, &raw_lean_sphincs_claims, children, declare)?;
-    if cover.lean_xmss.signers.is_empty() && cover.lean_sphincs.signers.is_empty() && da_root.is_none() {
-        return Err(AggregateError::InvalidInput("nothing to publish"));
-    }
+    let blobs_root = blobs.map(lean_da::BlobMatrix::commitment);
+    let (cover, da_pick, da_root) = plan(
+        children,
+        &raw_lean_xmss_claims,
+        &raw_lean_sphincs_claims,
+        blobs_root,
+        output,
+    )?;
 
     // Nothing here verifies a child (see `AGENTS.md`): the replay reads out of its proof the summary `gen_verify`
     // builds the guest's witness from, and fails only on a proof it cannot walk.
@@ -280,6 +253,65 @@ pub fn aggregate<P: Prover>(
         proof,
     };
     Ok((claims, proof, stats))
+}
+
+/// The claims [`aggregate`] proves for these inputs, without proving: `blobs_root` is its blobs' root, if any. `Err`
+/// for the requests it refuses on their claims alone.
+pub fn published_claims(
+    children: &[(AggregateClaims, AggregateProof)],
+    raw_lean_xmss: &[LeanXmssClaim],
+    raw_lean_sphincs: &[LeanSphincsClaim],
+    blobs_root: Option<[u8; 32]>,
+    output: OutputClaims,
+) -> Result<AggregateClaims, AggregateError> {
+    let (cover, _, da_commitment) = plan(children, raw_lean_xmss, raw_lean_sphincs, blobs_root, output)?;
+    Ok(AggregateClaims {
+        lean_xmss: cover.lean_xmss.signers,
+        lean_sphincs: cover.lean_sphincs.signers,
+        da_commitment,
+    })
+}
+
+/// The request's checks, on the claim lists alone, before any costly work: the coverage, and the published root with
+/// the guest's slot for it, a child's or `children.len()` for the node's own, its blobs' or none.
+fn plan(
+    children: &[(AggregateClaims, AggregateProof)],
+    raw_lean_xmss: &[LeanXmssClaim],
+    raw_lean_sphincs: &[LeanSphincsClaim],
+    blobs_root: Option<[u8; 32]>,
+    output: OutputClaims,
+) -> Result<(Coverage, usize, Option<[u8; 32]>), AggregateError> {
+    let declare = match output {
+        OutputClaims::All => None,
+        OutputClaims::Only(claims) => Some(claims),
+    };
+    let own = children.len();
+    let (da_pick, da_root) = match (blobs_root, declare.map(|claims| claims.da_commitment)) {
+        (Some(root), declared) => {
+            if declared.is_some_and(|declared| declared != Some(root)) {
+                return Err(AggregateError::InvalidInput("a node with blobs publishes their root"));
+            }
+            (own, Some(root))
+        }
+        (None, None) => children
+            .iter()
+            .position(|(claims, _)| claims.da_commitment.is_some())
+            .map_or((own, None), |i| (i, children[i].0.da_commitment)),
+        (None, Some(None)) => (own, None),
+        (None, Some(root)) => children
+            .iter()
+            .position(|(claims, _)| claims.da_commitment == root)
+            .map(|i| (i, root))
+            .ok_or(AggregateError::InvalidInput("the requested DA root is not a child's"))?,
+    };
+    if !children.iter().all(|(claims, _)| is_sorted(claims)) {
+        return Err(AggregateError::InvalidChild);
+    }
+    let cover = plan_coverage(raw_lean_xmss, raw_lean_sphincs, children, declare)?;
+    if cover.lean_xmss.signers.is_empty() && cover.lean_sphincs.signers.is_empty() && da_root.is_none() {
+        return Err(AggregateError::InvalidInput("nothing to publish"));
+    }
+    Ok((cover, da_pick, da_root))
 }
 
 /// Sort raw signatures on their claims and drop repeats: on the whole (pubkey, message) pair, so a signer may appear

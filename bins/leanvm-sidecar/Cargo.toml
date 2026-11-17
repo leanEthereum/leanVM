@@ -1,0 +1,25 @@
+[package]
+name = "leanvm-sidecar"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[[bin]]
+name = "leanvm-sidecar"
+path = "src/main.rs"
+# A binary, nothing to document.
+doc = false
+
+[lints]
+workspace = true
+
+[dependencies]
+sidecar.workspace = true
+stable_lean_vm_core = { path = "../../crates/stable_prover/lean_vm_core" }
+experimental_lean_vm_core = { path = "../../crates/experimental_prover/lean_vm_core" }
+bench_harness.workspace = true
+clap = { version = "4", features = ["derive"] }
+
+[dev-dependencies]
+lean_vm = { path = "../../crates/lean_vm" }
+aggregation = { workspace = true, features = ["signers-cache"] }

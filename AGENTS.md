@@ -18,7 +18,7 @@ The fields are `K = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)` and `E = K[y]/(y^2 + x*
 
 ## Layout
 
-The root `Cargo.toml` is workspace-only: libraries in `crates/`, the benchmark CLI in `bench/`. The prover exists twice, in two trees that share no prover crate:
+The root `Cargo.toml` is workspace-only: libraries in `crates/`, the benchmark CLI in `bench/`, the binaries users run in `bins/`. The prover exists twice, in two trees that share no prover crate:
 
 - `crates/stable_prover/` (packages `stable_*`): the reference prover, written to be read: plain, safe code, as short as the protocol allows, and slower than experimental. Architecture-specific code lives in one SIMD layer, `primitives::field::lanes` (eight field elements at a time, `F128x8`, `F64x8`, `Acc8`, `Wide8`, and the byte maps and transposes over 64 bytes, each with one portable body that defines it and NEON, AVX2+VPCLMULQDQ and AVX-512+VPCLMULQDQ arms and the portable one), and in the shared `keccak256`'s multi-way permutation; the hot loops are written over them and nothing else in stable has `core::arch` or `cfg(target_feature)`. No uninitialized buffers, no non-temporal stores, no cache-tiled pass plans, no per-machine tuning. It keeps the whole level-0 codeword and every Merkle level, so its peak memory at the largest stacks is a multiple of experimental's on x86. An optimization enters it only where leaving it out costs a measurable share of a proof and its simple form stays short.
 - `crates/experimental_prover/` (packages `experimental_*`): the optimized prover, where performance work lands first. The conventions below about NEON, AVX-512, streaming stores and the like are about this tree.
@@ -37,6 +37,7 @@ Both prove the same protocol and give the same proof bytes, pinned by `bench/tes
 | `bench_harness`   | benchmark harness (`Plan`, `Timing`, `--tracing`, Bencher output, the jemalloc allocator); never linked by a prover |
 | `lean_da`         | additive Reed-Solomon blob encoding (the stable tree's NTT), commitments, membership vectors |
 | `aggregation`     | recursive signature and DA aggregation, generic over the prover: the guest's constants and witness, and the entry points |
+| `sidecar`         | proving in another process: the protocol of `bins/leanvm-sidecar`, its server (generic over the prover) and its Rust client |
 | `lean_vm`         | the public API, not generic: it proves with the stable tree, or with the `experimental_prover` feature the experimental one |
 
 `aggregation` proves on whichever prover it is given, but derives the guest's constants and a child's witness from the stable tree, the reference: its bus blocks and their coordinates (`lean_vm_core::leaf`, whose term order the guest's arrays follow), the stacking, the grinds, the WHIR shapes and the NTT twiddles; both trees lay a proof out alike.
@@ -51,7 +52,7 @@ Each tree holds, in dependency order, leaves first:
 | `keccak_gkr`      | the prover of the VM's `KECCAK` argument                               |
 | `lean_vm_core`    | arithmetization: tables, bus, constraints, `cpu::execute` and `cpu::prove` of an `isa::Program` and its witness streams; `cpu::verify` wraps `verifier`; the tree's `isa::Prover` |
 
-Paths below such as `crates/lean_vm_core` mean the crate in either tree. `crates/lean_vm/src/lib.rs` is the only thing a user imports: every other crate is `publish = false`, so a new user-facing item is a re-export there, and `crates/lean_vm/tests/api.rs` is its end-to-end use. A re-exported type brings its `pub` methods along, so one the workspace needs but users should not see is `#[doc(hidden)] pub fn __name`, the double underscore marking it internal at every call site. The guest is zkDSL, `guests/lean_ethereum.py`. The benchmark CLI is `bench/` (`leanvm-bench`), run with `cargo leanvm-bench --prover stable|experimental <subcommand>` (`aggregate`, `recursion`, `fibonacci`; the prover is required, with no default), the benchmarks generic over the prover.
+Paths below such as `crates/lean_vm_core` mean the crate in either tree. `crates/lean_vm/src/lib.rs` is the only thing a user imports: every other crate is `publish = false`, so a new user-facing item is a re-export there, and `crates/lean_vm/tests/api.rs` is its end-to-end use. A re-exported type brings its `pub` methods along, so one the workspace needs but users should not see is `#[doc(hidden)] pub fn __name`, the double underscore marking it internal at every call site. The guest is zkDSL, `guests/lean_ethereum.py`. The benchmark CLI is `bench/` (`leanvm-bench`), run with `cargo leanvm-bench --prover stable|experimental <subcommand>` (`aggregate`, `recursion`, `fibonacci`; the prover is required, with no default), the benchmarks generic over the prover. The sidecar is `bins/leanvm-sidecar`, which serves `aggregate` over a Unix socket so that clients in any language get the prover in a process of its own; its `README.md` is the protocol's specification, so a change to `crates/sidecar`'s `wire.rs`, or to the claims' byte form (`AggregateClaims::to_bytes`), lands there, and verifying stays in the library.
 
 ## Building and testing
 
@@ -67,11 +68,11 @@ cargo fmt --all                   # max_width = 120
 cargo machete --with-metadata     # unused dependencies, dev ones included
 ```
 
-An x86-only `cfg` arm never compiles on an Apple machine, so type-check the other target before pushing anything `cfg`-gated (needs only `rustup target add x86_64-unknown-linux-gnu`; `bench_harness` and the CLI are left out because jemalloc's build script wants a cross `gcc`):
+An x86-only `cfg` arm never compiles on an Apple machine, so type-check the other target before pushing anything `cfg`-gated (needs only `rustup target add x86_64-unknown-linux-gnu`; `bench_harness`, the benchmark CLI and the sidecar are left out because jemalloc's build script wants a cross `gcc`):
 
 ```bash
 RUSTFLAGS="-C target-cpu=znver4" \
-  cargo check --release --workspace --exclude leanvm-bench --exclude bench_harness --target x86_64-unknown-linux-gnu
+  cargo check --release --workspace --exclude leanvm-bench --exclude leanvm-sidecar --exclude bench_harness --target x86_64-unknown-linux-gnu
 ```
 
 `RUSTFLAGS` replaces `.cargo/config.toml`'s `target-cpu=native`; a target-specific `CARGO_TARGET_*_RUSTFLAGS` would be merged with it and hand the Apple CPU to the x86 target.
