@@ -95,7 +95,86 @@ noncomputable def sigSemArgsB : Bool :=
   (List.range nFns).all fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
     Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)
 
-theorem sigSemArgsB_eq : sigSemArgsB = true := by decide +kernel
+private theorem all_drop_step {α : Type} {p : α → Bool} {l : List α} {n k : ℕ}
+    (hc : ((l.drop (n * k)).take n).all p = true) (ht : (l.drop (n * (k + 1))).all p = true) :
+    (l.drop (n * k)).all p = true := by
+  rw [← List.take_append_drop n (l.drop (n * k)), List.all_append, hc, List.drop_drop, Bool.true_and]
+  rwa [Nat.mul_succ] at ht
+
+private theorem sigSem0 : (((List.range nFns).drop (100 * 0)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem1 : (((List.range nFns).drop (100 * 1)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem2 : (((List.range nFns).drop (100 * 2)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem3 : (((List.range nFns).drop (100 * 3)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem4 : (((List.range nFns).drop (100 * 4)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem5 : (((List.range nFns).drop (100 * 5)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem6 : (((List.range nFns).drop (100 * 6)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem7 : (((List.range nFns).drop (100 * 7)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem8 : (((List.range nFns).drop (100 * 8)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem9 : (((List.range nFns).drop (100 * 9)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem10 : (((List.range nFns).drop (100 * 10)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem11 : (((List.range nFns).drop (100 * 11)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem12 : (((List.range nFns).drop (100 * 12)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem13 : (((List.range nFns).drop (100 * 13)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem14 : (((List.range nFns).drop (100 * 14)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem15 : (((List.range nFns).drop (100 * 15)).take 100).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+private theorem sigSem16 : ((List.range nFns).drop (100 * 16)).all (fun j ↦ (glob.sig j).sem.all fun s ↦ s.2.all fun o ↦
+    Nat.ble 2 o && Nat.blt o (2 + (glob.sig j).nargs)) = true := by
+  decide +kernel
+
+/-- `sigSemArgsB`, a hundred functions at a time (the last check takes the rest). -/
+theorem sigSemArgsB_eq : sigSemArgsB = true :=
+  all_drop_step (k := 0) sigSem0 <| all_drop_step sigSem1 <| all_drop_step sigSem2 <| all_drop_step sigSem3 <|
+    all_drop_step sigSem4 <| all_drop_step sigSem5 <| all_drop_step sigSem6 <| all_drop_step sigSem7 <|
+    all_drop_step sigSem8 <| all_drop_step sigSem9 <| all_drop_step sigSem10 <| all_drop_step sigSem11 <|
+    all_drop_step sigSem12 <| all_drop_step sigSem13 <| all_drop_step sigSem14 <| all_drop_step sigSem15 sigSem16
 
 /-- **Every function's semantic tuples read only its argument words**: their cells are argument
 cells (and a tuple's relation, `SemRel glob t rd ws`, reads only the memory and the words). -/

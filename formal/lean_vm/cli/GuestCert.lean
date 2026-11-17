@@ -3797,9 +3797,18 @@ def chainedFiles (fns : List (ℕ × String × ℕ)) : List (System.FilePath × 
     "public import LeanVM.Guest.B2C.ChainDefs\npublic import Mathlib.Tactic.IntervalCases\n" ++
     String.join (files.toList.map fun (p, _) => s!"public import LeanVM.Guest.B2C.Chained.{(p.fileStem.getD "")}\n") ++
     "\nnamespace LeanVM.Guest.B2C.Chained\n\n@[expose] public section\n\n" ++ oks ++
-    s!"/-- The functions with chains are `{jsText}`. -/
-theorem chained_only : (List.range nFns).all (fun j ↦ (plumbOf j).chains.isEmpty || {jsText}.contains j) = true := by
+    s!"/-- The functions with chains are `{jsText}`, read off `Data.plumbs` in one pass (indexing it by `plumbOf`
+for each function is quadratic in the kernel). -/
+theorem chained_plumbs : Data.plumbs.zipIdx.all (fun p ↦ p.1.chains.isEmpty || {jsText}.contains p.2) = true := by
   decide +kernel
+
+theorem plumbs_length : nFns ≤ Data.plumbs.length := by decide +kernel
+
+/-- The functions with chains are `{jsText}`. -/
+theorem chained_only : (List.range nFns).all (fun j ↦ (plumbOf j).chains.isEmpty || {jsText}.contains j) = true :=
+  List.all_eq_true.mpr fun j hj ↦ List.all_eq_true.mp chained_plumbs (plumbOf j, j) <|
+    List.mem_zipIdx_iff_getElem?.mpr <| nth_eq_getElem? _ <|
+      Nat.lt_of_lt_of_le (List.mem_range.mp hj) plumbs_length
 
 /-- **Every compiled function passes the chained `match`es' check.** -/
 theorem chainOk_all : ∀ j, 1 ≤ j → j < nFns → ChainOk j := fun j _ hj ↦ by
