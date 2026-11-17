@@ -211,6 +211,10 @@ import Quantum.StdModel.Formats
 import Quantum.StdModel.Props
 import Quantum.Par.Subst
 import Quantum.Qrom.SufCma.GamePar
+import Quantum.Qrom.Xmss.Multi.GameT
+import Quantum.Qrom.Xmss.Multi.GameTSel
+import Quantum.Qrom.Xmss.Multi.GameTCalls
+import Quantum.Qrom.Xmss.Multi.GameTFacts
 import Quantum.Qrom.SufCma.MultiOne
 import Quantum.Qrom.Xmss.Multi.NoReuse
 import Quantum.Qrom.Xmss.Multi.Memo
