@@ -59,23 +59,37 @@ def agreeC (n m : ℕ) (r : FoldRound) (VA QA : AV) : List (Fin n) :=
 def winPtsC {n : ℕ} (d : ℕ) (QA : AV) (cols : List (Fin n)) (k : ℕ) : List (K × E) :=
   (cols.take (d + 3)).map fun (x : Fin n) ↦ (K.ofBits x, (QA.getD x #[]).getD k 0)
 
+/-- Every lane's one-error decoding on the window. -/
+def decFs {n : ℕ} (d m : ℕ) (QA : AV) (cols : List (Fin n)) : Array (Option (List K × List E)) :=
+  Array.ofFn fun k : Fin (2 ^ (m + 1)) ↦ decode1K d (winPtsC d QA cols k)
+
+/-- The decoded lanes' values on the `n` columns. -/
+def valsOf (n m : ℕ) (fs : Array (Option (List K × List E))) : AV :=
+  Array.ofFn fun x : Fin n ↦ Array.ofFn fun k : Fin (2 ^ (m + 1)) ↦
+    nEvalK ((fs.getD k none).getD ([], [])).1 ((fs.getD k none).getD ([], [])).2 (K.ofBits x)
+
+/-- The columns of `cols` where the values disagree with the word. -/
+def badCols {n : ℕ} (m : ℕ) (QA : AV) (cols : List (Fin n)) (V : AV) : List (Fin n) :=
+  cols.filter fun (x : Fin n) ↦
+    let vx := V.getD x #[]
+    let qx := QA.getD x #[]
+    (List.finRange (2 ^ (m + 1))).any fun k ↦
+      let a := vx.getD k 0
+      let b := qx.getD k 0
+      !decide (a = b)
+
+/-- The values kept if they disagree with the word on one column at most. -/
+def checkStage {n : ℕ} (m : ℕ) (QA : AV) (cols : List (Fin n)) (V : AV) : Option AV :=
+  if (badCols m QA cols V).length ≤ 1 then some V else none
+
+/-- The decoded lanes' values, if every lane decodes. -/
+def decStage (n m : ℕ) (QA : AV) (cols : List (Fin n)) (fs : Array (Option (List K × List E))) :
+    Option AV :=
+  if fs.all (·.isSome) then checkStage m QA cols (valsOf n m fs) else none
+
 /-- **One-error decoding over arrays, nodes in `K`.** -/
 def newtonDecC (n d m : ℕ) (QA : AV) (cols : List (Fin n)) : Option AV :=
-  if d + 3 ≤ cols.length then
-    let fs := Array.ofFn fun k : Fin (2 ^ (m + 1)) ↦ decode1K d (winPtsC d QA cols k)
-    if fs.all (·.isSome) then
-      let V := Array.ofFn fun x : Fin n ↦ Array.ofFn fun k : Fin (2 ^ (m + 1)) ↦
-        nEvalK ((fs.getD k none).getD ([], [])).1 ((fs.getD k none).getD ([], [])).2 (K.ofBits x)
-      if (cols.filter fun (x : Fin n) ↦
-          let vx := V.getD x #[]
-          let qx := QA.getD x #[]
-          (List.finRange (2 ^ (m + 1))).any fun k ↦
-            let a := vx.getD k 0
-            let b := qx.getD k 0
-            !decide (a = b)).length ≤ 1 then some V
-      else none
-    else none
-  else none
+  if d + 3 ≤ cols.length then decStage n m QA cols (decFs d m QA cols) else none
 
 theorem bne_eq_not_decide (a b : E) : (a != b) = !decide (a = b) := by
   rw [bne, beq_eq_decide]
@@ -90,7 +104,7 @@ theorem winPtsA_domain {κ R : ℕ} (h : κ + R ≤ 64) (d : ℕ) (QA : AV)
 theorem newtonDecC_eq {κ R : ℕ} (h : κ + R ≤ 64) (d m : ℕ) (QA : AV)
     (cols : List (Fin (2 ^ (κ + R)))) :
     newtonDecC (2 ^ (κ + R)) d m QA cols = newtonDecA (domain κ R h) d m QA cols := by
-  unfold newtonDecC newtonDecA
+  unfold newtonDecC newtonDecA decStage checkStage badCols valsOf decFs
   have hfs : (Array.ofFn fun k : Fin (2 ^ (m + 1)) ↦ decode1 d (winPtsA (domain κ R h) d QA cols k)) =
       (Array.ofFn fun k : Fin (2 ^ (m + 1)) ↦ decode1K d (winPtsC d QA cols k)).map
         (Option.map fun f ↦ (f.1.map ofK, f.2)) := by

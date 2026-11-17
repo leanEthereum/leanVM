@@ -43,6 +43,16 @@ cost_compile agreeCC := agreeC
 
 cost_compile winPtsCC := @winPtsC
 
+cost_compile decFsC := @decFs
+
+cost_compile valsOfC := valsOf
+
+cost_compile badColsC := @badCols
+
+cost_compile checkStageC := @checkStage
+
+cost_compile decStageC := decStage
+
 cost_compile newtonDecCC := newtonDecC
 
 cost_compile descRevCC := descRevC
