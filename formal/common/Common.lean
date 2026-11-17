@@ -18,6 +18,7 @@ import Common.XmssCost
 import Common.SphincsCost
 import Common.WithHashBridge
 import Common.ByteArray
+import Common.MultiKey.Main
 
 /-! The random-permutation model and the indifferentiability of the sponge (Keccak-256) from a
 random oracle, with one oracle (`H`) or two (`H` and direct permutation calls `F`), the
@@ -37,6 +38,11 @@ axioms. -/
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Common.SufCma.stronglyUnforgeable_of_romBoundAdv
+
+/-- info: 'Common.SufCma.MultiKey.multiKeyStronglyUnforgeable_of_romBoundAdv' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Common.SufCma.MultiKey.multiKeyStronglyUnforgeable_of_romBoundAdv
 
 /-- info: 'Common.transfer' depends on axioms:
 [propext, Classical.choice, Quot.sound] -/
