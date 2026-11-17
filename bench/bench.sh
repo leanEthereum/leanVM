@@ -27,10 +27,10 @@ measure() {
 
 run() {
   local label=$1 threads=$2; shift 2
-  local pool=(env LEANVM_NUM_THREADS="$threads")
-  [ "$threads" = full ] && pool=(env -u LEANVM_NUM_THREADS)
-  echo "=== ${pool[*]:1} leanvm-bench --prover $PROVER $* --cooldown 5 ===" | tee -a "$LOG"
-  "${pool[@]}" "${CARGO_TARGET_DIR:-target}/release/leanvm-bench" --prover "$PROVER" "$@" --cooldown 5 2>&1 | tee "$OUT" | tee -a "$LOG"
+  local count=$threads
+  [ "$threads" = full ] && count=0
+  echo "=== leanvm-bench --prover $PROVER $* --threads $count --cooldown 5 ===" | tee -a "$LOG"
+  "${CARGO_TARGET_DIR:-target}/release/leanvm-bench" --prover "$PROVER" "$@" --threads "$count" --cooldown 5 2>&1 | tee "$OUT" | tee -a "$LOG"
   printf '%s\t%s\t%s\n' "$label" "$threads" "$(measure)" >>"$RESULTS"
   echo | tee -a "$LOG"
 }

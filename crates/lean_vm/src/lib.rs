@@ -43,9 +43,15 @@ pub mod lean_sphincs {
     };
 }
 
-/// Starts the prover's thread pool and builds the aggregation program, which [`AggregateProof::verify`] also reads.
-/// Optional: both are built on first use otherwise.
-pub fn setup() {
+/// Call this function before generating / verifying proofs
+/// Starts the prover's thread pool, with `threads` threads (0: one per core), and builds the aggregation program.
+///
+/// # Panics
+/// If the pool already runs with another thread count.
+pub fn setup(threads: usize) {
+    if threads > 0 {
+        P::set_num_threads(threads);
+    }
     P::init();
     aggregation::unified_guest();
 }
@@ -67,7 +73,6 @@ pub fn setup() {
 ///
 /// # WARNING
 /// - Signatures and children must be valid (children checked with [`AggregateProof::verify`]): otherwise proving fails.
-/// - Call [`setup`] once before the first.
 pub fn aggregate(
     children: &[(AggregateClaims, AggregateProof)],
     raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,

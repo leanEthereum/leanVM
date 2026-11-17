@@ -13,6 +13,9 @@ mod report;
 
 /// Run the CLI's command on prover `P`.
 fn run<P: isa::Prover>(cli: Cli) {
+    if cli.threads > 0 {
+        P::set_num_threads(cli.threads);
+    }
     P::init();
     let plan = bench_harness::Plan::new(cli.repeat, cli.cooldown);
     if cli.tracing && !matches!(&cli.command, Command::Recursion { .. }) {
@@ -77,6 +80,10 @@ struct Cli {
         value_parser = clap::builder::RangedU64ValueParser::<usize>::new().range(1..)
     )]
     repeat: usize,
+
+    /// Thread count (0: one per core).
+    #[arg(long, global = true, default_value_t = 0)]
+    threads: usize,
 
     /// Idle seconds before each measured pass.
     #[arg(long, global = true, default_value_t = 2)]

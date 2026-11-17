@@ -16,6 +16,10 @@ impl isa::Prover for ExperimentalProver {
         parallel::init();
     }
 
+    fn set_num_threads(n: usize) {
+        parallel::set_num_threads(n)
+    }
+
     fn prove(
         program: &isa::Program,
         witness: &[(String, Vec<Vec<E>>)],
