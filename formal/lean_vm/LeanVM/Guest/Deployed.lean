@@ -14,7 +14,7 @@ public import LeanVM.Guest.Memory.Fresh
 public import LeanVM.Guest.Memory.LiftPure
 public import LeanVM.Guest.CoreNames
 public import LeanVM.Guest.Data.NameStrings
-public import LeanVM.Guest.Backend.Complete.Count
+public import LeanVM.Compiler.Complete.Count
 
 /-!
 # The deployed guest's frames and counts
@@ -113,7 +113,7 @@ mutual
 /-- The separately counted arms a statement's path passes, under `σ`. -/
 noncomputable def cost1 (acs : List (ℕ × List (List ℕ))) (σ : Val) : Stmt → Opcode → ℕ
   | .ite c z n => if σ c = 0 then costW acs σ z else costW acs σ n
-  | .match_ x arms => costArms acs σ x (Backend.Complete.armRaw acs x.idx) 0 arms
+  | .match_ x arms => costArms acs σ x (Compiler.Complete.armRaw acs x.idx) 0 arms
   | _ => 0
 
 /-- The separately counted arms a block's path passes, under `σ`. -/
@@ -461,7 +461,7 @@ theorem cost1_nil (σ : Val) : ∀ s : Stmt, cost1 [] σ s = 0
   | .ret _ => rfl
 
 theorem costArms_nil (σ : Val) (x : V) : ∀ (k : ℕ) (arms : List (List Stmt)),
-    costArms [] σ x (Backend.Complete.armRaw [] x.idx) k arms = 0
+    costArms [] σ x (Compiler.Complete.armRaw [] x.idx) k arms = 0
   | _, [] => by rw [costArms]
   | k, a :: as => by
     rw [costArms]
@@ -554,7 +554,7 @@ mutual
 /-- The separately counted arms a statement can pass, at most. -/
 def costMax1 (acs : List (ℕ × List (List ℕ))) (op : Opcode) : Stmt → ℕ
   | .ite _ z n => max (costMaxW acs op z) (costMaxW acs op n)
-  | .match_ x arms => keyMax (Backend.Complete.armRaw acs x.idx) op + costMaxArms acs op arms
+  | .match_ x arms => keyMax (Compiler.Complete.armRaw acs x.idx) op + costMaxArms acs op arms
   | _ => 0
 
 /-- The separately counted arms a block can pass, at most. -/
@@ -590,7 +590,7 @@ theorem cost1_le_max : ∀ s : Stmt, cost1 acs σ s op ≤ costMax1 acs op s
     · exact (costW_le_max n).trans (le_max_right _ _)
   | .match_ x arms => by
     rw [cost1, costMax1]
-    exact costArms_le_max x arms 0 (Backend.Complete.armRaw acs x.idx)
+    exact costArms_le_max x arms 0 (Compiler.Complete.armRaw acs x.idx)
   | .call .. => Nat.zero_le _
   | .callIf .. => Nat.zero_le _
   | .dispatch .. => Nat.zero_le _
@@ -685,7 +685,7 @@ mutual
 /-- `costMax1` at every opcode. -/
 def costMaxC1 (acs : List (ℕ × List (List ℕ))) : Stmt → C6
   | .ite _ z n => (costMaxCW acs z).max (costMaxCW acs n)
-  | .match_ x arms => (keyMaxC (Backend.Complete.armRaw acs x.idx)).add (costMaxCArms acs arms)
+  | .match_ x arms => (keyMaxC (Compiler.Complete.armRaw acs x.idx)).add (costMaxCArms acs arms)
   | _ => C6.zero
 
 /-- `costMaxW` at every opcode. -/

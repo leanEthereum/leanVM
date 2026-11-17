@@ -1,7 +1,7 @@
 import LeanVM.Guest.Data.Source
 import Statement.Data.Bytecode
-import LeanVM.Guest.Backend.Invariants
-import LeanVM.Guest.Backend.Lines
+import LeanVM.Compiler.Invariants
+import LeanVM.Compiler.Lines
 import LeanVM.Guest.Interp
 import LeanVMTests.Guest.Programs
 
@@ -10,18 +10,18 @@ import LeanVMTests.Guest.Programs
 
 Run from `lean_vm`.
 
-* `lake exe guest-backend check` compiles the guest's source (`Data.guest`) with `Backend.compile`
+* `lake exe guest-backend check` compiles the guest's source (`Data.guest`) with `Compiler.compile`
   and compares the result with the statement's program, `assemble Data.functions Data.logSize`
   (`Statement/Data/`, `LeanVM.Guest.guestProgram`): the compiled functions against
   `Data.functions`, value for value (`Assembled.toFunctions`), and every slot of the program, the
   padding included (`instructionAtPc`). It fails on any difference and names the first. It
-  also evaluates the back end's invariants (`Backend.invariants`).
+  also evaluates the back end's invariants (`Compiler.invariants`).
 * `lake exe guest-backend functions [N]` is the comparison with every function resolved at the
   statement's layout, so that each function is compared on its own: the count of identical
   functions and instructions when the programs differ, and the first `N` that differ.
 * `lake exe guest-backend export programs DIR [--check]` writes the compiler's test programs
   (`LeanVMTests.Guest.Programs`) in the line format of `crates/isa/src/text.rs`, source lines
-  included (`Backend.Lines`), which the Rust tests compare with the Rust compiler's output
+  included (`Compiler.Lines`), which the Rust tests compare with the Rust compiler's output
   (`crates/zkdsl_compiler/tests/suite/lean_backend.rs`).
   The guest itself is written by `lake exe guest-artifact` (`cli/GuestArtifact.lean`).
 * `lake exe guest-backend time` prints the time of each pass on the guest.
@@ -29,7 +29,7 @@ Run from `lean_vm`.
   the statement's.
 -/
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Backend
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Compiler
 
 namespace GuestBackend
 
@@ -129,7 +129,7 @@ def check : IO UInt32 := do
   let ref := reference
   let sound ← selfChecks "guest" Data.guest
   if sound then IO.println "the back end's invariants hold"
-  let ours ← orThrow (Backend.compile Data.guest)
+  let ours ← orThrow (LeanVM.Compiler.compile Data.guest)
   let same ← report ref ours 20
   let sized := ours.size == 2 ^ Data.logSize && ours.code.size == Data.codeLen && sameFunctions ours
   match firstDifference ours with
@@ -235,7 +235,7 @@ def hasSelList : List Stmt → Bool
 end
 
 /-- What the back end's correctness theorem covers of the guest: every function, since
-`fn_sound` asks nothing of the trace (`Backend.placeSound`); those with no `match` and no
+`fn_sound` asks nothing of the trace (`Compiler.placeSound`); those with no `match` and no
 `dispatch` have no selector obligation. -/
 def coverage : IO UInt32 := do
   let P ← guestCore

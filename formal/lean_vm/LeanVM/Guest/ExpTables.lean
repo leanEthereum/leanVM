@@ -16,7 +16,7 @@ import LeanVM.Guest.Data.Source
 /-!
 # The exponent table
 
-Defined here, apart from B1's proofs, so that the back end's obligations (`Backend/Sound/Obl/GuestU.lean`)
+Defined here, apart from B1's proofs, so that the back end's obligations (`Guest/Compiled/Obl/GuestU.lean`)
 do not import them.
 
 `exponent_tables()` (`lean_ethereum.py`) fills one read-only `HeapBuf(WIN_TAB_AT + WIN_TAB_LEN)`,

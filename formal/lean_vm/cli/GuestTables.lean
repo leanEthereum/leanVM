@@ -1,5 +1,5 @@
-import LeanVM.Guest.Backend.Guest.Input
-import LeanVM.Guest.Backend.Guest.Cpl.Static
+import LeanVM.Guest.Compiled.Input
+import LeanVM.Guest.Compiled.Cpl.Static
 import LeanVM.Guest.Data.NameStrings
 
 /-!
@@ -22,7 +22,7 @@ writes, by compiled function index `j` (`j = i + 1` for entry `i` of the input, 
 fails when it differs.
 -/
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Backend LeanVM.Guest.Backend.GuestInput
+open LeanVM.Guest LeanVM.Guest.Core LeanVM.Compiler LeanVM.Guest.Compiled LeanVM.Guest.Compiled.GuestInput
 
 namespace GuestTables
 

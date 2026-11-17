@@ -10,8 +10,8 @@ module
 public import LeanVM.Guest.EndLoc
 public import LeanVM.Guest.Located.Interface
 public import LeanVM.Guest.PlaceCode
-public import LeanVM.Guest.Backend.Guest.Places
-public import LeanVM.Guest.Backend.Guest.DecoderTables
+public import LeanVM.Guest.Compiled.Places
+public import LeanVM.Guest.Compiled.DecoderTables
 public import LeanVM.Cost.Decoder.GuestTablesCheck
 public import LeanVM.Protocol.Extraction.Run
 
@@ -61,10 +61,10 @@ theorem readIn_powIndex {κ : ℕ} (hκ : κ < 64) (L : MemoryImage κ) :
     readIn (powIndex κ) L = L.read :=
   funext fun a ↦ by rw [readIn, gLogIn_powIndex hκ]; rfl
 
-/-- The word in cell `o` of the frame `fp`, read with `rd`, `0` if none (`Backend.wd`). -/
+/-- The word in cell `o` of the frame `fp`, read with `rd`, `0` if none (`LeanVM.Compiler.wd`). -/
 def wordWith (rd : Reader) (fp : K) (o : ℕ) : E := (rd (fp * addressOfIndex o)).getD 0
 
-/-- The `n` words of the frame `fp` from cell `o`, read with `rd` (`Backend.frameWords`). -/
+/-- The `n` words of the frame `fp` from cell `o`, read with `rd` (`LeanVM.Compiler.frameWords`). -/
 def wordsWith (rd : Reader) (fp : K) (o n : ℕ) : List E := (List.range n).map fun i ↦ wordWith rd fp (o + i)
 
 /-! ## The run, replayed -/
@@ -209,11 +209,11 @@ variable {κ : ℕ} {L : MemoryImage κ} {fp : K}
 /-- **The decided test is the back end's self pointer**, for a function `1 ≤ j < nFns`. -/
 theorem selfTest_iff {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) :
     selfTest L.read j fp = true ↔ 2 ≤ j ∧ ((guestW L).registered (coreOf j).name →
-      Backend.wd L fp (2 + (coreOf j).params.length) = ofK fp) := by
+      LeanVM.Compiler.wd L fp (2 + (coreOf j).params.length) = ofK fp) := by
   have hg : guestRegistered.getD j 0 = 1 ↔
-      (Backend.isLoopName (coreOf j).name && (infoOf j).2.2.1) = true := by
+      (LeanVM.Compiler.isLoopName (coreOf j).name && (infoOf j).2.2.1) = true := by
     rw [← guestRegistered_eq j h1 h2, beq_iff_eq]
-  have hr := Backend.registered_tfOf (L := L) Backend.guest_compiles h1 h2
+  have hr := LeanVM.Guest.Compiled.registered_tfOf (L := L) LeanVM.Guest.Compiled.guest_compiles h1 h2
   rw [← hg] at hr
   unfold selfTest
   rw [guestArgCounts_coreOf h2]
@@ -303,13 +303,13 @@ theorem unfoldsV_replay (hpa : PlacesAgree) {input : PublicInput} {t : Execution
     exact hpre.1 core0_main.1
   have hent : (guestW L).ent (coreOf j).name = guestEntries.getD j 0 := by
     rw [guestEntries_fnOf hj2]
-    exact ent_eq Backend.guest_compiles hj1 hj2
-  have hprog : (guestW L).prog = guestProgram := Backend.guestWorld_prog Backend.guest_compiles
+    exact ent_eq LeanVM.Guest.Compiled.guest_compiles hj1 hj2
+  have hprog : (guestW L).prog = guestProgram := LeanVM.Guest.Compiled.guestWorld_prog LeanVM.Guest.Compiled.guest_compiles
   rw [hent, hprog] at hn
   have hargs : guestArgCounts.getD j 0 = (coreOf j).params.length := guestArgCounts_coreOf hj2
   have hrets : guestRetCounts.getD j 0 = (infoOf j).2.1 := guestRetCounts_eq j hj1 hj2
   obtain ⟨tf', htf', hnm, hreg, hU⟩ := hpre.2.2
-  obtain rfl := tf_eq L Backend.guest_compiles htf' hj1 hj2 hnm
+  obtain rfl := tf_eq L LeanVM.Guest.Compiled.guest_compiles htf' hj1 hj2 hnm
   -- the run entered `j` at `fp`: a candidate
   have hmem : (⟨addressOfIndex (guestEntries.getD j 0), fp⟩ : Registers K) ∈ states :=
     mem_statesIn hS hn ((run_le_of_halts hT hn).trans hfuel)
@@ -344,9 +344,9 @@ theorem unfoldsV_replay (hpa : PlacesAgree) {input : PublicInput} {t : Execution
     have hself := ((selfTest_iff hj1 hj2).mp hself').2
     have hpre' : (guestW L).Pre (coreOf j).name r.fp := by
       refine ⟨hpre.1, hpre.2.1, tfOf j, getElem_mem_guestTraced hj1 hj2, rfl, hself, ?_⟩
-      have hw : Backend.frameWords L r.fp 2 (coreOf j).params.length =
-          Backend.frameWords L fp 2 (coreOf j).params.length := hw1'.trans hw1
-      show (guestW L).U (coreOf j).name (Backend.frameWords L r.fp 2 (coreOf j).params.length)
+      have hw : LeanVM.Compiler.frameWords L r.fp 2 (coreOf j).params.length =
+          LeanVM.Compiler.frameWords L fp 2 (coreOf j).params.length := hw1'.trans hw1
+      show (guestW L).U (coreOf j).name (LeanVM.Compiler.frameWords L r.fp 2 (coreOf j).params.length)
       rw [hw]
       exact hU
     obtain ⟨n', hrun⟩ := run_of_mem_statesIn hS hr
@@ -358,7 +358,7 @@ theorem unfoldsV_replay (hpa : PlacesAgree) {input : PublicInput} {t : Execution
       ⟨safe_of_halts hT hrun, ⟨n', hrun⟩⟩
     obtain ⟨-, -, -, -, ⟨tf'', htf'', hnm', hbody, -⟩, -⟩ :=
       End.globSpec h16 h32 (coreOf j).name r.fp (T - n') hpre' hsr
-    obtain rfl := tf_eq L Backend.guest_compiles htf'' hj1 hj2 hnm'
+    obtain rfl := tf_eq L LeanVM.Guest.Compiled.guest_compiles htf'' hj1 hj2 hnm'
     have hrow : frameVWith states L.read (coreOf j).name args rets =
         fun v ↦ placeWith L.read r.fp ((guestPlaces.getD j #[]).getD v.idx 0) := by
       simp only [frameVWith, hfirst, nameIndex_coreOf hj1 hj2]

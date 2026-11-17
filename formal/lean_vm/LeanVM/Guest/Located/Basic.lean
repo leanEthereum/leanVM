@@ -7,14 +7,14 @@
 
 module
 
-public import LeanVM.Guest.Backend.Guest.End
-public import LeanVM.Guest.Backend.Guest.Compiled
+public import LeanVM.Guest.Compiled.End
+public import LeanVM.Guest.Compiled.Compiled
 
 /-!
 # Frames
 
 A located call (`RLg L`, the back end's located relation `World.C` of the guest's world
-`guestW L`) runs at a frame `g^a` of the memory, `a < 2^κ` (`Backend.InMem`), entered on the run
+`guestW L`) runs at a frame `g^a` of the memory, `a < 2^κ` (`Compiler.InMem`), entered on the run
 from `(g^0, 1)`, under the valuation by the back end's places there (`valAt`, `World.vf`). A
 witness is read off the first frame passing a Boolean test (`firstFrame`). The frame of a call
 (`frameOf`) is the first at which the callee's code holds on the call's words (`BodyAt`), a
@@ -36,8 +36,8 @@ open LeanVM.Protocol.Verifier
 
 /-- **The guest's world on the memory `L`**: the back end's compilation of the guest, its callers'
 preconditions `guestU`. -/
-noncomputable abbrev guestW {κ : ℕ} (L : MemoryImage κ) : Backend.World κ :=
-  Backend.guestEnd Backend.guestFns Backend.guestSlots L
+noncomputable abbrev guestW {κ : ℕ} (L : MemoryImage κ) : Compiler.World κ :=
+  Compiled.guestEnd Compiled.guestFns Compiled.guestSlots L
 
 /-- **The guest's located call relation** on the memory `L`. -/
 noncomputable abbrev RLg {κ : ℕ} (L : MemoryImage κ) : CallRel := (guestW L).C
@@ -66,7 +66,7 @@ theorem firstFrame_some {κ : ℕ} {t : ℕ → Bool} {a : ℕ} (ha : a < 2 ^ κ
 theorem RLg_eq {κ : ℕ} (L : MemoryImage κ) :
     RLg L = coreProgram.RelL L.read (guestW L).vf (guestW L).Entered := by
   show Core.Program.RelL _ _ _ _ = _
-  rw [Backend.guestWorld_core]
+  rw [Compiled.guestWorld_core]
   rfl
 
 /-- The located relation lies below the relation. -/

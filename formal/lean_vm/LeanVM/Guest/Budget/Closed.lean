@@ -8,9 +8,9 @@
 
 module
 
-public import LeanVM.Guest.Backend.Guest.Cpl.Complete
-public import LeanVM.Guest.Backend.Complete.FrameWordsDone
-public import LeanVM.Guest.Backend.Guest.Cpl.Eval.All
+public import LeanVM.Guest.Compiled.Cpl.Complete
+public import LeanVM.Compiler.Complete.FrameWordsDone
+public import LeanVM.Guest.Compiled.Cpl.Eval.All
 
 namespace LeanVM.Guest.Budget
 
@@ -31,7 +31,7 @@ frame side's words (`Complete.frameWords`) and the per-function test of every en
 (`CplEval.cplOkAll`). -/
 theorem guest_complete :
     GuestCompleteWithin (deployedBudget (vsBoundAt Count.vsWordsOs vkBound)) :=
-  Backend.Cpl.guest_complete_backend Backend.Complete.frameWords Backend.CplEval.cplOkAll
+  Compiled.Cpl.guest_complete_backend Compiler.Complete.frameWords Compiled.CplEval.cplOkAll
 
 end
 end LeanVM.Guest.Budget

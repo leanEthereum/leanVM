@@ -81,8 +81,8 @@ theorem guest_complete_numeric : GuestCompleteWithin (deployedBudget deployedBvA
       obtain ⟨ch, hch, rfl⟩ :=
         List.mem_map.mp (show p ∈ w.children.map (childShape bytecode) from hp)
       obtain ⟨h1, h2, h3, h4⟩ := B1.Main.childShape_bounds
-        (Backend.Cpl.vsCompleteHyp_at (Backend.Cpl.runsFitG Backend.CplEval.cplOkAll)
-          (Backend.Cpl.runsConsecG Backend.CplEval.cplOkAll)) hok hch
+        (Compiled.Cpl.vsCompleteHyp_at (Compiled.Cpl.runsFitG Compiled.CplEval.cplOkAll)
+          (Compiled.Cpl.runsConsecG Compiled.CplEval.cplOkAll)) hok hch
       exact (vsBoundAt_eq_deployedBvAt h1 h2 h3 h4).le
 
 /-- The largest child's words: `μ = 30`. -/

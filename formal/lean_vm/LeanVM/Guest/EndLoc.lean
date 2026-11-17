@@ -12,7 +12,7 @@ public import LeanVM.Guest.Located.Basic
 /-!
 # `main` at its frame
 
-B2 is the back end's correctness at the guest (`Backend.guest_main_body`, `Backend.contracts`),
+B2 is the back end's correctness at the guest (`Compiled.guest_main_body`, `Compiler.contracts`),
 given that the back end compiles the guest to the statement's bytecode (`guest_compiles`):
 
 * `globSpec`: every function's contract on the guest's world `Located.guestW L` (entry
@@ -32,24 +32,24 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash
 @[expose] public section
 
 /-- **Every function's contract** on the guest's world, on the run from `(g^0, 1)`, for runs of any
-length (`Backend.contracts`, with every function's obligations `Backend.Obl.guest_obligations`). -/
+length (`Compiler.contracts`, with every function's obligations `Compiled.Obl.guest_obligations`). -/
 theorem globSpec {κ : ℕ} {L : MemoryImage κ} (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
     (g : String) :
     FunSpecReached guestProgram L ((Located.guestW L).ent g) ((Located.guestW L).Pre g)
       ((Located.guestW L).Post g) := by
-  have hW := Backend.guestWorld_compiled (L := L) (U := Backend.Obl.guestU L.read)
-    Backend.guest_compiles
-  have h := Backend.contracts hW (lt_of_le_of_lt h32 Backend.maxLogMem_lt)
-    (Backend.Obl.guest_obligations hW Backend.guestTraced_core ⟨h16, h32⟩ rfl) g
-  rw [Backend.guestWorld_prog Backend.guest_compiles] at h
+  have hW := Compiled.guestWorld_compiled (L := L) (U := Compiled.Obl.guestU L.read)
+    Compiled.guest_compiles
+  have h := Compiler.contracts hW (lt_of_le_of_lt h32 Compiled.maxLogMem_lt)
+    (Compiled.Obl.guest_obligations hW Compiled.guestTraced_core ⟨h16, h32⟩ rfl) g
+  rw [Compiled.guestWorld_prog Compiled.guest_compiles] at h
   exact h
 
-/-- **B2 at `main`, located, for a halting run from `(g^0, 1)`** (`Backend.guest_main_body`). -/
+/-- **B2 at `main`, located, for a halting run from `(g^0, 1)`** (`Compiled.guest_main_body`). -/
 theorem mainBodyL_of_safe {κ : ℕ} {L : MemoryImage κ} (h16 : minLogMem ≤ κ) (h32 : κ ≤ maxLogMem)
     {k : ℕ} (hs : Safe guestProgram L k ⟨addressOfIndex 0, 1⟩) :
     Stmt.HoldsList (Located.RLg L) L.read (Located.mainVal L) Data.core0.body False
       (fun rs ↦ rs = []) :=
-  Backend.guest_main_body Backend.guest_compiles κ L h16 h32 k hs
+  Compiled.guest_main_body Compiled.guest_compiles κ L h16 h32 k hs
 
 /-- **B2 at `main`, located, for a valid execution**: `main`'s body under its frame's valuation,
 its calls located, and the public input's cells at `g^0`, `g^1`. -/

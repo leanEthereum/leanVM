@@ -1,5 +1,5 @@
 //! The test programs compiled twice: by this crate, and by the compiler's back end written in Lean
-//! (`formal/lean_vm/LeanVM/Guest/Backend`), whose output is checked in (`lean_backend/*.txt`, written from
+//! (`formal/lean_vm/LeanVM/Compiler`), whose output is checked in (`lean_backend/*.txt`, written from
 //! `formal/lean_vm` by `lake exe guest-backend export programs ../../crates/zkdsl_compiler/tests/suite/lean_backend`).
 //! The two are the same bytecode under the same hints and source lines, and what Lean compiled runs and proves on
 //! this VM.

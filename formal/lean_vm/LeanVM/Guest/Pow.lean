@@ -7,14 +7,14 @@
 
 module
 
-public import LeanVM.Guest.Backend.Pow
+public import LeanVM.Compiler.Pow
 
 /-!
 # Powers of `g` by digits
 
 The kernel evaluates `gpow e` by square-and-multiply, some thirty products of `K` for an
 exponent of the guest's code size. `gpowW e` takes five, one per hexadecimal digit of `e < 2^20`,
-from the back end's table `Backend.gtab` of the words `g^(d·16^w)` (`gw_eq`, decided once).
+from the back end's table `Compiler.gtab` of the words `g^(d·16^w)` (`gw_eq`, decided once).
 -/
 
 namespace LeanVM.Guest.Pow
@@ -24,7 +24,7 @@ open LeanVM.Parameters LeanVM.Guest
 @[expose] public section
 
 /-- `g^(d·16^w)`, from the table. -/
-def gw (w d : ℕ) : K := K.ofBits (listElementOrDefault (listElementOrDefault Backend.gtab w []) d 0)
+def gw (w d : ℕ) : K := K.ofBits (listElementOrDefault (listElementOrDefault Compiler.gtab w []) d 0)
 
 /-- `g^e` for `e < 2^20`, by the hexadecimal digits of `e`. -/
 def gpowW (e : ℕ) : K :=
@@ -121,7 +121,7 @@ theorem ofBits_mulN (a b : ℕ) : K.ofBits (mulN a b) = K.ofBits a * K.ofBits b 
   rfl
 
 /-- `gw` as a word in `ℕ`. -/
-def gwN (w d : ℕ) : ℕ := listElementOrDefault (listElementOrDefault Backend.gtab w []) d 0
+def gwN (w d : ℕ) : ℕ := listElementOrDefault (listElementOrDefault Compiler.gtab w []) d 0
 
 /-- `gpowW` on words in `ℕ`. -/
 def gpowN (e : ℕ) : ℕ :=

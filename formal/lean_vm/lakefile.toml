@@ -154,7 +154,7 @@ name = "test-runs"
 root = "TestRuns"
 srcDir = "cli"
 
-# The guest's back end in Lean (`LeanVM/Guest/Backend/`), compiled (cli/GuestBackend.lean): the
+# The guest's back end in Lean (`LeanVM/Compiler/`), compiled (cli/GuestBackend.lean): the
 # guest's source through `Expand` and the back end to leanISA bytecode and prover hints, compared
 # with `Statement/Data/` or written out for the Rust comparison; not a default target.
 [[lean_exe]]
@@ -171,7 +171,7 @@ root = "GuestArtifact"
 srcDir = "cli"
 
 # The guest as the back end's input with `coreProgram`'s functions (cli/GuestTraced.lean): writes the
-# traces of `LeanVM/Guest/Backend/Guest/`, or checks them and the back end's output on them; not a
+# traces of `LeanVM/Guest/Compiled/`, or checks them and the back end's output on them; not a
 # default target.
 [[lean_exe]]
 name = "guest-traced"
@@ -179,7 +179,7 @@ root = "GuestTraced"
 srcDir = "cli"
 
 # The kernel-checked pieces of the guest's compilation by the back end (cli/GuestPieces.lean):
-# writes `LeanVM/Guest/Backend/Guest/Piece/` and `Compiled.lean`, or checks them; not a default
+# writes `LeanVM/Guest/Compiled/Piece/` and `Compiled.lean`, or checks them; not a default
 # target.
 [[lean_exe]]
 name = "guest-pieces"
@@ -193,7 +193,7 @@ name = "guest-cplframe"
 root = "GuestCplFrame"
 srcDir = "cli"
 
-# The kernel's per-function completeness checks of the guest: writes Guest/Backend/Guest/Cpl/Eval/
+# The kernel's per-function completeness checks of the guest: writes Guest/Compiled/Cpl/Eval/
 # (`--check` compares). Not a default target.
 [[lean_exe]]
 name = "guest-cpleval"

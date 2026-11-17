@@ -9,7 +9,7 @@ public import LeanVM.Guest.CoreData
 The literal tables of `GuestTables.lean` are the guest's: for every function `j < nFns`, its entry
 pc (`(fnOf j).entryPc`) and its number of arguments (`(coreOf j).params.length`), each table one
 equality of lists the kernel evaluates, one number a function. The return counts and the
-registered flags are the back end's input's (`Backend/Guest/DecoderTables.lean`).
+registered flags are the back end's input's (`Guest/Compiled/DecoderTables.lean`).
 -/
 
 namespace LeanVM.Cost.Decoder
