@@ -36,7 +36,8 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Compiler LeanVM
 @[expose] public section
 
 /-- What the back end's input holds of function `j ≥ 1` besides its core function. -/
-noncomputable def infoOf (j : ℕ) : Array Event × Nat × Bool × Option Nat := GuestData.guestInfo.getD (j - 1) default
+noncomputable def infoOf (j : ℕ) : Array Event × Nat × (Bool × Option Nat) × List (Nat × E) :=
+  GuestData.guestInfo.getD (j - 1) default
 
 /-! ## Halting runs -/
 
@@ -146,7 +147,8 @@ theorem guestTraced_length : guestTraced.length = coreProgram.length := by
 
 /-- **Entry `j - 1` of the back end's input** is `coreOf j` with `infoOf j`. -/
 theorem guestTraced_getElem {i : ℕ} (hi : i < guestTraced.length) :
-    guestTraced[i] = ⟨coreOf (i + 1), (infoOf (i + 1)).1, (infoOf (i + 1)).2.1, (infoOf (i + 1)).2.2⟩ := by
+    guestTraced[i] = ⟨coreOf (i + 1), (infoOf (i + 1)).1, (infoOf (i + 1)).2.1, (infoOf (i + 1)).2.2.1,
+      (infoOf (i + 1)).2.2.2⟩ := by
   have hc : i < coreProgram.length := by rw [← guestTraced_length]; exact hi
   have hg : i < GuestData.guestInfo.length := by
     rw [GuestData.guestInfo_length]; rw [coreProgram_length] at hc; exact hc
@@ -163,7 +165,7 @@ theorem guestTraced_getElem {i : ℕ} (hi : i < guestTraced.length) :
 /-- **A function of the back end's input** is `coreOf j` with `infoOf j`, `1 ≤ j < nFns`. -/
 theorem mem_guestTraced {tf : TracedFn} (h : tf ∈ guestTraced) :
     ∃ j, 1 ≤ j ∧ j < nFns ∧
-      tf = ⟨coreOf j, (infoOf j).1, (infoOf j).2.1, (infoOf j).2.2⟩ := by
+      tf = ⟨coreOf j, (infoOf j).1, (infoOf j).2.1, (infoOf j).2.2.1, (infoOf j).2.2.2⟩ := by
   obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp h
   refine ⟨i + 1, by omega, ?_, guestTraced_getElem hi⟩
   have := coreProgram_length_succ
@@ -171,7 +173,7 @@ theorem mem_guestTraced {tf : TracedFn} (h : tf ∈ guestTraced) :
   omega
 
 theorem getElem_mem_guestTraced {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) :
-    (⟨coreOf j, (infoOf j).1, (infoOf j).2.1, (infoOf j).2.2⟩ : TracedFn) ∈ guestTraced := by
+    (⟨coreOf j, (infoOf j).1, (infoOf j).2.1, (infoOf j).2.2.1, (infoOf j).2.2.2⟩ : TracedFn) ∈ guestTraced := by
   have hi : j - 1 < guestTraced.length := by
     rw [guestTraced_length]; have := coreProgram_length_succ; omega
   have := guestTraced_getElem hi
@@ -183,7 +185,7 @@ theorem getElem_mem_guestTraced {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns) :
 theorem loopTable_fold_other {g : String} :
     ∀ (l : List TracedFn) (t : Loops), (∀ x ∈ l, x.core.name ≠ g) →
       (l.foldl (fun table tf => if isLoopName tf.core.name then
-        table.insert tf.core.name ⟨tf.loop.1, tf.loop.2⟩ else table) t)[g]? = t[g]?
+        table.insert tf.core.name ⟨tf.loop.1, tf.loop.2, tf.consts⟩ else table) t)[g]? = t[g]?
   | [], _, _ => rfl
   | x :: l, t, h => by
       rw [List.foldl_cons, loopTable_fold_other l _ (fun y hy => h y (List.mem_cons_of_mem _ hy))]
@@ -191,11 +193,12 @@ theorem loopTable_fold_other {g : String} :
       · rw [KMap.getElem?_insert, ite_eq_right (Ne.symm (h x List.mem_cons_self))]
       · rfl
 
-/-- **A function's entry in the loop table**: it is a loop helper's name, with its `loopSource`. -/
+/-- **A function's entry in the loop table**: it is a loop helper's name, with its `loopSource`
+and its constant parameters. -/
 theorem loopTable_get {p : List TracedFn} (hnd : (p.map (·.core.name)).Nodup) {tf : TracedFn}
     (htf : tf ∈ p) :
     (loopTable p)[tf.core.name]? =
-      if isLoopName tf.core.name then some ⟨tf.loop.1, tf.loop.2⟩ else none := by
+      if isLoopName tf.core.name then some ⟨tf.loop.1, tf.loop.2, tf.consts⟩ else none := by
   obtain ⟨s, t, rfl⟩ := List.append_of_mem htf
   have hnd' := hnd
   simp only [List.map_append, List.map_cons] at hnd'
@@ -286,7 +289,7 @@ theorem guestTraced_nodup (L : MemoryImage κ) (h : GuestCompiles fns slots) :
 
 /-- Function `j` as the back end's input holds it. -/
 noncomputable abbrev tfOf (j : ℕ) : TracedFn :=
-  ⟨coreOf j, (infoOf j).1, (infoOf j).2.1, (infoOf j).2.2⟩
+  ⟨coreOf j, (infoOf j).1, (infoOf j).2.1, (infoOf j).2.2.1, (infoOf j).2.2.2⟩
 
 theorem tf_eq (L : MemoryImage κ) (h : GuestCompiles fns slots) {tf : TracedFn}
     (htf : tf ∈ guestTraced) {j : ℕ} (h1 : 1 ≤ j) (h2 : j < nFns)

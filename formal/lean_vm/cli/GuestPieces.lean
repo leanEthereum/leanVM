@@ -21,6 +21,9 @@ it) with the back end, natively, and writes what the kernel checks of it, functi
   declaration for a run of functions of at most `maxDecl` instructions, `maxModule` instructions a
   module; `Guest/Compiled/Piece/Jt{c}.lean`: chunk `c` of `__jump_tables`, in `jtParts` parts;
   `Guest/Compiled/Piece/Checks.lean` and `Names.lean`: the checks on numbers and names;
+  `Guest/Compiled/Piece/Consts{k}.lean`: the check that the loop helpers' constant parameters are
+  right of the core program (`ConstsOk`), `constsIn … a b = true` for a range of functions of at
+  most `maxConsts` instructions a module;
 * `Guest/Compiled/Compiled.lean`: `GuestCompiles guestFns guestSlots` from them
   (`compiles_of_pieces`), given the pieces of the functions `bigNames` lists, which are not written
   as one piece (`BigPieces`).
@@ -45,6 +48,9 @@ def maxDecl : Nat := 2000
 
 /-- A module of pieces has at most this many instructions. -/
 def maxModule : Nat := 16000
+
+/-- A module of the constant parameters' check covers functions of at most this many instructions. -/
+def maxConsts : Nat := 120000
 
 /-- The functions whose one piece is past the memory a module may take: not written as one piece
 but in parts (`Piece/C{j}*.lean`). -/
@@ -90,7 +96,8 @@ def pKMap {κ α : Type} (pk : κ → String) (pa : α → String) (m : KMap κ 
 def pPair (x : Nat × Nat) : String := s!"({x.1}, {x.2})"
 
 def pLoopInfo (li : LoopInfo) : String :=
-  s!"⟨{li.registered}, {match li.hi with | some h => s!"some {h}" | none => "none"}⟩"
+  let cs := li.consts.map fun (k, c) => let (c0, c1) := limbsOf c; s!"({k}, word {c0} {c1})"
+  s!"⟨{li.registered}, {match li.hi with | some h => s!"some {h}" | none => "none"}, {pList cs}⟩"
 
 def pKVal : KVal → String
   | .frameSize => "KVal.frameSize"
@@ -190,6 +197,21 @@ def modules (sizes : List Nat) (rs : List (Nat × Nat)) : List (List (Nat × Nat
   if !cur.isEmpty then out := out.push cur.toList
   return out.toList
 
+/-- Ranges `[a, b)` covering every function, each of at most `maxConsts` instructions or one
+function: the modules of the constant parameters' check. -/
+def constsRanges (sizes : List Nat) : List (Nat × Nat) := Id.run do
+  let mut out : Array (Nat × Nat) := #[]
+  let mut start := 0
+  let mut acc := 0
+  for (sz, j) in sizes.zipIdx do
+    if start < j && maxConsts < acc + sz then
+      out := out.push (start, j)
+      start := j
+      acc := 0
+    acc := acc + sz
+  out := out.push (start, sizes.length)
+  return out.toList
+
 /-! ## The guest's files -/
 
 /-- The test on placed locations each piece also makes: its name and module. -/
@@ -274,6 +296,23 @@ def jtFile (c : Nat) : String :=
     s!"theorem jt_{c}_{q} : jtPartOk layG (baseOf outsG) slotsG Data.f0 {c} {q} = true := by\n  decide +kernel\n\n") ++
   "end\nend LeanVM.Guest.Compiled.GuestPiece\n"
 
+def constsFile (k a b : Nat) : String :=
+  header s!"LeanVM.Guest.Compiled.Piece.Consts{k}"
+    s!"The kernel's check of the constant parameters at the calls of functions {a} to {b - 1}." ++
+  "\nmodule\n\npublic import LeanVM.Guest.Compiled.Piece.Tables\npublic import LeanVM.Compiler.Sound.Compiles\n\n" ++
+  "set_option maxRecDepth 100000\n\n" ++
+  "namespace LeanVM.Guest.Compiled.GuestPiece\n\nopen LeanVM.Compiler LeanVM.Guest\n\n@[expose] public section\n\n" ++
+  s!"/-- The calls of functions {a} to {b - 1} pass the words of the constant parameters they name. -/\n" ++
+  s!"theorem consts_{a}_{b} : constsIn (constsOf loopsG) coreProgram {a} {b} = true := by\n  decide +kernel\n\n" ++
+  "end\nend LeanVM.Guest.Compiled.GuestPiece\n"
+
+/-- The proof of `constsIn (constsOf loopsG) coreProgram 0 n`, gluing the ranges' theorems. -/
+def constsGlue (crs : List (Nat × Nat)) : String :=
+  match crs with
+  | [] => "rfl"
+  | (a, b) :: rest => rest.foldl (init := s!"consts_{a}_{b}") fun t (c, d) =>
+      s!"(constsIn_glue {t}\n      consts_{c}_{d} (by decide) (by decide))"
+
 /-- The proof of `∀ c < m, ∀ q < jtParts, jtPartOk … c q = true` from the theorems `jt_{c}_{q}`
 (`name c q` names them). -/
 def jtCases (indent : String) (m : Nat) (name : Nat → Nat → String) : String :=
@@ -335,10 +374,11 @@ def glueTerm (n : Nat) (rs : List (Nat × Nat)) (big cut : List Nat) (extra : Op
   return term
 
 def compiledFile (n : Nat) (rs : List (Nat × Nat)) (big : List Nat) (cuts : List (Nat × String × Nat))
-    (mods jts : Nat) (extra : Option Extra) : String :=
+    (mods jts : Nat) (crs : List (Nat × Nat)) (extra : Option Extra) : String :=
   let cut := cuts.map (·.1)
   let imports := String.join ((List.range mods).map fun k => s!"public import LeanVM.Guest.Compiled.Piece.P{k}\n") ++
     String.join ((List.range jts).map fun c => s!"public import LeanVM.Guest.Compiled.Piece.Jt{c}\n") ++
+    String.join ((List.range crs.length).map fun k => s!"public import LeanVM.Guest.Compiled.Piece.Consts{k}\n") ++
     String.join (cuts.map fun (j, _, m) => String.join ((List.range m).map fun k =>
       s!"public import LeanVM.Guest.Compiled.Piece.C{j}P{k}\n")) ++
     (if cut.isEmpty then "" else "public import LeanVM.Compiler.Sound.Cut\n")
@@ -370,7 +410,7 @@ def compiledFile (n : Nat) (rs : List (Nat × Nat)) (big : List Nat) (cuts : Lis
   header "LeanVM.Guest.Compiled.Compiled" "The back end compiles the guest to the statement's bytecode, from the kernel-checked pieces." ++
   "\nmodule\n\npublic import LeanVM.Guest.Compiled.World\npublic import LeanVM.Compiler.Sound.Compiles\n" ++
   "public import LeanVM.Guest.Compiled.Piece.Checks\npublic import LeanVM.Guest.Compiled.Piece.Names\n" ++ imports ++
-  s!"\n/-!\n# The guest compiled\n\n`guest_compiles`: `GuestCompiles guestFns guestSlots`, by `compiles_of_pieces` from the pieces of\n`Piece/` and the checks of `Piece/Checks.lean`; {hbigDoc}.\n`guest_program_sound_compiled` is `guest_program_sound` without `GuestCompiles`, and\n`guestWorld_locs` says function `j`'s places in the guest's world are `placedLocs j`, which the\nkernel evaluates; for a function checked in parts, `placedLocs_j` gives them as its walk's last state's.\n-/\n\n" ++
+  s!"\n/-!\n# The guest compiled\n\n`guest_compiles`: `GuestCompiles guestFns guestSlots`, by `compiles_of_pieces` from the pieces of\n`Piece/`, the checks of `Piece/Checks.lean` and the constant parameters' check of `Piece/Consts*.lean` (`guest_consts`); {hbigDoc}.\n`guest_program_sound_compiled` is `guest_program_sound` without `GuestCompiles`, and\n`guestWorld_locs` says function `j`'s places in the guest's world are `placedLocs j`, which the\nkernel evaluates; for a function checked in parts, `placedLocs_j` gives them as its walk's last state's.\n-/\n\n" ++
   "set_option maxRecDepth 100000\n\n" ++
   "namespace LeanVM.Guest.Compiled\n\nopen LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core GuestPiece\n\n@[expose] public section\n\n" ++
   bigDef ++ cutPieces ++ piecesAll ++
@@ -382,11 +422,15 @@ def compiledFile (n : Nat) (rs : List (Nat × Nat)) (big : List Nat) (cuts : Lis
   "  rw [slotsOfOuts_eq]\n  refine jt_of_chunks jt_head fun c hc q hq => ?_\n" ++
   s!"  have hn : Data.f0.chunks.length = {jts} := rfl\n  rw [hn] at hc\n" ++
   jtCases "  " jts (fun c q => s!"jt_{c}_{q}") ++ "\n" ++
+  "/-- **The guest's constant parameters are right of its core program.** -/\n" ++
+  "theorem guest_consts : ConstsOk (constsOf loopsG) (guestTraced.map (·.core)) = true := by\n" ++
+  "  rw [guestTraced_core]\n  refine constsOk_of_in (by decide +kernel) ?_\n  rw [coreProgram_length]\n" ++
+  s!"  exact {constsGlue crs}\n\n" ++
   "/-- **The back end compiles the guest to the statement's bytecode.** -/\n" ++
   s!"theorem guest_compiles {hb}: GuestCompiles guestFns guestSlots := by\n" ++
   "  obtain ⟨fns, hlow, hfun, hsize⟩ := compiles_of_pieces (cfJt := Data.f0) (k := 19) loopsG_eq sigsG_eq\n" ++
-  s!"    layG_eq checks_ok outs_length cfs_length (guest_pieces{hbArg}) slots_ok slots_ne guest_jt size_ok\n" ++
-  "    (by norm_num)\n" ++
+  s!"    layG_eq checks_ok guest_consts outs_length cfs_length (guest_pieces{hbArg}) slots_ok slots_ne guest_jt\n" ++
+  "    size_ok (by norm_num)\n" ++
   "  have hf : guestFns = fns := by rw [guestFns, hlow]; rfl\n" ++
   "  rw [slotsOfOuts_eq] at hlow hfun hsize\n" ++
   "  rw [hf, show guestSlots = slotsG from rfl]\n" ++
@@ -491,7 +535,8 @@ def pTraced (tf : TracedFn) : String :=
     | some h => s!"some {h}"
     | none => "none"
   s!"⟨⟨{tf.core.name.quote}, {pVs tf.core.params}, {pList (tf.core.body.map pStmt)}⟩,\n" ++
-  s!"    {pList (tf.trace.toList.map pEvent)}.toArray,\n    {tf.rets}, ({tf.loop.1}, {loop})⟩"
+  s!"    {pList (tf.trace.toList.map pEvent)}.toArray,\n    {tf.rets}, ({tf.loop.1}, {loop}),\n" ++
+  s!"    {pList (tf.consts.map fun (k, c) => s!"({k}, {pE c})")}⟩"
 
 def pMode : DerefMode → String
   | .cell => ".cell" | .pc => ".pc" | .fp => ".fp"
@@ -521,7 +566,7 @@ def logOf (n : Nat) : Nat := Id.run do
 def testFile (name : String) : IO String := do
   let some t := LeanVMTests.Guest.Programs.all.find? (·.name == name)
     | throw (IO.userError s!"no test program {name}")
-  let P := renamed (← orThrow (Expand.expandProgramTraced t.program))
+  let P := withConstTable (renamed (← orThrow (Expand.expandProgramTraced t.program)))
   let outs ← orThrow (outsOf P)
   let (fns, slots) ← orThrow (lowerProgram P)
   let a := assemble fns slots
@@ -553,6 +598,7 @@ def testFile (name : String) : IO String := do
     s!"theorem {nameId}_compiles : ∃ fns, lowerProgram prog = .ok (fns, slotsOfOuts prog outs) ∧\n" ++
     s!"    (assemble fns (slotsOfOuts prog outs)).toFunctions = cfs ∧\n    (assemble fns (slotsOfOuts prog outs)).size = 2 ^ {k} := by\n" ++
     s!"  have h := compiles_of_pieces (k := {k}) loops_eq sigs_eq lay_eq (by decide +kernel) (by decide +kernel)\n" ++
+    "    (by decide +kernel)\n" ++
     "    (by decide +kernel) (fun j hj => piecesIn_spec pieces j (Nat.zero_le _) hj) (by decide +kernel)\n" ++
     "    (by decide +kernel) jt (by decide +kernel) (by norm_num)\n" ++
     "  have hc : cfs = cfs.headD noFunction :: cfs.tail := rfl\n" ++
@@ -606,6 +652,7 @@ def pHints (hs : List LHint) : String := pList (hs.map pLHint)
 
 def pLOp : LOp → String
   | .mulNextFrame a b c => s!"(LOp.mulNextFrame {a} {b} {c})"
+  | .setNextFrame c c0 c1 => s!"(LOp.setNextFrame {c} {c0} {c1})"
   | .set o k => s!"(LOp.set {o} {pKVal k})"
   | .xor a b c => s!"(LOp.xor {a} {b} {c})"
   | .mul a b c => s!"(LOp.mul {a} {b} {c})"
@@ -617,6 +664,9 @@ def pLOp : LOp → String
 
 def pNats (ns : List Nat) : String := pList (ns.map toString)
 
+def pTriples (xs : List (Nat × Nat × Nat)) : String :=
+  pList (xs.map fun x => "(" ++ toString x.1 ++ ", " ++ toString x.2.1 ++ ", " ++ toString x.2.2 ++ ")")
+
 partial def pPStmt : PStmt → String
   | .op hs o => s!"(PStmt.op {pHints hs} {pLOp o})"
   | .ite hs c bd sfp z he ed one nz =>
@@ -627,8 +677,9 @@ partial def pPStmt : PStmt → String
   | .call hs c =>
       s!"(PStmt.call {pHints hs} ⟨{c.callee.quote}, {c.nfp}, {c.entry}, {c.oc}, {pNats c.args}, " ++
       s!"{pNats c.rets}, {pOpt pCount c.loop}, {c.tail}⟩)"
-  | .loopNext hs callee nfp entry oc one args =>
-      s!"(PStmt.loopNext {pHints hs} {callee.quote} {nfp} {entry} {oc} {one} {pNats args})"
+  | .loopNext hs callee nfp entry oc one args consts =>
+      s!"(PStmt.loopNext {pHints hs} {callee.quote} {nfp} {entry} {oc} {one} {pNats args} " ++
+      s!"{pTriples consts})"
   | .dispatch hs callees nfp jc x entry one first args rets =>
       s!"(PStmt.dispatch {pHints hs} {pStrs callees} {nfp} {jc} {x} {entry} {one} {first} {pNats args} {pNats rets})"
   | .ret hs one => s!"(PStmt.ret {pHints hs} {one})"
@@ -1048,9 +1099,10 @@ def nativeCheck (P : List TracedFn) (outs : List FnOut) (big : List Nat) : IO Bo
       (List.range jtParts).all (jtPartOk l (baseOf outs) slots f0 c) do
     IO.eprintln "a chunk of __jump_tables differs"
     ok := false
-  unless progChecks P loops && slotsOk outs && (tablesEnd outs).len != 0 && outs.length == P.length &&
+  unless progChecks P loops && ConstsOk (constsOf loops) (P.map (·.core)) && slotsOk outs &&
+      (tablesEnd outs).len != 0 && outs.length == P.length &&
       nextPow2 ((tablesEnd outs).len + (outs.map (·.size)).sum + 1) == 2 ^ Data.logSize do
-    IO.eprintln "a check of the program, its slots or its size fails"
+    IO.eprintln "a check of the program, its constant parameters, its slots or its size fails"
     ok := false
   return ok
 
@@ -1076,6 +1128,9 @@ def files (P : List TracedFn) (outs : List FnOut) (extra : Option Extra) :
     out := out.push (pieceDir / s!"P{k}.lean", pieceFile k m names sizes extra)
   for c in List.range jts do
     out := out.push (pieceDir / s!"Jt{c}.lean", jtFile c)
+  let crs := constsRanges sizes
+  for ((a, b), k) in crs.zipIdx do
+    out := out.push (pieceDir / s!"Consts{k}.lean", constsFile k a b)
   let mut cuts : Array (Nat × String × Nat) := #[]
   for j in cutJs do
     let tf := P.getD j default
@@ -1084,7 +1139,7 @@ def files (P : List TracedFn) (outs : List FnOut) (extra : Option Extra) :
     let (fs, piece) ← cutFiles j tf (tablesAt outs j) loops plan chunks extra
     for (n, text) in fs do out := out.push (pieceDir / n, text)
     cuts := cuts.push (j, piece, (fs.filter fun (n, _) => n.startsWith s!"C{j}P").length)
-  out := out.push (compiledPath, compiledFile P.length rs big cuts.toList mods.length jts extra)
+  out := out.push (compiledPath, compiledFile P.length rs big cuts.toList mods.length jts crs extra)
   return (out.toList, big)
 
 end GuestPieces

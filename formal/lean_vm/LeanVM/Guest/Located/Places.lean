@@ -44,7 +44,7 @@ theorem placesAgree_of
   have he : (v.path.isEmpty && v.tag == 0) = true := by simp [hpath, htag]
   simp only [placeVal, he, ↓reduceIte] at h
   rw [h, LeanVM.Guest.Compiled.vf_eq (fns := LeanVM.Guest.Compiled.guestFns) (slots := LeanVM.Guest.Compiled.guestSlots) (L := L)
-    (U := LeanVM.Guest.Compiled.Obl.guestU L.read) (coreOf j).name fp]
+    (U := LeanVM.Guest.Compiled.guestUc L.read) (coreOf j).name fp]
 
 /-- **The decoder's place codes read the guest world's valuation**, on every value of every
 function `1 ≤ j < nFns`. -/

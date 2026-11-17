@@ -12,6 +12,7 @@ public import LeanVM.Guest.Compiled.Cpl.Inst
 public import LeanVM.Guest.Compiled.Cpl.Compose
 public import LeanVM.Compiler.Complete.Fn
 public import LeanVM.Compiler.Complete.PathOps
+public import LeanVM.Compiler.Complete.Consts
 
 /-!
 # The frames and the runs
@@ -248,13 +249,34 @@ theorem frameG (hok : CplOkAll) (hFC : Complete.FrameConsistentStmt) :
     rcases hgood with ⟨htk, σJ, bJ, kJ, hJt, -⟩ | ⟨htk, σJ, hJt⟩
     · exact Or.inl ⟨htk, σJ, bJ, kJ, hJt⟩
     · exact Or.inr ⟨htk, σJ, hJt⟩
+  -- the constant parameters: each call passes its callee's (`Complete.Consts.insts_consts`)
+  have hkcs : ∀ c ∈ calls es, ∀ x ∈ constsOf (loopTable W0.p) c.f, ∀ hk : x.1 < c.args.length,
+      σ c.args[x.1] = x.2 := by
+    intro c hc x hx hk
+    have hCo : ConstsOk (constsOf (loopTable W0.p)) coreProgram = true := by
+      have := lowerProgram_consts W0_compiled.1
+      rwa [show W0.p.map (·.core) = coreProgram by rw [W0_p, guestTraced_core]] at this
+    have hpar := insts_consts hCo T 0 hdr h.toHonest.valid
+      (by rw [hT, ConstsOk.main hCo]; intro x hx; cases hx) I hI
+    rw [ht] at hpar
+    have hkn : KnownHolds σ (entryKnown (constsOf (loopTable W0.p)) (coreOf (i + 1))) :=
+      entryKnown_holds rfl (by rw [F.name]; exact hpar _ F.find)
+    have hcalls := walk_consts (rd := rd) (coreOf (i + 1)).body hkn
+      (List.all_eq_true.mp (Bool.and_eq_true_iff.mp hCo).2 _ (find?_mem F.find).1)
+      (by rw [← F.core, hw'']; exact he)
+    rw [← F.core, hw''] at hcalls
+    have := hcalls c hc x hx
+    rw [List.getElem?_map, List.getElem?_eq_getElem hk] at this
+    exact Option.some.inj this
   refine ⟨fun c hc => ?_, haddr, ?_⟩
   · obtain ⟨i', hi'⟩ := List.mem_iff_getElem?.mp hc
     have hlt : i' < I.kidFps.length := by
       rw [hlen]; exact (List.getElem?_eq_some_iff.mp hi').1
     obtain ⟨-, -, -, -, -, ic, hixc, -⟩ := hkid i' c _ hi' (List.getElem?_eq_getElem hlt)
     exact ⟨ic, hixc⟩
-  refine { hdr0 := ?_, hdr1 := ?_, hdrK := hhdrK, own := hown, len := hlen, kid := ?_, tail := ?_ }
+  refine
+    { hdr0 := ?_, hdr1 := ?_, hdrK := hhdrK, own := hown, len := hlen, kid := ?_, tail := ?_
+      kcs := hkcs }
   · rw [← hgp]; exact (h.toHonest.read_hdr hI).1
   · rw [← hgp]; exact (h.toHonest.read_hdr hI).2
   · intro i' c kfp hc hp

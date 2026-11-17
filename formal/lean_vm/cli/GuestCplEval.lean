@@ -81,7 +81,8 @@ def pStrs (ss : List String) : String := pList (ss.map String.quote)
 def pPair (x : Nat × Nat) : String := s!"({x.1}, {x.2})"
 
 def pLoopInfo (li : LoopInfo) : String :=
-  s!"⟨{li.registered}, {match li.hi with | some h => s!"some {h}" | none => "none"}⟩"
+  let cs := li.consts.map fun (k, c) => let (c0, c1) := limbsOf c; s!"({k}, word {c0} {c1})"
+  s!"⟨{li.registered}, {match li.hi with | some h => s!"some {h}" | none => "none"}, {pList cs}⟩"
 
 def pKVal : KVal → String
   | .frameSize => "KVal.frameSize"
@@ -140,6 +141,7 @@ def pHints (hs : List LHint) : String := pList (hs.map pLHint)
 
 def pLOp : LOp → String
   | .mulNextFrame a b c => s!"(LOp.mulNextFrame {a} {b} {c})"
+  | .setNextFrame c c0 c1 => s!"(LOp.setNextFrame {c} {c0} {c1})"
   | .set o k => s!"(LOp.set {o} {pKVal k})"
   | .xor a b c => s!"(LOp.xor {a} {b} {c})"
   | .mul a b c => s!"(LOp.mul {a} {b} {c})"
@@ -151,6 +153,9 @@ def pLOp : LOp → String
 
 def pNats (ns : List Nat) : String := pList (ns.map toString)
 
+def pTriples (xs : List (Nat × Nat × Nat)) : String :=
+  pList (xs.map fun x => "(" ++ toString x.1 ++ ", " ++ toString x.2.1 ++ ", " ++ toString x.2.2 ++ ")")
+
 partial def pPStmt : PStmt → String
   | .op hs o => s!"(PStmt.op {pHints hs} {pLOp o})"
   | .ite hs c bd sfp z he ed one nz =>
@@ -161,8 +166,9 @@ partial def pPStmt : PStmt → String
   | .call hs c =>
       s!"(PStmt.call {pHints hs} ⟨{c.callee.quote}, {c.nfp}, {c.entry}, {c.oc}, {pNats c.args}, " ++
       s!"{pNats c.rets}, {pOpt pCount c.loop}, {c.tail}⟩)"
-  | .loopNext hs callee nfp entry oc one args =>
-      s!"(PStmt.loopNext {pHints hs} {callee.quote} {nfp} {entry} {oc} {one} {pNats args})"
+  | .loopNext hs callee nfp entry oc one args consts =>
+      s!"(PStmt.loopNext {pHints hs} {callee.quote} {nfp} {entry} {oc} {one} {pNats args} " ++
+      s!"{pTriples consts})"
   | .dispatch hs callees nfp jc x entry one first args rets =>
       s!"(PStmt.dispatch {pHints hs} {pStrs callees} {nfp} {jc} {x} {entry} {one} {first} {pNats args} {pNats rets})"
   | .ret hs one => s!"(PStmt.ret {pHints hs} {one})"
