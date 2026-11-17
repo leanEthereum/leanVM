@@ -63,9 +63,11 @@ pub fn setup() {
 ///
 /// [`AggregateError`] says why there is no proof.
 ///
+/// Calls run one at a time: a second waits for the first.
+///
 /// # WARNING
 /// - Signatures and children must be valid (children checked with [`AggregateProof::verify`]): otherwise proving fails.
-/// - Do not run two `aggregate` calls at once in one process, and call [`setup`] once before the first.
+/// - Call [`setup`] once before the first.
 pub fn aggregate(
     children: &[(AggregateClaims, AggregateProof)],
     raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,

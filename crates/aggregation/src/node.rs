@@ -19,6 +19,7 @@ use lean_sphincs::{LeanSphincsPublicKey, LeanSphincsSignature};
 use lean_vm_core::cpu::{from_scalar, public_input_bytes, to_scalar};
 use lean_xmss::{LeanXmssPublicKey, LeanXmssSignature};
 use primitives::field::F128;
+use std::sync::{Mutex, PoisonError};
 
 /// Aggregate leanXMSS and leanSPHINCS signatures, blobs and the claims of child proofs, on the prover `P`, also
 /// returning the prover's statistics (what the CLI's benchmarks report).
@@ -30,10 +31,12 @@ use primitives::field::F128;
 /// - `log_inv_rate`: the code rate's log, in [`MIN_LOG_INV_RATE`]..=[`MAX_LOG_INV_RATE`];
 ///   higher gives smaller proof size but slower proving time.
 ///
+/// Calls run one at a time: a second waits for the first.
+///
 /// # WARNING
 /// - Signatures and children must be valid (children checked with [`AggregateProof::verify`]):
 ///   otherwise proving fails.
-/// - Do not run two `aggregate` calls at once in one process, and call [`P::init`](Prover::init) once before the first.
+/// - Call [`P::init`](Prover::init) once before the first.
 pub fn aggregate<P: Prover>(
     children: &[(AggregateClaims, AggregateProof)],
     mut raw_lean_xmss: Vec<(LeanXmssPublicKey, lean_xmss::Message, LeanXmssSignature)>,
@@ -42,6 +45,9 @@ pub fn aggregate<P: Prover>(
     output: OutputClaims,
     log_inv_rate: usize,
 ) -> Result<(AggregateClaims, AggregateProof, Stats), AggregateError> {
+    // Two proofs at once would share the pool and hold both proofs' memory.
+    static PROVING: Mutex<()> = Mutex::new(());
+    let _proving = PROVING.lock().unwrap_or_else(PoisonError::into_inner);
     let declare = match output {
         OutputClaims::All => None,
         OutputClaims::Only(claims) => Some(claims),
