@@ -87,9 +87,12 @@ jobs:
       - name: Forbid proof escapes
         run: |
           python3 -I formal/tools/escape-scan.py formal/common
+      # No GitHub cache: lean-action's saves one of about 2.1 GB on every ref, pull requests' too, which evicts the
+      # other jobs' entries from the repository's 10 GB; this one never hit for the same reason. The build is minutes.
       - uses: leanprover/lean-action@v1
         with:
           lake-package-directory: formal/common
+          use-github-cache: false
       - name: Forbid deprecated API
         working-directory: formal/common
         run: |
@@ -120,9 +123,11 @@ jobs:
       # elaborate the root module and with it the `#guard_msgs` check, and
       # `XmssSecurity.Tests.QueryBudget`. The checked-in manifest is used as
       # is: no `lake update`.
+      # No GitHub cache, as in `common`.
       - uses: leanprover/lean-action@v1
         with:
           lake-package-directory: formal/lean_xmss
+          use-github-cache: false
       # Lake replays a cached module's warnings, so a second build lists every one.
       - name: Forbid deprecated API
         working-directory: formal/lean_xmss
