@@ -170,19 +170,17 @@ impl<F: Scalar> FiatShamirState<F> {
         // first lane.
         let mut base = self.clone();
         base.absorb(F::from_limbs([0, 0]), DS_POW_NONCE);
-        let (base, lane) = (base.state, 4 * (base.n_pending - 1));
+        let search = match 4 * (base.n_pending - 1) {
+            0 => keccak256::first_nonce::<0>,
+            4 => keccak256::first_nonce::<4>,
+            8 => keccak256::first_nonce::<8>,
+            12 => keccak256::first_nonce::<12>,
+            lane => unreachable!("a scalar's first lane in the rate, not {lane}"),
+        };
+        let base = base.state;
         // The smallest passing nonce of batch `b`, the nonces `b * BATCH..(b + 1) * BATCH`.
         const BATCH: u64 = 64;
-        let batch = |b: u64| {
-            let mut states = [base; BATCH as usize];
-            for (nonce, state) in (b * BATCH..).zip(&mut states) {
-                state[lane] = nonce;
-            }
-            keccak256::keccak_f_many(&mut states);
-            let pass =
-                |&(nonce, state): &(u64, &[u64; STATE_LANES])| nonce >= from && state[2] & ((1 << bits) - 1) == 0;
-            (b * BATCH..).zip(&states).find(pass).map(|(nonce, _)| nonce)
-        };
+        let batch = |b: u64| search(&base, (b * BATCH).max(from)..(b + 1) * BATCH, 2, (1 << bits) - 1);
         // A short search, a few batches, is not worth a dispatch to the pool.
         let nonce = if bits < 10 {
             (from / BATCH..).find_map(batch)

@@ -3,7 +3,7 @@
 //! tree.
 //!
 //! - [`keccak_f`], the Keccak-f\[1600\] permutation, which the VM's `KECCAK` opcode computes and `keccak_gkr`
-//!   proves, and [`keccak_f_many`], its batched form.
+//!   proves, and [`keccak_f_many`], its batched form; [`first_nonce`], the provers' proof-of-work search over it.
 //! - [`hash`] / [`Hasher`], Keccak-256 over bytes, and [`hash_many`], its batched form over equal-length inputs.
 //! - [`positions`], the permutation one bit position at a time, as `keccak_gkr` proves it.
 //!
@@ -91,7 +91,7 @@ pub const END_BIT: u64 = (PAD_LAST as u64) << 56;
 mod lanes;
 pub mod positions;
 
-pub use lanes::{LANES, digest_halves_from, hash_many, hash_many_from_state, keccak_f_many};
+pub use lanes::{LANES, digest_halves_from, first_nonce, hash_many, hash_many_from_state, keccak_f_many};
 
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
 mod single_avx512;
@@ -366,5 +366,31 @@ mod tests {
             keccak_f(&mut want);
             assert_eq!(got, want);
         }
+    }
+
+    /// The batched nonce search, from unaligned starts and to unaligned ends, against permuting each candidate.
+    #[test]
+    fn first_nonce_matches_keccak_f() {
+        fn check<const AT: usize>(out: usize, mask: u64) {
+            let template: [u64; STATE_LANES] = std::array::from_fn(|i| (i as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15));
+            let pass = |nonce: u64| {
+                let mut state = template;
+                state[AT] = nonce;
+                keccak_f(&mut state);
+                state[out] & mask == 0
+            };
+            for (start, end) in [(0, 200), (3, 61), (17, 18), (5, 5), (u64::MAX - 70, u64::MAX)] {
+                let want = (start..end).find(|&nonce| pass(nonce));
+                assert_eq!(
+                    first_nonce::<AT>(&template, start..end, out, mask),
+                    want,
+                    "{AT} {out} {start}..{end}"
+                );
+            }
+        }
+        check::<0>(2, 0xf);
+        check::<4>(0, 0x7);
+        check::<12>(2, 0x1f);
+        check::<24>(24, 0x3);
     }
 }

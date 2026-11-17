@@ -2,7 +2,8 @@
 //! vector register per state lane: AVX-512 (eight states), AVX2 (four), NEON (two, with the SHA3 instructions where
 //! the target has them), or one at a time elsewhere. Every batched function is byte-identical to its one-input form.
 
-use crate::{END_BIT, OUT_LEN, PAD_FIRST, RATE, RATE_LANES, RC, STATE_LANES, hash_from_state, keccak_f};
+use crate::{END_BIT, OUT_LEN, PAD_FIRST, RATE, RATE_LANES, RC, ROUNDS, STATE_LANES, hash_from_state, keccak_f};
+use core::ops::Range;
 
 /// One state lane across [`Lane::WIDTH`] states. The permutation is written once over this trait.
 pub(crate) trait Lane: Copy {
@@ -37,35 +38,73 @@ pub(crate) trait Lane: Copy {
 /// the lanes χ writes, which schedules better than forming every lane before χ and every parity after it.
 #[inline(always)]
 pub(crate) fn permute<S: Lane>(a: &mut [S; STATE_LANES]) {
-    let mut c: [S; 5] = core::array::from_fn(|x| S::xor5(a[x], a[x + 5], a[x + 10], a[x + 15], a[x + 20]));
+    let mut c = parities(a);
     for &rc in &RC {
-        let d: [S; 5] = core::array::from_fn(|x| S::theta_d(c[(x + 4) % 5], c[(x + 1) % 5]));
-        let t = |i: usize| a[i].xor(d[i % 5]);
-        // Row `y` holds the lanes π sends there, each rotated by its ρ.
-        #[rustfmt::skip]
-        let rows: [[S; 5]; 5] = [
-            [t(0), t(6).rotl::<44>(), t(12).rotl::<43>(), t(18).rotl::<21>(), t(24).rotl::<14>()],
-            [t(3).rotl::<28>(), t(9).rotl::<20>(), t(10).rotl::<3>(), t(16).rotl::<45>(), t(22).rotl::<61>()],
-            [t(1).rotl::<1>(), t(7).rotl::<6>(), t(13).rotl::<25>(), t(19).rotl::<8>(), t(20).rotl::<18>()],
-            [t(4).rotl::<27>(), t(5).rotl::<36>(), t(11).rotl::<10>(), t(17).rotl::<15>(), t(23).rotl::<56>()],
-            [t(2).rotl::<62>(), t(8).rotl::<55>(), t(14).rotl::<39>(), t(15).rotl::<41>(), t(21).rotl::<2>()],
+        round(a, &mut c, rc);
+    }
+}
+
+/// The column parities θ starts from.
+#[inline(always)]
+fn parities<S: Lane>(a: &[S; STATE_LANES]) -> [S; 5] {
+    core::array::from_fn(|x| S::xor5(a[x], a[x + 5], a[x + 10], a[x + 15], a[x + 20]))
+}
+
+/// Row `y` before χ, from `t`, the lanes after θ: the lanes π sends there, each rotated by its ρ.
+#[inline(always)]
+fn row<S: Lane>(y: usize, t: impl Fn(usize) -> S) -> [S; 5] {
+    #[rustfmt::skip]
+    let row = match y {
+        0 => [t(0), t(6).rotl::<44>(), t(12).rotl::<43>(), t(18).rotl::<21>(), t(24).rotl::<14>()],
+        1 => [t(3).rotl::<28>(), t(9).rotl::<20>(), t(10).rotl::<3>(), t(16).rotl::<45>(), t(22).rotl::<61>()],
+        2 => [t(1).rotl::<1>(), t(7).rotl::<6>(), t(13).rotl::<25>(), t(19).rotl::<8>(), t(20).rotl::<18>()],
+        3 => [t(4).rotl::<27>(), t(5).rotl::<36>(), t(11).rotl::<10>(), t(17).rotl::<15>(), t(23).rotl::<56>()],
+        _ => [t(2).rotl::<62>(), t(8).rotl::<55>(), t(14).rotl::<39>(), t(15).rotl::<41>(), t(21).rotl::<2>()],
+    };
+    row
+}
+
+/// One round of θ, ρ, π, χ and ι, `c` holding the column parities of `a` before and after.
+#[inline(always)]
+fn round<S: Lane>(a: &mut [S; STATE_LANES], c: &mut [S; 5], rc: u64) {
+    let d: [S; 5] = core::array::from_fn(|x| S::theta_d(c[(x + 4) % 5], c[(x + 1) % 5]));
+    let t = |i: usize| a[i].xor(d[i % 5]);
+    let rows: [[S; 5]; 5] = core::array::from_fn(|y| row(y, t));
+    for (y, &[b0, b1, b2, b3, b4]) in rows.iter().enumerate() {
+        let mut row = [
+            S::chi(b0, b1, b2),
+            S::chi(b1, b2, b3),
+            S::chi(b2, b3, b4),
+            S::chi(b3, b4, b0),
+            S::chi(b4, b0, b1),
         ];
-        for (y, &[b0, b1, b2, b3, b4]) in rows.iter().enumerate() {
-            let mut row = [
-                S::chi(b0, b1, b2),
-                S::chi(b1, b2, b3),
-                S::chi(b2, b3, b4),
-                S::chi(b3, b4, b0),
-                S::chi(b4, b0, b1),
-            ];
-            if y == 0 {
-                row[0] = row[0].xor(S::splat(rc));
-            }
-            for x in 0..5 {
-                a[5 * y + x] = row[x];
-                c[x] = if y == 0 { row[x] } else { c[x].xor(row[x]) };
-            }
+        if y == 0 {
+            row[0] = row[0].xor(S::splat(rc));
         }
+        for x in 0..5 {
+            a[5 * y + x] = row[x];
+            c[x] = if y == 0 { row[x] } else { c[x].xor(row[x]) };
+        }
+    }
+}
+
+/// Lane `out` of the permutation of `a`, whose column parities are `c`, with the last round computing that lane alone.
+/// The first round stands alone, so a caller permuting many states that differ in a few lanes can hoist the work on
+/// the others out of its loop.
+#[inline(always)]
+fn permute_to_lane<S: Lane>(a: &mut [S; STATE_LANES], mut c: [S; 5], out: usize) -> S {
+    round(a, &mut c, RC[0]);
+    for &rc in &RC[1..ROUNDS - 1] {
+        round(a, &mut c, rc);
+    }
+    let d: [S; 5] = core::array::from_fn(|x| S::theta_d(c[(x + 4) % 5], c[(x + 1) % 5]));
+    let b = row(out / 5, |i: usize| a[i].xor(d[i % 5]));
+    let x = out % 5;
+    let lane = S::chi(b[x], b[(x + 1) % 5], b[(x + 2) % 5]);
+    if out == 0 {
+        lane.xor(S::splat(RC[ROUNDS - 1]))
+    } else {
+        lane
     }
 }
 
@@ -244,6 +283,34 @@ pub fn digest_halves_from(template: &[u64; STATE_LANES], at: usize, values: &[u1
         keccak_f(&mut state);
         *out = u128::from(state[0]) | u128::from(state[1]) << 64;
     }
+}
+
+/// The first of `nonces` that, written into lane `AT` of `template`, leaves lane `out` of the permuted state zero under
+/// `mask`, [`LANES`] nonces at a time. `AT` is a constant so that the work on the lanes no nonce touches, the same in
+/// every state, leaves the loop; the last round computes lane `out` alone.
+pub fn first_nonce<const AT: usize>(
+    template: &[u64; STATE_LANES],
+    nonces: Range<u64>,
+    out: usize,
+    mask: u64,
+) -> Option<u64> {
+    const { assert!(AT < STATE_LANES) };
+    assert!(out < STATE_LANES);
+    let template: [Backend; STATE_LANES] = core::array::from_fn(|i| Backend::splat(template[i]));
+    let mut first = nonces.start;
+    while first < nonces.end {
+        let mut st = template;
+        st[AT] = Backend::load(&core::array::from_fn::<u64, LANES, _>(|l| first.wrapping_add(l as u64)));
+        let c = parities(&st);
+        let mut words = [0; LANES];
+        permute_to_lane(&mut st, c, out).store(&mut words);
+        let n = (nonces.end - first).min(LANES as u64) as usize;
+        if let Some(l) = words[..n].iter().position(|w| w & mask == 0) {
+            return Some(first + l as u64);
+        }
+        first = first.saturating_add(LANES as u64);
+    }
+    None
 }
 
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
