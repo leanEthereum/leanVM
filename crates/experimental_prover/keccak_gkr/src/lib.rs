@@ -86,7 +86,7 @@
 //! of eight positions' weights applied to bit-transposed products (`products_gfni`); elsewhere,
 //! the positions grouped by each byte of their weight (`prover`'s digit buckets).
 //!
-//! The four rounds' sums are binary polynomials of degree at most 173. With AVX-512 and GFNI they
+//! The four rounds' sums are binary polynomials of degree at most 173. With AVX2 and GFNI they
 //! are taken on residues modulo 24 irreducibles of degree 8, where a product is a byte product
 //! (`skip_gfni`).
 
@@ -110,13 +110,15 @@ mod products_gfni;
 mod protocol;
 mod prover;
 pub mod rmfe;
-cfg_select! {
-    all(target_arch = "x86_64", target_feature = "avx512f", target_feature = "avx512bw", target_feature = "gfni") => {
-        mod skip_gfni;
-        mod table_gfni;
-    }
-    _ => {}
-}
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"))]
+mod skip_gfni;
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx512f",
+    target_feature = "avx512bw",
+    target_feature = "gfni"
+))]
+mod table_gfni;
 pub mod witness;
 
 #[cfg(test)]

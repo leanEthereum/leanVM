@@ -1,12 +1,12 @@
-//! The four bit-level rounds' sums over a block, on residues (AVX-512 and GFNI): per [`slot`], the
-//! polynomial [`skip_row`](crate::kernels::skip_row) sums over the block.
+//! The four bit-level rounds' sums over a block, on residues (GFNI, with AVX-512 or AVX2): per
+//! [`slot`], the polynomial [`skip_row`](crate::kernels::skip_row) sums over the block.
 //!
 //! A row's term `w[x] e[x + 1] e[x + 2]`, a weight of 128 coefficients times two embeddings of 24,
 //! has degree at most `127 + 23 + 23 = 173`, and so has a block's sum. A binary polynomial of degree
 //! below 192 is fixed by its residues modulo 24 distinct irreducibles of degree 8, whose product has
 //! degree 192. Its residue modulo one is its value at a root in GF(2^8), the field of GF2P8MULB: a
 //! byte, where a sum is a XOR and a product a byte product. Of the 30 irreducibles of degree 8,
-//! [`POWERS`] takes a root of 24, three registers of eight.
+//! [`POWERS`] takes a root of 24, three registers of eight with AVX-512, six of four with AVX2.
 //!
 //! So nothing is a carry-less product: affine byte maps send the witness's bytes and the weights' to
 //! residues ([`EVAL`], [`WEIGHT`]), and a slot's products are byte products. Once a block, a slot's
@@ -22,6 +22,13 @@ use crate::kernels::{GROUP, SLOTS, slot};
 use crate::rmfe::RMFE;
 use crate::witness::BLOCK_WORDS;
 
+cfg_select! {
+    target_feature = "avx512f" => { type V = __m512i; }
+    _ => { type V = __m256i; }
+}
+/// Quadwords of a [`V`].
+const LANES: usize = size_of::<V>() / 8;
+
 /// Points a polynomial is held at.
 const POINTS: usize = 24;
 const _: () = assert!(
@@ -29,46 +36,63 @@ const _: () = assert!(
     "a slot's sum has more coefficients than the points fix"
 );
 /// Registers of a value: a point to a quadword, a slice to a byte.
-const RESIDUES: usize = POINTS / 8;
+const RESIDUES: usize = POINTS / LANES;
 /// Words of a block's sum at a slot, a polynomial of fewer than `8 * POINTS` coefficients.
 const WORDS: usize = POINTS / 8;
 
-// SAFETY (every wrapper below): AVX-512F and GFNI are enabled at compile time (the module's cfg),
-// and a load or store is of the eight words named.
+/// `$zmm` with AVX-512, else `$ymm`.
+macro_rules! width {
+    ($zmm:expr, $ymm:expr $(,)?) => {
+        // SAFETY: the module's cfg enables AVX2 and GFNI, and the AVX-512 arm's AVX-512F.
+        unsafe {
+            cfg_select! {
+                target_feature = "avx512f" => { $zmm }
+                _ => { $ymm }
+            }
+        }
+    };
+}
 
 /// `x` in every quadword.
 #[inline(always)]
-fn splat(x: u64) -> __m512i {
-    unsafe { _mm512_set1_epi64(x as i64) }
+fn splat(x: u64) -> V {
+    width!(_mm512_set1_epi64(x as i64), _mm256_set1_epi64x(x as i64))
 }
 
 #[inline(always)]
-fn load(words: &[u64; 8]) -> __m512i {
-    unsafe { _mm512_loadu_si512(words.as_ptr().cast()) }
+fn load(words: &[u64; LANES]) -> V {
+    let p = words.as_ptr().cast();
+    // SAFETY (with `width!`'s): `p` is to one `V`, which an unaligned load reads.
+    width!(_mm512_loadu_si512(p), _mm256_loadu_si256(p))
 }
 
 #[inline(always)]
-fn store(v: __m512i) -> [u64; 8] {
-    let mut words = [0; 8];
-    unsafe { _mm512_storeu_si512(words.as_mut_ptr().cast(), v) };
+fn store(v: V) -> [u64; LANES] {
+    let mut words = [0; LANES];
+    let p = words.as_mut_ptr().cast();
+    // SAFETY (with `width!`'s): `p` is to one `V`, which an unaligned store writes.
+    width!(_mm512_storeu_si512(p, v), _mm256_storeu_si256(p, v));
     words
 }
 
 #[inline(always)]
-fn xor(a: __m512i, b: __m512i) -> __m512i {
-    unsafe { _mm512_xor_si512(a, b) }
+fn xor(a: V, b: V) -> V {
+    width!(_mm512_xor_si512(a, b), _mm256_xor_si256(a, b))
 }
 
 /// Each byte of `bytes` through the affine byte map of its quadword of `matrices`.
 #[inline(always)]
-fn map(bytes: __m512i, matrices: __m512i) -> __m512i {
-    unsafe { _mm512_gf2p8affine_epi64_epi8(bytes, matrices, 0) }
+fn map(bytes: V, matrices: V) -> V {
+    width!(
+        _mm512_gf2p8affine_epi64_epi8(bytes, matrices, 0),
+        _mm256_gf2p8affine_epi64_epi8(bytes, matrices, 0),
+    )
 }
 
 /// The byte products.
 #[inline(always)]
-fn mul(a: __m512i, b: __m512i) -> __m512i {
-    unsafe { _mm512_gf2p8mul_epi8(a, b) }
+fn mul(a: V, b: V) -> V {
+    width!(_mm512_gf2p8mul_epi8(a, b), _mm256_gf2p8mul_epi8(a, b))
 }
 
 /// The byte product: binary polynomials modulo `x^8 + x^4 + x^3 + x + 1`.
@@ -128,13 +152,13 @@ const fn byte_map(images: [u8; 8]) -> u64 {
 }
 
 /// A GF(2)-linear map from a byte to a byte per point (or per byte of a polynomial), as affine
-/// byte maps: quadword `k` of register `m` is the matrix to byte `8 m + k`, which a register
+/// byte maps: quadword `k` of register `m` is the matrix to byte `LANES * m + k`, which a register
 /// applies to eight bytes at once.
-type Maps = [[u64; 8]; RESIDUES];
+type Maps = [[u64; LANES]; RESIDUES];
 
 /// `EVAL[h]` sends byte `h` of a pack to the residues of its share of the pack's embedding.
 const EVAL: [Maps; 2] = {
-    let mut maps = [[[0u64; 8]; RESIDUES]; 2];
+    let mut maps = [[[0u64; LANES]; RESIDUES]; 2];
     let mut h = 0;
     while h < 2 {
         let mut i = 0;
@@ -148,7 +172,7 @@ const EVAL: [Maps; 2] = {
                 }
                 c += 1;
             }
-            maps[h][i / 8][i % 8] = byte_map(images);
+            maps[h][i / LANES][i % LANES] = byte_map(images);
             i += 1;
         }
         h += 1;
@@ -158,7 +182,7 @@ const EVAL: [Maps; 2] = {
 
 /// `WEIGHT[a]` sends byte `a` of a weight, a polynomial of 128 coefficients, to its residues.
 const WEIGHT: [Maps; 16] = {
-    let mut maps = [[[0u64; 8]; RESIDUES]; 16];
+    let mut maps = [[[0u64; LANES]; RESIDUES]; 16];
     let mut a = 0;
     while a < 16 {
         let mut i = 0;
@@ -169,7 +193,7 @@ const WEIGHT: [Maps; 16] = {
                 images[b] = POWERS[i][8 * a + b];
                 b += 1;
             }
-            maps[a][i / 8][i % 8] = byte_map(images);
+            maps[a][i / LANES][i % LANES] = byte_map(images);
             i += 1;
         }
         a += 1;
@@ -218,13 +242,13 @@ const CRT: [Maps; POINTS] = {
     }
     // Row `n` sends the residues to coefficient `n`: bit `n % 8` of byte `n / 8`, which a map
     // reads off matrix byte `7 - n % 8`.
-    let mut maps = [[[0u64; 8]; RESIDUES]; POINTS];
+    let mut maps = [[[0u64; LANES]; RESIDUES]; POINTS];
     let mut n = 0;
     while n < N {
         let mut r = 0;
         while r < N {
             let bit = rows[n][WORDS + r / 64] >> (r % 64) & 1;
-            maps[r / 8][n / 64][n / 8 % 8] |= bit << (8 * (7 - n % 8) + r % 8);
+            maps[r / 8][n / 8 / LANES][n / 8 % LANES] |= bit << (8 * (7 - n % 8) + r % 8);
             r += 1;
         }
         n += 1;
@@ -240,8 +264,8 @@ const COLUMNS: u64 = 0x0102_0408_1020_4080;
 /// rounds of interleaving, of bytes, pairs and fours, leave each 128-bit half in its own place.
 #[inline(always)]
 fn transpose_bytes(rows: [[u64; 4]; 8]) -> [u64; 32] {
-    // SAFETY: AVX2 is enabled at compile time (implied by the module's AVX-512F); each load is of a
-    // row, and each store of a half register into two of the 32 words.
+    // SAFETY: AVX2 is enabled at compile time (the module's cfg); each load is of a row, and each
+    // store of a half register into two of the 32 words.
     unsafe {
         let rows: [__m256i; 8] = rows.map(|row| _mm256_loadu_si256(row.as_ptr().cast()));
         let a: [__m256i; 8] = std::array::from_fn(|i| {
@@ -282,25 +306,24 @@ fn transpose_bytes(rows: [[u64; 4]; 8]) -> [u64; 32] {
 
 /// `acc += maps(b)` for each byte `b` of `bytes`, kept in `b`'s byte of every quadword.
 #[inline(always)]
-fn add_mapped(acc: &mut [__m512i; RESIDUES], bytes: u64, maps: &Maps) {
+fn add_mapped(acc: &mut [V; RESIDUES], bytes: u64, maps: &Maps) {
     let bytes = splat(bytes);
     for (acc, matrices) in acc.iter_mut().zip(maps) {
         *acc = xor(*acc, map(bytes, load(matrices)));
     }
 }
 
-/// The factors of a slot's three products, which [`SkipBlock`] extends together: `e[0], e[2], e[4]`
-/// and their cofactors.
+/// The factors of a slot's three products, `e[2], e[4], e[0]`, each followed by its cofactor.
 const FACTORS: usize = 6;
 
-/// [`extend_group`](crate::kernels::extend_group) on registers, for [`FACTORS`] groups at once:
+/// [`extend_group`](crate::kernels::extend_group) on registers, for `F` groups at once:
 /// `output(i, values)` takes output `i` of every group. The nine vectors of four are made one at a
 /// time and passed straight to `output`, so nothing is stored.
 #[inline(always)]
-fn extend8(v: &[[__m512i; GROUP]; FACTORS], mut output: impl FnMut(usize, [__m512i; FACTORS])) {
+fn extend8<const F: usize>(v: &[[V; GROUP]; F], mut output: impl FnMut(usize, [V; F])) {
     for k in 0..9 {
         // Vector `k` of each group: one of its four, or a sum of them.
-        let w: [[__m512i; 4]; FACTORS] = std::array::from_fn(|f| {
+        let w: [[V; 4]; F] = std::array::from_fn(|f| {
             std::array::from_fn(|l| {
                 let q = |k: usize| v[f][4 * k + l];
                 match k {
@@ -327,8 +350,8 @@ fn extend8(v: &[[__m512i; GROUP]; FACTORS], mut output: impl FnMut(usize, [__m51
 }
 
 /// [`skip_row`](crate::kernels::skip_row) over every row and slice of a block, eight slices at a
-/// time, on residues: a register holds a value of eight slices at eight points, so the extension is
-/// a sum of registers and a product of two values is [`RESIDUES`] byte products of registers.
+/// time, on residues: a register holds a value of eight slices at `LANES` points, so the extension
+/// is a sum of registers and a product of two values is [`RESIDUES`] byte products of registers.
 ///
 /// A row's sum `sum over x of w[x] e[x + 1] e[x + 2]` is taken as
 /// `e[2] (w[0] e[1] + w[1] e[3]) + e[4] (w[2] e[3] + w[3] e[0]) + e[0] (w[4] e[1])`: the three
@@ -336,13 +359,13 @@ fn extend8(v: &[[__m512i; GROUP]; FACTORS], mut output: impl FnMut(usize, [__m51
 /// like them, and a slot takes three products.
 pub struct SkipBlock {
     /// Per register of residues and slot, the slot's sum, the eight slices apart.
-    acc: [[__m512i; SLOTS]; RESIDUES],
+    acc: [[V; SLOTS]; RESIDUES],
     /// Per slot, the block's sum.
     sums: [[u64; WORDS]; SLOTS],
     /// The [`FACTORS`]' residues on the group's packs, a register each.
-    values: [[__m512i; GROUP]; FACTORS],
+    values: [[V; GROUP]; FACTORS],
     /// The weights' residues, eight consecutive positions to an entry.
-    weights: Vec<[__m512i; RESIDUES]>,
+    weights: Vec<[V; RESIDUES]>,
 }
 
 impl SkipBlock {
@@ -388,25 +411,35 @@ impl SkipBlock {
     /// Adds to register `m` of the residues group `half` of a row's positions, `bytes` as
     /// [`Self::run`] transposed them, at the row's weights `w`.
     #[inline(always)]
-    fn run_group(&mut self, half: usize, m: usize, bytes: &[[u64; 32]; 5], w: [__m512i; 5]) {
+    fn run_group(&mut self, half: usize, m: usize, bytes: &[[u64; 32]; 5], w: [V; 5]) {
         let Self { acc, values, .. } = self;
         let maps = [0, 1].map(|h| load(&EVAL[h][m]));
         for q in 0..GROUP {
-            let e: [__m512i; 5] = std::array::from_fn(|x| {
+            let e: [V; 5] = std::array::from_fn(|x| {
                 let [low, high] = [0, 1].map(|h| map(splat(bytes[x][2 * q + h]), maps[h]));
                 xor(low, high)
             });
-            values[0][q] = e[0];
-            values[1][q] = e[2];
+            values[0][q] = e[2];
+            values[1][q] = xor(mul(e[1], w[0]), mul(e[3], w[1]));
             values[2][q] = e[4];
-            values[3][q] = xor(mul(e[1], w[0]), mul(e[3], w[1]));
-            values[4][q] = xor(mul(e[3], w[2]), mul(e[0], w[3]));
+            values[3][q] = xor(mul(e[3], w[2]), mul(e[0], w[3]));
+            values[4][q] = e[0];
             values[5][q] = mul(e[1], w[4]);
         }
-        extend8(values, |i, [e0, e2, e4, a, b, c]| {
-            let acc = &mut acc[m][slot(half, i)];
-            *acc = xor(xor(*acc, mul(e2, a)), xor(mul(e4, b), mul(e0, c)));
-        });
+        if cfg!(target_feature = "avx512f") {
+            extend8(values, |i, [e2, a, e4, b, e0, c]| {
+                let acc = &mut acc[m][slot(half, i)];
+                *acc = xor(xor(*acc, mul(e2, a)), xor(mul(e4, b), mul(e0, c)));
+            });
+        } else {
+            // A product at a time: six groups' extensions at once spill AVX2's sixteen registers.
+            for pair in values.as_chunks::<2>().0 {
+                extend8(pair, |i, [e, c]| {
+                    let acc = &mut acc[m][slot(half, i)];
+                    *acc = xor(*acc, mul(e, c));
+                });
+            }
+        }
     }
 
     /// The block's sums as polynomials, eight slots at a time: a slot's residues are summed over its
@@ -414,7 +447,7 @@ impl SkipBlock {
     #[inline(always)]
     fn reconstruct(&mut self) {
         for g in 0..SLOTS / 8 {
-            let mut points = [[0u64; 8]; RESIDUES];
+            let mut points = [[0u64; LANES]; RESIDUES];
             for (points, acc) in points.iter_mut().zip(&self.acc) {
                 let mut residues = splat(0);
                 for (i, &x) in acc[8 * g..][..8].iter().enumerate() {
@@ -431,7 +464,8 @@ impl SkipBlock {
             // Byte `i` of quadword `b` is byte `b` of slot `i`'s polynomial: transposed, a
             // quadword is a word of a slot's.
             let bytes = bytes.map(store);
-            let words = transpose_bytes(std::array::from_fn(|z| [bytes[0][z], bytes[1][z], bytes[2][z], 0]));
+            let bytes = bytes.as_flattened();
+            let words = transpose_bytes(std::array::from_fn(|z| [bytes[z], bytes[8 + z], bytes[16 + z], 0]));
             for i in 0..8 {
                 self.sums[8 * g + i] = std::array::from_fn(|k| words[8 * k + i]);
             }
