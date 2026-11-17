@@ -50,8 +50,8 @@ pub mod sidecar {
     pub use ::sidecar::{Client, Rejection, SidecarError};
 }
 
-/// Call this function before generating / verifying proofs
-/// Starts the prover's thread pool, with `threads` threads (0: one per core), and builds the aggregation program.
+/// Call this function before generating / verifying proofs: it starts the prover's thread pool, with `threads` threads
+/// (0: one per core), and builds the aggregation program.
 ///
 /// # Panics
 /// If the pool already runs with another thread count.

@@ -97,6 +97,7 @@ impl AggregateClaims {
         self.lean_xmss.len() + self.lean_sphincs.len()
     }
 
+    /// Encode claims, which [`Self::from_bytes`] reads back.
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut out = Vec::new();
         encode_claims(&mut out, &self.lean_xmss, lean_xmss::LeanXmssPublicKey::to_bytes);

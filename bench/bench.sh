@@ -7,7 +7,7 @@ set -uo pipefail
 PROVER=${1:-}
 case $PROVER in stable | experimental) ;; *) echo "usage: bench/bench.sh stable|experimental [log file]" >&2; exit 2 ;; esac
 
-cd "$(dirname "$0")/../.."
+cd "$(dirname "$0")/.."
 mkdir -p .build
 LOG="${2:-$PWD/.build/bench-$(date +%Y%m%d-%H%M%S).log}"
 RESULTS=$(mktemp)

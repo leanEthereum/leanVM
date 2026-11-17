@@ -82,7 +82,7 @@ impl Client {
     /// go as they are (none for no blobs) and which the sidecar builds the matrix of.
     ///
     /// As with the library, children must be valid (checked with [`AggregateProof::verify`]), or proving fails. The
-    /// claims returned are checked to be those asked for, but for the root of `blobs`, which is only checked to be there.
+    /// claims returned are checked to be those asked for, but for the root of `blobs`, only checked to be there.
     pub fn aggregate(
         &mut self,
         children: &[(AggregateClaims, AggregateProof)],
@@ -115,7 +115,7 @@ impl Client {
         Ok((claims, proof))
     }
 
-    /// The sidecar's verify operation, for clients without the library: from Rust, [`AggregateProof::verify`] is faster.
+    /// The sidecar's verify operation, which [`AggregateProof::verify`] answers faster in this process.
     pub fn verify(&mut self, claims: &AggregateClaims, proof: &AggregateProof) -> Result<bool, SidecarError> {
         let body = self.call(&wire::encode_verify(claims, proof), 1 << 16)?;
         match wire::decode_verdict(&body) {
