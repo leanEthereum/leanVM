@@ -485,8 +485,8 @@ theorem call_runs (hL : Loaded prog Γ code) (h : List LHint) (c : CallSite) :
 
 /-- **A loop helper's closing call.** -/
 theorem loopNext_runs (hL : Loaded prog Γ code) (h : List LHint) (callee : String)
-    (nfp entry oc one : Cell) (args : List Cell) :
-    SRuns prog Γ fp code σ (.loopNext h callee nfp entry oc one args) := by
+    (nfp entry oc one : Cell) (args : List Cell) (consts : List (ℕ × ℕ × ℕ)) :
+    SRuns prog Γ fp code σ (.loopNext h callee nfp entry oc one args consts) := by
   intro cs pos ks next kj kret khalt hat hc
   simp only [stmtOps, codeAt_append, codeAt_cons] at hat
   obtain ⟨hpre, hj, -⟩ := hat
@@ -497,8 +497,8 @@ theorem loopNext_runs (hL : Loaded prog Γ code) (h : List LHint) (callee : Stri
   simp only [cplS, hcs] at hc
   obtain ⟨hseg, hjmp⟩ := hc
   simp only [opsS, hcs]
-  have hlen := loopPre_length callee nfp entry one args
-  have r0 := seg_runC hL _ pos (loopPre_noJump callee nfp entry one args) hpre hseg
+  have hlen := loopPre_length callee nfp entry one args consts
+  have r0 := seg_runC hL _ pos (loopPre_noJump callee nfp entry one args consts) hpre hseg
   rcases jump_runC hL hj hjmp with ⟨⟨hnt, hn⟩, r1⟩ | ⟨d, f, ⟨ht, hd, hf, r, ⟨hrr, hrun⟩, hrf, hk⟩, r1⟩
   · refine Outc.fall (runC_cast (r0.trans r1) ?_ rfl) hn (by simp [hnt]) (fun op => ?_)
     · simp only [stmtSize, hlen]
@@ -685,7 +685,8 @@ theorem stmt_runs (hL : Loaded prog Γ code) : ∀ s : PStmt, SRuns prog Γ fp c
   | .ite _ _ _ _ zero _ _ _ nonzero => ite_runs hL (block_runs hL zero) (block_runs hL nonzero)
   | .chain _ _ _ _ _ _ _ stages => chain_runs hL (stages_runs hL stages)
   | .call h c => call_runs hL h c
-  | .loopNext h callee nfp entry oc one args => loopNext_runs hL h callee nfp entry oc one args
+  | .loopNext h callee nfp entry oc one args consts =>
+      loopNext_runs hL h callee nfp entry oc one args consts
   | .dispatch h callees nfp joinCell x entry one first args rets =>
       dispatch_runs hL h callees nfp joinCell x entry one first args rets
   | .ret h one => ret_runs hL h one

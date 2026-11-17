@@ -16,14 +16,19 @@ A registered loop helper's closing call copies every argument into the next fram
 argument the closing call passes through unchanged, and that every other call passes as one
 constant word, holds that word in every frame of the run, so the copy can be a `SET`.
 
-* `Consts`: a table, by function, of argument positions and their words.
-* `ConstsOk T p`: the table is right of the program `p`: it names nothing of `main`, and, by a check of each body, at each call of
-  a function, the arguments its entries name are values the statements before the call on its path
-  are known to have set to their words, by a `const` atom of the block or of an enclosing one
-  (`blockOk`), or the function's own parameters its entries name (`entryKnown`).
-* `constTable p`: the table the back end uses: for each registered loop helper, the arguments the
-  calls outside it pass as known constants, each kept only where every call agrees, the helper's
-  own calls included; checked by `ConstsOk`, and empty if the check fails.
+A table of constant parameters is a function from a function's name to its entries: argument
+positions and their words. The back end's is `constsOf (loopTable p)`, what each loop helper's
+`TracedFn.consts` holds.
+
+* `ConstsOk T p`: the table is right of the program `p`: it names nothing of `main`, and, by a
+  check of each body, at each call of a function, the arguments its entries name are values the
+  statements before the call on its path are known to have set to their words, by a `const` atom
+  of the block or of an enclosing one (`blockOk`), or the function's own parameters its entries
+  name (`entryKnown`). `lowerProgram` checks it of the back end's table.
+* `constTable p`: a table for `p`: for each registered loop helper, the arguments the calls
+  outside it pass as known constants, each kept only where every call agrees, the helper's own
+  calls included; checked by `ConstsOk`, and empty if the check fails. `withConstTable p` writes it
+  into the functions (`TracedFn.consts`).
 
 `Sound/Consts.lean` proves that a right table's facts follow from a function's obligations.
 -/
@@ -34,7 +39,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
 
 @[expose] public section
 
-/-- Argument positions and their words, by function. -/
+/-- Argument positions and their words, by function: the table `constTable` builds. -/
 abbrev Consts := SMap (List (Nat × E))
 
 /-- A function's entries. -/
@@ -49,14 +54,14 @@ def learn (kn : Known) : Stmt → Known
   | _ => kn
 
 /-- The arguments of a call of `f` that `T` names are known to hold their words. -/
-def argsOk (T : Consts) (kn : Known) (f : String) (args : List V) : Bool :=
-  (T.at f).all fun x => match args[x.1]? with
+def argsOk (T : String → List (Nat × E)) (kn : Known) (f : String) (args : List V) : Bool :=
+  (T f).all fun x => match args[x.1]? with
     | some v => kn.contains (v, x.2)
     | none => false
 
 mutual
 /-- Every call in the statement passes the words `T` names, `kn` known before it. -/
-def stmtOk (T : Consts) (kn : Known) : Stmt → Bool
+def stmtOk (T : String → List (Nat × E)) (kn : Known) : Stmt → Bool
   | .atom _ => true
   | .ite _ z n => blockOk T kn z && blockOk T kn n
   | .match_ _ arms => armsOk T kn arms
@@ -67,24 +72,24 @@ def stmtOk (T : Consts) (kn : Known) : Stmt → Bool
 
 /-- Every call in the block passes the words `T` names, each statement knowing what the ones
 before it taught. -/
-def blockOk (T : Consts) (kn : Known) : List Stmt → Bool
+def blockOk (T : String → List (Nat × E)) (kn : Known) : List Stmt → Bool
   | [] => true
   | s :: ss => stmtOk T kn s && blockOk T (learn kn s) ss
 
 /-- Every call in the arms passes the words `T` names. -/
-def armsOk (T : Consts) (kn : Known) : List (List Stmt) → Bool
+def armsOk (T : String → List (Nat × E)) (kn : Known) : List (List Stmt) → Bool
   | [] => true
   | a :: as => blockOk T kn a && armsOk T kn as
 end
 
 /-- What a function knows at its entry: its parameters `T` names hold their words. -/
-def entryKnown (T : Consts) (f : Fn) : Known :=
-  (T.at f.name).filterMap fun x => (f.params[x.1]?).map (·, x.2)
+def entryKnown (T : String → List (Nat × E)) (f : Fn) : Known :=
+  (T f.name).filterMap fun x => (f.params[x.1]?).map (·, x.2)
 
 /-- **The table is right of the program**: it names nothing of `main`, which no call enters, and
 every call in every body passes the words it names. -/
-def ConstsOk (T : Consts) (p : Program) : Bool :=
-  (T.at "main").isEmpty && p.all fun f => blockOk T (entryKnown T f) f.body
+def ConstsOk (T : String → List (Nat × E)) (p : Program) : Bool :=
+  (T "main").isEmpty && p.all fun f => blockOk T (entryKnown T f) f.body
 
 /-! ## The table the back end uses -/
 
@@ -131,7 +136,7 @@ end
 /-- The table restricted to what every call agrees on, each function's own calls included and
 its entries known at its entry. -/
 def refineConsts (loops : Loops) (p : Program) (T : Consts) : Consts :=
-  let seen := p.foldl (fun acc f => collectBlock loops none (entryKnown T f) acc f.body) {}
+  let seen := p.foldl (fun acc f => collectBlock loops none (entryKnown T.at f) acc f.body) {}
   p.foldl (fun acc f =>
     match T[f.name]? with
     | none => acc
@@ -144,7 +149,13 @@ def constTable (p : List TracedFn) : Consts :=
   let core := p.map (·.core)
   let outside := core.foldl (fun acc f => collectBlock loops (some f.name) [] acc f.body) {}
   let T := (List.range 4).foldl (fun T _ => refineConsts loops core T) outside
-  if ConstsOk T core then T else {}
+  if ConstsOk T.at core then T else {}
+
+/-- **The program with its constant parameters**: each function's `TracedFn.consts` its entries in
+`constTable`. -/
+def withConstTable (p : List TracedFn) : List TracedFn :=
+  let T := constTable p
+  p.map fun tf => { tf with consts := T.at tf.core.name }
 
 end
 end LeanVM.Compiler

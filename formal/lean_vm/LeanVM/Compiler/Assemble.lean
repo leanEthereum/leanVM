@@ -81,6 +81,7 @@ def resolveK (l : Layout) (pc0 frameSize : Nat) : KVal → Nat × Nat
 /-- An instruction of a function at `pc0` with frame `frameSize` (`resolve`). -/
 def resolveOp (l : Layout) (pc0 frameSize : Nat) : LOp → OffsetInstruction
   | .mulNextFrame a b c => .mul a b (frameSize + c)
+  | .setNextFrame c c0 c1 => .set (frameSize + c) c0 c1
   | .set o k => let (c0, c1) := resolveK l pc0 frameSize k; .set o c0 c1
   | .xor a b c => .xor a b c
   | .mul a b c => .mul a b c

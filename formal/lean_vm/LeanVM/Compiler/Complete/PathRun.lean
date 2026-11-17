@@ -234,8 +234,8 @@ theorem call_w (hx : RunCtx prog Γ₀ L fp hdr FS Ag cl KR) (h : List LHint) (c
 
 /-- **A loop helper's closing call.** -/
 theorem loopNext_w (hx : RunCtx prog Γ₀ L fp hdr FS Ag cl KR) (h : List LHint) (callee : String)
-    (nfp entry oc one : Cell) (args : List Cell) :
-    SW prog Γ₀ L fp σ hdr FS Ag cl KR (.loopNext h callee nfp entry oc one args) := by
+    (nfp entry oc one : Cell) (args : List Cell) (consts : List (ℕ × ℕ × ℕ)) :
+    SW prog Γ₀ L fp σ hdr FS Ag cl KR (.loopNext h callee nfp entry oc one args consts) := by
   intro cs pos ks kids next next' kj kj' kret khalt hK hn hj hw
   rcases hcs : ctrlSplit cs with _ | ⟨s, rest⟩
   · simp [wS, hcs] at hw
@@ -341,7 +341,8 @@ theorem stmt_w (hx : RunCtx prog Γ₀ L fp hdr FS Ag cl KR) :
   | .ite _ _ _ _ zero _ _ _ nonzero => ite_w hx (block_w hx zero) (block_w hx nonzero)
   | .chain _ _ _ _ _ _ _ stages => chain_w hx (stages_w hx stages)
   | .call h c => call_w hx h c
-  | .loopNext h callee nfp entry oc one args => loopNext_w hx h callee nfp entry oc one args
+  | .loopNext h callee nfp entry oc one args consts =>
+      loopNext_w hx h callee nfp entry oc one args consts
   | .dispatch h callees nfp joinCell x entry one first args rets =>
       dispatch_w hx h callees nfp joinCell x entry one first args rets
   | .ret h one => ret_w hx h one

@@ -132,10 +132,10 @@ def cplS : PStmt → List Stmt → ℕ → List Kid → (List Stmt → List Kid 
                   SegHolds Γ fp (callRets c.nfp c.args.length c.rets)
                     (pos + (callPre c).length + 1) ∧ next rest ks')
       | _, _ => False
-  | .loopNext _ callee nfp entry oc one args, cs, pos, ks, next, _, kret, _ =>
+  | .loopNext _ callee nfp entry oc one args consts, cs, pos, ks, next, _, kret, _ =>
       match ctrlSplit cs, ks with
       | some (s, rest), (kfp, ck) :: ks' =>
-          SegHolds Γ fp (loopPre callee nfp entry one args) pos ∧
+          SegHolds Γ fp (loopPre callee nfp entry one args consts) pos ∧
           JumpAt Γ fp oc entry nfp (¬ callTaken σ s ∧ next rest ks')
             (fun d f => callTaken σ s ∧ d = ofK (addressOfIndex (Γ.ent callee)) ∧
               f = ofK (addressOfIndex kfp) ∧ ∃ r, KidRuns prog Γ.L (Γ.ent callee) kfp ck r ∧
@@ -262,6 +262,8 @@ structure FrameOK {κ : ℕ} (L : MemoryImage κ) (loops : Loops) (tf : TracedFn
     (registered loops c.f → L.read (addressOfIndex (kfp + (2 + c.args.length))) =
       some (ofK (addressOfIndex kfp)))
   tail : isLoopName tf.core.name = true → ∀ kfp, kfps.getLast? = some kfp → kfp = fp + size
+  /-- Each call passes its callee's constant parameters (`constsOf loops`) as their words. -/
+  kcs : ∀ c ∈ calls es, ∀ x ∈ constsOf loops c.f, ∀ hk : x.1 < c.args.length, σ c.args[x.1] = x.2
 
 mutual
 /-- The selectors of the `match`es and fused dispatches on `σ`'s path through a statement. -/
@@ -390,10 +392,10 @@ noncomputable def opsS (σ : Val) : PStmt → List Stmt → (Opcode → ℕ) × 
           else (opsCnt (callPre c) + jumpCnt + opsCnt (callRets c.nfp c.args.length c.rets), rest,
             true)
       | none => (0, [], false)
-  | .loopNext _ callee nfp entry _ one args, cs =>
+  | .loopNext _ callee nfp entry _ one args consts, cs =>
       match ctrlSplit cs with
       | some (s, rest) =>
-          (opsCnt (loopPre callee nfp entry one args) + jumpCnt, rest,
+          (opsCnt (loopPre callee nfp entry one args consts) + jumpCnt, rest,
             if callTaken σ s then false else true)
       | none => (0, [], false)
   | .dispatch _ _ nfp joinCell x entry _ first args rets, cs =>
@@ -594,10 +596,10 @@ def wS : PStmt → List Stmt → ℕ → List (ℕ × ℕ) → (List Stmt → Li
                 SegW Γ fp Ag (callRets c.nfp c.args.length c.rets) (pos + (callPre c).length + 1) ∧
                 next rest ks')
       | _, _ => False
-  | .loopNext _ callee nfp entry oc one args, cs, pos, ks, next, _, kret, _ =>
+  | .loopNext _ callee nfp entry oc one args consts, cs, pos, ks, next, _, kret, _ =>
       match ctrlSplit cs, ks with
       | some (s, rest), (i, kfp) :: ks' =>
-          SegW Γ fp Ag (loopPre callee nfp entry one args) pos ∧
+          SegW Γ fp Ag (loopPre callee nfp entry one args consts) pos ∧
           JW fp hdr FS Ag oc entry nfp (¬ callTaken σ s ∧ next rest ks')
             (fun d f => callTaken σ s ∧ CallW Γ FS cl callee kfp i hdr d f ∧ kret)
       | _, _ => False

@@ -213,6 +213,7 @@ theorem opOK_instOf {κ₀ : ℕ} {W : World κ₀} {tf : TracedFn} {pf : Placed
       exact hwo
   | slot => exact hwo.elim
   | mulNextFrame => exact hwo.elim
+  | setNextFrame => exact hwo.elim
 
 end
 end LeanVM.Compiler.Complete

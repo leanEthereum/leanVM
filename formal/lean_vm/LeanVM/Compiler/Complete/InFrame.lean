@@ -1130,21 +1130,30 @@ theorem callRets_below {nfp nargs : ℕ} {rets : List Cell} (hnfp : nfp < n)
   · exact hnfp
   · exact hr _ (List.fst_mem_of_mem_zipIdx hri)
 
-theorem loopPre_below {callee : String} {nfp entry one : Cell} {args : List Cell} (h2 : 2 ≤ n)
-    (hnfp : nfp < n) (he : entry < n) (h1 : one < n) (ha : ∀ a ∈ args, a < n) :
-    OpsBelow n (loopPre callee nfp entry one args) := by
+/-- The cells of this frame an argument of a loop helper's closing call names: its own, and the
+pooled `1` of a copy. -/
+theorem nextArg_cells {one a k c : ℕ} {consts : List (ℕ × ℕ × ℕ)}
+    (h : c ∈ opCells (nextArg one consts (a, k))) : c = a ∨ c = one := by
+  unfold nextArg at h
+  split at h
+  · simp [opCells] at h
+  · simpa [opCells] using h
+
+theorem loopPre_below {callee : String} {nfp entry one : Cell} {args : List Cell}
+    {consts : List (ℕ × ℕ × ℕ)} (h2 : 2 ≤ n) (hnfp : nfp < n) (he : entry < n) (h1 : one < n)
+    (ha : ∀ a ∈ args, a < n) : OpsBelow n (loopPre callee nfp entry one args consts) := by
   intro o ho x hx
   simp only [loopPre, List.mem_append, List.mem_cons, List.not_mem_nil, or_false,
     List.mem_map] at ho
-  rcases ho with (rfl | ⟨⟨a, k⟩, hak, rfl⟩) | (rfl | rfl | rfl) <;>
-    simp only [opCells, List.mem_cons, List.not_mem_nil, or_false] at hx
-  · subst hx; exact he
-  · rcases hx with rfl | rfl
+  rcases ho with (rfl | ⟨⟨a, k⟩, hak, rfl⟩) | (rfl | rfl | rfl)
+  · simp only [opCells, List.mem_cons, List.not_mem_nil, or_false] at hx
+    subst hx; exact he
+  · rcases nextArg_cells hx with rfl | rfl
     · exact ha _ (List.fst_mem_of_mem_zipIdx hak)
     · exact h1
-  · rcases hx with rfl | rfl <;> comega
-  · rcases hx with rfl | rfl <;> comega
-  · rcases hx with rfl | rfl <;> comega
+  all_goals
+    simp only [opCells, List.mem_cons, List.not_mem_nil, or_false] at hx
+    rcases hx with rfl | rfl <;> comega
 
 theorem dispatchPre_below {pos : ℕ} {nfp joinCell x entry : Cell} {first : ℕ} {args : List Cell}
     (h2 : 2 ≤ n) (hnfp : nfp < n) (hj : joinCell < n) (hx : x < n) (he : entry < n)
@@ -1187,9 +1196,9 @@ theorem stmtBelow_call {h : List LHint} {c : CallSite} (h2 : 2 ≤ n) (he : c.en
   exact ⟨⟨callPre_below h2 he hnfp ha, cells3 hoc he hnfp, opsBelow_nil⟩, callRets_below hnfp hr⟩
 
 theorem stmtBelow_loopNext {h : List LHint} {callee : String} {nfp entry oc one : Cell}
-    {args : List Cell} (h2 : 2 ≤ n) (hnfp : nfp < n) (he : entry < n) (hoc : oc < n)
-    (h1 : one < n) (ha : ∀ a ∈ args, a < n) :
-    StmtBelow n (.loopNext h callee nfp entry oc one args) := fun pos => by
+    {args : List Cell} {consts : List (ℕ × ℕ × ℕ)} (h2 : 2 ≤ n) (hnfp : nfp < n) (he : entry < n)
+    (hoc : oc < n) (h1 : one < n) (ha : ∀ a ∈ args, a < n) :
+    StmtBelow n (.loopNext h callee nfp entry oc one args consts) := fun pos => by
   simp only [stmtOps, opsBelow_append, opsBelow_cons, opCells]
   exact ⟨loopPre_below h2 hnfp he h1 ha, cells3 hoc he hnfp, opsBelow_nil⟩
 
@@ -1672,7 +1681,8 @@ theorem callIf_stmt_grows (c : V) (f : String) (args : List V) (rest : List Stmt
         let entry ← fresh
         let one ← oneCell
         let hints ← takeHints
-        push (.loopNext hints f nfp entry lc one las)) (fun _ _ => True) := by
+        push (.loopNext hints f nfp entry lc one las (nextConsts (constsOf ctx.loops f) las)))
+          (fun _ _ => True) := by
     refine GrowsAt.call hg₃ selfFp_grows fun ownFp st₅ n₅ hg₅ ho hn₅ _ => ?_
     refine GrowsAt.call hg₅ fresh_grows fun scale st₆ n₆ hg₆ hsc hn₆ _ => ?_
     refine GrowsAt.bind (emitOp_grows hg₆ (cells1 hsc.2)) fun _ st₇ n₇ hg₇ _ hn₇ _ => ?_
