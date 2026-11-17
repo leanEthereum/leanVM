@@ -192,6 +192,30 @@ pub fn row_products_portable(words: [&[u64; BLOCK_WORDS]; 5], mut f: impl FnMut(
     }
 }
 
+/// The words of a block position's products packed 48 bits each.
+pub const PACKED_WORDS: usize = 3 * PACKS / 4;
+
+/// Products packed 48 bits each, product `q` at bits `48 q ..` of `out`: four to three words.
+#[inline(always)]
+pub fn pack_products(products: &[u64], out: &mut [u64]) {
+    for (out, p) in out.as_chunks_mut::<3>().0.iter_mut().zip(products.as_chunks::<4>().0) {
+        *out = [p[0] | p[1] << 48, p[1] >> 16 | p[2] << 32, p[2] >> 32 | p[3] << 16];
+    }
+}
+
+/// [`row_products`], each packed ([`pack_products`]) into `out[x]`.
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq"))]
+#[inline(always)]
+pub fn row_packed(words: [&[u64; BLOCK_WORDS]; 5], out: [&mut [u64; PACKED_WORDS]; 5]) {
+    simd::row_packed(words, out)
+}
+
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq"))]
+#[inline(always)]
+pub fn row_packed_portable(words: [&[u64; BLOCK_WORDS]; 5], mut out: [&mut [u64; PACKED_WORDS]; 5]) {
+    row_products(words, |x, p| pack_products(p, &mut out[x][..]));
+}
+
 /// One row of five positions, which `chi` mixes cyclically: for every pattern,
 /// `acc[p] += sum over x of weights[x] * e[x + 1][p] * e[x + 2][p]`.
 #[inline(always)]
@@ -358,8 +382,8 @@ mod x86 {
 
     use super::*;
     pub use super::{
-        embed_extend_portable as embed_extend, products_clmul as products, row_products_portable as row_products,
-        skip_row_portable as skip_row,
+        embed_extend_portable as embed_extend, products_clmul as products, row_packed_portable as row_packed,
+        row_products_portable as row_products, skip_row_portable as skip_row,
     };
 
     /// The matrices sending a pack's low and high byte to each byte of its embedding. An affine
@@ -495,10 +519,8 @@ mod x86 {
 mod avx2 {
     use core::arch::x86_64::*;
 
-    pub use super::products_clmul as products;
-    #[cfg(target_feature = "vpclmulqdq")]
-    pub use super::row_products_portable as row_products;
     use super::*;
+    pub use super::{products_clmul as products, row_products_portable as row_products};
     use crate::clmul::{V, Vector};
 
     /// The 32 packs of a block position, embedded, four to a register.
@@ -712,7 +734,8 @@ mod avx2 {
     };
 
     /// `ones` times each pack's embedding, a linear map of the pack: per byte of the products, the
-    /// sum of four nibble lookups, then an 8x32 byte transpose to a word per pack.
+    /// sum of four nibble lookups, then an 8x32 byte transpose to a word per pack and a shuffle to
+    /// the packed layout of [`Chunks`], two packs to a lane.
     #[cfg(not(target_feature = "vpclmulqdq"))]
     #[inline(always)]
     fn ones_times(words: &[u64; BLOCK_WORDS]) -> [u64; PACKS] {
@@ -764,6 +787,11 @@ mod avx2 {
                     }
                 })
             });
+            // A lane's second word's six bytes beside its first word's.
+            let pack = _mm256_setr_epi8(
+                0, 1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13, -1, -1, -1, -1, 0, 1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13, -1, -1,
+                -1, -1,
+            );
             let mut out = [0u64; PACKS];
             for h in 0..4 {
                 // Register `2 h + d` holds packs `8 h + 4 d ..`, in order.
@@ -772,34 +800,110 @@ mod avx2 {
                     _mm256_unpackhi_epi32(z[0][h], z[1][h]),
                 ];
                 for (d, w) in w.into_iter().enumerate() {
-                    _mm256_storeu_si256(out.as_mut_ptr().add(8 * h + 4 * d).cast(), w);
+                    _mm256_storeu_si256(out.as_mut_ptr().add(8 * h + 4 * d).cast(), _mm256_shuffle_epi8(w, pack));
                 }
             }
             out
         }
     }
 
-    /// [`products`] of a row, `ones * (a + c)` from [`ones_times`] of each position: with
-    /// PCLMULQDQ alone, a product a lane, that halves the carry-less products. With VPCLMULQDQ
-    /// the products are cheaper than the lookups.
-    #[cfg(not(target_feature = "vpclmulqdq"))]
+    /// Lane by lane, two packs' products packed into the lane's low twelve bytes, as
+    /// [`pack_products`] lays them out.
+    trait Chunks: Vector {
+        /// The products in each lane's low word of `low` and of `high`, the second 48 bits up.
+        fn chunks(low: Self, high: Self) -> Self;
+        /// Each lane's twelve bytes at `p + 12 l`. A lane's store runs four bytes past them, but
+        /// for the last lane of a `last` register.
+        ///
+        /// # Safety
+        /// `p` is valid for writing `12 * N` bytes, and four more unless `last`.
+        unsafe fn store_chunks(self, p: *mut u8, last: bool);
+    }
+
+    /// Twelve bytes of a lane at `p`.
+    ///
+    /// # Safety
+    /// `p` is valid for writing twelve bytes.
     #[inline(always)]
-    pub fn row_products(words: [&[u64; BLOCK_WORDS]; 5], mut f: impl FnMut(usize, &[u64; PACKS])) {
-        let e: [[u32; PACKS]; 5] = std::array::from_fn(|x| embed(words[x]));
-        let t: [[u64; PACKS]; 5] = std::array::from_fn(|x| ones_times(words[x]));
-        for x in 0..5 {
-            let (b, c, ta, tc) = (&e[(x + 1) % 5], &e[(x + 2) % 5], &t[x], &t[(x + 2) % 5]);
-            let mut out = [0u64; PACKS];
-            for q in (0..PACKS).step_by(2 * V::N) {
-                // SAFETY: `2 * N` packs and words at `q`.
-                unsafe {
-                    let (zb, zc) = (V::load_packs(b.as_ptr().add(q)), V::load_packs(c.as_ptr().add(q)));
-                    let linear = V::load(ta.as_ptr().add(q)).xor(V::load(tc.as_ptr().add(q)));
-                    let product = zb.clmul::<0x00>(zc).unpacklo(zb.clmul::<0x11>(zc));
-                    V::store(out.as_mut_ptr().add(q), product.xor(linear));
+    unsafe fn store_twelve(p: *mut u8, v: __m128i) {
+        unsafe {
+            _mm_storel_epi64(p.cast(), v);
+            _mm_storeu_si32(p.add(8).cast(), _mm_srli_si128::<8>(v));
+        }
+    }
+
+    impl Chunks for __m128i {
+        #[inline(always)]
+        fn chunks(low: Self, high: Self) -> Self {
+            // SAFETY: SSE2.
+            unsafe { _mm_xor_si128(low, _mm_slli_si128::<6>(high)) }
+        }
+        #[inline(always)]
+        unsafe fn store_chunks(self, p: *mut u8, last: bool) {
+            unsafe {
+                if last {
+                    store_twelve(p, self);
+                } else {
+                    _mm_storeu_si128(p.cast(), self);
                 }
             }
-            f(x, &out);
+        }
+    }
+
+    #[cfg(target_feature = "vpclmulqdq")]
+    impl Chunks for __m256i {
+        #[inline(always)]
+        fn chunks(low: Self, high: Self) -> Self {
+            // SAFETY: AVX2.
+            unsafe { _mm256_xor_si256(low, _mm256_bslli_epi128::<6>(high)) }
+        }
+        #[inline(always)]
+        unsafe fn store_chunks(self, p: *mut u8, last: bool) {
+            unsafe {
+                _mm_storeu_si128(p.cast(), _mm256_castsi256_si128(self));
+                let high = _mm256_extracti128_si256::<1>(self);
+                if last {
+                    store_twelve(p.add(12), high);
+                } else {
+                    _mm_storeu_si128(p.add(12).cast(), high);
+                }
+            }
+        }
+    }
+
+    /// [`row_products`] packed into `out` as [`pack_products`] lays them out, a lane's two
+    /// products packed in registers and stored twelve bytes apart. With PCLMULQDQ alone, a
+    /// product a lane, `ones * (a + c)` comes from [`ones_times`] of each position, which halves
+    /// the carry-less products; with VPCLMULQDQ the products are cheaper than the lookups.
+    #[inline(always)]
+    pub fn row_packed(words: [&[u64; BLOCK_WORDS]; 5], out: [&mut [u64; PACKED_WORDS]; 5]) {
+        let e: [[u32; PACKS]; 5] = std::array::from_fn(|x| embed(words[x]));
+        #[cfg(not(target_feature = "vpclmulqdq"))]
+        let t: [[u64; PACKS]; 5] = std::array::from_fn(|x| ones_times(words[x]));
+        #[cfg(target_feature = "vpclmulqdq")]
+        let ones = V::splat(RMFE.ones as u64);
+        for (x, out) in out.into_iter().enumerate() {
+            let (b, c) = (&e[(x + 1) % 5], &e[(x + 2) % 5]);
+            let dst = out.as_mut_ptr().cast::<u8>();
+            for q in (0..PACKS).step_by(2 * V::N) {
+                // SAFETY: `2 * N` packs and words at `q`; the stores are of packs `q ..` (six
+                // bytes each), and four bytes past them but at the last packs.
+                unsafe {
+                    let (zb, zc) = (V::load_packs(b.as_ptr().add(q)), V::load_packs(c.as_ptr().add(q)));
+                    let (low, high) = (zb.clmul::<0x00>(zc), zb.clmul::<0x11>(zc));
+                    let chunks = cfg_select! {
+                        target_feature = "vpclmulqdq" => {{
+                            let linear = V::load_packs(e[x].as_ptr().add(q)).xor(zc);
+                            V::chunks(low.xor(linear.clmul::<0x00>(ones)), high.xor(linear.clmul::<0x11>(ones)))
+                        }}
+                        _ => {{
+                            let linear = V::load(t[x].as_ptr().add(q)).xor(V::load(t[(x + 2) % 5].as_ptr().add(q)));
+                            V::chunks(low, high).xor(linear)
+                        }}
+                    };
+                    chunks.store_chunks(dst.add(6 * q), q + 2 * V::N == PACKS);
+                }
+            }
         }
     }
 }
@@ -1046,6 +1150,21 @@ mod tests {
             let mut got = [[0u64; PACKS]; 5];
             row_products(row.each_ref(), |x, p| got[x] = *p);
             assert_eq!(got, expected);
+            #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq"))]
+            {
+                // A guard word after each row: the packed stores run past a product but not past the row.
+                let mut packed = [[u64::MAX; PACKED_WORDS + 1]; 5];
+                row_packed(
+                    row.each_ref(),
+                    packed.each_mut().map(|p| (&mut p[..PACKED_WORDS]).try_into().unwrap()),
+                );
+                for (packed, expected) in packed.iter().zip(&expected) {
+                    let mut want = [0u64; PACKED_WORDS + 1];
+                    pack_products(expected, &mut want);
+                    want[PACKED_WORDS] = u64::MAX;
+                    assert_eq!(*packed, want);
+                }
+            }
 
             let (mut xe, mut xp) = ([0u32; SLOTS], [0u32; SLOTS]);
             embed_extend(&words, &mut xe);

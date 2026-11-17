@@ -16,7 +16,7 @@ use primitives::transcript::ProverState;
 use verifier::keccak::{BITS, LOCAL_BITS, along, linear_transpose};
 
 use crate::basis::{PolyEval, add_mul};
-use crate::kernels::{GROUP, MIXED, PACKS, SKIP, SkipBlock, TERNARY, mixed_points, row_products, slot};
+use crate::kernels::{GROUP, MIXED, PACKS, SKIP, SkipBlock, TERNARY, mixed_points, slot};
 use crate::power::{Element, PowerField, get, set};
 use crate::protocol::{Claim, chi_weights, mu_at};
 use crate::witness::{Shape, Witness, transpose64, words};
@@ -62,12 +62,11 @@ impl Part {
     const ZERO: Self = Self([0; PART_WORDS]);
 
     /// Product `q` at bits `48 * q ..`: four products to three words.
+    #[cfg(not(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq")))]
     #[inline(always)]
     fn pack(products: &[u64; PART]) -> Self {
         let mut out = [0u64; PART_WORDS];
-        for (out, p) in out.as_chunks_mut::<3>().0.iter_mut().zip(products.as_chunks::<4>().0) {
-            *out = [p[0] | p[1] << 48, p[1] >> 16 | p[2] << 32, p[2] >> 32 | p[3] << 16];
-        }
+        crate::kernels::pack_products(products, &mut out);
         Self(out)
     }
 
@@ -298,11 +297,22 @@ impl Layer<'_> {
                 for r in 0..5 {
                     for z in 0..64 {
                         let js = row_positions(r, z);
-                        row_products(js.map(|j| words(block, j)), |x, p| {
-                            for (q, part) in payloads.iter_mut().enumerate() {
-                                part[js[x]] = Part::pack(p[PART * q..][..PART].try_into().unwrap());
+                        let row = js.map(|j| words(block, j));
+                        cfg_select! {
+                            all(target_arch = "x86_64", target_feature = "avx2", target_feature = "pclmulqdq") => {
+                                // A part is a whole position, so the products pack straight into it.
+                                // SAFETY: a row's five positions are distinct and below `BITS`.
+                                let parts = unsafe { payloads[0].get_disjoint_unchecked_mut(js) };
+                                crate::kernels::row_packed(row, parts.map(|p| &mut p.0));
                             }
-                        });
+                            _ => {
+                                crate::kernels::row_products(row, |x, p| {
+                                    for (q, part) in payloads.iter_mut().enumerate() {
+                                        part[js[x]] = Part::pack(p[PART * q..][..PART].try_into().unwrap());
+                                    }
+                                });
+                            }
+                        }
                     }
                 }
                 for (payloads, rows) in payloads.iter().zip(rows.iter_mut()) {
