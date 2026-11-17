@@ -54,7 +54,13 @@ theorem rep_toAV {n m : ℕ} (f : (Fin m → Bool) → Fin n → E) : Rep (toAV 
 
 /-- One fold of a column's lanes at the domain point `y`. -/
 def foldCA (y : E) (r : FoldRound) (o : Array E) : Array E :=
-  Array.ofFn fun k : Fin ((o.size + 1) / 2) ↦ o.getD (2 * k + 1) 0 + (r.alpha + r.beta * y) * o.getD (2 * k) 0
+  let b := r.beta * y
+  let c := r.alpha + b
+  Array.ofFn fun k : Fin ((o.size + 1) / 2) ↦
+    let g := o.getD (2 * k) 0
+    let h := o.getD (2 * k + 1) 0
+    let t := c * g
+    h + t
 
 /-- The folds of a column. -/
 def foldsCA (y : E) (rounds : List FoldRound) (o : Array E) : Array E :=

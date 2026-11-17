@@ -33,7 +33,10 @@ def novelAtH (c x : ℕ) : K := ∏ i ∈ range 64, if c.testBit i then hatAt i 
 
 /-- The polynomial of novel coefficients `cs` at `x_x`, from the table. -/
 def polyOfAtH (cs : List E) (x : ℕ) : E :=
-  ((List.range cs.length).map fun c ↦ cs.getD c 0 * ofK (novelAtH c x)).sum
+  ((List.range cs.length).map fun c ↦
+    let a := cs.getD c 0
+    let v := ofK (novelAtH c x)
+    a * v).sum
 
 theorem sum_range_eq_list (f : ℕ → E) : ∀ n, ∑ c ∈ range n, f c = ((List.range n).map f).sum
   | 0 => rfl
@@ -65,7 +68,11 @@ def upAtA (κ κ' m R : ℕ) (VA' : AV) (high : List E) : AV :=
   let l0 := ntt tw κ R (g.map fun e ↦ e.limb 0)
   let l1 := ntt tw κ R (g.map fun e ↦ e.limb 1)
   Array.ofFn fun x : Fin (2 ^ (κ + R)) ↦
-    #[E.ofLimbs (l0.getD x 0) (l1.getD x 0) + ofK (hatAt κ x) * polyOfAtH high x]
+    let lo := E.ofLimbs (l0.getD x 0) (l1.getD x 0)
+    let hv := ofK (hatAt κ x)
+    let p := polyOfAtH high x
+    let t := hv * p
+    #[lo + t]
 
 theorem toAV_zero {n : ℕ} (f : (Fin 0 → Bool) → Fin n → E) :
     toAV n 0 f = Array.ofFn fun x : Fin n ↦ #[f (fun i ↦ i.elim0) x] := by

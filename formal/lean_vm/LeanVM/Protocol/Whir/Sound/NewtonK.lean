@@ -32,7 +32,10 @@ theorem ofK_listProd (l : List K) : ofK l.prod = (l.map ofK).prod := map_list_pr
 
 /-- The Newton form evaluated, nodes and point in `K`. -/
 def nEvalK : List K → List E → K → E
-  | x :: xs, a :: as, z => a + ofK (z - x) * nEvalK xs as z
+  | x :: xs, a :: as, z =>
+    let r := nEvalK xs as z
+    let t := ofK (z - x) * r
+    a + t
   | [], a :: _, _ => a
   | _, [], _ => 0
 
@@ -41,7 +44,10 @@ def nodalK (xs : List K) (z : K) : K := (xs.map fun x ↦ z - x).prod
 
 /-- One point added, its node in `K` (`E` has characteristic two: `y − P(x) = y + P(x)`). -/
 def nStepK (st : List K × List E) (p : K × E) : List K × List E :=
-  (st.1 ++ [p.1], st.2 ++ [(p.2 + nEvalK st.1 st.2 p.1) * ofK (nodalK st.1 p.1)⁻¹])
+  let e := nEvalK st.1 st.2 p.1
+  let y := p.2 + e
+  let c := ofK (nodalK st.1 p.1)⁻¹
+  (st.1 ++ [p.1], st.2 ++ [y * c])
 
 /-- The Newton coefficients, nodes in `K`. -/
 def nFormK (pts : List (K × E)) : List K × List E := pts.foldl nStepK ([], [])
@@ -77,12 +83,16 @@ theorem nFormK_eq (pts : List (K × E)) :
 /-- **One-error decoding, nodes in `K`.** -/
 def decode1K (d : ℕ) (pts : List (K × E)) : Option (List K × List E) :=
   let f := nFormK pts
-  if f.2.getD (d + 2) 0 = 0 then
-    if f.2.getD (d + 1) 0 = 0 then some f else none
+  let a2 := f.2.getD (d + 2) 0
+  let a1 := f.2.getD (d + 1) 0
+  if a2 = 0 then
+    if a1 = 0 then some f else none
   else
     let x2 := (pts.getD (d + 2) (0, 0)).1
     let pts' := pts.eraseIdx (pts.findIdx fun p ↦
-      decide (f.2.getD (d + 2) 0 * ofK (p.1 - x2) = f.2.getD (d + 1) 0))
+      let u := ofK (p.1 - x2)
+      let v := a2 * u
+      decide (v = a1))
     if pts'.length = d + 2 ∧ (nFormK pts').2.getD (d + 1) 0 = 0 then some (nFormK pts') else none
 
 theorem length_liftPts (pts : List (K × E)) : (liftPts pts).length = pts.length := by

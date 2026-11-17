@@ -47,8 +47,13 @@ def foldsAC (n : ℕ) (rounds : List FoldRound) (OA : AV) : AV :=
 
 /-- The agreement set's columns. -/
 def agreeC (n m : ℕ) (r : FoldRound) (VA QA : AV) : List (Fin n) :=
-  (List.finRange n).filter fun (x : Fin n) ↦ (List.finRange (2 ^ m)).all fun k ↦
-    decide ((VA.getD x #[]).getD k 0 = (foldCA (ptE x) r (QA.getD x #[])).getD k 0)
+  (List.finRange n).filter fun (x : Fin n) ↦
+    let f := foldCA (ptE x) r (QA.getD x #[])
+    let vx := VA.getD x #[]
+    (List.finRange (2 ^ m)).all fun k ↦
+      let a := vx.getD k 0
+      let b := f.getD k 0
+      decide (a = b)
 
 /-- Lane `k`'s points on the window, nodes in `K`. -/
 def winPtsC {n : ℕ} (d : ℕ) (QA : AV) (cols : List (Fin n)) (k : ℕ) : List (K × E) :=
@@ -61,8 +66,13 @@ def newtonDecC (n d m : ℕ) (QA : AV) (cols : List (Fin n)) : Option AV :=
     if fs.all (·.isSome) then
       let V := Array.ofFn fun x : Fin n ↦ Array.ofFn fun k : Fin (2 ^ (m + 1)) ↦
         nEvalK ((fs.getD k none).getD ([], [])).1 ((fs.getD k none).getD ([], [])).2 (K.ofBits x)
-      if (cols.filter fun (x : Fin n) ↦ (List.finRange (2 ^ (m + 1))).any fun k ↦
-          !decide ((V.getD x #[]).getD k 0 = (QA.getD x #[]).getD k 0)).length ≤ 1 then some V
+      if (cols.filter fun (x : Fin n) ↦
+          let vx := V.getD x #[]
+          let qx := QA.getD x #[]
+          (List.finRange (2 ^ (m + 1))).any fun k ↦
+            let a := vx.getD k 0
+            let b := qx.getD k 0
+            !decide (a = b)).length ≤ 1 then some V
       else none
     else none
   else none
