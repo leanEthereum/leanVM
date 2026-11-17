@@ -17,6 +17,8 @@ end theorem's grows beyond Lean's three. -/
 
 example : Sphincs.LeanSphincsStronglyUnforgeable := Sphincs.leanSphincsStronglyUnforgeable
 
+example : Sphincs.LeanSphincsMultiKeyStronglyUnforgeable := Sphincs.leanSphincs_multiKey
+
 /-- info: 'Sphincs.leanSphincsStronglyUnforgeable' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.leanSphincsStronglyUnforgeable

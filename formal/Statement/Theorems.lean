@@ -3,6 +3,7 @@ module
 public import Statement.LeanVmGuestCompleteness
 public import Statement.LeanXmss
 public import Statement.LeanSphincs
+public import Statement.MultiKey
 public import Statement.LeanDa
 
 /-!
@@ -21,8 +22,9 @@ program's witness (`GuestKnowledgeSoundness`, `LeanVmGuest.lean`). The statement
 only by their size bounds and budgets, whose docstrings say what those exclude and what they do
 not. Every statement with an adversary is in the random-permutation model (`statement.tex`).
 
-What no field states: security with many keys (each signature game has one key); anything about a
-claim an aggregate holds through a child (the guest statements cover one node, `LeanVmGuest.lean`);
+What no field states: security with more than `2^32` keys (the multi-key fields, `MultiKey.lean`,
+cover up to `2^32`); anything about a claim an aggregate holds through a child (the guest
+statements cover one node, `LeanVmGuest.lean`);
 that an accepted aggregate's signatures were made by their keys' holders, or that its DA roots
 commit to codewords (the guest's relation evaluates the deployed Keccak-f[1600], the signature and
 LeanDA games the model's permutation, and no statement composes them). Both signature bounds charge
@@ -97,6 +99,15 @@ structure Theorems
   adversary making `q` calls of `π` and `π⁻¹` itself and at most `1,182,000,000` signing requests
   (`LeanSphincs.lean`); the honest parties' hashing is not charged to `q`. -/
   leanSphincsStronglyUnforgeable : Sphincs.LeanSphincsStronglyUnforgeable
+  /-- leanXMSS is strongly unforgeable for up to `2^32` keys: at most `k · (q + 2^10 + k) · 2^-127`
+  for an adversary against `k` keys making `q` calls of `π` and `π⁻¹` itself and at most `2^32`
+  signing requests to each key (`MultiKey.lean`). -/
+  leanXmssMultiKeyStronglyUnforgeable :
+    LeanXmss.RandomPermutationModel.LeanXmssMultiKeyStronglyUnforgeable
+  /-- leanSPHINCS is strongly unforgeable for up to `2^32` keys: at most
+  `k · (q + 2^19 + k) · 2^-127` for an adversary against `k` keys making `q` calls of `π` and `π⁻¹`
+  itself and at most `1,182,000,000` signing requests to each key (`MultiKey.lean`). -/
+  leanSphincsMultiKeyStronglyUnforgeable : Sphincs.LeanSphincsMultiKeyStronglyUnforgeable
 
   /-- LeanDA is perfectly complete, for every `π` (`LeanDa.lean`). -/
   leanDaComplete : LeanDa.LeanDaPerfectlyComplete

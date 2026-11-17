@@ -21,6 +21,9 @@ to `2^32` keys, each signing at most `lifetime` requests, at most `k · (q + 2^1
 example : LeanXmss.RandomPermutationModel.LeanXmssStronglyUnforgeable :=
     XmssSecurity.leanXmss_rpm_security
 
+example : LeanXmss.RandomPermutationModel.LeanXmssMultiKeyStronglyUnforgeable :=
+    XmssSecurity.leanXmss_multiKey
+
 namespace XmssSecurity
 
 /-- leanXMSS at the adversary's own hash calls, in the random-oracle model: an adversary making at most

@@ -26,7 +26,7 @@ proposition proved using only Lean's three axioms (\lean{propext}, \lean{Classic
 \lean{Quot.sound}): no \lean{sorry}, no \lean{native_decide}, no added axiom. The system is
 leanVM as of this document's tree.
 
-\paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: seventeen files
+\paragraph{Where to read it.} The statements live in one folder, \lean{Statement/}: eighteen files
 of definitions and end statements, which import Mathlib,
 VCVio and CompPoly and nothing of the proofs. Beside them sit the honest prover the completeness
 statements name (\lean{Statement/Prover/}; it is proved to make the specification's
@@ -53,6 +53,8 @@ Field & End statement & Section\\\midrule
 \lean{batchingSound} & \lean{LeanVM.Guest.Batch.BatchingSound} & \ref{sec:guest}\\
 \lean{leanXmssStronglyUnforgeable} & \lean{LeanXmss.RandomPermutationModel.LeanXmssStronglyUnforgeable} & \ref{sec:schemes}\\
 \lean{leanSphincsStronglyUnforgeable} & \lean{Sphincs.LeanSphincsStronglyUnforgeable} & \ref{sec:schemes}\\
+\lean{leanXmssMultiKeyStronglyUnforgeable} & \lean{LeanXmss.RandomPermutationModel.LeanXmssMultiKeyStronglyUnforgeable} & \ref{sec:schemes}\\
+\lean{leanSphincsMultiKeyStronglyUnforgeable} & \lean{Sphincs.LeanSphincsMultiKeyStronglyUnforgeable} & \ref{sec:schemes}\\
 \lean{leanDaComplete} & \lean{LeanDa.LeanDaPerfectlyComplete} & \ref{sec:schemes}\\
 \lean{leanDaPositionBinding} & \lean{LeanDa.LeanDaPositionBinding} & \ref{sec:schemes}\\
 \lean{leanDaCodeBinding} & \lean{LeanDa.LeanDaCodeBinding} & \ref{sec:schemes}\\
@@ -73,6 +75,7 @@ project beside them are proved in the proof projects; their statements are not p
 \item \lean{SufCma.lean}: the single-key SUF-CMA game and \lean{StronglyUnforgeable}.
 \item \lean{HashSignatures.lean}: the tweakable hash, chain, path fold and tree both schemes share.
 \item \lean{LeanXmss.lean}, \lean{LeanSphincs.lean}: the two schemes and their end statements.
+\item \lean{MultiKey.lean}: the multi-key game of both schemes, \lean{MultiKeyStronglyUnforgeable} and its two end statements.
 \item \lean{Field.lean}: $\mathbb{F} = \mathrm{GF}(2^{64})$, $\mathbb{E} = \mathrm{GF}(2^{128})$ and the Fiat-Shamir duplex sponge.
 \item \lean{LeanDa.lean}: LeanDA, its argument and games, and its three end statements.
 \item \lean{LeanIsa.lean}: leanISA, its runs, \lean{ValidExecution} and the bytecode encoding.
@@ -289,9 +292,7 @@ one says nothing).
 
 \paragraph{leanXMSS} (\lean{LeanXmss.RandomPermutationModel.LeanXmssStronglyUnforgeable},
 \lean{Statement/LeanXmss.lean}): a single key is strongly unforgeable under chosen-message attack
-(multi-key security is not stated: a guessing reduction would have to simulate the other keys' key
-generation and signing as its own, charged, calls, so it does not give $k\cdot(q+\mathit{slack})\cdot2^{-127}$ for
-$k$ keys; a direct multi-key bound, the public parameters acting as salts, is plausible but not proved).
+(for many keys, see the paragraph \emph{Many keys} below).
 The game samples the key's seed, generates the keys, and runs the adversary with $\pi$,
 $\pi^{-1}$ and a signing oracle; the adversary picks each request's leaf index and wins
 only if no index is requested twice (re-signing the same message at the same index, which the crate allows, is a loss too), and its forgery wins if it verifies and is not a pair the
@@ -330,6 +331,47 @@ hash, whose collisions are outside the bounds. Both schemes are stated through o
 \lean{Common.SufCma.StronglyUnforgeable},
 and share the shape of one tweakable hash (\texttt{prefixed\_hasher}, \texttt{truncate} of each
 scheme crate's \texttt{lib.rs}), hash chain and path fold.
+
+\paragraph{Many keys} (\lean{Common.SufCma.MultiKeyStronglyUnforgeable},
+\lean{LeanXmss.RandomPermutationModel.LeanXmssMultiKeyStronglyUnforgeable},
+\lean{Sphincs.LeanSphincsMultiKeyStronglyUnforgeable}, \lean{Statement/MultiKey.lean}). An aggregate
+holds signatures under many keys. The multi-key game is the single-key game of the $k$ keys as one
+scheme (\lean{Scheme.multiKey}): $k$ seeds sampled independently and the keys generated with the one
+permutation $\pi$; the adversary sees the $k$ public keys, asks any key to sign (within each key's
+single-key limit of requests), and wins by a forgery under any one key that verifies and is fresh
+for that key's own requests (for leanXMSS, no leaf index of that key requested twice). For
+$k \le 2^{32}$ keys and every $q$, an adversary that itself makes at most $q$ calls of $\pi$ and
+$\pi^{-1}$ forges with probability at most
+\[
+\boxed{\ k\cdot(q + \mathit{slack} + k)\cdot 2^{-127}\ }
+\]
+with $\mathit{slack} = 2^{10}$ for leanXMSS and $2^{19}$ for leanSPHINCS
+(\lean{XmssSecurity.leanXmss_multiKey}, \lean{Sphincs.leanSphincs_multiKey}). The factor $k$ is the
+key the forgery names: for each key $i$, a reduction plays the single-key game against key $i$ and
+generates the other keys itself. It answers their signing requests, and every hash query that
+belongs to them, with a private random oracle of its own: one of their key generation's inputs, or
+an input that carries their public parameter and not key $i$'s. So their hashing is not charged.
+This differs from the multi-key game only if key $i$ clashes with another key: an input of the other
+key's key generation is key $i$'s or carries key $i$'s public parameter, or the two keys share a
+public parameter. The proofs bound that per pair by $2^{-128} + 2^{-255}$ for leanXMSS (equal key
+seeds, scheme seeds or public parameters) and $2^{-128} + 2^{-256}$ for leanSPHINCS (equal seeds or
+public parameters), each rounded up to $2^{-127}$. The proof is in the random-oracle model, from
+each scheme's single-key random-oracle theorem
+(\lean{Common.SufCma.MultiKey.multiKeyStronglyUnforgeable_of_romBoundAdv}), and gives
+$k\cdot(q + \mathit{slack}' + (k - 1))\cdot 2^{-127}$, with $\mathit{slack}'$ the single-key
+random-oracle constant and $k - 1$ the forged key's clashes with the others. It moves to $\pi$ by
+the sponge's indifferentiability, applied once to the whole $k$-key game: for $k \le 2^{32}$ its
+permutation calls stay at most $2^{161}$, so that term is at most one unit $2^{-127}$
+(\lean{Common.SufCma.multiKey_of_romBoundMulti}, \lean{Common.SufCma.multi_add_sq_le}). The unit and
+$\mathit{slack}'$ fit in $\mathit{slack}$, and $k - 1$ plus the unit in the last $+k$. For leanSPHINCS
+the single-key theorem is upstream's model of the scheme, whose secret key keeps the public
+parameter: the crate's signer derives it again from the seed, so its queries are not all its own
+key's whatever the hash answers. The bound passes to the crate's scheme by the same static swap as
+for one key (\lean{Sphincs.MultiKey.crate_romBoundMulti}). At $k = 2^{11}$ and $q = 2^{80}$ the bound
+is at most about $2^{-36}$, and at $k = 2^{20}$ and $q = 2^{100}$ at most about $2^{-7}$ (one key
+at $q = 2^{80}$: at most about $2^{-47}$). The sharper form $(q + k\cdot\mathit{slack})\cdot 2^{-127}$,
+charging the adversary's calls once rather than once per key, would need the single-key proofs to
+bound only the adversary's queries that concern the attacked key; it is not attempted.
 
 \subsection*{LeanDA}
 
@@ -756,9 +798,9 @@ guest program checks a child with the deployed Keccak, so the bad events (a proo
 nonce within its fuel, a zero challenge) are bounded in the
 RPM for the same prover and check, and their absence at the deployed Keccak is what
 \lean{HonestChild} asks. Completeness thus holds level after level as far as the deployed Keccak
-behaves like $\pi$ for these events; that step is the model's assumption, not a theorem. Not stated
-either: that honest batching hints exist, that batching true claims gives a deferred claim that
-holds, and that the outer verifier accepts an honest root (see the last section).
+behaves like $\pi$ for these events; that step is the model's assumption, not a theorem. Batching
+across a level is proved in \lean{lean_vm}, not stated: honest batching hints exist and batching
+true claims gives a true deferred claim (see the last section).
 
 \section{What is not proved}
 
@@ -780,9 +822,38 @@ signature schemes and for leanVM's Fiat-Shamir: every statement is about classic
 \item LeanDA's code binding for an argument whose relation uses the deployed Keccak-f[1600] rather than $\pi$ (leanVM's in-circuit DA check), and the link from the guest
 program's DA check (\lean{Da.MatrixWitness.Opens}) and the outer verifier's derivation of the challenge to
 LeanDA's code binding.
-\item That a parent can always form its witness from honest children (the batching hints exist),
-that batching true claims gives a true deferred claim, and that the deployed outer verifier
-(\texttt{AggregateProof::verify}) accepts an honest root.
+\item In full, that a parent can always form its witness from honest children and that the deployed
+outer verifier (\texttt{AggregateProof::verify}) accepts an honest root. \lean{lean_vm} proves,
+outside the statement (\lean{LeanVM.Guest.Batch.honest_batching},
+\lean{deferredClaimBatched_honest}, \lean{deferredClaimBatched_leaf},
+\lean{honest_root_holdsWithShape}), that the batching's honest hints
+(\lean{LeanVM.Guest.Batch.honestHints}) make the batching accept children whose claims are true and
+of the bytecode's shape, with a deferred claim that holds (\lean{DeferredBytecodeClaim.HoldsWithShape},
+the value the outer verifier recomputes); a leaf's deferred claim at the zero point holds too, so
+every honest level's deferred claim holds. The one hypothesis is the hint's nonce: it must pass the
+batching's $2$-bit proof of work on the deployed Keccak, a property of that function (the prover
+grinds for it). Not modelled: the outer verifier's sortedness check on the claim lists, its
+derivation of the DA digest (the root's grinded membership challenge) and of the statement's
+digest, its byte-level parsing, and its run of the verifier with the deployed Keccak (whose
+completeness is stated in the RPM only, \lean{HonestProofRarelyRefused}).
+\item That an accepted aggregate's raw signatures under honest keys are genuine. \lean{lean_vm}
+proves it outside the statement, conditionally
+(\lean{LeanVM.aggregate_raw_xmss_signatures_genuine_if_keccak_like_ideal},
+\lean{LeanVM.aggregate_raw_sphincs_signatures_genuine_if_keccak_like_ideal}, from
+\lean{Common.Compose.composed_sound}). The adversary gets $k$ honest public keys and their signing
+oracles, and outputs a proof. Except with the bound of \lean{AggregateSound}, plus $\delta$, plus the
+multi-key bound, an accepted proof is explained, and the witness it decodes holds no fresh raw
+signature under an honest key. The model is wider than the statement's: the signature scheme
+hashes over a second random permutation, independent of the proof system's (deployed, both are
+Keccak-f[1600]). It is needed because the extractor reads the adversary's whole transcript. The
+hypothesis (\lean{Common.Compose.KeccakVerificationLikeIdeal}) is about the one adversary: with
+probability at most $\delta$, the decoded witness holds a raw signature under an honest key that is
+fresh for it and accepted by the deployed Keccak's verification, yet rejected by the ideal one.
+No such bound holds for all adversaries: the deployed Keccak is a fixed function, so an unbounded
+adversary can search it for a signature that it accepts and the ideal verification rejects. The theorem is
+about soundness only (an honest signature made in this model generally fails the deployed
+verification), and only about the raw signatures a node holds directly, not the claims it holds
+through children.
 \item Completeness for children whose proofs are not \lean{LeanVM.leanVmHonestProver}'s with the
 deployed Keccak (the Rust prover's, say), or under another seed than the deployed one:
 \lean{HonestChild} names the proof.
