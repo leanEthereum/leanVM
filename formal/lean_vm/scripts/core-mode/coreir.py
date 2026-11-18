@@ -137,8 +137,11 @@ def load():
                        code=[(op, [int(x) if x.isdigit() else x for x in args]) for op, args in m['code']] if m else None,
                        nargs=m.get('nargs') if m else None)
     out = dict(core=fns, stable=names, comp=comp, pows=md['pows'], hints=md['hints'], core_text_lines={k: t.count('\n') for k, t in texts.items()})
-    with open(CACHE, 'wb') as f:
+    # written whole, then renamed: generators running at once read a complete cache or none
+    tmp = '%s.%d' % (CACHE, os.getpid())
+    with open(tmp, 'wb') as f:
         pickle.dump(out, f)
+    os.replace(tmp, CACHE)
     return out
 
 

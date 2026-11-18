@@ -4,7 +4,7 @@
 #
 #   scripts/regen-guest.sh                 # write
 #   scripts/regen-guest.sh --check         # write nothing, fail if any file is stale
-#   scripts/regen-guest.sh --from STEP     # resume at STEP: export core changes vt cert mode bridge memory res whir count tables decoder
+#   scripts/regen-guest.sh --from STEP     # resume at STEP: export core changes vt cert mode core-mode bridge memory res whir count tables decoder
 #   scripts/regen-guest.sh --jobs N        # the Lean builds' job cap (lake-build.py's --jobs)
 #
 # Run from anywhere; it works in lean_vm. Each step's generator reads only what the steps before it
@@ -29,12 +29,15 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-steps=(export core changes vt cert mode bridge memory res whir count tables decoder)
+steps=(export core changes vt cert mode core-mode bridge memory res whir count tables decoder)
 case " ${steps[*]} " in *" $from "*) ;; *) echo "unknown step $from: one of ${steps[*]}" >&2; exit 2 ;; esac
 step() { printf '\n==> [%dm%02ds] %s\n' $((SECONDS / 60)) $((SECONDS % 60)) "$*"; }
 capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
+# The mode walk's inference, computed once by the `mode` step and read by `core-mode`'s frame walks;
+# the core IR's parse, shared by the core-mode generators.
+export MODE_CERT_CACHE=$tmp/mode-cert.pkl CORE_MODE_CACHE=$tmp/core-mode.pkl
 
 # A Lean build: skipped under `--check`, which builds every target first (`prebuild`).
 built=
@@ -59,6 +62,7 @@ parts_changes=(changes) targets_changes=()
 parts_vt=(vt) targets_vt=()
 parts_cert=(cert) targets_cert=(guest-cert)
 parts_mode=(mode) targets_mode=()
+parts_core_mode=(core_mode) targets_core_mode=()
 parts_bridge=(bridge) targets_bridge=()
 parts_memory=(memory) targets_memory=(guest-memory)
 parts_res=(res) targets_res=()
@@ -113,9 +117,39 @@ part_cert() {
 
 part_mode() {
   step "mode: the mode walk's signatures and checks (scripts/mode-cert/gen.py)"
-  python3 -I scripts/mode-cert/gen.py "${check[@]}"
+  local rc=0
+  python3 -I scripts/mode-cert/gen.py "${check[@]}" || rc=$?
+  touch "$tmp/mode-cert.done"
+  [ $rc -eq 0 ] || return $rc
   step "mode: the residuals by family (scripts/mode-cert/res.py)"
   python3 -I scripts/mode-cert/res.py "${check[@]}"
+}
+
+# The core route (`formal/notes/core-mode.md`): its functions' heap certificates, pairings, frame walks
+# and route data. Its frame walks read the `mode` step's inference (`MODE_CERT_CACHE`); written, the route
+# changes which functions the mode walk checks, so the mode certificates are written again after it.
+part_core_mode() {
+  if [ ! -f "$MODE_CERT_CACHE" ]; then
+    case " ${selected[*]} " in
+      *" mode "*) until [ -f "$tmp/mode-cert.done" ]; do sleep 2; done ;;
+    esac
+  fi
+  [ -f "$MODE_CERT_CACHE" ] || part_mode
+  step "core-mode: bodies with calls (scripts/core-mode/callc.py)"
+  python3 -I scripts/core-mode/callc.py --emit "${check[@]}"
+  step "core-mode: heap certificates (scripts/core-mode/heap.py)"
+  python3 -I scripts/core-mode/heap.py --emit LeanVM/Guest/CoreMode/Gen "${check[@]}"
+  step "core-mode: pairings (scripts/core-mode/pair.py)"
+  python3 -I scripts/core-mode/pair.py --emit "${check[@]}"
+  step "core-mode: frame walks (scripts/core-mode/frame_gen.py)"
+  in_place core-mode/frame_gen.py python3 -I scripts/core-mode/frame_gen.py
+  if [ ${#check[@]} -eq 0 ]; then
+    step "core-mode: the mode certificates of the functions off the route (scripts/mode-cert/gen.py, res.py)"
+    python3 -I scripts/mode-cert/gen.py
+    python3 -I scripts/mode-cert/res.py
+  fi
+  step "core-mode: route data (scripts/core-mode/core.py)"
+  python3 -I scripts/core-mode/core.py "${check[@]}"
 }
 
 part_bridge() {
@@ -221,7 +255,7 @@ done
 
 if [ ${#check[@]} -eq 0 ]; then
   for s in "${selected[@]}"; do
-    eval "parts=(\"\${parts_$s[@]}\")"
+    eval "parts=(\"\${parts_${s//-/_}[@]}\")"
     for p in "${parts[@]}"; do "part_$p"; done
   done
   step "done: adapt the proofs guest-changes listed, then python3 -I ../lake-build.py . LeanVM LeanVMTests (formal/AGENTS.md, Changing the spec)"
@@ -249,7 +283,8 @@ if [ "${selected[0]}" = export ]; then
 fi
 targets=() parts=()
 for s in "${selected[@]}"; do
-  eval "targets+=(\${targets_$s[@]+\"\${targets_$s[@]}\"}); parts+=(\"\${parts_$s[@]}\")"
+  v=${s//-/_}
+  eval "targets+=(\${targets_$v[@]+\"\${targets_$v[@]}\"}); parts+=(\"\${parts_$v[@]}\")"
 done
 if [ ${#targets[@]} -gt 0 ]; then
   step "the checks' Lean builds: $(printf '%s\n' "${targets[@]}" | sort -u | tr '\n' ' ')"
