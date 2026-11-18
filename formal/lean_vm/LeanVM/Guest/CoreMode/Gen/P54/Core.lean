@@ -29,7 +29,7 @@ open LeanVM.Guest
 
 /-- `rs_eq_rows__L5`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn89, Data.powTree, hpost⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn89, Data.powTree, hpost, []⟩
 
 end
 
@@ -39,15 +39,17 @@ attribute [local irreducible] pairO pairS
 
 /-- `rs_eq_rows__L5`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := heap_ok
-  post := by decide +kernel
+  heap := .m1 heap_ok (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   pair := pair_ok
   frame := frameOk
   sig := by decide +kernel
   retv := by decide +kernel
   shape := by decide +kernel
+  calls := by decide +kernel
   fsig := rfl
+  fsigs := rfl
   fentry := rfl
+  flen := by decide +kernel
   xentry := by decide +kernel
   dhints := rfl
   hints := Mode.hintsEq_of_fn (j := 89) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
@@ -71,7 +73,7 @@ open LeanVM.Guest
 
 /-- `padding_weight__L29`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn129, Data.powTree, hpost⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn129, Data.powTree, hpost, []⟩
 
 end
 
@@ -81,15 +83,17 @@ attribute [local irreducible] pairO pairS
 
 /-- `padding_weight__L29`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := heap_ok
-  post := by decide +kernel
+  heap := .m1 heap_ok (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   pair := pair_ok
   frame := frameOk
   sig := by decide +kernel
   retv := by decide +kernel
   shape := by decide +kernel
+  calls := by decide +kernel
   fsig := rfl
+  fsigs := rfl
   fentry := rfl
+  flen := by decide +kernel
   xentry := by decide +kernel
   dhints := rfl
   hints := Mode.hintsEq_of_fn (j := 129) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
@@ -113,7 +117,7 @@ open LeanVM.Guest
 
 /-- `plus_one_run__L8`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn139, Data.powTree, hpost⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn139, Data.powTree, hpost, []⟩
 
 end
 
@@ -123,15 +127,17 @@ attribute [local irreducible] pairO pairS
 
 /-- `plus_one_run__L8`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := heap_ok
-  post := by decide +kernel
+  heap := .m1 heap_ok (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   pair := pair_ok
   frame := frameOk
   sig := by decide +kernel
   retv := by decide +kernel
   shape := by decide +kernel
+  calls := by decide +kernel
   fsig := rfl
+  fsigs := rfl
   fentry := rfl
+  flen := by decide +kernel
   xentry := by decide +kernel
   dhints := rfl
   hints := Mode.hintsEq_of_fn (j := 139) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
@@ -155,7 +161,7 @@ open LeanVM.Guest
 
 /-- `index_mle__L17`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn216, Data.powTree, hpost⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn216, Data.powTree, hpost, []⟩
 
 end
 
@@ -165,15 +171,17 @@ attribute [local irreducible] pairO pairS
 
 /-- `index_mle__L17`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := heap_ok
-  post := by decide +kernel
+  heap := .m1 heap_ok (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   pair := pair_ok
   frame := frameOk
   sig := by decide +kernel
   retv := by decide +kernel
   shape := by decide +kernel
+  calls := by decide +kernel
   fsig := rfl
+  fsigs := rfl
   fentry := rfl
+  flen := by decide +kernel
   xentry := by decide +kernel
   dhints := rfl
   hints := Mode.hintsEq_of_fn (j := 216) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
@@ -197,7 +205,7 @@ open LeanVM.Guest
 
 /-- `squeeze_point_from__L21`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn313, Data.powTree, hpost⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn313, Data.powTree, hpost, []⟩
 
 end
 
@@ -207,15 +215,17 @@ attribute [local irreducible] pairO pairS
 
 /-- `squeeze_point_from__L21`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := heap_ok
-  post := by decide +kernel
+  heap := .m1 heap_ok (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   pair := pair_ok
   frame := frameOk
   sig := by decide +kernel
   retv := by decide +kernel
   shape := by decide +kernel
+  calls := by decide +kernel
   fsig := rfl
+  fsigs := rfl
   fentry := rfl
+  flen := by decide +kernel
   xentry := by decide +kernel
   dhints := rfl
   hints := Mode.hintsEq_of_fn (j := 313) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
@@ -239,7 +249,7 @@ open LeanVM.Guest
 
 /-- `claim_list_last__L3`: what the core route knows of it. -/
 noncomputable def cfun : CoreMode.CFun :=
-  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn355, Data.powTree, hpost⟩
+  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn355, Data.powTree, hpost, []⟩
 
 end
 
@@ -249,15 +259,17 @@ attribute [local irreducible] pairO pairS
 
 /-- `claim_list_last__L3`: the kernel's checks of the core route, tied to its mode certificate. -/
 theorem core_ok : CoreMode.CoreOk ⟨modeEnv, modeFun, code.chunks.flatten⟩ cfun where
-  heap := heap_ok
-  post := by decide +kernel
+  heap := .m1 heap_ok (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
   pair := pair_ok
   frame := frameOk
   sig := by decide +kernel
   retv := by decide +kernel
   shape := by decide +kernel
+  calls := by decide +kernel
   fsig := rfl
+  fsigs := rfl
   fentry := rfl
+  flen := by decide +kernel
   xentry := by decide +kernel
   dhints := rfl
   hints := Mode.hintsEq_of_fn (j := 355) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl
