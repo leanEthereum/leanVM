@@ -434,12 +434,10 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     refine Bridge.jumpF_of hj1 hj0 hch (List.all_eq_true.mpr hlocs) hF (by rw [hc0, hfn]; exact hw)
       (End.jtHolds_of hJT) hJT fun x arms hm ↦ ?_
     have hwb : walk e.σ (coreOf j).body = .ret (e.pre ++ e.es) vs := by rw [hc0, hfn]; exact hw
-    have hnl : CoreMode.loopB Cf.fn = false := by
-      cases hl : CoreMode.loopB Cf.fn
+    have hnl : CoreMode.loopBC Cf.fn = false := by
+      cases hl : CoreMode.loopBC Cf.fn
       · rfl
-      · obtain ⟨as0, c0, a0, hbd, -⟩ := CoreMode.loopB_spec hl
-        rw [hc0, hbd] at hm
-        rcases CoreMode.stmts_loop hm with ⟨a, ha⟩ | ha | ha <;> cases ha
+      · exact absurd (hc0 ▸ hm) (CoreMode.loopBC_noMatch hl)
     simp only [hnl, Bool.or_false] at hbody hselB
     simp only [CoreMode.bodyC, Bool.and_eq_true] at hbody
     obtain ⟨hc, a, ha, hu⟩ := Bridge.selGo_sound [] _ (hc0 ▸ hselB) (hc0 ▸ hbody.2) hwb x arms hm

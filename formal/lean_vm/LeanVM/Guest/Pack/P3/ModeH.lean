@@ -43,21 +43,6 @@ end
 
 end LeanVM.Guest.Fn.«decode_query_windows__L23_L5»
 
-namespace LeanVM.Guest.Fn.«level_positions__L6_L24_L6_loop0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `__loop424`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 1417) (d := Data.adviceFn1417) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_positions__L6_L24_L6_loop0»
-
 namespace LeanVM.Guest.Fn.«verify_keccak»
 
 open LeanVM.Guest LeanVM.Guest.Exec
