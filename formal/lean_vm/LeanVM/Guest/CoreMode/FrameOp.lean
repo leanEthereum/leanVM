@@ -134,11 +134,17 @@ def HeapRd (s : Prover.Exec.St) : OffsetInstruction → Prop
 
 /-! ## Value facts after an instruction -/
 
-theorem stepF_deref {O : Exec.Trie Unit} {i : ℕ} {A A' : FSt} {a o c : ℕ} {mode : DerefMode}
-    (h : stepF O i A (.deref a o c mode) = some A') : A.hasW a = true ∧ A' = derefF O i A a o c mode := by
-  replace h : (if A.hasW a = true then some (derefF O i A a o c mode) else none) = some A' := h
+theorem stepF_deref {O S : Exec.Trie Unit} {i : ℕ} {A A' : FSt} {a o c : ℕ} {mode : DerefMode}
+    (h : stepF O S i A (.deref a o c mode) = some A') :
+    A.hasW a = true ∧ (has S i = true → A.hasW c = true) ∧ A' = derefF O i A a o c mode := by
+  replace h : (if (A.hasW a && (!has S i || A.hasW c)) = true then some (derefF O i A a o c mode)
+    else none) = some A' := h
   split_ifs at h with hw
-  exact ⟨hw, (Option.some.inj h).symm⟩
+  simp only [Bool.and_eq_true] at hw
+  obtain ⟨hw1, hw2⟩ := hw
+  refine ⟨hw1, fun hs ↦ ?_, (Option.some.inj h).symm⟩
+  rw [hs] at hw2
+  simpa using hw2
 
 theorem isOne_eq' {o : Option Exec.Sym} (h : Exec.isOne o = true) : o = some (.gp 0) := by
   rcases o with _ | (_ | (_ | _) | _) <;> simp_all [Exec.isOne]
@@ -182,8 +188,8 @@ theorem fval_addOuts {fp : ℕ} {A : FSt} (hv : FVal img fp A) (out : ℕ) :
 
 /-- **The value facts after a non-`JUMP`** the frame rule accepts, the instruction holding of the
 reference. -/
-theorem stepF_val {O : Exec.Trie Unit} {i pc fp : ℕ} {A A' : FSt} {ins : OffsetInstruction}
-    (hv : FVal img fp A) (hh : Guest.Holds img pc (g ^ fp) ins) (h : stepF O i A ins = some A') :
+theorem stepF_val {O S : Exec.Trie Unit} {i pc fp : ℕ} {A A' : FSt} {ins : OffsetInstruction}
+    (hv : FVal img fp A) (hh : Guest.Holds img pc (g ^ fp) ins) (h : stepF O S i A ins = some A') :
     FVal img fp A' := by
   cases ins with
   | xor a b c =>
@@ -220,7 +226,7 @@ theorem stepF_val {O : Exec.Trie Unit} {i pc fp : ℕ} {A A' : FSt} {ins : Offse
     · exact hv.addW o
   | deref a o c mode =>
     have hnz := deref_ptr_nz hh
-    obtain ⟨-, rfl⟩ := stepF_deref h
+    obtain ⟨-, -, rfl⟩ := stepF_deref h
     have hB : FVal img fp (cellF O i A a o c) := by
       unfold cellF
       split_ifs
@@ -298,9 +304,9 @@ theorem fwr_addOuts {s : Prover.Exec.St} {A : FSt} (hw : FWr s A) {out : ℕ} :
   | n + 1, hn => (fwr_addOuts hw n fun j hj ↦ hn j (by omega)).addW (hn n (by omega))
 
 /-- **The written cells after a non-`JUMP`** the frame rule accepts. -/
-theorem stepF_wr {C : Prover.Exec.Ctx} {O : Exec.Trie Unit} {i : ℕ} {s s' : Prover.Exec.St} {A A' : FSt}
+theorem stepF_wr {C : Prover.Exec.Ctx} {O S : Exec.Trie Unit} {i : ℕ} {s s' : Prover.Exec.St} {A A' : FSt}
     {ins : OffsetInstruction} (hs : s.Good) (hfp : s.fp < maxCells) (hpc : s.pc < C.ops.size)
-    (hw : FWr s A) (hO : has O i = true → HeapRd s ins) (h : stepF O i A ins = some A')
+    (hw : FWr s A) (hO : has O i = true → HeapRd s ins) (h : stepF O S i A ins = some A')
     (e : runOp C s (opOfOff ins) = .ok s') :
     FWr s' A' ∧ s'.fp = s.fp ∧ s'.pc = s.pc + 1 ∧ s.mem ≤ s'.mem := by
   cases ins with
@@ -348,7 +354,7 @@ theorem stepF_wr {C : Prover.Exec.Ctx} {O : Exec.Trie Unit} {i : ℕ} {s s' : Pr
     have hm := hw.mono h3 h2
     have hp' : s'.mem.get (s'.fp + a) = some p := by rw [h2]; exact h3.get _ _ hp
     refine ⟨?_, h2, h1, h3⟩
-    obtain ⟨-, rfl⟩ := stepF_deref h
+    obtain ⟨-, -, rfl⟩ := stepF_deref h
     cases mode with
     | pc => exact (hm.addNz a).addQ fun _ ↦ ⟨p, x, hp', hx, written_of_get (hpcm rfl)⟩
     | fp => exact (hm.addNz a).addQ fun _ ↦ ⟨p, x, hp', hx, written_of_get (hfpm rfl)⟩
@@ -377,11 +383,11 @@ theorem stepF_wr {C : Prover.Exec.Ctx} {O : Exec.Trie Unit} {i : ℕ} {s s' : Pr
       · exact hB
 
 /-- **What a non-`JUMP` the frame rule accepts reads is written**, a back-solve's divisor nonzero. -/
-theorem stepF_reads (hκ : κ ≤ 28) {O : Exec.Trie Unit} {i pc : ℕ} {s : Prover.Exec.St} {A A' : FSt}
+theorem stepF_reads (hκ : κ ≤ 28) {O S : Exec.Trie Unit} {i pc : ℕ} {s : Prover.Exec.St} {A A' : FSt}
     {ins : OffsetInstruction} (hs : Fine (refMem img) s) (hA : FHolds img s A)
     (hh : Guest.Holds img pc (g ^ s.fp) ins)
     (hsm : ∀ a b c, ins = .mul a b c → a < 2 ^ 28 ∧ b < 2 ^ 28 ∧ c < 2 ^ 28)
-    (h : stepF O i A ins = some A') : Reads s (opOfOff ins) := by
+    (h : stepF O S i A ins = some A') : Reads s (opOfOff ins) := by
   have hW : ∀ o, A.hasW o = true → s.mem.written (s.fp + o) = true := fun o ho ↦ hA.2.w o (has_iff.mp ho)
   cases ins with
   | jump => simp [stepF] at h

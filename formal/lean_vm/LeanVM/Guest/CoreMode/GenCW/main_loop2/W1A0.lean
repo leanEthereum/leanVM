@@ -89,8 +89,8 @@ def sum1_0 : List BlkSum := [⟨false, [], [], [], []⟩, ⟨false, [], [], [], 
     ⟨false, [], [], [], []⟩, ⟨false, [], [], [], []⟩, ⟨false, [], [], [], []⟩, ⟨false, [], [], [], []⟩]
 
 /-- Arms 0 to 255. -/
-theorem arms1_0 : armsOk Data.powTree sigW core hcert ((Memory.loopBody core).drop 79) 0 (256 - 0) st1 (cntOf st1) sum1_0 (4, 1, 0, 0) = true := by
-  simp only [armsOk, withCx_cx hcx]
+theorem arms1_0 : armsOkW Data.powTree sigW core hcert ((Memory.loopBody core).drop 79) 0 (256 - 0) st1 (cntOf st1) sum1_0 (4, 1, 0, 0) = true := by
+  simp only [armsOkW, withCx_cx hcx]
   decide +kernel
 
 end

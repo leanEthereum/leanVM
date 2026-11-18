@@ -268,7 +268,7 @@ section Cov
 variable (H : HCert) (σ : Val)
 
 /-- An address an atom of `es` writes. -/
-def WL (es : List Ev) (x : K) : Prop := ∃ b, Ev.atom b ∈ es ∧ Writes σ b x
+@[expose] def WL (es : List Ev) (x : K) : Prop := ∃ b, Ev.atom b ∈ es ∧ Writes σ b x
 
 /-- **The reads of `es` are covered**: in `W`, or written by an atom of `es` before. -/
 def Cov (W : K → Prop) (es : List Ev) : Prop :=
@@ -469,6 +469,7 @@ theorem atomH_ok (hR : X.R = H.readT) (hP : ∀ k c, getF X.pre k = some c → c
           | ab => simp [witOk] at hl
           | evs => simp [witOk] at hl
           | back => simp [witOk] at hl
+          | prep2 => simp [witOk] at hl
   | hint hn =>
     unfold atomH at h
     cases hh : hintHeap hn with
@@ -507,7 +508,7 @@ section Blocks
 variable {σ : Val} {rd : Reader} {H : HCert} {X : HX}
 
 /-- The events hold. -/
-def AllHold (rd : Reader) (σ : Val) (es : List Ev) : Prop := ∀ e ∈ es, e.Holds rd σ
+@[expose] def AllHold (rd : Reader) (σ : Val) (es : List Ev) : Prop := ∀ e ∈ es, e.Holds rd σ
 
 /-- An outcome's reads are covered. -/
 def Covers (H : HCert) (σ : Val) (rd : Reader) (W : K → Prop) (o : Out) : Prop :=

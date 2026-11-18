@@ -38,8 +38,11 @@ theorem back_of_tail {m : Mem} {Kc : Cert} {fp nx e : ℕ} {A : Abs} (hA : Holds
     (hloop : loopOk A Kc.F.sig = true)
     (hruns : ∀ r ∈ Kc.F.sig.postL ++ Kc.F.sig.postLP.map (·.1),
       trRngUp A (.own e) r = some ⟨r.q, r.lo.succ, r.hi, r.S, r.d⟩)
-    (hst : retStay A e Kc.F.sig = true) : Back m Kc.F.sig fp nx := by
-  intro m' hle hwf hu ⟨hR, hL, hLP⟩
+    (hst : retStay A e Kc.F.sig = true) {Ct : Cts} (hCt : Ct Kc.F.entry = none) :
+    Back Ct Kc.F.entry Kc.F.sig m fp nx := by
+  intro m' hle hwf hu hP
+  rw [postAt_none hCt] at hP ⊢
+  obtain ⟨hR, hL, hLP⟩ := hP
   have hA' : Holds (stOf m' fp) A := Holds.mono (s := stOf m fp) (s' := stOf m' fp) hle rfl hA
   have F : Frames (stOf m' fp) (stOf m' nx) (.own e) := by
     have hm := MonoVal.own (s := stOf m' fp) e
@@ -58,22 +61,25 @@ theorem resume_of_call {K : Cert} {A : Abs} {sel : Option Base} {mq : Mono} {Gs 
     {G' : Sig} {sC : St} {fpE ro : ℕ} (hj : Gs[j]? = some G') (hmq : MonoVal sC mq (ofK (g ^ fpE)))
     (hA : Holds sC (atCall (A.assume sel j) mq G')) (hsel : ∀ x, sel = some x → IdxVal sC (.ex x 0) j)
     (hk : ∀ s3, Holds s3 (armsMeet sel ((Gs.zipIdx.map fun p ↦ (p.1, atCall (A.assume sel p.2) mq p.1)).map
-      fun p ↦ afterCall p.2 mq p.1)) → AtOff K.E K.F K.code ro s3) :
-    Resume (AtOff K.E K.F K.code) sC.fp ro G' fpE sC.mem := by
-  intro m hm hwf hu hfpE hfpC hR hL hLP hT
+      fun p ↦ afterCall p.2 mq p.1)) → AtOff K.E K.F K.code ro s3) {Ct : Cts} {t : ℕ} (hCt : Ct t = none) :
+    Resume Ct (AtOff K.E K.F K.code) sC.fp ro t G' fpE sC.mem := by
+  intro m hm hwf hu hfpE hfpC hP hT
+  rw [postAt_none hCt] at hP
+  obtain ⟨hR, hL, hLP⟩ := hP
   have F : Frames (stOf m sC.fp) (stOf m fpE) mq :=
     ⟨rfl, MonoVal.mono (s := sC) (s' := stOf m sC.fp) hm rfl hmq, hfpE, hfpC, hwf, hu⟩
   exact hk _ (ret_resume hj F (Holds.mono (s := sC) (s' := stOf m sC.fp) hm rfl hA)
     (fun x hx ↦ IdxVal.mono (s := sC) (s' := stOf m sC.fp) hm rfl (hsel x hx)) hR hL hLP hT)
 
 /-- **The mode walk meets the frame interface**, for its frame predicate `AtOff`. -/
-theorem frameSpec_walk {C : Ctx} {M : ℕ → E} {K : Cert} (hK : CertOk C K)
-    (hrng : ∀ r ∈ K.F.sig.postL ++ K.F.sig.postLP.map (·.1), (r.lo, r.hi) ∈ K.F.sig.term) :
-    FrameSpec C M K (AtOff K.E K.F K.code) where
+theorem frameSpec_walk {C : Ctx} {M : ℕ → E} {Y : St → Prop} {Ct : Cts} {K : Cert} (hK : CertOk C K)
+    (hrng : ∀ r ∈ K.F.sig.postL ++ K.F.sig.postLP.map (·.1), (r.lo, r.hi) ∈ K.F.sig.term)
+    (hCt : ModeCts Ct K) :
+    FrameSpec C M Y Ct K (AtOff K.E K.F K.code) where
   mono hle hfp h := AtOff.mono hle hfp h
-  entry h := atOff_zero h
+  entry h _ := atOff_zero (by rw [preAt_none hCt.1] at h; exact h)
   step := by
-    intro s i hi hpc hat hs hsz hhalt hE hES hjt hT hm0 hown hh hres href Inv k
+    intro s i hi hpc hat hs _ hsz hhalt hE hES hjt hT hm0 hown hh hres href Inv k
     have hlen : K.F.entry + K.F.len < 2 ^ 62 := by
       have := cert_pc hK (show K.code.length - 1 < K.code.length by omega)
       rw [hK.len]
@@ -111,7 +117,8 @@ theorem frameSpec_walk {C : Ctx} {M : ℕ → E} {K : Cert} (hK : CertOk C K)
         LTF.mono (s := stOf s.mem s.fp) (s' := s1) hle1 hm.fp (hT p hp)
       obtain ⟨hR, -, -⟩ := retOk_sound hA hs1.fp hs1.agree.wf hs1.agree.used hok
       obtain ⟨hL, hLP⟩ := ret_runs hA hs1.fp hs1.agree.wf hs1.agree.used hok hT1 hrng
-      exact .ret c (by rw [List.getElem?_eq_getElem hi, hins]) (by omega) hvd hvf (retAll_of hR hL hLP)
+      exact .ret c (by rw [List.getElem?_eq_getElem hi, hins]) (by omega) hvd hvf
+        (by rw [postAt_none hCt.1]; exact retAll_of hR hL hLP)
     | fwd e' hS hd h1 h2 =>
       obtain ⟨j, hj, hpcj, hjl⟩ := jump_to_pc hA hE1 (.fwd e' hS hd h1 h2) hS (by omega) hlen hvd
       have hfp' := self_fp hA hS hm0' hs1.fp hf'.fp hvf
@@ -172,7 +179,8 @@ theorem frameSpec_walk {C : Ctx} {M : ℕ → E} {K : Cert} (hK : CertOk C K)
         · rename_i r' hr'
           rw [hr', Rng.beq_eq this]
         · cases this
-      exact ⟨hpc', hW, hhdr, back_of_tail hAC hq hs1.fp hf'.fp hloop hruns hst, holds_stOf.mpr hEn⟩
+      exact ⟨hpc', hW, hhdr, back_of_tail hAC hq hs1.fp hf'.fp hloop hruns hst hCt.1,
+        by rw [preAt_none hCt.1]; exact holds_stOf.mpr hEn⟩
     | call mq r G Gs _ hfm h1 h0 hc hw hok hr1 hr2 =>
       refine .call fun hTE ↦ ?_
       have hTs : ∀ G', K.E.sigs.get s'.pc = some G' → (∀ o ∈ G'.entry, s'.mem.written (s'.fp + o) = true) →
@@ -182,10 +190,11 @@ theorem frameSpec_walk {C : Ctx} {M : ℕ → E} {K : Cert} (hK : CertOk C K)
         call_enter (sE := s') hA hE1 hES hfm h1 h0 hc hw hok hs1.fp hle' hf'.agree.wf hf'.agree.used
           hf'.fp (show s'.pc < 2 ^ 62 by omega) hvd hvf hTs (hjt _ (Mem.le_trans hle1 hle'))
       have hres := resume_of_call (K := K) (ro := r - K.F.entry) hj Fr.mq hA1 hsel
-        (fun s3 h ↦ hk _ rfl s3 _ (List.mem_singleton_self _) h)
+        (fun s3 h ↦ hk _ rfl s3 _ (List.mem_singleton_self _) h) (hCt.2 _ _ hsig)
       have hlen' := hK.len
       exact ⟨G', r - K.F.entry, hsig, by omega,
-        by rw [show K.F.entry + (r - K.F.entry) = r by omega]; exact hd0, hd1, hW, hEn, hres⟩
+        by rw [show K.F.entry + (r - K.F.entry) = r by omega]; exact hd0, hd1, hW,
+        by rw [preAt_none (hCt.2 _ _ hsig)]; exact hEn, hres⟩
 
 /-- **The invariant rule on the walk**: `inv_rule_of_specs` with every function's frame predicate its
 walk's, each certificate tied to the executor and its loop's runs over its termination facts. -/
@@ -196,8 +205,10 @@ theorem inv_rule {prog : LeanIsaProgram} {adv : Advice} {κ n : ℕ} {img : Memo
     (R : Prem prog img n C Ks X)
     (hpro : ∀ s op, X s → Pro s → Fine (refMem img) s → OnRef prog img n s → C.ops[s.pc]? = some op →
       StepOk C (refMem img) (fun s' ↦ Pro s' ∨ StartMain Km E0 s') op ((C.hints[s.pc]?).getD []) s) :
-    InvRule prog img n C (refMem img) (guestInv prog Ks Km E0 (fun K ↦ AtOff K.E K.F K.code) X Pro) :=
-  inv_rule_of_specs hκ hC P (fun K hK ↦ frameSpec_walk (hW K hK).1 (hW K hK).2) R hpro
+    InvRule prog img n C (refMem img)
+      (guestInv prog Ks Km E0 (fun _ ↦ none) (fun K ↦ AtOff K.E K.F K.code) X Pro) :=
+  inv_rule_of_specs hκ hC P (fun K hK ↦ frameSpec_walk (hW K hK).1 (hW K hK).2 ⟨rfl, fun _ _ _ ↦ rfl⟩) rfl
+    R hpro
 
 end
 

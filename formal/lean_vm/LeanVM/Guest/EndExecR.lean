@@ -249,7 +249,7 @@ theorem ExecGaps.ofR {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     (resTop : ResTop Ks A) (termNode : TermNode Ks)
     (progAl : ProgAl guestProgram coreProgram A) (mainAt : entOf A "main" = End.mainEntry) (layout : AlLayout A)
     (jumpCells : JumpCellsAt A) (entries : ∀ K ∈ Ks, K.F.entry ≠ 0) (derefPow : DerefPow Y)
-    (hintsUsed : HintsUsed Y) (keepY : KeepY Y) (initY : InitY Y) :
+    (hintsUsed : HintsUsed Y) (keepY : KeepY Y) (initY : InitY Y) (core : CoreHonAll Ks (XOf Y)) :
     ExecGaps Ks Km E0 (XOf Y) (fun _ ↦ ProAt) where
   certs := certs
   mainExact := mainExact
@@ -265,6 +265,7 @@ theorem ExecGaps.ofR {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
       certs.mainTerm hC rfl hP hon.2.1 hop
   init _ hr _ _ hC hm := ⟨init_X initY hr hC hm, pro_init hm⟩
   used _ _ _ hX := hX.2.1
+  core := core
 
 end
 

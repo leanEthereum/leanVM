@@ -40,6 +40,9 @@ PTSMAX = 4096
 # check `heapwin.fn_cost` puts over `heapwin.BUDGET` (past the default heartbeats, or the memory a module may take, in
 # one `decide`) is windowed too
 KERNEL_WIN = {'main_loop2'}
+# a pointer fact at a word whose cells one run in scope holds: that run's witness after `pts` (`ptsWR`), not a point
+# witness per offset; the core route's certificates (`callc.py`) only
+WORD_RUN = False
 
 
 # ---- the inference's values, recorded as it assigns them
@@ -332,6 +335,16 @@ class Solver:
         for a2, x in self.fidx(st)[1].get(b, ()):
             if a2[0] == a[0] and a[1] <= a2[1] < C.CAPE:
                 return self.derive(st, a, b, x[1] if x else None)
+        if not b[0] and b[1] < C.CAPE:
+            # a constant bound a fact's smaller constant bound gives
+            for b2, x in self.fidx(st)[0].get(a, ()):
+                if not b2[0] and b2[1] <= b[1]:
+                    return self.derive(st, a, b, x[1] if x else None)
+            # `a = x·g^c` and a fact `e(x) < n`, `n + c <= b`
+            if a[0] and a[1]:
+                for b2, x in self.fidx(st)[0].get((a[0], 0), ()):
+                    if not b2[0] and b2[1] + a[1] <= b[1]:
+                        return self.derive(st, a, b, x[1] if x else None)
         if not b[0] and a[0] and b[1] < C.CAPE:
             # a fact `(a·g^-s, g^k)`, `k + s <= e(b)`: both sides shifted
             for b2, xs in self.fidx(st)[1].items():
@@ -674,7 +687,7 @@ class Solver:
         for r in sorted(st.rs, reverse=True):
             R = st.rs[r]
             base, S, lo, hi = R
-            if lo != ((), 0) or S > base[1]:
+            if lo not in (((), 0), ((), 1)) or S > base[1]:
                 continue
             Q = C.prepQ(R)
             J = C.idxOf(Q, c, S)
@@ -683,9 +696,15 @@ class Solver:
             q = self.pt(st, Q, depth=depth + 1)
             if q is None:
                 continue
+            # a lower bound `g^1`: the base too (`prep2`)
+            q2 = self.pt(st, base, depth=depth + 1) if lo == ((), 1) else None
+            if lo == ((), 1) and q2 is None:
+                continue
             f = self.factE(st, hi)
             f2 = [] if J == hi else self.factE(st, J)
             self.stats['prep'] += 1
+            if lo == ((), 1):
+                return ('prep2', r, q, q2, sorted(set(f + f2)))
             return ('prep', r, q, sorted(set(f + f2)))
         return None
 
@@ -975,6 +994,13 @@ class Solver:
         for n in sorted(st.sv):
             q = st.sv[n]
             if q[0] == c:
+                if WORD_RUN and offs and max(offs) + 1 < C.CAPE:
+                    # the cells past the word inside one run in scope (`ptsWR`)
+                    Q = (q[1], 1, ((), 0), ((), max(offs) + 1))
+                    for r in sorted(st.rs, reverse=True):
+                        f = self.run_in(st, Q, st.rs[r])
+                        if f is not None:
+                            return [('word', n), ('pts',), ('run', r, f)]
                 ws = [('word', n)]
                 for o in offs:
                     w = self.pt(st, C.cshift(q[1], o))
@@ -1422,6 +1448,8 @@ def wit_res(w, f):
         return (k, w[1], wit_res(w[2], f), [f(i) for i in w[3]])
     if k in ('evs', 'back'):
         return (k, w[1], w[2], [f(i) for i in w[3]])
+    if k == 'prep2':
+        return (k, w[1], wit_res(w[2], f), wit_res(w[3], f), [f(i) for i in w[4]])
     return w
 
 
@@ -1551,6 +1579,8 @@ def lwit(w):
         return f'.{k} {w[1]} ({lwit(w[2])}) {lnums(w[3])}'
     if k == 'keep':
         return f'.keep {w[1]} {lcell(w[2])} {lcell(w[3])} {lcell(w[4])}'
+    if k == 'prep2':
+        return f'.prep2 {w[1]} ({lwit(w[2])}) ({lwit(w[3])}) {lnums(w[4])}'
     if k == 'vp':
         return f'.vp {w[1]} {lnums(w[2])}'
     if k == 'mrgE':

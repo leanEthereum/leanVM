@@ -50,6 +50,8 @@ rejected.
   preconditions (the public input); `fillP`, `useFillP`: a loop's accumulated pointer run, consumed.
 * `mkq`, `useq`, `catq`: a run at the word a callee stores at a cell (`postQ`), read by the caller after it loads
   the cell; the run's second part split again (nested `catM`).
+
+* `rdw`: a read through the word at a parameter's cell, a ghost's by the signature (`gw`).
 -/
 
 namespace LeanVM.Guest.CoreMode.Test
@@ -1815,6 +1817,35 @@ theorem hiLe_ok : heapOkC Data.powTree (fun _ ↦ .empty) hiLe hHiLe = true := b
 /-- `e(n) < 42` is not enough. -/
 theorem hiLe_bad : heapOkC Data.powTree (fun _ ↦ .empty) hiLe { hHiLe with res := [.lt (.val 1) (.num 42)] } =
     false := by
+  decide +kernel
+
+/-! ## An own parameter word -/
+
+/-- Reads the word at `p[0]`, then through it. -/
+def rdw : Fn where
+  name := "rdw"
+  params := [.n 0]
+  body := [.atom (.load (.n 1) (.n 0) 0), .atom (.load (.n 2) (.n 1) 0), .ret []]
+
+/-- `rdw`'s certificate: `p[0]` written (`pre`); ghost `0` (slot `1`, value `GB`) the word at `p[0]` (`gw`), its
+cell `G·g^0` a precondition (`preR`), so the read through the word loaded at `p[0]` finds it. -/
+def sRdw : HSig where
+  pre := [⟨[(0, 1)], 0⟩]
+  preR := [⟨⟨[(1, 1)], 0⟩, 1, .num 0, .num 1⟩]
+  ghosts := 1
+  gw := [(⟨[(0, 1)], 0⟩, 0)]
+
+/-- `rdw`'s reads: `p[0]` by the precondition, the word's cell by the run. -/
+def hRdw : HCert where
+  sig := sRdw
+  reads := [(1, [(0, 0, .pre 0)]), (2, [(1, 0, .run 0 [])])]
+  res := []
+  rets := [[]]
+
+theorem rdw_ok : heapOkC Data.powTree (fun _ ↦ .empty) rdw hRdw = true := by decide +kernel
+
+/-- Without the own parameter word, the word loaded is no ghost's. -/
+theorem rdw_bad : heapOkC Data.powTree (fun _ ↦ .empty) rdw { hRdw with sig := { sRdw with gw := [] } } = false := by
   decide +kernel
 
 end

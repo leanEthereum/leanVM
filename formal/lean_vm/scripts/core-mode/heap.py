@@ -359,12 +359,12 @@ def wrap(items, ind='    ', width=100):
     return ('\n' + ind).join(lines)
 
 
-def lean_cert(f):
+def lean_cert(f, pre=None):
     by_d = collections.defaultdict(list)
     for (d, p, off), w in sorted(f.wit.items()):
         by_d[d].append(f'({p}, {off}, {lean_wit(w)})')
     reads = wrap(f'({d}, [{", ".join(rs)}])' for d, rs in sorted(by_d.items()))
-    pre = wrap(lean_cell(c) for c in f.pre)
+    pre = wrap(lean_cell(c) for c in (f.pre if pre is None else pre))
     return (f'  sig := {{ pre := [{pre}] }}\n'
             f'  reads := [{reads}]\n'
             f'  res := []\n')
@@ -380,6 +380,8 @@ def emit(out_dir, res):
         import glob
         have = {os.path.dirname(p) for p in glob.glob(os.path.join(out_dir, '*', 'Ok.lean'))}
     po = pack_of()
+    import route
+    R = route.route()
     for k in sorted(res):
         if res[k].fail is None:
             packs[po[k]].append(k)
@@ -395,9 +397,14 @@ def emit(out_dir, res):
                f'public import LeanVM.Guest.Pack.«{pack}».{coremod}\n'
                f'public import LeanVM.Guest.CoreMode.Gen.«{pack}».Data\n\nset_option Elab.async false\n')
         for k in ks:
+            post = ''
+            if k in R:
+                cells = wrap(f'({lean_cell(c)}, {lean_wit(w)})' for c, w in R[k]['post'])
+                post = (f'\n/-- `{k}`: the heap cells it promises its callers, with their witnesses. -/\n'
+                        f'def hpost : List (CoreMode.CCell × CoreMode.Wit) :=\n  [{cells}]\n')
             data += (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n'
                      f'/-- `{k}`: its heap certificate. -/\ndef hcert : CoreMode.HCert where\n'
-                     f'{lean_cert(res[k])}\nend\nend LeanVM.Guest.Fn.«{k}»\n')
+                     f'{lean_cert(res[k], R[k]["pre"] if k in R else None)}{post}\nend\nend LeanVM.Guest.Fn.«{k}»\n')
             ok += (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\n@[expose] public section\n\n'
                    f'/-- `{k}`: the heap check. -/\n'
                    f'theorem heap_ok : CoreMode.heapOk Data.powTree (fun _ ↦ .empty) core hcert = true := by\n'
@@ -470,9 +477,32 @@ def oracle(f):
     return dict(entry=c['entry'], reads=sorted(reads), stores=sorted(stores))
 
 
+def hc_fns():
+    """The functions whose contract is their own heap signature: `hcFlag` true in `callc.py`'s data (checked there,
+    by the check with calls, not here)."""
+    import glob
+    out = set()
+    for f in glob.glob(os.path.join(GUEST, 'CoreMode', 'Gen', '*', 'DataC.lean')):
+        for blk in open(f, encoding='utf-8').read().split('\nnamespace LeanVM.Guest.Fn.«')[1:]:
+            if '\ndef hcFlag : Bool := true\n' in blk:
+                out.add(blk.split('»', 1)[0])
+    return out
+
+
+def callc_fns():
+    """The straight functions whose certificate `callc.py` writes (`DataC.lean`; there, not here)."""
+    import glob
+    out = set()
+    for f in glob.glob(os.path.join(GUEST, 'CoreMode', 'Gen', '*', 'DataC.lean')):
+        for blk in open(f, encoding='utf-8').read().split('\nnamespace LeanVM.Guest.Fn.«')[1:]:
+            if '\ndef hcert : CoreMode.HCert' in blk:
+                out.add(blk.split('»', 1)[0])
+    return out
+
+
 def main():
     only = sys.argv[sys.argv.index('--fn') + 1] if '--fn' in sys.argv else None
-    ks = [only] if only else scope_fns()
+    ks = [only] if only else sorted(set(scope_fns()) - hc_fns() - callc_fns())
     res = {k: Fn(k).run() for k in ks}
     if '--oracle' in sys.argv:
         import json

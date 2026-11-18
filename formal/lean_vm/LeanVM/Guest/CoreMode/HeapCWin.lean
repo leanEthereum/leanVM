@@ -21,7 +21,7 @@ pass splits at cut points `a₀ = 0 < a₁ < … < aₙ`, with the states `Sᵢ`
 literals: each window (`winOk`) decides that the pass over the statements `aᵢ` to `aᵢ₊₁ - 1` goes from `Sᵢ`
 to `Sᵢ₊₁` (`CSt` with `DecidableEq`), that they contain no `ret`, and that they name no ghost value. The head
 (`headOk`) decides the rest of `heapOkC` for a loop helper: the parameters, the shape of the tail, the entry
-state `S₀`; the tail (`tailOk`), the tail call and the guarantees at `ret []` from `Sₙ`. `heapOkC_of_wins`
+state `S₀`; the tail (`tailOkW`), the tail call and the guarantees at `ret []` from `Sₙ`. `heapOkC_of_wins`
 assembles them.
 -/
 
@@ -362,7 +362,7 @@ noncomputable def headOk (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H 
 
 /-- **The tail of a loop helper's check**: from the state `Sn` after its body without the tail, the tail call
 and the guarantees at its `ret []`. -/
-noncomputable def tailOk (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) (ei : CIdx) (Sn : CSt) :
+noncomputable def tailOkW (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) (ei : CIdx) (Sn : CSt) :
     Bool :=
   match f.body.reverse with
   | .ret [] :: .callIf c g args :: _ => withCx pows sigOf f H fun X ↦ match callIfC X Sn c g args with
@@ -375,7 +375,7 @@ over the body without its tail, and the tail. -/
 theorem heapOkC_of_wins {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} {ei : CIdx} {N : ℕ}
     {S0 Sn : CSt} {l : List (ℕ × CSt)} (hh : headOk pows sigOf f H ei N S0 = true)
     (hw : winsOk pows sigOf f H (loopBody f) ((0, S0) :: l)) (hl : lastW l (0, S0) = (N, Sn))
-    (ht : tailOk pows sigOf f H ei Sn = true) : heapOkC pows sigOf f H = true := by
+    (ht : tailOkW pows sigOf f H ei Sn = true) : heapOkC pows sigOf f H = true := by
   simp only [headOk, Bool.and_eq_true, decide_eq_true_eq, withCx_eq] at hh
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hpar, hpov⟩, hto⟩, hterm⟩, hrm⟩, hpv⟩, hre⟩, hpq⟩, hpok⟩, hng2⟩, hfa⟩, hlt⟩, hN⟩, hinit⟩ := hh
   obtain ⟨hc, hnr, hng, -⟩ := winsOk_chain l 0 S0 hw
@@ -419,7 +419,7 @@ theorem heapOkC_of_wins {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H :
     simp only
     rw [hc]
     simp only [chkC]
-    unfold tailOk at ht
+    unfold tailOkW at ht
     simp only [hrev, withCx_eq] at ht
     exact ht
   · intro hlt; cases hlt

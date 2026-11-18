@@ -177,6 +177,8 @@ structure FFun where
   calls : Trie (List ℕ)
   /-- The oracle: offsets whose heap reads are written. -/
   O : Trie Unit
+  /-- The stores: offsets whose `DEREF` must find its frame side written. -/
+  S : Trie Unit
   /-- The live path and pending groups at cuts, by offset. -/
   cuts : Trie (Option FSt × List (ℕ × List ℕ × FSt))
 
@@ -221,7 +223,7 @@ noncomputable def derefF (O : Trie Unit) (i : ℕ) (A : FSt) (a o c : ℕ) : Lea
 
 /-- **One non-`JUMP` instruction's frame rule** at offset `i`: the cells it reads must be known
 written, and what it surely writes and teaches joins. -/
-noncomputable def stepF (O : Trie Unit) (i : ℕ) (A : FSt) : OffsetInstruction → Option FSt
+noncomputable def stepF (O S : Trie Unit) (i : ℕ) (A : FSt) : OffsetInstruction → Option FSt
   | .xor a b c =>
     if A.hasW a && A.hasW b then some { A.addW c with one := oneOf A a b c } else none
   | .mul a b c =>
@@ -231,7 +233,8 @@ noncomputable def stepF (O : Trie Unit) (i : ℕ) (A : FSt) : OffsetInstruction 
     else if A.hasW c && A.hasW b && A.divOk b c then some ((A.addW a).addNz b)
     else none
   | .set o k0 k1 => some (if Mode.immNz k0 k1 then (A.addW o).addNz o else A.addW o)
-  | .deref a o c mode => if A.hasW a then some (derefF O i A a o c mode) else none
+  | .deref a o c mode =>
+    if A.hasW a && (!has S i || A.hasW c) then some (derefF O i A a o c mode) else none
   | .keccak m0 m1 m2 m3 tail b8 cap out _ _ outCells =>
     if (keccakIns m0 m1 m2 m3 tail b8 cap).all A.hasW then some (addOuts A out outCells.cellCount)
     else none
@@ -431,7 +434,7 @@ noncomputable def offF (Fn : FFun) (i : ℕ) (hs : List Hint) (A : FSt) (ins : O
             (jumpF Fn i A (jumpExit Fn.F Fn.entry Fn.len i A.st d f) pend).map fun p ↦ (none, p)
           else (jumpF Fn i A (jumpExit Fn.F Fn.entry Fn.len i A.st d f) pend).map fun p ↦ (some A, p)
       else none
-    | ins => (stepF Fn.O i A ins).map fun A ↦ (some (execF Fn.F (Fn.entry + i) A ins), pend)
+    | ins => (stepF Fn.O Fn.S i A ins).map fun A ↦ (some (execF Fn.F (Fn.entry + i) A ins), pend)
 
 /-- At offset `i`: the live path met with the edges into it. -/
 noncomputable def joinF (i : ℕ) (cur : Option FSt) (pend : FPend) : Option FSt × FPend :=

@@ -28,6 +28,17 @@ def hcert : CoreMode.HCert where
     (57, [(2, 6, .pre 13)]), (60, [(2, 7, .pre 14)]), (77, [(1, 1, .pre 15)])]
   res := []
 
+/-- `gkr_rounds__L2`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  [(⟨[(0, 1)], 0⟩, .ev 0), (⟨[(1, 1)], 0⟩, .ev 10), (⟨[(0, 1)], 1⟩, .ev 18),
+    (⟨[(1, 1)], 1⟩, .ev 16), (⟨[(1, 1)], 42⟩, .ev 11), (⟨[(1, 1)], 43⟩, .ev 17),
+    (⟨[(0, 1)], 862⟩, .ev 1), (⟨[(0, 1)], 863⟩, .ev 19), (⟨[(0, 1)], 1724⟩, .ev 2),
+    (⟨[(0, 1)], 1725⟩, .ev 20), (⟨[(0, 1)], 2586⟩, .ev 3), (⟨[(0, 1)], 2587⟩, .ev 21),
+    (⟨[(0, 1)], 3448⟩, .ev 4), (⟨[(0, 1)], 3449⟩, .ev 22), (⟨[(0, 1)], 4311⟩, .ev 23),
+    (⟨[(0, 1)], 5172⟩, .ev 5), (⟨[(0, 1)], 5173⟩, .ev 24), (⟨[(2, 1)], 0⟩, .ev 6),
+    (⟨[(2, 1)], 1⟩, .ev 7), (⟨[(2, 1)], 2⟩, .ev 8), (⟨[(2, 1)], 3⟩, .ev 9), (⟨[(2, 1)], 4⟩, .ev 12),
+    (⟨[(2, 1)], 5⟩, .ev 13), (⟨[(2, 1)], 6⟩, .ev 14), (⟨[(2, 1)], 7⟩, .ev 15)]
+
 end
 end LeanVM.Guest.Fn.«gkr_rounds__L2»
 
@@ -40,6 +51,10 @@ def hcert : CoreMode.HCert where
   sig := { pre := [] }
   reads := []
   res := []
+
+/-- `padding_weight__L0`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  []
 
 end
 end LeanVM.Guest.Fn.«padding_weight__L0»
@@ -59,6 +74,14 @@ def hcert : CoreMode.HCert where
     (74, [(1, 11, .pre 11)]), (79, [(1, 12, .pre 12)]), (84, [(1, 13, .pre 13)]),
     (89, [(1, 14, .pre 14)])]
   res := []
+
+/-- `padding_weight__L15`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  [(⟨[(1, 1)], 0⟩, .ev 0), (⟨[(1, 1)], 1⟩, .ev 1), (⟨[(1, 1)], 2⟩, .ev 2), (⟨[(1, 1)], 3⟩, .ev 3),
+    (⟨[(1, 1)], 4⟩, .ev 4), (⟨[(1, 1)], 5⟩, .ev 5), (⟨[(1, 1)], 6⟩, .ev 6), (⟨[(1, 1)], 7⟩, .ev 7),
+    (⟨[(1, 1)], 8⟩, .ev 8), (⟨[(1, 1)], 9⟩, .ev 9), (⟨[(1, 1)], 10⟩, .ev 10),
+    (⟨[(1, 1)], 11⟩, .ev 11), (⟨[(1, 1)], 12⟩, .ev 12), (⟨[(1, 1)], 13⟩, .ev 13),
+    (⟨[(1, 1)], 14⟩, .ev 14)]
 
 end
 end LeanVM.Guest.Fn.«padding_weight__L15»

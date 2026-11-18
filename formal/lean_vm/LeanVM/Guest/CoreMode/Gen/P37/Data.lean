@@ -30,6 +30,15 @@ def hcert : CoreMode.HCert where
     (108, [(1, 17, .pre 17)]), (113, [(1, 18, .pre 18)])]
   res := []
 
+/-- `padding_weight__L19`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  [(⟨[(1, 1)], 0⟩, .ev 0), (⟨[(1, 1)], 1⟩, .ev 1), (⟨[(1, 1)], 2⟩, .ev 2), (⟨[(1, 1)], 3⟩, .ev 3),
+    (⟨[(1, 1)], 4⟩, .ev 4), (⟨[(1, 1)], 5⟩, .ev 5), (⟨[(1, 1)], 6⟩, .ev 6), (⟨[(1, 1)], 7⟩, .ev 7),
+    (⟨[(1, 1)], 8⟩, .ev 8), (⟨[(1, 1)], 9⟩, .ev 9), (⟨[(1, 1)], 10⟩, .ev 10),
+    (⟨[(1, 1)], 11⟩, .ev 11), (⟨[(1, 1)], 12⟩, .ev 12), (⟨[(1, 1)], 13⟩, .ev 13),
+    (⟨[(1, 1)], 14⟩, .ev 14), (⟨[(1, 1)], 15⟩, .ev 15), (⟨[(1, 1)], 16⟩, .ev 16),
+    (⟨[(1, 1)], 17⟩, .ev 17), (⟨[(1, 1)], 18⟩, .ev 18)]
+
 end
 end LeanVM.Guest.Fn.«padding_weight__L19»
 
@@ -43,6 +52,17 @@ def hcert : CoreMode.HCert where
   reads := [(5, [(3, 0, .pre 0)]), (6, [(2, 0, .pre 1)]), (14, [(4, 0, .pre 2)])]
   res := []
 
+/-- `sel_partial_nibble__L1`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  [(⟨[(1, 1)], 0⟩, .ev 11), (⟨[(2, 1)], 0⟩, .ev 1), (⟨[(3, 1)], 0⟩, .ev 0), (⟨[(4, 1)], 0⟩, .ev 10),
+    (⟨[(1, 1)], 1⟩, .ev 12), (⟨[(1, 1)], 2⟩, .ev 13), (⟨[(1, 1)], 3⟩, .ev 14),
+    (⟨[(0, 1)], 0⟩, .ev 2), (⟨[(0, 1)], 1⟩, .ev 3), (⟨[(0, 1)], 2⟩, .ev 4), (⟨[(0, 1)], 3⟩, .ev 5),
+    (⟨[(0, 1)], 4⟩, .ev 6), (⟨[(0, 1)], 5⟩, .ev 7), (⟨[(0, 1)], 6⟩, .ev 8), (⟨[(0, 1)], 7⟩, .ev 9),
+    (⟨[(0, 1)], 0⟩, .ev 2), (⟨[(0, 1)], 1⟩, .ev 3), (⟨[(0, 1)], 2⟩, .ev 4), (⟨[(0, 1)], 3⟩, .ev 5),
+    (⟨[(0, 1)], 4⟩, .ev 6), (⟨[(0, 1)], 5⟩, .ev 7), (⟨[(0, 1)], 6⟩, .ev 8), (⟨[(0, 1)], 7⟩, .ev 9),
+    (⟨[(1, 1)], 0⟩, .ev 11), (⟨[(1, 1)], 1⟩, .ev 12), (⟨[(1, 1)], 2⟩, .ev 13),
+    (⟨[(1, 1)], 3⟩, .ev 14)]
+
 end
 end LeanVM.Guest.Fn.«sel_partial_nibble__L1»
 
@@ -55,6 +75,12 @@ def hcert : CoreMode.HCert where
   sig := { pre := [] }
   reads := []
   res := []
+
+/-- `squeeze_point_from__L11`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  [(⟨[(6, 1)], 0⟩, .ev 0), (⟨[(6, 1)], 1⟩, .ev 1), (⟨[(6, 1)], 2⟩, .ev 2), (⟨[(6, 1)], 3⟩, .ev 3),
+    (⟨[(6, 1)], 4⟩, .ev 4), (⟨[(6, 1)], 5⟩, .ev 5), (⟨[(6, 1)], 6⟩, .ev 6), (⟨[(6, 1)], 7⟩, .ev 7),
+    (⟨[(6, 1)], 8⟩, .ev 8), (⟨[(6, 1)], 9⟩, .ev 9), (⟨[(6, 1)], 10⟩, .ev 10)]
 
 end
 end LeanVM.Guest.Fn.«squeeze_point_from__L11»

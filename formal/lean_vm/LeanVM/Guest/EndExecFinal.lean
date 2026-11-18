@@ -8,6 +8,7 @@
 import LeanVM.Guest.EndExecHonest
 import LeanVM.Guest.ProverGuest
 import LeanVM.Guest.EndExecR
+import LeanVM.Guest.EndExecCore
 import LeanVM.Guest.Mode.Certs
 import LeanVM.Guest.Res.SubCerts
 import LeanVM.Guest.Res.TermCerts
@@ -116,6 +117,8 @@ theorem execGaps_of (O : OpenGaps) :
     (hintsUsed_alignA sizesAt_guest allocReady_guest (witCells_alignA witPtrRes_guest) fun _ _ h ↦ h)
     (KeepY.and (keepY_alignA (derefPow_all _) fun _ _ h ↦ h) keepY_allocA_guest)
     (InitY.and (initY_cur alignA) (initY_alloc alignA))
+    (coreHonAll_X (Mode.modeCerts_guest O.modeHyps) Mode.guestCerts_entry_ne Bridge.progAl Bridge.alignA_main
+      jumpCells_at alLayout_alignA (fun _ _ h ↦ by rw [Bridge.alignA_of h]; rfl) anyLink_ok mono_ok)
 
 /-- **The executor runs the guest program to completion on the guest's advice**, given the open
 facts. -/

@@ -22,5 +22,9 @@ def hcert : CoreMode.HCert where
   reads := []
   res := []
 
+/-- `sp_wots`: the heap cells it promises its callers, with their witnesses. -/
+def hpost : List (CoreMode.CCell × CoreMode.Wit) :=
+  []
+
 end
 end LeanVM.Guest.Fn.«sp_wots»

@@ -242,6 +242,14 @@ def DerOk (H : HCert) (rd : Reader) (σ : Val) : Prop :=
 theorem derOk_nil {H : HCert} (h : H.ders = []) (rd : Reader) (σ : Val) : DerOk H rd σ := fun k c hk ↦ by
   rw [h] at hk; cases hk
 
+/-- **The own parameter words are the ghosts'**: ghost `j` holds the word at the cell `c` of each `(c, j)` of
+`HSig.gw`, where there is one. -/
+def GwOk (G : HSig) (rd : Reader) (σ : Val) : Prop :=
+  ∀ c j, (c, j) ∈ G.gw → ∀ w, rd (c.addrW (vw σ)) = some w → vw σ (GB + j) = w
+
+theorem gwOk_nil {G : HSig} (h : G.gw = []) (rd : Reader) (σ : Val) : GwOk G rd σ := fun c j hc ↦ by
+  rw [h] at hc; cases hc
+
 theorem callDers_nil {H : HCert} (h : H.gargs = []) (g : String) (args : List V) : callDers H g args = [] := by
   simp [callDers, gargsOf, h, derKs, nubN]
 
@@ -294,6 +302,13 @@ def PostOkC (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (ws0 
     PtrOk (fun x ↦ WrittenC sigOf H rd σ ws0 es x ∨ FAW σ es x) rd H.sig.postP H.sig.postPR (ws0 ++ vs.map σ) ∧
     ∀ x, QSet rd H.sig.postQ (ws0 ++ vs.map σ) x → WrittenC sigOf H rd σ ws0 es x ∨ FAW σ es x
 
+/-- **The guarantees at return written by the events** (`PostOkC` without frame run cells). -/
+def PostOkW (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (ws0 : List E) (es : List Ev)
+    (vs : List V) : Prop :=
+  SigOk (WrittenC sigOf H rd σ ws0 es) H.sig.post H.sig.postR (ws0 ++ vs.map σ) ∧
+    PtrOk (WrittenC sigOf H rd σ ws0 es) rd H.sig.postP H.sig.postPR (ws0 ++ vs.map σ) ∧
+    ∀ x, QSet rd H.sig.postQ (ws0 ++ vs.map σ) x → WrittenC sigOf H rd σ ws0 es x
+
 /-- **Returned words' monomials**: each `(k, c)` of the signature's `retM`, returned word `k` is
 `c`'s word at the parameters' words `ws0`. -/
 def RetMOk (G : HSig) (ws0 rets : List E) : Prop := ∀ k c, (k, c) ∈ G.retM → rets[k]? = some (c.valW (slotW ws0))
@@ -313,6 +328,80 @@ def EvM (sigOf : String → HSig) (rd : Reader) (σ : Val) : Ev → Prop
   | .call f args rets => RetMOk (sigOf f) (args.map σ) (rets.map σ) ∧ RetVOk rd (sigOf f) ((args ++ rets).map σ) ∧
       RetEqOk (sigOf f) ((args ++ rets).map σ)
   | _ => True
+
+/-- **Every event's needs are written before it, once the calls before it have their callees' returned words**
+(`EvM`, a property of the calls already made). -/
+def ReadsOkP (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (ws0 : List E) (es : List Ev) : Prop :=
+  ∀ es1 e es2, es = es1 ++ e :: es2 → (∀ e' ∈ es1, EvM sigOf rd σ e') →
+    ReqOk sigOf H rd σ (WrittenC sigOf H rd σ ws0 es1) e
+
+/-- **The needs of the events `es` after `pre` are written before each**, once the calls before it among `es`
+have their callees' returned words. -/
+def ReadsAt (sigOf : String → HSig) (H : HCert) (rd : Reader) (σ : Val) (ws0 : List E) (pre es : List Ev) : Prop :=
+  ∀ es1 e es2, es = es1 ++ e :: es2 → (∀ e' ∈ es1, EvM sigOf rd σ e') →
+    ReqOk sigOf H rd σ (WrittenC sigOf H rd σ ws0 (pre ++ es1)) e
+
+section ReadsAt
+
+variable {sigOf : String → HSig} {H : HCert} {rd : Reader} {σ : Val} {ws0 : List E}
+
+theorem readsOkC_of_P {es : List Ev} (h : ReadsOkP sigOf H rd σ ws0 es) (hM : ∀ e ∈ es, EvM sigOf rd σ e) :
+    ReadsOkC sigOf H rd σ ws0 es := fun es1 e es2 he ↦
+  h es1 e es2 he fun e' he' ↦ hM e' (by rw [he]; exact List.mem_append_left _ he')
+
+/-- The events after `pre`, the calls of `pre` having their callees' returned words. -/
+theorem readsAt_of_P {pre es : List Ev} (h : ReadsOkP sigOf H rd σ ws0 (pre ++ es))
+    (hm : ∀ e ∈ pre, EvM sigOf rd σ e) : ReadsAt sigOf H rd σ ws0 pre es := fun es1 e es2 he hm1 ↦
+  h (pre ++ es1) e es2 (by rw [he, List.append_assoc]) fun e' he' ↦ by
+    rcases List.mem_append.mp he' with h' | h'
+    · exact hm e' h'
+    · exact hm1 e' h'
+
+/-- The events after `pre`, every call's returned words given. -/
+theorem readsAt_of_C {pre es : List Ev} (h : ReadsOkC sigOf H rd σ ws0 (pre ++ es)) :
+    ReadsAt sigOf H rd σ ws0 pre es := fun es1 e es2 he _ ↦
+  h (pre ++ es1) e es2 (by rw [he, List.append_assoc])
+
+theorem ReadsAt.shift {pre X es : List Ev} (h : ReadsAt sigOf H rd σ ws0 pre (X ++ es))
+    (hX : ∀ e ∈ X, EvM sigOf rd σ e) : ReadsAt sigOf H rd σ ws0 (pre ++ X) es := fun es1 e es2 he hm ↦ by
+  have := h (X ++ es1) e es2 (by rw [he, List.append_assoc]) fun e' he' ↦ by
+    rcases List.mem_append.mp he' with h' | h'
+    · exact hX e' h'
+    · exact hm e' h'
+  rwa [← List.append_assoc] at this
+
+theorem ReadsAt.head {pre es : List Ev} {e : Ev} (h : ReadsAt sigOf H rd σ ws0 pre (e :: es)) :
+    ReqOk sigOf H rd σ (WrittenC sigOf H rd σ ws0 pre) e := by
+  have := h [] e es rfl (by simp)
+  rwa [List.append_nil] at this
+
+/-- Atoms give nothing beyond their writes. -/
+theorem evM_atoms (as : List Atom) : ∀ e ∈ as.map Ev.atom, EvM sigOf rd σ e := fun e he ↦ by
+  obtain ⟨a, -, rfl⟩ := List.mem_map.mp he
+  trivial
+
+theorem evM_app {a b : List Ev} (ha : ∀ e ∈ a, EvM sigOf rd σ e) (hb : ∀ e ∈ b, EvM sigOf rd σ e) :
+    ∀ e ∈ a ++ b, EvM sigOf rd σ e := fun e he ↦ by
+  rcases List.mem_append.mp he with h | h
+  · exact ha e h
+  · exact hb e h
+
+/-- A branch's condition, a skipped call: nothing beyond their writes. -/
+theorem evM_inK_cons {c : V} {l : List Ev} (h : ∀ e ∈ l, EvM sigOf rd σ e) : ∀ e ∈ Ev.inK c :: l, EvM sigOf rd σ e :=
+  fun e he ↦ by
+    rcases List.mem_cons.mp he with rfl | h'
+    · trivial
+    · exact h e h'
+
+theorem evM_skip_cons {f : String} {args : List V} {l : List Ev} (h : ∀ e ∈ l, EvM sigOf rd σ e) :
+    ∀ e ∈ Ev.skip f args :: l, EvM sigOf rd σ e := fun e he ↦ by
+  rcases List.mem_cons.mp he with rfl | h'
+  · trivial
+  · exact h e h'
+
+theorem evM_nil : ∀ e ∈ ([] : List Ev), EvM sigOf rd σ e := fun _ h ↦ by cases h
+
+end ReadsAt
 
 /-- **What an instance is given at entry**: its termination facts. -/
 def EntryF (H : HCert) (ws0 : List E) : Prop := ∀ p ∈ H.sig.term, LtF (slotW ws0) (idxC p.1) (idxC p.2)
@@ -781,6 +870,15 @@ def appIdx (F : List (CCell × CCell)) (R : PRun) (c : CCell) : Bool :=
   R.lo.bases.isEmpty && Nat.beq R.lo.off 0 && c.beq (R.base.mul ((idxOf R.base c R.stride).pow R.stride)) &&
     hasF F (idxOf R.base c R.stride) (R.hi.shift 1)
 
+/-- **A cell of a run of lower bound `g^1` extended by its two points before it** (`prepQ R` and `R.base`):
+`prepIdx`'s shape, the lower bound `g^1`. -/
+def prepIdx2 (F : List (CCell × CCell)) (R : PRun) (c : CCell) : Bool :=
+  Nat.ble R.stride R.base.off && R.lo.bases.isEmpty && Nat.beq R.lo.off 1 &&
+    c.beq ((prepQ R).mul ((idxOf (prepQ R) c R.stride).pow R.stride)) &&
+    basesBeq (idxOf (prepQ R) c R.stride).bases R.hi.bases && Nat.ble (idxOf (prepQ R) c R.stride).off R.hi.off &&
+    Nat.blt (R.hi.off - (idxOf (prepQ R) c R.stride).off) capE && hasExp F R.hi &&
+    ((idxOf (prepQ R) c R.stride).beq R.hi || hasExp F (idxOf (prepQ R) c R.stride))
+
 /-- **A witness of the cell `c`.** -/
 noncomputable def ptOk (X : CX) (st : CSt) (c : CCell) : Wit → Bool
   | .ev n => match getF st.sc n with
@@ -814,6 +912,9 @@ noncomputable def ptOk (X : CX) (st : CSt) (c : CCell) : Wit → Bool
     | some Q => Nat.blt k capE && evsW st Q n k &&
         (ptRun (facts X st.env res) (evsR Q k) c || subPt X (facts X st.env res) st.env res (evsR Q k) c)
     | none => false
+  | .prep2 r q q2 res => match getF st.rs r with
+    | some R => prepIdx2 (facts X st.env res) R c && ptOk X st (prepQ R) q && ptOk X st R.base q2
+    | none => false
   | _ => false
 
 /-- A run with constant bounds, the upper at most the lower (below `2^62`): it has no cell. -/
@@ -845,6 +946,22 @@ noncomputable def ptsW (X : CX) (st : CSt) (m : CCell) : List ℕ → List Wit �
   | o :: os, w :: ws => bif ptOk X st (m.shift o) w then ptsW X st m os ws else none
   | _ :: _, [] => none
 
+/-- Whether a witness is the marker `pts`. -/
+def Wit.isPts : Wit → Bool
+  | .pts => true
+  | _ => false
+
+/-- The highest of the offsets, plus one. -/
+def offHi (offs : List ℕ) : ℕ := offs.foldr max 0 + 1
+
+/-- **The cells `m·g^o`, `o ∈ offs`**: each with a witness (`ptsW`), or, after the marker `pts`, all inside the run
+`m·[0, offHi offs)` of one run witness (`rnOk`). The witnesses left. -/
+noncomputable def ptsWR (X : CX) (st : CSt) (m : CCell) (offs : List ℕ) : List Wit → Option (List Wit)
+  | w0 :: w :: ws => bif w0.isPts && !offs.isEmpty then
+      (bif Nat.blt (offHi offs) capE && rnOk X st ⟨m, 1, ⟨[], 0⟩, ⟨[], offHi offs⟩⟩ w then some ws else none)
+    else ptsW X st m offs (w0 :: w :: ws)
+  | ws => ptsW X st m offs ws
+
 /-- **A pointer fact needed**, the word at the cell `c` pointing to written cells at `offs`: a
 pointer fact in scope at `c` with them, a pointer run holding `c` with them, or `c`'s word named by a
 load event and the cells past it witnessed. The witnesses left. -/
@@ -856,7 +973,7 @@ noncomputable def ptrOk (X : CX) (st : CSt) (c : CCell) (offs : List ℕ) : List
     | some p => bif ptRun (facts X st.env res) p.1 c && subL offs p.2 then some ws else none
     | none => none
   | .word m :: ws => match getF st.sv m with
-    | some p => bif p.1.beq c then ptsW X st p.2 offs ws else none
+    | some p => bif p.1.beq c then ptsWR X st p.2 offs ws else none
     | none => none
   | _ => none
 
@@ -1485,6 +1602,12 @@ noncomputable def hvDef (X : CX) (st : CSt) (c : CCell) (d : V) : Wit → CSt
     | none => st
   | _ => st
 
+/-- **A read of an own parameter word** (`HSig.gw`): `d`'s monomial its ghost's. -/
+noncomputable def gwDef (G : HSig) (st : CSt) (c : CCell) (d : V) : CSt :=
+  match vnum d, G.gw.find? fun p ↦ p.1.beq c with
+  | some k, some p => st.def k (baseC (GB + p.2))
+  | _, _ => st
+
 /-- A load's write event of the cell `c`, with its word's monomial; `c` the cell `d` was loaded
 from. -/
 noncomputable def loadPush (st : CSt) (c : CCell) (d : V) : CSt :=
@@ -1517,8 +1640,9 @@ cell taking the word stored (`hvDef`), a `mul` dividing out a listed quotient (`
 noncomputable def atomC0 (X : CX) (st : CSt) : Atom → Option CSt
   | .load d p off => match monoOf st.env p with
     | some m => (m.shift off).seq fun c ↦ match readWitT X.R d p off with
-      | some w => bif ptOk X st c w then (hvDef X st c d w).seq fun st1 ↦ some (loadPush st1 c d) else none
-      | none => some (loadPush st c d)
+      | some w => bif ptOk X st c w then (hvDef X st c d w).seq fun st1 ↦ some (loadPush (gwDef X.sig st1 c d) c d)
+          else none
+      | none => some (loadPush (gwDef X.sig st c d) c d)
     | none => none
   | .mul d a b => match divOf X st d a b, divOf X st d b a with
     | some p, _ => some (st.def p.1 p.2)

@@ -223,6 +223,10 @@ def pair(F, body, A, locs, extra, pows, jt, ents, reads, cuts=()):
                 O.append(i)
             elif r is False:
                 S.append(i)
+            elif F['arms'].get(a[2]) is not None and F['arms'][a[2]][1] == a[1] and loc(F['arms'][a[2]][0]) == a[0]:
+                O.append(i)  # a read of the jump table (`CoreMode.jtd`), consuming nothing
+            elif F['arms'].get(a[2]) is None and a[2] != 0 and any(s[4] == a[2] for s in F['sites'].values()):
+                O.append(i)  # a dispatch's read of the jump table (`CoreMode.jtd`, checked at its `JUMP`: `jtdGo`)
         else:
             cur, tg = z, []
         for t in reversed(tg):
@@ -254,6 +258,22 @@ def collect():
     res = {k: heap.Fn(k).run() for k in heap.scope_fns()}
     ok = sorted(k for k, f in res.items() if f.fail is None)
     reads = {k: set(res[k].wit) for k in ok}
+    # bodies with calls, by the check with calls (`callc.py`)
+    import callc
+    CR, _ = callc.results()
+    for k, r in CR.items():
+        reads[k] = set(r['cert'].reads)
+    # leaf loop helpers, by the check's loop rules (`loopc.py`)
+    import loopc
+    LR, _ = loopc.results()
+    for k, r in LR.items():
+        reads[k] = set(r['pass_'].reads)
+    # loop helpers with calls, by the check's loop rules at their callees' signatures (`loopcc.py`)
+    import loopcc
+    LCR, _ = loopcc.results()
+    for k, r in LCR.items():
+        reads[k] = set(r['cert'].reads)
+    ok = sorted(set(ok) | set(CR) | set(LR) | set(LCR))
     if '--all' in sys.argv:
         # every function, its reads by the def-use designation (`heap.reads_of`), a measurement only
         for k, (params, b) in heap.CORE.items():
@@ -289,7 +309,8 @@ def collect():
             fails[k] = str(e)
             continue
         out[k] = dict(key=k, entry=F['entry'], O=O, S=S, states=[states[c] for c in cuts], n=n, j=A['j'],
-                      bpack=B['pack'], loads=count_loads(body), reads=len(reads[k]))
+                      bpack=B['pack'], loads=count_loads(body), reads=len(reads[k]), locs=B['locs'], extra=dict(extra),
+                      kind='c' if k in CR else ('l' if k in LR else ('lc' if k in LCR else 'm1')))
     return out, fails
 
 
@@ -330,10 +351,15 @@ def imports(ms):
     return ''.join(f'public import {m}\n' for m in sorted(set(ms))) + '\n'
 
 
+def data_mod(pack, f):
+    """The module of the function's heap certificate: milestone 1's, or the check with calls'."""
+    return f'LeanVM.Guest.CoreMode.Gen.«{pack}».' + {'c': 'DataC', 'l': 'DataL', 'lc': 'DataLC'}.get(f.get('kind'), 'Data')
+
+
 def render_pack(pack, fs):
     mod = f'LeanVM.Guest.CoreMode.Gen.«{pack}».Pair'
     out = [HEADER.format(mod=mod, what=f"The kernel's pairing checks of `{fs[0]['key']}` and {len(fs) - 1} more."),
-           imports(['LeanVM.Guest.CoreMode.PairDefs', f'LeanVM.Guest.CoreMode.Gen.«{pack}».Data']
+           imports(['LeanVM.Guest.CoreMode.PairDefs'] + [data_mod(pack, f) for f in fs]
                    + [f'LeanVM.Guest.Bridge.Align.«{f["bpack"]}»' for f in fs]),
            'set_option Elab.async false\n']
     for f in fs:
@@ -363,7 +389,7 @@ def render_win(pack, f):
                    for n, K in enumerate(ks))
     files[os.path.join(GEN, pack, k, 'Ctx.lean')] = (
         HEADER.format(mod=f'{base}.Ctx', what=f"`{k}`'s pairing oracle and the pass's states at its windows' ends.")
-        + imports(['LeanVM.Guest.CoreMode.PairDefs', f'LeanVM.Guest.CoreMode.Gen.«{pack}».Data',
+        + imports(['LeanVM.Guest.CoreMode.PairDefs', data_mod(pack, f),
                    f'LeanVM.Guest.Bridge.AlignWin.«{k}».Ctx'])
         + ns(k, f'''@[expose] public section
 

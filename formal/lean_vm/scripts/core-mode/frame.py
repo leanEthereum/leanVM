@@ -1,6 +1,6 @@
 """A mirror of `LeanVM/Guest/CoreMode/Frame.lean`, rule for rule: the frame walk (`frameOk`) over
 the executor's instructions, with `ExecCore`'s symbolic step (`stepI`) for what is known of the
-frame's words. Used by `gen.py` to choose the data (the oracle, residual divisors, table targets,
+frame's words. Used by `frame_gen.py` to choose the data (the oracle, residual divisors, table targets,
 windows) and to report which functions pass."""
 import collections
 
@@ -171,12 +171,13 @@ def meet(A, B):
 class Walk:
     """`frameOk`: `F` the executor's facts, `sigs` the callees' frame signatures by entry pc
     (`(entry, self, ret)`), `hints` by offset, `nzr` residual divisors by offset, `tgt` the targets
-    of jumps through a cell by offset (pcs), `O` the oracle's offsets, `main` whether the frame is
+    of jumps through a cell by offset (pcs), `O` the oracle's offsets, `S` the stores' (a `DEREF` there
+    must find its frame side written), `main` whether the frame is
     `main`'s. `need(kind, i, x)` is called where the Lean walk fails; True continues (inference)."""
 
-    def __init__(self, F, entry, ln, sig, sigs, hints, nzr, tgt, O, halt, need=None):
+    def __init__(self, F, entry, ln, sig, sigs, hints, nzr, tgt, O, halt, need=None, S=frozenset()):
         self.F = F; self.entry = entry; self.len = ln; self.sig = sig; self.sigs = sigs
-        self.hints = hints; self.nzr = nzr; self.tgt = tgt; self.O = O; self.halt = halt
+        self.hints = hints; self.nzr = nzr; self.tgt = tgt; self.O = O; self.halt = halt; self.S = S
         self.need = need or (lambda *a: False)
         self.loads = collections.Counter()
         self.used = set()
@@ -312,6 +313,8 @@ class Walk:
         elif op == 'deref':
             p, o, c, mode = a
             self.reqW(A, p, i)
+            if i in self.S and c not in A.w:
+                self.fail('store', i, a)
             self.addNz(A, p)
             if mode in ('.pc', '.fp'):
                 self.addHq(A, p, o)

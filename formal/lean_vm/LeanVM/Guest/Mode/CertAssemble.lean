@@ -24,14 +24,15 @@ noncomputable def guestE0 : Env := ⟨Data.powTree, Data.jtTrie, 430, jtEnd, .ni
 theorem jt_guest : ∀ d e, Data.jtTrie.get d = some e → e < 2 ^ 62 := jt_lt_of (by decide +kernel)
 
 /-- **The certificates closed**, from each one's facts. -/
-theorem modeCerts_of {Ks : List Cert} {Km : Cert} (hst : ∀ K ∈ Ks, CertSt K) (hw : ∀ K ∈ Ks, FnSpec K)
+theorem modeCerts_of {Ks : List Cert} {Km : Cert} {tab : List CoreMode.HcEnt} {T : List CoreMode.CFun}
+    (hT : ∀ Cf ∈ T, CoreMode.CfOk Cf) (hst : ∀ K ∈ Ks, CertSt K) (hw : ∀ K ∈ Ks, FnSpec tab T K)
     (hfn : ∀ K ∈ Ks, FnLink K) (hsig : ∀ K ∈ Ks, SigsIn Ks K) (hu : nodupB (Ks.map (·.F.entry)) 0 = true)
     (hm : Km ∈ Ks) (hmF : Km.F.main = true) (hmR : Km.code.all (fun i ↦ !isRet i) = true)
-    (hmT : Km.F.sig.term = []) : ModeCerts Ks Km guestE0 where
+    (hmT : Km.F.sig.term = []) (hmc : CoreMode.hcNone tab Km.F.entry = true) : ModeCerts Ks Km guestE0 where
   fn K hK := by
     obtain ⟨⟨f, hf, hc, he⟩, hs⟩ := hfn K hK
     exact ⟨f, hf, hc, he, hs⟩
-  spec := hw
+  spec := ⟨tab, T, hT, hw, hmc⟩
   ne K hK := (staticB_spec (hst K hK).b).2.1
   uniq := uniq_of_nodupB hu
   sigs K hK t G hG := hsig K hK (t, G) (Trie.mem_entries hG)

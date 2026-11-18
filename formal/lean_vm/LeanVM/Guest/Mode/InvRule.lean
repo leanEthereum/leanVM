@@ -10,7 +10,8 @@ public import LeanVM.Prover.ExecuteCompleteX
 the run touches below `2^κ`), and the run either halted, in its prologue (`Pro`, the jump table
 being written: `__jump_tables`, taken as given), or at the stack (`StackAt`) of the frame predicates
 `Q`, the jump table written. `inv_rule_of_specs`: it satisfies `InvRule`, given the certificates
-(`ProgOk`), each function's frame interface (`FrameSpec K (Q K)`), the value facts left to the
+(`ProgOk`), each function's frame interface (`FrameSpec Ct K (Q K)`, for the contracts `Ct`, `main`'s
+its mode signature's), the value facts left to the
 reference (`Prem`: the hints' agreement in order, the residuals, the loops' termination facts at their
 entries, the reference's part of each instruction's modedness, and `X` kept by each step), and the
 prologue's steps. `inv_init`, `inv_used`: it holds initially and keeps the memory within `2^κ`.
@@ -26,9 +27,9 @@ open LeanVM.Prover.Exec
 @[expose] public section
 
 /-- **The invariant.** -/
-def guestInv (prog : LeanIsaProgram) (Ks : List Cert) (Km : Cert) (E0 : Env) (Q : Cert → ℕ → St → Prop)
-    (X Pro : St → Prop) (s : St) : Prop :=
-  X s ∧ (Halted prog s ∨ Pro s ∨ (JtMem E0 s.mem ∧ StackAt Q Ks Km s))
+def guestInv (prog : LeanIsaProgram) (Ks : List Cert) (Km : Cert) (E0 : Env) (Ct : Cts)
+    (Q : Cert → ℕ → St → Prop) (X Pro : St → Prop) (s : St) : Prop :=
+  X s ∧ (Halted prog s ∨ Pro s ∨ (JtMem E0 s.mem ∧ StackAt Ct Q Ks Km s))
 
 /-- **What the invariant takes of the reference and of the other tracks**, at states on the
 reference run where `X` holds, before their instruction's hints: each hint's agreement once its
@@ -53,12 +54,12 @@ structure Prem (prog : LeanIsaProgram) {κ : ℕ} (img : MemoryImage κ) (n : �
 
 /-- `main`'s entry is the stack of `main`'s activation alone. -/
 theorem start_stack {prog : LeanIsaProgram} {C : Ctx} {Ks : List Cert} {Km : Cert} {E0 : Env}
-    {Q : Cert → ℕ → St → Prop} (P : ProgOk prog C Ks Km E0)
-    (hQ : ∀ s, Holds s (entryAbs Km.E Km.F.sig) → Q Km 0 s) {s : St} (h : StartMain Km E0 s) :
-    JtMem E0 s.mem ∧ StackAt Q Ks Km s := by
+    {Ct : Cts} {Q : Cert → ℕ → St → Prop} (P : ProgOk prog C Ks Km E0) {s : St}
+    (hQ : Holds s (entryAbs Km.E Km.F.sig) → Q Km 0 s) (h : StartMain Km E0 s) :
+    JtMem E0 s.mem ∧ StackAt Ct Q Ks Km s := by
   obtain ⟨hpc, hfp, hjt, hH⟩ := h
   refine ⟨hjt, ⟨Km, [], 0, 0⟩, [], 0, ⟨P.main, rfl, fun p hp ↦ ?_, by unfold maxCells; norm_num⟩,
-    hfp.symm, P.ne Km P.main, by simp [hpc], hQ s hH, rfl, rfl, rfl⟩
+    hfp.symm, P.ne Km P.main, by simp [hpc], hQ hH, rfl, rfl, rfl⟩
   rw [P.mainTerm] at hp
   cases hp
 
@@ -76,12 +77,14 @@ theorem termEntry_of {prog : LeanIsaProgram} {κ n : ℕ} {img : MemoryImage κ}
 /-- **The invariant rule from each function's frame interface**: from a state of the invariant on the
 reference run, a step's obligations hold, the invariant after it among them. -/
 theorem inv_rule_of_specs {prog : LeanIsaProgram} {adv : Advice} {κ n : ℕ} {img : MemoryImage κ}
-    {C : Ctx} {Ks : List Cert} {Km : Cert} {E0 : Env} {Q : Cert → ℕ → St → Prop} {X Pro : St → Prop}
+    {C : Ctx} {Ks : List Cert} {Km : Cert} {E0 : Env} {Ct : Cts} {Q : Cert → ℕ → St → Prop}
+    {X Pro : St → Prop}
     (hκ : κ ≤ 28) (hC : Ctx.of prog adv = .ok C) (P : ProgOk prog C Ks Km E0)
-    (hQ : ∀ K ∈ Ks, FrameSpec C (refMem img) K (Q K)) (R : Prem prog img n C Ks X)
+    (hQ : ∀ K ∈ Ks, FrameSpec C (refMem img) (fun s ↦ X s ∧ Fine (refMem img) s ∧ OnRef prog img n s) Ct K (Q K))
+    (hCm : Ct Km.F.entry = none) (R : Prem prog img n C Ks X)
     (hpro : ∀ s op, X s → Pro s → Fine (refMem img) s → OnRef prog img n s → C.ops[s.pc]? = some op →
       StepOk C (refMem img) (fun s' ↦ Pro s' ∨ StartMain Km E0 s') op ((C.hints[s.pc]?).getD []) s) :
-    InvRule prog img n C (refMem img) (guestInv prog Ks Km E0 Q X Pro) := by
+    InvRule prog img n C (refMem img) (guestInv prog Ks Km E0 Ct Q X Pro) := by
   obtain ⟨hsize, -⟩ := ctx_of_spec hC
   have hsz : C.ops.size ≤ 2 ^ 30 := hsize ▸ Nat.pow_le_pow_right (by norm_num) prog.logSize_le
   have hmono : ∀ K ∈ Ks, ∀ {i : ℕ} {s s' : St}, s.mem ≤ s'.mem → s'.fp = s.fp → Q K i s → Q K i s' :=
@@ -89,11 +92,12 @@ theorem inv_rule_of_specs {prog : LeanIsaProgram} {adv : Advice} {κ n : ℕ} {i
   intro s op ⟨hX, hI⟩ hs hon hop
   rcases hI with hH | hP | ⟨hjt, a, rest, i, ha, hfpa, hi, hpc, hat, hbel⟩
   · exact absurd hH (onRef_not_halted hon)
-  · refine stepOk_conj s _ s (Moves.refl' hs) (fun s1 s' e1 hm e _ hI' ↦
+  · refine stepOk_conj s _ s (Moves.refl' hs) (fun s1 s' e1 hm e hf' hI' ↦
       ⟨R.xo s op s1 s' hX hs hon hop e1 hm e, ?_⟩) (hpro s op hX hP hs hon hop)
     rcases hI' with h | h
     · exact Or.inr (Or.inl h)
-    · exact Or.inr (Or.inr (start_stack P (fun s h ↦ (hQ Km P.main).entry h) h))
+    · exact Or.inr (Or.inr (start_stack P (fun h ↦ (hQ Km P.main).entry (by rw [preAt_none hCm]; exact h)
+        (fine_steps hf' _)) h))
   have hK := P.ok a.K ha.mem
   have hS := hQ a.K ha.mem
   have hop' : op = opOfOff a.K.code[i] := by
@@ -106,7 +110,7 @@ theorem inv_rule_of_specs {prog : LeanIsaProgram} {adv : Advice} {κ n : ℕ} {i
     intro G hG
     obtain ⟨K', hK', hent, hsig, -⟩ := P.sigs a.K ha.mem _ G hG
     rw [← hsig, P.uniq K' hK' a.K ha.mem hent]
-  refine hS.step hi hpc hat hs hsz (halt_lt P ha.mem) (envOk_of P ha.mem hjt) (envSmall_of P hsz ha.mem)
+  refine hS.step hi hpc hat hs ⟨hX, hs, hon⟩ hsz (halt_lt P ha.mem) (envOk_of P ha.mem hjt) (envSmall_of P hsz ha.mem)
     (fun s' hle ↦ rw_jt e3 e4 (hjt.mono hle)) (hfpa ▸ ha.term)
     (fun hm ↦ by rw [← hfpa]; exact hbel.main_fp hm) hown
     (fun pre h post hp s1 e hm hin ↦ R.hint s hX hs hon pre h post hp s1 e hm hin)
@@ -136,7 +140,8 @@ theorem inv_rule_of_specs {prog : LeanIsaProgram} {adv : Advice} {κ n : ℕ} {i
     obtain ⟨K', hK', hent, -, hmain'⟩ := P.sigs a.K ha.mem _ _ hsig
     obtain rfl := P.uniq K' hK' a.K ha.mem hent
     exact Or.inr (Or.inr ⟨hjt', tail_stack ha hfpa1 hbel hle1 hm.fine.fp hf' hle' P.mainF (P.ne _ ha.mem)
-      hmain' hpc' (hTE _ (by rw [hpc']; exact hsig) hw) hhdr hback (hS.entry (hen.steps _))⟩)
+      hmain' hpc' (hTE _ (by rw [hpc']; exact hsig) hw) hhdr hback
+      (hS.entry (PreAt.congr (s := s') rfl rfl hen) (fine_steps hf' _))⟩)
   | call h =>
     rcases onRef_next hκ hC hm.fine (onRef_moves hm hon) hop1 hmo e with hon' | hH'
     swap
@@ -145,33 +150,34 @@ theorem inv_rule_of_specs {prog : LeanIsaProgram} {adv : Advice} {κ n : ℕ} {i
     obtain ⟨G, ro, hG, hro, hd0, hd1, hw, hen, hres⟩ := h hTE
     obtain ⟨K', hK', hent, rfl, hmain'⟩ := P.sigs a.K ha.mem _ G hG
     obtain ⟨-, -, e3', e4', -⟩ := P.env K' hK'
-    have hen' : Holds { s' with steps := s'.steps + 1 } (entryAbs K'.E K'.F.sig) := by
-      rw [← entryAbs_congr (e3.trans e3'.symm) (e4.trans e4'.symm)]
-      exact hen.steps _
+    have hen' : PreAt Ct K'.E K'.F.entry K'.F.sig { s' with steps := s'.steps + 1 } := by
+      rw [hent]
+      exact PreAt.env (s := s') (e3.trans e3'.symm) (e4.trans e4'.symm) rfl rfl hen
     exact Or.inr (Or.inr ⟨hjt', call_stack ha hfpa1 hbel hle1 hf' hle' hK' (P.ne K' hK') hent hmain' hro
-      hd0 hd1 (hTE _ hG hw) ((hQ K' hK').entry hen') hres⟩)
+      hd0 hd1 (hTE _ hG hw) ((hQ K' hK').entry hen' (fine_steps hf' _)) (by rw [hent]; exact hres)⟩)
 
 /-- **The invariant holds initially**, the prologue's and `X`'s initial states given. -/
 theorem inv_init {prog : LeanIsaProgram} {Ks : List Cert} {Km : Cert} {E0 : Env} {X Pro : St → Prop}
-    {Q : Cert → ℕ → St → Prop} {s : St} (hX : X s) (hP : Pro s) : guestInv prog Ks Km E0 Q X Pro s :=
+    {Ct : Cts} {Q : Cert → ℕ → St → Prop} {s : St} (hX : X s) (hP : Pro s) : guestInv prog Ks Km E0 Ct Q X Pro s :=
   ⟨hX, Or.inr (Or.inl hP)⟩
 
 /-- **The invariant keeps the memory within `2^κ`**, as `X` does. -/
 theorem inv_used {prog : LeanIsaProgram} {Ks : List Cert} {Km : Cert} {E0 : Env} {X Pro : St → Prop}
-    {Q : Cert → ℕ → St → Prop} {κ : ℕ} (hu : ∀ s, X s → s.mem.used ≤ 2 ^ κ) :
-    ∀ s, guestInv prog Ks Km E0 Q X Pro s → s.mem.used ≤ 2 ^ κ :=
+    {Ct : Cts} {Q : Cert → ℕ → St → Prop} {κ : ℕ} (hu : ∀ s, X s → s.mem.used ≤ 2 ^ κ) :
+    ∀ s, guestInv prog Ks Km E0 Ct Q X Pro s → s.mem.used ≤ 2 ^ κ :=
   fun s h ↦ hu s h.1
 
 /-- **The executor is complete on the program**, within the reference's committed size: under
 `execute_completeX`'s hypotheses on the reference, given the certificates, each function's frame
 interface, the value facts and the prologue. -/
 theorem execute_complete_guest {prog : LeanIsaProgram} {input : PublicInput} {adv : Advice} {κ n : ℕ}
-    {img : MemoryImage κ} {Ks : List Cert} {Km : Cert} {E0 : Env} {Q : Cert → ℕ → St → Prop}
+    {img : MemoryImage κ} {Ks : List Cert} {Km : Cert} {E0 : Env} {Ct : Cts} {Q : Cert → ℕ → St → Prop}
     {X Pro : St → Prop} (hκ : κ ≤ 28) (hn : n ≤ maxSteps) (hval : ValidExecution prog input ⟨κ, img, n⟩)
     (hdec : ∀ i, Decodable (prog.instructions i)) (hmain : adv.mainFrame < maxCells)
     (P : ∀ C, Ctx.of prog adv = .ok C → ProgOk prog C Ks Km E0)
-    (hQ : ∀ C, Ctx.of prog adv = .ok C → ∀ K ∈ Ks, FrameSpec C (refMem img) K (Q K))
-    (R : ∀ C, Ctx.of prog adv = .ok C → Prem prog img n C Ks X)
+    (hQ : ∀ C, Ctx.of prog adv = .ok C → ∀ K ∈ Ks,
+      FrameSpec C (refMem img) (fun s ↦ X s ∧ Fine (refMem img) s ∧ OnRef prog img n s) Ct K (Q K))
+    (hCm : Ct Km.F.entry = none) (R : ∀ C, Ctx.of prog adv = .ok C → Prem prog img n C Ks X)
     (hpro : ∀ C, Ctx.of prog adv = .ok C → ∀ s op, X s → Pro s → Fine (refMem img) s →
       OnRef prog img n s → C.ops[s.pc]? = some op →
       StepOk C (refMem img) (fun s' ↦ Pro s' ∨ StartMain Km E0 s') op ((C.hints[s.pc]?).getD []) s)
@@ -182,9 +188,9 @@ theorem execute_complete_guest {prog : LeanIsaProgram} {input : PublicInput} {ad
       (∀ i, t.memory i = 0 ∨ t.memory i = refMem img i.val) ∧
       (∀ op, t.opcodeCount op = (⟨κ, img, n⟩ : Execution prog).opcodeCount op) ∧
       t.logMemorySize ≤ κ ∧ t.committedSize ≤ (⟨κ, img, n⟩ : Execution prog).committedSize :=
-  execute_completeX (Inv := guestInv prog Ks Km E0 Q X Pro) hκ hn hval hdec hmain
+  execute_completeX (Inv := guestInv prog Ks Km E0 Ct Q X Pro) hκ hn hval hdec hmain
     (fun C m hC hm ↦ inv_init (hinit C m hC hm).1 (hinit C m hC hm).2)
-    (fun C hC ↦ inv_rule_of_specs hκ hC (P C hC) (hQ C hC) (R C hC) (hpro C hC)) (inv_used hu)
+    (fun C hC ↦ inv_rule_of_specs hκ hC (P C hC) (hQ C hC) hCm (R C hC) (hpro C hC)) (inv_used hu)
 
 end
 

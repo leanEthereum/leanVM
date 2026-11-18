@@ -104,11 +104,11 @@ theorem ExecGaps.ofXC {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {Y 
       Moves (refMem r.img) s s1 → isWitnessHint h = true → Mode.HintIn s1 h → HintOk C (refMem r.img) s1 h)
     (res : ∀ r, r.Ok → Mode.ResRef guestProgram r.img r.n Ks (XOf Y r)) (termInst : TermInst Ks)
     (entries : ∀ K ∈ Ks, K.F.entry ≠ 0) (extraRef : ExtraRef alignA)
-    (hintsUsed : HintsUsed Y) (keepY : KeepY Y) (initY : InitY Y) :
+    (hintsUsed : HintsUsed Y) (keepY : KeepY Y) (initY : InitY Y) (core : CoreHonAll Ks (XOf Y)) :
     ExecGaps Ks Km E0 (XOf Y) (fun _ ↦ ProAt) :=
   ExecGaps.ofX certs main mainExact hintAlloc hintWitness (hintComputed_alignA extraRef) res termInst
     Bridge.progAl Bridge.alignA_main alLayout_alignA jumpCells_at entries (derefPow_all Y)
-    hintsUsed keepY initY
+    hintsUsed keepY initY core
 
 end
 

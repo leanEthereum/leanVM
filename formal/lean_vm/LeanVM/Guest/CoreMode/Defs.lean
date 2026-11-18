@@ -162,6 +162,11 @@ inductive Wit where
   constant `lo`, the upper bound's exponent `y` by a fact of these residuals: in the run when `y ≥ lo + k`, else the
   write event `ns[y]`. -/
   | back (r : ℕ) (ns : List ℕ) (res : List ℕ)
+
+  /-- A cell of a run in scope of lower bound `g^1` extended by its two points before it (`base·g^-stride`,
+  witnessed by `q`, and `base`, by `q2`): the cell's index at most the upper bound's, which has an exponent by a
+  fact. -/
+  | prep2 (r : ℕ) (q q2 : Wit) (res : List ℕ)
   deriving DecidableEq, Repr, Inhabited
 
 /-- **The heap calling convention**: cells over parameter numbers a caller guarantees written
@@ -192,7 +197,11 @@ structure HSig where
   /-- Runs at words at return: `(c, r)`, with `w` the word at the cell `c`, the cells `w·b·g^(S·j)`, `lo ≤ j < hi`
   (`r = ⟨b, S, lo, hi⟩`) written; `c`, `b`, `lo`, `hi` over slots. -/
   postQ : List (CCell × CRun) := []
-  deriving Repr, Inhabited
+
+  /-- Own parameter words: `(c, j)`, ghost slot `j`'s word is the word at the cell `c` (over the parameters), where
+  there is one (`GwOk`); in the own pass a `load` of `c` names it (`gwDef`). -/
+  gw : List (CCell × ℕ) := []
+  deriving DecidableEq, Repr, Inhabited
 
 /-- The empty convention. -/
 def HSig.empty : HSig := {}

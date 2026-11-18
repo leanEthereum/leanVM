@@ -183,10 +183,10 @@ theorem scan_pos (P : PairCtx) (o1 o2 o3 : ℕ) : ∀ (f : ℕ) {z : Zip} {r : Z
     · cases h
 
 theorem kindOk_some {P : PairCtx} {i : ℕ} {b : Bool} (h : P.kindOk i (some b) = true) :
-    has P.O i = b ∧ has P.S i = !b := by
+    hasP P.O i = b ∧ hasP P.S i = !b := by
   cases b <;> simp_all [PairCtx.kindOk]
 
-theorem kindOk_none {P : PairCtx} {i : ℕ} (h : P.kindOk i none = true) : has P.O i = false ∧ has P.S i = false := by
+theorem kindOk_none {P : PairCtx} {i : ℕ} (h : P.kindOk i none = true) : hasP P.O i = false ∧ hasP P.S i = false := by
   simp_all [PairCtx.kindOk]
 
 /-- **An instruction other than a jump, by positions**: a `DEREF` of mode `cell` consuming the `load`
@@ -196,8 +196,9 @@ theorem plainStep_pos {P : PairCtx} {i : ℕ} {ins : OffsetInstruction} {z z' : 
     (∃ (o1 o2 o3 : ℕ) (bs : List Atom) (d p : V) (off : ℕ) (cs : List Atom), ins = .deref o1 o2 o3 .cell ∧
       z.pos = bs.map Stmt.atom ++ .atom (.load d p off) :: (cs.map Stmt.atom ++ z'.pos) ∧
       (∀ a ∈ bs, stopS P.R a = false) ∧ (∀ a ∈ cs, stopL a = false) ∧ cellsAt P.X o1 o2 o3 d p off = true ∧
-      has P.O i = isRead P.R (.load d p off) ∧ has P.S i = !isRead P.R (.load d p off)) ∨
-    (z' = z ∧ has P.O i = false ∧ has P.S i = false) := by
+      hasP P.O i = isRead P.R (.load d p off) ∧ hasP P.S i = !isRead P.R (.load d p off)) ∨
+    (z' = z ∧ hasP P.S i = false ∧ (hasP P.O i = false ∨
+      ∃ o1 o2 o3, ins = .deref o1 o2 o3 .cell ∧ jtd P.X o1 o2 o3 = true)) := by
   unfold plainStep at h
   split at h
   · rename_i o1 o2 o3
@@ -214,11 +215,16 @@ theorem plainStep_pos {P : PairCtx} {i : ℕ} {ins : OffsetInstruction} {z z' : 
       · cases h
     · simp only [Bool.cond_eq_ite] at h
       split at h
-      · rename_i hk; cases h; exact Or.inr ⟨rfl, kindOk_none hk⟩
+      · rename_i hk
+        cases h
+        rcases Bool.or_eq_true_iff.mp hk with hk | hk
+        · exact Or.inr ⟨rfl, (kindOk_none hk).2, Or.inl (kindOk_none hk).1⟩
+        · simp only [Bool.and_eq_true, Bool.not_eq_true'] at hk
+          exact Or.inr ⟨rfl, hk.2, Or.inr ⟨o1, o2, o3, rfl, hk.1⟩⟩
       · cases h
   · simp only [Bool.cond_eq_ite] at h
     split at h
-    · rename_i hk; cases h; exact Or.inr ⟨rfl, kindOk_none hk⟩
+    · rename_i hk; cases h; exact Or.inr ⟨rfl, (kindOk_none hk).2, Or.inl (kindOk_none hk).1⟩
     · cases h
 
 /-! ## The pairing at an offset -/
@@ -238,9 +244,10 @@ theorem pairAt_step {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : Li
             (∀ a ∈ bs, stopS H.readT a = false) ∧ (∀ a ∈ cs, stopL a = false) ∧
             cellsAt X o1 o2 o3 dv pv off = true ∧
             pairAt (PairCtx.ofH X H O S) body code d (i + 1) = some pos' ∧
-            has O i = (H.readWit dv pv off).isSome ∧ has S i = !(H.readWit dv pv off).isSome) ∨
-          (pairAt (PairCtx.ofH X H O S) body code d (i + 1) = some z.pos ∧ has O i = false ∧ has S i = false))) ∨
-      ∃ oc od of zs, ins = .jump oc od of ∧ has O i = false ∧ has S i = false ∧
+            hasP O i = (H.readWit dv pv off).isSome ∧ hasP S i = !(H.readWit dv pv off).isSome) ∨
+          (pairAt (PairCtx.ofH X H O S) body code d (i + 1) = some z.pos ∧ hasP S i = false ∧
+            (hasP O i = false ∨ ∃ o1 o2 o3, ins = .deref o1 o2 o3 .cell ∧ jtd X o1 o2 o3 = true)))) ∨
+      ∃ oc od of zs, ins = .jump oc od of ∧ hasP O i = false ∧ hasP S i = false ∧
         (PairCtx.ofH X H O S).nS z = some zs ∧ ZOk body zs ∧
         (∃ bs : List Atom, z.pos = bs.map Stmt.atom ++ zs.pos ∧ ∀ a ∈ bs, stopS H.readT a = false) ∧
         ∃ tabs r, jumpStepH (PairCtx.ofH X H O S) i oc od of tabs z zs = some r ∧
@@ -358,25 +365,26 @@ theorem pair_read {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List
     {code : List OffsetInstruction} {d : ℕ × ℕ × List (ℕ × List Prover.Exec.Hint)}
     (hok : pairOk X H O S body code d = true) {i : ℕ} {pos : List Stmt}
     (hat : pairAt (PairCtx.ofH X H O S) body code d i = some pos) {o1 o2 o3 : ℕ}
-    (hins : code[i]? = some (.deref o1 o2 o3 .cell)) (hO : has O i = true)
+    (hins : code[i]? = some (.deref o1 o2 o3 .cell)) (hO : hasP O i = true) (hjt : jtd X o1 o2 o3 = false)
     {σ : Val} {pre es : List Ev} {vs : List V} (hp : walk σ pos = .ret es vs) (hrw : ReadsWritten H σ (pre ++ es)) :
     ∃ (as : List Atom) (dv pv : V) (off : ℕ),
       List.Forall₂ (Pairs X) (as.filter flowAtom) (((d.2.2.lookup (X.entry + i)).getD []).filter isaFlowHint) ∧
-      cellsAt X o1 o2 o3 dv pv off = true ∧ (H.readWit dv pv off).isSome ∧
-      (Written H σ pre (cellAt σ pv off) ∨ ∃ a ∈ as, flowAtom a = true ∧ Writes σ a (cellAt σ pv off)) := by
+      cellsAt X o1 o2 o3 dv pv off = true ∧ (H.readWit dv pv off).isSome ∧ Ev.atom (.load dv pv off) ∈ es ∧
+      (Written H σ pre (cellAt σ pv off) ∨
+        ∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ es ∧ Writes σ a (cellAt σ pv off)) := by
   obtain ⟨ins, z, as, hins', -, hpos, hq, hpairs, hcase⟩ := pairAt_step hok hat
   rw [hins] at hins'
   cases hins'
-  rcases hcase with ⟨-, ⟨o1', o2', o3', bs, dv, pv, off, cs, pos', heq, hz, hb, -, hcell, -, hO', -⟩ | ⟨-, hO', -⟩⟩ |
+  rcases hcase with ⟨-, ⟨o1', o2', o3', bs, dv, pv, off, cs, pos', heq, hz, hb, -, hcell, -, hO', -⟩ | ⟨-, -, hO'⟩⟩ |
     ⟨oc, od, of, -, heq, -⟩
   · simp only [OffsetInstruction.deref.injEq] at heq
     obtain ⟨rfl, rfl, rfl, -⟩ := heq
     have hrd : (H.readWit dv pv off).isSome = true := by rw [← hO', hO]
-    refine ⟨as, dv, pv, off, hpairs, hcell, hrd, ?_⟩
     rw [hpos, hz, ← List.append_assoc, ← List.map_append] at hp
     obtain ⟨es1, hes1, rfl⟩ := walk_atoms_ret hp
     rw [walk_atom_cons] at hes1
     obtain ⟨es2, -, rfl⟩ := pre_eq_ret hes1
+    refine ⟨as, dv, pv, off, hpairs, hcell, hrd, by simp, ?_⟩
     have hR : Reads H σ (.load dv pv off) (cellAt σ pv off) := ⟨hrd, rfl⟩
     have hw := hrw (pre ++ (as ++ bs).map Ev.atom) (.load dv pv off) es2 _ (by simp) hR
     have hw' : Written H σ (pre ++ (as ++ bs).map Ev.atom) (cellAt σ pv off) := hw
@@ -392,8 +400,12 @@ theorem pair_read {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List
         (by simpa [List.append_assoc] using hrw) hqa hw' with h | ⟨a, ha, hwa⟩
     · exact Or.inl h
     · rw [List.mem_filter] at ha
-      exact Or.inr ⟨a, ha.1, ha.2, hwa⟩
-  · simp [hO] at hO'
+      exact Or.inr ⟨a, ha.1, ha.2, by simp [ha.1], hwa⟩
+  · rcases hO' with hO' | ⟨o1', o2', o3', heq, hj⟩
+    · simp [hO] at hO'
+    · simp only [OffsetInstruction.deref.injEq] at heq
+      obtain ⟨rfl, rfl, rfl, -⟩ := heq
+      simp [hjt] at hj
   · cases heq
 
 /-- **Atoms on the path add to `Written` only what those among `fs` write**, the others no stores:
@@ -420,9 +432,9 @@ theorem pair_fall {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List
       List.Forall₂ (Pairs X) (as.filter flowAtom) (((d.2.2.lookup (X.entry + i)).getD []).filter isaFlowHint) ∧
       ∀ {σ : Val} {pre es : List Ev} {vs : List V}, walk σ pos = .ret es vs → ReadsWritten H σ (pre ++ es) →
         ∃ evs es', es = evs ++ es' ∧ walk σ pos' = .ret es' vs ∧ ∀ x, Written H σ (pre ++ evs) x →
-          Written H σ pre x ∨ (∃ a ∈ as, flowAtom a = true ∧ Writes σ a x) ∨
-          ∃ (o1 o2 o3 : ℕ) (dv pv : V) (off : ℕ), code[i]? = some (.deref o1 o2 o3 .cell) ∧ has S i = true ∧
-            cellsAt X o1 o2 o3 dv pv off = true ∧ x = cellAt σ pv off := by
+          Written H σ pre x ∨ (∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ evs ∧ Writes σ a x) ∨
+          ∃ (o1 o2 o3 : ℕ) (dv pv : V) (off : ℕ), code[i]? = some (.deref o1 o2 o3 .cell) ∧ hasP S i = true ∧
+            cellsAt X o1 o2 o3 dv pv off = true ∧ Ev.atom (.load dv pv off) ∈ evs ∧ x = cellAt σ pv off := by
   obtain ⟨ins, z, as, hins, -, hpos, hq, hpairs, hcase⟩ := pairAt_step hok hat
   rcases hcase with ⟨-, hc⟩ | ⟨oc, od, of, -, rfl, -⟩
   swap
@@ -431,9 +443,10 @@ theorem pair_fall {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List
     cases hfa : flowAtom a
     · exact hq a ha hfa
     · exact absurd (List.mem_filter.mpr ⟨ha, hfa⟩) hn
-  have hflow : ∀ {σ : Val} {x : K}, (∃ a ∈ as.filter flowAtom, Writes σ a x) →
-      ∃ a ∈ as, flowAtom a = true ∧ Writes σ a x := fun ⟨a, ha, hw⟩ ↦ by
-    rw [List.mem_filter] at ha; exact ⟨a, ha.1, ha.2, hw⟩
+  have hflow : ∀ {σ : Val} {x : K} {evs : List Ev}, (∀ a ∈ as, Ev.atom a ∈ evs) →
+      (∃ a ∈ as.filter flowAtom, Writes σ a x) → ∃ a ∈ as, flowAtom a = true ∧ Ev.atom a ∈ evs ∧ Writes σ a x :=
+    fun hin ⟨a, ha, hw⟩ ↦ by
+      rw [List.mem_filter] at ha; exact ⟨a, ha.1, ha.2, hin a ha.1, hw⟩
   rcases hc with ⟨o1, o2, o3, bs, dv, pv, off, cs, pos', rfl, hz, hb, hcs, hcell, hat', -, hS⟩ | ⟨hat', -, -⟩
   · refine ⟨pos', hat', as, hpairs, fun {σ pre es vs} hp hrw ↦ ?_⟩
     have hall : as ++ bs ++ .load dv pv off :: cs = as ++ bs ++ [.load dv pv off] ++ cs := by simp
@@ -451,7 +464,7 @@ theorem pair_fall {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List
       refine ⟨(as ++ bs ++ .load dv pv off :: cs).map Ev.atom, es', rfl, hes', fun x hx ↦ ?_⟩
       rcases hW x hx with h | h
       · exact Or.inl h
-      · exact Or.inr (Or.inl (hflow h))
+      · exact Or.inr (Or.inl (hflow (fun a ha ↦ by simp [ha]) h))
     · obtain ⟨es', hes', rfl, hW⟩ := atoms_written (fs := as.filter flowAtom ++ [.load dv pv off]) hp' hrw
         (fun a ha hn ↦ by
           simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false, not_or] at ha hn
@@ -464,17 +477,17 @@ theorem pair_fall {X : AlignCtx} {H : HCert} {O S : Exec.Trie Unit} {body : List
       rcases hW x hx with h | ⟨a, ha, hwa⟩
       · exact Or.inl h
       · rcases List.mem_append.mp ha with ha | ha
-        · exact Or.inr (Or.inl (hflow ⟨a, ha, hwa⟩))
+        · exact Or.inr (Or.inl (hflow (fun a ha ↦ by simp [ha]) ⟨a, ha, hwa⟩))
         · rw [List.mem_singleton] at ha
           subst ha
-          exact Or.inr (Or.inr ⟨o1, o2, o3, dv, pv, off, hins, by simpa [hr] using hS, hcell, hwa⟩)
+          exact Or.inr (Or.inr ⟨o1, o2, o3, dv, pv, off, hins, by simpa [hr] using hS, hcell, by simp, hwa⟩)
   · refine ⟨z.pos, hat', as, hpairs, fun {σ pre es vs} hp hrw ↦ ?_⟩
     rw [hpos] at hp
     obtain ⟨es', hes', rfl, hW⟩ := atoms_written (fs := as.filter flowAtom) hp hrw hfs
     refine ⟨as.map Ev.atom, es', rfl, hes', fun x hx ↦ ?_⟩
     rcases hW x hx with h | h
     · exact Or.inl h
-    · exact Or.inr (Or.inl (hflow h))
+    · exact Or.inr (Or.inl (hflow (fun a ha ↦ by simp [ha]) h))
 
 end
 

@@ -50,8 +50,8 @@ def sum37_1 : List BlkSum := [⟨false, [], [], [], []⟩, ⟨false, [], [], [],
     ⟨false, [], [], [], []⟩, ⟨false, [], [], [], []⟩]
 
 /-- Arms 158 to 255. -/
-theorem arms37_1 : armsOk Data.powTree sigW core hcert ((Memory.loopBody core).drop 319) 158 (256 - 158) st37 (4, 1, 0, 0) sum37_1 (4, 1, 0, 0) = true := by
-  simp only [armsOk, withCx_cx hcx]
+theorem arms37_1 : armsOkW Data.powTree sigW core hcert ((Memory.loopBody core).drop 319) 158 (256 - 158) st37 (4, 1, 0, 0) sum37_1 (4, 1, 0, 0) = true := by
+  simp only [armsOkW, withCx_cx hcx]
   decide +kernel
 
 end

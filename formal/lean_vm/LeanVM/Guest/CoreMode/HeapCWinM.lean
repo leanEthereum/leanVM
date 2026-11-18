@@ -16,7 +16,7 @@ The windows of `HeapCWin` and `HeapCWinF` cut between top-level statements, so o
 one window. Its pass is `chkArmsC` over the arms, each arm from the state before the `match` with the serials of
 the previous arm's end (`CSt.cnt`), then `joinSt`, which reads of each arm only whether it returns and the
 entries it added (`blkSum`), and of the last arm its serials. So the arms split (`chkArmsC_append`): a window of
-arms (`armsOk`) decides that their passes, from the state before the `match` with stated serials, give stated
+arms (`armsOkW`) decides that their passes, from the state before the `match` with stated serials, give stated
 summaries and end at stated serials; consecutive arm windows chain (`armsWins_chain`), and the join
 (`joinOk`), from the summaries, gives the window's end state (`winOk_of_arms`, `winOkF_of_arms`).
 -/
@@ -170,7 +170,7 @@ theorem matchOf_some : ∀ {L : List Stmt} {x : V} {arms : List (List Stmt)}, ma
 
 /-- **A window of arms**: of the `match` heading `L`, the `k` arms from arm `j`, from `st` with the serials `c`,
 give the summaries `l` and end at the serials `c'`. -/
-noncomputable def armsOk (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) (L : List Stmt) (j k : ℕ)
+noncomputable def armsOkW (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) (L : List Stmt) (j k : ℕ)
     (st : CSt) (c : Cnt) (l : List BlkSum) (c' : Cnt) : Bool :=
   match matchOf L with
   | some (x, arms) => withCx pows sigOf f H fun X ↦ match armsW X x j ((arms.drop j).take k) st c with
@@ -180,9 +180,9 @@ noncomputable def armsOk (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H 
 
 theorem armsOk_spec {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCert} {L : List Stmt} {j k : ℕ}
     {st : CSt} {c c' : Cnt} {l : List BlkSum} {x : V} {arms : List (List Stmt)} (hm : matchOf L = some (x, arms))
-    (h : armsOk pows sigOf f H L j k st c l c' = true) :
+    (h : armsOkW pows sigOf f H L j k st c l c' = true) :
     armsW (cxOf pows sigOf f H) x j ((arms.drop j).take k) st c = some (l, c') := by
-  simp only [armsOk, hm, withCx_eq] at h
+  simp only [armsOkW, hm, withCx_eq] at h
   split at h
   · rename_i p hp
     simp only [Bool.and_eq_true, decide_eq_true_eq] at h
@@ -192,7 +192,7 @@ theorem armsOk_spec {pows : PowTree} {sigOf : String → HSig} {f : Fn} {H : HCe
 /-- **Consecutive windows of arms**: the cut points (arm index, serials there) and each window's summaries. -/
 def armsWins (pows : PowTree) (sigOf : String → HSig) (f : Fn) (H : HCert) (L : List Stmt) (st : CSt) :
     List (ℕ × Cnt) → List (List BlkSum) → Prop
-  | (a, c) :: (b, c') :: l, s :: ss => armsOk pows sigOf f H L a (b - a) st c s c' = true ∧ a ≤ b ∧
+  | (a, c) :: (b, c') :: l, s :: ss => armsOkW pows sigOf f H L a (b - a) st c s c' = true ∧ a ≤ b ∧
       armsWins pows sigOf f H L st ((b, c') :: l) ss
   | [_], [] => True
   | _, _ => False

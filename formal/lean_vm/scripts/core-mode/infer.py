@@ -85,6 +85,8 @@ FEATURES = {
 }
 F = set(FEATURES)
 WRAP = [True]
+# `arm_blocks` reads the arms' runs too (set by `callc.py` only, so `emitc.py`'s certificates do not move)
+ARMRUN = [False]
 
 
 def callee(name):
@@ -1548,11 +1550,26 @@ class Pass:
         for c in outs[-1].pts:
             if c[1] < 2 ** 20 and c[0] and c not in st.pts:
                 by[c[0]].add(c[1])
+        if ARMRUN[0]:
+            # the arms' blocks also as runs at constant bounds (the callees' guarantees translated from mode
+            # signatures, `callc.py`)
+            for r, _ in outs[-1].runs:
+                if r[1] == 1 and r[0][0] and r[0][1] == 0 and r[0] not in st.pts:
+                    by[r[0][0]].add(0)
+
+        def has(t, c):
+            if c in t.pts:
+                return True
+            if not ARMRUN[0]:
+                return False
+            u = []
+            b = self.find_run(t, c, t.runs, u)
+            return b is not None and b[3] and b[4] and not u
         for Q, offs in by.items():
             ns = []
             for j, t in enumerate(outs):
                 n = 0
-                while (Q, n) in t.pts:
+                while n < 2 ** 12 and has(t, (Q, n)):
                     n += 1
                 ns.append(n)
             K = (ns[-1] - ns[0]) // (len(outs) - 1)
@@ -1593,6 +1610,9 @@ CTR_PRE = {'verify_bus_gkr_loop0'}
 CTR_CALLERS = {f for k in CTR_PRE for f in CALLERS[k] if f not in CTR_PRE}
 
 
+DUPCALL = [False]
+
+
 def dup_guards(key):
     """The guards of the top-level `ite`s whose continuation goes into each branch (`HCert.dups`): a function (not a
     loop) whose `ite c` on `c = p + k` (`p` a parameter, `k` a constant) is followed only by atoms and its `ret`."""
@@ -1610,6 +1630,9 @@ def dup_guards(key):
             a = adds.get(s[1])
             if rest and rest[-1][0] == 'ret' and all(t[0] == 'a' for t in rest[:-1]) and a is not None and \
                     any(x < len(params) for x in a) and any(x in consts for x in a):
+                return [s[1]]
+            # (`callc`'s bodies with calls in branches: the last `ite`, its continuation atoms, calls and its `ret`)
+            if DUPCALL[0] and rest and rest[-1][0] == 'ret' and all(t[0] in ('a', 'call', 'callIf') for t in rest[:-1]):
                 return [s[1]]
     return []
 
