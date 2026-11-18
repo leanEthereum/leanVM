@@ -77,7 +77,7 @@ example {X : Type} {P : VerifierProgram Bool} (C : Cert P) {σ : Seeds X} {ℓ :
     (hbad : ∃ h₀, h₀ <+: extractedFrom (lookH ℓ) (lookF ℓ) (σ.seed x) (nodeAt P (σ.root x))
       (σ.root x) π ∧ (σ.root x).length ≤ h₀.length ∧ Boundary h₀ ∧ C.D h₀) :
     1 ≤ pot C.D σ P ℓ :=
-  final_ineq C hf hε1 hroot hv hbad
+  final_ineq C hf hε1 hroot hv id hbad
 
 example {X : Type} (P : VerifierProgram Bool) (C : Cert P) (σ : Seeds X)
     (hroot : ∀ x, RootOk P (σ.root x)) (εmax : ℝ≥0∞)

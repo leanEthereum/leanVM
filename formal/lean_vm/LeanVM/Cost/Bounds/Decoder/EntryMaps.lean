@@ -77,10 +77,10 @@ theorem pairCmp_cost (hP : Includes P searchInKeyC.lam0.costDeps) (a b : ℕ × 
 
 /-- Two lists of code pairs compared (`compareLex` with `searchInKeyC.lam0`): `64` per pair of
 the second, `7`. -/
-theorem compareCodes_cost (hP : Includes P Auto.List.compareLex.c112.costDeps)
+theorem compareCodes_cost (hP : Includes P Auto.List.compareLex.c5.costDeps)
     (hP' : Includes P searchInKeyC.lam0.costDeps) :
     ∀ (a b : List (ℕ × ℕ)), (∀ x ∈ a, PairOK x) → (∀ x ∈ b, PairOK x) →
-      machineCost P Auto.List.compareLex.c112.costIdx
+      machineCost P Auto.List.compareLex.c5.costIdx
           [.closure searchInKeyC.lam0.costIdx [], encodeValue a, encodeValue b] ≤
         64 * b.length + 7 := by
   have hc : ∀ x y : ℕ × ℕ, RunsApp P (.closure searchInKeyC.lam0.costIdx [])
@@ -90,11 +90,11 @@ theorem compareCodes_cost (hP : Includes P Auto.List.compareLex.c112.costDeps)
   induction a with
   | nil =>
     intro b _ _
-    rw [Auto.List.compareLex.c112.costEq P hP compare _ hc]
+    rw [Auto.List.compareLex.c5.costEq P hP compare _ hc]
     cases b <;> simp
   | cons x a ih =>
     intro b ha hb
-    rw [Auto.List.compareLex.c112.costEq P hP compare _ hc]
+    rw [Auto.List.compareLex.c5.costEq P hP compare _ hc]
     cases b with
     | nil => simp
     | cons y b =>
@@ -169,9 +169,9 @@ theorem searchInKey_cost (hP : Includes P searchInKeyC.costDeps) (L : ℕ)
       rw [limbs_of_lt hv1, limbs_of_lt hk1]
       simp only [max_self]
       unfold keyCmpPrice
-      generalize machineCost P Auto.List.compareLex.c112.costIdx
+      generalize machineCost P Auto.List.compareLex.c5.costIdx
         [.closure searchInKeyC.lam0.costIdx [], encodeValue v.1.2.1, encodeValue k.2.1] = c1 at hc1 ⊢
-      generalize machineCost P Auto.List.compareLex.c112.costIdx
+      generalize machineCost P Auto.List.compareLex.c5.costIdx
         [.closure searchInKeyC.lam0.costIdx [], encodeValue v.1.2.2, encodeValue k.2.2] = c2 at hc2 ⊢
       -- the comparison's price, bounded once over its `9` outcomes
       have hcmpP : ∀ o1 o3 : Ordering,

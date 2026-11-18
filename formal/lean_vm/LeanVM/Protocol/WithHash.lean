@@ -243,39 +243,6 @@ noncomputable abbrev soundnessExperimentWithHash (A : RandomPermutationAdversary
   Rpm.runAdversaryThen A fun z ↦ verifierWithHash callKeccak256 callKeccakF1600 z.1.1 z.1.2 z.2
 
 
-/-- **The extractor in the random-permutation model**: from the statement, the adversary's
-transcript and the proof, an execution of the program: the extractor of `Extractor.lean`
-(`LeanVM.Extraction.extract`) on the Keccak-256 evaluations of the transcript
-(`lookupEvaluation (keccakEvaluationsOfTranscript T)`), the byte strings they answer being those of
-the transcript's paths. The paths are computed once. -/
-def transcriptExtractorWithHash (prog : LeanIsaProgram) (input : PublicInput) (T :
-    PermutationTranscript)
-    (proof : Proof) : Option (Execution prog) :=
-  let paths := keccakEvaluationsOfTranscript T
-  Extraction.extract prog input (bytecodeWords prog) (lookupEvaluation paths)
-    (paths.map (·.1)) proof
-
-/-! ### Knowledge soundness -/
-
-/-- **The adversary breaks soundness**: the verifier accepts its statement and proof, and the
-execution `transcriptExtractor` extracts from the transcript and the proof is not a valid execution
-of the program on the public input. -/
-def BreaksKnowledgeSoundnessWithHash (z : ExperimentOutcomeWithHash) : Prop :=
-  z.accepted ∧ ¬ ∃ t, transcriptExtractorWithHash z.program z.input z.transcript z.proof = some t ∧
-    ValidExecution z.program z.input t
-
-/-- **Knowledge soundness in the random-permutation model**, for the extractor
-`transcriptExtractor`: an adversary of at most `Q ≤ 2^128` queries to `π` and `π⁻¹` (its coins free)
-breaks soundness with probability at most `(Q + 2^14) · 2^-125 + 5 (Q + 2^14)² · 2^-256`, the `2^14`
-covering the verifier's own `13708` oracle calls and two terms of `2^-125` (a guessed stack root,
-the transfer from two random oracles to one permutation). -/
-def KnowledgeSoundnessWithHash : Prop :=
-  ∀ (A : RandomPermutationAdversary) (Q : ℕ),
-    Common.QueryCostAtMost A Common.permutationCallCost Q → Q ≤ 2 ^ 128 →
-    Pr{let z ← soundnessExperimentWithHash A}[BreaksKnowledgeSoundnessWithHash z] ≤
-      (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 125 +
-        5 * (Q + 2 ^ 14 : ℝ≥0∞) ^ 2 * (2 : ℝ≥0∞)⁻¹ ^ 256
-
 /-! ### Completeness -/
 
 /-- **The completeness experiment in the random-permutation model**: the honest prover's proof,

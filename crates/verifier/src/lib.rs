@@ -88,6 +88,7 @@ pub enum VerifierError {
     PcsInverseRate,
     CommittedSize,
     StackedClaims,
+    BytecodeShape,
 }
 
 impl std::fmt::Display for VerifierError {
@@ -123,6 +124,7 @@ impl std::fmt::Display for VerifierError {
             Self::PcsInverseRate => "invalid PCS inverse rate",
             Self::CommittedSize => "committed size outside the PCS window",
             Self::StackedClaims => "too many stacked claims",
+            Self::BytecodeShape => "bytecode is not the encoding of a program",
         };
         f.write_str(message)
     }

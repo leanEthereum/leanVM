@@ -122,7 +122,7 @@ theorem esc_le_one : ∀ (h : List Ev) (p : VerifierProgram Bool), esc D h p ≤
   | h, .commit _ _ _ => by simp only [esc]; split <;> simp
 
 /-- At a doomed boundary, the escape probability is at most the certificate's bound. -/
-theorem esc_le_eps {P : VerifierProgram Bool} (C : Cert P) {h : List Ev} {p : VerifierProgram Bool}
+theorem esc_le_eps {P : VerifierProgram Bool} {G : List Ev → Prop} (C : CertG P G) {h : List Ev} {p : VerifierProgram Bool}
     (hr : P.Reachable h) (hb : Boundary h) (ha : P.after h = some p) (hD : C.D h) :
     esc C.D h p ≤ C.ε h := by
   cases p with

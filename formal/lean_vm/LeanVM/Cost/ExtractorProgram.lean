@@ -1,29 +1,26 @@
 module
 
-public import LeanVM.Cost.Extractor.Top
+public import LeanVM.Cost.Spec
 
 /-!
-# The extractor's program
+# The extractor's program: the entry and programs from lists of bodies
 
-`compiledKnowledgeExtractor`, the cost-machine program `LeanVM.theorems_hold` names as the end
-statement's extractor (`Statement.Theorems decode extractorProgram`, `LeanVM.extractorComputedBy`,
-`Statement/CostMachine.lean`): function `0` is the entry `entryBody j`, which
-destructures the input `encodeLeanVmKnowledgeExtractorInput prog input T proof` (a constructor of four fields), calls function
-`j = extractorC.costIdx` (the compiled `extractorTop`, `Cost/Extractor/Top.lean`) on them and
-unwraps its optional output; the other functions are the bodies the compiled extractor's spec
-needs (`extractorC.costDeps`, sorted by index, all past `0`: the compiler allocates indices from
-`1`).
+The end statement's extractor program (`LeanVM.extractorComputedBy`, `Statement/CostMachine.lean`)
+runs its function `0` on the input `encodeLeanVmKnowledgeExtractorInput prog input T proof` (a
+constructor of four fields): `entryBody j` destructures it, calls function `j` (a compiled
+extractor's top) on the fields and unwraps its optional output. The program is the entry at `0`
+and the bodies the top's spec needs (`MachineProgram.ofList`; the compiler allocates indices from
+`1`): `compiledKnowledgeExtractor` (`Cost/KnowledgeExtractor.lean`) for the agreement-set
+extractor.
 
 * `includes_ofList`: a program built by `MachineProgram.ofList` holds its bodies if their indices are
   distinct; `nodup_of_increasing`: they are if they increase (a linear check, by evaluation);
-* `size_ofList_le`: its size is at most its bodies' sizes plus two per index, a sum to evaluate,
-  not an array to build. The evaluation for `compiledKnowledgeExtractor` is in
-  `Cost/ExtractorSize.lean`, a module of its own (it is slow).
+* `size_ofList_le`, `size_ofList_add_length`: its size from its bodies' sizes and two per index
+  without a body, a sum to evaluate, not an array to build (`Cost/AS/ProgramSize.lean`, a module
+  of its own: it is slow).
 -/
 
 namespace LeanVM.Cost
-
-open LeanVM.Cost.Extractor
 
 public section
 
@@ -32,18 +29,6 @@ unwrapped. -/
 @[expose] def entryBody (j : ℕ) : Term :=
   .case (.position 0) [.case (.call j [.position 0, .position 1, .position 2, .position 3])
       [.constructor 0 [], .position 0]]
-
-/-- The extractor program's bodies: the entry at `0`, then the compiled extractor's. -/
-@[expose] def extractorProgramBodies : List (ℕ × Term) :=
-  (0, entryBody extractorC.costIdx) :: extractorC.costDeps
-
-theorem extractorProgramBodies_eq :
-    extractorProgramBodies = (0, entryBody extractorC.costIdx) :: extractorC.costDeps := by
-  unfold extractorProgramBodies; rfl
-
-/-- **The extractor's program.** -/
-@[expose] def compiledKnowledgeExtractor : MachineProgram := MachineProgram.ofList
-    extractorProgramBodies
 
 /-! ## Programs from lists of bodies -/
 

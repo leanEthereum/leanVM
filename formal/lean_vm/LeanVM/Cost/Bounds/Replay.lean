@@ -27,7 +27,7 @@ the proof only through those ten scalars, and on the bytecode only through its l
   `set_cost`, `findIdxGo_cost`, `findIdxOptGo_cost`; `listFoldl_le'` (a fold with an invariant of
   the accumulator and the elements left). The others are `Bounds/ListLib.lean`'s.
 
-The functions compiled on demand are named by the program's indices (`Auto.List.length.c128`,
+The functions compiled on demand are named by the program's indices (`Auto.List.length.c21`,
 …): when the chain of compiled modules before `Cost/Extractor/Replay.lean` changes, those names
 change, and this file's references with them (a renaming, the proofs unchanged).
 -/
@@ -47,38 +47,38 @@ section Lists
 
 variable {α : Type} [MachineEncoding α]
 
-theorem elem_cost (hP : Includes P Auto.List.elem.c339.costDeps) (a : ℕ) (ha : a < 2 ^ 64) :
+theorem elem_cost (hP : Includes P Auto.List.elem.c218.costDeps) (a : ℕ) (ha : a < 2 ^ 64) :
     ∀ l : List ℕ, (∀ b ∈ l, b < 2 ^ 64) →
-      machineCost P Auto.List.elem.c339.costIdx [encodeValue a, encodeValue l] ≤ 11 * l.length + 3
-  | [], _ => by rw [Auto.List.elem.c339.costEq_nil P hP]; omega
+      machineCost P Auto.List.elem.c218.costIdx [encodeValue a, encodeValue l] ≤ 11 * l.length + 3
+  | [], _ => by rw [Auto.List.elem.c218.costEq_nil P hP]; omega
   | b :: l, hb => by
-    rw [Auto.List.elem.c339.costEq_cons P hP, limbs_of_lt ha, limbs_of_lt (hb b (by simp))]
+    rw [Auto.List.elem.c218.costEq_cons P hP, limbs_of_lt ha, limbs_of_lt (hb b (by simp))]
     have := elem_cost hP a ha l fun c hc ↦ hb c (by simp [hc])
     simp only [List.length_cons]
     cases a == b <;> dsimp only <;> omega
 
-theorem set_cost (hP : Includes P Auto.List.set.c336.costDeps) (a : α) :
+theorem set_cost (hP : Includes P Auto.List.set.c214.costDeps) (a : α) :
     ∀ (l : List α) (n : ℕ), n < 2 ^ 64 →
-      machineCost P Auto.List.set.c336.costIdx [encodeValue l, encodeValue n, encodeValue a] ≤ 20 * l.length + 3
-  | [], n, _ => by rw [Auto.List.set.c336.costEq_nil P hP]; omega
+      machineCost P Auto.List.set.c214.costIdx [encodeValue l, encodeValue n, encodeValue a] ≤ 20 * l.length + 3
+  | [], n, _ => by rw [Auto.List.set.c214.costEq_nil P hP]; omega
   | x :: l, 0, _ => by
-    rw [Auto.List.set.c336.costEq_cons P hP]
+    rw [Auto.List.set.c214.costEq_cons P hP]
     simp only [limbs_zero, List.length_cons, Nat.rec_zero]
     omega
   | x :: l, n + 1, h => by
-    rw [Auto.List.set.c336.costEq_cons P hP, limbs_of_lt h]
+    rw [Auto.List.set.c214.costEq_cons P hP, limbs_of_lt h]
     have := set_cost hP a l n (by omega)
     simp only [List.length_cons]
     omega
 
-theorem findIdxGo_cost (hP : Includes P Auto.List.findIdx.go.c343.costDeps) (p : α → Bool)
+theorem findIdxGo_cost (hP : Includes P Auto.List.findIdx.go.c222.costDeps) (p : α → Bool)
     (pVal : MachineValue) (hp : ∀ a, RunsApp P pVal [encodeValue a] (encodeValue (p a))) (B : ℕ) :
     ∀ (l : List α) (n : ℕ), n + l.length < 2 ^ 64 → (∀ a ∈ l, appCost P pVal [encodeValue a] ≤ B) →
-      machineCost P Auto.List.findIdx.go.c343.costIdx [pVal, encodeValue l, encodeValue n] ≤
+      machineCost P Auto.List.findIdx.go.c222.costIdx [pVal, encodeValue l, encodeValue n] ≤
         (B + 14) * l.length + 3
-  | [], n, _, _ => by rw [Auto.List.findIdx.go.c343.costEq_nil P hP p pVal hp]; omega
+  | [], n, _, _ => by rw [Auto.List.findIdx.go.c222.costEq_nil P hP p pVal hp]; omega
   | x :: l, n, h, hB => by
-    rw [Auto.List.findIdx.go.c343.costEq_cons P hP p pVal hp, limbs_of_lt (by simp at h; omega : n < 2 ^ 64),
+    rw [Auto.List.findIdx.go.c222.costEq_cons P hP p pVal hp, limbs_of_lt (by simp at h; omega : n < 2 ^ 64),
       limbs_of_lt (by simp at h; omega : n + 1 < 2 ^ 64), max_self]
     have h1 := findIdxGo_cost hP p pVal hp B l (n + 1) (by simp at h; omega)
       fun a ha ↦ hB a (by simp [ha])
@@ -86,14 +86,14 @@ theorem findIdxGo_cost (hP : Includes P Auto.List.findIdx.go.c343.costDeps) (p :
     simp only [List.length_cons]
     split <;> nlinarith
 
-theorem findIdxOptGo_cost (hP : Includes P Auto.List.findIdx?.go.c331.costDeps) (p : α → Bool)
+theorem findIdxOptGo_cost (hP : Includes P Auto.List.findIdx?.go.c209.costDeps) (p : α → Bool)
     (pVal : MachineValue) (hp : ∀ a, RunsApp P pVal [encodeValue a] (encodeValue (p a))) (B : ℕ) :
     ∀ (l : List α) (n : ℕ), n + l.length < 2 ^ 64 → (∀ a ∈ l, appCost P pVal [encodeValue a] ≤ B) →
-      machineCost P Auto.List.findIdx?.go.c331.costIdx [pVal, encodeValue l, encodeValue n] ≤
+      machineCost P Auto.List.findIdx?.go.c209.costIdx [pVal, encodeValue l, encodeValue n] ≤
         (B + 14) * l.length + 3
-  | [], n, _, _ => by rw [Auto.List.findIdx?.go.c331.costEq_nil P hP p pVal hp]; omega
+  | [], n, _, _ => by rw [Auto.List.findIdx?.go.c209.costEq_nil P hP p pVal hp]; omega
   | x :: l, n, h, hB => by
-    rw [Auto.List.findIdx?.go.c331.costEq_cons P hP p pVal hp, limbs_of_lt (by simp at h; omega : n < 2 ^ 64),
+    rw [Auto.List.findIdx?.go.c209.costEq_cons P hP p pVal hp, limbs_of_lt (by simp at h; omega : n < 2 ^ 64),
       limbs_of_lt (by simp at h; omega : n + 1 < 2 ^ 64), max_self]
     have h1 := findIdxOptGo_cost hP p pVal hp B l (n + 1) (by simp at h; omega)
       fun a ha ↦ hB a (by simp [ha])
@@ -139,12 +139,12 @@ theorem absorbPure_cost (hP : Includes P absorbPureC.costDeps) (sp : Sponge) (x 
 
 open LeanVM.Protocol.Compile in
 /-- Reading `n` scalars: at most `158` per scalar. -/
-theorem readPure_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.readPure.c322.costDeps) :
+theorem readPure_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.readPure.c199.costDeps) :
     ∀ (n : ℕ) (s : VerifierProgramState), n < 2 ^ 64 → s.sponge.pending.length ≤ 4 →
-      machineCost P Auto.LeanVM.Extraction.Fast.readPure.c322.costIdx [encodeValue n, encodeValue s] ≤ 158 * n + 11
-  | 0, s, _, _ => by rw [Auto.LeanVM.Extraction.Fast.readPure.c322.costEq_zero P hP]
+      machineCost P Auto.LeanVM.Extraction.Fast.readPure.c199.costIdx [encodeValue n, encodeValue s] ≤ 158 * n + 11
+  | 0, s, _, _ => by rw [Auto.LeanVM.Extraction.Fast.readPure.c199.costEq_zero P hP]
   | n + 1, s, hn, hs => by
-    rw [Auto.LeanVM.Extraction.Fast.readPure.c322.costEq_succ P hP, limbs_of_lt hn]
+    rw [Auto.LeanVM.Extraction.Fast.readPure.c199.costEq_succ P hP, limbs_of_lt hn]
     obtain ⟨sp, stream, os, roots⟩ := s
     cases stream with
     | nil => cases sp.ground <;> simp only <;> omega
@@ -157,9 +157,9 @@ theorem readPure_cost (hP : Includes P Auto.LeanVM.Extraction.Fast.readPure.c322
       have ha := absorbPure_cost P (by includes) sp x dsObserve hs
       have hr := readPure_cost hP n ⟨absorbPure sp x dsObserve, xs, os, roots⟩ (by omega)
         (absorbPure_pending_le sp x dsObserve hs)
-      have hm : machineCost P Auto.Option.map.c194.costIdx [MachineValue.closure readPureC.lam0.costIdx [encodeValue x],
+      have hm : machineCost P Auto.Option.map.c90.costIdx [MachineValue.closure readPureC.lam0.costIdx [encodeValue x],
           encodeValue (readPure n ⟨absorbPure sp x dsObserve, xs, os, roots⟩)] ≤ 20 := by
-        rw [Auto.Option.map.c194.costEq P (by includes) _ _
+        rw [Auto.Option.map.c90.costEq P (by includes) _ _
           (fun r ↦ RunsApp.of_spec (readPureC.lam0.costSpec P (by includes) x r))]
         cases readPure n ⟨absorbPure sp x dsObserve, xs, os, roots⟩ with
         | none => simp
@@ -207,14 +207,14 @@ theorem length_levelsFrom : ∀ (fuel rem pf pr red : ℕ), (levelsFrom fuel rem
 
 open LeanVM.Parameters.Whir in
 /-- The ladder's levels after the first: at most `44` per level. -/
-theorem levelsFrom_cost (hP : Includes P Auto.LeanVM.Parameters.Whir.levelsFrom.c348.costDeps) :
+theorem levelsFrom_cost (hP : Includes P Auto.LeanVM.Parameters.Whir.levelsFrom.c228.costDeps) :
     ∀ (fuel rem pf pr red : ℕ), fuel < 2 ^ 64 → rem < 2 ^ 64 → pr + pf + 4 * fuel < 2 ^ 63 →
       red < 2 ^ 64 →
-      machineCost P Auto.LeanVM.Parameters.Whir.levelsFrom.c348.costIdx [encodeValue fuel, encodeValue rem, encodeValue pf, encodeValue pr, encodeValue red] ≤
+      machineCost P Auto.LeanVM.Parameters.Whir.levelsFrom.c228.costIdx [encodeValue fuel, encodeValue rem, encodeValue pf, encodeValue pr, encodeValue red] ≤
         44 * fuel + 15
-  | 0, rem, pf, pr, red, _, _, _, _ => by rw [Auto.LeanVM.Parameters.Whir.levelsFrom.c348.costEq_zero P hP]; omega
+  | 0, rem, pf, pr, red, _, _, _, _ => by rw [Auto.LeanVM.Parameters.Whir.levelsFrom.c228.costEq_zero P hP]; omega
   | fuel + 1, rem, pf, pr, red, hf, hr, hpp, hred => by
-    rw [Auto.LeanVM.Parameters.Whir.levelsFrom.c348.costEq_succ P hP]
+    rw [Auto.LeanVM.Parameters.Whir.levelsFrom.c228.costEq_succ P hP]
     have hrec := levelsFrom_cost hP fuel (rem - min subsequentFold rem) (min subsequentFold rem)
       (pr + pf - red) subsequentReduction (by omega) (by omega)
       (by simp only [subsequentFold]; omega) (by simp [subsequentReduction])
@@ -400,10 +400,10 @@ theorem keccakSlot_cost (hP : Includes P keccakSlotC.costDeps) (c : ℕ) (hc : c
         limbs_of_lt (by simp at hx; omega : x < 2 ^ 64), limbs_of_lt (by omega : c - 66 < 2 ^ 64)]
       simp only [max_self]
       omega)
-  have hm : ∀ o : Option ℕ, o.all (· < 2 ^ 63) → machineCost P Auto.Option.map.c194.costIdx
+  have hm : ∀ o : Option ℕ, o.all (· < 2 ^ 63) → machineCost P Auto.Option.map.c90.costIdx
       [MachineValue.closure keccakSlotC.lam0.costIdx [], encodeValue o] ≤ 11 := by
     intro o ho
-    rw [Auto.Option.map.c194.costEq P (by includes) _ _
+    rw [Auto.Option.map.c90.costEq P (by includes) _ _
       (fun x ↦ RunsApp.of_spec (keccakSlotC.lam0.costSpec P (by includes) x))]
     cases o with
     | none => simp
@@ -1003,7 +1003,7 @@ theorem readSizesLite_cost (hP : Includes P readSizesLiteC.costDeps) (bytecode :
       8 * bytecode.length + 977124710 := by
   rw [readSizesLiteC.costEq P hP, FastLib.tablesLength, limbs_of_lt (by norm_num : (6 : ℕ) < 2 ^ 64)]
   have hr := readPure_cost P (by includes) 8 s (by norm_num) hs
-  rw [show (2 + 6 : ℕ) = 8 from rfl, limbs_of_lt (by norm_num : (8 : ℕ) < 2 ^ 64), Auto.Option.bind.c154.costEq P (by includes) _ _ _
+  rw [show (2 + 6 : ℕ) = 8 from rfl, limbs_of_lt (by norm_num : (8 : ℕ) < 2 ^ 64), Auto.Option.bind.c47.costEq P (by includes) _ _ _
     (fun r ↦ RunsApp.of_spec (readSizesLiteC.lam0.costSpec P (by includes) bytecode r))]
   cases hrp : readPure 8 s with
   | none => simp only; omega
@@ -1033,10 +1033,10 @@ theorem readSizesLite_cost (hP : Includes P readSizesLiteC.costDeps) (bytecode :
         obtain ⟨v, -, rfl⟩ := List.mem_map.1 hr'
         exact kToNat_lt _) (by simp)
     have hbind : ∀ o : Option LayoutLite, (∀ L, o = some L → L.stackLog ≤ 64) →
-        machineCost P Auto.Option.bind.c154.costIdx [encodeValue o, MachineValue.closure readSizesLiteC.lam0.lam2.costIdx
+        machineCost P Auto.Option.bind.c47.costIdx [encodeValue o, MachineValue.closure readSizesLiteC.lam0.lam2.costIdx
           [encodeValue (xs, s'), encodeValue (kToNat ((xs.getLastD 0).limb 0))]] ≤ 34 := by
       intro o ho
-      rw [Auto.Option.bind.c154.costEq P (by includes) _ _ _
+      rw [Auto.Option.bind.c47.costEq P (by includes) _ _ _
         (fun L ↦ RunsApp.of_spec (readSizesLiteC.lam0.lam2.costSpec P (by includes) (xs, s') _ L))]
       cases o with
       | none => simp
@@ -1093,7 +1093,7 @@ theorem afterRootLite_cost (hP : Includes P afterRootLiteC.costDeps) (bytecode :
       8 * bytecode.length + 977128636 := by
   rw [afterRootLiteC.costEq P hP, initialStateC.costEq P (by includes)]
   have hrs := readSizesLite_cost P (by includes) bytecode (initialState π) hb (by simp [initialState])
-  rw [Auto.Option.bind.c154.costEq P (by includes) _ _ _
+  rw [Auto.Option.bind.c47.costEq P (by includes) _ _ _
     (fun r ↦ RunsApp.of_spec (afterRootLiteC.lam0.costSpec P (by includes) r))]
   cases hr : readSizesLite bytecode (initialState π) with
   | none => simp only; omega
@@ -1107,9 +1107,9 @@ theorem afterRootLite_cost (hP : Includes P afterRootLiteC.costDeps) (bytecode :
       (hpend (by simp [initialState]))
     rw [hroots] at hc
     simp only [initialState, List.length_nil] at hc
-    have hm : machineCost P Auto.Option.map.c194.costIdx [MachineValue.closure afterRootLiteC.lam0.lam0.costIdx
+    have hm : machineCost P Auto.Option.map.c90.costIdx [MachineValue.closure afterRootLiteC.lam0.lam0.costIdx
         [encodeValue ((L, R), s')], encodeValue (commitStackPure L.stackLog R s')] ≤ 16 := by
-      rw [Auto.Option.map.c194.costEq P (by includes) _ _
+      rw [Auto.Option.map.c90.costEq P (by includes) _ _
         (fun t ↦ RunsApp.of_spec (afterRootLiteC.lam0.lam0.costSpec P (by includes) ((L, R), s') t))]
       cases commitStackPure L.stackLog R s' with
       | none => simp

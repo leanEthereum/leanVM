@@ -14,8 +14,8 @@ public import LeanVM.Protocol.WithHash
 /-!
 # Reference definitions for the extractor
 
-The knowledge extractor (`LeanVM.Extraction.extract`, `Extraction/Extractor.lean`) is computable.
-Its proofs compare it with these definitions, which are not computable or not efficient, and are
+The knowledge extractor's pieces (`Extraction/Extractor.lean`) are computable. Their proofs
+compare them with these definitions, which are not computable or not efficient, and are
 not part of the statement:
 
 * `committedWord`: leaf `v` of the word a Merkle root commits to under `answers` is the leaf of an
@@ -27,8 +27,7 @@ not part of the statement:
   equal to it when the cap is large enough (`Halting.haltingRunC_eq_haltingRun`);
 * `gLogC`, `stepC`, `runC`, `candidateExecution`: the address lookup, step, run and a stack's
   execution with indices built per call (`addressIndex?`, `step`, `run` for `κ < 64`);
-* `laneCoeffs`: lane `u` of a stack, the coefficients `encode q u` evaluates;
-* `gsParams`, `gsMultiplicity`: the lane decoder's parameters at a shape.
+* `laneCoeffs`: lane `u` of a stack, the coefficients `encode q u` evaluates.
 
 These were the statement's own definitions before the extractor became computable
 (`committedWord`, `haltingRun`: `Statement/Extractor.lean` at `8e8e4d2f`, verbatim), or the
@@ -77,9 +76,8 @@ def agreementWith {μ : ℕ} (R : ℕ) (W : ℕ → List K) (q : Vector K (2 ^ �
 parts `H_u` of degree below `6`, the lanes `encode q u + W_κ·H_u` (`κ = μ − 6`; polynomials of
 degree at most `2^κ + 5` whose low part, their novel coefficients below `2^κ`, is lane `u` of
 `q`) agree with the word on at least `A` columns: the low parts of level 0's list at its
-degree `2^κ − 1 + 6`, which WHIR's soundness quantifies over. The extractor must list every one of
-them at the Johnson threshold (`decodeStacks`). With `H = 0` a stack whose encoding agrees with
-the word is one (`agreement`). -/
+degree `2^κ − 1 + 6`, which WHIR's soundness quantifies over. With `H = 0` a stack whose
+encoding agrees with the word is one (`agreement`). -/
 def Candidates (μ R A : ℕ) (W : ℕ → List K) : Set (Vector K (2 ^ μ)) :=
   {q | ∃ H : Fin (2 ^ initialFold) → Polynomial K, (∀ u, (H u).degree < initialFold) ∧
     A ≤ (agreementWith R W q H).card}
@@ -151,14 +149,6 @@ def candidateExecution (prog : LeanIsaProgram) (input : PublicInput) (layout : L
 coefficients that `encode q u` evaluates. -/
 def laneCoeffs {μ : ℕ} (q : Vector K (2 ^ μ)) (u : ℕ) : Array K :=
   Array.ofFn fun j : Fin (2 ^ (μ - initialFold)) ↦ q.getD (j.val + 2 ^ (μ - initialFold) * u) 0
-
-/-- **The per-lane decoder's parameters** for a stack of `2^μ` words at rate `2^-R`:
-message length `k = 2^κ`, `n = 2^(κ+R)` points, agreement `A = johnsonThreshold μ R`. -/
-def gsParams (μ R : ℕ) : CompPoly.GuruswamiSudan.GSExecParams :=
-  gsParamsFor (2 ^ (μ - initialFold) + initialFold) (2 ^ (μ - initialFold + R)) (johnsonThreshold μ R)
-
-/-- The multiplicity of `gsParams μ R`. -/
-def gsMultiplicity (μ R : ℕ) : ℕ := (gsParams μ R).interp.multiplicity
 
 end
 end LeanVM.Extraction

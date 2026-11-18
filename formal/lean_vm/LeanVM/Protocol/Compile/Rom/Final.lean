@@ -332,7 +332,7 @@ def GroundKnown (σ : Seeds X) (P : VerifierProgram Bool) (ℓ : Log) (u : Kecca
 
 section Follow
 
-variable (C : Cert P) {ℓ : Log}
+variable {G : List Ev → Prop} (C : CertG P G) {ℓ : Log}
 
 /-- **Following a group with no scalar waiting.** From a state the decoder knows, the run's
 squeezes and openings up to the next prover move or the verdict are those `gv` follows. -/
@@ -554,7 +554,7 @@ theorem followGround (hf : ¬ Fail σ ℓ) {h : List Ev} {p : VerifierProgram Bo
 /-- The group at a boundary is carried: after the seed, with no scalar waiting, by the state's
 record; after a scalar or a commitment, with scalars waiting, at a history without proof of work,
 by the record of the group's first squeeze. -/
-def Carried (C : Cert P) (ℓ : Log) (s : VerifierProgramState) (h : List Ev) (p : VerifierProgram
+def Carried {G : List Ev → Prop} (C : CertG P G) (ℓ : Log) (s : VerifierProgramState) (h : List Ev) (p : VerifierProgram
     Bool) : Prop :=
   (s.sponge.pending = [] ∧ ∃ κ ∈ (decode σ P ℓ).kinds,
     ind (C.D h) * gv C.D ℓ s.sponge.state h p ≤ term C.D ℓ κ) ∨
@@ -564,7 +564,7 @@ def Carried (C : Cert P) (ℓ : Log) (s : VerifierProgramState) (h : List Ev) (p
 history and position from which its waiting scalars lead to `(h, p)`, and the group is carried;
 or a grind's permutation left the state, its challenge waiting, and the group is carried by the
 grind's record. -/
-def BInv (C : Cert P) (ℓ : Log) (s : VerifierProgramState) (h : List Ev)
+def BInv {G : List Ev → Prop} (C : CertG P G) (ℓ : Log) (s : VerifierProgramState) (h : List Ev)
     (p : VerifierProgram Bool) : Prop :=
   (s.sponge.ground = none ∧ ValidPending s.sponge.pending ∧
     (∃ h₀ pos₀, Known σ P ℓ (capOf s.sponge.state) (h₀, pos₀) ∧
@@ -610,7 +610,7 @@ end Follow
 
 section Move
 
-variable (C : Cert P) {ℓ : Log}
+variable {G : List Ev → Prop} (C : CertG P G) {ℓ : Log}
 
 /-- **A prover move.** From the run at a prover move, with the sponge's invariant, the run
 reaches the next boundary, where the run's invariant holds and the group is carried; doom is
@@ -708,7 +708,7 @@ end Move
 
 section Final
 
-variable (C : Cert P) {ℓ : Log}
+variable {G : List Ev → Prop} (C : CertG P G) {ℓ : Log}
 
 theorem eq_take_of_prefix {h₀ h₁ hist : List Ev} (h0 : h₀ <+: hist) (h1 : h₁ <+: hist)
     (hl : h₀.length ≤ h₁.length) : h₀ = h₁.take h₀.length :=
@@ -723,7 +723,7 @@ boundary at least as long on the extracted history is doomed, the records' terms
 one. -/
 theorem from_boundary (hf : ¬ Fail σ ℓ) (hε1 : ∀ h, grindBits h = 0 → C.ε h < 1) {s_f :
     VerifierProgramState}
-    {hist : List Ev} :
+    {hist : List Ev} (hG : ¬ G hist) :
     ∀ (n : ℕ) (s : VerifierProgramState) (h : List Ev) (p : VerifierProgram Bool),
         s.stream.length < n →
       RootsInv (lookH ℓ) s h → P.Reachable h → P.after h = some p → Boundary h →
@@ -768,7 +768,7 @@ theorem from_boundary (hf : ¬ Fail σ ℓ) (hε1 : ∀ h, grindBits h = 0 → C
       simp only [xrun, Option.some.injEq, Prod.mk.injEq] at hx'
       obtain ⟨-, -, rfl⟩ := hx'
       rcases hcase with hD | hD
-      · exact absurd hD (C.final hre hae)
+      · exact absurd (C.final hre hae hD) hG
       · obtain ⟨h₀, hh₀, hl, hb₀, hD₀⟩ := hbad
         have := hpast hD h₀ hh₀ hl hb₀ hD₀
         have := hh₀.length_le
@@ -781,7 +781,7 @@ theorem from_boundary (hf : ¬ Fail σ ℓ) (hε1 : ∀ h, grindBits h = 0 → C
       · exact hret rfl
     obtain ⟨s', h', p', hlt, hR'', hr'', hb'', ha'', hB'', hx'', hDD, -, hlen'⟩ :=
       move C hf hm hpm hR' hre hae (hse hret) hx'
-    refine from_boundary hf hε1 n s' h' p' (by rw [hst] at hlt; omega) hR'' hr'' ha'' hb''
+    refine from_boundary hf hε1 hG n s' h' p' (by rw [hst] at hlt; omega) hR'' hr'' ha'' hb''
       hB'' hx'' ?_
     rcases hcase with hD | hD
     · exact ⟨h', xrun_prefix _ _ _ _ _ hx'', le_rfl, hb'', hDD hD⟩
@@ -790,18 +790,20 @@ theorem from_boundary (hf : ¬ Fail σ ℓ) (hε1 : ∀ h, grindBits h = 0 → C
 
 /-- **The final inequality.** If the seeded verifier of the statement `x`, whose root is a root
 of the program, accepts `π` with every query answered by a log without failure, and some
-boundary prefix of the extracted history past the root is doomed, the potential of the log is at
-least one. The certificate's escape bounds are below one at histories without proof of work. -/
+boundary prefix of the extracted history past the root is doomed, while the extracted history
+fails `G`, the potential of the log is at least one. The certificate's escape bounds are below one
+at histories without proof of work. -/
 theorem final_ineq (hf : ¬ Fail σ ℓ) (hε1 : ∀ h, grindBits h = 0 → C.ε h < 1) {x : X}
     {π : Proof} (hroot : RootOk P (σ.root x))
     (hv : verify (lookH ℓ) (lookF ℓ) (σ.seed x) (nodeAt P (σ.root x)) π = some true)
+    (hG : ¬ G (extractedFrom (lookH ℓ) (lookF ℓ) (σ.seed x) (nodeAt P (σ.root x)) (σ.root x) π))
     (hbad : ∃ h₀, h₀ <+: extractedFrom (lookH ℓ) (lookF ℓ) (σ.seed x) (nodeAt P (σ.root x))
       (σ.root x) π ∧ (σ.root x).length ≤ h₀.length ∧ Boundary h₀ ∧ C.D h₀) :
     1 ≤ pot C.D σ P ℓ := by
   obtain ⟨seed, s, hseed, hx⟩ := xrun_of_verify_from (σ.root x) hv
   obtain ⟨hkind, hknown⟩ := seed_known (P := P) hf hseed hroot
   have hS : 1 ≤ termSum C.D σ P ℓ := by
-    refine from_boundary C hf hε1 (π.stream.length + 1)
+    refine from_boundary C hf hε1 hG (π.stream.length + 1)
       ⟨⟨seed, [], none⟩, π.stream, π.openings, []⟩ (σ.root x) (nodeAt P (σ.root x))
       (Nat.lt_succ_self _) ?_ hroot.1 (after_nodeAt hroot) hroot.2.1
       (Or.inl ⟨rfl, ⟨by simp, by simp⟩, ⟨_, _, hknown, rfl⟩, Or.inl ⟨rfl, _, hkind, ?_⟩⟩) hx hbad

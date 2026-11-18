@@ -3,7 +3,7 @@
 //! tree.
 //!
 //! - [`keccak_f`], the Keccak-f\[1600\] permutation, which the VM's `KECCAK` opcode computes and `keccak_gkr`
-//!   proves, and [`keccak_f_many`], its batched form.
+//!   proves, and [`keccak_f_many`], its batched form; [`first_nonce`], the provers' proof-of-work search over it.
 //! - [`hash`] / [`Hasher`], Keccak-256 over bytes, and [`hash_many`], its batched form over equal-length inputs.
 //! - [`positions`], the permutation one bit position at a time, as `keccak_gkr` proves it.
 //!
@@ -91,7 +91,7 @@ pub const END_BIT: u64 = (PAD_LAST as u64) << 56;
 mod lanes;
 pub mod positions;
 
-pub use lanes::{LANES, digest_halves_from, hash_many, hash_many_from_state, keccak_f_many};
+pub use lanes::{LANES, digest_halves_from, first_nonce, hash_many, hash_many_from_state, keccak_f_many};
 
 #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
 mod single_avx512;
@@ -365,6 +365,40 @@ mod tests {
         for (mut want, got) in states.into_iter().zip(got) {
             keccak_f(&mut want);
             assert_eq!(got, want);
+        }
+    }
+
+    /// The nonce search against permuting each candidate, at every nonce lane a grind uses: a first hit at every
+    /// offset of a batch, ranges ending inside one, and a range up to `u64::MAX`, not of whole batches, with no hit.
+    #[test]
+    fn first_nonce_matches_keccak_f() {
+        let template: [u64; STATE_LANES] = std::array::from_fn(|i| (i as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15));
+        let lanes = LANES as u64;
+        for at in [0, 4, 8, 12] {
+            let pass = |nonce: u64, mask: u64| {
+                let mut state = template;
+                state[at] = nonce;
+                keccak_f(&mut state);
+                state[2] & mask == 0
+            };
+            let mut offsets = [false; LANES];
+            for start in 0..256 {
+                for end in start..start + 3 * lanes {
+                    let want = (start..end).find(|&nonce| pass(nonce, 0xf));
+                    assert_eq!(
+                        first_nonce(&template, at, start..end, 2, 0xf),
+                        want,
+                        "{at} {start}..{end}"
+                    );
+                    if let Some(hit) = want {
+                        offsets[((hit - start) % lanes) as usize] = true;
+                    }
+                }
+            }
+            assert!(offsets.iter().all(|&hit| hit), "a first hit at every offset of a batch");
+            let top = u64::MAX - 3 * lanes - 1..u64::MAX;
+            assert_eq!(top.clone().find(|&nonce| pass(nonce, 0xffff)), None);
+            assert_eq!(first_nonce(&template, at, top, 2, 0xffff), None);
         }
     }
 }

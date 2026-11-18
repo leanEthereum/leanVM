@@ -25,7 +25,7 @@ pub struct Program {
 
 /// # Panics
 ///
-/// If the bytecode is not a power of two long.
+/// If the bytecode is not a power of two long, or longer than `2^MAX_LOG_BYTECODE`.
 impl From<CompiledProgram> for Program {
     fn from(compiled: CompiledProgram) -> Self {
         let n = compiled.prog.len();
@@ -38,7 +38,7 @@ impl From<CompiledProgram> for Program {
         }
         Self {
             compiled,
-            bytecode: verifier::Bytecode::new(&stacked),
+            bytecode: verifier::Bytecode::new(&stacked).expect("encode gives the encoding of a program"),
             stacked_bytecode: stacked,
         }
     }

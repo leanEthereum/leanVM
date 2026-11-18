@@ -125,15 +125,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol.Compile LeanVM.Protocol.
 
 @[expose] public section
 
-/-- A lifted option that may return `a` is `some a`. -/
-theorem returns_liftOption {α : Type} {o : Option α} {a : α} (h : VerifierProgram.Returns
-    (liftOption o) a) :
-    o = some a := by
-  unfold liftOption at h
-  split at h
-  · cases h
-  · rw [VerifierProgram.returns_ret h]
-
 /-- A sumcheck's point has one challenge per round. -/
 theorem returns_sumcheck {count : ℕ} :
     ∀ {eqs : List (Option E)} {claim : E} {x : List E × E},

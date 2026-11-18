@@ -182,12 +182,14 @@ theorem lowMsg_msgPoly_add_hat {κ : ℕ} (hκ : κ ≤ 64) (g : (Fin κ → Boo
   rw [hatE_eq, mul_assoc]
   exact lowMsg_msgPoly_add hκ g _
 
-/-- **The doom after the query positions**: every member of the list of the next oracle `Q'`
-violates the running claim `(Φ, σ)`, the out-of-domain claim `(eq(z, ·), y)`, or the consistency
-claim at a queried column, whose value the verifier derives is `c' q`. -/
+/-- **The doom after the query positions**, relativised to `Bn`: every member of the list of the
+next oracle `Q'` satisfying `Bn` violates the running claim `(Φ, σ)`, the out-of-domain claim
+`(eq(z, ·), y)`, or the consistency claim at a queried column, whose value the verifier derives is
+`c' q`. -/
 def QDoom (P P' : LevelCode) (hκ : P.κ = P'.ℓ + P'.κ) (Q' : (Fin P'.ℓ → Bool) → Fin P'.n → E)
-    (Φ : List E → E) (σ : E) (z : List E) (y : E) (c' : ℕ → E) (qs : List ℕ) : Prop :=
-  ∀ U ∈ tlist P'.dom Q' (P'.thr 0) P'.deg,
+    (Φ : List E → E) (σ : E) (z : List E) (y : E) (c' : ℕ → E)
+    (Bn : ((Fin P'.ℓ → Bool) → E[X]) → Prop) (qs : List ℕ) : Prop :=
+  ∀ U ∈ tlist P'.dom Q' (P'.thr 0) P'.deg, Bn U →
     ∑ x, Φ (bitsL x) * joinMsg hκ (msgT P'.κ U) x ≠ σ ∨ oodVal z (msgT P'.κ U) ≠ y ∨
       ∃ q ∈ qs, encAt P.κ P.R (joinMsg hκ (msgT P'.κ U)) q ≠ c' q
 
@@ -199,10 +201,12 @@ theorem exists_agreeSet (P P' : LevelCode) (hκ : P.κ = P'.ℓ + P'.κ) (hA : 1
     (Q' : (Fin P'.ℓ → Bool) → Fin P'.n → E) (C : Fin P.n → E) (Φ : List E → E) (σ : E)
     (z : List E) (y : E) (H : E[X]) (hH : H.natDegree + 1 ≤ P.ℓ) (c' : ℕ → E)
     (hc' : ∀ q (h : q < P.n), c' q = C ⟨q, h⟩ + (hatE P.κ * H).eval (P.dom ⟨q, h⟩))
-    (hviol : TViol P.κ P.dom (fun _ : Fin 0 → Bool ↦ C) Φ σ (P.thr P.ℓ) P.deg)
+    {Bfin : ((Fin 0 → Bool) → E[X]) → Prop} {Bn : ((Fin P'.ℓ → Bool) → E[X]) → Prop}
+    (hBn : ∀ U, Bn U → Bfin fun _ ↦ msgPoly P.κ (joinMsg hκ (msgT P'.κ U)) + hatE P.κ * H)
+    (hviol : TViol P.κ P.dom (fun _ : Fin 0 → Bool ↦ C) Φ σ (P.thr P.ℓ) P.deg Bfin)
     (hsep : OodSep P' Q' z) :
     ∃ S : Finset (Fin P.n), S.card + 1 ≤ P.A ∧ ∀ qs : List ℕ,
-      ¬ QDoom P P' hκ Q' Φ σ z y c' qs → ∀ q ∈ qs, ∀ h : q < P.n,
+      ¬ QDoom P P' hκ Q' Φ σ z y c' Bn qs → ∀ q ∈ qs, ∀ h : q < P.n,
         (⟨q, h⟩ : Fin P.n) ∈ S := by
   classical
   have h64 := P.κ_lt
@@ -231,18 +235,32 @@ theorem exists_agreeSet (P P' : LevelCode) (hκ : P.κ = P'.ℓ + P'.κ) (hA : 1
     have hclaim : tclaim P.κ Φ (fun _ : Fin 0 → Bool ↦ Pst) = ∑ x, Φ (bitsL x) * g x := by
       rw [tclaim, claimSum_zero, lowMsg_msgPoly_add_hat (by omega)]
     set S := agreeT P.dom (fun _ : Fin 0 → Bool ↦ Pst) (fun _ ↦ C)
+    -- A member answering `y` has `P*` as its polynomial.
+    have hPst : ∀ U ∈ L, oodVal z (msgT P'.κ U) = y →
+        (fun _ : Fin 0 → Bool ↦ msgPoly P.κ (joinMsg hκ (msgT P'.κ U)) + hatE P.κ * H) =
+          fun _ ↦ Pst := fun U hU h₁ ↦ by rw [huniq U hU h₁]
+    by_cases hB : Bfin fun _ ↦ Pst
+    swap
+    · -- `P*` is not bad: no member answering `y` satisfies `Bn`, so no escape.
+      refine ⟨∅, by simpa using hA, fun qs hqs ↦ absurd ?_ hqs⟩
+      intro U hU hBU
+      by_cases h₁ : oodVal z (msgT P'.κ U) = y
+      · have h := hBn U hBU
+        rw [hPst U hU h₁] at h
+        exact absurd h hB
+      · exact Or.inr (Or.inl h₁)
     by_cases hS : P.A ≤ S.card
     · -- `P*` is close, so it violates the running claim, and so does every member: no escape.
-      have hv := hviol _ hdeg (by simpa [LevelCode.thr] using hS)
+      have hv := hviol _ hdeg (by simpa [LevelCode.thr] using hS) hB
       rw [hclaim] at hv
       refine ⟨∅, by simpa using hA, fun qs hqs ↦ absurd ?_ hqs⟩
-      intro U hU
+      intro U hU _
       by_cases h₁ : oodVal z (msgT P'.κ U) = y
       · rw [huniq U hU h₁]; exact Or.inl hv
       · exact Or.inr (Or.inl h₁)
     · refine ⟨S, by omega, fun qs hqs q hq hlt ↦ ?_⟩
       simp only [QDoom, not_forall, not_or, not_not, exists_prop, not_exists, not_and] at hqs
-      obtain ⟨U, hU, -, h₁, hall⟩ := hqs
+      obtain ⟨U, hU, -, -, h₁, hall⟩ := hqs
       have he := hall q hq
       rw [huniq U hU h₁] at he
       rw [encAt, dite_eq_left_of_eq_true (eq_true hlt), hc' q hlt,
@@ -255,7 +273,7 @@ theorem exists_agreeSet (P P' : LevelCode) (hκ : P.κ = P'.ℓ + P'.κ) (hA : 1
       linear_combination (CharTwo.two_eq_zero (R := E)) *
         (eval (P.dom ⟨q, hlt⟩) (hatE P.κ * H))
   · refine ⟨∅, by simpa using hA, fun qs hqs ↦ absurd ?_ hqs⟩
-    intro U hU
+    intro U hU _
     by_contra h
     simp only [not_or, not_not] at h
     exact hex ⟨U, hU, h.2.1⟩
@@ -276,14 +294,17 @@ open Classical in
 most `(t + 1)·|list|` values `λ` let a member of the next list satisfy the glued claim. -/
 theorem card_lambda_bad_le (P P' : LevelCode) (hκ : P.κ = P'.ℓ + P'.κ)
     (Q' : (Fin P'.ℓ → Bool) → Fin P'.n → E) (Φ : List E → E) (σ : E) (z : List E)
-    (y : E) (c' : ℕ → E) (qs : List ℕ) (hq : ∀ q ∈ qs, q < P.n)
-    (hQ : QDoom P P' hκ Q' Φ σ z y c' qs) :
-    (univ.filter fun lam : E ↦ ∃ U ∈ tlist P'.dom Q' (P'.thr 0) P'.deg,
+    (y : E) (c' : ℕ → E) (Bn : ((Fin P'.ℓ → Bool) → E[X]) → Prop) (qs : List ℕ)
+    (hq : ∀ q ∈ qs, q < P.n) (hQ : QDoom P P' hκ Q' Φ σ z y c' Bn qs) :
+    (univ.filter fun lam : E ↦ ∃ U ∈ tlist P'.dom Q' (P'.thr 0) P'.deg, Bn U ∧
         ∑ x, gluedW Φ z P.κ qs lam (bitsL x) * joinMsg hκ (msgT P'.κ U) x =
           gluedV σ y qs c' lam).card ≤
       (tlist P'.dom Q' (P'.thr 0) P'.deg).card * (qs.length + 1) := by
   set L := tlist P'.dom Q' (P'.thr 0) P'.deg
   refine card_filter_exists_le L _ fun U hU ↦ ?_
+  by_cases hBU : Bn U
+  swap
+  · simp [hBU]
   set g := joinMsg hκ (msgT P'.κ U)
   have h64 : P.κ ≤ 64 := by have := P.h64; omega
   have hood : oodVal z (msgT P'.κ U) = ∑ x, eqEval z (bitsL x) * g x := by
@@ -293,7 +314,7 @@ theorem card_lambda_bad_le (P P' : LevelCode) (hκ : P.κ = P'.ℓ + P'.κ)
   let d : Fin (qs.length + 2) → E :=
     Fin.cons (∑ x, Φ (bitsL x) * g x - σ) (Fin.cons (oodVal z (msgT P'.κ U) - y) e)
   have hd : ∃ k, d k ≠ 0 := by
-    rcases hQ U hU with h | h | ⟨q, hqm, hne⟩
+    rcases hQ U hU hBU with h | h | ⟨q, hqm, hne⟩
     · exact ⟨0, by simpa [d, sub_eq_zero] using h⟩
     · exact ⟨1, by simpa [d, sub_eq_zero] using h⟩
     · obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hqm
@@ -302,6 +323,7 @@ theorem card_lambda_bad_le (P P' : LevelCode) (hκ : P.κ = P'.ℓ + P'.κ)
   refine (card_le_card fun lam hlam ↦ ?_).trans
     ((card_powerBatch_eq_zero_le d hd).trans (by simp))
   simp only [mem_filter, mem_univ, true_and] at hlam ⊢
+  replace hlam := hlam.2
   have hind : ∑ x, Verifier.inducedWeight P.κ qs (powers lam qs.length) (bitsL x) * g x =
       ∑ k : Fin qs.length, lam ^ (k : ℕ) * encAt P.κ P.R g qs[k] := by
     rw [sum_inducedWeight_mul P.R h64 qs _ (length_powers lam _) hq, sum_zip_powers]

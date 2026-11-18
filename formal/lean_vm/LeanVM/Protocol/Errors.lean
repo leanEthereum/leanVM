@@ -13,11 +13,11 @@ public import Mathlib.Basic.ENNReal.Inv
 # The errors the proofs establish
 
 With Keccak-256 and Keccak-f[1600] two independent random functions, the proofs bound knowledge
-soundness by `soundnessError Q` and completeness by `completenessError fuel`; building both
+soundness by `soundnessErrorAS Q` (`LeanVM.Protocol.LeanVMSoundAS`) and completeness by `completenessError fuel`; building both
 functions from one random permutation costs `rpmError q` more, `q` the experiment's permutation
 calls (at most `verifierPermCalls` for the verifier, `completenessPermCalls fuel` for the honest
 prover and the verifier). The end statements bound the sums in bits:
-`LeanVM.soundnessRpm_le_statement` (`LeanVM.Protocol.ErrorBounds`), `LeanVM.Rpm.completenessRpm_le`.
+`LeanVM.soundnessRpmAS_le_statement` (`LeanVM.Protocol.LeanVMSoundAS`), `LeanVM.Rpm.completenessRpm_le`.
 -/
 
 namespace LeanVM
@@ -34,19 +34,6 @@ every Merkle hash of the openings), the bound the proof establishes over every a
 opening at the largest commitment height, and bounds the bus depth, the table heights and the
 Keccak reduction's point by the window of the announced sizes. -/
 def verifierQueries : ℕ := 13708
-
-/-- **The soundness error** at `Q` queries, with Keccak-256 and Keccak-f[1600] two independent
-random functions, counting the hash and permutation calls of the adversary (`Q`) and of the
-verifier (at most `verifierQueries = V`): one `2^-125` per call, the round-by-round error every
-verifier message is held to after its proof of work, plus, per call,
-`5 · (Q + V) / 2^256` for a fresh answer that collides with or predicts a value the answers
-already refer to (a digest, or a state's capacity), plus one `2^-256` per call of the verifier, for
-a fresh hash answer that is the stack's root the adversary announced without computing it (the
-extractor, reading the adversary's evaluations only, would then miss the root's preimage). -/
-noncomputable def soundnessError (Q : ℕ) : ℝ≥0∞ :=
-  ((Q + verifierQueries : ℕ) : ℝ≥0∞) *
-      ((2 : ℝ≥0∞)⁻¹ ^ 125 + ((5 * (Q + verifierQueries) : ℕ) : ℝ≥0∞) / 2 ^ 256) +
-    (verifierQueries : ℝ≥0∞) / 2 ^ 256
 
 /-- The oracle queries of the honest prover and the verifier together, at most, at a fuel of `fuel`
 nonces per proof of work: the seed's hash and permutation, then per quarter of the program's cost

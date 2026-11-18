@@ -278,21 +278,32 @@ theorem candidates_ncard_le {μ R A : ℕ} (hμ : laneBits ≤ μ) (h : μ - lan
 
 /-! ## The starting doom -/
 
-/-- **The starting doom**: from the candidates' violation, `LevelPre` of level `0` for the initial
-state. -/
+/-- **Level 0's predicate**, from a predicate `Bad` on stacks: every stack whose blocks are the
+tuple's low parts is bad. -/
+def lvl0Pred (μ : ℕ) (Bad : Column μ → Prop) : List (ℕ × ℕ × Word) → TPred :=
+  fun _ m U ↦ ∀ h : m = laneBits, ∀ q : Column μ,
+    (∀ u, lowMsg (μ - laneBits) ((h ▸ U) u) = blockOf q (bitsEquiv laneBits u)) → Bad q
+
+theorem predStable_lvl0Pred (μ : ℕ) (Bad : Column μ → Prop) : PredStable 0 (lvl0Pred μ Bad) :=
+  fun _ _ _ ↦ rfl
+
+/-- **The starting doom**: from the bad candidates' violation, `LevelPre` of level `0` for the
+initial state with level 0's predicate. -/
 theorem levelPre_zero {μ R : ℕ} (P₀ : LevelCode) (hκ : P₀.κ = μ - laneBits) (hR : P₀.R = R)
     (hℓ : P₀.ℓ = laneBits) (hμ : laneBits ≤ μ) (hthr : P₀.deg < P₀.thr 0) (w : List E → E)
-    (t : E) (cs : List (ℕ × ℕ × Word)) (hS : ShapeOK 0 P₀ cs) (hlen : cs.length = 1)
-    (hcand : ∀ q ∈ Candidates μ R (P₀.thr 0) (wordOf cs 0), ¬ StackClaim.Holds μ (w, t) q) :
-    LevelPre μ laneBits w 0 P₀ 0 ⟨t, [], []⟩ cs := by
+    (t : E) (Bad : Column μ → Prop) (cs : List (ℕ × ℕ × Word)) (hS : ShapeOK 0 P₀ cs)
+    (hlen : cs.length = 1)
+    (hcand : ∀ q ∈ Candidates μ R (P₀.thr 0) (wordOf cs 0), Bad q →
+      ¬ StackClaim.Holds μ (w, t) q) :
+    LevelPre μ laneBits w 0 P₀ 0 (lvl0Pred μ Bad) ⟨t, [], []⟩ cs := by
   refine ⟨⟨rfl, Nat.zero_le _, by omega, fun _ hc ↦ by simp at hc, ?_⟩, hS, hlen⟩
   obtain ⟨κ, R', ℓ, A, h64, hR1⟩ := P₀
   dsimp only at hκ hR hℓ hthr hcand ⊢
   subst hκ hR hℓ
   simp only [List.length_nil, Nat.sub_zero, foldsA_nil]
-  intro U hU hag heq
+  intro U hU hag hB heq
   obtain ⟨q, hq, hUq⟩ := exists_candidate_of_tuple hμ h64 hthr cs U hU hag
-  apply hcand q hq
+  apply hcand q hq (hB rfl q hUq)
   have hrun : runW w laneBits ⟨t, [], []⟩ = fun r ↦ w (rotL laneBits r) := by
     funext r
     rw [runW_eq]

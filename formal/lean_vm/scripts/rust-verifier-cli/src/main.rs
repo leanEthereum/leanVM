@@ -72,7 +72,7 @@ fn verify_bytes(files: &[Vec<u8>]) -> Result<(), String> {
     if bytecode.len() % 8 != 0 {
         return Err("bytecode is not a whole number of 64-bit words".into());
     }
-    let table: Vec<u64> = bytecode
+    let stacked_bytecode: Vec<u64> = bytecode
         .chunks_exact(8)
         .map(|word| u64::from_le_bytes(word.try_into().expect("eight bytes")))
         .collect();
@@ -84,7 +84,7 @@ fn verify_bytes(files: &[Vec<u8>]) -> Result<(), String> {
         [_, _, scalars, phases] => verifier::Proof { stream: stream(scalars)?, merkle_openings: merkle_phases(phases)? },
         _ => unreachable!("three or four files"),
     };
-    let bytecode = verifier::Bytecode::new(&table);
+    let bytecode = verifier::Bytecode::new(&stacked_bytecode).map_err(|error| error.to_string())?;
     verifier::verify_execution(&bytecode, public_input, &proof)
         .map(|_| ())
         .map_err(|error| error.to_string())

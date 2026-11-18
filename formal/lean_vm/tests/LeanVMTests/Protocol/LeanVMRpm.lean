@@ -1,9 +1,11 @@
 import LeanVM.Prover.EndChild
+import LeanVM.Protocol.KnowledgeSoundness
 
 /-!
 # leanVM's statements, locked
 
-Statement locks of `LeanVM/Protocol/LeanVMRpm.lean`: knowledge soundness and completeness in the
+Statement locks of `LeanVM/Protocol/KnowledgeSoundness.lean` and `LeanVM/Protocol/LeanVMRpm.lean`:
+knowledge soundness and completeness in the
 random-permutation model (`Statement/LeanVm.lean`), the statements of the specification, and their
 numbers, with the axioms each depends on.
 -/

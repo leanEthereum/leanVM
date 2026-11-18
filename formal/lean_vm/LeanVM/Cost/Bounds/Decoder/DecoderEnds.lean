@@ -54,12 +54,12 @@ theorem memReader_cost (hP : Includes P memReaderC.costDeps) (memT : Array (ℕ 
   rw [memReaderC.costEq P hP]
   have := gLogTable_cost P (by includes) memT ht κ hκ a
   have := optionMap_cost P (by includes) _
-    (.closure stepVec.c258.lam0.lam0.lam0.costIdx [encodeValue κ, encodeValue mem])
-    (fun i ↦ RunsApp.of_spec (stepVec.c258.lam0.lam0.lam0.costSpec P (by includes) mem i)) 12
+    (.closure stepVec.c135.lam0.lam0.lam0.costIdx [encodeValue κ, encodeValue mem])
+    (fun i ↦ RunsApp.of_spec (stepVec.c135.lam0.lam0.lam0.costSpec P (by includes) mem i)) 12
     (gLogTable memT κ a) (fun i _ ↦ by
       simp only [appCost_fn, List.cons_append, List.nil_append, List.length_cons, List.length_nil]
-      rw [stepVec.c258.lam0.lam0.lam0.costEq P (by includes), limbs_shift hκ,
-        limbs_of_lt (by omega : κ < 2 ^ 64), Auto.Vector.get.c315.costEq P (by includes), max_self])
+      rw [stepVec.c135.lam0.lam0.lam0.costEq P (by includes), limbs_shift hκ,
+        limbs_of_lt (by omega : κ < 2 ^ 64), Auto.Vector.get.c192.costEq P (by includes), max_self])
   omega
 
 /-- **One memory read at the deployed shape** (the table `powTable κ`, `κ ≤ 30`): at most

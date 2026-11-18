@@ -170,6 +170,10 @@ theorem duplexInput_eq (sp : Sponge) : duplexInput sp = duplexOf (capOf sp.state
     congr 1
     omega
 
+/-- A permutation's input keeps the state's capacity. -/
+theorem capOf_duplexInput (sp : Sponge) : capOf (duplexInput sp) = capOf sp.state := by
+  rw [duplexInput_eq, capOf_duplexOf]
+
 /-- The scalar in slot `i` of a permutation input: lanes `4i, 4i+1`. -/
 def slotE (t : KeccakState) (i : ℕ) : E :=
   E.ofLimbs (K.ofLane (Keccak.lane t (4 * i))) (K.ofLane (Keccak.lane t (4 * i + 1)))

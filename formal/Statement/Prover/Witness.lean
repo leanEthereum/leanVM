@@ -10,7 +10,7 @@ hash map), recording each state stepped from, its bytecode slot and the instruct
 (`runSteps`); then the six opcode tables' rows in one pass over the steps, each read carrying its
 cell's count so far, the counters stepping by `g` in place (`rowsOf`). The address indices and the
 public boundary are the knowledge extractor's too (`lean_vm`,
-`LeanVM/Protocol/Extraction/Extractor.lean`).
+`LeanVM/Protocol/Extraction/Fast/Address.lean`, `candidateExecutionTable_eq`).
 -/
 
 @[expose] public section

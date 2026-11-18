@@ -1,6 +1,6 @@
 module
 
-public import LeanVM.Cost.Library
+public import LeanVM.Cost.Extractor.Top
 public import CompPoly.Univariate.Raw.Ops
 import all CompPoly.Univariate.Raw.Ops
 import all CompPoly.Data.Array.Lemmas
