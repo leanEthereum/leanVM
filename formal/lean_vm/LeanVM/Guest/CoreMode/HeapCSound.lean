@@ -216,14 +216,39 @@ theorem ptIdx_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
   rw [CCell.addrW, CCell.beq_eq h1, valW_mul, valW_pow, (rep_spec hyj).2, ← ofK_pow', addressOfIndex,
     addressOfIndex, ← pow_mul, mul_comm yj]
 
+/-- **A cell some indices below the upper bound**: written. -/
+theorem ptBack_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
+    (hR : RunF W w R.base R.stride R.lo R.hi) {c : CCell} (h : ptBack F R c = true) : W (c.addrW w) := by
+  unfold ptBack at h
+  simp only [Bool.and_eq_true, Nat.blt_eq] at h
+  obtain ⟨⟨⟨⟨hk, hc⟩, hlb⟩, hlc⟩, hf⟩ := h
+  set k := backK R c
+  obtain ⟨yh, hyh, hlt⟩ := hasFC_ok hF hf
+  have hhv := (rep_spec hyh).2
+  have hcv : c.valW w * ofK (addressOfIndex (R.stride * k)) =
+      R.base.valW w * ofK (addressOfIndex (R.stride * yh)) := by
+    rw [← valW_shift, CCell.beq_eq hc, valW_mul, valW_pow, hhv, ← ofK_pow', addressOfIndex, addressOfIndex,
+      ← pow_mul, mul_comm yh]
+  have hne : ofK (addressOfIndex (R.stride * k)) ≠ 0 := fun h ↦
+    pow_ne_zero _ g_ne_zero (ofK_injective (h.trans (map_zero (algebraMap K E)).symm))
+  refine hR _ ⟨R.lo.off, yh, yh - k, rep_nil hlb hlc, hyh, by omega, by omega, ?_⟩
+  have hv : c.valW w = R.base.valW w * ofK (addressOfIndex (R.stride * (yh - k))) := by
+    refine mul_right_cancel₀ hne ?_
+    rw [hcv, mul_assoc, ← ofK_mul', addressOfIndex, addressOfIndex, addressOfIndex, ← pow_add, ← Nat.mul_add,
+      Nat.sub_add_cancel (by omega : k ≤ yh)]
+  rw [CCell.addrW, hv]
+
 /-- **A cell of a run**: a run written, the facts true, `ptRun` gives the cell written. -/
 theorem ptRun_ok {F : List (CCell × CCell)} (hF : FOk w F) {R : PRun}
     (hR : RunF W w R.base R.stride R.lo R.hi) {c : CCell} (h : ptRun F R c = true) : W (c.addrW w) := by
   unfold ptRun at h
   rcases Bool.or_eq_true_iff.mp h with h | h
   rcases Bool.or_eq_true_iff.mp h with h | h
+  rcases Bool.or_eq_true_iff.mp h with h | h
   pick_goal 2
   · exact ptIdx_ok hF hR h
+  pick_goal 2
+  · exact ptBack_ok hF hR h
   · simp only [Bool.and_eq_true] at h
     obtain ⟨h1, h2⟩ := h
     obtain ⟨ylo, yhi, hylo, hyhi, hab⟩ := hasF_ok hF h2
@@ -289,8 +314,17 @@ theorem runRun_ok {F : List (CCell × CCell)} (hF : FOk w F) {E : List (CCell ×
   have hi : ∃ rh, rep (R.hi.valW w) = some rh ∧ qh ≤ rh := by
     unfold hiOk at hhi
     simp only [Bool.or_eq_true, Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq] at hhi
-    rcases hhi with (h | ⟨⟨⟨h1, h2⟩, h3⟩, h4⟩) | ⟨⟨h1, h2⟩, h3⟩
+    rcases hhi with ((((h | h) | ⟨h0, h⟩) | ⟨⟨⟨h1, h2⟩, h3⟩, h4⟩) | ⟨⟨h1, h2⟩, h3⟩)
     · exact ⟨qh, by rw [← eqV_ok hE h]; exact hqh, le_rfl⟩
+    · obtain ⟨ya, yb, ha, hb', hab⟩ := hasF_ok hF h
+      rw [hqh, Option.some.injEq] at ha
+      exact ⟨yb, hb', by omega⟩
+    · obtain ⟨ya, yb, ha, hb', hab⟩ := hasF_ok hF h
+      have hyb := (rep_spec hb').1
+      have hq : Q.hi = (⟨Q.hi.bases, Q.hi.off - 1⟩ : CCell).shift 1 := by
+        simp only [CCell.shift]; rw [Nat.sub_add_cancel h0]
+      rw [hq, valW_shift, rep_succ ha (by omega), Option.some.injEq] at hqh
+      exact ⟨yb, hb', by omega⟩
     · rw [rep_nil h1 (by omega), Option.some.injEq] at hqh
       exact ⟨R.hi.off, rep_nil h2 h4, by omega⟩
     · obtain ⟨yb, hb', hkb⟩ := hasFC_ok hF h3
@@ -1805,9 +1839,31 @@ section Stmts
 
 variable {sigOf : String → HSig} {H : HCert} {f : Fn} {X : CX} {σ : Val} {rd : Reader} {W : K → Prop}
 
+theorem bitsOk_ok (hX : XOk sigOf H f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st : CSt}
+    (hs : StOk rd W σ st) {m : CCell} {dst p : V} {off : ℕ} :
+    ∀ {k n : ℕ}, bitsOk X st m dst p off k n = true → ∀ k', k ≤ k' → k' < k + n → W ((m.shift (off + k')).addr σ)
+  | _, 0, _, k', h1, h2 => by omega
+  | k, n + 1, h, k', h1, h2 => by
+    simp only [bitsOk, Bool.and_eq_true] at h
+    obtain ⟨h0, hr⟩ := h
+    rcases Nat.eq_or_lt_of_le h1 with rfl | h1
+    · cases hw : readWitT X.R dst p (off + k) with
+      | none => rw [hw] at h0; cases h0
+      | some w => rw [hw] at h0; exact ptOk_ok hX hpre hs h0
+    · exact bitsOk_ok hX hpre hs hr k' (by omega) (by omega)
+
 theorem atomC_other {st : CSt} {a : Atom} (hl : ∀ d p off, a ≠ .load d p off) (ha : ∀ d x y, a ≠ .add d x y)
-    (hm : ∀ d x y, a ≠ .mul d x y) : atomC0 X st a = (atomH X.toH st.toH a).map st.ofH := by
-  cases a <;> first | rfl | exact absurd rfl (hl _ _ _) | exact absurd rfl (ha _ _ _) | exact absurd rfl (hm _ _ _)
+    (hm : ∀ d x y, a ≠ .mul d x y) (hg : ∀ p off len nb fl dst, a ≠ .hint (.log2Ceil (.heap p off len) nb fl dst)) :
+    atomC0 X st a = (atomH X.toH st.toH a).map st.ofH := by
+  cases a with
+  | hint h =>
+    cases h with
+    | log2Ceil bits nb fl dst =>
+      cases bits with
+      | heap p off len => exact absurd rfl (hg p off len nb fl dst)
+      | stack _ => rfl
+    | _ => rfl
+  | _ => first | rfl | exact absurd rfl (hl _ _ _) | exact absurd rfl (ha _ _ _) | exact absurd rfl (hm _ _ _)
 
 theorem ofK_gpow_ne_zero (n : ℕ) : ofK (addressOfIndex n) ≠ 0 := fun h ↦
   pow_ne_zero n g_ne_zero (ofK_injective (h.trans (map_zero (algebraMap K E)).symm))
@@ -2044,8 +2100,25 @@ theorem atomC0_ok (hX : XOk sigOf H f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.ad
           rw [h3, Option.map_some, Option.some.injEq] at h
           subst h
           exact atomH_part hX hpre h3 hs ha
-  · simp only [not_exists] at hl hd hmu
-    rw [atomC_other hl hd hmu] at h
+  by_cases hlg : ∃ p off len nb fl dst, a = .hint (.log2Ceil (.heap p off len) nb fl dst)
+  · obtain ⟨p, off, len, nb, fl, dst, rfl⟩ := hlg
+    simp only [atomC0] at h
+    cases hm : monoOf st.env p with
+    | none => rw [hm] at h; cases h
+    | some m =>
+      rw [hm] at h
+      dsimp only at h
+      cases hb : bitsOk X st m dst p off 0 (min nb len) with
+      | false => rw [hb] at h; cases h
+      | true =>
+        rw [hb, Bool.cond_true, Option.some.injEq] at h
+        subst h
+        refine ⟨fun x hx ↦ ?_, hs.mono fun _ ↦ Or.inl⟩
+        obtain ⟨k, hk, rfl⟩ := hx
+        rw [cellAt_shift σ (monoOf_ok hs.env hm)]
+        exact bitsOk_ok hX hpre hs hb k (Nat.zero_le _) (by omega)
+  · simp only [not_exists] at hl hd hmu hlg
+    rw [atomC_other hl hd hmu hlg] at h
     cases h1 : atomH X.toH st.toH a with
     | none => rw [h1] at h; cases h
     | some st1 =>
@@ -2619,12 +2692,70 @@ theorem reqArmsX_ok (hX : XOk sigOf H f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.
 
 /-- **A dispatch**: every arm's preconditions written; the state after it valid with the taken arm's
 writes. -/
+theorem wordAt_ok {G : HSig} {ms : List CCell} {ws : List E} (hms : MsOk (vw σ) ms (slotW ws))
+    (hv : RetVOk rd G ws) {c m : CCell} (h : wordAt G ms c = some m) : rd (c.addr σ) = some (m.valW (vw σ)) := by
+  unfold wordAt at h
+  split at h
+  · rename_i p hf
+    have hp := List.mem_of_find?_eq_some hf
+    have hb := List.find?_some hf
+    obtain ⟨cc, hcc, hrd⟩ := hv p.1 p.2 hp
+    rw [← nth_eq] at hcc
+    simp only [hcc] at hb
+    cases hi : instC ms cc with
+    | none => rw [hi] at hb; cases hb
+    | some c' =>
+      rw [hi] at hb
+      rw [addr_eq, CCell.addrW, ← CCell.beq_eq hb, instC_ok hms hi, instC_ok hms h]
+      exact hrd
+  · cases h
+
+theorem armsV_ok {sigOf : String → HSig} {ms : List CCell} {ws : List E} (hms : MsOk (vw σ) ms (slotW ws))
+    {gs : List String} {g : String} (hg : g ∈ gs) (hv : RetVOk rd (sigOf g) ws) {c m : CCell}
+    (h : armsV sigOf ms gs c = some m) : rd (c.addr σ) = some (m.valW (vw σ)) := by
+  cases gs with
+  | nil => cases h
+  | cons g0 gs' =>
+    simp only [armsV] at h
+    cases h0 : wordAt (sigOf g0) ms c with
+    | none => rw [h0] at h; cases h
+    | some m0 =>
+      rw [h0] at h
+      dsimp only at h
+      have key : ∀ b : Bool, (bif b then some m0 else none) = some m → b = true ∧ m0 = m := by
+        intro b hb; cases b <;> simp_all
+      obtain ⟨hall, rfl⟩ := key _ h
+      rcases List.mem_cons.mp hg with rfl | hg
+      · exact wordAt_ok hms hv h0
+      · have := List.all_eq_true.mp hall g hg
+        cases hw : wordAt (sigOf g) ms c with
+        | none => rw [hw] at this; cases this
+        | some m' =>
+          rw [hw] at this
+          dsimp only at this
+          rw [← CCell.beq_eq this]
+          exact wordAt_ok hms hv hw
+
+theorem meetVL_ok {sigOf : String → HSig} {ms : List CCell} {ws : List E} (hms : MsOk (vw σ) ms (slotW ws))
+    {gs : List String} {g : String} (hg : g ∈ gs) (hv : RetVOk rd (sigOf g) ws) :
+    ∀ (cs : List CCell) (n : ℕ), ∀ q ∈ meetVL sigOf ms gs cs n, rd (q.2.1.addr σ) = some (q.2.2.valW (vw σ))
+  | [], _, q, hq => by simp [meetVL] at hq
+  | c :: cs, n, q, hq => by
+    unfold meetVL at hq
+    cases ha : armsV sigOf ms gs c with
+    | none => rw [ha] at hq; exact meetVL_ok hms hg hv cs (n + 1) q hq
+    | some m =>
+      rw [ha] at hq
+      rcases List.mem_cons.mp hq with rfl | hq
+      · exact armsV_ok hms hg hv ha
+      · exact meetVL_ok hms hg hv cs (n + 1) q hq
+
 theorem dispC_ok (hX : XOk sigOf H f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.addr σ)) {st st' : CSt}
     {x : V} {fs : List String} {args rets : List V} (hs : StOk rd W σ st)
     (h : dispC X st x fs args rets = some st') :
     ∀ i (hi : i < fs.length), σ x = ofK (addressOfIndex i) →
       CallPre sigOf H rd σ W fs[i] args ∧
-      (RetMOk (sigOf fs[i]) (args.map σ) (rets.map σ) →
+      (EvM sigOf rd σ (.call fs[i] args rets) →
         StOk rd (fun x' ↦ W x' ∨ EvW sigOf rd σ (.call fs[i] args rets) x') σ st') := by
   intro i hi hxi
   unfold dispC at h
@@ -2647,7 +2778,7 @@ theorem dispC_ok (hX : XOk sigOf H f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.add
             (by rw [← val_eq, ← monoOf_ok hs.env hmx]) hq i hi (by simpa using hxi)
           refine ⟨hreq, fun hM ↦ ?_⟩
           have hmxv : mx.valW (vw σ) = σ x := by rw [← val_eq, ← monoOf_ok hs.env hmx]
-          have hvp := hvp hM
+          have hvp := hvp hM.1
           generalize hgi : fs[i] = g at hgk hM hvp ⊢
           cases wl' with
           | cons _ _ => simp [hq] at h
@@ -2671,7 +2802,7 @@ theorem dispC_ok (hX : XOk sigOf H f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.add
                   obtain ⟨k', m'⟩ := q
                   simp only at e1 e2
                   rwa [Nat.eq_of_beq_eq_true e1, CCell.beq_eq e2] at hq'
-              exact instRM_ok (G := X.sigOf g) hma (by rw [hX.sigOf]; exact hM) k m hg'
+              exact instRM_ok (G := X.sigOf g) hma (by rw [hX.sigOf]; exact hM.1) k m hg'
             generalize retDefs rets _ st.nextC = st1 at h hs1
             cases hr : monos st1.env rets with
             | none => simp [hr] at h
@@ -2722,8 +2853,10 @@ theorem dispC_ok (hX : XOk sigOf H f σ X) (hpre : ∀ c ∈ H.sig.pre, W (c.add
                       obtain ⟨o, ho, rfl⟩ := List.mem_map.mp hc
                       obtain ⟨r, hr', hw⟩ := hvp j offs hp o ho
                       rwa [addr_eq, CCell.addrW, valW_shift, hmr' j m hn, slotW_map_of hr']
-                  refine pushRL_ok (pushL_ok hs1 (fun _ ↦ Or.inl) fun c hc ↦ ?_) (fun _ h ↦ h)
+                  refine pushRL_ok (svPut_ok (pushL_ok hs1 (fun _ ↦ Or.inl) fun c hc ↦ ?_) ?_) (fun _ h ↦ h)
                     fun q hq ↦ ?_
+                  pick_goal 2
+                  · exact meetVL_ok hm hg (by rw [hX.sigOf]; exact hM.2.1) _ _
                   · obtain ⟨hc1, hc2⟩ := List.mem_filter.mp hc
                     have hcg : c ∈ pg := by
                       rcases List.mem_cons.mp hpg with rfl | hpg
@@ -3134,7 +3267,7 @@ theorem chkC_ok {X : CX} (hX : XOk sigOf H f σ X) : ∀ (ss : List Stmt) {st st
           fun es hw _ ↦ by simp [Out.seq] at hw⟩
       · rw [hp]
         obtain ⟨hreq, hpost⟩ := dispC_ok hX hpre hs h1 i hi (by simpa using hx)
-        exact blockC_call hpre hreq (fun hM ↦ hpost hM.1) fun hp hs' ↦ chkC_ok hX ss hp h hs'
+        exact blockC_call hpre hreq hpost fun hp hs' ↦ chkC_ok hX ss hp h hs'
   | .ret vs :: ss, st, st', W, hpre, h, hs => by
     simp only [chkC] at h
     cases hr : retC X st vs with

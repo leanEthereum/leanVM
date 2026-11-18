@@ -1093,6 +1093,105 @@ theorem selB_bad :
       { hSelB with reads := [(4, [(0, 1, .run 0 [])])] } = false := by
   decide +kernel
 
+/-! ## Requests from emit: the cell before the upper bound, a bound past a fact, `log2Ceil` bits, a dispatch's
+words at return (round 4) -/
+
+/-- `recs` writes the records `p·g^(5 + 4j)`, `j < e(h)`; `needR` needs `p·g^[0, e(n·g))`. -/
+def sigsQ (g : String) : HSig :=
+  if g = "recs" then { postR := [⟨⟨[(0, 1)], 5⟩, 4, .num 0, .val 1⟩] }
+  else if g = "needR" then { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .mono ⟨[(1, 1)], 1⟩⟩] } else .empty
+
+/-- Calls `recs`, reads `p·h^4·g`, the last record's cell. -/
+def lastRec : Fn where
+  name := "lastRec"
+  params := [.n 0, .n 1]
+  body := [.call "recs" [.n 0, .n 1] [], .atom (.mul (.n 2) (.n 1) (.n 1)), .atom (.mul (.n 3) (.n 2) (.n 2)),
+    .atom (.mul (.n 4) (.n 0) (.n 3)), .atom (.load (.n 5) (.n 4) 1), .ret []]
+
+/-- `lastRec`'s certificate: the cell one index below `h` (`ptBack`), `e(h) ≥ 1` by a residual. -/
+def hLastRec : HCert where
+  sig := {}
+  reads := [(5, [(4, 1, .run 0 [0])])]
+  res := [.lt (.num 0) (.val 1)]
+  calls := [[]]
+  rets := [[]]
+
+theorem lastRec_ok : heapOkC Data.powTree sigsQ lastRec hLastRec = true := by decide +kernel
+
+/-- Without `e(h) ≥ 1`. -/
+theorem lastRec_bad : heapOkC Data.powTree sigsQ lastRec { hLastRec with reads := [(5, [(4, 1, .run 0 [])])] } =
+    false := by
+  decide +kernel
+
+/-- Calls `needR` on `p`, `n`, its own run `p·g^[0, e(m))`. -/
+def hiF : Fn where
+  name := "hiF"
+  params := [.n 0, .n 1, .n 2]
+  body := [.call "needR" [.n 0, .n 1] [], .ret []]
+
+/-- `hiF`'s certificate: `e(n·g) ≤ e(m)` by the residual `e(n) < e(m)`. -/
+def hHiF : HCert where
+  sig := { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .val 2⟩] }
+  reads := []
+  res := [.lt (.val 1) (.val 2)]
+  calls := [[.run 0 [0]]]
+  rets := [[]]
+
+theorem hiF_ok : heapOkC Data.powTree sigsQ hiF hHiF = true := by decide +kernel
+
+theorem hiF_bad : heapOkC Data.powTree sigsQ hiF { hHiF with calls := [[.run 0 []]] } = false := by decide +kernel
+
+/-- `log2Ceil` of the 4 bits at `p[0..3]`. -/
+def lg : Fn where
+  name := "lg"
+  params := [.n 0]
+  body := [.atom (.hint (.log2Ceil (.heap (.n 0) 0 4) 4 0 (.n 1))), .ret []]
+
+/-- `lg`'s certificate: the bits are preconditions, keyed as reads of the destination. -/
+def hLg : HCert where
+  sig := { pre := [⟨[(0, 1)], 0⟩, ⟨[(0, 1)], 1⟩, ⟨[(0, 1)], 2⟩, ⟨[(0, 1)], 3⟩] }
+  reads := [(1, [(0, 0, .pre 0), (0, 1, .pre 1), (0, 2, .pre 2), (0, 3, .pre 3)])]
+  res := []
+  rets := [[]]
+
+theorem lg_ok : heapOkC Data.powTree (fun _ ↦ .empty) lg hLg = true := by decide +kernel
+
+/-- A bit without its witness. -/
+theorem lg_bad :
+    heapOkC Data.powTree (fun _ ↦ .empty) lg { hLg with reads := [(1, [(0, 0, .pre 0), (0, 1, .pre 1), (0, 2, .pre 2)])] } =
+      false := by
+  decide +kernel
+
+/-- `wa`, `wb` both store `p·g` at `p[0]`; `wc` stores `p·g^2`. -/
+def sigsDV (g : String) : HSig :=
+  if g = "wa" ∨ g = "wb" then { post := [⟨[(0, 1)], 0⟩], postV := [(0, ⟨[(0, 1)], 1⟩)] }
+  else if g = "wc" then { post := [⟨[(0, 1)], 0⟩], postV := [(0, ⟨[(0, 1)], 2⟩)] } else .empty
+
+/-- Dispatches on `x` to `wa`, `wb`, reads `p[0]` and through it. -/
+def useDV : Fn where
+  name := "useDV"
+  params := [.n 0, .n 1]
+  body := [.dispatch (.n 0) ["wa", "wb"] [.n 1] [], .atom (.load (.n 2) (.n 1) 0), .atom (.load (.n 3) (.n 2) 0),
+    .ret []]
+
+/-- `useDV`'s certificate: the meet's cell (serial `0`) holds `p·g` (every arm's `postV`), read back
+(`hvs`), the precondition `p·g` read through it. -/
+def hUseDV : HCert where
+  sig := { pre := [⟨[(1, 1)], 1⟩] }
+  reads := [(2, [(1, 0, .ev 0)]), (3, [(2, 0, .pre 0)])]
+  res := []
+  calls := [[]]
+  rets := [[]]
+  hvs := [2]
+
+theorem useDV_ok : heapOkC Data.powTree sigsDV useDV hUseDV = true := by decide +kernel
+
+/-- An arm naming another word. -/
+theorem useDV_bad :
+    heapOkC Data.powTree sigsDV { useDV with body := [.dispatch (.n 0) ["wa", "wc"] [.n 1] [],
+      .atom (.load (.n 2) (.n 1) 0), .atom (.load (.n 3) (.n 2) 0), .ret []] } hUseDV = false := by
+  decide +kernel
+
 end
 
 end LeanVM.Guest.CoreMode.Test

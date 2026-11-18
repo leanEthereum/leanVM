@@ -338,10 +338,21 @@ def ptIdx (F : List (CCell × CCell)) (R : PRun) (c J : CCell) : Bool :=
   c.beq (R.base.mul (J.pow R.stride)) && hasF F J R.hi &&
     ((R.lo.bases.isEmpty && Nat.beq R.lo.off 0) || R.lo.beq J || hasF F R.lo (J.shift 1))
 
+/-- How many indices below the upper bound the cell `c` is: `k` with `c·g^(S·k) = base·hi^S`. -/
+def backK (R : PRun) (c : CCell) : ℕ := ((R.base.mul (R.hi.pow R.stride)).off - c.off) / R.stride
+
+/-- **A cell `k ≥ 1` indices below the upper bound** (`c·g^(S·k) = base·hi^S`): a constant lower bound
+`lo` and a fact `(g^k', hi)`, `k' ≥ k - 1 + lo` (so `e(hi) - k` is past `lo`). -/
+def ptBack (F : List (CCell × CCell)) (R : PRun) (c : CCell) : Bool :=
+  Nat.blt 0 (backK R c) && (c.shift (R.stride * backK R c)).beq (R.base.mul (R.hi.pow R.stride)) &&
+    R.lo.bases.isEmpty && Nat.blt R.lo.off capE && hasFC F (backK R c - 1 + R.lo.off) R.hi
+
 /-- **A cell of a run in scope**: at its lower bound, the bounds a fact; or at a constant index past
-a constant lower bound, below a constant upper bound or a fact's; or at any index (`ptIdx`). -/
+a constant lower bound, below a constant upper bound or a fact's; or at any index (`ptIdx`); or some
+indices below the upper bound (`ptBack`). -/
 def ptRun (F : List (CCell × CCell)) (R : PRun) (c : CCell) : Bool :=
   (c.beq (R.base.mul (R.lo.pow R.stride)) && hasF F R.lo R.hi) || ptIdx F R c (idxOf R.base c R.stride) ||
+  ptBack F R c ||
   (basesBeq c.bases R.base.bases && Nat.ble R.base.off c.off && !Nat.beq R.stride 0 &&
     Nat.beq ((c.off - R.base.off) % R.stride) 0 && R.lo.bases.isEmpty && Nat.blt R.lo.off capE &&
     Nat.ble R.lo.off ((c.off - R.base.off) / R.stride) &&
@@ -370,7 +381,8 @@ def loOk (F : List (CCell × CCell)) (E : List (CCell × CCell)) (Q R : PRun) : 
 
 /-- The upper bound of `Q` at or below that of `R`, its exponent existing. -/
 def hiOk (F : List (CCell × CCell)) (E : List (CCell × CCell)) (Q R : PRun) : Bool :=
-  eqV E Q.hi R.hi ||
+  eqV E Q.hi R.hi || hasF F Q.hi R.hi ||
+  (Nat.blt 0 Q.hi.off && hasF F ⟨Q.hi.bases, Q.hi.off - 1⟩ R.hi) ||
   (Q.hi.bases.isEmpty && R.hi.bases.isEmpty && Nat.ble Q.hi.off R.hi.off && Nat.blt R.hi.off capE) ||
   (Q.hi.bases.isEmpty && Nat.blt Q.hi.off capE && hasFC F (Q.hi.off - 1) R.hi)
 
@@ -1051,6 +1063,34 @@ def condE (sigOf : String → HSig) (ms : List CCell) (mx : CCell) : ℕ → Lis
 def CSt.addCd (st : CSt) (l : List CdE) : CSt :=
   ⟨st.env, st.sc, st.rs, st.ad, st.sv, st.src, st.pf, st.pr, st.n, st.nr, st.nc, st.nt, st.cd ++ l, st.eqs⟩
 
+/-- The word a signature names at return (`postV`) at the cell `c`, its `post` cell at the slots `ms`. -/
+def wordAt (G : HSig) (ms : List CCell) (c : CCell) : Option CCell :=
+  match G.postV.find? (fun p ↦ match nth G.post p.1 with
+      | some cc => match instC ms cc with
+        | some c' => c'.beq c
+        | none => false
+      | none => false) with
+  | some p => instC ms p.2
+  | none => none
+
+/-- The word every arm names at return at the cell `c`. -/
+def armsV (sigOf : String → HSig) (ms : List CCell) (gs : List String) (c : CCell) : Option CCell :=
+  match gs with
+  | [] => none
+  | g :: gs' => match wordAt (sigOf g) ms c with
+    | some m => bif gs'.all (fun g' ↦ match wordAt (sigOf g') ms c with
+        | some m' => m'.beq m
+        | none => false) then some m else none
+    | none => none
+
+/-- **A dispatch's words at return**: of its meet's cells (point serials from `n`), those every arm names
+the same word at. -/
+def meetVL (sigOf : String → HSig) (ms : List CCell) (gs : List String) : List CCell → ℕ → List (ℕ × CCell × CCell)
+  | [], _ => []
+  | c :: cs, n => match armsV sigOf ms gs c with
+    | some m => (n, c, m) :: meetVL sigOf ms gs cs (n + 1)
+    | none => meetVL sigOf ms gs cs (n + 1)
+
 /-- **A dispatch** on `x`: every arm's preconditions but the arms a fact rules out (`armSkip`); the
 returned words' monomials every arm kept gives, then what every arm kept guarantees pushed (cells, runs,
 pointer facts, pointer runs); and each arm's guarantees kept under the selector (`condE`). -/
@@ -1063,7 +1103,8 @@ noncomputable def dispC (X : CX) (st : CSt) (x : V) (fs : List String) (args ret
         match monos st1.env rets with
         | some mr => match instArms X.sigOf (ma ++ mr) (g :: gs) with
           | some (p :: ps, r :: rs) => some ((pushL (vpCells mr (vpHead ws).1) (pushPtrM (instArmsP X.sigOf (ma ++ mr) (g :: gs))
-              (pushRL (r.filter (meetR rs)) (pushL (p.filter (meetC ps)) st1)))).addCd
+              (pushRL (r.filter (meetR rs)) (svPut (meetVL X.sigOf (ma ++ mr) (g :: gs) (p.filter (meetC ps)) st1.n)
+                (pushL (p.filter (meetC ps)) st1))))).addCd
                 (bif Nat.blt fs.length capE then condE X.sigOf (ma ++ mr) mx 0 fs else []))
           | _ => none
         | none => none
@@ -1125,6 +1166,14 @@ noncomputable def loadPush (st : CSt) (c : CCell) (d : V) : CSt :=
     | some m => st.pushV c m
     | none => st.push c).seq fun st ↦ st.srcPut d c
 
+/-- **The heap bits a `log2Ceil` reads**: the cells `m·g^(off + k)`, `n` of them from `k`, each with its
+witness, keyed as a read of the hint's destination `dst` through `p` at `off + k`. -/
+noncomputable def bitsOk (X : CX) (st : CSt) (m : CCell) (dst p : V) (off : ℕ) : ℕ → ℕ → Bool
+  | _, 0 => true
+  | k, n + 1 => (match readWitT X.R dst p (off + k) with
+    | some w => ptOk X st (m.shift (off + k)) w
+    | none => false) && bitsOk X st m dst p off (k + 1) n
+
 /-- **A division**: the quotient `q = d / b` of a `mul d q b`, `q` listed (`HCert.divs`), `d`'s
 monomial known, `b` a constant `g^k` with `k` at most `d`'s offset. -/
 noncomputable def divOf (X : CX) (st : CSt) (d q b : V) : Option (ℕ × CCell) :=
@@ -1152,6 +1201,9 @@ noncomputable def atomC0 (X : CX) (st : CSt) : Atom → Option CSt
   | .add d a b => match vnum d, monoOf st.env a, monoOf st.env b with
     | some k, some ma, some mb => some (st.addS k ma mb)
     | _, _, _ => some st
+  | .hint (.log2Ceil (.heap p off len) nbits _ dst) => match monoOf st.env p with
+    | some m => bif bitsOk X st m dst p off 0 (min nbits len) then some st else none
+    | none => none
   | a => (atomH X.toH st.toH a).map st.ofH
 
 /-- An equation `a = b` of two values, `a` listed (`HCert.eqs`): their monomials. -/
