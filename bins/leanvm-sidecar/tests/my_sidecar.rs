@@ -15,9 +15,9 @@ use std::time::Instant;
 #[test]
 #[ignore]
 fn my_sidecar() {
-    let socket = std::env::var_os("LEANVM_SIDECAR_SOCKET").map(PathBuf::from).unwrap_or_else(|| {
-        PathBuf::from(std::env::var_os("HOME").expect("HOME")).join(".leanvm/sidecar.sock")
-    });
+    let socket = std::env::var_os("LEANVM_SIDECAR_SOCKET")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(std::env::var_os("HOME").expect("HOME")).join(".leanvm/sidecar.sock"));
     let n: usize = std::env::var("LEANVM_XMSS").map_or(8, |v| v.parse().expect("LEANVM_XMSS"));
 
     let mut client = Client::connect(&socket).unwrap_or_else(|e| panic!("{}: {e:?}", socket.display()));
@@ -26,14 +26,22 @@ fn my_sidecar() {
     let xmss = signers_cache::get_signers::<StableProver>(n + 1);
 
     let start = Instant::now();
-    let leaf = client.aggregate(&[], &xmss[..n], &[], &[], OutputClaims::All, 1).unwrap();
+    let leaf = client
+        .aggregate(&[], &xmss[..n], &[], &[], OutputClaims::All, 1)
+        .unwrap();
     println!("leaf: {n} signatures, {:.1?}, {} bytes", start.elapsed(), leaf.1.len());
     assert_eq!(leaf.0.num_signature_claims(), n);
     assert!(client.verify(&leaf.0, &leaf.1).unwrap());
 
     let start = Instant::now();
-    let node = client.aggregate(&[leaf], &xmss[n..], &[], &[], OutputClaims::All, 1).unwrap();
-    println!("node: the leaf and 1 more, {:.1?}, {} bytes", start.elapsed(), node.1.len());
+    let node = client
+        .aggregate(&[leaf], &xmss[n..], &[], &[], OutputClaims::All, 1)
+        .unwrap();
+    println!(
+        "node: the leaf and 1 more, {:.1?}, {} bytes",
+        start.elapsed(),
+        node.1.len()
+    );
     assert_eq!(node.0.num_signature_claims(), n + 1);
     assert!(client.verify(&node.0, &node.1).unwrap());
     println!("both verified");
