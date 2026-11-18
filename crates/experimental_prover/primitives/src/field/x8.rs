@@ -76,6 +76,12 @@ impl F128x8 {
         unsafe { Self([_mm512_set1_epi64(e.c0 as i64), _mm512_set1_epi64(e.c1 as i64)]) }
     }
 
+    /// Eight consecutive elements, under `f128x8`'s name.
+    #[inline(always)]
+    pub fn from_array(src: &[F128; 8]) -> Self {
+        Self::load(src)
+    }
+
     /// Eight consecutive elements.
     #[inline(always)]
     pub fn load(src: &[F128; 8]) -> Self {
@@ -117,20 +123,19 @@ impl F128x8 {
 
     /// The even lanes of `a` then of `b`, and the odd lanes of `a` then of `b`.
     #[inline(always)]
-    pub fn deinterleave(a: Self, b: Self) -> (Self, Self) {
+    pub fn even_odd(a: Self, b: Self) -> (Self, Self) {
         (
             Self(std::array::from_fn(|k| select(a.0[k], EVEN, b.0[k]))),
             Self(std::array::from_fn(|k| select(a.0[k], ODD, b.0[k]))),
         )
     }
 
-    /// The inverse of [`deinterleave`](Self::deinterleave): lanes `a0 b0 a1 b1 …` over two registers.
+    /// Stores the lanes `a0 b0 a1 b1 … a7 b7`, the inverse of [`even_odd`](Self::even_odd).
     #[inline(always)]
-    pub fn interleave(a: Self, b: Self) -> (Self, Self) {
-        (
-            Self(std::array::from_fn(|k| select(a.0[k], LO, b.0[k]))),
-            Self(std::array::from_fn(|k| select(a.0[k], HI, b.0[k]))),
-        )
+    pub fn store_interleaved(a: Self, b: Self, dst: &mut [F128; 16]) {
+        let (halves, _) = dst.as_chunks_mut::<8>();
+        Self(std::array::from_fn(|k| select(a.0[k], LO, b.0[k]))).store(&mut halves[0]);
+        Self(std::array::from_fn(|k| select(a.0[k], HI, b.0[k]))).store(&mut halves[1]);
     }
 
     /// The even-lane and odd-lane unreduced products, y-folded.
@@ -326,12 +331,13 @@ mod tests {
             assert_eq!((va.mul_sum(vb) ^ vb.mul_sum(va)).reduce(), F128::ZERO);
             assert_eq!(F128x8::splat(a[0]).to_array(), [a[0]; 8]);
 
-            let (even, odd) = F128x8::deinterleave(va, vb);
+            let (even, odd) = F128x8::even_odd(va, vb);
             let both: Vec<F128> = a.iter().chain(&b).copied().collect();
             assert_eq!(even.to_array(), std::array::from_fn(|i| both[2 * i]));
             assert_eq!(odd.to_array(), std::array::from_fn(|i| both[2 * i + 1]));
-            let (lo, hi) = F128x8::interleave(even, odd);
-            assert_eq!((lo.to_array(), hi.to_array()), (a, b));
+            let mut stored = [F128::ZERO; 16];
+            F128x8::store_interleaved(even, odd, &mut stored);
+            assert_eq!(stored.to_vec(), both);
 
             let c = rng.ext();
             let k: [F64; 8] = std::array::from_fn(|_| F64(rng.ext().c0));

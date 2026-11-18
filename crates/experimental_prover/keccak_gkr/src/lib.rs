@@ -82,13 +82,17 @@
 //! arithmetic in the power basis of `s`, where a pack's value is its embedding's bits and a
 //! weighted sum is a carry-less product (`basis`, `power`).
 //!
-//! `U`'s weighted bit sums are outer products: with GFNI (x86-64), one affine byte map per byte
-//! of eight positions' weights applied to bit-transposed products (`products_gfni`); elsewhere,
-//! the positions grouped by each byte of their weight (`prover`'s digit buckets).
+//! `U`'s weighted bit sums are outer products: with AVX2 and GFNI, one affine byte map per byte of eight
+//! positions' weights applied to the bit-transposed values of the products at six points of GF(2^8), which
+//! the inverse evaluation map turns into coefficients once a layer (`products_gfni`); elsewhere, the
+//! positions grouped by each byte of their weight (`prover`'s digit buckets).
 //!
 //! The four rounds' sums are binary polynomials of degree at most 173. With AVX2 and GFNI they
 //! are taken on residues modulo 24 irreducibles of degree 8, where a product is a byte product
 //! (`skip_gfni`).
+//!
+//! With AVX2, the third walk weights each byte of a block's bits by a byte map, a GFNI affine map or two nibble
+//! lookups, into its field element (`table_maps`).
 //!
 //! The rounds that remain fold a table of one field element per half block and position. A pass over it
 //! binds two rounds' variables: over each quad of the rows it writes it sums the next round and, as a
@@ -116,13 +120,8 @@ mod prover;
 pub mod rmfe;
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2", target_feature = "gfni"))]
 mod skip_gfni;
-#[cfg(all(
-    target_arch = "x86_64",
-    target_feature = "avx512f",
-    target_feature = "avx512bw",
-    target_feature = "gfni"
-))]
-mod table_gfni;
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+mod table_maps;
 pub mod witness;
 
 #[cfg(test)]
