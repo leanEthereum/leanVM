@@ -194,6 +194,8 @@ def run_for(P, st, obj, conds=None, create=True):
             if R[0][0] == ((v, 1),) and R[1] == 1 and R[2] == num(0):
                 if best is None or not R[3][0] and best[0][3][0]:
                     best = (R, rw)
+        if best is None and create and not P.at_tail:
+            best = derive_for(P, st, v, runs)
         if best is not None:
             return best
         if obj[0] == 'val':
@@ -370,3 +372,35 @@ def narrow_update():
             I.NARROW[(f, r)] = (a, S)
             changed = True
     return changed
+
+
+def derive_for(P, st, v, runs):
+    """The object `v` written as `S` residue runs of stride `S` (a table filled `S` cells an iteration) and points
+    before them: one run `⟨v, 1, 0, hi⟩` (`merge`, `concat`: index arithmetic, generic residuals)."""
+    by = {}
+    for R, rw in runs:
+        Q, S, lo, hi = R
+        if Q[0] == ((v, 1),) and S > 1 and Q[1] < S:
+            by.setdefault((S, lo, hi), {})[Q[1]] = rw
+    for (S, lo, hi), ds in by.items():
+        if len(ds) != S:
+            continue
+        R = (((((v, 1),), 0)), 1, I.mpow(lo, S), I.mpow(hi, S))
+        parts = [((((v, 1),), d), S, lo, hi) for d in range(S)]
+        k = P.addres(('sub', R, tuple(parts), 'merge'))
+        rw = ('derived', k)
+        lo1 = R[2]
+        if lo1 != num(0) and not lo1[0] and lo1[1] <= 64:
+            # the cells below the merged run as points (a callee's guarantees before its loop)
+            if all(shift((((v, 1),), 0), i) in st.pts for i in range(lo1[1])):
+                R2 = (R[0], 1, num(0), R[3])
+                k2 = P.addres(('sub', R2, (R,), 'concat'))
+                st.runs.append((R, rw))
+                st.runs.append((R2, ('derived', k2)))
+                P.stats['derive-obj'] += 1
+                return R2, ('derived', k2)
+        st.runs.append((R, rw))
+        if lo1 == num(0):
+            P.stats['derive-obj'] += 1
+            return R, rw
+    return None

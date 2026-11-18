@@ -64,6 +64,8 @@ FEATURES = {
            'the run of the object it points into, a residual `subR`; ghost slots name a caller\'s object (`objs.py`)',
     'narrow': 'a table precondition its callers write only at a stride: narrowed to that stride, the read a residual '
               '`sub` (`objs.py`)',
+    'pfr': 'pointer runs: the words at a run of cells (a table filled in a loop) are pointers whose given cells are '
+           'written (`prePR`/`postPR`, `ptrrun.py`)',
     'wrap': 'offsets modulo `g`\'s order (`g^-k` named `g^(ORD - k)` and folded); without it offsets add as naturals, '
             'as `CCell.mul` does',
 }
@@ -215,7 +217,7 @@ def shape(k):
 # ---- signatures: monomials over parameter numbers `0..m-1` and returned words `m + j`
 
 class Sig:
-    FIELDS = ('pre', 'post', 'preR', 'postR', 'term', 'postV', 'preP', 'postP', 'ghosts', 'postIn')
+    FIELDS = ('pre', 'post', 'preR', 'postR', 'term', 'postV', 'preP', 'postP', 'ghosts', 'postIn', 'prePR', 'postPR')
 
     def __init__(self, m):
         self.m = m
@@ -230,6 +232,8 @@ class Sig:
         self.retM = {}       # returned word j -> its monomial over the parameters
         self.ghosts = []     # ghost slot j (value `GB + j`): its anchor (`objs.py`), an inference device only
         self.postIn = []     # (cell pattern run, anchor): the cells' words point into the anchor's object
+        self.prePR = []      # (run, offsets): each cell of the run holds a pointer with these cells past it written
+        self.postPR = []
         self.retIn = {}      # returned word j -> the anchor of the object it points into
         self.narrow = {}     # preR index -> stride its callers write it at (`narrow`)
         self.ctr = None      # a loop's counter and bound parameters
@@ -253,21 +257,24 @@ class Sig:
 
 
 SIGS = {}
+PFR = ('__pfr__',)   # the key of a selector arm's pointer runs among its kept heap words (`cond`)
 GB = 1 << 20   # ghost slot j is the value `GB + j`
 
 
 # ---- the pass
 
 class St:
-    __slots__ = ('env', 'pts', 'hv', 'pf', 'src', 'runs', 'lts', 'D', 'alias', 'cond')
+    __slots__ = ('env', 'pts', 'hv', 'pf', 'src', 'runs', 'lts', 'D', 'alias', 'cond', 'pfr')
 
     def __init__(self):
         self.env, self.pts, self.hv, self.pf, self.src = {}, {}, {}, {}, {}
         self.runs, self.lts, self.D, self.alias, self.cond = [], set(), set(), {}, {}
+        self.pfr = []
 
     def copy(self):
         s = St()
         s.env, s.pts, s.hv, s.pf, s.src = dict(self.env), dict(self.pts), dict(self.hv), dict(self.pf), dict(self.src)
+        s.pfr = list(self.pfr)
         s.runs, s.lts, s.D, s.alias, s.cond = list(self.runs), set(self.lts), set(self.D), dict(self.alias), \
             dict(self.cond)
         return s
@@ -290,15 +297,20 @@ def meet(sts, sel=None):
         s.lts &= t.lts
         s.D &= t.D
         s.cond = {k: v for k, v in s.cond.items() if t.cond.get(k) is v}
+        s.pfr = [x for x in s.pfr if x in t.pfr]
     if sel is not None:
         x, js = sel
         for j, t in live:
             pts = {c: w for c, w in t.pts.items() if c not in s.pts}
             runs = [(r, w) for r, w in t.runs if (r, w) not in s.runs]
             hv = {c: w for c, w in t.hv.items() if c not in s.hv}
-            if pts or runs or hv:
+            pfr = [x for x in t.pfr if x not in s.pfr]
+            if pts or runs or hv or pfr:
                 old = s.cond.get((x, js[j]), ({}, [], {}))
-                s.cond[(x, js[j])] = ({**old[0], **pts}, old[1] + runs, {**old[2], **hv})
+                hv2 = {**old[2], **hv}
+                if pfr:
+                    hv2[PFR] = old[2].get(PFR, []) + pfr
+                s.cond[(x, js[j])] = ({**old[0], **pts}, old[1] + runs, hv2)
     return s
 
 
@@ -530,8 +542,13 @@ class Pass:
                 if f is not None and c[1] in f[0]:
                     self.stats['w-pf'] += 1
                     return ('pf', f[1], c[1])
-                if allow_pre and self.iface(s[0]) and c[1] < 2 ** 20 and not (
-                        self.loop and any(b == self.sig.ctr for b, _ in s[0][0])):
+                if 'pfr' in F and c[1] < 2 ** 20:
+                    import ptrrun
+                    w = ptrrun.read(self, st, s[0], (c[1],), conds)
+                    if w is not None:
+                        return w
+                if allow_pre and not self.at_tail and self.iface(s[0]) and c[1] < 2 ** 20 and (
+                        'pfr' in F or not (self.loop and any(b == self.sig.ctr for b, _ in s[0][0]))):
                     return self.add_preP(s[0], c[1])
         if allow_pre and not self.at_tail and self.iface(c) and c[0]:
             if self.loop and any(b == self.sig.ctr for b, _ in c[0]):
@@ -870,7 +887,12 @@ class Pass:
                 ws.append(x)
             self.stats['wp-word'] += 1
             return ('word', ws)
-        if self.iface(c) and not (self.loop and any(b == self.sig.ctr for b, _ in c[0])):
+        if 'pfr' in F:
+            import ptrrun
+            w = ptrrun.read(self, st, c, tuple(offs), conds)
+            if w is not None:
+                return w
+        if not self.at_tail and self.iface(c) and ('pfr' in F or not (self.loop and any(b == self.sig.ctr for b, _ in c[0]))):
             for o in offs:
                 w = self.add_preP(c, o)
             return ('preP', w[1])
@@ -901,6 +923,12 @@ class Pass:
                 t = self.tr(st, c, args, None)
                 w = self.cover_ptr(st, t, offs, site, conds) if t is not None else None
                 ws.append(('preP', w if w is not None else self.unc_read(st, t, site, 'ptr:')))
+            if 'pfr' in F:
+                import ptrrun
+                for r, offs in G.prePR:
+                    t = self.trR(st, r, args, None)
+                    w = ptrrun.cover(self, st, t, offs, conds) if t is not None else None
+                    ws.append(('prePR', w if w is not None else self.unc_read(st, t[0] if t else None, site, 'ptrrun:')))
             # a callee's `term` is not met at the call: the composition proves it of every honest instance
         self.lastws = ws
         if record:
@@ -942,6 +970,13 @@ class Pass:
             if conditional and not ('callIfR' in F and cond is not None and self.cond_is(st, cond, t[2], t[3])):
                 continue
             self.pushR(st, t)
+        for r, offs in (G.postPR if 'pfr' in F else ()):
+            t = self.trR(st, r, args, rets)
+            if t is None or conditional and not ('callIfR' in F and cond is not None and
+                                                 self.cond_is(st, cond, t[2], t[3])):
+                continue
+            st.pfr.append((t, frozenset(offs), ('evR', self.n)))
+            self.n += 1
 
     def cond_is(self, st, c, a, b):
         """The condition `c` is `x + y`, the words of the indices `a`, `b` (so `c ≠ 0` iff `a ≠ b`)."""
@@ -982,7 +1017,8 @@ class Pass:
                         for pts, runs, hv in self.conds_of(st, s[1], j):
                             t.pts.update({c: w for c, w in pts.items() if c not in t.pts})
                             t.runs += runs
-                            t.hv.update({c: w for c, w in hv.items() if c not in t.hv})
+                            t.hv.update({c: w for c, w in hv.items() if c not in t.hv and c != PFR})
+                            t.pfr += hv.get(PFR, [])
                         self.subst = self.assume(st, s[1], j)
                     outs.append(self.block(t, arm))
                     self.subst = old
@@ -1034,6 +1070,12 @@ class Pass:
             t = self.trR(st, r, args, None)
             w = self.cover_run(st, t, ('tail',)) if t is not None else None
             ws.append(('preR', w if w is not None else ('miss', t)))
+        if 'pfr' in F:
+            import ptrrun
+            for r, offs in G.prePR:
+                t = self.trR(st, r, args, None)
+                w = ptrrun.cover(self, st, t, offs, None) if t is not None else None
+                ws.append(('prePR', w if w is not None else ('miss', t)))
         self.at_tail = False
         return ws
 
@@ -1157,6 +1199,8 @@ class Pass:
             st.runs.append((r, ('preR', i)))
         for a, b in G.term:
             st.lts.add((a, b))
+        for k, (r, offs) in enumerate(G.prePR):
+            st.pfr.append((r, frozenset(offs), ('prePR', k)))
         for k, (c, offs) in enumerate(G.preP):
             st.pf[c] = (frozenset(offs), ('preP', k))
         self.block(st, self.body)
@@ -1269,6 +1313,9 @@ def retsig(P, G):
     G.postR = sorted(r for r in postR if r not in set(G.preR))
     G.postV = sorted(postV)[:MAXPTS]
     G.postP = sorted((c, tuple(sorted(o))) for c, o in postP.items())
+    if 'pfr' in F:
+        import ptrrun
+        ptrrun.retsig(P, G, rename)
 
 
 def infer(key, rules=True):
@@ -1349,6 +1396,9 @@ def loop_finish(P, G):
         elif c not in G.pre:
             post.append(c)
     G.post, G.postR = post[:MAXPTS], [r for r in postR if r not in G.preR]
+    if 'pfr' in F:
+        import ptrrun
+        ptrrun.loop_finish(P, G, tails, end)
 
 
 # ---- reporting
@@ -1391,6 +1441,9 @@ def used_res(P):
                 add(i)
         elif k == 'sub':
             w_(w[1])
+            for i in w[2]:
+                add(i)
+        elif k == 'pfr':
             for i in w[2]:
                 add(i)
         elif k == 'pts':
