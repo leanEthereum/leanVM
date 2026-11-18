@@ -266,7 +266,12 @@ def collect():
     LR, _ = loopc.results()
     for k, r in LR.items():
         reads[k] = set(r['pass_'].reads)
-    ok = sorted(set(ok) | set(CR) | set(LR))
+    # loop helpers with calls, by the check's loop rules at their callees' signatures (`loopcc.py`)
+    import loopcc
+    LCR, _ = loopcc.results()
+    for k, r in LCR.items():
+        reads[k] = set(r['cert'].reads)
+    ok = sorted(set(ok) | set(CR) | set(LR) | set(LCR))
     if '--all' in sys.argv:
         # every function, its reads by the def-use designation (`heap.reads_of`), a measurement only
         for k, (params, b) in heap.CORE.items():
@@ -303,7 +308,7 @@ def collect():
             continue
         out[k] = dict(key=k, entry=F['entry'], O=O, S=S, states=[states[c] for c in cuts], n=n, j=A['j'],
                       bpack=B['pack'], loads=count_loads(body), reads=len(reads[k]), locs=B['locs'], extra=dict(extra),
-                      kind='c' if k in CR else ('l' if k in LR else 'm1'))
+                      kind='c' if k in CR else ('l' if k in LR else ('lc' if k in LCR else 'm1')))
     return out, fails
 
 
@@ -346,7 +351,7 @@ def imports(ms):
 
 def data_mod(pack, f):
     """The module of the function's heap certificate: milestone 1's, or the check with calls'."""
-    return f'LeanVM.Guest.CoreMode.Gen.«{pack}».' + {'c': 'DataC', 'l': 'DataL'}.get(f.get('kind'), 'Data')
+    return f'LeanVM.Guest.CoreMode.Gen.«{pack}».' + {'c': 'DataC', 'l': 'DataL', 'lc': 'DataLC'}.get(f.get('kind'), 'Data')
 
 
 def render_pack(pack, fs):

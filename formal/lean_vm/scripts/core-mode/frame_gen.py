@@ -104,6 +104,10 @@ def fnData(D, n, cuts):
     if rt and rt.get('kind') == 'l':
         # a leaf loop helper on the core route: its walk is told no callee (`CoreMode.loopShapeOk`)
         sigs = {}
+    if rt and rt.get('kind') == 'lc':
+        # a loop helper with calls on the core route: its walk is told its environment's callees, its own entry
+        # among them (`CoreMode.LoopOkC.fsigs`)
+        sigs[entry] = '%s.modeSig' % MG.fnq(n)
     packs = {D['fns'][byentry[pc]]['pack'] for pc in w.used}
     fx = D['facts'][n]
     facts = '{ env := %s, fpOne := %s, pows := Data.powTree, scaled := %s }' % (

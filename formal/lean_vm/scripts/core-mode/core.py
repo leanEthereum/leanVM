@@ -149,6 +149,53 @@ def cfun_l(k, j, K, frame):
             f'theorem fnSpecC : Mode.FnSpecC {K} cfun := CoreMode.fnSpecC_of_loop loop_ok\n\n'
             f'end\n\nend LeanVM.Guest.Fn.«{k}»\n')
 
+
+def cfun_lc(k, j, K, frame):
+    """A loop helper with calls: its heap check (`heapOkC`'s loop rules at its callees' heap signatures `csigs`), its
+    signature, code and shape, the kernel's checks (`CoreMode.LoopOkC`)."""
+    return (f'\nnamespace LeanVM.Guest.Fn.«{k}»\n\nopen LeanVM.Guest\n\n@[expose] public section\n\n'
+            f'/-- `{k}`: what the core route knows of it. -/\n'
+            f'noncomputable def cfun : CoreMode.CFun :=\n'
+            f'  ⟨frameFun, alignCtx, hcert, core, Data.adviceFn{j}, Data.powTree, [], csigs⟩\n\nend\n\npublic section\n\n'
+            f'attribute [local irreducible] pairO pairS\n\n'
+            f'/-- `{k}`: the heap check, by its loop rules, at its callees\' heap signatures. -/\n'
+            f'theorem heap_okC : CoreMode.heapOkC Data.powTree cfun.sigOf core hcert = true := by\n  decide +kernel\n\n'
+            f'/-- `{k}`: its signature translated. -/\n'
+            f'theorem loop_sig : CoreMode.sigOkL modeFun.sig hcert.sig core.params.length = true := by\n'
+            f'  decide +kernel\n\n'
+            f'/-- `{k}`: its code, its calls\' jumps and its last two instructions. -/\n'
+            f'theorem loop_code : CoreMode.loopCodeC cfun code.chunks.flatten = true := by\n  decide +kernel\n\n'
+            f'/-- `{k}`: its shape. -/\n'
+            f'theorem loop_shape : CoreMode.loopShapeOkC cfun = true := by\n  decide +kernel\n\n'
+            f'/-- `{k}`: the kernel\'s checks of the core route for a loop helper with calls, tied to its mode certificate. -/\n'
+            f'theorem loop_ok : CoreMode.LoopOkC {K} cfun where\n'
+            f'  heap := heap_okC\n'
+            f'  res := rfl\n'
+            f'  body := by decide +kernel\n'
+            f'  calls := by decide +kernel\n'
+            f'  top := by decide +kernel\n'
+            f'  code := loop_code\n'
+            f'  pair := pair_ok\n'
+            f'  frame := {frame}\n'
+            f'  sig := loop_sig\n'
+            f'  shape := loop_shape\n'
+            f'  sigE := rfl\n'
+            f'  fsig := rfl\n'
+            f'  fsigs := rfl\n'
+            f'  fentry := rfl\n'
+            f'  flen := by decide +kernel\n'
+            f'  xentry := by decide +kernel\n'
+            f'  xlen := by decide +kernel\n'
+            f'  dhints := rfl\n'
+            f'  hints := Mode.hintsEq_of_fn (j := {j}) (by decide +kernel) (by decide +kernel) (by decide +kernel) rfl\n'
+            f'  fetch := Exec.guest_fetches (Checked.code{j} ▸ End.fnOf_mem (by decide))\n'
+            f'  small := Mode.smallOps_of (CoreMode.offSmall_of_mem (f := code) (Checked.code{j} ▸ End.fnOf_mem (by decide)))\n'
+            f'  pows := Exec.PowTree.ok_of_okW Checked.powTree_ok\n'
+            f'  fpows := Exec.PowTree.ok_of_okW Checked.powTree_ok\n\n'
+            f'/-- `{k}`: its frame interface, by the core route. -/\n'
+            f'theorem fnSpecC : Mode.FnSpecC {K} cfun := CoreMode.fnSpecC_of_loopC loop_ok\n\n'
+            f'end\n\nend LeanVM.Guest.Fn.«{k}»\n')
+
 def main():
     R = route.route_sub()
     po = heap.pack_of()
@@ -181,6 +228,12 @@ def main():
                 imps.add('LeanVM.Guest.CoreMode.CoreLoop')
                 imps.add('LeanVM.Guest.Pack.«%s».%s' % (p, po[k][1]))
                 body.append(cfun_l(k, j, K, frame_term(frames[k])))
+                continue
+            if R[k].get('kind') == 'lc':
+                imps.add('LeanVM.Guest.CoreMode.Gen.«%s».DataLC' % p)
+                imps.add('LeanVM.Guest.CoreMode.CoreLoopC')
+                imps.add('LeanVM.Guest.Pack.«%s».%s' % (p, po[k][1]))
+                body.append(cfun_lc(k, j, K, frame_term(frames[k])))
                 continue
             if R[k].get('kind') == 'c':
                 imps.add('LeanVM.Guest.CoreMode.Gen.«%s».DataC' % p)

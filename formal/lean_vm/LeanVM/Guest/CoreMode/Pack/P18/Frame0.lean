@@ -21,6 +21,7 @@ public import LeanVM.Guest.CoreMode.Gen.«P18».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P18».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P18».Pair
 public import LeanVM.Guest.CoreMode.Gen.«P18».Pair
+public import LeanVM.Guest.CoreMode.Gen.«P18».Pair
 public import LeanVM.Guest.Pack.«P17».ModeSig
 public import LeanVM.Guest.Pack.«P18».ModeSig
 public import LeanVM.Guest.Pack.«P20».ModeSig
@@ -49,8 +50,12 @@ noncomputable def frameFun : CoreMode.FFun :=
     (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
     (.node none (.node none .nil (.node none (.node none .nil (.node none .nil (.node none .nil
     (.node (some Fn.«rs_eq_rows__L8».modeSig) .nil .nil)))) .nil)) .nil)))) .nil) .nil)) .nil)
-    .nil)) .nil) .nil), 524287, Data.adviceFn83.2.2, .nil, .nil, .nil, .nil, (.node none (.node none
-    .nil (.node none (.node none (.node (some ()) .nil .nil) .nil) .nil)) .nil), .nil, .nil⟩
+    .nil)) .nil) (.node none (.node none (.node none (.node none .nil (.node none (.node none (.node
+    none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none (.node none
+    (.node none .nil (.node none .nil (.node none (.node (some Fn.«rs_eq_run_loop0».modeSig) .nil
+    .nil) .nil))) .nil) .nil)) .nil)) .nil)) .nil) .nil)) .nil) .nil) .nil)), 524287,
+    Data.adviceFn83.2.2, .nil, .nil, .nil, .nil, Fn.«rs_eq_run_loop0».pairO,
+    Fn.«rs_eq_run_loop0».pairS, .nil⟩
 
 /-- `__loop5`: its frame walk accepts its code. -/
 theorem frameOk : CoreMode.frameOk frameFun code.chunks.flatten = true := by
