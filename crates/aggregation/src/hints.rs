@@ -109,10 +109,27 @@ fn digit_hints(codeword: &[u8], size: usize) -> impl Iterator<Item = Vec<F128>> 
     })
 }
 
+/// The guest's `LX_INDEX_TAGS`: the address each `lx_index` cell carries beside its
+/// shift of the leaf index, so that the cell is that address. A layer's first window
+/// carries the layer's message address, each other window that of the last node the
+/// window below it reaches.
+pub(super) fn lx_index_tags() -> impl Iterator<Item = F128> {
+    use lean_xmss::internals as lx;
+    let per_layer = lx::LAYER_HEIGHT / LX_WINDOW;
+    (0..2 * per_layer).map(move |w| {
+        let (layer, v) = (w / per_layer, w % per_layer);
+        let tweak = match v {
+            0 => lx::tweak(lx::TWEAK_MSG, lx::layer_hi(layer, 0), 0),
+            _ => lx::tweak(lx::TWEAK_NODE, lx::layer_hi(layer, (LX_WINDOW * v) as u32), 0),
+        };
+        pack_16_bytes(&lx::address(&tweak))
+    })
+}
+
 /// One leanXMSS signature's witness: its leaf index shifted by each multiple of
-/// `LX_WINDOW` and those windows in the exponent, then per layer, bottom first, the
-/// randomizer, the codeword's digits, the chain values they start from, and the
-/// sibling of every node on the path.
+/// `LX_WINDOW`, each with its `lx_index_tags` address, and those windows in the
+/// exponent, then per layer, bottom first, the randomizer, the codeword's digits,
+/// the chain values they start from, and the sibling of every node on the path.
 pub(super) fn lean_xmss_hints(
     pk: &LeanXmssPublicKey,
     sig: &LeanXmssSignature,
@@ -121,8 +138,12 @@ pub(super) fn lean_xmss_hints(
     let pp = lean_xmss::internals::pk_public_param(pk);
     let index = u64::from(sig.leaf_index());
     let windows = (0..lean_xmss::LOG_LIFETIME).step_by(LX_WINDOW).map(|s| index >> s);
+    let tagged = windows
+        .clone()
+        .zip(lx_index_tags())
+        .map(|(x, tag)| F128::new(x, 0) + tag);
     let mut hints: SubHints = vec![
-        ("lx_index", windows.clone().map(|x| F128::new(x, 0)).collect()),
+        ("lx_index", tagged.collect()),
         (
             "lx_windows",
             windows.map(|x| count((x % (1 << LX_WINDOW)) as usize)).collect(),

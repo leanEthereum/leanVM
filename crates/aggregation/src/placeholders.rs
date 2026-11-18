@@ -7,7 +7,7 @@ use super::child::{
 };
 use super::claim_pool::{ClaimSite, claim_pool, coord_difference, coord_kind, coord_scale, push_coord_terms};
 use super::deferred::{BATCH_LAM_GRIND_BITS, RECURSION_AGG_LABEL};
-use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW};
+use super::hints::{DIGIT_GROUP, LX_DIGIT_GROUP, LX_WINDOW, lx_index_tags};
 use super::statement::{BIG_GROUPS, CLAIM_GROUP, STATEMENT_HEADER};
 use super::{MAX_LOG_INV_RATE, MIN_LOG_INV_RATE};
 use fiat_shamir_prover::merkle::hash_to_scalars;
@@ -873,6 +873,7 @@ fn signature_placeholders(ph: &mut Placeholders) {
         ph.set(name, address(lx::tweak(tag, 0, 0)));
     }
     ph.set("LX_TOP", address(lx::tweak(0, lx::TOP, 0)));
+    ph.list("LX_INDEX_TAGS", lx_index_tags());
     ph.list(
         "LX_GROUP_SIZES",
         (0..lx::V.div_ceil(LX_DIGIT_GROUP)).map(|p| LX_DIGIT_GROUP.min(lx::V - LX_DIGIT_GROUP * p)),
