@@ -8,25 +8,9 @@
 module
 
 public import LeanVM.Guest.Mode.HintsData
-public import LeanVM.Guest.Pack.«P7».Mode0
 public import LeanVM.Guest.Pack.«P7».ModeD0
 
 set_option Elab.async false
-
-namespace LeanVM.Guest.Fn.«column_selector__L11»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `column_selector__L11`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 289) (d := Data.adviceFn289) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«column_selector__L11»
 
 namespace LeanVM.Guest.Fn.«rs_eq_run»
 

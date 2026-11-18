@@ -8,10 +8,8 @@
 module
 
 public import LeanVM.Guest.Mode.ResFam
-public import LeanVM.Guest.Pack.«P0».Mode0
 public import LeanVM.Guest.Pack.«P10».Mode0
 public import LeanVM.Guest.Pack.«P11».Mode0
-public import LeanVM.Guest.Pack.«P12».Mode0
 public import LeanVM.Guest.Pack.«P15».Mode0
 public import LeanVM.Guest.Pack.«P16».Mode0
 public import LeanVM.Guest.Pack.«P17».Mode0
@@ -27,10 +25,8 @@ public import LeanVM.Guest.Pack.«P26».Mode0
 public import LeanVM.Guest.Pack.«P28».Mode0
 public import LeanVM.Guest.Pack.«P29».Mode0
 public import LeanVM.Guest.Pack.«P29».ModeD0
-public import LeanVM.Guest.Pack.«P2».Mode0
 public import LeanVM.Guest.Pack.«P30».Mode0
 public import LeanVM.Guest.Pack.«P32».Mode0
-public import LeanVM.Guest.Pack.«P33».Mode0
 public import LeanVM.Guest.Pack.«P33».ModeD0
 public import LeanVM.Guest.Pack.«P34».Mode0
 public import LeanVM.Guest.Pack.«P35».Mode0
@@ -39,7 +35,6 @@ public import LeanVM.Guest.Pack.«P37».Mode0
 public import LeanVM.Guest.Pack.«P38».Mode0
 public import LeanVM.Guest.Pack.«P39».Mode0
 public import LeanVM.Guest.Pack.«P3».ModeD0
-public import LeanVM.Guest.Pack.«P40».Mode0
 public import LeanVM.Guest.Pack.«P42».Mode0
 public import LeanVM.Guest.Pack.«P43».Mode0
 public import LeanVM.Guest.Pack.«P44».Mode0
@@ -56,14 +51,12 @@ public import LeanVM.Guest.Pack.«P54».Mode0
 public import LeanVM.Guest.Pack.«P55».Mode0
 public import LeanVM.Guest.Pack.«P56».Mode0
 public import LeanVM.Guest.Pack.«P57».Mode0
-public import LeanVM.Guest.Pack.«P59».Mode0
 public import LeanVM.Guest.Pack.«P5».Mode0
 public import LeanVM.Guest.Pack.«P60».Mode0
 public import LeanVM.Guest.Pack.«P61».Mode0
 public import LeanVM.Guest.Pack.«P62».Mode0
 public import LeanVM.Guest.Pack.«P63».Mode0
 public import LeanVM.Guest.Pack.«P6».Mode0
-public import LeanVM.Guest.Pack.«P7».Mode0
 public import LeanVM.Guest.Pack.«P7».ModeD0
 public import LeanVM.Guest.Pack.«P8».Mode0
 public import LeanVM.Guest.Pack.«P9».Mode0
@@ -83,7 +76,7 @@ public import LeanVM.Guest.Pack.«verify_tables».ModeD0
 /-!
 # The residuals' families, checked on the guest's data
 
-`nzMul_guest`: each nonzero residual of a kernel-checked function sits at a `MUL` as its divisor (`nz_mul`, `resRef_obl`: its product cell nonzero on the reference). `ltWin_guest`: each order residual of a `walk_path` specialization `walk_path__L{p}_L{c}` bounds a window of its `wins` argument (frame cell `4`): the exponent of the word `k < (p + 5) / 6` cells past it below `64` (`obl_win`, `rwins_of_winsAt`). `ltFr_guest`: each order residual of the listed functions bounds a frame cell's exponent. `famOk_guest`: every residual of the listed functions has an obligation of its own (`Obl`, `oblFam`). The functions with a residual outside the families: `block_selector_tab__L1`, `block_selector_tab__L10`, `block_selector_tab__L11`, `block_selector_tab__L12`, `block_selector_tab__L13`, `block_selector_tab__L14`, `block_selector_tab__L15`, `block_selector_tab__L16`, `block_selector_tab__L17`, `block_selector_tab__L18`, `block_selector_tab__L19`, `block_selector_tab__L2`, `block_selector_tab__L20`, `block_selector_tab__L21`, `block_selector_tab__L22`, `block_selector_tab__L23`, `block_selector_tab__L24`, `block_selector_tab__L25`, `block_selector_tab__L26`, `block_selector_tab__L27`, `block_selector_tab__L28`, `block_selector_tab__L29`, `block_selector_tab__L3`, `block_selector_tab__L30`, `block_selector_tab__L31`, `block_selector_tab__L32`, `block_selector_tab__L33`, `block_selector_tab__L4`, `block_selector_tab__L5`, `block_selector_tab__L6`, `block_selector_tab__L7`, `block_selector_tab__L8`, `block_selector_tab__L9`, `certify_placement`, `check_opening_terminal`, `claim_list_digest`, `column_selector__L1`, `column_selector__L10`, `column_selector__L11`, `column_selector__L13`, `column_selector__L14`, `column_selector__L15`, `column_selector__L17`, `column_selector__L18`, `column_selector__L19`, `column_selector__L2`, `column_selector__L21`, `column_selector__L22`, `column_selector__L23`, `column_selector__L25`, `column_selector__L26`, `column_selector__L27`, `column_selector__L29`, `column_selector__L3`, `column_selector__L30`, `column_selector__L5`, `column_selector__L6`, `column_selector__L7`, `column_selector__L9`, `log2_ceil_in_the_exponent__L0_L34`, `log2_ceil_in_the_exponent__L16_L34`, `main`, `rs_eq_run`, `shared_selector_tables`, `verify_bus_gkr`, `verify_bus_gkr_loop0`, `verify_keccak`, `verify_sub`, `verify_tables`.
+`nzMul_guest`: each nonzero residual of a kernel-checked function sits at a `MUL` as its divisor (`nz_mul`, `resRef_obl`: its product cell nonzero on the reference). `ltWin_guest`: each order residual of a `walk_path` specialization `walk_path__L{p}_L{c}` bounds a window of its `wins` argument (frame cell `4`): the exponent of the word `k < (p + 5) / 6` cells past it below `64` (`obl_win`, `rwins_of_winsAt`). `ltFr_guest`: each order residual of the listed functions bounds a frame cell's exponent. `famOk_guest`: every residual of the listed functions has an obligation of its own (`Obl`, `oblFam`). The functions with a residual outside the families: `block_selector_tab__L1`, `block_selector_tab__L10`, `block_selector_tab__L11`, `block_selector_tab__L12`, `block_selector_tab__L13`, `block_selector_tab__L14`, `block_selector_tab__L15`, `block_selector_tab__L16`, `block_selector_tab__L17`, `block_selector_tab__L18`, `block_selector_tab__L19`, `block_selector_tab__L2`, `block_selector_tab__L20`, `block_selector_tab__L21`, `block_selector_tab__L22`, `block_selector_tab__L23`, `block_selector_tab__L24`, `block_selector_tab__L25`, `block_selector_tab__L26`, `block_selector_tab__L27`, `block_selector_tab__L28`, `block_selector_tab__L29`, `block_selector_tab__L3`, `block_selector_tab__L30`, `block_selector_tab__L31`, `block_selector_tab__L32`, `block_selector_tab__L33`, `block_selector_tab__L4`, `block_selector_tab__L5`, `block_selector_tab__L6`, `block_selector_tab__L7`, `block_selector_tab__L8`, `block_selector_tab__L9`, `certify_placement`, `check_opening_terminal`, `claim_list_digest`, `column_selector__L29`, `column_selector__L30`, `log2_ceil_in_the_exponent__L0_L34`, `log2_ceil_in_the_exponent__L16_L34`, `main`, `rs_eq_run`, `shared_selector_tables`, `verify_bus_gkr`, `verify_bus_gkr_loop0`, `verify_keccak`, `verify_sub`, `verify_tables`.
 -/
 
 namespace LeanVM.Guest.Mode

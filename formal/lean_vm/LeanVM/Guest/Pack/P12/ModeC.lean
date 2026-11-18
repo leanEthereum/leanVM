@@ -40,6 +40,25 @@ end
 
 end LeanVM.Guest.Fn.«index_mle__L2»
 
+namespace LeanVM.Guest.Fn.«column_selector__L1»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `column_selector__L1`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `column_selector__L1`: its entry, length and signature; on the core route, nothing for a walk.
+    -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨210178, 75, Fn.«column_selector__L1».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«column_selector__L1»
+
 namespace LeanVM.Guest.Fn.«level_residual__L109_L14_L6_L3»
 
 open LeanVM.Guest LeanVM.Guest.Exec

@@ -15,31 +15,6 @@ public import LeanVM.Guest.Pack.«P0».ModeSig
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«column_selector__L5»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `column_selector__L5`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `column_selector__L5`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨210469, 66, Fn.«column_selector__L5».modeSig, (.node (some [(.digitDecomposeExp 2 (.stack 6) 32
-    7 4 4 none)]) .nil .nil), (.node none (.node none .nil (.node (some [(.sub ⟨⟨0, 96, [((.fr 3),
-    1), ((.fr 6), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 8), 2,
-    96⟩])]) .nil .nil)) .nil), .nil, false, .nil⟩
-
-/-- `column_selector__L5`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«column_selector__L5»
-
 namespace LeanVM.Guest.Fn.«decode_query_windows__L16_L4»
 
 open LeanVM.Guest LeanVM.Guest.Exec

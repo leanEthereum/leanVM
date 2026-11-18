@@ -42,21 +42,6 @@ end
 
 end LeanVM.Guest.Fn.«keccak_layer__L1»
 
-namespace LeanVM.Guest.Fn.«column_selector__L9»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `column_selector__L9`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 287) (d := Data.adviceFn287) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«column_selector__L9»
-
 namespace LeanVM.Guest.Fn.«child_claim_list_mono_last__L11»
 
 open LeanVM.Guest LeanVM.Guest.Exec

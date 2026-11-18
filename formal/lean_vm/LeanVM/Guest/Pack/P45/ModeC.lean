@@ -153,6 +153,25 @@ end
 
 end LeanVM.Guest.Fn.«keccak_plain_rounds__L6_L0»
 
+namespace LeanVM.Guest.Fn.«column_selector__L13»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `column_selector__L13`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
+
+/-- `column_selector__L13`: its entry, length and signature; on the core route, nothing for a walk.
+    -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨210943, 48, Fn.«column_selector__L13».modeSig, .nil, .nil, .nil, false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«column_selector__L13»
+
 namespace LeanVM.Guest.Fn.«rs_eq_rows__L8»
 
 open LeanVM.Guest LeanVM.Guest.Exec

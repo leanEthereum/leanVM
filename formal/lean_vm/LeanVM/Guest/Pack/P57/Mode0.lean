@@ -18,31 +18,6 @@ public import LeanVM.Guest.Pack.«P7».ModeSig
 
 set_option Elab.async false
 
-namespace LeanVM.Guest.Fn.«column_selector__L6»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-@[expose] public section
-
-/-- `column_selector__L6`: the program its walk shares. -/
-noncomputable def modeEnv : Mode.Env :=
-  ⟨Data.powTree, Data.jtTrie, 430, 14352, .nil, 524287⟩
-
-/-- `column_selector__L6`: its hints, residuals, table sizes and cuts. -/
-noncomputable def modeFun : Mode.Fun :=
-  ⟨210535, 66, Fn.«column_selector__L6».modeSig, (.node (some [(.digitDecomposeExp 2 (.stack 6) 32
-    7 4 4 none)]) .nil .nil), (.node none (.node none .nil (.node (some [(.sub ⟨⟨0, 80, [((.fr 3),
-    1), ((.fr 6), 1)]⟩, (.num 0), (.num 1), 1, 0⟩ [⟨⟨0, 0, [((.fr 3), 1)]⟩, (.num 0), (.num 4), 4,
-    80⟩])]) .nil .nil)) .nil), .nil, false, .nil⟩
-
-/-- `column_selector__L6`: its mode walk accepts its code. -/
-theorem modeOk : Mode.walk modeEnv modeFun code.chunks.flatten = true := by
-  decide +kernel
-
-end
-
-end LeanVM.Guest.Fn.«column_selector__L6»
-
 namespace LeanVM.Guest.Fn.«log2_ceil_in_the_exponent__L0_L34»
 
 open LeanVM.Guest LeanVM.Guest.Exec

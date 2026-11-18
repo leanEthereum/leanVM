@@ -24,7 +24,7 @@ is an honest instance (`RefOk.frames`) of the function at that entry (the alignm
 events hold (`insts_good`); its frame holds each value the path names at its certificate cell
 (`FrameHolds.val`), which are the alignment context's cells (`locAt_ofData`) for its pointers, and
 `2 + k` for its parameters (`honB`); its heap certificate's residuals, of families (`resOk`), hold at its
-valuation (`resOk_sound`).
+valuation (`resOk_inst`).
 -/
 
 namespace LeanVM.Guest.Bridge
@@ -484,19 +484,7 @@ theorem coreHonAll_X {Ks : List Mode.Cert} {Km : Mode.Cert} {E0 : Mode.Env} {A :
     rw [← hfpL]
     exact Bridge.tailF_of (by omega) hj0 hF hc hi0 hcode hso hS
   · -- its residuals, of families (`resOk`), true along its path on the reference
-    have hwC : walk e.σ Cf.fn.body = .ret (e.pre ++ e.es) vs := by rw [hfn]; exact hw
-    refine resOk_sound (by have hκ : r.κ ≤ 28 := logMemorySize_le_28 (e := r.exec) hr.size; omega) r.img hres0 hwC
-      fun e0 he0 ↦ ?_
-    rcases insts_good (P := coreProgram) _ _ _ (hXh.covers.valid hH.toHonest) e.I hI with ⟨args, rets, hv⟩ |
-      ⟨f', σ', hph⟩
-    · rw [hIt] at hv
-      obtain ⟨fn', hfind, -, es', vs', hw', -, hh', -⟩ := hv
-      rw [hE.find, Option.some.injEq] at hfind
-      subst hfind
-      rw [hw, Memory.Out.ret.injEq] at hw'
-      obtain ⟨rfl, -⟩ := hw'
-      exact hh' e0 he0
-    · rw [hIt] at hph; cases hph
+    exact resOk_inst hr hI hIt (by rw [hfn]; exact hE.find) hres0
 
 end
 

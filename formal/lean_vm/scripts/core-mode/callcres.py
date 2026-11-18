@@ -4,7 +4,7 @@ milestone 1's check leaves uncovered), with the inference's index rules (`idx`, 
 residuals of a family the honest instances make true (`CoreMode.resFam`, sound in `EndExecCoreRes.lean`).
 
 `extend(out, why, S)` adds them to `callc.results()`'s. Usage (a census): python3 -I scripts/core-mode/callcres.py"""
-import os, sys, collections
+import os, re, sys, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import infer as I  # noqa: E402
@@ -51,21 +51,59 @@ def rc_bound(atoms, v):
     return None
 
 
-def res_fam(body, r):
-    """`CoreMode.resFam`: an exponent bound of a range checked value (`rc`), a residual of a family under branch
-    conditions. (Top-level selectors, `sel`, are not emitted by the solver.)"""
+def cs_kappa(k):
+    """`κ` for `column_selector__L{κ}`, `κ < 31` (`B1.Tables.lName`)."""
+    m = re.fullmatch(r'column_selector__L(\d+)', k)
+    return int(m.group(1)) if m and int(m.group(1)) < 31 else None
+
+
+def cs_sub(kap):
+    """`CoreMode.csSub κ`: the lowest digit's read `[sel_eq]·[digit₀]·g^off` in its strided table."""
+    w = 4 * (kap // 4) + 4 - kap
+    off = 64 * (kap // 4) + 16 * (w - 1)
+    return ('sub', (((1, 1), (3, 1)), off), ((((1, 1),), off), 2 ** (4 - w), ('num', 0), ('num', 2 ** w)))
+
+
+def res_fam(k, r):
+    """`CoreMode.resFam`: an exponent bound of a range checked value (`rc`), `column_selector`'s lowest digit in its
+    strided table (`cs`), a residual of a family under branch conditions. (Top-level selectors, `sel`, are not emitted
+    by the solver.)"""
+    body = I.CORE[k][1]
     if r[0] == 'under':
-        return res_fam(body, r[2])
+        return res_fam(k, r[2])
     if r[0] == 'lt' and r[1][0] == 'val' and r[2][0] == 'num':
         n = r[2][1]
         N = rc_bound(top_atoms(body), r[1][1])
         return n < CAPE and N is not None and N <= n
+    if r[0] == 'sub':
+        kap = cs_kappa(k)
+        return kap is not None and r == cs_sub(kap)
     return False
 
 
 def res_ok(k, res):
-    body = I.CORE[k][1]
-    return all(res_fam(body, r) for r in res)
+    return all(res_fam(k, r) for r in res)
+
+
+def cs_reads(EM):
+    """The solver's read witnesses also from the `cs` family: `column_selector__L{κ}`'s lowest digit's read, a cell of
+    its strided table's run in scope by the residual `csSub κ`."""
+    base = EM.Solver.pt
+
+    def pt(self, st, c, want=None, depth=0):
+        w = base(self, st, c, want, depth)
+        kap = cs_kappa(self.k)
+        if w is not None or want is not None or kap is None:
+            return w
+        r = cs_sub(kap)
+        if c != r[1]:
+            return None
+        R = EM.C.runF(st.env, r[2])
+        for n, R2 in sorted(st.rs.items()):
+            if R2 == R:
+                return ('run', n, [self.use(('cs', kap), r)])
+        return None
+    return base, pt
 
 
 def straight(body):
@@ -85,6 +123,8 @@ def extend(out, why, S, verbose=False):
     saved = set(I.F)
     I.F.clear()
     I.F.update(FEATURES)
+    EM = callc._em()
+    base, EM.Solver.pt = cs_reads(EM)
     got, lost = {}, collections.Counter()
     try:
         cands = [k for k in callc.candidates() if k not in out] + [k for k in leaf_candidates() if k not in out]
@@ -99,6 +139,7 @@ def extend(out, why, S, verbose=False):
     finally:
         I.F.clear()
         I.F.update(saved)
+        EM.Solver.pt = base
     for k, r in got.items():
         out[k] = r
     if verbose:
