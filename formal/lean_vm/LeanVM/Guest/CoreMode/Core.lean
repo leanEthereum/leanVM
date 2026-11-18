@@ -347,6 +347,30 @@ noncomputable def idxPow (pows : Exec.PowTree) (body : List Stmt) (args : List V
     | none => false
   | .mono _ => false
 
+/-- **A pointer-based product** `g^k · [[q] · g^d]`: its frame cell `q` and offset `d`. -/
+def hpOf (m : Mode.Mono) : Option (ℕ × ℕ) :=
+  match m.fp, m.bs with
+  | 0, [(.hp q d, 1)] => some (q, d)
+  | _, _ => none
+
+/-- A frame cell `q` of a slot below `n` (with `ent`, an entry cell). -/
+def hpSlot (G : Mode.Sig) (n : ℕ) (ent : Bool) (q : ℕ) : Bool :=
+  decide (2 ≤ q) && decide (q - 2 < n) && decide (q < 2 ^ 28) && (!ent || G.entry.contains q)
+
+/-- **A pointer-based product as a pointer fact**: over the slots below `n`, its pointer cell
+`⟨[(q - 2, 1)], d⟩` among `cs`, a pointer fact of `ps` there naming its offset. -/
+def hpIn (G : Mode.Sig) (n : ℕ) (ent : Bool) (ps : List (CCell × List ℕ)) (cs : List CCell) (m : Mode.Mono) : Bool :=
+  match hpOf m with
+  | some (q, d) => hpSlot G n ent q && cellIn ⟨[(q - 2, 1)], d⟩ cs &&
+      ps.any fun p ↦ p.1.beq ⟨[(q - 2, 1)], d⟩ && p.2.contains m.k
+  | none => false
+
+/-- **A pointer fact as pointer-based products**: each offset a product of `ms` over the slots below `n`. -/
+def hpAll (G : Mode.Sig) (n : ℕ) (ms : List Mode.Mono) (p : CCell × List ℕ) : Bool :=
+  p.2.all fun o ↦ ms.any fun m ↦ match hpOf m with
+    | some (q, d) => hpSlot G n false q && p.1.beq ⟨[(q - 2, 1)], d⟩ && Nat.beq m.k o
+    | none => false
+
 /-- A product, translated, is the cell `c`. -/
 def monoIs (m : Mode.Mono) (c : CCell) : Bool :=
   match monoC m with
@@ -368,7 +392,7 @@ noncomputable def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
   G.self.isNone && G.term.isEmpty && G.postL.isEmpty &&
     (G.postP.all fun r ↦ monoR G np nr (rngM r.1) && (idxB r.1.lo).isEmpty && (idxB r.1.hi).isEmpty &&
       Cf.H.sig.postPR.any (prunIs r ·) && Cf.H.sig.postR.any (rngXIs r.1 ·)) && G.postLP.isEmpty &&
-    G.postT.isEmpty && G.postC.isEmpty && Cf.H.sig.preP.isEmpty &&
+    G.postT.isEmpty && G.postC.isEmpty && Cf.H.sig.preP.all (hpAll G np G.pre) &&
     (Cf.H.sig.prePR.all fun p ↦ G.preP.any fun r ↦ monoS G np false (rngM r.1) && prunIs r p) &&
     Cf.H.sig.pre.all (fun c ↦ G.pre.any (fun m ↦ monoS G np false m && monoIs m c) ||
       G.preR.any fun r ↦ monoS G np false r.q && ptIn c r) &&
@@ -376,7 +400,8 @@ noncomputable def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
       (monoS G np false (rngM r) && rngXIs r q)) &&
     G.post.all (fun m ↦ (monoR G np nr m && match monoC m with
       | some c => cellIn c Cf.posts
-      | none => false) || postIn Cf.X Cf.fn.body G np (Cf.post.map (·.1)) m) &&
+      | none => false) || postIn Cf.X Cf.fn.body G np (Cf.post.map (·.1)) m ||
+      hpIn G np true Cf.H.sig.postP Cf.posts m) &&
     (G.postR.all fun r ↦ (monoR G np nr r.q && ((Cf.H.sig.postR.any fun q ↦ rngIs r q) ||
       match monoC r.q, runPts ⟨[], 0⟩ r with
       | some c, some l => l.all fun p ↦ cellIn ⟨c.bases, c.off + p.off⟩ Cf.posts
@@ -390,12 +415,12 @@ returned words, runs `G`'s); `h` with no pointer guarantee, returned word's mono
 def fitB (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Bool :=
   G.self.isNone &&
     (G.preP.all fun r ↦ monoS G na true (rngM r.1) && h.prePR.any (prunIs r ·) && h.preR.any (rngXIs r.1 ·)) &&
-    G.entry.contains 0 && G.entry.contains 1 && h.postP.isEmpty &&
+    G.entry.contains 0 && G.entry.contains 1 && h.postP.all (hpAll G (na + nr) G.post) &&
     (h.postPR.all fun p ↦ G.postP.any fun r ↦ monoS G (na + nr) false (rngM r.1) && prunIs r p) &&
     h.retM.isEmpty &&
-    G.pre.all (fun m ↦ monoS G na true m && match monoC m with
+    G.pre.all (fun m ↦ (monoS G na true m && match monoC m with
       | some c => cellIn c h.pre
-      | none => false) &&
+      | none => false) || hpIn G na true h.preP h.pre m) &&
     G.preR.all (fun r ↦ (monoS G na true r.q && ((h.preR.any fun q ↦ rngIs r q) ||
       match monoC r.q, runPts ⟨[], 0⟩ r with
       | some c, some l => l.all fun p ↦ cellIn ⟨c.bases, c.off + p.off⟩ h.pre

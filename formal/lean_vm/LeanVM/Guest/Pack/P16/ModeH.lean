@@ -73,21 +73,6 @@ end
 
 end LeanVM.Guest.Fn.«child_claim_list_last__L6»
 
-namespace LeanVM.Guest.Fn.«level_queries__L73_L1_L6_L32_L17_L5_L0_L0_L0_L0»
-
-open LeanVM.Guest LeanVM.Guest.Exec
-
-public section
-
-/-- `level_queries__L73_L1_L6_L32_L17_L5_L0_L0_L0_L0`: its walk reads the advice's hints. -/
-theorem modeHintsOk : Mode.HintsOk modeFun Data.adviceHints :=
-  Mode.hintsOk_of_fn (j := 459) (d := Data.adviceFn459) Mode.adviceFns_ok (by decide +kernel) (by
-    decide +kernel)
-
-end
-
-end LeanVM.Guest.Fn.«level_queries__L73_L1_L6_L32_L17_L5_L0_L0_L0_L0»
-
 namespace LeanVM.Guest.Fn.«level_residual__L25_L7_L4_L2»
 
 open LeanVM.Guest LeanVM.Guest.Exec

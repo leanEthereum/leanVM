@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.Data.Pows
 public import LeanVM.Guest.Mode.Abs
 public import LeanVM.Guest.Pack.«P11».ModeSig
+public import LeanVM.Guest.Pack.«P1».ModeSig
 public import LeanVM.Guest.Pack.«P21».ModeSig
 public import LeanVM.Guest.Pack.«P42».ModeSig
 public import LeanVM.Guest.Pack.«P4».ModeSig
@@ -153,6 +154,34 @@ noncomputable def modeFun : Mode.Fun :=
 end
 
 end LeanVM.Guest.Fn.«level_queries__L44_L0_L4_L16_L16_L4_L0_L0_L0_L0»
+
+namespace LeanVM.Guest.Fn.«level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0»
+
+open LeanVM.Guest LeanVM.Guest.Exec
+
+@[expose] public section
+
+/-- `level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0`: the program its certificate shares. -/
+noncomputable def modeEnv : Mode.Env :=
+  ⟨Data.powTree, Data.jtTrie, 430, 14352, (.node none (.node none (.node none .nil (.node none
+    (.node none .nil (.node none (.node none (.node none .nil (.node none .nil (.node none .nil
+    (.node none .nil (.node none (.node none .nil (.node none .nil (.node none (.node none (.node
+    none (.node none (.node (some Fn.«verify_merkle_cap__L3».modeSig) .nil .nil) .nil) .nil) .nil)
+    .nil))) .nil))))) .nil) .nil)) .nil)) .nil) (.node none (.node none (.node none (.node none
+    (.node none .nil (.node none .nil (.node none (.node none .nil (.node none .nil (.node none
+    .nil (.node none .nil (.node none (.node none .nil (.node none (.node none .nil (.node none
+    (.node none (.node (some Fn.«opening_queries__L1_L1_L6_L32_L21_L3_L0_L0_L0_L0_L0».modeSig) .nil
+    .nil) .nil) .nil)) .nil)) .nil))))) .nil))) .nil) .nil) .nil) .nil)), 524287⟩
+
+/-- `level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0`: its entry, length and signature; on the
+    core route, nothing for a walk. -/
+noncomputable def modeFun : Mode.Fun :=
+  ⟨264397, 40, Fn.«level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0».modeSig, .nil, .nil, .nil,
+    false, .nil⟩
+
+end
+
+end LeanVM.Guest.Fn.«level_queries__L109_L1_L6_L32_L21_L3_L0_L0_L0_L0»
 
 namespace LeanVM.Guest.Fn.«level_queries__L16_L0_L4_L16_L18_L6_L3_L12_L4_L1»
 
