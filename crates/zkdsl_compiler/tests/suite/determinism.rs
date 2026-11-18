@@ -40,6 +40,7 @@ const GOLDEN: &[(&str, &str)] = &[
     ("heapbuf_dyn", "e231b6a7270b4373c451be0fa975dae321be5355d63d74033dcbfdc3e2529670"),
     ("hint", "bb3aef8ceb73116663a3b2bb23f11515c375a42a9ee3344d87a6f5f04ff89b42"),
     ("identities", "6e03baffeb9abbcc827722fa3c0c90a317b39eb3dcc016e063e4cbc180f3a8b7"),
+    ("inline", "d0288c6000217c02a5dcf33b9edb9f4d86222c4492bba67bd82393b1d89e3d43"),
     ("match", "201f7d4b4adba9a14d1298cdbea5d703b06469fece1586cb7fd08ed72dca7430"),
     ("match_arms", "d181b0c1c481f0c8a770298e6209cd59fd54cf4dea728be96bad2bd5fbabf136"),
     ("nested", "d171f55d8352e49c7b771e4445974195c5f10836032f5364cf4508a0d278ab18"),

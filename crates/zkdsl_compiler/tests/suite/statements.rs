@@ -1025,7 +1025,7 @@ fn an_inline_call_does_not_steal_the_call_site_line() {
 /// testing `all(is not scalar)` rather than `any(is not scalar)` fired only when
 /// EVERY return was a buffer, so a `(scalar, StackBuf)` pair walked through.
 #[test]
-#[should_panic(expected = "StackBuf return cannot cross a match join")]
+#[should_panic(expected = "multi-cell StackBuf return needs a `let` binding, not a match join")]
 fn a_mixed_stack_buf_return_cannot_cross_a_match_join() {
     let src = "\
 @inline

@@ -177,9 +177,9 @@ def combine(a, b, k: Const):
 
 An `@inline` function is **expanded at each call site** instead of emitting a real call: no frame, no argument/return `DEREF`s, no call/return `JUMP`s. Its body must end with one top-level `return`. Builtins, ordinary calls, nested inline calls, tuple assignments, `match`, `if`, and `unroll` are allowed; `mul_range` loops and nested/early returns are rejected. Ordinary calls retain their own frames; nested inline calls expand recursively, with direct or indirect recursive expansion rejected.
 
-An `@inline` function may also **return a `StackBuf`**: the caller's binding aliases the returned cell run (zero copies), and `StackBuf` arguments alias likewise.
+An `@inline` function may also **return a `StackBuf`**: the caller's binding aliases the returned cell run (zero copies), and `StackBuf` arguments alias likewise. A returned value binds as `name = <that expression>` would, so only a computed value takes a cell of its own (and `addr(sb)`, which a return materializes); a compile-time-constant argument stays a constant in the body, so `x * k` folds when `k` is passed `1`.
 
-An `@inline` call may also sit in **expression position**: embedded in arithmetic, as a store's RHS, or as a single-target `match` arm. An aliased return (a folded g-address) then materializes into a plain cell (free for a var; one `MUL` for a shifted pointer); a multi-cell `StackBuf` return still needs a `let` binding, since only a name can alias a cell run.
+An `@inline` call may also sit in **expression position**: embedded in arithmetic, as a store's RHS, or as a single-target `match` arm. A returned pointer or constant then materializes into a plain cell (free for a name, one `SET` for a constant, one `MUL` for a shifted pointer); a multi-cell `StackBuf` return still needs a `let` binding, since only a name can alias a cell run.
 
 An `@inline` `match` arm expands into the dispatching frame like any other call site, specialized on its `Const` arguments, so it can take a `StackBuf` and write the caller's cells directly. The arms of one `match` share their local cells, one of them running.
 
