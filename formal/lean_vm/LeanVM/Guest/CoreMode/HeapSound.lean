@@ -451,6 +451,11 @@ theorem atomH_ok (hR : X.R = H.readT) (hP : ∀ k c, getF X.pre k = some c → c
               exact hpre c' (hP k c' hk)
           | run => simp [witOk] at hl
           | res => simp [witOk] at hl
+          | pf => simp [witOk] at hl
+          | pfr => simp [witOk] at hl
+          | word => simp [witOk] at hl
+          | pts => simp [witOk] at hl
+          | empty => simp [witOk] at hl
   | hint hn =>
     unfold atomH at h
     cases hh : hintHeap hn with

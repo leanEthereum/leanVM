@@ -46,8 +46,9 @@ open LeanVM.Guest LeanVM.Guest.Core
 
 /-- `__loop7`'s certificate. -/
 def h7 : HCert where
-  sig := ⟨[], [], [⟨⟨[(3, 1)], 0⟩, 1, .val 0, .val 1⟩], [⟨⟨[(2, 1)], 0⟩, 1, .val 0, .val 1⟩],
-    [(.val 0, .val 1)], []⟩
+  sig :=
+    { preR := [⟨⟨[(3, 1)], 0⟩, 1, .val 0, .val 1⟩], postR := [⟨⟨[(2, 1)], 0⟩, 1, .val 0, .val 1⟩],
+      «term» := [(.val 0, .val 1)] }
   reads := [(5, [(4, 0, .run 0 [])])]
   res := []
   calls := [[.run 0 []]]
@@ -63,8 +64,9 @@ theorem loop7_bad :
 
 /-- `__loop23`'s certificate. -/
 def h23 : HCert where
-  sig := ⟨[], [], [], [⟨⟨[(2, 1), (3, 2)], 0⟩, 2, .val 0, .val 1⟩, ⟨⟨[(2, 1), (3, 2)], 1⟩, 2, .val 0, .val 1⟩],
-    [(.val 0, .val 1)], []⟩
+  sig :=
+    { postR := [⟨⟨[(2, 1), (3, 2)], 0⟩, 2, .val 0, .val 1⟩, ⟨⟨[(2, 1), (3, 2)], 1⟩, 2, .val 0, .val 1⟩],
+      «term» := [(.val 0, .val 1)] }
   reads := []
   res := []
   calls := [[]]
@@ -77,8 +79,9 @@ theorem loop23_ok : heapOkC Data.powTree (fun _ ↦ h23.sig) Fn.«da_pad_loop0»
 
 /-- `opening_round`'s certificate, `grind_check__L7`'s signature taken empty. -/
 def hOR : HCert where
-  sig := ⟨[⟨[(5, 1)], 0⟩, ⟨[(5, 1)], 1⟩, ⟨[(5, 1)], 2⟩, ⟨[(5, 1)], 3⟩, ⟨[(5, 1)], 4⟩],
-    [⟨[(8, 1)], 0⟩, ⟨[(9, 1)], 0⟩, ⟨[(9, 1)], 1⟩], [], [], [], []⟩
+  sig :=
+    { pre := [⟨[(5, 1)], 0⟩, ⟨[(5, 1)], 1⟩, ⟨[(5, 1)], 2⟩, ⟨[(5, 1)], 3⟩, ⟨[(5, 1)], 4⟩],
+      post := [⟨[(8, 1)], 0⟩, ⟨[(9, 1)], 0⟩, ⟨[(9, 1)], 1⟩] }
   reads := [(15, [(5, 0, .pre 0)]), (18, [(5, 1, .pre 1)]), (21, [(5, 2, .pre 2)]), (24, [(5, 3, .pre 3)]),
     (40, [(5, 4, .pre 4)])]
   res := []
@@ -101,7 +104,7 @@ def mk : Fn where
 
 /-- `mk`'s certificate: its guarantees over the returned word (slot `1`). -/
 def hMk : HCert where
-  sig := ⟨[], [⟨[(1, 1)], 0⟩, ⟨[(1, 1)], 1⟩], [], [], [], []⟩
+  sig := { post := [⟨[(1, 1)], 0⟩, ⟨[(1, 1)], 1⟩] }
   reads := []
   res := []
   rets := [[.ev 0, .ev 1]]
@@ -125,8 +128,8 @@ def sigs (g : String) : HSig :=
   if g = "mk" then hMk.sig else if g = "fill" then hFill else if g = "readAll" then hReadAll
   else .empty
 where
-  hFill : HSig := ⟨[], [], [], [⟨⟨[(2, 1)], 0⟩, 1, .val 0, .val 1⟩], [(.val 0, .val 1)], []⟩
-  hReadAll : HSig := ⟨[], [], [⟨⟨[(2, 1)], 0⟩, 1, .val 0, .val 1⟩], [], [], []⟩
+  hFill : HSig := { postR := [⟨⟨[(2, 1)], 0⟩, 1, .val 0, .val 1⟩], «term» := [(.val 0, .val 1)] }
+  hReadAll : HSig := { preR := [⟨⟨[(2, 1)], 0⟩, 1, .val 0, .val 1⟩] }
 
 theorem mk_ok : heapOkC Data.powTree sigs mk hMk = true := by decide +kernel
 
@@ -178,7 +181,7 @@ def readAll : Fn where
 
 /-- `readAll`'s certificate: its read at its counter in its own `preR`, its tail call's one further. -/
 def hReadAll : HCert where
-  sig := ⟨sigs.hReadAll.pre, [], sigs.hReadAll.preR, [], [(.val 0, .val 1)], []⟩
+  sig := { sigs.hReadAll with «term» := [(.val 0, .val 1)] }
   reads := [(4, [(3, 0, .run 0 [])])]
   res := []
   calls := [[.run 0 []]]
@@ -270,7 +273,7 @@ def off2 : Fn where
 
 /-- `off2`'s certificate: its returned word is `p·g^2` (`retM`). -/
 def hOff2 : HCert where
-  sig := ⟨[], [], [], [], [], [(0, ⟨[(0, 1)], 2⟩)]⟩
+  sig := { retM := [(0, ⟨[(0, 1)], 2⟩)] }
   reads := []
   res := []
   rets := [[]]
@@ -292,7 +295,7 @@ def useOff2 : Fn where
 /-- `useOff2`'s certificate: the read is its precondition `p·g^3`, the returned word named by `off2`'s
 `retM`. -/
 def hUseOff2 : HCert where
-  sig := ⟨[⟨[(0, 1)], 3⟩], [], [], [], [], []⟩
+  sig := { pre := [⟨[(0, 1)], 3⟩] }
   reads := [(2, [(1, 1, .pre 0)])]
   res := []
   calls := [[]]
@@ -325,7 +328,7 @@ def hvf : Fn where
 /-- `hvf`'s certificate: the read of `p[0]` is the store (event `0`), so its word is `p·g`, and the read
 through it is the precondition `p·g`. -/
 def hHvf : HCert where
-  sig := ⟨[⟨[(0, 1)], 1⟩], [], [], [], [], []⟩
+  sig := { pre := [⟨[(0, 1)], 1⟩] }
   reads := [(3, [(0, 0, .ev 0)]), (4, [(3, 0, .pre 0)])]
   res := []
   rets := [[]]
@@ -334,7 +337,7 @@ theorem hvf_ok : heapOkC Data.powTree (fun _ ↦ .empty) hvf hHvf = true := by d
 
 /-- The read through the word read is not `p·g^2`. -/
 theorem hvf_bad :
-    heapOkC Data.powTree (fun _ ↦ .empty) hvf { hHvf with sig := ⟨[⟨[(0, 1)], 2⟩], [], [], [], [], []⟩ } = false := by
+    heapOkC Data.powTree (fun _ ↦ .empty) hvf { hHvf with sig := { pre := [⟨[(0, 1)], 2⟩] } } = false := by
   decide +kernel
 
 /-- Computes `d = p·g^3`, divides it by `g` (`mul d q g`), reads `q[0]`. -/
@@ -346,7 +349,7 @@ def divf : Fn where
 
 /-- `divf`'s certificate: the quotient `q = p·g^2` (`divs`), its read the precondition `p·g^2`. -/
 def hDivf : HCert where
-  sig := ⟨[⟨[(0, 1)], 2⟩], [], [], [], [], []⟩
+  sig := { pre := [⟨[(0, 1)], 2⟩] }
   reads := [(5, [(4, 0, .pre 0)])]
   res := []
   rets := [[]]
@@ -356,6 +359,87 @@ theorem divf_ok : heapOkC Data.powTree (fun _ ↦ .empty) divf hDivf = true := b
 
 /-- Not listed, the quotient is its own base. -/
 theorem divf_bad : heapOkC Data.powTree (fun _ ↦ .empty) divf { hDivf with divs := [] } = false := by decide +kernel
+
+
+/-! ## Pointer facts -/
+
+/-- Allocates a buffer, writes its two words, stores its pointer at `p[0]`. -/
+def mkp : Fn where
+  name := "mkp"
+  params := [.n 0]
+  body := [.atom (.hint (.alloc (.n 1) 2)), .atom (.const (.n 2) (word 0 0)), .atom (.load (.n 2) (.n 1) 0),
+    .atom (.load (.n 2) (.n 1) 1), .atom (.load (.n 1) (.n 0) 0), .ret []]
+
+/-- `mkp`'s certificate: `p[0]` written, and a pointer to two written cells (`postP`, by the stored word,
+`word`). -/
+def hMkp : HCert where
+  sig := { post := [⟨[(0, 1)], 0⟩], postP := [(⟨[(0, 1)], 0⟩, [0, 1])] }
+  reads := []
+  res := []
+  rets := [[.ev 2, .word 2, .ev 0, .ev 1]]
+
+theorem mkp_ok : heapOkC Data.powTree (fun _ ↦ .empty) mkp hMkp = true := by decide +kernel
+
+/-- Calls `mkp`, loads `p[0]`, reads the second cell past it. -/
+def usep : Fn where
+  name := "usep"
+  params := [.n 0]
+  body := [.call "mkp" [.n 0] [], .atom (.load (.n 1) (.n 0) 0), .atom (.load (.n 2) (.n 1) 1), .ret []]
+
+/-- `usep`'s certificate: the call's `post` cell (point serial `0`), then its pointer fact (serial `1`). -/
+def hUsep : HCert where
+  sig := {}
+  reads := [(1, [(0, 0, .ev 0)]), (2, [(1, 1, .pf 1)])]
+  res := []
+  calls := [[]]
+  rets := [[]]
+
+theorem usep_ok : heapOkC Data.powTree (fun g ↦ if g = "mkp" then hMkp.sig else .empty) usep hUsep = true := by
+  decide +kernel
+
+/-- The third cell past the pointer is not in the fact. -/
+theorem usep_bad :
+    heapOkC Data.powTree (fun g ↦ if g = "mkp" then hMkp.sig else .empty)
+      { usep with body := [.call "mkp" [.n 0] [], .atom (.load (.n 1) (.n 0) 0), .atom (.load (.n 2) (.n 1) 2),
+        .ret []] } { hUsep with reads := [(1, [(0, 0, .ev 0)]), (2, [(1, 2, .pf 1)])] } = false := by
+  decide +kernel
+
+/-- Loads `p[2]` and reads the cell it points to, by its own pointer run `p[0..4)` (`prePR`). -/
+def rdp : Fn where
+  name := "rdp"
+  params := [.n 0]
+  body := [.atom (.load (.n 1) (.n 0) 2), .atom (.load (.n 2) (.n 1) 0), .ret []]
+
+/-- `rdp`'s certificate: `p[2]` in its `preR`, the cell past it in its `prePR` (run serial `1`). -/
+def hRdp : HCert where
+  sig := { preR := [⟨⟨[(0, 1)], 0⟩, 1, .num 0, .num 4⟩], prePR := [(⟨⟨[(0, 1)], 0⟩, 1, .num 0, .num 4⟩, [0])] }
+  reads := [(1, [(0, 2, .run 0 [])]), (2, [(1, 0, .pfr 1 [])])]
+  res := []
+  rets := [[]]
+
+theorem rdp_ok : heapOkC Data.powTree (fun _ ↦ .empty) rdp hRdp = true := by decide +kernel
+
+/-- A caller meeting `rdp`'s pointer run cell by cell (`pts`): each `p[j]` holds a pointer to a written
+cell, the words stored by the caller. -/
+def callRdp : Fn where
+  name := "callRdp"
+  params := [.n 0, .n 1]
+  body := [.atom (.const (.n 2) (word 0 0)), .atom (.load (.n 2) (.n 1) 0),
+    .atom (.load (.n 1) (.n 0) 0), .atom (.load (.n 1) (.n 0) 1), .atom (.load (.n 1) (.n 0) 2),
+    .atom (.load (.n 1) (.n 0) 3), .call "rdp" [.n 0] [], .ret []]
+
+/-- `callRdp`'s certificate: `rdp`'s `preR` by its points, its `prePR` by `pts`, each cell's word `q`
+(`word`) and `q[0]` written (event `0`). -/
+def hCallRdp : HCert where
+  sig := {}
+  reads := []
+  res := []
+  calls := [[.pts, .ev 1, .ev 2, .ev 3, .ev 4, .pts, .word 1, .ev 0, .word 2, .ev 0, .word 3, .ev 0, .word 4, .ev 0]]
+  rets := [[]]
+
+theorem callRdp_ok :
+    heapOkC Data.powTree (fun g ↦ if g = "rdp" then hRdp.sig else .empty) callRdp hCallRdp = true := by
+  decide +kernel
 
 end
 

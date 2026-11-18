@@ -91,23 +91,44 @@ inductive Wit where
   | run (r : ℕ) (res : List ℕ)
   /-- A residual alone (pointer tables, table indices, a later milestone). -/
   | res (k : ℕ)
+  /-- A pointer fact in scope, by its point serial: the cell read is past the word loaded from the
+  fact's cell; or, for a pointer fact needed, that very fact. -/
+  | pf (n : ℕ)
+  /-- A pointer run in scope, by its run serial, with its residuals: the cell read is past the word
+  loaded from a cell of the run; or, for a pointer fact or run needed, inside it. -/
+  | pfr (r : ℕ) (res : List ℕ)
+  /-- A pointer fact needed at a cell whose word a load event of this point serial named, the cells
+  past it each witnessed by the witnesses that follow. -/
+  | word (m : ℕ)
+  /-- A pointer run needed with constant bounds, each of its cells' pointer facts witnessed by the
+  witnesses that follow. -/
+  | pts
+  /-- A run needed with constant bounds, the upper at most the lower: no cell. -/
+  | empty
   deriving DecidableEq, Repr, Inhabited
 
 /-- **The heap calling convention**: cells over parameter numbers a caller guarantees written
-(`pre`) and the callee guarantees on return (`post`), runs of them, termination facts, and the
-returned words' monomials over the parameters (`retM`: `(k, c)`, returned word `k` is `c`'s word).
-Milestone 1 uses `pre` only. -/
+(`pre`) and the callee guarantees on return (`post`), runs of them, termination facts, the
+returned words' monomials over the parameters (`retM`: `(k, c)`, returned word `k` is `c`'s word),
+and pointer facts (`preP`, `postP`: `(c, offs)`, the word at `c` points to written cells at the
+offsets `offs`), runs of them (`prePR`, `postPR`: every cell of the run holds such a pointer).
+Milestone 1 uses `pre` only. Every field defaults to `[]`: write a signature as a structure
+instance naming the fields it uses. -/
 structure HSig where
-  pre : List CCell
-  post : List CCell
-  preR : List CRun
-  postR : List CRun
-  term : List (CIdx × CIdx)
-  retM : List (ℕ × CCell)
+  pre : List CCell := []
+  post : List CCell := []
+  preR : List CRun := []
+  postR : List CRun := []
+  term : List (CIdx × CIdx) := []
+  retM : List (ℕ × CCell) := []
+  preP : List (CCell × List ℕ) := []
+  postP : List (CCell × List ℕ) := []
+  prePR : List (CRun × List ℕ) := []
+  postPR : List (CRun × List ℕ) := []
   deriving Repr, Inhabited
 
 /-- The empty convention. -/
-def HSig.empty : HSig := ⟨[], [], [], [], [], []⟩
+def HSig.empty : HSig := {}
 
 /-- **A function's heap certificate**: its signature; its reads, by the word's value number `d`,
 each read `load (.n d) (.n p) off` as `(p, off, w)` with its witness `w`; its residuals; and, for the

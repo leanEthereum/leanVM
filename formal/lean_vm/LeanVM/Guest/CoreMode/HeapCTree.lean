@@ -66,9 +66,8 @@ def CertsOk (pows : PowTree) (P : Program) (cert : String → HCert) : Prop :=
 
 /-- **What a subtree keeps of its signature**: each guarantee at its words is its precondition or
 written by its subtree, and its returned words are its `retM` monomials. -/
-def PostT (P : Program) (cert : String → HCert) (t : Tree) (args rets : List E) : Prop :=
-  (∀ x, SigSet (cert t.name).sig.post (cert t.name).sig.postR (args ++ rets) x →
-    SigSet (cert t.name).sig.pre (cert t.name).sig.preR args x ∨ treeWr P t x) ∧
+def PostT (P : Program) (cert : String → HCert) (rd : Reader) (t : Tree) (args rets : List E) : Prop :=
+  (∀ x, PostSet rd (cert t.name).sig (args ++ rets) x → PreSet rd (cert t.name).sig args x ∨ treeWr P t x) ∧
   RetMOk (cert t.name).sig args rets
 
 theorem kidsWr_of_mem {P : Program} {x : K} : ∀ {ks : List Tree} {k : Tree}, k ∈ ks → treeWr P k x → kidsWr P ks x
@@ -82,17 +81,17 @@ theorem kidsWr_of_mem {P : Program} {x : K} : ∀ {ks : List Tree} {k : Tree}, k
 
 section Written
 
-variable {sigOf : String → HSig} {H : HCert} {σ : Val} {ws0 : List E} {es : List Ev}
+variable {sigOf : String → HSig} {H : HCert} {rd : Reader} {σ : Val} {ws0 : List E} {es : List Ev}
 
 /-- **What a path writes, over the tree**: an address written after some of its events is a
 precondition's or written by `T`, given that `T` holds each atom's writes and each entered call's
 guarantees but its callee's preconditions, the path's needs being written before each event. -/
-theorem written_tree (hreads : ReadsOkC sigOf H σ ws0 es) {T : K → Prop}
+theorem written_tree (hreads : ReadsOkC sigOf H rd σ ws0 es) {T : K → Prop}
     (hatom : ∀ a x, Ev.atom a ∈ es → Writes σ a x → T x)
-    (hkid : ∀ g a r, Ev.call g a r ∈ es → ∀ x, SigSet (sigOf g).post (sigOf g).postR ((a ++ r).map σ) x →
-      SigSet (sigOf g).pre (sigOf g).preR (a.map σ) x ∨ T x) :
+    (hkid : ∀ g a r, Ev.call g a r ∈ es → ∀ x, PostSet rd (sigOf g) ((a ++ r).map σ) x →
+      PreSet rd (sigOf g) (a.map σ) x ∨ T x) :
     ∀ (n : ℕ) (es1 es2 : List Ev), es1.length ≤ n → es = es1 ++ es2 → ∀ x,
-      WrittenC sigOf H σ ws0 es1 x → SigSet H.sig.pre H.sig.preR ws0 x ∨ T x := by
+      WrittenC sigOf H rd σ ws0 es1 x → PreSet rd H.sig ws0 x ∨ T x := by
   intro n
   induction n with
   | zero =>
@@ -112,10 +111,11 @@ theorem written_tree (hreads : ReadsOkC sigOf H σ ws0 es) {T : K → Prop}
     | call g a r =>
       rcases hkid g a r hmem x hx with hx | hx
       · have hreq := hreads A (.call g a r) (B ++ es2) (by rw [hes]; simp)
-        have hA : WrittenC sigOf H σ ws0 A x := by
-          rcases hx with ⟨c, hc, rfl⟩ | ⟨r', hr', hx⟩
-          · exact hreq.1 c hc
-          · exact hreq.2 r' hr' x hx
+        have hA : WrittenC sigOf H rd σ ws0 A x := by
+          rcases hx with (⟨c, hc, rfl⟩ | ⟨r', hr', hx⟩) | hx
+          · exact hreq.1.1 c hc
+          · exact hreq.1.2 r' hr' x hx
+          · exact hreq.2 x hx
         exact ih A (Ev.call g a r :: B ++ es2) (by simp at hl; omega) (by rw [hes]; simp) x hA
       · exact Or.inr hx
     | inK _ => exact hx.elim
@@ -153,7 +153,7 @@ theorem kidsAll_mem {Q : String → Val → Prop} : ∀ {ks : List Tree} {k : Tr
 signatures. -/
 theorem evM_of_kids {σ : Val} {es : List Ev} {kids : List Tree}
     (hkids : ∀ c ∈ calls es, c.taken = true → ∃ k ∈ kids, k.name = c.f ∧ k.Valid P rd (c.args.map σ) (c.rets.map σ) ∧
-      PostT P cert k (c.args.map σ) (c.rets.map σ)) :
+      PostT P cert rd k (c.args.map σ) (c.rets.map σ)) :
     ∀ e ∈ es, EvM (fun g ↦ (cert g).sig) σ e
   | .call g a r, he => by
     obtain ⟨k, -, hn, -, hkp⟩ := hkids _ (mem_calls_of_call he) rfl
@@ -168,7 +168,7 @@ mutual
 /-- **Each subtree keeps its signature**: each guarantee at its words is its precondition or written by
 an atom of its subtree; its returned words are its `retM` monomials. -/
 theorem tree_post (hp : pows.Ok) (hC : CertsOk pows P cert) : ∀ (t : Tree) {args rets : List E},
-    t.Valid P rd args rets → treeAll (FactsAt P cert) t → PostT P cert t args rets
+    t.Valid P rd args rets → treeAll (FactsAt P cert) t → PostT P cert rd t args rets
   | .node f σ bufs kids, args, rets, hv, ht => by
     obtain ⟨fn, hf, hpar, es, vs, hw, hret, hh, hk⟩ := hv
     have hkids := kids_post hp hC kids σ (calls es) hk ht.2
@@ -177,10 +177,11 @@ theorem tree_post (hp : pows.Ok) (hC : CertsOk pows P cert) : ∀ (t : Tree) {ar
     obtain ⟨hreads, hpost, hrm⟩ := heapOkC_sound hp (hC f fn hf) (by rw [hname]) hw hh (evM_of_kids hkids) hE hR
     rw [← hpar, ← hret] at *
     refine ⟨fun x hx ↦ ?_, hrm⟩
-    have hW : WrittenC (fun g ↦ (cert g).sig) (cert f) σ (fn.params.map σ) es x := by
-      rcases hx with ⟨c, hc, rfl⟩ | ⟨r, hr, hx⟩
-      · exact hpost.1 c hc
-      · exact hpost.2 r hr x hx
+    have hW : WrittenC (fun g ↦ (cert g).sig) (cert f) rd σ (fn.params.map σ) es x := by
+      rcases hx with (⟨c, hc, rfl⟩ | ⟨r, hr, hx⟩) | hx
+      · exact hpost.1.1 c hc
+      · exact hpost.1.2 r hr x hx
+      · exact hpost.2 x hx
     refine written_tree hreads (T := treeWr P (.node f σ bufs kids))
       (fun a x ha hx ↦ Or.inl ⟨fn, es, vs, hf, hw, a, ha, hx⟩) (fun g a r hg x hx ↦ ?_) es.length es [] le_rfl
       (by simp) x hW
@@ -194,7 +195,7 @@ theorem tree_post (hp : pows.Ok) (hC : CertsOk pows P cert) : ∀ (t : Tree) {ar
 theorem kids_post (hp : pows.Ok) (hC : CertsOk pows P cert) : ∀ (ks : List Tree) (σ : Val) (cs : List Call),
     Tree.KidsValid P rd σ cs ks → kidsAll (FactsAt P cert) ks → ∀ c ∈ cs, c.taken = true →
       ∃ k ∈ ks, k.name = c.f ∧ k.Valid P rd (c.args.map σ) (c.rets.map σ) ∧
-        PostT P cert k (c.args.map σ) (c.rets.map σ)
+        PostT P cert rd k (c.args.map σ) (c.rets.map σ)
   | [], _, [], _, _, c, hc, _ => by simp at hc
   | k :: ks, σ, c :: cs, ⟨hn, hk, hks⟩, ⟨ha, has⟩, c', hc', ht => by
     rcases List.mem_cons.mp hc' with rfl | hc'
@@ -214,8 +215,8 @@ theorem tree_inst (hp : pows.Ok) (hC : CertsOk pows P cert) {f : String} {σ : V
     {kids : List Tree} {args rets : List E} (hv : (Memory.Tree.node f σ bufs kids).Valid P rd args rets)
     (ht : treeAll (FactsAt P cert) (.node f σ bufs kids)) :
     ∃ fn es vs, P.find? f = some fn ∧ walk σ fn.body = .ret es vs ∧
-      ReadsOkC (fun g ↦ (cert g).sig) (cert f) σ (fn.params.map σ) es ∧
-      PostOkC (fun g ↦ (cert g).sig) (cert f) σ (fn.params.map σ) es vs := by
+      ReadsOkC (fun g ↦ (cert g).sig) (cert f) rd σ (fn.params.map σ) es ∧
+      PostOkC (fun g ↦ (cert g).sig) (cert f) rd σ (fn.params.map σ) es vs := by
   obtain ⟨fn, hf, -, es, vs, hw, -, hh, hk⟩ := hv
   obtain ⟨hE, hR⟩ := ht.1 fn hf
   obtain ⟨h1, h2, -⟩ := heapOkC_sound hp (hC f fn hf) (by rw [fn_name_of_find hf]) hw hh
