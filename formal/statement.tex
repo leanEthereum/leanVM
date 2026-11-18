@@ -145,17 +145,17 @@ costs are included in the bounds below.
 
 \paragraph{The extractor.} Knowledge soundness is stated for the extractor a program of a cost
 machine computes (\lean{LeanVM.extractorComputedBy}~$P$, \lean{Statement/CostMachine.lean}): the
-program $P$, of size at most $25365$ (\lean{leanVmKnowledgeExtractorSizeBound}: the compiled
-extractor's $25245$ and a slack of $120$, less than one leanXMSS signature's encoding), run on the encoded
+program $P$, of size at most $25380$ (\lean{leanVmKnowledgeExtractorSizeBound}: the compiled
+extractor's $25260$ and a slack of $120$, less than one leanXMSS signature's encoding), run on the encoded
 statement, transcript and proof within a budget (\lean{leanVmKnowledgeExtractorBudget}: the most its
 run may cost in the machine's price, so also the most steps it may execute,
-$2^{\max(58,\,2\mu + 9)} + (N + 2^{30})(D + 2)^2(2^{17} + 8D)$ for a proof announcing a stack of $2^\mu$
+$2^{\max(58,\,2\mu + 9)} + (N + 2^{30})(D + 2)^2(2^{15} + 2D)$ for a proof announcing a stack of $2^\mu$
 elements (\lean{announcedStackLog}) and $N$ permutation queries, $D = \log_2(N + 2) + 1$, above the
 price \lean{lean_vm} proves of the compiled extractor wherever it extracts, at every shape of that size; polylogarithmic
-per query: $2^{69}$ at $\mu = 30$ up to $N = 2^{38}$, the descent at level 0 dominating, $2^{78.5}$ at $N = 2^{50}$
-and $2^{159.1}$ at $N = 2^{128}$, the transcript's indexes dominating), its output
+per query: $2^{69}$ at $\mu = 30$ up to $N = 2^{38}$, the descent at level 0 dominating, $2^{76.5}$ at $N = 2^{50}$
+and $2^{157.1}$ at $N = 2^{128}$, the transcript's index dominating), its output
 parsed as an execution; a run out of budget outputs nothing, which counts as a break. The budget
-passes $2^{128}$ at about $N = 2^{97.7}$, where the soundness bound is still about $2^{-27}$, and its first
+passes $2^{128}$ at about $N = 2^{99.7}$, where the soundness bound is still about $2^{-25}$, and its first
 term, at most $2^{69}$, would pay for a search of about $2^{58}$ Keccak-f[1600] evaluations: knowledge
 of a witness such a search finds
 (of low entropy) is not what the statement certifies. The
