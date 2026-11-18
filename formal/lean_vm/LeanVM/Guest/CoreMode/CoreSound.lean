@@ -275,7 +275,7 @@ theorem body_callS {body : List Stmt} (_hb : bodyC body = true) {σ : Val} {es :
 theorem callsB_chk {Cf : CFun} (hcb : callsB Cf = true) {f : String} {a r : List V}
     (hs : Stmt.call f a r ∈ stmtsOf Cf.fn.body ∨ (r = [] ∧ ∃ c, Stmt.callIf c f a ∈ stmtsOf Cf.fn.body) ∨
       ∃ x fs, Stmt.dispatch x fs a r ∈ stmtsOf Cf.fn.body ∧ f ∈ fs) :
-    callChk Cf f a = true := by
+    callChkM Cf f a = true := by
   rcases hs with hs | ⟨-, c, hs⟩ | ⟨x, fs, hs, hf⟩
   · exact List.all_eq_true.mp hcb _ hs
   · exact List.all_eq_true.mp hcb _ hs
@@ -418,7 +418,7 @@ theorem callsB_spec {Cf : CFun} (hcb : callsB Cf = true) {f : String} {args rets
     (∀ q ∈ (Cf.sigOf f).preR, (idxPowC Cf args q.lo && idxPowC Cf args q.hi) = true) ∧
     ∀ p ∈ (Cf.sigOf f).prePR, (idxPowC Cf args p.1.lo && idxPowC Cf args p.1.hi) = true := by
   have := callsB_chk hcb hs
-  simp only [callChk, Bool.and_eq_true] at this
+  simp only [callChkM, Bool.and_eq_true] at this
   exact ⟨List.all_eq_true.mp this.1.2, List.all_eq_true.mp this.2⟩
 
 theorem forall₂_mem {α β : Type} {R : α → β → Prop} : ∀ {l1 : List α} {l2 : List β}, List.Forall₂ R l1 l2 →
@@ -1732,11 +1732,52 @@ theorem wsAt_eq {img : MemoryImage κ} {fp n : ℕ} {ws : List E} (hn : ws.lengt
     (h : ∀ b < n, Rd img fp (2 + b) = some (slotW ws b)) : wsAt img fp n = ws := by
   rw [wsAt_take h le_rfl (by omega), List.take_of_length_le (by omega)]
 
-/-- A call checked by `callChk` names no callee ghost. -/
-theorem callChk_ghosts {Cf : CFun} {g : String} {args : List V} (h : callChk Cf g args = true) :
+/-- A call checked by `callChkM` names no callee ghost. -/
+theorem callChk_ghosts {Cf : CFun} {g : String} {args : List V} (h : callChkM Cf g args = true) :
     (Cf.sigOf g).ghosts = 0 := by
-  simp only [callChk, Bool.and_eq_true] at h
+  simp only [callChkM, Bool.and_eq_true] at h
   simpa using h.1.1.2
+
+/-- **A call of a callee on a mode contract has its returned words' monomials** (`EvM`), once the callee returned
+in a memory agreeing with the reference, its frame's cells holding the call's words and its signature's
+`retV` (`RetHolds`): each returned word's monomial `fitB` checked one its mode signature promises. -/
+theorem evM_mode {img : MemoryImage κ} (hκ : κ ≤ 28) {Cf : CFun} {f : String} {args rets : List V}
+    (hchk : callChkM Cf f args = true) (hl : Cf.hcs.lookup f = none) {G : Mode.Sig}
+    (hrm : ∀ p ∈ (Cf.sigOf f).retM, retMIn G args.length rets.length p = true) {rd : Reader} {σ : Val}
+    {m : Mem} {fp : ℕ} (hR : RetHolds (Mode.stOf m fp) G) (ha : Agree m (refMem img)) (hfp : fp < maxCells)
+    (hws : ∀ b < args.length + rets.length, Rd img fp (2 + b) = some (slotW ((args ++ rets).map σ) b)) :
+    EvM Cf.sigOf rd σ (.call f args rets) := by
+  simp only [callChkM, hl, Option.isSome_none, Bool.false_or, Bool.and_eq_true, List.isEmpty_iff] at hchk
+  obtain ⟨⟨⟨⟨-, ⟨h2, h3⟩⟩, -⟩, -⟩, -⟩ := hchk
+  refine ⟨fun k c hkc ↦ ?_, fun i m' him ↦ ?_, fun p hp ↦ ?_⟩
+  · have hr := hrm _ hkc
+    simp only [retMIn, Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true, Nat.beq_eq] at hr
+    obtain ⟨⟨hk, h28⟩, q, hq, ⟨hq1, hqS⟩, hqI⟩ := hr
+    obtain ⟨u, hu, hmv⟩ := hR.2.2.2.2.1 q hq
+    -- the returned word, the cell `2 + na + k`'s
+    have hS1 : monoS G (args.length + rets.length) false ⟨0, 0, [(.fr (2 + args.length + k), 1)]⟩ = true := by
+      simp [monoS]; omega
+    obtain ⟨o, ho, -, hget⟩ := slotEq_of (s := Mode.stOf m fp) hκ ha hfp hws hS1 _ List.mem_cons_self
+    simp only [Mode.Base.fr.injEq] at ho
+    subst ho
+    rw [← hq1] at hget
+    have hu1 := hget u hu
+    rw [hq1, show 2 + args.length + k - 2 = args.length + k by omega, List.map_append, slotW_append] at hu1
+    simp only [List.length_map, show ¬ args.length + k < args.length by omega, ↓reduceIte,
+      show args.length + k - args.length = k by omega] at hu1
+    -- the monomial, over the argument cells
+    have hwsA : ∀ b < args.length, Rd img fp (2 + b) = some (slotW (args.map σ) b) := fun b hb ↦ by
+      rw [hws b (by omega), List.map_append, slotW_lt (by simpa using hb)]
+    unfold monoIs at hqI
+    split at hqI
+    · rename_i c' hmc
+      rw [CCell.beq_eq hqI] at hmc
+      have hv := monoVal_slot hmc (slotEq_of (s := Mode.stOf m fp) hκ ha hfp hwsA hqS) hmv
+      rw [List.getElem?_map, List.getElem?_eq_getElem (by omega), Option.map_some, ← hv, hu1,
+        slotW_get (by simp; omega), List.getElem_map]
+    · cases hqI
+  · rw [h2] at him; cases him
+  · rw [h3] at hp; cases hp
 
 /-- **The core route meets the frame interface**: a function passing the kernel's checks, on the
 executor's tables for the guest's advice, its code the executor's, at states `Y` on a reference run
@@ -2597,9 +2638,8 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
                   exact absurd hwe (no_writes_of_stopL (hcs2 a ha))
           -- a callee of a mode contract, through `fitB`
           have hCn : Ct s'.pc = none := by rw [hCtt]; simp [hcAt, hl]
-          simp only [callOkC, hl, fitB, Bool.and_eq_true, List.isEmpty_iff, List.contains_iff_mem,
-            List.all_eq_true] at hfit
-          obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hGself, hGpreP⟩, -⟩, -⟩, hhpostP⟩, hhpostPR⟩, -⟩, hGpre⟩, hGpreR⟩, hhpost⟩,
+          simp only [callOkC, hl, fitB, Bool.and_eq_true, List.contains_iff_mem, List.all_eq_true] at hfit
+          obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hGself, hGpreP⟩, -⟩, -⟩, hhpostP⟩, hhpostPR⟩, hhretM⟩, hGpre⟩, hGpreR⟩, hhpost⟩,
             hhpostR⟩, hhgh⟩ := hfit
           refine k s1 s' (he1 s1 e1) hm hmo e' hf' hle' (.call fun hTE ↦ ⟨G, o, hsigK, by omega, ?_, ?_,
             hentry.w, ?_, ?_⟩)
@@ -2735,8 +2775,9 @@ theorem frameSpec_core {K : Mode.Cert} {Cf : CFun} (hok : CoreOk K Cf) {adv : Pr
               obtain ⟨evs2, cs2, es2', rfl, hwp2', hcs2, hasin2, hevM2, hW2', -, kfp2, hfpE2, hwsE2, -, -⟩ :=
                 hsplit hσ hpos hb2 hwp2 hh2 hM2
               have hEv : EvM Cf.sigOf rd2 σ (.call f args rets) :=
-                callChk_evM (rets := rets) (callsB_chk (callsB_of' hok.heap)
-                  (body_callS (r := rets) hbody hb2 (by simp))) hl rd2 σ
+                evM_mode hκ (callsB_chk (callsB_of' hok.heap) (body_callS (r := rets) hbody hb2 (by simp))) hl
+                  hhretM (Mode.RetHolds.mono (s := Mode.stOf m s'.fp) (s' := Mode.stOf m' s'.fp) hm' rfl hR) ham'
+                  hf'.fp hwsE2
               refine ⟨pos', pre2 ++ evs2 ++ Ev.call f args rets :: cs2.map Ev.atom, es2', vs2, rd2, hrd2, hat',
                 by simpa using hb2, hwp2', by simpa using hh2,
                 evM_app (evM_app hM2 hevM2) fun e he ↦ ?_, fun y hy ↦ ?_⟩

@@ -538,11 +538,18 @@ noncomputable def sigOk (G : Mode.Sig) (Cf : CFun) (np nr : ℕ) : Bool :=
       (monoR G np nr (rngM r) && expI G Cf.H.res np (np + nr) r.lo && expI G Cf.H.res np (np + nr) r.hi &&
         Cf.H.sig.postR.any (rngXIs r ·))) && Nat.ble Cf.H.sig.ghosts Cf.gl.length
 
+/-- **A callee's returned word's monomial its mode signature promises** (`retV`): returned word `k < nr` at
+the callee's frame cell `2 + na + k`, a product over its argument cells that is the cell `c`. -/
+def retMIn (G : Mode.Sig) (na nr : ℕ) (p : ℕ × CCell) : Bool :=
+  decide (p.1 < nr) && decide (2 + na + p.1 < 2 ^ 28) &&
+    G.retV.any fun q ↦ Nat.beq q.1 (2 + na + p.1) && monoS G na false q.2 && monoIs q.2 p.2
+
 /-- **A callee's mode signature `G` holds of its heap signature `h`** at a call of `na` arguments
 and `nr` returned words: its self frame pointer cell (a loop's) small, its header cells entry cells;
 each of its preconditions over the arguments' entry cells one of `h`'s (a run `h`'s run or its
 points `h`'s cells); each guarantee of `h` one of `G`'s (cells or points over the arguments and
-returned words, runs `G`'s or its loop's); `h` with no returned word's monomial or ghost slot. -/
+returned words, runs `G`'s or its loop's); each returned word's monomial of `h` one `G` promises (`retMIn`); `h`
+with no ghost slot. -/
 def fitB (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Bool :=
   (match G.self with
     | some o => decide (o < 2 ^ 28)
@@ -550,7 +557,7 @@ def fitB (G : Mode.Sig) (h : HSig) (na nr : ℕ) : Bool :=
     (G.preP.all fun r ↦ monoS G na true (rngM r.1) && h.prePR.any (prunIs r ·) && h.preR.any (rngXIs r.1 ·)) &&
     G.entry.contains 0 && G.entry.contains 1 && h.postP.all (hpAll G (na + nr) G.post) &&
     (h.postPR.all fun p ↦ (G.postP ++ G.postLP).any fun r ↦ monoS G (na + nr) false (rngM r.1) && prunIs r p) &&
-    h.retM.isEmpty &&
+    h.retM.all (retMIn G na nr) &&
     G.pre.all (fun m ↦ (monoS G na true m && match monoC m with
       | some c => cellIn c h.pre
       | none => false) || hpIn G na true h.preP h.pre m) &&
@@ -613,6 +620,14 @@ noncomputable def callChk (Cf : CFun) (g : String) (args : List V) : Bool :=
     ((Cf.sigOf g).preR.all fun q ↦ idxPowC Cf args q.lo && idxPowC Cf args q.hi) &&
     (Cf.sigOf g).prePR.all fun p ↦ idxPowC Cf args p.1.lo && idxPowC Cf args p.1.hi
 
+/-- **A call of `g` on `args` in a body checked whole** (`callsB`): `callChk`, a callee on a mode contract
+also naming returned words' monomials (its mode signature's `retV`, `fitB`'s `retMIn`). -/
+noncomputable def callChkM (Cf : CFun) (g : String) (args : List V) : Bool :=
+  !(g == Cf.fn.name) && ((Cf.hcs.lookup g).isSome || (Cf.sigOf g).postV.isEmpty &&
+    (Cf.sigOf g).retEq.isEmpty) && Nat.beq (Cf.sigOf g).ghosts 0 &&
+    ((Cf.sigOf g).preR.all fun q ↦ idxPowC Cf args q.lo && idxPowC Cf args q.hi) &&
+    (Cf.sigOf g).prePR.all fun p ↦ idxPowC Cf args p.1.lo && idxPowC Cf args p.1.hi
+
 /-- A checked call of a callee on a mode contract gives nothing beyond its writes. -/
 theorem callChk_evM {Cf : CFun} {g : String} {args rets : List V} (h : callChk Cf g args = true)
     (hl : Cf.hcs.lookup g = none) (rd : Reader) (σ : Val) : EvM Cf.sigOf rd σ (.call g args rets) := by
@@ -627,9 +642,9 @@ theorem callChk_evM {Cf : CFun} {g : String} {args rets : List V} (h : callChk C
 dispatch's callees those `dsp` lists at each of its sites. -/
 noncomputable def callsB (Cf : CFun) : Bool :=
   (stmtsOf Cf.fn.body).all fun s ↦ match s with
-    | .call g args _ => callChk Cf g args
-    | .callIf _ g args => callChk Cf g args
-    | .dispatch _ fs args rets => fs.all (callChk Cf · args) &&
+    | .call g args _ => callChkM Cf g args
+    | .callIf _ g args => callChkM Cf g args
+    | .dispatch _ fs args rets => fs.all (callChkM Cf · args) &&
         Cf.dsp.all fun p ↦ (Cf.X.siteAt p.1 args rets).isNone || p.2 == fs
     | _ => true
 

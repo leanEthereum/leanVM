@@ -207,6 +207,14 @@ def callee_sig(G, na, nr):
             h.postPR.append(prun(p, na + nr))
         except No:
             pass
+    # returned words' monomials over the argument cells its `retV` promises (`CoreMode.retMIn`)
+    for o, m in G['retV']:
+        k = o - 2 - na
+        if 0 <= k < nr and o < 2 ** 28:
+            try:
+                h.retM[k] = cell(m, na)
+            except No:
+                pass
     return h
 
 
@@ -363,6 +371,10 @@ def infer_one(k, S, allow=None, hcsig=None):
             if f in cs and cs[f].key() != h.key():
                 raise No('callee arity')
             cs[f] = h
+    if any(s[0] == 'dispatch' for s in body):
+        # the pairing gives no oracle for a dispatch's jump-table read (`pair.py` marks a `match`'s only, by the
+        # alignment's arms), so the frame walk fails at its `JUMP` (open_stacked__L*)
+        raise No('dispatch table read')
     dsp = dsp_of(k, body)
     I.SIGS.clear()
     for f, h in cs.items():
