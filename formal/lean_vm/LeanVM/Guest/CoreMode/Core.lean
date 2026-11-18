@@ -126,6 +126,15 @@ structure HonF (img : MemoryImage κ) (Cf : CFun) (fp : ℕ) (σ : Val) : Prop w
   /-- What its jumps read. -/
   jc : JumpF img Cf.X Cf.fn.body fp σ
   holds : ∀ es vs, walk σ Cf.fn.body = .ret es vs → ∀ e ∈ es, e.Holds img.read σ
+  /-- A loop's tail call, its last call, through a next-frame cell `q` (holding `fp·g^S`) of a `JUMP`
+  fetched at one of its offsets: that frame `fp + S`, its header this frame's, its arguments. -/
+  tail : ∀ es vs, walk σ Cf.fn.body = .ret es vs → ∀ (i : ℕ) (c : Call), (calls es)[i]? = some c →
+    i + 1 = (calls es).length → ∀ off oc od q S, off < Cf.X.len → oc < 2 ^ 28 → od < 2 ^ 28 → q < 2 ^ 28 →
+    guestProgram.fetch (addressOfIndex (Cf.X.entry + off)) =
+      some (OffsetInstruction.jump oc od q).toLeanIsaInstruction →
+    Cf.X.statOf q = some (.fpg S) → S ≠ 0 →
+    Rd img fp q = some (ofK (g ^ (fp + S))) ∧ Rd img (fp + S) 0 = Rd img fp 0 ∧ Rd img (fp + S) 1 = Rd img fp 1 ∧
+      ∀ k (hk : k < c.args.length), Rd img (fp + S) (2 + k) = some (σ c.args[k])
 
 /-- **The core route's frame predicate, in a memory**: frame `fp` at offset `i` in memory `m`: the
 frame walk's state there holds (`AtF`), the entry cells are written, and for every honest valuation

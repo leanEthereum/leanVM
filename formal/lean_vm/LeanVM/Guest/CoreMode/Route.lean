@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.CoreMode.Core
+public import LeanVM.Guest.CoreMode.LoopB
 public import LeanVM.Guest.Bridge.ProgAlDefs
 public import LeanVM.Guest.B2C.Cells
 public import LeanVM.Guest.Bridge.JumpCellsPack
@@ -67,11 +68,11 @@ noncomputable def selGo (j : ℕ) : List Atom → List Stmt → Bool
 /-- Function `j`'s frame holds `fn`'s parameters at cells `2 + k` and its pointers and returned values
 at their cells; `j` neither `main` nor with chained `match`es. -/
 noncomputable def honB (j : ℕ) (fn : Fn) : Bool :=
-  (certOf j).locs.all (fun c ↦ Nat.blt c (2 ^ Bridge.cellBits)) && bodyC fn.body &&
+  (certOf j).locs.all (fun c ↦ Nat.blt c (2 ^ Bridge.cellBits)) && (bodyC fn.body || loopB fn) &&
     (Bridge.stmtsOf fn.body).all (ptrCellB j) && paramsN fn.params 0 &&
     ((List.range fn.params.length).all fun k ↦ Nat.beq (B2C.cellJ j (V.n k)) (2 + k) && decide (2 + k < B2C.fsN j)) &&
     (Bridge.stmtsOf fn.body).all (retCellB j) && Nat.blt 1 j && (B2C.plumbOf j).chains.isEmpty &&
-    selGo j [] fn.body
+    (selGo j [] fn.body || loopB fn)
 
 /-- **Core data of the deployed guest's function `j`.** -/
 def CfOk (Cf : CFun) : Prop :=
