@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Compiler.Sound.Ops
 public import LeanVM.Compiler.Assemble
-public import LeanVM.Guest.Logic
+public import LeanVM.Core.Logic
 
 /-!
 # The meaning of a placed statement
@@ -37,7 +37,7 @@ precondition holds). Placement discharges them from the facts of the instruction
 
 namespace LeanVM.Compiler
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Core
 
 @[expose] public section
 

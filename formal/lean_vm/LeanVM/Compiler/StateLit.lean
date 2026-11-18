@@ -98,7 +98,7 @@ def pairOf (e : Expr) : MetaM (Expr × Expr) := do
 /-- The key of a value `⟨[], 0, i⟩`: `2 * i` (`vKey`). -/
 def vKeyOf (v : Expr) : MetaM Nat := do
   match_expr v with
-  | LeanVM.Guest.Core.V.mk path tag idx =>
+  | LeanVM.Core.V.mk path tag idx =>
       let .true := (path.isAppOfArity ``List.nil 1) | throwError "state_lit: a value with a path: {v}"
       let 0 ← natOf tag | throwError "state_lit: a value with a tag: {v}"
       return 2 * (← natOf idx)

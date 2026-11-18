@@ -43,7 +43,7 @@ bytes each, and holds the address as two (`adrsCell0`, `adrsCell1`, `lean_ethere
 namespace LeanVM.Guest.B1.Sig
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
-open LeanVM.Protocol.Verifier LeanVM.Guest LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
+open LeanVM.Protocol.Verifier LeanVM.Core LeanVM.Core.Value LeanVM.Core.Value.Keccak
 open HashSig HashSig.OverPermutation
 
 @[expose] public section

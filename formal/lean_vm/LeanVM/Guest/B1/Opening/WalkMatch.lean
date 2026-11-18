@@ -7,8 +7,8 @@
 
 module
 
-public import LeanVM.Guest.Memory.Regions
-public import LeanVM.Guest.Memory.Straight
+public import LeanVM.Core.Memory.Regions
+public import LeanVM.Core.Memory.Straight
 import Mathlib.Data.List.GetD
 
 /-!
@@ -27,12 +27,12 @@ keccaks, constants and copies (`walk_window`): no load, no `HeapBuf`, no `frameA
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Core.Memory
 
 @[expose] public section
 
 /-- An atom that neither loads, allocates nor places a run. -/
-def _root_.LeanVM.Guest.Core.Atom.quiet : Atom → Bool
+def _root_.LeanVM.Core.Atom.quiet : Atom → Bool
   | .load .. => false
   | .hint (.alloc ..) => false
   | .hint (.allocDyn ..) => false
@@ -40,13 +40,13 @@ def _root_.LeanVM.Guest.Core.Atom.quiet : Atom → Bool
   | _ => true
 
 /-- A quiet atom statement. -/
-def _root_.LeanVM.Guest.Core.Stmt.quietS : Stmt → Bool
+def _root_.LeanVM.Core.Stmt.quietS : Stmt → Bool
   | .atom a => a.quiet
   | _ => false
 
 /-- A statement of a flat body with `match`es: an atom, a call, a conditional call, or a `match`
 of quiet atom arms. -/
-def _root_.LeanVM.Guest.Core.Stmt.flatM : Stmt → Bool
+def _root_.LeanVM.Core.Stmt.flatM : Stmt → Bool
   | .atom _ => true
   | .call .. => true
   | .callIf .. => true

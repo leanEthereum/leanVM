@@ -5,7 +5,7 @@ directly or through other modules, a module of the guest's instance or data.
   python3 -I tools/compiler-apart.py
 
 The compiler (`LeanVM.Compiler`, its soundness and completeness for any program) is stated and
-proved over the core IR and its semantics (`LeanVM.Guest.Core`, `Logic`, `Memory`, `Expand`, ...),
+proved over the core IR and its semantics (`LeanVM.Core`, `Logic`, `Memory`, `Expand`, ...),
 never over one program. Fails, printing an import chain from the compiler to each forbidden module
 it reaches, if its import cone (from `tools/deps.py`'s graph of the six projects) holds any of
 `FORBIDDEN`: the compiled guest's proofs (`LeanVM.Guest.Compiled`), the guest's generated data

@@ -196,8 +196,8 @@ def cmd_words(g):
     lit = writelean.lean_cert
     data = family.header('LeanVM.Guest.Memory.GuestWords.Data',
                          'The certificates counting words of the guest\'s core IR by index, and the frame sizes.',
-                         'public import LeanVM.Guest.Memory.Static\npublic import LeanVM.Guest.Renumber\n')
-    data += '\nnamespace LeanVM.Guest.Data\n\nopen LeanVM.Guest.Memory\n\n@[expose] public section\n\n'
+                         'public import LeanVM.Core.Memory.Static\npublic import LeanVM.Core.Renumber\n')
+    data += '\nnamespace LeanVM.Guest.Data\n\nopen LeanVM.Core.Memory\n\n@[expose] public section\n\n'
     data += family.tree_defs('wcertT', 'Cert', [(i, cert[g.fns[i]['name']]) for i in range(g.N) if g.fns[i]['name'] in cert],
                              lit, 'The certificates, by index.') + '\n'
     data += family.tree_defs('womegaT', 'ℕ', [(i, fs[g.fns[i]['name']]) for i in range(g.N)], str,
@@ -273,8 +273,8 @@ def cmd_cnt(g):
     data = family.header('LeanVM.Guest.Memory.GuestCnt.Data',
                          'The certificates counting each opcode\'s instructions of the guest\'s core IR by index, a\n'
                          '  coordinate per opcode in `Opcode`\'s order, and the frames\' weights.',
-                         'public import LeanVM.Guest.Memory.StaticVec\npublic import LeanVM.Guest.Renumber\n')
-    data += '\nnamespace LeanVM.Guest.Data\n\nopen LeanVM.Guest.Memory\n\n@[expose] public section\n\n'
+                         'public import LeanVM.Core.Memory.StaticVec\npublic import LeanVM.Core.Renumber\n')
+    data += '\nnamespace LeanVM.Guest.Data\n\nopen LeanVM.Core.Memory\n\n@[expose] public section\n\n'
     items = [(i, g.fns[i]['name']) for i in range(g.N) if g.fns[i]['name'] in S]
     data += family.tree_defs('cntT', 'CertV × Vec', items,
                              lambda n: '%s, %s' % (lean_certv([c[n] for c in certs]), vec([om[n] for om in oms])),

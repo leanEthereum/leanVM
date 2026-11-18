@@ -16,7 +16,7 @@ public import Statement.Fast.QuadExt
 public import Statement.Fast.FieldWords
 public import LeanVM.Facts.Verifier
 public import LeanVM.Guest.Start
-public import LeanVM.Guest.Core
+public import LeanVM.Core
 public import LeanVM.Protocol.EndToEnd.Complete.Public
 
 /-!
@@ -29,7 +29,7 @@ two cells of the public input's digest at `g^0`, `g^1`, as `main` loads them thr
 
 namespace LeanVM.Guest.End
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Node
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Node
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash
 
 @[expose] public section

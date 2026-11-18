@@ -25,7 +25,7 @@ and the count side's `S c`:
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 open LeanVM.Protocol.EndToEnd.Complete (refSide refSide_eq refSideC sideSizes sideSels blockSel
   blockVal padSum accFold accFold_spec accumulateSide_fst accumulateSide_snd)

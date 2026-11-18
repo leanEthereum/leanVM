@@ -11,7 +11,7 @@ module
 public import LeanVM.Guest.B1.Sig.InterfaceP
 public import LeanVM.Guest.Pack.sp_wots.Core
 public import LeanVM.Guest.B1.Sig.SphincsAdrs
-public import LeanVM.Guest.Memory.Regions
+public import LeanVM.Core.Memory.Regions
 
 /-!
 # leanSPHINCS's completeness statements
@@ -38,7 +38,7 @@ calls, and its completeness is stated under any call relation holding of every h
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 open HashSig HashSig.OverPermutation
 
 @[expose] public section

@@ -17,7 +17,7 @@ ones. `out_on`: the committed outputs' opening holds on the layout, its check by
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.B1
 open LeanVM.Guest.Memory LeanVM.Guest.B1.Fwd
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Protocol.KeccakGkr Finset
@@ -155,10 +155,10 @@ theorem out_on (h : D.Ok) (hm : D.Mem rd B curE chiE olE zvE slE tbE ls) {σ : V
   obtain ⟨e3691, -, e3701, cells, -, e3971, e3972, e3974, H⟩ :=
     vkOut_complete hσ hg h17 (by rw [e3699]; exact mword) hslot (O1_length h) hr0 hL hchk
   have gA : ∀ a, Stmt.atom a ∈ vkOutT → Good rd vkSt (D.w B curE) σ a := fun a h ↦ hg _ h
-  have c3692 : σ (.n 916) = Guest.word 0 0 :=
-    gA (.const (.n 916) (Guest.word 0 0)) (by simp [vkOutT])
-  have c3693 : σ (.n 917) = Guest.word 0 0 :=
-    gA (.const (.n 917) (Guest.word 0 0)) (by simp [vkOutT])
+  have c3692 : σ (.n 916) = Core.word 0 0 :=
+    gA (.const (.n 916) (Core.word 0 0)) (by simp [vkOutT])
+  have c3693 : σ (.n 917) = Core.word 0 0 :=
+    gA (.const (.n 917) (Core.word 0 0)) (by simp [vkOutT])
   refine ⟨?_, ?_, by rw [e3691, h9, h6], by rw [c3692, word_zero], by rw [c3693, word_zero], eO,
     e3701, cells, by rw [e3971, h17], e3972, by rw [e3974, h9], H⟩
   · apply List.ext_getElem (by simp [cap5, hcL])

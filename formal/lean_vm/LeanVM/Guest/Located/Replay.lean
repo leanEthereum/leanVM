@@ -45,7 +45,7 @@ argument and return counts and registered flags are the decoder's literal tables
 
 namespace LeanVM.Guest.Located
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 open LeanVM.Guest.B1 LeanVM.Extraction LeanVM.Protocol.Halting LeanVM.Cost.Decoder
 
 @[expose] public section

@@ -26,7 +26,7 @@ the statement's program as `guest-backend check` does: `Data.functions` value fo
 slot of `assemble Data.functions 19`. `lake exe guest-traced identity` runs the comparison alone.
 -/
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Compiler LeanVM.Guest.Compiled
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Core LeanVM.Compiler LeanVM.Guest.Compiled
   LeanVM.Guest.Compiled.GuestInput
 
 namespace GuestTraced
@@ -96,10 +96,10 @@ def traceDefs (j : Nat) (name : String) (trace : Array Event) : List String × O
 
 def traceFile (k : Nat) (body : String) : String :=
   header s!"Trace.T{k}" "The traces of some of the guest's functions, renamed as `coreProgram` names their values." ++
-  "public import LeanVM.Compiler.Trace\npublic import LeanVM.Guest.Renumber\n" ++
+  "public import LeanVM.Compiler.Trace\npublic import LeanVM.Core.Renumber\n" ++
   "public meta import LeanVM.Compiler.DataLit\n\n" ++
   "set_option maxRecDepth 20000\nset_option linter.all false\n\n" ++
-  "namespace LeanVM.Guest.Compiled.GuestData\n\nopen LeanVM.Compiler LeanVM.Guest.Core\n\n@[expose] public section\n\n" ++
+  "namespace LeanVM.Guest.Compiled.GuestData\n\nopen LeanVM.Compiler LeanVM.Core\n\n@[expose] public section\n\n" ++
   body ++ "end\nend LeanVM.Guest.Compiled.GuestData\n"
 
 def pLoop (l : Bool × Option Nat) : String :=
@@ -132,7 +132,7 @@ def files (P : List TracedFn) : List (String × String) := Id.run do
     "public import LeanVM.Compiler.Trace\n" ++ String.join imports ++
     "public meta import LeanVM.Compiler.DataLit\n" ++
     "\nset_option maxRecDepth 20000\nset_option linter.all false\n\n" ++
-    "namespace LeanVM.Guest.Compiled.GuestData\n\nopen LeanVM.Compiler LeanVM.Parameters\n\n@[expose] public section\n\n" ++
+    "namespace LeanVM.Guest.Compiled.GuestData\n\nopen LeanVM.Core\n\nopen LeanVM.Compiler LeanVM.Parameters\n\n@[expose] public section\n\n" ++
     assembled ++
     "/-- What the back end takes of each of the guest's functions besides its core function, in the\n" ++
     "compiler's order: its trace, its return cells, its `loopSource` and its constant parameters. -/\n" ++

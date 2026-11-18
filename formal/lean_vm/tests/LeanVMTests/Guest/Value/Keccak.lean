@@ -1,5 +1,5 @@
 import LeanVM.Guest.Value.Keccak
-import LeanVM.Guest.Core
+import LeanVM.Core
 import LeanVM.Guest.Batch.Def
 
 /-!
@@ -24,7 +24,7 @@ import LeanVM.Guest.Batch.Def
 namespace LeanVMTests.Guest.Value.Keccak
 
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.KeccakHash
-open LeanVM.Guest.Value.KeccakEval LeanVM.Guest.Value.Keccak LeanVM.Guest.Value
+open LeanVM.Core.Value.KeccakEval LeanVM.Guest.Value.Keccak LeanVM.Core.Value.Keccak LeanVM.Guest.Value
 
 /-! ## The evaluator -/
 
@@ -142,7 +142,7 @@ def pending : List (E × ℕ) :=
 
 #guard toNats LeanVM.Node.batchSeed = toNats batchSeedValue
 #guard (List.range 5).all fun c ↦
-  LeanVM.Guest.litField (aggSeed.getD c 0) =
+  LeanVM.Core.litField (aggSeed.getD c 0) =
     cellsOfState LeanVM.Node.batchSeed false (Fin.ofNat 13 (8 + c))
 
 /-! ## Templates -/
@@ -150,8 +150,8 @@ def pending : List (E × ℕ) :=
 -- `keccak([a0, a1], [b0, b1], out)`: 64 bytes, the tail the padding run (`0x01`, then zeros),
 -- `b8` the constant `0x80 << 56`, the capacity the zero run.
 example (a0 a1 b0 b1 : E) (I O : Fin 13 → E)
-    (hI : I = LeanVM.Guest.Core.cells13 [a0, a1, b0, b1, LeanVM.Guest.word 1 0, 0, 0, 0,
-      LeanVM.Guest.word 9223372036854775808 0, 0, 0, 0, 0])
+    (hI : I = LeanVM.Core.cells13 [a0, a1, b0, b1, LeanVM.Core.word 1 0, 0, 0, 0,
+      LeanVM.Core.word 9223372036854775808 0, 0, 0, 0, 0])
     (hK : KeccakCellsRelation I false O false .all) :
     (O 0, O 1) = digestHalves (keccak256 (cellsBytes [a0, a1, b0, b1])) := by
   have := (keccak_one (cells := [a0, a1, b0, b1]) (len := 64) (by simp) (by decide)
@@ -159,13 +159,13 @@ example (a0 a1 b0 b1 : E) (I O : Fin 13 → E)
     (fun c hc ↦ by
       subst hI
       fin_cases c <;> simp_all [padCells, xorByte, padRead, rate, byteCell,
-        LeanVM.Guest.Core.cells13])
-    (fun c hc ↦ by subst hI; fin_cases c <;> simp_all [LeanVM.Guest.Core.cells13]) hK).2
+        LeanVM.Core.cells13])
+    (fun c hc ↦ by subst hI; fin_cases c <;> simp_all [LeanVM.Core.cells13]) hK).2
   rwa [List.take_of_length_le (by simp)] at this
 
 -- `fs_pack(rate, 0, x, DS_OBSERVE)` then `keccak(rate[0:2], [0, 0], nxt, cap=sp)`.
 example (S : KeccakState) (x : E) (I O : Fin 13 → E)
-    (hI : I = LeanVM.Guest.Core.cells13 [x, E.ofLimbs 0 (K.ofBits 1), 0, 0, 0, 0,
+    (hI : I = LeanVM.Core.cells13 [x, E.ofLimbs 0 (K.ofBits 1), 0, 0, 0, 0,
       0, 0, cellsOfState S false 8, cellsOfState S false 9, cellsOfState S false 10,
       cellsOfState S false 11, cellsOfState S false 12])
     (hK : KeccakCellsRelation I false O false .all) :
@@ -183,23 +183,23 @@ example (S : KeccakState) (x : E) (I O : Fin 13 → E)
 
 /-! ## Axioms -/
 
-/-- info: 'LeanVM.Guest.Value.Keccak.keccak_chain' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Core.Value.Keccak.keccak_chain' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms keccak_chain
 
-/-- info: 'LeanVM.Guest.Value.Keccak.keccak_final_digest' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Core.Value.Keccak.keccak_final_digest' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms keccak_final_digest
 
-/-- info: 'LeanVM.Guest.Value.Keccak.keccak_one' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Core.Value.Keccak.keccak_one' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms keccak_one
 
-/-- info: 'LeanVM.Guest.Value.Keccak.keccak_whole' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Core.Value.Keccak.keccak_whole' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms keccak_whole
 
-/-- info: 'LeanVM.Guest.Value.Keccak.keccak_duplex' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Core.Value.Keccak.keccak_duplex' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms keccak_duplex
 

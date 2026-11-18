@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.Value.KeccakLayout
+public import LeanVM.Core.Value.KeccakLayout
 
 namespace LeanVM.Guest.B1
 

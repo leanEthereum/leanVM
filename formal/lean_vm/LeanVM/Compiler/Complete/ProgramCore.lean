@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Compiler.Complete.Program
-public import LeanVM.Guest.Memory.Discharge
+public import LeanVM.Core.Memory.Discharge
 
 /-!
 # Whole-program completeness from a core run
@@ -36,7 +36,7 @@ other values `T`'s.
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 

@@ -23,7 +23,7 @@ through too, so a path on which the core body returns is a returning path of the
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 

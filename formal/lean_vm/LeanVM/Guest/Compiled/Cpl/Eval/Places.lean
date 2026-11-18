@@ -23,7 +23,7 @@ them together.
 
 namespace LeanVM.Guest.Compiled.CplEval
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Compiler LeanVM.Guest.Compiled.Cpl GuestPiece LeanVM.Compiler.Complete
+open LeanVM.Core LeanVM.Compiler LeanVM.Guest.Compiled.Cpl GuestPiece LeanVM.Compiler.Complete
 
 @[expose] public section
 

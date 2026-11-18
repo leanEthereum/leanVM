@@ -35,7 +35,7 @@ values before the outputs, `size = 3`).
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
+open LeanVM.Core LeanVM.Parameters
 
 @[expose] public section
 

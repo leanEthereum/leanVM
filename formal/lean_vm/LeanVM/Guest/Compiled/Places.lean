@@ -20,7 +20,7 @@ world whose input is `guestTraced`, on the empty memory `gWorld`). It depends on
 
 namespace LeanVM.Guest.Compiled
 
-open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Core
 
 @[expose] public section
 

@@ -25,8 +25,8 @@ claim's chain) and makes its 101 calls in order (`term_callSF`).
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
-open LeanVM.Guest.Memory LeanVM.Guest.B1.Fwd
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Core.Memory LeanVM.Guest.B1.Fwd
 
 @[expose] public section
 

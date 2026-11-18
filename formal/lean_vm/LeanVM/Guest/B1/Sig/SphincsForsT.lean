@@ -39,7 +39,7 @@ type's low byte at bit `24` of limb `0`, the key pair's two low bytes at bits `4
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Parameters
+open LeanVM.Core LeanVM.Parameters
 
 @[expose] public section
 

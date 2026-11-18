@@ -33,9 +33,9 @@ The hypotheses of `check_opening_terminal_completeAtB`, `rst_completeAtB` and `r
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open LeanVM.Guest.Memory LeanVM.Guest
+open LeanVM.Core.Memory LeanVM.Core
 open LeanVM.Guest.B1.Main (MemL RegionL)
 
 @[expose] public section

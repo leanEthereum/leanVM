@@ -17,7 +17,7 @@ the selector's exponent searched by `logGT`, the start its selector plus the tab
 
 namespace LeanVM.Guest.Fast
 
-open LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.B1.Sig
+open LeanVM.Parameters LeanVM.Core LeanVM.Guest.B1.Sig
 
 @[expose] public section
 

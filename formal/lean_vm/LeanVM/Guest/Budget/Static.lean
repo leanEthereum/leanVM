@@ -7,13 +7,13 @@
 
 module
 
-public import LeanVM.Guest.Memory.Size
-public import LeanVM.Guest.Value.Bits
+public import LeanVM.Core.Memory.Size
+public import LeanVM.Core.Value.Bits
 public import LeanVM.Guest.CoreData
 
 namespace LeanVM.Guest.Budget
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 open LeanVM.Protocol.Verifier (gen)
 
 @[expose] public section

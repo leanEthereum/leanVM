@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.Batch.Cube
+public import LeanVM.Protocol.Cube
 public import Statement.LeanVmGuest
 public import LeanVM.Guest.Batch.Def
 public import LeanXmss.Scheme

@@ -23,7 +23,7 @@ child's DA digest's two hinted cells, a store, or a load through one of the chil
 
 namespace LeanVM.Guest.B1.Main
 
-open LeanVM.Guest.Core LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Digest
+open LeanVM.Core LeanVM.Guest.B1.Fwd LeanVM.Guest.B1.Digest
 
 @[expose] public section
 

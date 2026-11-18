@@ -22,7 +22,7 @@ its trees: the fixed words lie in the caller's (`forced_load_region`), so the re
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section

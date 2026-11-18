@@ -29,7 +29,7 @@ no function, `Guest/NameIndex.lean`).
 
 namespace LeanVM.Guest.Fast
 
-open LeanVM.Parameters LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Core
 
 @[expose] public section
 

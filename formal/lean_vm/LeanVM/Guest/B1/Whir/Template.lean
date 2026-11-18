@@ -11,8 +11,8 @@ module
 
 public import LeanVM.Guest.B1.Whir.Config
 public import LeanVM.Guest.B1.Whir.Split
-public import LeanVM.Guest.Word
-public import LeanVM.Guest.Renumber
+public import LeanVM.Core.Word
+public import LeanVM.Core.Renumber
 public import LeanVM.Guest.GuestConst
 -- Private: `guest_const%` inserts literals, so importers need not see the guest's source.
 import LeanVM.Guest.Data.Source
@@ -36,7 +36,7 @@ into a helper specialized on that rate's row (`level_positions`, `level_queries`
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Protocol
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Protocol
 
 @[expose] public section
 
@@ -91,7 +91,7 @@ def hsScale (v bits c init : ℕ) : ℕ :=
 
 /-! ## Materialized pointers -/
 
-/-- A shifted pointer the body materialized (`Mat`, `Guest/Expand.lean`): `out = base·g^exp`,
+/-- A shifted pointer the body materialized (`Mat`, `Core/Expand.lean`): `out = base·g^exp`,
 made as `src·g^dist`. -/
 structure OsMat where
   base : ℕ

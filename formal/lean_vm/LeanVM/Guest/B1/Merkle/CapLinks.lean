@@ -26,7 +26,7 @@ the functions.
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Ref
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Ref
 
 @[expose] public section
 

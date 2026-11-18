@@ -2,8 +2,8 @@ import LeanVM.Guest.Data.Source
 import Statement.Data.Bytecode
 import LeanVM.Compiler.Invariants
 import LeanVM.Compiler.Lines
-import LeanVM.Guest.Interp
-import LeanVM.Guest.Renumber
+import LeanVM.Core.Interp
+import LeanVM.Core.Renumber
 import LeanVMTests.Guest.Programs
 import LeanVMTests.Guest.Snippets
 
@@ -39,7 +39,7 @@ Run from `lean_vm`.
   the statement's.
 -/
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Compiler
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Core LeanVM.Compiler
 
 namespace GuestBackend
 

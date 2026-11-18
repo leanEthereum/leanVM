@@ -10,8 +10,8 @@ public import LeanVM.Guest.B1.Place.Lr
 public import LeanVM.Guest.B1.Place.LrLoops
 public import LeanVM.Guest.B1.Place.LpProof
 public import LeanVM.Guest.B1.Place.LrPure
-public import LeanVM.Guest.Memory.Retemp
-public import LeanVM.Guest.Memory.Restrict
+public import LeanVM.Core.Memory.Retemp
+public import LeanVM.Core.Memory.Restrict
 public import LeanVM.Guest.B1.Whir.DataSpec
 public import LeanVM.Guest.B1.Whir.HelperAll
 
@@ -31,7 +31,7 @@ memory holding its words (`relAtIn_pure_uniform`, `guarded_uniform`).
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Core.Memory
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 open LeanVM.Guest.B1.Whir
 open LeanVM.Protocol.Verifier (gen)

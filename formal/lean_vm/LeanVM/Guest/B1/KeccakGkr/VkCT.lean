@@ -18,8 +18,8 @@ challenge. `body_sizes`, `body_bases`: the buffers' sizes and bases are the layo
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
-open LeanVM.Guest.Memory LeanVM.Guest.B1.Fwd
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.B1
+open LeanVM.Core.Memory LeanVM.Guest.B1.Fwd
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Protocol.KeccakGkr Finset
 open LeanVM.Guest.B1.Main (MemL RegionL)
@@ -110,8 +110,8 @@ theorem val_57 (h : D.Ok) {σ : Val} (hσd : σ = D.val rd B curE chiE olE zvE s
     subst hσd; exact (val_good h).2.1
   have gA : ∀ a, Stmt.atom a ∈ vkT → pinB (.atom a) = false → Good rd vkSt (D.w B curE) σ a :=
     fun a h hp ↦ hG _ h hp
-  have c56 : σ (.n 59) = Guest.word 2 0 :=
-    gA (.const (.n 59) (Guest.word 2 0)) (by simp [vkT, vkHeadT, vkPointT]) rfl
+  have c56 : σ (.n 59) = Core.word 2 0 :=
+    gA (.const (.n 59) (Core.word 2 0)) (by simp [vkT, vkHeadT, vkPointT]) rfl
   have m57 := mulG (by norm_num) (by norm_num)
     (gA (.mul (.n 60) (.n 18) (.n 59)) (by simp [vkT, vkHeadT, vkPointT]) rfl)
   rw [m57, h17, c56, word_gen, ← pow_succ]

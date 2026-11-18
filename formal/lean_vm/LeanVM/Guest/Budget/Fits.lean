@@ -33,7 +33,7 @@ table below `2^23` (`GuestLimits.of_limits`): `guest_complete_numeric` gives a v
 namespace LeanVM.Guest.Budget
 
 open LeanVM.Guest.Completeness
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Node LeanVM.Protocol
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Node LeanVM.Protocol
 open LeanVM.Guest.End (work bytecode)
 
 @[expose] public section

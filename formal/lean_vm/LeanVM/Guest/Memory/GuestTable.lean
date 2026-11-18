@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.Deployed.Data
-public import LeanVM.Guest.Memory
+public import LeanVM.Core.Memory
 public import Statement.Data.Bytecode
 
 /-!
@@ -23,7 +23,7 @@ one word per offset (`tableCells_off`, `tableCells_agree`).
 
 namespace LeanVM.Guest.Memory
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 

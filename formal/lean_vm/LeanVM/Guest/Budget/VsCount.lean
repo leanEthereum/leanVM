@@ -40,7 +40,7 @@ at most `vsCountT op c`.
 
 namespace LeanVM.Guest.Budget
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 open LeanVM.Guest.Count
 
 @[expose] public section

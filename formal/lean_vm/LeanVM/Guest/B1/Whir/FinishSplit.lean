@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Whir.Template
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Protocol
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Protocol
 
 @[expose] public section
 

@@ -25,7 +25,7 @@ calls' segments when the callee frames hold their cells. The frame side's per-in
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 
@@ -113,7 +113,7 @@ theorem mulNextFrame_hw (h : Rds Ag fp size w) {pc a b c : ℕ} (ha : a < size) 
 /-- **A `SET` into the next frame**: the memory holds the immediate there. -/
 theorem setNextFrame_hw {pc c c0 c1 : ℕ}
     (hr : ∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →
-      L.read (addressOfIndex (fp + (Γ.frame + c))) = some (Guest.word c0 c1)) :
+      L.read (addressOfIndex (fp + (Γ.frame + c))) = some (Core.word c0 c1)) :
     HW Γ fp Ag pc (.setNextFrame c c0 c1) := by
   intro κ L hA
   simp only [Site.R, resolveOp, Holds]
@@ -258,7 +258,7 @@ theorem loopPre_segW (hr : Rds Ag fp size w) {callee : String} {nfp entry one po
         L.read (addressOfIndex (fp + (Γ.frame + (argBase + k)))) = some (w args[k]))
     (hcs : ∀ k, k < args.length → ∀ c0 c1, consts.lookup k = some (c0, c1) →
       ∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →
-        L.read (addressOfIndex (fp + (Γ.frame + (argBase + k)))) = some (Guest.word c0 c1))
+        L.read (addressOfIndex (fp + (Γ.frame + (argBase + k)))) = some (Core.word c0 c1))
     (hself : ∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →
       L.read (addressOfIndex (fp + (Γ.frame + (argBase + args.length)))) = some (w nfp))
     (hhdr : ∀ (κ : ℕ) (L : MemoryImage κ), Ag κ L →

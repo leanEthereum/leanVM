@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Tables.VtC.Calls
 public import LeanVM.Guest.B1.Tables.VtC.Kids
 public import LeanVM.Guest.Budget.Static
-public import LeanVM.Guest.Memory.LoopPre
+public import LeanVM.Core.Memory.LoopPre
 public import LeanVM.Guest.B1.Terminal.TermWeight
 public import LeanVM.Guest.Data.NameStrings
 
@@ -30,9 +30,9 @@ and the bounds over the sixteen callees.
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open LeanVM.Node LeanVM.Guest.Memory
+open LeanVM.Node LeanVM.Core.Memory
 
 @[expose] public section
 

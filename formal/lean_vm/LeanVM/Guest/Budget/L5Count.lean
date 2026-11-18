@@ -34,7 +34,7 @@ namespace LeanVM.Guest.Budget
 
 open LeanVM.Guest.Completeness
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 open LeanVM.Guest.Count
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Node LeanVM.Protocol LeanVM.Protocol.KeccakHash

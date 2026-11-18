@@ -22,7 +22,7 @@ slot's word is a table cell's, at the slot's address (`jtCells`).
 
 namespace LeanVM.Guest.Compiled.Cpl
 
-open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory GuestPiece
+open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Core LeanVM.Guest.Memory GuestPiece
 
 @[expose] public section
 

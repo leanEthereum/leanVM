@@ -21,7 +21,7 @@ import all LeanVM.Guest.PlaceCode
 
 namespace LeanVM.Cost.Decoder
 
-open LeanVM.Cost LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main
+open LeanVM.Cost LeanVM.Parameters LeanVM.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main
 open LeanVM.Protocol.Verifier LeanVM.Node
 
 @[expose] public section
@@ -60,9 +60,9 @@ theorem placeWith_eq_placeWord (rd : Reader) (fp : K) (c : ℕ) :
   split_ifs
   · rfl
   · rfl
-  · rw [LeanVM.Guest.Value.eq_ofLimbs ((rd (fp * addressOfIndex (c % 2 ^ 20))).getD 0),
-      LeanVM.Guest.Value.ofLimbs_mul_ofK]
-    simp only [LeanVM.Guest.Value.ofLimbs_limb0, LeanVM.Guest.Value.ofLimbs_limb1]
+  · rw [LeanVM.Core.Value.eq_ofLimbs ((rd (fp * addressOfIndex (c % 2 ^ 20))).getD 0),
+      LeanVM.Core.Value.ofLimbs_mul_ofK]
+    simp only [LeanVM.Core.Value.ofLimbs_limb0, LeanVM.Core.Value.ofLimbs_limb1]
 
 set_option maxRecDepth 100000 in
 cost_compile placeWordC := placeWord

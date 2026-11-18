@@ -24,7 +24,7 @@ entry (`CplOkAll`).
 
 namespace LeanVM.Guest.Compiled.Cpl
 
-open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory GuestPiece
+open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Memory GuestPiece
 open LeanVM.Guest.Completeness LeanVM.Guest.Budget
 open LeanVM.Guest.End (GuestCompleteWithin)
 open LeanVM.Guest.B1.VerifySub (vsBoundAt vkBound)

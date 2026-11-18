@@ -21,7 +21,7 @@ unlocated relation (`hxp`).
 
 namespace LeanVM.Compiler.Obl
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 

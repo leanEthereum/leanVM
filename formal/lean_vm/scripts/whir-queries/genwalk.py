@@ -20,7 +20,7 @@ public import LeanVM.Guest.B1.Opening.QueriesT
 %s
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -54,7 +54,7 @@ public import LeanVM.Guest.B1.Common.Find
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 
 @[expose] public section
 ''' % '\n'.join('public import LeanVM.Guest.B1.Opening.WalkBody%d' % k for k in range(len(parts)))]

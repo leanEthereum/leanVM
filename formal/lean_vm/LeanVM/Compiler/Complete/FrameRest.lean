@@ -21,7 +21,7 @@ leaves the events its scope walk (`scopeBlock`) leaves (`blockRest`), on any pat
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 

@@ -25,7 +25,7 @@ loading from `R` only. `ptrIn_ofK`: a run from `g^b` lies in `R` when `b ..< b +
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Core.Memory
 open LeanVM.Guest.Lift
 open LeanVM.Protocol.Verifier (gen)
 

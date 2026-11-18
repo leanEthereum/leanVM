@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Core
+public import LeanVM.Core
 public import LeanVM.Guest.B1.Common.HashPair
 
 /-!
@@ -39,7 +39,7 @@ a `keccak` whose output lands on it are assertions about one word.
 
 namespace LeanVM.Guest.Ref
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
 
 @[expose] public section
 

@@ -35,7 +35,7 @@ caller's and the own buffers.
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 open LeanVM.Guest.B1.Fwd
 open LeanVM.Guest.B1.Main (RegionL)
@@ -80,9 +80,9 @@ theorem vsh_disp {C C' : CallRel} {rd : Reader} {σ : Val} {x : V} {fs : List St
   obtain ⟨j, hj, e, hc⟩ := h
   obtain rfl : m = j := by
     rw [hx, gen_pow_eq_ofK] at e
-    have := congrArg LeanVM.Guest.Memory.logG e
-    rwa [LeanVM.Guest.Memory.logG_spec (e := m) (by omega),
-      LeanVM.Guest.Memory.logG_spec (e := j) (by omega)] at this
+    have := congrArg LeanVM.Core.Memory.logG e
+    rwa [LeanVM.Core.Memory.logG_spec (e := m) (by omega),
+      LeanVM.Core.Memory.logG_spec (e := j) (by omega)] at this
   exact ⟨m, hm, by rw [hx, gen_pow_eq_ofK], hup hc⟩
 
 /-! ## The calls -/

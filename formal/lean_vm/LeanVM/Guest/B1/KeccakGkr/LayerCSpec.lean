@@ -22,7 +22,7 @@ equations (`layer_good`), and the parameters are the arguments (`layer_param`).
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.B1
 open LeanVM.Guest.B1.Fwd
 
 @[expose] public section

@@ -37,7 +37,7 @@ function (`firstEntered`), and B1's `gLog` searches the `2^34` powers. Here:
 
 namespace LeanVM.Guest.Located
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 open LeanVM.Guest.B1 LeanVM.Extraction LeanVM.Extraction.Fast LeanVM.Cost.Decoder
 
 @[expose] public section

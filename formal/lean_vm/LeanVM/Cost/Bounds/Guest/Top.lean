@@ -27,7 +27,7 @@ valuation `S`, of the frame map `F`, of a logarithm `G` (`GLogBound`), of the cu
 namespace LeanVM.Cost.Bounds.Guest
 
 open LeanVM.Cost LeanVM.Cost.Bounds LeanVM.Cost.Library LeanVM.Parameters
-open LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.Fast LeanVM.Extraction.Fast
+open LeanVM.Core LeanVM.Guest.B1 LeanVM.Guest.Fast LeanVM.Extraction.Fast
 
 public section
 

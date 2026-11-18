@@ -23,7 +23,7 @@ of the readers off arrays, built once.
 
 namespace LeanVM.Guest.Fast
 
-open LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main LeanVM.Node
+open LeanVM.Parameters LeanVM.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main LeanVM.Node
 
 @[expose] public section
 

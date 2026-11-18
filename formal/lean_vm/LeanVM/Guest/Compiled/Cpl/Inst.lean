@@ -32,7 +32,7 @@ from the temporaries' and one value each, and the frame family does not see the 
 
 namespace LeanVM.Guest.Compiled.Cpl
 
-open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory GuestPiece
+open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Memory LeanVM.Core.Memory GuestPiece
 open LeanVM.Guest.Deployed
 
 @[expose] public section

@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Core
+public import LeanVM.Core
 
 /-!
 # Memories defined below `2^k`
@@ -18,7 +18,7 @@ public import LeanVM.Guest.Core
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 

@@ -26,6 +26,8 @@ openings `openingAt keccak256 ht word` of those positions; with `InRange`, every
 
 namespace LeanVM.Guest.Child
 
+open LeanVM.Core
+
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 open LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
 

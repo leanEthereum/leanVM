@@ -43,7 +43,7 @@ of `claim_list_digest_loop0`, `n % 136 / 17` of `claim_list_digest_loop1` and th
 
 namespace LeanVM.Guest.Budget
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 open LeanVM.Guest.Count
 open LeanVM.Protocol.Verifier (gen)
 
@@ -357,7 +357,7 @@ end LeanVM.Guest.Budget
 
 namespace LeanVM.Guest.Count
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Memory LeanVM.Guest
 
 @[expose] public section
 

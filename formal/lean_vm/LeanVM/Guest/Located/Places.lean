@@ -24,7 +24,7 @@ is the valuation by the back end's places (`Cpl.places_val`), the world's (`Lean
 
 namespace LeanVM.Guest.Located
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Cost.Decoder
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Cost.Decoder
 
 @[expose] public section
 

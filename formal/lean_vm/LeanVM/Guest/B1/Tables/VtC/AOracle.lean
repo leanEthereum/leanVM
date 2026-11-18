@@ -18,7 +18,7 @@ oracle, the word of a value's position in the table. `vtW_ok`: it answers `VtWOk
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 open LeanVM.Protocol.EndToEnd.Complete (blockSel)
 
@@ -113,7 +113,7 @@ theorem vtWVals_split :
   simp only [vtWVals, List.append_assoc]
 
 theorem ownB_map_length : ((H.ownB B).map (fun b ↦ ofK (addressOfIndex b))).length = 111 := by
-  simp [VtHonest.ownB, VtHonest.sizes, LeanVM.Guest.Memory.length_bases]
+  simp [VtHonest.ownB, VtHonest.sizes, LeanVM.Core.Memory.length_bases]
 
 set_option maxRecDepth 100000 in
 theorem vtWKeys_alloc : ∀ j < 111, vtWKeys.idxOf (vtAllocVars.getD j 0) = j := by decide +kernel
@@ -123,7 +123,7 @@ theorem vtW_alloc {j : ℕ} (hj : j < 111) :
   rw [vtW, vtWKeys_alloc j hj, vtWVals_split, List.getD_append _ _ _ _
     (by rw [ownB_map_length]; exact hj), List.getD_eq_getElem _ _ (by rw [ownB_map_length]; exact hj),
     List.getD_eq_getElem _ _ (by
-      simp [VtHonest.ownB, VtHonest.sizes, LeanVM.Guest.Memory.length_bases]; omega)]
+      simp [VtHonest.ownB, VtHonest.sizes, LeanVM.Core.Memory.length_bases]; omega)]
   simp
 
 theorem getD_append_len {α : Type} {A rest : List α} {n k : ℕ} {d : α} (h : A.length = n) :

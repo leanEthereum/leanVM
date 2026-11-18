@@ -28,9 +28,9 @@ call's return its callee's result in `outs` (`vsRetVars`, callee by callee in ca
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open LeanVM.Node LeanVM.Guest.Memory
+open LeanVM.Node LeanVM.Core.Memory
 
 @[expose] public section
 

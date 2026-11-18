@@ -22,7 +22,7 @@ then `kuSB_weightLe` (`kuSK_loop`) bounds `f`'s weight.
 
 namespace LeanVM.Guest.Count
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 open LeanVM.Guest.Data
 
 @[expose] public section

@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Core
+public import LeanVM.Core
 public import Statement.Field
 
 /-!
@@ -22,7 +22,7 @@ facts are `B1/Opening/QueriesWalk.lean`'s).
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Protocol LeanVM.Protocol.Verifier
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
 

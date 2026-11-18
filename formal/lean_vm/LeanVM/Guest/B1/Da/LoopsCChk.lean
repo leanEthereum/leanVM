@@ -12,7 +12,7 @@ public import LeanVM.Guest.Data.NameStrings
 
 namespace LeanVM.Guest.B1.Da
 
-open LeanVM.Guest.Core LeanVM.Guest.B1.Digest
+open LeanVM.Core LeanVM.Guest.B1.Digest
 
 @[expose] public section
 

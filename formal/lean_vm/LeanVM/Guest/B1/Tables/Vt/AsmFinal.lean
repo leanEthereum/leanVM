@@ -21,7 +21,7 @@ by `ξ⁰, ξ¹` and `ξ², ξ³, ξ⁴` — is `σ 2646`, the sumcheck's final 
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.B1
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 open LeanVM.Protocol.EndToEnd.Complete (termsPure length_tableWeights jumpConstraints_eq
   refNConstraints)

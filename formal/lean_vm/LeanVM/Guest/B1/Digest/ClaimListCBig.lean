@@ -15,7 +15,7 @@ public import LeanVM.Guest.Data.NameStrings
 
 namespace LeanVM.Guest.B1.Digest
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.B1.Fwd
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1.Fwd
 
 @[expose] public section
 

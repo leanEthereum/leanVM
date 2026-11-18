@@ -9,9 +9,9 @@
 
 module
 
-public import LeanVM.Guest.Memory.Restrict
-public import LeanVM.Guest.Memory.Straight
-public import LeanVM.Guest.Memory.Retemp
+public import LeanVM.Core.Memory.Restrict
+public import LeanVM.Core.Memory.Straight
+public import LeanVM.Core.Memory.Retemp
 public import LeanVM.Guest.Memory.GuestFresh
 public import LeanVM.Guest.Memory.GuestWf
 public import LeanVM.Guest.B1.Common.Basic
@@ -47,16 +47,16 @@ allocator's.
 
 namespace LeanVM.Guest.B1.Main
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 open LeanVM.Protocol.Verifier (gen)
 
 @[expose] public section
 
-export LeanVM.Guest.Memory (restrict restrict_supp restrict_of loadHolds_restrict loads_of_supp
+export LeanVM.Core.Memory (restrict restrict_supp restrict_of loadHolds_restrict loads_of_supp
   loadsR_of_supp loadsRKids_of_supp relIn_of_rel_supp restrict_supp' atomEqns_read_pure eqns_read_pure
   eqnsKids_read_pure relAtIn_uniform_of_supp)
 
-export LeanVM.Guest.Memory (Stmt.straight slEvs walk1_straight walk_straight Stmt.allocSz Stmt.addrS
+export LeanVM.Core.Memory (Stmt.straight slEvs walk1_straight walk_straight Stmt.allocSz Stmt.addrS
   Stmt.callS mkCall slEvs_atom_alloc straight_parts)
 
 /-! ## Layouts -/
@@ -143,7 +143,7 @@ end LeanVM.Guest.B1.Main
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Core.Memory
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)
 
 @[expose] public section

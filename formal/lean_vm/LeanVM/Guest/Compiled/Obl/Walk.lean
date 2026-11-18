@@ -34,8 +34,8 @@ them.
 
 namespace LeanVM.Guest.Compiled.Obl
 
-open LeanVM.Compiler LeanVM.Compiler.Obl LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.B1
-open LeanVM.Guest.Value LeanVM.Protocol.Verifier
+open LeanVM.Compiler LeanVM.Compiler.Obl LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
+open LeanVM.Core.Value LeanVM.Protocol.Verifier
 
 @[expose] public section
 

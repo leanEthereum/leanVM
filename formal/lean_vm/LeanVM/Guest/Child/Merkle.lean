@@ -24,6 +24,8 @@ digest give the same digest (`batchAgrees_honest`).
 
 namespace LeanVM.Guest.Child
 
+open LeanVM.Core
+
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Compile
 open LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash LeanVM.Protocol.MerkleTree
 

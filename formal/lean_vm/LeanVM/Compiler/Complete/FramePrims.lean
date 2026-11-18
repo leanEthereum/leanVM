@@ -20,7 +20,7 @@ word, and a run of values taken gets the valuation's words.
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 
@@ -241,13 +241,13 @@ theorem constCell_eq (k : ℕ × ℕ) : constCell k = pooledCell (·.consts.get?
   rfl
 
 /-- **A pooled constant**, keeping the cells the constraint leaves free. -/
-theorem constCell_fatB (k : ℕ × ℕ) (hkw : I.kw (.const k.1 k.2) = Guest.word k.1 k.2)
+theorem constCell_fatB (k : ℕ × ℕ) (hkw : I.kw (.const k.1 k.2) = Core.word k.1 k.2)
     (h2 : 2 ≤ st.next) :
     FAt ctx I C st (constCell k) (fun o C' st' => 2 ≤ o ∧ o < st'.next ∧ st'.locs = st.locs ∧
-      st'.rest = st.rest ∧ (∀ Ψ, C' Ψ → Ψ o = Guest.word k.1 k.2) ∧
+      st'.rest = st.rest ∧ (∀ Ψ, C' Ψ → Ψ o = Core.word k.1 k.2) ∧
       ∀ c, c < st.next → BlindAt C c → BlindAt C' c) := by
   rw [constCell_eq]
-  refine FAt.mono (pooledCell_fat (fun _ => True) (fun _ => Guest.word k.1 k.2)
+  refine FAt.mono (pooledCell_fat (fun _ => True) (fun _ => Core.word k.1 k.2)
     (wblind_const _ _) h2 (fun o ho Ψ _ hp _ => hp.consts k o ho) (fun o ho hs => hs.consts k o ho) (fun _ _ Ψ _ h => ?_)
     (fun Ψ _ h hp => hp.insertConst h)
     (fun hs => { hs with consts := pmap_insert_imp hs.consts ⟨h2, Nat.lt_succ_self _⟩ }))

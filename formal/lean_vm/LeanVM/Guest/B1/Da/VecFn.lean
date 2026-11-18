@@ -23,7 +23,7 @@ tree over the cell index has the top leaves (`topLeaf_eq`).
 
 namespace LeanVM.Guest.B1.Da
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Protocol.Verifier (eOfNat gen)
 open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 

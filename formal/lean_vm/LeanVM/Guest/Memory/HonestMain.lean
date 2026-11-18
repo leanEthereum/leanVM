@@ -10,7 +10,7 @@
 module
 
 public import LeanVM.Guest.Memory.Uniform
-public import LeanVM.Guest.Memory.Discharge
+public import LeanVM.Core.Memory.Discharge
 
 /-!
 # The honest tree of `main`
@@ -28,7 +28,7 @@ holding a consistent layout `L` in `[2, N)` and the header, an honest tree of `N
 
 namespace LeanVM.Guest.B1.Main
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 
 @[expose] public section
@@ -102,7 +102,7 @@ end LeanVM.Guest.B1.Main
 
 namespace LeanVM.Guest.B1.Main
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Core.Memory
 open LeanVM.Protocol LeanVM.Protocol.Verifier
 open LeanVM.Guest.B1 (LowDef)
 

@@ -30,7 +30,7 @@ is the exponent of an address of the memory).
 
 namespace LeanVM.Cost.Bounds.Guest
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Core
 open LeanVM.Guest.B1 LeanVM.Guest.B1.Main LeanVM.Extraction.Fast LeanVM.Cost.Decoder
 
 public section
@@ -79,7 +79,7 @@ theorem mainFacts_valid {input : PublicInput} {t : Execution guestProgram}
   cases hf
   exact ⟨_, loop2Out_of_body Sig.verify_lean_xmss_sound_holds hp hb⟩
 
-open LeanVM.Protocol.Verifier LeanVM.Guest.Value in
+open LeanVM.Protocol.Verifier LeanVM.Core.Value in
 /-- A word read at offset `0` through a pointer of a memory of `2^κ` words is `g^e`, `e < 2^κ`. -/
 theorem load_gpow_lt {κ : ℕ} (hκ : κ ≤ 30) (L : MemoryImage κ) {x w : E}
     (h : LoadHolds L.read x 0 w) : ∃ e < 2 ^ κ, x = gen ^ e := by
@@ -88,7 +88,7 @@ theorem load_gpow_lt {κ : ℕ} (hκ : κ ≤ 30) (L : MemoryImage κ) {x w : E}
   obtain ⟨i, hi, -⟩ := (read_some_iff (by omega) L _ _).mp hr
   exact ⟨i, i.2, by rw [eq_ofK_limb hx, hi, gen_pow_eq_ofK]⟩
 
-open LeanVM.Protocol.Verifier LeanVM.Guest.Value in
+open LeanVM.Protocol.Verifier LeanVM.Core.Value in
 /-- The counts of `main`'s facts, read by `gLog`, on a memory of `2^κ` words: each below `2^κ`. -/
 theorem validCounts_of {C : CallRel} {κ : ℕ} (hκ : κ ≤ 30) {L : MemoryImage κ} {σ : Val}
     (MF : MainFacts C L.read σ) : ValidCounts discreteLogTables σ (2 ^ κ) := by

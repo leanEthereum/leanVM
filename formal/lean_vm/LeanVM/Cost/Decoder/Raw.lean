@@ -17,7 +17,7 @@ at the tables built (`xmssRawT_eq`, `sphincsRawT_eq`).
 
 namespace LeanVM.Cost.Decoder
 
-open LeanVM.Cost LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main
+open LeanVM.Cost LeanVM.Parameters LeanVM.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main
 open LeanVM.Protocol.Verifier LeanVM.Node LeanVM.Extraction.Fast LeanVM.Guest.Fast
 
 @[expose] public section
@@ -122,7 +122,7 @@ theorem xmssRawT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     xmssRawT rd (σ (.n 31)) wX (l2Args σ) (lxTable D rd σ).1 (lxTable D rd σ).2 j =
       rawXmssD D rd σ wX j := by
   unfold xmssRawT xmssRawAt rawXmssD
-  rw [slotIn_regionTable, ← xmssAt_eq_K, LeanVM.Guest.Value.gen_pow_eq_ofK]
+  rw [slotIn_regionTable, ← xmssAt_eq_K, LeanVM.Core.Value.gen_pow_eq_ofK]
 
 theorem sphincsRawT_eq (D : DiscreteLogTables) (rd : Reader) (σ : Val)
     (wS : E → Sphincs.Signature) (j : ℕ) :

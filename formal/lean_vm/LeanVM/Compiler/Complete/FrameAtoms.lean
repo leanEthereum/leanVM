@@ -22,7 +22,7 @@ is placed in a cell holding its word, read from the pool or fresh.
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 
@@ -238,7 +238,7 @@ theorem place_const_fat (d : V) (c : E) : AtomFAt (.const d c) := by
   have hL := atom_ok hops fun _ _ h => by cases h
   have hev : I.σ d = c := let ⟨rd, hrd⟩ := hok.rd; hh rd hrd
   have hkd : ok d := hL d (by simp [Memory.atomUses])
-  have hwk : Guest.word (limbsOf c).1 (limbsOf c).2 = I.σ d := by rw [word_limbsOf, hev]
+  have hwk : Core.word (limbsOf c).1 (limbsOf c).2 = I.σ d := by rw [word_limbsOf, hev]
   unfold placeAtom
   dsimp only
   refine FAt.bind (FAt.modify rfl rfl rfl id) fun _ st₁ C₁ _ _ _ ⟨hC₁, hst₁⟩ => ?_

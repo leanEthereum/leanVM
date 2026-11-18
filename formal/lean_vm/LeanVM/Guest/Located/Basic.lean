@@ -29,7 +29,7 @@ computes no hash and runs no verifier of its own.
 
 namespace LeanVM.Guest.Located
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 open LeanVM.Protocol.Verifier
 
 @[expose] public section

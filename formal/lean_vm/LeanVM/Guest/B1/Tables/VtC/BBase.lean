@@ -26,7 +26,7 @@ weights at `fp_w`. The soundness's algebraic lemmas, stated on `VtH`, replay on 
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Guest.B1.Fwd LeanVM.Protocol.Verifier
 
 @[expose] public section

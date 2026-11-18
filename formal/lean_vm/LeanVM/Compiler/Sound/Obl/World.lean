@@ -22,7 +22,7 @@ its precondition, `World.entered_pre`), and a function the analysis accepts has 
 
 namespace LeanVM.Compiler.Obl
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 

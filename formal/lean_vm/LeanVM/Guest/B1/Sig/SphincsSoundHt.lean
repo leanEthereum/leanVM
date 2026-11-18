@@ -39,8 +39,8 @@ The guest's side, layer `l` at `sLayerBase l`:
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Value
-open LeanVM.Guest.Value.Keccak LeanVM.Protocol.KeccakHash
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
+open LeanVM.Core.Value.Keccak LeanVM.Protocol.KeccakHash
 open LeanVM.Protocol.Verifier (eOfNat kToNat)
 open HashSig HashSig.OverPermutation
 open Sphincs Sphincs.Verification

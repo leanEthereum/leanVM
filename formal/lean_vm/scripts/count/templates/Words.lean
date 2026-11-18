@@ -25,7 +25,7 @@ helper is named by `idx%` (`Guest/CoreRef.lean`).
 
 namespace LeanVM.Guest.Count
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest LeanVM.Guest.Data
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Memory LeanVM.Core.Memory LeanVM.Guest.Data
 
 @[expose] public section
 

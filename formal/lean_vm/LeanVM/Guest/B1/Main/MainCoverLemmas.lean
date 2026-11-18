@@ -34,11 +34,11 @@ public import LeanVM.Guest.AcceptableChild
 
 namespace LeanVM.Guest.B1.Main
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Core.Memory
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Verifier LeanVM.Node
 open LeanVM.Guest.Hints (claimCells cellsOfBytes cellOfBytes)
 open LeanVM.Guest.Coverage (coveragePlan)
-open LeanVM.Guest.Value.Keccak (cellBytes cellsBytes)
+open LeanVM.Core.Value.Keccak (cellBytes cellsBytes)
 open LeanVM.Guest.B1 (bufL)
 open LeanVM.Guest.B1.Da (reads_of_memL regionL_of_mem)
 

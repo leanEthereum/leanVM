@@ -11,7 +11,7 @@ public import LeanVM.Compiler.Complete.Cells
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 

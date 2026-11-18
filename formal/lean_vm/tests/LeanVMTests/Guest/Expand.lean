@@ -1,11 +1,11 @@
 import Statement.Data.Bytecode
-import LeanVM.Guest.Code
+import LeanVM.Core.Code
 import LeanVM.Guest.Data.Source
-import LeanVM.Guest.ExpandLemmas
-import LeanVM.Guest.Interp
+import LeanVM.Core.ExpandLemmas
+import LeanVM.Core.Interp
 import LeanVMTests.Guest.Programs
 
-open LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Source LeanVM.Guest.Interp
+open LeanVM.Parameters LeanVM.Guest LeanVM.Core LeanVM.Core.Source LeanVM.Core.Interp
 open LeanVMTests.Guest.Programs
 
 namespace LeanVMTests.Guest.Expand
@@ -326,7 +326,7 @@ def gpowMain (v : Nat) : Source.Program :=
   withGuest ["g_power_of_word"]
     ([st (.let_ "r" (.call "g_power_of_word" [.lit v]))] ++ publish (.var "r") (.lit 0))
 
-#guard (Expand.expandProgram (gpowMain 5)).toOption.map (·.map Core.Fn.name) ==
+#guard (Expand.expandProgram (gpowMain 5)).toOption.map (·.map LeanVM.Core.Fn.name) ==
   some ["main", "g_power_of_word"]
 #guard isOk (runMain (gpowMain 5) [gpowE 5, 0])
 #guard isOk (runMain (gpowMain 63) [gpowE 63, 0])

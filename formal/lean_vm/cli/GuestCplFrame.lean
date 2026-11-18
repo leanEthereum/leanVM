@@ -12,7 +12,7 @@ decides `Complete.scopedB`, the hypothesis the placement-side completeness theor
 traced function, and reports every function that fails it with the walk's reason.
 -/
 
-open LeanVM.Guest.Core LeanVM.Compiler LeanVM.Guest.Compiled LeanVM.Compiler.Complete
+open LeanVM.Core LeanVM.Compiler LeanVM.Guest.Compiled LeanVM.Compiler.Complete
   LeanVM.Guest.Compiled.GuestInput
 
 /-- A value. -/
@@ -61,7 +61,7 @@ def lazyIntoBlock (tf : TracedFn) : Nat :=
     | _ => (n, lazy)) (0, false)).1
 
 /-- The atoms of a body, at any depth. -/
-partial def atomsOf : List Stmt → List LeanVM.Guest.Core.Atom
+partial def atomsOf : List Stmt → List LeanVM.Core.Atom
   | [] => []
   | s :: ss => (match s with
       | .atom a => [a]
@@ -113,7 +113,7 @@ def main (args : List String) : IO UInt32 := do
   let mut badT : Array String := #[]
   let mut ntmps := 0
   for (pf, tf) in pls.zip P do
-    ntmps := ntmps + (LeanVM.Guest.Memory.Stmt.tmpsList tf.core.body).length
+    ntmps := ntmps + (LeanVM.Core.Memory.Stmt.tmpsList tf.core.body).length
     if tmpsApartB tf pf then okT := okT + 1
     else badT := badT.push tf.core.name
   IO.println s!"temporaries apart: {okT} of {pls.length} functions ({ntmps} temporaries)"

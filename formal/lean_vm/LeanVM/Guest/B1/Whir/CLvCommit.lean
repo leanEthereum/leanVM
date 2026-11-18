@@ -21,8 +21,8 @@ the value and the query nonce read and permuted (`commitS`), the zero run alloca
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
-open LeanVM.Guest.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
+open LeanVM.Core.Value LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
 

@@ -35,7 +35,7 @@ namespace LeanVM.Guest.Budget
 
 open LeanVM.Guest.Completeness
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Memory LeanVM.Core.Memory
 open LeanVM.Node LeanVM.Protocol
 open LeanVM.Guest.End (MainComplete Budget work bytecode bytecode_length)
 open LeanVM.Guest.B1.Main (Bmain mainBsH hm hData mainPredsH hDvNH VerifySubGoalsTB MainStatics

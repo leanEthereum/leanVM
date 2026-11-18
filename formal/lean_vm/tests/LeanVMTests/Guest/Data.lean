@@ -1,5 +1,5 @@
 import Statement.Data.Bytecode
-import LeanVM.Guest.Code
+import LeanVM.Core.Code
 import LeanVM.Guest.Data.Source
 import LeanVMTests.Guest.Manifest
 import LeanVMTests.Guest.Programs

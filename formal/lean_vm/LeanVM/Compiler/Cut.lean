@@ -36,7 +36,7 @@ the previous state's, so no check evaluates the walk that led to its state.
 
 namespace LeanVM.Compiler
 
-open LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Guest LeanVM.Core
 
 @[expose] public section
 

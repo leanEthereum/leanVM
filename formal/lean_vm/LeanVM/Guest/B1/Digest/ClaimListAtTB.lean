@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Digest.ClaimListAt
 public import LeanVM.Guest.B1.Digest.LoopAtB
-public import LeanVM.Guest.Memory.LoopPre
+public import LeanVM.Core.Memory.LoopPre
 public import LeanVM.Guest.B1.Main.IterK
 public import LeanVM.Guest.Data.NameStrings
 
@@ -27,9 +27,9 @@ bounds `SB`, `SK` are hypotheses (`TotalLe`, `TotalLeOn` on `LoopPre`). `list_sp
 
 namespace LeanVM.Guest.B1.Digest
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Core.Value.Keccak
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
-open LeanVM.Guest.Memory LeanVM.Guest.B1.Fwd
+open LeanVM.Guest.Memory LeanVM.Core.Memory LeanVM.Guest.B1.Fwd
 open LeanVM.Guest.B1 (CompleteAtD CompleteAtDT CompleteAtDTB KidsDTB kidsFromInT_of_kidsDTB kidsBoundL
   Returns Kid DisjL Within disj_append completeAt_of_rel_pureB completeAt_of_rel_pureBat
   completeAtDTB_of_relIn regionsOk_of within_append bufL bufL_within bufL_disj bufL_region LowDef)

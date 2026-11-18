@@ -33,7 +33,7 @@ decides for runs of entries (`Eval/`).
 
 namespace LeanVM.Guest.Compiled.Cpl
 
-open LeanVM.Compiler LeanVM.Guest LeanVM.Guest.Core GuestPiece
+open LeanVM.Compiler LeanVM.Core GuestPiece
 
 @[expose] public section
 

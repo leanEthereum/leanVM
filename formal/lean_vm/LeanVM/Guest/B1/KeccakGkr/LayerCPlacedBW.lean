@@ -19,8 +19,8 @@ At the deployed frame sizes the words certificates (`Count.Words`) bound the eig
 
 namespace LeanVM.Guest.B1.VerifySub
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
-open LeanVM.Guest.Memory LeanVM.Guest.Count
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Guest.B1
+open LeanVM.Core.Memory LeanVM.Guest.Count
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Guest.B1.Main (MemL RegionL)
 open LeanVM.Protocol.KeccakGkr

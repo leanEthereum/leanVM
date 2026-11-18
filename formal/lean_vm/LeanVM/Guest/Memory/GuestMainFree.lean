@@ -8,7 +8,7 @@
 module
 
 public import LeanVM.Guest.Memory.GuestMem
-public import LeanVM.Guest.Memory.SizeTransfer
+public import LeanVM.Core.Memory.SizeTransfer
 
 /-!
 # No function of the guest calls `main`
@@ -20,7 +20,7 @@ sizes agreeing but at `main`.
 
 namespace LeanVM.Guest
 
-open Core Memory
+open Core Memory Core.Memory
 
 @[expose] public section
 

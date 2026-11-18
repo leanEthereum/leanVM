@@ -27,7 +27,7 @@ that is the only place the induction on steps enters, and `FunSpecLtReached` car
 
 namespace LeanVM.Compiler
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 

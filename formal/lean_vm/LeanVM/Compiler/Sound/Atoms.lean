@@ -29,7 +29,7 @@ One case an atom:
 
 namespace LeanVM.Compiler
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 
@@ -60,7 +60,7 @@ theorem place_const (d : V) (c : E) :
   refine SpecAt.bindTT (SpecAt.lastT (isLazy_spec _ _)) fun b _ => ?_
   split
   · refine SpecAt.lastH (pooled_spec
-      (fun o => wd Γ.L fp o = Guest.word (limbsOf c).1 (limbsOf c).2) (fun _ => rfl)
+      (fun o => wd Γ.L fp o = Core.word (limbsOf c).1 (limbsOf c).2) (fun _ => rfl)
       (fun sc o hp ho => hp.consts _ o ho) (fun o pc h => holds_set_const h)
       (fun sc o hp ho => hp.insertConst ho)) fun _ _ ⟨o, ho, hd⟩ => ?_
     show valP Γ.L fp F d = c

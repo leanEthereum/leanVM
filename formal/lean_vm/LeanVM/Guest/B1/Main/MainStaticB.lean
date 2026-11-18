@@ -11,7 +11,7 @@ module
 public import LeanVM.Guest.B1.Main.KidCoverAtB
 public import LeanVM.Guest.B1.Main.RawAt
 public import LeanVM.Guest.Budget.Bounded
-public import LeanVM.Guest.Memory.LoopPre
+public import LeanVM.Core.Memory.LoopPre
 public import LeanVM.Guest.B1.Main.IterK
 public import LeanVM.Guest.Data.NameStrings
 
@@ -29,7 +29,7 @@ a call site charges it once, `iterK fs SK g` words per iteration and `fs g` for 
 
 namespace LeanVM.Guest.B1.Main
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value LeanVM.Core.Memory
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd
 open LeanVM.Guest.B1.Da (relAtIn_atoms RunIn SlOk slEvs_holds regionL_of_mem limb0_gen_pow_mul)

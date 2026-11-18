@@ -10,7 +10,7 @@ import LeanVM.Guest.Data.Source
 
 namespace LeanVMTests.Guest.Snippets
 
-open LeanVM.Guest.Source
+open LeanVM.Core.Source
 
 /-- A snippet's program: the guest's functions it reaches, in the guest's order, then its `main`. -/
 def program (keep : List String) (main : Func) : Program :=

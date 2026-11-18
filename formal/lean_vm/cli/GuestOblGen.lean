@@ -33,7 +33,7 @@ a file not written here. Run under `lake env` (as `lake exe` does) after the cor
 `B1.Opening.Interface` are built (`scripts/regen-guest.sh`, step `backend`).
 -/
 
-open Lean LeanVM.Guest LeanVM.Guest.Core
+open Lean LeanVM.Core
 open LeanVMTests.Guest.CoreData (R list fn nat str app bad unfold)
 
 namespace GuestOblGen
@@ -395,7 +395,7 @@ public import LeanVM.Compiler.Sound.Obl.CheckSound
 
 namespace LeanVM.Guest.Compiled.Obl
 
-open LeanVM.Compiler LeanVM.Compiler.Obl LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Compiler LeanVM.Compiler.Obl LeanVM.Parameters LeanVM.Guest LeanVM.Core
 
 @[expose] public section
 

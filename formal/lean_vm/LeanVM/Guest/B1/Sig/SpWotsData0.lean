@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Common.Basic
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Guest LeanVM.Core
 
 @[expose] public section
 

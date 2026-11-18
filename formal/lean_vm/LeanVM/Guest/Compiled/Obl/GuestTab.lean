@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.Compiled.Obl.GuestX
-public import LeanVM.Guest.Renumber
+public import LeanVM.Core.Renumber
 public import LeanVM.Guest.Data.NameStrings
 
 /-!

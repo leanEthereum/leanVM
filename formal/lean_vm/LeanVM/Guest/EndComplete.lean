@@ -29,7 +29,7 @@ the counts are bounded on.
 
 namespace LeanVM.Guest.End
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Node
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Memory LeanVM.Core.Memory LeanVM.Node
 open LeanVM.Guest.B1 (LowDef)
 open LeanVM.Guest.B1.Main (KFacts imageOf LConsistent Layout MemL)
 

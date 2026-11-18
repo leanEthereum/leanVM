@@ -20,7 +20,7 @@ the share's last capacity and cursor are the honest ones (`vtBcR3`), the selecto
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Guest.B1.Fwd LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protocol.Compile
 open LeanVM.Protocol.EndToEnd.Complete (blockSel)
 

@@ -23,7 +23,7 @@ public import LeanVM.Guest.B1.Digest.CompleteSmall
 
 namespace LeanVM.Guest.B1.Digest
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Core.Memory
 open LeanVM.Protocol.Verifier (gen)
 open LeanVM.Guest.B1 (LowDef CompleteAtD Returns)
 open LeanVM.Guest.B1.Main (Layout MemL RegionL)

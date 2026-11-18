@@ -21,8 +21,8 @@ gives `OblFn`.
 
 namespace LeanVM.Guest.Compiled.Obl
 
-open LeanVM.Compiler LeanVM.Compiler.Obl LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.B1
-open LeanVM.Protocol.Verifier LeanVM.Guest.Value
+open LeanVM.Compiler LeanVM.Compiler.Obl LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1
+open LeanVM.Protocol.Verifier LeanVM.Core.Value
 
 @[expose] public section
 

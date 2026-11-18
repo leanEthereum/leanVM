@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Whir.Template
 public import LeanVM.Guest.B1.Whir.Vanish
-public import LeanVM.Guest.Pow
+public import LeanVM.Core.Pow
 
 /-!
 # The normalizers, certified
@@ -23,6 +23,8 @@ are at most `logCols + 1`, and the final level's tables hold `yrLog + 1` roots (
 -/
 
 namespace LeanVM.Guest.B1.Whir
+
+open LeanVM.Core
 
 open LeanVM.Parameters
 

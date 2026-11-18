@@ -23,7 +23,7 @@ among its atoms (`placeNew : PlaceNew ctx`), and the trace left only shrinks.
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 

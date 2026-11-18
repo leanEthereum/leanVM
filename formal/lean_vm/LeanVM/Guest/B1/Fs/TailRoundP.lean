@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.Sumcheck.Run
-public import LeanVM.Guest.CoreFind
+public import LeanVM.Core.Find
 import LeanVM.Guest.B1.Common.Vc
 public import LeanVM.Guest.Pack.P45.Core
 
@@ -30,7 +30,7 @@ meaning is rewritten to.
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Value
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section

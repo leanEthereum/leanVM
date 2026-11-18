@@ -33,7 +33,7 @@ whose cells fit the runs, the guest is complete within
 
 namespace LeanVM.Guest.Compiled.Cpl
 
-open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Compiler LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 open LeanVM.Guest.Completeness LeanVM.Guest.Budget
 open LeanVM.Node
 open LeanVM.Guest.End (GuestCompleteWithin bytecode bytecode_length MainComplete)

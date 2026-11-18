@@ -11,7 +11,7 @@ public import LeanVM.Guest.B1.Tables.VtC.AHon
 public import LeanVM.Guest.B1.Tables.VtC.ABuf
 public import LeanVM.Guest.B1.Tables.VtC.BMain
 public import LeanVM.Guest.B1.Selectors.LayoutBasic
-public import LeanVM.Guest.Memory.Straight
+public import LeanVM.Core.Memory.Straight
 public import LeanVM.Guest.B1.Tables.VtC.FData
 public import LeanVM.Guest.B1.Bits.Tables
 
@@ -29,7 +29,7 @@ the witnesses, the callees' returns).
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 open LeanVM.Protocol.EndToEnd.Complete (termsPure blockSel)
 
@@ -99,7 +99,7 @@ def vtAllocVars : List ℕ :=
 theorem vtAllocVars_length : vtAllocVars.length = 111 := by decide
 
 /-- **The allocations, by the kernel.** -/
-theorem vt_allocs : (vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map (fun x ↦ x.1) =
+theorem vt_allocs : (vtPre.filterMap LeanVM.Core.Memory.Stmt.allocSz).map (fun x ↦ x.1) =
     vtAllocVars.map V.n := by decide +kernel
 
 namespace VtHonest
@@ -170,7 +170,7 @@ noncomputable def ownW : List (List E) :=
       (List.range (H.n + 1)).map (prefixProd 1 H.chiW ((H.point.map (1 + ·)).take H.n))]
 
 /-- The own buffers' bases. -/
-def ownB : List ℕ := LeanVM.Guest.Memory.bases B.own H.sizes
+def ownB : List ℕ := LeanVM.Core.Memory.bases B.own H.sizes
 
 /-- **The own buffers at the bump allocator's positions.** -/
 noncomputable def ownL : TLay := (H.ownB B).zip (H.ownW B)

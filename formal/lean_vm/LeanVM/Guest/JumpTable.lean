@@ -7,7 +7,7 @@
 module
 
 public import LeanVM.Guest.Bytecode
-public import LeanVM.Guest.Logic
+public import LeanVM.Core.Logic
 public import LeanVM.Guest.Memory.GuestTable
 
 /-!
@@ -22,7 +22,7 @@ converse for completeness.
 
 namespace LeanVM.Guest.End
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 

@@ -7,8 +7,8 @@
 module
 
 public import LeanVM.Guest.Value.KeccakConst
-public import LeanVM.Guest.Value.KeccakDuplex
-public import LeanVM.Guest.Value.KeccakSponge
+public import LeanVM.Core.Value.KeccakDuplex
+public import LeanVM.Core.Value.KeccakSponge
 public import LeanVM.Guest.Batch.Def
 
 /-!

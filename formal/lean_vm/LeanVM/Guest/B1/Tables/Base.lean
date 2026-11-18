@@ -9,9 +9,9 @@
 module
 
 public import LeanVM.Guest.B1.Common.Basic
-public import LeanVM.Guest.CoreLemmas
+public import LeanVM.Core.Lemmas
 public import LeanVM.Guest.Value.Keccak
-public import LeanVM.Guest.Value.Bits
+public import LeanVM.Core.Value.Bits
 public import LeanVM.Protocol.WithHash
 
 /-!
@@ -31,7 +31,7 @@ shared `B1/Common` has them.
 
 namespace LeanVM.Guest.B1.Tables
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section

@@ -24,7 +24,7 @@ step's size `W.size`, the group's selector cell and the digit value its dispatch
 
 namespace LeanVM.Guest.Fast
 
-open LeanVM.Parameters LeanVM.Guest.Core LeanVM.Guest.B1.Sig
+open LeanVM.Parameters LeanVM.Core LeanVM.Guest.B1.Sig
 
 @[expose] public section
 

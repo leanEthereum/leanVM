@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Sumcheck.MeaningP
 
 namespace LeanVM.Guest.B1
 
-open LeanVM.Guest.Core
+open LeanVM.Core
 
 @[expose] public section
 

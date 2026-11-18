@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Main.KidCoverAt
 public import LeanVM.Guest.Budget.Bounded
-public import LeanVM.Guest.Memory.Size
+public import LeanVM.Core.Memory.Size
 
 /-!
 # A child's statement digest, bounded
@@ -19,7 +19,7 @@ public import LeanVM.Guest.Memory.Size
 
 namespace LeanVM.Guest.B1.Main
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Value LeanVM.Core.Memory
 open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd
 open LeanVM.Guest.B1 (CompleteAtDTB Returns completeAt_of_rel_pureBat)
 

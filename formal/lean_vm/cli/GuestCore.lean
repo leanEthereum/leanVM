@@ -1,7 +1,7 @@
 import LeanVM.Guest.Data.Source
-import LeanVM.Guest.Expand
-import LeanVM.Guest.Interp
-import LeanVM.Guest.Renumber
+import LeanVM.Core.Expand
+import LeanVM.Core.Interp
+import LeanVM.Core.Renumber
 import LeanVM.Guest.PackHash
 
 /-!
@@ -21,7 +21,7 @@ nothing and fails when the files differ; `lake exe guest-core --values f` prints
 name of each value of the function `f`, and `--show f` the function, renumbered. Run it from `lean_vm`.
 -/
 
-open LeanVM.Parameters LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Guest LeanVM.Core
 
 namespace GuestCore
 
@@ -308,11 +308,11 @@ def fnFileName (n i : Nat) : String := if i + 1 = n then "Core" else s!"Core{i +
 /-- File `i` of the `n` files of the function of stable name `key`. -/
 def File.text (key : String) (n i : Nat) (f : File) : String :=
   header s!"Pack.{key}.{fnFileName n i}" s!"The core IR of `{key}`." ++
-  "public import LeanVM.Guest.Renumber\n" ++
+  "public import LeanVM.Core.Renumber\n" ++
   String.join (f.imports.map fun k => s!"public import LeanVM.Guest.Pack.{key}.{fnFileName n k}\n") ++ s!"
 namespace LeanVM.Guest.Fn.«{key}»
 
-open LeanVM.Guest
+open LeanVM.Core
 
 set_option maxRecDepth 20000
 set_option linter.all false
@@ -377,7 +377,7 @@ def indexFile (keys : List String) (mods : List String) : String :=
   String.join imports ++ "
 namespace LeanVM.Guest.Data
 
-open LeanVM.Guest
+open LeanVM.Core
 
 set_option maxRecDepth 20000
 set_option linter.all false
@@ -417,7 +417,7 @@ partial def callees : List Stmt → List String
 def isLoop (name : String) : Bool := name.startsWith "__loop"
 
 /-- Each function's stable name: its own, a loop's from its first caller (`{caller}_loop{k}`). -/
-partial def stableNames (P : Core.Program) : Array String := Id.run do
+partial def stableNames (P : LeanVM.Core.Program) : Array String := Id.run do
   let names := P.toArray.map (·.name)
   -- a loop's first caller other than itself, and its place among that caller's loops
   let mut parent : Std.HashMap String (Nat × Nat) := {}
@@ -431,7 +431,7 @@ partial def stableNames (P : Core.Program) : Array String := Id.run do
     | _, _ => names.getD j ""
   return (List.range names.size).toArray.map (go names.size)
 
-def namesFile (P : Core.Program) : String :=
+def namesFile (P : LeanVM.Core.Program) : String :=
   let st := stableNames P
   let rows (f : String → Nat → String) : String :=
     String.join ((P.zipIdx.map fun (_, j) => f (st.getD j "") j))
@@ -464,7 +464,7 @@ end
 end LeanVM.Guest.Data
 "
 
-def nameStringsFile (P : Core.Program) : String :=
+def nameStringsFile (P : LeanVM.Core.Program) : String :=
   let st := stableNames P
   header "Data.NameStrings" "The core functions' names by their stable names." ++ "public import LeanVM.Guest.CoreRef
 
@@ -505,12 +505,12 @@ def ownSize : Nat := 300000
 /-- A pack's file: its functions, in the order of their stable names, each in its namespace. -/
 def packText (i : Nat) (fs : List (String × String)) : String :=
   header s!"Pack.P{i}.Core" s!"The core IR of the functions of pack {i}." ++
-  "public import LeanVM.Guest.Renumber\n\n" ++
+  "public import LeanVM.Core.Renumber\n\n" ++
   "set_option maxRecDepth 20000\nset_option linter.all false\n" ++
   String.join (fs.map fun (key, body) => s!"
 namespace LeanVM.Guest.Fn.«{key}»
 
-open LeanVM.Guest
+open LeanVM.Core
 
 @[expose] public section
 
@@ -520,7 +520,7 @@ end LeanVM.Guest.Fn.«{key}»
 ")
 
 /-- The files, by path below `LeanVM/Guest`: the own packs', the packs', then the glue's. -/
-def files (P : Core.Program) : List (String × String) :=
+def files (P : LeanVM.Core.Program) : List (String × String) :=
   let st := stableNames P
   let keys := (List.range P.length).map fun j => st.getD j ""
   let defs := (P.zip keys).map fun (f, key) => (key, pack [pFn key f])

@@ -8,11 +8,11 @@
 module
 
 public import LeanVM.Guest.Data.Core
-public import LeanVM.Guest.CoreFind
+public import LeanVM.Core.Find
 public import LeanVM.Guest.Data.Names
-public import LeanVM.Guest.Renumber
+public import LeanVM.Core.Renumber
 public import Statement.Data.Bytecode
-public import LeanVM.Guest.Code
+public import LeanVM.Core.Code
 
 /-!
 # The guest's core IR

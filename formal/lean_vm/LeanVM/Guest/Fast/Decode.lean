@@ -21,7 +21,7 @@ name's index (`nameIndex`) and reads the frame by that function's places (`guest
 
 namespace LeanVM.Guest.Fast
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main LeanVM.Node
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.B1 LeanVM.Guest.B1.Main LeanVM.Node
 open LeanVM.Guest.Located LeanVM.Extraction.Fast
 
 attribute [local instance] lexOrd

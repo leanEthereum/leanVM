@@ -15,7 +15,7 @@ arm `0`. The kernel evaluates the lists, one pass a group (`Fast/SpWotsTablesChe
 
 namespace LeanVM.Guest.Fast
 
-open LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.B1.Sig
+open LeanVM.Core LeanVM.Guest.B1.Sig
 
 @[expose] public section
 

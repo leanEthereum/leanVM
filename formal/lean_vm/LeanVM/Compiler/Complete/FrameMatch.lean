@@ -19,7 +19,7 @@ arm's words at its position, the arms before it passed over (`wArms_pick`).
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory
 
 @[expose] public section
 
@@ -711,12 +711,12 @@ variable {ctx : Compiler.Ctx} {I : Inst} {C : (ℕ → E) → Prop} {st : St}
 /-- **The cells an unchained `match` jumps with**: its selector's (holding its value), the frame
 pointer's and the pooled `1`. -/
 theorem matchCells_fat (hI : I.Ok) (hmain : ctx.isMain = true → I.fp = 0)
-    (hk1 : I.kw (.const 1 0) = Guest.word 1 0) {x : V} {rest : List Stmt} {ok : V → Prop}
+    (hk1 : I.kw (.const 1 0) = Core.word 1 0) {x : V} {rest : List Stmt} {ok : V → Prop}
     (hv : VW I C st ok) (hx : ok x) (h2 : 2 ≤ st.next) :
     FAt ctx I C st (matchCells x rest false) fun r C' st' => r.2.1 = none ∧
       2 ≤ r.1 ∧ r.1 < st'.next ∧ (∀ Ψ, C' Ψ → Ψ r.1 = I.σ x) ∧
       2 ≤ r.2.2.1 ∧ r.2.2.1 < st'.next ∧ (∀ Ψ, C' Ψ → Ψ r.2.2.1 = I.fpw) ∧
-      2 ≤ r.2.2.2 ∧ r.2.2.2 < st'.next ∧ (∀ Ψ, C' Ψ → Ψ r.2.2.2 = Guest.word 1 0) ∧
+      2 ≤ r.2.2.2 ∧ r.2.2.2 < st'.next ∧ (∀ Ψ, C' Ψ → Ψ r.2.2.2 = Core.word 1 0) ∧
       st'.locs = st.locs ∧ st'.rest = st.rest := by
   unfold matchCells
   simp only [Bool.false_eq_true, ite_false]

@@ -25,7 +25,7 @@ module
 %s
 namespace LeanVM.Guest.Count
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Memory LeanVM.Core.Memory
 open LeanVM.Guest.B1.Main (nameSum dlK clC clS ccC ccS dvC dvS dvP l5A0 l5A1 l5A2 agA0 agA1
   mainWords)
 
@@ -243,7 +243,7 @@ module
 @IMPORTS@
 namespace LeanVM.Guest.Count
 
-open LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest LeanVM.Guest.Data
+open LeanVM.Core LeanVM.Guest.Memory LeanVM.Core.Memory LeanVM.Guest.Data
 
 @[expose] public section
 
@@ -308,7 +308,7 @@ module
 %s
 namespace LeanVM.Guest.Count
 
-open LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest LeanVM.Guest.Data
+open LeanVM.Core LeanVM.Guest.Memory LeanVM.Core.Memory LeanVM.Guest.Data
 
 @[expose] public section
 %s

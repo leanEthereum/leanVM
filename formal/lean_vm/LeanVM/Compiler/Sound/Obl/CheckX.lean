@@ -20,7 +20,7 @@ soundness theorem (`Obl.CheckXSound`) takes as a hypothesis on the statements be
 
 namespace LeanVM.Compiler.Obl
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 

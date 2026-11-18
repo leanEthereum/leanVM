@@ -20,7 +20,7 @@ buffers' sizes (`osSizesL`) at the indices the reads use. `Whir/CHonStatic{0..3}
 
 namespace LeanVM.Guest.B1.Whir
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest LeanVM.Guest.B1
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest LeanVM.Guest.B1
 
 @[expose] public section
 

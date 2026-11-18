@@ -29,7 +29,7 @@ The glue is the walk's own structure:
 
 namespace LeanVM.Compiler
 
-open LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Guest LeanVM.Core
 
 @[expose] public section
 

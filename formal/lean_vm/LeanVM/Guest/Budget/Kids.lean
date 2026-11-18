@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.Memory.Size
+public import LeanVM.Core.Memory.Size
 public import LeanVM.Guest.B1.Main.KidsT
 
 /-!
@@ -21,7 +21,7 @@ the callee's frame over the others (a phantom allocates its frame).
 
 namespace LeanVM.Guest.Budget
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Guest.Memory LeanVM.Core.Memory
 
 @[expose] public section
 

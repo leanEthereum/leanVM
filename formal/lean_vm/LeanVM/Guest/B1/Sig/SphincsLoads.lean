@@ -19,8 +19,8 @@ public import LeanVM.Guest.B1.Sig.SphincsCompleteSpec
 
 namespace LeanVM.Guest.B1.Sig
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
-open LeanVM.Guest.Memory
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
+open LeanVM.Core.Memory
 
 @[expose] public section
 

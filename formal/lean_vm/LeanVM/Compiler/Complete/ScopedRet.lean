@@ -18,7 +18,7 @@ drops a prefix of the trace whose return areas fit (`Cons`).
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Core
 
 @[expose] public section
 

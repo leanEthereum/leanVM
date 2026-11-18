@@ -9,7 +9,7 @@ module
 
 public import LeanVM.Guest.CoreRef
 public import LeanVM.Guest.Deployed
-public import LeanVM.Guest.Memory.WeightRatio
+public import LeanVM.Core.Memory.WeightRatio
 public import LeanVM.Guest.Memory.GuestIdx
 
 /-!
@@ -25,7 +25,7 @@ calls'. `kr_weight`: then every valid tree of a function of `J` counts at most `
 
 namespace LeanVM.Guest.Count
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Memory LeanVM.Guest.Deployed
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core LeanVM.Core.Memory LeanVM.Guest.Deployed
 
 @[expose] public section
 

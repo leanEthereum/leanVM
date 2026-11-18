@@ -11,12 +11,12 @@ module
 
 public import LeanVM.Guest.Memory.GuestWords.All
 public import LeanVM.Guest.Memory.FamilySound
-public import LeanVM.Guest.Memory.StaticWords
+public import LeanVM.Core.Memory.StaticWords
 public import LeanVM.Guest.Deployed
 
 namespace LeanVM.Guest
 
-open LeanVM.Parameters LeanVM.Semantics Core Memory Data
+open LeanVM.Parameters LeanVM.Semantics Core Memory Core.Memory Data
 
 @[expose] public section
 

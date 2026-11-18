@@ -31,7 +31,7 @@ with the same properties, and its result satisfies `R` under it.
 
 namespace LeanVM.Compiler.Complete
 
-open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.Guest.Core
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Core
 
 @[expose] public section
 
@@ -86,7 +86,7 @@ def Inst.TL (I : Inst) (pw : E) (off d : ℕ) : Prop :=
 /-- **The pools of a scope hold on the frame words `Ψ`**, the places being `locs` (a load into a
 temporary's cell is remembered with no word). -/
 structure PoolW (I : Inst) (Ψ : ℕ → E) (locs : VMap Loc) (sc : Scope) : Prop where
-  consts : ∀ k o, sc.consts.get? k = some o → Ψ o = Guest.word k.1 k.2
+  consts : ∀ k o, sc.consts.get? k = some o → Ψ o = Core.word k.1 k.2
   xors : ∀ k o, sc.xors.get? k = some o → Ψ o = Ψ k.1 + Ψ k.2
   muls : ∀ k o, sc.muls.get? k = some o → Ψ o = Ψ k.1 * Ψ k.2
   loads : ∀ k o, sc.loads.get? k = some o → IsInK (Ψ k.1) ∧
@@ -184,7 +184,7 @@ theorem PoolW.grow (h : PoolW I Ψ locs sc) {locs' : VMap Loc}
       fun t htm he => ht t htm (cellP_mono hl he)⟩ }
 
 theorem PoolW.insertConst (h : PoolW I Ψ locs sc) {k : ℕ × ℕ} {o : Cell}
-    (ho : Ψ o = Guest.word k.1 k.2) :
+    (ho : Ψ o = Core.word k.1 k.2) :
     PoolW I Ψ locs { sc with consts := sc.consts.insert k o } := by
   refine { h with consts := fun k' o' hk => ?_ }
   rw [PMap.get?_insert] at hk
@@ -193,7 +193,7 @@ theorem PoolW.insertConst (h : PoolW I Ψ locs sc) {k : ℕ × ℕ} {o : Cell}
   · exact h.consts k' o' hk
 
 theorem PoolW.insertConstIfNew (h : PoolW I Ψ locs sc) {k : ℕ × ℕ} {o : Cell}
-    (ho : Ψ o = Guest.word k.1 k.2) :
+    (ho : Ψ o = Core.word k.1 k.2) :
     PoolW I Ψ locs { sc with consts := sc.consts.insertIfNew k o } := by
   refine { h with consts := fun k' o' hk => ?_ }
   rw [PMap.get?_insertIfNew] at hk
@@ -332,7 +332,7 @@ through a pointer cell no `DEREF` of the frame pointer writes through (`TmpsApar
 sentinel's word is in `K`, and no place is a shift by `g^0`. -/
 structure Inst.Ok (I : Inst) : Prop where
   rd : ∃ rd, I.Rd rd
-  kconst : ∀ x y, I.kw (.const x y) = Guest.word x y
+  kconst : ∀ x y, I.kw (.const x y) = Core.word x y
   ksize : I.loopH = true → I.kw .frameSize = ofK (addressOfIndex I.size)
   tsep : ∀ v n, v ∈ I.named → cellP I.locs v = some n → I.tc n → v ∈ I.tmps
   tops : ∀ c, I.tc c → ∀ o ∈ I.ops, c ∈ opCells o →
@@ -450,10 +450,10 @@ theorem FAt.quiet {g : St → St} {R : PUnit → ((ℕ → E) → Prop) → St �
 
 /-- **A pooled constant on the path**: its cell, a good cell, holds the constant; the values'
 places and the trace are as they were. -/
-theorem constCell_fat (k : ℕ × ℕ) (hkw : I.kw (.const k.1 k.2) = Guest.word k.1 k.2)
+theorem constCell_fat (k : ℕ × ℕ) (hkw : I.kw (.const k.1 k.2) = Core.word k.1 k.2)
     (h2 : 2 ≤ st.next) :
     FAt ctx I C st (constCell k) (fun o C' st' => 2 ≤ o ∧ o < st'.next ∧ st'.locs = st.locs ∧
-      st'.rest = st.rest ∧ ∀ Ψ, C' Ψ → Ψ o = Guest.word k.1 k.2) := by
+      st'.rest = st.rest ∧ ∀ Ψ, C' Ψ → Ψ o = Core.word k.1 k.2) := by
   intro hc
   unfold constCell fresh emitOp takeHints push
   refine wp_bind.mpr (wp_get.mpr ?_)
@@ -464,10 +464,10 @@ theorem constCell_fat (k : ℕ × ℕ) (hkw : I.kw (.const k.1 k.2) = Guest.word
       fun Ψ hΨ => (hc.pools Ψ hΨ).consts k o ho⟩
   · refine wp_bind.mpr (wp_modifyGet.mpr (wp_bind.mpr (wp_bind.mpr (wp_modifyGet.mpr
       (wp_modify.mpr (wp_bind.mpr (wp_modify.mpr (wp_pure.mpr ?_))))))))
-    have hw : WBlind (fun _ => Guest.word k.1 k.2) st.next := wblind_const _ _
+    have hw : WBlind (fun _ => Core.word k.1 k.2) st.next := wblind_const _ _
     have hg : GoodCell (st.next + 1) st.next := ⟨h2, Nat.lt_succ_self _⟩
     have hsc := hc.cells.mono (Nat.le_succ st.next)
-    refine ⟨fun Ψ => C Ψ ∧ Ψ st.next = Guest.word k.1 k.2, ⟨assign_sat hc.blind hw le_rfl hc.sat,
+    refine ⟨fun Ψ => C Ψ ∧ Ψ st.next = Core.word k.1 k.2, ⟨assign_sat hc.blind hw le_rfl hc.sat,
       assign_blind hc.blind hw le_rfl, fun Ψ hΨ => (hc.pools Ψ hΨ.1).insertConst hΨ.2,
       { hsc with consts := pmap_insert_imp hsc.consts hg }⟩,
       fun Ψ h => h.1, Nat.le_succ _, LocsLe.refl _, ?_, h2, Nat.lt_succ_self _, rfl, rfl,

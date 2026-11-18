@@ -91,7 +91,7 @@ def nvEnd : ℕ → ℕ → ℕ → ℕ
   | 0, _, k => k
   | c + 1, n, k => nvEnd c ((n + 1) / 2) (k + n)
 
-theorem nvLevelT_end (w : LeanVM.Guest.Core.V) : ∀ (ins : List ℕ) (k : ℕ),
+theorem nvLevelT_end (w : LeanVM.Core.V) : ∀ (ins : List ℕ) (k : ℕ),
     (nvLevelT w ins k).2.2 = k + ins.length ∧
       (nvLevelT w ins k).2.1.length = (ins.length + 1) / 2
   | lo :: hi :: rest, k => by
